@@ -34,17 +34,6 @@
 
 // Class BlockableObject 
 
-BlockableObject::BlockableObject()
-  //## begin BlockableObject::BlockableObject%3BB1F71F03C9_const.hasinit preserve=no
-  //## end BlockableObject::BlockableObject%3BB1F71F03C9_const.hasinit
-  //## begin BlockableObject::BlockableObject%3BB1F71F03C9_const.initialization preserve=yes
-  //## end BlockableObject::BlockableObject%3BB1F71F03C9_const.initialization
-{
-  //## begin BlockableObject::BlockableObject%3BB1F71F03C9_const.body preserve=yes
-  //## end BlockableObject::BlockableObject%3BB1F71F03C9_const.body
-}
-
-
 
 //## Other Operations (implementation)
 CountedRefTarget * BlockableObject::clone (int flags)
@@ -53,7 +42,7 @@ CountedRefTarget * BlockableObject::clone (int flags)
   BlockSet bset;
   toBlock(bset);
   bset.privatizeAll(flags);
-  return DynamicTypeManager::construct(type(),bset);
+  return DynamicTypeManager::construct(objectType(),bset);
   //## end BlockableObject::clone%3BFE5FE103C5.body
 }
 

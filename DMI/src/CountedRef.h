@@ -92,6 +92,9 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       //	target's const methods.
       const T* operator -> () const;
 
+      //## Operation: operator *%3C5FBE030173
+      const T& operator * () const;
+
       //## Operation: dewr%3BEFF73602B0; C++
       //	Dereferences to non-const object.
       T& dewr ();
@@ -136,6 +139,12 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       //	Unlocks ref -- see CountedRefBase::unlock().
       CountedRef<T>& unlock ();
 
+      //## Operation: persist%3C501A15015C
+      CountedRef<T>& persist ();
+
+      //## Operation: unpersist%3C501A1C01FD
+      CountedRef<T>& unpersist ();
+
       //## Operation: change%3C1897A5032E; C++
       //	Changes ref properties -- see CountedRefBase::change().
       CountedRef<T>& change (int flags);
@@ -168,6 +177,7 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       CountedRefBase::isWritable;
       CountedRefBase::isExclusiveWrite;
       CountedRefBase::isAnonObject;
+      CountedRefBase::hasOtherWriters;
       CountedRefBase::debug;
       CountedRefBase::sdebug;
       //## end CountedRef%3BEFECFF0287.public
@@ -353,8 +363,10 @@ template <class T>
 inline CountedRef<T> & CountedRef<T>::operator=(const CountedRef<T> &right)
 {
   //## begin CountedRef::operator=%3BEFECFF0287_assign.body preserve=yes
-  dprintf(5)("      CountedRefBase/%08x assignment: %08x\n",(int)this,(int)&right);
-  return xfer((CountedRef<T>&)right);
+  (*(CountedRefBase*)this) = *(CountedRefBase*)&right;
+  return *this;
+//  dprintf(5)("      CountedRefBase/%08x assignment: %08x\n",(int)this,(int)&right);
+//  return xfer((CountedRef<T>&)right);
   //## end CountedRef::operator=%3BEFECFF0287_assign.body
 }
 
@@ -378,6 +390,14 @@ inline const T* CountedRef<T>::operator -> () const
 }
 
 template <class T>
+inline const T& CountedRef<T>::operator * () const
+{
+  //## begin CountedRef::operator *%3C5FBE030173.body preserve=yes
+  return deref();
+  //## end CountedRef::operator *%3C5FBE030173.body
+}
+
+template <class T>
 inline T& CountedRef<T>::dewr ()
 {
   //## begin CountedRef::dewr%3BEFF73602B0.body preserve=yes
@@ -389,7 +409,7 @@ template <class T>
 inline T& CountedRef<T>::operator () ()
 {
   //## begin CountedRef::operator %3C0F806901C1.body preserve=yes
-  return &dewr();
+  return dewr();
   //## end CountedRef::operator %3C0F806901C1.body
 }
 
@@ -478,6 +498,24 @@ inline CountedRef<T>& CountedRef<T>::unlock ()
   CountedRefBase::unlock();
   return *this;
   //## end CountedRef::unlock%3C187F2E0291.body
+}
+
+template <class T>
+inline CountedRef<T>& CountedRef<T>::persist ()
+{
+  //## begin CountedRef::persist%3C501A15015C.body preserve=yes
+  CountedRefBase::persist();
+  return *this;
+  //## end CountedRef::persist%3C501A15015C.body
+}
+
+template <class T>
+inline CountedRef<T>& CountedRef<T>::unpersist ()
+{
+  //## begin CountedRef::unpersist%3C501A1C01FD.body preserve=yes
+  CountedRefBase::unpersist();
+  return *this;
+  //## end CountedRef::unpersist%3C501A1C01FD.body
 }
 
 template <class T>
@@ -583,6 +621,8 @@ inline LockedCountedRef<T>::~LockedCountedRef()
 //    BlockRef (as CountedRef<SmartBlock>), 
 //    and LockedBlockRef (as LockedCountedRef)
 #define DefineRefTypes(type,reftype) typedef CountedRef<type> reftype; typedef LockedCountedRef<type> Locked##reftype;
+
+#define newAnon(type) type##ref(new type,DMI::ANON|DMI::WRITE)
 
 //## end module%3C10CC810321.epilog
 

@@ -73,11 +73,11 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
 
       //## Operation: SmartBlock%3BFE299902D7
       //	Allocates a SmartBlock from the heap.
-      explicit SmartBlock (size_t size);
+      explicit SmartBlock (size_t size, int flags = 0);
 
       //## Operation: SmartBlock%3BFA4FCA0387
       //	Creates a SmartBlock in shared memory.
-      SmartBlock (size_t size, int shm_flags);
+      SmartBlock (size_t size, int shm_flags, int flags);
 
       //## Operation: SmartBlock%3BFE303F0022
       //	Cloning copy constructor. Must be called explicitly as Smart
@@ -139,9 +139,6 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
       //## end SmartBlock%3BEAACAB0041.protected
 
   private:
-    //## Constructors (generated)
-      SmartBlock(const SmartBlock &right);
-
     //## Assignment Operation (generated)
       SmartBlock & operator=(const SmartBlock &right);
 
@@ -249,6 +246,10 @@ inline const int SmartBlock::getShmid () const
 }
 
 //## begin module%3C10CC83016C.epilog preserve=yes
+inline void* SmartBlock::data ()
+{
+  return block;
+}
 //## end module%3C10CC83016C.epilog
 
 

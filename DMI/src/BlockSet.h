@@ -60,6 +60,9 @@ class BlockSet
       //## Operation: BlockSet%3BFA4B6501A7
       explicit BlockSet (int num = 0);
 
+      //## Operation: BlockSet%3C3EBCBA0082
+      BlockSet (BlockSet& right, int flags);
+
     //## Destructor (generated)
       ~BlockSet();
 
@@ -71,9 +74,15 @@ class BlockSet
       //## Operation: size%3C1E1B0B014A
       int size () const;
 
+      //## Operation: clear%3C3D854D000C
+      void clear ();
+
       //## Operation: pop%3BFA537401F6
       //	Removes & returns first reference in set
       BlockRef pop ();
+
+      //## Operation: pop%3C5AB7F40257
+      void pop (BlockRef &out);
 
       //## Operation: popMove%3BFA56540172
       //	Removes n refs from the start of a set, and places them into another
@@ -82,16 +91,34 @@ class BlockSet
 
       //## Operation: push%3BFB873E0091
       //	Adds a BlockRef to the tail of a BlockSet
-      int push (BlockRef &ref);
+      int push (const BlockRef &ref);
+
+      //## Operation: pushCopy%3C3EB55F00FD
+      //	Adds copies of all refs in the argument set. The flags parameter is
+      //	passed to ref.copy().
+      int pushCopy (BlockSet &set, int flags = 0);
+
+      //## Operation: pushCopy%3C5AA4BF0279
+      //	Adds copy of argument ref.
+      int pushCopy (const BlockRef &ref, int flags = 0);
+
+      //## Operation: pushNew%3C5AB3880083
+      //	Adds an empty ref at the end of the set, and returns a reference to
+      //	it.
+      BlockRef & pushNew ();
 
       //## Operation: pushFront%3BFB89BE02AB
       //	Inserts a BlockRef at the head of the BlockSet
-      int pushFront (BlockRef &ref);
+      int pushFront (BlockRef ref);
 
       //## Operation: copyAll%3BFB85F30334
-      //	Clones all refs in the blockset, and returns a new BlockSet of
-      //	cloned references
+      //	Copies all refs in the blockset to BlockSet out. The non-const
+      //	version supports the DMI::MAKE_READONLY flag, which willdo the  copy
+      //	& make the source set read-only.
       int copyAll (BlockSet &out, int flags = 0) const;
+
+      //## Operation: copyAll%3C3EBF410288
+      int copyAll (BlockSet &out, int flags = 0);
 
       //## Operation: privatizeAll%3BFB8A3301D6
       int privatizeAll (int flags = 0);
@@ -124,14 +151,11 @@ class BlockSet
       string sdebug ( int detail = 1,const string &prefix = "",
                       const char *name = 0 ) const;
       // The debug() method is an alternative interface to sdebug(),
-      // which stores the info in a static data member, and returns a 
-      // const char *. Thus debug()s can't be nested, while sdebug()s can.
-      static string last_debug; 
+      // which copies the string to a static buffer (see Debug.h), and returns 
+      // a const char *. Thus debug()s can't be nested, while sdebug()s can.
       const char * debug ( int detail = 1,const string &prefix = "",
                            const char *name = 0 ) const
-      {
-        return (Debug::last_message = sdebug(detail,prefix,name) ).c_str();
-      };
+      { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
       //## end BlockSet%3BEA80A703A9.public
   protected:
     // Additional Protected Declarations

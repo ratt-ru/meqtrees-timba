@@ -26,16 +26,14 @@
 //## begin module%3C10CC810157.includes preserve=yes
 //## end module%3C10CC810157.includes
 
+// Registry
+#include "Registry.h"
 //## begin module%3C10CC810157.declarations preserve=no
 //## end module%3C10CC810157.declarations
 
 //## begin module%3C10CC810157.additionalDeclarations preserve=yes
-// This macros registers Atomic IDs. A script will scan your code
-// for invocations, and create include/.cc files defining the AIDs.
-#define RegisterAid(aid)
-// By default, everything is placed into AID.h, but by invoking:
-#define RegisterAidGroup(group)
-// you can place subsequent AIDs into AID-group.h.
+#pragma aidgroup Basic
+#pragma aid A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
 //## end module%3C10CC810157.additionalDeclarations
 
 
@@ -52,76 +50,21 @@
 
 
 
+//## Uses: <unnamed>%3C5A791101CC;UniRegistry { -> }
+
 class AtomicID 
 {
   //## begin AtomicID%3BE970170297.initialDeclarations preserve=yes
   //## end AtomicID%3BE970170297.initialDeclarations
 
   public:
-    //## begin AtomicID::Register%3C1DB25B039C.preface preserve=yes
-    //## end AtomicID::Register%3C1DB25B039C.preface
-
-    //## Class: Register%3C1DB25B039C
-    //## Category: PSCF::DMI%3BEAB1F2006B; Global
-    //## Subsystem: DMI%3C10CC810155
-    //## Persistence: Transient
-    //## Cardinality/Multiplicity: n
-
-
-
-    class Register 
-    {
-      //## begin AtomicID::Register%3C1DB25B039C.initialDeclarations preserve=yes
-      //## end AtomicID::Register%3C1DB25B039C.initialDeclarations
-
-      public:
-        //## Constructors (specified)
-          //## Operation: Register%3C1DB26B00CD
-          Register (int id, const string &name);
-
-        // Additional Public Declarations
-          //## begin AtomicID::Register%3C1DB25B039C.public preserve=yes
-          //## end AtomicID::Register%3C1DB25B039C.public
-
-      protected:
-        // Additional Protected Declarations
-          //## begin AtomicID::Register%3C1DB25B039C.protected preserve=yes
-          //## end AtomicID::Register%3C1DB25B039C.protected
-
-      private:
-        //## Constructors (generated)
-          Register();
-
-          Register(const Register &right);
-
-        // Additional Private Declarations
-          //## begin AtomicID::Register%3C1DB25B039C.private preserve=yes
-          //## end AtomicID::Register%3C1DB25B039C.private
-
-      private: //## implementation
-        // Additional Implementation Declarations
-          //## begin AtomicID::Register%3C1DB25B039C.implementation preserve=yes
-          //## end AtomicID::Register%3C1DB25B039C.implementation
-
-    };
-
-    //## begin AtomicID::Register%3C1DB25B039C.postscript preserve=yes
-    //## end AtomicID::Register%3C1DB25B039C.postscript
-
-    //## Constructors (generated)
-      AtomicID();
-
-      AtomicID(const AtomicID &right);
-
     //## Constructors (specified)
       //## Operation: AtomicID%3BE970C40246
-      AtomicID (int n);
+      AtomicID (int n = 0);
 
-    //## Destructor (generated)
-      ~AtomicID();
-
-    //## Assignment Operation (generated)
-      AtomicID & operator=(const AtomicID &right);
+      //## Operation: AtomicID%3C5E74CB0112
+      //	Constructs AtomicID by its name
+      AtomicID (const string &str);
 
     //## Equality Operations (generated)
       Bool operator==(const AtomicID &right) const;
@@ -145,11 +88,19 @@ class AtomicID
       //## Operation: operator =%3C1A1A9000DD
       AtomicID & operator = (int n);
 
+      //## Operation: operator !%3C596562005C
+      bool operator ! ();
+
       //## Operation: isAny%3C1A28850258
       bool isAny () const;
 
       //## Operation: isWildcard%3C1A288F0342
       bool isWildcard () const;
+
+      //## Operation: index%3C553EC402AA
+      //	If AtomicID corresponds to an index, returns that index, else
+      //	returns -1
+      int index () const;
 
       //## Operation: matches%3C1DFD1A0235
       bool matches (const AtomicID &other) const;
@@ -157,10 +108,11 @@ class AtomicID
       //## Operation: toString%3BE9709700A7
       string toString () const;
 
-      //## Operation: registerName%3C1A2B2101E8
-      static void registerName (int n, const string &name);
+    //## Get and Set Operations for Class Attributes (generated)
 
-  public:
+      //## Attribute: aid%3BE9706902BD
+      const int id () const;
+
     // Additional Public Declarations
       //## begin AtomicID%3BE970170297.public preserve=yes
       //## end AtomicID%3BE970170297.public
@@ -173,65 +125,82 @@ class AtomicID
   private:
     // Additional Private Declarations
       //## begin AtomicID%3BE970170297.private preserve=yes
+      DeclareBiRegistry(AtomicID,int,string);
       //## end AtomicID%3BE970170297.private
-
   private: //## implementation
     // Data Members for Class Attributes
 
-      //## Attribute: id%3BE9706902BD
-      //## begin AtomicID::id%3BE9706902BD.attr preserve=no  private: int {U} 
-      int id;
-      //## end AtomicID::id%3BE9706902BD.attr
-
-      //## Attribute: names%3BEBE9870055
-      //## begin AtomicID::names%3BEBE9870055.attr preserve=no  private: static map<int,string> {U} 
-      static map<int,string> names;
-      //## end AtomicID::names%3BEBE9870055.attr
+      //## begin AtomicID::aid%3BE9706902BD.attr preserve=no  public: int {U} 
+      int aid;
+      //## end AtomicID::aid%3BE9706902BD.attr
 
     // Additional Implementation Declarations
       //## begin AtomicID%3BE970170297.implementation preserve=yes
-      typedef map<int,string>::iterator MI;
-      typedef map<int,string>::const_iterator CMI;
       //## end AtomicID%3BE970170297.implementation
+
 };
 
 //## begin AtomicID%3BE970170297.postscript preserve=yes
 const AtomicID AidNull(0),
                AidAny(-1),
-               AidWildcard(-2);
+               AidWildcard(-2),
+               AidDot(-3);
 //## end AtomicID%3BE970170297.postscript
 
-// Class AtomicID::Register 
+//## begin AidIndex%3C553F440092.preface preserve=yes
+//## end AidIndex%3C553F440092.preface
+
+//## Class: AidIndex%3C553F440092
+//	AidIndex is a helper class which may be used to create an AtomicID
+//	corresponding to an array index
+//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Subsystem: DMI%3C10CC810155
+//## Persistence: Transient
+//## Cardinality/Multiplicity: n
+
+
+
+class AidIndex : public AtomicID  //## Inherits: <unnamed>%3C553F570201
+{
+  //## begin AidIndex%3C553F440092.initialDeclarations preserve=yes
+  //## end AidIndex%3C553F440092.initialDeclarations
+
+  public:
+    //## Constructors (specified)
+      //## Operation: AidIndex%3C553F7100D2
+      AidIndex (int index = 0);
+
+    // Additional Public Declarations
+      //## begin AidIndex%3C553F440092.public preserve=yes
+      //## end AidIndex%3C553F440092.public
+
+  protected:
+    // Additional Protected Declarations
+      //## begin AidIndex%3C553F440092.protected preserve=yes
+      //## end AidIndex%3C553F440092.protected
+
+  private:
+    // Additional Private Declarations
+      //## begin AidIndex%3C553F440092.private preserve=yes
+      //## end AidIndex%3C553F440092.private
+
+  private: //## implementation
+    // Additional Implementation Declarations
+      //## begin AidIndex%3C553F440092.implementation preserve=yes
+      //## end AidIndex%3C553F440092.implementation
+
+};
+
+//## begin AidIndex%3C553F440092.postscript preserve=yes
+//## end AidIndex%3C553F440092.postscript
 
 // Class AtomicID 
-
-inline AtomicID::AtomicID()
-  //## begin AtomicID::AtomicID%3BE970170297_const.hasinit preserve=no
-  //## end AtomicID::AtomicID%3BE970170297_const.hasinit
-  //## begin AtomicID::AtomicID%3BE970170297_const.initialization preserve=yes
-    : id(0)
-  //## end AtomicID::AtomicID%3BE970170297_const.initialization
-{
-  //## begin AtomicID::AtomicID%3BE970170297_const.body preserve=yes
-  //## end AtomicID::AtomicID%3BE970170297_const.body
-}
-
-inline AtomicID::AtomicID(const AtomicID &right)
-  //## begin AtomicID::AtomicID%3BE970170297_copy.hasinit preserve=no
-  //## end AtomicID::AtomicID%3BE970170297_copy.hasinit
-  //## begin AtomicID::AtomicID%3BE970170297_copy.initialization preserve=yes
-    : id(right.id)
-  //## end AtomicID::AtomicID%3BE970170297_copy.initialization
-{
-  //## begin AtomicID::AtomicID%3BE970170297_copy.body preserve=yes
-  //## end AtomicID::AtomicID%3BE970170297_copy.body
-}
 
 inline AtomicID::AtomicID (int n)
   //## begin AtomicID::AtomicID%3BE970C40246.hasinit preserve=no
   //## end AtomicID::AtomicID%3BE970C40246.hasinit
   //## begin AtomicID::AtomicID%3BE970C40246.initialization preserve=yes
-    : id(n)
+    : aid(n)
   //## end AtomicID::AtomicID%3BE970C40246.initialization
 {
   //## begin AtomicID::AtomicID%3BE970C40246.body preserve=yes
@@ -239,33 +208,17 @@ inline AtomicID::AtomicID (int n)
 }
 
 
-inline AtomicID::~AtomicID()
-{
-  //## begin AtomicID::~AtomicID%3BE970170297_dest.body preserve=yes
-  //## end AtomicID::~AtomicID%3BE970170297_dest.body
-}
-
-
-inline AtomicID & AtomicID::operator=(const AtomicID &right)
-{
-  //## begin AtomicID::operator=%3BE970170297_assign.body preserve=yes
-  id = right.id;
-  return *this;
-  //## end AtomicID::operator=%3BE970170297_assign.body
-}
-
-
 inline Bool AtomicID::operator==(const AtomicID &right) const
 {
   //## begin AtomicID::operator==%3BE970170297_eq.body preserve=yes
-  return id == right.id;
+  return aid == right.aid;
   //## end AtomicID::operator==%3BE970170297_eq.body
 }
 
 inline Bool AtomicID::operator!=(const AtomicID &right) const
 {
   //## begin AtomicID::operator!=%3BE970170297_neq.body preserve=yes
-  return id != right.id;
+  return aid != right.aid;
   //## end AtomicID::operator!=%3BE970170297_neq.body
 }
 
@@ -273,28 +226,28 @@ inline Bool AtomicID::operator!=(const AtomicID &right) const
 inline Bool AtomicID::operator<(const AtomicID &right) const
 {
   //## begin AtomicID::operator<%3BE970170297_ls.body preserve=yes
-  return id < right.id;
+  return aid < right.aid;
   //## end AtomicID::operator<%3BE970170297_ls.body
 }
 
 inline Bool AtomicID::operator>(const AtomicID &right) const
 {
   //## begin AtomicID::operator>%3BE970170297_gt.body preserve=yes
-  return id > right.id;
+  return aid > right.aid;
   //## end AtomicID::operator>%3BE970170297_gt.body
 }
 
 inline Bool AtomicID::operator<=(const AtomicID &right) const
 {
   //## begin AtomicID::operator<=%3BE970170297_lseq.body preserve=yes
-  return id <= right.id;
+  return aid <= right.aid;
   //## end AtomicID::operator<=%3BE970170297_lseq.body
 }
 
 inline Bool AtomicID::operator>=(const AtomicID &right) const
 {
   //## begin AtomicID::operator>=%3BE970170297_gteq.body preserve=yes
-  return id >= right.id;
+  return aid >= right.aid;
   //## end AtomicID::operator>=%3BE970170297_gteq.body
 }
 
@@ -304,38 +257,77 @@ inline Bool AtomicID::operator>=(const AtomicID &right) const
 inline AtomicID::operator int () const
 {
   //## begin AtomicID::operator int%3C0F8D1102B6.body preserve=yes
-  return id;
+  return aid;
   //## end AtomicID::operator int%3C0F8D1102B6.body
 }
 
 inline AtomicID & AtomicID::operator = (int n)
 {
   //## begin AtomicID::operator =%3C1A1A9000DD.body preserve=yes
-  id = n;
+  aid = n;
   return *this;
   //## end AtomicID::operator =%3C1A1A9000DD.body
+}
+
+inline bool AtomicID::operator ! ()
+{
+  //## begin AtomicID::operator !%3C596562005C.body preserve=yes
+  return !aid;
+  //## end AtomicID::operator !%3C596562005C.body
 }
 
 inline bool AtomicID::isAny () const
 {
   //## begin AtomicID::isAny%3C1A28850258.body preserve=yes
-  return id == (int) AidAny; 
+  return aid == (int) AidAny; 
   //## end AtomicID::isAny%3C1A28850258.body
 }
 
 inline bool AtomicID::isWildcard () const
 {
   //## begin AtomicID::isWildcard%3C1A288F0342.body preserve=yes
-  return id == (int) AidWildcard; 
+  return aid == (int) AidWildcard; 
   //## end AtomicID::isWildcard%3C1A288F0342.body
+}
+
+inline int AtomicID::index () const
+{
+  //## begin AtomicID::index%3C553EC402AA.body preserve=yes
+  return aid >= 0 ? aid : -1;
+  //## end AtomicID::index%3C553EC402AA.body
 }
 
 inline bool AtomicID::matches (const AtomicID &other) const
 {
   //## begin AtomicID::matches%3C1DFD1A0235.body preserve=yes
-  return id<0 || other.id<0 || id == other.id;
+  return isAny() || isWildcard() ||
+         other.isAny() || other.isWildcard() ||
+         aid == other.aid;
   //## end AtomicID::matches%3C1DFD1A0235.body
 }
+
+//## Get and Set Operations for Class Attributes (inline)
+
+inline const int AtomicID::id () const
+{
+  //## begin AtomicID::id%3BE9706902BD.get preserve=no
+  return aid;
+  //## end AtomicID::id%3BE9706902BD.get
+}
+
+// Class AidIndex 
+
+inline AidIndex::AidIndex (int index)
+  //## begin AidIndex::AidIndex%3C553F7100D2.hasinit preserve=no
+  //## end AidIndex::AidIndex%3C553F7100D2.hasinit
+  //## begin AidIndex::AidIndex%3C553F7100D2.initialization preserve=yes
+  : AtomicID( index )
+  //## end AidIndex::AidIndex%3C553F7100D2.initialization
+{
+  //## begin AidIndex::AidIndex%3C553F7100D2.body preserve=yes
+  //## end AidIndex::AidIndex%3C553F7100D2.body
+}
+
 
 //## begin module%3C10CC810157.epilog preserve=yes
 //## end module%3C10CC810157.epilog

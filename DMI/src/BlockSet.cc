@@ -54,6 +54,17 @@ BlockSet::BlockSet (int num)
   //## end BlockSet::BlockSet%3BFA4B6501A7.body
 }
 
+BlockSet::BlockSet (BlockSet& right, int flags)
+  //## begin BlockSet::BlockSet%3C3EBCBA0082.hasinit preserve=no
+  //## end BlockSet::BlockSet%3C3EBCBA0082.hasinit
+  //## begin BlockSet::BlockSet%3C3EBCBA0082.initialization preserve=yes
+  //## end BlockSet::BlockSet%3C3EBCBA0082.initialization
+{
+  //## begin BlockSet::BlockSet%3C3EBCBA0082.body preserve=yes
+  right.copyAll(*this,flags);
+  //## end BlockSet::BlockSet%3C3EBCBA0082.body
+}
+
 
 BlockSet::~BlockSet()
 {
@@ -73,6 +84,13 @@ BlockSet & BlockSet::operator=(const BlockSet &right)
 
 
 //## Other Operations (implementation)
+void BlockSet::clear ()
+{
+  //## begin BlockSet::clear%3C3D854D000C.body preserve=yes
+  refs.resize(0);
+  //## end BlockSet::clear%3C3D854D000C.body
+}
+
 BlockRef BlockSet::pop ()
 {
   //## begin BlockSet::pop%3BFA537401F6.body preserve=yes
@@ -82,12 +100,20 @@ BlockRef BlockSet::pop ()
   //## end BlockSet::pop%3BFA537401F6.body
 }
 
+void BlockSet::pop (BlockRef &out)
+{
+  //## begin BlockSet::pop%3C5AB7F40257.body preserve=yes
+  out.xfer(refs.front());
+  refs.pop_front();
+  //## end BlockSet::pop%3C5AB7F40257.body
+}
+
 int BlockSet::popMove (BlockSet& outset, int count)
 {
   //## begin BlockSet::popMove%3BFA56540172.body preserve=yes
   FailWhen( count>size(),"Too many refs requested in popMove" );
   int n = outset.size();
-  outset.refs.resize( count + size() );
+  outset.refs.resize( n + count );
 //  out.refs.reserve(size());
   for( DQI oiter = outset.refs.begin()+n; count>0; oiter++,count-- )
   {
@@ -98,7 +124,7 @@ int BlockSet::popMove (BlockSet& outset, int count)
   //## end BlockSet::popMove%3BFA56540172.body
 }
 
-int BlockSet::push (BlockRef &ref)
+int BlockSet::push (const BlockRef &ref)
 {
   //## begin BlockSet::push%3BFB873E0091.body preserve=yes
   refs.push_back(ref);
@@ -106,7 +132,36 @@ int BlockSet::push (BlockRef &ref)
   //## end BlockSet::push%3BFB873E0091.body
 }
 
-int BlockSet::pushFront (BlockRef &ref)
+int BlockSet::pushCopy (BlockSet &set, int flags)
+{
+  //## begin BlockSet::pushCopy%3C3EB55F00FD.body preserve=yes
+  int n = size();
+  refs.resize( n + set.size() );
+  CDQI in_iter = set.refs.begin();
+  for( DQI iter = refs.begin()+n; iter != refs.end(); iter++,in_iter++ )
+    (*iter).copy(*in_iter,flags);
+  return size();
+  //## end BlockSet::pushCopy%3C3EB55F00FD.body
+}
+
+int BlockSet::pushCopy (const BlockRef &ref, int flags)
+{
+  //## begin BlockSet::pushCopy%3C5AA4BF0279.body preserve=yes
+  refs.resize( size() + 1 );
+  refs.back().copy(ref,flags);
+  return size();
+  //## end BlockSet::pushCopy%3C5AA4BF0279.body
+}
+
+BlockRef & BlockSet::pushNew ()
+{
+  //## begin BlockSet::pushNew%3C5AB3880083.body preserve=yes
+  refs.resize( size() + 1 );
+  return refs.back();
+  //## end BlockSet::pushNew%3C5AB3880083.body
+}
+
+int BlockSet::pushFront (BlockRef ref)
 {
   //## begin BlockSet::pushFront%3BFB89BE02AB.body preserve=yes
   refs.push_front(ref);
@@ -117,14 +172,28 @@ int BlockSet::pushFront (BlockRef &ref)
 int BlockSet::copyAll (BlockSet &out, int flags) const
 {
   //## begin BlockSet::copyAll%3BFB85F30334.body preserve=yes
+  // disallow the MAKE_READONLY flag...
+  FailWhen(flags&DMI::MAKE_READONLY,"const violation for MAKE_READONLY");
+  // ...and defer to non-const version in all other respects
+  return ((BlockSet*)this)->copyAll(out,flags);
+  //## end BlockSet::copyAll%3BFB85F30334.body
+}
+
+int BlockSet::copyAll (BlockSet &out, int flags)
+{
+  //## begin BlockSet::copyAll%3C3EBF410288.body preserve=yes
   int n = out.size();
   out.refs.resize( n + size() );
   DQI oiter = out.refs.begin()+n;
 //  out.refs.reserve(size());
-  for( CDQI iter = refs.begin(); iter != refs.end(); iter++,oiter++ )
+  for( DQI iter = refs.begin(); iter != refs.end(); iter++,oiter++ )
+  {
     (*oiter).copy(*iter,flags);
+    if( flags&DMI::MAKE_READONLY )
+      (*iter).change(DMI::READONLY);
+  }
   return out.size();
-  //## end BlockSet::copyAll%3BFB85F30334.body
+  //## end BlockSet::copyAll%3C3EBF410288.body
 }
 
 int BlockSet::privatizeAll (int flags)

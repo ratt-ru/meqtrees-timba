@@ -27,14 +27,11 @@
 //## end module%3C10CC8202B7.declarations
 
 //## begin module%3C10CC8202B7.additionalDeclarations preserve=yes
+DefineRegistry(DynamicTypeManager,0);
 //## end module%3C10CC8202B7.additionalDeclarations
 
 
 // Class Utility DynamicTypeManager 
-
-//## begin DynamicTypeManager::constructor_map%3BE96C8901DB.attr preserve=no  private: static map<int,DynamicTypeManager::PtrConstructor> {U} 
-map<int,DynamicTypeManager::PtrConstructor> DynamicTypeManager::constructor_map;
-//## end DynamicTypeManager::constructor_map%3BE96C8901DB.attr
 
 
 //## Other Operations (implementation)
@@ -51,31 +48,22 @@ BlockableObject * DynamicTypeManager::construct (TypeId tid, BlockSet& bset, int
 BlockableObject * DynamicTypeManager::construct (TypeId tid, int n)
 {
   //## begin DynamicTypeManager::construct%3BE96C7402D5.body preserve=yes
-  cdebug(2)<<"DynTypeMgr: constructing "<<tid.toString();
+  cdebug1(2)<<"DynTypeMgr: constructing "<<tid.toString();
   if( n ) 
-    cdebug(2)<<"["<<n<<"]";
-  cdebug(2)<<": ";
-  FailWhen1( !isRegistered(tid),"Unregistered type "+tid.toString() );
-  BlockableObject *obj = (*(constructor_map[tid]))(n);
-  dprintf(2)(" @%p\n",obj);
+    cdebug1(2)<<"["<<n<<"]";
+  cdebug1(2)<<": ";
+  PtrConstructor ptr = registry.find(tid);
+  FailWhen1( !ptr,"Unregistered type "+tid.toString() );
+  BlockableObject *obj = (*ptr)(n);
+  dprintf1(2)(" @%p\n",obj);
   return obj;
   //## end DynamicTypeManager::construct%3BE96C7402D5.body
-}
-
-void DynamicTypeManager::registerType (TypeId tid, PtrConstructor constructor)
-{
-  //## begin DynamicTypeManager::registerType%3BE96C6D0090.body preserve=yes
-  cdebug(2)<<"DynTypeMgr: registering type "<<tid.toString()<<endl;
-  if( isRegistered(tid) && constructor_map[tid] != constructor )
-    Throw1("Redefining constructor for type "+tid.toString());
-  constructor_map[tid] = constructor;
-  //## end DynamicTypeManager::registerType%3BE96C6D0090.body
 }
 
 bool DynamicTypeManager::isRegistered (TypeId tid)
 {
   //## begin DynamicTypeManager::isRegistered%3BF905EE020E.body preserve=yes
-  return constructor_map.find(tid) != constructor_map.end();
+  return registry.find(tid) != 0;
   //## end DynamicTypeManager::isRegistered%3BF905EE020E.body
 }
 
@@ -85,3 +73,9 @@ bool DynamicTypeManager::isRegistered (TypeId tid)
 
 //## begin module%3C10CC8202B7.epilog preserve=yes
 //## end module%3C10CC8202B7.epilog
+
+
+// Detached code regions:
+#if 0
+
+#endif

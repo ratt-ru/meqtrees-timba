@@ -40,6 +40,7 @@ SmartBlock::SmartBlock()
   //## end SmartBlock::SmartBlock%3BEAACAB0041_const.initialization
 {
   //## begin SmartBlock::SmartBlock%3BEAACAB0041_const.body preserve=yes
+  dprintf(2)("default constructor\n");
   //## end SmartBlock::SmartBlock%3BEAACAB0041_const.body
 }
 
@@ -51,11 +52,12 @@ SmartBlock::SmartBlock (void* data, size_t size, int flags)
   //## end SmartBlock::SmartBlock%3BEBD44D0103.initialization
 {
   //## begin SmartBlock::SmartBlock%3BEBD44D0103.body preserve=yes
+  dprintf(2)("constructor(data=%x,size=%d,fl=%x)\n",(int)data,size,flags);
   init(data,size,flags,0);
   //## end SmartBlock::SmartBlock%3BEBD44D0103.body
 }
 
-SmartBlock::SmartBlock (size_t size)
+SmartBlock::SmartBlock (size_t size, int flags)
   //## begin SmartBlock::SmartBlock%3BFE299902D7.hasinit preserve=no
   //## end SmartBlock::SmartBlock%3BFE299902D7.hasinit
   //## begin SmartBlock::SmartBlock%3BFE299902D7.initialization preserve=yes
@@ -63,11 +65,12 @@ SmartBlock::SmartBlock (size_t size)
   //## end SmartBlock::SmartBlock%3BFE299902D7.initialization
 {
   //## begin SmartBlock::SmartBlock%3BFE299902D7.body preserve=yes
+  dprintf(2)("constructor(size=%d,fl=%x)\n",size,flags);
   init( malloc(size),size,DMI::DELETE,0 );
   //## end SmartBlock::SmartBlock%3BFE299902D7.body
 }
 
-SmartBlock::SmartBlock (size_t size, int shm_flags)
+SmartBlock::SmartBlock (size_t size, int shm_flags, int flags)
   //## begin SmartBlock::SmartBlock%3BFA4FCA0387.hasinit preserve=no
   //## end SmartBlock::SmartBlock%3BFA4FCA0387.hasinit
   //## begin SmartBlock::SmartBlock%3BFA4FCA0387.initialization preserve=yes
@@ -75,6 +78,7 @@ SmartBlock::SmartBlock (size_t size, int shm_flags)
   //## end SmartBlock::SmartBlock%3BFA4FCA0387.initialization
 {
   //## begin SmartBlock::SmartBlock%3BFA4FCA0387.body preserve=yes
+  dprintf(2)("constructor(size=%d,shmfl=%x,fl=%x)",size,shm_flags,flags);
   init(0,size,DMI::SHMEM,shm_flags);
   //## end SmartBlock::SmartBlock%3BFA4FCA0387.body
 }
@@ -87,13 +91,9 @@ SmartBlock::SmartBlock (const SmartBlock &other, int flags)
   //## end SmartBlock::SmartBlock%3BFE303F0022.initialization
 {
   //## begin SmartBlock::SmartBlock%3BFE303F0022.body preserve=yes
+  dprintf(2)("copy constructor(%s,%x)\n",other.debug(),flags);
   FailWhen( !(flags&DMI::CLONE),"must use DMI::CLONE to copy")
-  // clone the block
-  if( !other.size() )
-    return;
-  block = malloc(datasize = other.size());
-  delete_block = True;
-  memcpy(block,*other,datasize);
+  *this = other;
   //## end SmartBlock::SmartBlock%3BFE303F0022.body
 }
 
@@ -101,9 +101,25 @@ SmartBlock::SmartBlock (const SmartBlock &other, int flags)
 SmartBlock::~SmartBlock()
 {
   //## begin SmartBlock::~SmartBlock%3BEAACAB0041_dest.body preserve=yes
-  dprintf(2)("%s: destructor\n",debug());
+  dprintf1(2)("%s: destructor\n",debug());
   destroy();
   //## end SmartBlock::~SmartBlock%3BEAACAB0041_dest.body
+}
+
+
+SmartBlock & SmartBlock::operator=(const SmartBlock &right)
+{
+  //## begin SmartBlock::operator=%3BEAACAB0041_assign.body preserve=yes
+  dprintf(2)("assignment of %s\n",right.debug());
+  destroy();
+  // clone the block
+  if( !right.size() )
+    return *this;
+  block = malloc(datasize = right.size());
+  delete_block = True;
+  memcpy(block,*right,datasize);
+  return *this;
+  //## end SmartBlock::operator=%3BEAACAB0041_assign.body
 }
 
 
@@ -119,7 +135,9 @@ void SmartBlock::init (void* data, size_t size, int flags, int shm_flags)
   datasize = size;
   delete_block = (flags&DMI::DELETE)!=0;
   shmid = 0;
-  dprintf(2)("%s allocated\n",debug());
+  if( flags&DMI::ZERO )
+    memset(block,0,datasize);
+  dprintf1(2)("%s allocated\n",debug());
   //## end SmartBlock::init%3BFE37C3022B.body
 }
 
@@ -136,7 +154,7 @@ void SmartBlock::destroy ()
 CountedRefTarget * SmartBlock::clone (int flags) const
 {
   //## begin SmartBlock::clone%3BFE23B501F4.body preserve=yes
-  dprintf(2)("%s: cloning\n",debug());
+  dprintf1(2)("%s: cloning\n",debug());
   return new SmartBlock(*this,flags|DMI::CLONE);
   //## end SmartBlock::clone%3BFE23B501F4.body
 }

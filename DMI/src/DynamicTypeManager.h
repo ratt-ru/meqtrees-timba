@@ -26,6 +26,8 @@
 //## begin module%3C10CC8202B5.includes preserve=yes
 //## end module%3C10CC8202B5.includes
 
+// Registry
+#include "Registry.h"
 // BlockSet
 #include "BlockSet.h"
 // BlockableObject
@@ -54,6 +56,7 @@
 
 //## Uses: <unnamed>%3BE96CE70063;BlockableObject { -> }
 //## Uses: <unnamed>%3BF905650030;BlockSet { -> }
+//## Uses: <unnamed>%3C5A78A401D0;UniRegistry { -> }
 
 class DynamicTypeManager 
 {
@@ -92,10 +95,6 @@ class DynamicTypeManager
       //	"constructor" function from the constructor map).
       static BlockableObject * construct (TypeId tid, int n = 0);
 
-      //## Operation: registerType%3BE96C6D0090
-      //	Adds a type and its constructor function to the type map
-      static void registerType (TypeId tid, PtrConstructor constructor);
-
       //## Operation: isRegistered%3BF905EE020E
       //	Checks if a type is registered
       static bool isRegistered (TypeId tid);
@@ -103,22 +102,8 @@ class DynamicTypeManager
   public:
     // Additional Public Declarations
       //## begin DynamicTypeManager%3BE96C040003.public preserve=yes
-
-      // This is a helper class -- declare an object of this
-      // class to register a type constructor.
-      class Register 
-      {
-        public:
-            Register (int tid, PtrConstructor constructor);
-
-        private: // hide other constructors
-            Register();
-            Register(const Register &right);
-      };
-      
-
-      
       //## end DynamicTypeManager%3BE96C040003.public
+
   protected:
     // Additional Protected Declarations
       //## begin DynamicTypeManager%3BE96C040003.protected preserve=yes
@@ -127,19 +112,9 @@ class DynamicTypeManager
   private:
     // Additional Private Declarations
       //## begin DynamicTypeManager%3BE96C040003.private preserve=yes
+      DeclareRegistry(DynamicTypeManager,int,PtrConstructor);
       //## end DynamicTypeManager%3BE96C040003.private
-
   private: //## implementation
-    // Data Members for Class Attributes
-
-      //## Attribute: constructor_map%3BE96C8901DB
-      //	Maps type ids into "constructor" functions. A constructor function
-      //	simply allocates an empty object of the given type, and returns a
-      //	pointer to it.
-      //## begin DynamicTypeManager::constructor_map%3BE96C8901DB.attr preserve=no  private: static map<int,DynamicTypeManager::PtrConstructor> {U} 
-      static map<int,DynamicTypeManager::PtrConstructor> constructor_map;
-      //## end DynamicTypeManager::constructor_map%3BE96C8901DB.attr
-
     // Additional Implementation Declarations
       //## begin DynamicTypeManager%3BE96C040003.implementation preserve=yes
       //## end DynamicTypeManager%3BE96C040003.implementation
@@ -147,10 +122,6 @@ class DynamicTypeManager
 };
 
 //## begin DynamicTypeManager%3BE96C040003.postscript preserve=yes
-inline DynamicTypeManager::Register::Register (int tid, PtrConstructor constructor)
-{
-  DynamicTypeManager::registerType(tid,constructor);
-}
 //## end DynamicTypeManager%3BE96C040003.postscript
 
 // Class Utility DynamicTypeManager 

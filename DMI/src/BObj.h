@@ -26,14 +26,14 @@
 //## begin module%3C10CC81019B.includes preserve=yes
 //## end module%3C10CC81019B.includes
 
+// BlockSet
+#include "BlockSet.h"
 // CountedRef
 #include "CountedRef.h"
 // CountedRefTarget
 #include "CountedRefTarget.h"
 // TypeId
 #include "TypeId.h"
-// BlockSet
-#include "BlockSet.h"
 //## begin module%3C10CC81019B.declarations preserve=no
 //## end module%3C10CC81019B.declarations
 
@@ -68,16 +68,8 @@ class BlockableObject : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB
   //## end BlockableObject%3BB1F71F03C9.initialDeclarations
 
   public:
-    //## Constructors (generated)
-      BlockableObject();
-
-      BlockableObject(const BlockableObject &right);
-
     //## Destructor (generated)
-      virtual ~BlockableObject() = 0;
-
-    //## Assignment Operation (generated)
-      BlockableObject & operator=(const BlockableObject &right);
+      virtual ~BlockableObject();
 
 
     //## Other Operations (specified)
@@ -90,11 +82,11 @@ class BlockableObject : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB
       //## Operation: toBlock%3BB1F89B0054
       //	Stores an object into a set of blocks. Appropriate number of refs
       //	added to tail of BlockSet. Returns # of block refs added.
-      virtual int toBlock (BlockSet &set) = 0;
+      virtual int toBlock (BlockSet &set) const = 0;
 
-      //## Operation: type%3BFA274900ED
+      //## Operation: objectType%3BFA274900ED
       //	Returns the class TypeId
-      virtual TypeId type () = 0;
+      virtual TypeId objectType () const = 0;
 
       //## Operation: isNestable%3BFA7DBF00D7
       //	Returns True if the class realizes the NestableContainerInterface.
@@ -139,6 +131,13 @@ DefineRefTypes(BlockableObject,ObjRef);
 //## end BlockableObject%3BB1F71F03C9.postscript
 
 // Class BlockableObject 
+
+inline BlockableObject::~BlockableObject()
+{
+  //## begin BlockableObject::~BlockableObject%3BB1F71F03C9_dest.body preserve=yes
+  //## end BlockableObject::~BlockableObject%3BB1F71F03C9_dest.body
+}
+
 
 
 //## Other Operations (inline)

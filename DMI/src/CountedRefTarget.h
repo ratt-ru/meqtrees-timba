@@ -67,8 +67,16 @@ class CountedRefTarget
     //## Other Operations (specified)
       //## Operation: clone%3C0CE728002B; C++
       //	Abstract method for cloning an object. Should return pointer to new
-      //	object. Flags: DMI::WRITE if writable clone is required.
+      //	object. Flags: DMI::WRITE if writable clone is required, DMI::DEEP
+      //	for deep cloning (i.e. contents of object will be cloned as well).
       virtual CountedRefTarget* clone (int flags = 0) const = 0;
+
+      //## Operation: privatize%3C3EDD7D0301
+      //	Virtual method for privatization of an object. If the object
+      //	contains other refs, they should be privatized by this method. The
+      //	DMI::DEEP flag should be passed on to child refs, for deep
+      //	privatization.
+      virtual void privatize (int flags = 0);
 
       //## Operation: refCount%3C18899002BB; C++
       //	Returns a reference count. Note that the ref count methods may be
@@ -107,14 +115,11 @@ class CountedRefTarget
       virtual string sdebug ( int detail = 1,const string &prefix = "",
                       const char *name = 0 ) const;
       // The debug() method is an alternative interface to sdebug(),
-      // which stores the info in a static data member, and returns a 
-      // const char *. Thus debug()s can't be nested, while sdebug()s can.
-      static string last_debug; 
+      // which copies the string to a static buffer (see Debug.h), and returns 
+      // a const char *. Thus debug()s can't be nested, while sdebug()s can.
       const char * debug ( int detail = 1,const string &prefix = "",
                            const char *name = 0 ) const
-      {
-        return (Debug::last_message = sdebug(detail,prefix,name) ).c_str();
-      };
+      { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
       
       //## end CountedRefTarget%3C0CDF41029F.public
   protected:
@@ -126,8 +131,8 @@ class CountedRefTarget
     // Data Members for Associations
 
       //## Association: PSCF::DMI::<unnamed>%3C0CDF6500AC
-      //## begin CountedRefTarget::owner_ref%3C0CDF6503B9.role preserve=no  public: CountedRefBase {0..1 -> 0..1RFHN}
-      CountedRefBase *owner_ref;
+      //## begin CountedRefTarget::owner_ref%3C0CDF6503B9.role preserve=no  public: CountedRefBase {0..1 -> 0..1RFHNM}
+      mutable CountedRefBase *owner_ref;
       //## end CountedRefTarget::owner_ref%3C0CDF6503B9.role
 
     // Additional Private Declarations

@@ -29,6 +29,7 @@
 //## end module%3C10CC8103D8.declarations
 
 //## begin module%3C10CC8103D8.additionalDeclarations preserve=yes
+ImportDebugContext(CountedRefBase);
 //## end module%3C10CC8103D8.additionalDeclarations
 
 
@@ -85,6 +86,12 @@ CountedRefTarget::~CountedRefTarget()
 
 
 //## Other Operations (implementation)
+void CountedRefTarget::privatize (int flags)
+{
+  //## begin CountedRefTarget::privatize%3C3EDD7D0301.body preserve=yes
+  //## end CountedRefTarget::privatize%3C3EDD7D0301.body
+}
+
 int CountedRefTarget::refCount () const
 {
   //## begin CountedRefTarget::refCount%3C18899002BB.body preserve=yes

@@ -55,6 +55,8 @@
 class CountedRefBase 
 {
   //## begin CountedRefBase%3C0CDEE200FE.initialDeclarations preserve=yes
+  public:
+      LocalDebugContext(public);
   //## end CountedRefBase%3C0CDEE200FE.initialDeclarations
 
   public:
@@ -117,10 +119,12 @@ class CountedRefBase
       //	Creates a "private copy" of the target. Will clone() the target as
       //	necessary. Without DMI::WRITE, simply guarantees a non-volatile
       //	target (i.e. clones it in the presense of any writers). With WRITE,
-      //	makes a writable clone of the target. Other flags: : DMI::FORCE_
-      //	CLONE to force  cloning, DMI::LOCKED to lock the ref, DMI::EXCL_
-      //	WRITE to make exclusive writer.
-      //	.
+      //	makes a writable clone of the target. With the DMI::DEEP flag set,
+      //	does "deep" privatization & cloning: i.e., the privatize() method of
+      //	the target will be called to make sure that all nested structures
+      //	are privatized as well. Other flags: DMI::FORCE_CLONE to force
+      //	cloning, DMI::LOCKED to lock the ref, DMI::EXCL_WRITE to make
+      //	exclusive writer.
       CountedRefBase& privatize (int flags = 0);
 
       //## Operation: lock%3C187D92023F; C++
@@ -130,6 +134,12 @@ class CountedRefBase
       //## Operation: unlock%3C187D9A022C; C++
       //	Unlocks the ref.
       CountedRefBase& unlock ();
+
+      //## Operation: persist%3C5019FB0000
+      CountedRefBase & persist ();
+
+      //## Operation: unpersist%3C501A0201A5
+      CountedRefBase& unpersist ();
 
       //## Operation: change%3C18873600E9; C++
       //	Changes ref properties, if possible. Recognized flags:
@@ -160,6 +170,10 @@ class CountedRefBase
       //	Alias for isWritable().
       bool isWrite () const;
 
+      //## Operation: hasOtherWriters%3C583B9F03B8
+      //	Returns True if there exist other refs to target that are writable
+      bool hasOtherWriters ();
+
     //## Get and Set Operations for Class Attributes (generated)
 
       //## Attribute: locked%3C15DF4D036D
@@ -180,6 +194,11 @@ class CountedRefBase
       //	True if target is an anonymous object (i.e. will be deleted when last
       //	reference to it is deleted.)
       const bool isAnonObject () const;
+
+      //## Attribute: persistent%3C5018D1011A
+      //	True if the ref is persistent, i.e., copy constructors and "=" do a
+      //	true copy (not destructive)
+      const bool isPersistent () const;
 
     //## Get and Set Operations for Associations (generated)
 
@@ -209,14 +228,11 @@ class CountedRefBase
       string sdebug ( int detail = 1,const string &prefix = "",
                       const char *name = 0 ) const;
       // The debug() method is an alternative interface to sdebug(),
-      // which stores the info in a static data member, and returns a 
-      // const char *. Thus debug()s can't be nested, while sdebug()s can.
-      static string last_debug; 
+      // which copies the string to a static buffer (see Debug.h), and returns 
+      // a const char *. Thus debug()s can't be nested, while sdebug()s can.
       const char * debug ( int detail = 1,const string &prefix = "",
                            const char *name = 0 ) const
-      {
-        return (Debug::last_message = sdebug(detail,prefix,name) ).c_str();
-      };
+      { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
       //## end CountedRefBase%3C0CDEE200FE.public
   protected:
 
@@ -237,26 +253,31 @@ class CountedRefBase
     // Data Members for Associations
 
       //## Association: PSCF::DMI::<unnamed>%3C0CE0F60398
-      //## begin CountedRefBase::prev%3C0CE0FA0394.role preserve=no  public: CountedRefBase {0..1 -> 0..1RHN}
-      CountedRefBase *prev;
+      //## begin CountedRefBase::prev%3C0CE0FA0394.role preserve=no  public: CountedRefBase {0..1 -> 0..1RHNM}
+      mutable CountedRefBase *prev;
       //## end CountedRefBase::prev%3C0CE0FA0394.role
 
       //## Association: PSCF::DMI::<unnamed>%3C0CE0F60398
-      //## begin CountedRefBase::next%3C0CE0FB0010.role preserve=no  public: CountedRefBase {0..1 -> 0..1RHN}
-      CountedRefBase *next;
+      //## begin CountedRefBase::next%3C0CE0FB0010.role preserve=no  public: CountedRefBase {0..1 -> 0..1RHNM}
+      mutable CountedRefBase *next;
       //## end CountedRefBase::next%3C0CE0FB0010.role
 
       //## Association: PSCF::DMI::<unnamed>%3C0CDF6500AC
       //## Role: CountedRefBase::target%3C0CDF6503A5
       //	Reference target
-      //## begin CountedRefBase::target%3C0CDF6503A5.role preserve=no  public: CountedRefTarget {0..1 -> 0..1RHN}
-      CountedRefTarget *target;
+      //## begin CountedRefBase::target%3C0CDF6503A5.role preserve=no  public: CountedRefTarget {0..1 -> 0..1RHNM}
+      mutable CountedRefTarget *target;
       //## end CountedRefBase::target%3C0CDF6503A5.role
 
     // Additional Private Declarations
       //## begin CountedRefBase%3C0CDEE200FE.private preserve=yes
+      // flag: target should be cloned at next writable dereference
+      mutable bool delayed_clone; 
+      int  delayed_clone_flags;
+      
+      // helper function to clone a target. 
+      void cloneTarget () const;
       //## end CountedRefBase%3C0CDEE200FE.private
-
   private: //## implementation
     // Data Members for Class Attributes
 
@@ -272,9 +293,13 @@ class CountedRefBase
       bool exclusiveWrite;
       //## end CountedRefBase::exclusiveWrite%3C0CDEE20127.attr
 
-      //## begin CountedRefBase::anonObject%3C0CDEE20130.attr preserve=no  public: bool {U} 
-      bool anonObject;
+      //## begin CountedRefBase::anonObject%3C0CDEE20130.attr preserve=no  public: bool {UM} 
+      mutable bool anonObject;
       //## end CountedRefBase::anonObject%3C0CDEE20130.attr
+
+      //## begin CountedRefBase::persistent%3C5018D1011A.attr preserve=no  public: bool {U} 
+      bool persistent;
+      //## end CountedRefBase::persistent%3C5018D1011A.attr
 
     // Additional Implementation Declarations
       //## begin CountedRefBase%3C0CDEE200FE.implementation preserve=yes
@@ -297,8 +322,8 @@ inline CountedRefBase::CountedRefBase()
   //## end CountedRefBase::CountedRefBase%3C0CDEE200FE_const.initialization
 {
   //## begin CountedRefBase::CountedRefBase%3C0CDEE200FE_const.body preserve=yes
-  dprintf(5)("      CountedRefBase/%08x default constructor\n",(int)this);
   empty();
+  dprintf(5)("default constructor\n");
   //## end CountedRefBase::CountedRefBase%3C0CDEE200FE_const.body
 }
 
@@ -310,12 +335,12 @@ inline CountedRefBase::CountedRefBase (const CountedRefBase& other, int flags)
 {
   //## begin CountedRefBase::CountedRefBase%3C0CE1C10277.body preserve=yes
   empty();
-  dprintf(5)("      CountedRefBase/%08x constructor: %08x,%d\n",(int)this,(int)&other,flags);
+  dprintf(5)("copy constructor(%s,%x)\n",other.debug(1),flags);
   if( !other.isValid() ) // construct empty ref
     return;
   else if( flags&DMI::PRIVATIZE ) // constructing ref to privatized target
     privatizeOther(other,flags);
-  else if( flags&DMI::COPYREF ) // constructing true copy of reference
+  else if( flags&DMI::COPYREF || other.isPersistent() ) // constructing true copy of reference
     copy(other,flags);
   else  // else do destructive copy
     xfer((CountedRefBase&)other);
@@ -326,7 +351,7 @@ inline CountedRefBase::CountedRefBase (const CountedRefBase& other, int flags)
 inline CountedRefBase::~CountedRefBase()
 {
   //## begin CountedRefBase::~CountedRefBase%3C0CDEE200FE_dest.body preserve=yes
-  dprintf(5)("      CountedRefBase/%08x destructor\n",(int)this);
+  dprintf(5)("destructor\n");
   if( isLocked() )
     unlock();
   detach();
@@ -337,8 +362,11 @@ inline CountedRefBase::~CountedRefBase()
 inline CountedRefBase & CountedRefBase::operator=(const CountedRefBase &right)
 {
   //## begin CountedRefBase::operator=%3C0CDEE200FE_assign.body preserve=yes
-  dprintf(5)("      CountedRefBase/%08x assignment: %08x\n",(int)this,(int)&right);
-  xfer((CountedRefBase&)right);
+  dprintf(5)("assignment of %s\n",right.debug(1));
+  if( right.isPersistent() )
+    copy(right,0);
+  else
+    xfer((CountedRefBase&)right);
   return *this;
   //## end CountedRefBase::operator=%3C0CDEE200FE_assign.body
 }
@@ -372,6 +400,12 @@ inline const CountedRefTarget* CountedRefBase::getTarget () const
 {
   //## begin CountedRefBase::getTarget%3C0CDEE2015B.body preserve=yes
   FailWhen( !isValid(),"dereferencing invalid ref");
+  if( delayed_clone )
+  {
+    dprintf1(2)("%s: performing delayed cloning\n",debug());
+    // deliberate const violation, but we need to clone the target
+    cloneTarget();
+  }
   return target;
   //## end CountedRefBase::getTarget%3C0CDEE2015B.body
 }
@@ -381,6 +415,11 @@ inline CountedRefTarget* CountedRefBase::getTargetWr ()
   //## begin CountedRefBase::getTargetWr%3C0CE2970094.body preserve=yes
   FailWhen( !isValid(),"dereferencing invalid ref");
   FailWhen( !isWritable(),"r/w access violation: non-const dereference");
+  if( delayed_clone )
+  {
+    dprintf1(2)("%s: performing delayed cloning\n",debug());
+    cloneTarget();
+  }
   return target;
   //## end CountedRefBase::getTargetWr%3C0CE2970094.body
 }
@@ -395,8 +434,8 @@ inline CountedRefBase CountedRefBase::copy (int flags) const
 inline CountedRefBase& CountedRefBase::lock ()
 {
   //## begin CountedRefBase::lock%3C187D92023F.body preserve=yes
-  dprintf(3)("%s: locking\n",debug());
-  locked=True;
+  dprintf1(3)("%s: locking\n",debug());
+  locked = True;
   return *this;
   //## end CountedRefBase::lock%3C187D92023F.body
 }
@@ -404,10 +443,28 @@ inline CountedRefBase& CountedRefBase::lock ()
 inline CountedRefBase& CountedRefBase::unlock ()
 {
   //## begin CountedRefBase::unlock%3C187D9A022C.body preserve=yes
-  dprintf(3)("%s: unlocking\n",debug());
-  locked=False;
+  dprintf1(3)("%s: unlocking\n",debug());
+  locked = False;
   return *this;
   //## end CountedRefBase::unlock%3C187D9A022C.body
+}
+
+inline CountedRefBase & CountedRefBase::persist ()
+{
+  //## begin CountedRefBase::persist%3C5019FB0000.body preserve=yes
+  dprintf1(3)("%s: persisting\n",debug());
+  persistent = True;
+  return *this;
+  //## end CountedRefBase::persist%3C5019FB0000.body
+}
+
+inline CountedRefBase& CountedRefBase::unpersist ()
+{
+  //## begin CountedRefBase::unpersist%3C501A0201A5.body preserve=yes
+  dprintf1(3)("%s: unpersisting\n",debug());
+  persistent = False;
+  return *this;
+  //## end CountedRefBase::unpersist%3C501A0201A5.body
 }
 
 inline CountedRefBase& CountedRefBase::attach (const CountedRefTarget* targ, int flags)
@@ -433,7 +490,7 @@ inline void CountedRefBase::empty ()
 {
   //## begin CountedRefBase::empty%3C161C330291.body preserve=yes
   target=0; next=prev=0;
-  locked=writable=exclusiveWrite=anonObject=False;
+  locked=writable=exclusiveWrite=anonObject=persistent=delayed_clone=False;
   //## end CountedRefBase::empty%3C161C330291.body
 }
 
@@ -467,6 +524,13 @@ inline const bool CountedRefBase::isAnonObject () const
   //## end CountedRefBase::isAnonObject%3C0CDEE20130.get
 }
 
+inline const bool CountedRefBase::isPersistent () const
+{
+  //## begin CountedRefBase::isPersistent%3C5018D1011A.get preserve=no
+  return persistent;
+  //## end CountedRefBase::isPersistent%3C5018D1011A.get
+}
+
 //## Get and Set Operations for Associations (inline)
 
 inline const CountedRefBase * CountedRefBase::getPrev () const
@@ -492,6 +556,7 @@ inline CountedRefBase * CountedRefBase::getNext ()
 {
   return next;
 }
+
 //## end module%3C10CC81037C.epilog
 
 
