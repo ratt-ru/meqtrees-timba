@@ -71,7 +71,7 @@ if test "$with_pvss" != "no"; then
 
   INCL_ROOT=$pvss_inclist
   PVSS_CPPFLAGS="-D__UNIX -D__PC -DHAS_TEMPLATES=1 -DBC_DESTRUCTOR -Dbcm_boolean_h -DOS_LINUX -DLINUX -DLINUX2 -DDLLEXP_BASICS= -DDLLEXP_CONFIGS= -DDLLEXP_DATAPOINT= -DDLLEXP_MESSAGES= -DDLLEXP_MANAGER= -DDLLEXP_CTRL= -I$INCL_ROOT/Basics/Variables -I $INCL_ROOT/Basics/Utilities -I $INCL_ROOT/Basics/NoPosix -I $INCL_ROOT/BCMNew -I $INCL_ROOT/Configs -I $INCL_ROOT/Datapoint -I $INCL_ROOT/Messages -I $INCL_ROOT/Manager"
-  PVSS_CXXFLAGS="-fno-rtti -fmessage-length=0"
+  PVSS_CXXFLAGS="-fmessage-length=0"
   PVSS_VERSION=V30_876_RH90
   if test "$lfr_lib_pvssd" != "no"; then
     ]AC_CHECK_FILE([$lfr_lib_pvssd/libBasics$PVSS_VERSION.so],
