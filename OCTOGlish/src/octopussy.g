@@ -32,6 +32,8 @@ include 'note.g'
 include 'debug_methods.g'
 include 'dmitypes.g'
 
+attach_exist := any(argv == '-reattach');
+
 const define_octoserver := function (connpath,binary='',
   options="",autostart=T,nostart=F,valgrind=F,opt=F,valgrind_opts="")
 {
@@ -93,7 +95,18 @@ const octopussy := function (server=default_octoserver,options="",
         self.dprint(2,'checking for running ',binfile);
         out := shell(paste('pgrep -u',environ.USER,binfile)); 
         if( len(out)>0 )
-          self.dprint(0,'server running: ',out[1]);
+        {
+          self.dprint(0,'server ',binfile,' already running, pid ',out[1]);
+          if( !attach_exist && !server.nostart )
+          {
+            self.dprint(0,'Looks like an older instance of ',binfile,' is already running.');
+            self.dprint(0,'  Please kill the running server first, or if you\'re really sure')
+            self.dprint(0,'  that you want to use the old one, restart glish with the')
+            self.dprint(0,'  -reattach or -nostart option to allow me to reattach to it.');
+            self.dprint(0,'Exiting.');
+            exit 1;
+          }
+        }
         else
         {
           server_autostart := T;
