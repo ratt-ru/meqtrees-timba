@@ -60,6 +60,8 @@ Dispatcher::Dispatcher (int hz)
       heartbeat_hz(hz),
       config(OctopussyConfig::global())
 {
+  main_thread  = 0;
+  event_thread = 0;
   // check that required config items have been found
   int hostid = 0;
   if( !config.get("hostid",hostid) )
@@ -773,7 +775,8 @@ void Dispatcher::rebuildInputs (WPInterface *remove)
 #ifdef USE_THREADS
   // send a signal to the event thread, to re-do a select() with the new fd sets
   lock2.release();
-  event_thread.kill(SIGUSR1);
+  if( event_thread.id() != 0 )
+    event_thread.kill(SIGUSR1);
 #endif
 }
 
@@ -1100,7 +1103,7 @@ void * Dispatcher::eventThread ()
       }
     }
   }
-  catch( std::exception exc )
+  catch( std::exception &exc )
   {
     cerr<<"Dipatcher event thread terminated with exception "<<exc.what()<<endl;
   }
@@ -1135,9 +1138,9 @@ void * Dispatcher::pollThread ()
       dprintf(1)("stop() call detected, exiting\n");
     }
   }
-  catch( std::exception exc )
+  catch( std::exception & exc )
   {
-    cerr<<"Dipatcher event thread terminated with exception "<<exc.what()<<endl;
+    cerr<<"Dipatcher poll thread terminated with exception "<<exc.what()<<endl;
   }
   return 0;
 }
