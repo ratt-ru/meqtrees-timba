@@ -27,13 +27,14 @@
 
 
 #pragma aidgroup Meq
-#pragma aid Node Class Name State Child Children Request Result VellSet Rider Id
+#pragma aid Node Class Name State Child Children Request Result VellSet 
+#pragma aid Rider Command Id Group Add
 #pragma aid Cells Domain Freq Time Times Step Steps Calc Deriv Vells VellSets
 #pragma aid NodeIndex Table Name Default Value Index Num Cache Code
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cells Results Fail Origin Line Message Contagious  Normalized
 #pragma aid Solvable Config Groups All By List Polc Polcs Scale
-#pragma aid DbId Grow Inf Weight Epsilon UseSVD  Auto Save
+#pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save
 #pragma aid Metrics Rank Fit Errors CoVar Flag Mu StdDev Chi
 
 
@@ -57,11 +58,12 @@ namespace Meq
     FName            = AidName,
     FNodeIndex       = AidNodeIndex,
     
-    FConfigGroups    = AidConfig|AidGroups,
-    FAll             = AidAll,
-    FByNodeIndex     = AidBy|AidNodeIndex,
-    FByList          = AidBy|AidList,
-    FState           = AidState,
+    FNodeGroups         = AidNode|AidGroups,
+    FAll                = AidAll,
+    FCommandAll         = AidCommand|AidAll,
+    FCommandByNodeIndex = AidCommand|AidBy|AidNodeIndex,
+    FCommandByList      = AidCommand|AidBy|AidList,
+    FState              = AidState,
     
     FCacheResult     = AidCache|AidResult,
     FCacheResultCode = AidCache|AidResult|AidCode,
@@ -70,9 +72,10 @@ namespace Meq
     FTimes           = AidTimes,
     FTimeSteps       = AidTime|AidSteps,
     FNumFreq         = AidNum|AidFreq,
+    FValue           = AidValue,
     
     FDefault         = AidDefault,
-    FValue           = AidValue,
+    FSetValue        = AidSet|AidValue,
     FTableName       = AidTable|AidName,
     FParmName        = AidParm|AidName,
     FDomainId        = AidDomain|AidId,
@@ -101,13 +104,15 @@ namespace Meq
     FOrigin          = AidOrigin,
     FOriginLine      = AidOrigin|AidLine,
     FMessage         = AidMessage,
-    
+
+    // Solver staterec fields
     FSolvable        = AidSolvable,
-    FSolvableParm    = AidSolvable|AidParm,
+    FParmGroup       = AidParm|AidGroup,
     FNumSteps        = AidNum|AidSteps,
     FEpsilon         = AidEpsilon,
     FUseSVD          = AidUseSVD,
 
+    // solver result rider
     FMetrics         = AidMetrics,
     FRank            = AidRank,
     FFit             = AidFit,

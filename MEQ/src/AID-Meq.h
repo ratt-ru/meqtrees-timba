@@ -8,6 +8,11 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_Meq ();
 
+#ifndef _defined_id_AidAdd
+#define _defined_id_AidAdd 1
+const AtomicID AidAdd(-1064);                     // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
+const int AidAdd_int = -1064;
+#endif
 #ifndef _defined_id_AidAll
 #define _defined_id_AidAll 1
 const AtomicID AidAll(-1381);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
@@ -73,6 +78,11 @@ const int AidCode_int = -1164;
 const AtomicID AidCoeff(-1408);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:33
 const int AidCoeff_int = -1408;
 #endif
+#ifndef _defined_id_AidCommand
+#define _defined_id_AidCommand 1
+const AtomicID AidCommand(-1277);                 // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:18
+const int AidCommand_int = -1277;
+#endif
 #ifndef _defined_id_AidConfig
 #define _defined_id_AidConfig 1
 const AtomicID AidConfig(-1373);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
@@ -137,6 +147,11 @@ const int AidFlag_int = -1135;
 #define _defined_id_AidFreq 1
 const AtomicID AidFreq(-1128);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
 const int AidFreq_int = -1128;
+#endif
+#ifndef _defined_id_AidGroup
+#define _defined_id_AidGroup 1
+const AtomicID AidGroup(-1122);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
+const int AidGroup_int = -1122;
 #endif
 #ifndef _defined_id_AidGroups
 #define _defined_id_AidGroups 1
@@ -447,6 +462,11 @@ const int AidSave_int = -1391;
 #define _defined_id_AidScale 1
 const AtomicID AidScale(-1405);                   // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
 const int AidScale_int = -1405;
+#endif
+#ifndef _defined_id_AidSet
+#define _defined_id_AidSet 1
+const AtomicID AidSet(-1316);                     // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/VisRepeater.h:10
+const int AidSet_int = -1316;
 #endif
 #ifndef _defined_id_AidSolvable
 #define _defined_id_AidSolvable 1

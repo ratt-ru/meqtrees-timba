@@ -98,6 +98,10 @@ class Node : public BlockableObject
     
     //##ModelId=3F6726C4039D
     int execute (Result::Ref &resref, const Request &);
+    
+    // called to process request rider commands, if any.
+    //##ModelId=400E531603C7
+    virtual void processCommands (const DataRecord &rec,const Request &req);
 
     //##ModelId=3F9919B00313
     const HIID & currentRequestId ();
@@ -123,6 +127,10 @@ class Node : public BlockableObject
     
     //##ModelId=3F98D9D20201
     int getChildNumber (const HIID &id);
+    
+    
+    const std::vector<HIID> & getNodeGroups () const
+    { return node_groups_; }
     
     //##ModelId=3F5F4363030F
     //##Documentation
@@ -181,11 +189,6 @@ class Node : public BlockableObject
     //##ModelId=400E531600B8
     virtual bool readyForRequest (const Request &)
     { return true; } // base version always ready
-        
-    // called from execute() to process the request rider, if any.
-    //##ModelId=400E531603C7
-    virtual void processRider (const DataRecord &)
-    {} // base version does nothing
     
     // Called from execute() to collect the child results for a given request.
     // Child_results vector is pre-sized to the number of children.
@@ -242,7 +245,7 @@ class Node : public BlockableObject
       { return  "Node " + className() + "('" + name() + "'): " + msg; }
     
     // These exception are meant to be thrown from methods like init(),
-    // getResult(), processRider() and setStateImpl() when something goes 
+    // getResult(), processCommands() and setStateImpl() when something goes 
     // wrong. The type of the exception indicates whether any cleanup is 
     // required.
     EXCEPTION_CLASS(FailWithCleanup,LOFAR::Exception)
@@ -295,7 +298,7 @@ class Node : public BlockableObject
     // otherwise it's an single-element index) . 'id' is the actual field
     // in 'children' that contains the child specification.
     void processChildSpec (NestableContainer &children,const HIID &chid,const HIID &id);
-    
+
     //##ModelId=3F8433C20193
     void addChild (const HIID &id,Node *childnode);
     
@@ -323,9 +326,9 @@ class Node : public BlockableObject
     //##ModelId=400E530B01D2
     int cache_retcode_;
     
-    // config group(s) that a node belongs to
+    // group(s) that a node belongs to
     //##ModelId=400E55D00080
-    std::vector<HIID> config_groups_;
+    std::vector<HIID> node_groups_;
     
     //##ModelId=3F8433ED0337
     // vector of refs to children
@@ -350,6 +353,7 @@ class Node : public BlockableObject
     // list of event recepients for when result is available
     typedef std::list<EventSlot> ResultSubscribers;
     ResultSubscribers result_subscribers_;
+    
 };
 
 //##ModelId=3F9919B00313

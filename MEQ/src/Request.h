@@ -36,6 +36,8 @@
 
 namespace Meq {
 
+class Node;
+
 //##ModelId=3F86886E01FF
 class Request : public DataRecord
 {
@@ -109,6 +111,18 @@ public:
     //##ModelId=400E5355007E
   const HIID & id() const
   { return itsId; }
+  
+  // does this request have a rider field?
+  bool hasRider () const
+  { return hasRider_; }
+
+  // re-checks itself for a rider record, sets the hasRider flag.
+  // should be called after an app has changed the rider
+  void validateRider ();
+    
+  // processes rider and calls node.setState() and node.processCommand()
+  // as appropriate
+  void processRider (Node &node) const;
 
 protected: 
   // disable public access to some DataRecord methods that would violate the
@@ -127,6 +141,8 @@ private:
   int    itsCalcDeriv;
     //##ModelId=3F86BFF80269
   const  Cells* itsCells;
+  
+  bool   hasRider_;
 };
 
 

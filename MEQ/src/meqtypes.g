@@ -44,13 +44,13 @@ const meq.requestid := function(domain_id,config_id=0,iter_id=0)
 }
 
 # Creates a defrec for a node
-const meq.node := function (class,name,children=F,default=[=],config_groups="")
+const meq.node := function (class,name,children=F,default=[=],groups="")
 {
   defrec := [ class=class,name=name ];
   if( !is_boolean(children) )
     defrec.children := children;
-  if( len(config_groups) )
-    defrec.config_groups := hiid(config_groups);
+  if( len(groups) )
+    defrec.node_groups := hiid(groups);
   return defrec;
 }
 
@@ -82,9 +82,9 @@ const meq.polc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
 }
 
 # Creates a Parm defrec
-const meq.parm := function (name,default=F,polc=F,config_groups="")
+const meq.parm := function (name,default=F,polc=F,groups="")
 {
-  rec := meq.node('MeqParm',name,config_groups=config_groups);
+  rec := meq.node('MeqParm',name,groups=groups);
   # set default if specified
   if( !is_boolean(default) )
   {
@@ -142,23 +142,30 @@ const meq.cells := function (domain,num_freq,num_time=F,times=F,time_steps=F)
   return rec;
 }
 
-# creates a state list for inclusion in a request
-const meq.initstatelist := function ()
+# creates a command list for inclusion in a request
+const meq.initcmdlist := function ()
 {
   rec := [=];
   rec::dmi_datafield_content_type := 'DataRecord';
   return rec;
 }
 
-# adds to a state list 
-const meq.addstatelist := function (ref rec,node,state)
+# adds to a command list 
+const meq.addcmdlist := function (ref rec,node,command,value=F)
 {
-  if( is_integer(node) )
-    rec[spaste('#',len(rec)+1)] := [ nodeindex=node,state=state ];
-  else if( is_string(node) )
-    rec[spaste('#',len(rec)+1)] := [ name=node,state=state ];
-  else 
-    fail 'node must be specified by index or name';
+  cmd := [=];
+  cmd[command] := value;
+  # zero-length node is wildcard
+  if( len(node) )
+  {
+    if( is_integer(node) )
+      cmd.nodeindex := node;
+    else if( is_string(node) )
+      cmd.name := node;
+    else 
+      fail 'node must be specified by index or name';
+  }
+  rec[spaste('#',len(rec)+1)] := cmd;
   return ref rec;
 }
 
@@ -177,43 +184,46 @@ const meq.request := function (cells=F,request_id=F,calc_deriv=0)
   if( !is_boolean(cells) )
     rec.cells := cells;
   rec::dmi_actual_type := 'MeqRequest';
-  
-  const rec.addstate := function (group,node,state)
+
+  # adds a command to the request
+  const rec.add_command := function (group,node,command,value=F)
   {
     wider rec;
     # add node_state and group subrecord
-    if( !has_field(rec,'node_state') )
-      rec.node_state := [=];
-    if( !has_field(rec.node_state,group) )
-      rec.node_state[group] := [=];
-    ns := ref rec.node_state[group];
-    # node specified by index
-    if( is_integer(node) )
+    if( !has_field(rec,'rider') )
+      rec.rider := [=];
+    if( !has_field(rec.rider,group) )
+      rec.rider[group] := [=];
+    ns := ref rec.rider[group];
+    if( !is_integer(node) && !is_string(node) )
+      fail 'meq.request.add_command(): node must be specified by index or name(s)';
+    # single nodeindex: add to command_by_nodeindex map
+    if( is_integer(node) && len(node)==1 ) 
     {
-      if( len(node) == 1 )  # single index: add to by_nodeindex map
-      {
-        if( !has_field(ns,'by_nodeindex') )
-          ns.by_nodeindex := [=];
-        ns.by_nodeindex[spaste('#',as_string(node))] := state;
-      }
-      else # multiple indices: add to by_list map
-      {
-        if( !has_field(ns,'by_list') )
-          ns.by_list := meq.initstatelist();
-        meq.addstatelist(ns.by_list,node,state);
-      }
+      if( !has_field(ns,'command_by_nodeindex') )
+        ns.command_by_nodeindex := [=];
+      key := spaste('#',as_string(node));
+      if( !has_field(ns.command_by_nodeindex,key) )
+        ns.command_by_nodeindex[key] := [=];
+      ns.command_by_nodeindex[key][command] := value;
     }
-    else if( is_string(node) ) # string nodes: add to by_list map
+    else # multiple indices or names: add to command_by_list map
     {
-      if( !has_field(ns,'by_list') )
-        ns.by_list := meq.initstatelist();
-      meq.addstatelist(ns.by_list,node,state);
+      if( !has_field(ns,'command_by_list') )
+        ns.command_by_list := meq.initcmdlist();
+      meq.addcmdlist(ns.command_by_list,node,command,value);
     }
-    else
-      fail 'meq.request.addstate(): node must be specified by index or name(s)';
     return T;
   }
-  rec.addstate::dmi_ignore := T;
+  # shortcut for adding state changes
+  const rec.add_state := function (group,node,state)
+  {
+    wider rec;
+    return rec.add_command(group,node,'state',state);
+  }
+  
+  rec.add_command::dmi_ignore := T;
+  rec.add_state::dmi_ignore := T;
   
   return ref rec;
 }

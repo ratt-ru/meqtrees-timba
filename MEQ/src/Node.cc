@@ -244,12 +244,13 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
   getStateField(myname_,rec,FName);
   // set the caching policy
   //      TBD
-  // set config groups
-  if( rec[FConfigGroups].exists() )
+  
+  // set node groups
+  if( rec[FNodeGroups].exists() )
   {
-    config_groups_ = rec[FConfigGroups].as_vector<HIID>();
+    node_groups_ = rec[FNodeGroups].as_vector<HIID>();
     // the "All" group is defined for every node
-    config_groups_.push_back(FAll);
+    node_groups_.push_back(FAll);
   }
   // set current request ID
   getStateField(current_reqid_,rec,FRequestId);
@@ -620,6 +621,18 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   return retcode;
 } 
 
+// process Node-specific commands
+void Node::processCommands (const DataRecord &rec,const Request &)
+{
+  // process the "State" command: change node state
+  DataRecord::Hook hstate(rec,FState);
+  if( hstate.exists() )
+  {
+    cdebug(4)<<"processCommands()"<<FState<<"): calling setState()"<<endl;
+    setState(hstate.as_wr<DataRecord>());
+  }
+}
+
 //##ModelId=3F6726C4039D
 int Node::execute (Result::Ref &ref, const Request &req)
 {
@@ -651,67 +664,9 @@ int Node::execute (Result::Ref &ref, const Request &req)
       }
       // set this request as current
       setCurrentRequest(req);
-      // check for change-of-state in the request
-      if( req[FNodeState].exists() )
-      {
-        stage = "processing node_state";
-        cdebug(3)<<"  processing node_state"<<endl;
-        const DataRecord &nodestate = req[FNodeState].as<DataRecord>();
-        for( uint i=0; i<config_groups_.size(); i++ )
-        {
-          if( nodestate[config_groups_[i]].exists() )
-          {
-            cdebug(3)<<"    found config group "<<config_groups_[i]<<endl;
-            DataRecord::Ref group = nodestate[config_groups_[i]].ref();
-            if( group[FByNodeIndex].exists() && group[FByNodeIndex][nodeIndex()].exists() )
-            {
-              cdebug(4)<<"    found "<<FByNodeIndex<<"["<<nodeIndex()<<"]"<<endl;
-              setState(group[FByNodeIndex][nodeIndex()].as_wr<DataRecord>());
-            }
-            if( group[FByList].exists() )
-            {
-              DataField &list = group[FByList].as_wr<DataField>();
-              cdebug(3)<<"      checking "<<list.size()<<" list entries"<<endl;
-              bool matched = false;
-              for( int i=0; i<list.size() && !matched; i++ )
-              {
-                DataRecord &entry = list[i].as_wr<DataRecord>();
-                std::vector<string> names;
-                std::vector<int> indices;
-                DataRecord &newst = entry[FState].as_wr<DataRecord>();
-                if( entry[FName].exists() ) // get list of names, if any
-                  names = entry[FName];
-                if( entry[FNodeIndex].exists() ) // get list of node indices, if any
-                  indices = entry[FNodeIndex];
-                cdebug(4)<<"        "<<indices.size()<<" indices, "<<
-                           names.size()<<" names"<<endl;
-                matched = ( std::find(indices.begin(),indices.end(),nodeIndex())
-                              != indices.end() ||
-                            std::find(names.begin(),names.end(),name())
-                              != names.end() ||
-                            std::find(names.begin(),names.end(),"*") 
-                              != names.end() );
-                if( matched )
-                {
-                  cdebug(4)<<"        node matched, setting state"<<endl;
-                  setState(newst);
-                }
-              }
-              if( !matched ) {
-                cdebug(3)<<"      no matches in list"<<endl;
-              }
-            }
-          }
-        }
-      }
-      // check for request rider
-      if( req[FRider].exists() )
-      {
-        stage = "processing rider";
-        cdebug(3)<<"  processing request rider"<<endl;
-        const DataRecord &rider = req[FRider];
-        processRider(rider);
-      }
+      // check for request riders
+      if( req.hasRider() )
+        req.processRider(*this);
     } // endif( newreq )
     
     // Pass request on to children and accumulate their results

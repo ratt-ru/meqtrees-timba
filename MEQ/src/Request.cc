@@ -21,6 +21,7 @@
 //# $Id$
 
 #include "Request.h"
+#include "Node.h"
 #include "MeqVocabulary.h"
 
 namespace Meq {
@@ -29,21 +30,21 @@ static NestableContainer::Register reg(TpMeqRequest,True);
 
 //##ModelId=3F8688700056
 Request::Request()
-    : itsCalcDeriv(0),itsCells(0)
+: itsCalcDeriv(0),itsCells(0),hasRider_(false)
 {
 }
 
 //##ModelId=3F8688700061
 Request::Request (const DataRecord &other,int flags,int depth)
 : DataRecord   (other,flags,depth),
-  itsCalcDeriv (0),itsCells(0)
+  itsCalcDeriv (0),itsCells(0),hasRider_(false)
 {
   validateContent();
 }
 
 //##ModelId=400E535403DD
-Request::Request (const Cells& cells, int calcDeriv, const HIID &id,int cellflags)
-: itsCells     (0)
+Request::Request (const Cells& cells,int calcDeriv,const HIID &id,int cellflags)
+: itsCells (0),hasRider_(false)
 {
   setCells(cells,cellflags);
   setId(id);
@@ -52,7 +53,7 @@ Request::Request (const Cells& cells, int calcDeriv, const HIID &id,int cellflag
 
 //##ModelId=400E53550016
 Request::Request (const Cells * cells, int calcDeriv, const HIID &id,int cellflags)
-: itsCells     (0)
+: itsCells     (0),hasRider_(false)
 {
   setCells(cells,cellflags);
   setId(id);
@@ -87,14 +88,17 @@ void Request::validateContent ()
   try
   {
     // get cells field
-    if( (*this)[FCells].exists() ) 
-      itsCells = (*this)[FCells].as_p<Cells>();
+    Hook hcells(*this,FCells);
+    if( hcells.exists() )
+      itsCells = hcells.as_p<Cells>();
     else
       itsCells = 0;
     // request ID
     itsId = (*this)[FRequestId].as<HIID>(HIID());
-    // calc-driv flag
+    // calc-deriv flag
     itsCalcDeriv = (*this)[FCalcDeriv].as<int>(0);
+    // rider
+    validateRider();
   }
   catch( std::exception &err )
   {
@@ -107,11 +111,90 @@ void Request::validateContent ()
   }  
 }
 
+void Request::validateRider ()
+{
+  hasRider_ = DataRecord::hasField(FRider);
+}
+
 int Request::remove (const HIID &id)
 { 
   if( id == FCells || id == FRequestId || id==FCalcDeriv )
     Throw("remove(" + id.toString() +" from a Meq::Request not allowed"); 
   return DataRecord::remove(id);
 }
+
+void Request::processRider (Node &node) const
+{
+  if( !hasRider() )
+    return;
+  cdebug(3)<<"  processing request rider"<<endl;
+  const DataRecord &rider = (*this)[FRider].as<DataRecord>();
+  const std::vector<HIID> & groups = node.getNodeGroups();
+  for( uint i=0; i<groups.size(); i++ )
+  {
+    Hook hgroup(rider,groups[i]);
+    if( hgroup.exists() )
+    {
+      cdebug(3)<<"    found CSR for group "<<groups[i]<<endl;
+      DataRecord::Ref group = hgroup.ref();
+      // check for command_all entry
+      {
+        Hook hlist(group,FCommandAll);
+        if( hlist.exists() )
+        {
+          cdebug(4)<<"    found "<<FCommandAll<<", calling processCommands()"<<endl;
+          node.processCommands(hlist.as<DataRecord>(),*this);
+        }
+      }
+      // process command_by_nodeindex list
+      {
+        Hook hlist(group,FCommandByNodeIndex);
+        if( hlist.exists() && hlist[node.nodeIndex()].exists() )
+        {
+          cdebug(4)<<"    found "<<FCommandByNodeIndex<<"["<<node.nodeIndex()<<"], calling processCommands()"<<endl;
+          node.processCommands(hlist.as<DataRecord>(),*this);
+        }
+      }
+      // process command_by_list (pattern matching list)
+      Hook hlist(group,FCommandByList);
+      if( hlist.exists() )
+      {
+        DataField &list = hlist.as_wr<DataField>();
+        cdebug(3)<<"      checking "<<list.size()<<" list entries"<<endl;
+        bool matched = false;
+        for( int i=0; i<list.size() && !matched; i++ )
+        {
+          DataRecord &entry = list[i].as_wr<DataRecord>();
+          std::vector<string> names;
+          std::vector<int> indices;
+          Hook hnames(entry,FName),
+               hindices(entry,FNodeIndex);
+          if( hnames.exists() ) // get list of names, if any
+            names = hnames;
+          if( hindices.exists() ) // get list of node indices, if any
+            indices = hindices;
+          cdebug(4)<<"        "<<indices.size()<<" indices, "
+                   <<names.size()<<" names"<<endl;
+          matched = ( std::find(indices.begin(),indices.end(),node.nodeIndex())
+                        != indices.end() ||
+                      std::find(names.begin(),names.end(),node.name())
+                        != names.end() ||
+                      ( names.empty() && indices.empty() ) );
+          // call appropriate handlers if node was matched
+          if( matched )
+          {
+            cdebug(4)<<"        node matched, calling processCommands()"<<endl;
+            node.processCommands(entry,*this);
+          }
+        }
+        if( !matched ) {
+          cdebug(3)<<"      no matches in list"<<endl;
+        }
+      }
+    }
+  }
+}
+
+
 
 } // namespace Meq

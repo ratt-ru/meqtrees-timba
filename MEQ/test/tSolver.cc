@@ -65,7 +65,7 @@ int main (int argc,const char* argv[])
     rec_child1["Class"] = "MeqParm";
     rec_child1["Name"] = "p1";
     rec_child1["Default"] <<= new Polc(defVal1);
-    rec_child1["Config.Groups"] = FSolvableParm;
+    rec_child1["Node.Groups"] = HIID("Solvable.Parm");
     int index_child1;
     Node& child1 = forest.create(index_child1,rec_child1);
     
@@ -74,7 +74,7 @@ int main (int argc,const char* argv[])
     rec_child2["Class"] = "MeqParm";
     rec_child2["Name"] = "p2";
     rec_child2["Default"] <<= new Polc(defVal2);
-    rec_child2["Config.Groups"] = FSolvableParm;
+    rec_child2["Node.Groups"] = HIID("Solvable.Parm");
     int index_child2;
     Node& child2 = forest.create(index_child2,rec_child2);
     
@@ -93,14 +93,15 @@ int main (int argc,const char* argv[])
     rec["Class"] = "MeqSolver";
     rec["Name"] = "solve1";
     rec["Num.Steps"] = 5;
+    rec["Parm.Group"] = HIID("Solvable.Parm");
     rec["Children"] <<= new DataRecord;
       rec["Children"]["A"] = "condeq1";
-    DataRecord& recs = rec["Solvable.Parm"] <<= new DataRecord;
-    DataField& dfld = recs["By.List"] <<= new DataField(TpDataRecord,2);
+    DataRecord& recs = rec["Solvable"] <<= new DataRecord;
+    DataField& dfld = recs["Command.By.List"] <<= new DataField(TpDataRecord,2);
       dfld[0]["Name"] = "p2";
       dfld[0]["State"] <<= new DataRecord;
       dfld[0]["State"]["Solvable"] = true;
-      dfld[1]["Name"] = "*";
+      // wildcard: not solvable
       dfld[1]["State"] <<= new DataRecord;
       dfld[1]["State"]["Solvable"] = false;
     int index_solv;
