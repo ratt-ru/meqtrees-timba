@@ -61,6 +61,12 @@ const HIID FNewRequest    = AidNew|AidRequest;
 const HIID FBreakpoint    = AidBreakpoint;
 const HIID FBreakpointSingleShot = AidBreakpoint|AidSingle|AidShot;
 
+// cache stored here
+const HIID FCacheResult     = AidCache|AidResult;
+const HIID FCacheResultCode = AidCache|AidResult|AidCode;
+const HIID FCacheRequestId  = AidCache|AidRequest|AidId;
+    
+
 // flag for child init-records, specifying that child node may be directly
 // linked to if it already exists
 const HIID FLinkOrCreate = AidLink|AidOr|AidCreate;
@@ -834,8 +840,10 @@ class Node : public DMI::BObj
     Result::Ref cache_result_;
     //##ModelId=400E530B01D2
     //##Documentation
-    //## cached return code of current request
+    //## cached return code (including dependencies)
     int cache_retcode_;
+    //## request id corresponding to cached result
+    HIID cache_reqid_;
     
     //##Documentation
     //## Dependency mask indicating which parts of a RequestId the node's own

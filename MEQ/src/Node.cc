@@ -260,8 +260,8 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
       node_groups_[i+1] = ngr[i];
   }
   
-  // set current request ID
-  rec[FRequestId].get(current_reqid_);
+  // set cache request ID
+  rec[FCacheRequestId].get(cache_reqid_);
   // set cache resultcode
   rec[FCacheResultCode].get(cache_retcode_);
   // set auto-resample mode
@@ -388,6 +388,7 @@ const DMI::Record & Node::syncState()
   else
     st.remove(FCacheResult);
   st[FCacheResultCode] = cache_retcode_;
+  st[FCacheRequestId]  = cache_reqid_;
   st[FRequestId]       = current_reqid_;
   st[FControlStatus]   = control_status_; 
   st[FBreakpointSingleShot] = breakpoints_ss_;
@@ -407,10 +408,9 @@ void Node::clearCache (bool recursive,bool quiet)
 {
   cache_result_.detach();
   cache_retcode_ = 0;
+  cache_reqid_.clear();
 //  wstate()[FCacheResult].replace() = false;
 //  wstate()[FCacheResultCode].replace() = cache_retcode_ = 0;
-  current_reqid_.clear();
-  current_request_.detach();
   clearRCRCache();
   if( quiet )
     control_status_ &= ~CS_CACHED;
@@ -422,6 +422,8 @@ void Node::clearCache (bool recursive,bool quiet)
       getChild(i).clearCache(true,quiet);
   }
 }
+
+// static FILE *flog = fopen("cache.log","w");
 
 //##ModelId=400E531A021A
 bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
@@ -435,25 +437,39 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   // (2) A cached RES_VOLATILE code requires an exact ID match
   //     (i.e. volatile results recomputed for any different request)
   // (3) Otherwise, do a masked compare using the cached result code
-  cdebug(4)<<"checking cache: request "<<current_reqid_<<", code "<<ssprintf("0x%x",cache_retcode_)<<endl;
-  if( !req.id().empty() && !current_reqid_.empty() && 
+  cdebug(4)<<"checking cache: request "<<cache_reqid_<<", code "<<ssprintf("0x%x",cache_retcode_)<<endl;
+//   fprintf(flog,"%s: cache contains %s, code %x, request is %s\n",
+//           name().c_str(),
+//           cache_reqid_.toString().c_str(),cache_retcode_,req.id().toString().c_str());
+  if( !req.id().empty() && !cache_reqid_.empty() && 
       !req.hasCacheOverride() &&
       (cache_retcode_&RES_VOLATILE 
-        ? req.id() == current_reqid_
-        : maskedCompare(req.id(),current_reqid_,cache_retcode_) ) )
+        ? req.id() == cache_reqid_
+        : maskedCompare(req.id(),cache_reqid_,cache_retcode_) ) )
   {
-    ref = cache_result_;
+    cdebug(4)<<"cache hit"<<endl;
+//     fprintf(flog,"%s: reusing cache, cache cells are %x, req cells are %x\n",
+//         name().c_str(),
+//         (ref->hasCells() ? int(&(ref->cells())) : 0),
+//         (req.hasCells() ? int(&(req.cells())) : 0));
     // UGLY KLUDGE ALERT:
-    // make sure cells of request match result!
+    // make sure cells of request match result, and adjust cache accordingly
     if( req.hasCells() )
     {
-      if( !ref->hasCells() || &(ref->cells()) != &(req.cells()) )
-        ref().setCells(req.cells());
+      if( !cache_result_->hasCells() || &(cache_result_->cells()) != &(req.cells()) )
+      {
+//         fprintf(flog,"%s: inserting req cells %x\n",
+//             name().c_str(),int(&(req.cells())));
+        cache_result_().setCells(req.cells());
+        cache_reqid_ = req.id();
+      }
     }
+    ref = cache_result_;
     retcode = cache_retcode_;
     return true;
   }
-  cdebug(4)<<"cache hit"<<endl;
+  cdebug(4)<<"cache miss"<<endl;
+//  fprintf(flog,"%s: cache missed\n",name().c_str());
   // no match -- clear cache and return 
   clearCache(false);
   return false; 
@@ -469,7 +485,8 @@ int Node::cacheResult (const Result::Ref &ref,int retcode)
   // NB: perhaps fails should be marked separately?
   cache_result_ = ref;
   cache_retcode_ = retcode;
-  cdebug(3)<<"caching result "<<current_reqid_<<" with code "<<ssprintf("0x%x",retcode)<<endl;
+  cache_reqid_ = current_reqid_;
+  cdebug(3)<<"caching result "<<cache_reqid_<<" with code "<<ssprintf("0x%x",retcode)<<endl;
   // control status set directly (not via setControlStatus call) because
   // caller (execute(), presumably) is going to update status anyway
   control_status_ |= CS_CACHED;
@@ -965,8 +982,9 @@ int Node::execute (Result::Ref &ref,const Request &req0)
         setExecState(CS_ES_IDLE,control_status_|CS_RES_FAIL);
         return ret;
       }
-      // resample children (will do nothing if disabled)
-      resampleChildren(rescells,child_results);
+      // if request has cells, then resample children (will do nothing if disabled)
+      if( req.hasCells() )
+        resampleChildren(rescells,child_results);
     }
     // does request have a Cells object? Compute our Result then
     if( req.hasCells() )

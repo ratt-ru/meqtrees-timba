@@ -66,9 +66,6 @@ namespace Meq
     FCommandByNodeIndex = AidCommand|AidBy|AidNodeIndex,
     FCommandByList      = AidCommand|AidBy|AidList,
     
-    FCacheResult     = AidCache|AidResult,
-    FCacheResultCode = AidCache|AidResult|AidCode,
-    
     // Domain fields
     FFreq            = AidFreq,
     FTime            = AidTime,
