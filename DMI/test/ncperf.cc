@@ -1,13 +1,15 @@
-#include "DMI/AID-DMI.h"
-#include "DMI/TID-DMI.h"
-#include "DMI/DataRecord.h"
-#include "DMI/DataArray.h"
-#include "DMI/NCIter.h"
-#include "Common/Stopwatch.h"
-//#include "casa/Arrays/Matrix.h"
-//#include "casa/Arrays/ArrayMath.h"
+#include <DMI/AID-DMI.h>
+#include <DMI/TID-DMI.h>
+#include <DMI/DataRecord.h>
+#include <DMI/DataArray.h>
+#include <DMI/NCIter.h>
+#include <Common/Stopwatch.h>
+//#include <casa/Arrays/Matrix.h>
+//#include <casa/Arrays/ArrayMath.h>
     
 #define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
+
+using namespace LOFAR;
     
 int main ( int argc,const char *argv[] )
 {
