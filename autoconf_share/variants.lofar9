@@ -4,6 +4,9 @@ gnu3.compiler.aipspp.var: --with-aipspp=/aips++/stable/linux_gnu3
 gnu2.compiler.conf: CXX=/usr/local/gcc-2.95.3/bin/g++ 
 gnu2.compiler.aipspp.var: --with-aipspp=/aips++/stable/linux_gnu2
 
+kcc.compiler.conf: CXX=/home/gvd/sim/import/kcc/KCC_BASE/bin/KCC
+kcc.compiler.aipspp.var: --with-aipspp=/aips++/stable/linux_kcc
+
 debugnt.variant.conf:	  $(aipspp)	
 
 aipspp.var: --with-aipspp=/aips++/stable/linux_gnu

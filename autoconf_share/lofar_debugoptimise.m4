@@ -23,17 +23,17 @@
 
 # lofar_DEBUG_OPTIMIZE
 #
-# Set debugging or optmisation flags for CC and CXX
+# Set debugging or optimisation flags for CC and CXX
 #
 AC_DEFUN(lofar_DEBUG_OPTIMIZE,dnl
 [dnl
 AC_PREREQ(2.13)dnl
 AC_ARG_WITH(debug,
-	[  --with-debug[=CFLAGS]     enable debugging CFLAGS (default=-g)],
+	[  --with-debug     enable debugging C(XX)FLAGS (sets -g)],
 	[with_debug="$withval"],
 	[with_debug=no])dnl
 AC_ARG_WITH(optimize,
-	[  --with-optimize[=CFLAGS]  enable optimization CFLAGS (default=-O3 or +K3)],
+	[  --with-optimize[=CFLAGS]  enable optimization C(XX)FLAGS (sets -O3 or +K3)],
 	[with_optimize="$withval"],
 	[with_optimize=no])dnl
 AC_ARG_WITH(cppflags,
@@ -58,7 +58,7 @@ AC_ARG_ENABLE(dbgassert,
 	[enable_dbgassert="default"])dnl
 [
   if test "$with_debug" = "yes"; then
-    with_debug="-g"
+    with_debug="-g";
   fi
 
   if test "$lofar_compiler" = "gnu"; then
@@ -89,17 +89,19 @@ AC_DEFINE(LOFAR_DEBUG,dnl
     fi
   fi
 
+  with_optimizecxx="$with_optimize";
   if test "$with_optimize" = "yes"; then
+    with_optimize="-O3"
     if test "$lofar_compiler" = "kcc"; then
-      with_optimize="+K3"
+      with_optimizecxx="+K3"
     else
-      with_optimize="-O3"
+      with_optimizecxx="-O3"
     fi
   fi
 
   if test "$with_optimize" != "no"; then
     lfr_cflags="$with_optimize";
-    lfr_cxxflags="$with_optimize $lofar_warnflags";
+    lfr_cxxflags="$with_optimizecxx $lofar_warnflags";
     if test "$enable_dbgassert" = "default"; then
       enable_dbgassert="no";
     fi
