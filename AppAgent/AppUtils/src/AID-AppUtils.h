@@ -10,13 +10,23 @@
 
 #ifndef _defined_id_AidClosed
 #define _defined_id_AidClosed 1
-const AtomicID AidClosed(-1307);                  // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/VisRepeater.h:13
+const AtomicID AidClosed(-1307);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:1
 const int AidClosed_int = -1307;
+#endif
+#ifndef _defined_id_AidDone
+#define _defined_id_AidDone 1
+const AtomicID AidDone(-1309);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:2
+const int AidDone_int = -1309;
 #endif
 #ifndef _defined_id_AidError
 #define _defined_id_AidError 1
 const AtomicID AidError(-1071);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:23
 const int AidError_int = -1071;
+#endif
+#ifndef _defined_id_AidInit
+#define _defined_id_AidInit 1
+const AtomicID AidInit(-1092);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:41
+const int AidInit_int = -1092;
 #endif
 #ifndef _defined_id_AidInput
 #define _defined_id_AidInput 1
@@ -30,13 +40,18 @@ const int AidOutput_int = -1130;
 #endif
 #ifndef _defined_id_AidRepeater
 #define _defined_id_AidRepeater 1
-const AtomicID AidRepeater(-1306);                // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/VisRepeater.h:13
+const AtomicID AidRepeater(-1306);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:7
 const int AidRepeater_int = -1306;
 #endif
 #ifndef _defined_id_AidSeq
 #define _defined_id_AidSeq 1
-const AtomicID AidSeq(-1308);                     // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/VisRepeater.h:13
+const AtomicID AidSeq(-1308);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:8
 const int AidSeq_int = -1308;
+#endif
+#ifndef _defined_id_AidVisRepeater
+#define _defined_id_AidVisRepeater 1
+const AtomicID AidVisRepeater(-1310);             // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:9
+const int AidVisRepeater_int = -1310;
 #endif
 
 

@@ -24,6 +24,14 @@ static AtomicID::Register aid_reg_Resume(-1251,"Resume");
 static AtomicID::Register aid_reg_Halt(-1265,"Halt");
 static AtomicID::Register aid_reg_Always(-1304,"Always");
 static AtomicID::Register aid_reg_Wait(-1303,"Wait");
+static AtomicID::Register aid_reg_Notify(-1311,"Notify");
+static AtomicID::Register aid_reg_Auto(-1331,"Auto");
+static AtomicID::Register aid_reg_Exit(-1332,"Exit");
 static AtomicID::Register aid_reg_AppAgent(-1112,"AppAgent");
 static AtomicID::Register aid_reg_Text(-1269,"Text");
+static AtomicID::Register aid_reg_BOIO(-1329,"BOIO");
+static AtomicID::Register aid_reg_File(-1328,"File");
+static AtomicID::Register aid_reg_Name(-1163,"Name");
+static AtomicID::Register aid_reg_Mode(-1330,"Mode");
+static AtomicID::Register aid_reg_Data(-1107,"Data");
 

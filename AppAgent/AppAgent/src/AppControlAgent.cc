@@ -4,6 +4,12 @@ using namespace AppControlAgentVocabulary;
 using namespace AppState;
 using namespace AppEvent;
     
+static int dum = aidRegistry_AppAgent();
+
+InitDebugContext(AppControlAgent,"AppControl");
+
+using namespace std;
+
 //##ModelId=3E40F90F02BA
 bool AppControlAgent::init (bool waitstart, const DataRecord &data)
 {
@@ -15,6 +21,11 @@ bool AppControlAgent::init (bool waitstart, const DataRecord &data)
     {
       Throw("event base init failed");
     }
+    // check the auto-exit parameter
+    if( data[initfield()].exists() )
+      auto_exit_ = data[initfield()][FAutoExit].as_bool(False);
+    else
+      auto_exit_ = False;
     // do we need to wait for a start event here?
     if( waitstart )
     {
@@ -28,6 +39,7 @@ bool AppControlAgent::init (bool waitstart, const DataRecord &data)
         cdebug(2)<<"got command "<<id<<", state is now "<<stateString()<<endl;
       }
     }
+    postEvent(InitNotifyEvent);
     return True;
   }
   catch( std::exception &exc )
@@ -59,6 +71,13 @@ bool AppControlAgent::init (const DataRecord &data)
     setErrorState(exc.what());
     return False;
   }
+}
+
+//##ModelId=3E510A600340
+void AppControlAgent::close ()
+{
+  postEvent(StopNotifyEvent);
+  AppEventAgentBase::close();
 }
 
 //##ModelId=3E3A9E520156
@@ -101,7 +120,7 @@ int AppControlAgent::checkStateEvent (const HIID &id)
     setState(HALTED);
     return NEWSTATE;
   }
-  return -1; // unknown event
+  return SUCCESS; // unknown event
 }
 
 //##ModelId=3E3957E10329
@@ -113,13 +132,13 @@ int AppControlAgent::getCommand (HIID &id,DataRecord::Ref &data, int wait)
   {
     cdebug(3)<<"got control event "<<id<<endl;
     // change state according to event
-    Thread::Mutex::Lock lock(mutex_);
-    res = checkStateEvent(id);
-    FailWhen(res<0,"unexpected state event "+id.toString());
-    if( res == NEWSTATE )
+    Thread::Mutex::Lock lock(state_condition_);
+    if( checkStateEvent(id) == NEWSTATE )
     {
       cdebug(2)<<"state is now "<<stateString()<<endl;
+      return NEWSTATE;
     }
+    // else simply returns success
   }
   return res;
 }
@@ -131,13 +150,13 @@ int AppControlAgent::hasCommand() const
 }
 
 //##ModelId=3E4274C60015
-void AppControlAgent::postEvent (const HIID &id, const ObjRef &data)
+void AppControlAgent::postEvent (const HIID &id, const ObjRef::Xfer &data)
 {
   sink().postEvent(id,data);
 }
 
 //##ModelId=3E4274C601C8
-void AppControlAgent::postEvent (const HIID &id, const DataRecord::Ref &data)
+void AppControlAgent::postEvent (const HIID &id, const DataRecord::Ref::Xfer &data)
 {
   sink().postEvent(id,data);
 }
@@ -152,14 +171,48 @@ void AppControlAgent::postEvent (const HIID &id, const string &text)
 //##ModelId=3E394E080055
 int AppControlAgent::setState (int newstate)
 {
-  Thread::Mutex::Lock lock(mutex_);
-  return state_ = newstate;
+  Thread::Mutex::Lock lock(state_condition_);
+  if( newstate != state_ )
+  {
+    if( auto_exit_ && newstate < 0 && newstate != HALTED )
+    {
+      cdebug(1)<<"auto-exit enabled, halting on state "<<newstate<<endl;
+      newstate = HALTED;
+    }
+    state_ = newstate;
+    state_condition_.broadcast();
+  }
+  return state_;
+}
+
+//##ModelId=3E5368C003DC
+void AppControlAgent::waitUntilEntersState (int waitstate) const
+{ 
+  waitUntil(std::bind2nd(std::equal_to<int>(),waitstate)); 
+}
+
+//##ModelId=3E53696202BE
+bool AppControlAgent::waitUntilEntersState (int waitstate, double seconds) const
+{ 
+  return waitUntil(std::bind2nd(std::equal_to<int>(),waitstate),seconds); 
+}
+
+//##ModelId=3E536C9E028F
+void AppControlAgent::waitUntilLeavesState (int waitstate) const
+{ 
+  waitUntil(std::bind2nd(std::not_equal_to<int>(),waitstate)); 
+}
+
+//##ModelId=3E536C9F009F
+bool AppControlAgent::waitUntilLeavesState (int waitstate, double seconds) const
+{ 
+  return waitUntil(std::bind2nd(std::not_equal_to<int>(),waitstate),seconds); 
 }
 
 //##ModelId=3E40FAF50397
 int AppControlAgent::setErrorState (const string& msg)
 {
-  Thread::Mutex::Lock lock(mutex_);
+  Thread::Mutex::Lock lock(state_condition_);
   errmsg_ = msg;
   return state_ = AppState::ERROR;
 }
@@ -174,7 +227,7 @@ int AppControlAgent::state () const
 string AppControlAgent::stateString () const
 {
   string out;
-  Thread::Mutex::Lock lock(mutex_);
+  Thread::Mutex::Lock lock(state_condition_);
   switch( state() )
   {
     case INIT:            out = "INIT";     break;
@@ -194,4 +247,5 @@ string AppControlAgent::sdebug (int detail,const string &prefix,const char *name
 {
   return AppEventAgentBase::sdebug(detail,prefix,name?name:"AppControlAgent");
 }
+
 

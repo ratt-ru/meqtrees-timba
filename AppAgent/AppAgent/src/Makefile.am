@@ -8,7 +8,8 @@ libappagent_la_SOURCES = \
   AppEventSink.cc \
   AppEventAgentBase.cc \
   AppEventFlag.cc \
-  AppControlAgent.cc
+  AppControlAgent.cc \
+  BOIOSink.cc 
   
 
 # script used to generate AID maps

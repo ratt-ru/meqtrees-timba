@@ -1,6 +1,8 @@
 #include "AppEventAgentBase.h"
 #include <DMI/DataRecord.h>
 
+static int dum = aidRegistry_AppAgent();
+
 //##ModelId=3E414887001F
 AppEventAgentBase::AppEventAgentBase (const HIID &initf)
     : AppAgent(initf)
@@ -9,17 +11,23 @@ AppEventAgentBase::AppEventAgentBase (const HIID &initf)
 }
 
 //##ModelId=3E47AA530111
-void AppEventAgentBase::attachFlag(AppEventFlag& evflag, int dmiflags)
+void AppEventAgentBase::attach(AppEventFlag& evflag, int dmiflags)
 {
-  sink().attachFlag(evflag,dmiflags);
+  sink().attach(evflag,dmiflags);
 }
-
 
 //##ModelId=3E4148870295
 AppEventAgentBase::AppEventAgentBase (AppEventSink &evsink, const HIID &initf)
     : AppAgent(initf)
 {
   sink_.attach(evsink,DMI::WRITE); // attach default ref (extern if first ref)
+}
+
+//##ModelId=3E50F9BB019B
+AppEventAgentBase::AppEventAgentBase(AppEventSink *evsink, int dmiflags, const HIID &initf)
+    : AppAgent(initf)
+{
+  sink_.attach(evsink,dmiflags|DMI::WRITE);
 }
 
 //##ModelId=3E47AF920205
@@ -31,7 +39,7 @@ bool AppEventAgentBase::isAsynchronous() const
 //##ModelId=3E41147B0049
 bool AppEventAgentBase::init (const DataRecord &data)
 {
-  return sink().init(data);
+  return sink().init(data[initfield()].as_DataRecord());
 }
 
 //##ModelId=3E41147E0126

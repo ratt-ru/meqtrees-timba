@@ -43,7 +43,7 @@ void AppEventFlag::raise (int snum)
   FailWhen(snum<0 || snum>=nsources,"illegal event source number");
   Thread::Mutex::Lock lock(cond);
   flagword |= (1<<snum);
-  cond.signal();
+  cond.broadcast();
 }
 
 //##ModelId=3E43EA3D0366

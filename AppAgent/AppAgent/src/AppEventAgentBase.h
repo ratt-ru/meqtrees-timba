@@ -6,13 +6,14 @@
     
 class DataRecord;
 class AppEventFlag;
+class AppEventSink;
     
 //##ModelId=3E4147EF00D6
 class AppEventAgentBase : public AppAgent
 {
   public:
     //##ModelId=3E47AA530111
-    void attachFlag (AppEventFlag& evflag, int dmiflags = DMI::WRITE);
+    void attach (AppEventFlag& evflag, int dmiflags = DMI::WRITE);
   
     //##ModelId=3E47AF920205
     virtual bool isAsynchronous() const;
@@ -50,9 +51,10 @@ class AppEventAgentBase : public AppAgent
   protected:
     //##ModelId=3E414887001F
     explicit AppEventAgentBase(const HIID &initf);
-
     //##ModelId=3E4148870295
     AppEventAgentBase(AppEventSink &sink, const HIID &initf);
+    //##ModelId=3E50F9BB019B
+    AppEventAgentBase(AppEventSink *sink, int dmiflags, const HIID &initf);
     
     //##ModelId=3E414A8301CB
     AppEventSink & sink();
@@ -64,6 +66,7 @@ class AppEventAgentBase : public AppAgent
     static void fillReceiveEventList (DataRecord &list);
     //##ModelId=3E42973F0398
     static void fillPostEventList    (DataRecord &list);
+
     
   private:
     //##ModelId=3E41495203E0

@@ -1,7 +1,10 @@
-#include "ApplicationBase.h"
 #include <Common/Debug.h>    
+#include "ApplicationBase.h"
+#include "AID-AppUtils.h"
     
 InitDebugContext(ApplicationBase,"Applications");
+
+static int dum = aidRegistry_AppUtils ();
     
 //##ModelId=3E43BBE301BA
 ApplicationBase::ApplicationBase(AppControlAgent &ctrl)

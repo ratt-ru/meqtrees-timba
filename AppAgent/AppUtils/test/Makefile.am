@@ -2,13 +2,17 @@ dmi_dir = $(lofar_sharedir)/../DMI
 
 CXXFLAGS += -D_GNU_SOURCE 
 
-check_PROGRAMS		= test_mstoms
+check_PROGRAMS		= test_mstoms test_octo_mstoms
 
 bin_PROGRAMS   		= 
 
 test_mstoms_SOURCES		    = test_mstoms.cc
 test_mstoms_LDADD		      = ../src/libapputils.la
 test_mstoms_DEPENDENCIES	= ../src/libapputils.la $(LOFAR_DEPEND)
+
+test_octo_mstoms_SOURCES		    = test_octo_mstoms.cc
+test_octo_mstoms_LDADD		      = ../src/libapputils.la
+test_octo_mstoms_DEPENDENCIES	= ../src/libapputils.la $(LOFAR_DEPEND)
 
 TESTS				=  
 

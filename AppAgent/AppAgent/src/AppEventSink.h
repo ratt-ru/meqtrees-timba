@@ -76,7 +76,7 @@ class AppEventSink : public AppAgent
     AppEventSink (const HIID &initf, AppEventFlag &evflag);
     
     //##ModelId=3E4787070046
-    void attachFlag (AppEventFlag& evflag,int dmiflags = DMI::WRITE);
+    void attach (AppEventFlag& evflag,int dmiflags = DMI::WRITE);
     
     //##ModelId=3E4143B200F2
     //##Documentation
@@ -125,7 +125,7 @@ class AppEventSink : public AppAgent
     //##ModelId=3E394D4C02C9
     //##Documentation
     //## Posts an event on behalf of the application.
-      virtual void postEvent (const HIID &id, const ObjRef &data = ObjRef());
+      virtual void postEvent (const HIID &id, const ObjRef::Xfer &data = ObjRef());
 
     //##ModelId=3E394D4C02D7
     //##Documentation
@@ -149,7 +149,7 @@ class AppEventSink : public AppAgent
       int getEvent (HIID &id, DataRecord::Ref &data, const HIID &mask, int wait = AppEvent::WAIT);
 
     //##ModelId=3E3E747A0120
-      void postEvent (const HIID &id, const DataRecord::Ref & data);
+      void postEvent (const HIID &id, const DataRecord::Ref::Xfer & data);
       
     //##ModelId=3E3FD6180308
       void postEvent (const HIID &id, const string &text);

@@ -35,11 +35,11 @@ AppEventSink::AppEventSink (const HIID &initf)
 AppEventSink::AppEventSink(const HIID &initf, AppEventFlag &evflag)
   : AppAgent(initf)
 {
-  attachFlag(evflag);
+  attach(evflag);
 }
 
 //##ModelId=3E4787070046
-void AppEventSink::attachFlag (AppEventFlag& evflag,int dmiflags)
+void AppEventSink::attach (AppEventFlag& evflag,int dmiflags)
 {
   if( eventFlag.valid() ) // can't attach more than one
   {
@@ -75,8 +75,10 @@ int AppEventSink::hasEvent (const HIID &) const
 }
 
 //##ModelId=3E394D4C02C9
-void AppEventSink::postEvent (const HIID &, const ObjRef &)
+void AppEventSink::postEvent (const HIID &, const ObjRef::Xfer &ref)
 {
+  // this is OK since we're meant to xfer the ref anyway
+  const_cast<ObjRef&>(ref).detach();
 }
 
 void AppEventSink::flush ()
@@ -94,13 +96,10 @@ int AppEventSink::getEvent (HIID &id, DataRecord::Ref &data, const HIID &mask, i
 }
 
 //##ModelId=3E3E747A0120
-void AppEventSink::postEvent (const HIID &id, const DataRecord::Ref & data)
+void AppEventSink::postEvent (const HIID &id, const DataRecord::Ref::Xfer & data)
 {
   if( data.valid() )
-  {
-    ObjRef ref(data.ref_cast<BlockableObject>(),DMI::COPYREF|DMI::PRESERVE_RW);
-    postEvent(id,ref);
-  }
+    postEvent(id,data.ref_cast<BlockableObject>());
   else
     postEvent(id);
 }
@@ -143,7 +142,7 @@ int AppEventSink::waitOtherEvents (int wait) const
   }
   else if( wait == BLOCK )
   {
-    // bo-bo, can't block here since we never get an event to unblock us...
+    // boo-boo, can't block here since we never get an event to unblock us...
     Throw("blocking for an event here would block indefinitely");
   }
   else

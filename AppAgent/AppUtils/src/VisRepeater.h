@@ -9,7 +9,7 @@
 #include <AppUtils/ApplicationBase.h>
 
 #pragma aidgroup AppUtils
-#pragma aid Repeater Input Output Seq Error Closed
+#pragma aid VisRepeater Repeater Input Output Seq Error Closed
     
 namespace VisRepeaterVocabulary
 {

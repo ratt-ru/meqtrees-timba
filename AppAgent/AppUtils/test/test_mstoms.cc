@@ -74,9 +74,9 @@ int main (int argc,const char *argv[])
     
     cout<<"=================== creating event flag ========================\n";
     AppEventFlag eventflag;
-    inagent.attachFlag(eventflag);
-    outagent.attachFlag(eventflag);
-    controlagent.attachFlag(eventflag);
+    inagent.attach(eventflag);
+    outagent.attach(eventflag);
+    controlagent.attach(eventflag);
     
     cout<<"=================== creating repeater ==========================\n";
     VisRepeater repeater(inagent,outagent,controlagent);

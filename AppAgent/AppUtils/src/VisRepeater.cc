@@ -21,13 +21,17 @@ void VisRepeater::run (DataRecord::Ref &initrec)
   {
     // initialize all agents
     cdebug(1)<<"initializing\n";
-    input().init(*initrec);
-    output().init(*initrec);
-    control().init(*initrec);
-    control().setState(RUNNING);
-    // keep track of changes in the output stream state, to report errors
-    // if closed
-    bool output_open = True;
+    if( !input().init(*initrec) ||
+        !output().init(*initrec) ||
+        !control().init(*initrec) )
+    {
+      cdebug(1)<<"init failed\n";
+      break;
+    }
+    // default is 1 min domains
+    double domain_size = initrec[FDomainSize].as_double(60);
+    double domain_start = 0;
+    double domain_end;
     // run main loop
     while( control().state() > 0 )  // while in a running state
     {
@@ -35,17 +39,20 @@ void VisRepeater::run (DataRecord::Ref &initrec)
       VisTile::Ref tile;
       int instat,outstat = AppEvent::SUCCESS;
       // try getting a tile first (this is the more frequent case)
+      cdebug(4)<<"looking for tile\n";
       instat = input().getNextTile(tile,AppEvent::WAIT);
       if( instat == AppEvent::SUCCESS )
-      { // got one? place on output stream
+      { // got a tile? See what to do with it
+        
         // note that if the output stream has been closed, then the data is 
         // simply ignored
-        cdebug(3)<<"received tile, copying to output\n";
+        cdebug(3)<<"received tile "<<tile->tileId()<<", copying to output\n";
         if( output_open )
           outstat = output().putNextTile(tile);
       }
       else if( instat == AppEvent::OUTOFSEQ ) // out of sequence? Look for a header instead
       {
+        cdebug(4)<<"looking for header\n";
         instat = input().getHeader(header,AppEvent::WAIT);
         if( instat == AppEvent::SUCCESS )
         { // got one? place on output stream, unless closed
@@ -54,6 +61,7 @@ void VisRepeater::run (DataRecord::Ref &initrec)
             outstat = output().putHeader(header);
         }
       }
+      // handle i/o errors
       // error on the output stream? report event but keep things moving
       if( output_open )
         if( outstat == AppEvent::ERROR )
@@ -89,9 +97,11 @@ void VisRepeater::run (DataRecord::Ref &initrec)
         control().setState(INPUT_CLOSED);
         continue;
       }
+      // -----------------------------------------------
       // check control agent for any other state changes
       HIID id;
       DataRecord::Ref data;
+      cdebug(4)<<"checking control agent\n";
       if( control().getCommand(id,initrec,AppEvent::WAIT) == AppEvent::PAUSED )
       {
         // if paused, then suspend the input stream, and block completely until
@@ -129,7 +139,13 @@ void VisRepeater::run (DataRecord::Ref &initrec)
         return;
       }
       HIID id;
-      control().getCommand(id,initrec,AppEvent::BLOCK);
+      int res = control().getCommand(id,initrec,AppEvent::BLOCK);
+      if( res != AppEvent::SUCCESS )
+      {
+        cdebug(1)<<"control returns "<<res<<", exiting\n";
+        control().close();
+        return;
+      }
     }
   }
 }
