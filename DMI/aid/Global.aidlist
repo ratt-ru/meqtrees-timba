@@ -279,6 +279,7 @@ meqflagger                       1261       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 meqfunction                      1216       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Function.h:29
 meqfunklet                       1568       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Funklet.h:33
 meqgauss                         1574       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Gauss.h:30
+#meqgaussnoise                   1576       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/GaussNoise.h:31
 meqha0                           1342       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqHA0.h:14
 #meqimag                         1523       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Imag.h:29
 #meqlmn                          1467       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/LMN.h:29
@@ -320,7 +321,8 @@ meqpredictsource_xy              1344       ; from /home/noordam/LOFAR/CEP/CPA/P
 meqpredictsource_yx              1345       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_YX.h:14
 meqpredictsource_yy              1346       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_YY.h:14
 meqproduct                       1529       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Product.h:29
-#meqrandom                       1575       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Random.h:31
+meqrandom                        1575       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Random.h:31
+#meqrandomnoise                  1577       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/RandomNoise.h:31
 #meqreal                         1522       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Real.h:29
 meqreqmux                        1443       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqMux.h:30
 #meqreqseq                       1478       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqSeq.h:30
