@@ -251,11 +251,11 @@ AC_CHECK_FILE([$lofar_root/LOFAR],
 
   case $lofar_root_libdir in
   */build/*)
-    lfr_find=$lofar_root_libdir/Common;
+    lfr_find=$lofar_root_libdir/LCS/Common;
     lofar_root_libdir="$lofar_root_libdir/<package>";
     ;;
   *)
-    lfr_find=$lofar_root_libdir/Common/build/$lofar_variant;
+    lfr_find=$lofar_root_libdir/LCS/Common/build/$lofar_variant;
     lofar_root_libdir="$lofar_root_libdir/<package>/build/$lofar_variant";
     ;;
   esac
