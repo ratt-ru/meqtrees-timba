@@ -451,6 +451,7 @@ class QwtImagePlot(QwtPlot):
 	self._y_axis = None
 	self._title = None
 	self._menu = None
+        self._plot_type = None
 	self._plot_dict_size = None
 	self.created_combined_image = False
 	self._combined_image_id = None
@@ -1302,7 +1303,12 @@ class QwtImagePlot(QwtPlot):
           except:
             temp_array = asarray(self._vells_rec.vellsets[0].flags)
             self._flags_array = resize(temp_array,self._shape)
-          self.plotImage.setFlagsArray(self._flags_array)
+
+# hack to make flags array layout agree with transposed
+# image layout until forest.state record available
+          axes = arange(self._flags_array.rank)[::-1]
+          flags_array_transpose = transpose(self._flags_array, axes)
+          self.plotImage.setFlagsArray(flags_array_transpose)
 
 # plot the first plane member
         if self._vells_rec.vellsets[0].has_key("value"):
