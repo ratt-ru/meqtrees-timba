@@ -378,7 +378,8 @@ int Node::cacheResult (const Result::Ref &ref,int retcode)
   // NB: perhaps fails should be marked separately?
   cache_result_.copy(ref,DMI::WRITE);
   wstate()[FCacheResult].replace() <<= cache_result_.dewr_p();
-  wstate()[FCacheResultCode].replace() = retcode;
+  wstate()[FCacheResultCode].replace() = cache_retcode_ = retcode;
+  cdebug(3)<<"  caching result with code "<<retcode<<endl;
   return retcode;
 }
 
@@ -394,6 +395,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   for( int i=0; i<numChildren(); i++ )
   {
     int childcode = getChild(i).execute(child_results[i],req);
+    cdebug(4)<<"    child "<<i<<" returns code "<<childcode<<endl;
     retcode |= childcode;
     if( !(childcode&RES_WAIT) && childcode&RES_FAIL )
     {
@@ -418,8 +420,6 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
           result.setVellSet(ires++,&vs);
       }
     }
-    // cache & return fail code
-    return cacheResult(resref,retcode);
   }
   cdebug(3)<<"  cumulative result code is "<<retcode<<endl;
   return retcode;
@@ -438,7 +438,7 @@ int Node::execute (Result::Ref &ref, const Request &req)
     stage = "checking cache";
     if( getCachedResult(retcode,ref,req) )
     {
-        cdebug(3)<<"  cache hit, returning cached result"<<
+        cdebug(3)<<"  cache hit, returning cached code "<<retcode<<" and result:"<<endl<<
                    "    "<<ref->sdebug(DebugLevel-1,"    ")<<endl;
         return retcode;
     }
@@ -543,10 +543,11 @@ int Node::execute (Result::Ref &ref, const Request &req)
       stage = "getting result";
       cdebug(3)<<"  calling getResult(): cells are "<<req.cells();
       int code = getResult(ref,child_results,req,newreq);
-      cdebug(3)<<"  getResult() returns code "<<code<<endl;
+      retcode |= code;
+      cdebug(3)<<"  getResult() returns code "<<code<<", cumulative "<<retcode<<endl;
       // a WAIT is returned immediately with no valid result expected
       if( code&RES_WAIT ) 
-        return code;
+        return retcode;
       // else we must have a valid Result object now, even if it's a fail.
       // (in case of RES_FAIL, getResult() should have put a fail in there)
       if( !ref.valid() )
