@@ -63,23 +63,27 @@ $ $Revision$ $\\$ $Date$ $}
 % \tablesubheading{n}{text} inserts a sub-heading into a table.
 % n argument is the number of columns that the sub-heading will span
 
-\newcommand{\tablesubheading}[2]
-{\multicolumn{#1}{>{\columncolor{tablesubheading}}c}{\color{tabletext}\strut\em #2}\\}
+  \newlength{\taboverhang}
+  \setlength{\taboverhang}{\tabcolsep}
+  \addtolength{\taboverhang}{-1pt}
+
+\newcommand{\tablesubheading}[2]%
+{\multicolumn{#1}{|>{\columncolor{tablesubheading}}l|}{\strut\em~~~~~#2}}
 
 % \standardtableheading produces a standard heading for tables
 % field name | type | description
-\newcommand{\standardtableheading}[1]
-{\rowcolor{tableheading}\color{tabletext} #1\\}
+\newcommand{\standardtableheading}[1]%
+{\rowcolor{tableheading}#1\\}
 
 % \recordtableheading produces a standard heading for record tables:
 % field name | type | description
 \newcommand{\recordtableheading}
-{\standardtableheading{\sl field name & type & description}}
+{\standardtableheading{\sl field name & \sl type & \sl description}}
 
 % \statetableheading produces a standard heading for state tables:
 % field name | type | default | description
 \newcommand{\statetableheading}
-{\standardtableheading{\sl field name & type & default & description}}
+{\standardtableheading{\sl field name & \sl type & \sl default & \sl description}}
 
 
 \arrayrulecolor{tableheading}

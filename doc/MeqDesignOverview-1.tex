@@ -397,7 +397,7 @@
   contains only one element, it should still be accessed as \qq{list[1]} rather
   than \qq{list} (the latter syntax will actually do the right thing given a
   vector, but not a record, hence it should be avoided for consistency's sake.)
-
+  
   We will use the term {\em list} from now on to refer to both types of Glish
   structures, as it should usually be clear from context which type is actually
   employed.
@@ -458,7 +458,7 @@
   \vspace{1em}
 
   \noindent
-  \begin{center}\begin{tabular}{@{}llp{.7\textwidth}}
+  \begin{center}\begin{tabular}{|llp{.7\textwidth}|}
   \recordtableheading\addlinespace
   \recordtableentry{request\_id}{HIID}{the request ID}
   \recordtableentry{cells}{Cells}{{\em [optional]}~~a \Cells\ object (see
@@ -471,7 +471,7 @@
     not currently implemented.}}
   \recordtableentry{rider}{record}{{\em [optional]}~~rider subrecord containing
     additional commands.}
-  \bottomrule
+  \hline
   \end{tabular}\end{center}
   \vspace{1em}
   
@@ -654,14 +654,14 @@
   structures (see below), they deserve to be documented separately. A
   fail-record has the following layout: \vspace{1em}
 
-  \begin{center}\begin{tabular}{@{}llp{.7\textwidth}}
+  \begin{center}\begin{tabular}{|llp{.7\textwidth}|}
   \recordtableheading\addlinespace
   \recordtableentry{message}{string}{a description of the error.}
   \recordtableentry{node\_name}{string}{{\em [optional]}~~name of originating node, if any.}
   \recordtableentry{node\_class}{string}{{\em [optional]}~~classname of originating node, if any.}
   \recordtableentry{origin}{string}{origin: usually just the source file name.}
   \recordtableentry{origin\_line}{int}{origin location: usually just the source line number.}
-  \bottomrule
+  \hline
   \end{tabular}\end{center}\vspace{1em}
   
   Because most errors tend to cascade from lower-level subsystems up to the
@@ -701,14 +701,14 @@
   successfully, then the returned \Result\ has a well-defined structure:
   \vspace{1em}
 
-  \begin{center}\begin{tabular}{@{}llp{.7\textwidth}}
+  \begin{center}\begin{tabular}{|llp{.7\textwidth}|}
   \recordtableheading\addlinespace
   \recordtableentry{cells}{Cells}{the \Cells\ of the result (not necessarily
     matching the request cells -- see \ref{sec:resampling})}
   \recordtableentry{values}{VellSet[]}{list of result values}
   \recordtableentry{integrated}{bool}{flag indicating if the values are integrations or
     samplings (default is false, implying samplings)}
-  \bottomrule
+  \hline
   \end{tabular}\end{center}\vspace{1em}
   
   Two other common types of \Result\ are the empty result (empty record),
@@ -779,32 +779,23 @@
   The regular form of a VellSet contains the following fields:
 
   \vspace{1em}
-  \begin{center}\begin{tabular}{@{}llp{.65\textwidth}}
-  
+  \begin{center}\begin{tabular}{|llp{.65\textwidth}|}
   \recordtableheading\addlinespace
-  
   \recordtableentry{value}{Vells}{the \Vells\ containing the function value
     $\{f_{ij}\}$}
-  
   \tablesubheading{3}{optional, only appear if \qq{calc\_deriv>0} was specified in
-    the original \Request:}
-  
+    the original \Request:}\\
   \recordtableentry{spids}{int[]}{a list of $K$ integer spids identifying the parameters}
-                
   \recordtableentry{perturbations}{double[]}{a list of $K$ perturbations $\{\delta_k\}$ (must be same length as \qq{spids})}
-  
   \recordtableentry{perturbed\_value}{Vells[]}{a list of $K$ \Vells\ containing the perturbed values
                       $\{f^{(k)}_{ij}\}$}
-
   \tablesubheading{3}{optional, only appear if \qq{calc\_deriv>1} was specified in
-  the original \Request:}
-  
+  the original \Request:}\\
   \recordtableentry{perturbations\_1}{double[]}{second set of $K$ perturbations
     $\{\delta^\prime_{k}\}$}
-
   \recordtableentry{perturbed\_value\_1}{Vells[]}{second set of $K$ perturbed values
     $\{f^{(k)\prime}_{ij}\}$}
-  \bottomrule
+  \hline
   \end{tabular}\end{center}\vspace{1em}
 
   Spids, perturbations and perturbed values will only appear if

@@ -112,6 +112,23 @@
   
 \section{Caching issues}
 
+\subsection{\qq{request\_id}, \qq{cache\_result}, \qq{cache\_result\_code}}
+  
+  These three fields compose the node result cache. The first field -- a
+  \qq{HIID} -- is the ID of the most recent request. The second field is the
+  cached \qq{Result} of that request, if any (stored by reference). The third
+  field -- an integer -- is the cumulative result code (mainly its the depmask,
+  with a few additional flags, described in \qq{execute()} later on) of the
+  cached result.
+
+  The node cache may be cleared by assigning a boolean \qq{false} to the
+  \qq{cache\_result} field. It is also possible to modify the cache on the fly
+  (for example, substituting in another result). This may be a useful feature
+  for debugging and experimentation, though if used improperly, it can probably
+  confuse the caching and dependency tracking mechanism.  
+
+
+
   To avoid unnecessary recalculations, a node's result can be retained in a
   cache. Obviously, this trades off performance against memory footprint. Three
   broad caching policies have been identified so far:

@@ -168,6 +168,15 @@
   higher layers in the scripting domain can ensure more and more elaborate
   aspects of the node contracts, until the user is completely protected from
   these complexities.
+  
+  Note that an end user will hardly ever need to change (or even see) node
+  state directly; a tree developer, however, will be working with this stuff
+  constantly. As will become apparent in this chapter, a node's internals are
+  completely exposed to tweaking and experimentation. The C++ kernel imposes no
+  policy and does very few sanity checks, so it is perfectly possible  to
+  thoroughly confuse a node (or an entire tree) through misguided  manipulation
+  of its state record. Again, we assume that it is up to the scripting side
+  tools to shield end-users from the more ``dangerous'' capabilities.
 
   When developing new node classes, it is very important to define and document
   their contracts in detail.
@@ -175,162 +184,218 @@
 \section{Standard Node state fields}
 
   Table~\ref{table:nodestate} lists all the state fields defined and maintained
-  by the \qq{Node} class. This section will discuss some of the basic fields;
-  the more advanced ones will be elaborated on further down.
+  by the \qq{Node} class. Here we will only discuss the basic fields; the more
+  advanced ones will be documented in further chapters.
 
   \begin{table}[th]
-  \begin{center}\begin{tabular}{lllp{.55\textwidth}}
+  \begin{center}\begin{tabular}{|lccp{.55\textwidth}|}
+%  \begin{center}\begin{tabular}{!{\color{tableheading}\vline}lllp{.55\textwidth}!{\color{tableheading}\vline}}
   \statetableheading
-  \tablesubheading{4}{static state:}
-  
+  \tablesubheading{4}{static state:}\\
+%  
   \statetableentry{class}{string}{}{the node class }
   \statetableentry{nodeindex}{int}{0}{the node index }
   \statetableentry{children}{\rm ---}{\rm null}{children specification
-    (see~\ref{node.children})}
-  
-  \tablesubheading{4}{dynamic state:}
-  
+    (see~\ref{sec:children})}
+%  
+  \tablesubheading{4}{dynamic state:}\\
+%  
   \statetableentry{name}{string}{""}{node name}
   \statetableentry{node\_groups}{HIID[]}{[]}{list of groups that this node
     belongs to}
   \statetableentry{auto\_resample}{int}{0}{auto-resampling mode (see~\ref{sec:resampling})}
-  
-  \tablesubheading{4}{cache-related dynamic state (see~\ref{sec:cache}):}
-
-  \statetableentry{cache\_policy}{\rm ---}{\rm ---}{caching policy {\em (placeholder; not currently
+%  
+  \tablesubheading{4}{cache-related dynamic state (see~\ref{sec:cache}):}\\
+%
+  \statetableentry{cache\_policy}{\rm ---}{\rm null}{caching policy {\em (placeholder; not currently
                                   implemented)}}
   \statetableentry{request\_id}{HIID}{\rm null}{rqid corresponding to cached result }
   \statetableentry{cache\_result}{Result}{\rm null}{cached result}
   \statetableentry{cache\_result\_code}{int}{0}{cached result code}
-                                  
+%                                  
   \tablesubheading{4}{depmask-related dynamic state (see
-      Chapter~\ref{sec:depmasks}):} 
-
+      Chapter~\ref{sec:depmasks}):} \\
+%
   \statetableentry{depend\_mask}{int}{0}{current depmask }
   \statetableentry{known\_symdeps}{HIID[]}{[]}{list of known symdeps }
   \statetableentry{active\_symdeps}{HIID[]}{[]}{list of active symdeps }
   \statetableentry{symdep\_masks}{record}{[]}{current symdep masks}
   \statetableentry{gen\_symdeps}{HIID[]}{[]}{list of generated symdeps}
   \statetableentry{gen\_symdeps\_group}{HIID[]}{[]}{list of groups for generated symdeps}
+%  
+  \tablesubheading{4}{informational state:} \\
+%      
+  \statetableentry{children\_names}{string[]}{}{list of child names.
+    Can't be used to specify child nodes: use the \qq{children} field instead.}
+  \statetableentry{request}{Request}{}{last handled request}
   
-  \tablesubheading{4}{informational state:} 
-      
-  \statetableentry{request}{Request}{null}{last handled request}
-  
-  \bottomrule
+  \hline
   \end{tabular}\end{center}
   \caption{\label{table:nodestate}Base state defined by the \qq{Node} class}
   \end{table}
   
-\subsection{Constructing nodes}
+\subsection{Constructing nodes: classes, names, indices}
 
-  To construct a node, a client must provide a complete initial state record.
-  
-
-\subsection{Class, name and nodeindex}
+  To construct a node, a client must provide the init record -- i.e., an
+  initial state record. Note the ``default'' column in
+  Table~\ref{table:nodestate} -- only a few state fields need to be specified,
+  since the rest have reasonable defaults that will be filled in by the node at
+  construction time (a default of ``null'' indicates that the field, if
+  missing, will remain unfilled). Also, the cache-related and depmask-related
+  state fields are not normally set at construction time, but rather are filled
+  by the node itself during operation. The node state interface provides full
+  access to them mostly for debugging and monitoring purposes.
 
   The class of a node is obviously an external, static property -- once a node
   object is instantiated, its class is defined ``for life''. The \qq{class}
-  field is usually set by the cleiset in the scripting layer, and used by the \qq{meqserver} component
-  as a key into a {\em node constructor registry}, when deciding which node
-  class to actually construct.
+  field is usually set by the client in the scripting layer, and used by the
+  \qq{meqserver} component as a key into a {\em node constructor registry},
+  when determining which node class to actually instantiate. The \qq{class}
+  string is usually formed by concatenating the C++ namespace identifier with
+  the C++ class name. Thus, a \qq{Meq::Parm} is specified as \qq{"MeqParm"}.
+ 
+  The node index (field \qq{nodeindex}) is not normally specified by the client, but
+  rather automatically assigned to the object at construction time, and placed
+  into the \qq{nodeindex} field. The index is also a static property.
 
-  A node index is automatically assigned to the object at construction time,
-  and placed into the \qq{nodeindex} field. This field should not be supplied by
-  the scripting layer.
-  
-  The node name (field \qq{name}) is also supplied by the
+  The node name (field \qq{name}) is just a free-form identifier supplied by
+  the client. The name is used to identify the object for subsequent
+  operations. The \qq{meqserver} layer maintains a \qq{Forest}, which is
+  essentially just a repository of node objects, with name$\rightarrow$node
+  and  index$\rightarrow$node maps. A node may be created with an empty name
+  (which is the default), such {\em anonymous} nodes are then only identifiable
+  by their indices. Note that while the name of the node may be changed via a
+  \qq{setState()} call, this is probably a bad idea, since the current
+  \qq{Forest} implementation does not support node renaming (i.e. cannot update
+  the name$\rightarrow$object map).
 
 \subsection{Specifying children} 
+  \label{sec:children}
   
-  These fields represent static properties of the node. \qq{setStateImpl()}
-  will throw an exception if an attempt is made to change them. \qq{class} is a
-  string classname, \qq{nodeindex} is an integer node index, and \qq{children}
-  is a list of child node indices (if any).
+  The \qq{children} field of the state record is used to specify a node's
+  children. The children set is a static property\footnote{The ability to
+  connect children dynamically may be implemented in future versions if
+  necessary. In any case, it would be provided via a separate function rather
+  than the generic \qq{setState()} mechanism, so the \qq{children} field would
+  remain protected.}, and must be specified at construction time. The
+  \qq{children} field takes the form of a list or record of {\bf child
+  specifiers}. A child specifier can be:
 
-\subsection{\qq{node\_groups}}
+  \begin{itemize}
   
-  A node may be assigned to one or more node groups. The purpose of this is
-  described in detail below (see the subsection on command processing). The
-  \qq{node\_groups} field is a list of \qq{HIID} group names. Note that all
-  nodes are implicitly members of the \qq{All} group; thus \qq{"All"} is not
-  explicitly present in the list.
-
-\subsection{\qq{auto\_resample}}
+  \item An integer node index referring to an already existing node.
   
-  This flag specifies if auto-resampling of child results is enabled. See
-  detailed discussion later on.
-
-\subsection{\qq{request\_id}, \qq{cache\_result}, \qq{cache\_result\_code}}
+  \item A string node name, which does not have to match an existing node. The
+    child can be created later on; the \qq{meqserver} includes a mechanism 
+    for {\em resolving} named children (see Chapter~\ref{sec:meqserver}).
+    
+  \item A record, which will be used as an init-record to create a child node on
+    the fly. This option allows whole subtrees to be specified via one big
+    nested record.
   
-  These three fields compose the node result cache. The first field -- a
-  \qq{HIID} -- is the ID of the most recent request. The second field is the
-  cached \qq{Result} of that request, if any (stored by reference). The third
-  field -- an integer -- is the cumulative result code (mainly its the depmask,
-  with a few additional flags, described in \qq{execute()} later on) of the
-  cached result.
-
-  The node cache may be cleared by assigning a boolean \qq{false} to the
-  \qq{cache\_result} field. It is also possible to modify the cache on the fly
-  (for example, substituting in another result). This may be a useful feature
-  for debugging and experimentation, though if used improperly, it can probably
-  confuse the caching and dependency tracking mechanism.  
+  \end{itemize}
   
-\subsection{\qq{request}}
-
-  This is a (read-only) reference to the most recently processed \qq{Request}
-  object. This field is maintained for information purposes only, \qq{Node}
-  fills it whenever it executes a request, but does not use it for anything
-  else (so modifying this field will have no effect).
-
-\subsection{\qq{cache\_policy}}
-
-  This is a placeholder for the caching policy (see discussion below). This is
-  not yet implemented -- all current nodes always cache results.
-
-\subsection{\qq{depend\_mask}, \qq{known\_symdeps}, \qq{active\_symdeps}, 
-            \qq{symdep\_masks}, \qq{gen\_symdeps}, \qq{gen\_symdeps\_group}}
-              
-  These fields are responsible for maintenance of dependency masks. This is a
-  somewhat complicated subject covered in a separate subsection below. Note that
-  the default settings for these fields are practically always good enough, but
-  they are exposed for purposes of experimentation and debugging.
-
+  \subsubsection{Child labels}
   
-
-\section{How it works}
-
-  The base \qq{Node} class maintains a number of state fields via its
-  \qq{setStateImpl()} method. This section describes the state in detail.
-  Unless explicitly specified, each state field can be changed dynamically at
-  any time. Note that an end user will hardly ever need to change (or even see)
-  node state directly; a tree developer, however, will be working with this
-  stuff constantly. As will become apparent in this section, a node's internals
-  are completely exposed to tweaking and experimentation. The C++ side imposes
-  no policy and does very few sanity checks, so it is perfectly possible  to
-  thoroughly confuse a node (or an entire tree) through misguided  manipulation
-  of its state record from the outside. We assume that it is up to the
-  scripting-side tools to shield the end users from ``dangerous'' capabilities.
-
+  Certain node classes can predefine {\em labels} (\qq{HIID}s) to identify their
+  children. Think of child labels as being the equivalent of named arguments in
+  a programming language. Without labels, children can only be specified by
+  their ordinal number (a-la positional arguments). Thus, labels help
+  distinguish children with specific roles. For example, the \qq{UVW} node
+  (used to compute $UVW$ coordinates) may label its children, e.g., ``Ra'',
+  ``Dec'', ``X'', ``Y'', ``Z''. If the child roles are all the same (e.g.,
+  the \qq{Sum} node, which sums the results of its children), or are obvious
+  from position (e.g., binary function nodes, including non-commutative ones
+  such as \qq{Sub} and \qq{Div}), then labels are not used.
   
-  A node's full {\em state} should be mapped to a {\em state record}. State may
-  be requested via \qq{getState()} and changed via \qq{setState()}. Note that
-  the argument to \qq{setState()} does not have to be a complete new state
-  record; instead, it should contains only those fields that actually need to
-  be changed. 
+  Labels have the following implications for the \qq{children} field:
+  
+  \begin{itemize}
+  
+  \item Given a node class that predefines child labels, \qq{children} may be
+  specified as a record. Child labels are matched to field names (on a
+  mismatch, node creation fails, and an error is reported.)
 
-  When a node is constructed, it is passed an {\em init-record} (via the
-  \qq{init()} method), which is essentially a complete initial state record.
-  This is the way that all run-time arguments to a node are specified! Later 
-  in a node's lifetime, the \qq{setState()} method may the be called to
-  reconfigure  it. Note that a node class is not obliged to be reconfigurable
-  in every single aspect, but it's good design to make it so as much as
-  possible. If some of the node state may only be set once via \qq{init()} and
-  not changed later on via \qq{setState()} -- call this {\em static\/} state --
-  it should be clearly documented as such. The assumed default is {\em
-  dynamic\/} state, i.e., state that is freely reconfigurable via
-  \qq{setState()}.
+  \item If \qq{children} is a list rather than a record, then child nodes are
+  simply matched by position, and any labels are ignored.
+  
+  \item If \qq{children} is a record but the node class does define any 
+  labels, then child nodes are matched by their position in the record. This
+  way of specifying children is discouraged, since the abstract record type
+  does not provide for a fixed order of fields.
 
+  \end{itemize}  
+  
+\subsubsection{Child information}
+  
+  After a node has been created and all children have been resolved, the
+  \qq{children} field of the state record is replaced with either a list of
+  child node indices if no labels are predefined, or a record of
+  labels to indices otherwise. This field is treated as static state,
+  so any attempts to modify it via the \qq{setState()} mechanism will fail. The
+  (purely informational) \qq{children\_names} field is filled with a similar
+  list or record of child names. 
+
+\subsection{Node groups}
+
+  A node may be assigned to one or more node groups. Node groups are used to
+  restrict the commands of a \Request to a specific set of nodes. This
+  mechanism is discussed in detail in section~\ref{sec:CSR}. Examples of its
+  use may be found in the documentation for the \qq{Parm} and \qq{Solver}
+  nodes.
+
+\section{Creating init-records in Glish}
+
+  The \qq{meq.node()} function (in \qq{meq/meqtypes.g}) can be used to put
+  together a basic init-record. This record can then be extended with
+  additional fields as required:
+
+  \begin{verbatim}
+    const meq.node := function (class,name,children=F,groups="")
+  \end{verbatim}
+  
+  The mandatory \qq{class} and \qq{name} arguments are strings specifying the
+  node class and node name. The optional \qq{children} argument is a list or
+  record of child specifiers (see above). The \qq{groups} argument specifies
+  the node groups, this can be a list of \qq{HIID}s or strings; in the latter
+  case (as is usual for most \qq{meq} functions), \qq{meq.node()} will convert
+  the strings to \qq{HIID}s automatically.
+  
+  Specialized node classes may define functions of their own to put together the
+  corresponding init-records. An example of this is \qq{meq.parm()} (see Glish
+  file for details).
+  
+  \subsection{The defrec map}
+  
+  The kernel build system includes a mechanism for automatically generating
+  Glish scripts that define class-specialized init-records. This code -- known
+  as the {\em defrec map} -- is generated based on comments found in each
+  node's class header file, and may be used as an alternative to the
+  \qq{meq.node()} function.
+  
+  The defrec map is made available by including \qq{meq/defrec.g}. This defines
+  the following function:
+  
+  \begin{verbatim}
+    const meqdefrec := function (class,name='',children=F,groups="")
+  \end{verbatim}
+  
+  The function can be used exactly like \qq{meq.node()}, but with one important
+  difference: it returns a complete init-record for the specified class,
+  including any specialized fields defined by that class. These fields
+  are initially populated with default values.
+  
+  In addition to this, the init-record returned by \qq{meqdefrec()} is also
+  self-documenting. The record itself is tagged with a \qq{::description}
+  attribute, containing a textual description of the node class. Record fields
+  are also tagged with \qq{::description} attributes of their own.
+
+\section{The C++ side}
+
+  The rest of this chapter deals with implementation of node state on the C++
+  side. You probably don't need to read this unless you're developing your own
+  node classes.
+  
   The following methods are responsible for initializing and changing state:
 
 \begin{verbatim}
@@ -561,86 +626,6 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   this are internal caches; if these are not maintained in the state record,
   then the worst than can happen from re-creating a node is a cleared cache.
   
-\subsection{Creating defrecs in Glish}
-
-  Several other functions in \qq{meqtypes.g} help to construct defrecs for
-  nodes (see below). \qq{meq.node()} puts together a basic node defrec -- class
-  name, node name, optional children specification, optional node group
-  list. \qq{meq.parm()} is a specialization for constructing \Parm\ defrecs.
-
-\section{Base Node state}
-
-  The base \qq{Node} class maintains a number of state fields via its
-  \qq{setStateImpl()} method. This section describes the state in detail.
-  Unless explicitly specified, each state field can be changed dynamically at
-  any time. Note that an end user will hardly ever need to change (or even see)
-  node state directly; a tree developer, however, will be working with this
-  stuff constantly. As will become apparent in this section, a node's internals
-  are completely exposed to tweaking and experimentation. The C++ side imposes
-  no policy and does very few sanity checks, so it is perfectly possible  to
-  thoroughly confuse a node (or an entire tree) through misguided  manipulation
-  of its state record from the outside. We assume that it is up to the
-  scripting-side tools to shield the end users from ``dangerous'' capabilities.
-
-\subsection{\qq{class}, \qq{nodeindex}, \qq{children}} 
-  
-  These fields represent static properties of the node. \qq{setStateImpl()}
-  will throw an exception if an attempt is made to change them. \qq{class} is a
-  string classname, \qq{nodeindex} is an integer node index, and \qq{children}
-  is a list of child node indices (if any).
-
-\subsection{\qq{name}}
-  
-  This is just the node name (a string). 
- 
-\subsection{\qq{node\_groups}}
-  
-  A node may be assigned to one or more node groups. The purpose of this is
-  described in detail below (see the subsection on command processing). The
-  \qq{node\_groups} field is a list of \qq{HIID} group names. Note that all
-  nodes are implicitly members of the \qq{All} group; thus \qq{"All"} is not
-  explicitly present in the list.
-
-\subsection{\qq{auto\_resample}}
-  
-  This flag specifies if auto-resampling of child results is enabled. See
-  detailed discussion later on.
-
-\subsection{\qq{request\_id}, \qq{cache\_result}, \qq{cache\_result\_code}}
-  
-  These three fields compose the node result cache. The first field -- a
-  \qq{HIID} -- is the ID of the most recent request. The second field is the
-  cached \qq{Result} of that request, if any (stored by reference). The third
-  field -- an integer -- is the cumulative result code (mainly its the depmask,
-  with a few additional flags, described in \qq{execute()} later on) of the
-  cached result.
-
-  The node cache may be cleared by assigning a boolean \qq{false} to the
-  \qq{cache\_result} field. It is also possible to modify the cache on the fly
-  (for example, substituting in another result). This may be a useful feature
-  for debugging and experimentation, though if used improperly, it can probably
-  confuse the caching and dependency tracking mechanism.  
-  
-\subsection{\qq{request}}
-
-  This is a (read-only) reference to the most recently processed \qq{Request}
-  object. This field is maintained for information purposes only, \qq{Node}
-  fills it whenever it executes a request, but does not use it for anything
-  else (so modifying this field will have no effect).
-
-\subsection{\qq{cache\_policy}}
-
-  This is a placeholder for the caching policy (see discussion below). This is
-  not yet implemented -- all current nodes always cache results.
-
-\subsection{\qq{depend\_mask}, \qq{known\_symdeps}, \qq{active\_symdeps}, 
-            \qq{symdep\_masks}, \qq{gen\_symdeps}, \qq{gen\_symdeps\_group}}
-              
-  These fields are responsible for maintenance of dependency masks. This is a
-  somewhat complicated subject covered in a separate subsection below. Note that
-  the default settings for these fields are practically always good enough, but
-  they are exposed for purposes of experimentation and debugging.
-
 \chapter{Symdeps \& Depmasks}
 
   As discussed in the section on requests above, a {\em depmask} is a bitwise
