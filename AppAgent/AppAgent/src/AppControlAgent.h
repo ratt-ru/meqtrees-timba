@@ -154,8 +154,10 @@ class AppControlAgent : public AppEventAgentBase
     //## Changes state. If unpause=True, removes the paused flag
     virtual int setState (int newstate,bool unpase=False);
     
+    //##ModelId=3EB2425300E4
     int pause ();
     
+    //##ModelId=3EB24253013A
     int resume ();
     
     //##ModelId=3E40FAF50397
@@ -228,9 +230,11 @@ class AppControlAgent : public AppEventAgentBase
     //##ModelId=3E3A9E520156
     int checkStateEvent (const HIID &id,const DataRecord::Ref::Copy &data);
     
+    //##ModelId=3EB24253018C
     virtual int processCommand (const HIID &id,const DataRecord::Ref &data,
                                 const HIID &source);
 
+    //##ModelId=3EB2425303B2
     void postCommandError (const string &msg,const HIID &id,DataRecord::Ref::Xfer &data,
                            const HIID &source);
     
@@ -239,8 +243,10 @@ class AppControlAgent : public AppEventAgentBase
     void postState  (const HIID &rqid = HIID(), const HIID &dest = HIID());
     
     // posts (sub-field) of the status record as an event
+    //##ModelId=3EB24254039F
     void postStatus (const HIID &field = HIID(),const HIID &rqid = HIID(),const HIID &dest = HIID());
     
+    //##ModelId=3EB2425501DA
     void postStatusUpdate (const HIID &subrec,const HIID &field,DataRecord::Ref::Xfer &rec);
     
 //    //##ModelId=3E5650FE024A
@@ -282,6 +288,7 @@ class AppControlAgent : public AppEventAgentBase
     
     
   private: // implements different setStatus versions
+    //##ModelId=3EB24256003F
     DataRecord & makeUpdateRecord (DataRecord::Ref &ref,const HIID &subrec)
     {
       ref <<= new DataRecord;
@@ -360,6 +367,7 @@ class AppControlAgent : public AppEventAgentBase
           );
     }
     
+    //##ModelId=3EB242560217
     inline void setStatus (const HIID &subrec,const HIID &field,const BlockableObject * value)
     {
       setStatus(subrec,field,value,
@@ -370,6 +378,7 @@ class AppControlAgent : public AppEventAgentBase
           );
     }
     
+    //##ModelId=3EB242590024
     inline void setStatus (const HIID &subrec,const HIID &field,BlockableObject * value)
     {
       setStatus(subrec,field,value,

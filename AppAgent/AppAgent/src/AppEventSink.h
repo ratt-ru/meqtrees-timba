@@ -66,6 +66,7 @@ namespace AppEventSinkVocabulary
 class AppEventSink : public AppAgent
 {
   protected:
+    //##ModelId=3EB242E800B1
     static HIID _dummy_hiid;
   
   public:
@@ -131,12 +132,19 @@ class AppEventSink : public AppAgent
 
     //##ModelId=3E394D4C02C1
     //##Documentation
-    //## Returns True if there is an event pending that matches the specified
-    //## mask (default - no mask - matches any event). 
+    //## Checks if there is an event pending that matches the specified
+    //## mask (default - no mask - matches any event). Id of event is
+    //## returned via the out argument.
     //## Return codes are the same as would have been returned by
     //## getEvent(wait=NOWAIT), above.
-      virtual int hasEvent (const HIID &mask = HIID()) const;
-
+      virtual int hasEvent (const HIID &mask,HIID &out) const;
+      
+    //##ModelId=3EB242EA024F
+    //##Documentation
+    //## Alias for hasEvent() with default mask, and with no out-id is required
+      int hasEvent (const HIID &mask = HIID()) const
+      { HIID dum; return hasEvent(mask,dum); }
+      
     //##ModelId=3E394D4C02C9
     //##Documentation
     //## Posts an event on behalf of the application.
@@ -162,9 +170,9 @@ class AppEventSink : public AppAgent
       virtual void flush ();
       
       //##ModelId=3E47843B0350
-      void raiseEventFlag  ();
+      void raiseEventFlag  () const;
       //##ModelId=3E47844701DE
-      void clearEventFlag ();
+      void clearEventFlag () const;
       
       //##ModelId=3E47852A012C
       virtual bool isAsynchronous() const

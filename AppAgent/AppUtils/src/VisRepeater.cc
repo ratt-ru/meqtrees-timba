@@ -32,35 +32,27 @@ void VisRepeater::run ()
     // run main loop
     while( control().state() > 0 )  // while in a running state
     {
-      DataRecord::Ref header;
-      VisTile::Ref tile;
-      int instat,outstat = AppEvent::SUCCESS;
-      // try getting a tile first (this is the more frequent case)
-      cdebug(4)<<"looking for tile\n";
-      instat = input().getNextTile(tile,AppEvent::WAIT);
-      if( instat == AppEvent::SUCCESS )
-      { // got a tile? See what to do with it
-        
-        // note that if the output stream has been closed, then the data is 
-        // simply ignored
-        cdebug(3)<<"received tile "<<tile->tileId()<<", copying to output\n";
-        if( output_open )
-          outstat = output().putNextTile(tile);
-      }
-      else if( instat == AppEvent::OUTOFSEQ ) // out of sequence? Look for a header instead
+      HIID id;
+      ObjRef ref;
+      int outstat = AppEvent::SUCCESS;
+      cdebug(4)<<"looking for data chunk\n";
+      int intype = input().getNext(id,ref,0,AppEvent::WAIT);
+      if( intype > 0 )
       {
-        cdebug(4)<<"looking for header\n";
-        instat = input().getHeader(header,AppEvent::WAIT);
-        if( instat == AppEvent::SUCCESS )
-        { // got one? place on output stream, unless closed
-          cdebug(3)<<"received header, copying to output\n";
-          if( output_open )
-            outstat = output().putHeader(header);
+        if( output_open )
+        {
+          cdebug(3)<<"received "<<AtomicID(-intype)<<", id "<<id<<", copying to output\n";
+          outstat = output().put(intype,ref);
+        }
+        else
+        {
+          cdebug(3)<<"received "<<AtomicID(-intype)<<", id "<<id<<", output is closed\n";
         }
       }
       // handle i/o errors
       // error on the output stream? report event but keep things moving
       if( output_open )
+      {
         if( outstat == AppEvent::ERROR )
         {
           cdebug(2)<<"error on output: "<<output().stateString()<<endl;
@@ -78,8 +70,9 @@ void VisRepeater::run ()
             control().postEvent(OutputSequenceEvent,"output is out of sequence");
           }
         }
+      }
       // error on the input stream? terminate the transaction
-      if( instat == AppEvent::ERROR )
+      if( intype == AppEvent::ERROR )
       {
         cdebug(2)<<"error on input: "<<input().stateString()<<endl;
         control().postEvent(InputErrorEvent,input().stateString());
@@ -87,30 +80,18 @@ void VisRepeater::run ()
         continue;
       }
       // closed the input stream? terminate the transaction
-      else if( instat == AppEvent::CLOSED )
+      else if( intype == AppEvent::CLOSED )
       {
         cdebug(2)<<"input closed: "<<input().stateString()<<endl;
         control().postEvent(InputClosedEvent,input().stateString());
         control().setState(INPUT_CLOSED);
         continue;
       }
-      // -----------------------------------------------
-      // check control agent for any other state changes
-      HIID id;
-      DataRecord::Ref data;
-      cdebug(4)<<"checking control agent\n";
-      if( control().getCommand(id,initrec,AppEvent::WAIT) == AppEvent::PAUSED )
-      {
-        // if paused, then suspend the input stream, and block completely until
-        // control gets unpaused (i.e. a RESUME command is received, or the
-        // state changes)
-        cdebug(3)<<"entering suspend mode";
-        input().suspend();
-        while( control().isPaused() )
-          control().getCommand(id,initrec,AppEvent::BLOCK);
-        input().resume();
-        cdebug(3)<<"resuming from suspend mode";
-      }
+      // check for commands from the control agent
+      HIID cmdid;
+      DataRecord::Ref cmddata;
+      control().getCommand(cmdid,cmddata,AppEvent::WAIT);
+      // .. but ignore them since we only watch for state changes anyway
     }
     // broke out of main loop -- close i/o agents
     input().close();

@@ -151,6 +151,7 @@ void AppControlAgent::close ()
   AppEventAgentBase::close();
 }
 
+//##ModelId=3EB2425300E4
 int AppControlAgent::pause ()
 {
   if( paused_ )
@@ -160,6 +161,7 @@ int AppControlAgent::pause ()
   return PAUSED;
 }
 
+//##ModelId=3EB24253013A
 int AppControlAgent::resume ()
 {
   if( !paused_ )
@@ -201,6 +203,7 @@ int AppControlAgent::checkStateEvent (const HIID &id,const DataRecord::Ref::Copy
   return SUCCESS; // unknown event
 }
 
+//##ModelId=3EB24253018C
 int AppControlAgent::processCommand (const HIID &id,const DataRecord::Ref &data,const HIID &source)
 {
   cdebug(3)<<"got control event "<<id<<" from ["<<source<<"]\n";
@@ -237,6 +240,7 @@ int AppControlAgent::processCommand (const HIID &id,const DataRecord::Ref &data,
   return SUCCESS;
 }
 
+//##ModelId=3EB2425303B2
 void AppControlAgent::postCommandError (const string &msg,const HIID &id,
     DataRecord::Ref::Xfer &data,const HIID &source)
 {
@@ -361,6 +365,7 @@ void AppControlAgent::postState (const HIID &rqid,const HIID &destination)
   postEvent(StateNotifyEvent|rqid,ref,destination);
 }
 
+//##ModelId=3EB24254039F
 void AppControlAgent::postStatus (const HIID &field,const HIID &rqid,const HIID &destination)
 {
   cdebug(3)<<"posting status field ["<<field<<"] to ["<<destination
@@ -389,6 +394,7 @@ void AppControlAgent::postStatus (const HIID &field,const HIID &rqid,const HIID 
   postEvent(StatusNotifyEvent|rqid,ref,destination);
 }
 
+//##ModelId=3EB2425501DA
 void AppControlAgent::postStatusUpdate (
     const HIID &subrec,const HIID &field,DataRecord::Ref::Xfer &rec)
 {

@@ -21,13 +21,16 @@
 //  $Id$
 
 #include <AppAgent/AppControlAgent.h>
-#include <MSVisAgent/MSInputAgent.h>
-#include <MSVisAgent/MSOutputAgent.h>
+#include <VisAgent/InputAgent.h>
+#include <VisAgent/OutputAgent.h>
+#include <MSVisAgent/MSInputSink.h>
+#include <MSVisAgent/MSOutputSink.h>
 #include "../src/VisRepeater.h"
 
 int main (int argc,const char *argv[])
 {
   using namespace MSVisAgent;
+  using namespace AppControlAgentVocabulary;
   
   try 
   {
@@ -43,10 +46,11 @@ int main (int argc,const char *argv[])
     Debug::initLevels(argc,argv);
 
       // initialize parameter record
-    DataRecord params;
+    DataRecord::Ref paramref;
+    DataRecord &params = paramref <<= new DataRecord;
     params[FThrowError] = True;
     
-    DataRecord &args = params[FMSInputParams] <<= new DataRecord;
+    DataRecord &args = params[AidInput] <<= new DataRecord;
       args[FMSName] = "test.ms";
       args[FDataColumnName] = "DATA";
       args[FTileSize] = 10;
@@ -58,34 +62,39 @@ int main (int argc,const char *argv[])
         select[FChannelEndIndex]   = 20;
         select[FSelectionString] = "ANTENNA1=1 && ANTENNA2=2";
         
-    DataRecord &outargs = params[FMSOutputParams] <<= new DataRecord;
+    DataRecord &outargs = params[AidOutput] <<= new DataRecord;
       outargs[FWriteFlags]  = True;
       outargs[FFlagMask]    = 0xFF;
-      outargs[FDataColumn]      = "MODEL_DATA";
+      outargs[FDataColumn]  = "MODEL_DATA";
+      
+    DataRecord &ctrlargs = params[AidControl] <<= new DataRecord;
+      ctrlargs[FAutoExit] = True;
 
     cout<<"=================== creating input agent =======================\n";
-    MSVisAgent::MSInputAgent inagent;
+    VisAgent::InputAgent::Ref inagent;
+    inagent <<= new VisAgent::InputAgent(new MSVisAgent::MSInputSink,DMI::ANONWR);
   
     cout<<"=================== creating output agent ======================\n";
-    MSVisAgent::MSOutputAgent outagent;
+    VisAgent::OutputAgent::Ref outagent;
+    outagent <<= new VisAgent::OutputAgent(new MSVisAgent::MSOutputSink,DMI::ANONWR);
     
     cout<<"=================== creating control agent =====================\n";
-    AppControlAgent controlagent;
+    AppControlAgent::Ref controlagent(DMI::ANONWR);
     
     cout<<"=================== creating event flag ========================\n";
-    AppEventFlag eventflag;
-    inagent.attach(eventflag);
-    outagent.attach(eventflag);
-    controlagent.attach(eventflag);
+    AppEventFlag::Ref eventflag(DMI::ANONWR);
+    inagent().attach(eventflag());
+    outagent().attach(eventflag());
+    controlagent().attach(eventflag());
     
     cout<<"=================== creating repeater ==========================\n";
-    VisRepeater repeater;
-    repeater<<inagent<<outagent<<controlagent;
+    VisRepeater::Ref repeater;
+    repeater <<= new VisRepeater;
+    repeater()<<inagent<<outagent<<controlagent;
 
     cout<<"=================== running repeater ===========================\n";
-    DataRecord::Ref ref(params);
-    controlagent.preinit(ref);
-    repeater.run();
+    controlagent().preinit(paramref);
+    repeater().run();
     
     cout<<"=================== end of run ================================\n";
   } 

@@ -44,6 +44,9 @@ class VisRepeater : public VisPipe
     //##ModelId=3E3FEDB80357
     LocalDebugSubContext;
     
+    //##ModelId=3EC9F6EC039C
+    DefineRefTypes(VisRepeater,Ref);
+    
   private:
     //##ModelId=3E77397D034C
     VisRepeater(const VisRepeater& right);

@@ -25,6 +25,7 @@
 
 using namespace AppEvent;
 
+//##ModelId=3EB242E800B1
 HIID AppEventSink::_dummy_hiid;
 
 //##ModelId=3E4100E40257
@@ -66,7 +67,7 @@ int AppEventSink::getEvent (HIID &,ObjRef &,const HIID &,int wait,HIID &)
 }
 
 //##ModelId=3E394D4C02C1
-int AppEventSink::hasEvent (const HIID &) const
+int AppEventSink::hasEvent (const HIID &,HIID &) const
 { 
   // if we have an event flag and it's raised, this means some other sink
   // has an event pending. In this case return OUTOFSEQ
@@ -119,14 +120,14 @@ void AppEventSink::postEvent (const HIID &id, const string &text,
 }
 
 //##ModelId=3E47843B0350
-void AppEventSink::raiseEventFlag()
+void AppEventSink::raiseEventFlag() const
 {
   if( eventFlag.valid() )
     eventFlag().raise(sink_num);
 }
 
 //##ModelId=3E47844701DE
-void AppEventSink::clearEventFlag()
+void AppEventSink::clearEventFlag() const
 {
   if( eventFlag.valid() )
     eventFlag().clear(sink_num);

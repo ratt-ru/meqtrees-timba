@@ -45,4 +45,6 @@ static AtomicID::Register aid_reg_File(-1328,"File");
 static AtomicID::Register aid_reg_Name(-1163,"Name");
 static AtomicID::Register aid_reg_Mode(-1330,"Mode");
 static AtomicID::Register aid_reg_Data(-1107,"Data");
+static AtomicID::Register aid_reg_Header(-1133,"Header");
+static AtomicID::Register aid_reg_Footer(-1202,"Footer");
 

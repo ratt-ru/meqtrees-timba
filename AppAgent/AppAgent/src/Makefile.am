@@ -9,6 +9,7 @@ libappagent_la_SOURCES = \
   AppEventAgentBase.cc \
   AppEventFlag.cc \
   AppControlAgent.cc \
+  FileSink.cc \
   BOIOSink.cc 
   
 

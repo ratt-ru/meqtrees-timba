@@ -22,8 +22,10 @@
 
 #include <AppAgent/AppControlAgent.h>
 #include <AppAgent/BOIOSink.h>
-#include <MSVisAgent/MSInputAgent.h>
-#include <MSVisAgent/MSOutputAgent.h>
+#include <VisAgent/InputAgent.h>
+#include <VisAgent/OutputAgent.h>
+#include <MSVisAgent/MSInputSink.h>
+#include <MSVisAgent/MSOutputSink.h>
 #include <OctoAgent/EventMultiplexer.h>
 #include <OCTOPUSSY/Octopussy.h>
 #include "../src/VisRepeater.h"
@@ -58,7 +60,8 @@ int main (int argc,const char *argv[])
 
     cout<<"=================== creating input repeater ====================\n";
       // initialize parameter record
-    DataRecord params1;
+    DataRecord::Ref params1ref;
+    DataRecord & params1 = params1ref <<= new DataRecord;
     {
       params1[FThrowError] = True;
       DataRecord &args = params1[AidInput] <<= new DataRecord;
@@ -86,20 +89,25 @@ int main (int argc,const char *argv[])
           ctrlargs[FEventMapOut][StopNotifyEvent] = HIID("Input.VisRepeater.Stop");
     }
         
-    OctoAgent::EventMultiplexer mux1(AidVisRepeater);
-    MSVisAgent::MSInputAgent inagent1(AidInput);
-    VisAgent::OutputAgent outagent1(mux1.newSink(),AidOutput);
-    AppControlAgent controlagent1(mux1.newSink(),AidControl);
-    inagent1.attach(mux1.eventFlag());
-    controlagent1.attach(mux1.eventFlag());
-    Octopussy::dispatcher().attach(&mux1,DMI::WRITE);
+    OctoAgent::EventMultiplexer::Ref mux1(
+        new OctoAgent::EventMultiplexer(AidVisRepeater),DMI::ANONWR);
+    VisAgent::InputAgent::Ref inagent1(
+        new VisAgent::InputAgent(new MSVisAgent::MSInputSink,DMI::ANONWR,AidInput),DMI::ANONWR);
+    VisAgent::OutputAgent::Ref outagent1(
+        new VisAgent::OutputAgent(mux1().newSink(),AidOutput),DMI::ANONWR);
+    AppControlAgent::Ref controlagent1(
+        new AppControlAgent(mux1().newSink(),AidControl),DMI::ANONWR);
+    inagent1().attach(mux1().eventFlag());
+//    controlagent1().attach(mux1().eventFlag());
+    Octopussy::dispatcher().attach(mux1,DMI::WRITE);
     
-    VisRepeater repeater1;
-    repeater1<<inagent1<<outagent1<<controlagent1;
+    VisRepeater::Ref repeater1(DMI::ANONWR);
+    repeater1()<<inagent1<<outagent1<<controlagent1;
     
     cout<<"=================== creating output repeater ===================\n";
       // initialize parameter record
-    DataRecord params2;
+    DataRecord::Ref params2ref;
+    DataRecord & params2 = params2ref <<= new DataRecord;
     {
       params2[FThrowError] = True;
 
@@ -123,34 +131,37 @@ int main (int argc,const char *argv[])
           ctrlargs[FEventMapOut][InitNotifyEvent] = HIID("Output.VisRepeater.Init");
     }
         
-    OctoAgent::EventMultiplexer mux2(AidVisRepeater);
-    VisAgent::InputAgent inagent2(mux2.newSink(),AidInput);
+    OctoAgent::EventMultiplexer::Ref mux2(
+        new OctoAgent::EventMultiplexer(AidVisRepeater),DMI::ANONWR);
+    VisAgent::InputAgent::Ref inagent2(
+        new VisAgent::InputAgent(mux2().newSink(),AidInput),DMI::ANONWR);
 //    MSVisAgent::MSOutputAgent outagent2(AidOutput);
-    VisAgent::OutputAgent outagent2(new BOIOSink,DMI::ANONWR,AidOutput);
-    AppControlAgent controlagent2(mux2.newSink(),AidControl);
-    outagent2.attach(mux2.eventFlag());
-    controlagent2.attach(mux2.eventFlag());
+    VisAgent::OutputAgent::Ref outagent2(
+        new VisAgent::OutputAgent(new BOIOSink,DMI::ANONWR,AidOutput),DMI::ANONWR);
+    AppControlAgent::Ref controlagent2(
+        new AppControlAgent(mux2().newSink(),AidControl),DMI::ANONWR);
+    outagent2().attach(mux2().eventFlag());
+//    controlagent2().attach(mux2().eventFlag());
     
-    Octopussy::dispatcher().attach(&mux2,DMI::WRITE);
+    Octopussy::dispatcher().attach(mux2,DMI::WRITE);
     
-    VisRepeater repeater2;
-    repeater2<<inagent2<<outagent2<<controlagent2;
+    VisRepeater::Ref repeater2(DMI::ANONWR);
+    repeater2()<<inagent2<<outagent2<<controlagent2;
     
     cout<<"=================== launching output thread ================\n";
-    DataRecord::Ref ref1(params1),ref2(params2);
-    controlagent1.preinit(ref1);
-    controlagent2.preinit(ref2);
+    controlagent1().preinit(params1ref);
+    controlagent2().preinit(params2ref);
     
     Thread::ThrID id1,id2;
     
-    id2 = repeater2.runThread(False);
+    id2 = repeater2().runThread(False);
     // wait for it to start
     cout<<"=================== waiting for output thread to start =====\n";
-    repeater2.control().waitUntilLeavesState(AppState::INIT);
+    repeater2().control().waitUntilLeavesState(AppState::INIT);
     
     cout<<"=================== launching input thread =================\n";
     // now run the input repeater
-    id1 = repeater1.runThread(False),
+    id1 = repeater1().runThread(False),
     
     cout<<"=================== rejoining threads =========================\n";
     id1.join();

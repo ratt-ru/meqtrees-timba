@@ -5,6 +5,7 @@ InitDebugContext(BOIOSink,"BOIOSink");
 static int dum = aidRegistry_AppAgent();
     
 using namespace AppEvent;
+using namespace AppState;
     
 //##ModelId=3E53C59D00EB
 bool BOIOSink::init (const DataRecord &data)
@@ -31,50 +32,31 @@ bool BOIOSink::init (const DataRecord &data)
   {
     Throw("unknown file access mode: "+mode);
   }
-  cached_event = False;
+  setState(RUNNING);
   return True;
 }
 
 //##ModelId=3E53C5A401E1
 void BOIOSink::close()
 {
+  setState(CLOSED);
   boio.close();
 }
 
-    
-//##ModelId=3E53C5B401CB
-int BOIOSink::getEvent (HIID &id, ObjRef &data, const HIID &mask, int wait)
+//##ModelId=3EC23EF30079
+int BOIOSink::refillStream()
 {
-  int res = hasEvent(mask);
-  // have a cached, matching event? Return it
-  if( res == SUCCESS )
+  if( boio.fileMode() != BOIO::READ )
+    return CLOSED;
+  for(;;)
   {
-    id = cached_id;
-    data = cached_data;
-    cached_event = False;
-    return SUCCESS;
-  }
-  // else no matching event -- call base waitOtherEvents() to see what's up
-  else if( res == OUTOFSEQ && wait == BLOCK )
-      // boo-boo, can't block here since we never get an event to unblock us...
-    Throw("blocking for an event here would block indefinitely");
-  return res;
-}
-
-//##ModelId=3E53C5BB0014
-int BOIOSink::hasEvent (const HIID &mask) const
-{
-  while( !cached_event )
-  {
-    if( boio.fileMode() != BOIO::READ )
-      return CLOSED;
     ObjRef ref;
     TypeId tid = boio.read(ref);
     if( tid == 0 )
     {
       cdebug(1)<<"EOF on BOIO file, closing"<<endl;
+      setState(CLOSED);
       boio.close();
-      return CLOSED;
     }
     else if( tid != TpDataRecord )
     {
@@ -86,12 +68,12 @@ int BOIOSink::hasEvent (const HIID &mask) const
     try
     {
       DataRecord &rec = ref.ref_cast<DataRecord>().dewr();
-      cached_id    = rec[AidEvent].as<HIID>();
+      HIID id = rec[AidEvent].as<HIID>();
+      ObjRef dataref;
       if( rec[AidData].exists() )
-        rec[AidData].detach(&cached_data);
-      else
-        cached_data.detach();
-      cached_event = True;
+        rec[AidData].detach(&dataref);
+      putOnStream(id,dataref);
+      return SUCCESS;
     }
     catch( std::exception &exc )
     {
@@ -99,8 +81,6 @@ int BOIOSink::hasEvent (const HIID &mask) const
       // go back for another event
     }
   }
-  // we now have a cached event
-  return mask.matches(cached_id) ? SUCCESS : OUTOFSEQ;
 }
 
 //##ModelId=3E8C252801E8
@@ -108,7 +88,6 @@ bool BOIOSink::isEventBound (const HIID &)
 {
   return True;
 }
-
 
 //##ModelId=3E53C5C2003E
 void BOIOSink::postEvent (const HIID &id, const ObjRef::Xfer &data)
