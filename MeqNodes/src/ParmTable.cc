@@ -42,6 +42,7 @@
 #include <casa/Utilities/Regex.h>
 #include <casa/Utilities/GenSort.h>
 #include <casa/BasicMath/Math.h>
+#include <Common/BlitzToAips.h>
 
 using namespace casa;
 using namespace DebugMeq;
@@ -72,9 +73,16 @@ Thread::Mutex ParmTable::theirMutex;
 
 Matrix<double> toParmMatrix (const LoMat_double &values)
 {
-  return Matrix<double> (IPosition(2,values.extent(0),values.extent(1)),
+
+
+  Matrix<double> matrix(IPosition(2,values.extent(0),values.extent(1)));
+  /*  return Matrix<double> (IPosition(2,values.extent(0),values.extent(1)),
                          const_cast<double*>(values.data()),
                          SHARE);
+  */
+  B2A::copyArray (matrix , values);
+  return matrix;
+
 }
 
 LoMat_double fromParmMatrix (const Array<double>& values)
@@ -234,10 +242,12 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   // polc coefficients may actually be an N-vector or a scalar,
   // so convert them to matrix anyway
   const LoShape & polcshape = polc.getCoeffShape();
+
   if( polcshape.size() == 2 )
   {
     values.resize(polcshape);
     values = polc.getCoeff2();
+ 
   }
   else if( polcshape.size() == 1 )
   {
@@ -369,6 +379,7 @@ void ParmTable::createTable (const String& tableName)
   tdesc.addColumn (ScalarColumnDesc<Double>(ColFreqScale));
   tdesc.addColumn (ScalarColumnDesc<Double>(ColTimeScale));
   tdesc.addColumn (ScalarColumnDesc<Double>(ColPerturbation));
+  tdesc.addColumn (ScalarColumnDesc<Double>(ColWeight));
   SetupNewTable newtab(tableName, tdesc, Table::New);
   Table tab(newtab);
 }
