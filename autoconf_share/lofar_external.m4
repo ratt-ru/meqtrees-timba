@@ -248,8 +248,8 @@ else
     if test "$lfr_ext_inc" != "no" ; then
       if test "$lfr_external_libdir" = ""; then
         lfr_external_libdir=$bdir/lib;
-        break;
       fi
+      break;
     fi
     ]AC_CHECK_FILE([$bdir/$lfr_hdr],
 			[lfr_ext_inc=$bdir],
@@ -257,8 +257,8 @@ else
     if test "$lfr_ext_inc" != "no" ; then
       if test "$lfr_external_libdir" = ""; then
         lfr_external_libdir=$bdir;
-        break;
       fi
+      break;
     fi
   done
 
