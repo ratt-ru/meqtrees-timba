@@ -22,9 +22,6 @@ SmartBlock.h			\
 TypeId.h			\
 TypeInfo.h
 
-
-CXXFLAGS += -Wno-unknown-pragmas
-
 lib_LTLIBRARIES = libdmi.la
 
 libdmi_la_SOURCES = $(DOCHDRS)	\
