@@ -8,13 +8,9 @@ dnl
 # Macro to check for MPICH or ScaMPI mpi.h header file
 #
 AC_DEFUN(lofar_MPI,dnl
-[AC_ARG_ENABLE(mpi,
-	[  --enable-mpi            find an MPI implementation (MPICH or ScaMPI) and enable it],
-	[with_mpi="yes"], [with_mpi="no"])
 AC_ARG_ENABLE(mpi-profiler,
 	[  --enable-mpi-profiler   enable MPI profiler [default=no]],
 	[mpi_profiler=yes], [mpi_profiler=no])
-if test "$with_mpi" = "yes"; then]
 lofar_HEADER_MPICH([])dnl
 lofar_HEADER_SCAMPI()dnl
 [
@@ -42,7 +38,6 @@ AC_DEFINE(HAVE_MPI_PROFILER,dnl
 	1, [Define if MPI profiler should be enabled])dnl
 [fi]
 [fi]
-[fi]
 )dnl
 #
 #
@@ -57,8 +52,8 @@ AC_PREREQ(2.13)dnl
 ifelse($1, [], define(MPICH_VERSION,[1.2.1]), define(MPICH_VERSION,$1))
 AC_ARG_WITH(mpich,
 	[  --with-mpich[=PFX]      prefix where MPICH is installed (default=/usr/local/mpich-]MPICH_VERSION[)],
-	[force_mpich=yes; mpich_prefix="$withval"],
-	[force_mpich=no;  mpich_prefix=/usr/local/mpich-]MPICH_VERSION)dnl
+	[mpich_prefix="$withval"],
+	[mpich_prefix="no"])
 [
 if test "$mpich_prefix" = "no" ; then
   enable_mpich=no
@@ -87,11 +82,9 @@ AC_SUBST(CXX)dnl
 AC_DEFINE(HAVE_MPICH,dnl
 	1, [Define if MPICH is installed])dnl
 [
-	else
-		if test "$force_mpich" = "yes"; then]
+	else]
 AC_MSG_ERROR([Could not find MPICH in $mpich_prefix])
-[		fi
-		enable_mpich=no
+[		enable_mpich=no
 	fi
 fi]
 ])
@@ -108,8 +101,8 @@ AC_PREREQ(2.13)dnl
 ifelse($1, [], define(SCAMPI_DEFAULT_PREFIX,[/opt/scali]), define(SCAMPI_DEFAULT_PREFIX,$1))
 AC_ARG_WITH(scampi,
 	[  --with-scampi[=PFX]     prefix where ScaMPI is installed (default=]SCAMPI_DEFAULT_PREFIX[)],
-	[force_scampi="yes"; scampi_prefix="$withval"],
-	[force_scampi="no";  scampi_prefix=]SCAMPI_DEFAULT_PREFIX)
+	[scampi_prefix="$withval"],
+	[scampi_prefix="no"])
 [
 if test "$scampi_prefix" = "no"; then
   enable_scampi=no
@@ -143,11 +136,9 @@ AC_SUBST(LIBS)
 AC_DEFINE(HAVE_SCAMPI,dnl
 	1, [Define if ScaMPI is installed])dnl
 [
-	else
-		if test "$force_scampi" = "yes"; then]
+	else]
 AC_MSG_ERROR([Could not find ScaMPI in $scampi_prefix])
-[		fi
-		enable_scampi=no
+	  [enable_scampi=no
 	fi
 fi]
 ])
