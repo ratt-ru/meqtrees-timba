@@ -12,7 +12,7 @@ import re
 # ---------------- TODO -----------------------------------------------------
 # Bugs:
 #   Tree browser not always enabled! (Hello message lost??)
-#   Click on result log does not display a data item
+#   Numarray indexing order is different!
 #
 # Minor fixes:
 #   Disorderly thread error or SEGV on exit
@@ -24,7 +24,7 @@ import re
 #       e.g., several 1D plots), if the viewer object supports it.
 #   Enhanced 'verbosity' interface (look for option parsing modules?)
 #   User-defined node groups in tree viewer
-#   Right-button actions
+#   + Right-button actions
 #   + Enable views/drags/drops of sub-items (i.e. "nodestate:name/cache_result")
 #   + Viewer plugin interface
 #   + Update contents of HierBrowser on-the-fly, without closing expanded
@@ -132,7 +132,7 @@ class TreeBrowser (object):
     nl_control_lo = QHBoxLayout(nl_control);
     # add refresh button
     self._nl_update = nl_update = QToolButton(nl_control);
-    nl_update.setIconSet(QIconSet(pixmaps.refresh.pm()));
+    nl_update.setIconSet(pixmaps.refresh.iconset());
     nl_update.setAutoRaise(True);
     nl_update.setDisabled(True);
     QToolTip.add(nl_update,"refresh the node list");
@@ -288,7 +288,7 @@ class meqserver_gui (app_proxy_gui):
     self.maintab.insertTab(self.resultlog.wtop(),"Results",2);
     self.resultlog.wtop()._default_iconset = QIconSet();
     self.resultlog.wtop()._default_label   = "Results";
-    self.resultlog.wtop()._newres_iconset  = QIconSet(pixmaps.check.pm());
+    self.resultlog.wtop()._newres_iconset  = pixmaps.check.iconset();
     self.resultlog.wtop()._newres_label    = "Results";
     self.resultlog.wtop()._newresults      = False;
     QWidget.connect(self.resultlog.wtop(),PYSIGNAL("displayDataItem()"),self.display_data_item);

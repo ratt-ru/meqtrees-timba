@@ -246,7 +246,7 @@ class GridCell (object):
     QToolTip.add(iconbutton,"menu");
     QObject.connect(iconbutton,SIGNAL("clicked()"),self.show_popup_menu);
     # pin button
-    pin_is = QIconSet(pixmaps.pin_up.pm());
+    pin_is = pixmaps.pin_up.iconset();
     pin_is.setPixmap(pixmaps.pin_down.pm(),QIconSet.Automatic,QIconSet.Normal,QIconSet.On);
     self._pin = pin = QToolButton(control_box);
     pin.setAutoRaise(True);
@@ -256,7 +256,7 @@ class GridCell (object):
     QToolTip.add(pin,"pin (i.e. protect) or unpin this panel");
     # refresh button
     self._refresh = refresh = QToolButton(control_box);
-    refresh.setIconSet(QIconSet(pixmaps.refresh.pm()));
+    refresh.setIconSet(pixmaps.refresh.iconset());
     refresh.setAutoRaise(True);
     QObject.connect(refresh,SIGNAL("clicked()"),self._dorefresh);
     QToolTip.add(self._refresh,"refresh contents of this panel");
@@ -269,7 +269,7 @@ class GridCell (object):
     self._label1.setSizePolicy(hsp);
     # close button
     self._close = close = QToolButton(control_box);
-    close.setIconSet(QIconSet(pixmaps.cancel.pm()));
+    close.setIconSet(pixmaps.cancel.iconset());
     close.setAutoRaise(True);
     QToolTip.add(close,"close this panel");
     QObject.connect(close,SIGNAL("clicked()"),self.close);
@@ -468,7 +468,7 @@ class GridCell (object):
     
     # create an icon set for the menu button
     try: icon = viewer_class.icon();
-    except AttributeError: icon = QIconSet(pixmaps.magnify.pm());
+    except AttributeError: icon = pixmaps.magnify.iconset();
     self._iconbutton.setIconSet(icon);
     
     # rebuild the "view using" menu

@@ -310,7 +310,7 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.msglog.wtop()._default_label = "Messages";
     self.msglog.wtop()._default_iconset = QIconSet();
     self.msglog.wtop()._error_label = "%d errors";
-    self.msglog.wtop()._error_iconset = QIconSet(pixmaps.exclaim.pm());
+    self.msglog.wtop()._error_iconset = pixmaps.exclaim.iconset();
     QWidget.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
     QWidget.connect(self.msglog.wtop(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     
@@ -346,7 +346,7 @@ class app_proxy_gui(verbosity,QMainWindow):
                  
     #------ pause button
 #    self.pause_button = QToolButton(self.maintab);
-    self.pause_button.setIconSet(QIconSet(pixmaps.pause_normal.pm()));
+    self.pause_button.setIconSet(pixmaps.pause_normal.iconset());
     QToolTip.add(self.pause_button,"pause the application");
 #    self.pause_button.setAutoRaise(True);
 #    self.pause_button.setMinimumWidth(35);
@@ -490,10 +490,10 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.pause_button.setDisabled(not self.app.state>0);
     if self.app.state>0:
       if self.app.paused:   
-        self.pause_button.setIconSet(QIconSet(pixmaps.pause_green.pm()));
+        self.pause_button.setIconSet(pixmaps.pause_green.iconset());
         QToolTip.add(self.pause_button,"resume the application");
       else:                 
-        self.pause_button.setIconSet(QIconSet(pixmaps.pause_normal.pm()));
+        self.pause_button.setIconSet(pixmaps.pause_normal.iconset());
         QToolTip.add(self.pause_button,"pause the application");
       # print self.app.paused,self.pause_requested;
       # if requested pause/resume state is reached, get button up and clear
