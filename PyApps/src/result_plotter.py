@@ -141,7 +141,9 @@ class ResultPlotter(BrowserPlugin):
       self._ntuple_controller = NTupleController.instance()
       self._window_controller = WindowController.instance()
       self._window_controller.createInspector ()
-      self._window = CanvasWindow(None, "MeqDisplay",0)
+      self._window = CanvasWindow(self._parent, "MeqDisplay",0)
+      self._wtop = self._window
+
       self._window.setAllowClose()
       self._window.show()
       self._display_controller = DisplayController.instance()
