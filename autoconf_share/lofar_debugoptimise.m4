@@ -113,7 +113,7 @@ AC_DEFINE(LOFAR_DEBUG,dnl
 
   if test "$with_threads" != "no"; then
     lfr_cppflags="-DUSE_THREADS -pthread";
-    lfr_ldflags="";
+    lfr_ldflags="-pthread";
   fi
 
   CPPFLAGS="$CPPFLAGS $lfr_cppflags $with_cppflags"
