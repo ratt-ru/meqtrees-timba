@@ -1,20 +1,19 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+#ifndef DMI_Timestamp_h
+#define DMI_Timestamp_h 1
 
-#ifndef Timestamp_h
-#define Timestamp_h 1
-
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-
+#include <DMI/DMI.h>
 #include <sys/time.h>
 
-#pragma types :Timestamp
+#pragma types :DMI::Timestamp
 
+namespace DMI
+{
 
 //##ModelId=3C7F3B1D025E
 class Timestamp 
 {
-  public:
+ ImportDebugContext(DebugDMI);
+ public:
     //##ModelId=3DB9343E0244
       typedef enum { SEC=0,MSEC,USEC,NSEC } TimeUnits;
 
@@ -280,5 +279,5 @@ inline void Timestamp::reset ()
 { sec_ = usec_ = 0; }
 
 
-
+};
 #endif

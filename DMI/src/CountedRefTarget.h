@@ -23,16 +23,18 @@
 #ifndef DMI_CountedRefTarget_h
 #define DMI_CountedRefTarget_h 1
 
-#include <DMI/Common.h>
 #include <DMI/DMI.h>
 #include <Common/Thread.h>
 #include <Common/CheckConfig.h>
 
 #include <Common/lofar_iostream.h>
 
-class CountedRefBase;
-
 CHECK_CONFIG_THREADS(DMI);
+
+namespace DMI
+{
+
+class CountedRefBase;
 
 
 //##ModelId=3C0CDF41029F
@@ -69,50 +71,43 @@ class CountedRefTarget
       //## depth=depth-1 and the DMI::DEEP flag passed on.
       virtual CountedRefTarget* clone (int flags = 0, int depth = 0) const = 0;
 
-      //##ModelId=3C3EDD7D0301
-      //##Documentation
-      //## Virtual method for privatization of an object.
-      //## The depth argument determines the depth of privatization and/or
-      //## cloning (see CountedRefBase::privatize()). If depth>0, then any
-      //## nested refs should be privatize()d as well, with depth=depth-1.
-      //## The DMI::DEEP flag  corresponds to infinitely deep privatization. If
-      //## this is set, then depth should be ignored, and nested refs should be
-      //## privatize()d with DMI::DEEP.
-      //## If depth=0 (and DMI::DEEP is not set), then privatize() is
-      //## effectively a no-op. However, if your class has a 'writable'
-      //## property, it should be changed in accordance with the DMI::WRITE
-      //## and/or DMI::READONLY flags.
-      virtual void privatize (int flags = 0, int depth = 0);
-
       //##ModelId=3C18899002BB
       //##Documentation
       //## Returns a reference count. Note that the ref count methods may be
       //## redefined in derived classes (i.e. SmartBlock) to support, e.g.,
       //## shared memory (i.e. refs from multiple processes), in which case
       //## they are only compelled to be accurate to 0, 1 or 2 ("more").
-      virtual int refCount () const;
-
-      //##ModelId=3C18C69A0120
-      //##Documentation
-      //## Returns a count of writable refs.
-      virtual int refCountWrite () const;
+#ifdef COUNTEDREF_LINKED_LIST
+      virtual int targetReferenceCount () const;
+      
+      bool isTargetAttached () const
+      { return owner_ref_ != 0; }
+#else
+      virtual int targetReferenceCount () const
+      { return ref_count_; }
+      
+      bool isTargetAttached () const
+      { return ref_count_ != 0; }
+#endif
 
       //##ModelId=4017F6210026
-      bool isAnon () const
-      { return anon; }
-
+      bool isAnonTarget () const
+      { return anon_; }
+      
+#ifdef COUNTEDREF_LINKED_LIST
     //##ModelId=3DB934660201
-      const CountedRefBase * getOwner () const
-      { return owner_ref; }
+      const CountedRefBase * getTargetOwner () const
+      { return owner_ref_; }
 
     // Additional Public Declarations
     //##ModelId=3DB934660265
-      CountedRefBase * getOwner ()
-      { return owner_ref; }
+      CountedRefBase * getTargetOwner ()
+      { return owner_ref_; }
+#endif
       
     //##ModelId=3DB9346602A2
       const Thread::Mutex & crefMutex() const
-      { return cref_mutex; }
+      { return cref_mutex_; }
       
     //##ModelId=3E01B0CE01E8
       virtual void print (std::ostream &str) const
@@ -144,28 +139,36 @@ class CountedRefTarget
       { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
       
     //##ModelId=400E4D68027F
-      ImportDebugContext(DMI);
+      ImportDebugContext(DebugDMI);
       
     //##ModelId=4017F61D0145
       typedef void OpSubscriptReturnType;
     //##ModelId=4017F61D0306
       typedef CountedRefTarget OpSubscriptRefType;
       
-  private:
-    // Data Members for Associations
+  protected:
+      //## virtual method called when a ref is first attached to a target.
+      //## The flags passed to attached are passed through this
+      //## method. This can be used to force such things as SHARED and
+      //## READONLY if needed (e.g. SingularRefTarget enforces SHARED).
+      virtual int modifyAttachFlags (int flags)
+      { return flags; } 
 
+#ifdef COUNTEDREF_LINKED_LIST
       //##ModelId=3C0CDF6503B9
       //##Documentation
       //## First ref in list of refs to this target
-      mutable CountedRefBase *owner_ref;
+      mutable CountedRefBase *owner_ref_;
+#else
+      mutable int ref_count_;
+#endif
 
-  private:
     // Additional Implementation Declarations
     //##ModelId=3DB934650322
-      mutable bool anon;
-  
+      bool anon_;
+      
     //##ModelId=3E9BD917024B
-      Thread::Mutex cref_mutex;
+      Thread::Mutex cref_mutex_;
 
     friend class CountedRefBase;
 };
@@ -182,24 +185,14 @@ class CountedRefTarget
 class SingularRefTarget : public CountedRefTarget
 {
   public:
-
       //##ModelId=3C8CDBF40236
       //##Documentation
-      //## Abstract method for cloning an object. Should allocate a new object
-      //## with "new" and return pointer to it. If DMI::WRITE is specified,
-      //## then a writable clone is required.
-      //## The depth argument specifies cloning depth (the DMI::DEEP flag
-      //## means infinite depth). If depth=0, then any nested refs should only
-      //## be copy()d. ). If depth>0, then nested refs should be copied and
-      //## privatize()d , with depth=depth-1.
-      //## The DMI::DEEP flag  corresponds to infinitely deep cloning. If this
-      //## is set, then depth should be ignored, and nested refs should be
-      //## privatize()d with DMI::DEEP.
-      //## 
-      //## Otherwise, nested refs should be copied & privatized  with
-      //## depth=depth-1 and the DMI::DEEP flag passed on.
+      //## Cloning a singular target always fails
       virtual CountedRefTarget* clone (int  = 0, int  = 0) const;
 
+  protected:
+      virtual int modifyAttachFlags (int flags)
+      { return flags|DMI::SHARED; } 
 };
 
 inline std::ostream & operator << (std::ostream &str,const CountedRefTarget &target)
@@ -208,14 +201,12 @@ inline std::ostream & operator << (std::ostream &str,const CountedRefTarget &tar
   return str;
 }
 
-
-// Class SingularRefTarget 
-
-
 //##ModelId=3C8CDBF40236
 inline CountedRefTarget* SingularRefTarget::clone (int , int ) const
 {
   Throw("can't clone a singular target");
 }
+
+}; // namespace DMI
 
 #endif

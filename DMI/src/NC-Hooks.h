@@ -6,7 +6,7 @@ T * as_wp_impl (int &sz,bool pointer,bool must_exist,Type2Type<T>,Category) cons
 {
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   ContentInfo info;
-  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,True,pointer,must_exist);
+  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,true,pointer,must_exist);
   sz = info.size;
   return static_cast<T*>(const_cast<void*>(ptr));
 }
@@ -16,7 +16,7 @@ T * as_wp_impl (int &sz,bool pointer,bool must_exist,Type2Type<T>,Int2Type<TypeC
 {
   ContentInfo info;
   const T * ptr = reinterpret_cast<const T*>(
-                    get_address_bo(info,can_convert<T>,True,pointer,must_exist));
+                    get_address_bo(info,can_convert<T>,true,pointer,must_exist));
   sz = info.size;
   return const_cast<T*>(ptr);
 }
@@ -58,22 +58,26 @@ T & as_wr (Type2Type<T> =Type2Type<T>()) const
   return *as_wp_impl(dum,false,false,Type2Type<T>(),Int2Type<DMITypeTraits<T>::TypeCategory>());
 }
 
-#define __convert1(T,arg) operator T* () const { return implicit_ptr(Type2Type<T>()); }
-// #define __convert2(T,arg) operator T& () const { return as_wr(Type2Type<T>()); }
-// #define __convert(T,arg) __convert1(T,) __convert2(T,) 
-// 
- DoForAllNumericTypes(__convert1,);
- DoForAllBinaryTypes(__convert1,);
-// DoForAllDynamicTypes(__convert1,);
- DoForAllSpecialTypes(__convert1,);
-// DoForAllBinaryTypes(__convert2,);
-// DoForAllDynamicTypes(__convert2,);
-// DoForAllSpecialTypes(__convert2,);
-// 
-// #undef __convert
-// #undef __convert1
-// #undef __convert2
-// 
+template<class T>
+operator T* () const 
+{ return implicit_ptr(Type2Type<T>()); }
+
+// #define __convert1(T,arg) operator T* () const { return implicit_ptr(Type2Type<T>()); }
+// // #define __convert2(T,arg) operator T& () const { return as_wr(Type2Type<T>()); }
+// // #define __convert(T,arg) __convert1(T,) __convert2(T,) 
+// // 
+//  DoForAllNumericTypes(__convert1,);
+//  DoForAllBinaryTypes(__convert1,);
+// // DoForAllDynamicTypes(__convert1,);
+//  DoForAllSpecialTypes(__convert1,);
+// // DoForAllBinaryTypes(__convert2,);
+// // DoForAllDynamicTypes(__convert2,);
+// // DoForAllSpecialTypes(__convert2,);
+// // 
+// // #undef __convert
+// // #undef __convert1
+// // #undef __convert2
+// // 
 
 // -----------------------------------------------------------------------
 // operator =
@@ -105,13 +109,21 @@ T& assign_impl (const T& value,Any1,Int2Type<true>,Any2) const
   DbgAssert(info.tid==tid); 
   return *static_cast<T*>(data) = value; 
 };
-
-// generate special error for dynamic types (must use <<= )
-template<class T,class Any1,class Any2>
-T& assign_impl (const T& value,Any1,Any2,Int2Type<true>) const
+// use reinterpret_cast below because these templates are instantiated
+// when declaration of T is not yet available, thus static_cast to BObj* 
+// doesn't work. These functions are only called for dynamic types
+template<class T>
+T& assign_dyn_impl (T& value) const
 { 
-  STATIC_CHECK(false,Cannot_use_assignment_with_dynamic_types_use_xfer_instead);
-};
+  assign_object(reinterpret_cast<BObj*>(&value),TypeId(DMITypeTraits<T>::typeId),DMI::AUTOCLONE);
+  return value;
+}
+template<class T>
+const T& assign_const_dyn_impl (const T& value) const
+{ 
+  assign_object(const_cast<BObj*>(reinterpret_cast<const BObj*>(&value)),TypeId(DMITypeTraits<T>::typeId),DMI::READONLY|DMI::AUTOCLONE);
+  return value;
+}
 
 // numeric types assigned by value
 template<class T>
@@ -143,7 +155,11 @@ DoForAllNumericTypes(__assign,);
 DoForAllSpecialTypes(__assign,);
 DoForAllBinaryTypes(__assign,);
 #undef __assign
-
+#define __assign(T,arg) \
+  T& operator = (T& value) const { return assign_dyn_impl(value); } \
+  const T& operator = (const T& value) const { return assign_const_dyn_impl(value); } 
+DoForAllDynamicTypes(__assign,);
+#undef __assign
 // -----------------------------------------------------------------------
 // some special assignments
 // -----------------------------------------------------------------------
@@ -155,7 +171,7 @@ string & operator = ( const char *cstr ) const
 }
 
 #ifdef AIPSPP_HOOKS
-// assigning an AIPS++ array will init a DataArray object. This
+// assigning an AIPS++ array will init a DMI::Array object. This
 // will also work for Vectors, Matrices and Cubes
 template<class T>
 void operator = (const casa::Array<T> &other) const;
@@ -185,7 +201,7 @@ void assign_vector_select (const std::vector<T> &other,Int2Type<true>) const
 
 public:    
 // Assigning an STL vector of some type will assign to the underlying 
-// container (provided the shape/size matches), or inits a new DataField
+// container (provided the shape/size matches), or inits a new DMI::Vec
 template<class T>
 void operator = (const std::vector<T> &other) const
 {
@@ -207,7 +223,7 @@ bool get (T &value,bool init) const
     return true;
   if( init )
     operator = (value);
-  return False;
+  return false;
 }
 
 template<class T>
@@ -222,24 +238,24 @@ bool get_vector (std::vector<T> &value,bool init) const
 
 
 // -----------------------------------------------------------------------
-// <<= and =: xfer or copy CountedRefs
+// =: for CountedRefs, copies refs
 // -----------------------------------------------------------------------
-// the transfer operator is defined for all counted refs -- it xfers a ref
-template<class T>
-void operator <<= ( const CountedRef<T> &ref ) const 
-{ 
-  assign_objref(ref.ref_cast(Type2Type<BlockableObject>()),0); 
-}; 
+// // the transfer operator is defined for all counted refs -- it xfers a ref
+// template<class T>
+// void operator <<= ( CountedRef<T> &ref ) const 
+// { 
+//   assign_objref(ref.ref_cast(Type2Type<BObj>()),DMI::XFER); 
+// }; 
 // assigning countedrefs will make a copy
 template<class T>
 const CountedRef<T> & operator = ( const CountedRef<T> &ref ) const  
 { 
-  assign_objref(ref.ref_cast(Type2Type<BlockableObject>()),DMI::COPYREF|DMI::PRESERVE_RW); 
+  assign_objref(ref.ref_cast(Type2Type<BObj>()),0); 
   return ref;
 }
 
 // -----------------------------------------------------------------------
-// operator <<= 
+// operator = and <<= 
 // attach a dynamic type
 // -----------------------------------------------------------------------
 protected:
@@ -260,14 +276,14 @@ class RefTraits<CountedRef<T> > {
 template<class T,class isRef>
 typename RefTraits<T>::RetType xfer_impl ( T * ptr,int flags,isRef ) const
 { 
-  STATIC_CHECK(SUPERSUBCLASS(BlockableObject,T),xfer_operator_only_available_for_dynamic_types);
+  STATIC_CHECK(SUPERSUBCLASS(DMI::BObj,T),xfer_operator_only_available_for_dynamic_types);
   assign_object(ptr,ptr->objectType(),flags); 
   return *ptr; 
 };
 template<class T>
 typename RefTraits<T>::RetType xfer_impl ( T * ptr,int,Int2Type<true> ) const
 { 
-  assign_objref(ptr->ref_cast(Type2Type<BlockableObject>()),0); 
+  assign_objref(ptr->ref_cast(Type2Type<DMI::BObj>()),DMI::XFER); 
 };
 
 template<class T>

@@ -1,4 +1,4 @@
-//  DataArray.h: Array container (using Blitz Arrays)
+//  NumArray.h: casa::Array container (using Blitz Arrays)
 //
 //  Copyright (C) 2002
 //  ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -21,15 +21,9 @@
 //  $Id$
 //
 //  $Log$
-//  Revision 1.31  2005/01/17 13:44:09  cvs
-//  Moved with cvsmv from LOFAR/Timba/DMI/src, creating new revision
-//
-//  Revision 1.30  2005/01/17 12:47:34  cvs
-//  Moved with cvsmv from LOFAR/DMI/src, creating new revision
-//
-//  Revision 1.29  2005/01/07 07:56:28  diepen
-//  %[ER: 222]%
-//  Use AIPS++ casa namespace
+//  Revision 1.32  2005/01/17 13:53:04  smirnov
+//  %[ER: 16]%
+//  DMI completely revised to DMI2
 //
 //  Revision 1.28  2004/09/13 15:40:52  smirnov
 //  %[ER: 16]%
@@ -41,7 +35,7 @@
 //
 //  Revision 1.26  2004/03/17 07:51:20  smirnov
 //  %[ER: 16]%
-//  Extended access by pointer in DataArray
+//  Extended access by pointer in NumArray
 //
 //  Revision 1.25  2004/01/28 16:23:34  smirnov
 //  %[ER: 16]%
@@ -64,7 +58,7 @@
 //
 //  Revision 1.22  2003/11/12 16:57:18  smirnov
 //  %[ER: 16]%
-//  Added arrays accessors to DataArray
+//  Added arrays accessors to NumArray
 //
 //  Revision 1.21  2003/09/10 15:11:05  smirnov
 //  %[BugId: ]%
@@ -94,7 +88,7 @@
 //
 //  Revision 1.16  2002/12/05 10:15:22  smirnov
 //  %[BugId: 112]%
-//  Fixed Lorray support in DataArrays, etc.
+//  Fixed Lorray support in NumArrays, etc.
 //  Revised AIPS++ hooks.
 //
 //  Revision 1.15  2002/12/03 20:36:14  smirnov
@@ -164,64 +158,54 @@
 //  Added fcomplex and dcomplex types
 //
 //  Revision 1.2  2002/04/08 14:27:07  oms
-//  Added isScalar(tid) to DataArray.
+//  Added isScalar(tid) to NumArray.
 //  Fixed isContiguous() in DataField.
 //
 //  Revision 1.1  2002/04/05 13:05:46  gvd
 //  First version
 //
-#ifndef DMI_DATAARRAY_H
-#define DMI_DATAARRAY_H
+#ifndef DMI_NUMARRAY_H
+#define DMI_NUMARRAY_H
 
-#include "Common/Lorrays.h"
-#include "Common/Thread/Mutex.h"
-#include "Common/Thread/Key.h"
-#include "DMI/DMI.h"
-#include "DMI/NestableContainer.h"
+#include <Common/Lorrays.h>
+#include <Common/Thread/Mutex.h>
+#include <Common/Thread/Key.h>
+#include <DMI/DMI.h>
+#include <DMI/Container.h>
 
 #ifdef HAVE_AIPSPP
 #include <casa/Arrays.h>
 #endif
 
-#pragma types #DataArray
+#pragma types #DMI::NumArray
 
 
 // We assume Blitz support here, AIPS++ can be re-integrated later
 #ifndef LORRAYS_USE_BLITZ
-  #error This version of DataArray requires Blitz Lorrays
+  #error This version of NumArray requires Blitz Lorrays
 #endif
 
+namespace DMI
+{
+
 //##ModelId=3DB949AE00C5
-class DataArray : public NestableContainer
+class NumArray : public Container
 {
 public:
   // Create the object without an array in it.
     //##ModelId=3DB949AE039F
-  DataArray ();
+  NumArray ();
 
   // Create the object with an array of the given shape.
+  // flags: DMI::NOZERO to skip initialization of array with 0
     //##ModelId=3DB949AE03A4
-  DataArray (TypeId type,const LoShape & shape,int flags=0,int shm_flags=0);
+  NumArray (TypeId type,const LoShape & shape,int flags=0);
   
   // Create the object, and initialize data from array. "other" should point 
   // to a Lorray<T,N> object (where T,N correspond to array_tid)
     //##ModelId=3DB949AE03AF
-  DataArray (TypeId array_tid,const void *other,int flags=0,int shm_flags=0);
+  NumArray (TypeId array_tid,const void *other);
 
-  // Create the object with an array of the given shape.
-//   explicit DataArray (const Array<bool>& array, int flags = DMI::WRITE,
-// 		      int shm_flags = 0);
-//   explicit DataArray (const Array<int>& array, int flags = DMI::WRITE,
-// 		      int shm_flags = 0);
-//   explicit DataArray (const Array<float>& array, int flags = DMI::WRITE,
-// 		      int shm_flags = 0);
-//   explicit DataArray (const Array<double>& array, int flags = DMI::WRITE,
-// 		      int shm_flags = 0);
-//   explicit DataArray (const Array<fcomplex>& array, int flags = DMI::WRITE,
-// 		      int shm_flags = 0);
-//   explicit DataArray (const Array<dcomplex>& array, int flags = DMI::WRITE,
-// 		      int shm_flags = 0);
-//   
   // templated method to create a copy of the given Lorray.
   // We make use of the fact that a Lorray(N,T) is actually a blitz::Array<T,N>.
   // Hence this templated definition is equivalent to a bunch of non-templated
@@ -229,25 +213,30 @@ public:
   // For non-templated compilers, this can be redefined using the DoFor...()
   // type iterator macros
   template<class T,int N>
-  explicit DataArray (const blitz::Array<T,N> & array,int flags=0,int shm_flags=0);
+  explicit NumArray (const blitz::Array<T,N> & array);
 
 #ifdef HAVE_AIPSPP
   // templated method to create a copy of the given AIPS++ array
   template<class T>
-  explicit DataArray (const casa::Array<T> & array,int flags=0,int shm_flags=0);
+  explicit NumArray (const casa::Array<T> & array);
 #endif
 
-  // Copy (copy semantics).
+  // Copy (ref/cow semantics unless DMI::DEEP is specified).
     //##ModelId=3F5487DA034E
-  DataArray (const DataArray& other, int flags=0, int depth=0);
+  NumArray (const NumArray& other, int flags=0, int depth=0);
 
     //##ModelId=3DB949AE03B8
-  ~DataArray();
+  ~NumArray();
 
-  // Assignment (copy semantics).
+  // Assignment (ref/cow semantics).
     //##ModelId=3DB949AE03B9
-  DataArray& operator= (const DataArray& other);
-
+  NumArray& operator = (const NumArray& other);
+  
+  // Initialize everything and create array.
+  // This can be used to init an array that was created via the default constructor.
+  // flags: DMI::NOZERO to skip init of array
+  void init (TypeId type,const LoShape & shape,int flags=0);
+ 
   // True if the object contains an initialized array
   //##ModelId=3DB949AF0022
   bool valid() const;
@@ -293,9 +282,9 @@ public:
   const void * getConstArrayPtr (TypeId array_tid) const;
   
   void * getArrayPtr (TypeId element_tid,uint nrank)
-  { return const_cast<void*>(getConstArrayPtr(element_tid,nrank)); }
+  { Thread::Mutex::Lock lock(mutex()); makeWritable(); return const_cast<void*>(getConstArrayPtr(element_tid,nrank)); }
   void * getArrayPtr (TypeId array_tid)
-  { return const_cast<void*>(getConstArrayPtr(array_tid)); }
+  { Thread::Mutex::Lock lock(mutex()); makeWritable(); return const_cast<void*>(getConstArrayPtr(array_tid)); }
   
   template<class T,int N>
   const blitz::Array<T,N> & getConstArray () const
@@ -303,7 +292,8 @@ public:
   
   template<class T,int N>
   blitz::Array<T,N> & getArray () 
-  { return *static_cast<blitz::Array<T,N>*>(
+  { Thread::Mutex::Lock lock(mutex()); makeWritable(); 
+    return *static_cast<blitz::Array<T,N>*>(
             const_cast<void*>(getArrayPtr(typeIdOf(T),N))); }
   
   template<class T,int N>
@@ -312,8 +302,7 @@ public:
 
   template<class T,int N>
   void getArrayPtr (blitz::Array<T,N> * &ptr) 
-  { ptr = static_cast<blitz::Array<T,N>*>(
-          const_cast<void*>(getArrayPtr(typeIdOf(T),N))); }
+  { ptr = static_cast<blitz::Array<T,N>*>(getArrayPtr(typeIdOf(T),N)); }
   
     //##ModelId=400E4D680386
   const void * getConstDataPtr () const
@@ -321,27 +310,26 @@ public:
   
     //##ModelId=400E4D68038A
   void * getDataPtr () 
-  { return itsArrayData; }
+  { Thread::Mutex::Lock lock(mutex()); makeWritable(); return itsArrayData; }
+  
+  // Ensures writability of underlying data object
+  void makeWritable ();
 
-  // Return the object type (TpDataArray).
+  // Return the object type (TpNumArray).
     //##ModelId=3DB949AE03BE
   virtual TypeId objectType() const;
 
-  // Reconstruct the DataArray object from a BlockSet.
+  // Reconstruct the NumArray object from a BlockSet.
     //##ModelId=3DB949AE03C0
   virtual int fromBlock (BlockSet& set);
 
-  // Add the DataArray object to the BlockSet.
+  // Add the NumArray object to the BlockSet.
     //##ModelId=3DB949AE03C5
   virtual int toBlock (BlockSet& set) const;
 
   // Clone the object.
     //##ModelId=3DB949AE03CB
   virtual CountedRefTarget* clone (int flags = 0, int depth = 0) const;
-
-  // Privatize the object.
-    //##ModelId=3DB949AE03D2
-  virtual void privatize (int flags = 0, int depth = 0);
 
   // Insertion is not possible (throws exception).
     //##ModelId=3DB949AE03E5
@@ -369,7 +357,7 @@ public:
                   const char *name = 0 ) const;
   
     //##ModelId=3DB949AF001C
-  DefineRefTypes(DataArray,Ref);
+  typedef CountedRef<NumArray> Ref;
 
     //##ModelId=3E9BD91703A8
   static const int NumTypes = Tpbool_int - Tpstring_int + 1;
@@ -377,24 +365,25 @@ public:
 protected:
     //##ModelId=3DB949AE03DA
   virtual int get (const HIID& id,ContentInfo &info,bool nonconst,int flags) const;
-  
+
 private:
   // Initialize internal shape and create array using the given shape.
+  // flags: DMI::NOZERO to skip init of array
     //##ModelId=3DB949AF0024
-  void init (const LoShape & shape,int flags);
+  void init (const LoShape & shape,int flags=0);
 
-  // Create the actual Array object.
+  // Create the actual casa::Array object.
   // It is created from the array data part in the SmartBlock.
     //##ModelId=3DB949AF002B
   void makeArray();
 
-  // Clear the object (thus remove the Array).
+  // Clear the object (thus remove the casa::Array).
     //##ModelId=3DB949AF002C
   void clear();
 
   // Clone the object.
     //##ModelId=3DB949AF002E
-  void cloneOther (const DataArray& other, int flags = 0, int depth = 0);
+  void cloneOther (const NumArray& other, int flags, int depth, bool constructing);
 
     //##ModelId=3DB949AE036D
   LoShape    itsShape;          // actual shape
@@ -416,14 +405,14 @@ private:
   //##ModelId=3DB949AE0370
   BlockRef    itsData;
 
-  // OK, setup some circus hoops. Rank & type of DataArray is set at runtime,
+  // OK, setup some circus hoops. Rank & type of NumArray is set at runtime,
   // while for blitz arrays it's compile-time. So, for every blitz operation
-  // required in DataArray, we'll setup an N(ranks) x N(types) matrix of 
+  // required in NumArray, we'll setup an N(ranks) x N(types) matrix of 
   // function pointers, then use rank & type to call the appropriate function.
   // This matrix is called the "method table".
   
   // Methods for the method table are naturally implemented via
-  // templates. Refer to DataArray.cc.
+  // templates. Refer to NumArray.cc.
   
   // These are the actual method tables
     //##ModelId=3E9BD9140364
@@ -487,7 +476,6 @@ private:
   {
     (*shapeOfArray[typeIndex(tid)][rank-1])(shape,ptr);
   }
-  
 
   // Define the subarray object (for slicing into an array)
     //##ModelId=3E9BD91403B3
@@ -520,7 +508,7 @@ private:
   template<class T>
   static bool isStringArray (const casa::Array<T> &);
   // helper function returns True if array contains the same data type
-  // (with AIPS++ String matching Tpstring)
+  // (with AIPS++ casa::String matching Tpstring)
   template<class T>
   bool verifyAipsType (const T*) const;
   // helper function copies strings from source array
@@ -529,9 +517,9 @@ private:
 #endif
 };
 
-DefineRefTypes(DataArray,DataArrayRef);
+DefineRefTypes(NumArray,NumArrayRef);
 
-inline bool DataArray::valid () const
+inline bool NumArray::valid () const
 {
   return itsArray != 0 ;
 }
@@ -539,14 +527,14 @@ inline bool DataArray::valid () const
     
 // returns rank of array
 //##ModelId=3E9BD91800B4
-inline int DataArray::rank () const
+inline int NumArray::rank () const
 {
   return itsShape.size();
 }
   
 // returns shape of array
 //##ModelId=3E9BD91800B7
-inline const LoShape & DataArray::shape () const
+inline const LoShape & NumArray::shape () const
 {
   return itsShape;
 }
@@ -555,23 +543,22 @@ inline const LoShape & DataArray::shape () const
 // (the virtual type() method, below, overriding the abstract one in 
 // NestableContainer, will return the array type)
 //##ModelId=3E9BD91800B9
-inline TypeId DataArray::elementType () const
+inline TypeId NumArray::elementType () const
 {
   return itsScaType;
 }
 
 // templated constructor from a Blitz array
 template<class T,int N>
-DataArray::DataArray (const blitz::Array<T,N>& array,
-		      int flags, int )  // shm_flags not yet used
-: NestableContainer(),
+NumArray::NumArray (const blitz::Array<T,N>& array)
+: Container(),
   itsArray    (0)
 {
   initSubArray();
   itsScaType  = typeIdOf(T);
   itsElemSize = sizeof(T);
   itsType     = typeIdOfArray(T,N);
-  init(array.shape(),flags);
+  init(array.shape(),DMI::NOZERO);
   // after an init, itsArray contains a valid array of the given shape,
   // so we can assign the other array to it, to copy the data over
   *static_cast<blitz::Array<T,N>*>(itsArray) = array;
@@ -579,27 +566,27 @@ DataArray::DataArray (const blitz::Array<T,N>& array,
 
 #ifdef HAVE_AIPSPP
 template<class T>
-inline bool DataArray::isStringArray (const casa::Array<T> &)
-{ return False; }
+inline bool NumArray::isStringArray (const casa::Array<T> &)
+{ return false; }
   
 template<>
-inline bool DataArray::isStringArray (const casa::Array<casa::String> &)
-{ return True; }
+inline bool NumArray::isStringArray (const casa::Array<casa::String> &)
+{ return true; }
 
 template<class T> 
-inline bool DataArray::verifyAipsType (const T*) const
+inline bool NumArray::verifyAipsType (const T*) const
 {
   return itsScaType == typeIdOf(T);
 }
 
 template<> 
-inline bool DataArray::verifyAipsType (const casa::String*) const
+inline bool NumArray::verifyAipsType (const casa::String*) const
 {
   return itsScaType == Tpstring;
 }
 
 //##ModelId=3E9BD9190074
-inline void DataArray::copyStringArray (const void *source)
+inline void NumArray::copyStringArray (const void *source)
 {
   const casa::String *data = static_cast<const casa::String*>(source);
   string *dest = reinterpret_cast<string *>(itsArrayData),*end = dest + itsSize;
@@ -609,15 +596,15 @@ inline void DataArray::copyStringArray (const void *source)
 
 // templated constructor from an AIPS++ array
 template<class T>
-DataArray::DataArray (const casa::Array<T> &array,int flags, int )  // shm_flags not yet used
-: NestableContainer(),
+NumArray::NumArray (const casa::Array<T> &array)
+: Container(),
   itsArray    (0)
 {
   initSubArray();
   itsScaType  = isStringArray(array) ? Tpstring : typeIdOf(T);
-  itsElemSize = isStringArray(array) ? sizeof(casa::String) : sizeof(T);
+  itsElemSize = isStringArray(array) ? sizeof(string) : sizeof(T);
   itsType     = TpArray(itsScaType,array.ndim());
-  init(array.ndim() ? LoShape(array.shape()) : LoShape(0),flags);
+  init(array.ndim() ? LoShape(array.shape()) : LoShape(0),DMI::NOZERO);
   // after an init, itsArray contains a valid array of the given shape,
   // so we can copy the data over
   // BUG here! use a more efficient AIPS++ array iterator
@@ -632,17 +619,17 @@ DataArray::DataArray (const casa::Array<T> &array,int flags, int )  // shm_flags
 
 
 template<class T>
-casa::Array<T> DataArray::copyAipsArray (const T* dum) const
+casa::Array<T> NumArray::copyAipsArray (const T* dum) const
 {
-  FailWhen( !valid(),"invalid DataArray" );
+  FailWhen( !valid(),"invalid NumArray" );
   FailWhen( !verifyAipsType(dum),"array type mismatch" );
   return casa::Array<T>(itsShape,reinterpret_cast<const T*>(itsArrayData));
 }
 
 template<class T>
-casa::Array<T> DataArray::refAipsArray (const T*)
+casa::Array<T> NumArray::refAipsArray (const T*)
 {
-  FailWhen( !valid(),"invalid DataArray" );
+  FailWhen( !valid(),"invalid NumArray" );
   FailWhen( !isWritable(),"r/w access violation" );
   FailWhen( !verifyAipsType(dum),"array type mismatch" );
   return casa::Array<T>(itsShape,itsArrayData,SHARE);
@@ -650,4 +637,5 @@ casa::Array<T> DataArray::refAipsArray (const T*)
 
 #endif
 
+};
 #endif

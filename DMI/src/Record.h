@@ -1,4 +1,4 @@
-//#  DataRecord.h: record of containers
+//#  Record.h: record of containers
 //#
 //#  Copyright (C) 2002-2003
 //#  ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -20,98 +20,143 @@
 //#
 //#  $Id$
 
-#ifndef DMI_DataRecord_h
-#define DMI_DataRecord_h 1
+#ifndef DMI_Record_h
+#define DMI_Record_h 1
 
 #include <DMI/DMI.h>
-#include <DMI/NestableContainer.h>
+#include <DMI/Container.h>
+#include <DMI/ObjectAssignerMacros.h>
 
-#pragma type #DataRecord
+#pragma type #DMI::Record
 
 //##ModelId=3BB3112B0027
 //##Documentation
-//## DataRecord is the main container class of DMI.
+//## DMI::Record is a record container class
 
-class DataRecord : public NestableContainer
+namespace DMI
 {
-  public:
-    //##ModelId=3DB9343B029A
-      class Iterator
-      {
-        private:
-        //##ModelId=3DB934810397
-          map<HIID,NCRef>::const_iterator iter;
-#ifdef USE_THREADS
-        //##ModelId=3DB934810398
-          Thread::Mutex::Lock lock;
-#endif
-        //##ModelId=3DB9348103A0
-          Iterator( const DataRecord &record );
-          
-          friend class DataRecord;
-      };
-      
-      friend class Iterator;
 
+class Record : public Container
+{
+  protected:
+      typedef struct 
+      {
+        ObjRef   ref;
+        BlockSet bset;
+        bool     protect;
+      } Field;
+
+      typedef std::map<HIID,Field> FieldMap; 
+  
   public:
+      typedef CountedRef<Record> Ref;
+  
+      typedef enum 
+      {
+        // this flag when passed to addField will create a protected field.
+        // a protected field may not be written to or changed via the public
+        // access methods
+        PROTECT         =0x10000000,  
+        // this flag is implictly added by all public access methods
+        // so that field protection is honored.
+        // The private/protected methods do not add this flag, and thus
+        // subclasses can override field protection
+        HONOR_PROTECT   =0x20000000,  
+      } RecordFlags;
+  
       //##ModelId=3C5820AD00C6
-      explicit DataRecord (int flags = DMI::WRITE);
+      Record ();
 
       //##ModelId=3C5820C7031D
-      DataRecord (const DataRecord &other, int flags = DMI::PRESERVE_RW, int depth = 0);
+      Record (const Record &other, int flags = 0, int depth = 0);
 
     //##ModelId=3DB93482018E
-      ~DataRecord();
+      ~Record();
 
     //##ModelId=3DB93482022F
-      DataRecord & operator=(const DataRecord &right);
+      Record & operator = (const Record &right);
+      
+      void clear ();
 
       //##ModelId=3C58248C0232
       //##Documentation
       //## Returns the class TypeId
       virtual TypeId objectType () const;
       
-    //##ModelId=400E4D6903B8
-      //##Documentation
-      //## merges other record into this one (adds all its fields).
-      //## If overwrite is True, overwrites existing fields, else skips
-      //## them. Refs to fields are copy()d using the supplied flags.
-      void merge (const DataRecord &other,bool overwrite=True,int flags=DMI::PRESERVE_RW); 
-
-      //##ModelId=3BFBF5B600EB
-      void add (const HIID &id, const NCRef &ref, int flags = DMI::XFER);
-      //##ModelId=3C5FF0D60106
-      void add (const HIID &id, NestableContainer *pnc, int flags = DMI::ANONWR);
-      
-    //##ModelId=400E4D6A0260
-      void add (const HIID &id, const NestableContainer *pnc, int flags = DMI::ANONRO)
-      { add(id,const_cast<NestableContainer*>(pnc),(flags&~DMI::WRITE)|DMI::READONLY); }
-      
     //##ModelId=400E4D6B00B9
       bool hasField (const HIID &id) const
       { return fields.find(id) != fields.end(); }
 
+      //##ModelId=3C57CFFF005E
+      ObjRef get (const HIID &id,bool ignore_fail=false) const;
+      
+      template<class T>
+      const T & as (const HIID &id,Type2Type<T> =Type2Type<T>()) const
+      {
+        Thread::Mutex::Lock lock(mutex());
+        const Field * pf = findField(id);
+        FailWhen(!pf,"field "+id.toString()+" not found");
+        return pf->ref.as<T>();
+      }
+      
+      template<class T>
+      T & as (const HIID &id,Type2Type<T> =Type2Type<T>()) 
+      {
+        Thread::Mutex::Lock lock(mutex());
+        Field * pf = findField(id);
+        FailWhen(!pf,"field "+id.toString()+" not found");
+        FailWhen(pf->protect,"field "+id.toString()+" is protected for writing");
+        return pf->ref.as<T>();
+      }
+      
+    //##ModelId=400E4D6903B8
+      //##Documentation
+      //## merges other record into this one (adds all its fields).
+      //## If overwrite is true, overwrites existing fields, else skips
+      //## them. Refs to fields are copy()d using the supplied flags.
+      void merge (const Record &other,bool overwrite=true,int flags=0); 
+      
+
+      //##Documentation
+      //## add(...) inserts a new field into container.
+      //## The DMI::REPLACE flag allows overwriting of existing fields
+      //## (default is to throw exception).
+      //## The DMI::PROTECT flag inserts a protected field: a protected
+      //## field cannot be modified or removed (this is useful for derived
+      //## classes that enforce a fixed record structure)
+      DMI_DeclareObjectAssigner(add,HIID);
+      
+      //##Documentation
+      //## insert(n,...): alias for add() w/o DMI::REPLACE
+      DMI_DeclareObjectAssigner(insert,HIID);
+      
+      //##Documentation
+      //## replace(n,...): alias for add() with DMI::REPLACE
+      DMI_DeclareObjectAssigner(replace,HIID);
+      
+      //##Documentation
+      //## marks a field as protected
+      void protectField   (const HIID &id,bool protect=true);
+      //##Documentation
+      //## marks a field as unprotected
+      void unprotectField (const HIID &id)
+      { protectField(id,false); }
+      
       //##ModelId=3BB311C903BE
       //##Documentation
       //## Removes data field from container and returns a ref to the removed
       //## field. Throws exception if no such field and ignore_fail=false
-      NCRef removeField (const HIID &id,bool ignore_fail=false);
-      
+      ObjRef removeField (const HIID &id,bool ignore_fail=false)
+      { return removeField(id,ignore_fail,HONOR_PROTECT); }
 
-      //##ModelId=3BFCD4BB036F
-      void replace (const HIID &id, const NCRef &ref, int flags = DMI::XFER);
-      //##ModelId=3C5FF10102CA
-      void replace (const HIID &id, NestableContainer *pnc, int flags = DMI::ANONWR);
-      
-    //##ModelId=400E4D6B02BF
-      void replace (const HIID &id, const NestableContainer *pnc, int flags = DMI::ANONRO)
-      { replace(id,const_cast<NestableContainer*>(pnc),(flags&~DMI::WRITE)|DMI::READONLY); }
-      
-      //##ModelId=3C57CFFF005E
-      NCRef field (const HIID &id) const;
-      
-      //##ModelId=3BFBF49D00A1
-      NCRef fieldWr (const HIID &id, int flags = DMI::PRESERVE_RW);
+      //##ModelId=3C7A16BB01D7
+      virtual int insert (const HIID &id,ContentInfo &info);
+
+      //##ModelId=3C877D140036
+      virtual int remove (const HIID &id);
+
+      //##ModelId=3C7A16C4023F
+      virtual int size (TypeId tid = 0) const;
 
       //##ModelId=3C58216302F9
       //##Documentation
@@ -129,107 +174,204 @@ class DataRecord : public NestableContainer
       //##ModelId=3C58218900EB
       //##Documentation
       //## Abstract method for cloning an object. Should return pointer to new
-      //## object. Flags: DMI::WRITE if writable clone is required, DMI::DEEP
-      //## for deep cloning (i.e. contents of object will be cloned as well).
-      virtual CountedRefTarget* clone (int flags = 0, int depth = 0) const;
-
-      //##ModelId=3C582189019F
-      //##Documentation
-      //## Virtual method for privatization of an object. If the object
-      //## contains other refs, they should be privatized by this method. The
-      //## DMI::DEEP flag should be passed on to child refs, for deep
-      //## privatization.
-      virtual void privatize (int flags = 0, int depth = 0);
+      //## object. Flags: DMI::DEEP for deep cloning (i.e. contents of object  
+      //## will be cloned as well).
+      virtual CountedRefTarget * clone (int flags = 0, int depth = 0) const;
 
       //##ModelId=3C58239503D1
-      void cloneOther (const DataRecord &other, int flags, int depth);
+      void cloneOther (const Record &other, int flags, int depth, bool constructing);
 
-      //##ModelId=3C7A16BB01D7
-      virtual int insert (const HIID &id,ContentInfo &info);
-
-      //##ModelId=3C877D140036
-      virtual int remove (const HIID &id);
-
-      //##ModelId=3C7A16C4023F
-      virtual int size (TypeId tid = 0) const;
-
-      //##ModelId=3CA20ACE00F8
-      DataRecord::Iterator initFieldIter () const;
-
-      //##ModelId=3CA20AD703A4
-      bool getFieldIter (DataRecord::Iterator& iter, HIID& id, NCRef &ref) const;
-
-    // Additional Public Declarations
-    //##ModelId=3DB9348401EB
-      DefineRefTypes(DataRecord,Ref);
-      
       // debug info method
     //##ModelId=3DB9348501B1
       string sdebug ( int detail = 1,const string &prefix = "",
                       const char *name = 0 ) const;
       
+    //##ModelId=3DB9343B029A
+      class ConstIterator : public FieldMap::const_iterator
+      {
+        private:
+          friend class Record;
+#ifdef USE_THREADS
+        //##ModelId=3DB934810398
+          Thread::Mutex::Lock lock;
+#endif
+          ConstIterator (const Record &record);       // construct begin-iter
+          ConstIterator (const Record &record,bool);  // constructs end-iter
+          
+          FieldMap::const_iterator::operator *;
+          FieldMap::const_iterator::operator ->;
+                    
+        public:
+          const HIID & id () const
+          { return (*this)->first; }
+            
+          bool isProtected () const
+          { return (*this)->second.protect; }
+        
+          const ObjRef & ref () const
+          { return (*this)->second.ref; }
+      };
+      
+    //##ModelId=3DB9343B029A
+      class Iterator : public FieldMap::iterator
+      {
+        private:
+          friend class Record;
+#ifdef USE_THREADS
+        //##ModelId=3DB934810398
+          Thread::Mutex::Lock lock;
+#endif
+          Iterator (Record &record);       // construct begin-iter
+          Iterator (Record &record,bool);  // constructs end-iter
+          
+          FieldMap::iterator::operator *;
+          FieldMap::iterator::operator ->;
+                    
+        public:
+          const HIID & id () const
+          { return (*this)->first; }
+            
+          bool isProtected () const
+          { return (*this)->second.protect; }
+        
+          const ObjRef & ref () const
+          { return (*this)->second.ref; }
+          
+          void protect (bool protect=true)
+          { (*this)->second.protect = protect; }
+
+          void unprotect (bool unprotect=true)
+          { protect(!unprotect); }
+      };
+      
+      friend class ConstIterator;
+      friend class Iterator;
+      typedef ConstIterator const_iterator;
+      typedef Iterator iterator;
+      
+      ConstIterator begin () const
+      { return ConstIterator(*this); }
+      
+      Iterator begin ()
+      { return Iterator(*this); }
+      
+      ConstIterator end () const
+      { return ConstIterator(*this,true); }
+      
+      Iterator end ()
+      { return Iterator(*this,true); }
+
+
   protected:
+      // implements an as<> operation that overrides protection
+      template<class T>
+      T & as1 (const HIID &id,Type2Type<T> =Type2Type<T>()) 
+      {
+        Thread::Mutex::Lock lock(mutex());
+        Field * pf = findField(id);
+        FailWhen(!pf,"field "+id.toString()+" not found");
+        return pf->ref.as<T>();
+      }
+      
+      // implements the add operation
+      Field & addField (const HIID &id, ObjRef &ref, int flags);
+  
+      Field & addField (const HIID &id, BObj *obj, int flags)
+      { ObjRef ref(obj,flags); return addField(id,ref,flags); }
+      
+      Field & addField (const HIID &id, const BObj *obj, int flags)
+      { ObjRef ref(obj,flags); return addField(id,ref,flags); }
+      
+      Field & addField (const HIID &id, const ObjRef &ref, int flags)
+      { ObjRef ref1(ref,flags); return addField(id,ref1,flags); }
+  
+      ObjRef removeField (const HIID &id,bool ignore_fail,int flags);
+      
+      Field * findField (const HIID &id)
+      {
+        FMI iter = fields.find(id);
+        return iter == fields.end() ? 0 : &(iter->second);
+      }
+      
+      const Field * findField (const HIID &id) const
+      {
+        CFMI iter = fields.find(id);
+        return iter == fields.end() ? 0 : &(iter->second);
+      }
+      
       //##ModelId=3C56B00E0182
       //##Documentation
       virtual int get (const HIID &id,ContentInfo &info,bool nonconst,int flags) const;
 
-
       //##ModelId=3C552E2D009D
       //##Documentation
-      //## Resolves HIID to a field. Sets can_write to True if field is writable. If
-      //## must_write is True, throws an exception if something along the way
+      //## Resolves HIID to a field. Sets can_write to true if field is writable. If
+      //## must_write is true, throws an exception if something along the way
       //## is not writable.
-      const NCRef & resolveField (const HIID &id,HIID &rest,bool &can_write, bool must_write = False) const;
+      const ObjRef & resolveField (const HIID &id,bool &can_write, bool must_write = false) const;
       
-      // protects all fields by making them read-only
-      void protectAllFields ();
-
-//  private:
-    // Data Members for Associations
-
       //##ModelId=3E9BD86202A0
-      map<HIID,NCRef> fields;
+      FieldMap fields;
 
     // Additional Implementation Declarations
     //##ModelId=3DB9343B02FE
-      typedef map<HIID,NCRef>::iterator FMI;
+      typedef FieldMap::iterator FMI;
     //##ModelId=3DB9343B03D1
-      typedef map<HIID,NCRef>::const_iterator CFMI;
+      typedef FieldMap::const_iterator CFMI;
     //##ModelId=3DB9343C00B1
-      typedef map<HIID,NCRef>::value_type FMV;
+      typedef FieldMap::value_type FMV;
       
     //##ModelId=3E9BD8620215
       typedef struct { int idsize; int ftype; } BlockFieldInfo;
 };
 
-DefineRefTypes(DataRecord,DataRecordRef);
-
-// Class DataRecord 
-
 
 //##ModelId=3C58248C0232
-inline TypeId DataRecord::objectType () const
+inline TypeId Record::objectType () const
 {
-  return TpDataRecord;
-}
-
-//##ModelId=3CA20ACE00F8
-inline DataRecord::Iterator DataRecord::initFieldIter () const
-{
-  
-  return Iterator(*this);
+  return TpDMIRecord;
 }
 
 //##ModelId=3DB9348103A0
-inline DataRecord::Iterator::Iterator (const DataRecord &rec)
+inline Record::ConstIterator::ConstIterator (const Record &rec)
+  : FieldMap::const_iterator(rec.fields.begin())
 #ifdef USE_THREADS
-    : lock(rec.mutex())
+    ,lock(rec.mutex())
 #endif
 {
-  iter = rec.fields.begin();
 }
 
+//##ModelId=3DB9348103A0
+inline Record::ConstIterator::ConstIterator (const Record &rec,bool)
+  : FieldMap::const_iterator(rec.fields.end())
+{
+}
 
+inline Record::Iterator::Iterator (Record &rec)
+  : FieldMap::iterator(rec.fields.begin())
+#ifdef USE_THREADS
+    ,lock(rec.mutex())
+#endif
+{}
+
+inline Record::Iterator::Iterator (Record &rec,bool)
+  : FieldMap::iterator(rec.fields.end())
+#ifdef USE_THREADS
+    ,lock(rec.mutex())
+#endif
+{}
+
+inline void Record::add (const HIID &id,ObjRef &ref,int flags)
+{ addField(id,ref,flags|HONOR_PROTECT); };
+
+inline void Record::insert (const HIID &id,ObjRef &ref,int flags)
+{ addField(id,ref,(flags&~DMI::REPLACE)|HONOR_PROTECT); };
+
+inline void Record::replace (const HIID &id,ObjRef &ref,int flags)
+{ addField(id,ref,flags|DMI::REPLACE|HONOR_PROTECT); };
+
+
+};
 #endif
 
 

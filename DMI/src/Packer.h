@@ -1,15 +1,13 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+#ifndef DMI_Packer_h
+#define DMI_Packer_h 1
 
-#ifndef Packer_h
-#define Packer_h 1
-
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-
-#include "DMI/TypeId.h"
-#include "DMI/TypeIterMacros.h"
+#include <DMI/DMI.h>
+#include <DMI/TypeId.h>
+#include <DMI/TypeIterMacros.h>
 #include <set>
 
+namespace DMI
+{
 
 //##ModelId=3CA2EF59021E
 //##Documentation
@@ -21,6 +19,8 @@
 template <class T>
 class Packer 
 {
+  ImportDebugContext(DebugDMI);
+  
   public:
 
       //##ModelId=3CA2F01D003F
@@ -60,6 +60,7 @@ class Packer
 template <class Seq, class ElemPacker = Packer<typename Seq::value_type> >
 class SeqPacker 
 {
+  ImportDebugContext(DebugDMI);
   public:
 
       //##ModelId=3CA2F2A9034A
@@ -95,6 +96,7 @@ class SeqPacker
 template <class Map, class KeyPacker = Packer<typename Map::key_type> , class ValuePacker = Packer<typename Map::value_type> >
 class MapPacker 
 {
+  ImportDebugContext(DebugDMI);
   public:
 
       //##ModelId=3CA2F995021C
@@ -135,6 +137,7 @@ class MapPacker
 template <class T, class ElemPacker = Packer<T> >
 class ArrayPacker 
 {
+  ImportDebugContext(DebugDMI);
   public:
 
       //##ModelId=3CAB35D20234
@@ -160,6 +163,7 @@ class ArrayPacker
 template <class T, int num = 1>
 class BinArrayPacker 
 {
+  ImportDebugContext(DebugDMI);
   public:
 
       //##ModelId=3DB9344602C0
@@ -202,6 +206,7 @@ class BinArrayPacker
 template <class T>
 class BinPacker 
 {
+  ImportDebugContext(DebugDMI);
   public:
 
       //##ModelId=3DB9344602F2
@@ -674,5 +679,5 @@ template<class Key,class Val>
 class Packer<map<Key,Val> > : public MapPacker<map<Key,Val> > 
 {};
 
-
+};
 #endif

@@ -1,14 +1,18 @@
-#ifndef _BOIO_h
-#define _BOIO_h 1
+#ifndef DMI_BOIO_h
+#define DMI_BOIO_h 1
     
-#include <DMI/BlockableObject.h>
+#include <DMI/BObj.h>
 #include <DMI/TypeInfo.h>
+    
+namespace DMI
+{
   
-// BOIO - BlockableObject I/O class
+// BOIO - DMI::BObj I/O class
 // Stores a BO to/from a data file  
 //##ModelId=3DB949AE0042
 class BOIO
 {
+  ImportDebugContext(DebugDMI);
   public:
     //##ModelId=3DB949AE0048
       typedef enum { 
@@ -40,7 +44,7 @@ class BOIO
       template<class T>
       bool read (CountedRef<T> &ref);
 
-      // Stream form of the read operation. Returns True if an object
+      // Stream form of the read operation. Returns true if an object
       // was read
     //##ModelId=3DB949AE0260
       template<class T>
@@ -54,7 +58,7 @@ class BOIO
       // writes object to file.
       // Returns number of bytes actually written
     //##ModelId=3DB949AE0266
-      size_t write (const BlockableObject &obj);
+      size_t write (const DMI::BObj &obj);
       
       // Stream form of the write operation
     //##ModelId=3DB949AE026A
@@ -62,7 +66,7 @@ class BOIO
       { write(ref.deref()); return *this; } 
       
     //##ModelId=3DB949AE026F
-      BOIO & operator << (const BlockableObject &obj)
+      BOIO & operator << (const DMI::BObj &obj)
       { write(obj); return *this; } 
       
     //##ModelId=3E53C7990224
@@ -106,7 +110,7 @@ inline const string & BOIO::fileName () const
 }
 
 template<>
-inline bool BOIO::read (CountedRef<BlockableObject> &ref)
+inline bool BOIO::read (CountedRef<DMI::BObj> &ref)
 { return readAny(ref) != 0; }
 
 template<class T>
@@ -118,7 +122,8 @@ inline bool BOIO::read (CountedRef<T> &ref)
   FailWhen( tid != DMITypeTraits<T>::typeId,
       "expecting object of type "+typeIdOf(T).toString()+
       ", boio file contains "+tid.toString());
-  return readAny(ref.ref_cast((BlockableObject*)0)) != 0;
+  return readAny(ref.ref_cast((DMI::BObj*)0)) != 0;
 }
-      
+
+};      
 #endif

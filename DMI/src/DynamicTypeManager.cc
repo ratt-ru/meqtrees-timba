@@ -1,19 +1,22 @@
 #include "DynamicTypeManager.h"
 
+namespace DMI
+{    
+    
 DefineRegistry(DynamicTypeManager,0);
 
 
 //##ModelId=3BE96C5F03A7
-BlockableObject * DynamicTypeManager::construct (TypeId tid, BlockSet& bset, int n)
+BObj * DynamicTypeManager::construct (TypeId tid, BlockSet& bset, int n)
 {
-  BlockableObject *obj = construct(tid,n);
+  BObj *obj = construct(tid,n);
   for( int i=0; i<(n?n:1); i++ )
     obj[i].fromBlock(bset);
   return obj;
 }
 
 //##ModelId=3BE96C7402D5
-BlockableObject * DynamicTypeManager::construct (TypeId tid, int n)
+BObj * DynamicTypeManager::construct (TypeId tid, int n)
 {
   cdebug1(2)<<"DynTypeMgr: constructing "<<tid.toString();
   if( n ) 
@@ -21,7 +24,7 @@ BlockableObject * DynamicTypeManager::construct (TypeId tid, int n)
   cdebug1(2)<<": ";
   PtrConstructor ptr = registry.find(tid);
   FailWhen( !ptr,"Unregistered type "+tid.toString() );
-  BlockableObject *obj = (*ptr)(n);
+  BObj *obj = (*ptr)(n);
   dprintf1(2)(" @%p\n",obj);
   return obj;
 }
@@ -33,3 +36,4 @@ bool DynamicTypeManager::isRegistered (TypeId tid)
 }
 
 
+};

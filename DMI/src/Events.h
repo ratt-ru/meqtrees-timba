@@ -24,7 +24,10 @@
 #define DMI_EVENTS_H 1
 
 #include <DMI/HIID.h>
-#include <DMI/BlockableObject.h>
+#include <DMI/BObj.h>
+
+namespace DMI
+{
 
 class EventIdentifier
 {
@@ -34,7 +37,7 @@ class EventIdentifier
     void * ptr_;
     
   public:
-      EventIdentifier (const HIID &id1,const ObjRef::Xfer &ref1,void *ptr1=0)
+      EventIdentifier (const HIID &id1,const ObjRef &ref1,void *ptr1=0)
       : id_(id1),
         ref_(ref1,DMI::LOCK),
         ptr_(ptr1) 
@@ -46,7 +49,7 @@ class EventIdentifier
       
       EventIdentifier (const EventIdentifier &other)
       : id_(other.id_),
-        ref_(other.ref_,DMI::COPYREF|DMI::PRESERVE_RW|DMI::LOCK),
+        ref_(other.ref_,DMI::LOCK),
         ptr_(other.ptr_) 
       { 
         ref_.lock(); 
@@ -57,7 +60,7 @@ class EventIdentifier
         if( this != &other )
         {
           id_ = other.id_;
-          ref_.unlock().copy(other.ref_,DMI::PRESERVE_RW).lock();
+          ref_.unlock().copy(other.ref_).lock();
           ptr_ = other.ptr_;
         }
         return *this;
@@ -120,5 +123,6 @@ class EventSlot
     { return ! (*this).operator == (other); }
     
 };
-    
+
+};    
 #endif

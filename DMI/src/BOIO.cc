@@ -1,6 +1,9 @@
 #include <stdio.h>
-#include "DMI/BOIO.h"
-#include "DMI/DynamicTypeManager.h"
+#include "BOIO.h"
+#include "DynamicTypeManager.h"
+
+namespace DMI
+{    
     
 //##ModelId=3DB949AE024E
 BOIO::BOIO ()
@@ -31,16 +34,16 @@ int BOIO::open (const string &filename,int mode)
   const char *mstr;
   switch( mode )
   {
-    case READ:    mstr = "rb"; break;
-    case WRITE:   mstr = "wb"; break;
-    case APPEND:  mstr = "ab"; break;
+    case BOIO::READ:    mstr = "rb"; break;
+    case BOIO::WRITE:   mstr = "wb"; break;
+    case BOIO::APPEND:  mstr = "ab"; break;
     default:      Throw("open(): invalid mode");
   }
   fp = fopen(filename.c_str(),mstr);
   FailWhen( !fp,"error opening file "+filename );
   fname = filename;
   fmode = mode;
-  have_header = False;
+  have_header = false;
   return 1;
 }
 
@@ -67,7 +70,7 @@ TypeId BOIO::readAny (ObjRef &ref)
   TypeId tid = nextType();
   if( !tid )
     return 0;
-  have_header = False;
+  have_header = false;
   // read array of block sizes
   size_t sizes[header.nblocks];
   if( feof(fp)  || fread(&sizes,sizeof(sizes),1,fp) != 1 )
@@ -82,7 +85,7 @@ TypeId BOIO::readAny (ObjRef &ref)
       return 0;
   }
   // create object
-  BlockableObject *obj = DynamicTypeManager::construct(tid,set);
+  DMI::BObj *obj = DynamicTypeManager::construct(tid,set);
   FailWhen(!obj,"failed to construct "+tid.toString() );
   ref <<= obj;
   return tid;
@@ -97,7 +100,7 @@ TypeId BOIO::nextType ()
   if( have_header )
     return header.tid;
   //  else, read it in
-  have_header = True;
+  have_header = true;
   if( feof(fp) || fread(&header,sizeof(header),1,fp) != 1 )
     header.tid = 0;
   return header.tid;
@@ -106,7 +109,7 @@ TypeId BOIO::nextType ()
 // writes object to file
 // Returns number of bytes actually written
 //##ModelId=3DB949AE0266
-size_t BOIO::write (const BlockableObject &obj)
+size_t BOIO::write (const DMI::BObj &obj)
 {
   FailWhen(fmode!=WRITE && fmode!=APPEND,"not open for writing");
   // convert object to blockset
@@ -148,3 +151,5 @@ string BOIO::stateString () const
   }
   return out;
 }
+
+};

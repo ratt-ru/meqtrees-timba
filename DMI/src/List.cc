@@ -1,4 +1,4 @@
-//#  DataList.cc: list of containers
+//#  DMI::List.cc: list of containers
 //#
 //#  Copyright (C) 2002-2004
 //#  ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -23,134 +23,105 @@
 #define NC_SKIP_HOOKS 1
     
 #include "DynamicTypeManager.h"
-#include "DataList.h"
-#include "DataField.h"
+#include "List.h"
+#include "Vec.h"
 
-    // register as a nestable container
-static NestableContainer::Register reg(TpDataList,True);
-typedef NestableContainer::Ref NCRef;
+// register as a nestable container
+static DMI::Container::Register reg(TpDMIList,true);
 
-DataList::DataList (int)
-  : NestableContainer()
+DMI::List::List ()
+  : DMI::Container()
 {
   dprintf(2)("default constructor\n");
 }
 
-DataList::DataList (const DataList &other, int flags, int depth)
-  : NestableContainer()
+DMI::List::List (const List &other, int flags, int depth)
+  : DMI::Container()
 {
   dprintf(2)("copy constructor, cloning from %s\n",other.debug(1));
-  cloneOther(other,flags,depth);
+  cloneOther(other,flags,depth,true);
 }
 
-DataList::~DataList()
+DMI::List::~List()
 {
   dprintf(2)("destructor\n");
 }
 
-DataList & DataList::operator=(const DataList &right)
+DMI::List & DMI::List::operator = (const List &right)
 {
   if( &right != this )
   {
     dprintf(2)("assignment op, cloning from %s\n",right.debug(1));
-    cloneOther(right,DMI::PRESERVE_RW,0);
+    cloneOther(right,0,0,false);
   }
   return *this;
 }
 
-const NCRef & DataList::applyIndexConst (int n) const
+DMI::List::ItemList::const_iterator DMI::List::applyIndexConst (int n) const
 {
-  FailWhen(items.empty(),"index out of range");
   if( n<0 )
   {
     ItemList::const_reverse_iterator riter = items.rbegin();
-    for( ;n<0; n++,riter++ )
-      { FailWhen( riter == items.rend(),"index out of range"); }
-    return *riter;
-  }
-  else 
-  {
-    ItemList::const_iterator iter = items.begin();
-    for( ;n>0; n--,iter++ )
-      { FailWhen( iter == items.end(),"index out of range"); }
-    FailWhen( iter == items.end(),"index out of range");
-    return *iter;
-  }
-}
-
-DataList::ItemList::iterator DataList::applyIndexIter (int n)
-{
-  if( n<0 )
-  {
-    ItemList::reverse_iterator riter = items.rbegin();
-    for( ;n<0; n++,riter++ )
-      { FailWhen( riter == items.rend(),"index out of range"); }
+    n++;
+    while( n<0 && riter != items.rend() )
+      ++n,++riter;
+    FailWhen(n,"index out of range"); 
     return riter.base();
   }
   else 
   {
-    ItemList::iterator iter = items.begin();
-    for( ;n>0; n--,iter++ )
-      { FailWhen( iter == items.end(),"index out of range"); }
+    ItemList::const_iterator iter = items.begin();
+    while( n>0 )
+    {
+      n--;
+      iter++;
+      FailWhen(iter == items.end(),"index out of range"); 
+    }
     return iter;
   }
 }
 
-void DataList::replace (int n, const NCRef &ref, int flags)
+DMI::List::ItemList::iterator DMI::List::applyIndex (int n,bool inserting) 
+{
+  ItemList::iterator iter;
+  if( n<0 )
+  {
+    ItemList::reverse_iterator riter = items.rbegin();
+    n++;
+    while( n<0 && riter != items.rend() )
+      ++n,++riter;
+    FailWhen(n,"index out of range"); 
+    iter = riter.base();
+    if( inserting )
+      ++iter;
+  }
+  else 
+  {
+    iter = items.begin();
+    while( n>0 && iter != items.end() )
+      --n,++iter;
+    FailWhen(n || (!inserting && iter == items.end()),"index out of range"); 
+  }
+  return iter;
+}
+
+void DMI::List::put (int n,ObjRef &ref,int flags)
 {
   Thread::Mutex::Lock _nclock(mutex());
-  dprintf(2)("replace(%d,[%s],%x)\n",n,ref->debug(1),flags);
-  if( flags&DMI::COPYREF )
-    applyIndex(n).unlock().copy(ref,flags).lock();
+  bool replace = flags&DMI::REPLACE;
+  ItemList::iterator iter = applyIndex(n,!replace);
+  if( replace )
+  {
+    if( flags&DMI::XFER )
+      iter->unlock().xfer(ref,flags).lock();
+    else
+      iter->unlock().copy(ref,flags).lock();
+  }
   else
-    applyIndex(n).unlock().xfer(ref).lock();
+    items.insert(iter,flags&DMI::XFER ? ref.xfer(flags) : ref.copy(flags) );
 }
 
-void DataList::replace (int n, NestableContainer *pnc, int flags)
-{
-  Thread::Mutex::Lock _nclock(mutex());
-  dprintf(2)("replace(%d,[%s],%x)\n",n,pnc->debug(1),flags);
-  applyIndex(n).unlock().attach(pnc,flags).lock();
-}
-
-void DataList::addFront (const NCRef &ref, int flags)
-{
-  Thread::Mutex::Lock _nclock(mutex());
-  dprintf(2)("addFront([%s],%x)\n",ref->debug(1),flags);
-  // insert into map
-  if( flags&DMI::COPYREF )
-    items.push_front(ref.copy(flags));
-  else
-    items.push_front(ref);
-}
-
-void DataList::addFront (NestableContainer *pnc, int flags)
-{
-  Thread::Mutex::Lock _nclock(mutex());
-  dprintf(2)("addFront([%s],%x)\n",pnc->debug(1),flags);
-  items.push_front(NCRef(pnc,flags));
-}
-
-void DataList::addBack (const NCRef &ref, int flags)
-{
-  Thread::Mutex::Lock _nclock(mutex());
-  dprintf(2)("addBack([%s],%x)\n",ref->debug(1),flags);
-  // insert into map
-  if( flags&DMI::COPYREF )
-    items.push_back(ref.copy(flags));
-  else
-    items.push_back(ref);
-}
-
-void DataList::addBack (NestableContainer *pnc, int flags)
-{
-  Thread::Mutex::Lock _nclock(mutex());
-  dprintf(2)("addBack([%s],%x)\n",pnc->debug(1),flags);
-  items.push_back(NCRef(pnc,flags));
-}
-
-
-void DataList::append (const DataList &other,int flags)
+void DMI::List::append (const List &other,int flags)
 {
   Thread::Mutex::Lock _nclock(mutex());
   Thread::Mutex::Lock _nclock2(other.mutex());
@@ -158,39 +129,24 @@ void DataList::append (const DataList &other,int flags)
     items.push_back(iter->copy(flags));
 }
 
-void DataList::append (DataList &other,int flags)
-{
-  Thread::Mutex::Lock _nclock(mutex());
-  Thread::Mutex::Lock _nclock2(other.mutex());
-  for( ItemList::iterator iter = other.items.begin(); iter != other.items.end(); iter++ )
-    items.push_back(iter->copy(flags));
-}
-
-NCRef DataList::remove (int n)
+DMI::ObjRef DMI::List::remove (int n)
 {
   Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("remove(%d)\n",n);
-  ItemList::iterator iter = applyIndexIter(n);
-  FailWhen(iter == items.end(),"index out of range");
-  NCRef ref(iter->unlock());
+  ItemList::iterator iter = applyIndex(n,false);
+  ObjRef ref(iter->unlock());
   dprintf(2)("  removing %s\n",ref->debug(1));
   items.erase(iter);
   return ref;
 }
 
-NCRef DataList::getItem (int n) const
+DMI::ObjRef DMI::List::get (int n) const
 {
   Thread::Mutex::Lock _nclock(mutex());
-  return applyIndexConst(n).copy(DMI::READONLY);
+  return *applyIndexConst(n);
 }
 
-NCRef DataList::getItemWr (int n, int flags)
-{
-  Thread::Mutex::Lock _nclock(mutex());
-  return applyIndex(n).copy(flags);
-}
-
-int DataList::fromBlock (BlockSet& set)
+int DMI::List::fromBlock (BlockSet& set)
 {
   Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("fromBlock(%s)\n",set.debug(2));
@@ -209,12 +165,12 @@ int DataList::fromBlock (BlockSet& set)
   // get fields one by one
   for( int i=0; i<nfields; i++ )
   {
-    NCRef ref;
+    ObjRef ref;
     int ftype = *hdata++;
     if( ftype )
     {
       // create field container object
-      NestableContainer *field = dynamic_cast<NestableContainer *>
+      DMI::Container *field = dynamic_cast<DMI::Container *>
           ( DynamicTypeManager::construct(ftype) );
       FailWhen( !field,"cast failed: perhaps field is not a container?" );
       ref <<= field;
@@ -230,11 +186,11 @@ int DataList::fromBlock (BlockSet& set)
     items.push_back(ref);
   }
   dprintf(2)("fromBlock: %d total blocks used\n",nref);
-  validateContent();
+  validateContent(true);
   return nref;
 }
 
-int DataList::toBlock (BlockSet &set) const
+int DMI::List::toBlock (BlockSet &set) const
 {
   Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("toBlock\n");
@@ -274,35 +230,13 @@ int DataList::toBlock (BlockSet &set) const
   return nref;
 }
 
-CountedRefTarget* DataList::clone (int flags, int depth) const
+DMI::CountedRefTarget* DMI::List::clone (int flags, int depth) const
 {
-  dprintf(2)("cloning new DataList\n");
-  return new DataList(*this,flags,depth);
+  dprintf(2)("cloning new DMI::List\n");
+  return new DMI::List(*this,flags,depth);
 }
 
-void DataList::privatize (int flags, int depth)
-{
-  Thread::Mutex::Lock _nclock(mutex());
-  dprintf(2)("privatizing DataList\n");
-  if( flags&DMI::DEEP || depth>0 )
-  {
-    ItemList::iterator iter = items.begin();
-    for( ; iter != items.end(); iter++ )
-      if( iter->valid() )
-      {
-        dprintf(4)("  privatizing a %s\n",(*iter)->objectType().toString().c_str());
-        iter->privatize(flags|DMI::LOCK,depth-1);
-      }
-      else
-      {
-        dprintf(4)("  skipping empty item");
-      }
-    // since things may have changed around, revalidate content
-    validateContent();
-  }
-}
-
-void DataList::cloneOther (const DataList &other, int flags, int depth)
+void DMI::List::cloneOther (const DMI::List &other,int flags,int depth,bool constructing)
 {
   Thread::Mutex::Lock _nclock(mutex());
   Thread::Mutex::Lock _nclock1(other.mutex());
@@ -314,69 +248,65 @@ void DataList::cloneOther (const DataList &other, int flags, int depth)
   ItemList::const_iterator iter = other.items.begin();
   for( ; iter != other.items.end(); iter++ )
   {
-    items.push_back(NCRef());
-    items.back().copy(*iter,(flags&~DMI::WRITE)|DMI::PRESERVE_RW|DMI::LOCK);
-    if( flags&DMI::DEEP || depth>0 )
-      items.back().privatize(flags|DMI::LOCK,depth-1);
+    items.push_back(ObjRef());
+    items.back().copy(*iter,flags,depth).lock();
   }
-  validateContent();
+  validateContent(!constructing);
 }
 
-int DataList::get (const HIID &id,ContentInfo &info, 
+int DMI::List::get (const HIID &id,ContentInfo &info, 
                    bool nonconst,int flags) const
 {
   Thread::Mutex::Lock _nclock(mutex());
   FailWhen(id.empty(),"null index");
   FailWhen(id.size()>1,"invalid index");
+  Assert1(nonconst || !(flags&DMI::WRITE));
   AtomicID index = id.front();
   int n = index;
   // insert allowed @end of list, return 0 if @end
   if( n == numItems() )
     return 0;
   // else resolve n to a valid item
-  const NCRef &ref = applyIndexConst(n);
-  bool no_write = flags&DMI::WRITE && !nonconst;
-  // return const violation if not writable; the exception is when access to
-  // object is requested and ref is writable
-  if( no_write && !(flags&DMI::NC_DEREFERENCE && ref.isWritable()) )
-    return -1;
+  ObjRef &ref = const_cast<ObjRef&>(*applyIndexConst(n));
+  if( flags&WRITE )
+    ref.dewr();  // causes copy-on-write as needed
   info.ptr = &ref;
   info.writable = nonconst;
-  info.tid = TpObjRef;
+  info.tid = TpDMIObjRef;
   info.obj_tid = ref.valid() ? ref->objectType() : NullType;
   info.size = 1;
   return 1;
 }
 
-int DataList::insert (const HIID &id,ContentInfo &info)
+int DMI::List::insert (const HIID &id,ContentInfo &info)
 {
   Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("insert(%s)\n",id.toString().c_str());
   FailWhen(id.empty(),"null index");
   FailWhen(id.size()>1,"invalid index");
-  ItemList::iterator iter = applyIndexIter(id[0]);
+  ItemList::iterator iter = applyIndex(id[0],true);
   TypeId tid = info.obj_tid;
-  iter = items.insert(iter,NCRef());
-  // Containers are inserted directly
-  if( isNestable(tid) )
+  iter = items.insert(iter,ObjRef());
+  // Objects are inserted directly
+  if( info.tid == TpDMIObjRef )
   {
     info.ptr = &(*iter);
-    info.tid = TpObjRef;
-    info.writable = True;
+    info.tid = TpDMIObjRef;
+    info.writable = true;
     info.size = 1;
     return 1;
   }
-  // everything else is inserted as a scalar DataField
+  // everything else is inserted as a scalar DMI::Vec
   else
   {
-    NestableContainer *pf = new DataField(tid,-1); // -1 means scalar
-    iter->attach(pf,DMI::ANONWR|DMI::LOCK);
+    Container *pf = new DMI::Vec(tid,-1); // -1 means scalar
+    iter->attach(pf).lock();
     // do a get() on the field to obtain info
-    return pf->get(0,info,DMI::NC_ASSIGN|DMI::WRITE);
+    return pf->get(0,info,DMI::ASSIGN|DMI::WRITE);
   }
 }
 
-int DataList::remove (const HIID &id)
+int DMI::List::remove (const HIID &id)
 {
   Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("remove(%s)\n",id.toString().c_str());
@@ -387,20 +317,20 @@ int DataList::remove (const HIID &id)
   return 1;
 }
 
-int DataList::size (TypeId tid) const
+int DMI::List::size (TypeId tid) const
 {
-  if( !tid || tid == TpObjRef )
+  if( !tid || tid == TpDMIObjRef )
     return items.size();
   return -1;
 }
 
-string DataList::sdebug ( int detail,const string &prefix,const char *name ) const
+string DMI::List::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   static int nesting=0;
   Thread::Mutex::Lock _nclock(mutex());
   if( nesting++>1000 )
   {
-    cerr<<"Too many nested DataList::sdebug() calls";
+    cerr<<"Too many nested DMI::List::sdebug() calls";
     abort();
   }
   string out;

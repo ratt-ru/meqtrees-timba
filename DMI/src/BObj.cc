@@ -1,4 +1,4 @@
-//  BlockableObject.cc: abstract prototype for blockable objects
+//  DMI::BObj.cc: abstract prototype for blockable objects
 //
 //  Copyright (C) 2002
 //  ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -21,11 +21,11 @@
 //  $Id$
 
 #include "DynamicTypeManager.h"
-#include "BlockableObject.h"
+#include "BObj.h"
 
 
 //##ModelId=3BFE5FE103C5
-CountedRefTarget * BlockableObject::clone (int flags, int depth) const
+DMI::CountedRefTarget * DMI::BObj::clone (int flags, int depth) const
 {
   BlockSet bset;
   toBlock(bset);
@@ -34,18 +34,8 @@ CountedRefTarget * BlockableObject::clone (int flags, int depth) const
   return DynamicTypeManager::construct(objectType(),bset);
 }
 
-//##ModelId=3CAB088100C3
-void BlockableObject::privatize (int flags, int depth)
-{
-  BlockSet bset;
-  toBlock(bset);
-  if( flags&DMI::DEEP || depth>0 )
-    bset.privatizeAll(flags);
-  fromBlock(bset);
-}
-
 //##ModelId=3E9BD915025A
-void BlockableObject::print (std::ostream &str) const
+void DMI::BObj::print (std::ostream &str) const
 {
   str << objectType(); 
 }

@@ -1,8 +1,8 @@
 #include <DMI/AID-DMI.h>
 #include <DMI/TID-DMI.h>
-#include <DMI/DataRecord.h>
-#include <DMI/DataArray.h>
-#include <DMI/NCIter.h>
+#include <DMI/Record.h>
+#include <DMI/NumArray.h>
+#include <DMI/ContainerIter.h>
 #include <Common/Stopwatch.h>
 //#include <casa/Arrays/Matrix.h>
 //#include <casa/Arrays/ArrayMath.h>
@@ -10,6 +10,8 @@
 #define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
 
 using namespace LOFAR;
+using namespace DMI;
+using namespace DebugDefault;
     
 int main ( int argc,const char *argv[] )
 {
@@ -68,20 +70,20 @@ int main ( int argc,const char *argv[] )
     watch.setNameWidth(10);
     
 //    cout<<"=== Initializing container\n";
-    DataRecord rec;
+    DMI::Record rec;
     ndone = 0;
     for( nloops=0; !watch.fired(); nloops++ )
     {
-      rec = DataRecord();
+      rec = DMI::Record();
       for( char f1='A'; f1<='Z'; f1++ )
       {
-        rec[string(1,f1)] <<= new DataRecord;
+        rec[string(1,f1)] <<= new DMI::Record;
         for( char f2='A'; f2<='Z'; f2++ )
         {
-          rec[string(1,f1)][string(1,f2)] <<= new DataRecord;
+          rec[string(1,f1)][string(1,f2)] <<= new DMI::Record;
           for( char f3='A'; f3<='Z'; f3++ )
           {
-//            rec[string(1,f1)][string(1,f2)][string(1,f3)] <<= new DataArray(Tpdouble,IPosition(2,30,30));
+//            rec[string(1,f1)][string(1,f2)][string(1,f3)] <<= new DMI::NumArray(Tpdouble,IPosition(2,30,30));
             rec[string(1,f1)][string(1,f2)][string(1,f3)] = 0;
             ndone++;
           }
@@ -129,7 +131,7 @@ int main ( int argc,const char *argv[] )
     }
     cout<<watch.dump("R3RFIX",nloops)<<endl;
 
-    DataRecord &rec1 = rec["A/B"].as_wr<DataRecord>();
+    DMI::Record &rec1 = rec["A/B"].as_wr<DMI::Record>();
     ndone = 0;
     watch.reset();
     for( nloops=0; !watch.fired(); nloops+=1000 )
@@ -166,7 +168,7 @@ int main ( int argc,const char *argv[] )
     cout<<watch.dump("R1RFIX",nloops)<<endl;
 
     int size = 1000;
-    DataArray arr(Tpdouble,makeLoShape(size,size),DMI::ZERO|DMI::WRITE);
+    DMI::NumArray arr(Tpdouble,makeLoShape(size,size),DMI::ZERO|DMI::WRITE);
     ndone = size*size;
     LoMat_double mat = arr[HIID()].as<LoMat_double>();
       
@@ -201,7 +203,7 @@ int main ( int argc,const char *argv[] )
     ndone = size*size;
     watch.reset();
     double *tmp = arr(10,10).as_wp<double>();
-    NCConstIter_double iter(arr[HIID()]);
+    ConstContainerIter<double> iter(arr[HIID()]);
     for( nloops=0; !watch.fired(); nloops+=10 )
     {
       for( int count=0; count<10; count++ )
@@ -215,7 +217,7 @@ int main ( int argc,const char *argv[] )
     cout<<watch.dump("ADSI1M",ndone*nloops)<<endl;
     cerr<<dum<<endl;
 
-    int sz1 = min(size,1000);    
+    int sz1 = std::min(size,1000);    
     ndone = sz1*sz1;
     watch.reset();
     for( int i=0; i<sz1; i++ )
@@ -226,7 +228,7 @@ int main ( int argc,const char *argv[] )
     cout<<watch.dump("ADSH1M",ndone)<<endl;
     cerr<<dum<<endl;
         
-    DataArray arr2(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO),
+    DMI::NumArray arr2(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO),
               arr3(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
     
     {
@@ -271,9 +273,9 @@ int main ( int argc,const char *argv[] )
       ndone = size*size;
       watch.reset();
       double *tmp = arr(10,10).as_wp<double>();
-      NCConstIter_double iter(arr[HIID()]);
-      NCConstIter_double iter2(arr2[HIID()]);
-      NCIter_double iter3(arr3[HIID()]);
+      ConstContainerIter<double> iter(arr[HIID()]);
+      ConstContainerIter<double> iter2(arr2[HIID()]);
+      ContainerIter<double> iter3(arr3[HIID()]);
       for( nloops=0; !watch.fired(); nloops+=10 )
         for( int count=0; count<10; count++ )
         {
@@ -287,7 +289,7 @@ int main ( int argc,const char *argv[] )
     }
     
     {
-      int sz1 = min(size,1000);    
+      int sz1 = std::min(size,1000);    
       ndone = sz1*sz1;
       watch.reset();
       for( int i=0; i<sz1; i++ )
@@ -301,15 +303,15 @@ int main ( int argc,const char *argv[] )
   
     {  
       size = 5000;
-      DataArray arr(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
-      DataArray arr2(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
+      DMI::NumArray arr(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
+      DMI::NumArray arr2(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
       
       {
       watch.reset();
-      DataArray arr3(Tpdouble,makeLoShape(size,size),DMI::WRITE);
-      NCConstIter_double iter(arr[HIID()]);
-      NCConstIter_double iter2(arr2[HIID()]);
-      NCIter_double iter3(arr3[HIID()]);
+      DMI::NumArray arr3(Tpdouble,makeLoShape(size,size),DMI::WRITE);
+      ConstContainerIter<double> iter(arr[HIID()]);
+      ConstContainerIter<double> iter2(arr2[HIID()]);
+      ContainerIter<double> iter3(arr3[HIID()]);
       while( !iter.end() )
       { 
         iter3.next( iter2.next()+iter.next() ); 

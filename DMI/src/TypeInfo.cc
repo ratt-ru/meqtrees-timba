@@ -1,6 +1,9 @@
-#include "DMI/TypeInfo.h"
-#include "DMI/TypeIterMacros.h"
+#include "TypeInfo.h"
+#include "TypeIterMacros.h"
 
+namespace DMI
+{
+    
 static AtomicID::Register reg1(TpNumeric,"Numeric"),
     reg2(TpIncomplete,"Incomplete"),
     reg3(TpObject,"Object");
@@ -23,38 +26,38 @@ template<class From,class To>
 bool _convertScaSca (const void * from,void * to)
 { 
   *static_cast<To*>(to) = To(*static_cast<const From *>(from)); 
-  return True;
+  return true;
 }
 //    special case for complex-to-non-complex: use real part
 template<class From,class To> 
 bool _convertComplexScaSca (const void * from,void * to)
 { 
   *static_cast<To*>(to) = To(static_cast<const From *>(from)->real()); 
-  return True;
+  return true;
 }
 template<> 
 bool _convertComplexScaSca<dcomplex,dcomplex> (const void * from,void * to)
 { 
   memcpy(to,from,sizeof(dcomplex));
-  return True;
+  return true;
 }
 template<> 
 bool _convertComplexScaSca<fcomplex,fcomplex> (const void * from,void * to)
 { 
   memcpy(to,from,sizeof(fcomplex));
-  return True;
+  return true;
 }
 template<> 
 bool _convertComplexScaSca<dcomplex,fcomplex> (const void * from,void * to)
 { 
   *static_cast<fcomplex*>(to) = *static_cast<const dcomplex *>(from); 
-  return True;
+  return true;
 }
 template<> 
 bool _convertComplexScaSca<fcomplex,dcomplex> (const void * from,void * to)
 { 
   *static_cast<dcomplex*>(to) = *static_cast<const fcomplex *>(from); 
-  return True;
+  return true;
 }
 
 //--- convert scalar to single-element vector
@@ -63,10 +66,10 @@ bool _convertScaVec (const void * from,void * to)
 { 
   blitz::Array<To,1> &arr = *static_cast<blitz::Array<To,1>*>(to);
   if( arr.numElements() != 1 )
-    return False;
+    return false;
   return _convertScaSca<From,To>(from,arr.data());
 //  *(arr.data()) = To(*static_cast<const From *>(from)); 
-//  return True;
+//  return true;
 }
 //    special case for complex: use real part
 template<class From,class To> 
@@ -74,10 +77,10 @@ bool _convertComplexScaVec (const void * from,void * to)
 { 
   blitz::Array<To,1> &arr = *static_cast<blitz::Array<To,1>*>(to);
   if( arr.numElements() != 1 )
-    return False;
+    return false;
   return _convertComplexScaSca<From,To>(from,arr.data());
 //  *(arr.data()) = To(static_cast<const From *>(from)->real()); 
-//  return True;
+//  return true;
 }
 //--- convert single-element vector to scalar
 template<class From,class To> 
@@ -85,10 +88,10 @@ bool _convertVecSca (const void * from,void * to)
 { 
   const blitz::Array<From,1> &arr = *static_cast<const blitz::Array<From,1>*>(from);
   if( arr.numElements() != 1 )
-    return False;
+    return false;
   return _convertScaSca<From,To>(arr.data(),to);
 //  *static_cast<To*>(to) = To(*(arr.data()));
-//  return True;
+//  return true;
 }
 //    special case for complex: use real part
 template<class From,class To> 
@@ -97,10 +100,10 @@ bool _convertComplexVecSca (const void * from,void * to)
   const blitz::Array<From,1> &arr 
       = *static_cast<const blitz::Array<From,1>*>(from);
   if( arr.numElements() != 1 )
-    return False;
+    return false;
   return _convertComplexScaSca<From,To>(arr.data(),to);
 //  *static_cast<To*>(to) = To(arr.data()->real());
-//  return True;
+//  return true;
 }
 
 // This defines the conversion matrices
@@ -178,3 +181,6 @@ TypeConverter _typeconverters_sca_vec[16][16] =
   { DoForAllNumericTypes1(FromComplex,dcomplex) } 
 };
 
+
+
+};

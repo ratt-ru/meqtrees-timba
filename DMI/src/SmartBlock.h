@@ -1,19 +1,14 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+#ifndef DMI_SmartBlock_h
+#define DMI_SmartBlock_h 1
 
-#ifndef SmartBlock_h
-#define SmartBlock_h 1
+#include <Common/Debug.h>
+#include <DMI/DMI.h>
+#include <DMI/CountedRef.h>
+#include <DMI/CountedRefTarget.h>
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-
-// Debug
-#include "Common/Debug.h"
-// CountedRef
-#include "DMI/CountedRef.h"
-// CountedRefTarget
-#include "DMI/CountedRefTarget.h"
-#include "CountedRef.h"
-
+namespace DMI
+{    
+    
 //##ModelId=3BEAACAB0041
 //##Documentation
 //## SmartBlock is a block of bytes with a reference count. Optionally,
@@ -21,6 +16,8 @@
 
 class SmartBlock : public CountedRefTarget
 {
+  ImportDebugContext(DebugDMI);
+  
   public:
     //##ModelId=3BEBD44D0103
       SmartBlock();
@@ -29,8 +26,8 @@ class SmartBlock : public CountedRefTarget
       //##Documentation
       //## Creates a SmartBlock around an existing chunk of memory. By default,
       //## the memory will not be deleted when the SmartBlock is deleted, unless
-      //## the DMI::DELETE (=DMI::ANON) flag is set.
-      SmartBlock (void* data, size_t size, int flags = DMI::NO_DELETE);
+      //## the DMI::ANON flag is set.
+      SmartBlock (void* data, size_t size, int flags = DMI::EXTERNAL);
 
       //##ModelId=3BFA4FCA0387
       //##Documentation
@@ -56,10 +53,9 @@ class SmartBlock : public CountedRefTarget
       //##Documentation
       //## Universal initializer. Called from various constructors.
       //## If data=0, then allocates block from heap or shared memory (if
-      //## DMI::SHMEM is set in flags); will thow excpeiton if DMI::NO_DELETE
-      //## or (=DMI::NON_ANON) is set.
-      //## If data!=0, then uses existing block and checks for DMI::DELETE
-      //## (=DMI::ANON) in flags to see if it must be deleted.
+      //## DMI::SHMEM is set in flags); will thow exception if DMI::EXTERNAL
+      //## is set. If data!=0, then uses existing block and checks for 
+      //## DMI::ANON in flags to see if it must be deleted.
       void init (void* data, size_t size, int flags, int shm_flags);
 
       //##ModelId=3C639C340295
@@ -198,4 +194,5 @@ inline void * SmartBlock::data ()
 //## This is a reference to a SmartBlock.
 typedef CountedRef<SmartBlock> BlockRef;
 
+}; // namespace DMI
 #endif

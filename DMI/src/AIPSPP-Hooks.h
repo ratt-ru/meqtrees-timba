@@ -8,34 +8,37 @@
 #include <casa/Arrays/Matrix.h>
 #include <casa/BasicSL/String.h>
     
-#include <DMI/DataArray.h>
+#include <DMI/NumArray.h>
 #include <Common/BlitzToAips.h>
 
+class casa::String;
 
 using LOFAR::copyArray;
 
 namespace AIPSPP_Hooks 
 {
+  using namespace DebugDMI;
+  
   // templated helper method to create a 1D array using a copy of data
   template<class T>
-  inline casa::Array<T> copyVector (TypeId tid,int n,const void *data)
+  inline casa::Array<T> copyVector (DMI::TypeId tid,int n,const void *data)
   { 
     if( tid != typeIdOf(T) )
     {
-      ThrowExc(NestableContainer::ConvError,"can't convert "+tid.toString()+
+      ThrowExc(DMI::Container::ConvError,"can't convert "+tid.toString()+
                   " to AIPS++ Array<"+typeIdOf(T).toString()+">");
     }
     return casa::Array<T>(casa::IPosition(1,n),static_cast<const T*>(data));
   };
 
-  // specialization for String, with conversion from std::string
+  // specialization for casa::String, with conversion from std::string
   template<>
-  inline casa::Array<casa::String> copyVector (TypeId tid,int n,const void *data)
+  inline casa::Array<casa::String> copyVector (DMI::TypeId tid,int n,const void *data)
   { 
     if( tid != Tpstring )
     {
-      ThrowExc(NestableContainer::ConvError,"can't convert "+tid.toString()+
-                  " to AIPS++ Array<String>");
+      ThrowExc(DMI::Container::ConvError,"can't convert "+tid.toString()+
+                  " to AIPS++ Array<casa::String>");
     }
     casa::String *dest0 = new casa::String[n], *dest = dest0;
     const string *src = static_cast<const string *>(data);
@@ -47,18 +50,18 @@ namespace AIPSPP_Hooks
 };
 
 
-inline casa::String NestableContainer::Hook::as_String () const
+inline casa::String DMI::Container::Hook::as_String () const
 {
   return casa::String(as<string>());
 }
 
 template<class T>
-casa::Array<T> NestableContainer::Hook::as_AipsArray (Type2Type<T>) const
+casa::Array<T> DMI::Container::Hook::as_AipsArray (Type2Type<T>) const
 {
-  const void *targ = resolveTarget(DMI::NC_DEREFERENCE);
-  // Have we resolved to a DataArray? 
-  if( target.obj_tid == TpDataArray )
-    return static_cast<const DataArray *>(targ)->copyAipsArray((T*)0);
+  const void *targ = resolveTarget(DMI::DEREFERENCE);
+  // Have we resolved to a DMI::Array? 
+  if( target.obj_tid == TpDMINumArray )
+    return static_cast<const DMI::NumArray *>(targ)->copyAipsArray((T*)0);
   // have we resolved to a blitz array?
   else if( TypeInfo::isArray(target.obj_tid) )
   {
@@ -84,7 +87,7 @@ casa::Array<T> NestableContainer::Hook::as_AipsArray (Type2Type<T>) const
 }
 
 template<class T>
-casa::Vector<T> NestableContainer::Hook::as_AipsVector (Type2Type<T>) const
+casa::Vector<T> DMI::Container::Hook::as_AipsVector (Type2Type<T>) const
 {
   casa::Array<T> arr = as_AipsArray();
   FailWhen( arr.ndim() != 1,"can't access array as Vector" );
@@ -92,7 +95,7 @@ casa::Vector<T> NestableContainer::Hook::as_AipsVector (Type2Type<T>) const
 }
 
 template<class T>
-casa::Matrix<T> NestableContainer::Hook::as_AipsMatrix (Type2Type<T>) const
+casa::Matrix<T> DMI::Container::Hook::as_AipsMatrix (Type2Type<T>) const
 {
   casa::Array<T> arr = as_AipsArray();
   FailWhen( arr.ndim() != 2,"can't access array as Matrix" );
@@ -100,13 +103,13 @@ casa::Matrix<T> NestableContainer::Hook::as_AipsMatrix (Type2Type<T>) const
 }
 
 template<class T>
-void NestableContainer::Hook::operator = (const casa::Array<T> &other) const
+void DMI::Container::Hook::operator = (const casa::Array<T> &other) const
 {
-  (*this) <<= new DataArray(other,DMI::WRITE);
+  (*this) <<= new DMI::NumArray(other);
 }
 
-// assigning a String simply assigns a string
-inline string & NestableContainer::Hook::operator = (const casa::String &other) const
+// assigning a casa::String simply assigns a string
+inline string & DMI::Container::Hook::operator = (const casa::String &other) const
 {
   return operator = ( static_cast<const string &>(other) );
 }

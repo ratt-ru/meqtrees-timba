@@ -24,6 +24,9 @@
 
 #include <iomanip>
 
+namespace DMI
+{
+
 #undef VERIFY
 #if COUNTEDREF_VERIFY
   #define VERIFY verify()
@@ -31,19 +34,19 @@
   #define VERIFY 
 #endif
 
-// The threadLock(target) macro sets a lock on the target's mutex, by instantiating
+// The threadLock(target_) macro sets a lock on the target_'s mutex, by instantiating
 // a Mutex::Lock object. The lock will be released when the object goes
 // out of scope.
 // If compiled w/o thread support, this is defined as nothing.
 #ifdef USE_THREADS
-  #define threadLock(t) Thread::Mutex::Lock _thread_lock(t->cref_mutex)
+  #define threadLock(t) Thread::Mutex::Lock _thread_lock(t->cref_mutex_)
 #else
   #define threadLock(t) 
 #endif
 
-// Note that CRefs themselves are not thread-safe, but targets are.
+// Note that CRefs themselves are not thread-safe, but target_s are.
 // I.e. different threads should never access the same CRef, but both
-// can hold different refs to the same target.
+// can hold different refs to the same target_.
 // The only exception is ref.copy(): this is thread-safe.
 // This means that containers need only set a read-lock when accessing
 // their contents via ref.copy().
@@ -53,33 +56,42 @@ InitDebugContext(CountedRefBase,"CRef");
 
 
 // cloneTarget
-//   Helper function called to actually clone a ref's target
+//   Helper function called to actually clone a ref's target_
 //   (either from privatize directly, or via delayed-cloning)
 //##ModelId=3DB9346500B5
 void CountedRefBase::cloneTarget (int flags,int depth) const
 {
-  threadLock(target);
+  threadLock(target_);
   if( !valid() )
     return;
   VERIFY;
-  dprintf1(2)("  %s: cloning target\n",debug(0));
-  // clone the target
-  CountedRefTarget *newtarget = target->clone(flags,depth);
+  dprintf1(2)("  %s: cloning target_\n",debug(0));
+  // clone the target_
+  CountedRefTarget *newtarget_ = target_->clone(flags,depth);
+  flags = newtarget_->modifyAttachFlags(flags);
+#ifdef COUNTEDREF_LINKED_LIST
   // detach from old list
-  if( prev ) 
-    prev->next = next;
-  else // no previous ref, so update ptr from target
-    target->owner_ref = next;
-  if( next )
-    next->prev = prev;
+  if( prev_ ) 
+    prev_->next_ = next_;
+  else // no prev_ious ref, so update ptr from target_
+    target_->owner_ref_ = next_;
+  if( next_ )
+    next_->prev_ = prev_;
   #if COUNTEDREF_VERIFY
-  verify(target->owner_ref);
+  verify(target_->owner_ref_);
   #endif
-  // attach ourselves to new reflist
-  prev = next = 0;
-  target = newtarget;
-  target->owner_ref = const_cast<CountedRefBase*>(this);
-  target->anon = True;
+  // attach ourselves to new target_
+  prev_ = next_ = 0;
+  newtarget_->owner_ref_ = const_cast<CountedRefBase*>(this);
+#else
+  target_->ref_count_--;
+  newtarget_->ref_count_ = 1;
+#endif
+  target_ = newtarget_;
+  target_->anon_ = true;
+  locked_   = flags&DMI::LOCKED;
+  shared_   = flags&DMI::SHARED;
+  writable_ = !(flags&DMI::READONLY);
   VERIFY;
 }
 
@@ -90,32 +102,30 @@ void CountedRefBase::verify (const CountedRefBase *start)
 {
   if( !start )
     return;
-  const CountedRefTarget *target = start->target;
-  if( !target )
+  const CountedRefTarget *target_ = start->target_;
+  if( !target_ )
     return;
-  threadLock(target);
+  threadLock(target_);
+#ifdef COUNTEDREF_LINKED_LIST
   // run through & verify ref chain
-  const CountedRefBase *ref = target->owner_ref;
+  const CountedRefBase *ref = target_->owner_ref_;
   Assert1(ref);
-  Assert1(ref->prev == 0);
-  bool found_start = False;
+  Assert1(ref->prev_ == 0);
+  bool found_start = false;
   while( ref )
   {
-    Assert1( ref->target == target );
+    Assert1( ref->target_ == target_ );
     if( ref == start )
-      found_start = True;
-    if( ref->next )
-      Assert1(ref->next->prev == ref);
-    ref = ref->next;
+      found_start = true;
+    if( ref->next_ )
+      Assert1(ref->next_->prev_ == ref);
+    ref = ref->next_;
   }
   Assert1(found_start);
+#else
+  Assert1(target_->ref_count_>0);
+#endif
 }
-
-//##ModelId=3C0CDEE2018A
-
-
-// Class CountedRefBase 
-
 
 void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
 {
@@ -127,68 +137,48 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
     empty();
   else
   {
-    int privatize_flags;
-    // are we doing a deep copy (with auto-privatize?)
-    // do we have explicit or infinite depth?
-    if( depth >=0 || flags&(DMI::DEEP|DMI::PRIVATIZE) )
-    {
-      // depth >= 0 or DMI::DEEP enables privatization
-      // DMI::PRIVATIZE effectively sets depth to max(depth,0)
-      if( depth<0 )
-        depth = 0;
-      dprintf(2)("  copy-and-privatize requested\n");
-      // if so, then do a simple readonly copy, and pass all other
-      // flags to privatize below
-      privatize_flags = flags & ~DMI::PRIVATIZE;
-      if( flags&DMI::PRESERVE_RW )
-        privatize_flags |= (other.writable ? DMI::WRITE : DMI::READONLY);
-      flags = DMI::READONLY;
-    }
-    threadLock(other.target);
+    threadLock(other.target_);
 #if COUNTEDREF_VERIFY
     other.verify();
 #endif
-    // default is to preserve writability of original ref, unless DMI::READONLY
-    // is specified. If DMI::WRITE is specified, throws exception if
-    // non-writable
-    if( flags&DMI::READONLY )
-      flags &= ~DMI::WRITE;
-    else if( other.isWritable() )
-      flags |= DMI::WRITE;
-    else
-    {
-      FailWhen(flags&DMI::WRITE,"r/w access violation: copy(DMI::WRITE) of read-only ref");
-    }
+    target_ = other.target_;
+#ifdef COUNTEDREF_LINKED_LIST
     // insert copy into list after other
-    target = other.target;
-    prev = const_cast<CountedRefBase*>(&other);
-    next = other.next;
-    const_cast<CountedRefBase&>(other).next = this;
-    if( next )
-      next->prev = this;
+    prev_ = const_cast<CountedRefBase*>(&other);
+    next_ = other.next_;
+    const_cast<CountedRefBase&>(other).next_ = this;
+    if( next_ )
+      next_->prev_ = this;
+#else
+    target_->ref_count_++;
+#endif
     VERIFY;
     // deep copy? do a privatize now
-    if( depth >=0 )
+    if( flags&DMI::DEEP || depth>0 )
     {
       // clear all properties (privatize() will set them up according to flags)
-      locked = persistent = False;
-      privatize(privatize_flags,depth);
+      locked_ = false;
+      privatize(flags,depth);
     }
     // else use remaining flags to set up ref properties
     else
     {
       // setup properties
-      locked = (flags&DMI::LOCKED) != 0;
-      persistent = (flags&DMI::PERSIST) != 0;
-      // writability is checked via flags above
-      writable = (flags&DMI::WRITE) != 0;
+      locked_ = flags&DMI::LOCKED;
+      writable_ = other.writable_;
+      if( flags&DMI::SHARED )
+        shared_ = true;
+      else if( flags&DMI::COW )
+        shared_ = false;
+      else
+        shared_ = other.shared_;
     }
   }
   dprintf1(2)("  made %s\n",debug(Debug(3)?3:2,"  "));
 }
 
 //##ModelId=3C0CDEE20180
-void CountedRefBase::xfer (const CountedRefBase& other)
+void CountedRefBase::xfer (CountedRefBase& other,int flags,int depth)
 {
   if( &other == this )
     return;
@@ -198,99 +188,77 @@ void CountedRefBase::xfer (const CountedRefBase& other)
     empty();
   else
   {
-    threadLock(other.target);
+    threadLock(other.target_);
 #if COUNTEDREF_VERIFY
     other.verify();
 #endif
-    FailWhen( other.isLocked(),"can't transfer a locked ref" );
-    FailWhen( other.isPersistent(),"can't transfer a persistent ref" );
+    FailWhen( other.isLocked(),"can't transfer a locked_ ref" );
+#ifdef COUNTEDREF_LINKED_LIST
     // insert myself into list in place of other
-    if( (prev = other.prev) !=0 )
-      other.prev->next = this;
-    else if( other.target )
-      other.target->owner_ref = this;
+    if( (prev_ = other.prev_) !=0 )
+      other.prev_->next_ = this;
+    else if( other.target_ )
+      other.target_->owner_ref_ = this;
     else
       Throw("transfer of corrupted ref");
-    if( (next = other.next) != 0 )
-      other.next->prev = this;
+    if( (next_ = other.next_) != 0 )
+      other.next_->prev_ = this;
+#endif
+    target_ = other.target_;
     VERIFY;
     // copy all fields
-    target = other.target;
-    locked = False;
-    writable = other.isWritable();
+    locked_ = false;
     // invalidate other ref (const violation here, but that's a consequence
     // of our destructive semantics)
-    const_cast<CountedRefBase&>(other).empty();
+    other.empty();
+    // deep copy? do a privatize now
+    if( flags&DMI::DEEP || depth>0 )
+    {
+      // clear all properties (privatize() will set them up according to flags)
+      locked_ = false;
+      privatize(flags,depth);
+    }
+    writable_ = other.writable_;
+    if( flags&DMI::SHARED )
+      shared_ = true;
+    else if( flags&DMI::COW )
+      shared_ = false;
+    else
+      shared_ = other.shared_;
+    locked_ = flags&DMI::LOCKED;
   }
   dprintf(3)("  is now %s\n",debug(-1));
 }
 
 //##ModelId=3C0CDEE20164
-CountedRefBase& CountedRefBase::privatize (int flags, int depth)
+bool CountedRefBase::privatize (int flags, int depth)
 {
   // This is a mask of all flags used by privatize. These flags are interpreted
-  // here and _NOT_ passed on to target->privatize.
-  // All other flags (WRITE, READONLY, etc.) are passed on. 
-  const int local_flags =
-      DMI::FORCE_CLONE|
-      DMI::LOCKED|DMI::UNLOCKED|
-      DMI::PERSIST;
-  
-  dprintf1(2)("%s: privatizing to depth %d, target:\n",debug(),flags&DMI::DEEP?-1:depth);
+  // here and _NOT_ passed on to target->clone()
+  // All other flags are passed on. 
+  const int mask_local_flags = DMI::LOCKED|DMI::UNLOCKED|DMI::SHARED|DMI::COW;
   FailWhen( !valid(),"can't privatize an invalid ref" );
-  threadLock(target);
-  dprintf1(2)("  %s\n",target->debug(2,"  "));
-  // readonly overrides writable and disables delayed cloning
-  if( flags&DMI::READONLY )
-    flags &= ~DMI::WRITE;
-  // no cloning is done if the object is anon, and either
-  //   (1) we are the only ref, or
-  //   (2) cloning is read-only, and all other refs are read-only.
-  // but the FORCE_CLONE flag can force a clone anyway
-  bool do_clone=False;
-  if( !(flags&DMI::FORCE_CLONE) && isAnonObject() )
-  {
-    if( prev || next )  // other refs exist? Scan for writable ones
-    {
-      if( flags&DMI::WRITE )  // clone will be writable?
-        do_clone = True;
-      else
-      {
-        // readonly clone -- make ourselves readonly, and do a clone
-        // if any writable refs are left.
-        writable = False;
-        if( target->refCountWrite() )
-          do_clone=True;
-      }
-    }
-  }
-  else // non-anon is always cloned
-    do_clone=True;
-  
-  if( do_clone )
-  {
-    cloneTarget(flags & ~local_flags,depth);
-  }
+  dprintf1(2)("%s: privatizing to depth %d, target_:\n",debug(),flags&DMI::DEEP?-1:depth);
+  threadLock(target_);
+  dprintf1(2)("  %s\n",target_->debug(2,"  "));
+  // no cloning is done if the object is anon_ and writable_ and we are the only ref
+  bool res = true;
+  if( !isAnonTarget() || !isOnlyRef() || !writable_ || depth>0 || flags&DMI::DEEP)
+    cloneTarget(flags&~mask_local_flags,depth-1);
   else
-  {
-    // we are sole reference to target, so privatize it
-    target->privatize(flags & ~local_flags,depth);
-  }
+    res = false;
   // now change ref properties if asked to
   if( flags&DMI::LOCKED )
-    locked = True;
+    locked_ = true;
   else if( flags&DMI::UNLOCKED )
-    locked = False;
-  // writable remains as-is unless overridden by flags
-  if( flags&DMI::WRITE )
-    writable = True;
-  else if( flags&DMI::READONLY )
-    writable = False;
-  // persistent flag may be raised explicitly
-  if( flags&DMI::PERSIST )
-    persistent = True;
+    locked_ = false;
+  if( flags&DMI::SHARED )
+    shared_ = true;
+  else if( flags&DMI::COW )
+    shared_ = false;
+  writable_ = true;
   dprintf(2)("has been privatized\n");
-  return *this;
+  return res;
 }
 
 //##ModelId=3C18873600E9
@@ -299,21 +267,17 @@ CountedRefBase& CountedRefBase::change (int flags)
   // readonly downgrade
   dprintf(3)("changing to ");
   FailWhen( !valid(),"changing an invalid ref");
-  if( flags&DMI::READONLY )
-    writable = False;
-  else if( flags&DMI::WRITE )
-  {
-    FailWhen(!isWritable(),"can't upgrade read-only ref to read-write");
-  }
   // lock/unlock
   if( flags&DMI::LOCKED )
-    locked = True;
+    locked_ = true;
   else if( flags&DMI::UNLOCKED )
-    locked = False;
-  // persist
-  if( flags&DMI::PERSIST )
-    persistent = True;
-  
+    locked_ = false;
+  if( flags&DMI::READONLY )
+    writable_ = false;
+  if( flags&DMI::SHARED )
+    shared_ = true;
+  else if( flags&DMI::COW )
+    shared_ = false;
   dprintf1(3)("%s\n",debug(-1));
   return *this;
 }
@@ -321,54 +285,43 @@ CountedRefBase& CountedRefBase::change (int flags)
 //##ModelId=3C0CDEE20171
 CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
 {
-  if( targ == target )
+  if( targ == target_ )
     return *this;
-  // detach from old target, if any
+  // detach from old target_, if any
   dprintf(3)("attaching to %s\n",targ->debug());
   if( valid() )
     detach();
-  // refuse to attach to NULL targets
-  FailWhen( !targ,"can't attach to null target" );
-  // If anon/external specified explicitly, check for consistency with
-  // other refs to same object. Otherwise, inherit property from other refs.
-  // If no other refs and nothing specified, assume external.
-  bool anon = (flags&DMI::ANON);
+  // refuse to attach to NULL target_s
+  FailWhen( !targ,"can't attach to null target_" );
+  // If target_ is already referenced, check anon_/external for 
+  // consistency with supplied flags.
+  // Else, use flags to determine how to attach (anon_ by default).
   threadLock(targ);
-  CountedRefBase *owner = targ->getOwner();
-  if( owner )
+  flags = targ->modifyAttachFlags(flags);
+  // if target is unattached, determine ownership
+  if( !targ->isTargetAttached() )
   {
-    bool other_anon = targ->anon;
-    if( flags&(DMI::STRICT|DMI::NONSTRICT) == DMI::STRICT )
-    {
-      bool external = (flags&DMI::EXTERNAL);
-      FailWhen( anon && !other_anon,"object already referenced as external, can't attach as anon" );
-      FailWhen( external && other_anon,"object already referenced as anon, can't attach as external" );
-    }
-    anon = other_anon;
+    int own = flags&DMI::OWNERSHIP_MASK;
+    if( own == DMI::AUTOCLONE )
+      targ = targ->clone(flags&DMI::DEEP);
+    else
+      targ->anon_ = own != DMI::EXTERNAL;
   }
-  // setup properties
-  if( flags&DMI::WRITE && !(flags&DMI::READONLY) ) // writable attach?
-  {
-    writable = True;
-  }
-  else
-    writable = False;
-  locked = (flags&DMI::LOCKED)!=0;
-  targ->anon = anon;
-  
-  // persistent flag may be raised explicitly
-  persistent = (flags&DMI::PERSIST) != 0;
-
-  // add to list 
-  target = targ;
-  prev = 0;
+  target_ = targ;
+#ifdef COUNTEDREF_LINKED_LIST
+  CountedRefBase *owner = target_->getTargetOwner();
   if( owner )
-    (next=owner)->prev = this;
-  target->owner_ref = this;
-
+    (next_=owner)->prev_ = this;
+  prev_ = 0;
+  target_->owner_ref_ = this;
+#else
+  target_->ref_count_++;
+#endif
   VERIFY;
-
-  dprintf(3)("  ref target now %s\n",target->debug(2,"  "));
+  shared_ = flags&DMI::SHARED;
+  locked_ = flags&DMI::LOCKED;
+  writable_ = target_->anon_ || !(flags&DMI::READONLY);
+  dprintf(3)("  ref target_ now %s\n",target_->debug(2,"  "));
   return *this;
 }
 
@@ -378,61 +331,60 @@ void CountedRefBase::detach ()
   if( !valid() )
     return;
   dprintf1(3)("%s: detaching\n",debug());
-  // locked refs can't be detached (only destroyed)
-  FailWhen( isLocked(),"can't detach a locked ref");
-  // delete object if anon, and we are last ref to it
-  threadLock(target);
+  // locked_ refs can't be detached (only destroyed)
+  FailWhen( isLocked(),"can't detach a locked_ ref");
+  // delete object if anon_, and we are last ref to it
+  threadLock(target_);
   VERIFY;
-  if( !prev && !next ) 
+#ifdef COUNTEDREF_LINKED_LIST
+  if( !prev_ && !next_ ) 
   {
-    if( isAnonObject() ) 
+    target_->owner_ref_ = 0;
+    if( isAnonTarget() )
     {
-      dprintf(3)("last ref, anon target will be deleted\n");
-      target->owner_ref = 0;
-#ifdef USE_THREADS
-      // explicitly release target mutex prior to destroying it (otherwise,
-      // we'll be destroying a locked mutex, which is in bad taste). Since
-      // the target is anon, no-one else can be legally referencing it at 
+      dprintf(3)("last ref, anon_ target_ will be deleted\n");
+  #ifdef USE_THREADS
+      // explicitly release target_ mutex prior to destroying it (otherwise,
+      // we'll be destroying a locked_ mutex, which is in bad taste). Since
+      // the target_ is anon_, no-one else can be legally referencing it at 
       // this point. Which means it's OK to release the mutex: no-one else
       // can [legally] grab it.
       _thread_lock.release();
-#endif      
-      delete target;
+  #endif      
+      delete target_;
     }
   }
   else  // else just detach ourselves from list
   {
-    if( prev ) 
-      prev->next = next;
-    else // no previous ref, so update ptr from target
-      target->owner_ref = next;
-    if( next )
-      next->prev = prev;
+    if( prev_ ) 
+      prev_->next_ = next_;
+    else // no prev_ious ref, so update ptr from target_
+      target_->owner_ref_ = next_;
+    if( next_ )
+      next_->prev_ = prev_;
 #if COUNTEDREF_VERIFY
-    target->owner_ref->verify();
+    target_->owner_ref_->verify();
 #endif
-    dprintf(3)("  old target is now: %s\n",target->debug(2,"  "));
+    dprintf(3)("  old target_ is now: %s\n",target_->debug(2,"  "));
   }
+#else
+  // decrement ref count of target_, if 0 and anon_, delete it
+  if( !(--target_->ref_count_) && isAnonTarget() )
+  {
+  #ifdef USE_THREADS
+      _thread_lock.release();
+  #endif      
+      delete target_;
+  }
+#endif
   empty();
-}
-
-//##ModelId=3C583B9F03B8
-bool CountedRefBase::hasOtherWriters () const
-{
-  if( !valid() )
-    return False;
-  threadLock(target);
-  for( const CountedRefBase *ref = target->getOwner(); ref != 0; ref = ref->next )
-    if( ref != this && ref->isWritable() )
-      return True;
-  return False;
 }
 
 //##ModelId=3C1611C702DB
 void CountedRefBase::privatizeOther (const CountedRefBase& other, int flags, int depth)
 {
-  // to make a clone, first do a read-only copy, then clone that
-  copy(other,DMI::READONLY);
+  // to make a clone, first do copy, then clone that
+  copy(other);
   privatize(flags,depth);
 }
 
@@ -455,7 +407,7 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
     Debug::appendf(out,"%s/%08x",name?name:"CRef",(int)this);
     if( valid() )
     {
-      out += Debug::ssprintf(">%08x",(int)target); 
+      out += Debug::ssprintf(">%08x",(int)target_); 
     }
     else
     {
@@ -466,28 +418,33 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
   {
     if( valid() )
     {
-      Debug::appendf(out,"%c%c%c%c",
-                         isAnonObject() ? 'A' : '-', 
-                         isWritable() ? 'W' : '-', 
-                         isPersistent() ? 'P' : '-',
+      Debug::appendf(out,"%c%c%c%c%c",
+                         isAnonTarget() ? 'A' : '-', 
+                         isSharedTarget() ? 'S' : '-', 
+                         isWritable() ? 'w' : '-', 
+                         isDirectlyWritable() ? 'W' : '-', 
                          isLocked() ? 'L' : '-');
-      if( prev )
-        Debug::appendf(out,"p/%08x",(int)prev);
+#ifdef COUNTEDREF_LINKED_LIST
+      if( prev_ )
+        Debug::appendf(out,"p/%08x",(int)prev_);
       else
         Debug::appendf(out,"p/-");
-      if( next )
-        Debug::appendf(out,"n/%08x",(int)next);
+      if( next_ )
+        Debug::appendf(out,"n/%08x",(int)next_);
       else
         Debug::appendf(out,"n/-");
+#else
+      Debug::appendf(out,"rc:%d",target_->targetReferenceCount());
+#endif
     }
   }
-  if( detail >= 2 || detail <= -2 ) // high detail - include target info
+  if( detail >= 2 || detail <= -2 ) // high detail - include target_ info
   {
     if( valid() )
     {
       if( out.length() )
         out += "\n"+prefix+"  ";
-      out += "->" + target->sdebug(abs(detail)-1,prefix+"  ");
+      out += "->" + target_->sdebug(abs(detail)-1,prefix+"  ");
     }
   }
   nesting--;
@@ -499,8 +456,8 @@ void CountedRefBase::print (std::ostream &str) const
 {
   if( valid() )
   {
-    str<<"CRef->@"<<std::hex<<int(target)<<std::dec<<":";
-    target->print(str);
+    str<<"CRef->@"<<std::hex<<int(target_)<<std::dec<<":";
+    target_->print(str);
   }
   else
     str<<"CRef->0";
@@ -513,3 +470,4 @@ void CountedRefBase::print () const
   std::cout<<endl;
 }
 
+}; // namespacer DMI

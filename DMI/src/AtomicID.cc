@@ -23,12 +23,6 @@
 #include "AtomicID.h"
 #include <ctype.h>
 
-DefineBiRegistry(AtomicID,0,"");
-
-// pull in all auto-generated registry definitions
-int aidRegistry_DMI();
-static int dum = aidRegistry_DMI();
-
 // define the strlwr function for strings
 string strlowercase (const string &in)
 {
@@ -45,6 +39,15 @@ string struppercase (const string &in)
     *iter = toupper(*iter);
   return out;
 }
+
+// pull in all auto-generated registry definitions
+int aidRegistry_DMI();
+static int dum = aidRegistry_DMI();
+
+namespace DMI
+{
+
+DefineBiRegistry(AtomicID,0,"");
 
 //##ModelId=3BE9709700A7
 string AtomicID::toString () const
@@ -127,3 +130,4 @@ int AtomicID::registerId (int key,const char * value)
   return key;
 }
       
+};

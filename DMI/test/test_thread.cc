@@ -2,12 +2,12 @@
     
 #include "DMI/AID-DMI.h"
 #include "DMI/TID-DMI.h"
-#include "DMI/DataRecord.h"
-#include "DMI/DataArray.h"
+#include "DMI/Record.h"
+#include "DMI/NumArray.h"
 #include "Common/Thread.h"
         
-SmartBlock *sblock;
-DataRecord *rec;
+DMI::SmartBlock *sblock;
+DMI::Record *rec;
 
 #ifndef _GLIBCPP_VERSION
 #define _GLIBCPP_VERSION "2 old (\"too old\")"
@@ -20,19 +20,19 @@ void * testThread (void*)
   cout<<"Entering thread "<<tid<<endl;
   try 
   {
-    BlockSet set1;
-    BlockSet set2;
-    BlockRef ref;
-    set1.push( BlockRef(sblock) );
-    set2.push( BlockRef(sblock) );
+    DMI::BlockSet set1;
+    DMI::BlockSet set2;
+    DMI::BlockRef ref;
+    set1.push( DMI::BlockRef(sblock) );
+    set2.push( DMI::BlockRef(sblock) );
     while( 1 )
     {
       switch( rand()%4 )
       {
-        case 0:   set1.push( BlockRef(sblock) );
+        case 0:   set1.push( DMI::BlockRef(sblock) );
 //                  cout<<tid<<": pushing on set1 "<<set1.size()<<"\n";
                   break;
-        case 1:   set2.push( BlockRef(sblock) );
+        case 1:   set2.push( DMI::BlockRef(sblock) );
 //                  cout<<tid<<": pushing on set2 "<<set2.size()<<"\n";
                   break;
         case 2:   if( set1.size() )
@@ -138,21 +138,21 @@ void * rec_thread3 (void*)
 int main ( int argc,const char *argv[] )
 {
   Debug::getDebugContext().setLevel(10);
-  CountedRefBase::getDebugContext().setLevel(0);
+  DMI::CountedRefBase::getDebugContext().setLevel(0);
   Debug::initLevels(argc,argv);
 
-  rec = new DataRecord;
+  rec = new DMI::Record;
   for( char f1 = 'A'; f1<'G'; f1++ )
   {
-    (*rec)[string(1,f1)] <<= new DataRecord;
+    (*rec)[string(1,f1)] <<= new DMI::Record;
     for( char f2 = 'A'; f2<'G'; f2++ )
     {
       (*rec)[string(1,f1)][string(1,f2)] = 0;
     }
   }
   
-  sblock = new SmartBlock(0x10000);    
-  BlockRef ref0(sblock,DMI::ANONWR);
+  sblock = new DMI::SmartBlock(0x10000);    
+  DMI::BlockRef ref0(sblock,DMI::ANONWR);
   
   Thread::ThrID tid[6];
   cout<<"Main thread is "<<Thread::self()<<endl;

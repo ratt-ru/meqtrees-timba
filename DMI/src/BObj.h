@@ -1,4 +1,4 @@
-//  BlockableObject.h: abstract prototype for blockable objects
+//  BObj.h: abstract prototype for blockable objects
 //
 //  Copyright (C) 2002
 //  ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -20,18 +20,19 @@
 //
 //  $Id$
 
-#ifndef DMI_BlockableObject_h
-#define DMI_BlockableObject_h 1
+#ifndef DMI_BObj_h
+#define DMI_BObj_h 1
 
-#include <DMI/Common.h>
 #include <DMI/DMI.h>
 #include <DMI/CountedRef.h>
 #include <DMI/CountedRefTarget.h>
 #include <DMI/TypeId.h>
 #include <DMI/BlockSet.h>
 
-#pragma type -ObjRef
+#pragma type -DMI::ObjRef
 
+namespace DMI
+{
 
 //##ModelId=3BB1F71F03C9
 //##Documentation
@@ -42,11 +43,11 @@
 //## This class also contains static functions for run-time maintenance
 //## of maps of "virtual constructors".
 
-class BlockableObject : public CountedRefTarget
+class BObj : public CountedRefTarget
 {
   public:
     //##ModelId=3DB9344C035B
-      virtual ~BlockableObject();
+      virtual ~BObj();
 
 
       //##ModelId=3BB1F88402F0
@@ -69,14 +70,14 @@ class BlockableObject : public CountedRefTarget
 
       //##ModelId=3BFA7DBF00D7
       //##Documentation
-      //## Returns True if the class realizes the NestableContainerInterface.
-      //## Default implementation: False
+      //## Returns true if the class realizes the DMI::ContainerInterface.
+      //## Default implementation: false
       virtual bool isNestable () const;
 
       //##ModelId=3BFA7DC8017B
       //##Documentation
-      //## Returns True if the class realizes the Persistency Interface.
-      //## Default implementation: False.
+      //## Returns true if the class realizes the Persistency Interface.
+      //## Default implementation: false.
       virtual bool isPersistent ();
 
       //##ModelId=3BFE5FE103C5
@@ -86,24 +87,9 @@ class BlockableObject : public CountedRefTarget
       //## is efficient enough, you don't need to provide your own clone().
       virtual CountedRefTarget * clone (int flags = 0, int depth = 0) const;
 
-      //##ModelId=3CAB088100C3
-      //##Documentation
-      //## Virtual method for privatization of an object.
-      //## The depth argument determines the depth of privatization and/or
-      //## cloning (see CountedRefBase::privatize()). If depth>0, then any
-      //## nested refs should be privatize()d as well, with depth=depth-1.
-      //## The DMI::DEEP flag  corresponds to infinitely deep privatization. If
-      //## this is set, then depth should be ignored, and nested refs should be
-      //## privatize()d with DMI::DEEP.
-      //## If depth=0 (and DMI::DEEP is not set), then privatize() is
-      //## effectively a no-op. However, if your class has a 'writable'
-      //## property, it should be changed in accordance with the DMI::WRITE
-      //## and/or DMI::READONLY flags.
-      virtual void privatize (int flags = 0, int depth = 0);
-
     // Additional Public Declarations
     //##ModelId=3DB9344D015D
-      DefineRefTypes(BlockableObject,Ref);
+      typedef CountedRef<BObj> Ref;
       
       // Provide a default print for the BO hierarchy
       // Default version simply prints objectType()
@@ -111,35 +97,27 @@ class BlockableObject : public CountedRefTarget
       virtual void print (std::ostream &str) const;
 };
 
-DefineRefTypes(BlockableObject,ObjRef);
+//##ModelId=3DB963E102B7
+typedef BObj::Ref ObjRef;
 
 #define newAnon(type) ObjRef(new type,DMI::ANON|DMI::WRITE)
 
-
-// Class BlockableObject 
-
 //##ModelId=3DB9344C035B
-inline BlockableObject::~BlockableObject()
+inline BObj::~BObj()
 {
 }
 
-
-
 //##ModelId=3BFA7DBF00D7
-inline bool BlockableObject::isNestable () const
+inline bool BObj::isNestable () const
 {
-  return False;
+  return false;
 }
 
 //##ModelId=3BFA7DC8017B
-inline bool BlockableObject::isPersistent ()
+inline bool BObj::isPersistent ()
 {
-  return False;
-
+  return false;
 }
 
-
-//##ModelId=3DB963E102B7
-typedef BlockableObject::Ref ObjRef;
-
+};
 #endif

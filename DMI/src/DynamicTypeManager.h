@@ -1,15 +1,15 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-
 #ifndef DMI_DynamicTypeManager_h
 #define DMI_DynamicTypeManager_h 1
 
-#include "DMI/DMI.h"
-#include "DMI/Registry.h"
-#include "DMI/BlockSet.h"
-#include "DMI/BlockableObject.h"
+#include <DMI/DMI.h>
+#include <DMI/Registry.h>
+#include <DMI/BlockSet.h>
+#include <DMI/BObj.h>
 #include <map>
 
-
+namespace DMI
+{
+    
 //##ModelId=3BE96C040003
 //##Documentation
 //## This utility class contains static functions and members for
@@ -19,26 +19,27 @@
 
 class DynamicTypeManager 
 {
+  ImportDebugContext(DebugDMI);
   public:
     //##ModelId=3DB9343C01AB
     //##Documentation
     //## This defines a pointer to a "constructor" function for constructing
     //## a particular type of object
-    typedef BlockableObject * (*PtrConstructor)(int n);
+    typedef BObj * (*PtrConstructor)(int n);
 
 
       //##ModelId=3BE96C5F03A7
       //##Documentation
       //## Reconstructs an object from a data block, by calling the
       //## "constructor function" for that type to create an empty object, and
-      //## then filling it via BlockableObject::fromBlock().
-      static BlockableObject * construct (TypeId tid, BlockSet& bset, int n = 0);
+      //## then filling it via DMI::BObj::fromBlock().
+      static BObj * construct (TypeId tid, BlockSet& bset, int n = 0);
 
       //##ModelId=3BE96C7402D5
       //##Documentation
       //## Constructs a default object of the given type (simply calls the
       //## "constructor" function from the constructor map).
-      static BlockableObject * construct (TypeId tid, int n = 0);
+      static BObj * construct (TypeId tid, int n = 0);
 
       //##ModelId=3BF905EE020E
       //##Documentation
@@ -53,5 +54,5 @@ class DynamicTypeManager
 
 // Class Utility DynamicTypeManager 
 
-
+};
 #endif

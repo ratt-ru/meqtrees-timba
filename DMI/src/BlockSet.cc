@@ -1,9 +1,10 @@
-#include "DMI/BlockSet.h"
+#include "BlockSet.h"
+    
+    
+namespace DMI
+{
+  
 //##ModelId=3BFA4B6501A7
-
-
-
-// Class BlockSet 
 
 BlockSet::BlockSet(const BlockSet &right)
 {
@@ -118,27 +119,15 @@ int BlockSet::pushFront (BlockRef ref)
 }
 
 //##ModelId=3BFB85F30334
-int BlockSet::copyAll (BlockSet &out, int flags) const
-{
-  // disallow the MAKE_READONLY flag...
-  FailWhen(flags&DMI::MAKE_READONLY,"const violation for MAKE_READONLY");
-  // ...and defer to non-const version in all other respects
-  return ((BlockSet*)this)->copyAll(out,flags);
-}
-
 //##ModelId=3C3EBF410288
-int BlockSet::copyAll (BlockSet &out, int flags)
+int BlockSet::copyAll (BlockSet &out, int flags) const
 {
   int n = out.size();
   out.refs.resize( n + size() );
   DQI oiter = out.refs.begin()+n;
 //  out.refs.reserve(size());
-  for( DQI iter = refs.begin(); iter != refs.end(); iter++,oiter++ )
-  {
+  for( CDQI iter = refs.begin(); iter != refs.end(); iter++,oiter++ )
     (*oiter).copy(*iter,flags);
-    if( flags&DMI::MAKE_READONLY )
-      (*iter).change(DMI::READONLY);
-  }
   return out.size();
 }
 
@@ -176,7 +165,7 @@ const void * BlockSet::getCursorData (size_t  &size)
     }
     // get and return chunk of data
     const void *data = cursor_offset + (char*)(*cursor_iter)->data();
-    size = min(size,remains);
+    size = std::min(size,remains);
     cursor_offset += size;
     return data;
   }
@@ -225,3 +214,5 @@ string BlockSet::sdebug ( int detail,const string &prefix,const char *name ) con
   }
   return out;
 }
+
+};

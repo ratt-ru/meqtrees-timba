@@ -1,58 +1,19 @@
-//##ModelId=3C8F68EA004C
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3C7F3B77034D.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C7F3B77034D.cm
-
-//## begin module%3C7F3B77034D.cp preserve=no
-//## end module%3C7F3B77034D.cp
-
-//## Module: Timestamp%3C7F3B77034D; Package body
-//## Subsystem: DMI%3C10CC810155
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar9\oms\LOFAR\src-links\DMI\Timestamp.cc
-
-//## begin module%3C7F3B77034D.additionalIncludes preserve=no
-//## end module%3C7F3B77034D.additionalIncludes
-
-//## begin module%3C7F3B77034D.includes preserve=yes
+#include "Timestamp.h"
 #include <math.h>
 #include <time.h>
-//## end module%3C7F3B77034D.includes
+    
+namespace DMI
+{
 
-// Timestamp
-#include "DMI/Timestamp.h"
-//## begin module%3C7F3B77034D.declarations preserve=no
-//## end module%3C7F3B77034D.declarations
-
-//## begin module%3C7F3B77034D.additionalDeclarations preserve=yes
-//## end module%3C7F3B77034D.additionalDeclarations
-
-
-// Class Timestamp 
-
-//## begin Timestamp::tsnow%3C8F68EA004C.attr preserve=no  private: static Timestamp {U} 
 Timestamp Timestamp::tsnow;
-//##ModelId=3DB934EA01A3
-//## end Timestamp::tsnow%3C8F68EA004C.attr
 
 Timestamp::Timestamp (double sec1)
-  //## begin Timestamp::Timestamp%3C95C5F90389.hasinit preserve=no
-  //## end Timestamp::Timestamp%3C95C5F90389.hasinit
-  //## begin Timestamp::Timestamp%3C95C5F90389.initialization preserve=yes
-  //## end Timestamp::Timestamp%3C95C5F90389.initialization
 {
   //## begin Timestamp::Timestamp%3C95C5F90389.body preserve=yes
   sec_ = (long) floor(sec1);
   usec_ = (long) floor((sec1-sec_)*1e+6);
   //## end Timestamp::Timestamp%3C95C5F90389.body
 }
-
-
 
 //##ModelId=3C8F67DD00BD
 //## Other Operations (implementation)
@@ -162,19 +123,5 @@ string Timestamp::toString (Timestamp::TimeUnits units,int prec) const
   }
   return "";
 }
-  //## end Timestamp%3C7F3B1D025E.declarations
 
-//## begin module%3C7F3B77034D.epilog preserve=yes
-//## end module%3C7F3B77034D.epilog
-
-
-// Detached code regions:
-#if 0
-//## begin Timestamp::Timestamp%3C7F3B1D025E_const.body preserve=yes
-  struct timeval tm;
-  gettimeofday(&tm,0);
-  sec_ = tm.tv_sec;
-  usec_ = tm.tv_usec;
-//## end Timestamp::Timestamp%3C7F3B1D025E_const.body
-
-#endif
+};

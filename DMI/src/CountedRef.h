@@ -23,17 +23,16 @@
 #ifndef DMI_CountedRef_h
 #define DMI_CountedRef_h 1
 
-#include <DMI/Common.h>
 #include <DMI/DMI.h>
 #include <DMI/CountedRefBase.h>
 #include <DMI/Loki/TypeManip.h>
 #include <DMI/HIID.h>
 
+namespace DMI
+{
+
 using Loki::Type2Type;
 using Loki::Int2Type;
-
-// forward declaration of NestableContainer
-class NestableContainer;
 
 //##ModelId=3BEFECFF0287
 //##Documentation
@@ -43,33 +42,41 @@ class NestableContainer;
 template <class T>
 class CountedRef : private CountedRefBase
 {
-  public:
+  private:
       // Helper template determines if ref can be converted to a
       // CountedRef<U> ref. Incompatible types will generate a compile- or
       // run-time error. Compatible types return a CountedRefBase &.
       template <class U,class UisSuperclass>
-      const CountedRefBase & compatible (Type2Type<U>,UisSuperclass) const
+      const CountedRef<U> * pcompatible (Type2Type<U>,UisSuperclass) const
       {
         // a ref to a subclass can always be converted to 
         // a superclass ref (this also covers the case of From==To) 
-        return *this;
+        return reinterpret_cast<const CountedRef<U>*>(this);
       }
       // Partial specialization: a ref to a superclass can only be converted to a 
       // subclass ref if it currently points to an object of that subclass
       template <class U>
-      const CountedRefBase & compatible (Type2Type<U>,Int2Type<false>) const
+      const CountedRef<U> * compatible (Type2Type<U>,Int2Type<false>) const
       {
         STATIC_CHECK( SUPERSUBCLASS(T,U),Incompatible_CountedRef_types );
-        FailWhen(target && !dynamic_cast<const U*>(target),
-                  "incompatible CountedRef types");
-        return *this;
+        FailWhen(target_ && !dynamic_cast<const U*>(target_),
+                  "incompatible ref types");
+        return reinterpret_cast<CountedRef<U>*>(this);
+      }
+      
+  public:
+      // finally, implement the real compatible() func
+      template <class U>
+      const CountedRef<U> & compatible (Type2Type<U>) const
+      { 
+        return *pcompatible(Type2Type<U>(),Int2Type<SUPERSUBCLASS(U,T)>());
       }
       
       // finally, implement the real compatible() func
       template <class U>
-      const CountedRefBase & compatible (Type2Type<U>) const
+      CountedRef<U> & compatible (Type2Type<U>)
       { 
-        return compatible(Type2Type<U>(),Int2Type<SUPERSUBCLASS(U,T)>());
+        return *const_cast<CountedRef<U> *>(pcompatible(Type2Type<U>(),Int2Type<SUPERSUBCLASS(U,T)>()));
       }
       
   public:
@@ -82,20 +89,19 @@ class CountedRef : private CountedRefBase
       CountedRef()
       {}
 
-      //##ModelId=3BF93C020247
-      //## copy constructor is templated to allow conversion between
-      //## refs to sub/superclasses
-      template<class U>
-      CountedRef(const CountedRef<U> &right)
-        : CountedRefBase(right.compatible(Type2Type<T>()))
-      {}
       //##ModelId=3BF93D620128
       //##Documentation
       //## Generic copy constructor -- see same method in CountedRefBase.
       //## Copy constructor is templated to allow conversion between
       //## refs to sub/superclasses
       template<class U>
-      CountedRef (const CountedRef<U>& other, int flags, int depth = -1)
+      CountedRef (const CountedRef<U>& other, int flags=0, int depth = -1)
+        : CountedRefBase(other.compatible(Type2Type<T>()),flags,depth)
+      {
+      }
+      
+      template<class U>
+      CountedRef (CountedRef<U>& other, int flags=0, int depth = -1)
         : CountedRefBase(other.compatible(Type2Type<T>()),flags,depth)
       {
       }
@@ -121,7 +127,7 @@ class CountedRef : private CountedRefBase
     //##ModelId=3DB934590080
       template<class U>
       bool operator == (const CountedRef<U> &right) const
-      { return target != 0 && target == right.target; }
+      { return target_ != 0 && target_ == right.target_; }
 
     //##ModelId=3DB934590329
       template<class U>
@@ -134,31 +140,48 @@ class CountedRef : private CountedRefBase
 
       //##ModelId=3BEFED870110
       //##Documentation
-      //## Dereferences to const target.
+      //## Dereferences to const target_.
       const T& deref () const;
 
       //##ModelId=3BF55FDC0049
       //##Documentation
       //## Overloaded deref op, so that ref->method() can be used to call
-      //## target's const methods.
+      //## target_'s const methods.
       const T* operator -> () const;
 
       //##ModelId=3C5FBE030173
       const T& operator * () const;
 
       //##ModelId=3C8F61D10199
-      T* dewr_p () const;
+      T* dewr_p ();
 
       //##ModelId=3BEFF73602B0
       //##Documentation
       //## Dereferences to non-const object.
-      T& dewr () const;
+      T& dewr ();
 
       //##ModelId=3C0F806901C1
       //##Documentation
       //## Dereferences to non-const object. Use e.g. ref().method() to call
-      //## target's non-const methods.
-      T& operator () () const;
+      //## target_'s non-const methods.
+      T& operator () ();
+      
+      template <class U>
+      const U & as (Type2Type<U> =Type2Type<U>()) const
+      {
+        const U * targ = dynamic_cast<const U*>(deref_p());
+        FailWhen(!targ,"ref does not point to an object of the expected type");
+        return *targ;
+      }
+      
+      template <class U>
+      U & as (Type2Type<U> =Type2Type<U>()) 
+      {
+        U * targ = dynamic_cast<U*>(dewr_p());
+        FailWhen(!targ,"ref does not point to an object of the expected type");
+        return *targ;
+      }
+
 
       //##ModelId=3C0F808100DF
       //##Documentation
@@ -169,10 +192,10 @@ class CountedRef : private CountedRefBase
       operator const T* () const;
 
       //##ModelId=3C0F80B501D4
-      operator T& () const;
+      operator T& ();
 
       //##ModelId=3C0F80C0020C
-      operator T* () const;
+      operator T* ();
 
       //##ModelId=3BF93A170291
       //##Documentation
@@ -180,28 +203,33 @@ class CountedRef : private CountedRefBase
       //## Templated, so as to allow conversion between
       //## refs to sub/superclasses
       template<class U>
-      CountedRef<U> copy (int flags,int depth,U*) const
+      CountedRef<U> copy (int flags=0,int depth=0,Type2Type<U> =Type2Type<U>()) const
       {
-        return CountedRef<U>(*this,flags|DMI::COPYREF,depth);
+        return CountedRef<U>(*this,flags,depth);
+      }
+      
+      template<class U>
+      CountedRef<U> xfer (int flags=0,int depth=0,Type2Type<U> =Type2Type<U>()) 
+      {
+        return CountedRef<U>(*this,flags|DMI::XFER,depth);
       }
       
     //##ModelId=3BF93A170291
       CountedRef<T> copy (int flags = 0,int depth = -1) const
       { 
-        return CountedRef<T>(*this,flags|DMI::COPYREF,depth);
+        return CountedRef<T>(*this,flags,depth);
       }
       
-      template<class U>
-      CountedRef<U> copy (U*) const
-      {
-        return CountedRef<U>(*this,DMI::COPYREF,-1);
+      CountedRef<T> xfer (int flags = 0,int depth = -1) 
+      { 
+        return CountedRef<T>(*this,flags|DMI::XFER,depth);
       }
-
+      
       //##ModelId=3C1F2DB802D2
       //## Templated, so as to allow conversion between
       //## refs to sub/superclasses
       template<class U>
-      CountedRef<T> & copy (const CountedRef<U>& other, int flags = 0, int depth = -1)
+      CountedRef<T> & copy (const CountedRef<U>& other,int flags=0,int depth=0)
       {
         CountedRefBase::copy(other.compatible(Type2Type<T>()),flags,depth);
         return *this;
@@ -211,16 +239,11 @@ class CountedRef : private CountedRefBase
       //## Templated, so as to allow conversion between
       //## refs to sub/superclasses
       template<class U>
-      CountedRef<T> & xfer (const CountedRef<U>& other)
+      CountedRef<T> & xfer (CountedRef<U>& other,int flags=0,int depth=0)
       {
-        CountedRefBase::xfer(other.compatible(Type2Type<T>()));
+        CountedRefBase::xfer(other.compatible(Type2Type<T>()),flags,depth);
         return *this;
       }
-
-      //##ModelId=3C17A06901DC
-      //##Documentation
-      //## Privatizes a ref -- see CountedRefBase::privatize().
-      CountedRef<T>& privatize (int flags = 0, int depth = 0);
 
       //##ModelId=3C187F270346
       //##Documentation
@@ -232,12 +255,6 @@ class CountedRef : private CountedRefBase
       //## Unlocks ref -- see CountedRefBase::unlock().
       CountedRef<T>& unlock ();
 
-      //##ModelId=3C501A15015C
-      CountedRef<T>& persist ();
-
-      //##ModelId=3C501A1C01FD
-      CountedRef<T>& unpersist ();
-
       //##ModelId=3C1897A5032E
       //##Documentation
       //## Changes ref properties -- see CountedRefBase::change().
@@ -245,8 +262,8 @@ class CountedRef : private CountedRefBase
 
       //##ModelId=3BFA4DF4027D
       //##Documentation
-      //## Various methods to attach to target object. See CountedRefBase::
-      //## attach(). Const target forces readonly ref.
+      //## Various methods to attach to target_ object. See CountedRefBase::
+      //## attach(). Const target_ forces readonly ref.
       CountedRef<T> & attach (T* targ, int flags = 0)
       { CountedRefBase::attach(targ,flags); return *this; }
 
@@ -264,7 +281,7 @@ class CountedRef : private CountedRefBase
 
       //##ModelId=3CBEE39B0011
       //##Documentation
-      //## <<= on const target ptr is alias for attach as readonly, anonymous
+      //## <<= on const target_ ptr is alias for attach as readonly, anonymous
       const T& operator <<= (const T* targ)
       {
         attach(targ,DMI::ANON|DMI::READONLY);
@@ -272,7 +289,7 @@ class CountedRef : private CountedRefBase
       }
       //##ModelId=3CBEE3AC0105
       //##Documentation
-      //## <<= on target ptr is alias for attach as r/w, anonymous
+      //## <<= on target_ ptr is alias for attach as r/w, anonymous
       T& operator <<= (T* targ)
       {
         attach(targ,DMI::ANON|DMI::WRITE);
@@ -283,13 +300,13 @@ class CountedRef : private CountedRefBase
       //##Documentation
       //## <<= on other ref is alias for xfer
       template<class U>
-      CountedRef<T> & operator <<= (const CountedRef<U> &other)
+      CountedRef<T> & operator <<= (CountedRef<U> &other)
       {
         return xfer(other);
       }
 
     // Additional Public Declarations
-      // Constructor for implicitly allocating a new anonymous target.
+      // Constructor for implicitly allocating a new anonymous target_.
       // Flags must contain DMI::ANON, else exception is thrown.
       // T must have a default constructor.
       // Use, e.g.: CountedRef<T> ref(DMI::ANONWR);
@@ -302,14 +319,16 @@ class CountedRef : private CountedRefBase
       CountedRefBase::valid;
     //##ModelId=3DB9345003DE
       CountedRefBase::detach;
+      CountedRefBase::privatize;
     //##ModelId=3DB934510135
       CountedRefBase::isLocked;
     //##ModelId=3DB934510276
       CountedRefBase::isWritable;
+      CountedRefBase::isDirectlyWritable;
     //##ModelId=3DB934520105
-      CountedRefBase::isAnonObject;
+      CountedRefBase::isAnonTarget;
     //##ModelId=3DB934520250
-      CountedRefBase::hasOtherWriters;
+      CountedRefBase::isOnlyRef;
     //##ModelId=3DB934520390
       CountedRefBase::verify; 
     //##ModelId=3E01B0F70100
@@ -322,7 +341,6 @@ class CountedRef : private CountedRefBase
       // Add methods for in-place conversion between ref types.
       // Use with care! Since it returns itself by reference, calling this 
       // method on a temporary object can leave you with an invalid reference.
-      // The dummy U* argument is there to help template matching
       template<class U>
       CountedRef<U> & ref_cast (Type2Type<U>)
       { 
@@ -345,7 +363,7 @@ class CountedRef : private CountedRefBase
       { return ref_cast(Type2Type<U>()); }
       
       // Add operator [] for implicit indexing into contents.
-      // So far, this is only implemented in NestableContainer
+      // So far, this is only implemented in DMI::Container
     //##ModelId=4017F61F039E
       typename T::OpSubscriptReturnType operator [] (const HIID &id) const
       { return T::apply_subscript(*this,id); }
@@ -382,7 +400,7 @@ class CountedRef : private CountedRefBase
   protected:
     // Additional Protected Declarations
     //##ModelId=3DB934540014
-      CountedRefBase::target;
+      CountedRefBase::target_;
   
 };
 
@@ -451,21 +469,21 @@ inline const T& CountedRef<T>::operator * () const
 
 //##ModelId=3C8F61D10199
 template <class T>
-inline T* CountedRef<T>::dewr_p () const
+inline T* CountedRef<T>::dewr_p () 
 {
   return static_cast<T*>(getTargetWr());
 }
 
 //##ModelId=3BEFF73602B0
 template <class T>
-inline T& CountedRef<T>::dewr () const
+inline T& CountedRef<T>::dewr () 
 {
   return *dewr_p();
 }
 
 //##ModelId=3C0F806901C1
 template <class T>
-inline T& CountedRef<T>::operator () () const
+inline T& CountedRef<T>::operator () ()
 {
   return dewr();
 }
@@ -486,26 +504,16 @@ inline CountedRef<T>::operator const T* () const
 
 //##ModelId=3C0F80B501D4
 template <class T>
-inline CountedRef<T>::operator T& () const
+inline CountedRef<T>::operator T& () 
 {
   return dewr();
 }
 
 //##ModelId=3C0F80C0020C
 template <class T>
-inline CountedRef<T>::operator T* () const
+inline CountedRef<T>::operator T* () 
 {
   return dewr_p();
-}
-
-//##ModelId=3C17A06901DC
-template <class T>
-inline CountedRef<T>& CountedRef<T>::privatize (int flags, int depth)
-{
-// This simply defers to the base class Tclone(). It is provided here
-// so that specifc types may implement specific kind of cloning.
-  CountedRefBase::privatize(flags,depth);
-  return *this;
 }
 
 //##ModelId=3C187F270346
@@ -521,22 +529,6 @@ template <class T>
 inline CountedRef<T>& CountedRef<T>::unlock ()
 {
   CountedRefBase::unlock();
-  return *this;
-}
-
-//##ModelId=3C501A15015C
-template <class T>
-inline CountedRef<T>& CountedRef<T>::persist ()
-{
-  CountedRefBase::persist();
-  return *this;
-}
-
-//##ModelId=3C501A1C01FD
-template <class T>
-inline CountedRef<T>& CountedRef<T>::unpersist ()
-{
-  CountedRefBase::unpersist();
   return *this;
 }
 
@@ -562,7 +554,7 @@ inline CountedRef<T>::CountedRef (int flags)
 // to ref.copy(). For this implementation to work, destination
 // container must support the explicit resize operation.
 template<class SrcCont,class DestCont>
-void copyRefContainer (DestCont &dest,const SrcCont &src,int flags=DMI::PRESERVE_RW,int depth=-1)
+void copyRefContainer (DestCont &dest,const SrcCont &src,int flags=0,int depth=-1)
 {
   dest.resize(src.size());
   typename SrcCont::const_iterator si = src.begin();
@@ -576,5 +568,7 @@ void copyRefContainer (DestCont &dest,const SrcCont &src,int flags=DMI::PRESERVE
 //    BlockRef (as CountedRef<SmartBlock>), 
 #define DefineRefTypes(type,reftype) typedef CountedRef<type> reftype; 
 
+
+}; // namesapce DMI
 
 #endif

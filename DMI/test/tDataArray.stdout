@@ -1,12 +1,12 @@
 
 Expect type mismatch exception ...
 >>>
-[DataArray/082a4d38 RW Array(float,2)  10x12] array type mismatch (Array(double,2)/Array(float,2)) (context: Global)
+[Hook[DMI::NumArray/08255670Array(float,2)  10x12][(null)]] can't convert Array(float,2) to Array(double,2) (DMI)
 <<<
 
 Expect type mismatch exception ...
 >>>
-[DataArray/082a4d38 RW Array(float,2)  10x12] array type mismatch (double/Array(float,2)) (context: Global)
+[Hook[DMI::NumArray/08255670Array(float,2)  10x12][(null)]] can't convert Array(float,2)* to double* (DMI)
 <<<
 2[ 0 0 ][ 10 12 ][ 1 1 ][ 1 1 ]
 0[ 1 2 ][ 2 3 ][ 1 1 ][ 0 0 ]
@@ -15,12 +15,12 @@ Expect type mismatch exception ...
 2[ 1 0 ][ 4 12 ][ 1 2 ][ 1 1 ]
 
 Expect some HIID parser exceptions ...
-Only 3 values (start:end:incr) can be given per axis in HIID 1:3._:_:_:2
-Start 10 should be < axis length 10 in HIID 10._
-Start 12 should be < axis length 12 in HIID _.12
-End 9 should be >= start 10 in HIID _.10:9
-Stride 0 should be > 0 in HIID _.9:10:0
-HIID _._._ has more axes than the array (2)
+Only 3 values (start:end:incr) can be given per axis in HIID 1:3__:_:_:2
+Start 10 should be < axis length 10 in HIID 10__
+Start 12 should be < axis length 12 in HIID __12
+End 9 should be >= start 10 in HIID __10:9
+Stride 0 should be > 0 in HIID __9:10:0
+HIID _____ has more axes than the array (2)
 HIID : does not have a value before range delimiter
 HIID 1:: does not have a value before range delimiter
 HIID 1: does not have a value after range delimiter

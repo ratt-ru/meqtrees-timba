@@ -1,20 +1,18 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+#ifndef DMI_ConfigMgr_h
+#define DMI_ConfigMgr_h 1
 
-#ifndef ConfigMgr_h
-#define ConfigMgr_h 1
-
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-
-#include "Common/Debug.h"
-
+#include <DMI/DMI.h>
+#include <Common/Debug.h>
+    
+namespace DMI
+{
 
 //##ModelId=3CCFFDC300DA
 class ConfigMgr 
 {
   public:
       //##ModelId=EA0590B8FEED
-      ConfigMgr (const string& fname = "", bool nothrow = False);
+      ConfigMgr (const string& fname = "", bool nothrow = false);
 
 
       //##ModelId=0778FED4FEED
@@ -24,25 +22,25 @@ class ConfigMgr
       void clear ();
 
       //##ModelId=C0C4E648FEED
-      void load (const string& fname, bool nothrow = False);
+      void load (const string& fname, bool nothrow = false);
 
       //##ModelId=80D7E19EFEED
-      bool save (string fname = "", bool nothrow = False);
+      bool save (string fname = "", bool nothrow = false);
 
       //##ModelId=B4793134FEED
-      bool merge (const string& fname, bool override = True, bool nothrow = False);
+      bool merge (const string& fname, bool override = true, bool nothrow = false);
 
       //##ModelId=78C52656FEED
-      void merge (const ConfigMgr& other, bool override = True);
+      void merge (const ConfigMgr& other, bool override = true);
 
       //##ModelId=C8B74B35FEED
-      void merge (int argc, const char** argv, bool override = True);
+      void merge (int argc, const char** argv, bool override = true);
 
       //##ModelId=7D44D79AFEED
-      void merge (const vector<string> &str, bool override = True);
+      void merge (const vector<string> &str, bool override = true);
 
       //##ModelId=DC7A9961FEED
-      int mergeLine (const string& str, bool override = True);
+      int mergeLine (const string& str, bool override = true);
 
       //##ModelId=F23874E0FEED
       bool get (const string& name, int& value) const;
@@ -116,5 +114,5 @@ inline ConfigMgr::ConfigMap & ConfigMgr::config ()
   return config_; 
 }
 
-
+};
 #endif

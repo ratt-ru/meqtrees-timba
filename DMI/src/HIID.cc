@@ -24,6 +24,9 @@
 
 // Class HIID 
 
+namespace DMI
+{
+
 //##ModelId=3DB934880197
 HIID::HIID (const void* block, int sz)
   : Vector_AtomicID(sz/sizeof(int))
@@ -60,7 +63,7 @@ HIID HIID::subId (int first, int last) const
 bool HIID::matches (const HIID &other) const
 {
   if( this == &other )
-    return True;
+    return true;
   
   CVI iter = begin(),
       oiter = other.begin();
@@ -68,9 +71,9 @@ bool HIID::matches (const HIID &other) const
   {
     // hit a wildcard? matches everything till the end...
     if( (*iter).isWildcard() || (*oiter).isWildcard() )
-      return True;
+      return true;
     if( !(*iter).matches(*oiter) )  // mismatch at this position - drop out
-      return False;
+      return false;
   }
   // got to end of one? Match only if this is simultaneous, or either one
   // ends with wildcard
@@ -82,18 +85,18 @@ bool HIID::matches (const HIID &other) const
 bool HIID::subsetOf (const HIID &other) const
 {
   if( this == &other )
-    return True;
+    return true;
   
   CVI iter = begin(),
       oiter = other.begin();
   for( ; iter != end() && oiter != other.end(); iter++,oiter++ )
   {
     if( (*oiter).isWildcard() )       // other is "*" so we're always a subset
-      return True;
+      return true;
     if( (*iter).isWildcard()  ||      // we have "*" and they don't => fail
         ((*iter).isAny() && !(*oiter).isAny()) || // we have "?" they don't => fail
         !(*iter).matches(*oiter)  )   // mismatch at this position
-      return False;
+      return false;
   }
   // both had to have ended simultaneously (or the other HIID might have
   // an extra wildcard)
@@ -217,22 +220,22 @@ void HIID::unpack (const void* block, size_t sz)
 bool HIID::operator== (const HIID &right) const
 {
   if( this == &right )
-    return True;
+    return true;
   if( size() != right.size() )
-    return False;
+    return false;
 // vector is contigous, so just use:
   return !memcmp(&(front()),&(right.front()),size()*sizeof(AtomicID));
 //  for( CVI iter = begin(),oiter = right.begin(); iter != end(); iter++,oiter++ )
 //    if( *iter != *oiter )
-//      return False;
-//  return True;
+//      return false;
+//  return true;
 }
 
 //##ModelId=3DB9348B01E2
 bool HIID::operator < (const HIID &right) const
 {
   if( this == &right )
-    return False;
+    return false;
   
   CVI iter = begin(),
       oiter = right.begin();
@@ -240,9 +243,9 @@ bool HIID::operator < (const HIID &right) const
   for( ; iter != end() && oiter != right.end(); iter++,oiter++ )
   {
     if( (*iter) < (*oiter) )
-      return True;
+      return true;
     else if( (*iter) > (*oiter) )
-      return False;
+      return false;
   }
   // got to end of one or the other and everything is equal -- if there's
   // something left in the other, then we are <
@@ -288,3 +291,5 @@ void HIID::addString (const string &str,const string &sepset)
     }
   }
 }
+
+};

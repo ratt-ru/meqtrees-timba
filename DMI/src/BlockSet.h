@@ -1,19 +1,20 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+#ifndef DMI_BlockSet_h
+#define DMI_BlockSet_h 1
 
-#ifndef BlockSet_h
-#define BlockSet_h 1
+#include <DMI/DMI.h>
+#include <DMI/SmartBlock.h>
 
-#include "Common.h"
 #include <deque>
-
-// SmartBlock
-#include "DMI/SmartBlock.h"
-
+    
+namespace DMI
+{
+    
 //##ModelId=3BEA80A703A9
 //##Documentation
 //## A deque of block references.
 class BlockSet 
 {
+  ImportDebugContext(DebugDMI);
   public:
     //##ModelId=3BFA4B6501A7
       BlockSet(const BlockSet &right);
@@ -86,15 +87,11 @@ class BlockSet
 
       //##ModelId=3BFB85F30334
       //##Documentation
-      //## Copies all refs in the blockset to BlockSet out. The non-const
-      //## version supports the DMI::MAKE_READONLY flag, which willdo the  copy
-      //## & make the source set read-only.
+      //## Copies all refs in the blockset to BlockSet out. 
       int copyAll (BlockSet &out, int flags = 0) const;
 
-      //##ModelId=3C3EBF410288
-      int copyAll (BlockSet &out, int flags = 0);
-
       //##ModelId=3BFB8A3301D6
+      //## Privatizes all refs in the blockset 
       int privatizeAll (int flags = 0);
 
       //##ModelId=3BFB8E980315
@@ -145,17 +142,16 @@ class BlockSet
   private:
     // Additional Private Declarations
     //##ModelId=3DB9343A007C
-      typedef deque<BlockRef>::iterator DQI;
+      typedef std::deque<BlockRef>::iterator DQI;
     //##ModelId=3DB9343A00EA
-      typedef deque<BlockRef>::const_iterator CDQI;
+      typedef std::deque<BlockRef>::const_iterator CDQI;
       
     //##ModelId=3DB934460361
       DQI cursor_iter;
     //##ModelId=3DB9344603D8
       size_t cursor_offset;
     //##ModelId=3BF90ECC024E
-    deque<BlockRef> refs;
-
+      std::deque<BlockRef> refs;
       
     //##ModelId=3DB9344C0238
       size_t cursorSize ()   { return (*cursor_iter)->size(); }
@@ -205,5 +201,5 @@ inline bool BlockSet::empty () const
   return refs.empty();
 }
 
-
+}; // namespace DMI
 #endif

@@ -1,9 +1,12 @@
-#include "DMI/DataArray.h"
-#include "DMI/DataRecord.h"
+#include "DMI/NumArray.h"
+#include "DMI/Record.h"
 #include "Common/Debug.h"
 //#include <casa/Arrays/ArrayMath.h>
 //#include <casa/Arrays/ArrayLogical.h>
-    
+
+using namespace DebugDefault;
+using namespace DMI;
+        
 template<class T>
 inline ostream & operator << (ostream &str,const vector<T> &vec )
 {
@@ -17,12 +20,12 @@ inline ostream & operator << (ostream &str,const vector<T> &vec )
 int main()
 {
   try {
-    DataRecord rec;
-    rec["A"] <<= new DataArray(Tpfloat,makeLoShape(10,12));
-    DataArray* dtarr = rec["A"].as_wp<DataArray>();
-//    DataArray* dtarr1 = rec["A"].as_wp<DataArray>();
+    DMI::Record rec;
+    rec["A"] <<= new DMI::NumArray(Tpfloat,makeLoShape(10,12));
+    DMI::NumArray* dtarr = rec["A"].as_wp<DMI::NumArray>();
+//    DMI::NumArray* dtarr1 = rec["A"].as_wp<DMI::NumArray>();
 //    Assert (dtarr == dtarr1);
-    Assert (dtarr->objectType() == TpDataArray);
+    Assert (dtarr->objectType() == TpDMINumArray);
     Assert (dtarr->type() == TpArray(Tpfloat,2));
     LoMat_float farr = rec["A"];
     Assert (farr.size() == 10*12);

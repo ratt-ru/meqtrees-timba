@@ -3,7 +3,6 @@
 
 #include <Common/LofarTypedefs.h>
 #include <Common/Lorrays.h>
-#include <DMI/Common.h>
 #include <DMI/DMI.h>
 #include <DMI/TypeIterMacros.h>
 #include <DMI/Registry.h>
@@ -15,6 +14,9 @@
 #ifndef LORRAYS_USE_BLITZ
   #error AIPS++ array support disabled for now
 #endif
+
+namespace DMI
+{
 
 using Loki::TypeTraits;
 
@@ -124,7 +126,7 @@ inline TypeId TpMat (TypeId tpelem)
 inline TypeId TpCube (TypeId tpelem)
 { return TpArray(tpelem,3); }
 
-#pragma type :AtomicID
+#pragma type :DMI::AtomicID
 
 // these constants are used to distinguish built-ins from other types
 // (note that actual numeric values are all negative)
@@ -138,7 +140,7 @@ const TypeId NullType(0),TpNull(0);
 const TypeId TpNumeric(-9);
 // Incomplete type
 const TypeId TpIncomplete(-8);
-// Dereferenced type (see NestableContainer::get())
+// Dereferenced type (see DMI::Container::get())
 const TypeId TpObject(-7);
 
 //##ModelId=3E9BD9150133
@@ -160,13 +162,13 @@ class DMIBaseTypeTraits : public TypeTraits<T>
   // define DMI-specific type traits.
   // This is the default definition; all DMI-supported types
   // will provide a specialization.
-  // can type go into a NestableContainer?
+  // can type go into a DMI::Container?
     //##ModelId=3E9BD91702B5
   enum { isContainable = false };
   // TypeId
     //##ModelId=3E9BD91702C2
   enum { typeId = 0 };
-  // how is this type passed to/returned from a NestableContainer? 
+  // how is this type passed to/returned from a DMI::Container? 
   // Default is to use TypeTraits::ParameterType
     //##ModelId=3E9BD91402C3
   typedef typename TypeTraits<T>::ParameterType ContainerReturnType;
@@ -201,8 +203,8 @@ class DMITypeTraits : public DMIBaseTypeTraits<T>
   enum { isLorrayable = DMI_TL::IndexOf<DMI_TL::Arrayables,T>::value >= 0 };
     //##ModelId=3E9BD9170345
   enum { isArrayable  = isLorrayable };
-  enum { isLorray     = False };
-  enum { isArray      = True };
+  enum { isLorray     = false };
+  enum { isArray      = true };
 };
 
 // a partial specialization of the traits for Lorrays
@@ -213,12 +215,13 @@ class DMIBaseTypeTraits< blitz::Array<T,N> > : public TypeTraits< blitz::Array<T
   enum { isContainable = DMITypeTraits<T>::isLorrayable && N<10 };
   enum { typeId = TpintArray(DMIBaseTypeTraits<T>::typeId,N) };
   enum { TypeCategory = TypeCategories::INTERMEDIATE };
-  enum { isLorray     = True };
-  enum { isArray      = True };
+  enum { isLorray     = true };
+  enum { isArray      = true };
   typedef T ArrayElemType; 
   typedef blitz::Array<T,N> ContainerReturnType;
   typedef const blitz::Array<T,N> & ContainerParamType;
   enum { ParamByRef = true, ReturnByRef = false };
 };
 
+};
 #endif

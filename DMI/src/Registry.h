@@ -1,8 +1,9 @@
 #ifndef DMI_Registry_h
 #define DMI_Registry_h 1
 
-#include <DMI/Common.h>
+#include <Common/Debug.h>
 #include <DMI/DMI.h>
+#include <map>
 
 #ifdef USE_THREADS
 #include <Common/Thread/Mutex.h>
@@ -61,6 +62,14 @@
                             const Class::Registry::Value &val) \
   { registry.add(key,val); return 1; }
 
+namespace DMI
+{
+  
+class DebugRegistry 
+{
+  public:
+    LocalDebugContext;
+};
 
 //##ModelId=3C5A6FD40213
 //##Documentation
@@ -81,7 +90,7 @@
 //## can have the registry populated on strartup via simple static object
 //## declarations. See AtomicID for an example.
 template <class Key, class Val, class HostClass>
-class UniRegistry 
+class UniRegistry : public DebugRegistry
 {
   public:
       //##ModelId=3C5E983901C3
@@ -107,7 +116,7 @@ class UniRegistry
     //##ModelId=3DB9343E0353
       typedef Val Value;
     //##ModelId=3DB9343E0399
-      typedef map<Key,Val> Map;
+      typedef std::map<Key,Val> Map;
   private:
     //##ModelId=3DB934FD0362
       UniRegistry(const UniRegistry< Key,Val,HostClass > &right);
@@ -148,7 +157,7 @@ class BiRegistry : public UniRegistry<Key, Val, HostClass>
 
     // Additional Public Declarations
     //##ModelId=3DB934390373
-      typedef map<Val,Key> RevMap;
+      typedef std::map<Val,Key> RevMap;
   private:
     //##ModelId=3DB9344601A8
       BiRegistry(const BiRegistry< Key,Val,HostClass > &right);
@@ -170,7 +179,7 @@ class BiRegistry : public UniRegistry<Key, Val, HostClass>
 //##ModelId=3C5E8E9D011D
 
 template <class Key, class Val, class HostClass>
-class Registrar 
+class Registrar : public DebugRegistry
 {
   public:
       //##ModelId=3C5E8EC40246
@@ -225,13 +234,14 @@ void UniRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val)
     MapPtr = new Map;
 
   typename Map::const_iterator iter = MapPtr->find(key);
+  cdebug(1)<<"registering "<<key<<"="<<val<<std::endl;
   
   if( iter != MapPtr->end() && iter->second != val )
   {
     cerr<<"Error: conflicting registry definition for key "<<key<<endl;
     Throw("Error: duplicate registry definition");
   }
-  MapPtr->insert(make_pair(key,val));
+  MapPtr->insert(std::make_pair(key,val));
   
 }
 
@@ -277,6 +287,7 @@ void BiRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val)
 {
   lockMutex;
   UniRegistry<Key,Val,HostClass>::add(key,val);
+  cdebug(1)<<"registering "<<key<<"="<<val<<std::endl;
   if( !RevMapPtr )
     RevMapPtr = new RevMap;
   RevMapPtr->insert(make_pair(val,key));
@@ -288,6 +299,7 @@ void BiRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val,const Va
 {
   lockMutex;
   UniRegistry<Key,Val,HostClass>::add(key,val);
+  cdebug(1)<<"registering "<<key<<"="<<val<<std::endl;
   if( !RevMapPtr )
     RevMapPtr = new RevMap;
   RevMapPtr->insert(make_pair(revval,key));
@@ -336,5 +348,6 @@ Registrar<Key,Val,HostClass>::Registrar (const Key &key, const Val &val)
 #undef MapPtr
 #undef RevMapPtr
 
+}; // namespace DMI
 
 #endif

@@ -23,7 +23,6 @@
 #ifndef DMI_AtomicID_h
 #define DMI_AtomicID_h 1
 
-#include <DMI/Common.h>
 #include <DMI/DMI.h>
 #include <DMI/Registry.h>
 #include <Common/lofar_iostream.h>
@@ -34,9 +33,12 @@
 #pragma aid A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
 
 // define the strlowercase function, for want of a better place
-string strlowercase (const string &);
+std::string strlowercase (const std::string &);
 // define the struppercase function, for want of a better place
-string struppercase (const string &);
+std::string struppercase (const std::string &);
+
+namespace DMI
+{
 
 //##ModelId=3BE970170297
 //##Documentation
@@ -45,6 +47,8 @@ string struppercase (const string &);
 
 class AtomicID 
 {
+  ImportDebugContext(DebugDMI); 
+  
   public:
       //##ModelId=3BE970C40246
       AtomicID (int n = 0);
@@ -171,11 +175,11 @@ const AtomicID AidNull(0),
 //##Documentation
 //## AidIndex is a helper class which may be used to create an AtomicID
 //## corresponding to an array index
-class AidIndex : public AtomicID
+class AIDIndex : public AtomicID
 {
   public:
       //##ModelId=3C553F7100D2
-      AidIndex (int index = 0);
+      AIDIndex (int index = 0);
 
 };
 
@@ -293,7 +297,7 @@ inline int AtomicID::id () const
 // Class AidIndex 
 
 //##ModelId=3C553F7100D2
-inline AidIndex::AidIndex (int index)
+inline AIDIndex::AIDIndex (int index)
   : AtomicID( index )
 {
 }
@@ -330,5 +334,5 @@ inline bool AtomicID::operator>=(int right) const
 }
 
 
-
+};
 #endif

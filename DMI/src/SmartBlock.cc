@@ -1,19 +1,18 @@
 //##ModelId=3BEBD44D0103
-#include "DMI/SmartBlock.h"
+#include "SmartBlock.h"
 
-
-
-// Class SmartBlock 
+namespace DMI
+{
 
 SmartBlock::SmartBlock()
-  : block(0),datasize(0),shmid(0),delete_block(False)
+  : block(0),datasize(0),shmid(0),delete_block(false)
 {
   dprintf(2)("default constructor\n");
 }
 
 //##ModelId=3BFE299902D7
 SmartBlock::SmartBlock (void* data, size_t size, int flags)
-  : block(0),datasize(0),shmid(0),delete_block(False)
+  : block(0),datasize(0),shmid(0),delete_block(false)
 {
   dprintf(2)("constructor(data=%x,size=%d,fl=%x)\n",(int)data,size,flags);
   init(data,size,flags,0);
@@ -21,15 +20,15 @@ SmartBlock::SmartBlock (void* data, size_t size, int flags)
 
 //##ModelId=3BFA4FCA0387
 SmartBlock::SmartBlock (size_t size, int flags)
-  : block(0),datasize(0),shmid(0),delete_block(False)
+  : block(0),datasize(0),shmid(0),delete_block(false)
 {
   dprintf(2)("constructor(size=%d,fl=%x)\n",size,flags);
-  init( new char[size],size,flags|DMI::DELETE,0 );
+  init( new char[size],size,flags|DMI::ANON,0 );
 }
 
 //##ModelId=3BFE303F0022
 SmartBlock::SmartBlock (size_t size, int shm_flags, int flags)
-  : block(0),datasize(0),shmid(0),delete_block(False)
+  : block(0),datasize(0),shmid(0),delete_block(false)
 {
   dprintf(2)("constructor(size=%d,shmfl=%x,fl=%x)",size,shm_flags,flags);
   init(0,size,flags|DMI::SHMEM,shm_flags);
@@ -37,7 +36,7 @@ SmartBlock::SmartBlock (size_t size, int shm_flags, int flags)
 
 //##ModelId=3DB934E50248
 SmartBlock::SmartBlock (const SmartBlock &other, int flags)
-  : CountedRefTarget(),block(0),datasize(0),shmid(0),delete_block(False)
+  : CountedRefTarget(),block(0),datasize(0),shmid(0),delete_block(false)
 {
   dprintf(2)("copy constructor(%s,%x)\n",other.debug(),flags);
   FailWhen( !(flags&DMI::CLONE),"must use DMI::CLONE to copy");
@@ -64,7 +63,7 @@ SmartBlock & SmartBlock::operator=(const SmartBlock &right)
     if( !right.size() )
       return *this;
     block = new char[ datasize = right.size() ];
-    delete_block = True;
+    delete_block = true;
     memcpy(block,*right,datasize);
   }
   return *this;
@@ -81,7 +80,7 @@ void SmartBlock::init (void* data, size_t size, int flags, int shm_flags)
   FailWhen( flags&DMI::SHMEM,"shared memory not yet implemented" );
   block = static_cast<char*>(data);
   datasize = size;
-  delete_block = (flags&DMI::DELETE)!=0;
+  delete_block = (flags&DMI::ANON)!=0;
   shmid = 0;
   if( flags&DMI::ZERO )
     memset(block,0,datasize);
@@ -95,7 +94,7 @@ void SmartBlock::resize (size_t newsize, int flags)
   if( !block || !datasize )
   {
     if( newsize )
-      init( new char[newsize],newsize,flags|DMI::DELETE,0 );
+      init( new char[newsize],newsize,flags|DMI::ANON,0 );
   }
   else
   {
@@ -104,14 +103,14 @@ void SmartBlock::resize (size_t newsize, int flags)
     if( newsize )
     {
       newblock = new char[newsize];
-      memcpy(newblock,block,min(datasize,newsize));
+      memcpy(newblock,block,std::min(datasize,newsize));
     // pad with 0 if needed
       if( newsize > datasize && flags&DMI::ZERO )
         memset(newblock+datasize,0,newsize-datasize);
     // get rid of old block
     }
     destroy();
-    init( newblock,newsize,flags|DMI::DELETE,0 );
+    init( newblock,newsize,flags|DMI::ANON,0 );
   }
 }
 
@@ -156,3 +155,7 @@ string SmartBlock::sdebug ( int detail,const string &prefix,const char *name ) c
   }
   return out;
 }
+
+
+
+};

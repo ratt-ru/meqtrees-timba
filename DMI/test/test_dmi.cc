@@ -1,16 +1,19 @@
-#include "DMI/AID-DMI.h"
-#include "DMI/TID-DMI.h"
-#include "DMI/DataRecord.h"
-#include "DMI/DataArray.h"
-#include "DMI/DataField.h"
-#include "DMI/DataList.h"
-#include "DMI/BOIO.h"
-#include "DMI/NCIter.h"
+#include <DMI/AID-DMI.h>
+#include <DMI/TID-DMI.h>
+#include <DMI/Record.h>
+#include <DMI/NumArray.h>
+#include <DMI/Vec.h>
+#include <DMI/List.h>
+#include <DMI/BOIO.h>
+#include <DMI/ContainerIter.h>
     
 #define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
-
-        
-void TestFunc( const BlockRef &ref )
+    
+//using DMI::HIID;
+using namespace DebugDefault;
+using namespace DMI;
+    
+void TestFunc( const DMI::BlockRef &ref )
 {
   cout<<"======================= Copying ref in function\n";
   ref.copy();
@@ -23,62 +26,73 @@ void TestCountedRefs()
   cout<<"=============================================\n\n";
 
   cout<<"======================= Allocating two blocks\n";
-  SmartBlock block1(0x2000);
-  SmartBlock * block2 = new SmartBlock(0x2000);
+  DMI::SmartBlock block1(0x2000);
+  DMI::SmartBlock block1a(0x2000);
+  DMI::SmartBlock * block2 = new DMI::SmartBlock(0x2000);
+  DMI::SmartBlock * block2a = new DMI::SmartBlock(0x2000);
 
-  cout<<"======================= attaching ref1 to block1\n";
-  BlockRef ref1( block1,DMI::NON_ANON|DMI::WRITE );
-  cout<<"======================= attaching ref2/3 to block2\n";
-  BlockRef ref2( block2,DMI::ANON|DMI::WRITE ),
-           ref3( block2,DMI::ANON|DMI::READONLY );
+  cout<<"======================= attaching ref1/1ro to block1\n";
+  DMI::BlockRef ref1( block1,DMI::EXTERNAL|DMI::WRITE );
+  Assert(ref1.isDirectlyWritable());
+  DMI::BlockRef ref1ro( block1a,DMI::EXTERNAL|DMI::READONLY );
+  Assert(!ref1ro.isDirectlyWritable());
+  cout<<"======================= attaching ref2/2ro to block2\n";
+  DMI::BlockRef ref2( block2 );
+  Assert(ref2.isDirectlyWritable());
+  DMI::BlockRef ref2ro( block2a, DMI::READONLY );
+  // attaching as anon ignores READONLY
+  Assert(ref2ro.isDirectlyWritable());
+  
   paddr(ref1);
+  paddr(ref1ro);
   paddr(ref2);
-  paddr(ref3);
+  paddr(ref2ro);
 
   cout<<"======================= ref1 -> ref1a (copy constructor)\n";
-  BlockRef ref1a(ref1,DMI::COPYREF|DMI::WRITE);
+  Assert(ref1.isOnlyRef());
+  DMI::BlockRef ref1a = ref1;
   paddr(ref1a);
-  Assert( block1.refCount() == 2 );
+  Assert(!ref1.isOnlyRef());
+  Assert(block1.targetReferenceCount() == 2 );
+  Assert(!ref1.isDirectlyWritable());
+  Assert(!ref1a.isDirectlyWritable());
   cout<<"======================= ref1a -> ref1b (copy() method)\n";
-  BlockRef ref1b = ref1a.copy();
+  DMI::BlockRef ref1b = ref1a.copy();
   paddr(ref1b);
-  Assert( block1.refCount() == 3 );
+  Assert( block1.targetReferenceCount() == 3 );
   cout<<"======================= ref1b -> ref1c (xfer constructor)\n";
-  BlockRef ref1c(ref1b);
+  DMI::BlockRef ref1c(ref1b,DMI::XFER);
   paddr(ref1c);
-  Assert( block1.refCount() == 3 );
+  Assert( block1.targetReferenceCount() == 3 );
+  Assert( !ref1b.valid() );
 
-  cout<<"======================= privatizing ref3\n";
-  ref3.privatize();
-  Assert( block2->refCount() == 1 );
-  Assert( ref3.deref().refCount() == 1);
-  cout<<"======================= passing ref3 to function taking a LockedRef\n";
-  TestFunc(ref3);
-
-  cout<<"======================= ref1a -> ref1d (copy(PERSIST))\n";
-  BlockRef ref1d = ref1a.copy(DMI::PERSIST);
-  cout<<"======================= ref1d -> ref1e (= operator)\n";
-  BlockRef ref1e = ref1d;
-
-  cout<<"======================= copying ref2 -> ref2a (copy(PRESERVE_RW))\n";
-  BlockRef ref2a = ref2.copy(DMI::PRESERVE_RW);
-  Assert( block2->refCount() == 2 );
-  Assert( ref2a.isWritable() );
+  cout<<"======================= writing to ref1c\n";
+  Assert(!ref1c.isAnonTarget());
+  paddr(ref1c);
+  ref1c.dewr();
+  paddr(ref1c);
+  Assert(ref1c.isAnonTarget());
+  Assert(block1.targetReferenceCount() == 2 );
+  Assert(ref1c.deref().targetReferenceCount() == 1);
+  Assert(ref1c.isDirectlyWritable());
+  Assert(!ref1.isDirectlyWritable());
+  ref1a.detach();
+  Assert(ref1.isDirectlyWritable());
   cout<<"======================= exiting CountedRef Block\n";
 }
 
-void TestDataField ()
+void TestVec ()
 {
   cout<<"=============================================\n";
-  cout<<"======================= Testing DataField   =\n";
+  cout<<"======================= Testing DMI::Vec   =\n";
   cout<<"=============================================\n\n";
 
   cout<<"======================= allocating empty field\n";
-  DataField f1;
+  DMI::Vec f1;
   cout<<f1.sdebug(2)<<endl;
 
   cout<<"======================= allocating field of 32 ints\n";
-  DataField f2(Tpint,32);
+  DMI::Vec f2(Tpint,32);
   f2[0] = 1;
   f2[15] = 2;
   cout<<f2.sdebug(2)<<endl;
@@ -87,12 +101,12 @@ void TestDataField ()
   cout<<endl;
 
   cout<<"======================= converting to block: \n";
-  BlockSet set;
+  DMI::BlockSet set;
   cout<<"toBlock returns "<<f2.toBlock(set)<<endl;
   cout<<"and set: "<<set.sdebug(1)<<endl;
 
   cout<<"======================= building from block: \n";
-  DataField f2a;
+  DMI::Vec f2a;
   cout<<"Empty field allocated\n";
   cout<<"fromBlock returns "<<f2a.fromBlock(set)<<endl;
   cout<<"remaining set: "<<set.sdebug(1)<<endl;
@@ -103,23 +117,23 @@ void TestDataField ()
   cout<<"======================= exiting and destroying:\n";
 }
     
-void TestDataList ()
+void TestList ()
 {
   cout<<"=============================================\n";
-  cout<<"======================= Testing DataList    =\n";
+  cout<<"======================= Testing DMI::List    =\n";
   cout<<"=============================================\n\n";
 
   cout<<"======================= allocating empty list\n";
-  DataList f1;
+  DMI::List f1;
   cout<<f1.sdebug(2)<<endl;
-  f1[0] <<= new DataRecord;
+  f1[0] <<= new DMI::Record;
   cout<<f1.sdebug(2)<<endl;
 
   cout<<"======================= allocating list of 3 items\n";
-  DataList f2;
+  DMI::List f2;
   f2[0] = 1;
   f2[1] = "a string";
-  f2[2] <<= new DataRecord;
+  f2[2] <<= new DMI::Record;
   f2[2]["a"] = 1;
   f2[2]["b"] = "another string";
   cout<<f2.sdebug(4)<<endl;
@@ -127,12 +141,12 @@ void TestDataList ()
   cout<<"f2[2][b]: "<<f2[2]["b"].as<string>()<<endl;
 
   cout<<"======================= converting to block: \n";
-  BlockSet set;
+  DMI::BlockSet set;
   cout<<"toBlock returns "<<f2.toBlock(set)<<endl;
   cout<<"and set: "<<set.sdebug(1)<<endl;
 
   cout<<"======================= building from block: \n";
-  DataList f2a;
+  DMI::List f2a;
   cout<<"Empty list allocated\n";
   cout<<"fromBlock returns "<<f2a.fromBlock(set)<<endl;
   cout<<"remaining set: "<<set.sdebug(1)<<endl;
@@ -142,21 +156,21 @@ void TestDataList ()
   cout<<"======================= exiting and destroying:\n";
 }
 
-void TestDataRecord ()
+void TestRecord ()
 {
   cout<<"=============================================\n";
-  cout<<"======================= Testing DataRecord   =\n";
+  cout<<"======================= Testing DMI::Record   =\n";
   cout<<"=============================================\n\n";
 
   cout<<"======================= allocating empty record\n";
-  DataRecord rec;
+  DMI::Record rec;
 
   cout<<"======================= allocating field of 32 ints\n";
-  DataFieldRef f2(new DataField(Tpint,32),DMI::ANON|DMI::WRITE); 
-  DataField &f = f2.dewr();
+  DMI::Vec::Ref f2(new DMI::Vec(Tpint,32)); 
+  DMI::Vec &f = f2;
   f[0] = 1;
-  f[15] = 2.5;
-//  Assert(f[HIID()].as_int_p() != 0);
+  f2[15] = 2.5;
+  Assert(f[HIID()].as_p<int>() != 0);
   cout<<f2->sdebug(2)<<endl;
   for( int i=0; i<32; i++ )
     cout<<(float)(f[i])<<" ";
@@ -164,15 +178,19 @@ void TestDataRecord ()
   cout<<"======================= adding to record\n";
   HIID id("A.B.C.D");
   cout<<"ID: "<<id.toString()<<endl;
-  rec.add(id,f2.dewr_p(),DMI::COPYREF|DMI::WRITE);
-  rec["A.B.C.D"][20] = 5;
+  rec.add(id,f2);
+  Assert( f.targetReferenceCount() == 2 );
+  Assert( !f2.isDirectlyWritable() );
+  rec["A.B.C.D"][20] = 5; // should cause COW
+  Assert( f2.isDirectlyWritable() == 1);
+  Assert( f.targetReferenceCount() == 1 );
   Assert( rec["A.B.C.D"].exists() );
   Assert( rec["A.B.C.D"].size() == 32 );
   Assert( rec["A.B.C.D"].type() == Tpint );
   Assert( rec["A.B.C.D"][20].type() == Tpint );
   Assert( rec["A.B.C.D"].isContainer() );
-  Assert( rec["A.B.C.D"].actualType() == TpObjRef );
-  Assert( rec["A.B.C.D"].containerType() == TpDataField );
+  Assert( rec["A.B.C.D"].actualType() == TpDMIObjRef );
+  Assert( rec["A.B.C.D"].containerType() == TpDMIVec );
   cout<<"Values: {{{"<<(int)(rec["A.B.C.D"][20])<<" "<<(int*)&(rec["A.B.C.D"][20])
       <<"  "<<rec["A.B.C.D"].as_p<int>()<<" }}}\n";
   Assert( rec["A.B.C.D/20"].as<int>() == 5 );
@@ -183,10 +201,10 @@ void TestDataRecord ()
   rec["A.B.C.E"] = HIID("A.B.C.D");
   Assert( rec["A.B.C.E"].exists() );
   Assert( rec["A.B.C.E"].size() == 1 );
-  Assert( rec["A.B.C.E"].type() == TpHIID );
+  Assert( rec["A.B.C.E"].type() == TpDMIHIID );
   Assert( rec["A.B.C.E"].isContainer() );
-  Assert( rec["A.B.C.E"].actualType() == TpObjRef );
-  Assert( rec["A.B.C.E"].containerType() == TpDataField );
+  Assert( rec["A.B.C.E"].actualType() == TpDMIObjRef );
+  Assert( rec["A.B.C.E"].containerType() == TpDMIVec );
   Assert( rec["A.B.C.E/0"].as<HIID>() == HIID("A.B.C.D") );
   HIID id1;
   Assert( rec["A.B.C.E"].get(id1) );
@@ -224,8 +242,8 @@ void TestDataRecord ()
   Assert( rec["A.B.C.F"].size() == 2 );
   Assert( rec["A.B.C.F"].type() == Tpstring );
   Assert( rec["A.B.C.F"].isContainer() );
-  Assert( rec["A.B.C.F"].actualType() == TpObjRef );
-  Assert( rec["A.B.C.F"].containerType() == TpDataField );
+  Assert( rec["A.B.C.F"].actualType() == TpDMIObjRef );
+  Assert( rec["A.B.C.F"].containerType() == TpDMIVec );
   Assert( rec["A.B.C.F/1"].as<string>() == "another test string" );
   string str1;
   Assert( rec["A.B.C.F/1"].get(str1) );
@@ -243,14 +261,14 @@ void TestDataRecord ()
   rec["A.B.C.D/31"] = 5;
   Assert( rec["A.B.C.D"].size() == 32 );
   cout<<"======================= making compound record\n";
-  rec["B"] <<= new DataRecord;
+  rec["B"] <<= new DMI::Record;
   rec["C"] = f2.copy();
   rec["D"] = f2.copy();
-//  Assert( rec["B"].as_DataRecord_wp() != 0 );
+//  Assert( rec["B"].as_DMI::Record_wp() != 0 );
   cout<<"===== added subrecord B\n"<<rec.sdebug(3)<<endl;
-  rec["B"]["C"] <<= new DataRecord;
+  rec["B"]["C"] <<= new DMI::Record;
   cout<<"===== added subrecord B.C\n"<<rec.sdebug(10)<<endl;
-  rec["B"]["C"]["A"] <<= new DataField(Tpint,32);
+  rec["B"]["C"]["A"] <<= new DMI::Vec(Tpint,32);
   rec["B/C/A/10"] = 5;
   rec["B/C/B"] = "a string";
   rec["B/C/C"] = "yet another string";
@@ -258,12 +276,12 @@ void TestDataRecord ()
   cout<<"Record is "<<rec.sdebug(10)<<endl;
 
   cout<<"======================= converting record to blockset\n";
-  BlockSet set;
+  DMI::BlockSet set;
   rec.toBlock(set);
   cout<<"blockset is: "<<set.sdebug(2)<<endl;
   
   cout<<"======================= loading record from blockset\n";
-  DataRecord rec2;
+  DMI::Record rec2;
   rec2.fromBlock(set);
   cout<<"New record is "<<rec2.sdebug(10)<<endl;
   cout<<"Blockset now "<<set.sdebug(2)<<endl;
@@ -288,48 +306,41 @@ void TestDataRecord ()
   cout<<"======================= getting reference from record\n";
   cout<<rec["B/C/A"].ref().debug(3)<<endl;
 
-  cout<<"======================= deep-cloning record\n";
-  DataRecord rec3 = rec2;
-  cout<<"Record 3 after cloning: "<<rec3.sdebug(10)<<endl;
-//  rec3.setBranch("B",DMI::PRIVATIZE|DMI::WRITE|DMI::DEEP);
-//  cout<<"Record 3 after privatize of branch B: "<<rec3.sdebug(10)<<endl;
-  rec3.privatize(DMI::WRITE|DMI::DEEP);
-  cout<<"Record 3 after full deep-privatize: "<<rec3.sdebug(10)<<endl;
-  rec3["B"].privatize(DMI::READONLY|DMI::DEEP);
-  cout<<"Record 3 after branch B privatize as read-only: "<<rec3.sdebug(10)<<endl;
-  
-  cout<<"======================= checking privatize-on-write features\n";
+  cout<<"======================= checking copy-on-write features\n";
   {
-    DataRecord::Ref rref1(new DataRecord(rec,DMI::READONLY|DMI::DEEP),DMI::READONLY|DMI::ANON);
-    DataRecord::Ref rref2(rref1,DMI::COPYREF|DMI::READONLY);
-    cout<<"rref1 is ref to deep r/o clone of rec: "<<rref1.sdebug(10)<<endl;
-    cout<<"rref2 is r/o copy of rref1: "<<rref2.sdebug(1)<<endl;
-    rref1.privatize(DMI::WRITE);
-    DataRecord &rr = rref1;
-    const DataRecord &rr2 = *rref2;
-    cout<<"rr after privatize(DMI::WRITE): "<<rr.sdebug(10)<<endl;
+    DMI::Record::Ref rref1(rec,DMI::EXTERNAL|DMI::READONLY);
+    DMI::Record::Ref rref2(rref1);
+    DMI::Record::Ref rref3(rref1);
+    Assert(!rref1.isDirectlyWritable());
+    Assert(!rref2.isDirectlyWritable());
+    cout<<"rref1 is ref to rec: "<<rref1.sdebug(1)<<endl;
+    cout<<"rref2 is ref to rec: "<<rref2.sdebug(1)<<endl;
+    DMI::Record &rr = rref1; // this should cause COW of rref1
+    Assert(rref1.isOnlyRef());
+    Assert(rref1.isAnonTarget());
+    const DMI::Record &rr2 = *rref2; // no COW: read-only
+    Assert(!rref2.isOnlyRef());
+    rref2 = rref1.copy();
+    Assert(!rref1.isOnlyRef());
     
-//    rec["B/C/A/10"] = 5;
-//    rec["B/C/B"] = "a string";
-//    Assert( rec["B/C/A"][10].as<int>() == 5 );
-    
-    int a1 = (*rref1)["B/C/A/10"];
-    string a2 = (*rref1)["B/C/B"].as<string>();
-    rr["B/C/A/10"] = 55;
-    cout<<"rr after assignment to B/C/A/10: "<<rr.sdebug(10)<<endl;
-    rr["B/C/B"] = "another string";
-    cout<<"rr after assignment to B/C/B: "<<rr.sdebug(10)<<endl;
-    cout<<"Original record: "<<rref2->sdebug(10)<<endl;
-    Assert( rr2["B/C/A"][10].as<int>() == a1 );
-    Assert( rr2["B/C/B"].as<string>() == a2 );
-    Assert( rr["B/C/A"][10].as<int>() == 55 );
-    Assert( rr["B/C/B"].as<string>() == "another string" );
-    Assert( rr["C"].as_p<DataField>() == rr2["C"].as_p<DataField>() );
-    Assert( rr["B"].as_p<DataRecord>() != rr2["B"].as_p<DataRecord>() );
-    Assert( rr["B/C"].as_p<DataRecord>() != rr2["B/C"].as_p<DataRecord>() );
-    Assert( rr["B/C/A"].as_p<DataField>() != rr2["B/C/A"].as_p<DataField>() );
-    Assert( rr["B/C/B"].as_p<DataField>() != rr2["B/C/B"].as_p<DataField>() );
-    Assert( rr["B/C/C"].as_p<DataField>() == rr2["B/C/C"].as_p<DataField>() );
+    int a1 = rref1["B/C/A/10"];
+    string a2 = rref1["B/C/B"].as<string>();
+    // no cow yet, should be the same objects
+    Assert(rref1["B/C/A/10"].as_p<int>() == rref2["B/C/A/10"].as_p<int>());
+    Assert(rref1["B/C/B"].as_p<string>() == rref2["B/C/B"].as_p<string>());
+    // now assign, causing cow
+    rref1["B/C/A/10"] = 55;
+    rref1["B/C/B"] = "another string";
+    Assert( rref2["B/C/A"][10].as<int>() == a1 );
+    Assert( rref2["B/C/B"].as<string>() == a2 );
+    Assert( rref1["B/C/A"][10].as<int>() == 55 );
+    Assert( rref1["B/C/B"].as<string>() == "another string" );
+    Assert( rref1["C"].as_p<DMI::Vec>() == rref2["C"].as_p<DMI::Vec>() );
+    Assert( rref1["B"].as_p<DMI::Record>() != rref2["B"].as_p<DMI::Record>() );
+    Assert( rref1["B/C"].as_p<DMI::Record>() != rref2["B/C"].as_p<DMI::Record>() );
+    Assert( rref1["B/C/A"].as_p<DMI::Vec>() != rref2["B/C/A"].as_p<DMI::Vec>() );
+    Assert( rref1["B/C/B"].as_p<DMI::Vec>() != rref2["B/C/B"].as_p<DMI::Vec>() );
+    Assert( rref1["B/C/C"].as_p<DMI::Vec>() == rref2["B/C/C"].as_p<DMI::Vec>() );
     
     cout<<"======================= accessing via read-only ref\n";
     cout<<"ref before write access: "<<rref2.sdebug(10)<<endl;
@@ -337,38 +348,40 @@ void TestDataRecord ()
     rref2["B/C/A"][10] = 66;
     cout<<"ref after write access: "<<rref2.sdebug(10)<<endl;
     Assert(rref2["B/C/A"][10].as<int>() == 66 );
-    
   }
   
-//  cout<<"======================= autoprivatizing rec3[B/C/A] for write\n";
-//  rec3.setBranch("B/C/A",DMI::WRITE)[10] = 2;
-//  cout<<"Record 3 is now: "<<rec3.sdebug(10)<<endl;
-
   cout<<"======================= removing field B/C/A from record\n";
   cout<<"Original record: "<<rec.sdebug(10)<<endl;
-  ObjRef fref;  
+  ObjRef fref;
   fref = rec["B/C/A"].remove();
   Assert(fref.valid());
+  Assert(!rec["B/C/A"].exists());
   cout<<"Record is now: "<<rec.sdebug(10)<<endl;
   cout<<"Removed field is: "<<fref.sdebug(10)<<endl;
 
   cout<<"======================= reattaching instead of B/C\n";
   ObjRef fref2;
   rec["B"]["C"].detach(&fref2) = fref;
+  Assert(fref2.valid());
+  Assert(fref.valid());
+  Assert(fref == rec["B/C"].ref());
   cout<<"Record is now: "<<rec.sdebug(10)<<endl;
   cout<<"Removed field is: "<<fref2.sdebug(10)<<endl;
   cout<<"======================= copying as B/E\n";
   rec["B/E"] = fref2;
   cout<<"Record is now: "<<rec.sdebug(10)<<endl;
   cout<<"Source field is: "<<fref2.sdebug(10)<<endl;
+  Assert(rec["B/E"].ref() == fref2);
   cout<<"======================= inserting as B/F\n";
   rec["B/F"] <<= fref2;
   cout<<"Record is now: "<<rec.sdebug(10)<<endl;
   cout<<"Source field is: "<<fref2.sdebug(10)<<endl;
+  Assert(rec["B/E"].ref() == rec["B/F"].ref());
+  Assert(!fref2.valid());
   cout<<"======================= testing arrays\n";
   cout<<"Creating 10x10 double array\n";
-  rec["X"] <<= new DataArray(Tpdouble,makeLoShape(10,10));
-  rec["X.X"] <<= new DataArray(Tpdouble,makeLoShape(1));
+  rec["X"] <<= new DMI::NumArray(Tpdouble,makeLoShape(10,10));
+  rec["X.X"] <<= new DMI::NumArray(Tpdouble,makeLoShape(1));
   cout<<"Record is now: "<<rec.sdebug(10)<<endl;
   
   cout<<"Accessing the array\n";
@@ -403,38 +416,37 @@ void TestDataRecord ()
   cout<<"Record is now: "<<rec.sdebug(10)<<endl;
   
   cout<<"Checking transparent array indexing\n";
-  rec["X.Y.Z"] <<= new DataArray(Tpdouble,makeLoShape(10),DMI::ZERO);
+  rec["X.Y.Z"] <<= new DMI::NumArray(Tpdouble,makeLoShape(10),DMI::ZERO);
   Assert(rec["X.Y.Z"][0].as<double>() == 0);
-  
   {
-    cout<<"Checking NCIters\n";
-    NCIter_double data(rec["X.Y.Z"]);
+    cout<<"Checking ContainerIters\n";
+    ContainerIter<double> data(rec["X.Y.Z"]);
     cout<<"filling "<<data.size()<<endl;
     while( !data.end() )
       data.next(0);
   }
-  cout<<"======================= testing sparse DataField\n";
-  cout<<"Checking sparse DataField\n";
-  rec["G"] <<= new DataField(TpDataArray,5);
-  rec["G"][0] <<= new DataArray(Tpint,makeLoShape(10,10));
-  rec["G"][5] <<= new DataArray(Tpint,makeLoShape(10,10));
+  cout<<"======================= testing sparse DMI::Vec\n";
+  cout<<"Checking sparse DMI::Vec\n";
+  rec["G"] <<= new DMI::Vec(TpDMINumArray,5);
+  rec["G"][0] <<= new DMI::NumArray(Tpint,makeLoShape(10,10));
+  rec["G"][5] <<= new DMI::NumArray(Tpint,makeLoShape(10,10));
   cout<<"DF[0]: "<<rec["G"][0].exists()<<endl;
   cout<<"DF[1]: "<<rec["G"][1].exists()<<endl;
   cout<<"DF[5]: "<<rec["G"][5].exists()<<endl;
   
   cout<<"======================= testing Array<string>\n";
-  DataArray &strarr = *new DataArray(Tpstring,makeLoShape(10,10),DMI::WRITE|DMI::ZERO);
+  DMI::NumArray &strarr = *new DMI::NumArray(Tpstring,makeLoShape(10,10),DMI::WRITE|DMI::ZERO);
   rec["A.Z.G"] <<= strarr;
   for(int i=0; i<10; i++)
     for(int j=0; j<10; j++)
       rec[HIID("A.Z.G")][HIID(i)|j] = Debug::ssprintf("%d-%d",i,j);
 //  cout<<"Array contents: "<<rec["A.Z.G"].as_LoMat_string()<<endl;
   cout<<"converting to block\n";
-  BlockSet arrset;
+  DMI::BlockSet arrset;
   strarr.toBlock(arrset);
   
   cout<<"converting from block\n";
-  DataArray strarr2;
+  DMI::NumArray strarr2;
   strarr2.fromBlock(arrset);
 //  cout<<"Array contents: "<<strarr2[HIID()].as_LoMat_string()<<endl;
   for(int i=0; i<10; i++)
@@ -447,7 +459,7 @@ void TestDataRecord ()
   cout<<"======================= writing\n";
   BOIO boio("test.boio",BOIO::WRITE);
   cout<<"Record is now: "<<rec.sdebug(10)<<endl;
-  boio << rec << rec["X"].as<DataArray>();
+  boio << rec << rec["X"].as<DMI::NumArray>();
   boio.close();
   
   cout<<"======================= reading\n";
@@ -461,22 +473,22 @@ void TestDataRecord ()
   cout<<"======================= finished reading\n";
   boio.close();
   
-  cout<<"======================= testing DataRecord::merge\n";
+  cout<<"======================= testing DMI::Record::merge\n";
   {
-    DataRecord rec1,rec2;
+    DMI::Record rec1,rec2;
     rec1["A"] = 0;
     rec1["B"] = 1;
     rec1["C"] = 2;
     rec2["C"] = 22;
     rec2["D"] = 3;
     
-    DataRecord rec1a(rec1,DMI::WRITE|DMI::DEEP);
-    rec1a.merge(rec2,False); // merge w/o overwrite
+    DMI::Record rec1a(rec1,DMI::WRITE|DMI::DEEP);
+    rec1a.merge(rec2,false); // merge w/o overwrite
     Assert( rec1a["A"].as<int>() == 0 );
     Assert( rec1a["C"].as<int>() == 2 );
     Assert( rec1a["D"].as<int>() == 3 );
-    DataRecord rec1b(rec1,DMI::WRITE|DMI::DEEP);
-    rec1b.merge(rec2,True); // merge w/o overwrite
+    DMI::Record rec1b(rec1,DMI::WRITE|DMI::DEEP);
+    rec1b.merge(rec2,true); // merge w/o overwrite
     Assert( rec1b["A"].as<int>() == 0 );
     Assert( rec1b["C"].as<int>() == 22 );
     Assert( rec1b["D"].as<int>() == 3 );
@@ -504,9 +516,9 @@ int main ( int argc,const char *argv[] )
     cout<<test.toString()<<endl;
     cout<<HIID("_._.:6").toString()<<endl;
     TestCountedRefs();
-    TestDataField();
-    TestDataList();
-    TestDataRecord();
+    TestVec();
+    TestList();
+    TestRecord();
   }
   catch( std::exception &err )
   {

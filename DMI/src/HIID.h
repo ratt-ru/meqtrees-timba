@@ -23,15 +23,16 @@
 #ifndef DMI_HIID_h
 #define DMI_HIID_h 1
 
-#include <DMI/Common.h>
 #include <DMI/DMI.h>
 #include <DMI/AtomicID.h>
+#include <Common/lofar_iostream.h>
 
 #include <vector>
-#include <Common/lofar_iostream.h>
     
-#pragma type =HIID
+#pragma type =DMI::HIID
 
+namespace DMI
+{
 
 //##ModelId=3C55652D01B8
 typedef std::vector<AtomicID> Vector_AtomicID;
@@ -88,7 +89,7 @@ class HIID : public Vector_AtomicID
       //##ModelId=3BE9792B0135
       //##Documentation
       //## Does a comparison with another HIID, interpreting the Any ("?") and
-      //## Wildcard ("*") AIDs in the conventional way.   Returns True when
+      //## Wildcard ("*") AIDs in the conventional way.   Returns true when
       //## there is a match.
       //## NB: Currently, the "*" wildcard should only appear at the end of a
       //## HIID. Anything following the * is ignored for the purposes of this
@@ -98,14 +99,14 @@ class HIID : public Vector_AtomicID
       //##ModelId=3C99A0400186
       //##Documentation
       //## Does a comparison with another HIID, interpreting the Any ("?") and
-      //## Wildcard ("*") AIDs in the conventional way.   Returns True if this
+      //## Wildcard ("*") AIDs in the conventional way.   Returns true if this
       //## HIID is a  subset of the other HIID (i.e., when all HIIDs matching _
       //## this_ also match  _other_).
       bool subsetOf (const HIID &other) const;
 
       //##ModelId=3CBEB7E2034E
       //##Documentation
-      //## Returns True if other is a prefix of this.
+      //## Returns true if other is a prefix of this.
       bool prefixedBy (const HIID &other) const;
 
       //##ModelId=3C59522600D6
@@ -184,6 +185,8 @@ class HIID : public Vector_AtomicID
       // be called from a debugger
     //##ModelId=3E01BA7A02AF
       void print () const;
+
+      ImportDebugContext(DebugDMI);
       
   private:
     // Additional Implementation Declarations
@@ -394,5 +397,7 @@ template<class In> inline HIID::HIID( In first,In last )
   reserve();
 }
 
+
+};
 
 #endif

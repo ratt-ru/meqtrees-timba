@@ -1,4 +1,4 @@
-//  DataField.cc: DataField implementation
+//  DMI::Vec.cc: DMI::Vec implementation
 //
 //  Copyright (C) 2002
 //  ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -21,68 +21,68 @@
 //  $Id$
 
 #define NC_SKIP_HOOKS 1
-#include "DataField.h"
+#include "Vec.h"
 #include "DynamicTypeManager.h"
 #include "Packer.h"
 
 static int nullheader_data[] = {0,0};
-static SmartBlock nullheader_block( nullheader_data,sizeof(nullheader_data),DMI::NO_DELETE );
-static BlockRef nullheader(nullheader_block,DMI::EXTERNAL|DMI::LOCK|DMI::READONLY);
-static ObjRef NullRef;
-static NestableContainer::Register reg(TpDataField,True);
+static DMI::SmartBlock nullheader_block( nullheader_data,sizeof(nullheader_data),DMI::EXTERNAL );
+static DMI::BlockRef nullheader(nullheader_block,DMI::EXTERNAL|DMI::LOCK|DMI::READONLY);
+static DMI::Container::Register reg(TpDMIVec,true);
 
 //##ModelId=3C3D64DC016E
-DataField::DataField ()
-  : spvec(0),mytype(0),mysize_(0),selected(False)
+DMI::Vec::Vec ()
+  : spvec(0),mytype(0),mysize_(0)
 {
   dprintf(2)("default constructor\n");
   spvec = 0;
 }
 
 //##ModelId=3C3EE3EA022A
-DataField::DataField (const DataField &right, int flags, int depth)
-    : NestableContainer(),spvec(0),mytype(0)
+DMI::Vec::Vec (const Vec &right, int flags, int depth)
+    :Container(),spvec(0),mytype(0)
 {
   dprintf(2)("copy constructor (%s,%x)\n",right.debug(),flags);
-  cloneOther(right,flags,depth);
+  cloneOther(right,flags,depth,true);
 }
 
 //##ModelId=3BFA54540099
-DataField::DataField (TypeId tid, int num, const void *data)
-    : spvec(0),mytype(0),mysize_(0),selected(False)
+DMI::Vec::Vec (TypeId tid, int num, const void *data)
+    : spvec(0),mytype(0),mysize_(0)
 {
   dprintf(2)("constructor(%s,%d)\n",tid.toString().c_str(),num);
   init(tid,num,data);
 }
 
 //##ModelId=3DB9346F0095
-DataField::~DataField()
+DMI::Vec::~Vec()
 {
   dprintf(2)("destructor\n");
   clear();
 }
 
 //##ModelId=3DB9346F017B
-DataField & DataField::operator=(const DataField &right)
+DMI::Vec & DMI::Vec::operator = (const DMI::Vec &right)
 {
   if( &right != this )
   {
     Thread::Mutex::Lock _nclock(mutex());
     dprintf(2)("assignment of %s\n",right.debug());
-// removed for now since it seems like a useless limitation
-// OMS 01/10/03
-//    FailWhen( valid(),"field is already initialized" );
     clear();
     if( right.valid() )
-      cloneOther(right,0,0);
+      cloneOther(right,0,0,false);
   }
   return *this;
 }
 
-
+void DMI::Vec::makeNewHeader (size_t extra_size) const
+{
+  headref_ <<= new SmartBlock(sizeof(HeaderBlock) + extra_size);
+  phead_ = static_cast<HeaderBlock*>(headref_().data());
+}
 
 //##ModelId=3C6161190193
-DataField & DataField::init (TypeId tid, int num, const void *data)
+DMI::Vec & DMI::Vec::init (TypeId tid, int num, const void *data)
 {
   //
   // NB: shared memory flags ought to be passed into the SmartBlock
@@ -93,14 +93,14 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
   if( !tid )
   {
     clear();
-    scalar = True;
+    scalar = true;
     return *this;
   }
-  bool wantscalar = False;
+  bool wantscalar = false;
   if( num == -1 )
   {
     num = 1;
-    wantscalar = True;
+    wantscalar = true;
   }
   // already initialized? 
   if( valid () )
@@ -117,35 +117,36 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
   // obtain type information, check that type is supported
   typeinfo = TypeInfo::find(tid);
   FailWhen( !typeinfo.category,"unknown data type "+tid.toString() );
-  binary_type = dynamic_type = container_type = False;
+  binary_type = dynamic_type = container_type = false;
   mytype = tid;
-  mysize_ = max(num,1);
+  mysize_ = std::max(num,1);
   scalar = wantscalar;
   typeinfo.size = typeinfo.size;
   switch( typeinfo.category )
   {
   // NUMERIC & BINARY type categories are treated as binary objects
-  // of a fixed type, which can be bitwise-copied
+  // of a fixed type, which can be bitwise-copied. The data is kept directly
+  // inside one block with the header info. Allocate and attach this block here.
     case TypeInfo::NUMERIC:
     case TypeInfo::BINARY:
     {  
-        binary_type = True;
+        binary_type = true;
         // allocate header and copy data
-        SmartBlock *header = new SmartBlock( sizeof(int)*2 + typeinfo.size*mysize_);
-        headref.attach(header,DMI::WRITE|DMI::ANON|DMI::LOCK);
+        size_t datasize = typeinfo.size*mysize_;
+        makeNewHeader(datasize);
+        phead_->type = mytype;
+        phead_->size = mysize_;
         if( data )
-          memcpy(sizeof(int)*2 + static_cast<char*>(header->data()),data,typeinfo.size*mysize_);
+          memcpy(phead_->data,data,datasize);
         else
-          memset(sizeof(int)*2 + static_cast<char*>(header->data()),0,typeinfo.size*mysize_);
+          memset(phead_->data,0,datasize);
         break;
     }
     case TypeInfo::DYNAMIC: 
     {
-        dynamic_type = True;
+        dynamic_type = true;
         container_type = isNestable(tid);
         FailWhen(data,Debug::ssprintf("can't init field of type %s with data",tid.toString().c_str(),num) );
-        headref.attach( new SmartBlock( sizeof(int)*(2+mysize_),DMI::ZERO ),
-                        DMI::WRITE|DMI::ANON|DMI::LOCK );
         objects.resize(mysize_);
         blocks.resize(mysize_);
         objstate.resize(mysize_);
@@ -157,8 +158,6 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
         FailWhen(!typeinfo.fnew || !typeinfo.fdelete || !typeinfo.fcopy ||
             !typeinfo.fpack || !typeinfo.funpack || !typeinfo.fpacksize,
             "incomplete registry information for"+tid.toString() ); 
-        headref.attach( new SmartBlock( sizeof(int)*(2+mysize_) ),
-                        DMI::WRITE|DMI::ANON|DMI::LOCK );
         // use the new function to allocate vector of objects
         spvec = (*typeinfo.fnew)(mysize_);
         spdelete = typeinfo.fdelete;
@@ -170,29 +169,46 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
           for( int i=0; i<mysize_; i++,from+=typeinfo.size,to+=typeinfo.size )
             (*typeinfo.fcopy)(to,from);
         }
-        spvec_modified = True;
         break;
     }
     default:
         Throw("unsupported data type "+tid.toString());  
   }
-
-  headerType() = mytype;
-  headerSize() = mysize_;
   return *this;
 }
 
+// called to ensure writability
+void DMI::Vec::makeWritable ()
+{
+  if( !valid() )
+    return;
+  // binary types store data with the header block, so deref it for writing
+  // to let COW do its thing
+  if( binary_type )
+    phead_ = static_cast<HeaderBlock*>(headref_().data());
+  else // else simply toss out the cached header block
+  {
+    headref_.detach();
+    phead_ = 0;
+  }
+}
+
 //##ModelId=3C62961D021B
-void DataField::resize (int newsize)
+void DMI::Vec::resize (int newsize)
 {
   Thread::Mutex::Lock _nclock(mutex());
   FailWhen( newsize<=0,"can't resize to <=0" );
-  FailWhen( !valid(),"uninitialized DataField" );
-  int minsize = min(mysize_,newsize);
+  FailWhen( !valid(),"uninitialized DMI::Vec" );
+  int minsize = std::min(mysize_,newsize);
+  makeWritable();
   if( newsize > 1 )
-    scalar = False;
+    scalar = false;
   if( binary_type )
-    headref().resize( sizeof(int)*2 + typeinfo.size*newsize );
+  {
+    headref_().resize(sizeof(HeaderBlock)+typeinfo.size*newsize);
+    phead_ = static_cast<HeaderBlock*>(headref_().data());
+    phead_->size = newsize;
+  }
   else if( dynamic_type )
   {
     // this is horribly inefficient, but we really must keep the object
@@ -223,13 +239,12 @@ void DataField::resize (int newsize)
     }
     (*typeinfo.fdelete)(spvec);
     spvec = newvec;
-    spvec_modified = True;
   }
   mysize_ = newsize;
 }
 
 //##ModelId=3C3EAB99018D
-void DataField::clear ()
+void DMI::Vec::clear ()
 {
   Thread::Mutex::Lock _nclock(mutex());
   if( spvec )
@@ -241,113 +256,89 @@ void DataField::clear ()
   if( valid() )
   {
     dprintf(2)("clearing\n");
-    if( headref.valid() )
-      headref.unlock().detach();
+    if( headref_.valid() )
+      headref_.detach();
     if( objects.size() ) objects.resize(0);
     if( blocks.size() ) blocks.resize(0);
     objstate.resize(0);
     mytype = 0;
-    selected = False;
   }
 }
 
 //##ModelId=3C3EB9B902DF
-bool DataField::isValid (int n)
+bool DMI::Vec::isValid (int n) const
 {
   Thread::Mutex::Lock _nclock(mutex());
   if( !valid() )
-    return False;
+    return false;
   checkIndex(n);
   if( dynamic_type ) 
     return objstate[n] != UNINITIALIZED;
   else
-    return True; // built-ins always valid
+    return true; // built-ins always valid
 }
 
-//##ModelId=3C0E4619019A
-ObjRef DataField::objwr (int n, int flags)
+//##ModelId=3C3C8D7F03D8
+DMI::ObjRef DMI::Vec::getObj (int n) const
 {
-  // set a write-lock regardless because we're going to be manipulating
-  // counte
   Thread::Mutex::Lock _nclock(mutex());
-  FailWhen( !valid(),"uninitialized DataField");
+  FailWhen( !valid(),"uninitialized DMI::Vec");
   checkIndex(n);
   if( !dynamic_type )
-    return NullRef;
-  return resolveObject(n,DMI::WRITE).copy(flags);
+    return ObjRef();
+  // return a copy as a read-only ref
+  return resolveObject(n);
 }
 
 //##ModelId=3C7A305F0071
-DataField & DataField::put (int n,const ObjRef &ref, int flags)
+void DMI::Vec::put (int n,ObjRef &ref,int flags)
 {
   Thread::Mutex::Lock _nclock(mutex());
+  makeWritable();
   dprintf(2)("putting @%d: %s\n",n,ref.debug(2));
-  ObjRef &ref2 = prepareForPut( ref->objectType(),n );
+  ObjRef &ref2 = prepareForPut(ref->objectType(),n);
   // grab the ref, and mark object as modified
-  if( flags&DMI::COPYREF )
-    ref2.unlock().copy(ref,flags).lock();
+  if( flags&DMI::XFER )
+    ref2.unlock().xfer(ref,flags).lock();
   else
-    ref2.unlock().xfer(ref).lock();
-  return *this;
-}
-
-//##ModelId=400E4D6803D9
-DataField & DataField::put (int n, BlockableObject* obj, int flags)
-{
-  Thread::Mutex::Lock _nclock(mutex());
-  dprintf(2)("putting @%d: %s\n",n,obj->debug(2));
-  prepareForPut( obj->objectType(),n ).unlock().attach(obj,flags).lock();
-  return *this;
-}
-
-
-//##ModelId=3C3C8D7F03D8
-ObjRef DataField::objref (int n) const
-{
-  Thread::Mutex::Lock _nclock(mutex());
-  FailWhen( !valid(),"uninitialized DataField");
-  checkIndex(n);
-  if( !dynamic_type )
-    return NullRef;
-  // return a copy as a read-only ref
-  return resolveObject(n,DMI::READONLY).copy(DMI::READONLY);
+    ref2.unlock().copy(ref,flags).lock();
 }
 
 //##ModelId=3C3D5F2001DC
-int DataField::fromBlock (BlockSet& set)
+int DMI::Vec::fromBlock (BlockSet& set)
 {
   Thread::Mutex::Lock _nclock(mutex());
   dprintf1(2)("%s: fromBlock\n",debug());
   clear();
   int npopped = 1;
-  // get header block, privatize & cache it as headref
-  set.pop(headref.unlock());  
-  size_t hsize = headref->size();
+  // get header block, privatize & cache it as headref_
+  set.pop(headref_);  
+  size_t hsize = headref_->size();
+  phead_ = static_cast<HeaderBlock*>(const_cast<void*>(headref_->data()));
   // first two ints in header block are type and size
-  FailWhen( hsize < sizeof(int)*2,"malformed header block" );
-  headref.privatize(DMI::WRITE|DMI::LOCK);
+  FailWhen( hsize < sizeof(HeaderBlock),"malformed header block" );
   // get type and size from header
-  mytype = headerType();
-  mysize_ = headerSize();
+  mytype  = phead_->type;
+  mysize_ = phead_->size;
   if( mysize_ == -1 )
   {
     mysize_ = 1;
-    scalar = True;
+    scalar = true;
   }
   else
-    scalar = False;
+    scalar = false;
   if( !mytype )  // uninitialized field
     return 1;
   // obtain type information, check that type is supported
   typeinfo = TypeInfo::find(mytype);
-  binary_type = dynamic_type = container_type = False;
+  binary_type = dynamic_type = container_type = false;
   switch( typeinfo.category )
   {
     case TypeInfo::NUMERIC:
     case TypeInfo::BINARY:  // numeric/binary types are stored directly in the header
-      binary_type = True;
+      binary_type = true;
       dprintf(2)("fromBlock: built-in type %s[%d]\n",mytype.toString().c_str(),mysize_);
-      FailWhen( hsize != sizeof(int)*2 + typeinfo.size*mysize_,
+      FailWhen( hsize != sizeof(HeaderBlock) + typeinfo.size*mysize_,
                   "incorrect block size" );
       break;
     
@@ -360,18 +351,17 @@ int DataField::fromBlock (BlockSet& set)
       // has already been deleted by call to clear(), above.
       // funpack will allocate an array for us with new[n].
       spvec = (*typeinfo.funpack)(
-                static_cast<const char*>(headref->data()) + sizeof(int)*2,
-                hsize - sizeof(int)*2,n);
+                phead_->data,
+                hsize - sizeof(HeaderBlock),n);
       spdelete = typeinfo.fdelete;
       FailWhen( n != mysize_,"size mismatch after unpacking" );
-      spvec_modified = False; 
       break;
         
     case TypeInfo::DYNAMIC: // dynamic type: header contains info on # of blocks to follow
-      dynamic_type = True;
+      dynamic_type = true;
       container_type = isNestable(mytype);
       dprintf(2)("fromBlock: dynamic type %s[%d]\n",mytype.toString().c_str(),mysize_);
-      FailWhen( hsize != sizeof(int)*(2 + mysize_),"incorrect block size" );
+      FailWhen( hsize != sizeof(HeaderBlock)+sizeof(int)*mysize_,"incorrect block size" );
       objects.resize(mysize_);
       blocks.resize(mysize_);
       objstate.resize(mysize_);
@@ -380,16 +370,20 @@ int DataField::fromBlock (BlockSet& set)
       // Do not unblock objects, as that is done at dereference time
       // Note that we don't privatize the blocks, so field contents may
       // be shared and/or read-only
-      for( int i=0; i<mysize_; i++ ) 
       {
-        npopped += headerBlockSize(i);
-        if( headerBlockSize(i) )
+        const int * blockcounts = reinterpret_cast<const int*>(phead_->data);
+        for( int i=0; i<mysize_; i++ ) 
         {
-          dprintf(3)("fromBlock: [%d] taking over %d blocks\n",i,headerBlockSize(i));
-          set.popMove(blocks[i],headerBlockSize(i));
+          int nbl = blockcounts[i];
+          if( nbl )
+          {
+            npopped += nbl;
+            dprintf(3)("fromBlock: [%d] taking over %d blocks\n",i,nbl);
+            set.popMove(blocks[i],nbl);
+          }
+          else // no blocks assigned to this object => is uninitialized
+            objstate[i] = UNINITIALIZED;
         }
-        else // no blocks assigned to this object => is uninitialized
-          objstate[i] = UNINITIALIZED;
       }
       dprintf(2)("fromBlock: %d blocks were popped\n",npopped);
       break;
@@ -397,96 +391,97 @@ int DataField::fromBlock (BlockSet& set)
     default:
         Throw("unsupported data type "+mytype.toString());
   }
-  validateContent();
+  validateContent(true);
   return npopped;
 }
 
 //##ModelId=3C3D5F2403CC
-int DataField::toBlock (BlockSet &set) const
+int DMI::Vec::toBlock (BlockSet &set) const
 {
   // write-lock, since we modify internal fields
   Thread::Mutex::Lock _nclock(mutex());
   if( !valid() )
   {
     dprintf1(2)("%s: toBlock=1 (field empty)\n",debug());
-    // for empty fields, use null block of two integers to represent them
-    static SmartBlock nullBlock(sizeof(int)*2,DMI::ZERO);
+    // for empty fields, use null block 
+    static SmartBlock nullBlock(sizeof(HeaderBlock),DMI::ZERO);
     set.push(BlockRef(&nullBlock,DMI::EXTERNAL|DMI::READONLY));
     return 1;
   }
   dprintf1(2)("%s: toBlock\n",debug());
   int npushed = 1,tmp; // 1 header block as a minimum
-  // if dealing with special types, and they have been modified, the 
-  // header block needs to be rebuilt
-  if( !dynamic_type && !binary_type && spvec_modified )
+  // we may be forming a header block on-the-fly below,
+  // so push out a placeholder ref here, and attach header to it later
+  BlockRef & href_placeholder = set.pushNew();
+  bool new_header = false;
+  // since any access for writing (see makeWritable()) invalidates
+  // the header block, this is a sufficient check to see if it needs
+  // rebuilding. 
+  if( !headref_.valid() )
   {
-    // allocate and attach header block
-    size_t hsize = sizeof(int)*2 + 
-            (*typeinfo.fpacksize)(spvec,mysize_);
-    headref.unlock().attach( new SmartBlock(hsize),
-                    DMI::WRITE|DMI::ANON|DMI::LOCK );
-    // write basic fields
-    headerType() = mytype;
-    headerSize() = scalar ? -mysize_ : mysize_;
-    hsize -= sizeof(int)*2;
-    // pack object data into header block
-    (*typeinfo.fpack)(spvec,mysize_,
-        static_cast<char*>(headref().data()) + sizeof(int)*2,hsize);
-    spvec_modified = False;
+    // binary types always have a valid & consistent block
+    Assert1(!binary_type);
+    new_header = true;
+    if( dynamic_type ) // dynamic type, header + block counts
+      makeNewHeader(sizeof(int)*mysize_);
+    else // special type, header + data
+    {
+      // allocate and attach header block
+      size_t datasize = (*typeinfo.fpacksize)(spvec,mysize_);
+      makeNewHeader(datasize);
+      // pack object data into header block
+      (*typeinfo.fpack)(spvec,mysize_,phead_->data,datasize);
+    }
+    phead_->type = mytype;
+    phead_->size = scalar ? -mysize_ : mysize_;
   }
-  // for dynamic types, check that the header block is still consistent
+  // for dynamic types, do a toBlock on the objects as needed
   if( dynamic_type )
   {
-    size_t hsize = sizeof(int)*(2+mysize_);
-    if( !headref.valid() || headref->size() != hsize )
-      headref.unlock().attach(new SmartBlock(hsize,DMI::ZERO),DMI::ANONWR|DMI::LOCK);
-  }
-  // fill and push out header block
-  headerType() = mytype;
-  headerSize() = scalar ? -mysize_ : mysize_;
-  set.push(headref.copy(DMI::READONLY));
-  // for dynamic types, do a toBlock on the objects, if needed
-  if( dynamic_type )
-  {
+    int * blockcounts = reinterpret_cast<int*>(phead_->data);
     for( int i=0; i<mysize_; i++ )
     {
+      int nb;
       if( !objects[i].valid() )
         objstate[i] = UNINITIALIZED;
       switch( objstate[i] )
       {
         case UNINITIALIZED: // if uninitialized, then do nothing
             dprintf(3)("toBlock: [%d] is uninitialized, 0 blocks\n",i);
-            headerBlockSize(i) = 0;
+            nb = 0;
             break;
-        // then simply copy the blockset
-        // if modified, do a toBlock on the object
+        case INBLOCK:
+            npushed += nb = blocks[i].size();
+            dprintf(3)("toBlock: [%d] still cached in %d blocks, copying\n",i,nb);
+            set.pushCopy(blocks[i]);
+            npushed += nb;
+            break;
+        case UNBLOCKED:
         case MODIFIED:
             blocks[i].clear();
-            tmp = objects[i]->toBlock(blocks[i]);
-            dprintf(3)("toBlock: [%d] was modified, converted to %d blocks\n",i,tmp);
-            // if no other write refs to the object exist, mark it
-            // as unmodified again
-            if( objects[i].hasOtherWriters() )
-              objstate[i] = UNBLOCKED;
-            // fall thru below to add blocks to set
-        // if still in block, or unblocked but not modified,
-        case INBLOCK:
-        case UNBLOCKED:
-            dprintf(3)("toBlock: [%d] copying %d blocks\n",i,blocks[i].size());
-            set.pushCopy(blocks[i]);
-            npushed += headerBlockSize(i) = blocks[i].size();
+            npushed += nb = objects[i]->toBlock(set);
+            dprintf(3)("toBlock: [%d] converted to %d blocks\n",i,nb);
             break;
         default:
-            Throw("illegal object state");
+            Throw("inconsistent object state");
+      }
+      // store or check block count in header
+      if( new_header )
+        blockcounts[i] = nb;
+      else
+      {
+        FailWhen(blockcounts[i]!=nb,"inconsistency in cached header block");
       }
     }
-  } 
+  }
+  // finally, attach header block in placeholder
+  href_placeholder = headref_;
   dprintf(2)("toBlock: %d blocks pushed\n",npushed);
   return npushed;
 }
 
 //##ModelId=3C3D8C07027F
-ObjRef & DataField::resolveObject (int n, int flags) const
+DMI::ObjRef & DMI::Vec::resolveObject (int n) const
 {
   Thread::Mutex::Lock _nclock(mutex());
   switch( objstate[n] )
@@ -495,8 +490,7 @@ ObjRef & DataField::resolveObject (int n, int flags) const
     case UNINITIALIZED:
     {
         dprintf(3)("resolveObject(%d): creating new %s\n",n,mytype.toString().c_str());
-        objects[n].attach( DynamicTypeManager::construct(mytype),
-                           (flags&DMI::WRITE)|DMI::ANON|DMI::LOCK);
+        objects[n].attach(DynamicTypeManager::construct(mytype),DMI::LOCK);
         objstate[n] = MODIFIED;
         // ignore autoprivatize since this is a new object
         return objects[n];
@@ -504,38 +498,14 @@ ObjRef & DataField::resolveObject (int n, int flags) const
     // object hasn't been unblocked
     case INBLOCK:
     {
-        // if write access requested, simply unblock it
-        if( flags&DMI::WRITE )
-        {
-          dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
-          objects[n].attach( DynamicTypeManager::construct(mytype,blocks[n]),
-                            DMI::ANONWR|DMI::LOCK );
-          // verify that no blocks were left over
-          FailWhen( blocks[n].size()>0,"block count mismatch" );
-          objstate[n] = MODIFIED;
-        }
-        // For r/o access, we want to cache a copy of the blockset.
-        // This is in case the object doesn't get modified down the road, 
-        // so we can just re-use the blockset in a future toBlock()
-        else
-        {
-          // make copy, retaining r/w privileges, and marking the source as r/o
-          dprintf(3)("resolveObject(%d): read access, preserving old blocks\n",n);
-          BlockSet set( blocks[n],DMI::PRESERVE_RW|DMI::MAKE_READONLY ); 
-          // create object and attach a reference
-          dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
-          objects[n].attach(DynamicTypeManager::construct(mytype,set),
-                            DMI::READONLY|DMI::ANON|DMI::LOCK);
-          // verify that no blocks were left over
-          FailWhen( set.size()>0,"block count mismatch" );
-          // mark object as unblocked but not modified 
-          objstate[n] = UNBLOCKED; 
-        }
-        // privatize if so requested
-        if( flags&DMI::PRIVATIZE )
-          objects[n].privatize(flags&(DMI::READONLY|DMI::WRITE|DMI::DEEP)); 
+        dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
+        objects[n].attach(DynamicTypeManager::construct(mytype,blocks[n]),DMI::LOCK);
+        blocks[n].clear();
+        // verify that no blocks were left over
+        FailWhen( blocks[n].size()>0,"block count mismatch" );
+        objstate[n] = MODIFIED;
         return objects[n];
-      }
+    }
     // object exists (unblocked and maybe modified)
     case UNBLOCKED:
     case MODIFIED:
@@ -545,18 +515,7 @@ ObjRef & DataField::resolveObject (int n, int flags) const
         if( !ref.valid() )
         {
           objstate[n] = UNINITIALIZED;
-          return resolveObject(n,flags);
-        }
-        // privatize if requested
-        if( flags&DMI::PRIVATIZE )
-          ref.privatize(flags&(DMI::READONLY|DMI::WRITE|DMI::DEEP)); 
-        // do we need to write to it?
-        else if( flags&DMI::WRITE )
-        {
-          if( !ref.isWritable() )
-            ref.privatize(DMI::WRITE);
-          blocks[n].clear();
-          objstate[n] = MODIFIED;
+          return resolveObject(n);
         }
         return ref;
     }
@@ -566,13 +525,13 @@ ObjRef & DataField::resolveObject (int n, int flags) const
 }
 
 //##ModelId=3C3EC77D02B1
-CountedRefTarget* DataField::clone (int flags, int depth) const
+DMI::CountedRefTarget* DMI::Vec::clone (int flags, int depth) const
 {
-  return new DataField(*this,flags,depth);
+  return new DMI::Vec(*this,flags,depth);
 }
 
 //##ModelId=3C3EE42D0136
-void DataField::cloneOther (const DataField &other, int flags, int depth)
+void DMI::Vec::cloneOther (const DMI::Vec &other,int flags,int depth,bool constructing)
 {
   Thread::Mutex::Lock _nclock(mutex());
   Thread::Mutex::Lock _nclock1(other.mutex());
@@ -587,9 +546,11 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
   dynamic_type = other.dynamic_type;
   container_type = other.container_type;
   typeinfo = other.typeinfo;
-  selected = False;
-  // copy & privatize the header ref
-  headref.copy(other.headref).privatize(DMI::WRITE|DMI::LOCK);
+  // copy the header ref and reset pointer
+  headref_.copy(other.headref_,flags,depth);
+  phead_ = headref_.valid() 
+           ? static_cast<HeaderBlock*>(const_cast<void*>(headref_->data())) 
+           : 0;
   if( dynamic_type )   // handle dynamic types
   {
     objstate = other.objstate;
@@ -606,19 +567,11 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
         // if still in block, then copy & privatize the blockset
         case INBLOCK:
             blocks[i] = other.blocks[i]; // blockset copy (=ref.copy)
-            if( flags&DMI::DEEP || depth>0 )
-              blocks[i].privatizeAll(flags);
             break;
         // otherwise, privatize the object reference
         case UNBLOCKED:
         case MODIFIED:
-  // For ref.copy(), clear the DMI::WRITE flag and use DMI::PRESERVE_RW instead.
-  // (When depth>0, DMI::WRITE will take effect anyways via privatize().
-  //  When depth=0, we must preserve the write permissions of the contents.)
-            objects[i].copy(other.objects[i],
-                    (flags&~DMI::WRITE)|DMI::PRESERVE_RW|DMI::LOCK);
-            if( flags&DMI::DEEP || depth>0 );
-              objects[i].privatize(flags|DMI::LOCK,depth-1);
+            objects[i].copy(other.objects[i],DMI::LOCK);
             break;
         default:
             Throw("illegal object state");
@@ -639,94 +592,46 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
       for( int i=0; i<mysize_; i++,from+=typeinfo.size,to+=typeinfo.size )
         (*typeinfo.fcopy)(to,from);
     }
-    spvec_modified = other.spvec_modified;
   }
-  validateContent();
+  validateContent(!constructing);
   // for binary types, do nothing since they're already in the header block
 }
 
-//##ModelId=3C3EDEBC0255
-void DataField::privatize (int flags, int depth)
-{
-  Thread::Mutex::Lock _nclock(mutex());
-  if( !valid() )
-    return;
-  // privatize the header reference (always writable)
-  headref.privatize(DMI::WRITE|DMI::LOCK);
-  // if deep privatization is required, then for dynamic objects, 
-  // privatize the field contents as well
-  if( dynamic_type && ( flags&DMI::DEEP || depth>0 ) )
-  {
-    for( int i=0; i<mysize_; i++ )
-    {
-      switch( objstate[i] )
-      {
-        case UNINITIALIZED: // if uninitialized, then do nothing
-            break;
-        // if still in block, then privatize the blockset
-        case INBLOCK:
-            blocks[i].privatizeAll(flags);
-            break;
-        // otherwise, privatize the object reference
-        case UNBLOCKED:
-        case MODIFIED:
-            objects[i].privatize(flags|DMI::LOCK,depth-1);
-            break;
-        default:
-            Throw("illegal object state");
-      }
-    }
-  }
-  // revalidate content if necessary
-  validateContent();
-}
-
 //##ModelId=3D05E2F301D2
-int DataField::size (TypeId tid) const
+int DMI::Vec::size (TypeId tid) const
 {
   Thread::Mutex::Lock _nclock(mutex());
   // if types do not match (or tid=0), and we're scalar, and have
   // a subcontainer, then defer to its size()
   if( tid != mytype && scalar && mysize() == 1 && container_type )
   {
-    const NestableContainer *nc = dynamic_cast<const NestableContainer *>
-      (resolveObject(0,0).deref_p());
-    Assert(nc);
-    return nc->size(tid);
+    const BObj * pobj = resolveObject(0).deref_p();
+    const Container * pnc = dynamic_cast<const Container *>(pobj);
+    if( pnc )
+      return pnc->size(tid);
+    else
+      Throw("can't access "+pobj->objectType().toString()+" as "+tid.toString());
   }
   // else return our own size
   if( !tid || tid == mytype ||
-      ( tid == TpObjRef && dynamic_type ) || 
+      ( tid == TpDMIObjRef && dynamic_type ) || 
       ( TypeInfo::isNumeric(tid) && TypeInfo::isNumeric(mytype) ) )
     return mysize();
   return -1;
 }
 
-    // from old get():
-//   // other types of HIID are supported only when we contain a single, scalar
-//   // container. 
-//   Thread::Mutex::Lock _nclock(mutex());
-//   FailWhen( !valid() || !mysize(),"field not initialized" );
-//   FailWhen( !scalar,"non-scalar field, explicit numeric subscript expected" );
-//   FailWhen( !isNestable(type()),"contents not a container" );
-//   // Resolve to pointer to container
-//   // Unless privatize is required, we resolve the container without the
-//   // DMI::WRITE flag, since it's only the writability of its contents that
-//   // matters -- nc->get() below will check that.
-//   int contflags = flags&DMI::PRIVATIZE ? flags : flags &= ~DMI::WRITE;
-//   const NestableContainer *nc = dynamic_cast<const NestableContainer *>
-//       (&resolveObject(0,contflags).deref());
-//   Assert(nc);
-//   // defer to get[id] on container 
-//   return nc->get(id,info,check_tid,flags);
-
 //##ModelId=3C7A19790361
-int DataField::get (const HIID &id,ContentInfo &info,bool nonconst,int flags) const
+int DMI::Vec::get (const HIID &id,ContentInfo &info,bool nonconst,int flags) const
 {
   Thread::Mutex::Lock _nclock(mutex());
   FailWhen( !valid(),"field not initialized" );
+  if( flags&(DMI::WRITE|DMI::ASSIGN) )
+  {
+    Assert1(nonconst);
+    const_cast<Vec*>(this)->makeWritable();
+  }
   int n;  // number of item being accessed
-  // null HIID implies scalar-mode access -- map to getn(0)
+  // null HIID implies scalar-mode access
   if( id.empty() )
   {
     n = 0;
@@ -736,72 +641,50 @@ int DataField::get (const HIID &id,ContentInfo &info,bool nonconst,int flags) co
   else if( id.size() == 1 )
   {
     n = id.front().index();
-    FailWhen(n<0,"illegal index "+id.toString());
+    FailWhen(n<0,"illegal DMI::Vec index: "+id.toString());
     FailWhen(n>mysize(),"index "+id.toString()+"is out of range" );
     info.size = 1;
   }
   if( n == mysize() ) // can insert at end, return 0 to indicate
     return 0;
-  info.writable = nonconst;
-  bool nowrite = flags&DMI::WRITE && !nonconst; // write requested but not avail?
   // handle case of dynamic types 
   if( dynamic_type )
   {
     // since dynamic objects are non-contiguous, prohibit vector access
-    FailWhen(info.size>1,"DataField of "+type().toString()+"s can't be accessed in vector mode");
-    // if not asking for object itself, then writability is equivalent to
-    // non-constness
-    if( !(flags&DMI::NC_DEREFERENCE) && nowrite )
-      return -1;
-    // object hasn't been initialized? Implicitly initialize if requested
-    // for writing
+    FailWhen(info.size>1,"DMI::Vec of "+type().toString()+"s can't be accessed in vector mode");
+    // object hasn't been initialized? If not assigning, then return 0
     if( objstate[n] == UNINITIALIZED )
     {
-//      if( !(flags&DMI::WRITE) )   // only reading requested? return 0
+// invalid objects automatically initialized to empty on first access
+//      if( !(flags&DMI::ASSIGN) )
 //        return 0;
-      if( nowrite )               // can't init object if not writable
-        return -1;
-      // if we're not going to assign to the object, then we need to
-      // init an empty one -- resolveObject() will do that for us
-      if( !(flags&DMI::NC_ASSIGN) )  
-        resolveObject(n,flags&DMI::WRITE);
+      resolveObject(n);
     }
     // object hasn't been unblocked yet? Then we need to unblock it first
-    // DMI::WRITE will ensure that object is attached for writing as needed.
     else if( objstate[n] == INBLOCK )
-      resolveObject(n,flags&DMI::WRITE);
-    // else check ref writability, if caller needs access to the object itself
-    else if( flags&DMI::NC_DEREFERENCE && nowrite && 
-             objects[n].valid() && !objects[n].isWritable() )
-    {
-      return -1;
-    }
-    // return ref to object; mark it as modified if expected to write
+      resolveObject(n);
+    // return ref to object; mark it as modified if expected to write,
+    // dereference once to insure COW
     if( flags&DMI::WRITE )
     {
+      objects[n].dewr();
       blocks[n].clear();
       objstate[n] = MODIFIED;
     }
-    info.tid = TpObjRef;
+    info.tid = TpDMIObjRef;
     info.obj_tid = type();
     info.ptr = &objects[n];
   }
   else // binary or special type
   {
-    // writability determined by non-constness
-    if( flags&DMI::WRITE && !nonconst ) 
-      return -1;
     info.tid = info.obj_tid = type();
     if( binary_type ) // binary type: data in header block
     {
-      info.ptr = static_cast<const char*>(headerData()) + n*typeinfo.size;
+      // block cow is ensured by makeWritable() call above
+      info.ptr = phead_->data + n*typeinfo.size;
     }
     else        // special type: data in separate spvec
-    {
-      if( flags&DMI::WRITE )
-        spvec_modified = True;
       info.ptr = static_cast<const char*>(spvec) + n*typeinfo.size;
-    }
   }
   // got here? success
   return 1; 
@@ -812,16 +695,17 @@ int DataField::get (const HIID &id,ContentInfo &info,bool nonconst,int flags) co
     //     FailWhen( !isNestable(type()),"contents not a container" );
     //     // resolve to pointer to container
     //     dprintf(2)("insert: deferring to child %s\n",type().toString().c_str());
-    //     NestableContainer *nc = dynamic_cast<NestableContainer *>
-    //         (&resolveObject(0,True).dewr());
+    //     DMI::Container *nc = dynamic_cast<DMI::Container *>
+    //         (&resolveObject(0,true).dewr());
     //     Assert(nc);
     //     // defer to insert[id] on container
     //     return nc->insert(id,tid,real_tid);
 
 //##ModelId=3C7A198A0347
-int DataField::insert (const HIID &id,ContentInfo &info)
+int DMI::Vec::insert (const HIID &id,ContentInfo &info)
 {
   Thread::Mutex::Lock _nclock(mutex());
+  makeWritable();
   dprintf(2)("insert(%s,%s)\n",id.toString().c_str(),info.tid.toString().c_str());
   int n;
   // determine index
@@ -833,22 +717,16 @@ int DataField::insert (const HIID &id,ContentInfo &info)
   else if( id.size()==1 && id.front().index()>=0 )
     n = id.front().index();
   else
-  {
-  // disable this for now -- use [0][id] rathern than [id] to explicitly 
-  // index into contents. I can re-enable it later if it becomes a problem.
-  // see commented section above
-    Throw("transparent indexing into scalar DataFields is no longer supported. "
-          "See DataField::get()" );
-  }
+    Throw("illegal DMI::Vec index: "+id.toString());
   // check types
   // insert item
   TypeId real_tid = info.tid = info.obj_tid;
   info.size = 1;
-  info.writable = True;
+  info.writable = true;
   if( !valid() ) // empty field? must insert at #0
   {
     FailWhen(n,Debug::ssprintf("can't insert at [%d]",n));
-    FailWhen(!real_tid,"can't initialize DataField without type");
+    FailWhen(!real_tid,"can't initialize DMI::Vec without type");
     init(real_tid,-1); // init as scalar field
   }
   else // else extend field, but only if inserting at end
@@ -857,39 +735,38 @@ int DataField::insert (const HIID &id,ContentInfo &info)
     if( real_tid )
     {
       FailWhen(type()!=real_tid && !TypeInfo::isConvertible(real_tid,type()),
-            "inserting "+real_tid.toString()+" into a DataField of "+type().toString());
+            "inserting "+real_tid.toString()+" into a DMI::Vec of "+type().toString());
     }
     info.tid = info.obj_tid = type();
     resize( mysize()+1 );
   }
   if( binary_type )
   {
-    info.ptr = static_cast<char*>(headerData()) + n*typeinfo.size;
+    info.ptr = phead_->data + n*typeinfo.size;
   }
   else if( dynamic_type )
   {
-    info.tid = TpObjRef;
+    info.tid = TpDMIObjRef;
     objstate[n] = MODIFIED;
     info.ptr = &objects[n];
   }
   else // special type
   {
-    spvec_modified = True;
     info.ptr = static_cast<char*>(spvec) + n*typeinfo.size;
   }
   return 1;
 }
 
 //##ModelId=3C877E1E03BE
-int DataField::remove (const HIID &id)
+int DMI::Vec::remove (const HIID &id)
 {
   Thread::Mutex::Lock _nclock(mutex());
+  makeWritable();
   dprintf(2)("remove(%s)\n",id.toString().c_str());
   FailWhen(id.empty(),"null HIID");
   if( id.size()==1 && id.front().index()>=0 )
   {
     int n = id.front().index();
-    Thread::Mutex::Lock _nclock(mutex());
     dprintf(2)("removen(%d)\n",n);
     FailWhen( !valid() || !mysize(),"field not initialized or empty" );
     FailWhen( n != mysize()-1,"can only remove from end of field" );
@@ -898,33 +775,18 @@ int DataField::remove (const HIID &id)
     return 1;
   }
   else
-  {
-  // disable this for now -- use [0][id] rathern than [id] to explicitly 
-  // index into contents. I can re-enable it later if it becomes a problem.
-    Throw("transparent indexing into scalar DataFields is no longer supported. "
-          "See DataField::get()" );
-//     FailWhen( !valid() || !mysize(),"field not initialized or empty" );
-//     FailWhen( !scalar,"non-scalar field, explicit index expected" );
-//     FailWhen( !isNestable(type()),"contents not a container" );
-//     // resolve to pointer to container
-//     dprintf(2)("remove: deferring to child %s\n",type().toString().c_str());
-//     NestableContainer *nc = dynamic_cast<NestableContainer *>
-//         (&resolveObject(0,True).dewr());
-//     Assert(nc);
-//     // defer to remove(id) on container
-//     return nc->remove(id);
-  }
+    Throw("illegal DMI::Vec index: "+id.toString());
 }
 
 //##ModelId=3DB9347800CF
-ObjRef & DataField::prepareForPut (TypeId tid,int n ) 
+DMI::ObjRef & DMI::Vec::prepareForPut (TypeId tid,int n) 
 {
   if( !valid() ) // invalid field?
   {
     if( !n )
       init(tid,1);   // empty field auto-extended to 1
     else
-      Throw("uninitialized DataField");
+      Throw("uninitialized DMI::Vec");
   }
   else
   {
@@ -941,7 +803,7 @@ ObjRef & DataField::prepareForPut (TypeId tid,int n )
 }
 
 //##ModelId=3DB934730394
-string DataField::sdebug ( int detail,const string &prefix,const char *name ) const
+string DMI::Vec::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   using Debug::append;
   using Debug::appendf;
@@ -950,7 +812,7 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
   static int nesting=0;
   if( nesting++>1000 )
   {
-    cerr<<"Too many nested DataField::sdebug() calls";
+    cerr<<"Too many nested DMI::Vec::sdebug() calls";
     abort();
   }
   Thread::Mutex::Lock _nclock(mutex());
@@ -965,7 +827,7 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
       append(out,"empty");
     else
       appendf(out,"%s:%d",type().toString().c_str(),mysize());
-    append(out,"/ refs",CountedRefTarget::sdebug(-1));
+    append(out,"/",CountedRefTarget::sdebug(-1));
   }
   if( detail >= 2 || detail <= -2 )   // high detail
   {
@@ -1008,5 +870,6 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
   nesting--;
   return out;
 }
+
 
 

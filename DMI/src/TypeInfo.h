@@ -1,10 +1,13 @@
-#ifndef TypeInfo_h
-#define TypeInfo_h 1
+#ifndef DMI_TypeInfo_h
+#define DMI_TypeInfo_h 1
 
 #include <DMI/TID-DMI.h>
 #include <DMI/TypeId.h>
 #include <DMI/TypeIterMacros.h>
 
+namespace DMI
+{
+  
 // The TypeInfo class is basically a simple struct containing information
 // on various types. 
 //##ModelId=3DB949AE01B8
@@ -69,7 +72,7 @@ class TypeInfo : public TypeCategories {
     //##ModelId=3DB949B000DA
       static const TypeInfo & find ( TypeId tid );
       
-      // Returns True if type is numeric or dynamic
+      // Returns true if type is numeric or dynamic
     //##ModelId=3DB949B000E3
       static bool isNumeric   (TypeId tid);
     //##ModelId=3DB949B000EB
@@ -100,7 +103,7 @@ class TypeInfo : public TypeCategories {
                 ( isNumeric(to) || isNumericArrayOfRank(to,1) )  ); 
       }
       
-      // do the conversion, return True on success, False if not convertible
+      // do the conversion, return true on success, false if not convertible
     //##ModelId=4017F63303BF
       static bool convert (const void *from,TypeId frid,void *to,TypeId toid);
 };
@@ -115,6 +118,12 @@ class TypeInfoReg
       DeclareRegistry(TypeInfoReg,TypeId,TypeInfo);
       friend class TypeInfo;
 };
+
+inline std::ostream & operator << (std::ostream &str,const TypeInfo &ti)
+{
+  str<<"TypeInfo object ("<<ti.category<<":"<<ti.size<<")";
+  return str;
+}
     
 //##ModelId=3DB949B000DA
 inline const TypeInfo & TypeInfo::find ( TypeId tid )
@@ -132,21 +141,21 @@ inline uint TypeInfo::rankOfArray (TypeId arr)
   return (-arr.id())/32 - 1;
 }
 
-// returns True if a type is built-in
+// returns true if a type is built-in
 //##ModelId=3DB949B000E3
 inline bool TypeInfo::isNumeric (TypeId tid)
 { 
   return tid.id() >= TpFirstNumeric && tid.id() <= TpLastNumeric; 
 }
 
-// returns True if a type is supported by Array
+// returns true if a type is supported by Array
 //##ModelId=3DB949B000F3
 inline bool TypeInfo::isArrayable (TypeId tid)
 { 
   return isNumeric(tid) || tid == Tpstring;
 }
 
-// returns True if a type is an Array_type
+// returns true if a type is an Array_type
 //##ModelId=3DB949B000FB
 inline bool TypeInfo::isArray (TypeId tid)
 { 
@@ -155,7 +164,7 @@ inline bool TypeInfo::isArray (TypeId tid)
   return rank>0 && rank<=11 && isArrayable(elem);
 }
 
-// returns True if type is dynamic
+// returns true if type is dynamic
 //##ModelId=3DB949B000EB
 inline bool TypeInfo::isDynamic (TypeId tid) 
 { 
@@ -179,7 +188,7 @@ inline bool TypeInfo::isDynamic (TypeId tid)
 #define ForAllFloats1(Do,arg) \
   Do(float,arg),Do(double,arg),Do(ldouble,arg)
 
-// A type converter function converts between types; returns True on
+// A type converter function converts between types; returns true on
 // success or false if conversion not possible
 //##ModelId=3DB949AE01A9
 typedef bool (*TypeConverter)(const void *from,void *to);
@@ -204,14 +213,14 @@ inline bool TypeInfo::convert (const void *from,TypeId frid,void *to,TypeId toid
     else if( toid.id() >= firstvec && toid.id() <= lastvec )
       return (*_typeconverters_sca_vec[Tpbool.id()-frid][lastvec-toid])(from,to);
     else
-      return False;
+      return false;
   } else if( TypeInfo::isNumeric(toid) &&
              frid.id() >= firstvec && frid.id() <= lastvec )
   {
     return (*_typeconverters_vec_sca[lastvec-frid][Tpbool.id()-toid])(from,to);
   }
   else
-    return False;
+    return false;
 }
 
 // define the typeIdOfPtr() helper function, returning a TypeId for a given type
@@ -230,4 +239,5 @@ inline TypeId TpOfArrayElem (const blitz::Array<T,N> *)
 #define typeIdOfArray(type,N) TpArray(typeIdOf(type),N)
 #define typeIdOfArrayElem(type) TpOfArrayElem((type*))
 
+};
 #endif

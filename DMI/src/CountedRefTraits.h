@@ -4,6 +4,9 @@
 #include <DMI/TypeId.h>
 #include <DMI/CountedRef.h>
     
+namespace DMI
+{
+    
 template<class T>
 class CountedRefTraits : public DMITypeTraits<T>
 {
@@ -21,5 +24,5 @@ class CountedRefTraits< CountedRef<T> > : public DMITypeTraits< CountedRef<T> >
     typedef T TargetType; 
 };
     
-    
+};
 #endif

@@ -1,4 +1,4 @@
-//#  DataField.h: a container for a single object or a vector of objects
+//#  Vec.h: a container for a single object or a vector of objects
 //#
 //#  Copyright (C) 2002-2003
 //#  ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -19,38 +19,44 @@
 //#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 //#  $Id$
-#ifndef DMI_DataField_h
-#define DMI_DataField_h 1
+#ifndef DMI_Vec_h
+#define DMI_Vec_h 1
 
-#include <DMI/NestableContainer.h>
+#include <DMI/Container.h>
+#include <DMI/ObjectAssignerMacros.h>
 
-#pragma type #DataField
+#pragma type #DMI::Vec
 
+namespace DMI
+{
+
+class Record;
+  
 //##ModelId=3BB317D8010B
 
-class DataField : public NestableContainer
+class Vec : public Container
 {
   public:
       //##ModelId=3C3D64DC016E
-      DataField ();
+      Vec ();
 
       //##ModelId=3C3EE3EA022A
-      DataField (const DataField &right, int flags = DMI::PRESERVE_RW, int depth = 0);
+      Vec (const Vec &right, int flags = 0, int depth = 0);
 
       //##ModelId=3BFA54540099
       //##Documentation
       //## Constructs an empty data field
-      explicit DataField (TypeId tid, int num = -1, const void *data = 0);
+      explicit Vec (TypeId tid, int num = -1, const void *data = 0);
 
     //##ModelId=3DB9346F0095
-      ~DataField();
+      ~Vec();
 
     //##ModelId=3DB9346F017B
-      DataField & operator=(const DataField &right);
+      Vec & operator = (const Vec &right);
 
 
       //##ModelId=3C6161190193
-      DataField & init (TypeId tid, int num = -1, const void *data = 0);
+      Vec & init (TypeId tid, int num = -1, const void *data = 0);
 
       //##ModelId=3C627A64008E
       bool valid () const;
@@ -67,23 +73,34 @@ class DataField : public NestableContainer
       void clear ();
 
       //##ModelId=3C3EB9B902DF
-      bool isValid (int n = 0);
+      bool isValid (int n = 0) const;
 
       //##ModelId=3C0E4619019A
-      ObjRef objwr (int n = 0, int flags = DMI::PRESERVE_RW);
+      ObjRef getObj (int n = 0) const;
 
       //##ModelId=3C7A305F0071
-      DataField & put (int n, const ObjRef &ref, int flags = DMI::XFER);
-    //##ModelId=400E4D6803D9
-      DataField & put (int n, BlockableObject* obj, int flags = DMI::ANONWR);
+      DMI_DeclareObjectAssigner(put,int);
       
-    //##ModelId=400E4D6901B7
-      DataField & put (int n, const BlockableObject* obj, int flags = DMI::ANON)
-      { return put(n,const_cast<BlockableObject*>(obj),(flags&~DMI::WRITE)|DMI::READONLY); }
-
-      //##ModelId=3C3C8D7F03D8
-      ObjRef objref (int n = 0) const;
-
+      template<class T>
+      const T & as (int n,Type2Type<T> =Type2Type<T>()) const
+      {
+        Thread::Mutex::Lock lock(mutex());
+        FailWhen(type() != typeIdOf(T),"DMI::Vec type mismatch");
+        FailWhen(!dynamic_type,"DMI::Vec::as<> can only be applied to dynamic objects");
+        const ObjRef &ref = resolveObject(n);
+        return dynamic_cast<const T&>(*resolveObject(n));
+      }
+      
+      template<class T>
+      T & as (int n,Type2Type<T> =Type2Type<T>()) 
+      {
+        Thread::Mutex::Lock lock(mutex());
+        FailWhen(type() != typeIdOf(T),"DMI::Vec type mismatch");
+        FailWhen(!dynamic_type,"DMI::Vec::as<> can only be applied to dynamic objects");
+        ObjRef &ref = resolveObject(n);
+        return dynamic_cast<T&>(resolveObject(n)());
+      }
+      
       //##ModelId=3C3D5F2001DC
       //##Documentation
       //## Creates object from a set of block references. Appropriate number of
@@ -103,13 +120,7 @@ class DataField : public NestableContainer
       virtual CountedRefTarget* clone (int flags = 0, int depth = 0) const;
 
       //##ModelId=3C3EE42D0136
-      void cloneOther (const DataField &other, int flags, int depth);
-
-      //##ModelId=3C3EDEBC0255
-      //##Documentation
-      //## Makes a private snapshot of the field, by privatizing all contents.
-      //## Use DMI::WRITE to make a writable field.
-      void privatize (int flags = 0, int depth = 0);
+      void cloneOther (const Vec &other, int flags, int depth, bool constructing);
 
       //##ModelId=3D05E2F301D2
       //##Documentation
@@ -140,7 +151,7 @@ class DataField : public NestableContainer
 
     // Additional Public Declarations
     //##ModelId=3DB9343B00B9
-      typedef CountedRef<DataField> Ref;
+      typedef CountedRef<Vec> Ref;
       
       // standard debug info method
     //##ModelId=3DB934730394
@@ -152,6 +163,7 @@ class DataField : public NestableContainer
       inline static string typeString (TypeId tid,int size) 
       { return Debug::ssprintf("%s[%d]",tid.toString().c_str(),size); };
       
+      friend class Record;      
       
   protected:
       //##ModelId=3C7A19790361
@@ -159,7 +171,7 @@ class DataField : public NestableContainer
       virtual int get (const HIID &id, ContentInfo &info,bool nonconst,int flags) const;
 
       //##ModelId=3C3D8C07027F
-      ObjRef & resolveObject (int n, int flags = 0) const;
+      ObjRef & resolveObject (int n) const;
 
     // Additional Protected Declarations
       // Used by various puts() to get the ObjRef at position n.
@@ -193,8 +205,6 @@ class DataField : public NestableContainer
       // this is the address of the delete method, called to delete spvec
     //##ModelId=3F5487DD024C
       TypeInfo::DeleteMethod spdelete;
-    //##ModelId=3DB9346B01E4
-      mutable bool spvec_modified; // flag: vector has been modified
       
       // flag: field contains a simple type handled by binary copying
       // (TypeInfo category NUMERIC or BINARY)
@@ -208,27 +218,22 @@ class DataField : public NestableContainer
     //##ModelId=3DB9346D02C3
       bool    container_type;
       
-      // inlines for accessing the header block
-    //##ModelId=3DB9347D02AD
-      int & headerType () const { return ((int*)headref->data())[0]; }
-    //##ModelId=3DB9347E01B4
-      int & headerSize () const { return ((int*)headref->data())[1]; }
-    //##ModelId=3DB9347E03E2
-      int & headerBlockSize (int n) const { return ((int*)headref->data())[2+n]; }
-    //##ModelId=3DB93481001B
-      void * headerData () const { return &headerBlockSize(0); }
-      
   private:
-    // Data Members for Class Attributes
+      typedef struct
+      {
+        int type,size;
+        uchar data[];
+      } HeaderBlock;
+      
+      void makeNewHeader (size_t extra_size) const;
+      
+      void makeWritable ();
 
       //##ModelId=3F5487DD028A
       TypeId mytype;
 
       //##ModelId=3C3D60C103DA
       int mysize_;
-
-      //##ModelId=3BEBE89602BC
-      bool selected;
 
       //##ModelId=3C7A2BC7030F
       bool scalar;
@@ -240,73 +245,57 @@ class DataField : public NestableContainer
 
       //##ModelId=3F5487DE0143
       mutable vector<ObjRef> objects;
-    //##ModelId=3DB9346801A2
-    mutable BlockRef headref;
-
-
+      
+      //##ModelId=3DB9346801A2
+      // cached blockset header (+data, for binary types)
+      mutable BlockRef headref_;
+      mutable HeaderBlock * phead_;
 };
 
 //##ModelId=3DB9343B0254
-typedef DataField::Ref DataFieldRef;
+typedef Vec::Ref VecRef;
 
 // throws exception if index is out of range
 //##ModelId=3DB9347C00FD
-inline void DataField::checkIndex ( int n ) const
+inline void Vec::checkIndex ( int n ) const
 {
   FailWhen( n < 0 || n >= mysize_,"index out of range");
 }
 
 
-// Class DataField 
+// Class Vec 
 
 
 //##ModelId=3C627A64008E
-inline bool DataField::valid () const
+inline bool Vec::valid () const
 {
   return mytype.id() != 0;
 }
 
 //##ModelId=3C3EC27F0227
-inline TypeId DataField::objectType () const
+inline TypeId Vec::objectType () const
 {
-  return TpDataField;
+  return TpDMIVec;
 }
 
 //##ModelId=3DB934720017
-inline TypeId DataField::type () const
+inline TypeId Vec::type () const
 {
   return mytype;
 }
 
 //##ModelId=3DB9347201EE
-inline int DataField::mysize () const
+inline int Vec::mysize () const
 {
   return mysize_;
 }
 
-//##ModelId=3DB9347203B0
-inline bool DataField::isSelected () const
-{
-  return selected;
-}
-
 //##ModelId=3DB93473019F
-inline bool DataField::isScalar () const
+inline bool Vec::isScalar () const
 {
   return scalar;
 }
 
 
-#endif
-
-
-// Detached code regions:
-#if 0
-  return !dynamic_type;
-
-  TypeId dum1; bool dum2;
-  return get(n,dum1,dum2,check,must_write);
-
-  return (void*)get(n,check,True);
-
+};
 #endif

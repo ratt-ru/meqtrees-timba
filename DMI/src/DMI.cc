@@ -1,7 +1,7 @@
-
-#include "DMI/DMI.h"
+#include "DMI.h"
     
-namespace DMI
+namespace DebugDMI
 {
   ::Debug::Context DebugContext("DMI");
 };
+

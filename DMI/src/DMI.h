@@ -27,83 +27,74 @@
 
 #include "config.h"
 #include "lofar_config.h"
-#include <DMI/Common.h>
 #include <Common/Debug.h>
 #include <stdio.h>
+#include <string>
+#include <vector>
 
-namespace DMI
+#include <lofar_config.h>
+
+namespace DebugDMI
 {
   extern ::Debug::Context DebugContext; 
   inline ::Debug::Context & getDebugContext() { return DebugContext; };
-  
+};
+
+namespace DMI
+{
+  using std::string;
+  using std::vector;
   
 //##ModelId=3DB949AE00AC
   typedef enum { 
-  // flags for CountedRefs & other objects
-      WRITE           = 0x001,
-      READONLY        = 0x002,
-      ANON            = 0x004,
-      DELETE          =     ANON,
-      NON_ANON        = 0x008,
-      EXTERNAL        =     NON_ANON,
-      NO_DELETE       =     NON_ANON,
-      LOCKED          = 0x010,
-      LOCK            =     LOCKED,
-      UNLOCKED        = 0x020,
-      PERSIST         = 0x040,
-      
-      
- 
-//   // by default, refs are privatize-on-write (that is, a read-only ref 
-//   // will auto-privatize the object if write access is requested). If attached
-//   // as SHARED, the object becomes shared between the owner ref and the new
-//   // ref, and access is completely controlled via the READ/WRITE flags
-//       POW             = 0,
-//       NOPOW           = 0x080,
-//         SHARED        =   NOPOW,    
-      
-  // when attaching a ref as ANON or EXTERN, and the target is already 
-  // referenced, use the established ref type even if it conflicts with the flags
-      NONSTRICT       =  0,        // default is non-strict
-      STRICT          =  0x80000,
-      
+  // flags for r/w access rights (refs, containers and such)
+      READONLY        = 0x001,
+      WRITE           = 0x002,
+  // ref copy-on-write flag: default unless shared is specified
+      COW             = 0x004,
+  // ref shared flag
+      SHARED          = 0x008,
+  // flags for CountedRef target ownership, passed to attach()
+  //  mask is mask of all flags:
+      OWNERSHIP_MASK  = 0x030,
+  // anon is the default, unless external is specified explicitly           
+      ANON            = 0x010,
+  // external
+      EXTERNAL        = 0x020,
+  // auto-clone if target is not already attached 
+      AUTOCLONE       = 0x030,
+  // flags for a locked ref          
+      LOCKED          = 0x100,
+      LOCK            = LOCKED,
+      UNLOCKED        = 0x200,
   // some common combinations
       ANONWRITE       = WRITE|ANON,
       ANONWR          = ANONWRITE,
       ANONRO          = READONLY|ANON,
-  
-  // These are used in privatize() and clone()
-      // makes deep clone or privatizes deeply
-      DEEP           = 0x01000,
-  // forces private copy even if not normnally necessary
-      FORCE_CLONE    = 0x02000,
+  // forces a deep copy when copying/cloning refs or objects
+      DEEP            = 0x1000,
       
-  // these are used in ref copy constructor calls to force copy() or privatize() 
-      PRIVATIZE       =  0x10000,
-      COPYREF         =  0x20000,
-      XFER            =  0,        // XFER is the default, so 0
+  // these are used in ref copy constructor calls to force copy() or xfer()
+      COPYREF         = 0x2000,  // new default
+      XFER            = 0x4000,        
       
-  // preserve r/w privilege for ref copy. Only matters if NOPOW (=SHARED) is
-  // also specified. A ref copied with POW is always writable, with 
-  // privatization occurring on first access
-      PRESERVE_RW     =  0x40000,  
-      
-  // container-specific flags for privatize (privatize-and-reset)
-      RESET           =  0x80000,
-
   // _SmartBlock_-specific flags
-      HINT_SHMEM      =0x1000000,  // constructor hint: block will be sent
-                                   //     to other processes, so consider shmem
-      SHMEM           =0x2000000,  // constructor: forces use of shmem
-      CLONE           =COPYREF,    // copy constructor: clones block
-      ZERO            =DEEP,       // constructor: zeroes allocated block
+      HINT_SHMEM      =0x10000,  // constructor hint: block will be sent
+                                 // to other processes, so consider shmem
+      SHMEM           =0x20000,  // constructor: forces use of shmem
+      CLONE           =0x40000,  // copy constructor: clones block
+      ZERO            =0x80000,  // constructor: zeroes allocated block
       
   // _BlockSet_-specific flags
       MAKE_READONLY   =0x4000000,   // for copyAll(): makes source set read-only
 
-  // NestableContainer::get() flags
-      NC_ASSIGN          =0x1000000,  // container accessed for assignment
-      NC_DEREFERENCE     =0x2000000,  // refs will be dereferenced 
+  // DMI::Container::get() flags
+      ASSIGN          =0x1000000,  // container accessed for assignment
+      DEREFERENCE     =0x2000000,  // refs will be dereferenced
+       
+  // Other container-specific flags
+      REPLACE         =0x1000000,  // object in container is replaced
+      NOZERO          =0x4000000,  // do not initialize NumArray/data block to 0   
       
       DMI_ZERO_FLAG   =0
   }

@@ -5,7 +5,7 @@ protected:
 // helper methods for as<T>()
 // -----------------------------------------------------------------------
 template<class T>
-static bool can_convert (const BlockableObject *ptr)
+static bool can_convert (const DMI::BObj *ptr)
 { return dynamic_cast<const T *>(ptr) != 0; }
 
 template<class T>
@@ -28,7 +28,7 @@ typename DMITypeTraits<T>::ContainerReturnType
 {
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   ContentInfo info;
-  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,False,False,False); 
+  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,false,false,false); 
   return ptr ? *static_cast<const T*>(ptr) : deflt;
 }
 // specialization for scalars: pass in and return by value, with implicit conversion
@@ -36,9 +36,9 @@ template<class T>
 T as_impl (T deflt,Int2Type<false>,Int2Type<TypeCategories::NUMERIC>) const
 {
   T x; 
-  return get_scalar(&x,DMITypeTraits<T>::typeId,False) ? x : deflt; 
+  return get_scalar(&x,DMITypeTraits<T>::typeId,false) ? x : deflt; 
 } 
-// version for dynamic types: access as base type (BlockableObject), then use
+// version for dynamic types: access as base type (DMI::BObj), then use
 // dynamic cast to see if type is compatible. This allows subclasses to be visible as
 // parent classes
 template<class T> // 
@@ -46,7 +46,7 @@ const T & as_impl (const T &deflt,Int2Type<true>,Int2Type<TypeCategories::DYNAMI
 {
   ContentInfo info;
   const T * ptr = reinterpret_cast<const T*>(
-                      get_address_bo(info,can_convert<T>,False,False,False));
+                      get_address_bo(info,can_convert<T>,false,false,false));
   return ptr ? *ptr : deflt;
 }
 
@@ -58,8 +58,8 @@ typename DMITypeTraits<T>::ContainerReturnType
 {
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   ContentInfo info;
-  return *static_cast<const T*>( get_address(info,DMITypeTraits<T>::typeId,False,
-                                        False,True) ); 
+  return *static_cast<const T*>( get_address(info,DMITypeTraits<T>::typeId,false,
+                                        false,true) ); 
 }
 // specialization for scalar version: do numeric conversion
 template<class T> // first int2type: isScalar; second int2type: isDynamic
@@ -69,14 +69,14 @@ T as_impl (Type2Type<T>,Int2Type<TypeCategories::NUMERIC>) const
  return x; 
 }
 
-// specialization for dynamic types: access as base type (BlockableObject), then use
+// specialization for dynamic types: access as base type (DMI::BObj), then use
 // dynamic cast to see if type is compatible. This allows subclasses to be visible as
 // parent classes
 template<class T> // first int2type: isScalar; second int2type: isDynamic
 const T & as_impl (Type2Type<T>,Int2Type<TypeCategories::DYNAMIC>) const
 {
   ContentInfo info;
-  return *reinterpret_cast<const T*>( get_address_bo(info,can_convert<T>,False,False,True) );
+  return *reinterpret_cast<const T*>( get_address_bo(info,can_convert<T>,false,false,true) );
 }
 
 // -----------------------------------------------------------------------
@@ -161,7 +161,7 @@ const T * as_p_impl (int &sz,bool must_exist,Type2Type<T>,Category) const
 {
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   ContentInfo info;
-  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,False,True,must_exist); 
+  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,false,true,must_exist); 
   sz = info.size;
   return static_cast<const T*>(ptr);
 }
@@ -170,7 +170,7 @@ template<class T>
 const T * as_p_impl (int &sz,bool must_exist,Type2Type<T>,Int2Type<TypeCategories::DYNAMIC>) const
 {
   ContentInfo info;
-  const T * ptr = reinterpret_cast<const T*>(get_address_bo(info,can_convert<T>,False,True,must_exist)); 
+  const T * ptr = reinterpret_cast<const T*>(get_address_bo(info,can_convert<T>,false,true,must_exist)); 
   sz = info.size;
   return ptr;
 }
@@ -205,11 +205,11 @@ bool get (T &value) const
 // implicit conversion operators
 // -----------------------------------------------------------------------
 
-// stupid compiler can't figure this out, hence the explicit instantiations below:
+// // stupid compiler can't figure this out, hence the explicit instantiations below:
 // template<class T>
 // operator typename DMITypeTraits<T>::ContainerReturnType () const
 // { return as(Type2Type<T>()); }
-
+// 
 #define __convert(T,arg) operator DMITypeTraits<T>::ContainerReturnType () const { return as(Type2Type<T>()); }
 DoForAllNumericTypes(__convert,);
 DoForAllBinaryTypes(__convert,);
@@ -276,7 +276,7 @@ template<class T>
 operator std::vector<T> () const
 { std::vector<T> res; get_vector_impl(res,true); return res; }
 
-// // define a specialization of as<T> for T=vector<T1>
+// define a specialization of as<T> for T=vector<T1>
 // NB: doesn't work, as it confuses the compiler
 // template<class T>
 // std::vector<T> as (Type2Type<std::vector<T> > = Type2Type<std::vector<T> >()) const
@@ -284,7 +284,7 @@ operator std::vector<T> () const
 // template<class T>
 // std::vector<T> as (const std::vector<T> &deflt ) const
 // { std::vector<T> res; return get_vector(res,false) ?  res : deflt; }
-
+// 
 // // define a specialization of get<T> for T=vector<T1>
 // template<class T>
 // bool get (std::vector<T> &value) const

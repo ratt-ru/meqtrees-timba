@@ -1,80 +1,75 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+#ifndef DMI_ContainerIter_h
+#define DMI_ContainerIter_h 1
 
-#ifndef NCIter_h
-#define NCIter_h 1
+#include <DMI/Container.h>
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-
-// NestableContainer
-#include "DMI/NestableContainer.h"
-
+namespace DMI
+{
+    
 //##ModelId=3DB951DC0395
 //##Documentation
 //## This is a dummy parent class. It is only there to facilitate the
-//## friend declarations in NestableCOntainer.
-class NCBaseIter 
+//## friend declarations in Container::Hook
+class BaseContainerIter 
 {
   protected:
-// The base iter class is only there to enable the friend declaration in
-// NestableContainer::Hook
     //##ModelId=3DB951DD037D
       static const void *get_pointer(
           int &sz,
-          const NestableContainer::Hook &hook,
+          const Container::Hook &hook,
           TypeId tid,
           bool write,
           Thread::Mutex::Lock *lock )
        {
-         return hook.get_pointer(sz,tid,write,False,0,lock);
+         return hook.get_pointer(sz,tid,write,false,0,lock);
        }
 };
 
 //##ModelId=3DB951DC03A6
 
 template <class T>
-class NCConstIter : public NCBaseIter
+class ConstContainerIter : public BaseContainerIter
 {
   public:
       //##ModelId=3DB951DD03D7
-      NCConstIter (const NestableContainer::Hook &hook);
+      ConstContainerIter (const Container::Hook &hook);
 
       //##ModelId=3DB951DE0007
-      NCConstIter (const NestableContainer::Hook &hook, bool );
+      ConstContainerIter (const Container::Hook &hook, bool );
 
     //##ModelId=3DB951DE0031
-      bool operator==(const NCConstIter< T > &right) const;
+      bool operator==(const ConstContainerIter< T > &right) const;
 
     //##ModelId=3DB951DE004B
-      bool operator!=(const NCConstIter< T > &right) const;
+      bool operator!=(const ConstContainerIter< T > &right) const;
 
     //##ModelId=3DB951DE0064
-      bool operator<(const NCConstIter< T > &right) const;
+      bool operator<(const ConstContainerIter< T > &right) const;
 
     //##ModelId=3DB951DE007D
-      bool operator>(const NCConstIter< T > &right) const;
+      bool operator>(const ConstContainerIter< T > &right) const;
 
     //##ModelId=3DB951DE0096
-      bool operator<=(const NCConstIter< T > &right) const;
+      bool operator<=(const ConstContainerIter< T > &right) const;
 
     //##ModelId=3DB951DE00AF
-      bool operator>=(const NCConstIter< T > &right) const;
+      bool operator>=(const ConstContainerIter< T > &right) const;
 
     //##ModelId=3DB951DE00C9
       T operator*() const;
 
 
       //##ModelId=3DB951DE00CB
-      NCConstIter<T> & operator ++ ();
+      ConstContainerIter<T> & operator ++ ();
 
       //##ModelId=3DB951DE00CC
-      NCConstIter<T> operator ++ (int );
+      ConstContainerIter<T> operator ++ (int );
 
       //##ModelId=3DB951DE00DF
-      NCConstIter<T> & operator -- ();
+      ConstContainerIter<T> & operator -- ();
 
       //##ModelId=3DB951DE00E0
-      NCConstIter<T>  operator -- (int );
+      ConstContainerIter<T>  operator -- (int );
 
       //##ModelId=3DB951DE00F3
       void reset ();
@@ -96,7 +91,7 @@ class NCConstIter : public NCBaseIter
 
   protected:
     //##ModelId=3DB951DE00FD
-      NCConstIter();
+      ConstContainerIter();
 
     //##ModelId=3DB951DE00FF
       T* ptr () const;
@@ -126,14 +121,14 @@ class NCConstIter : public NCBaseIter
 //##ModelId=3DB951DC03BA
 
 template <class T>
-class NCIter : public NCConstIter<T>
+class ContainerIter : public ConstContainerIter<T>
 {
   public:
       //##ModelId=3DB951DE0126
-      NCIter (const NestableContainer::Hook &hook);
+      ContainerIter (const Container::Hook &hook);
 
       //##ModelId=3DB951DE0128
-      NCIter (const NestableContainer::Hook &hook, bool );
+      ContainerIter (const Container::Hook &hook, bool );
 
 
       //##ModelId=3DB951DE012B
@@ -144,51 +139,51 @@ class NCIter : public NCConstIter<T>
 
   private:
     //##ModelId=3DB951DE012F
-      NCIter();
+      ContainerIter();
 
 };
 
 // Class NCBaseIter 
 
-// Parameterized Class NCConstIter 
+// Parameterized Class ConstContainerIter 
 
 //##ModelId=3DB951DE00FD
 template <class T>
-inline NCConstIter<T>::NCConstIter()
+inline ConstContainerIter<T>::ConstContainerIter()
 {
 }
 
 //##ModelId=3DB951DD03D7
 template <class T>
-inline NCConstIter<T>::NCConstIter (const NestableContainer::Hook &hook)
+inline ConstContainerIter<T>::ConstContainerIter (const Container::Hook &hook)
 {
   int sz;
   ptr_ = start_ptr_ = 
-      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),False,&lock)));
+      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),false,&lock)));
   end_ptr_ = start_ptr_ + sz;
 }
 
 //##ModelId=3DB951DE0007
 template <class T>
-inline NCConstIter<T>::NCConstIter (const NestableContainer::Hook &hook, bool )
+inline ConstContainerIter<T>::ConstContainerIter (const Container::Hook &hook, bool )
 {
   int sz;
   ptr_ = start_ptr_ = 
-      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),False,0)));
+      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),false,0)));
   end_ptr_ = start_ptr_ + sz;
 }
 
 
 //##ModelId=3DB951DE0031
 template <class T>
-inline bool NCConstIter<T>::operator==(const NCConstIter<T> &right) const
+inline bool ConstContainerIter<T>::operator==(const ConstContainerIter<T> &right) const
 {
   return ptr() == right.ptr();
 }
 
 //##ModelId=3DB951DE004B
 template <class T>
-inline bool NCConstIter<T>::operator!=(const NCConstIter<T> &right) const
+inline bool ConstContainerIter<T>::operator!=(const ConstContainerIter<T> &right) const
 {
   return ptr() != right.ptr();
 }
@@ -196,27 +191,27 @@ inline bool NCConstIter<T>::operator!=(const NCConstIter<T> &right) const
 
 //##ModelId=3DB951DE0064
 template <class T>
-inline bool NCConstIter<T>::operator<(const NCConstIter<T> &right) const
+inline bool ConstContainerIter<T>::operator<(const ConstContainerIter<T> &right) const
 {
   return ptr() < right.ptr();
 }
 
 template <class T>
-inline bool NCConstIter<T>::operator>(const NCConstIter<T> &right) const
+inline bool ConstContainerIter<T>::operator>(const ConstContainerIter<T> &right) const
 {
   return ptr() > right.ptr();
 }
 
 //##ModelId=3DB951DE0096
 template <class T>
-inline bool NCConstIter<T>::operator<=(const NCConstIter<T> &right) const
+inline bool ConstContainerIter<T>::operator<=(const ConstContainerIter<T> &right) const
 {
   return ptr() <= right.ptr();
 }
 
 //##ModelId=3DB951DE00AF
 template <class T>
-inline bool NCConstIter<T>::operator>=(const NCConstIter<T> &right) const
+inline bool ConstContainerIter<T>::operator>=(const ConstContainerIter<T> &right) const
 {
   return ptr() >= right.ptr();
 }
@@ -224,7 +219,7 @@ inline bool NCConstIter<T>::operator>=(const NCConstIter<T> &right) const
 
 //##ModelId=3DB951DE00C9
 template <class T>
-inline T NCConstIter<T>::operator*() const
+inline T ConstContainerIter<T>::operator*() const
 {
   return *ptr_;
 }
@@ -233,7 +228,7 @@ inline T NCConstIter<T>::operator*() const
 
 //##ModelId=3DB951DE00CB
 template <class T>
-inline NCConstIter<T> & NCConstIter<T>::operator ++ ()
+inline ConstContainerIter<T> & ConstContainerIter<T>::operator ++ ()
 {
   ++ptr_;
   return *this;
@@ -241,16 +236,16 @@ inline NCConstIter<T> & NCConstIter<T>::operator ++ ()
 
 //##ModelId=3DB951DE00CC
 template <class T>
-inline NCConstIter<T> NCConstIter<T>::operator ++ (int )
+inline ConstContainerIter<T> ConstContainerIter<T>::operator ++ (int )
 {
-  NCConstIter<T> dum = *this;
+  ConstContainerIter<T> dum = *this;
   ++ptr_;
   return dum;
 }
 
 //##ModelId=3DB951DE00DF
 template <class T>
-inline NCConstIter<T> & NCConstIter<T>::operator -- ()
+inline ConstContainerIter<T> & ConstContainerIter<T>::operator -- ()
 {
   --ptr_;
   return *this;
@@ -258,81 +253,81 @@ inline NCConstIter<T> & NCConstIter<T>::operator -- ()
 
 //##ModelId=3DB951DE00E0
 template <class T>
-inline NCConstIter<T>  NCConstIter<T>::operator -- (int )
+inline ConstContainerIter<T>  ConstContainerIter<T>::operator -- (int )
 {
-  NCConstIter<T> dum = *this;
+  ConstContainerIter<T> dum = *this;
   --ptr_;
   return dum;
 }
 
 //##ModelId=3DB951DE00F3
 template <class T>
-inline void NCConstIter<T>::reset ()
+inline void ConstContainerIter<T>::reset ()
 {
   ptr_ = start_ptr();
 }
 
 //##ModelId=3DB951DE00F4
 template <class T>
-inline bool NCConstIter<T>::end () const
+inline bool ConstContainerIter<T>::end () const
 {
   return ptr() >= end_ptr();
 }
 
 //##ModelId=3DB951DE00F7
 template <class T>
-inline void NCConstIter<T>::release ()
+inline void ConstContainerIter<T>::release ()
 {
   lock.release();
 }
 
 //##ModelId=3DB951DE00F8
 template <class T>
-inline T NCConstIter<T>::next ()
+inline T ConstContainerIter<T>::next ()
 {
   return *ptr_++;
 }
 
 //##ModelId=3DB951DE00FF
 template <class T>
-inline T* NCConstIter<T>::ptr () const
+inline T* ConstContainerIter<T>::ptr () const
 {
   return ptr_;
 }
 
 //##ModelId=3DB951DE0101
 template <class T>
-inline T* NCConstIter<T>::start_ptr () const
+inline T* ConstContainerIter<T>::start_ptr () const
 {
   return start_ptr_;
 }
 
 //##ModelId=3DB951DE0103
 template <class T>
-inline T* NCConstIter<T>::end_ptr () const
+inline T* ConstContainerIter<T>::end_ptr () const
 {
   return end_ptr_;
 }
 
-// Parameterized Class NCIter 
+// Parameterized Class ContainerIter 
 
 //##ModelId=3DB951DE0126
 template <class T>
-inline NCIter<T>::NCIter (const NestableContainer::Hook &hook)
+inline ContainerIter<T>::ContainerIter (const Container::Hook &hook)
 {
   int sz;
   ptr_ = start_ptr_ = 
-      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),True,&lock)));
+      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),true,&lock)));
   end_ptr_ = start_ptr_ + sz;
 }
 
 //##ModelId=3DB951DE0128
 template <class T>
-inline NCIter<T>::NCIter (const NestableContainer::Hook &hook, bool )
+inline ContainerIter<T>::ContainerIter (const Container::Hook &hook, bool )
 {
   int sz;
   ptr_ = start_ptr_ = 
-      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),True,0)));
+      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),true,0)));
   end_ptr_ = start_ptr_ + sz;
 }
 
@@ -340,37 +335,38 @@ inline NCIter<T>::NCIter (const NestableContainer::Hook &hook, bool )
 
 //##ModelId=3DB951DE012B
 template <class T>
-inline T NCIter<T>::operator = (T value)
+inline T ContainerIter<T>::operator = (T value)
 {
   return *ptr_ = value;
 }
 
 //##ModelId=3DB951DE012D
 template <class T>
-inline T NCIter<T>::next (T value)
+inline T ContainerIter<T>::next (T value)
 {
   return *ptr_++ = value;
 }
 
 //##ModelId=3DB951DE00F9
 template <class T>
-int NCConstIter<T>::size () const
+int ConstContainerIter<T>::size () const
 {
   return end_ptr_ - start_ptr_;
 }
 
 //##ModelId=3DB951DE00FB
 template <class T>
-int NCConstIter<T>::nleft () const
+int ConstContainerIter<T>::nleft () const
 {
   return ptr_ - start_ptr_;
 }
 
 
-#define __declare_iter(T,arg) typedef NCConstIter<T> NCConstIter_##T; typedef NCIter<T> NCIter_##T;
-DoForAllNumericTypes(__declare_iter,);
-__declare_iter(string,arg);
-#undef __declare_iter
+//#define __declare_iter(T,arg) typedef ConstContainerIter<T> ConstContainerIter_##T; typedef ContainerIter<T> ContainerIter_##T;
+//DoForAllNumericTypes(__declare_iter,);
+//__declare_iter(string,arg);
+//#undef __declare_iter
 
 
+};
 #endif

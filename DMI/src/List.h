@@ -1,4 +1,4 @@
-//#  DataList.h: list of containers
+//#  List.h: list of containers
 //#
 //#  Copyright (C) 2002-2003
 //#  ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -20,62 +20,81 @@
 //#
 //#  $Id$
 
-#ifndef DMI_DataList_h
-#define DMI_DataList_h 1
+#ifndef DMI_List_h
+#define DMI_List_h 1
 
 #include <DMI/DMI.h>
-#include <DMI/NestableContainer.h>
+#include <DMI/Container.h>
+#include <DMI/ObjectAssignerMacros.h>
 
-#pragma type #DataList
+#pragma type #DMI::List
+
+namespace DMI
+{
 
 //##Documentation
-//## DataList is a list of containers
+//## DMI::List is a list of containers
 
-class DataList : public NestableContainer
+class List : public Container
 {
   public:
-      explicit DataList (int flags = DMI::WRITE);
+      List ();
 
-      DataList (const DataList &other, int flags = DMI::PRESERVE_RW, int depth = 0);
+      List (const List &other, int flags = 0, int depth = 0);
 
-      ~DataList();
+      ~List();
 
-      DataList & operator= (const DataList &right);
+      List & operator= (const List &right);
 
       //##Documentation
       //## Returns the class TypeId
       virtual TypeId objectType () const
-      { return TpDataList; }
-
-      void addFront (const NCRef &ref, int flags = DMI::XFER);
-      void addFront (NestableContainer *pnc, int flags = DMI::ANONWR);
-      void addFront (const NestableContainer *pnc, int flags = DMI::ANONRO)
-      { addFront(const_cast<NestableContainer*>(pnc),(flags&~DMI::WRITE)|DMI::READONLY); }
-          
-      void addBack  (const NCRef &ref, int flags = DMI::XFER);
-      void addBack  (NestableContainer *pnc, int flags = DMI::ANONWR);
-      void addBack  (const NestableContainer *pnc, int flags = DMI::ANONRO)
-      { addBack(const_cast<NestableContainer*>(pnc),(flags&~DMI::WRITE)|DMI::READONLY); }
-
-      void replace  (int n, const NCRef &ref, int flags = DMI::XFER);
-      void replace  (int n, NestableContainer *pnc, int flags = DMI::ANONWR);
-
-      void replace  (int n, const NestableContainer *pnc, int flags = DMI::ANONRO)
-      { replace(n,const_cast<NestableContainer*>(pnc),(flags&~DMI::WRITE)|DMI::READONLY); }
-
-      // appends everything from other list to end of this one, as read-only
-      void append (const DataList &other,int flags=DMI::READONLY);
-      // same version, but preserves writability
-      void append (DataList &other,int flags=DMI::PRESERVE_RW);
+      { return TpDMIList; }
+      
+      //##Documentation
+      //## put(n,...) puts object into list.
+      //## if DMI::REPLACE flag is not specified:
+      //##    inserts object before the specified position in list.
+      //##    0: at front of list, -1: at back of list, -2: as second-last, etc.
+      //## if DMI::REPLACE flag is specified:
+      //##    replaces object at specified position in list.
+      //##    0: first object, -1: last object, -2: second-last, etc.
+      DMI_DeclareObjectAssigner(put,int);
+      
+      //##Documentation
+      //## insert(n,...): alias for put() w/o DMI::REPLACE
+      DMI_DeclareObjectAssigner(insert,int);
+      
+      //##Documentation
+      //## replace(n,...): alias for put() with DMI::REPLACE
+      DMI_DeclareObjectAssigner(replace,int);
+      
+      //##Documentation
+      //## addFront(...) and addBack(...) insert at the beginning/end of list.
+      DMI_DeclareObjectAssigner(addFront,Null);
+      DMI_DeclareObjectAssigner(addBack,Null);
+      
+      
+      //## appends everything from other list to end of this one
+      //## Refs to fields are copy()d using the supplied flags.
+      void append (const List &other,int flags=0);
 
       int numItems  () const
       { return items.size(); }
       
-      NCRef getItem   (int n) const;
-
-      NCRef getItemWr (int n, int flags = DMI::PRESERVE_RW);
+      ObjRef get    (int n) const;
       
-      NCRef remove    (int n);
+      ObjRef remove (int n);
+
+
+      virtual int insert (const HIID &id,ContentInfo &info);
+
+      virtual int remove (const HIID &id);
+
+      virtual int size (TypeId tid = 0) const;
+
+    // Additional Public Declarations
+      typedef CountedRef<List> Ref;
 
       //##Documentation
       //## Creates object from a set of block references. Appropriate number of
@@ -90,29 +109,14 @@ class DataList : public NestableContainer
 
       //##Documentation
       //## Abstract method for cloning an object. Should return pointer to new
-      //## object. Flags: DMI::WRITE if writable clone is required, DMI::DEEP
+      //## object. Flags: WRITE if writable clone is required, DEEP
       //## for deep cloning (i.e. contents of object will be cloned as well).
       virtual CountedRefTarget* clone (int flags = 0, int depth = 0) const;
 
-      //##Documentation
-      //## Virtual method for privatization of an object. If the object
-      //## contains other refs, they should be privatized by this method. The
-      //## DMI::DEEP flag should be passed on to child refs, for deep
-      //## privatization.
-      virtual void privatize (int flags = 0, int depth = 0);
+      void cloneOther (const List &other, int flags, int depth, bool constructing);
 
-      void cloneOther (const DataList &other, int flags, int depth);
-
-      virtual int insert (const HIID &id,ContentInfo &info);
-
-      virtual int remove (const HIID &id);
-
-      virtual int size (TypeId tid = 0) const;
-
-    // Additional Public Declarations
-      DefineRefTypes(DataList,Ref);
-
-      // debug info method
+      
+            // debug info method
       string sdebug ( int detail = 1,const string &prefix = "",
                       const char *name = 0 ) const;
 
@@ -120,31 +124,47 @@ class DataList : public NestableContainer
       //##Documentation
       virtual int get (const HIID &id,ContentInfo &info,bool nonconst,int flags) const;
 
-
       //##Documentation
-      //## Resolves HIID to a field. Sets can_write to True if field is writable. If
-      //## must_write is True, throws an exception if something along the way
+      //## Resolves HIID to a field. Sets can_write to true if field is writable. If
+      //## must_write is true, throws an exception if something along the way
       //## is not writable.
-      const NCRef & resolveField (const HIID &id,HIID &rest,bool &can_write, bool must_write = False) const;
+      const ObjRef & resolveField (const HIID &id,bool &can_write, bool must_write = false) const;
 
   private:
-      typedef std::list<NCRef> ItemList;
+      typedef std::list<ObjRef> ItemList;
       
-      const NCRef & applyIndexConst (int n) const;
+      // Helper functions to apply an index (n).
+      // If n<0, counts backwards from end of list as follows:
+      //    if inserting=true, then n==-1 is end(); otherwise n==-1 is last item in list
+      // If inserting is false, iterator always points to valid element
+      ItemList::const_iterator applyIndexConst (int n) const;
       
-      NCRef &       applyIndex      (int n)
-      { return const_cast<NCRef&>(applyIndexConst(n)); }
-      
-      ItemList::iterator applyIndexIter (int n);
+      ItemList::iterator applyIndex (int n,bool inserting);
       
       ItemList items;
 };
 
-DefineRefTypes(DataList,DataListRef);
+inline void List::insert (int n,ObjRef &ref,int flags)
+{ 
+  put(n,ref,flags&~DMI::REPLACE); 
+};
 
-// Class DataList 
+inline void List::replace (int n,ObjRef &ref,int flags)
+{ 
+  put(n,ref,flags|DMI::REPLACE); 
+};
 
+inline void List::addFront (ObjRef &ref,int flags)
+{ 
+  put(0,ref,flags); 
+};
 
+inline void List::addBack (ObjRef &ref,int flags)
+{ 
+  put(-1,ref,flags); 
+};
+
+};
 #endif
 
 

@@ -23,41 +23,55 @@
 #include <DMI/CountedRefBase.h>
 #include <DMI/CountedRefTarget.h>
 
+namespace DMI
+{
+  
 #define DebugContext (CountedRefBase::getDebugContext())
 
 #ifdef USE_THREADS
-  #define threadLock Thread::Mutex::Lock t##_lock(cref_mutex)
+  #define threadLock Thread::Mutex::Lock t##_lock(cref_mutex_)
 #else
   #define threadLock 
 #endif
 
 //##ModelId=3DB93466002B
 CountedRefTarget::CountedRefTarget()
-  : owner_ref(0),anon(False)
+  : anon_(false)
 {
+#ifdef COUNTEDREF_LINKED_LIST
+  owner_ref_ = 0;
+#else
+  ref_count_ = 0;
+#endif
+
 }
 
 //##ModelId=3DB934660053
 CountedRefTarget::CountedRefTarget(const CountedRefTarget &right)
-  : owner_ref(0),anon(False)
+  : anon_(false)
 {
+#ifdef COUNTEDREF_LINKED_LIST
+  owner_ref_ = 0;
+#else
+  ref_count_ = 0;
+#endif
 }
-
 
 //##ModelId=3DB9346600F3
 CountedRefTarget::~CountedRefTarget()
 {
   threadLock;
-  if( owner_ref )
+#ifdef COUNTEDREF_LINKED_LIST
+  if( owner_ref_ )
   {
     dprintf(2)("%s destructor:\n  %s\n",debug(),debug(-2,"  "));
     // anon object can only be deleted by releasing its refs
-    FailWhen( anon,"can't delete anon object: refs attached");
+    FailWhen( anon_,"can't delete anon object: refs attached");
     // check for locked refs
-    for( const CountedRefBase *ref = owner_ref; ref!=0; ref = ref->getNext() )
+    for( const CountedRefBase *ref = owner_ref_; ref!=0; ref = ref->getNext() )
       FailWhen( ref->isLocked(),"can't delete object: locked refs attached" );
     // if OK, then invalidate all refs
-    CountedRefBase *ref = owner_ref;
+    CountedRefBase *ref = owner_ref_;
     while( ref )
     {
       CountedRefBase *nextref = ref->getNext();
@@ -66,35 +80,22 @@ CountedRefTarget::~CountedRefTarget()
       ref = nextref;
     }
   }
+#else
+  FailWhen(anon_ && ref_count_,"can't delete anon object: refs attached");
+#endif
 }
 
-
-
-//##ModelId=3C3EDD7D0301
-void CountedRefTarget::privatize (int,int)
-{
-}
-
+#ifdef COUNTEDREF_LINKED_LIST
 //##ModelId=3C18899002BB
-int CountedRefTarget::refCount () const
+int CountedRefTarget::targetReferenceCount () const
 {
   int count = 0;
   threadLock;
-  for( const CountedRefBase *ref = getOwner(); ref != 0; ref = ref->getNext() )
+  for( const CountedRefBase *ref = getTargetOwner(); ref != 0; ref = ref->getNext() )
     count++;
   return count;
 }
-
-//##ModelId=3C18C69A0120
-int CountedRefTarget::refCountWrite () const
-{
-  int count = 0;
-  threadLock;
-  for( const CountedRefBase *ref = getOwner(); ref != 0; ref = ref->getNext() )
-    if( ref->isWritable() )
-      count++;
-  return count;
-}
+#endif
 
 //##ModelId=3E01BE070204
 void CountedRefTarget::print () const
@@ -113,18 +114,21 @@ string CountedRefTarget::sdebug ( int detail,const string &prefix,const char *na
   // normal detail 
   if( detail >= 1 || detail == -1 )
   {
-    Debug::appendf(out,"R:%d WR:%d",
-        refCount(),refCountWrite()); 
+    Debug::appendf(out,"rc:%d",targetReferenceCount()); 
   }
+#ifdef COUNTEDREF_LINKED_LIST
   // high detail - append ref list
   if( detail >= 2 || detail <= -2 )   
   {
-    for( const CountedRefBase *ref = getOwner(); ref != 0; ref = ref->getNext() )
+    for( const CountedRefBase *ref = getTargetOwner(); ref != 0; ref = ref->getNext() )
     {
       if( out.length() )
         out += "\n"+prefix+"  ";
       out += "<-R"+ref->sdebug(1,prefix+"    ","");
     }
   }
+#endif
   return out;
 }
+
+}; // namespace DMI
