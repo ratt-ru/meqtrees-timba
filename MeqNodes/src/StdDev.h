@@ -1,4 +1,4 @@
-//# Rms.cc: sqrt(mean(sqr(v))), or Rms (Quadratic mean) of a node
+//# StdDev.h: sqrt(abs(mean(sqr(v))-sqr(mean(v))), or Std Deviation
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -19,24 +19,34 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#include <MeqNodes/Rms.h>
+#ifndef MEQ_STDDEV_H
+#define MEQ_STDDEV_H
+    
+#include <MEQ/Function.h>
 
-#include <MEQ/Vells.h>
-
-using namespace Meq::VellsMath;
+#include <MeqNodes/TID-MeqNodes.h>
+#pragma aidgroup MeqNodes
+#pragma types #Meq::StdDev
 
 namespace Meq {    
 
-Rms::Rms()
-{}
 
-Rms::~Rms()
-{}
-
-Vells Rms::evaluate (const Request&,const LoShape &,
-		     const vector<const Vells*>& values)
+class StdDev : public Function1
 {
-  return sqrt ( mean ( sqr(*(values[0])) ) );
-}
+public:
+  StdDev();
+
+  virtual ~StdDev();
+
+    virtual TypeId objectType() const
+    { return TpMeqStdDev; }
+
+  // Evaluate the value for the given request.
+  virtual Vells evaluate (const Request&,const LoShape &,
+			  const vector<const Vells*>& values);
+};
+
 
 } // namespace Meq
+
+#endif

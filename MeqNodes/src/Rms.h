@@ -1,4 +1,4 @@
-//# Rms.h: Calculate sqrt(mean(sqr(v))), or Rms, of a node
+//# Rms.h: sqrt(mean(sqr(v))), or Rms (Quadratic mean) of a node
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
