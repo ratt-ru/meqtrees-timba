@@ -104,6 +104,9 @@ public:
   //##ModelId=400E530400D6
   typedef CountedRef<VellSet> Ref;
 
+  typedef Traits<FLAGS>::ElementType FlagType; 
+  typedef Traits<FLAGS>::ArrayType FlagArrayType; 
+
   // Create a time,frequency result for the given number of spids.
     //##ModelId=400E5355031E
   explicit VellSet (int nspid=0,int nset=1);

@@ -48,11 +48,13 @@ static inline HIID FiPerturbedValues (int iset)
   return FieldWithSuffix(FPerturbedValues,iset);
 }
 
+static const HIID optColFieldId_array[] = { FFlags, FWeight };
+
+
 const HIID & OptionalColumns::optColFieldId (uint icol)
 {
-  const HIID ids[] = { FFlags, FWeight };
   DbgAssert1(icol<NUM_OPTIONAL_COL);
-  return ids[icol];
+  return optColFieldId_array[icol];
 }
 
 
