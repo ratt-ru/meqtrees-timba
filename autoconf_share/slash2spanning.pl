@@ -27,13 +27,6 @@
 $NON_COMMENT_BLOCK = 0;
 $COMMENT_BLOCK     = 1;
 
-# Defines fileparse()
-use File::Basename;
-
-# Only files whose suffix match with that in the suffixlist will be filtered;
-# other files will be printed unmodified.
-@suffixlist = ('\.h', '\.idl');
-
 # If the caller supplied precisely one command line argument, then this script
 # can proceed.
 $arguments = @ARGV;
@@ -41,10 +34,6 @@ if ($arguments == 1)
 {
   # The argument represents the name of the file to process.
   $filename = $ARGV[0];
-
-  # Check if we need to filter the input file.
-  ($name, $path, $suffix) = fileparse($filename, @suffixlist);
-  $doFilter = $suffix ne "";
 
   # Open the file.
   $status = open(FILEHANDLE, $filename);
@@ -59,14 +48,7 @@ if ($arguments == 1)
     close(FILEHANDLE);
 
     # Process the contents of the file.
-    if ($doFilter)
-    {
-      change_comment_style(@text);
-    }
-    else
-    {
-      print @text
-    }
+    change_comment_style(@text);
   }
 
   # Otherwise report an error condition.
