@@ -70,25 +70,25 @@ const meq.polc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
 {
   if( is_boolean(scale) )
     scale := [freq0,freqsc,time0,timesc];
-  rec := [ freq_0=scale[1],freq_scale=scale[2],
+  req := [ freq_0=scale[1],freq_scale=scale[2],
            time_0=scale[3],time_scale=scale[4],
            pert=pert,weight=weight,dbid_index=dbid ];
   # set coeff  
   if( len(coeff) == 1 )
-    rec.coeff := array(as_double(coeff),1,1);
+    req.coeff := array(as_double(coeff),1,1);
   else if( !has_field(coeff::,'shape') || len(coeff::shape) != 2 )
     fail 'meq.polc: coeff must be either scalar or a 2D array';
   else
-    rec.coeff := as_double(coeff);
+    req.coeff := as_double(coeff);
   # set domain if specified
   if( !is_boolean(domain) )
   {
     if( !is_dmi_type(domain,'MeqDomain') )
       fail 'meq.polc: domain argument must be a meq.domain';
-    rec.domain := domain;
+    req.domain := domain;
   }
-  const rec::dmi_actual_type := 'MeqPolc';
-  return rec;
+  const req::dmi_actual_type := 'MeqPolc';
+  return req;
 }
 
 
@@ -97,21 +97,21 @@ const meq.polc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
 
 const meq.parm := function (name,default=F,polc=F,groups="")
 {
-  rec := meq.node('MeqParm',name,groups=groups);
+  req := meq.node('MeqParm',name,groups=groups);
   # set default if specified
   if( !is_boolean(default) )
   {
     if( !is_dmi_type(default,'MeqPolc') )
       default := meq.polc(default);
-    rec.default := default;
+    req.default := default;
   }
   # set polcs if specified
   if( is_record(polc) )
   {
     if( is_dmi_type(polc,'MeqPolc') ) # single polc
     {
-      rec.polcs := [=];
-      rec.polcs['#1'] := polc;
+      req.polcs := [=];
+      req.polcs['#1'] := polc;
     }
     else
     {
@@ -120,11 +120,11 @@ const meq.parm := function (name,default=F,polc=F,groups="")
         if( !is_dmi_type(polc[i],'MeqPolc') )
           fail 'meq.parm: polc argument must be a meq.polc or a vector of meqpolcs';
       }
-      rec.polcs := polc;
+      req.polcs := polc;
     }
-    const rec.polcs::dmi_datafield_content_type := 'MeqPolc';
+    const req.polcs::dmi_datafield_content_type := 'MeqPolc';
   }
-  return rec;
+  return req;
 }
 
 
@@ -133,16 +133,16 @@ const meq.parm := function (name,default=F,polc=F,groups="")
 
 const meq.domain := function (startfreq,endfreq,starttime,endtime)
 {
-  rec := [ freq=as_double([startfreq,endfreq]),
+  req := [ freq=as_double([startfreq,endfreq]),
            time=as_double([starttime,endtime]) ];
   # setup various attributes
-  const rec::dmi_actual_type := 'MeqDomain';
-  const rec::meq_axes := "freq time";
-  const rec.ndim := function () 
+  const req::dmi_actual_type := 'MeqDomain';
+  const req::meq_axes := "freq time";
+  const req.ndim := function () 
   { return 2; }
-  const rec.axes := function () 
+  const req.axes := function () 
   { return "freq time"; }
-  return rec;
+  return req;
 }
 
 
@@ -258,18 +258,18 @@ const meq.cells := function (domain=F,num_freq=F,num_time=F,
   if( is_fail(nt) )
     fail;
   # create record
-  rec := [ domain     = meq.domain(df[1],df[2],dt[1],dt[2]),
+  req := [ domain     = meq.domain(df[1],df[2],dt[1],dt[2]),
            grid       = [ freq=freq_grid,     time=time_grid],
            cell_size  = [ freq=freq_cell_size,time=time_cell_size],
            segments   = [ freq=fs,            time=ts] ];
   # setup various attributes
-  const rec::dmi_actual_type := 'MeqCells';
-  const rec::meq_axes := "freq time";
-  const rec.ndim := function () 
+  const req::dmi_actual_type := 'MeqCells';
+  const req::meq_axes := "freq time";
+  const req.ndim := function () 
   { return 2; }
-  const rec.axes := function () 
+  const req.axes := function () 
   { return "freq time"; }
-  return rec;
+  return req;
 }
 
 #-- meq.reclist() -------------------------------------------------------------
@@ -305,33 +305,32 @@ const meq.reclist := function (...)
 }
 
 
-#-- meq.initcmdlist() -------------------------------------------------------------
-# creates a command list for inclusion in a request
-
-const meq.initcmdlist := function ()
-{
-  return meq.reclist();
-}
-
 #-- meq_private.merge_records()  ------------------------------------------------
 # private helper function to merge command records
 
-const meq_private.merge_records := function (ref rec,command,value)
+const meq_private.merge_records := function (ref req,command,value)
 {
   if( is_string(command) )
-    rec[command] := value;
+    req[command] := value;
   else if( is_record(command) )
     for( f in field_names(command) )
-      rec[f] := command[f];
+      req[f] := command[f];
   else
     fail 'command argument must be string or record';
 }
 
+#-- meq_private.initcmdlist() -------------------------------------------------------------
+# creates a command list for inclusion in a request
 
-#-- meq.addcmdlist() -------------------------------------------------------------
+const meq_private.initcmdlist := function ()
+{
+  return meq.reclist();
+}
+
+#-- meq_private.addcmdlist() -------------------------------------------------------------
 # adds to a command list 
 
-const meq.addcmdlist := function (ref cmdlist,node,command,value=F)
+const meq_private.addcmdlist := function (ref cmdlist,node,command,value=F)
 {
   if( !is_record(cmdlist) || !cmdlist::dmi_is_reclist )
     cmdlist := meq.reclist();
@@ -363,7 +362,7 @@ const meq.addcmdlist := function (ref cmdlist,node,command,value=F)
 #-- meq.request() -------------------------------------------------------------
 # creates a request
 
-const meq.request := function (cells=F,request_id=F,calc_deriv=0,clear_solver=T)
+const meq.request := function (cells=F,request_id=F,calc_deriv=0)
 {
   global _meqdomain_id;
   # if no request ID supplied, generate one by incrementing the
@@ -372,83 +371,79 @@ const meq.request := function (cells=F,request_id=F,calc_deriv=0,clear_solver=T)
     request_id := meq.requestid(_meqdomain_id+:=1);
   else  # else, setup global domain ID from the one given in the request ID
     _meqdomain_id := as_integer(as_string(request_id) ~ s/\..*$//);
-  rec := [ request_id=hiid(request_id),
-           calc_deriv=as_integer(calc_deriv),
-           clear_solver=as_boolean(clear_solver) ];
+  req := [ request_id=hiid(request_id),
+           calc_deriv=as_integer(calc_deriv) ];
   if( !is_boolean(cells) )
-    rec.cells := cells;
-  rec::dmi_actual_type := 'MeqRequest';
+    req.cells := cells;
+  req::dmi_actual_type := 'MeqRequest';
 
-  #-- meq.request.add_command() -------------------------------------------------------------
-  # adds a command to the request rider
-  # group:  this is the node group that the command is targeted at. Only
-  #         nodes belonging to this group will be checked. Use 'all' for
-  #         all nodes (NB: the 'all' group may be phased out in the future)
-  # node:   specifies the target node. Four options are available:
-  #         (a) empty scalar array (i.e. '[]'): targets command at all nodes   
-  #             (adds it to the command_all list of the rider)
-  #         (b) single integer: assumes this is a node index
-  #             (adds command to the command_by_nodeindex map)
-  #         (c) vector of integers: assumes these are node indices
-  #             (adds command to command_by_list, with a nodeindex key)
-  #         (d) one or more strings: assumes node names
-  #             (adds command to command_by_list, with a name key)
-  #         (e) empty string array (""): adds a wildcard entry to 
-  #             command_by_list, which will match all nodes not matched
-  #             by a previous entry.
-  # command: string command (used as field name in the maps), or a command 
-  #         record. If a string is used, then the record is extended with 
-  #         field command=value. If a record is used, then value is ignored.
-  const rec.add_command := function (group,node,command,value=F)
+  
+  return ref req;
+}
+
+#-- meq.add_command() -------------------------------------------------------------
+# adds a command to a request rider
+# req:    request to add command to (passed in by ref)
+# group:  this is the node group that the command is targeted at. Only
+#         nodes belonging to this group will be checked. Use 'all' for
+#         all nodes (NB: the 'all' group may be phased out in the future)
+# node:   specifies the target node. Four options are available:
+#         (a) empty scalar array (i.e. '[]'): targets command at all nodes   
+#             (adds it to the command_all list of the rider)
+#         (b) single integer: assumes this is a node index
+#             (adds command to the command_by_nodeindex map)
+#         (c) vector of integers: assumes these are node indices
+#             (adds command to command_by_list, with a nodeindex key)
+#         (d) one or more strings: assumes node names
+#             (adds command to command_by_list, with a name key)
+#         (e) empty string array (""): adds a wildcard entry to 
+#             command_by_list, which will match all nodes not matched
+#             by a previous entry.
+# command: string command (used as field name in the maps), or a command 
+#         record. If a string is used, then the record is extended with 
+#         field command=value. If a record is used, then value is ignored.
+const meq.add_command := function (ref req,group,node,command,value=F)
+{
+  # add node_state and group subrecord
+  if( !has_field(req,'rider') )
+    req.rider := [=];
+  if( !has_field(req.rider,group) )
+    req.rider[group] := [=];
+  ns := ref req.rider[group];
+  if( !is_integer(node) && !is_string(node) )
+    fail 'node must be specified by index or name(s)';
+  # empty node argument: add to command_all list
+  if( len(node) == 0 )
   {
-    wider rec;
-    # add node_state and group subrecord
-    if( !has_field(rec,'rider') )
-      rec.rider := [=];
-    if( !has_field(rec.rider,group) )
-      rec.rider[group] := [=];
-    ns := ref rec.rider[group];
-    if( !is_integer(node) && !is_string(node) )
-      fail 'node must be specified by index or name(s)';
-    # empty node argument: add to command_all list
-    if( len(node) == 0 )
-    {
-      if( !has_field(ns,'command_all') )
-        ns.command_all := [=];
-      mqs_private.merge_records(ns.command_all,command,value);
-    }
-    # single nodeindex: add to command_by_nodeindex map
-    else if( is_integer(node) && len(node)==1 ) 
-    {
-      if( !has_field(ns,'command_by_nodeindex') )
-        ns.command_by_nodeindex := [=];
-      key := spaste('#',as_string(node));
-      if( !has_field(ns.command_by_nodeindex,key) )
-        ns.command_by_nodeindex[key] := [=];
-      mqs_private.merge_records(ns.command_by_nodeindex[key],command,value);
-    }
-    else # multiple indices or names: add to command_by_list map
-    {
-      if( !has_field(ns,'command_by_list') )
-        ns.command_by_list := meq.initcmdlist();
-      meq.addcmdlist(ns.command_by_list,node,command,value);
-    }
-    return T;
+    if( !has_field(ns,'command_all') )
+      ns.command_all := [=];
+    mqs_private.merge_records(ns.command_all,command,value);
   }
-  
-  #-- meq.request.add_state() -------------------------------------------------------------
-  # shortcut for adding state change commands
-  
-  const rec.add_state := function (group,node,state)
+  # single nodeindex: add to command_by_nodeindex map
+  else if( is_integer(node) && len(node)==1 ) 
   {
-    wider rec;
-    return rec.add_command(group,node,'state',state);
+    if( !has_field(ns,'command_by_nodeindex') )
+      ns.command_by_nodeindex := [=];
+    key := spaste('#',as_string(node));
+    if( !has_field(ns.command_by_nodeindex,key) )
+      ns.command_by_nodeindex[key] := [=];
+    mqs_private.merge_records(ns.command_by_nodeindex[key],command,value);
   }
-  
-  rec.add_command::dmi_ignore := T;
-  rec.add_state::dmi_ignore := T;
-  
-  return ref rec;
+  else # multiple indices or names: add to command_by_list map
+  {
+    if( !has_field(ns,'command_by_list') )
+      ns.command_by_list := meq_private.initcmdlist();
+    meq_private.addcmdlist(ns.command_by_list,node,command,value);
+  }
+  return T;
+}
+
+#-- meq.add_state() -------------------------------------------------------------
+# shortcut for adding state change command to a request rider
+
+const meq.add_state := function (ref req,group,node,state)
+{
+  return add_command(req,group,node,'state',state);
 }
 
 
