@@ -101,14 +101,18 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
     setWritable(True);
     return *this;
   }
-  FailWhen( valid(),"field is already initialized" );
+  bool wantscalar = False;
   if( num == -1 )
   {
     num = 1;
-    scalar = True;
+    wantscalar = True;
   }
-  else
-    scalar = False;
+  // already initialized? Check that type/size matches, and return
+  if( valid () )
+  {
+    FailWhen(mytype!=tid || mysize_!=num || wantscalar!=scalar,"field already initialized" );
+    return *this;
+  }
   FailWhen( num<0,"illegal field size" );
   // obtain type information, check that type is supported
   typeinfo = TypeInfo::find(tid);
@@ -116,6 +120,7 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
   binary_type = dynamic_type = container_type = False;
   mytype = tid;
   mysize_ = max(num,1);
+  scalar = wantscalar;
   typeinfo.size = typeinfo.size;
   switch( typeinfo.category )
   {
