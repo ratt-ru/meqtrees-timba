@@ -34,6 +34,8 @@ const Timeval Timeout_Retry(10.0),
 // max retries
 const int MaxOpenRetries = 10;
 
+using Debug::ssprintf;
+
 //##ModelId=3C8F95710177
 //## end module%3C95AADB010A.additionalDeclarations
 
@@ -294,7 +296,7 @@ void GWServerWP::tryOpen ()
     if( type == Socket::TCP )
       dsp()->localData(GWNetworkServer)[0] = port;
     else
-      dsp()->localData(GWLocalServer)[0] = hostname + ":" + port;
+      dsp()->localData(GWLocalServer)[0] = ssprintf("%s:%d",hostname.c_str(),port);
     // add an input on the socket
     addInput(sock->getSid(),EV_FDREAD);
 #if ADVERTISE_SERVERS

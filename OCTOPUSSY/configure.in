@@ -53,8 +53,9 @@ dnl
 lofar_DEBUG_OPTIMIZE
 lofar_CORBA
 dnl lofar_MATLAB
-lofar_AIPSPP(1)
+dnl lofar_AIPSPP(1)
 dnl lofar_MPI
+lofar_BLITZ(1)
 lofar_QATOOLS
 lofar_DOCXX
 lofar_PACKAGE(DMI)
@@ -64,7 +65,6 @@ dnl Output Makefiles
 dnl
 AC_OUTPUT(
 src/Makefile
-src/Glish/Makefile
 test/Makefile 
 Makefile
 )

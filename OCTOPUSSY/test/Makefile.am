@@ -4,7 +4,7 @@ dmi_dir = $(lofar_sharedir)/../DMI
 
 check_PROGRAMS		= test_octopussy
 
-bin_PROGRAMS   		= test_gw test_gw0 test_ping IMTest
+bin_PROGRAMS   		= test_gw test_gw0 test_ping
 
 test_octopussy_SOURCES 	= test_octopussy.cc EchoWP.cc AID-Testing-Registry.cc
 
@@ -29,18 +29,6 @@ test_ping_SOURCES 	= test_ping.cc EchoWP.cc AID-Testing-Registry.cc
 test_ping_LDADD		= ../src/liboctopussy.la -lpthread 
 
 test_ping_DEPENDENCIES	= ../src/liboctopussy.la $(LOFAR_DEPEND)
-
-# test_glish_SOURCES 	= test_glish.cc EchoWP.cc AID-Testing-Registry.cc
-#
-# test_glish_LDADD		= ../src/Glish/liboctopussy-glish.la \
-#  ../src/liboctopussy.la -lglish -lsos -lnpd
-#
-# test_glish_DEPENDENCIES	= ../src/liboctopussy.la $(LOFAR_DEPEND)
-
-IMTest_SOURCES		= IMTestWP.h IMTestWP.cc IMTest.cc AID-Testing-Registry.cc
-IMTest_LDADD		= ../src/Glish/liboctopussy-glish.la \
-			  ../src/liboctopussy.la -lglish -lsos -lnpd
-IMTest_DEPENDENCIES	= ../src/liboctopussy.la $(LOFAR_DEPEND)
 
 TESTS				=  test_octopussy
 
