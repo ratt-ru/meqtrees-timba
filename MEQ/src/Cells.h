@@ -97,7 +97,7 @@ public:
   double stepFreq() const
     { return itsFreqStep; }
 
-  // Get the i-th time.
+  // Get the i-th time which is the middle of the interval.
     //##ModelId=3F86886E02DA
   double time (int i) const
     { return itsTimes(i); }

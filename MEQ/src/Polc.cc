@@ -45,23 +45,22 @@ bool   Polc::theirPascalFilled = false;
 Polc::Polc()
 : itsNrSpid     (0),
   itsPertValue  (1e-6),
-  itsIsRelPert  (true),
   itsFreq0      (0),
   itsTime0      (0),
-  itsNormalized (false)
+  itsFreqScale  (1),
+  itsTimeScale  (1)
 {}
 
 //##ModelId=400E5354033A
 Polc::Polc (DataRecord &rec)
 : itsCoeff(rec[FVellSets].as_wp<DataArray>())
 {
-  itsDomain = rec[FDomain].as<Domain>();
+  itsDomain    = rec[FDomain].as<Domain>();
   itsPertValue = rec[FPerturbedValues];
-  itsIsRelPert = rec[FPertRelative];
-  itsMask = rec[FMask];
-  itsFreq0 = rec[FFreq0];
-  itsTime0 = rec[FTime0];
-  itsNormalized = rec[FNormalized];
+  itsFreq0     = rec[FFreq0];
+  itsTime0     = rec[FTime0];
+  itsFreqScale = rec[FFreqScale];
+  itsTimeScale = rec[FTimeScale];
 }
 
 //##ModelId=400E53540345
@@ -70,11 +69,11 @@ void Polc::fillRecord (DataRecord &rec)
   rec[FDomain] <<= new Domain(domain());
   rec[FVellSets] <<= &(itsCoeff.getDataArray());
   rec[FPerturbedValues] = itsPertValue;
-  rec[FPertRelative] = itsIsRelPert;
   rec[FMask] = itsMask;
   rec[FFreq0] = itsFreq0;
   rec[FTime0] = itsTime0;
-  rec[FNormalized] = itsNormalized;
+  rec[FFreqScale] = itsFreqScale;
+  rec[FTimeScale] = itsTimeScale;
 }
 
 //##ModelId=3F86886F0373
@@ -139,24 +138,18 @@ void Polc::evaluate (VellSet &result, const Request& request)
     LoMat_double& matv = result.setReal (1, 1);
     matv(0,0) = itsCoeff.realStorage()[0];
     if (makeDiff) {
-      double pert = *itsPerturbation.realStorage();
-      result.setPerturbedValue (0, Vells(*itsCoeff.realStorage() + pert));
-      result.setPerturbation (0, pert);
+      result.setPerturbedValue (0,
+				Vells(*itsCoeff.realStorage() + itsPertValue));
+      result.setPerturbation (0, itsPertValue);
 // 	cout << "polc " << itsSpidInx[0] << ' ' << result.getValue()
 // 	     << result.getPerturbedValue(itsSpidInx[0]) << itsPerturbation
 // 	     << ' ' << itsCoeff << endl;
     }
   } else {
     // The polynomial has multiple coefficients.
-    // Get the step and start values in the (un)normalized domain.
-    double stepx, stx;
-    if (itsNormalized) {
-      stepx = cells.stepFreq() / itsDomain.scaleFreq();
-      stx = itsDomain.normalizeFreq (domain.startFreq()) + stepx * .5;
-    } else {
-      stepx = cells.stepFreq();
-      stx = domain.startFreq() - itsFreq0 + stepx * .5;
-    }
+    // Get the step and start values in the normalized domain.
+    double stepx = cells.stepFreq() / itsFreqScale;
+    double stx = (domain.startFreq() - itsFreq0) / itsFreqScale + stepx * .5;
     // Get number of steps and coefficients in x (freq) and y (time).
     int ndx = cells.nfreq();
     int ndy = cells.ntime();
@@ -184,12 +177,7 @@ void Polc::evaluate (VellSet &result, const Request& request)
     double* value = matv.data();
     // Iterate over all cells in the domain.
     for (int j=0; j<ndy; j++) {
-      double valy = cells.time(j);
-      if (itsNormalized) {
-	valy = domain.normalizeTime (valy);
-      } else {
-	valy -= itsTime0;
-      }
+      double valy = (cells.time(j) - itsTime0) / itsTimeScale;
       double valx = stx;
       for (int i=0; i<ndx; i++) {
 	const double* coeff = coeffData;
@@ -278,18 +266,18 @@ int Polc::makeSolvable (int spidIndex)
     }
   }
   // Precalculate the perturbed coefficients.
-  // The perturbation is absolute or a factor of the coefficient.
+  // The perturbation is absolute.
   // If the coefficient is too small, take absolute.
   if (itsNrSpid > 0) {
     itsPerturbation = itsCoeff.clone();
     const double* coeff = itsCoeff.realStorage();
     double* pert  = itsPerturbation.realStorage();
-    for (int i=0; i<itsCoeff.nelements(); i++) {
-      double perturbation = itsPertValue;
-      if (itsIsRelPert  &&  abs(coeff[i]) > 1e-10) {
-	perturbation *= coeff[i];
+    int i=0;
+    for (int ix=0; ix<itsCoeff.nx(); ix++) {
+      for (int iy=0; iy<itsCoeff.ny(); iy++) {
+	double perturbation = itsPertValue;
+	pert[i++] = perturbation;
       }
-      pert[i] = perturbation;
     }
   }
   return itsNrSpid;
@@ -320,11 +308,7 @@ void Polc::getInitial (Vells& values) const
 //##ModelId=3F86886F03B3
 void Polc::getCurrentValue (Vells& value, bool denorm) const
 {
-  if (denorm && isNormalized()) {
-    value = denormalize(itsCoeff);
-  } else {
-    value = itsCoeff;
-  }
+  value = itsCoeff;
 }
 
 //##ModelId=3F86886F03BE

@@ -46,12 +46,11 @@ bool compare(const Vells& m1, const Vells& m2)
 
 void doIt (Polc& polc)
 {
-  Domain domain(1,4, -2,3);
+  Domain domain(0.5,4.5, -2.5,1.5);
   Vells newc = polc.normalize (polc.getCoeff(), domain);
   Polc newpolc;
   newpolc.setCoeff (newc);
   newpolc.setDomain (domain);
-  newpolc.setNormalize (True);
   newpolc.setFreq0 (polc.getFreq0());
   newpolc.setTime0 (polc.getTime0());
   Vells backc = newpolc.denormalize (newpolc.getCoeff());
@@ -62,10 +61,7 @@ void doIt (Polc& polc)
   VellSet res1;
   VellSet::Ref refres1(res1, DMI::WRITE || DMI::EXTERNAL);
   polc.evaluate(refres1, req);
-  VellSet res2;
-  VellSet::Ref refres2(res2, DMI::WRITE || DMI::EXTERNAL);
-  newpolc.evaluate (refres2, req);
-  Assert (compare(res1.getValue(), res2.getValue()));
+  cout << res1;
 }
 
 int main()
@@ -76,6 +72,8 @@ int main()
       Polc polc;
       polc.setFreq0 (i*0.5);
       polc.setTime0 (-i*2);
+      polc.setFreqScale (i+1);
+      polc.setTimeScale (1./(i+1));
 
       polc.setCoeff(Vells(2.));
       doIt (polc);
@@ -85,6 +83,20 @@ int main()
 
       polc.setCoeff(Vells(2.,1,2,true));
       doIt (polc);
+
+      polc.setCoeff(Vells(2.,2,2,true));
+      doIt (polc);
+
+      double c0[4] = {4, 3, 2, 1};
+      LoMat_double mat0a(c0, LoMatShape(1,4), blitz::duplicateData);
+      polc.setCoeff(Vells(mat0a));
+      doIt(polc);
+      LoMat_double mat0b(c0, LoMatShape(4,1), blitz::duplicateData);
+      polc.setCoeff(Vells(mat0b));
+      doIt(polc);
+      LoMat_double mat0c(c0, LoMatShape(2,2), blitz::duplicateData);
+      polc.setCoeff(Vells(mat0c));
+      doIt(polc);
 
       double c1[12] = {1.5, 2.1, -0.3, -2,
 		       1.45, -2.3, 0.34, 1.7,

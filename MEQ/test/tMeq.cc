@@ -32,6 +32,7 @@
 #include <exception>
 
 using namespace Meq;
+using namespace std;
 
 int main (int argc,const char* argv[])
 {
@@ -40,6 +41,10 @@ int main (int argc,const char* argv[])
   Debug::initLevels(argc,argv);
   try 
   {
+    cout << complex<double>(1. ,2.) << endl;
+    LoMat_dcomplex cv1(1,1);
+    cv1 = dcomplex (1., 2.);
+    cout << cv1 << endl;
     LoMat_double defVal1(1,1);
     defVal1 = 1.;
     LoMat_double defVal2(1,1);
@@ -96,8 +101,8 @@ int main (int argc,const char* argv[])
     rec["Children"] <<= new DataRecord;
       rec["Children"]["A"] = "cosp1";
       rec["Children"]["B"] = index_child2; 
-      rec["Children"]["C"] = "c3";
-      rec["Children"]["D"] = "c4";
+      rec["Children"]["C"] = "c4";
+      rec["Children"]["D"] = "c3";
     int index_add;
     Node& chadd = forest.create(index_add,rec);
     

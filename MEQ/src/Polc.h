@@ -101,14 +101,10 @@ public:
     //##ModelId=3F86886F0396
   double getPerturbation() const
     { return itsPertValue; }
-    //##ModelId=3F86886F0398
-  bool isRelativePerturbation() const
-    { return itsIsRelPert; }
 
     //##ModelId=3F86886F039A
-  void setPerturbation (double perturbation = 1e-6,
-			bool isRelativePerturbation = true)
-    { itsPertValue = perturbation; itsIsRelPert = isRelativePerturbation; }
+  void setPerturbation (double perturbation = 1e-6)
+    { itsPertValue = perturbation; }
 
   // Make the polynomial non-solvable.
     //##ModelId=3F86886F03A4
@@ -135,31 +131,33 @@ public:
     //##ModelId=3F86886F03BE
   uint update (const double* values, uint nrval);
 
-  // Set the zero-points of the function.
+  // Set the zero-points and scales of the function.
+  // <group>
     //##ModelId=3F86886F03D6
   void setFreq0 (double freq0)
     { itsFreq0 = freq0; }
     //##ModelId=3F86886F03DD
   void setTime0 (double time0)
     { itsTime0 = time0; }
+  void setFreqScale (double freqScale)
+    { itsFreqScale = freqScale; }
+  void setTimeScale (double timeScale)
+    { itsTimeScale = timeScale; }
+  // </group>
 
-  // Get the zero-point of the function.
+  // Get the zero-points and scales of the function.
+  // <group>
     //##ModelId=3F86886F03E3
   double getFreq0() const
     { return itsFreq0; }
     //##ModelId=3F86886F03E5
   double getTime0() const
     { return itsTime0; }
-
-  // Tell if the coefficients have to be normalized.
-    //##ModelId=3F86886F03E7
-  void setNormalize (bool normalize)
-    { itsNormalized = normalize; }
-
-  // Tell if the coefficients are normalized.
-    //##ModelId=3F8688700006
-  bool isNormalized() const
-    { return itsNormalized; }
+  double getFreqScale() const
+    { return itsFreqScale; }
+  double getTimeScale() const
+    { return itsTimeScale; }
+  // </group>
 
   // Normalize the coefficients for the given domain.
     //##ModelId=3F8688700008
@@ -200,14 +198,12 @@ private:
   int          itsNrSpid;
     //##ModelId=3F86886F0333
   double       itsPertValue;
-    //##ModelId=3F86886F033A
-  bool         itsIsRelPert;   //# true = perturbation is relative
     //##ModelId=3F86886F0341
   double       itsFreq0;
     //##ModelId=3F86886F0348
   double       itsTime0;
-    //##ModelId=3F86886F0350
-  bool         itsNormalized;  //# true = coefficients normalized to domain
+  double       itsFreqScale;
+  double       itsTimeScale;
 
   //# Pascal's triangle for the binomial coefficients needed when normalizing.
     //##ModelId=3F86886F0357

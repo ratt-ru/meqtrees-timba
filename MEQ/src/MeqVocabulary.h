@@ -32,7 +32,7 @@
 #pragma aid NodeIndex Table Name Default Value Index Num Cache Code
 #pragma aid Parm Spid Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cells Results Fail Origin Line Message Contagious  Normalized
-#pragma aid Solvable Config Groups All By List Polcs
+#pragma aid Solvable Config Groups All By List Polcs Scale
 #pragma aid Epsilon UseSVD
 #pragma aid Metrics Rank Fit Errors CoVar Flag Mu StdDev Chi
 
@@ -80,6 +80,8 @@ namespace Meq
     FPertRelative    = AidPert|AidRelative,
     FFreq0           = AidFreq|0,
     FTime0           = AidTime|0,
+    FFreqScale       = AidFreq|AidScale,
+    FTimeScale       = AidTime|AidScale,
     FMask            = AidMask,
     FNormalized      = AidNormalized,
     

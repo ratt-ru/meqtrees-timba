@@ -1,6 +1,6 @@
 check_PROGRAMS 		= tMeqVells tMeqPolc tForest tMeq tSolver
 
-TESTS			= tMeqVells tMeqPolc tForest tMeq tSolver
+TESTS			= tMeqVells tMeqPolc_test.sh tForest tMeq tSolver
 
 tMeqVells_SOURCES 	= tMeqVells.cc 
 tMeqVells_LDADD		= ../src/libmeq.la 
@@ -22,5 +22,6 @@ tSolver_SOURCES	 	= tSolver.cc
 tSolver_LDADD		= ../src/libmeq.la 
 tSolver_DEPENDENCIES	= ../src/libmeq.la $(LOFAR_DEPEND)
 
+TESTS_ENVIRONMENT		= lofar_sharedir=$(lofar_sharedir)
 
 include $(lofar_sharedir)/Makefile.common

@@ -403,6 +403,11 @@ const int AidResults_int = -1245;
 const AtomicID AidRider(-1250);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:33
 const int AidRider_int = -1250;
 #endif
+#ifndef _defined_id_AidScale
+#define _defined_id_AidScale 1
+const AtomicID AidScale(-1405);                   // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
+const int AidScale_int = -1405;
+#endif
 #ifndef _defined_id_AidSolvable
 #define _defined_id_AidSolvable 1
 const AtomicID AidSolvable(-1366);                // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
