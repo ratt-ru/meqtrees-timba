@@ -72,7 +72,7 @@ docthis:
 	  cp $(top_builddir)/.doxygenrc doxygen.cfg ; \
 	  projnm=`(cd $(srcdir) && pwd) | sed -e "s%.*/LOFAR/%%"` ; \
 	  echo "PROJECT_NAME = $$projnm" >> doxygen.cfg ; \
-	  echo "INPUT = $(srcdir)" >> doxygen.cfg ; \
+	  echo "INPUT = $(srcdir)/src" >> doxygen.cfg ; \
 	  echo "RECURSIVE = NO" >> doxygen.cfg ; \
 	  echo "HTML_OUTPUT = $(DOCDIR)" >> doxygen.cfg ; \
 	  $(DOXYGEN) doxygen.cfg ; \
