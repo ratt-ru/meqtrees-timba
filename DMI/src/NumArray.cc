@@ -21,6 +21,9 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.6  2002/05/13 08:59:42  gvd
+//  Fixed cloneOther (removed assignment) and added Tpbool, etc. to constructor
+//
 //  Revision 1.5  2002/05/07 11:46:00  gvd
 //  The 'final' version supporting array subsets
 //
@@ -53,18 +56,24 @@ DataArray::DataArray (TypeId type, const IPosition& shape,
   itsArray    (0),
   itsSubArray (0)
 {
-  if (type == TpArray_bool) {
+  if (type == TpArray_bool  ||  type == Tpbool) {
     itsElemSize = sizeof(bool);
-  } else if (type == TpArray_int) {
+    type = TpArray_bool;
+  } else if (type == TpArray_int  ||  type == Tpint) {
     itsElemSize = sizeof(int);
-  } else if (type == TpArray_float) {
+    type = TpArray_int;
+  } else if (type == TpArray_float  ||  type == Tpfloat) {
     itsElemSize = sizeof(float);
-  } else if (type == TpArray_double) {
+    type = TpArray_float;
+  } else if (type == TpArray_double  ||  type == Tpdouble) {
     itsElemSize = sizeof(double);
-  } else if (type == TpArray_fcomplex) {
+    type = TpArray_double;
+  } else if (type == TpArray_fcomplex  ||  type == Tpfcomplex) {
     itsElemSize = sizeof(fcomplex);
-  } else if (type == TpArray_dcomplex) {
+    type = TpArray_fcomplex;
+  } else if (type == TpArray_dcomplex  ||  type == Tpdcomplex) {
     itsElemSize = sizeof(dcomplex);
+    type = TpArray_dcomplex;
   } else {
     AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
   }
@@ -111,7 +120,6 @@ void DataArray::cloneOther (const DataArray& other, int flags, int)
   setWritable ((flags&DMI::WRITE) != 0);
   if (other.itsArray) {
     itsData.copy (other.itsData).privatize (flags|DMI::LOCK);
-    itsData = other.itsData;
     itsDataOffset = other.itsDataOffset;
     init (other.itsShape);
   }
