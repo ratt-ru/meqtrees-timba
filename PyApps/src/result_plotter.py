@@ -390,12 +390,14 @@ class ResultPlotter(BrowserPlugin):
     self._add_time_freq = False;
 
     if is_vector == False:
+      _dprint(3,'in display_vells_data plotting image' ) 
 # first display an image 
       if self._image_ntuple == None:
         self._image_ntuple = self._ntuple_controller.createNTuple()
         self._image_ntuple.setTitle ("VellSet Data")
         self._add_time_freq = True;
       image_size = n_rows * n_cols
+      _dprint(3,'in display_vells_data image_size', image_size ) 
       image = []
       for j in range(0, n_rows ) :
         for i in range(0, n_cols) :
@@ -405,12 +407,15 @@ class ResultPlotter(BrowserPlugin):
           _dprint(3, "Number of rows has changed! Clearing tuple!")
           self._image_ntuple.clear()
         self._image_ntuple.replaceColumn (self._label,image)
+        _dprint(3,'passed self._image_ntuple.replaceColumn')
       else:
 # add columns for new image data
         self._image_ntuple.addColumn (self._label,image)
+        _dprint(3,'passed self._image_ntuple.addColumn')
 # add time and frequency columns for xyz plots
 # first add frequency column
         if self._add_time_freq:
+          _dprint(3,'creating frequency axis')
           xyz_x_label = "freq"
           image = []
           freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
@@ -427,6 +432,7 @@ class ResultPlotter(BrowserPlugin):
 
 # now add time column
         if self._add_time_freq:
+          _dprint(3,'creating time axis')
           xyz_y_label = "time"
           image = []
           time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
@@ -443,7 +449,10 @@ class ResultPlotter(BrowserPlugin):
           self._add_time_freq = False
 
 # do image plot 
+        _dprint(3,'testing is_one_point_image ')
+        _dprint(3,'is_one_point_image ', is_one_point_image)
         if is_one_point_image == False:
+          _dprint(3,'creating Z plot')
           image_plot = self._display_controller.createDisplay( 'Z Plot', self._image_ntuple,[self._label,])
           freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
           time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
@@ -468,6 +477,7 @@ class ResultPlotter(BrowserPlugin):
 
 # now do an XYZ plot 
         bindings = ["freq", "time",  self._label ]
+        _dprint(3,'creating XYZ plot')
         xyz_plot = self._display_controller.createDisplay ( 'XYZ Plot', self._image_ntuple, bindings )
         xyz_plot.setLabel ( 'x', 'Freq' )
         xyz_plot.setLabel ( 'y', 'Time' )
@@ -523,12 +533,13 @@ class ResultPlotter(BrowserPlugin):
         if self._canvas == None:
           self._canvas = self._window_controller.currentCanvas()
         self._canvas.addDisplay ( plot )
+    _dprint(3,'exiting display_vells_data' ) 
 
   def set_data (self,dataitem,default_open=None,**opts):
     """ this callback receives data from the meqbrowser, when the
         user has requested a plot. It decides whether the data is
         from a VellSet or visu data record, and  after any
-        necessary preprocssing forwards the data to one of
+        necessary preprocessing forwards the data to one of
         the functions which does the actual plotting """
 
     self._rec = dataitem.data;
@@ -539,8 +550,10 @@ class ResultPlotter(BrowserPlugin):
 
 # are we dealing with Vellsets?
     if self._rec.has_key("vellsets"):
+      _dprint(3, 'handling vellsets')
 # how many VellSet planes (e.g. I, Q, U, V would each be a plane) are there?
       number_of_planes = len(self._rec["vellsets"])
+      _dprint(3, 'number of planes ', number_of_planes)
       for i in range(number_of_planes):
 # get the shape tuple - useful if the Vells have been compressed down to
 # a constant
@@ -556,6 +569,7 @@ class ResultPlotter(BrowserPlugin):
             if self._rec.vellsets[i].value.type() == Complex64:
               complex_type = True;
             self._value_array = self._rec.vellsets[i].value
+            _dprint(3, 'self._value_array ', self._value_array)
           except:
             temp_array = numarray.asarray(self._rec.vellsets[i].value)
             self._value_array = numarray.resize(temp_array,self._shape)
@@ -565,6 +579,7 @@ class ResultPlotter(BrowserPlugin):
               complex_type = True;
 
           if complex_type:
+            _dprint(3,'handling complex array')
 #extract real component
             self._value_real_array = self._value_array.getreal()
             self._data_type = " real"
@@ -581,14 +596,17 @@ class ResultPlotter(BrowserPlugin):
             self.display_vells_data(self._value_imag_array)
           else:
 #we have a real array
+            _dprint(3,'handling real array')
             self._data_type = " real"
             self._label = "plane " + str(i) + key + self._data_type 
             self._z_real_min = self._value_array.min()
             self._z_real_max = self._value_array.max()
             self.display_vells_data(self._value_array)
+            _dprint(3,'passed display_vells_data')
 
 # handle "perturbations" - at present we do nothing ...
         if self._rec.vellsets[i].has_key("perturbations"):
+          _dprint(3, 'perturbations key exists')
           number_of_perturbations = len(self._rec.vellsets[i].perturbations)
           for j in range(number_of_perturbations):
             perturb = self._rec.vellsets[i].perturbations[j]
@@ -633,5 +651,7 @@ class ResultPlotter(BrowserPlugin):
     if self._rec.has_key("visu"):
 # do plotting of visualization data
       self.display_visu_data()
+
+    _dprint(3, 'exiting set_data')
 
 gridded_workspace.registerViewer(dict,ResultPlotter,dmitype='meqresult',priority=-10)

@@ -491,7 +491,7 @@ class realvsimag_plotter(object):
 #      self._legend_popup = None
       self._plot_color = None
       self._string_tag = None
-      self._tag = None
+      self._x_y_data = True
       self._tag_plot_attrib={}
 
 
@@ -529,34 +529,43 @@ class realvsimag_plotter(object):
             self._legend_plot = legend.get('plot')
           if legend.has_key('popup'):
             self._legend_popup = legend.get('popup')
-        self._tag = self._attrib_parms.get('tag','') 
-        if isinstance(self._tag, tuple):
-          for i in range(0, len(self._tag)):
-            temp_key = item_tag + self._tag[i]
+        tag = self._attrib_parms.get('tag','') 
+        if isinstance(tag, tuple):
+          for i in range(0, len(tag)):
+            temp_key = item_tag + ' ' + tag[i]
             item_tag = temp_key
-          temp_key = item_tag
-          self._string_tag = temp_key 
-          item_tag = temp_key + '_plot'
+          self._string_tag = item_tag 
+          item_tag = self._string_tag + '_plot'
         else:
-          self._string_tag = self._tag 
-          item_tag = self._tag + '_plot'
+          self._string_tag = tag 
+          item_tag = self._string_tag + '_plot'
       else:
         list_length = len(attribute_list)
         for i in range(list_length):
           self._attrib_parms = attribute_list[i]
           _dprint(2,'self._attrib_parms ', self._attrib_parms);
-          if self._tag is None and self._attrib_parms.has_key('tag'):
-            self._tag = self._attrib_parms.get('tag')
-            if isinstance(self._tag, tuple):
-              for i in range(0, len(self._tag)):
-                temp_key = item_tag + self._tag[i]
-                item_tag = temp_key
-              temp_key = item_tag
-              self._string_tag = temp_key 
-              item_tag = temp_key + '_plot'
+          if self._attrib_parms.has_key('tag'):
+            tag = self._attrib_parms.get('tag')
+            if self._string_tag is None:
+              self._string_tag = ''
+            if isinstance(tag, tuple):
+              _dprint(2,'tuple tag ', tag);
+              for i in range(0, len(tag)):
+                if self._string_tag.find(tag[i]) < 0:
+                  temp_tag = self._string_tag + ' ' + tag[i] 
+                  self._string_tag = temp_tag
+              _dprint(2,'self._string_tag ', self._string_tag);
+              item_tag = self._string_tag + '_plot'
             else:
-              self._string_tag = self._tag 
-              item_tag = self._tag + '_plot'
+              _dprint(2,'non tuple tag ', tag);
+              if self._string_tag is None:
+                self._string_tag = ''
+              if self._string_tag.find(tag) < 0:
+                temp_tag = self._string_tag + ' ' + tag 
+                self._string_tag = temp_tag 
+                _dprint(2,'self._string_tag ', self._string_tag);
+              item_tag = self._string_tag + '_plot'
+
           if self._attrib_parms.has_key('plot'):
             self._plot_parms = self._attrib_parms.get('plot')
             if self._plot_parms.has_key('tag_attrib'):
@@ -635,9 +644,9 @@ class realvsimag_plotter(object):
       if len(self._tag_plot_attrib) > 0:
         _dprint(3, 'self._tag_plot_attrib has keys ', self._tag_plot_attrib.keys())
 # if still undefined
-      if self._tag is None:
-            self._tag = 'data'
-            item_tag = self._tag + '_plot'
+      if self._string_tag is None:
+            self._string_tag = 'data'
+            item_tag = self._string_tag + '_plot'
       if self._plot_title is None:
         self._plot_title = self._plot_type
       if self.value_tag is None:
@@ -721,6 +730,9 @@ class realvsimag_plotter(object):
           if not self.errors_plot:
             for j in range(0, num_elements): 
               data_i.append(0.0)
+          if self.errors_plot and self._string_tag.find(self.error_tag)<0:
+            for j in range(0, num_elements): 
+              data_i.append(0.0)
 
 # add data to set of curves
       num_rows = len(data_r)
@@ -730,6 +742,7 @@ class realvsimag_plotter(object):
       _dprint(2, 'main key ', self._label_r)
 #      if self.errors_plot and self._is_complex == False:
       if self.errors_plot and self._string_tag.find(self.error_tag)>= 0:
+        self._x_y_data = False
         if self._plotter_dict.has_key(self._label_r) == False:
 #add the new data to a 'dict' of visualization lists
           self._plotter_dict[self._label_r] = data_r
@@ -778,7 +791,8 @@ class realvsimag_plotter(object):
           self.plot.setAxisTitle(QwtPlot.xBottom, self._plot_x_axis_label)
 
 # if we have x, y data
-        if self._is_complex == True or self.errors_plot == False:
+#        if self._is_complex == True or self.errors_plot == False:
+        if self._x_y_data:
           key_plot = self.plot.insertCurve(plot_key)
           self._xy_plot_dict[plot_key] = key_plot
           self._xy_plot_color[plot_key] = self._plot_color
