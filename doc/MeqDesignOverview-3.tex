@@ -293,136 +293,285 @@
   \label{sec:CSR}
   \label{sec:rider-setstate}
 
-  The optional \qq{rider} sub-record of a \Request\ may be used to send
-  commands to specific nodes. The \qq{Solver} node, for example, makes heavy
-  use of this feature to implement iterative solutions. Command sets are
-  specified via records, with the field names being the commands per se, and
-  the field values being the command arguments. If the record contains multiple
-  commands, they are processed in a specific order. Some example commands are:
+  The optional \qq{rider} sub-record of a \Request\ is used to send commands to
+  nodes. The \qq{Solver} node, for example, relies on this feature to send up
+  parameter updates during iterative solutions. Commands are specified as sets.
+  Each {\bf command set} is a record (\qq{DataRecord} in C++), with the field
+  names (i.e. HIIDs) being the commands per se, and the field value being the
+  command value a.k.a. arguments. Commands with no arguments are indicated with
+  a boolean \qq{true}, a boolean \qq{false} value implies that the command is
+  {\bf not} issued.\footnote{This may seem redundant -- why not simply omit a
+  command if it is not meant to be issued? Consider though that Glish has no
+  built-in facility for {\em removing} record fields. The ``false=no command''
+  convention allows one to effectively remove a command from an existing set by
+  assigning the \qq{F} value to it.} If the set contains multiple commands,
+  they are processed in a specific order determined by the node class. Some
+  example commands are:
 
   \begin{description}
   
-  \item[\qq{state}:] to change the state of a node (available for all nodes);
+  \item[\qq{state}:] changes the state of a node (available for all nodes);
   
-  \item[\qq{set\_value}:] to change the values of a polc in a MeqParm (see
-  below);
-  
-  \item[\qq{save\_polc}:] to save the polc(s) in a MeqParm (see below).
+  \item[\qq{add\_dep\_mask}:] adds symdep masks (available for all nodes,
+  discussed in \ref{sec:symdeps}).
+
+  \item[\qq{update\_values}:] incremental updates of solvable parameters (see
+  documentation for the \qq{Solver} and \qq{Parm} nodes).
   
   \end{description}
   
-  The rider record is structured so that it is possible to associate a command
-  with a specific node or a set of nodes. A node will check if the request
-  contains any commands for itself. Note that in a very large tree, these
-  repeated checks may become expensive. It is for this reason that we introduce
-  the concept of {\em node groups}. 
+  Since commands are seen as record fields in Glish, and plain HIIDs in C++, we
+  will use both forms (\qq{foo\_bar} and \qq{"Foo.Bar"}) interchangably.
   
-  A node may be associated with one or more groups. Groups are specified via a
-  list of HIIDs passed in the \qq{.node\_groups} field of the init record (they
-  can subsequently be changed via \qq{setState()}). All nodes automatically
-  belong to the \qq{all} group. A node's groups are used as a first-level index
-  into the \qq{rider} record. If a node belongs to groups \qq{foo} and
-  \qq{bar}, then \qq{Node::execute()} will check for the {\em command
-  subrecords}\/ (CSRs) \qq{rider.foo}, \qq{rider.bar}, and \qq{rider.all}, in
-  that order, and process any subrecords that it finds.
+\subsection{The command handler}
 
-  Each CSRs contains a number of command sets. These command sets may be
-  associated with specific nodes. There are three ways to specify these
-  associations:
+  Commands are processed by a virtual handler method, called from
+  \qq{execute()}:
+
+\begin{verbatim}
+  virtual void processCommands (const DataRecord &rec,Request::Ref &reqref);
+\end{verbatim}
+
+  The \qq{rec} argument is the command set to be processed (see below). The
+  \qq{reqref} argument is a ref to the current \Request. Because the
+  \qq{processCommands()} handler is called before \qq{pollChildren()}, it can
+  modify the request (i.e., add commands to it) before it is passed on to the
+  children. \qq{Node} itself, for example, uses this capability when
+  accumulating symdep masks (see \ref{sec:symdeps}). The \qq{reqref} should be
+  privatized for writing before a \Request\ is modified, because requests are
+  normally passed around as read-only.
+
+  Node classes implementing their own commands will need to redefine this
+  handler. It is important, however, that the new handler calls the parent
+  class's handler first, so that commands implemented in superclasses
+  (especially \qq{Node} itself) are handled properly. Unknown commands should
+  be ignored -- in fact, handlers are usually implemented to simply look up
+  known commands, and ignore the rest.
   
-  \paragraph{All nodes in group:} The command sets specified via the field
-  \qq{command\_all} is applied to all nodes in the group. For example:
+  Any errors arising during command processing may be indicated by throwing
+  exceptions (these will be caught by \qq{execute()}). The handler should take
+  care to perform any cleanup, and leave the node in a usable state.
+
+  The base handler, \qq{Node::processCommands()}, processes all standard
+  \qq{Node}-level commands. These are listed in section
+  \ref{sec:commands-Node}.
+
+\subsection{Rider subrecord layout}
+  
+  The rider record is structured so that it is possible to associate a command
+  set with a specific node or a set of nodes. Each node thus checks if the
+  request contains any commands for itself. Note that in a very large tree,
+  such repeated checks may grow quite expensive. For this reason, nodes that
+  need to receive a lot of commands should be assigned to a {\em node group}. 
+
+  A node may be associated with one or more groups. Each group is identified by
+  a \qq{HIID}, a node's group assignments are a part of its dynamic state (see
+  \ref{sec:state-Node}). All nodes implicitly belong to the \qq{all} group. A
+  node's groups are used as a first-level index into the \qq{rider} record. If
+  a node belongs to groups \qq{foo} and \qq{bar}, then \qq{Node::execute()}
+  will check for the {\em command subrecords}\/ ({\bf CSR}s) \qq{rider.foo},
+  \qq{rider.bar}, and \qq{rider.all}, in that order, and process any CSRs that
+  it finds.
+
+  Judicious use of node groups practically eliminates the overhead of command
+  lookup. The rider itself contains very few fields (if any), so looking up the
+  CSR for a group is very fast. If your tree frequently uses commands to
+  control a small subset of nodes (e.g., a solve-tree uses commands to update
+  solvable parameters), these nodes should be placed in a group of their own,
+  and commands should be kept in that group's CSR. All other nodes will only
+  check for the \qq{all} CSR -- which is usually not present. Thus, only the
+  required subset of nodes will engage in the possibly expensive business of
+  CSR parsing and command processing.
+  
+  The \qq{all} CSR allows for commands to be sent to any node; but because of
+  the associated overhead, this should only be used for infrequent operations
+  (e.g., reconfiguring a tree -- as opposed to iterative solving).
+
+\subsubsection{CSR layout}
+  
+  Each CSR contains a number of command sets. These command sets may be
+  associated with specific nodes. There are three ways to specify these
+  associations (we will use \qq{csr} here to refer to the CSR itself):
+
+  \paragraph{All nodes in group:} The command set contained in the field
+  \qq{csr.command\_all} applies to all nodes in the group. For example:
 
 \begin{verbatim}
   - req.rider.foo.command_all
   [ save_polc=T,state=[solvable=F] ]  
 \end{verbatim}
 
-  ...will call \qq{processCommands()} on all nodes in group \qq{foo} (saving
-  polcs and setting their state to non-solvable.)
+  ...will call \qq{processCommands()} on all nodes in group \qq{foo}, with the
+  command set \qq{[save\_polc=T,state=[solvable=F]} (meaning save polcs, and set
+  to non-solvable).
 
-  \paragraph{Via node index:} Command sets may be associated with a specific
-  node index. This is done via field \qq{command\_by\_nodeindex}, which is
-  essentially a map from node index to command set. For example:
+  \paragraph{Via node index:} Command sets may be associated with a node index.
+  This is done via \qq{csr.command\_by\_nodeindex}, which is essentially
+  a map from node index to command set. For example:
 
 \begin{verbatim}
   - req.rider.foo.command_by_nodeindex
   [ #19 = [ value=1,save_polc=T ], #41 = [ value=2,save_polc=T ] ]
 \end{verbatim}
 
-  ...will cause a \qq{processCommands()} call on nodes 19 and 41. (Note that
-  since Glish only supports strings for record field names, the \qq{'\#ddd'}
-  form is used to specify a ``numeric'' node index.)
+  ...will cause a \qq{processCommands()} call on nodes 19 and 41, but only if
+  these nodes actually belong to group \qq{foo}. (Note that since Glish only
+  supports strings for record field names, the \qq{'\#{\sl ddd}'} form is used
+  to specify a ``numeric'' node index.)
 
-  \paragraph{Via lists:} The third way is to associate command sets with nodes
-  listed by name or node index. This is specified via field
-  \qq{command\_by\_list}. For example:
+  \paragraph{Via lists:} The third way is to associate command sets with  lists
+  of nodes matched by name or node index. This is done via a list of records
+  in \qq{csr.command\_by\_list}. For example:
 
 \begin{verbatim}
-  - req.rider.foo.by_list
-  [ *1 = [ name="RA DEC",nodeindex=[17,32],state=[solvable=T],command=[save_polc=T] ],
-    *2 = [ state=[solvable=F] ]
+  - req.rider.foo.command_by_list
+  [ #1 = [ name="RA DEC",nodeindex=[17,32],
+           command=[ save_polc=T,state=[solvable=F] ] 
+         ],  
+    #2 = [ command=[ state=[solvable=F] ] ] 
+  ]
 \end{verbatim}
 
-  ...will call \qq{processCommands()} with the first command set on nodes RA,
-  DEC, \#17 and \#32, and with the second command set on all other nodes in
-  group \qq{foo}. To be more specific, the \qq{command\_by\_list} field is
-  treated as a list  of records. Each record in the list is a command set, with
-  an additional \qq{name} field (string or vector of strings) and/or a
-  \qq{nodeindex} field (integer or vector of integers). \qq{Node::execute()}
-  will iterate through the records one by one; if the node's name is found in
-  \qq{name}\footnote{In the future, pattern matching will be supported as
+  ...will call \qq{processCommands()} with the first command set on nodes `RA',
+  `DEC', 17 and 32 (if they belong to group \qq{foo}), and with the second
+  command set on all other nodes in group \qq{foo}. To be more specific, the
+  \qq{command\_by\_list} field is treated as a list of records. Each record in
+  the list must contain a \qq{command} field (the command set itself),  plus an
+  optional \qq{name} field (string or list of strings) and/or an optional
+  \qq{nodeindex} field (integer or list of integers). \qq{Node::execute()} will
+  iterate through the list of records one by one; if the node's name is found
+  in \qq{name}\footnote{In the future, pattern matching will be supported as
   well.}, or the node index is found in \qq{nodeindex}, then
-  \qq{processCommands()} is called with the contents of that record. Once a
+  \qq{processCommands()} is called with the contents of \qq{command}. Once a
   match is found, list processing stops. As a special case, if neither
   \qq{name} nor \qq{index} is specified, then the entry is a ``wildcard''
   matching any node. Wilcards are only useful at the end of the list, to catch
-  nodes not already matched by previous entries.
-  
+  nodes not matched by previous entries.
+
 \subsection{Command evaluation order}
 
-  In cases where a node finds more than one command set associated with it, the
-  order of processing becomes important. The rider is parsed in the following
-  order:
+  As you can see, the rider allowss for more than one command set per node. In
+  this case, \qq{processCommands()} will be called several times, once for each
+  set. It is important then to define the order in which the rider is parsed:
 
   \begin{itemize}
   
   \item The outer loop is over node groups, in the order in which they are
-  specified in the node state record. The \qq{all} group is checked last.
-  
-  \item Within a group's command sub-record, the processing order is from least
-  specific to most specific: \qq{command\_all}, \qq{command\_by\_list},
+  specified in the node's state record. The \qq{all} group is checked last.
+
+  \item Within a group's CSR, the processing order is from least specific to
+  most specific: \qq{command\_all}, \qq{command\_by\_list},
   \qq{command\_by\_nodeindex}.
-  
+
   \item Once a command set is passed to a node's \qq{processCommands()} method,
   the order of processing is determined by the node class implementation.
   Generally, a subclass should call its parent's \qq{processCommands()} first,
-  so general commands (such as \qq{state}) should be processed before
-  more class-specific commands (such as \qq{save\_polc}).
-  
+  so general commands (such as \qq{state}) will be processed before more
+  class-specific commands (such as \qq{save\_polc}).
+
   \end{itemize}
   
 \subsection{Standard node commands}
+\label{sec:commands-Node}
+
+  The following is a list of standard commands implemented at the \qq{Node}
+  level. Commands are listed in the form of Glish record field names. 
+  The actual order of processing is the same one as given here:
   
+  \begin{description}
+  
+  \item[resolve\_children:] resolves all children specified by name into actual
+  nodes. An exception is thrown if a name does not match any known node. This
+  command is normally issued by \qq{MeqServer} at initialization time, in
+  responce to a \qq{"Resolve.Children"} request. This command has no value.
+  
+  \item[state:] calls \qq{setState()} (see \ref{sec:setState}) with the command
+   value. This command thus allows for any field of the dynamic state to be
+   modified.
+   
+  \item[clear\_dep\_mask:] clears accumulated symdep masks (see
+  \ref{sec:symdeps}). This command has no value.
+  
+  \item[add\_dep\_mask:] accumulates symdep masks (see \ref{sec:symdeps}). The
+  command value is a record of symdep:mask pairs.
+
+  \item[init\_dep\_mask:] if the node is a dependency generator (see
+  \ref{sec:symdeps}), this command causes it to add its generated symdep
+  masks to the request, as an \qq{add\_dep\_mask} command placed into
+  the \qq{command\_all} field of the CSR for the configured gendep group.
+  
+  \end{description}
+
+\subsection{Building up command riders in Glish}
+
+  In Glish, the command rider is simply a part of the \qq{request} record, and
+  may be created and manipulated just like any other [sub]record. In addition,
+  \qq{meq/meqtypes.g} defines some handy shortcuts for adding commands to a
+  request:
+  
+  \begin{verbatim}
+  const meq.add_command := function (ref req,group,node,command,value=T);
+  \end{verbatim}
+
+  This function modifies the request object passed in via the \qq{req}
+  argument. A CSR for \qq{group} will be initialized if required, and a
+  \qq{command} with the specified \qq{value} added to the appropriate field of
+  the CSR. The \qq{node} argument specifies the target node(s) as follows:
+
+  \begin{itemize}  
+  
+  \item an empty list (i.e. \qq{[]}) targets command at all nodes. The command
+  is added to the \qq{command\_all} set.
+  
+  \item a single integer is treated as a node index. The command is added
+  to \qq{command\_by\_nodeindex} (initializing a command set if necessary).
+  
+  \item a list of integers is treated as node indices. The command is added to
+  \qq{command\_by\_list}, with a \qq{nodeindex} key.
+  
+  \item a string or a list of strings is treated as node name(s).The command is
+  added to \qq{command\_by\_list}, with a \qq{name} key. 
+  
+  \item an empty string array (\qq{""}) adds a wildcard entry to
+  \qq{command\_by\_list}.
+
+  \end{itemize}
+  
+  A second shortcut is handy for inserting a state update command:
+
+  \begin{verbatim}
+  const meq.add_state := function (ref req,group,node,state);
+  \end{verbatim}
+  
+  This will add a \qq{state} command, with the supplied \qq{state} record as its
+  value. All other arguments have the same meaning as for \qq{add\_command()}.
+
 \section{Resolution \& resampling}
 \label{sec:resampling}
 
-  Resolution \& gridding is a complicated business. Some basic requirements
-  are:
+  Resolution \& gridding is a complicated business. Most nodes expect their
+  children's results to have the same resolution (i.e. same \qq{Cells}), yet
+  performance constraints require our trees to operate at different
+  resolutions. \qq{Node} implements a flexible mechanism for automatically
+  controlling the resolution of child results. To understand it, it helps to
+  take a step back and review some basic requirements:
 
   \begin{itemize}
   
   \item In the first instance, the grid/resolution is determined by incoming
-  data. We'll call this the {\em full resolution} grid.
+  data. We'll call this the {\bf full resolution} grid.
 
   \item It may be prohibitively expensive to evaluate some subtrees (e.g.
   predict) at full resolution. Thus we should support going from full
-  resolution to {\em reduced resolution} (integration) and back (upsampling). 
-  
+  resolution to {\bf reduced resolution} ({\bf integration}) and back ({\bf
+  upsampling}). 
+
   \item Parent nodes will not always have sufficient information to determine
-  what the best resolution for a child is. Thus, a child should be able to 
-  return data at any resolution is deems fit, and let the parent deal with it.
-  
+  what the best resolution for a child is (i.e. the optimum predict resolution
+  may perhaps be only determinable within the predict subtree). Thus, a child
+  should be able to  return data at any resolution is deems fit, and let the
+  parent deal with it.
+
   \end{itemize}
   
   To satisfy these requirements, the following behaviour w.r.t. resolution
@@ -430,50 +579,63 @@
   
   \begin{enumerate}
   
-  \item The resolution (and gridding) of a \Request\ is determined by the
-  \Cells\ object within. The \Cells\ contains a vector of cell centers and cell
-  sizes along each axis (time, frequency), plus the envelope domain. 
+  \item The {\bf requested resolution} (or grid) is defined by the \Cells\
+  object supplied with the \qq{cells} command of a \Request.
 
-  \item The \Cells\ of a \Request\ are merely a hint! A node is not obligated
-  to honor the requested grid -- only its envelope domain. The gridding of the
-  result is indicated by the \Cells\ returned in the \Result\ object.
+  \item The requested resolution is merely a hint! A node is not obligated to
+  honor the grid of the \Cells. It must, however, honor the envelope domain.
+  The gridding of the result is indicated by the \Cells\ returned in the
+  \Result\ object.
 
     \begin{itemize} 
 
     \item Some nodes (e.g. \qq{Parm}, \qq{Freq}, \qq{Time} -- generally, nodes
-    meant to evaluate some analytic function of time and frequency -- are able
+    meant to evaluate some analytic function over the domain) are easily able
     to evaluate themselves over any given grid. These nodes will always return
-    a \Result\ with the same \Cells\ as the \Request; the tree designer may
-    rely on this behaviour.
+    a \Result\ at the requested resolution; the tree designer may rely on this
+    behaviour as it is part of the contract for those nodes.
 
-    \item Data-driven nodes (e.g. \qq{Spigot}) completely ignore the \Cells\
-    of the \Request. The gridding of their \Result\ is fully determined by
-    incoming data.
+    \item Data-driven nodes (e.g. \qq{Spigot}) completely ignore the requested
+    resolution. The gridding of their \Result\ is fully determined by the
+    layout of incoming data.
 
     \end{itemize}
     
-  \item A lot of node classes (e.g., all the \qq{Function}-derived ones)
+  \item A lot of node classes (e.g., all the \qq{Function}-derived nodes)
   require child results to have the same resolution. In the event that this is
   not the case, a node can be configured to deal with it in one of four ways,
-  as determined by the \qq{auto\_resample} field of the state record:
+  as determined by the \qq{auto\_resample} and \qq{resample_child_index} fields
+  of the state record.
 
-    \begin{description}
-    
-    \item[NONE $(=0)$:] do nothing, do not even check the child resolutions. This
-    is the default setting initialized by the \qq{Node} class constructor.
+  If the \qq{resample_child_index} field is set to a child number ($\ge 1$ in
+  Glish, $\ge 0$ in C++ -- note the \qq{index} suffix and remember automatic
+  0-1-base conversion discussed in section \ref{sec:01base}), then that child
+  is the {\em resolution driver}. All other child results will be resampled to
+  that child's resolution. If the child returns a resolution-free result (see
+  \ref{sec:missingcells}), then \qq{Node} falls back on whatever behaviour is 
+  defined by \qq{auto_resample}:
 
-    \item[FAIL $(=-2)$:] check resolutions and return a \qq{RES\_FAIL} if they do
-    not match. This is the default setting  initialized by the \qq{Function}
-    class constructor. Since this is somewhat slower that the NONE setting, 
-    perhaps it should only be the default in debug mode?
-    
-    \item[INTEGRATE $(=-1)$:] evaluate and return a \Result\ at the lower
-    resolution, by integrating higher-resolved child results.
+  \begin{description}
 
-    \item[UPSAMPLE $(=1)$:] evaluate and return a \Result\ at the higher
-    resolution, by upsampling lower-resolved child results.
+  \item[NONE $(=0)$:] do nothing, do not even check the child resolutions. This
+  is the default setting initialized by the \qq{Node} class constructor.
 
-    \end{description}
+  \item[FAIL $(=-2)$:] check resolutions and return a \qq{RES\_FAIL} if they do
+  not match. This is the default setting initialized by the \qq{Function} class
+  constructor. Since this is somewhat slower that the \qq{NONE} setting, the
+  default for optimized builds may possibly be changed to \qq{NONE} in the
+  future.
+
+  \item[INTEGRATE $(=-1)$:] find the lowest resolution among child results,
+  integrate all other results to this resolution.
+
+  \item[UPSAMPLE $(=1)$:] find the highest resolution among child result,
+  upsample all other results to this resolution.
+
+  \item[REQUEST $(=2)$:] resample all child results to the resolution of the
+  \Request.
+
+  \end{description}
     
   Auto-resampling is handled at the base \qq{Node} level (in
   \qq{Node::processChildren()}, and thus may be enabled for any individual node
