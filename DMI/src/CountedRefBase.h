@@ -13,7 +13,7 @@
 //## Module: CountedRefBase%3C10CC81037C; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\CountedRefBase.h
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\CountedRefBase.h
 
 #ifndef CountedRefBase_h
 #define CountedRefBase_h 1
@@ -43,7 +43,7 @@
 //## Class: CountedRefBase%3C0CDEE200FE
 //	Implements a counted reference mechanism. See CountedRef<T> for a
 //	type-specific interface. CountedRefs have destructive copy semantics.
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -80,11 +80,6 @@ class CountedRefBase
 
     //## Assignment Operation (generated)
       CountedRefBase & operator=(const CountedRefBase &right);
-
-    //## Equality Operations (generated)
-      bool operator==(const CountedRefBase &right) const;
-
-      bool operator!=(const CountedRefBase &right) const;
 
 
     //## Other Operations (specified)
@@ -205,12 +200,12 @@ class CountedRefBase
 
     //## Get and Set Operations for Associations (generated)
 
-      //## Association: PSCF::DMI::<unnamed>%3C0CE0F60398
+      //## Association: DMI::<unnamed>%3C0CE0F60398
       //## Role: CountedRefBase::prev%3C0CE0FA0394
       //	prev ref in list (0 if first ref)
       const CountedRefBase * getPrev () const;
 
-      //## Association: PSCF::DMI::<unnamed>%3C0CE0F60398
+      //## Association: DMI::<unnamed>%3C0CE0F60398
       //## Role: CountedRefBase::next%3C0CE0FB0010
       //	next ref in list (0 if last ref)
       const CountedRefBase * getNext () const;
@@ -248,6 +243,15 @@ class CountedRefBase
       //	Nulls internals.
       void empty ();
 
+    // Data Members for Associations
+
+      //## Association: DMI::<unnamed>%3C0CDF6500AC
+      //## Role: CountedRefBase::target%3C0CDF6503A5
+      //	Reference target
+      //## begin CountedRefBase::target%3C0CDF6503A5.role preserve=no  public: CountedRefTarget {0..1 -> 0..1RHNM}
+      mutable CountedRefTarget *target;
+      //## end CountedRefBase::target%3C0CDF6503A5.role
+
     // Additional Protected Declarations
       //## begin CountedRefBase%3C0CDEE200FE.protected preserve=yes
       //## end CountedRefBase%3C0CDEE200FE.protected
@@ -255,22 +259,15 @@ class CountedRefBase
   private:
     // Data Members for Associations
 
-      //## Association: PSCF::DMI::<unnamed>%3C0CE0F60398
+      //## Association: DMI::<unnamed>%3C0CE0F60398
       //## begin CountedRefBase::prev%3C0CE0FA0394.role preserve=no  public: CountedRefBase {0..1 -> 0..1RHNM}
       mutable CountedRefBase *prev;
       //## end CountedRefBase::prev%3C0CE0FA0394.role
 
-      //## Association: PSCF::DMI::<unnamed>%3C0CE0F60398
+      //## Association: DMI::<unnamed>%3C0CE0F60398
       //## begin CountedRefBase::next%3C0CE0FB0010.role preserve=no  public: CountedRefBase {0..1 -> 0..1RHNM}
       mutable CountedRefBase *next;
       //## end CountedRefBase::next%3C0CE0FB0010.role
-
-      //## Association: PSCF::DMI::<unnamed>%3C0CDF6500AC
-      //## Role: CountedRefBase::target%3C0CDF6503A5
-      //	Reference target
-      //## begin CountedRefBase::target%3C0CDF6503A5.role preserve=no  public: CountedRefTarget {0..1 -> 0..1RHNM}
-      mutable CountedRefTarget *target;
-      //## end CountedRefBase::target%3C0CDF6503A5.role
 
     // Additional Private Declarations
       //## begin CountedRefBase%3C0CDEE200FE.private preserve=yes
@@ -376,21 +373,6 @@ inline CountedRefBase & CountedRefBase::operator=(const CountedRefBase &right)
   }
   return *this;
   //## end CountedRefBase::operator=%3C0CDEE200FE_assign.body
-}
-
-
-inline bool CountedRefBase::operator==(const CountedRefBase &right) const
-{
-  //## begin CountedRefBase::operator==%3C0CDEE200FE_eq.body preserve=yes
-  return valid() && target == right.target;
-  //## end CountedRefBase::operator==%3C0CDEE200FE_eq.body
-}
-
-inline bool CountedRefBase::operator!=(const CountedRefBase &right) const
-{
-  //## begin CountedRefBase::operator!=%3C0CDEE200FE_neq.body preserve=yes
-  return !( (*this) == right );
-  //## end CountedRefBase::operator!=%3C0CDEE200FE_neq.body
 }
 
 
@@ -566,5 +548,18 @@ inline CountedRefBase * CountedRefBase::getNext ()
 
 //## end module%3C10CC81037C.epilog
 
+
+#endif
+
+
+// Detached code regions:
+#if 0
+//## begin CountedRefBase::operator==%3C0CDEE200FE_eq.body preserve=yes
+  return valid() && target == right.target;
+//## end CountedRefBase::operator==%3C0CDEE200FE_eq.body
+
+//## begin CountedRefBase::operator!=%3C0CDEE200FE_neq.body preserve=yes
+  return !( (*this) == right );
+//## end CountedRefBase::operator!=%3C0CDEE200FE_neq.body
 
 #endif

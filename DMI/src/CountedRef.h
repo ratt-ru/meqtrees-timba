@@ -13,7 +13,7 @@
 //## Module: CountedRef%3C10CC810321; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\CountedRef.h
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\CountedRef.h
 
 #ifndef CountedRef_h
 #define CountedRef_h 1
@@ -80,6 +80,11 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
 
     //## Assignment Operation (generated)
       CountedRef< T > & operator=(const CountedRef< T > &right);
+
+    //## Equality Operations (generated)
+      bool operator==(const CountedRef< T > &right) const;
+
+      bool operator!=(const CountedRef< T > &right) const;
 
 
     //## Other Operations (specified)
@@ -190,6 +195,7 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
   protected:
     // Additional Protected Declarations
       //## begin CountedRef%3BEFECFF0287.protected preserve=yes
+      CountedRefBase::target;
       //## end CountedRef%3BEFECFF0287.protected
 
   private:
@@ -530,6 +536,23 @@ inline CountedRef<T> & CountedRef<T>::attach (const T* targ, int flags)
 }
 
 // Parameterized Class CountedRef 
+
+template <class T>
+bool CountedRef<T>::operator==(const CountedRef<T> &right) const
+{
+  //## begin CountedRef::operator==%3BEFECFF0287_eq.body preserve=yes
+  return target != 0 && target == right.target;
+  //## end CountedRef::operator==%3BEFECFF0287_eq.body
+}
+
+template <class T>
+bool CountedRef<T>::operator!=(const CountedRef<T> &right) const
+{
+  //## begin CountedRef::operator!=%3BEFECFF0287_neq.body preserve=yes
+  return !(*this == right);
+  //## end CountedRef::operator!=%3BEFECFF0287_neq.body
+}
+
 
 // Additional Declarations
   //## begin CountedRef%3BEFECFF0287.declarations preserve=yes

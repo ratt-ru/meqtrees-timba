@@ -13,7 +13,7 @@
 //## Module: DataRecord%3C10CC82005C; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataRecord.cc
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\DataRecord.cc
 
 //## begin module%3C10CC82005C.additionalIncludes preserve=no
 //## end module%3C10CC82005C.additionalIncludes
@@ -31,7 +31,6 @@
 static NestableContainer::Register reg(TpDataRecord,True);
 const DataFieldRef NullDataFieldRef;
 //## end module%3C10CC82005C.additionalDeclarations
-
 
 // Class DataRecord 
 
@@ -446,6 +445,19 @@ bool DataRecord::remove (const HIID &id)
   }
   return False;
   //## end DataRecord::remove%3C877D140036.body
+}
+
+bool DataRecord::getFieldIter (DataRecord::Iterator& iter, HIID& id, TypeId& type, int& size) const
+{
+  //## begin DataRecord::getFieldIter%3CA20AD703A4.body preserve=yes
+  if( iter == fields.end() )
+    return False;
+  id = iter->first;
+  type = iter->second->type();
+  size = iter->second->size();
+  iter++;
+  return True;
+  //## end DataRecord::getFieldIter%3CA20AD703A4.body
 }
 
 // Additional Declarations

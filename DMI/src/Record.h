@@ -13,7 +13,7 @@
 //## Module: DataRecord%3C10CC820052; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataRecord.h
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\DataRecord.h
 
 #ifndef DataRecord_h
 #define DataRecord_h 1
@@ -45,7 +45,7 @@
 
 //## Class: DataRecord%3BB3112B0027
 //	DataRecord is the main container class of DMI.
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -57,7 +57,9 @@
 class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E039E
 {
   //## begin DataRecord%3BB3112B0027.initialDeclarations preserve=yes
-  friend DataField;
+  public:
+      friend DataField;
+      typedef map<HIID,DataFieldRef>::const_iterator Iterator;
   //## end DataRecord%3BB3112B0027.initialDeclarations
 
   public:
@@ -154,6 +156,12 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       //## Operation: type%3C7A16CB023F
       virtual TypeId type () const;
 
+      //## Operation: initFieldIter%3CA20ACE00F8
+      DataRecord::Iterator initFieldIter () const;
+
+      //## Operation: getFieldIter%3CA20AD703A4
+      bool getFieldIter (DataRecord::Iterator& iter, HIID& id, TypeId& type, int& size) const;
+
     // Additional Public Declarations
       //## begin DataRecord%3BB3112B0027.public preserve=yes
       // debug info method
@@ -237,6 +245,13 @@ inline TypeId DataRecord::type () const
   //## begin DataRecord::type%3C7A16CB023F.body preserve=yes
   return NullType;
   //## end DataRecord::type%3C7A16CB023F.body
+}
+
+inline DataRecord::Iterator DataRecord::initFieldIter () const
+{
+  //## begin DataRecord::initFieldIter%3CA20ACE00F8.body preserve=yes
+  return fields.begin();
+  //## end DataRecord::initFieldIter%3CA20ACE00F8.body
 }
 
 //## begin module%3C10CC820052.epilog preserve=yes
