@@ -1,29 +1,9 @@
-gnu.compiler.conf:
-kcc.compiler.conf:
-icc.compiler.conf:
-
 gnu3.compiler.conf: CXX=/usr/local/gcc-3.1/bin/g++ 
+gnu3.compiler.aipspp.var: --with-aipspp=/aips++/stable/linux_gnu3
 
 gnu2.compiler.conf: CXX=/usr/local/gcc-2.95.3/bin/g++ 
+gnu2.compiler.aipspp.var: --with-aipspp=/aips++/stable/linux_gnu2
 
-debug.variant.conf:	  $(aipspp)	
 debugnt.variant.conf:	  $(aipspp)	
-opt.variant.conf:	  --with-optimize $(aipspp)
-mpich.variant.conf:	  $(mpich) $(aipspp)
-mpich-opt.variant.conf:	  $(mpich) --with-optimize $(aipspp)
-lam.variant.conf:	  $(lam)  $(aipspp)
-lam-opt.variant.conf:	  $(lam) --with-optimize $(aipspp)
-corba.variant.conf:	  $(vbroker) $(aipspp)
-mpich-corba.variant.conf: $(mpich) $(vbroker) $(aipspp)
-lam-corba.variant.conf:   $(lam) $(vbroker) $(aipspp)
-insure.variant.conf:	  --with-insure $(aipspp)
-insure.variant.make:	  QA=insure
-scampi.variant.conf:	  $(scampi) $(aipspp)
-scampi-opt.variant.conf:  $(scampi) --with-optimize $(aipspp)
-mpich-prof.variant.conf:  $(mpich) --enable-mpi-profiler $(aipspp)
 
-aipspp.var:
-mpich.var:		   --with-mpich
-lam.var:		   --with-lam
-scampi.var:		   --with-scampi
-vbroker.var:		   --with-vbroker
+aipspp.var: --with-aipspp=/aips++/stable/linux_gnu

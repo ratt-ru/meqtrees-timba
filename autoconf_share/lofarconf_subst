@@ -7,7 +7,9 @@
 
 lfr_base="$1"
 lfr_host="$2"
-opts="$3"
+lfr_cmp="$3"
+lfr_var="$4"
+opts="$5"
 
 # Substitute possible variables by their value defined in a variants file.
 # Variables are defined as $(name).
@@ -33,15 +35,21 @@ do
   # Try to find the variable in one of the variant files.
   varval=
   if [ -f $lfr_base/variants.$lfr_host ]; then
-    varval=`egrep "^$var.var:" $lfr_base/variants.$lfr_host`
+    varval=`egrep "^$lfr_cmp\.compiler\.$var\.var:" $lfr_base/variants.$lfr_host`
+    if [ "x$varval" = "x" ]; then
+      varval=`egrep "^$var\.var:" $lfr_base/variants.$lfr_host`
+    fi
   fi
   if [ "x$varval" = "x" ]; then
-    varval=`egrep "^$var.var:" $lfr_base/variants`
+    varval=`egrep "^$lfr_cmp\.compiler\.$var\.var:" $lfr_base/variants`
+  fi
+  if [ "x$varval" = "x" ]; then
+    varval=`egrep "^$var\.var:" $lfr_base/variants`
   fi
   if [ "x$varval" = "x" ]; then
     echo "Warning: variants variable '$var' not found in variant files"
   else
-    varval=`echo $varval | sed -e "s%.*.var: *%%"`
+    varval=`echo $varval | sed -e "s%.*\.var: *%%"`
   fi
   opts="$r1$varval$r2"
 done

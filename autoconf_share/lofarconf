@@ -70,7 +70,7 @@ fi
 # Substitute possible variables by their value defined in a variants file.
 cmpopts=`echo $cmpopts | sed -e "s%.*\.compiler\.conf: *%%"`
 varopts=`echo $varopts | sed -e "s%.*\.variant\.conf: *%%"`
-opts=`$lfr_base/lofarconf_subst "$lfr_base" "$lfr_host" "$cmpopts $varopts"`
+opts=`$lfr_base/lofarconf_subst "$lfr_base" "$lfr_host" "$lfr_cmp" "$lfr_var" "$cmpopts $varopts"`
 if [ $? != 0 ]; then
   echo "$opts"
   exit 2
@@ -93,7 +93,7 @@ touch makeoptions
 
 # Substitute possible variables by their value defined in a variants file.
 if [ "$cmpmakes$varmakes" != "" ]; then
-  opts=`$lfr_base/lofarconf_subst "$lfr_base" "$lfr_host" "$cmpmakes $varmakes"`
+  opts=`$lfr_base/lofarconf_subst "$lfr_base" "$lfr_host" "$lfr_cmp" "$lfr_var" "$cmpmakes $varmakes"`
   if [ $? != 0 ]; then
     echo "$opts"
     exit 2
