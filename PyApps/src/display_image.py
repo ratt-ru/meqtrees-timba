@@ -8,6 +8,12 @@ from UVPAxis import *
 from ComplexColorMap import *
 import random
 
+from dmitypes import verbosity
+_dbg = verbosity(0,name='realvsimag');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
+
 # from scipy.pilutil
 def bytescale(data, cmin=None, cmax=None, high=255, low=0):
     if data.type() == UInt8:
@@ -140,7 +146,7 @@ class QwtPlotImage(QwtPlotMappedItem):
     
     def setDisplayType(self, display_type):
         self.display_type = display_type
-        print 'display type set to ', self.display_type
+        _dprint(2,'display type set to ', self.display_type)
         if self.display_type == "brentjens" and self.ValueAxis == None:
           self.ValueAxis =  UVPAxis()
           self.ComplexColorMap = ComplexColorMap(256)
@@ -186,12 +192,10 @@ class QwtPlotImage(QwtPlotMappedItem):
             self.image.setColor(i, qRgb(i, i, i))
 
     def setBrentjensImage(self, image):
-      print 'in setBrentjensImage'
       absmin = abs(image.min())
       MaxAbs = abs(image.max())
       if (absmin > MaxAbs):
         MaxAbs = absmin
-      print 'range ', -MaxAbs, ' ', MaxAbs
       self.ValueAxis.calcTransferFunction(-MaxAbs, MaxAbs, 0, self.ComplexColorMap.getNumberOfColors()-1)
 
 
@@ -211,13 +215,13 @@ class QwtPlotImage(QwtPlotMappedItem):
               value = self.ComplexColorMap.get_color_value(colre,colim)
               self.image.setPixel(i,j,value)
             else:
-              print "*************************************" 
-              print "colre: ", colre
-              print "colim: ", colim 
-              print "real : ", real_image[i,j]
-              print "imag : ", imag_image[i,j]
-              print "Ncol: ", Ncol
-              print "*************************************" 
+              _dprint(2, "*************************************") 
+              _dprint(2, "colre: ", colre)
+              _dprint(2, "colim: ", colim) 
+              _dprint(2, "real : ", real_image[i,j])
+              _dprint(2, "imag : ", imag_image[i,j])
+              _dprint(2, "Ncol: ", Ncol)
+              _dprint(2, "*************************************") 
         self.image.mirror(0,1)
 
     def setData(self, xyzs, xScale = None, yScale = None):
@@ -305,8 +309,8 @@ class QwtImagePlot(QwtPlot):
         'brentjens': 'brentjens',
         }
 
-    def __init__(self, plot_key, *args):
-        QwtPlot.__init__(self, *args)
+    def __init__(self, plot_key=None, parent=None):
+        QwtPlot.__init__(self, plot_key, parent)
 
 # set default display type to 'hippo'
         self.display_type = "hippo"
@@ -418,7 +422,6 @@ class QwtImagePlot(QwtPlot):
             ypos = self.invTransform(QwtPlot.yLeft, ypos)
             xpos = int(xpos)
             ypos = int(ypos)
-#            print 'xpos ypos value', xpos, ' ', ypos, ' ', self.raw_image[xpos,ypos]
             shape = self.raw_image.shape
             if self.x_array is None:
               self.x_array = zeros(shape[0], Float32)
@@ -492,7 +495,7 @@ class QwtImagePlot(QwtPlot):
     def plot_data(self, item_label, visu_record):
       """ process incoming data and attributes into the
           appropriate type of plot """
-      print 'in plot data'
+      _dprint(2, 'in plot data')
 
 # first find out what kind of plot we are making
       plot_types = None
@@ -520,7 +523,7 @@ class QwtImagePlot(QwtPlot):
           complex_type = False;
           if self._data_values[i].type() == Complex64:
             complex_type = True;
-          print'complex type is ', complex_type
+          _dprint(2, 'complex type is ', complex_type)
           if complex_type:
             data_label = plot_label +  "_" +str(i) +  "_complex" 
             if self.display_type != "brentjens":
@@ -536,7 +539,7 @@ class QwtImagePlot(QwtPlot):
               self.x_axis_title_set_in_plot_data = True
               self.array_plot(data_label, temp_array)
             else:
-              print "calling array_plot with complex array"
+              _dprint(2, "calling array_plot with complex array")
               self.array_plot(data_label, self._data_values[i])
           else:
             data_label = plot_label +  "_" +str(i) +  "_real" 
@@ -650,7 +653,7 @@ class QwtImagePlot(QwtPlot):
         for i in range(shape[0]):
           vector_array[i,0] = a[i,0]
         if self.index % 2 == 0:
-          print 'plotting vector'
+          _dprint(2, 'plotting vector')
           if self.display_type != "brentjens":
             real_array =  vector_array.getreal()
             imag_array =  vector_array.getimag()
@@ -686,10 +689,10 @@ class QwtImagePlot(QwtPlot):
         for i in range(shape[0]):
           vector_array[i,0] = m[i,0]
         if self.index % 2 == 0:
-	  print 'plotting vector'
+	  _dprint(2, 'plotting vector')
           self.array_plot('test_vector', vector_array)
         else:
-	  print 'plotting array'
+	  _dprint(2, 'plotting array')
           self.array_plot('test_image',m)
 
       self.index = self.index + 1
