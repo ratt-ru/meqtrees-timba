@@ -193,7 +193,7 @@ CountedRefTarget * SmartBlock::clone (int flags, int depth) const
 
 // Additional Declarations
   //## begin SmartBlock%3BEAACAB0041.declarations preserve=yes
-string SmartBlock::sdebug ( int detail,const string &prefix,const char *name = 0 ) const
+string SmartBlock::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   string out;
   if( detail >= 0 )

@@ -153,14 +153,13 @@ NestableContainer::Hook NestableContainer::setBranch (const HIID &id, int flags)
   // in the chain.
   list<BranchEntry> branch;
   HIID id0,id1=id;    
-  NestableContainer *nc = this;
   bool writable = isWritable();
   // note that if entire branch is to be privatized read-only, we'll 
   // auto-privatize it for writing during the first pass. This more or less 
   // insures that a clone is made.
   Hook hook(*this,-2); 
   // form list of branch elements
-  int index=0,last_writable=-1,last_ref=-1;
+  int index=0,last_writable=-1;
   while( id1.size() )
   {
     // split off next subscript
@@ -231,7 +230,7 @@ int NestableContainer::selectionToBlock (BlockSet& )
 
 // Attempts to treat the hook target as an NC, by collapsing subscripts,
 // dereferencing ObjRefs, etc.
-const NestableContainer * NestableContainer::ConstHook::asNestable (const void *targ=0,TypeId tid=0) const
+const NestableContainer * NestableContainer::ConstHook::asNestable (const void *targ,TypeId tid) const
 {
   if( index<-1 ) // uninitialized -- just return nc
     return nc;
@@ -255,7 +254,7 @@ const NestableContainer * NestableContainer::ConstHook::asNestable (const void *
 }
 
 // Same thing, but insures writability
-NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ=0,TypeId tid=0) const
+NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ,TypeId tid) const
 {
   if( !targ )
   {

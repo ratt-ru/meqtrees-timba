@@ -30,6 +30,13 @@
 #include "OCTOPUSSY/Timestamp.h"
 // for now:
 #include <aips/Arrays/Array.h>
+
+#ifdef AIPSPP_HOOKS
+#include <aips/Arrays/Array.h>
+#include <aips/Arrays/Vector.h>
+#include <aips/Arrays/Matrix.h>
+#include <aips/Utilities/String.h>
+#endif
 //## end module%3C10CC830067.includes
 
 // Registry
@@ -196,9 +203,29 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           const NestableContainer::ConstHook & operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
           { return (*this)[id1|id2|id3|id4]; }
           
-      
-          // pull in const accessdor methods
+          // pull in const accessor methods
           #include "DMI/DataAcc-Const.h"
+          
+          // Define an as_vector<> template. This should work for all
+          // contiguous containers.
+          // This copies data so is not very effecient, but may be quite
+          // convenient where sizes are small
+          template<class T>
+          vector<T> as_vector () const
+          {
+            int sz;
+            const T *data = &(*this).size(sz);
+            return vector<T>(data,data+sz);
+          }
+          
+          // define AIPS++ accessors
+          #ifdef AIPSPP_HOOKS
+          template<class T> Vector<T> as_Vector () const;
+          template<class T> Matrix<T> as_Matrix (int n1,int n2) const;
+          String as_String () const;
+          // template<class MVal> MVal as_MV ();
+          // template<class Meas> Meas as_M (const Meas::Types &type = Meas::DEFAULT);
+          #endif
 
           // standard debug info
           string sdebug ( int detail = 1,const string &prefix = "",const char *name = "cHook" ) const;
@@ -415,6 +442,17 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           // pull non-in const accessdor methods
           #define ForceConstDefinitions 1
           #include "DMI/DataAcc-NonConst.h"
+          
+          // define accessors for AIPS++ types
+          #ifdef AIPSPP_HOOKS
+          // assigning a vector will init a DataField object
+          template<class T> const Vector<T> & operator = (const Vector<T> &other) const;
+          // assigning an array will init a DataField for 1 dimension,
+          // or a DataArray for 2 or more dimensions
+          template<class T> const Array<T> & operator = (const Array<T> &other) const;
+          // assigning an AIPS++ String assigns an STL string.
+          const String & operator = (const String &other) const;
+          #endif
 
           string sdebug ( int detail = 1,const string &prefix = "",const char *name = "Hook" ) const
           { return ConstHook::sdebug(detail,prefix,name); }
@@ -1105,20 +1143,8 @@ inline void NestableContainer::Hook::assign_object( const BlockableObject *obj,T
   return assign_object(const_cast<BlockableObject*>(obj),tid,(flags&~DMI::WRITE)|DMI::READONLY);
 }
 
+
 //## end module%3C10CC830067.epilog
 
-
-#endif
-
-
-// Detached code regions:
-#if 0
-//## begin NestableContainer::isContiguous%3C7F97CB00F6.body preserve=yes
-  return False;
-//## end NestableContainer::isContiguous%3C7F97CB00F6.body
-
-//## begin NestableContainer::isScalar%3CB161F10064.body preserve=yes
-  return False;
-//## end NestableContainer::isScalar%3CB161F10064.body
 
 #endif

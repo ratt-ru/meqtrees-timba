@@ -43,6 +43,9 @@ class TypeInfo {
       bool operator == ( const TypeInfo &other ) const
       { return !memcmp(this,&other,sizeof(*this)); }
       
+      bool operator != ( const TypeInfo &other ) const
+      { return !( *this == other ); }
+      
       //  Looks up type info in the registry
       static const TypeInfo & find ( TypeId tid );
       
