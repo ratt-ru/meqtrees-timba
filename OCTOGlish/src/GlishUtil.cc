@@ -461,6 +461,13 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
         try // handle failed fields gracefully
         {
           GlishValue subval = glrec.get(i);
+//          const Value & val = *(subval.value());
+//          dprintf(4)("record field [%s]: glish_type %d\n",field_name.c_str(),val.Type());
+          if( !subval.ok() || subval.isUnset() )
+          {
+            dprintf(4)("record field [%s]: !ok or isUnset, skipping\n",field_name.c_str());
+            continue;
+          }
           // check for ignore flag and skip field if it is set
           if( subval.attributeExists("dmi_ignore") )
           {

@@ -30,6 +30,7 @@ if( has_field(lofar_software,'print_versions') &&
 
 include 'note.g'
 include 'debug_methods.g'
+include 'dmitypes.g'
 
 const _default_valgrind_options := [
   "-v --show-reachable=yes --workaround-gcc296-bugs=yes",
@@ -415,15 +416,5 @@ test_octopussy := function (server="./test_glish",options="")
   }
 }
 
-# makes a HIID object from a string
-const hiid := function (str,...)
-{
-  if( num_args(...) > 0 )
-    str := paste(str,...,sep='.');
-  else
-    str := as_string(str);
-  str::dmi_is_hiid := T;
-  return str;
-}
 #test_octopussy();
 #exit 0;
