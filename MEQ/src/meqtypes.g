@@ -358,8 +358,22 @@ const meq.request := function (cells=F,request_id=F,calc_deriv=0,clear_solver=T)
   rec::dmi_actual_type := 'MeqRequest';
 
   #-- meq.request.add_command() -------------------------------------------------------------
-  # adds a command to the request
-  
+  # adds a command to the request rider
+  # group:  this is the node group that the command is targeted at. Only
+  #         nodes belonging to this group will be checked. Use 'all' for
+  #         all nodes (NB: the 'all' group may be phased out in the future)
+  # node:   specifies the target node. Four options are available:
+  #         (a) empty scalar array (i.e. '[]'): targets command at all nodes   
+  #             (adds it to the command_all list of the rider)
+  #         (b) single integer: assumes this is a node index
+  #             (adds command to the command_by_nodeindex map)
+  #         (c) vector of integers: assumes these are node indices
+  #             (adds command to command_by_list, with a nodeindex key)
+  #         (d) one or more strings: assumes node names
+  #             (adds command to command_by_list, with a name key)
+  #         (e) empty string array (""): adds a wildcard entry to 
+  #             command_by_list, which will match all nodes not matched
+  #             by a previous entry.
   const rec.add_command := function (group,node,command,value=F)
   {
     wider rec;
@@ -371,8 +385,15 @@ const meq.request := function (cells=F,request_id=F,calc_deriv=0,clear_solver=T)
     ns := ref rec.rider[group];
     if( !is_integer(node) && !is_string(node) )
       fail 'meq.request.add_command(): node must be specified by index or name(s)';
+    # empty node argument: add to command_all list
+    if( len(node) == 0 )
+    {
+      if( !has_field(ns,'command_all') )
+        ns.command_all := [=];
+      ns.command_all[command] := value;
+    }
     # single nodeindex: add to command_by_nodeindex map
-    if( is_integer(node) && len(node)==1 ) 
+    else if( is_integer(node) && len(node)==1 ) 
     {
       if( !has_field(ns,'command_by_nodeindex') )
         ns.command_by_nodeindex := [=];
