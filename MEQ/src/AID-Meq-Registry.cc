@@ -210,6 +210,7 @@ BlockableObject * __construct_MeqReqSeq (int n) { return n>0 ? new Meq::ReqSeq [
         AtomicID::registerId(-1454,"masks")+
         AtomicID::registerId(-1452,"dataset")+
         AtomicID::registerId(-1331,"resolve")+
+        AtomicID::registerId(-1480,"parent")+
         AtomicID::registerId(-1091,"init")+
         AtomicID::registerId(-1460,"link")+
         AtomicID::registerId(-1461,"or")+

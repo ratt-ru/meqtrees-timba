@@ -185,6 +185,8 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // set node index, if specified
   if( rec[FNodeIndex].exists() )
     node_index_ = rec[FNodeIndex].as<int>();
+  // set resolve ID, if any
+  node_resolve_id_ = rec[FResolveParentId].as<int>(-1);
   
   // setup children directly from relevant fields
   if( rec[FChildren].exists() )
@@ -230,6 +232,8 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   else
     rec[FClass] = objectType().toString();
   // do other checks
+  FailWhen(rec[FResolveParentId].exists(),"can't specify "+FResolveParentId.toString()+" in init record");
+  node_resolve_id_ = -1;
   checkInitState(rec);
   
   // setup children
@@ -312,6 +316,7 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
     protectStateField(rec,FClass);
     protectStateField(rec,FChildren);
     protectStateField(rec,FNodeIndex);
+    protectStateField(rec,FResolveParentId);
   }
   // set/clear cached result
   //   the cache_result field must be either a Result object,
@@ -933,6 +938,83 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   return retcode;
 } 
 
+int Node::resolve (DataRecord::Ref &depmasks,int rpid)
+{
+  // if node already resolved with this parent ID, do nothing
+  if( node_resolve_id_ == rpid )
+  {
+    cdebug(4)<<"node already resolved for rpid "<<rpid<<endl;
+    return 0;
+  }
+  cdebug(3)<<"resolving node, rpid="<<rpid<<endl;
+  wstate()[FResolveParentId] = node_resolve_id_ = rpid;
+  // resolve children
+  resolveChildren(false);
+  // process depmasks 
+  if( !known_symdeps_.empty() )
+  {
+    cdebug(3)<<"checking for "<<known_symdeps_.size()<<" known symdeps\n";
+    const DataRecord &rec = *depmasks;
+    bool changed = false;
+    for( uint i=0; i<node_groups_.size(); i++ )
+    {
+      DataRecord::Hook hgroup(rec,node_groups_[i]);
+      if( hgroup.exists() )
+      {
+        cdebug(4)<<"found symdeps for group "<<node_groups_[i]<<endl;
+        const DataRecord &grouprec = hgroup.as<DataRecord>();
+        for( uint i=0; i<known_symdeps_.size(); i++ )
+        {
+          const HIID &id = known_symdeps_[i];
+          int mask;
+          if( grouprec[id].get(mask) )
+          {
+            // add to its mask, if the symdep is present in the record.
+            symdep_masks_[id] |= mask;
+            cdebug(4)<<"symdep_mask["<<id<<"]="<<ssprintf("%x\n",symdep_masks_[id]);
+            changed = true;
+          }
+        }
+      }
+    }
+    // recompute stuff if anything has changed
+    if( changed )
+    {
+      cdebug(3)<<"recomputing depmasks\n"<<endl;
+      // recompute the active depend mask
+      resetDependMasks();
+      // reset subrecord in state rec
+      DataRecord &known = wstate()[FSymDepMasks].replace() <<= new DataRecord;
+      for( uint i=0; i<known_symdeps_.size(); i++ )
+        known[known_symdeps_[i]] = symdep_masks_[known_symdeps_[i]];
+    }
+  }
+  // add our own generated symdeps, if any. This changes the record, so
+  // privatize it
+  if( !gen_symdep_masks_.empty() )
+  {
+    rpid = nodeIndex(); // change the rpid
+    depmasks.privatize(DMI::WRITE);
+    const HIID &group = gen_symdep_group_.empty() ? FAll : gen_symdep_group_;
+    cdebug(3)<<"inserting generated symdeps for group "<<group<<endl;
+    DataRecord &grouprec = Rider::getOrInit(depmasks(),group);
+    std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
+    for( ; iter != gen_symdep_masks_.end(); iter++ )
+    {
+      DataRecord::Hook hook(grouprec,iter->first);
+      if( hook.exists() )
+        hook.as_wr<int>() |=  iter->second;
+      else
+        hook = iter->second;
+    }
+    depmasks.privatize(DMI::READONLY|DMI::DEEP);
+  }
+  // pass recursively onto children
+  for( int i=0; i<numChildren(); i++ )
+    children_[i]().resolve(depmasks,rpid);
+  return 0;
+}
+
 // process Node-specific commands
 int Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
 {
@@ -1008,6 +1090,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
 {
   DbgFailWhen(!req0.getOwner(),"Request object must have at least one ref attached");
   cdebug(3)<<"execute, request ID "<<req0.id()<<": "<<req0.sdebug(DebugLevel-1,"    ")<<endl;
+  FailWhen(node_resolve_id_<0,"execute() called before resolve()");
   // this indicates the current stage (for exception handler)
   string stage;
   try

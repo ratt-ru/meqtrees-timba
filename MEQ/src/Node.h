@@ -36,7 +36,7 @@
 #pragma aidgroup Meq
 #pragma types #Meq::Node
 #pragma aid Add Clear Known Active Gen Dep Deps Symdep Symdeps Mask Masks
-#pragma aid Parm Value Resolution Domain Dataset Resolve Init
+#pragma aid Parm Value Resolution Domain Dataset Resolve Parent Init Id
 #pragma aid Link Or Create
     
 
@@ -56,6 +56,8 @@ const HIID FSymDepMasks = AidSymdep|AidMasks;
 
 const HIID FGenSymDep       = AidGen|AidSymdep;
 const HIID FGenSymDepGroup  = AidGen|AidSymdep|AidGroup;
+
+const HIID FResolveParentId = AidResolve|AidParent|AidId;
 
 // Node commands
 const HIID FResolveChildren = AidResolve|AidChildren;
@@ -140,7 +142,11 @@ class Node : public BlockableObject
     
     //##ModelId=400E530F0090
     virtual void reinit (DataRecord::Ref::Xfer &initrec, Forest* frst);
-    
+
+    // resolves children and symdeps. Must be called after init(),
+    // before a node is executed() for the first time
+    int resolve (DataRecord::Ref &depmasks,int rsid);
+        
     //##ModelId=3F83FAC80375
     void resolveChildren (bool recursive=true);
     
@@ -692,6 +698,9 @@ class Node : public BlockableObject
     //## symdeps may apply to a specific node group only. If empty, the All
     //## group will be used    
     HIID gen_symdep_group_;
+    
+    // used by resolve()
+    int node_resolve_id_;
     
     
     //##ModelId=400E55D00080

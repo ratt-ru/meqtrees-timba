@@ -618,6 +618,11 @@ const int AidOr_int = -1461;
 const AtomicID AidOrigin(-1132);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
 const int AidOrigin_int = -1132;
 #endif
+#ifndef _defined_id_AidParent
+#define _defined_id_AidParent 1
+const AtomicID AidParent(-1480);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:39
+const int AidParent_int = -1480;
+#endif
 #ifndef _defined_id_AidParm
 #define _defined_id_AidParm 1
 const AtomicID AidParm(-1234);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:35
