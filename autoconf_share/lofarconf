@@ -101,5 +101,7 @@ if [ "$cmpmakes$varmakes" != "" ]; then
 
   echo ""
   echo "$opts" > makeoptions
-  echo "make options\n  $opts\nwritten into makeoptions file";
+  echo "make options"
+  echo "  $opts";
+  echo "written into makeoptions file";
 fi
