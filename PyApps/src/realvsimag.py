@@ -1,0 +1,640 @@
+#!/usr/bin/env python
+
+# Contributed by Tomaz Curk in a bug report showing that the stack order of the
+# curves was dependent on the number of curves. This has been fixed in Qwt.
+#
+# QwtBarCurve is an idea of Tomaz Curk.
+#
+# Beautified and expanded by Gerard Vermeulen.
+
+import math
+import random
+import sys
+from qt import *
+from qwt import *
+from numarray import *
+
+from math import sin
+from math import cos
+from math import pow
+from math import sqrt
+
+print_xpm = ['32 32 12 1',
+             'a c #ffffff',
+             'h c #ffff00',
+             'c c #ffffff',
+             'f c #dcdcdc',
+             'b c #c0c0c0',
+             'j c #a0a0a4',
+             'e c #808080',
+             'g c #808000',
+             'd c #585858',
+             'i c #00ff00',
+             '# c #000000',
+             '. c None',
+             '................................',
+             '................................',
+             '...........###..................',
+             '..........#abb###...............',
+             '.........#aabbbbb###............',
+             '.........#ddaaabbbbb###.........',
+             '........#ddddddaaabbbbb###......',
+             '.......#deffddddddaaabbbbb###...',
+             '......#deaaabbbddddddaaabbbbb###',
+             '.....#deaaaaaaabbbddddddaaabbbb#',
+             '....#deaaabbbaaaa#ddedddfggaaad#',
+             '...#deaaaaaaaaaa#ddeeeeafgggfdd#',
+             '..#deaaabbbaaaa#ddeeeeabbbbgfdd#',
+             '.#deeefaaaaaaa#ddeeeeabbhhbbadd#',
+             '#aabbbeeefaaa#ddeeeeabbbbbbaddd#',
+             '#bbaaabbbeee#ddeeeeabbiibbadddd#',
+             '#bbbbbaaabbbeeeeeeabbbbbbaddddd#',
+             '#bjbbbbbbaaabbbbeabbbbbbadddddd#',
+             '#bjjjjbbbbbbaaaeabbbbbbaddddddd#',
+             '#bjaaajjjbbbbbbaaabbbbadddddddd#',
+             '#bbbbbaaajjjbbbbbbaaaaddddddddd#',
+             '#bjbbbbbbaaajjjbbbbbbddddddddd#.',
+             '#bjjjjbbbbbbaaajjjbbbdddddddd#..',
+             '#bjaaajjjbbbbbbjaajjbddddddd#...',
+             '#bbbbbaaajjjbbbjbbaabdddddd#....',
+             '###bbbbbbaaajjjjbbbbbddddd#.....',
+             '...###bbbbbbaaajbbbbbdddd#......',
+             '......###bbbbbbjbbbbbddd#.......',
+             '.........###bbbbbbbbbdd#........',
+             '............###bbbbbbd#.........',
+             '...............###bbb#..........',
+             '..................###...........']
+
+zoom_xpm = ['32 32 8 1',
+            '# c #000000',
+            'b c #c0c0c0',
+            'a c #ffffff',
+            'e c #585858',
+            'd c #a0a0a4',
+            'c c #0000ff',
+            'f c #00ffff',
+            '. c None',
+            '..######################........',
+            '.#a#baaaaaaaaaaaaaaaaaa#........',
+            '#aa#baaaaaaaaaaaaaccaca#........',
+            '####baaaaaaaaaaaaaaaaca####.....',
+            '#bbbbaaaaaaaaaaaacccaaa#da#.....',
+            '#aaaaaaaaaaaaaaaacccaca#da#.....',
+            '#aaaaaaaaaaaaaaaaaccaca#da#.....',
+            '#aaaaaaaaaabe###ebaaaaa#da#.....',
+            '#aaaaaaaaa#########aaaa#da#.....',
+            '#aaaaaaaa###dbbbb###aaa#da#.....',
+            '#aaaaaaa###aaaaffb###aa#da#.....',
+            '#aaaaaab##aaccaaafb##ba#da#.....',
+            '#aaaaaae#daaccaccaad#ea#da#.....',
+            '#aaaaaa##aaaaaaccaab##a#da#.....',
+            '#aaaaaa##aacccaaaaab##a#da#.....',
+            '#aaaaaa##aaccccaccab##a#da#.....',
+            '#aaaaaae#daccccaccad#ea#da#.....',
+            '#aaaaaab##aacccaaaa##da#da#.....',
+            '#aaccacd###aaaaaaa###da#da#.....',
+            '#aaaaacad###daaad#####a#da#.....',
+            '#acccaaaad##########da##da#.....',
+            '#acccacaaadde###edd#eda#da#.....',
+            '#aaccacaaaabdddddbdd#eda#a#.....',
+            '#aaaaaaaaaaaaaaaaaadd#eda##.....',
+            '#aaaaaaaaaaaaaaaaaaadd#eda#.....',
+            '#aaaaaaaccacaaaaaaaaadd#eda#....',
+            '#aaaaaaaaaacaaaaaaaaaad##eda#...',
+            '#aaaaaacccaaaaaaaaaaaaa#d#eda#..',
+            '########################dd#eda#.',
+            '...#dddddddddddddddddddddd##eda#',
+            '...#aaaaaaaaaaaaaaaaaaaaaa#.####',
+            '...########################..##.']
+
+
+
+class PrintFilter(QwtPlotPrintFilter):
+    def __init__(self):
+        QwtPlotPrintFilter.__init__(self)
+
+    # __init___()
+    
+    def color(self, c, item, i):
+        if not (self.options() & QwtPlotPrintFilter.PrintCanvasBackground):
+            if item == QwtPlotPrintFilter.MajorGrid:
+                return Qt.darkGray
+            elif item == QwtPlotPrintFilter.MinorGrid:
+                return Qt.gray
+        if item == QwtPlotPrintFilter.Title:
+            return Qt.red
+        elif item == QwtPlotPrintFilter.AxisScale:
+            return Qt.green
+        elif item == QwtPlotPrintFilter.AxisTitle:
+            return Qt.blue
+        return c
+
+    # color()
+
+    def font(self, f, item, i):
+        result = QFont(f)
+        result.setPointSize(int(f.pointSize()*1.25))
+        return result
+
+    # font()
+
+# class PrintFilter
+
+class realvsimag_plotter(QMainWindow):
+
+    color_table = {
+        'none': None,
+        'black': Qt.black,
+        'blue': Qt.blue,
+        'cyan': Qt.cyan,
+        'gray': Qt.gray,
+        'green': Qt.green,
+        'magenta': Qt.magenta,
+        'red': Qt.red,
+        'white': Qt.white,
+        'yellow': Qt.yellow,
+        }
+
+    symbol_table = {
+        'none': QwtSymbol.None,
+        'rectangle': QwtSymbol.Rect,
+        'ellipse': QwtSymbol.Ellipse,
+        'circle': QwtSymbol.Ellipse,
+	'xcross': QwtSymbol.XCross,
+	'cross': QwtSymbol.Cross,
+	'triangle': QwtSymbol.Triangle,
+	'diamond': QwtSymbol.Diamond,
+        }
+    
+    def __init__(self, plot_key, parent=None):
+        QMainWindow.__init__(self, parent)
+        if parent is None:
+          print 'realvsimag has no parent'
+        else:
+          print 'realvsimag has parent'
+
+        self.plot_key = plot_key
+
+        # Initialize a QwPlot central widget
+        self.plot = QwtPlot('Real vs Imaginary Plot'
+                            ' -- '
+                            'use the ?-pointer for help',
+                            self)
+        self.plot.plotLayout().setCanvasMargin(0)
+        self.plot.plotLayout().setAlignCanvasToScales(True)
+        self.setCentralWidget(self.plot)
+
+        self.__initTracking()
+        self.__initZooming()
+        self.__initToolBar()
+        
+
+        # initialize internal variables for plot
+        self._circle_dict = {}
+        self._line_dict = {}
+        self._xy_plot_dict = {}
+        self._angle = 0.0
+        self._radius = 7.0
+        self._x_min = 0.0;
+        self._x_max = 0.0;
+        self._y_min = 0.0;
+        self._y_max = 0.0;
+
+        self.plot.setAxisTitle(QwtPlot.xBottom, 'Real Axis')
+        self.plot.setAxisTitle(QwtPlot.yLeft, 'Imaginary Axis')
+        self._plot_title = None
+        self.index = -1
+
+    # __init__()
+
+    def __initTracking(self):
+        """Initialize tracking
+        """        
+        self.connect(self.plot,
+                     SIGNAL('plotMouseMoved(const QMouseEvent&)'),
+                     self.onMouseMoved)
+        self.connect(self.plot, SIGNAL("plotMousePressed(const QMouseEvent&)"),
+                        self.slotMousePressed)
+
+        self.plot.canvas().setMouseTracking(True)
+        self.statusBar().message(
+            'Plot cursor movements are tracked in the status bar')
+
+    # __initTracking()
+
+    def onMouseMoved(self, e):
+        self.statusBar().message(
+            'x = %+.6g, y = %.6g'
+            % (self.plot.invTransform(QwtPlot.xBottom, e.pos().x()),
+               self.plot.invTransform(QwtPlot.yLeft, e.pos().y())))
+
+    # onMouseMoved()
+    
+    def __initZooming(self):
+        """Initialize zooming
+        """
+        self.zoomer = QwtPlotZoomer(QwtPlot.xBottom,
+                                    QwtPlot.yLeft,
+                                    QwtPicker.DragSelection,
+                                    QwtPicker.AlwaysOff,
+                                    self.plot.canvas())
+        self.zoomer.setRubberBandPen(QPen(Qt.black))
+
+        self.picker = QwtPlotPicker(
+            QwtPlot.xBottom,
+            QwtPlot.yLeft,
+            QwtPicker.PointSelection | QwtPicker.DragSelection,
+            QwtPlotPicker.CrossRubberBand,
+            QwtPicker.AlwaysOn,
+            self.plot.canvas())
+        self.picker.setRubberBandPen(QPen(Qt.green))
+        self.connect(self.picker, SIGNAL('selected(const QPointArray &)'),
+                     self.selected)
+
+
+
+    # __initZooming()
+       
+    def setZoomerMousePattern(self, index):
+        """Set the mouse zoomer pattern.
+        """
+        if index == 0:
+            pattern = [
+                QwtEventPattern.MousePattern(Qt.LeftButton, Qt.NoButton),
+                QwtEventPattern.MousePattern(Qt.RightButton, Qt.NoButton),
+#                QwtEventPattern.MousePattern(Qt.MidButton, Qt.NoButton),
+                QwtEventPattern.MousePattern(Qt.LeftButton, Qt.ShiftButton),
+                QwtEventPattern.MousePattern(Qt.RightButton, Qt.ShiftButton),
+#                QwtEventPattern.MousePattern(Qt.MidButton, Qt.ShiftButton),
+                ]
+            self.zoomer.setMousePattern(pattern)
+        elif index in (1, 2, 3):
+            self.zoomer.initMousePattern(index)
+        else:
+            raise ValueError, 'index must be in (0, 1, 2, 3)'
+
+    # setZoomerMousePattern()
+
+    def __initToolBar(self):
+        """Initialize the toolbar
+        """
+        self.toolBar = QToolBar(self)
+
+        btnZoom = QToolButton(self.toolBar)
+        btnZoom.setTextLabel("Zoom")
+        btnZoom.setPixmap(QPixmap(zoom_xpm))
+        btnZoom.setToggleButton(True)
+        btnZoom.setUsesTextLabel(True)
+
+        btnPrint = QToolButton(self.toolBar)
+        btnPrint.setTextLabel("Print")
+        btnPrint.setPixmap(QPixmap(print_xpm))
+        btnPrint.setUsesTextLabel(True)
+
+        QWhatsThis.whatsThisButton(self.toolBar)
+        
+        QWhatsThis.add(
+            self.plot.canvas(),
+            'A QwtPlotZoomer lets you zoom infinitely deep\n'
+            'by saving the zoom states on a stack.\n\n'
+            'You can:\n'
+            '- select a zoom region\n'
+            '- unzoom all\n'
+            '- walk down the stack\n'
+            '- walk up the stack.\n\n'
+            )
+        
+        self.zoom(False)
+
+        self.setZoomerMousePattern(0)
+
+        self.connect(btnPrint, SIGNAL('clicked()'),
+                     self.printPlot)
+        self.connect(btnZoom, SIGNAL('toggled(bool)'),
+                     self.zoom)
+
+    # __initToolBar()
+
+    def slotMousePressed(self, e):
+        print ' '
+        print ' in slotMousePressed'
+        "Mouse press processing instructions go here"
+        if e.button() == QMouseEvent.MidButton:
+            print 'button is mid button'
+            xPos = e.pos().x()
+            yPos = e.pos().y()
+            print 'xPos yPos ', xPos, ' ', yPos
+            key, distance, xVal, yVal, index = self.plot.closestCurve(xPos, yPos)
+            print ' key, distance, xVal, yVal, index ', key, ' ', distance,' ', xVal, ' ', yVal, ' ', index
+            message = 'point belongs to curve ' + str(key) + ' at sequence ' + str(index) 
+            self.statusBar().message(message)
+            
+    # slotMousePressed
+
+
+# compute points for two circles
+    def compute_circles (self, item_label, avg_r, avg_i):
+      """ compute values for circle running through specified
+          point and a line pointing to the point """
+
+      # compute circle that will run through average value
+      x_sq = pow(avg_r, 2)
+      y_sq = pow(avg_i, 2)
+      radius = sqrt(x_sq + y_sq)
+      x_pos = zeros((73,),Float64)
+      y_pos = zeros((73,),Float64)
+      angle = -5.0
+      for j in range(0, 73 ) :
+        angle = angle + 5.0
+        x_pos[j] = radius * cos(angle/57.2957795)
+        y_pos[j] = radius * sin(angle/57.2957795)
+      x_pos_min  = x_pos.min()
+      x_pos_max  = x_pos.max()
+      y_pos_min  = y_pos.min()
+      y_pos_max  = y_pos.max()
+
+      self._x_min = min(self._x_min, x_pos_min)
+      self._x_max = max(self._x_max, x_pos_max)
+      self._y_min = min(self._y_min, y_pos_min)
+      self._y_max = max(self._y_max, y_pos_max)
+
+      # compute line that will go from centre of circle to 
+      # position of average value
+      x1_pos = zeros((2,),Float64)
+      y1_pos = zeros((2,),Float64)
+      x1_pos[0] = 0.0
+      y1_pos[0] = 0.0
+      x1_pos[1] = avg_r
+      y1_pos[1] = avg_i
+
+      # if this is a new item_label, add a new circle,
+      # otherwise, replace old one
+      circle_key = item_label + '_circle'
+      line_key = item_label + '_line'
+      if self._circle_dict.has_key(circle_key) == False: 
+        key_circle = self.plot.insertCurve(circle_key)
+        self._circle_dict[circle_key] = key_circle
+        self.plot.setCurvePen(key_circle, QPen(self._plot_color))
+        self.plot.setCurveData(key_circle, x_pos, y_pos)
+        key_line = self.plot.insertCurve(line_key)
+        self._line_dict[line_key] = key_line
+        self.plot.setCurvePen(key_line, QPen(self._plot_color))
+        self.plot.setCurveData(key_line, x1_pos, y1_pos)
+      else:
+        key_circle = self._circle_dict[circle_key] 
+        key_line = self._line_dict[line_key]
+        self.plot.setCurveData(key_circle, x_pos, y_pos)
+        self.plot.setCurveData(key_line, x1_pos, y1_pos)
+
+    def plot_data(self, item_label, visu_record):
+      """ process incoming data and attributes into the
+          appropriate type of plot """
+      print '****** in plot_data'
+
+# first find out what kind of plot we are making
+      plot_types = None
+      if visu_record.has_key('attrib'):
+        self._attrib_parms = visu_record['attrib']
+        print 'self._attrib_parms ', self._attrib_parms
+        plot_types = self._attrib_parms.get('plot_type')
+
+# convert to a tuple if necessary
+        if isinstance(plot_types, str):
+          plot_types = (plot_types,)
+
+      if visu_record.has_key('value'):
+        self._data_values = visu_record['value']
+        print 'self._data_values ', self._data_values
+
+# extract and define labels for this data item
+      self._label_r = item_label + "_r"
+      self._label_i = item_label + "_i"
+      for j in range(len(plot_types)):
+        self._plot_type = plot_types[j]
+     # now generate  particular plot type
+        if  self._plot_type == 'realvsimag':
+          self.real_vs_imag_plot(item_label)
+  
+    def real_vs_imag_plot (self,item_label):
+      """ plot real va imaginary values together with circles
+          indicating average values """
+ 
+# get and combine all plot array data together into one array
+      num_plot_arrays = len(self._data_values)
+      print ' num_plot_arrays ', num_plot_arrays
+      image_r = []
+      image_i = []
+      sum_r = 0.0
+      sum_i = 0.0
+      for i in range(0, num_plot_arrays):
+# make sure we are using a numarray
+        array_representation = inputarray(self._data_values[i])
+        xx_r = None
+        xx_i = None
+        if array_representation.type() == Complex64:
+          xx_r = array_representation.getreal()
+          xx_i = array_representation.getimag()
+        else:
+          xx_r = array_representation
+        array_dim = len(xx_r.shape)
+        num_elements = 1
+        for j in range(0, array_dim):
+          num_elements = num_elements * xx_r.shape[j]
+        flattened_array_r = reshape(xx_r,(num_elements,))
+        self._x_min = min(self._x_min, flattened_array_r.min())
+        self._x_max = max(self._x_max, flattened_array_r.max())
+       
+        for j in range(0, num_elements): 
+          image_r.append(flattened_array_r[j])
+          sum_r = sum_r + flattened_array_r[j]
+        if xx_i != None:
+          flattened_array_i = reshape(xx_i,(num_elements,))
+          self._y_min = min(self._y_min, flattened_array_i.min())
+          self._y_max = max(self._y_max, flattened_array_i.max())
+          for j in range(0, num_elements): 
+            image_i.append(flattened_array_i[j])
+            sum_i = sum_i + flattened_array_i[j]
+        else:
+          for j in range(0, num_elements): 
+            image_i.append(0.0)
+          sum_i = 0.0
+
+# add data to set of curves
+      num_rows = len(image_r)
+      if num_rows == 0:
+        print 'nothing to update!'
+        return
+      # if this is a new item_label, add a new plot,
+      # otherwise, replace old one
+      plot_key = self._attrib_parms.get('label','') + '_plot'
+#      plot_key = item_label + '_plot'
+      if self._xy_plot_dict.has_key(plot_key) == False: 
+        string_color = self._attrib_parms.get('color', 'blue')
+        self._plot_color = self.color_table[string_color]
+        if self._plot_title is None:
+          self._plot_title = self._plot_type +':'
+        self._plot_title = self._plot_title + ' ' + self._attrib_parms.get('label','')
+        self._plot_title = self._plot_title + ' ' + string_color
+        self.plot.setTitle(self._plot_title)
+
+        key_plot = self.plot.insertCurve(plot_key)
+        self._xy_plot_dict[plot_key] = key_plot
+        self.plot.setCurvePen(key_plot, QPen(self._plot_color))
+        self.plot.setCurveData(key_plot, image_r, image_i)
+        self.plot.setCurveStyle(key_plot, QwtCurve.Dots)
+        plot_curve = self.plot.curve(key_plot)
+        plot_symbol = self.symbol_table["circle"]
+        plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
+                     QPen(self._plot_color), QSize(10, 10)))
+      else:
+        key_plot = self._xy_plot_dict[plot_key] 
+        self.plot.setCurveData(key_plot, image_r, image_i)
+
+      avg_r = sum_r / num_rows
+      avg_i = sum_i / num_rows
+      self.compute_circles (plot_key, avg_r, avg_i)
+
+# now update plot
+      self.plot.replot()
+
+    def go(self, counter):
+      """Create and plot some garbage data
+      """
+      item_label = 'test'
+      xx = self._radius * cos(self._angle/57.2957795)
+      yy = self._radius * sin(self._angle/57.2957795)
+
+      x_pos = zeros((20,),Float64)
+      y_pos = zeros((20,),Float64)
+      for j in range(0,20) :
+        x_pos[j] = xx + random.random()
+        y_pos[j] = yy + random.random()
+
+# keep track of maxima and minima if we want to zoom
+      self._x_min = min(self._x_min, x_pos.min())
+      self._x_max = max(self._x_max, x_pos.max())
+      self._y_min = min(self._y_min, y_pos.min())
+      self._y_max = max(self._y_max, y_pos.max())
+
+      # if this is a new item_label, add a new plot,
+      # otherwise, replace old one
+      plot_key = item_label + '_plot'
+      self._plot_color = self.color_table["red"]
+      if self._xy_plot_dict.has_key(plot_key) == False: 
+        key_plot = self.plot.insertCurve(plot_key)
+        self._xy_plot_dict[plot_key] = key_plot
+        self.plot.setCurvePen(key_plot, QPen(self._plot_color))
+        self.plot.setCurveData(key_plot, x_pos, y_pos)
+        self.plot.setCurveStyle(key_plot, QwtCurve.Dots)
+        plot_curve = self.plot.curve(key_plot)
+        plot_symbol = self.symbol_table["circle"]
+        plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
+                     QPen(self._plot_color), QSize(10, 10)))
+      else:
+        key_plot = self._xy_plot_dict[plot_key] 
+        self.plot.setCurveData(key_plot, x_pos, y_pos)
+
+      avg_r = x_pos.mean()
+      avg_i = y_pos.mean()
+      self.compute_circles (item_label, avg_r, avg_i)
+      if counter == 0:
+        self.clearZoomStack()
+      else:
+        self.plot.replot()
+
+    # go()
+
+    def clearZoomStack(self):
+        """Auto scale and clear the zoom stack
+        """
+        self.plot.replot()
+        self.zoomer.setZoomBase()
+    # clearZoomStack()
+
+    def start_timer(self, time):
+        self.startTimer(time)
+    # start_timer()
+
+    def timerEvent(self, e):
+      self._angle = self._angle + 5;
+      self._radius = 5.0 + 2.0 * random.random()
+      self.index = self.index + 1
+      self.go(self.index)
+    # timerEvent()
+
+    def zoom(self, on):
+        self.zoomer.setEnabled(on)
+        self.zoomer.zoom(0)
+        if on:
+          self.picker.setRubberBand(QwtPicker.NoRubberBand)
+# set fixed scales - zooming doesn't work well with autoscaling!!
+          print 'setting x fixed scale: ', self._x_min, ' ', self._x_max
+          print 'setting y fixed scale: ', self._y_min, ' ', self._y_max
+          x_diff = (self._x_max - self._x_min) / 10.0
+          x_max = self._x_max + x_diff
+          x_min = self._x_min - x_diff
+          y_diff = (self._y_max - self._y_min) / 10.0
+          y_max = self._y_max + y_diff
+          y_min = self._y_min - y_diff
+          
+          self.plot.setAxisScale(QwtPlot.xBottom, x_min, x_max)
+          self.plot.setAxisScale(QwtPlot.yLeft, y_min, y_max)
+          self.clearZoomStack()
+        else:
+          self.picker.setRubberBand(QwtPicker.CrossRubberBand)
+          self.plot.setAxisAutoScale(QwtPlot.xBottom)
+          self.plot.setAxisAutoScale(QwtPlot.yLeft)
+          self.plot.replot()
+    # zoom()
+
+
+    def printPlot(self):
+        try:
+            printer = QPrinter(QPrinter.HighResolution)
+        except AttributeError:
+            printer = QPrinter()
+        printer.setOrientation(QPrinter.Landscape)
+        printer.setColorMode(QPrinter.Color)
+        printer.setOutputToFile(True)
+        printer.setOutputFileName('plot-%s.ps' % qVersion())
+        if printer.setup():
+            filter = PrintFilter()
+            if (QPrinter.GrayScale == printer.colorMode()):
+                filter.setOptions(QwtPlotPrintFilter.PrintAll
+                                  & ~QwtPlotPrintFilter.PrintCanvasBackground)
+            self.plot.printPlot(printer, filter)
+    # printPlot()
+
+    def selected(self, points):
+        point = points.point(0)
+# this gives the position in pixels!!
+        xPos = point[0]
+        yPos = point[1]
+        print 'selected: xPos yPos ', xPos, ' ', yPos
+    # selected()
+
+
+    
+# class realvsimag_plotter
+
+
+def main(args):
+    app = QApplication(args)
+    demo = make()
+    app.setMainWidget(demo)
+    app.exec_loop()
+
+# main()
+
+def make():
+    demo = realvsimag_plotter('plot_key')
+    demo.show()
+    demo.start_timer(1000)
+    return demo
+
+# make()
+
+# Admire!
+if __name__ == '__main__':
+    main(sys.argv)
+
