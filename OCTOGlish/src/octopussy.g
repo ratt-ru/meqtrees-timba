@@ -1,4 +1,33 @@
+###  octopussy.g: Glish interface to OCTOPUSSY
+###
+###  Copyright (C) 2002-2003
+###  ASTRON (Netherlands Foundation for Research in Astronomy)
+###  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+###
+###  This program is free software; you can redistribute it and/or modify
+###  it under the terms of the GNU General Public License as published by
+###  the Free Software Foundation; either version 2 of the License, or
+###  (at your option) any later version.
+###
+###  This program is distributed in the hope that it will be useful,
+###  but WITHOUT ANY WARRANTY; without even the implied warranty of
+###  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+###  GNU General Public License for more details.
+###
+###  You should have received a copy of the GNU General Public License
+###  along with this program; if not, write to the Free Software
+###  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+###
+###  $Id$
 pragma include once
+
+# print software version
+if( has_field(lofar_software,'print_versions') &&
+    lofar_software.print_versions )
+{
+  print '$Id$';
+}
+
 include 'note.g'
 include 'debug_methods.g'
 
@@ -42,6 +71,7 @@ const octopussy := function (server='octoglish',options="",
   # is used as the baseline priority value. The priority parameters
   # used below are added to this value
   self.priority_normal := 256;
+  self.appid := 'octopussy';
   
   define_debug_methods(self,public,verbose);
 
@@ -51,10 +81,14 @@ const octopussy := function (server='octoglish',options="",
     # make use of options attribute, if defined
     if( is_string(server::options) )
       options := [ server::options,options ];
-    if( server::valgrind ) # start under valgrind -- some trickery required
+    if( has_field(server::,'valgrind') && server::valgrind ) # start under valgrind -- some trickery required
     {
       self.dprint(2,'starting server under valgrind');
       self.opClient := client(server,async=T);
+      if( is_string(server::valgrind_options) )
+        valopt := server::valgrind_options;
+      else
+        valopt := '';
       cmd := paste('valgrind',server::valgrind_options,self.opClient.activate,options);
       cmd =~ s/([<>*])/\\$1/g;
       if( server::nostart )
@@ -78,7 +112,7 @@ const octopussy := function (server='octoglish',options="",
     }
     else  # start normally
     {
-      if( server::nostart )
+      if( has_field(server::,'nostart') && server::nostart )
       {
         self.opClient := client(server,options,async=T);
         print "===============================================";
@@ -93,8 +127,11 @@ const octopussy := function (server='octoglish',options="",
       {
         self.dprint(1,"starting client(",server,",",options,")");
         self.opClient := client(server,options,suspend=server::suspend);
-        if( !is_agent(self.opClient) ) 
+        if( !is_agent(self.opClient) )
+        { 
+          self.dprint(1,'failed to start client');
           fail paste('server',server,'could not be started');
+        }
         self.dprint(1,"connected");
       }
     }
@@ -154,9 +191,7 @@ const octopussy := function (server='octoglish',options="",
   {
     wider self;
     if( is_boolean(self.opClient) || self.opClient::Died ) 
-    {
-      self.makeclient(server,options);
-    }
+      return self.makeclient(server,options);
     return T;
   }
 
@@ -332,8 +367,10 @@ const octopussy := function (server='octoglish',options="",
   
   res := public.init(server,options);
   if( is_fail(res) )
+  {
+    self.dprint(0,'init failed: ',res);
     return res;
-  
+  }
   if( autoexit )
     whenever self.opClient->exit do 
     {
@@ -341,7 +378,7 @@ const octopussy := function (server='octoglish',options="",
       exit 1;
     }
   
-  return public;
+  return ref public;
 }
 
 test_octopussy := function (server="./test_glish",options="")
