@@ -416,6 +416,11 @@ class QwtPlotImage(QwtPlotMappedItem):
 
 # QwtPlotImage()
     
+display_image_instructions = \
+'''Click the <b>left</b> mouse button in a spectrum display window to get the value of the pixel at this position.<br><br>
+Click the <b>middle</b> mouse button in a spectrum display window to get a cross section through the imagein the X and Y directions.<br><br>
+Click the <b>right</b> mouse button in a spectrum display window to get get a context menu with options for printing, plotting, and selecting another image.'''
+
 class QwtImagePlot(QwtPlot):
 
     display_table = {
@@ -482,6 +487,8 @@ class QwtImagePlot(QwtPlot):
         self.connect(self, SIGNAL("legendClicked(long)"), self.toggleCurve)
         self.index = 1
         self.is_vector = False
+
+        QWhatsThis.add(self, display_image_instructions)
 
 
 #        self.__initContextMenu()
@@ -1557,7 +1564,9 @@ class QwtImagePlot(QwtPlot):
       """ figure out shape, rank etc of a spectrum array and
           plot it  """
 
+# set the plot type - used to presently suppress mouse interaction
       self._plot_type = 'histogram'
+
 # set title
       if self._title is None:
         self.setTitle(data_label)
@@ -1606,6 +1615,7 @@ class QwtImagePlot(QwtPlot):
 
 # add in histogram for imaginary stuff if we have a complex array
       if complex_type:
+#        real_array_max = array_max
         histogram_in = input_array.getimag()
         array_min = histogram_in.min()
         array_max = histogram_in.max()
@@ -1614,6 +1624,7 @@ class QwtImagePlot(QwtPlot):
         histogram_curve_y_im = zeros(4 * num_bins, Float32) 
         bin_incr = (array_max - array_min) / num_bins
         curve_index = 0
+#        array_min = array_min + real_array_max
         for i in range(num_bins):
           bin_start = array_min + i * bin_incr
           bin_end = bin_start + bin_incr
@@ -1631,6 +1642,8 @@ class QwtImagePlot(QwtPlot):
         self.setCurvePen(curve_index_imag, QPen(Qt.red, 2))
         self.setCurveData(curve_index_imag, histogram_curve_x_im, histogram_curve_y_im)
         self.setAxisTitle(QwtPlot.xBottom, 'array value (real=black, red=imag) ')
+#        self.myXScale = ComplexScaleDraw(array_min)
+#        self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
       self.replot()
      
     # histogram_plot()
