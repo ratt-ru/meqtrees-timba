@@ -763,7 +763,7 @@ int Node::execute (Result::Ref &ref, const Request &req)
       cdebug(3)<<"  result is "<<ref.sdebug(DebugLevel-1,"    ")<<endl;
       if( DebugLevel>3 && ref.valid() )
       {
-        ref->show(Debug::dbg_stream);
+        ref->show(Debug::getDebugStream());
       }
     }
     // cache & return accumulated return code
