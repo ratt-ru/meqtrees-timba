@@ -123,17 +123,15 @@ AC_CHECK_FILE([$scampi_prefix/include/mpi.h],
 [
 	if test $lofar_cv_header_scampi = yes ; then
 
-		SCAMPI_CFLAGS="-I$scampi_prefix/include"
+		SCAMPI_CPPFLAGS="-I$scampi_prefix/include"
 		SCAMPI_LDFLAGS="-L$scampi_prefix/lib"
 		SCAMPI_LIBS="-lmpi"
 
-		CFLAGS="$CFLAGS $SCAMPI_CFLAGS"
-		CXXFLAGS="$CXXFLAGS $SCAMPI_CFLAGS"
+		CPPFLAGS="$CPPFLAGS $SCAMPI_CPPFLAGS"
 		LDFLAGS="$LDFLAGS $SCAMPI_LDFLAGS"
 		LIBS="$LIBS $SCAMPI_LIBS"
 ]
-AC_SUBST(CFLAGS)
-AC_SUBST(CXXFLAGS)
+AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(LIBS)
 AC_DEFINE(HAVE_SCAMPI,dnl

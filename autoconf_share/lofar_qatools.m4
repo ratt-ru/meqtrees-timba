@@ -80,8 +80,7 @@ else
     have_puretools=yes;
     if test "$lofar_cv_purify_lib" = "yes yes"; then ]
       AC_DEFINE(HAVE_PURIFY, 1, [Define if using Rational Purify])dnl
-      [	CFLAGS="$CFLAGS -I$puretools_prefix/purify"
-	CXXFLAGS="$CXXFLAGS -I$puretools_prefix/purify"
+      [	CPPFLAGS="$CPPFLAGS -I$puretools_prefix/purify"
 	LDFLAGS="$LDFLAGS -L$puretools_prefix/purify"
 	LIBS="$LIBS -lpurify_stubs"
     fi
@@ -108,8 +107,7 @@ else
     CXX="$lofar_puredir/puretool $have_purify $have_quantify $have_purecov "'$(top_builddir)'" $puretools_prefix $CXX"
     ]
     dnl
-    AC_SUBST(CFLAGS)dnl
-    AC_SUBST(CXXFLAGS)dnl
+    AC_SUBST(CPPFLAGS)dnl
     AC_SUBST(LDFLAGS)dnl
     AC_SUBST(LIBS)dnl
     AC_SUBST(CC)dnl
@@ -226,8 +224,7 @@ dnl
     ln -s psrc .psrc
 ]
 dnl
-AC_SUBST(CFLAGS)dnl
-AC_SUBST(CXXFLAGS)dnl
+AC_SUBST(CPPFLAGS)dnl
 AC_SUBST(LDFLAGS)dnl
 AC_SUBST(LIBS)dnl
 AC_SUBST(CC)dnl

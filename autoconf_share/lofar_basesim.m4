@@ -6,7 +6,7 @@
 #
 # Macro to check for BASESIM installation
 #
-#  It adds the BaseSim include directory to CXXFLAGS and CFLAGS
+#  It adds the BaseSim include directory to CPPFLAGS
 #  and the BaseSim library directory to LIBS.
 #
 #  --with-basesim  tries to find the paths automatically.
@@ -90,8 +90,7 @@ if test $lofar_cv_hdr_basesim = yes  &&  test $lofar_cv_lib_basesim = yes; then
   # relative paths can miss some .. parts.
   lofar_basesim_include=`cd $lofar_basesim_include && pwd`
   lofar_basesim_libdir=`cd $lofar_basesim_libdir && pwd`
-  CFLAGS="$CFLAGS -I$lofar_basesim_include"
-  CXXFLAGS="$CXXFLAGS -I$lofar_basesim_include"
+  CPPFLAGS="$CPPFLAGS -I$lofar_basesim_include"
   LIBS="$LIBS $lofar_basesim_libdir/src/libbasesim.la"
 
   # Two new variables for use in Makefile.am's
@@ -99,8 +98,7 @@ if test $lofar_cv_hdr_basesim = yes  &&  test $lofar_cv_lib_basesim = yes; then
   basesim_top_builddir="$lofar_basesim_libdir"
 ]
 dnl
-AC_SUBST(CFLAGS)dnl
-AC_SUBST(CXXFLAGS)dnl
+AC_SUBST(CPPFLAGS)dnl
 AC_SUBST(LIBS)dnl
 AC_SUBST(basesim_top_srcdir)dnl
 AC_SUBST(basesim_top_builddir)dnl

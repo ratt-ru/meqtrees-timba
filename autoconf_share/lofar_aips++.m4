@@ -38,17 +38,20 @@ AC_MSG_RESULT([yes])
 			*)      arch=UNKNOWN;;
 		esac
 
-		AIPSPP_CFLAGS="-I$AIPSPP_PATH/code/include -DAIPS_$arch"
+		AIPSPP_CPPFLAGS="-I$AIPSPP_PATH/code/include -DAIPS_$arch"
 		AIPSPP_LDFLAGS="-L$AIPSPP_PATH/$AIPSPP_ARCH/lib"
 		AIPSPP_LIBS="-laips"
 
-		CFLAGS="$CFLAGS $AIPSPP_CFLAGS"
-		CXXFLAGS="$CXXFLAGS $AIPSPP_CFLAGS -Wno-non-template-friend"
+		CPPFLAGS="$CPPFLAGS $AIPSPP_CPPFLAGS"
+		lofar_compiler=`basename $CXX`;
+		if test "$lofar_compiler" = "g++"; then
+		  CXXFLAGS="$CXXFLAGS -Wno-non-template-friend"
+		fi
 		LDFLAGS="$LDFLAGS $AIPSPP_LDFLAGS"
 		LIBS="$LIBS $AIPSPP_LIBS"
 ]
 dnl
-AC_SUBST(CFLAGS)dnl
+AC_SUBST(CPPFLAGS)dnl
 AC_SUBST(CXXFLAGS)dnl
 AC_SUBST(LDFLAGS)dnl
 AC_SUBST(LIBS)dnl

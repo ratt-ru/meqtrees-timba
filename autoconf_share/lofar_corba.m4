@@ -61,19 +61,19 @@ AC_CHECK_FILE([$vbroker_prefix/include/corba.h],
 
     VBROKER_PATH="$vbroker_prefix"
 
-    VBROKER_CFLAGS="-I$VBROKER_PATH/include"
+    VBROKER_CPPFLAGS="-I$VBROKER_PATH/include"
     VBROKER_LDFLAGS="-L$VBROKER_PATH/lib"
     VBROKER_LIBS="-lcosev_r -lcosnm_r -lvport_r -lorb_r -lpthread"
 
-    CFLAGS="$CFLAGS $VBROKER_CFLAGS"
-    CXXFLAGS="$CXXFLAGS $VBROKER_CFLAGS -Wno-reorder -Wno-switch -Wno-unused"
+    CPPFLAGS="$CPPFLAGS $VBROKER_CPPFLAGS"
+    CXXFLAGS="$CXXFLAGS -Wno-reorder -Wno-switch -Wno-unused"
     LDFLAGS="$LDFLAGS $VBROKER_LDFLAGS"
     LIBS="$LIBS $VBROKER_LIBS"
     IDLCXX="$vbroker_prefix/bin/idl2cpp"
     IDLFLAGS=""
 ]
 dnl
-AC_SUBST(CFLAGS)dnl
+AC_SUBST(CPPFLAGS)dnl
 AC_SUBST(CXXFLAGS)dnl
 AC_SUBST(LDFLAGS)dnl
 AC_SUBST(LIBS)dnl
