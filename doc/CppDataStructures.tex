@@ -548,41 +548,49 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   The virtual \qq{Node::execute()} method is responsible for processing a
   \Request. The default version decomposes the request and calls a number of
   virtual methods to handle it. All but the most exotic nodes should only need
-  to implement the handlers -- but the possibility to reimplement \qq{execute()}
-  itself is always there. \qq{Node::execute()} does the following:
+  to implement the handlers -- but the possibility to reimplement
+  \qq{execute()} itself is always there. \qq{Node::execute()} does the
+  following:
 
   \begin{enumerate}
   
+  \item For new requests only: if a \qq{node\_state} record is present in the request, interprets that
+    (see below) and calls the virtual \qq{setState()} method as required. 
+
+  \item For new requests only: if a rider record is present, calls the virtual
+    \qq{processRider()} method (default implementation does nothing).
+    
   \item If there's a cached \Result, and the request id ``matches'' the cached
     request id, then does nothing, immediately returning the cached \Result. 
     If ids do not ``match'', clears the cache. See caching issues, below,
     for a definition of ``match''.
 
-  \item If a \qq{node\_state} record is present in the request, interprets that
-    (see below) and calls the virtual \qq{setState()} method as required. 
+  \item If node has children, calls the virtual \qq{pollChildren()} method to
+    collect results from its children. The default implementation of this
+    method calls \qq{execute()} with the same \Request\ on all the child nodes,
+    collecting their \Result{}s into a vector of \qq{Result::Ref}s, and
+    computing the {\em cumulative result code} as a bitwise-OR of the child
+    return values. If any child returns a \RES{FAIL}, it creates an output
+    \Result\ containing a merge of all the fail-results.
 
-  \item If a rider record is present, calls the virtual \qq{processRider()}
-    method (default implementation does nothing).
-
-  \item If node has children, then calls \qq{execute()} with the same \Request\
-    on all the child nodes, collecting their \Result{}s into a vector of
-    \qq{Result::Ref}s. Computes the {\em cumulative result code} as a
-    bitwise-OR of the child return values. If any child returns a \RES{FAIL},
-    makes an output \Result\ containing a merge of all the fail-results, and
-    returns a \RES{FAIL}. If the cumulative result code contains \RES{WAIT},
-    returns it immediately with no output \Result.
+    If the cumulative result code contains \RES{WAIT} or \RES{FAIL},
+    \qq{execute()} returns immediately with that result code. 
+    
+    Note that the default implementation is appropriate for most node classes,
+    with the exception of ``control'' nodes such as \qq{Sink} and \qq{Solver}.
 
   \item If a \Cells\ object is present, calls the virtual \qq{getResult()}
-    method, passing in the vector of child \Result{}s. Bitwise-ORs the return
-    value with the cumulative result code.
-
-    If \qq{getResult()} returns a valid \Result, optionally stores that in
-    the cache (see caching issues, below).
+    method, passing in the vector of child \Result{}s returned by
+    \qq{pollChildren()}. Bitwise-ORs the return value with the cumulative
+    result code.
 
   \item If an exception is thrown at any stage of the process, \qq{execute()}
     will catch it, create an output \Result\ with a fail-result describing the
     exception, and return \RES{FAIL}. Thus, an exception is the normal way for
     \qq{setState()} or \qq{processRider()} to indicate failure.
+    
+  \item Upon exit, optionally stores the output \Result\ and result code in the
+    cache (see caching issues, below).
 
   \end{enumerate}
 
@@ -590,30 +598,23 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   
 \subsection{Result codes}
 
-  The return value is meant to be a result code describing certain properties 
-  of the returned \Result. 
+  The return value of \qq{execute()} is meant to be a result code describing
+  certain properties  of the returned \Result. It is a bitmask composed of a
+  number of flags listed below. Each flag describes a certain property of the
+  \Result. The property semantics are defined in such a way that, in most
+  practical cases, a flagged property in any child result is inherited by the
+  parent's result. This allows \qq{execute()} to accumulate the correct result
+  code via a simple bitwise-OR. In other words, only a few classes (Parm, Time,
+  Freq, Spigot, and perhaps some special nodes) have any specific logic for
+  determining result codes. For all other classes, the correct result code is
+  simply the bitwise-OR of their children's codes.
   
-  The special case \RES{FAIL} indicates complete failure (note that this is not
-  the same thing as a valid \Result\ that contains a mix of values and fails).
-  The \Result\ is then expected to contain a fail-\VellSet\ describing the
-  failure condition. 
-
-  If the code is not \RES{FAIL}, then it is a bitmask composed of a number of
-  flags listed below. Each flag describes a certain property of the \Result.
-  The property semantics are defined in such a way that, in most practical
-  cases, a flagged property in any child result is inherited by the parent's
-  result. This allows \qq{execute()} to accumulate the correct result code via
-  a simple bitwise-OR. In other words, only a few classes (Parms, Spigots, and
-  perhaps some special nodes) have any specific logic for determining result
-  codes. For all other  classes, their result code is simply the bitwise-OR of
-  the children's codes.
-
   \begin{description}
   
   \item[\RES{UPDATED}:] result has changed from that of previous \Request. This
      is meant as a caching hint; if you're not sure, raise the flag.
 
-  \item[\RES{DEP(1)}, \RES{DEP(2)}, etc.:] result will change if the $i$-th
+  \item[\RES{DEP(0)}, \RES{DEP(1)}, etc.:] result will change if the $i$-th
     index of the request ID changes. For calibration \& solving applications,
     request ID has a specific form (see above), and the following aliases may
     be defined:
@@ -638,17 +639,33 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
     can ``think'' of it in abstract terms, i.e., with $N$ sub-indices of the
     request ID mapping to flags (see discussion on caching, below).
 
-  \item[\RES{VOLATILE}:] result may change in response to external events, even
-    without new requests. (This is not implemented for now, and only meant as a
-    placeholder for future developments, such as growing domains, partial
-    integration, etc.)
+  \item[\RES{DEP\_VOLATILE} = RES\_DEP(0):] result may change in response to
+    external events, even without new requests. (This is not implemented for
+    now, and only meant as a placeholder for future developments, such as
+    growing domains, partial integration, etc.)
 
-  \item[\RES{WAIT}:] no result available, wait for notification or try later. If
-    this flag is raised, then no \Result\ should be returned. Note that other
-    flags can and should be meaningfully combined with \RES{WAIT}, since it
-    usually possible to indicate the behaviour of a node in advance.
+  \item[\RES{FAIL}:] result is a ``complete'' fail. Note that this is not the
+    same thing as a result containing some mix of valid and failed VellSets;
+    rather, this indicates a failure for the whole result overall. \RES{FAIL}s
+    are usually generated when a node runs into some unrecoverable error.
+    
+    When this flag is returned, a \Result\ object is expected; it should
+    contain one or more fails describing the error. Note that dependency flags
+    can be meaningfully combined with \RES{FAIL}.
 
+  \item[\RES{WAIT}:] no result available, wait for notification or try later.
+    If this flag is raised, then no \Result\ should be returned. Note that
+    other flags can and should be meaningfully combined with \RES{WAIT}, since
+    it usually possible to indicate the behaviour of a node in advance.
+    
   \end{description}
+  
+  The return value of a node's \qq{getResult()} method should describe any {\bf
+  additional} properties introduced by \qq{getResult()}. Most function nodes
+  will return zero here, indicating that a node does not introduce any
+  additional dependencies into the result. But, for example, the \qq{UVW} node
+  (which gets the RA/Dec and ITRF station positions from its children) will
+  return \qq{RES\_DEP\_DOMAIN}, since $UVW$ coordinates also depend on time.
 
 \subsection{Caching issues}
 
@@ -711,58 +728,59 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 \subsection{Using node\_state}
 
   The optional \qq{node\_state} sub-record of a \Request\ may be used to
-  reconfigure specific nodes. In a very large tree, it may be very expensive
-  for every single node to look itself up in the record for possible changes.
-  For this reason, we introduce the concept of {\em configuration groups}. 
+  reconfigure specific nodes. This is expected to be used by the Solver to set
+  solvable parameters, update their polcs, etc. 
   
-  A node's config groups are specified via a list of HIIDs passed in the
-  \qq{.config\_group} field of the init record (they can subsequently be
-  changed via \qq{setState()}). Nodes not assigned to any config group will
-  ignore \qq{Request.node\_state} completely. Nodes assigned to config groups
-  will use the group names to index into the \qq{node\_state} record and to see
-  if new state is specified. This means that only a limited subset of nodes
-  will actually spend time looking up the \qq{node\_state} record.
+  In a very large tree, it's not practical for every single node to check the
+  record for possible changes. For this reason, we introduce the concept of
+  {\em configuration groups}. 
 
-  Thus, the field names of the \qq{node\_state} record are names of config
-  groups. If a node belongs to config groups \qq{foo} and \qq{bar},
-  \qq{Node::execute()} will look for fields \qq{node\_state.foo} and
-  \qq{node\_state.bar}. Each such field is expected to be a list of subrecords,
-  specifying updates to node state. Here's an example layout for specifying
-  solvable parameters (assuming all MeqParms are included in config group
-  \qq{Solvable}):
+  A node's config groups are specified via a list of HIIDs passed in the
+  \qq{.config\_groups} field of the init record (they can subsequently be
+  changed via \qq{setState()}). All Nodes automatically belong to the \qq{all}
+  group. Config groups are used as a first-level index into the
+  \qq{node\_state} record. If a node belongs to config groups \qq{foo} and
+  \qq{bar}, \qq{Node::execute()} will look for the {\em group config records}\/
+  \qq{node\_state.all}, \qq{node\_state.foo} and \qq{node\_state.bar}. If a
+  config record is found, the node will attempt to locate an appropriate state
+  specification for itself.
+
+  The config record may contain two types of state maps. The first type of
+  state map, called \qq{.by\_nodeindex}, is a direct map of node index to
+  individual state updates. For example: 
 
 \begin{verbatim}
-  # makes RA, DEC solvable, and everything else non-solvable
-  node_state.solvable := [
-    *1 = [ name="RA DEC",state=[ solvable=T ] ],
-    *2 = [ name="*",     state=[ solvable=F ] ]
-  ];
+  - node_state.foo.by_nodeindex
+  [ #17 = [ value=1 ], #32 = [ value=2 ] ]
 \end{verbatim}
 
-  Every record in the list must have either a \qq{name} field (string or array
-  of strings) or a \qq{nodeindex} field (integer or array of integers), as well
-  as a \qq{state} sub-record. Each node will iterate through this list; if
-  the node's name matches one of the names (or patterns) in \qq{name}, or the
-  node index matches one of the indices in \qq{nodeindex}, then \qq{setState()}
-  is called with the record in the \qq{state} field. Once a match is found,
-  list processing stops (hence the wildcard at the end of the list will apply 
-  only to nodes not already matched).
-  
-  Here's an example of setting parameter values. Normally, a record like this
-  will be formed inside the Solver node rather than Glish:
+  ...updates \qq{state.value} for nodes 17 and 32 (the nodes must belong to
+  group \qq{foo}, otherwise the state specification is ignored). If a node's
+  index is found in the map, \qq{setState()} is called with the contents of the
+  subrecord. Note that since Glish only supports strings for record field
+  names, the \qq{'\#ddd'} form is used to specify a numeric node index.
+
+  The second type of state map, called \qq{.by\_list}, can be used to specify
+  state for groups of nodes, by name or index:
 
 \begin{verbatim}
-  # updates values for RA and DEC
-  node_state.solvable := [
-    *1 = [ name="RA",state=[ value=1 ] ],
-    *2 = [ name="DEC",state=[ value=1 ] ]
-  ];
-\end{verbatim}  
-  
-  Note that we could also hardwire some preset config groups into
-  application-specific node classes. Arguably, MeqParms should be hardwired
-  members of \qq{Solvable}, because knowledge of this group would already be
-  hardwired into the Solver node.
+  - node_state.foo.by_list
+  [ *1 = [ name="RA DEC",nodeindex=[17,32],state=[ solvable=T ] ],
+    *2 = [ state=[ solvable=F ] ]
+\end{verbatim}
+
+  This makes nodes RA, DEC, 17 and 32 solvable, and the rest non-solvable.  A
+  map like this is essentially a list of records. Each entry in the list should
+  have a \qq{name} field (string or array of strings) and/or a \qq{nodeindex}
+  field (integer or array of integers), plus a \qq{state} sub-record.
+  \qq{Node::execute()} will iterate through the entries one by one; if the
+  node's name is found in \qq{name}\footnote{In the future, pattern matching
+  will be supported as well.}, or the node index is found in \qq{nodeindex},
+  then \qq{setState()} is called with the contents of \qq{state}. Once a match
+  is found, list processing stops. As a special case, if neither \qq{name} nor
+  \qq{index} is specified, then the entry is a ``wildcard'' matching any node.
+  Wilcards are only useful at the end of the list, to catch nodes not already
+  matched by previous entries.
   
 \section{MeqServer interface}
 
