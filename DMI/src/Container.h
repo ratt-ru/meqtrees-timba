@@ -26,8 +26,8 @@
 //## begin module%3C10CC830067.includes preserve=yes
 #include "TypeInfo.h"
 // pull in PSCF types
-#include "TID-PSCF.h"
-#include "Timestamp.h"
+#include "PSCF/TID-PSCF.h"
+#include "PSCF/Timestamp.h"
 // for now:
 #include <aips/Arrays/Array.h>
 //## end module%3C10CC830067.includes

@@ -743,7 +743,7 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
       const NestableContainer *nc = 
         dynamic_cast<const NestableContainer *>(resolveObject(n,contflags).deref_p());
       FailWhen(!nc,"dynamic cast to expected container type failed");
-      return nc->get(HIID(),tid,can_write,flags);
+      return nc->get(HIID(),tid,can_write,check_tid,flags);
     }
   }
   else   // special type -- types must match

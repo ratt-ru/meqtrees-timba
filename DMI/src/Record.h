@@ -161,6 +161,8 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
 
     // Additional Public Declarations
       //## begin DataRecord%3BB3112B0027.public preserve=yes
+      typedef CountedRef<DataRecord> Ref;
+      
       // debug info method
       string sdebug ( int detail = 1,const string &prefix = "",
                       const char *name = 0 ) const;
