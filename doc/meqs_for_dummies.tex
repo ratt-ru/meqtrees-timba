@@ -377,6 +377,8 @@ description of how to use this program.
 
 \section{Display of Results}
 
+\subsection {The MeqBrowser}
+
 The previous section showed the contents of MeqTree nodes in both 
 image and record formats. We examine the contents of a tree
 by running the `meqbrowser.py' script. When you start up this script
@@ -511,6 +513,8 @@ when one selects the `Array Browser' option.
 These contents are those of the array plotted in Figure ~\ref{fig:add}.}
 \label{fig:ArrayBrowser}
 \end{figure}
+
+\subsection {The HippoDraw Package}
 
 The display of 1 and 2-dimensional data is presently done with the
 HippoDraw package written by Paul Kunz \cite{kunz}. The HippoDraw web 
@@ -854,8 +858,9 @@ document written by Ger van Diepen \cite{diepen}.
     $ slogin lofar10
     # (login)
     $ cd /home/oms/LOFAR/installed
-    $ tar cvf ~/symlinks.tar symlinked.tar
-    # (move the .tar file to your machine, and untar under your LOFAR/installed)
+    Then copy the file `symlinked.tar' to your own machine and untar
+    in your LOFAR/installed directory. Finally in your LOFAR/installed do
+    $ ln -s symlinked current
 
     Alternatively, you can copy them over directly, if you have access to his
     home directory locally. E.g., working on lofar9, you could do:
@@ -1056,7 +1061,8 @@ the regenerated files mentioned above along with the new node classes.
 
 \subsection {Detailed Example Code for a Node}
 
-Here we look at the detailed code for a node, which when called from
+Here we look at the detailed code for a node, {\tt VisTest}, 
+which when called from
 glish will be instantiated as a MeqVisTest node. Here we do some custom
 programming and add specialized values to the output record. First, here
 is the header file.
@@ -1087,6 +1093,13 @@ class VisTest : public Node
 public:
   VisTest();
   virtual ~VisTest();
+
+// This inline function is important. The parameter `TpMeqVisTest'
+// is created and put in the updated TID-MeqNodes.h header when
+// you run the `make aids' command. When the tree is constructed
+// the node will not get constructed if this function is absent
+// or improperly defined.
+
   virtual TypeId objectType () const { return TpMeqVisTest; }
 
 protected:
@@ -1139,9 +1152,11 @@ using namespace VellsMath;
 const HIID FLabel = AidLabel;
 
 VisTest::VisTest()
-  : Node(-1,0,1), // the third parameter tells the node that
-                  // at least 1 child must be present
-    label_(AidXX) 
+  : Node(-1,0,1), // The third parameter tells the node that
+                  // at least 1 child must be present.
+    label_(AidXX) // The default label will be "XX". This may
+                  // get overridden when the state is set in the
+                  // call to setStateImpl
 {
 }
 
@@ -1212,8 +1227,8 @@ int VisTest::getResult (Result::Ref &resref,
         for( int i=0; i<numChildren(); i++ ) {
                 const Vells &val = child_result[i]->vellSet(0).getValue();
                 Assert(val.isCompatible(res_shape));
-                Vells result = mean(val);
-                list[i] <<= result.getDataArray();
+                Vells res_mean = mean(val);
+                list[i] <<= res_mean.getDataArray();
         }
 
  	return 0;
