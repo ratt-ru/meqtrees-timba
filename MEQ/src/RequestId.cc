@@ -14,7 +14,7 @@ void Meq::maskSubId (RequestId &id,int mask)
   // ... until we run out of bits, or get to the start of BOTH ids
   for( int m1=1; 
        m1 < (1<<RQIDM_NBITS) && iter != id.rend(); 
-       m1<<=1 )
+       m1<<=1,iter++ )
   {
     if( !(mask&m1) )
       *iter = 0;
@@ -31,7 +31,7 @@ void Meq::incrSubId (RequestId &id,int mask)
   // ... until we run out of bits, or get to the start of BOTH ids
   for( int m1=1; 
        m1 < (1<<RQIDM_NBITS) && iter != id.rend(); 
-       m1<<=1 )
+       m1<<=1,iter++ )
   {
     if( mask&m1 )
       *iter = (*iter).id()+1;

@@ -105,8 +105,9 @@ int ReqMux::pollChildren (std::vector<Result::Ref> &child_results,
     const OpSpec & op = ops_[ich];
     const Request *preq = &req; // pointer to request which will be used for this child
     Request::Ref reqref;
-    Request *newreq=0;      // pointer and ref to new request, if created
+    Request *newreq;      // pointer and ref to new request, if created
     
+    newreq=0;
     // do we need to resample the request cells?
     if( req.hasCells() && op.resample )
     {
