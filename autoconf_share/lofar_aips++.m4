@@ -24,6 +24,8 @@
 # lofar_AIPSPP
 #
 # Macro to check for AIPS++ installation
+# If AIPS++ functions are used that use LAPACK, lofar_LAPACK should
+# also be made part of the configure.in (after lofar_AIPSPP).
 #
 # lofar_AIPSPP(option)
 #     option 0 means that AIPS++ is optional, otherwise mandatory.
@@ -39,10 +41,6 @@ AC_ARG_WITH(aipspp,
 	[  --with-aipspp[=PFX]         enable use of AIPS++ (via AIPSPATH or explicit path)],
 	[with_aipspp="$withval"],
 	[with_aipspp=""])
-AC_ARG_WITH(lapack,
-	[  --with-lapack[=PFX]         enable use of LAPACK if needed by AIPS++],
-	[with_lapack="$withval"],
-	[with_lapack=""])
 AC_ARG_WITH(pgplot,
 	[  --with-pgplot[=PFX]         enable use of PGPLOT if needed by AIPS++],
 	[with_pgplot="$withval"],
@@ -54,9 +52,6 @@ if test "$with_aipspp" = ""; then
   else
     with_aipspp=yes;
   fi
-fi
-if test "$with_lapack" = ""; then
-    with_lapack=no;
 fi
 if test "$with_pgplot" = ""; then
     with_pgplot=no;
@@ -108,15 +103,6 @@ else
     AIPSPP_LDFLAGS="-L$AIPSPP_PATH/$AIPSPP_ARCH/lib"
     AIPSPP_LIBS="$AIPSPP_PATH/$AIPSPP_ARCH/lib/version.o -lglish -lsos -lnpd -ltrial -laips -ltrial_f -laips_f"
 
-    if test "$with_lapack" != "no"; then
-      ]AC_CHECK_FILE([$with_lapack],
-	             [lfr_lp=yes], [lfr_lp=no])[
-      if test $lfr_lp = no; then
-        ]AC_MSG_ERROR([given LAPACK directory not found])[
-      fi
-      AIPSPP_LDFLAGS="$AIPSPP_LDFLAGS -L$with_lapack"
-      AIPSPP_LIBS="$AIPSPP_LIBS -llapack -lblas"
-    fi
     if test "$with_pgplot" != "no"; then
       ]AC_CHECK_FILE([$with_pgplot],
 	             [lfr_pg=yes], [lfr_pg=no])[
