@@ -79,7 +79,7 @@ class HierBrowser (object):
         item._content_list.append( HierBrowser.subitem(item,key,itemstr) );
         continue;
       # else get string representation, insert item with it
-      (itemstr,inlined) = dmirepr.expanded_repr_str(value);
+      (itemstr,inlined) = dmirepr.expanded_repr_str(value,False);
       i0 = HierBrowser.subitem(item,str(key),itemstr);
       item._content_list.append(i0);
       # cache value for expansion, if not inlined

@@ -49,7 +49,7 @@ class dmi_repr (object):
 
   def _arrToInline (self,value):
     if value.nelements() <= self.inline_arr:
-      s = str(value).replace('\n','').replace('] ',']').replace(' [','[');
+      s = str(value).replace('\n','').replace('[ ','[').replace('] ',']').replace(' [','[');
       if len(s) <= self.inline_arr_maxlen:
         return (s,True);
     return (None,False);
@@ -138,7 +138,7 @@ class dmi_repr (object):
       # else use summary string
       if s1 is None:
         inlined = False;
-        (s1,inl) = self.repr_str(x);
+        (s1,inl) = self.expanded_repr_str(x,use_typename=use_typename);
       s1 = s0+s1;
       if not str1:  # first item always added
         str1 = s1;
@@ -154,4 +154,4 @@ class dmi_repr (object):
     if use_typename:
       return (''.join((str1,'   ',str0)),inlined);
     else:
-      return str1;
+      return (str1,inlined);
