@@ -435,6 +435,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   // (2) A cached RES_VOLATILE code requires an exact ID match
   //     (i.e. volatile results recomputed for any different request)
   // (3) Otherwise, do a masked compare using the cached result code
+  cdebug(4)<<"checking cache: request "<<current_reqid_<<", code "<<ssprintf("0x%x",cache_retcode_)<<endl;
   if( !req.id().empty() && !current_reqid_.empty() && 
       !req.hasCacheOverride() &&
       (cache_retcode_&RES_VOLATILE 
@@ -452,6 +453,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
     retcode = cache_retcode_;
     return true;
   }
+  cdebug(4)<<"cache hit"<<endl;
   // no match -- clear cache and return 
   clearCache(false);
   return false; 
@@ -467,7 +469,7 @@ int Node::cacheResult (const Result::Ref &ref,int retcode)
   // NB: perhaps fails should be marked separately?
   cache_result_ = ref;
   cache_retcode_ = retcode;
-  cdebug(3)<<"  caching result with code "<<ssprintf("0x%x",retcode)<<endl;
+  cdebug(3)<<"caching result "<<current_reqid_<<" with code "<<ssprintf("0x%x",retcode)<<endl;
   // control status set directly (not via setControlStatus call) because
   // caller (execute(), presumably) is going to update status anyway
   control_status_ |= CS_CACHED;
