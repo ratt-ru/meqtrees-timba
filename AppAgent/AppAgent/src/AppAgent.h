@@ -29,7 +29,7 @@
 #pragma aidgroup AppAgent
 #pragma aid AppAgent Event
     
-//##ModelId=3DF9FEEC0043
+//##ModelId=3E394D4C0195
 //##Documentation
 //## AppAgent is an abstract interface class for an "application agent". An
 //## agent sits between an application and a data source or sink. The AppAgent
@@ -41,24 +41,29 @@
 class AppAgent
 {
   public:
-    //##ModelId=3E2584D80342
+    //##ModelId=3E394D4C019A
     //##Documentation
     //## This defines the return codes for the getEvent/hasEvent methods,
-    //## as well as states
+    //## as well as wait-states, etc.
       typedef enum {
           SUCCESS   = 1,
-          WAIT      = 0,    // must wait for data
+          WAIT      = 0,    // no event pending, must wait
           OUTOFSEQ  = -1,   // request is out of sequence (see below)
-          CLOSED    = -2,   // input stream is closed or disconnected
+          CLOSED    = -2,   // event stream is closed or disconnected
           ERROR     = -999,
-      } ReturnCodes;
+              
+          // defines values for the wait argument to getEvent() below
+          // WAIT=0 already defined above
+          NOWAIT    = -1,   
+          BLOCK     = 1
+      } SymbolicCodes;
       
       
-    //##ModelId=3DF9FEEC0066
+    //##ModelId=3E394D4C02B0
       virtual ~AppAgent ()
       {}
   
-    //##ModelId=3DF9FEEC0068
+    //##ModelId=3E394D4C02B2
     //##Documentation
     //## Agent initialization method. Called by the application to initialize
     //## or reinitialize an agent. Agent parameters are supplied via a
@@ -66,73 +71,90 @@ class AppAgent
       virtual bool init (const DataRecord::Ref &data) = 0;
       
       // closes the agent (can be reopened with init())
-    //##ModelId=3DF9FEEC006D
+    //##ModelId=3E394D4C02B5
     //##Documentation
     //## Applications call close() when they're done speaking to an agent.
       virtual void close ()
       {}
   
-    //##ModelId=3DF9FEEC0073
+    //##ModelId=3E394D4C02BB
     //##Documentation
     //## Requests the next event from an agent. The event's id and DataRecord
     //## are returned via the first two parameters. 
     //## If mask is non-empty, then only events matching that mask are
-    //## returned. 
-    //## If no event is currently pending, the agent should either block & wait
-    //## for an event (for wait=True), or return WAIT (for wait=False).
+    //## returned; a non-matching event produces an OUTOFSEQ return code.
     //## Defined return codes:
-    //## SUCCESS (=1): successfully returned an event
-    //## WAIT (=0): no event pending, must wait
-    //## OUTOFSEQ (=-1): mask specified, and pending event does not match it
-    //## CLOSED (=-2): event stream has been closed
-      virtual int getEvent   (HIID &,DataRecord::Ref &,const HIID &mask, bool wait = False)
+    //##   SUCCESS (=1):   successfully returned a matching event
+    //##   WAIT (=0):      no events pending, must wait
+    //##   OUTOFSEQ (=-1): mask specified, and pending event does not match it
+    //##   CLOSED (=-2):   event stream has been closed
+    //##
+    //## If no [matching] event is currently pending, the agent must do one 
+    //## of three things, depending on the value of wait:
+    //##   NOWAIT:  return immediately with WAIT or OUTOFSEQ.
+    //##   WAIT:    block and wait for any event to arrive. If a non-matching
+    //##            event arrives, return OUTOFSEQ. Only SUCCESS, OUTOFSEQ or
+    //##            CLOSED may be returned.
+    //##   BLOCK:   block and wait for a matching event to arrive. If a 
+    //##            non-matching event arrives (or was pending to begin with),
+    //##            keep waiting for matching events. Only SUCCESS or CLOSED
+    //##            CLOSED may be returned.
+    //##            Note that the agent must have some sort of priority-based
+    //##            event queue, otherwise waiting for a matching event
+    //##            could be indefinitely blocked by a non-matching one.
+    //##            In this case, an exception should be thrown (instead of 
+    //##            waiting forever).
+      virtual int getEvent   (HIID &id,DataRecord::Ref &data,const HIID &mask,int wait = AppAgent::WAIT)
       { return WAIT; }
 
-    //##ModelId=3DF9FEEC0078
+    //##ModelId=3E394D4C02C1
     //##Documentation
     //## Returns True if there is an event pending that matches the specified
-    //## mask (default - no mask - matches any event). If the agent maintains
-    //## an ordered event queue, then outOfSeq=True can be specified to allow
-    //## look-ahead into the queue (though the agent is not obliged to
-    //## implement this).
-      virtual int hasEvent   (const HIID &mask = HIID(),bool outOfSeq = False)
+    //## mask (default - no mask - matches any event). 
+    //## Return codes are the same as would have been returned by 
+    //## getEvent(wait=NOWAIT), above.
+      virtual int hasEvent   (const HIID &mask = HIID())
       { return WAIT; };
 
-    //##ModelId=3DF9FEEC006F
+    //##ModelId=3E394D4C02C9
     //##Documentation
     //## Posts an event on behalf of the application.
       virtual void postEvent  (const HIID &,const DataRecord::Ref & = DataRecord::Ref() )
       {};
 
-    //##ModelId=3DF9FEEC006B
+    //##ModelId=3E394D4C02D7
     //##Documentation
     //## Flushes any output events (commits to disk, or sends out to OCTOPUSSY,
     //## or whatever)
       virtual void flush ()
       {}
       
-    //##ModelId=3E25825D021B
+    //##ModelId=3E394D4C02D9
     //##Documentation
     //## Alias for getEvent() with an empty mask, which retrieves the next
     //## pending event whatever it is.
-      int getEvent(HIID &id, DataRecord::Ref &ref, bool wait = False)
+      int getEvent(HIID &id, DataRecord::Ref &ref, int wait = AppAgent::NOWAIT)
       { return getEvent(id,ref,HIID(),wait); }
       
-    //##ModelId=3E00AFAE01D7
+    //##ModelId=3E394D4C02DE
       virtual string sdebug ( int detail = 1,const string &prefix = "",
                               const char *name = 0 ) const
       { return "AppAgent"; }
 
-    //##ModelId=3E00AFB100F5
+    //##ModelId=3E394D4C02E3
       const char * debug ( int detail = 1,const string &prefix = "",
                            const char *name = 0 ) const
       { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
       
-      //##ModelId=3E2C286E0344
+    //##ModelId=3E394D4C02E8
+    //##Documentation
+    //## Returns agent state
       virtual int state() const
       { return SUCCESS; }
 
-      //##ModelId=3E2C28930098
+    //##ModelId=3E394D4C02EA
+    //##Documentation
+    //## Returns agent state as a string
       virtual string stateString() const
       { return "OK"; }
 };

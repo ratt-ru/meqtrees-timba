@@ -2,7 +2,9 @@ dmi_dir = $(lofar_sharedir)/../DMI
 
 lib_LTLIBRARIES = libappagent.la
 
-libappagent_la_SOURCES = AID-AppAgent-Registry.cc
+libappagent_la_SOURCES = \
+  AID-AppAgent-Registry.cc \
+  AppControlAgent.cc
   
 
 # script used to generate AID maps
