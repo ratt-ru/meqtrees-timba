@@ -510,15 +510,15 @@ class meqserver_gui (app_proxy_gui):
     
     # add Tree browser panel
     self.treebrowser = TreeBrowser(self,app);
-    self.maintab.insertTab(self.treebrowser.wtop(),"MeqTrees",1);
+    self.maintab.insertTab(self.treebrowser.wtop(),"Trees",1);
     
     # add Result Log panel
     self.resultlog = Logger(self,"node result log",limit=100);
-    self.maintab.insertTab(self.resultlog.wtop(),"Result Log",2);
+    self.maintab.insertTab(self.resultlog.wtop(),"Results",2);
     self.resultlog.wtop()._default_iconset = QIconSet();
-    self.resultlog.wtop()._default_label   = "Result Log";
+    self.resultlog.wtop()._default_label   = "Results";
     self.resultlog.wtop()._newres_iconset  = QIconSet(pixmaps.check.pm());
-    self.resultlog.wtop()._newres_label    = "New Results";
+    self.resultlog.wtop()._newres_label    = "Results";
     self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
     # add handler for result log
     self._add_ce_handler("node.result",self.ce_NodeResult);

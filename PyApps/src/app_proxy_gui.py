@@ -316,7 +316,7 @@ class app_proxy_gui(verbosity,QMainWindow):
     #------ create a message log
     self.msglog = MessageLogger(self,"message log",use_enable=False,limit=1000);
     self.msglog.add('start of log',category=Logger.Normal);
-    self.msglog.wtop()._default_label = "Message Log";
+    self.msglog.wtop()._default_label = "Messages";
     self.msglog.wtop()._default_iconset = QIconSet();
     self.msglog.wtop()._error_label = "%d errors";
     self.msglog.wtop()._error_iconset = QIconSet(pixmaps.exclaim.pm());
@@ -330,7 +330,7 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.maintab.addTab(self.msglog.wtop(),self.msglog.wtop()._default_label);
     
     self.eventtab = QTabWidget(self);
-    self.maintab.addTab(self.eventtab,"Event Tracker");
+    self.maintab.addTab(self.eventtab,"Events");
     
     #------ event window tab bar
     self.eventtab.setTabShape(QTabWidget.Triangular);
