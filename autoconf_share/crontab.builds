@@ -14,8 +14,8 @@ MAILTO=wierenga@astron.nl
 #              day of week    0-7 (0 or 7 is Sun, or use names)
 
 # Run daily compile at 5 minutes past midnight
-5 0 * * *	( cd $HOME/cvs/LOFAR && make > build_daily.log 2>&1 )
+5 0 * * *	( cd $HOME/cvs/LOFAR && make 2>&1 | tee build_daily.log  | grep ^%%%%%% )
 
 # Run weekly compile at 30 minutes past midnight on Saturday
-30 0 * * Sat	(cd $HOME/cvs/LOFAR && make > build_weekly.log 2>&1 )
+30 0 * * Sat	( cd $HOME/cvs/LOFAR && make 2>&1 | tee build_weekly.log | grep ^%%%%%% )
 
