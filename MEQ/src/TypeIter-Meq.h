@@ -9,31 +9,31 @@
         
 
 #define DoForAllDynamicTypes_Meq(Do,arg,separator) \
-        Do(MeqDomain,arg) separator \
-        Do(MeqCells,arg) separator \
-        Do(MeqResult,arg) separator \
-        Do(MeqResultSet,arg) separator \
-        Do(MeqNode,arg) separator \
-        Do(MeqFunction,arg) separator \
-        Do(MeqParm,arg) separator \
-        Do(MeqFreq,arg) separator \
-        Do(MeqTime,arg) separator \
-        Do(MeqSelector,arg) separator \
-        Do(MeqComposer,arg) separator \
-        Do(MeqAdd,arg) separator \
-        Do(MeqSubtract,arg) separator \
-        Do(MeqMultiply,arg) separator \
-        Do(MeqDivide,arg) separator \
-        Do(MeqSin,arg) separator \
-        Do(MeqCos,arg) separator \
-        Do(MeqExp,arg) separator \
-        Do(MeqPow,arg) separator \
-        Do(MeqSqr,arg) separator \
-        Do(MeqSqrt,arg) separator \
-        Do(MeqConj,arg) separator \
-        Do(MeqToComplex,arg) separator \
-        Do(MeqUVW,arg) separator \
-        Do(MeqRequest,arg)
+        Do(Meq::Domain,arg) separator \
+        Do(Meq::Cells,arg) separator \
+        Do(Meq::Result,arg) separator \
+        Do(Meq::ResultSet,arg) separator \
+        Do(Meq::Node,arg) separator \
+        Do(Meq::Function,arg) separator \
+        Do(Meq::Parm,arg) separator \
+        Do(Meq::Freq,arg) separator \
+        Do(Meq::Time,arg) separator \
+        Do(Meq::Selector,arg) separator \
+        Do(Meq::Composer,arg) separator \
+        Do(Meq::Add,arg) separator \
+        Do(Meq::Subtract,arg) separator \
+        Do(Meq::Multiply,arg) separator \
+        Do(Meq::Divide,arg) separator \
+        Do(Meq::Sin,arg) separator \
+        Do(Meq::Cos,arg) separator \
+        Do(Meq::Exp,arg) separator \
+        Do(Meq::Pow,arg) separator \
+        Do(Meq::Sqr,arg) separator \
+        Do(Meq::Sqrt,arg) separator \
+        Do(Meq::Conj,arg) separator \
+        Do(Meq::ToComplex,arg) separator \
+        Do(Meq::UVW,arg) separator \
+        Do(Meq::Request,arg)
 
 #define DoForAllNumericTypes_Meq(Do,arg,separator) \
         

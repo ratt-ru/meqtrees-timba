@@ -10,8 +10,8 @@
 
 #ifndef _defined_id_TpColumnarTableTile
 #define _defined_id_TpColumnarTableTile 1
-const TypeId TpColumnarTableTile(-1131);          // from /home/oms/LOFAR/CEP/CPA/VisCube/src/ColumnarTableTile.h:9
-const int TpColumnarTableTile_int = -1131;
+const TypeId TpColumnarTableTile(-1168);          // from /home/oms/LOFAR/CEP/CPA/VisCube/src/ColumnarTableTile.h:9
+const int TpColumnarTableTile_int = -1168;
 class ColumnarTableTile;
             template<>
             class DMIBaseTypeTraits<ColumnarTableTile> : public TypeTraits<ColumnarTableTile>
@@ -27,8 +27,8 @@ class ColumnarTableTile;
 #endif
 #ifndef _defined_id_TpTableFormat
 #define _defined_id_TpTableFormat 1
-const TypeId TpTableFormat(-1133);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/TableFormat.h:9
-const int TpTableFormat_int = -1133;
+const TypeId TpTableFormat(-1127);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/TableFormat.h:9
+const int TpTableFormat_int = -1127;
 class TableFormat;
             template<>
             class DMIBaseTypeTraits<TableFormat> : public TypeTraits<TableFormat>
@@ -44,8 +44,8 @@ class TableFormat;
 #endif
 #ifndef _defined_id_TpVisCube
 #define _defined_id_TpVisCube 1
-const TypeId TpVisCube(-1129);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisCube.h:33
-const int TpVisCube_int = -1129;
+const TypeId TpVisCube(-1197);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisCube.h:33
+const int TpVisCube_int = -1197;
 class VisCube;
             template<>
             class DMIBaseTypeTraits<VisCube> : public TypeTraits<VisCube>
@@ -61,8 +61,8 @@ class VisCube;
 #endif
 #ifndef _defined_id_TpVisCubeSet
 #define _defined_id_TpVisCubeSet 1
-const TypeId TpVisCubeSet(-1127);                 // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisCubeSet.h:12
-const int TpVisCubeSet_int = -1127;
+const TypeId TpVisCubeSet(-1180);                 // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisCubeSet.h:12
+const int TpVisCubeSet_int = -1180;
 class VisCubeSet;
             template<>
             class DMIBaseTypeTraits<VisCubeSet> : public TypeTraits<VisCubeSet>
@@ -78,8 +78,8 @@ class VisCubeSet;
 #endif
 #ifndef _defined_id_TpVisTile
 #define _defined_id_TpVisTile 1
-const TypeId TpVisTile(-1128);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisTile.h:47
-const int TpVisTile_int = -1128;
+const TypeId TpVisTile(-1181);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisTile.h:47
+const int TpVisTile_int = -1181;
 class VisTile;
             template<>
             class DMIBaseTypeTraits<VisTile> : public TypeTraits<VisTile>

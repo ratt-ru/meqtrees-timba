@@ -52,15 +52,24 @@ Request::Request (const Cells& cells, bool calcDeriv, const HIID &id,int cellfla
   (*this)[FCalcDeriv] = calcDeriv;
 }
 
+Request::Request (const Cells * cells, bool calcDeriv, const HIID &id,int cellflags)
+: itsCalcDeriv (calcDeriv),
+  itsCells     (0)
+{
+  setCells(cells,cellflags);
+  setId(id);
+  (*this)[FCalcDeriv] = calcDeriv;
+}
+
 // Set the request id.
 void Request::setId (const HIID &id)
 {
   (*this)[FRequestId] = itsId = id;
 }
 
-void Request::setCells (const Cells& cells,int flags)
+void Request::setCells (const Cells * cells,int flags)
 {
-  itsCells = flags&DMI::CLONE ? new Cells(cells) : &cells;
+  itsCells = flags&DMI::CLONE ? new Cells(*cells) : cells;
   DataRecord::replace(FCells,itsCells,flags|DMI::READONLY);
 }
 

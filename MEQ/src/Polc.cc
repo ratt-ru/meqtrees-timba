@@ -25,10 +25,12 @@
 #include <MEQ/Polc.h>
 #include <MEQ/Request.h>
 #include <MEQ/Result.h>
-#include <MEQ/VellsTmp.h>
+#include <MEQ/Vells.h>
 #include <Common/Debug.h>
 #include <aips/Arrays/Matrix.h>
 #include <Common/lofar_vector.h>
+#include <cstdlib>
+#include <cmath>
 
 namespace Meq {
 

@@ -10,33 +10,33 @@
 
 #ifndef _defined_id_AidContent
 #define _defined_id_AidContent 1
-const AtomicID AidContent(-1123);                 // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
-const int AidContent_int = -1123;
+const AtomicID AidContent(-1120);                 // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
+const int AidContent_int = -1120;
 #endif
 #ifndef _defined_id_AidGlishClientWP
 #define _defined_id_AidGlishClientWP 1
-const AtomicID AidGlishClientWP(-1122);           // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:17
-const int AidGlishClientWP_int = -1122;
+const AtomicID AidGlishClientWP(-1117);           // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:17
+const int AidGlishClientWP_int = -1117;
 #endif
 #ifndef _defined_id_AidHelloWorld
 #define _defined_id_AidHelloWorld 1
-const AtomicID AidHelloWorld(-1125);              // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
-const int AidHelloWorld_int = -1125;
+const AtomicID AidHelloWorld(-1119);              // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
+const int AidHelloWorld_int = -1119;
 #endif
 #ifndef _defined_id_AidIMTestWP
 #define _defined_id_AidIMTestWP 1
-const AtomicID AidIMTestWP(-1124);                // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
-const int AidIMTestWP_int = -1124;
+const AtomicID AidIMTestWP(-1118);                // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
+const int AidIMTestWP_int = -1118;
 #endif
 #ifndef _defined_id_AidIndex
 #define _defined_id_AidIndex 1
-const AtomicID AidIndex(-1035);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:26
-const int AidIndex_int = -1035;
+const AtomicID AidIndex(-1051);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:26
+const int AidIndex_int = -1051;
 #endif
 #ifndef _defined_id_Aidstart
 #define _defined_id_Aidstart 1
-const AtomicID Aidstart(-1126);                   // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
-const int Aidstart_int = -1126;
+const AtomicID Aidstart(-1105);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:9
+const int Aidstart_int = -1105;
 #endif
 
 

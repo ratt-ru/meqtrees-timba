@@ -273,6 +273,13 @@ int Node::getResult (ResultSet::Ref &ref, const Request &req)
   int flags = getResultImpl(ref,req,newreq);
   cdebug(3)<<"  getResultImpl returns flags: "<<flags<<endl;
   cdebug(3)<<"  result is: "<<ref.sdebug(DebugLevel-1,"    ")<<endl;
+  if( DebugLevel>3 && ref.valid() )
+  {
+    for( int i=0; i<ref->numResults(); i++ )
+    {
+      cdebug(4)<<"  plane "<<i<<": "<<ref->resultConst(i).getValue()<<endl;
+    }
+  }
   //  cache result in the state record
   if( flags != RES_FAIL && !(flags&RES_WAIT) )
   {

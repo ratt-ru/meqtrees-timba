@@ -24,10 +24,11 @@
 #include <MEQ/Polc.h>
 #include <MEQ/Request.h>
 #include <MEQ/Result.h>
-#include <MEQ/VellsTmp.h>
+#include <MEQ/Vells.h>
 #include <Common/Debug.h>
 
 using namespace Meq;
+using namespace Meq::VellsMath;
 
 
 bool compare(const Vells& m1, const Vells& m2)
@@ -57,7 +58,7 @@ void doIt (Polc& polc)
   // Check if final coefficients match original.
   Assert (compare(polc.getCoeff(), backc));
   // Evaluate both polynomials for some values.
-  Request req(Cells(domain, 4, 4));
+  Request req(new Cells(domain, 4, 4));
   Result res1;
   Result::Ref refres1(res1, DMI::WRITE || DMI::EXTERNAL);
   polc.getResult (refres1, req);

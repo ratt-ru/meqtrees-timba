@@ -10,28 +10,29 @@
     {
       static int res = 
 
-        AtomicID::registerId(-1072,"Input")+
-        AtomicID::registerId(-1242,"Output")+
-        AtomicID::registerId(-1245,"Seq")+
-        AtomicID::registerId(-1067,"Error")+
-        AtomicID::registerId(-1241,"Closed")+
-        AtomicID::registerId(-1095,"Init")+
-        AtomicID::registerId(-1036,"Fail")+
-        AtomicID::registerId(-1240,"VisRepeater")+
-        AtomicID::registerId(-1237,"Repeater")+
-        AtomicID::registerId(-1118,"Data")+
-        AtomicID::registerId(-1236,"Set")+
-        AtomicID::registerId(-1200,"Header")+
-        AtomicID::registerId(-1188,"Footer")+
-        AtomicID::registerId(-1239,"Interrupt")+
-        AtomicID::registerId(-1244,"Mismatch")+
-        AtomicID::registerId(-1238,"Stream")+
-        AtomicID::registerId(-1043,"State")+
-        AtomicID::registerId(-1147,"Num")+
-        AtomicID::registerId(-1243,"Tiles")+
-        AtomicID::registerId(-1166,"VDSID")+
-        AtomicID::registerId(-1233,"Auto")+
-        AtomicID::registerId(-1229,"Pause")+
+        AtomicID::registerId(-1092,"input")+
+        AtomicID::registerId(-1282,"output")+
+        AtomicID::registerId(-1315,"seq")+
+        AtomicID::registerId(-1084,"error")+
+        AtomicID::registerId(-1318,"closed")+
+        AtomicID::registerId(-1091,"init")+
+        AtomicID::registerId(-1036,"fail")+
+        AtomicID::registerId(-1340,"when")+
+        AtomicID::registerId(-1321,"visrepeater")+
+        AtomicID::registerId(-1317,"repeater")+
+        AtomicID::registerId(-1116,"data")+
+        AtomicID::registerId(-1316,"set")+
+        AtomicID::registerId(-1175,"header")+
+        AtomicID::registerId(-1151,"footer")+
+        AtomicID::registerId(-1319,"interrupt")+
+        AtomicID::registerId(-1320,"mismatch")+
+        AtomicID::registerId(-1322,"stream")+
+        AtomicID::registerId(-1060,"state")+
+        AtomicID::registerId(-1177,"num")+
+        AtomicID::registerId(-1323,"tiles")+
+        AtomicID::registerId(-1139,"vdsid")+
+        AtomicID::registerId(-1273,"auto")+
+        AtomicID::registerId(-1274,"pause")+
     0;
     return res;
   }

@@ -10,12 +10,12 @@
     {
       static int res = 
 
-        AtomicID::registerId(-1122,"GlishClientWP")+
-        AtomicID::registerId(-1035,"Index")+
-        AtomicID::registerId(-1126,"start")+
-        AtomicID::registerId(-1124,"IMTestWP")+
-        AtomicID::registerId(-1125,"HelloWorld")+
-        AtomicID::registerId(-1123,"Content")+
+        AtomicID::registerId(-1117,"glishclientwp")+
+        AtomicID::registerId(-1051,"index")+
+        AtomicID::registerId(-1105,"start")+
+        AtomicID::registerId(-1118,"imtestwp")+
+        AtomicID::registerId(-1119,"helloworld")+
+        AtomicID::registerId(-1120,"content")+
     0;
     return res;
   }

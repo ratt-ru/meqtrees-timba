@@ -27,7 +27,6 @@
 
 
 #include <MEQ/Vells.h>
-#include <MEQ/VellsTmp.h>
 #include <aips/Arrays/Matrix.h>
 #include <aips/Arrays/ArrayMath.h>
 #include <aips/Mathematics/Complex.h>
@@ -37,13 +36,14 @@
 #include <aips/strstream.h>
 
 using namespace Meq;
+using namespace Meq::VellsMath;
 
 
-void showDouble (const VellsTmp& v)
+void showDouble (const Vells & v)
 {
   cout << v << endl;
 }
-void showDComplex (const VellsTmp& v)
+void showDComplex (const Vells & v)
 {
   cout << v << endl;
 }
@@ -54,8 +54,8 @@ void doIt()
   Double d2[] = {2,3,4,5,6,7};
   LoMat_double m1(d1, LoMatShape(2,3), blitz::neverDeleteData);
   LoMat_double m2(d2, LoMatShape(2,3), blitz::neverDeleteData);
-  Vells v1(&m1);
-  Vells v2(&m2);
+  Vells v1(m1);
+  Vells v2(m2);
   Vells v3(double(10));
   showDouble (v1 + v2);
   showDouble (v1 + v2 + v1 + v2 + v3 + v3);
@@ -68,7 +68,7 @@ void doIt()
   dc1[4] = DComplex(9,10);
   dc1[5] = DComplex(11,12);
   LoMat_dcomplex mc1(dc1, LoMatShape(2,3), blitz::neverDeleteData);
-  Vells vc1 (&mc1);
+  Vells vc1 (mc1);
   Vells vc2 = v1 + v2 + vc1;
   Vells vc3 = v1 + vc1 + v2;
   Vells vc4 = vc1 + vc2;
@@ -104,7 +104,7 @@ void doIt2 (uInt length, uInt nr)
       d1[i] = 1;
     }
     LoMat_double m1(d1, LoMatShape(length,1), blitz::neverDeleteData);
-    Vells v1 (&m1);
+    Vells v1 (m1);
     Vells v3(double(10));
     Vells v2;
     Timer tim;
@@ -157,13 +157,14 @@ int main (int argc, char** argv)
       doIt2 (8, nr);
       doIt2 (128, nr);
       doIt2 (12800, nr/10);
+      doIt2 (128000, nr/10);
     }
   } catch (AipsError x) {
     cout << "Caught an exception: " << x.getMesg() << endl;
     return 1;
   }
-  cout << "MeqMat " << VellsRep::nctor << ' ' << VellsRep::ndtor
-       << ' ' << VellsRep::nctor + VellsRep::ndtor << endl;
+//   cout << "MeqMat " << Vells::nctor << ' ' << Vells::ndtor
+//        << ' ' << Vells::nctor + Vells::ndtor << endl;
   cout << "OK" << endl;
   return 0;
 }

@@ -10,15 +10,15 @@
     {
       static int res = 
 
-        AtomicID::registerId(-1114,"EchoWP")+
-        AtomicID::registerId(-1121,"Ping")+
-        AtomicID::registerId(-1116,"Pong")+
-        AtomicID::registerId(-1120,"Reply")+
-        AtomicID::registerId(-1032,"Timestamp")+
-        AtomicID::registerId(-1117,"Invert")+
-        AtomicID::registerId(-1118,"Data")+
-        AtomicID::registerId(-1119,"Count")+
-        AtomicID::registerId(-1115,"Process")+
+        AtomicID::registerId(-1113,"echowp")+
+        AtomicID::registerId(-1114,"ping")+
+        AtomicID::registerId(-1115,"pong")+
+        AtomicID::registerId(-1112,"reply")+
+        AtomicID::registerId(-1002,"timestamp")+
+        AtomicID::registerId(-1110,"invert")+
+        AtomicID::registerId(-1116,"data")+
+        AtomicID::registerId(-1109,"count")+
+        AtomicID::registerId(-1111,"process")+
     0;
     return res;
   }

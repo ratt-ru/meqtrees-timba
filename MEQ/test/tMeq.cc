@@ -90,11 +90,11 @@ int main (int argc,const char* argv[])
 
     cout << "============ getting result =========\n";
     Domain domain(1,4, -2,3);
-    Request req(Cells(domain, 4, 4));
+    Request req(new Cells(domain, 4, 4));
     ResultSet::Ref refres;
     int flag = chadd.getResult (refres, req);
     cout << flag << endl;
-    cout << refres().getResult(0).getValue() << endl;
+    cout << refres().result(0).getValue() << endl;
   } 
   catch (std::exception& x) 
   {

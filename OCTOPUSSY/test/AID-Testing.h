@@ -10,48 +10,48 @@
 
 #ifndef _defined_id_AidCount
 #define _defined_id_AidCount 1
-const AtomicID AidCount(-1119);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
-const int AidCount_int = -1119;
+const AtomicID AidCount(-1109);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
+const int AidCount_int = -1109;
 #endif
 #ifndef _defined_id_AidData
 #define _defined_id_AidData 1
-const AtomicID AidData(-1118);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
-const int AidData_int = -1118;
+const AtomicID AidData(-1116);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
+const int AidData_int = -1116;
 #endif
 #ifndef _defined_id_AidEchoWP
 #define _defined_id_AidEchoWP 1
-const AtomicID AidEchoWP(-1114);                  // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:12
-const int AidEchoWP_int = -1114;
+const AtomicID AidEchoWP(-1113);                  // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:12
+const int AidEchoWP_int = -1113;
 #endif
 #ifndef _defined_id_AidInvert
 #define _defined_id_AidInvert 1
-const AtomicID AidInvert(-1117);                  // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
-const int AidInvert_int = -1117;
+const AtomicID AidInvert(-1110);                  // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
+const int AidInvert_int = -1110;
 #endif
 #ifndef _defined_id_AidPing
 #define _defined_id_AidPing 1
-const AtomicID AidPing(-1121);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:12
-const int AidPing_int = -1121;
+const AtomicID AidPing(-1114);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:12
+const int AidPing_int = -1114;
 #endif
 #ifndef _defined_id_AidPong
 #define _defined_id_AidPong 1
-const AtomicID AidPong(-1116);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:12
-const int AidPong_int = -1116;
+const AtomicID AidPong(-1115);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:12
+const int AidPong_int = -1115;
 #endif
 #ifndef _defined_id_AidProcess
 #define _defined_id_AidProcess 1
-const AtomicID AidProcess(-1115);                 // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
-const int AidProcess_int = -1115;
+const AtomicID AidProcess(-1111);                 // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
+const int AidProcess_int = -1111;
 #endif
 #ifndef _defined_id_AidReply
 #define _defined_id_AidReply 1
-const AtomicID AidReply(-1120);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
-const int AidReply_int = -1120;
+const AtomicID AidReply(-1112);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
+const int AidReply_int = -1112;
 #endif
 #ifndef _defined_id_AidTimestamp
 #define _defined_id_AidTimestamp 1
-const AtomicID AidTimestamp(-1032);               // from /home/oms/LOFAR/DMI/src/Timestamp.h:11
-const int AidTimestamp_int = -1032;
+const AtomicID AidTimestamp(-1002);               // from /home/oms/LOFAR/DMI/src/Timestamp.h:11
+const int AidTimestamp_int = -1002;
 #endif
 
 

@@ -22,10 +22,9 @@
 
 
 #include <MEQ/Result.h>
-#include <MEQ/Cells.h>
-#include <MEQ/VellsTmp.h>
 #include <DMI/HIID.h>
 #include <DMI/DataArray.h>
+#include <DMI/DataField.h>
 
 namespace Meq {
 
@@ -84,27 +83,12 @@ Result::~Result()
   ndtor--;
 }
 
-void Result::makeVells (Vells &vells,NestableContainer &nc,const HIID &field)
+static Vells * makeVells (NestableContainer &nc,const HIID &field)
 {
   if( !nc[field].exists() )
-  {
-    vells = Vells();
-    return;
-  }
-  DataArray & darr = nc[field].as_wr<DataArray>();
-  TypeId type = darr.elementType();
-  if( type == Tpdouble )
-  {
-    LoMat_double arr = darr[HIID()];
-    vells = Vells(arr);
-  }
-  else if( type == Tpdcomplex )
-  {
-    LoMat_dcomplex arr = darr[HIID()];
-    vells = Vells(arr);
-  }
+    return new Vells();
   else
-    Throw("illegal "+field.toString()+" type "+type.toString());
+    return new Vells(nc[field].as_wp<DataArray>());
 }
 
 void Result::validateContent ()
@@ -124,7 +108,7 @@ void Result::validateContent ()
       itsPerturbations = (*this)[FPerturbations].as_wp<double>(size);
       FailWhen(size!=itsNumSpids,"size mismatch between spids and perturbations");
       // get value, if it exists in the data record
-      makeVells(itsValue,*this,FValue);
+      itsValue <<= makeVells(*this,FValue);
       // get perturbations, if they exist
       itsPerturbedValues.resize(itsNumSpids);
       if( (*this)[FPerturbedValues].exists() )
@@ -134,10 +118,8 @@ void Result::validateContent ()
               "size mismatch between spids and perturbed values");
         // setup shortcuts to perturbation vells
         for( int i=0; i<itsNumSpids; i++ )
-        {
-          itsPerturbedValues[i] = new Vells();
-          makeVells(*itsPerturbedValues[i],*pnc_perturbed,AtomicID(i));
-        }
+          itsPerturbedValues[i] <<=
+              makeVells(*pnc_perturbed,AtomicID(i));
       }
     }
     else
@@ -152,12 +134,12 @@ void Result::validateContent ()
   catch( std::exception &err )
   {
     clear();
-    Throw(string("Validate of Result record failed: ") + err.what());
+    Throw(string("Validate of Meq::Result record failed: ") + err.what());
   }
   catch( ... )
   {
     clear();
-    Throw("Validate of Result record failed with unknown exception");
+    Throw("Validate of Meq::Result record failed with unknown exception");
   }  
 }
 
@@ -168,82 +150,24 @@ void Result::setSpids (const vector<int>& spids)
     (*this)[FSpids] = spids;
 }
 
-//void Result::setCells (const Cells& cells)
-//{
-//  itsCells = new Cells(cells);
-//  this->operator[](AidCells) <<= static_cast<DataRecord*>(itsCells);
-//}
-
 void Result::clear()
 {
-  for (unsigned int i=0; i<itsPerturbedValues.size(); i++) {
-    delete itsPerturbedValues[i];
-    itsPerturbedValues[i] = 0;
-  }
+  for (unsigned int i=0; i<itsPerturbedValues.size(); i++) 
+    itsPerturbedValues[i].detach();
 }
 
-void Result::setValue (const Vells& value)
+Vells & Result::setValue (Vells *pvells)
 {
-  if (value.isReal()) {
-    LoMat_double& mat = setReal (value.nx(), value.ny());
-    mat = value.getRealArray();
-  } else {
-    LoMat_dcomplex& mat = setComplex (value.nx(), value.ny());
-    mat = value.getComplexArray();
-  }
+  itsValue <<= pvells;
+  DataRecord::replace(FValue,&(pvells->getDataArray()),DMI::ANONWR);
+  return *pvells;
 }
 
-void Result::setPerturbedValue (int i, const Vells& value)
+Vells & Result::setPerturbedValue (int i,Vells *pvells)
 {
-  if( value.isReal() )
-    setPerturbedReal(i,value.nx(),value.ny()) = value.getRealArray();
-  else
-    setPerturbedComplex(i,value.nx(),value.ny()) = value.getComplexArray();
-}
-
-
-void Result::show (std::ostream& os) const
-{
-  os << "Value: " << itsValue << endl;
-  for (unsigned int i=0; i<itsPerturbedValues.size(); i++) {
-    os << "deriv parm " << itsSpids[i]
-       << " with " << itsPerturbations[i] << endl;
-    os << "   " << (*(itsPerturbedValues[i]) - itsValue) << endl;
-    os << "   " << (*(itsPerturbedValues[i]) - itsValue) /
-      itsPerturbations[i] << endl;
-  }
-}
-
-void Result::allocateReal (int nfreq, int ntime)
-{
-  DataArray* ptr = new DataArray (Tpdouble, LoMatShape(nfreq,ntime));
-  DataRecord::replace(FValue,ptr,DMI::ANONWR);
-  LoMat_double arr = (*ptr)[HIID()];
-  itsValue = Vells(arr);
-}
-
-void Result::allocateComplex (int nfreq, int ntime)
-{
-  DataArray* ptr = new DataArray (Tpdcomplex, LoMatShape(nfreq,ntime));
-  DataRecord::replace(FValue,ptr,DMI::ANONWR);
-  LoMat_dcomplex arr = (*ptr)[HIID()];
-  itsValue = Vells(arr);
-}
-
-void Result::allocatePertReal (int i, int nfreq, int ntime)
-{
-  DataArray* ptr = new DataArray (Tpdouble, LoMatShape(nfreq,ntime));
-  nc_perturbed()[i].replace() <<= ptr;
-  LoMat_double arr = (*ptr)[HIID()];
-  itsPerturbedValues[i] = new Vells(arr);
-}
-
-void Result::allocatePertComplex (int i, int nfreq, int ntime)
-{
-  DataArray* ptr = new DataArray (Tpdcomplex, LoMatShape(nfreq,ntime));
-  nc_perturbed()[i].replace() <<= ptr;
-  LoMat_dcomplex arr = (*ptr)[HIID()];
-  itsPerturbedValues[i] = new Vells(arr);
+  itsPerturbedValues[i] <<= pvells;
+  nc_perturbed()[i].replace() <<= &(pvells->getDataArray());
+  return *pvells;
 }
 
 DataField & Result::nc_perturbed ()
@@ -256,5 +180,19 @@ DataField & Result::nc_perturbed ()
   }
   return *pnc_perturbed;
 }
+
+void Result::show (std::ostream& os) const
+{
+  os << "Value: " << *itsValue << endl;
+  for( uint i=0; i<itsPerturbedValues.size(); i++) 
+  {
+    os << "deriv parm " << itsSpids[i]
+       << " with " << itsPerturbations[i] << endl;
+    os << "   " << (*(itsPerturbedValues[i]) - *itsValue) << endl;
+    os << "   " << (*(itsPerturbedValues[i]) - *itsValue) /
+      Vells(itsPerturbations[i]) << endl;
+  }
+}
+
 
 } // namespace Meq

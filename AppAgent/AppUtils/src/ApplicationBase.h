@@ -14,7 +14,7 @@
 using std::string;
     
 #pragma aidgroup AppUtils
-#pragma aid Input Output Seq Error Closed Init Fail
+#pragma aid Input Output Seq Error Closed Init Fail When
     
 
 namespace ApplicationVocabulary

@@ -79,6 +79,15 @@ void Cells::validateContent ()
 {
   try
   {
+    if( (*this)[AidTimes].exists() )
+      itsTimes.reference((*this)[AidTimes].as<LoVec_double>());
+    else
+      itsTimes.resize(0);
+    if( (*this)[AidTimeSteps].exists() )
+      itsTimeSteps.reference((*this)[AidTimeSteps].as<LoVec_double>());
+    else
+      itsTimeSteps.resize(0);
+    itsNfreq = (*this)[AidNfreq].as<int>(0);
     if( (*this)[AidDomain].exists() )
     {
       itsDomain = (*this)[AidDomain].as_wp<Domain>();
@@ -89,15 +98,6 @@ void Cells::validateContent ()
       itsDomain = 0;
       itsFreqStep = 0;
     }
-    itsNfreq = (*this)[AidNfreq].as<int>(0);
-    if( (*this)[AidTimes].exists() )
-      itsTimes.reference((*this)[AidTimes].as<LoVec_double>());
-    else
-      itsTimes.resize(0);
-    if( (*this)[AidTimeSteps].exists() )
-      itsTimeSteps.reference((*this)[AidTimeSteps].as<LoVec_double>());
-    else
-      itsTimeSteps.resize(0);
     FailWhen( itsTimes.size() != itsTimeSteps.size(),"time/timestep size mismatch");
   }
   catch( std::exception &err )

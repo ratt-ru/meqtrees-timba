@@ -10,8 +10,8 @@
 
 #ifndef _defined_id_TpMessage
 #define _defined_id_TpMessage 1
-const TypeId TpMessage(-1064);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:25
-const int TpMessage_int = -1064;
+const TypeId TpMessage(-1045);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:25
+const int TpMessage_int = -1045;
 class Message;
             template<>
             class DMIBaseTypeTraits<Message> : public TypeTraits<Message>

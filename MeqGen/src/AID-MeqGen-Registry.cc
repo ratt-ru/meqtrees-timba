@@ -20,21 +20,21 @@ BlockableObject * __construct_meqShiftPhaseCentre (int n) { return n>0 ? new meq
     {
       static int res = 
 
-        AtomicID::registerId(-1372,"meqFlagger")+
-        TypeInfoReg::addToRegistry(-1372,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1372,__construct_meqFlagger)+
-        AtomicID::registerId(-1374,"meqCopy")+
-        TypeInfoReg::addToRegistry(-1374,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1374,__construct_meqCopy)+
-        AtomicID::registerId(-1370,"meqCompare")+
-        TypeInfoReg::addToRegistry(-1370,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1370,__construct_meqCompare)+
-        AtomicID::registerId(-1371,"meqDFT_GVD")+
-        TypeInfoReg::addToRegistry(-1371,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1371,__construct_meqDFT_GVD)+
-        AtomicID::registerId(-1373,"meqShiftPhaseCentre")+
-        TypeInfoReg::addToRegistry(-1373,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1373,__construct_meqShiftPhaseCentre)+
+        AtomicID::registerId(-1261,"meqflagger")+
+        TypeInfoReg::addToRegistry(-1261,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1261,__construct_meqFlagger)+
+        AtomicID::registerId(-1257,"meqcopy")+
+        TypeInfoReg::addToRegistry(-1257,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1257,__construct_meqCopy)+
+        AtomicID::registerId(-1258,"meqcompare")+
+        TypeInfoReg::addToRegistry(-1258,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1258,__construct_meqCompare)+
+        AtomicID::registerId(-1259,"meqdft_gvd")+
+        TypeInfoReg::addToRegistry(-1259,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1259,__construct_meqDFT_GVD)+
+        AtomicID::registerId(-1260,"meqshiftphasecentre")+
+        TypeInfoReg::addToRegistry(-1260,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1260,__construct_meqShiftPhaseCentre)+
     0;
     return res;
   }

@@ -49,7 +49,9 @@ public:
   
   // Create the request from the cells for which the expression has
   // to be calculated. Optionally no derivatives are calculated.
-  explicit Request (const Cells&, bool calcDeriv=true, const HIID &id=HIID(),int cellflags=DMI::ANON);
+  explicit Request (const Cells&, bool calcDeriv=true, const HIID &id=HIID(),int cellflags=DMI::EXTERNAL|DMI::NONSTRICT);
+  
+  explicit Request (const Cells *, bool calcDeriv=true, const HIID &id=HIID(),int cellflags=DMI::ANON|DMI::NONSTRICT);
 
   virtual TypeId objectType () const
   { return TpMeqRequest; }
@@ -66,12 +68,16 @@ public:
   bool calcDeriv() const
   { return itsCalcDeriv; }
 
-  // Set or get the cells.
-  void setCells (const Cells&,int flags = DMI::ANON);
-  
+  // Attaches cells object (default as anon). Can also specify DMI::CLONE
+  // to copy
+  void setCells (const Cells *,int flags = DMI::ANON|DMI::NONSTRICT);
+  // Attaches cells object (default is external). 
+  void setCells (const Cells &cells,int flags = DMI::EXTERNAL|DMI::NONSTRICT)
+  { setCells(&cells,flags); }
+  // True if a cells object is attached
   bool hasCells () const
   { return itsCells; }
-    
+  // Returns cells
   const Cells& cells() const
   { DbgFailWhen(!itsCells,"no cells in Meq::Request");
     return *itsCells; }
