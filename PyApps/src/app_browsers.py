@@ -338,6 +338,7 @@ class ArrayBrowser(object):
   class ArrayTable(QTable):
     def __init__(self,parent,**args):
       QTable.__init__(self,parent,*args);
+      self.setSelectionMode(QTable.NoSelection);
       self._arr = None;
     def set_array (self,arr):
       if not 1<=arr.rank<=2:
@@ -368,6 +369,9 @@ class ArrayBrowser(object):
         painter.fillRect(rect,QBrush(cg.base()));
         painter.setPen(cg.text());
       painter.drawText(0,0,cr.width(),cr.height(),Qt.AlignRight,txt);
+    def resizeData(self,len):
+      pass;
+    
     
   def __init__(self,parent,dataitem=None,**opts):
 #    HierBrowser.__init__(self,parent,"value","field",
