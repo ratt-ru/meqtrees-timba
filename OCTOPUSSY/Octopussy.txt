@@ -1,11 +1,12 @@
 
 1. OCTOPUSSY configuration
 
-1.1. Command line
+1.1. Common command line arguments
 
-  -d<level>    set overall debug level
+  -d<level>         set overall debug level
   
-  -dContext=level  set sepcific level of some context
+  -dContext=level   set level of some context
+                    (see list of contexts below)
 
   -l <level>    WorkProcess log level. Logged messages with a higher level will 
                 be supressed completely.
@@ -24,8 +25,9 @@ messages logged by other WPs to the log file {full-path-to-running-binary}.log.
 If multiple instances of the same binary are running, it will use .log.0,
 .log.1, etc.
 
-The verbosity of logged messages is determined by the -l option above. If -lc
-is used, some messages will be echoed to the console as well.
+The verbosity of logged messages is determined by the -l option above (see also
+LoggerWP docs, below). If -lc is used, some messages will be echoed to the
+console as well.
 
 
 1.3. Configuration files.
@@ -35,9 +37,9 @@ Configuration files contain lines of the format
 
 key value
 
-(separated by space.) Keys are case-sensitive. Additional entries may be
-specified on the command line as "key=value"; command line keys 
-will override keys from the config files.
+Keys are case-sensitive. Additional entries may be specified on the command
+line as "key=value"; command line keys will override keys from the config
+files.
 
 Upon startup, configuration is read from the following sources:
 
@@ -47,11 +49,12 @@ Upon startup, configuration is read from the following sources:
   ./octopussy.conf
   ./{hostname}.conf
   ./{appname}.conf
-  {custom configuration file}
+  {custom config file}
   
 ({hostname} is the short hostname, and {appname} is the name of the running
-binary, without a path). The files are read in the given order, and any of them
-may be missing. Entires in subsequent files override entires in previous files.
+binary, without a path). The files are read in the listed order, and any of
+them may be missing. Entries in subsequent files override entries in previous
+files.
 
 An extra custom config file may be specified from the command line by giving an
 argument that ends with ".conf". 
@@ -70,13 +73,13 @@ hostid        int       (default: 0)
     multiple nodes, each is required to have a unique ID. I use "9" for lofar9,
     "10" for lofar10, etc. The logical place to set this is in
     ~/.octopussy/{hostname}.conf.
-    
+
 wploglevel    int       (default: 1)
 
     The verbosity level of log messages from WorkProcesses. Log messages above
     this level will be suppressed. Can also be overridden via the -l and -lc
-    command-line options (see above)
-    
+    command-line options (see above).
+
 hz            int       (default: 10)
 
     The "heartbeat" frequency. Only matters in non-threaded implementations.
@@ -88,34 +91,34 @@ gwport        int       (default: 4808)
 
     The base TCP port to listen on for remote connections (from OCTOPUSSIES on 
     other nodes). Note that if multiple processes are started on the same node,
-    they will use the next available port (i.e. 4809 for the second process,
-    etc.). We must set this to different base values to keep  our Octopussies 
-    from spuriously connecting to each other. 
-    The logical place to set this is ~/.octopussy/octopussy.conf.
+    each will use the next available port (i.e. 4809 for the second process,
+    etc.) We must set this to different base values, to keep  our Octopussies 
+    from spuriously connecting to each other.  
+    The logical place to set this is in your ~/.octopussy/octopussy.conf. 
     Suggested port assignments: Oleg: 5808, Ger: 6808, KJ: 7808, etc.
-    
+
 gwpath        string    (default: =octopussy-%U)
 
-    The Unix socket created to listen for local connections (from  other
+    The Unix socket created to listen for local connections (from other
     processes on the same node). The default setting uses /tmp/octopussy-{your
-    uid}; all processes launched by you on the same node will find each other &
-    connect. You will only need to override this if you're running independent
-    OCTOPUSSY clouds.
+    uid}; all processes launched by you on the same node will thus
+    automatically find each other & connect. You will only need to override
+    this if you're running independent OCTOPUSSY clouds on the same node.
 
 gwpeer        string    (default: none)
 
     A comma-separated list of host:port specifications (e.g.
-    lofar9:5808,lofar10:5808). It will attempt to open a gateway to an
+    lofar9:5808,lofar10:5808). Processes will attempt to open a gateway to an
     OCTOPUSSY peer on each specified host:port. The logical place to set this
     is ~/.octopussy/{hostname}.conf. Note that gateways automaticaly exchange
     peer lists and open new connections, hence, to successfully connect to a
     multi-node OCTOPUSSY cloud, it is sufficient to find just one node.
-    
+
 2.3. Logging setup (read by LoggerWP)
 
 LoggerWP is a utility WorkProcess that subscribes to Log.* messages and 
 writes their contents to a log file. WPs publish Log messages by calling
-the log() method (or the lprintf) macro. 
+the log() method (or via the lprintf macro). 
 
 All Log messages have an associated log level and type. Note that the "-l" and
 "-lc" command-line options (see above) control posting of these messages on the
@@ -138,10 +141,9 @@ loglev        int     (default: 9999)
 logscope      int     (default: 2)
 
     The subscription scope for log messages. 0 = process scope (subscribe to
-    messages from WPs in the same process only), 1 = host scope (subscribe to
-    messages from WPs on the same node only), 2 = global scope (subscribe
-    to log messages from the whole world).
-    
+    messages from WPs in the same process only), 1 = host scope (same node
+    only), 2 = global scope (logs messages from the whole world).
+
 logcon        int     (default: -1)
 
     The console log level. Messages below or at this level are echoed to the
@@ -178,5 +180,24 @@ process   int     (default: 1)
       
 mt        int     (default: 0)
 
-      Number of worker threads to start. 0: run in non-threaded (cooperative) mode.
+      Number of worker threads to start. 0: run in non-threaded (cooperative)
+      mode.
+
+3. Debugging contexts
+
+The OCTOPUSSY recognizes the following debugging contexts:
+
+  Octopussy       is the base context
+  
+  Dsp             for dispatcher (delivery of messages, etc.), inherits from 
+                  the Octopussy context
+  
+  {wpname}        local contexts for each WP, also inherit from Octopussy context
+  
+Thus, something like
+
+  -dOctopussy=1 -dDsp=0 -dLoggerWP=2 
+  
+Will use level 0 for dispatcher, level 2 for logger, and level 1 for everyone
+else.
 
