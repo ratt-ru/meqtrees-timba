@@ -1,23 +1,24 @@
-%!PS-Adobe-3.0 EPSF-3.0
+%!PS-Adobe-3.0
 %%Title: Visio-Cells.vsd
 %%Creator: PScript5.dll Version 5.2
-%%CreationDate: 5/28/2004 16:8:30
+%%CreationDate: 5/28/2004 16:22:12
 %%For: Smirnov
-%%BoundingBox: 18 23 577 819
-%%Pages: 1
+%%BoundingBox: (atend)
+%%Pages: (atend)
 %%Orientation: Portrait
-%%PageOrder: Ascend
+%%PageOrder: Special
 %%DocumentNeededResources: (atend)
 %%DocumentSuppliedResources: (atend)
 %%DocumentData: Clean7Bit
 %%TargetDevice: (Generic PostScript Printer) (2010.0) 2
-%%LanguageLevel: 2
+%%LanguageLevel: 1
 %%EndComments
 
 %%BeginDefaults
 %%PageBoundingBox: 18 23 577 819
 %%ViewingOrientation: 1 0 0 1
 %%EndDefaults
+
 
 %%BeginProlog
 %%BeginResource: file Pscript_WinNT_ErrorHandler 5.0 0
@@ -54,6 +55,16 @@ repeat}if}ifelse systemdict/showpage get exec(%%[ Error: )print errorname
 end}dup 0 systemdict put dup 4 $brkpage put bind readonly put/currentpacking
 where{pop/setpacking where{pop oldpack setpacking}if}if
 %%EndResource
+%%BeginProcSet: Pscript_Res_Emul 5.0 0
+/defineresource where{pop}{userdict begin/defineresource{userdict/Resources 2
+copy known{get begin}{15 dict dup begin put}ifelse exch readonly exch
+currentdict 1 index known not{dup 30 dict def}if load 3 -1 roll 2 index put
+end}bind readonly def/findresource{userdict/Resources get exch get exch get}
+bind readonly def/resourceforall{pop pop pop pop}bind readonly def
+/resourcestatus{userdict/Resources 2 copy known{get exch 2 copy known{get exch
+known{0 -1 true}{false}ifelse}{pop pop pop false}ifelse}{pop pop pop pop false}
+ifelse}bind readonly def end}ifelse
+%%EndProcSet
 userdict /Pscript_WinNT_Incr 230 dict dup begin put
 %%BeginResource: file Pscript_FatalError 5.0 0
 userdict begin/FatalErrorIf{{initgraphics findfont 1 index 0 eq{exch pop}{dup
@@ -71,6 +82,7 @@ userdict begin/PrtVMMsg{vmstatus exch sub exch pop gt{[
 (Print the document in parts.)115 425 12/Times-Roman showpage
 (%%[ PrinterError: Low Printer VM ]%%)= true FatalErrorIf}if}bind def end
 version cvi 2016 ge{/VM?{pop}bind def}{/VM? userdict/PrtVMMsg get def}ifelse
+105000 VM?
 %%BeginResource: file Pscript_Win_Basic 5.0 0
 /d/def load def/,/load load d/~/exch , d/?/ifelse , d/!/pop , d/`/begin , d/^
 /index , d/@/dup , d/+/translate , d/$/roll , d/U/userdict , d/M/moveto , d/-
@@ -107,44 +119,49 @@ E definefont !}bind d/hfMkCIDFont{/CIDFont findresource @ length 2 add dict `{1
 16 dict d/CIDFontName 1 ^ d & E 1 ^ ~/CIDFont defineresource ![~]composefont !}
 bind d
 %%EndResource
-%%BeginResource: file Pscript_Win_Utils_L2 5.0 0
-/rf/rectfill , d/fx{1 1 dtransform @ 0 ge{1 sub 0.5}{1 add -0.5}? 3 -1 $ @ 0 ge
-{1 sub 0.5}{1 add -0.5}? 3 1 $ 4 1 $ idtransform 4 -2 $ idtransform}b/BZ{4 -2 $
-snap + +S fx rf}b/rs/rectstroke , d/rc/rectclip , d/UtilsInit{currentglobal{F
-setglobal}if}b/scol{! setcolor}b/colspA/DeviceGray d/colspABC/DeviceRGB d
-/colspRefresh{colspABC setcolorspace}b/SetColSpace{colspABC setcolorspace}b
-/resourcestatus where{!/ColorRendering/ProcSet resourcestatus{! ! T}{F}?}{F}?
-not{/ColorRendering<</GetHalftoneName{currenthalftone @/HalftoneName known{
-/HalftoneName get}{!/none}?}bn/GetPageDeviceName{currentpagedevice @
-/PageDeviceName known{/PageDeviceName get @ null eq{!/none}if}{!/none}?}bn
-/GetSubstituteCRD{!/DefaultColorRendering/ColorRendering resourcestatus{! !
-/DefaultColorRendering}{(DefaultColorRendering*){cvn exit}127 string
-/ColorRendering resourceforall}?}bn>>/defineresource where{!/ProcSet
-defineresource !}{! !}?}if/buildcrdname{/ColorRendering/ProcSet findresource `
-mark GetHalftoneName @ type @/nametype ne ~/stringtype ne and{!/none}if(.)
-GetPageDeviceName @ type @/nametype ne ~/stringtype ne and{!/none}if(.)5 ^ 0 5
--1 1{^ length add}for string 6 1 $ 5 ^ 5{~ 1 ^ cvs length 1 ^ length 1 ^ sub
-getinterval}repeat ! cvn 3 1 $ ! ! E}b/definecolorrendering{~ buildcrdname ~
-/ColorRendering defineresource !}b/findcolorrendering where{!}{
-/findcolorrendering{buildcrdname @/ColorRendering resourcestatus{! ! T}{
-/ColorRendering/ProcSet findresource ` GetSubstituteCRD E F}?}b}?
-/selectcolorrendering{findcolorrendering !/ColorRendering findresource
-setcolorrendering}b/G2UBegin{findresource/FontInfo get/GlyphNames2Unicode get
-`}bind d/G2CCBegin{findresource/FontInfo get/GlyphNames2HostCode get `}bind d
-/G2UEnd{E}bind d/AddFontInfoBegin{/FontInfo 8 dict @ `}bind d/AddFontInfo{
-/GlyphNames2Unicode 16 dict d/GlyphNames2HostCode 16 dict d}bind d
-/AddFontInfoEnd{E d}bind d/T0AddCFFMtx2{/CIDFont findresource/Metrics2 get ` d
-E}bind d
+%%BeginResource: file Pscript_Win_Utils_L1 5.0 0
+/rf{N rp L}b/fx{1 1 dtransform @ 0 ge{1 sub 1}{1 add -0.25}? 3 -1 $ @ 0 ge{1
+sub 1}{1 add -0.25}? 3 1 $ 4 1 $ idtransform 4 -2 $ idtransform}b/BZ{4 -2 $
+snap + +S fx rf}b/rs{N rp C K}b/rc{N rp clip N}b/UtilsInit{}b/setcolorspace{!}b
+/scol{[/setgray/setrgbcolor/setcolor/setcmykcolor/setcolor/setgray]~ get cvx
+exec}b/colspRefresh{}b/AddFontInfoBegin{/FontInfo 8 dict @ `}bind d/AddFontInfo
+{/GlyphNames2Unicode 16 dict d/GlyphNames2HostCode 16 dict d}bind d
+/AddFontInfoEnd{E d}bind d
 %%EndResource
 end
 %%EndProlog
 
 %%BeginSetup
+statusdict begin (%%[ ProductName: ) print product print ( ]%%)= flush end
 [ 1 0 0 1 0 0 ] false Pscript_WinNT_Incr dup /initialize get exec
+featurebegin{
+%%BeginNonPPDFeature: JobTimeout 0
+0 /languagelevel where{pop languagelevel}{1}ifelse 2 ge{1 dict dup/JobTimeout  4 -1 roll put setuserparams}{statusdict/setjobtimeout get exec}ifelse
+%%EndNonPPDFeature
+}featurecleanup
+
+featurebegin{
+%%BeginNonPPDFeature: WaitTimeout 300
+300 /languagelevel where{pop languagelevel}{1}ifelse 2 ge{1 dict dup/WaitTimeout 4 -1 roll put setuserparams}{statusdict/waittimeout 3 -1 roll put}ifelse
+%%EndNonPPDFeature
+}featurecleanup
+
+featurebegin{
+%%BeginFeature: *PageSize A4
+
+    <</DeferredMediaSelection true /PageSize [595 842] /ImagingBBox null>> setpagedevice
+%%EndFeature
+}featurecleanup
+featurebegin{
+%%BeginFeature: *Resolution 300dpi
+
+%%EndFeature
+}featurecleanup
 1 setlinecap 1 setlinejoin
 /mysetup [ 72 300 V 0 0 -72 300 V 18 819 ] def 
 %%EndSetup
 
+userdict begin /VMsave save def end
 %%Page: 1 1
 %%PageBoundingBox: 18 23 577 819
 %%EndPageComments
@@ -153,6 +170,9 @@ end
 mysetup concat colspRefresh
 %%EndPageSetup
 
+VMsave restore
+mysetup concat colspRefresh
+30000 VM?
 Pscript_WinNT_Incr begin
 %%BeginResource: file Pscript_WinNT_Compat 5.0 0
 userdict/Pscript_WinNT_Compat 19 dict dup begin/bd{bind def}bind def/ld{load
@@ -2364,15 +2384,20 @@ restore
 Pscript_WinNT_Compat dup /suspend get exec
 Pscript_WinNT_Incr dup /resume get exec
 LH
+(%%[Page: 1]%%) = 
 %%PageTrailer
 
 %%Trailer
+%%BoundingBox: 18 23 577 819
 %%DocumentNeededResources: 
 %%DocumentSuppliedResources: 
 %%+ procset Pscript_WinNT_ErrorHandler 5.0 0
 %%+ procset Pscript_FatalError 5.0 0
 %%+ procset Pscript_Win_Basic 5.0 0
-%%+ procset Pscript_Win_Utils_L2 5.0 0
+%%+ procset Pscript_Win_Utils_L1 5.0 0
 %%+ procset Pscript_WinNT_Compat 5.0 0
 Pscript_WinNT_Incr dup /terminate get exec
+%%Pages: 1
+(%%[LastPage]%%) = 
 %%EOF
+
