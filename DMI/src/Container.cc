@@ -304,7 +304,8 @@ int NestableContainer::Hook::size (TypeId tid) const
   const void *targ = resolveTarget(DMI::NC_DEREFERENCE,tid);
   if( !targ )
     return 0;
-  // not container? Return object type
+  else if( target.obj_tid == tid ) // target matches type? return 1
+    return 1;
   else if( target_nestable )
     return static_cast<const NestableContainer *>(targ)->size(tid);
   else
