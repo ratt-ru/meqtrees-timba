@@ -878,7 +878,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   bool cache_result = False;
   int retcode = 0;
   cdebug(3)<<"  calling execute() on "<<numChildren()<<" child nodes"<<endl;
-  std::vector<Result *> child_fails; // RES_FAILs from children are kept track of separately
+  std::vector<const Result *> child_fails; // RES_FAILs from children are kept track of separately
   child_fails.reserve(numChildren());
   int nfails = 0;
   for( int i=0; i<numChildren(); i++ )
@@ -888,7 +888,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
     retcode |= childcode;
     if( !(childcode&RES_WAIT) && childcode&RES_FAIL )
     {
-      Result *pchildres = child_results[i].dewr_p();
+      const Result *pchildres = child_results[i].deref_p();
       child_fails.push_back(pchildres);
       nfails += pchildres->numFails();
     }
@@ -904,10 +904,10 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
     int ires = 0;
     for( uint i=0; i<child_fails.size(); i++ )
     {
-      Result &childres = *(child_fails[i]);
+      const Result &childres = *(child_fails[i]);
       for( int j=0; j<childres.numVellSets(); j++ )
       {
-        VellSet &vs = childres.vellSetWr(j);
+        const VellSet &vs = childres.vellSet(j);
         if( vs.isFail() )
           result.setVellSet(ires++,&vs);
       }
