@@ -961,30 +961,47 @@ document written by Ger van Diepen \cite{diepen}.
     Everything else is controlled by editing meqsolve.g itself...
 \end{verbatim}
      
-\section{Creating Your Own Nodes }
+\section{Creating Your own Nodes }
+
+\subsection{The Mechanics}
 
 Although it is unlikely that end users will want to create their
 own specialized nodes, there may well be a requirement for a computer 
 programmer to do so. Here are the instructions for a developer
 to create his or her own Meq nodes inside the LOFAR environment.
 
-\begin{verbatim}
 Enter the directory where the source code for the nodes are kept:
 
+\begin{verbatim}
    cd ~/LOFAR/CEP/CPA/PSS4/MeqNodes/src
+\end{verbatim}
 
-Create the source code for the node (canabalize existing code):
+Create the source code for the node. As much as possible
+you should just cannibalize some existing code. This is easily done
+if, for example, you just want to add a new Vells math mode.
+See the next section for a more complicated example of adding
+your own record elements.
+
+Follow the steps:
+
+\begin{verbatim}
 create/edit <node>.cc and <node.h>
-Add the <node>.cc file Makefile.am
+Add the <node>.cc file name to Makefile.am
 Add the code to cvs:
    cvs add <node>.cc
    cvs add <node>.h
+\end{verbatim}
 
-Enter the build directory:
+Go to the build directory:
+\begin{verbatim}
    cd ~/LOFAR/CEP/CPA/PSS4/MeqNodes/build/gnu3_debug
+\end{verbatim}
 
 Issue the command
+
+\begin{verbatim}
    make aids (This will generate a global header file)
+\end{verbatim}
 
 When you have created a new node class, you do a `make aids' to 
 register the new type and allocate identifiers for
@@ -995,39 +1012,222 @@ in ~/LOFAR/CEP/CPA/PSS4/MeqNodes/src.
 Sometimes `make aids' may not complete properly. In that case you
 should do:
 
+\begin{verbatim}
 cd ~/LOFAR/DMI
 rm aid/Global.aidlist
 cvs up aid
+\end{verbatim}
 
 Then go back to the build directory and repeat the `make aids' command
 
+\begin{verbatim}
 cd ~/LOFAR/CEP/CPA/PSS4/MeqNodes/build/gnu3_debug
 make aids
+\end{verbatim}
 
 Now, make sure that your code is up to date with regard to everyone 
 else's check-ins.  A `cvs up' in CEP/CPA/PSS4/MeqNodes should be sufficient.
                                                                                 
 A rebuild is needed for MeqNodes, and all packages depending on it. But
-if you do the make in ~/LOFAR/build/gnu3_debug, that should build
+if you do the make in ~/LOFAR/build/gnu3\_debug, that should build
 everything that's needs it.
 
 So, to make and link with the LOFAR system:
 
+\begin{verbatim}
 cd ~/LOFAR/build/gnu3_debug
+\end{verbatim}
 
 If you are on the LOFAR cluster you can do a parallel make by
 issuing the command
 
+\begin{verbatim}
    make -j40 
+\end{verbatim}
 
 otherwise, just issue the command
 
+\begin{verbatim}
    make
+\end{verbatim}
 
 When you are sure that your new node works properly you should check in 
 the regenerated files mentioned above along with the new node classes.
 
+\subsection {Detailed Example Code for a Node}
+
+Here we look at the detailed code for a node, which when called from
+glish will be instantiated as a MeqVisTest node. Here we do some custom
+programming and add specialized values to the output record. First, here
+is the header file.
+
+\begin{verbatim}
+#ifndef MEQ_VISTEST_H
+#define MEQ_VISTEST_H
+    
+#include <MEQ/Node.h>
+#include <MEQ/VellSet.h>
+#include <MeqNodes/TID-MeqNodes.h>
+
+#pragma types #Meq::VisTest
+
+// The following pragma allows us to create the labels XX and VisData
+// that will be used when we form the output data record (See the
+// C++ code for the implementation below.) In the python meqbrowser, 
+// these labels will appear in lower case.
+
+#pragma aid XX Label VisData
+
+namespace Meq {
+
+class Request;
+
+class VisTest : public Node
+{
+public:
+  VisTest();
+  virtual ~VisTest();
+  virtual TypeId objectType () const { return TpMeqVisTest; }
+
+protected:
+  virtual int getResult (Result::Ref &resref, 
+                         const std::vector<Result::Ref> &childres,
+                         const Request &req,bool newreq);
+  virtual void setStateImpl (DataRecord &rec,bool initializing);
+private:
+  HIID label_;
+};
+
+} // namespace Meq
+#endif
 \end{verbatim}
+
+The most important thing to note from the header is that any
+specialised node class inherits from the basic `Node' class.
+You can view the complete source code for Node.h and Node.cc
+in the ~/LOFAR/CEP/CPA/PSS4/MEQ/src directory. There is quite a
+bit of code there, but all we have to do ourselves is develop
+our own specialization of the {\tt getResult} and 
+{\tt setStateImpl} methods. 
+
+Most of the code in the header is boilerplate. Replace {\tt VisTest}
+by the name of your own node. One local modification is the
+stuff after the {\tt pragma aid} definition. The comments
+above the {\tt pragma aid} definition explain how this pragma is
+used.
+
+Now, here is the corresponding C++ code.
+
+\begin{verbatim}
+#include <MEQ/Request.h>
+#include <MEQ/Vells.h>
+#include <MEQ/Function.h>
+#include <MEQ/MeqVocabulary.h>
+#include <DMI/DynamicTypeManager.h>
+#include <DMI/DataList.h>
+#include <MeqNodes/VisTest.h>
+#include <MeqNodes/Condeq.h>
+#include <MeqNodes/ParmTable.h>
+#include <MeqNodes/AID-MeqNodes.h>
+#include <casa/Arrays/Matrix.h>
+#include <casa/Arrays/Vector.h>
+
+namespace Meq {
+
+using namespace VellsMath;
+
+const HIID FLabel = AidLabel;
+
+VisTest::VisTest()
+  : Node(-1,0,1), // the third parameter tells the node that
+                  // at least 1 child must be present
+    label_(AidXX) 
+{
+}
+
+VisTest::~VisTest()
+{
+}
+
+// called from the init() and setState() methods of the Node class.
+// This is meant to update the internal state in accordance 
+// with the 'rec' definition. If initializing==true (i.e. when 
+// called from init()), rec is a complete state record.
+void VisTest::setStateImpl (DataRecord &rec,bool initializing)
+{
+  Node::setStateImpl(rec,initializing);
+  rec[FLabel].get(label_,initializing);
+}
+
+// The method where we do operations unique to this particular node
+int VisTest::getResult (Result::Ref &resref, 
+                       const std::vector<Result::Ref> &child_result,
+                       const Request &request, bool newreq)
+{
+// The following line attaches a new Result object to the countedref
+// resref (for returning to caller), and inits a local variable 
+// to point to it. 0 means there are 0 VellSets in it
+	Result & result = resref <<= new Result(0);
+
+// Use cells of first child to test for shape. They ought to be the 
+// same across all children - we can check later on - but if they're 
+// not the same, someone's put the tree together wrong. We will verify
+// shapes only below, it's faster and easier
+	const Cells &res_cells = child_result[0]->cells();
+	const LoShape &res_shape = res_cells.shape();
+	result.setCells(res_cells);
+
+// Now, we probably want to keep all collected data in a sub-record of 
+// its own (e.g. "VisData" or AidVis|AidData in C++, "visdata" in 
+// Python/Glish), since this will make it easier for other collector 
+// nodes down the line to figure out what's already in there.
+// The code below creates a new DataRecord which is attached
+// to the result that will be returned with label "VisData".
+	DataRecord &visrec = result["VisData"] <<= new DataRecord;
+
+// The resukts of the processing we do in this node will be
+// stored in a new DataList. This DataList will be stored as
+// an element of the 'visrec' DataRecord. The label_ variable
+// is a class member (type HIID) which is initialized in the 
+// constructor and from the node state record, in setStateImpl().
+// In our case this will end up of having the equivalent of
+// being set to "XX" 
+	DataList &list = visrec[label_] <<= new DataList;
+
+// Put whatever stuff we want to in the list. There are two
+// examples here. The first one (commented out) would create
+// a list consisting of the main value from the first vellset 
+// of every child's result.
+
+//	for( int i=0; i<numChildren(); i++ ) {
+//    		const Vells &val = child_result[i]->vellSet(0).getValue();
+                // make sure that at least the shape is sensible
+//    		Assert(val.isCompatible(res_shape));
+//    		list[i] <<= val.getDataArray();
+//	}
+
+// Our second example would just use a VellsMath operator to get
+// the mean of each child's first VellSet and put it in the list
+
+        for( int i=0; i<numChildren(); i++ ) {
+                const Vells &val = child_result[i]->vellSet(0).getValue();
+                Assert(val.isCompatible(res_shape));
+                Vells result = mean(val);
+                list[i] <<= result.getDataArray();
+        }
+
+ 	return 0;
+}
+
+} // namespace Meq
+\end{verbatim}
+
+Hopefully the detailed comments in the code above are reasonably
+self-explanatory. Again most of this stuff is boilerplate and
+can be adapted to the development of any new node. The two examples
+near the end of the code should show you the way to develop
+your own node operations or calculations. Good luck with MeqNode development!
+
 \section {Code Maintenance and Dependency Issues} 
  
 Oleg's advice on what to to if things are suddenly not building 
