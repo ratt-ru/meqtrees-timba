@@ -145,8 +145,8 @@ if test $lfr_dirform = 0; then
 %.variant_build:
 	@date; \
 	variant=`basename $@ .variant_build`; \
+        cd ../..; \
 	for pkg in $(PACKAGES); do \
-            cd ../..; \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -167,8 +167,8 @@ if test $lfr_dirform = 0; then
 %.variant_check:
 	@date; \
 	variant=`basename $@ .variant_check`; \
+        cd ../..; \
 	for pkg in $(PACKAGES); do \
-            cd ../..; \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -189,8 +189,8 @@ if test $lfr_dirform = 0; then
 %.variant_install:
 	@date; \
 	variant=`basename $@ .variant_install`; \
+        cd ../..; \
 	for pkg in $(PACKAGES); do \
-            cd ../..; \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -211,8 +211,8 @@ if test $lfr_dirform = 0; then
 %.variant_uninstall:
 	@date; \
 	variant=`basename $@ .variant_uninstall`; \
+        cd ../..; \
 	for pkg in $(PACKAGES); do \
-            cd ../..; \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -233,8 +233,8 @@ if test $lfr_dirform = 0; then
 %.variant_clean:
 	@date; \
 	variant=`basename $@ .variant_clean`; \
+        cd ../..; \
 	for pkg in $(PACKAGES); do \
-            cd ../..; \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -255,8 +255,8 @@ if test $lfr_dirform = 0; then
 %.variant_distclean:
 	@date; \
 	variant=`basename $@ .variant_distclean`; \
+        cd ../..; \
 	for pkg in $(PACKAGES); do \
-            cd ../..; \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -272,13 +272,13 @@ if test $lfr_dirform = 0; then
 	done; \
 	date
 #
-# Rule to distclean variant recursively
+# Rule to make distribution recursively
 #
 %.variant_dist:
 	@date; \
 	variant=`basename $@ .variant_dist`; \
+        cd ../..; \
 	for pkg in $(PACKAGES); do \
-            cd ../..; \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
