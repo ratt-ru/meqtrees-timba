@@ -112,6 +112,19 @@ class ResultPlotter(GriddedPlugin):
     self._attributes_checked = False
     self.first_spectrum_plot = True
 
+# some intitial tests for extracting forest_state
+    meqds_rec = meqds.get_forest_state()
+#    print 'forest state record is ', meqds_rec
+#    print 'forest state record axes number, values ', len(meqds_rec.axis_map), ' ',meqds_rec.axis_map
+#    print 'first axis ', meqds_rec.axis_map[0].id
+#    print 'second axis ', meqds_rec.axis_map[1].id
+    try:
+     _dprint(3, 'third axis ', meqds_rec.axis_map[2].id)
+    except:
+     third_axis = 'third_axis ' + str(2)
+#     print 'third axis is:  ', third_axis 
+
+# back to 'real' work
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
 
@@ -472,15 +485,12 @@ class ResultPlotter(GriddedPlugin):
       # menu to switch to a different viewer)
 
 # are we dealing with Vellsets?
-    if self._rec.has_key("vellsets"):
-      metrics = False
-      if self._rec.has_key("metrics"):
-        metrics = True
+    if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
       if self._visu_plotter is None:
         self._visu_plotter = QwtImagePlot('spectra',parent=self.wparent())
         self.set_widgets(self._visu_plotter,self.dataitem.caption,icon=self.icon())
         self._wtop = self._visu_plotter;       # QwtImagePlot inherits from QwtPlot
-      self._visu_plotter.plot_vells_data(self._rec, metrics)
+      self._visu_plotter.plot_vells_data(self._rec)
 # otherwise we are dealing with a set of visualization data
     else:
       if self._rec.has_key("visu"):

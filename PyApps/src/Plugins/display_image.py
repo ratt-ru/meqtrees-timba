@@ -1297,30 +1297,35 @@ class QwtImagePlot(QwtPlot):
       self.vells_time = (self.vells_start_time,self.vells_end_time)
 
                                                                                 
-    def plot_vells_data (self, vells_record, metrics=False):
+    def plot_vells_data (self, vells_record):
       """ process incoming vells data and attributes into the
           appropriate type of plot """
 
       _dprint(2, 'in plot_vells_data');
-      self._solver_flag = metrics
       self._vells_rec = vells_record;
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
       if isinstance(self._vells_rec, bool):
         return
 
-# are we dealing with Vellsets?
-      if self._vells_rec.has_key("vellsets"):
-
 # are we dealing with 'solver' results?
-        if self._solver_flag and self._vells_rec.vellsets[0].has_key("spid_index"):
+      if self._vells_rec.has_key("solver_result"):
+        if self._vells_rec.solver_result.has_key("incremental_solutions"):
           self._solver_flag = True
-          self._x_axis = 'Solvable Unknowns'
-          self._y_axis = 'Iteration'
-        else:
-          self._solver_flag = False
-          self._vells_plot = True
-          self.calc_vells_ranges()
+          self._x_axis = 'Solvable Coeffs'
+          self._y_axis = 'Iteration Nr'
+          complex_type = False;
+          if self._vells_rec.solver_result.incremental_solutions.type() == Complex32:
+            complex_type = True;
+          if self._vells_rec.solver_result.incremental_solutions.type() == Complex64:
+            complex_type = True;
+          self._value_array = self._vells_rec.solver_result.incremental_solutions
+          self.array_plot("Solver Incremental Solutions", self._value_array, True)
+
+# are we dealing with Vellsets?
+      if self._vells_rec.has_key("vellsets") and not self._solver_flag:
+        self._vells_plot = True
+        self.calc_vells_ranges()
         self. initVellsContextMenu()
         _dprint(3, 'handling vellsets')
 
@@ -1627,6 +1632,8 @@ class QwtImagePlot(QwtPlot):
             plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
                      QPen(Qt.black), QSize(20, 20)))
             self.setCurveData(self.real_flag_vector, self.flags_x_index, self.flags_r_values)
+# Note: We don't show the flag data in the initial display
+# but toggle it on or off (ditto for imaginary data flags).
             self.curve(self.real_flag_vector).setEnabled(False)
             self.imag_flag_vector = self.insertCurve('imag_flags')
             self.setCurvePen(self.imag_flag_vector, QPen(Qt.black))
@@ -1848,13 +1855,13 @@ def make():
     demo.resize(500, 300)
     demo.show()
 # uncomment the following
-    demo.start_test_timer(5000, False, "brentjens")
+#    demo.start_test_timer(5000, False, "brentjens")
 
 # or
 # uncomment the following three lines
-#    import pyfits
-#    m51 = pyfits.open('./m51.fits')
-#    demo.array_plot('m51', m51[0].data)
+    import pyfits
+    m51 = pyfits.open('./m51.fits')
+    demo.array_plot('m51', m51[0].data)
 
     return demo
 
