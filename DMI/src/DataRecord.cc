@@ -277,7 +277,7 @@ void DataRecord::privatize (int flags, int depth)
       iter->second.privatize(flags|DMI::LOCK,depth-1);
     }
     // since things may have changed around, revalidate content
-    validateContent();
+    revalidateContent();
   }
 }
 
@@ -388,6 +388,17 @@ int DataRecord::size (TypeId tid) const
   if( !tid || tid == TpObjRef )
     return fields.size();
   return -1;
+}
+
+void DataRecord::protectAllFields ()
+{
+  Thread::Mutex::Lock _nclock(mutex());
+  dprintf(2)("protecting DataRecord\n");
+  for( FMI iter = fields.begin(); iter != fields.end(); iter++ )
+  {
+    dprintf(4)("  protecting field %s\n",iter->first.toString().c_str());
+    iter->second.change(DMI::READONLY);
+  }
 }
 
 //##ModelId=3CA20AD703A4

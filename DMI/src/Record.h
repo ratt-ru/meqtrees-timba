@@ -180,8 +180,11 @@ class DataRecord : public NestableContainer
       //## must_write is True, throws an exception if something along the way
       //## is not writable.
       const NCRef & resolveField (const HIID &id,HIID &rest,bool &can_write, bool must_write = False) const;
+      
+      // protects all fields by making them read-only
+      void protectAllFields ();
 
-  private:
+//  private:
     // Data Members for Associations
 
       //##ModelId=3E9BD86202A0

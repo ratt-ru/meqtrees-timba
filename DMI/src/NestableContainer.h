@@ -696,6 +696,13 @@ class NestableContainer : public BlockableObject
       //## from the standard system ones. Default version does nothing. 
       virtual void validateContent () 
       {};
+      
+      //## This method is called after a deep privatization operation, when
+      //## contents of container may have been moved around. This is meant for 
+      //## application-specific containers that define their own "shortcuts"
+      //## to contents.
+      virtual void revalidateContent () 
+      {};
 
       //##ModelId=3BFCD8180044
       bool isNestable () const
@@ -719,8 +726,11 @@ class NestableContainer : public BlockableObject
       { return registry.find(tid); }
       
     //##ModelId=3DB934E10329
+// OMS 1/12/04: using the CountedRefTarget mutex instead, as that is far more
+// robust      
       const Thread::Mutex & mutex() const
-      { return mutex_; }
+      { return crefMutex(); }
+//      { return mutex_; }
 
   public:
       friend class Hook;
@@ -779,9 +789,11 @@ class NestableContainer : public BlockableObject
       //##Documentation
       //## list of subscribers to container events
       std::list<Subscription> subscriptions;
-      
-    //##ModelId=3E7081A601A0
-      Thread::Mutex mutex_;
+
+// OMS 1/12/04: using the CountedRefTarget mutex instead, as that is far more
+// robust      
+//    //##ModelId=3E7081A601A0
+//      Thread::Mutex mutex_;
 };
 
 // construct from container [HIID]

@@ -102,14 +102,17 @@ class CountedRefTarget
       { return anon; }
 
     //##ModelId=3DB934660201
-      const CountedRefBase * getOwner () const;
+      const CountedRefBase * getOwner () const
+      { return owner_ref; }
 
     // Additional Public Declarations
     //##ModelId=3DB934660265
-      CountedRefBase * getOwner ();
+      CountedRefBase * getOwner ()
+      { return owner_ref; }
       
     //##ModelId=3DB9346602A2
-      Thread::Mutex & crefMutex();
+      const Thread::Mutex & crefMutex() const
+      { return cref_mutex; }
       
     //##ModelId=3E01B0CE01E8
       virtual void print (std::ostream &str) const
@@ -206,12 +209,6 @@ inline std::ostream & operator << (std::ostream &str,const CountedRefTarget &tar
 }
 
 
-//##ModelId=3DB934660201
-inline const CountedRefBase * CountedRefTarget::getOwner () const
-{
-  return owner_ref;
-}
-
 // Class SingularRefTarget 
 
 
@@ -220,18 +217,5 @@ inline CountedRefTarget* SingularRefTarget::clone (int , int ) const
 {
   Throw("can't clone a singular target");
 }
-
-//##ModelId=3DB934660265
-inline CountedRefBase * CountedRefTarget::getOwner () 
-{
-  return owner_ref;
-}
-
-//##ModelId=3DB9346602A2
-inline Thread::Mutex & CountedRefTarget::crefMutex()
-{
-  return cref_mutex;
-}
-
 
 #endif
