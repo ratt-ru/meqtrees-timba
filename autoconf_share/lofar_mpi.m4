@@ -31,11 +31,14 @@ AC_DEFINE(HAVE_MPI,dnl
 	1, [Define if we have an MPI implementation installed])dnl
 [fi]
 [if test "$mpi_profiler" = "yes"; then]
-[if test $enable_mpi = 0; then]
-AC_MSG_ERROR([Can not enable MPI profiler without enabling MPI])
-[else]
-AC_DEFINE(HAVE_MPI_PROFILER,dnl
-	1, [Define if MPI profiler should be enabled])dnl
+  [if test $enable_mpi = 0; then]
+    AC_MSG_ERROR([Can not enable MPI profiler without enabling MPI])
+  [else]
+  AC_DEFINE(HAVE_MPI_PROFILER,dnl
+	    1, [Define if MPI profiler should be enabled])dnl
+  [MPIPRF_LIBS="-lmpe"
+   LIBS="$LIBS $MPIPRF_LIBS"
+  ]AC_SUBST(LIBS)
 [fi]
 [fi]
 )dnl
