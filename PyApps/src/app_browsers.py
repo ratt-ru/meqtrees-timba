@@ -78,6 +78,11 @@ class HierBrowser (object):
     self._lv.get_data_item = self.get_data_item;
     self.items = [];
     # enable UDIs, if udi root is not none
+    self.set_udi_root(udi_root);
+    # for debugging purposes
+    QWidget.connect(self._lv,SIGNAL("clicked(QListViewItem*)"),self._print_item);
+    
+  def set_udi_root (self,udi_root):
     self._udi_root = udi_root;
     if udi_root is not None:
       if not udi_root.startswith('/'):
@@ -87,8 +92,6 @@ class HierBrowser (object):
       self._content_map = self._lv._content_map = weakref.WeakValueDictionary();
     else:
       self._lv._udi = None;
-    # for debugging purposes
-    QWidget.connect(self._lv,SIGNAL("clicked(QListViewItem*)"),self._print_item);
     
   def _print_item (self,item):
     if item is not None:
@@ -104,7 +107,7 @@ class HierBrowser (object):
   def get_data_item (self,udi):
     return self.make_data_item(self._content_map.get(udi,None));
     
-  def make_data_item (item):
+  def make_data_item (self,item):
     # extract relevant item attributes, return if not present
     try:
       content  = getattr(item,'_content');
@@ -119,9 +122,10 @@ class HierBrowser (object):
       if not name and not desc:
         desc = udi;
       # make item and return
-      return gridded_workspace.GridDataItem(udi,name,desc,data=content,viewopts=viewopts);
+      return gridded_workspace.GridDataItem(udi,name,desc,
+                data=content,viewopts=viewopts,
+                refresh=getattr(self,'_refresh_func',None));
     return None;
-  make_data_item = staticmethod(make_data_item);
 
   # helper static method to expand content into BrowserItems record 
   def expand_content(item,content):
@@ -299,14 +303,15 @@ class RecordBrowser(HierBrowser):
     return len(data) > 0;
   is_viewable = staticmethod(is_viewable);
 
-  def __init__(self,parent,udi=None,data=None,default_open=None,**opts):
-    HierBrowser.__init__(self,parent,"value","field",udi_root=udi);
+  def __init__(self,parent,dataitem=None,default_open=None,**opts):
+    HierBrowser.__init__(self,parent,"value","field",
+        udi_root=(dataitem and dataitem.udi));
     self._rec = None;
     self._default_open = default_open;
-    if data is not None:
-      self.set_data(data);
+    if dataitem and dataitem.data:
+      self.set_data(dataitem);
   
-  def set_data (self,data,default_open=None,**opts):
+  def set_data (self,dataitem,default_open=None,**opts):
     # save currenty open tree
     if self._rec:
       openitems = self.get_open_items();
@@ -314,15 +319,14 @@ class RecordBrowser(HierBrowser):
       openitems = default_open or self._default_open;
     # clear everything and reset data as new
     self.clear();
-    self._rec = data;
+    self.set_udi_root(dataitem.udi);
+    self._rec = dataitem.data;
+    self._refresh_func = dataitem.refresh_func;
     # expand first level of record
     self.expand_content(self._lv,self._rec);
     # apply saved open tree
     self.set_open_items(openitems);
-    
-  set_record = set_data;
-
-    
+  
 # register the RecordBrowser as a viewer for the appropriate types
 for tp in (dict,list,tuple,array_class):
   gridded_workspace.registerViewer(tp,RecordBrowser);

@@ -6,6 +6,7 @@ import app_pixmaps as pixmaps
 import app_proxy_gui 
 import weakref
 import sets
+import re
 
 dbg = verbosity(3,name='gw');
 
@@ -30,14 +31,24 @@ def registerViewer (tp,viewer):
       # (optional static method) checks if a specific data item (of the 
       # registered type) is viewable in this viewer or not. If not defined, 
       # True is assumed.
-    vo = viewer(parent_widget,**opts); 
-      # construct a viewer object. **opts may be used to pass in optional
-      # keyword arguments on a per-viewer basis.
+    vo = viewer(parent_widget,dataitem=None,**opts); 
+      # construct a viewer object. A dataitem (GridDataItem class) object 
+      # may be supplied at this time, or set via set_data() below. See
+      # GridDataItem below. Note that dataitem.data may be None if the 
+      # object is not yet populated. 
+      # **opts may be used to pass in optionalkeyword arguments on a 
+      # per-viewer basis.
     vo.wtop();
       # return top-level Qt widget of viewer object
-    vo.set_data(data,**opts);
+    vo.set_data(dataitem,**opts);
       # sets/updates the content of the viewer. **opts may be used to pass 
       # in optional keyword arguments on a per-viewer basis.
+    vo.add_data(dataitem,**opts); 
+      # (optional method) adds another data object to the viewer. If 
+      # multiple-object viewing is not supported, the viewer class should not
+      # define this method. The method must return True if the object is
+      # successfully added, or False if this cannot be done.
+      
   The viewer object may also issue one Qt signal: PYSIGNAL("refresh()"), if
   a refresh of the data contents is requested. Note that the GridCell interface
   already provides a refresh button, so this signal is normally not needed.
@@ -164,7 +175,7 @@ class GridDataItem (object):
     self.cells.discard(cell);
   def update (self,data):
     self.data = data;
-    map(lambda cell:cell.set_data(data),self.cells);
+    map(lambda cell:cell.update_data(self),self.cells);
   def highlight (self,enable=True):
     map(lambda cell:cell.highlight(enable),self.cells);
   # removes all cells from item
@@ -234,7 +245,12 @@ class GridCell (object):
     self._viewer = None;
     self._refresh_func = lambda:None;
     self._dataitem = None;
-
+    
+    self._highlight_colors = \
+      (QApplication.palette().active().highlight(),\
+       QApplication.palette().active().highlightedText()); \
+    self._highlight = False;
+    
   # destructor
   def __del__ (self):
     if self._dataitem:
@@ -259,21 +275,23 @@ class GridCell (object):
     return self._dataitem and self._dataitem.udi;
   def is_parent_of (self,udi):
     my_udi = self.udi();
-    return my_udi and udi.startswith(my_udi);
+    return my_udi and re.match(my_udi+'/?',udi);
     
   # highlights a cell
   # pass in a QColor, or True for default color, or False value to disable highlights
   def highlight (self,color=True):
     if color:
-      if not isinstance(color,QColor):
-        color = QColor(255,255,0);
-      self._control_box.setPaletteBackgroundColor(color);
-      map(lambda w:isinstance(w,QWidget) and w.setPaletteBackgroundColor(color),
-            self._control_box.children());
+      color = self._highlight_colors;
+      for w in [self._control_box] + self._control_box.children():
+        if isinstance(w,QWidget):
+          w.setPaletteBackgroundColor(color[0]);
+          w.setPaletteForegroundColor(color[1]);
+      self._highlight = True;
     else:
-      self._control_box.unsetPalette();
-      map(lambda w:isinstance(w,QWidget) and w.unsetPalette(),
-            self._control_box.children());
+      for w in [self._control_box] + self._control_box.children():
+        if isinstance(w,QWidget):
+          w.unsetPalette();
+      self._highlight = False;
 
   def _dorefresh (self):
     self._refresh_func();
@@ -306,6 +324,8 @@ class GridCell (object):
       w.setDisabled(disable);
   def enable (self,enable=True):
     self.disable(not enable);
+    
+  MaxDescLen = 40;
 
   def set_data_item (self,dataitem,pin=None,viewopts={}):
     if not self.is_empty():
@@ -315,13 +335,23 @@ class GridCell (object):
     self._viewopts = dataitem.viewopts.copy();
     self._viewopts.update(viewopts);
     self._label.setText(dataitem.name);
-    self._label1.setText(dataitem.desc);
+    desc = dataitem.desc;
+    # trim desc to reasonable length
+    if len(desc)>self.MaxDescLen:
+      dd = desc.split('/');
+      # remove second-to-last item until length is suitable
+      while len(dd)>2 and sum(map(len,dd),len(dd)+3)>self.MaxDescLen:
+        del dd[-2];
+      if len(dd)>2:  # succeeded? replace with '...'
+        dd.insert(-1,'...');
+        desc = '/'.join(dd);
+      else:          # fallback: terminate string
+        desc = desc[:57]+'...';
+    self._label1.setText(desc);
     self._control_box.show();
     # create a viewer, add data if specified
-    viewer = dataitem.viewer(self.wtop(),udi=dataitem.udi,**self._viewopts);
+    viewer = dataitem.viewer(self.wtop(),dataitem=dataitem,**self._viewopts);
     widget = viewer.wtop();
-    if dataitem.data:
-      viewer.set_data(dataitem.data);
     # connect displayDataItem() signal from viewer to be resent from top widget
     QWidget.connect(widget,PYSIGNAL("displayDataItem()"),
                     self._wtop,PYSIGNAL("displayDataItem()"));
@@ -347,12 +377,28 @@ class GridCell (object):
     self._wstack.show();
     self._wtop.show();
     
-  def set_data (self,data,viewopts={}):
+  def update_data (self,dataitem,viewopts={},flash=True):
     if self._viewer:
       kw = self._viewopts.copy();
       kw.update(viewopts);
-      self._viewer.set_data(data,**kw);
+      self._dataitem = dataitem;
+      self._viewer.set_data(dataitem,**kw);
     self.enable();
+    # flash the refresh button, if it's visible
+    if flash:
+      if self._highlight:
+        self._pin.unsetPalette();
+      else:
+        self._pin.setPaletteBackgroundColor(self._highlight_colors[0]);
+        self._pin.setPaletteForegroundColor(self._highlight_colors[1]);
+      QTimer.singleShot(500,self._pin_unflash);
+      
+  def _pin_unflash (self):
+    if self._highlight:
+      self._pin.setPaletteBackgroundColor(self._highlight_colors[0]);
+      self._pin.setPaletteForegroundColor(self._highlight_colors[1]);
+    else:
+      self._pin.unsetPalette();
     
 # ====== GriddedPage ===========================================================
 # manages one page of a gridded workspace
@@ -691,10 +737,33 @@ class GriddedWorkspace (object):
       self.wtop().updateGeometry();
       self.highlight_data_item(item);
     self.wtop().emit(PYSIGNAL("addedDataItem()"),(item,));
+    
   # updates a data item, if it is known
   def update_data_item (self,udi,data):
-    if udi in self._dataitems:
-      self._dataitems[udi].update(data);
+    # compile pattern to match children of this udi
+    udipatt = re.compile("^"+udi+"(/.*)?$");
+    # scan current data items to see which need updating
+    for (u,item) in self._dataitems.iteritems():
+      match = udipatt.match(u);
+      if match:
+        subudi = match.group(1);
+        print 'subudi:',subudi;
+        if subudi:   # a sub-udi, so we must process it by indexing into the data
+          # split into keys and process one by one (first one is empty string)
+          data1 = data;
+          for key in subudi.split("/")[1:]:
+            print key,data1;
+            try: data1 = data1[key];
+            except TypeError: # try to convert data to integer instead
+              try: data1 = data1[int(key)];
+              except TypeError,KeyError: 
+                break;
+          else: # loop successful
+            print subudi,data1;
+            item.update(data1);
+        else:               # not a sub-udi, directly update the value
+          item.update(data);
+      
   # removes a data item
   def remove_data_item (self,udi):
     if udi in self._dataitems:
