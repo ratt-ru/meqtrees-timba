@@ -341,6 +341,10 @@ class TreeBrowser (QObject):
         action.addTo(self._toolbar);
         action.setEnabled(False);
         have_sep = False;
+
+    # added by AGW
+    QWhatsThis.whatsThisButton(self._toolbar)
+
     # make toolbar disappear when we leave this panel
     QObject.connect(self.wtop(),PYSIGNAL("entering()"),self._toolbar,SLOT("show()"));
     QObject.connect(self.wtop(),PYSIGNAL("leaving()"),self._toolbar,SLOT("hide()"));
@@ -896,7 +900,6 @@ def define_treebrowser_actions (tb):
   # populate debug context sub-menu
   tb.add_action(NA_ContinueUntil,10,where="debug");
   tb.add_action(ag_debug,20,where="debug");
-
 
 class NodeAction (object):
   """NodeAction is a class implementing a node-associated action.""";
