@@ -69,7 +69,7 @@ bool Function::convertChildren (const vector<HIID>& childNames, int nchild)
   int nch = numChildren();
   itsChildren.resize (nch);
   int nhiid = childNames.size();
-  // Di it in order of the HIIDs given.
+  // Do it in order of the HIIDs given.
   for (int i=0; i<nhiid; i++) {
     itsChildren[i] = &(getChild(childNames[i]));
   }
