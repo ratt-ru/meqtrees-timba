@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.23  2003/11/24 22:13:25  smirnov
+//  %[ER: 16]%
+//  Some minor fixes related to data accessorts.
+//  Added validateContent() calls to privatize() methods.
+//
 //  Revision 1.22  2003/11/12 16:57:18  smirnov
 //  %[ER: 16]%
 //  Added arrays accessors to DataArray
@@ -265,6 +270,11 @@ public:
   { ptr = static_cast<blitz::Array<T,N>*>(
           const_cast<void*>(getArrayPtr(typeIdOf(T),N,True))); }
   
+  const void * getConstDataPtr () const
+  { return itsArrayData; }
+  
+  void * getDataPtr () 
+  { FailWhen(!isWritable(),"r/w access violation"); return itsArrayData; }
 
   // Return the object type (TpDataArray).
     //##ModelId=3DB949AE03BE

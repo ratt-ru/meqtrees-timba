@@ -78,6 +78,9 @@ class DataRecord : public NestableContainer
       
       void add (const HIID &id, const NestableContainer *pnc, int flags = DMI::ANONRO)
       { add(id,const_cast<NestableContainer*>(pnc),(flags&~DMI::WRITE)|DMI::READONLY); }
+      
+      bool hasField (const HIID &id) const
+      { return fields.find(id) != fields.end(); }
 
       //##ModelId=3BB311C903BE
       //##Documentation

@@ -250,6 +250,7 @@ void DataRecord::privatize (int flags, int depth)
     for( FMI iter = fields.begin(); iter != fields.end(); iter++ )
       iter->second.privatize(flags|DMI::LOCK,depth-1);
   }
+  validateContent();
 }
 
 //##ModelId=3C58239503D1

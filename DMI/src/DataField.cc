@@ -692,6 +692,8 @@ void DataField::privatize (int flags, int depth)
       }
     }
   }
+  // revalidate content if necessary
+  validateContent();
 }
 
 //##ModelId=3D05E2F301D2
