@@ -1,0 +1,1 @@
+icc.compiler.conf: CXX=icc -with-cppflags="-g -xW -Qoption,c,-ip_ninl_max_stats=5000" --with-ldflags="-g -Kc++ -xW"

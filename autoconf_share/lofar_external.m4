@@ -247,7 +247,11 @@ else
 			[lfr_ext_inc=no])[
     if test "$lfr_ext_inc" != "no" ; then
       if test "$lfr_external_libdir" = ""; then
-        lfr_external_libdir=$bdir/lib;
+	if test "`arch`" = "x86_64"; then
+          lfr_external_libdir=$bdir/lib64;
+	else
+          lfr_external_libdir=$bdir/lib;
+	fi
       fi
       break;
     fi
