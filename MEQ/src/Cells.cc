@@ -70,6 +70,7 @@ Cells::Cells (const Domain& domain, int nfreq,
   Assert (startTimes.size() == endTimes.size());
   Assert (startTimes.size() > 0  &&  nfreq > 0);
   setDataRecord(domain,nfreq,ntimes);
+  itsFreqStep = (domain.endFreq() - domain.startFreq()) / nfreq;
   // set other values
   for (int i=0; i<startTimes.size(); i++) {
     Assert (endTimes(i) > startTimes(i));

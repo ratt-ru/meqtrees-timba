@@ -53,7 +53,7 @@ const meqpolc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
                            weight=1,domain=F,dbid=-1)
 {
   rec := [ freq_0=freq0,time_0=time0,freq_scale=freqsc,
-           time_scale=timesc,pert=pert,weight=weight,dbid=dbid ];
+           time_scale=timesc,pert=pert,weight=weight,dbid_index=dbid ];
   # set coeff  
   if( len(coeff) == 1 )
     rec.coeff := array(as_double(coeff),1,1);
@@ -112,8 +112,20 @@ const meqdomain := function (startfreq,endfreq,starttime,endtime)
 }
 
 # Creates a Meq::Cells
-const meqcells := function (domain,num_freq,times,time_steps )
+# Two options are available:
+#   meqcells(domain,nf,nt) creates regularly-spaced cells
+#   meqcells(domain,nf,times=[...],time_steps=[...]) creates cells with
+#               explicit time sampling
+const meqcells := function (domain,num_freq,num_time=F,times=F,time_steps=F)
 {
+  if( !is_dmi_type(domain,'MeqDomain') )
+    fail 'domain argument must be a meqdomain object';
+  if( is_integer(num_time) )
+  {
+    dt := (domain[4]-domain[3])/num_time;
+    times := domain[3] + ((1:num_time)-0.5)*dt;
+    time_steps := array(dt,num_time);
+  }
   rec := [ domain=domain,num_freq=as_integer(num_freq),
            times=as_double(times),
            time_steps=as_double(time_steps) ];
