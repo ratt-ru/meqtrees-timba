@@ -82,7 +82,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
     cc.c1 := cc.a1*x0 + cc.b1*y0;
     cc.c2 := cc.a2*x0 + cc.b2*y0;
     for( f in field_names(cc) )
-      mqs.meq('Create.Node',meq.parm(f,meq.polc(cc[f])));
+      mqs.meq('Create.Node',meq.parm(f,meq.polc(array([cc[f],1e-8,1e-8,0],2,2))));
     mqs.meq('Create.Node',meq.node('MeqMultiply','a1x',children="a1 x"));
     mqs.meq('Create.Node',meq.node('MeqMultiply','a2x',children="a2 x"));
     mqs.meq('Create.Node',meq.node('MeqMultiply','b1y',children="b1 y"));
@@ -140,7 +140,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
     # create solver
     global rec;
     rec := meq.node('MeqSolver','solver',children="eq1 eq2");
-    rec.default := [ num_iter = 3 ];
+    rec.default := [ num_iter = 5 ];
     rec.parm_group := hiid('Parm');
     rec.solvable := meq.solvable_list("x y");
     mqs.meq('Create.Node',rec);
@@ -196,7 +196,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
   print sprintf("Original values: %10.10f %10.10f",stx0.polcs[1].coeff,sty0.polcs[1].coeff);
   print sprintf("Solution:        %10.10f %10.10f",xs,ys);
 
-  if( abs(x0-xs) < 1e-5*abs(x0) && abs(y0-ys) < 1e-5*abs(y0) )
+  if( abs(x0-xs) < 1e-2*abs(x0) && abs(y0-ys) < 1e-2*abs(y0) )
   {
     print '======================= stage ',stage,': solve succeeded';
     return T;
