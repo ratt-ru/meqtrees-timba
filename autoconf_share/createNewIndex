@@ -98,9 +98,9 @@ def main(argv):
       serverDir=arg
     elif opt in ("-s", "--server"):
       server=arg
-      if server=="dop40.nfra.nl":
+      if server=="dop40.nfra.nl" or server=="dop40.astron.nl":
         server="www.lofar.org/software"
-
+        serverDir="/lofar.org/software"
   #
   # open the index file in lastWeek
   #
