@@ -314,7 +314,7 @@ else
       EXTERNAL_CPPFLAGS="-I$lfr_ext_inc"
     fi
     if test "$lfr_ext_lib" != "" ; then
-      EXTERNAL_LDFLAGS="-L$lfr_ext_lib"
+      EXTERNAL_LDFLAGS="-L$lfr_ext_lib -Wl,-rpath,$lfr_ext_lib"
     fi
     for lib in $lfr_libsc
     do
