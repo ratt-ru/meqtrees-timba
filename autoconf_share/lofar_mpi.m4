@@ -70,9 +70,9 @@ AC_DEFINE(HAVE_MPI,dnl
 AC_DEFUN(lofar_HEADER_MPICH,
 [dnl
 AC_PREREQ(2.13)dnl
-ifelse($1, [], define(MPICH_VERSION,[1.2.3]), define(MPICH_VERSION,$1))
+ifelse($1, [], define(MPICH_VERSION,[]), define(MPICH_VERSION,$1))
 AC_ARG_WITH(mpich,
-	[  --with-mpich[=PFX]      prefix where MPICH is installed (default=/usr/local/mpich-]MPICH_VERSION[)],
+	[  --with-mpich[=PFX]      prefix where MPICH is installed (default=/usr/local/mpich]MPICH_VERSION[)],
 	[mpich_prefix="$withval"],
 	[mpich_prefix="no"])
 [
@@ -80,7 +80,7 @@ if test "$mpich_prefix" = "no" ; then
   enable_mpich=no
 else
   if test "$mpich_prefix" = "yes"; then
-    mpich_prefix=/usr/local/mpich-]MPICH_VERSION
+    mpich_prefix=/usr/local/mpich]MPICH_VERSION
 [
   fi
   enable_mpich=yes
