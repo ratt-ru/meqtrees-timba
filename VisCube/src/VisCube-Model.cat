@@ -4854,16 +4854,13 @@
 		    parameters 	(list Parameters
 			(object Parameter "ant1"
 			    quid       	"3DF9FDD40194"
-			    type       	"int"
-			    initv      	"-1")
+			    type       	"int")
 			(object Parameter "ant2"
 			    quid       	"3DF9FDD401EC"
-			    type       	"int"
-			    initv      	"-1")
+			    type       	"int")
 			(object Parameter "vdsid"
 			    quid       	"3DF9FDD40243"
-			    type       	"const VDSID &"
-			    initv      	"HIID()"))
+			    type       	"const VDSID &"))
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
@@ -4916,7 +4913,21 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0
-		    quidu      	"3DB964F20079"))
+		    quidu      	"3DB964F20079")
+		(object Operation "getIndexToNameMap"
+		    quid       	"3F98DA6F0142"
+		    stereotype 	"static"
+		    result     	"const IndexToNameMap &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "getNameToIndexMap"
+		    quid       	"3F98DA6F01B8"
+		    stereotype 	"static"
+		    result     	"const NameToIndexMap &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "ncorr_"
 		    quid       	"3DB964F90070"
@@ -5283,23 +5294,6 @@
 			    result     	"LoVec_int"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
-			    uid        	0)
-			(object Operation "f_residuals"
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"Inline"
-				    value      	TRUE))
-			    quid       	"3F5C8E3F0009"
-			    stereotype 	"const"
-			    parameters 	(list Parameters
-				(object Parameter "icorr"
-				    quid       	"3F5C8E3F005E"
-				    type       	"int"
-				    initv      	"0"))
-			    result     	"LoVec_fcomplex"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
 			    uid        	0))
 		    class_attributes 	(list class_attribute_list
 			(object ClassAttribute "tileref"
@@ -5507,6 +5501,34 @@
 			    name       	"ImplementationType"
 			    value      	"Iterator"))
 		    quid       	"3DF9FDC9024D"
+		    stereotype 	"typedef"
+		    module     	"Component View::VisCube"
+		    quidu      	"3DB964AF02FA")
+		(object Class "IndexToNameMap"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"VisTile.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"std::vector<string>"))
+		    quid       	"3F98DA6E006D"
+		    stereotype 	"typedef"
+		    module     	"Component View::VisCube"
+		    quidu      	"3DB964AF02FA")
+		(object Class "NameToIndexMap"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"VisTile.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"std::map<string,int>"))
+		    quid       	"3F98DA6E00C1"
 		    stereotype 	"typedef"
 		    module     	"Component View::VisCube"
 		    quidu      	"3DB964AF02FA")))
@@ -6639,7 +6661,7 @@
 	    zoom       	80
 	    max_height 	28350
 	    max_width  	21600
-	    origin_x   	4501
+	    origin_x   	5343
 	    origin_y   	0
 	    items      	(list diagram_item_list
 		(object ClassView "Class" "Logical View::VisCube::VisTile::ConstIterator" @37
@@ -6659,18 +6681,35 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@37
-			location   	(77, 1412)
+			location   	(78, 1411)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	2150
+			max_width  	2148
 			justify    	0
 			label      	"ConstIterator")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DB964F200F9"
-		    width      	2168
-		    height     	1456
+		    compartment 	(object Compartment
+			Parent_View 	@37
+			location   	(78, 1515)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	26
+			max_width  	1831)
+		    width      	2166
+		    height     	1458
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object ClassView "Class" "Logical View::VisCube::VisTile" @38
@@ -6690,7 +6729,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@38
-			location   	(2934, 551)
+			location   	(2934, 501)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	2036
@@ -6700,8 +6739,25 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DB964F200EE"
+		    compartment 	(object Compartment
+			Parent_View 	@38
+			location   	(2934, 563)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	40
+			max_width  	1744)
 		    width      	2054
-		    height     	2026
+		    height     	2126
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object AssociationViewNew "" @39
@@ -6724,7 +6780,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @41
 				Parent_View 	@40
-				location   	(2305, 1900)
+				location   	(2304, 1900)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -6751,7 +6807,7 @@
 			    supplier   	@37
 			    line_style 	3
 			    origin_attachment 	(2580, 1941)
-			    terminal_attachment 	(2236, 1941))
+			    terminal_attachment 	(2235, 1941))
 			(object RoleView "ptile" @42
 			    Parent_View 	@39
 			    location   	(185, 747)
@@ -6820,6 +6876,23 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DB964F200FB"
+		    compartment 	(object Compartment
+			Parent_View 	@44
+			location   	(93, 241)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	12
+			max_width  	1843)
 		    width      	2168
 		    height     	742
 		    annotation 	8
@@ -6832,7 +6905,7 @@
 		    supplier   	@37
 		    line_style 	3
 		    origin_attachment 	(1117, 867)
-		    terminal_attachment 	(1117, 1400))
+		    terminal_attachment 	(1117, 1399))
 		(object ClassView "Class" "Logical View::VisCube::ColumnarTableTile" @46
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
@@ -6850,7 +6923,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@46
-			location   	(5459, 165)
+			location   	(5459, 166)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	2330
@@ -6860,8 +6933,25 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DB964F20016"
+		    compartment 	(object Compartment
+			Parent_View 	@46
+			location   	(5459, 228)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	50
+			max_width  	1995)
 		    width      	2348
-		    height     	2638
+		    height     	2636
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object InheritView "" @47

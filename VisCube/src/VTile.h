@@ -66,7 +66,7 @@ class VisCube;
   Do(int,2,flags,FLAGS);
 
 
-DefineRefTypes(VisTile,VisTileRef);
+typedef CountedRef<VisTile> VisTileRef;
 
 //##ModelId=3DB964F20079
 //##Documentation
@@ -83,7 +83,7 @@ class VDSID : public HIID
   public: 
     // default constructor
     //##ModelId=3DB964F40176
-    VDSID (int obs=0,int dom=0,int iter=0);
+    VDSID (int segid=0,int beamid=0,int obsid=0);
   
     // construct from HIID (checks for correct length)
     //##ModelId=3DB964F40177
@@ -91,11 +91,11 @@ class VDSID : public HIID
     
     // returns individual components
     //##ModelId=3DF9FDCD008A
-    int iteration   () const      { return (*this)[2]; }
+    int segment     () const      { return (*this)[2]; }
     //##ModelId=3DB964F4017E
-    int domain      () const      { return (*this)[1]; }
+    int beam        () const      { return (*this)[1]; }
     //##ModelId=3DF9FDCD008E
-    int sequence    () const      { return (*this)[0]; }
+    int observation () const      { return (*this)[0]; }
     
     // length of a VDSID
     //##ModelId=3DF9FDCD0090
@@ -133,6 +133,8 @@ class VDSID : public HIID
 class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
 {
   public:
+    typedef CountedRef<VisTile> Ref;
+  
     //##ModelId=3DB964F200F4
     //##Documentation
     //## This enum lists all the possible columns in a visibility dataset.
@@ -218,6 +220,17 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //## Initializes a default tile format for NC correlations and NF frequency
     //## channels.
       static void makeDefaultFormat (Format &form, int nc, int nf);
+      
+      // returns a static vector mapping column index to uppercase name
+    //##ModelId=3F98DA6E006D
+      typedef std::vector<string> IndexToNameMap;
+    //##ModelId=3F98DA6F0142
+      static const IndexToNameMap & getIndexToNameMap ();
+      // returns a static map for column name (uppercase) to index
+    //##ModelId=3F98DA6E00C1
+      typedef std::map<string,int> NameToIndexMap;
+    //##ModelId=3F98DA6F01B8
+      static const NameToIndexMap & getNameToIndexMap ();
 
     //##ModelId=3DB964F90117
     //##Documentation
@@ -313,13 +326,9 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //##Documentation
     //## Sets the ID of this tile, forming it from two antenna indices,
     //## plus the VDSID. See also ColumnarTableTile::tileId().
-      void setTileId (int ant1 = -1,int ant2 = -1,const VDSID &vdsid = HIID())
+      void setTileId (int ant1,int ant2,const VDSID &vdsid)
       { 
-        ColumnarTableTile::setTileId(
-            (vdsid.empty() ? vdsId() : vdsid ) |
-            (ant1<0 ? antenna1() : ant1) |
-            (ant2<0 ? antenna2() : ant2)
-        ); 
+        ColumnarTableTile::setTileId(vdsid|ant1|ant2); 
       }
     //##ModelId=3DF9FDD4029A
     //##Documentation
@@ -603,10 +612,6 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
         //##ModelId=3DF9FDD203B0
           LoVec_fcomplex f_predict (int icorr = 0) const
           { return ptile->predict()(icorr,ALL,itime); }
-          
-          LoVec_fcomplex f_residuals (int icorr = 0) const
-          { return ptile->residuals()(icorr,ALL,itime); }
-          
         //##ModelId=3DF9FDD300DC
           LoVec_int f_flags        (int icorr = 0) const
           { return ptile->flags()(icorr,ALL,itime); }

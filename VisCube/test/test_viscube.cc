@@ -31,6 +31,13 @@ int main (int argc,const char *argv[])
     iter.set_flags(flagplane);
     iter.set_uvw(uvwvec);
   }
+  cout<<"=================== access via iterators =========\n";
+  for( VisCube::const_iterator iter = vc().begin(); iter != vc().end(); iter++ )
+  {
+    LoVec_fcomplex f_data = iter.f_data(0);
+    Assert( f_data.shape()[0] == NFREQ );
+  }
+  
   cout<<"=================== cube contents (on the fly) ====\n";
   cout<<"TIME:\n"<<vc->time()<<endl;
 //   cout<<"DATA:\n"<<vc->dataCol(True)<<endl;
