@@ -577,7 +577,7 @@ class ResultPlotter(BrowserPlugin):
           self._image_ntuple.addColumn (xyz_y_label, image)
           self._add_time_freq = False
 
-# do image plot
+# do image plot 
         if is_one_point_image == False:
           image_plot = self._display_controller.createDisplay( 'Z Plot', self._image_ntuple,[self._label,])
           freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
@@ -668,77 +668,76 @@ class ResultPlotter(BrowserPlugin):
 # are we dealing with Vellsets?
     if self._rec.has_key("vellsets"):
 # how many VellSet planes (e.g. I, Q, U, V would each be a plane) are there?
-        number_of_planes = len(self._rec["vellsets"])
-        for i in range(number_of_planes):
+      number_of_planes = len(self._rec["vellsets"])
+      for i in range(number_of_planes):
 # get the shape tuple - useful if the Vells have been compressed down to
 # a constant
-          self._shape = self._rec.vellsets[i]["shape"]
-          fields = self._rec.vellsets[i].field_names()
-#          print "vellset fields ", fields
-# first get the 'value' field
-          for f in self._rec.vellsets[i].field_names():
+        self._shape = self._rec.vellsets[i]["shape"]
 # handle "value" first
-            if f == "value":
-               complex_type = False;
-               if self._rec.vellsets[i].value.type() == Complex32:
-                 complex_type = True;
-               if self._rec.vellsets[i].value.type() == Complex64:
-                 complex_type = True;
+        if self._rec.vellsets[i].has_key("value"):
+          key = "value"
+          complex_type = False;
+          if self._rec.vellsets[i].value.type() == Complex32:
+            complex_type = True;
+          if self._rec.vellsets[i].value.type() == Complex64:
+            complex_type = True;
 
-               self._value_array = self._rec.vellsets[i].value
-               if complex_type:
+          self._value_array = self._rec.vellsets[i].value
+          if complex_type:
 #extract real component
-                 self._value_real_array = self._rec.vellsets[i].value.getreal()
-                 self._data_type = " real"
-                 self._label = f + self._data_type 
-                 self._z_real_min = self._value_real_array.min()
-                 self._z_real_max = self._value_real_array.max()
-                 self.display_vells_data(self._value_real_array)
+            self._value_real_array = self._rec.vellsets[i].value.getreal()
+            self._data_type = " real"
+            self._label = key + self._data_type 
+            self._z_real_min = self._value_real_array.min()
+            self._z_real_max = self._value_real_array.max()
+            self.display_vells_data(self._value_real_array)
 #extract imaginary component
-                 self._value_imag_array = self._rec.vellsets[i].value.getimag()
-                 self._data_type = " imag"
-                 self._label = f + self._data_type 
-                 self._z_imag_min = self._value_imag_array.min()
-                 self._z_imag_max = self._value_imag_array.max()
-                 self.display_vells_data(self._value_imag_array)
-               else:
+            self._value_imag_array = self._rec.vellsets[i].value.getimag()
+            self._data_type = " imag"
+            self._label = key + self._data_type 
+            self._z_imag_min = self._value_imag_array.min()
+            self._z_imag_max = self._value_imag_array.max()
+            self.display_vells_data(self._value_imag_array)
+          else:
 #we have a real array
-                 self._data_type = " real"
-                 self._label = f + self._data_type 
-                 self._z_real_min = self._value_array.min()
-                 self._z_real_max = self._value_array.max()
-                 self.display_vells_data(self._value_array)
-          for f in self._rec.vellsets[i].field_names():
-# handle "perturbations"
-            if f == "perturbations":
-              number_of_perturbations = len(self._rec.vellsets[i].perturbations)
-              self._perturbations = zeros((number_of_perturbations,))
-              for j in range(number_of_perturbations):
-                self._perturbations[j] = self._rec.vellsets[i].perturbations[j]
-# handle "perturbed_value"
-            if f == "perturbed_value":
-              number_of_perturbed_arrays = len(self._rec.vellsets[i].perturbed_value)
-              for j in range(number_of_perturbed_arrays):
-                complex_type = False;
-                if self._rec.vellsets[i].perturbed_value[j].type() == Complex32:
-                  complex_type = True;
-                if self._rec.vellsets[i].perturbed_value[j].type() == Complex64:
-                  complex_type = True;
+            self._data_type = " real"
+            self._label = key + self._data_type 
+            self._z_real_min = self._value_array.min()
+            self._z_real_max = self._value_array.max()
+            self.display_vells_data(self._value_array)
 
-                perturbed_array_diff = self._rec.vellsets[i].perturbed_value[j]
-                if complex_type:
-                  real_array = perturbed_array_diff.getreal()
-                  self._data_type = " real"
-                  self._label = f + " " + str(j) + self._data_type 
-                  self.display_vells_data(real_array)
-                  imag_array = perturbed_array_diff.getimag()
-                  self._data_type = " imag"
-                  self._label = f + " " + str(j) + self._data_type 
-                  self.display_vells_data(imag_array)
-                else:
-                  self._data_type = " real"
-                  self._label = f + " " + str(j) + self._data_type 
-                  self.display_vells_data(perturbed_array_diff)
+# handle "perturbations" - at present we do nothing ...
+        if self._rec.vellsets[i].has_key("perturbations"):
+          number_of_perturbations = len(self._rec.vellsets[i].perturbations)
+          for j in range(number_of_perturbations):
+            perturb = self._rec.vellsets[i].perturbations[j]
+#            print "self._perturbations[j] ",  perturb
+
+# handle "perturbed_value"
+        if self._rec.vellsets[i].has_key("perturbed_value"):
+          number_of_perturbed_arrays = len(self._rec.vellsets[i].perturbed_value)
+          for j in range(number_of_perturbed_arrays):
+            complex_type = False;
+            if self._rec.vellsets[i].perturbed_value[j].type() == Complex32:
+              complex_type = True;
+            if self._rec.vellsets[i].perturbed_value[j].type() == Complex64:
+              complex_type = True;
+
+            perturbed_array_diff = self._rec.vellsets[i].perturbed_value[j]
+            key = "perturbed_value"
+            if complex_type:
+              real_array = perturbed_array_diff.getreal()
+              self._data_type = " real"
+              self._label = key + " " + str(j) + self._data_type 
+              self.display_vells_data(real_array)
+              imag_array = perturbed_array_diff.getimag()
+              self._data_type = " imag"
+              self._label = key + " " + str(j) + self._data_type 
+              self.display_vells_data(imag_array)
+            else:
+              self._data_type = " real"
+              self._label = key + " " + str(j) + self._data_type 
+              self.display_vells_data(perturbed_array_diff)
     
 # otherwise we are dealing with a set of visualization data
     if self._rec.has_key("visu"):
