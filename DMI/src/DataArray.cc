@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.14  2002/06/11 12:15:08  smirnov
+//  %[BugId: 26]%
+//  Further fixes to array-mode hook addressing.
+//  Added an optional tid argument to NestableContainer::size().
+//
 //  Revision 1.13  2002/06/10 12:39:18  smirnov
 //  %[BugId: 26]%
 //  Revised NestableContainer::get() interface to return info in a ContentInfo
@@ -297,9 +302,16 @@ TypeId DataArray::type () const
   return headerType();
 }
 
-int DataArray::size () const
+int DataArray::size (TypeId tid) const
 {
-  return headerSize();
+  // by default, return size of scalar type
+  if( !tid || tid == itsScaType )
+    return headerSize();
+  // else return 1 for full array type
+  if( tid == TypeInfo::elemToArr( itsScaType ) )
+    return 1;
+  // <0 for type mismatch
+  return -1;
 }
 
 int DataArray::fromBlock (BlockSet& set)

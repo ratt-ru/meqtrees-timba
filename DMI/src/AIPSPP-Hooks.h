@@ -20,7 +20,7 @@ template<class T>
 inline Vector<T> NestableContainer::ConstHook::as_Vector () const
 {
   int n;
-  const T *data = &((*this).size(n));
+  const T *data = static_cast<const T*>(get_pointer(n,typeIdOf(T),False,False));
   return Vector<T>(IPosition(1,n),data);
 }
 
@@ -28,7 +28,7 @@ template<>
 inline Vector<String> NestableContainer::ConstHook::as_Vector<String> () const
 {
   int n;
-  const string *data = &((*this).size(n));
+  const string *data = static_cast<const string *>(get_pointer(n,Tpstring,False,False));
   Vector<String> vec(n);
   for( int i=0; i<n; i++ )
     vec(i) = data[i];
@@ -39,7 +39,7 @@ template<class T>
 inline Matrix<T> NestableContainer::ConstHook::as_Matrix (int n1,int n2) const
 {
   int n;
-  const T *data = &((*this).size(n));
+  const T *data = static_cast<const T*>(get_pointer(n,typeIdOf(T),False,False));
   FailWhen(n!=n1*n2,"array size mismatch");
   return Matrix<T>(IPosition(2,n1,n2),data);
 }

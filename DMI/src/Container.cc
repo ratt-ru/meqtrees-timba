@@ -548,15 +548,6 @@ const vector<T> & NestableContainer::Hook::assign_arrayable (const vector<T> &ot
   else
   {
     NestableContainer *nc1 = asNestableWr(target,info.tid);
-    // if nc1 resolves to a DataField, then look for an array inside it
-    if( nc1->objectType() == TpDataField && nc1->type() == TpDataArray )
-    {
-      FailWhen( nc1->size()>1,"field contains multiple arrays" );
-      
-    }
-    FailWhen(!nc1,"can't assign vector: type mismatch");
-    // get pointer to first element (use pointer mode to ensure contiguity,
-    // and pass in T as the check_tid.
     target = const_cast<void*>(
         nc1->get(HIID(),info,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER));
     FailWhen(!target,"can't assign vector");

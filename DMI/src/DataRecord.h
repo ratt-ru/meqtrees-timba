@@ -151,7 +151,7 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       virtual bool remove (const HIID &id);
 
       //## Operation: size%3C7A16C4023F
-      virtual int size () const;
+      virtual int size (TypeId tid = 0) const;
 
       //## Operation: initFieldIter%3CA20ACE00F8
       DataRecord::Iterator initFieldIter () const;
@@ -232,13 +232,6 @@ inline void DataRecord::replace (const HIID &id, DataField *pfld, int flags)
   //## end DataRecord::replace%3C5FF10102CA.body
 }
 
-inline int DataRecord::size () const
-{
-  //## begin DataRecord::size%3C7A16C4023F.body preserve=yes
-  return fields.size();
-  //## end DataRecord::size%3C7A16C4023F.body
-}
-
 inline DataRecord::Iterator DataRecord::initFieldIter () const
 {
   //## begin DataRecord::initFieldIter%3CA20ACE00F8.body preserve=yes
@@ -255,6 +248,10 @@ inline DataRecord::Iterator DataRecord::initFieldIter () const
 
 // Detached code regions:
 #if 0
+//## begin DataRecord::size%3C7A16C4023F.body preserve=yes
+  return fields.size();
+//## end DataRecord::size%3C7A16C4023F.body
+
 //## begin DataRecord::type%3C7A16CB023F.body preserve=yes
   return NullType;
 //## end DataRecord::type%3C7A16CB023F.body

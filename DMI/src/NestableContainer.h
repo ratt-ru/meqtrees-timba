@@ -222,15 +222,8 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           
           // Define an as_vector<> template. This should work for all
           // contiguous containers.
-          // This copies data so is not very efficient, but is quite
-          // convenient where sizes are small.
           template<class T>
-          vector<T> as_vector () const
-          {
-            int sz;
-            const T *data = &(*this).size(sz);
-            return vector<T>(data,data+sz);
-          }
+          vector<T> as_vector () const;
           
           // define AIPS++ accessors
           #ifdef AIPSPP_HOOKS
@@ -631,7 +624,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       //## Operation: size%3C7A154E01AB
       //	Abstract method. Must returns the number of elements in the
       //	container.
-      virtual int size () const = 0;
+      virtual int size (TypeId tid = 0) const = 0;
 
       //## Operation: type%3C7A1552012E
       //	 Should return the type of the contents. If container is not of a
@@ -1173,6 +1166,18 @@ inline void NestableContainer::ConstHook::nextIndex () const
   const NestableContainer *newnc = asNestable();
   FailWhen(!newnc,"indexing into non-existing or non-container element");
   nc = const_cast<NestableContainer*>(newnc);
+}
+
+// Define an as_vector<> template. This should work for all
+// contiguous containers.
+// This copies data so is not very efficient, but is quite
+// convenient where sizes are small.
+template<class T>
+inline vector<T> NestableContainer::ConstHook::as_vector () const
+{
+  int n;
+  const T *data = static_cast<const T*>(get_pointer(n,typeIdOf(T),False,False));
+  return vector<T>(data,data+n);
 }
 
 // const version of assign_object forces a read-only ref to be attached

@@ -133,6 +133,11 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       //	Use DMI::WRITE to make a writable field.
       void privatize (int flags = 0, int depth = 0);
 
+      //## Operation: size%3D05E2F301D2
+      //	Abstract method. Must returns the number of elements in the
+      //	container.
+      virtual int size (TypeId tid = 0) const;
+
       //## Operation: get%3C7A19790361
       //	Abstract virtual function for dereferencing a container field. Must
       //	be implemented by all child classes. fieldType() and operator [],
@@ -170,7 +175,7 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       TypeId type () const;
 
       //## Attribute: mysize%3C3D60C103DA
-      int size () const;
+      int mysize () const;
 
       //## Attribute: selected%3BEBE89602BC
       bool isSelected () const;
@@ -237,7 +242,9 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       bool    binary_type,
       // flag: field contains a dynamic type
       // (if both are clear, then it's a SPECIAL type
-              dynamic_type;
+              dynamic_type,
+      // flag: field contains a subcontainer
+              container_type;
       
       // inlines for accessing the header block
       int & headerType () const { return ((int*)headref->data())[0]; }
@@ -254,7 +261,7 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       //## end DataField::mytype%3BB317E3002B.attr
 
       //## begin DataField::mysize%3C3D60C103DA.attr preserve=no  public: int {U} 
-      int mysize;
+      int mysize_;
       //## end DataField::mysize%3C3D60C103DA.attr
 
       //## begin DataField::selected%3BEBE89602BC.attr preserve=no  public: bool {U} 
@@ -291,7 +298,7 @@ typedef DataField::Ref DataFieldRef;
 // throws exception if index is out of range
 inline void DataField::checkIndex ( int n ) const
 {
-  FailWhen( n < 0 || n >= mysize,"index out of range");
+  FailWhen( n < 0 || n >= mysize_,"index out of range");
 }
 
 //## end DataField%3BB317D8010B.postscript
@@ -323,11 +330,11 @@ inline TypeId DataField::type () const
   //## end DataField::type%3BB317E3002B.get
 }
 
-inline int DataField::size () const
+inline int DataField::mysize () const
 {
-  //## begin DataField::size%3C3D60C103DA.get preserve=no
-  return mysize;
-  //## end DataField::size%3C3D60C103DA.get
+  //## begin DataField::mysize%3C3D60C103DA.get preserve=no
+  return mysize_;
+  //## end DataField::mysize%3C3D60C103DA.get
 }
 
 inline bool DataField::isSelected () const

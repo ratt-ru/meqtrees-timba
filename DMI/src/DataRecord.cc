@@ -470,6 +470,15 @@ bool DataRecord::remove (const HIID &id)
   //## end DataRecord::remove%3C877D140036.body
 }
 
+int DataRecord::size (TypeId tid) const
+{
+  //## begin DataRecord::size%3C7A16C4023F.body preserve=yes
+  if( !tid || tid == TpObjRef || tid == TpDataField )
+    return fields.size();
+  return -1;
+  //## end DataRecord::size%3C7A16C4023F.body
+}
+
 bool DataRecord::getFieldIter (DataRecord::Iterator& iter, HIID& id, TypeId& type, int& size) const
 {
   //## begin DataRecord::getFieldIter%3CA20AD703A4.body preserve=yes

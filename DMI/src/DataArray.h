@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.12  2002/06/11 12:15:08  smirnov
+//  %[BugId: 26]%
+//  Further fixes to array-mode hook addressing.
+//  Added an optional tid argument to NestableContainer::size().
+//
 //  Revision 1.11  2002/06/10 12:39:18  smirnov
 //  %[BugId: 26]%
 //  Revised NestableContainer::get() interface to return info in a ContentInfo
@@ -147,7 +152,7 @@ public:
   virtual void* insert (const HIID& id, TypeId tid, TypeId& real_tid);
 
   // The size is the number of array elements.
-  virtual int size() const;
+  virtual int size (TypeId tid = 0) const;
 
   // The actual type of the array (TpArray_float, etc.).
   virtual TypeId type() const;

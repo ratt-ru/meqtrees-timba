@@ -45,7 +45,7 @@ DataField::DataField (int flags)
   //## end DataField::DataField%3C3D64DC016E.hasinit
   //## begin DataField::DataField%3C3D64DC016E.initialization preserve=yes
   : NestableContainer(flags&DMI::WRITE!=0),
-    spvec(0),mytype(0),mysize(0),selected(False)
+    spvec(0),mytype(0),mysize_(0),selected(False)
   //## end DataField::DataField%3C3D64DC016E.initialization
 {
   //## begin DataField::DataField%3C3D64DC016E.body preserve=yes
@@ -73,7 +73,7 @@ DataField::DataField (TypeId tid, int num, int flags, const void *data)
   //## end DataField::DataField%3BFA54540099.hasinit
   //## begin DataField::DataField%3BFA54540099.initialization preserve=yes
     : NestableContainer(flags&DMI::WRITE!=0),
-      spvec(0),mytype(0),mysize(0),selected(False)
+      spvec(0),mytype(0),mysize_(0),selected(False)
   //## end DataField::DataField%3BFA54540099.initialization
 {
   //## begin DataField::DataField%3BFA54540099.body preserve=yes
@@ -137,9 +137,9 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
   // obtain type information, check that type is supported
   typeinfo = TypeInfo::find(tid);
   FailWhen( !typeinfo.category,"unknown data type "+tid.toString() );
-  binary_type = dynamic_type = False;
+  binary_type = dynamic_type = container_type = False;
   mytype = tid;
-  mysize = max(num,1);
+  mysize_ = max(num,1);
   typeinfo.size = typeinfo.size;
   switch( typeinfo.category )
   {
@@ -150,24 +150,25 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
     {  
         binary_type = True;
         // allocate header and copy data
-        SmartBlock *header = new SmartBlock( sizeof(int)*2 + typeinfo.size*mysize);
+        SmartBlock *header = new SmartBlock( sizeof(int)*2 + typeinfo.size*mysize_);
         headref.attach(header,DMI::WRITE|DMI::ANON|DMI::LOCK);
         if( data )
-          memcpy(sizeof(int)*2 + static_cast<char*>(header->data()),data,typeinfo.size*mysize);
+          memcpy(sizeof(int)*2 + static_cast<char*>(header->data()),data,typeinfo.size*mysize_);
         else
-          memset(sizeof(int)*2 + static_cast<char*>(header->data()),0,typeinfo.size*mysize);
+          memset(sizeof(int)*2 + static_cast<char*>(header->data()),0,typeinfo.size*mysize_);
         break;
     }
     case TypeInfo::DYNAMIC: 
     {
         dynamic_type = True;
+        container_type = isNestable(tid);
         FailWhen(data,Debug::ssprintf("can't init field of type %s with data",tid.toString().c_str(),num) );
-        headref.attach( new SmartBlock( sizeof(int)*(2+mysize),DMI::ZERO ),
+        headref.attach( new SmartBlock( sizeof(int)*(2+mysize_),DMI::ZERO ),
                         DMI::WRITE|DMI::ANON|DMI::LOCK );
-        objects.resize(mysize);
-        blocks.resize(mysize);
-        objstate.resize(mysize);
-        objstate.assign(mysize,UNINITIALIZED);
+        objects.resize(mysize_);
+        blocks.resize(mysize_);
+        objstate.resize(mysize_);
+        objstate.assign(mysize_,UNINITIALIZED);
         break;
     }    
     case TypeInfo::SPECIAL: 
@@ -175,17 +176,17 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
         FailWhen(!typeinfo.fnew || !typeinfo.fdelete || !typeinfo.fcopy ||
             !typeinfo.fpack || !typeinfo.funpack || !typeinfo.fpacksize,
             "incomplete registry information for"+tid.toString() ); 
-        headref.attach( new SmartBlock( sizeof(int)*(2+mysize) ),
+        headref.attach( new SmartBlock( sizeof(int)*(2+mysize_) ),
                         DMI::WRITE|DMI::ANON|DMI::LOCK );
         // use the new function to allocate vector of objects
-        spvec = (*typeinfo.fnew)(mysize);
+        spvec = (*typeinfo.fnew)(mysize_);
         spdelete = typeinfo.fdelete;
         // if init data is supplied, use the copy function to init the vector
         if( data )
         {
           const char *from = static_cast<const char *>(data);
           char *to = static_cast<char *>(spvec);
-          for( int i=0; i<mysize; i++,from+=typeinfo.size,to+=typeinfo.size )
+          for( int i=0; i<mysize_; i++,from+=typeinfo.size,to+=typeinfo.size )
             (*typeinfo.fcopy)(to,from);
         }
         spvec_modified = False;
@@ -196,7 +197,7 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
   }
 
   headerType() = mytype;
-  headerSize() = mysize;
+  headerSize() = mysize_;
   // make header block non-writable
   if( !isWritable() )
     headref.change(DMI::READONLY);
@@ -210,8 +211,8 @@ void DataField::resize (int newsize)
   FailWhen( newsize<=0,"can't resize to <=0" );
   FailWhen( !valid(),"uninitialized DataField" );
   FailWhen( !isWritable(),"field is read-only" );
-  int minsize = min(mysize,newsize);
-  mysize = newsize;
+  int minsize = min(mysize_,newsize);
+  mysize_ = newsize;
   if( newsize > 1 )
     scalar = False;
   if( binary_type )
@@ -238,7 +239,7 @@ void DataField::resize (int newsize)
     spvec = newvec;
     spvec_modified = True;
   }
-  mysize = newsize;
+  mysize_ = newsize;
   //## end DataField::resize%3C62961D021B.body
 }
 
@@ -331,10 +332,10 @@ int DataField::fromBlock (BlockSet& set)
   headref.privatize((isWritable()?DMI::WRITE:0)|DMI::LOCK);
   // get type and size from header
   mytype = headerType();
-  mysize = headerSize();
-  if( mysize == -1 )
+  mysize_ = headerSize();
+  if( mysize_ == -1 )
   {
-    mysize = 1;
+    mysize_ = 1;
     scalar = True;
   }
   else
@@ -343,14 +344,14 @@ int DataField::fromBlock (BlockSet& set)
     return 1;
   // obtain type information, check that type is supported
   typeinfo = TypeInfo::find(mytype);
-  binary_type = dynamic_type = False;
+  binary_type = dynamic_type = container_type = False;
   switch( typeinfo.category )
   {
     case TypeInfo::NUMERIC:
     case TypeInfo::BINARY:  // numeric/binary types are stored directly in the header
       binary_type = True;
-      dprintf(2)("fromBlock: built-in type %s[%d]\n",mytype.toString().c_str(),mysize);
-      FailWhen( hsize != sizeof(int)*2 + typeinfo.size*mysize,
+      dprintf(2)("fromBlock: built-in type %s[%d]\n",mytype.toString().c_str(),mysize_);
+      FailWhen( hsize != sizeof(int)*2 + typeinfo.size*mysize_,
                   "incorrect block size" );
       break;
     
@@ -366,23 +367,24 @@ int DataField::fromBlock (BlockSet& set)
                 static_cast<const char*>(headref->data()) + sizeof(int)*2,
                 hsize - sizeof(int)*2,n);
       spdelete = typeinfo.fdelete;
-      FailWhen( n != mysize,"size mismatch after unpacking" );
+      FailWhen( n != mysize_,"size mismatch after unpacking" );
       spvec_modified = False; 
       break;
         
     case TypeInfo::DYNAMIC: // dynamic type: header contains info on # of blocks to follow
       dynamic_type = True;
-      dprintf(2)("fromBlock: dynamic type %s[%d]\n",mytype.toString().c_str(),mysize);
-      FailWhen( hsize != sizeof(int)*(2 + mysize),"incorrect block size" );
-      objects.resize(mysize);
-      blocks.resize(mysize);
-      objstate.resize(mysize);
-      objstate.assign(mysize,INBLOCK);
+      container_type = isNestable(mytype);
+      dprintf(2)("fromBlock: dynamic type %s[%d]\n",mytype.toString().c_str(),mysize_);
+      FailWhen( hsize != sizeof(int)*(2 + mysize_),"incorrect block size" );
+      objects.resize(mysize_);
+      blocks.resize(mysize_);
+      objstate.resize(mysize_);
+      objstate.assign(mysize_,INBLOCK);
       // Get blocks from set
       // Do not unblock objects, as that is done at dereference time
       // Note that we don't privatize the blocks, so field contents may
       // be shared and/or read-only
-      for( int i=0; i<mysize; i++ ) 
+      for( int i=0; i<mysize_; i++ ) 
       {
         npopped += headerBlockSize(i);
         if( headerBlockSize(i) )
@@ -421,15 +423,15 @@ int DataField::toBlock (BlockSet &set) const
   {
     // allocate and attach header block
     size_t hsize = sizeof(int)*2 + 
-            (*typeinfo.fpacksize)(spvec,mysize);
+            (*typeinfo.fpacksize)(spvec,mysize_);
     headref.unlock().attach( new SmartBlock(hsize),
                     DMI::WRITE|DMI::ANON|DMI::LOCK );
     // write basic fields
     headerType() = mytype;
-    headerSize() = scalar ? -mysize : mysize;
+    headerSize() = scalar ? -mysize_ : mysize_;
     hsize -= sizeof(int)*2;
     // pack object data into header block
-    (*typeinfo.fpack)(spvec,mysize,
+    (*typeinfo.fpack)(spvec,mysize_,
         static_cast<char*>(headref().data()) + sizeof(int)*2,hsize);
     spvec_modified = False;
     // if read-only, downgrade block reference
@@ -438,12 +440,12 @@ int DataField::toBlock (BlockSet &set) const
   }
   // push out the header block
   headerType() = mytype;
-  headerSize() = scalar ? -mysize : mysize;
+  headerSize() = scalar ? -mysize_ : mysize_;
   set.push(headref.copy(DMI::READONLY));
   // for dynamic types, do a toBlock on the objects, if needed
   if( dynamic_type )
   {
-    for( int i=0; i<mysize; i++ )
+    for( int i=0; i<mysize_; i++ )
     {
       switch( objstate[i] )
       {
@@ -571,7 +573,7 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
   // setup misc fields
   FailWhen( valid(),"field is already initialized" );
   mytype = other.type();
-  mysize = other.size();
+  mysize_ = other.size();
   scalar = other.scalar;
   binary_type = other.binary_type;
   dynamic_type = other.dynamic_type;
@@ -584,10 +586,10 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
   {
     objstate = other.objstate;
     objects.clear();
-    objects.resize(mysize);
+    objects.resize(mysize_);
     blocks.clear();
-    blocks.resize(mysize);
-    for( int i=0; i<mysize; i++ )
+    blocks.resize(mysize_);
+    for( int i=0; i<mysize_; i++ )
     {
       switch( objstate[i] )
       {
@@ -620,13 +622,13 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
   {
     if( spvec )
       (*spdelete)(spvec);
-    spvec = (*typeinfo.fnew)(mysize);
+    spvec = (*typeinfo.fnew)(mysize_);
     spdelete = typeinfo.fdelete;
-    if( mysize )
+    if( mysize_ )
     {
       const char *from = static_cast<char *>(other.spvec);
       char *to = static_cast<char *>(spvec);
-      for( int i=0; i<mysize; i++,from+=typeinfo.size,to+=typeinfo.size )
+      for( int i=0; i<mysize_; i++,from+=typeinfo.size,to+=typeinfo.size )
         (*typeinfo.fcopy)(to,from);
     }
     spvec_modified = other.spvec_modified;
@@ -647,7 +649,7 @@ void DataField::privatize (int flags, int depth)
   // privatize the field contents as well
   if( dynamic_type && ( flags&DMI::DEEP || depth>0 ) )
   {
-    for( int i=0; i<mysize; i++ )
+    for( int i=0; i<mysize_; i++ )
     {
       switch( objstate[i] )
       {
@@ -670,6 +672,27 @@ void DataField::privatize (int flags, int depth)
   //## end DataField::privatize%3C3EDEBC0255.body
 }
 
+int DataField::size (TypeId tid) const
+{
+  //## begin DataField::size%3D05E2F301D2.body preserve=yes
+  // if types do not match (or tid=0), and we're scalar, and have
+  // a subcontaine, then defer to its size()
+  if( tid != mytype && scalar && mysize() == 1 && container_type )
+  {
+    const NestableContainer *nc = dynamic_cast<const NestableContainer *>
+      (resolveObject(0,0).deref_p());
+    Assert(nc);
+    return nc->size(tid);
+  }
+  // else return our own size
+  if( !tid || tid == mytype ||
+      ( tid == TpObjRef && dynamic_type ) || 
+      ( TypeInfo::isNumeric(tid) && TypeInfo::isNumeric(mytype) ) )
+    return mysize();
+  return -1;
+  //## end DataField::size%3D05E2F301D2.body
+}
+
 const void * DataField::get (const HIID &id, ContentInfo &info, TypeId check_tid, int flags) const
 {
   //## begin DataField::get%3C7A19790361.body preserve=yes
@@ -679,7 +702,7 @@ const void * DataField::get (const HIID &id, ContentInfo &info, TypeId check_tid
   // single-index HIID implies get[n]
   if( id.size() == 1 && id.front().index() >= 0 )
     return getn(id.front().index(),info,check_tid,flags);
-  FailWhen( !valid() || !size(),"field not initialized" );
+  FailWhen( !valid() || !mysize(),"field not initialized" );
   FailWhen( !isNestable(type()),"contents not a container" );
   FailWhen( !scalar,"non-scalar field, explicit numeric subscript expected" );
   // Resolve to pointer to container
@@ -699,7 +722,7 @@ const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int fl
 {
   //## begin DataField::getn%3C7A1983024D.body preserve=yes
   FailWhen( !valid(),"field not initialized" );
-  info.size = size();
+  info.size = mysize();
   FailWhen( n<0 || n>info.size,"n out of range" );
   if( n == info.size )
     return 0;
@@ -708,7 +731,7 @@ const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int fl
   if( binary_type ) // binary type
   {
     FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
-    FailWhen(flags&DMI::NC_SCALAR && !flags&DMI::NC_POINTER && size()>1,"non-scalar container");
+    FailWhen(flags&DMI::NC_SCALAR && !flags&DMI::NC_POINTER && mysize()>1,"non-scalar container");
     // types must match, or TpNumeric can match any numeric type
     FailWhen( check_tid && check_tid != type() &&
               (flags&DMI::NC_POINTER || check_tid != TpNumeric || !TypeInfo::isNumeric(type())),
@@ -721,7 +744,7 @@ const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int fl
     // default (if no checking) is to return the ObjRef
     if( !check_tid || check_tid == TpObjRef ) 
     {
-      FailWhen(flags&(DMI::NC_SCALAR|DMI::NC_POINTER) && size()>1,"non-scalar/non-contiguous container");
+      FailWhen(flags&(DMI::NC_SCALAR|DMI::NC_POINTER) && mysize()>1,"non-scalar/non-contiguous container");
       info.tid = TpObjRef;
       return &resolveObject(n,flags); // checks DMI::WRITE
     }
@@ -731,7 +754,7 @@ const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int fl
       // deref and return object
       if( check_tid == type() || check_tid == TpObject )
       {
-        FailWhen(flags&(DMI::NC_SCALAR|DMI::NC_POINTER) && size()>1,"non-scalar/non-contiguous container");
+        FailWhen(flags&(DMI::NC_SCALAR|DMI::NC_POINTER) && mysize()>1,"non-scalar/non-contiguous container");
         info.tid = type();
         return &resolveObject(n,flags).deref(); // checks DMI::WRITE
       }
@@ -751,7 +774,7 @@ const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int fl
   else   // special type -- types must match
   {
     FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
-    FailWhen(flags&DMI::NC_SCALAR && !flags&DMI::NC_POINTER && size()>1,"non-scalar container");
+    FailWhen(flags&DMI::NC_SCALAR && !flags&DMI::NC_POINTER && mysize()>1,"non-scalar container");
     FailWhen(check_tid && check_tid != type(),
         "type mismatch: expecting "+type().toString()+" got "+check_tid.toString() );
     info.tid = type();
@@ -773,7 +796,7 @@ void * DataField::insert (const HIID &id, TypeId tid, TypeId &real_tid)
   }
   if( id.size()==1 && id.front().index()>=0 )
     return insertn(id.front().index(),tid,real_tid);
-  FailWhen( !valid() || !size(),"field not initialized or empty" );
+  FailWhen( !valid() || !mysize(),"field not initialized or empty" );
   FailWhen( !scalar,"non-scalar field, explicit index expected" );
   FailWhen( !isNestable(type()),"contents not a container" );
   // resolve to pointer to container
@@ -800,8 +823,8 @@ void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
   }
   else // else extend field if inserting at end
   {
-    FailWhen( n != size(),Debug::ssprintf("can't insert at [%d]",n) );
-    resize( size()+1 );
+    FailWhen( n != mysize(),Debug::ssprintf("can't insert at [%d]",n) );
+    resize( mysize()+1 );
     real_tid = type();
   }
   if( binary_type )
@@ -832,7 +855,7 @@ bool DataField::remove (const HIID &id)
   FailWhen( !id.size(),"null HIID" );
   if( id.size()==1 && id.front().index()>=0 )
     return removen(id.front().index());
-  FailWhen( !valid() || !size(),"field not initialized or empty" );
+  FailWhen( !valid() || !mysize(),"field not initialized or empty" );
   FailWhen( !scalar,"non-scalar field, explicit index expected" );
   FailWhen( !isNestable(type()),"contents not a container" );
   // resolve to pointer to container
@@ -849,8 +872,8 @@ bool DataField::removen (int n)
 {
   //## begin DataField::removen%3C877E260301.body preserve=yes
   dprintf(2)("removen(%d)\n",n);
-  FailWhen( !valid() || !size(),"field not initialized or empty" );
-  FailWhen( n != size()-1,"can only remove from end of field" );
+  FailWhen( !valid() || !mysize(),"field not initialized or empty" );
+  FailWhen( n != mysize()-1,"can only remove from end of field" );
   dprintf(2)("removen: resizing to %d elements\n",n);
   resize(n);
   return True;
@@ -873,7 +896,7 @@ ObjRef & DataField::prepareForPut (TypeId tid,int n )
   else
   {
     FailWhen( tid != mytype, "type mismatch in put("+tid.toString()+")" );
-    if( n == size() )
+    if( n == mysize() )
       resize(n+1);  // auto-resize if inserting at last+1
     else
       checkIndex(n);
@@ -903,7 +926,7 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
     if( !type() )
       out += "empty";
     else
-      out += type().toString()+Debug::ssprintf(":%d",size());
+      out += type().toString()+Debug::ssprintf(":%d",mysize());
     out += " / refs "+CountedRefTarget::sdebug(-1);
   }
   if( detail >= 2 || detail <= -2 )   // high detail
@@ -913,10 +936,10 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
     if( str.length() )
       out += "\n"+prefix+"  refs: "+str;
   }
-  if( dynamic_type && (detail >= 2 || detail <= -2) && size()>0 )   // high detail
+  if( dynamic_type && (detail >= 2 || detail <= -2) && mysize()>0 )   // high detail
   {
     // append object list
-    for( int i=0; i<size(); i++ )
+    for( int i=0; i<mysize(); i++ )
     {
       if( out.length() )
         out += "\n"+prefix;
@@ -963,7 +986,7 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
     return True;
   // dynamic objects: non-contiguous,
   // unless we have a single contiguous container
-  if( size() != 1 || !isNestable(type()) )
+  if( mysize() != 1 || !isNestable(type()) )
     return False;
   const NestableContainer *nc = 
     dynamic_cast<const NestableContainer *>(resolveObject(0,False,0).deref_p());
@@ -974,7 +997,7 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
 //## begin DataField::isScalar%3CB162BB0033.body preserve=yes
   // field can be treated as scalar when size = 0,1, and type
   // is either uninitialized or compatible
-  return size()<2 && 
+  return mysize()<2 && 
       ( !type() || !tid || type() == tid || 
         ( TypeInfo::isNumeric(type()) && TypeInfo::isNumeric(tid) ) 
       );
