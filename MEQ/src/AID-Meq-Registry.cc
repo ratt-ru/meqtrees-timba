@@ -17,6 +17,8 @@ BlockableObject * __construct_MeqResult (int n) { return n>0 ? new Meq::Result [
 BlockableObject * __construct_MeqNode (int n) { return n>0 ? new Meq::Node [n] : new Meq::Node; }
 #include "Function.h"
 BlockableObject * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n] : new Meq::Function; }
+#include "Constant.h"
+BlockableObject * __construct_MeqConstant (int n) { return n>0 ? new Meq::Constant [n] : new Meq::Constant; }
 #include "Parm.h"
 BlockableObject * __construct_MeqParm (int n) { return n>0 ? new Meq::Parm [n] : new Meq::Parm; }
 #include "Freq.h"
@@ -131,6 +133,9 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1216,"meqfunction")+
         TypeInfoReg::addToRegistry(-1216,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1216,__construct_MeqFunction)+
+        AtomicID::registerId(-1387,"meqconstant")+
+        TypeInfoReg::addToRegistry(-1387,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1387,__construct_MeqConstant)+
         AtomicID::registerId(-1244,"meqparm")+
         TypeInfoReg::addToRegistry(-1244,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1244,__construct_MeqParm)+

@@ -239,7 +239,7 @@ Vells & Vells::privatize()
 
 void Vells::show (std::ostream& os) const
 {
-  os<<sdebug(2);
+  //  os<<sdebug(2);
   if( !isNull() )
   {
     os<<": ";

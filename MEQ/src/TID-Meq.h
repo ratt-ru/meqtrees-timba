@@ -93,6 +93,23 @@ namespace Meq { class Conj; };
               typedef const Meq::Conj & ContainerParamType;
             };
 #endif
+#ifndef _defined_id_TpMeqConstant
+#define _defined_id_TpMeqConstant 1
+const TypeId TpMeqConstant(-1387);                // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/Constant.h:32
+const int TpMeqConstant_int = -1387;
+namespace Meq { class Constant; };
+            template<>
+            class DMIBaseTypeTraits<Meq::Constant> : public TypeTraits<Meq::Constant>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqConstant_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::Constant & ContainerReturnType;
+              typedef const Meq::Constant & ContainerParamType;
+            };
+#endif
 #ifndef _defined_id_TpMeqCos
 #define _defined_id_TpMeqCos 1
 const TypeId TpMeqCos(-1243);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cos.h:29

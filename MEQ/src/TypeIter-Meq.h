@@ -15,6 +15,7 @@
         Do(Meq::Result,arg) separator \
         Do(Meq::Node,arg) separator \
         Do(Meq::Function,arg) separator \
+        Do(Meq::Constant,arg) separator \
         Do(Meq::Parm,arg) separator \
         Do(Meq::Freq,arg) separator \
         Do(Meq::Time,arg) separator \

@@ -148,6 +148,11 @@ const int AidMeqCondeq_int = -1365;
 const AtomicID AidMeqConj(-1212);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Conj.h:29
 const int AidMeqConj_int = -1212;
 #endif
+#ifndef _defined_id_AidMeqConstant
+#define _defined_id_AidMeqConstant 1
+const AtomicID AidMeqConstant(-1387);             // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/Constant.h:32
+const int AidMeqConstant_int = -1387;
+#endif
 #ifndef _defined_id_AidMeqCos
 #define _defined_id_AidMeqCos 1
 const AtomicID AidMeqCos(-1243);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cos.h:29
