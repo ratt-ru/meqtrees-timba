@@ -246,7 +246,7 @@ AC_DEFUN([lofar_HEADER_BGLMPICH],
 AC_PREREQ(2.0)dnl
 ifelse($1, [], define(MPICH_VERSION,[]), define(MPICH_VERSION,$1))
 AC_ARG_WITH(bglmpich,
-	[  --with-bglmpich[=PFX]      prefix where MPICH is installed (default=/bgl/BlueLight/floor/bglsys)],
+	[  --with-bglmpich[=PFX]      prefix where MPICH is installed (default=/bgl/BlueLight/ppcfloor/bglsys)],
 	[bglmpich_prefix="$withval"],
 	[bglmpich_prefix="no"])
 [
