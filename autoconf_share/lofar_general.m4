@@ -65,9 +65,9 @@ AC_ARG_WITH(ldflags,
 	[  --with-ldflags=LDFLAGS    enable extra LDFLAGS],
 	[with_ldflags="$withval"])dnl
 AC_ARG_ENABLE(tracer,
-	[  --disable-tracer        disable TRACER macros],
+	[  --disable-tracer        en/disable TRACER macros (default is debug/opt)],
 	[enable_tracer="$enableval"],
-	[enable_tracer=yes])dnl
+	[enable_tracer="default"])dnl
 AC_ARG_ENABLE(dbgassert,
 	[  --enable-dbgassert      en/disable DBGASSERT macros (default is debug/opt)],
 	[enable_dbgassert="$enableval"],
@@ -105,6 +105,9 @@ AC_DEFINE(LOFAR_DEBUG,dnl
     lfr_cppflags="$lfr_cppflags -DUSE_DEBUG";
     lfr_cflags="$lfr_cflags -g";
     lfr_cxxflags="$lfr_cxxflags -g $lofar_warnflags";
+    if test "$enable_tracer" = "default"; then
+      enable_tracer="yes";
+    fi
     if test "$enable_dbgassert" = "default"; then
       enable_dbgassert="yes";
     fi
@@ -123,6 +126,9 @@ AC_DEFINE(LOFAR_DEBUG,dnl
   if test "$with_optimize" != "no"; then
     lfr_cflags="$lfr_cflags $with_optimize";
     lfr_cxxflags="$lfr_cxxflags $with_optimizecxx $lofar_warnflags";
+    if test "$enable_tracer" = "default"; then
+      enable_tracer="no";
+    fi
     if test "$enable_dbgassert" = "default"; then
       enable_dbgassert="no";
     fi
