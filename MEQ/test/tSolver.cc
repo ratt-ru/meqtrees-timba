@@ -38,22 +38,31 @@ using namespace Meq;
 
 int main (int argc,const char* argv[])
 {
-  Debug::setLevel("MeqNode",5);
-  Debug::setLevel("MeqForest",5);
+  //  Debug::setLevel("MeqNode",5);
+  //  Debug::setLevel("MeqForest",5);
   Debug::initLevels(argc,argv);
   try 
   {
-    LoMat_double defVal1(1,1);
-    defVal1 = 1.;
-    LoMat_double defVal2(1,1);
-    defVal2 = 2.;
+    LoMat_double defVal1(2,3);
+    defVal1(0,0) = 1.;
+    defVal1(1,0) = 2.;
+    defVal1(0,1) = 1.5;
+    defVal1(1,1) = 0.2;
+    defVal1(0,2) = 1.3;
+    defVal1(1,2) = 0.5;
+    LoMat_double defVal2(2,3);
+    defVal2(0,0) = 2.;
+    defVal2(1,0) = 10.;
+    defVal2(0,1) = 2.;
+    defVal2(1,1) = 10.;
+    defVal2(0,2) = 2.;
+    defVal2(1,2) = 10.;
     Forest forest;
 
     cout << "============ creating parm1 node ==================\n";
     DataRecord::Ref rec_child1(DMI::ANONWR);
     rec_child1()["Class"] = "MeqParm";
     rec_child1()["Name"] = "p1";
-    //    rec_child1()["Tablename"] = "meqadd.MEP";
     rec_child1()["Default"] = defVal1;
     rec_child1()["Config.Groups"] = FSolvableParm;
     int index_child1;
@@ -63,7 +72,6 @@ int main (int argc,const char* argv[])
     DataRecord::Ref rec_child2(DMI::ANONWR);
     rec_child2()["Class"] = "MeqParm";
     rec_child2()["Name"] = "p2";
-    //    rec_child2()["Tablename"] = "meqadd.MEP";
     rec_child2()["Default"] = defVal2;
     rec_child2()["Config.Groups"] = FSolvableParm;
     int index_child2;
@@ -83,7 +91,7 @@ int main (int argc,const char* argv[])
     DataRecord::Ref rec(DMI::ANONWR);
     rec()["Class"] = "MeqSolver";
     rec()["Name"] = "solve1";
-    rec()["Num.Steps"] = 3;
+    rec()["Num.Steps"] = 5;
     rec()["Children"] <<= new DataRecord;
       rec()["Children"]["A"] = "condeq1";
     DataRecord& recs = rec()["Solvable.Parm"] <<= new DataRecord;
@@ -104,9 +112,19 @@ int main (int argc,const char* argv[])
     Domain domain(1,4, -2,3);
     Request req(new Cells(domain, 4, 4));
     Result::Ref refres;
+    child1.execute(refres, req);
+    cout << "p1 before " << refres().vellSet(0).getValue() << endl;
+    child2.execute(refres, req);
+    cout << "p2 before " << refres().vellSet(0).getValue() << endl;
+
     int flag = chsolv.execute(refres, req);
     cout << flag << endl;
-    cout << refres().vellSet(0).getValue() << endl;
+    cout << "solver " << refres().vellSet(0).getValue() << endl;
+
+    child1.execute(refres, req);
+    cout << "p1 after  " << refres().vellSet(0).getValue() << endl;
+    child2.execute(refres, req);
+    cout << "p2 after  " << refres().vellSet(0).getValue() << endl;
   } 
   catch (std::exception& x) 
   {
