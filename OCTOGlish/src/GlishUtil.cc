@@ -108,7 +108,7 @@ GlishRecord GlishUtil::recToGlish (const DataRecord &rec)
     bool adjustIndex = False;
     // if a single numeric index, convert to anon field form "#xxx"
     if( id.size() == 1 && id.front().index() >= 0 )
-      name = '#'+name;
+      name = Debug::ssprintf("#%d",id.front().index()+1);
     else
       // is it an ".Index" field (i.e. base needs to be adjusted?)
       adjustIndex = id.back() == AidIndex;
@@ -581,7 +581,7 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
           bool isIndex = False;
           if( isnumber )
           {
-            id = HIID(AtomicID(atoi(field_name.c_str()+1)));
+            id = HIID(AtomicID(atoi(field_name.c_str()+1)-1));
           }
           else
           {
