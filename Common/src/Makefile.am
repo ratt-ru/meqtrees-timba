@@ -1,5 +1,3 @@
-# SUBDIRS	= shmem .
-
 INSTHDRS = \
         BlitzToAips.h \
         CheckConfig.h \

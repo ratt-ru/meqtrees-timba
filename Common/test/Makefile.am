@@ -12,8 +12,6 @@ TESTS	= tDebug_test.sh \
 	  tLorrays_test.sh    \
 	  tTimer
 
-XFAIL_TESTS		= tLorrays_test.sh
-
 tDebug_SOURCES			= tDebug.cc
 tDebug_LDADD			= ../src/libcommon.la
 tDebug_DEPENDENCIES		= ../src/libcommon.la $(LOFAR_DEPEND)
