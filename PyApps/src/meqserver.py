@@ -174,7 +174,7 @@ def default_mqs (debug={},**kwargs):
 if __name__ == '__main__':
   app_defaults.parse_argv(sys.argv[1:]);
   default_mqs();
-  for i in range(1,500):
+  for i in range(1,10):
     print 'createnode:',mqs.createnode(meq.node('MeqConstant','x'+str(i),value=0),wait=True);
   
   if not app_defaults.args['gui']:
