@@ -7,7 +7,9 @@
 #include <unistd.h>    
 
 static int dum = aidRegistry_Testing();
-    
+
+using namespace OctoGlish;    
+
 int main (int argc,const char *argv[])
 {
   Debug::initLevels(argc,argv);
@@ -17,14 +19,14 @@ int main (int argc,const char *argv[])
   {
     Dispatcher dsp;
     initGateways(dsp);
-    dsp.attach(makeGlishClientWP(argc,argv),DMI::ANON);
-    dsp.attach(new LoggerWP(10,Message::GLOBAL),DMI::ANON);
-    //dsp.attach(new EchoWP(0),DMI::ANON);
+    dsp.attach(makeGlishClientWP(argc,argv));
+    dsp.attach(new LoggerWP(10,Message::GLOBAL));
+    //dsp.attach(new EchoWP(0));
     dsp.start();
     dsp.pollLoop();
     dsp.stop();
   }
-  catch( Debug::Error err ) 
+  catch( std::exception &err ) 
   {
     cerr<<"\nCaught exception:\n"<<err.what()<<endl;
     return 1;

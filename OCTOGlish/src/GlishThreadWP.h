@@ -6,6 +6,10 @@
 #pragma aidgroup OCTOGlish
 #pragma aid GlishThreadedClientWP
 
+namespace OctoGlish
+{
+using namespace Octopussy;
+
 class GlishThreadedClientWP : public GlishClientWP
 {
   public:
@@ -13,9 +17,8 @@ class GlishThreadedClientWP : public GlishClientWP
       // src is passed on to GlishClientWP, and used to _SEND_ events
       // to Glish, while spigot is maintained in the receiveThread here,
       // and used to _RECEIVE_ events
-      GlishThreadedClientWP (casa::GlishSysEventSource *src,
-			     casa::GlishSysEventSource *spig,
-                             bool autostp=True,AtomicID wpc=AidGlishClientWP);
+      GlishThreadedClientWP (casa::GlishSysEventSource *src,casa::GlishSysEventSource *spig,
+                             bool autostp=true,AtomicID wpc=AidGlishClientWP);
 
       ~GlishThreadedClientWP();
 
@@ -43,4 +46,5 @@ class GlishThreadedClientWP : public GlishClientWP
       Thread::ThrID rcv_thread_;
 };
 
+};
 #endif

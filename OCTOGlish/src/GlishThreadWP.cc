@@ -5,14 +5,19 @@
 #include <casa/Arrays/Array.h>
 #include <casa/Arrays/ArrayMath.h>
 
-#include <DMI/DataRecord.h>
-#include <DMI/DataField.h>
-#include <DMI/DataArray.h>
+#include <DMI/Record.h>
+#include <DMI/Vec.h>
+#include <DMI/NumArray.h>
 #include <DMI/Global-Registry.h>
 
 #include "GlishThreadWP.h"
 
 using namespace casa;
+
+
+namespace OctoGlish
+{
+
 
 static int dum = aidRegistry_OCTOGlish();
 static int dum2 = aidRegistry_Global();
@@ -51,7 +56,7 @@ bool GlishThreadedClientWP::start ()
 {
   // do not start the client, start our own event reading thread instead
   rcv_thread_ = Thread::create(start_receiveThread,this);
-  return False;
+  return false;
 }
 
 void GlishThreadedClientWP::stop ()
@@ -78,7 +83,7 @@ void * GlishThreadedClientWP::receiveThread ()
     if( eventSpigot().nextGlishEvent(event,500) )
     {
       dprintf(4)("got Glish event, handling it\n");
-      GlishValue result = handleEvent(event);
+      casa::GlishValue result = handleEvent(event);
       if( eventSpigot().replyPending() )
         eventSpigot().reply(result);
     }
@@ -94,3 +99,4 @@ void * GlishThreadedClientWP::receiveThread ()
   return 0;
 }
 
+};

@@ -1,7 +1,7 @@
 #include <Python.h>
 #include <OCTOPUSSY/Message.h>
-#include <DMI/DataRecord.h>
-#include <DMI/DataArray.h>
+#include <DMI/Record.h>
+#include <DMI/NumArray.h>
 
 #include <exception>
     
@@ -10,8 +10,11 @@
     
 namespace OctoPython
 {
+  using namespace Octopussy;
   using std::string;
   LocalDebugContext_ns;
+  
+  
   inline std::string sdebug (int=0) { return "8Python"; }
   
   // -----------------------------------------------------------------------
@@ -59,14 +62,14 @@ namespace OctoPython
   //    conversion error, and clear any Python errors. 
   // Note that unrecoverable errors will be thrown as exceptions regardless
   // of policy (i.e., failure to allocate an object, etc.)
-  PyObject * pyFromDMI      (const BlockableObject &,int err_policy=EP_THROW);
+  PyObject * pyFromDMI      (const DMI::BObj &,int err_policy=EP_THROW);
   
   // Build Python objects from specific DMI objects, return _NEW REFERENCE_.
   // These function follow a EP_THROW error policy.
-  PyObject * pyFromRecord   (const DataRecord &);
-  PyObject * pyFromList     (const DataList &);
-  PyObject * pyFromField    (const DataField &);
-  PyObject * pyFromArray    (const DataArray &);
+  PyObject * pyFromRecord   (const DMI::Record &);
+  PyObject * pyFromList     (const DMI::List &);
+  PyObject * pyFromField    (const DMI::Vec &);
+  PyObject * pyFromArray    (const DMI::NumArray &);
   PyObject * pyFromMessage  (const Message &);
   PyObject * pyFromHIID     (const HIID &);
   // simple helper for std::strings
@@ -78,9 +81,9 @@ namespace OctoPython
   // error (if a Python exception is also raised, this will be a 
   // PythonException, otherwise another std::exception)
   int pyToDMI     (ObjRef &objref,PyObject *obj,int sepos=0,int seqlen=0);
-  int pyToRecord  (DataRecord::Ref &rec,PyObject *pyobj);
-  int pyToArray   (DataArray::Ref &arr,PyObject *pyobj);
-  int pyToMessage (MessageRef &msg,PyObject *pyobj);
+  int pyToRecord  (DMI::Record::Ref &rec,PyObject *pyobj);
+  int pyToArray   (DMI::NumArray::Ref &arr,PyObject *pyobj);
+  int pyToMessage (Message::Ref &msg,PyObject *pyobj);
   inline int pyToHIID   (HIID &id,PyObject *pyobj)
   { return convertSeqToHIID(id,pyobj); }
   
@@ -191,7 +194,7 @@ namespace OctoPython
       static std::string set (PyObject *errobj,const char *msg)
       {
         std::string errstr = std::string(errobj->ob_type->tp_name) + ": " + msg;
-        cdebug(2)<<"raising "<<errstr<<endl;
+        cdebug(2)<<"raising "<<errstr<<std::endl;
         PyErr_SetString(errobj,msg);
         return errstr;
       }

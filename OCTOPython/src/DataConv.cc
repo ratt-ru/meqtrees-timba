@@ -1,15 +1,16 @@
 #include "OctoPython.h"
 #include <OCTOPUSSY/Message.h>
-#include <DMI/DataRecord.h>
-#include <DMI/DataField.h>
-#include <DMI/DataArray.h>
-#include <DMI/DataList.h>
+#include <DMI/Record.h>
+#include <DMI/Vec.h>
+#include <DMI/NumArray.h>
+#include <DMI/List.h>
 #include <DMI/DynamicTypeManager.h>
 #define Bool NumarrayBool
 #include <numarray/libnumarray.h>
 #undef Bool
 
 using Debug::ssprintf;
+using std::endl;
         
 namespace OctoPython {    
     
@@ -140,7 +141,7 @@ static Base * createSubclass (PyObject *pyobj)
     if( !typestr )
       throwError(Value,string(dmi_type_tag)+" attribute is not a string");
     dprintf(4)("real object type is %s\n",typestr);
-    BlockableObject * bo = DynamicTypeManager::construct(TypeId(typestr));
+    DMI::BObj * bo = DynamicTypeManager::construct(TypeId(typestr));
     pbase = dynamic_cast<Base *>(bo);
     if( !pbase )
     {
@@ -160,7 +161,7 @@ static Base * createSubclass (PyObject *pyobj)
 // -----------------------------------------------------------------------
 // pyToRecord
 // -----------------------------------------------------------------------
-int pyToRecord (DataRecord::Ref &rec,PyObject *pyobj)
+int pyToRecord (DMI::Record::Ref &rec,PyObject *pyobj)
 {
   string objstr = 
       Debug(3) ? "PyToRecord("+ObjStr(pyobj)+"): " : string();
@@ -170,7 +171,7 @@ int pyToRecord (DataRecord::Ref &rec,PyObject *pyobj)
   PyObjectRef py_keylist = PyMapping_Keys(pyobj);
   if( !py_keylist )
     throwErrorOpt(Type,"no key list returned");
-  rec <<= createSubclass<DataRecord>(pyobj);
+  rec <<= createSubclass<DMI::Record>(pyobj);
   int numkeys = PySequence_Length(*py_keylist);
   // loop over dict keys
   for( int ikey=0; ikey<numkeys; ikey++ )
@@ -183,7 +184,7 @@ int pyToRecord (DataRecord::Ref &rec,PyObject *pyobj)
     char *key = PyString_AsString(*py_key);
     if( !key )
     {
-      cdebug(4)<<objstr<<"skipping key "<<ikey<<": not a string"<<endl;
+      cdebug(4)<<objstr<<"skipping key "<<ikey<<": not a string"<<std::endl;
       continue;
     }
     string keystr(key);
@@ -222,7 +223,7 @@ int pyToRecord (DataRecord::Ref &rec,PyObject *pyobj)
   }
   PyErr_Clear();
   cdebug(3)<<objstr<<"assigned "<<num_assigned<<" of "<<num_original<<" fields\n";
-  rec().validateContent();
+  rec().validateContent(true);
   return 1;
 }
 
@@ -265,8 +266,10 @@ static NumarrayType typeIdToNumarray (TypeId tid)
 // -----------------------------------------------------------------------
 // pyToArray
 // -----------------------------------------------------------------------
-int pyToArray (DataArray::Ref &arr,PyObject *pyobj)
+int pyToArray (DMI::NumArray::Ref &arref,PyObject *pyobj)
 {
+  // create object
+  DMI::NumArray &arr = arref <<= createSubclass<DMI::NumArray>(pyobj);
   // get input array object
   PyArrayObject *pyarr = NA_InputArray(pyobj,tAny,NUM_C_ARRAY);
   PyObjectRef pyarr_ref((PyObject*)pyarr); // for auto-cleanup
@@ -281,10 +284,11 @@ int pyToArray (DataArray::Ref &arr,PyObject *pyobj)
     shape[i] = pyarr->dimensions[i];
   TypeId tid = numarrayToTypeId(pyarr->descr->type_num);
   ulong nb = ulong(pyarr->itemsize)*shape.product();
-  // create DataArray
+  // init DMI::NumArray
   cdebug(3)<<"pyToArray("<<ObjStr(pyobj)<<": type "<<tid<<", shape "<<shape<<", "<<nb<<" bytes\n";
-  arr <<= new DataArray(tid,shape);
-  memcpy(arr().getDataPtr(),NA_OFFSETDATA(pyarr),nb);
+  arr.init(tid,shape);
+  memcpy(arr.getDataPtr(),NA_OFFSETDATA(pyarr),nb);
+  arr.validateContent(true);
 
   // success
   return 1;
@@ -292,7 +296,7 @@ int pyToArray (DataArray::Ref &arr,PyObject *pyobj)
 
 // -----------------------------------------------------------------------
 // makeField
-// helper function to init/reuse a DataField, depending on the seqpos/seqlen 
+// helper function to init/reuse a DMI::Vec, depending on the seqpos/seqlen 
 // arguments.
 // If seqlen>0, will check that objref contains a DF. If seqpos=0, will init
 // that field with 'type', else check for type mismatch. 
@@ -300,15 +304,15 @@ int pyToArray (DataArray::Ref &arr,PyObject *pyobj)
 // Returns DF &, or throws/raises a TypeError on type mismatch.
 // Can also throw something on other failure.
 // -----------------------------------------------------------------------
-static DataField & makeField (ObjRef &objref,int seqpos,int seqlen,TypeId type)
+static DMI::Vec & makeField (ObjRef &objref,int seqpos,int seqlen,TypeId type)
 {
   string objstr = 
       Debug(4) ? ssprintf("PyToDMI-mf(%s,%d,%d): ",type.toString().c_str(),seqpos,seqlen) : string();
-  DataField *pdf; 
+  DMI::Vec *pdf; 
   if( seqlen )
   {
-    pdf = dynamic_cast<DataField *>(objref.dewr_p());
-    FailWhen(!pdf,"seqlen>0 but objref is not a DataField");
+    pdf = dynamic_cast<DMI::Vec *>(objref.dewr_p());
+    FailWhen(!pdf,"seqlen>0 but objref is not a DMI::Vec");
     if( !seqpos )
     {
       cdebug(4)<<objstr<<"initializing new df("<<type<<","<<seqlen<<")\n";
@@ -323,7 +327,7 @@ static DataField & makeField (ObjRef &objref,int seqpos,int seqlen,TypeId type)
   else
   {
     cdebug(4)<<objstr<<"creating scalar df("<<type<<")\n";
-    objref <<= pdf = new DataField(type);
+    objref <<= pdf = new DMI::Vec(type);
   }
   return *pdf;
 }
@@ -336,8 +340,8 @@ static DataField & makeField (ObjRef &objref,int seqpos,int seqlen,TypeId type)
 // (a) seqlen=0: create new container to hold object, return via objref.
 //     This is for objects not part of a sequence.
 // (b) seqlen>0: object is part of a sequence; objref must already contain
-//     a DataField.
-//     If seqpos=0, init the DataField with the object type and store at #0
+//     a DMI::Vec.
+//     If seqpos=0, init the DMI::Vec with the object type and store at #0
 //     If seqpos>0, check for type consistency, and store at #seqpos.
 // -----------------------------------------------------------------------
 int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
@@ -349,14 +353,14 @@ int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
   // (int,long,float,complex,str,hiid,array_class,record,message);
   Assert(!seqpos || seqpos<seqlen);
   // this is really a switch calling different kinds of object builders
-  DataArray *parr;
+  DMI::NumArray *parr;
   if( PyInt_Check(obj) )
   {
     if( seqlen )
       makeField(objref,seqpos,seqlen,Tpint)[seqpos] = int( PyInt_AS_LONG(obj) );
     else
     {
-      objref <<= parr = new DataArray(Tpint,LoShape(1));
+      objref <<= parr = new DMI::NumArray(Tpint,LoShape(1));
       *static_cast<int*>(parr->getDataPtr()) = int( PyInt_AS_LONG(obj) );
     }
   }
@@ -366,7 +370,7 @@ int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
       makeField(objref,seqpos,seqlen,Tplong)[seqpos] = PyLong_AsLong(obj);
     else // single numeric scalar -- convert to DatArray
     {
-      objref <<= parr = new DataArray(Tplong,LoShape(1));
+      objref <<= parr = new DMI::NumArray(Tplong,LoShape(1));
       *static_cast<long*>(parr->getDataPtr()) = PyLong_AsLong(obj);
     }
     // check for overflow
@@ -383,7 +387,7 @@ int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
       makeField(objref,seqpos,seqlen,Tpdouble)[seqpos] = PyFloat_AS_DOUBLE(obj);
     else
     {
-      objref <<= parr = new DataArray(Tpdouble,LoShape(1));
+      objref <<= parr = new DMI::NumArray(Tpdouble,LoShape(1));
       *static_cast<double*>(parr->getDataPtr()) = PyFloat_AS_DOUBLE(obj);
     }
   }
@@ -394,7 +398,7 @@ int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
       makeField(objref,seqpos,seqlen,Tpdcomplex)[seqpos] = dcomplex(pc.real,pc.imag);
     else
     {
-      objref <<= parr = new DataArray(Tpdcomplex,LoShape(1));
+      objref <<= parr = new DMI::NumArray(Tpdcomplex,LoShape(1));
       *static_cast<dcomplex*>(parr->getDataPtr()) = dcomplex(pc.real,pc.imag);
     }
   }
@@ -402,12 +406,12 @@ int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
   {
     makeField(objref,seqpos,seqlen,Tpstring)[seqpos] = PyString_AS_STRING(obj);
   }
-  else if( PyObject_IsInstance(obj,py_class.record) ) // try to convert mappings to DataRecords
+  else if( PyObject_IsInstance(obj,py_class.record) ) // try to convert mappings to DMI::Records
   {
-    DataRecord::Ref rec;
+    DMI::Record::Ref rec;
     pyToRecord(rec,obj);
     if( seqlen )
-      makeField(objref,seqpos,seqlen,TpDataRecord)[seqpos] <<= rec;
+      makeField(objref,seqpos,seqlen,TpDMIRecord)[seqpos] <<= rec;
     else
       objref <<= rec;
   }
@@ -415,14 +419,14 @@ int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
   {
     HIID id;
     pyToHIID(id,obj);
-    makeField(objref,seqpos,seqlen,TpHIID)[seqpos] = id;
+    makeField(objref,seqpos,seqlen,TpDMIHIID)[seqpos] = id;
   }
   else if( PyObject_IsInstance(obj,py_class.array_class) )
   {
-    DataArray::Ref arr;
+    DMI::NumArray::Ref arr;
     pyToArray(arr,obj);
     if( seqlen )
-      makeField(objref,seqpos,seqlen,TpDataArray)[seqpos] <<= arr;
+      makeField(objref,seqpos,seqlen,TpDMINumArray)[seqpos] <<= arr;
     else
       objref <<= arr;
   }
@@ -431,26 +435,26 @@ int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
     Message::Ref msg;
     pyToMessage(msg,obj);
     if( seqlen )
-      makeField(objref,seqpos,seqlen,TpDataArray)[seqpos] <<= msg;
+      makeField(objref,seqpos,seqlen,TpDMINumArray)[seqpos] <<= msg;
     else
       objref <<= msg;
   }
   else if( PySequence_Check(obj) )  // process a sequence
   {
     // check if we're actually an item in another sequence
-    DataField *pdf,*pdf0=0; 
+    DMI::Vec *pdf,*pdf0=0; 
     ObjRef dfref; // this is where the sequence is stored
     if( seqlen )
     {
-      pdf0 = &( makeField(objref,seqpos,seqlen,TpDataField) );
-      dfref <<= pdf = new DataField;
+      pdf0 = &( makeField(objref,seqpos,seqlen,TpDMIVec) );
+      dfref <<= pdf = new DMI::Vec;
     }
     else
     {
-      objref <<= pdf = new DataField;
+      objref <<= pdf = new DMI::Vec;
       dfref <<= pdf;
     }
-    // pdf now points to a new DataField for our sequence.
+    // pdf now points to a new DMI::Vec for our sequence.
     int len = PySequence_Size(obj);
     cdebug(3)<<objstr<<"converting seq of "<<len<<" objects\n";
     // if len=0, we'll be left with an uninitialized DF, which is exactly
@@ -494,15 +498,15 @@ inline PyObject * pyFromObjRef (const ObjRef &ref)
 
 // -----------------------------------------------------------------------
 // pyFromField
-// converts a DataField to a Python scalar or tuple
+// converts a DMI::Vec to a Python scalar or tuple
 // -----------------------------------------------------------------------
-PyObject * pyFromField (const DataField &df)
+PyObject * pyFromField (const DMI::Vec &df)
 {
   Thread::Mutex::Lock lock(df.mutex());
   // empty/uninit field -- return empty tuple
   if( !df.valid() )
   {
-    cdebug(3)<<"pyFromDF: null DataField, returning ()\n";
+    cdebug(3)<<"pyFromDF: null DMI::Vec, returning ()\n";
     return PyTuple_New(0);
   }
   TypeId type = df.type();
@@ -553,7 +557,7 @@ PyObject * pyFromField (const DataField &df)
   }
   else if( type == Tpstring )
     extractField(pyFromString,as<string>)
-  else if( type == TpHIID )
+  else if( type == TpDMIHIID )
     extractField(pyFromHIID,as<HIID>)
   else if( typeinfo.category == TypeCategories::DYNAMIC )
     extractField(pyFromObjRef,ref)
@@ -567,17 +571,17 @@ PyObject * pyFromField (const DataField &df)
 
 // -----------------------------------------------------------------------
 // pyFromList
-// converts a DataList to a Python list
+// converts a DMI::List to a Python list
 // -----------------------------------------------------------------------
-PyObject * pyFromList (const DataList &dl)
+PyObject * pyFromList (const DMI::List &dl)
 {
   Thread::Mutex::Lock lock(dl.mutex());
   int len = dl.size();
-  cdebug(3)<<"pyFromList: converting DataList of "<<len<<" items\n";
+  cdebug(3)<<"pyFromList: converting DMI::List of "<<len<<" items\n";
   PyObjectRef pylist = PyList_New(len);
   for( int i=0; i<len; i++ )
   {
-    NestableContainer::Ref content = dl.getItem(i);
+    ObjRef content = dl.get(i);
     cdebug(4)<<"pyFromList: #"<<i<<" is a "<<content->objectType()<<endl;
     PyList_SET_ITEM(*pylist,i,pyFromDMI(*content,EP_CONV_ERROR));
   }
@@ -587,30 +591,29 @@ PyObject * pyFromList (const DataList &dl)
 
 // -----------------------------------------------------------------------
 // pyFromRecord
-// converts a DataRecord to a Python record instance
+// converts a DMI::Record to a Python record instance
 // -----------------------------------------------------------------------
-PyObject * pyFromRecord (const DataRecord &dr)
+PyObject * pyFromRecord (const DMI::Record &dr)
 {
   Thread::Mutex::Lock lock(dr.mutex());
-  cdebug(3)<<"pyFromRecord: converting DataRecord"<<endl;
+  cdebug(3)<<"pyFromRecord: converting DMI::Record"<<endl;
   PyObjectRef pyrec = PyObject_CallObject(py_class.record,NULL);
   if( !pyrec )
     throwErrorOpt(Runtime,"failed to create a record instance");
   // insert __dmi_type tag, if object is a subclass of record
   TypeId objtype = dr.objectType();
-  if( objtype != TpDataRecord )
+  if( objtype != TpDMIRecord )
   {
     cdebug(3)<<"pyFromRecord: actual DMI type is "<<objtype<<endl;
     PyObjectRef type = PyString_FromString(const_cast<char*>(objtype.toString().c_str()));
     if( PyObject_SetAttrString(*pyrec,const_cast<char*>(dmi_type_tag),*type) < 0 )
       throwErrorOpt(Runtime,"failed to set attribute");
   }
-  DataRecord::Iterator iter = dr.initFieldIter();
-  HIID id; NestableContainer::Ref content;
-  while( dr.getFieldIter(iter,id,content) )
+  for( DMI::Record::const_iterator iter = dr.begin(); iter != dr.end(); iter++ )
   {
-    cdebug(4)<<"pyFromRecord: "<<id<<" contains "<<content->objectType()<<endl;
-    string idstr = id.toString('_');
+    const ObjRef & content = iter.ref(); 
+    cdebug(4)<<"pyFromRecord: "<<iter.id()<<" contains "<<content->objectType()<<endl;
+    string idstr = iter.id().toString('_');
     PyObjectRef value = pyFromDMI(*content,EP_CONV_ERROR);
     if( value )
     {
@@ -630,9 +633,9 @@ PyObject * pyFromRecord (const DataRecord &dr)
 
 // -----------------------------------------------------------------------
 // pyFromArray
-// converts a DataArray to a Numarray instance
+// converts a DMI::NumArray to a Numarray instance
 // -----------------------------------------------------------------------
-PyObject * pyFromArray (const DataArray &da)
+PyObject * pyFromArray (const DMI::NumArray &da)
 {
   Thread::Mutex::Lock lock(da.mutex());
   // get rank & shape into terms that Numarray understands
@@ -641,7 +644,7 @@ PyObject * pyFromArray (const DataArray &da)
   if( rank==1 && da.size() == 1 )
   {
     TypeId type = da.elementType();
-    DataArray::Hook hook(da,0);
+    DMI::NumArray::Hook hook(da,0);
     if( type == Tpbool )
       return PyBool_FromLong(hook.as<bool>());
     else if( type < Tpbool && type >= Tplong )
@@ -714,32 +717,32 @@ PyObject * pyFromMessage (const Message &msg)
 
 // -----------------------------------------------------------------------
 // pyFromDMI
-// converts a DMI object (DataField, DataRecord, DataArray, Message)
+// converts a DMI object (DMI::Vec, DMI::Record, DMI::NumArray, Message)
 // into a Python object.
 // May be called in two modes, depending on whether the object is
 // part of a sequence or not:
 // (a) seqlen=0: create new container to hold object, return via objref.
 //     This is for objects not part of a sequence.
 // (b) seqlen>0: object is part of a sequence; objref must already contain
-//     a DataField.
-//     If seqpos=0, init the DataField with the object type and store at #0
+//     a DMI::Vec.
+//     If seqpos=0, init the DMI::Vec with the object type and store at #0
 //     If seqpos>0, check for type consistency, and store at #seqpos.
 // -----------------------------------------------------------------------
-PyObject * pyFromDMI (const BlockableObject &obj,int err_policy)
+PyObject * pyFromDMI (const DMI::BObj &obj,int err_policy)
 {
   Thread::Mutex::Lock lock(obj.crefMutex());
   try
   {
     TypeId type = obj.objectType();
-    if( dynamic_cast<const DataRecord *>(&obj) )
-      return pyFromRecord(dynamic_cast<const DataRecord &>(obj));
-    else if( dynamic_cast<const DataField *>(&obj) )
-      return pyFromField(dynamic_cast<const DataField &>(obj));
-    else if( type == TpDataArray )
-      return pyFromArray(dynamic_cast<const DataArray &>(obj));
-    else if( type == TpDataList )
-      return pyFromList(dynamic_cast<const DataList &>(obj));
-    else if( type == TpMessage )
+    if( dynamic_cast<const DMI::Record *>(&obj) )
+      return pyFromRecord(dynamic_cast<const DMI::Record &>(obj));
+    else if( dynamic_cast<const DMI::Vec *>(&obj) )
+      return pyFromField(dynamic_cast<const DMI::Vec &>(obj));
+    else if( type == TpDMINumArray )
+      return pyFromArray(dynamic_cast<const DMI::NumArray &>(obj));
+    else if( type == TpDMIList )
+      return pyFromList(dynamic_cast<const DMI::List &>(obj));
+    else if( type == TpOctopussyMessage )
       return pyFromMessage(dynamic_cast<const Message &>(obj));
     else
       throwError(Type,"dmi type "+type.toString()+" not supported");
@@ -791,7 +794,7 @@ PyObject * pyConvError (const string &msg)
 // -----------------------------------------------------------------------
 void initDataConv ()
 {
-  if( sizeof(Bool) != sizeof(NumarrayBool) )
+  if( sizeof(bool) != sizeof(NumarrayBool) )
   {
     Py_FatalError("C++ bool != numarray bool, conversion code must be added");
   }

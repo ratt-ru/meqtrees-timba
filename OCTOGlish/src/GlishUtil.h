@@ -3,9 +3,9 @@
 
 #include <Common/Debug.h>
 #include <DMI/DMI.h>
-#include <DMI/DataRecord.h>
-#include <DMI/DataField.h>
-#include <DMI/DataArray.h>
+#include <DMI/Record.h>
+#include <DMI/Vec.h>
+#include <DMI/NumArray.h>
     
 #include <tasking/Glish.h>
 
@@ -23,29 +23,29 @@ namespace GlishUtil
   
   casa::GlishArray makeFailField ( const casa::String &msg );
 
-  bool makeGlishArray (casa::GlishArray &arr,const NestableContainer &nc,TypeId tid,bool adjustIndex);
+  bool makeGlishArray (casa::GlishArray &arr,const DMI::Container &nc,DMI::TypeId tid,bool adjustIndex);
     
-  casa::GlishRecord recToGlish (const DataRecord &rec);
+  casa::GlishRecord recToGlish (const DMI::Record &rec);
 
-  casa::GlishValue objectToGlishValue (const BlockableObject &obj,bool adjustIndex);
+  casa::GlishValue objectToGlishValue (const DMI::BObj &obj,bool adjustIndex);
 
-  ObjRef makeDataArray (const casa::GlishArray &arr,bool adjustIndex);
+  DMI::ObjRef makeDMINumArray (const casa::GlishArray &arr,bool adjustIndex);
 
-  void makeDataField (DataField &field,const casa::GlishArray &arr,bool adjustIndex,bool isScalar);
+  void makeDMIVec (DMI::Vec &field,const casa::GlishArray &arr,bool adjustIndex,bool isScalar);
       
-  ObjRef glishValueToObject (const casa::GlishValue &val,bool adjustIndex);
+  DMI::ObjRef glishValueToObject (const casa::GlishValue &val,bool adjustIndex);
 
-  casa::GlishRecord objectToBlockRec (const BlockableObject &obj);
+  casa::GlishRecord objectToBlockRec (const DMI::BObj &obj);
 
-  BlockableObject * blockRecToObject (const casa::GlishRecord &rec);
+  DMI::BObj * blockRecToObject (const casa::GlishRecord &rec);
 
   template<class T> 
-  void initDataField (DataField &field,const casa::GlishArray &arr,bool isScalar);
+  void initDMIVec (DMI::Vec &field,const casa::GlishArray &arr,bool isScalar);
   
   template<class T> 
-  void newDataArray (ObjRef &ref,const casa::GlishArray &arr);
+  void newDMINumArray (DMI::ObjRef &ref,const casa::GlishArray &arr);
   
   template<class Base>
-  Base * createSubclass (ObjRef &ref,const casa::GlishValue &val);
-}
+  Base * createSubclass (DMI::ObjRef &ref,const casa::GlishValue &val);
+};
 #endif

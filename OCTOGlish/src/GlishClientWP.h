@@ -9,23 +9,27 @@
 #include <OCTOGlish/AID-OCTOGlish.h>
 #include <OCTOPUSSY/WorkProcess.h>
 
-namespace casa {    
-class GlishSysEvent;
-class GlishSysEventSource;
-class GlishRecord;
+namespace casa
+{    
+  class GlishSysEvent;
+  class GlishSysEventSource;
+  class GlishRecord;
 }
 
 #pragma aidgroup OCTOGlish
 #pragma aid GlishClientWP
 #pragma aid Index start IMTestWP HelloWorld Content
 
+namespace OctoGlish
+{
+using namespace Octopussy;
 
 //##ModelId=3CB5618B0373
 class GlishClientWP : public WorkProcess
 {
   public:
       //##ModelId=3CB562BB0226
-      GlishClientWP (casa::GlishSysEventSource *src, bool autostp = True, AtomicID wpc = AidGlishClientWP);
+      GlishClientWP (casa::GlishSysEventSource *src, bool autostp = true, AtomicID wpc = AidGlishClientWP);
 
     //##ModelId=3DB9369201C7
       ~GlishClientWP();
@@ -46,7 +50,7 @@ class GlishClientWP : public WorkProcess
       virtual int timeout (const HIID &);
 
       //##ModelId=3CB5622B01ED
-      virtual int receive (MessageRef &mref);
+      virtual int receive (Message::Ref &mref);
       
       
       bool isConnected () const     { return connected; }
@@ -60,7 +64,7 @@ class GlishClientWP : public WorkProcess
     //##ModelId=3E9BD6E900D5
       casa::GlishValue messageToGlishValue (const Message &msg);
     //##ModelId=3E9BD6E900D9
-      MessageRef glishValueToMessage (const casa::GlishValue &value);
+      Message::Ref glishValueToMessage (const casa::GlishValue &value);
   
     //##ModelId=3DB9369803A7
       bool autostop () const
@@ -104,7 +108,7 @@ class GlishClientWP : public WorkProcess
 
 // Class GlishClientWP 
 
-GlishClientWP * makeGlishClientWP (int argc,const char *argv[],bool autstop=False );
+GlishClientWP * makeGlishClientWP (int argc,const char *argv[],bool autostop=false );
 
-
+}
 #endif

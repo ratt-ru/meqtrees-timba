@@ -1,15 +1,19 @@
 #ifndef OCTOGLISH_GlishConnServerWP_h
 #define OCTOGLISH_GlishConnServerWP_h 1
 
-#include <DMI/Common.h>
 #include <DMI/DMI.h>
-
 #include <OCTOPUSSY/WorkProcess.h>
+
 #pragma aid GlishConnServerWP
 
-namespace casa {
-class GlishSysEventSource;
+namespace casa
+{
+  class GlishSysEventSource;
 }
+    
+namespace OctoGlish
+{
+using namespace Octopussy;
 
     
 class GlishConnServerWP : public WorkProcess
@@ -45,12 +49,11 @@ class GlishConnServerWP : public WorkProcess
       // flag: true if we created the pipe (will delete on exit)
       bool created_;
       
-      
       char readbuf_[1024];
       size_t bufpos_;
 };
 
 // Class GlishConnServerWP 
 
-
+};
 #endif

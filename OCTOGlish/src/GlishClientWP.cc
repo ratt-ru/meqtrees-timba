@@ -5,15 +5,19 @@
 #include <casa/Arrays/Array.h>
 #include <casa/Arrays/ArrayMath.h>
 
-#include <DMI/DataRecord.h>
-#include <DMI/DataField.h>
-#include <DMI/DataArray.h>
+#include <DMI/Record.h>
+#include <DMI/Vec.h>
+#include <DMI/NumArray.h>
 #include <DMI/Global-Registry.h>
 
 #include "GlishClientWP.h"
 #include "GlishUtil.h"
 
 using namespace casa;
+using namespace DMI;
+
+namespace OctoGlish
+{
 
 static int dum = aidRegistry_OCTOGlish();
 static int dum2 = aidRegistry_Global();
@@ -28,7 +32,7 @@ GlishClientWP::GlishClientWP (GlishSysEventSource *src, bool autostp, AtomicID w
   : WorkProcess(wpc),evsrc(src),autostop_(autostp)
 {
   connected = evsrc->connected();
-  has_events = False;
+  has_events = false;
 }
 
 
@@ -43,7 +47,7 @@ GlishClientWP::~GlishClientWP()
 void GlishClientWP::init ()
 {
 //  dprintf(2)("init: waiting for glish start event\n");
-  glish_started = False;
+  glish_started = false;
 //  while( !glish_started )
 //  {
 //    GlishSysEvent event = evsrc->nextGlishEvent();
@@ -53,10 +57,10 @@ void GlishClientWP::init ()
 }
 
 //##ModelId=3E9BD6E900DD
-GlishValue GlishClientWP::handleEvent (GlishSysEvent &event)
+casa::GlishValue GlishClientWP::handleEvent (GlishSysEvent &event)
 {
   dprintf(2)("got event '%s'\n", event.type().c_str());
-  GlishValue result = GlishArray(true);     // default result is T for success
+  casa::GlishValue result = GlishArray(true);     // default result is T for success
 
   if( event.type() == "shutdown" ) // shutdown event
   {
@@ -67,14 +71,14 @@ GlishValue GlishClientWP::handleEvent (GlishSysEvent &event)
     try // catch all event processing exceptions
     {
       // all other events must carry a GlishRecord
-      // FailWhen(event.valType() != GlishValue::RECORD,"event value not a record");
+      // FailWhen(event.valType() != casa::GlishValue::RECORD,"event value not a record");
       // get the record out and process stuff
-      GlishValue val = event.val();
+      casa::GlishValue val = event.val();
       GlishArray tmp;
       if( event.type() == "start" )
       {
         FailWhen( glish_started,"unexpected start event" );
-        glish_started = True;
+        glish_started = true;
       }
       else if( event.type() == "subscribe" )
       {
@@ -109,7 +113,7 @@ GlishValue GlishClientWP::handleEvent (GlishSysEvent &event)
         if( to.size() > 1 )  wpi = to[1];
         if( to.size() > 2 )  process = to[2];
         if( to.size() > 3 )  host = to[3];
-        MessageRef ref = glishValueToMessage(val);
+        Message::Ref ref = glishValueToMessage(val);
         setState(ref->state());
         dprintf(4)("sending message: %s\n",ref->sdebug(10).c_str());
         send(ref,MsgAddress(to[0],wpi,process,host));
@@ -120,7 +124,7 @@ GlishValue GlishClientWP::handleEvent (GlishSysEvent &event)
         int scope;
         FailWhen( !val.attributeExists("scope"),"missing 'scope' attribute");
         tmp = val.getAttribute("scope"); tmp.get(scope);
-        MessageRef ref = glishValueToMessage(val);
+        Message::Ref ref = glishValueToMessage(val);
         setState(ref->state());
         dprintf(4)("publishing message: %s\n",ref->sdebug(10).c_str());
         publish(ref,scope);
@@ -186,14 +190,14 @@ bool GlishClientWP::start ()
   // add a timeout to keep checking for connectedness
   addTimeout(2.0,HIID(),EV_CONT);
   
-  return False;
+  return false;
 }
 
 //##ModelId=3CBABEA10165
 void GlishClientWP::stop ()
 {
 //  if( evsrc && connected )
-//    evsrc->postEvent("//exit",GlishValue());
+//    evsrc->postEvent("//exit",casa::GlishValue());
 }
 
 //##ModelId=3CBACB920259
@@ -214,12 +218,12 @@ int GlishClientWP::input (int , int )
     for( int i=0; i < MaxEventsPerPoll && connected; i++ )
       if( !evsrc->nextGlishEvent(event,0) )
       {
-        has_events=False; // no events? reset flag and exit
+        has_events=false; // no events? reset flag and exit
         break;
       }
       else   // else process the event
       {
-        GlishValue result = handleEvent(event);
+        casa::GlishValue result = handleEvent(event);
         if( evsrc->replyPending() )
           evsrc->reply(result);
       } // end of event loop
@@ -235,7 +239,7 @@ int GlishClientWP::timeout (const HIID &)
 }
 
 //##ModelId=3CB5622B01ED
-int GlishClientWP::receive (MessageRef &mref)
+int GlishClientWP::receive (Message::Ref &mref)
 {
   // if no connection, then just ignore it
   if( !evsrc->connected() )
@@ -244,7 +248,7 @@ int GlishClientWP::receive (MessageRef &mref)
     return Message::ACCEPT;
   }
   // wrap the message into a value and post it
-  GlishValue value = messageToGlishValue(mref.deref());
+  casa::GlishValue value = messageToGlishValue(mref.deref());
   string ev = strlowercase(mref->id().toString('_'));
   evsrc->postEvent(ev.c_str(),value);
   
@@ -252,17 +256,17 @@ int GlishClientWP::receive (MessageRef &mref)
 }
 
 //##ModelId=3E9BD6E900D5
-// Converts a Message to a GlishValue
-// (The payload is converted to a GlishValue, while message attributes
+// Converts a Message to a casa::GlishValue
+// (The payload is converted to a casa::GlishValue, while message attributes
 // are passed as attributes) 
-GlishValue GlishClientWP::messageToGlishValue (const Message &msg)
+casa::GlishValue GlishClientWP::messageToGlishValue (const Message &msg)
 {
   // default value is empty record
-  GlishValue value = GlishRecord();
+  casa::GlishValue value = GlishRecord();
   // convert payload, if any
   if( msg.payload().valid() )
   {
-    value = GlishUtil::objectToGlishValue( *(msg.payload()),False );
+    value = GlishUtil::objectToGlishValue( *(msg.payload()),false );
     TypeId tid = msg.payload()->objectType();
     value.addAttribute("payload",GlishArray(tid.toString()));
   }
@@ -286,7 +290,7 @@ GlishValue GlishClientWP::messageToGlishValue (const Message &msg)
 }
 
 //##ModelId=3E9BD6E900D9
-MessageRef GlishClientWP::glishValueToMessage (const GlishValue &value)
+Message::Ref GlishClientWP::glishValueToMessage (const casa::GlishValue &value)
 {
   // get message attributes
   FailWhen( !value.attributeExists("id") ||
@@ -302,15 +306,15 @@ MessageRef GlishClientWP::glishValueToMessage (const GlishValue &value)
   }
   // setup message & ref
   HIID id(idstr);
-  Message &msg = *new Message(id,priority);
-  MessageRef ref(msg,DMI::ANON|DMI::WRITE);
-  ref().setState(state);
+  Message::Ref mref;
+  Message &msg = mref <<= new Message(id,priority);
+  msg.setState(state);
   // do we have a payload?
   if( value.attributeExists("payload") )
   {
     String typestr; 
     tmp = value.getAttribute("payload"); tmp.get(typestr);
-    msg <<= GlishUtil::glishValueToObject(value,False);
+    msg <<= GlishUtil::glishValueToObject(value,false);
   }
   // do we have a data block as well?
   if( value.attributeExists("datablock") )
@@ -328,14 +332,14 @@ MessageRef GlishClientWP::glishValueToMessage (const GlishValue &value)
       data.freeStorage(pdata,del);
     }
   }
-  return ref;
+  return mref;
 }
 
 //##ModelId=3DB9369900E1
 void GlishClientWP::shutdown ()
 {
   dprintf(1)("shutting down\n");
-  connected = False;
+  connected = false;
   setState(-1);
   removeInput(-1);
   removeTimeout("*");
@@ -373,4 +377,4 @@ GlishClientWP * makeGlishClientWP (int argc,const char *argv[],bool autostop )
   return new GlishClientWP(evsrc,autostop,wpc);
 }
 
-
+};

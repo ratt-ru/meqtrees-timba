@@ -188,10 +188,12 @@ class record (dict):
     return value;
   # __getattr__: dict contents are exposed as extra attributes
   def __getattr__(self,name):
-    # try to access attribute directly first
+    if name.startswith('__'):
+      return dict.__getattr__(self,name);
+    # else try to access attribute anyway, to see if we have one
     try: return dict.__getattr__(self,name);
-    except AttributeError: pass
-    # if no found, go look for a dict key
+    except AttributeError: pass;
+    # if none found, go look for a dict key
     try:   key = self.make_key(name);
     except ValueError,info: raise AttributeError,info;
     try:   return dict.__getitem__(self,key);

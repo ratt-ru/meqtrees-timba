@@ -10,8 +10,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-using namespace casa;    
+using namespace casa;
+using namespace DMI;
 using LOFAR::StringUtil;
+using Debug::ssprintf;
+
+    
+namespace OctoGlish
+{
 
 InitDebugContext(GlishConnServerWP,"GlishServ");
 
@@ -22,7 +28,6 @@ const Timeval Timeout_Retry(10.0),
 // max retries
 const int MaxOpenRetries = 10;
 
-using Debug::ssprintf;
 
 // Class GlishConnServerWP 
 
@@ -232,7 +237,7 @@ int GlishConnServerWP::input (int , int )
       *evsrc1 = makeEventSource(args1),
       *evsrc2 = makeEventSource(args2);
     // create new WP 
-    attachWP(new GlishThreadedClientWP(evsrc1,evsrc2,false),DMI::ANONWR);
+    attachWP(new GlishThreadedClientWP(evsrc1,evsrc2,false));
   }
 }
 
@@ -247,3 +252,4 @@ GlishSysEventSource * GlishConnServerWP::makeEventSource(vector<string> &args)
 }
 
 
+};

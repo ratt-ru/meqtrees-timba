@@ -1,13 +1,15 @@
-#ifndef IMTestWP_h
-#define IMTestWP_h 1
+#ifndef OctoGlish_IMTestWP_h
+#define OctoGlish_IMTestWP_h 1
 
-#include "DMI/Common.h"
 #include "DMI/DMI.h"
 
-// WorkProcess
 #include "OCTOPUSSY/WorkProcess.h"
 #include "OCTOGlish/AID-OCTOGlish.h"
 
+namespace OctoGlish
+{
+using namespace Octopussy;
+    
 class IMTestWP : public WorkProcess
 {
   public:
@@ -19,7 +21,7 @@ class IMTestWP : public WorkProcess
 
       virtual bool start ();
 
-      virtual int receive (MessageRef& mref);
+      virtual int receive (Message::Ref& mref);
 
       virtual int timeout (const HIID &);
 
@@ -32,7 +34,6 @@ class IMTestWP : public WorkProcess
       bool itsIsWriter;
 };
 
-// Class IMTestWP 
-
+};
 
 #endif

@@ -41,7 +41,7 @@ const dmi._supported_types := [ boolean="bool",
                                 complex="fcomplex",
                                 dcomplex="dcomplex",
                                 string="string",
-                                record="DataRecord" ];
+                                record="DMIRecord" ];
 
 # print message and returns a fail
 const dmi._fail := function (...)
@@ -52,7 +52,7 @@ const dmi._fail := function (...)
 }
 
 # tags object with the specified DMI type and basetype
-#   (basetype should be one of DataField, DataRecord, DataList, or 
+#   (basetype should be one of DMIVec, DMIRecord, DMIList, DMINumArray or 
 #   empty to use type itself)
 # The type is stored as ::dmi_actual_type
 # The basetype is stored as ::dmi_is_<basetype>
@@ -98,39 +98,39 @@ const dmi.hiid := function (str='',...)
     str := paste(str,...,sep='.');
   else
     str := as_string(str);
-  dmi.set_type(str,'HIID');
+  dmi.set_type(str,'DMIHIID');
   return str;
 }
 
-# makes a HIID list (DataField) from a string array
+# makes a HIID list (DMIVec) from a string array
 const dmi.hiid_list := function (strlist)
 {
   if( len(strlist) )
     for( i in 1:len(strlist) )
       strlist[i] := dmi.hiid(strlist[i]);
-  dmi.set_type(strlist,'DataField');
-  strlist::dmi_datafield_content_type := 'HIID';
+  dmi.set_type(strlist,'DMIVec');
+  strlist::dmi_vec_content_type := 'DMIHIID';
   return strlist;
 }
 
 # returns T if argument is a HIID
 const dmi.is_hiid := function (obj)
 {
-  return dmi.is_type(obj,'HIID');
+  return dmi.is_type(obj,'DMIHIID');
 }
 
 # creates a DMI list from its arguments
 const dmi.list := function (...)
 {
   list := [=];
-  dmi.set_type(list,'DataList');
+  dmi.set_type(list,'DMIList');
   return dmi.add_list(list,...);
 }
 
 # adds arguments to a DMI list
 const dmi.add_list := function (ref list,...)
 {
-  if( !dmi.is_type(list,'DataList') )
+  if( !dmi.is_type(list,'DMIList') )
     return dmi._fail('add_list: first argument must be a dmi.list');
   if( num_args(...) )
     for( i in 1:num_args(...) )
@@ -146,7 +146,7 @@ const dmi.add_list := function (ref list,...)
 # merges one list into another
 const dmi.merge_list := function (ref list,list2)
 {
-  if( !dmi.is_type(list,'DataList') || !dmi.is_type(list2,'DataList') )
+  if( !dmi.is_type(list,'DMIList') || !dmi.is_type(list2,'DMIList') )
     return dmi._fail('merge_list: arguments must be dmi.lists');
   if( len(list2) )
     for( i in 1:len(list2) )
@@ -154,9 +154,9 @@ const dmi.merge_list := function (ref list,list2)
   return ref list;
 }
 
-# creates a DMI field from its arguments
+# creates a DMI::Vec from its arguments
 # arguments should be DMI types, or numerics
-const dmi.field := function (...)
+const dmi.vec := function (...)
 {
   narg := num_args(...);
   # empty field is empty record
@@ -170,28 +170,28 @@ const dmi.field := function (...)
     {
       arg := nth_arg(i,...);
       if( !is_numeric(arg) )
-        return dmi._fail('cannot create dmi.field from mixed types: numeric and',type_name(arg));
+        return dmi._fail('cannot create dmi.vec from mixed types: numeric and',type_name(arg));
       field := [field,arg];
     }
-    field::dmi_datafield_content_type := dmi.dmi_type(field[1]);
+    field::dmi_vec_content_type := dmi.dmi_type(field[1]);
   }
   else  # else other dmi type
   {
     arg1 := nth_arg(1,...);
     type := dmi.dmi_type(arg1);
     if( type == '' )
-      return dmi._fail('cannot create dmi.field from',type_name(arg1));
+      return dmi._fail('cannot create dmi.vec from',type_name(arg1));
     field := [=];
     for( i in 1:narg )
     {
       arg := nth_arg(i,...);
       if( dmi.dmi_type(arg) != type )
-        return dmi._fail('cannot create dmi.field from mixed types: numeric and',type_name(arg));
+        return dmi._fail('cannot create dmi.vec from mixed types: numeric and',type_name(arg));
       field[spaste('#',i)] := arg;
     }
-    field::dmi_datafield_content_type := type;
+    field::dmi_vec_content_type := type;
   }
-  dmi.set_type(field,'DataField');
+  dmi.set_type(field,'DMIVec');
   return field;
 }
 

@@ -10,6 +10,8 @@ static int dum =
     aidRegistry_OCTOPUSSY() && 
     aidRegistry_OCTOGlish();    
 
+using namespace OctoGlish;
+
 // octoserver -- glish proxy for octopussy
 // This is started as a server from glish (from octopussy.g) in order
 // to establish a connection to octopussy.
@@ -23,8 +25,8 @@ int main (int argc,const char *argv[])
   {
     Dispatcher dsp;
     initGateways(dsp);
-    dsp.attach(new GlishConnServerWP,DMI::ANON);
-    dsp.attach(new LoggerWP(10,Message::HOST),DMI::ANON);
+    dsp.attach(new GlishConnServerWP);
+    dsp.attach(new LoggerWP(10,Message::HOST));
     dsp.start();
     dsp.pollLoop();
     dsp.stop();

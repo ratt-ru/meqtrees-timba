@@ -8,7 +8,9 @@
 
 // ensure local registry is pulled in
 static int dum = aidRegistry_OCTOGlish();
-    
+
+using namespace OctoGlish;    
+
 int main (int argc,const char *argv[])
 {
   Debug::initLevels(argc,argv);
@@ -18,9 +20,9 @@ int main (int argc,const char *argv[])
   {
     Dispatcher dsp;
     initGateways(dsp);
-    dsp.attach(makeGlishClientWP(argc,argv),DMI::ANON);
-    dsp.attach(new LoggerWP(10,Message::GLOBAL),DMI::ANON);
-    dsp.attach(new ReflectorWP,DMI::ANON);
+    dsp.attach(makeGlishClientWP(argc,argv));
+    dsp.attach(new LoggerWP(10,Message::GLOBAL));
+    dsp.attach(new ReflectorWP);
     dsp.start();
     dsp.pollLoop();
     dsp.stop();
