@@ -334,11 +334,22 @@ int Solver::getResult (Result::Ref &resref,
     solution.reference (vec);
     // Solve the equation.
     DataRecord& solRec = metricsRec[step] <<= new DataRecord;
-    solve (solution, reqref, solRec, resref, child_results,
-           itsCurSavePolcs, itsCurLastUpdate && step==itsCurNumIter-1);
+    // request for last iteration is processed reparately
+    bool lastIter = itsCurLastUpdate && step==itsCurNumIter-1;
+    solve(solution, reqref, solRec, resref, child_results,
+          itsCurSavePolcs,lastIter);
     // increment the solve-dependent parts of the request ID
     incrSubId(rqid,getGenSymDepMask());
     reqref().setId(rqid);
+    // send up one final update if needed
+    if( lastIter )
+    {
+      ParmTable::lockTables();
+      // unlock all child results
+      for( int i=0; i<numChildren(); i++ )
+	child_reslock[i].release();
+      Node::pollChildren(child_results, resref, *reqref);
+    }
     // Unlock all parm tables used.
     ParmTable::unlockTables();
   }
@@ -366,11 +377,9 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   solution = 0;
   if (lastIter) 
   {
-    RequestId rqid = incrSubId(reqref->id(),getGenSymDepMask());
     // generate a command-only (no cells) request for the last update
-    Request & lastReq = reqref <<= new Request;
-    lastReq.setId(rqid);
-    lastReq[FRider] <<= new DataRecord;
+    reqref <<= new Request;
+    reqref[FRider] <<= new DataRecord;
   }
   else // else privatize the request, since we're going to modify it
     reqref.privatize(DMI::WRITE|DMI::DEEP);
@@ -413,12 +422,6 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   fillSolution (dr1,itsSpids, solution, savePolcs);
   // make sure the request rider is validated
   req.validateRider();
-  // Lock all parm tables used.
-  ParmTable::lockTables();
-  if( lastIter ) {
-    Node::pollChildren (child_results, resref, req);
-  }
-  // Unlock all parm tables used.
   ParmTable::unlockTables();
 }
 
