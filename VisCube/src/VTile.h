@@ -161,10 +161,12 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //##ModelId=3DF9FDC9024D
     typedef Iterator iterator;
     
-    // flag value for "missing data"
-    // Missing rows are flagged by this value
-    //##ModelId=3E53938F0381
-    static const int MissingData = 0xFFFFFFFF;
+    typedef enum
+    {
+      // flag value for "missing data"
+      // Missing rows are flagged by this value
+      MissingData = 0xFFFFFFFF
+    } OtherConstants;
       
 
     //##ModelId=3DB964F900AF
