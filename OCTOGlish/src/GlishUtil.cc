@@ -10,6 +10,7 @@
 
 #include <DMI/DataRecord.h>
 #include <DMI/DataField.h>
+#include <DMI/DataList.h>
 #include <DMI/DataArray.h>
 #include <DMI/DynamicTypeManager.h>
 #include <DMI/AIPSPP-Hooks.h>
@@ -135,8 +136,10 @@ GlishRecord GlishUtil::recToGlish (const DataRecord &rec)
 GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjustIndex)
 {
   TypeId type = obj.objectType();
+  string type_string = type.toString();
+  string type_isattr = "dmi_is_" + strlowercase(type_string);
   // Mapping of objects:
-  // 1. DataRecord or descendant: map to a subrecord
+  // 1. DataRecord or descendant: map to a record
   // 2. DataField or descendant:
   //    2.1. Glish type: maps field to 1D array or scalar
   //    2.2. Container type: recursively map to record of records 
@@ -144,8 +147,9 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
   //    2.4. Invalid (empty) field: maps to [] array
   // 3. DataArray
   //    3.1. Glish type: map field to array
-  //    3.2. non-Glish type: map to blockset (see 4)
-  // 4. All others: map to a blockset with appropriate attributes
+  //    3.2. non-Glish type: map to blockset (see 5)
+  // 4. DataList or descendant: maps to record with attributes
+  // 5. All others: map to a blockset with appropriate attributes
   if( dynamic_cast<const DataRecord *>(&obj) ) // (case DataRecord)
   {
     const DataRecord &rec = dynamic_cast<const DataRecord &>(obj);
@@ -153,7 +157,8 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
     Thread::Mutex::Lock lock(rec.mutex());
 #endif
     GlishValue val = recToGlish(rec);
-    val.addAttribute("dmi_actual_type",GlishArray(type.toString()));
+    val.addAttribute("dmi_actual_type",GlishArray(type_string));
+    val.addAttribute("dmi_is_datarecord",GlishArray(True));
     return val;
   }
   else if( dynamic_cast<const DataField *>(&obj) ) // (case DataField)
@@ -175,8 +180,9 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
       // try to map to a Glish array
       if( makeGlishArray(arr,datafield,fieldtype,adjustIndex) )
       {
-        arr.addAttribute("dmi_actual_type",GlishArray(type.toString()));
+        arr.addAttribute("dmi_actual_type",GlishArray(type_string));
         arr.addAttribute("dmi_datafield_content_type",GlishArray(datafield.type().toString()));
+        arr.addAttribute("dmi_is_datafield",GlishArray(True));
         return arr;
       }
     }
@@ -189,12 +195,30 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
         ObjRef ref = datafield.objref(i);
         subrec.add(ssprintf("#%d",i+1),objectToGlishValue(*ref,adjustIndex));
       }
-      subrec.addAttribute("dmi_actual_type",GlishArray(type.toString()));
+      subrec.addAttribute("dmi_actual_type",GlishArray(type_string));
       subrec.addAttribute("dmi_datafield_content_type",GlishArray(datafield.type().toString()));
+      subrec.addAttribute("dmi_is_datafield",GlishArray(True));
       return subrec;
     }
   }
-  else if( type == TpDataArray )  // (case DataArray)
+  else if( dynamic_cast<const DataList *>(&obj) )  // (case DataList)
+  {
+    const DataList &datalist = dynamic_cast<const DataList &>(obj);
+#ifdef USE_THREADS
+    Thread::Mutex::Lock lock(datalist.mutex());
+#endif
+    // map to record, with fields "#1", "#2", etc.
+    GlishRecord rec;
+    for( int i=0; i<datalist.numItems(); i++ )
+    {
+      NestableContainer::Ref ref = datalist.getItem(i);
+      rec.add(ssprintf("#%d",i+1),objectToGlishValue(*ref,adjustIndex));
+    }
+    rec.addAttribute("dmi_actual_type",GlishArray(type_string));
+    rec.addAttribute("dmi_is_datalist",GlishArray(True));
+    return rec;
+  }
+  else if( dynamic_cast<const DataArray *>(&obj) )  // (case DataArray)
   {
     const DataArray &dataarray = dynamic_cast<const DataArray &>(obj);
 #ifdef USE_THREADS
@@ -403,6 +427,7 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
     // "dmi_is_hiid" attribute) always map to a DataField
     else if( ( shape.nelements() == 1 && 
             ( val.attributeExists("dmi_datafield_content_type") || 
+              val.attributeExists("dmi_is_datafield") || 
               val.attributeExists("dmi_is_hiid") ) )
           || arr.elementType() == GlishArray::STRING )
     {
@@ -432,7 +457,7 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
       return ObjRef( blockRecToObject(glrec),DMI::ANONWR );
     }
     // is it a DataField (that was passed in as a record of values)
-    else if( glrec.attributeExists("dmi_datafield_content_type")  )
+    else if( glrec.attributeExists("dmi_is_datafield")  )
     {
       // the attribute should be a string indicating the object type
       String typestr;
@@ -460,6 +485,33 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
         }
       }
       field->validateContent();
+      return ref;
+    }
+    // is it a DataList (that was passed in as a record of values)
+    else if( glrec.attributeExists("dmi_is_datalist")  )
+    {
+      // the attribute should be a string indicating the object type
+      dprintf(4)("converting glish record (%d fields) to DataList\n",
+                  glrec.nelements()); 
+      // create a list and populate it with the objects recursively
+      DataList *list = GlishUtil::createSubclass<DataList>(ref,val);
+      for( uint i=0;i<glrec.nelements(); i++ )
+      {
+        try 
+        {
+          (*list)[i] <<= glishValueToObject(glrec.get(i),adjustIndex);
+        }
+        catch( std::exception &exc )
+        {
+          dprintf(2)("warning: ignoring field [%d] (got exception: %s)\n",
+              i,exc.what());
+        }
+        catch( ... )
+        {
+          dprintf(2)("warning: ignoring field [%d] (got unknown exception)\n",i);
+        }
+      }
+      list->validateContent();
       return ref;
     }
     // else it's a plain old DataRecord
