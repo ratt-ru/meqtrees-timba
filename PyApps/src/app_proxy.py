@@ -41,22 +41,28 @@ class app_proxy (verbosity):
     # export some proxy_wp and octopussy methods
     self.flush_events = self._pwp.flush_events;
     self.pause_events = self._pwp.pause_events;
-#    setdebug = staticmethod(setdebug);
-    set_debug = staticmethod(octopussy.set_debug);
     
-    if launch:
+    # define default control record
+    rec = srecord(throw_error=True);
+    rec.control.event_map_in  = srecord(default_prefix=self._snd_prefix);
+    rec.control.event_map_out = srecord(default_prefix=self._rcv_prefix);
+    rec.control.stop_when_end = False;
+    self.initrec_prev = rec;
+    
+    if isinstance(launch,str): # run external process
+      self.dprint(1,"launching",launch);
+      
+      
+    
+    if isinstance(launch,tuple): # use py_app_launcher to run a local app thread
       self.dprint(1,"launching",launch);
       (appname,inagent,outagent) = launch;
       if not appname in py_app_launcher.application_names:
         raise NameError,appname+' is not a recognized app name';
-      rec = srecord({'throw_error':True});
-      rec.control = srecord({'delay_init':True});
-      rec.control.event_map_in = srecord({'default_prefix':self._snd_prefix});
-      rec.control.event_map_out = srecord({'default_prefix':self._rcv_prefix});
-      self.initrec_prev = rec;
-      py_app_launcher.launch_app(appname,inagent,outagent,rec);
-    else:
-      self.initrec_prev = srecord();
+      self.initrec_prev.control.delay_init = True;
+      py_app_launcher.launch_app(appname,inagent,outagent,self.initrec_prev);
+    else: # no launch spec, simply wait for a connection
+      pass;
 
   def _event_handler (self,msg):
     "event handler for app";
