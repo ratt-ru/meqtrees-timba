@@ -459,6 +459,8 @@ class QwtImagePlot(QwtPlot):
 	self.is_combined_image = False
         self.active_image_index = None
         self.y_marker_step = None
+        self.imag_flag_vector = None
+        self.real_flag_vector = None
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -701,7 +703,12 @@ class QwtImagePlot(QwtPlot):
       if not self.flag_blink:
         self.timer.stop()
         self.flag_toggle = False
-        self.plotImage.setDisplayFlag(self.flag_toggle)
+        if self.real_flag_vector is None:
+          self.plotImage.setDisplayFlag(self.flag_toggle)
+        else:
+          self.curve(self.real_flag_vector).setEnabled(self.flag_toggle)
+          if not self.imag_flag_vector is None:
+            self.curve(self.imag_flag_vector).setEnabled(self.flag_toggle)
         self.replot()
         _dprint(3, 'called replot in timerEvent_blink')
       else:
@@ -709,7 +716,12 @@ class QwtImagePlot(QwtPlot):
           self.flag_toggle = True
         else:
           self.flag_toggle = False
-        self.plotImage.setDisplayFlag(self.flag_toggle)
+        if self.real_flag_vector is None:
+          self.plotImage.setDisplayFlag(self.flag_toggle)
+        else:
+          self.curve(self.real_flag_vector).setEnabled(self.flag_toggle)
+          if not self.imag_flag_vector is None:
+            self.curve(self.imag_flag_vector).setEnabled(self.flag_toggle)
         self.replot()
         _dprint(3, 'called replot in timerEvent_blink')
 
@@ -724,7 +736,12 @@ class QwtImagePlot(QwtPlot):
           self.flag_toggle = True
         else:
           self.flag_toggle = False
-        self.plotImage.setDisplayFlag(self.flag_toggle)
+        if self.real_flag_vector is None:
+          self.plotImage.setDisplayFlag(self.flag_toggle)
+        else:
+          self.curve(self.real_flag_vector).setEnabled(self.flag_toggle)
+          if not self.imag_flag_vector is None:
+            self.curve(self.imag_flag_vector).setEnabled(self.flag_toggle)
         self.replot()
         _dprint(3, 'called replot in update_vells_display')
 	return
@@ -1602,22 +1619,24 @@ class QwtImagePlot(QwtPlot):
 
 # stuff for flags
           if not self._flags_array is None:
-            real_flag_plot = self.insertCurve('real_flags')
-            self.setCurvePen(real_flag_plot, QPen(Qt.black))
-            self.setCurveStyle(real_flag_plot, QwtCurve.Dots)
-            self.setCurveYAxis(real_flag_plot, QwtPlot.yLeft)
-            plot_flag_curve = self.curve(real_flag_plot)
+            self.real_flag_vector = self.insertCurve('real_flags')
+            self.setCurvePen(self.real_flag_vector, QPen(Qt.black))
+            self.setCurveStyle(self.real_flag_vector, QwtCurve.Dots)
+            self.setCurveYAxis(self.real_flag_vector, QwtPlot.yLeft)
+            plot_flag_curve = self.curve(self.real_flag_vector)
             plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
                      QPen(Qt.black), QSize(20, 20)))
-            self.setCurveData(real_flag_plot, self.flags_x_index, self.flags_r_values)
-            imag_flag_plot = self.insertCurve('imag_flags')
-            self.setCurvePen(imag_flag_plot, QPen(Qt.black))
-            self.setCurveStyle(imag_flag_plot, QwtCurve.Dots)
-            self.setCurveYAxis(imag_flag_plot, QwtPlot.yRight)
-            plot_flag_curve = self.curve(imag_flag_plot)
+            self.setCurveData(self.real_flag_vector, self.flags_x_index, self.flags_r_values)
+            self.curve(self.real_flag_vector).setEnabled(False)
+            self.imag_flag_vector = self.insertCurve('imag_flags')
+            self.setCurvePen(self.imag_flag_vector, QPen(Qt.black))
+            self.setCurveStyle(self.imag_flag_vector, QwtCurve.Dots)
+            self.setCurveYAxis(self.imag_flag_vector, QwtPlot.yRight)
+            plot_flag_curve = self.curve(self.imag_flag_vector)
             plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
                      QPen(Qt.black), QSize(20, 20)))
-            self.setCurveData(imag_flag_plot, self.flags_x_index, self.flags_i_values)
+            self.setCurveData(self.imag_flag_vector, self.flags_x_index, self.flags_i_values)
+            self.curve(self.imag_flag_vector).setEnabled(False)
 
         else:
           self.setAxisTitle(QwtPlot.yLeft, 'Value')
@@ -1638,14 +1657,15 @@ class QwtImagePlot(QwtPlot):
             self.dummy_xCrossSection = None
 # stuff for flags
           if not self._flags_array is None:
-            real_flag_plot = self.insertCurve('real_flags')
-            self.setCurvePen(real_flag_plot, QPen(Qt.black))
-            self.setCurveStyle(real_flag_plot, QwtCurve.Dots)
-            self.setCurveYAxis(real_flag_plot, QwtPlot.yLeft)
-            plot_flag_curve = self.curve(real_flag_plot)
+            self.real_flag_vector = self.insertCurve('real_flags')
+            self.setCurvePen(self.real_flag_vector, QPen(Qt.black))
+            self.setCurveStyle(self.real_flag_vector, QwtCurve.Dots)
+            self.setCurveYAxis(self.real_flag_vector, QwtPlot.yLeft)
+            plot_flag_curve = self.curve(self.real_flag_vector)
             plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
                      QPen(Qt.black), QSize(20, 20)))
-            self.setCurveData(real_flag_plot, self.flags_x_index, self.flags_r_values)
+            self.setCurveData(self.real_flag_vector, self.flags_x_index, self.flags_r_values)
+            self.curve(self.real_flag_vector).setEnabled(False)
 
 # do the replot
         self.replot()
