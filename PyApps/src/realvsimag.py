@@ -82,7 +82,7 @@ class realvsimag_plotter(object):
 	'diamond': QwtSymbol.Diamond,
         }
     
-    def __init__(self, plot_key, parent):
+    def __init__(self, plot_key=None, parent=None):
         # QWidget.__init__(self, parent)
 
         self.plot_key = plot_key
@@ -110,6 +110,7 @@ class realvsimag_plotter(object):
         self._circle_dict = {}
         self._line_dict = {}
         self._xy_plot_dict = {}
+        self.plot_circles = True
         self._angle = 0.0
         self._radius = 7.0
         self._x_min = 0.0;
@@ -124,6 +125,10 @@ class realvsimag_plotter(object):
 
     # __init__()
 
+    def set_compute_circles (self, do_compute_circles=True):
+        self.plot_circles = do_compute_circles
+
+
     def __initTracking(self):
         """Initialize tracking
         """        
@@ -134,13 +139,15 @@ class realvsimag_plotter(object):
                         self.slotMousePressed)
 
         self.plot.canvas().setMouseTracking(True)
-        self._statusbar.message(
+        if self._statusbar:
+          self._statusbar.message(
             'Plot cursor movements are tracked in the status bar',2000)
 
     # __initTracking()
 
     def onMouseMoved(self, e):
-        self._statusbar.message(
+        if self._statusbar:
+          self._statusbar.message(
             'x = %+.6g, y = %.6g'
             % (self.plot.invTransform(QwtPlot.xBottom, e.pos().x()),
                self.plot.invTransform(QwtPlot.yLeft, e.pos().y())),2000)
@@ -273,7 +280,8 @@ class realvsimag_plotter(object):
             key, distance, xVal, yVal, index = self.plot.closestCurve(xPos, yPos)
             _dprint(2,' key, distance, xVal, yVal, index ', key, ' ', distance,' ', xVal, ' ', yVal, ' ', index);
             message = 'point belongs to curve ' + str(key) + ' at sequence ' + str(index) 
-            self._statusbar.message(message,2000)
+            if self._statusbar:
+              self._statusbar.message(message,2000)
         elif e.button() == QMouseEvent.RightButton:
           e.accept();  # accept even so that parent widget won't get it
           # popup the menu
@@ -442,7 +450,8 @@ class realvsimag_plotter(object):
 
       avg_r = sum_r / num_rows
       avg_i = sum_i / num_rows
-      self.compute_circles (plot_key, avg_r, avg_i)
+      if self.plot_circles:
+        self.compute_circles (plot_key, avg_r, avg_i)
 
 # now update plot
       self.plot.replot()
@@ -486,7 +495,8 @@ class realvsimag_plotter(object):
 
       avg_r = x_pos.mean()
       avg_i = y_pos.mean()
-      self.compute_circles (item_label, avg_r, avg_i)
+      if self.plot_circles:
+        self.compute_circles (item_label, avg_r, avg_i)
       if counter == 0:
         self.clearZoomStack()
       else:
@@ -502,10 +512,13 @@ class realvsimag_plotter(object):
     # clearZoomStack()
 
     def start_timer(self, time):
-        self.startTimer(time)
+        timer = QTimer(self.plot)
+        timer.connect(timer, SIGNAL('timeout()'), self.timerEvent)
+        timer.start(time)
+
     # start_timer()
 
-    def timerEvent(self, e):
+    def timerEvent(self):
       self._angle = self._angle + 5;
       self._radius = 5.0 + 2.0 * random.random()
       self.index = self.index + 1
@@ -571,15 +584,16 @@ class realvsimag_plotter(object):
 def main(args):
     app = QApplication(args)
     demo = make()
-    app.setMainWidget(demo)
+    app.setMainWidget(demo.plot)
     app.exec_loop()
 
 # main()
 
 def make():
     demo = realvsimag_plotter('plot_key')
-    demo.show()
+#    demo.set_compute_circles(False)
     demo.start_timer(1000)
+    demo.plot.show()
     return demo
 
 # make()
