@@ -8,6 +8,7 @@ import qt_threading
 import app_pixmaps as pixmaps
 import dmi_repr
 import gridded_workspace 
+import weakref
 
 dmirepr = dmi_repr.dmi_repr();
 
@@ -28,8 +29,11 @@ class HierBrowser (object):
       return HierBrowser.subitem(self,*args);
       
     # caches content in an item: marks as expandable, ensures content is a dict
-    def cache_content(self,content,viewable=False):
+    # if viewable is None, decides if content is viewable based on its type
+    # else, must be True or False to specify viewability
+    def cache_content(self,content,viewable=None):
       self.setExpandable(True);
+      # convert all content to dict
       if isinstance(content,(dict,list,tuple,array_class)):
         self._content = content;
       elif isinstance(content,message):
@@ -40,16 +44,22 @@ class HierBrowser (object):
             self._content[k] = attr;
       else:
         self._content = {"":content};
+      # set the viewable property
+      if not self._udi:
+        viewable = False;
+      elif viewable is None:
+        viewable = gridded_workspace.isViewable(content);
       self._viewable = viewable;
       if viewable:
         self.setPixmap(1,pixmaps.magnify.pm());
+        self.setDragEnabled(True);
         
     # expands item content into subitems
     def expand_self (self):
       HierBrowser.expand_content(self,self._content);
 
   # init for HierBrowser
-  def __init__(self,parent,name,name1=''):
+  def __init__(self,parent,name,name1='',udi_root=None):
     self._lv = gridded_workspace.DataDraggableListView(parent);
     self._lv.addColumn(name1);
     self._lv.addColumn('');
@@ -62,19 +72,57 @@ class HierBrowser (object):
     self._lv.setFocus();
     self._lv.connect(self._lv,SIGNAL('expanded(QListViewItem*)'),
                      self._expand_item_content);
+    self._lv.connect(self._lv,SIGNAL('mouseButtonClicked(int,QListViewItem*,const QPoint &,int)'),
+                     self._process_item_click);
+    # connect the get_data_item method for drag-and-drop
+    self._lv.get_data_item = self.get_data_item;
     self.items = [];
-
-    # expands item content into subitems
-    def expand_self (self):
-      HierBrowser.expand_content(self,self._content);
-    
-  def subitem (parent,key,value):
-    if hasattr(parent,'_content_list') and parent._content_list:
-      return HierBrowser.BrowserItem(parent,parent._content_list[-1],str(key),'',str(value));
+    # enable UDIs, if udi root is not none
+    self._udi_root = udi_root;
+    if udi_root is not None:
+      if not udi_root.startswith('/'):
+        udi_root = "/" + udi_root;
+      self._lv._udi = udi_root;
+      # map of UDIs to items
+      self._content_map = self._lv._content_map = weakref.WeakValueDictionary();
     else:
-      return HierBrowser.BrowserItem(parent,str(key),'',str(value));
-  subitem = staticmethod(subitem);
+      self._lv._udi = None;
+    # for debugging purposes
+    QWidget.connect(self._lv,SIGNAL("clicked(QListViewItem*)"),self._print_item);
     
+  def _print_item (self,item):
+    if item is not None:
+      print 'item:',item.text(0),item.text(2);
+      for attr in ('_udi','_udi_key','_viewable','_name','_desc'):
+        if hasattr(item,attr):
+          print ' ',attr+':',getattr(item,attr);
+      try: 
+        lencont = len(item._content_map);
+        print '  _content_map: ',lencont,' items';
+      except AttributeError: pass;
+    
+  def get_data_item (self,udi):
+    return self.make_data_item(self._content_map.get(udi,None));
+    
+  def make_data_item (item):
+    # extract relevant item attributes, return if not present
+    try:
+      content  = getattr(item,'_content');
+      udi      = getattr(item,'_udi');
+      viewable = getattr(item,'_viewable');
+    except AttributeError: return None;
+    # return item only if viewable, has udi and contents
+    if content and udi and viewable: 
+      viewopts = getattr(item,'_viewopts',{});
+      name = getattr(item,'_name','');
+      desc = getattr(item,'_desc','');
+      if not name and not desc:
+        desc = udi;
+      # make item and return
+      return gridded_workspace.GridDataItem(udi,name,desc,data=content,viewopts=viewopts);
+    return None;
+  make_data_item = staticmethod(make_data_item);
+
   # helper static method to expand content into BrowserItems record 
   def expand_content(item,content):
     if hasattr(item,'_content_list'):
@@ -132,35 +180,148 @@ class HierBrowser (object):
       if hasattr(self._lv,attr):
         delattr(self._lv,attr);
   # inserts a new item into the browser
-  def new_item (self,key,value):
+  def new_item (self,key,value,udi_key=None):
     if self.items:
       item = self.BrowserItem(self._lv,self.items[-1],str(key),'',str(value));
     else:
       item = self.BrowserItem(self._lv,str(key),'',str(value));
     self.items.append(item);
     self._lv.ensureItemVisible(item);
+    # generate udi key if none is specified
+    if udi_key is None:
+      item._udi_key = udi_key = str(key);
+    elif udi_key is id:
+      item._udi_key = udi_key = str(id(item));
+    else:
+      item._udi_key = udi_key = str(udi_key);
+    # setup udi of item, if listview has a udi
+    if self._lv._udi:
+      item._udi = self._lv._udi + '/' + udi_key;
+      self._content_map[item._udi] = item;
+      item._content_map = self._content_map;
+    else:
+      item._udi = None;
     return item;
+    
+  def subitem (parent,key,value,udi_key=None):
+    if hasattr(parent,'_content_list') and parent._content_list:
+      item = HierBrowser.BrowserItem(parent,parent._content_list[-1],str(key),'',str(value));
+    else:
+      item = HierBrowser.BrowserItem(parent,str(key),'',str(value));
+    # generate udi key if none is specified
+    if udi_key is None:
+      item._udi_key = udi_key = str(key);
+    else:
+      item._udi_key = udi_key = str(udi_key);
+    # setup udi of item, if parent has a udi
+    if parent._udi:
+      item._udi = parent._udi + '/' + udi_key;
+      parent._content_map[item._udi] = item;
+      item._content_map = parent._content_map;
+    else:
+      item._udi = None;
+    return item;
+      
+  subitem = staticmethod(subitem);
+    
   # limits browser to last 'limit' items
   def apply_limit (self,limit):
     if limit>0 and len(self.items) > limit:
       for i in self.items[:len(self.items)-limit]:
         self._lv.takeItem(i);
       del self.items[:len(self.items)-limit];
+      
   # called when an item is expanded                    
   def _expand_item_content (self,item):
-    item.expand_self();
+    try: cont = item._content;
+    except AttributeError: return;
+    if cont:
+      self.expand_content(item,cont);
+      
+  # slot: called when one of the items is clicked
+  def _process_item_click (self,button,item,point,col):
+    print 'item clicked:',self,button,item,col;
+    # process left-clicks on column 1 only
+    if button != 1 or col != 1:
+      return;
+    # call Logger to create a dataitem object from this list item
+    dataitem = self.make_data_item(item);
+    if dataitem:
+      self.wtop().emit(PYSIGNAL("displayDataItem()"),(dataitem,));
+
+  def get_open_items (self):
+    """gets tree of currently open and selected items. Returns tuple of
+    (dict,<str|None>), describing the state of top-level items. The dict keys
+    are udi_keys of expanded items; the dict values are similar tuples
+    describing the state of each sub-level. The second element of the tuple is
+    the key of the currently selected item, or None if no items are selected at
+    this level; normally, at most one entry in the entire tree has a selected
+    item. A None value in place of a tuple indicates no open and no selected
+    items.""";
+    # recursive helper function implementing tree traversal
+    def _get_open_items_impl (parent,current):
+      openitems = {};
+      current_key = None;
+      item = parent.firstChild();
+      while item is not None:
+        if item is current:
+          current_key = item._udi_key;
+        if item.isOpen():
+          openitems[item._udi_key] = _get_open_items_impl(item,current);
+        item = item.nextSibling();
+      if openitems or current_key:
+        return (openitems,current_key);
+      return None;
+    return _get_open_items_impl(self._lv,self._lv.currentItem());
+    
+  def set_open_items (self,openspec):
+    """sets currently open and selected items according to tree returned
+    by a previous get_open_items() call.""";
+    # recursive helper function implementing tree traversal
+    def _set_open_items_impl (parent,openspec):
+      if openspec is None:
+        return;
+      (openitems,current_key) = openspec;
+      item = parent.firstChild();
+      while item is not None:
+        if item._udi_key == current_key:
+          self._lv.setCurrentItem(item);
+        # if item is open, expand it and go in recursively
+        if item._udi_key in openitems:
+          self._lv.setOpen(item,True);
+          _set_open_items_impl(item,openitems[item._udi_key]);
+        item = item.nextSibling();
+    # call recursive helper on listview
+    _set_open_items_impl(self._lv,openspec);
 
 class RecordBrowser(HierBrowser):
-  def __init__(self,parent,rec=None,udi=None):
-    HierBrowser.__init__(self,parent,"value","field");
-    if rec is not None:
-      self.set_record(rec);
-  def set_record (self,rec):
+  def is_viewable (data):
+    return len(data) > 0;
+  is_viewable = staticmethod(is_viewable);
+
+  def __init__(self,parent,udi=None,data=None,default_open=None,**opts):
+    HierBrowser.__init__(self,parent,"value","field",udi_root=udi);
+    self._rec = None;
+    self._default_open = default_open;
+    if data is not None:
+      self.set_data(data);
+  
+  def set_data (self,data,default_open=None,**opts):
+    # save currenty open tree
+    if self._rec:
+      openitems = self.get_open_items();
+    else: # no data, use default open tree if specified
+      openitems = default_open or self._default_open;
+    # clear everything and reset data as new
     self.clear();
-    self._rec = rec;
+    self._rec = data;
     # expand first level of record
     self.expand_content(self._lv,self._rec);
-  set_data = set_record;
+    # apply saved open tree
+    self.set_open_items(openitems);
+    
+  set_record = set_data;
+
     
 # register the RecordBrowser as a viewer for the appropriate types
 for tp in (dict,list,tuple,array_class):

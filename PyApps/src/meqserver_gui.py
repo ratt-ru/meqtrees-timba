@@ -12,22 +12,23 @@ import re
 # ---------------- TODO -----------------------------------------------------
 # Bugs:
 #   Tree browser not always enabled! (Hello message lost??)
-#   Drop an item on "new panel" when item already exists on other page
-#     causes a page switch, this is counter-intuitive
 #
 # Minor fixes:
-#   Enable drop on "show viewer" button
+#   Disorderly thread error or SEGV on exit
+#   Why can't we exit with CTRL+C?
+#   + Enable drop on "show viewer" button
 #
 # Enhancements:
-#   Viewer plugin interface
 #   Enable views/drags/drops of sub-items (i.e. "nodestate:name/cache_result")
 #   Enhanced 'verbosity' interface (look for option parsing modules?)
-#   Update contents of HierBrowser on-the-fly, without closing expanded
-#       sub-items (good for, e.g., node state updates)
-#   When looking at node state, open something useful by default (i.e.,
-#       cache_result/vellsets/0 or smth)
 #   User-defined node groups in tree viewer
 #   Right-button actions
+#   + Viewer plugin interface
+#   + Update contents of HierBrowser on-the-fly, without closing expanded
+#     sub-items (good for, e.g., node state updates)
+#   + When looking at node state, open something useful by default (i.e.,
+#     cache_result/vellsets/0 or smth)
+#   + drag-and-drop
 # ---------------------------------------------------------------------------
 
 class NodeList (object):
@@ -117,11 +118,11 @@ def is_valid_meqnodelist (nodelist):
   return True;
  
 def makeNodeUdi (node):
-  return "nodestate:%s#%d"%(node.name,node.nodeindex);
+  return "/nodestate/%s#%d"%(node.name,node.nodeindex);
     
 class TreeBrowser (object):
   def __init__ (self,parent):
-    self._mqs = parent.mqs;
+    self._parent = weakref.proxy(parent);
     # construct GUI
     nl_vbox = self._wtop = QVBox(parent);
     nl_control = QWidget(nl_vbox);
@@ -159,7 +160,7 @@ class TreeBrowser (object):
     self.nodelist = None;
     self._wait_nodestate = {};
 
-  patt_Udi_NodeState = re.compile("^nodestate:([^#/]*)(#[0-9]+)?$");
+  patt_Udi_NodeState = re.compile("^/nodestate/([^#/]*)(#[0-9]+)?$");
   def get_data_item (self,udi):
     match = self.patt_Udi_NodeState.match(udi);
     if match is None:
@@ -175,12 +176,7 @@ class TreeBrowser (object):
       except ValueError: # can't convert nodeindex to int: malformed udi
         raise ValueError,'bad udi (nodeindex must be numeric): '+udi;
     # create and return dataitem object
-    reqrec = srecord(nodeindex=node.nodeindex);  # record used to request state
-    udi = makeNodeUdi(node);
-    # curry is used to create a Node.Get.State call for refreshing its state
-    return GridDataItem(udi,(node.name or '#'+str(node.nodeindex)),
-              desc='node state',datatype=srecord,
-              refresh=curry(self._mqs.meq,'Node.Get.State',reqrec,wait=False));
+    return self._parent.make_node_data_item(node);
  
   def wtop (self):
     return self._wtop;
@@ -196,7 +192,7 @@ class TreeBrowser (object):
     self.nodelist = None;
     rec = srecord(dict.fromkeys(NodeList.NodeAttrs,True));
     rec.nodeindex = True;
-    self._mqs.meq('Get.Node.List',rec,wait=False);
+    self._parent.mqs.meq('Get.Node.List',rec,wait=False);
     
   def make_node_item (self,node,name,parent,after):
     item = QListViewItem(parent,after,name,' '+str(node.classname),' '+str(node.nodeindex));
@@ -252,7 +248,6 @@ class TreeBrowser (object):
           i1 = self.make_node_item(node,name,item,i1);
         item._expanded = True;
   _expand_node = busyCursorMethod(_expand_node);
-          
 
 class meqserver_gui (app_proxy_gui):
   def __init__(self,app,*args,**kwargs):
@@ -282,7 +277,7 @@ class meqserver_gui (app_proxy_gui):
     
     # add Result Log panel
     self.resultlog = Logger(self,"node result log",limit=1000,
-          click=self._process_logger_item_click,udi_name='noderes');
+          click=self._process_logger_item_click,udi_root='noderes');
     self.maintab.insertTab(self.resultlog.wtop(),"Results",2);
     self.resultlog.wtop()._default_iconset = QIconSet();
     self.resultlog.wtop()._default_label   = "Results";
@@ -307,6 +302,9 @@ class meqserver_gui (app_proxy_gui):
       self.dprint(5,'got state for node ',value.name);
       self.update_node_state(value);
   
+  defaultResultViewopts = { \
+    'default_open': ({'cache_result':({'vellsets':None},None)},None)  \
+  };
   def ce_NodeResult (self,ev,value):
     self.update_node_state(value);
     if self.resultlog.enabled:
@@ -319,7 +317,8 @@ class meqserver_gui (app_proxy_gui):
       if rqid:
         txt = ''.join((txt,' rqid:',rqid));
         desc = desc + ':' + rqid;
-      self.resultlog.add(txt,content=value,category=Logger.Event,name=name,desc=desc);
+      self.resultlog.add(txt,content=value,category=Logger.Event, 
+        name=name,desc=desc,viewopts=self.defaultResultViewopts);
       wtop = self.resultlog.wtop();
       if self.maintab.currentPage() is not wtop and not wtop._newresults:
         self.maintab.changeTab(wtop,wtop._newres_iconset,wtop._newres_label);
@@ -337,15 +336,27 @@ class meqserver_gui (app_proxy_gui):
   def update_node_state (self,node):
     udi = makeNodeUdi(node);
     self.gw.update_data_item(udi,node);
+    
+  defaultNodeViewopts = { \
+    'default_open': ({'cache_result':({'vellsets':None},None), \
+                      'request':None \
+                     },None)  \
+  };
+  def make_node_data_item (self,node):
+    """creates a GridDataItem for a node""";
+    # create and return dataitem object
+    reqrec = srecord(nodeindex=node.nodeindex);  # record used to request state
+    udi = makeNodeUdi(node);
+    # curry is used to create a Node.Get.State call for refreshing its state
+    return GridDataItem(udi,(node.name or '#'+str(node.nodeindex)),
+              desc='node state',datatype=srecord,
+              refresh=curry(self.mqs.meq,'Node.Get.State',reqrec,wait=False),
+              viewopts=self.defaultNodeViewopts);
+    
 
   def _node_clicked (self,node):
-    udi = makeNodeUdi(node)
-    self.dprint(2,"node clicked, adding item",udi);
-    item = GridDataItem(makeNodeUdi(node),node.name,desc='node state',
-              datatype=srecord,
-              refresh=curry(self.mqs.meq,'Node.Get.State',
-              srecord(nodeindex=node.nodeindex),wait=False));
-    self.gw.add_data_item(item);
+    self.dprint(2,"node clicked, adding item");
+    self.gw.add_data_item(self.make_node_data_item(node));
     self.show_gridded_workspace();
     
   def _reset_resultlog_label (self,tabwin):

@@ -18,26 +18,45 @@ _reg_viewers = {};
 #
 
 def registerViewer (tp,viewer):
-  """Registers a viewer for the specified type.
-  The 'viewer' argument must be a class providing the following interface:
+  """Registers a viewer for the specified type:
+    registerViewer(datatype,viewer);
+  The 'viewer' argument must be a class (or callable) providing the following 
+  interface:
     viewer.viewer_name(); 
-      # (static method, optional) returns "official name"
-      # of this viewer, for use in menus and such. If not defined, the class
-      # name (__name__) will be used instead.
-    vo = viewer(parent_widget,udi=udi); 
-      # construct a viewer object. UDI is the uniform data identifier 
-      # associated with the data (may be safely ignored).
+      # (optional static method) returns "official name" of this viewer class, 
+      # for use in menus and such. If not defined, the classname 
+      # (viewer.__name__) will be used instead. 
+    viewer.is_viewable(data); 
+      # (optional static method) checks if a specific data item (of the 
+      # registered type) is viewable in this viewer or not. If not defined, 
+      # True is assumed.
+    vo = viewer(parent_widget,**opts); 
+      # construct a viewer object. **opts may be used to pass in optional
+      # keyword arguments on a per-viewer basis.
     vo.wtop();
       # return top-level Qt widget of viewer object
-    vo.set_data(data);
-      # sets/updates the content of the viewer
-  The viewer object may also issue a Qt signal: PYSIGNAL("refresh()"), if
+    vo.set_data(data,**opts);
+      # sets/updates the content of the viewer. **opts may be used to pass 
+      # in optional keyword arguments on a per-viewer basis.
+  The viewer object may also issue one Qt signal: PYSIGNAL("refresh()"), if
   a refresh of the data contents is requested. Note that the GridCell interface
-  already provides a refresh button, so this signal is normally not necessary.
+  already provides a refresh button, so this signal is normally not needed.
   """;
   global _reg_viewers;
   _reg_viewers.setdefault(tp,[]).append(viewer);
 
+def isViewable (data):
+  global _reg_viewers;
+  datatype = type(data);
+  for (tp,vlist) in _reg_viewers.iteritems():
+    if issubclass(datatype,tp):
+      for viewer in vlist:
+        try: 
+          if viewer.is_viewable(data):
+            return True;
+        except AttributeError,TypeError:
+          return True; 
+  return False;
 
 # ====== DataDroppableWidget ===================================================
 # A metaclass implementing a data-droppable widget.
@@ -78,10 +97,10 @@ class DataDraggableListView (QListView):
     QListView.__init__(self,*args);
     self.setSelectionMode(QListView.Single);
   def dragObject (self):
-    try:
-      return QTextDrag(self.selectedItem()._udi,self);
+    try: udi = self.selectedItem()._udi;
     except AttributeError:
       return None;
+    return udi and QTextDrag(udi,self);
 
 
 # ====== GridDataItem ==========================================================
@@ -91,7 +110,8 @@ class GridDataItem (object):
   """Represents a DataItem that is displayed in a GridCell. This is meant to
   be constructed by data sources, and passed to the workspace for displaying.
   """;
-  def __init__ (self,udi,name='',desc='',data=None,datatype=None,refresh=None,viewer=None):
+  def __init__ (self,udi,name='',desc='',data=None,datatype=None,
+                refresh=None,viewer=None,viewopts={}):
     """the constructor initializes standard attributes:
     udi:      the Uniform DataItem ID   (e.g. "nodestate/<nodename>")
     name:     the name of the data item (e.g. the node name)
@@ -103,6 +123,7 @@ class GridDataItem (object):
     viewer:   If None, a viewer will be selected from among the registered
               viewers for the data type. Otherwise, provide a callable 
               viewer plug-in. See registerViewer() for details.
+    viewopts: dict of extra viewer options.
     """;
     if self.refresh and not callable(self.refresh):
       raise ValueError,'refresh argument must be a callable';
@@ -110,6 +131,9 @@ class GridDataItem (object):
     self.name = name;
     self.desc = desc;
     self.data = data;
+    if viewopts is None:
+      viewopts = {};
+    self.viewopts = viewopts;
     self.refresh_func = refresh;
     # look for suitable viewer if not specified
     if viewer is not None:
@@ -231,8 +255,11 @@ class GridCell (object):
     return self._pin.isOn();
   def set_pinned (self,state=True):
     self._pin.setOn(state);
-  def _id (self):
+  def udi (self):
     return self._dataitem and self._dataitem.udi;
+  def is_parent_of (self,udi):
+    my_udi = self.udi();
+    return my_udi and udi.startswith(my_udi);
     
   # highlights a cell
   # pass in a QColor, or True for default color, or False value to disable highlights
@@ -253,7 +280,7 @@ class GridCell (object):
 
   # wipe: deletes contents in preperation for inserting other content
   def wipe (self):
-    dbg.dprint(5,'GridCell: wiping cell ',self._id());
+    dbg.dprint(5,'GridCell: wiping cell ',self.udi());
     self.set_pinned(False);
     if self._viewer:
       self._wstack.removeWidget(self._viewer.wtop());
@@ -266,7 +293,7 @@ class GridCell (object):
 
   # close(): wipe, hide everything, and emit a closed signal
   def close (self):
-    dbg.dprint(5,'GridCell: clearing cell ',self._id());
+    dbg.dprint(5,'GridCell: clearing cell ',self.udi());
     self.wipe();
     self._wtop.hide();
     self._control_box.hide();
@@ -280,19 +307,24 @@ class GridCell (object):
   def enable (self,enable=True):
     self.disable(not enable);
 
-  def set_data_item (self,dataitem,pin=None):
+  def set_data_item (self,dataitem,pin=None,viewopts={}):
     if not self.is_empty():
       self.wipe();
     dataitem.attach_cell(self);
     self._dataitem = dataitem;
+    self._viewopts = dataitem.viewopts.copy();
+    self._viewopts.update(viewopts);
     self._label.setText(dataitem.name);
     self._label1.setText(dataitem.desc);
     self._control_box.show();
     # create a viewer, add data if specified
-    viewer = dataitem.viewer(self.wtop(),udi=dataitem.udi);
+    viewer = dataitem.viewer(self.wtop(),udi=dataitem.udi,**self._viewopts);
     widget = viewer.wtop();
     if dataitem.data:
       viewer.set_data(dataitem.data);
+    # connect displayDataItem() signal from viewer to be resent from top widget
+    QWidget.connect(widget,PYSIGNAL("displayDataItem()"),
+                    self._wtop,PYSIGNAL("displayDataItem()"));
     # setup refresh function and button
     if dataitem.is_mutable():
       self._refresh.show();
@@ -315,8 +347,11 @@ class GridCell (object):
     self._wstack.show();
     self._wtop.show();
     
-  def set_data (self,data):
-    self._viewer and self._viewer.set_data(data);
+  def set_data (self,data,viewopts={}):
+    if self._viewer:
+      kw = self._viewopts.copy();
+      kw.update(viewopts);
+      self._viewer.set_data(data,**kw);
     self.enable();
     
 # ====== GriddedPage ===========================================================
@@ -352,6 +387,9 @@ class GriddedPage (object):
         cell._drop_slot = curry(gw.add_data_item,cell=weakref.ref(cell));
         QWidget.connect(cell.wtop(),PYSIGNAL("dataItemDropped()"),
                         cell._drop_slot);
+        cell._display_slot = curry(gw.add_data_item,parent=weakref.ref(cell));
+        QWidget.connect(cell.wtop(),PYSIGNAL("displayDataItem()"),
+                        cell._display_slot);
     # prepare layout
     self.set_layout(0);
     
@@ -403,8 +441,11 @@ class GriddedPage (object):
   # Finds a free cell if one is available, switches to the next layout
   # as needed. Returns Cell object, or None if everything is full.
   # If new=False, tries to reuse unpinned cells before switching layouts.
-  # If new=True,  does not reuse cells.
-  def find_cell (self,new=False):
+  #   If parent_udi is specified, then also avoids reusing cells with the 
+  #   parent udi, or parents of those cells (cells whose udi is a prefix of 
+  #   parent_udi).
+  # If new=True, never reuses cells.
+  def find_cell (self,udi,new=False,parent_udi=None):
     # loop over layouts until we find a cell (or run out of layouts)
     while True:
       (nrow,ncol) = self._cur_layout;
@@ -419,7 +460,7 @@ class GriddedPage (object):
         for icol in range(ncol-1,-1,-1):
           for irow in range(nrow-1,-1,-1):
             cell = self._rows[irow].cells()[icol];
-            if not cell.is_pinned():
+            if not cell.is_pinned() and not (parent_udi and cell.is_parent_of(parent_udi)):
               cell.wipe();
               return cell;
       # current layout is full: proceed to next layout
@@ -597,25 +638,36 @@ class GriddedWorkspace (object):
   #            which item will be added. If None, a cell will be allocated.
   #   newpage: if True, creates a new page with the data cell
   #   newcell: if True, uses an empty cell (changing layouts as needed)
-  #            rather than reusing an existing unpinned panel
-  def add_data_item (self,item,cell=None,newcell=False,newpage=False):
+  #            rather than reusing an existing unpinned panel. If False,
+  #            reuses a panel if possible; in this case, avoid_cells may be 
+  #            a collection of cell ids reuse of which is to be avoided.
+  def add_data_item (self,item,cell=None,parent=None,
+                     newcell=False,newpage=False):
+    # Helper function to resolve arguments specified as object or ref to object.
+    # If specified via a callable (i.e. via weakref), try to resolve to 
+    # an object
+    def resolve_arg (arg,tp):
+      if arg is not None: 
+        if not isinstance(arg,tp):
+          if callable(arg):
+            arg = arg();
+          if arg and not isinstance(arg,tp):
+            raise TypeError,'argument not of type '+str(tp);
+      return arg;
+    # add page if requested
     if newpage:
       self.add_page();
-    # if cell is specified via a callable (i.e. via weakref),
-    # try to resolve to a GridCell object
-    if cell: 
-      if not isinstance(cell,GridCell):
-        if callable(cell):
-          cell = cell();
-        if cell and not isinstance(cell,GridCell):
-          raise TypeError,'illegal cell argument';
-    # Are we already displaying this UDI? If a specific cell is requested,
-    # then pretend we're not
+    # resolve cell and parent arguments try to resolve to a GridCell object
+    cell = resolve_arg(cell,GridCell);
+    parent = resolve_arg(parent,GridCell);
+    parent_udi = parent and parent.udi();
+    # Are we already displaying this UDI? If a specific cell/new cell/new page
+    # is requested, then pretend we're not
     item0 = self._dataitems.setdefault(item.udi,item);
-    if cell:
+    if cell or newcell or newpage:
       item = item0;
-    # if cell is not specified, and a dataitem for this udi already exists,
-    # then simply refresh the item and highlight the cell it is in
+    # a dataitem for this udi already exists, and specific cell is not specified:
+    # simply refresh the item and highlight the cell it is in
     if item0 is not item:
       if item.data is None:  
         item0.refresh();
@@ -630,8 +682,8 @@ class GriddedWorkspace (object):
     else:
       # no cell specified (or callable returned None), allocate new cell/page
       if not cell: 
-        cell = self.current_page().find_cell(new=newcell) \
-               or self.add_page().find_cell();
+        cell = self.current_page().find_cell(item.udi,new=newcell,parent_udi=parent_udi) \
+               or self.add_page().find_cell(item.udi,parent_udi=parent_udi);
       cell.set_data_item(item);
       # ask for a refresh
       item.refresh();

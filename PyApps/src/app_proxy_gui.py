@@ -70,7 +70,7 @@ class Logger(HierBrowser):
   _LogPixmaps =  { Normal:pixmaps.check, Error:pixmaps.exclaim };
   _LogCatNames = { Normal:"message",Event:"event",Error:"error" };
   def __init__(self,parent,name,
-               click=None,udi_name=None,
+               click=None,udi_root=None,
                enable=True,use_enable=True,limit=-100,use_limit=True):
     """Initializes a Logger panel. Arguments are:
           parent:     parent widget
@@ -83,12 +83,12 @@ class Logger(HierBrowser):
           enable:     initial state of control
           click:      callback, called when a log item is clicked
                       (QListView::mouseButtonClicked() signal is connected to this slot)
-          udi_name:   the UDI prefix corresponding to this logger.
-                      if None, then panel name is used instead
+          udi_root:   the UDI root name corresponding to this logger.
+                      if None, then panel name is used instead.
     """;
     self._vbox = QVBox(parent);
     # init the browser base class
-    HierBrowser.__init__(self,self._vbox,name);
+    HierBrowser.__init__(self,self._vbox,name,udi_root=udi_root);
     # add controls
     self._controlgrid = QWidget(self._vbox);
     self._controlgrid_lo = QHBoxLayout(self._controlgrid);
@@ -122,11 +122,8 @@ class Logger(HierBrowser):
         SIGNAL('mouseButtonClicked(int,QListViewItem*,const QPoint &,int)'),click);
     # set log limit        
     self.set_log_limit(limit);
-    # map of items in the list view (mapped by ID) -- weakly referenced
-    self._content_map = weakref.WeakValueDictionary();
     # compile regex to match our udi pattern
-    self._udi_name = udi_name or name;
-    self._patt_udi = re.compile("^"+self._udi_name+":(.*)$");
+    self._patt_udi = re.compile("/"+self._udi_root+"/(.*)$");
     # define get_data_item method for the listview
     self.wlistview().get_data_item = self.get_data_item;
     
@@ -154,29 +151,9 @@ class Logger(HierBrowser):
       self._limit_field.setEnabled(limit>0);
     self.apply_limit(self._limit);
     
-  def get_data_item (self,udi):
-#    match = self._patt_udi(udi);
-#    if match is None:
-#      return None;
-#    # look for item in content map, using item id from the udi
-#    (subid,) = match.groups();
-    return self.make_data_item(self._content_map.get(udi,None));
-    
-  def make_data_item (item):
-    # create and return dataitem object from a listview item
-    # If any of the required attributes are missing, returns None
-    try: 
-      if item._viewable:
-        return GridDataItem(item._udi,item._name,item._desc,data=item._content);
-      return None;
-    except AttributeError: return None;
-    
-    
-  make_data_item = staticmethod(make_data_item);
-
   def add (self,msg,label=None,content=None,
            category=Normal,force=False,
-           udi=None,name=None,desc=None):
+           udi_key=None,name=None,desc=None,viewopts={}):
     """Adds item to logger. Arguments are:
       msg:     item message (for message column)
       label:   item label (for label column -- timestamp is used if this is None)
@@ -184,11 +161,12 @@ class Logger(HierBrowser):
       category: item category: Normal, Event, Error.
       force:   if False and logging is disabled, add() call does nothing.
                if True, item is always added.
+      udi_key: item UDI key, auto-generated if None
     If content is not None, then content will be available to viewers. In
     this case, the following parameters define its properties:
-      udi:     item UDI, auto-generated if None
       name:    item name for viewers; if None, then category name is used
       desc:    item description; if None, then label is used
+      viewopts: dict of optional viewer settings for this item
     Return value: a QListViewItem
     """;
     # disabled? return immediately
@@ -197,26 +175,26 @@ class Logger(HierBrowser):
     # if label not specified, use a timestamp 
     if label is None:
       label = time.strftime("%H:%M:%S");
+    # if udi_key is None, set to 'id'. This will tell new_item to use
+    # the item id for key, rather than the text in column 0
+    if udi_key is None:
+      udi_key = id;
     # create listview item
-    item = self.new_item(label,msg);
+    item = self.new_item(label,msg,udi_key=udi_key);
     item._category = category;
     if content is not None:
-      viewable = isinstance(content,dict) and ( len(content)>1 or 
-                 (len(content)==1 and content.keys()[0] not in MessageCategories) );
+      # if content is just va single message, override viewable property
+      viewable = None;
+      if isinstance(content,dict) and \
+         (len(content)==1 and content.keys()[0] in MessageCategories):
+        viewable = False;
       item.cache_content(content,viewable=viewable);
-      # add item to map, generating a uid if necessary
-      if viewable:
-        item.setDragEnabled(True);
-        if udi is None:
-          udi = str(id(item));
-        elif not isinstance(uid,str):
-          raise TypeError,"item uid must be string or None";
-        if name is None: name = self._LogCatNames.get(category,self._udi_name);
+      if item._viewable:
+        item._viewopts = viewopts;
+        if name is None: name = self._LogCatNames.get(category,self._udi_root);
         if desc is None: desc = label;
-        item._udi = udi = self._udi_name + ':' + udi;
         item._name = name;
         item._desc = desc;
-        self._content_map[udi] = item;
     # add pixmap according to category
     pm = self._LogPixmaps.get(category,None);
     if pm is not None:
@@ -327,7 +305,7 @@ class app_proxy_gui(verbosity,QMainWindow):
     
     #------ create a message log
     self.msglog = MessageLogger(self,"message log",use_enable=False,limit=1000,
-          click=self._process_logger_item_click,udi_name='message');
+          click=self._process_logger_item_click,udi_root='message');
     self.msglog.add('start of log',category=Logger.Normal);
     self.msglog.wtop()._default_label = "Messages";
     self.msglog.wtop()._default_iconset = QIconSet();
@@ -337,7 +315,7 @@ class app_proxy_gui(verbosity,QMainWindow):
     
     #------ create an event log
     self.eventlog = EventLogger(self,"event log",limit=1000,evmask="*",
-          click=self._process_logger_item_click,udi_name='event');
+          click=self._process_logger_item_click,udi_root='event');
     
     self.maintab.addTab(self.msglog.wtop(),self.msglog.wtop()._default_label);
     
@@ -385,12 +363,13 @@ class app_proxy_gui(verbosity,QMainWindow):
       tooltip="hide the value browser panel",click=self.hide_gridded_workspace);
     QWidget.connect(self.gw.wtop(),PYSIGNAL("addedCell()"),self.show_gridded_workspace);
     
-    self.show_workspace_button = QToolButton(maintab);
-    self.show_workspace_button.setPixmap(pixmaps.view_right.pm());
+    self.show_workspace_button = DataDroppableWidget(QToolButton)(maintab);
+    self.show_workspace_button.setPixmap(pixmaps.view_split.pm());
     self.show_workspace_button.setAutoRaise(True);
     maintab.setCornerWidget(self.show_workspace_button,Qt.BottomRight);
     QWidget.connect(self.show_workspace_button,SIGNAL("clicked()"),self.show_gridded_workspace);
-    QToolTip.add(self.show_workspace_button,"show the value browser panel");
+    QWidget.connect(self.show_workspace_button,PYSIGNAL("dataItemDropped()"),self.display_data_item);
+    QToolTip.add(self.show_workspace_button,"show the viewer panel. You can also drop data items here.");
     
     splitter.setSizes([200,600]);
 #    self.maintab.setCornerWidget(self.pause_button,Qt.TopRight);
@@ -439,8 +418,12 @@ class app_proxy_gui(verbosity,QMainWindow):
     # call Logger to create a dataitem object from this list item
     dataitem = Logger.make_data_item(item);
     if dataitem:
-      self.gw.add_data_item(dataitem);
-      self.show_gridded_workspace();
+      self.display_data_item(dataitem);
+      
+##### displays data item in gridded workspace
+  def display_data_item (self,item,*args,**kwargs):
+    self.gw.add_data_item(item,*args,**kwargs);
+    self.show_gridded_workspace();
     
 ##### event relay: reposts message as a Qt custom event for ourselves
   MessageEventType = QEvent.User+1;
@@ -547,10 +530,12 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.eventtab.setTabLabel(logger,str(mask));
 ##### slot: adds error count to label of message logger
   def _indicate_msglog_errors (self,logger,numerr):
+    try: has_err = logger._numerr > 0;
+    except AttributeError: has_err = False;
     # only add when going from or to 0 errors
-    if numerr and not logger._numerr:
+    if numerr and not has_err:
       self.maintab.changeTab(logger,logger._error_iconset,logger._error_label % numerr);
-    elif not numerr and logger._numerr:
+    elif not numerr and has_err:
       self._reset_maintab_label(logger);
     logger._numerr = numerr;
   # resets tab label to default values
