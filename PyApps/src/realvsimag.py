@@ -112,6 +112,8 @@ class realvsimag_plotter(object):
         'none': QwtCurve.NoCurve,
         'lines' : QwtCurve.Lines,
         'dots' : QwtCurve.Dots,
+#	'sticks' : QwtCurve.Sticks,
+#	'steps' : QwtCurve.Steps,
 #        'none': Qt.NoPen,
         'SolidLine' : Qt.SolidLine,
         'DashLine' : Qt.DashLine,
@@ -157,6 +159,7 @@ class realvsimag_plotter(object):
         self._xy_plot_dict = {}
         self._xy_plot_color = {}
         self._plotter_dict = {}
+        self._flags_dict = {}
         self._plotterlabels_dict = {}
         self._plotterlabels_start = {}
         self._x_errors_dict = {}
@@ -190,6 +193,7 @@ class realvsimag_plotter(object):
 
   def reset_data_collectors(self):
         self._plotter_dict = {}
+        self._flags_dict = {}
 
     # __init__()
 
@@ -358,10 +362,10 @@ class realvsimag_plotter(object):
             plot_keys = self._xy_plot_dict.keys()
             _dprint(2, 'plot_keys ', plot_keys)
             for i in range(0, len(plot_keys)):
-              current_plot_key = plot_keys[i]
-              plot_key = self._xy_plot_dict[current_plot_key]
+              current_item_tag = plot_keys[i]
+              plot_key = self._xy_plot_dict[current_item_tag]
               if plot_key == key:
-                data_key_r = current_plot_key + '_r'
+                data_key_r = current_item_tag + '_r'
                 label = self._plotterlabels_dict[data_key_r]
                 start_pos =  self._plotterlabels_start[data_key_r]
                 label_index = None
@@ -524,6 +528,7 @@ class realvsimag_plotter(object):
       self._stddev_circle_color = None
       self._stddev_circle_style = None
       self._string_tag = None
+      self._data_flags = None
       self._x_y_data = True
       self._tag_plot_attrib={}
 
@@ -683,6 +688,19 @@ class realvsimag_plotter(object):
                            QMessageBox.NoButton,
                            QMessageBox.NoButton)
                 mb_color.exec_loop()
+            if self._mean_circle_style is None and self._plot_parms.has_key('mean_circle_style'):
+              self._mean_circle_style = self._plot_parms.get('mean_circle_style')
+              _dprint(3, 'plot mean_circle_style set to ', self._mean_circle_style)
+              if not self.line_style_table.has_key(self._mean_circle_style):
+                Message = self._mean_circle_style + " is not a valid line style.\n Using solid line by default."
+                self._mean_circle_style = "lines"
+                mb_style = QMessageBox("realvsimag.py",
+                           Message,
+                           QMessageBox.Warning,
+                           QMessageBox.Ok | QMessageBox.Default,
+                           QMessageBox.NoButton,
+                           QMessageBox.NoButton)
+                mb_style.exec_loop()
             if self._stddev_circle_color is None and self._plot_parms.has_key('stddev_circle_color'):
               self._stddev_circle_color = self._plot_parms.get('stddev_circle_color')
               _dprint(3, 'plot stddev_circle_color set to ', self._stddev_circle_color)
@@ -699,6 +717,19 @@ class realvsimag_plotter(object):
                            QMessageBox.NoButton,
                            QMessageBox.NoButton)
                 mb_color.exec_loop()
+            if self._stddev_circle_style is None and self._plot_parms.has_key('stddev_circle_style'):
+              self._stddev_circle_style = self._plot_parms.get('stddev_circle_style')
+              _dprint(3, 'plot stddev_circle_style set to ', self._stddev_circle_style)
+              if not self.line_style_table.has_key(self._stddev_circle_style):
+                Message = self._stddev_circle_style + " is not a valid line style.\n Using solid line by default."
+                self._stddev_circle_style = "lines"
+                mb_style = QMessageBox("realvsimag.py",
+                           Message,
+                           QMessageBox.Warning,
+                           QMessageBox.Ok | QMessageBox.Default,
+                           QMessageBox.NoButton,
+                           QMessageBox.NoButton)
+                mb_style.exec_loop()
             if self._plot_parms.has_key('legend'):
               legend = self._plot_parms.get('legend')
               _dprint(3, 'legend found is ', legend)
@@ -725,6 +756,10 @@ class realvsimag_plotter(object):
             item_tag = self._string_tag + '_plot'
       if self._plot_title is None:
         self._plot_title = self._plot_type
+
+# the system knows that it is plotting 'errors' if it has
+# been able to find both a value_tag and an error_tag along
+# the way to this leaf node. 
       if self.value_tag is None:
         self.value_tag = False
         self.errors_plot = False
@@ -736,6 +771,7 @@ class realvsimag_plotter(object):
           _dprint(2, 'errors plot is true')
           self.errors_plot = True
 
+
       if self.plot_symbol_size is None:
         self.plot_symbol_size = 10
       if self.plot_symbol is None:
@@ -745,6 +781,10 @@ class realvsimag_plotter(object):
       if self._plot_color is None:
         self._plot_color = 'blue'
         self._plot_color = self.color_table[self._plot_color]
+      if self._mean_circle_style is None:
+        self._mean_circle_style = 'lines'
+      if self._stddev_circle_style is None:
+        self._stddev_circle_style = 'DotLine'
       if self._mean_circle_color is None:
         self._mean_circle_color = 'blue'
         self._mean_circle_color = self.color_table[self._mean_circle_color]
@@ -753,32 +793,52 @@ class realvsimag_plotter(object):
         self._stddev_circle_color = self.color_table[self._stddev_circle_color]
 
 # extract and define labels for this data item
+# note: the item_tag field consists of a concatination of all
+# the 'tag' fields found by the system on the way to the current
+# leaf note with '_plot' appended. We now create separate
+# labels for the real and imaginary data associated with
+# this item_tag.
       self._label_i = item_tag + "_i"
       self._label_r = item_tag + "_r"
 
       if visu_record.has_key('value'):
         self._data_values = visu_record['value']
-#        _dprint(2,'self._data_values ', self._data_values);
+      if visu_record.has_key('flags'):
+        self._data_flags = visu_record['flags']
+
+# note: the self._data_labels field that we now extract
+# was generated in the result_plotter.py script as it
+# traversed the 'Visu' tree. It is a string concatination
+# of all the 'Visu' 'label' fields for the path to
+# this leaf node. When the user clicks on a data point
+# with the middle mouse buton this string is displayed
+# to show the path to the data point that was clicked on.
       if visu_record.has_key('label'):
         self._data_labels = visu_record['label']
         _dprint(2,'self._data_labels ', self._data_labels);
 
-     # now generate plot 
+# now generate plot 
       self.x_vs_y_plot(item_tag)
   
   def x_vs_y_plot (self,item_tag):
       """ plot real vs imaginary values together with circles
           indicating average values """
  
-# get and combine all plot array data together into one array
+# Get and combine all plot array data together into one python list
+# We are actually converting python numarrays into a list -
+# Maybe we can be more efficient if we store the numarrays in a group
+# of tuples or something. To be investigated ....
       num_plot_arrays = len(self._data_values)
       _dprint(2,' num_plot_arrays ', num_plot_arrays);
       self._is_complex = True;
+# we have separate lists for real, imaginary and flag data
       data_r = []
       data_i = []
+      data_f = []
+# start_pos gives the first position of a member of an individual
+# numarray in the larger combined list
       start_pos = []
-      sum_r = 0.0
-      sum_i = 0.0
+      start_flags_pos = []
       for i in range(0, num_plot_arrays):
 # make sure we are using a numarray
         array_representation = asarray(self._data_values[i])
@@ -808,61 +868,104 @@ class realvsimag_plotter(object):
           for j in range(0, num_elements): 
             data_i.append(flattened_array_i[j])
         else:
+# since we are plotting real vs imaginary data, we must add
+# imaginary values of zero, if we just receive an incoming
+# real array
           if not self.errors_plot:
             for j in range(0, num_elements): 
               data_i.append(0.0)
           if self.errors_plot and self._string_tag.find(self.error_tag)<0:
             for j in range(0, num_elements): 
               data_i.append(0.0)
+	      
+# handle data flags, if any	
+        if not self._data_flags is None:
+          xx_r = asarray(self._data_flags[i])
+          if i == 0:
+            start_flags_pos.append(0)
+          else:
+            start_flags_pos.append(len(data_f))
+          array_dim = len(xx_r.shape)
+          num_elements = 1
+          for j in range(0, array_dim):
+            num_elements = num_elements * xx_r.shape[j]
+          flattened_array_r = reshape(xx_r,(num_elements,))
+          for j in range(0, num_elements): 
+            data_f.append(flattened_array_r[j])
 
 # add data to set of curves
+# obviously if we didn't get any actual data for some reason
+# just return
       if len(data_r) == 0:
         print 'nothing to update!'
         return
       _dprint(2, 'main key ', self._label_r)
-#      if self.errors_plot and self._is_complex == False:
+
+# first store the incoming real data.
+
+# have we previously collected data which had associated with it
+# this particular self._label_r string?
+      if self._plotter_dict.has_key(self._label_r) == False:
+# add the new data to a 'dict' of visualization lists, where the index to
+# the data is given by the self._label_r string
+        self._plotter_dict[self._label_r] = data_r
+        _dprint(2, 'assigned error data to self._plotter_dict key ', self._label_r)
+# store the string giving the path to this data in a 'dict'
+# of plotterlabels where the index is again given by self._label_r
+        self._plotterlabels_dict[self._label_r] = self._data_labels
+# store the starting position list for the numarrays that were in the
+# incoming data in a plotterlabels_start dict
+        self._plotterlabels_start[self._label_r] = start_pos
+        if len(data_f) > 0:
+          self._flags_dict[self._label_r] = data_f
+
+# otherwise we have previously stored data with this particular index
+      else:
+        prev_data_length = len(self._plotter_dict[self._label_r])
+# add new data to the end of the current list for this 
+        self._plotter_dict[self._label_r] = self._plotter_dict[self._label_r] + data_r
+# add new data label giving path to this data to the plotterlabels dict
+# (hum - is this the right thing to do?)
+        self._plotterlabels_dict[self._label_r] = self._plotterlabels_dict[self._label_r] + self._data_labels
+# the starting positions of each of the numarrays in the new combined data
+# list are calculated in the following loop
+        for i in range(0,len(start_pos)):
+          start_pos[i] = start_pos[i] + prev_data_length
+# this list of starting positions is then appended to the list already
+# stored in the plotterlabels_start dict
+        self._plotterlabels_start[self._label_r] = self._plotterlabels_start[self._label_r] + start_pos
+        if len(data_f) > 0:
+          self._flags_dict[self._label_r] = self._flags_dict[self._label_r] + data_f
+
+# if we are doing an 'errors' plot and the tag we are working
+# with contains the 'error_tag' field then we know that the
+# incoming data represent errors. Errors are always real.
       if self.errors_plot and self._string_tag.find(self.error_tag)>= 0:
         self._x_y_data = False
-        if self._plotter_dict.has_key(self._label_r) == False:
-#add the new data to a 'dict' of visualization lists
-          self._plotter_dict[self._label_r] = data_r
-          _dprint(2, 'assigned error data to self._plotter_dict key ', self._label_r)
-          self._plotterlabels_dict[self._label_r] = self._data_labels
-          self._plotterlabels_start[self._label_r] = start_pos
-        else:
-          prev_data_length = len(self._plotter_dict[self._label_r])
-          self._plotter_dict[self._label_r] = self._plotter_dict[self._label_r] + data_r
-          self._plotterlabels_dict[self._label_r] = self._plotterlabels_dict[self._label_r] + self._data_labels
-          for i in range(0,len(start_pos)):
-            start_pos[i] = start_pos[i] + prev_data_length
-          self._plotterlabels_start[self._label_r] = self._plotterlabels_start[self._label_r] + start_pos
+
+# otherwise we are working with x,y data and need to store the imaginary data
       else:
-        if self._plotter_dict.has_key(self._label_r) == False:
-#add the new data to a 'dict' of visualization lists
-          self._plotter_dict[self._label_r] = data_r
-          self._plotterlabels_dict[self._label_r] = self._data_labels
-          self._plotterlabels_start[self._label_r] = start_pos
-        else:
-          prev_data_length = len(self._plotter_dict[self._label_r])
-          _dprint(2, 'initial data length ', prev_data_length)
-          _dprint(2, 'starting position length ', self._plotterlabels_start[self._label_r])
-          self._plotter_dict[self._label_r] = self._plotter_dict[self._label_r] + data_r
-          self._plotterlabels_dict[self._label_r] = self._plotterlabels_dict[self._label_r] + self._data_labels
-          for i in range(0,len(start_pos)):
-            start_pos[i] = start_pos[i] + prev_data_length
-          self._plotterlabels_start[self._label_r] = self._plotterlabels_start[self._label_r] + start_pos
         if self._plotter_dict.has_key(self._label_i) == False:
 #add the new data to a 'dict' of visualization lists
           self._plotter_dict[self._label_i] = data_i
         else:
           self._plotter_dict[self._label_i] = self._plotter_dict[self._label_i] + data_i
 
-#      print 'self._plotterlabels_dict ', self._plotterlabels_dict 
-      # if this is a new item_tag, add a new plot,
-      # otherwise, replace old one
-      plot_key = self._string_tag + '_plot'
-      _dprint(3, 'plot key is ', plot_key)
-      if self._xy_plot_dict.has_key(plot_key) == False: 
+# we have now stored data and some associated 'meta data' - labels
+# and starting positions, in various python dictionaries.
+
+# we now set up the qwt plot components for the data we have just stored
+
+# If this is a new item_tag, add a new curve to the qwt plot.
+# At the same time, construct basic plot attributes, title etc,
+# if they have not previously been set. 
+
+      _dprint(3, 'plot key is ', item_tag)
+      
+# qwt curves each have a number which can be associated
+# with an individual 'string' key. We store these keys and 
+# associated curve numbers in the xy_plot_dict
+      if self._xy_plot_dict.has_key(item_tag) == False: 
         if not self._plot_title is None:
           self.plot.setTitle(self._plot_title)
         if not self._plot_y_axis_label is None:
@@ -870,12 +973,20 @@ class realvsimag_plotter(object):
         if not self._plot_x_axis_label is None:
           self.plot.setAxisTitle(QwtPlot.xBottom, self._plot_x_axis_label)
 
+# store the color for this particular plot in the 
+# xy_plot_color dict using item_tag as the key
+        self._xy_plot_color[item_tag] = self._plot_color
+
 # if we have x, y data
-#        if self._is_complex == True or self.errors_plot == False:
         if self._x_y_data:
-          key_plot = self.plot.insertCurve(plot_key)
-          self._xy_plot_dict[plot_key] = key_plot
-          self._xy_plot_color[plot_key] = self._plot_color
+# key_plot is an integer
+          key_plot = self.plot.insertCurve(item_tag)
+# store this integer value in the xy_plot_dict using the
+# item_tag string as key
+          self._xy_plot_dict[item_tag] = key_plot
+
+# using the integer 'key_plot' as index, set up various
+# plotting parameters for the curve - color, symbol, symbol size etc
           self.plot.setCurvePen(key_plot, QPen(self._plot_color))
           if not self.line_style_table.has_key(self.plot_line_style):
             Message = self.plot_line_style + " is not a valid line style.\n Using dots by default"
@@ -906,85 +1017,131 @@ class realvsimag_plotter(object):
           plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
                      QPen(self._plot_color), QSize(self.plot_symbol_size, self.plot_symbol_size)))
 
-# do we have error data
-        if self.errors_plot and self._string_tag.find(self.error_tag)>= 0:
-          self._xy_plot_dict[plot_key] = -1
+# if we have error data
+        else:
+# store an integer value of -1 in the xy_plot_dict using the
+# item_tag string as key. That way we we can distinguish from a
+# 'normal' xy plot in the update_plot method below 
+          self._xy_plot_dict[item_tag] = -1
+# self.x_errors is a QwtErrorPlotCurve object
           self.x_errors = QwtErrorPlotCurve(self.plot,self._plot_color,2);
           _dprint(3, 'self.x_errors set to ', self.x_errors)
           self.x_errors.setXErrors(True)
+# insert this x error QwtErrorPlotCurve into the qwt plot
           self.plot.insertCurve(self.x_errors);
-          _dprint(3, 'self.x_errors stored in self._x_errors_dict with key ', plot_key)
-          self._x_errors_dict[plot_key] = self.x_errors
+          _dprint(3, 'self.x_errors stored in self._x_errors_dict with key ', item_tag)
+# store a reference to this x error curve object in
+# a x_errors_dict using item_tag as key
+          self._x_errors_dict[item_tag] = self.x_errors
+# self.y_errors is a QwtErrorPlotCurve object
           self.y_errors = QwtErrorPlotCurve(self.plot,self._plot_color,2);
           _dprint(3, 'self.y_errors set to ', self.y_errors)
-          self._y_errors_dict[plot_key] = self.y_errors
+# insert this y error QwtErrorPlotCurve into the qwt plot
           self.plot.insertCurve(self.y_errors);
-    # end of x_vs_y_plot 
+# store a reference to this y error curve object in
+# a y_errors_dict using item_tag as key
+          self._y_errors_dict[item_tag] = self.y_errors
+
+  # end of x_vs_y_plot 
 
 # data for plot has been gathered together after tree traversal
 # now update plot curves, etc
   def update_plot(self):
+      """ get plot data and display it after all plot data 
+          has been stored """
+# plot_keys is just a list of the item tags that have gone into the plot
       plot_keys = self._xy_plot_dict.keys()
       _dprint(3, 'in update_plot xy_plot_dict plot_keys ', plot_keys)
-      temp_keys = self._plotter_dict.keys()
-      _dprint(3, 'in update_plot plotter_dict keys ', temp_keys)
-      error_keys = self._x_errors_dict.keys()
-      _dprint(3, 'in update_plot x_errors_dict keys ', error_keys)
+      _dprint(3, 'in update_plot plotter_dict keys ', self._plotter_dict.keys())
+      _dprint(3, 'in update_plot x_errors_dict keys ', self._x_errors_dict.keys())
       for i in range(0, len(plot_keys)): 
-        current_plot_key = plot_keys[i]
-        _dprint(3, 'iter current plot key ', i, ' ',current_plot_key)
+        current_item_tag = plot_keys[i]
+        _dprint(3, 'iter current plot key ', i, ' ',current_item_tag)
         data_r = None
         data_i = None
         data_errors = None
-        data_key_i = current_plot_key + '_i'
+# first get any imaginary data associated with this key
+# data_key_i just equates to self._label_i in the 'plot_data' method
+        data_key_i = current_item_tag + '_i'
         if self._plotter_dict.has_key(data_key_i):
           data_i = self._plotter_dict[data_key_i]
-          if not data_i is None:
-            _dprint(3, 'data_i assigned', data_i)
-        data_key_r = current_plot_key + '_r'
+# Real data numbers can be 'error' data or the real numbers
+# corresponding to the imaginary numbers retrieved above.
+# data_key_r just equates to self._label_r in the 'plot_data' method
+        data_key_r = current_item_tag + '_r'
+
         if self.errors_plot: 
           if data_key_r.find(self.error_tag) >= 0:
             if self._plotter_dict.has_key(data_key_r):
+# if the above 3 if statements are all satisfied, we have error data
               data_errors = self._plotter_dict[data_key_r]
               if not data_errors is None:
                 _dprint(3, 'data_errors assigned', data_errors)
           else:
+# If data_key_r does not contain the 'error_tag' string
+# then even though this is an errors plot, this data_key_r
+# key points to the real numbers corresponding to the
+# imaginary numbers already retrieved above.
             if self._plotter_dict.has_key(data_key_r):
               data_r = self._plotter_dict[data_key_r]
               if not data_r is None:
                 _dprint(3, 'data_r assigned', data_r)
         else:
+# If this is not an errors plot then the data_key_r must
+# give real numbers corresponding to the imaginaries retrieved
+# above
           if self._plotter_dict.has_key(data_key_r):
             data_r = self._plotter_dict[data_key_r]
-            if not data_r is None:
-              _dprint(3, 'data_r assigned', data_r)
+
+# if we have found errors data, assign the errors data to the appropriate
+# x and y QwtErrorPlotCurve objects. These QwtErrorPlotCurve objects
+# are obtained from the x_errors_dict and y_errors_dict 
+# python dicts using the current_item_tag string as the key
         if not data_errors is None:
-          _dprint(3, 'data_errors current plot key ',current_plot_key)
-          _dprint(3, 'x_errors_dict keys ', error_keys)
-          if self._x_errors_dict.has_key(current_plot_key):
-            self.x_errors = self._x_errors_dict[current_plot_key]
+          _dprint(3, 'data_errors current plot key ',current_item_tag)
+          _dprint(3, 'x_errors_dict keys ', self._x_errors_dict.keys())
+          if self._x_errors_dict.has_key(current_item_tag):
+            self.x_errors = self._x_errors_dict[current_item_tag]
             _dprint(3, 'self.x_errors ', self.x_errors)
             self.x_errors.setErrors(data_errors)
             _dprint(3, 'x data errors set in plot')
-          if self._y_errors_dict.has_key(current_plot_key):
-            self.y_errors = self._y_errors_dict[current_plot_key]
+          if self._y_errors_dict.has_key(current_item_tag):
+            self.y_errors = self._y_errors_dict[current_item_tag]
             _dprint(3, 'self.y_errors ', self.y_errors)
             self.y_errors.setErrors(data_errors)
             _dprint(3, 'y data errors set in plot')
+
+# Otherwise we should have retrieved a set of real and imaginary
+# data elements to be plotted against each other, and, if this
+# is an errors plot, to give the data points corresponding 
+# to the errors.
         else:
           _dprint(3, 'setting data values')
-          key_plot = self._xy_plot_dict[current_plot_key] 
+
+# get the number of the curve corresponding to this current_item_tag
+# key
+          key_plot = self._xy_plot_dict[current_item_tag] 
           if data_i is None:
             data_i = []
             for i in range(len(data_r)):
               data_i.append(0.0)           
+# assign the real and imaginary data to this curve
           self.plot.setCurveData(key_plot, data_r, data_i)
           _dprint(3, 'set data values in plot`')
+
+# if we are plotting errors, we also need to assign these 
+# real/imaginary values to the appropriate QwtErrorPlotCurve objects
           if self.errors_plot:
             _dprint(3, 'setting data for errors plot')
-# convert data key to error key
-            location_value =  current_plot_key.find(self.value_tag)
-            error_key = current_plot_key[:location_value] + self.error_tag + '_plot'
+# convert real/imaginary data current_item_tag key to what
+# should be the corresponding key for the error data 
+            location_value =  current_item_tag.find(self.value_tag)
+            error_key = current_item_tag[:location_value] + self.error_tag + '_plot'
+# Assign the real/imaginary  data to the appropriate
+# x and y QwtErrorPlotCurve objects. These QwtErrorPlotCurve objects
+# are obtained from the x_errors_dict and y_errors_dict 
+# python dicts using the 'error_key' string iwe just derived
+# as the key
             if self._x_errors_dict.has_key(error_key):
               self.x_errors = self._x_errors_dict[error_key]
               self.x_errors.setData(data_r,data_i)
@@ -994,7 +1151,10 @@ class realvsimag_plotter(object):
               self.y_errors.setData(data_r,data_i)
               _dprint(3, 'set data values for y errors')
 
+# finally plot various ancilliary stuff
+
 # Put legend_plot stuff in upper left hand corner of display
+# with yellow background
         if not self._legend_plot is None:
            self.legend_marker = self.plot.insertMarker()
            ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
@@ -1006,27 +1166,31 @@ class realvsimag_plotter(object):
              QFont(fn, 9, QFont.Bold, False),
              Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
 
-# plot circles in real vs imaginary plot?
+# plot mean circles in real vs imaginary plot?
         if not self.errors_plot and self.plot_mean_circles:
+# get means of real and imaginary numbers
           real_array = asarray(data_r)
-          avg_r = real_array.mean()
+          mean_r = real_array.mean()
           imag_array = asarray(data_i)
-          avg_i = imag_array.mean()
-          x_sq = pow(avg_r, 2)
-          y_sq = pow(avg_i, 2)
+          mean_i = imag_array.mean()
+# compute radius to mean
+          x_sq = pow(mean_r, 2)
+          y_sq = pow(mean_i, 2)
           radius = sqrt(x_sq + y_sq)
-          self._plot_color = self._xy_plot_color[current_plot_key] 
-          self.compute_circles (current_plot_key, radius, 0.0, 0.0)
+# get the color to plot this circle
+          self._plot_color = self._xy_plot_color[current_item_tag] 
+#	  print 'plotting mean circles with line style ', self._mean_circle_style
+          self.compute_circles (current_item_tag, radius, 0.0, 0.0, self._mean_circle_style)
           if self.plot_mean_arrows:
-            self.compute_arrow (current_plot_key, avg_r, avg_i)
+            self.compute_arrow (current_item_tag, mean_r, mean_i)
 
-# plot std dev circles?
+# plot standard deviation circles?
         if not self.errors_plot and self.plot_stddev_circles:
-# convert list to a complex array`
+# convert lists to a complex array` and compute means
           real_array = asarray(data_r)
-          avg_r = real_array.mean()
+          mean_r = real_array.mean()
           imag_array = asarray(data_i)
-          avg_i = imag_array.mean()
+          mean_i = imag_array.mean()
           complex_data = zeros( (len(data_r),), type='Complex64' )
           complex_data.setreal(real_array)
           complex_data.setimag(imag_array)
@@ -1039,9 +1203,14 @@ class realvsimag_plotter(object):
           mean = temp_array.mean()
           std_dev = sqrt(mean)
           radius = std_dev
-          self._plot_color = self._xy_plot_color[current_plot_key] 
-          self.compute_circles (current_plot_key + 'stddev', radius, avg_r, avg_i, 'DotLine')
+# get the color to plot this circle
+          self._plot_color = self._xy_plot_color[current_item_tag] 
+          self.compute_circles (current_item_tag + 'stddev', radius, mean_r, mean_i, self._stddev_circle_style)
+
+# we have inserted all data into curves etc, so as the last step
+# actually update the displayed plot
       self.plot.replot()
+
     # end of update_plot 
 
 
