@@ -79,6 +79,22 @@ Cells::~Cells()
   DataRecord::operator= (DataRecord());
 }
 
+bool Cells::operator== (const Cells& that) const
+{
+  if (*itsDomain != *(that.itsDomain)
+  ||  itsNfreq != that.itsNfreq
+  ||  itsTimes.size() != that.itsTimes.size()) {
+    return false;
+  }
+  for (int i=0; i<itsTimes.size(); i++) {
+    if (itsTimes(i) != that.itsTimes(i)
+    ||  itsTimeSteps(i) != that.itsTimeSteps(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 std::ostream& operator<< (std::ostream& os, const MEQ::Cells& cells)
 {
   os << "MEQ::Cells [" << cells.nfreq() << ','

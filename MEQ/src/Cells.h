@@ -72,6 +72,11 @@ public:
   double stepTime (int i) const
     { return itsTimeSteps(i); }
 
+  bool operator== (const Cells& that) const;
+
+  bool operator!= (const Cells& that) const
+    { return !(*this == that); }
+
   friend std::ostream& operator<< (std::ostream& os, const MEQ::Cells& cells);
 
 private:

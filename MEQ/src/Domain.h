@@ -78,6 +78,15 @@ public:
   double endTime() const
     { return itsOffsetTime + itsScaleTime; }
 
+  bool operator== (const Domain& that) const
+  { return itsOffsetFreq == that.itsOffsetFreq
+       &&  itsScaleFreq  == that.itsScaleFreq
+       &&  itsOffsetTime == that.itsOffsetTime
+       &&  itsScaleTime  == that.itsScaleTime; }
+
+  bool operator!= (const Domain& that) const
+    { return !(*this == that); }
+
 private:
   // Set the values in the DMI DataField.
   void setDMI();
