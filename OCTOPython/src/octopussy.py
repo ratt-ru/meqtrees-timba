@@ -3,6 +3,7 @@
 import octopython_c
 import string
 from dmitypes import *
+import numarray
 
 # pulls in various things from the C module directly
 from octopython_c import set_debug,aid_map,aid_rmap
@@ -42,9 +43,11 @@ class proxy_wp(octopython_c.proxy_wp):
  
 # self-test code 
 if __name__ == "__main__":
+  import time
   # do some basic checking
   print "set_debug()";
   set_debug("Octopussy",1);
+  set_debug("OctoPython",2);
   set_debug("Dsp",1);
   set_debug("loggerwp",0);
   set_debug("python",2);
@@ -64,15 +67,31 @@ if __name__ == "__main__":
   msg1 = message('a.b.c');
   print "message1",msg1;
   wp1.send(msg1,wp2.address());
-  msg2 = message('1.2.3',priority=10);
+  
+  arr = numarray.array([1,2,3,4,5,6],shape=[3,2]);
+  subseq = ([1,2,3],['x','y','z'],[hiid('a'),hiid('b')]);
+  subrec = srecord({'x':0,'y':arr});
+  payload = srecord({'a':0,'b':arr,'c_d':2,'e':subseq,'f':subrec,'z':(hiid('a'),hiid('b')),'nonhiid':4},verbose=2);
+  msg2 = message('1.2.3',priority=10,payload=payload);
   print "message2",msg2;
+  set_debug("OctoPython",5);
   wp2.publish(msg2);
+  set_debug("OctoPython",2);
   print 'wp1 queue: ',wp1.num_pending();
   print 'wp2 queue: ',wp2.num_pending();
-  print "wp1.receive(): ",wp1.receive();
-  print "wp2.receive(): ",wp2.receive();
+  set_debug("OctoPython",5);
+  msg1a = wp1.receive();
+  set_debug("OctoPython",2);
+  print "wp1.receive(): ",msg1a;
+  print "payload: ",msg1a.payload;
+  set_debug("OctoPython",5);
+  msg2a = wp2.receive();
+  set_debug("OctoPython",2);
+  print "wp2.receive(): ",msg2a;
+  print "payload: ",msg2a.payload;
   print 'wp1 queue: ',wp1.num_pending();
   print 'wp2 queue: ',wp2.num_pending();
+  time.sleep(1);
   print "stop()";
   stop();
   

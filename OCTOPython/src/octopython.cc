@@ -3,11 +3,16 @@
 #include <OCTOPUSSY/OctopussyConfig.h>
 #include "OctoPython.h"
 
-using namespace OctoPython;
+InitDebugContext(OctoPython,"OctoPython");
+
+namespace OctoPython
+{
 
 static int dum = aidRegistry_Global();
 
-PyObject * OctoPython::PyExc_OctoPythonError;
+PyObject * PyExc_OctoPythonError;
+PyObject * PyExc_DataConvError;
+
 
 extern "C" {
   
@@ -57,8 +62,7 @@ static PyObject * hiid_to_string (PyObject *, PyObject *args)
   HIID id;
   try
   {
-    if( convertSeqToHIID(id,list) < 0 )
-      return NULL;
+    convertSeqToHIID(id,list);
   }
   catchStandardErrors(NULL);
   
@@ -141,6 +145,9 @@ PyMODINIT_FUNC initoctopython_c ()
   if( !module )
     return;
   
+  // init the DataConversion layer
+  initDataConv();
+  
   // add type
   PyObject * proxy_type = (PyObject *)&PyProxyWPType;
   Py_INCREF(proxy_type);
@@ -150,21 +157,36 @@ PyMODINIT_FUNC initoctopython_c ()
   // get references to class objects from dmitypes
   PyObject * dmimod = PyImport_ImportModule("dmitypes");
   if( !dmimod )
+  {
+    Py_FatalError("octopython_c init error: import dmitypes failed");
     return;
+  }
   PyObject * dmidict = PyModule_GetDict(dmimod);
   if( !dmidict )
+  {
+    Py_FatalError("octopython_c init error: can't access dmitypes dict");
     return;
-  py_class.hiid = PyDict_GetItemString(dmidict,"hiid");
-  py_class.message = PyDict_GetItemString(dmidict,"message");
-  if( !py_class.hiid || !py_class.message )
-    return;
-  Py_INCREF(py_class.hiid);
-  Py_INCREF(py_class.message);
+  }
+  
+  #define GetConstructor(cls) \
+    if( ! ( py_class.cls = PyDict_GetItemString(dmidict,#cls) ) ) \
+      { Py_FatalError("octopython_c: name dmitypes." #cls " not found"); return; } \
+    Py_INCREF(py_class.cls);
+  
+  GetConstructor(hiid);
+  GetConstructor(message);
+  GetConstructor(record);
+  GetConstructor(srecord);
+  GetConstructor(array_class);
+  GetConstructor(conv_error);
   
   // register an exception object
-  PyExc_OctoPythonError = PyErr_NewException("octopussy.error", NULL, NULL);
+  PyExc_OctoPythonError = PyErr_NewException("octopython_c.OctoPythonError", NULL, NULL);
+  PyExc_DataConvError = PyErr_NewException("octopython_c.DataConvError", NULL, NULL);
   Py_INCREF(PyExc_OctoPythonError);
-  PyModule_AddObject(module, "error", PyExc_OctoPythonError);
+  Py_INCREF(PyExc_DataConvError);
+  PyModule_AddObject(module, "OctoPythonError", PyExc_OctoPythonError);
+  PyModule_AddObject(module, "DataConvError", PyExc_DataConvError);
   
   // build AID dictionaries
   PyObject * aid_map = PyDict_New(),
@@ -192,6 +214,7 @@ PyMODINIT_FUNC initoctopython_c ()
 
 } // extern "C"
 
+} // namesapce OctoPython
 
 /*
 

@@ -1,11 +1,10 @@
 #!/usr/bin/python
 
 import string
-import octopython_c
 import numarray
 
 # 
-# hiid class
+# === class hiid ===
 #
 class hiid (tuple):
   "Represents the DMI HIID class";
@@ -50,28 +49,15 @@ def make_hiid (x,sep='.'):
     return x;
   return hiid(x,sep=sep);
   
-
-# 
-# DMI container mappings
-#
-class dmi_container (object):
-  "Common base for DMI containers";
-  pass;
-  
-class field (dmi_container):
-  pass;
-  
-# this is the array class
-array_class = numarray.array(0).__class__;
-  
-# tuple of supported classes
-dmi_supported_types = (int,long,float,complex,str,hiid,array_class,dmi_container);
   
 #
-# dmize_object() function
+# === dmize_object() ===
 # Converts obj to DMI-compatible representation, or raises TypeError if this
-# is impossible
-#
+# is impossible/
+# Current valid types are:
+# (*) see dmi_supported_types tuple defined below
+# (*) homogenous lists or tuples of supported object types
+#     (homogenous == all items in sequence have the same type)
 def dmize_object (obj):
   "coerces object into a DMI-supported type as needed. Returns the "
   "object on success, or raises a TypeError on failure";
@@ -93,12 +79,35 @@ def dmize_object (obj):
     # convert resulting list back into original sequence type
     return seqtype(outlist);
   raise TypeError,'dmi: type %s not supported'%type(item);
+
+
+# === class conv_error ===
+# This class represents a conversion error.
+# When converting from DMI structures to Python, any errors are represented
+# by instances of this class.
+# When converting the other way, these objects are ignored.
+class conv_error(TypeError):
+  def __init__(self,message,exc=None):
+    self.message = message;
+    self.exc=exc;
+  def __repr__(self):
+    return '<dmitypes.conv_eror>';
+  def __str__(self):
+    return '<conv_error>';
+  def details(self):
+    s = 'conv_error' + str(self.message);
+    if( self.exc ): s += ','+str(self.exc);
+    return s+')';
   
 # 
-# A record is a dict with string keys, which can also be accessed as attributes.
-# Values are limited to dmizable objects
+# === class record ===
+# A record is a restricted dict that only allows specific kinds of keys
+# (in this case strings, but this may be redefined in subclasses).
+# Records also provide access to their elements via attributes, using the 
+# conventional rec.field notation.
+# Field values are limited to dmizable objects.
 #
-class record (dict,dmi_container):
+class record (dict):
   "represents a record class with string keys";
   def __init__ (self,init=None,verbose=0):
     # initialize from init dictionary, checking for valid keys
@@ -119,6 +128,8 @@ class record (dict,dmi_container):
         if verbose>1: print "adding %s=%s" % (key,value);
       if verbose>0: print "initialized",dict.__len__(self),"fields";
   # make_key: coerces value to legal key, throws ValueError if illegal
+  # this version coerces to string keys, subclasses may redefine this to
+  # use different kinds of keys
   def make_key (self,key): 
     "checks key for validity, returns key, raises TypeError if key is illegal";
     return str(key);
@@ -184,7 +195,10 @@ class record (dict,dmi_container):
     return self.keys();
 
 # 
-# A srecord is a strict-record: all keys must have a valid HIID representation
+# === class srecord ===
+# srecord ("strict record") is a record with hiid-compatible keys. 
+# The actual keys are still strings, but they all must have a valid HIID 
+# representation.
 #
 class srecord (record):
   "represents a strict DMI-like record (all keys must be legal HIIDs)";
@@ -196,6 +210,10 @@ class srecord (record):
     except Exception,info: raise TypeError,info;
     return str(key);
     
+# 
+# === class message ===
+# A message represents an OCTOPUSSY message
+#
 class message (object):
   "Represents an OCTOPUSSY message";
   stdattrs = ("from","to","priority","state","hops");
@@ -229,7 +247,24 @@ def make_scope (scope):
   if not scope in "ghl":
     raise ValueError,"scope argument must be one of: (g)lobal, (h)ost, (local)";
   return scope;
+# Other classes  
 
+# array_class
+#   use class object from numarray (array() itself is only a function)
+array_class = type(numarray.array(0));
+  
+# tuple of dmi-compatible classes.
+dmi_supported_types = (int,long,float,complex,str,hiid,array_class,record,message);
+
+# import C module
+import octopython_c
+    
+
+
+#
+# self-test code follows
+#
+#
 def __test_hiids():
   global abc,abc1,a1b1,abca1b1,x;
   print "Checking HIID class";
@@ -251,16 +286,6 @@ def __test_hiids():
     print hiid('x_y_z');
   except: pass
 
-def __test_messages():  
-  global msg1,msg2;
-  # test messages
-  msg1 = message('a.b.c.d');
-  msg2 = message('x.y.z',priority=10);
-  msg1.extra = 1;
-  msg2.extra2 = 2;
-  print msg1;
-  print msg2;
-  
 def __test_records():
   global rec1,rec2;
   print '------------- building record (non-strict) -------------------------';
@@ -273,9 +298,11 @@ def __test_records():
   print "accessing unknown field, expecting exception";
   try: rec1.d
   except Exception,info: print "got exception:",info;
+  else: raise RuntimeError,'exception should have been raised';
   print "assigning illegal type, expecting exception";
   try: rec1.d = [0,'x'];
   except Exception,info: print "got exception:",info;
+  else: raise RuntimeError,'exception should have been raised';
   print 'rec1.field_names():',rec1.field_names();
   print 'rec1.repr():',`rec1`;
   print '------------- building record (strict) -----------------------------';
@@ -288,12 +315,15 @@ def __test_records():
   print "accessing unknown field, expecting exception";
   try: print srec1.d;
   except Exception,info: print "got exception:",info;
+  else: raise RuntimeError,'exception should have been raised';
   print "accessing illegal field, expecting exception";
   try: print srec1.nonhiid;
   except Exception,info: print "got exception:",info;
+  else: raise RuntimeError,'exception should have been raised';
   print "assigning to illegal field, expecting exception";
   try: srec1.nonhiid = 0;
   except Exception,info: print "got exception:",info;
+  else: raise RuntimeError,'exception should have been raised';
   print 'srec1.field_names():',srec1.field_names();
   print 'srec1.repr():',`srec1`;
   print '------------- initializing strict record from dict -----------------';
@@ -303,11 +333,21 @@ def __test_records():
   rec3 = record({'a':0,'b':1,'c_d':2,'e':[1,2,3],'f':('x','y'),'g':[1,'x'],'z':(hiid('a'),hiid('b')),'nonhiid':4},verbose=2);
   print 'rec3:',rec3;
   return rec1;
-    
+  
+def __test_messages():  
+  global msg1,msg2;
+  # test messages
+  msg1 = message('a.b.c.d');
+  msg2 = message('x.y.z',priority=10);
+  msg1.extra = 1;
+  msg2.extra2 = 2;
+  print msg1;
+  print msg2;
+
 if __name__ == "__main__":
   # print some aids
   print "Number of known AIDs: ",len(octopython_c.aid_map),len(octopython_c.aid_rmap);
   __test_hiids();
-  __test_messages();
   __test_records();
+  __test_messages();
   

@@ -5,7 +5,8 @@
 #include "AID-OctoPython.h"
 //#include "structmember.h"
 
-using namespace OctoPython;
+namespace OctoPython
+{
     
 typedef struct 
 {
@@ -86,15 +87,15 @@ static PyObject * PyProxyWP_address (PyProxyWP* self)
 }
 
 // helper function, converts scope string to Message::Scope constant
-static int resolveScope (int &scope,const char *chscope)
+static int resolveScope (const char *chscope)
 {
   switch( chscope[0] )
   {
-    case 'g': scope = Message::GLOBAL;  return 0;
-    case 'h': scope = Message::HOST;    return 0;
-    case 'l': scope = Message::LOCAL;   return 0;
+    case 'g': return Message::GLOBAL;  
+    case 'h': return Message::HOST;    
+    case 'l': return Message::LOCAL;   
   }
-  returnError(-1,Value,"illegal scope argument");
+  throwError(Value,"illegal scope argument");
 }
 
 // -----------------------------------------------------------------------
@@ -108,10 +109,10 @@ static PyObject * PyProxyWP_subscribe (PyProxyWP* self,PyObject *args)
     return NULL;
   try
   {
-    HIID id; int scope;
     // convert arguments
-    if( pyToHIID(id,mask_seq) < 0 || resolveScope(scope,chscope)<0 )
-      return NULL;
+    int scope = resolveScope(chscope);
+    HIID id; 
+    pyToHIID(id,mask_seq);
     // subscribe
     self->wpref().subscribe(id,scope);
   }
@@ -130,10 +131,7 @@ static PyObject * PyProxyWP_unsubscribe (PyProxyWP* self,PyObject *args)
   try
   {
     HIID id;
-    // convert arguments
-    if( pyToHIID(id,mask_seq) < 0 )
-      return NULL;
-    // unsubscribe
+    pyToHIID(id,mask_seq);
     self->wpref().unsubscribe(id);
   }
   catchStandardErrors(NULL);
@@ -152,9 +150,8 @@ static PyObject * PyProxyWP_send (PyProxyWP* self,PyObject *args)
   {
     HIID dest;
     Message::Ref msg;
-    // convert arguments
-    if( pyToHIID(dest,py_dest) < 0 || pyToMessage(msg,py_msg) < 0 )
-      return NULL;
+    pyToHIID(dest,py_dest);
+    pyToMessage(msg,py_msg);
     self->wpref().send(msg,dest);
   }
   catchStandardErrors(NULL);
@@ -172,10 +169,9 @@ static PyObject * PyProxyWP_publish (PyProxyWP* self,PyObject *args)
     return NULL;
   try
   {
-    Message::Ref msg; int scope;
-    // convert arguments
-    if( resolveScope(scope,chscope)<0 || pyToMessage(msg,py_msg) < 0 )
-      return NULL;
+    Message::Ref msg; 
+    int scope = resolveScope(chscope);
+    pyToMessage(msg,py_msg);
     self->wpref().publish(msg,0,scope);
   }
   catchStandardErrors(NULL);
@@ -256,7 +252,7 @@ static PyMethodDef PyProxyWP_methods[] = {
     {NULL}  /* Sentinel */
 };
 
-PyTypeObject OctoPython::PyProxyWPType = {
+PyTypeObject PyProxyWPType = {
     PyObject_HEAD_INIT(NULL)
     0,                          /*ob_size*/
     "octopython_c.proxy_wp",    /*tp_name*/
@@ -298,3 +294,4 @@ PyTypeObject OctoPython::PyProxyWPType = {
     PyProxyWP_new,             /* tp_new */
 };
                             
+} // namespace OctoPython
