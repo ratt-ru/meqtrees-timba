@@ -29,7 +29,7 @@
 //## end module%3C10CC8103D8.declarations
 
 //## begin module%3C10CC8103D8.additionalDeclarations preserve=yes
-ImportDebugContext(CountedRefBase);
+#define DebugContext (CountedRefBase::getDebugContext())
 //## end module%3C10CC8103D8.additionalDeclarations
 
 
