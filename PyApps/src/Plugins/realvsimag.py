@@ -37,6 +37,21 @@ _dprintf = _dbg.dprintf;
 #(i.e. I don't see yours unless I enable them, and so they don't get in
 #the way of mine).
 
+
+# compute standard deviation of a complex or real array
+# the std_dev given here was computed according to the
+# formula given by Oleg (It should work for real or complex array)
+def standard_deviation(incoming_array):
+  incoming_mean = incoming_array.mean()
+  temp_array = incoming_array - incoming_mean
+  abs_array = abs(temp_array)
+# get the conjugate of temp_array ...
+  temp_array_conj = (abs_array * abs_array) / temp_array
+  temp_array = temp_array * temp_array_conj
+  mean = temp_array.mean()
+  std_dev = sqrt(mean)
+  return std_dev
+
 class PrintFilter(QwtPlotPrintFilter):
     def __init__(self):
         QwtPlotPrintFilter.__init__(self)
@@ -225,6 +240,10 @@ class realvsimag_plotter(object):
                      self.onMouseMoved)
         QObject.connect(self.plot, SIGNAL("plotMousePressed(const QMouseEvent&)"),
                         self.slotMousePressed)
+        QObject.connect(self.plot,
+                     SIGNAL('plotMouseReleased(const QMouseEvent&)'),
+                     self.slotMouseReleased)
+
 
         self.plot.canvas().setMouseTracking(True)
         if self._statusbar:
@@ -413,7 +432,7 @@ class realvsimag_plotter(object):
 # we use a middle mouse button pressed event to retrieve and display
 # information in the lower left corner of the plot about
 # the point closest to the location where the mouse was pressed
-    if e.button() == QMouseEvent.MidButton:
+    if e.button() == QMouseEvent.LeftButton:
         _dprint(2,'button is mid button');
         xPos = e.pos().x()
         yPos = e.pos().y()
@@ -517,9 +536,9 @@ class realvsimag_plotter(object):
 
 # Then start a timer so that after 3 sec the marker should vaporize
 # in the timerEvent_marker method defined below.
-          timer = QTimer(self.plot)
-          timer.connect(timer, SIGNAL('timeout()'), self.timerEvent_marker)
-          timer.start(3000, True)
+#          timer = QTimer(self.plot)
+#          timer.connect(timer, SIGNAL('timeout()'), self.timerEvent_marker)
+#          timer.start(3000, True)
 
     elif e.button() == QMouseEvent.RightButton:
       e.accept();  # accept even so that parent widget won't get it
@@ -527,6 +546,11 @@ class realvsimag_plotter(object):
       self._menu.popup(e.globalPos());
             
   # slotMousePressed
+
+  def slotMouseReleased(self, e):
+    if Qt.LeftButton == e.button():
+      self.timerEvent_marker()
+  # slotMouseReleased()
 
   def timerEvent_marker(self):
     """ remove all markers, but reinsert the legend_plot
@@ -542,9 +566,7 @@ class realvsimag_plotter(object):
       self.plot.setMarkerLabel( self.legend_marker, self._legend_plot,
         QFont(fn, 9, QFont.Bold, False),
         Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
-      print 'passed if not self._legend_plot is None'
     self.plot.replot()
-    print 'called replot'
   # timerEvent_marker()
 
 # compute points for two circles
@@ -1388,17 +1410,7 @@ class realvsimag_plotter(object):
           complex_data = zeros( (len(data_r),), type='Complex64' )
           complex_data.setreal(real_array)
           complex_data.setimag(imag_array)
-          complex_mean = complex_data.mean()
-          temp_array = complex_data - complex_mean
-# get the conjugate of temp_array ...
-          abs_array = abs(temp_array)
-          temp_array_conj = (abs_array * abs_array) / temp_array
-          temp_array = temp_array * temp_array_conj
-          mean = temp_array.mean()
-          std_dev = sqrt(mean)
-# the std_dev given above was computed according to the
-# formula given by Oleg
-          radius = std_dev
+          radius = standard_deviation(complex_data)
 # plot the stddev circle
           self.compute_circles (current_item_tag + 'stddev', radius, mean_r, mean_i)
 
@@ -1515,15 +1527,7 @@ class realvsimag_plotter(object):
         complex_data = zeros( (len(x_pos),), type='Complex64' )
         complex_data.setreal(x_pos)
         complex_data.setimag(y_pos)
-        complex_mean = complex_data.mean()
-        temp_array = complex_data - complex_mean
-# get the conjugate of temp_array ...
-        abs_array = abs(temp_array)
-        temp_array_conj = (abs_array * abs_array) / temp_array
-        temp_array = temp_array * temp_array_conj
-        mean = temp_array.mean()
-        std_dev = sqrt(mean)
-        radius = std_dev
+        radius = standard_deviation(complex_data)
         self.compute_circles (item_tag + 'stddev', radius, avg_r, avg_i, 'dotline' )
       if counter == 0:
         self.clearZoomStack()

@@ -18,6 +18,19 @@ _dbg = verbosity(0,name='displayimage');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+# compute standard deviation of a complex or real array
+# the std_dev given here was computed according to the
+# formula given by Oleg (It should work for real or complex array)
+def standard_deviation(incoming_array):
+  incoming_mean = incoming_array.mean()
+  temp_array = incoming_array - incoming_mean
+  abs_array = abs(temp_array)
+# get the conjugate of temp_array ...
+  temp_array_conj = (abs_array * abs_array) / temp_array
+  temp_array = temp_array * temp_array_conj
+  mean = temp_array.mean()
+  std_dev = sqrt(mean)
+  return std_dev
 
 # from scipy.pilutil
 def bytescale(data, cmin=None, cmax=None, high=255, low=0):
@@ -929,9 +942,9 @@ class QwtImagePlot(QwtPlot):
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
         self.replot()
         _dprint(3, 'called replot in formatCoordinates ')
-        timer = QTimer(self)
-        timer.connect(timer, SIGNAL('timeout()'), self.timerEvent_marker)
-        timer.start(2000, True)
+#        timer = QTimer(self)
+#        timer.connect(timer, SIGNAL('timeout()'), self.timerEvent_marker)
+#        timer.start(2000, True)
             
     # formatCoordinates()
 
@@ -968,7 +981,8 @@ class QwtImagePlot(QwtPlot):
 
 #      self.statusBar().message(
 #            ' -- '.join(self.formatCoordinates(e.pos().x(), e.pos().y())))
-       self.formatCoordinates(e.pos().x(), e.pos().y())
+#       if Qt.LeftButton == e.button():
+#         self.formatCoordinates(e.pos().x(), e.pos().y())
 
     # onMouseMoved()
 
@@ -977,6 +991,7 @@ class QwtImagePlot(QwtPlot):
             return
         if Qt.LeftButton == e.button():
             # Python semantics: self.pos = e.pos() does not work; force a copy
+            self.formatCoordinates(e.pos().x(), e.pos().y())
             self.xpos = e.pos().x()
             self.ypos = e.pos().y()
             self.enableOutline(1)
@@ -1089,6 +1104,7 @@ class QwtImagePlot(QwtPlot):
         if self._plot_type == 'histogram':
             return
         if Qt.LeftButton == e.button():
+            self.timerEvent_marker()
             xmin = min(self.xpos, e.pos().x())
             xmax = max(self.xpos, e.pos().x())
             ymin = min(self.ypos, e.pos().y())
