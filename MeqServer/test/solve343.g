@@ -3,6 +3,12 @@ include 'table.g'
 include 'measures.g'
 include 'quanta.g'
 
+
+
+
+
+
+
 # helper func
 # creates fully-qualified node name, by pasting a bunch of suffixes after
 # the name, separated by dots.
@@ -18,6 +24,12 @@ const fq_name := function (name,...)
   return res;
 }
 
+
+
+
+
+
+
 # creates common nodes:
 #   'ra0' 'dec0':       phase center
 const create_common_parms := function (ra0,dec0)
@@ -26,27 +38,64 @@ const create_common_parms := function (ra0,dec0)
   mqs.createnode(meq.parm('dec0',dec0));
 }
 
+
+
+
+
+
+
+
+
+
 # creates all source-related nodes and subtrees:
 #   'stokesI':          flux
 #   'ra' 'dec':         source position
 #   'lmn','n':          LMN coordinates, N coordinate
 # src specifies the source suffix ('' for none)
-const create_source_subtrees := function (sti,ra,dec,src='')
+const create_source_subtrees := function (sti,ra,dec,src='', mep_table_name='')
 {
-  # meq.parm(), meq.node() return init-records
-  # mqs.createnode() actually creates a node from an init-record.
-  
+    global ms_timerange, ms_freqranges;
+
+    # 3rd order frequency-dependence, 0th order time dependence
+    polc_array := array(as_double(0), 2,4);
+    polc_array[1,1] := sti;
     
-  mqs.createnode(meq.parm(fq_name('stokes_i',src),sti,groups="a"));
-  # note the nested-record syntax here, to create child nodes implicitly
-  mqs.createnode(meq.node('MeqLMN',fq_name('lmn',src),children=[
-                  ra_0  ='ra0',
-                  dec_0 ='dec0',
-                  ra    =meq.parm(fq_name('ra',src),ra,groups="a"),
-                  dec   =meq.parm(fq_name('dec',src),dec,groups="a")]));
-  mqs.createnode(meq.node('MeqSelector',fq_name('n',src),[index=3],
+    #fmin := ms_freqranges[1][1];
+    #fmax := ms_freqranges[1][2];
+    #tmin := ms_timerange[1];
+    #tmax := ms_timerange[2];
+    polc := meq.polc(polc_array,scale=[10000.0, 1e6], offset=[4e9,1.17e9]);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
+    print polc;
+    # meq.parm(), meq.node() return init-records
+    # mqs.createnode() actually creates a node from an init-record.
+    
+    stokes_I_node := meq.parm(fq_name('stokes_i',src),polc,groups="a");
+    if( mep_table_name != ''){
+        stokes_I_node.table_name := mep_table_name;
+    }
+    
+    mqs.createnode(stokes_I_node);
+    # note the nested-record syntax here, to create child nodes implicitly
+    mqs.createnode(meq.node('MeqLMN',
+                            fq_name('lmn',src),
+                            children=[
+                                      ra_0  ='ra0',
+                                      dec_0 ='dec0',
+                                      ra    =meq.parm(fq_name('ra',src),ra,
+                                                      groups="a"),
+                                      dec   =meq.parm(fq_name('dec',src),dec,
+                                                      groups="a")]));
+    mqs.createnode(meq.node('MeqSelector',fq_name('n',src),[index=3],
                             children=fq_name("lmn",src)));
 }
+
+
+
+
+
+
+
+
 
 # builds an init-record for a "dft" tree for one station (st)
 const sta_dft_tree := function (st,src='')
@@ -100,6 +149,12 @@ const sta_dft_tree := function (st,src='')
                     children=meq.list(dft,gain));
 }
 
+
+
+
+
+
+
 # builds an init-record for a "dft" tree for source 'src' and two stations (st1,st2)
 const ifr_source_predict_tree := function (st1,st2,src='')
 {
@@ -110,6 +165,15 @@ const ifr_source_predict_tree := function (st1,st2,src='')
                st_dft_2 = sta_dft_tree(st2,src),
                n = fq_name('n',src) ] ) ));
 }
+
+
+
+
+
+
+
+
+
 
 # builds an init-record for a sum of "dft" trees for all sources and st1,st2
 const ifr_predict_tree := function (st1,st2,src=[''])
@@ -122,8 +186,20 @@ const ifr_predict_tree := function (st1,st2,src=[''])
   return meq.node('MeqAdd',fq_name('predict',st1,st2),children=list);
 }
 
+
+
+
+
+
+
+
+
+
+
+
 # creates nodes shared among trees: source parms, array center (x0,y0,z0)
-const make_shared_nodes := function (stokesi=1,ra=0,dec=0,src=[''])
+const make_shared_nodes := function (stokesi=1,ra=0,dec=0,src=[''],
+                                     mep_table_name='')
 {
   global ms_phasedir;
   ra0  := ms_phasedir[1];  # phase center
@@ -132,7 +208,7 @@ const make_shared_nodes := function (stokesi=1,ra=0,dec=0,src=[''])
   create_common_parms(ra0,dec0);
   for( i in 1:len(src) ) {
     print src[i];
-    print create_source_subtrees(stokesi[i],ra[i],dec[i],src[i]);
+    print create_source_subtrees(stokesi[i],ra[i],dec[i],src[i], mep_table_name);
   }
   # setup zero position
   global ms_antpos;
@@ -140,6 +216,18 @@ const make_shared_nodes := function (stokesi=1,ra=0,dec=0,src=[''])
   for( i in 1:3 )
     mqs.createnode(meq.node('MeqConstant',names[i],[value=ms_antpos[1][i]]));
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 # builds a predict tree for stations st1, st2
 const make_predict_tree := function (st1,st2,src=[''])
@@ -166,6 +254,15 @@ const make_predict_tree := function (st1,st2,src=[''])
                            )));
   return sinkname;
 }
+
+
+
+
+
+
+
+
+
 
 # builds a read-predict-subtract tree for stations st1, st2
 const make_subtract_tree := function (st1,st2,src=[''])
@@ -199,6 +296,14 @@ const make_subtract_tree := function (st1,st2,src=[''])
 }
 
 
+
+
+
+
+
+
+
+
 # builds a solve tree for stations st1, st2
 const make_solve_tree := function (st1,st2,src=[''],subtract=F,flag=F)
 {
@@ -211,6 +316,7 @@ const make_solve_tree := function (st1,st2,src=[''],subtract=F,flag=F)
                         [station_1_index=st1,
                          station_2_index=st2,
                          flag_bit=4,
+                         link_or_create=T,
                          input_column='DATA']);
   
   xx_node := meq.node('MeqSelector',fq_name('xx',st1,st2),
@@ -221,7 +327,7 @@ const make_solve_tree := function (st1,st2,src=[''],subtract=F,flag=F)
                       [index=4],
                       children=meq.list(spigot_node));
 
-  observed_i_node :=meq.node('MeqAdd', fqname('observed_i', st1, st2),
+  observed_i_node :=meq.node('MeqAdd', fq_name('observed_i', st1, st2),
                              children=meq.list(xx_node,yy_node));
                                     
   #print spigot_node;
@@ -231,13 +337,8 @@ const make_solve_tree := function (st1,st2,src=[''],subtract=F,flag=F)
   #exit
   # create condeq tree (solver will plug into this)
   mqs.createnode(meq.node('MeqCondeq',fq_name('ce',st1,st2),
-                          children=meq.list(predname, xx_node),
-                          step_children=meq.list(meq.node('MeqAdd',fq_name('stch',st1,st2),
-                                                          children=meq.list(fq_name('GA',st1),
-                                                                            fq_name('GA',st2)) ),
-                                                 fq_name('GP',st1),
-                                                 fq_name('GP',st2)
-                                                 ))
+                          children=meq.list(predname, observed_i_node)
+                          )
                  );
   # create subtract sub-tree
   if( subtract )
@@ -281,11 +382,21 @@ const make_solve_tree := function (st1,st2,src=[''],subtract=F,flag=F)
   return sinkname;
 }
 
+
+
+
+
+
+
+
+
+
+
 # reads antenna positions and phase center from MS,
 # puts them into global variables
 const get_ms_info := function (msname='test.ms',uvw=T)
 {
-  global ms_phasedir,ms_antpos;
+  global ms_phasedir,ms_antpos, ms_timerange, ms_freqranges;
   
   ms := table(msname);
   msant := table(ms.getkeyword('ANTENNA'));
@@ -293,6 +404,21 @@ const get_ms_info := function (msname='test.ms',uvw=T)
   num_ant := msant.nrows();
   msant.done();
   
+  tcol := ms.getcol('TIME');
+  t_min := min(tcol) - 1;
+  t_max := max(tcol) + 1;
+  ms_timerange := [t_min, t_max];
+  tcol := F;
+
+  freqtab := table(ms.getkeyword('SPECTRAL_WINDOW'));
+  num_chan := freqtab.getcol('NUM_CHAN');
+  chan_freqs := freqtab.getcol('CHAN_FREQ');
+  num_spw := freqtab.nrows();
+  for( i in 1:num_spw){
+      ms_freqranges[i] := [min(chan_freqs[i]), max(chan_freqs[i])];
+  }
+  freqtab.close();
+
   time0 := ms.getcell('TIME',1);
   
   # convert position to x y z
@@ -363,6 +489,14 @@ const get_ms_info := function (msname='test.ms',uvw=T)
 }
 
 
+
+
+
+
+
+
+
+
 const reexec := function (node='dft.a.4',nfreq=10,ntime=10)
 {
   global rqid;
@@ -376,7 +510,17 @@ const reexec := function (node='dft.a.4',nfreq=10,ntime=10)
   print 'domain was: ',cells;
 }
 
-use_initcol := T;       # initialize output column with zeroes
+
+
+
+
+
+
+
+
+
+
+
 
 # predict=T:  predict tree only (writes predict to output column)
 # subtract=T: predict+subtract trees (writes residual to output column)
@@ -388,6 +532,10 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
     flag=F,                         # supply threshold to flag output
     msname='test.ms',
     stset=1:4,                      # stations for which to make trees
+    solve_fluxes=F,
+    solve_gains=F,
+    solve_phases=F,
+    mep_table_name='',
     msuvw=F,                        # use UVW values from MS
     mepuvw=F,                       # use UVW from MEP table (should be filled already)
     load='',                        # load forest from file 
@@ -439,7 +587,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
   {  
       # create common nodes (source parms and such)
       
-      make_shared_nodes(src_sti,src_ra,src_dec,src_names);
+      make_shared_nodes(src_sti,src_ra,src_dec,src_names,mep_table_name);
       
       # make a solver node (since it's only one)
       if( solve )
@@ -451,7 +599,12 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
                   if( st1 < st2 )
                       condeqs := [condeqs,fq_name('ce',st1,st2)];
           # solvable parms
-          solvables := "stokes_i.3C343_1 stokes_i.3C343";      
+          solvables := "";
+          if(solve_fluxes){
+              for(sourcename in src_names){
+                  solvables := [solvables, fq_name('stokes_i', sourcename)];
+              }
+          }
           if( solve_gains )
               for( st in stset[2:len(stset)] )
                   solvables := [solvables,fq_name('GA',st)];
@@ -519,6 +672,9 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
   # enable publishing of solver results
   if( solve && publish>0 ) {
     mqs.meq('Node.Publish.Results',[name='solver']);
+#    mqs.meq('Node.Publish.Messages',[name='uvw.1']);
+#    mqs.meq('Node.Publish.Messages',[name='x.1']);
+#    mqs.meq('Node.Publish.Messages',[name='dft0.3D343_1.1']);
 #    mqs.meq('Node.Publish.Results',[name=fq_name('dft.b',4,8)]);
 #    mqs.meq('Node.Publish.Results',[name=fq_name('U',8)]);
   }
@@ -541,47 +697,151 @@ const do_run := function ()
 }
 
 
-msname := '3C343.MS';
-# msname := 'test-wsrt.ms';
-mepuvw := F;
-filluvw := any(argv=='-filluvw');
-solve_gains := any(argv=='-gains');
-solve_phases := any(argv=='-phases');
-set_breakpoint := any(argv=='-bp');
-
-src_ra  := ([4.3566472455969452, 4.3396011965691343]);
-src_dec := ([1.0922076533508072, 1.0953686385516412]);
-src_sti  := [1,1];
-src_names := "3C343_1 3C343";
 
 
-# fill UVW parms from MS if requested
-if( mepuvw )
+#--------------------------------------------
+#
+# Source flux fitting on raw data
+#
+#--------------------------------------------
+source_flux_fit_no_calibration := function()
 {
-  include 'meq/msuvw_to_mep.g'
-  mepuvw := msname ~ s/.ms/.mep/;
-  if( filluvw )
-    fill_uvw(msname,mepuvw);
+    global inputrec, outputrec,solver_defaults,msname,mepuvw;
+    global src_ra, src_dec, src_sti, src_names, outcol;
+    global use_initcol;
+
+    use_initcol := F;       # initialize output column with zeroes
+
+    msname := '3C343.MS';
+    mep_table_name := '3C343.mep';
+
+    # Clear MEP table
+    meptable := table(mep_table_name, readonly=F);
+    nrows := meptable.nrows();
+    meptable.removerows(1:nrows);
+    meptable.done();
+
+    mepuvw := F;
+    filluvw := any(argv=='-filluvw');
+    solve_fluxes:= T;#any(argv == '-fluxes');
+    solve_gains := any(argv=='-gains');
+    solve_phases := any(argv=='-phases');
+    set_breakpoint := any(argv=='-bp');
+    
+    src_ra  := ([4.356645791155902,4.3396003966265599]);
+    src_dec := ([1.092208429052697,1.0953677174056471]);
+    src_sti  := [1,1];
+    src_names := "3C343_1 3C343";
+    
+    
+# fill UVW parms from MS if requested
+    if( mepuvw )
+    {
+        include 'meq/msuvw_to_mep.g'
+            mepuvw := msname ~ s/.ms/.mep/;
+        if( filluvw )
+            fill_uvw(msname,mepuvw);
+    }
+    else
+        mepuvw := F;
+    
+    outcol := 'PREDICTED_DATA';
+    solver_defaults := [ num_iter=10,save_funklets=T,last_update=T ];
+    
+    inputrec := [ ms_name = msname,data_column_name = 'DATA',
+                 tile_size=100,# clear_flags=T,
+                 selection = [ channel_start_index=5,
+                              channel_end_index=60 ,
+                              selection_string=''] ];
+    
+    outputrec := [ write_flags=T,predict_column=outcol ]; 
+    
+    res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
+                   stset=1:14,
+                   solve_fluxes=solve_fluxes,
+                   solve_gains=solve_gains,
+                   solve_phases=solve_phases,
+                   set_breakpoint=set_breakpoint,
+                   mep_table_name=mep_table_name,
+                   publish=1,mepuvw=mepuvw,msuvw=msuvw);
+    
+    
+    print res;
+    
+    print 'errors reported:',mqs.num_errors();
 }
-else
-  mepuvw := F;
-
-outcol := 'PREDICTED_DATA';
-solver_defaults := [ num_iter=6,save_funklets=F,last_update=F ];
-
-inputrec := [ ms_name = msname,data_column_name = 'DATA',
-              tile_size=1500,# clear_flags=T,
-              selection = [ channel_start_index=5, channel_end_index=60 ,selection_string=''] ];
-
-outputrec := [ write_flags=T,predict_column=outcol ]; 
-
-res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
-               stset=1:14,
-               set_breakpoint=set_breakpoint,
-               publish=1,mepuvw=mepuvw,msuvw=msuvw);
 
 
-print res;
 
-print 'errors reported:',mqs.num_errors();
 
+
+#--------------------------------------------
+#
+# Source flux fitting on raw data
+#
+#--------------------------------------------
+phase_solution_with_given_fluxes := function()
+{
+    global inputrec, outputrec,solver_defaults,msname,mepuvw;
+    global src_ra, src_dec, src_sti, src_names, outcol;
+    global use_initcol
+
+    use_initcol := F;       # initialize output column with zeroes
+
+    msname := '3C343.MS';
+    mep_table_name := '3C343.mep';
+    
+    mepuvw := F;
+    filluvw := any(argv=='-filluvw');
+    solve_fluxes:= any(argv == '-fluxes');
+    solve_gains := any(argv=='-gains');
+    solve_phases := T;#any(argv=='-phases');
+    set_breakpoint := any(argv=='-bp');
+    
+    src_ra  := ([4.356645791155902,4.3396003966265599]);
+    src_dec := ([1.092208429052697,1.0953677174056471]);
+    src_sti  := [5.3873195,1.637177];
+    src_names := "3C343_1 3C343";
+    
+    
+# fill UVW parms from MS if requested
+    if( mepuvw )
+    {
+        include 'meq/msuvw_to_mep.g'
+            mepuvw := msname ~ s/.ms/.mep/;
+        if( filluvw )
+            fill_uvw(msname,mepuvw);
+    }
+    else
+        mepuvw := F;
+    
+    outcol := 'PREDICTED_DATA';
+    solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
+    
+    inputrec := [ ms_name = msname,data_column_name = 'DATA',
+                 tile_size=5,# clear_flags=T,
+                 selection = [ channel_start_index=5,
+                              channel_end_index=60 ,
+                              selection_string=''] ];
+    
+    outputrec := [ write_flags=T,predict_column=outcol ]; 
+    
+    res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
+                   stset=1:14,
+                   solve_fluxes=solve_fluxes,
+                   solve_gains=solve_gains,
+                   solve_phases=solve_phases,
+                   set_breakpoint=set_breakpoint,
+                   mep_table_name=mep_table_name,
+                   publish=1,mepuvw=mepuvw,msuvw=msuvw);
+    
+    
+    print res;
+    
+    print 'errors reported:',mqs.num_errors();
+}
+
+
+
+source_flux_fit_no_calibration();
+#phase_solution_with_given_fluxes();
