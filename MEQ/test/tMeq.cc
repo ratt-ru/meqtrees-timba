@@ -48,7 +48,7 @@ int main (int argc,const char* argv[])
 
     cout << "============ creating parm1 node ==================\n";
     DataRecord::Ref rec_child1(DMI::ANONWR);
-    rec_child1()["Class"] = "MeqParmPolcStored";
+    rec_child1()["Class"] = "MeqParm";
     rec_child1()["Name"] = "p1";
     //    rec_child1()["Tablename"] = "meqadd.MEP";
     rec_child1()["Default"] = defVal1;
@@ -57,7 +57,7 @@ int main (int argc,const char* argv[])
     
     cout << "============ creating child2 node ==================\n";
     DataRecord::Ref rec_child2(DMI::ANONWR);
-    rec_child2()["Class"] = "MeqParmPolcStored";
+    rec_child2()["Class"] = "MeqParm";
     rec_child2()["Name"] = "p2";
     //    rec_child2()["Tablename"] = "meqadd.MEP";
     rec_child2()["Default"] = defVal2;
