@@ -42,6 +42,9 @@
 # option=1 means not recursively
 # option=2 means not recursively, no library in depfile, and no
 #          HAVE lines in config file
+#
+# count is used to determine if endless recursion is taking place
+# (e.g. if packages include each other).
 
 fullnm=$1
 pkgnm=`echo $fullnm | sed -e "s%.*/%%g"`
