@@ -90,6 +90,10 @@ AC_ARG_ENABLE(dbgassert,
     lofar_warnflags="-wd161,268";
   fi
 
+  if test "$lofar_compiler" = "xlc"; then
+    lofar_warnflags="-w";   # this turns warnings off; not perfect
+  fi
+
   enable_debug="no";
   if test "$with_debug" != "no"; then
     enable_debug="yes";
@@ -146,11 +150,14 @@ AC_DEFINE(LOFAR_DEBUG,dnl
   fi
 
   if test "$with_threads" != "no"; then
-    lfr_cppflags="$lfr_cppflags -DUSE_THREADS -pthread";
-    if test "$lofar_compiler" = "gnu"; then
-      lfr_cppflags="$lfr_cppflags -D_GNU_SOURCE";
+    if test "lofar_compiler" != xlc; then  # BG/L doesn't do threads
+      lfr_cppflags="$lfr_cppflags -DUSE_THREADS -pthread";
+      if test "$lofar_compiler" = "gnu"; then
+        lfr_cppflags="$lfr_cppflags -D_GNU_SOURCE";
+      fi
+
+      lfr_ldflags="$lfr_ldflags -pthread";
     fi
-    lfr_ldflags="$lfr_ldflags -pthread";
   fi
 
   CPPFLAGS="$CPPFLAGS $lfr_cppflags $with_cppflags"

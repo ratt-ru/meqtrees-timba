@@ -1,6 +1,7 @@
 gnu.compiler.conf:
 kcc.compiler.conf:
 icc.compiler.conf:
+xlc.compiler.conf: CXX=blrts_xlC
 
 profile.variant.conf:	  $(aipspp) $(profile) $(mpe)
 debug.variant.conf:	  $(debug) $(aipspp) $(mtsupport)
@@ -19,6 +20,7 @@ insure.variant.make:	  QA=insure
 scampi.variant.conf:	  $(scampi) 
 scampi-opt.variant.conf:  $(scampi) $(optimize) 
 mpich-prof.variant.conf:  $(mpich) --enable-mpi-profiler $(aipspp)
+bgl.variant.conf:         $(debugopt) $(nomtsupport) $(bgl_cpp) $(bgl_ldd)
 
 profile.var:		   --with-optimize='-pg -O2' --with-compiletools --with-ldflags='-lc_p'
 mpe.var:		   --with-mpich=/usr/local/mpich-1.2.5/ch_p4 --enable-mpi-profiler
@@ -32,3 +34,6 @@ lam.var:		   --with-lam
 scampi.var:		   --with-scampi
 vbroker.var:		   --with-vbroker
 mtsupport.var:		   --with-threads
+nomtsupport.var: 	   --with-threads=no  
+bgl_cpp.var: --with-cppflags='-D__BLRTS__ -qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/BlueLight/floor/bglsys/include/'
+bgl_ldd.var: --with-ldflags='-L/BlueLight/floor/bglsys/lib -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts -lstandalone.440 -lm'

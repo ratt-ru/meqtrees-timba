@@ -154,6 +154,8 @@ AC_ARG_WITH(lofar-libdir,
        AC_SUBST(AR_FLAGS)[
     elif test "x$lfr_cxx" = "xicc"; then
       lofar_compiler="icc";
+    elif test "x$lfr_cxx" = "xblrts_xlC"; then
+      lofar_compiler="xlc";
     else
       ]AC_MSG_WARN([$CXX is an unknown compiler for LOFAR; assuming gnu])[
     fi
