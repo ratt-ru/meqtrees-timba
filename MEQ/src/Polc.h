@@ -94,6 +94,9 @@ public:
   virtual CountedRefTarget* clone (int flags, int depth) const
   { return new Polc(*this,flags,depth); }
   
+  
+  virtual void privatize (int flags=0,int depth=0);
+  
   // validate record contents and setup shortcuts to them. This is called 
   // automatically whenever a Polc is made from a DataRecord
   // (or when the underlying DataRecord is privatized, etc.)

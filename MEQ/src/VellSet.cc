@@ -144,9 +144,8 @@ void VellSet::setShape (const LoShape2 &shp)
 //##ModelId=400E53550333
 void VellSet::privatize (int flags, int depth)
 {
-  // if deep-privatizing, clear all shortcuts. We can rely on
-  // DataRecord's privatize to call validateContent() afterwards 
-  // to reset them.
+  // if deep-privatizing, then detach shortcuts -- they will be reattached 
+  // by validateContent()
   if( flags&DMI::DEEP || depth>0 )
     clear();
   DataRecord::privatize(flags,depth);
@@ -181,7 +180,7 @@ void VellSet::validateContent ()
       bool has_value = hval.exists();
       if( has_value )
       {
-        value_ <<= new Vells(hval.ref(DMI::PRESERVE_RW));
+        value_ <<= new Vells(hval.ref());
         FailWhen(value_->isArray() && value_->shape() != shape_,
                  "main value: bad shape");
       }
@@ -227,7 +226,7 @@ void VellSet::validateContent ()
             HIID fid = FiPerturbedValues(iset);
             if( DataRecord::hasField(fid) )
             {
-              pset_[iset].pertval_field = (*this)[fid].ref(DMI::PRESERVE_RW);
+              pset_[iset].pertval_field = (*this)[fid].ref();
               FailWhen(pset_[iset].pertval_field->size(TpDataArray) != numspids_,
                        "size mismatch between spids and "+fid.toString());
               // setup shortcuts to perturbation vells
@@ -236,13 +235,14 @@ void VellSet::validateContent ()
               {
                 if( pset_[iset].pertval_field[i].exists() )
                 {
-                  Vells *pvells = new Vells(pset_[iset].pertval_field[i].ref(DMI::PRESERVE_RW));
+                  Vells *pvells = new Vells(pset_[iset].pertval_field[i].ref());
                   pset_[iset].pertval[i] <<= pvells;
                   FailWhen(pvells->isArray() && pvells->shape() != shape_,
                       Debug::ssprintf("perturbed value %d/%d: bad shape",i,iset));
                 }
-                else
-                  pset_[iset].pertval[i] <<= new Vells;
+// removed this: rather than attach a null Vells, keep the ref unattached
+//                else
+//                  pset_[iset].pertval[i] <<= new Vells;
               }
             }
           }
@@ -300,7 +300,7 @@ void VellSet::clear()
 // }
 // 
 
-Vells& VellSet::getValueRW ()
+Vells & VellSet::getValueWr ()
 {
   Thread::Mutex::Lock lock(mutex());
   FailWhen( !value_.valid(),"no main value" );
@@ -319,7 +319,7 @@ void * VellSet::writeOptCol (uint icol)
   Assert(hasOptCol(icol));
   if( !optcol_[icol].ref.isWritable() )
   {
-    // if not writable, privatize for writing. The hook will do it for us
+    // if not writable, privatize for writing
     DataArray *parr = optcol_[icol].ref.privatize(DMI::WRITE).dewr_p();
     DataRecord::replace(optColFieldId(icol),parr,DMI::WRITE);
     optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
@@ -526,13 +526,13 @@ void VellSet::show (std::ostream& os) const
         if( iset )
           os << "          ";
         os << " pert " <<iset<<": "<<pset_[iset].pert[i];
-        if( pset_[iset].pertval[i].valid() )
+        if( pset_[iset].pertval[i].valid() && !pset_[iset].pertval[i]->isNull() )
         {
           os << (*(pset_[iset].pertval[i]) - *value_);
         }
         else
         {
-          os << ": perturbed vells "<<i<<" missing"<<endl;
+          os << ": perturbed vells "<<i<<" null or missing"<<endl;
         }
       }
     }

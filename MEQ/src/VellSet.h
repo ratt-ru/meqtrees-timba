@@ -209,11 +209,11 @@ public:
   // ------------------------ MAIN RESULT VALUE
   // Get the value.
     //##ModelId=400E5355035C
-  const Vells& getValue() const
+  const Vells & getValue() const
     { return value_.deref(); }
     //##ModelId=400E5355035E
   
-  Vells& getValueRW();
+  Vells & getValueWr ();
 
   // Attaches the given Vells to value (as an anon object)
     //##ModelId=400E53550360
@@ -275,7 +275,7 @@ public:
     { Assert(hasOptCol(N)); return *static_cast<const typename Traits<N>::ArrayType *>(optcol_[N].ptr); }
   
   template<int N>
-  typename Traits<N>::ArrayType & getOptColRW (bool init=true,bool array=true)
+  typename Traits<N>::ArrayType & getOptColWr (bool init=true,bool array=true)
     { return *static_cast<typename Traits<N>::ArrayType *>
           ( (!init || hasOptCol(N)) ? writeOptCol(N) : initOptCol(N,array) ); }
   
@@ -307,7 +307,7 @@ public:
     { DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
       return pset_[iset].pertval[i].deref(); }
     //##ModelId=400E53550383
-  Vells& getPerturbedValueRW (int i,int iset=0)
+  Vells& getPerturbedValueWr (int i,int iset=0)
     { DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
       return pset_[iset].pertval[i].dewr(); }
 

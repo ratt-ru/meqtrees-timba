@@ -95,7 +95,8 @@ void Result::allocateVellSets (int nvellsets)
 //##ModelId=400E53550142
 void Result::privatize (int flags, int depth)
 {
-  // if deep-privatizing, detach shortcuts
+  // if deep-privatizing, then detach shortcuts -- they will be reattached 
+  // by validateContent()
   if( flags&DMI::DEEP || depth>0 )
     itsVellSets.detach();
   DataRecord::privatize(flags,depth);
@@ -117,7 +118,7 @@ void Result::validateContent ()
     // get pointer to vellsets field
     if( DataRecord::hasField(FVellSets) )
     {
-      itsVellSets <<= (*this)[FVellSets].ref(DMI::PRESERVE_RW);
+      itsVellSets <<= (*this)[FVellSets].ref();
       FailWhen(itsVellSets->type()!=TpMeqVellSet,"illegal "+FVellSets.toString()+" field");
     }
   }
@@ -145,11 +146,24 @@ void Result::setCells (const Cells *cells,int flags)
   DataRecord::replace(FCells,itsCells,flags|DMI::READONLY);
 }
 
+
+DataField & Result::wrVellSets ()
+{
+  Thread::Mutex::Lock lock(mutex());
+  if( !itsVellSets.isWritable() )
+  {
+    itsVellSets.privatize(DMI::WRITE);
+    DataRecord::replace(FVellSets,itsVellSets.dewr_p(),DMI::ANONWR);
+  }
+  return itsVellSets();
+}
+
+
 //##ModelId=400E5355019D
 VellSet & Result::setVellSet (int i,VellSet *vellset)
 {
 //  DbgFailWhen(isFail(),"Result marked as a fail, can't set vellset");
-  itsVellSets().put(i,vellset,DMI::ANONWR);
+  wrVellSets().put(i,vellset,DMI::ANONWR);
   return *vellset;
 }
   
@@ -158,7 +172,7 @@ VellSet & Result::setVellSet (int i,VellSet::Ref::Xfer &vellset)
 {
 //  DbgFailWhen(isFail(),"Result marked as a fail, can't set vellset");
   VellSet *pvs;
-  itsVellSets().put(i,pvs=vellset.dewr_p(),DMI::ANONWR);
+  wrVellSets().put(i,pvs=vellset.dewr_p(),DMI::ANONWR);
   vellset.detach();
   return *pvs;
 }
@@ -167,7 +181,7 @@ VellSet & Result::setVellSet (int i,VellSet::Ref::Xfer &vellset)
 bool Result::hasFails () const
 {
   for( int i=0; i<numVellSets(); i++ )
-    if( vellSetConst(i).isFail() )
+    if( vellSet(i).isFail() )
       return true;
   return false;
 }
@@ -177,7 +191,7 @@ int Result::numFails () const
 {
   int count=0;
   for( int i=0; i<numVellSets(); i++ )
-    if( vellSetConst(i).isFail() )
+    if( vellSet(i).isFail() )
       count++;
   return count;
 }
@@ -187,8 +201,9 @@ void Result::show (std::ostream& os) const
 {
   for( int i=0; i<numVellSets(); i++ )
   {
-    os << "VellSet "<<i<<endl;
-    vellSetConst(i).show(os);
+    const VellSet &vs = vellSet(i);
+    os << "VellSet "<<i<<": "<<&vs<<endl;
+    vs.show(os);
   }
 }
 

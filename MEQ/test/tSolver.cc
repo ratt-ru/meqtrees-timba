@@ -10,7 +10,7 @@
 //# (at your option) any later version.
 //#
 //# This program is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# but WITHOUT ANY WARRANTY; without even the impqlied warranty of
 //# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //# GNU General Public License for more details.
 //#
@@ -122,19 +122,19 @@ int main (int argc,const char* argv[])
 	///      }
       Result::Ref refres;
       child1.execute(refres, req);
-      cout << "p1 before " << refres().vellSet(0) << endl;
+      cout << "p1 before " << refres->vellSet(0) << endl;
       child2.execute(refres, req);
-      cout << "p2 before " << refres().vellSet(0) << endl;
+      cout << "p2 before " << refres->vellSet(0) << endl;
 
       int flag = chsolv.execute(refres, req);
       cout << flag << endl;
-      cout << "solver " << refres().vellSet(0) << endl;
+      cout << "solver " << refres->vellSet(0) << endl;
       if( refres->hasFails() )
 	return 1;
       child1.execute(refres, req);
-      cout << "p1 after  " << refres().vellSet(0) << endl;
+      cout << "p1 after  " << refres->vellSet(0) << endl;
       child2.execute(refres, req);
-      cout << "p2 after  " << refres().vellSet(0) << endl;
+      cout << "p2 after  " << refres->vellSet(0) << endl;
     }
   } 
   catch (std::exception& x) 

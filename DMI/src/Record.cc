@@ -103,9 +103,9 @@ void DataRecord::replace (const HIID &id, const NCRef &ref, int flags)
 //            "illegal field object" );
   FailWhen( !id.size(),"null HIID" );
   if( flags&DMI::COPYREF )
-    fields[id].copy(ref,flags);
+    fields[id].unlock().copy(ref,flags).lock();
   else
-    fields[id] = ref;
+    fields[id].unlock().xfer(ref).lock();
 }
 
 //##ModelId=3C5FF10102CA
@@ -116,7 +116,7 @@ void DataRecord::replace (const HIID &id, NestableContainer *pnc, int flags)
 //  FailWhen( ref->objectType() != TpDataField && ref->objectType() != TpDataArray,
 //            "illegal field object" );
   FailWhen( !id.size(),"null HIID" );
-  fields[id].attach(pnc,flags);
+  fields[id].unlock().attach(pnc,flags).lock();
 }
 
 

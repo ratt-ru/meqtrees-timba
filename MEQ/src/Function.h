@@ -49,16 +49,7 @@ public:
   // <ul>
   // <li> It evaluates the function for the main value and all perturbed values
   //   by calling the evaluate or evaluateVells function.
-  // <li> First it calls evaluate for the main value. It that returns an
-  //   empty value, it knows that evaluateVells should be called.
-  // <li> Function evaluate is meant for returning the result by value.
-  //   Usually this is the best way to go.
-  // <li> Function evaluateVells is slightly faster to use because the
-  //   result is passed in by reference, so one can, say, use
-  //   result+=value. See class Add for an example of that.
-  //   It requires that the result type and shape are known. They are
-  //   determined by function resultTypeShape. Its default implementation is
-  //   usually sufficient.
+  // <li> First it calls evaluate for the main value. 
   // <li> For the calculation of all perturbed values the same function as
   //   for the main value is used.
   // <li> Usually the fastest way to go is to overload function getResult
@@ -74,25 +65,25 @@ public:
   // implementation is sufficient which takes
   // the maximum of the values of the children.
     //##ModelId=400E5306027C
-  virtual LoShape resultShape (const vector<Vells*>& values);
+  virtual LoShape resultShape (const vector<const Vells*>& values);
 
-  // Evaluate the value for the given request.
-  // The default throws an exception.
-  // NB: this will be phased out
-    //##ModelId=3F95060C0321
-  virtual void evaluateVells (Vells& result,const Request&,
-			      const vector<Vells*>& values);
+// phased out 22/03/04
+//   // Evaluate the value for the given request.
+//   // The default throws an exception.
+//   // NB: this will be phased out
+//     //##ModelId=3F95060C0321
+//   virtual void evaluateVells (Vells& result,const Request&,
+// 			      const vector<const Vells*>& values);
 
     
   // Evaluate the value for the given request. The output shape is
   // precomputed with resultShape() and passed in as the shape argument.
     //##ModelId=3F86886F00B0
-  virtual Vells evaluate (const Request &req,const LoShape &,const vector<Vells*>& values)
-  { Vells res; evaluateVells(res,req,values); return res; }
+  virtual Vells evaluate (const Request &req,const LoShape &shape,const vector<const Vells*>&);
 
   // Find all spids for this node by merging the spids in all results.
     //##ModelId=3F86886F0108
-  static vector<int> findSpids (const vector<VellSet*>&);
+  static vector<int> findSpids (const vector<const VellSet*>&);
 
   // Returns the class TypeId
     //##ModelId=400E53070274

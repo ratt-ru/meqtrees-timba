@@ -119,8 +119,8 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // setup children
   if( rec[FChildren].exists() )
   {
-    child_indices_ = rec[FChildren].ref(DMI::WRITE);
-    child_names_ = rec[FChildrenNames].ref(DMI::WRITE);
+    child_indices_ = rec[FChildren].ref(true);
+    child_names_ = rec[FChildrenNames].ref(true);
     int nch = child_indices_->size();
     children_.resize(nch);
     for( int i=0; i<nch; i++ )
@@ -635,7 +635,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
       Result &childres = *(child_fails[i]);
       for( int j=0; j<childres.numVellSets(); j++ )
       {
-        VellSet &vs = childres.vellSet(j);
+        VellSet &vs = childres.vellSetWr(j);
         if( vs.isFail() )
           result.setVellSet(ires++,&vs);
       }
@@ -729,7 +729,7 @@ int Node::execute (Result::Ref &ref, const Request &req)
         ref().setCells(req.cells());
       // privatize the result for readonly -- this ensures that copy-on-write
       // is performed down the line
-//      ref.privatize(DMI::DEEP|DMI::READONLY);
+      ref.privatize(DMI::DEEP|DMI::READONLY);
     }
     else // no cells, ensure an empty result
     {

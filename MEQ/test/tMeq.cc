@@ -121,7 +121,7 @@ int main (int argc,const char* argv[])
     Result::Ref refres;
     int flag = chadd.execute(refres,*reqref);
     cout << flag << endl;
-    cout << refres().vellSet(0).getValue() << endl;
+    cout << refres->vellSet(0).getValue() << endl;
   } 
   catch (std::exception& x) 
   {

@@ -139,8 +139,8 @@ int Function::getResult (Result::Ref &resref,
     nplanes = std::max(nplanes,childres[i]->numVellSets());
   // Create result and attach to the ref that was passed in
   Result & result = resref <<= new Result(request,nplanes);
-  vector<VellSet*> child_vs(nrch);
-  vector<Vells*>  values(nrch);
+  vector<const VellSet*> child_vs(nrch);
+  vector<const Vells*>  values(nrch);
   int nfails = 0;
   for( int iplane = 0; iplane < nplanes; iplane++ )
   {
@@ -161,14 +161,14 @@ int Function::getResult (Result::Ref &resref,
       }
       else 
       {
-        child_vs[i] = &(childres[i]().vellSet(nvs==1?0:iplane));
+        child_vs[i] = &( childres[i]->vellSet(nvs==1?0:iplane) );
         if( child_vs[i]->isFail() ) 
         { // collect fails from child vellset
           for( int j=0; j<child_vs[i]->numFails(); j++ )
             vellset.addFail(&child_vs[i]->getFail(j));
         }
         else
-          values[i] = &(child_vs[i]->getValueRW());
+          values[i] = &(child_vs[i]->getValue());
       }
       npertsets = std::max(npertsets,child_vs[i]->numPertSets());
     }
@@ -197,11 +197,11 @@ int Function::getResult (Result::Ref &resref,
             // else |= the vellset flags. Note that this will automatically
             // privatize a r/o ref upon first access
             else
-              vellset.getOptColRW<VellSet::FLAGS>() |= 
+              vellset.getOptColWr<VellSet::FLAGS>() |= 
                   child_vs[i]->getOptCol<VellSet::FLAGS>();
           }
         // Evaluate all perturbed values.
-        vector<vector<Vells*> > pert_values(npertsets);
+        vector<vector<const Vells*> > pert_values(npertsets);
         vector<double> pert(npertsets);
         vector<int> indices(nrch,0);
         vector<int> found(npertsets);
@@ -218,13 +218,13 @@ int Function::getResult (Result::Ref &resref,
           // must match across all children
           for( int ich=0; ich<nrch; ich++ )
           {
-            VellSet &vs = *(child_vs[ich]);
+            const VellSet &vs = *(child_vs[ich]);
             int inx = vs.isDefined(spids[j],indices[ich]);
             if( inx >= 0 )
             {
               for( int ipert=0; ipert<std::max(vs.numPertSets(),npertsets); ipert++ )
               {
-                pert_values[ipert][ich] = &(vs.getPerturbedValueRW(inx,ipert));
+                pert_values[ipert][ich] = &( vs.getPerturbedValue(inx,ipert) );
                 if( found[ipert] >=0 )
                 {
                   FailWhen(pert[ipert]!=vs.getPerturbation(inx,ipert),
@@ -270,7 +270,7 @@ int Function::getResult (Result::Ref &resref,
 }
 
 //##ModelId=400E5306027C
-LoShape Function::resultShape (const vector<Vells*>& values)
+LoShape Function::resultShape (const vector<const Vells*>& values)
 {
   Assert (values.size() > 0);
   int nx = values[0]->nx();
@@ -282,15 +282,8 @@ LoShape Function::resultShape (const vector<Vells*>& values)
   return makeLoShape(nx,ny);
 }
 
-//##ModelId=3F95060C0321
-void Function::evaluateVells (Vells&, const Request&, const vector<Vells*>&)
-{
-  AssertMsg (false, "evaluate or getResult not implemented in class "
-             "derived from MeqFunction");
-}
-
 //##ModelId=3F86886F0108
-vector<int> Function::findSpids (const vector<VellSet*> &results)
+vector<int> Function::findSpids (const vector<const VellSet*> &results)
 {
   // Determine the maximum number of spids.
   int nrspid = 0;
@@ -344,5 +337,11 @@ vector<int> Function::findSpids (const vector<VellSet*> &results)
   spids.resize(nrspid);
   return spids;
 }
+
+Vells Function::evaluate (const Request &,const LoShape &,const vector<const Vells*>&)
+{
+  Throw("evaluate() not implemented in this class");
+}
+
 
 } // namespace Meq

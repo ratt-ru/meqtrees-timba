@@ -107,6 +107,14 @@ Polc::Polc (const DataRecord &other,int flags,int depth)
 {
   validateContent();
 }
+
+void Polc::privatize (int flags,int depth)
+{
+  if( flags&DMI::DEEP || depth>0 )
+    itsCoeff = Vells();
+  DataRecord::privatize(flags,depth);
+}
+
   
 void Polc::validateContent ()    
 {
@@ -121,7 +129,7 @@ void Polc::validateContent ()
       itsDomain = &nullDomain;
     // get vellsets field
     if( DataRecord::hasField(FCoeff) )
-      itsCoeff = Vells((*this)[FCoeff].ref(DMI::PRESERVE_RW));
+      itsCoeff = Vells((*this)[FCoeff].ref());
     else
       itsCoeff = Vells();
     // get various others

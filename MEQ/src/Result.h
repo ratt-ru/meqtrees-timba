@@ -115,12 +115,12 @@ public:
     { return itsVellSets.valid() ? itsVellSets->size() : 0; }
   
     //##ModelId=400E53550189
-  const VellSet & vellSetConst (int i) const
-    { return itsVellSets.deref()[i].as<VellSet>(); }
+  const VellSet & vellSet (int i) const
+    { return (*itsVellSets)[i].as<VellSet>(); }
   
     //##ModelId=400E53550193
-  VellSet & vellSet (int i)
-    { return itsVellSets.dewr()[i].as_wr<VellSet>(); }
+  VellSet & vellSetWr (int i)
+    { return wrVellSets()[i].as_wr<VellSet>(); }
   
     //##ModelId=400E5355019D
   VellSet & setVellSet (int i,VellSet *vellset);
@@ -167,7 +167,10 @@ protected:
   DataRecord::removeField;
   
 private:
-
+  // helper function: privatizes the itsVellSets field for writing if 
+  // needed, dereferences
+  DataField &     wrVellSets ();
+    
     //##ModelId=400E535500B8
   DataField::Ref  itsVellSets;
     //##ModelId=3F86BFF802B0
