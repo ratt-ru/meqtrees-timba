@@ -14,6 +14,7 @@ from numarray import *
 from Timba.Meq import meq
 from time import sleep
 from qt import *
+from string import *
 
 _dbg = verbosity(0,name='node_exec');
 _dprint = _dbg.dprint;
@@ -24,51 +25,87 @@ class editRequest(QDialog):
     self.parent = parent
     QDialog.__init__(self, parent._wtop, 'TEST', 1, 0)
     self.setCaption('Test')
-    self.setGeometry(30, 30, 200, 100)
+#    self.setGeometry(30, 30, 400, 200)
 
-    self.v = QVBoxLayout(self, 10, 5)
-    self.t = QHBoxLayout(self.v, 5)
+#
+# All input/text/button widgets are in rows -> enclosed in a VBox
+#
+    self.top = QVBoxLayout(self, 10, 5)
+
+#
+# All input/text widgets are in are in columns -> envlosed in an HBox
+#
+    self.UserIn = QHBoxLayout(self.top)
+
+#
+# Left side lables
+#
+    self.LeftLables = QVBoxLayout(self.UserIn, 5)
     lbl = QLabel(' ', self)
-    self.t.addWidget(lbl);
-    lbl = QLabel('start', self)
-    self.t.addWidget(lbl);
-    lbl = QLabel('N', self)
-    self.t.addWidget(lbl);
-    lbl = QLabel('stop', self)
-    self.t.addWidget(lbl);
-
-    self.Xh = QHBoxLayout(self.v, 5)
+    self.LeftLables.addWidget(lbl)
     lbl = QLabel('Freq', self)
-    self.Xh.addWidget(lbl)
+    self.LeftLables.addWidget(lbl)
+    lbl = QLabel('Time', self)
+    self.LeftLables.addWidget(lbl)
+
+#
+# Start values
+#
+    self.StartValues = QVBoxLayout(self.UserIn, 5)
+    lbl = QLabel('start', self)
+    self.StartValues.addWidget(lbl);
     self.X0 = QLineEdit(self)
     self.X0.setText(str(self.parent.f0))
-    self.Xh.addWidget(self.X0)
-    self.Xn = QLineEdit(self)
-    self.Xn.setText(str(self.parent.fn))
-    self.Xh.addWidget(self.Xn)
-    self.X1 = QLineEdit(self)
-    self.X1.setText(str(self.parent.f1))
-    self.Xh.addWidget(self.X1)
-
-    self.Yh = QHBoxLayout(self.v, 5)
-    lbl = QLabel('Time', self)
-    self.Yh.addWidget(lbl)
+    self.StartValues.addWidget(self.X0)
     self.Y0 = QLineEdit(self)
     self.Y0.setText(str(self.parent.t0))
-    self.Yh.addWidget(self.Y0)
+    self.StartValues.addWidget(self.Y0)
+    
+#
+# Number of steps
+#
+    self.StepValues = QVBoxLayout(self.UserIn, 5)
+    lbl = QLabel('n-steps', self)
+    self.StepValues.addWidget(lbl);
+    self.Xn = QLineEdit(self)
+    self.Xn.setText(str(self.parent.fn))
+    self.StepValues.addWidget(self.Xn)
     self.Yn = QLineEdit(self)
     self.Yn.setText(str(self.parent.tn))
-    self.Yh.addWidget(self.Yn)
+    self.StepValues.addWidget(self.Yn)
+
+#
+# Stop values
+#
+    self.StopValues = QVBoxLayout(self.UserIn, 5)
+    lbl = QLabel('stop', self)
+    self.StopValues.addWidget(lbl);
+    self.X1 = QLineEdit(self)
+    self.X1.setText(str(self.parent.f1))
+    self.StopValues.addWidget(self.X1)
     self.Y1 = QLineEdit(self)
     self.Y1.setText(str(self.parent.t1))
-    self.Yh.addWidget(self.Y1)
-        
+    self.StopValues.addWidget(self.Y1)
+
+#
+# Variable Time
+#
+#    self.TimeRange = QHBoxLayout(self.top, 5)
+#    lbl = QLabel('Time', self)
+#    self.TimeRange.addWidget(lbl)
+#    self.TimeEdit = QLineEdit(self)
+#    self.TimeRange.addWidget(self.TimeEdit)
+
+#
+# Buttons
+#
+    self.Buttons = QHBoxLayout(self.top, 5)
     self.cmdOK = QPushButton('OK', self)
     QObject.connect(self.cmdOK, SIGNAL('clicked()'), self.slotcmdOK)
-    self.v.addWidget(self.cmdOK)
+    self.Buttons.addWidget(self.cmdOK)
     self.cmdCancel = QPushButton('Cancel', self)
     QObject.connect(self.cmdCancel, SIGNAL('clicked()'), self.slotcmdCancel)
-    self.v.addWidget(self.cmdCancel)
+    self.Buttons.addWidget(self.cmdCancel)
 
     self.show()
 
@@ -76,13 +113,43 @@ class editRequest(QDialog):
     self.close();
 
   def slotcmdOK(self):
+    tvalue = str(self.X0.text())
+    s1 = split(tvalue)
+    if len(s1) == 1:
+      self.parent.f0 = s1[0]
+    else:
+      print 'DEBUG - ', len(s1)
     self.parent.f0 = float(str(self.X0.text()))
     self.parent.f1 = float(str(self.X1.text()))
     self.parent.fn = int(str(self.Xn.text()))
-    self.parent.t0 = float(str(self.Y0.text()))
+
     self.parent.t1 = float(str(self.Y1.text()))
     self.parent.tn = int(str(self.Yn.text()))
-    self.parent.doNewRequest()
+
+    tvalue = str(self.Y0.text())
+    s1 = split(tvalue)
+    l = len(s1)
+    t00 = float(s1[0])
+    if l == 1:
+      t01 = 0
+      t02 = -1
+    elif l == 2:
+      t01 = 1
+      t02 = float(s1[1])
+    else:
+      t01 = float(s1[1])
+      t02 = float(s1[2])
+    dt = self.parent.t1 - t00
+    if t02 == -1:
+      self.parent.t0 = t00
+      self.parent.doNewRequest()
+    else:
+      t = t00
+      while t <= t02:
+        self.parent.t0 = t
+        self.parent.t1 = self.parent.t0 + dt
+	self.parent.doNewRequest()
+        t = t + t01
     self.close()
 
 class startLoop(QDialog):
@@ -276,12 +343,12 @@ class Executor (browsers.GriddedPlugin):
     startLoop(self)
 
   def _newreq(self):
-    self.f0 = 0;
-    self.f1 = 1;
-    self.fn = 10;
-    self.t0 = 0;
-    self.t1 = 1;
-    self.tn = 10;
+    self.f0 = self._request.cells.domain.freq[0];
+    self.f1 = self._request.cells.domain.freq[1];
+    self.fn = len(self._request.cells.cell_size.freq);
+    self.t0 = self._request.cells.domain.time[0];
+    self.t1 = self._request.cells.domain.time[1];
+    self.tn = len(self._request.cells.cell_size.time);
     editRequest(self);
 
   def doNewRequest(self):
