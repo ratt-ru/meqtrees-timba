@@ -159,7 +159,7 @@ def default_mqs (debug={},**kwargs):
     args.update(kwargs);
     print 'starting a meqserver with args:',args;
     mqs = meqserver(**args);
-    mqs.init(srecord(output_col='PREDICT'),wait=True);
+    mqs.init(srecord(output_col='PREDICT'),wait=False);
     if debug is None:
       pass;
     else:
@@ -173,27 +173,20 @@ def default_mqs (debug={},**kwargs):
 #
 if __name__ == '__main__':
   app_defaults.parse_argv(sys.argv[1:]);
-  args = app_defaults.args;
-  gui = args['gui'];
+  gui = app_defaults.args['gui'];
   
-  def testfunc (gui):
-    default_mqs();
-    for i in range(1,10):
-      print 'createnode:',mqs.createnode(meq.node('MeqConstant','x'+str(i),value=0),wait=True);
-    if gui:
-      mqs.run_gui(); 
-      mqs.halt();
-      
-  if gui:  
-    import qt_threading;
-    thread = qt_threading.QThreadWrapper(testfunc,args=(gui,));
-    thread.start();
-    thread.join();                                        
-    
+  default_mqs(verbose=2,wp_verbose=2);
+  for i in range(1,10):
+    print 'createnode:',mqs.createnode(meq.node('MeqConstant','x'+str(i),value=0),wait=False);
+
+  if gui:
+    mqs.run_gui(); 
   else:
-    testfunc(gui);
-    print "===== calling mqs.halt() =====";
-    mqs.halt();
+    time.sleep(2);
+
+  print '================= stopping mqs';
+  mqs.halt();
+  mqs.disconnect();
     
   print "===== calling octopussy.stop() =====";
   octopussy.stop();

@@ -648,9 +648,9 @@ PyObject * pyFromDMI (const BlockableObject &obj,int err_policy)
   try
   {
     TypeId type = obj.objectType();
-    if( type == TpDataRecord )
+    if( dynamic_cast<const DataRecord *>(&obj) )
       return pyFromRecord(dynamic_cast<const DataRecord &>(obj));
-    else if( type == TpDataField )
+    else if( dynamic_cast<const DataField *>(&obj) )
       return pyFromField(dynamic_cast<const DataField &>(obj));
     else if( type == TpDataArray )
       return pyFromArray(dynamic_cast<const DataArray &>(obj));

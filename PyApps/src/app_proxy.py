@@ -43,6 +43,8 @@ class app_proxy (verbosity):
     self._pwp.whenever(self._rcv_prefix+"*",self._event_handler,subscribe=True);
     # subscribe to app hello message 
     self._pwp.whenever('wp.hello'+self.appid+'*',self._hello_handler,subscribe=True);
+    # subscribe to app bye message 
+    self._pwp.whenever('wp.bye'+self.appid+'*',self._bye_handler,subscribe=True);
     
     # setup state
     self._verbose_events = True;
@@ -50,7 +52,8 @@ class app_proxy (verbosity):
     self._rqid = 1;
     # ------------------------------ this state is meant to be visible
     self.state = None; # None means offline -- we'll get a Hello message for online
-    self.statestr = 'unknown';
+    self.statestr = 'no connection';
+    self.app_addr = None;
     self.status = record();
     self.paused = False;
     # ------------------------------ export some proxy_wp and octopussy methods
@@ -75,6 +78,7 @@ class app_proxy (verbosity):
       self.serv_pid = os.spawnv(os.P_NOWAIT,spawn[0],spawn);
       self.dprint(1,"spawned external server, pid",self.serv_pid);
       self.dprint(2,"waiting for Hello message from app");
+      self._req_state = False;
     elif launch: # use py_app_launcher to run a local app thread
       self.dprint(1,"launching",launch);
       (appname,inagent,outagent) = launch;
@@ -82,7 +86,9 @@ class app_proxy (verbosity):
         raise NameError,appname+' is not a recognized app name';
       self.initrec_prev.control.delay_init = True;
       py_app_launcher.launch_app(appname,inagent,outagent,self.initrec_prev);
-    else: # no launch spec, simply wait for a connection
+      self._req_state = False;
+    else: # no launch spec, simply wait for a connection, and request state when it's there
+      self._req_state = True;
       pass;
     
     # start the gui, if so specified
@@ -95,29 +101,61 @@ class app_proxy (verbosity):
         self._gui = gui;
       else:
         self._gui = app_proxy_gui.app_proxy_gui;
+      # get the main app and schedule a GUI construction event
+      mainapp = app_proxy_gui.mainapp();
+      mainapp.postCallable(self._construct_gui);
+      # after GUI has been constructed, start WP event thread
+      mainapp.postCallable(self._pwp.start);
     else:     
       self._gui = None;
-    # start the wp messaging thread
-    self._pwp.start();
+      # start the wp event thread now
+      self._pwp.start();
+    
+  def __del__ (self):
+    self.dprint(1,"destructor");
+    self.disconnect();
+    
+  def disconnect (self):
+    self.dprint(1,"stopping proxy_wp thread");
+    self._pwp.stop();
+    self.dprint(1,"stopped");
     
   # message handler to actually construct an application's GUI
   def _construct_gui (self):
-    self.dprint(2,"start_gui called, starting the GUI");
+    self.dprint(2,"_construct_gui called, starting the GUI");
     self._gui = self._gui(self,verbose=self.get_verbose());
     
   def name(self):
     return str(self.appid);
       
+  hello_event = hiid("Hello");
+  bye_event = hiid("Bye");
   def _hello_handler (self,msg):
     self.dprint(2,"got hello message:",msg);
     if self.state is None:
       self.state = -1;
+      self.statestr = 'connected';
+    # request state & status 
+    if self._req_state:
+      self.send_command("Request.State");
+      self.send_command("Request.Status");
+    if self._gui:
+      self._gui._relay_event(self.hello_event,getattr(msg,'from'));
+      
+  def _bye_handler (self,msg):
+    self.dprint(2,"got bye message:",msg);
+    if self.state is None:
+      self.state = -1;
+      self.statestr = 'no connection';
+    if self._gui:
+      self._gui._relay_event(self.bye_event,getattr(msg,'from'));
 
   def _event_handler (self,msg):
     "event handler for app";
     self.dprint(5,"got message: ",msg.msgid);
     if self.state is None:
       self.state = -1;
+      self.statestr = 'connected';
     # extract event name: message ID is <appid>.Out.<event>, so get a slice
     event = msg.msgid[len(self.appid)+1:];
     value = msg.payload;
@@ -144,10 +182,9 @@ class app_proxy (verbosity):
     if self._verbose_events:
       self.dprint(2,'   event:',event);
       self.dprint(3,'   value:',value);
-    # old glish code:
-    # # forward event to local relay agent
-    # $value::event_name := shortname;
-    # self.relay->[shortname]($value);
+    # forward to gui
+    if self._gui:
+      self._gui._relay_event(event,value);
     
   def ensure_connection (self):
     "If app is not connected, blocks until it is";
@@ -172,7 +209,8 @@ class app_proxy (verbosity):
     "or any may be omitted to reuse the old record"
     "If wait=T, waits for the app to complete init";
     self.dprint(1,'initializing');
-    self.ensure_connection();
+    if wait:
+      self.ensure_connection();
     self.dprint(2,'initrec:',initrec);
     self.dprint(2,'input init:',inputinit);
     self.dprint(2,'output init:',outputinit);
@@ -278,26 +316,7 @@ class app_proxy (verbosity):
   def run_gui (self):
     if not app_defaults.include_gui:
       raise RuntimeError,"Can't call run_gui without gui support";
-    self._gui.await_exit();
-    self._pwp.stop();
-    
-def _run_gui_target (appclass,*args,**kwargs):
-  print 'running',appclass;
-  print '    args',args;
-  print '  kwargs',kwargs;
-  app = appclass(*args,**kwargs);
-  app.init();
-  app.run_gui();
-  app.halt();
-    
-def run_gui (appclass,*args,**kwargs):
-  if not app_defaults.include_gui:
-    raise RuntimeError,"Can't call run_gui without gui support";
-  thread = qt_threading.QThreadWrapper(_run_gui_target,
-                                        args=(appclass,)+args,kwargs=kwargs);
-  thread.start();
-  thread.join();                                        
-  
+    self._gui.await_gui_exit();
     
 if __name__ == "__main__":
   app_defaults.parse_argv(sys.argv);
@@ -312,16 +331,22 @@ if __name__ == "__main__":
   args['launch'] = ('repeater','o','o');
   print '================= launching app';
   print 'Args are:',args;
+  app = app_proxy('repeater',**args);
   if gui:
-    run_gui(app_proxy,'repeater',**args);
+    print '================= app.init()';
+    app.init(wait=False);
+    print '================= app.run_gui()';
+    app.run_gui();
   else:
-    app = app_proxy('repeater',**args);
-    print '================= going into init()';
+    print '================= app.init()';
     app.init(wait=True);
     print '================= sleeping for 2 sec';
     time.sleep(2);
     
+  print '================= stopping app';
+  app.halt();
+  app.disconnect();
+  del app;
+  
   print '================= stopping octopussy';
   octopussy.stop();
-  
-  

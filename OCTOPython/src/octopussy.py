@@ -314,10 +314,12 @@ class proxy_wp_thread(proxy_wp):
     self.dprint(1,"thread started");
     
   def stop (self):
-    self.dprint(1,"stopping & joining WP event thread");
-    self.send(self.ExitMessage,self.address());
-    self._thread.join();
-    self.dprint(1,"thread joined");
+    if self._thread:
+      self.dprint(1,"stopping & joining WP event thread");
+      self.send(self.ExitMessage,self.address());
+      self._thread.join();
+      self.dprint(1,"thread joined");
+      self._thread = None;
     
   def lock (self):
     return self._lock;

@@ -119,15 +119,15 @@ def dmize_object (obj):
 class conv_error(TypeError):
   def __init__(self,message,exc=None):
     self.message = message;
-    self.exc=exc;
+    self.exc     = exc;
   def __repr__(self):
     return '<dmitypes.conv_eror>';
   def __str__(self):
     return '<conv_error>';
   def details(self):
-    s = 'conv_error' + str(self.message);
+    s = '<conv_error: ' + str(self.message);
     if( self.exc ): s += ','+str(self.exc);
-    return s+')';
+    return s+'>';
   
 # 
 # === class record ===

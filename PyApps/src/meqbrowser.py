@@ -26,16 +26,10 @@ app_defaults.debuglevels.update({
 app_defaults.args.update({'launch':None,'spawn':None,
                          'verbose':2,'wp_verbose':0 });
 
-def _run_meqbrowse (debug={},**kwargs):
-  # start meqserver, overriding default args with any kwargs
-  args = app_defaults.args;
-  args['gui'] = True;
-  args.update(kwargs);
-  print 'starting a meqserver with args:',args;
-  mqs = meqserver.meqserver(**args);
-  mqs.run_gui();
-
 def meqbrowse (debug={},**kwargs):
+  app_defaults.parse_argv(sys.argv[1:]);
+  args = app_defaults.args;
+  
   # start octopussy if needed
   if not octopussy.is_initialized():
     octopussy.init(gw=True);
@@ -47,11 +41,13 @@ def meqbrowse (debug={},**kwargs):
     octopussy.set_debug(app_defaults.debuglevels);
     if isinstance(debug,dict):
       octopussy.set_debug(debug);
-  # start meqserver in thread
-  thread = qt_threading.QThreadWrapper(_run_meqbrowse,args=(debug,),kwargs=kwargs);
-  thread.start();
-  thread.join();
-  print "===== calling octopussy.stop() =====";
+  # start meqserver
+  print args;
+  args['gui'] = True;
+  mqs = meqserver.meqserver(**args);
+
+  mqs.run_gui();  
+  mqs.disconnect();
   octopussy.stop();
   
 if __name__ == '__main__':
