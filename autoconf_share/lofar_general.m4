@@ -24,6 +24,7 @@
 #  lofar_general.m4 contains the following m4 functions:
 #    lofar_DEBUG_OPTIMIZE
 #    lofar_CHECK_PRETTY_FUNCTION
+#    lofar_CHECK_LONG_LONG
 #
 
 # lofar_DEBUG_OPTIMIZE
@@ -197,5 +198,29 @@ AC_DEFUN(lofar_CHECK_PRETTY_FUNCTION,[
     if test "$lofar_cv_have_function" = yes; then
       AC_DEFINE(HAVE_FUNCTION,1,[Define if __FUNCTION__ is defined])
     fi
+  fi
+])
+
+#
+# lofar_CHECK_LONG_LONG
+#
+# If the C++ compiler supports `long long' types,  define `HAVE_LONG_LONG'.
+#
+# Based on ICE and DDD autoconf macros.
+#
+AC_DEFUN(lofar_CHECK_LONG_LONG,[
+  AC_PREREQ(2.13)
+  AC_REQUIRE([AC_PROG_CXX])
+  AC_MSG_CHECKING(whether ${CXX} supports long long)
+  AC_CACHE_VAL(lofar_cv_have_long_long,[
+    AC_LANG_PUSH(C++)
+    AC_TRY_COMPILE(,[long long a;], 
+      lofar_cv_have_long_long=yes, 
+      lofar_cv_have_long_long=no)
+    AC_LANG_POP(C++)
+  ])
+  AC_MSG_RESULT($lofar_cv_have_long_long)
+  if test "$lofar_cv_have_long_long" = yes; then
+    AC_DEFINE(HAVE_LONG_LONG,1,[Define if `long long' is supported])
   fi
 ])
