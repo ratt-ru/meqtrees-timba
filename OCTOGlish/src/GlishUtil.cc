@@ -35,7 +35,12 @@ static bool isIndexString (const string &str)
   const string index = strlowercase(AidIndex.toString());
   const uint index_len = index.length();
   int pos = str.length() - index_len;
-  return pos >= 0 && strlowercase(str.substr(pos)) == index;
+  if( pos == 0 )
+    return strlowercase(str) == index;
+  else if( pos > 0 )
+    return strlowercase(str.substr(pos)) == index;
+  else
+    return false;
 }
 
 
