@@ -27,11 +27,18 @@
 //## end module%3C10CC81037E.declarations
 
 //## begin module%3C10CC81037E.additionalDeclarations preserve=yes
+#undef VERIFY
+#if COUNTEDREF_VERIFY
+  #define VERIFY verify()
+#else
+  #define VERIFY 
+#endif
 
 InitDebugContext(CountedRefBase,"CRef");
 
 void CountedRefBase::cloneTarget () const
 {
+  VERIFY;
   if( !valid() )
     return;
   dprintf1(2)("  %s: cloning target\n",debug(0));
@@ -44,14 +51,43 @@ void CountedRefBase::cloneTarget () const
     target->owner_ref = next;
   if( next )
     next->prev = prev;
+  #if COUNTEDREF_VERIFY
+  verify(target->owner_ref);
+  #endif
   // attach ourselves to new reflist
   prev = next = 0;
   target = newtarget;
-  target->owner_ref = (CountedRefBase*)this;
+  target->owner_ref = const_cast<CountedRefBase*>(this);
   anonObject = True;
   // clear delayed-clone flag
   delayed_clone = False;
+  VERIFY;
 }
+
+void CountedRefBase::verify (const CountedRefBase *start)
+{
+  if( !start )
+    return;
+  const CountedRefTarget *target = start->target;
+  if( !target )
+    return;
+  // run through & verify ref chain
+  const CountedRefBase *ref = target->owner_ref;
+  Assert1(ref);
+  Assert1(ref->prev == 0);
+  bool found_start = False;
+  while( ref )
+  {
+    Assert1( ref->target == target );
+    if( ref == start )
+      found_start = True;
+    if( ref->next )
+      Assert1(ref->next->prev == ref);
+    ref = ref->next;
+  }
+  Assert1(found_start);
+}
+
 //## end module%3C10CC81037E.additionalDeclarations
 
 
@@ -68,6 +104,9 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags)
     empty();
   else
   {
+#if COUNTEDREF_VERIFY
+    other.verify();
+#endif
     // if the other ref is delayed-clone, then resolve it now
     if( other.delayed_clone )
     {
@@ -81,9 +120,12 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags)
              "r/w access violation: copy(WRITABLE)");
     // insert copy into list after other
     target = other.target;
-    prev = (CountedRefBase*)&other;
+    prev = const_cast<CountedRefBase*>(&other);
     next = other.next;
-    ((CountedRefBase&)other).next = this;
+    const_cast<CountedRefBase&>(other).next = this;
+    if( next )
+      next->prev = this;
+    VERIFY;
     // setup properties
     locked = (flags&DMI::LOCKED) != 0;
     anonObject = other.isAnonObject();
@@ -107,6 +149,9 @@ void CountedRefBase::xfer (const CountedRefBase& other)
     empty();
   else
   {
+#if COUNTEDREF_VERIFY
+    other.verify();
+#endif
     FailWhen( other.isLocked(),"can't transfer a locked ref" );
     FailWhen( other.isPersistent(),"can't transfer a persistent ref" );
     // insert myself into list in place of other
@@ -118,6 +163,7 @@ void CountedRefBase::xfer (const CountedRefBase& other)
       Throw("transfer of corrupted ref");
     if( (next = other.next) != 0 )
       other.next->prev = this;
+    VERIFY;
     // copy all fields
     target = other.target;
     locked = False;
@@ -276,9 +322,10 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   // other refs to same object. Otherwise, inherit property from other refs.
   // If no other refs and nothing specified, assume external.
   bool anon = (flags&DMI::ANON)!=0;
-  if( targ->getOwner() )
+  CountedRefBase *owner = targ->getOwner();
+  if( owner )
   {
-    bool other = targ->getOwner()->isAnonObject();
+    bool other = owner->isAnonObject();
     FailWhen( flags&DMI::ANON && !other,"object already referenced as external, can't attach as anon" );
     FailWhen( !(flags&DMI::ANON) && other,"object already referenced as anon, can't attach as external" );
     anon = other;
@@ -301,9 +348,11 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   // add to list 
   target = targ;
   prev = 0;
-  if( (next = target->getOwner()) != 0 )
-    next->prev = this;
+  if( owner )
+    (next=owner)->prev = this;
   target->owner_ref = this;
+
+  VERIFY;
 
   dprintf(3)("  ref target now %s\n",target->debug(2,"  "));
   return *this;
@@ -319,12 +368,14 @@ void CountedRefBase::detach ()
   // locked refs can't be detached (only destroyed)
   FailWhen( isLocked(),"can't detach a locked ref");
   // delete object if anon, and we are last ref to it
+  VERIFY;
   if( !prev && !next ) 
   {
     if( isAnonObject() ) 
     {
       dprintf(3)("last ref, anon target will be deleted\n");
-      anonObject = False; // so that the target doesn't complain
+//      anonObject = False; // so that the target doesn't complain
+      target->owner_ref = 0;
       delete target;
     }
   }
@@ -336,6 +387,9 @@ void CountedRefBase::detach ()
       target->owner_ref = next;
     if( next )
       next->prev = prev;
+#if COUNTEDREF_VERIFY
+    target->owner_ref->verify();
+#endif
     dprintf(3)("  old target is now: %s\n",target->debug(2,"  "));
   }
   empty();

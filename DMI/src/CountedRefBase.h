@@ -34,6 +34,8 @@
 //## end module%3C10CC81037C.declarations
 
 //## begin module%3C10CC81037C.additionalDeclarations preserve=yes
+// Uncomment this to enable verification calls during countedref operations
+// #define COUNTEDREF_VERIFY 1
 //## end module%3C10CC81037C.additionalDeclarations
 
 
@@ -212,6 +214,14 @@ class CountedRefBase
 
     // Additional Public Declarations
       //## begin CountedRefBase%3C0CDEE200FE.public preserve=yes
+      // verifies ref chain and thrown an exception if any errors are found
+      static void verify (const CountedRefBase *ref);
+      
+      // version for verify on self
+      void verify () const
+      { verify(this); }
+      
+      
       CountedRefBase * getNext ();
       CountedRefBase * getPrev ();
 

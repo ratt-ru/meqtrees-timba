@@ -195,6 +195,7 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       CountedRefBase::isExclusiveWrite;
       CountedRefBase::isAnonObject;
       CountedRefBase::hasOtherWriters;
+      CountedRefBase::verify; 
       CountedRefBase::debug;
       CountedRefBase::sdebug;
       //## end CountedRef%3BEFECFF0287.public
