@@ -99,16 +99,16 @@ class Logger(HierBrowser):
   _LogCatNames = { Normal:"message",Event:"event",Error:"error" };
   def __init__(self,parent,name,
                click=None,udi_root=None,
-               enable=True,use_enable=True,limit=-100,use_limit=True):
+               enable=True,use_clear=True,auto_clear=True,
+               limit=-100):
     """Initializes a Logger panel. Arguments are:
           parent:     parent widget
           name:       name of panel (appears at top)
-          use_limit:  if True, log has a limited size and a size control widget;
-                      if False, log is always unlimited.
           limit:      initial log size. If <0, then the log size control starts
-                      out disabled.
-          use_enable: if True, logger has an enable/disable control
-          enable:     initial state of control
+                      out disabled. If None, size is always unlimited.
+          enable:     initial state of enable control (None for no control)
+          use_clear:  if True, logger has a clear button
+          auto_clear: initial state of auto-clear toggle (None for no toggle)
           click:      callback, called when a log item is clicked
                       (QListView::mouseButtonClicked() signal is connected to this slot)
           udi_root:   the UDI root name corresponding to this logger.
@@ -119,19 +119,25 @@ class Logger(HierBrowser):
     HierBrowser.__init__(self,self._vbox,name,udi_root=udi_root);
     # add controls
     self._controlgrid = QWidget(self._vbox);
-    self._controlgrid_lo = QHBoxLayout(self._controlgrid);
-    self._controlgrid_lo.addStretch();
-    self.enabled = enable;
-    if use_enable:
+    self._controlgrid_lo = QGridLayout(self._controlgrid,2,6);
+    self._controlgrid_lo.setColStretch(0,1000);
+    self._controlgrid_lo.setColSpacing(1,8);
+    self._controlgrid_lo.setColSpacing(3,8);
+    self._controlgrid_lo.setColSpacing(5,8);
+    self._controlgrid_lo.setSpacing(0);
+    self.enabled = enable != False;
+    # enable control
+    if enable is not None:
       self._enable = QCheckBox("log",self._controlgrid);
       self._enable.setChecked(enable);
       self._enable_dum = QVBox(self._controlgrid);
-      self.wtop().connect(self._enable,SIGNAL('toggled(bool)'),self._toggle_enable);
-      self._controlgrid_lo.addWidget(self._enable);
+      QObject.connect(self._enable,SIGNAL('toggled(bool)'),self._toggle_enable);
+      self._controlgrid_lo.addWidget(self._enable,0,2);
     else:
       self._enable = None;
-    if use_limit:
-      self._limit_enable = QCheckBox("limit:",self._controlgrid);
+    # limit control
+    if limit is not None:
+      self._limit_enable = QCheckBox("limit",self._controlgrid);
       self._limit_field  = QLineEdit("",self._controlgrid);
       self._limit_field.setFixedWidth(60);
       try: self._limit_field.setInputMask('00000');
@@ -140,10 +146,22 @@ class Logger(HierBrowser):
                       self._limit_field,SLOT('setEnabled(bool)'));
       self.wtop().connect(self._limit_field,SIGNAL('returnPressed()'),
                       self._enter_log_limit);
-      self._controlgrid_lo.addWidget(self._limit_enable);
-      self._controlgrid_lo.addWidget(self._limit_field);
+      self._controlgrid_lo.addWidget(self._limit_enable,0,4);
+      self._controlgrid_lo.addWidget(self._limit_field,1,4);
     else:
       self._limit_enable = None;
+    # auto-clear control
+    if auto_clear is not None:
+      self._auto_clear = QCheckBox("clear on connect",self._controlgrid);
+      self._auto_clear.setChecked(auto_clear);
+      self._controlgrid_lo.addWidget(self._auto_clear,0,6);
+    else:
+      self._auto_clear = None;
+    # clear button
+    if use_clear:
+      clear = QPushButton("Clear",self._controlgrid);
+      QObject.connect(clear,SIGNAL("clicked()"),self.clear);
+      self._controlgrid_lo.addWidget(clear,1,6);
     # connect click callback
     if callable(click):
       self._lv.connect(self._lv,
@@ -164,6 +182,10 @@ class Logger(HierBrowser):
   def disable (self,val=True):
     self._enable.setChecked(not val);
     
+  def connected (self,conn=True):
+    if conn and self._auto_clear is not None and self._auto_clear.isOn():
+      self.clear();
+    
   def _enter_log_limit (self):
     try: self._limit = int(str(self._limit_field.text()));
     except: pass; # catch conversion errors
@@ -172,12 +194,15 @@ class Logger(HierBrowser):
     self.apply_limit(self._limit);
     
   def set_log_limit (self,limit):
-    self._limit = abs(limit);
-    if self._limit_enable is not None:
-      self._limit_field.setText(str(self._limit));
-      self._limit_enable.setChecked(limit>0);
-      self._limit_field.setEnabled(limit>0);
-    self.apply_limit(self._limit);
+    if limit is None:
+      self._limit = None;
+    else:
+      self._limit = abs(limit);
+      if self._limit_enable is not None:
+        self._limit_field.setText(str(self._limit));
+        self._limit_enable.setChecked(limit>0);
+        self._limit_field.setEnabled(limit>0);
+      self.apply_limit(self._limit);
     
   def add (self,msg,label=None,content=None,
            category=Normal,force=False,
@@ -227,7 +252,8 @@ class Logger(HierBrowser):
     if pm is not None:
       item.setPixmap(2,pm.pm());
     # apply a log limit
-    self.apply_limit(self._limit);
+    if self._limit is not None:
+      self.apply_limit(self._limit);
     # ensure item is visible
     self.wlistview().ensureItemVisible(item);
     return item;
@@ -241,9 +267,10 @@ class EventLogger (Logger):
   def __init__(self,parent,name,evmask="*",*args,**kwargs):
     Logger.__init__(self,parent,name,*args,**kwargs);
     self.mask = make_hiid(evmask);
-    self._controlgrid_lo.insertWidget(0,QLabel('Event mask: ',self._controlgrid));
+    label = QLabel('Event mask:',self._controlgrid);
+    self._controlgrid_lo.addWidget(label,0,0);
     self._evmask_field  = QLineEdit(str(evmask),self._controlgrid);
-    self._controlgrid_lo.insertWidget(1,self._evmask_field);
+    self._controlgrid_lo.addMultiCellWidget(self._evmask_field,1,1,0,2);
     self.wtop().connect(self._evmask_field,SIGNAL('returnPressed()'),
                     self._enter_mask);
     self._exclusions = [];
@@ -297,7 +324,7 @@ class MessageLogger (Logger):
 #--------------------------------------------------------------
 #--- app_proxy_gui() class
 #--------------------------------------------------------------
-class app_proxy_gui(verbosity,QMainWindow):
+class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
   def __init__(self,app,verbose=0,size=(500,500),poll_app=None,*args,**kwargs):
     """create and populate the main application window""";
     #------ starts the main app object and event thread, if not already started
@@ -307,6 +334,7 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.dprint(1,"initializing");
     QMainWindow.__init__(self,*args);
     self.app = app;
+    self._connected = False;
     
     #------ populate the GUI
     self.populate(size=size,*args,**kwargs);
@@ -341,22 +369,26 @@ class app_proxy_gui(verbosity,QMainWindow):
     splitter.setResizeMode(maintab,QSplitter.KeepSize);
     
     #------ create a message log
-    self.msglog = MessageLogger(self,"message log",use_enable=False,limit=1000,
+    self.msglog = MessageLogger(self,"message log",enable=None,limit=1000,
           udi_root='message');
     self.msglog.add('start of log',category=Logger.Normal);
     self.msglog.wtop()._default_label = "Messages";
     self.msglog.wtop()._default_iconset = QIconSet();
     self.msglog.wtop()._error_label = "%d errors";
     self.msglog.wtop()._error_iconset = pixmaps.exclaim.iconset();
-    QWidget.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
-    QWidget.connect(self.msglog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    QObject.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
+    QObject.connect(self.msglog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(self.msglog.connected,_args=(True,)));
+    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(self.msglog.connected,_args=(False,)));
     # set current page to message log
     self._current_page = self.msglog.wtop();
     
     #------ create an event log
     self.eventlog = EventLogger(self,"event log",limit=1000,evmask="*",
           udi_root='event');
-    QWidget.connect(self.eventlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    QObject.connect(self.eventlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    QObject.connect(self,PYSIGNAL("connected()"),self.xcurry(self.eventlog.connected,_args=(True,)));
+    QObject.connect(self,PYSIGNAL("disconnected()"),self.xcurry(self.eventlog.connected,_args=(False,)));
     
     self.maintab.addTab(self.msglog.wtop(),self.msglog.wtop()._default_label);
     
@@ -413,8 +445,8 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.show_workspace_button.setPixmap(pixmaps.view_split.pm());
     self.show_workspace_button.setAutoRaise(True);
     maintab.setCornerWidget(self.show_workspace_button,Qt.BottomRight);
-    QWidget.connect(self.show_workspace_button,SIGNAL("clicked()"),self.gw.show);
-    QWidget.connect(self.show_workspace_button,PYSIGNAL("dataItemDropped()"),self.display_data_item);
+    QObject.connect(self.show_workspace_button,SIGNAL("clicked()"),self.gw.show);
+    QObject.connect(self.show_workspace_button,PYSIGNAL("dataItemDropped()"),self.display_data_item);
     QToolTip.add(self.show_workspace_button,"show the viewer panel. You can also drop data items here.");
     
     splitter.setSizes([200,600]);
@@ -498,6 +530,12 @@ class app_proxy_gui(verbosity,QMainWindow):
       # execute procedures from the custom map
       for handler in self._ce_handler_map.get(ev0,()):
         handler(ev,value);
+      # finally, just in case we've somehow missed a Hello message,
+      # force a connected() signal
+      if not self._connected and ev0 != hiid('bye'):
+        self.emit(PYSIGNAL("connected()"),("?",));
+        self.log_message("found kernel (missed Hello message)",category=Logger.Normal);
+        self._connected = True;
     except:
       (exctype,excvalue,tb) = sys.exc_info();
       self.dprint(0,'exception',str(exctype),'while handling event ',ev);
@@ -508,11 +546,13 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.emit(PYSIGNAL("connected()"),(value,));
     self.log_message("found kernel ("+str(value)+")",category=Logger.Normal);
     self.gw.clear();
+    self._connected = True;
     
   def ce_Bye (self,ev,value):
     self.emit(PYSIGNAL("disconnected()"),(value,));
     self.log_message("kernel disconnected",category=Logger.Normal);
     self._update_app_state();
+    self._connected = False;
     
   def ce_UpdateState (self,ev,value):
     self._update_app_state();
@@ -545,14 +585,19 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.eventtab.setTabLabel(logger,str(mask));
 ##### slot: adds error count to label of message logger
   def _indicate_msglog_errors (self,logger,numerr):
-    try: has_err = logger._numerr > 0;
-    except AttributeError: has_err = False;
-    # only add when going from or to 0 errors
-    if numerr and not has_err:
+#    try: has_err = logger._numerr > 0;
+#    except AttributeError: has_err = False;
+#    # only add when going from or to 0 errors
+#     if numerr and not has_err:
+#       self.maintab.changeTab(logger,logger._error_iconset,logger._error_label % numerr);
+#     elif not numerr and has_err:
+#       self._reset_maintab_label(logger);
+#     logger._numerr = numerr;
+    if numerr:
       self.maintab.changeTab(logger,logger._error_iconset,logger._error_label % numerr);
-    elif not numerr and has_err:
+    else:
       self._reset_maintab_label(logger);
-    logger._numerr = numerr;
+      
   # resets tab label to default values
   def _reset_maintab_label (self,tabwin):
     self.maintab.changeTab(tabwin,tabwin._default_iconset,tabwin._default_label);
