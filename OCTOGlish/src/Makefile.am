@@ -1,6 +1,5 @@
 dmi_dir = $(lofar_sharedir)/../DMI
 
-
 CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE
 
 lib_LTLIBRARIES = liboctoglish.la
@@ -11,17 +10,21 @@ bin_PROGRAMS   		= octoglish
 
 octoglish_SOURCES 	= octoglish.cc 
 
-octoglish_LDADD		= liboctoglish.la -lglish -lsos -lnpd
+octoglish_LDADD		= liboctoglish.la 
+# -lglish -lsos -lnpd
   
 #  ../../test/AID-Testing-Registry.o 
 
 octoglish_DEPENDENCIES	= liboctoglish.la $(LOFAR_DEPEND)
 
 #  ../../test/AID-Testing-Registry.o 
+
+glishdir = $(libexecdir)/glish
+dist_glish_SCRIPTS = octopussy.g
   
+
+
 include $(lofar_sharedir)/Makefile.common
-
-
 
 # script used to generate AID maps
 MAPBUILDER = $(dmi_dir)/src/build_aid_maps.pl 
