@@ -280,6 +280,8 @@ class proxy_wp(octopython.proxy_wp,verbosity):
 # 
 class proxy_wp_thread(proxy_wp):
   "represents an OCTOPUSSY connection endpoint (i.e. WorkProcess)"
+  ExitMessage = hiid("e.x.i.t");
+  
   def __init__ (self,wpid='python',verbose=0,thread_api=threading):
     self.name = str(wpid)+'-init';  # because parent calls self.object_name()
     proxy_wp.__init__(self,wpid,verbose=verbose);
@@ -310,6 +312,12 @@ class proxy_wp_thread(proxy_wp):
     self.dprint(1,"starting WP thread");
     self._thread.start();
     self.dprint(1,"thread started");
+    
+  def stop (self):
+    self.dprint(1,"stopping & joining WP event thread");
+    self.send(self.ExitMessage,self.address());
+    self._thread.join();
+    self.dprint(1,"thread joined");
     
   def lock (self):
     return self._lock;
@@ -378,10 +386,14 @@ class proxy_wp_thread(proxy_wp):
         msg = self.receive_threaded();
       except octopython.OctoPythonError, value:
         self.dprint(1,"exiting on receive error:",value);
-        return;
+        break;
       # msg=None probably indicates timeout, go back up to check
       if msg is None:
         continue;
+      # check for predefined exit message
+      if msg.msgid == self.ExitMessage and msg.is_from(self.address()):
+        self.dprint(1,"got exit message",msg);
+        break;
       # process messages
       self._dispatch_whenevers(msg);
       # now, check for matching awaits
@@ -399,6 +411,7 @@ class proxy_wp_thread(proxy_wp):
         self._await_cond.release();
         self._lock.release();
     # end of while-loop (exit is inside) 
+    self.dprint(1,"finishing thread");
  
 #
 # self-test code

@@ -261,13 +261,16 @@ class message (object):
     self.msgid = hiid(msgid);
     self.payload = payload;
     self.priority = priority;
+  def _is_attr_eq (self,attr,value):
+    return hasattr(self,attr) and getattr(self,attr) == value;
+  def is_from (self,addr):
+    return self._is_attr_eq('from',addr);
   def __repr__ (self):
     return "message("+str(self.msgid)+")";
   def __str__ (self):
     s = "message(" + str(self.msgid);
     attrs = dir(self);
-    stds = [ "%s=%s" % (x,getattr(self,x)) for x in message._stdattrs 
-                                              if x in attrs ];
+    stds = [ "%s=%s" % (x,getattr(self,x)) for x in message._stdattrs if hasattr(self,x) ];
     return string.join([s]+stds,";") + ")";
     
 def make_message(msg,payload=None,priority=0):

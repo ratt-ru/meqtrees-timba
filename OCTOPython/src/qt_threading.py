@@ -35,6 +35,8 @@ class Thread (qt.QThread):
     return self._name;
   def setName (self,name):
     self._name = name;
+  def join (self):
+    return self.wait();
   currentThread = staticmethod(currentThread);
 
 from traceback import print_stack
