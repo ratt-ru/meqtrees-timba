@@ -28,7 +28,6 @@
 //## begin module%3C14B70800A2.includes preserve=yes
 #include <string>
 #include <vector>
-#include <complex>
 //## end module%3C14B70800A2.includes
 
 //## begin module%3C14B70800A2.declarations preserve=no
@@ -49,16 +48,6 @@ using namespace std;
 //## Cardinality/Multiplicity: n
 
 
-
-
-// Forward declare the DataArray classes.
-template<class T> class Array;
-typedef Array<bool>    Array_bool;
-typedef Array<int>     Array_int;
-typedef Array<float>   Array_float;
-typedef Array<double>  Array_double;
-typedef Array<std::complex<float> >  Array_complex;
-typedef Array<std::complex<double> > Array_dcomplex;
 
 
 //## begin Bool%3C14B6D4002F.postscript preserve=yes

@@ -104,7 +104,7 @@ inline bool TypeInfo::isDynamic (TypeId tid)
 typedef void (*TypeConverter)(const void *from,void *to);
 
 // This is a matrix of converters for the built-in scalar types.
-extern TypeConverter _typeconverters[14][14];
+extern TypeConverter _typeconverters[16][16];
 
 // Inline function to convert scalars  
 inline bool convertScalar ( const void *from,TypeId frid,void *to,TypeId toid )

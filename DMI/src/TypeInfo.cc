@@ -18,10 +18,24 @@ void _convertScalar( const void * from,void * to )
   *static_cast<To*>(to) = (To) *static_cast<const From *>(from); 
 }
 
+template<class From,class To> 
+void _convertComplex( const void * from,void * to )
+{ 
+  *static_cast<To*>(to) = (To) static_cast<const From *>(from)->real(); 
+}
+
+//template<> 
+//void _convertScalar<dcomplex,class To>( const void * from,void * to )
+//{ 
+//  *static_cast<To*>(to) = (To) static_cast<const dcomplex *>(from)->real(); 
+//}
+
 // This defines the conversion matrix
 #undef From
 #define From(type,arg) _convertScalar<arg,type>
-TypeConverter _typeconverters[14][14] = {
+#undef FromComplex
+#define FromComplex(type,arg) _convertComplex<arg,type>
+TypeConverter _typeconverters[16][16] = {
   { DoForAllNumericTypes1(From,char) },
   { DoForAllNumericTypes1(From,uchar) },
   { DoForAllNumericTypes1(From,short) },
@@ -35,5 +49,7 @@ TypeConverter _typeconverters[14][14] = {
   { DoForAllNumericTypes1(From,float) },
   { DoForAllNumericTypes1(From,double) },
   { DoForAllNumericTypes1(From,ldouble) },
+  { DoForAllNumericTypes1(FromComplex,fcomplex) },
+  { DoForAllNumericTypes1(FromComplex,dcomplex) },
   { DoForAllNumericTypes1(From,bool) } };
 

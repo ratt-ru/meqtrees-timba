@@ -21,6 +21,9 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.3  2002/04/12 07:47:53  oms
+//  Added fcomplex and dcomplex types
+//
 //  Revision 1.2  2002/04/08 14:27:07  oms
 //  Added isScalar(tid) to DataArray.
 //  Fixed isContiguous() in DataField.
@@ -38,7 +41,7 @@
 
 #pragma types #DataArray
 #pragma types -Array_bool -Array_int -Array_float -Array_double
-#pragma types -Array_complex -Array_dcomplex
+#pragma types -Array_fcomplex -Array_dcomplex
 
 #include "NestableContainer.h"
 #include "HIID.h"

@@ -25,6 +25,7 @@
 
 //## begin module%3C10CC8301F8.includes preserve=yes
 #include "Registry.h"
+#include <complex>
 //## end module%3C10CC8301F8.includes
 
 // AtomicID
@@ -61,13 +62,25 @@ typedef unsigned long ulong;
 typedef long long longlong;
 typedef unsigned long long ulonglong;
 typedef long double ldouble;
+typedef complex<float> fcomplex;
+typedef complex<double> dcomplex;
+
+template<class T> class Array;
+typedef Array<bool>    Array_bool;
+typedef Array<int>     Array_int;
+typedef Array<float>   Array_float;
+typedef Array<double>  Array_double;
+typedef Array<fcomplex>  Array_fcomplex;
+typedef Array<dcomplex> Array_dcomplex;
 
 // Declare the standard types (':' prefix means do not generate constructors)
 // Numbers will be explicitly assigned; note that TypeIDs are negative
 // so Tpchar will be -10, Tpuchar -11, etc.
 #pragma type +char=10 +uchar=11 +short=12 +ushort=13 +int=14 +uint=15 
 #pragma type +long=16 +ulong=17 +longlong=18 +ulonglong=19 
-#pragma type +float=20 +double=21 +ldouble=22 +bool=23
+#pragma type +float=20 +double=21 +ldouble=22 
+#pragma type +fcomplex=23 +dcomplex=24
+#pragma type +bool=25
 #pragma type noinclude =string=30
 #pragma type :AtomicID
 
