@@ -67,13 +67,38 @@ int AtomicID::findName (const string &str)
   //## begin AtomicID::findName%3C68D5ED01F8.body preserve=yes
   for( size_t i=0; i<str.length(); i++ )
     if( !isdigit( str[i] ) )
-      return registry.rfind(str);
+    {
+      int ret = registry.rfind(str);
+#ifdef ATOMICID_VERBOSE_REGISTER
+      cerr<<"AtomicID::findName("<<str<<")="<<ret<<endl;
+#endif
+      return ret;
+    }
   return atoi(str.c_str());
   //## end AtomicID::findName%3C68D5ED01F8.body
 }
 
 // Additional Declarations
   //## begin AtomicID%3BE970170297.declarations preserve=yes
+
+#ifdef ATOMICID_VERBOSE_REGISTER
+template <>
+Registrar<int,string,AtomicID>::Registrar (const int &key, const string &val)
+  //## begin Registrar::Registrar%3C5E8EC40246.hasinit preserve=no
+  //## end Registrar::Registrar%3C5E8EC40246.hasinit
+  //## begin Registrar::Registrar%3C5E8EC40246.initialization preserve=yes
+  //## end Registrar::Registrar%3C5E8EC40246.initialization
+{
+  //## begin Registrar::Registrar%3C5E8EC40246.body preserve=yes
+  cerr<<"Registering key "<<key<<"="<<val<<endl;
+  AtomicID::registry.add(key,val);
+  //## end Registrar::Registrar%3C5E8EC40246.body
+}
+#endif
+
+
+
+
 //template class StaticRegistry<AtomicID,int,string>;
 static AtomicID::Register
      null(AidNull.id(),"0"),

@@ -391,6 +391,7 @@ inline bool AtomicID::operator>=(int right) const
 {
   return aid >= right;
 }
+
 //## end module%3C10CC810157.epilog
 
 

@@ -24,6 +24,11 @@
 //## begin module%3C14B70800A2.includes preserve=yes
 #include <string>
 #include <vector>
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 //## end module%3C14B70800A2.includes
 
 //## begin module%3C14B70800A2.declarations preserve=no
@@ -40,7 +45,7 @@ using namespace std;
 //## begin module%3C14B70800A2.epilog preserve=yes
 // Define capitalized Bool types.
 // If available, use AIPS++ to do that.
-#if defined(HAVE_AIPSPP) || defined(AIPS_LINUX)
+#if defined(HAVE_AIPSPP) 
   #include <aips/aipstype.h>
 #else
   typedef bool Bool;

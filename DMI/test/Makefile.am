@@ -1,24 +1,20 @@
 CXXFLAGS += -Wno-unknown-pragmas
 
-INCLUDES			= -I$(lofar_sharedir)/../CEP/CPA/PSCF/src
+# INCLUDES			= -I$(lofar_sharedir)/../CEP/CPA/PSCF/src
 
 check_PROGRAMS			= test_dmi tDataArray
 
 test_dmi_SOURCES 		= test_dmi.cc
-test_dmi_LDADD			= $(top_builddir)/src/libdmi.la \
-      $(lofar_sharedir)/../Common/build/gnu_debug/src/libcommon.la
 
-tDataArray_SOURCES 		= tDataArray.cc
-tDataArray_LDADD		= $(top_builddir)/src/libdmi.la \
-      $(lofar_sharedir)/../Common/build/gnu_debug/src/libcommon.la
+test_dmi_LDADD      =  $(top_builddir)/src/libdmi.la
 
-TESTS	=					\
-	test_dmi				
-#	tDataArray_test.sh			
+tDataArray_SOURCES  = tDataArray.cc
 
-#EXTRA_DIST = 					\
-#	tDataArray_test.sh			
-#	tDataArray.out				
+tDataArray_LDADD     =  $(top_builddir)/src/libdmi.la
+
+TESTS	=	test_dmi tDataArray_test.sh			
+
+EXTRA_DIST = tDataArray_test.sh	tDataArray.out				
 
 
 # script used to generate AID maps
