@@ -572,6 +572,7 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
   FailWhen( valid(),"field is already initialized" );
   mytype = other.type();
   mysize = other.size();
+  scalar = other.scalar;
   binary_type = other.binary_type;
   dynamic_type = other.dynamic_type;
   typeinfo = other.typeinfo;
