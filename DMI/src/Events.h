@@ -84,7 +84,8 @@ class EventRecepient
 {
   public:
     virtual int receiveEvent (const EventIdentifier &evid,
-                              const ObjRef::Xfer &evdata) =0;
+                              const ObjRef::Xfer &evdata,
+                              void *ptr) =0;
 };
 
 class EventSlot
@@ -103,8 +104,8 @@ class EventSlot
     EventSlot (const HIID &evid_id,EventRecepient *recpt)
     : evid_(evid_id),recepient_(recpt) {}
     
-    int receive (const ObjRef::Xfer &data = ObjRef()) const
-    { return recepient_->receiveEvent(evid_,data); }
+    int receive (const ObjRef::Xfer &data = ObjRef(),void *ptr=0) const
+    { return recepient_->receiveEvent(evid_,data,ptr); }
     
     const EventIdentifier & evId () const
     { return evid_; }
