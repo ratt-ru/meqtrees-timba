@@ -54,8 +54,8 @@ DataAcc-NonConst.h		\
 TID-DMI.h			\
 TypeIterMacros.h
 
-CXXFLAGS += -D_GNU_SOURCE -Wno-deprecated 
-# CXXFLAGS += -D_GNU_SOURCE -Wno-deprecated -DUSE_THREADS -pthread
+CXXFLAGS += -D_GNU_SOURCE 
+# CXXFLAGS += -D_GNU_SOURCE -DUSE_THREADS -pthread
 
 EXTRA_DIST = build_aid_maps.pl build_type_iter.pl atomicid.list
 

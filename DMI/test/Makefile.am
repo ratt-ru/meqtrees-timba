@@ -1,5 +1,5 @@
-CXXFLAGS += -D_GNU_SOURCE -Wno-deprecated 
-# CXXFLAGS += -D_GNU_SOURCE -Wno-deprecated -DUSE_THREADS -pthread
+CXXFLAGS += -D_GNU_SOURCE 
+# CXXFLAGS += -D_GNU_SOURCE -DUSE_THREADS -pthread
 
 check_PROGRAMS		= test_dmi test_thread tDataArray
 bin_PROGRAMS      = ncperf
