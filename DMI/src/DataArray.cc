@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.20  2002/12/09 08:22:31  smirnov
+//  %[BugId: 112]%
+//  Simplified string support in DataAarray
+//
 //  Revision 1.19  2002/12/05 10:15:22  smirnov
 //  %[BugId: 112]%
 //  Fixed Lorray support in DataArrays, etc.
@@ -346,6 +350,11 @@ void * DataArray::makeSubArray (void *data,const LoShape & shape,const LoShape &
 //##ModelId=3DB949AF0024
 void DataArray::init (const LoShape & shape,int flags)
 {
+#ifdef HAVE_AIPSPP
+  // sanity check -- can we treat string as an AIPS++ String?
+  FailWhen( sizeof(string) != sizeof(String),"AIPS++ String is not equivalent to std::string" );
+#endif
+      
   itsShape = shape;
   itsSize  = shape.product();
   int sz = sizeof(int) * (2 + shape.size());

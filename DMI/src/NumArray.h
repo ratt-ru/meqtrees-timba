@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.18  2002/12/09 08:22:31  smirnov
+//  %[BugId: 112]%
+//  Simplified string support in DataAarray
+//
 //  Revision 1.17  2002/12/06 15:29:02  smirnov
 //  %[BugId: 112]%
 //  Fixed some bugs in the AIPS++ hooks;
@@ -371,6 +375,11 @@ private:
   // specialization (which seems to cause redefined symbol trouble)
   template<class T>
   static bool isStringArray (const Array<T> &);
+  // helper function returns True if array contains the same data type
+  // (with AIPS++ String matching Tpstring)
+  template<class T>
+  bool verifyAipsType (const T*) const;
+  // helper function copies strings from source array
   void copyStringArray (const void *source);
 #endif
 };
@@ -429,6 +438,18 @@ template<>
 inline bool DataArray::isStringArray (const Array<String> &)
 { return True; }
 
+template<class T> 
+inline bool DataArray::verifyAipsType (const T*) const
+{
+  return itsScaType == typeIdOf(T);
+}
+
+template<> 
+inline bool DataArray::verifyAipsType (const String*) const
+{
+  return itsScaType == Tpstring;
+}
+
 inline void DataArray::copyStringArray (const void *source)
 {
   const String *data = static_cast<const String*>(source);
@@ -462,25 +483,11 @@ DataArray::DataArray (const Array<T> &array,int flags, int )  // shm_flags not y
 
 
 template<class T>
-Array<T> DataArray::copyAipsArray (const T*) const
+Array<T> DataArray::copyAipsArray (const T* dum) const
 {
   FailWhen( !valid(),"invalid DataArray" );
-  if( isStringArray(Array<T>()) )
-  {
-    FailWhen( itsScaType != Tpstring,"array type mismatch" );
-    String *dest = new String[itsSize], *end = dest+itsSize;
-    const string *src = reinterpret_cast<const string *>(itsArrayData);
-    for( ; dest < end; dest++,src++ )
-      *dest = *src;
-    // The reinterpret_cast is necessary to prevent confusing the compiler.
-    // In reality this code gets executed only when T=String
-    return Array<T>(itsShape,reinterpret_cast<T*>(dest),TAKE_OVER);
-  }
-  else
-  {
-    FailWhen( itsScaType != typeIdOf(T),"array type mismatch" );
-    return Array<T>(itsShape,reinterpret_cast<const T*>(itsArrayData));
-  }
+  FailWhen( !verifyAipsType(dum),"array type mismatch" );
+  return Array<T>(itsShape,reinterpret_cast<const T*>(itsArrayData));
 }
 
 template<class T>
@@ -488,9 +495,7 @@ Array<T> DataArray::refAipsArray (const T*)
 {
   FailWhen( !valid(),"invalid DataArray" );
   FailWhen( !isWritable(),"r/w access violation" );
-  if( isStringArray(Array<T>()) )
-    return copyAipsArray((T*)0);
-  FailWhen( itsScaType != typeIdOf(T),"array type mismatch" );
+  FailWhen( !verifyAipsType(dum),"array type mismatch" );
   return Array<T>(itsShape,itsArrayData,SHARE);
 }
 
