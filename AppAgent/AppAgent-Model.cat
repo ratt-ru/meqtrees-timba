@@ -5007,10 +5007,6 @@
 			(object Operation "run"
 			    quid       	"3E00ACED00BB"
 			    stereotype 	"virtual"
-			    parameters 	(list Parameters
-				(object Parameter "initrec"
-				    quid       	"3E6365800136"
-				    type       	"DataRecord::Ref&"))
 			    result     	"void"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
@@ -5270,7 +5266,7 @@
 					    type       	"const DataRecord &"))
 				    result     	"bool"
 				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
+				    opExportControl 	"Protected"
 				    uid        	0)
 				(object Operation "startDomain"
 				    quid       	"3DFF2D300027"
@@ -5462,24 +5458,6 @@
 					    type       	"bool"
 					    initv      	"True"))
 				    result     	"bool"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "getInitRecord"
-				    quid       	"3E560979013D"
-				    documentation 	
-|Called after the state() changes to INIT (i.e., reinitialized via
-|external command) to get the init record delivered via that command.
-|If state is not INIT, will set the state to STOPPED, and block until 
-|a reinit or halt command is received.
-|Returns: INIT or HALTED.
-|
-				    
-				    parameters 	(list Parameters
-					(object Parameter "initrec"
-					    quid       	"3E56097901B3"
-					    type       	"DataRecord::Ref &"))
-				    result     	"int"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
 				    uid        	0)
@@ -5676,6 +5654,16 @@
 				    result     	"std::deque<DataRecord::Ref> &"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Protected"
+				    uid        	0)
+				(object Operation "start"
+				    quid       	"3E8C1A5D0385"
+				    parameters 	(list Parameters
+					(object Parameter "initrec"
+					    quid       	"3E8C1A5D03BB"
+					    type       	"DataRecord::Ref &"))
+				    result     	"int"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
 				    uid        	0))
 			    class_attributes 	(list class_attribute_list
 				(object ClassAttribute "LocalDebugContext"
@@ -5717,14 +5705,6 @@
 				    quid       	"3E5609770337"
 				    documentation 	
 |Data of most recently received command
-|
-				    
-				    type       	"DataRecord::Ref")
-				(object ClassAttribute "initrec_"
-				    quid       	"3E5609780061"
-				    documentation 	
-|When an Init command has been received, this holds the init record
-|(can be claimed by getInitRecord())
 |
 				    
 				    type       	"DataRecord::Ref")
@@ -7710,7 +7690,7 @@
 		    zoom       	75
 		    max_height 	28350
 		    max_width  	21600
-		    origin_x   	0
+		    origin_x   	2451
 		    origin_y   	0
 		    items      	(list diagram_item_list
 			(object ClassView "Class" "Logical View::AppAgents::Solvers::DummySolver" @315
@@ -7779,7 +7759,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@316
-				location   	(3032, 61)
+				location   	(3032, 60)
 				nlines     	1
 				max_width  	400
 				justify    	0
@@ -7788,7 +7768,7 @@
 			    line_color 	3342489
 			    quidu      	"3DFF2FC1009C"
 			    width      	418
-			    height     	126
+			    height     	130
 			    annotation 	8
 			    autoResize 	TRUE)
 			(object ClassView "Class" "Logical View::AppAgents::Solvers::SolverControl::BatchAgent" @317
@@ -7831,10 +7811,10 @@
 				    color      	0
 				    default_color 	TRUE)
 				icon_style 	"Icon"
-				fill_color 	13434879
+				fill_color 	16777215
 				anchor     	2
 				nlines     	12
-				max_width  	1861)
+				max_width  	1762)
 			    width      	1900
 			    height     	817
 			    annotation 	8)
@@ -7872,16 +7852,16 @@
 				    size       	10
 				    face       	"arial"
 				    bold       	FALSE
-				    italics    	FALSE
+				    italics    	TRUE
 				    underline  	FALSE
 				    strike     	FALSE
 				    color      	0
 				    default_color 	TRUE)
 				icon_style 	"Icon"
-				fill_color 	13434879
+				fill_color 	16777215
 				anchor     	2
 				nlines     	7
-				max_width  	2311)
+				max_width  	1884)
 			    width      	2134
 			    height     	591
 			    annotation 	8)
@@ -7927,7 +7907,7 @@
 				icon_style 	"Icon"
 				fill_color 	16777215
 				anchor     	2
-				nlines     	42
+				nlines     	41
 				max_width  	2929)
 			    width      	1891
 			    height     	2408
@@ -8029,7 +8009,7 @@
 			    supplier   	@316
 			    line_style 	3
 			    origin_attachment 	(3232, 412)
-			    terminal_attachment 	(3232, 175))
+			    terminal_attachment 	(3232, 177))
 			(object InheritView "" @326
 			    stereotype 	TRUE
 			    line_color 	3342489
@@ -8197,7 +8177,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@334
-				location   	(302, 75)
+				location   	(302, 77)
 				nlines     	1
 				max_width  	260
 				justify    	0
@@ -8206,7 +8186,7 @@
 			    line_color 	3342489
 			    quidu      	"3E7727920352"
 			    width      	278
-			    height     	132
+			    height     	126
 			    annotation 	8
 			    autoResize 	TRUE)
 			(object InheritView "" @335
@@ -8217,7 +8197,7 @@
 			    supplier   	@334
 			    line_style 	3
 			    origin_attachment 	(432, 441)
-			    terminal_attachment 	(432, 194))
+			    terminal_attachment 	(432, 191))
 			(object InheritView "" @336
 			    stereotype 	TRUE
 			    line_color 	3342489
@@ -8297,6 +8277,11 @@
 			    opExportControl 	"Public"
 			    uid        	0)
 			(object Operation "InputAgent"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
 			    quid       	"3E50FAB702CB"
 			    parameters 	(list Parameters
 				(object Parameter "sink"
@@ -8494,6 +8479,20 @@
 			    result     	"bool"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "DefineRefTypes"
+			    quid       	"3E9BD6400048"
+			    parameters 	(list Parameters
+				(object Parameter ""
+				    quid       	"3E9BD640006C"
+				    type       	"InputAgent"
+				    quidu      	"3DF9FECD0169")
+				(object Parameter ""
+				    quid       	"3E9BD64000B6"
+				    type       	"Ref"
+				    quidu      	"3DB9365101AF"))
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
 			    uid        	0))
 		    class_attributes 	(list class_attribute_list
 			(object ClassAttribute "suspended_"
@@ -8555,6 +8554,11 @@
 			    opExportControl 	"Public"
 			    uid        	0)
 			(object Operation "OutputAgent"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
 			    quid       	"3E50FAF103A1"
 			    parameters 	(list Parameters
 				(object Parameter "sink"
@@ -8667,7 +8671,21 @@
 			    concurrency 	"Sequential"
 			    opExportControl 	"Private"
 			    uid        	0
-			    quidu      	"3E00AA5100F9"))
+			    quidu      	"3E00AA5100F9")
+			(object Operation "DefineRefTypes"
+			    quid       	"3E9BD640010C"
+			    parameters 	(list Parameters
+				(object Parameter ""
+				    quid       	"3E9BD640012E"
+				    type       	"OutputAgent"
+				    quidu      	"3E00AA5100F9")
+				(object Parameter ""
+				    quid       	"3E9BD6400173"
+				    type       	"Ref"
+				    quidu      	"3DB9365101AF"))
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0))
 		    module     	"Component View::AppAgent"
 		    quidu      	"3DF9FDED0011"
 		    language   	"ANSI C++")
@@ -9054,23 +9072,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3DF9FECD0159"
-			    compartment 	(object Compartment
-				Parent_View 	@337
-				location   	(41, 2259)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	TRUE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	13
-				max_width  	1548)
 			    width      	1824
 			    height     	750
 			    annotation 	8
@@ -9102,23 +9103,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3E02FF13009E"
-			    compartment 	(object Compartment
-				Parent_View 	@338
-				location   	(2582, 2300)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	TRUE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	7
-				max_width  	1197)
 			    width      	1414
 			    height     	444
 			    annotation 	8
@@ -9150,23 +9134,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3E282C030062"
-			    compartment 	(object Compartment
-				Parent_View 	@339
-				location   	(2075, 1377)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	9
-				max_width  	800)
 			    width      	925
 			    height     	562
 			    annotation 	8)
@@ -9205,23 +9172,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3E00AA5100F9"
-			    compartment 	(object Compartment
-				Parent_View 	@341
-				location   	(2267, 526)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	10
-				max_width  	1878)
 			    width      	1500
 			    height     	633
 			    annotation 	8)
@@ -9252,23 +9202,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3DF9FECD0169"
-			    compartment 	(object Compartment
-				Parent_View 	@342
-				location   	(182, 522)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	18
-				max_width  	1878)
 			    width      	1703
 			    height     	992
 			    annotation 	8)
@@ -9492,7 +9425,7 @@
 				(object Parameter ""
 				    quid       	"3E40F0260339"
 				    type       	"Ref"
-				    quidu      	"3DB9343B00B9"))
+				    quidu      	"3DB9365101AF"))
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0))
@@ -9523,11 +9456,7 @@
 			    quidu      	"3E4147EF00D6"))
 		    operations 	(list Operations
 			(object Operation "AppControlAgent"
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"Inline"
-				    value      	TRUE))
+			    attributes 	(list Attribute_Set)
 			    quid       	"3E40EDC3036F"
 			    stereotype 	"explicit"
 			    parameters 	(list Parameters
@@ -9547,11 +9476,7 @@
 |{
 |}
 |
-				    ))
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"Inline"
-				    value      	TRUE))
+				    )))
 			    quid       	"3E394E4F02D2"
 			    parameters 	(list Parameters
 				(object Parameter "sink"
@@ -9566,11 +9491,7 @@
 			    opExportControl 	"Public"
 			    uid        	0)
 			(object Operation "AppControlAgent"
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"Inline"
-				    value      	TRUE))
+			    attributes 	(list Attribute_Set)
 			    quid       	"3E50FA3702B9"
 			    parameters 	(list Parameters
 				(object Parameter "sink"
@@ -9587,38 +9508,37 @@
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
-			(object Operation "init"
+			(object Operation "preinit"
 			    quid       	"3E3FF3FA00C0"
 			    documentation 	
-|Agent initialization method. Called by the application to initialize
-|or reinitialize an agent. Agent parameters are supplied via a
-|DataRecord.
+|Agent initialization method. This should be called by whoever
+|has instantiated the agent & application. The initrec will be
+|cached, and returned to the application once it calls start()
 |
 			    
 			    stereotype 	"virtual"
 			    parameters 	(list Parameters
-				(object Parameter "data"
-				    quid       	"3E3FF3FA00C1"
-				    type       	"const DataRecord &"))
+				(object Parameter "initrec"
+				    quid       	"3E8C1A5C0291"
+				    type       	"DataRecord::Ref::Xfer &"))
 			    result     	"bool"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
 			(object Operation "init"
 			    quid       	"3E40F90F02BA"
-			    stereotype 	"virtual"
+			    documentation 	
+|hide init method from applications. Must use preinit() and start()
+|instead
+|
+			    
 			    parameters 	(list Parameters
-				(object Parameter "waitstart"
-				    quid       	"3E40F93300F2"
-				    type       	"bool"
-				    initv      	"False")
 				(object Parameter "data"
 				    quid       	"3E40F965016F"
-				    type       	"const DataRecord &"
-				    initv      	"DataRecord()"))
+				    type       	"const DataRecord &"))
 			    result     	"bool"
 			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
+			    opExportControl 	"Protected"
 			    uid        	0)
 			(object Operation "close"
 			    attributes 	(list Attribute_Set)
@@ -9628,6 +9548,17 @@
 |
 			    
 			    stereotype 	"virtual"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "solicitCommand"
+			    quid       	"3E8C3DDB02CA"
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "mask"
+				    quid       	"3E8C3DDB02CB"
+				    type       	"const HIID &"))
 			    result     	"void"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
@@ -9674,6 +9605,18 @@
 				    type       	"const ObjRef::Xfer &"
 				    initv      	"ObjRef()"))
 			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "isEventBound"
+			    quid       	"3E8C209A01E7"
+			    documentation 	"Checks whether a specific event is bound to any output. I.e., if the event would be simply discarded when posted, returns False; otherwise, returns True."
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "id"
+				    quid       	"3E8C209D01B8"
+				    type       	"const HIID &"))
+			    result     	"bool"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
@@ -9813,19 +9756,17 @@
 			    opExportControl 	"Public"
 			    uid        	0)
 			(object Operation "status"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
 			    quid       	"3E5650EE0209"
 			    stereotype 	"const"
 			    result     	"const DataRecord &"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
-			(object Operation "status"
-			    quid       	"3E5650FE024A"
-			    result     	"DataRecord &"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	0
-			    quidu      	"3BB3112B0027")
 			(object Operation "isPaused"
 			    attributes 	(list Attribute_Set
 				(object Attribute
@@ -9867,7 +9808,10 @@
 			    parameters 	(list Parameters
 				(object Parameter "id"
 				    quid       	"3E3A9E5201CC"
-				    type       	"const HIID &"))
+				    type       	"const HIID &")
+				(object Parameter "data"
+				    quid       	"3E8C1A5D007B"
+				    type       	"const DataRecord::Ref::Copy &"))
 			    result     	"int"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Protected"
@@ -9894,7 +9838,54 @@
 			    result     	"string"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
-			    uid        	0))
+			    uid        	0)
+			(object Operation "start"
+			    quid       	"3E8C1A5C030E"
+			    documentation 	
+|Waits for a start event if one has been configured; sets state
+|to RUNNING and returns an init record   
+|
+			    
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "initrec"
+				    quid       	"3E8C1A5C035F"
+				    type       	"DataRecord::Ref &"))
+			    result     	"int"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "DefineRefTypes"
+			    quid       	"3E9BD63D029D"
+			    parameters 	(list Parameters
+				(object Parameter ""
+				    quid       	"3E9BD63E000F"
+				    type       	"AppControlAgent")
+				(object Parameter ""
+				    quid       	"3E9BD63E0077"
+				    type       	"Ref"
+				    quidu      	"3DB9365101AF"))
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "postState"
+			    quid       	"3E9BD63E00DD"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
+			    uid        	0)
+			(object Operation "wstatus"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3E9D78BA02FD"
+			    result     	"DataRecord &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0
+			    quidu      	"3BB3112B0027"))
 		    class_attributes 	(list class_attribute_list
 			(object ClassAttribute "state_"
 			    quid       	"3E394E1E0267"
@@ -9908,9 +9899,10 @@
 			(object ClassAttribute "auto_exit_"
 			    quid       	"3E5505A9039F"
 			    type       	"bool")
-			(object ClassAttribute "status_"
+			(object ClassAttribute "pstatus_"
 			    quid       	"3E5650D900AE"
-			    type       	"DataRecord::Ref")
+			    type       	"DataRecord *"
+			    quidu      	"3BB3112B0027")
 			(object ClassAttribute "input_flags_"
 			    quid       	"3E4CD0B00081"
 			    type       	"std::vector<int>")
@@ -9923,7 +9915,22 @@
 			    type       	"Thread::Condition")
 			(object ClassAttribute "LocalDebugContext"
 			    quid       	"3E5505A90042"
-			    exportControl 	"Public"))
+			    exportControl 	"Public")
+			(object ClassAttribute "waitstart_"
+			    quid       	"3E8C1A5B0227"
+			    type       	"bool")
+			(object ClassAttribute "rethrow_"
+			    quid       	"3E8C1A5B03D2"
+			    type       	"bool")
+			(object ClassAttribute "status_ref_"
+			    quid       	"3E8C1A5C00A2"
+			    type       	"DataRecord::Ref")
+			(object ClassAttribute "initrec_ref_"
+			    quid       	"3E8C1A5C0133"
+			    type       	"DataRecord::Ref")
+			(object ClassAttribute "initrec_used_"
+			    quid       	"3E8C1A5C01C5"
+			    type       	"bool"))
 		    module     	"Component View::AppAgent"
 		    quidu      	"3DF9FDED0011"
 		    language   	"ANSI C++")
@@ -10207,6 +10214,20 @@
 			    quid       	"3E414C0A00D4"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Private"
+			    uid        	0)
+			(object Operation "DefineRefTypes"
+			    quid       	"3E9BD63E015A"
+			    parameters 	(list Parameters
+				(object Parameter ""
+				    quid       	"3E9BD63E01B0"
+				    type       	"AppEventAgentBase"
+				    quidu      	"3E4147EF00D6")
+				(object Parameter ""
+				    quid       	"3E9BD63E0246"
+				    type       	"Ref"
+				    quidu      	"3DB9365101AF"))
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
 			    uid        	0))
 		    module     	"Component View::AppAgent"
 		    quidu      	"3DF9FDED0011"
@@ -10302,6 +10323,24 @@
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
+			(object Operation "solicitEvent"
+			    quid       	"3E8C3BDC0159"
+			    documentation 	
+|Advertises the fact that an app is interested in a specific
+|event or set of events (wildcards may be employed). Defaul version does
+|nothing. Subclasses with explicit event filtering (e.g., those using
+|publish/subscribe) will probably redefine this to something useful.
+|
+			    
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "mask"
+				    quid       	"3E8C3DBE02AF"
+				    type       	"const HIID &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
 			(object Operation "getEvent"
 			    attributes 	(list Attribute_Set)
 			    quid       	"3E394D4C02BB"
@@ -10389,6 +10428,24 @@
 				    type       	"const ObjRef::Xfer &"
 				    initv      	"ObjRef()"))
 			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "isEventBound"
+			    quid       	"3E8C1F8703DC"
+			    documentation 	
+|Checks whether a specific event is bound to any output. I.e., if the
+|event would be simply discarded when posted, returns False; otherwise,
+|returns True. Apps can check this before posting "expensive" events.
+|Default implementation always returns False.
+|
+			    
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "id"
+				    quid       	"3E8C206501EF"
+				    type       	"const HIID &"))
+			    result     	"bool"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
@@ -10572,7 +10629,7 @@
 				(object Parameter ""
 				    quid       	"3E410DB60204"
 				    type       	"Ref"
-				    quidu      	"3DB9343B00B9"))
+				    quidu      	"3DB9365101AF"))
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0))
@@ -10666,6 +10723,11 @@
 			    opExportControl 	"Public"
 			    uid        	0)
 			(object Operation "isRaised"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
 			    quid       	"3E477BBC03A2"
 			    stereotype 	"const"
 			    result     	"bool"
@@ -10688,7 +10750,8 @@
 				    quidu      	"3E43E34D0342")
 				(object Parameter ""
 				    quid       	"3E43E88B0314"
-				    type       	"Ref"))
+				    type       	"Ref"
+				    quidu      	"3DB9365101AF"))
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0))
@@ -10815,6 +10878,22 @@
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
+			(object Operation "isEventBound"
+			    quid       	"3E8C252801E8"
+			    documentation 	
+|Checks whether a specific event is bound to any output. Always returns
+|True, since all BOIO events are bound to the file.
+|
+			    
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "id"
+				    quid       	"3E8C252801F4"
+				    type       	"const HIID &"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
 			(object Operation "sdebug"
 			    attributes 	(list Attribute_Set)
 			    quid       	"3E53C5CE0339"
@@ -10919,8 +10998,8 @@
 		    zoom       	70
 		    max_height 	28350
 		    max_width  	21600
-		    origin_x   	0
-		    origin_y   	848
+		    origin_x   	465
+		    origin_y   	2313
 		    items      	(list diagram_item_list
 			(object ClassView "Class" "Logical View::DOMIN0::SingularRefTarget" @351
 			    ShowCompartmentStereotypes 	TRUE
@@ -11010,13 +11089,13 @@
 			    annotation 	8
 			    autoResize 	TRUE)
 			(object InheritTreeView "" @353
-			    location   	(480, 325)
+			    location   	(482, 397)
 			    line_color 	3342489
 			    fill_color 	13434879
 			    supplier   	@351
 			    vertices   	(list Points
-				(480, 325)
-				(480, 235)))
+				(482, 397)
+				(482, 235)))
 			(object InheritView "" @354
 			    stereotype 	TRUE
 			    line_color 	3342489
@@ -11025,7 +11104,7 @@
 			    supplier   	@351
 			    line_style 	3
 			    origin_attachment 	(853, 548)
-			    terminal_attachment 	(853, 325)
+			    terminal_attachment 	(853, 397)
 			    drawSupplier 	@353)
 			(object ClassView "Class" "Logical View::AppAgents::Base::AppEventFlag" @355
 			    ShowCompartmentStereotypes 	TRUE
@@ -11082,7 +11161,7 @@
 			    supplier   	@351
 			    line_style 	3
 			    origin_attachment 	(170, 3244)
-			    terminal_attachment 	(170, 325)
+			    terminal_attachment 	(170, 397)
 			    drawSupplier 	@353)
 			(object ClassView "Class" "Logical View::AppAgents::Base::AppEventSink" @357
 			    ShowCompartmentStereotypes 	TRUE
@@ -11101,7 +11180,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@357
-				location   	(412, 1610)
+				location   	(412, 1554)
 				fill_color 	16777215
 				nlines     	1
 				max_width  	2408
@@ -11113,7 +11192,7 @@
 			    quidu      	"3E394D4C0195"
 			    compartment 	(object Compartment
 				Parent_View 	@357
-				location   	(412, 1675)
+				location   	(412, 1619)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -11126,10 +11205,10 @@
 				icon_style 	"Icon"
 				fill_color 	16777215
 				anchor     	2
-				nlines     	21
-				max_width  	2063)
+				nlines     	23
+				max_width  	2064)
 			    width      	2426
-			    height     	1220
+			    height     	1334
 			    annotation 	8
 			    autoResize 	TRUE)
 			(object InheritView "" @358
@@ -11139,10 +11218,10 @@
 			    client     	@357
 			    supplier   	@352
 			    line_style 	3
-			    origin_attachment 	(1072, 1598)
-			    terminal_attachment 	(1072, 1180))
+			    origin_attachment 	(1059, 1541)
+			    terminal_attachment 	(1059, 1180))
 			(object AssociationViewNew "$UNNAMED$43" @359
-			    location   	(1019, 3031)
+			    location   	(1014, 3059)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -11158,7 +11237,7 @@
 			    roleview_list 	(list RoleViews
 				(object RoleView "eventFlag:AppEventFlag::Ref" @360
 				    Parent_View 	@359
-				    location   	(-325, 999)
+				    location   	(-330, 1027)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -11170,7 +11249,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @361
 					Parent_View 	@360
-					location   	(1141, 3207)
+					location   	(1136, 3211)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -11195,11 +11274,11 @@
 				    client     	@359
 				    supplier   	@355
 				    line_style 	3
-				    origin_attachment 	(1019, 3031)
-				    terminal_attachment 	(1019, 3244)
+				    origin_attachment 	(1014, 3059)
+				    terminal_attachment 	(1014, 3244)
 				    label      	(object SegLabel @362
 					Parent_View 	@360
-					location   	(991, 3200)
+					location   	(986, 3205)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -11220,7 +11299,7 @@
 					orientation 	1))
 				(object RoleView "$UNNAMED$44" @363
 				    Parent_View 	@359
-				    location   	(-325, 999)
+				    location   	(-330, 1027)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -11232,7 +11311,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @364
 					Parent_View 	@363
-					location   	(1091, 2856)
+					location   	(1086, 2908)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -11258,11 +11337,11 @@
 				    client     	@359
 				    supplier   	@357
 				    line_style 	3
-				    origin_attachment 	(1019, 3031)
-				    terminal_attachment 	(1019, 2818)
+				    origin_attachment 	(1014, 3059)
+				    terminal_attachment 	(1014, 2875)
 				    label      	(object SegLabel @365
 					Parent_View 	@363
-					location   	(966, 2852)
+					location   	(961, 2906)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -11286,7 +11365,7 @@
 			    IncludeAttribute 	TRUE
 			    IncludeOperation 	TRUE
 			    ShowOperationSignature 	TRUE
-			    location   	(3104, 592)
+			    location   	(3104, 608)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -11298,7 +11377,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@366
-				location   	(1965, 21)
+				location   	(1965, 10)
 				fill_color 	13434879
 				nlines     	1
 				max_width  	2278
@@ -11310,7 +11389,7 @@
 			    quidu      	"3E4147EF00D6"
 			    compartment 	(object Compartment
 				Parent_View 	@366
-				location   	(1965, 86)
+				location   	(1965, 75)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -11323,10 +11402,10 @@
 				icon_style 	"Icon"
 				fill_color 	16777215
 				anchor     	2
-				nlines     	20
-				max_width  	1951)
+				nlines     	21
+				max_width  	1953)
 			    width      	2296
-			    height     	1166
+			    height     	1220
 			    annotation 	8
 			    autoResize 	TRUE)
 			(object InheritView "" @367
@@ -11339,7 +11418,7 @@
 			    origin_attachment 	(1956, 861)
 			    terminal_attachment 	(1677, 861))
 			(object AssociationViewNew "$UNNAMED$2" @368
-			    location   	(2192, 1386)
+			    location   	(2189, 1379)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -11355,7 +11434,7 @@
 			    roleview_list 	(list RoleViews
 				(object RoleView "sink_:AppEventSink::Ref" @369
 				    Parent_View 	@368
-				    location   	(-912, 794)
+				    location   	(-915, 787)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -11367,7 +11446,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @370
 					Parent_View 	@369
-					location   	(2090, 1549)
+					location   	(2087, 1505)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -11392,11 +11471,11 @@
 				    client     	@368
 				    supplier   	@357
 				    line_style 	3
-				    origin_attachment 	(2192, 1386)
-				    terminal_attachment 	(2192, 1598)
+				    origin_attachment 	(2189, 1379)
+				    terminal_attachment 	(2189, 1541)
 				    label      	(object SegLabel @371
 					Parent_View 	@369
-					location   	(2226, 1558)
+					location   	(2223, 1510)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -11417,21 +11496,21 @@
 					orientation 	0))
 				(object RoleView "$UNNAMED$3" @372
 				    Parent_View 	@368
-				    location   	(-912, 794)
+				    location   	(-915, 787)
 				    stereotype 	TRUE
 				    line_color 	3342489
 				    quidu      	"3E424AAC018F"
 				    client     	@368
 				    supplier   	@366
 				    line_style 	3
-				    origin_attachment 	(2192, 1386)
-				    terminal_attachment 	(2192, 1175))))
+				    origin_attachment 	(2189, 1379)
+				    terminal_attachment 	(2189, 1218))))
 			(object ClassView "Class" "Logical View::AppAgents::Base::AppControlAgent" @373
 			    ShowCompartmentStereotypes 	TRUE
 			    IncludeAttribute 	TRUE
 			    IncludeOperation 	TRUE
 			    ShowOperationSignature 	TRUE
-			    location   	(4576, 2480)
+			    location   	(4576, 2608)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -11443,7 +11522,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@373
-				location   	(3437, 1477)
+				location   	(3437, 1333)
 				fill_color 	13434879
 				nlines     	1
 				max_width  	2278
@@ -11455,7 +11534,7 @@
 			    quidu      	"3DFF2FC1009C"
 			    compartment 	(object Compartment
 				Parent_View 	@373
-				location   	(3437, 1542)
+				location   	(3437, 1398)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -11468,10 +11547,10 @@
 				icon_style 	"Icon"
 				fill_color 	16777215
 				anchor     	2
-				nlines     	36
-				max_width  	1951)
+				nlines     	46
+				max_width  	1943)
 			    width      	2296
-			    height     	2030
+			    height     	2576
 			    annotation 	8
 			    autoResize 	TRUE)
 			(object InheritView "" @374
@@ -11481,10 +11560,10 @@
 			    client     	@373
 			    supplier   	@366
 			    line_style 	3
-			    origin_attachment 	(3800, 1465)
-			    terminal_attachment 	(3800, 1175))
+			    origin_attachment 	(3839, 1320)
+			    terminal_attachment 	(3839, 1218))
 			(object AssociationViewNew "$UNNAMED$45" @375
-			    location   	(4797, 866)
+			    location   	(4773, 878)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -11500,7 +11579,7 @@
 			    roleview_list 	(list RoleViews
 				(object RoleView "inputs:std::vector<AppEventAgentBase::Ref>" @376
 				    Parent_View 	@375
-				    location   	(381, -1198)
+				    location   	(357, -1186)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -11512,7 +11591,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @377
 					Parent_View 	@376
-					location   	(4375, 842)
+					location   	(4369, 854)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -11537,11 +11616,11 @@
 				    client     	@375
 				    supplier   	@366
 				    line_style 	3
-				    origin_attachment 	(4797, 866)
-				    terminal_attachment 	(4252, 866)
+				    origin_attachment 	(4773, 878)
+				    terminal_attachment 	(4252, 878)
 				    label      	(object SegLabel @378
 					Parent_View 	@376
-					location   	(4370, 899)
+					location   	(4365, 911)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -11562,19 +11641,19 @@
 					orientation 	0))
 				(object RoleView "$UNNAMED$46" @379
 				    Parent_View 	@375
-				    location   	(381, -1198)
+				    location   	(357, -1186)
 				    stereotype 	TRUE
 				    line_color 	3342489
 				    quidu      	"3E4CCF420189"
 				    client     	@375
 				    supplier   	@373
 				    vertices   	(list Points
-					(4797, 866)
-					(4857, 866)
-					(4857, 1465))
+					(4773, 878)
+					(4852, 878)
+					(4852, 1320))
 				    line_style 	3
-				    origin_attachment 	(4797, 866)
-				    terminal_attachment 	(4857, 1465))))
+				    origin_attachment 	(4773, 878)
+				    terminal_attachment 	(4852, 1320))))
 			(object ClassView "Class" "Logical View::AppAgents::Base::BOIOSink" @380
 			    ShowCompartmentStereotypes 	TRUE
 			    IncludeAttribute 	TRUE
@@ -11617,7 +11696,7 @@
 				icon_style 	"Icon"
 				fill_color 	16777215
 				anchor     	2
-				nlines     	12
+				nlines     	13
 				max_width  	1940)
 			    width      	1242
 			    height     	786
@@ -11629,15 +11708,15 @@
 			    client     	@380
 			    supplier   	@357
 			    line_style 	3
-			    origin_attachment 	(2403, 3303)
-			    terminal_attachment 	(2403, 2818))
+			    origin_attachment 	(2390, 3303)
+			    terminal_attachment 	(2390, 2875))
 			(object ClassView "Class" "Logical View::DOMIN0::BOIO" @382
 			    ShowCompartmentStereotypes 	TRUE
 			    SuppressAttribute 	TRUE
 			    SuppressOperation 	TRUE
 			    IncludeAttribute 	TRUE
 			    IncludeOperation 	TRUE
-			    location   	(2112, 4304)
+			    location   	(2096, 4416)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -11649,7 +11728,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@382
-				location   	(1968, 4252)
+				location   	(1952, 4364)
 				nlines     	1
 				max_width  	288
 				justify    	0
@@ -11662,14 +11741,14 @@
 			    annotation 	8
 			    autoResize 	TRUE)
 			(object AssociationViewNew "$UNNAMED$47" @383
-			    location   	(2109, 4164)
+			    location   	(2096, 4220)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E54BD23023E"
 			    roleview_list 	(list RoleViews
 				(object RoleView "$UNNAMED$48" @384
 				    Parent_View 	@383
-				    location   	(-35, -140)
+				    location   	(-48, -84)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -11681,7 +11760,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @385
 					Parent_View 	@384
-					location   	(2068, 4104)
+					location   	(2055, 4115)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -11707,11 +11786,11 @@
 				    client     	@383
 				    supplier   	@380
 				    line_style 	3
-				    origin_attachment 	(2109, 4164)
-				    terminal_attachment 	(2109, 4089))
+				    origin_attachment 	(2096, 4220)
+				    terminal_attachment 	(2096, 4089))
 				(object RoleView "boio" @386
 				    Parent_View 	@383
-				    location   	(-35, -140)
+				    location   	(-48, -84)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -11723,7 +11802,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @387
 					Parent_View 	@386
-					location   	(2034, 4223)
+					location   	(2021, 4321)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -11748,8 +11827,8 @@
 				    client     	@383
 				    supplier   	@382
 				    line_style 	3
-				    origin_attachment 	(2109, 4164)
-				    terminal_attachment 	(2109, 4240))))))))
+				    origin_attachment 	(2096, 4220)
+				    terminal_attachment 	(2096, 4352))))))))
 	(object Class_Category "MSVisAgent"
 	    attributes 	(list Attribute_Set
 		(object Attribute
@@ -12637,6 +12716,23 @@
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
+			(object Operation "solicitEvent"
+			    quid       	"3E8C47930062"
+			    documentation 	
+|Advertises the fact that an app is interested in a specific
+|event or set of events (wildcards may be employed). This corresponds
+|to subscribing to events in the OctoAgent implementation.
+|
+			    
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "mask"
+				    quid       	"3E8C47930063"
+				    type       	"const HIID &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
 			(object Operation "getEvent"
 			    attributes 	(list Attribute_Set)
 			    quid       	"3E096F2103B3"
@@ -12690,6 +12786,22 @@
 				    type       	"const ObjRef::Xfer &"
 				    initv      	"ObjRef()"))
 			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "isEventBound"
+			    quid       	"3E8C47930088"
+			    documentation 	
+|Checks whether a specific event is bound to any output. I.e., checks
+|for subscribers to the event.
+|
+			    
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "id"
+				    quid       	"3E8C47930089"
+				    type       	"const HIID &"))
+			    result     	"bool"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
@@ -12806,7 +12918,8 @@
 				    quidu      	"3DF9FECD014B")
 				(object Parameter ""
 				    quid       	"3E428EA6015B"
-				    type       	"Ref"))
+				    type       	"Ref"
+				    quidu      	"3DB9365101AF"))
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0))
@@ -12819,14 +12932,14 @@
 |
 			    
 			    type       	"bool")
-			(object ClassAttribute "unmapped_prefix"
+			(object ClassAttribute "default_receive_prefix"
 			    quid       	"3E0A367402F0"
 			    type       	"HIID"
 			    quidu      	"3BE96FE601C5")
-			(object ClassAttribute "unmapped_scope"
+			(object ClassAttribute "default_receive_scope"
 			    quid       	"3E0A3A980187"
 			    type       	"int")
-			(object ClassAttribute "unmapped_priority"
+			(object ClassAttribute "default_post_priority"
 			    quid       	"3E0A4C7A0008"
 			    type       	"int")
 			(object ClassAttribute "my_multiplex_id"
@@ -12839,7 +12952,10 @@
 			    static     	TRUE)
 			(object ClassAttribute "LocalDebugContext"
 			    quid       	"3E42934901EB"
-			    exportControl 	"Public"))
+			    exportControl 	"Public")
+			(object ClassAttribute "default_post_scope"
+			    quid       	"3E9BD63F035D"
+			    type       	"int"))
 		    module     	"Component View::AppAgent"
 		    quidu      	"3DF9FDED0011"
 		    language   	"ANSI C++"
@@ -13036,7 +13152,7 @@
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
-			(object Operation "receive"
+			(object Operation "notify"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"cg"
@@ -13044,12 +13160,7 @@
 				    value      	"Virtual function"))
 			    quid       	"3E47C84502CD"
 			    stereotype 	"virtual"
-			    parameters 	(list Parameters
-				(object Parameter "mref"
-				    quid       	"3E47C84502CE"
-				    type       	"MessageRef &"
-				    quidu      	"3C7B722600DE"))
-			    result     	"int"
+			    result     	"void"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Protected"
 			    uid        	0)
@@ -13199,6 +13310,20 @@
 			    quid       	"3E428FC40127"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Private"
+			    uid        	0)
+			(object Operation "DefineRefTypes"
+			    quid       	"3E9BD63F0297"
+			    parameters 	(list Parameters
+				(object Parameter ""
+				    quid       	"3E9BD63F02AA"
+				    type       	"EventMultiplexer"
+				    quidu      	"3E26BABA0069")
+				(object Parameter ""
+				    quid       	"3E9BD63F02D1"
+				    type       	"Ref"
+				    quidu      	"3DB9365101AF"))
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
 			    uid        	0))
 		    class_attributes 	(list class_attribute_list
 			(object ClassAttribute "assigned_sink"
@@ -13298,7 +13423,23 @@
 			(object Role "$UNNAMED$61"
 			    quid       	"3E47C785026B"
 			    supplier   	"Logical View::AppAgents::OctoAgent::EventMultiplexer"
-			    quidu      	"3E26BABA0069"))))
+			    quidu      	"3E26BABA0069")))
+		(object Association "$UNNAMED$62"
+		    quid       	"3E9BD63F032F"
+		    roles      	(list role_list
+			(object Role "default_post_prefix"
+			    quid       	"3E9BD63F0330"
+			    label      	"default_post_prefix"
+			    supplier   	"Logical View::DOMIN0::HIID"
+			    quidu      	"3BE96FE601C5"
+			    Containment 	"By Value"
+			    exportControl 	"Private"
+			    is_navigable 	TRUE)
+			(object Role "$UNNAMED$63"
+			    quid       	"3E9BD63F0332"
+			    supplier   	"Logical View::AppAgents::OctoAgent::EventSink"
+			    quidu      	"3DF9FECD014B"
+			    is_aggregate 	TRUE))))
 	    logical_presentations 	(list unit_reference_list
 		(object ClassDiagram "Main"
 		    quid       	"3E09184E0241"
@@ -13307,7 +13448,7 @@
 		    max_height 	28350
 		    max_width  	21600
 		    origin_x   	0
-		    origin_y   	1795
+		    origin_y   	1402
 		    items      	(list diagram_item_list
 			(object ClassView "Class" "Logical View::OCTOPUSSY::Octoproxy::Identity" @398
 			    ShowCompartmentStereotypes 	TRUE
@@ -13335,22 +13476,6 @@
 			    icon_style 	"Icon"
 			    line_color 	3342489
 			    quidu      	"3E08EBFD03B8"
-			    compartment 	(object Compartment
-				Parent_View 	@398
-				location   	(3176, 214)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				anchor     	2
-				nlines     	9
-				max_width  	1139)
 			    width      	1346
 			    height     	622
 			    annotation 	8
@@ -13609,7 +13734,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@408
-				location   	(203, 2204)
+				location   	(203, 2148)
 				fill_color 	13434879
 				nlines     	1
 				max_width  	2410
@@ -13619,36 +13744,19 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3DF9FECD014B"
-			    compartment 	(object Compartment
-				Parent_View 	@408
-				location   	(203, 2269)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	31
-				max_width  	2064)
 			    width      	2428
-			    height     	1760
+			    height     	1874
 			    annotation 	8
 			    autoResize 	TRUE)
 			(object AssociationViewNew "$UNNAMED$56" @409
-			    location   	(3181, 2571)
+			    location   	(3183, 2567)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E42937F03D6"
 			    roleview_list 	(list RoleViews
 				(object RoleView "$UNNAMED$57" @410
 				    Parent_View 	@409
-				    location   	(-467, -37)
+				    location   	(-465, -41)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -13660,7 +13768,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @411
 					Parent_View 	@410
-					location   	(2735, 2530)
+					location   	(2734, 2526)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -13686,11 +13794,11 @@
 				    client     	@409
 				    supplier   	@408
 				    line_style 	3
-				    origin_attachment 	(3181, 2571)
-				    terminal_attachment 	(2622, 2571))
+				    origin_attachment 	(3183, 2567)
+				    terminal_attachment 	(2622, 2567))
 				(object RoleView "receive_map" @412
 				    Parent_View 	@409
-				    location   	(-467, -37)
+				    location   	(-465, -41)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -13702,7 +13810,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @413
 					Parent_View 	@412
-					location   	(3409, 2530)
+					location   	(3411, 2526)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -13727,21 +13835,21 @@
 				    client     	@409
 				    supplier   	@407
 				    vertices   	(list Points
-					(3181, 2571)
-					(3559, 2571)
+					(3183, 2567)
+					(3559, 2567)
 					(3559, 2751))
 				    line_style 	3
-				    origin_attachment 	(3181, 2571)
+				    origin_attachment 	(3183, 2567)
 				    terminal_attachment 	(3559, 2751))))
 			(object AssociationViewNew "$UNNAMED$58" @414
-			    location   	(3174, 3111)
+			    location   	(3172, 3107)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E429380001B"
 			    roleview_list 	(list RoleViews
 				(object RoleView "$UNNAMED$59" @415
 				    Parent_View 	@414
-				    location   	(-474, 503)
+				    location   	(-476, 499)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -13753,7 +13861,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @416
 					Parent_View 	@415
-					location   	(2733, 3070)
+					location   	(2732, 3066)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -13779,11 +13887,11 @@
 				    client     	@414
 				    supplier   	@408
 				    line_style 	3
-				    origin_attachment 	(3174, 3111)
-				    terminal_attachment 	(2622, 3111))
+				    origin_attachment 	(3172, 3107)
+				    terminal_attachment 	(2622, 3107))
 				(object RoleView "post_map" @417
 				    Parent_View 	@414
-				    location   	(-474, 503)
+				    location   	(-476, 499)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -13795,7 +13903,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @418
 					Parent_View 	@417
-					location   	(3380, 3149)
+					location   	(3377, 3145)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -13820,11 +13928,11 @@
 				    client     	@414
 				    supplier   	@407
 				    vertices   	(list Points
-					(3174, 3111)
-					(3559, 3111)
+					(3172, 3107)
+					(3559, 3107)
 					(3559, 2945))
 				    line_style 	3
-				    origin_attachment 	(3174, 3111)
+				    origin_attachment 	(3172, 3107)
 				    terminal_attachment 	(3559, 2945))))
 			(object ClassView "Class" "Logical View::AppAgents::Base::AppEventFlag" @419
 			    ShowCompartmentStereotypes 	TRUE
@@ -13844,7 +13952,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@419
-				location   	(1732, 76)
+				location   	(1732, 66)
 				nlines     	1
 				max_width  	344
 				justify    	0
@@ -13853,7 +13961,7 @@
 			    line_color 	3342489
 			    quidu      	"3E43E34D0342"
 			    width      	362
-			    height     	128
+			    height     	158
 			    annotation 	8
 			    autoResize 	TRUE)
 			(object ClassView "Class" "Logical View::AppAgents::OctoAgent::EventMultiplexer" @420
@@ -13883,35 +13991,18 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3E26BABA0069"
-			    compartment 	(object Compartment
-				Parent_View 	@420
-				location   	(124, 427)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	28
-				max_width  	1859)
 			    width      	2554
 			    height     	1607
 			    annotation 	8)
 			(object AssociationViewNew "$UNNAMED$55" @421
-			    location   	(1362, 2073)
+			    location   	(1362, 2045)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E428C4D0236"
 			    roleview_list 	(list RoleViews
 				(object RoleView "sinks:std::vector<EventSink::Ref>" @422
 				    Parent_View 	@421
-				    location   	(274, 1545)
+				    location   	(274, 1517)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -13923,7 +14014,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @423
 					Parent_View 	@422
-					location   	(1284, 2165)
+					location   	(1284, 2115)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -13948,11 +14039,11 @@
 				    client     	@421
 				    supplier   	@408
 				    line_style 	3
-				    origin_attachment 	(1362, 2073)
-				    terminal_attachment 	(1362, 2192)
+				    origin_attachment 	(1362, 2045)
+				    terminal_attachment 	(1362, 2135)
 				    label      	(object SegLabel @424
 					Parent_View 	@422
-					location   	(1427, 2165)
+					location   	(1427, 2115)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -13973,7 +14064,7 @@
 					orientation 	0))
 				(object RoleView "multiplexer" @425
 				    Parent_View 	@421
-				    location   	(274, 1545)
+				    location   	(274, 1517)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -13985,7 +14076,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @426
 					Parent_View 	@425
-					location   	(1231, 1987)
+					location   	(1231, 1979)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -14010,11 +14101,11 @@
 				    client     	@421
 				    supplier   	@420
 				    line_style 	3
-				    origin_attachment 	(1362, 2073)
+				    origin_attachment 	(1362, 2045)
 				    terminal_attachment 	(1362, 1955)
 				    label      	(object SegLabel @427
 					Parent_View 	@425
-					location   	(1411, 1987)
+					location   	(1411, 1979)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -14034,7 +14125,7 @@
 					height     	49
 					orientation 	1))))
 			(object AssociationViewNew "$UNNAMED$60" @428
-			    location   	(1898, 270)
+			    location   	(1898, 278)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -14050,7 +14141,7 @@
 			    roleview_list 	(list RoleViews
 				(object RoleView "eventFlag_:AppEventFlag::Ref" @429
 				    Parent_View 	@428
-				    location   	(506, -722)
+				    location   	(506, -714)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -14062,7 +14153,7 @@
 					default_color 	TRUE)
 				    label      	(object SegLabel @430
 					Parent_View 	@429
-					location   	(2025, 218)
+					location   	(2025, 231)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -14087,11 +14178,11 @@
 				    client     	@428
 				    supplier   	@419
 				    line_style 	3
-				    origin_attachment 	(1898, 270)
-				    terminal_attachment 	(1898, 192)
+				    origin_attachment 	(1898, 278)
+				    terminal_attachment 	(1898, 207)
 				    label      	(object SegLabel @431
 					Parent_View 	@429
-					location   	(1852, 230)
+					location   	(1852, 241)
 					font       	(object Font
 					    size       	10
 					    face       	"arial"
@@ -14112,14 +14203,14 @@
 					orientation 	0))
 				(object RoleView "$UNNAMED$61" @432
 				    Parent_View 	@428
-				    location   	(506, -722)
+				    location   	(506, -714)
 				    stereotype 	TRUE
 				    line_color 	3342489
 				    quidu      	"3E47C785026B"
 				    client     	@428
 				    supplier   	@420
 				    line_style 	3
-				    origin_attachment 	(1898, 270)
+				    origin_attachment 	(1898, 278)
 				    terminal_attachment 	(1898, 349))))
 			(object InheritView "" @433
 			    stereotype 	TRUE
@@ -14137,11 +14228,11 @@
 			    client     	@408
 			    supplier   	@405
 			    vertices   	(list Points
-				(2622, 2318)
-				(3077, 2318)
+				(2622, 2317)
+				(3077, 2317)
 				(3077, 1920))
 			    line_style 	3
-			    origin_attachment 	(2622, 2318)
+			    origin_attachment 	(2622, 2317)
 			    terminal_attachment 	(3077, 1920))))))
 	(object Class_Category "AppUtils"
 	    quid       	"3E4392AD0305"
@@ -14347,10 +14438,6 @@
 			(object Operation "run"
 			    quid       	"3E3FE1B8005F"
 			    stereotype 	"abstract"
-			    parameters 	(list Parameters
-				(object Parameter "initrec"
-				    quid       	"3E3FE1B80060"
-				    type       	"DataRecord::Ref &"))
 			    result     	"void"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
@@ -14432,9 +14519,6 @@
 			(object Operation "runThread"
 			    quid       	"3E3FE1BB0220"
 			    parameters 	(list Parameters
-				(object Parameter "initrec"
-				    quid       	"3E3FE1BB0221"
-				    type       	"DataRecord::Ref &")
 				(object Parameter "del_on_exit"
 				    quid       	"3E43BBE3012C"
 				    type       	"bool"
@@ -14544,14 +14628,66 @@
 				    quidu      	"3E3FE1770336")
 				(object Parameter ""
 				    quid       	"3E7893B103D3"
-				    type       	"Ref"))
+				    type       	"Ref"
+				    quidu      	"3DB9365101AF"))
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
-			    uid        	0))
+			    uid        	0)
+			(object Operation "do_run"
+			    quid       	"3E8C1A5D01E9"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Private"
+			    uid        	0)
+			(object Operation "operator <<"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3E9BD63E0356"
+			    parameters 	(list Parameters
+				(object Parameter "ctrl"
+				    quid       	"3E9BD63E03AD"
+				    type       	"const AppControlAgent::Ref::Copy &"))
+			    result     	"ApplicationBase &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0
+			    quidu      	"3E3FE1770336")
+			(object Operation "operator <<"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3E9BD63F005C"
+			    parameters 	(list Parameters
+				(object Parameter "inp"
+				    quid       	"3E9BD63F009D"
+				    type       	"const VisAgent::InputAgent::Ref::Copy &"))
+			    result     	"ApplicationBase &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0
+			    quidu      	"3E3FE1770336")
+			(object Operation "operator <<"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3E9BD63F0135"
+			    parameters 	(list Parameters
+				(object Parameter "outp"
+				    quid       	"3E9BD63F0181"
+				    type       	"const VisAgent::OutputAgent::Ref::Copy &"))
+			    result     	"ApplicationBase &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0
+			    quidu      	"3E3FE1770336"))
 		    class_attributes 	(list class_attribute_list
-			(object ClassAttribute "initrec_cache"
-			    quid       	"3E3FE1F40325"
-			    type       	"DataRecord::Ref")
 			(object ClassAttribute "thread_"
 			    quid       	"3E3FE29D0372"
 			    type       	"Thread::ThrID")
@@ -14602,10 +14738,6 @@
 			(object Operation "run"
 			    quid       	"3E392C570286"
 			    stereotype 	"virtual"
-			    parameters 	(list Parameters
-				(object Parameter "initrec"
-				    quid       	"3E392CA00371"
-				    type       	"DataRecord::Ref &"))
 			    result     	"void"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
@@ -14826,7 +14958,7 @@
 		    module     	"Component View::AppAgent"
 		    quidu      	"3DF9FDED0011"
 		    language   	"ANSI C++")
-		(object Association "$UNNAMED$62"
+		(object Association "$UNNAMED$64"
 		    quid       	"3E43B898022D"
 		    roles      	(list role_list
 			(object Role "control_: AppControlAgent *"
@@ -14838,12 +14970,12 @@
 			    Containment 	"By Value"
 			    exportControl 	"Private"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$63"
+			(object Role "$UNNAMED$65"
 			    quid       	"3E43B89C015A"
 			    supplier   	"Logical View::AppAgents::AppUtils::ApplicationBase"
 			    quidu      	"3E3FE1770336"
 			    is_aggregate 	TRUE)))
-		(object Association "$UNNAMED$64"
+		(object Association "$UNNAMED$66"
 		    quid       	"3E772850032C"
 		    roles      	(list role_list
 			(object Role "input_:VisAgent::InputAgent *"
@@ -14853,12 +14985,12 @@
 			    quidu      	"3DF9FECD0169"
 			    exportControl 	"Private"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$65"
+			(object Role "$UNNAMED$67"
 			    quid       	"3E7728510193"
 			    supplier   	"Logical View::AppAgents::AppUtils::VisPipe"
 			    quidu      	"3E7727920352"
 			    is_aggregate 	TRUE)))
-		(object Association "$UNNAMED$66"
+		(object Association "$UNNAMED$68"
 		    quid       	"3E772863020D"
 		    roles      	(list role_list
 			(object Role "output_:VisAgent::OutputAgent *"
@@ -14868,7 +15000,7 @@
 			    quidu      	"3E00AA5100F9"
 			    exportControl 	"Private"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$67"
+			(object Role "$UNNAMED$69"
 			    quid       	"3E7728640056"
 			    supplier   	"Logical View::AppAgents::AppUtils::VisPipe"
 			    quidu      	"3E7727920352"
@@ -14942,27 +15074,10 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3E3FE1770336"
-			    compartment 	(object Compartment
-				Parent_View 	@436
-				location   	(65, 524)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	TRUE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	35
-				max_width  	1897)
 			    width      	1584
 			    height     	2112
 			    annotation 	8)
-			(object AssociationViewNew "$UNNAMED$62" @437
+			(object AssociationViewNew "$UNNAMED$64" @437
 			    location   	(330, 303)
 			    font       	(object Font
 				size       	10
@@ -15004,7 +15119,7 @@
 					anchor     	1
 					anchor_loc 	1
 					nlines     	1
-					max_width  	542
+					max_width  	560
 					justify    	0
 					label      	"-control_"
 					pctDist    	0.651316
@@ -15039,7 +15154,7 @@
 					pctDist    	0.687500
 					height     	56
 					orientation 	1))
-				(object RoleView "$UNNAMED$63" @441
+				(object RoleView "$UNNAMED$65" @441
 				    Parent_View 	@437
 				    location   	(-566, -193)
 				    stereotype 	TRUE
@@ -15077,23 +15192,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3E39285A0273"
-			    compartment 	(object Compartment
-				Parent_View 	@442
-				location   	(1789, 2061)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	8
-				max_width  	1907)
 			    width      	1432
 			    height     	543
 			    annotation 	8)
@@ -15129,121 +15227,7 @@
 			    height     	124
 			    annotation 	8
 			    autoResize 	TRUE)
-			(object ClassView "Class" "Logical View::AppAgents::AppUtils::VisPipe" @444
-			    ShowCompartmentStereotypes 	TRUE
-			    IncludeAttribute 	TRUE
-			    IncludeOperation 	TRUE
-			    ShowOperationSignature 	TRUE
-			    location   	(2512, 992)
-			    font       	(object Font
-				size       	10
-				face       	"arial"
-				bold       	FALSE
-				italics    	FALSE
-				underline  	FALSE
-				strike     	FALSE
-				color      	0
-				default_color 	TRUE)
-			    label      	(object ItemLabel
-				Parent_View 	@444
-				location   	(1795, 460)
-				fill_color 	13434879
-				nlines     	1
-				max_width  	1434
-				justify    	0
-				label      	"VisPipe")
-			    icon_style 	"Icon"
-			    line_color 	3342489
-			    fill_color 	13434879
-			    quidu      	"3E7727920352"
-			    compartment 	(object Compartment
-				Parent_View 	@444
-				location   	(1795, 523)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	13434879
-				anchor     	2
-				nlines     	13
-				max_width  	1289)
-			    width      	1452
-			    height     	1091
-			    annotation 	8)
-			(object AssociationViewNew "$UNNAMED$64" @445
-			    location   	(2080, 302)
-			    font       	(object Font
-				size       	10
-				face       	"arial"
-				bold       	FALSE
-				italics    	FALSE
-				underline  	FALSE
-				strike     	FALSE
-				color      	0
-				default_color 	TRUE)
-			    stereotype 	TRUE
-			    line_color 	3342489
-			    quidu      	"3E772850032C"
-			    roleview_list 	(list RoleViews
-				(object RoleView "input_:VisAgent::InputAgent *" @446
-				    Parent_View 	@445
-				    location   	(1280, -1970)
-				    font       	(object Font
-					size       	10
-					face       	"arial"
-					bold       	FALSE
-					italics    	FALSE
-					underline  	FALSE
-					strike     	FALSE
-					color      	0
-					default_color 	TRUE)
-				    label      	(object SegLabel @447
-					Parent_View 	@446
-					location   	(2038, 199)
-					font       	(object Font
-					    size       	10
-					    face       	"arial"
-					    bold       	FALSE
-					    italics    	FALSE
-					    underline  	FALSE
-					    strike     	FALSE
-					    color      	0
-					    default_color 	TRUE)
-					anchor     	1
-					anchor_loc 	1
-					nlines     	1
-					max_width  	548
-					justify    	0
-					label      	"-input_"
-					pctDist    	0.712329
-					height     	43
-					orientation 	0)
-				    stereotype 	TRUE
-				    line_color 	3342489
-				    quidu      	"3E7728510172"
-				    client     	@445
-				    supplier   	@443
-				    line_style 	3
-				    origin_attachment 	(2080, 302)
-				    terminal_attachment 	(2080, 158))
-				(object RoleView "$UNNAMED$65" @448
-				    Parent_View 	@445
-				    location   	(1280, -1970)
-				    stereotype 	TRUE
-				    line_color 	3342489
-				    quidu      	"3E7728510193"
-				    client     	@445
-				    supplier   	@444
-				    line_style 	3
-				    origin_attachment 	(2080, 302)
-				    terminal_attachment 	(2080, 447))))
-			(object ClassView "Class" "Logical View::AppAgents::VisAgent::OutputAgent" @449
+			(object ClassView "Class" "Logical View::AppAgents::VisAgent::OutputAgent" @444
 			    ShowCompartmentStereotypes 	TRUE
 			    SuppressAttribute 	TRUE
 			    SuppressOperation 	TRUE
@@ -15260,7 +15244,7 @@
 				color      	0
 				default_color 	TRUE)
 			    label      	(object ItemLabel
-				Parent_View 	@449
+				Parent_View 	@444
 				location   	(2422, 47)
 				fill_color 	13434879
 				nlines     	1
@@ -15275,7 +15259,104 @@
 			    height     	124
 			    annotation 	8
 			    autoResize 	TRUE)
-			(object AssociationViewNew "$UNNAMED$66" @450
+			(object ClassView "Class" "Logical View::AppAgents::AppUtils::VisPipe" @445
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    ShowOperationSignature 	TRUE
+			    location   	(2512, 992)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@445
+				location   	(1795, 460)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	1434
+				justify    	0
+				label      	"VisPipe")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3E7727920352"
+			    width      	1452
+			    height     	1091
+			    annotation 	8)
+			(object AssociationViewNew "$UNNAMED$66" @446
+			    location   	(2080, 302)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E772850032C"
+			    roleview_list 	(list RoleViews
+				(object RoleView "input_:VisAgent::InputAgent *" @447
+				    Parent_View 	@446
+				    location   	(1280, -1970)
+				    font       	(object Font
+					size       	10
+					face       	"arial"
+					bold       	FALSE
+					italics    	FALSE
+					underline  	FALSE
+					strike     	FALSE
+					color      	0
+					default_color 	TRUE)
+				    label      	(object SegLabel @448
+					Parent_View 	@447
+					location   	(2038, 199)
+					font       	(object Font
+					    size       	10
+					    face       	"arial"
+					    bold       	FALSE
+					    italics    	FALSE
+					    underline  	FALSE
+					    strike     	FALSE
+					    color      	0
+					    default_color 	TRUE)
+					anchor     	1
+					anchor_loc 	1
+					nlines     	1
+					max_width  	594
+					justify    	0
+					label      	"-input_"
+					pctDist    	0.712329
+					height     	43
+					orientation 	0)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3E7728510172"
+				    client     	@446
+				    supplier   	@443
+				    line_style 	3
+				    origin_attachment 	(2080, 302)
+				    terminal_attachment 	(2080, 158))
+				(object RoleView "$UNNAMED$67" @449
+				    Parent_View 	@446
+				    location   	(1280, -1970)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3E7728510193"
+				    client     	@446
+				    supplier   	@445
+				    line_style 	3
+				    origin_attachment 	(2080, 302)
+				    terminal_attachment 	(2080, 447))))
+			(object AssociationViewNew "$UNNAMED$68" @450
 			    location   	(2576, 302)
 			    font       	(object Font
 				size       	10
@@ -15317,7 +15398,7 @@
 					anchor     	1
 					anchor_loc 	1
 					nlines     	1
-					max_width  	615
+					max_width  	651
 					justify    	0
 					label      	"-output_"
 					pctDist    	0.583691
@@ -15327,18 +15408,18 @@
 				    line_color 	3342489
 				    quidu      	"3E7728640039"
 				    client     	@450
-				    supplier   	@449
+				    supplier   	@444
 				    line_style 	3
 				    origin_attachment 	(2576, 302)
 				    terminal_attachment 	(2576, 158))
-				(object RoleView "$UNNAMED$67" @453
+				(object RoleView "$UNNAMED$69" @453
 				    Parent_View 	@450
 				    location   	(1776, -1970)
 				    stereotype 	TRUE
 				    line_color 	3342489
 				    quidu      	"3E7728640056"
 				    client     	@450
-				    supplier   	@444
+				    supplier   	@445
 				    line_style 	3
 				    origin_attachment 	(2576, 302)
 				    terminal_attachment 	(2576, 447))))
@@ -15347,7 +15428,7 @@
 			    line_color 	3342489
 			    quidu      	"3E77279F0322"
 			    client     	@442
-			    supplier   	@444
+			    supplier   	@445
 			    line_style 	3
 			    origin_attachment 	(2511, 1985)
 			    terminal_attachment 	(2511, 1537))
@@ -15355,7 +15436,7 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E7727A4028D"
-			    client     	@444
+			    client     	@445
 			    supplier   	@436
 			    line_style 	3
 			    origin_attachment 	(1786, 820)
@@ -15460,23 +15541,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3E773A6302F2"
-			    compartment 	(object Compartment
-				Parent_View 	@456
-				location   	(118, 534)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	13434879
-				anchor     	2
-				nlines     	3
-				max_width  	1879)
 			    width      	1319
 			    height     	775
 			    annotation 	8)
@@ -15518,7 +15582,188 @@
 			    supplier   	@457
 			    line_style 	3
 			    origin_attachment 	(339, 461)
-			    terminal_attachment 	(339, 189)))))))
+			    terminal_attachment 	(339, 189))))))
+	(object Class_Category "AppEvent"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"IsNamespace"
+		    value      	TRUE))
+	    quid       	"3E8C1A5B000E"
+	    exportControl 	"Public"
+	    logical_models 	(list unit_reference_list
+		(object Class "AppControl_EventCodes"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"AppAgent/src/AppControlAgent.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	(value Text 
+|enum
+|  {
+|    // additional return codes for AppControlAgent::getCommand()
+|    NEWSTATE =     100,   // got state-changing command
+|    PAUSED   =     -100,  // got pause command
+|    RESUMED  =     -101,  // got resume command
+|
+|  }
+			    )))
+		    quid       	"3E8C1A5B0010"
+		    stereotype 	"typedef"
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++")
+		(object Class "EventCodes"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"AppAgent/src/AppEventSink.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	(value Text 
+|enum {
+|    SUCCESS   = 1,
+|    WAIT      = 0,      // no event pending, must wait
+|    OUTOFSEQ  = -1,     // request is out of sequence (see below)
+|    CLOSED    = -2,     // event stream is closed or disconnected
+|    ERROR     = -999,   // generic error code
+|
+|    // defines values for the wait argument to getEvent() below
+|    // WAIT=0 already defined above
+|    NOWAIT    = -1,   
+|    BLOCK     = 1
+|
+|  }
+			    )))
+		    quid       	"3E8C1A5B0043"
+		    documentation 	
+|This defines the return codes for the getEvent/hasEvent methods,
+|as well as wait-states, etc.
+|
+		    
+		    stereotype 	"typedef"
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++"))
+	    logical_presentations 	(list unit_reference_list))
+	(object Class_Category "AppState"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"IsNamespace"
+		    value      	TRUE))
+	    quid       	"3E8C1A5B009D"
+	    exportControl 	"Public"
+	    logical_models 	(list unit_reference_list
+		(object Class "ExtraSolverControlStates"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"Solver/src/SolverControlAgent.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	(value Text 
+|enum
+|  {
+|    IDLE        = -AidIDLE_int,        // waiting for start of solution
+|    ENDSOLVE    = -AidENDSOLVE_int,    // waiting for end of solution
+|    NEXT_DOMAIN = -AidNEXT_DOMAIN_int  // waiting for startDomain
+|  }
+			    )))
+		    quid       	"3E8C1A5B009F"
+		    stereotype 	"typedef"
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++")
+		(object Class "FileAgentStates"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"VisAgent/src/FileAgentBase.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	(value Text 
+|enum 
+|  {
+|    CLOSED    =     -100
+|  }
+			    )))
+		    quid       	"3E8C1A5B00B0"
+		    stereotype 	"typedef"
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++")
+		(object Class "States"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"AppAgent/src/AppAgent.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	(value Text 
+|enum 
+|  {
+|    // standard states
+|    // subclasses may extend this with their own states. The convention is that
+|    // operational states are >0, and error/stopped states are <0
+|    INIT    =     0,   // initializing (on startup/after Init/Reinit event)
+|    RUNNING =     1,   // application is running
+|    STOPPED =     -1,  // stopped 
+|    HALTED  =     -2,  // halted
+|    ERROR   =     -999
+|        
+|  }
+			    )))
+		    quid       	"3E8C1A5B00B9"
+		    stereotype 	"typedef"
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++"))
+	    logical_presentations 	(list unit_reference_list))
+	(object Class_Category "VisRepeaterVocabulary"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"IsNamespace"
+		    value      	TRUE))
+	    quid       	"3E8C1A5B01EE"
+	    exportControl 	"Public"
+	    logical_models 	(list unit_reference_list
+		(object Class "AppStates"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"AppUtils/src/VisRepeater.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	(value Text 
+|enum 
+|  {
+|      OUTPUT_ERROR  = 1024,     // error on output stream, still running
+|      INPUT_CLOSED  = -1024,    // input stream has been closed
+|      INPUT_ERROR   = -1025     // error on input stream
+|          
+|  }
+			    )))
+		    quid       	"3E8C1A5B01F0"
+		    stereotype 	"typedef"
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++"))
+	    logical_presentations 	(list unit_reference_list)))
     logical_presentations 	(list unit_reference_list
 	(object ClassDiagram "Main"
 	    quid       	"3DFF2FE60300"

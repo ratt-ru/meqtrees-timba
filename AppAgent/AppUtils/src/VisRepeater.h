@@ -13,6 +13,7 @@ namespace VisRepeaterVocabulary
   using namespace ApplicationVocabulary;
   
   // define additional control states
+//##ModelId=3E8C1A5B01F0
   typedef enum 
   {
       OUTPUT_ERROR  = 1024,     // error on output stream, still running

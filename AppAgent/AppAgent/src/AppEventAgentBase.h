@@ -43,6 +43,9 @@ class AppEventAgentBase : public AppAgent
     //##ModelId=3E4148900162
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
     
+    //##ModelId=3E9BD63E015A
+    DefineRefTypes(AppEventAgentBase,Ref);
+    
     //##ModelId=3E42967E027F
     static const DataRecord & receiveEventList ();
     //##ModelId=3E4296940160

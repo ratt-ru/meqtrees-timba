@@ -25,6 +25,8 @@
 
 using namespace AppEvent;
 
+HIID AppEventSink::_dummy_hiid;
+
 //##ModelId=3E4100E40257
 AppEventSink::AppEventSink (const HIID &initf)
   : AppAgent(initf)
@@ -58,7 +60,7 @@ bool AppEventSink::init (const DataRecord &)
 }
     
 //##ModelId=3E394D4C02BB
-int AppEventSink::getEvent (HIID &,ObjRef &,const HIID &,int wait)
+int AppEventSink::getEvent (HIID &,ObjRef &,const HIID &,int wait,HIID &)
 { 
   return waitOtherEvents(wait);
 }
@@ -75,7 +77,7 @@ int AppEventSink::hasEvent (const HIID &) const
 }
 
 //##ModelId=3E394D4C02C9
-void AppEventSink::postEvent (const HIID &, const ObjRef::Xfer &ref)
+void AppEventSink::postEvent (const HIID &, const ObjRef::Xfer &ref,const HIID &)
 {
   // this is OK since we're meant to xfer the ref anyway
   const_cast<ObjRef&>(ref).detach();
@@ -86,31 +88,34 @@ void AppEventSink::flush ()
 }
 
 //##ModelId=3E3E744E0258
-int AppEventSink::getEvent (HIID &id, DataRecord::Ref &data, const HIID &mask, int wait)
+int AppEventSink::getEvent (HIID &id, DataRecord::Ref &data, 
+                            const HIID &mask,int wait,HIID &source)
 {
   ObjRef ref;
-  int res = getEvent(id,ref,mask,wait);
+  int res = getEvent(id,ref,mask,wait,source);
   if( res == SUCCESS && ref.valid() )
     data = ref.ref_cast<DataRecord>();
   return res;
 }
 
 //##ModelId=3E3E747A0120
-void AppEventSink::postEvent (const HIID &id, const DataRecord::Ref::Xfer & data)
+void AppEventSink::postEvent (const HIID &id, const DataRecord::Ref::Xfer &data,
+                              const HIID &destination)
 {
   if( data.valid() )
-    postEvent(id,data.ref_cast<BlockableObject>());
+    postEvent(id,data.ref_cast<BlockableObject>(),destination);
   else
-    postEvent(id);
+    postEvent(id,ObjRef(),destination);
 }
 
 //##ModelId=3E3FD6180308
-void AppEventSink::postEvent (const HIID &id, const string &text)
+void AppEventSink::postEvent (const HIID &id, const string &text,
+                              const HIID &destination)
 {
   DataRecord::Ref ref;
   ref <<= new DataRecord;
   ref()[AidText] = text;
-  postEvent(id,ref);
+  postEvent(id,ref,destination);
 }
 
 //##ModelId=3E47843B0350
@@ -148,3 +153,14 @@ int AppEventSink::waitOtherEvents (int wait) const
   else
     return WAIT;
 }
+//##ModelId=3E8C1F8703DC
+bool AppEventSink::isEventBound (const HIID &)
+{
+  return False;
+}
+
+//##ModelId=3E8C3BDC0159
+void AppEventSink::solicitEvent (const HIID &)
+{
+}
+

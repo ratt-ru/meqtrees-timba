@@ -31,7 +31,7 @@
 
 namespace AppEvent
 {
-  //##ModelId=3E40FE3E03B7
+  //##ModelId=3E8C1A5B0043
   //##Documentation
   //## This defines the return codes for the getEvent/hasEvent methods,
   //## as well as wait-states, etc.
@@ -65,6 +65,9 @@ namespace AppEventSinkVocabulary
 //## (a HIID), and can contain an arbitrary DataRecord.
 class AppEventSink : public AppAgent
 {
+  protected:
+    static HIID _dummy_hiid;
+  
   public:
     //##ModelId=3E410DB50060
     DefineRefTypes(AppEventSink,Ref);
@@ -83,12 +86,22 @@ class AppEventSink : public AppAgent
     //## Agent initialization method. Called by the application to initialize
     //## or reinitialize an agent. Agent parameters are supplied via a
     //## DataRecord.
-    virtual bool init(const DataRecord &data);
+    virtual bool init (const DataRecord &data);
   
+    //##ModelId=3E8C3BDC0159
+    //##Documentation
+    //## Advertises the fact that an app is interested in a specific
+    //## event or set of events (wildcards may be employed). Defaul version does
+    //## nothing. Subclasses with explicit event filtering (e.g., those using
+    //## publish/subscribe) will probably redefine this to something useful.
+    virtual void solicitEvent (const HIID &mask);
+    
     //##ModelId=3E394D4C02BB
     //##Documentation
     //## Requests the next event from an agent. The event's id and data object
     //## are returned via the first two parameters. 
+    //## A HIID describing the event source is returned in the final argument,
+    //## provided the event sink supports distinct event sources (see e.g. OctoAgents)
     //## If mask is non-empty, then only events matching that mask are
     //## returned; a non-matching event produces an OUTOFSEQ return code.
     //## Defined return codes:
@@ -112,7 +125,9 @@ class AppEventSink : public AppAgent
     //##            could be indefinitely blocked by a non-matching one.
     //##            In this case, an exception should be thrown (instead of
     //##            waiting forever).
-      virtual int getEvent (HIID &id,ObjRef &data,const HIID &mask,int wait = AppEvent::WAIT);
+      virtual int getEvent ( HIID &id,ObjRef &data,const HIID &mask,
+                             int wait = AppEvent::WAIT,
+                             HIID &source = _dummy_hiid );
 
     //##ModelId=3E394D4C02C1
     //##Documentation
@@ -125,7 +140,20 @@ class AppEventSink : public AppAgent
     //##ModelId=3E394D4C02C9
     //##Documentation
     //## Posts an event on behalf of the application.
-      virtual void postEvent (const HIID &id, const ObjRef::Xfer &data = ObjRef());
+    //## If a non-empty destination is specified, the event is directed at
+    //## a specific destination, if the event sink implementation supports 
+    //## this (e.g., if responding to a request event, destination could be
+    //## equal to the original event source).
+      virtual void postEvent (const HIID &id,
+                              const ObjRef::Xfer &data = ObjRef(),
+                              const HIID &destination = HIID() );
+    //##ModelId=3E8C1F8703DC
+    //##Documentation
+    //## Checks whether a specific event is bound to any output. I.e., if the
+    //## event would be simply discarded when posted, returns False; otherwise,
+    //## returns True. Apps can check this before posting "expensive" events.
+    //## Default implementation always returns False.
+      virtual bool isEventBound (const HIID &id);
 
     //##ModelId=3E394D4C02D7
     //##Documentation
@@ -146,29 +174,43 @@ class AppEventSink : public AppAgent
       int waitOtherEvents (int wait) const;
           
     //##ModelId=3E3E744E0258
-      int getEvent (HIID &id, DataRecord::Ref &data, const HIID &mask, int wait = AppEvent::WAIT);
+    //##Documentation
+    //## alias for getEvent which expects a DataRecord event payload
+      int getEvent (HIID &id, DataRecord::Ref &data, const HIID &mask,
+                    int wait = AppEvent::WAIT,HIID &source = _dummy_hiid );
 
     //##ModelId=3E3E747A0120
-      void postEvent (const HIID &id, const DataRecord::Ref::Xfer & data);
+    //##Documentation
+    //## alias for postEvent to post a DataRecord 
+      void postEvent (const HIID &id, const DataRecord::Ref::Xfer & data,const HIID &destination = HIID());
       
     //##ModelId=3E3FD6180308
-      void postEvent (const HIID &id, const string &text);
+    //##Documentation
+    //## alias for postEvent to post a string message
+      void postEvent (const HIID &id, const string &text,const HIID &destination = HIID());
     
     //##ModelId=3E394D4C02D9
     //##Documentation
     //## Alias for getEvent() with an empty mask, which retrieves the next
     //## pending event whatever it is.
-      int getEvent(HIID &id, ObjRef &data, int wait = AppEvent::WAIT)
-      { return getEvent(id,data,HIID(),wait); }
+      int getEvent(HIID &id, ObjRef &data, 
+                   int wait = AppEvent::WAIT,HIID &source = _dummy_hiid)
+      { return getEvent(id,data,HIID(),wait,source); }
       
     //##ModelId=3E3E74620245
-      int getEvent(HIID &id, DataRecord::Ref &data, int wait = AppEvent::WAIT)
-      { return getEvent(id,data,HIID(),wait); }
+    //##Documentation
+    //## Alias for getEvent() with an empty mask, which retrieves the next
+    //## pending event whatever it is, with a DataRecord payload
+      int getEvent(HIID &id, DataRecord::Ref &data, 
+                   int wait = AppEvent::WAIT,HIID &source = _dummy_hiid)
+      { return getEvent(id,data,HIID(),wait,source); }
       
     //##ModelId=3E394D4C02DE
       virtual string sdebug ( int detail = 1,const string &prefix = "",
                               const char *name = 0 ) const
       { return "NullEventSink"; }
+
+
 
 
   private:

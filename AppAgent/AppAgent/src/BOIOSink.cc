@@ -103,6 +103,13 @@ int BOIOSink::hasEvent (const HIID &mask) const
   return mask.matches(cached_id) ? SUCCESS : OUTOFSEQ;
 }
 
+//##ModelId=3E8C252801E8
+bool BOIOSink::isEventBound (const HIID &)
+{
+  return True;
+}
+
+
 //##ModelId=3E53C5C2003E
 void BOIOSink::postEvent (const HIID &id, const ObjRef::Xfer &data)
 {

@@ -107,6 +107,16 @@ class ApplicationBase : public SingularRefTarget
     //##ModelId=3E77245F0059
     ApplicationBase & operator << (VisAgent::OutputAgent *outp)
     { attach(outp,DMI::ANONWR); return *this; }
+    
+    //##ModelId=3E9BD63E0356
+    ApplicationBase & operator << (const AppControlAgent::Ref::Copy &ctrl)
+    { attach(ctrl.dewr_p(),DMI::WRITE); return *this; }
+    //##ModelId=3E9BD63F005C
+    ApplicationBase & operator << (const VisAgent::InputAgent::Ref::Copy &inp)
+    { attach(inp.dewr_p(),DMI::WRITE); return *this; }
+    //##ModelId=3E9BD63F0135
+    ApplicationBase & operator << (const VisAgent::OutputAgent::Ref::Copy &outp)
+    { attach(outp.dewr_p(),DMI::WRITE); return *this; }
 
     //##ModelId=3E7893B10086
     DefineRefTypes(ApplicationBase,Ref);
@@ -131,6 +141,7 @@ class ApplicationBase : public SingularRefTarget
     //##ModelId=3E3FE1DD017A
     static void *startThread (void *arg);
 
+    //##ModelId=3E8C1A5D01E9
     void do_run ();
     
     //##ModelId=3E43BBE202DA

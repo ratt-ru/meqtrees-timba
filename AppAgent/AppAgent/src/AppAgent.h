@@ -14,7 +14,7 @@ const HIID FThrowError = AidThrow|AidError;
 
 namespace AppState
 {
-  //##ModelId=3E40FDEA018D
+  //##ModelId=3E8C1A5B00B9
   typedef enum 
   {
     // standard states

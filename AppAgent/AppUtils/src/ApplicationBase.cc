@@ -87,6 +87,7 @@ void * ApplicationBase::startThread (void *arg)
   return 0;
 }
 
+//##ModelId=3E8C1A5D01E9
 void ApplicationBase::do_run ()
 {
   try
