@@ -25,7 +25,8 @@
 #
 # Macro to check for installation of external packages (e.g. FFTW)
 #
-# lofar_EXTERNAL(package, [option], headerfile, [libraries], [searchpath])
+# lofar_EXTERNAL(package, [option], headerfile, [libraries], [searchpath].
+#            [extra_cppflags],[extra_cxxflags],[extra_ldflags],[extra_libs])
 #     package is the name of the external package (e.g. BLITZ)
 #     option 0 means that package is optional, otherwise mandatory.
 #         default option=0
@@ -44,14 +45,16 @@
 #         The first match is taken.
 #         Note that at configure time the user can specify the directory
 #         for header and library which overrides the searchpath.
-#
-# Extra libraries can be given via the with-'package'-extra-libs
-# configure option.
-# Similarly, extra LD, CXX, or CPP flags can be given via
-#  with-'package'-extra-ld, -cxx, -cpp.
+#     extra_cppflags, extra_cxxflags, extra_ldflags, and extra_libs
+#         are extra options for the preprocessor, compiler, and linker.
+#         It is a blank separated list of options. An option can be preceeded
+#         by the compiler type and a colon indicating that the flag should
+#         only be used for that compiler.
+#         E.g. gnu:-Wno-unused
+#             could be used for the blitz package to avoid too many warnings.
 #
 # For example:
-#  lofar_EXTERNAL (blitz,1,blitz/blitz.h)
+#  lofar_EXTERNAL (blitz,1,blitz/blitz.h,,,,"gnu:-Wno-unused",,-lm)
 #    configures the blitz package.
 #    When compiling with gnu3, the default search path is
 #      /usr/local/blitz/gnu3 /usr/local/blitz/gnu /usr/local/blitz
@@ -81,42 +84,7 @@ AC_ARG_WITH([LOFAR_EXT_LIB][[-libdir]],
   [lfr_external_libdir="$withval"],
   [lfr_external_libdir=])
 
-AC_ARG_WITH([LOFAR_EXT_LIB][[-extra-libs]],
-  [  --with-LOFAR_EXT_LIB[-extra-libs]   extra libraries for $1 (e.g. -lm)],
-  [lfr_extra_libs="$withval"],
-  [lfr_extra_libs=""])
-
-AC_ARG_WITH([LOFAR_EXT_LIB][[-extra-ld]],
-  [  --with-LOFAR_EXT_LIB[-extra-ld]     extra LD arguments for $1],
-  [lfr_extra_ld="$withval"],
-  [lfr_extra_ld=""])
-
-AC_ARG_WITH([LOFAR_EXT_LIB][[-extra-cxx]],
-  [  --with-LOFAR_EXT_LIB[-extra-cxx]    extra CXX arguments for $1],
-  [lfr_extra_cxx="$withval"],
-  [lfr_extra_cxx=""])
-
-AC_ARG_WITH([LOFAR_EXT_LIB][[-extra-cpp]],
-  [  --with-LOFAR_EXT_LIB[-extra-cpp]    extra CPP arguments for $1],
-  [lfr_extra_cpp="$withval"],
-  [lfr_extra_cpp=""])
-
 [
-##
-## Blank extra stuff if yes or no is given.
-##
-if test "lfr_extra_libs" = "yes"  -o  "lfr_extra_libs" = "no"; then
-  lfr_extra_libs=""
-fi
-if test "lfr_extra_ld" = "yes"  -o  "lfr_extra_ld" = "no"; then
-  lfr_extra_ld=""
-fi
-if test "lfr_extra_cxx" = "yes"  -o  "lfr_extra_cxx" = "no"; then
-  lfr_extra_cxx=""
-fi
-if test "lfr_extra_cpp" = "yes"  -o  "lfr_extra_cpp" = "no"; then
-  lfr_extra_cpp=""
-fi
 ##
 ## Look if an external package is used.
 ## It is if mandatory or if given by user.
@@ -148,6 +116,99 @@ else
     enable_external=yes
   fi
 ##
+## Get build compiler and type
+##
+  lfr_buildcomp=`echo $lofar_variant | sed -e "s/_.*//"`
+  lfr_buildtype=`echo $lofar_variant | sed -e "s/.*_//"`
+##
+## Get the extra flags, possibly compiler dependent.
+##
+  lfr_cpp=$6
+  lfr_cxx=$7
+  lfr_ld=$8
+  lfr_lb=$9
+
+  lfr_extra_cpp=
+  for flag in $lfr_cpp
+  do
+    flagv=`echo $flag | sed -e "s/.*://"`
+    flagc=`echo $flag | sed -e "s/:.*//"`
+    if [ "$flagc" = "$flagv" ]; then
+      flagc="";
+    fi
+    flagcc=`echo $flagc | sed -e "s/_.*//"`
+    flagct=`echo $flagc | sed -e "s/.*_//"`
+    if [ "$flagct" = "$flagcc" ]; then
+      flagct="";
+    fi
+    if [ "$flagcc" = "" -o "$flagcc" = "$lfr_buildcomp" ]; then
+      if [ "$flagct" = "" -o "$flagct" = "$lfr_buildtype" ]; then
+        lfr_extra_cpp="$lfr_extra_cpp $flagv";
+      fi
+    fi
+  done
+
+  lfr_extra_cxx=
+  for flag in $lfr_cxx
+  do
+    flagv=`echo $flag | sed -e "s/.*://"`
+    flagc=`echo $flag | sed -e "s/:.*//"`
+    if [ "$flagc" = "$flagv" ]; then
+      flagc="";
+    fi
+    flagcc=`echo $flagc | sed -e "s/_.*//"`
+    flagct=`echo $flagc | sed -e "s/.*_//"`
+    if [ "$flagct" = "$flagcc" ]; then
+      flagct="";
+    fi
+    if [ "$flagcc" = "" -o "$flagcc" = "$lfr_buildcomp" ]; then
+      if [ "$flagct" = "" -o "$flagct" = "$lfr_buildtype" ]; then
+        lfr_extra_cxx="$lfr_extra_cxx $flagv";
+      fi
+    fi
+  done
+
+  lfr_extra_ld=
+  for flag in $lfr_ld
+  do
+    flagv=`echo $flag | sed -e "s/.*://"`
+    flagc=`echo $flag | sed -e "s/:.*//"`
+    if [ "$flagc" = "$flagv" ]; then
+      flagc="";
+    fi
+    flagcc=`echo $flagc | sed -e "s/_.*//"`
+    flagct=`echo $flagc | sed -e "s/.*_//"`
+    if [ "$flagct" = "$flagcc" ]; then
+      flagct="";
+    fi
+    if [ "$flagcc" = "" -o "$flagcc" = "$lfr_buildcomp" ]; then
+      if [ "$flagct" = "" -o "$flagct" = "$lfr_buildtype" ]; then
+        lfr_extra_ld="$lfr_extra_ld $flagv";
+      fi
+    fi
+  done
+
+  lfr_extra_libs=
+  for flag in $lfr_lb
+  do
+    flagv=`echo $flag | sed -e "s/.*://"`
+    flagc=`echo $flag | sed -e "s/:.*//"`
+    if [ "$flagc" = "$flagv" ]; then
+      flagc="";
+    fi
+    flagcc=`echo $flagc | sed -e "s/_.*//"`
+    flagct=`echo $flagc | sed -e "s/.*_//"`
+    if [ "$flagct" = "$flagcc" ]; then
+      flagct="";
+    fi
+    if [ "$flagcc" = "" -o "$flagcc" = "$lfr_buildcomp" ]; then
+      if [ "$flagct" = "" -o "$flagct" = "$lfr_buildtype" ]; then
+        lfr_extra_libs="$lfr_extra_libs $flagv";
+      fi
+    fi
+  done
+
+##
 ## Replace +pkg and +comp in search list.
 ##
   external_slist=$external_search;
@@ -158,7 +219,6 @@ else
     external_slist="/usr/local /usr";
   fi
   lfr_slist=
-  lfr_buildcomp=`echo $lofar_variant | sed -e "s/_.*//"`
   for bdir in $external_slist
   do
     lfr_a=`echo $bdir | sed -e "s%/+pkg%/$lfr_ext_name%g"`
@@ -227,10 +287,19 @@ else
       EXTERNAL_LIBS="$EXTERNAL_LIBS -l$lib"
     done
 
-    CPPFLAGS="$CPPFLAGS $EXTERNAL_CPPFLAGS $lfr_extra_cpp"
-    CXXFLAGS="$CXXFLAGS $lfr_extra_cxx"
-    LDFLAGS="$LDFLAGS $EXTERNAL_LDFLAGS $lfr_extra_ld"
-    LIBS="$LIBS $EXTERNAL_LIBS $lfr_extra_libs"
+    EXTERNAL_CPPFLAGS="$EXTERNAL_CPPFLAGS $lfr_extra_cpp"
+    EXTERNAL_CXXFLAGS="$EXTERNAL_CXXFLAGS $lfr_extra_cxx"
+    EXTERNAL_LDFLAGS="$EXTERNAL_LDFLAGS $lfr_extra_ld"
+    EXTERNAL_LIBS="$EXTERNAL_LIBS $lfr_extra_libs"
+
+    echo ]LOFAR_EXT_SYM[ >> pkgext
+    echo "$EXTERNAL_CPPFLAGS" >> pkgextcppflags
+    echo "$EXTERNAL_CXXFLAGS" >> pkgextcxxflags
+
+    CPPFLAGS="$CPPFLAGS $EXTERNAL_CPPFLAGS"
+    CXXFLAGS="$CXXFLAGS $EXTERNAL_CXXFLAGS"
+    LDFLAGS="$LDFLAGS $EXTERNAL_LDFLAGS"
+    LIBS="$LIBS $EXTERNAL_LIBS"
 ]
 dnl
     AC_SUBST(CPPFLAGS)dnl
