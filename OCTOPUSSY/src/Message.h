@@ -248,8 +248,13 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
       Message (const HIID &id1, const BlockableObject *pload, int flags = 0, int pri = PRI_NORMAL);
       Message (const HIID &id1, const SmartBlock *bl, int flags = 0, int pri = PRI_NORMAL);
       
-      ObjRef& payload ();
-      BlockRef& block ();
+      ObjRef &     payload ();
+      BlockRef &   block   ();
+      
+      // This accesses the payload as a DataRecord, or throws an exception if it isn't one
+      const DataRecord & record () const;
+      DataRecord & wrecord ();
+      
 
       short addHop ();
             
@@ -599,6 +604,21 @@ inline short Message::addHop ()
 { 
   return ++hops_; 
 }
+
+inline const DataRecord & Message::record () const
+{
+  const DataRecord *rec = dynamic_cast<const DataRecord *>(payload_.deref_p());
+  FailWhen(!rec,"payload is not a DataRecord");
+  return *rec;
+}
+
+inline DataRecord & Message::wrecord ()
+{
+  DataRecord *rec = dynamic_cast<DataRecord *>(payload_.dewr_p());
+  FailWhen(!rec,"payload is not a DataRecord");
+  return *rec;
+}
+
 //## end module%3C7B7F2F0248.epilog
 
 
