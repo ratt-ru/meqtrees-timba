@@ -354,23 +354,9 @@ class HierBrowser (object):
     _set_open_items_impl(self._lv,openspec);
     
 class BrowserPlugin (object):
-  _iconset = None;
   _icon = pixmaps.magnify;  # default icon
   def icon (_class):
-    if _class._iconset is None:
-      # get class _icon member, or use the "magnify" icon by default
-      pm = _class._icon;
-      # resolve to pixmap
-      if not isinstance(pm,QIconSet):
-        if not isinstance(pm,QPixmap):
-          if isinstance(pm,pixmaps.QPixmapWrapper):
-            pm = pm.pm();
-          elif callable(pm):
-            pm = pm();
-          else:
-            raise TypeError,"invalid _icon member in "+_class.__name__;
-      _class._iconset = QIconSet(pm);
-    return _class._iconset;
+    return _class._icon.iconset();
   icon = classmethod(icon);
   
   def viewer_name (_class):
@@ -475,9 +461,23 @@ class ArrayBrowser(BrowserPlugin):
     self._tbl.set_array(dataitem.data);
     # apply saved open tree
 #    self.set_open_items(openitems);
-    
+
+
+class ResultBrowser(RecordBrowser,BrowserPlugin):
+  _icon = pixmaps.areas3d;
+  viewer_name = "Result Browser";
+
+class ArrayPlotter(ArrayBrowser,BrowserPlugin):
+  _icon = pixmaps.bars3d;
+  viewer_name = "Array Plotter";
+
+
+
+
+gridded_workspace.registerViewer(dict,ResultBrowser,dmitype='meqresult');
   
 gridded_workspace.registerViewer(array_class,ArrayBrowser);
+gridded_workspace.registerViewer(array_class,ArrayPlotter);
 # register the RecordBrowser as a viewer for the appropriate types
 for tp in (dict,list,tuple,array_class):
   gridded_workspace.registerViewer(tp,RecordBrowser);

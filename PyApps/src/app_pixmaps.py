@@ -565,3 +565,58 @@ precminus = QPixmapWrapper(["16 16 3 1",
                             "........#aaaaaaa",
                             "........#aaaaaaa",
                             "........#aaaaaaa" ]);
+
+
+
+bars3d = QPixmapWrapper(["16 16 6 1",
+                         "# c #000000",
+                         "b c #00d300",
+                         "a c #00ff00",
+                         "d c #9595d6",
+                         "c c #c0c0ff",
+                         ". c None",
+                         "................",
+                         ".......###......",
+                         "......#aa#.###..",
+                         ".....#aa###aa#..",
+                         ".....###b#aa##..",
+                         ".....#a#####b#..",
+                         ".....##cc#a#b###",
+                         ".....#cc##a##aa#",
+                         "...#####d#a#aa##",
+                         "..#cc#c#d#a###b#",
+                         ".#cc##c#d##cc#b#",
+                         ".###d#c#d#cc##b#",
+                         ".#c#d#c#d###d##.",
+                         ".#c#d#c#d#c#d#..",
+                         ".#c#d#c#d#c##...",
+                         ".###########...." ]);
+
+areas3d = QPixmapWrapper(["16 16 6 1",
+                          "# c #000000",
+                          "a c #00d300",
+                          "b c #00ff00",
+                          "c c #9595d6",
+                          "d c #c0c0ff",
+                          ". c None",
+                          "......#.........",
+                          ".....#a#........",
+                          "....#aaa#.......",
+                          "...#b#aaa###....",
+                          "...#bb#aaaaa##..",
+                          "..#c#bb###aaaa#.",
+                          ".#ccc#bbbb##aa#.",
+                          "#d#ccc#bbbbb#a#.",
+                          "#dd#ccc#bbbb#aa#",
+                          "#ddd#ccc###b#aaa",
+                          "#dddd#ccccc###aa",
+                          "#ddddd###cccc##a",
+                          "#dddddddd##ccc##",
+                          "#dddddddddd#ccc#",
+                          "#ddddddddddd#c#.",
+                          "##############.." ]);
+
+
+
+
+

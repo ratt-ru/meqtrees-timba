@@ -18,7 +18,7 @@ _reg_viewers = {};
 #
 #
 
-def registerViewer (tp,viewer):
+def registerViewer (tp,viewer,dmitype=None):
   """Registers a viewer for the specified type:
     registerViewer(datatype,viewer);
   The 'viewer' argument must be a class (or callable) providing the following 
@@ -56,40 +56,57 @@ def registerViewer (tp,viewer):
   already provides a refresh button, so this signal is normally not needed.
   """;
   global _reg_viewers;
-  _reg_viewers.setdefault(tp,[]).append(viewer);
+  _reg_viewers.setdefault((tp,dmitype),[]).append(viewer);
 
-def isViewable (data):
+def isViewableWith (arg,viewer):
+  if type(arg) is type:
+    return True;
+  try: checker = viewer.is_viewable;
+  except AttributeError: return True; 
+  if callable(checker):
+    return checker(arg);
+  return True;
+
+def isViewable (arg,dmitype=None):
   global _reg_viewers;
-  datatype = type(data);
-  if datatype is type:   # argument specifies type
-    datatype = data;
-  for (tp,vlist) in _reg_viewers.iteritems():
-    if issubclass(datatype,tp):
+  # arg may specify a type or a data object
+  if type(arg) is type:
+    datatype = arg;
+  else:
+    datatype = type(arg);
+    dmitype  = dmi_type(arg);
+  for (tptuple,vlist) in _reg_viewers.iteritems():
+    (tp,dmitp) = tptuple;
+    # registered type must be a superclass of the supplied type;
+    # registered dmi type must be either None or match the argument dmi type
+    if issubclass(datatype,tp) and (dmitp is None or dmitp == dmitype):
       for viewer in vlist:
-        try: 
-          if type(data) is type or viewer.is_viewable(data):
-            return True;
-        except AttributeError,TypeError:
-          return True; 
+        if isViewableWith(arg,viewer):
+          return True;
   return False;
 
-def getViewerList (arg):
-  viewer_list = [];
+def getViewerList (arg,dmitype=None):
+  global _reg_viewers;
   if arg is None:
     return [];
-  # resolve data type (argument may be object or type)
-  datatype = type(arg);
-  if datatype is type:   # argument specifies type
+  print 'getViewerList for arg',arg;
+  # arg may specify a type or a data object
+  if type(arg) is type:
     datatype = arg;
-  for (tp,vlist) in _reg_viewers.iteritems():
+  else:
+    datatype = type(arg);
+    dmitype  = dmi_type(arg);
+    print 'dmitype is ',dmitype;
+  viewer_list = [];
+  # resolve data type (argument may be object or type)
+  for (tptuple,vlist) in _reg_viewers.iteritems():
     # find viewers for this class
-    if issubclass(datatype,tp):
-      if arg is datatype:    # if specified as type, add all
+    (tp,dmitp) = tptuple;
+    if issubclass(datatype,tp) and (dmitp is None or dmitp == dmitype):
+      if type(arg) is type:  # if specified as type, add all
         viewer_list.extend(vlist);
       else: # if specified as object, check to see which are compatible
-        for v in vlist:
-          if getattr(v,'is_viewable',lambda x:True)(arg):
-            viewer_list.append(v);
+        viewer_list.extend([v for v in vlist if isViewableWith(arg,v)]);
   return viewer_list;
 
 # ====== DataDroppableWidget ===================================================
