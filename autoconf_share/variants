@@ -4,7 +4,9 @@ icc.compiler.conf:
 
 profile.variant.conf:	  $(aipspp) $(profile) $(mpe)
 debug.variant.conf:	  $(debug) $(aipspp)	
+profopt.variant.conf:	  $(profopt) $(aipspp)
 opt.variant.conf:	  $(optimize) $(aipspp)
+debugopt.variant.conf:	  $(debugopt)
 mpich.variant.conf:	  $(mpich) $(aipspp)
 mpich-opt.variant.conf:	  $(mpich) $(optimize) $(aipspp)
 lam.variant.conf:	  $(lam)  $(aipspp)
@@ -18,10 +20,12 @@ scampi.variant.conf:	  $(scampi)
 scampi-opt.variant.conf:  $(scampi) $(optimize) 
 mpich-prof.variant.conf:  $(mpich) --enable-mpi-profiler $(aipspp)
 
-profile.var:		   --with-optimize='-pg -O4' --with-compiletools
+profile.var:		   --with-optimize='-pg -O4' --with-compiletools --with-ldflags='-lc_p'
 mpe.var:		   --with-mpich=/usr/local/mpich-1.2.5/ch_p4 --enable-mpi-profiler
-debug.var:
-optimize.var:		   --with-optimize
+debug.var:		   --with-optimize='-ggdb'
+debugopt.var:		   --with-optimize='-g -O4'
+profopt.var:		   --with-optimize='-pg -O4' --with-ldflags='-lc_p'
+optimize.var:		   --with-optimize='-O4'
 aipspp.var:
 mpich.var:		   --with-mpich
 lam.var:		   --with-lam
