@@ -399,12 +399,16 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
   // possible modifications made above
   rec[FDependMask].get(depend_mask_,initializing);
   
-  // set node groups
-  if( rec[FNodeGroups].get_vector(node_groups_) )
+  // set node groups, but always implicitly insert "All" at start
+  std::vector<HIID> ngr;
+  if( rec[FNodeGroups].get_vector(ngr) )
   {
-    // the "All" group is defined for every node
-    node_groups_.push_back(FAll);
+    node_groups_.resize(ngr.size()+1);
+    node_groups_.front() = FAll;
+    for( int i=0; i<ngr.size(); i++ )
+      node_groups_[i+1] = ngr[i];
   }
+  
   // set current request ID
   rec[FRequestId].get(current_reqid_);
   // set cache resultcode
