@@ -13,7 +13,7 @@
 //## Module: BlockableObject%3C10CC81019B; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\BlockableObject.h
+//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\BlockableObject.h
 
 #ifndef BlockableObject_h
 #define BlockableObject_h 1
@@ -53,7 +53,7 @@
 //
 //	This class also contains static functions for run-time maintenance
 //	of maps of "virtual constructors".
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -102,10 +102,9 @@ class BlockableObject : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB
 
       //## Operation: clone%3BFE5FE103C5
       //	Clones the object. Default implementation creates a clone via a to
-      //	Block() - BlockSet::privatizeAll() - fromBlock() sequence, so if
-      //	your to/fromBlock is efficient enough, you don't need to provide
-      //	your own clone().
-      CountedRefTarget * clone (int flags = 0);
+      //	Block() - fromBlock() -privatize() sequence, so if your to/fromBlock
+      //	is efficient enough, you don't need to provide your own clone().
+      virtual CountedRefTarget * clone (int flags = 0, int depth = 0) const;
 
     // Additional Public Declarations
       //## begin BlockableObject%3BB1F71F03C9.public preserve=yes

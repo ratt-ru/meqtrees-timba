@@ -13,7 +13,7 @@
 //## Module: DataRecord%3C10CC82005C; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataRecord.cc
+//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataRecord.cc
 
 //## begin module%3C10CC82005C.additionalIncludes preserve=no
 //## end module%3C10CC82005C.additionalIncludes
@@ -47,7 +47,7 @@ DataRecord::DataRecord (int flags)
   //## end DataRecord::DataRecord%3C5820AD00C6.body
 }
 
-DataRecord::DataRecord (const DataRecord &other, int flags)
+DataRecord::DataRecord (const DataRecord &other, int flags, int depth)
   //## begin DataRecord::DataRecord%3C5820C7031D.hasinit preserve=no
   //## end DataRecord::DataRecord%3C5820C7031D.hasinit
   //## begin DataRecord::DataRecord%3C5820C7031D.initialization preserve=yes
@@ -56,7 +56,7 @@ DataRecord::DataRecord (const DataRecord &other, int flags)
 {
   //## begin DataRecord::DataRecord%3C5820C7031D.body preserve=yes
   dprintf(2)("copy constructor, cloning from %s\n",other.debug(1));
-  cloneOther(other,flags);
+  cloneOther(other,flags,depth);
   //## end DataRecord::DataRecord%3C5820C7031D.body
 }
 
@@ -73,7 +73,7 @@ DataRecord & DataRecord::operator=(const DataRecord &right)
 {
   //## begin DataRecord::operator=%3BB3112B0027_assign.body preserve=yes
   dprintf(2)("assignment op, cloning from %s\n",right.debug(1));
-  cloneOther(right);
+  cloneOther(right,0,0);
   return *this;
   //## end DataRecord::operator=%3BB3112B0027_assign.body
 }
@@ -336,28 +336,28 @@ int DataRecord::toBlock (BlockSet &set) const
   //## end DataRecord::toBlock%3C5821630371.body
 }
 
-CountedRefTarget* DataRecord::clone (int flags) const
+CountedRefTarget* DataRecord::clone (int flags, int depth) const
 {
   //## begin DataRecord::clone%3C58218900EB.body preserve=yes
   dprintf(2)("cloning new DataRecord\n");
-  return new DataRecord(*this,flags);
+  return new DataRecord(*this,flags,depth);
   //## end DataRecord::clone%3C58218900EB.body
 }
 
-void DataRecord::privatize (int flags)
+void DataRecord::privatize (int flags, int depth)
 {
   //## begin DataRecord::privatize%3C582189019F.body preserve=yes
   dprintf(2)("privatizing DataRecord\n");
   writable = (flags&DMI::WRITE)!=0;
-  if( flags&DMI::DEEP )
+  if( flags&DMI::DEEP || depth>0 )
   {
     for( FMI iter = fields.begin(); iter != fields.end(); iter++ )
-      iter->second.privatize(flags|DMI::LOCK);
+      iter->second.privatize(flags|DMI::LOCK,depth-1);
   }
   //## end DataRecord::privatize%3C582189019F.body
 }
 
-void DataRecord::cloneOther (const DataRecord &other, int flags)
+void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
 {
   //## begin DataRecord::cloneOther%3C58239503D1.body preserve=yes
   fields.clear();
@@ -366,8 +366,8 @@ void DataRecord::cloneOther (const DataRecord &other, int flags)
   for( CFMI iter = other.fields.begin(); iter != other.fields.end(); iter++ )
   {
     DataFieldRef & ref( fields[iter->first].copy(iter->second,flags|DMI::LOCK) );
-    if( flags&DMI::DEEP )
-      ref.privatize(flags|DMI::LOCK);
+    if( flags&DMI::DEEP || depth>0 )
+      ref.privatize(flags|DMI::LOCK,depth-1);
   }
   //## end DataRecord::cloneOther%3C58239503D1.body
 }

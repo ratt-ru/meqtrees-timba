@@ -13,7 +13,7 @@
 //## Module: CountedRefTarget%3C10CC8103D8; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\CountedRefTarget.cc
+//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\CountedRefTarget.cc
 
 //## begin module%3C10CC8103D8.additionalIncludes preserve=no
 //## end module%3C10CC8103D8.additionalIncludes
@@ -32,6 +32,12 @@
 #define DebugContext (CountedRefBase::getDebugContext())
 //## end module%3C10CC8103D8.additionalDeclarations
 
+
+// Class SingularRefTarget 
+
+// Additional Declarations
+  //## begin SingularRefTarget%3C8CDBB901EB.declarations preserve=yes
+  //## end SingularRefTarget%3C8CDBB901EB.declarations
 
 // Class CountedRefTarget 
 
@@ -86,7 +92,7 @@ CountedRefTarget::~CountedRefTarget()
 
 
 //## Other Operations (implementation)
-void CountedRefTarget::privatize (int flags)
+void CountedRefTarget::privatize (int flags, int depth)
 {
   //## begin CountedRefTarget::privatize%3C3EDD7D0301.body preserve=yes
   //## end CountedRefTarget::privatize%3C3EDD7D0301.body

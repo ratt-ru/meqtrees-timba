@@ -13,7 +13,7 @@
 //## Module: SmartBlock%3C10CC83016C; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\SmartBlock.h
+//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\SmartBlock.h
 
 #ifndef SmartBlock_h
 #define SmartBlock_h 1
@@ -117,18 +117,18 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
       const void * operator * () const;
 
       //## Operation: clone%3BFE23B501F4
-      CountedRefTarget * clone (int flags = 0) const;
+      CountedRefTarget * clone (int flags = 0, int depth = 0) const;
 
     //## Get and Set Operations for Class Attributes (generated)
 
       //## Attribute: block%3BEAACB9029A
-      const char* data () const;
+      char* data () const;
 
       //## Attribute: datasize%3BEAACBD0318
-      const size_t size () const;
+      size_t size () const;
 
       //## Attribute: shmid%3BEAACC40281
-      const int getShmid () const;
+      int getShmid () const;
 
     // Additional Public Declarations
       //## begin SmartBlock%3BEAACAB0041.public preserve=yes
@@ -230,21 +230,21 @@ inline const void * SmartBlock::operator * () const
 
 //## Get and Set Operations for Class Attributes (inline)
 
-inline const char* SmartBlock::data () const
+inline char* SmartBlock::data () const
 {
   //## begin SmartBlock::data%3BEAACB9029A.get preserve=no
   return block;
   //## end SmartBlock::data%3BEAACB9029A.get
 }
 
-inline const size_t SmartBlock::size () const
+inline size_t SmartBlock::size () const
 {
   //## begin SmartBlock::size%3BEAACBD0318.get preserve=no
   return datasize;
   //## end SmartBlock::size%3BEAACBD0318.get
 }
 
-inline const int SmartBlock::getShmid () const
+inline int SmartBlock::getShmid () const
 {
   //## begin SmartBlock::getShmid%3BEAACC40281.get preserve=no
   return shmid;

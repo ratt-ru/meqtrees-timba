@@ -13,7 +13,7 @@
 //## Module: DataRecord%3C10CC820052; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataRecord.h
+//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataRecord.h
 
 #ifndef DataRecord_h
 #define DataRecord_h 1
@@ -67,7 +67,7 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       DataRecord (int flags = DMI::WRITE);
 
       //## Operation: DataRecord%3C5820C7031D
-      DataRecord (const DataRecord &other, int flags = 0);
+      DataRecord (const DataRecord &other, int flags = 0, int depth = 0);
 
     //## Destructor (generated)
       ~DataRecord();
@@ -124,17 +124,17 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       //	Abstract method for cloning an object. Should return pointer to new
       //	object. Flags: DMI::WRITE if writable clone is required, DMI::DEEP
       //	for deep cloning (i.e. contents of object will be cloned as well).
-      virtual CountedRefTarget* clone (int flags = 0) const;
+      virtual CountedRefTarget* clone (int flags = 0, int depth = 0) const;
 
       //## Operation: privatize%3C582189019F
       //	Virtual method for privatization of an object. If the object
       //	contains other refs, they should be privatized by this method. The
       //	DMI::DEEP flag should be passed on to child refs, for deep
       //	privatization.
-      virtual void privatize (int flags = 0);
+      virtual void privatize (int flags = 0, int depth = 0);
 
       //## Operation: cloneOther%3C58239503D1
-      void cloneOther (const DataRecord &other, int flags = 0);
+      void cloneOther (const DataRecord &other, int flags, int depth);
 
       //## Operation: get%3C56B00E0182
       //	Implemetation of standard function for deep-dereferencing of

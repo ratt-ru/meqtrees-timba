@@ -13,7 +13,7 @@
 //## Module: DataField%3C10CC820126; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataField.cc
+//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataField.cc
 
 //## begin module%3C10CC820126.additionalIncludes preserve=no
 //## end module%3C10CC820126.additionalIncludes
@@ -52,7 +52,7 @@ DataField::DataField (int flags)
   //## end DataField::DataField%3C3D64DC016E.body
 }
 
-DataField::DataField (const DataField &right, int flags)
+DataField::DataField (const DataField &right, int flags, int depth)
   //## begin DataField::DataField%3C3EE3EA022A.hasinit preserve=no
   //## end DataField::DataField%3C3EE3EA022A.hasinit
   //## begin DataField::DataField%3C3EE3EA022A.initialization preserve=yes
@@ -61,7 +61,7 @@ DataField::DataField (const DataField &right, int flags)
 {
   //## begin DataField::DataField%3C3EE3EA022A.body preserve=yes
   dprintf(2)("copy constructor (%s,%x)\n",right.debug(),flags);
-  cloneOther(right,flags);
+  cloneOther(right,flags,depth);
   //## end DataField::DataField%3C3EE3EA022A.body
 }
 
@@ -95,7 +95,7 @@ DataField & DataField::operator=(const DataField &right)
   dprintf(2)("assignment of %s\n",right.debug());
   FailWhen( valid(),"field is already initialized" );
   clear();
-  cloneOther(right);
+  cloneOther(right,0,0);
   return *this;
   //## end DataField::operator=%3BB317D8010B_assign.body
 }
@@ -522,14 +522,14 @@ ObjRef & DataField::resolveObject (int n, bool write) const
   //## end DataField::resolveObject%3C3D8C07027F.body
 }
 
-CountedRefTarget* DataField::clone (int flags) const
+CountedRefTarget* DataField::clone (int flags, int depth) const
 {
   //## begin DataField::clone%3C3EC77D02B1.body preserve=yes
-  return new DataField(*this,flags);
+  return new DataField(*this,flags,depth);
   //## end DataField::clone%3C3EC77D02B1.body
 }
 
-void DataField::cloneOther (const DataField &other, int flags)
+void DataField::cloneOther (const DataField &other, int flags, int depth)
 {
   //## begin DataField::cloneOther%3C3EE42D0136.body preserve=yes
   // setup misc fields
@@ -561,15 +561,15 @@ void DataField::cloneOther (const DataField &other, int flags)
         // if still in block, then copy & privatize the blockset
         case INBLOCK:
             blocks[i] = other.blocks[i]; // blockset copy (=ref.copy)
-            if( flags&DMI::DEEP )
+            if( flags&DMI::DEEP || depth>0 )
               blocks[i].privatizeAll(flags);
             break;
         // otherwise, privatize the object reference
         case UNBLOCKED:
         case MODIFIED:
             objects[i].copy(other.objects[i],flags|DMI::LOCK);
-            if( flags&DMI::DEEP );
-              objects[i].privatize(flags|DMI::LOCK);
+            if( flags&DMI::DEEP || depth>0 );
+              objects[i].privatize(flags|DMI::LOCK,depth-1);
             break;
         default:
             Throw("illegal object state");
@@ -579,7 +579,7 @@ void DataField::cloneOther (const DataField &other, int flags)
   //## end DataField::cloneOther%3C3EE42D0136.body
 }
 
-void DataField::privatize (int flags)
+void DataField::privatize (int flags, int depth)
 {
   //## begin DataField::privatize%3C3EDEBC0255.body preserve=yes
   writable = (flags&DMI::WRITE) != 0;
@@ -589,7 +589,7 @@ void DataField::privatize (int flags)
   headref.privatize(DMI::WRITE|DMI::LOCK);
   // if deep privatization is required, then for dynamic objects, 
   // privatize the field contents as well
-  if( flags&DMI::DEEP && dynamic_type )
+  if( dynamic_type && ( flags&DMI::DEEP || depth>0 ) )
   {
     for( int i=0; i<mysize; i++ )
     {
@@ -604,7 +604,7 @@ void DataField::privatize (int flags)
         // otherwise, privatize the object reference
         case UNBLOCKED:
         case MODIFIED:
-            objects[i].privatize(flags|DMI::LOCK);
+            objects[i].privatize(flags|DMI::LOCK,depth-1);
             break;
         default:
             Throw("illegal object state");

@@ -13,7 +13,7 @@
 //## Module: NestableContainer%3C10CC830067; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\NestableContainer.h
+//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\NestableContainer.h
 
 #ifndef NestableContainer_h
 #define NestableContainer_h 1
@@ -53,15 +53,17 @@ class NestableContainer;
 //	of the container via the [HIID] and [int] operators.
 //
 //	To derive a specific container that will be compatible with hooks
-//	(and thus can be accessed via []), you need to  implement four
-//	virtual methods: get(HIID,...), insert(HIID,...), size(), type().
-//	See below for specifics.
+//	(and thus can be accessed via []), you need to implement, as a
+//	minimum, four virtual methods: get(), insert(), size(), type(). See
+//	below for specifics.
 //
-//	You can optionally implement get(int,...), insert(int...), if
-//	accessing via a numeric index is a special case for your container.
-//	Also, isContiguous() should be redefined to return True, if your
-//	container stores data in a contigouus block of memory.
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//	You can optionally implement getn(), insertn(), if accessing via a
+//	numeric index is a special case for your container. If your
+//	container supports removing, then remove() and/or removen() should
+//	be implemented. Finally, if your container stores data in a
+//	contiguous block of memory, isContiguous() should be redefined to
+//	return True.
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -97,7 +99,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
     //	const T * as_T_p(); // for all types
     //	operator const T *(); // for all types -- but only allowed after the
     //	& operator has been applied.
-    //## Category: PSCF::DMI%3BEAB1F2006B; Global
+    //## Category: DMI%3BEAB1F2006B; Global
     //## Subsystem: DMI%3C10CC810155
     //## Persistence: Transient
     //## Cardinality/Multiplicity: n
@@ -197,7 +199,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
         // Data Members for Associations
 
-          //## Association: PSCF::DMI::<unnamed>%3C87362A007E
+          //## Association: DMI::<unnamed>%3C87362A007E
           //## Role: ConstHook::nc%3C87362B00E3
           //## begin NestableContainer::ConstHook::nc%3C87362B00E3.role preserve=no  protected: NestableContainer { -> 1RHNM}
           mutable NestableContainer *nc;
@@ -277,7 +279,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
     //	T* as_T_wp(); // for all types
     //	operator T*(); // for all types - but only allowed after the &
     //	operator has been applied.
-    //## Category: PSCF::DMI%3BEAB1F2006B; Global
+    //## Category: DMI%3BEAB1F2006B; Global
     //## Subsystem: DMI%3C10CC810155
     //## Persistence: Transient
     //## Cardinality/Multiplicity: n
@@ -539,7 +541,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       //## Operation: select%3BE982760231
       //	Selects a subset of a container. Meant to be abstract, but we make
       //	it just virtual for now since this part is not implemented anywhere.
-      virtual bool select (const HIIDSet &id);
+      virtual bool select (const HIIDSet &);
 
       //## Operation: clearSelection%3BFBDC0D025A
       //	Clears the subset selection.
@@ -547,7 +549,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
       //## Operation: selectionToBlock%3BFBDC1D028F
       //	Converts the selected subset to a BlockSet.
-      virtual int selectionToBlock (BlockSet& set);
+      virtual int selectionToBlock (BlockSet& );
 
       //## Operation: isNestable%3BFCD8180044
       bool isNestable () const;
@@ -1016,20 +1018,5 @@ inline void NestableContainer::Hook::assign_object( const BlockableObject *obj,T
 
 //## end module%3C10CC830067.epilog
 
-
-#endif
-
-
-// Detached code regions:
-#if 0
-//## begin NestableContainer::Hook::detach%3C876E140018.body preserve=yes
-  ObjRef *ref0 = const_cast<ObjRef*>( asRef(True) );
-  ref0->unlock();
-  if( ref )
-    ref->xfer(ref0);
-  else
-    ref0->detach();
-  return *ref0;
-//## end NestableContainer::Hook::detach%3C876E140018.body
 
 #endif

@@ -13,7 +13,7 @@
 //## Module: DataField%3C10CC820124; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataField.h
+//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataField.h
 
 #ifndef DataField_h
 #define DataField_h 1
@@ -70,7 +70,7 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       explicit DataField (int flags = DMI::WRITE);
 
       //## Operation: DataField%3C3EE3EA022A
-      DataField (const DataField &right, int flags = 0);
+      DataField (const DataField &right, int flags = 0, int depth = 0);
 
       //## Operation: DataField%3BFA54540099
       //	Constructs an empty data field
@@ -125,15 +125,15 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
 
       //## Operation: clone%3C3EC77D02B1; C++
       //	Clones a data field. (See CountedRefTarget::clone() for semantics)
-      virtual CountedRefTarget* clone (int flags = 0) const;
+      virtual CountedRefTarget* clone (int flags = 0, int depth = 0) const;
 
       //## Operation: cloneOther%3C3EE42D0136
-      void cloneOther (const DataField &other, int flags = 0);
+      void cloneOther (const DataField &other, int flags, int depth);
 
       //## Operation: privatize%3C3EDEBC0255
       //	Makes a private snapshot of the field, by privatizing all contents.
       //	Use DMI::WRITE to make a writable field.
-      void privatize (int flags = 0);
+      void privatize (int flags = 0, int depth = 0);
 
       //## Operation: get%3C7A19790361
       //	Abstract virtual function for dereferencing a container field. Must

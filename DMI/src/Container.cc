@@ -13,7 +13,7 @@
 //## Module: NestableContainer%3C10CC830069; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\NestableContainer.cc
+//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\NestableContainer.cc
 
 //## begin module%3C10CC830069.additionalIncludes preserve=no
 //## end module%3C10CC830069.additionalIncludes
@@ -127,9 +127,10 @@ const NestableContainer::Hook & NestableContainer::Hook::detach (ObjRef* ref) co
 
 
 //## Other Operations (implementation)
-bool NestableContainer::select (const HIIDSet &id)
+bool NestableContainer::select (const HIIDSet &)
 {
   //## begin NestableContainer::select%3BE982760231.body preserve=yes
+  return False;
   //## end NestableContainer::select%3BE982760231.body
 }
 
@@ -139,9 +140,10 @@ void NestableContainer::clearSelection ()
   //## end NestableContainer::clearSelection%3BFBDC0D025A.body
 }
 
-int NestableContainer::selectionToBlock (BlockSet& set)
+int NestableContainer::selectionToBlock (BlockSet& )
 {
   //## begin NestableContainer::selectionToBlock%3BFBDC1D028F.body preserve=yes
+  return 0;
   //## end NestableContainer::selectionToBlock%3BFBDC1D028F.body
 }
 
@@ -337,31 +339,3 @@ string NestableContainer::ConstHook::sdebug ( int detail,const string &prefix,co
   //## end NestableContainer%3BE97CE100AF.declarations
 //## begin module%3C10CC830069.epilog preserve=yes
 //## end module%3C10CC830069.epilog
-
-
-// Detached code regions:
-#if 0
-//## begin NestableContainer::getFieldInfo%3BE9828D0266.body preserve=yes
-  if( no_throw )
-  {
-    try {
-      return get(id,tid,can_write) ? True : False;
-    } catch( Debug::Error &x ) {
-      return False;
-    }
-  }
-  else
-    return get(id,tid,can_write) ? True : False;
-//## end NestableContainer::getFieldInfo%3BE9828D0266.body
-
-//## begin NestableContainer::hasField%3C56AC2902A1.body preserve=yes
-  TypeId dum1; bool dum2;
-  return getFieldInfo(id,dum1,dum2,True);
-//## end NestableContainer::hasField%3C56AC2902A1.body
-
-//## begin NestableContainer::fieldType%3C5958C203A0.body preserve=yes
-  TypeId tid; bool dum2;
-  return getFieldInfo(id,tid,dum2,True) ? tid : NullType;
-//## end NestableContainer::fieldType%3C5958C203A0.body
-
-#endif

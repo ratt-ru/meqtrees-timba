@@ -13,7 +13,7 @@
 //## Module: SmartBlock%3C10CC83016E; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\SmartBlock.cc
+//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\SmartBlock.cc
 
 //## begin module%3C10CC83016E.additionalIncludes preserve=no
 //## end module%3C10CC83016E.additionalIncludes
@@ -180,7 +180,7 @@ void SmartBlock::destroy ()
   //## end SmartBlock::destroy%3C1E0D8D0391.body
 }
 
-CountedRefTarget * SmartBlock::clone (int flags) const
+CountedRefTarget * SmartBlock::clone (int flags, int depth) const
 {
   //## begin SmartBlock::clone%3BFE23B501F4.body preserve=yes
   dprintf1(2)("%s: cloning\n",debug());

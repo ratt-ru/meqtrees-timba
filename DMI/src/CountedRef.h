@@ -13,7 +13,7 @@
 //## Module: CountedRef%3C10CC810321; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\CountedRef.h
+//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\CountedRef.h
 
 #ifndef CountedRef_h
 #define CountedRef_h 1
@@ -42,7 +42,7 @@
 //	This is a type-specific interface to the counted reference
 //	mechanism, providing most of the same functions as CountedRefBase,
 //	but tailored for type T.  Refer to CountedRefBase for all details.
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -64,7 +64,7 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
     //## Constructors (specified)
       //## Operation: CountedRef%3BF9396D01A7; C++
       //	Generic copy constructor -- see same method in CountedRefBase.
-      CountedRef (const CountedRef<T>& other, int flags);
+      CountedRef (const CountedRef<T>& other, int flags, int depth = 1);
 
       //## Operation: CountedRef%3BF93C020247; C++
       explicit CountedRef (T& targ, int flags = 0);
@@ -83,6 +83,9 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
 
 
     //## Other Operations (specified)
+      //## Operation: deref_p%3C8F61C80241
+      const T* deref_p () const;
+
       //## Operation: deref%3BEFED870110; C++
       //	Dereferences to const target.
       const T& deref () const;
@@ -94,6 +97,9 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
 
       //## Operation: operator *%3C5FBE030173
       const T& operator * () const;
+
+      //## Operation: dewr_p%3C8F61D10199
+      T* dewr_p ();
 
       //## Operation: dewr%3BEFF73602B0; C++
       //	Dereferences to non-const object.
@@ -129,7 +135,7 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
 
       //## Operation: privatize%3C17A06901DC; C++
       //	Privatizes a ref -- see CountedRefBase::privatize().
-      CountedRef<T>& privatize (int flags = 0);
+      CountedRef<T>& privatize (int flags = 0, int depth = 0);
 
       //## Operation: lock%3C187F270346; C++
       //	Locks ref -- see CountedRefBase::lock().
@@ -201,73 +207,6 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
 //## begin CountedRef%3BEFECFF0287.postscript preserve=yes
 //## end CountedRef%3BEFECFF0287.postscript
 
-//## begin LockedCountedRef%3C15DFD30149.preface preserve=yes
-//## end LockedCountedRef%3C15DFD30149.preface
-
-//## Class: LockedCountedRef%3C15DFD30149; Parameterized Class
-//	Helper class: when created from a CountedRef, makes a locked copy of
-//	the ref. Identical to CountedRef in all other respects. Should be
-//	used for, e.g., function arguments as a sort of "const reference",
-//	i.e., where the function pledges not to touch the ref.
-//	The copy constructor is deliberatly left unimplemented, since locked
-//	refs
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
-//## Subsystem: DMI%3C10CC810155
-//## Persistence: Transient
-//## Cardinality/Multiplicity: n
-
-
-
-template <class T>
-class LockedCountedRef : public CountedRef< T >  //## Inherits: <unnamed>%3C15FE6601D3
-{
-  //## begin LockedCountedRef%3C15DFD30149.initialDeclarations preserve=yes
-  //## end LockedCountedRef%3C15DFD30149.initialDeclarations
-
-  public:
-    //## Constructors (generated)
-      LockedCountedRef(const LockedCountedRef< T > &right);
-
-    //## Constructors (specified)
-      //## Operation: LockedCountedRef%3C15FE870221; C++
-      LockedCountedRef (const CountedRef<T>& ref);
-
-      //## Operation: LockedCountedRef%3C3C41170106
-      LockedCountedRef (const LockedCountedRef<T>& ref, int flags);
-
-    //## Destructor (generated)
-      ~LockedCountedRef();
-
-    // Additional Public Declarations
-      //## begin LockedCountedRef%3C15DFD30149.public preserve=yes
-      //## end LockedCountedRef%3C15DFD30149.public
-
-  protected:
-    // Additional Protected Declarations
-      //## begin LockedCountedRef%3C15DFD30149.protected preserve=yes
-      //## end LockedCountedRef%3C15DFD30149.protected
-
-  private:
-    //## Constructors (generated)
-      LockedCountedRef();
-
-    //## Assignment Operation (generated)
-      LockedCountedRef< T > & operator=(const LockedCountedRef< T > &right);
-
-    // Additional Private Declarations
-      //## begin LockedCountedRef%3C15DFD30149.private preserve=yes
-      //## end LockedCountedRef%3C15DFD30149.private
-
-  private: //## implementation
-    // Additional Implementation Declarations
-      //## begin LockedCountedRef%3C15DFD30149.implementation preserve=yes
-      //## end LockedCountedRef%3C15DFD30149.implementation
-
-};
-
-//## begin LockedCountedRef%3C15DFD30149.postscript preserve=yes
-//## end LockedCountedRef%3C15DFD30149.postscript
-
 // Parameterized Class CountedRef 
 
 template <class T>
@@ -295,11 +234,11 @@ inline CountedRef<T>::CountedRef(const CountedRef<T> &right)
 }
 
 template <class T>
-inline CountedRef<T>::CountedRef (const CountedRef<T>& other, int flags)
+inline CountedRef<T>::CountedRef (const CountedRef<T>& other, int flags, int depth)
   //## begin CountedRef::CountedRef%3BF9396D01A7.hasinit preserve=no
   //## end CountedRef::CountedRef%3BF9396D01A7.hasinit
   //## begin CountedRef::CountedRef%3BF9396D01A7.initialization preserve=yes
-  : CountedRefBase(other,flags)
+  : CountedRefBase(other,flags,depth)
   //## end CountedRef::CountedRef%3BF9396D01A7.initialization
 {
   //## begin CountedRef::CountedRef%3BF9396D01A7.body preserve=yes
@@ -378,10 +317,18 @@ inline CountedRef<T> & CountedRef<T>::operator=(const CountedRef<T> &right)
 
 //## Other Operations (inline)
 template <class T>
+inline const T* CountedRef<T>::deref_p () const
+{
+  //## begin CountedRef::deref_p%3C8F61C80241.body preserve=yes
+  return static_cast<const T*>( getTarget() );
+  //## end CountedRef::deref_p%3C8F61C80241.body
+}
+
+template <class T>
 inline const T& CountedRef<T>::deref () const
 {
   //## begin CountedRef::deref%3BEFED870110.body preserve=yes
-  return *(const T*)getTarget();
+  return *deref_p();
   //## end CountedRef::deref%3BEFED870110.body
 }
 
@@ -389,7 +336,7 @@ template <class T>
 inline const T* CountedRef<T>::operator -> () const
 {
   //## begin CountedRef::operator ->%3BF55FDC0049.body preserve=yes
-  return (const T*)getTarget();
+  return deref_p();
   //## end CountedRef::operator ->%3BF55FDC0049.body
 }
 
@@ -402,10 +349,18 @@ inline const T& CountedRef<T>::operator * () const
 }
 
 template <class T>
+inline T* CountedRef<T>::dewr_p ()
+{
+  //## begin CountedRef::dewr_p%3C8F61D10199.body preserve=yes
+  return static_cast<T*>(getTargetWr());
+  //## end CountedRef::dewr_p%3C8F61D10199.body
+}
+
+template <class T>
 inline T& CountedRef<T>::dewr ()
 {
   //## begin CountedRef::dewr%3BEFF73602B0.body preserve=yes
-  return *(T*)getTargetWr();
+  return *dewr_p();
   //## end CountedRef::dewr%3BEFF73602B0.body
 }
 
@@ -429,7 +384,7 @@ template <class T>
 inline CountedRef<T>::operator const T* () const
 {
   //## begin CountedRef::operator const T*%3C0F80A50055.body preserve=yes
-  return (const T*)getTarget();
+  return deref_p();
   //## end CountedRef::operator const T*%3C0F80A50055.body
 }
 
@@ -445,7 +400,7 @@ template <class T>
 inline CountedRef<T>::operator T* ()
 {
   //## begin CountedRef::operator T*%3C0F80C0020C.body preserve=yes
-  return (T*)getTargetWr();
+  return dewr_p();
   //## end CountedRef::operator T*%3C0F80C0020C.body
 }
 
@@ -476,12 +431,12 @@ inline CountedRef<T> & CountedRef<T>::xfer (CountedRef<T>& other)
 }
 
 template <class T>
-inline CountedRef<T>& CountedRef<T>::privatize (int flags)
+inline CountedRef<T>& CountedRef<T>::privatize (int flags, int depth)
 {
   //## begin CountedRef::privatize%3C17A06901DC.body preserve=yes
 // This simply defers to the base class clone(). It is provided here
 // so that specifc types may implement specific kind of cloning.
-  CountedRefBase::privatize(flags);
+  CountedRefBase::privatize(flags,depth);
   return *this;
   //## end CountedRef::privatize%3C17A06901DC.body
 }
@@ -574,61 +529,32 @@ inline CountedRef<T> & CountedRef<T>::attach (const T* targ, int flags)
   //## end CountedRef::attach%3C179DA9016B.body
 }
 
-// Parameterized Class LockedCountedRef 
-
-template <class T>
-inline LockedCountedRef<T>::LockedCountedRef (const CountedRef<T>& ref)
-  //## begin LockedCountedRef::LockedCountedRef%3C15FE870221.hasinit preserve=no
-  //## end LockedCountedRef::LockedCountedRef%3C15FE870221.hasinit
-  //## begin LockedCountedRef::LockedCountedRef%3C15FE870221.initialization preserve=yes
-    : CountedRef<T>(ref,DMI::COPYREF|DMI::LOCKED)
-  //## end LockedCountedRef::LockedCountedRef%3C15FE870221.initialization
-{
-  //## begin LockedCountedRef::LockedCountedRef%3C15FE870221.body preserve=yes
-  //## end LockedCountedRef::LockedCountedRef%3C15FE870221.body
-}
-
-template <class T>
-inline LockedCountedRef<T>::LockedCountedRef (const LockedCountedRef<T>& ref, int flags)
-  //## begin LockedCountedRef::LockedCountedRef%3C3C41170106.hasinit preserve=no
-  //## end LockedCountedRef::LockedCountedRef%3C3C41170106.hasinit
-  //## begin LockedCountedRef::LockedCountedRef%3C3C41170106.initialization preserve=yes
-    : CountedRef<T>(ref,flags)
-  //## end LockedCountedRef::LockedCountedRef%3C3C41170106.initialization
-{
-  //## begin LockedCountedRef::LockedCountedRef%3C3C41170106.body preserve=yes
-  //## end LockedCountedRef::LockedCountedRef%3C3C41170106.body
-}
-
-
-template <class T>
-inline LockedCountedRef<T>::~LockedCountedRef()
-{
-  //## begin LockedCountedRef::~LockedCountedRef%3C15DFD30149_dest.body preserve=yes
-  //## end LockedCountedRef::~LockedCountedRef%3C15DFD30149_dest.body
-}
-
-
 // Parameterized Class CountedRef 
 
 // Additional Declarations
   //## begin CountedRef%3BEFECFF0287.declarations preserve=yes
   //## end CountedRef%3BEFECFF0287.declarations
 
-// Parameterized Class LockedCountedRef 
-
-// Additional Declarations
-  //## begin LockedCountedRef%3C15DFD30149.declarations preserve=yes
-  //## end LockedCountedRef%3C15DFD30149.declarations
-
 //## begin module%3C10CC810321.epilog preserve=yes
 // The DefineRefTypes macro generates typedefs for refs to specific types.
 // E.g.: DefineRefType(SmartBlock,BlockRef) will define
 //    BlockRef (as CountedRef<SmartBlock>), 
-//    and LockedBlockRef (as LockedCountedRef)
-#define DefineRefTypes(type,reftype) typedef CountedRef<type> reftype; typedef LockedCountedRef<type> Locked##reftype;
+#define DefineRefTypes(type,reftype) typedef CountedRef<type> reftype; 
 
 //## end module%3C10CC810321.epilog
 
+
+#endif
+
+
+// Detached code regions:
+#if 0
+//## begin LockedCountedRef::LockedCountedRef%3C15FE870221.initialization preserve=yes
+    : CountedRef<T>(ref,DMI::COPYREF|DMI::LOCKED)
+//## end LockedCountedRef::LockedCountedRef%3C15FE870221.initialization
+
+//## begin LockedCountedRef::LockedCountedRef%3C3C41170106.initialization preserve=yes
+    : CountedRef<T>(ref,flags)
+//## end LockedCountedRef::LockedCountedRef%3C3C41170106.initialization
 
 #endif
