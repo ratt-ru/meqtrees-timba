@@ -1,8 +1,16 @@
-dmi_dir = $(lofar_sharedir)/../DMI
-
 CXXFLAGS += -Wno-unused
 
 lib_LTLIBRARIES = libviscube.la
+
+DOCHDRS = \
+  VisVocabulary.h \
+  VisCommon.h \
+  TableFormat.h \
+  ColumnarTableTile.h \
+  VisTile.h \
+  VisCube.h \
+  VisCubeSet.h
+
 
 libviscube_la_SOURCES = \
   AID-VisCube-Registry.cc \
@@ -13,18 +21,6 @@ libviscube_la_SOURCES = \
   VisCube.cc \
   VisCubeSet.cc
   
-# script used to generate AID maps
-MAPBUILDER = $(dmi_dir)/src/build_aid_maps.pl 
-
-# All .aidlist files below this dir will be scanned
-BASELISTDIR = $(lofar_sharedir)/..
-
-# Your package's subdirectory
-AID_DIR = $(top_srcdir)/src
-
-aids:
-	$(MAPBUILDER) `find $(BASELISTDIR) -name \*.aidlist` $(AID_DIR)/*.h 
- 
-
 include $(lofar_sharedir)/Makefile.common
+include $(lofar_sharedir)/Makefile.aids
 
