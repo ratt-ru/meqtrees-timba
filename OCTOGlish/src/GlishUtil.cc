@@ -460,6 +460,19 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
         string field_name = glrec.name(i);
         try // handle failed fields gracefully
         {
+          GlishValue subval = glrec.get(i);
+          // check for ignore flag and skip field if it is set
+          if( subval.attributeExists("dmi_ignore") )
+          {
+            bool ignore = False;
+            GlishArray tmp = subval.getAttribute("dmi_ignore"); 
+            tmp.get(ignore);
+            if( ignore )
+            {
+              dprintf(4)("record field [%s]: dmi_ignore set, skipping\n",field_name.c_str());
+              continue;
+            }
+          }
           dprintf(4)("record field [%s]\n",field_name.c_str());
           HIID id;
           // check for numbered fields, of the form /[*#][0-9]+/
@@ -478,7 +491,6 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
             isIndex = ( id[id.size()-1] == AidIndex );
           }
           dprintf(4)("maps to HIID '%s'\n",id.toString().c_str());
-          GlishValue subval = glrec.get(i);
           (*rec)[id] <<= glishValueToObject(subval,isIndex);
         }
         catch( std::exception &exc )
