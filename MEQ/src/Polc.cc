@@ -34,7 +34,7 @@
 
 namespace Meq {
 
-static NestableContainer::Register reg(TpMeqPolc,True);
+static DMI::Container::Register reg(TpMeqPolc,true);
 
 const int    defaultPolcAxes[MaxPolcRank]       = {0,1};
 const double defaultPolcOffset[MaxPolcRank]     = {0,0};
@@ -45,7 +45,7 @@ static std::vector<double> default_offset(defaultPolcOffset,defaultPolcOffset+Ma
 static std::vector<double> default_scale(defaultPolcScale,defaultPolcScale+MaxPolcRank);
 
 Polc::Polc(double pert,double weight,DbId id)
-  : Funklet(pert,weight,id)
+  : Funklet(pert,weight,id),pcoeff_(0)
 {
 }
 
@@ -72,97 +72,55 @@ Polc::Polc(const LoMat_double &coeff,
   setCoeff(coeff);
 }
 
-Polc::Polc(DataArray *pcoeff,
+Polc::Polc(DMI::NumArray *pcoeff,
            const int iaxis[],const double offset[],const double scale[],
            double pert,double weight,DbId id)
 {
-  coeff_ <<= pcoeff;
+  ObjRef ref(pcoeff);
   FailWhen(pcoeff->elementType() != Tpdouble,"can't create Meq::Polc from this array: not double");
   FailWhen(pcoeff->rank()>MaxPolcRank,"can't create Meq::Polc from this array: rank too high");
   int rnk = pcoeff->rank();
+  // if only a single coeff, rank is 0
   if( rnk == 1 && pcoeff->size() == 1 )
     rnk = 0;
   init(rnk,iaxis,offset,scale,pert,weight,id);
-  // if only a single coeff, rank is 0
-  DataRecord::replace(FCoeff,pcoeff,DMI::ANONWR);
+  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
+  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
 }
 
 //##ModelId=400E5354033A
-Polc::Polc (const DataRecord &other,int flags,int depth)
+Polc::Polc (const DMI::Record &other,int flags,int depth)
   : Funklet(other,flags,depth)
 {
-  validateContent();
+  validateContent(false); // not recursive
 }
 
-void Polc::setCoeff (double c00)
+Polc::Polc (const Polc &other,int flags,int depth)
+  : Funklet(other,flags,depth)
 {
-  Thread::Mutex::Lock lock(mutex());
-  FailWhen(rank()!=0,"Meq::Polc: coeff rank mismatch");
-  LoVec_double coeff(1);
-  coeff = c00;
-  coeff_ <<= new DataArray(coeff);
-  DataRecord::replace(FCoeff,coeff_.dewr_p(),DMI::ANONWR);
+// no need to validate content outside the coeff, eveything else handled by funklet copy
+  Field * fld = Record::findField(FCoeff);
+  pcoeff_ = fld ? &( fld->ref.ref_cast<DMI::NumArray>() ) : 0;
 }
 
-void Polc::setCoeff (const LoVec_double & coeff)
-{
-  Thread::Mutex::Lock lock(mutex());
-  if( !rank() )
-    init(1,defaultPolcAxes,defaultPolcOffset,defaultPolcScale);
-  else {
-    FailWhen(rank()!=1,"Meq::Polc: coeff rank mismatch");
-  }
-  coeff_ <<= new DataArray(coeff);
-  DataRecord::replace(FCoeff,coeff_.dewr_p(),DMI::ANONWR);
-}
-
-void Polc::setCoeff (const LoMat_double & coeff)
-{
-  Thread::Mutex::Lock lock(mutex());
-  if( !rank() )
-    init(2,defaultPolcAxes,defaultPolcOffset,defaultPolcScale);
-  else {
-    FailWhen(rank()!=2,"Meq::Polc: coeff rank mismatch");
-  }
-  coeff_ <<= new DataArray(coeff);
-  DataRecord::replace(FCoeff,coeff_.dewr_p(),DMI::ANONWR);
-}
-
-void Polc::privatize (int flags,int depth)
-{
-  // if deep-privatizing, then detach shortcuts -- they will be reattached 
-  // by validateContent()
-  if( flags&DMI::DEEP || depth>0 )
-  {
-    Thread::Mutex::Lock lock(mutex());
-    coeff_.detach();
-    Funklet::privatize(flags,depth);
-  }
-}
-
-void Polc::revalidateContent ()    
-{
-  Thread::Mutex::Lock lock(mutex());
-  Funklet::revalidateContent();
-  if( DataRecord::hasField(FCoeff) )
-    coeff_ = DataRecord::fieldWr(FCoeff);
-  else
-    coeff_.detach();
-}
-  
-void Polc::validateContent ()    
+void Polc::validateContent (bool recursive)    
 {
   Thread::Mutex::Lock lock(mutex());
   // ensure that our record contains all the right fields; setup shortcuts
   // to their contents
   try
   {
-    // init funklet fields
-    Funklet::validateContent();
+    // init polc fields
+    if( recursive )
+      Funklet::validateContent(true);
     // get polc coefficients
-    revalidateContent();
+    Field * fld = Record::findField(FCoeff);
+    if( fld )
+      pcoeff_ = &( fld->ref.ref_cast<DMI::NumArray>() );
+    else
+      pcoeff_ = 0;
     // check for sanity
-    Assert(rank()<=MaxPolcRank && coeff_->rank()<=rank());
+    Assert(rank()<=MaxPolcRank && coeff().rank()<=rank());
   }
   catch( std::exception &err )
   {
@@ -173,6 +131,54 @@ void Polc::validateContent ()
     Throw("validate of Polc record failed with unknown exception");
   }
 }
+
+void Polc::setCoeff (const DMI::NumArray &arr)
+{
+  Thread::Mutex::Lock lock(mutex());
+  FailWhen(rank()!=arr.rank(),"Meq::Polc: coeff rank mismatch");
+  FailWhen(arr.elementType()!=Tpdouble,"Meq::Polc: coeff array must be of type double");
+  ObjRef ref(new DMI::NumArray(arr));
+  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
+  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+}
+
+void Polc::setCoeff (double c00)
+{
+  Thread::Mutex::Lock lock(mutex());
+  FailWhen(rank()!=0,"Meq::Polc: coeff rank mismatch");
+  LoVec_double coeff(1);
+  coeff = c00;
+  ObjRef ref(new DMI::NumArray(coeff));
+  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
+  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+}
+
+void Polc::setCoeff (const LoVec_double & coeff)
+{
+  Thread::Mutex::Lock lock(mutex());
+  if( !rank() )
+    init(1,defaultPolcAxes,defaultPolcOffset,defaultPolcScale);
+  else {
+    FailWhen(rank()!=1,"Meq::Polc: coeff rank mismatch");
+  }
+  ObjRef ref(new DMI::NumArray(coeff));
+  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
+  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+}
+
+void Polc::setCoeff (const LoMat_double & coeff)
+{
+  Thread::Mutex::Lock lock(mutex());
+  if( !rank() )
+    init(2,defaultPolcAxes,defaultPolcOffset,defaultPolcScale);
+  else {
+    FailWhen(rank()!=2,"Meq::Polc: coeff rank mismatch");
+  }
+  ObjRef ref(new DMI::NumArray(coeff));
+  Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
+  pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
+}
+
 
 void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     const std::vector<double> &perts,
@@ -186,10 +192,10 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
   // a normalized grid along those axes.
   // If an axis is not defined in the Cells, then we can only proceed if we have
   // no dependence on that axis (i.e. only one coeff in that direction)
-  int coeff_rank = coeff_->rank();
+  int coeff_rank = coeff().rank();
   DbgAssert(coeff_rank<=2); // for now
-  const LoShape & cshape = coeff_->shape();
-  int coeff_size = coeff_->size();
+  const LoShape & cshape = coeff().shape();
+  int coeff_size = coeff().size();
   LoVec_double grid[2];
   for( int i=0; i<coeff_rank; i++ )
   {
@@ -231,7 +237,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     int ndx = grid.size();
     int ncx = coeff_size;
     // Evaluate the expression (as double).
-    const double* coeffData = static_cast<const double *>(coeff_->getConstDataPtr());
+    const double* coeffData = static_cast<const double *>(coeff().getConstDataPtr());
     double* pertValPtr[MaxNumPerts][spidIndex.size()];
     for( int ipert=0; ipert<makePerturbed; ipert++ )
     {
@@ -284,7 +290,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
   int ncx = cshape[0];
   int ncy = cshape[1];
   // Evaluate the expression (as double).
-  const double* coeffData = static_cast<const double *>(coeff_->getConstDataPtr());
+  const double* coeffData = static_cast<const double *>(coeff().getConstDataPtr());
   double* pertValPtr[MaxNumPerts][100];
   for( int ipert=0; ipert<makePerturbed; ipert++ )
   {
@@ -355,13 +361,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
 void Polc::do_update (const double values[],const std::vector<int> &spidIndex)
 {
   Thread::Mutex::Lock lock(mutex());
-  if( !coeff_.isWritable() )
-  {
-    coeff_.privatize(DMI::WRITE|DMI::DEEP);
-    DataRecord::replace(FCoeff,coeff_.dewr_p(),DMI::WRITE);
-    protectAllFields();
-  }
-  double* coeff = static_cast<double*>(coeff_().getDataPtr());
+  double* coeff = static_cast<double*>(coeffWr().getDataPtr());
   for( uint i=0; i<spidIndex.size(); i++ ) 
   {
     if( spidIndex[i] >= 0 ) 

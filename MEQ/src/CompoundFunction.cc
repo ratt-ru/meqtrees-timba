@@ -133,7 +133,7 @@ void CompoundFunction::computeValues ( Result &result,const std::vector<const Ve
   if( combineChildFlags(*(out_vs[0]),chvs) && nout>1 )
   {
     // if more than one output vellset, duplicate flags column (by ref, of course)
-    DataArray::Ref flagcol = out_vs[0]->getOptColRef(VellSet::FLAGS);
+    DMI::NumArray::Ref flagcol = out_vs[0]->getOptColRef(VellSet::FLAGS);
     for( int i=1; i<nout; i++ )
       out_vs[i]->setOptCol(VellSet::FLAGS,flagcol.deref_p());
   }

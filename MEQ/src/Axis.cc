@@ -1,7 +1,11 @@
 #include <MEQ/AID-Meq.h>
 #include <MEQ/Axis.h>
+#include <MEQ/Meq.h>
 
 namespace Meq {
+  
+using namespace DebugMeq;
+
 namespace Axis {
   
 int FREQ = 0;

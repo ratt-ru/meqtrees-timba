@@ -25,8 +25,8 @@
 
 //# Includes
 #include <iostream>
-#include <DMI/DataRecord.h>
-#include <DMI/DataField.h>
+#include <DMI/Record.h>
+#include <DMI/Vec.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 
@@ -36,10 +36,10 @@
 // This class represents a result of a domain for which an expression
 // has been evaluated.
 
-namespace Meq {
+namespace Meq { using namespace DMI;
 
 //##ModelId=3F86886E020D
-class Result : public DataRecord
+class Result : public DMI::Record
 {
 public:
     //##ModelId=3F86886E0210
@@ -61,9 +61,9 @@ public:
     //##ModelId=400E53550105
   Result (const Request &req,int nresults,bool integrated=false);
   
-  // Construct from DataRecord. 
+  // Construct from DMI::Record. 
     //##ModelId=400E53550116
-  Result (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
+  Result (const DMI::Record &other,int flags=0,int depth=0);
 
     //##ModelId=3F86887000D3
   ~Result();
@@ -77,36 +77,31 @@ public:
   virtual CountedRefTarget* clone (int flags, int depth) const
   { return new Result(*this,flags,depth); }
   
-    //##ModelId=400E53550142
-  virtual void privatize (int flags = 0, int depth = 0);
-  
   // validate record contents and setup shortcuts to them. This is called 
-  // automatically whenever a Result is made from a DataRecord
-  // (or when the underlying DataRecord is privatized, etc.)
+  // automatically whenever a Result is made from a DMI::Record
+  // (or when the underlying DMI::Record is privatized, etc.)
     //##ModelId=400E53550156
-  virtual void validateContent ();
-  virtual void revalidateContent ();
+  virtual void validateContent (bool recursive);
   
 
   // ------------------------ CELLS
   // Set or get the cells.
-  // Attaches cells object (default as anon). Can also specify DMI::CLONE
-  // to copy
+  // Attaches cells object 
     //##ModelId=3F86887000D4
-  void setCells (const Cells *,int flags = DMI::ANON|DMI::NONSTRICT);
+  void setCells (const Cells *,int flags = 0);
   // Attaches cells object (default is external). 
     //##ModelId=400E53550163
-  void setCells (const Cells &cells,int flags = DMI::EXTERNAL|DMI::NONSTRICT)
+  void setCells (const Cells &cells,int flags = DMI::AUTOCLONE)
   { setCells(&cells,flags); }
 
     //##ModelId=400E53550174
   bool hasCells () const
-  { return cells_.valid(); }
+  { return pcells_ != 0; }
     
     //##ModelId=400E53550178
   const Cells& cells() const
-  { DbgFailWhen(!cells_.valid(),"no cells in Meq::Result");
-    return *cells_; }
+  { DbgFailWhen(!pcells_,"no cells in Meq::Result");
+    return pcells_->deref(); }
     
   // ------------------------ INTEGRATED property
   // this is set at construction time
@@ -128,28 +123,29 @@ public:
     
     //##ModelId=400E53550185
   int numVellSets () const
-    { return vellsets_.valid() ? vellsets_->size() : 0; }
+    { return pvellsets_ ? pvellsets_->deref().size() : 0; }
   
     //##ModelId=400E53550189
   const VellSet & vellSet (int i) const
-    { return (*vellsets_)[i].as<VellSet>(); }
+    { return pvellsets_->deref()[i].as<VellSet>(); }
   
   VellSet::Ref vellSetRef (int i) const
-    { return (*vellsets_)[i].ref(); }
+    { return pvellsets_->deref()[i].ref(); }
   
     //##ModelId=400E53550193
   VellSet & vellSetWr (int i)
     { return wrVellSets()[i].as_wr<VellSet>(); }
   
     //##ModelId=400E5355019D
-  const VellSet & setVellSet (int i,const VellSet *pvs,int flags=DMI::ANON)
-  { wrVellSets().put(i,pvs,(flags&~DMI::WRITE)|DMI::READONLY); return *pvs; }
+  const VellSet & setVellSet (int i,const VellSet *pvs,int flags=0)
+    { wrVellSets().put(i,pvs,flags); return *pvs; }
   
-  VellSet & setVellSet (int i,VellSet *pvs,int flags=DMI::ANON)
-  { wrVellSets().put(i,pvs,(flags&~DMI::READONLY)|DMI::WRITE); return *pvs; }
+  VellSet & setVellSet (int i,VellSet *pvs,int flags=0)
+    { wrVellSets().put(i,pvs,flags); return *pvs; }
   
     //##ModelId=400E535501AD
-  const VellSet & setVellSet (int i,VellSet::Ref::Xfer &vellset);
+  const VellSet & setVellSet (int i,const VellSet::Ref &vellset,int flags=0)
+    { wrVellSets().put(i,vellset,flags); return *vellset; }
   
   // creates new vellset at plane i with the given # of spids
     //##ModelId=400E535501BF
@@ -163,40 +159,32 @@ public:
     //##ModelId=400E535501D4
   int numFails () const;
 
-  
-  virtual int remove (const HIID &id);  
-
   // dumps result to stream
     //##ModelId=3F868870014C
   void show (std::ostream&) const;
 
-    //##ModelId=3F8688700098
-  static int nctor;
-    //##ModelId=3F868870009A
-  static int ndtor;
-  
 protected: 
-  // disable public access to some DataRecord methods that would violate the
-  // structure of the container
-    //##ModelId=400E535500A0
-  DataRecord::remove;
-    //##ModelId=400E535500A8
-  DataRecord::replace;
-    //##ModelId=400E535500AF
-  DataRecord::removeField;
+  Record::protectField;  
+  Record::unprotectField;  
+  Record::begin;  
+  Record::end;  
+  Record::as;
+  Record::clear;
   
 private:
   // sets the integrated property, including underlying record
   void setIsIntegrated (bool integrated);
     
-  // helper function: privatizes the vellsets_ field for writing if 
-  // needed, dereferences
-  DataField &     wrVellSets ();
+  // helper function: write-access to vellsets (enforces COW)
+  DMI::Vec &       wrVellSets ()
+  {
+    return pvellsets_->dewr();
+  }
     
     //##ModelId=400E535500B8
-  DataField::Ref  vellsets_;
+  DMI::Vec::Ref  * pvellsets_;
     //##ModelId=3F86BFF802B0
-  Cells::Ref      cells_;
+  Cells::Ref     * pcells_;
   
   bool            is_integrated_;
 };

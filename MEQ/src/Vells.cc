@@ -26,204 +26,103 @@
 #include <cmath>
 #include <complex>
 
-namespace Meq {
+namespace DebugMeq 
+{
+  ::Debug::Context DebugContext("Meq");
+}
+
+namespace Meq 
+{
+
+static DMI::Container::Register reg(TpMeqVells,true);
 
 //##ModelId=3F86887001D4
 Vells::Vells()
-: num_elements_ (0),
-  element_type_ (0),
-  element_size_ (0),
-  is_temp_      (false),
-  storage_      (0)
+: is_temp_      (false)
 {}
 
-void Vells::initArrayPointers (const DataArray *parr,int flags)
-{
-  // privatize if so asked
-  if( flags&DMI::PRIVATIZE )
-    parr = array_.privatize(flags|DMI::DEEP).dewr_p();
-  shape_ = parr->shape();
-  num_elements_ = parr->size();
-  element_type_ = parr->elementType();
-  element_size_ = parr->elementSize();
-  storage_ = const_cast<void*>(parr->getConstDataPtr());
-}
-
-//##ModelId=400E5356013E
-void Vells::initFromDataArray (const DataArray *parr,int flags)
-{
-  FailWhen(parr->rank()>Axis::MaxAxis,"can't init Meq::Vells from array: rank too high");
-  element_type_ = parr->elementType();
-  if( !element_type_  )
-  {
-    // initializing from empty array makes empty vells
-    initArrayPointers(parr,flags);
-  }
-  else
-  {
-    FailWhen(element_type_!=Tpdouble && element_type_!=Tpdcomplex,
-             "can't init Meq::Vells from array of type "+element_type_.toString());
-    initArrayPointers(parr,flags);
-  }
-}
-
 //##ModelId=3F86887001D5
-// creating a Vells from a scalar is "quick" because no DataArray
-// is allocated. It will be allocated on-demand later if required
 Vells::Vells (double value,bool temp)
-: shape_        (1),
-  num_elements_ (1),
-  element_type_ (Tpdouble),
-  element_size_ (sizeof(double)),
-  is_temp_      (temp)
+: NumArray(Tpdouble,LoShape(1),DMI::NOZERO),
+  is_temp_(temp)
 {
-  *static_cast<double*>(storage_ = scalar_storage_) = value;
+  // casting away const is kinda faster here because we know we
+  // don't need to make the array writable or worry about COW in constructor 
+  *static_cast<double*>(const_cast<void*>(getConstDataPtr())) = value;
 }
 
 //##ModelId=3F86887001DC
 Vells::Vells (const dcomplex& value,bool temp)
-: shape_        (1),
-  num_elements_ (1),
-  element_type_ (Tpdcomplex),
-  element_size_ (sizeof(dcomplex)),
+: NumArray(Tpdcomplex,LoShape(1),DMI::NOZERO),
   is_temp_      (temp)
 {
-  *static_cast<dcomplex*>(storage_ = scalar_storage_) = value;
-}
-
-// helper function returns ref to data array. If one of the "quick scalar"
-// constructors above was used, we may need to create the array on the fly here
-const DataArray::Ref & Vells::getArrayRef (bool write) const
-{
-  // I didn't want to make array_ and storage_ mutable, since
-  // this is the only const method that actually modifies them
-  // Hence the const casts
-  if( array_.valid() )
-  {
-    if( write )
-      const_cast<Vells*>(this)->makeWritable();
-    return array_;
-  }
-  if( num_elements_ == 1 )
-  {
-    Vells & self = *const_cast<Vells*>(this);
-    DataArray *parr;
-    self.array_ <<= parr = new DataArray(element_type_,shape_);
-    self.storage_ = parr->getDataPtr();
-    memcpy(self.storage_,scalar_storage_,parr->elementSize());
-    return array_;
-  }
-  Throw("taking array ref of empty Vells, or array missing");
+  // casting away const is kinda faster here because we know we
+  // don't need to make the array writable or worry about COW in constructor 
+  *static_cast<dcomplex*>(const_cast<void*>(getConstDataPtr())) = value;
 }
 
 //##ModelId=3F86887001E3
 Vells::Vells (double value,const Vells::Shape &shape, bool init)
-: is_temp_ (false)
+: NumArray(Tpdouble,shape,DMI::NOZERO),
+  is_temp_ (false)
 {
-  DataArray *parr;
-  array_ <<= parr = new DataArray(Tpdouble,shape);
-  initFromDataArray(parr);
   if( init )
   {
-    double *begin = static_cast<double*>(storage_),
-           *end   = begin + num_elements_;
+    double *begin = static_cast<double*>(const_cast<void*>(getConstDataPtr())),
+           *end   = begin + nelements();
     while( begin<end )
       *(begin++) = value;
   }
 }
 
 Vells::Vells (const dcomplex &value,const Vells::Shape &shape, bool init)
-: is_temp_ (false)
+: NumArray(Tpdcomplex,shape,DMI::NOZERO),
+  is_temp_ (false)
 {
-  DataArray *parr;
-  array_ <<= parr = new DataArray(Tpdcomplex,shape);
-  initFromDataArray(parr);
   if( init )
   {
-    dcomplex *begin = static_cast<dcomplex*>(storage_),
-             *end   = begin + num_elements_;
+    dcomplex *begin = static_cast<dcomplex*>(const_cast<void*>(getConstDataPtr())),
+             *end   = begin + nelements();
     while( begin<end )
       *(begin++) = value;
   }
 }
 
-//##ModelId=3F8688700216
-Vells::Vells (DataArray *parr,int flags)
-: is_temp_ (false)
-{
-  array_.attach(parr,(flags&~DMI::READONLY)|DMI::WRITE);
-  initFromDataArray(parr,flags);
-}
-
-//##ModelId=3F868870021C
-Vells::Vells (const DataArray *parr,int flags)
-: is_temp_ (false)
-{
-  array_.attach(parr,(flags&~DMI::WRITE)|DMI::READONLY);
-  initFromDataArray(parr,flags);
-}
-
-//##ModelId=3F8688700223
-Vells::Vells (const DataArray::Ref::Xfer &ref)
-: is_temp_ (false)
-{
-  array_ = ref;
-  initFromDataArray(array_.deref_p());
-}
-
-void Vells::clone (const Vells &other,int flags)
-{
+Vells::Vells (const NumArray &that,int flags,int depth)
+: NumArray(that,flags,depth),
   // Assigning or copying a temp vells always yields a non-temp vells.
   // This means that temp Vells can only occur as intermediate objects
   // in Vells math expressions (unless created/set as temp explicitly).
-  is_temp_ = false;
-  shape_   = other.shape_;
-  num_elements_ = other.num_elements_;
-  element_type_ = other.element_type_;
-  element_size_ = other.element_size_;
-  // other vells has a real array attached
-  if( other.array_.valid() )
-  {
-    if( flags&DMI::PRIVATIZE )
-      flags = (flags&~DMI::READONLY)|DMI::WRITE;
-    else
-      flags = (flags&~DMI::WRITE)|DMI::READONLY;
-    array_.copy(other.array_,flags);
-    storage_ = const_cast<void*>( array_->getConstDataPtr() );
-  }
-  else   // no array, must be empty or using temp scalar storage
-  {
-    array_.detach();
-    if( num_elements_ == 1 )
-    {
-      Assert(other.storage_ == other.scalar_storage_);
-      storage_ = scalar_storage_;
-      memcpy(storage_,other.storage_,element_size_);
-    }
-    else
-    {
-      Assert(!num_elements_);
-      storage_ = 0;
-    }
-  }
-  dataflags_.copy(other.dataflags_,flags);
+  is_temp_(false)
+{
+  validateContent(false);
 }
 
-  //##ModelId=3F868870022A
-Vells::Vells (const Vells& other,int flags)
-: SingularRefTarget()
+Vells::Vells (const Vells &that,int flags,int depth)
+: NumArray(that,flags,depth),
+  is_temp_(false)
 {
-  clone(other,flags);
+  dataflags_.copy(that.dataflags_,flags,depth);
 }
 
 //##ModelId=3F868870023B
 Vells& Vells::operator= (const Vells& other)
 {
-  if (this != &other) 
-    clone(other);
-  else
+  if( this != &other) 
+  {
+    NumArray::operator = (other);
     is_temp_ = false;
+    dataflags_ = other.dataflags_;
+  }
   return *this;
+}
+
+void Vells::validateContent (bool)
+{
+  is_temp_ = false;
+  FailWhen(rank()>Axis::MaxAxis,"can't init Meq::Vells from array: rank too high");
+  FailWhen(elementType()!=Tpdouble && elementType()!=Tpdcomplex,
+      "can't init Meq::Vells from array of type "+elementType().toString());
 }
 
 //##ModelId=3F8688700238
@@ -231,25 +130,6 @@ Vells::~Vells()
 {
 }
 
-void Vells::privatize (int flags,int depth)
-{
-  if( array_.valid() )
-  {
-    DataArray & arr = array_.privatize(flags,depth).dewr();
-    storage_ = const_cast<void*>(arr.getConstDataPtr());
-  }
-}
-
-// void Vells::makeWritable () 
-// { 
-//   if( array_.valid() && !array_.isWritable() )
-//   {
-//     array_.privatize(DMI::WRITE);
-//     storage_ = array_().getDataPtr();
-//   }
-// }
-// 
-// 
 //##ModelId=3F8688700282
 void Vells::show (std::ostream& os) const
 {
@@ -259,12 +139,11 @@ void Vells::show (std::ostream& os) const
 //##ModelId=400E53560110
 void Vells::copyData (const Vells &other)
 {
-  makeWritable();
-  if( this != &other && array_ != other.array_ )
+  if( this != &other )
   {
     FailWhen( shape() != other.shape() || elementType() != other.elementType(),
         "Meq::Vells size/type mismatch");
-    memcpy(storage_,other.storage_,nelements()*elementSize());
+    memcpy(getDataPtr(),other.getConstDataPtr(),nelements()*elementSize());
   }
 }
   
@@ -272,7 +151,7 @@ void Vells::copyData (const Vells &other)
 void Vells::zeroData ()
 {
   makeWritable();
-  memset(storage_,0,nelements()*elementSize());
+  memset(getDataPtr(),0,nelements()*elementSize());
 }
 
 
@@ -318,40 +197,31 @@ void Vells::zeroData ()
 //##ModelId=400E5356019D
 inline bool Vells::tryReference (const Vells &other)
 {
-  // the 'other' array can be reused if it's a temp, it has the
-  // same size and type, and it's writable
-  if( other.isTemp() && 
-      other.array_.valid() &&
-      elementType() == other.elementType() &&
-      shape() == other.shape() )
-  {
-    // if other is not writable, we can still make it so by privatizing its 
-    // array for writing if it is the sole referrer
-    if( !other.array_.isWritable() )
-    {
-      if( other.array_->refCount() > 1 )
-        return false;
-      const_cast<Vells&>(other).privatize(DMI::WRITE);
-    }
-    array_.copy(other.array_,DMI::PRESERVE_RW);
-    storage_ = other.storage_;
-    return true;
-  }
+// disable for now: figure out how this plays with COWs later
+//   // the 'other' array can be reused if it's a temp, it has the
+//   // same size and type, and it's writable
+//   if( other.isTemp() && 
+//       other.array_.valid() &&
+//       elementType() == other.elementType() &&
+//       shape() == other.shape() )
+//   {
+//     // if other is not directly writable, no point in reusing it
+//     if( !other.array_.isDirectlyWritable() )
+//       return false;
+//     array_ = other.array_;
+//     storage_ = other.storage_;
+//     return true;
+//   }
   return false;
 }
 
-void Vells::setSizeType (int flags,bool arg_is_complex)
+// helper function used to figure out type of result
+TypeId Vells::getResultType (int flags,bool arg_is_complex)
 {
-  if( flags&VF_COMPLEX || ( !(flags&VF_REAL) && arg_is_complex ) )
-  {
-    element_type_ = Tpdcomplex;
-    element_size_ = sizeof(dcomplex);
-  }
+  if( flags&Vells::VF_COMPLEX || ( !(flags&Vells::VF_REAL) && arg_is_complex ) )
+    return Tpdcomplex;
   else
-  {
-    element_type_ = Tpdouble;
-    element_size_ = sizeof(double);
-  }
+    return Tpdouble;
 }
 
 // constructor for a temp vells in unary expression
@@ -365,27 +235,9 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
   FailWhen(flags&VF_CHECKCOMPLEX && other.isReal(),
       opname + "() can only be used with a complex Meq::Vells");
   // determine shape
-  if( flags&VF_SCALAR ) // force a scalar Vells
-  {
-    shape_ = LoShape(1);
-    num_elements_ = 1;
-  }
-  else // else inherit shape from other
-  {
-    shape_ = other.shape();
-    num_elements_ = other.num_elements_;
-  }
-  // determine type
-  setSizeType(flags,other.isComplex());
-  // now, if we're still congruent with the other Vells, and it's
-  // a temporary, then tryReference() will reuse its array. Else allocate new
-  // one.
   if( !tryReference(other) )
-  {
-    DataArray *parr;
-    array_ <<= parr = new DataArray(element_type_,shape_);
-    storage_ = parr->getDataPtr();
-  }
+    NumArray::init( getResultType(flags,other.isComplex()), 
+        flags&VF_SCALAR ? LoShape(1) : other.shape(),DMI::NOZERO);
 }
 
 // // constructor for a temp vells in a unary reduction expression
@@ -414,8 +266,8 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
 //     num_elements_ = other.num_elements_/nred;
 //     setSizeType(flags,other.isComplex());
 //     // setup output array
-//     DataArray *parr;
-//     array_ <<= parr = new DataArray(element_type_,shape_);
+//     DMI::NumArray *parr;
+//     array_ <<= parr = new DMI::NumArray(element_type_,shape_);
 //     storage_ = parr->getDataPtr();
 //     // setup strides for reduction iterator. The output iterates over
 //     // every contiguous point. The input has to iterate over the starting point
@@ -466,7 +318,7 @@ void Vells::computeStrides (Vells::Shape &shape,
                             const Vells &a,const Vells &b,
                             const string &opname)
 {
-  int rnk = max(a.rank(),b.rank());
+  int rnk = std::max(a.rank(),b.rank());
   shape.resize(rnk);
   // Loop over all axes to determine output shape and input strides for iterators.
   int tota=1,totb=1;
@@ -474,8 +326,8 @@ void Vells::computeStrides (Vells::Shape &shape,
   for( int i=0; i<rnk; i++ ) 
   {
     // get size along each axis -- if past the last rank, use 1
-    int sza = i < a.rank() ? a.shape_[i] : 1;
-    int szb = i < b.rank() ? b.shape_[i] : 1;
+    int sza = i < a.rank() ? a.shape()[i] : 1;
+    int szb = i < b.rank() ? b.shape()[i] : 1;
     bool a_big = sza>1;
     bool b_big = szb>1;
     if( a_big && b_big && sza != szb )
@@ -507,29 +359,18 @@ Vells::Vells (const Vells &a,const Vells &b,int flags,
   FailWhen(flags&VF_CHECKCOMPLEX && (a.isReal() || b.isReal()),
       opname + "() can only be applied to two complex Meq::Vells");
   // determine shape and strides 
-  computeStrides(shape_,strides_a,strides_b,a,b,opname);
-  num_elements_ = shape_.product();
-  // determine type. 
-  setSizeType(flags,a.isComplex() || b.isComplex());
+  LoShape shp;
+  computeStrides(shp,strides_a,strides_b,a,b,opname);
   // now, if we're still congruent with the a or b, and it's
   // a temporary, then we can reuse its storage. Else allocate new
   if( !( tryReference(a) || tryReference(b) ) )
-  {
-    if( num_elements_ == 1 ) // use scalar storage
-      storage_ = scalar_storage_;
-    else // allocate array
-    {
-      DataArray *parr;
-      array_ <<= parr = new DataArray(element_type_,shape_);
-      storage_ = parr->getDataPtr();
-    }
-  }
+    NumArray::init(getResultType(flags,a.isComplex() || b.isComplex()),shp,DMI::NOZERO);
 }
 
 // Determines if other Vells can be applied to us in-place (i.e. += and such).
 // This is only possible if our type and shape are not lower-ranked.
-// If operation is not applicable, returns False.
-// If it is, returns True and populates strides[] with the incremental strides
+// If operation is not applicable, returns false.
+// If it is, returns true and populates strides[] with the incremental strides
 // which need to be applied to other.
 bool Vells::canApplyInPlace (const Vells &other,int strides[],const std::string &opname)
 {
@@ -543,8 +384,8 @@ bool Vells::canApplyInPlace (const Vells &other,int strides[],const std::string 
   for( int i=0; i<rank(); i++ ) 
   {
     // get size along each axis -- if past the last rank, use 1
-    int sz_ours  = shape_[i];
-    int sz_other = i < other.rank() ? other.shape_[i] : 1;
+    int sz_ours  = extent(i);
+    int sz_other = other.extent(i);
     if( sz_other == 1 ) // other is constant along this axis
       strides[i] = degenerateAxis(total,deg);
     else if( sz_ours == sz_other ) // shape of this axis >1 and matches
@@ -559,41 +400,17 @@ bool Vells::canApplyInPlace (const Vells &other,int strides[],const std::string 
 }
 
 //##ModelId=400E5356011F
-string Vells::sdebug (int detail,const string &,const char *nm) const
+string Vells::sdebug (int detail,const string &pf,const char *nm) const
 {
-  using Debug::append;
-  using Debug::appendf;
-  using Debug::ssprintf;
-  string out;
-  if( detail >= 0 ) // basic detail
-  {
-    out = ssprintf("%s/%08x",nm?nm:"MeqVells",(void*)this);
-    if( isTemp() )
-      out += "/tmp";
-  }
-  else if( detail >= 1 || detail == -1 ) // basic detail
-  {
-    if( isNull() )
-      append(out,"(null)");
-    else
-    {
-      out += " ";
-      for( uint i=0; i<shape_.size(); i++ )  
-        out += ssprintf("%s%d",i?"x":"",shape_[i]);
-      out += isReal()?"R":"C";
-    }
-  }
-  else if( detail >= 2 || detail == -2 ) // basic detail
-  {
-    if( !isNull() )
-      appendf(out,"arr:%08x",(void*)array_.deref_p());
-  }
-  return out;
+  return NumArray::sdebug(detail,pf,nm?nm:"MeqVells");
 }
 
 } // namespace Meq
 
-
+using namespace DMI;
+using namespace DebugMeq;
+using std::min;
+using std::max;
 
 // Close the namespace Meq declaration, since we don't want any Meq math
 // functions polluting the current scope -- this can confuse the compiler

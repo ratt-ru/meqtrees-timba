@@ -25,9 +25,9 @@
 #include "ResampleMachine.h"
 #include "MeqVocabulary.h"
 #include <DMI/BlockSet.h>
-#include <DMI/DataRecord.h>
-#include <DMI/DataField.h>
-#include <DMI/DataArray.h>
+#include <DMI/Record.h>
+#include <DMI/Vec.h>
+#include <DMI/NumArray.h>
 #include <algorithm>
 
 namespace Meq {
@@ -149,16 +149,16 @@ void Node::initChildren (int nch)
   // form the children name/index fields
   if( nch )
   {
-    NestableContainer *p1,*p2;
+    DMI::Container *p1,*p2;
     if( !child_labels_.empty() ) // children are labelled: use records
     {
-      child_indices_ <<= p1 = new DataRecord;
-      child_names_ <<= p2 = new DataRecord;
+      child_indices_ <<= p1 = new DMI::Record;
+      child_names_ <<= p2 = new DMI::Record;
     }
     else // children are unlabelled: use fields
     {
-      child_indices_ <<= p1 = new DataField(Tpint,nch);
-      child_names_ <<= p2 = new DataField(Tpstring,nch);
+      child_indices_ <<= p1 = new DMI::Vec(Tpint,nch);
+      child_names_ <<= p2 = new DMI::Vec(Tpstring,nch);
     }
     // set up map from label to child number 
     // (if no labels are defined, trivial "0", "1", etc. are used)
@@ -175,14 +175,14 @@ void Node::initChildren (int nch)
 }
 
 //##ModelId=400E530F0090
-void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
+void Node::reinit (DMI::Record::Ref &initrec, Forest* frst)
 {
   cdebug(1)<<"reinitializing node"<<endl;
   forest_ = frst;
       
-  // xfer & privatize the state record -- we don't want anyone
-  // changichildrec.size()ng it under us
-  DataRecord &rec = staterec_.xfer(initrec).privatize(DMI::WRITE|DMI::DEEP);
+  // xfer & COW the state record -- we don't want anyone
+  // changing it under us
+  DMI::Record &rec = staterec_.xfer(initrec).dewr();
 
   // set control state
   control_status_ = rec[FControlStatus].as<int>();
@@ -210,22 +210,20 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
   {
     cdebug(2)<<"no children to reintialize"<<endl;
   }
-  
   // finally, call setStateImpl to set up reconfigurable node state
   cdebug(2)<<"reinitializing node (setStateImpl)"<<endl;
   cdebug(3)<<"state is "<<staterec_().sdebug(10,"    ")<<endl;
-  setStateImpl(staterec_(),true);
+  setStateImpl(staterec_,true);
 }  
 
 //##ModelId=3F5F45D202D5
-void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
+void Node::init (DMI::Record::Ref &initrec, Forest* frst)
 {
   cdebug(1)<<"initializing node"<<endl;
   forest_ = frst;
   
-  // xfer & privatize the state record -- we don't want anyone
-  // changichildrec.size()ng it under us
-  DataRecord &rec = staterec_.xfer(initrec).privatize(DMI::WRITE|DMI::DEEP);
+  // xfer & COW the state record
+  DMI::Record &rec = staterec_.xfer(initrec).dewr();
   
   // set defaults and check for missing fields
   cdebug(2)<<"initializing node (checkInitState)"<<endl;
@@ -240,7 +238,7 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // do other checks
   FailWhen(rec[FResolveParentId].exists(),"can't specify "+FResolveParentId.toString()+" in init record");
   node_resolve_id_ = -1;
-  checkInitState(rec);
+  checkInitState(staterec_);
   // add state word
   rec[FControlStatus] = control_status_;
   
@@ -250,44 +248,41 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   if( rec[FNodeIndex].exists() )
     node_index_ = rec[FNodeIndex].as<int>();
   
-  // get children spec. If this is a single boolean False, then ignore
-  DataRecord::Hook hchildren(rec,FChildren);
+  // get children spec. If this is a single boolean false, then ignore
+  DMI::Record::Hook hchildren(rec,FChildren);
   if( hchildren.type() == Tpbool && hchildren.size() == 1 &&
       !hchildren.as<bool>() )
   {
-    cdebug(2)<<"Children=[False], skipping child creation"<<endl;
+    cdebug(2)<<"Children=[false], skipping child creation"<<endl;
   }
   // Not [F}, so go on to process children
   else if( hchildren.exists() )
   {
     ObjRef ref = hchildren.remove();
     // children specified via a record
-    if( ref->objectType() == TpDataRecord )
+    if( ref->objectType() == TpDMIRecord )
     {
-      DataRecord &childrec = ref.ref_cast<DataRecord>();
+      DMI::Record &childrec = ref.ref_cast<DMI::Record>();
       initChildren(childrec.size());
       // iterate through children record and create the child nodes
-      DataRecord::Iterator iter = childrec.initFieldIter();
-      HIID id;
       int ifield = 0;
-      NestableContainer::Ref child_ref;
-      while( childrec.getFieldIter(iter,id,child_ref) )
+      for( DMI::Record::Iterator iter = childrec.begin(); iter != childrec.end(); iter++ )
       {
-        // if child labels are not specified, use the field number instead
+        const HIID &id = iter.id();
         processChildSpec(childrec,child_labels_.empty() ? AtomicID(ifield) : id,id );
         ifield++;
       }
     }
-    else if( ref->objectType() == TpDataField || ref->objectType() == TpDataList )
+    else if( ref->objectType() == TpDMIVec || ref->objectType() == TpDMIList )
     {
-      NestableContainer &childrec = ref.ref_cast<NestableContainer>();
+      DMI::Container &childrec = ref.ref_cast<DMI::Container>();
       initChildren(childrec.size());
       for( int i=0; i<childrec.size(); i++ )
         processChildSpec(childrec,AtomicID(i),AtomicID(i));
     }
-    else if( ref->objectType() == TpDataArray )
+    else if( ref->objectType() == TpDMINumArray )
     {
-      DataArray &childarr = ref.ref_cast<DataArray>();
+      DMI::NumArray &childarr = ref.ref_cast<DMI::NumArray>();
       FailWhen(childarr.rank()!=1,"illegal child array");
       int nch = childarr.shape()[0];
       initChildren(nch);
@@ -313,11 +308,11 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // finally, call setStateImpl to set up reconfigurable node state
   cdebug(2)<<"initializing node (setStateImpl)"<<endl;
   cdebug(3)<<"initial state is "<<staterec_().sdebug(10,"    ")<<endl;
-  setStateImpl(staterec_(),true);
+  setStateImpl(staterec_,true);
 }
 
 //##ModelId=400E531402D1
-void Node::setStateImpl (DataRecord &rec,bool initializing)
+void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   // if not initializing, check for immutable fields
   if( !initializing )
@@ -340,14 +335,14 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
   // set/clear cached result
   //   the cache_result field must be either a Result object,
   //   or a boolean false to clear the cache. Else throw exception.
-  DataRecord::Hook hcache(rec,FCacheResult);
+  DMI::Record::Hook hcache(rec,FCacheResult);
   TypeId type = hcache.type();
   if( type == TpMeqResult ) // a result
   {
     cache_result_ <<= hcache.as_wp<Result>();
     control_status_ |= CS_CACHED;
   }
-  else if( type == Tpbool && !hcache.as<bool>() ) // a bool False
+  else if( type == Tpbool && !hcache.as<bool>() ) // a bool false
   {
     cache_result_.detach();
     control_status_ &= ~CS_CACHED;
@@ -372,14 +367,14 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
   // get known symdeps
   rec[FKnownSymDeps].get_vector(known_symdeps_,initializing && !known_symdeps_.empty());
   // get symdep masks, if specified
-  DataRecord::Hook hdepmasks(rec,FSymDepMasks);
+  DMI::Record::Hook hdepmasks(rec,FSymDepMasks);
   if( hdepmasks.exists() )
   {
     symdep_masks_.clear();
-    if( hdepmasks.type() == TpDataRecord )
+    if( hdepmasks.type() == TpDMIRecord )
     {
       cdebug(2)<<"new symdep_masks set via state\n";
-      const DataRecord &maskrec = hdepmasks.as<DataRecord>();
+      const DMI::Record &maskrec = hdepmasks.as<DMI::Record>();
       for( uint i=0; i<known_symdeps_.size(); i++ )
       {
         const HIID &id = known_symdeps_[i];
@@ -400,12 +395,12 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
     resetDependMasks();
   }
   // get generated symdeps, if any are specified
-  DataRecord::Hook genhook(rec,FGenSymDep);
+  DMI::Record::Hook genhook(rec,FGenSymDep);
   if( genhook.exists() )
   {
     try 
     {
-      const DataRecord &deps = genhook.as<DataRecord>();
+      const DMI::Record &deps = genhook.as<DMI::Record>();
       std::map<HIID,int>::iterator iter = gen_symdep_masks_.begin();
       gen_symdep_fullmask_ = 0;
       for( ; iter != gen_symdep_masks_.end(); iter++ )
@@ -420,7 +415,7 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
   // else place them into data record
   else if( initializing && !gen_symdep_masks_.empty() )
   {
-    DataRecord &deps = genhook <<= new DataRecord;
+    DMI::Record &deps = genhook <<= new DMI::Record;
     std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
     for( ; iter != gen_symdep_masks_.end(); iter++ )
       deps[iter->first] = iter->second;
@@ -459,13 +454,13 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
 }
 
 //##ModelId=3F5F445A00AC
-void Node::setState (DataRecord &rec)
+void Node::setState (DMI::Record::Ref &rec)
 {
   // lock records until we're through
-  Thread::Mutex::Lock lock(rec.mutex()),lock2(state().mutex());
+  Thread::Mutex::Lock lock(rec->mutex()),lock2(state().mutex());
   // when initializing, we're called with our own state record, which
   // makes the rules somewhat different:
-  bool initializing = ( &rec == &(wstate()) );
+  bool initializing = ( rec == staterec_ );
   cdebug(2)<<"setState(init="<<initializing<<"): "<<rec.sdebug(10)<<endl;
   string fail;
   // setStateImpl() is allowed to throw exceptions if something goes wrong.
@@ -500,26 +495,26 @@ void Node::setState (DataRecord &rec)
     // & truly fscked (a good node should always be reinitializable), so
     // we might as well re-throw itm, letting the caller deal with it.
     if( !initializing )
-      setStateImpl(wstate(),true);
+      setStateImpl(staterec_,true);
     Throw(fail); // rethrow the fail
   }
   else // success
   {
-    // success: merge record into state record; deep-privatize for writing 
+    // success: merge record into state record
     if( !initializing )
-      wstate().merge(rec,True,DMI::PRIVATIZE|DMI::WRITE|DMI::DEEP);
+      wstate().merge(rec,true);
   }
 }
 
 //##ModelId=3F9505E50010
-void Node::processChildSpec (NestableContainer &children,const HIID &chid,const HIID &id)
+void Node::processChildSpec (DMI::Container &children,const HIID &chid,const HIID &id)
 {
   // child specified by init-record: create recursively
   TypeId spec_type = children[id].type();
-  if( spec_type == TpDataRecord )
+  if( spec_type == TpDMIRecord )
   {
     cdebug(4)<<"  child "<<id<<" specified by init record"<<endl;
-    DataRecord::Ref child_initrec = children[id].ref();
+    DMI::Record::Ref child_initrec = children[id].ref();
     // check if named child already exists
     string name = child_initrec[FName].as<string>("");
     int index = -1;
@@ -541,7 +536,7 @@ void Node::processChildSpec (NestableContainer &children,const HIID &chid,const 
       try
       {
         cdebug(2)<<"  creating child "<<id<<endl;
-        Node &child = forest_->create(index,child_initrec.ref_cast<DataRecord>());
+        Node & child = forest_->create(index,child_initrec.ref_cast<DMI::Record>());
         addChild(chid,&child);
       }
       catch( std::exception &exc )
@@ -618,7 +613,7 @@ void Node::addChild (const HIID &id,Node *childnode)
   // attach ref to child if specified (will stay unresolved otherwise)
   if( childnode )
   {
-    children_[ich].attach(childnode,DMI::WRITE);
+    children_[ich].attach(childnode,DMI::SHARED);
     child_names_()[getChildLabel(ich)] = childnode->name();
     child_indices_()[getChildLabel(ich)] = childnode->nodeIndex();
   }
@@ -632,7 +627,7 @@ void Node::relinkChildren ()
 {
   for( int i=0; i<numChildren(); i++ )
   {
-    children_[i].attach(forest().get((*child_indices_)[getChildLabel(i)]),DMI::WRITE);
+    children_[i].attach(forest().get((*child_indices_)[getChildLabel(i)]),DMI::SHARED);
   }
   checkChildren();
 }
@@ -653,7 +648,7 @@ void Node::resolveChildren (bool recursive)
       try
       {
         Node &childnode = forest_->findNode(name);
-        children_[i].attach(childnode,DMI::WRITE);
+        children_[i].attach(childnode,DMI::SHARED);
         child_indices_()[label] = childnode.nodeIndex();
       }
       catch( ... )
@@ -700,7 +695,7 @@ inline int Node::getChildNumber (const HIID &id)
 //##ModelId=3F9919B10014
 void Node::setCurrentRequest (const Request &req)
 {
-  wstate()[FRequest].replace().put(req,DMI::READONLY);
+  wstate()[FRequest].replace().put(req);
   wstate()[FRequestId].replace() = current_reqid_ = req.id();
 }
 
@@ -742,7 +737,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
         ? req.id() == current_reqid_
         : maskedCompare(req.id(),current_reqid_,cache_retcode_) ) )
   {
-    ref.copy(cache_result_,DMI::PRESERVE_RW);
+    ref = cache_result_;
     retcode = cache_retcode_;
     return true;
   }
@@ -936,12 +931,12 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
                         const Request &req)
 {
 //   // in verbose mode, child results will also be stuck into the state record
-//   DataField *chres = 0;
+//   DMI::Vec *chres = 0;
 //   if( forest().verbosity()>1 )
-//     wstate()[FChildResults] <<= chres = new DataField(TpMeqResult,numChildren());
+//     wstate()[FChildResults] <<= chres = new DMI::Vec(TpMeqResult,numChildren());
 //   
   setExecState(CS_ES_POLLING);
-  bool cache_result = False;
+  bool cache_result = false;
   int retcode = 0;
   cdebug(3)<<"  calling execute() on "<<numChildren()<<" child nodes"<<endl;
   std::vector<const Result *> child_fails; // RES_FAILs from children are kept track of separately
@@ -997,7 +992,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   return retcode;
 } 
 
-int Node::resolve (DataRecord::Ref &depmasks,int rpid)
+int Node::resolve (DMI::Record::Ref &depmasks,int rpid)
 {
   // if node already resolved with this parent ID, do nothing
   if( node_resolve_id_ == rpid )
@@ -1013,15 +1008,15 @@ int Node::resolve (DataRecord::Ref &depmasks,int rpid)
   if( !known_symdeps_.empty() )
   {
     cdebug(3)<<"checking for "<<known_symdeps_.size()<<" known symdeps\n";
-    const DataRecord &rec = *depmasks;
+    const DMI::Record &rec = *depmasks;
     bool changed = false;
     for( uint i=0; i<node_groups_.size(); i++ )
     {
-      DataRecord::Hook hgroup(rec,node_groups_[i]);
+      DMI::Record::Hook hgroup(rec,node_groups_[i]);
       if( hgroup.exists() )
       {
         cdebug(4)<<"found symdeps for group "<<node_groups_[i]<<endl;
-        const DataRecord &grouprec = hgroup.as<DataRecord>();
+        const DMI::Record &grouprec = hgroup.as<DMI::Record>();
         for( uint i=0; i<known_symdeps_.size(); i++ )
         {
           const HIID &id = known_symdeps_[i];
@@ -1043,30 +1038,27 @@ int Node::resolve (DataRecord::Ref &depmasks,int rpid)
       // recompute the active depend mask
       resetDependMasks();
       // reset subrecord in state rec
-      DataRecord &known = wstate()[FSymDepMasks].replace() <<= new DataRecord;
+      DMI::Record &known = wstate()[FSymDepMasks].replace() <<= new DMI::Record;
       for( uint i=0; i<known_symdeps_.size(); i++ )
         known[known_symdeps_[i]] = symdep_masks_[known_symdeps_[i]];
     }
   }
-  // add our own generated symdeps, if any. This changes the record, so
-  // privatize it
+  // add our own generated symdeps, if any. This COWs the record
   if( !gen_symdep_masks_.empty() )
   {
     rpid = nodeIndex(); // change the rpid
-    depmasks.privatize(DMI::WRITE);
     const HIID &group = gen_symdep_group_.empty() ? FAll : gen_symdep_group_;
     cdebug(3)<<"inserting generated symdeps for group "<<group<<endl;
-    DataRecord &grouprec = Rider::getOrInit(depmasks(),group);
+    DMI::Record &grouprec = Rider::getOrInit(depmasks(),group);
     std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
     for( ; iter != gen_symdep_masks_.end(); iter++ )
     {
-      DataRecord::Hook hook(grouprec,iter->first);
+      DMI::Record::Hook hook(grouprec,iter->first);
       if( hook.exists() )
         hook.as_wr<int>() |=  iter->second;
       else
         hook = iter->second;
     }
-    depmasks.privatize(DMI::READONLY|DMI::DEEP);
   }
   // pass recursively onto children
   for( int i=0; i<numChildren(); i++ )
@@ -1075,7 +1067,7 @@ int Node::resolve (DataRecord::Ref &depmasks,int rpid)
 }
 
 // process Node-specific commands
-int Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
+int Node::processCommands (const DMI::Record &rec,Request::Ref &reqref)
 {
   bool generate_symdeps = false;
   // process the Resolve.Children command: call resolve children
@@ -1087,14 +1079,11 @@ int Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
     resolveChildren(false);
   }
   // process the "State" command: change node state
-  // since state needs to be writable, attach a ref to record: this will allow it
-  // to be privatized as needed
-  DataRecord::Ref recref(rec);
-  DataRecord::Hook hstate(recref,FState);
-  if( hstate.exists() )
+  ObjRef stateref = rec[FState].ref(true);
+  if( stateref.valid() )
   {
     cdebug(4)<<"processCommands("<<FState<<"): calling setState()"<<endl;
-    setState(hstate.as_wr<DataRecord>());
+    setState(stateref.ref_cast<DMI::Record>());
   }
   // process the "Clear.Dep.Mask" command: flush known symdep masks and
   // set our mask to 0
@@ -1106,15 +1095,15 @@ int Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
     setDependMask(0);
   }
   // process the "Add.Dep.Mask" command, if we track any symdeps
-  DataRecord::Hook hdep(rec,FAddDepMask);
+  DMI::Record::Hook hdep(rec,FAddDepMask);
   if( hdep.exists() )
   {
-    if( !known_symdeps_.empty() && hdep.type() == TpDataRecord )
+    if( !known_symdeps_.empty() && hdep.type() == TpDMIRecord )
     {
       cdebug(2)<<"processCommands("<<FAddDepMask<<"): checking for masks\n";
-      const DataRecord &deprec = hdep.as<DataRecord>();
+      const DMI::Record &deprec = hdep.as<DMI::Record>();
       // reinit the sysdep_masks field in the state record as we go along
-      DataRecord &known = wstate()[FSymDepMasks].replace() <<= new DataRecord;
+      DMI::Record &known = wstate()[FSymDepMasks].replace() <<= new DMI::Record;
       for( uint i=0; i<known_symdeps_.size(); i++ )
       {
         const HIID &id = known_symdeps_[i];
@@ -1131,12 +1120,12 @@ int Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
   if( rec[FInitDepMask].as<bool>(false) && !gen_symdep_masks_.empty() )
   {
     const HIID &group = gen_symdep_group_.empty() ? FAll : gen_symdep_group_;
-    DataRecord &cmdrec = Rider::getCmdRec_All(reqref,group);
-    DataRecord &deprec = Rider::getOrInit(cmdrec,FAddDepMask);
+    DMI::Record &cmdrec = Rider::getCmdRec_All(reqref,group);
+    DMI::Record &deprec = Rider::getOrInit(cmdrec,FAddDepMask);
     std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
     for( ; iter != gen_symdep_masks_.end(); iter++ )
     {
-      DataRecord::Hook hook(deprec,iter->first);
+      DMI::Record::Hook hook(deprec,iter->first);
       if( hook.exists() )
         hook.as_wr<int>() |=  iter->second;
       else
@@ -1152,7 +1141,6 @@ int Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
 //##ModelId=3F6726C4039D
 int Node::execute (Result::Ref &ref,const Request &req0)
 {
-  DbgFailWhen(!req0.getOwner(),"Request object must have at least one ref attached");
   if( control_status_&CS_STOP_BREAKPOINT || getExecState() != CS_ES_IDLE )
   {
     Throw("can't re-enter Node::execute(). Are you trying to reexecute a node "
@@ -1276,9 +1264,6 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       // Make sure the Cells are in the Result object
       if( !(code&RES_FAIL) && ref->numVellSets() && !ref->hasCells() )
         ref().setCells(req.cells());
-      // privatize the result for readonly -- this ensures that copy-on-write
-      // is performed down the line
-      ref.privatize(DMI::DEEP|DMI::READONLY);
     }
     else // no cells, ensure an empty result
     {

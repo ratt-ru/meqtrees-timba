@@ -25,7 +25,6 @@
 #include "Funklet.h"
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
-#include <MEQ/Vells.h>
 #include <MEQ/MeqVocabulary.h>
 #include <Common/Debug.h>
 #include <Common/lofar_vector.h>
@@ -33,8 +32,9 @@
 #include <cmath>
 
 namespace Meq {
+using namespace DMI;
 
-static NestableContainer::Register reg(TpMeqFunklet,True);
+static DMI::Container::Register reg(TpMeqFunklet,true);
 
 const int defaultFunkletRank = 2;
 
@@ -60,11 +60,64 @@ Funklet::Funklet(int naxis,const int iaxis[],const double offset[],const double 
   init(naxis,iaxis,offset,scale,pert,weight,id);
 }
 
-
 //##ModelId=400E5354033A
-Funklet::Funklet (const DataRecord &other,int flags,int depth)
-  : DataRecord(other,flags,depth)
+Funklet::Funklet (const DMI::Record &other,int flags,int depth)
+: DMI::Record(other,flags,depth)
 {
+  validateContent(false); // not recursive
+}
+
+Funklet::Funklet (const Funklet &other,int flags,int depth)
+: DMI::Record(other,flags,depth),
+  axes_(other.axes_),
+  offsets_(other.offsets_),
+  scales_(other.scales_),
+  spids_(other.spids_),
+  spidInx_(other.spidInx_),
+  parm_perts_(other.parm_perts_),
+  spid_perts_(other.spid_perts_),
+  pertValue_(other.pertValue_),
+  weight_(other.weight_),
+  id_(other.id_)
+{
+// no need to validate content outside the domain, because other funklet will be 
+// valid anyway
+  Field * fld = Record::findField(FDomain);
+  if( fld )
+    domain_ = fld->ref;
+  else
+    domain_ <<= new Domain;
+}
+
+void Funklet::validateContent (bool)    
+{
+  Thread::Mutex::Lock lock(mutex());
+  // ensure that our record contains all the right fields; setup shortcuts
+  // to their contents
+  try
+  {
+    Field * fld = Record::findField(FDomain);
+    if( fld )
+      domain_ = fld->ref;
+    else
+      domain_ <<= new Domain;
+    // get various others
+    axes_       = (*this)[FAxisIndex].as_vector(default_axes);
+    offsets_    = (*this)[FOffset].as_vector(default_offset);
+    scales_     = (*this)[FScale].as_vector(default_scale);
+    Assert(axes_.size() == uint(rank()) && offsets_.size() == uint(rank()) && scales_.size() == uint(rank()) );
+    pertValue_  = (*this)[FPerturbation].as<double>(defaultFunkletPerturbation);
+    weight_     = (*this)[FWeight].as<double>(defaultFunkletWeight);
+    id_         = (*this)[FDbId].as<int>(-1);
+  }
+  catch( std::exception &err )
+  {
+    Throw(string("validate of Funklet record failed: ") + err.what());
+  }
+  catch( ... )
+  {
+    Throw("validate of Funklet record failed with unknown exception");
+  }
 }
 
 // sets all of a funklet's axes and attributes in one go
@@ -105,26 +158,31 @@ void Funklet::init (int rnk,const int iaxis[],
 void Funklet::setDomain (const Domain * domain,int flags)
 {
   Thread::Mutex::Lock lock(mutex());
-  if( !(flags&(DMI::ANON|DMI::EXTERNAL)) )
-  {
-    if( domain->refCount() )
-      domain_.attach(domain,DMI::READONLY);
-    else
-      domain_.attach(new Domain(*domain),DMI::ANON|DMI::READONLY);
-  }
-  else
-    domain_.attach(domain,(flags&~DMI::WRITE)|DMI::READONLY);
-  (*this)[FDomain] <<= domain_.copy();
+  domain_.attach(domain,flags);
+  Record::addField(FDomain,domain_.ref_cast<BObj>(),DMI::REPLACE|Record::PROTECT);
 }
 
 // sets up an axis of variability
 void Funklet::setAxis (int i,int iaxis,double offset,double scale)
 {
   Thread::Mutex::Lock lock(mutex());
-  FailWhen(i<0 || i>=rank(),"illegal Meq::Funklet axis");
-  (*this)[FAxisIndex][i] = axes_[i] = iaxis;
-  (*this)[FOffset][i] = offsets_[i] = offset;
-  (*this)[FScale][i] = scales_[i] = scale;
+  FailWhen(i<0 || i>rank(),"illegal Meq::Funklet axis");
+  // up rank by one
+  if( i == rank() )
+  {
+    axes_.push_back(iaxis);
+    offsets_.push_back(offset);
+    scales_.push_back(scale);
+    (*this)[FAxisIndex].replace() = axes_;
+    (*this)[FOffset].replace()    = offsets_;
+    (*this)[FScale].replace()     = scales_;
+  }
+  else
+  {
+    (*this)[FAxisIndex][i] = axes_[i] = iaxis;
+    (*this)[FOffset][i] = offsets_[i] = offset;
+    (*this)[FScale][i] = scales_[i] = scale;
+  }
 }
 
 void Funklet::setPerturbation (double perturbation)
@@ -143,42 +201,6 @@ void Funklet::setDbId (Funklet::DbId id)
 { 
   Thread::Mutex::Lock lock(mutex());
   (*this)[FDbId] = id_ = id; 
-}
-
-void Funklet::revalidateContent ()    
-{
-  protectAllFields();
-}
-  
-void Funklet::validateContent ()    
-{
-  Thread::Mutex::Lock lock(mutex());
-  // ensure that our record contains all the right fields; setup shortcuts
-  // to their contents
-  try
-  {
-    protectAllFields();
-    if( DataRecord::hasField(FDomain) ) // verify cells field
-      domain_ <<= (*this)[FDomain].as_p<Domain>();
-    else
-      domain_ <<= new Domain;
-    // get various others
-    axes_       = (*this)[FAxisIndex].as_vector(default_axes);
-    offsets_    = (*this)[FOffset].as_vector(default_offset);
-    scales_     = (*this)[FScale].as_vector(default_scale);
-    Assert(axes_.size() == uint(rank()) && offsets_.size() == uint(rank()) && scales_.size() == uint(rank()) );
-    pertValue_  = (*this)[FPerturbation].as<double>(defaultFunkletPerturbation);
-    weight_     = (*this)[FWeight].as<double>(defaultFunkletWeight);
-    id_         = (*this)[FDbId].as<int>(-1);
-  }
-  catch( std::exception &err )
-  {
-    Throw(string("validate of Funklet record failed: ") + err.what());
-  }
-  catch( ... )
-  {
-    Throw("validate of Funklet record failed with unknown exception");
-  }
 }
 
 //##ModelId=3F86886F03A6

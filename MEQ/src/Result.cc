@@ -25,21 +25,16 @@
 #include "Request.h"
 #include "Cells.h"
 #include "MeqVocabulary.h"
-#include <DMI/DataArray.h>
+#include <DMI/NumArray.h>
 
 namespace Meq {
 
-//##ModelId=3F8688700098
-int Result::nctor = 0;
-//##ModelId=3F868870009A
-int Result::ndtor = 0;
-
-static NestableContainer::Register reg(TpMeqResult,True);
+static DMI::Container::Register reg(TpMeqResult,true);
 
 //##ModelId=3F86887000CE
 Result::Result (int nvellsets,bool integrated)
+  : pvellsets_(0),pcells_(0)
 {
-  nctor++;
   setIsIntegrated(integrated);
   if( nvellsets>0 )
     allocateVellSets(nvellsets);
@@ -47,8 +42,8 @@ Result::Result (int nvellsets,bool integrated)
 
 //##ModelId=400E535500F5
 Result::Result (int nvellsets,const Request &req,bool integrated)
+  : pvellsets_(0),pcells_(0)
 {
-  nctor++;
   setIsIntegrated(integrated);
   if( nvellsets>0 )
     allocateVellSets(nvellsets);
@@ -58,8 +53,8 @@ Result::Result (int nvellsets,const Request &req,bool integrated)
 
 //##ModelId=400E53550105
 Result::Result (const Request &req,int nvellsets,bool integrated)
+  : pvellsets_(0),pcells_(0)
 {
-  nctor++;
   setIsIntegrated(integrated);
   if( nvellsets>0 )
     allocateVellSets(nvellsets);
@@ -69,65 +64,28 @@ Result::Result (const Request &req,int nvellsets,bool integrated)
   
 //##ModelId=3F8688700151
 Result::Result (const Request &req,bool integrated)
+  : pvellsets_(0),pcells_(0)
 {
-  nctor++;
   setIsIntegrated(integrated);
   if( req.hasCells() )
     setCells(&req.cells());
 }
 
 //##ModelId=400E53550116
-Result::Result (const DataRecord &other,int flags,int depth)
-: DataRecord(other,flags,depth)
+Result::Result (const DMI::Record &other,int flags,int depth)
+: Record(),
+  pvellsets_(0),pcells_(0)
 {
-  nctor++;
-  validateContent();
+  Record::cloneOther(other,flags,depth,true);
 }
 
 //##ModelId=3F86887000D3
 Result::~Result()
 {
-  ndtor--;
-}
-
-//##ModelId=400E5355017B
-void Result::allocateVellSets (int nvellsets)
-{
-  Thread::Mutex::Lock lock(mutex());
-  vellsets_ <<= new DataField(TpMeqVellSet,nvellsets);
-  DataRecord::replace(FVellSets,vellsets_.dewr_p(),DMI::ANONWR);
-}
-
-//  implement privatize
-//##ModelId=400E53550142
-void Result::privatize (int flags, int depth)
-{
-  // if deep-privatizing, then detach shortcuts -- they will be reattached 
-  // by validateContent()
-  if( flags&DMI::DEEP || depth>0 )
-  {
-    Thread::Mutex::Lock lock(mutex());
-    vellsets_.detach();
-    DataRecord::privatize(flags,depth);
-  }
-}
-
-void Result::revalidateContent ()
-{
-  Thread::Mutex::Lock lock(mutex());
-  if( DataRecord::hasField(FVellSets) )
-    vellsets_ = DataRecord::fieldWr(FVellSets);
-  else
-    vellsets_.detach();
-  if( DataRecord::hasField(FCells) )
-    cells_ = DataRecord::fieldWr(FCells);
-  else
-    cells_.detach();
-  protectAllFields();
 }
 
 //##ModelId=400E53550156
-void Result::validateContent ()
+void Result::validateContent (bool)
 {
   Thread::Mutex::Lock lock(mutex());
   // ensure that our record contains all the right fields, and that they're
@@ -135,7 +93,22 @@ void Result::validateContent ()
   try
   {
     is_integrated_ = (*this)[FIntegrated].as<bool>(false);
-    revalidateContent();
+    Field * fld = Record::findField(FVellSets);
+    if( fld )
+    {
+      fld->protect = true;
+      pvellsets_ = &( fld->ref.ref_cast<DMI::Vec>() );
+    }
+    else
+      pvellsets_ = 0;
+    fld = Record::findField(FCells);
+    if( fld )
+    {
+      fld->protect = true;
+      pcells_ = &( fld->ref.ref_cast<Cells>() );
+    }
+    else
+      pcells_ = 0;
   }
   catch( std::exception &err )
   {
@@ -147,63 +120,38 @@ void Result::validateContent ()
   }  
 }
 
-int Result::remove (const HIID &id)
-{ 
-  if( id == FCells || id == FVellSets )
-    Throw("remove(" + id.toString() +" from a Meq::Result not allowed"); 
-  return DataRecord::remove(id);
+//##ModelId=400E5355017B
+void Result::allocateVellSets (int nvellsets)
+{
+  Thread::Mutex::Lock lock(mutex());
+  ObjRef ref(new DMI::Vec(TpMeqVellSet,nvellsets));
+  Field & field = Record::addField(FVellSets,ref,DMI::REPLACE|Record::PROTECT);
+  pvellsets_ = &(field.ref.ref_cast<DMI::Vec>());
 }
+
 
 //##ModelId=3F86887000D4
 void Result::setCells (const Cells *cells,int flags)
 {
   Thread::Mutex::Lock lock(mutex());
-  // if we have no idea how to attach object, make a copy
-  if( !(flags&(DMI::ANON|DMI::EXTERNAL)) && !cells->refCount() )
-    cells_ <<= new Cells(*cells);
-  else
-    cells_ <<= cells;
-  DataRecord::replace(FCells,cells_.deref_p(),DMI::READONLY);
+  ObjRef ref(cells,flags);
+  Field & field = Record::addField(FCells,ref,DMI::REPLACE|Record::PROTECT);
+  pcells_ = &(field.ref.ref_cast<Cells>());
 }
 
 void Result::setIsIntegrated (bool integrated)
 {
   Thread::Mutex::Lock lock(mutex());
   is_integrated_ = integrated;
-  DataRecord::replace(FIntegrated,new DataField(Tpbool,-1,&is_integrated_),DMI::ANONWR);
-}
-
-DataField & Result::wrVellSets ()
-{
-  Thread::Mutex::Lock lock(mutex());
-  if( !vellsets_.isWritable() )
-  {
-    vellsets_.privatize(DMI::WRITE);
-    DataRecord::replace(FVellSets,vellsets_.dewr_p(),DMI::ANONWR);
-  }
-  return vellsets_();
+  (*this)[FIntegrated] = integrated;
 }
 
 VellSet & Result::setNewVellSet (int i,int nspids,int nset)
 { 
   Thread::Mutex::Lock lock(mutex());
-  VellSet *pvs = new VellSet(nspids,nset);
-  VellSet::Ref resref(pvs,DMI::ANONWR); 
-  setVellSet(i,resref);
+  VellSet & vs = setVellSet(i,new VellSet(nspids,nset));
   if( hasCells() )
-    pvs->setShape(cells().shape());
-  return *pvs;
-}
-
-
-//##ModelId=400E535501AD
-const VellSet & Result::setVellSet (int i,VellSet::Ref::Xfer &vellset)
-{
-  Thread::Mutex::Lock lock(mutex());
-//  DbgFailWhen(isFail(),"Result marked as a fail, can't set vellset");
-  const VellSet & vs = *vellset;
-  ObjRef ref = vellset;
-  wrVellSets().put(i,ref);
+    vs.setShape(cells().shape());
   return vs;
 }
 
@@ -290,7 +238,10 @@ void Result::integrate (bool reverse)
       vs.setValue(vs.getValue()*cellsize);
       for( int iset=0; iset<vs.numPertSets(); iset++ )
         for( int i=0; i<vs.numSpids(); i++ )
-          vs.setPerturbedValue(i,vs.getPerturbedValue(i,iset)*cellsize,iset);
+        {
+          Vells::Ref res(new Vells(vs.getPerturbedValue(i,iset)*cellsize));
+          vs.setPerturbedValue(i,res,iset);
+        }
     }
   }
   // if all succeeds, set flag

@@ -25,11 +25,11 @@
 #include "Cells.h"
 #include "MeqVocabulary.h"
 #include <Common/Lorrays.h>
-#include <DMI/DataArray.h>
+#include <DMI/NumArray.h>
 
 namespace Meq {
 
-static NestableContainer::Register reg(TpMeqCells,True);
+static DMI::Container::Register reg(TpMeqCells,true);
 
 //##ModelId=3F86886E02C1
 Cells::Cells ()
@@ -45,51 +45,58 @@ Cells::~Cells()
 
 
 //##ModelId=3F86886E02C8
-Cells::Cells (const DataRecord &other,int flags,int depth)
-: DataRecord(other,flags,depth)
+Cells::Cells (const DMI::Record &other,int flags,int depth)
+: DMI::Record()
 {
   shape_.reserve(Axis::MaxAxis);
   defined_.reserve(Axis::MaxAxis);
-  validateContent();
-}
-
-Cells::Cells (const Domain& domain)
-{
-  init(domain);
+  Record::cloneOther(other,flags,depth,true);
 }
 
     //##ModelId=3F95060B01D3
-Cells::Cells (const Domain& domain,int nx,int ny)
+Cells::Cells (const Domain &domain,int nx,int ny,int domflags)
 {
-  init(domain);
-  FailWhen(!domain.isDefined(0),"axis 0 not defined in Cells domain");
-  FailWhen(!domain.isDefined(1),"axis 1 not defined in Cells domain");
-  setCells(0,domain.start(0),domain.end(0),nx);
-  setCells(1,domain.start(1),domain.end(1),ny);
+  init(&domain,domflags);
+  if( nx >= 0 )
+  {
+    FailWhen(!domain.isDefined(0),"axis 0 not defined in Cells domain");
+    FailWhen(!domain.isDefined(1),"axis 1 not defined in Cells domain");
+    setCells(0,domain.start(0),domain.end(0),nx);
+    setCells(1,domain.start(1),domain.end(1),ny);
+  }
 }
 
-void Cells::setDomain (const Domain &domain)
+Cells::Cells (const Domain *pdom,int nx,int ny,int domflags)
+{
+  init(pdom,domflags);
+  if( nx >= 0 )
+  {
+    FailWhen(!pdom->isDefined(0),"axis 0 not defined in Cells domain");
+    FailWhen(!pdom->isDefined(1),"axis 1 not defined in Cells domain");
+    setCells(0,pdom->start(0),pdom->end(0),nx);
+    setCells(1,pdom->start(1),pdom->end(1),ny);
+  }
+}
+
+void Cells::setDomain (const Domain *pdom,int flags)
 {
   Thread::Mutex::Lock lock(mutex());
   shape_.reserve(Axis::MaxAxis);
   defined_.reserve(Axis::MaxAxis);
   shape_.clear();
   defined_.clear();
-  if( domain.refCount() )
-    domain_.attach(domain,DMI::READONLY);
-  else
-    domain_.attach(new Domain(domain),DMI::ANON|DMI::READONLY);
-  (*this)[FDomain] <<= domain_.copy();
+  domain_.attach(pdom,flags);
+  Record::addField(FDomain,domain_.ref_cast<BObj>(),DMI::REPLACE|Record::PROTECT);
 }
 
-void Cells::init (const Domain& domain)
+void Cells::init (const Domain *pdom,int flags)
 {
   Thread::Mutex::Lock lock(mutex());
-  setDomain(domain);
-  // grid subrecord
-  (*this)[FGrid] <<= new DataRecord;
-  (*this)[FCellSize] <<= new DataRecord;
-  (*this)[FSegments] <<= new DataRecord;
+  setDomain(pdom,flags);
+  // init new subrecords
+  Record::addField(FGrid,new Record,DMI::REPLACE|Record::PROTECT);
+  Record::addField(FCellSize,new Record,DMI::REPLACE|Record::PROTECT);
+  Record::addField(FSegments,new Record,DMI::REPLACE|Record::PROTECT);
 }
 
 
@@ -99,7 +106,7 @@ Cells::Cells (const Cells &a,const Cells &b,int resample)
 {
   // setup datarecord
   Assert(a.domain() == b.domain());
-  init(a.domain());
+  init(&a.domain(),0);
   shape_.resize(std::max(a.shape_.size(),b.shape_.size()));
   defined_.resize(shape_.size());
   // ***BUG*** here, we simply assume everything (cell positions, sizes)
@@ -125,7 +132,7 @@ Cells::Cells (const Cells &a,const Cells &b,int resample)
 Cells::Cells (const Cells &other,const int ops[Axis::MaxAxis],const int args[Axis::MaxAxis])
 {
   // setup datarecord
-  init(other.domain());
+  init(&other.domain(),0);
   shape_.resize(other.shape_.size());
   defined_ = other.defined_;
   for( int iaxis=0; iaxis<Axis::MaxAxis; iaxis++ )
@@ -231,9 +238,9 @@ void Cells::setNumCells (int iaxis,int num)
   setAxisShape(iaxis,num);
   if( num )
   {
-    DataRecord &grid = getSubrecord((*this)[FGrid]);
+    DMI::Record &grid = getSubrecord(FGrid);
     setRecVector(grid_[iaxis],grid[Axis::name(iaxis)],num);
-    DataRecord &cellsize = getSubrecord((*this)[FCellSize]);
+    DMI::Record &cellsize = getSubrecord(FCellSize);
     setRecVector(cell_size_[iaxis],cellsize[Axis::name(iaxis)],num);
   }
   else
@@ -297,9 +304,15 @@ void Cells::setEnumCells (int iaxis,int num)
 void Cells::setNumSegments (int iaxis,int nseg)
 {
   Thread::Mutex::Lock lock(mutex());
-  DataRecord &seg = getSubrecord(getSubrecord((*this)[FSegments])[Axis::name(iaxis)]);
-  setRecVector(seg_start_[iaxis],seg[FStartIndex],nseg);
-  setRecVector(seg_end_  [iaxis],seg[FEndIndex],nseg);
+  Record &segments = getSubrecord(FSegments);
+  Record::Hook seghook(segments,Axis::name(iaxis));
+  Record *pseg;
+  if( seghook.exists() )
+    pseg = seghook.as_wp<Record>();
+  else
+    seghook <<= pseg = new Record;
+  setRecVector(seg_start_[iaxis],(*pseg)[FStartIndex],nseg);
+  setRecVector(seg_end_  [iaxis],(*pseg)[FEndIndex],nseg);
 }
 
 void Cells::recomputeSegments (int iaxis)
@@ -372,29 +385,11 @@ void Cells::recomputeDomain ()
       newdom->defineAxis(i,a0,a1);
     }
   }
-  domain_.change(DMI::READONLY);
-  (*this)[FDomain].replace() <<= domain_.copy();
-}
-
-void Cells::privatize (int flags,int depth)
-{
-  // if deep-privatizing, then detach shortcuts -- they will be reattached 
-  // by validateContent()
-//  if( flags&DMI::DEEP || depth>0 )
-//  {
-//    domain_.detach();
-  DataRecord::privatize(flags,depth);
-//  }
-}
-
-
-void Cells::revalidateContent ()
-{
-  protectAllFields();
+  Record::addField(FDomain,domain_.deref_p(),DMI::REPLACE|Record::PROTECT);
 }
 
 //##ModelId=400E530403DB
-void Cells::validateContent ()
+void Cells::validateContent (bool)
 {
   Thread::Mutex::Lock lock(mutex());
   shape_.reserve(Axis::MaxAxis);
@@ -403,7 +398,6 @@ void Cells::validateContent ()
   defined_.clear();
   try
   {
-    protectAllFields();
     Hook hdom   = (*this)[FDomain],
          hgrid  = (*this)[FGrid],
          hcs    = (*this)[FCellSize],
@@ -411,16 +405,14 @@ void Cells::validateContent ()
     if( hdom.exists() )
     {
       domain_.attach(hdom.as_p<Domain>());
-      const DataRecord &rgrid = hgrid.as<DataRecord>();
-      const DataRecord &rcs   = hcs.as<DataRecord>();
-      const DataRecord &rseg  = hseg.as<DataRecord>();
-      // now loop over the grid record to determine which axes are
+      const DMI::Record &rgrid = hgrid.as<DMI::Record>();
+      const DMI::Record &rcs   = hcs.as<DMI::Record>();
+      const DMI::Record &rseg  = hseg.as<DMI::Record>();
+      // now iterate over the grid record to determine which axes are
       // defined
-      HIID id;
-      NCRef ncref;
-      Iterator iter = rgrid.initFieldIter();
-      while( rgrid.getFieldIter(iter,id,ncref) )
+      for( ConstIterator iter = rgrid.begin(); iter != rgrid.end(); iter++ )
       { 
+        const HIID &id = iter.id();
         FailWhen(id.size()!=1,"illegal axis ID "+id.toString());
         int iaxis = id[0].index();
         if( iaxis<0 )
@@ -441,6 +433,10 @@ void Cells::validateContent ()
         seg_end_[iaxis].reference(rseg[id][FEndIndex].as<LoVec_int>());
         Assert(seg_start_[iaxis].size()==seg_end_[iaxis].size());
       }
+      protectField(FDomain);
+      protectField(FGrid);
+      protectField(FCellSize);
+      protectField(FSegments);
     }
     else
     {
@@ -517,18 +513,26 @@ void Cells::show (std::ostream& os) const
   os << "Meq::Cells [" << shape_ << "]\n";
 }
 
-DataRecord & Cells::getSubrecord (const Hook &hook)
+DMI::Record & Cells::getSubrecord (const HIID &id)
 {
-  if( !hook.exists() )
-    return hook <<= new DataRecord;
+  Record *psr;
+  Field * fld = Record::findField(id);
+  if( fld )
+  {
+    return fld->ref.ref_cast<Record>().dewr();
+  }
   else
-    return hook.as_wr<DataRecord>();
+  {
+    Record *psr = new Record;
+    Record::addField(id,psr,Record::PROTECT);
+    return *psr;
+  }
 }
 
 template<class T>
 void Cells::setRecVector( blitz::Array<T,1> &vec,const Hook &hook,int n)
 {
-  DataArray &arr = hook.replace() <<= new DataArray(typeIdOf(T),LoShape(n));
+  DMI::NumArray &arr = hook.replace() <<= new DMI::NumArray(typeIdOf(T),LoShape(n));
   vec.reference(arr[HIID()].as(Type2Type<blitz::Array<T,1> >()));
 }
 

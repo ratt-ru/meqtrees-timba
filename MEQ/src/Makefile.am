@@ -1,12 +1,12 @@
 SUBDIRS	= .
 
-LOCALHDRS = MeqVocabulary.h RequestId.h 
+LOCALHDRS = MeqVocabulary.h RequestId.h Meq.h
 
 LOCALSRCS = \
   Axis.cc Domain.cc	Cells.cc Request.cc RequestId.cc \
-  Vells.cc VellSet.cc Result.cc \
+  Vells.cc VellSet.cc Result.cc Funklet.cc Polc.cc \
   Node.cc Function.cc CompoundFunction.cc \
-  Funklet.cc Polc.cc EventGenerator.cc Forest.cc 
+  EventGenerator.cc Forest.cc 
 
 ## removed for now, as it needs to be re-worked for the new Vells
 ## structure
@@ -29,7 +29,7 @@ check_PROGRAMS =
 DEFREC_MAP = $(srcdir)/defrecs_$(PACKAGE).g
 
 # this rule shouldn't require any changes
-MAKEDEFREC = $(lofar_sharedir)/../CEP/CPA/PSS4/MEQ/src/makedefrecs.pl
+MAKEDEFREC = $(lofar_sharedir)/../TIMBA/MEQ/src/makedefrecs.pl
 $(DEFREC_MAP): $(DOCHDRS) $(MAKEDEFREC)
 	$(MAKEDEFREC) $@ $(addprefix $(srcdir)/,$(DOCHDRS))
 # ---------

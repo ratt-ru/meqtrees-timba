@@ -22,7 +22,7 @@
 #ifndef MeqSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413
 #define MeqSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413
     
-#include <DMI/DataRecord.h>
+#include <DMI/Record.h>
 #include <MEQ/EventGenerator.h>
 #include <MEQ/Result.h>
 #include <MEQ/RequestId.h>
@@ -40,7 +40,9 @@
 #pragma aid Link Or Create Control Status New Breakpoint Single Shot
     
 
-namespace Meq {
+namespace Meq 
+{ 
+using namespace DMI;
 
 class Forest;
 class Request;
@@ -83,7 +85,7 @@ const HIID FDataset    = AidDataset;
 const HIID FAll = AidAll;
 
 //##ModelId=3F5F436202FE
-class Node : public BlockableObject
+class Node : public DMI::BObj
 {
   public:
     //##ModelId=3F5F43620304
@@ -210,14 +212,16 @@ class Node : public BlockableObject
     virtual ~Node();
 
     //##ModelId=3F5F45D202D5
-    virtual void init (DataRecord::Ref::Xfer &initrec, Forest* frst);
+    // initializes node. Ref will be transferred & COWed
+    virtual void init (DMI::Record::Ref &initrec, Forest* frst);
     
     //##ModelId=400E530F0090
-    virtual void reinit (DataRecord::Ref::Xfer &initrec, Forest* frst);
+    // reinitializes node after loading. Ref will be transferred & COWed
+    virtual void reinit (DMI::Record::Ref &initrec, Forest* frst);
 
     // resolves children and symdeps. Must be called after init(),
     // before a node is executed() for the first time
-    int resolve (DataRecord::Ref &depmasks,int rsid);
+    int resolve (DMI::Record::Ref &depmasks,int rsid);
         
     //##ModelId=3F83FAC80375
     void resolveChildren (bool recursive=true);
@@ -239,12 +243,12 @@ class Node : public BlockableObject
     
     //##ModelId=3F5F441602D2
     // returns state record
-    const DataRecord & state() const
+    const DMI::Record & state() const
     { return *staterec_; }
     
     // syncs rapidly-updated object state (that may not be immediately
     // put into the state record)
-    const DataRecord & syncState() 
+    const DMI::Record & syncState() 
     { wstate()[FControlStatus] = control_status_; return *staterec_; }
     
     bool hasState () const
@@ -268,7 +272,7 @@ class Node : public BlockableObject
     void setNodeIndex (int nodeindex);
     
     //##ModelId=3F5F445A00AC
-    void setState (DataRecord &rec);
+    void setState (DMI::Record::Ref &rec);
     
     //##ModelId=3F6726C4039D
     int execute (Result::Ref &resref, const Request &);
@@ -366,11 +370,13 @@ class Node : public BlockableObject
     //## Clones a node. 
     //## Currently not implemented (throws exception)
     virtual CountedRefTarget* clone(int flags = 0, int depth = 0) const;
+    
     //##ModelId=3F5F43630313
     //##Documentation
     //## Returns the class TypeId
     virtual TypeId objectType() const
     { return TpMeqNode; }
+    
     //##ModelId=3F5F43630315
     //##Documentation
     //## Un-serialize.
@@ -408,45 +414,45 @@ class Node : public BlockableObject
         
       //##Documentation
       //## Clears the rider from the request, if any.
-      //## Reqref will be privatized for writing if needed.
+      //## Reqref will be COWed as needed.
       static void clear (Request::Ref &reqref);
 
       //##Documentation
       //## Inits (if necessary) and returns the rider.
-      //## Reqref will be privatized for writing if needed.
+      //## Reqref will be COWed as needed.
       //## If the NEW_RIDER flag is given, always creates a new rider.
-      static DataRecord & getRider (Request::Ref &reqref,int flags=0);
+      static DMI::Record & getRider (Request::Ref &reqref,int flags=0);
 
       //##Documentation
       //## Inits (if necessary) and returns the group command record for 'group'.
-      //## Reqref will be privatized for writing if needed.
+      //## Reqref will be COWed as needed.
       //## If the NEW_RIDER flag is given, always creates a new rider.
       //## If the NEW_GROUPREC flag is given, always creates a new GCR.
-      static DataRecord & getGroupRec (Request::Ref &reqref,const HIID &group,int flags=0);
+      static DMI::Record & getGroupRec (Request::Ref &reqref,const HIID &group,int flags=0);
 
       //##Documentation
       //## Inits (if necessary) and returns the command_all subrecord for the given group.
-      //## Reqref will be privatized for writing if needed.
+      //## Reqref will be COWed as needed.
       //## If the NEW_RIDER flag is given, always creates a new rider.
       //## If the NEW_GROUPREC flag is given, always creates a new GCR.
       //## If the NEW_CMDREC flag is given, always creates a new command subrecord.
-      static DataRecord & getCmdRec_All (Request::Ref &reqref,const HIID &group,int flags=0);
+      static DMI::Record & getCmdRec_All (Request::Ref &reqref,const HIID &group,int flags=0);
 
       //##Documentation
       //## Inits (if necessary) and returns the command_by_nodeindex subrecord for 
-      //## the given group. Reqref will be privatized for writing if needed.
+      //## the given group. Reqref will be COWed as needed.
       //## If the NEW_RIDER flag is given, always creates a new rider.
       //## If the NEW_GROUPREC flag is given, always creates a new GCR.
       //## If the NEW_CMDREC flag is given, always creates a new command subrecord.
-      static DataRecord & getCmdRec_ByNodeIndex (Request::Ref &reqref,const HIID &group,int flags=0);
+      static DMI::Record & getCmdRec_ByNodeIndex (Request::Ref &reqref,const HIID &group,int flags=0);
 
       //##Documentation
       //## Inits (if necessary) and returns the command_by_list subrecord (field) for 
-      //## the given group. Reqref will be privatized for writing if needed.
+      //## the given group. Reqref will be COWed as needed.
       //## If the NEW_RIDER flag is given, always creates a new rider.
       //## If the NEW_GROUPREC flag is given, always creates a new GCR.
       //## If the NEW_CMDREC flag is given, always creates a new command subrecord.
-      static DataField & getCmdRec_ByList (Request::Ref &reqref,const HIID &group,int flags=0);
+      static DMI::Vec & getCmdRec_ByList (Request::Ref &reqref,const HIID &group,int flags=0);
       
       //## Adds a symdep mask for the given group (FAll by default). Inits
       //## riders and subrecords as necessary.
@@ -455,7 +461,7 @@ class Node : public BlockableObject
       
       //##Documentation
       //## Inits (if necessary) and returns a subrecord for rec[field]
-      static DataRecord & getOrInit (DataRecord &rec,const HIID &field);
+      static DMI::Record & getOrInit (DMI::Record &rec,const HIID &field);
     };
 
   protected:
@@ -478,7 +484,7 @@ class Node : public BlockableObject
     //## generally called from constructor, to indicate that a node class does   
     //## not support auto-resampling of child results            
     void disableAutoResample ()
-    { disable_auto_resample_ = True; auto_resample_ = RESAMPLE_NONE; }
+    { disable_auto_resample_ = true; auto_resample_ = RESAMPLE_NONE; }
     
     //##Documentation
     //## generally called from constructor, to indicate that a node class does   
@@ -502,7 +508,8 @@ class Node : public BlockableObject
     //## called from init(), meant to check the initrec for required fields,
     //## and to fill in any missing defaults. Throws exception on failure 
     //## (i.e. if a required field is missing)
-    virtual void checkInitState (DataRecord &rec)
+    //## Record will be COWed as needed
+    virtual void checkInitState (DMI::Record::Ref &rec)
     {}
     
     //##ModelId=400E531402D1
@@ -510,7 +517,8 @@ class Node : public BlockableObject
     //## called from init() and setState(), meant to update internal state
     //## in accordance to rec. If initializing==true (i.e. when called from 
     //## init()), rec is a complete state record.
-    virtual void setStateImpl (DataRecord &rec,bool initializing);
+    //## Record will be COWed as needed.
+    virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
     
     //##Documentation
     //## virtual method called whenever any symdeps or symdep masks change.
@@ -531,9 +539,8 @@ class Node : public BlockableObject
     //##Documentation
     //## called to process request rider commands, if any. This is allowed
     //## to modify the request object, a ref is passed in to facilitate COW
-    //## (since the request is normally received as read-only)
-    //##
-    virtual int processCommands (const DataRecord &rec,Request::Ref &reqref);
+    //## (since the request is normally received as read-only).
+    virtual int processCommands (const DMI::Record &rec,Request::Ref &reqref);
 
     //##ModelId=400E531702FD
     //##Documentation
@@ -642,7 +649,7 @@ class Node : public BlockableObject
     //##ModelId=3F83F9A5022C
     //##Documentation
     //## write-access to the state record
-    DataRecord & wstate()
+    DMI::Record & wstate()
     { return staterec_(); }
     
     //##ModelId=3F9919B10014
@@ -713,7 +720,7 @@ class Node : public BlockableObject
     //## Helper method for init(). Checks that initrec field exists and inserts
     //## a default value if it doesn't.
     #define defaultInitField(rec,field,deflt) \
-      { DataRecord::Hook hook(rec,field); \
+      { DMI::Record::Hook hook(rec,field); \
         if( !hook.exists() ) hook = (deflt); }
         
     //##Documentation
@@ -729,7 +736,7 @@ class Node : public BlockableObject
 //     // Helper method for setStateImpl(). Checks if rec[field] exists, if yes,
 //     // assigns it to 'out', returns true. Otherwise returns false.
 //     template<class T>
-//     bool getStateField (T &out,const DataRecord &rec,const HIID &field)
+//     bool getStateField (T &out,const DMI::Record &rec,const HIID &field)
 
   
     //##Documentation
@@ -751,7 +758,7 @@ class Node : public BlockableObject
     // (this can be a true HIID only if child_labels_ are specified;
     // otherwise it's an single-element index) . 'id' is the actual field
     // in 'children' that contains the child specification.
-    void processChildSpec (NestableContainer &children,const HIID &chid,const HIID &id);
+    void processChildSpec (DMI::Container &children,const HIID &chid,const HIID &id);
     
     //##ModelId=3F8433C20193
     void addChild (const HIID &id,Node *childnode);
@@ -782,7 +789,7 @@ class Node : public BlockableObject
     int check_nmandatory_;
     
     //##ModelId=3F5F4363030D
-    DataRecord::Ref staterec_;
+    DMI::Record::Ref staterec_;
     
     //##ModelId=3F5F48040177
     string myname_;
@@ -856,15 +863,15 @@ class Node : public BlockableObject
     ChildrenMap child_map_;
     
     //##ModelId=400E530C0011
-    //## container of child names. This is a DataRecord indexed by label 
-    //## if the node defines child labels, else a DataField (indexed by
+    //## container of child names. This is a DMI::Record indexed by label 
+    //## if the node defines child labels, else a DMI::Vec (indexed by
     //## child number) otherwise
-    NestableContainer::Ref child_names_;
+    DMI::Container::Ref child_names_;
     
     //##ModelId=400E530C0216
     //##Documentation
     //## container of child node indices
-    NestableContainer::Ref child_indices_;
+    DMI::Container::Ref child_indices_;
     
     // flag: children have been resolved
     bool children_resolved_;

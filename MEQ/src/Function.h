@@ -30,7 +30,7 @@
 #pragma aid Flag Mask
 
 
-namespace Meq {    
+namespace Meq { using namespace DMI;    
 
 class Request;
 
@@ -118,7 +118,7 @@ public:
 // ***/
 
 protected:
-  virtual void setStateImpl (DataRecord &rec,bool initializing);
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
   // Get the result for the given request.
   // The default implementation works as follows:

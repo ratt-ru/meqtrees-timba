@@ -21,7 +21,7 @@
 //# $Id$
 
 #include <Common/Debug.h>
-#include <DMI/DataField.h>
+#include <DMI/Vec.h>
 #include "Domain.h"
 #include "MeqVocabulary.h"
 
@@ -29,7 +29,7 @@ namespace Meq {
 
 // pull in registry definitions
 static int _dum = aidRegistry_Meq();
-static NestableContainer::Register reg(TpMeqDomain,True);
+static DMI::Container::Register reg(TpMeqDomain,true);
 
 //##ModelId=3F86886E030D
 Domain::Domain()
@@ -39,10 +39,10 @@ Domain::Domain()
 }
 
 //##ModelId=3F86886E030E
-Domain::Domain (const DataRecord & rec,int flags)
-: DataRecord(rec,(flags&~DMI::WRITE)|DMI::DEEP|DMI::READONLY)
+Domain::Domain (const DMI::Record & rec,int flags,int depth)
+: Record(rec,flags,depth)
 {
-  validateContent();
+  validateContent(false); // not recursive
 }
 
 //##ModelId=3F95060C00A7
@@ -63,29 +63,23 @@ void Domain::defineAxis (int iaxis,double a1,double a2)
   range_[iaxis][1] = a2;
   defined_[iaxis]  = true;
   // add to record
-  (*this)[Axis::name(iaxis)] <<= new DataField(Tpdouble,2,range_[iaxis]);
+  Record::addField(Axis::name(iaxis),new DMI::Vec(Tpdouble,2,range_[iaxis]),DMI::REPLACE|Record::PROTECT);
 }
 
-
-void Domain::revalidateContent ()
-{
-  protectAllFields();
-}  
-
 //##ModelId=400E5305010B
-void Domain::validateContent ()
+void Domain::validateContent (bool)
 {
   Thread::Mutex::Lock lock(mutex());
   memset(range_,0,sizeof(range_));
   memset(defined_,0,sizeof(defined_));
   try
   {
-    HIID id;
-    NCRef ncref;
-    Iterator iter = initFieldIter();
-    while( getFieldIter(iter,id,ncref) )
+    for( Iterator iter = Record::begin(); iter != Record::end(); iter++ )
     { 
+      const HIID &id = iter.id();
       FailWhen(id.size()!=1,"illegal axis ID "+id.toString());
+      const Container *pcont = dynamic_cast<const Container*>(iter.ref().deref_p());
+      FailWhen(!pcont,"illegal content for axis "+id.toString());
       int iaxis = id[0].index();
       if( iaxis<0 )
       {
@@ -93,22 +87,22 @@ void Domain::validateContent ()
         FailWhen(iaxis<0,"unknown axis ID "+id.toString());
       }
       int size;
-      const double *a = (*ncref)[HIID()].as_p<double>(size);
+      const double *a = (*pcont)[HIID()].as_p<double>(size);
       FailWhen(size!=2,"bad axis specification for "+id.toString());
       FailWhen(a[0]>=a[1],"segment start must be < end");
       range_[iaxis][0] = a[0];
       range_[iaxis][1] = a[1];
       defined_[iaxis]  = true;
+      iter.protect(); 
     }
-    protectAllFields();
   }
   catch( std::exception &err )
   {
-    Throw(string("validate of Domain field failed: ") + err.what());
+    Throw(string("validate of Domain record failed: ") + err.what());
   }
   catch( ... )
   {
-    Throw("validate of Domain field failed with unknown exception");
+    Throw("validate of Domain record failed with unknown exception");
   }  
 }
 

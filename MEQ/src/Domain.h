@@ -23,12 +23,7 @@
 #ifndef MEQ_DOMAIN_H
 #define MEQ_DOMAIN_H
 
-
-// This class represents a domain for which an expression has to be
-// evaluated.
-
-
-#include <DMI/DataRecord.h>
+#include <DMI/Record.h>
 #include <MEQ/TID-Meq.h>
 #include <MEQ/Axis.h>
 
@@ -37,19 +32,20 @@
 // dummy aids used for glish functions
 #pragma aid ndim axes
 
-namespace Meq {
+namespace Meq 
+{ 
 
 //##ModelId=3F86886E0183
-class Domain : public DataRecord
+class Domain : public DMI::Record
 {
 public:
   // Create a time,frequency default domain of -1:1,-1:1..
     //##ModelId=3F86886E030D
   Domain();
 
-  // Create from an existing data record
+  // Create from an existing data record (also serves as copy constructor)
     //##ModelId=3F86886E030E
-  Domain (const DataRecord &,int flags=DMI::PRESERVE_RW);
+  Domain (const DMI::Record &,int flags=0,int depth=0);
 
   // Shortcut to create a 2D domain (along axis 0 and 1)
     //##ModelId=3F95060C00A7
@@ -59,19 +55,18 @@ public:
   void defineAxis (int iaxis,double a1,double a2);
 
     //##ModelId=400E530500F5
-  virtual TypeId objectType () const
+  virtual DMI::TypeId objectType () const
   { return TpMeqDomain; }
   
   // implement standard clone method via copy constructor
     //##ModelId=400E530500F9
-  virtual CountedRefTarget* clone (int flags, int depth) const
-  { return new Domain(*this,flags|(depth>0?DMI::DEEP:0)); }
+  virtual DMI::CountedRefTarget* clone (int flags, int depth) const
+  { return new Domain(*this,flags,depth); }
   
   // validate record contents and setup shortcuts to them. This is called 
-  // automatically whenever a Domain is made from a DataRecord
+  // automatically whenever a Domain is made from a DMI::Record
     //##ModelId=400E5305010B
-  virtual void validateContent ();
-  virtual void revalidateContent ();
+  virtual void validateContent (bool recursive);
 
   double start (int iaxis) const
   {
@@ -127,6 +122,12 @@ public:
   void show (std::ostream&) const;
 
 private:
+  DMI::Record::protectField;  
+  DMI::Record::unprotectField;  
+  DMI::Record::begin;  
+  DMI::Record::end;  
+  DMI::Record::as;
+    
     //##ModelId=3F86886E02F8
   double range_[Axis::MaxAxis][2];
   bool   defined_[Axis::MaxAxis];

@@ -23,7 +23,7 @@
 #include "Forest.h"
 #include "MeqVocabulary.h"
 #include <DMI/DynamicTypeManager.h>
-#include <DMI/DataList.h>
+#include <DMI/List.h>
     
 // pull in registry
 static int dum = aidRegistry_Meq();
@@ -58,8 +58,7 @@ void Forest::clear ()
 }
 
 //##ModelId=3F5F572601B2
-const Node::Ref & Forest::create (int &node_index,
-    DataRecord::Ref::Xfer &initrec,bool reinitializing)
+Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitializing)
 {
   string classname;
   Node::Ref noderef;
@@ -70,7 +69,7 @@ const Node::Ref & Forest::create (int &node_index,
     classname = (*initrec)[FClass].as<string>("");
     node_index = (*initrec)[FNodeIndex].as<int>(-1);
     FailWhen( !classname.length(),"missing or invalid Class field in init record"); 
-    BlockableObject * pbp = DynamicTypeManager::construct(TypeId(classname));
+    DMI::BObj * pbp = DynamicTypeManager::construct(TypeId(classname));
     FailWhen(!pbp,"construct failed");
     pnode = dynamic_cast<Meq::Node*>(pbp);
     if( !pnode )
@@ -78,7 +77,7 @@ const Node::Ref & Forest::create (int &node_index,
       delete pbp;
       Throw(classname+" is not a Meq::Node descendant");
     }
-    noderef <<= pnode;
+    noderef.attach(pnode,DMI::SHARED);
     if( reinitializing )
       pnode->reinit(initrec,this);
     else
@@ -118,7 +117,7 @@ const Node::Ref & Forest::create (int &node_index,
   // post event
   if( evgen_create.active() )
     evgen_create.generateEvent(ObjRef(pnode->state()),pnode);
-  return nodes[node_index];
+  return *pnode;
 }
 
 //##ModelId=3F5F5CA300E0
@@ -201,14 +200,14 @@ const HIID & Forest::assignRequestId (Request &req)
   {
     maskSubId(last_req_id,RQIDM_DATASET);
     incrSubId(last_req_id,RQIDM_DATASET);
-    last_req_cells.attach(req.cells()).privatize(DMI::READONLY|DMI::DEEP);
+    last_req_cells.attach(req.cells());
   }
   else
   {
     // cells do not match last request? Update the ID
     if( req.cells() != *last_req_cells )
     {
-      last_req_cells.attach(req.cells()).privatize(DMI::READONLY|DMI::DEEP);
+      last_req_cells.attach(req.cells());
       incrSubId(last_req_id,RQIDM_DOMAIN);
     }
   }
@@ -221,22 +220,22 @@ void Forest::resetForNewDataSet ()
   last_req_cells.detach();
 }
 
-int Forest::getNodeList (DataRecord &list,int content)
+int Forest::getNodeList (DMI::Record &list,int content)
 {
   int num = num_valid_nodes;
   // create lists (arrays) for all known content
-  DataField *lni=0,*lname=0,*lclass=0,*lstate=0;
-  DataList *lchildren=0;
+  DMI::Vec *lni=0,*lname=0,*lclass=0,*lstate=0;
+  DMI::List *lchildren=0;
   if( content&NL_NODEINDEX )
-    list[AidNodeIndex] <<= lni = new DataField(Tpint,num);
+    list[AidNodeIndex] <<= lni = new DMI::Vec(Tpint,num);
   if( content&NL_NAME )
-    list[AidName] <<= lname = new DataField(Tpstring,num);
+    list[AidName] <<= lname = new DMI::Vec(Tpstring,num);
   if( content&NL_CLASS )
-    list[AidClass] <<= lclass = new DataField(Tpstring,num);
+    list[AidClass] <<= lclass = new DMI::Vec(Tpstring,num);
   if( content&NL_CHILDREN )
-    list[AidChildren] <<= lchildren = new DataList;
+    list[AidChildren] <<= lchildren = new DMI::List;
   if( content&NL_CONTROL_STATUS )
-    list[FControlStatus] <<= lstate = new DataField(Tpint,num);
+    list[FControlStatus] <<= lstate = new DMI::Vec(Tpint,num);
   if( num )
   {
     // fill them up
@@ -256,14 +255,11 @@ int Forest::getNodeList (DataRecord &list,int content)
           (*lstate)[i0] = node.getControlStatus();
         if( lchildren )
         {
-          DataRecord::Hook hook(node.state(),FChildren);
-          TypeId tp = hook.type();
-          if( tp == TpDataField || tp == Tpint )
-            lchildren->addBack(hook.as_p<DataField>());
-          else if( tp == TpDataRecord )
-            lchildren->addBack(hook.as_p<DataRecord>());
+          ObjRef ref = node.state()[FChildren].ref(true);
+          if( ref.valid() )
+            lchildren->addBack(ref);
           else
-            lchildren->addBack(new DataField,DMI::ANONWR);
+            lchildren->addBack(new DMI::Vec); // empty vec if no children
         }
         i0++;
       }

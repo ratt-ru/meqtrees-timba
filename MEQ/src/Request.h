@@ -25,7 +25,7 @@
 
 //# Includes
 #include <MEQ/Cells.h>
-#include <DMI/DataRecord.h>
+#include <DMI/Record.h>
 
 #pragma aidgroup Meq
 #pragma types #Meq::Request
@@ -35,12 +35,12 @@
 // evaluated. It contains the domain and cells to evaluate for.
 // A flag tells if derivatives (perturbed values) have to be calculated.
 
-namespace Meq {
+namespace Meq { using namespace DMI;
 
 class Node;
 
 //##ModelId=3F86886E01FF
-class Request : public DataRecord
+class Request : public DMI::Record
 {
 public:
     //##ModelId=400E53040057
@@ -51,17 +51,17 @@ public:
     
     //##ModelId=3F8688700061
   //##Documentation
-  //## Construct from DataRecord 
-  Request (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
+  //## Construct from DMI::Record 
+  Request (const DMI::Record &other,int flags=0,int depth=0);
   
     //##ModelId=400E535403DD
   //##Documentation
   //## Create the request from the cells for which the expression has
   //## to be calculated. Optionally no derivatives are calculated.
-  explicit Request (const Cells&, int calcDeriv=1, const HIID &id=HIID(),int cellflags=DMI::EXTERNAL|DMI::NONSTRICT);
+  explicit Request (const Cells&, int calcDeriv=1, const HIID &id=HIID(),int cellflags=DMI::AUTOCLONE);
   
     //##ModelId=400E53550016
-  explicit Request (const Cells *, int calcDeriv=1, const HIID &id=HIID(),int cellflags=DMI::ANON|DMI::NONSTRICT);
+  explicit Request (const Cells *, int calcDeriv=1, const HIID &id=HIID(),int cellflags=0);
 
     //##ModelId=400E53550034
   virtual TypeId objectType () const
@@ -76,19 +76,15 @@ public:
     //##ModelId=400E53550049
   //##Documentation
   //## validate record contents and setup shortcuts to them. This is called 
-  //## automatically whenever a Request is made from a DataRecord
-  //## (or when the underlying DataRecord is privatized, etc.)
-  virtual void validateContent ();
-  virtual void revalidateContent ();
-  
-    //##ModelId=400E5355004C
-  virtual int remove (const HIID &);
+  //## automatically whenever a Request is made from a DMI::Record
+  //## (or when the underlying DMI::Record is privatized, etc.)
+  virtual void validateContent (bool recursive);
   
     //##ModelId=3F868870006C
   //##Documentation
   //## Calculate derivatives? 0 for none, 1 for standard, 2 for double-deriv
   int calcDeriv() const
-  { return calcDeriv_; }
+  { return calc_deriv_; }
   
   void setCalcDeriv (int calc);
   
@@ -99,25 +95,25 @@ public:
   
     //##ModelId=3F868870006E
   //##Documentation
-  // Attaches cells object (default as anon). Can also specify DMI::CLONE
-  // to copy
-  void setCells (const Cells *,int flags = DMI::ANON|DMI::NONSTRICT);
+  // Attaches cells object (default as anon). 
+  void setCells (const Cells *,int flags=0);
     //##ModelId=400E53550065
   //##Documentation
-  //## Attaches cells object (default is external). 
-  void setCells (const Cells &cells,int flags = DMI::EXTERNAL|DMI::NONSTRICT)
+  //## Attaches cells object 
+  void setCells (const Cells &cells,int flags=DMI::AUTOCLONE)
   { setCells(&cells,flags); }
+  
     //##ModelId=400E53550076
   //##Documentation
-  //## True if a cells object is attached
+  //## true if a cells object is attached
   bool hasCells () const
-  { return cells_.valid(); }
+  { return pcells_; }
     //##ModelId=3F8688700073
   //##Documentation
   //## Returns cells
   const Cells& cells() const
-  { DbgFailWhen(!cells_.valid(),"no cells in Meq::Request");
-    return *cells_; }
+  { DbgFailWhen(!pcells_,"no cells in Meq::Request");
+    return pcells_->deref(); }
   
     //##ModelId=3F8688700075
   //##Documentation
@@ -133,7 +129,7 @@ public:
   //##Documentation
   //## does this request have a rider field?
   bool hasRider () const
-  { return hasRider_; }
+  { return has_rider_; }
   
   //## copies over rider from another request
   void copyRider (const Request &other);
@@ -142,32 +138,26 @@ public:
   void clearRider ();
 
   //##Documentation
-  //## re-checks elf_ for a rider record, sets the hasRider flag.
+  //## re-checks elf_ for a rider record, sets the has_rider_ flag.
   //## should be called after an app has changed the rider
   void validateRider ();
   
-  void privatize (int,int);
+private: 
+  Record::protectField;  
+  Record::unprotectField;  
+  Record::begin;  
+  Record::end;  
+  Record::as;
+  Record::clear;
   
-protected: 
-    //##ModelId=400E5354039C
-  //##Documentation
-  //## disable public access to some DataRecord methods that would violate the
-  //## structure of the container
-  DataRecord::remove;
-    //##ModelId=400E535403A4
-  DataRecord::replace;
-    //##ModelId=400E535403AB
-  DataRecord::removeField;
-  
-private:
     //##ModelId=400E535403B3
   HIID   id_;
-    //##ModelId=3F868870003C
-  int    calcDeriv_;
     //##ModelId=3F86BFF80269
-  Cells::Ref cells_;
+  Cells::Ref * pcells_;
+    //##ModelId=3F868870003C
+  int    calc_deriv_;
   
-  bool   hasRider_;
+  bool   has_rider_;
   
   bool   cache_override_;
 };

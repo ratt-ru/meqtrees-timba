@@ -23,9 +23,9 @@
 #include "Node.h"
 #include "MeqVocabulary.h"
 #include <DMI/BlockSet.h>
-#include <DMI/DataRecord.h>
-#include <DMI/DataField.h>
-#include <DMI/DataArray.h>
+#include <DMI/Record.h>
+#include <DMI/Vec.h>
+#include <DMI/NumArray.h>
 #include <algorithm>
 
 namespace Meq {
@@ -37,46 +37,46 @@ int Node::processRequestRider (Request::Ref &reqref)
 {
   // since processCommands() is allowed to modify the request
   // (thus invoking copy-on-write), hold on to the old request in this ref 
-  Request::Ref oldreq(reqref,DMI::COPYREF|DMI::READONLY);
+  Request::Ref oldreq(reqref);
   const Request &req = *reqref;
   if( !req.hasRider() )
     return 0;
   int retcode = 0;
   cdebug(3)<<"  processing request rider"<<endl;
-  const DataRecord &rider = req[FRider].as<DataRecord>();
+  const DMI::Record &rider = req[FRider].as<DMI::Record>();
   for( uint i=0; i<node_groups_.size(); i++ )
   {
-    DataRecord::Hook hgroup(rider,node_groups_[i]);
+    DMI::Record::Hook hgroup(rider,node_groups_[i]);
     if( hgroup.exists() )
     {
       cdebug(3)<<"    found CSR for group "<<node_groups_[i]<<endl;
-      DataRecord::Ref group = hgroup.ref();
+      DMI::Record::Ref group = hgroup.ref();
       // check for command_all entry
       {
-        DataRecord::Hook hlist(group,FCommandAll);
+        DMI::Record::Hook hlist(group,FCommandAll);
         if( hlist.exists() )
         {
           cdebug(4)<<"    found "<<FCommandAll<<", calling processCommands()"<<endl;
-          retcode |= processCommands(hlist.as<DataRecord>(),reqref);
+          retcode |= processCommands(hlist.as<DMI::Record>(),reqref);
         }
       }
       // process command_by_list (pattern matching list)
       {
-        DataRecord::Hook hlist(group,FCommandByList);
+        DMI::Record::Hook hlist(group,FCommandByList);
         if( hlist.exists() )
         {
-          // access list as a NestableContainer (this can be a DataField or
-          // a DataList, either should work fine)
-          const NestableContainer &list = *(
-                hlist.ref().ref_cast<NestableContainer>());
+          // access list as a DMI::Container (this can be a DMI::Vec or
+          // a DMI::List, either should work fine)
+          const DMI::Container &list = *(
+                hlist.ref().ref_cast<DMI::Container>());
           cdebug(3)<<"      checking "<<list.size()<<" list entries"<<endl;
           bool matched = false;
           for( int i=0; i<list.size() && !matched; i++ )
           {
-            const DataRecord &entry = list[i].as<DataRecord>();
+            const DMI::Record &entry = list[i].as<DMI::Record>();
             std::vector<string> names;
             std::vector<int> indices;
-            DataRecord::Hook hnames(entry,FName),
+            DMI::Record::Hook hnames(entry,FName),
                  hindices(entry,FNodeIndex);
             if( hnames.exists() ) // get list of names, if any
               names = hnames;
@@ -104,11 +104,11 @@ int Node::processRequestRider (Request::Ref &reqref)
       }
       // process command_by_nodeindex list
       {
-        DataRecord::Hook hlist(group,FCommandByNodeIndex);
+        DMI::Record::Hook hlist(group,FCommandByNodeIndex);
         if( hlist.exists() && hlist[nodeIndex()].exists() )
         {
           cdebug(4)<<"    found "<<FCommandByNodeIndex<<"["<<nodeIndex()<<"], calling processCommands()"<<endl;
-          retcode |= processCommands(hlist.as<DataRecord>(),reqref);
+          retcode |= processCommands(hlist.as<DMI::Record>(),reqref);
         }
       }
     }
@@ -124,7 +124,7 @@ static Subcontainer & getOrInsert (Container &container,
 {
   int dum;
   Subcontainer *ptr;
-  NestableContainer::Hook hook(container,field);
+  DMI::Container::Hook hook(container,field);
   if( replace )
     hook.replace() <<= ptr = new Subcontainer;
   else if( hook.exists() )
@@ -135,9 +135,9 @@ static Subcontainer & getOrInsert (Container &container,
 }
 
 //## Inits (if necessary) and returns a the subrecord rec[id]
-DataRecord & Node::Rider::getOrInit (DataRecord &rec,const HIID &id)
+DMI::Record & Node::Rider::getOrInit (DMI::Record &rec,const HIID &id)
 {
-  return getOrInsert(rec,id,Type2Type<DataRecord>());
+  return getOrInsert(rec,id,Type2Type<DMI::Record>());
 }
 
 
@@ -145,23 +145,23 @@ DataRecord & Node::Rider::getOrInit (DataRecord &rec,const HIID &id)
 // Reqref will be privatized for writing if needed.
 void Node::Rider::clear (Request::Ref &reqref)
 {
-  DataRecord::Hook rhook(reqref,FRider);
+  DMI::Record::Hook rhook(reqref,FRider);
   if( rhook.exists() )
     rhook.remove();
 }
 
-DataRecord & Node::Rider::getRider (Request::Ref &reqref,int flags)
+DMI::Record & Node::Rider::getRider (Request::Ref &reqref,int flags)
 {
-  return getOrInsert(reqref,FRider,Type2Type<DataRecord>(),flags&NEW_RIDER);
+  return getOrInsert(reqref,FRider,Type2Type<DMI::Record>(),flags&NEW_RIDER);
 }
 
 // Inits (if necessary) and returns the group command record for 'group'.
 // Reqref will be privatized for writing if needed.
 // If the NEW_RIDER flag is given, always creates a new rider.
 // If the NEW_GROUPREC flag is given, always creates a new GCR.
-DataRecord & Node::Rider::getGroupRec (Request::Ref &reqref,const HIID &group,int flags)
+DMI::Record & Node::Rider::getGroupRec (Request::Ref &reqref,const HIID &group,int flags)
 {
-  return getOrInsert(getRider(reqref,flags),group,Type2Type<DataRecord>(),
+  return getOrInsert(getRider(reqref,flags),group,Type2Type<DMI::Record>(),
             flags&(NEW_GROUPREC|NEW_RIDER));
 }
     
@@ -170,11 +170,11 @@ DataRecord & Node::Rider::getGroupRec (Request::Ref &reqref,const HIID &group,in
 // If the NEW_RIDER flag is given, always creates a new rider.
 // If the NEW_GROUPREC flag is given, always creates a new GCR.
 // If the NEW_CMDREC flag is given, always creates a new command subrecord.
-DataRecord & Node::Rider::getCmdRec_All (Request::Ref &reqref,const HIID &group,int flags)
+DMI::Record & Node::Rider::getCmdRec_All (Request::Ref &reqref,const HIID &group,int flags)
 {
   // get or insert Rider subrecord
-  DataRecord &cmdrec = getGroupRec(reqref,group,flags);
-  return getOrInsert(cmdrec,FCommandAll,Type2Type<DataRecord>(),flags&NEW_ALL);
+  DMI::Record &cmdrec = getGroupRec(reqref,group,flags);
+  return getOrInsert(cmdrec,FCommandAll,Type2Type<DMI::Record>(),flags&NEW_ALL);
 }
     
 // Inits (if necessary) and returns the command_by_nodeindex subrecord for 
@@ -182,11 +182,11 @@ DataRecord & Node::Rider::getCmdRec_All (Request::Ref &reqref,const HIID &group,
 // If the NEW_RIDER flag is given, always creates a new rider.
 // If the NEW_GROUPREC flag is given, always creates a new GCR.
 // If the NEW_CMDREC flag is given, always creates a new command subrecord.
-DataRecord & Node::Rider::getCmdRec_ByNodeIndex (Request::Ref &reqref,const HIID &group,int flags)
+DMI::Record & Node::Rider::getCmdRec_ByNodeIndex (Request::Ref &reqref,const HIID &group,int flags)
 {
   // get or insert Rider subrecord
-  DataRecord &cmdrec = getGroupRec(reqref,group,flags);
-  return getOrInsert(cmdrec,FCommandByNodeIndex,Type2Type<DataRecord>(),flags&NEW_ALL);
+  DMI::Record &cmdrec = getGroupRec(reqref,group,flags);
+  return getOrInsert(cmdrec,FCommandByNodeIndex,Type2Type<DMI::Record>(),flags&NEW_ALL);
 }
 
 // Inits (if necessary) and returns the command_by_list subrecord (field) for 
@@ -194,19 +194,19 @@ DataRecord & Node::Rider::getCmdRec_ByNodeIndex (Request::Ref &reqref,const HIID
 // If the NEW_RIDER flag is given, always creates a new rider.
 // If the NEW_GROUPREC flag is given, always creates a new GCR.
 // If the NEW_CMDREC flag is given, always creates a new command subrecord.
-DataField & Node::Rider::getCmdRec_ByList (Request::Ref &reqref,const HIID &group,int flags)
+DMI::Vec & Node::Rider::getCmdRec_ByList (Request::Ref &reqref,const HIID &group,int flags)
 {
   // get or insert Rider subrecord
-  DataRecord &cmdrec = getGroupRec(reqref,group,flags);
-  return getOrInsert(cmdrec,FCommandByNodeIndex,Type2Type<DataField>(),flags&NEW_ALL);
+  DMI::Record &cmdrec = getGroupRec(reqref,group,flags);
+  return getOrInsert(cmdrec,FCommandByNodeIndex,Type2Type<DMI::Vec>(),flags&NEW_ALL);
 }
     
 void Node::Rider::addSymDepMask (Request::Ref &reqref,
       const HIID &symdep,int mask,const HIID &group)
 {
-  DataRecord &cmdrec = getCmdRec_All(reqref,group);
-  DataRecord &deprec = getOrInsert(cmdrec,FAddDepMask,Type2Type<DataRecord>());
-  DataRecord::Hook hook(deprec,symdep);
+  DMI::Record &cmdrec = getCmdRec_All(reqref,group);
+  DMI::Record &deprec = getOrInsert(cmdrec,FAddDepMask,Type2Type<DMI::Record>());
+  DMI::Record::Hook hook(deprec,symdep);
   if( hook.exists() )
     hook.as_wr<int>() |=  mask;
   else

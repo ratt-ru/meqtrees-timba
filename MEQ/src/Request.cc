@@ -21,30 +21,30 @@
 //# $Id$
 
 #include "Request.h"
-#include "Node.h"
+// #include "Node.h"
 #include "MeqVocabulary.h"
 
 namespace Meq {
 
-static NestableContainer::Register reg(TpMeqRequest,True);
+static DMI::Container::Register reg(TpMeqRequest,true);
 
 //##ModelId=3F8688700056
 Request::Request()
-: calcDeriv_(0),hasRider_(false),cache_override_(false)
+: pcells_(0),calc_deriv_(0),has_rider_(false),cache_override_(false)
 {
 }
 
 //##ModelId=3F8688700061
-Request::Request (const DataRecord &other,int flags,int depth)
-: DataRecord  (other,flags,depth),
-  calcDeriv_(0),hasRider_(false),cache_override_(false)
+Request::Request (const DMI::Record &other,int flags,int depth)
+: Record(), 
+  pcells_(0),calc_deriv_(0),has_rider_(false),cache_override_(false)
 {
-  validateContent();
+  Record::cloneOther(other,flags,depth,true);
 }
 
 //##ModelId=400E535403DD
 Request::Request (const Cells& cells,int calcDeriv,const HIID &id,int cellflags)
-: hasRider_(false),cache_override_(false)
+: has_rider_(false),cache_override_(false)
 {
   setCells(cells,cellflags);
   setId(id);
@@ -53,7 +53,7 @@ Request::Request (const Cells& cells,int calcDeriv,const HIID &id,int cellflags)
 
 //##ModelId=400E53550016
 Request::Request (const Cells * cells, int calcDeriv, const HIID &id,int cellflags)
-: hasRider_(false),cache_override_(false)
+: has_rider_(false),cache_override_(false)
 {
   setCells(cells,cellflags);
   setId(id);
@@ -69,7 +69,7 @@ void Request::setId (const HIID &id)
 
 void Request::setCalcDeriv (int calc)
 { 
-  (*this)[FCalcDeriv] = calcDeriv_ = calc; 
+  (*this)[FCalcDeriv] = calc_deriv_ = calc; 
 }
 
 void Request::setCacheOverride (bool flag)
@@ -80,36 +80,13 @@ void Request::setCacheOverride (bool flag)
 //##ModelId=3F868870006E
 void Request::setCells (const Cells * cells,int flags)
 {
-  // if we have no idea how to attach object, make a copy
-  if( !(flags&(DMI::ANON|DMI::EXTERNAL)) && !cells->refCount() )
-    cells_ <<= new Cells(*cells);
-  else
-    cells_ <<= cells;
-  DataRecord::replace(FCells,cells_.deref_p(),DMI::READONLY);
-}
-
-void Request::privatize (int flags,int depth)
-{
-  // if deep-privatizing, then detach shortcuts -- they will be reattached 
-  // by validateContent()
-  if( flags&DMI::DEEP || depth>0 )
-  {
-    cells_.detach();
-    DataRecord::privatize(flags,depth);
-  }
-}
-
-void Request::revalidateContent ()
-{
-  protectAllFields();
-  if( DataRecord::hasField(FCells) )
-    cells_ = DataRecord::fieldWr(FCells);
-  else
-    cells_.detach();
+  ObjRef ref(cells,flags);
+  Field & field = Record::addField(FCells,ref,flags|DMI::REPLACE|Record::PROTECT);
+  pcells_ = &(field.ref.ref_cast<Cells>());
 }
 
 //##ModelId=400E53550049
-void Request::validateContent ()
+void Request::validateContent (bool)
 {
   Thread::Mutex::Lock lock(mutex());
   // ensure that our record contains all the right fields, and that they're
@@ -117,13 +94,20 @@ void Request::validateContent ()
   try
   {
     // get cells field
-    revalidateContent();
+    Field * pcf = findField(FCells);
+    if( pcf )
+    {
+      pcells_ = &( pcf->ref.ref_cast<Cells>() );
+      pcf->protect = true;
+    }
+    else
+      pcells_ = 0;
     // request ID
     id_ = (*this)[FRequestId].as<HIID>(HIID());
-    // calc-deriv flag
-    calcDeriv_ = (*this)[FCalcDeriv].as<int>(0);
+    // flags
+    calc_deriv_ = (*this)[FCalcDeriv].as<int>(0);
     cache_override_ = (*this)[FCacheOverride].as<bool>(false);
-   // rider
+    // rider
     validateRider();
   }
   catch( std::exception &err )
@@ -139,36 +123,27 @@ void Request::validateContent ()
 
 void Request::validateRider ()
 {
-  hasRider_ = DataRecord::hasField(FRider);
+  has_rider_ = Record::hasField(FRider);
 }
 
 void Request::clearRider ()
 {
   Thread::Mutex::Lock lock(mutex());
-  DataRecord::remove(FRider);
-  hasRider_ = False;
+  Record::remove(FRider);
+  has_rider_ = false;
 }
 
 void Request::copyRider (const Request &other)
 {
   Thread::Mutex::Lock lock(mutex());
-  if( other.hasRider() )
+  const Field * fld = other.findField(FRider);
+  if( fld )
   {
-    DataRecord::replace(FRider,other.field(FRider));
-    hasRider_ = True;
+    Record::replace(FRider,fld->ref);
+    has_rider_ = true;
   }
   else
     clearRider();
 }
-
-int Request::remove (const HIID &id)
-{ 
-  Thread::Mutex::Lock lock(mutex());
-  if( id == FCells || id == FRequestId || id==FCalcDeriv || id == FCacheOverride ) {
-    Throw("remove(" + id.toString() +" from a Meq::Request not allowed"); 
-  }
-  return DataRecord::remove(id);
-}
-
 
 } // namespace Meq

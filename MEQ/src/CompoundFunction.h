@@ -25,7 +25,7 @@
     
 #include <MEQ/Function.h>
 
-namespace Meq {
+namespace Meq { using namespace DMI;
 
 //##ModelId=3F86886E01A8
 class CompoundFunction : public Function

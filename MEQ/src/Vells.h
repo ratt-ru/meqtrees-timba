@@ -23,8 +23,11 @@
 #ifndef MEQ_VELLS_H
 #define MEQ_VELLS_H
 
-#include <DMI/DataArray.h>
+#include <DMI/NumArray.h>
+#include <MEQ/Meq.h>
 #include <MEQ/Axis.h>
+
+#pragma type #Meq::Vells
 
 // This provides a list of operators and functions defined by Vells
 
@@ -84,7 +87,10 @@
 #define DoForAllBinaryFuncs(Do,x) \
   Do(posdiff,x) Do(tocomplex,x) Do(polar,x) Do(pow,x) Do(atan2,x)
 
-namespace Meq {
+namespace Meq 
+{ 
+  using namespace DMI;
+  using namespace DebugMeq;
 
 // Conditionally include declarations for Vells math.
 // Skipping these functions saves time/memory when compiling code that
@@ -117,7 +123,9 @@ const int VELLS_LUT_SIZE = 2;
 //##Documentation
 // The Vells class contains a sampling (or integration) of a function over
 // an arbitrary N-dimensional grid. 
-class Vells : public SingularRefTarget
+// It is a specialization of DMI::NumArray with restricted typing (double 
+// or dcomplex for the moment)
+class Vells : public DMI::NumArray
 {
 public:
   template<typename T,int N>
@@ -145,9 +153,9 @@ public:
 
   // Create a scalar Vells from a value. Default is temporary Vells.
   //##ModelId=3F86887001D5
-  Vells (double value,bool temp=True);
+  Vells (double value,bool temp=true);
   //##ModelId=3F86887001DC
-  Vells (const dcomplex& value,bool temp=True);
+  Vells (const dcomplex& value,bool temp=true);
 
   // Create a Vells of given shape.
   // If the init flag is true, the matrix is initialized to the given value.
@@ -155,20 +163,18 @@ public:
   Vells (double, const Shape &shape, bool init=true);
   Vells (const dcomplex&, const Shape &shape, bool init=true);
 
-  // Create a Vells from a DataArray pointer
-  // Default is reference semantics (attaches ref to array), unless 
-  // DMI::PRIVATIZE is specified, in which case the array is privatized.
-  //##ModelId=3F8688700216
-  explicit Vells (DataArray *,int flags = 0);
-  //##ModelId=3F868870021C
-  explicit Vells (const DataArray *,int flags = 0);
-  //##ModelId=3F8688700223
-  // creates from array ref. Ref is transferred
-  explicit Vells (const DataArray::Ref::Xfer &ref);
-
   //##ModelId=3F868870022A
-  // Copy constructor (reference semantics, unless DMI::PRIVATIZE is specified)
-  Vells (const Vells& that,int flags = DMI::COPYREF);
+  // Copy constructor (reference semantics, unless DMI::DEEP or depth>0 is 
+  // specified). A Vells may be created from a NumArray of a compatible type
+  Vells (const DMI::NumArray &other,int flags=0,int depth=0);
+  Vells (const Vells &other,int flags=0,int depth=0);
+  
+  // Construct from array
+  template<class T,int N>
+  Vells (const blitz::Array<T,N> &arr)
+  : DMI::NumArray(arr)
+  { validateContent(false); }
+      
 
     //##ModelId=3F8688700238
   ~Vells();
@@ -177,18 +183,31 @@ public:
     //##ModelId=3F868870023B
   Vells& operator= (const Vells& other);
 
-  // privatize function: assures of a private copy of the data
-  virtual void privatize (int flags=0,int depth=0);
+      //##ModelId=400E530403C1
+  virtual TypeId objectType () const
+  { return TpMeqVells; }
   
-  // Clones the Vells -- assures of a private copy of the data
-    //##ModelId=3F8688700249
-  Vells clone () const
-  { return Vells(*this,DMI::PRIVATIZE); }
+  // implement standard clone method via copy constructor
+    //##ModelId=400E530403C5
+  virtual CountedRefTarget* clone (int flags, int depth) const
+  { return new Vells(*this,flags,depth); }
+  
+  // validate array contents and setup shortcuts to them. This is called 
+  // automatically whenever a Vells object is made from a DMI::NumArray
+    //##ModelId=400E530403DB
+  virtual void validateContent (bool recursive);
+//  // privatize function: assures of a private copy of the data
+//  // virtual void privatize ();
+  
+// Clones the Vells -- assures of a private copy of the data
+//    //##ModelId=3F8688700249
+//  Vells clone () const
+//  { return Vells(*this,DMI::DEEP); }
 
   // is it a null vells?
     //##ModelId=3F8688700280
   bool isNull() const
-  { return !num_elements_; }
+  { return ! NumArray::valid(); }
 
   // Is the Vells a temporary object? The constructors above always
   // produce a non-temp Vells. Vells math (below) uses the private
@@ -198,19 +217,6 @@ public:
   bool isTemp () const
   { return is_temp_; }
   
-  bool isWritable () const
-  { return !array_.valid() || array_.isWritable(); }
-  
-  //##ModelId=400E53560099
-  void makeWritable () 
-  { 
-    if( array_.valid() && !array_.isWritable() )
-    {
-      array_.privatize(DMI::WRITE);
-      storage_ = array_().getDataPtr();
-    }
-  }
-
   // changes the temp property
     //##ModelId=400E5356009D
   Vells & makeTemp (bool temp=true) 
@@ -220,37 +226,24 @@ public:
   Vells & makeNonTemp () 
   { is_temp_ = false; return *this; }
   
-  const Shape & shape () const
-  { return shape_; }
-  
-  const int shape (uint iaxis) const
-  { return iaxis<shape_.size() ? shape_[iaxis] : 1; }
+  int extent (uint iaxis) const
+  { return iaxis<shape().size() ? shape()[iaxis] : 1; }
   
     //##ModelId=3F868870027E
   int nelements() const
-  { return num_elements_; }
+  { return NumArray::size(); }
   
   bool isScalar () const
   { return nelements() == 1; }
 
     //##ModelId=3F868870028A
   bool isReal() const
-  { return element_type_ == Tpdouble; }
+  { return elementType() == Tpdouble; }
   
     //##ModelId=400E535600B5
   bool isComplex() const
-  { return element_type_ == Tpdcomplex; }
+  { return elementType() == Tpdcomplex; }
   
-  TypeId elementType () const
-  { return element_type_; }
-  
-  size_t elementSize () const
-  { return element_size_; }
-  
-  int rank () const
-  { return shape_.size(); }
-
-
   // Returns true if a sub-shape is compatible with the specified main shape.
   // A sub-shape is compatible if it does not have greater variability, i.e.:
   // 1. Its rank is not higher
@@ -277,11 +270,11 @@ public:
   static bool isCongruent (const Axis::Shape &a,const Axis::Shape &b)
   {
     if( a.size() != b.size() )
-      return False;
+      return false;
     for( uint i=0; i<a.size(); i++ )
       if( a[i] != b[i] && a[i]>1 && b[i]>1 )
-        return False;
-    return True;
+        return false;
+    return true;
   }
 
   // returns true if shape matches the one specified
@@ -297,19 +290,7 @@ public:
   //##ModelId=400E535600CE
   bool isCongruent (const Vells &other) const
   { return isCongruent(other.elementType(),other.shape()); }
-
     
-  const Thread::Mutex & mutex () const
-  { return array_.valid() ? array_->mutex() : mutex_; }
-    
-  //##ModelId=400E53560109
-  const DataArray & getDataArray () const
-  { return getArrayRef(false).deref(); }
-  
-  //##ModelId=400E5356010C
-  DataArray & getDataArrayWr ()
-  { return getArrayRef(true).dewr(); }
-
   // Define templated getStorage<T>() function
   // Default version will produce a compile-time error; specializations
   // are provided below for double & dcomplex
@@ -324,31 +305,13 @@ public:
   template<class T,int N>
   const blitz::Array<T,N> & getArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>()) const
   { return *static_cast<const blitz::Array<T,N>*>(
-                getDataArray().getConstArrayPtr(typeIdOf(T),N)); }
+                NumArray::getConstArrayPtr(typeIdOf(T),N)); }
   
   template<class T,int N>
   blitz::Array<T,N> & getArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>())
   { return *static_cast<blitz::Array<T,N>*>(
-                getDataArrayWr().getArrayPtr(typeIdOf(T),N)); }
+                NumArray::getArrayPtr(typeIdOf(T),N)); }
   
-//   template<class T,int N>
-//   blitz::Array<T,N> convertArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>())
-//   { 
-//     FailWhen(rank()>N,Debug::ssprintf("can't treat %d-D Vells as %d-D array",rank(),N));
-//     if( rank() == N )
-//       return getArray(Type2Type<T>(),Int2Type<N>());
-//     else 
-//     {
-//       TinyVector<N> shp;
-//       int i;
-//       for( i=0; i<rank(); i++ )
-//         shp[i] = shape_[i];
-//       for( ; i<N; i++ )
-//         shp[i] = 1;
-//       return blitz::Array<T,N>(getStorage(Type2Type<T>()),neverDeleteData);
-//     }
-//   }; 
-
   template<class T>
   T getScalar (Type2Type<T> =Type2Type<T>()) const
   { 
@@ -372,6 +335,14 @@ public:
   template<class T,int N>
   typename DataType<T,N>::RetType as (Type2Type<T> =Type2Type<T>(),Int2Type<N> = Int2Type<N>()) 
   { return getArray(Type2Type<T>(),Int2Type<N>()); }
+  
+  template<class T>
+  T as (Type2Type<T> =Type2Type<T>()) const
+  { return getScalar(Type2Type<T>()); }
+  
+  template<class T>
+  T & as (Type2Type<T> =Type2Type<T>()) 
+  { return getScalar(Type2Type<T>()); }
 
   // Provides access to array storage
     //##ModelId=3F8688700295
@@ -400,34 +371,15 @@ public:
   
 
 private:
-  void clone (const Vells &other,int flags=0);
     
-  // helper function for constructors
-    //##ModelId=400E5356013E
-  void initFromDataArray (const DataArray *parr,int flags=0);
-  void initArrayPointers (const DataArray *parr,int flags=0);
+  DMI::NumArray::Ref  dataflags_;
 
-  const DataArray::Ref & getArrayRef (bool write=false) const;
-    
-  //##ModelId=400E53560024
-  DataArray::Ref  array_;
-  
-  DataArray::Ref  dataflags_;
-
-  //##ModelId=3F86887001B3
-  Shape   shape_;
-  int     num_elements_;
-  TypeId  element_type_;
-  size_t  element_size_;
   //##ModelId=400E5356002F
   bool    is_temp_;
-  void *  storage_;
+//  void *  storage_;
   
   // temp storage for scalar Vells -- big enough for biggest scalar type
-  char scalar_storage_[sizeof(dcomplex)];
-  
-  Thread::Mutex mutex_;
-  
+//  char scalar_storage_[sizeof(dcomplex)];
   
   // OK, now it gets hairy. Implement math on Vells
   // The following flags may be supplied to the constructors below:
@@ -470,7 +422,7 @@ private:
     //##ModelId=400E5356019D
   bool tryReference (const Vells &other);
 
-  void setSizeType (int flags,bool arg_is_complex);
+  static TypeId getResultType (int flags,bool arg_is_complex);
 
   bool canApplyInPlace (const Vells &other,int strides[],const std::string &opname);
 
@@ -656,31 +608,29 @@ DoForAllBinaryOperators(defineBinaryOper,);
 template<>
 inline const double * Vells::getStorage (Type2Type<double>) const
 { 
-  FailWhen(element_type_ != Tpdouble,"mismatch in Vells type");
-  return static_cast<const double *>(storage_);
+  FailWhen(elementType() != Tpdouble,"mismatch in Vells type");
+  return static_cast<const double *>(NumArray::getConstDataPtr());
 }
 
 template<>
 inline const dcomplex * Vells::getStorage (Type2Type<dcomplex>) const
 { 
-  FailWhen(element_type_ != Tpdcomplex,"mismatch in Vells type");
-  return static_cast<const dcomplex *>(storage_);
+  FailWhen(elementType() != Tpdcomplex,"mismatch in Vells type");
+  return static_cast<const dcomplex *>(NumArray::getConstDataPtr());
 }
 
 template<>
 inline double * Vells::getStorage (Type2Type<double>) 
 { 
-  FailWhen(element_type_ != Tpdouble,"mismatch in Vells type");
-  makeWritable();
-  return static_cast<double *>(storage_);
+  FailWhen(elementType() != Tpdouble,"mismatch in Vells type");
+  return static_cast<double *>(NumArray::getDataPtr());
 }
 
 template<>
 inline dcomplex * Vells::getStorage (Type2Type<dcomplex>) 
 { 
-  FailWhen(element_type_ != Tpdcomplex,"mismatch in Vells type");
-  makeWritable();
-  return static_cast<dcomplex *>(storage_);
+  FailWhen(elementType() != Tpdcomplex,"mismatch in Vells type");
+  return static_cast<dcomplex *>(NumArray::getDataPtr());
 }
 
   //##ModelId=3F8688700295

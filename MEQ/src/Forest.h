@@ -30,7 +30,9 @@
 
 #pragma aid Create Delete
 
-namespace Meq {
+namespace Meq 
+{ 
+using namespace DMI;
 
 //##ModelId=3F5F21740281
 class Forest
@@ -57,9 +59,9 @@ class Forest
     //##Documentation
     //## Creates a node using the given init record. The class of the node is
     //## determined by initrec["Class"].
-    //## Returns node index.
-    const Node::Ref & create (int &node_index, DataRecord::Ref::Xfer &initrec,
-                              bool reinitializing=false);
+    //## Returns ref to node.
+    Node & create (int &node_index, DMI::Record::Ref &initrec,
+                   bool reinitializing=false);
   
     //##ModelId=3F5F5CA300E0
     //##Documentation
@@ -94,9 +96,9 @@ class Forest
     int maxNodeIndex () const
     { return nodes.size()-1; }
     
-    // fills DataRecord with list of valid nodes, including information
+    // fills DMI::Record with list of valid nodes, including information
     // specified by content
-    int getNodeList (DataRecord &list,int content = NL_DEFAULT);
+    int getNodeList (DMI::Record &list,int content = NL_DEFAULT);
     
     //##ModelId=3F9937F601A5
     //##Documentation

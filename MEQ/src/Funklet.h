@@ -25,24 +25,24 @@
 
 //# Includes
 #include <MEQ/Domain.h>
-#include <MEQ/Vells.h>
-#include <MEQ/VellSet.h>
 
 #include <MEQ/TID-Meq.h>
 #pragma aidgroup Meq
 #pragma type #Meq::Funklet
 
-namespace Meq {
+namespace Meq { 
+
 class Request;
+class VellSet;
 
 const double defaultFunkletPerturbation = 1e-6;
 const double defaultFunkletWeight = 1;
 
 //##ModelId=3F86886E01F6
-class Funklet : public DataRecord
+class Funklet : public DMI::Record
 {
 public:
-  typedef CountedRef<Funklet> Ref;
+  typedef DMI::CountedRef<Funklet> Ref;
   typedef int DbId;
   
   // maximum # of perturbation sets passed to evaluate() below
@@ -65,9 +65,10 @@ public:
 
   //------------------ standard member access ---------------------------------------------
   // Set the domain to which this funklet applies.
-  void setDomain (const Domain* domain,int flags);
-  void setDomain (const Domain& domain)
-  { setDomain(&domain,0); }
+  void setDomain (const Domain* domain,int flags=0);
+  
+  void setDomain (const Domain& domain,int flags=DMI::AUTOCLONE)
+  { setDomain(&domain,flags); }
   
   // true if domain is set
   bool hasDomain () const
@@ -123,7 +124,7 @@ public:
   
   // returns true if funklet has no dependence on domain (e.g.: a single {c00} polc)
   virtual bool isConstant () const 
-  { return False; }
+  { return false; }
   
   //------------------ other Funklet methods ----------------------------------------------
   // evaluate method: evaluates funklet over a given cells. Sets up vellset and calls
@@ -173,21 +174,26 @@ public:
   { return spid_perts_; }
   
   //------------------ standard DMI-related methods ---------------------------------------
-  virtual TypeId objectType () const
+  virtual DMI::TypeId objectType () const
   { return TpMeqFunklet; }
   
   // implement standard clone method via copy constructor
-  virtual CountedRefTarget* clone (int flags, int depth) const
+  virtual DMI::CountedRefTarget* clone (int flags, int depth) const
   { return new Funklet(*this,flags,depth); }
   
   // validate record contents and setup shortcuts to them. This is called 
-  // automatically whenever a Funklet is made from a DataRecord
-  virtual void validateContent ();
-  // ...and when the underlying DataRecord is privatized
-  virtual void revalidateContent ();
+  // automatically whenever a Funklet is made from a DMI::Record
+  virtual void validateContent (bool recursive);
 
 
 protected:
+  Record::protectField;  
+  Record::unprotectField;  
+  Record::begin;  
+  Record::end;  
+  Record::as;
+  Record::clear;
+  
   //------------------ protected Funklet interface (to be implemented by subclasses) ---------
   // do_evaluate(): this is the real workhorse.
   // Evaluates funklet over a given cells. This is called by public evaluate() above 
@@ -222,7 +228,8 @@ protected:
   { perts.assign(perts.size(),pert0); }
 
   //------------------ other protected methods -----------------------------------------------
-  Funklet (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
+  Funklet (const DMI::Record &other,int flags=0,int depth=0);
+  Funklet (const Funklet &other,int flags=0,int depth=0);
 
 private:
   //------------------ data members ----------------------------------------------------------
@@ -232,11 +239,10 @@ private:
   std::vector<double> offsets_;
   std::vector<double> scales_;
   
-  
   // domain over which this funklet is valid
   // Any missing axes in the domain imply that the funklet is valid for that 
   // entire dimension
-  CountedRef<Domain>  domain_;
+  DMI::CountedRef<Domain>  domain_;
   
   //##ModelId=400E53540331
   std::vector<int>  spids_;
@@ -257,15 +263,6 @@ private:
   
   // default domain (common to all funklet objects)
   static Domain default_domain;
-
-  // disable public access to some DataRecord methods that would violate the
-  // structure of the container
-    //##ModelId=400E535500A0
-  DataRecord::remove;
-    //##ModelId=400E535500A8
-  DataRecord::replace;
-    //##ModelId=400E535500AF
-  DataRecord::removeField;
 };
 
 } // namespace Meq

@@ -24,12 +24,12 @@
 #include "VellSet.h"
 #include "MeqVocabulary.h"
 #include <DMI/HIID.h>
-#include <DMI/DataArray.h>
-#include <DMI/DataList.h>
+#include <DMI/NumArray.h>
+#include <DMI/List.h>
 
 namespace Meq {
 
-static NestableContainer::Register reg(TpMeqVellSet,True);
+static DMI::Container::Register reg(TpMeqVellSet,true);
 
 // inline helper functions to generate field names: 
 // default (first) set has no suffix, then _1, _2, etc.
@@ -57,10 +57,10 @@ const HIID & OptionalColumns::optColFieldId (uint icol)
   return optColFieldId_array[icol];
 }
 
-
 //##ModelId=400E5355031E
 VellSet::VellSet (const LoShape &shp,int nspid,int nset)
-: default_pert_ (0.),
+: pvalue_       (0),
+  default_pert_ (0.),
   pset_         (nset),
   spids_        (0),
   numspids_     (nspid),
@@ -71,7 +71,8 @@ VellSet::VellSet (const LoShape &shp,int nspid,int nset)
 }
 
 VellSet::VellSet (int nspid,int nset)
-: default_pert_ (0.),
+: pvalue_       (0),
+  default_pert_ (0.),
   pset_         (nset),
   spids_        (0),
   numspids_     (nspid),
@@ -88,8 +89,9 @@ void VellSet::init ()
   // create appropriate fields in the record: spids vector and perturbations vector
   if( numspids_ )
   {
-    DataField *pdf = new DataField(Tpint,numspids_);
-    DataRecord::add(FSpids,pdf,DMI::ANONWR);
+    DMI::Vec *pdf = new DMI::Vec(Tpint,numspids_);
+    ObjRef ref(pdf);
+    Record::addField(FSpids,ref,DMI::REPLACE|Record::PROTECT);
     spids_ = (*pdf)[HIID()].as_wp<int>();
     // setups perturbations structures
     for( uint iset=0; iset<pset_.size(); iset++ )
@@ -98,8 +100,8 @@ void VellSet::init ()
 }
 
 //##ModelId=400E53550322
-VellSet::VellSet (const DataRecord &other,int flags,int depth)
-: DataRecord(other,flags,depth),
+VellSet::VellSet (const DMI::Record &other,int flags,int depth)
+: Record(),
   default_pert_ (0.),
   pset_         (0),
   spids_        (0),
@@ -109,9 +111,8 @@ VellSet::VellSet (const DataRecord &other,int flags,int depth)
   // clear optional columns
   for( uint i=0; i<NUM_OPTIONAL_COL; i++ )
     optcol_[i].ptr = 0;
-  validateContent();
+  Record::cloneOther(other,flags,depth,true);
 }
-
 
 //##ModelId=400E53550329
 VellSet::~VellSet()
@@ -124,13 +125,15 @@ void VellSet::setupPertData (int iset)
 {
   Thread::Mutex::Lock lock(mutex());
   // add perturbations field
-  DataField *pdf = new DataField(Tpdouble,numspids_);
-  DataRecord::add(FiPerturbations(iset),pdf,DMI::ANONWR);
-  pset_[iset].pert = (*pdf)[HIID()].as_p<double>();
+  DMI::Vec *pdf = new DMI::Vec(Tpdouble,numspids_);
+  ObjRef ref(pdf);
+  Record::addField(FiPerturbations(iset),ref,DMI::REPLACE|Record::PROTECT);
+  pset_[iset].pert = (*pdf)[HIID()].as_wp<double>();
   // add perturbed values field
-  pset_[iset].pertval.resize(numspids_); 
-  pset_[iset].pertval_field <<= pdf = new DataField(TpDataArray,numspids_);
-  DataRecord::add(FiPerturbedValues(iset),pdf,DMI::ANONWR);
+  pdf = new DMI::Vec(TpMeqVells,numspids_);
+  ref <<= pdf;
+  Field & field = Record::addField(FiPerturbedValues(iset),ref,DMI::REPLACE|Record::PROTECT);
+  pset_[iset].pertval_vec = &( field.ref.ref_cast<DMI::Vec>() );
 }
 
 void VellSet::setShape (const Vells::Shape &shp)
@@ -146,48 +149,20 @@ void VellSet::setShape (const Vells::Shape &shp)
   else
   {
     shape_ = shp;
-    DataRecord::replace(FShape,new DataField(Tpint,shp.size(),&(shp[0])),DMI::ANONWR);
+    ObjRef ref(new DMI::Vec(Tpint,shp.size(),&(shp[0])));
+    Record::addField(FShape,ref,DMI::REPLACE|Record::PROTECT);
   }
 }
     
-//##ModelId=400E53550333
-void VellSet::privatize (int flags, int depth)
-{
-  // if deep-privatizing, then detach shortcuts -- they will be reattached 
-  // by validateContent()
-//  if( flags&DMI::DEEP || depth>0 )
-//  {
-//    Thread::Mutex::Lock lock(mutex());
-    DataRecord::privatize(flags,depth);
-//  }
-}
-
-void VellSet::revalidateContent ()
-{
-  Thread::Mutex::Lock lock(mutex());
-  protectAllFields();
-  if( DataRecord::hasField(FSpids) )
-  {
-    spids_ = (*this)[FSpids].as_p<int>(numspids_);
-    for( uint i=0; i<pset_.size(); i++ )
-      pset_[i].pert = (*this)[FiPerturbations(i)].as_p<double>();
-  }
-  else
-  {
-    spids_ = 0;
-    numspids_ = 0;
-  }
-}
-
 //##ModelId=400E5355033A
-void VellSet::validateContent ()
+void VellSet::validateContent (bool)
 {
   Thread::Mutex::Lock lock(mutex());
   // ensure that our record contains all the right fields, and that they're
   // indeed writable. Setup shortcuts to their contents
   try
   {
-    if( DataRecord::hasField(FFail) ) // a fail result
+    if( Record::hasField(FFail) ) // a fail result
     {
       is_fail_ = true;
     }
@@ -195,32 +170,36 @@ void VellSet::validateContent ()
     {
       is_fail_ = false;
       // get shape from data record
-      Hook hshp(*this,FShape);
-      if( hshp.exists() )
+      Field * fld = Record::findField(FShape);
+      if( fld )
       {
-        vector<int> shp = (*this)[FShape].as_vector<int>();
+        const Container & cc = fld->ref.as<Container>();
+        std::vector<int> shp = cc[HIID()].as_vector<int>();
         FailWhen(int(shp.size())>Axis::MaxAxis,"illegal "+FShape.toString()+" field");
         shape_ = shp;
-      }
-      // get value, if it exists in the data record
-      Hook hval(*this,FValue);
-      bool has_value = hval.exists();
-      if( has_value )
-      {
-        value_ <<= new Vells(hval.ref());
-        // check for matching shape
-        FailWhen(!value_->isCompatible(shape_),"main value: incompatible shape");
+        fld->protect = true;
       }
       else
-        value_ <<= new Vells;
+        shape_.clear();
+      // get value, if it exists in the data record
+      fld = Record::findField(FValue);
+      if( fld )
+      {
+        pvalue_ = &( fld->ref.ref_cast<Vells>() );
+        // check for matching shape
+        FailWhen(!pvalue_->deref().isCompatible(shape_),"main value: incompatible shape");
+        fld->protect = true;
+      }
+      else
+        pvalue_ = 0;
       // get optional columns, if they exist in the data record
       for( int i=0; i<NUM_OPTIONAL_COL; i++ )
       {
         Hook hcol(*this,optColFieldId(i));
         if( hcol.exists() )
         {
-          FailWhen(!has_value,"missing main value");
-          const DataArray &darr = *(optcol_[i].ref = hcol.ref());
+          FailWhen(!pvalue_,"missing main value");
+          const DMI::NumArray &darr = *(optcol_[i].ref = hcol.ref());
           FailWhen(darr.size() != 1 && darr.shape() != shape_,
                    "column "+optColFieldId(i).toString()+": bad shape");
           // cast away const here: writability is checked separately
@@ -229,59 +208,52 @@ void VellSet::validateContent ()
         else
           optcol_[i].ptr = 0;
       }
-      // get pointer to spids vector and its size
-      if( DataRecord::hasField(FSpids) )
+      // get spids and petturbations, if they exist
+      fld = Record::findField(FSpids);
+      if( fld )
       {
-        spids_ = (*this)[FSpids].as_p<int>(numspids_);
-        FailWhen(!has_value,"missing main value");
+        const Container & cc = fld->ref.as<Container>();
+        spids_ = cc[HIID()].as_p<int>(numspids_);
+        FailWhen(!pvalue_,"missing main value");
+        fld->protect = true;
         int size;
-        // figure out number of perturbation sets in the record
-        int nsets = 0;
-        while( (*this)[FiPerturbations(nsets)].exists() )
-          nsets++;
-        // if non-zero, setup shortcuts
-        if( nsets )
+        // figure out number of perturbation sets in the record and setup shortcuts
+        pset_.reserve(2);
+        int iset = 0;
+        while( (fld = Record::findField(FiPerturbations(iset))) != 0 )
         {
-          pset_.resize(nsets);
-          for( int iset=0; iset<nsets; iset++ )
+          fld->protect = true;
+          pset_.resize(iset+1);
+          Container &cc = fld->ref.as<Container>();
+          pset_[iset].pert = cc[HIID()].as_wp<double>(size);
+          FailWhen(size!=numspids_,"size mismatch between spids and "+FiPerturbations(iset).toString());
+          // get perturbations, if they exist
+          HIID fld_id = FiPerturbedValues(iset);
+          fld = Record::findField(fld_id);
+          if( fld )
           {
-            // get pointer to perturbations vector, verify size
-            pset_[iset].pert = (*this)[FiPerturbations(iset)].as_p<double>(size);
-            FailWhen(size!=numspids_,"size mismatch between spids and "+FiPerturbations(iset).toString());
-            // get perturbations, if they exist
-            pset_[iset].pertval.resize(numspids_);
-            HIID fid = FiPerturbedValues(iset);
-            if( DataRecord::hasField(fid) )
-            {
-              pset_[iset].pertval_field = (*this)[fid].ref();
-              FailWhen(pset_[iset].pertval_field->size(TpDataArray) != numspids_,
-                       "size mismatch between spids and "+fid.toString());
-              // setup shortcuts to perturbation vells
-              // use different versions for writable/non-writable
-              for( int i=0; i<numspids_; i++ )
-              {
-                if( pset_[iset].pertval_field[i].exists() )
-                {
-                  Vells *pvells = new Vells(pset_[iset].pertval_field[i].ref());
-                  pset_[iset].pertval[i] <<= pvells;
-                  FailWhen(!pvells->isCompatible(shape_),
-                      Debug::ssprintf("perturbed value %d/%d: incompatible shape",i,iset));
-                }
-// removed this: rather than attach a null Vells, keep the ref unattached
-//                else
-//                  pset_[iset].pertval[i] <<= new Vells;
-              }
-            }
+            const DMI::Vec &vec = fld->ref.as<DMI::Vec>();
+            FailWhen(vec.type() != TpMeqVells,fld_id.toString()+": not MeqVells");
+            FailWhen(vec.size() != numspids_,"size mismatch between spids and "+fld_id.toString());
+            pset_[iset].pertval_vec = &( fld->ref.ref_cast<DMI::Vec>() );
+            fld->protect = true;
           }
+          else
+          {            // add new perturbed values field
+            ObjRef ref(new DMI::Vec(TpMeqVells,numspids_));
+            Field & field = Record::addField(fld_id,ref,Record::PROTECT);
+            pset_[iset].pertval_vec = &( field.ref.ref_cast<DMI::Vec>() );
+          }
+          iset++;
         }
       }
       else
       {
         spids_ = 0;
         numspids_ = 0;
+        pset_.resize(0);
       }
     }
-    protectAllFields();
   }
   catch( std::exception &err )
   {
@@ -301,11 +273,12 @@ void VellSet::validateContent ()
 void VellSet::clear()
 {
   Thread::Mutex::Lock lock(mutex());
+  Record::clear();
   shape_.clear();
   numspids_ = 0;
   spids_ = 0;
   pset_.resize(0);
-  value_.detach();
+  pvalue_ = 0;
   is_fail_ = false;
   // clear optional columns
   for( int i=0; i<NUM_OPTIONAL_COL; i++ )
@@ -315,49 +288,19 @@ void VellSet::clear()
   }
 }
 
-// void VellSet::makeReadOnly (int flags)
-// {
-//   Thread::Mutex::Lock lock(mutex());
-//   // call DataRecord method to make fields read-only
-//   // (this will take care of DMI::DEEP flag if passed, making contents r/o)
-//   DataRecord::makeReadOnly(flags);
-//   // make all cached refs r/o
-//   value_.change(DMI::READONLY);
-//   for( uint i=0; i<pset_.size(); i++ )
-//   {
-//     for( uint j=0; j<pset_[i].pertval.size(); j++ )
-//       pset_[i].pertval[j].change(DMI::READONLY);
-//     pset_[i].pertval_field.change(DMI::READONLY);
-//   }
-//   for( int i=0; i<NUM_OPTIONAL_COL; i++ )
-//     optcol_[i].ref.change(DMI::READONLY);
-// }
-// 
-
-Vells & VellSet::getValueWr ()
-{
-  Thread::Mutex::Lock lock(mutex());
-  FailWhen( !value_.valid(),"no main value in this VellSet" );
-  // if not writable, privatize for writing
-  if( !value_.isWritable() || !value_->isWritable() )
-  {
-    value_.privatize(DMI::WRITE|DMI::DEEP);
-    DataRecord::replace(FValue,&(value_().getDataArray()),DMI::WRITE);
-  }
-  return value_.dewr();
-}
-
 void * VellSet::writeOptCol (uint icol)
 {
   Thread::Mutex::Lock lock(mutex());
   Assert(hasOptCol(icol));
-  if( !optcol_[icol].ref.isWritable() )
-  {
-    // if not writable, privatize for writing
-    DataArray *parr = optcol_[icol].ref.privatize(DMI::WRITE).dewr_p();
-    DataRecord::replace(optColFieldId(icol),parr,DMI::WRITE);
-    optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
-  }
+//   // ensure COW
+//   DMI::NumArray *parr = optcol_[icol].ref.privatize(DMI::WRITE).dewr_p();
+//   if( !optcol_[icol].ref.isWritable() )
+//   {
+//     // if not writable, privatize for writing
+//     DMI::NumArray *parr = optcol_[icol].ref.privatize(DMI::WRITE).dewr_p();
+//     DMI::Record::replace(optColFieldId(icol),parr,DMI::WRITE);
+//     optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
+//   }
   return optcol_[icol].ptr;
 }
 
@@ -365,14 +308,14 @@ void * VellSet::initOptCol (uint icol,bool array)
 {
   Thread::Mutex::Lock lock(mutex());
   // attach & return
-  DataArray *parr = array ? new DataArray(optColArrayType(icol),shape(),DMI::ZERO)
-                          : new DataArray(optColArrayType(icol),LoShape(1),DMI::ZERO);
+  DMI::NumArray *parr = array ? new DMI::NumArray(optColArrayType(icol),shape())
+                          : new DMI::NumArray(optColArrayType(icol),LoShape(1));
   optcol_[icol].ref <<= parr;
   (*this)[optColFieldId(icol)].replace() <<= parr;
   return optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
 }
 
-void VellSet::doSetOptCol (uint icol,DataArray *parr,int dmiflags)
+void VellSet::doSetOptCol (uint icol,DMI::NumArray *parr,int dmiflags)
 {
   Thread::Mutex::Lock lock(mutex());
   FailWhen(!hasShape(),"VellSet shape not set");
@@ -385,7 +328,7 @@ void VellSet::doSetOptCol (uint icol,DataArray *parr,int dmiflags)
   (*this)[optColFieldId(icol)].replace().put(*parr,dmiflags);
 }
 
-void VellSet::setOptCol (uint icol,const DataArray::Ref::Xfer &ref)
+void VellSet::setOptCol (uint icol,const DMI::NumArray::Ref &ref)
 {
   Thread::Mutex::Lock lock(mutex());
   FailWhen(!hasShape(),"VellSet shape not set");
@@ -401,7 +344,7 @@ void VellSet::setOptCol (uint icol,const DataArray::Ref::Xfer &ref)
 void VellSet::clearOptCol (int icol)
 {
   Thread::Mutex::Lock lock(mutex());
-  DataRecord::removeField(optColFieldId(icol),true);
+  Record::removeField(optColFieldId(icol),true,0);
   optcol_[icol].ref.detach();
   optcol_[icol].ptr = 0;
 }
@@ -429,19 +372,19 @@ void VellSet::setSpids (const vector<int>& spids)
   if( numspids_ ) // assigning to existing vector
   {
     FailWhen(spids.size() != uint(numspids_),"setSpids: vector size mismatch" );
-    (*this)[FSpids] = spids;
   }
-  else // setting new vector
-  {
+  else
+  { // setup pert data if assigning new vector
     numspids_ = spids.size();
-    if( numspids_ )
-    {
-      DataField *pdf = new DataField(Tpint,spids.size(),&spids[0]);
-      DataRecord::add(FSpids,pdf,DMI::ANONWR);
-      spids_ = (*pdf)[HIID()].as_wp<int>();
-      for( uint iset=0; iset<pset_.size(); iset++ )
-        setupPertData(iset);
-    }
+    for( uint iset=0; iset<pset_.size(); iset++ )
+      setupPertData(iset);
+  }
+  if( numspids_ )
+  {
+    DMI::Vec *pdf = new DMI::Vec(Tpint,spids.size(),&spids[0]);
+    ObjRef ref(pdf);
+    Record::addField(FSpids,ref,DMI::REPLACE|Record::PROTECT);
+    spids_ = (*pdf)[HIID()].as_p<int>();
   }
 }
 
@@ -454,8 +397,10 @@ void VellSet::copySpids (const VellSet &other)
   }
   if( !other.numSpids() )
     return;
-  DataRecord::replace(FSpids,other[FSpids].ref());
-  spids_ = (*this)[FSpids].as_p<int>();
+  ObjRef ref = other.get(FSpids);
+  Field & field = Record::addField(FSpids,ref,DMI::REPLACE|Record::PROTECT);
+  const Container &cc = field.ref.as<Container>();
+  spids_ = cc[HIID()].as_p<int>();
   // if newly allocated spids, setup other data
   if( !numspids_ )
   {
@@ -470,8 +415,7 @@ void VellSet::setPerturbation (int i, double value,int iset)
 { 
   Thread::Mutex::Lock lock(mutex());
   DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
-  (*this)[FiPerturbations(iset)][i] = value;
-//  pset_[iset].pert[i] = value;
+  pset_[iset].pert[i] = value;
 }
 
 // set all perturbations at once
@@ -483,8 +427,10 @@ void VellSet::setPerturbations (const vector<double>& perts,int iset)
   FailWhen(perts.size() != uint(numspids_),"setPerturbations: vector size mismatch" );
   if( numspids_ )
   {
-    (*this)[FiPerturbations(iset)] = perts;
-    pset_[iset].pert = (*this)[FiPerturbations(iset)].as_p<double>();
+    DMI::Vec *pdf = new DMI::Vec(Tpdouble,numspids_,&perts[0]);
+    ObjRef ref(pdf);
+    Field & field = Record::addField(FiPerturbations(iset),ref,DMI::REPLACE|Record::PROTECT);
+    pset_[iset].pert = (*pdf)[HIID()].as_wp<double>();
   }
 }
 
@@ -497,26 +443,14 @@ void VellSet::copyPerturbations (const VellSet &other)
     return;
   for( int iset=0; iset<numPertSets(); iset++ )
   {
-    (*this)[FiPerturbations(iset)] = other[FiPerturbations(iset)].as_vector<double>();
-    pset_[iset].pert = (*this)[FiPerturbations(iset)].as_p<double>();
+    ObjRef ref = other.get(FiPerturbations(iset));
+    Field & field = Record::addField(FiPerturbations(iset),ref,DMI::REPLACE|Record::PROTECT);
+    Container &cc = field.ref.as<Container>();
+    pset_[iset].pert = cc[HIID()].as_wp<double>();
   }
 }
 
-//##ModelId=400E53550360
-Vells & VellSet::setValue (Vells *pvells)
-{
-  Thread::Mutex::Lock lock(mutex());
-  if( !hasShape() )
-    setShape(pvells->shape());
-  else {
-    FailWhen(!pvells->isCompatible(shape()),"main value: incompatible shape");
-  }
-  value_ <<= pvells;
-  DataRecord::replace(FValue,&(pvells->getDataArray()),DMI::ANONWR);
-  return *pvells;
-}
-
-void VellSet::setValue (const Vells::Ref::Xfer &vref)
+void VellSet::setValue (const Vells::Ref &vref,int flags)
 {
   Thread::Mutex::Lock lock(mutex());
   if( !hasShape() )
@@ -524,35 +458,12 @@ void VellSet::setValue (const Vells::Ref::Xfer &vref)
   else {
     FailWhen(!vref->isCompatible(shape()),"main value: incompatible shape");
   }
-  value_ = vref;
-  if( value_.isWritable() )
-    DataRecord::replace(FValue,&( value_().getDataArrayWr() ),DMI::WRITE);
-  else
-    DataRecord::replace(FValue,&( value_->getDataArray() ),DMI::READONLY);
+  ObjRef ref(vref,flags);
+  Field & field = Record::addField(FValue,ref,DMI::REPLACE|Record::PROTECT);
+  pvalue_ = &( field.ref.ref_cast<Vells>() );
 }
 
-//##ModelId=400E53550387
-Vells & VellSet::setPerturbedValue (int i,Vells *pvells,int iset)
-{
-  Thread::Mutex::Lock lock(mutex());
-  DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
-  FailWhen(!hasShape(),"VellSet shape not set");
-  FailWhen(!pvells->isCompatible(shape()),
-        Debug::ssprintf("perturbed value %d/%d: incompatible shape",i,iset));
-  PerturbationSet &ps = pset_[iset];
-  // allocate container for perturbed values
-  if( !ps.pertval_field.valid() )
-  {
-    DataField *df = new DataField(TpDataArray,numspids_);
-    ps.pertval_field <<= df;
-    DataRecord::add(FiPerturbedValues(iset),df,DMI::ANONWR);
-  }
-  ps.pertval_field().put(i,&( pvells->getDataArray() ),DMI::ANONWR);
-  ps.pertval[i] <<= pvells;
-  return *pvells;
-}
-
-void VellSet::setPerturbedValue (int i,const Vells::Ref::Xfer &vref,int iset)
+void VellSet::setPerturbedValue (int i,const Vells::Ref &vref,int iset)
 {
   Thread::Mutex::Lock lock(mutex());
   DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
@@ -561,40 +472,33 @@ void VellSet::setPerturbedValue (int i,const Vells::Ref::Xfer &vref,int iset)
         Debug::ssprintf("perturbed value %d/%d: incompatible shape",i,iset));
   PerturbationSet &ps = pset_[iset];
   // allocate container for perturbed values
-  if( !ps.pertval_field.valid() )
-  {
-    DataField *df = new DataField(TpDataArray,numspids_);
-    ps.pertval_field <<= df;
-    DataRecord::add(FiPerturbedValues(iset),df,DMI::ANONWR);
-  }
-  Vells::Ref &ref = ps.pertval[i];
-  ref = vref;
-  if( ref.isWritable() )
-    ps.pertval_field().put(i,&( ref().getDataArrayWr() ),DMI::WRITE);
-  else
-    ps.pertval_field().put(i,&( ref->getDataArray() ),DMI::READONLY);
+  FailWhen(!ps.pertval_vec,"perturbed values not initialized in this VellSet");
+  ps.pertval_vec->dewr().put(i,vref);
 }
 
 
 //##ModelId=400E53550393
-void VellSet::addFail (const DataRecord *rec,int flags)
+void VellSet::addFail (const DMI::Record *rec,int flags)
 {
   Thread::Mutex::Lock lock(mutex());
   clear();
   is_fail_ = true;
   // clear out the DR
-  DataRecord::removeField(FValue,true);
-  DataRecord::removeField(FSpids,true);
-  DataRecord::removeField(FPerturbations,true);
-  DataRecord::removeField(FPerturbedValues,true);
-  // get address of fail field (create it as necessary)
-  DataList *fails = (*this)[FFail].as_wpo<DataList>();
+  Record::removeField(FValue,true,0);
+  Record::removeField(FSpids,true,0);
+  for( int i=0; i<2; i++ )
+  {
+    Record::removeField(FiPerturbations(i),true,0);
+    Record::removeField(FiPerturbations(i),true,0);
+  }
+  // get address of fail field (hook will create it as necessary)
+  DMI::List *fails = (*this)[FFail].as_wpo<DMI::List>();
   if( !fails  )
   {
-    DataRecord::add(FFail,fails = new DataList,DMI::ANONWR);
+    Record::add(FFail,fails = new DMI::List);
   }
   // add record to fail field
-  fails->addBack(rec,(flags&~DMI::WRITE)|DMI::READONLY);
+  fails->addBack(rec,0);
 }
 
 //##ModelId=400E53550399
@@ -602,8 +506,8 @@ void VellSet::addFail (const string &nodename,const string &classname,
                       const string &origin,int origin_line,const string &msg)
 {
   Thread::Mutex::Lock lock(mutex());
-  DataRecord::Ref ref;
-  DataRecord & rec = ref <<= new DataRecord;
+  DMI::Record::Ref ref;
+  DMI::Record & rec = ref <<= new DMI::Record;
   // populate the fail record
   rec[FNodeName] = nodename;
   rec[FClassName] = classname;
@@ -620,12 +524,10 @@ int VellSet::numFails () const
 }
   
 //##ModelId=400E535503A9
-const DataRecord & VellSet::getFail (int i) const
+const DMI::Record & VellSet::getFail (int i) const
 {
-  return (*this)[FFail][i].as<DataRecord>();
+  return (*this)[FFail][i].as<DMI::Record>();
 }
-
-
 
 //##ModelId=400E535503AE
 void VellSet::show (std::ostream& os) const
@@ -633,13 +535,13 @@ void VellSet::show (std::ostream& os) const
   Thread::Mutex::Lock lock(mutex());
   if( isFail() )
   {
-    const DataList & fails = (*this)[FFail].as<DataList>();
+    const DMI::List & fails = (*this)[FFail].as<DMI::List>();
     for( int i=0; i<fails.size(); i++ )
       os << "FAIL: " << fails[i][FMessage].as<string>() <<endl;
   }
   else
   {
-    os << "Value" << *value_;
+    os << "Value " << pvalue_->deref();
     os << "  " << numspids_ << " spids; " << pset_.size() << " pert set(s)\n";
     for( int i=0; i<numspids_; i++) 
     {
@@ -649,15 +551,21 @@ void VellSet::show (std::ostream& os) const
         if( iset )
           os << "          ";
         os << " pert " <<iset<<": "<<pset_[iset].pert[i];
-        if( pset_[iset].pertval[i].valid() && !pset_[iset].pertval[i]->isNull() )
+        ObjRef ref = pset_[iset].pertval_vec->deref().getObj(i);
+        if( ref.valid() )
         {
-          os << (*(pset_[iset].pertval[i]) - *value_);
+          const Vells &pval = ref.as<Vells>();
+          if( !pval.isNull() )
+            os << pval - pvalue_->deref();
+          else
+            os << ": perturbed vells "<<i<<" is null"<<endl;
         }
         else
         {
-          os << ": perturbed vells "<<i<<" null or missing"<<endl;
+          os << ": perturbed vells "<<i<<" is missing"<<endl;
         }
       }
+      os<<"\n";
     }
   }
 }

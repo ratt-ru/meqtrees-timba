@@ -27,8 +27,8 @@
 #include <iostream>
 #include <Common/lofar_vector.h>
 #include <MEQ/Vells.h>
-#include <DMI/DataRecord.h>
-#include <DMI/DataField.h>
+#include <DMI/Record.h>
+#include <DMI/Vec.h>
 #include <MEQ/TID-Meq.h>
 
 #pragma aidgroup Meq
@@ -37,7 +37,7 @@
 // This class represents a result of a domain for which an expression
 // has been evaluated.
 
-namespace Meq {
+namespace Meq { using namespace DMI;
 
 class OptionalColumns
 {
@@ -98,7 +98,7 @@ inline TypeId OptionalColumns::optColArrayType (uint icol)
 
 
 //##ModelId=400E530400D3
-class VellSet : public DataRecord , public OptionalColumns
+class VellSet : public DMI::Record , public OptionalColumns
 {
 public:
   //##ModelId=400E530400D6
@@ -116,9 +116,9 @@ public:
   // of pert sets. Shape has to be supplied later.
   explicit VellSet (int nspid=0,int nset=1);
 
-  // Construct from DataRecord.
+  // Construct from DMI::Record.
     //##ModelId=400E53550322
-  VellSet (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
+  VellSet (const DMI::Record &other,int flags=0,int depth=0);
   
   // destructor
     //##ModelId=400E53550329
@@ -134,21 +134,11 @@ public:
   virtual CountedRefTarget* clone (int flags, int depth) const
   { return new VellSet(*this,flags,depth); }
 
-  // override privatize so that shortcut refs are detached/reattached 
-  // automatically
-    //##ModelId=400E53550333
-  virtual void privatize (int flags = 0, int depth = 0);
-  
   // validate record contents and setup shortcuts to them. This is called 
-  // automatically whenever a VellSet is made from a DataRecord
-  // (or when the underlying DataRecord is privatized, etc.)
+  // automatically whenever a VellSet is made from a DMI::Record
+  // (or when the underlying DMI::Record is privatized, etc.)
     //##ModelId=400E5355033A
-  virtual void validateContent ();
-  virtual void revalidateContent ();
-  
-  // changes all ref in VellSet to read-only (so that the next write
-  // forces a privatize)
-  void makeReadOnly ();
+  virtual void validateContent (bool recursive);
   
   // ------------------------ SHAPE
   const bool hasShape () const
@@ -220,18 +210,25 @@ public:
     //##ModelId=400E5355035C
   const Vells & getValue() const
   { 
-    FailWhen( !value_.valid(),"no main value in this VellSet" );
-    return value_.deref(); 
+    Thread::Mutex::Lock lock(mutex());
+    FailWhen( !pvalue_,"no main value in this VellSet" );
+    return pvalue_->deref(); 
   }
     //##ModelId=400E5355035E
   
-  Vells & getValueWr ();
+  Vells & getValueWr ()
+  {
+    Thread::Mutex::Lock lock(mutex());
+    FailWhen( !pvalue_,"no main value in this VellSet" );
+    return pvalue_->dewr(); 
+  }
 
-  // Attaches the given Vells to value (as an anon object)
-    //##ModelId=400E53550360
-  Vells & setValue (Vells *);
+  // Attaches the given Vells to value
+  void setValue (const Vells::Ref &ref,int flags=0);
   
-  void setValue (const Vells::Ref::Xfer &ref);
+    //##ModelId=400E53550360
+  Vells & setValue (Vells *val,int flags=0)
+  { Vells::Ref ref(val,flags); setValue(ref); return *val; }
   
   // set the value to a copy of the given Vells object (Vells copy uses ref semantics!)
     //##ModelId=400E53550363
@@ -241,32 +238,41 @@ public:
   Vells & setReal    () { return setReal(shape()); }
   Vells & setComplex () { return setComplex(shape()); }
 
-//   // Allocate the value with a given type and shape.
-//   // It won't change if the current value type and shape match.
-//     //##ModelId=400E53550367
-//   LoMat_double& setReal (const Vells::Shape &shp)
-//   { if( value_.valid() && value_->isCongruent(true,nfreq,ntime) )
-//         return value_().getRealArray();
-//       else
-//         return allocateReal(nfreq, ntime).getRealArray();
-//   }
-//     //##ModelId=400E5355036D
-//   LoMat_dcomplex& setComplex (const Vells::Shape &shp)
-//     { if( value_.valid() && value_->isCongruent(false,nfreq,ntime) )
-//         return value_().getComplexArray();
-//       else
-//         return allocateComplex(nfreq, ntime).getComplexArray();
-//     } 
-//     //##ModelId=400E53550375
-//   Vells& setValue (bool isReal, int nfreq, int ntime)
-//     { if( value_.valid() && value_->isCongruent(isReal,nfreq,ntime) )
-//         return value_();
-//       else if( isReal )
-//         return allocateReal(nfreq, ntime);
-//       else 
-//         return allocateComplex(nfreq, ntime);
-//     }
-//     
+  // ------------------------ PERTURBED VALUES
+  // Get the i-th perturbed value from set iset
+    //##ModelId=400E5355037E
+  const Vells& getPerturbedValue (int i,int iset=0) const
+    { DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
+      DbgAssert(pset_[iset].pertval_vec); 
+      return pset_[iset].pertval_vec->deref().as<Vells>(i); }
+    //##ModelId=400E53550383
+  Vells& getPerturbedValueWr (int i,int iset=0)
+    { DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
+      DbgAssert(pset_[iset].pertval_vec); 
+      return pset_[iset].pertval_vec->dewr().as<Vells>(i); }
+
+  // Set the i-th perturbed value (ref semantics)
+  void setPerturbedValue (int i,const Vells::Ref &vref,int iset=0);
+  
+    //##ModelId=400E53550387
+  Vells & setPerturbedValue (int i,Vells *val,int iset=0)
+  { 
+    Vells::Ref ref(val);
+    setPerturbedValue(i,ref,iset); 
+    return *val;
+  }
+  
+  // Set the i-th perturbed value (copy semantics, but internally
+  // Vells copy uses ref semantics, this is handy for setting the value
+  // with a result of an expression, which is a const temp object
+  const Vells & setPerturbedValue (int i,const Vells &vells,int iset=0)
+  { 
+    Vells::Ref ref(new Vells(vells));
+    setPerturbedValue(i,ref,iset); 
+    return vells;
+  }
+      
+      
   // ------------------------ OPTIONAL COLUMNS
 protected:
   // ensures writability of optional column by privatizing for writing as needed;
@@ -275,7 +281,7 @@ protected:
       
   void * initOptCol (uint icol,bool array);
 
-  void   doSetOptCol (uint icol,DataArray *parr,int dmiflags);
+  void   doSetOptCol (uint icol,DMI::NumArray *parr,int dmiflags);
   
 public:
           
@@ -298,48 +304,27 @@ public:
     { return *static_cast<typename Traits<N>::ArrayType *>
           ( (!init || hasOptCol(N)) ? writeOptCol(N) : initOptCol(N,array) ); }
   
-  DataArray::Ref getOptColRef (int icol,int dmiflags=DMI::PRESERVE_RW) const
-    { Assert(hasOptCol(icol)); return optcol_[icol].ref.copy(dmiflags); }
+  const DMI::NumArray::Ref & getOptColRef (int icol) const
+    { Assert(hasOptCol(icol)); return optcol_[icol].ref; }
 
   template<int N>
   typename Traits<N>::ArrayType & initOptCol (bool array=true)
     { return *static_cast<typename Traits<N>::ArrayType *>
         ( initOptCol(N,array) ); }
 
-  void setOptCol (uint icol,const DataArray *parr,int dmiflags=DMI::ANON|DMI::READONLY)
-    { doSetOptCol(icol,const_cast<DataArray*>(parr),(dmiflags&~DMI::WRITE)|DMI::READONLY); }
+  void setOptCol (uint icol,const DMI::NumArray *parr,int dmiflags=0)
+    { doSetOptCol(icol,const_cast<DMI::NumArray*>(parr),dmiflags|DMI::READONLY); }
     
-  void setOptCol (uint icol,DataArray *parr,int dmiflags=DMI::ANONWR)
+  void setOptCol (uint icol,DMI::NumArray *parr,int dmiflags=0)
     { doSetOptCol(icol,parr,dmiflags); }
   
-  void setOptCol (uint icol,const DataArray::Ref::Xfer & ref);
+  void setOptCol (uint icol,const DMI::NumArray::Ref::Xfer & ref);
   
   void clearOptCol (int icol);
   
   template<int N>
   void clearOptCol () { clearOptCol(N); }
   
-  // ------------------------ PERTURBED VALUES
-  // Get the i-th perturbed value from set iset
-    //##ModelId=400E5355037E
-  const Vells& getPerturbedValue (int i,int iset=0) const
-    { DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
-      return pset_[iset].pertval[i].deref(); }
-    //##ModelId=400E53550383
-  Vells& getPerturbedValueWr (int i,int iset=0)
-    { DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
-      return pset_[iset].pertval[i].dewr(); }
-
-  // Attaches the given Vells to i-th perturbed value of set nset (as an anon object)
-    //##ModelId=400E53550387
-  Vells & setPerturbedValue (int i,Vells *,int iset=0);
-  // Set the i-th perturbed value (Vells copy uses ref semantics!)
-    //##ModelId=400E5355038C
-  Vells & setPerturbedValue (int i,const Vells & value,int iset=0)
-    { return setPerturbedValue(i,new Vells(value),iset); }
-  
-  void setPerturbedValue (int i,const Vells::Ref::Xfer & vref,int iset=0);
-
   // ------------------------ FAIL RECORDS
   // A VellSet may be a Fail. A Fail will not contain any values or 
   // perturbations, but rather a field of 1+ fail records.
@@ -348,7 +333,7 @@ public:
   // All values and perturbations are cleared, and a Fail field is 
   // created if necessary.
     //##ModelId=400E53550393
-  void addFail (const DataRecord *rec,int flags=DMI::ANON|DMI::NONSTRICT);
+  void addFail (const DMI::Record *rec,int flags=0);
     //##ModelId=400E53550399
   void addFail (const string &nodename,const string &classname,
                 const string &origin,int origin_line,const string &msg);
@@ -374,31 +359,29 @@ public:
   int numFails () const;
   // returns the i-th fail record
     //##ModelId=400E535503A9
-  const DataRecord & getFail (int i=0) const;
+  const DMI::Record & getFail (int i=0) const;
   
   // print VellSet to stream
     //##ModelId=400E535503AE
   void show (std::ostream&) const;
 
-  // this disables removal of DataRecord fields via hooks
+  // this disables removal of DMI::Record fields via hooks
     //##ModelId=400E535503B1
   virtual int remove (const HIID &)
   { Throw("remove() from a Meq::VellSet not allowed"); }
   
 protected: 
-  // disable public access to some DataRecord methods that would violate the
-  // structure of the container
-    //##ModelId=400E535502F0
-  DataRecord::remove;
-    //##ModelId=400E535502F2
-  DataRecord::replace;
-    //##ModelId=400E535502F4
-  DataRecord::removeField;
+  Record::protectField;  
+  Record::unprotectField;  
+  Record::begin;  
+  Record::end;  
+  Record::as;
+  Record::clear;
   
 private:
   void init ();
   // Remove all shortcuts, pertubed values, etc. (Does not do anything
-  // to the underlying DataRecord though)
+  // to the underlying DMI::Record though)
     //##ModelId=400E535503B5
   void clear();
 
@@ -415,22 +398,21 @@ private:
 //       return setValue(new Vells(dcomplex(0),nfreq,ntime,false)); }
 // 
     //##ModelId=400E535502FC
-  Vells::Ref value_;
+  Vells::Ref * pvalue_;
     //##ModelId=400E53550302
   double default_pert_;
   
   typedef struct 
   {
-    const double *     pert;
-    vector<Vells::Ref> pertval;
-    DataField::Ref     pertval_field;
+    double * pert;
+    DMI::Vec::Ref *   pertval_vec;
   } PerturbationSet;
   
   vector<PerturbationSet> pset_;
   
   typedef struct 
   {
-    DataArray::Ref ref;
+    DMI::NumArray::Ref ref;
     void          *ptr;
   } OptionalColumnData;
   

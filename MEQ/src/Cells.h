@@ -27,17 +27,17 @@
 //# Includes
 #include <MEQ/Domain.h>
 #include <MEQ/AID-Meq.h>
-#include <DMI/DataRecord.h>
+#include <DMI/Record.h>
 #include <Common/Lorrays.h>
 #include <ostream>
 
 #pragma aidgroup Meq
 #pragma types #Meq::Cells
 
-namespace Meq {
+namespace Meq { using namespace DMI;
 
 //##ModelId=3F86886E017A
-class Cells : public DataRecord
+class Cells : public DMI::Record
 {
 public:
   typedef enum {
@@ -52,18 +52,21 @@ public:
     
     //##ModelId=3F86886E02C1
   Cells ();
-  // Construct from DataRecord. 
+  // Construct from DMI::Record. 
     //##ModelId=3F86886E02C8
-  Cells (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
-  
-  // creates an empty cells with a domain
-  Cells (const Domain& domain);
+  Cells (const DMI::Record &other,int flags=0,int depth=0);
   
     //##ModelId=3F95060B01D3
     //##Documentation
-    //## constructs uniformly-spaced cells with the given number of x and y
-    //## points. Domain  must define axes 0 and 1 (and no others)
-  Cells (const Domain& domain,int nx,int ny);
+    //## if x<0, creates an empty cells with a domain
+    //## if x and y>0 are given, constructs uniformly-spaced cells 
+    //## with the given number of x and y points. Domain  must define 
+    //## axes 0 and 1 (and no others).
+    //## Domain is attached with the specified flags
+  Cells (const Domain& domain,int nx=-1,int ny=-1,int domflags=DMI::AUTOCLONE);
+  
+    //## same as above, but domain is passed in by pointer, and default is ANON
+  Cells (const Domain *pdom,int nx=-1,int ny=-1,int domflags=0);
   
   // creates a resampling combining cells a and b. If resample>0, upsamples
   // the lower resolution. If resample<0, integrates the higher resolution.
@@ -83,18 +86,17 @@ public:
   // implement standard clone method via copy constructor
     //##ModelId=400E530403C5
   virtual CountedRefTarget* clone (int flags, int depth) const
-  { return new Cells(*this,flags|(depth>0?DMI::DEEP:0)); }
+  { return new Cells(*this,flags,depth); }
   
 //   // implement standard clone method via copy constructor
 //   virtual CountedRefTarget* clone (int flags, int depth) const
 //   { return new Cells(*this,flags,depth); }
   
   // validate record contents and setup shortcuts to them. This is called 
-  // automatically whenever a Cells object is made from a DataRecord
-  // (or when the underlying DataRecord is privatized, etc.)
+  // automatically whenever a Cells object is made from a DMI::Record
+  // (or when the underlying DMI::Record is privatized, etc.)
     //##ModelId=400E530403DB
-  virtual void validateContent ();
-  virtual void revalidateContent ();
+  virtual void validateContent (bool recursive);
 
   // returns true if some cells are defined over the given axis
   bool isDefined (int iaxis) const
@@ -201,28 +203,20 @@ public:
   // print to stream
     //##ModelId=400E5305000E
   void show (std::ostream&) const;
-
-  // override privatize() to detach/reattach shortcuts
-  virtual void privatize (int flags = 0, int depth = 0);
   
 private:
-  DataRecord::merge;
-  DataRecord::add;
-  DataRecord::removeField;
-  DataRecord::replace;
-  DataRecord::field;
-  DataRecord::fieldWr;
-  DataRecord::get;
-  DataRecord::insert;
-  DataRecord::remove;
-  DataRecord::initFieldIter;
-  DataRecord::getFieldIter;
+  Record::protectField;  
+  Record::unprotectField;  
+  Record::begin;  
+  Record::end;  
+  Record::as;
+  Record::clear;
     
   // helper function: sets domain of cells
-  void setDomain (const Domain &domain);
-
+  void setDomain (const Domain *pdom,int flags=0);
+  
   // helper function: inits basic record structure
-  void init (const Domain& domain);
+  void init (const Domain *pdom,int flags=0);
   
   // helper function: inits regularly-spaced axis
   // which must already be present in the domain
@@ -238,8 +232,9 @@ private:
   // helper function to assign new vector to datarecord & to vec
   template<class T>
   void setRecVector (blitz::Array<T,1> &vec,const Hook &hook,int n);
+  
   // helper function to init/get a subrecord
-  DataRecord & getSubrecord (const Hook &hook);
+  DMI::Record & getSubrecord (const HIID &id);
   
     //##ModelId=3F86BFF80150
   CountedRef<Domain>  domain_;

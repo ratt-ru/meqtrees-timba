@@ -26,7 +26,7 @@
 #include <MEQ/Cells.h>
 #include <MEQ/VellSet.h>
 
-namespace Meq {
+namespace Meq { using namespace DMI;
 
 // A ResampleMachine performs resampling of VellSets from one Cells to another.
 // The version implemented here only supports integer resamplings (i.e. where

@@ -31,7 +31,11 @@
 // aids used as some standard Axis identifiers
 #pragma aid Freq Time L M N X Y Z Lag
 
-namespace Meq {
+namespace Meq 
+{
+using DMI::HIID;
+using DMI::AtomicID;
+  
 
 namespace Axis 
 {

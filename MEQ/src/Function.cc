@@ -47,7 +47,7 @@ TypeId Function::objectType() const
 }
 
 
-void Function::setStateImpl (DataRecord &rec,bool initializing)
+void Function::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   // check if we have an explicit integrated property for result
@@ -89,7 +89,7 @@ bool Function::combineChildFlags (VellSet &vellset,const std::vector<const VellS
         // if vellset has no flags and no mask is specified, just take 
         // a r/o ref to the child flags
         if( flagmask_.empty() && !vellset.hasOptCol(VellSet::FLAGS) )
-          vellset.setOptCol(VellSet::FLAGS,child_vs[i]->getOptColRef(VellSet::FLAGS,DMI::READONLY));
+          vellset.setOptCol(VellSet::FLAGS,child_vs[i]->getOptColRef(VellSet::FLAGS));
         // else |= the vellset flags. Note that this will automatically
         // privatize a r/o ref upon first access
         else

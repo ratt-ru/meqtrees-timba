@@ -28,6 +28,7 @@
 
 namespace Meq
 {
+using namespace DMI;
     
 class EventGenerator
 {
@@ -39,11 +40,11 @@ class EventGenerator
   public:
     //##Documentation
     //## sends event to all event slots
-    int generateEvent (const ObjRef::Copy &data = ObjRef(),void *ptr=0) const
+    int generateEvent (const ObjRef &data = ObjRef(),void *ptr=0) const
     {
       SlotList::const_iterator iter = slots_.begin();
       for( ; iter != slots_.end(); iter++ )
-        iter->receive(data.copy(DMI::READONLY),ptr);
+        iter->receive(data,ptr);
       return 0;  
     }
      

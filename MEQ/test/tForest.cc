@@ -37,7 +37,7 @@ int main (int argc,const char *argv[])
   {
     Forest forest;
     cout << "============ creating child1 node ==================\n";
-    DataRecord::Ref rec_child1(DMI::ANONWR);
+    DMI::Record::Ref rec_child1(DMI::ANON);
     rec_child1()["Class"] = "MeqNode";
     rec_child1()["Name"] = "child1";
     int index_child1;
@@ -45,7 +45,7 @@ int main (int argc,const char *argv[])
     cout << "created child1 "<<index_child1<<": "<<child1.sdebug(5)<<endl;
     
     cout << "============ creating child2 node ==================\n";
-    DataRecord::Ref rec_child2(DMI::ANONWR);
+    DMI::Record::Ref rec_child2(DMI::ANON);
     rec_child2()["Class"] = "MeqNode";
     rec_child2()["Name"] = "child2";
     int index_child2;
@@ -53,16 +53,16 @@ int main (int argc,const char *argv[])
     cout << "created child2 "<<index_child2<<": "<<child2.sdebug(5)<<endl;
     
     cout << "============ creating parent1 node ===\n";
-    DataRecord::Ref rec(DMI::ANONWR);
+    DMI::Record::Ref rec(DMI::ANON);
     rec()["Class"] = "MeqNode";
     rec()["Name"] = "parent1";
-    rec()["Children"] <<= new DataRecord;
+    rec()["Children"] <<= new DMI::Record;
       rec()["Children"]["1"] = "child1"; 
       rec()["Children"]["2"] = index_child2; 
-      rec()["Children"]["3"] <<= new DataRecord;
+      rec()["Children"]["3"] <<= new DMI::Record;
         rec()["Children/3/Class"] = "MeqNode";
         rec()["Children/3/Name"] = "child3";
-      rec()["Children"]["4"] <<= new DataRecord;
+      rec()["Children"]["4"] <<= new DMI::Record;
         rec()["Children/4/Class"] = "MeqNode";
         rec()["Children/4/Name"] = "child4";
       rec()["Children"]["5"] = "child5";
@@ -71,7 +71,7 @@ int main (int argc,const char *argv[])
     cout << "created parent1 "<<index_parent1<<": "<<parent1.sdebug(5)<<endl;
     
     cout << "============ creating child5 node ==================\n";
-    DataRecord::Ref rec_child5(DMI::ANONWR);
+    DMI::Record::Ref rec_child5(DMI::ANON);
     rec_child5()["Class"] = "MeqNode";
     rec_child5()["Name"] = "child5";
     int index_child5;

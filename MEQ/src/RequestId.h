@@ -3,7 +3,7 @@
     
 #include <DMI/HIID.h>
     
-namespace Meq {
+namespace Meq { using namespace DMI;
   
 // -----------------------------------------------------------------------
 // dependency flags and symbolic dependencies
