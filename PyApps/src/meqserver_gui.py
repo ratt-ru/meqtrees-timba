@@ -14,6 +14,7 @@ class GriddedPage (object):
       self._wtop.hide();
       self._top_lo = QVBoxLayout(self._wtop);
       self._control_lo = QHBoxLayout();
+      self._control_lo.setResizeMode(QLayout.Fixed);
       # pin button
       pin_is = QIconSet(pixmaps.pin_up.pm());
       pin_is.setPixmap(pixmaps.pin_down.pm(),QIconSet.Automatic,QIconSet.Normal,QIconSet.On);
@@ -31,19 +32,25 @@ class GriddedPage (object):
       self._wtop.connect(self._refresh,SIGNAL("clicked()"),self._dorefresh);
       # label
       self._label = QLabel("(empty)",self._wtop);
+      self._label.setFont(defaultBoldFont());
+      QApplication.font
+      self._label1 = QLabel("",self._wtop);
       # close button
       self._close = QToolButton(self._wtop);
       self._close.setIconSet(QIconSet(pixmaps.cancel.pm()));
       self._close.setAutoRaise(True);
-      self._close.hide();
-      self._wtop.connect(self._close,SIGNAL("clicked()"),self.clear);
+      self._close.setDisabled(True);
+      self._wtop.connect(self._close,SIGNAL("clicked()"),self.close);
       self._control_lo.addWidget(self._pin);
       self._control_lo.addWidget(self._refresh);
       self._control_lo.addWidget(self._label);
       self._control_lo.addStretch();
       self._control_lo.addWidget(self._close);
       
-      self._top_lo.addLayout(self._control_lo);
+      self._top_lo.addLayout(self._control_lo,0);
+      
+      self._wstack = QWidgetStack(self._wtop);
+      self._top_lo.addWidget(self._wstack,1);
 
       self._id     = None;
       self._pinned = False;
@@ -62,16 +69,25 @@ class GriddedPage (object):
     def _set_pinned (self,state):
       self._pinned = state;
       self.wtop().emit(PYSIGNAL("pin()"),(self,self._pinned));
+    
+    # wipe: deletes contents in preperation for inserting other content
+    def wipe (self):
+      self._pinned = False;
+      if self._widget:
+        self._wstack.removeWidget(self._widget);
+      self._widget = self._id = None;
+      self._wstack.hide();
       
-    def clear (self):
-      _id = self._id;
+    # close(): wipe, hide everything, and emit a closed signal
+    def close (self):
+      old_id = self._id;
+      self.wipe();
       self._pin.hide();
-      self._close.hide();
+      self._close.setDisabled(True);
       self._refresh.hide();
       self._label.setText("(empty)");
-      self._pinned = False;
-      self._widget = self._id = None;
-      self.wtop().emit(PYSIGNAL("clear()"),(self,_id));
+      self._label1.setText("");
+      self.wtop().emit(PYSIGNAL("closed()"),(self,old_id));
       
     def is_empty (self):
       return self._id is None;
@@ -86,8 +102,10 @@ class GriddedPage (object):
     def enable (self,enable=True):
       self.disable(not enable);
     
-    def set_content (self,widget,name,_id,refresh=False,reparent=False,pin=None,disable=False):
+    def set_content (self,widget,name,_id,subname='',refresh=False,reparent=False,pin=None,disable=False):
+      print self,'set_content',widget;
       self._label.setText(name);
+      self._label1.setText(subname);
       self._pin.show();
       self._close.show();
       if refresh: self._refresh.show();
@@ -95,11 +113,12 @@ class GriddedPage (object):
       self._id = _id;
       pin is not None and self._pin.setOn(pin);
       # set widget
+      self._wstack.addWidget(widget);
+      self._wstack.raiseWidget(widget);
+      if self._widget:
+        self._wstack.removeWidget(self._widget);
       self._widget = widget;
-      if reparent:
-        widget.reparent(self._wtop);
-      self._top_lo.addWidget(widget);
-      widget.show();
+      self._wstack.show();
       self.disable(disable);
   
   class GridRow (QSplitter):
@@ -128,7 +147,7 @@ class GriddedPage (object):
       for i in range(self.max_nx):
         cell = self.Cell(row);
         row._cells.append(cell);
-        self.wtop().connect(cell.wtop(),PYSIGNAL("clear()"),self._clear_cell);
+        self.wtop().connect(cell.wtop(),PYSIGNAL("closed()"),self._clear_cell);
     # prepare layout
     self.set_layout(0);
   
@@ -136,14 +155,20 @@ class GriddedPage (object):
   def set_layout (self,nlo):
     self._cur_layout_num = nlo;
     (nrow,ncol) = self._cur_layout = self._layouts[nlo];
+    xsizes = [100]*self.max_nx;
     for row in self._rows[:nrow]:
-      for cell in row.cells()[:ncol]:
-        cell.show();
-      for cell in row.cells()[ncol:]:
-        cell.hide();
+      for cell in row.cells()[:ncol]: cell.show();
+      for cell in row.cells()[ncol:]: cell.hide();
+      row.setSizes(xsizes);
       row.show();
     for row in self._rows[nrow:]:
       row.hide();
+    self._topgrid.setSizes([100]*self.max_ny);
+  
+  def align_layout (self):
+    xsizes = [1]*self.max_nx;
+    map(lambda row:row.setSizes(xsizes),self._rows);
+    self._topgrid.setSizes([1]*self.max_ny);
     
   # returns top-level widget
   def wtop   (self):
@@ -166,7 +191,8 @@ class GriddedPage (object):
           self._cellmap[cell_id] = cell;
           return cell;
         if not cell.is_pinned():
-          cell.clear();
+          del self._cellmap[cell.get_id()];
+          cell.wipe();
           self._cellmap[cell_id] = cell;
           return cell;
     # current layout is full: proceed to next layout 
@@ -179,7 +205,7 @@ class GriddedPage (object):
   def reserve_or_find_cell(self,cell_id):
     cell = self.find_cell(cell_id);
     if cell is None:
-      cell = self.reserve_cell(cell_id);
+      return self.reserve_cell(cell_id);
     return cell;
 
   def _clear_cell (self,cell,cell_id):

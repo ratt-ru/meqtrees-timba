@@ -13,6 +13,23 @@ MainAppThread = None;
 
 dmirepr = dmi_repr.dmi_repr();
 
+_def_font = None;
+_def_bold_font = None;
+
+def defaultFont ():
+  global _def_font;
+  if _def_font is None:
+    _def_font = QApplication.font();
+  return _def_font;
+  
+def defaultBoldFont ():
+  global _def_bold_font;
+  if _def_bold_font is None:
+    _def_bold_font = QFont(defaultFont());
+    _def_bold_font.setBold(True);
+  return _def_bold_font;
+  
+
 class HierBrowser (object):
   # seqs/dicts with <= items than this are treated as "short"
   ShortSeq       = 5;
@@ -102,7 +119,7 @@ class HierBrowser (object):
   # init for HierBrowser
   def __init__(self,parent,name,name1=''):
     self._lv = QListView(parent);
-    self._lv.addColumn('');
+    self._lv.addColumn(name1);
     self._lv.addColumn(name);
     self._lv.setRootIsDecorated(True);
     self._lv.setSorting(-1);
