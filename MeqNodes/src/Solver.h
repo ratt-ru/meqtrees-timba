@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_SOLVER_H
-#define MEQ_SOLVER_H
+#ifndef MEQNODES_SOLVER_H
+#define MEQNODES_SOLVER_H
     
 #include <MEQ/Node.h>
 #include <MEQ/VellSet.h>

@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_MULTIPLY_H
-#define MEQ_MULTIPLY_H
+#ifndef MEQNODES_MULTIPLY_H
+#define MEQNODES_MULTIPLY_H
     
 #include <MEQ/Function.h>
 

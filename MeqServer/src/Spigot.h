@@ -34,6 +34,11 @@
 //  Row flags bitmask. This is AND-ed with the ROWFLAG column of the tile 
 //  and added to the output VellSet flags. Use -1 for a full mask. If both
 //  flag_mask and row_flag_mask are 0, no output flags will be generated.
+//field: flag_bit 1
+//  Vells flag bit. If non-0, overrides flag behaviour as follows:
+//  the FLAGS and ROWFLAG columns tile of the tile are AND-ed with flag_mask
+//  and row_flag_mask, respecitively, and the output is flagged with
+//  flag_bit wherever the result of this operation is not 0.
 //defrec end
 
 namespace Meq {
@@ -71,6 +76,7 @@ class Spigot : public VisHandlerNode
     string colname;
     int flag_mask;
     int row_flag_mask;
+    int flag_bit;
     
     //##ModelId=3F9FF6AA0221
     typedef struct

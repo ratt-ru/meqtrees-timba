@@ -112,7 +112,7 @@ int Function::getResult (Result::Ref &resref,
   bool integr = false;
   if( nrch )
   {
-    childres[0]->numVellSets();   // max # of planes in children
+    nplanes = childres[0]->numVellSets();   // max # of planes in children
     bool integr = childres[0]->isIntegrated();  // flag: is any child integrated
     for( int i=1; i<nrch; i++ )
     {

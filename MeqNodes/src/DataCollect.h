@@ -19,8 +19,8 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#ifndef MEQ_DATACOLLECT_H
-#define MEQ_DATACOLLECT_H
+#ifndef MEQNODES_DATACOLLECT_H
+#define MEQNODES_DATACOLLECT_H
     
 #include <MEQ/Node.h>
 #include <MEQ/VellSet.h>

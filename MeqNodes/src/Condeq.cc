@@ -106,13 +106,22 @@ int Condeq::getResult (Result::Ref &resref,
   vector<const VellSet*> child_res(nrch);
   for( int iplane=0; iplane<nplanes; iplane++ )
   {
+    Vells::Ref flagref;
     // collect vector of pointers to children, and vector
     // of pointers to main value
     vector<const Vells*> values(nrch);
     int npertsets;
     for( int i=0; i<nrch; i++ )
     {
-      child_res[i] = &(child_result[i]->vellSet(iplane));
+      const VellSet &vs = child_result[i]->vellSet(iplane);
+      child_res[i] = &vs;
+      // merge in flags, if any
+      if( vs.hasDataFlags() )
+        if( flagref.valid() )
+          flagref() |= vs.dataFlags();
+        else
+          flagref.attach(vs.dataFlags());
+      const VellSet &chres = child_result[i]->vellSet(iplane);
       childvs_lock[i].relock(child_res[i]->mutex());
       const Vells &val = child_res[i]->getValue();
       childval_lock[i].relock(val.mutex());
@@ -127,6 +136,9 @@ int Condeq::getResult (Result::Ref &resref,
     VellSet &vellset = result.setNewVellSet(iplane,spids.size(),1);
     // The main value is measured-predicted.
     vellset.setValue(*values[1] - *values[0]);
+    // set flags if any
+    if( flagref.valid() )
+      vellset.setDataFlags(flagref);
     // Evaluate all perturbed values.
     vector<Vells*> perts(nrch);
     vector<int> indices(nrch, 0);

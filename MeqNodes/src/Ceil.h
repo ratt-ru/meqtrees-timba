@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_CEIL_H
-#define MEQ_CEIL_H
+#ifndef MEQNODES_CEIL_H
+#define MEQNODES_CEIL_H
     
 #include <MEQ/Function.h>
 

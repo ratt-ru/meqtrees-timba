@@ -18,6 +18,11 @@ const int AidAuto_int = -1213;
 const DMI::AtomicID AidCalibrated(-1275);         // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
 const int AidCalibrated_int = -1275;
 #endif
+#ifndef _defined_id_AidClear
+#define _defined_id_AidClear 1
+const DMI::AtomicID AidClear(-1353);              // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
+const int AidClear_int = -1353;
+#endif
 #ifndef _defined_id_AidClosed
 #define _defined_id_AidClosed 1
 const DMI::AtomicID AidClosed(-1252);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20

@@ -19,8 +19,8 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#ifndef MEQ_MEAN_H
-#define MEQ_MEAN_H
+#ifndef MEQNODES_MEAN_H
+#define MEQNODES_MEAN_H
     
 #include <MEQ/Function.h>
 
@@ -38,12 +38,16 @@ public:
 
   virtual ~Mean();
 
-    virtual TypeId objectType() const
-    { return TpMeqMean; }
+  virtual TypeId objectType() const
+  { return TpMeqMean; }
 
   // Evaluate the value for the given request.
   virtual Vells evaluate (const Request&,const LoShape &,
 			  const vector<const Vells*>& values);
+
+  // all flags swallowed up
+  virtual void evaluateFlags (Vells::Ref &,const Request &,const LoShape &,const vector<const Vells*>&)
+  {}
 };
 
 

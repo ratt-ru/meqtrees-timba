@@ -19,8 +19,8 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#ifndef MEQ_POW4_H
-#define MEQ_POW4_H
+#ifndef MEQNODES_POW4_H
+#define MEQNODES_POW4_H
     
 #include <MEQ/Function.h>
 

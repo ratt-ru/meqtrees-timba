@@ -29,6 +29,7 @@ namespace Meq {
 
 //##ModelId=400E53550241
 Min::Min()
+: Function(-1,0,1) // at least one child expected
 {}
 
 //##ModelId=400E53550242
@@ -39,7 +40,24 @@ Min::~Min()
 Vells Min::evaluate (const Request&,const LoShape &,
 		     const vector<const Vells*>& values)
 {
-  return min(*(values[0]));
+  if( values.size() == 1 )
+    return min(*(values[0]));
+  else
+  {
+    Vells res = *(values[0]);
+    for( uint i=1; i<values.size(); i++ )
+      res = min(res,*(values[i]));
+    return res;
+  }
+}
+
+void Min::evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const Vells*> &pchf)
+{
+  // unary form returns no flags
+  if( pchf.size() == 1 )
+    return;
+  // else defer to Function (merge flags of children)
+  Function::evaluateFlags(out,req,shape,pchf);
 }
 
 } // namespace Meq

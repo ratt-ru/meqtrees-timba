@@ -158,7 +158,9 @@ const make_predict_tree := function (st1,st2,src=[''])
                          [ output_col      = 'PREDICT',   # init-rec for sink
                            station_1_index = st1,
                            station_2_index = st2,
-                           corr_index      = [1] ],children=dmi.list(
+                           corr_index      = [1],
+                           flag_mask       = -1 ],
+                           children=dmi.list(
                             ifr_predict_tree(st1,st2,src)
                            )));
   return sinkname;
@@ -177,13 +179,15 @@ const make_subtract_tree := function (st1,st2,src=[''])
                          [ output_col      = 'PREDICT',
                            station_1_index = st1,
                            station_2_index = st2,
-                           corr_index      = [1] ],
+                           corr_index      = [1],
+                           flag_mask        = -1 ],
                          children=meq.list(
       meq.node('MeqSubtract',fq_name('sub',st1,st2),children=meq.list(
         meq.node('MeqSelector',fq_name('xx',st1,st2),[index=1],children=meq.list(
           meq.node('MeqSpigot',fq_name('spigot',st1,st2),[ 
             station_1_index=st1,
             station_2_index=st2,
+            flag_bit=4,
             input_column='DATA'])
         )),
         ifr_predict_tree(st1,st2,src)
@@ -195,7 +199,7 @@ const make_subtract_tree := function (st1,st2,src=[''])
 
 
 # builds a solve tree for stations st1, st2
-const make_solve_tree := function (st1,st2,src=[''],subtract=F)
+const make_solve_tree := function (st1,st2,src=[''],subtract=F,flag=F)
 {
   sinkname := fq_name('sink',st1,st2);
   predtree := ifr_predict_tree(st1,st2,src);
@@ -210,6 +214,7 @@ const make_solve_tree := function (st1,st2,src=[''],subtract=F)
         meq.node('MeqSpigot',fq_name('spigot',st1,st2),[ 
               station_1_index=st1,
               station_2_index=st2,
+              flag_bit=4,
               input_column='DATA'])
       ))
     ),step_children=meq.list(
@@ -221,20 +226,40 @@ const make_solve_tree := function (st1,st2,src=[''],subtract=F)
   );
   # create subtract sub-tree
   if( subtract )
-    mqs.createnode(meq.node('MeqSubtract',subname:=fq_name('sub',st1,st2),
+  {
+    subname := fq_name('sub',st1,st2);
+    mqs.createnode(meq.node('MeqSubtract',subname,
                       children=[fq_name('xx',st1,st2),predname]));
+    if( !is_boolean(flag) )
+    {
+      datanodename:=fq_name('mof',st1,st2);
+      mqs.createnode(
+        meq.node('MeqMergeFlags',datanodename,children=meq.list(
+          subname,
+          meq.node('MeqZeroFlagger',fq_name('zf',st1,st2),[flag_bit=2,oper='GE',force_output=T],children=meq.list(
+            meq.node('MeqSubtract',fq_name('zfsub',st1,st2),children=meq.list(
+              meq.node('MeqAbs',fq_name('zfabs',st1,st2),children=subname),
+              meq.node('MeqConstant',fq_name('of1threshold',st1,st2),[value=flag])
+            ))
+          ))
+        ))
+      );
+    }
+    else
+      datanodename := subname;
+  }               
   else
     subname := fq_name('spigot',st1,st2);
-  
   
   # create root tree (plugs into solver & subtract)     
   mqs.createnode(
     meq.node('MeqSink',sinkname,[ output_col      = 'PREDICT',
                                   station_1_index = st1,
                                   station_2_index = st2,
-                                  corr_index      = [1] ],children=meq.list(
+                                  corr_index      = [1], 
+                                  flag_mask       = -1 ],children=meq.list(
       meq.node('MeqReqSeq',fq_name('seq',st1,st2),[result_index=2],
-        children=['solver',subname])
+        children=['solver',datanodename])
    ))
  );
 
@@ -345,8 +370,8 @@ use_initcol := T;       # initialize output column with zeroes
 #
 # run=F: build trees and stop, run=T: run over the measurement set
 const do_test := function (predict=F,subtract=F,solve=F,run=T,
+    flag=F,                         # supply threshold to flag output
     msname='test.ms',
-    outcol='PREDICTED_DATA',        # output column of MS
     stset=1:4,                      # stations for which to make trees
     msuvw=F,                        # use UVW values from MS
     mepuvw=F,                       # use UVW from MEP table (should be filled already)
@@ -446,7 +471,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
         {
           if( solve )
           {
-            rootnodes := [rootnodes,make_solve_tree(st1,st2,src=src_names,subtract=subtract)];
+            rootnodes := [rootnodes,make_solve_tree(st1,st2,src=src_names,subtract=subtract,flag=flag)];
             if( publish>1 )
               mqs.meq('Node.Publish.Results',[name=fq_name('ce',st1,st2)]);
           }
@@ -520,13 +545,15 @@ if( mepuvw )
 else
   mepuvw := F;
 
+outcol := 'PREDICTED_DATA';
 solver_defaults := [ num_iter=10,save_funklets=F,last_update=F ];
 
-inputrec := [ ms_name = msname,data_column_name = 'DATA',tile_size=5,
+inputrec := [ ms_name = msname,data_column_name = 'DATA',
+              tile_size=5,# clear_flags=T,
               selection = [ channel_start_index=1,channel_end_index=1 ] ];
-outputrec := [ write_flags=F,predict_column=outcol ]; 
+outputrec := [ write_flags=T,predict_column=outcol ]; 
 
-do_test(msname=msname,solve=T,subtract=F,run=T,
+res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=0.17,
 #  st1set=[1:5]*4,st2set=[1:5]*4,
 #  st1set=[1:21]*4,st2set=[1:21]*4,
   stset=1+[0:3]*4,
@@ -535,6 +562,8 @@ do_test(msname=msname,solve=T,subtract=F,run=T,
   set_breakpoint=set_breakpoint,
   publish=1,mepuvw=mepuvw,msuvw=msuvw);
 #do_test(solve=T,run=T,publish=2,load='solve-100.forest');
+
+print res;
 
 print 'errors reported:',mqs.num_errors();
 

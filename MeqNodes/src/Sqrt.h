@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_SQRT_H
-#define MEQ_SQRT_H
+#ifndef MEQNODES_SQRT_H
+#define MEQNODES_SQRT_H
     
 #include <MEQ/Function.h>
 

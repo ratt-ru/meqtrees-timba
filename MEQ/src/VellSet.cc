@@ -508,11 +508,15 @@ void VellSet::setDataFlags (const Vells::Ref &flags)
   // set flags in all values
   if( pvalue_ )
     pvalue_->dewr().setDataFlags(flags);
-  for( int iset=0; iset<numPertSets(); iset++ )
+  if( numSpids() )
   {
-    DMI::Vec & pvec = pset_[iset].pertval_vec->dewr();
-    for( int i=0; i<numSpids(); i++ )
-      pvec.as<Vells>(i).setDataFlags(flags);
+    for( int iset=0; iset<numPertSets(); iset++ )
+      if( pset_[iset].pertval_vec )
+      {
+        DMI::Vec & pvec = pset_[iset].pertval_vec->dewr();
+        for( int i=0; i<numSpids(); i++ )
+          pvec.as<Vells>(i).setDataFlags(flags);
+      }
   }
 }
 

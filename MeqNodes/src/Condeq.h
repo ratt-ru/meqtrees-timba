@@ -20,10 +20,10 @@
 //#
 //# $Id$
 
-#ifndef MEQ_CONDEQ_H
-#define MEQ_CONDEQ_H
+#ifndef MEQNODES_CONDEQ_H
+#define MEQNODES_CONDEQ_H
     
-#include <MEQ/Node.h>
+#include <MEQ/Function.h>
 #include <MEQ/VellSet.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
@@ -37,7 +37,7 @@ class Request;
 
 
 //##ModelId=400E53030272
-class Condeq : public Node
+class Condeq : public Function
 {
 public:
     //##ModelId=400E5305005F

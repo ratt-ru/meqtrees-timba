@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_POLAR_H
-#define MEQ_POLAR_H
+#ifndef MEQNODES_POLAR_H
+#define MEQNODES_POLAR_H
     
 #include <MEQ/Function.h>
 

@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_COMPOSER_H
-#define MEQ_COMPOSER_H
+#ifndef MEQNODES_COMPOSER_H
+#define MEQNODES_COMPOSER_H
     
 #include <MEQ/Node.h>
 

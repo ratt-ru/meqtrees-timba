@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_PARM_H
-#define MEQ_PARM_H
+#ifndef MEQNODES_PARM_H
+#define MEQNODES_PARM_H
 
 //# Includes
 #include <MEQ/Node.h>

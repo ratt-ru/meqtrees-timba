@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_TIME_H
-#define MEQ_TIME_H
+#ifndef MEQNODES_TIME_H
+#define MEQNODES_TIME_H
     
 #include <MEQ/Node.h>
 

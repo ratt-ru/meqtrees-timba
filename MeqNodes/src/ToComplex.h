@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_TOCOMPLEX_H
-#define MEQ_TOCOMPLEX_H
+#ifndef MEQNODES_TOCOMPLEX_H
+#define MEQNODES_TOCOMPLEX_H
     
 #include <MEQ/Function.h>
 

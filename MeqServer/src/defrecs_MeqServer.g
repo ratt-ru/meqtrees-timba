@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
-# Original file name: /home/oms/LOFAR/TIMBA/MeqServer/src/defrecs_MeqServer.g
-# Generated on Thu Jan 13 12:24:40 CET 2005
+# Original file name: /home/oms/LOFAR/Timba/MeqServer/src/defrecs_MeqServer.g
+# Generated on Fri Feb  4 20:29:36 CET 2005
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 
@@ -8,7 +8,7 @@
 # 
 #
 # ---------- class MeqSink
-# generated from /home/oms/LOFAR/TIMBA/MeqServer/src/Sink.h
+# generated from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'A MeqSink is attached to a VisAgent data source. A MeqSink represents \
@@ -28,13 +28,18 @@ r.corr_index := [];
 r.corr_index::description := 'Defines mappings from result planes to correlations. If empty, then \
                               a default one-to-one mapping is used. Otherwise, should contain one \
                               correlation index (1-based) per each result plane.';
-r.uwv_node_name := '';
-r.uwv_node_name::description := '   ';
-r.uwv_node_group := '';
+r.flag_mask := 0;
+r.flag_mask::description := 'If non-0, then any data flags in the result are ANDed with this mask \
+                             and written to the FLAGS column of the output tile. If 0, then no \
+                             tile flags are generated. Use -1 for a full flag mask.';
+r.flag_bit := ;
+r.flag_bit::description := 'Output flag bit. If non-0, overrides flag behaviour as follows: \
+                            the dataflags are AND-ed with flag_mask, and the output is flagged with \
+                            flag_bit wherever the result of this operation is not 0.';
 _meqdefrec_map.MeqSink := r;
 #
 # ---------- class MeqSpigot
-# generated from /home/oms/LOFAR/TIMBA/MeqServer/src/Spigot.h
+# generated from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'A MeqSpigot is attached to a VisAgent data source, and represents \
@@ -59,4 +64,9 @@ r.row_flag_mask := -1;
 r.row_flag_mask::description := 'Row flags bitmask. This is AND-ed with the ROWFLAG column of the tile  \
                                  and added to the output VellSet flags. Use -1 for a full mask. If both \
                                  flag_mask and row_flag_mask are 0, no output flags will be generated.';
+r.flag_bit := 1;
+r.flag_bit::description := 'Vells flag bit. If non-0, overrides flag behaviour as follows: \
+                            the FLAGS and ROWFLAG columns tile of the tile are AND-ed with flag_mask \
+                            and row_flag_mask, respecitively, and the output is flagged with \
+                            flag_bit wherever the result of this operation is not 0.';
 _meqdefrec_map.MeqSpigot := r;

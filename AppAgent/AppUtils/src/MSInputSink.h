@@ -52,6 +52,7 @@ using namespace VisVocabulary;
 //##                                         (default is "DATA", but can use, 
 //##                                           e.g., "MODEL_DATA")
 //##    +--[FTileSize]           (int)       tile size (default: 1 timeslot)
+//##    +--[FClearFlags]         (bool)      clear all input flags
 //##    +--[FSelection]          (record)    determines MS selection:
 //##       +--[FDDID]              (int)     selects data description ID 
 //##       +--[FFieldIndex]        (int)     selects field  
@@ -141,6 +142,8 @@ class MSInputSink : public FileSink
       //## in increasing order; if MS freqs are decreasing, then the freq axis
       //## must be flipped. This flag is set in fillHeader()
       bool flip_freq_;
+      
+      bool clear_flags_;
       
       // count of timeslots already returned
     //##ModelId=3DFDFC060354

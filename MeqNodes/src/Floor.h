@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_FLOOR_H
-#define MEQ_FLOOR_H
+#ifndef MEQNODES_FLOOR_H
+#define MEQNODES_FLOOR_H
     
 #include <MEQ/Function.h>
 

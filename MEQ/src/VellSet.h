@@ -39,75 +39,12 @@
 
 namespace Meq { using namespace DMI;
 
-// OMS 28/01/05: phasing this out, replace with explicit data flags
-// class OptionalColumns
-// {
-//   public:
-//     typedef enum
-//     {
-//         FLAGS   = 0,
-//         WEIGHT  = 1,
-// 
-//         NUM_OPTIONAL_COL = 2
-//     }
-//     OptionalColumnEnums;
-// 
-//     template<int N> class Traits
-//     {
-//       public:
-//           typedef void ElementType;
-//           typedef void ArrayType;
-//     };
-// 
-//     static TypeId optColElementType (uint icol);
-// 
-//     static TypeId optColArrayType (uint icol);
-// 
-//     static const HIID & optColFieldId (uint icol);
-// };
-// 
-// template<> class OptionalColumns::Traits<OptionalColumns::FLAGS> 
-// {
-//   public:
-//       typedef int ElementType;
-//       typedef blitz::Array<ElementType,2> ArrayType;
-// };
-// 
-// template<> class OptionalColumns::Traits<OptionalColumns::WEIGHT> 
-// {
-//   public:
-//       typedef float ElementType;
-//       typedef blitz::Array<ElementType,2> ArrayType;
-// };
-// 
-// 
-// inline TypeId OptionalColumns::optColElementType (uint icol)
-// {
-//   const TypeId type[] = { typeIdOf(Traits<FLAGS>::ElementType),
-//                           typeIdOf(Traits<WEIGHT>::ElementType) };
-//   DbgAssert1(icol<NUM_OPTIONAL_COL);
-//   return type[icol];  
-// }
-// 
-// inline TypeId OptionalColumns::optColArrayType (uint icol)
-// {
-//   const TypeId type[] = { typeIdOf(Traits<FLAGS>::ArrayType),
-//                           typeIdOf(Traits<WEIGHT>::ArrayType) };
-//   DbgAssert1(icol<NUM_OPTIONAL_COL);
-//   return type[icol];  
-// }
-
-
 //##ModelId=400E530400D3
 class VellSet : public DMI::Record // , public OptionalColumns
 {
 public:
   //##ModelId=400E530400D6
   typedef CountedRef<VellSet> Ref;
-
-// OMS 28/01/05: phasing this out, replace with explicit data flags
-//   typedef Traits<FLAGS>::ElementType FlagType; 
-//   typedef Traits<FLAGS>::ArrayType FlagArrayType; 
 
   // Create a time,frequency result for the given shape, number of spids,
   // number of pert sets
@@ -164,7 +101,7 @@ public:
   int getSpid (int i) const
   { return spids_[i]; }
   
-  // number of perturbation sets (0
+  // number of perturbation sets (1 or 2)
   int numPertSets () const
   { return pset_.size(); }
   

@@ -559,6 +559,25 @@ namespace Meq { class Multiply; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqNElements
+#define _defined_id_TpMeqNElements 1
+const DMI::TypeId TpMeqNElements(-1500);          // from /home/oms/LOFAR/Timba/MeqNodes/src/NElements.h:29
+const int TpMeqNElements_int = -1500;
+namespace Meq { class NElements; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::NElements> : public TypeTraits<Meq::NElements>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqNElements_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::NElements & ContainerReturnType;
+                typedef const Meq::NElements & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqNorm
 #define _defined_id_TpMeqNorm 1
 const DMI::TypeId TpMeqNorm(-1459);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Norm.h:29
@@ -784,6 +803,25 @@ namespace Meq { class Pow8; };
                 enum { ParamByRef = true, ReturnByRef = true };
                 typedef const Meq::Pow8 & ContainerReturnType;
                 typedef const Meq::Pow8 & ContainerParamType;
+              };
+            };
+#endif
+#ifndef _defined_id_TpMeqProduct
+#define _defined_id_TpMeqProduct 1
+const DMI::TypeId TpMeqProduct(-1501);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Product.h:29
+const int TpMeqProduct_int = -1501;
+namespace Meq { class Product; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::Product> : public TypeTraits<Meq::Product>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqProduct_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::Product & ContainerReturnType;
+                typedef const Meq::Product & ContainerParamType;
               };
             };
 #endif
@@ -1031,6 +1069,25 @@ namespace Meq { class Subtract; };
                 enum { ParamByRef = true, ReturnByRef = true };
                 typedef const Meq::Subtract & ContainerReturnType;
                 typedef const Meq::Subtract & ContainerParamType;
+              };
+            };
+#endif
+#ifndef _defined_id_TpMeqSum
+#define _defined_id_TpMeqSum 1
+const DMI::TypeId TpMeqSum(-1499);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Sum.h:29
+const int TpMeqSum_int = -1499;
+namespace Meq { class Sum; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::Sum> : public TypeTraits<Meq::Sum>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqSum_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::Sum & ContainerReturnType;
+                typedef const Meq::Sum & ContainerParamType;
               };
             };
 #endif

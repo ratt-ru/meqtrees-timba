@@ -19,8 +19,8 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#ifndef MEQ_NORM_H
-#define MEQ_NORM_H
+#ifndef MEQNODES_NORM_H
+#define MEQNODES_NORM_H
     
 #include <MEQ/Function.h>
 

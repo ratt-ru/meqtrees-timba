@@ -29,6 +29,7 @@ namespace Meq {
 
 //##ModelId=400E53550241
 Max::Max()
+: Function(-1,0,1) // at least one child expected
 {}
 
 //##ModelId=400E53550242
@@ -39,7 +40,24 @@ Max::~Max()
 Vells Max::evaluate (const Request&,const LoShape &,
 		     const vector<const Vells*>& values)
 {
-  return max(*(values[0]));
+  if( values.size() == 1 )
+    return max(*(values[0]));
+  else
+  {
+    Vells res = *(values[0]);
+    for( uint i=1; i<values.size(); i++ )
+      res = max(res,*(values[i]));
+    return res;
+  }
+}
+
+void Max::evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const Vells*> &pchf)
+{
+  // unary form returns no flags
+  if( pchf.size() == 1 )
+    return;
+  // else defer to Function (merge flags of children)
+  Function::evaluateFlags(out,req,shape,pchf);
 }
 
 } // namespace Meq

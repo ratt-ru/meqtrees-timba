@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_POINTSOURCEDFT_H
-#define MEQ_POINTSOURCEDFT_H
+#ifndef MEQNODES_POINTSOURCEDFT_H
+#define MEQNODES_POINTSOURCEDFT_H
 
 //# Includes
 #include <MEQ/CompoundFunction.h>

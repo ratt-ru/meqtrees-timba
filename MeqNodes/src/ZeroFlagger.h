@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_ZEROFLAGGER_H
-#define MEQ_ZEROFLAGGER_H
+#ifndef MEQNODES_ZEROFLAGGER_H
+#define MEQNODES_ZEROFLAGGER_H
     
 #include <MEQ/Node.h>
 #include <MEQ/AID-Meq.h>
@@ -30,7 +30,7 @@
 
 #pragma aidgroup MeqNodes
 #pragma types #Meq::ZeroFlagger 
-#pragma aid Oper Flag Bit EQ NE LT GT LE GE
+#pragma aid Oper Flag Bit EQ NE LT GT LE GE Force Output
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -43,12 +43,16 @@
 //field: flag_bit 1
 //  this value is ORed with the flags at all points where the 
 //  main value OPER 0 is true.
+//field: force_output F
+//  normally, if nothing at all is flagged, no dataflags at all are generated.
+//  Set this to true to generate a null flags entry.
 //defrec end
 
 namespace Meq {    
 
 const HIID FOper    = AidOper;
 const HIID FFlagBit = AidFlag|AidBit;
+const HIID FForceOutput = AidForce|AidOutput;
 
 //##ModelId=400E530400A3
 class ZeroFlagger : public Node
@@ -76,6 +80,11 @@ private:
     
   int flagbit_;
   AtomicID oper_;
+  bool force_output_;
+  
+  // singleton "null flags" object (mutex needed on init)
+  static Vells::Ref null_flags_;
+  static Thread::Mutex nf_mutex;
 };
 
 

@@ -14,7 +14,7 @@ Sink::Sink()
   : VisHandlerNode(1),        // 1 child node expected
     output_col(-1),
     flag_mask(-1),
-    row_flag_mask(-1)
+    flag_bit(0)
 {
   const HIID gendeps[] = { FDomain,FResolution };
   const int  masks[]   = { RQIDM_DOMAIN,RQIDM_RESOLUTION }; 
@@ -55,10 +55,11 @@ void Sink::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   rec[FCorrIndex].get_vector(output_icorrs,initializing);
   // get flag masks
   rec[FFlagMask].get(flag_mask,initializing);
-  rec[FRowFlagMask].get(row_flag_mask,initializing);
-  // get UVW nodes
-  rec[FUVWNodeGroup].get(uvw_node_group,initializing);
-  rec[FUVWNodeName].get(uvw_node_name,initializing);
+  rec[FFlagBit].get(flag_bit,initializing);
+//  rec[FRowFlagMask].get(row_flag_mask,initializing);
+//  // get UVW nodes
+//  rec[FUVWNodeGroup].get(uvw_node_group,initializing);
+//  rec[FUVWNodeName].get(uvw_node_name,initializing);
 }
 
 //##ModelId=3F9509770277
@@ -199,6 +200,32 @@ int Sink::procPendingTile (VisCube::VTile::Ref &tileref)
         FailWhen(coltype!=Tpfcomplex,"type mismatch: complex Vells, "+coltype.toString()+" column");
         fillTileColumn(static_cast<fcomplex*>(coldata),colshape,pending.range,
                       vells.getConstArray<dcomplex,2>(),icorr);
+      }
+      // write flags, if specified by flag mask and present in vells
+      if( flag_mask && vells.hasDataFlags() )
+      {
+        Vells realflags;
+        const Vells & dataflags = vells.dataFlags();
+        // if same shape, then write directly
+        if( vells.shape() == dataflags.shape() )
+          realflags = dataflags & flag_mask;
+        // else flags may have a "collapsed" shape, then:
+        // create a flag vells of the same shape as the data, and fill it
+        // with the flag mask, then AND with flags and let Vells math do
+        // the expansion
+        else if( dataflags.isCompatible(vells.shape()) )
+          realflags = Vells(vells.shape(),flag_mask,true) & dataflags;
+        else
+        {
+          cdebug(2)<<"shape of dataflags not compatible with data, omitting flags"<<endl;
+        }
+        const Vells::Traits<VellsFlagType,2>::Array & fl = 
+            realflags.getConstArray<VellsFlagType,2>();
+        // if flag bit is set, use a where-expression, else simply copy
+        if( flag_bit )
+          ptile->wtf_flags(icorr) = where(fl,flag_bit,0);
+        else
+          ptile->wtf_flags(icorr) = fl;
       }
       resflag |= RES_UPDATED;
     }

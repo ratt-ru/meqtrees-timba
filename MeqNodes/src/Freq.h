@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_FREQ_H
-#define MEQ_FREQ_H
+#ifndef MEQNODES_FREQ_H
+#define MEQNODES_FREQ_H
     
 #include <MEQ/Node.h>
 

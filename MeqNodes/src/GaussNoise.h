@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_GAUSSNOISE_H
-#define MEQ_GAUSSNOISE_H
+#ifndef MEQNODES_GAUSSNOISE_H
+#define MEQNODES_GAUSSNOISE_H
 
 #include <MEQ/Function.h>
 #include <MeqNodes/BlitzRandom.h>

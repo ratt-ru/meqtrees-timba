@@ -19,8 +19,8 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#ifndef MEQ_FABS_H
-#define MEQ_FABS_H
+#ifndef MEQNODES_FABS_H
+#define MEQNODES_FABS_H
     
 #include <MEQ/Function.h>
 

@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_REQSEQ_H
-#define MEQ_REQSEQ_H
+#ifndef MEQNODES_REQSEQ_H
+#define MEQNODES_REQSEQ_H
     
 #include <MEQ/Node.h>
 #include <MEQ/AID-Meq.h>

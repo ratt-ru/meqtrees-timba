@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_NOISENODE_H
-#define MEQ_NOISENODE_H
+#ifndef MEQNODES_NOISENODE_H
+#define MEQNODES_NOISENODE_H
 
 #include <MEQ/Function.h>
 

@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_UVW_H
-#define MEQ_UVW_H
+#ifndef MEQNODES_UVW_H
+#define MEQNODES_UVW_H
     
 #include <MEQ/Function.h>
 #include <measures/Measures/MPosition.h>

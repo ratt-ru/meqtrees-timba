@@ -63,15 +63,16 @@ public:
     //##ModelId=3F86886F00B0
   virtual void evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const Vells*>&);
 
-  // Find all spids for this node by merging the spids in all results.
-    //##ModelId=3F86886F0108
-  static vector<int> findSpids (int & npertsets,const vector<const VellSet*> &);
-
   // Returns the class TypeId
     //##ModelId=400E53070274
   virtual TypeId objectType() const;
+  
+  // helper func: find all spids for this node by merging the spids in all results.
+    //##ModelId=3F86886F0108
+  static vector<int> findSpids (int & npertsets,const vector<const VellSet*> &);
 
 protected:
+
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
   // Get the result for the given request.

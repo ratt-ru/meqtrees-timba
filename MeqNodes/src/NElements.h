@@ -1,4 +1,4 @@
-//# StdDev.h: sqrt(abs(mean(sqr(v))-sqr(mean(v))), or Std Deviation
+//# NElements.h: Take mean of a node
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -19,31 +19,34 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#ifndef MEQNODES_STDDEV_H
-#define MEQNODES_STDDEV_H
+#ifndef MEQNODES_NELEMENTS_H
+#define MEQNODES_NELEMENTS_H
     
 #include <MEQ/Function.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
-#pragma types #Meq::StdDev
+#pragma types #Meq::NElements
 
 namespace Meq {    
 
 
-class StdDev : public Function1
+class NElements : public Function
 {
 public:
-  StdDev();
+  NElements();
 
-  virtual ~StdDev();
+  virtual ~NElements();
 
     virtual TypeId objectType() const
-    { return TpMeqStdDev; }
+    { return TpMeqNElements; }
 
   // Evaluate the value for the given request.
   virtual Vells evaluate (const Request&,const LoShape &,
 			  const vector<const Vells*>& values);
+  // all flags swallowed up
+  virtual void evaluateFlags (Vells::Ref &,const Request &,const LoShape &,const vector<const Vells*>&)
+  {}
 };
 
 

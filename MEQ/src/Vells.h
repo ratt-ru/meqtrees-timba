@@ -50,8 +50,7 @@
 #define DoForAllUnaryFuncs(Do,x)  DoForAllUnaryFuncs1(Do,x)  \
                                   DoForAllUnaryFuncs2(Do,x)  \
                                   DoForAllUnaryFuncs3(Do,x)  \
-                                  DoForAllUnaryFuncs4(Do,x)  \
-                                  DoForAllUnaryFuncs5(Do,x)  
+                                  DoForAllUnaryFuncs4(Do,x)  
                                 
 // Unary group 1: defined for all Vells. Preserves real/complex
 #define DoForAllUnaryFuncs1(Do,x) \
@@ -72,25 +71,30 @@
 #define DoForAllUnaryFuncs4(Do,x) \
   Do(conj,x) 
   
-// Unary group 5: reduction functions not requiring a shape.
+// Unary reduction functions not requiring a shape.
+// Called as func(vells[,flagmask]).
 // These return a constant Vells (i.e. reduction along all axes)
 // In the future, we'll support reduction along a designated axis
-#define DoForAllUnaryFuncs5(Do,x) \
+#define DoForAllUnaryRdFuncs(Do,x) \
   Do(min,x) Do(max,x) Do(mean,x) 
 
 // Unary reduction functions requiring a shape.
-// Called as func(vells,shape).
+// Called as func(vells,shape[,flagmask]).
 // A shape argument is required because a Vells that is constant
 // along some axis must be treated as N distinct points with the same value
 // for the purposes of these functions.
 // These return a constant Vells (i.e. reduction along all axes).
 // In the future, we'll support reduction along a designated axis.
-#define DoForAllUnaryFuncsWithShape(Do,x) \
+#define DoForAllUnaryRdFuncsWS(Do,x) \
   Do(sum,x) Do(product,x) Do(nelements,x)
 
 // Binary functions
 #define DoForAllBinaryFuncs(Do,x) \
   Do(posdiff,x) Do(tocomplex,x) Do(polar,x) Do(pow,x) Do(atan2,x)
+
+// Binary functions using flags
+#define DoForAllBinaryFuncsWF(Do,x) \
+  Do(min,x) Do(max,x) 
 
 // Finally, VellsFlagType Vells define bitwise logical operators:
 // unary  ~ (NOT)
@@ -107,8 +111,15 @@
 
 namespace Meq 
 { 
-  using namespace DMI;
-  using namespace DebugMeq;
+using namespace DMI;
+using namespace DebugMeq;
+
+
+// dataflag type
+typedef int  VellsFlagType;  
+const VellsFlagType VellsFullFlagMask = 0xFFFFFFFF;
+const TypeId VellsFlagTypeId = typeIdOf(VellsFlagType);
+
 
 // Conditionally include declarations for Vells math.
 // Skipping these functions saves time/memory when compiling code that
@@ -122,23 +133,28 @@ namespace VellsMath
   #define declareUnaryFunc(FUNCNAME,x) \
     Vells FUNCNAME (const Vells &);
   DoForAllUnaryFuncs(declareUnaryFunc,);
-  #define declareUnaryFuncWithShape(FUNCNAME,x) \
-    Vells FUNCNAME (const Vells &,const Axis::Shape &);
-  DoForAllUnaryFuncsWithShape(declareUnaryFuncWithShape,);
+  #define declareUnaryRdFunc(FUNCNAME,x) \
+    Vells FUNCNAME (const Vells &,VellsFlagType flagmask=VellsFullFlagMask);
+  DoForAllUnaryRdFuncs(declareUnaryRdFunc,);
+  #define declareUnaryRdFuncWS(FUNCNAME,x) \
+    Vells FUNCNAME (const Vells &,const Axis::Shape &,VellsFlagType flagmask=VellsFullFlagMask);
+  DoForAllUnaryRdFuncsWS(declareUnaryRdFuncWS,);
   #define declareBinaryFunc(FUNCNAME,x) \
     Vells FUNCNAME (const Vells &,const Vells &);
   DoForAllBinaryFuncs(declareBinaryFunc,);
+  #define declareBinaryFuncWF(FUNCNAME,x) \
+    Vells FUNCNAME (const Vells &,const Vells &,VellsFlagType flagmask=VellsFullFlagMask);
+  DoForAllBinaryFuncsWF(declareBinaryFuncWF,);
   #undef declareUnaryFunc
-  #undef declareUnaryFuncWithShape
+  #undef declareUnaryRdFunc
+  #undef declareUnaryRdFuncWS
   #undef declareBinaryFunc
+  #undef declareBinaryFuncWF
 };
 #endif
 
 // we provide two versions of each operation (real and complex)
 const int VELLS_LUT_SIZE = 2;
-
-typedef int  VellsFlagType;  
-const TypeId VellsFlagTypeId = typeIdOf(VellsFlagType);
 
 namespace VellsTraits
 {
@@ -312,8 +328,11 @@ public:
   Vells & makeNonTemp () 
   { is_temp_ = false; return *this; }
   
-  int extent (uint iaxis) const
-  { return iaxis<shape().size() ? shape()[iaxis] : 1; }
+  static int extent (const Vells::Shape &shp,uint idim)
+  { return idim < shp.size() ? shp[idim] : 1; }
+  
+  int extent (uint idim) const
+  { return extent(shape(),idim); }
   
     //##ModelId=3F868870027E
   int nelements() const
@@ -413,6 +432,23 @@ public:
   T* end ( Type2Type<T> = Type2Type<T>() )
   { return getStorage(Type2Type<T>()) + nelements(); }
   
+  // begin_flags() and end_flags() return pointer to flags, or to nil flag
+  // if there are none
+  const VellsFlagType * beginFlags () const
+  { return hasDataFlags() ? dataFlags().begin<VellsFlagType>() : &null_flag_; }
+  
+  const VellsFlagType * endFlags () const
+  { return hasDataFlags() ? dataFlags().end<VellsFlagType>() : &(null_flag_)+1; }
+  
+  int nflags () const
+  { return hasDataFlags() ? dataFlags().nelements() : 1; }
+  
+  int flagRank () const
+  { return hasDataFlags() ? dataFlags().rank() : 1; }
+  
+  const Shape & flagShape () const
+  { return hasDataFlags() ? dataFlags().shape() : null_flag_shape_; }
+  
   
 // NumArray already defines templated getArray<T>() and getConstArray<T>() functions
 //   template<class T,int N>
@@ -484,10 +520,32 @@ public:
     //##ModelId=400E5356011F
   string sdebug (int detail=1,const string &prefix="",const char *nm=0) const;
   
+  // helper funtion to compute output shape and data strides, given two
+  // input shapes. Used throughout Vells math
+  static void computeStrides (Vells::Shape &outshape,
+                       int strides[][Axis::MaxAxis],
+                       int nshapes,const Vells::Shape * shapes[],
+                       const string &opname);
+  
+  // convenience version for two shape arguments
+  static void computeStrides (Vells::Shape &shape,
+                       int strides[2][Axis::MaxAxis],
+                       const Vells::Shape &a,const Vells::Shape &b,
+                       const string &opname);
+  
+  // convenience version for two Vells arguments with optional flags
+  // strides filled as follows: 0/1 Vells a/b, 2/3 flags a/b
+  static void computeStrides (Vells::Shape &shape,
+                       int strides[4][Axis::MaxAxis],
+                       const Vells &a,const Vells &b,
+                       const string &opname);
 
 private:
     
   Vells::Ref  dataflags_;
+
+  static VellsFlagType null_flag_;
+  static Shape null_flag_shape_;
 
   //##ModelId=400E5356002F
   bool    is_temp_;
@@ -506,6 +564,7 @@ private:
     VF_CHECKREAL    = 0x08, // operand(s) must be real
     VF_CHECKCOMPLEX = 0x10, // operand(s) must be complex
     VF_FLAGTYPE     = 0x20, // result and operand(s) are VellsFlagType
+    VF_FLAG_STRIDES = 0x40, // compute strides for dataflags too
   } VellsFlags;
   // Special constructor for a result of a unary Vells operation.
   // If other is a temporary Vells, will re-use its storage if possible,
@@ -532,7 +591,7 @@ private:
   // The opname argument is used for error reporting
     //##ModelId=400E53560174
   Vells (const Vells &a,const Vells &b,int flags,
-         int strides_a[],int strides_b[],const std::string &opname);
+         int strides[][Axis::MaxAxis],const std::string &opname);
 
   // helper functions for these two constructors
     //##ModelId=400E5356019D
@@ -540,14 +599,9 @@ private:
 
   static TypeId getResultType (int flags,bool arg_is_complex);
 
-  bool canApplyInPlace (const Vells &other,int strides[],const std::string &opname);
+  bool canApplyInPlace (const Vells &other,int strides[Axis::MaxAxis],const std::string &opname);
 
-  static void computeStrides (Vells::Shape &shape,
-                              int strides_a[],int strides_b[],
-                              const Vells &a,const Vells &b,
-                              const string &opname);
-  
-    //##ModelId=400E535601CB
+  //##ModelId=400E535601CB
   int getLutIndex () const
   { 
     if( isComplex() )
@@ -563,13 +617,16 @@ public:
 // pointer to function implementing an unary operation 
     //##ModelId=400E53040108
   typedef void (*UnaryOperPtr)(Vells &,const Vells &);
-  typedef void (*UnaryWithShapeOperPtr)(Vells &,const Vells &,const Shape &);
+  typedef void (*UnaryRdFuncPtr)(Vells &,const Vells &,VellsFlagType);
+  typedef void (*UnaryRdFuncWSPtr)(Vells &,const Vells &,const Shape &,VellsFlagType);
 // pointer to function implementing a binary operation 
     //##ModelId=400E53040116
   typedef void (*BinaryOperPtr)(Vells &out,const Vells &,const Vells &,
-                                const int [], const int []);
+                                const int [2][Axis::MaxAxis]);
+  typedef void (*BinaryFuncWFPtr)(Vells &out,const Vells &,const Vells &,
+                                  VellsFlagType,const int [4][Axis::MaxAxis]);
 // pointer to function implementing an unary in-place operation 
-  typedef void (*InPlaceOperPtr)(Vells &out,const Vells &,const int []);
+  typedef void (*InPlaceOperPtr)(Vells &out,const Vells &,const int [Axis::MaxAxis]);
   
 // Declares inline unary operator OPER (internally named OPERNAME),
 // plus lookup table for implementations
@@ -598,9 +655,9 @@ public:
 #define declareBinaryOperator(OPER,OPERNAME,x) \
   private: static BinaryOperPtr binary_##OPERNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  \
   public: Vells operator OPER (const Vells &right) const \
-          { int sta[Axis::MaxAxis],stb[Axis::MaxAxis]; \
-            Vells result(*this,right,0,sta,stb,"operator "#OPER); \
-            (*binary_##OPERNAME##_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,sta,stb);  \
+          { int strides[2][Axis::MaxAxis]; \
+            Vells result(*this,right,0,strides,"operator "#OPER); \
+            (*binary_##OPERNAME##_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,strides);  \
             return result; }
 
             
@@ -634,13 +691,18 @@ public:
 #define declareUnaryFuncLut(FUNCNAME,x) \
   private: static UnaryOperPtr unifunc_##FUNCNAME##_lut[VELLS_LUT_SIZE];  
 
-#define declareUnaryFuncLutWithShape(FUNCNAME,x) \
-  private: static UnaryWithShapeOperPtr unifunc_##FUNCNAME##_lut[VELLS_LUT_SIZE];  
+#define declareUnaryRdFuncLut(FUNCNAME,x) \
+  private: static UnaryRdFuncPtr unifunc_##FUNCNAME##_lut[VELLS_LUT_SIZE];  
+
+#define declareUnaryRdFuncWSLut(FUNCNAME,x) \
+  private: static UnaryRdFuncWSPtr unifunc_##FUNCNAME##_lut[VELLS_LUT_SIZE];  
   
 // Declares binary function FUNCNAME
 // Defines lookup tables for implementations of binary math functions
 #define declareBinaryFuncLut(FUNCNAME,x) \
   private: static BinaryOperPtr binfunc_##FUNCNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  
+#define declareBinaryFuncWFLut(FUNCNAME,x) \
+  private: static BinaryFuncWFPtr binfunc_##FUNCNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  
 
 // insert all declarations using the macros above  
     //##ModelId=400E535601D0
@@ -654,9 +716,11 @@ public:
   DoForAllBinaryFlagOperators(declareBinaryFlagOperator,);
     //##ModelId=400E535601EC
   DoForAllUnaryFuncs(declareUnaryFuncLut,);
-  DoForAllUnaryFuncsWithShape(declareUnaryFuncLutWithShape,);
+  DoForAllUnaryRdFuncs(declareUnaryRdFuncLut,);
+  DoForAllUnaryRdFuncsWS(declareUnaryRdFuncWSLut,);
     //##ModelId=400E535601F6
   DoForAllBinaryFuncs(declareBinaryFuncLut,);
+  DoForAllBinaryFuncsWF(declareBinaryFuncWFLut,);
 
 #undef declareUnaryOperator
 #undef declareUnaryFlagOperator
@@ -666,6 +730,7 @@ public:
 #undef declareBinaryFlagOperator
 #undef declareUnaryFuncLut
 #undef declareBinaryFuncLut
+#undef declareBinaryFuncWFLut
   
 // Conditionally include friend declarations for Vells math.
 // Skipping them saves time/memory when compiling code that
@@ -677,17 +742,28 @@ public:
     public: friend Vells VellsMath::FUNCNAME (const Vells &);
     //##ModelId=400E53560200
   DoForAllUnaryFuncs(declareUnaryFunc,);
-  #define declareUnaryFuncWithShape(FUNCNAME,x) \
-    public: friend Vells VellsMath::FUNCNAME (const Vells &,const Vells::Shape &);
-  DoForAllUnaryFuncsWithShape(declareUnaryFuncWithShape,);
+  #define declareUnaryRdFunc(FUNCNAME,x) \
+    public: friend Vells VellsMath::FUNCNAME (const Vells &,VellsFlagType); 
+  DoForAllUnaryRdFuncs(declareUnaryRdFunc,);
+  #define declareUnaryRdFuncWS(FUNCNAME,x) \
+    public: friend Vells VellsMath::FUNCNAME (const Vells &,const Vells::Shape &,VellsFlagType); 
+  DoForAllUnaryRdFuncsWS(declareUnaryRdFuncWS,);
   
   #define declareBinaryFunc(FUNCNAME,x) \
     public: friend Vells VellsMath::FUNCNAME (const Vells &,const Vells &);
     //##ModelId=400E5356020A
   DoForAllBinaryFuncs(declareBinaryFunc,);
   
+  #define declareBinaryFuncWF(FUNCNAME,x) \
+    public: friend Vells VellsMath::FUNCNAME (const Vells &,const Vells &,VellsFlagType);
+    //##ModelId=400E5356020A
+  DoForAllBinaryFuncsWF(declareBinaryFuncWF,);
+  
   #undef declareUnaryFunc
+  #undef declareUnaryRdFunc
+  #undef declareUnaryRdFuncWS
   #undef declareBinaryFunc
+  #undef declareBinaryFuncWF
 #endif
 };
 
@@ -708,10 +784,15 @@ inline Vells FlagVells (VellsFlagType value,const LoShape &shp,bool init=true)
   { Vells result(arg,flags,#FUNCNAME); \
     (*Vells::unifunc_##FUNCNAME##_lut[arg.getLutIndex()])(result,arg); \
     return result; }
-#define defineUnaryFuncWithShape(FUNCNAME,flags) \
-  inline Vells VellsMath::FUNCNAME (const Vells &arg,const Vells::Shape &shape) \
+#define defineUnaryRdFunc(FUNCNAME,flags) \
+  inline Vells VellsMath::FUNCNAME (const Vells &arg,VellsFlagType flagmask) \
   { Vells result(arg,flags,#FUNCNAME); \
-    (*Vells::unifunc_##FUNCNAME##_lut[arg.getLutIndex()])(result,arg,shape); \
+    (*Vells::unifunc_##FUNCNAME##_lut[arg.getLutIndex()])(result,arg,flagmask); \
+    return result; }
+#define defineUnaryRdFuncWS(FUNCNAME,flags) \
+  inline Vells VellsMath::FUNCNAME (const Vells &arg,const Vells::Shape &shape,VellsFlagType flagmask) \
+  { Vells result(arg,flags,#FUNCNAME); \
+    (*Vells::unifunc_##FUNCNAME##_lut[arg.getLutIndex()])(result,arg,shape,flagmask); \
     return result; }
 
 DoForAllUnaryFuncs1(defineUnaryFunc,0);
@@ -720,19 +801,19 @@ DoForAllUnaryFuncs3(defineUnaryFunc,Vells::VF_REAL);
 // group 4: define explicitly
 defineUnaryFunc(conj,0);
 // group 5: reduction to scalar, no shape
-defineUnaryFunc(min,Vells::VF_SCALAR|Vells::VF_REAL|Vells::VF_CHECKREAL);
-defineUnaryFunc(max,Vells::VF_SCALAR|Vells::VF_REAL|Vells::VF_CHECKREAL);
-defineUnaryFunc(mean,Vells::VF_SCALAR);
+defineUnaryRdFunc(min,Vells::VF_SCALAR|Vells::VF_REAL|Vells::VF_CHECKREAL);
+defineUnaryRdFunc(max,Vells::VF_SCALAR|Vells::VF_REAL|Vells::VF_CHECKREAL);
+defineUnaryRdFunc(mean,Vells::VF_SCALAR);
 // group 6: reduction to scalar, with shape
-defineUnaryFuncWithShape(sum,Vells::VF_SCALAR);
-defineUnaryFuncWithShape(product,Vells::VF_SCALAR);
-defineUnaryFuncWithShape(nelements,Vells::VF_SCALAR|Vells::VF_REAL);
+defineUnaryRdFuncWS(sum,Vells::VF_SCALAR);
+defineUnaryRdFuncWS(product,Vells::VF_SCALAR);
+defineUnaryRdFuncWS(nelements,Vells::VF_SCALAR|Vells::VF_REAL);
 
 #define defineBinaryFunc(FUNCNAME,flags) \
   inline Vells VellsMath::FUNCNAME (const Vells &left,const Vells &right) \
-  { int sta[Axis::MaxAxis],stb[Axis::MaxAxis]; \
-    Vells result(left,right,flags,sta,stb,#FUNCNAME); \
-    (*Vells::binfunc_##FUNCNAME##_lut[left.getLutIndex()][right.getLutIndex()])(result,left,right,sta,stb);  \
+  { int strides[2][Axis::MaxAxis]; \
+    Vells result(left,right,flags,strides,#FUNCNAME); \
+    (*Vells::binfunc_##FUNCNAME##_lut[left.getLutIndex()][right.getLutIndex()])(result,left,right,strides);  \
     return result; }
 defineBinaryFunc(pow,0);
 defineBinaryFunc(tocomplex,Vells::VF_COMPLEX|Vells::VF_CHECKREAL);
@@ -740,8 +821,20 @@ defineBinaryFunc(polar,Vells::VF_COMPLEX|Vells::VF_CHECKREAL);
 defineBinaryFunc(posdiff,Vells::VF_REAL|Vells::VF_CHECKREAL);
 defineBinaryFunc(atan2,Vells::VF_REAL|Vells::VF_CHECKREAL);
 
+#define defineBinaryFuncWF(FUNCNAME,flags) \
+  inline Vells VellsMath::FUNCNAME (const Vells &left,const Vells &right,VellsFlagType flagmask) \
+  { int strides[4][Axis::MaxAxis]; \
+    Vells result(left,right,flags|Vells::VF_FLAG_STRIDES,strides,#FUNCNAME); \
+    (*Vells::binfunc_##FUNCNAME##_lut[left.getLutIndex()][right.getLutIndex()])(result,left,right,flagmask,strides);  \
+    return result; }
+defineBinaryFuncWF(min,Vells::VF_REAL|Vells::VF_CHECKREAL);
+defineBinaryFuncWF(max,Vells::VF_REAL|Vells::VF_CHECKREAL);
+
 #undef defineUnaryFunc
+#undef defineUnaryRdFunc
+#undef defineUnaryRdFuncWS
 #undef defineBinaryFunc
+#undef defineBinaryFuncWF
 
 // declare versions of binary operators where the first argument is
 // a scalar

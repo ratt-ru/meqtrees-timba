@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_PARMTABLE_H
-#define MEQ_PARMTABLE_H
+#ifndef MEQNODES_PARMTABLE_H
+#define MEQNODES_PARMTABLE_H
 
 //# Includes
 #include <tables/Tables/Table.h>

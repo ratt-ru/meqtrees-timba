@@ -19,8 +19,8 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#ifndef MEQ_MAX_H
-#define MEQ_MAX_H
+#ifndef MEQNODES_MAX_H
+#define MEQNODES_MAX_H
     
 #include <MEQ/Function.h>
 
@@ -31,15 +31,17 @@
 namespace Meq {    
 
 
-class Max : public Function1
+class Max : public Function
 {
 public:
   Max();
 
   virtual ~Max();
 
-    virtual TypeId objectType() const
-    { return TpMeqMax; }
+  virtual TypeId objectType() const
+  { return TpMeqMax; }
+    
+  virtual void evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const Vells*>&);
 
   // Evaluate the value for the given request.
   virtual Vells evaluate (const Request&,const LoShape &,

@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_LMN_H
-#define MEQ_LMN_H
+#ifndef MEQNODES_LMN_H
+#define MEQNODES_LMN_H
     
 #include <MEQ/CompoundFunction.h>
 

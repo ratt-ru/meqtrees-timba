@@ -29,9 +29,14 @@
 //  Defines mappings from result planes to correlations. If empty, then
 //  a default one-to-one mapping is used. Otherwise, should contain one
 //  correlation index (1-based) per each result plane.
-//field: uwv_node_name ''
-//     
-//field: uwv_node_group ''
+//field: flag_mask 0
+//  If non-0, then any data flags in the result are ANDed with this mask
+//  and written to the FLAGS column of the output tile. If 0, then no
+//  tile flags are generated. Use -1 for a full flag mask.
+//field: flag_bit 
+//  Output flag bit. If non-0, overrides flag behaviour as follows:
+//  the dataflags are AND-ed with flag_mask, and the output is flagged with
+//  flag_bit wherever the result of this operation is not 0.
 //defrec end
     
 namespace Meq {
@@ -92,10 +97,11 @@ class Sink : public VisHandlerNode
     vector<int> output_icorrs;
     
     int flag_mask;
-    int row_flag_mask;
+    int flag_bit;
+//    int row_flag_mask;
     
-    HIID uvw_node_group;
-    string uvw_node_name;
+//    HIID uvw_node_group;
+//    string uvw_node_name;
     
 };
 

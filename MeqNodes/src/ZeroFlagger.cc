@@ -24,11 +24,19 @@
 
 namespace Meq {
 
+Vells::Ref ZeroFlagger::null_flags_;
+Thread::Mutex ZeroFlagger::nf_mutex;
+
 //##ModelId=400E5355029C
 ZeroFlagger::ZeroFlagger()
   : Node(1), // 1 child expected
-    flagbit_(1),oper_(AidNE)
-{}
+    flagbit_(1),oper_(AidNE),force_output_(false)
+{
+  // generate null flags singleton
+  Thread::Mutex::Lock lock(nf_mutex);
+  if( !null_flags_.valid() )
+    null_flags_ <<= new Vells(LoShape(1),0,true);
+}
 
 //##ModelId=400E5355029D
 ZeroFlagger::~ZeroFlagger()
@@ -39,6 +47,7 @@ void ZeroFlagger::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   Node::setStateImpl(rec,initializing);
   // get flag bit
   rec[FFlagBit].get(flagbit_,initializing);
+  rec[FForceOutput].get(force_output_,initializing);
   // get operation
   DMI::Record::Hook oper(rec,FOper);
   if( oper.exists() )
@@ -88,36 +97,40 @@ int ZeroFlagger::getResult (Result::Ref &resref,
     const double * pval = value.begin<double>(),
                  * pvalend  = pval + value.nelements();
     VellsFlagType * pfl = pflags->begin<VellsFlagType>();
+    int tot_fl = 0;
     switch( oper_.id() )
     {
       case AidEQ_int: 
           for( ; pval<pvalend; pval++,pfl++ )
-            *pfl = (*pval) == 0 ? flagbit_ : 0;
+            tot_fl |= *pfl = (*pval) == 0 ? flagbit_ : 0;
           break;
       case AidNE_int: 
           for( ; pval<pvalend; pval++,pfl++ )
-            *pfl = (*pval) != 0 ? flagbit_ : 0;
+            tot_fl |= *pfl = (*pval) != 0 ? flagbit_ : 0;
           break;
       case AidLT_int: 
           for( ; pval<pvalend; pval++,pfl++ )
-            *pfl = (*pval) <  0 ? flagbit_ : 0;
+            tot_fl |= *pfl = (*pval) <  0 ? flagbit_ : 0;
           break;
       case AidGT_int: 
           for( ; pval<pvalend; pval++,pfl++ )
-            *pfl = (*pval) >  0 ? flagbit_ : 0;
+            tot_fl |= *pfl = (*pval) >  0 ? flagbit_ : 0;
           break;
       case AidLE_int: 
           for( ; pval<pvalend; pval++,pfl++ )
-            *pfl = (*pval) <= 0 ? flagbit_ : 0;
+            tot_fl |= *pfl = (*pval) <= 0 ? flagbit_ : 0;
           break;
       case AidGE_int: 
           for( ; pval<pvalend; pval++,pfl++ )
-            *pfl = (*pval) >= 0 ? flagbit_ : 0;
+            tot_fl |= *pfl = (*pval) >= 0 ? flagbit_ : 0;
           break;
       default:
           NodeThrow1("illegal operation to ZeroFlagger: "+oper_.toString());
     }
-    vs.setDataFlags(flagref);
+    if( tot_fl )
+      vs.setDataFlags(flagref);
+    else if( force_output_ )
+      vs.setDataFlags(null_flags_);
   }
   // return 0 flag, since we don't add any dependencies of our own
   return 0;

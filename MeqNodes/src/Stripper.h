@@ -19,8 +19,8 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#ifndef MEQ_STRIPPER_H
-#define MEQ_STRIPPER_H
+#ifndef MEQNODES_STRIPPER_H
+#define MEQNODES_STRIPPER_H
     
 #include <MEQ/Node.h>
 #include <MEQ/VellSet.h>

@@ -53,6 +53,11 @@ const int AidEQ_int = -1444;
 const DMI::AtomicID AidFlag(-1134);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 const int AidFlag_int = -1134;
 #endif
+#ifndef _defined_id_AidForce
+#define _defined_id_AidForce 1
+const DMI::AtomicID AidForce(-1498);              // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
+const int AidForce_int = -1498;
+#endif
 #ifndef _defined_id_AidGE
 #define _defined_id_AidGE 1
 const DMI::AtomicID AidGE(-1424);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
@@ -233,6 +238,11 @@ const int AidMeqMin_int = -1392;
 const DMI::AtomicID AidMeqMultiply(-1391);        // from /home/oms/LOFAR/Timba/MeqNodes/src/Multiply.h:30
 const int AidMeqMultiply_int = -1391;
 #endif
+#ifndef _defined_id_AidMeqNElements
+#define _defined_id_AidMeqNElements 1
+const DMI::AtomicID AidMeqNElements(-1500);       // from /home/oms/LOFAR/Timba/MeqNodes/src/NElements.h:29
+const int AidMeqNElements_int = -1500;
+#endif
 #ifndef _defined_id_AidMeqNorm
 #define _defined_id_AidMeqNorm 1
 const DMI::AtomicID AidMeqNorm(-1459);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Norm.h:29
@@ -292,6 +302,11 @@ const int AidMeqPow7_int = -1387;
 #define _defined_id_AidMeqPow8 1
 const DMI::AtomicID AidMeqPow8(-1395);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Pow8.h:29
 const int AidMeqPow8_int = -1395;
+#endif
+#ifndef _defined_id_AidMeqProduct
+#define _defined_id_AidMeqProduct 1
+const DMI::AtomicID AidMeqProduct(-1501);         // from /home/oms/LOFAR/Timba/MeqNodes/src/Product.h:29
+const int AidMeqProduct_int = -1501;
 #endif
 #ifndef _defined_id_AidMeqRandomNoise
 #define _defined_id_AidMeqRandomNoise 1
@@ -358,6 +373,11 @@ const int AidMeqStripper_int = -1409;
 const DMI::AtomicID AidMeqSubtract(-1461);        // from /home/oms/LOFAR/Timba/MeqNodes/src/Subtract.h:30
 const int AidMeqSubtract_int = -1461;
 #endif
+#ifndef _defined_id_AidMeqSum
+#define _defined_id_AidMeqSum 1
+const DMI::AtomicID AidMeqSum(-1499);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Sum.h:29
+const int AidMeqSum_int = -1499;
+#endif
 #ifndef _defined_id_AidMeqTan
 #define _defined_id_AidMeqTan 1
 const DMI::AtomicID AidMeqTan(-1417);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Tan.h:29
@@ -408,6 +428,11 @@ const int AidOnly_int = -1390;
 const DMI::AtomicID AidOper(-1453);               // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 const int AidOper_int = -1453;
 #endif
+#ifndef _defined_id_AidOutput
+#define _defined_id_AidOutput 1
+const DMI::AtomicID AidOutput(-1241);             // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/VisAgentVocabulary.h:10
+const int AidOutput_int = -1241;
+#endif
 #ifndef _defined_id_AidPlot
 #define _defined_id_AidPlot 1
 const DMI::AtomicID AidPlot(-1432);               // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
@@ -437,6 +462,11 @@ const int AidSkeleton_int = -1389;
 #define _defined_id_AidSt 1
 const DMI::AtomicID AidSt(-1419);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/PointSourceDFT.h:32
 const int AidSt_int = -1419;
+#endif
+#ifndef _defined_id_AidStdDev
+#define _defined_id_AidStdDev 1
+const DMI::AtomicID AidStdDev(-1350);             // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
+const int AidStdDev_int = -1350;
 #endif
 #ifndef _defined_id_AidStyle
 #define _defined_id_AidStyle 1

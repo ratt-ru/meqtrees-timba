@@ -19,8 +19,8 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#ifndef MEQ_ATAN_H
-#define MEQ_ATAN_H
+#ifndef MEQNODES_ATAN_H
+#define MEQNODES_ATAN_H
     
 #include <MEQ/Function.h>
 

@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_MERGEFLAGS_H
-#define MEQ_MERGEFLAGS_H
+#ifndef MEQNODES_MERGEFLAGS_H
+#define MEQNODES_MERGEFLAGS_H
     
 #include <MEQ/Function.h>
 #include <MEQ/AID-Meq.h>

@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_CONSTANT_H
-#define MEQ_CONSTANT_H
+#ifndef MEQNODES_CONSTANT_H
+#define MEQNODES_CONSTANT_H
 
 //# Includes
 #include <MEQ/Node.h>

@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_SUBTRACT_H
-#define MEQ_SUBTRACT_H
+#ifndef MEQNODES_SUBTRACT_H
+#define MEQNODES_SUBTRACT_H
     
 #include <MEQ/Function.h>
 

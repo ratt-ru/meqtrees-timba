@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_CONJ_H
-#define MEQ_CONJ_H
+#ifndef MEQNODES_CONJ_H
+#define MEQNODES_CONJ_H
     
 #include <MEQ/Function.h>
 

@@ -19,8 +19,8 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#ifndef MEQ_LOG_H
-#define MEQ_LOG_H
+#ifndef MEQNODES_LOG_H
+#define MEQNODES_LOG_H
     
 #include <MEQ/Function.h>
 

@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_EXP_H
-#define MEQ_EXP_H
+#ifndef MEQNODES_EXP_H
+#define MEQNODES_EXP_H
     
 #include <MEQ/Function.h>
 

@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_SELECTOR_H
-#define MEQ_SELECTOR_H
+#ifndef MEQNODES_SELECTOR_H
+#define MEQNODES_SELECTOR_H
     
 #include <MEQ/Node.h>
 

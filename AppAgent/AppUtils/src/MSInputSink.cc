@@ -228,6 +228,8 @@ bool MSInputSink::init (const DMI::Record &params)
   dataColName_ = params[FDataColumnName].as<string>("DATA");
   // get # of timeslots per tile (default is 1)
   tilesize_ = params[FTileSize].as<int>(1);
+  // clear flags?
+  clear_flags_ = params[FClearFlags].as<bool>(false);
 
   openMS(header,selection);  
 
@@ -335,10 +337,13 @@ int MSInputSink::refillStream ()
           }
           ptile->wtime()(ntimes)     = timeCol(i);
           ptile->winterval()(ntimes) = intCol(i);
-          ptile->wrowflag()(ntimes)  = rowflagCol(i) ? 1 : 0;
+          ptile->wrowflag()(ntimes)  = rowflagCol(i) && !clear_flags_ ? 1 : 0;
           ptile->wuvw()(ALL,ntimes)  = uvwmat(ALL,i);
           ptile->wdata()(ALL,ALL,ntimes) = datacube(ALL,CHANS,i);
-          ptile->wflags()(ALL,ALL,ntimes) = where(flagcube(ALL,CHANS,i),1,0);
+          if( clear_flags_ )
+            ptile->wflags()(ALL,ALL,ntimes) = 0;
+          else
+            ptile->wflags()(ALL,ALL,ntimes) = where(flagcube(ALL,CHANS,i),1,0);
           ptile->wseqnr()(ntimes) = rownums(i);
         }
         current_timeslot_++;

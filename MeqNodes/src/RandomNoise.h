@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_RANDOMNOISE_H
-#define MEQ_RANDOMNOISE_H
+#ifndef MEQNODES_RANDOMNOISE_H
+#define MEQNODES_RANDOMNOISE_H
 
 //#include <MEQ/Node.h>
 #include <MEQ/Function.h>

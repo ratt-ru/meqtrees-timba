@@ -294,7 +294,7 @@ void Node::resolveChildren (bool recursive)
       try
       {
         Node &childnode = forest_->findNode(name);
-        children_[i].attach(childnode,DMI::SHARED);
+        stepchildren_[i].attach(childnode,DMI::SHARED);
         wstate()[FStepChildren][i] = childnode.nodeIndex();
       }
       catch( ... )

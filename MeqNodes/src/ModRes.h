@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_MODRES_H
-#define MEQ_MODRES_H
+#ifndef MEQNODES_MODRES_H
+#define MEQNODES_MODRES_H
     
 #include <MEQ/Node.h>
 #include <MEQ/Cells.h>

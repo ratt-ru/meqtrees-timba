@@ -20,7 +20,8 @@ Spigot::Spigot ()
       icolumn(VisCube::VTile::DATA),
       colname("DATA"),
       flag_mask(-1),
-      row_flag_mask(-1)
+      row_flag_mask(-1),
+      flag_bit(1)
 {
   setActiveSymDeps(FDomain);
 }
@@ -40,6 +41,7 @@ void Spigot::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     }
     icolumn = iter->second;
   }
+  rec[FFlagBit].get(flag_bit,initializing);
   rec[FFlagMask].get(flag_mask,initializing);
   rec[FRowFlagMask].get(row_flag_mask,initializing);
 }
@@ -133,23 +135,29 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
         for( int i=0; i<nplanes; i++ )
         {
           Vells::Ref flagref;
-          // applyall  flags with mask
+          FlagMatrix * pfl;
+          // get flags
           if( flag_mask )
           {
             flagref <<= new Vells(LoShape(colshape[1],nrows),VellsFlagType(),false);
-            FlagMatrix &fl = flagref().getArray<VellsFlagType,2>();
-            fl = flags(i,LoRange::all(),rowrange) & flag_mask;
+            pfl = &( flagref().getArray<VellsFlagType,2>() );
+            *pfl = flags(i,LoRange::all(),rowrange) & flag_mask;
             if( row_flag_mask )
               for( int j=0; j<nrows; j++ )
-                fl(LoRange::all(),j) |= rowflag(j) & row_flag_mask;
-            result.vellSetWr(i).setDataFlags(flagref);
+                (*pfl)(LoRange::all(),j) |= rowflag(j) & row_flag_mask;
           }
           else if( row_flag_mask ) // apply only row flags with a mask
           {
-            // shape of flag array is 1D (time only)
+          // shape of flag array is 1D (time only)
             flagref <<= new Vells(LoShape(1,nrows),VellsFlagType(),true);
-            FlagMatrix &fl = flagref().getArray<VellsFlagType,2>();
-            fl(0,LoRange::all()) |= rowflag & row_flag_mask;
+            pfl = &( flagref().getArray<VellsFlagType,2>() );
+            (*pfl)(0,LoRange::all()) |= rowflag & row_flag_mask;
+          }
+          // only attach data flags if they're non-0
+          if( blitz::any(*pfl) )
+          {
+            if( flag_bit ) // override with flag bit if requested
+              *pfl = blitz::where(*pfl,flag_bit,0);
             result.vellSetWr(i).setDataFlags(flagref);
           }
         }

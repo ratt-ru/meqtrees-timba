@@ -36,6 +36,9 @@ namespace Meq
 
 static DMI::Container::Register reg(TpMeqVells,true);
 
+VellsFlagType Vells::null_flag_(0);
+Vells::Shape Vells::null_flag_shape_(1);
+
 //##ModelId=3F86887001D4
 Vells::Vells()
 : is_temp_      (false)
@@ -236,7 +239,7 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
       opname + "() can only be used with a real Meq::Vells");
   FailWhen(flags&VF_CHECKCOMPLEX && other.isReal(),
       opname + "() can only be used with a complex Meq::Vells");
-  FailWhen(flags&VF_FLAGTYPE && other.isFlags(),
+  FailWhen(flags&VF_FLAGTYPE && !other.isFlags(),
       opname + "() can only be used with a flags Meq::Vells");
   // determine shape
   if( !tryReference(other) )
@@ -316,41 +319,75 @@ inline int degenerateAxis (int total,bool &degenerate)
   return -total;
 }
 
-// computes shape of output, plus strides required
+// general function to compute shape of output, plus strides required,
+// given N argument shapes.
 // note that strides are placed in reverse order, since Vells are now
 // stored in row-major order. I.e. the last dimension has a stride of 1,
 // and previous dimensions have larger strides.
+void Vells::computeStrides (Vells::Shape &outshape,
+                            int strides[][Axis::MaxAxis],
+                            int nshapes,const Vells::Shape * shapes[],
+                            const string &opname)
+{
+  uint rnk = 0;
+  for( int i=0; i<nshapes; i++ )
+    rnk = std::max(rnk,shapes[i]->size());
+  outshape.resize(rnk);
+  // initialize per-shape arrays for loop below
+  int tot[nshapes];
+  bool deg[nshapes];
+  for( int j=0; j<nshapes; j++ )
+  {
+    tot[j] = 1;
+    deg[j] = true;
+  }
+  // Loop over all axes to determine output shape and input strides for iterators.
+  uint idim = rnk-1;
+  for( uint i=0; i<rnk; i++,idim-- ) 
+  {
+    int sz0 = 1;
+    // get size along each shape's axis #idim -- if past the last rank, use 1
+    for( int j=0; j<nshapes; j++ )
+    {
+      int sz = idim < shapes[j]->size() ? (*shapes[j])[idim] : 1;
+      bool big = sz > 1;
+      // if not trivial size, check for consistency with sz0
+      if( big )
+      {
+        if( sz0 == 1 )
+          sz0 = sz;
+        else if( sz != sz0 )
+          { Throw1("arguments to "+opname+" have incompatible shapes"); }
+      }
+      // set strides
+      strides[j][i] = big ? normalAxis(tot[j],deg[j]) : degenerateAxis(tot[j],deg[j]);
+      // increase eleemnt count
+      tot[j] *= sz;
+    }
+    // set output shape
+    outshape[idim] = sz0; 
+  }
+}
+
+// convenience version for two shape arguments
 void Vells::computeStrides (Vells::Shape &shape,
-                            int strides_a[],int strides_b[],
+                            int strides[2][Axis::MaxAxis],
+                            const Vells::Shape &a,const Vells::Shape &b,
+                            const string &opname)
+{
+  const Vells::Shape * shapes[2] = { &a,&b };
+  computeStrides(shape,strides,2,shapes,opname);
+}
+
+// convenience version for two Vells arguments with optional flags
+// strides filled as follows: 0/1 Vells, 2/3 flags
+void Vells::computeStrides (Vells::Shape &shape,
+                            int strides[4][Axis::MaxAxis],
                             const Vells &a,const Vells &b,
                             const string &opname)
 {
-  int rnk = std::max(a.rank(),b.rank());
-  shape.resize(rnk);
-  // Loop over all axes to determine output shape and input strides for iterators.
-  int tota=1,totb=1;
-  bool dega=true,degb=true;
-  int idim = rnk-1;
-  for( int i=0; i<rnk; i++,idim-- ) 
-  {
-    // get size along each axis -- if past the last rank, use 1
-    int sza = a.extent(idim);
-    int szb = b.extent(idim);
-    bool a_big = sza>1;
-    bool b_big = szb>1;
-    if( a_big && b_big && sza != szb )
-    {
-      Throw1("arguments to "+opname+" have incompatible shapes");
-    }
-    // set strides
-    strides_a[i] = a_big ? normalAxis(tota,dega) : degenerateAxis(tota,dega);
-    strides_b[i] = b_big ? normalAxis(totb,degb) : degenerateAxis(totb,degb);
-    // set output shape
-    shape[idim] = std::max(sza,szb); 
-    // increase element counts
-    tota *= sza;
-    totb *= szb;
-  }
+  const Vells::Shape * shapes[4] = { &a.shape(),&b.shape(),&a.flagShape(),&b.flagShape() };
+  computeStrides(shape,strides,4,shapes,opname);
 }
 
 // Constructor for a temp vells for the result of a binary expression. 
@@ -358,11 +395,11 @@ void Vells::computeStrides (Vells::Shape &shape,
 // the constructor will also compute strides for the arguments.
 //##ModelId=400E53560174
 Vells::Vells (const Vells &a,const Vells &b,int flags,
-              int strides_a[],int strides_b[],const std::string &opname)
+              int strides[][Axis::MaxAxis],const std::string &opname)
 : is_temp_ (true)
 {
   // check input if requested by flags
-  FailWhen(flags&VF_FLAGTYPE && (!a.isFlags() || !b.isFlags()),
+  FailWhen(flags&VF_FLAGTYPE && !(a.isFlags() && b.isFlags()),
       opname + "() can only be applied to two flags Meq::Vells");
   FailWhen(flags&VF_CHECKREAL && (a.isComplex() || b.isComplex()),
       opname + "() can only be applied to two real Meq::Vells");
@@ -370,7 +407,10 @@ Vells::Vells (const Vells &a,const Vells &b,int flags,
       opname + "() can only be applied to two complex Meq::Vells");
   // determine shape and strides 
   LoShape shp;
-  computeStrides(shp,strides_a,strides_b,a,b,opname);
+  if( flags&VF_FLAG_STRIDES )
+    computeStrides(shp,strides,a,b,opname);
+  else
+    computeStrides(shp,strides,a.shape(),b.shape(),opname);
   // now, if we're still congruent with the a or b, and it's
   // a temporary, then we can reuse its storage. Else allocate new
   if( !( tryReference(a) || tryReference(b) ) )
@@ -382,7 +422,7 @@ Vells::Vells (const Vells &a,const Vells &b,int flags,
 // If operation is not applicable, returns false.
 // If it is, returns true and populates strides[] with the incremental strides
 // which need to be applied to other.
-bool Vells::canApplyInPlace (const Vells &other,int strides[],const std::string &opname)
+bool Vells::canApplyInPlace (const Vells &other,int strides[Axis::MaxAxis],const std::string &opname)
 {
   // try the simple tests first
   if( (isReal() && other.isComplex()) || (rank() < other.rank()) )
@@ -469,15 +509,25 @@ definePromotion2(double,dcomplex,dcomplex);
 #define defineErrorFunc(errname,message) \
   static void errname (Meq::Vells &,const Meq::Vells &) \
   { Throw(message); }
+// defines a standard error function (for illegal unary ops with flags)
+#define defineErrorRedFunc(errname,message) \
+  static void errname (Meq::Vells &,const Meq::Vells &,FT) \
+  { Throw(message); }
 // defines a standard error function (for illegal binary ops)
 #define defineErrorFunc2(errname,message) \
-  static void errname (Meq::Vells &,const Meq::Vells &,const Meq::Vells &,const int [],const int []) \
+  static void errname (Meq::Vells &,const Meq::Vells &,const Meq::Vells &,const int [2][Meq::Axis::MaxAxis]) \
+  { Throw(message); }
+// defines a standard error function (for illegal binary ops with flags)
+#define defineErrorFunc2WF(errname,message) \
+  static void errname (Meq::Vells &,const Meq::Vells &,const Meq::Vells &,FT,const int [4][Meq::Axis::MaxAxis]) \
   { Throw(message); }
   
 // defines a standard error function template (for illegal unary ops)
 #define defineErrorFuncTemplate(FUNCNAME,message) defineErrorFuncTemplate2(FUNCNAME,message)
 #define defineErrorFuncTemplate2(FUNCNAME,message) \
   template<class T1,class T2> defineErrorFunc(implement_error_##FUNCNAME,message);
+#define defineErrorRedFuncTemplate(FUNCNAME,message) \
+  template<class T1,class T2> defineErrorRedFunc(implement_error_##FUNCNAME,message);
 // defines a standard error function template (for illegal binary ops)
 #define defineErrorFuncTemplate3(FUNCNAME,message) \
   template<class T1,class T2,class T3> defineErrorFunc(implement_error_##FUNCNAME,message);
@@ -491,6 +541,9 @@ static void implement_zero (Meq::Vells &out,const Meq::Vells &)
 { out.zeroData(); }
 
 
+static int null_strides[Meq::Axis::MaxAxis];
+static void * _init_null_strides = memset(null_strides,0,sizeof(null_strides));
+
 // Helper class implementing iteration over a strided velss
 template<class T>
 class ConstStridedIterator
@@ -500,13 +553,24 @@ class ConstStridedIterator
     const int *strides;
   
   public:
-    ConstStridedIterator (const T * p,const int str[])
-    : ptr(p),strides(str)
-    {}
+    ConstStridedIterator (const T * p,const int str[Meq::Axis::MaxAxis])
+    { init(p,str); }
   
-    ConstStridedIterator (const Meq::Vells &vells,const int str[])
-    : ptr(vells.getStorage(Type2Type<T>())),strides(str)
-    {}
+    ConstStridedIterator (const Meq::Vells &vells,const int str[Meq::Axis::MaxAxis])
+    { init(vells,str); }
+    
+    ConstStridedIterator (const T & value)
+    { init(value); }
+    
+    void init (const T * p,const int str[Meq::Axis::MaxAxis])
+    { ptr = p; strides = str; }
+  
+    void init (const Meq::Vells &vells,const int str[Meq::Axis::MaxAxis])
+    { ptr = vells.begin(Type2Type<T>()); strides = str; }
+    
+    // a trivial iterator always returning the same value
+    void init (const T &value)
+    { ptr = &value; strides = null_strides; }
     
     const T & operator * () const
     { return *ptr; }
@@ -529,18 +593,24 @@ class DimCounter
     int   counter[Meq::Axis::MaxAxis];
   
   public:
-      DimCounter (const Meq::Vells &vells)
+      void init (const Meq::Vells::Shape &shape0)
       // note that dimensions in 'shape' are reversed for convenicnece, 
       // since the it's the last dimension of the Vells array that iterates
       // fastest. The strides in computeStrides() above are also reversed in
       // this manner
-        : rank(vells.rank())
-      { 
+      {
+        rank = shape0.size();
         int j = rank-1; 
         for( int i=0; i<rank; i++,j-- )
-          shape[i] = vells.shape()[j];
+          shape[i] = shape0[j];
         memset(counter,0,sizeof(int)*rank); 
       }
+      
+      DimCounter (const Meq::Vells &vells)
+      { init(vells.shape()); }
+      
+      DimCounter (const Meq::Vells::Shape &shape)
+      { init(shape); }
   
       // increments counter. Returns number of dimensions incremented
       // (i.e. 1 most of the time, when only the first dimension is being
@@ -559,17 +629,10 @@ class DimCounter
       }
 };
 
-// defines a templated implementation of an unary function
-//    y = FUNC(x)
-#define defineUnaryOperTemplate(FUNC,FUNCNAME,dum) \
-  template<class TY,class TX> \
-  static void implement_##FUNCNAME (Meq::Vells &y,const Meq::Vells &x) \
-  { const TX *px = x.getStorage(Type2Type<TX>()); \
-    TY *py = y.getStorage(Type2Type<TY>()), \
-       *py_end = py + y.nelements();  \
-    for( ; py < py_end; px++,py++ ) \
-      *py = FUNC(*px); \
-  }
+// -----------------------------------------------------------------------
+// Vells math implementation
+// This is where it gets hairy...
+// -----------------------------------------------------------------------
 
 // expands to list of methods with matching argument types
 #define ExpandMethodList(FUNC) \
@@ -587,10 +650,25 @@ class DimCounter
 #define ExpandMethodList2_FixOut(FR,FC,TOUT) \
   { &implement_##FR<TOUT,double>, &implement_##FC<TOUT,dcomplex> }
 
+typedef Meq::VellsFlagType FT; // to keep things compact
+
+
 // -----------------------------------------------------------------------
 // definitions for unary operators
 // defined for all types, preserves type
 // -----------------------------------------------------------------------
+// defines a templated implementation of an unary function
+//    y = FUNC(x)
+#define defineUnaryOperTemplate(FUNC,FUNCNAME,dum) \
+  template<class TY,class TX> \
+  static void implement_##FUNCNAME (Meq::Vells &y,const Meq::Vells &x) \
+  { const TX *px = x.getStorage(Type2Type<TX>()); \
+    TY *py = y.begin(Type2Type<TY>()), \
+       *py_end = y.end(Type2Type<TY>());  \
+    for( ; py < py_end; px++,py++ ) \
+      *py = FUNC(*px); \
+  }
+
 #define implementUnaryOperator(OPER,OPERNAME,x) \
   defineUnaryOperTemplate(OPER,OPERNAME,x); \
   Meq::Vells::UnaryOperPtr Meq::Vells::unary_##OPERNAME##_lut[VELLS_LUT_SIZE] = \
@@ -601,8 +679,6 @@ DoForAllUnaryOperators(implementUnaryOperator,);
 // -----------------------------------------------------------------------
 // definitions for unary flag operators
 // -----------------------------------------------------------------------
-typedef Meq::VellsFlagType FT; // to keep things compact
-
 #define implementUnaryFlagOperator(OPER,OPERNAME,x) \
   Meq::Vells Meq::Vells::operator OPER () const \
   { \
@@ -707,68 +783,79 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_conj_lut[VELLS_LUT_SIZE] =
 // reduction to scalar, no shape required (min, max, mean etc.)
 // -----------------------------------------------------------------------
 // Defines a templated implementation of an unary reduction function 
-// which computes: y=x(0), then y=FUNC(y,x(i)) for all i, and returns y
-// This is a helper template for all reduction functions, since it returns
-// y by value rather than storing it in a Vells.
-#define defineReductionFuncImpl(FUNC,FUNCNAME,dum) \
+// which computes: y=y0, then y=FUNC(y,x(i)) for all i, and returns y
+// This is a helper template for all reduction functions.
+#define defineReductionFuncImpl(FUNC,FUNCNAME,y_init) \
   template<class TY,class TX> \
-  static inline TY implement_##FUNCNAME##_impl (const Meq::Vells &x, \
-    Type2Type<TY> = Type2Type<TY>(),Type2Type<TX> = Type2Type<TX>() )  \
-  { const TX *px = x.getStorage(Type2Type<TX>()), \
-             *px_end = px + x.nelements(); \
-    TY y0 = *px++; \
-    for(; px < px_end; px++) \
-      y0 = FUNC(y0,*px); \
+  static inline TY implement_##FUNCNAME##_impl (int &nel,const Meq::Vells &x,FT flagmask,\
+    Type2Type<TY> = Type2Type<TY>(),Type2Type<TX> = Type2Type<TX>() ) \
+  { \
+    TY y0 = y_init; \
+    if( flagmask && x.hasDataFlags() ) { \
+      int st[2][Meq::Axis::MaxAxis]; \
+      Meq::Vells::Shape shp; \
+      const Meq::Vells & flags = x.dataFlags(); \
+      Meq::Vells::computeStrides(shp,st,x.shape(),flags.shape(),#FUNCNAME); \
+      DimCounter counter(shp);  \
+      ConstStridedIterator<TX> ix(x.begin(Type2Type<TX>()),st[0]); \
+      ConstStridedIterator<FT> ifl(flags.begin(Type2Type<FT>()),st[1]); \
+      nel=0; \
+      for(;;) { \
+        if( !((*ifl)&flagmask) ) \
+          { FUNC(y0,*ix); nel++; } \
+        int ndim = counter.incr(); \
+        if( ndim <= 0 ) \
+          break; \
+        ix.incr(ndim); ifl.incr(ndim); \
+      } \
+    } \
+    else { \
+      const TX *px = x.begin(Type2Type<TX>()), \
+               *px_end = x.end(Type2Type<TX>()); \
+      nel = px_end - px; \
+      for(; px < px_end; px++) \
+        FUNC(y0,*px); \
+    } \
     return y0; \
   }
   
-// Defines a templated implementation of an unary reduction function 
-// which computes: y=x(0), then y=FUNC(y,x(i)) for all i, and returns y
-// This is a helper template for all reduction functions, since it returns
-// y by value rather than storing it in a Vells.
-#define defineAxisReductionFuncImpl(FUNC,FUNCNAME,dum) \
+// defines a templated implementation of an unary reduction function such
+// as min() or max(), which works by applying y=FUNC(y,x) to all 
+// (non-flagged) elements
+#define defineReductionFuncTemplate(FUNC,y_init) \
+  defineReductionFuncImpl(Do_##FUNC,FUNC,y_init); \
   template<class TY,class TX> \
-  static void implement_##FUNCNAME##_impl (Meq::Vells &y,const Meq::Vells &x,int axis) \
-    Type2Type<TY> = Type2Type<TY>(),Type2Type<TX> = Type2Type<TX>() )  \
-  { const TX *px = x.getStorage(Type2Type<TX>()), \
-             *px_end = px + x.nelements(); \
-    TY y0 = *px++; \
-    for(; px < px_end; px++) \
-      y0 = FUNC(y0,*px); \
-    return y0; \
+  static void implement_##FUNC (Meq::Vells &y,const Meq::Vells &x,FT flagmask) \
+  { int nel; \
+    y.as(Type2Type<TY>()) = \
+      implement_##FUNC##_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>()); \
   }
 
-// defines a templated implementation of an unary reduction function such
-// as min() or max(), which works by applying y=FUNC(y,x) to all elements
-#define defineReductionFuncTemplate(FUNC,dum) \
-  defineReductionFuncImpl(FUNC,FUNC,dum); \
-  template<class TY,class TX> \
-  static void implement_##FUNC (Meq::Vells &y,const Meq::Vells &x) \
-  { *(y.getStorage(Type2Type<TY>())) = \
-    implement_##FUNC##_impl(x,Type2Type<TY>(),Type2Type<TX>()); }
+#define Do_min(y,x) y=min(x,y)
+defineReductionFuncTemplate(min,std::numeric_limits<TY>::max());
+defineErrorRedFuncTemplate(min,"min() can only be applied to a real Meq::Vells");
+#define Do_max(y,x) y=max(x,y)
+defineReductionFuncTemplate(max,std::numeric_limits<TY>::min());
+defineErrorRedFuncTemplate(max,"max() can only be applied to a real Meq::Vells");
 
-defineReductionFuncTemplate(min,);
-defineErrorFuncTemplate(min,"min() can only be applied to a real Meq::Vells");
-defineReductionFuncTemplate(max,);
-defineErrorFuncTemplate(max,"max() can only be applied to a real Meq::Vells");
-Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_min_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_min_lut[VELLS_LUT_SIZE] = 
   ExpandMethodList2(min,error_min);
-Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_max_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_max_lut[VELLS_LUT_SIZE] = 
   ExpandMethodList2(max,error_max);
 
 // implement a DOSUM function which sums up a complete Vells. This
 // sum is unnormalized because it does not take into account scalar axes
-#define DOSUM(x,y) ((x)+(y))
-defineReductionFuncImpl(DOSUM,DOSUM,x);
+#define DOSUM(y,x) ((y) += (x))
+defineReductionFuncImpl(DOSUM,sum,0);
 
 template<class TY,class TX> 
-static void implement_mean (Meq::Vells &y,const Meq::Vells &x) 
+static void implement_mean (Meq::Vells &y,const Meq::Vells &x,FT flagmask) 
 { 
-  TY y0 = implement_DOSUM_impl(x,Type2Type<TY>(),Type2Type<TX>());
-  double nel = x.nelements(); 
-  *( y.getStorage(Type2Type<TY>()) ) = y0 / nel; 
+  int nel;
+  TY y0 = implement_sum_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>());
+  y.as(Type2Type<TY>()) = nel ? y0/TY(nel) : 0;
 }
-Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_mean_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_mean_lut[VELLS_LUT_SIZE] = 
   ExpandMethodList(mean);
 
 
@@ -781,33 +868,54 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_mean_lut[VELLS_LUT_SIZE] =
 // actual value to represent Ni points.
 // The renormalization term is (N points in full shape)/(N actual points in Vells)
 template<class TY,class TX> 
-static void implement_sum (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::Shape &shape) 
+static void implement_sum (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::Shape &shape,FT flagmask) 
 {
-  TY y0 = implement_DOSUM_impl(x,Type2Type<TY>(),Type2Type<TX>());
-  double renorm = shape.product()/x.nelements();
-  *( y.getStorage(Type2Type<TY>()) ) = y0 * renorm;
+  int nel;
+  TY y0 = implement_sum_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>());
+  int renorm = shape.product()/x.nelements(); // renorm factor for collapsed dimensions
+  y.as(Type2Type<TY>()) = y0 * TY(renorm);
 }
 
-#define DOPROD(x,y) ((x)*(y))
-defineReductionFuncImpl(DOPROD,DOPROD,x);
+#define DOPROD(y,x) ((y) *= (x))
+defineReductionFuncImpl(DOPROD,product,1);
 template<class TY,class TX> 
-static void implement_product (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::Shape &shape) 
+static void implement_product (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::Shape &shape,FT flagmask) 
 { 
-  TY y0 = implement_DOPROD_impl(x,Type2Type<TY>(),Type2Type<TX>());
-  *( y.getStorage(Type2Type<TY>()) ) = std::pow(y0,shape.product()/x.nelements());
+  int nel;
+  TY y0 = implement_product_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>());
+  int renorm = shape.product()/x.nelements(); // renorm factor for collapsed dimensions
+  y.as(Type2Type<TY>()) = std::pow(y0,renorm);
 }
 
-static void implement_nelements (Meq::Vells &y,const Meq::Vells &,const Meq::Vells::Shape &shape) 
+// empty def because nel argument counts for us
+#define DOCOUNT(y,x) 
+defineReductionFuncImpl(DOCOUNT,nelements,0);
+template<class TY,class TX> 
+static void implement_nelements (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::Shape &shape,FT flagmask) 
 { 
-  *(y.getStorage<double>()) = shape.product();
+  if( flagmask && x.hasDataFlags() )
+  {
+    int nel;
+    implement_nelements_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>());
+    // now, nel counts the non-flagged elements, auto-expanding collapsed axes
+    // to the union of the data shape and the flag shape. If input shape is 
+    // bigger still, we need to renormalize by the remaining collapsed dimensions.
+    const Meq::Vells &df = x.dataFlags();
+    for( uint i=0; i<shape.size(); i++ )
+      if( shape[i] > 1 && x.extent(i) == 1 && df.extent(i) == 1 )
+        nel *= shape[i];
+    y.as<double>() = nel;
+  }
+  else
+    y.as<double>() = shape.product();
 }
 
-Meq::Vells::UnaryWithShapeOperPtr Meq::Vells::unifunc_sum_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_sum_lut[VELLS_LUT_SIZE] = 
   ExpandMethodList(sum);
-Meq::Vells::UnaryWithShapeOperPtr Meq::Vells::unifunc_product_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_product_lut[VELLS_LUT_SIZE] = 
   ExpandMethodList(product);
-Meq::Vells::UnaryWithShapeOperPtr Meq::Vells::unifunc_nelements_lut[VELLS_LUT_SIZE] = 
-  { implement_nelements,implement_nelements };
+Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_nelements_lut[VELLS_LUT_SIZE] = 
+  ExpandMethodList(nelements);
   
 
 // -----------------------------------------------------------------------
@@ -819,7 +927,7 @@ Meq::Vells::UnaryWithShapeOperPtr Meq::Vells::unifunc_nelements_lut[VELLS_LUT_SI
   template<class TY,class TA,class TB> \
   static void implement_binary_##FUNCNAME (Meq::Vells &y,\
                   const Meq::Vells &a,const Meq::Vells &b,\
-                  const int strides_a[],const int strides_b[]) \
+                  const int strides[2][Meq::Axis::MaxAxis]) \
   { TY *py = y.getStorage(Type2Type<TY>()); \
     const TA *pa = a.getStorage(Type2Type<TA>()); \
     const TB *pb = b.getStorage(Type2Type<TB>()); \
@@ -827,8 +935,8 @@ Meq::Vells::UnaryWithShapeOperPtr Meq::Vells::unifunc_nelements_lut[VELLS_LUT_SI
       *py = FUNC(*pa,*pb); \
     else { \
       DimCounter counter(y);  \
-      ConstStridedIterator<TA> ia(pa,strides_a); \
-      ConstStridedIterator<TB> ib(pb,strides_b); \
+      ConstStridedIterator<TA> ia(pa,strides[0]); \
+      ConstStridedIterator<TB> ib(pb,strides[1]); \
        for(;;) { \
         *py = FUNC(*ia,*ib); \
         int ndim = counter.incr(); \
@@ -912,8 +1020,8 @@ DoForAllBinaryOperators(implementBinaryOperator,);
 // and for a scalar rhs
 #define implementBinaryFlagOperator(OPER,OPERNAME,dum) \
   Meq::Vells Meq::Vells::operator OPER (const Meq::Vells &right) const \
-  { int sta[Axis::MaxAxis],stb[Axis::MaxAxis]; \
-    Vells result(*this,right,VF_FLAGTYPE,sta,stb,"operator "#OPER); \
+  { int st[2][Axis::MaxAxis]; \
+    Vells result(*this,right,VF_FLAGTYPE,st,"operator "#OPER); \
     FT *py = result.begin<FT>(); \
     const FT *pa = begin<FT>(); \
     const FT *pb = right.begin<FT>(); \
@@ -921,8 +1029,8 @@ DoForAllBinaryOperators(implementBinaryOperator,);
       *py = (*pa) OPER (*pb); \
     else { \
       DimCounter counter(result);  \
-      ConstStridedIterator<FT> ia(pa,sta); \
-      ConstStridedIterator<FT> ib(pb,stb); \
+      ConstStridedIterator<FT> ia(pa,st[0]); \
+      ConstStridedIterator<FT> ib(pb,st[1]); \
       for(;;) { \
         *py = (*ia) OPER (*ib); \
         int ndim = counter.incr(); \
@@ -936,8 +1044,9 @@ DoForAllBinaryOperators(implementBinaryOperator,);
   Meq::Vells Meq::Vells::operator OPER (FT right) const \
   { \
     Vells result(*this,VF_FLAGTYPE,"operator "#OPER); \
-    for( FT *ptr = result.begin<FT>(); ptr != result.end<FT>(); ptr++ ) \
-       (*ptr) OPER##= right; \
+    const FT *px = begin<FT>(); \
+    for( FT *py = result.begin<FT>(); py != result.end<FT>(); px++,py++ ) \
+       (*py) = (*px) OPER right; \
     return result; \
   }
 
@@ -955,7 +1064,7 @@ DoForAllBinaryFlagOperators(implementBinaryFlagOperator,);
   template<class TOut,class TY,class TX> \
   static void implement_binary_##OPERNAME##_inplace (Meq::Vells &y,\
                   const Meq::Vells &x,\
-                  const int strides_x[]) \
+                  const int strides_x[Meq::Axis::MaxAxis]) \
   { TOut *py = y.getStorage(Type2Type<TOut>()); \
     const TX *px = x.getStorage(Type2Type<TX>()); \
     if( y.isScalar() && x.isScalar() ) \
@@ -1015,6 +1124,49 @@ DoForAllInPlaceOperators(implementInPlaceOperator,);
   }
     
 DoForAllInPlaceFlagOperators(implementInPlaceFlagOperator,);
+
+// -----------------------------------------------------------------------
+// definitions for binary functions with flags
+// -----------------------------------------------------------------------
+// defines a templated implementation of a binary function
+//    y = FUNC(a,b,flagmask)
+#define defineBinaryFuncWFTemplate(FUNC,FUNCNAME,deflt) \
+  template<class TY,class TA,class TB> \
+  static void implement_binary_##FUNCNAME (Meq::Vells &y,\
+                  const Meq::Vells &a,const Meq::Vells &b, \
+                  FT flagmask, \
+                  const int strides[4][Meq::Axis::MaxAxis] ) \
+  { TY *py = y.getStorage(Type2Type<TY>()); \
+    const TA *pa = a.begin(Type2Type<TA>()); \
+    const TB *pb = b.begin(Type2Type<TB>()); \
+    const FT *fa = a.beginFlags(); \
+    const FT *fb = b.beginFlags(); \
+    DimCounter counter(y);  \
+    ConstStridedIterator<TA> ia(pa,strides[0]); \
+    ConstStridedIterator<TB> ib(pb,strides[1]); \
+    ConstStridedIterator<FT> ifa(fa,strides[2]); \
+    ConstStridedIterator<FT> ifb(fb,strides[3]); \
+    for(;;) { \
+      if( (*ifa)&flagmask ) \
+        *py = (*ifb)&flagmask ? deflt : *ib; \
+      else \
+        *py = (*ifb)&flagmask ? *ia : FUNC(*ia,*ib); \
+      int ndim = counter.incr(); \
+      if( ndim <= 0 ) \
+        break; \
+      py++; ia.incr(ndim); ib.incr(ndim); ifa.incr(ndim); ifb.incr(ndim); \
+    } \
+  } 
+
+defineBinaryFuncWFTemplate(std::min,min,(*ia));
+defineErrorFunc2WF(error_binary_min,"min() cannot be applied to complex Meq::Vells"); 
+Meq::Vells::BinaryFuncWFPtr Meq::Vells::binfunc_min_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = 
+    ExpandRealBinaryLUTMatrix(min);
+
+defineBinaryFuncWFTemplate(std::max,max,(*ia));
+defineErrorFunc2WF(error_binary_max,"max() cannot be applied to complex Meq::Vells"); 
+Meq::Vells::BinaryFuncWFPtr Meq::Vells::binfunc_max_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = 
+    ExpandRealBinaryLUTMatrix(max);
 
 
 // -----------------------------------------------------------------------

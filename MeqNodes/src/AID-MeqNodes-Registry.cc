@@ -110,6 +110,12 @@ DMI::BObj * __construct_MeqMin (int n) { return n>0 ? new Meq::Min [n] : new Meq
 DMI::BObj * __construct_MeqMax (int n) { return n>0 ? new Meq::Max [n] : new Meq::Max; }
 #include "Mean.h"
 DMI::BObj * __construct_MeqMean (int n) { return n>0 ? new Meq::Mean [n] : new Meq::Mean; }
+#include "Sum.h"
+DMI::BObj * __construct_MeqSum (int n) { return n>0 ? new Meq::Sum [n] : new Meq::Sum; }
+#include "Product.h"
+DMI::BObj * __construct_MeqProduct (int n) { return n>0 ? new Meq::Product [n] : new Meq::Product; }
+#include "NElements.h"
+DMI::BObj * __construct_MeqNElements (int n) { return n>0 ? new Meq::NElements [n] : new Meq::NElements; }
 #include "Stripper.h"
 DMI::BObj * __construct_MeqStripper (int n) { return n>0 ? new Meq::Stripper [n] : new Meq::Stripper; }
 #include "DataCollect.h"
@@ -303,6 +309,15 @@ DMI::BObj * __construct_MeqStdDev (int n) { return n>0 ? new Meq::StdDev [n] : n
         AtomicID::registerId(-1416,"MeqMean")+
         TypeInfoReg::addToRegistry(-1416,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1416,__construct_MeqMean)+
+        AtomicID::registerId(-1499,"MeqSum")+
+        TypeInfoReg::addToRegistry(-1499,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1499,__construct_MeqSum)+
+        AtomicID::registerId(-1501,"MeqProduct")+
+        TypeInfoReg::addToRegistry(-1501,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1501,__construct_MeqProduct)+
+        AtomicID::registerId(-1500,"MeqNElements")+
+        TypeInfoReg::addToRegistry(-1500,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1500,__construct_MeqNElements)+
         AtomicID::registerId(-1409,"MeqStripper")+
         TypeInfoReg::addToRegistry(-1409,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1409,__construct_MeqStripper)+
@@ -333,6 +348,7 @@ DMI::BObj * __construct_MeqStdDev (int n) { return n>0 ? new Meq::StdDev [n] : n
         AtomicID::registerId(-1449,"MeqGaussNoise")+
         TypeInfoReg::addToRegistry(-1449,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1449,__construct_MeqGaussNoise)+
+        AtomicID::registerId(-1350,"StdDev")+
         AtomicID::registerId(-1434,"MeqZeroFlagger")+
         TypeInfoReg::addToRegistry(-1434,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1434,__construct_MeqZeroFlagger)+
@@ -344,6 +360,8 @@ DMI::BObj * __construct_MeqStdDev (int n) { return n>0 ? new Meq::StdDev [n] : n
         AtomicID::registerId(-1431,"GT")+
         AtomicID::registerId(-1414,"LE")+
         AtomicID::registerId(-1424,"GE")+
+        AtomicID::registerId(-1498,"Force")+
+        AtomicID::registerId(-1241,"Output")+
         AtomicID::registerId(-1491,"MeqStdDev")+
         TypeInfoReg::addToRegistry(-1491,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1491,__construct_MeqStdDev)+

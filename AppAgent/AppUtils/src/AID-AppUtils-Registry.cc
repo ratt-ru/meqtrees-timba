@@ -62,6 +62,7 @@
         AtomicID::registerId(-1260,"Original")+
         AtomicID::registerId(-1278,"Shape")+
         AtomicID::registerId(-1254,"Flip")+
+        AtomicID::registerId(-1353,"Clear")+
         AtomicID::registerId(-1132,"Raw")+
         AtomicID::registerId(-1274,"Non")+
         AtomicID::registerId(-1275,"Calibrated")+

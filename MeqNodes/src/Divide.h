@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_DIVIDE_H
-#define MEQ_DIVIDE_H
+#ifndef MEQNODES_DIVIDE_H
+#define MEQNODES_DIVIDE_H
     
 #include <MEQ/Function.h>
 

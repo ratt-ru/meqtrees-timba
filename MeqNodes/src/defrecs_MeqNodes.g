@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
 # Original file name: /home/oms/LOFAR/Timba/MeqNodes/src/defrecs_MeqNodes.g
-# Generated on Thu Feb  3 16:57:04 CET 2005
+# Generated on Sun Feb  6 17:02:34 CET 2005
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 
@@ -135,4 +135,7 @@ r.oper::description := 'logical operator to use (HIID or string). One of: EQ NE 
 r.flag_bit := 1;
 r.flag_bit::description := 'this value is ORed with the flags at all points where the  \
                             main value OPER 0 is true.';
+r.force_output := F;
+r.force_output::description := 'normally, if nothing at all is flagged, no dataflags at all are generated. \
+                                Set this to true to generate a null flags entry.';
 _meqdefrec_map.MeqZeroFlagger := r;

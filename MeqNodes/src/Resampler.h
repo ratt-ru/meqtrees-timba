@@ -20,8 +20,8 @@
 //#
 //# $Id$
 
-#ifndef MEQ_RESAMPLER_H
-#define MEQ_RESAMPLER_H
+#ifndef MEQNODES_RESAMPLER_H
+#define MEQNODES_RESAMPLER_H
     
 #include <MEQ/Node.h>
 #include <MEQ/AID-Meq.h>

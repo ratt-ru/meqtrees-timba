@@ -19,8 +19,8 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#ifndef MEQ_MIN_H
-#define MEQ_MIN_H
+#ifndef MEQNODES_MIN_H
+#define MEQNODES_MIN_H
     
 #include <MEQ/Function.h>
 
@@ -31,16 +31,18 @@
 namespace Meq {    
 
 
-class Min : public Function1
+class Min : public Function
 {
 public:
   Min();
 
   virtual ~Min();
 
-    virtual TypeId objectType() const
-    { return TpMeqMin; }
+  virtual TypeId objectType() const
+  { return TpMeqMin; }
 
+  virtual void evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const Vells*>&);
+  
   // Evaluate the value for the given request.
   virtual Vells evaluate (const Request&,const LoShape &,
 			  const vector<const Vells*>& values);
