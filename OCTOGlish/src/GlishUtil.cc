@@ -20,12 +20,11 @@
 #include "BlitzToAips.h"
 #include "GlishUtil.h"
 
-    
 // creates a "Failed" GlishValue, used to indicate failed conversions
 GlishArray GlishUtil::makeFailField ( const String &msg )
 {
   GlishArray arr(msg);
-  arr.addAttribute("failed_field",GlishArray(True));
+  arr.addAttribute("dmi_failed_field",GlishArray(True));
   return arr;
 }
 
@@ -73,7 +72,7 @@ bool GlishUtil::makeGlishArray (GlishArray &arr,const NestableContainer &nc,Type
         for( int i=0; i<nci.size(); i++,nci++ )
           vec[i] = strlowercase( (*nci).toString() );
         arr = GlishArray(vec);
-        arr.addAttribute("is_hiid",GlishArray(True));
+        arr.addAttribute("dmi_is_hiid",GlishArray(True));
         break;
     }
     default:
@@ -131,50 +130,41 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
 {
   TypeId type = obj.objectType();
   // Mapping of objects:
-  // 1. DataArray
-  //    1.1. Glish type: map field to array
-  //    1.2. non-Glish type: map field to blockset
-  // 2. DataRecord: map to a subrecord
-  // 3. DataField:
-  //    3.1. Glish type: maps field to 1D array or scalar
-  //    3.2. Container type: recursively map to record of records 
-  //    3.3. Other type: map to blockset
-  // 4. All others: map to blockset
-  if( type == TpDataArray )  // (case 1)
-  {
-    const DataArray &dataarray = dynamic_cast<const DataArray &>(obj);
-    Thread::Mutex::Lock lock(dataarray.mutex());
-    GlishArray arr;
-    // convert to array and add (case 1.1)
-    if( makeGlishArray(arr,dataarray,dataarray.elementType(),adjustIndex) )
-    {
-      arr.addAttribute("is_dataarray",GlishArray(True));
-      return arr;
-    }
-  }
-  else if( type == TpDataRecord ) // (case 2)
+  // 1. DataRecord or descendant: map to a subrecord
+  // 2. DataField or descendant:
+  //    2.1. Glish type: maps field to 1D array or scalar
+  //    2.2. Container type: recursively map to record of records 
+  //    2.3. Other type: map to blockset (see 4)
+  // 3. DataArray
+  //    3.1. Glish type: map field to array
+  //    3.2. non-Glish type: map to blockset (see 4)
+  // 4. All others: map to a blockset with appropriate attributes
+  if( dynamic_cast<const DataRecord *>(&obj) ) // (case DataRecord)
   {
     const DataRecord &rec = dynamic_cast<const DataRecord &>(obj);
     Thread::Mutex::Lock lock(rec.mutex());
-    return recToGlish(rec);
+    GlishValue val = recToGlish(rec);
+    val.addAttribute("dmi_actual_type",GlishArray(type.toString()));
+    return val;
   }
-  else if( type == TpDataField ) // (case 3)
+  else if( dynamic_cast<const DataField *>(&obj) ) // (case DataField)
   {
     const DataField &datafield = dynamic_cast<const DataField &>(obj);
     Thread::Mutex::Lock lock(datafield.mutex());
     TypeId fieldtype = datafield.type();
-    // a numeric/string/HIID type? (case 3.1)
+    // a numeric/string/HIID type? (case 2.1)
     if( TypeInfo::isNumeric(fieldtype) || fieldtype == Tpstring || fieldtype == TpHIID )
     {
       GlishArray arr;
       // try to map to a Glish array
       if( makeGlishArray(arr,datafield,fieldtype,adjustIndex) )
       {
-        arr.addAttribute("is_datafield",GlishArray(True));
+        arr.addAttribute("dmi_actual_type",GlishArray(type.toString()));
+        arr.addAttribute("dmi_datafield_content_type",GlishArray(datafield.type().toString()));
         return arr;
       }
     }
-    else if( NestableContainer::isNestable(fieldtype) ) // case (3.2)
+    else if( NestableContainer::isNestable(fieldtype) ) // case (2.2)
     {
       // map to record of records, with fields "0", "1", etc.
       GlishRecord subrec;
@@ -184,23 +174,36 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
         string name = ssprintf("%d",i);
         subrec.add(ssprintf("%d",i),objectToGlishValue(*ref,adjustIndex));
       }
-      subrec.addAttribute("is_datafield",GlishArray(True));
+      subrec.addAttribute("dmi_actual_type",GlishArray(type.toString()));
+      subrec.addAttribute("dmi_datafield_content_type",GlishArray(datafield.type().toString()));
       return subrec;
     }
   }
-  // catch-all for failed mappings: converts to a blockset
+  else if( type == TpDataArray )  // (case DataArray)
+  {
+    const DataArray &dataarray = dynamic_cast<const DataArray &>(obj);
+    Thread::Mutex::Lock lock(dataarray.mutex());
+    GlishArray arr;
+    // convert to array and add (case 3.1)
+    if( makeGlishArray(arr,dataarray,dataarray.elementType(),adjustIndex) )
+    {
+      arr.addAttribute("dmi_actual_type",GlishArray(type.toString()));
+      return arr;
+    }
+  }
+  // catch-all for (4) and all failed mappings: converts to a blockset
   return objectToBlockRec(obj);
 }
 
 // helper function to create a DataField from a GlishArray
 template<class T> 
-void GlishUtil::newDataField (ObjRef &ref,const GlishArray &arr)
+void GlishUtil::initDataField (DataField &field,const GlishArray &arr)
 {
   Array<T> array;
   arr.get(array);
   bool del;
   const T * data = array.getStorage(del);
-  ref <<= new DataField(typeIdOf(T),array.nelements(),DMI::WRITE,data);
+  field.init(typeIdOf(T),array.nelements(),data);
   array.freeStorage(data,del);
 }
 
@@ -260,7 +263,7 @@ ObjRef GlishUtil::makeDataArray (const GlishArray &arr,bool isIndex)
     
     case GlishArray::STRING: 
         Throw("oops, we shouldn't be here");
-        // newDataField<String>(ref,arr);
+        // initDataField<String>(arr,arr);
         return ref;
     
     default:
@@ -271,22 +274,22 @@ ObjRef GlishUtil::makeDataArray (const GlishArray &arr,bool isIndex)
 }
 
 // helper function creates a DataField from a GlishArray (must be 1D)
-ObjRef GlishUtil::makeDataField (const GlishArray &arr,bool isIndex)
+void GlishUtil::makeDataField (DataField &field,const GlishArray &arr,bool isIndex)
 {
   ObjRef ref;
   switch( arr.elementType() )
   {
     case GlishArray::BOOL:      
-        newDataField<Bool>(ref,arr);
-        return ref;
+        initDataField<Bool>(field,arr);
+        break;
     case GlishArray::BYTE:
-        newDataField<uChar>(ref,arr);
-        return ref;
+        initDataField<uChar>(field,arr);
+        break;
     case GlishArray::SHORT:
-        newDataField<Short>(ref,arr);
-        return ref;
-    
-    case GlishArray::INT: // explicitly adjust for index
+        initDataField<Short>(field,arr);
+        break;
+    // INT arrays may need to be explicitly adjust for index base
+    case GlishArray::INT: 
     {
         Array<Int> array;
         arr.get(array);
@@ -294,91 +297,118 @@ ObjRef GlishUtil::makeDataField (const GlishArray &arr,bool isIndex)
           array -= 1;
         bool del;
         const Int * data = array.getStorage(del);
-        ref <<= new DataField(Tpint,array.nelements(),DMI::WRITE,data);
+        field.init(Tpint,array.nelements(),data);
         array.freeStorage(data,del);
-        return ref;
+        break;
     }
-    
     case GlishArray::FLOAT:
-        newDataField<Float>(ref,arr);
-        return ref;
-    
+        initDataField<Float>(field,arr);
+        break;
     case GlishArray::DOUBLE:
-        newDataField<Double>(ref,arr);
-        return ref;
-    
+        initDataField<Double>(field,arr);
+        break;
     case GlishArray::COMPLEX:
-        newDataField<Complex>(ref,arr);
-        return ref;
-    
+        initDataField<Complex>(field,arr);
+        break;
     case GlishArray::DCOMPLEX:
-        newDataField<DComplex>(ref,arr);
-        return ref;
-    
+        initDataField<DComplex>(field,arr);
+        break;
     case GlishArray::STRING: 
     {
         Vector<String> array;
         arr.get(array);
-        bool is_hiid = arr.attributeExists("is_hiid");
-        DataField *field = new DataField(is_hiid ? TpHIID : Tpstring,array.nelements(),DMI::WRITE);
-        ref <<= field;
+        bool is_hiid = arr.attributeExists("dmi_is_hiid");
+        field.init(is_hiid?TpHIID:Tpstring,array.nelements());
         if( is_hiid )
         {
           for( uint i=0; i < array.nelements(); i++ )
-            (*field)[i] = HIID(array(i));
+            field[i] = HIID(array(i));
         }
         else
         {
           for( uint i=0; i < array.nelements(); i++ )
-            (*field)[i] = array(i);
+            field[i] = array(i);
         }
-        return ref;
+        break;
     }
     
     default:
         dprintf(2)("warning: unknown Glish array type %d, ignoring\n",arr.elementType());
-        ref <<= new DataField;
-        return ref;
   }
+}
+
+// createSubclass:
+// Helper templated function. If val::dmi_actual_type exists, it is interpreted
+// as a type string, and an object of that type is created and returned 
+// (must be a subclass of Base). Otherwise, a Base is created & returned. 
+// If val::dmi_actual_type is not a legal type string, or not a subclass of Base,
+// an exception is thrown.
+// The ref is attached to the newly created object.
+template<class Base>
+Base * GlishUtil::createSubclass (ObjRef &ref,const GlishValue &val)
+{
+  Base *pbase;
+  // the dmi_actual_type attribute specifies a subclass 
+  if( val.attributeExists("dmi_actual_type" ) )
+  {
+    String typestr;
+    GlishArray tmp = val.getAttribute("dmi_actual_type"); tmp.get(typestr);
+    BlockableObject * bo = DynamicTypeManager::construct(TypeId(typestr));
+    ref <<= bo;
+    pbase = dynamic_cast<Base *>(bo);
+    FailWhen(!pbase,string(typestr)+"is not a subclass of "+TpOfPtr(pbase).toString());
+  }
+  else
+    ref <<= pbase = new Base;
+  return pbase;
 }
 
 // Converts any glish value to an object
 // (DataRecord, DataArray or DataField)
 ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
 {
+  ObjRef ref; 
   if( val.type() == GlishValue::ARRAY )
   {
     GlishArray arr = val;
     IPosition shape = arr.shape();
-    // string arrays, or 1D arrays marked with the "is_datafield" or 
-    // "is_hiid" attribute map to DataField
-    if( ( shape.nelements() == 1 && ( val.attributeExists("is_datafield") || 
-                                      val.attributeExists("is_hiid") ) )
+    // string arrays, or 1D arrays marked as a datafield (or as with the
+    // "dmi_is_hiid" attribute) always map to a DataField
+    if( ( shape.nelements() == 1 && 
+          ( val.attributeExists("dmi_datafield_content_type") || 
+            val.attributeExists("dmi_is_hiid") ) )
         || arr.elementType() == GlishArray::STRING )
-      return makeDataField(arr,adjustIndex);
-    else // other arrays map to DataArrays
+    {
+      DataField *field = GlishUtil::createSubclass<DataField>(ref,val);
+      makeDataField(*field,arr,adjustIndex);
+      // validate the field (no-op for DataField itself, but may be meaningful for subclasses)
+      field->validateContent(); 
+      return ref;
+    }
+    else // all other arrays map to DataArrays
+    {
       return makeDataArray(arr,adjustIndex);
+    }
   }
   else // it's a record
   {
     GlishRecord glrec = val;
     // is it a non-Glish object passed as a block record?
-    if( glrec.attributeExists("blocktype")  )
+    if( glrec.attributeExists("dmi_blocktype")  )
     {
       return ObjRef( blockRecToObject(glrec),DMI::ANONWR );
     }
     // is it a DataField (that was passed in as a record of values)
-    else if( glrec.attributeExists("is_datafield")  )
+    else if( glrec.attributeExists("dmi_datafield_content_type")  )
     {
       // the attribute should be a string indicating the object type
       String typestr;
-      GlishArray tmp = glrec.getAttribute("is_datafield"); tmp.get(typestr);
+      GlishArray tmp = glrec.getAttribute("dmi_datafield_content_type"); tmp.get(typestr);
       TypeId fieldtype(typestr);
       // create a field and populate it with the objects recursively
-      ObjRef fieldref;
-      DataField *field = new DataField(fieldtype,glrec.nelements());
-      fieldref <<= field;
-      for( uint i=0; i < glrec.nelements(); i++ )
+      DataField *field = GlishUtil::createSubclass<DataField>(ref,val);
+      field->init(fieldtype,glrec.nelements());
+      for( uint i=0;i<glrec.nelements(); i++ )
       {
         try 
         {
@@ -394,14 +424,13 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
           dprintf(2)("warning: ignoring field [%d] (got unknown exception)\n",i);
         }
       }
-      return fieldref;
+      field->validateContent();
+      return ref;
     }
     // else it's a plain old DataRecord
     else
     {
-      ObjRef recref;
-      DataRecord *rec = new DataRecord;
-      recref <<= rec;
+      DataRecord *rec = GlishUtil::createSubclass<DataRecord>(ref,val);
       for( uint i=0; i < glrec.nelements(); i++ )
       {
         string field_name = glrec.name(i);
@@ -446,7 +475,8 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
               field_name.c_str(),i);
         }
       }
-      return recref;
+      rec->validateContent();
+      return ref;
     }
   }
 }
@@ -459,7 +489,7 @@ GlishRecord GlishUtil::objectToBlockRec (const BlockableObject &obj)
   GlishRecord rec;
   BlockSet set;
   obj.toBlock(set);
-  rec.addAttribute("blocktype",GlishArray(obj.objectType().toString()));
+  rec.addAttribute("dmi_blocktype",GlishArray(obj.objectType().toString()));
   int i=0;
   while( set.size() )
   {
@@ -475,9 +505,9 @@ GlishRecord GlishUtil::objectToBlockRec (const BlockableObject &obj)
 //##ModelId=3DB93695024D
 BlockableObject * GlishUtil::blockRecToObject (const GlishRecord &rec)
 {
-  FailWhen( !rec.attributeExists("blocktype"),"missing 'blocktype' attribute" );
+  FailWhen( !rec.attributeExists("dmi_blocktype"),"missing 'dmi_blocktype' attribute" );
   String typestr;
-  GlishArray tmp = rec.getAttribute("blocktype"); tmp.get(typestr);
+  GlishArray tmp = rec.getAttribute("dmi_blocktype"); tmp.get(typestr);
   TypeId tid(typestr);
   FailWhen( !tid,"illegal blocktype "+static_cast<string>(typestr) );
   // extract blockset form record
@@ -501,4 +531,5 @@ BlockableObject * GlishUtil::blockRecToObject (const GlishRecord &rec)
   // create object & return
   return DynamicTypeManager::construct(tid,set);
 }
+
 

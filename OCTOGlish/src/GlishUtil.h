@@ -21,8 +21,9 @@ namespace GlishUtil
 
   ObjRef makeDataArray (const GlishArray &arr,bool adjustIndex);
 
-  ObjRef makeDataField (const GlishArray &arr,bool adjustIndex);
+  void makeDataField (DataField &field,const GlishArray &arr,bool adjustIndex);
 
+      
   ObjRef glishValueToObject (const GlishValue &val,bool adjustIndex);
 
   GlishRecord objectToBlockRec (const BlockableObject &obj);
@@ -30,9 +31,12 @@ namespace GlishUtil
   BlockableObject * blockRecToObject (const GlishRecord &rec);
 
   template<class T> 
-  void newDataField (ObjRef &ref,const GlishArray &arr);
+  void initDataField (DataField &field,const GlishArray &arr);
   
   template<class T> 
   void newDataArray (ObjRef &ref,const GlishArray &arr);
+  
+  template<class Base>
+  Base * GlishUtil::createSubclass (ObjRef &ref,const GlishValue &val);
 }
 #endif

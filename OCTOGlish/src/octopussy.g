@@ -416,10 +416,10 @@ test_octopussy := function (server="./test_glish",options="")
 }
 
 # makes a HIID object from a string
-hiid := function (...)
+const hiid := function (...)
 {
   ret := paste(...,sep='.');
-  ret::is_hiid := T;
+  ret::dmi_is_hiid := T;
   return ret;
 }
 
