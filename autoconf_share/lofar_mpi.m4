@@ -8,9 +8,10 @@ dnl
 # Macro to check for MPICH or ScaMPI mpi.h header file
 #
 AC_DEFUN(lofar_MPI,dnl
-[AC_ARG_ENABLE(mpi-profiler,
+[dnl
+AC_ARG_ENABLE(mpi-profiler,
 	[  --enable-mpi-profiler   enable MPI profiler (default=no)],
-	[mpi_profiler=yes], [mpi_profiler=no])]
+	[mpi_profiler=yes], [mpi_profiler=no])
 lofar_HEADER_MPICH([])dnl
 lofar_HEADER_SCAMPI()dnl
 [
@@ -32,10 +33,15 @@ AC_DEFINE(HAVE_MPI,dnl
 [fi]
 [if test "$mpi_profiler" = "yes"; then]
   [if test $enable_mpi = 0; then]
-    AC_MSG_ERROR([Can not enable MPI profiler without enabling MPI])
-  [fi]
+    AC_MSG_ERROR([Cannot enable MPI profiler without enabling MPI])
+  [fi
+   LIBS="$LIBS -lmpe";
+   ]
+   AC_SUBST(LIBS)
+   AC_DEFINE(HAVE_MPI_PROFILER,dnl
+	     1, [Define if MPI profiler should be enabled])
 [fi]
-)dnl
+])
 #
 #
 # lofar_HEADER_MPICH([VERSION])
