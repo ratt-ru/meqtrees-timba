@@ -1,4 +1,4 @@
-#  lofar_debugoptimise.m4
+#  lofar_general.m4: contains several general m4 functions
 #
 #  Copyright (C) 2002
 #  ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -20,6 +20,11 @@
 #
 #  $Id$
 
+#
+#  lofar_general.m4 contains the following m4 functions:
+#    lofar_DEBUG_OPTIMIZE
+#    lofar_CHECK_PRETTY_FUNCTION
+#
 
 # lofar_DEBUG_OPTIMIZE
 #
@@ -150,3 +155,47 @@ AC_MSG_ERROR([Can not have both --with-debug and --with-optimize])
     fi
   fi
 ]])dnl
+
+#
+# lofar_CHECK_PRETTY_FUNCTION
+#
+# If the C++ compiler supports the __PRETTY_FUNCTION__ macro,
+#   define `HAVE_PRETTY_FUNCTION'
+# else if compiler supports the __FUNCTION__ macro, 
+#   define `HAVE_FUNCTION'
+#
+# Based on ICE and DDD autoconf macros; added test for __FUNCTION__.
+#
+AC_DEFUN(lofar_CHECK_PRETTY_FUNCTION,[
+  AC_PREREQ(2.13)
+  AC_REQUIRE([AC_PROG_CXX])
+  AC_MSG_CHECKING(whether ${CXX} supports __PRETTY_FUNCTION__)
+  AC_CACHE_VAL(lofar_cv_have_pretty_function,[
+    AC_LANG_PUSH(C++)
+    AC_TRY_LINK(
+      [#include <stdio.h>],
+      [puts(__PRETTY_FUNCTION__);],
+      lofar_cv_have_pretty_function=yes,
+      lofar_cv_have_pretty_function=no)
+    AC_LANG_POP(C++)
+  ])
+  AC_MSG_RESULT($lofar_cv_have_pretty_function)
+  if test "$lofar_cv_have_pretty_function" = yes; then
+    AC_DEFINE(HAVE_PRETTY_FUNCTION,1,[Define if __PRETTY_FUNCTION__ is defined])
+  else
+    AC_MSG_CHECKING(whether ${CXX} supports __FUNCTION__)
+    AC_CACHE_VAL(lofar_cv_have_function,[
+      AC_LANG_PUSH(C++)
+      AC_TRY_LINK(
+        [#include <stdio.h>],
+        [puts(__FUNCTION__);],
+        lofar_cv_have_function=yes,
+        lofar_cv_have_function=no)
+      AC_LANG_POP(C++)
+    ])
+    AC_MSG_RESULT($lofar_cv_have_function)
+    if test "$lofar_cv_have_function" = yes; then
+      AC_DEFINE(HAVE_FUNCTION,1,[Define if __FUNCTION__ is defined])
+    fi
+  fi
+])
