@@ -274,10 +274,10 @@ To disable this warning use -Wno-deprecated.
 # define SourceFileLine ::Debug::ssprintf("%s:%d",__FILE__,__LINE__)
 #endif
 
-#define CodeStatus_nf1(msg) ((msg)+LOFAR::string(" (")+DebugName+")")
+#define CodeStatus_nf1(msg) (msg)
 #define CodeStatus_nf(msg) ("["+LOFAR::string(sdebug())+"] "+CodeStatus_nf1(msg))
 
-#define CodeStatus1(msg) ((msg)+LOFAR::string(" (context: ")+DebugName+", at "+ SourceFileLine + ")")
+#define CodeStatus1(msg) (std::string(msg))+", at "+ SourceFileLine + ")"
 #define CodeStatus(msg) ("["+LOFAR::string(sdebug())+"] "+CodeStatus1(msg))
 
 // This inserts declarations of the sdebug() and debug() methods into your class.

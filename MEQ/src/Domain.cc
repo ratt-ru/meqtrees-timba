@@ -98,10 +98,12 @@ void Domain::validateContent (bool)
   }
   catch( std::exception &err )
   {
+    cdebug(1)<<"failed Domain record: "<<sdebug(10)<<endl;
     Throw(string("validate of Domain record failed: ") + err.what());
   }
   catch( ... )
   {
+    cdebug(1)<<"failed Domain record: "<<sdebug(10)<<endl;
     Throw("validate of Domain record failed with unknown exception");
   }  
 }
