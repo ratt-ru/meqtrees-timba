@@ -34,6 +34,7 @@ namespace Meq {
 const HIID symdeps[] = { FDomain,FResolution };
 
 //const HIID FDomain = AidDomain;
+const HIID FVells = AidVells;
 
 //##ModelId=400E5305008F
 Constant::Constant (double value,bool integrated)
@@ -71,10 +72,11 @@ int Constant::getResult (Result::Ref& resref,
   // Create result object and attach to the ref that was passed in
   Result& result = resref <<= new Result(1,request); // result has one vellset
   VellSet& vs = result.setNewVellSet(0);
-// no need anymore, result will set the cells shape for each new vellset anyway
-//  const Cells &cells = request.cells();
-//  vs.setShape(cells.shape());
-  vs.setValue(itsValue());
+  // if value is a Vells, check that shapes match
+  Vells &val = itsValue();
+  FailWhen(hasShape && !val.isCompatible(request.cells().shape()),
+      "shape of Vells in Constant node not compatible with request");
+  vs.setValue(val);
   if( itsIntegrated )
     result.integrate();
   return 0;
@@ -94,6 +96,7 @@ void Constant::setStateImpl (DataRecord& rec, bool initializing)
   }
   // Get value
   DataRecord::Hook hook(rec,FValue);
+  DataRecord::Hook hook2(rec,FVells);
   if( hook.exists() ) 
   {
     TypeId type = hook.type();
@@ -102,10 +105,17 @@ void Constant::setStateImpl (DataRecord& rec, bool initializing)
       itsValue <<= new Vells(hook.as<dcomplex>());
     else 
       itsValue <<= new Vells(hook.as<double>());
+    hasShape = false;
+  }
+  else if( hook2.exists() )
+  {
+    itsValue <<= new Vells(hook2.as_p<DataArray>());
+    hasShape = true;
   }
   else if( initializing ) // init state record with default value
   {
     rec[FValue] <<= itsValue->getDataArray();
+    hasShape = false;
   }
 }
 

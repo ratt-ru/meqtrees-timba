@@ -39,7 +39,9 @@
 //defrec begin MeqConstant
 //  Represents a constant node. A MeqConstant cannot have any children.
 //field: value 0.0  
-//  value of constant - expected double/complex double scalar
+//  value of constant - expected double or complex double scalar
+//field: vells F  
+//  variable value of constant - expected double or complex double array
 //field: integrated F  
 //  if true, constant represents an integration -- result value will be 
 //  multiplied by cell size
@@ -85,6 +87,8 @@ private:
   Vells::Ref itsValue;
 
   bool itsIntegrated;
+  
+  bool hasShape;
 };
 
 

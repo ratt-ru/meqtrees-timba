@@ -230,7 +230,7 @@ const meq.domain := function (startfreq=[],endfreq=[],starttime=[],endtime=[],
 #-- meq_private.resolve_grid() -----------------------------------------------
 # helper function to resolve a meq.cells grid for one axis
 
-const meq_private.resolve_grid := function (type,dom,num,
+const meq_private.resolve_grid := function (type,ref dom,num,
                                     ref grid,ref cellsize,ref segs) 
 {
   if( len(grid) )
@@ -298,6 +298,9 @@ const meq_private.resolve_grid := function (type,dom,num,
   # vector specified: check length
   else if( len(cellsize) != num )
     fail spaste('length of ',type,'_cell_size does not conform to grid');
+  # return domain if passed in as false
+  if( is_boolean(dom) )
+    val dom := [grid[1]-cellsize[1]/2,grid[num]+cellsize[num]/2];
   return num;
 }
 
