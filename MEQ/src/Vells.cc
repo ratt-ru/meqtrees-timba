@@ -415,8 +415,15 @@ string Vells::sdebug (int detail,const string &,const char *nm) const
 // Vells math
 // 
 // -----------------------------------------------------------------------
-using namespace std;
-using namespace blitz;
+using std::pow;
+using blitz::pow;
+using blitz::pow2;
+using blitz::pow3;
+using blitz::pow4;
+using blitz::pow5;
+using blitz::pow6;
+using blitz::pow7;
+using blitz::pow8;
 
 // define a traits-like structure for type conversions:
 //    Convert<T>::to_double       // preserves rank
