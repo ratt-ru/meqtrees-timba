@@ -43,7 +43,7 @@
 //## Class: CountedRefBase%3C0CDEE200FE
 //	Implements a counted reference mechanism. See CountedRef<T> for a
 //	type-specific interface. CountedRefs have destructive copy semantics.
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -93,7 +93,7 @@ class CountedRefBase
 
       //## Operation: getTargetWr%3C0CE2970094; C++
       //	Dereferences to writable target (exception if not writable).
-      CountedRefTarget* getTargetWr ();
+      CountedRefTarget* getTargetWr () const;
 
       //## Operation: copy%3C0CDEE20162; C++
       //	Makes and returns a second copy of  the reference. Flags are:
@@ -108,7 +108,7 @@ class CountedRefBase
 
       //## Operation: xfer%3C0CDEE20180; C++
       //	Destructive transfer of other ref
-      void xfer (CountedRefBase& other);
+      void xfer (const CountedRefBase& other);
 
       //## Operation: privatize%3C0CDEE20164; C++
       //	Creates a "private copy" of the target. Will clone() the target as
@@ -200,12 +200,12 @@ class CountedRefBase
 
     //## Get and Set Operations for Associations (generated)
 
-      //## Association: DMI::<unnamed>%3C0CE0F60398
+      //## Association: DOMIN0::<unnamed>%3C0CE0F60398
       //## Role: CountedRefBase::prev%3C0CE0FA0394
       //	prev ref in list (0 if first ref)
       const CountedRefBase * getPrev () const;
 
-      //## Association: DMI::<unnamed>%3C0CE0F60398
+      //## Association: DOMIN0::<unnamed>%3C0CE0F60398
       //## Role: CountedRefBase::next%3C0CE0FB0010
       //	next ref in list (0 if last ref)
       const CountedRefBase * getNext () const;
@@ -245,7 +245,7 @@ class CountedRefBase
 
     // Data Members for Associations
 
-      //## Association: DMI::<unnamed>%3C0CDF6500AC
+      //## Association: DOMIN0::<unnamed>%3C0CDF6500AC
       //## Role: CountedRefBase::target%3C0CDF6503A5
       //	Reference target
       //## begin CountedRefBase::target%3C0CDF6503A5.role preserve=no  public: CountedRefTarget {0..1 -> 0..1RHNM}
@@ -259,12 +259,12 @@ class CountedRefBase
   private:
     // Data Members for Associations
 
-      //## Association: DMI::<unnamed>%3C0CE0F60398
+      //## Association: DOMIN0::<unnamed>%3C0CE0F60398
       //## begin CountedRefBase::prev%3C0CE0FA0394.role preserve=no  public: CountedRefBase {0..1 -> 0..1RHNM}
       mutable CountedRefBase *prev;
       //## end CountedRefBase::prev%3C0CE0FA0394.role
 
-      //## Association: DMI::<unnamed>%3C0CE0F60398
+      //## Association: DOMIN0::<unnamed>%3C0CE0F60398
       //## begin CountedRefBase::next%3C0CE0FB0010.role preserve=no  public: CountedRefBase {0..1 -> 0..1RHNM}
       mutable CountedRefBase *next;
       //## end CountedRefBase::next%3C0CE0FB0010.role
@@ -344,7 +344,7 @@ inline CountedRefBase::CountedRefBase (const CountedRefBase& other, int flags, i
   else if( flags&DMI::COPYREF || other.isPersistent() ) // constructing true copy of reference
     copy(other,flags);
   else  // else do destructive copy
-    xfer((CountedRefBase&)other);
+    xfer(other);
   //## end CountedRefBase::CountedRefBase%3C0CE1C10277.body
 }
 
@@ -369,7 +369,7 @@ inline CountedRefBase & CountedRefBase::operator=(const CountedRefBase &right)
     if( right.isPersistent() )
       copy(right,0);
     else
-      xfer((CountedRefBase&)right);
+      xfer(right);
   }
   return *this;
   //## end CountedRefBase::operator=%3C0CDEE200FE_assign.body
@@ -399,7 +399,7 @@ inline const CountedRefTarget* CountedRefBase::getTarget () const
   //## end CountedRefBase::getTarget%3C0CDEE2015B.body
 }
 
-inline CountedRefTarget* CountedRefBase::getTargetWr ()
+inline CountedRefTarget* CountedRefBase::getTargetWr () const
 {
   //## begin CountedRefBase::getTargetWr%3C0CE2970094.body preserve=yes
   FailWhen( !valid(),"dereferencing invalid ref");

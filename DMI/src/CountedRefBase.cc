@@ -98,7 +98,7 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags)
   //## end CountedRefBase::copy%3C0CDEE2018A.body
 }
 
-void CountedRefBase::xfer (CountedRefBase& other)
+void CountedRefBase::xfer (const CountedRefBase& other)
 {
   //## begin CountedRefBase::xfer%3C0CDEE20180.body preserve=yes
   dprintf(3)("xferring from %s\n",other.debug());
@@ -125,8 +125,9 @@ void CountedRefBase::xfer (CountedRefBase& other)
     writable = other.isWritable();
     exclusiveWrite = other.isExclusiveWrite();
     delayed_clone = False;
-    // invalidate other ref
-    other.empty();
+    // invalidate other ref (const violation here, but that's a consequence
+    // of our destructive semantics)
+    const_cast<CountedRefBase&>(other).empty();
   }
   dprintf(3)("  is now %s\n",debug(-1));
   //## end CountedRefBase::xfer%3C0CDEE20180.body

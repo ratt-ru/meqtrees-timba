@@ -205,8 +205,17 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) cons
   // check for residual index
   FailWhen(addressed,"unexpected '&' operator");
   TypeId target_tid; bool dum; 
-  const void *target = collapseIndex(target_tid,dum,0,False);
-  FailWhen(!target,"uninitialized element");
+  const void *target;
+  if( index>=0 || id.size() )
+  {
+    target = collapseIndex(target_tid,dum,0,False);
+    FailWhen(!target,"uninitialized element");
+  }
+  else
+  {
+    target = nc;
+    target_tid = nc->type();
+  }
   // if referring to a non-dynamic type, attempt the conversion
   if( !TypeInfo::isDynamic(target_tid) && target_tid != TpObjRef )
   {
@@ -231,8 +240,17 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) cons
 const void * NestableContainer::ConstHook::get_address(TypeId tid,bool must_write,bool,bool pointer ) const
 {
   TypeId target_tid; bool dum; 
-  const void *target = collapseIndex(target_tid,dum,0,False);
-  FailWhen(!target,"uninitialized element");
+  const void *target;
+  if( index>=0 || id.size() )
+  {
+    target = collapseIndex(target_tid,dum,0,False);
+    FailWhen(!target,"uninitialized element");
+  }
+  else
+  {
+    target = nc;
+    target_tid = nc->type();
+  }
   // If types don't match, then try to treat target as a container, 
   // and return pointer to first element (if this is allowed)
   if( tid != target_tid )

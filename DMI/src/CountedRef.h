@@ -42,7 +42,7 @@
 //	This is a type-specific interface to the counted reference
 //	mechanism, providing most of the same functions as CountedRefBase,
 //	but tailored for type T.  Refer to CountedRefBase for all details.
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -104,16 +104,16 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       const T& operator * () const;
 
       //## Operation: dewr_p%3C8F61D10199
-      T* dewr_p ();
+      T* dewr_p () const;
 
       //## Operation: dewr%3BEFF73602B0; C++
       //	Dereferences to non-const object.
-      T& dewr ();
+      T& dewr () const;
 
       //## Operation: operator%3C0F806901C1; C++
       //	Dereferences to non-const object. Use e.g. ref().method() to call
       //	target's non-const methods.
-      T& operator () ();
+      T& operator () () const;
 
       //## Operation: operator const T&%3C0F808100DF; C++
       //	Conversion operators to T& and T* do. implicit dereferencing.
@@ -123,10 +123,10 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       operator const T* () const;
 
       //## Operation: operator T&%3C0F80B501D4; C++
-      operator T& ();
+      operator T& () const;
 
       //## Operation: operator T*%3C0F80C0020C; C++
-      operator T* ();
+      operator T* () const;
 
       //## Operation: copy%3BF93A170291; C++
       //	Copies ref -- see CountedRefBase::copy().
@@ -136,7 +136,7 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       CountedRef<T> & copy (const CountedRef<T>& other, int flags = 0);
 
       //## Operation: xfer%3C1F2DD30353
-      CountedRef<T> & xfer (CountedRef<T>& other);
+      CountedRef<T> & xfer (const CountedRef<T>& other);
 
       //## Operation: privatize%3C17A06901DC; C++
       //	Privatizes a ref -- see CountedRefBase::privatize().
@@ -197,7 +197,6 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       //## begin CountedRef%3BEFECFF0287.protected preserve=yes
       CountedRefBase::target;
       //## end CountedRef%3BEFECFF0287.protected
-
   private:
     // Additional Private Declarations
       //## begin CountedRef%3BEFECFF0287.private preserve=yes
@@ -355,7 +354,7 @@ inline const T& CountedRef<T>::operator * () const
 }
 
 template <class T>
-inline T* CountedRef<T>::dewr_p ()
+inline T* CountedRef<T>::dewr_p () const
 {
   //## begin CountedRef::dewr_p%3C8F61D10199.body preserve=yes
   return static_cast<T*>(getTargetWr());
@@ -363,7 +362,7 @@ inline T* CountedRef<T>::dewr_p ()
 }
 
 template <class T>
-inline T& CountedRef<T>::dewr ()
+inline T& CountedRef<T>::dewr () const
 {
   //## begin CountedRef::dewr%3BEFF73602B0.body preserve=yes
   return *dewr_p();
@@ -371,7 +370,7 @@ inline T& CountedRef<T>::dewr ()
 }
 
 template <class T>
-inline T& CountedRef<T>::operator () ()
+inline T& CountedRef<T>::operator () () const
 {
   //## begin CountedRef::operator%3C0F806901C1.body preserve=yes
   return dewr();
@@ -395,7 +394,7 @@ inline CountedRef<T>::operator const T* () const
 }
 
 template <class T>
-inline CountedRef<T>::operator T& ()
+inline CountedRef<T>::operator T& () const
 {
   //## begin CountedRef::operator T&%3C0F80B501D4.body preserve=yes
   return dewr();
@@ -403,7 +402,7 @@ inline CountedRef<T>::operator T& ()
 }
 
 template <class T>
-inline CountedRef<T>::operator T* ()
+inline CountedRef<T>::operator T* () const
 {
   //## begin CountedRef::operator T*%3C0F80C0020C.body preserve=yes
   return dewr_p();
@@ -428,7 +427,7 @@ inline CountedRef<T> & CountedRef<T>::copy (const CountedRef<T>& other, int flag
 }
 
 template <class T>
-inline CountedRef<T> & CountedRef<T>::xfer (CountedRef<T>& other)
+inline CountedRef<T> & CountedRef<T>::xfer (const CountedRef<T>& other)
 {
   //## begin CountedRef::xfer%3C1F2DD30353.body preserve=yes
   CountedRefBase::xfer(other);

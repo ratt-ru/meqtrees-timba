@@ -11,7 +11,11 @@ int main()
     rec["A"] <<= arr;
     float* ptr1 = rec["A/5.5"].as_float_wp();
     Array_float* farr = &rec["A"];
-//    Array_float* farr2 = &(*arr)[HIID()];
+    
+    // a-ha! I've fixed this, it works now:
+    Array_float* farr2 = &(*arr)[HIID()];
+    
+    
     Assert (farr->nelements() == 20*12);
     indgen (*farr);
     float* ptr = &rec["A"];
