@@ -78,7 +78,8 @@ DataField & DataField::operator=(const DataField &right)
 // OMS 01/10/03
 //    FailWhen( valid(),"field is already initialized" );
     clear();
-    cloneOther(right,0,0);
+    if( right.valid() )
+      cloneOther(right,0,0);
   }
   return *this;
 }
@@ -598,6 +599,8 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
   nc_readlock1(other);
   // setup misc fields
   FailWhen( valid(),"field is already initialized" );
+  if( !other.valid() )
+    return;
   mytype = other.type();
   mysize_ = other.mysize();
   scalar = other.scalar;
