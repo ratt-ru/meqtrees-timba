@@ -85,6 +85,12 @@ else
     esac
 
     AIPSPP_CPPFLAGS="-I$AIPSPP_PATH/code/include -DAIPS_$arch"
+    if test "$lofar_compiler" = "kcc"; then
+      AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_KAICC"
+    fi
+    if test "$lofar_compiler" = "icc"; then
+      AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_INTELCC"
+    fi
     AIPSPP_LDFLAGS="-L$AIPSPP_PATH/$AIPSPP_ARCH/lib"
     AIPSPP_LIBS="-ltrial -laips -ltrial_f -laips_f"
 
