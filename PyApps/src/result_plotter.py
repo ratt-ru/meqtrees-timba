@@ -23,8 +23,14 @@ class ResultPlotter(BrowserPlugin):
     self._ntuple_controller = NTupleController.instance()
     self._window_controller = WindowController.instance()
     self._window_controller.createInspector ()
-# needed for destructor
+
+# used for 'embedded display'
     self._window = CanvasWindow(parent, "MeqDisplay",0)
+
+# used for 'standalone display'
+#    self._window = CanvasWindow(None, "MeqDisplay",0)
+#    self._label = QLabel("",parent);
+
 # uncommenting the following line causes all sorts of problems
 #    self._window.closeNoPrompt()
     self._window.show()
@@ -41,18 +47,28 @@ class ResultPlotter(BrowserPlugin):
     self._window_controller.closeAllWindows()
                                                                                            
   def wtop (self):
+# used for 'embedded display'
     return self._window
+
+# used for 'standalone display'
+#    return self._label
 
   def display_data (self, plot_array):
 # figure out type and rank of incoming array
     array_dim = len(plot_array.shape)
     array_rank = plot_array.rank
+    is_vector = False;
     n_rows = plot_array.shape[0]
+    if n_rows == 1:
+      is_vector = True
     n_cols = 1
     if array_rank == 2:
       n_cols = plot_array.shape[1]
+      if n_cols == 1:
+        is_vector = True
     self._add_time_freq = False;
-    if n_cols > 1:
+
+    if is_vector == False:
 # first display an image 
       if self._image_ntuple == None:
         self._image_ntuple = self._ntuple_controller.createNTuple()
@@ -142,16 +158,23 @@ class ResultPlotter(BrowserPlugin):
           self._canvas = self._window_controller.currentCanvas()
 #        self._canvas.addDisplay ( xyz_plot )
                                                                                 
-    if n_cols == 1:
+    if is_vector == True:
       if self._simple_ntuple == None:
 # do X-Y plot
         self._simple_ntuple = self._ntuple_controller.createNTuple()
         self._simple_ntuple.setTitle ( "VellSet Data" )
         self._add_time_freq = True
       image = []
-      for j in range(0, n_rows) :
+      if n_rows > 1:
+        for j in range(0, n_rows) :
          if array_rank == 2:
            image.append(plot_array[j][0])
+         else:
+           image.append(plot_array[j])
+      if n_cols > 1:
+        for j in range(0, n_cols) :
+         if array_rank == 2:
+           image.append(plot_array[0][j])
          else:
            image.append(plot_array[j])
       if self._simple_ntuple.isValidLabel(self._label):
@@ -159,31 +182,31 @@ class ResultPlotter(BrowserPlugin):
       else:
 # add columns for new image data
         self._simple_ntuple.addColumn (self._label,image)
-# add time and frequency columns for xyz plots
-# first add time column
+# add time or frequency column for 1-D plot
         if self._add_time_freq:
-          xyz_x_label = "time"
           image = []
-          time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
-          x_step = time_range / n_rows
-          start_time = self._rec.cells.domain.time[0] 
-          for j in range(0, n_rows ) :
-            current_time = start_time + j * x_step
-            image.append(current_time)
-          self._simple_ntuple.addColumn (xyz_x_label, image)
-# then add frequency column - useless for a 1-D array, but ...
-          xyz_y_label = "freq"
-          image = []
-          freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
-          y_step = freq_range / n_cols
-          start_freq = self._rec.cells.domain.freq[0] 
-          for j in range(0, n_rows ) :
-            for i in range(0, n_cols) :
-              current_freq = start_freq + i * y_step
+          if n_cols > 1:
+#add a time column
+            self._x_label = "time"
+            time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
+            x_step = time_range / n_cols
+            start_time = self._rec.cells.domain.time[0] 
+            for i in range(0, n_cols ) :
+              current_time = start_time + i * x_step
+              image.append(current_time)
+            self._simple_ntuple.addColumn (self._x_label, image)
+          if n_rows > 1:
+# add a frequency column 
+            self._x_label = "freq"
+            freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
+            x_step = freq_range / n_rows
+            start_freq = self._rec.cells.domain.freq[0] 
+            for i in range(0, n_rows ) :
+              current_freq = start_freq + i * x_step
               image.append(current_freq)
-          self._simple_ntuple.addColumn (xyz_y_label, image)
+            self._simple_ntuple.addColumn (self._x_label, image)
           self._add_time_freq = False
-      plot = self._display_controller.createDisplay ( 'XY Plot', self._simple_ntuple, ["time",self._label] )
+      plot = self._display_controller.createDisplay ( 'XY Plot', self._simple_ntuple, [self._x_label,self._label] )
       if self._canvas == None:
         self._canvas = self._window_controller.currentCanvas()
       self._canvas.addDisplay ( plot )
