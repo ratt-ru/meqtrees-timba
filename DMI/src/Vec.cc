@@ -681,7 +681,7 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
   }
   else // dynamic type
   {
-    if( !check_tid || check_tid == TpObjRef ) // defaultis to return a reference
+    if( !check_tid || check_tid == TpObjRef ) // default is to return a reference
     {
       tid = TpObjRef;
       return &resolveObject(n,must_write);

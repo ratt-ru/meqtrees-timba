@@ -408,7 +408,7 @@ void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
     real_tid = tid;
     return &fields[id];
   }
-  else if( tid )     // inserting new DataField contents?
+  else     // inserting new DataField contents?
   {
     real_tid = tid;
     DataField *pf = new DataField(tid,-1);
@@ -416,13 +416,6 @@ void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
     TypeId dum1; bool dum2;
     return const_cast<void*>( pf->getn(0,dum1,dum2,0,True) );
   }
-//  else // inserting a new DataField
-//  {
-//    real_tid = TpDataField;
-//    DataField *pf = new DataField;
-//    fields[id].attach(pf,DMI::ANON|DMI::WRITE|DMI::LOCK);
-//    return pf;
-//  }
   //## end DataRecord::insert%3C7A16BB01D7.body
 }
 
