@@ -430,12 +430,16 @@ class TreeBrowser (QObject):
       
   def _update_all_controls (self):
     """updates state of toolbar and other controls based on app state""";
-    _dprint(3,'reset_toolbars:',self.debug_level,self.is_connected,self.is_running,self.is_stopped);
+    _dprint(3,self.debug_level,self.is_connected,self.is_running,self.is_stopped);
     self._set_debug_control(self.debug_level>0);
     # toolbar
     for act in self._toolbar_actions:
-      try: act.setEnabled(act._is_enabled());
+      try:
+        enable = act._is_enabled();
       except AttributeError: pass;
+      else:
+        _dprint(4,'action',act.text(),'enabled:',enable);
+        act.setEnabled(enable);
     # show/hide the breakpoint column
     self.show_column("breakpoint",self.debug_level > 0);
     self.show_column("result",self.debug_level > 0);
@@ -731,6 +735,7 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     try: dialog = self._save_forest_dialog;
     except AttributeError:
       self._save_forest_dialog = dialog = QFileDialog(self.wtop(),"save dialog",True);
+      dialog.resize(500,dialog.height());
       dialog.setMode(QFileDialog.AnyFile);
       dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
@@ -746,6 +751,7 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     try: dialog = self._load_forest_dialog;
     except AttributeError:
       self._load_forest_dialog = dialog = QFileDialog(self.wtop(),"load dialog",True);
+      dialog.resize(500,dialog.height());
       dialog.setMode(QFileDialog.ExistingFile);
       dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
@@ -848,12 +854,13 @@ def define_treebrowser_actions (tb):
   tb.add_action(dbg_enable,60);
   # Pause
   pause = QAction("Pause",pixmaps.pause.iconset(),"&Pause",Qt.Key_F6,parent);
-  dbg_enable._is_enabled = lambda tb=tb: tb.is_connected and tb.debug_level>0 and \
+  pause._is_enabled = lambda tb=tb: tb.is_connected and tb.debug_level>0 and \
                                         tb.is_running and not tb.is_stopped;
   tb.add_action(pause,70,callback=tb._debug_pause);
   tb.add_separator(80);
   # Debug action group
   ag_debug = QActionGroup(parent);
+  ag_debug.setText("Debugger tools");
   dbgcont  = QAction("Continue",pixmaps.right_2triangles.iconset(),"&Continue",Qt.Key_F6+Qt.SHIFT,parent);      
   QObject.connect(dbgcont,SIGNAL("activated()"),tb._debug_continue);
   dbgstep  = QAction("Step",pixmaps.down_triangle.iconset(),"&Step",Qt.Key_F7,parent);      
