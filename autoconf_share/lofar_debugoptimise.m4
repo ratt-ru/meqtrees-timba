@@ -36,6 +36,10 @@ AC_ARG_WITH(optimize,
 	[  --with-optimize[=CFLAGS]  enable optimization C(XX)FLAGS (sets -O3 or +K3)],
 	[with_optimize="$withval"],
 	[with_optimize=no])dnl
+AC_ARG_WITH(threads,
+	[  --with-threads            enable support of threads],
+	[with_threads="$withval"],
+	[with_threads=no])dnl
 AC_ARG_WITH(cppflags,
 	[  --with-cppflags=CPPFLAGS  enable extra CPPFLAGS],
 	[with_cppflags="$withval"])dnl
@@ -107,10 +111,15 @@ AC_DEFINE(LOFAR_DEBUG,dnl
     fi
   fi
 
-  CPPFLAGS="$CPPFLAGS $with_cppflags"
+  if test "$with_threads" != "no"; then
+    lfr_cppflags="-DUSE_THREADS";
+    lfr_ldflags="-lpthread";
+  fi
+
+  CPPFLAGS="$CPPFLAGS $lfr_cppflags $with_cppflags"
   CFLAGS="$lfr_cflags $with_cflags"
   CXXFLAGS="$lfr_cxxflags $with_cxxflags"
-  LDFLAGS="$LDFLAGS $with_ldflags"
+  LDFLAGS="$LDFLAGS $lfr_ldflags $with_ldflags"
 ]
 AC_SUBST(CFLAGS)dnl
 AC_SUBST(CXXFLAGS)dnl
