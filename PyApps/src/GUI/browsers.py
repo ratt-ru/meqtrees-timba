@@ -162,6 +162,12 @@ class HierBrowser (object):
       else:
         self._content = {"":content};
       # set the viewable property
+      self.set_viewable(content,viewable,viewopts);
+      # set the make_data property
+      self._make_data = make_data;
+      
+    def set_viewable (self,content,viewable=None,viewopts={}):
+      # set the viewable property
       if not self._udi:
         viewable = False;
       elif viewable is None:
@@ -171,8 +177,6 @@ class HierBrowser (object):
         self._viewopts = viewopts;
         self.setPixmap(1,pixmaps.magnify.pm());
         self.setDragEnabled(True);
-      # set the make_data property
-      self._make_data = make_data;
         
     # helper static method to expand content into Items record 
     # note that we make this a static method because 'item' may in fact be
@@ -211,6 +215,8 @@ class HierBrowser (object):
         if itemstr is not None:
           i0 = HierBrowser.Item(item,key,itemstr,prec=item._prec,
                   strfunc=curry(dmirepr.inline_str,value));
+          i0._content = value;
+          i0.set_viewable(value);
           item._content_list.append(i0);
           continue;
         # else get string representation, insert item with it
@@ -538,6 +544,23 @@ class GriddedPlugin (Grid.CellBlock):
     return getattr(_class,'_name',_class.__name__);
   viewer_name = classmethod(viewer_name);
   
+class TextBrowser(GriddedPlugin):
+  # _icon = pixmaps.view_tree;
+  viewer_name = "Text Browser";
+  
+  def __init__(self,gw,dataitem,cellspec={},default_open=None,**opts):
+    GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
+    self._wtext = QTextBrowser(self.wparent());
+    self.set_widgets(self.wtop(),dataitem.caption,icon=self.icon());
+    if dataitem.data is not None:
+      self.set_data(dataitem);
+      
+  def wtop (self):
+    return self._wtext;
+      
+  def set_data (self,dataitem,default_open=None,**opts):
+    _dprint(3,'set_data ',dataitem.udi);
+    self._wtext.setText(dataitem.data);
     
 class RecordBrowser(HierBrowser,GriddedPlugin):
   _icon = pixmaps.view_tree;
@@ -572,7 +595,7 @@ class RecordBrowser(HierBrowser,GriddedPlugin):
     self.set_precision((prec,format));
   
   def set_data (self,dataitem,default_open=None,**opts):
-    _dprint(3,'RecordBrowser: set_data ',dataitem.udi);
+    _dprint(3,'set_data ',dataitem.udi);
     # save currently open tree
     if self._rec is not None:
       openitems = self.get_open_items();
@@ -595,4 +618,6 @@ class RecordBrowser(HierBrowser,GriddedPlugin):
 # register the RecordBrowser as a viewer (pri=20) for the appropriate types
 for tp in (dict,list,tuple,array_class):
   Grid.Services.registerViewer(tp,RecordBrowser,priority=20);
+
+Grid.Services.registerViewer(str,TextBrowser,priority=20);
 
