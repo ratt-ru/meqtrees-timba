@@ -205,8 +205,8 @@ void * MTGatewayWP::readerThread ()
         if( incoming_checksum == trailer.checksum )
         #endif
         {
-          dprintf(4)("received block #%d of size %d, checksum OK\n",
-              trailer.seq,bset.back()->size());
+          dprintf(4)("received block #%d (tms=%d) of size %d, %d blocks in set\n",
+              trailer.seq,trailer.msgsize,bset.back()->size(),bset.size());
           // can't access some members anymore, since we're releasing the mutex
           // so cache them as local variables
           int tmsgsize = trailer.msgsize;
@@ -217,15 +217,6 @@ void * MTGatewayWP::readerThread ()
             Timestamp::now(&ts_stopread);
             reading_socket = False;
             first_message_read = True;
-            // release the reader mutex so that other threads may go into their
-            // own read state while we fuck around with the received message.
-            // If still initializing the connection, then also acquire the gwmutex,
-            // to ensure that no incoming messages are processed until
-            // parsing of the init-message is complete.
-            if( peerState() == INITIALIZING )
-              reader_lock.relock(gwmutex);
-            else
-              reader_lock.release();
             
             if( bset.size() != tmsgsize )
             { // major oops
@@ -244,6 +235,15 @@ void * MTGatewayWP::readerThread ()
 #endif
               if( !bset.empty() )
                 lprintf(2,"warning: %d unclaimed incoming blocks will be discarded\n",bset.size());
+               // release the reader mutex so that other threads may go into their
+              // own read state while we fuck around with the received message.
+              // If still initializing the connection, then also acquire the gwmutex,
+              // to ensure that no incoming messages are processed until
+              // parsing of the init-message is complete.
+              if( peerState() == INITIALIZING )
+                reader_lock.relock(gwmutex);
+              else
+                reader_lock.release();
               // process the message
               processIncoming(ref);
             }
