@@ -3,6 +3,7 @@
 #include <DMI/DataRecord.h>
 #include <DMI/DataField.h>
 #include <DMI/DataArray.h>
+#include <DMI/DynamicTypeManager.h>
 #define Bool NumarrayBool
 #include <numarray/libnumarray.h>
 #undef Bool
@@ -12,6 +13,8 @@ using Debug::ssprintf;
 namespace OctoPython {    
     
 PyClassObjects py_class = {0,0,0,0,0,0};
+
+const char dmi_type_tag[] = "__dmi_type";
 
 // -----------------------------------------------------------------------
 // convertSeqToHIID
@@ -118,6 +121,40 @@ inline string ObjStr (const PyObject *obj)
   return Debug::ssprintf("%s @%x",obj->ob_type->tp_name,(int)obj);
 }
 
+// createSubclass:
+// Helper templated function. If the dmi_type_tag attribute exists, it is 
+// interpreted as a type string, and an object of that type is created and 
+// returned  (must be a subclass of Base). Otherwise, a Base is created. 
+// If val::dmi_actual_type is not a legal type string, or not a subclass of Base,
+// an exception is thrown.
+template<class Base>
+static Base * createSubclass (PyObject *pyobj)
+{
+  Base *pbase;
+  // the dmi_type_tag attribute specifies a subclass 
+  PyObjectRef dmitype = PyObject_GetAttrString(pyobj,const_cast<char*>(dmi_type_tag));
+  if( dmitype )
+  {
+    char *typestr = PyString_AsString(*dmitype);
+    if( !typestr )
+      throwError(Value,string(dmi_type_tag)+" attribute is not a string");
+    dprintf(4)("real object type is %s\n",typestr);
+    BlockableObject * bo = DynamicTypeManager::construct(TypeId(typestr));
+    pbase = dynamic_cast<Base *>(bo);
+    if( !pbase )
+    {
+      delete bo;
+      throwError(Type,string(typestr)+"is not a subclass of "+TpOfPtr(pbase).toString());
+    }
+  }
+  else // no type tag, allocate a base type
+  {
+    PyErr_Clear();  // clear "no such attribute" error
+    pbase = new Base;
+  }
+  dprintf(5)("%s created at address %x\n",pbase->objectType().toString().c_str(),(int)pbase);
+  return pbase;
+}
 
 // -----------------------------------------------------------------------
 // pyToRecord
@@ -132,7 +169,7 @@ int pyToRecord (DataRecord::Ref &rec,PyObject *pyobj)
   PyObjectRef py_keylist = PyMapping_Keys(pyobj);
   if( !py_keylist )
     throwErrorOpt(Type,"no key list returned");
-  rec <<= new DataRecord;
+  rec <<= createSubclass<DataRecord>(pyobj);
   int numkeys = PySequence_Length(*py_keylist);
   // loop over dict keys
   for( int ikey=0; ikey<numkeys; ikey++ )
@@ -184,6 +221,7 @@ int pyToRecord (DataRecord::Ref &rec,PyObject *pyobj)
   }
   PyErr_Clear();
   cdebug(3)<<objstr<<"assigned "<<num_assigned<<" of "<<num_original<<" fields\n";
+  rec().validateContent();
   return 1;
 }
 
@@ -508,6 +546,15 @@ PyObject * pyFromRecord (const DataRecord &dr)
   PyObjectRef pyrec = PyObject_CallObject(py_class.record,NULL);
   if( !pyrec )
     throwErrorOpt(Runtime,"failed to create a record instance");
+  // insert __dmi_type tag, if object is a subclass of record
+  TypeId objtype = dr.objectType();
+  if( objtype != TpDataRecord )
+  {
+    cdebug(3)<<"pyFromRecord: actual DMI type is "<<objtype<<endl;
+    PyObjectRef type = PyString_FromString(const_cast<char*>(objtype.toString().c_str()));
+    if( PyObject_SetAttrString(*pyrec,const_cast<char*>(dmi_type_tag),*type) < 0 )
+      throwErrorOpt(Runtime,"failed to set attribute");
+  }
   DataRecord::Iterator iter = dr.initFieldIter();
   HIID id; NestableContainer::Ref content;
   while( dr.getFieldIter(iter,id,content) )

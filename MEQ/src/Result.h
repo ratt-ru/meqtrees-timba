@@ -153,13 +153,7 @@ public:
   
   // creates new vellset at plane i with the given # of spids
     //##ModelId=400E535501BF
-  VellSet & setNewVellSet (int i,int nspids=0,int nset=1)
-  { 
-    VellSet *pvs = new VellSet(nspids,nset);
-    VellSet::Ref resref(pvs,DMI::ANONWR); 
-    setVellSet(i,resref); 
-    return *pvs;
-  }
+  VellSet & setNewVellSet (int i,int nspids=0,int nset=1);
 
   // ------------------------ FAIL RESULTS
   // checks if this Result has any fails in it

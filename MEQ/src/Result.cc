@@ -168,6 +168,16 @@ DataField & Result::wrVellSets ()
   return itsVellSets();
 }
 
+VellSet & Result::setNewVellSet (int i,int nspids,int nset)
+{ 
+  VellSet *pvs = new VellSet(nspids,nset);
+  VellSet::Ref resref(pvs,DMI::ANONWR); 
+  setVellSet(i,resref);
+  if( hasCells() )
+    pvs->setShape(cells().shape());
+  return *pvs;
+}
+
 
 //##ModelId=400E535501AD
 const VellSet & Result::setVellSet (int i,VellSet::Ref::Xfer &vellset)

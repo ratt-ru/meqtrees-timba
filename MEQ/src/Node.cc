@@ -39,8 +39,7 @@ using Debug::ssprintf;
 
 //##ModelId=3F5F43E000A0
 Node::Node (int nchildren,const HIID *labels,int nmandatory)
-    : child_labels_(labels),
-      check_nchildren_(nchildren),
+    : check_nchildren_(nchildren),
       check_nmandatory_(nmandatory),
       depend_mask_(0),
       node_groups_(1,FAll),
@@ -48,6 +47,13 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
 {
   Assert(nchildren>=0 || !labels);
   Assert(nchildren<0 || nchildren>=nmandatory);
+  if( labels )   // copy labels
+  {
+    child_labels_.resize(nchildren);
+    for( int i=0; i<nchildren; i++ )
+      child_labels_[i] = labels[i];
+  }
+  // else child_labels_ stays empty to indicate no labels -- this is checked below
 }
 
 //##ModelId=3F5F44A401BC
@@ -138,25 +144,20 @@ void Node::initChildren (int nch)
   if( nch )
   {
     NestableContainer *p1,*p2;
-    // children are labelled: use records
-    child_indices_ <<= p1 = new DataField(Tpint,nch);
-    if( child_labels_ )
+    if( !child_labels_.empty() ) // children are labelled: use records
     {
-//      child_indices_ <<= p1 = new DataRecord;
+      child_indices_ <<= p1 = new DataRecord;
       child_names_ <<= p2 = new DataRecord;
-      // set up map from label to child number 
-      for( int i=0; i<nch; i++ )
-        child_map_[child_labels_[i]] = i;
     }
-    // children are unlabelled: use fields
-    else
+    else // children are unlabelled: use fields
     {
-//      child_indices_ <<= p1 = new DataField(Tpint,nch);
+      child_indices_ <<= p1 = new DataField(Tpint,nch);
       child_names_ <<= p2 = new DataField(Tpstring,nch);
-      // set up trivial map ("i"->i)
-      for( int i=0; i<nch; i++ )
-        child_map_[AtomicID(i)] = i;
     }
+    // set up map from label to child number 
+    // (if no labels are defined, trivial "0", "1", etc. are used)
+    for( int i=0; i<nch; i++ )
+      child_map_[getChildLabel(i)] = i;
     wstate()[FChildren].replace() <<= p1;
     wstate()[FChildrenNames].replace() <<= p2;
   }
@@ -196,12 +197,7 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
     int nch = child_indices_->size();
     children_.resize(nch);
     for( int i=0; i<nch; i++ )
-    {
-      if( child_labels_ )
-        child_map_[child_labels_[i]] = i;
-      else
-        child_map_[AtomicID(i)] = i;
-    }
+      child_map_[getChildLabel(i)] = i;
     rcr_cache_.resize(children_.size());
     cdebug(2)<<"reinitialized with "<<children_.size()<<" children"<<endl;
   }
@@ -269,7 +265,7 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
       while( childrec.getFieldIter(iter,id,child_ref) )
       {
         // if child labels are not specified, use the field number instead
-        processChildSpec(childrec,child_labels_ ? id : AtomicID(ifield),id );
+        processChildSpec(childrec,child_labels_.empty() ? AtomicID(ifield) : id,id );
         ifield++;
       }
     }
@@ -297,8 +293,7 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
       for( int i=0; i<check_nmandatory_; i++ )
         if( !children_[i].valid() )
         {
-          HIID id = child_labels_ ? child_labels_[i] : AtomicID(i);
-          Throw("mandatory child "+id.toString()+" not specified" );
+          Throw("mandatory child "+getChildLabel(i).toString()+" not specified" );
         }
     }
     rcr_cache_.resize(children_.size());
@@ -376,7 +371,7 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
       for( ; iter != gen_symdep_masks_.end(); iter++ )
         gen_symdep_fullmask_ |= iter->second = deps[iter->first].as<int>();
     } 
-    catch( std::exception &what )
+    catch( std::exception & )
     {
       NodeThrow(FailWithCleanup,
           "incorrect or incomplete "+FGenSymDep.toString()+" state field");
@@ -432,11 +427,11 @@ void Node::setState (DataRecord &rec)
   {
     setStateImpl(rec,initializing);
   }
-  catch( FailWithoutCleanup &exc )
+  catch( FailWithoutCleanup exc )
   {
     throw exc; // No cleanup required, just re-throw
   }
-  catch( std::exception &exc )
+  catch( std::exception exc )
   {
     fail = string("setState() failed: ") + exc.what();
   }
@@ -497,7 +492,7 @@ void Node::processChildSpec (NestableContainer &children,const HIID &chid,const 
         Node &child = forest_->create(index,child_initrec.ref_cast<DataRecord>());
         addChild(chid,&child);
       }
-      catch( std::exception &exc )
+      catch( std::exception exc )
       {
         Throw("Failed to create child node "+id.toString()+": "+exc.what());
       }
@@ -562,20 +557,18 @@ void Node::addChild (const HIID &id,Node *childnode)
   }
   else // non-numeric: look in in child labels
   {
-    FailWhen(!child_labels_,"node does not define child labels, "
-      "can't specify child as "+id.toString());
     // look for id within child labels
-    const HIID *lbl = std::find(child_labels_,child_labels_+numChildren(),id);
-    FailWhen(lbl == child_labels_+numChildren(),
-        id.toString() + ": unknown child label");
-    ich = lbl - child_labels_;
+    vector<HIID>::const_iterator lbl;
+    lbl = std::find(child_labels_.begin(),child_labels_.end(),id);
+    FailWhen(lbl == child_labels_.end(),id.toString() + ": unknown child label");
+    ich = lbl - child_labels_.begin();
   }
   // attach ref to child if specified (will stay unresolved otherwise)
   if( childnode )
   {
     children_[ich].attach(childnode,DMI::WRITE);
-    child_names_()[id] = childnode->name();
-    child_indices_()[id] = childnode->nodeIndex();
+    child_names_()[getChildLabel(ich)] = childnode->name();
+    child_indices_()[getChildLabel(ich)] = childnode->nodeIndex();
   }
   cdebug(3)<<"added child "<<ich<<": "<<id<<endl;
 }
@@ -587,10 +580,7 @@ void Node::relinkChildren ()
 {
   for( int i=0; i<numChildren(); i++ )
   {
-    if( child_labels_ )
-      children_[i].attach(forest().get((*child_indices_)[child_labels_[i]]),DMI::WRITE);
-    else
-      children_[i].attach(forest().get((*child_indices_)[i]),DMI::WRITE);
+    children_[i].attach(forest().get((*child_indices_)[getChildLabel(i)]),DMI::WRITE);
   }
   checkChildren();
 }
@@ -603,11 +593,8 @@ void Node::resolveChildren (bool recursive)
   {
     if( !children_[i].valid() )
     {
-      string name;
-      if( child_labels_ )
-        name = (*child_names_)[child_labels_[i]].as<string>();
-      else
-        name = (*child_names_)[i].as<string>();
+      HIID label = getChildLabel(i);
+      string name = (*child_names_)[label].as<string>();
       cdebug(3)<<"resolving child "<<i<<":"<<name<<endl;
       // findNode() will throw an exception if the node is not found,
       // which is exactly what we want
@@ -615,10 +602,7 @@ void Node::resolveChildren (bool recursive)
       {
         Node &childnode = forest_->findNode(name);
         children_[i].attach(childnode,DMI::WRITE);
-        if( child_labels_ )
-          child_indices_()[child_labels_[i]] = childnode.nodeIndex();
-        else
-          child_indices_()[i] = childnode.nodeIndex();
+        child_indices_()[label] = childnode.nodeIndex();
       }
       catch( ... )
       {
@@ -1106,11 +1090,11 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     return cacheResult(ref,retcode) | RES_UPDATED;
   }
   // catch any exceptions, return a single fail result
-  catch( std::exception &x )
+  catch( std::exception exc )
   {
     ref <<= new Result(1);
     VellSet & res = ref().setNewVellSet(0);
-    MakeFailVellSet(res,string("exception in execute() while "+stage+": ")+x.what());
+    MakeFailVellSet(res,string("exception in execute() while "+stage+": ")+exc.what());
     return cacheResult(ref,RES_FAIL) | RES_UPDATED;
   }
 }

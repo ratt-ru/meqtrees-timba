@@ -345,8 +345,8 @@ dmi_type_map = { bool:'bool', int:'int', long:'long', float:'double',
                  record:'DataRecord', 
                  message:'Message' };
 
-# list of python types supported by DMI                 
-dmi_supported_types = dmi_type_map.keys();
+# tuple of python types supported by DMI                 
+dmi_supported_types = tuple(dmi_type_map.keys());
   
 def dmi_type (x):
   "returns the DMI type of its argument, or None if argument is not a DMI type";

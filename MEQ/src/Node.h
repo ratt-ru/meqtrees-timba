@@ -603,9 +603,20 @@ class Node : public BlockableObject
     
     //##ModelId=400E530A0143
     //##Documentation
-    //## child labels specified in constructor, if any. Labelled children may
+    //## child labels specified in constructor. Labelled children may
     //## be assigned via the record [label=child] form in init(). 
-    const HIID * child_labels_;      
+    //## If no labels specified, this is initialized with trivial HIIDs:
+    //## '0', '1', etc.
+    vector<HIID> child_labels_;
+    
+    //##Documentation
+    //## Returns label for child #i
+    //## If i>(number of defined labels), then this is simply "i".
+    //## Labels are used as indices into the child_names and child_indices
+    //## containers.
+    HIID getChildLabel (int ich) const
+    { return ich<int(child_labels_.size()) ? child_labels_[ich] : AtomicID(ich); }
+    
     //##ModelId=400E530A016A
     //##Documentation
     //## specified in constructor. If non-0, node must have that fixed number
@@ -685,7 +696,6 @@ class Node : public BlockableObject
     //##ModelId=400E530B03D6
     //##Documentation
     //## map from child labels to numbers (i.e. indices into the children_ vector)
-    //## if child labels are not defined, this a trivial i->i mapping
     ChildrenMap child_map_;
     
     //##ModelId=400E530C0011

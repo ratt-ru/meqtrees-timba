@@ -39,7 +39,7 @@ class Function : public Node
 {
 public:
     //##ModelId=3F86886E03C5
-  Function();
+  Function (int nchildren=-1,const HIID *labels = 0,int nmandatory=0);
 
     //##ModelId=3F86886E03D1
   virtual ~Function();
@@ -72,40 +72,47 @@ public:
     //##ModelId=400E53070274
   virtual TypeId objectType() const;
 
-  // Check the children after they have been resolved in class Node.
-  // The order of the children is the order as given when the Node object
-  // was created.
-    //##ModelId=3F95060D0060
-  virtual void checkChildren();
-
-  // Same as checkChildren, but it also tests if the number of children
-  // is correct (using the function testChildren).
-  // This is only done if not already done yet for this node object.
-  // If already done, false is returned.
-    //##ModelId=400E530702E6
-  bool convertChildren (int nchild);
-
-  // Same as convertChildren, but the order of the children is the order as
-  // the HIIDs given in the vector. If the number of children exceeds
-  // the vector size, the remaining ones are stored at the end in their
-  // original order.
-  // If nchild==0, it is set to the vector size.
-  // This is only done if not already done yet for this node object.
-  // If already done, false is returned.
-    //##ModelId=400E5308008E
-  bool convertChildren (const vector<HIID>& childNames, int nchild=0);
-
-  // Test the number of children.
-  // If the argument nchild is positive, it checks if the number
-  // of children matches exactly. If negative, it checks if the
-  // number of children is at least nchild. If zero, no test is done.
-    //##ModelId=400E53080325
-  void testChildren (int nchild) const;
-
-  // Test if the types of the children match the given types.
-  // It has to be done after check/convertChildren is done.
-    //##ModelId=400E530900C1
-  void testChildren (const vector<TypeId>& childTypes) const;
+// /*** OMS 08/07/04:
+//      phasing this out. No need to test for number of children, since
+//      we can already do this by using nchildren in the constructor,
+//      and testing the child types violates the whole principle of
+//      "no knowledge of child types"
+//      
+//   // Check the children after they have been resolved in class Node.
+//   // The order of the children is the order as given when the Node object
+//   // was created.
+//     //##ModelId=3F95060D0060
+//   virtual void checkChildren();
+// 
+//   // Same as checkChildren, but it also tests if the number of children
+//   // is correct (using the function testChildren).
+//   // This is only done if not already done yet for this node object.
+//   // If already done, false is returned.
+//     //##ModelId=400E530702E6
+//   bool convertChildren (int nchild);
+// 
+//   // Same as convertChildren, but the order of the children is the order as
+//   // the HIIDs given in the vector. If the number of children exceeds
+//   // the vector size, the remaining ones are stored at the end in their
+//   // original order.
+//   // If nchild==0, it is set to the vector size.
+//   // This is only done if not already done yet for this node object.
+//   // If already done, false is returned.
+//     //##ModelId=400E5308008E
+//   bool convertChildren (const vector<HIID>& childNames, int nchild=0);
+// 
+//   // Test the number of children.
+//   // If the argument nchild is positive, it checks if the number
+//   // of children matches exactly. If negative, it checks if the
+//   // number of children is at least nchild. If zero, no test is done.
+//     //##ModelId=400E53080325
+//   void testChildren (int nchild) const;
+// 
+//   // Test if the types of the children match the given types.
+//   // It has to be done after check/convertChildren is done.
+//     //##ModelId=400E530900C1
+//   void testChildren (const vector<TypeId>& childTypes) const;
+// ***/
 
 protected:
   virtual void setStateImpl (DataRecord &rec,bool initializing);
@@ -127,16 +134,19 @@ protected:
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
 
-    //##ModelId=3F86886F01D9
-  vector<Node*>& children()
-    { return itsChildren; }
+//*** OMS 08/07/04: phased out, see above
+//    //##ModelId=3F86886F01D9
+//  vector<Node*>& children()
+//    { return itsChildren; }
 
   vector<int> flagmask_;
   bool enable_flags_;
 
 private:
-    //##ModelId=3F86886E03A4
-  vector<Node*> itsChildren;
+    
+//*** OMS 08/07/04: phased out, see above
+//    //##ModelId=3F86886E03A4
+//  vector<Node*> itsChildren;
 
   bool force_integrated_;
   
@@ -145,6 +155,22 @@ private:
   int auto_resampling_;
 };
 
+
+template<int N>
+class FunctionX : public Function
+{
+public:
+  FunctionX() 
+    : Function(N)
+  {}
+
+  virtual ~FunctionX() 
+  {}
+  
+};
+
+typedef FunctionX<1> Function1;
+typedef FunctionX<2> Function2;
 
 } // namespace Meq
 

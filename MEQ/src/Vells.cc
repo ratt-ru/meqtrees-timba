@@ -857,6 +857,10 @@ template<>
 void implement_binary_tocomplex<double,LoMat_double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right)
 { out.as<LoMat_dcomplex>() = 
     zip(left.as<double>(),right.as<LoMat_double>(),dcomplex()); }
+template<> 
+void implement_binary_tocomplex<LoMat_double,LoMat_double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right)
+{ out.as<LoMat_dcomplex>() = 
+    zip(left.as<LoMat_double>(),right.as<LoMat_double>(),dcomplex()); }
 
 Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_tocomplex_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
     ExpandBinaryLUTMatrix(tocomplex);

@@ -29,8 +29,9 @@ namespace Meq {
 using Debug::ssprintf;
 
 //##ModelId=3F86886E03C5
-Function::Function()
-  : enable_flags_(true),force_integrated_(false)
+Function::Function(int nchildren,const HIID *labels,int nmandatory)
+  : Node(nchildren,labels,nmandatory),
+    enable_flags_(true),force_integrated_(false)
 {
   setAutoResample(RESAMPLE_FAIL);
 }
@@ -43,89 +44,6 @@ Function::~Function()
 TypeId Function::objectType() const
 {
   return TpMeqFunction;
-}
-
-//##ModelId=3F95060D0060
-void Function::checkChildren()
-{
-  if (itsChildren.size() == 0) {
-    int nch = numChildren();
-    itsChildren.resize (nch);
-    for (int i=0; i<nch; i++) {
-      itsChildren[i] = &(getChild(i));
-    }
-  }
-}
-
-//##ModelId=400E530702E6
-bool Function::convertChildren (int nchild)
-{
-  if (itsChildren.size() > 0) {
-    return false;
-  }
-  testChildren(nchild);
-  Function::checkChildren();
-  return true;
- }
-
-//##ModelId=400E5308008E
-bool Function::convertChildren (const vector<HIID>& childNames, int nchild)
-{
-  if (itsChildren.size() > 0) {
-    return false;
-  }
-  if (nchild == 0) {
-    nchild = childNames.size();
-  }
-  testChildren(nchild);
-  int nch = numChildren();
-  itsChildren.resize (nch);
-  int nhiid = childNames.size();
-  // Do it in order of the HIIDs given.
-  for (int i=0; i<nhiid; i++) {
-    itsChildren[i] = &(getChild(childNames[i]));
-  }
-  // It is possible that there are more children than HIIDs.
-  // In that case the remaining children are appended at the end.
-  if (nch > nhiid) {
-    int inx = nhiid;
-    for (int i=0; i<nch; i++) {
-      Node * ptr = &(getChild(childNames[i]));
-      bool fnd = false;
-      for (int j=0; j<nhiid; j++) {
-        if (ptr == itsChildren[j]) {
-          fnd = true;
-        }
-      }
-      if (!fnd) {
-        itsChildren[inx++] = ptr;
-      }
-    }
-  }
-  return true;
-}
-
-//##ModelId=400E53080325
-void Function::testChildren (int nchild) const
-{
-  if (nchild > 0) {
-    FailWhen(numChildren()!=nchild,
-        Debug::ssprintf("node has %d children, requires %d",numChildren(),nchild));
-  } else if (nchild < 0) {
-    FailWhen(numChildren() <= -nchild,
-        Debug::ssprintf("node has %d children, requires at least %d",numChildren(),-nchild+1));
-  }
-}
-
-//##ModelId=400E530900C1
-void Function::testChildren (const vector<TypeId>& types) const
-{
-  int nch = std::min (types.size(), itsChildren.size());
-  for (int i=0; i<nch; i++) {
-    AssertStr (itsChildren[i]->objectType() == types[i],
-               "expected type " << types[i] << ", but found "
-               << itsChildren[i]->objectType());
-  }
 }
 
 
@@ -158,8 +76,6 @@ void Function::setStateImpl (DataRecord &rec,bool initializing)
     }
   }
 }
-
-
 
 //##ModelId=3F86886E03DD
 int Function::getResult (Result::Ref &resref,
@@ -402,3 +318,89 @@ Vells Function::evaluate (const Request &,const LoShape &,const vector<const Vel
 
 
 } // namespace Meq
+
+
+/**** OMS 08/07/04: phased out, see above
+// //##ModelId=3F95060D0060
+// void Function::checkChildren()
+// {
+//   if (itsChildren.size() == 0) {
+//     int nch = numChildren();
+//     itsChildren.resize (nch);
+//     for (int i=0; i<nch; i++) {
+//       itsChildren[i] = &(getChild(i));
+//     }
+//   }
+// }
+// 
+// //##ModelId=400E530702E6
+// bool Function::convertChildren (int nchild)
+// {
+//   if (itsChildren.size() > 0) {
+//     return false;
+//   }
+//   testChildren(nchild);
+//   Function::checkChildren();
+//   return true;
+//  }
+// 
+// //##ModelId=400E5308008E
+// bool Function::convertChildren (const vector<HIID>& childNames, int nchild)
+// {
+//   if (itsChildren.size() > 0) {
+//     return false;
+//   }
+//   if (nchild == 0) {
+//     nchild = childNames.size();
+//   }
+//   testChildren(nchild);
+//   int nch = numChildren();
+//   itsChildren.resize (nch);
+//   int nhiid = childNames.size();
+//   // Do it in order of the HIIDs given.
+//   for (int i=0; i<nhiid; i++) {
+//     itsChildren[i] = &(getChild(childNames[i]));
+//   }
+//   // It is possible that there are more children than HIIDs.
+//   // In that case the remaining children are appended at the end.
+//   if (nch > nhiid) {
+//     int inx = nhiid;
+//     for (int i=0; i<nch; i++) {
+//       Node * ptr = &(getChild(childNames[i]));
+//       bool fnd = false;
+//       for (int j=0; j<nhiid; j++) {
+//         if (ptr == itsChildren[j]) {
+//           fnd = true;
+//         }
+//       }
+//       if (!fnd) {
+//         itsChildren[inx++] = ptr;
+//       }
+//     }
+//   }
+//   return true;
+// }
+// 
+// //##ModelId=400E53080325
+// void Function::testChildren (int nchild) const
+// {
+//   if (nchild > 0) {
+//     FailWhen(numChildren()!=nchild,
+//         Debug::ssprintf("node has %d children, requires %d",numChildren(),nchild));
+//   } else if (nchild < 0) {
+//     FailWhen(numChildren() <= -nchild,
+//         Debug::ssprintf("node has %d children, requires at least %d",numChildren(),-nchild+1));
+//   }
+// }
+// 
+// //##ModelId=400E530900C1
+// void Function::testChildren (const vector<TypeId>& types) const
+// {
+//   int nch = std::min (types.size(), itsChildren.size());
+//   for (int i=0; i<nch; i++) {
+//     AssertStr (itsChildren[i]->objectType() == types[i],
+//                "expected type " << types[i] << ", but found "
+//                << itsChildren[i]->objectType());
+//   }
+// }
+// *****/
