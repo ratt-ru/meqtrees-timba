@@ -449,7 +449,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
 msname := 'test.ms';
 # msname := 'test-wsrt.ms';
 mepuvw := T;
-filluvw := F;
+filluvw := any(argv=='-filluvw');
 
 src_dra  := ([0,128] + 0) * pi/(180*60*60); # perturb positions by # seconds
 src_ddec := ([0,128] + 0) * pi/(180*60*60);
