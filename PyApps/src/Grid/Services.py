@@ -22,9 +22,8 @@ _reg_viewers = {};
 # a viewer plug-in must provide the following interface:
 #
 
-def registerViewer (tp,viewer,dmitype=None,priority=0):
+def registerViewer (tp,viewer,priority=0):
   """Registers a viewer for the specified type:
-    registerViewer(datatype,viewer);
   The 'viewer' argument must be a class (or callable) providing the following 
   interface:
     viewer.viewer_name 
@@ -74,8 +73,8 @@ def registerViewer (tp,viewer,dmitype=None,priority=0):
   the same on behalf of the viewer.
   """;
   global _reg_viewers;
-  _dprint(1,"registering",viewer,"for type",tp,dmitype);
-  _reg_viewers.setdefault((tp,dmitype and dmitype.lower()),[]).append((priority,viewer));
+  _dprint(1,"registering",viewer,"for type",tp);
+  _reg_viewers.setdefault(tp,[]).append((priority,viewer));
 
 def isViewableWith (arg,viewer):
   if type(arg) is type:
@@ -86,26 +85,23 @@ def isViewableWith (arg,viewer):
     return checker(arg);
   return True;
 
-def isViewable (arg,dmitype=None):
+def isViewable (arg):
   global _reg_viewers;
   # arg may specify a type or a data object
   if type(arg) is type:
     datatype = arg;
   else:
     datatype = type(arg);
-    dmitype  = dmi_type(arg);
-  dmitype=dmitype and dmitype.lower();
-  for (tptuple,vlist) in _reg_viewers.iteritems():
-    (tp,dmitp) = tptuple;
+  for (tp,vlist) in _reg_viewers.iteritems():
     # registered type must be a superclass of the supplied type;
     # registered dmi type must be either None or match the argument dmi type
-    if issubclass(datatype,tp) and (dmitp is None or dmitp == dmitype):
+    if issubclass(datatype,tp):
       for (pri,viewer) in vlist:
         if isViewableWith(arg,viewer):
           return True;
   return False;
 
-def getViewerList (arg,dmitype=None):
+def getViewerList (arg):
   global _reg_viewers;
   if arg is None:
     return [];
@@ -114,14 +110,11 @@ def getViewerList (arg,dmitype=None):
     datatype = arg;
   else:
     datatype = type(arg);
-    dmitype  = dmi_type(arg);
-  dmitype=dmitype and dmitype.lower();
   viewer_list = [];
   # resolve data type (argument may be object or type)
-  for (tptuple,vlist) in _reg_viewers.iteritems():
+  for (tp,vlist) in _reg_viewers.iteritems():
     # find viewers for this class
-    (tp,dmitp) = tptuple;
-    if issubclass(datatype,tp) and (dmitp is None or dmitp == dmitype):
+    if issubclass(datatype,tp):
       if type(arg) is type:  # if specified as type, add all
         viewer_list.extend(vlist);
       else: # if specified as object, check to see which are compatible
@@ -153,7 +146,7 @@ def setDefaultWorkspace (gw):
   global _current_gw;
   _current_gw = gw;
 
-def addDataItem (item,gw=None,viewer=None,position=None,avoid_pos=None,newcell=False,newpage=False):
+def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=None,newcell=False,newpage=False):
   """Adds a data cell with a viewer the given item.
      viewer:    if not None, must a be a viewer plugion class. Overrides
                 the viewer specified by the item.
@@ -202,6 +195,8 @@ def addDataItem (item,gw=None,viewer=None,position=None,avoid_pos=None,newcell=F
           item0.update(item.data);
         else:
           item0.refresh();
+        if show_gw:
+          gw.show();
         return;
   # ok, we got to here so we have to create a viewer
   vopts = {};
@@ -231,6 +226,9 @@ def addDataItem (item,gw=None,viewer=None,position=None,avoid_pos=None,newcell=F
   highlightDataItem(item);
   # ask for a refresh of the item
   item.refresh();
+  # show the workspace
+  if show_gw:
+    gw.show();
 
 def removeDataItem (item):
   global _dataitems;

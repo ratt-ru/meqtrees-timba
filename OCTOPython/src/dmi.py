@@ -11,7 +11,10 @@ import numarray
 import types
 import weakref
 import re
+import new
 from numarray import array
+
+import Timba
 from Timba.utils import *
 
 # 
@@ -25,7 +28,7 @@ class hiid (tuple):
     for x in args:
       if isinstance(x,str):            # a string? Use HIID mapping functions
         try:
-          mylist = mylist + octopython.str_to_hiid(x,sep);
+          mylist = mylist + Timba.octopython.str_to_hiid(x,sep);
         except:
           raise ValueError, "'%s' is not a valid hiid"%x;
       elif isinstance(x,(tuple,list)): # other sequence? use as list
@@ -46,12 +49,12 @@ class hiid (tuple):
     # print 'getslice: ',i,j;
     return hiid(tuple.__getslice__(self,i,j));
   def __str__ (self):
-    return octopython.hiid_to_str(self);
+    return Timba.octopython.hiid_to_str(self);
   def __repr__ (self):
     return "hiid('%s')" % str(self);
   # matches() function matches hiids
   def matches (self,other):
-    return octopython.hiid_matches(self,make_hiid(other));
+    return Timba.octopython.hiid_matches(self,make_hiid(other));
   def startswith (self,other):
     other = make_hiid(other);
     return self[:len(other)] == other;
@@ -65,7 +68,7 @@ class hiid (tuple):
     return cmp(str(self).lower(),str(other).lower());
   # as_str converts to string
   def as_str (self,sep='.'):
-    return octopython.hiid_to_str(self,sep);
+    return Timba.octopython.hiid_to_str(self,sep);
   # as_int converts to int
   def as_int (self):
     if len(self) > 1:
@@ -96,31 +99,25 @@ def make_hiid_list (x):
 #
 # === dmize_object() ===
 # Converts obj to DMI-compatible representation, or raises TypeError if this
-# is impossible/
+# is impossible.
 # Current valid types are:
-# (*) see dmi_supported_types tuple defined below
-# (*) homogenous lists or tuples of supported object types
-#     (homogenous == all items in sequence have the same type)
+# (*) see _dmi_supported_types tuple defined below
+# (*) lists or tuples of supported object types
 def dmize_object (obj):
   "coerces object into a DMI-supported type as needed. Returns the "
   "object on success, or raises a TypeError on failure";
-  # object of supported type is returned as-is
-  if isinstance(obj,dmi_supported_types):
-    return obj;
-  # homogenous sequences of supported types are also supported, converted
-  # to a list
+  # check if sequence of supported types
   if isinstance(obj,(list,tuple)):
     seqtype = type(obj);
     if not len(obj):    # empty sequences always allowed
       return obj;   
-    outlist = []; # dmize sequence elements one by one and collect them in this list
-    eltype = type(obj[0]);  # element type must be homogenous
-    for item in obj:
-      if type(item) != eltype:
-        raise TypeError,'dmi: mixed-type sequences not supported (have %s and %s)'%(eltype,type(item));
-      outlist.append(dmize_object(item));
+    outlist = [ dmize_object(item) for item in obj ]; 
     # convert resulting list back into original sequence type
     return seqtype(outlist);
+  # else expect object of supported type, returned as-is
+  for tp in _dmi_typename_map.iterkeys():
+    if isinstance(obj,tp):
+      return obj;
   raise TypeError,'dmi: type %s not supported'%type(obj);
 
 
@@ -183,7 +180,7 @@ class record (dict):
   # this version does nothing, subclasses may redefine this to do value checking
   def make_value (self,value): 
     "checks value for validity, returns value, raises TypeError if illegal";
-    return value;
+    return dmize_object(value);
   # __getattr__: dict contents are exposed as extra attributes
   def __getattr__(self,name):
     if name.startswith('__'):
@@ -302,29 +299,7 @@ class record (dict):
   def __ne__ (self,other):
     return not self.__eq__(other);
 
-# 
-# === class srecord ===
-# srecord ("strict record") is a record with hiid-compatible keys. 
-# The actual keys are still strings, but they all must have a valid HIID 
-# representation.
-#
-class srecord (record):
-  "represents a strict DMI-like record (all keys must be legal HIIDs)";
-  # redefine make_key to check for HIIDs
-  def make_key (self,key): 
-    "checks key for validity (must be hiid), returns key, raises "
-    "TypeError if key is illegal";
-    try: make_hiid(key,sep='._');
-    except Exception,info: raise TypeError,info;
-    return str(key);
-  def make_value (self,value): 
-    "checks value for validity (must be dmizable), returns value, raises "
-    "TypeError if value is illegal";
-    try: return dmize_object(value);
-    except Exception,info: raise TypeError,info;
-    
 make_record = type_maker(record);
-make_srecord = type_maker(srecord);
 
 # 
 # === class message ===
@@ -386,28 +361,65 @@ def is_array (x):
 def is_scalar (x):
   return isinstance(x,(int,long,float,complex));
 
-# map of python types to DMI type names
-dmi_type_map = { bool:'bool', int:'int', long:'long', float:'double',
-                 complex:'dcomplex', str:'string', hiid:'HIID',
-                 array_class:'DataArray', 
-                 record:'DataRecord',srecord:'DataRecord', 
-                 message:'Message' };
+# this is a map of known DMI base classes and their corresponding DMI typenames
+# subtypes may be derived from these base classes
+_dmi_baseclasses = { list:'DMIList',record:'DMIRecord',array_class:'DMINumArray' };
 
-# tuple of python types supported by DMI                 
-dmi_supported_types = tuple(dmi_type_map.keys());
+# map of other python DMI types to DMI type names
+_dmi_typename_map = { bool:'bool', int:'int', long:'long', float:'double',
+                      complex:'dcomplex', str:'string', hiid:'DMIHIID',
+                      tuple:'DMIVec',message:'OctopussyMessage' };
+                      
+# extend this map with the base classes            
+_dmi_typename_map.update(_dmi_baseclasses);
+
+# generate reverse map: type names to python DMI types
+_dmi_nametype_map = {};
+for (t,n) in _dmi_typename_map.iteritems():
+  _dmi_nametype_map[n.lower()] = t;
   
-def dmi_type (x):
-  "returns the DMI type of its argument, or None if argument is not a DMI type";
-  # __dmi_type attribute overrides everything
-  if hasattr(x,'__dmi_type'):
-    return x.__dmi_type;
-  elif isinstance(x,record):       # record may have subclasses
-    return 'DataRecord';
+def dmi_typename (x,strict=False):
+  """returns the DMI type name of its argument.
+  If argument is not of a known DMI type, raises KeyError if strict=True, or 
+  returns None."""
+  nm = _dmi_typename_map.get(type(x),None);
+  if strict and nm is None:
+    raise KeyError,str(type(x))+" is not a known DMI type";
+  return nm;
+    
+def dmi_type (name,baseclass=None):
+  """Returns the type object associated with a DMI type name.
+  If not a known DMI type, attempts to register it as a derived class of 
+  baseclass. If no base class is supplied, raises an exception."""
+  tp = _dmi_nametype_map.get(name.lower(),None);
+  # if unknown type, we register a derived type using the baseclass as
+  if tp is None:
+    if not baseclass:
+      raise KeyError,name+" is not a known DMI type, and no base class supplied";
+    for bc in _dmi_baseclasses.iterkeys():
+      if issubclass(baseclass,bc):
+        tp = new.classobj(name,(baseclass,),{});
+        _dmi_typename_map[tp] = name;
+        _dmi_nametype_map[name.lower()] = tp;
+        return tp;
+    # got to here, so no supported baseclass found
+    raise TypeError,str(baseclass)+" is not a supported DMI base class";
   else:
-    return dmi_type_map.get(type(x),None);
+    # check base class if supplied
+    if baseclass is not None and not issubclass(tp,baseclass):
+      raise TypeError,name + " registered with a different base class";
+  return tp;
+
+def dmi_coerce (obj,dmitype):
+  """Changes type of object to the given dmitype. dmitype must be a subclass
+  of the object's type. Use with care. Note that this won't work for 
+  internal types (i.e. lists, tuples and such), only for record and arrays."""
+  if not issubclass(dmitype,type(obj)):
+    raise TypeError,str(dmitype)+' is not a subclass of '+str(type(obj));
+  obj.__class__ = dmitype;
   
 # import C module
-import octopython 
+import Timba.octopython 
 
 #
 # self-test code follows
@@ -429,7 +441,7 @@ def __test_hiids():
   print abca1b1[2];
   print abca1b1[2:6];
   print 'type of x:',type(x);
-  print 'dmi_type of x:',dmi_type(x);
+  print 'dmi_type of x:',dmi_typename(x);
   print "exception expected now";
   try:
     print hiid('x_y_z');
@@ -450,49 +462,23 @@ def __test_hiids():
 def __test_records():
   global rec1,rec2;
   print '------------- building record (non-strict) -------------------------';
-  rec1 = record();
+  rec1 = dmi_type('MeqPolc',record)();
   rec1.a_b = 0;
   rec1.b = "test";
   rec1.c = record();
   rec1.c.a = 0;
-  rec1.__dmi_type = 'Polc';
   print 'rec1:',rec1;
-  print 'rec1.__dmi_type:',rec1.__dmi_type;
-  print 'rec1 dmi type:',dmi_type(rec1);
+  print 'rec1 dmi type:',dmi_typename(rec1);
   print "accessing unknown field, expecting exception";
   try: rec1.d
   except Exception,info: print "got exception:",info;
   else: raise RuntimeError,'exception should have been raised';
   print "assigning illegal type, expecting exception";
-  try: rec1.d = [0,'x'];
+  try: rec1.d = {}; # plain dicts not supported
   except Exception,info: print "got exception:",info;
   else: raise RuntimeError,'exception should have been raised';
   print 'rec1.field_names():',rec1.field_names();
   print 'rec1.repr():',`rec1`;
-  print '------------- building record (strict) -----------------------------';
-  srec1 = srecord();
-  srec1.a_b = 0;
-  srec1.b = "test";
-  srec1.c = srecord();
-  srec1.c.a = 0;
-  print 'srec1:',srec1;
-  print "accessing unknown field, expecting exception";
-  try: print srec1.d;
-  except Exception,info: print "got exception:",info;
-  else: raise RuntimeError,'exception should have been raised';
-  print "accessing illegal field, expecting exception";
-  try: print srec1.nonhiid;
-  except Exception,info: print "got exception:",info;
-  else: raise RuntimeError,'exception should have been raised';
-  print "assigning to illegal field, expecting exception";
-  try: srec1.nonhiid = 0;
-  except Exception,info: print "got exception:",info;
-  else: raise RuntimeError,'exception should have been raised';
-  print 'srec1.field_names():',srec1.field_names();
-  print 'srec1.repr():',`srec1`;
-  print '------------- initializing strict record from dict -----------------';
-  rec2 = srecord({'a':0,'b':1,'c_d':2,'e':[1,2,3],'f':('x','y'),'g':[1,'x'],'z':(hiid('a'),hiid('b')),'nonhiid':4},verbose=2);
-  print 'rec2:',rec2;
   print '------------- initializing non-strict record from dict -------------';
   rec3 = record({'a':0,'b':1,'c_d':2,'e':[1,2,3],'f':('x','y'),'g':[1,'x'],'z':(hiid('a'),hiid('b')),'nonhiid':4},verbose=2);
   print 'rec3:',rec3;
@@ -510,7 +496,7 @@ def __test_messages():
 
 if __name__ == "__main__":
   # print some aids
-  print "Number of known AIDs: ",len(octopython.aid_map),len(octopython.aid_rmap);
+  print "Number of known AIDs: ",len(Timba.octopython.aid_map),len(Timba.octopython.aid_rmap);
   __test_hiids();
   __test_records();
   __test_messages();

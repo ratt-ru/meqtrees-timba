@@ -130,8 +130,8 @@ class ArrayBrowser(GriddedPlugin):
     self.set_widgets(self.wtop(),dataitem.caption,icon=self.icon());
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
-    context_menu = self.cell_menu();
     QObject.connect(self._tbl,PYSIGNAL("fontChanged()"),self._tbl.reset_colsizes);
+    context_menu = self.cell_menu();
     if context_menu is not None:
       context_menu.insertSeparator();
       menu = PrecisionPopupMenu(context_menu,prec=self._tbl.get_prec());

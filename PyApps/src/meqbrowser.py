@@ -15,7 +15,7 @@ def importPlugin (name):
   name = 'Timba.Plugins.'+name;
   try:
     __import__(name,globals(),locals(),[]);
-  except ImportError,what:
+  except Exception,what:
     print 'error importing',name,':',what;
     print 'This plugin will not be available.';
     

@@ -76,7 +76,7 @@ class meqserver (app_proxy):
   def meq (self,command,args=None,wait=False,silent=False):
     "sends a meq-command and optionally waits for result";
     command = make_hiid(command);
-    payload = srecord();
+    payload = record();
     if not args is None:
       payload.args = args;
     # send command and wait for reply
@@ -100,16 +100,16 @@ class meqserver (app_proxy):
   
   # helper function to create a node specification record
   def makenodespec (self,node):
-    "makes an srecord containing a node specification";
+    "makes an record( containing a node specification";
     if isinstance(node,str):
-      return srecord({'name':node});
+      return record(name=node);
     elif isinstance(node,int):
-      return srecord({'nodeindex':node});
+      return record(nodeindex=node);
     else:
       raise TypeError,'node must be specified by name or index, have '+str(type(node));
 
   def createnode (self,initrec,wait=False,silent=False):
-    initrec = make_srecord(initrec);
+    initrec = make_record(initrec);
     return self.meq('Create.Node',initrec,wait=wait,silent=silent);
   
   def getnodestate (self,node):
@@ -122,7 +122,7 @@ class meqserver (app_proxy):
       raise ValueError,'MeqServer did not return a nodeindex field';
 
   def getnodelist (self,name=True,nodeindex=True,classname=True,children=False):
-    rec = srecord({'name':name,'nodeindex':nodeindex,'class':classname,'children':children});
+    rec = record({'name':name,'nodeindex':nodeindex,'class':classname,'children':children});
     return self.meq('Get.Node.List',rec,wait=True);
   
   def execute (self,node,req):
@@ -168,7 +168,7 @@ def default_mqs (debug={},**kwargs):
     args.update(kwargs);
     print 'starting a meqserver with args:',args;
     mqs = meqserver(**args);
-    mqs.init(srecord(output_col='PREDICT'),wait=False);
+    mqs.init(record(output_col='PREDICT'),wait=False);
     if debug is None:
       pass;
     else:

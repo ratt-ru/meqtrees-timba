@@ -5,9 +5,15 @@ from Timba.dmi import *
 domain_ndim = 2;
 domain_axes = ( "freq","time" );
 
+_polc_type = dmi_type('MeqPolc',record);
+_domain_type = dmi_type('MeqDomain',record);
+_cells_type = dmi_type('MeqCells',record);
+_request_type = dmi_type('MeqRequest',record);
+
+
 def node (classname,name,children=None,groups=None,**kwargs):
   "creates a node record";
-  rec = srecord({'class':classname},name=name,**kwargs);
+  rec = record({'class':classname},name=name,**kwargs);
   if children:
     if not isinstance(children,(list,tuple)):
       children = (children,);
@@ -16,12 +22,13 @@ def node (classname,name,children=None,groups=None,**kwargs):
     self.node_groups = make_hiid_list(groups);
   return rec;
   
+  
 def polc (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
           scale=None,weight=1,domain=None,dbid=-1):
   "creates a polc record";
   if scale is None:  # scale supplied as seq of four numbers, or explicitly
     scale = ( freq0,freqsc,time0,timesc );
-  rec = srecord(freq_0=scale[0],freq_scale=scale[1],
+  rec = _polc_type(freq_0=scale[0],freq_scale=scale[1],
                 time_0=scale[2],time_scale=scale[3],
                 pert=pert,weight=weight,dbid_index=dbid);
   # process coeff argument -- force into a 2D array
@@ -38,16 +45,14 @@ def polc (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
     raise TypeError,'coeff argument must be a scalar or a rank-2 array';
   # process domain argument
   if domain is not None:
-    if dmi_type(domain) == 'MeqDomain':
+    if isinstance(domain,_domain_type):
       rec.domain = domain;
     else:
-      raise TypeError,'domain argument must be a meq.domain() object';
-  # set attr
-  rec.__dmi_type = 'MeqPolc';
+      raise TypeError,'domain argument must be a MeqDomain object';
   return rec;
   
 def make_polc (p):
-  if dmi_type(p) == 'MeqPolc':
+  if isinstance(p,_polc_type):
     return p;
   elif is_scalar(p) or is_array(p):
     return polc(p);
@@ -66,12 +71,10 @@ def parm (name,default=None,polcs=None,*args,**kwargs):
     else:
       rec.polcs = ( make_polc(polcs), );
   return rec;
-    
+
 def domain (startfreq,endfreq,starttime,endtime):
-  rec = srecord(freq=map(float,(startfreq,endfreq)),
+  return _domain_type(freq=map(float,(startfreq,endfreq)),
                 time=map(float,(starttime,endtime)));
-  rec.__dmi_type = 'MeqDomain';
-  return rec;
   
 # helper function to resolve a meq.cells grid for one axis
 # returns (grid,cellsize,segs) tuple
@@ -86,9 +89,9 @@ def _resolve_grid (axisname,dom,num,grid,cellsize):
     num = len(grid);
     # figure out segments
     if num<3:  # <=2 points: always regular
-      segs = srecord(start_index=0,end_index=num-1);
+      segs = record(start_index=0,end_index=num-1);
     else:      # >2 grid points: check for regularity
-      segs = srecord(start_index=[0],end_index=[1]);
+      segs = record(start_index=[0],end_index=[1]);
       cur_step = grid[1]-grid[0];
       for i in range(2,num-1):
         dx = grid[i] - grid[i-1];
@@ -110,7 +113,7 @@ def _resolve_grid (axisname,dom,num,grid,cellsize):
     # set cell size if not specified
     if cellsize is None or not len(cellsize):
       cellsize = numarray.zeros([num],arr_double) + step;
-    segs = srecord(start_index=0,end_index=num-1);
+    segs = record(start_index=0,end_index=num-1);
   else:
     raise ValueError,'either num_%s or %s_grid must be specified'%(axisname,axisname);
   # resolve cell size if not specified
@@ -148,8 +151,8 @@ def cells(domain=None,num_freq=None,num_time=None,
           freq_cell_size=[],time_cell_size=[]):
   # decompose domain into axis ranges
   if domain is not None:
-    if dmi_type(domain) != 'MeqDomain':
-      raise TypeError,'domain argument must be a meq.domain() object';
+    if not isinstance(domain,_domain_type):
+      raise TypeError,'domain argument must be a MeqDomain object';
     df = domain.freq;
     dt = domain.time;
   else:
@@ -166,11 +169,10 @@ def cells(domain=None,num_freq=None,num_time=None,
   (time_grid,time_cell_size,ts) = _resolve_grid(
         'time',dt,num_time,time_grid,time_cell_size);
   # create record
-  rec = srecord( domain    = domain(df[1],df[2],dt[1],dt[2]),
-                 grid      = srecord(freq=freq_grid,time=time_grid),
-                 cell_size = srecord(freq=freq_cell_size,time=time_cell_size),
-                 segments  = srecord(freq=fs,time=ts) )
-  rec.__dmi_type = 'MeqCells';
+  rec = _cells_type(domain    = domain(df[1],df[2],dt[1],dt[2]),
+                 grid      = record(freq=freq_grid,time=time_grid),
+                 cell_size = record(freq=freq_cell_size,time=time_cell_size),
+                 segments  = record(freq=fs,time=ts));
   return rec;
   
   
@@ -275,10 +277,10 @@ def request (cells=None,rqid=None,calc_deriv=0):
     _meqdomain_id += 1;
   else:
     _meqdomain_id = rqid[0];
-  rec = srecord(request_id=make_hiid(request_id),calc_deriv=calc_deriv);
+  rec = _cells_type(request_id=make_hiid(request_id),calc_deriv=calc_deriv);
   if cells is not None:
-    rec.cells = cells;
-  rec.__dmi_type = 'MeqRequest';
+    if not isinstance(cells,_cells_type):
+      raise TypeError,'cells argument must me a MeqCells object';
   return rec;
   
 # #-- meq.add_command() -------------------------------------------------------------

@@ -14,9 +14,7 @@ using std::endl;
         
 namespace OctoPython {    
     
-PyClassObjects py_class = {0,0,0,0,0,0};
-
-char * DMI_TYPE_TAG = const_cast<char*>("__dmi_type");
+DMISymbols py_dmisyms = {0,0,0,0,0,0,0,0};
 
 // -----------------------------------------------------------------------
 // convertSeqToHIID
@@ -63,7 +61,7 @@ PyObject * pyFromHIID (const HIID &id)
   // put hiid-sequence into tuple of args
   PyObjectRef args = Py_BuildValue("(N)",convertHIIDToSeq(id)); 
   // call hiid constructor
-  return PyObject_CallObject(py_class.hiid,*args);
+  return PyObject_CallObject(py_dmisyms.hiid,*args);
 }
 
 // -----------------------------------------------------------------------
@@ -72,7 +70,7 @@ PyObject * pyFromHIID (const HIID &id)
 int pyToMessage (Message::Ref &msg,PyObject *pyobj)
 {
 //  PyObject_Print(pyobj,stdout,Py_PRINT_RAW);
-  if( !PyObject_IsInstance(pyobj,py_class.message) )
+  if( !PyObject_IsInstance(pyobj,py_dmisyms.message) )
     throwError(Type,"object is not of type message");
   // get message ID
   PyObjectRef py_msgid = PyObject_GetAttrString(pyobj,"msgid");
@@ -133,26 +131,23 @@ template<class Base>
 static Base * createSubclass (PyObject *pyobj)
 {
   Base *pbase;
-  // the DMI_TYPE_TAG attribute specifies a subclass 
-  PyObjectRef dmitype = PyObject_GetAttrString(pyobj,DMI_TYPE_TAG);
-  if( dmitype )
+  // create object according to its DMI typestring
+  PyObjectRef args = Py_BuildValue("(Oi)",pyobj,1);
+  if( !args )
+    throwErrorOpt(Runtime,"failed to create dmi_typename() args tuple");
+  PyObjectRef dmitypename = PyObject_CallObject(py_dmisyms.dmi_typename,*args);
+  if( !dmitypename )
+    throwErrorOpt(Runtime,"failed to call dmi_typename()");
+  char *typestr = PyString_AsString(*dmitypename);
+  if( !typestr )
+    throwError(Value,"dmi_typename() did not return a string");
+  dprintf(4)("real object type is %s\n",typestr);
+  DMI::BObj * bo = DynamicTypeManager::construct(TypeId(typestr));
+  pbase = dynamic_cast<Base *>(bo);
+  if( !pbase )
   {
-    char *typestr = PyString_AsString(*dmitype);
-    if( !typestr )
-      throwError(Value,string(DMI_TYPE_TAG)+" attribute is not a string");
-    dprintf(4)("real object type is %s\n",typestr);
-    DMI::BObj * bo = DynamicTypeManager::construct(TypeId(typestr));
-    pbase = dynamic_cast<Base *>(bo);
-    if( !pbase )
-    {
-      delete bo;
-      throwError(Type,string(typestr)+"is not a subclass of "+TpOfPtr(pbase).toString());
-    }
-  }
-  else // no type tag, allocate a base type
-  {
-    PyErr_Clear();  // clear "no such attribute" error
-    pbase = new Base;
+    delete bo;
+    throwError(Type,string(typestr)+"is not a subclass of "+TpOfPtr(pbase).toString());
   }
   dprintf(5)("%s created at address %x\n",pbase->objectType().toString().c_str(),(int)pbase);
   return pbase;
@@ -312,13 +307,13 @@ TypeId pyToDMI_Type (PyObject *obj)
     return Tpdcomplex;
   else if( PyString_Check(obj) )
     return Tpstring;
-  else if( PyObject_IsInstance(obj,py_class.hiid) )
+  else if( PyObject_IsInstance(obj,py_dmisyms.hiid) )
     return TpDMIHIID;
-  else if( PyObject_IsInstance(obj,py_class.record) ) 
+  else if( PyObject_IsInstance(obj,py_dmisyms.record) ) 
     return TpDMIRecord;
-  else if( PyObject_IsInstance(obj,py_class.array_class) )
+  else if( PyObject_IsInstance(obj,py_dmisyms.array_class) )
     return TpDMINumArray;
-  else if( PyObject_IsInstance(obj,py_class.message) )
+  else if( PyObject_IsInstance(obj,py_dmisyms.message) )
     return TpOctopussyMessage;
   else if( PySequence_Check(obj) )  // process a sequence
     return TpDMIList;
@@ -529,6 +524,28 @@ inline PyObject * pyFromObjRef (const ObjRef &ref)
     return *PyObjectRef(Py_None,true);
 }
 
+
+// -----------------------------------------------------------------------
+// createPyObject
+// Creates PyObject from given dmiobj; uses basetype as the base type.
+// Optional constructor arguments may be supplied.
+// -----------------------------------------------------------------------
+PyObject * createPyObject (PyObject *basetype,const BObj &dmiobj,PyObject *constructor_args=0)
+{
+  std::string objtype = dmiobj.objectType().toString();
+  cdebug(3)<<"createPyObject: creating a "<<objtype<<endl;
+  PyObjectRef args = Py_BuildValue("(sO)",objtype.c_str(),basetype);
+  if( !args )
+    throwErrorOpt(Runtime,"failed to create dmi_type() args tuple for "+objtype);
+  PyObjectRef constructor = PyObject_CallObject(py_dmisyms.dmi_type,*args);
+  if( !constructor )
+    throwErrorOpt(Runtime,"failed to call dmi_type() for "+objtype);
+  PyObjectRef pyobj = PyObject_CallObject(*constructor,constructor_args);
+  if( !pyobj )
+    throwErrorOpt(Runtime,"failed to create a python object for "+objtype);
+  return ~pyobj;
+}
+
 // -----------------------------------------------------------------------
 // pyFromVec
 // converts a DMI::Vec to a Python scalar or tuple
@@ -536,27 +553,29 @@ inline PyObject * pyFromObjRef (const ObjRef &ref)
 PyObject * pyFromVec (const DMI::Vec &dv)
 {
   Thread::Mutex::Lock lock(dv.mutex());
+  cdebug(3)<<"pyFromVec: creating\n";
+  //  PyObjectRef tuple = createPyObject((PyObject*)&PyTuple_Type,dv);
+  // subclasses of tuple not permitted
+  PyObjectRef tuple;
   // empty/uninit field -- return empty tuple
   if( !dv.valid() )
   {
-    cdebug(3)<<"pyFromDF: null DMI::Vec, returning ()\n";
+    cdebug(3)<<"pyFromDF: null DMI::Vec, returning empty tuple\n";
     return PyTuple_New(0);
   }
   TypeId type = dv.type();
   const TypeInfo &typeinfo = TypeInfo::find(type);
   int num = dv.size();
-  PyObjectRef tuple;
   if( dv.isScalar() ) // scalar field: will be returned directly
   {
     cdebug(3)<<"pyFromDF: will return scalar "<<type<<endl;
   }
   else   // non-scalar field: allocate a tuple
   {
+    cdebug(3)<<"pyFromDF: creating tuple of size "<<num<<"\n";
     tuple = PyTuple_New(num);
     if( !tuple )
-      throwErrorOpt(Runtime,"failed to create a tuple");
-    cdebug(3)<<"pyFromDF: creating tuple of "<<num<<" "<<type<<"s\n";
-    PyObjectRef vectype(PyInt_FromLong(dv.type()));
+      throwErrorOpt(Runtime,"failed to resize tuple");
   }
   // Define macro to extract field contents and assign to tuple, or else
   // return immediately.
@@ -610,24 +629,24 @@ PyObject * pyFromVec (const DMI::Vec &dv)
 PyObject * pyFromList (const DMI::List &dl)
 {
   Thread::Mutex::Lock lock(dl.mutex());
-  int len = dl.size();
-  cdebug(3)<<"pyFromList: converting DMI::List of "<<len<<" items\n";
-  PyObjectRef pylist = PyList_New(len);
-  for( int i=0; i<len; i++ )
+  cdebug(3)<<"pyFromList: creating\n";
+  PyObjectRef pylist = createPyObject((PyObject*)&PyList_Type,dl);
+  for( int i=0; i<dl.size(); i++ )
   {
     ObjRef content = dl.get(i);
     if( content.valid() )
     {
       cdebug(4)<<"pyFromList: #"<<i<<" is a "<<content->objectType()<<endl;
-      PyList_SET_ITEM(*pylist,i,pyFromDMI(*content,EP_CONV_ERROR));
+      PyList_Append(*pylist,pyFromDMI(*content,EP_CONV_ERROR));
     }
     else
     {
       cdebug(4)<<"pyFromList: #"<<i<<" is a None"<<endl;
-      PyList_SET_ITEM(*pylist,i,*PyObjectRef(Py_None,true));
+      PyObjectRef none(Py_None);    
+      PyList_Append(*pylist,~none);
     }
   }
-  cdebug(3)<<"pyFromList: converted "<<len<<" items\n";
+  cdebug(3)<<"pyFromList: converted "<<dl.size()<<" items\n";
   return ~pylist; // return new ref, stealing from ours
 }
 
@@ -638,10 +657,8 @@ PyObject * pyFromList (const DMI::List &dl)
 PyObject * pyFromRecord (const DMI::Record &dr)
 {
   Thread::Mutex::Lock lock(dr.mutex());
-  cdebug(3)<<"pyFromRecord: converting DMI::Record"<<endl;
-  PyObjectRef pyrec = PyObject_CallObject(py_class.record,NULL);
-  if( !pyrec )
-    throwErrorOpt(Runtime,"failed to create a record instance");
+  cdebug(3)<<"pyFromRecord: creating"<<endl;
+  PyObjectRef pyrec = createPyObject(py_dmisyms.record,dr);
   for( DMI::Record::const_iterator iter = dr.begin(); iter != dr.end(); iter++ )
   {
     string idstr = strlowercase(iter.id().toString('_',false)); // false = do not mark literals with $
@@ -680,12 +697,13 @@ PyObject * pyFromArray (const DMI::NumArray &da)
 {
   Thread::Mutex::Lock lock(da.mutex());
   // get rank & shape into terms that Numarray understands
+   cdebug(3)<<"pyFromArray: creating array"<<endl;
   int rank = da.rank();
   TypeId objtype = da.objectType();
   // a [1] array is converted to a scalar, unless it's a subclass of NumArray
-  // (in which case we'll need to add tags to it, so we need to make it into
+  // (in which case we'll need to subclass it, so we need to make it into
   // an array anyway)
-  if( rank==1 && da.size() == 1 && da.objectType() == TpDMINumArray )
+  if( rank==1 && da.size() == 1 && objtype == TpDMINumArray )
   {
     TypeId type = da.elementType();
     DMI::NumArray::Hook hook(da,0);
@@ -706,6 +724,19 @@ PyObject * pyFromArray (const DMI::NumArray &da)
   }
   else // else regular array
   {
+    // do we need to reclassify later?
+    PyObjectRef realclass;
+    if( objtype != TpDMINumArray )
+    {
+      cdebug(3)<<"pyFromArray: real type is "<<objtype<<endl;
+      PyObjectRef args = Py_BuildValue("(sO)",objtype.toString().c_str(),py_dmisyms.array_class);
+      if( !args )
+        throwErrorOpt(Runtime,"failed to create dmi_type() args tuple for "+objtype.toString());
+      realclass = PyObject_CallObject(py_dmisyms.dmi_type,*args);
+      if( !realclass )
+        throwErrorOpt(Runtime,"failed to call dmi_type() for "+objtype.toString());
+    }
+    // create array
     NumarrayType typecode = typeIdToNumarray(da.elementType());
 // 20/01/05: get rid of transpose here since NumArrays are in C order now
 // this is the old version: column-major ordering
@@ -728,6 +759,17 @@ PyObject * pyFromArray (const DMI::NumArray &da)
       dims[i] = da.shape()[i];
     PyObjectRef pyarr = (PyObject*)
       NA_vNewArray(const_cast<void*>(da.getConstDataPtr()),typecode,rank,dims);
+    // reclassify
+    if( objtype != TpDMINumArray )
+    {
+      cdebug(3)<<"pyFromArray: recasting array to "<<objtype<<endl;
+      PyObjectRef args = Py_BuildValue("(OO)",*pyarr,*realclass);
+      if( !args )
+        throwErrorOpt(Runtime,"failed to create dmi_coerce() args tuple for "+objtype.toString());
+      PyObjectRef result = PyObject_CallObject(py_dmisyms.dmi_coerce,*args);
+      if( !result )
+        throwErrorOpt(Runtime,"failed to call dmi_coerce() for "+objtype.toString());
+    }
     return ~pyarr;
   }
 }
@@ -753,7 +795,7 @@ PyObject * pyFromMessage (const Message &msg)
   if( !args )
     throwErrorOpt(Runtime,"failed to build args tuple");
   
-  PyObjectRef py_msg = PyObject_CallObject(py_class.message,*args);
+  PyObjectRef py_msg = PyObject_CallObject(py_dmisyms.message,*args);
   if( !py_msg )
     throwErrorOpt(Runtime,"failed to create a message instance");
   
@@ -786,43 +828,19 @@ PyObject * pyFromDMI (const DMI::BObj &obj,int err_policy)
   try
   {
     TypeId objtype = obj.objectType();
-    TypeId base_objtype;
     PyObjectRef pyobj;
     if( dynamic_cast<const DMI::Record *>(&obj) )
-    {
-      base_objtype = TpDMIRecord;
       pyobj = pyFromRecord(dynamic_cast<const DMI::Record &>(obj));
-    }
     else if( dynamic_cast<const DMI::Vec *>(&obj) )
-    {
-      base_objtype = TpDMIVec;
       pyobj = pyFromVec(dynamic_cast<const DMI::Vec &>(obj));
-    }
     else if( dynamic_cast<const DMI::NumArray *>(&obj) )
-    {
-      base_objtype = TpDMINumArray;
       pyobj = pyFromArray(dynamic_cast<const DMI::NumArray &>(obj));
-    }
     else if( dynamic_cast<const DMI::List *>(&obj) )
-    {
-      base_objtype = TpDMIList;
       pyobj = pyFromList(dynamic_cast<const DMI::List &>(obj));
-    }
     else if( dynamic_cast<const Message *>(&obj) )
-    {
-      base_objtype = TpOctopussyMessage;
       pyobj = pyFromMessage(dynamic_cast<const Message &>(obj));
-    }
     else
       throwError(Type,"dmi type "+objtype.toString()+" not supported");
-    // set the __dmi_type attribute if object is a subclass
-    if( objtype != base_objtype )
-    {
-      cdebug(3)<<"pyFromDMI: "<<objtype<<" is a subclass of "<<base_objtype<<endl;
-      PyObjectRef type = PyString_FromString(const_cast<char*>(objtype.toString().c_str()));
-      if( PyObject_SetAttrString(*pyobj,DMI_TYPE_TAG,*type) < 0 )
-        throwErrorOpt(Runtime,"failed to set attribute");
-    }
     return ~pyobj;
   }
   catch( std::exception &exc )
@@ -860,7 +878,7 @@ PyObject * pyConvError (const string &msg)
   if( !args )
     throwErrorOpt(Runtime,"failed to build args tuple");
   PyErr_Clear();
-  PyObjectRef converr = PyObject_Call(py_class.conv_error,*args,NULL);
+  PyObjectRef converr = PyObject_Call(py_dmisyms.conv_error,*args,NULL);
   if( !converr )
     throwErrorOpt(Runtime,"failed to create a conv_error instance");
   return ~converr;

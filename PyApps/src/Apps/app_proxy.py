@@ -76,11 +76,11 @@ class app_proxy (verbosity):
     self.pause_events = self._pwp.pause_events;
     self.resume_events = self._pwp.resume_events;
     # ------------------------------ define default control record
-    self.initrec_prev = srecord(
+    self.initrec_prev = record(
       throw_error=True,
-      control=srecord(
-        event_map_in  = srecord(default_prefix=self._snd_prefix),
-        event_map_out = srecord(default_prefix=self._rcv_prefix,
+      control=record(
+        event_map_in  = record(default_prefix=self._snd_prefix),
+        event_map_out = record(default_prefix=self._rcv_prefix,
                                 debug_prefix=self._rcv_prefix_debug),
         stop_when_end = False ));
       

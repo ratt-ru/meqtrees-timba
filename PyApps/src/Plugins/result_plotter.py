@@ -467,4 +467,4 @@ class ResultPlotter(GriddedPlugin):
 
     _dprint(3, 'exiting set_data')
 
-Grid.Services.registerViewer(dict,ResultPlotter,dmitype='meqresult',priority=10)
+Grid.Services.registerViewer(dmi_type('MeqResult',record),ResultPlotter,priority=10)

@@ -405,14 +405,14 @@ class app_proxy_gui(verbosity,QMainWindow):
     gw.wtop().hide();
     gw.add_tool_button(Qt.TopRight,pixmaps.remove.pm(),
       tooltip="hide the value browser panel",click=self.hide_gridded_workspace);
-    QWidget.connect(self.gw.wtop(),PYSIGNAL("addedCell()"),self.show_gridded_workspace);
     Grid.Services.setDefaultWorkspace(self.gw);
+    QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self._gridded_workspace_shown);
     
     self.show_workspace_button = DataDroppableWidget(QToolButton)(maintab);
     self.show_workspace_button.setPixmap(pixmaps.view_split.pm());
     self.show_workspace_button.setAutoRaise(True);
     maintab.setCornerWidget(self.show_workspace_button,Qt.BottomRight);
-    QWidget.connect(self.show_workspace_button,SIGNAL("clicked()"),self.show_gridded_workspace);
+    QWidget.connect(self.show_workspace_button,SIGNAL("clicked()"),self.gw.show);
     QWidget.connect(self.show_workspace_button,PYSIGNAL("dataItemDropped()"),self.display_data_item);
     QToolTip.add(self.show_workspace_button,"show the viewer panel. You can also drop data items here.");
     
@@ -428,16 +428,14 @@ class app_proxy_gui(verbosity,QMainWindow):
     self._update_app_state();
     QMainWindow.show(self);
     
-  def show_gridded_workspace (self,show=True):
+  def _gridded_workspace_shown (self,shown):
     page = self.maintab.currentPage();
-    self.gw_visible[page] = show;
-    # hide or show the workspace
-    if show: 
-      self.gw.wtop().show();
-      self.show_workspace_button.hide();
-    else:    
-      self.gw.wtop().hide();
-      self.show_workspace_button.show();
+    self.gw_visible[page] = shown;
+    # "hide workspace" button only visible when workspace is hidden
+    self.show_workspace_button.setHidden(shown)
+    
+  def show_gridded_workspace (self,shown=True):
+    self.gw.show(shown);
     
   def hide_gridded_workspace (self):
     return self.show_gridded_workspace(False);
@@ -460,9 +458,8 @@ class app_proxy_gui(verbosity,QMainWindow):
         self.show_workspace_button.show();
       
 ##### displays data item in gridded workspace
-  def display_data_item (self,item,args=(),kwargs={}):
-    self.gw.add_data_item(item,*args,**kwargs);
-    self.show_gridded_workspace();
+  def display_data_item (self,item,kwargs={}):
+    Grid.Services.addDataItem(item,gw=self.gw,**kwargs);
     
 ##### event relay: reposts message as a Qt custom event for ourselves
   MessageEventType = QEvent.User+1;

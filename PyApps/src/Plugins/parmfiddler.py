@@ -181,17 +181,17 @@ class editParm(QDialog):
 class NA_ParmFiddler(NodeAction):
   text = "ParmFiddler";
   nodeclass = meqds.NodeClass('MeqParm');
-  def activate (self):
+  def activate (self,node):
     try: dialog = self.item.tb._node_parmfiddler_dialog;
     except AttributeError:
       self.item.tb._node_parmfiddler_dialog = dialog = ParmFiddlerDialog(self.item.tb.wtop());
-    dialog.show(self.node);
-  def is_enabled (self):
+    dialog.show(node);
+  def is_enabled (self,node):
     # available in idle mode, or when stopped at a debugger. 
     # If debug_level is set, node must be idle (otherwise, we can't trust the
     # node control status to be up-to-date)
     return ( self.tb.is_stopped or not self.tb.is_running ) and \
-           ( not self.tb.debug_level or self.node.is_idle() );
+           ( not self.tb.debug_level or node.is_idle() );
 
 
 class ParmFiddlerDialog (QDialog):

@@ -257,17 +257,19 @@ PyMODINIT_FUNC initoctopython ()
     return;
   }
   
-  #define GetConstructor(cls) \
-    if( ! ( py_class.cls = PyDict_GetItemString(dmidict,#cls) ) ) \
-      { Py_FatalError("octopython: name dmi." #cls " not found"); return; } \
-    Py_INCREF(py_class.cls);
+  #define GetSym(cls) \
+    if( ! ( py_dmisyms.cls = PyDict_GetItemString(dmidict,#cls) ) ) \
+      { Py_FatalError("octopython: symbol dmi." #cls " not found"); return; } \
+    Py_INCREF(py_dmisyms.cls);
   
-  GetConstructor(hiid);
-  GetConstructor(message);
-  GetConstructor(record);
-  GetConstructor(srecord);
-  GetConstructor(array_class);
-  GetConstructor(conv_error);
+  GetSym(hiid);
+  GetSym(message);
+  GetSym(record);
+  GetSym(array_class);
+  GetSym(conv_error);
+  GetSym(dmi_type);
+  GetSym(dmi_typename);
+  GetSym(dmi_coerce);
   
   // register an exception object
   PyExc_OctoPythonError = PyErr_NewException("octopython.OctoPythonError", NULL, NULL);

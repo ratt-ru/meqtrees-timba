@@ -28,9 +28,10 @@ namespace OctoPython
   // Python class objects from dmitypes (used as constructors and
   // for asinstance() comparisons)
   typedef struct {
-    PyObject *hiid,*message,*record,*srecord,*array_class,*conv_error;
-  } PyClassObjects;
-  extern PyClassObjects py_class;
+    PyObject *hiid,*message,*record,*array_class,*conv_error,
+             *dmi_type,*dmi_typename,*dmi_coerce;
+  } DMISymbols;
+  extern DMISymbols py_dmisyms;
   // ProxyWP type structure
   extern PyTypeObject PyProxyWPType;
   // ThreadCond
@@ -139,6 +140,9 @@ namespace OctoPython
       
       // obj() returns PyObject *
       PyObject * obj () const   { return pobj; }
+      
+      // _obj() returns internal pointer by-ref, use with care
+      PyObject * & _obj () { return pobj; }
 
       // new_ref() increments ref count and returns pointer
       // (useful for calling functions that steal a ref)
@@ -231,10 +235,19 @@ namespace OctoPython
   // throwError() macro
   // Raises Python exception PyExc_"err"Error with the given 
   // message; throws a PythonException exception.
-  // Note that if a Python exception is already raised, this OVERRIDES it.
+  // Note that if a Python exception is already raised, this prints it and
+  // then OVERRIDES it.
   #define throwError(err,msg) \
+  { if( PyErr_Occurred() ) PyErr_Print(); \
+    throw OctoPython::PythonException(PyExc_##err##Error,msg); }
+  
+  // throwErrorQuiet() macro
+  // Raises Python exception PyExc_"err"Error with the given 
+  // message; throws a PythonException exception.
+  // Note that if a Python exception is already raised, this OVERRIDES it.
+  #define throwErrorQuiet(err,msg) \
     throw OctoPython::PythonException(PyExc_##err##Error,msg)
-
+    
   // throwErrorOpt() macro
   // If a Python exception is already raised, simply throws a PythonException 
   // with message. Otherwise, works just like throwError().

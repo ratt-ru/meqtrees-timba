@@ -245,7 +245,7 @@ class TreeBrowser (QObject):
         # add debugging menu
         menu.insertItem(pixmaps.breakpoint.iconset(),"Debug",self.debug_menu());
       # refresh all node actions
-      map(lambda a:a.update(menu),self._menu_actions);
+      map(lambda a:a.update(menu,self.node),self._menu_actions);
       return menu;
       
     def paintCell (self,painter,cg,column,width,align):
@@ -456,7 +456,7 @@ class TreeBrowser (QObject):
       self._qa_dbg_enable.setText("Disable debugger and continue");
       self._qa_dbg_enable.setMenuText("&Disable debugger");
       if not getattr(self,'_setting_debug_control',False):
-        mqs().meq('Debug.Set.Level',srecord(debug_level=2,get_forest_status=True),wait=False);
+        mqs().meq('Debug.Set.Level',record(debug_level=2,get_forest_status=True),wait=False);
     else:
       if not getattr(self,'_setting_debug_control',False):
         # confirm disable if in debugger
@@ -471,7 +471,7 @@ Please press OK to confirm.""",QMessageBox.Ok,\
              != QMessageBox.Ok:
             self._set_debug_control(True);
             return;
-        mqs().meq('Debug.Set.Level',srecord(debug_level=0,get_forest_status=True),wait=False);
+        mqs().meq('Debug.Set.Level',record(debug_level=0,get_forest_status=True),wait=False);
       # really disable
       self.clear_debug_stack();
       self._qa_dbg_enable.setAccel(Qt.Key_F5);
@@ -693,28 +693,28 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     self.clear_debug_stack();
     self.is_stopped = False;
     self._update_all_controls();
-    mqs().meq('Debug.Single.Step',srecord(),wait=False);
+    mqs().meq('Debug.Single.Step',record(),wait=False);
   
   def _debug_next_node (self):
     self.clear_debug_stack();
     self.is_stopped = False;
     self._update_all_controls();
-    mqs().meq('Debug.Next.Node',srecord(),wait=False);
+    mqs().meq('Debug.Next.Node',record(),wait=False);
     
   def _debug_until_node (self,node):
     self.clear_debug_stack();
     self.is_stopped = False;
     self._update_all_controls();
-    mqs().meq('Debug.Until.Node',srecord(nodeindex=node.nodeindex),wait=False);
+    mqs().meq('Debug.Until.Node',record(nodeindex=node.nodeindex),wait=False);
   
   def _debug_continue (self):
     self.clear_debug_stack();
     self.is_stopped = False;
     self._update_all_controls();
-    mqs().meq('Debug.Continue',srecord(),wait=False);
+    mqs().meq('Debug.Continue',record(),wait=False);
     
   def _debug_pause (self):
-    mqs().meq('Debug.Pause',srecord(),wait=False);
+    mqs().meq('Debug.Pause',record(),wait=False);
 
   def add_action (self,action,order=1000,where="toolbar",callback=None):
     if callback:
@@ -739,7 +739,7 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       dialog.rereadDir();
     if dialog.exec_loop() == QDialog.Accepted:
       fname = str(dialog.selectedFile());
-      rec = srecord(file_name=fname,get_forest_status=True);
+      rec = record(file_name=fname,get_forest_status=True);
       mqs().meq('Save.Forest',rec,wait=False);
 
   def load_forest_dialog (self):
@@ -754,7 +754,7 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       dialog.rereadDir();
     if dialog.exec_loop() == QDialog.Accepted:
       fname = str(dialog.selectedFile());
-      rec = srecord(file_name=fname,get_forest_status=True);
+      rec = record(file_name=fname,get_forest_status=True);
       mqs().meq('Load.Forest',rec,wait=False);
       
   def show_icon_reference (self):
@@ -848,7 +848,7 @@ def define_treebrowser_actions (tb):
   tb.add_action(dbg_enable,60);
   # Pause
   pause = QAction("Pause",pixmaps.pause.iconset(),"&Pause",Qt.Key_F6,parent);
-  dbg_enable.is_enabled = lambda tb=tb: tb.is_connected and tb.debug_level>0 and \
+  dbg_enable._is_enabled = lambda tb=tb: tb.is_connected and tb.debug_level>0 and \
                                         tb.is_running and not tb.is_stopped;
   tb.add_action(pause,70,callback=tb._debug_pause);
   tb.add_separator(80);
@@ -893,7 +893,12 @@ class NodeAction (object):
   nodeclass = None;  # None means all nodes; else assign meqds.NodeClass('class');
   # static methods describing properties of this action
   def applies_to_node (self,node):
-    return self.nodeclass is None or issubclass(meqds.NodeClass(node.nodeclass),self.nodeclass);
+    if self.nodeclass is None:
+      return True;
+    if isinstance(self.nodeclass,str):
+      self.nodeclass = meqds.NodeClass(self.nodeclass);
+    try: return issubclass(meqds.NodeClass(node.nodeclass),self.nodeclass);
+    except: return False;
   applies_to_node = classmethod(applies_to_node);
   
   def __init__ (self,item,menu,callback=None,separator=False):
@@ -904,45 +909,57 @@ class NodeAction (object):
     self.tb   = weakref_proxy(item.tb);
     if separator:
       menu.insertSeparator();
+    self._callback = callback or xcurry(self.activate,_args=(self.node,));
     if self.iconset:
-      self.item_id = menu.insertItem(self.iconset(),self.text,callback or self.activate);
+      self.item_id = menu.insertItem(self.iconset(),self.text,self._callback);
     else:
-      self.item_id = menu.insertItem(self.text,callback or self.activate);
+      self.item_id = menu.insertItem(self.text,self._callback);
       
-  def update (self,menu):
+  def is_checked (self,node):
+    return None;
+    
+  def is_enabled (self,node):
+    return True;
+      
+  def update (self,menu,node):
     """this is called whenever a menu is being displayed. Subclasses may
-    redefine this to set up the item as appropriate""";
-    # if an is_enabled attribute exists, enable item
-    try: enable = self.is_enabled();
-    except AttributeError: pass;
-    else: menu.setItemEnabled(self.item_id,enable);
-    # if an is_checked attribute exists, set item as checked
-    try: checked = self.is_checked();
-    except AttributeError: pass;
-    else: menu.setItemChecked(self.item_id,checked);
+    redefine this to set up the item as appropriate
+    The node argument defines which node the action is being applied to, or None 
+    if the action is global. For actions residing in context menus, node is the 
+    same as self.node.""";
+    # enable/disable item
+    print self;
+    menu.setItemEnabled(self.item_id,self.is_enabled(node));
+    # if is_checked returns not None, set item as checked/unchecked
+    checked = self.is_checked(node);
+    if checked is not None:
+      menu.setItemChecked(self.item_id,checked);
       
-  def activate (self):
-    """callback: called whenever the menu item is selected""";
+  def activate (self,node):
+    """callback: called whenever the menu item is selected. 
+    The node argument defines which node the action is being applied to, or None 
+    if the action is global. For actions residing in context menus, node is the 
+    same as self.node.""";
     pass;
       
 class NA_NodeDisable (NodeAction):
   text = "Disable";
   iconset = pixmaps.cancel.iconset;
-  def activate (self):
-    cs = self.node.control_status ^ meqds.CS_ACTIVE;
-    meqds.set_node_state(self.node,control_status=cs);
+  def activate (self,node):
+    cs = node.control_status ^ meqds.CS_ACTIVE;
+    meqds.set_node_state(node,control_status=cs);
   # define is_checked as a property that is computed on-the-fly
-  def is_checked (self):
-    return not self.node.is_active();
+  def is_checked (self,node):
+    return not node.is_active();
 
 class NA_NodePublish (NodeAction):
   text = "Publish";
   iconset = pixmaps.publish.iconset;
-  def activate (self):
-    cmd = srecord(nodeindex=self.node.nodeindex,get_state=True,enable=not self.node.is_publishing());
+  def activate (self,node):
+    cmd = record(nodeindex=node.nodeindex,get_state=True,enable=not node.is_publishing());
     mqs().meq('Node.Publish.Results',cmd,wait=False);
-  def is_checked (self):
-    return self.node.is_publishing();
+  def is_checked (self,node):
+    return node.is_publishing();
 
 class NA_ContinueUntil (NodeAction):
   text = "Continue until";
@@ -950,9 +967,7 @@ class NA_ContinueUntil (NodeAction):
   def __init__ (self,item,menu,**kw):
     NodeAction.__init__(self,item,menu,**kw);
     menu.changeItem(self.item_id,"Continue &until "+item.node.name);
-  def activate (self):
-    self.tb._debug_until_node(self.node);
-  def is_enabled (self):
+  def activate (self,node):
+    self.tb._debug_until_node(node);
+  def is_enabled (self,node):
     return self.tb.debug_level>0 and self.tb.is_running and self.tb.is_stopped;
-
-

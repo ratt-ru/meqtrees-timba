@@ -18,8 +18,7 @@ _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
 
-class _meqnode_nodeclass(record):
-  pass;
+_meqnode_nodeclass = dmi_type('MeqNode',record);
 
 _NodeClassDict = { 'meqnode':_meqnode_nodeclass };
 
@@ -31,11 +30,12 @@ def NodeClass (nodeclass=None):
     return _meqnode_nodeclass;
   elif not isinstance(nodeclass,str):
     nodeclass = getattr(nodeclass,'classname',None) or getattr(nodeclass,'class');
-  nodeclass = nodeclass.lower();
-  cls = _NodeClassDict.get(nodeclass,None);
-  if cls is None:
-    cls = _NodeClassDict[nodeclass] = new.classobj(nodeclass,(_meqnode_nodeclass,),{});
-  return cls;
+  return dmi_type(nodeclass,_meqnode_nodeclass);
+#  nodeclass = nodeclass.lower();
+#  cls = _NodeClassDict.get(nodeclass,None);
+#  if cls is None:
+#    cls = _NodeClassDict[nodeclass] = new.classobj(nodeclass,(_meqnode_nodeclass,),{});
+#  return cls;
 
 # this is copied verbatim from the ControlStates definition in MEQ/Node.h
 CS_ACTIVE              = 0x0001;
@@ -93,7 +93,7 @@ CS_RES_map = {  CS_RES_NONE:     ('-','valid result'),
 # this class defines and manages a node list
 class NodeList (object):
   NodeAttrs = ('name','class','children','step_children','control_status');
-  RequestRecord = srecord(**dict.fromkeys(NodeAttrs,True));
+  RequestRecord = record(**dict.fromkeys(NodeAttrs,True));
   RequestRecord.nodeindex=True;
   RequestRecord.get_forest_status=True;
   
@@ -273,12 +273,12 @@ def node_udi (node,suffix=None):
     udi += "/" + suffix;
   return udi;
 
-_patt_Udi_NodeState = re.compile("^/node/([^#/]*)(#[0-9]+)?$");
+_patt_Udi_NodeState = re.compile("^/node/([^#/]*)(#[0-9]+)?(/.*)?$");
 def parse_node_udi (udi):
   match = _patt_Udi_NodeState.match(udi);
   if match is None:
     return (None,None);
-  (name,ni) = match.groups();
+  (name,ni,rest) = match.groups();
   if ni is not None:
     ni = int(ni[1:]);
   return (name,ni);
@@ -316,20 +316,20 @@ def subscribe_node_state (node,callback):
 
 def request_node_state (node):
   ni = nodeindex(node);
-  mqs().meq('Node.Get.State',srecord(nodeindex=ni),wait=False);
+  mqs().meq('Node.Get.State',record(nodeindex=ni),wait=False);
   
 def set_node_breakpoint (node,bp=BP_ALL,oneshot=False):
   mqs().meq('Node.Set.Breakpoint',\
-    srecord(nodeindex=nodeindex(node),breakpoint=bp,single_shot=oneshot,get_state=True),wait=False);
+    record(nodeindex=nodeindex(node),breakpoint=bp,single_shot=oneshot,get_state=True),wait=False);
 
 def clear_node_breakpoint (node,bp=BP_ALL,oneshot=False):
   mqs().meq('Node.Clear.Breakpoint',\
-    srecord(nodeindex=nodeindex(node),breakpoint=bp,single_shot=oneshot,get_state=True),wait=False);
+    record(nodeindex=nodeindex(node),breakpoint=bp,single_shot=oneshot,get_state=True),wait=False);
 
 def set_node_state (node,**kwargs):
   ni = nodeindex(node);
-  newstate = srecord(kwargs);
-  mqs().meq('Node.Set.State',srecord(nodeindex=ni,get_state=True,state=newstate),wait=False);
+  newstate = record(kwargs);
+  mqs().meq('Node.Set.State',record(nodeindex=ni,get_state=True,state=newstate),wait=False);
   
 def update_node_state (state,event):
   ni = state.nodeindex;

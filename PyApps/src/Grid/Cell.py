@@ -38,7 +38,9 @@ class Cell (object):
                                         
   In addition, a cell will connect PYSIGNAL("refresh()") from its content
   widget to the refresh function of its dataitem, if available. Thus cell
-  contents may ask for a refresh of the cell by emitting this signal.
+  contents may ask to refresh themselves by emitting this signal. Also,
+  when the cell's refresh button is clicked, "refresh()" is emitted on behalf
+  of the content widget, thus causing a refresh.
   """
   # define top-level cell widget class. This accepts data drops, 
   # displays context menus, has toolbars, etc.
@@ -79,9 +81,19 @@ class Cell (object):
     self._toolbar = QToolBar("Panel tools",wtop,wtop);
     # icon button and popup menu    
     self._icon_act = QAction("Panel &menu",QKeySequence(),wtop);
-    self._icon_act.setToolTip("Displays panel menu");
     self._icon_act.addTo(self._toolbar);
+    self._icon_act.setToolTip("Displays panel menu");
     QObject.connect(self._icon_act,SIGNAL("activated()"),self.show_popup_menu);
+    # refresh button
+    self._refresh = refresh = QAction(pixmaps.refresh.iconset(),"&Refresh contents",QKeySequence(),wtop);
+    refresh.setToolTip("refresh contents of this panel");
+    refresh.addTo(self._toolbar);
+    QObject.connect(refresh,SIGNAL("activated()"),self._dorefresh);
+    # stretchable label
+    self._toolbar.addSeparator();
+    self._label = QLabel("(empty)",self._toolbar);
+    self._label.setAlignment(Qt.AlignLeft+Qt.AlignVCenter+Qt.SingleLine);
+    self._toolbar.addSeparator();
     # pin button
     pin_is = pixmaps.pin_up.iconset();
     pin_is.setPixmap(pixmaps.pin_down.pm(),QIconSet.Automatic,QIconSet.Normal,QIconSet.On);
@@ -96,21 +108,13 @@ class Cell (object):
     # flt.setToggleAction(True);
     flt.addTo(self._toolbar);
     QObject.connect(flt,SIGNAL("activated()"),self.wtop(),PYSIGNAL("float()"));
-    # refresh button
-    self._refresh = refresh = QAction(pixmaps.refresh.iconset(),"&Refresh contents",QKeySequence(),wtop);
-    refresh.setToolTip("refresh contents of this panel");
-    refresh.addTo(self._toolbar);
-    QObject.connect(refresh,SIGNAL("activated()"),self._dorefresh);
-    self._toolbar.addSeparator();
-    # stretchable label
-    self._label = QLabel("(empty)",self._toolbar);
-    self._label.setAlignment(Qt.AlignLeft+Qt.AlignVCenter+Qt.SingleLine);
     # close button
+    self._toolbar.addSeparator();
     self._close = close = QAction(pixmaps.cancel.iconset(),"&Close panel",QKeySequence(),wtop);
-    close.setToolTip("close this panel");
     close.addTo(self._toolbar);
+    close.setToolTip("close this panel");
     QObject.connect(close,SIGNAL("activated()"),self.close);
-    # complete toolbar setup
+    # finalize toolbar setup
     self._toolbar.setHorizontallyStretchable(True);
     self._toolbar.setStretchableWidget(self._label);
     self._toolbar.setMovingEnabled(False);
@@ -174,7 +178,8 @@ class Cell (object):
     self.wtop().emit(PYSIGNAL("highlight()"),(color,));
       
   def _dorefresh (self):
-    self._refresh_func();
+    if self._content_widget:
+      self._content_widget.emit(PYSIGNAL("refresh()"),());
     
   def _clear_content (self):
     if self._content_widget:

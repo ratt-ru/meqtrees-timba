@@ -7,9 +7,9 @@ import dl
 sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
 
 import Timba.octopython
+octopython = Timba.octopython
 from Timba.dmi import *
 from Timba.utils import *
-
 
 import numarray
 import string
@@ -17,7 +17,7 @@ import time
 import threading
 
 # pulls in various things from the C module directly
-from octopython import aid_map,aid_rmap,start_reflector,OctoPythonError
+from Timba.octopython import aid_map,aid_rmap,start_reflector,OctoPythonError
 
 _dbg = verbosity(0,name='octopussy');
 _dprint = _dbg.dprint;
@@ -457,11 +457,13 @@ if __name__ == "__main__":
   else:
     thread_api = threading; 
     print "================== Using standard thread API ===================";
-    
+  
+  raw_input('Please press ENTER to continue');
+  
   # do some basic checking
   print "set_debug()";
   set_debug("Octopussy",1);
-  set_debug("OctoPython",1);
+  set_debug("OctoPython",5);
   set_debug({"Dsp":1,"loggerwp":0});
   set_debug(("reflectorwp","python"),1);
   print "init()"
@@ -505,18 +507,19 @@ if __name__ == "__main__":
   
   print "wp1.receive(), no wait: ",wp1.receive(False);
   print "wp2.receive(), no wait: ",wp2.receive(False);
-  msg1 = message('a.b.c');
-  print "message1",msg1;
+  payload = record(a=[1,2,3],b=(1,2,3));
+  msg1 = message('a.b.c',payload=payload);
+  print "message1",msg1,payload;
   wp1.send(msg1,wp2.address());
   
   arr = numarray.array([1,2,3,4,5,6],shape=[3,2]);
   subseq = ([1,2,3],['x','y','z'],[hiid('a'),hiid('b')]);
-  subrec = srecord({'x':0,'y':arr});
-  payload = srecord({'a':0,'b':arr,'c_d':2,'e':subseq,'f':subrec,'z':(hiid('a'),hiid('b')),'nonhiid':4},verbose=2);
+  subrec = record({'x':0,'y':arr});
+  payload = record({'a':0,'b':arr,'c_d':2,'e':subseq,'f':subrec,'z':(hiid('a'),hiid('b')),'nonhiid':4},verbose=2);
   
   msg2 = message('1.2.3',priority=10,payload=payload);
   
-  print "message2",msg2;
+  print "message2",msg2,msg2.payload;
 #  set_debug("OctoPython",5);
   print "=== (2a) ===";
   wp2.publish(msg2);
