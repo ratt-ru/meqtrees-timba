@@ -17,6 +17,7 @@ import weakref
 import re
 import imp
 import sets
+import signal
 
 
 dmirepr = dmi_repr.dmi_repr();
@@ -594,11 +595,17 @@ class MainAppClass (QApplication):
 #    font.setStyleHint(QFont.System);
 #    self.setFont(font);
     self.connect(self,SIGNAL("lastWindowClosed()"),self,SLOT("quit()"));
+    # connect Ctrl+C handler
+    signal.signal(signal.SIGINT,self.__sigint_handler);
     # notify all waiters
     self._waitcond.acquire();
     self._started = True;
     self._waitcond.notifyAll();
     self._waitcond.release();
+    
+  def __sigint_handler (self,sig,stackframe):
+    print 'signal',sig;
+    self.quit();
   
   # This event is used to pass a callable object into the main app thread.
   # see customEvent() implementation, below

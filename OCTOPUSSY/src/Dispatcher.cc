@@ -32,7 +32,7 @@ int Dispatcher::signal_counter[Dispatcher::max_signals];
 void Dispatcher::signalHandler (int signum,siginfo_t *,void *)
 {
 #ifdef USE_THREADS
-//  printf("thread %d: received signal %d (%s)\n",(int)Thread::self(),signum,sys_siglist[signum]);
+  printf("thread %d: received signal %d (%s)\n",(int)Thread::self(),signum,sys_siglist[signum]);
 #endif
   sigaddset(&raisedSignals,signum);
   signal_counter[signum]++;
@@ -277,6 +277,7 @@ void Dispatcher::start ()
   // main thread blocks all signals
   main_thread = Thread::self();
   Thread::signalMask(SIG_BLOCK,validSignals());
+  Thread::signalMask(SIG_UNBLOCK,SIGINT);
   // launch event processing thread -- no timer required
   event_thread = Thread::create(start_eventThread,this);
 #endif
