@@ -11,7 +11,7 @@ gnunew.compiler.conf: CXX="$CCACHE /usr/local/gcc343/bin/g++" --with-ldflags="-W
 gnunew.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/stable/linux_gnu34
 
 icc.compiler.conf: CXX="$CCACHE /usr/local/compiler80/bin/icc" --with-cppflags="-cxxlib-gcc" --with-ldflags="-cxxlib-gcc -Xlinker -rpath -Xlinker /usr/local/compiler80/lib"
-icc.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/stable/linux_gnu
+icc.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/stable/linux_gnu --with-blitz=/usr/local/blitz/gnu --with-fftw2=/usr/local/fftw2/gnu --with-dtl=/usr/local/dtl/gnu
 
 insure.variant.conf:     --with-insuretools=/usr/local/insure/bin.linux2 $(aipspp)
 
