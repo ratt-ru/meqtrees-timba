@@ -100,14 +100,19 @@ if [ $? != 0 ]; then
 fi
 
 # Now do the configure.
-# Note that "$@" preserves quotes around each argument.
 echo "${lfr_cmp}_$lfr_var configure will be done on host $lfr_host for package $lfr_pkg"
-echo $lfr_confdir/configure $opts "$@"
 #trap '\rm -f /tmp/lofarconf.$PPID' exit
-$lfr_confdir/configure $opts "$@"
-if [ $? != 0 ]; then
-  exit 2
-fi
+# Note that "$@" preserves quotes around each argument.
+# However, that does not work in an eval, which we need for the quotes
+# around values found in variants files.
+# So assemble all arguments and put quotes around them.
+while [ $# != 0 ]
+do
+  opts="$opts '$1'"
+  shift
+done
+echo $lfr_confdir/configure $opts
+eval $lfr_confdir/configure $opts || exit 2
 
 # Get the compiler make options.
 cmpmakes=`echo $cmpmakes | sed -e "s%.*\.compiler\.make: *%%"`
