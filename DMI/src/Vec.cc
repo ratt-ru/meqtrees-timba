@@ -107,11 +107,16 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
     num = 1;
     wantscalar = True;
   }
-  // already initialized? Check that type/size matches, and return
+  // already initialized? 
   if( valid () )
   {
+    // Check that type/size matches
     FailWhen(mytype!=tid || mysize_!=num || wantscalar!=scalar,"field already initialized" );
-    return *this;
+    // do nothing...
+    if( !data )
+      return *this;
+    // .. unless new contents are specified, in which case clear & reinitialize
+    clear();
   }
   FailWhen( num<0,"illegal field size" );
   // obtain type information, check that type is supported

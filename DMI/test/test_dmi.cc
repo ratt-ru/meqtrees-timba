@@ -349,14 +349,29 @@ void TestDataRecord ()
     cout<<"Read object of type "<<ref->objectType().toString()<<endl;
     cout<<ref->sdebug(10)<<endl;
   }
-  boio.close();
-  
   cout<<"======================= finished reading\n";
-  
   boio.close();
   
-  
-  
+  cout<<"======================= testing DataRecord::merge\n";
+  {
+    DataRecord rec1,rec2;
+    rec1["A"] = 0;
+    rec1["B"] = 1;
+    rec1["C"] = 2;
+    rec2["C"] = 22;
+    rec2["D"] = 3;
+    
+    DataRecord rec1a(rec1,DMI::WRITE|DMI::DEEP);
+    rec1a.merge(rec2,False); // merge w/o overwrite
+    Assert( rec1a["A"].as<int>() == 0 );
+    Assert( rec1a["C"].as<int>() == 2 );
+    Assert( rec1a["D"].as<int>() == 3 );
+    DataRecord rec1b(rec1,DMI::WRITE|DMI::DEEP);
+    rec1b.merge(rec2,True); // merge w/o overwrite
+    Assert( rec1b["A"].as<int>() == 0 );
+    Assert( rec1b["C"].as<int>() == 22 );
+    Assert( rec1b["D"].as<int>() == 3 );
+  }
   cout<<"======================= exiting\n";
 }
 

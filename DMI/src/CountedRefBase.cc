@@ -121,6 +121,8 @@ void CountedRefBase::verify (const CountedRefBase *start)
 
 void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
 {
+  if( &other == this )
+    return;
   dprintf(2)("copying from %s(%x,%d)\n",other.debug(),flags,depth);
   detach();
   if( !other.valid() ) // copying invalid ref?
@@ -193,6 +195,8 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
 //##ModelId=3C0CDEE20180
 void CountedRefBase::xfer (const CountedRefBase& other)
 {
+  if( &other == this )
+    return;
   dprintf(3)("xferring from %s\n",other.debug());
   detach();
   if( !other.valid() )
@@ -369,6 +373,8 @@ CountedRefBase& CountedRefBase::setExclusiveWrite ()
 //##ModelId=3C0CDEE20171
 CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
 {
+  if( targ == target )
+    return *this;
   // detach from old target, if any
   dprintf(3)("attaching to %s\n",targ->debug());
   if( valid() )

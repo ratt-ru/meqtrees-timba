@@ -46,7 +46,7 @@ void * testThread (void*)
       }
     }
   }
-  catch( LCS::Exception err ) 
+  catch( std::exception &err ) 
   {
     cout<<"Thread "<<tid<<" caught exception:\n"<<err.what()<<endl;
   }
@@ -72,7 +72,7 @@ void * rec_thread1 (void*)
       }
     }
   }
-  catch( LCS::Exception err ) 
+  catch( std::exception &err ) 
   {
     cout<<"Thread "<<tid<<" caught exception:\n"<<err.what()<<endl;
   }
@@ -126,7 +126,7 @@ void * rec_thread3 (void*)
       }
     }
   }
-  catch( LCS::Exception err ) 
+  catch( std::exception &err ) 
   {
     cout<<"Thread "<<tid<<" caught exception:\n"<<err.what()<<endl;
   }

@@ -70,6 +70,12 @@ class DataRecord : public NestableContainer
       //##Documentation
       //## Returns the class TypeId
       virtual TypeId objectType () const;
+      
+      //##Documentation
+      //## merges other record into this one (adds all its fields).
+      //## If overwrite is True, overwrites existing fields, else skips
+      //## them. Refs to fields are copy()d using the supplied flags.
+      void merge (const DataRecord &other,bool overwrite=True,int flags=DMI::PRESERVE_RW); 
 
       //##ModelId=3BFBF5B600EB
       void add (const HIID &id, const NCRef &ref, int flags = DMI::XFER);

@@ -43,6 +43,33 @@ DataRecord & DataRecord::operator=(const DataRecord &right)
   return *this;
 }
 
+void DataRecord::merge (const DataRecord &other,bool overwrite,int flags)
+{
+  if( &other != this )
+  {
+    nc_writelock;
+#ifdef USE_THREADS
+    Thread::Mutex::Lock lock2(other.mutex());
+#endif
+    dprintf(2)("merge(%s,%d,%d)\n",other.debug(1),int(overwrite),flags);
+    FailWhen( !isWritable(),"r/w access violation" );
+    for( CFMI oiter = other.fields.begin(); oiter != other.fields.end(); oiter++ )
+    {
+      // try to insert entry with other's key into map 
+      pair<HIID,NCRef> entry;
+      entry.first = oiter->first; 
+      pair<FMI,bool> res = fields.insert(entry);
+      // res.first now points to the new (or existing entry). Attach content
+      if( res.second || overwrite )
+      {
+        NCRef &ref = res.first->second;
+        if( &ref != &(oiter->second) )
+          res.first->second.unlock().copy(oiter->second,flags);
+      }
+    }
+  }
+}
+
 //##ModelId=3BFBF5B600EB
 void DataRecord::add (const HIID &id, const NCRef &ref, int flags)
 {
