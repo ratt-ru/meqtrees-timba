@@ -281,15 +281,14 @@ class Message : public DMI::BObj
 
     // Additional Implementation Declarations
     //##ModelId=3DB93651024F
-      typedef struct 
+      class HeaderBlock : public BObj::Header
       {  
-        int priority,state,flags,idsize,fromsize,tosize,latsize;
-        short hops;
-        bool has_block;
-        TypeId payload_type; 
-      }  
-      HeaderBlock;
-                     
+        public:
+          int priority,state,flags,idsize,fromsize,tosize,latsize;
+          short hops;
+          bool has_block;
+          TypeId payload_type;
+      };
 };
 
 //##ModelId=3C7B722600DE

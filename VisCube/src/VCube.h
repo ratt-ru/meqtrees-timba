@@ -809,10 +809,12 @@ class VCube : public DMI::BObj
       
       // Header structure for from/toblock operations
     //##ModelId=3DD100F7026C
-      typedef struct { int ntiles; bool hasformat,hasheader; } HeaderBlock;
-      // cached block
-    //##ModelId=3DD100FA03AE
-      mutable BlockRef hdrblock;
+      class HeaderBlock : public BObj::Header
+      {
+        public: int ntiles; 
+                bool hasformat;
+                bool hasheader; 
+      };
       
     //##ModelId=3DF9FDCF02FC
     //##Documentation

@@ -117,11 +117,12 @@ void ColumnarTableTile::init (const Format::Ref &form, int nr,
 void ColumnarTableTile::initBlock (void *data,size_t sz) const
 {
   BlockHeader *hdr = static_cast<BlockHeader*>(data);
+  // block count is 2 if we have a format, 1 otherwise
+  BObj::fillHeader(hdr,format_.valid()?2:1);
   hdr->nrow = nrow();
   // pack ID following the header
   sz -= sizeof(BlockHeader);
   hdr->idsize = id_.pack(static_cast<char*>(data) + sizeof(BlockHeader),sz);
-  hdr->has_format = format_.valid();
 }
 
 //##ModelId=3DB964F201EA
@@ -164,7 +165,7 @@ void ColumnarTableTile::applyFormat (const Format::Ref &form)
     format_.copy(form).lock();
     ncol_ = format().maxcol();
     if( datablock.isDirectlyWritable() )
-      static_cast<BlockHeader*>(datablock().data())->has_format = true;
+      BObj::fillHeader(datablock().pdata<BlockHeader>(),2); // sets flag in block
   }
 }
 
@@ -202,7 +203,6 @@ void ColumnarTableTile::changeFormat (const Format::Ref &form)
     pdata = newptr;
     datablock.unlock().xfer(newblock).lock();
     initBlock(datablock().data(),totsize);
-    static_cast<BlockHeader*>(datablock().data())->has_format = true;
   }
   // remember new format
   format_.unlock().copy(form).lock();
@@ -308,18 +308,21 @@ int ColumnarTableTile::fromBlock (BlockSet& set)
   datablock.unlock();
   set.pop(datablock);
   datablock.lock();
-  const BlockHeader* hdr = static_cast<const BlockHeader*>(datablock->data());
+  const BlockHeader* hdr = datablock->pdata<BlockHeader>();
+  int blockcount = BObj::checkHeader(hdr);
+  FailWhen(blockcount<1 || blockcount>2,"invalid block count in header");
   nrow_ = hdr->nrow;
   const int maxsz = HIID::HIIDSize(MaxIdSize);
-  FailWhen( datablock->size() < sizeof(BlockHeader) + maxsz,"corrupt block");
+  FailWhen(datablock->size() < sizeof(BlockHeader) + maxsz,"corrupt block");
   // unpack the ID from the block
   id_.unpack(datablock->cdata()+sizeof(BlockHeader),hdr->idsize);
   // do we have a format? from-block it then.
-  if( hdr->has_format )
+  if( blockcount == 2 )
   {
-    TableFormat *form = new TableFormat;
-    format_.unlock().attach(form).lock();
-    count += form->fromBlock(set);
+    format_.unlock().attach(new TableFormat).lock();
+    int nb = format_().fromBlock(set);
+    FailWhen(nb!=1,"illegal block count in tile format");
+    count++;
   }
   // no data -- get ID out of the block and set the nil representation
   if( !nrow_ )
@@ -360,9 +363,10 @@ int ColumnarTableTile::toBlock (BlockSet &set) const
   if( nrow() )
   {
     BlockRef ref = datablock;
-    // make sure the has_format flag is set correctly (COW if not)
-    if( format_.valid() != static_cast<const BlockHeader*>(ref->data())->has_format )
-      static_cast<BlockHeader*>(ref().data())->has_format = format_.valid();
+    // make sure the block count is set correctly (COW block if not)
+    int nb = format_.valid() ? 2 : 1;
+    if( ref->pdata<BlockHeader>()->blockcount != nb )
+      ref().pdata<BlockHeader>()->blockcount = nb;
     set.push(ref);
   }
   // else push out the nil representation
@@ -379,7 +383,7 @@ int ColumnarTableTile::toBlock (BlockSet &set) const
 }
 
 //##ModelId=3DB964F2030D
-CountedRefTarget* ColumnarTableTile::clone (int flags, int depth)
+CountedRefTarget* ColumnarTableTile::clone (int flags, int depth) const
 {
   return new ColumnarTableTile(*this,flags,depth);
 }

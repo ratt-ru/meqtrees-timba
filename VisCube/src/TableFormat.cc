@@ -119,19 +119,16 @@ int TableFormat::fromBlock (BlockSet& set)
 {
   block.unlock();
   set.pop(block);
-  block.change(DMI::READONLY|DMI::LOCKED);
+  block.lock();
   // unpack stuff from block
-  const char *ptr = block->cdata();
-  size_t totsize = block->size(),
-         szhead,sz[2];
-  szhead = BinArrayPacker<size_t,2>::packSize();
-  FailWhen(szhead > totsize,"corrupt block");
-  BinArrayPacker<size_t,2>::unpack(sz,ptr,szhead); 
-  ptr += szhead;
-  FailWhen(szhead + sz[0] + sz[1] != totsize,"corrupt block");
-  ColumnFormatPacker::unpack(cols,ptr,sz[0]);
-  ptr += sz[0];
-  ColumnShapePacker::unpack(shapes,ptr,sz[1]);
+  FailWhen(block->size()<sizeof(Header),"corrupt block");
+  const Header *hdr = block->pdata<Header>();
+  FailWhen(BObj::checkHeader(hdr)!=1,"block count mismatch in header");
+  FailWhen(block->size()!=sizeof(Header)+hdr->cf_size+hdr->cs_size,"corrupt block");
+  const char *ptr = block->cdata() + sizeof(Header);
+  ColumnFormatPacker::unpack(cols,ptr,hdr->cf_size);
+  ptr += hdr->cf_size;
+  ColumnShapePacker::unpack(shapes,ptr,hdr->cs_size);
   return 1;
 }
 
@@ -140,25 +137,25 @@ int TableFormat::toBlock (BlockSet &set) const
 {
   // if no block cached, create one and pack info into it
   typedef SeqPacker<FormatVector,BinPacker<ColumnFormat> > ColumnFormatPacker;
-  
   if( !block.valid() )
   {
     // computes size and creates block
-    size_t sz[2] = { ColumnFormatPacker::packSize(cols),
-                     ColumnShapePacker::packSize(shapes) },
-           sz0 = BinArrayPacker<size_t,2>::packSize(),
-           totsize = sz0 + sz[0] + sz[1];
-    SmartBlock *pb = new SmartBlock(totsize);
-    // deliberate const violation here, but that's OK, we need to cache some data
-    const_cast<BlockRef&>(block).attach(pb,DMI::ANON|DMI::READONLY|DMI::LOCKED);
+    size_t cf_size = ColumnFormatPacker::packSize(cols),
+           cs_size = ColumnShapePacker::packSize(shapes),
+           totsize = cf_size + cs_size;
+    SmartBlock *pb = new SmartBlock(sizeof(Header) + totsize);
+    block.attach(pb).lock();
     // store info
-    char *ptr = pb->cdata();
-    ptr += BinArrayPacker<size_t,2>::pack(sz,ptr,totsize);
+    Header *hdr = pb->pdata<Header>();
+    BObj::fillHeader(hdr,1);
+    hdr->cf_size = cf_size;
+    hdr->cs_size = cs_size;
+    char *ptr = pb->cdata() + sizeof(Header);
     ptr += ColumnFormatPacker::pack(cols,ptr,totsize);
     ptr += ColumnShapePacker::pack(shapes,ptr,totsize);
     DbgFailWhen(totsize,"pack size mismatch");
   }
-  set.push( block.copy(DMI::READONLY) );
+  set.push(block);
   return 1;
 }
 

@@ -523,48 +523,48 @@ void VCube::grow (int nt, int tilesize, int where)
 int VCube::toBlock (BlockSet& set) const
 {
   Thread::Mutex::Lock lock(mutex_);
-  int ret = 1;
-  HeaderBlock header = { int(tiles.size()),format_.valid(),header_.valid() };
-  // allocate header block if none is cached
-  if( !hdrblock.valid() )
-  {
-    hdrblock <<= new SmartBlock(sizeof(header));
-    memcpy(hdrblock().data(),&header,sizeof(header));
-  }
-  else if( !memcmp(hdrblock->data(),&header,sizeof(header)) )
-    memcpy(hdrblock().data(),&header,sizeof(header));
-  set.pushCopy(hdrblock);
+  int bc = 1;
+  // push out header block (filled below)
+  SmartBlock *pb = new SmartBlock(sizeof(Header));
+  set.push(BlockRef(pb));
   // convert format first
   if( format_.valid() )
-    ret += format_->toBlock(set);
+    bc += format_->toBlock(set);
   // convert tiles
   for( CTI iter = tiles.begin(); iter != tiles.end(); iter++ )
-    ret += (*iter).deref().toBlock(set);
+    bc += (*iter).deref().toBlock(set);
   // convert header record, if any
   if( header_.valid() )
-    ret += header_->toBlock(set);
-  return ret;
+    bc += header_->toBlock(set);
+  // fill header block
+  HeaderBlock *hdr = pb->pdata<HeaderBlock>();
+  BObj::fillHeader(hdr,bc);
+  hdr->ntiles = tiles.size();
+  hdr->hasformat = format_.valid();
+  hdr->hasheader = header_.valid();
+  return bc;
 }
 
 //##ModelId=3DB964F70086
 int VCube::fromBlock (BlockSet& set)
 {
   Thread::Mutex::Lock lock(mutex_);
-  int ret = 1;
+  int bc = 1;
   format_.unlock().detach();
   header_.unlock().detach();
   tiles.resize(0);
   // get header block
   FailWhen( set.empty(),"invalid set" );
-  set.pop(hdrblock);
-  FailWhen( hdrblock->size() != sizeof(HeaderBlock),"invalid block" );
-  const HeaderBlock * phdr = hdrblock->const_ptr_cast<HeaderBlock>();
-  // get format [if available] and downgrade to readonly
+  BlockRef hdrblock = set.pop();
+  FailWhen( hdrblock->size() != sizeof(HeaderBlock),"invalid header block" );
+  const HeaderBlock * phdr = hdrblock->pdata<HeaderBlock>();
+  int expect_bc = BObj::checkHeader(phdr);
+  // get format [if available] 
   if( phdr->hasformat )
   {
     format_ <<= new Format;
-    ret += format_().fromBlock(set);
-    format_.lock().change(DMI::READONLY);
+    bc += format_().fromBlock(set);
+    format_.lock();
     // get the shape out
     LoShape shape = format().shape(VTile::DATA);
     ncorr_ = shape[0];
@@ -576,7 +576,7 @@ int VCube::fromBlock (BlockSet& set)
   {
     VTile *ptile = new VTile;
     (*iter) <<= ptile;
-    ret += ptile->fromBlock(set);
+    bc += ptile->fromBlock(set);
     if( phdr->hasformat )
       ptile->applyFormat(format_);
   }
@@ -584,12 +584,12 @@ int VCube::fromBlock (BlockSet& set)
   if( phdr->hasheader )
   {
     header_ <<= new DMI::Record;
-    ret += header_().fromBlock(set);
+    bc += header_().fromBlock(set);
   }
   // recompute indexing
   setupIndexing();
-  
-  return ret;
+  FailWhen(bc!=expect_bc,"block count mismatch in header");
+  return bc;
 }
 
 //##ModelId=3DB964F700AF

@@ -123,7 +123,7 @@ class ColumnarTableTile : public DMI::BObj  //## Inherits: <unnamed>%3D919C2B03D
     //##ModelId=3DB964F202FE
       int toBlock (BlockSet &set) const;
     //##ModelId=3DB964F2030D
-      CountedRefTarget* clone (int flags=0, int depth=0);
+      CountedRefTarget* clone (int flags=0, int depth=0) const;
       
     //##ModelId=3DB964F2033F
       TypeId objectType () const;
@@ -213,7 +213,13 @@ class ColumnarTableTile : public DMI::BObj  //## Inherits: <unnamed>%3D919C2B03D
       std::vector<const void *> pdata;
       
     //##ModelId=3DB964F20021
-      typedef struct { int nrow,idsize; bool has_format; } BlockHeader;
+      class BlockHeader : public BObj::Header
+      {
+        public: int   nrow;
+                int   idsize;
+      // phased out since we now have a blockcount (1 for no format, 2 with format)
+      //          bool  has_format; 
+      };
       
     //##ModelId=3DF9FDC90364
       mutable Thread::Mutex mutex_;

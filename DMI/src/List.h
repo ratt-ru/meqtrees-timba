@@ -131,6 +131,13 @@ class List : public Container
       const ObjRef & resolveField (const HIID &id,bool &can_write, bool must_write = false) const;
 
   private:
+      class Header : public BObj::Header
+      {
+        public: 
+            int num_items;
+            int item_bc[];
+      };
+      
       typedef std::list<ObjRef> ItemList;
       
       // Helper functions to apply an index (n).

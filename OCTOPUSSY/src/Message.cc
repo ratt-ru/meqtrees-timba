@@ -149,15 +149,16 @@ int Message::fromBlock (BlockSet& set)
   // get and unpack header
   BlockRef href;
   set.pop(href);
-  const HeaderBlock & hdr = *static_cast<const HeaderBlock*>(href->data());
+  const HeaderBlock & hdr = *href->pdata<HeaderBlock>();
+  int expect_blockcount = BObj::checkHeader(&hdr);
   FailWhen(href->size() < sizeof(HeaderBlock) ||
            href->size() != sizeof(HeaderBlock) + 
-           hdr.idsize + hdr.fromsize + hdr.tosize + hdr.latsize,"corrupt header block");
+            hdr.idsize + hdr.fromsize + hdr.tosize + hdr.latsize,"corrupt header block");
   priority_ = hdr.priority;
   state_    = hdr.state;
   hops_     = hdr.hops;
   flags_    = hdr.flags;
-  const char *buf = static_cast<const char*>(href->data()) + sizeof(HeaderBlock);
+  const char *buf = href->cdata() + sizeof(HeaderBlock);
   id_.unpack(buf,hdr.idsize);     buf += hdr.idsize;
   from_.unpack(buf,hdr.fromsize); buf += hdr.fromsize;
   to_.unpack(buf,hdr.tosize);     buf += hdr.tosize;
@@ -181,13 +182,14 @@ int Message::fromBlock (BlockSet& set)
   // got a payload?
   if( hdr.payload_type )
   {
-    DMI::BObj *obj = DynamicTypeManager::construct(hdr.payload_type);
-    blockcount += obj->fromBlock(set);
-    payload_.attach(obj,DMI::ANON|DMI::WRITE);
+    int nb0 = set.size();
+    payload_ = DynamicTypeManager::construct(hdr.payload_type,set);
+    FailWhen(!payload_.valid(),"failed to construct payload of type "+TypeId(hdr.payload_type).toString());
+    blockcount += nb0 - set.size();
   }
   else
     payload_.detach();
-  
+  FailWhen(expect_blockcount!=blockcount,"total block count mismatch in header");
   return blockcount;
 }
 
@@ -207,7 +209,7 @@ int Message::toBlock (BlockSet &set) const
   
   SmartBlock *hdrblock = new SmartBlock(sizeof(HeaderBlock)+hsize);
   BlockRef bref(hdrblock,DMI::ANON|DMI::WRITE); 
-  HeaderBlock & hdr = *static_cast<HeaderBlock*>(hdrblock->data());
+  HeaderBlock & hdr = *hdrblock->pdata<HeaderBlock>();
   hdr.priority  = priority_;
   hdr.state     = state_;
   hdr.flags     = flags_;
@@ -218,7 +220,7 @@ int Message::toBlock (BlockSet &set) const
   hdr.latsize   = latsize;
   hdr.has_block = block_.valid(); 
   hdr.payload_type = payload_.valid() ? payload_->objectType() : NullType;
-  char *buf = static_cast<char*>(hdrblock->data()) + sizeof(HeaderBlock);
+  char *buf = hdrblock->cdata() + sizeof(HeaderBlock);
   buf += id_.pack(buf,hsize);      
   buf += from_.pack(buf,hsize);    
   buf += to_.pack(buf,hsize);      
@@ -236,6 +238,8 @@ int Message::toBlock (BlockSet &set) const
   } 
   if( payload_.valid() )
     blockcount += payload_->toBlock(set);
+  
+  BObj::fillHeader(&hdr,blockcount);
   return blockcount;
 }
 

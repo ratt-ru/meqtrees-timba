@@ -5,10 +5,25 @@ namespace DMI
     
 DefineRegistry(DynamicTypeManager,0);
 
+ObjRef DynamicTypeManager::construct (TypeId tid, BlockSet& bset)
+{
+  if( tid == 0 )
+    tid = static_cast<const BObj::Header *>(bset.front()->data())->tid;
+  BObj * pobj = construct(tid);
+  if( pobj )
+  {
+    ObjRef ref(pobj);
+    pobj->fromBlock(bset);
+    return ref;
+  }
+  return ObjRef();
+}
 
 //##ModelId=3BE96C5F03A7
 BObj * DynamicTypeManager::construct (TypeId tid, BlockSet& bset, int n)
 {
+  if( tid == 0 )
+    tid = static_cast<const BObj::Header *>(bset.front()->data())->tid;
   BObj *obj = construct(tid,n);
   for( int i=0; i<(n?n:1); i++ )
     obj[i].fromBlock(bset);

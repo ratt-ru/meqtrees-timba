@@ -219,11 +219,12 @@ class Vec : public Container
       bool    container_type;
       
   private:
-      typedef struct
+      class HeaderBlock : public BObj::Header
       {
-        int type,size;
-        uchar data[];
-      } HeaderBlock;
+        public: int type;
+                int size;
+                uchar data[];
+      };
       
       void makeNewHeader (size_t extra_size) const;
       

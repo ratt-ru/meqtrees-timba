@@ -200,11 +200,11 @@ class VCubeSet :  public DMI::BObj
       
     // implementation of header block for from/toBlock conversions
     //##ModelId=3DF9FDC901EB
-    typedef struct { int ncubes; } HeaderBlock;
+    class HeaderBlock : public BObj::Header
+    {
+      public: int ncubes; 
+    };
   
-    //##ModelId=3DF9FDD1038C
-    mutable BlockRef hdrblock; // ref to cached block
-
 };
 
 };

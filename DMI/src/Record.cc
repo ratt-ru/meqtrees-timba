@@ -154,13 +154,14 @@ int DMI::Record::fromBlock (BlockSet& set)
   BlockRef headref;
   set.pop(headref);
   size_t hsize = headref->size();
-  FailWhen( hsize < sizeof(int),"malformed header block" );
+  FailWhen( hsize < sizeof(Header),"malformed header block" );
+  const char *chead = headref->cdata();
+  const Header *phead = headref->pdata<Header>();
+  int blockcount = BObj::checkHeader(phead);
   // get # of fields
-  const char *head = static_cast<const char*>( headref->data() );
-  const int *hdata = reinterpret_cast<const int *>( head );
-  int nfields = *hdata++;
-  const BlockFieldInfo *fieldinfo = reinterpret_cast<const BlockFieldInfo *>(hdata);
-  size_t off_hids = sizeof(int) + sizeof(BlockFieldInfo)*nfields; // IDs start at this offset
+  int nfields = phead->num_fields;
+  const BlockFieldInfo *fieldinfo = phead->fields;
+  size_t off_hids = sizeof(Header) + sizeof(BlockFieldInfo)*nfields; // IDs start at this offset
   FailWhen( hsize < off_hids,"malformed header block" );
   dprintf(2)("fromBlock: %d header bytes, %d fields expected\n",hsize,nfields);
   // get fields one by one
@@ -169,20 +170,33 @@ int DMI::Record::fromBlock (BlockSet& set)
     // extract ID from header block
     int idsize = fieldinfo->idsize;
     FailWhen( hsize < off_hids+idsize,"malformed header block" );
-    HIID id(head+off_hids,idsize);
+    HIID id(chead+off_hids,idsize);
     off_hids += idsize;
     // create field container object
-    BObj *pobj = DynamicTypeManager::construct(fieldinfo->ftype);
-    ObjRef ref(pobj);
-    // unblock and set the writable flag
-    int nr = pobj->fromBlock(set);
-    nref += nr;
+    int bc = fieldinfo->blockcount;
+    ObjRef ref;
+    if( bc )
+    {
+      int nb0 = set.size();
+      FailWhen(!nb0,"List::fromBlock: unexpectedly ran out of blocks");
+      // create object
+      ref = DynamicTypeManager::construct(0,set);
+      FailWhen(!ref.valid(),"item construct failed" );
+      int nb = nb0 - set.size();
+      FailWhen(nb!=bc,"block count mismatch in header");
+      nref += nb;
+      dprintf(3)("%s [%s] used %d blocks\n",id.toString('.').c_str(),ref->sdebug(1).c_str(),nb);
+    }
+    else
+    {
+      dprintf(3)("%s is an empty field\n",id.toString('.').c_str()); 
+    }
+    // move to field
     Field & field = fields[id];
     field.ref.xfer(ref).lock();
     field.protect = false;
-    dprintf(3)("%s [%s] used %d blocks\n",
-          id.toString('.').c_str(),pobj->sdebug(1).c_str(),nr);
   }
+  FailWhen(nref!=blockcount,"total block count mismatch in header");
   dprintf(2)("fromBlock: %d total blocks used\n",nref);
   validateContent(true);
   return nref;
@@ -195,30 +209,34 @@ int DMI::Record::toBlock (BlockSet &set) const
   dprintf(2)("toBlock\n");
   int nref = 1;
   // compute header size
-  size_t hdrsize = sizeof(int) + sizeof(BlockFieldInfo)*fields.size(), 
-         datasize = 0;
+  size_t hdrsize = sizeof(Header) + sizeof(BlockFieldInfo)*fields.size(), 
+         idsize = 0;
   for( CFMI iter = fields.begin(); iter != fields.end(); iter++ )
-    datasize += iter->first.packSize();
+    idsize += iter->first.packSize();
   // allocate new header block
-  SmartBlock *header = new SmartBlock(hdrsize+datasize);
+  SmartBlock *header = new SmartBlock(hdrsize+idsize);
   BlockRef headref(header);
-  // store header info
-  int  *hdr    = static_cast<int *>(header->data());
-  char *data   = static_cast<char *>(header->data()) + hdrsize;
-  *hdr++ = fields.size();
-  BlockFieldInfo *fieldinfo = reinterpret_cast<BlockFieldInfo *>(hdr);
   set.push(headref);
-  dprintf(2)("toBlock: %d header bytes, %d fields\n",hdrsize+datasize,fields.size());
+  // store header info
+  Header *hdr  = header->pdata<Header>();
+  char *iddata   = header->cdata() + hdrsize;
+  hdr->num_fields = fields.size();
+  dprintf(2)("toBlock: %d header bytes, %d fields\n",hdrsize+idsize,fields.size());
   // store IDs and convert everything
+  BlockFieldInfo *fieldinfo = hdr->fields;
   for( CFMI iter = fields.begin(); iter != fields.end(); iter++,fieldinfo++ )
   {
-    data += fieldinfo->idsize = iter->first.pack(data,datasize);
-    fieldinfo->ftype = iter->second.ref->objectType();
-    int nr1 = iter->second.ref->toBlock(set);
+    iddata += fieldinfo->idsize = iter->first.pack(iddata,idsize);
+    int nr1;
+    if( iter->second.ref.valid() )
+      nr1 = fieldinfo->blockcount = iter->second.ref->toBlock(set);
+    else
+      nr1 = fieldinfo->blockcount = 0; // null field
     nref += nr1;
     dprintf(3)("%s [%s] generated %d blocks\n",
         iter->first.toString('.').c_str(),iter->second.ref->sdebug(1).c_str(),nr1);
   }
+  BObj::fillHeader(hdr,nref);
   dprintf(2)("toBlock: %d total blocks generated\n",nref);
   return nref;
 }

@@ -489,7 +489,7 @@ ObjRef GlishUtil::glishValueToObject (const casa::GlishValue &val,bool adjustInd
     {
       dprintf(4)("interpreting glish record (%d fields) as a blockset\n",
                   glrec.nelements());
-      return ObjRef(blockRecToObject(glrec));
+      return blockRecToObject(glrec);
     }
     // is it a DMI::Vec (that was passed in as a record of values)
     else if( glrec.attributeExists("dmi_is_dmivec")  )
@@ -639,7 +639,7 @@ GlishRecord GlishUtil::objectToBlockRec (const DMI::BObj &obj)
 }
 
 //##ModelId=3DB93695024D
-DMI::BObj * GlishUtil::blockRecToObject (const GlishRecord &rec)
+DMI::ObjRef GlishUtil::blockRecToObject (const GlishRecord &rec)
 {
   FailWhen( !rec.attributeExists("dmi_blocktype"),"missing 'dmi_blocktype' attribute" );
   String typestr;

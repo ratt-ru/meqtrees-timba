@@ -135,6 +135,12 @@ class TableFormat : public DMI::BObj
         TypeId type;
         int size,cellsize;
       } ColumnFormat;
+      
+      class Header : public BObj::Header
+      {
+        public: size_t cf_size;
+                size_t cs_size;
+      };
 
     //##ModelId=3DB964F20040
       typedef vector<ColumnFormat> FormatVector;
@@ -146,7 +152,7 @@ class TableFormat : public DMI::BObj
 
       // reference to cached datablock (for a fromBlock/toBlock operation)
     //##ModelId=3DB964F30077
-      BlockRef block;
+      mutable BlockRef block;
       // vector of column formats
     //##ModelId=3DB964F30087
       FormatVector cols;

@@ -134,6 +134,7 @@ DMI::Vec & DMI::Vec::init (TypeId tid, int num, const void *data)
         // allocate header and copy data
         size_t datasize = typeinfo.size*mysize_;
         makeNewHeader(datasize);
+        BObj::fillHeader(phead_,1);
         phead_->type = mytype;
         phead_->size = scalar ? -mysize_ : mysize_;
         if( data )
@@ -315,6 +316,8 @@ int DMI::Vec::fromBlock (BlockSet& set)
   set.pop(headref_);  
   size_t hsize = headref_->size();
   phead_ = static_cast<HeaderBlock*>(const_cast<void*>(headref_->data()));
+  // verify BObj header
+  int blockcount = BObj::checkHeader(phead_);
   // first two ints in header block are type and size
   FailWhen( hsize < sizeof(HeaderBlock),"malformed header block" );
   // get type and size from header
@@ -391,6 +394,7 @@ int DMI::Vec::fromBlock (BlockSet& set)
     default:
         Throw("unsupported data type "+mytype.toString());
   }
+  FailWhen(npopped != blockcount,"mismatching block count in header block");
   validateContent(true);
   return npopped;
 }
@@ -422,7 +426,7 @@ int DMI::Vec::toBlock (BlockSet &set) const
     // binary types always have a valid & consistent block
     Assert1(!binary_type);
     new_header = true;
-    if( dynamic_type ) // dynamic type, header + block counts
+    if( dynamic_type ) // dynamic type contains header + block counts
       makeNewHeader(sizeof(int)*mysize_);
     else // special type, header + data
     {
@@ -474,6 +478,13 @@ int DMI::Vec::toBlock (BlockSet &set) const
       }
     }
   }
+  // if new header, fill BObj data, else just check total block count
+  if( new_header )
+    BObj::fillHeader(phead_,npushed);
+  else
+  {
+    FailWhen(phead_->blockcount != npushed,"inconsistency in cached header block");
+  }
   // finally, attach header block in placeholder
   href_placeholder = headref_;
   dprintf(2)("toBlock: %d blocks pushed\n",npushed);
@@ -499,7 +510,8 @@ DMI::ObjRef & DMI::Vec::resolveObject (int n) const
     case INBLOCK:
     {
         dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
-        objects[n].attach(DynamicTypeManager::construct(mytype,blocks[n]),DMI::LOCK);
+        objects[n] = DynamicTypeManager::construct(0,blocks[n]);
+        objects[n].lock();
         blocks[n].clear();
         // verify that no blocks were left over
         FailWhen( blocks[n].size()>0,"block count mismatch" );

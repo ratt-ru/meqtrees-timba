@@ -155,39 +155,40 @@ int DMI::List::fromBlock (BlockSet& set)
   dprintf(2)("fromBlock(%s)\n",set.debug(2));
   int nref = 1;
   items.clear();
-  // pop and cache the header block as headref
+  // pop the header block
   BlockRef headref;
   set.pop(headref);
   size_t hsize = headref->size();
-  FailWhen( hsize < sizeof(int),"malformed header block" );
+  FailWhen( hsize < sizeof(Header),"malformed header block" );
   // get # of fields
-  const int *hdata = reinterpret_cast<const int *>( headref->data() );
-  int nfields = *hdata++;
-  FailWhen( hsize != sizeof(int)*(nfields+1),"malformed header block" );
+  const Header *hdata = static_cast<const Header *>( headref->data() );
+  int blockcount = BObj::checkHeader(hdata);
+  int nfields = hdata->num_items;
+  FailWhen(hsize != sizeof(Header)+sizeof(int)*nfields,"malformed header block");
   dprintf(2)("fromBlock: %d header bytes, %d fields expected\n",hsize,nfields);
   // get fields one by one
   for( int i=0; i<nfields; i++ )
   {
-    ObjRef ref;
-    int ftype = *hdata++;
-    if( ftype )
+    items.push_back(ObjRef());
+    int bc = hdata->item_bc[i];
+    if( bc )
     {
-      // create field container object
-      DMI::Container *field = dynamic_cast<DMI::Container *>
-          ( DynamicTypeManager::construct(ftype) );
-      FailWhen( !field,"cast failed: perhaps field is not a container?" );
-      ref <<= field;
-      // unblock and set the writable flag
-      int nr = field->fromBlock(set);
-      nref += nr;
-      dprintf(3)("%d [%s] used %d blocks\n",i,field->sdebug(1).c_str(),nr);
+      int nb0 = set.size();
+      FailWhen(!nb0,"unexpectedly ran out of blocks");
+      // create object
+      items.back() = DynamicTypeManager::construct(0,set);
+      FailWhen(!items.back().valid(),"item construct failed" );
+      int nb = nb0 - set.size();
+      FailWhen(nb!=bc,"block count mismatch in header");
+      nref += nb;
+      dprintf(3)("%d [%s] used %d blocks\n",i,items.back()->sdebug(1).c_str(),nb);
     }
     else
-    { 
+    {
       dprintf(3)("%d is an empty item\n",i); 
     }
-    items.push_back(ref);
   }
+  FailWhen(nref!=blockcount,"total block count mismatch in header");
   dprintf(2)("fromBlock: %d total blocks used\n",nref);
   validateContent(true);
   return nref;
@@ -200,13 +201,13 @@ int DMI::List::toBlock (BlockSet &set) const
   int nref = 1;
   // compute header size
   int numitems = numItems();
-  size_t hdrsize = sizeof(int)*(numitems+1);
+  size_t hdrsize = sizeof(Header) + sizeof(int)*numitems;
   // allocate new header block
   SmartBlock *header = new SmartBlock(hdrsize);
-  BlockRef headref(header,DMI::ANONWR);
+  BlockRef headref(header);
   // store header info
-  int  *hdr = static_cast<int *>(header->data());
-  *hdr++ = numitems;
+  Header *hdr = static_cast<Header*>(header->data());
+  hdr->num_items = numitems;
   set.push(headref);
   dprintf(2)("toBlock: %d header bytes, %d fields\n",hdrsize,numitems);
   // store IDs and convert everything
@@ -217,17 +218,16 @@ int DMI::List::toBlock (BlockSet &set) const
     Assert(i<numitems);
     if( iter->valid() )
     {
-      *hdr++ = (*iter)->objectType();
-      int nr1 = (*iter)->toBlock(set);
-      nref += nr1;
-      dprintf(3)("%d [%s] generated %d blocks\n",i,iter->sdebug(1).c_str(),nr1);
+      nref += hdr->item_bc[i] = (*iter)->toBlock(set);
+      dprintf(3)("%d [%s] generated %d blocks\n",i,iter->sdebug(1).c_str(),hdr->item_bc[i]);
     }
     else
     {
-      *hdr++ = 0;
+      hdr->item_bc[i] = 0;
       dprintf(3)("%d is an empty item\n",i);
     }
   }
+  BObj::fillHeader(hdr,nref);
   Assert(i==numitems);
   dprintf(2)("toBlock: %d total blocks generated\n",nref);
   return nref;

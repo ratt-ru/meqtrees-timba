@@ -380,13 +380,13 @@ class Node : public DMI::BObj
     //##ModelId=3F5F43630315
     //##Documentation
     //## Un-serialize.
-    //## Currently not implemented (throws exception)
-    virtual int fromBlock(BlockSet& set);
+    //## currently not implemented
+    virtual int fromBlock (BlockSet& set);
     //##ModelId=3F5F43630318
     //##Documentation
     //## Serialize.
-    //## Currently not implemented (throws exception)
-    virtual int toBlock(BlockSet &set) const;
+    //## currently not implemented
+    virtual int toBlock (BlockSet &set) const;
     
     //##ModelId=3F5F48180303
     //##Documentation

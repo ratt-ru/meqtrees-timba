@@ -21,6 +21,12 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.35  2005/01/24 14:47:43  smirnov
+//  %[ER: ]%
+//  Changed all BObj derivatives to have a standard BObj::Header at the start
+//  of the first block in their toBlock representation. This gives the object
+//  type and total block count, and thus makes blocksets completely self-contained.
+//
 //  Revision 1.34  2005/01/21 15:54:38  smirnov
 //  %[ER: ]%
 //  Made the changeover to C-storage Lorrays (i.e., use default
@@ -406,6 +412,13 @@ private:
 
   //##ModelId=3DB949AE0370
   BlockRef    itsData;
+  
+  class Header : public BObj::Header
+  {
+    public: TypeId sca_tid;
+            uint rank;
+            uint shape[];
+  };
 
   // OK, setup some circus hoops. Rank & type of NumArray is set at runtime,
   // while for blitz arrays it's compile-time. So, for every blitz operation

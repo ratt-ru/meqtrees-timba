@@ -21,6 +21,12 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.39  2005/01/24 14:47:43  smirnov
+//  %[ER: ]%
+//  Changed all BObj derivatives to have a standard BObj::Header at the start
+//  of the first block in their toBlock representation. This gives the object
+//  type and total block count, and thus makes blocksets completely self-contained.
+//
 //  Revision 1.38  2005/01/21 15:54:38  smirnov
 //  %[ER: ]%
 //  Made the changeover to C-storage Lorrays (i.e., use default
@@ -357,24 +363,22 @@ void DMI::NumArray::init (const LoShape & shape,int flags)
       
   itsShape = shape;
   itsSize  = shape.product();
-  int sz = sizeof(int) * (2 + shape.size());
+  int sz = sizeof(NumArray::Header) + sizeof(uint)*shape.size();
   // Align data on 8 bytes.
   itsDataOffset = (sz+7) / 8 * 8;
   sz = itsDataOffset + itsSize*itsElemSize;
-  // Allocate enough space in the SmartBlock.
+  // Allocate one SmartBlock for everything
   itsData.attach(new SmartBlock(sz,flags&DMI::NOZERO ? 0 : DMI::ZERO));
   void *dataptr = itsData().data();
-
-  // store type, ndim, and shape into block header
-  int *hdr = static_cast<int*>(dataptr);
-  *hdr++ = itsScaType;
-  *hdr++ = shape.size();
+  // fill block header
+  Header *phead = static_cast<Header*>(dataptr);
+  BObj::fillHeader(phead,1);
+  phead->sca_tid = itsScaType;
+  phead->rank    = shape.size();
   for( uint i=0; i<shape.size(); i++ )
-    *hdr++ = shape[i];
-  
-  // take pointer to data
+    phead->shape[i] = shape[i];
+  // pointer to start of array data
   itsArrayData = static_cast<char*>(dataptr) + itsDataOffset;
-  
   // init string objects, if needed
   if( itsScaType == Tpstring )
     initStringArray(itsArrayData,itsSize);
@@ -447,20 +451,20 @@ int DMI::NumArray::fromBlock (BlockSet& set)
   Thread::Mutex::Lock _nclock(mutex());
   dprintf1(2)("%s: fromBlock\n",debug());
   clear();
-  
   // Get data block.
   BlockRef href;
   set.pop(href);  
   size_t hsize = href->size();
-  FailWhen( hsize < 2*sizeof(int), "malformed data block");
-  const int *hdr = static_cast<const int*>(href->data());
-  
+  FailWhen(hsize < sizeof(Header),"malformed data block");
+  const char *dataptr = static_cast<const char*>(href->data());
+  const Header *hdr = static_cast<const Header*>(href->data());
+  FailWhen(BObj::checkHeader(hdr)!=1,"invalid block count in block header");
   // get element type and rank from header
-  itsScaType = *hdr++;
+  itsScaType = hdr->sca_tid;
   TypeInfo typeinfo = TypeInfo::find(itsScaType);
   FailWhen( typeinfo.category != TypeInfo::NUMERIC && itsScaType != Tpstring,
             "invalid array element type" + itsScaType.toString() ); 
-  uint rank = *hdr++;
+  uint rank = hdr->rank;
   FailWhen( rank < 1 || rank > MaxLorrayRank,"invalid array rank" );
   FailWhen( hsize < (2+rank)*sizeof(int), "malformed data block" );
   // derive array type & element size
@@ -471,10 +475,10 @@ int DMI::NumArray::fromBlock (BlockSet& set)
   itsShape.resize(rank);
   itsSize = 1;
   for( uint i=0; i<rank; i++ )
-    itsSize *= itsShape[i] = *hdr++;
+    itsSize *= itsShape[i] = hdr->shape[i];
   
   // compute size of data block & offset into it
-  size_t blocksize = sizeof(int) * (2 + rank);
+  size_t blocksize = sizeof(Header) + sizeof(uint)*rank;
   // Align data on 8 bytes.
   itsDataOffset = (blocksize + 7) / 8 * 8;
   blocksize = itsDataOffset + itsSize*itsElemSize;
@@ -482,21 +486,23 @@ int DMI::NumArray::fromBlock (BlockSet& set)
   // strings are a special case since they need to be copied from the block
   if( itsScaType == Tpstring )
   {
-    size_t expected_size = (2 + rank + itsSize)*sizeof(int);
+    // string block expected to contain string lengths too
+    size_t expected_size = sizeof(Header)+sizeof(uint)*rank+itsSize*sizeof(int);
     FailWhen( hsize < expected_size,"malformed data block" );
     // actual array to be stored here
-    BlockRef newdata(new SmartBlock(blocksize),DMI::ANONWR);
+    BlockRef newdata(new SmartBlock(blocksize));
     itsArrayData = newdata().cdata() + itsDataOffset;
     initStringArray(itsArrayData,itsSize);
     // start of string array
     string *pstr = reinterpret_cast<string*>(itsArrayData);
-    // hdr now points at array of string lengths
-    // string data starts at hdr[itsSize];
-    const char *chardata = reinterpret_cast<const char*>(hdr+itsSize);
+    // get pointer to vector of string lengths
+    const uint *lengths = reinterpret_cast<const uint*>(dataptr+sizeof(Header)) + rank;
+    // and string data here
+    const char *chardata = reinterpret_cast<const char*>(lengths+itsSize);
     // copy strings one by one
     for( int i=0; i<itsSize; i++,pstr++ )
     {
-      int len = *hdr++;       // length from header
+      uint len = *lengths++;       // length from header
       expected_size += len;   // adjust expect size & check for spacd
       FailWhen( hsize < expected_size,"malformed data block" );
       // assign to string
@@ -507,7 +513,7 @@ int DMI::NumArray::fromBlock (BlockSet& set)
     // xfer data block
     itsData = newdata;
   }
-  else // else simply privatize the data block
+  else // else take the data block
   {
     FailWhen( blocksize != hsize,"malformed data block");
     itsData.xfer(href).lock();
@@ -537,28 +543,34 @@ int DMI::NumArray::toBlock (BlockSet& set) const
     string *ptr = reinterpret_cast<string*>(itsArrayData);
     for( int i=0; i<itsSize; i++,ptr++ )
       totlen += ptr->length();
-    // allocate block for type, ndim, shape, string lengths & string data
+    // allocate block: need to store header, plus string lengths, plus
+    // string data
     BlockRef ref(new SmartBlock(
-        (2+itsShape.size()+itsSize)*sizeof(int) + totlen),DMI::ANONWR);
+        sizeof(NumArray::Header) +
+        (itsShape.size()+itsSize)*sizeof(int) + totlen));
     // fill the block, first the header
-    int *hdr   = static_cast<int*>(ref().data());
-    *hdr++ = Tpstring;
-    *hdr++ = itsShape.size();
-    for( uint i=0; i<itsShape.size(); i++ )
-      *hdr++ = itsShape[i];
-    // now store strings & string lengths
-    char *data = reinterpret_cast<char*>(hdr + itsSize);
+    char *dataptr = static_cast<char*>(ref().data());
+    Header *phead = static_cast<Header*>(ref().data());
+    BObj::fillHeader(phead,1);
+    phead->sca_tid = itsScaType;
+    phead->rank    = rank();
+    for( int i=0; i<rank(); i++ )
+      phead->shape[i] = shape()[i];
+    // now, string lengths will go here
+    uint *lengths = reinterpret_cast<uint*>(dataptr+sizeof(Header)) + rank();
+    // and string data here
+    char *data = reinterpret_cast<char*>(lengths + itsSize);
     ptr = reinterpret_cast<string*>(itsArrayData);
     for( int i=0; i<itsSize; i++,ptr++ )
     {
-      int len = *hdr++ = ptr->copy(data,string::npos);
+      uint len = *lengths++ = ptr->copy(data,string::npos);
       data += len;
     }
     set.push(ref);
   }
   else // else simply push out copy of data block
   {
-    set.push(itsData.copy(DMI::READONLY));
+    set.push(itsData);
   }
   return 1;
 }

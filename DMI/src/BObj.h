@@ -85,8 +85,30 @@ class BObj : public CountedRefTarget
       //## Clones the object. Default implementation creates a clone via a to
       //## Block() - fromBlock() -privatize() sequence, so if your to/fromBlock
       //## is efficient enough, you don't need to provide your own clone().
-      virtual CountedRefTarget * clone (int flags = 0, int depth = 0) const;
-
+      virtual CountedRefTarget * clone (int flags = 0, int depth = 0) const =0;
+      
+      // the Header structure should begin the first block of any
+      // BlockableObject
+      typedef struct
+      {
+        TypeId  tid;
+        int     blockcount;
+      } Header;
+      
+      // fills header with object type, and supplied block count
+      void fillHeader (Header *ph,int bc=0) const
+      {
+        ph->tid = objectType();
+        ph->blockcount = bc;
+      }
+      
+      // verifies that header has the right type in it, and returns blockcount
+      int checkHeader (const Header *ph) const
+      {
+        FailWhen(ph->tid != objectType(),"Type id in block header does not match object type");
+        return ph->blockcount;
+      }
+      
     // Additional Public Declarations
     //##ModelId=3DB9344D015D
       typedef CountedRef<BObj> Ref;

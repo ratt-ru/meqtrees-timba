@@ -322,7 +322,14 @@ class Record : public Container
       typedef FieldMap::value_type FMV;
       
     //##ModelId=3E9BD8620215
-      typedef struct { int idsize; int ftype; } BlockFieldInfo;
+      typedef struct { int idsize; int blockcount; } BlockFieldInfo;
+      
+      class Header : public BObj::Header
+      {
+        public: 
+          int             num_fields;
+          BlockFieldInfo  fields[];
+      };
 };
 
 

@@ -94,21 +94,28 @@ class SmartBlock : public CountedRefTarget
       void * data ();
       
     //##ModelId=3DB934E60308
-      const char * cdata () const
-      { return static_cast<const char*>(data()); }
-        
-    //##ModelId=3DB934E603D0
-      char * cdata ()
-      { return static_cast<char*>(data()); }
-      
       template<class T>
-      T * ptr_cast () 
+      const T * pdata () const
+      { return static_cast<const T*>(data()); }
+    //##ModelId=3DB934E603D0
+      template<class T>
+      T * pdata ()
       { return static_cast<T*>(data()); }
       
-      template<class T>
-      const T * const_ptr_cast () const
-      { return static_cast<const T*>(data()); }
+      const char * cdata () const
+      { return pdata<char>(); }
+      char * cdata () 
+      { return pdata<char>(); }
+        
       
+//       template<class T>
+//       T * ptr_cast () 
+//       { return static_cast<T*>(data()); }
+//       
+//       template<class T>
+//       const T * const_ptr_cast () const
+//       { return static_cast<const T*>(data()); }
+//       
     //##ModelId=3DB934E70057
       DefineRefTypes(SmartBlock,Ref);
       

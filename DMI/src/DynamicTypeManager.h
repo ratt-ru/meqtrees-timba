@@ -26,30 +26,35 @@ class DynamicTypeManager
     //## This defines a pointer to a "constructor" function for constructing
     //## a particular type of object
     typedef BObj * (*PtrConstructor)(int n);
+  
+    //## Reconstructs an object from a data block set, by calling the
+    //## "constructor function" for that type to create an empty object, and
+    //## then filling it via DMI::BObj::fromBlock().
+    //## If tid is 0, then the tid will be taken from the block header.
+    static ObjRef construct (TypeId tid, BlockSet& bset);
+    
+    //## Reconstructs N objects from a data block set, by calling the
+    //## "constructor function" for that type to create an empty object, and
+    //## then filling it via DMI::BObj::fromBlock().
+    //## If tid is 0, then the tid will be taken from the block header.
+    //## An array of objects is allocated with new [].
+    static BObj * construct (TypeId tid, BlockSet& bset, int n);
 
+    //##ModelId=3BE96C7402D5
+    //##Documentation
+    //## Constructs a default object of the given type (simply calls the
+    //## "constructor" function from the constructor map).
+    static BObj * construct (TypeId tid, int n = 0);
 
-      //##ModelId=3BE96C5F03A7
-      //##Documentation
-      //## Reconstructs an object from a data block, by calling the
-      //## "constructor function" for that type to create an empty object, and
-      //## then filling it via DMI::BObj::fromBlock().
-      static BObj * construct (TypeId tid, BlockSet& bset, int n = 0);
-
-      //##ModelId=3BE96C7402D5
-      //##Documentation
-      //## Constructs a default object of the given type (simply calls the
-      //## "constructor" function from the constructor map).
-      static BObj * construct (TypeId tid, int n = 0);
-
-      //##ModelId=3BF905EE020E
-      //##Documentation
-      //## Checks if a type is registered
-      static bool isRegistered (TypeId tid);
+    //##ModelId=3BF905EE020E
+    //##Documentation
+    //## Checks if a type is registered
+    static bool isRegistered (TypeId tid);
 
   private:
     // Additional Private Declarations
     //##ModelId=3DB934870196
-      DeclareRegistry(DynamicTypeManager,int,PtrConstructor);
+    DeclareRegistry(DynamicTypeManager,int,PtrConstructor);
 };
 
 // Class Utility DynamicTypeManager 

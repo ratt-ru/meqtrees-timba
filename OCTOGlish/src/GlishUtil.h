@@ -37,7 +37,7 @@ namespace GlishUtil
 
   casa::GlishRecord objectToBlockRec (const DMI::BObj &obj);
 
-  DMI::BObj * blockRecToObject (const casa::GlishRecord &rec);
+  DMI::ObjRef blockRecToObject (const casa::GlishRecord &rec);
 
   template<class T> 
   void initDMIVec (DMI::Vec &field,const casa::GlishArray &arr,bool isScalar);

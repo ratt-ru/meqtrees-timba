@@ -85,9 +85,8 @@ TypeId BOIO::readAny (ObjRef &ref)
       return 0;
   }
   // create object
-  DMI::BObj *obj = DynamicTypeManager::construct(tid,set);
-  FailWhen(!obj,"failed to construct "+tid.toString() );
-  ref <<= obj;
+  ref = DynamicTypeManager::construct(tid,set);
+  FailWhen(!ref.valid(),"failed to construct "+tid.toString() );
   return tid;
 }
 

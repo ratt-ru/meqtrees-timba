@@ -161,44 +161,41 @@ CountedRefTarget* VCubeSet::clone(int flags, int depth) const
 int VCubeSet::fromBlock(BlockSet& set)
 {
   Thread::Mutex::Lock lock(mutex_);
-  int ret = 1;
+  int bc = 1;
   cubes.clear();
   // get header block
   FailWhen( set.empty(),"invalid set" );
-  set.pop(hdrblock);
+  BlockRef hdrblock = set.pop();
   FailWhen( hdrblock->size() != sizeof(HeaderBlock),"invalid block" );
-  const HeaderBlock * phdr = hdrblock->const_ptr_cast<HeaderBlock>();
+  const HeaderBlock * phdr = hdrblock->pdata<HeaderBlock>();
+  int expect_bc = BObj::checkHeader(phdr);
   cubes.resize(phdr->ncubes);
   for( CI iter = cubes.begin(); iter != cubes.end(); iter++ )
   {
     VCube *pcube = new VCube;
     (*iter) <<= pcube;
-    ret += pcube->fromBlock(set);
+    bc += pcube->fromBlock(set);
   }
-  return ret;
+  FailWhen(bc!=expect_bc,"block count mismatch in header");
+  return bc;
 }
 
 //##ModelId=3DC672EB001E
 int VCubeSet::toBlock(BlockSet &set) const
 {
   Thread::Mutex::Lock lock(mutex_);
-  int ret = 1;
+  int bc = 1;
   // push out a header block
-  HeaderBlock header = { cubes.size() };
-  if( !hdrblock.valid() )
-  {
-    hdrblock <<= new SmartBlock(sizeof(header));
-    memcpy(hdrblock().data(),&header,sizeof(header));
-  }
-  else if( !memcmp(hdrblock->data(),&header,sizeof(header)) )
-    memcpy(hdrblock().data(),&header,sizeof(header));
-  set.pushCopy(hdrblock);
-  
+  SmartBlock *pb = new SmartBlock(sizeof(HeaderBlock));
+  set.push(BlockRef(pb));
   // convert cubes
   for( CCI iter = cubes.begin(); iter != cubes.end(); iter++ )
-    ret += (*iter).deref().toBlock(set);
-  
-  return ret;
+    bc += (*iter).deref().toBlock(set);
+  // fill header
+  HeaderBlock *hdr = pb->pdata<HeaderBlock>();
+  BObj::fillHeader(hdr,bc);
+  hdr->ncubes = cubes.size();
+  return bc;
 }
 
 //##ModelId=3DF9FDD20007

@@ -24,16 +24,16 @@
 #include "BObj.h"
 
 
-//##ModelId=3BFE5FE103C5
-DMI::CountedRefTarget * DMI::BObj::clone (int flags, int depth) const
-{
-  BlockSet bset;
-  toBlock(bset);
-  if( flags&DMI::DEEP || depth>0 )
-    bset.privatizeAll(flags);
-  return DynamicTypeManager::construct(objectType(),bset);
-}
-
+// //##ModelId=3BFE5FE103C5
+// DMI::CountedRefTarget * DMI::BObj::clone (int flags, int depth) const
+// {
+//   BlockSet bset;
+//   toBlock(bset);
+//   if( flags&DMI::DEEP || depth>0 )
+//     bset.privatizeAll(flags);
+//   return DynamicTypeManager::construct(objectType(),bset);
+// }
+// 
 //##ModelId=3E9BD915025A
 void DMI::BObj::print (std::ostream &str) const
 {
