@@ -25,13 +25,38 @@ bool _convertScaSca (const void * from,void * to)
   *static_cast<To*>(to) = To(*static_cast<const From *>(from)); 
   return True;
 }
-//    special case for complex: use real part
+//    special case for complex-to-non-complex: use real part
 template<class From,class To> 
 bool _convertComplexScaSca (const void * from,void * to)
 { 
   *static_cast<To*>(to) = To(static_cast<const From *>(from)->real()); 
   return True;
 }
+template<> 
+bool _convertComplexScaSca<dcomplex,dcomplex> (const void * from,void * to)
+{ 
+  memcpy(to,from,sizeof(dcomplex));
+  return True;
+}
+template<> 
+bool _convertComplexScaSca<fcomplex,fcomplex> (const void * from,void * to)
+{ 
+  memcpy(to,from,sizeof(fcomplex));
+  return True;
+}
+template<> 
+bool _convertComplexScaSca<dcomplex,fcomplex> (const void * from,void * to)
+{ 
+  *static_cast<fcomplex*>(to) = *static_cast<const dcomplex *>(from); 
+  return True;
+}
+template<> 
+bool _convertComplexScaSca<fcomplex,dcomplex> (const void * from,void * to)
+{ 
+  *static_cast<dcomplex*>(to) = *static_cast<const fcomplex *>(from); 
+  return True;
+}
+
 //--- convert scalar to single-element vector
 template<class From,class To> 
 bool _convertScaVec (const void * from,void * to)
@@ -39,8 +64,9 @@ bool _convertScaVec (const void * from,void * to)
   blitz::Array<To,1> &arr = *static_cast<blitz::Array<To,1>*>(to);
   if( arr.numElements() != 1 )
     return False;
-  *(arr.data()) = To(*static_cast<const From *>(from)); 
-  return True;
+  return _convertScaSca<From,To>(from,arr.data());
+//  *(arr.data()) = To(*static_cast<const From *>(from)); 
+//  return True;
 }
 //    special case for complex: use real part
 template<class From,class To> 
@@ -49,8 +75,9 @@ bool _convertComplexScaVec (const void * from,void * to)
   blitz::Array<To,1> &arr = *static_cast<blitz::Array<To,1>*>(to);
   if( arr.numElements() != 1 )
     return False;
-  *(arr.data()) = To(static_cast<const From *>(from)->real()); 
-  return True;
+  return _convertComplexScaSca<From,To>(from,arr.data());
+//  *(arr.data()) = To(static_cast<const From *>(from)->real()); 
+//  return True;
 }
 //--- convert single-element vector to scalar
 template<class From,class To> 
@@ -59,8 +86,9 @@ bool _convertVecSca (const void * from,void * to)
   const blitz::Array<From,1> &arr = *static_cast<const blitz::Array<From,1>*>(from);
   if( arr.numElements() != 1 )
     return False;
-  *static_cast<To*>(to) = To(*(arr.data()));
-  return True;
+  return _convertScaSca<From,To>(arr.data(),to);
+//  *static_cast<To*>(to) = To(*(arr.data()));
+//  return True;
 }
 //    special case for complex: use real part
 template<class From,class To> 
@@ -70,8 +98,9 @@ bool _convertComplexVecSca (const void * from,void * to)
       = *static_cast<const blitz::Array<From,1>*>(from);
   if( arr.numElements() != 1 )
     return False;
-  *static_cast<To*>(to) = To(arr.data()->real());
-  return True;
+  return _convertComplexScaSca<From,To>(arr.data(),to);
+//  *static_cast<To*>(to) = To(arr.data()->real());
+//  return True;
 }
 
 // This defines the conversion matrices
