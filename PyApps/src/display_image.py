@@ -376,19 +376,15 @@ class QwtImagePlot(QwtPlot):
                      self.onMouseReleased)
         self.connect(self, SIGNAL("legendClicked(long)"), self.toggleCurve)
         self.index = 1
-        self.first_plot = True
         self.is_vector = False
         self.x_dim = 0
         self.y_dim = 0
 
     def drawCanvasItems(self, painter, rectangle, maps, filter):
-        if self.first_plot == False:
-          if self.is_vector == False:
-            self.plotImage.drawImage(
-              painter, maps[QwtPlot.xBottom], maps[QwtPlot.yLeft])
-          QwtPlot.drawCanvasItems(self, painter, rectangle, maps, filter)
-        else:
-          self.first_plot = False
+        if self.is_vector == False:
+          self.plotImage.drawImage(
+            painter, maps[QwtPlot.xBottom], maps[QwtPlot.yLeft])
+        QwtPlot.drawCanvasItems(self, painter, rectangle, maps, filter)
 
 
     def onMouseMoved(self, e):
@@ -432,6 +428,7 @@ class QwtImagePlot(QwtPlot):
               self.x_array[i] = self.raw_image[i,ypos]
 	    self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
             self.replot()
+            _dprint(2, 'called replot in onMousePressed')
            
         # fake a mouse move to show the cursor position
         self.onMouseMoved(e)
@@ -465,6 +462,7 @@ class QwtImagePlot(QwtPlot):
         self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
         self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
         self.replot()
+        _dprint(2, 'called replot in onMouseReleased')
 
     # onMouseReleased()
 
@@ -473,6 +471,7 @@ class QwtImagePlot(QwtPlot):
         if curve:
             curve.setEnabled(not curve.enabled())
             self.replot()
+            _dprint(2, 'called replot in toggleCurve')
     # toggleCurve()
 
     def setDisplayType(self, display_type):
@@ -490,6 +489,7 @@ class QwtImagePlot(QwtPlot):
       else:
         self.plotImage.setImage(image)
       self.replot()
+      _dprint(2, 'called replot in display_image')
     # display_image()
 
     def plot_data(self, item_label, visu_record):
@@ -630,6 +630,7 @@ class QwtImagePlot(QwtPlot):
           self.x_array =  flattened_array
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
         self.replot()
+        _dprint(2, 'called replot in array_plot')
 
     def start_timer(self, time, test_complex, display_type):
       self.test_complex = test_complex
