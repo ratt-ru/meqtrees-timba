@@ -359,6 +359,13 @@ void GlishUtil::makeDataField (DataField &field,const GlishArray &arr,bool isInd
         Vector<String> array;
         arr.get(array);
         bool is_hiid = arr.attributeExists("dmi_is_hiid");
+        if( !is_hiid && arr.attributeExists("dmi_datafield_content_type") )
+        {
+          String typestr;
+          GlishArray tmp = arr.getAttribute("dmi_datafield_content_type"); 
+          tmp.get(typestr);
+          is_hiid |= ( strlowercase(typestr) == "hiid" );
+        }
         field.init(is_hiid?TpHIID:Tpstring,array.nelements());
         if( is_hiid )
         {

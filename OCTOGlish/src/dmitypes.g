@@ -102,6 +102,17 @@ const dmi.hiid := function (str='',...)
   return str;
 }
 
+# makes a HIID list (DataField) from a string array
+const dmi.hiid_list := function (strlist)
+{
+  if( len(strlist) )
+    for( i in 1:len(strlist) )
+      strlist[i] := dmi.hiid(strlist[i]);
+  dmi.set_type(strlist,'DataField');
+  strlist::dmi_datafield_content_type := 'HIID';
+  return strlist;
+}
+
 # returns T if argument is a HIID
 const dmi.is_hiid := function (obj)
 {
