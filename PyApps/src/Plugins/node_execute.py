@@ -15,6 +15,7 @@ from Timba.Meq import meq
 from time import sleep
 from qt import *
 from string import *
+from operator import isNumberType
 
 _dbg = verbosity(0,name='node_exec');
 _dprint = _dbg.dprint;
@@ -150,7 +151,7 @@ class editRequest(QDialog):
         self.parent.t1 = self.parent.t0 + dt
 	self.parent.doNewRequest()
         t = t + t01
-    self.close()
+#    self.close()
 
 class startLoop(QDialog):
   def __init__(self, parent, name='LoopCnt', modal=0):
@@ -343,12 +344,20 @@ class Executor (browsers.GriddedPlugin):
     startLoop(self)
 
   def _newreq(self):
-    self.f0 = self._request.cells.domain.freq[0];
-    self.f1 = self._request.cells.domain.freq[1];
-    self.fn = len(self._request.cells.cell_size.freq);
-    self.t0 = self._request.cells.domain.time[0];
-    self.t1 = self._request.cells.domain.time[1];
-    self.tn = len(self._request.cells.cell_size.time);
+    if self._request == None:
+      self.f0 = 0
+      self.f1 = 1
+      self.fn = 10
+      self.t0 = 0
+      self.t1 = 1
+      self.tn = 10
+    else:
+      self.f0 = self._request.cells.domain.freq[0];
+      self.f1 = self._request.cells.domain.freq[1];
+      self.fn = len(self._request.cells.cell_size.freq);
+      self.t0 = self._request.cells.domain.time[0];
+      self.t1 = self._request.cells.domain.time[1];
+      self.tn = len(self._request.cells.cell_size.time);
     editRequest(self);
 
   def doNewRequest(self):
