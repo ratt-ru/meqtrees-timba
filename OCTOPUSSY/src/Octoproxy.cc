@@ -58,6 +58,7 @@ bool Identity::receive(Message::Ref &mref,bool wait)
   wp().queueCondition().wait();
 #endif
   // bug, finish this
+  return false;
 }
 
 } // namespace Octoproxy

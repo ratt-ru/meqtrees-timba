@@ -124,7 +124,7 @@ VisCube::Iterator::Iterator()
 }
 
 VisCube::Iterator::Iterator(const VisCube::Iterator &right)
-    : ConstIterator(),VisTile::Iterator()
+    : VisTile::ConstIterator(),ConstIterator(),VisTile::Iterator()
 {
   operator =(right);
 }
