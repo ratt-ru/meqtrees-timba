@@ -1,8 +1,10 @@
 gnu3.compiler.conf: CXX="$CCACHE /usr/bin/g++"
 gnu3.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/weekly/linux_gnu
+gnu3.compiler.sse.var:    --without-sse
 
 gnu.compiler.conf: CXX="$CCACHE /usr/bin/g++"
 gnu.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/weekly/linux_gnu
+gnu.compiler.sse.var:    --without-sse
 
 gnu34.compiler.conf: CXX="$CCACHE /usr/local/gcc343/bin/g++" --with-ldflags="-Wl,--rpath,/usr/local/gcc343/lib" 
 gnu34.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/weekly/linux_gnu34
