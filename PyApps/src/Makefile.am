@@ -19,7 +19,7 @@ check_PROGRAMS   		=
 pythondir = $(libexecdir)/python
 dist_python_SCRIPTS = \
   app_defaults.py  app_proxy_gui.py  meqbrowser.py  meqserver_gui.py  \
-  pretty_print.py  app_pixmaps.py    app_proxy.py   \
+  pretty_print.py  app_pixmaps.py    app_proxy.py   gridded_workspace.py \
   meq.py         meqserver.py
 
 

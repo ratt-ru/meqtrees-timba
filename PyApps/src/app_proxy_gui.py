@@ -7,6 +7,7 @@ from dmitypes import *
 import qt_threading
 import app_pixmaps as pixmaps
 import dmi_repr
+from gridded_workspace import *
 
 MainApp = None;
 MainAppThread = None;
@@ -28,7 +29,6 @@ def defaultBoldFont ():
     _def_bold_font = QFont(defaultFont());
     _def_bold_font.setBold(True);
   return _def_bold_font;
-  
 
 class HierBrowser (object):
   # seqs/dicts with <= items than this are treated as "short"
@@ -38,6 +38,21 @@ class HierBrowser (object):
   # max number of dictionary items to show in expanded view
   MaxExpDict     = 100;
 
+  # init for HierBrowser
+  def __init__(self,parent,name,name1=''):
+    self._lv = QListView(parent);
+    self._lv.addColumn(name1);
+    self._lv.addColumn(name);
+    self._lv.setRootIsDecorated(True);
+    self._lv.setSorting(-1);
+    self._lv.setResizeMode(QListView.NoColumn);
+    self._lv.setColumnWidthMode(0,QListView.Maximum);
+    self._lv.setColumnWidthMode(2,QListView.Maximum);
+    self._lv.setFocus();
+    self._lv.connect(self._lv,SIGNAL('expanded(QListViewItem*)'),
+                     self._expand_item_content);
+    self.items = [];
+    
   def subitem (parent,*args):
     if hasattr(parent,'_content_list') and parent._content_list:
       return HierBrowser.BrowserItem(parent,parent._content_list[-1],*args);
@@ -117,20 +132,6 @@ class HierBrowser (object):
     def expand_self (self):
       HierBrowser.expand_content(self,self._content);
   
-  # init for HierBrowser
-  def __init__(self,parent,name,name1=''):
-    self._lv = QListView(parent);
-    self._lv.addColumn(name1);
-    self._lv.addColumn(name);
-    self._lv.setRootIsDecorated(True);
-    self._lv.setSorting(-1);
-    self._lv.setResizeMode(QListView.NoColumn);
-    self._lv.setColumnWidthMode(0,QListView.Maximum);
-    self._lv.setColumnWidthMode(2,QListView.Maximum);
-    self._lv.setFocus();
-    self._lv.connect(self._lv,SIGNAL('expanded(QListViewItem*)'),
-                     self._expand_item_content);
-    self.items = [];
   def wlistview (self):
     return self._lv;
   def wtop (self):
@@ -146,6 +147,7 @@ class HierBrowser (object):
       item = self.BrowserItem(self._lv,self.items[-1],*map(str,args));
     else:
       item = self.BrowserItem(self._lv,*map(str,args));
+    item._top_level = True;
     self.items.append(item);
     self._lv.ensureItemVisible(item);
     return item;
@@ -177,6 +179,9 @@ class Logger(HierBrowser):
   _LogPixmaps = { Normal:pixmaps.check, Error:pixmaps.exclaim };
   def __init__(self,parent,name,limit=-100,enable=True,use_enable=True,use_limit=True):
     self._vbox = QVBox(parent);
+    # init the browser base class
+    HierBrowser.__init__(self,self._vbox,name);
+    # add controls
     self._controlgrid = QWidget(self._vbox);
     self._controlgrid_lo = QHBoxLayout(self._controlgrid);
     self._controlgrid_lo.addStretch();
@@ -203,8 +208,6 @@ class Logger(HierBrowser):
       self._controlgrid_lo.addWidget(self._limit_field);
     else:
       self._limit_enable = None;
-    # init the browser base class
-    HierBrowser.__init__(self,self._vbox,name);
     
     self.set_log_limit(limit);
     
@@ -255,6 +258,10 @@ class Logger(HierBrowser):
     self.enabled = en;
     if en: self.add("logging enabled",category=self.Normal);
     else:  self.add("logging disabled",category=self.Error,force=True);
+    
+  def connect_click (self,slot):
+    self._lv.connect(self._lv,
+      SIGNAL('mouseButtonClicked(int,QListViewItem*,const QPoint &,int)'),slot);
     
 class EventLogger (Logger):
   def __init__(self,parent,name,evmask="*",*args,**kwargs):
@@ -316,9 +323,8 @@ class app_proxy_gui(verbosity,QMainWindow):
     #------ populate the GUI
     self.populate(size=size,*args,**kwargs);
     
-    #------ set size & central widget
-    if self.centralWidget() is None:
-      self.setCentralWidget(self.maintab);
+    #------ set size 
+    self.setCentralWidget(self.splitter);
     sz = self.size().expandedTo(QSize(size[0],size[1]));
     self.resize(sz);
     
@@ -335,9 +341,17 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.dprint(2,"init complete");
 
   def populate (self,main_parent=None,*args,**kwargs):
+    #------ split main window in two
+    splitter = self.splitter = QSplitter(QSplitter.Horizontal,main_parent or self);
+    splitter.setFrameStyle(QFrame.Box+QFrame.Plain);
+    splitter.setChildrenCollapsible(False);
+  
     #------ create top-level tab bar
-    self.maintab = maintab = QTabWidget(main_parent or self);
+    self.maintab = maintab = QTabWidget(splitter);
+    self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),
+                 self._change_current_page);
     maintab.setTabPosition(QTabWidget.Bottom);
+    splitter.setResizeMode(maintab,QSplitter.KeepSize);
     
     #------ create a message log
     self.msglog = MessageLogger(self,"message log",use_enable=False,limit=1000);
@@ -347,16 +361,16 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.msglog.wtop()._error_label = "%d errors";
     self.msglog.wtop()._error_iconset = QIconSet(pixmaps.exclaim.pm());
     self.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
+    self.msglog.connect_click(self._process_logger_item_click);
     
     #------ create an event log
     self.eventlog = EventLogger(self,"event log",limit=1000,evmask="*");
     
-    #------ toplevel tab bar       
-    self.maintab = QTabWidget(self);
     self.maintab.addTab(self.msglog.wtop(),self.msglog.wtop()._default_label);
     
     self.eventtab = QTabWidget(self.maintab);
     self.maintab.addTab(self.eventtab,"Events");
+    self.eventlog.connect_click(self._process_logger_item_click);
     
     #------ event window tab bar
     self.eventtab.setTabShape(QTabWidget.Triangular);
@@ -364,7 +378,7 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.connect(self.eventlog.wtop(),PYSIGNAL("maskChanged()"),self._change_eventlog_mask);
     
     #------ status bar
-    self.statusbar = QStatusBar(self);
+    self.statusbar = self.statusBar();
     self.pause_button = QToolButton(self.statusbar);
 #    self.pause_button = QToolButton(self.statusbar);
     self.status_label = QLabel(self.statusbar);
@@ -377,9 +391,6 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.statusbar.addWidget(self.pause_button,0,True);
     self.statusbar.addWidget(self.status_icon);
     self.statusbar.addWidget(self.status_label);
-    # clears message from status bar whenever a tab changes
-    self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),
-                 self.statusbar,SLOT("clear()"));
                  
     #------ pause button
 #    self.pause_button = QToolButton(self.maintab);
@@ -393,6 +404,13 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.connect(self.pause_button,SIGNAL("clicked()"),self._press_pause);
     self.pause_requested = None;
     
+    #------ gridded workspace
+    self.gw = gw = GriddedWorkspace(splitter,max_nx=4,max_ny=4);
+    splitter.setResizeMode(gw.wtop(),QSplitter.Stretch);
+    self.gw_visible = {};
+    gw.wtop().hide();
+    splitter.setSizes([200,600]);
+    
 #    self.maintab.setCornerWidget(self.pause_button,Qt.TopRight);
     
   def _add_ce_handler (self,event,handler):
@@ -403,6 +421,47 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.dprint(2,"showing GUI"); 
     self._update_app_state();
     QMainWindow.show(self);
+    
+  def show_gridded_workspace (self,show=True):
+    page = self.maintab.currentPage();
+    self.gw_visible[page] = show;
+    # hide or show the workspace
+    if show: self.gw.wtop().show();
+#      self.splitter.setSizes([100,300]);
+    else:    self.gw.wtop().hide();
+    
+##### slot: called when change-of-page occurs
+  def _change_current_page (self,page):
+    # clears message from status bar whenever a tab changes
+    self.statusbar.clear();
+    # show or hide the workspace
+    if self.gw_visible.get(page,False):
+      self.gw.wtop().show();
+    else:
+      self.gw.wtop().hide();
+      
+##### slot: called when one of the logger items is clicked
+  def _process_logger_item_click (self,button,item,point,col):
+    print self,button,item,col;
+    # process left-clicks on column 1 only
+    if button != 1 or col != 1:
+      return;
+    # return if item is not a top-level item, or has no content
+    try: 
+      if not item._top_level: return;
+      content = item._content;
+    except: return;
+    # add item to workspace
+    cell_id = id(item);
+    cell = self.gw.reserve_or_find_cell(cell_id);
+    if cell.is_empty():
+      rb = RecordBrowser(cell.wtop(),content);
+      rb.wtop()._rb = rb;
+      cell.set_content(rb.wtop(),item.text(1),cell_id,
+          subname=item.text(0),refresh=False,disable=False);
+      cell.wtop().connect(rb.wtop(),PYSIGNAL("refresh()"),self._refresh_state_cell);
+      self.gw.wtop().updateGeometry();
+    self.show_gridded_workspace();
     
 ##### event relay: reposts message as a Qt custom event for ourselves
   MessageEventType = QEvent.User+1;
@@ -418,8 +477,7 @@ class app_proxy_gui(verbosity,QMainWindow):
     # check WP for messages
     self.app.poll();
 
-##### Qt customEvent handler maps to handleAppEvent(). This is used to relay
-#     events
+##### Qt customEvent handler maps to handleAppEvent(). This is used to relay events
   def customEvent (self,event):
     self.handleAppEvent(*event.data());
 
@@ -450,13 +508,17 @@ class app_proxy_gui(verbosity,QMainWindow):
       self.dprint(0,'exception',str(exctype),'while handling event ',ev);
       self.dprint(0,'exception value is',excvalue);
       self.dprint(2,'event value was',value);
-    
+      
+##### custom event handlers for various messages
   def ce_Hello (self,ev,value):
     self.wtop().emit(PYSIGNAL("connected()"),(value,));
     self.msglog.add("connected to "+str(value),None,Logger.Normal);
+    self.gw.clear();
+    
   def ce_Bye (self,ev,value):
     self.wtop().emit(PYSIGNAL("disconnected()"),(value,));
     self.msglog.add("lost connection to "+str(value),None,Logger.Error);
+    
   def ce_UpdateState (self,ev,value):
     self._update_app_state();
     
@@ -487,8 +549,6 @@ class app_proxy_gui(verbosity,QMainWindow):
       self.setCaption(self.app.name()+" - "+state);
     else:
       self.setCaption(str(self.app.app_addr)+" - "+state);
-      
-    
 ##### slot: pause button pressed
   def _press_pause (self):
     if self.pause_requested is None:
