@@ -225,11 +225,12 @@ int Sink::procPendingTile (VisCube::VTile::Ref &tileref)
             realflags.getConstArray<VellsFlagType,2>();
         // flip into freq-time order
         fl.transposeSelf(blitz::secondDim,blitz::firstDim);
+        LoMat_int tileflags = ptile->wflags()(icorr,LoRange::all(),pending.range);
         // if flag bit is set, use a where-expression, else simply copy
         if( flag_bit )
-          ptile->wtf_flags(icorr) = where(fl,flag_bit,0);
+          tileflags = where(fl,flag_bit,0);
         else
-          ptile->wtf_flags(icorr) = fl;
+          tileflags = fl;
       }
       resflag |= RES_UPDATED;
     }

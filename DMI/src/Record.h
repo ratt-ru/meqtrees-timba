@@ -27,6 +27,9 @@
 #include <DMI/Container.h>
 #include <DMI/ObjectAssignerMacros.h>
 #include <DMI/HashMap.h>
+#include <DMI/Allocators.h>
+
+#include <functional>
 
 #pragma type #DMI::Record
 
@@ -69,7 +72,7 @@ class Record : public Container
         bool     protect;
       } Field;
 
-      typedef hash_map<HIID,Field> FieldMap; 
+      typedef hash_map<HIID,Field,DMI_hash_namespace::hash<HIID>,std::equal_to<HIID>,DMI_Allocator<Field> > FieldMap; 
   
   public:
       typedef CountedRef<Record> Ref;

@@ -3,16 +3,20 @@
 #include <DMI/Record.h>
 #include <DMI/NumArray.h>
 #include <DMI/ContainerIter.h>
+#include <DMI/Global-Registry.h>
 #include <Common/Stopwatch.h>
 //#include <casa/Arrays/Matrix.h>
 //#include <casa/Arrays/ArrayMath.h>
-    
+#include <stdlib.h>
+        
 #define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
 
 using namespace LOFAR;
 using namespace DMI;
 using namespace DebugDefault;
-    
+   
+int dum = aidRegistry_Global();
+ 
 int main ( int argc,const char *argv[] )
 {
 #ifdef __GNUC__
@@ -40,14 +44,45 @@ int main ( int argc,const char *argv[] )
   CountedRefBase::getDebugContext().setLevel(0);
   
   Debug::initLevels(argc,argv);
+  int test_level = 1;
+  string test;
+  
+  for( int i=1; i<argc; i++ )
+  {
+    string arg(argv[i]);
+    if( arg == "-a" )
+      test_level = 2;
+    else if( isupper(arg[0]) )
+    {
+      test = arg;
+      test_level = 0;
+    }
+  }
   
   try 
   {
     double dum=0; int val,nloops;
     long long ndone;
     const char indent[] = "           ";
+    
     cout << 
-        "Running NestableContainer benchmarks\n"
+        "Running small NestableContainer benchmarks\n";
+    if( test_level<2 )
+      cout << 
+        "use -a to run all benchmarks\n";
+    else
+      cout << 
+        "running all benchmarks\n";
+    if( test_level==0 )  
+      cout << "running benchmark " << test << endl;
+    else
+      cout <<
+        "HIID2S: convert HIIDs to strings\n"
+        "S2HIID: convert strings to HIIDs\n"
+        "RSINIT: init 3-element record\n"
+        "RSSCAN: access 3-element record\n"
+        "RBINIT: init 10000-element record\n"
+        "RBSCAN: access 10000-element record\n"
         "R3INIT: init nested record of 26x26x26 scalar integer fields (fps)\n"
         "R3SCAN: sequential scan of 26x26x26 record (fps)\n"
         "R3AFIX: assigning to fixed field of 3-nested record (fps)\n"
@@ -69,168 +104,289 @@ int main ( int argc,const char *argv[] )
     Stopwatch watch(3.0);
     watch.setNameWidth(10);
     
-//    cout<<"=== Initializing container\n";
-    DMI::Record rec;
     ndone = 0;
-    for( nloops=0; !watch.fired(); nloops++ )
-    {
-      rec = DMI::Record();
-      for( char f1='A'; f1<='Z'; f1++ )
-      {
-        rec[string(1,f1)] <<= new DMI::Record;
-        for( char f2='A'; f2<='Z'; f2++ )
-        {
-          rec[string(1,f1)][string(1,f2)] <<= new DMI::Record;
-          for( char f3='A'; f3<='Z'; f3++ )
-          {
-//            rec[string(1,f1)][string(1,f2)][string(1,f3)] <<= new DMI::NumArray(Tpdouble,IPosition(2,30,30));
-            rec[string(1,f1)][string(1,f2)][string(1,f3)] = 0;
-            ndone++;
-          }
-        }
-      }
-    }
-    cout<<watch.dump("R3INIT",ndone)<<endl;
+    string curname;
+
+  #define RUNTEST(LEVEL,NAME)    \
+    ndone = 0; curname = #NAME; \
+    if( test_level >= LEVEL || test == #NAME ) \
     
-//    cout<<"=== Scanning container sequentially\n";
-    watch.reset();    
-    ndone=0;
-    for( nloops=0; !watch.fired(); nloops++ )
+    RUNTEST(1,HIID2S)
     {
-      for( char f1='A'; f1<='Z'; f1++ )
+      for( nloops=0; !watch.fired(); nloops++ )
       {
-        for( char f2='A'; f2<='Z'; f2++ )
+        HIID hiid = AidA|AidB|AidDMIRecord|AidDMIList;
+        int len;
+        for( int i=0; i<1000; i++ )
         {
-          for( char f3='A'; f3<='Z'; f3++ )
-          {
-  //          double val = rec[string(1,f1)][string(1,f2)][string(1,f3)](10,10);
-            val = rec[string(1,f1)][string(1,f2)][string(1,f3)];
-            ndone++;
-          }
+          hiid[0] = i;
+          std::string str = hiid.toString();
+          len += str.length();
         }
+        ndone += 1000;
       }
+      cout<<watch.dump("HIID2S",ndone)<<endl;
     }
-    cout<<watch.dump("R3SCAN",ndone)<<endl;
-        
-//    cout<<"=== Assigning to fixed element\n";
-//    HIID id("A/B/C/10.10");
-    HIID id("A/B/C");
-    watch.reset();    
-    for( nloops=0; !watch.fired(); nloops+=1000 )
+    
+    RUNTEST(1,S2HIID)
     {
-      for( int count=0; count<1000; count++ )
-        rec[id] = 0;
-    }
-    cout<<watch.dump("R3AFIX",nloops)<<endl;
-
-    watch.reset();    
-    for( nloops=0; !watch.fired(); nloops+=1000 )
-    {
-      for( int count=0; count<1000; count++ )
-        val = rec[id];
-    }
-    cout<<watch.dump("R3RFIX",nloops)<<endl;
-
-    DMI::Record &rec1 = rec["A/B"].as_wr<DMI::Record>();
-    ndone = 0;
-    watch.reset();
-    for( nloops=0; !watch.fired(); nloops+=1000 )
-    {
-      for( int count=0; count<1000; count++ )
+      for( nloops=0; !watch.fired(); nloops++ )
       {
-        for( char f1='A'; f1<='Z'; f1++ )
+        std::string str = "A.B.DMIRecord.DMIList";
+        int len;
+        for( int i=0; i<1000; i++ )
         {
-          val = rec1[string(1,f1)] = 0;
+          str[0] = ('A'+(i%20));
+          HIID hiid(str);
+          len += hiid.size();
+        }
+        ndone += 1000;
+      }
+      cout<<watch.dump("S2HIID",ndone)<<endl;
+    }
+    
+    DMI::Record rec;
+    ObjRef ref(new DMI::Record);
+    
+    RUNTEST(1,RSINIT)
+    {
+      for( nloops=0; !watch.fired(); nloops++ )
+      {
+        rec = DMI::Record();
+        HIID hiid = AidA|AidB|AidC|0;
+        for( int i=0; i<10000; i++ )
+        {
+          hiid[3] = i%4;
+          rec.add(hiid,ref,DMI::REPLACE);
           ndone++;
         }
       }
+      cout<<watch.dump("RSINIT",ndone)<<endl;
     }
-    cout<<watch.dump("R1SCAN",ndone)<<endl;
     
-    id = "D";
-    watch.reset();
-    for( nloops=0; !watch.fired(); nloops+=1000 )
+    RUNTEST(1,RSSCAN)
     {
-      for( int count=0; count<1000; count++ )
+      for( nloops=0; !watch.fired(); nloops++ )
       {
-        rec1[id] = 0;
+        HIID hiid = AidA|AidB|AidC|0;
+        int sum;
+        for( int i=0; i<10000; i++ )
+        {
+          hiid[3] = random()%4;
+          sum += rec.hasField(hiid);
+          ndone++;
+        }
       }
+      cout<<watch.dump("RSSCAN",ndone)<<endl;
     }
-    cout<<watch.dump("R1AFIX",nloops)<<endl;
+
+    RUNTEST(1,RBINIT)
+    {
+      for( nloops=0; !watch.fired(); nloops++ )
+      {
+        rec = DMI::Record();
+        HIID hiid = AidA|AidB|AidC|0;
+        for( int i=0; i<50000; i++ )
+        {
+          hiid[3] = i;
+          rec.add(hiid,ref);
+          ndone++;
+        }
+      }
+      cout<<watch.dump("RBINIT",ndone)<<endl;
+    }
+    
+    RUNTEST(1,RBSCAN)
+    {
+      for( nloops=0; !watch.fired(); nloops++ )
+      {
+        HIID hiid = AidA|AidB|AidC|0;
+        int sum;
+        for( int i=0; i<50000; i++ )
+        {
+          hiid[3] = random()%8192;
+          sum += rec.hasField(hiid);
+          ndone++;
+        }
+      }
+      cout<<watch.dump("RBSCAN",ndone)<<endl;
+    }
+    
+    RUNTEST(1,R3INIT)
+    {
+      for( nloops=0; !watch.fired(); nloops++ )
+      {
+        rec = DMI::Record();
+        for( char f1='A'; f1<='Z'; f1++ )
+        {
+          rec[string(1,f1)] <<= new DMI::Record;
+          for( char f2='A'; f2<='Z'; f2++ )
+          {
+            rec[string(1,f1)][string(1,f2)] <<= new DMI::Record;
+            for( char f3='A'; f3<='Z'; f3++ )
+            {
+  //            rec[string(1,f1)][string(1,f2)][string(1,f3)] <<= new DMI::NumArray(Tpdouble,IPosition(2,30,30));
+              rec[string(1,f1)][string(1,f2)][string(1,f3)] = 0;
+              ndone++;
+            }
+          }
+        }
+      }
+      cout<<watch.dump("R3INIT",ndone)<<endl;
+    }
+    
+    RUNTEST(1,R3SCAN)
+    {
+      watch.reset();    
+      ndone=0;
+      for( nloops=0; !watch.fired(); nloops++ )
+      {
+        for( char f1='A'; f1<='Z'; f1++ )
+        {
+          for( char f2='A'; f2<='Z'; f2++ )
+          {
+            for( char f3='A'; f3<='Z'; f3++ )
+            {
+    //          double val = rec[string(1,f1)][string(1,f2)][string(1,f3)](10,10);
+              val = rec[string(1,f1)][string(1,f2)][string(1,f3)];
+              ndone++;
+            }
+          }
+        }
+      }
+      cout<<watch.dump("R3SCAN",ndone)<<endl;
+    }
+    
+    HIID id("A/B/C");
+    RUNTEST(1,R3AFIX)
+    {
+      watch.reset();    
+      for( nloops=0; !watch.fired(); nloops+=1000 )
+      {
+        for( int count=0; count<1000; count++ )
+          rec[id] = 0;
+      }
+      cout<<watch.dump("R3AFIX",nloops)<<endl;
+    }
+
+    RUNTEST(1,R3RFIX)
+    {
+      for( nloops=0; !watch.fired(); nloops+=1000 )
+      {
+        for( int count=0; count<1000; count++ )
+          val = rec[id];
+      }
+      cout<<watch.dump("R3RFIX",nloops)<<endl;
+    }
+
+    RUNTEST(1,R1SCAN)
+    {
+      DMI::Record &rec1 = rec["A/B"].as_wr<DMI::Record>();
+      watch.reset();
+      for( nloops=0; !watch.fired(); nloops+=1000 )
+      {
+        for( int count=0; count<1000; count++ )
+        {
+          for( char f1='A'; f1<='Z'; f1++ )
+          {
+            val = rec1[string(1,f1)] = 0;
+            ndone++;
+          }
+        }
+      }
+      cout<<watch.dump("R1SCAN",ndone)<<endl;
+    }
     
     id = "D";
-    watch.reset();
-    for( nloops=0; !watch.fired(); nloops+=1000 )
+    RUNTEST(1,R1AFIX)
     {
-      for( int count=0; count<1000; count++ )
-        val = rec1[id];
+      DMI::Record &rec1 = rec["A/B"].as_wr<DMI::Record>();
+      for( nloops=0; !watch.fired(); nloops+=1000 )
+      {
+        for( int count=0; count<1000; count++ )
+        {
+          rec1[id] = 0;
+        }
+      }
+      cout<<watch.dump("R1AFIX",nloops)<<endl;
     }
-    cout<<watch.dump("R1RFIX",nloops)<<endl;
+    
+    id = "D";
+    RUNTEST(1,R1RFIX)
+    {
+      DMI::Record &rec1 = rec["A/B"].as_wr<DMI::Record>();
+      for( nloops=0; !watch.fired(); nloops+=1000 )
+      {
+        for( int count=0; count<1000; count++ )
+          val = rec1[id];
+      }
+      cout<<watch.dump("R1RFIX",nloops)<<endl;
+    }
+          
 
     int size = 1000;
     DMI::NumArray arr(Tpdouble,makeLoShape(size,size),DMI::ZERO|DMI::WRITE);
-    ndone = size*size;
     LoMat_double mat = arr[HIID()].as<LoMat_double>();
       
-    for( nloops=0; !watch.fired(); nloops+=10 )
+    RUNTEST(1,ADSM1M)
     {
-      for( int count=0; count<10; count++ )
+      ndone = size*size;
+      for( nloops=0; !watch.fired(); nloops+=10 )
       {
-        mat(10,10) = nloops;
-        for( int i=0; i<size; i++ )
-          for( int j=0; j<size; j++ )
-          {
-            dum += mat(i,j);
-          }
+        for( int count=0; count<10; count++ )
+        {
+          mat(10,10) = nloops;
+          for( int i=0; i<size; i++ )
+            for( int j=0; j<size; j++ )
+            {
+              dum += mat(i,j);
+            }
+        }
       }
+      cout<<watch.dump("ADSM1M",ndone*nloops)<<endl;
+      cerr<<dum<<endl;
     }
-    cout<<watch.dump("ADSM1M",ndone*nloops)<<endl;
-    cerr<<dum<<endl;
     
-    watch.reset(); 
-    for( nloops=0; !watch.fired(); nloops+=10 )
+    RUNTEST(1,ADSA1M)
     {
-      for( int count=0; count<10; count++ )
+      ndone = size*size;
+      for( nloops=0; !watch.fired(); nloops+=10 )
       {
-        mat(10,10) = nloops;
-        dum += sum(mat);
+        for( int count=0; count<10; count++ )
+        {
+          mat(10,10) = nloops;
+          dum += sum(mat);
+        }
       }
+      cout<<watch.dump("ADSA1M",ndone*nloops)<<endl;
+      cerr<<dum<<endl;
     }
-    cout<<watch.dump("ADSA1M",ndone*nloops)<<endl;
-    cerr<<dum<<endl;
       
-//    cout<<"=== Accessing array with iterators\n";
-    ndone = size*size;
-    watch.reset();
-    double *tmp = arr(10,10).as_wp<double>();
-    ConstContainerIter<double> iter(arr[HIID()]);
-    for( nloops=0; !watch.fired(); nloops+=10 )
+    RUNTEST(1,ADSI1M)
     {
-      for( int count=0; count<10; count++ )
+      ndone = size*size;
+      watch.reset();
+      double *tmp = arr(10,10).as_wp<double>();
+      ConstContainerIter<double> iter(arr[HIID()]);
+      for( nloops=0; !watch.fired(); nloops+=10 )
       {
-        *tmp = nloops;
-        iter.reset();
-        while( !iter.end() )
-          { dum += iter.next(); }
+        for( int count=0; count<10; count++ )
+        {
+          *tmp = nloops;
+          iter.reset();
+          while( !iter.end() )
+            { dum += iter.next(); }
+        }
       }
+      cout<<watch.dump("ADSI1M",ndone*nloops)<<endl;
+      cerr<<dum<<endl;
     }
-    cout<<watch.dump("ADSI1M",ndone*nloops)<<endl;
-    cerr<<dum<<endl;
 
-    int sz1 = std::min(size,1000);    
-    ndone = sz1*sz1;
-    watch.reset();
-    for( int i=0; i<sz1; i++ )
-      for( int j=0; j<sz1; j++ )
-      {
-        dum += arr(i,j).as<double>();
-      }
-    cout<<watch.dump("ADSH1M",ndone)<<endl;
-    cerr<<dum<<endl;
         
     DMI::NumArray arr2(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO),
               arr3(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
     
+    RUNTEST(1,ADAM1M)
     {
       ndone = size*size;
       LoMat_double   mat(arr[HIID()].as<LoMat_double>()),
@@ -253,7 +409,9 @@ int main ( int argc,const char *argv[] )
       cerr<<sum(mat3)<<endl;
     }
     
+    RUNTEST(1,ADAA1M)
     {
+      ndone = size*size;
       LoMat_double mat(arr[HIID()].as<LoMat_double>()),
                    mat2(arr2[HIID()].as<LoMat_double>());
       watch.reset();
@@ -269,6 +427,7 @@ int main ( int argc,const char *argv[] )
       cerr<<sum(mat)<<endl;
     }
       
+    RUNTEST(1,ADAI1M)
     {
       ndone = size*size;
       watch.reset();
@@ -288,25 +447,12 @@ int main ( int argc,const char *argv[] )
       cerr<<sum(arr3[HIID()].as<LoMat_double>())<<endl;
     }
     
-    {
-      int sz1 = std::min(size,1000);    
-      ndone = sz1*sz1;
-      watch.reset();
-      for( int i=0; i<sz1; i++ )
-        for( int j=0; j<sz1; j++ )
-        {
-          arr3(i,j) = arr2(i,j).as<double>() + arr(i,j).as<double>();
-        }
-      cout<<watch.dump("ADAH1M",ndone)<<endl;
-      cerr<<sum(arr3[HIID()].as<LoMat_double>())<<endl;
-    }
-  
+    RUNTEST(2,ADAI25M)
     {  
       size = 5000;
       DMI::NumArray arr(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
       DMI::NumArray arr2(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
       
-      {
       watch.reset();
       DMI::NumArray arr3(Tpdouble,makeLoShape(size,size),DMI::WRITE);
       ConstContainerIter<double> iter(arr[HIID()]);
@@ -318,16 +464,16 @@ int main ( int argc,const char *argv[] )
       }
       cout<<watch.dump("ADAI25M",size*size)<<endl;
       cerr<<sum(arr3[HIID()].as<LoMat_double>())<<endl;
-      }
+    }
       
-      {
+    RUNTEST(2,ADAA25M)
+    {
       LoMat_double mat(arr[HIID()].as<LoMat_double>()),
                    mat2(arr2[HIID()].as<LoMat_double>());
       watch.reset();
       LoMat_double mat3(mat + mat2);
       cout<<watch.dump("ADAA25M",size*size)<<endl;
       cerr<<sum(mat3)<<endl;
-      }
     }
         
 //     cout<<"=== Randomly assigning to container\n";
@@ -363,7 +509,7 @@ int main ( int argc,const char *argv[] )
 //     cout<<ndone<<" reads in "<<delta<<"s., "<<ndone/delta<<"/s\n\n";
     
   }
-  catch( std::exception err ) 
+  catch( std::exception &err ) 
   {
     cerr<<"\nCaught exception:\n"<<err.what()<<endl;
     return 1;

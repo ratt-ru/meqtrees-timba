@@ -47,6 +47,7 @@
 #include <DMI/Registry.h>
 #include <DMI/HIID.h>
 #include <DMI/CountedRef.h>
+#include <DMI/Allocators.h>
 #include <DMI/Loki/TypeManip.h>
 #ifndef NC_SKIP_HOOKS
   #include <DMI/TID-DMI.h>
@@ -378,7 +379,8 @@ class Container : public BObj
           mutable Link link0;
           // rest of chain
         //##ModelId=4017F6230237
-          mutable std::deque<Link> chain;
+          typedef std::list<Link,DMI_Allocator<Link> > LinkChain;
+          mutable LinkChain chain;
           
           // pointers/lock to non-const objects at start of chain
         //##ModelId=4017F62302A3

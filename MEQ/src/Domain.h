@@ -39,6 +39,8 @@ namespace Meq
 class Domain : public DMI::Record
 {
 public:
+  typedef DMI::CountedRef<Cells> Ref;
+
   // Create a time,frequency default domain of -1:1,-1:1..
     //##ModelId=3F86886E030D
   Domain();

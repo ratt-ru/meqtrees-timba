@@ -1,6 +1,6 @@
 CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE -I/usr/include/python2.3
 
-lib_LTLIBRARIES = octopython.la
+lib_LTLIBRARIES = octopython.la liboctopython.la
 
 DOCHDRS = OctoPython.h
 
@@ -8,6 +8,9 @@ octopython_la_SOURCES = \
   octopython.cc ProxyWPObject.cc ThreadCond.cc DataConv.cc
   
 octopython_la_LDFLAGS = -module
+
+liboctopython.la:
+	ln -s octopython.la liboctopython.la
 
 # octopython_la_LIBADD = 
 

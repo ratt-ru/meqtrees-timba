@@ -1,16 +1,23 @@
 #ifndef DMI_HashMap_h
 #define DMI_HashMap_h 1
 
-#include <DMI/DMI.h>
+#include <DMI/BObj.h>
+#include <DMI/BlockSet.h>
+
+#if __GNUC__ >= 3 
 
 #include <ext/hash_map>
 #include <string>
-
-#define DMI_hash_namespace __gnu_cxx    
+    
+#if __GNUC_MINOR__ == 0
+  #define DMI_hash_namespace std
+#else
+  #define DMI_hash_namespace __gnu_cxx
+#endif
         
 namespace DMI
 {
-  using __gnu_cxx::hash_map;
+  using DMI_hash_namespace::hash_map;
 };
     
 // include implementation of hash for std::strings
@@ -32,5 +39,9 @@ struct hash<std::string> : public hash<const char *>
 
 };
     
-    
+#else
+// not a gnu compiler
+  #error hash_map not implemented in this compiler
+#endif
+
 #endif

@@ -26,6 +26,7 @@
 #include <DMI/DMI.h>
 #include <DMI/Container.h>
 #include <DMI/ObjectAssignerMacros.h>
+#include <DMI/Allocators.h>
 
 #pragma type #DMI::List
 
@@ -142,7 +143,7 @@ class List : public Container
             int item_bc[];
       };
       
-      typedef std::list<ObjRef> ItemList;
+      typedef std::list<ObjRef,ObjRefAllocator> ItemList;
       
       // Helper functions to apply an index (n).
       // If n<0, counts backwards from end of list as follows:

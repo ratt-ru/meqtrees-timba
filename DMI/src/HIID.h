@@ -25,6 +25,7 @@
 
 #include <DMI/DMI.h>
 #include <DMI/AtomicID.h>
+#include <DMI/Allocators.h>
 #include <Common/lofar_iostream.h>
 
 #include <vector>
@@ -35,7 +36,7 @@ namespace DMI
 {
 
 //##ModelId=3C55652D01B8
-typedef std::vector<AtomicID> Vector_AtomicID;
+typedef std::vector<AtomicID,DMI_Allocator<AtomicID> > Vector_AtomicID;
 
 //##ModelId=3BE96FE601C5
 class HIID : public Vector_AtomicID

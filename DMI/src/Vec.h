@@ -24,6 +24,9 @@
 
 #include <DMI/Container.h>
 #include <DMI/ObjectAssignerMacros.h>
+#include <DMI/Allocators.h>
+
+#include <vector>
 
 #pragma type #DMI::Vec
 
@@ -246,10 +249,12 @@ class Vec : public Container
     // Data Members for Associations
 
       //##ModelId=3F5487DD031B
-      mutable vector<BlockSet> blocks;
+      typedef std::vector<BlockSet,BlockSetAllocator> BlockVector;
+      mutable BlockVector blocks;
 
       //##ModelId=3F5487DE0143
-      mutable vector<ObjRef> objects;
+      typedef std::vector<ObjRef,ObjRefAllocator> ObjectVector;
+      mutable ObjectVector objects;
       
       //##ModelId=3DB9346801A2
       // cached blockset header (+data, for binary types)

@@ -215,13 +215,13 @@ void DMI::Vec::resize (int newsize)
     // this is horribly inefficient, but we really must keep the object
     // references locked. Hence, unlock first...
     if( newsize>mysize_ )
-      for( vector<ObjRef>::iterator iter = objects.begin(); iter != objects.end(); iter++ )
+      for( ObjectVector::iterator iter = objects.begin(); iter != objects.end(); iter++ )
         iter->unlock();
     // resize (since this involves a ref assignment)
     objects.resize(newsize);
     // relock
     if( newsize>mysize_ )
-      for( vector<ObjRef>::iterator iter = objects.begin(); iter != objects.end(); iter++ )
+      for( ObjectVector::iterator iter = objects.begin(); iter != objects.end(); iter++ )
         iter->lock();
     blocks.resize(newsize);
     objstate.resize(newsize);
@@ -257,11 +257,10 @@ void DMI::Vec::clear ()
   if( valid() )
   {
     dprintf(2)("clearing\n");
-    if( headref_.valid() )
-      headref_.detach();
-    if( objects.size() ) objects.resize(0);
-    if( blocks.size() ) blocks.resize(0);
-    objstate.resize(0);
+    headref_.detach();
+    objects.clear();
+    blocks.clear();
+    objstate.clear();
     mytype = 0;
   }
 }
