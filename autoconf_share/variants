@@ -19,6 +19,7 @@ scampi.variant.conf:	  $(scampi_root) $(scampi)
 scampi-opt.variant.conf:  $(scampi-opt_root) $(scampi) $(optimize) 
 mpich-prof.variant.conf:  $(mpich-prof_root) $(mpich) --enable-mpi-profiler $(aipspp)
 bgl.variant.conf:         $(bgl_root) $(debugopt) $(nomtsupport) $(bgl_cpp) $(bgl_ldd)
+fakebgl.variant.conf:     $(fakebgl_root) $(debug) $(nomtsupport) --without-log4cplus 
 insure.variant.conf:	  $(insure_root) --with-insuretools $(aipspp)
 insure.variant.make:	  QA=insure
 
@@ -38,6 +39,7 @@ scampi_root.var:	   $(lofar_root)
 scampi-opt_root.var:	   $(lofar_root)
 mpich-prof_root.var:	   $(lofar_root)
 bgl_root.var:		   $(lofar_root)
+fakebgl_root.var:	   $(lofar_root)
 insure_root.var:	   $(lofar_root)
 
 lofar_root.var:
