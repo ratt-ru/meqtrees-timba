@@ -261,15 +261,21 @@ void HIID::addString (const string &str)
     }
     else
     {
-      size_t len = p1 = str.find_first_of("./:",p0);
-      if( len != string::npos )
-        len -= p0;
-      push_back( len ? AtomicID(str.substr(p0,len)) : AidEmpty);
-      if( str[p1] == '/' )
-        push_back( AidSlash );
-      else if( str[p1] == ':' )
-        push_back( AidRange );
-      p0 = ( p1 == string::npos ? p1 : p1+1 );
+      p1 = str.find_first_of("./:",p0);
+      if( p1 != string::npos )
+      {
+        push_back( p1 != p0 ? AtomicID(str.substr(p0,p1-p0)) : AidEmpty);
+        if( str[p1] == '/' )
+          push_back( AidSlash );
+        else if( str[p1] == ':' )
+          push_back( AidRange );
+        p0 = p1+1;
+      }
+      else
+      {
+        push_back(AtomicID(str.substr(p0)));
+        break;
+      }
     }
   }
 }
