@@ -246,34 +246,48 @@ class record (dict):
     except ValueError,info: raise TypeError,info;
     return self.has_key(name);
   def __eq__ (self,other):
+    # helper function compares items
+    def item_eq (a,b):
+      try:
+        if a is b:
+          return True;
+        if type(a) != type(b):
+##          print 'type mismatch';
+          return False;
+        elif isinstance(a,array_class):
+          return numarray.alltrue((a==b).getflat());
+        elif isinstance(a,(list,tuple)):
+          if len(a) != len(b):
+##            print 'length mismatch';
+            return False;
+          for (a1,b1) in zip(a,b):
+            if not item_eq(a1,b1):
+              return False;
+          return True;
+        else:
+          return a == b;
+      except: # any exception: comparison fails
+##        ei = sys.exc_info();
+##        print 'exception in item_eq',ei;
+##        traceback.print_tb(ei[2]);
+        return False;
+      return True;
+    # check for trivial case
     if self is other:
       return True;
+    # iterate over dict
     if type(self) != type(other) or len(self) != len(other):
-      print 'type/len mismatch';
+##      print 'type/len mismatch';
       return False;
-    for (key,value) in self.iteritems():
+    for (key,a) in self.iteritems():
       if key not in other:
-        print 'key',key,'not in other';
+##        print 'key',key,'not in other';
         return False;
-      value1 = other[key];
-      if type(value) != type(value1):
-        print 'key',key,'type mismatch';
+      b = other[key];
+##      print 'key',key,type(a),type(b);
+      if not item_eq(a,b):
+##        print 'key',key,'item_eq fails';
         return False;
-      elif isinstance(value,array_class):
-        try: 
-          if not numarray.alltrue(numarray.equal(value,value1)):
-            print 'key',key,'array mismatch';
-            return False;
-        except: 
-          ei = sys.exc_info();
-          print 'key',key,'array exception',ei;
-          traceback.print_tb(ei[2]);
-          return False;
-      else:
-        print 'key',key,'comparing subitem';
-        if not value == value1:
-          print 'key',key,'subitem mismatch';
-          return False;
     return True;
   def __ne__ (self,other):
     return not self.__eq__(other);
