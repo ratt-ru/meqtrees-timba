@@ -26,7 +26,7 @@
 # Macro to check for installation of external packages (e.g. FFTW)
 #
 # lofar_EXTERNAL(package, [option], headerfile, [libraries], [searchpath].
-#            [extra_cppflags],[extra_cxxflags],[extra_ldflags],[extra_libs])
+#            [extra_cppflags],[extra_cxxflags],[extra_ldflags],[extra_libs]
 #     package is the name of the external package (e.g. BLITZ)
 #     option 0 means that package is optional, otherwise mandatory.
 #         default option=0
@@ -41,8 +41,11 @@
 #           which can be used to find a package in the install directory.
 #         +pkg is a special name; it is replaced by the package name.
 #         +comp is a special name; it is replaced by the compiler name.
+#         +vers is a special name; it is replaced by the package version
+#               which can be given as e.g.  --with-python-version=2.2
 #         default is
-#          "+prefix /usr/local/+pkg/+comp /usr/local/+pkg /usr/local /usr"
+#          "+prefix /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers
+#           /usr/local /usr"
 #         The header and libraries are looked up in each directory of the
 #         search path and in include/lib subdirectories of them.
 #         The first match is taken.
@@ -55,6 +58,7 @@
 #         only be used for that compiler.
 #         E.g. gnu:-Wno-unused
 #             could be used for the blitz package to avoid too many warnings.
+#         
 #
 # For example:
 #  lofar_EXTERNAL (blitz,1,blitz/blitz.h,,,,"gnu:-Wno-unused",,-lm)
@@ -73,7 +77,7 @@ define(LOFAR_EXT_LIB,m4_tolower(patsubst([$1], [.*/])))
 ifelse($2, [], [lfr_option=0], [lfr_option=$2])
 ifelse($3, [], [lfr_hdr=""], [lfr_hdr=$3])
 ifelse($4, [], [lfr_libs=LOFAR_EXT_LIB], [lfr_libs=$4])
-ifelse($5, [], [lfr_search="+prefix /usr/local/+pkg/+comp /usr/local/+pkg /usr/local /usr"], [lfr_search=$5])
+ifelse($5, [], [lfr_search="+prefix /usr/local/+pkg+vers/+comp /usr/local/+pkg+vers /usr/local /usr"], [lfr_search=$5])
 AC_ARG_WITH([LOFAR_EXT_LIB],
 	[  --with-LOFAR_EXT_LIB[[=PFX]]        path to $1 directory],
 	[with_external=$withval
@@ -87,7 +91,18 @@ AC_ARG_WITH([LOFAR_EXT_LIB][[-libdir]],
   [lfr_external_libdir="$withval"],
   [lfr_external_libdir=])
 
+AC_ARG_WITH([LOFAR_EXT_LIB][[-version]],
+  [  --with-LOFAR_EXT_LIB[-version]=PFX  specific version for $1],
+  [lfr_ext_version="$withval"],
+  [lfr_ext_version=])
+
 [
+##
+## Set version to blank if it is yes or no.
+##
+if test "$lfr_ext_version" = "no"  -o  "$lfr_ext_version" = "yes"; then
+  lfr_ext_version=;
+fi
 ##
 ## Look if an external package is used.
 ## It is if mandatory or if given by user.
@@ -212,7 +227,7 @@ else
   done
 
 ##
-## Replace +prefix, +pkg, and +comp in search list.
+## Replace +prefix, +pkg, +vers and +comp in search list.
 ##
   external_slist=$external_search;
   if test "$external_slist" = ""; then
@@ -225,12 +240,13 @@ else
   for bdir in $external_slist
   do
     lfr_a0=`echo $bdir | sed -e "s%+prefix%$prefix%g"`
-    lfr_a=`echo $lfr_a0 | sed -e "s%/+pkg%/$lfr_ext_name%g"`
-    lfr_b=`echo $lfr_a | sed -e "s%/+comp%/$lfr_buildcomp%"`
+    lfr_a1=`echo $lfr_a0 | sed -e "s%+pkg%$lfr_ext_name%g"`
+    lfr_a=`echo $lfr_a1 | sed -e "s%+vers%$lfr_ext_version%g"`
+    lfr_b=`echo $lfr_a | sed -e "s%+comp%$lfr_buildcomp%"`
     lfr_slist="$lfr_slist $lfr_b"
     if test "$lfr_a" != "$lfr_b"; then
       if test "$lfr_buildcomp" != "$lofar_compiler"; then
-        lfr_b=`echo $lfr_a | sed -e "s%/+comp%/$lofar_compiler%"`
+        lfr_b=`echo $lfr_a | sed -e "s%+comp%$lofar_compiler%"`
         lfr_slist="$lfr_slist $lfr_b"
       fi
     fi
@@ -269,7 +285,8 @@ else
   lfr_depend=
   if test "$lfr_external_libdir" != ""; then
     lfr_ext_lib=
-    for lib in $lfr_libs
+    lfr_libsc=`echo $lfr_libs | sed -e "s%+vers%$lfr_ext_version%g"`
+    for lib in $lfr_libsc
     do
       if test "$lfr_ext_lib" != "no" ; then
         ]AC_CHECK_FILE([$lfr_external_libdir/lib$lib.so],
@@ -299,7 +316,7 @@ else
     if test "$lfr_ext_lib" != "" ; then
       EXTERNAL_LDFLAGS="-L$lfr_ext_lib"
     fi
-    for lib in $lfr_libs
+    for lib in $lfr_libsc
     do
       EXTERNAL_LIBS="$EXTERNAL_LIBS -l$lib"
     done
