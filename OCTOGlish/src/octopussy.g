@@ -104,7 +104,7 @@ const octopussy := function (server=default_octoserver,options="",
     else
       self.dprint(1,'fifo ',fifo,' is not available');
     # run server if no pipe file, or server is missing
-    if( !pipe_existed || server_autostart )
+    if( !pipe_existed || server_autostart || server.nostart )
     {
       if( !len(server.binary) && !server.nostart )
       {
@@ -130,7 +130,7 @@ const octopussy := function (server=default_octoserver,options="",
         print '===============================================';
         print '=== Waiting for server to be manually started'
         print '=== Please start it with the following command:';
-        print cmd;
+        print '===',cmd;
         print '===============================================';
         # wait for pipe to appear
         while( !len(stat(fifo)) )
