@@ -32,13 +32,15 @@
 # Get the current directory.
 lfr_curdir=`pwd`
 # Get the LOFAR base from the full path of this script.
+# Keep the original source path.
 lfr_sdir=`dirname $0`
-lfr_root=`(cd $lfr_sdir && pwd) | sed -e "s%/LOFAR/.*%/LOFAR%"`
+lfr_srcdir=`cd $lfr_sdir && pwd`
+lfr_root=`echo $lfr_srcdir | sed -e "s%/LOFAR/.*%/LOFAR%"`
 lfr_base=$lfr_root/autoconf_share
 
 # Find package, lofar root, compiler, variant.
 # Exit if not found.
-lfr_result=`$lfr_base/findpkg -l`
+lfr_result=`$lfr_base/findpkg "$lfr_srcdir" -l`
 if [ $? != 0 ]; then
   echo "Could not derive package from build directory $lfr_curdir";
   echo "The build directory should be in the source tree like"
@@ -49,18 +51,18 @@ if [ $? != 0 ]; then
   echo "where variant is, for example, gnu_opt."
   exit 2
 fi
-lfr_pkg=`echo $lfr_result | awk '{print $1}'`
-lfr_cmp=`echo $lfr_result | awk '{print $2}'`
-lfr_var=`echo $lfr_result | awk '{print $3}'`
-lfr_cvdir=`echo $lfr_result | awk '{print $4}'`
-lfr_dirform=`echo $lfr_result | awk '{print $5}'`
+lfr_cmp=`echo $lfr_result | awk '{print $1}'`
+lfr_var=`echo $lfr_result | awk '{print $2}'`
+lfr_cvdir=`echo $lfr_result | awk '{print $3}'`
+lfr_dirform=`echo $lfr_result | awk '{print $4}'`
+lfr_pkg=`echo $lfr_result | awk '{print $5}'`
 
 # Get the directory of the configure files for the package.
 lfr_confdir=$lfr_root/$lfr_pkg;
 
 # If there is a file lofarconf.in, we have to configure recursively.
 if [ -r $lfr_confdir/lofarconf.in ]; then
-  $lfr_base/lofarconf_recur "$@" || exit 2
+  $lfr_base/lofarconf_recur "$lfr_srcdir" "$@" || exit 2
   exit 0
 fi
 

@@ -27,8 +27,11 @@
 # The current directory is used as the variant name.
 #
 # Use as
-#    lofarconf_recur [configure-options]
+#    lofarconf_recur srcdir [configure-options]
 
+# Strip srcdir from arguments
+lfr_srcdir="$1"
+shift
 # Get the current directory.
 lfr_curdir=`pwd`
 # Get the LOFAR base from the full path of this script.
@@ -38,7 +41,7 @@ lfr_base=$lfr_root/autoconf_share
 
 # Find package, lofar root, compiler, variant.
 # Exit if not found.
-lfr_result=`$lfr_base/findpkg -l`
+lfr_result=`$lfr_base/findpkg "$lfr_srcdir" -l`
 if [ $? != 0 ]; then
   echo "Could not derive package from current build directory";
   echo "The build directory should be in the source tree like"
@@ -49,19 +52,14 @@ if [ $? != 0 ]; then
   echo "where variant is, for example, gnu_opt."
   exit 2
 fi
-lfr_pkg=`echo $lfr_result | awk '{print $1}'`
-lfr_cmp=`echo $lfr_result | awk '{print $2}'`
-lfr_var=`echo $lfr_result | awk '{print $3}'`
-lfr_cvdir=`echo $lfr_result | awk '{print $4}'`
-lfr_dirform=`echo $lfr_result | awk '{print $5}'`
+lfr_cmp=`echo $lfr_result | awk '{print $1}'`
+lfr_var=`echo $lfr_result | awk '{print $2}'`
+lfr_cvdir=`echo $lfr_result | awk '{print $3}'`
+lfr_dirform=`echo $lfr_result | awk '{print $4}'`
+lfr_pkg=`echo $lfr_result | awk '{print $5}'`
 
 # Get the directory of the configure files for the package.
 lfr_confdir=$lfr_root/$lfr_pkg;
-
-# Get ../.. pattern to go from package to build directory.
-if test "lfr_dirform" = 0; then
-  lfr_back=`echo $lfr_pkg | sed -e 's%[^/]\+%\.\.%g'`
-fi
 
 # Get all subdirectories from lofarconf.in while removing comments.
 subdirs=`sed $lfr_confdir/lofarconf.in -e s/#.*$//g`

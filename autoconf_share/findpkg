@@ -30,7 +30,7 @@
 # and returns an error status.
 #
 # Use as
-#    findpkg [-l]
+#    findpkg srcdir [-l]
 #
 # The -l option causes a few more variables to be echoed.
 # In that case it echoes:
@@ -43,6 +43,10 @@
 
 # Get the current directory.
 lfr_curdir=`pwd`
+# Get the source directory and strip up to LOFAR from it.
+lfr_srcdir="$1"
+shift
+lfr_srcpkg=`echo $lfr_srcdir | sed -e "s%.*/LOFAR%LOFAR%"`
 # Get the LOFAR base from the full path of this script.
 lfr_sdir=`dirname $0`
 lfr_base=`(cd $lfr_sdir && pwd) | sed -e "s%/LOFAR/.*%/LOFAR%"`
@@ -85,8 +89,12 @@ if [ "$lfr_error" = "" ]; then
     do
       lfr_tdir=`echo $lfr_pkg | sed -e "s%[^/]*/%%"`;
       if [ "$lfr_tdir" = "$lfr_pkg" ]; then
-        lfr_error=1;
-	break;
+        if [ "$lfr_srcpkg" != "LOFAR" ]; then
+          lfr_error=1;
+	  break;
+        fi
+        lfr_pkg=
+        break;
       fi
       lfr_pkg=$lfr_tdir;
     done
@@ -117,7 +125,7 @@ lfr_cmp=`echo $lfr_cvdir | sed -e "s/_.*//"`
 lfr_var=`echo $lfr_cvdir | sed -e "s/.*_//"`
 
 if [ "$1" = "-l" ]; then
-  echo $lfr_pkg $lfr_cmp $lfr_var $lfr_cvdir $lfr_dirform
+  echo $lfr_cmp $lfr_var $lfr_cvdir $lfr_dirform $lfr_pkg
 else
   echo $lfr_pkg;
 fi
