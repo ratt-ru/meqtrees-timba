@@ -212,6 +212,10 @@ int Parm::getResult (Result::Ref &resref,
     cdebug(2)<<"new solve domain, initializing"<<endl;
     initSolvable(*pfunklet,request);
   }
+  else if( !solve && pfunklet->isSolvable() )
+  {
+    pfunklet->clearSolvable();
+  }
   // init depend mask
   int depend = solve ? solve_depend_mask_ : 0;
   

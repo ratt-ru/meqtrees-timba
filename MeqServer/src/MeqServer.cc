@@ -619,7 +619,7 @@ void MeqServer::processCommands ()
     // nice because it assumes a wildcard is the last thing in the mask.
     // Which it usually will be
     cmdid = cmdid.subId(AppCommandMask.length()-1);
-    cdebug(3)<<"received app command "<<cmdid.toString()<<endl;
+    cdebug(3)<<"received app command "<<cmdid.toString('.')<<endl;
     int request_id = 0;
     bool silent = false;
     DataRecord::Ref retval(DMI::ANONWR);
@@ -646,7 +646,7 @@ void MeqServer::processCommands ()
         have_error = false;
       }
       else // command not found
-        error_str = "unknown command "+cmdid.toString();
+        error_str = "unknown command "+cmdid.toString('.');
     }
     catch( std::exception &exc )
     {
@@ -790,7 +790,7 @@ void MeqServer::run ()
             retcode = data_mux.deliverFooter(*(ref.ref_cast<DataRecord>()));
             output_event = DataSetFooter;
             output_message = ssprintf("received footer for dataset %s, %d tiles written",
-                id.toString().c_str(),ntiles);
+                id.toString('.').c_str(),ntiles);
             control().setStatus(StStreamState,"END");
             control().setStatus(StNumTiles,ntiles);
             control().setState(AppState_Idle);
@@ -806,9 +806,9 @@ void MeqServer::run ()
             eventrec[AidHeader] <<= header.copy();
             retcode = data_mux.deliverHeader(*header);
             output_event = DataSetHeader;
-            output_message = "received header for dataset "+id.toString();
+            output_message = "received header for dataset "+id.toString('.');
             if( !datatype.empty() )
-              output_message += ", " + datatype.toString();
+              output_message += ", " + datatype.toString('.');
             control().setStatus(StStreamState,"HEADER");
             control().setStatus(StNumTiles,ntiles=0);
             control().setStatus(StVDSID,vdsid = id);

@@ -136,7 +136,7 @@ void Polc::privatize (int flags,int depth)
   {
     Thread::Mutex::Lock lock(mutex());
     coeff_.detach();
-    DataRecord::privatize(flags,depth);
+    Funklet::privatize(flags,depth);
   }
 }
 
