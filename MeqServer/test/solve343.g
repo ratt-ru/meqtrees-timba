@@ -57,14 +57,14 @@ const create_source_subtrees := function (sti,ra,dec,src='', mep_table_name='')
     global ms_timerange, ms_freqranges;
 
     # 3rd order frequency-dependence, 0th order time dependence
-    polc_array := array(as_double(0), 2,4);
+    polc_array := array(as_double(0),1,1);
     polc_array[1,1] := sti;
     
     #fmin := ms_freqranges[1][1];
     #fmax := ms_freqranges[1][2];
     #tmin := ms_timerange[1];
     #tmax := ms_timerange[2];
-    polc := meq.polc(polc_array,scale=[10000.0, 1e6], offset=[4e9,1.17e9]);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
+    polc := meq.polc(polc_array,scale=[10000.0, 1e6], offset=[4.47204e9,1.175e9]);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
     print polc;
     # meq.parm(), meq.node() return init-records
     # mqs.createnode() actually creates a node from an init-record.
@@ -605,12 +605,20 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
                   solvables := [solvables, fq_name('stokes_i', sourcename)];
               }
           }
-          if( solve_gains )
-              for( st in stset[2:len(stset)] )
+          if( solve_gains ){
+              for( st in stset[1:len(stset)] ){
                   solvables := [solvables,fq_name('GA',st)];
-          if( solve_phases )
-              for( st in stset[2:len(stset)] )
+              }
+          }
+
+          if( solve_phases ){
+              for( st in stset[2:len(stset)] ){
                   solvables := [solvables,fq_name('GP',st)];
+              }
+          }
+
+          print solvables;
+
           # note that child names will be resolved later
           global solver_defaults;
           rec := meq.node('MeqSolver','solver',[
@@ -746,10 +754,10 @@ source_flux_fit_no_calibration := function()
         mepuvw := F;
     
     outcol := 'PREDICTED_DATA';
-    solver_defaults := [ num_iter=10,save_funklets=T,last_update=T ];
+    solver_defaults := [ num_iter=4,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
-                 tile_size=100,# clear_flags=T,
+                 tile_size=1500,# clear_flags=T,
                  selection = [ channel_start_index=5,
                               channel_end_index=60 ,
                               selection_string=''] ];
@@ -800,7 +808,7 @@ phase_solution_with_given_fluxes := function()
     
     src_ra  := ([4.356645791155902,4.3396003966265599]);
     src_dec := ([1.092208429052697,1.0953677174056471]);
-    src_sti  := [5.3873195,1.637177];
+    src_sti  := [5.35112656665,1.60887755917];
     src_names := "3C343_1 3C343";
     
     
@@ -819,10 +827,10 @@ phase_solution_with_given_fluxes := function()
     solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
-                 tile_size=5,# clear_flags=T,
+                 tile_size=2,# clear_flags=T,
                  selection = [ channel_start_index=5,
                               channel_end_index=60 ,
-                              selection_string=''] ];
+                              selection_string='TIME < 4472025945 '] ];
     
     outputrec := [ write_flags=T,predict_column=outcol ]; 
     
@@ -843,5 +851,5 @@ phase_solution_with_given_fluxes := function()
 
 
 
-source_flux_fit_no_calibration();
-#phase_solution_with_given_fluxes();
+#source_flux_fit_no_calibration();
+phase_solution_with_given_fluxes();
