@@ -4,6 +4,9 @@ import string
 import octopython_c
 import numarray
 
+# 
+# hiid class
+#
 class hiid (tuple):
   "Represents the DMI HIID class";
   def __new__ (self,*args,**kw):
@@ -11,13 +14,16 @@ class hiid (tuple):
     mylist = ();
     for x in args:
       if isinstance(x,str):            # a string? Use HIID mapping functions
-        mylist = mylist + octopython_c.str_to_hiid(x,sep);
+        try:
+          mylist = mylist + octopython_c.str_to_hiid(x,sep);
+        except:
+          raise ValueError, "'%s' is not a valid hiid"%x;
       elif isinstance(x,(tuple,list)): # other sequence? use as list
         mylist = mylist + tuple(x);
       elif isinstance(x,(int,long)):   # int/long? add to list
         mylist = mylist + (x,);
       else:
-        raise TypeError, "can't construct hiid from " + str(x);
+        raise ValueError, "can't construct hiid from a %s"%type(x);
     return tuple.__new__(self,mylist);
   # redefine __getitem__: if key is a slice, then the subsequence should be
   # converted to hiid
@@ -44,18 +50,50 @@ def make_hiid (x,sep='.'):
     return x;
   return hiid(x,sep=sep);
   
-class dmicontainer (object):
+
+# 
+# DMI container mappings
+#
+class dmi_container (object):
   "Common base for DMI containers";
   pass;
   
-class field (dmicontainer):
+class field (dmi_container):
   pass;
   
+# this is the array class
 array_class = numarray.array(0).__class__;
   
-class record (dict,dmicontainer):
+# tuple of supported classes
+dmi_supported_types = (int,long,float,complex,str,hiid,array_class,dmi_container);
+  
+#
+# dmize_object helper func
+#
+def dmize_object (obj):
+  "coerces object into a DMI-supported type as needed. Returns the "
+  "object on success, or raises a TypeError on failure";
+  # object of supported type is returned as-is
+  if isinstance(obj,dmi_supported_types):
+    return obj;
+  # homogenous sequences of supported types are also supported, converted
+  # to a list
+  if isinstance(obj,(list,tuple)):
+    seqtype = type(obj);
+    if not len(obj):    # empty sequences always allowed
+      return obj;   
+    outlist = []; # dmize seqeuence elements one by one and collect them in this list
+    eltype = type(obj[0]);  # element type must be homogenous
+    for item in obj:
+      if type(item) != eltype:
+        raise TypeError,'dmi: mixed-type sequences not supported (have %s and %s)'%(eltype,type(item));
+      outlist.append(dmize_object(item));
+    # convert resulting list back into original sequence type
+    return seqtype(outlist);
+  raise TypeError,'dmi: type %s not supported'%type(item);
+  
+class record (dict,dmi_container):
   "represents a DMI record";
-  supported_types = (int,long,float,complex,str,array_class,dmicontainer);
   def __init__ (self,initdict={},verbose=0):
     # initialize from dictionary, checking for valid (hiid) jkeys
     if len(initdict):
@@ -63,13 +101,16 @@ class record (dict,dmicontainer):
       for (key,value) in dictiter:
         try:
           key = make_hiid(key,sep='._');
-          if isinstance(value,self.supported_types):
-            dict.__setitem__(self,key,value);
-            if verbose>1: print "adding %s=%s" % (key,value);
-          else:
-            if verbose>0: print "skipping %s=%s (bad type %s)" % (key,value,type(value));
-        except:
-          if verbose>0: print "skipping %s=%s (bad key?)" % (key,value);
+        except ValueError,info:
+          if verbose>0: print "skipping %s=%s (%s)" % (key,value,info);
+          continue;
+        try:
+          value = dmize_object(value);
+        except TypeError,info:
+          if verbose>0: print "skipping %s=%s (%s)" % (key,value,info);
+          continue;
+        dict.__setitem__(self,key,value);
+        if verbose>1: print "adding %s=%s" % (key,value);
       if verbose>0: print "initialized",dict.__len__(self),"fields";
   # __getattr__: dict contents are exposed as extra attributes
   def __getattr__(self,name):
@@ -77,49 +118,58 @@ class record (dict,dmicontainer):
     except AttributeError: pass
     # print 'getattr(%s) failed, looking up key'%name;
     try:    key = make_hiid(name,sep='._');
-    except: raise AttributeError,"field name '%s' is not a legal hiid"%name;
+    except ValueError,info: raise AttributeError,info;
     try:    return dict.__getitem__(self,key);
     except KeyError: raise KeyError,"no such field: "+str(key);
   # __setattr__: sets entry in dict
   def __setattr__(self,name,value):
-    if not isinstance(value,self.supported_types):
-      raise TypeError,"type %s not supported by record"%type(value);
+    value = dmize_object(value);
     try:    key = make_hiid(name,sep='._');
-    except: raise AttributeError,"field name '%s' is not a legal hiid"%name;
+    except ValueError,info: raise AttributeError,info;
     return dict.__setitem__(self,key,value);
   # __delattr__: deletes key
   def __delattr__(self,name):
     try:    key = make_hiid(name,sep='._');
-    except: raise AttributeError,"field name '%s' is not a legal hiid"%name;
+    except ValueError,info: raise AttributeError,info;
     return dict.__delitem__(self,key);
   # __getitem__: string names implicitly converted to HIIDs
   def __getitem__(self,name):
     if isinstance(name,str):
-      try: key = make_hiid(name,sep='._');
-      except: raise AttributeError,"field name '%s' is not a legal hiid"%name;
-      try: return dict.__getitem__(self,key);
-      except KeyError: raise KeyError,"no such field: "+str(key);
-    return dict.__getitem__(self,key);
+      try: name = make_hiid(name,sep='._');
+      except ValueError,info: raise TypeError,info;
+      try: return dict.__getitem__(self,name);
+      except KeyError: raise KeyError,"no such field: "+str(name);
+    return dict.__getitem__(self,name);
   # __setitem__: check types, string names implicitly converted to HIIDs
   def __setitem__ (self,name,value):
-    if not isinstance(value,self.supported_types):
-      raise TypeError,"type %s not supported by record"%type(value);
-    try:    key = make_hiid(name,sep='._');
-    except: raise TypeError,"key '%s' is not a legal hiid"%name;
-    return dict.__setitem__(self,key,value);
+    value = dmize_object(value);
+    try:    name = make_hiid(name,sep='._');
+    except ValueError,info: raise TypeError,info;
+    return dict.__setitem__(self,name,value);
+  # __contains__: string names implicitly converted to HIIDs
+  def __contains__(self,name):
+    try: 
+      return dict.__contains__(self,make_hiid(name,sep='._'));
+    except: 
+      return False;
     
   def field_names (self):
     "returns a list of field names, in underscore-separator format";
     return map(lambda x:x.as_str('_'),self.keys());
     
-#  def __str__ (self):
-#    dictiter = self.iteritems();
-#    for (key,value) in dictiter:
-    
-    
+  def __str__ (self):
+    dictiter = self.iteritems();
+    items = [];
+    for (key,value) in dictiter:
+      items += ["%s: %s" % (key.as_str('_'),str(value)) ];
+    return "{ " + string.join(items,', ') + " }";
   
-#  def __repr__ (self):
-    
+  def __repr__ (self):
+    dictiter = self.iteritems();
+    items = [];
+    for (key,value) in dictiter:
+      items += ["'%s':%s" % (key.as_str('.'),repr(value)) ];
+    return "record({" + string.join(items,',') + "})";
   
     
 class message (object):
@@ -199,8 +249,10 @@ def __test_records():
   try: rec1.d
   except: print "got exception";
   print rec1.field_names();
-  rec2 = record({'a':0,'b':1,'c_d':2,'e':[1,2,3],'notincluded':4},2);
+  rec2 = record({'a':0,'b':1,'c_d':2,'e':[1,2,3],'f':('x','y'),'g':[1,'x'],'z':(hiid('a'),hiid('b')),'notincluded':4},2);
+  print rec1;
   print rec2;
+  print `rec1`;
   return rec1;
     
 if __name__ == "__main__":
