@@ -1,7 +1,7 @@
 #include "OCTOPUSSY/Dispatcher.h"
-#include "EchoWP.h"
 #include "OCTOPUSSY/GWServerWP.h"
 #include "OCTOPUSSY/LoggerWP.h"
+#include "EchoWP.h"
 #include <sys/types.h>
 #include <unistd.h>    
 

@@ -1033,7 +1033,7 @@ bool Dispatcher::checkEvents()
 void Dispatcher::enqueue (WPInterface *pwp,const Message::Ref &ref)
 {
 // place the message into the WP's queue
-  bool res = pwp->enqueue(ref,tick);
+  bool res = pwp->enqueue(ref,tick) >= 0;
 #ifdef USE_THREADS
 // if the WP is not in a separate thread, a repoll may be required
   if( !pwp->isThreaded() && res )

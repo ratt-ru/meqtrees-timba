@@ -23,7 +23,7 @@
 //## end module%3C7B7F2F0248.additionalIncludes
 
 //## begin module%3C7B7F2F0248.includes preserve=yes
-#include "Common/Config.h"
+#include "Common/CheckConfig.h"
 #include "DMI/DataRecord.h"
 #include "OCTOPUSSY/TID-OCTOPUSSY.h"
 #include "OCTOPUSSY/LatencyVector.h"
@@ -53,9 +53,9 @@
 #endif
 
 #ifdef ENABLE_LATENCY_STATS
-  CHECK_CONFIG(LatencyStats,yes);
+  CHECK_CONFIG(Message,LatencyStats,yes);
 #else
-  CHECK_CONFIG(LatencyStats,no);
+  CHECK_CONFIG(Message,LatencyStats,no);
 #endif
 
 #pragma types #Message
@@ -126,9 +126,10 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
 
       //## Operation: Message%3C7B9C490384
       Message (const HIID &id1, BlockableObject *pload, int flags = 0, int pri = PRI_NORMAL);
-
+      
       //## Operation: Message%3C7B9D0A01FB
       Message (const HIID &id1, const ObjRef &pload, int flags = 0, int pri = PRI_NORMAL);
+//      Message (const HIID &id1, const ObjRef &pload, int flags = 0, int pri = PRI_NORMAL);
 
       //## Operation: Message%3C7B9D3B02C3
       Message (const HIID &id1, SmartBlock *bl, int flags = 0, int pri = PRI_NORMAL);

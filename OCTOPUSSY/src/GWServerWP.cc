@@ -243,7 +243,7 @@ void GWServerWP::tryOpen ()
         msg[AidHost] = hostname;
         msg[AidPort] = port;
         msg[AidType] = type;
-        publish(mref,Message::LOCAL);
+        publish(mref,0,Message::LOCAL);
         // try the next port
         port++;
         continue;
@@ -264,7 +264,7 @@ void GWServerWP::tryOpen ()
           msg[AidPort] = port;
           msg[AidType] = type;
           msg[AidError] = sock->errstr();
-          publish(mref,Message::LOCAL);
+          publish(mref,0,Message::LOCAL);
           detachMyself();
         }
         else // retry later - schedule a timeout

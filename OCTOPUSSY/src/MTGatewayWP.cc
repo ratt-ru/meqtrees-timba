@@ -448,7 +448,7 @@ void MTGatewayWP::processIncoming (MessageRef &ref)
         MessageRef mref1; mref1 <<= msg1;
         (*msg1)[AidHost] = sock->host();
         (*msg1)[AidPort] = atoi(sock->port().c_str());
-        publish(mref1,Message::LOCAL);
+        publish(mref1,0,Message::LOCAL);
         setPeerState(CLOSING);
         shutdown();
         return;
@@ -566,7 +566,7 @@ void MTGatewayWP::shutdown ()
     lprintf(1,"shutting down connection to %s",(rprocess|rhost).toString().c_str());
     MessageRef mref(new Message(MsgGWRemoteDown|peerid),DMI::ANON);
     (*peerlist)[peerid].remove();
-    publish(mref,Message::LOCAL);
+    publish(mref,0,Message::LOCAL);
   }
   else
     lprintf(1,"shutting down");

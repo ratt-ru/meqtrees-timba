@@ -778,7 +778,7 @@ bool WPInterface::do_poll (ulong tick)
     {
       dprintf(3)("result code: REQUEUE\n");
       // requeue - re-insert into queue() according to priority
-      enqueue(qe.mref,tick);  // this sets repoll if head of queue has changed
+      enqueue(qe.mref,tick,ENQ_NOREPOLL);  // this sets repoll if head of queue has changed
     }
   }
   // ask for repoll if head of queue has changed
@@ -803,13 +803,16 @@ bool WPInterface::poll (ulong )
   //## end WPInterface::poll%3CB55D0E01C2.body
 }
 
-bool WPInterface::enqueue (const MessageRef &msg, ulong tick, bool setrepoll)
+int WPInterface::enqueue (const MessageRef &msg, ulong tick, int flags)
 {
   //## begin WPInterface::enqueue%3C8F204A01EF.body preserve=yes
   Thread::Mutex::Lock lock(queue_cond);
   int pri = msg->priority();
   QueueEntry qe(msg,pri,tick);
   // some optimizations here to optimize lookup time for very long queues
+  bool setrepoll = !(flags&ENQ_NOREPOLL),
+       do_signal = !(flags&ENQ_NOSIGNAL);
+  
   
   // (a): empty queue
   if( queue().empty() )
@@ -818,10 +821,11 @@ bool WPInterface::enqueue (const MessageRef &msg, ulong tick, bool setrepoll)
     if( setrepoll )
     {
       setNeedRepoll(True);
-      queue_cond.signal();
+      if( do_signal )
+        queue_cond.signal();
     }
     queue().push_front(qe);
-    return needRepoll();
+    return pri;
   }
   // (b): message belongs at back
   int back_pri = queue().back().priority;
@@ -829,7 +833,7 @@ bool WPInterface::enqueue (const MessageRef &msg, ulong tick, bool setrepoll)
   {
     dprintf(3)("queueing [%s] at end of queue {case:B}\n",qe.mref->debug(1));
     queue().push_back(qe);
-    return needRepoll();
+    return -1;
   }
   // (c): message belongs at front
   int front_pri = queue().front().priority;
@@ -839,10 +843,11 @@ bool WPInterface::enqueue (const MessageRef &msg, ulong tick, bool setrepoll)
     if( setrepoll )
     {
       setNeedRepoll(True);
-      queue_cond.signal();
+      if( do_signal )
+        queue_cond.signal();
     }
     queue().push_front(qe);
-    return setrepoll;
+    return pri;
   }
   // (d): iterate to find the right spot
   // iterate from head of queue() as long as msg priority is higher
@@ -857,13 +862,14 @@ bool WPInterface::enqueue (const MessageRef &msg, ulong tick, bool setrepoll)
     if( setrepoll )
     {
       setNeedRepoll(True);
-      queue_cond.signal();
+      if( do_signal )
+        queue_cond.signal();
     }
+    return pri;
   }
-  else
-    dprintf(3)("queueing [%s] at h+%d {case:D}\n",qe.mref->debug(1),count);
+  dprintf(3)("queueing [%s] at h+%d {case:D}\n",qe.mref->debug(1),count);
   queue().insert(iter,qe);
-  return needRepoll();
+  return -1;
   //## end WPInterface::enqueue%3C8F204A01EF.body
 }
 
@@ -1017,7 +1023,7 @@ int WPInterface::signal (int signum)
   //## end WPInterface::signal%3C7DFD240203.body
 }
 
-int WPInterface::send (MessageRef msg, MsgAddress to)
+int WPInterface::send (MessageRef msg, MsgAddress to, int)
 {
   //## begin WPInterface::send%3C7CB9E802CF.body preserve=yes
   FailWhen( !isAttached(),"unattached wp");
@@ -1037,7 +1043,7 @@ int WPInterface::send (MessageRef msg, MsgAddress to)
   //## end WPInterface::send%3C7CB9E802CF.body
 }
 
-int WPInterface::send (const HIID &id, MsgAddress to, int priority)
+int WPInterface::send (const HIID &id, MsgAddress to, int , int priority)
 {
   //## begin WPInterface::send%3CBDAD020297.body preserve=yes
   MessageRef msg( new Message(id,priority),DMI::ANON|DMI::WRITE );
@@ -1045,7 +1051,7 @@ int WPInterface::send (const HIID &id, MsgAddress to, int priority)
   //## end WPInterface::send%3CBDAD020297.body
 }
 
-int WPInterface::publish (MessageRef msg, int scope)
+int WPInterface::publish (MessageRef msg,int , int scope)
 {
   //## begin WPInterface::publish%3C7CB9EB01CF.body preserve=yes
   FailWhen( !isAttached(),"unattached wp");
@@ -1062,7 +1068,7 @@ int WPInterface::publish (MessageRef msg, int scope)
   //## end WPInterface::publish%3C7CB9EB01CF.body
 }
 
-int WPInterface::publish (const HIID &id, int scope, int priority)
+int WPInterface::publish (const HIID &id,int,int scope, int priority)
 {
   //## begin WPInterface::publish%3CBDACCC028F.body preserve=yes
   MessageRef msg( new Message(id,priority),DMI::ANON|DMI::WRITE );

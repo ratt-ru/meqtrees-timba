@@ -208,14 +208,14 @@ int EchoWP::timeout (const HIID &)
 void EchoWP::stepCounters ( size_t sz,const Timestamp &stamp )
 {
   msgcount++;
-  bytecount += sz/1024;
+  bytecount += sz/1024*2;
   double ts1 = Timestamp::now();
   timecount += ts1 - (double)stamp;
   if( ts1 - ts > 10 )
   {
     lprintf(0,"%.2f seconds elapsed since last report\n",ts1-ts);
-    lprintf(0,"%ldK round-trip data (%.2f MB/s)\n",
-            bytecount,bytecount*2/(1024*(ts1-ts)));
+    lprintf(0,"%ldKB round-trip data (%.2f MB/s)\n",
+            bytecount,bytecount/(1024*(ts1-ts)));
     lprintf(0,"%ld round-trips (%.1f /s)\n",
             msgcount,msgcount/(ts1-ts));
     lprintf(0,"%.3f ms average round-trip time\n",timecount/msgcount*1000);

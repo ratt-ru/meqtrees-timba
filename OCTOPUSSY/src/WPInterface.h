@@ -27,7 +27,6 @@
 #include <set>
 #include <queue>
 #include "OctopussyConfig.h"
-#include "Common/Config.h"
 #include "Common/Thread.h"
 #include "Common/Thread/Condition.h"
 //## end module%3C8F268F00DE.includes
@@ -114,6 +113,10 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       };
                      
       typedef list<QueueEntry> MessageQueue;
+      
+      typedef enum { ENQ_NOREPOLL = 1, ENQ_NOSIGNAL = 2 } EnqueueFlags;
+      
+      typedef enum { FLUSH = 1, YIELD = 2 } SendFlags;
   //## end WPInterface%3C7B6A3702E5.initialDeclarations
 
   public:
@@ -163,9 +166,11 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
 
       //## Operation: enqueue%3C8F204A01EF
       //	Places ref into the receive queue. Note that the ref is transferred.
-      //  If placing at head and setrepoll is True, sets the repoll flag.
-      //  Returns value of repoll flag
-      bool enqueue (const MessageRef &msg,ulong tick,bool setrepoll=True);
+      //  If placing at head and ENQ_NOREPOLL flag is not set, sets the repoll flag.
+      //  With USE_THREADS, also signals on the queue condition variable, unless
+      //  the ENQ_NOSIGNAL flag is set.
+      //  Returns <0 if no repoll is required, else the queue priority if it is.
+      int  enqueue (const MessageRef &msg,ulong tick,int flags = 0);
 
       //## Operation: dequeue%3C8F204D0370
       //	Removes from queue messages matching the id. Returns True if WP
@@ -208,20 +213,20 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       //	Sends message to specified address. Note that the ref is taken over
       //	by this call, then privatized for writing. See Dispatcher::send()
       //	for more details.
-      int send (MessageRef msg, MsgAddress to);
+      int send (MessageRef msg, MsgAddress to, int flags = 0 );
 
       //## Operation: send%3CBDAD020297
-      int send (const HIID &id, MsgAddress to, int priority = Message::PRI_NORMAL);
+      int send (const HIID &id, MsgAddress to, int flags = 0, int priority = Message::PRI_NORMAL);
 
       //## Operation: publish%3C7CB9EB01CF
       //	Publishes message with the specified scope. Note that the ref is
       //	taken over by this call, then privatized for writing. This method is
       //	just a shorthand for send(), with "Publish" in some parts of the
       //	address, as determined by scope).
-      int publish (MessageRef msg, int scope = Message::GLOBAL);
+      int publish (MessageRef msg, int flags = 0, int scope = Message::GLOBAL);
 
       //## Operation: publish%3CBDACCC028F
-      int publish (const HIID &id, int scope = Message::GLOBAL, int priority = Message::PRI_NORMAL);
+      int publish (const HIID &id, int flags = 0, int scope = Message::GLOBAL, int priority = Message::PRI_NORMAL);
 
       //## Operation: setState%3CBED9EF0197
       void setState (int newstate, bool delay_publish = False);

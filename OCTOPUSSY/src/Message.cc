@@ -28,8 +28,11 @@
 //## end module%3C7B7F2F024A.declarations
 
 //## begin module%3C7B7F2F024A.additionalDeclarations preserve=yes
-#ifndef ENABLE_LATENCY_STATS
-DummyLatencyVector Message::latency;
+#ifdef ENABLE_LATENCY_STATS
+  CHECK_CONFIG_CC(LatencyStats,yes);
+#else
+  CHECK_CONFIG_CC(LatencyStats,no);
+  DummyLatencyVector Message::latency;
 #endif
 //## end module%3C7B7F2F024A.additionalDeclarations
 
@@ -255,6 +258,9 @@ int Message::fromBlock (BlockSet& set)
     latency.unpack(buf,hdr.latsize);
   else
     latency.clear();
+#else
+  // if we get a message with latency stats but we're not compiled to support 
+  // them, then they'll simply be ignored
 #endif
   //  got a data block?
   if( hdr.has_block )
