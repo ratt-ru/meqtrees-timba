@@ -184,6 +184,10 @@ meqmultiply                      1227       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 meqnode                          1242       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:34
 meqparm                          1244       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Parm.h:35
 meqpow                           1214       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Pow.h:29
+#meqpredictsource_ll             1357       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_LL.h:14
+#meqpredictsource_lr             1358       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_LR.h:14
+#meqpredictsource_rl             1355       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_RL.h:14
+#meqpredictsource_rr             1356       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_RR.h:14
 #meqpredictsource_xx             1343       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_XX.h:14
 #meqpredictsource_xy             1344       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_XY.h:14
 #meqpredictsource_yx             1345       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_YX.h:14
