@@ -179,6 +179,7 @@ int GWServerWP::input (int , int )
   if( newsock ) // success? Launch a Gateway WP to manage it
   {
     lprintf(1,"accepted new connection, launching gateway\n");
+	newsock->setBlocking(false);
 #ifdef USE_THREADS
     attachWP(new MTGatewayWP(newsock),DMI::ANON);
 #else
@@ -293,6 +294,7 @@ void GWServerWP::tryOpen ()
     // since we got here, the socket is OK
     // shout about it
     lprintf(1,"opened server socket %s:%d\n",hostname.c_str(),port);
+	sock->setBlocking(false);
     advertiseServer();
     if( type == Socket::TCP )
       dsp()->localData(GWNetworkServer)[0] = port;

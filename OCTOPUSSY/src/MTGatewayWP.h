@@ -14,6 +14,8 @@ using std::deque;
 
 // Socket
 #include "Common/Net/Socket.h"
+using namespace LOFAR;
+
 // Subscriptions
 #include "OCTOPUSSY/Subscriptions.h"
 // WorkProcess

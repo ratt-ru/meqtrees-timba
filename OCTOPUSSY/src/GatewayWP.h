@@ -6,6 +6,7 @@
 
 // Socket
 #include "Common/Net/Socket.h"
+using LOFAR::Socket;
 // Subscriptions
 #include "OCTOPUSSY/Subscriptions.h"
 // WorkProcess
@@ -18,7 +19,7 @@ class GatewayWP : public WorkProcess
 {
   public:
       //##ModelId=3C95C53D00AE
-      GatewayWP (Socket* sk);
+      GatewayWP (LOFAR::Socket* sk);
 
     //##ModelId=3DB93683017B
       ~GatewayWP();
@@ -204,7 +205,7 @@ class GatewayWP : public WorkProcess
     // Data Members for Associations
 
       //##ModelId=3C9225740345
-      Socket *sock;
+      LOFAR::Socket *sock;
 
       //##ModelId=3DB958F203BF
       map<MsgAddress,Subscriptions> remote_subs;

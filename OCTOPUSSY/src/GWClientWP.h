@@ -9,11 +9,12 @@
 
 // Socket
 #include "Common/Net/Socket.h"
+
 // GatewayWP
 #include "OCTOPUSSY/GatewayWP.h"
 // WorkProcess
 #include "OCTOPUSSY/WorkProcess.h"
-class Socket;
+//class Socket;
 #pragma aid Reconnect FailConnect Reopen Server List Hosts Ports
 
 

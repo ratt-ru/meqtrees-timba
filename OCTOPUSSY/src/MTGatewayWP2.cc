@@ -98,9 +98,9 @@ void * MTGatewayWP::readerThread ()
       // read up to full buffer
       while( nread < read_buf_size )
       {
-        dprintf(6)("readerThread: going into readblock\n");
-        int n = sock->readblock(read_buf + nread,read_buf_size - nread);
-        dprintf(5)("readblock(buf+%d,%d)=%d\n",nread,read_buf_size-nread,n);
+        dprintf(6)("readerThread: going into readBlocking\n");
+        int n = sock->readBlocking(read_buf + nread,read_buf_size - nread);
+        dprintf(5)("readBlocking(buf+%d,%d)=%d\n",nread,read_buf_size-nread,n);
         if( n<0 )
           dprintf(5)("errno=%d (%s)\n",errno,strerror(errno));
         if( !isRunning() || shutdown_done )
@@ -318,10 +318,10 @@ void MTGatewayWP::transmitMessage (MessageRef &mref)
     // write the header
     Timestamp::now(&write_timestamp);
     writing = True;
-    int n = sock->writeblock(&wr_header,sizeof(wr_header));
+    int n = sock->writeBlocking(&wr_header,sizeof(wr_header));
     if( !isRunning() )
       break;
-    dprintf(5)("writeblock(header,%d)=%d\n",sizeof(wr_header),n);
+    dprintf(5)("writeBlocking(header,%d)=%d\n",sizeof(wr_header),n);
     if( n == sizeof(wr_header) )
     {
       nwr += n;
@@ -336,10 +336,10 @@ void MTGatewayWP::transmitMessage (MessageRef &mref)
       // end of valgrind trap
       
       Timestamp::now(&write_timestamp);
-      n = sock->writeblock(data,sz);
+      n = sock->writeBlocking(data,sz);
       if( !isRunning() )
         break;
-      dprintf(5)("writeblock(data,%d)=%d\n",sz,n);
+      dprintf(5)("writeBlocking(data,%d)=%d\n",sz,n);
       // compute checksum & write trailer
       if( n == sz )
       {
@@ -358,8 +358,8 @@ void MTGatewayWP::transmitMessage (MessageRef &mref)
         else
           wr_trailer.msgsize = msgsize;
         Timestamp::now(&write_timestamp);
-        n = sock->writeblock(&wr_trailer,sizeof(wr_trailer));
-        dprintf(5)("writeblock(trailer,%d)=%d\n",sizeof(wr_trailer),n);
+        n = sock->writeBlocking(&wr_trailer,sizeof(wr_trailer));
+        dprintf(5)("writeBlocking(trailer,%d)=%d\n",sizeof(wr_trailer),n);
         if( n == sizeof(wr_trailer) )
           nwr += n;
         else
