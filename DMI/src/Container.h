@@ -891,7 +891,7 @@ inline const NestableContainer::Hook & NestableContainer::Hook::size (int &sz, T
 //##ModelId=3C8770A70215
 inline ObjRef NestableContainer::Hook::ref (int flags) const
 {
-  return ObjRef(*asRef(),flags|DMI::COPYREF);
+  return ObjRef(*asRef(flags&DMI::WRITE),flags|DMI::COPYREF);
 }
 
 //##ModelId=3F5C8EBD01C4
