@@ -1,3 +1,4 @@
+//##ModelId=3BFE5FE103C5
 //## begin module%1.4%.codegen_version preserve=yes
 //   Read the documentation to learn more about C++ code generator
 //   versioning.
@@ -47,6 +48,7 @@ CountedRefTarget * BlockableObject::clone (int flags, int depth) const
   //## end BlockableObject::clone%3BFE5FE103C5.body
 }
 
+//##ModelId=3CAB088100C3
 void BlockableObject::privatize (int flags, int depth)
 {
   //## begin BlockableObject::privatize%3CAB088100C3.body preserve=yes

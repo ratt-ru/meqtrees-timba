@@ -31,6 +31,7 @@
 // register as a nestable container
 static NestableContainer::Register reg(TpDataRecord,True);
 const DataFieldRef NullDataFieldRef;
+//##ModelId=3C5820AD00C6
 //## end module%3C10CC82005C.additionalDeclarations
 
 
@@ -48,6 +49,7 @@ DataRecord::DataRecord (int flags)
   //## end DataRecord::DataRecord%3C5820AD00C6.body
 }
 
+//##ModelId=3C5820C7031D
 DataRecord::DataRecord (const DataRecord &other, int flags, int depth)
   //## begin DataRecord::DataRecord%3C5820C7031D.hasinit preserve=no
   //## end DataRecord::DataRecord%3C5820C7031D.hasinit
@@ -62,6 +64,7 @@ DataRecord::DataRecord (const DataRecord &other, int flags, int depth)
 }
 
 
+//##ModelId=3DB93482018E
 DataRecord::~DataRecord()
 {
   //## begin DataRecord::~DataRecord%3BB3112B0027_dest.body preserve=yes
@@ -70,6 +73,7 @@ DataRecord::~DataRecord()
 }
 
 
+//##ModelId=3DB93482022F
 DataRecord & DataRecord::operator=(const DataRecord &right)
 {
   //## begin DataRecord::operator=%3BB3112B0027_assign.body preserve=yes
@@ -84,6 +88,7 @@ DataRecord & DataRecord::operator=(const DataRecord &right)
 
 
 
+//##ModelId=3BFBF5B600EB
 //## Other Operations (implementation)
 void DataRecord::add (const HIID &id, const DataFieldRef &ref, int flags)
 {
@@ -108,6 +113,7 @@ void DataRecord::add (const HIID &id, const DataFieldRef &ref, int flags)
   //## end DataRecord::add%3BFBF5B600EB.body
 }
 
+//##ModelId=3BB311C903BE
 DataFieldRef DataRecord::removeField (const HIID &id)
 {
   //## begin DataRecord::removeField%3BB311C903BE.body preserve=yes
@@ -129,6 +135,7 @@ DataFieldRef DataRecord::removeField (const HIID &id)
   //## end DataRecord::removeField%3BB311C903BE.body
 }
 
+//##ModelId=3BFCD4BB036F
 void DataRecord::replace (const HIID &id, const DataFieldRef &ref, int flags)
 {
   //## begin DataRecord::replace%3BFCD4BB036F.body preserve=yes
@@ -149,6 +156,7 @@ void DataRecord::replace (const HIID &id, const DataFieldRef &ref, int flags)
   //## end DataRecord::replace%3BFCD4BB036F.body
 }
 
+//##ModelId=3C57CFFF005E
 DataFieldRef DataRecord::field (const HIID &id) const
 {
   //## begin DataRecord::field%3C57CFFF005E.body preserve=yes
@@ -161,6 +169,7 @@ DataFieldRef DataRecord::field (const HIID &id) const
   //## end DataRecord::field%3C57CFFF005E.body
 }
 
+//##ModelId=3C57D02B0148
 bool DataRecord::isDataField (const HIID &id) const
 {
   //## begin DataRecord::isDataField%3C57D02B0148.body preserve=yes
@@ -175,6 +184,7 @@ bool DataRecord::isDataField (const HIID &id) const
   //## end DataRecord::isDataField%3C57D02B0148.body
 }
 
+//##ModelId=3BFBF49D00A1
 DataFieldRef DataRecord::fieldWr (const HIID &id, int flags)
 {
   //## begin DataRecord::fieldWr%3BFBF49D00A1.body preserve=yes
@@ -188,6 +198,7 @@ DataFieldRef DataRecord::fieldWr (const HIID &id, int flags)
   //## end DataRecord::fieldWr%3BFBF49D00A1.body
 }
 
+//##ModelId=3C552E2D009D
 const DataFieldRef & DataRecord::resolveField (const HIID &id, HIID& rest, bool &can_write, bool must_write) const
 {
   //## begin DataRecord::resolveField%3C552E2D009D.body preserve=yes
@@ -206,6 +217,7 @@ const DataFieldRef & DataRecord::resolveField (const HIID &id, HIID& rest, bool 
   //## end DataRecord::resolveField%3C552E2D009D.body
 }
 
+//##ModelId=3C58216302F9
 int DataRecord::fromBlock (BlockSet& set)
 {
   //## begin DataRecord::fromBlock%3C58216302F9.body preserve=yes
@@ -246,6 +258,7 @@ int DataRecord::fromBlock (BlockSet& set)
   //## end DataRecord::fromBlock%3C58216302F9.body
 }
 
+//##ModelId=3C5821630371
 int DataRecord::toBlock (BlockSet &set) const
 {
   //## begin DataRecord::toBlock%3C5821630371.body preserve=yes
@@ -278,6 +291,7 @@ int DataRecord::toBlock (BlockSet &set) const
   //## end DataRecord::toBlock%3C5821630371.body
 }
 
+//##ModelId=3C58218900EB
 CountedRefTarget* DataRecord::clone (int flags, int depth) const
 {
   //## begin DataRecord::clone%3C58218900EB.body preserve=yes
@@ -286,6 +300,7 @@ CountedRefTarget* DataRecord::clone (int flags, int depth) const
   //## end DataRecord::clone%3C58218900EB.body
 }
 
+//##ModelId=3C582189019F
 void DataRecord::privatize (int flags, int depth)
 {
   //## begin DataRecord::privatize%3C582189019F.body preserve=yes
@@ -300,6 +315,7 @@ void DataRecord::privatize (int flags, int depth)
   //## end DataRecord::privatize%3C582189019F.body
 }
 
+//##ModelId=3C58239503D1
 void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
 {
   //## begin DataRecord::cloneOther%3C58239503D1.body preserve=yes
@@ -322,6 +338,7 @@ void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
   //## end DataRecord::cloneOther%3C58239503D1.body
 }
 
+//##ModelId=3C56B00E0182
 const void * DataRecord::get (const HIID &id, ContentInfo &info, TypeId check_tid, int flags) const
 {
   //## begin DataRecord::get%3C56B00E0182.body preserve=yes
@@ -377,6 +394,7 @@ const void * DataRecord::get (const HIID &id, ContentInfo &info, TypeId check_ti
   //## end DataRecord::get%3C56B00E0182.body
 }
 
+//##ModelId=3C7A16BB01D7
 void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
 {
   //## begin DataRecord::insert%3C7A16BB01D7.body preserve=yes
@@ -399,6 +417,7 @@ void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
   //## end DataRecord::insert%3C7A16BB01D7.body
 }
 
+//##ModelId=3C877D140036
 bool DataRecord::remove (const HIID &id)
 {
   //## begin DataRecord::remove%3C877D140036.body preserve=yes
@@ -418,6 +437,7 @@ bool DataRecord::remove (const HIID &id)
   //## end DataRecord::remove%3C877D140036.body
 }
 
+//##ModelId=3C7A16C4023F
 int DataRecord::size (TypeId tid) const
 {
   //## begin DataRecord::size%3C7A16C4023F.body preserve=yes
@@ -427,6 +447,7 @@ int DataRecord::size (TypeId tid) const
   //## end DataRecord::size%3C7A16C4023F.body
 }
 
+//##ModelId=3CA20AD703A4
 bool DataRecord::getFieldIter (DataRecord::Iterator& iter, HIID& id, TypeId& type, int& size) const
 {
   //## begin DataRecord::getFieldIter%3CA20AD703A4.body preserve=yes
@@ -446,6 +467,7 @@ bool DataRecord::getFieldIter (DataRecord::Iterator& iter, HIID& id, TypeId& typ
 }
 
 // Additional Declarations
+//##ModelId=3DB9348501B1
   //## begin DataRecord%3BB3112B0027.declarations preserve=yes
   //## end DataRecord%3BB3112B0027.declarations
 

@@ -76,11 +76,11 @@ aidlists := $(shell find $(BASELISTDIR) -name \*.aidlist)
 
 aids: 
 	$(MAPBUILDER) $(aidlists) $(AID_DIR)/*.h 
-	$(ITERBUILDER) `find $(BASELISTDIR) -name \*.aidlist` $(top_srcdir)/src/TypeIterMacros.h
+#	$(ITERBUILDER) `find $(BASELISTDIR) -name \*.aidlist` $(top_srcdir)/src/TypeIterMacros.h
 
 all_aids: 
 	$(MAPBUILDER) $(aidlists)  `find $(BASELISTDIR) -name \*.h` 
-	$(ITERBUILDER) `find $(BASELISTDIR) -name \*.aidlist` $(top_srcdir)/src/TypeIterMacros.h 
+#	$(ITERBUILDER) `find $(BASELISTDIR) -name \*.aidlist` $(top_srcdir)/src/TypeIterMacros.h 
 
 clean_aids: 
 	rm -f $(aidlists)

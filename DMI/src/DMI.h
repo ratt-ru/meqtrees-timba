@@ -5,6 +5,7 @@
 #include "Common/Debug.h"
 #include <stdio.h>
 
+
 namespace DMI
 {
 //## begin DMI%3C14BA2803C4.initialDeclarations preserve=yes
@@ -12,6 +13,7 @@ namespace DMI
   inline ::Debug::Context & getDebugContext() { return DebugContext; };
   
   
+//##ModelId=3DB949AE00AC
   typedef enum { 
   // flags for CountedRefs & other objects
       WRITE           =0x001,
@@ -54,14 +56,14 @@ namespace DMI
   // container-specific flags for privatize (privatize-and-reset)
       RESET           =  0x80000,
 
-  // SmartBlock-specific flags
+  // _SmartBlock_-specific flags
       SHARED          =0x1000000,  // constructor hint: block will be sent
                                    //     to other processes, so consider shmem
       SHMEM           =0x2000000,  // constructor: forces use of shmem
       CLONE           =PRIVATIZE,  // copy constructor: clones block
       ZERO            =DEEP,       // constructor: zeroes allocated block
       
-  // BlockSet-specific flags
+  // _BlockSet_-specific flags
       MAKE_READONLY   =0x4000000,   // for copyAll(): makes source set read-only      
 
   // NestableContainer::get flags

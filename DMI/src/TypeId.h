@@ -1,70 +1,62 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3C10CC8301F8.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C10CC8301F8.cm
-
-//## begin module%3C10CC8301F8.cp preserve=no
-//## end module%3C10CC8301F8.cp
-
-//## Module: TypeId%3C10CC8301F8; Package specification
-//## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\TypeId.h
 
 #ifndef TypeId_h
 #define TypeId_h 1
 
-//## begin module%3C10CC8301F8.additionalIncludes preserve=no
 #include "DMI/Common.h"
 #include "DMI/DMI.h"
 #include "DMI/TypeIterMacros.h"
-//## end module%3C10CC8301F8.additionalIncludes
 
-//## begin module%3C10CC8301F8.includes preserve=yes
 #include "DMI/Registry.h"
 #include <complex>
-//## end module%3C10CC8301F8.includes
 
 // AtomicID
 #include "DMI/AtomicID.h"
-//## begin module%3C10CC8301F8.declarations preserve=no
-//## end module%3C10CC8301F8.declarations
 
-//## begin module%3C10CC8301F8.additionalDeclarations preserve=yes
-//## end module%3C10CC8301F8.additionalDeclarations
-
-
-//## begin TypeId%3BFBA88F001D.preface preserve=yes
-//## end TypeId%3BFBA88F001D.preface
-
-//## Class: TypeId%3BFBA88F001D
-//## Category: DOMIN0%3BEAB1F2006B; Global
-//## Subsystem: DMI%3C10CC810155
-//## Persistence: Transient
-//## Cardinality/Multiplicity: n
-
-
-
-//## Uses: <unnamed>%3BFBA8B500CC;AtomicID { -> }
+//##ModelId=3BFBA88F001D
 
 typedef AtomicID TypeId;
 
-//## begin TypeId%3BFBA88F001D.postscript preserve=yes
 
 // standard type definitions
+//##ModelId=3DB9343F00F1
 typedef unsigned char uchar;
+//##ModelId=3DB9343F01C4
 typedef unsigned short ushort;
+//##ModelId=3DB9343F012D
 typedef unsigned int uint;
+//##ModelId=3DB9343F015F
 typedef unsigned long ulong;
+//##ModelId=3DB9343F00B5
 typedef long long longlong;
+//##ModelId=3DB9343F0191
 typedef unsigned long long ulonglong;
+//##ModelId=3DB9343F0051
 typedef long double ldouble;
+//##ModelId=3DB9343F0015
 typedef complex<float> fcomplex;
+//##ModelId=3DB9343E03CB
 typedef complex<double> dcomplex;
+
+// Defines alternative version of the f"for all numeric types"
+// macro, with comma as separator
+#define DoForAllNumericTypes1(Do,arg) \
+        Do(char,arg) , \
+        Do(uchar,arg) , \
+        Do(short,arg) , \
+        Do(ushort,arg) , \
+        Do(int,arg) , \
+        Do(uint,arg) , \
+        Do(long,arg) , \
+        Do(ulong,arg) , \
+        Do(longlong,arg) , \
+        Do(ulonglong,arg) , \
+        Do(float,arg) , \
+        Do(double,arg) , \
+        Do(ldouble,arg) , \
+        Do(fcomplex,arg) , \
+        Do(dcomplex,arg) , \
+        Do(bool,arg) 
 
 // arrays are supported for a limited subset of scalar types (for Glish
 // compatibility)
@@ -125,10 +117,6 @@ const TypeId TpIncomplete(-8);
 const TypeId TpObject(-7);
 
 
-//## end TypeId%3BFBA88F001D.postscript
-
-//## begin module%3C10CC8301F8.epilog preserve=yes
-//## end module%3C10CC8301F8.epilog
 
 
 #endif

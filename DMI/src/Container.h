@@ -1,35 +1,27 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3C10CC830067.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C10CC830067.cm
-
-//## begin module%3C10CC830067.cp preserve=no
-//## end module%3C10CC830067.cp
-
-//## Module: NestableContainer%3C10CC830067; Package specification
-//## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\NestableContainer.h
 
 #ifndef NestableContainer_h
 #define NestableContainer_h 1
 
-//## begin module%3C10CC830067.additionalIncludes preserve=no
 #include "DMI/Common.h"
 #include "DMI/DMI.h"
-//## end module%3C10CC830067.additionalIncludes
 
-//## begin module%3C10CC830067.includes preserve=yes
 #include "Common/Thread/Mutex.h"
 #include "DMI/TypeInfo.h"
 #include "DMI/Timestamp.h"
-// pull in OCTOPUSSY types
-#include "OCTOPUSSY/TID-OCTOPUSSY.h"
-// for now:
+    
+#ifdef HAVE_LOFAR_OCTOPUSSY
+  #include "OCTOPUSSY/TID-OCTOPUSSY.h"
+#endif
+
+#ifdef HAVE_LOFAR_VISDM
+  #include "VisDM/TID-VisDM.h"
+#endif
+
+#ifdef HAVE_LOFAR_UVD
+  #include "UVD/TID-UVD.h"
+#endif
+
 #include <aips/Arrays/Array.h>
 
 #ifdef AIPSPP_HOOKS
@@ -38,7 +30,6 @@
 #include <aips/Arrays/Matrix.h>
 #include <aips/Utilities/String.h>
 #endif
-//## end module%3C10CC830067.includes
 
 // BlockableObject
 #include "DMI/BlockableObject.h"
@@ -46,93 +37,70 @@
 #include "DMI/Registry.h"
 // HIIDSet
 #include "DMI/HIIDSet.h"
-//## begin module%3C10CC830067.declarations preserve=no
-//## end module%3C10CC830067.declarations
-
-//## begin module%3C10CC830067.additionalDeclarations preserve=yes
 using Debug::ssprintf;
-//## end module%3C10CC830067.additionalDeclarations
 
 
-//## begin NestableContainer%3BE97CE100AF.preface preserve=yes
 class NestableContainer;
 class NCBaseIter;
-//## end NestableContainer%3BE97CE100AF.preface
 
-//## Class: NestableContainer%3BE97CE100AF; Abstract
-//	This is an abstract base class for data containers. It implements
-//	hooks (see Hook and ConstHook below) that allow access to elements
-//	of the container via the [HIID] and [int] operators.
-//
-//	To derive a specific container that will be compatible with hooks
-//	(and thus can be accessed via []), you need to implement, as a
-//	minimum, four virtual methods: get(), insert(), size(), type(). See
-//	below for specifics.
-//
-//	You can optionally implement getn(), insertn(), if accessing via a
-//	numeric index is a special case for your container. If your
-//	container supports removing, then remove() and/or removen() should
-//	be implemented. Finally, if your container stores data in a
-//	contiguous block of memory, isContiguous() should be redefined to
-//	return True.
-//## Category: DOMIN0%3BEAB1F2006B; Global
-//## Subsystem: DMI%3C10CC810155
-//## Persistence: Transient
-//## Cardinality/Multiplicity: n
+//##ModelId=3BE97CE100AF
+//##Documentation
+//## This is an abstract base class for data containers. It implements
+//## hooks (see Hook and ConstHook below) that allow access to elements
+//## of the container via the [HIID] and [int] operators.
+//## 
+//## To derive a specific container that will be compatible with hooks
+//## (and thus can be accessed via []), you need to implement, as a
+//## minimum, four virtual methods: get(), insert(), size(), type(). See
+//## below for specifics.
+//## 
+//## You can optionally implement getn(), insertn(), if accessing via a
+//## numeric index is a special case for your container. If your
+//## container supports removing, then remove() and/or removen() should
+//## be implemented. Finally, if your container stores data in a
+//## contiguous block of memory, isContiguous() should be redefined to
+//## return True.
 
-
-
-//## Uses: <unnamed>%3BFBAF8303C0;HIIDSet { -> }
-//## Uses: <unnamed>%3C5A7A4400BF;UniRegistry { -> }
-
-class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD87C0106
+class NestableContainer : public BlockableObject
 {
-  //## begin NestableContainer%3BE97CE100AF.initialDeclarations preserve=yes
-  //## end NestableContainer%3BE97CE100AF.initialDeclarations
-
   public:
-    //## begin NestableContainer::ConstHook%3C614FDE0039.preface preserve=yes
     class ConstHook;
     class Hook;
     
     // the ContentInfo struct is used by get() to return information on a 
     // container element
+    //##ModelId=3DB9343D035B
     class ContentInfo
     {
       public:
+        //##ModelId=3DB934920264
         TypeId tid;         // type of contents
+        //##ModelId=3DB93492026D
         bool writable;      // writability of contents
+        //##ModelId=3DB934920277
         int  size;          // # of elements
     };
 // to save compilation time, omit Hook declarations if NC_SKIP_HOOKS is defined
 
-    //## end NestableContainer::ConstHook%3C614FDE0039.preface
 
-    //## Class: ConstHook%3C614FDE0039
-    //	ConstHook is a helper class generated by applying the [id] and [n]
-    //	operators to a const NestableContainer. It provides transparent
-    //	access to objects in the container.
-    //
-    //	In addition to the methods documented here, it also provides the
-    //	following accessors for all known data types:
-    //
-    //	T as_T();
-    //	operator T (); // for standard types,
-    //	const T & as_T ();
-    //	operator const T & (); // for all other types,
-    //	const T * as_T_p(); // for all types
-    //	operator const T *(); // for all types -- but only allowed after the
-    //	& operator has been applied.
-    //## Category: DOMIN0%3BEAB1F2006B; Global
-    //## Subsystem: DMI%3C10CC810155
-    //## Persistence: Transient
-    //## Cardinality/Multiplicity: n
-
-
-
+    //##ModelId=3C614FDE0039
+    //##Documentation
+    //## ConstHook is a helper class generated by applying the [id] and [n]
+    //## operators to a const NestableContainer. It provides transparent
+    //## access to objects in the container.
+    //## 
+    //## In addition to the methods documented here, it also provides the
+    //## following accessors for all known data types:
+    //## 
+    //## T as_T();
+    //## operator T (); // for standard types,
+    //## const T & as_T ();
+    //## operator const T & (); // for all other types,
+    //## const T * as_T_p(); // for all types
+    //## operator const T *(); // for all types -- but only allowed after the
+    //## & operator has been applied.
     class ConstHook 
     {
-      //## begin NestableContainer::ConstHook%3C614FDE0039.initialDeclarations preserve=yes
       // Note that since Hooks are almost always treated as const 
       // (since they only appear as temporary objects), all their methods have to
       // be declared as const. Ugly, but that's C++ for you...
@@ -140,86 +108,103 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       friend class NCBaseIter;
       
       protected:
+        //##ModelId=3DB934920303
           static int _dum_int; // dummy by-ref argument
+        //##ModelId=3DB9349203A5
           static ContentInfo _dum_info;
-      //## end NestableContainer::ConstHook%3C614FDE0039.initialDeclarations
 
       public:
 
-        //## Other Operations (specified)
-          //## Operation: operator []%3C87377803A8
-          //	If the hook points to a container, subscripts into the container
+          //##ModelId=3C87377803A8
+          //##Documentation
+          //## If the hook points to a container, subscripts into the container
           const NestableContainer::ConstHook & operator [] (const HIID &id1) const;
 
-          //## Operation: operator []%3C8737C80081
+          //##ModelId=3C8737C80081
           const NestableContainer::ConstHook & operator [] (int n) const;
 
-          //## Operation: operator &%3C87364902B3
-          //	Address-of: enables implicit conversion-to-pointer operators.
+          //##ModelId=3C87364902B3
+          //##Documentation
+          //## Address-of: enables implicit conversion-to-pointer operators.
           const NestableContainer::ConstHook & operator & () const;
 
-          //## Operation: exists%3C8737D30041
-          //	True if the hook points to a valid, initialized element.
+          //##ModelId=3C8737D30041
+          //##Documentation
+          //## True if the hook points to a valid, initialized element.
           bool exists () const;
 
-          //## Operation: type%3C8737E002A3
-          //	Type of element pointed to. If it is is a fixed-type container, then
-          //	returns type of contents instead. Returns 0 (NullType) if element
-          //	doesn't exist.
+          //##ModelId=3C8737E002A3
+          //##Documentation
+          //## Type of element pointed to. If it is is a fixed-type container, then
+          //## returns type of contents instead. Returns 0 (NullType) if element
+          //## doesn't exist.
           TypeId type () const;
 
-          //## Operation: actualType%3C8737F702D8
-          //	Returns the real type of the element being pointed to. For
-          //	containers & dynamic objects, this will usually be TpObjRef rather
-          //	than the element type.
+          //##ModelId=3C8737F702D8
+          //##Documentation
+          //## Returns the real type of the element being pointed to. For
+          //## containers & dynamic objects, this will usually be TpObjRef rather
+          //## than the element type.
           TypeId actualType () const;
 
-          //## Operation: containerType%3C876AFC0254
-          //	Returns the type of the container object being pointed to. Returns 0
-          //	(NullType) if not pointing to a container.
+          //##ModelId=3C876AFC0254
+          //##Documentation
+          //## Returns the type of the container object being pointed to. Returns 0
+          //## (NullType) if not pointing to a container.
           TypeId containerType () const;
 
-          //## Operation: isContainer%3C873800017C
-          //	Returns True if pointing to a container element.
+          //##ModelId=3C873800017C
+          //##Documentation
+          //## Returns True if pointing to a container element.
           bool isContainer () const;
 
-          //## Operation: isRef%3C876FF50114
-          //	Returns true if the element being pointed to is held in an ObjRef.
+          //##ModelId=3C876FF50114
+          //##Documentation
+          //## Returns true if the element being pointed to is held in an ObjRef.
           bool isRef () const;
 
-          //## Operation: size%3C87380503BE
-          //	Size of element being pointed to. Always 1 for non-container element
-          //	For containers, returns the size of the container. Returns 0 if the
-          //	element doesn't exist.
+          //##ModelId=3C87380503BE
+          //##Documentation
+          //## Size of element being pointed to. Always 1 for non-container element
+          //## For containers, returns the size of the container. Returns 0 if the
+          //## element doesn't exist.
           int size (TypeId tid = 0) const;
 
-          //## Operation: size%3CAAE98D037C
-          //	Second version, stores size in sz and returns *this
+          //##ModelId=3CAAE98D037C
+          //##Documentation
+          //## Second version, stores size in sz and returns *this
           const NestableContainer::ConstHook & size (int &sz, TypeId tid = 0) const;
 
-          //## Operation: ref%3C87703E03D6
-          //	If the element  is held in an ObjRef, returns a read-only copy of
-          //	the ref. Throws exception otherwise.
+          //##ModelId=3C87703E03D6
+          //##Documentation
+          //## If the element  is held in an ObjRef, returns a read-only copy of
+          //## the ref. Throws exception otherwise.
           ObjRef ref () const;
 
         // Additional Public Declarations
-          //## begin NestableContainer::ConstHook%3C614FDE0039.public preserve=yes
           friend class NestableContainer;
           
           // explicit versions of [] for other HIID forms
+        //##ModelId=3DB9349400FE
           const NestableContainer::ConstHook & operator [] (AtomicID id1) const
           { return (*this)[HIID(id1)]; }
+        //##ModelId=3DB934940270
           const NestableContainer::ConstHook & operator [] (const string &id1) const 
           { return (*this)[HIID(id1)]; }
+        //##ModelId=3DB9349403CF
           const NestableContainer::ConstHook & operator [] (const char *id1) const 
           { return (*this)[HIID(id1)]; }
           // The () operator is an alternative version for concatenating IDs
+        //##ModelId=3DB934950181
           const NestableContainer::ConstHook & operator () (AtomicID id1) const 
           { return (*this)[id1]; }
+        //##ModelId=3DB93495031C
           const NestableContainer::ConstHook & operator () (AtomicID id1,AtomicID id2) const 
           { return (*this)[id1|id2]; }
+        //##ModelId=3DB934960319
           const NestableContainer::ConstHook & operator () (AtomicID id1,AtomicID id2,AtomicID id3) const 
           { return (*this)[id1|id2|id3]; }
+        //##ModelId=3DB934970392
           const NestableContainer::ConstHook & operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
           { return (*this)[id1|id2|id3|id4]; }
           
@@ -248,7 +233,9 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           template<class T> 
           Matrix<T> as_Matrix (int n1,int n2) const;
           
+        //##ModelId=3DB93499028E
           String as_String () const;
+        //##ModelId=3DB934990393
           operator String () const
           { return as_String(); }
           // template<class MVal> MVal as_MV ();
@@ -256,222 +243,222 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 #endif
 
           // standard debug info
+        //##ModelId=3DB9349A0087
           string sdebug ( int detail = 1,const string &prefix = "",const char *name = "cHook" ) const;
+        //##ModelId=3DB9349C0376
           const char *debug ( int detail = 1,const string &prefix = "",const char *name = "cHook" ) const
           { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
 
-          //## end NestableContainer::ConstHook%3C614FDE0039.public
       protected:
-        //## Constructors (specified)
-          //## Operation: ConstHook%3C87374503C2
-          //	Constructors are protected since only NestableContainers are allowed
-          //	to create hooks.
+          //##ModelId=3C87374503C2
+          //##Documentation
+          //## Constructors are protected since only NestableContainers are allowed
+          //## to create hooks.
           ConstHook (const NestableContainer &parent, const HIID &id1);
 
-          //## Operation: ConstHook%3C87375E01CA
+          //##ModelId=3C87375E01CA
           ConstHook (const NestableContainer &parent, int n);
 
         // Data Members for Associations
 
-          //## Association: DOMIN0::<unnamed>%3C87362A007E
-          //## Role: ConstHook::nc%3C87362B00E3
-          //## begin NestableContainer::ConstHook::nc%3C87362B00E3.role preserve=no  protected: NestableContainer { -> 1RHNM}
+          //##ModelId=3C87362B00E3
           mutable NestableContainer *nc;
-          //## end NestableContainer::ConstHook::nc%3C87362B00E3.role
 
         // Additional Protected Declarations
-          //## begin NestableContainer::ConstHook%3C614FDE0039.protected preserve=yes
+        //##ModelId=3DB9349203E0
           mutable bool addressed;     // flag: & operator has been applied
+        //##ModelId=3DB934930090
           mutable HIID id;            // HIID subscript being applied to target
+        //##ModelId=3DB9349300DE
           mutable int  index;         // numeric subscript being applied to target 
           // if index==-1, then subscript is a HIID
           // if index==-2, then evrything's uniinitialized
           
           // flag: privatize all read-only refs as we go along
           // (this is only set for Hook. Always False for ConstHook.)
+        //##ModelId=3DB93493016B
           mutable int autoprivatize;
           
           // Each hook maintains a mutex on the nestable container
+        //##ModelId=3DB934930201
           mutable Thread::Mutex::Lock lock;
           
           // if target is an ObjRef, returns it, checking for writability
           // else throws an exception
+        //##ModelId=3DB9349E0198
           inline const ObjRef * asRef (bool write=False) const;
 
           // if target is an NC, returns pointer to it, else 0.
           // if target is not specified, uses the current index
+        //##ModelId=3DB934A002CB
           const NestableContainer * asNestable(const void *target=0,TypeId tid=0) const;
+        //##ModelId=3DB934A200F8
           NestableContainer * asNestableWr(void *target=0,TypeId tid=0) const;
           
           // helper func: collapses the current index and returns new target
+        //##ModelId=3DB934A30258
           const void * collapseIndex (ContentInfo &info,TypeId check_tid,int flags) const;
           
           // helper func: applies existing id or index to hook in preparation
           // for setting a new one
+        //##ModelId=3DB934A50226
           void nextIndex () const;
           
           // helper func: repoints hook at next NC, clears id & index
+        //##ModelId=3DB934A60032
           NestableContainer * nextNC (const NestableContainer *nc1) const;
 
           // This is called to get a value, for built-in scalar types only
+        //##ModelId=3DB934A603C2
           bool get_scalar( void *data,TypeId tid,bool nothrow=False ) const;
 
           // This is called to access by reference, for all types
+        //##ModelId=3DB934A90100
           const void *get_address(ContentInfo &info,TypeId tid,bool must_write,
               bool pointer=False,const void *deflt=0,Thread::Mutex::Lock *keeplock=0) const;
 
           // This is called to access by pointer, for all types
+        //##ModelId=3DB934AC03C2
           const void *get_pointer(int &sz,TypeId tid,bool must_write,bool implicit=False,
               const void *deflt=0,Thread::Mutex::Lock *keeplock=0) const;
 
-          //## end NestableContainer::ConstHook%3C614FDE0039.protected
       private:
-        //## Constructors (generated)
+        //##ModelId=3DB934B00381
           ConstHook();
 
-        //## Assignment Operation (generated)
+        //##ModelId=3DB934B10152
           ConstHook & operator=(const ConstHook &right);
-
-        // Additional Private Declarations
-          //## begin NestableContainer::ConstHook%3C614FDE0039.private preserve=yes
-          //## end NestableContainer::ConstHook%3C614FDE0039.private
-
-      private: //## implementation
-        // Additional Implementation Declarations
-          //## begin NestableContainer::ConstHook%3C614FDE0039.implementation preserve=yes
-          //## end NestableContainer::ConstHook%3C614FDE0039.implementation
 
     };
 
-    //## begin NestableContainer::ConstHook%3C614FDE0039.postscript preserve=yes
-    //## end NestableContainer::ConstHook%3C614FDE0039.postscript
-
-    //## begin NestableContainer::Hook%3C8739B50135.preface preserve=yes
-    //## end NestableContainer::Hook%3C8739B50135.preface
-
-    //## Class: Hook%3C8739B50135
-    //	Hook is a helper class generated by applying the [id] and [n]
-    //	operators to a non-const NestableContainer. It provides read access
-    //	methods inherited from ConstHook, plus its own write-access methods.
-    //
-    //	In addition to the methods documented here, it also provides the
-    //	following accessors for all known data types:
-    //
-    //	T& as_T_wr();
-    //	operator T& (); // for strings, binary and dynamic types
-    //	T operator = (T); // for standard types
-    //	T& operator = (T&); // for strings & binary types
-    //	[const] T* operator <<=([const] T*);
-    //	[const] T& operator <<=([const] T&); // for dynamic types. This
-    //	attaches an anon ref to the object
-    //	T* as_T_wp(); // for all types
-    //	operator T*(); // for all types - but only allowed after the &
-    //	operator has been applied.
-    //## Category: DOMIN0%3BEAB1F2006B; Global
-    //## Subsystem: DMI%3C10CC810155
-    //## Persistence: Transient
-    //## Cardinality/Multiplicity: n
-
-
-
-    class Hook : public ConstHook  //## Inherits: <unnamed>%3C873A010206
+    //##ModelId=3C8739B50135
+    //##Documentation
+    //## Hook is a helper class generated by applying the [id] and [n]
+    //## operators to a non-const NestableContainer. It provides read access
+    //## methods inherited from ConstHook, plus its own write-access methods.
+    //## 
+    //## In addition to the methods documented here, it also provides the
+    //## following accessors for all known data types:
+    //## 
+    //## T& as_T_wr();
+    //## operator T& (); // for strings, binary and dynamic types
+    //## T operator = (T); // for standard types
+    //## T& operator = (T&); // for strings & binary types
+    //## [const] T* operator <<=([const] T*);
+    //## [const] T& operator <<=([const] T&); // for dynamic types. This
+    //## attaches an anon ref to the object
+    //## T* as_T_wp(); // for all types
+    //## operator T*(); // for all types - but only allowed after the &
+    //## operator has been applied.
+    class Hook : public ConstHook
     {
-      //## begin NestableContainer::Hook%3C8739B50135.initialDeclarations preserve=yes
-      //## end NestableContainer::Hook%3C8739B50135.initialDeclarations
-
       public:
 
-        //## Other Operations (specified)
-          //## Operation: operator []%3C8739B50167
+          //##ModelId=3C8739B50167
           const NestableContainer::Hook & operator [] (const HIID &id1) const;
 
-          //## Operation: operator []%3C8739B50174
+          //##ModelId=3C8739B50174
           const NestableContainer::Hook & operator [] (int n) const;
 
-          //## Operation: operator &%3C8739B50176
+          //##ModelId=3C8739B50176
           const NestableContainer::Hook & operator & () const;
 
-          //## Operation: isWritable%3C87665E0178
-          //	Returns True if the hook refers to a writable element.
+          //##ModelId=3C87665E0178
+          //##Documentation
+          //## Returns True if the hook refers to a writable element.
           bool isWritable () const;
 
-          //## Operation: size%3CAB0A3500AC
+          //##ModelId=3CAB0A3500AC
           int size (TypeId tid = 0) const;
 
-          //## Operation: size%3CAAE9BB0332
+          //##ModelId=3CAAE9BB0332
           const NestableContainer::Hook & size (int &sz, TypeId tid = 0) const;
 
-          //## Operation: init%3C8739B5017B
-          //	Initializes element being pointed to. If element exists, does
-          //	nothing.
+          //##ModelId=3C8739B5017B
+          //##Documentation
+          //## Initializes element being pointed to. If element exists, does
+          //## nothing.
           const NestableContainer::Hook & init (TypeId tid = 0) const;
 
-          //## Operation: operator =%3C873A8F035F
+          //##ModelId=3C873A8F035F
           void operator = (const ObjRef &ref) const;
           
-          //## Operation: operator <<=%3C873AB8008D
+          //##ModelId=3C873AB8008D
           void operator <<= (const ObjRef &ref) const;
 
-          //## Operation: operator <<=%3C87864D031A
+          //##ModelId=3C87864D031A
           void operator <<= (BlockableObject *obj) const;
 
-          //## Operation: operator <<=%3C8786A30223
+          //##ModelId=3C8786A30223
           void operator <<= (const BlockableObject *obj) const;
 
-          //## Operation: put%3C873AE302FC
+          //##ModelId=3C873AE302FC
           const NestableContainer::Hook & put (BlockableObject &obj, int flags) const;
 
-          //## Operation: put%3C873B8F01C2
+          //##ModelId=3C873B8F01C2
           const NestableContainer::Hook & put (const BlockableObject &obj, int flags) const;
 
-          //## Operation: put%3C873B980248
+          //##ModelId=3C873B980248
           const NestableContainer::Hook & put (const ObjRef &ref, int flags) const;
 
-          //## Operation: privatize%3C8739B5017C
-          //	If container is writable, and the element being pointed to is held
-          //	in an ObjRef, then privatizes the ObjRef. Throws exception otherwise.
+          //##ModelId=3C8739B5017C
+          //##Documentation
+          //## If container is writable, and the element being pointed to is held
+          //## in an ObjRef, then privatizes the ObjRef. Throws exception otherwise.
           const NestableContainer::Hook & privatize (int flags) const;
 
-          //## Operation: ref%3C8770A70215
-          //	If the element  is held in an ObjRef, returns a copy of the ref with
-          //	the specified flags. Throws exception otherwise.
+          //##ModelId=3C8770A70215
+          //##Documentation
+          //## If the element  is held in an ObjRef, returns a copy of the ref with
+          //## the specified flags. Throws exception otherwise.
           ObjRef ref (int flags = DMI::PRESERVE_RW) const;
 
-          //## Operation: remove%3C876DCE0266
-          //	Removes the element being pointed to from the container.  If the
-          //	element is held in an ObjRef, returns a ref to it, so you can
-          //	do stuff like ref = rec["field"].remove() to remove it from the
-          //	container and place it in a local ref.
-          //	If there is no such element (or if not held in an ObjRef), it
-          //	returns an invalid ref.
+          //##ModelId=3C876DCE0266
+          //##Documentation
+          //## Removes the element being pointed to from the container.  If the
+          //## element is held in an ObjRef, returns a ref to it, so you can
+          //## do stuff like ref = rec["field"].remove() to remove it from the
+          //## container and place it in a local ref.
+          //## If there is no such element (or if not held in an ObjRef), it
+          //## returns an invalid ref.
           ObjRef remove () const;
 
-          //## Operation: detach%3C876E140018
-          //	Can only be called for elements held in an ObjRef. Detaches element
-          //	but leaves the ObjRef in the container. Returns ref to self, so it's
-          //	possible to do things like rec[field].detach(&old_ref) <<= new
-          //	Object;
-          const NestableContainer::Hook & detach (ObjRef* ref = 0	// If specified, then the element will be re-attached to this ref.
+          //##ModelId=3C876E140018
+          //##Documentation
+          //## Can only be called for elements held in an ObjRef. Detaches element
+          //## but leaves the ObjRef in the container. Returns ref to self, so it's
+          //## possible to do things like rec[field].detach(&old_ref) <<= new
+          //## Object;
+          const NestableContainer::Hook & detach (
+              //##Documentation
+              //## If specified, then the element will be re-attached to this ref.
+              ObjRef* ref = 0
           ) const;
 
         // Additional Public Declarations
-          //## begin NestableContainer::Hook%3C8739B50135.public preserve=yes
           friend class NestableContainer;
           
           // explicit versions of [] for string IDs
+        //##ModelId=3DB934B303E0
           const NestableContainer::Hook & operator [] (AtomicID id1) const 
           { return (*this)[HIID(id1)]; }
+        //##ModelId=3DB934B40233
           const NestableContainer::Hook & operator [] (const string &id1) const 
           { return (*this)[HIID(id1)]; }
+        //##ModelId=3DB934B500F7
           const NestableContainer::Hook & operator [] (const char *id1) const 
           { return (*this)[HIID(id1)]; }
           // The () operator is an alternative version for concatenating IDs
+        //##ModelId=3DB934B50346
           const NestableContainer::Hook & operator () (AtomicID id1) const 
           { return (*this)[id1]; }
+        //##ModelId=3DB934B601D5
           const NestableContainer::Hook & operator () (AtomicID id1,AtomicID id2) const 
           { return (*this)[id1|id2]; }
+        //##ModelId=3DB934B701CC
           const NestableContainer::Hook & operator () (AtomicID id1,AtomicID id2,AtomicID id3) const 
           { return (*this)[id1|id2|id3]; }
+        //##ModelId=3DB934B8039B
           const NestableContainer::Hook & operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
           { return (*this)[id1|id2|id3|id4]; }
           
@@ -497,40 +484,46 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           // define accessors for AIPS++ types
 #ifdef AIPSPP_HOOKS
           // assigning a vector of strings will init a DataField object
+        //##ModelId=3DB934BA03A3
           const Vector<String> & operator = (const Vector<String> &other) const;
           // assigning an AIPS++ String assigns an STL string.
+        //##ModelId=3DB934BB02A0
           const String & operator = (const String &other) const;
 #endif
 
+        //##ModelId=3DB934BC01D9
           string sdebug ( int detail = 1,const string &prefix = "",const char *name = "Hook" ) const
           { return ConstHook::sdebug(detail,prefix,name); }
+        //##ModelId=3DB934BE007D
           const char *debug ( int detail = 1,const string &prefix = "",const char *name = "Hook" ) const
           { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
           
-          //## end NestableContainer::Hook%3C8739B50135.public
       protected:
-        //## Constructors (specified)
-          //## Operation: Hook%3C8739B50153
+          //##ModelId=3C8739B50153
           Hook (NestableContainer &parent, const HIID &id1, int autopr = 0);
 
-          //## Operation: Hook%3C8739B5015E
+          //##ModelId=3C8739B5015E
           Hook (NestableContainer &parent, int n, int autopr = 0);
 
         // Additional Protected Declarations
-          //## begin NestableContainer::Hook%3C8739B50135.protected preserve=yes
           // Helper function resolves current index to target *
+        //##ModelId=3DB934C00071
           void * prepare_put( ContentInfo &info,TypeId tid ) const;
               
           // This is called to assign a value, for scalar & binary types
+        //##ModelId=3DB934C102D5
           const void * put_scalar( const void *data,TypeId tid,size_t sz ) const;
 
           // Helper function to assign an object.  
+        //##ModelId=3DB934C30364
           void assign_object( BlockableObject *obj,TypeId tid,int flags ) const;
 
           // const version forces a read-only ref
+        //##ModelId=3DB934C600BA
           void assign_object( const BlockableObject *obj,TypeId tid,int flags ) const;
 
           // Helper function assigns an objref     
+        //##ModelId=3DB934C801DF
           ObjRef & assign_objref ( const ObjRef &ref,int flags ) const;
 
           // Templated function implements operator = (vector<T>) for arrayable types
@@ -538,208 +531,236 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           const vector<T> & assign_arrayable (const vector<T> &other) const;
 
           // Helper functions for assignment of vectors
+        //##ModelId=3DB934CA0142
           void * prepare_vector (TypeId tid,int size) const;
           template<class T> 
           const vector<T> & assign_vector (const vector<T> &other,TypeId tid) const;
 
-          //## end NestableContainer::Hook%3C8739B50135.protected
       private:
-        //## Constructors (generated)
+        //##ModelId=3DB934CC00F5
           Hook();
 
-        //## Assignment Operation (generated)
+        //##ModelId=3DB934CC02E9
           Hook & operator=(const Hook &right);
 
         // Additional Private Declarations
-          //## begin NestableContainer::Hook%3C8739B50135.private preserve=yes
+        //##ModelId=3DB934CD0377
           void operator = (const BlockableObject *) const;
+        //##ModelId=3DB934CF0101
           void operator = (const BlockableObject &) const;
-          //## end NestableContainer::Hook%3C8739B50135.private
-      private: //## implementation
-        // Additional Implementation Declarations
-          //## begin NestableContainer::Hook%3C8739B50135.implementation preserve=yes
-          //## end NestableContainer::Hook%3C8739B50135.implementation
-
     };
 
-    //## begin NestableContainer::Hook%3C8739B50135.postscript preserve=yes
-    //## end NestableContainer::Hook%3C8739B50135.postscript
-
-    //## Constructors (specified)
-      //## Operation: NestableContainer%3C7F928D00C0
+      //##ModelId=3C7F928D00C0
       NestableContainer (bool write = True);
 
 
-    //## Other Operations (specified)
-      //## Operation: get%3C56A6C50088
-      //	get(HIID): Abstract method for dereferencing a container element
-      //	indicated by id. Must be implemented by all child classes. This is
-      //	the method called by the hook operator [](const HIID &). See Data
-      //	Record and DataField for example implementations.
-      //	The return value is a pointer to the data element (or to an ObjRef
-      //	to the data, see below). A return value of 0 indicates that the
-      //	element doesn't exist but can be insert()ed (e.g. no such field in
-      //	record). An exception may be thrown otherwise (e.g. array index out
-      //	of range).
-      virtual const void * get (const HIID &id, 	// Specifies an element
-      	// in the container.
-      	// A null HIID (id.size()==0) implies accessing the entire container.
-      	// Throw an exception if this is incompatible with check_tid. E.g. an
-      	// array may be accessed as an Array_int, but if it has only a single
-      	// element, then also as an int..
-      ContentInfo &info, 	// This struct is filled in with information on the contents: tid is
-      	// the TypeId, writable indicates writability, size is the number of
-      	// elements (for access by pointer).
-      TypeId check_tid = 0, 	// This is the type being requested.
-      	// An exception should be thrown if there's a mismatch with the
-      	// contents type. The following special cases must be handled:
-      	// TpNumeric: any built-in numeric type is expected.
-      	// TpObjRef: a dynamic type is expected, return pointer to ObjRef, and
-      	// set tid=TpObjRef.
-      	// TpObject: a dynamic type is expected, return pointer to actual
-      	// object rather than the ref.
-      	// 0: no type checking. For dynamic types, returning an ObjRef is
-      	// preferred.
+      //##ModelId=3C56A6C50088
+      //##Documentation
+      //## get(HIID): Abstract method for dereferencing a container element
+      //## indicated by id. Must be implemented by all child classes. This is
+      //## the method called by the hook operator [](const HIID &). See Data
+      //## Record and DataField for example implementations.
+      //## The return value is a pointer to the data element (or to an ObjRef
+      //## to the data, see below). A return value of 0 indicates that the
+      //## element doesn't exist but can be insert()ed (e.g. no such field in
+      //## record). An exception may be thrown otherwise (e.g. array index out
+      //## of range).
+      virtual const void * get (
+          //##Documentation
+          //## Specifies an element
+          //## in the container.
+          //## A null HIID (id.size()==0) implies accessing the entire container.
+          //## Throw an exception if this is incompatible with check_tid. E.g. an
+          //## array may be accessed as an Array_int, but if it has only a single
+          //## element, then also as an int..
+          const HIID &id,
+          //##Documentation
+          //## This struct is filled in with information on the contents: tid is
+          //## the TypeId, writable indicates writability, size is the number of
+          //## elements (for access by pointer).
+          ContentInfo &info,
+          //##Documentation
+          //## This is the type being requested.
+          //## An exception should be thrown if there's a mismatch with the
+          //## contents type. The following special cases must be handled:
+          //## TpNumeric: any built-in numeric type is expected.
+          //## TpObjRef: a dynamic type is expected, return pointer to ObjRef, and
+          //## set tid=TpObjRef.
+          //## TpObject: a dynamic type is expected, return pointer to actual
+          //## object rather than the ref.
+          //## 0: no type checking. For dynamic types, returning an ObjRef is
+          //## preferred.
+          TypeId check_tid = 0,
       int flags = 0) const = 0;
 
-      //## Operation: getn%3C7A13C90269
-      //	getn(int): this is a version of get() with a numeric element
-      //	specification. This is the method called by the hook operator
-      //	[](int). The default implementation simply converts the index into a
-      //	single-index HIID, and calls get(HIID).
+      //##ModelId=3C7A13C90269
+      //##Documentation
+      //## getn(int): this is a version of get() with a numeric element
+      //## specification. This is the method called by the hook operator
+      //## [](int). The default implementation simply converts the index into a
+      //## single-index HIID, and calls get(HIID).
       virtual const void * getn (int n, ContentInfo &info, TypeId check_tid = 0, int flags = 0) const;
 
-      //## Operation: insert%3C7A13D703AA
-      //	insert(HIID). This is an abstract ethod for allocating a new element
-      //	in a container. Must be implemented by all child classes.
-      //	Inserts element and returns a pointer to it. If the data type is
-      //	dynamic, then must insert a new (unattached) ObjRef, and return a
-      //	pointer to that.
-      virtual void * insert (const HIID &id, 	// ID of element to be allocated.
-      	// Throw an exception if an element with such an ID can't be inserted
-      	// (e.g. arrays can allow insert() only at end of array).
-      TypeId tid, 	// Type of element to be inserted.  An exception should be thrown if
-      	// this is not compatible with the container (i.e., if the container
-      	// is of a fixed type.) Since hooks support implicit conversion
-      	// between standard types, no exception should be thrown if both tid
-      	// and the container types are standard.
-      	// If tid is 0, and the container is of a fixed type and has been
-      	// initialized, then a new element should be inserted. Otherwise an
-      	// exception should be thrown.
-      	// The actual type of the element must always be returned via real_tid.
-      TypeId &real_tid	// The actual type inserted into the container is returned here.
+      //##ModelId=3C7A13D703AA
+      //##Documentation
+      //## insert(HIID). This is an abstract ethod for allocating a new element
+      //## in a container. Must be implemented by all child classes.
+      //## Inserts element and returns a pointer to it. If the data type is
+      //## dynamic, then must insert a new (unattached) ObjRef, and return a
+      //## pointer to that.
+      virtual void * insert (
+          //##Documentation
+          //## ID of element to be allocated.
+          //## Throw an exception if an element with such an ID can't be inserted
+          //## (e.g. arrays can allow insert() only at end of array).
+          const HIID &id,
+          //##Documentation
+          //## Type of element to be inserted.  An exception should be thrown if
+          //## this is not compatible with the container (i.e., if the container
+          //## is of a fixed type.) Since hooks support implicit conversion
+          //## between standard types, no exception should be thrown if both tid
+          //## and the container types are standard.
+          //## If tid is 0, and the container is of a fixed type and has been
+          //## initialized, then a new element should be inserted. Otherwise an
+          //## exception should be thrown.
+          //## The actual type of the element must always be returned via real_tid.
+          TypeId tid,
+          //##Documentation
+          //## The actual type inserted into the container is returned here.
+          TypeId &real_tid
       ) = 0;
 
-      //## Operation: insertn%3C7A140A003C
-      //	insert(int): this is a version of insert() with a numeric element
-      //	specification. The default implementation simply converts the index
-      //	into a single-index HIID, and calls insert(HIID).
+      //##ModelId=3C7A140A003C
+      //##Documentation
+      //## insert(int): this is a version of insert() with a numeric element
+      //## specification. The default implementation simply converts the index
+      //## into a single-index HIID, and calls insert(HIID).
       virtual void * insertn (int n, TypeId tid, TypeId &real_tid);
 
-      //## Operation: remove%3C87752F031F
-      //	Virtual method for removing the element indicated by id.
-      //	Should return True if element was removed, False for no such
-      //	element, or throw an exception on logic error.
-      //	Default implementation throws a "container does not support remove"
-      //	exception.
+      //##ModelId=3C87752F031F
+      //##Documentation
+      //## Virtual method for removing the element indicated by id.
+      //## Should return True if element was removed, False for no such
+      //## element, or throw an exception on logic error.
+      //## Default implementation throws a "container does not support remove"
+      //## exception.
       virtual bool remove (const HIID &id);
 
-      //## Operation: removen%3C87753803B8
-      //	remove(int): this is a version of remove() with a numeric element
-      //	specification. The default implementation simply converts the index
-      //	into a single-index HIID, and calls remove(HIID).
+      //##ModelId=3C87753803B8
+      //##Documentation
+      //## remove(int): this is a version of remove() with a numeric element
+      //## specification. The default implementation simply converts the index
+      //## into a single-index HIID, and calls remove(HIID).
       virtual bool removen (int n);
 
-      //## Operation: size%3C7A154E01AB
-      //	Abstract method. Must returns the number of elements in the
-      //	container.
+      //##ModelId=3C7A154E01AB
+      //##Documentation
+      //## Abstract method. Must returns the number of elements in the
+      //## container.
       virtual int size (TypeId tid = 0) const = 0;
 
-      //## Operation: type%3C7A1552012E
-      //	 Should return the type of the contents. If container is not of a
-      //	fixed type (e.g. a record), or hasn't been initialized yet, then
-      //	just return NullType (0). Default version returns 0.
+      //##ModelId=3C7A1552012E
+      //##Documentation
+      //## Should return the type of the contents. If container is not of a
+      //## fixed type (e.g. a record), or hasn't been initialized yet, then
+      //## just return NullType (0). Default version returns 0.
       virtual TypeId type () const;
 
-      //## Operation: operator []%3C8742310264
+      //##ModelId=3C8742310264
       NestableContainer::ConstHook operator [] (const HIID &id) const;
 
-      //## Operation: operator []%3C874250006A
+      //##ModelId=3C874250006A
       NestableContainer::ConstHook operator [] (int index) const;
 
-      //## Operation: operator []%3C874267026C
+      //##ModelId=3C874267026C
       NestableContainer::Hook operator [] (const HIID &id);
 
-      //## Operation: operator []%3C874251027E
+      //##ModelId=3C874251027E
       NestableContainer::Hook operator [] (int index);
 
-      //## Operation: setBranch%3CB2B438020F
+      //##ModelId=3CB2B438020F
       NestableContainer::Hook setBranch (const HIID &id, int flags = DMI::WRITE);
       
-      //## Operation: select%3BE982760231
-      //	Selects a subset of a container. Meant to be abstract, but we make
-      //	it just virtual for now since this part is not implemented anywhere.
+      //##ModelId=3BE982760231
+      //##Documentation
+      //## Selects a subset of a container. Meant to be abstract, but we make
+      //## it just virtual for now since this part is not implemented anywhere.
       virtual bool select (const HIIDSet &);
 
-      //## Operation: clearSelection%3BFBDC0D025A
-      //	Clears the subset selection.
+      //##ModelId=3BFBDC0D025A
+      //##Documentation
+      //## Clears the subset selection.
       virtual void clearSelection ();
 
-      //## Operation: selectionToBlock%3BFBDC1D028F
-      //	Converts the selected subset to a BlockSet.
+      //##ModelId=3BFBDC1D028F
+      //##Documentation
+      //## Converts the selected subset to a BlockSet.
       virtual int selectionToBlock (BlockSet& );
 
-      //## Operation: isNestable%3BFCD8180044
+      //##ModelId=3BFCD8180044
       bool isNestable () const;
 
-      //## Operation: isNestable%3C5551E201AE
-      //	Static function, checks if a type is a nestable (or a subclass
-      //	thereof).
+      //##ModelId=3C5551E201AE
+      //##Documentation
+      //## Static function, checks if a type is a nestable (or a subclass
+      //## thereof).
       static bool isNestable (TypeId tid);
 
-    //## Get and Set Operations for Class Attributes (generated)
-
-      //## Attribute: writable%3C7F924300A6
+    //##ModelId=3DB934D201C2
       bool isWritable () const;
 
   public:
     // Additional Public Declarations
-      //## begin NestableContainer%3BE97CE100AF.public preserve=yes
       friend class ConstHook;
       friend class Hook;
       
       // explicit versions of [] for string IDs
+    //##ModelId=3DB934D202B2
       NestableContainer::ConstHook operator [] (AtomicID id1) const
       { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB934D30119
       NestableContainer::ConstHook operator [] (const string &id1) const
       { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB934D30372
       NestableContainer::ConstHook operator [] (const char *id1) const
       { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB934D402A2
       NestableContainer::Hook operator [] (AtomicID id1) 
       { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB934D500D6
       NestableContainer::Hook operator [] (const string &id1) 
       { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB934D502E9
       NestableContainer::Hook operator [] (const char *id1) 
       { return (*this)[HIID(id1)]; }
       // The () operator is an alternative version for concatenating IDs
+    //##ModelId=3DB934D6011E
       const NestableContainer::ConstHook operator () (AtomicID id1) const 
       { return (*this)[id1]; }
+    //##ModelId=3DB934D603D1
       const NestableContainer::ConstHook operator () (AtomicID id1,AtomicID id2) const 
       { return (*this)[id1|id2]; }
+    //##ModelId=3DB934D80030
       const NestableContainer::ConstHook operator () (AtomicID id1,AtomicID id2,AtomicID id3) const 
       { return (*this)[id1|id2|id3]; }
+    //##ModelId=3DB934D902CC
       const NestableContainer::ConstHook operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
       { return (*this)[id1|id2|id3|id4]; }
+    //##ModelId=3DB934DB02D9
       const NestableContainer::Hook operator () (AtomicID id1)  
       { return (*this)[id1]; }
+    //##ModelId=3DB934DC01AE
       const NestableContainer::Hook operator () (AtomicID id1,AtomicID id2)  
       { return (*this)[id1|id2]; }
+    //##ModelId=3DB934DD026E
       const NestableContainer::Hook operator () (AtomicID id1,AtomicID id2,AtomicID id3)  
       { return (*this)[id1|id2|id3]; }
+    //##ModelId=3DB934DF0130
       const NestableContainer::Hook operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4)  
       { return (*this)[id1|id2|id3|id4]; }
 
 #ifdef USE_THREADS
+    //##ModelId=3DB934E10329
       const Thread::Mutex & mutex() const;
 // read/write locks are too complicated for n/c's, so use a mutex
 // instead. Hence, all these macros are defined identically      
@@ -777,31 +798,23 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       #define nc_lock1_up(dum,dum2)
 #endif
 
-      //## end NestableContainer%3BE97CE100AF.public
   protected:
 
-    //## Other Operations (specified)
-      //## Operation: setWritable%3C9AEE7C01BD
+      //##ModelId=3C9AEE7C01BD
       bool setWritable (bool wr);
-
-    // Additional Protected Declarations
-      //## begin NestableContainer%3BE97CE100AF.protected preserve=yes
-      //## end NestableContainer%3BE97CE100AF.protected
 
   private:
     // Additional Private Declarations
-      //## begin NestableContainer%3BE97CE100AF.private preserve=yes
+    //##ModelId=3DB934E200BE
       DeclareRegistry(NestableContainer,int,bool);
-      //## end NestableContainer%3BE97CE100AF.private
-  private: //## implementation
+  private:
     // Data Members for Class Attributes
 
-      //## begin NestableContainer::writable%3C7F924300A6.attr preserve=no  public: bool {U} 
+      //##ModelId=3C7F924300A6
       bool writable;
-      //## end NestableContainer::writable%3C7F924300A6.attr
 
     // Additional Implementation Declarations
-      //## begin NestableContainer%3BE97CE100AF.implementation preserve=yes
+    //##ModelId=3DB9343D03AB
       typedef struct {
           HIID id; 
           bool writable; 
@@ -812,53 +825,39 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       } BranchEntry;
       
 #ifdef USE_THREADS
+    //##ModelId=3DB934D1008A
       Thread::Mutex mutex_;
 #endif      
-      //## end NestableContainer%3BE97CE100AF.implementation
 };
-
-//## begin NestableContainer%3BE97CE100AF.postscript preserve=yes
-//## end NestableContainer%3BE97CE100AF.postscript
 
 // Class NestableContainer::ConstHook 
 
+//##ModelId=3C87374503C2
 inline NestableContainer::ConstHook::ConstHook (const NestableContainer &parent, const HIID &id1)
-  //## begin NestableContainer::ConstHook::ConstHook%3C87374503C2.hasinit preserve=no
-  //## end NestableContainer::ConstHook::ConstHook%3C87374503C2.hasinit
-  //## begin NestableContainer::ConstHook::ConstHook%3C87374503C2.initialization preserve=yes
   :  nc(const_cast<NestableContainer *>(&parent)),addressed(False),
      index(-2),autoprivatize(0)
 #ifdef USE_THREADS
       , lock(parent.mutex())
 #endif
-  //## end NestableContainer::ConstHook::ConstHook%3C87374503C2.initialization
 {
-  //## begin NestableContainer::ConstHook::ConstHook%3C87374503C2.body preserve=yes
   (*this)[id1];
-  //## end NestableContainer::ConstHook::ConstHook%3C87374503C2.body
 }
 
+//##ModelId=3C87375E01CA
 inline NestableContainer::ConstHook::ConstHook (const NestableContainer &parent, int n)
-  //## begin NestableContainer::ConstHook::ConstHook%3C87375E01CA.hasinit preserve=no
-  //## end NestableContainer::ConstHook::ConstHook%3C87375E01CA.hasinit
-  //## begin NestableContainer::ConstHook::ConstHook%3C87375E01CA.initialization preserve=yes
    : nc(const_cast<NestableContainer *>(&parent)),addressed(False),
      index(n),autoprivatize(0)
 #ifdef USE_THREADS
       , lock(parent.mutex())
 #endif
-  //## end NestableContainer::ConstHook::ConstHook%3C87375E01CA.initialization
 {
-  //## begin NestableContainer::ConstHook::ConstHook%3C87375E01CA.body preserve=yes
-  //## end NestableContainer::ConstHook::ConstHook%3C87375E01CA.body
 }
 
 
 
-//## Other Operations (inline)
+//##ModelId=3C87377803A8
 inline const NestableContainer::ConstHook & NestableContainer::ConstHook::operator [] (const HIID &id1) const
 {
-  //## begin NestableContainer::ConstHook::operator []%3C87377803A8.body preserve=yes
   FailWhen(addressed,"unexpected '&' operator");
   if( id1.size() )
   {
@@ -877,344 +876,290 @@ inline const NestableContainer::ConstHook & NestableContainer::ConstHook::operat
   // set the new subscript
   id=id1; index=-1;
   return *this;
-  //## end NestableContainer::ConstHook::operator []%3C87377803A8.body
 }
 
+//##ModelId=3C8737C80081
 inline const NestableContainer::ConstHook & NestableContainer::ConstHook::operator [] (int n) const
 {
-  //## begin NestableContainer::ConstHook::operator []%3C8737C80081.body preserve=yes
   FailWhen(addressed,"unexpected '&' operator");
   nextIndex();
   id.clear(); index=n;
   return *this;
-  //## end NestableContainer::ConstHook::operator []%3C8737C80081.body
 }
 
+//##ModelId=3C87364902B3
 inline const NestableContainer::ConstHook & NestableContainer::ConstHook::operator & () const
 {
-  //## begin NestableContainer::ConstHook::operator &%3C87364902B3.body preserve=yes
   FailWhen(addressed,"unexpected second '&' operator");
   addressed = True;
   return *this;
-  //## end NestableContainer::ConstHook::operator &%3C87364902B3.body
 }
 
+//##ModelId=3C8737D30041
 inline bool NestableContainer::ConstHook::exists () const
 {
-  //## begin NestableContainer::ConstHook::exists%3C8737D30041.body preserve=yes
   ContentInfo info;
   return collapseIndex(info,0,0) != 0;
-  //## end NestableContainer::ConstHook::exists%3C8737D30041.body
 }
 
+//##ModelId=3C8737E002A3
 inline TypeId NestableContainer::ConstHook::type () const
 {
-  //## begin NestableContainer::ConstHook::type%3C8737E002A3.body preserve=yes
   ContentInfo info;
   const void *targ = collapseIndex(info,0,0);
   if( !targ )
     return 0;
   const NestableContainer *nc1 = asNestable(targ,info.tid);
   return nc1 ? nc1->type() : info.tid;
-  //## end NestableContainer::ConstHook::type%3C8737E002A3.body
 }
 
+//##ModelId=3C8737F702D8
 inline TypeId NestableContainer::ConstHook::actualType () const
 {
-  //## begin NestableContainer::ConstHook::actualType%3C8737F702D8.body preserve=yes
   ContentInfo info;
   const void *targ = collapseIndex(info,0,0);
   return targ ? info.tid : NullType;
-  //## end NestableContainer::ConstHook::actualType%3C8737F702D8.body
 }
 
+//##ModelId=3C876AFC0254
 inline TypeId NestableContainer::ConstHook::containerType () const
 {
-  //## begin NestableContainer::ConstHook::containerType%3C876AFC0254.body preserve=yes
   const NestableContainer *nc = asNestable();
   return nc ? nc->objectType() : NullType;
-  //## end NestableContainer::ConstHook::containerType%3C876AFC0254.body
 }
 
+//##ModelId=3C873800017C
 inline bool NestableContainer::ConstHook::isContainer () const
 {
-  //## begin NestableContainer::ConstHook::isContainer%3C873800017C.body preserve=yes
   return asNestable() != 0;
-  //## end NestableContainer::ConstHook::isContainer%3C873800017C.body
 }
 
+//##ModelId=3C876FF50114
 inline bool NestableContainer::ConstHook::isRef () const
 {
-  //## begin NestableContainer::ConstHook::isRef%3C876FF50114.body preserve=yes
   ContentInfo info;
   const void *target = collapseIndex(info,0,0);
   return target && info.tid == TpObjRef;
-  //## end NestableContainer::ConstHook::isRef%3C876FF50114.body
 }
 
+//##ModelId=3CAAE98D037C
 inline const NestableContainer::ConstHook & NestableContainer::ConstHook::size (int &sz, TypeId tid) const
 {
-  //## begin NestableContainer::ConstHook::size%3CAAE98D037C.body preserve=yes
   sz = size(tid);
   return *this;
-  //## end NestableContainer::ConstHook::size%3CAAE98D037C.body
 }
 
+//##ModelId=3C87703E03D6
 inline ObjRef NestableContainer::ConstHook::ref () const
 {
-  //## begin NestableContainer::ConstHook::ref%3C87703E03D6.body preserve=yes
   return ObjRef(*asRef(),DMI::READONLY|DMI::COPYREF);
-  //## end NestableContainer::ConstHook::ref%3C87703E03D6.body
 }
 
 // Class NestableContainer::Hook 
 
+//##ModelId=3C8739B50153
 inline NestableContainer::Hook::Hook (NestableContainer &parent, const HIID &id1, int autopr)
-  //## begin NestableContainer::Hook::Hook%3C8739B50153.hasinit preserve=no
-  //## end NestableContainer::Hook::Hook%3C8739B50153.hasinit
-  //## begin NestableContainer::Hook::Hook%3C8739B50153.initialization preserve=yes
     : ConstHook(parent,-2)
-  //## end NestableContainer::Hook::Hook%3C8739B50153.initialization
 {
-  //## begin NestableContainer::Hook::Hook%3C8739B50153.body preserve=yes
   autoprivatize = autopr;
   (*this)[id1];
-  //## end NestableContainer::Hook::Hook%3C8739B50153.body
 }
 
+//##ModelId=3C8739B5015E
 inline NestableContainer::Hook::Hook (NestableContainer &parent, int n, int autopr)
-  //## begin NestableContainer::Hook::Hook%3C8739B5015E.hasinit preserve=no
-  //## end NestableContainer::Hook::Hook%3C8739B5015E.hasinit
-  //## begin NestableContainer::Hook::Hook%3C8739B5015E.initialization preserve=yes
     : ConstHook(parent,n)
-  //## end NestableContainer::Hook::Hook%3C8739B5015E.initialization
 {
-  //## begin NestableContainer::Hook::Hook%3C8739B5015E.body preserve=yes
   autoprivatize = autopr;
-  //## end NestableContainer::Hook::Hook%3C8739B5015E.body
 }
 
 
 
-//## Other Operations (inline)
+//##ModelId=3C8739B50167
 inline const NestableContainer::Hook & NestableContainer::Hook::operator [] (const HIID &id1) const
 {
-  //## begin NestableContainer::Hook::operator []%3C8739B50167.body preserve=yes
   ConstHook::operator [](id1);
   return *this;
-  //## end NestableContainer::Hook::operator []%3C8739B50167.body
 }
 
+//##ModelId=3C8739B50174
 inline const NestableContainer::Hook & NestableContainer::Hook::operator [] (int n) const
 {
-  //## begin NestableContainer::Hook::operator []%3C8739B50174.body preserve=yes
   ConstHook::operator [](n);
   return *this;
-  //## end NestableContainer::Hook::operator []%3C8739B50174.body
 }
 
+//##ModelId=3C8739B50176
 inline const NestableContainer::Hook & NestableContainer::Hook::operator & () const
 {
-  //## begin NestableContainer::Hook::operator &%3C8739B50176.body preserve=yes
   ConstHook::operator &();
   return *this;
-  //## end NestableContainer::Hook::operator &%3C8739B50176.body
 }
 
+//##ModelId=3CAB0A3500AC
 inline int NestableContainer::Hook::size (TypeId tid) const
 {
-  //## begin NestableContainer::Hook::size%3CAB0A3500AC.body preserve=yes
   return ConstHook::size(tid);
-  //## end NestableContainer::Hook::size%3CAB0A3500AC.body
 }
 
+//##ModelId=3CAAE9BB0332
 inline const NestableContainer::Hook & NestableContainer::Hook::size (int &sz, TypeId tid) const
 {
-  //## begin NestableContainer::Hook::size%3CAAE9BB0332.body preserve=yes
   sz = ConstHook::size(tid);
   return *this;
-  //## end NestableContainer::Hook::size%3CAAE9BB0332.body
 }
 
 //template<class T>
+//##ModelId=3DB934CF0101
+//##ModelId=3DB9257A01AA
+//##ModelId=3DB9259B0218
+//##ModelId=3DB9259D031C
 inline void NestableContainer::Hook::operator = (const ObjRef &ref) const
 {
-  //## begin NestableContainer::Hook::operator =%3C873A8F035F.body preserve=yes
   assign_objref(ref,DMI::PRESERVE_RW|DMI::COPYREF);
-  //## end NestableContainer::Hook::operator =%3C873A8F035F.body
 }
           
 //template<class T>
 //void NestableContainer::Hook::operator = ( const CountedRef<T*> &ref)
 //{ (*this) = ref.asRef<BlockableObject*>(); }
 
+//##ModelId=3C873AB8008D
 inline void NestableContainer::Hook::operator <<= (const ObjRef &ref) const
 {
-  //## begin NestableContainer::Hook::operator <<=%3C873AB8008D.body preserve=yes
   assign_objref(ref,DMI::PRESERVE_RW);
-  //## end NestableContainer::Hook::operator <<=%3C873AB8008D.body
 }
 
+//##ModelId=3C87864D031A
 inline void NestableContainer::Hook::operator <<= (BlockableObject *obj) const
 {
-  //## begin NestableContainer::Hook::operator <<=%3C87864D031A.body preserve=yes
   assign_object(obj,obj->objectType(),DMI::ANON|DMI::WRITE);
-  //## end NestableContainer::Hook::operator <<=%3C87864D031A.body
 }
 
+//##ModelId=3C8786A30223
 inline void NestableContainer::Hook::operator <<= (const BlockableObject *obj) const
 {
-  //## begin NestableContainer::Hook::operator <<=%3C8786A30223.body preserve=yes
   assign_object(obj,obj->objectType(),DMI::ANON|DMI::READONLY);
-  //## end NestableContainer::Hook::operator <<=%3C8786A30223.body
 }
 
+//##ModelId=3C873AE302FC
 inline const NestableContainer::Hook & NestableContainer::Hook::put (BlockableObject &obj, int flags) const
 {
-  //## begin NestableContainer::Hook::put%3C873AE302FC.body preserve=yes
   assign_object(&obj,obj.objectType(),flags);
   return *this;
-  //## end NestableContainer::Hook::put%3C873AE302FC.body
 }
 
+//##ModelId=3C873B8F01C2
 inline const NestableContainer::Hook & NestableContainer::Hook::put (const BlockableObject &obj, int flags) const
 {
-  //## begin NestableContainer::Hook::put%3C873B8F01C2.body preserve=yes
   assign_object(&obj,obj.objectType(),flags);
   return *this;
-  //## end NestableContainer::Hook::put%3C873B8F01C2.body
 }
 
+//##ModelId=3C873B980248
 inline const NestableContainer::Hook & NestableContainer::Hook::put (const ObjRef &ref, int flags) const
 {
-  //## begin NestableContainer::Hook::put%3C873B980248.body preserve=yes
   assign_objref(ref,flags);
   return *this;
-  //## end NestableContainer::Hook::put%3C873B980248.body
 }
 
+//##ModelId=3C8770A70215
 inline ObjRef NestableContainer::Hook::ref (int flags) const
 {
-  //## begin NestableContainer::Hook::ref%3C8770A70215.body preserve=yes
   return ObjRef(*asRef(),flags|DMI::COPYREF);
-  //## end NestableContainer::Hook::ref%3C8770A70215.body
 }
 
 // Class NestableContainer 
 
+//##ModelId=3C7F928D00C0
 inline NestableContainer::NestableContainer (bool write)
-  //## begin NestableContainer::NestableContainer%3C7F928D00C0.hasinit preserve=no
-  //## end NestableContainer::NestableContainer%3C7F928D00C0.hasinit
-  //## begin NestableContainer::NestableContainer%3C7F928D00C0.initialization preserve=yes
   : writable(write)
-  //## end NestableContainer::NestableContainer%3C7F928D00C0.initialization
 {
-  //## begin NestableContainer::NestableContainer%3C7F928D00C0.body preserve=yes
-  //## end NestableContainer::NestableContainer%3C7F928D00C0.body
 }
 
 
 
-//## Other Operations (inline)
+//##ModelId=3C7A13C90269
 inline const void * NestableContainer::getn (int n, ContentInfo &info, TypeId check_tid, int flags) const
 {
-  //## begin NestableContainer::getn%3C7A13C90269.body preserve=yes
   return get(HIID(n),info,check_tid,flags);
-  //## end NestableContainer::getn%3C7A13C90269.body
 }
 
+//##ModelId=3C7A140A003C
 inline void * NestableContainer::insertn (int n, TypeId tid, TypeId &real_tid)
 {
-  //## begin NestableContainer::insertn%3C7A140A003C.body preserve=yes
   return insert(HIID(n),tid,real_tid);
-  //## end NestableContainer::insertn%3C7A140A003C.body
 }
 
+//##ModelId=3C87752F031F
 inline bool NestableContainer::remove (const HIID &id)
 {
-  //## begin NestableContainer::remove%3C87752F031F.body preserve=yes
   Throw("container does not support remove("+id.toString()+")");
-  //## end NestableContainer::remove%3C87752F031F.body
 }
 
+//##ModelId=3C87753803B8
 inline bool NestableContainer::removen (int n)
 {
-  //## begin NestableContainer::removen%3C87753803B8.body preserve=yes
   return remove(HIID(n));
-  //## end NestableContainer::removen%3C87753803B8.body
 }
 
+//##ModelId=3C7A1552012E
 inline TypeId NestableContainer::type () const
 {
-  //## begin NestableContainer::type%3C7A1552012E.body preserve=yes
   return TypeId(0);
-  //## end NestableContainer::type%3C7A1552012E.body
 }
 
+//##ModelId=3C8742310264
 inline NestableContainer::ConstHook NestableContainer::operator [] (const HIID &id) const
 {
-  //## begin NestableContainer::operator []%3C8742310264.body preserve=yes
   return ConstHook(*this,id);
-  //## end NestableContainer::operator []%3C8742310264.body
 }
 
+//##ModelId=3C874250006A
 inline NestableContainer::ConstHook NestableContainer::operator [] (int index) const
 {
-  //## begin NestableContainer::operator []%3C874250006A.body preserve=yes
   return ConstHook(*this,index);
-  //## end NestableContainer::operator []%3C874250006A.body
 }
 
+//##ModelId=3C874267026C
 inline NestableContainer::Hook NestableContainer::operator [] (const HIID &id)
 {
-  //## begin NestableContainer::operator []%3C874267026C.body preserve=yes
   // autoprivatize passed to Hook and cleared
   return Hook(*this,id);
-  //## end NestableContainer::operator []%3C874267026C.body
 }
 
+//##ModelId=3C874251027E
 inline NestableContainer::Hook NestableContainer::operator [] (int index)
 {
-  //## begin NestableContainer::operator []%3C874251027E.body preserve=yes
   // autoprivatize passed to Hook and cleared
   return Hook(*this,index);
-  //## end NestableContainer::operator []%3C874251027E.body
 }
 
+//##ModelId=3BFCD8180044
 inline bool NestableContainer::isNestable () const
 {
-  //## begin NestableContainer::isNestable%3BFCD8180044.body preserve=yes
-  //## end NestableContainer::isNestable%3BFCD8180044.body
-
   return True;
 
 }
 
+//##ModelId=3C5551E201AE
 inline bool NestableContainer::isNestable (TypeId tid)
 {
-  //## begin NestableContainer::isNestable%3C5551E201AE.body preserve=yes
   return registry.find(tid);
-  //## end NestableContainer::isNestable%3C5551E201AE.body
 }
 
+//##ModelId=3C9AEE7C01BD
 inline bool NestableContainer::setWritable (bool wr)
 {
-  //## begin NestableContainer::setWritable%3C9AEE7C01BD.body preserve=yes
   return writable = wr;
-  //## end NestableContainer::setWritable%3C9AEE7C01BD.body
 }
 
-//## Get and Set Operations for Class Attributes (inline)
-
+//##ModelId=3DB934D201C2
 inline bool NestableContainer::isWritable () const
 {
-  //## begin NestableContainer::isWritable%3C7F924300A6.get preserve=no
   return writable;
-  //## end NestableContainer::isWritable%3C7F924300A6.get
 }
 
-//## begin module%3C10CC830067.epilog preserve=yes
 #ifdef USE_THREADS
+//##ModelId=3DB934E10329
 inline const Thread::Mutex & NestableContainer::mutex() const
 {
   return mutex_;
@@ -1222,6 +1167,7 @@ inline const Thread::Mutex & NestableContainer::mutex() const
 #endif
 
 // This is called to treat the hook target as an ObjRef (exception otherwise)
+//##ModelId=3DB9349E0198
 inline const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
 {
   FailWhen(addressed,"unexpected '&' operator");
@@ -1234,6 +1180,7 @@ inline const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
 
 // This is called to access by pointer, for all types
 // Defers to get_address(pointer=True)
+//##ModelId=3DB934AC03C2
 inline const void * NestableContainer::ConstHook::get_pointer (int &sz,
     TypeId tid,bool must_write,bool implicit,
     const void *deflt,Thread::Mutex::Lock *keeplock) const
@@ -1247,6 +1194,7 @@ inline const void * NestableContainer::ConstHook::get_pointer (int &sz,
 }
 
 // This applies the current subscript to the hook, updating the target
+//##ModelId=3DB934A30258
 inline const void * NestableContainer::ConstHook::collapseIndex (
     ContentInfo &info,TypeId check_tid,int flags) const
 {
@@ -1264,6 +1212,7 @@ inline const void * NestableContainer::ConstHook::collapseIndex (
 
 // helper function applies current subscript to hook in preparation
 // for setting a new one. Insures that current target is a container.
+//##ModelId=3DB934A50226
 inline void NestableContainer::ConstHook::nextIndex () const
 {
   // subscript into container for new target
@@ -1276,6 +1225,7 @@ inline void NestableContainer::ConstHook::nextIndex () const
 }
 
 // helper function repoints hook at new container and sets null subscript
+//##ModelId=3DB934A60032
 inline NestableContainer * NestableContainer::ConstHook::nextNC (const NestableContainer *nc1) const
 {
   if( !nc1 )
@@ -1302,13 +1252,14 @@ inline vector<T> NestableContainer::ConstHook::as_vector () const
 }
 
 // const version of assign_object forces a read-only ref to be attached
+//##ModelId=3DB934C600BA
+//##ModelId=3DB9258D0151
 inline void NestableContainer::Hook::assign_object( const BlockableObject *obj,TypeId tid,int flags ) const
 {
   // cast away const but that's OK since we force r/o ref  
   return assign_object(const_cast<BlockableObject*>(obj),tid,(flags&~DMI::WRITE)|DMI::READONLY);
 }
 
-//## end module%3C10CC830067.epilog
 
 
 #endif

@@ -58,7 +58,6 @@ dnl lofar_MPI
 lofar_QATOOLS
 lofar_DOCXX
 lofar_PACKAGE(Common)
-lofar_PACKAGE(CEP/CPA/OCTOPUSSY,2)
 
 dnl
 dnl Output Makefiles

@@ -28,6 +28,7 @@
 
 //## begin module%3C10CC8202B7.additionalDeclarations preserve=yes
 DefineRegistry(DynamicTypeManager,0);
+//##ModelId=3BE96C5F03A7
 //## end module%3C10CC8202B7.additionalDeclarations
 
 
@@ -45,6 +46,7 @@ BlockableObject * DynamicTypeManager::construct (TypeId tid, BlockSet& bset, int
   //## end DynamicTypeManager::construct%3BE96C5F03A7.body
 }
 
+//##ModelId=3BE96C7402D5
 BlockableObject * DynamicTypeManager::construct (TypeId tid, int n)
 {
   //## begin DynamicTypeManager::construct%3BE96C7402D5.body preserve=yes
@@ -60,6 +62,7 @@ BlockableObject * DynamicTypeManager::construct (TypeId tid, int n)
   //## end DynamicTypeManager::construct%3BE96C7402D5.body
 }
 
+//##ModelId=3BF905EE020E
 bool DynamicTypeManager::isRegistered (TypeId tid)
 {
   //## begin DynamicTypeManager::isRegistered%3BF905EE020E.body preserve=yes

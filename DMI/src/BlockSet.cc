@@ -1,3 +1,4 @@
+//##ModelId=3BFA4B6501A7
 //## begin module%1.4%.codegen_version preserve=yes
 //   Read the documentation to learn more about C++ code generator
 //   versioning.
@@ -43,6 +44,7 @@ BlockSet::BlockSet(const BlockSet &right)
   //## end BlockSet::BlockSet%3BEA80A703A9_copy.body
 }
 
+//##ModelId=3C3EBCBA0082
 BlockSet::BlockSet (int num)
   //## begin BlockSet::BlockSet%3BFA4B6501A7.hasinit preserve=no
   //## end BlockSet::BlockSet%3BFA4B6501A7.hasinit
@@ -54,6 +56,7 @@ BlockSet::BlockSet (int num)
   //## end BlockSet::BlockSet%3BFA4B6501A7.body
 }
 
+//##ModelId=3DB934480060
 BlockSet::BlockSet (BlockSet& right, int flags)
   //## begin BlockSet::BlockSet%3C3EBCBA0082.hasinit preserve=no
   //## end BlockSet::BlockSet%3C3EBCBA0082.hasinit
@@ -66,6 +69,7 @@ BlockSet::BlockSet (BlockSet& right, int flags)
 }
 
 
+//##ModelId=3DB93448029B
 BlockSet::~BlockSet()
 {
   //## begin BlockSet::~BlockSet%3BEA80A703A9_dest.body preserve=yes
@@ -73,6 +77,7 @@ BlockSet::~BlockSet()
 }
 
 
+//##ModelId=3DB9344802F5
 BlockSet & BlockSet::operator=(const BlockSet &right)
 {
   //## begin BlockSet::operator=%3BEA80A703A9_assign.body preserve=yes
@@ -84,6 +89,7 @@ BlockSet & BlockSet::operator=(const BlockSet &right)
 
 
 
+//##ModelId=3C3D854D000C
 //## Other Operations (implementation)
 void BlockSet::clear ()
 {
@@ -92,6 +98,7 @@ void BlockSet::clear ()
   //## end BlockSet::clear%3C3D854D000C.body
 }
 
+//##ModelId=3BFA537401F6
 BlockRef BlockSet::pop ()
 {
   //## begin BlockSet::pop%3BFA537401F6.body preserve=yes
@@ -101,6 +108,7 @@ BlockRef BlockSet::pop ()
   //## end BlockSet::pop%3BFA537401F6.body
 }
 
+//##ModelId=3C5AB7F40257
 void BlockSet::pop (BlockRef &out)
 {
   //## begin BlockSet::pop%3C5AB7F40257.body preserve=yes
@@ -109,6 +117,7 @@ void BlockSet::pop (BlockRef &out)
   //## end BlockSet::pop%3C5AB7F40257.body
 }
 
+//##ModelId=3BFA56540172
 int BlockSet::popMove (BlockSet& outset, int count)
 {
   //## begin BlockSet::popMove%3BFA56540172.body preserve=yes
@@ -125,6 +134,7 @@ int BlockSet::popMove (BlockSet& outset, int count)
   //## end BlockSet::popMove%3BFA56540172.body
 }
 
+//##ModelId=3BFB873E0091
 int BlockSet::push (const BlockRef &ref)
 {
   //## begin BlockSet::push%3BFB873E0091.body preserve=yes
@@ -133,6 +143,7 @@ int BlockSet::push (const BlockRef &ref)
   //## end BlockSet::push%3BFB873E0091.body
 }
 
+//##ModelId=3C3EB55F00FD
 int BlockSet::pushCopy (BlockSet &set, int flags)
 {
   //## begin BlockSet::pushCopy%3C3EB55F00FD.body preserve=yes
@@ -145,6 +156,7 @@ int BlockSet::pushCopy (BlockSet &set, int flags)
   //## end BlockSet::pushCopy%3C3EB55F00FD.body
 }
 
+//##ModelId=3C5AA4BF0279
 int BlockSet::pushCopy (const BlockRef &ref, int flags)
 {
   //## begin BlockSet::pushCopy%3C5AA4BF0279.body preserve=yes
@@ -154,6 +166,7 @@ int BlockSet::pushCopy (const BlockRef &ref, int flags)
   //## end BlockSet::pushCopy%3C5AA4BF0279.body
 }
 
+//##ModelId=3C5AB3880083
 BlockRef & BlockSet::pushNew ()
 {
   //## begin BlockSet::pushNew%3C5AB3880083.body preserve=yes
@@ -162,6 +175,7 @@ BlockRef & BlockSet::pushNew ()
   //## end BlockSet::pushNew%3C5AB3880083.body
 }
 
+//##ModelId=3BFB89BE02AB
 int BlockSet::pushFront (BlockRef ref)
 {
   //## begin BlockSet::pushFront%3BFB89BE02AB.body preserve=yes
@@ -170,6 +184,7 @@ int BlockSet::pushFront (BlockRef ref)
   //## end BlockSet::pushFront%3BFB89BE02AB.body
 }
 
+//##ModelId=3BFB85F30334
 int BlockSet::copyAll (BlockSet &out, int flags) const
 {
   //## begin BlockSet::copyAll%3BFB85F30334.body preserve=yes
@@ -180,6 +195,7 @@ int BlockSet::copyAll (BlockSet &out, int flags) const
   //## end BlockSet::copyAll%3BFB85F30334.body
 }
 
+//##ModelId=3C3EBF410288
 int BlockSet::copyAll (BlockSet &out, int flags)
 {
   //## begin BlockSet::copyAll%3C3EBF410288.body preserve=yes
@@ -197,6 +213,7 @@ int BlockSet::copyAll (BlockSet &out, int flags)
   //## end BlockSet::copyAll%3C3EBF410288.body
 }
 
+//##ModelId=3BFB8A3301D6
 int BlockSet::privatizeAll (int flags)
 {
   //## begin BlockSet::privatizeAll%3BFB8A3301D6.body preserve=yes
@@ -206,6 +223,7 @@ int BlockSet::privatizeAll (int flags)
   //## end BlockSet::privatizeAll%3BFB8A3301D6.body
 }
 
+//##ModelId=3BFB8E980315
 size_t BlockSet::initCursor ()
 {
   //## begin BlockSet::initCursor%3BFB8E980315.body preserve=yes
@@ -218,6 +236,7 @@ size_t BlockSet::initCursor ()
   //## end BlockSet::initCursor%3BFB8E980315.body
 }
 
+//##ModelId=3BFB8EDC0019
 const void * BlockSet::getCursorData (size_t  &size)
 {
   //## begin BlockSet::getCursorData%3BFB8EDC0019.body preserve=yes
@@ -241,6 +260,7 @@ const void * BlockSet::getCursorData (size_t  &size)
   //## end BlockSet::getCursorData%3BFB8EDC0019.body
 }
 
+//##ModelId=3BFB8F5E01E3
 int BlockSet::flushToCursor ()
 {
   //## begin BlockSet::flushToCursor%3BFB8F5E01E3.body preserve=yes
@@ -257,6 +277,7 @@ int BlockSet::flushToCursor ()
 }
 
 // Additional Declarations
+//##ModelId=3DB9344A009F
   //## begin BlockSet%3BEA80A703A9.declarations preserve=yes
 string BlockSet::sdebug ( int detail,const string &prefix,const char *name ) const
 {

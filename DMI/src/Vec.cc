@@ -36,6 +36,7 @@ static SmartBlock nullheader_block( nullheader_data,sizeof(nullheader_data),DMI:
 static BlockRef nullheader(nullheader_block,DMI::EXTERNAL|DMI::LOCK|DMI::READONLY);
 static ObjRef NullRef;
 static NestableContainer::Register reg(TpDataField,True);
+//##ModelId=3C3D64DC016E
 //## end module%3C10CC820126.additionalDeclarations
 
 
@@ -55,6 +56,7 @@ DataField::DataField (int flags)
   //## end DataField::DataField%3C3D64DC016E.body
 }
 
+//##ModelId=3C3EE3EA022A
 DataField::DataField (const DataField &right, int flags, int depth)
   //## begin DataField::DataField%3C3EE3EA022A.hasinit preserve=no
   //## end DataField::DataField%3C3EE3EA022A.hasinit
@@ -69,6 +71,7 @@ DataField::DataField (const DataField &right, int flags, int depth)
   //## end DataField::DataField%3C3EE3EA022A.body
 }
 
+//##ModelId=3BFA54540099
 DataField::DataField (TypeId tid, int num, int flags, const void *data)
   //## begin DataField::DataField%3BFA54540099.hasinit preserve=no
   //## end DataField::DataField%3BFA54540099.hasinit
@@ -84,6 +87,7 @@ DataField::DataField (TypeId tid, int num, int flags, const void *data)
 }
 
 
+//##ModelId=3DB9346F0095
 DataField::~DataField()
 {
   //## begin DataField::~DataField%3BB317D8010B_dest.body preserve=yes
@@ -93,6 +97,7 @@ DataField::~DataField()
 }
 
 
+//##ModelId=3DB9346F017B
 DataField & DataField::operator=(const DataField &right)
 {
   //## begin DataField::operator=%3BB317D8010B_assign.body preserve=yes
@@ -110,6 +115,7 @@ DataField & DataField::operator=(const DataField &right)
 
 
 
+//##ModelId=3C6161190193
 //## Other Operations (implementation)
 DataField & DataField::init (TypeId tid, int num, const void *data)
 {
@@ -207,6 +213,7 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
   //## end DataField::init%3C6161190193.body
 }
 
+//##ModelId=3C62961D021B
 void DataField::resize (int newsize)
 {
   //## begin DataField::resize%3C62961D021B.body preserve=yes
@@ -246,6 +253,7 @@ void DataField::resize (int newsize)
   //## end DataField::resize%3C62961D021B.body
 }
 
+//##ModelId=3C3EAB99018D
 void DataField::clear (int flags)
 {
   //## begin DataField::clear%3C3EAB99018D.body preserve=yes
@@ -271,6 +279,7 @@ void DataField::clear (int flags)
   //## end DataField::clear%3C3EAB99018D.body
 }
 
+//##ModelId=3C3EB9B902DF
 bool DataField::isValid (int n)
 {
   //## begin DataField::isValid%3C3EB9B902DF.body preserve=yes
@@ -285,6 +294,7 @@ bool DataField::isValid (int n)
   //## end DataField::isValid%3C3EB9B902DF.body
 }
 
+//##ModelId=3C0E4619019A
 ObjRef DataField::objwr (int n, int flags)
 {
   //## begin DataField::objwr%3C0E4619019A.body preserve=yes
@@ -300,6 +310,7 @@ ObjRef DataField::objwr (int n, int flags)
   //## end DataField::objwr%3C0E4619019A.body
 }
 
+//##ModelId=3C7A305F0071
 DataField & DataField::put (int n, ObjRef &ref, int flags)
 {
   //## begin DataField::put%3C7A305F0071.body preserve=yes
@@ -315,6 +326,7 @@ DataField & DataField::put (int n, ObjRef &ref, int flags)
   //## end DataField::put%3C7A305F0071.body
 }
 
+//##ModelId=3C3C8D7F03D8
 ObjRef DataField::objref (int n) const
 {
   //## begin DataField::objref%3C3C8D7F03D8.body preserve=yes
@@ -328,6 +340,7 @@ ObjRef DataField::objref (int n) const
   //## end DataField::objref%3C3C8D7F03D8.body
 }
 
+//##ModelId=3C3D5F2001DC
 int DataField::fromBlock (BlockSet& set)
 {
   //## begin DataField::fromBlock%3C3D5F2001DC.body preserve=yes
@@ -418,6 +431,7 @@ int DataField::fromBlock (BlockSet& set)
   //## end DataField::fromBlock%3C3D5F2001DC.body
 }
 
+//##ModelId=3C3D5F2403CC
 int DataField::toBlock (BlockSet &set) const
 {
   //## begin DataField::toBlock%3C3D5F2403CC.body preserve=yes
@@ -494,6 +508,7 @@ int DataField::toBlock (BlockSet &set) const
   //## end DataField::toBlock%3C3D5F2403CC.body
 }
 
+//##ModelId=3C3D8C07027F
 ObjRef & DataField::resolveObject (int n, int flags) const
 {
   //## begin DataField::resolveObject%3C3D8C07027F.body preserve=yes
@@ -581,6 +596,7 @@ ObjRef & DataField::resolveObject (int n, int flags) const
   //## end DataField::resolveObject%3C3D8C07027F.body
 }
 
+//##ModelId=3C3EC77D02B1
 CountedRefTarget* DataField::clone (int flags, int depth) const
 {
   //## begin DataField::clone%3C3EC77D02B1.body preserve=yes
@@ -588,6 +604,7 @@ CountedRefTarget* DataField::clone (int flags, int depth) const
   //## end DataField::clone%3C3EC77D02B1.body
 }
 
+//##ModelId=3C3EE42D0136
 void DataField::cloneOther (const DataField &other, int flags, int depth)
 {
   //## begin DataField::cloneOther%3C3EE42D0136.body preserve=yes
@@ -661,6 +678,7 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
   //## end DataField::cloneOther%3C3EE42D0136.body
 }
 
+//##ModelId=3C3EDEBC0255
 void DataField::privatize (int flags, int depth)
 {
   //## begin DataField::privatize%3C3EDEBC0255.body preserve=yes
@@ -697,6 +715,7 @@ void DataField::privatize (int flags, int depth)
   //## end DataField::privatize%3C3EDEBC0255.body
 }
 
+//##ModelId=3D05E2F301D2
 int DataField::size (TypeId tid) const
 {
   //## begin DataField::size%3D05E2F301D2.body preserve=yes
@@ -719,6 +738,7 @@ int DataField::size (TypeId tid) const
   //## end DataField::size%3D05E2F301D2.body
 }
 
+//##ModelId=3C7A19790361
 const void * DataField::get (const HIID &id, ContentInfo &info, TypeId check_tid, int flags) const
 {
   //## begin DataField::get%3C7A19790361.body preserve=yes
@@ -745,6 +765,7 @@ const void * DataField::get (const HIID &id, ContentInfo &info, TypeId check_tid
   //## end DataField::get%3C7A19790361.body
 }
 
+//##ModelId=3C7A1983024D
 const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int flags) const
 {
   //## begin DataField::getn%3C7A1983024D.body preserve=yes
@@ -819,6 +840,7 @@ const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int fl
   //## end DataField::getn%3C7A1983024D.body
 }
 
+//##ModelId=3C7A198A0347
 void * DataField::insert (const HIID &id, TypeId tid, TypeId &real_tid)
 {
   //## begin DataField::insert%3C7A198A0347.body preserve=yes
@@ -844,6 +866,7 @@ void * DataField::insert (const HIID &id, TypeId tid, TypeId &real_tid)
   //## end DataField::insert%3C7A198A0347.body
 }
 
+//##ModelId=3C7A19930250
 void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
 {
   //## begin DataField::insertn%3C7A19930250.body preserve=yes
@@ -884,6 +907,7 @@ void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
   //## end DataField::insertn%3C7A19930250.body
 }
 
+//##ModelId=3C877E1E03BE
 bool DataField::remove (const HIID &id)
 {
   //## begin DataField::remove%3C877E1E03BE.body preserve=yes
@@ -905,6 +929,7 @@ bool DataField::remove (const HIID &id)
   //## end DataField::remove%3C877E1E03BE.body
 }
 
+//##ModelId=3C877E260301
 bool DataField::removen (int n)
 {
   //## begin DataField::removen%3C877E260301.body preserve=yes
@@ -919,6 +944,7 @@ bool DataField::removen (int n)
 }
 
 // Additional Declarations
+//##ModelId=3DB9347800CF
   //## begin DataField%3BB317D8010B.declarations preserve=yes
 
 ObjRef & DataField::prepareForPut (TypeId tid,int n ) 
@@ -945,6 +971,7 @@ ObjRef & DataField::prepareForPut (TypeId tid,int n )
   return objects[n];
 }
 
+//##ModelId=3DB934730394
 string DataField::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   static int nesting=0;
@@ -975,7 +1002,7 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
     if( str.length() )
       out += "\n"+prefix+"  refs: "+str;
   }
-  if( dynamic_type && (detail >= 2 || detail <= -2) && mysize()>0 )   // high detail
+  if( mysize()>0 && dynamic_type && (detail >= 2 || detail <= -2) )   // high detail
   {
     // append object list
     for( int i=0; i<mysize(); i++ )

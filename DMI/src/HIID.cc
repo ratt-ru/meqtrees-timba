@@ -1,3 +1,4 @@
+//##ModelId=3DB934880197
 //## begin module%1.4%.codegen_version preserve=yes
 //   Read the documentation to learn more about C++ code generator
 //   versioning.
@@ -47,6 +48,7 @@ HIID::HIID (const void* block, int sz)
 
 
 
+//##ModelId=3BE977510397
 //## Other Operations (implementation)
 HIID & HIID::add (const HIID &other)
 {
@@ -61,6 +63,7 @@ HIID & HIID::add (const HIID &other)
   //## end HIID::add%3BE977510397.body
 }
 
+//##ModelId=3C55695F00CC
 HIID HIID::subId (int first, int last) const
 {
   //## begin HIID::subId%3C55695F00CC.body preserve=yes
@@ -70,6 +73,7 @@ HIID HIID::subId (int first, int last) const
   //## end HIID::subId%3C55695F00CC.body
 }
 
+//##ModelId=3BE9792B0135
 bool HIID::matches (const HIID &other) const
 {
   //## begin HIID::matches%3BE9792B0135.body preserve=yes
@@ -88,6 +92,7 @@ bool HIID::matches (const HIID &other) const
   //## end HIID::matches%3BE9792B0135.body
 }
 
+//##ModelId=3C99A0400186
 bool HIID::subsetOf (const HIID &other) const
 {
   //## begin HIID::subsetOf%3C99A0400186.body preserve=yes
@@ -108,6 +113,7 @@ bool HIID::subsetOf (const HIID &other) const
   //## end HIID::subsetOf%3C99A0400186.body
 }
 
+//##ModelId=3C59522600D6
 int HIID::popLeadIndex ()
 {
   //## begin HIID::popLeadIndex%3C59522600D6.body preserve=yes
@@ -121,6 +127,7 @@ int HIID::popLeadIndex ()
   //## end HIID::popLeadIndex%3C59522600D6.body
 }
 
+//##ModelId=3C6B86D5003A
 int HIID::popTrailIndex ()
 {
   //## begin HIID::popTrailIndex%3C6B86D5003A.body preserve=yes
@@ -134,6 +141,7 @@ int HIID::popTrailIndex ()
   //## end HIID::popTrailIndex%3C6B86D5003A.body
 }
 
+//##ModelId=3C7A1B6500C9
 int HIID::findFirstSlash () const
 {
   //## begin HIID::findFirstSlash%3C7A1B6500C9.body preserve=yes
@@ -145,6 +153,7 @@ int HIID::findFirstSlash () const
   //## end HIID::findFirstSlash%3C7A1B6500C9.body
 }
 
+//##ModelId=3CAD7B2901CA
 HIID HIID::splitAtSlash ()
 {
   //## begin HIID::splitAtSlash%3CAD7B2901CA.body preserve=yes
@@ -163,6 +172,7 @@ HIID HIID::splitAtSlash ()
   //## end HIID::splitAtSlash%3CAD7B2901CA.body
 }
 
+//##ModelId=3C0F8BD5004F
 string HIID::toString () const
 {
   //## begin HIID::toString%3C0F8BD5004F.body preserve=yes
@@ -185,6 +195,7 @@ string HIID::toString () const
   //## end HIID::toString%3C0F8BD5004F.body
 }
 
+//##ModelId=3C5912FE0134
 size_t HIID::pack (void *block, size_t &nleft) const
 {
   //## begin HIID::pack%3C5912FE0134.body preserve=yes
@@ -198,6 +209,7 @@ size_t HIID::pack (void *block, size_t &nleft) const
   //## end HIID::pack%3C5912FE0134.body
 }
 
+//##ModelId=3C970F91006F
 void HIID::unpack (const void* block, size_t sz)
 {
   //## begin HIID::unpack%3C970F91006F.body preserve=yes
@@ -210,6 +222,7 @@ void HIID::unpack (const void* block, size_t sz)
 }
 
 // Additional Declarations
+//##ModelId=3DB9348B01E2
   //## begin HIID%3BE96FE601C5.declarations preserve=yes
 bool HIID::operator < (const HIID &right) const
 {
@@ -229,6 +242,7 @@ bool HIID::operator < (const HIID &right) const
 }
 
 
+//##ModelId=3DB9348C0305
 void HIID::addString (const string &str)
 {
   size_t totlen = str.length();

@@ -34,6 +34,7 @@ DefineBiRegistry(AtomicID,0,"");
 // pull in all auto-generated registry definitions
 int aidRegistry_DMI();
 static int dum = aidRegistry_DMI();
+//##ModelId=3BE9709700A7
 //## end module%3C10CC81015F.additionalDeclarations
 
 
@@ -62,6 +63,7 @@ string AtomicID::toString () const
   //## end AtomicID::toString%3BE9709700A7.body
 }
 
+//##ModelId=3C68D5ED01F8
 int AtomicID::findName (const string &str)
 {
   //## begin AtomicID::findName%3C68D5ED01F8.body preserve=yes

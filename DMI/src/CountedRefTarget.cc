@@ -1,34 +1,9 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3C10CC8103D8.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C10CC8103D8.cm
-
-//## begin module%3C10CC8103D8.cp preserve=no
-//## end module%3C10CC8103D8.cp
-
-//## Module: CountedRefTarget%3C10CC8103D8; Package body
-//## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\CountedRefTarget.cc
-
-//## begin module%3C10CC8103D8.additionalIncludes preserve=no
-//## end module%3C10CC8103D8.additionalIncludes
-
-//## begin module%3C10CC8103D8.includes preserve=yes
-//## end module%3C10CC8103D8.includes
 
 // CountedRefBase
 #include "DMI/CountedRefBase.h"
 // CountedRefTarget
 #include "DMI/CountedRefTarget.h"
-//## begin module%3C10CC8103D8.declarations preserve=no
-//## end module%3C10CC8103D8.declarations
-
-//## begin module%3C10CC8103D8.additionalDeclarations preserve=yes
 #define DebugContext (CountedRefBase::getDebugContext())
 
 #ifdef USE_THREADS
@@ -37,43 +12,28 @@
   #define threadLock 
 #endif
 
-//## end module%3C10CC8103D8.additionalDeclarations
 
 
 // Class SingularRefTarget 
 
-// Additional Declarations
-  //## begin SingularRefTarget%3C8CDBB901EB.declarations preserve=yes
-  //## end SingularRefTarget%3C8CDBB901EB.declarations
-
 // Class CountedRefTarget 
 
+//##ModelId=3DB93466002B
 CountedRefTarget::CountedRefTarget()
-  //## begin CountedRefTarget::CountedRefTarget%3C0CDF41029F_const.hasinit preserve=no
-  //## end CountedRefTarget::CountedRefTarget%3C0CDF41029F_const.hasinit
-  //## begin CountedRefTarget::CountedRefTarget%3C0CDF41029F_const.initialization preserve=yes
   : owner_ref(0),anon(False)
-  //## end CountedRefTarget::CountedRefTarget%3C0CDF41029F_const.initialization
 {
-  //## begin CountedRefTarget::CountedRefTarget%3C0CDF41029F_const.body preserve=yes
-  //## end CountedRefTarget::CountedRefTarget%3C0CDF41029F_const.body
 }
 
+//##ModelId=3DB934660053
 CountedRefTarget::CountedRefTarget(const CountedRefTarget &right)
-  //## begin CountedRefTarget::CountedRefTarget%3C0CDF41029F_copy.hasinit preserve=no
-  //## end CountedRefTarget::CountedRefTarget%3C0CDF41029F_copy.hasinit
-  //## begin CountedRefTarget::CountedRefTarget%3C0CDF41029F_copy.initialization preserve=yes
   : owner_ref(0),anon(False)
-  //## end CountedRefTarget::CountedRefTarget%3C0CDF41029F_copy.initialization
 {
-  //## begin CountedRefTarget::CountedRefTarget%3C0CDF41029F_copy.body preserve=yes
-  //## end CountedRefTarget::CountedRefTarget%3C0CDF41029F_copy.body
 }
 
 
+//##ModelId=3DB9346600F3
 CountedRefTarget::~CountedRefTarget()
 {
-  //## begin CountedRefTarget::~CountedRefTarget%3C0CDF41029F_dest.body preserve=yes
   threadLock;
   if( owner_ref )
   {
@@ -93,68 +53,59 @@ CountedRefTarget::~CountedRefTarget()
       ref = nextref;
     }
   }
-  //## end CountedRefTarget::~CountedRefTarget%3C0CDF41029F_dest.body
 }
 
 
 
-//## Other Operations (implementation)
+//##ModelId=3C3EDD7D0301
 void CountedRefTarget::privatize (int flags, int depth)
 {
-  //## begin CountedRefTarget::privatize%3C3EDD7D0301.body preserve=yes
-  //## end CountedRefTarget::privatize%3C3EDD7D0301.body
 }
 
+//##ModelId=3C18899002BB
 int CountedRefTarget::refCount () const
 {
-  //## begin CountedRefTarget::refCount%3C18899002BB.body preserve=yes
   int count = 0;
   threadLock;
   for( const CountedRefBase *ref = getOwner(); ref != 0; ref = ref->getNext() )
     count++;
   return count;
-  //## end CountedRefTarget::refCount%3C18899002BB.body
 }
 
+//##ModelId=3C18C69A0120
 int CountedRefTarget::refCountWrite () const
 {
-  //## begin CountedRefTarget::refCountWrite%3C18C69A0120.body preserve=yes
   int count = 0;
   threadLock;
   for( const CountedRefBase *ref = getOwner(); ref != 0; ref = ref->getNext() )
     if( ref->isWritable() )
       count++;
   return count;
-  //## end CountedRefTarget::refCountWrite%3C18C69A0120.body
 }
 
+//##ModelId=3C18C6A603DA
 bool CountedRefTarget::refWriteExclusions () const
 {
-  //## begin CountedRefTarget::refWriteExclusions%3C18C6A603DA.body preserve=yes
   threadLock;
   for( const CountedRefBase *ref = getOwner(); ref != 0; ref = ref->getNext() )
     if( ref->isExclusiveWrite() )
       return True;
   return False;
-  //## end CountedRefTarget::refWriteExclusions%3C18C6A603DA.body
 }
 
+//##ModelId=3C63B97601B9
 bool CountedRefTarget::hasExternalRefs () const
 {
-  //## begin CountedRefTarget::hasExternalRefs%3C63B97601B9.body preserve=yes
   return owner_ref && !anon;
-  //## end CountedRefTarget::hasExternalRefs%3C63B97601B9.body
 }
 
+//##ModelId=3C63BA8800B9
 bool CountedRefTarget::hasAnonRefs () const
 {
-  //## begin CountedRefTarget::hasAnonRefs%3C63BA8800B9.body preserve=yes
   return owner_ref && anon;
-  //## end CountedRefTarget::hasAnonRefs%3C63BA8800B9.body
 }
 
-// Additional Declarations
-  //## begin CountedRefTarget%3C0CDF41029F.declarations preserve=yes
+//##ModelId=3DB9346602E8
 string CountedRefTarget::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   string out;
@@ -179,6 +130,3 @@ string CountedRefTarget::sdebug ( int detail,const string &prefix,const char *na
   }
   return out;
 }
-  //## end CountedRefTarget%3C0CDF41029F.declarations
-//## begin module%3C10CC8103D8.epilog preserve=yes
-//## end module%3C10CC8103D8.epilog

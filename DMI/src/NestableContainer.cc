@@ -33,8 +33,11 @@
 //## begin module%3C10CC830069.additionalDeclarations preserve=yes
 DefineRegistry(NestableContainer,False);
 
+//##ModelId=3DB934920303
 int NestableContainer::ConstHook::_dum_int;
+//##ModelId=3DB9349203A5
 NestableContainer::ContentInfo NestableContainer::ConstHook::_dum_info;
+//##ModelId=3C87380503BE
 //## end module%3C10CC830069.additionalDeclarations
 
 
@@ -57,6 +60,7 @@ int NestableContainer::ConstHook::size (TypeId tid) const
 }
 
 // Additional Declarations
+//##ModelId=3C87665E0178
   //## begin NestableContainer::ConstHook%3C614FDE0039.declarations preserve=yes
   //## end NestableContainer::ConstHook%3C614FDE0039.declarations
 
@@ -88,6 +92,7 @@ bool NestableContainer::Hook::isWritable () const
   //## end NestableContainer::Hook::isWritable%3C87665E0178.body
 }
 
+//##ModelId=3C8739B5017B
 const NestableContainer::Hook & NestableContainer::Hook::init (TypeId tid) const
 {
   //## begin NestableContainer::Hook::init%3C8739B5017B.body preserve=yes
@@ -98,6 +103,7 @@ const NestableContainer::Hook & NestableContainer::Hook::init (TypeId tid) const
   //## end NestableContainer::Hook::init%3C8739B5017B.body
 }
 
+//##ModelId=3C8739B5017C
 const NestableContainer::Hook & NestableContainer::Hook::privatize (int flags) const
 {
   //## begin NestableContainer::Hook::privatize%3C8739B5017C.body preserve=yes
@@ -111,6 +117,7 @@ const NestableContainer::Hook & NestableContainer::Hook::privatize (int flags) c
   //## end NestableContainer::Hook::privatize%3C8739B5017C.body
 }
 
+//##ModelId=3C876DCE0266
 ObjRef NestableContainer::Hook::remove () const
 {
   //## begin NestableContainer::Hook::remove%3C876DCE0266.body preserve=yes
@@ -131,6 +138,7 @@ ObjRef NestableContainer::Hook::remove () const
   //## end NestableContainer::Hook::remove%3C876DCE0266.body
 }
 
+//##ModelId=3C876E140018
 const NestableContainer::Hook & NestableContainer::Hook::detach (ObjRef* ref) const
 {
   //## begin NestableContainer::Hook::detach%3C876E140018.body preserve=yes
@@ -151,6 +159,7 @@ const NestableContainer::Hook & NestableContainer::Hook::detach (ObjRef* ref) co
 }
 
 // Additional Declarations
+//##ModelId=3CB2B438020F
   //## begin NestableContainer::Hook%3C8739B50135.declarations preserve=yes
   //## end NestableContainer::Hook%3C8739B50135.declarations
 
@@ -240,6 +249,7 @@ NestableContainer::Hook NestableContainer::setBranch (const HIID &id, int flags)
   //## end NestableContainer::setBranch%3CB2B438020F.body
 }
 
+//##ModelId=3BE982760231
 bool NestableContainer::select (const HIIDSet &)
 {
   //## begin NestableContainer::select%3BE982760231.body preserve=yes
@@ -247,12 +257,14 @@ bool NestableContainer::select (const HIIDSet &)
   //## end NestableContainer::select%3BE982760231.body
 }
 
+//##ModelId=3BFBDC0D025A
 void NestableContainer::clearSelection ()
 {
   //## begin NestableContainer::clearSelection%3BFBDC0D025A.body preserve=yes
   //## end NestableContainer::clearSelection%3BFBDC0D025A.body
 }
 
+//##ModelId=3BFBDC1D028F
 int NestableContainer::selectionToBlock (BlockSet& )
 {
   //## begin NestableContainer::selectionToBlock%3BFBDC1D028F.body preserve=yes
@@ -261,6 +273,7 @@ int NestableContainer::selectionToBlock (BlockSet& )
 }
 
 // Additional Declarations
+//##ModelId=3DB934A002CB
   //## begin NestableContainer%3BE97CE100AF.declarations preserve=yes
 // Attempts to treat the hook target as an NC, by collapsing subscripts,
 // dereferencing ObjRefs, etc.
@@ -289,6 +302,7 @@ const NestableContainer * NestableContainer::ConstHook::asNestable (const void *
 }
 
 // Same thing, but insures writability
+//##ModelId=3DB934A200F8
 NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ,TypeId tid) const
 {
   if( index<-1 ) // uninitialized -- just return nc
@@ -314,6 +328,7 @@ NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ,TypeI
 }
 
 // This is called to get a value, for built-in scalar types only
+//##ModelId=3DB934A603C2
 bool NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool nothrow ) const
 {
   // check for residual index
@@ -354,6 +369,7 @@ bool NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool nothro
 
 // This is called to access by reference, for all types
 // If pointer is True, then a pointer type is being taken
+//##ModelId=3DB934A90100
 const void * NestableContainer::ConstHook::get_address (ContentInfo &info,
     TypeId tid,bool must_write,bool pointer,
     const void *deflt,Thread::Mutex::Lock *keeplock) const
@@ -414,6 +430,7 @@ const void * NestableContainer::ConstHook::get_address (ContentInfo &info,
 // (a) tid & container type are both dynamic (then target must be an ObjRef)
 // (b) tid & container type are both numeric (Hook will do conversion)
 // For other type categories, a strict match should be enforced by the container.
+//##ModelId=3DB934C00071
 void * NestableContainer::Hook::prepare_put( ContentInfo &info,TypeId tid ) const
 {
   FailWhen(addressed,"unexpected '&' operator");
@@ -456,6 +473,7 @@ void * NestableContainer::Hook::prepare_put( ContentInfo &info,TypeId tid ) cons
 }
 
 // This is called to assign a value, for scalar & binary types
+//##ModelId=3DB934C102D5
 const void * NestableContainer::Hook::put_scalar( const void *data,TypeId tid,size_t sz ) const
 {
   ContentInfo info;
@@ -470,6 +488,7 @@ const void * NestableContainer::Hook::put_scalar( const void *data,TypeId tid,si
 }
 
 // Helper function to assign an object.  
+//##ModelId=3DB934C30364
 void NestableContainer::Hook::assign_object( BlockableObject *obj,TypeId tid,int flags ) const
 {
   ContentInfo info;
@@ -479,6 +498,7 @@ void NestableContainer::Hook::assign_object( BlockableObject *obj,TypeId tid,int
 }
 
 // Helper function assigns an objref     
+//##ModelId=3DB934C801DF
 ObjRef & NestableContainer::Hook::assign_objref ( const ObjRef &ref,int flags ) const
 {
   FailWhen(addressed,"unexpected '&' operator");
@@ -600,6 +620,7 @@ const vector<T> & NestableContainer::Hook::assign_arrayable (const vector<T> &ot
 
 // This helper method does all the work of preparing a hook for assignment of
 // vector. This minimizes template size.
+//##ModelId=3DB934CA0142
 void * NestableContainer::Hook::prepare_vector (TypeId tid,int size) const
 {
   FailWhen(addressed,"unexpected '&' operator");
@@ -660,6 +681,7 @@ DoForAllArrayTypes(__specialize,);
 #undef __specialize
 
 
+//##ModelId=3DB9349A0087
 string NestableContainer::ConstHook::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   if( !name )

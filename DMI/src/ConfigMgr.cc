@@ -32,6 +32,7 @@
 
 //## begin module%3CCFFF3301FC.additionalDeclarations preserve=yes
 InitDebugSubContext(ConfigMgr,DMI,"Config");
+//##ModelId=EA0590B8FEED
 //## end module%3CCFFF3301FC.additionalDeclarations
 
 
@@ -51,6 +52,7 @@ ConfigMgr::ConfigMgr (const string& fname, bool nothrow)
 
 
 
+//##ModelId=0778FED4FEED
 //## Other Operations (implementation)
 int ConfigMgr::size () const
 {
@@ -59,6 +61,7 @@ int ConfigMgr::size () const
   //## end ConfigMgr::size%0778FED4FEED.body
 }
 
+//##ModelId=6B6C3E18FEED
 void ConfigMgr::clear ()
 {
   //## begin ConfigMgr::clear%6B6C3E18FEED.body preserve=yes
@@ -66,6 +69,7 @@ void ConfigMgr::clear ()
   //## end ConfigMgr::clear%6B6C3E18FEED.body
 }
 
+//##ModelId=C0C4E648FEED
 void ConfigMgr::load (const string& fname, bool nothrow)
 {
   //## begin ConfigMgr::load%C0C4E648FEED.body preserve=yes
@@ -74,6 +78,7 @@ void ConfigMgr::load (const string& fname, bool nothrow)
   //## end ConfigMgr::load%C0C4E648FEED.body
 }
 
+//##ModelId=80D7E19EFEED
 bool ConfigMgr::save (string fname, bool nothrow)
 {
   //## begin ConfigMgr::save%80D7E19EFEED.body preserve=yes
@@ -103,6 +108,7 @@ bool ConfigMgr::save (string fname, bool nothrow)
   //## end ConfigMgr::save%80D7E19EFEED.body
 }
 
+//##ModelId=B4793134FEED
 bool ConfigMgr::merge (const string& fname, bool override, bool nothrow)
 {
   //## begin ConfigMgr::merge%B4793134FEED.body preserve=yes
@@ -160,6 +166,7 @@ bool ConfigMgr::merge (const string& fname, bool override, bool nothrow)
   //## end ConfigMgr::merge%B4793134FEED.body
 }
 
+//##ModelId=78C52656FEED
 void ConfigMgr::merge (const ConfigMgr& other, bool override)
 {
   //## begin ConfigMgr::merge%78C52656FEED.body preserve=yes
@@ -174,6 +181,7 @@ void ConfigMgr::merge (const ConfigMgr& other, bool override)
   //## end ConfigMgr::merge%78C52656FEED.body
 }
 
+//##ModelId=C8B74B35FEED
 void ConfigMgr::merge (int argc, const char** argv, bool override)
 {
   //## begin ConfigMgr::merge%C8B74B35FEED.body preserve=yes
@@ -188,6 +196,7 @@ void ConfigMgr::merge (int argc, const char** argv, bool override)
   //## end ConfigMgr::merge%C8B74B35FEED.body
 }
 
+//##ModelId=7D44D79AFEED
 void ConfigMgr::merge (const vector<string> &str, bool override)
 {
   //## begin ConfigMgr::merge%7D44D79AFEED.body preserve=yes
@@ -202,6 +211,7 @@ void ConfigMgr::merge (const vector<string> &str, bool override)
   //## end ConfigMgr::merge%7D44D79AFEED.body
 }
 
+//##ModelId=DC7A9961FEED
 int ConfigMgr::mergeLine (const string& str, bool override)
 {
   //## begin ConfigMgr::mergeLine%DC7A9961FEED.body preserve=yes
@@ -222,6 +232,7 @@ int ConfigMgr::mergeLine (const string& str, bool override)
   //## end ConfigMgr::mergeLine%DC7A9961FEED.body
 }
 
+//##ModelId=F23874E0FEED
 bool ConfigMgr::get (const string& name, int& value) const
 {
   //## begin ConfigMgr::get%F23874E0FEED.body preserve=yes
@@ -233,6 +244,7 @@ bool ConfigMgr::get (const string& name, int& value) const
   //## end ConfigMgr::get%F23874E0FEED.body
 }
 
+//##ModelId=DF69BB1FFEED
 bool ConfigMgr::get (const string& name, string& value) const
 {
   //## begin ConfigMgr::get%DF69BB1FFEED.body preserve=yes
@@ -246,6 +258,7 @@ bool ConfigMgr::get (const string& name, string& value) const
   //## end ConfigMgr::get%DF69BB1FFEED.body
 }
 
+//##ModelId=593209CEFEED
 void ConfigMgr::set (const string& name, int value)
 {
   //## begin ConfigMgr::set%593209CEFEED.body preserve=yes
@@ -255,6 +268,7 @@ void ConfigMgr::set (const string& name, int value)
   //## end ConfigMgr::set%593209CEFEED.body
 }
 
+//##ModelId=D175196EFEED
 void ConfigMgr::set (const string& name, string value)
 {
   //## begin ConfigMgr::set%D175196EFEED.body preserve=yes
@@ -262,6 +276,7 @@ void ConfigMgr::set (const string& name, string value)
   //## end ConfigMgr::set%D175196EFEED.body
 }
 
+//##ModelId=6A93DD0EFEED
 bool ConfigMgr::remove (const string& name)
 {
   //## begin ConfigMgr::remove%6A93DD0EFEED.body preserve=yes

@@ -1,167 +1,119 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3CCFFF3301E8.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3CCFFF3301E8.cm
-
-//## begin module%3CCFFF3301E8.cp preserve=no
-//## end module%3CCFFF3301E8.cp
-
-//## Module: ConfigMgr%3CCFFF3301E8; Package specification
-//## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\ConfigMgr.h
 
 #ifndef ConfigMgr_h
 #define ConfigMgr_h 1
 
-//## begin module%3CCFFF3301E8.additionalIncludes preserve=no
 #include "DMI/Common.h"
 #include "DMI/DMI.h"
-//## end module%3CCFFF3301E8.additionalIncludes
 
-//## begin module%3CCFFF3301E8.includes preserve=yes
 #include "Common/Debug.h"
-//## end module%3CCFFF3301E8.includes
-
-//## begin module%3CCFFF3301E8.declarations preserve=no
-//## end module%3CCFFF3301E8.declarations
-
-//## begin module%3CCFFF3301E8.additionalDeclarations preserve=yes
-//## end module%3CCFFF3301E8.additionalDeclarations
 
 
-//## begin ConfigMgr%3CCFFDC300DA.preface preserve=yes
-//## end ConfigMgr%3CCFFDC300DA.preface
-
-//## Class: ConfigMgr%3CCFFDC300DA
-//## Category: DOMIN0%3BEAB1F2006B; Global
-//## Subsystem: DMI%3C10CC810155
-//## Persistence: Transient
-//## Cardinality/Multiplicity: n
-
-
-
+//##ModelId=3CCFFDC300DA
 class ConfigMgr 
 {
-  //## begin ConfigMgr%3CCFFDC300DA.initialDeclarations preserve=yes
+    //##ModelId=3DB9344D030C
   LocalDebugSubContext;
-  //## end ConfigMgr%3CCFFDC300DA.initialDeclarations
 
   public:
-    //## Constructors (specified)
-      //## Operation: ConfigMgr%EA0590B8FEED; C++
+      //##ModelId=EA0590B8FEED
       ConfigMgr (const string& fname = "", bool nothrow = False);
 
 
-    //## Other Operations (specified)
-      //## Operation: size%0778FED4FEED; C++
+      //##ModelId=0778FED4FEED
       int size () const;
 
-      //## Operation: clear%6B6C3E18FEED; C++
+      //##ModelId=6B6C3E18FEED
       void clear ();
 
-      //## Operation: load%C0C4E648FEED; C++
+      //##ModelId=C0C4E648FEED
       void load (const string& fname, bool nothrow = False);
 
-      //## Operation: save%80D7E19EFEED; C++
+      //##ModelId=80D7E19EFEED
       bool save (string fname = "", bool nothrow = False);
 
-      //## Operation: merge%B4793134FEED; C++
+      //##ModelId=B4793134FEED
       bool merge (const string& fname, bool override = True, bool nothrow = False);
 
-      //## Operation: merge%78C52656FEED; C++
+      //##ModelId=78C52656FEED
       void merge (const ConfigMgr& other, bool override = True);
 
-      //## Operation: merge%C8B74B35FEED; C++
+      //##ModelId=C8B74B35FEED
       void merge (int argc, const char** argv, bool override = True);
 
-      //## Operation: merge%7D44D79AFEED; C++
+      //##ModelId=7D44D79AFEED
       void merge (const vector<string> &str, bool override = True);
 
-      //## Operation: mergeLine%DC7A9961FEED; C++
+      //##ModelId=DC7A9961FEED
       int mergeLine (const string& str, bool override = True);
 
-      //## Operation: get%F23874E0FEED; C++
+      //##ModelId=F23874E0FEED
       bool get (const string& name, int& value) const;
 
-      //## Operation: get%DF69BB1FFEED; C++
+      //##ModelId=DF69BB1FFEED
       bool get (const string& name, string& value) const;
 
-      //## Operation: get%90F75FACFEED; C++
+      //##ModelId=90F75FACFEED
       void get (const string& name, int& value, int deflt) const;
 
-      //## Operation: get%06281C53FEED; C++
+      //##ModelId=06281C53FEED
       void get (const string& name, string& value, const string& deflt) const;
 
-      //## Operation: set%593209CEFEED; C++
+      //##ModelId=593209CEFEED
       void set (const string& name, int value);
 
-      //## Operation: set%D175196EFEED; C++
+      //##ModelId=D175196EFEED
       void set (const string& name, string value);
 
-      //## Operation: remove%6A93DD0EFEED; C++
+      //##ModelId=6A93DD0EFEED
       bool remove (const string& name);
 
     // Additional Public Declarations
-      //## begin ConfigMgr%3CCFFDC300DA.public preserve=yes
+    //##ModelId=3DB9344E0303
       string sdebug (int=0) const       { return "ConfigMgr"; }
+    //##ModelId=3DB9344F0224
       const char *debug (int=0) const   { return sdebug().c_str(); }
-      //## end ConfigMgr%3CCFFDC300DA.public
   protected:
     // Additional Protected Declarations
-      //## begin ConfigMgr%3CCFFDC300DA.protected preserve=yes
+    //##ModelId=3DB9343A027B
       typedef map<string,string> ConfigMap;
+    //##ModelId=3DB9343A0307
       typedef ConfigMap::iterator CMI;
+    //##ModelId=3DB9343A0393
       typedef ConfigMap::const_iterator CCMI;
       
+    //##ModelId=3DB934500058
       ConfigMap & config ();
-      //## end ConfigMgr%3CCFFDC300DA.protected
   private:
-    // Additional Private Declarations
-      //## begin ConfigMgr%3CCFFDC300DA.private preserve=yes
-      //## end ConfigMgr%3CCFFDC300DA.private
-
-  private: //## implementation
     // Additional Implementation Declarations
-      //## begin ConfigMgr%3CCFFDC300DA.implementation preserve=yes
+    //##ModelId=3DB9344E0097
       ConfigMap config_;
+    //##ModelId=3DB9344E0141
       string filename;      
-      //## end ConfigMgr%3CCFFDC300DA.implementation
 };
-
-//## begin ConfigMgr%3CCFFDC300DA.postscript preserve=yes
-//## end ConfigMgr%3CCFFDC300DA.postscript
 
 // Class ConfigMgr 
 
 
-//## Other Operations (inline)
+//##ModelId=90F75FACFEED
 inline void ConfigMgr::get (const string& name, int& value, int deflt) const
 {
-  //## begin ConfigMgr::get%90F75FACFEED.body preserve=yes
   if( !get(name,value) )
     value = deflt;
-  //## end ConfigMgr::get%90F75FACFEED.body
 }
 
+//##ModelId=06281C53FEED
 inline void ConfigMgr::get (const string& name, string& value, const string& deflt) const
 {
-  //## begin ConfigMgr::get%06281C53FEED.body preserve=yes
   if( !get(name,value) )
     value = deflt;
-  //## end ConfigMgr::get%06281C53FEED.body
 }
 
-//## begin module%3CCFFF3301E8.epilog preserve=yes
+//##ModelId=3DB934500058
 inline ConfigMgr::ConfigMap & ConfigMgr::config () 
 { 
   return config_; 
 }
-//## end module%3CCFFF3301E8.epilog
 
 
 #endif

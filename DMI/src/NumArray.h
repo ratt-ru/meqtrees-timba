@@ -21,6 +21,16 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.13  2002/10/29 13:10:38  smirnov
+//  %[BugId: 26]%
+//  Re-worked build_aid_maps.pl and TypeIterMacros.h to enable on-demand
+//  importing of data types from other packages. Basically, data types from package
+//  X will be pulled in by NestableContainer only when included from
+//  package Y that has an explicit dependence on package X. DMI itself depends
+//  only on Common.
+//
+//  Migrated to new Rose C++ add-in, so all Rose markup has changed.
+//
 //  Revision 1.12  2002/06/11 12:15:08  smirnov
 //  %[BugId: 26]%
 //  Further fixes to array-mode hook addressing.
@@ -90,16 +100,20 @@
 #include "DMI/SmartBlock.h"
 
 #include <aips/Arrays/Array.h>
+#include "BlockRef1.h"
 
 
 
+//##ModelId=3DB949AE00C5
 class DataArray : public NestableContainer
 {
 public:
   // Create the object without an array in it.
+    //##ModelId=3DB949AE039F
   explicit DataArray (int flags = DMI::WRITE);
 
   // Create the object with an array of the given shape.
+    //##ModelId=3DB949AE03A4
   DataArray (TypeId type, const IPosition& shape, int flags = DMI::WRITE,
 	     int shm_flags = 0);
 
@@ -122,90 +136,126 @@ public:
 		      int shm_flags = 0);
 
   // Copy (copy semantics).
+    //##ModelId=3DB949AE03AF
   DataArray (const DataArray& other, int flags = 0, int depth = 0);
 
+    //##ModelId=3DB949AE03B8
   ~DataArray();
 
   // Assignment (copy semantics).
+    //##ModelId=3DB949AE03B9
   DataArray& operator= (const DataArray& other);
 
   // Return the object type (TpDataArray).
+    //##ModelId=3DB949AE03BE
   virtual TypeId objectType() const;
 
   // Reconstruct the DataArray object from a BlockSet.
+    //##ModelId=3DB949AE03C0
   virtual int fromBlock (BlockSet& set);
 
   // Add the DataArray object to the BlockSet.
+    //##ModelId=3DB949AE03C5
   virtual int toBlock (BlockSet& set) const;
 
   // Clone the object.
+    //##ModelId=3DB949AE03CB
   virtual CountedRefTarget* clone (int flags = 0, int depth = 0) const;
 
   // Privatize the object.
+    //##ModelId=3DB949AE03D2
   virtual void privatize (int flags = 0, int depth = 0);
 
   // Get the 
+    //##ModelId=3DB949AE03DA
   virtual const void* get (const HIID& id, ContentInfo &info,
 			   TypeId check_tid = 0, int flags = 0) const;
 
   // Insertion is not possible (throws exception).
+    //##ModelId=3DB949AE03E5
   virtual void* insert (const HIID& id, TypeId tid, TypeId& real_tid);
 
   // The size is the number of array elements.
+    //##ModelId=3DB949AF0007
   virtual int size (TypeId tid = 0) const;
 
   // The actual type of the array (TpArray_float, etc.).
+    //##ModelId=3DB949AF000C
   virtual TypeId type() const;
   
   // Parse a HIID describing a subset and fill start,end,incr.
   // It fills in keepAxes telling if an axes should always be kept,
   // even if it is degenerated (i.e. has length 1).
   // It returns true if axes can be removed.
+    //##ModelId=3DB949AF000E
   bool parseHIID (const HIID& id, IPosition& st, IPosition& end,
 		  IPosition& incr, IPosition& keepAxes) const;
+  
+    //##ModelId=3DB949AF001C
+  DefineRefTypes(DataArray,Ref);
 
       
 private:
   // The object is valid if it contains an array.
+    //##ModelId=3DB949AF0022
   bool valid() const 
     { return itsArray; }
 
   // Initialize internal shape and create array using the given shape.
+    //##ModelId=3DB949AF0024
   void init (const IPosition& shape);
 
   // Initialize shape and create array using internal shape.
+    //##ModelId=3DB949AF0029
   void reinit();
 
   // Create the actual Array object.
   // It is created from the array data part in the SmartBlock.
+    //##ModelId=3DB949AF002B
   void makeArray();
 
   // Clear the object (thus remove the Array).
+    //##ModelId=3DB949AF002C
   void clear();
 
   // Clone the object.
+    //##ModelId=3DB949AF002E
   void cloneOther (const DataArray& other, int flags = 0, int depth = 0);
 
   // Accessor functions to array type and size kept in the SmartBlock.
+    //##ModelId=3DB949AF0037
   int headerType() const
     { return static_cast<const int*>(*itsData.deref())[0]; }
+    //##ModelId=3DB949AF003A
   int headerSize() const
     { return static_cast<const int*>(*itsData.deref())[1]; }
+    //##ModelId=3DB949AF003C
   void setHeaderType (int type)
     { static_cast<int*>(*itsData.dewr())[0] = type; }
+    //##ModelId=3DB949AF0041
   void setHeaderSize (int size)
     { static_cast<int*>(*itsData.dewr())[1] = size; }
 
 
+    //##ModelId=3DB949AE036D
   IPosition  itsShape;          // actual shape
-  BlockRef   itsData;           // SmartBlock holding the data
+    //##ModelId=3DB949AE0379
   TypeId     itsScaType;        // scalar data type matching the array type
+    //##ModelId=3DB949AE0383
   int        itsElemSize;       // #bytes of an array element
+    //##ModelId=3DB949AE0389
   int        itsDataOffset;     // array data offset in SmartBlock
+    //##ModelId=3DB949AE038E
   char*      itsArrayData;      // pointer to array data in SmartBlock
+    //##ModelId=3DB949AE0394
   void*      itsArray;          // pointer to the Array object
+    //##ModelId=3DB949AE039A
   void*      itsSubArray;       // pointer to Array object holding a subarray
+    //##ModelId=3DB949AE0370
+    BlockRef itsData;
+
 };
 
+DefineRefTypes(DataArray,DataArrayRef);
 
 #endif

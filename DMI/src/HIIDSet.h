@@ -1,201 +1,136 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3C10CC8203CD.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C10CC8203CD.cm
-
-//## begin module%3C10CC8203CD.cp preserve=no
-//## end module%3C10CC8203CD.cp
-
-//## Module: HIIDSet%3C10CC8203CD; Package specification
-//## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\HIIDSet.h
 
 #ifndef HIIDSet_h
 #define HIIDSet_h 1
 
-//## begin module%3C10CC8203CD.additionalIncludes preserve=no
 #include "DMI/Common.h"
 #include "DMI/DMI.h"
-//## end module%3C10CC8203CD.additionalIncludes
 
-//## begin module%3C10CC8203CD.includes preserve=yes
 #include <set>
-//## end module%3C10CC8203CD.includes
 
 // HIID
 #include "DMI/HIID.h"
-//## begin module%3C10CC8203CD.declarations preserve=no
-//## end module%3C10CC8203CD.declarations
 
-//## begin module%3C10CC8203CD.additionalDeclarations preserve=yes
-//## end module%3C10CC8203CD.additionalDeclarations
-
-
-//## begin HIIDSet%3BFBAC350085.preface preserve=yes
-//## end HIIDSet%3BFBAC350085.preface
-
-//## Class: HIIDSet%3BFBAC350085
-//	A set of multiple hierarchical IDs
-//	(may include masks, etc.)
-//## Category: DOMIN0%3BEAB1F2006B; Global
-//## Subsystem: DMI%3C10CC810155
-//## Persistence: Transient
-//## Cardinality/Multiplicity: n
-
-
-
+//##ModelId=3BFBAC350085
+//##Documentation
+//## A set of multiple hierarchical IDs
+//## (may include masks, etc.)
 class HIIDSet 
 {
-  //## begin HIIDSet%3BFBAC350085.initialDeclarations preserve=yes
-  //## end HIIDSet%3BFBAC350085.initialDeclarations
-
   public:
-    //## Constructors (generated)
+    //##ModelId=3BFBAE2403DA
       HIIDSet();
 
+    //##ModelId=3C98D01B036C
       HIIDSet(const HIIDSet &right);
 
-    //## Constructors (specified)
-      //## Operation: HIIDSet%3BFBAE2403DA
+      //##ModelId=3DB9348D0271
       HIIDSet (const HIID& id);
 
-      //## Operation: HIIDSet%3C98D01B036C
+      //##ModelId=3DB9348D0339
       HIIDSet (const void* block, int sz);
 
-    //## Destructor (generated)
+    //##ModelId=3DB9348E00CE
       ~HIIDSet();
 
-    //## Assignment Operation (generated)
+    //##ModelId=3DB9348E010A
       HIIDSet & operator=(const HIIDSet &right);
 
 
-    //## Other Operations (specified)
-      //## Operation: clear%3C7E15F90113
+      //##ModelId=3C7E15F90113
       void clear ();
 
-      //## Operation: add%3C1DF8510016
+      //##ModelId=3C1DF8510016
       HIIDSet & add (const HIID &id);
 
-      //## Operation: add%3BFBAE330345
+      //##ModelId=3BFBAE330345
       HIIDSet & add (const HIIDSet &other);
 
-      //## Operation: operator +=%3C1DF87E0288
+      //##ModelId=3C1DF87E0288
       HIIDSet & operator += (const HIID &id);
 
-      //## Operation: operator +=%3BFBAEDF037E
+      //##ModelId=3BFBAEDF037E
       HIIDSet & operator += (const HIIDSet &other);
 
-      //## Operation: remove%3BFBAF14023A
+      //##ModelId=3BFBAF14023A
       HIIDSet & remove (const HIIDSet &other);
 
-      //## Operation: remove%3C1DFB650236
+      //##ModelId=3C1DFB650236
       HIIDSet & remove (const HIID &id);
 
-      //## Operation: operator -=%3C1DF89A021A
+      //##ModelId=3C1DF89A021A
       HIIDSet & operator -= (const HIID &id);
 
-      //## Operation: operator -=%3BFBAF2A01E2
+      //##ModelId=3BFBAF2A01E2
       HIIDSet & operator -= (const HIIDSet &other);
 
-      //## Operation: contains%3BFBAE650315
+      //##ModelId=3BFBAE650315
       bool contains (const HIID& id) const;
 
-      //## Operation: pack%3C98CFEF00B6
-      //	Stores HIID into raw data block
+      //##ModelId=3C98CFEF00B6
+      //##Documentation
+      //## Stores HIID into raw data block
       size_t pack (void *block, size_t &nleft) const;
 
-      //## Operation: unpack%3C98CFEF0110
+      //##ModelId=3C98CFEF0110
       void unpack (const void* block, size_t sz);
 
-      //## Operation: packSize%3C98CFEF016A
-      //	Returns # of bytes required to store the HIID
+      //##ModelId=3C98CFEF016A
+      //##Documentation
+      //## Returns # of bytes required to store the HIID
       size_t packSize () const;
 
-    // Additional Public Declarations
-      //## begin HIIDSet%3BFBAC350085.public preserve=yes
-      //## end HIIDSet%3BFBAC350085.public
-
-  protected:
-    // Additional Protected Declarations
-      //## begin HIIDSet%3BFBAC350085.protected preserve=yes
-      //## end HIIDSet%3BFBAC350085.protected
-
   private:
-    // Additional Private Declarations
-      //## begin HIIDSet%3BFBAC350085.private preserve=yes
-      //## end HIIDSet%3BFBAC350085.private
-
-  private: //## implementation
     // Data Members for Associations
 
-      //## Association: DOMIN0::<unnamed>%3C0F8F610325
-      //## Role: HIIDSet::contents%3C0F8F6202E1
-      //## begin HIIDSet::contents%3C0F8F6202E1.role preserve=no  private: HIID { -> 0..*VHgN}
+      //##ModelId=3C0F8F6202E1
       set<HIID> contents;
-      //## end HIIDSet::contents%3C0F8F6202E1.role
 
     // Additional Implementation Declarations
-      //## begin HIIDSet%3BFBAC350085.implementation preserve=yes
+    //##ModelId=3DB9343C02E2
       typedef set<HIID>::value_type SVal;
+    //##ModelId=3DB9343C0328
       typedef set<HIID>::iterator SI;
+    //##ModelId=3DB9343C0382
       typedef set<HIID>::const_iterator CSI;
-      //## end HIIDSet%3BFBAC350085.implementation
 };
-
-//## begin HIIDSet%3BFBAC350085.postscript preserve=yes
-//## end HIIDSet%3BFBAC350085.postscript
 
 // Class HIIDSet 
 
+//##ModelId=3DB9348D0339
+//##ModelId=3C98D01B036C
+//##ModelId=3DB92529010A
+//##ModelId=3DB925290218
 inline HIIDSet::HIIDSet (const void* block, int sz)
-  //## begin HIIDSet::HIIDSet%3C98D01B036C.hasinit preserve=no
-  //## end HIIDSet::HIIDSet%3C98D01B036C.hasinit
-  //## begin HIIDSet::HIIDSet%3C98D01B036C.initialization preserve=yes
-  //## end HIIDSet::HIIDSet%3C98D01B036C.initialization
 {
-  //## begin HIIDSet::HIIDSet%3C98D01B036C.body preserve=yes
   unpack(block,sz);
-  //## end HIIDSet::HIIDSet%3C98D01B036C.body
 }
 
 
 
-//## Other Operations (inline)
+//##ModelId=3C1DF87E0288
 inline HIIDSet & HIIDSet::operator += (const HIID &id)
 {
-  //## begin HIIDSet::operator +=%3C1DF87E0288.body preserve=yes
   return add(id);
-  //## end HIIDSet::operator +=%3C1DF87E0288.body
 }
 
+//##ModelId=3BFBAEDF037E
 inline HIIDSet & HIIDSet::operator += (const HIIDSet &other)
 {
-  //## begin HIIDSet::operator +=%3BFBAEDF037E.body preserve=yes
   return add(other);
-  //## end HIIDSet::operator +=%3BFBAEDF037E.body
 }
 
+//##ModelId=3C1DF89A021A
 inline HIIDSet & HIIDSet::operator -= (const HIID &id)
 {
-  //## begin HIIDSet::operator -=%3C1DF89A021A.body preserve=yes
   return remove(id);
-  //## end HIIDSet::operator -=%3C1DF89A021A.body
 }
 
+//##ModelId=3BFBAF2A01E2
 inline HIIDSet & HIIDSet::operator -= (const HIIDSet &other)
 {
-  //## begin HIIDSet::operator -=%3BFBAF2A01E2.body preserve=yes
   return remove(other);
-  //## end HIIDSet::operator -=%3BFBAF2A01E2.body
 }
-
-//## begin module%3C10CC8203CD.epilog preserve=yes
-//## end module%3C10CC8203CD.epilog
 
 
 #endif

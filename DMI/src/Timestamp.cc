@@ -1,3 +1,4 @@
+//##ModelId=3C8F68EA004C
 //## begin module%1.4%.codegen_version preserve=yes
 //   Read the documentation to learn more about C++ code generator
 //   versioning.
@@ -36,6 +37,7 @@
 
 //## begin Timestamp::tsnow%3C8F68EA004C.attr preserve=no  private: static Timestamp {U} 
 Timestamp Timestamp::tsnow;
+//##ModelId=3DB934EA01A3
 //## end Timestamp::tsnow%3C8F68EA004C.attr
 
 Timestamp::Timestamp (double sec1)
@@ -52,6 +54,7 @@ Timestamp::Timestamp (double sec1)
 
 
 
+//##ModelId=3C8F67DD00BD
 //## Other Operations (implementation)
 const Timestamp & Timestamp::now (Timestamp *pts)
 {
@@ -64,6 +67,7 @@ const Timestamp & Timestamp::now (Timestamp *pts)
   //## end Timestamp::now%3C8F67DD00BD.body
 }
 
+//##ModelId=3CA06AE50335
 string Timestamp::toString (const char *format) const
 {
   //## begin Timestamp::toString%3CA06AE50335.body preserve=yes
@@ -85,6 +89,7 @@ string Timestamp::toString (const char *format) const
   //## end Timestamp::toString%3CA06AE50335.body
 }
 
+//##ModelId=3C7F3D500287
 Timestamp & Timestamp::operator += (const Timestamp &other)
 {
   //## begin Timestamp::operator +=%3C7F3D500287.body preserve=yes
@@ -95,6 +100,7 @@ Timestamp & Timestamp::operator += (const Timestamp &other)
   //## end Timestamp::operator +=%3C7F3D500287.body
 }
 
+//##ModelId=3C7F3D720312
 Timestamp & Timestamp::operator -= (const Timestamp &other)
 {
   //## begin Timestamp::operator -=%3C7F3D720312.body preserve=yes
@@ -105,6 +111,7 @@ Timestamp & Timestamp::operator -= (const Timestamp &other)
   //## end Timestamp::operator -=%3C7F3D720312.body
 }
 
+//##ModelId=3C7F3E68035C
 void Timestamp::normalize ()
 {
   //## begin Timestamp::normalize%3C7F3E68035C.body preserve=yes
@@ -122,6 +129,7 @@ void Timestamp::normalize ()
 }
 
 // Additional Declarations
+//##ModelId=3DB934F50260
   //## begin Timestamp%3C7F3B1D025E.declarations preserve=yes
 Timestamp & Timestamp::operator *= (double x)
 {

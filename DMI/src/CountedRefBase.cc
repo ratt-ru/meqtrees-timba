@@ -54,6 +54,11 @@
 
 InitDebugContext(CountedRefBase,"CRef");
 
+
+// cloneTarget
+//   Helper function called to actually clone a ref's target
+//   (either from privatize directly, or via delayed-cloning)
+//##ModelId=3DB9346500B5
 void CountedRefBase::cloneTarget () const
 {
   threadLock(target);
@@ -64,17 +69,15 @@ void CountedRefBase::cloneTarget () const
   // clone the target
   CountedRefTarget *newtarget = target->clone(delayed_clone_flags,delayed_clone_depth);
   // detach from old list
-  {
-    if( prev ) 
-      prev->next = next;
-    else // no previous ref, so update ptr from target
-      target->owner_ref = next;
-    if( next )
-      next->prev = prev;
-    #if COUNTEDREF_VERIFY
-    verify(target->owner_ref);
-    #endif
-  }
+  if( prev ) 
+    prev->next = next;
+  else // no previous ref, so update ptr from target
+    target->owner_ref = next;
+  if( next )
+    next->prev = prev;
+  #if COUNTEDREF_VERIFY
+  verify(target->owner_ref);
+  #endif
   // attach ourselves to new reflist
   prev = next = 0;
   target = newtarget;
@@ -85,6 +88,9 @@ void CountedRefBase::cloneTarget () const
   VERIFY;
 }
 
+// verify
+//   Checks the reference chain for consistency. 
+//##ModelId=3DB934600330
 void CountedRefBase::verify (const CountedRefBase *start)
 {
   if( !start )
@@ -110,6 +116,7 @@ void CountedRefBase::verify (const CountedRefBase *start)
   Assert1(found_start);
 }
 
+//##ModelId=3C0CDEE2018A
 //## end module%3C10CC81037E.additionalDeclarations
 
 
@@ -126,6 +133,14 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags)
     empty();
   else
   {
+// if DMI::PRIVATIZE is set, do a read-only copy, followed by privatize
+    int privatize_flags = 0;
+    if( flags&DMI::PRIVATIZE )
+    {
+      dprintf(2)("  copy-and-privatize requested\n");
+      privatize_flags = flags&~DMI::PRIVATIZE;
+      flags = DMI::READONLY;
+    } 
     threadLock(other.target);
 #if COUNTEDREF_VERIFY
     other.verify();
@@ -157,11 +172,15 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags)
                ( (flags&DMI::PRESERVE_RW) && other.isWritable() );
     persistent = (flags&DMI::PERSIST) != 0;
     exclusiveWrite = delayed_clone = False;
+    // do implicit privatize if so requested
+    if( privatize_flags )
+      privatize(privatize_flags,0);
   }
   dprintf1(2)("  made %s\n",debug(Debug(3)?3:2,"  "));
   //## end CountedRefBase::copy%3C0CDEE2018A.body
 }
 
+//##ModelId=3C0CDEE20180
 void CountedRefBase::xfer (const CountedRefBase& other)
 {
   //## begin CountedRefBase::xfer%3C0CDEE20180.body preserve=yes
@@ -201,9 +220,19 @@ void CountedRefBase::xfer (const CountedRefBase& other)
   //## end CountedRefBase::xfer%3C0CDEE20180.body
 }
 
+//##ModelId=3C0CDEE20164
 CountedRefBase& CountedRefBase::privatize (int flags, int depth)
 {
   //## begin CountedRefBase::privatize%3C0CDEE20164.body preserve=yes
+  // This is a mask of all flags used by privatize. These flags are interpreted
+  // here and _NOT_ passed on to target->privatize.
+  // All other flags (WRITE, READONLY, etc.) are passed on. 
+  const int local_flags =
+      DMI::FORCE_CLONE|DMI::DEEP_DLY_CLONE|
+      DMI::LOCKED|DMI::UNLOCKED|
+      DMI::EXCL_WRITE|DMI::NONEXCL_WRITE|
+      DMI::PERSIST;
+  
   dprintf1(2)("%s: privatizing to depth %d, target:\n",debug(),flags&DMI::DEEP?-1:depth);
   FailWhen( !valid(),"can't privatize an invalid ref" );
   threadLock(target);
@@ -240,7 +269,7 @@ CountedRefBase& CountedRefBase::privatize (int flags, int depth)
   
   if( do_clone )
   {
-    delayed_clone_flags = flags;
+    delayed_clone_flags = flags & ~local_flags;
     delayed_clone_depth = depth;
     if( flags&DMI::DLY_CLONE ) // mark for delayed cloning, if requested
     {
@@ -256,7 +285,7 @@ CountedRefBase& CountedRefBase::privatize (int flags, int depth)
   else
   {
     // we are sole reference to target, so privatize it
-    target->privatize(flags,depth);
+    target->privatize(flags & ~local_flags,depth);
     delayed_clone = False;
   }
   // now setup ref properties
@@ -283,6 +312,7 @@ CountedRefBase& CountedRefBase::privatize (int flags, int depth)
   //## end CountedRefBase::privatize%3C0CDEE20164.body
 }
 
+//##ModelId=3C18873600E9
 CountedRefBase& CountedRefBase::change (int flags)
 {
   //## begin CountedRefBase::change%3C18873600E9.body preserve=yes
@@ -317,6 +347,7 @@ CountedRefBase& CountedRefBase::change (int flags)
   //## end CountedRefBase::change%3C18873600E9.body
 }
 
+//##ModelId=3C1888B001A1
 CountedRefBase& CountedRefBase::setExclusiveWrite ()
 {
   //## begin CountedRefBase::setExclusiveWrite%3C1888B001A1.body preserve=yes
@@ -333,6 +364,7 @@ CountedRefBase& CountedRefBase::setExclusiveWrite ()
   //## end CountedRefBase::setExclusiveWrite%3C1888B001A1.body
 }
 
+//##ModelId=3C0CDEE20171
 CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
 {
   //## begin CountedRefBase::attach%3C0CDEE20171.body preserve=yes
@@ -385,6 +417,7 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   //## end CountedRefBase::attach%3C0CDEE20171.body
 }
 
+//##ModelId=3C1612A60137
 void CountedRefBase::detach ()
 {
   //## begin CountedRefBase::detach%3C1612A60137.body preserve=yes
@@ -401,13 +434,16 @@ void CountedRefBase::detach ()
     if( isAnonObject() ) 
     {
       dprintf(3)("last ref, anon target will be deleted\n");
-//      anonObject = False; // so that the target doesn't complain
       target->owner_ref = 0;
-      delete target;
 #ifdef USE_THREADS
-      // explicitly release lock since mutex is already gone
-      _thread_lock.release_without_unlock();
+      // explicitly release target mutex prior to destroying it (otherwise,
+      // we'll be destroying a locked mutex, which is in bad taste). Since
+      // the target is anon, no-one else can be legally referencing it at 
+      // this point. Which means it's OK to release the mutex: no-one else
+      // can [legally] grab it.
+      _thread_lock.release();
 #endif      
+      delete target;
     }
   }
   else  // else just detach ourselves from list
@@ -427,6 +463,7 @@ void CountedRefBase::detach ()
   //## end CountedRefBase::detach%3C1612A60137.body
 }
 
+//##ModelId=3C583B9F03B8
 bool CountedRefBase::hasOtherWriters ()
 {
   //## begin CountedRefBase::hasOtherWriters%3C583B9F03B8.body preserve=yes
@@ -440,6 +477,7 @@ bool CountedRefBase::hasOtherWriters ()
   //## end CountedRefBase::hasOtherWriters%3C583B9F03B8.body
 }
 
+//##ModelId=3C1611C702DB
 void CountedRefBase::privatizeOther (const CountedRefBase& other, int flags, int depth)
 {
   //## begin CountedRefBase::privatizeOther%3C1611C702DB.body preserve=yes
@@ -450,6 +488,7 @@ void CountedRefBase::privatizeOther (const CountedRefBase& other, int flags, int
 }
 
 // Additional Declarations
+//##ModelId=3DB934620030
   //## begin CountedRefBase%3C0CDEE200FE.declarations preserve=yes
 string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name ) const
 {

@@ -1,3 +1,4 @@
+//##ModelId=3BEBD44D0103
 //## begin module%1.4%.codegen_version preserve=yes
 //   Read the documentation to learn more about C++ code generator
 //   versioning.
@@ -44,6 +45,7 @@ SmartBlock::SmartBlock()
   //## end SmartBlock::SmartBlock%3BEAACAB0041_const.body
 }
 
+//##ModelId=3BFE299902D7
 SmartBlock::SmartBlock (void* data, size_t size, int flags)
   //## begin SmartBlock::SmartBlock%3BEBD44D0103.hasinit preserve=no
   //## end SmartBlock::SmartBlock%3BEBD44D0103.hasinit
@@ -57,6 +59,7 @@ SmartBlock::SmartBlock (void* data, size_t size, int flags)
   //## end SmartBlock::SmartBlock%3BEBD44D0103.body
 }
 
+//##ModelId=3BFA4FCA0387
 SmartBlock::SmartBlock (size_t size, int flags)
   //## begin SmartBlock::SmartBlock%3BFE299902D7.hasinit preserve=no
   //## end SmartBlock::SmartBlock%3BFE299902D7.hasinit
@@ -70,6 +73,7 @@ SmartBlock::SmartBlock (size_t size, int flags)
   //## end SmartBlock::SmartBlock%3BFE299902D7.body
 }
 
+//##ModelId=3BFE303F0022
 SmartBlock::SmartBlock (size_t size, int shm_flags, int flags)
   //## begin SmartBlock::SmartBlock%3BFA4FCA0387.hasinit preserve=no
   //## end SmartBlock::SmartBlock%3BFA4FCA0387.hasinit
@@ -83,6 +87,7 @@ SmartBlock::SmartBlock (size_t size, int shm_flags, int flags)
   //## end SmartBlock::SmartBlock%3BFA4FCA0387.body
 }
 
+//##ModelId=3DB934E50248
 SmartBlock::SmartBlock (const SmartBlock &other, int flags)
   //## begin SmartBlock::SmartBlock%3BFE303F0022.hasinit preserve=no
   //## end SmartBlock::SmartBlock%3BFE303F0022.hasinit
@@ -98,6 +103,7 @@ SmartBlock::SmartBlock (const SmartBlock &other, int flags)
 }
 
 
+//##ModelId=3DB934E6004B
 SmartBlock::~SmartBlock()
 {
   //## begin SmartBlock::~SmartBlock%3BEAACAB0041_dest.body preserve=yes
@@ -107,6 +113,7 @@ SmartBlock::~SmartBlock()
 }
 
 
+//##ModelId=3DB934E802CD
 SmartBlock & SmartBlock::operator=(const SmartBlock &right)
 {
   //## begin SmartBlock::operator=%3BEAACAB0041_assign.body preserve=yes
@@ -127,6 +134,7 @@ SmartBlock & SmartBlock::operator=(const SmartBlock &right)
 
 
 
+//##ModelId=3BFE37C3022B
 //## Other Operations (implementation)
 void SmartBlock::init (void* data, size_t size, int flags, int shm_flags)
 {
@@ -145,6 +153,7 @@ void SmartBlock::init (void* data, size_t size, int flags, int shm_flags)
   //## end SmartBlock::init%3BFE37C3022B.body
 }
 
+//##ModelId=3C639C340295
 void SmartBlock::resize (size_t newsize, int flags)
 {
   //## begin SmartBlock::resize%3C639C340295.body preserve=yes
@@ -173,6 +182,7 @@ void SmartBlock::resize (size_t newsize, int flags)
   //## end SmartBlock::resize%3C639C340295.body
 }
 
+//##ModelId=3C1E0D8D0391
 void SmartBlock::destroy ()
 {
   //## begin SmartBlock::destroy%3C1E0D8D0391.body preserve=yes
@@ -183,6 +193,7 @@ void SmartBlock::destroy ()
   //## end SmartBlock::destroy%3C1E0D8D0391.body
 }
 
+//##ModelId=3BFE23B501F4
 CountedRefTarget * SmartBlock::clone (int flags, int depth) const
 {
   //## begin SmartBlock::clone%3BFE23B501F4.body preserve=yes
@@ -192,6 +203,7 @@ CountedRefTarget * SmartBlock::clone (int flags, int depth) const
 }
 
 // Additional Declarations
+//##ModelId=3DB934E7024B
   //## begin SmartBlock%3BEAACAB0041.declarations preserve=yes
 string SmartBlock::sdebug ( int detail,const string &prefix,const char *name ) const
 {

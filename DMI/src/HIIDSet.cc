@@ -1,3 +1,4 @@
+//##ModelId=3BFBAE2403DA
 //## begin module%1.4%.codegen_version preserve=yes
 //   Read the documentation to learn more about C++ code generator
 //   versioning.
@@ -43,6 +44,7 @@ HIIDSet::HIIDSet()
   //## end HIIDSet::HIIDSet%3BFBAC350085_const.body
 }
 
+//##ModelId=3C98D01B036C
 HIIDSet::HIIDSet(const HIIDSet &right)
   //## begin HIIDSet::HIIDSet%3BFBAC350085_copy.hasinit preserve=no
   //## end HIIDSet::HIIDSet%3BFBAC350085_copy.hasinit
@@ -54,6 +56,7 @@ HIIDSet::HIIDSet(const HIIDSet &right)
   //## end HIIDSet::HIIDSet%3BFBAC350085_copy.body
 }
 
+//##ModelId=3DB9348D0271
 HIIDSet::HIIDSet (const HIID& id)
   //## begin HIIDSet::HIIDSet%3BFBAE2403DA.hasinit preserve=no
   //## end HIIDSet::HIIDSet%3BFBAE2403DA.hasinit
@@ -66,6 +69,7 @@ HIIDSet::HIIDSet (const HIID& id)
 }
 
 
+//##ModelId=3DB9348E00CE
 HIIDSet::~HIIDSet()
 {
   //## begin HIIDSet::~HIIDSet%3BFBAC350085_dest.body preserve=yes
@@ -73,6 +77,7 @@ HIIDSet::~HIIDSet()
 }
 
 
+//##ModelId=3DB9348E010A
 HIIDSet & HIIDSet::operator=(const HIIDSet &right)
 {
   //## begin HIIDSet::operator=%3BFBAC350085_assign.body preserve=yes
@@ -83,6 +88,7 @@ HIIDSet & HIIDSet::operator=(const HIIDSet &right)
 
 
 
+//##ModelId=3C7E15F90113
 //## Other Operations (implementation)
 void HIIDSet::clear ()
 {
@@ -91,6 +97,7 @@ void HIIDSet::clear ()
   //## end HIIDSet::clear%3C7E15F90113.body
 }
 
+//##ModelId=3C1DF8510016
 HIIDSet & HIIDSet::add (const HIID &id)
 {
   //## begin HIIDSet::add%3C1DF8510016.body preserve=yes
@@ -99,6 +106,7 @@ HIIDSet & HIIDSet::add (const HIID &id)
   //## end HIIDSet::add%3C1DF8510016.body
 }
 
+//##ModelId=3BFBAE330345
 HIIDSet & HIIDSet::add (const HIIDSet &other)
 {
   //## begin HIIDSet::add%3BFBAE330345.body preserve=yes
@@ -108,6 +116,7 @@ HIIDSet & HIIDSet::add (const HIIDSet &other)
   //## end HIIDSet::add%3BFBAE330345.body
 }
 
+//##ModelId=3BFBAF14023A
 HIIDSet & HIIDSet::remove (const HIIDSet &other)
 {
   //## begin HIIDSet::remove%3BFBAF14023A.body preserve=yes
@@ -117,6 +126,7 @@ HIIDSet & HIIDSet::remove (const HIIDSet &other)
   //## end HIIDSet::remove%3BFBAF14023A.body
 }
 
+//##ModelId=3C1DFB650236
 HIIDSet & HIIDSet::remove (const HIID &id)
 {
   //## begin HIIDSet::remove%3C1DFB650236.body preserve=yes
@@ -125,6 +135,7 @@ HIIDSet & HIIDSet::remove (const HIID &id)
   //## end HIIDSet::remove%3C1DFB650236.body
 }
 
+//##ModelId=3BFBAE650315
 bool HIIDSet::contains (const HIID& id) const
 {
   //## begin HIIDSet::contains%3BFBAE650315.body preserve=yes
@@ -135,6 +146,7 @@ bool HIIDSet::contains (const HIID& id) const
   //## end HIIDSet::contains%3BFBAE650315.body
 }
 
+//##ModelId=3C98CFEF00B6
 size_t HIIDSet::pack (void *block, size_t &nleft) const
 {
   //## begin HIIDSet::pack%3C98CFEF00B6.body preserve=yes
@@ -142,6 +154,7 @@ size_t HIIDSet::pack (void *block, size_t &nleft) const
   //## end HIIDSet::pack%3C98CFEF00B6.body
 }
 
+//##ModelId=3C98CFEF0110
 void HIIDSet::unpack (const void* block, size_t sz)
 {
   //## begin HIIDSet::unpack%3C98CFEF0110.body preserve=yes
@@ -149,6 +162,7 @@ void HIIDSet::unpack (const void* block, size_t sz)
   //## end HIIDSet::unpack%3C98CFEF0110.body
 }
 
+//##ModelId=3C98CFEF016A
 size_t HIIDSet::packSize () const
 {
   //## begin HIIDSet::packSize%3C98CFEF016A.body preserve=yes

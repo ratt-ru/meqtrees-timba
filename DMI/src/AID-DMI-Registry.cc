@@ -64,7 +64,7 @@ static AtomicID::Register aid_reg_HIID(-419,"HIID");
         size_t __pack_HIID (const void *arr,int n,void * block,size_t &nleft ) 
         { return ArrayPacker<HIID>::pack(static_cast<const HIID*>(arr),n,block,nleft); } 
         void * __unpack_HIID (const void *block,size_t sz,int &n) 
-        { return ArrayPacker<HIID>::unpack(block,sz,n); } 
+        { return ArrayPacker<HIID>::allocate(block,sz,n); } 
         size_t __packsize_HIID (const void *arr,int n) 
         { return ArrayPacker<HIID>::packSize(static_cast<const HIID*>(arr),n); }
 static TypeInfoReg::Register ti_reg_HIID(-419,TypeInfo(TypeInfo::SPECIAL,sizeof(HIID),__new_HIID,__delete_HIID,__copy_HIID,
@@ -114,7 +114,7 @@ static AtomicID::Register aid_reg_string(-29,"string");
         size_t __pack_string (const void *arr,int n,void * block,size_t &nleft ) 
         { return ArrayPacker<string>::pack(static_cast<const string*>(arr),n,block,nleft); } 
         void * __unpack_string (const void *block,size_t sz,int &n) 
-        { return ArrayPacker<string>::unpack(block,sz,n); } 
+        { return ArrayPacker<string>::allocate(block,sz,n); } 
         size_t __packsize_string (const void *arr,int n) 
         { return ArrayPacker<string>::packSize(static_cast<const string*>(arr),n); }
 static TypeInfoReg::Register ti_reg_string(-29,TypeInfo(TypeInfo::SPECIAL,sizeof(string),__new_string,__delete_string,__copy_string,

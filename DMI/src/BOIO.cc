@@ -2,11 +2,13 @@
 #include "DMI/BOIO.h"
 #include "DMI/DynamicTypeManager.h"
     
+//##ModelId=3DB949AE024E
 BOIO::BOIO ()
     : fp(0)
 {
 }
 
+//##ModelId=3DB949AE0254
 BOIO::~BOIO ()
 {
   if( fp )
@@ -14,6 +16,7 @@ BOIO::~BOIO ()
 }
 
 
+//##ModelId=3DB949AE024F
 BOIO::BOIO (const string &filename,int mode)
     : fp(0)
 {
@@ -21,6 +24,7 @@ BOIO::BOIO (const string &filename,int mode)
 }
 
 // attaches to a file
+//##ModelId=3DB949AE0255
 int BOIO::open (const string &filename,int mode)
 {
   close();
@@ -39,6 +43,7 @@ int BOIO::open (const string &filename,int mode)
 }
 
 // closes file
+//##ModelId=3DB949AE025B
 int BOIO::close ()
 {
   if( fp )
@@ -51,6 +56,7 @@ int BOIO::close ()
 
 // Reads object attaches to ref. Returns its TypeId, or 
 // 0 for no more objects
+//##ModelId=3DB949AE025C
 TypeId BOIO::read (ObjRef &ref)
 {
   FailWhen(fmode != READ,"not open for reading");
@@ -79,6 +85,7 @@ TypeId BOIO::read (ObjRef &ref)
 }
 
 // returns TypeId of next object in stream (or 0 for EOF)
+//##ModelId=3DB949AE0265
 TypeId BOIO::nextType ()
 {
   FailWhen(fmode != READ,"not open for reading");
@@ -94,6 +101,7 @@ TypeId BOIO::nextType ()
 
 // writes object to file
 // Returns number of bytes actually written
+//##ModelId=3DB949AE0266
 size_t BOIO::write (const BlockableObject &obj)
 {
   FailWhen(fmode!=WRITE && fmode!=APPEND,"not open for writing");

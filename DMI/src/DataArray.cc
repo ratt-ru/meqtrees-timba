@@ -21,6 +21,16 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.17  2002/10/29 13:10:38  smirnov
+//  %[BugId: 26]%
+//  Re-worked build_aid_maps.pl and TypeIterMacros.h to enable on-demand
+//  importing of data types from other packages. Basically, data types from package
+//  X will be pulled in by NestableContainer only when included from
+//  package Y that has an explicit dependence on package X. DMI itself depends
+//  only on Common.
+//
+//  Migrated to new Rose C++ add-in, so all Rose markup has changed.
+//
 //  Revision 1.16  2002/07/30 13:08:03  smirnov
 //  %[BugId: 26]%
 //  Lots of fixes for multithreading
@@ -91,12 +101,14 @@
 static NestableContainer::Register reg(TpDataArray,true);
 
 
+//##ModelId=3DB949AE039F
 DataArray::DataArray (int flags)
 : NestableContainer(flags&DMI::WRITE != 0),
   itsArray    (0),
   itsSubArray (0)
 {}
 
+//##ModelId=3DB949AE03A4
 DataArray::DataArray (TypeId type, const IPosition& shape,
 		      int flags, int ) // shm_flags not yet used
 : NestableContainer(flags&DMI::WRITE != 0),
@@ -162,6 +174,7 @@ DoForAllArrayTypes(__instantiate,);
 // __instantiate(string,);
 
 
+//##ModelId=3DB949AE03AF
 DataArray::DataArray (const DataArray& other, int flags, int depth)
 : NestableContainer(flags&DMI::WRITE != 0),
   itsArray    (0),
@@ -170,11 +183,13 @@ DataArray::DataArray (const DataArray& other, int flags, int depth)
   cloneOther (other, flags, depth);
 }
 
+//##ModelId=3DB949AE03B8
 DataArray::~DataArray()
 {
   clear();
 }
 
+//##ModelId=3DB949AE03B9
 DataArray& DataArray::operator= (const DataArray& other)
 {
   nc_writelock;
@@ -185,6 +200,7 @@ DataArray& DataArray::operator= (const DataArray& other)
   return *this;
 }
 
+//##ModelId=3DB949AF002E
 void DataArray::cloneOther (const DataArray& other, int flags, int)
 {
   nc_readlock1(other);
@@ -198,6 +214,7 @@ void DataArray::cloneOther (const DataArray& other, int flags, int)
   }
 }
 
+//##ModelId=3DB949AF0024
 void DataArray::init (const IPosition& shape)
 {
   itsShape.resize (shape.nelements());
@@ -212,6 +229,7 @@ void DataArray::init (const IPosition& shape)
   makeArray();
 }
 
+//##ModelId=3DB949AF0029
 void DataArray::reinit()
 {
   const void* dataPtr = itsData->data();
@@ -228,6 +246,7 @@ void DataArray::reinit()
   makeArray();
 }
 
+//##ModelId=3DB949AF002B
 void DataArray::makeArray()
 {
   char* ptr = const_cast<char*>(static_cast<const char*>(itsData->data()));
@@ -276,6 +295,7 @@ void DataArray::makeArray()
   }
 }
 
+//##ModelId=3DB949AF002C
 void DataArray::clear()
 {
   nc_writelock;
@@ -309,16 +329,19 @@ void DataArray::clear()
   itsData.unlock().detach();
 }
 
+//##ModelId=3DB949AE03BE
 TypeId DataArray::objectType() const
 {
   return TpDataArray;
 }
 
+//##ModelId=3DB949AF000C
 TypeId DataArray::type () const
 {
   return headerType();
 }
 
+//##ModelId=3DB949AF0007
 int DataArray::size (TypeId tid) const
 {
   // by default, return size of scalar type
@@ -331,6 +354,7 @@ int DataArray::size (TypeId tid) const
   return -1;
 }
 
+//##ModelId=3DB949AE03C0
 int DataArray::fromBlock (BlockSet& set)
 {
   nc_writelock;
@@ -347,6 +371,7 @@ int DataArray::fromBlock (BlockSet& set)
   return npopped;
 }
 
+//##ModelId=3DB949AE03C5
 int DataArray::toBlock (BlockSet& set) const
 {
   nc_readlock;
@@ -360,11 +385,13 @@ int DataArray::toBlock (BlockSet& set) const
   return npushed;
 }
 
+//##ModelId=3DB949AE03CB
 CountedRefTarget* DataArray::clone (int flags, int depth) const
 {
   return new DataArray (*this, flags, depth);
 }
 
+//##ModelId=3DB949AE03D2
 void DataArray::privatize (int flags, int)
 {
   nc_writelock;
@@ -380,6 +407,7 @@ void DataArray::privatize (int flags, int)
 // no HIID   -> type can be TpArray_float (or Tpfloat if array has 1 element)
 // partial HIID -> type must be TpArray_float and create such array on heap
 //                 which gets deleted by clear()
+//##ModelId=3DB949AE03DA
 const void* DataArray::get (const HIID& id, ContentInfo &info,
 			    TypeId check_tid, int flags) const
 {
@@ -498,6 +526,7 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
   return itsSubArray;
 }
 
+//##ModelId=3DB949AF000E
 bool DataArray::parseHIID (const HIID& id, IPosition& st, IPosition& end,
 			   IPosition& incr, IPosition& keepAxes) const
 {
@@ -590,6 +619,7 @@ bool DataArray::parseHIID (const HIID& id, IPosition& st, IPosition& end,
   return removeAxes;
 }
 
+//##ModelId=3DB949AE03E5
 void* DataArray::insert (const HIID&, TypeId, TypeId&)
 {
   AssertMsg (0, "DataArray::insert is not possible");
