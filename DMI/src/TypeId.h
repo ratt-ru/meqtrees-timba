@@ -1,5 +1,3 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-
 #ifndef TypeId_h
 #define TypeId_h 1
 
