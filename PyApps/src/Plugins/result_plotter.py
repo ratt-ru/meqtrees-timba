@@ -448,6 +448,15 @@ class ResultPlotter(GriddedPlugin):
     if isinstance(self._rec, bool):
       return
 
+# there's a problem here somewhere ...
+#    if dmi.dmi_type(self._rec) != 'MeqResult': # data is not already a result?
+#      try: self._rec = self._rec.cached_result; # look for cached_result field
+#      except AttributeError:
+      # print 'caught attribute error blah blah'
+      # cached_result not found, display an empty viewer with a "no result
+      # in this node record" message (the user can then use the Display with
+      # menu to switch to a different viewer)
+
 # are we dealing with Vellsets?
     if self._rec.has_key("vellsets"):
       if self._visu_plotter is None:
@@ -468,3 +477,7 @@ class ResultPlotter(GriddedPlugin):
     _dprint(3, 'exiting set_data')
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),ResultPlotter,priority=10)
+Grid.Services.registerViewer(meqds.NodeClass('MeqDataCollect'),ResultPlotter,priority=10)
+Grid.Services.registerViewer(meqds.NodeClass('MeqDataConcat'),ResultPlotter,priority=10)
+Grid.Services.registerViewer(meqds.NodeClass(),ResultPlotter,priority=20)
+
