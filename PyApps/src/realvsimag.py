@@ -98,6 +98,7 @@ class realvsimag_plotter(object):
   symbol_table = {
         'none': QwtSymbol.None,
         'rectangle': QwtSymbol.Rect,
+        'square': QwtSymbol.Rect,
         'ellipse': QwtSymbol.Ellipse,
         'dot': QwtSymbol.Ellipse,
         'circle': QwtSymbol.Ellipse,
@@ -704,7 +705,7 @@ class realvsimag_plotter(object):
       sum_i = 0.0
       for i in range(0, num_plot_arrays):
 # make sure we are using a numarray
-        array_representation = inputarray(self._data_values[i])
+        array_representation = asarray(self._data_values[i])
         xx_r = None
         xx_i = None
         if i == 0:
@@ -739,8 +740,7 @@ class realvsimag_plotter(object):
               data_i.append(0.0)
 
 # add data to set of curves
-      num_rows = len(data_r)
-      if num_rows == 0:
+      if len(data_r) == 0:
         print 'nothing to update!'
         return
       _dprint(2, 'main key ', self._label_r)
@@ -832,7 +832,6 @@ class realvsimag_plotter(object):
 
 # do we have error data
         if self.errors_plot and self._string_tag.find(self.error_tag)>= 0:
-#        if self.errors_plot and self._is_complex == False:
           self._xy_plot_dict[plot_key] = -1
           self.x_errors = QwtErrorPlotCurve(self.plot,self._plot_color,2);
           _dprint(3, 'self.x_errors set to ', self.x_errors)
@@ -919,6 +918,7 @@ class realvsimag_plotter(object):
               self.y_errors.setData(data_r,data_i)
               _dprint(3, 'set data values for y errors')
 
+# Put legend_plot stuff in upper left hand corner of display
         if not self._legend_plot is None:
            self.legend_marker = self.plot.insertMarker()
            ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
