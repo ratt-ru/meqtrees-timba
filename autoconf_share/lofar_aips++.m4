@@ -40,7 +40,7 @@ AC_MSG_RESULT([yes])
 
 		AIPSPP_CPPFLAGS="-I$AIPSPP_PATH/code/include -DAIPS_$arch"
 		AIPSPP_LDFLAGS="-L$AIPSPP_PATH/$AIPSPP_ARCH/lib"
-		AIPSPP_LIBS="-laips"
+		AIPSPP_LIBS="-ltrial -laips -ltrial_f -laips_f"
 
 		CPPFLAGS="$CPPFLAGS $AIPSPP_CPPFLAGS"
 		if test "$lofar_compiler" = "gnu"; then
