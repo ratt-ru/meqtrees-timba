@@ -350,7 +350,7 @@ for( keys %globmap ) {
   }
 }
 
-#
+# 
 # This sub compares a new file with an older version,
 # and replaces them if there are any differences
 #
