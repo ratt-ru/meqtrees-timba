@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 
-# Contributed by Tomaz Curk in a bug report showing that the stack order of the
-# curves was dependent on the number of curves. This has been fixed in Qwt.
-#
-# QwtBarCurve is an idea of Tomaz Curk.
-#
-# Beautified and expanded by Gerard Vermeulen.
+# Browser plugin to show plots of real vs imaginary data
+# or 'error' displays
 
 import math
 import random
@@ -1597,7 +1593,39 @@ class realvsimag_plotter(object):
         self.clearZoomStack()
       else:
         self.plot.replot()
-    # go_errors()
+  # go_errors()
+
+  def go_meqparms(self, counter):
+      """Create and plot some garbage data
+      """
+      item_label = 'MeqParm'
+      self.x_list.append(counter+1)
+      self.value = 0.8 * self.value + 10 * random.random() 
+      self.y_list.append(self.value)
+
+      # if this is a new item_label, add a new plot,
+      # otherwise, replace old one
+      plot_key = item_label + '_plot'
+      self._plot_color = self.color_table["red"]
+      if self._xy_plot_dict.has_key(plot_key) == False: 
+        key_plot = self.plot.insertCurve(plot_key)
+        self._xy_plot_dict[plot_key] = key_plot
+        self.plot.setCurvePen(key_plot, QPen(self._plot_color))
+        self.plot.setCurveData(key_plot, self.x_list, self.y_list)
+        self.plot.setCurveStyle(key_plot, QwtCurve.Dots)
+        self.plot.setAxisTitle(QwtPlot.xBottom, 'Time Sequence')
+        self.plot.setAxisTitle(QwtPlot.yLeft, 'MeqParm Fit')
+        plot_curve = self.plot.curve(key_plot)
+        plot_symbol = self.symbol_table["circle"]
+        plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
+                     QPen(self._plot_color), QSize(10, 10)))
+      else:
+        key_plot = self._xy_plot_dict[plot_key] 
+        self.plot.setCurveData(key_plot, self.x_list, self.y_list)
+
+      self.plot.replot()
+
+  # go_meqparms()
 
   def clearZoomStack(self):
         """Auto scale and clear the zoom stack
@@ -1617,10 +1645,15 @@ class realvsimag_plotter(object):
       self._angle = self._angle + 5;
       self._radius = 5.0 + 2.0 * random.random()
       self.index = self.index + 1
-      self.go(self.index)
+#      self.go(self.index)
+
 # for testing error plotting
 #     self.go_errors(self.index)
-    # timerEvent()
+
+# for testing meqparms plotting
+      self.go_meqparms(self.index)
+
+  # timerEvent()
 
   def zoom(self,on):
         self.zoomer.setEnabled(on)
