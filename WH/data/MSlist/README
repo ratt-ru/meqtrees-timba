@@ -1,6 +1,11 @@
 This directory contains info on Measurement sets that are available on
 the Westerbokr archives and in the WH MS repository.
 
+IMPORTANT NOTE:
+!!    Some of the MSses are under embargo - data may not be used for
+!!    publications for a period of one year, starting from the data
+!!    that the requestor got the data.
+
 File: Header
       Header information for the MSlist-<year> files
 File: MSlist-<year>
