@@ -384,7 +384,7 @@ void GWClientWP::tryConnect (Connection &cx)
   int res = cx.sock->connect(0);
   dprintf(3)("connect(%s:%d): %d (%s)\n",cx.host.c_str(),cx.port,
                   res,cx.sock->errstr().c_str());
-  if( res > 0 ) // connection established
+  if( res == 0 ) // connection established
   {
     lprintf(1,"connected to %s:%d, spawning child gateway\n",
                       cx.host.c_str(),cx.port);
@@ -398,7 +398,7 @@ void GWClientWP::tryConnect (Connection &cx)
     cx.sock = 0; // socket is taken over by child
     cx.reported_failure = False;
   }
-  else if( !res )  // in progress
+  else if( res == Socket::INPROGRESS )  // in progress
   {
     dprintf(3)("connect still in progress\n");
     if( !reconnect_timeout_set )
