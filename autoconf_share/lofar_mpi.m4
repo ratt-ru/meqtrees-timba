@@ -33,6 +33,7 @@ AC_ARG_ENABLE(mpi-profiler,
 lofar_HEADER_MPICH([])dnl
 lofar_HEADER_LAM([])dnl
 lofar_HEADER_SCAMPI()dnl
+lofar_HEADER_BGLMPICH([])dnl
 [
 enable_mpi=0
 if test "$enable_mpich" = "yes"; then
@@ -42,6 +43,9 @@ if test "$enable_lam" = "yes"; then
   enable_mpi=${enable_mpi}1
 fi
 if test "$enable_scampi" = "yes"; then
+  enable_mpi=${enable_mpi}1
+fi
+if test "$enable_bglmpich" = "yes"; then
   enable_mpi=${enable_mpi}1
 fi
 if test $enable_mpi -gt 1; then
@@ -227,6 +231,62 @@ AC_DEFINE(HAVE_SCAMPI,dnl
 	else]
 AC_MSG_ERROR([Could not find ScaMPI in $scampi_prefix])
 	  [enable_scampi=no
+	fi
+fi]
+])
+#
+#
+# lofar_HEADER_MPICH([VERSION])
+#
+# Macro to check for MPICH mpi.h header
+# -------------------------------------------------
+#
+AC_DEFUN([lofar_HEADER_BGLMPICH],
+[dnl
+AC_PREREQ(2.0)dnl
+ifelse($1, [], define(MPICH_VERSION,[]), define(MPICH_VERSION,$1))
+AC_ARG_WITH(bglmpich,
+	[  --with-bglmpich[=PFX]      prefix where MPICH is installed (default=/bgl/BlueLight/floor/bglsys)],
+	[bglmpich_prefix="$withval"],
+	[bglmpich_prefix="no"])
+[
+if test "$bglmpich_prefix" = "no" ; then
+  enable_bglmpich=no
+else
+  if test "$bglmpich_prefix" = "yes"; then
+    bglmpich_prefix=/bgl/BlueLight/floor/bglsys]
+[
+  fi
+  enable_bglmpich=yes
+]
+dnl
+AC_CHECK_FILE([$bglmpich_prefix/include/mpi.h],
+	[lofar_cv_header_bglmpich=yes],
+	[lofar_cv_header_bglmpich=no])
+[
+	if test $lofar_cv_header_bglmpich = yes ; then
+
+# 		BGLMPIBIN="$bglmpich_prefix/bin"
+# 		BGLMPICH_CC="/opt/ibmcmp/vac/7.0/bin/blrts_xlc"
+# 		BGLMPICH_CXX="/opt/ibmcmp/vacpp/7.0/bin/blrts_xlC"
+
+		if test "$mpi_profiler" = "yes"; then
+		  BGLMPICH_CC="$BGLMPICH_CC -mpilog";
+		  BGLMPICH_CXX="$BGLMPICH_CXX -mpilog";
+		fi
+
+# 		CC="$BGLMPICH_CC"
+# 		CXX="$BGLMPICH_CXX"
+]
+AC_SUBST(BGLMPIBIN)dnl
+AC_SUBST(CC)dnl
+AC_SUBST(CXX)dnl
+AC_DEFINE(HAVE_BGLMPICH,dnl
+	1, [Define if MPICH is installed])dnl
+[
+	else]
+AC_MSG_ERROR([Could not find MPICH in $mpich_prefix])
+[		enable_mpich=no
 	fi
 fi]
 ])
