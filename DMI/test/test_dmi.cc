@@ -1,6 +1,7 @@
 #include "DMI/AID-DMI.h"
 #include "DMI/TID-DMI.h"
 #include "DMI/DataRecord.h"
+#include "DMI/DataArray.h"
     
 #define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
     
@@ -255,6 +256,37 @@ void TestDataRecord ()
   rec["B/F"] <<= fref2;
   cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
   cerr<<"Source field is: "<<fref2.sdebug(10)<<endl;
+  cerr<<"======================= testing arrays\n";
+  cerr<<"Creating 10x10 double array\n";
+  rec["X"] <<= new DataArray(Tpdouble,IPosition(2,10,10));
+  cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
+  
+  cerr<<"Accessing the array\n";
+  Array_double arr = rec["X"];
+  
+  cerr<<"Assigning array to another field\n";
+  rec["Y"] = arr;
+  cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
+  
+  cerr<<"Accessing partial array\n";
+  Array_double row = rec["X/2.*"];
+  cerr<<"Row shape is: "<<row.shape()<<endl;
+  
+  cerr<<"Assigning partial array\n";
+  rec["Y/*.4"] = row;
+  
+  cerr<<"Assigning a vector to a partial array\n";
+  vector<double> vec(10);
+  rec["Y/*.4"] = vec;
+  
+  cerr<<"Assigning a vector to a new field\n";
+  rec["Z"] = vec;
+  cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
+  
+  cerr<<"Assigning a vector to an existing field\n";
+  rec["Z"] = vec;
+  cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
+
   cerr<<"======================= exiting\n";
 }
 

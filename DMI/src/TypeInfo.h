@@ -2,6 +2,8 @@
 #define TypeInfo_h 1
 
 #include "DMI/TID-DMI.h"
+#include "DMI/TypeId.h"
+#include "DMI/TypeIterMacros.h"
 
 // The TypeInfo class is basically a simple struct containing information
 // on various types. 
@@ -50,8 +52,13 @@ class TypeInfo {
       static const TypeInfo & find ( TypeId tid );
       
       // Returns True if type is numeric or dynamic
-      static bool isNumeric (TypeId tid);
-      static bool isDynamic (TypeId tid);
+      static bool isNumeric   (TypeId tid);
+      static bool isDynamic   (TypeId tid);
+      static bool isArrayable (TypeId tid);
+      static bool isArray     (TypeId tid);
+      
+      static TypeId elemToArr (TypeId elem);
+      static TypeId arrToElem (TypeId arr);
 };
  
 // This is a helper class hosting a registry for TypeInfos
@@ -66,19 +73,34 @@ class TypeInfoReg
 inline const TypeInfo & TypeInfo::find ( TypeId tid )
 { return TypeInfoReg::registry.find(tid); }
         
-// // These macros convert a type name or an expression into a TypeId.
-// // They use the auto-generated typeIdOf() inlines.
-// #define type2id(type) typeIdOfPtr((type*)0)
-// #define expr2id(expr) typeIdOf(expr)
-// 
-// these constants are used to distinguish built-ins from other types
-// (note that actual numeric values are all negative)
-const int StdTypeFirst=Tpbool,StdTypeLast=Tpchar;
+
+// These functions convert the TypeId of a numeric type to/from an
+// Array_type
+inline TypeId TypeInfo::elemToArr (TypeId elem)
+{ return elem.id() + tpElemToArrayOffset; }
+
+inline TypeId TypeInfo::arrToElem (TypeId arr)
+{ return arr.id() - tpElemToArrayOffset; }
+
 
 // returns True if a type is built-in
 inline bool TypeInfo::isNumeric (TypeId tid)
 { 
-  return tid.id() >= StdTypeFirst && tid.id() <= StdTypeLast; 
+  return tid.id() >= TpFirstNumeric && tid.id() <= TpLastNumeric; 
+}
+
+// returns True if a type is supported by Array
+inline bool TypeInfo::isArrayable (TypeId tid)
+{ 
+  #define __compare(type,arg) (tid == Tp##type)
+  return DoForAllArrayTypes2(__compare,,||);
+  #undef __compare
+}
+
+// returns True if a type is an Array_type
+inline bool TypeInfo::isArray (TypeId tid)
+{ 
+  return isArrayable( arrToElem(tid) );
 }
 
 // returns True if type is dynamic
@@ -86,6 +108,7 @@ inline bool TypeInfo::isDynamic (TypeId tid)
 { 
   return find(tid).category == TypeInfo::DYNAMIC;  
 }
+
 
 // These macros repeatedly invokes Do(type,arg) for all types in a specific
 // type set. Useful for making bulk definitions.
@@ -117,5 +140,30 @@ inline bool convertScalar ( const void *from,TypeId frid,void *to,TypeId toid )
   (*_typeconverters[Tpchar.id()-frid][Tpchar.id()-toid])(from,to);
   return True;
 }
+
+// define the typeIdOfPtr() helper function, returning a TypeId for a given type
+// (passed in as a T*).
+// This is used in various places where we want to convert a type to a TypeId
+// at compile-time
+#define __typeIdOfPtr(T,arg) inline TypeId TpOfPtr (const T *) { return Tp##T; };
+DoForAllNumericTypes(__typeIdOfPtr,);
+ __typeIdOfPtr(string,);
+
+// This is a more convenient macro form
+#define typeIdOf(type) TpOfPtr((type*)0)
+
+// Similar function, but returns Tptype for an Array_type* argument
+#define __typeIdOfArrayElem(T,arg) inline TypeId TpOfArrayElem (const Array_##T *) { return Tp##T; };
+DoForAllArrayTypes(__typeIdOfArrayElem,);
+
+// Similar function, but returns TpArray_type for a type * argument
+#define __typeIdOfArray(T,arg) inline TypeId TpOfArrayPtr (const T *) { return TpArray_##T; };
+DoForAllArrayTypes(__typeIdOfArray,);
+
+// These are more convenient macros (only need a type)
+#define typeIdOf(type) TpOfPtr((type*)0)
+#define typeIdOfArray(type) TpOfArrayPtr((type*)0)
+
+
 
 #endif

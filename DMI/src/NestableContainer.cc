@@ -20,6 +20,8 @@
 
 //## begin module%3C10CC830069.includes preserve=yes
 #include <list>
+#include "DMI/DataArray.h"
+#include "DMI/DataField.h"
 //## end module%3C10CC830069.includes
 
 // NestableContainer
@@ -256,6 +258,8 @@ const NestableContainer * NestableContainer::ConstHook::asNestable (const void *
 // Same thing, but insures writability
 NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ,TypeId tid) const
 {
+  if( index<-1 ) // uninitialized -- just return nc
+    return nc;
   if( !targ )
   {
     bool dum;
@@ -263,8 +267,6 @@ NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ,TypeI
     if( !targ )
       return 0;
   }
-  if( !targ )
-    return 0;
   if( tid == TpObjRef )
   {
     if( !static_cast<ObjRef*>(targ)->valid() )
@@ -318,14 +320,18 @@ bool NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool nothro
 
 // This is called to access by reference, for all types
 // If pointer is True, then a pointer type is being taken
-const void * NestableContainer::ConstHook::get_address(TypeId tid,bool must_write,bool,bool pointer ) const
+const void * NestableContainer::ConstHook::get_address (TypeId tid,bool must_write,bool pointer,const void *deflt) const
 {
   TypeId target_tid; bool write; 
   const void *target;
   if( index>=0 || id.size() )
   {
     target = collapseIndex(target_tid,write,0,0);
-    FailWhen(!target,"uninitialized element");
+    if( !target )
+    {
+      FailWhen(!deflt,"uninitialized element");
+      return deflt;
+    }
   }
   else
   {
@@ -442,6 +448,187 @@ ObjRef & NestableContainer::Hook::assign_objref ( const ObjRef &ref,int flags ) 
   else
     return static_cast<ObjRef*>(target)->unlock().xfer(const_cast<ObjRef&>(ref)).lock();
 }
+
+
+// Assignment of an Array either assigns to the underlying object,
+// or inits a new DataArray
+template<class T> 
+const Array<T> & NestableContainer::Hook::operator = (const Array<T> &other) const
+{
+  FailWhen(addressed,"unexpected '&' operator");
+  bool dum; 
+  TypeId target_tid;
+  void *target = const_cast<void*>( collapseIndex(target_tid,dum,0,DMI::WRITE) );
+  // non-existing object: try to a initialize a new DataArray
+  if( !target  )
+  {
+    ObjRef ref(new DataArray(other,DMI::WRITE),DMI::ANONWR);
+    assign_objref(ref,0);
+  }
+  // hook resolved to an array -- check shapes, etc.
+  else if( target_tid == typeIdOfArray(T) )
+  {
+    Array<T> *arr = static_cast<Array<T>*>(target);
+    FailWhen( arr->shape() != other.shape(),"can't assign array: shape mismatch" );
+    *arr = other;
+  }
+  // else we should have resolved to an existing sub-container
+  else
+  {
+    NestableContainer *nc1 = asNestableWr(target,target_tid);
+    FailWhen(!nc1,"can't assign array: type mismatch");
+    // for 1D arrays, use linear addressing, so all contiguous containers
+    // are supported
+    if( other.shape().nelements() == 1 )
+    {
+      // check that size matches
+      FailWhen( nc1->size() != other.shape()(0),"can't assign array: shape mismatch" );
+      // get pointer to first element (use pointer mode to ensure contiguity,
+      // and pass in T as the check_tid.
+      target = const_cast<void*>(
+          nc1->get(HIID(),target_tid,dum,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER));
+      FailWhen(!target,"uninitialized element");
+      Array<T> arr(other.shape(),static_cast<T*>(target),SHARE);
+      arr = other;
+    }
+    // else try to access it as a true array, and assign to it
+    else
+    {
+      FailWhen( TpOfArrayElem(&other) == Tpstring,
+          "multidimensional arrays of strings not supported" );
+      target = const_cast<void*>(
+          nc1->get(HIID(),target_tid,dum,typeIdOfArray(T),DMI::WRITE));
+      FailWhen(!target,"uninitialized element");
+      Array<T> *arr = static_cast<Array<T>*>(target);
+      FailWhen(arr->shape() != other.shape(),"can't assign array: shape mismatch" );
+      *arr = other;
+    }
+  }
+  return other;
+}
+
+// This provides a specialization of operator = (vector<T>) for arrayable
+// types. The difference is that a DataArray is initialized rather
+// than a DataField, and that vector<T> may be assigned to an Array_T, 
+// if the hook returns that.
+template<class T> 
+const vector<T> & NestableContainer::Hook::assign_arrayable (const vector<T> &other) const
+{
+  FailWhen(addressed,"unexpected '&' operator");
+  bool dum; 
+  TypeId target_tid;
+  void *target = const_cast<void*>( collapseIndex(target_tid,dum,0,DMI::WRITE) );
+  // non-existing object: try to a initialize a new DataArray
+  if( !target  )
+  {
+    DataArray *darr = new DataArray(typeIdOf(T),IPosition(1,other.size()),DMI::WRITE);
+    ObjRef ref(darr,DMI::ANONWR);
+    T * ptr = static_cast<T*>( const_cast<void*>(
+        darr->get(HIID(),target_tid,dum,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER) 
+        ));
+    for( vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ )
+      *ptr++ = *iter;
+    assign_objref(ref,0);
+  }
+  // else maybe hook has resolved to an array -- check shapes, etc.
+  else if( target_tid == typeIdOfArray(T) )
+  {
+    // NB: typeinfo should incorporate mapping between array types and
+    // numeric types
+    Array<T> *arr = static_cast<Array<T>*>(target);
+    int n = other.size();
+    FailWhen( arr->shape().nelements() != 1
+              || arr->shape()(0) != (int)(other.size()),"can't assign vector: shape mismatch" );
+    for( int i=0; i<n; i++ )
+      (*arr)(IPosition(1,i)) = other[i];
+  }
+  // else we should have resolved to an existing sub-container
+  else
+  {
+    NestableContainer *nc1 = asNestableWr(target,target_tid);
+    // if nc1 resolves to a DataField, then look for an array inside it
+    if( nc1->objectType() == TpDataField && nc1->type() == TpDataArray )
+    {
+      FailWhen( nc1->size()>1,"field contains multiple arrays" );
+      
+    }
+    FailWhen(!nc1,"can't assign vector: type mismatch");
+    FailWhen( nc1->size() != (int)other.size(),"can't assign vector: shape mismatch" );
+    // get pointer to first element (use pointer mode to ensure contiguity,
+    // and pass in T as the check_tid.
+    target = const_cast<void*>(
+        nc1->get(HIID(),target_tid,dum,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER));
+    FailWhen(!target,"can't assign vector");
+    T * ptr = static_cast<T*>(target);
+    for( vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ )
+      *ptr++ = *iter;
+  }
+  return other;
+}
+
+// This helper method does all the work of preparing a hook for assignment of
+// vector. This minimizes template size.
+void * NestableContainer::Hook::prepare_vector (TypeId tid,int size) const
+{
+  FailWhen(addressed,"unexpected '&' operator");
+  bool dum; 
+  TypeId target_tid;
+  NestableContainer *nc1;
+  void *target = const_cast<void*>( collapseIndex(target_tid,dum,0,DMI::WRITE) );
+  // non-existing object: try to a initialize a new DataField
+  if( !target  )
+  {
+    ObjRef ref(nc1 = new DataField(tid,size,DMI::WRITE),DMI::ANONWR);
+    assign_objref(ref,0);
+  }
+  // else we should have resolved to an existing sub-container
+  else
+  {
+    NestableContainer *nc1 = asNestableWr(target,target_tid);
+    FailWhen(!nc1,"can't assign vector: type mismatch");
+    FailWhen(nc1->size() != size,"can't assign vector: shape mismatch");
+    // get pointer to first element (use pointer mode to ensure contiguity,
+    // and pass in T as the check_tid.
+  }
+  // get pointer to first element (use pointer mode to ensure contiguity)
+  // cast away const since we set DMI::WRITE
+  target = const_cast<void*>(
+      nc1->get(HIID(),target_tid,dum,tid,DMI::WRITE|DMI::NC_POINTER));
+  FailWhen(!target,"can't assign vector");
+  return target;
+}
+
+
+template<class T> 
+inline const vector<T> & NestableContainer::Hook::assign_vector (const vector<T> &other,TypeId tid) const
+{ 
+  T * ptr = static_cast<T*>( prepare_vector(tid,other.size()) ); 
+  for( vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ ) 
+    *ptr++ = *iter; 
+  return other; 
+}
+
+// Assignment of an STL vector either assigns to the underlying object,
+// or inits a new DataField.
+// instantiate =(vector<T>) for all non-arrayable types
+// We define a macro to provide a template specialization, so that we
+// can use the TpType constants
+#define __assign_vector(T,arg) template<> const vector<T> & NestableContainer::Hook::operator = (const vector<T> &other) const { return assign_vector(other,Tp##T); }
+DoForAllNonArrayTypes(__assign_vector,);
+DoForAllBinaryTypes(__assign_vector,);
+DoForAllSpecialTypes(__assign_vector,);
+#undef __assign_vector
+
+// instantiate =(Array<T>) for all arrayable types
+#define __instantiate(T,arg) template const Array<T> & NestableContainer::Hook::operator = (const Array<T> &other) const;
+DoForAllArrayTypes(__instantiate,);
+#undef __instantiate
+
+// provide specializations of =(vector<T>) for all arrayable types
+#define __specialize(T,arg) template<> const vector<T> & NestableContainer::Hook::operator = (const vector<T> &other) const { return assign_arrayable(other); }
+DoForAllArrayTypes(__specialize,);
+#undef __specialize
+
 
 string NestableContainer::ConstHook::sdebug ( int detail,const string &prefix,const char *name ) const
 {

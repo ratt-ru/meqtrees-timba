@@ -21,7 +21,13 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.10  2002/06/07 14:22:48  smirnov
+//  %[BugId: 26]%
+//  Many revisions related to support of arrays and vectors (including AIPS++) by
+//  hooks. Checking in now because I plan to modify the NestableContainer interface.
+//
 //  Revision 1.9  2002/05/30 12:15:13  diepen
+//
 //  %[BugId: 25]%
 //  Added the required constructors
 //
@@ -66,8 +72,6 @@
 #include "DMI/DMI.h"
 
 #pragma types #DataArray
-#pragma types %Array_bool %Array_int %Array_float %Array_double
-#pragma types %Array_fcomplex %Array_dcomplex
 
 #include "DMI/NestableContainer.h"
 #include "DMI/HIID.h"
@@ -88,17 +92,21 @@ public:
 	     int shm_flags = 0);
 
   // Create the object with an array of the given shape.
-  explicit DataArray (const Array<bool>& array, int flags = DMI::WRITE,
-		      int shm_flags = 0);
-  explicit DataArray (const Array<int>& array, int flags = DMI::WRITE,
-		      int shm_flags = 0);
-  explicit DataArray (const Array<float>& array, int flags = DMI::WRITE,
-		      int shm_flags = 0);
-  explicit DataArray (const Array<double>& array, int flags = DMI::WRITE,
-		      int shm_flags = 0);
-  explicit DataArray (const Array<fcomplex>& array, int flags = DMI::WRITE,
-		      int shm_flags = 0);
-  explicit DataArray (const Array<dcomplex>& array, int flags = DMI::WRITE,
+//   explicit DataArray (const Array<bool>& array, int flags = DMI::WRITE,
+// 		      int shm_flags = 0);
+//   explicit DataArray (const Array<int>& array, int flags = DMI::WRITE,
+// 		      int shm_flags = 0);
+//   explicit DataArray (const Array<float>& array, int flags = DMI::WRITE,
+// 		      int shm_flags = 0);
+//   explicit DataArray (const Array<double>& array, int flags = DMI::WRITE,
+// 		      int shm_flags = 0);
+//   explicit DataArray (const Array<fcomplex>& array, int flags = DMI::WRITE,
+// 		      int shm_flags = 0);
+//   explicit DataArray (const Array<dcomplex>& array, int flags = DMI::WRITE,
+// 		      int shm_flags = 0);
+//   
+  template<class T>
+  explicit DataArray (const Array<T>& array, int flags = DMI::WRITE,
 		      int shm_flags = 0);
 
   // Copy (copy semantics).

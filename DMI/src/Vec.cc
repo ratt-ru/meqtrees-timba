@@ -295,7 +295,7 @@ DataField & DataField::put (int n, ObjRef &ref, int flags)
 {
   //## begin DataField::put%3C7A305F0071.body preserve=yes
   dprintf(2)("putting @%d: %s\n",n,ref.debug(2));
-  ObjRef &ref2 = prepareForPut( ref->objectType(),n,flags );
+  ObjRef &ref2 = prepareForPut( ref->objectType(),n );
   // grab the ref, and mark object as modified
   if( flags&DMI::COPYREF )
     ref2.copy(ref,flags);
@@ -859,7 +859,7 @@ bool DataField::removen (int n)
 // Additional Declarations
   //## begin DataField%3BB317D8010B.declarations preserve=yes
 
-ObjRef & DataField::prepareForPut (TypeId tid,int n,int flags)
+ObjRef & DataField::prepareForPut (TypeId tid,int n ) 
 {
   FailWhen( !isWritable(),"field is read-only" );
   if( !valid() ) // invalid field?
@@ -994,7 +994,7 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
 
 //## begin DataField::put%3C3C84A40176.body preserve=yes
   dprintf(2)("putting @%d: %s\n",n,obj.debug(2));
-  ObjRef &ref = prepareForPut( obj->objectType(),n,flags );
+  ObjRef &ref = prepareForPut( obj->objectType(),n );
   // grab the ref, and mark object as modified
   if( flags&DMI::COPYREF )
     ref.copy(obj,flags);

@@ -57,39 +57,12 @@ inline Matrix<T> NestableContainer::ConstHook::as_Matrix (int n1,int n2) const
 // }
 // 
 
-
-// define the typeIdOf() helper function, returning a TypeId for a given type
-#define __typeIdOfPtr(T,arg) inline TypeId typeIdOfPtr (const T*) { return Tp##T; };
-DoForAllNumericTypes(__typeIdOfPtr,);
-
-template<class T> 
-inline const Vector<T> & NestableContainer::Hook::operator = (const Vector<T> &other) const
-{
-  bool del;
-  const T *data = other.getStorage(del);
-  (*this) <<= new DataField(typeIdOfPtr(data),other.nelements(),DMI::WRITE,data);
-  other.freeStorage(data,del);
-  return other;
-}
-
-// specialization for vectors of Strings
-template<> 
 inline const Vector<String> & NestableContainer::Hook::operator = (const Vector<String> &other) const
 {
   DataField *df = new DataField(Tpstring,other.nelements());
   (*this) <<= df;
   for( uint i=0; i<other.nelements(); i++ )
     (*df)[i] = other(i);
-  return other;
-}
-
-template<class T> 
-inline const Array<T> & NestableContainer::Hook::operator = ( const Array<T> &other) const
-{
-  if( other.shape().nelements() == 1 )
-    return (*this) = Vector<T>(other);
-  DataArray *darr = new DataArray(other);
-  (*this) <<= darr;
   return other;
 }
 

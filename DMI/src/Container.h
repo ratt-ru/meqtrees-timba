@@ -208,8 +208,8 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           
           // Define an as_vector<> template. This should work for all
           // contiguous containers.
-          // This copies data so is not very effecient, but may be quite
-          // convenient where sizes are small
+          // This copies data so is not very efficient, but is quite
+          // convenient where sizes are small.
           template<class T>
           vector<T> as_vector () const
           {
@@ -220,8 +220,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           
           // define AIPS++ accessors
           #ifdef AIPSPP_HOOKS
-          template<class T> Vector<T> as_Vector () const;
-          template<class T> Matrix<T> as_Matrix (int n1,int n2) const;
+          template<class T> 
+          Vector<T> as_Vector () const;
+          template<class T> 
+          Matrix<T> as_Matrix (int n1,int n2) const;
           String as_String () const;
           // template<class MVal> MVal as_MV ();
           // template<class Meas> Meas as_M (const Meas::Types &type = Meas::DEFAULT);
@@ -283,10 +285,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           bool get_scalar( void *data,TypeId tid,bool nothrow=False ) const;
 
           // This is called to access by reference, for all types
-          const void *get_address(TypeId tid,bool must_write,bool implicit=False,bool pointer=False ) const;
+          const void *get_address(TypeId tid,bool must_write,bool pointer=False,const void *deflt=0) const;
 
           // This is called to access by pointer, for all types
-          const void *get_pointer(TypeId tid,bool must_write,bool implicit=False ) const;
+          const void *get_pointer(TypeId tid,bool must_write,bool implicit=False,const void *deflt=0) const;
 
           //## end NestableContainer::ConstHook%3C614FDE0039.protected
       private:
@@ -443,21 +445,30 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           #define ForceConstDefinitions 1
           #include "DMI/DataAcc-NonConst.h"
           
+          // Assigning an Array either assigns to the underlying container,
+          // or inits a new DataArray object (or a DataField, for 1 dimension)
+          // Since Array_T is actually typedef'd Array<T>, we can declare this
+          // as a template.
+          template<class T> const Array<T> & operator = (const Array<T> &other) const;
+          
+          // Assigning a vector of some type will assign to the underlying container
+          // (provided the shape/size matches), or inits a new DataField
+          template<class T> const vector<T> & operator = (const vector<T> &other) const;
+          
           // define accessors for AIPS++ types
           #ifdef AIPSPP_HOOKS
-          // assigning a vector will init a DataField object
-          template<class T> const Vector<T> & operator = (const Vector<T> &other) const;
-          // assigning an array will init a DataField for 1 dimension,
-          // or a DataArray for 2 or more dimensions
-          template<class T> const Array<T> & operator = (const Array<T> &other) const;
+          // assigning a vector of strings will init a DataField object
+          const Vector<String> & operator = (const Vector<String> &other) const;
           // assigning an AIPS++ String assigns an STL string.
           const String & operator = (const String &other) const;
+          #else
           #endif
 
           string sdebug ( int detail = 1,const string &prefix = "",const char *name = "Hook" ) const
           { return ConstHook::sdebug(detail,prefix,name); }
           const char *debug ( int detail = 1,const string &prefix = "",const char *name = "Hook" ) const
           { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
+          
           //## end NestableContainer::Hook%3C8739B50135.public
       protected:
         //## Constructors (specified)
@@ -483,6 +494,15 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
           // Helper function assigns an objref     
           ObjRef & assign_objref ( const ObjRef &ref,int flags ) const;
+
+          // Templated function implements operator = (vector<T>) for arrayable types
+          template<class T> 
+          const vector<T> & assign_arrayable (const vector<T> &other) const;
+
+          // Helper functions for assignment of vectors
+          void * prepare_vector (TypeId tid,int size) const;
+          template<class T> 
+          const vector<T> & assign_vector (const vector<T> &other,TypeId tid) const;
 
           //## end NestableContainer::Hook%3C8739B50135.protected
       private:
@@ -1110,11 +1130,11 @@ inline const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
 
 // This is called to access by pointer, for all types
 // Defers to get_address(pointer=True)
-inline const void * NestableContainer::ConstHook::get_pointer(TypeId tid,bool must_write,bool implicit ) const
+inline const void * NestableContainer::ConstHook::get_pointer (TypeId tid,bool must_write,bool implicit,const void *deflt) const
 {
   FailWhen(!addressed && implicit,"missing '&' operator");
   // Defers to get_address(pointer=True)
-  return get_address(tid,must_write,implicit,True);
+  return get_address(tid,must_write,True,deflt);
 }
 
 // This applies the current subscript to the hook, updating the target

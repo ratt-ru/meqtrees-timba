@@ -21,7 +21,13 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.12  2002/06/07 14:22:48  smirnov
+//  %[BugId: 26]%
+//  Many revisions related to support of arrays and vectors (including AIPS++) by
+//  hooks. Checking in now because I plan to modify the NestableContainer interface.
+//
 //  Revision 1.11  2002/05/30 12:15:13  diepen
+//
 //  %[BugId: 25]%
 //  Added the required constructors
 //
@@ -69,32 +75,20 @@ DataArray::DataArray (int flags)
 {}
 
 DataArray::DataArray (TypeId type, const IPosition& shape,
-		      int flags, int shm_flags)
+		      int flags, int ) // shm_flags not yet used
 : NestableContainer(flags&DMI::WRITE != 0),
   itsArray    (0),
   itsSubArray (0)
 {
-  if (type == TpArray_bool  ||  type == Tpbool) {
-    itsElemSize = sizeof(bool);
-    type = TpArray_bool;
-  } else if (type == TpArray_int  ||  type == Tpint) {
-    itsElemSize = sizeof(int);
-    type = TpArray_int;
-  } else if (type == TpArray_float  ||  type == Tpfloat) {
-    itsElemSize = sizeof(float);
-    type = TpArray_float;
-  } else if (type == TpArray_double  ||  type == Tpdouble) {
-    itsElemSize = sizeof(double);
-    type = TpArray_double;
-  } else if (type == TpArray_fcomplex  ||  type == Tpfcomplex) {
-    itsElemSize = sizeof(fcomplex);
-    type = TpArray_fcomplex;
-  } else if (type == TpArray_dcomplex  ||  type == Tpdcomplex) {
-    itsElemSize = sizeof(dcomplex);
-    type = TpArray_dcomplex;
-  } else {
+  if( TypeInfo::isArrayable(type) )
+    type = TypeInfo::elemToArr(type);
+  else if( !TypeInfo::isArray(type) )
+  {
     AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
   }
+  
+  itsElemSize = TypeInfo::find( TypeInfo::arrToElem(type) ).size;
+  
   // Size of type + size + shape.
   int sz = sizeof(int) * (3+shape.nelements());
   // Align data on 8 bytes.
@@ -110,14 +104,16 @@ DataArray::DataArray (TypeId type, const IPosition& shape,
   init (shape);
 }
 
-DataArray::DataArray (const Array<bool>& array,
-		      int flags, int shm_flags)
+// templated constructor from an array
+template<class T>
+DataArray::DataArray (const Array<T>& array,
+		      int flags, int )  // shm_flags not yet used
 : NestableContainer(flags&DMI::WRITE != 0),
   itsArray    (0),
   itsSubArray (0)
 {
-  itsElemSize = sizeof(bool);
-  TypeId type = TpArray_bool;
+  itsElemSize = sizeof(T);
+  TypeId type = typeIdOfArray(T);
   const IPosition& shape = array.shape();
   // Size of type + size + shape.
   int sz = sizeof(int) * (3+shape.nelements());
@@ -132,133 +128,13 @@ DataArray::DataArray (const Array<bool>& array,
   setHeaderType (type);
   setHeaderSize (shape.product());
   init (shape);
-  *static_cast<Array_bool*>(itsArray) = array;
+  *static_cast<Array<T>*>(itsArray) = array;
 }
 
-DataArray::DataArray (const Array<int>& array,
-		      int flags, int shm_flags)
-: NestableContainer(flags&DMI::WRITE != 0),
-  itsArray    (0),
-  itsSubArray (0)
-{
-  itsElemSize = sizeof(int);
-  TypeId type = TpArray_int;
-  const IPosition& shape = array.shape();
-  // Size of type + size + shape.
-  int sz = sizeof(int) * (3+shape.nelements());
-  // Align data on 8 bytes.
-  itsDataOffset = (sz+7) / 8 * 8;
-  sz = itsDataOffset + shape.product() * itsElemSize;
-  // Allocate enough space in the SmartBlock.
-  /// Circumvent temporary SmartBlock problem
-  ///  itsData.attach (new SmartBlock (sz, flags, shm_flags),
-  itsData.attach (new SmartBlock (sz, flags),
-		  DMI::WRITE|DMI::ANON|DMI::LOCK);
-  setHeaderType (type);
-  setHeaderSize (shape.product());
-  init (shape);
-  *static_cast<Array_int*>(itsArray) = array;
-}
-
-DataArray::DataArray (const Array<float>& array,
-		      int flags, int shm_flags)
-: NestableContainer(flags&DMI::WRITE != 0),
-  itsArray    (0),
-  itsSubArray (0)
-{
-  itsElemSize = sizeof(float);
-  TypeId type = TpArray_float;
-  const IPosition& shape = array.shape();
-  // Size of type + size + shape.
-  int sz = sizeof(int) * (3+shape.nelements());
-  // Align data on 8 bytes.
-  itsDataOffset = (sz+7) / 8 * 8;
-  sz = itsDataOffset + shape.product() * itsElemSize;
-  // Allocate enough space in the SmartBlock.
-  /// Circumvent temporary SmartBlock problem
-  ///  itsData.attach (new SmartBlock (sz, flags, shm_flags),
-  itsData.attach (new SmartBlock (sz, flags),
-		  DMI::WRITE|DMI::ANON|DMI::LOCK);
-  setHeaderType (type);
-  setHeaderSize (shape.product());
-  init (shape);
-  *static_cast<Array_float*>(itsArray) = array;
-}
-
-DataArray::DataArray (const Array<double>& array,
-		      int flags, int shm_flags)
-: NestableContainer(flags&DMI::WRITE != 0),
-  itsArray    (0),
-  itsSubArray (0)
-{
-  itsElemSize = sizeof(double);
-  TypeId type = TpArray_double;
-  const IPosition& shape = array.shape();
-  // Size of type + size + shape.
-  int sz = sizeof(int) * (3+shape.nelements());
-  // Align data on 8 bytes.
-  itsDataOffset = (sz+7) / 8 * 8;
-  sz = itsDataOffset + shape.product() * itsElemSize;
-  // Allocate enough space in the SmartBlock.
-  /// Circumvent temporary SmartBlock problem
-  ///  itsData.attach (new SmartBlock (sz, flags, shm_flags),
-  itsData.attach (new SmartBlock (sz, flags),
-		  DMI::WRITE|DMI::ANON|DMI::LOCK);
-  setHeaderType (type);
-  setHeaderSize (shape.product());
-  init (shape);
-  *static_cast<Array_double*>(itsArray) = array;
-}
-
-DataArray::DataArray (const Array<fcomplex>& array,
-		      int flags, int shm_flags)
-: NestableContainer(flags&DMI::WRITE != 0),
-  itsArray    (0),
-  itsSubArray (0)
-{
-  itsElemSize = sizeof(fcomplex);
-  TypeId type = TpArray_fcomplex;
-  const IPosition& shape = array.shape();
-  // Size of type + size + shape.
-  int sz = sizeof(int) * (3+shape.nelements());
-  // Align data on 8 bytes.
-  itsDataOffset = (sz+7) / 8 * 8;
-  sz = itsDataOffset + shape.product() * itsElemSize;
-  // Allocate enough space in the SmartBlock.
-  /// Circumvent temporary SmartBlock problem
-  ///  itsData.attach (new SmartBlock (sz, flags, shm_flags),
-  itsData.attach (new SmartBlock (sz, flags),
-		  DMI::WRITE|DMI::ANON|DMI::LOCK);
-  setHeaderType (type);
-  setHeaderSize (shape.product());
-  init (shape);
-  *static_cast<Array_fcomplex*>(itsArray) = array;
-}
-
-DataArray::DataArray (const Array<dcomplex>& array,
-		      int flags, int shm_flags)
-: NestableContainer(flags&DMI::WRITE != 0),
-  itsArray    (0),
-  itsSubArray (0)
-{
-  itsElemSize = sizeof(dcomplex);
-  TypeId type = TpArray_dcomplex;
-  const IPosition& shape = array.shape();
-  // Size of type + size + shape.
-  int sz = sizeof(int) * (3+shape.nelements());
-  // Align data on 8 bytes.
-  itsDataOffset = (sz+7) / 8 * 8;
-  sz = itsDataOffset + shape.product() * itsElemSize;
-  // Allocate enough space in the SmartBlock.
-  /// Circumvent temporary SmartBlock problem
-  ///  itsData.attach (new SmartBlock (sz, flags, shm_flags),
-  itsData.attach (new SmartBlock (sz, flags),
-		  DMI::WRITE|DMI::ANON|DMI::LOCK);
-  setHeaderType (type);
-  setHeaderSize (shape.product());
-  init (shape);
-  *static_cast<Array_dcomplex*>(itsArray) = array;
-}
+// instantiate this constructor template for all other types
+#undef __instantiate
+#define __instantiate(T,arg) template DataArray::DataArray (const Array<T>& array,int flags, int shm_flags);
+DoForAllArrayTypes(__instantiate,);
 
 DataArray::DataArray (const DataArray& other, int flags, int depth)
 : NestableContainer(flags&DMI::WRITE != 0),
@@ -675,3 +551,4 @@ void* DataArray::insert (const HIID&, TypeId, TypeId&)
 {
   AssertMsg (0, "DataArray::insert is not possible");
 }
+

@@ -203,7 +203,7 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       // Used by various puts() to get the ObjRef at position n.
       // Inits/auto-extends field if necessary, checks types, does
       // various housekeeping.
-      ObjRef & prepareForPut (TypeId tid,int n,int flags);
+      ObjRef & prepareForPut (TypeId tid,int n);
       
       // gets sub-record at position n, throws exception if field
       // does not contain a DataRecord
