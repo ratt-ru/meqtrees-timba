@@ -82,7 +82,11 @@ void VisRepeater::run ()
               event = DataSetHeader;
               HIID type;
               if( ref.valid() && ref->objectType() == TpDataRecord )
-                type = (*ref.ref_cast<DataRecord>())[FDataType].as<HIID>(HIID());
+              {
+                const DataRecord &rec = *ref.ref_cast<DataRecord>();
+                type = rec[FDataType].as<HIID>(HIID());
+                cdebug(2)<<"header: "<<rec.sdebug(5);
+              }
               message = "received header for dataset "+id.toString();
               if( !type.empty() )
                 message += ", " + type.toString();
@@ -99,7 +103,9 @@ void VisRepeater::run ()
               {
                 if( state_ == HEADER )
                   control().setStatus(StStreamState,"DATA");
-                control().setStatus(StNumTiles,++ntiles);
+                ntiles++;
+                if( !(ntiles%100) )
+                  control().setStatus(StNumTiles,ntiles);
                 state_ = DATA;
               }
               break;
