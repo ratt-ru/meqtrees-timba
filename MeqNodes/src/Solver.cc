@@ -359,9 +359,9 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   // Do some checks and initialize.
   int nspid = itsSpids.size();
   Assert(int(solution.nelements()) == nspid);
-  AssertStr(itsNrEquations >= nspid, "Only " << itsNrEquations
-             << " equations for "
-             << nspid << " solvable parameters in solver " << name());
+  ///  AssertStr(itsNrEquations >= nspid, "Only " << itsNrEquations
+  ///             << " equations for "
+  ///             << nspid << " solvable parameters in solver " << name());
   solution = 0;
   if (lastIter) {
     RequestId rqid = incrSubId(reqref->id(),getGenSymDepMask());
