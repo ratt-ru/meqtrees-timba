@@ -546,7 +546,9 @@ class realvsimag_plotter(object):
       self.plot.setMarkerLabel( self.legend_marker, self._legend_plot,
         QFont(fn, 9, QFont.Bold, False),
         Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
+      print 'passed if not self._legend_plot is None'
     self.plot.replot()
+    print 'called replot'
   # timerEvent_marker()
 
 # compute points for two circles
@@ -1362,18 +1364,6 @@ class realvsimag_plotter(object):
 
 # finally plot various ancilliary stuff
 
-# Put legend_plot stuff in upper left hand corner of display
-# with yellow background
-        if not self._legend_plot is None:
-           self.legend_marker = self.plot.insertMarker()
-           ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
-           xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
-           self.plot.setMarkerPos(self.legend_marker, xlb, ylb)
-           self.plot.setMarkerLabelAlign(self.legend_marker, Qt.AlignRight | Qt.AlignBottom)
-           fn = self.plot.fontInfo().family()
-           self.plot.setMarkerLabel( self.legend_marker, self._legend_plot,
-             QFont(fn, 9, QFont.Bold, False),
-             Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
 
 # plot mean circles in real vs imaginary plot?
         if not self.errors_plot and self.plot_mean_circles:
@@ -1423,6 +1413,24 @@ class realvsimag_plotter(object):
 # we have inserted all data into curves etc, so as the last step
 # actually update the displayed plot
       self.plot.replot()
+
+# Need to place legend after first replot, because QwtAutoScale not
+# set until initial replot; legend cannot be placed until
+# scale has been set
+
+# Put legend_plot stuff in upper left hand corner of display
+# with yellow background
+      if not self._legend_plot is None:
+         self.legend_marker = self.plot.insertMarker()
+         ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
+         xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+         self.plot.setMarkerPos(self.legend_marker, xlb, ylb)
+         self.plot.setMarkerLabelAlign(self.legend_marker, Qt.AlignRight | Qt.AlignBottom)
+         fn = self.plot.fontInfo().family()
+         self.plot.setMarkerLabel( self.legend_marker, self._legend_plot,
+           QFont(fn, 9, QFont.Bold, False),
+           Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
+         self.plot.replot()
 
     # end of update_plot 
 
