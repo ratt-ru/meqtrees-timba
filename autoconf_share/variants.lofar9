@@ -1,5 +1,5 @@
 gnu3.compiler.conf: CXX=/usr/local/gcc-3.3.2/bin/g++ --with-cppflags="-Wno-deprecated"
-gnu3.compiler.aipspp.var: --with-aipspp=/aips++/stable/linux_gnu
+gnu3.compiler.aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu --with-threads
 
 gnu2.compiler.conf: CXX=/usr/local/gcc-2.95.3/bin/g++ 
 
@@ -9,4 +9,4 @@ icc.compiler.conf: CXX=/usr/local/intel/compiler70/ia32/bin/icc
 
 debugnt.variant.conf:	  $(aipspp)	
 
-aipspp.var: --with-aipspp=/aips++/stable/linux_gnu --with-threads
+aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu --with-threads
