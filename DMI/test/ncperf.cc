@@ -359,7 +359,7 @@ int main ( int argc,const char *argv[] )
 //     cout<<ndone<<" reads in "<<delta<<"s., "<<ndone/delta<<"/s\n\n";
     
   }
-  catch( Debug::Error err ) 
+  catch( std::exception err ) 
   {
     cerr<<"\nCaught exception:\n"<<err.what()<<endl;
     return 1;

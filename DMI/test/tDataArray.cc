@@ -45,7 +45,7 @@ int main()
       cout << endl << "Expect type mismatch exception ..." << endl;
       cout << ">>>" << endl;
       rec["A"].as<LoMat_double>();
-    } catch (Debug::Error& x) {
+    } catch (std::exception& x) {
       cout << x.what() << endl;
       cout << "<<<" << endl;
     }
@@ -53,7 +53,7 @@ int main()
       cout << endl << "Expect type mismatch exception ..." << endl;
       cout << ">>>" << endl;
       rec["A"].as_wp<double>();
-    } catch (Debug::Error& x) {
+    } catch (std::exception& x) {
       cout << x.what() << endl;
       cout << "<<<" << endl;
     }
@@ -74,47 +74,47 @@ int main()
     cout << endl << "Expect some HIID parser exceptions ..." << endl;
     try {
       dtarr->parseHIID (HIID("1:3.:::2"), start, end, incr, keep);
-    } catch (Debug::Error& x) {
+    } catch (std::exception& x) {
       cout << x.what() << endl;
     }
     try {
       dtarr->parseHIID (HIID("10."), start, end, incr, keep);
-    } catch (Debug::Error& x) {
+    } catch (std::exception& x) {
       cout << x.what() << endl;
     }
     try {
       dtarr->parseHIID (HIID(".12"), start, end, incr, keep);
-    } catch (Debug::Error& x) {
+    } catch (std::exception& x) {
       cout << x.what() << endl;
     }
     try {
       dtarr->parseHIID (HIID(".10:9"), start, end, incr, keep);
-    } catch (Debug::Error& x) {
+    } catch (std::exception& x) {
       cout << x.what() << endl;
     }
     try {
       dtarr->parseHIID (HIID(".9:10:0"), start, end, incr, keep);
-    } catch (Debug::Error& x) {
+    } catch (std::exception& x) {
       cout << x.what() << endl;
     }
     try {
       dtarr->parseHIID (HIID(".."), start, end, incr, keep);
-    } catch (Debug::Error& x) {
+    } catch (std::exception& x) {
       cout << x.what() << endl;
     }
     try {
       dtarr->parseHIID (AidRange, start, end, incr, keep);
-    } catch (Debug::Error& x) {
+    } catch (std::exception& x) {
       cout << x.what() << endl;
     }
     try {
       dtarr->parseHIID (1 | AidRange | AidRange, start, end, incr, keep);
-    } catch (Debug::Error& x) {
+    } catch (std::exception& x) {
       cout << x.what() << endl;
     }
     try {
       dtarr->parseHIID (1 | AidRange, start, end, incr, keep);
-    } catch (Debug::Error& x) {
+    } catch (std::exception& x) {
       cout << x.what() << endl;
     }
 
@@ -176,7 +176,7 @@ int main()
         }
       }
     }
-  } catch (Debug::Error& x) {
+  } catch (std::exception& x) {
     cerr << x.what() << endl;
     return 1;
   }

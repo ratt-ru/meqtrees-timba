@@ -383,7 +383,7 @@ int main ( int argc,const char *argv[] )
     cout<<test.toString()<<endl;
     cout<<HIID("_._.:6").toString()<<endl;
   }
-  catch( Debug::Error err ) 
+  catch( std::exception err ) 
   {
     cout<<"\nCaught exception:\n"<<err.what()<<endl;
     return 1;
