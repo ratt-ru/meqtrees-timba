@@ -664,6 +664,10 @@ class NestableContainer : public BlockableObject
 
     //##ModelId=3DB934D201C2
       bool isWritable () const;
+      
+      DefineRefTypes(NestableContainer,Ref);
+      
+      typedef NestableContainer::Ref NCRef;
 
   public:
     // Additional Public Declarations

@@ -159,8 +159,8 @@ protected:
 template<class T> 
 void assign_vector (const std::vector<T> &other) const;
 // helper template to select which vector assignment operation to use
-template<class T,bool assignArray>
-void assign_vector_select (const std::vector<T> &other,Int2Type<assignArray>) const
+template<class T>
+void assign_vector_select (const std::vector<T> &other,Int2Type<false>) const
 { assign_vector(other); }
 template<class T>
 void assign_vector_select (const std::vector<T> &other,Int2Type<true>) const

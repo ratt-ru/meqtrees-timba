@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.22  2003/04/09 09:50:13  smirnov
+//  %[BugId: 26]%
+//  Revised DataRecord to hold any NC (not just a DataField). This makes for
+//  far more consistent subscripting into records.
+//
 //  Revision 1.21  2003/01/08 10:32:41  diepen
 //  %[BugId: 76]%
 //  <ostream> was not found for gcc2.95.3
@@ -204,7 +209,8 @@ static void destroyStringArray (void *start,int num)
 
 //##ModelId=3DB949AE039F
 DataArray::DataArray (int flags)
-: NestableContainer(flags&DMI::WRITE != 0),
+  // WRITE is always set unless READONLY is specified
+: NestableContainer(flags |= (flags&DMI::READONLY ? 0 : DMI::WRITE) ),
   itsArray    (0)
 {
   initSubArray();
@@ -213,7 +219,8 @@ DataArray::DataArray (int flags)
 //##ModelId=3DB949AE03A4
 DataArray::DataArray (TypeId type, const LoShape & shape,
 		      int flags, int ) // shm_flags not yet used
-: NestableContainer(flags&DMI::WRITE != 0),
+  // WRITE is always set unless READONLY is specified
+: NestableContainer(flags |= (flags&DMI::READONLY ? 0 : DMI::WRITE)),
   itsArray    (0)
 {
   initSubArray();
@@ -247,9 +254,11 @@ DataArray::DataArray (TypeId type, const LoShape & shape,
 
 //##ModelId=3DB949AE03AF
 DataArray::DataArray (const DataArray& other, int flags, int depth)
-: NestableContainer(flags&DMI::WRITE != 0),
+: NestableContainer(flags |= (flags&DMI::READONLY ? 0 : DMI::WRITE)),
   itsArray    (0)
 {
+  if( flags&DMI::READONLY == 0 )
+    flags |= DMI::WRITE;
   initSubArray();
   cloneOther(other,flags,depth);
 }

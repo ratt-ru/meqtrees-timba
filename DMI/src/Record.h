@@ -1,19 +1,12 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+#ifndef DMI_DataRecord_h
+#define DMI_DataRecord_h 1
 
-#ifndef DataRecord_h
-#define DataRecord_h 1
-
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
+#include <DMI/DMI.h>
+#include <DMI/NestableContainer.h>
+#include <DMI/HIID.h>
+#include <DMI/DataField.h>
 
 #pragma type #DataRecord
-
-// NestableContainer
-#include "DMI/NestableContainer.h"
-// HIID
-#include "DMI/HIID.h"
-// DataField
-#include "DMI/DataField.h"
 
 //##ModelId=3BB3112B0027
 //##Documentation
@@ -28,7 +21,7 @@ class DataRecord : public NestableContainer
       {
         private:
         //##ModelId=3DB934810397
-          map<HIID,DataFieldRef>::const_iterator iter;
+          map<HIID,NCRef>::const_iterator iter;
 #ifdef USE_THREADS
         //##ModelId=3DB934810398
           Thread::Mutex::Lock lock;
@@ -54,41 +47,44 @@ class DataRecord : public NestableContainer
     //##ModelId=3DB93482022F
       DataRecord & operator=(const DataRecord &right);
 
-
       //##ModelId=3C58248C0232
       //##Documentation
       //## Returns the class TypeId
       virtual TypeId objectType () const;
 
       //##ModelId=3BFBF5B600EB
-      void add (const HIID &id, const DataFieldRef &ref, int flags = DMI::XFER);
+      void add (const HIID &id, const NCRef &ref, int flags = DMI::XFER);
 
       //##ModelId=3C5FF0D60106
-      void add (const HIID &id, DataField *pfld, int flags = DMI::WRITE|DMI::ANON);
+      void add (const HIID &id, NestableContainer *pfld, int flags = DMI::WRITE|DMI::ANON);
 
       //##ModelId=3BB311C903BE
       //##Documentation
       //## Removes data field from container and returns a ref to the removed
       //## field
-      DataFieldRef removeField (const HIID &id);
+      NCRef removeField (const HIID &id);
 
       //##ModelId=3BFCD4BB036F
-      void replace (const HIID &id, const DataFieldRef &ref, int flags = DMI::XFER);
+      void replace (const HIID &id, const NCRef &ref, int flags = DMI::XFER);
 
       //##ModelId=3C5FF10102CA
-      void replace (const HIID &id, DataField *pfld, int flags = DMI::WRITE|DMI::ANON);
-
-      //##ModelId=3C57CFFF005E
-      DataFieldRef field (const HIID &id) const;
+      void replace (const HIID &id, NestableContainer *pfld, int flags = DMI::WRITE|DMI::ANON);
 
       //##ModelId=3C57D02B0148
       //##Documentation
       //## Returns true if id refers to a valid DataField (i.e., that can be
       //## fetched with field()). Throws no exceptions.
       bool isDataField (const HIID &id) const;
+      //##Documentation
+      //## Returns true if id refers to a valid DataArray (i.e., that can be
+      //## fetched with field()). Throws no exceptions.
+      bool isDataArray (const HIID &id) const;
 
+      //##ModelId=3C57CFFF005E
+      NCRef field (const HIID &id) const;
+      
       //##ModelId=3BFBF49D00A1
-      DataFieldRef fieldWr (const HIID &id, int flags = DMI::PRESERVE_RW);
+      NCRef fieldWr (const HIID &id, int flags = DMI::PRESERVE_RW);
 
       //##ModelId=3C58216302F9
       //##Documentation
@@ -158,25 +154,26 @@ class DataRecord : public NestableContainer
 
       //##ModelId=3C552E2D009D
       //##Documentation
-      //## Resolves HIID to a field using longest-match, returns remaining
-      //## atoms in rest, and sets can_write to True if field is writable. If
+      //## Resolves HIID to a field. Sets can_write to True if field is writable. If
       //## must_write is True, throws an exception if something along the way
       //## is not writable.
-      const DataFieldRef & resolveField (const HIID &id, HIID& rest, bool &can_write, bool must_write = False) const;
+      const NCRef & resolveField (const HIID &id,HIID &rest,bool &can_write, bool must_write = False) const;
 
   private:
     // Data Members for Associations
 
       //##ModelId=3BE123060149
-      map<HIID,DataFieldRef> fields;
+      map<HIID,NCRef> fields;
 
     // Additional Implementation Declarations
     //##ModelId=3DB9343B02FE
-      typedef map<HIID,DataFieldRef>::iterator FMI;
+      typedef map<HIID,NCRef>::iterator FMI;
     //##ModelId=3DB9343B03D1
-      typedef map<HIID,DataFieldRef>::const_iterator CFMI;
+      typedef map<HIID,NCRef>::const_iterator CFMI;
     //##ModelId=3DB9343C00B1
-      typedef map<HIID,DataFieldRef>::value_type FMV;
+      typedef map<HIID,NCRef>::value_type FMV;
+      
+      typedef struct { int idsize; int ftype; } BlockFieldInfo;
 };
 
 DefineRefTypes(DataRecord,DataRecordRef);
@@ -191,15 +188,15 @@ inline TypeId DataRecord::objectType () const
 }
 
 //##ModelId=3C5FF0D60106
-inline void DataRecord::add (const HIID &id, DataField *pfld, int flags)
+inline void DataRecord::add (const HIID &id, NestableContainer *pfld, int flags)
 {
-  add(id,DataFieldRef(pfld,flags));
+  add(id,NCRef(pfld,flags));
 }
 
 //##ModelId=3C5FF10102CA
-inline void DataRecord::replace (const HIID &id, DataField *pfld, int flags)
+inline void DataRecord::replace (const HIID &id,  NestableContainer *pfld, int flags)
 {
-  replace(id,DataFieldRef(pfld,flags));
+  replace(id,NCRef(pfld,flags));
 }
 
 //##ModelId=3CA20ACE00F8

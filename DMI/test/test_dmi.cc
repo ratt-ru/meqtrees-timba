@@ -132,7 +132,7 @@ void TestDataRecord ()
   cout<<"======================= adding to record\n";
   HIID id("A.B.C.D");
   cout<<"ID: "<<id.toString()<<endl;
-  rec.add(id,f2,DMI::COPYREF|DMI::WRITE);
+  rec.add(id,f2.dewr_p(),DMI::COPYREF|DMI::WRITE);
   rec["A.B.C.D"][20] = 5;
   Assert( rec["A.B.C.D"].exists() );
   Assert( rec["A.B.C.D"].size() == 32 );
@@ -292,7 +292,7 @@ void TestDataRecord ()
   
   cout<<"Checking transparent array indexing\n";
   rec["X.Y.Z"] <<= new DataArray(Tpdouble,makeLoShape(10),DMI::ZERO);
-  Assert(rec["X.Y.Z/0"][0].as<double>() == 0);
+  Assert(rec["X.Y.Z"][0].as<double>() == 0);
   
   {
     cout<<"Checking NCIters\n";
@@ -326,7 +326,7 @@ void TestDataRecord ()
   cout<<"======================= testing BOIO\n";
   cout<<"======================= writing\n";
   BOIO boio("test.boio",BOIO::WRITE);
-  boio << rec << rec["X"].as<DataField>();
+  boio << rec << rec["X"].as<DataArray>();
   boio.close();
   
   cout<<"======================= reading\n";
