@@ -24,7 +24,7 @@
 #define MEQ_FUNCTION_H
     
 #include <MEQ/Node.h>
-#include <MEQ/Result.h>
+#include <MEQ/VellSet.h>
 
 #pragma types #Meq::Function
 
@@ -58,11 +58,11 @@ public:
   //   usually sufficient.
   // <li> For the calculation of all perturbed values the same function as
   //   for the main value is used.
-  // <li> Usually the fastest way to go is to overload function getResultImpl
+  // <li> Usually the fastest way to go is to overload function getResult
   //   in the derived class, because in that way some values can be
   //   calculated once for main value and perturbed values.
   // </ul>
-  virtual int getResultImpl (ResultSet::Ref &resref, const Request&, bool newReq);
+  virtual int getResult (Result::Ref &resref, const Request&, bool newReq);
 
   // Find the shape of the result for evaluate. Usually the default 
   // implementation is sufficient which takes
@@ -82,7 +82,7 @@ public:
   { Vells res; evaluateVells(res,req,values); return res; }
 
   // Find all spids for this node by merging the spids in all results.
-  static vector<int> findSpids (const vector<Result*>&);
+  static vector<int> findSpids (const vector<VellSet*>&);
 
   // Returns the class TypeId
   virtual TypeId objectType() const;

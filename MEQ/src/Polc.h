@@ -26,7 +26,7 @@
 //# Includes
 #include <MEQ/Domain.h>
 #include <MEQ/Vells.h>
-#include <MEQ/Result.h>
+#include <MEQ/VellSet.h>
 
 //# Forward declarations
 template<class T> class Matrix;
@@ -52,7 +52,7 @@ public:
   Polc();
 
   // Calculate the value and possible perturbations.
-  void getResult (Result &, const Request&);
+  void evaluate (VellSet &, const Request&);
 
   // Get number of coefficients.
   int ncoeff() const

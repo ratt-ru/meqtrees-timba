@@ -297,23 +297,6 @@ namespace Meq { class Result; };
               typedef const Meq::Result & ContainerParamType;
             };
 #endif
-#ifndef _defined_id_TpMeqResultSet
-#define _defined_id_TpMeqResultSet 1
-const TypeId TpMeqResultSet(-1215);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ResultSet.h:34
-const int TpMeqResultSet_int = -1215;
-namespace Meq { class ResultSet; };
-            template<>
-            class DMIBaseTypeTraits<Meq::ResultSet> : public TypeTraits<Meq::ResultSet>
-            {
-              public:
-              enum { isContainable = true };
-              enum { typeId = TpMeqResultSet_int };
-              enum { TypeCategory = TypeCategories::DYNAMIC };
-              enum { ParamByRef = true, ReturnByRef = true };
-              typedef const Meq::ResultSet & ContainerReturnType;
-              typedef const Meq::ResultSet & ContainerParamType;
-            };
-#endif
 #ifndef _defined_id_TpMeqSelector
 #define _defined_id_TpMeqSelector 1
 const TypeId TpMeqSelector(-1255);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Selector.h:29
@@ -465,6 +448,23 @@ namespace Meq { class UVW; };
               enum { ParamByRef = true, ReturnByRef = true };
               typedef const Meq::UVW & ContainerReturnType;
               typedef const Meq::UVW & ContainerParamType;
+            };
+#endif
+#ifndef _defined_id_TpMeqVellSet
+#define _defined_id_TpMeqVellSet 1
+const TypeId TpMeqVellSet(-1369);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/VellSet.h:34
+const int TpMeqVellSet_int = -1369;
+namespace Meq { class VellSet; };
+            template<>
+            class DMIBaseTypeTraits<Meq::VellSet> : public TypeTraits<Meq::VellSet>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqVellSet_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::VellSet & ContainerReturnType;
+              typedef const Meq::VellSet & ContainerParamType;
             };
 #endif
 

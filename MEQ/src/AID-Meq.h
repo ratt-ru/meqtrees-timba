@@ -163,11 +163,6 @@ const int AidMeqRequest_int = -1222;
 const AtomicID AidMeqResult(-1246);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:36
 const int AidMeqResult_int = -1246;
 #endif
-#ifndef _defined_id_AidMeqResultSet
-#define _defined_id_AidMeqResultSet 1
-const AtomicID AidMeqResultSet(-1215);            // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ResultSet.h:34
-const int AidMeqResultSet_int = -1215;
-#endif
 #ifndef _defined_id_AidMeqSelector
 #define _defined_id_AidMeqSelector 1
 const AtomicID AidMeqSelector(-1255);             // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Selector.h:29
@@ -212,6 +207,11 @@ const int AidMeqToComplex_int = -1217;
 #define _defined_id_AidMeqUVW 1
 const AtomicID AidMeqUVW(-1239);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/UVW.h:29
 const int AidMeqUVW_int = -1239;
+#endif
+#ifndef _defined_id_AidMeqVellSet
+#define _defined_id_AidMeqVellSet 1
+const AtomicID AidMeqVellSet(-1369);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/VellSet.h:34
+const int AidMeqVellSet_int = -1369;
 #endif
 #ifndef _defined_id_AidMessage
 #define _defined_id_AidMessage 1
@@ -317,6 +317,21 @@ const int AidTimes_int = -1252;
 #define _defined_id_AidValue 1
 const AtomicID AidValue(-1256);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:35
 const int AidValue_int = -1256;
+#endif
+#ifndef _defined_id_AidVellSet
+#define _defined_id_AidVellSet 1
+const AtomicID AidVellSet(-1368);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:30
+const int AidVellSet_int = -1368;
+#endif
+#ifndef _defined_id_AidVellSets
+#define _defined_id_AidVellSets 1
+const AtomicID AidVellSets(-1371);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:31
+const int AidVellSets_int = -1371;
+#endif
+#ifndef _defined_id_AidVells
+#define _defined_id_AidVells 1
+const AtomicID AidVells(-1370);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:31
+const int AidVells_int = -1370;
 #endif
 
 

@@ -23,7 +23,7 @@
 #define MeqSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413
     
 #include <DMI/DataRecord.h>
-#include <MEQ/ResultSet.h>
+#include <MEQ/Result.h>
 #include <MEQ/AID-Meq.h>
 #include <MEQ/TID-Meq.h>
 #include <map>
@@ -46,7 +46,7 @@ class Node : public BlockableObject
     typedef CountedRef<Node> Ref;
   
   
-    // these are flags returned by getResult(), indicating result properties
+    // these are flags returned by execute(), indicating result properties
     //##ModelId=3F698825005B
     typedef enum {
       RES_WAIT    = 1,    // result not yet available, must wait
@@ -83,7 +83,7 @@ class Node : public BlockableObject
     virtual void setState (const DataRecord &rec);
     
     //##ModelId=3F6726C4039D
-    int getResult (ResultSet::Ref &resref, const Request &);
+    int execute (Result::Ref &resref, const Request &);
 
     const HIID & currentRequestId ();
     
@@ -140,13 +140,13 @@ class Node : public BlockableObject
     //##ModelId=3F98D9D2006B
     virtual void processRequestRider (const DataRecord &rider);
     //##ModelId=3F98D9D100B9
-    virtual int getResultImpl (ResultSet::Ref &resref, const Request &req,bool newreq);
+    virtual int getResult (Result::Ref &resref, const Request &req,bool newreq);
 
     // helper function for nodes with multiple children:
     //  1. allocates vector for child ResultSets
-    //  2. calls getResult() on all children
+    //  2. calls execute() on all children
     //  3. returns the bitwise OR of all non-failed flags
-    int getChildResults (std::vector<ResultSet::Ref> &childref,
+    int getChildResults (std::vector<Result::Ref> &childref,
                          const Request& request);
         
   private:
@@ -166,7 +166,7 @@ class Node : public BlockableObject
     Forest *forest_;
     
     HIID current_req_id_;
-    ResultSet::Ref res_cache_;
+    Result::Ref res_cache_;
     
     //##ModelId=3F8433C10295
     typedef std::map<HIID,int> ChildrenMap;

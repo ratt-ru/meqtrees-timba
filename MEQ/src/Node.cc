@@ -236,9 +236,9 @@ void Node::setCurrentRequest (const Request &req)
 }
 
 //##ModelId=3F6726C4039D
-int Node::getResult (ResultSet::Ref &ref, const Request &req)
+int Node::execute (Result::Ref &ref, const Request &req)
 {
-  cdebug(3)<<"getResult, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
+  cdebug(3)<<"execute, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
   // do we have a new request?
   bool newreq = req.id() != currentRequestId();
   try
@@ -273,7 +273,7 @@ int Node::getResult (ResultSet::Ref &ref, const Request &req)
       }
       else
       {
-        cdebug(3)<<"  old request but cache is empty, redoing getResult"<<endl;
+        cdebug(3)<<"  old request but cache is empty, redoing execute"<<endl;
       }
     }
     if( DebugLevel>2 && req.hasCells() )
@@ -281,24 +281,24 @@ int Node::getResult (ResultSet::Ref &ref, const Request &req)
       cdebug(3)<<"  cells are "<<req.cells();
     }
     // new request and/or no cache -- recompute the result
-    int flags = getResultImpl(ref,req,newreq);
+    int flags = getResult(ref,req,newreq);
     // add cells if not there
     if( ref.valid() && !ref->hasCells() )
       ref().setCells(req.cells());
-    cdebug(3)<<"  getResultImpl returns flags: "<<flags<<endl;
+    cdebug(3)<<"  getResult returns flags: "<<flags<<endl;
     cdebug(3)<<"  result is: "<<ref.sdebug(DebugLevel-1,"    ")<<endl;
     if( DebugLevel>3 && ref.valid() )
     {
-      for( int i=0; i<ref->numResults(); i++ ) 
+      for( int i=0; i<ref->numVellSets(); i++ ) 
       {
-        const Result &res = ref->resultConst(i);
-        if( res.isFail() )
+        const VellSet &vs = ref->vellSetConst(i);
+        if( vs.isFail() )
         {
-          cdebug(4)<<"  plane "<<i<<": FAIL "<<endl;
+          cdebug(4)<<"  vellset "<<i<<": FAIL "<<endl;
         }
         else
         {
-          cdebug(4)<<"  plane "<<i<<": "<<res.getValue()<< endl;
+          cdebug(4)<<"  vellset "<<i<<": "<<vs.getValue()<< endl;
         }
       }
     }
@@ -313,9 +313,9 @@ int Node::getResult (ResultSet::Ref &ref, const Request &req)
   // catch any exceptions, return a single FAIL
   catch( std::exception &x )
   {
-    ref <<= new ResultSet(1);
-    Result & res = ref().setNewResult(0);
-    MakeFailResult(res,string("exception occurred in getResult: ")+x.what());
+    ref <<= new Result(1);
+    VellSet & res = ref().setNewVellSet(0);
+    MakeFailVellSet(res,string("exception occurred in execute: ")+x.what());
     return RES_FAIL;
   }
 }
@@ -327,13 +327,13 @@ void Node::processRequestRider (const DataRecord &)
 }
 
 //##ModelId=3F98D9D100B9
-int Node::getResultImpl (ResultSet::Ref &, const Request &,bool)
+int Node::getResult (Result::Ref &, const Request &,bool)
 {
-  Throw("Meq::Node::getResultImpl not implemented");
+  Throw("Meq::Node::getResult not implemented");
 }
 
 
-int Node::getChildResults (std::vector<ResultSet::Ref> &childref,
+int Node::getChildResults (std::vector<Result::Ref> &childref,
                            const Request& request)
 {
   childref.resize(numChildren());
@@ -342,7 +342,7 @@ int Node::getChildResults (std::vector<ResultSet::Ref> &childref,
   // collect results from children
   for( int i=0; i<numChildren(); i++ )
   {
-    int flag = getChild(i).getResult(childref[i],request);
+    int flag = getChild(i).execute(childref[i],request);
     if( flag == RES_FAIL )
       nfails++;
     else

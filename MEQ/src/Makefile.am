@@ -1,7 +1,7 @@
 SUBDIRS	= .
 
 DOCHDRS		 	= MeqVocabulary.h \
-Domain.h Cells.h Vells.h Result.h ResultSet.h Polc.h \
+Domain.h Cells.h Vells.h VellSet.h Result.h Polc.h \
 Node.h Function.h Function1.h Function2.h \
 Parm.h Freq.h Time.h Selector.h Composer.h \
 Add.h Subtract.h Multiply.h Divide.h \
@@ -13,7 +13,7 @@ Forest.h ParmTable.h
 lib_LTLIBRARIES 	= libmeq.la
 
 libmeq_la_SOURCES 	= $(DOCHDRS)		\
-Domain.cc	Cells.cc Vells.cc Result.cc ResultSet.cc Polc.cc \
+Domain.cc	Cells.cc Vells.cc VellSet.cc Result.cc Polc.cc \
 Node.cc Function.cc Function1.cc Function2.cc \
 Parm.cc Freq.cc Time.cc Selector.cc Composer.cc \
 Add.cc Subtract.cc Multiply.cc Divide.cc \

@@ -27,8 +27,8 @@
 
 
 #pragma aidgroup Meq
-#pragma aid Node Class Name State Child Children Request Result Rider Id
-#pragma aid Cells Domain Freq Time Times Step Steps Calc Deriv
+#pragma aid Node Class Name State Child Children Request Result VellSet Rider Id
+#pragma aid Cells Domain Freq Time Times Step Steps Calc Deriv Vells VellSets
 #pragma aid Table Name Default Value Index Num
 #pragma aid Parm Spid Index Perturbed Perturbations
 #pragma aid Cells Results Fail Origin Line Message Contagious 
@@ -46,7 +46,7 @@ namespace Meq
     FNodeState       = AidNode|AidState,
     FClass           = AidClass,
     FClassName       = AidClass|AidName,
-    FResults         = AidResults,
+    FVellSets        = AidVellSets,
     FResult          = AidResult,
     FChildren        = AidChildren,
     FName            = AidName,

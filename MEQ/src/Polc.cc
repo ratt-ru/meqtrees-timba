@@ -24,7 +24,7 @@
 
 #include <MEQ/Polc.h>
 #include <MEQ/Request.h>
-#include <MEQ/Result.h>
+#include <MEQ/VellSet.h>
 #include <MEQ/Vells.h>
 #include <Common/Debug.h>
 #include <aips/Arrays/Matrix.h>
@@ -78,7 +78,7 @@ void Polc::setCoeffOnly (const Vells& values)
   clearSolvable();
 }
 
-void Polc::getResult (Result &result, const Request& request)
+void Polc::evaluate (VellSet &result, const Request& request)
 {
   PERFPROFILE(__PRETTY_FUNCTION__);
   bool makeDiff = itsNrSpid > 0  &&  request.calcDeriv();

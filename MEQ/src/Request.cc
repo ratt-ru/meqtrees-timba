@@ -87,11 +87,11 @@ void Request::validateContent ()
   }
   catch( std::exception &err )
   {
-    Throw(string("validate of ResultSet record failed: ") + err.what());
+    Throw(string("validate of Result record failed: ") + err.what());
   }
   catch( ... )
   {
-    Throw("validate of ResultSet record failed with unknown exception");
+    Throw("validate of Result record failed with unknown exception");
   }  
 }
 

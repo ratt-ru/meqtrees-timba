@@ -9,10 +9,10 @@
 BlockableObject * __construct_MeqDomain (int n) { return n>0 ? new Meq::Domain [n] : new Meq::Domain; }
 #include "Cells.h"
 BlockableObject * __construct_MeqCells (int n) { return n>0 ? new Meq::Cells [n] : new Meq::Cells; }
+#include "VellSet.h"
+BlockableObject * __construct_MeqVellSet (int n) { return n>0 ? new Meq::VellSet [n] : new Meq::VellSet; }
 #include "Result.h"
 BlockableObject * __construct_MeqResult (int n) { return n>0 ? new Meq::Result [n] : new Meq::Result; }
-#include "ResultSet.h"
-BlockableObject * __construct_MeqResultSet (int n) { return n>0 ? new Meq::ResultSet [n] : new Meq::ResultSet; }
 #include "Node.h"
 BlockableObject * __construct_MeqNode (int n) { return n>0 ? new Meq::Node [n] : new Meq::Node; }
 #include "Function.h"
@@ -72,6 +72,7 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1220,"children")+
         AtomicID::registerId(-1210,"request")+
         AtomicID::registerId(-1228,"result")+
+        AtomicID::registerId(-1368,"vellset")+
         AtomicID::registerId(-1250,"rider")+
         AtomicID::registerId(-1087,"id")+
         AtomicID::registerId(-1247,"cells")+
@@ -83,6 +84,8 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1363,"steps")+
         AtomicID::registerId(-1211,"calc")+
         AtomicID::registerId(-1230,"deriv")+
+        AtomicID::registerId(-1370,"vells")+
+        AtomicID::registerId(-1371,"vellsets")+
         AtomicID::registerId(-1361,"table")+
         AtomicID::registerId(-1231,"default")+
         AtomicID::registerId(-1256,"value")+
@@ -105,12 +108,12 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1237,"meqcells")+
         TypeInfoReg::addToRegistry(-1237,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1237,__construct_MeqCells)+
+        AtomicID::registerId(-1369,"meqvellset")+
+        TypeInfoReg::addToRegistry(-1369,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1369,__construct_MeqVellSet)+
         AtomicID::registerId(-1246,"meqresult")+
         TypeInfoReg::addToRegistry(-1246,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1246,__construct_MeqResult)+
-        AtomicID::registerId(-1215,"meqresultset")+
-        TypeInfoReg::addToRegistry(-1215,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1215,__construct_MeqResultSet)+
         AtomicID::registerId(-1242,"meqnode")+
         TypeInfoReg::addToRegistry(-1242,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1242,__construct_MeqNode)+

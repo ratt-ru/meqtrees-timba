@@ -39,7 +39,7 @@ namespace Meq {
 class Request : public DataRecord
 {
 public:
-  typedef CountedRef<Result> Ref;
+  typedef CountedRef<VellSet> Ref;
     
   Request ();
     
@@ -66,7 +66,7 @@ public:
   
   // this disables removal of fields via hooks
   virtual bool remove (const HIID &)
-  { Throw("remove() from a Meq::Result not allowed"); }
+  { Throw("remove() from a Meq::VellSet not allowed"); }
   
   // Calculate derivatives if parameters are solvable?
   bool calcDeriv() const

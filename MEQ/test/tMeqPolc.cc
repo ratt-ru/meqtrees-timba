@@ -23,7 +23,7 @@
 
 #include <MEQ/Polc.h>
 #include <MEQ/Request.h>
-#include <MEQ/Result.h>
+#include <MEQ/VellSet.h>
 #include <MEQ/Vells.h>
 #include <Common/Debug.h>
 
@@ -59,12 +59,12 @@ void doIt (Polc& polc)
   Assert (compare(polc.getCoeff(), backc));
   // Evaluate both polynomials for some values.
   Request req(new Cells(domain, 4, 4));
-  Result res1;
-  Result::Ref refres1(res1, DMI::WRITE || DMI::EXTERNAL);
-  polc.getResult (refres1, req);
-  Result res2;
-  Result::Ref refres2(res2, DMI::WRITE || DMI::EXTERNAL);
-  newpolc.getResult (refres2, req);
+  VellSet res1;
+  VellSet::Ref refres1(res1, DMI::WRITE || DMI::EXTERNAL);
+  polc.evaluate(refres1, req);
+  VellSet res2;
+  VellSet::Ref refres2(res2, DMI::WRITE || DMI::EXTERNAL);
+  newpolc.evaluate (refres2, req);
   Assert (compare(res1.getValue(), res2.getValue()));
 }
 

@@ -26,7 +26,7 @@
 #include <MEQ/Node.h>
 #include <MEQ/Function.h>
 #include <MEQ/Request.h>
-#include <MEQ/Result.h>
+#include <MEQ/VellSet.h>
 #include <MEQ/TID-Meq.h>
 #include <DMI/DataArray.h>
 #include <exception>
@@ -91,10 +91,10 @@ int main (int argc,const char* argv[])
     cout << "============ getting result =========\n";
     Domain domain(1,4, -2,3);
     Request req(new Cells(domain, 4, 4));
-    ResultSet::Ref refres;
-    int flag = chadd.getResult (refres, req);
+    Result::Ref refres;
+    int flag = chadd.execute(refres, req);
     cout << flag << endl;
-    cout << refres().result(0).getValue() << endl;
+    cout << refres().vellSet(0).getValue() << endl;
   } 
   catch (std::exception& x) 
   {

@@ -117,11 +117,11 @@ void Function::testChildren (const vector<TypeId>& types) const
   }
 }
 
-int Function::getResultImpl (ResultSet::Ref &resref, const Request& request, bool)
+int Function::getResult (Result::Ref &resref, const Request& request, bool)
 {
   int nrch = itsChildren.size();
   FailWhen(nrch<=0,"node has no children" );
-  vector<ResultSet::Ref> child_results;
+  vector<Result::Ref> child_results;
   // collect child_results from children
   int flag = getChildResults(child_results,request);
   // return flag if at least one child wants to wait. If all children have 
@@ -129,31 +129,31 @@ int Function::getResultImpl (ResultSet::Ref &resref, const Request& request, boo
   if( flag != Node::RES_FAIL && flag&Node::RES_WAIT) 
     return flag;
   // figure out the number of child planes
-  int nplanes = child_results[0]->numResults();
+  int nplanes = child_results[0]->numVellSets();
   for( int i=1; i<nrch; i++ )
-    nplanes = std::max(nplanes,child_results[i]->numResults());
+    nplanes = std::max(nplanes,child_results[i]->numVellSets());
   // Create result set and attach to the ref that was passed in
-  ResultSet & resultset = resref <<= new ResultSet(request,nplanes);
+  Result & resultset = resref <<= new Result(request,nplanes);
 //  resultset.setCells(request.cells());
-  vector<Result*> child_res(nrch);
+  vector<VellSet*> child_res(nrch);
   vector<Vells*>  values(nrch);
   int nfails = 0;
   for( int iplane = 0; iplane < nplanes; iplane++ )
   {
     // initialize result for this plane
-    Result &result = resultset.setNewResult(iplane);
+    VellSet &result = resultset.setNewVellSet(iplane);
     // collect vector of pointers to child results, and vector of pointers 
     // to main value. If some child is out of results, generate a fail. If 
     // any child results are fails, collect them for propagation
     for( int i=0; i<nrch; i++ )
     {
-      if( iplane >= child_results[i]->numResults() )
+      if( iplane >= child_results[i]->numVellSets() )
       {
-        MakeFailResult(result,ssprintf("child %d: not enough result planes",child_results[i]->numResults()));
+        MakeFailVellSet(result,ssprintf("child %d: not enough result planes",child_results[i]->numVellSets()));
       }
       else 
       {
-        child_res[i] = &(child_results[i]().result(iplane));
+        child_res[i] = &(child_results[i]().vellSet(iplane));
         if( child_res[i]->isFail() ) 
         { // collect fails from child result
           for( int j=0; j<child_res[i]->numFails(); j++ )
@@ -194,8 +194,8 @@ int Function::getResultImpl (ResultSet::Ref &resref, const Request& request, boo
       }
       catch( std::exception &x )
       {
-        MakeFailResult(result,
-            string("exception occurred while evaluating a Function node getResult: ")
+        MakeFailVellSet(result,
+            string("exception in Function::getResult: ")
             + x.what());
       }
     }
@@ -223,11 +223,11 @@ LoShape Function::resultShape (const vector<Vells*>& values)
 
 void Function::evaluateVells (Vells&, const Request&, const vector<Vells*>&)
 {
-  AssertMsg (false, "evaluate or getResultImpl not implemented in class "
+  AssertMsg (false, "evaluate or getResult not implemented in class "
 	     "derived from MeqFunction");
 }
 
-vector<int> Function::findSpids (const vector<Result*> &results)
+vector<int> Function::findSpids (const vector<VellSet*> &results)
 {
   // Determine the maximum number of spids.
   int nrspid = 0;
@@ -248,7 +248,7 @@ vector<int> Function::findSpids (const vector<Result*> &results)
   nrspid = 0;                  // no resulting spids yet
   // Loop through all children.
   for (int ch=0; ch<nrch; ch++) {
-    const Result &resch = *results[ch];
+    const VellSet &resch = *results[ch];
     int nrchsp = resch.getNumSpids();
     if (nrchsp > 0) {
       // Only handle a child with spids.
