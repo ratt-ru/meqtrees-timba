@@ -242,6 +242,7 @@ meqm2uvw                         1360       ; from /home/noordam/LOFAR/CEP/CPA/P
 #meqmultiply                     1227       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Multiply.h:29
 #meqnode                         1242       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:34
 #meqparm                         1244       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Parm.h:35
+#meqpointsourcedft               1469       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/PointSourceDFT.h:30
 #meqpolc                         1407       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Polc.h:32
 #meqpow                          1214       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Pow.h:29
 meqpredictsource_ll              1357       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_LL.h:14
@@ -377,6 +378,10 @@ resume                           1270       ; from /home/oms/LOFAR/CEP/CPA/AppAg
 rider                            1250       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:33
 row                              1150       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
 s                                1025       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
+s1df                             1470       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/PointSourceDFT.h:31
+s1f0                             1472       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/PointSourceDFT.h:31
+s2df                             1473       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/PointSourceDFT.h:31
+s2f0                             1471       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/PointSourceDFT.h:31
 save                             1391       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:13
 scale                            1405       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
 scope                            1042       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
