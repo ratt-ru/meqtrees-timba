@@ -25,4 +25,9 @@ static AtomicID::Register aid_reg_Header(-1133,"Header");
 static AtomicID::Register aid_reg_Footer(-1202,"Footer");
 static AtomicID::Register aid_reg_Interrupt(-1382,"Interrupt");
 static AtomicID::Register aid_reg_Mismatch(-1383,"Mismatch");
+static AtomicID::Register aid_reg_Stream(-1391,"Stream");
+static AtomicID::Register aid_reg_State(-1052,"State");
+static AtomicID::Register aid_reg_Num(-1140,"Num");
+static AtomicID::Register aid_reg_Tiles(-1392,"Tiles");
+static AtomicID::Register aid_reg_VDSID(-1121,"VDSID");
 

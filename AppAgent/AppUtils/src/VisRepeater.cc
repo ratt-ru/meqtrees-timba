@@ -2,6 +2,7 @@
 
 using namespace AppControlAgentVocabulary;
 using namespace VisRepeaterVocabulary;
+using namespace VisVocabulary;
 using namespace AppState;
 using namespace VisAgent;
 
@@ -39,9 +40,14 @@ void VisRepeater::run ()
       control().setState(STOPPED);
       continue;
     }
+    
     bool output_open = True;
+    int ntiles = 0;
     state_ = FOOTER;
     vdsid_.clear();
+    control().setStatus(StStreamState,"none");
+    control().setStatus(StNumTiles,0);
+    control().setStatus(StVDSID,vdsid_);
     // run main loop
     while( control().state() > 0 )  // while in a running state
     {
@@ -61,6 +67,7 @@ void VisRepeater::run ()
           switch( intype )
           {
             case HEADER:
+            {
               cdebug(2)<<"received HEADER "<<id<<endl;
               // if not expecting a header, post warning event
               if( state_ != FOOTER )
@@ -68,23 +75,37 @@ void VisRepeater::run ()
                 cdebug(2)<<"header interrupts previous data set "<<vdsid_<<endl;
                 postDataEvent(DataSetInterrupt,"unexpected header, interrupting data set");
               }
+              control().setStatus(StStreamState,"HEADER");
+              control().setStatus(StNumTiles,ntiles=0);
+              control().setStatus(StVDSID,vdsid_ = id);
               state_ = HEADER;
-              vdsid_ = id;
               event = DataSetHeader;
+              HIID type;
+              if( ref.valid() && ref->objectType() == TpDataRecord )
+                type = (*ref.ref_cast<DataRecord>())[FDataType].as<HIID>(HIID());
               message = "received header for dataset "+id.toString();
+              if( !type.empty() )
+                message += ", " + type.toString();
               break;
-            
+            }
             case DATA:
+            {
               if( state_ != HEADER && state_ != DATA )
               {
                 write = False;
                 cdebug(3)<<"DATA "<<id<<" out of sequence, state is "<<AtomicID(-state_)<<", dropping\n";
               }
               else
+              {
+                if( state_ == HEADER )
+                  control().setStatus(StStreamState,"DATA");
+                control().setStatus(StNumTiles,++ntiles);
                 state_ = DATA;
+              }
               break;
-              
+            } 
             case FOOTER:
+            {
               if( state_ == HEADER || state_ == DATA )
               {
                 if( id == vdsid_ )
@@ -92,7 +113,9 @@ void VisRepeater::run ()
                   cdebug(2)<<"received FOOTER "<<id<<endl;
                   state_ = FOOTER;
                   event = DataSetFooter;
-                  message = "received footer for dataset "+id.toString();
+                  message = ssprintf("received footer for dataset %s, %d tiles written",
+                      id.toString().c_str(),ntiles);
+                  control().setStatus(StStreamState,"FOOTER");
                 }
                 else
                 {
@@ -107,6 +130,12 @@ void VisRepeater::run ()
                 cdebug(3)<<"FOOTER "<<id<<" out of sequence, state is "<<AtomicID(-state_)<<", dropping\n";
               }
               break;
+            }
+            default:
+            {
+               cdebug(3)<<"unrecognized input type in event "<<id<<", dropping"<<endl;
+               write = False;
+            }
           }
           if( write )
           {

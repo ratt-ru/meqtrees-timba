@@ -9,6 +9,8 @@
 #pragma aid VisRepeater Repeater
 #pragma aid Data Set Header Footer Interrupt Mismatch
     
+#pragma aid Stream State Num Tiles VDSID
+    
 namespace VisRepeaterVocabulary
 {
   using namespace ApplicationVocabulary;
@@ -27,7 +29,11 @@ namespace VisRepeaterVocabulary
       DataSetHeader     = AidData|AidSet|AidHeader,
       DataSetFooter     = AidData|AidSet|AidFooter,
       DataSetInterrupt  = AidData|AidSet|AidInterrupt,
-      FooterMismatch    = AidFooter|AidID|AidMismatch;
+      FooterMismatch    = AidFooter|AidID|AidMismatch,
+      
+      StStreamState     = AidStream|AidState,
+      StNumTiles        = AidNum|AidTiles,
+      StVDSID           = AidVDSID;
 };
         
 //##ModelId=3E39285A0273

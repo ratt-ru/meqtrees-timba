@@ -44,7 +44,7 @@ class TableFormat;
 #endif
 #ifndef _defined_id_TpVisCube
 #define _defined_id_TpVisCube 1
-const TypeId TpVisCube(-1038);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:83
+const TypeId TpVisCube(-1038);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:84
 const int TpVisCube_int = -1038;
 class VisCube;
             template<>
@@ -61,7 +61,7 @@ class VisCube;
 #endif
 #ifndef _defined_id_TpVisCubeSet
 #define _defined_id_TpVisCubeSet 1
-const TypeId TpVisCubeSet(-1034);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:84
+const TypeId TpVisCubeSet(-1034);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:85
 const int TpVisCubeSet_int = -1034;
 class VisCubeSet;
             template<>
@@ -78,7 +78,7 @@ class VisCubeSet;
 #endif
 #ifndef _defined_id_TpVisTile
 #define _defined_id_TpVisTile 1
-const TypeId TpVisTile(-1035);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:85
+const TypeId TpVisTile(-1035);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:86
 const int TpVisTile_int = -1035;
 class VisTile;
             template<>
