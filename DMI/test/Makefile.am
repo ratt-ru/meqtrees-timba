@@ -3,13 +3,15 @@ CXXFLAGS += -Wno-unknown-pragmas
 INCLUDES			= -I$(top_srcdir)/src \
                 -I$(lofar_sharedir)/../CEP/CPA/PSCF/src
 
-check_PROGRAMS			= test_dmi
+check_PROGRAMS			= test_dmi tDataArray
 
 test_dmi_SOURCES 		= test_dmi.cc
-
 test_dmi_LDADD			= $(top_builddir)/src/libdmi.la
 
-TESTS				= test_dmi
+tDataArray_SOURCES 		= tDataArray.cc
+tDataArray_LDADD		= $(top_builddir)/src/libdmi.la
+
+TESTS				= test_dmi tDataArray
 
 EXTRA_DIST			=
 
