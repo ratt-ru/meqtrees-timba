@@ -53,6 +53,10 @@ AC_ARG_WITH(threads,
 	[  --with-threads            enable support of threads],
 	[with_threads="$withval"],
 	[with_threads=no])dnl
+AC_ARG_WITH(sse,
+	[  --with-sse                enable support of sse instructions],
+	[with_sse="$withval"],
+	[with_sse=no])dnl
 AC_ARG_WITH(cppflags,
 	[  --with-cppflags=CPPFLAGS  enable extra CPPFLAGS],
 	[with_cppflags="$withval"])dnl
@@ -108,7 +112,7 @@ AC_DEFINE(LOFAR_DEBUG,dnl
 	1, [Define if we are compiling with debugging information])dnl
 [ fi
   lfr_cppflags=
-  lfr_clags=
+  lfr_cflags=
   lfr_cxxflags=
   lfr_ldflags=
   if test "$enable_debug" != "no"; then
@@ -159,6 +163,19 @@ AC_DEFINE(LOFAR_DEBUG,dnl
 
       lfr_ldflags="$lfr_ldflags -pthread";
     fi
+  fi
+
+  if test "$with_sse" != "no"; then
+    lfr_sseflags=
+    if test "$lofar_compiler" = "icc"; then
+      lfr_sseflags="-xW";
+    else
+      if test "$lofar_compiler" = "gnu"; then
+        lfr_sseflags="-msse2"
+      fi
+    fi
+    lfr_cflags="$lfr_cflags $lfr_sseflags";
+    lfr_cxxflags="$lfr_cxxflags $lfr_sseflags";
   fi
 
   CPPFLAGS="$CPPFLAGS $lfr_cppflags $with_cppflags"

@@ -24,7 +24,7 @@ nolog4cplus.variant.conf: $(standard) $(debug) --without-log4cplus
 insure.variant.conf:	  $(standard) --with-insuretools
 insure.variant.make:	  QA=insure
 
-standard.var:             $(lofar_root) $(aipspp) $(threads) $(shmem)
+standard.var:             $(lofar_root) $(aipspp) $(threads) $(sse) $(shmem)
 
 lofar_root.var:
 
@@ -41,6 +41,7 @@ scampi.var:		  --with-scampi
 vbroker.var:		  --with-vbroker
 threads.var:              --with-threads
 nothreads.var:            --with-threads=no  
+sse.var:                  --with-sse
 shmem.var:                --with-shmem
 noshmem.var:              --with-shmem=no
 bgl_cpp.var:              --with-cppflags='-qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/bgl/BlueLight/ppcfloor/bglsys/include/ -DHAVE_BGL -DYY_NEVER_INTERACTIVE'
