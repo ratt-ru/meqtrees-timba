@@ -1,0 +1,481 @@
+
+(object Petal
+    version    	46
+    _written   	"Rational Rose 2002.05.20"
+    charSet    	0)
+
+(object Class_Category "AppUtils"
+    is_unit    	TRUE
+    is_loaded  	TRUE
+    quid       	"3E4392AD0305"
+    exportControl 	"Public"
+    logical_models 	(list unit_reference_list
+	(object Class "ApplicationBase"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"HeaderSourceFile"
+		    value      	"AppUtils/src/ApplicationBase.h")
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"BodySourceFile"
+		    value      	"AppUtils/src/ApplicationBase.cc"))
+	    quid       	"3E3FE1770336"
+	    operations 	(list Operations
+		(object Operation "ApplicationBase"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"InitialCodeBody"
+			    value      	(value Text 
+|{
+|}
+|
+			    )))
+		    quid       	"3E3FE4020002"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "~ApplicationBase"
+		    quid       	"3E3FE7660131"
+		    stereotype 	"virtual"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "run"
+		    quid       	"3E3FE1B8005F"
+		    stereotype 	"abstract"
+		    parameters 	(list Parameters
+			(object Parameter "initrec"
+			    quid       	"3E3FE1B80060"
+			    type       	"DataRecord::Ref &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "state"
+		    attributes 	(list Attribute_Set)
+		    quid       	"3E3FE1C8036D"
+		    stereotype 	"const, virtual"
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "stateString"
+		    quid       	"3E3FE1CD009F"
+		    stereotype 	"const, virtual"
+		    result     	"string"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "mutex"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E3FE1DA000B"
+		    stereotype 	"const"
+		    result     	"Thread::Mutex &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "thread"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E3FE30803E1"
+		    stereotype 	"const"
+		    result     	"Thread::ThrID"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "runThread"
+		    quid       	"3E3FE1BB0220"
+		    parameters 	(list Parameters
+			(object Parameter "initrec"
+			    quid       	"3E3FE1BB0221"
+			    type       	"DataRecord::Ref &"))
+		    result     	"Thread::ThrID"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "startThread"
+		    quid       	"3E3FE1DD017A"
+		    stereotype 	"static"
+		    parameters 	(list Parameters
+			(object Parameter "arg"
+			    quid       	"3E3FE1DD017B"
+			    type       	"void *"))
+		    result     	"void *"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "sdebug"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	FALSE))
+		    quid       	"3E3FE532001B"
+		    stereotype 	"const,virtual"
+		    parameters 	(list Parameters
+			(object Parameter "detail"
+			    quid       	"3E3FE532001C"
+			    type       	"int"
+			    initv      	"1")
+			(object Parameter "prefix"
+			    quid       	"3E3FE532001D"
+			    type       	"const string &"
+			    initv      	
+|""
+			    )
+			(object Parameter "name"
+			    quid       	"3E3FE532001E"
+			    type       	"const char *"
+			    initv      	"0"))
+		    result     	"string"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "debug"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE)
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"InitialCodeBody"
+			    value      	(value Text 
+|      { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
+|
+			    )))
+		    quid       	"3E3FE5C50066"
+		    stereotype 	"const"
+		    parameters 	(list Parameters
+			(object Parameter "detail"
+			    quid       	"3E3FE5C50067"
+			    type       	"int"
+			    initv      	"1")
+			(object Parameter "prefix"
+			    quid       	"3E3FE5C50068"
+			    type       	"const string &"
+			    initv      	
+|""
+			    )
+			(object Parameter "name"
+			    quid       	"3E3FE5C50069"
+			    type       	"const char *"
+			    initv      	"0"))
+		    result     	"const char *"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0))
+	    class_attributes 	(list class_attribute_list
+		(object ClassAttribute "initrec_cache"
+		    quid       	"3E3FE1F40325"
+		    type       	"DataRecord::Ref")
+		(object ClassAttribute "thread_"
+		    quid       	"3E3FE29D0372"
+		    type       	"Thread::ThrID")
+		(object ClassAttribute "mutex_"
+		    quid       	"3E3FE2A70351"
+		    stereotype 	"mutable"
+		    type       	"Thread::Mutex")
+		(object ClassAttribute "LocalDebugContext"
+		    quid       	"3E3FEDBE0291"
+		    exportControl 	"Public"))
+	    module     	"Component View::AppAgent"
+	    quidu      	"3DF9FDED0011"
+	    language   	"ANSI C++"
+	    abstract   	TRUE)
+	(object Class "VisRepeater"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"HeaderSourceFile"
+		    value      	(value Text "AppUtils/src/VisRepeater.h"))
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"BodySourceFile"
+		    value      	(value Text "AppUtils/src/VisRepeater.cc")))
+	    quid       	"3E39285A0273"
+	    superclasses 	(list inheritance_relationship_list
+		(object Inheritance_Relationship
+		    quid       	"3E3FE28B0117"
+		    supplier   	"Logical View::AppAgents::AppUtils::ApplicationBase"
+		    quidu      	"3E3FE1770336"))
+	    operations 	(list Operations
+		(object Operation "VisRepeater"
+		    quid       	"3E392BA5005C"
+		    parameters 	(list Parameters
+			(object Parameter "in"
+			    quid       	"3E392BCC0164"
+			    type       	"VisAgent::InputAgent&")
+			(object Parameter "out"
+			    quid       	"3E392BCC0189"
+			    type       	"VisAgent::OutputAgent&")
+			(object Parameter "ctrl"
+			    quid       	"3E392BCC01AE"
+			    type       	"AppControlAgent&"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "run"
+		    quid       	"3E392C570286"
+		    stereotype 	"virtual"
+		    parameters 	(list Parameters
+			(object Parameter "initrec"
+			    quid       	"3E392CA00371"
+			    type       	"DataRecord::Ref &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "state"
+		    attributes 	(list Attribute_Set)
+		    quid       	"3E392EDF034C"
+		    stereotype 	"const,virtual"
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "stateString"
+		    quid       	"3E392EE403C8"
+		    stereotype 	"const,virtual"
+		    result     	"string"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "sdebug"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	FALSE))
+		    quid       	"3E3FEB5002A5"
+		    stereotype 	"const,virtual"
+		    parameters 	(list Parameters
+			(object Parameter "detail"
+			    quid       	"3E3FEB5002A6"
+			    type       	"int"
+			    initv      	"1")
+			(object Parameter "prefix"
+			    quid       	"3E3FEB5002A7"
+			    type       	"const string &"
+			    initv      	
+|""
+			    )
+			(object Parameter "name"
+			    quid       	"3E3FEB5002A8"
+			    type       	"const char *"
+			    initv      	"0"))
+		    result     	"string"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "VisRepeater"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"InitialCodeBody"
+			    value      	(value Text 
+|{
+|}
+|
+			    )))
+		    quid       	"3E392B780351"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "VisRepeater"
+		    quid       	"3E392B78035E"
+		    parameters 	(list Parameters
+			(object Parameter "right"
+			    quid       	"3E392B780368"
+			    type       	"const VisRepeater&"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "operator="
+		    quid       	"3E392B78038F"
+		    parameters 	(list Parameters
+			(object Parameter "right"
+			    quid       	"3E392B78039A"
+			    type       	"const VisRepeater&"))
+		    result     	"VisRepeater&"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0
+		    quidu      	"3E39285A0273"))
+	    class_attributes 	(list class_attribute_list
+		(object ClassAttribute "LocalDebugSubContext"
+		    quid       	"3E3FEDB80357"
+		    exportControl 	"Public"))
+	    module     	"Component View::AppAgent"
+	    quidu      	"3DF9FDED0011"
+	    language   	"ANSI C++")
+	(object Association "$UNNAMED$0"
+	    quid       	"3E43939D03CF"
+	    roles      	(list role_list
+		(object Role "input: VisAgent::InputAgent &"
+		    quid       	"3E43939D03D0"
+		    label      	"input: VisAgent::InputAgent &"
+		    supplier   	"Logical View::AppAgents::VisAgent::InputAgent"
+		    quidu      	"3DF9FECD0169"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$1"
+		    quid       	"3E43939D03D3"
+		    supplier   	"Logical View::AppAgents::AppUtils::VisRepeater"
+		    quidu      	"3E39285A0273"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$2"
+	    quid       	"3E43939E0000"
+	    roles      	(list role_list
+		(object Role "output: VisAgent::OutputAgent &"
+		    quid       	"3E43939E0001"
+		    label      	"output: VisAgent::OutputAgent &"
+		    supplier   	"Logical View::AppAgents::VisAgent::OutputAgent"
+		    quidu      	"3E00AA5100F9"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$3"
+		    quid       	"3E43939E0004"
+		    supplier   	"Logical View::AppAgents::AppUtils::VisRepeater"
+		    quidu      	"3E39285A0273"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$4"
+	    quid       	"3E43939E001A"
+	    roles      	(list role_list
+		(object Role "control: AppControlAgent &"
+		    quid       	"3E43939E001B"
+		    label      	"control: AppControlAgent &"
+		    supplier   	"Logical View::AppAgents::Base::AppControlAgent"
+		    quidu      	"3DFF2FC1009C"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$5"
+		    quid       	"3E43939E001E"
+		    supplier   	"Logical View::AppAgents::AppUtils::VisRepeater"
+		    quidu      	"3E39285A0273"
+		    is_aggregate 	TRUE))))
+    logical_presentations 	(list unit_reference_list
+	(object ClassDiagram "Main"
+	    quid       	"3E39286C027B"
+	    title      	"Main"
+	    zoom       	100
+	    max_height 	28350
+	    max_width  	21600
+	    origin_x   	0
+	    origin_y   	0
+	    items      	(list diagram_item_list
+		(object ClassView "Class" "Logical View::AppAgents::AppUtils::VisRepeater" @1
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    ShowOperationSignature 	TRUE
+		    location   	(832, 1680)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@1
+			location   	(119, 1264)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	1426
+			justify    	0
+			label      	"VisRepeater")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3E39285A0273"
+		    compartment 	(object Compartment
+			Parent_View 	@1
+			location   	(119, 1325)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	10
+			max_width  	1878)
+		    width      	1444
+		    height     	856
+		    annotation 	8)
+		(object ClassView "Class" "Logical View::AppAgents::AppUtils::ApplicationBase" @2
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    ShowOperationSignature 	TRUE
+		    location   	(896, 496)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@2
+			location   	(130, 58)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	1533
+			justify    	0
+			label      	"ApplicationBase")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3E3FE1770336"
+		    compartment 	(object Compartment
+			Parent_View 	@2
+			location   	(130, 119)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	TRUE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	16
+			max_width  	1884)
+		    width      	1551
+		    height     	900
+		    annotation 	8)
+		(object InheritView "" @3
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E3FE28B0117"
+		    client     	@1
+		    supplier   	@2
+		    line_style 	3
+		    origin_attachment 	(896, 1252)
+		    terminal_attachment 	(896, 946))))))
