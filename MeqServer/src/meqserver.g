@@ -59,7 +59,7 @@ include 'recutil.g'
 
 # find path to server binary
 if( has_field(lofar_software,'meq') && has_field(lofar_software.meq,'servers') )
-  for( f in lofar_software.meq.servers )
+  for( f in lofar_software.meq.servers ) {
     if( len(stat(f)) )
     {
       print 'Found path to meqserver binary:',f;
@@ -69,6 +69,7 @@ if( has_field(lofar_software,'meq') && has_field(lofar_software.meq,'servers') )
         _meqserver_binary := f;
       break;
     }
+  }
 # not found? try default
 if( !is_defined('_meqserver_binary') )
 {
