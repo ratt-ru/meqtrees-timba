@@ -40,8 +40,8 @@ PointSourceDFT::~PointSourceDFT()
 {}
 
 void PointSourceDFT::evalResult (std::vector<Vells> &res,
-                            const std::vector<const Vells*> &values,
-                            const Cells &cells)
+				 const std::vector<const Vells*> &values,
+				 const Cells &cells)
 {
   // Assume that frequency is the first axis.
   Assert(FREQ==0);
@@ -104,18 +104,25 @@ void PointSourceDFT::evalResult (std::vector<Vells> &res,
   // vn can be a scalar or an array (in time axis), so set its step to 0
   // if it is a scalar.
   int stepnk = (vn.ny() > 1  ?  1 : 0);
-  int nki = 0;
+  int stepv  = (vs1f0.ny() > 1  ?  1 : 0);
+  Assert(vs1f0.ny() == vs2f0.ny()  &&
+	 vs1f0.ny() == vs1df.ny()  &&
+	 vs1f0.ny() == vs2df.ny());
   for (int i=0; i<ntime; i++) {
-    dcomplex val0 = tmpr[i] * conj(tmpl[i]) / tmpnk[nki];
-    nki += stepnk;
+    dcomplex val0 = *tmpr * conj(*tmpl) / *tmpnk;
     *resdata++ = val0;
     if (nfreq > 1) {
-      dcomplex dval = deltar[i] * conj(deltal[i]);
+      dcomplex dval = *deltar * conj(*deltal);
       for (int j=1; j<nfreq; j++) {
         val0 *= dval;
         *resdata++ = val0;
       }
     }
+    tmpnk  += stepnk;
+    tmpl   += stepv;
+    tmpr   += stepv;
+    deltal += stepv;
+    deltar += stepv;
   }
 }
 
