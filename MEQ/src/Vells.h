@@ -330,6 +330,24 @@ public:
   blitz::Array<T,N> & getArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>())
   { return *static_cast<blitz::Array<T,N>*>(
                 getDataArrayWr().getArrayPtr(typeIdOf(T),N)); }
+  
+//   template<class T,int N>
+//   blitz::Array<T,N> convertArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>())
+//   { 
+//     FailWhen(rank()>N,Debug::ssprintf("can't treat %d-D Vells as %d-D array",rank(),N));
+//     if( rank() == N )
+//       return getArray(Type2Type<T>(),Int2Type<N>());
+//     else 
+//     {
+//       TinyVector<N> shp;
+//       int i;
+//       for( i=0; i<rank(); i++ )
+//         shp[i] = shape_[i];
+//       for( ; i<N; i++ )
+//         shp[i] = 1;
+//       return blitz::Array<T,N>(getStorage(Type2Type<T>()),neverDeleteData);
+//     }
+//   }; 
 
   template<class T>
   T getScalar (Type2Type<T> =Type2Type<T>()) const

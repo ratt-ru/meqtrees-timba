@@ -220,12 +220,12 @@ const meq.server := function (appid='MeqServer',
   
   # ------ execute()
   
-  const public.execute := function (node,req)
+  const public.execute := function (node,req,wait_reply=T)
   {
     wider self,public;
     rec := self.makenodespec(node);
     rec.request := req;
-    return public.meq('Node.Execute',rec,wait_reply=T);
+    return public.meq('Node.Execute',rec,wait_reply=wait_reply);
   }
   
   # ------ track_results()

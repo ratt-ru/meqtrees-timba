@@ -5,7 +5,7 @@
 #include <MeqServer/TID-MeqServer.h>
 
 #pragma aid Spigot 
-#pragma aid Input Col Next Request Id
+#pragma aid Input Col Next Request Id Queue
 #pragma types #Meq::Spigot
     
 // The comments below are used to automatically generate a default
@@ -64,6 +64,8 @@ class Spigot : public VisHandlerNode
     virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   private:
+    void fillDebugState ();
+      
     //##ModelId=3F9FF6AA01A3
     int icolumn;
     string colname;

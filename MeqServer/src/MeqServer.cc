@@ -698,8 +698,10 @@ void MeqServer::run ()
         string output_message;
         HIID output_event;
         have_error = false;
+        int retcode = 0;
         try
         {
+          
           // process data event
           if( instat == DATA )
           {
@@ -716,7 +718,7 @@ void MeqServer::run ()
             if( !(ntiles%100) )
               control().setStatus(StNumTiles,ntiles);
             // deliver tile to data mux
-            data_mux.deliverTile(tileref);
+            retcode = data_mux.deliverTile(tileref);
           }
           else if( instat == FOOTER )
           {
@@ -728,7 +730,7 @@ void MeqServer::run ()
               eventrec[AidHeader] <<= header.copy();
             if( ref.valid() )
               eventrec[AidFooter] <<= ref.copy();
-            data_mux.deliverFooter(*(ref.ref_cast<DataRecord>()));
+            retcode = data_mux.deliverFooter(*(ref.ref_cast<DataRecord>()));
             output_event = DataSetFooter;
             output_message = ssprintf("received footer for dataset %s, %d tiles written",
                 id.toString().c_str(),ntiles);
@@ -745,7 +747,7 @@ void MeqServer::run ()
             header = ref;
             eventrec <<= new DataRecord;
             eventrec[AidHeader] <<= header.copy();
-            data_mux.deliverHeader(*header);
+            retcode = data_mux.deliverHeader(*header);
             output_event = DataSetHeader;
             output_message = "received header for dataset "+id.toString();
             if( !datatype.empty() )
@@ -759,18 +761,23 @@ void MeqServer::run ()
           // generate output event if one was queued up
           if( !output_event.empty() )
             postDataEvent(output_event,output_message,eventrec);
+          // throw exception if a fail was indicated
+          if( retcode&Node::RES_FAIL )
+          {
+            Throw("one or more Sink(s) or Spigot(s) reported a FAIL");
+          }
         }
         catch( std::exception &exc )
         {
           have_error = true;
           error_str = exc.what();
-          cdebug(2)<<"got exception while " + doing_what + ": "<<exc.what()<<endl;
+          cdebug(2)<<"error while " + doing_what + ": "<<exc.what()<<endl;
         }
         catch( ... )
         {
           have_error = true;
           error_str = "unknown exception";
-          cdebug(2)<<"unknown exception processing input"<<endl;
+          cdebug(2)<<"unknown error while " + doing_what<<endl;
         }
         // in case of error, generate event
         if( have_error )

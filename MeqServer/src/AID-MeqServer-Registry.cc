@@ -90,6 +90,7 @@ BlockableObject * __construct_MeqSpigot (int n) { return n>0 ? new Meq::Spigot [
         TypeInfoReg::addToRegistry(-1326,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1326,__construct_MeqSink)+
         AtomicID::registerId(-1325,"spigot")+
+        AtomicID::registerId(-1565,"queue")+
         AtomicID::registerId(-1330,"meqspigot")+
         TypeInfoReg::addToRegistry(-1330,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1330,__construct_MeqSpigot)+

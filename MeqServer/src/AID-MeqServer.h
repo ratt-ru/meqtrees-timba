@@ -258,6 +258,11 @@ const int AidProcessing_int = -1333;
 const AtomicID AidPublish(-1055);                 // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MsgAddress.h:12
 const int AidPublish_int = -1055;
 #endif
+#ifndef _defined_id_AidQueue
+#define _defined_id_AidQueue 1
+const AtomicID AidQueue(-1565);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/Spigot.h:8
+const int AidQueue_int = -1565;
+#endif
 #ifndef _defined_id_AidRead
 #define _defined_id_AidRead 1
 const AtomicID AidRead(-1424);                    // from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/VisHandlerNode.h:10

@@ -102,6 +102,8 @@ int Sink::deliverHeader (const VisTile::Format &outformat)
   output_format.attach(outformat);
   cdebug(3)<<"deliverHeader: got format "<<outformat.sdebug(2)<<endl;
   pending.tile.detach();
+  setExecState(CS_ES_IDLE,
+    (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_WAIT);
   return 0;
 }
 
@@ -123,7 +125,9 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
   setExecState(CS_ES_POLLING);
   cdebug(5)<<"calling execute() on child "<<endl;
   int resflag = getChild(0).execute(resref,*reqref);
-  FailWhen(resflag&RES_WAIT,"Meq::Sink can't cope with a WAIT result code yet");
+  FailWhen(resflag&RES_WAIT,"Meq::Sink received a WAIT result code. This "
+      "is usually the result of an incorrectly constructed tree and/or missing "
+      "data");
   if( resflag == RES_FAIL )
   {
     cdebug(3)<<"child result is FAIL, ignoring"<<endl;
@@ -186,11 +190,12 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
       }
       // get the values out, and copy them to tile column
       const Vells &vells = resref->vellSet(ivs).getValue();
+      FailWhen(vells.rank()>2,"illegal Vells rank");
       if( vells.isReal() ) // real values
       {
         FailWhen(coltype!=Tpdouble,"type mismatch: double Vells, "+coltype.toString()+" column");
         fillTileColumn(static_cast<double*>(coldata),colshape,pending.range,
-                      vells.getArray<double,2>(),icorr);
+                        vells.getArray<double,2>(),icorr);
       }
       else  // complex values
       {
@@ -201,8 +206,6 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
       resflag |= RES_UPDATED;
     }
   }
-  setExecState(CS_ES_IDLE,
-          (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_OK);
   return resflag;
 }
 
@@ -212,7 +215,25 @@ int Sink::deliverTile (const Request &req,VisTile::Ref &tileref,const LoRange &r
   // grab a copy of the ref (since procPendingTile may overwrite tileref)
   VisTile::Ref ref(tileref,DMI::COPYREF);
   // process any pending tiles from previous deliver() call
-  int resflag = procPendingTile(tileref);  
+  std::string errstr;
+  int resflag = 0;
+  RequestId rqid;
+  if( pending.request.valid() )
+    rqid = pending.request->id();
+  try
+  {
+    resflag = procPendingTile(tileref);
+  }
+  catch( std::exception &exc )
+  {
+    errstr = rqid.toString()  + ": " + exc.what();
+    resflag |= RES_FAIL;
+  }
+  catch( ... )
+  {
+    errstr = rqid.toString()  + ": unknown exception";
+    resflag |= RES_FAIL;
+  }
   // if no asked to wait, make this tile pending
   if( !(resflag&RES_WAIT) )
   {
@@ -221,6 +242,20 @@ int Sink::deliverTile (const Request &req,VisTile::Ref &tileref,const LoRange &r
     pending.tile  = ref;
     pending.range = range;
   }
+  // set execution state
+  int st = CS_RES_OK;
+  if( resflag&RES_FAIL )
+  {
+    st = CS_RES_FAIL;
+    wstate()[AidFail].replace() = errstr;
+  }
+  else
+  {
+    if( getControlStatus()&CS_RES_MASK == CS_RES_FAIL )
+      wstate()[AidFail].remove();
+  }
+  setExecState(CS_ES_IDLE,
+    (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|st);
   return resflag;
 }
 

@@ -365,8 +365,8 @@ class app_proxy_gui(verbosity,QMainWindow):
     
     #------ status bar, pause button
     self.statusbar = self.statusBar();
-    self.pause_button = QToolButton(self.statusbar);
-    # self.pause_button.setAutoRaise(True);
+    ## self.pause_button = QToolButton(self.statusbar);
+    ## self.pause_button.setAutoRaise(True);
     self.status_label = QLabel(self.statusbar);
     self.status_icon  = QLabel(self.statusbar);
     self.status_icon.setFrameStyle(QFrame.NoFrame);
@@ -374,11 +374,11 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.status_icon.setMaximumWidth(20);
     self.status_icon.setAlignment(QLabel.AlignVCenter|QLabel.AlignHCenter);
                  
-    self.pause_button.setIconSet(pixmaps.pause_normal.iconset());
-    QToolTip.add(self.pause_button,"pause the application");
-    self.pause_button.setDisabled(True);
-    self.connect(self.pause_button,SIGNAL("clicked()"),self._press_pause);
-    self.pause_requested = None;
+    ##    self.pause_button.setIconSet(pixmaps.pause_normal.iconset());
+    ##    QToolTip.add(self.pause_button,"pause the application");
+    ##    self.pause_button.setDisabled(True);
+    ##    self.connect(self.pause_button,SIGNAL("clicked()"),self._press_pause);
+    ##    self.pause_requested = None;
     
     #------ reload button
     if _reloading_enabled:
@@ -388,7 +388,7 @@ class app_proxy_gui(verbosity,QMainWindow):
       self.connect(reloadbtn,SIGNAL("clicked()"),reloadAllModules);
     
     # self.status_icon.setFrameStyle(QFrame.NoFrame);
-    self.statusbar.addWidget(self.pause_button,0,True);
+    ## self.statusbar.addWidget(self.pause_button,0,True);
     if _reloading_enabled:
       self.statusbar.addWidget(reloadbtn,0,True);
     self.statusbar.addWidget(self.status_icon);
@@ -412,7 +412,7 @@ class app_proxy_gui(verbosity,QMainWindow):
     QToolTip.add(self.show_workspace_button,"show the viewer panel. You can also drop data items here.");
     
     splitter.setSizes([200,600]);
-#    self.maintab.setCornerWidget(self.pause_button,Qt.TopRight);
+##    self.maintab.setCornerWidget(self.pause_button,Qt.TopRight);
     
   def _add_ce_handler (self,event,handler):
     self._ce_handler_map.setdefault(make_hiid(event),[]).append(handler);
@@ -521,34 +521,34 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.status_label.setText(' '+state+' '); 
     pm = self.StatePixmaps.get(self.app.state,self.StatePixmap_Default);
     self.status_icon.setPixmap(pm.pm());
-    self.pause_button.setDisabled(not self.app.state>0);
-    if self.app.state>0:
-      if self.app.paused:   
-        self.pause_button.setIconSet(pixmaps.pause_green.iconset());
-        QToolTip.add(self.pause_button,"resume the application");
-      else:                 
-        self.pause_button.setIconSet(pixmaps.pause_normal.iconset());
-        QToolTip.add(self.pause_button,"pause the application");
-      # if requested pause/resume state is reached, get button up and clear
-      if self.pause_requested == self.app.paused:
-        self.dprint(3,'Pause state reached!');
-        self.pause_button.setDown(False);
-        self.pause_requested = None;
+    ## self.pause_button.setDisabled(not self.app.state>0);
+    ##    if self.app.state>0:
+    ##      if self.app.paused:   
+    ##        self.pause_button.setIconSet(pixmaps.pause_green.iconset());
+    ##        QToolTip.add(self.pause_button,"resume the application");
+    ##      else:                 
+    ##        self.pause_button.setIconSet(pixmaps.pause_normal.iconset());
+    ##        QToolTip.add(self.pause_button,"pause the application");
+    ##      # if requested pause/resume state is reached, get button up and clear
+    ##      if self.pause_requested == self.app.paused:
+    ##        self.dprint(3,'Pause state reached!');
+    ##        self.pause_button.setDown(False);
+    ##        self.pause_requested = None;
     # update window title        
     if self.app.app_addr is None:
       self.setCaption(self.app.name()+" - "+state);
     else:
       self.setCaption(str(self.app.app_addr)+" - "+state);
-##### slot: pause button pressed
-  def _press_pause (self):
-    if self.pause_requested is None:
-      if self.app.paused:
-        self.pause_requested = False;
-        self.app.resume();
-      else:
-        self.pause_requested = True;
-        self.app.pause();
-    self.pause_button.setDown(True);
+####### slot: pause button pressed
+##  def _press_pause (self):
+##    if self.pause_requested is None:
+##      if self.app.paused:
+##        self.pause_requested = False;
+##        self.app.resume();
+##      else:
+##        self.pause_requested = True;
+##        self.app.pause();
+##    ## self.pause_button.setDown(True);
 ##### slot for the Event tab bar -- changes the label of a particular event logger
   def _change_eventlog_mask (self,logger,mask):
     self.eventtab.setTabLabel(logger,str(mask));

@@ -4,10 +4,14 @@
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/MeqVocabulary.h>
+#include <MEQ/Forest.h>
 
 namespace Meq {
   
 using namespace blitz;
+
+const HIID FQueue          = AidQueue;
+const HIID FQueueRequestId = AidQueue|AidRequest|AidId;
 
 InitDebugContext(Spigot,"MeqSpigot");
 
@@ -155,8 +159,8 @@ int Spigot::deliverTile (const Request &req,VisTile::Ref::Copy &tileref,const Lo
     res_queue_.back().res = next_res;
     cdebug(3)<<res_queue_.size()<<" results in queue"<<endl;
     
-    // update state record
-    wstate()[FNext] = rqid;
+    if( forest().verbosity() > 1 )
+      fillDebugState();
     
 // 02/04/04: commented out, since it screws up (somewhat) the RES_UPDATED flag
 // going back to old scheme
@@ -168,6 +172,27 @@ int Spigot::deliverTile (const Request &req,VisTile::Ref::Copy &tileref,const Lo
   return 0;
 }
 
+void Spigot::fillDebugState ()
+{
+  if( res_queue_.empty() )
+  {
+    wstate()[FQueue].replace() = false;
+    wstate()[FQueueRequestId].replace() = false;
+  }
+  else
+  {
+    DataField &qvec = wstate()[FQueue].replace() <<= new DataField(TpMeqResult,res_queue_.size());
+    DataField &idvec = wstate()[FQueueRequestId].replace() <<= new DataField(TpHIID,res_queue_.size());
+    int n=0;
+    for( ResQueue::const_iterator qiter = res_queue_.begin(); qiter != res_queue_.end(); qiter++,n++ )
+    {
+      idvec[n] = qiter->rqid;
+      qvec[n] = qiter->res.copy();
+    }
+  }
+}
+
+
 //##ModelId=3F9FF6AA0300
 int Spigot::getResult (Result::Ref &resref, 
                        const std::vector<Result::Ref> &,
@@ -176,24 +201,33 @@ int Spigot::getResult (Result::Ref &resref,
   // have we got a cached result?
   if( !res_queue_.empty() )
   {
-    ResQueueItem &next = res_queue_.front();
-    // return fail if unable to satisfy this request
-    if( req.id() != next.rqid )
+    ResQueue::iterator pnext = res_queue_.begin();
+    // doesn't match? see if next one does
+    if( !maskedCompare(req.id(),pnext->rqid,getDependMask()) )
     {
-      resref <<= new Result(1,req);
-      VellSet &vs = resref().setNewVellSet(0);
-      MakeFailVellSet(vs,"spigot: request out of sequence: got rqid "+
-                        req.id().toString()+", expecting "+next.rqid.toString());
-      return RES_FAIL;
+      // try second item in queue
+      pnext++;
+      if( pnext == res_queue_.end() || 
+          !maskedCompare(req.id(),pnext->rqid,getDependMask()) ) // still no match? fail
+      {
+        ResQueueItem &next = res_queue_.front();
+        resref <<= new Result(1,req);
+        VellSet &vs = resref().setNewVellSet(0);
+        MakeFailVellSet(vs,
+            Debug::ssprintf("spigot: request out of sequence: got rqid %s, expecting %s (depmask is %X)",
+                          req.id().toString().c_str(),
+                          next.rqid.toString().c_str(),
+                          getDependMask()));
+        return RES_FAIL;
+      }
+      else // dequeue front item
+        res_queue_.pop_front();
     }
     // return result and dequeue
-    resref.xfer(next.res);
-    res_queue_.pop_front();
+    resref.copy(pnext->res);
     // update state record
-    if( res_queue_.empty() )
-      wstate()[FNext].remove();
-    else
-      wstate()[FNext] = res_queue_.front().rqid;
+    if( forest().verbosity() > 1 )
+      fillDebugState();
     return 0;
   }
   else // no result at all, return WAIT
