@@ -45,9 +45,16 @@ static NestableContainer::Register reg(TpMeqPolc,True);
 
 static Domain nullDomain;
 
+Polc::Polc()
+    : itsDomain(&nullDomain)
+{
+  
+}
+    
+
 //##ModelId=3F86886F0366
 Polc::Polc(double c00,double freq0,double freqsc,double time0,double timesc,double pert)
-  : itsCoeff(c00),itsNrSpid     (0)
+  : itsCoeff(c00),itsDomain(&nullDomain),itsNrSpid(0)
 {
   (*this)[FCoeff] <<= itsCoeff.getDataArray();
   (*this)[FPerturbation] = itsPertValue = pert;
@@ -58,7 +65,7 @@ Polc::Polc(double c00,double freq0,double freqsc,double time0,double timesc,doub
 }
 
 Polc::Polc(LoMat_double arr,double freq0,double freqsc,double time0,double timesc,double pert)
-  : itsCoeff(arr),itsNrSpid     (0)
+  : itsCoeff(arr),itsDomain(&nullDomain),itsNrSpid(0)
 {
   (*this)[FCoeff] <<= itsCoeff.getDataArray();
   (*this)[FPerturbation] = itsPertValue = pert;
@@ -69,7 +76,7 @@ Polc::Polc(LoMat_double arr,double freq0,double freqsc,double time0,double times
 }
 
 Polc::Polc(DataArray *parr,double freq0,double freqsc,double time0,double timesc,double pert)
-  : itsCoeff(parr),itsNrSpid     (0)
+  : itsCoeff(parr),itsDomain(&nullDomain),itsNrSpid(0)
 {
   (*this)[FCoeff] <<= itsCoeff.getDataArray();
   (*this)[FPerturbation] = itsPertValue = pert;
@@ -78,7 +85,6 @@ Polc::Polc(DataArray *parr,double freq0,double freqsc,double time0,double timesc
   (*this)[FFreqScale] = itsFreqScale = freqsc;
   (*this)[FTimeScale] = itsTimeScale = timesc;
 }
-
 
 //##ModelId=400E5354033A
 Polc::Polc (const DataRecord &other,int flags,int depth)

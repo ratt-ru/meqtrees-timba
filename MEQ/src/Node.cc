@@ -495,6 +495,8 @@ void Node::clearCache (bool recursive)
   cache_result_.detach();
   wstate()[FCacheResult].replace() = false;
   wstate()[FCacheResultCode].replace() = cache_retcode_ = 0;
+  wstate()[FRequestId].replace() = current_reqid_ = HIID();
+  wstate()[FRequest].remove();
   if( recursive )
   {
     for( int i=0; i<numChildren(); i++ )

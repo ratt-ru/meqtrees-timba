@@ -50,9 +50,11 @@ class Polc : public DataRecord
 {
 public:
   typedef CountedRef<Polc> Ref;
+
+  Polc ();
     
     //##ModelId=3F86886F0366
-  explicit Polc(double c00=0,double freq0=0,double freqsc=1,
+  explicit Polc(double c00,double freq0=0,double freqsc=1,
                 double time0=0,double timesc=1,double pert=1e-6);
   
   explicit Polc(LoMat_double coeff,double freq0=0,double freqsc=1,
