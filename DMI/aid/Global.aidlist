@@ -95,6 +95,7 @@ effective                        1194       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 enable                           1406       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:15
 end                              1283       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:35
 epsilon                          1385       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
+eq                               1434       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
 error                            1084       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 errors                           1397       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 event                            1070       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:19
@@ -120,6 +121,7 @@ freq                             1128       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 g                                1012       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 gateway                          1094       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWServerWP.h:15
 gatewaywp                        1044       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:18
+ge                               1431       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
 get                              1338       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:11
 glishclientwp                    1117       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:17
 global                           1306       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:14
@@ -127,6 +129,7 @@ grid                             1417       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 group                            1122       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
 groups                           1374       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
 grow                             1409       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
+gt                               1432       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
 gw                               1056       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 gwclientwp                       1053       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:18
 gwserverwp                       1047       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:18
@@ -168,6 +171,7 @@ l                                1018       ; from /home/oms/LOFAR/DMI/src/Atomi
 launch                           1099       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:9
 launched                         1083       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:9
 ldouble                          45         ; from /home/oms/LOFAR/DMI/src/TypeId.h:102
+le                               1430       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
 level                            1104       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
 line                             1359       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ResultSet.h:33
 lines                            1208       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
@@ -185,6 +189,7 @@ longlong                         41         ; from /home/oms/LOFAR/DMI/src/TypeI
 low                              1308       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:15
 lower                            1300       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:15
 lowest                           1312       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:15
+lt                               1436       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
 m                                1019       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 map                              1309       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:13
 mask                             1287       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:35
@@ -206,7 +211,7 @@ meqdft_gvd                       1259       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 #meqdomain                       1235       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Domain.h:39
 #meqexp                          1240       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Exp.h:29
 meqfarot                         1341       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqFarot.h:14
-#meqflagcompare                  1427       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/FlagCompare.h:29
+meqflagcompare                   1427       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/FlagCompare.h:29
 meqflagger                       1261       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqFlagger.h:14
 #meqfreq                         1219       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Freq.h:29
 #meqfunction                     1216       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Function.h:29
@@ -249,6 +254,7 @@ meqsubtractsource                1347       ; from /home/noordam/LOFAR/CEP/CPA/P
 #meqvellset                      1369       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/VellSet.h:34
 meqwvl                           1353       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqWVL.h:14
 meqwvl2                          1348       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqWVL2.h:14
+#meqzeroflagger                  1433       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:29
 message                          1045       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:25
 metrics                          1404       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 mismatch                         1320       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/VisRepeater.h:10
@@ -262,6 +268,7 @@ n                                1020       ; from /home/oms/LOFAR/DMI/src/Atomi
 name                             1188       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
 names                            1396       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:33
 ndim                             1416       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Domain.h:37
+ne                               1429       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
 net                              1165       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:32
 network                          1102       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 next                             1336       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/Spigot.h:8
@@ -277,6 +284,7 @@ o                                1021       ; from /home/oms/LOFAR/DMI/src/Atomi
 objref                           1001       ; from /home/oms/LOFAR/DMI/src/BlockableObject.h:33
 offset                           1190       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
 open                             1061       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
+oper                             1435       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
 origin                           1132       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
 original                         1288       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:37
 out                              1307       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:13
