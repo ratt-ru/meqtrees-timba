@@ -136,7 +136,7 @@ class ResultPlotter(BrowserPlugin):
 # construct hippo window if it doesn't exist
     if self._hippo is None:
       import sihippo
-      print "HippoDraw version " + sihippo.__version__
+      _dprint(3,"HippoDraw version " + sihippo.__version__);
       from sihippo import *
       self._ntuple_controller = NTupleController.instance()
       self._window_controller = WindowController.instance()
