@@ -384,7 +384,7 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   {
     LSQaips tmpSolver = itsSolver;
     ///    tmpSolver.getCovariance (covar);
-    tmpSolver.getErrors (errors);
+    // tmpSolver.getErrors (errors);
   }
   // Make a copy of the solver for the actual solve.
   // This is needed because the solver does in-place transformations.
