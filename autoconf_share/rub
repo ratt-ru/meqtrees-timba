@@ -182,7 +182,7 @@ do
   if [ "$pkg" = "" ]; then
     break;
   fi
-  fgrep -v "$pkg" allpkg.tmp > allpkg.tmp1
+  grep -v "^$pkg$" allpkg.tmp > allpkg.tmp1
   mv allpkg.tmp1 allpkg.tmp
   echo "$pkg" >> lofarconf.in.private
 done

@@ -49,7 +49,7 @@ if [ "$cvscomm" = "" ]; then
 fi
 updq="$4"
 # See if this package was already updated.
-fgrep "$pkgname" allpkg.tmp > /dev/null 2>&1
+grep "^$pkgname$" allpkg.tmp > /dev/null 2>&1
 status=$?
 # Add it to the file to get correct build order.
 echo "$pkgname" >> allpkg.tmp
@@ -71,11 +71,11 @@ fi
 if [ -f $pkgname/configure.in ]; then
   # Do it recursively for packages used by this package.
   # Find them by looking in the configure.in file.
-  pkgs=`grep "^[ \t]*lofar_PACKAGE[ \t]*(.*)" $pkgname/configure.in`
+  pkgs=`grep "^[ \t]*lofar_\(PACKAGE\)\|\(INTERNAL\)[ \t]*(.*)" $pkgname/configure.in`
   for pkg in $pkgs
   do
     # Extract package name.
-    nm=`echo $pkg | sed -e "s/.*lofar_PACKAGE//" -e "s/ //g" -e "s/.*(//" -e "s/).*//"`
+    nm=`echo $pkg | sed -e "s/.*lofar_\(PACKAGE\)\|\(INTERNAL\)//" -e "s/ //g" -e "s/.*(//" -e "s/).*//"`
     nm=`echo $nm | sed -e "s/,.*//"`
     # Check out the package
     $0 $nm $checkout "$cvscomm" "$updq"  ||  exit 1
