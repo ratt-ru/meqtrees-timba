@@ -13,7 +13,7 @@ import sys
 from qt import *
 from qwt import *
 from numarray import *
-import app_pixmaps as pixmaps
+from app_pixmaps import pixmaps
 
 from math import sin
 from math import cos

@@ -6,7 +6,7 @@ from dmitypes import *
 import sys
 import time
 import qt_threading
-import app_pixmaps as pixmaps
+from app_pixmaps import pixmaps
 import dmi_repr
 import gridded_workspace 
 import weakref

@@ -2,7 +2,7 @@
 
 from qt import *
 from dmitypes import *
-import app_pixmaps as pixmaps
+from app_pixmaps import pixmaps
 import app_proxy_gui 
 import weakref
 import sets

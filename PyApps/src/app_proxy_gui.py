@@ -8,7 +8,7 @@ import time
 from qt import *
 from dmitypes import *
 import qt_threading
-import app_pixmaps as pixmaps
+from app_pixmaps import pixmaps
 import dmi_repr
 import traceback
 from gridded_workspace import *

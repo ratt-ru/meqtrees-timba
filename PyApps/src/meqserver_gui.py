@@ -3,7 +3,7 @@
 import meqserver
 from app_proxy_gui import *
 from dmitypes import *
-import app_pixmaps as pixmaps
+from app_pixmaps import pixmaps
 import weakref
 import math
 import sets

@@ -2,7 +2,7 @@
 
 from dmitypes import *
 from qt import *
-import app_pixmaps as pixmaps
+from app_pixmaps import pixmaps
 import weakref
 import meqds
 import copy
