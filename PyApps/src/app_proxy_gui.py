@@ -9,186 +9,83 @@ import app_pixmaps as pixmaps
 import dmi_repr
 import traceback
 from gridded_workspace import *
+from app_browsers import *
+import weakref
+import re
 
 MainApp = None;
 MainAppThread = None;
 
 dmirepr = dmi_repr.dmi_repr();
 
-_def_font = None;
-_def_bold_font = None;
-
 _MessageCategories = {};
 
 def defaultFont ():
   global _def_font;
-  if _def_font is None:
+  try: return _def_font;
+  except NameError:
     _def_font = QApplication.font();
   return _def_font;
   
 def defaultBoldFont ():
   global _def_bold_font;
-  if _def_bold_font is None:
+  try: return _def_bold_font;
+  except NameError:
     _def_bold_font = QFont(defaultFont());
     _def_bold_font.setBold(True);
   return _def_bold_font;
-
-class HierBrowser (object):
-  # seqs/dicts with <= items than this are treated as "short"
-  ShortSeq       = 5;
-  # maximum number of sequence items to show in expanded view
-  MaxExpSeq      = 20;
-  # max number of dictionary items to show in expanded view
-  MaxExpDict     = 100;
   
-  class BrowserItem (QListViewItem):
-    def __init__(self,*args):
-#      print args;
-      QListViewItem.__init__(self,*args);
+def defaultCursor ():
+  global _def_default_cursor;
+  try: return _def_default_cursor;
+  except NameError:
+    _def_default_cursor = QCursor(Qt.ArrowCursor);
+  return _def_default_cursor;
 
-    def _subitem (self,*args):
-      return HierBrowser.subitem(self,*args);
-      
-    # caches content in an item: marks as expandable, ensures content is a dict
-    def cache_content(self,content,viewable=False):
-      self.setExpandable(True);
-      if isinstance(content,(dict,list,tuple,array_class)):
-        self._content = content;
-      elif isinstance(content,message):
-        self._content = {};
-        for k in filter(lambda x:not x.startswith('_'),dir(content)):
-          attr = getattr(content,k);
-          if not callable(attr):
-            self._content[k] = attr;
-      else:
-        self._content = {"":content};
-      self._viewable = viewable;
-      if viewable:
-        self.setPixmap(1,pixmaps.magnify.pm());
-        
-    # expands item content into subitems
-    def expand_self (self):
-      HierBrowser.expand_content(self,self._content);
-
-  # init for HierBrowser
-  def __init__(self,parent,name,name1=''):
-    self._lv = QListView(parent);
-    self._lv.addColumn(name1);
-    self._lv.addColumn('');
-    self._lv.addColumn(name);
-    self._lv.setRootIsDecorated(True);
-    self._lv.setSorting(-1);
-    self._lv.setResizeMode(QListView.NoColumn);
-#    for col in (0,1,2):
-#      self._lv.setColumnWidthMode(col,QListView.Maximum);
-    self._lv.setFocus();
-    self._lv.connect(self._lv,SIGNAL('expanded(QListViewItem*)'),
-                     self._expand_item_content);
-    self.items = [];
-
-    # expands item content into subitems
-    def expand_self (self):
-      HierBrowser.expand_content(self,self._content);
-    
-  def subitem (parent,key,value):
-    if hasattr(parent,'_content_list') and parent._content_list:
-      return HierBrowser.BrowserItem(parent,parent._content_list[-1],str(key),'',str(value));
-    else:
-      return HierBrowser.BrowserItem(parent,str(key),'',str(value));
-  subitem = staticmethod(subitem);
-    
-  # helper static method to expand content into BrowserItems record 
-  def expand_content(item,content):
-    if hasattr(item,'_content_list'):
-      return;
-    item._content_list = [];
-    # Setup content_iter as an iterator that returns (label,value)
-    # pairs, depending on content type.
-    # Apply limits here
-    if isinstance(content,dict):
-      n = len(content) - HierBrowser.MaxExpDict;
-      if n > 0:
-        keys = content.keys()[:HierBrowser.MaxExpDict];
-        content_iter = map(lambda k:(k,content[k]),keys);
-        content_iter.append(('...','...(%d items skipped)...'%n));
-      else:
-        content_iter = content.iteritems();
-    elif isinstance(content,(list,tuple,array_class)):
-      n = len(content) - HierBrowser.MaxExpSeq;
-      if n > 0:
-        content_iter = list(enumerate(content[:HierBrowser.MaxExpSeq-2]));
-        content_iter.append(('...','...(%d items skipped)...'%(n+1)));
-        content_iter.append((len(content)-1,content[-1]));
-      else:
-        content_iter = enumerate(content);
-    else:
-      content_iter = (("",content),);
-    for (key,value) in content_iter:
-      # simplest case: do we have an inlined to-string converter?
-      # then the value is represented by a single item
-      (itemstr,inlined) = dmirepr.inline_str(value);
-      if itemstr is not None:
-        item._content_list.append( HierBrowser.subitem(item,key,itemstr) );
-        continue;
-      # else get string representation, insert item with it
-      (itemstr,inlined) = dmirepr.expanded_repr_str(value,False);
-      i0 = HierBrowser.subitem(item,str(key),itemstr);
-      item._content_list.append(i0);
-      # cache value for expansion, if not inlined
-      if isinstance(value,(list,tuple,dict,array_class)):
-        if not inlined:
-          i0.cache_content(value);
-      elif isinstance(value,message):
-        i0.cache_content(value);
-      item._content_list.append(i0);
-  expand_content = staticmethod(expand_content);
+def hourglassCursor ():
+  global _def_hourglass_cursor;
+  try: return _def_hourglass_cursor;
+  except NameError:
+    _def_hourglass_cursor = QCursor(Qt.WaitCursor);
+  return _def_hourglass_cursor;
   
-  def wlistview (self):
-    return self._lv;
-  def wtop (self):
-    return self._lv;
-  def clear (self):
-    self._lv.clear();
-    self.items = [];
-    for attr in ('_content','_content_list'):
-      if hasattr(self._lv,attr):
-        delattr(self._lv,attr);
-  # inserts a new item into the browser
-  def new_item (self,key,value):
-    if self.items:
-      item = self.BrowserItem(self._lv,self.items[-1],str(key),'',str(value));
-    else:
-      item = self.BrowserItem(self._lv,str(key),'',str(value));
-    self.items.append(item);
-    self._lv.ensureItemVisible(item);
-    return item;
-  # limits browser to last 'limit' items
-  def apply_limit (self,limit):
-    if limit>0 and len(self.items) > limit:
-      for i in self.items[:len(self.items)-limit]:
-        self._lv.takeItem(i);
-      del self.items[:len(self.items)-limit];
-  # called when an item is expanded                    
-  def _expand_item_content (self,item):
-    item.expand_self();
-    
-class RecordBrowser(HierBrowser):
-  def __init__(self,parent,rec=None):
-    HierBrowser.__init__(self,parent,"value","field");
-    if rec is not None:
-      self.set_record(rec);
-  def set_record (self,rec):
-    self.clear();
-    self._rec = rec;
-    # expand first level of record
-    self.expand_content(self._lv,self._rec);
-    
+def setBusyCursor ():
+  QApplication.setOverrideCursor(hourglassCursor());
+  
+def restoreCursor ():
+  QApplication.restoreOverrideCursor();
+  
+def busyCursorMethod (func):
+  def callit (*args,**kw):
+    try: 
+      setBusyCursor();
+      func(*args,**kw);
+    finally: restoreCursor();
+  return callit;
+
 class Logger(HierBrowser):
   Normal = 0;
   Event  = 1;
   Error  = 2;
-  _LogPixmaps = { Normal:pixmaps.check, Error:pixmaps.exclaim };
-  def __init__(self,parent,name,limit=-100,enable=True,use_enable=True,use_limit=True):
+  _LogPixmaps =  { Normal:pixmaps.check, Error:pixmaps.exclaim };
+  _LogCatNames = { Normal:"message",Event:"event",Error:"error" };
+  def __init__(self,parent,name,
+               click=None,udi_name=None,
+               enable=True,use_enable=True,limit=-100,use_limit=True):
+    """Initializes a Logger panel. Arguments are:
+          parent:     parent widget
+          name:       name of panel (appears at top)
+          use_limit:  if True, log has a limited size and a size control widget;
+                      if False, log is always unlimited.
+          limit:      initial log size. If <0, then the log size control starts
+                      out disabled.
+          use_enable: if True, logger has an enable/disable control
+          enable:     initial state of control
+          click:      callback, called when a log item is clicked
+                      (QListView::mouseButtonClicked() signal is connected to this slot)
+          udi_name:   the UDI prefix corresponding to this logger.
+                      if None, then panel name is used instead
+    """;
     self._vbox = QVBox(parent);
     # init the browser base class
     HierBrowser.__init__(self,self._vbox,name);
@@ -219,8 +116,19 @@ class Logger(HierBrowser):
       self._controlgrid_lo.addWidget(self._limit_field);
     else:
       self._limit_enable = None;
-    
+    # connect click callback
+    if callable(click):
+      self._lv.connect(self._lv,
+        SIGNAL('mouseButtonClicked(int,QListViewItem*,const QPoint &,int)'),click);
+    # set log limit        
     self.set_log_limit(limit);
+    # map of items in the list view (mapped by ID) -- weakly referenced
+    self._content_map = weakref.WeakValueDictionary();
+    # compile regex to match our udi pattern
+    self._udi_name = udi_name or name;
+    self._patt_udi = re.compile("^"+self._udi_name+":(.*)$");
+    # define get_data_item method for the listview
+    self.wlistview().get_data_item = self.get_data_item;
     
   def wtop (self):
     return self._vbox;
@@ -245,14 +153,50 @@ class Logger(HierBrowser):
       self._limit_enable.setChecked(limit>0);
       self._limit_field.setEnabled(limit>0);
     self.apply_limit(self._limit);
+    
+  def get_data_item (self,udi):
+#    match = self._patt_udi(udi);
+#    if match is None:
+#      return None;
+#    # look for item in content map, using item id from the udi
+#    (subid,) = match.groups();
+    return self.make_data_item(self._content_map.get(udi,None));
+    
+  def make_data_item (item):
+    # create and return dataitem object from a listview item
+    # If any of the required attributes are missing, returns None
+    try: 
+      if item._viewable:
+        return GridDataItem(item._udi,item._name,item._desc,data=item._content);
+      return None;
+    except AttributeError: return None;
+    
+    
+  make_data_item = staticmethod(make_data_item);
 
-  def add (self,msg,content=None,category=Normal,force=False,label=None):
+  def add (self,msg,label=None,content=None,
+           category=Normal,force=False,
+           udi=None,name=None,desc=None):
+    """Adds item to logger. Arguments are:
+      msg:     item message (for message column)
+      label:   item label (for label column -- timestamp is used if this is None)
+      content: item data content (item will be expandable if this is not None)
+      category: item category: Normal, Event, Error.
+      force:   if False and logging is disabled, add() call does nothing.
+               if True, item is always added.
+    If content is not None, then content will be available to viewers. In
+    this case, the following parameters define its properties:
+      udi:     item UDI, auto-generated if None
+      name:    item name for viewers; if None, then category name is used
+      desc:    item description; if None, then label is used
+    Return value: a QListViewItem
+    """;
     # disabled? return immediately
     if not force and not self.enabled:
       return;
     # if label not specified, use a timestamp 
     if label is None:
-      label = time.strftime("%H:%M:%S ");
+      label = time.strftime("%H:%M:%S");
     # create listview item
     item = self.new_item(label,msg);
     item._category = category;
@@ -260,21 +204,31 @@ class Logger(HierBrowser):
       viewable = isinstance(content,dict) and ( len(content)>1 or 
                  (len(content)==1 and content.keys()[0] not in MessageCategories) );
       item.cache_content(content,viewable=viewable);
+      # add item to map, generating a uid if necessary
+      if viewable:
+        item.setDragEnabled(True);
+        if udi is None:
+          udi = str(id(item));
+        elif not isinstance(uid,str):
+          raise TypeError,"item uid must be string or None";
+        if name is None: name = self._LogCatNames.get(category,self._udi_name);
+        if desc is None: desc = label;
+        item._udi = udi = self._udi_name + ':' + udi;
+        item._name = name;
+        item._desc = desc;
+        self._content_map[udi] = item;
     # add pixmap according to category
     pm = self._LogPixmaps.get(category,None);
     if pm is not None:
       item.setPixmap(2,pm.pm());
     # apply a log limit
     self.apply_limit(self._limit);
+    return item;
     
   def _toggle_enable (self,en):
     self.enabled = en;
     if en: self.add("logging enabled",category=self.Normal);
     else:  self.add("logging disabled",category=self.Error,force=True);
-    
-  def connect_click (self,slot):
-    self._lv.connect(self._lv,
-      SIGNAL('mouseButtonClicked(int,QListViewItem*,const QPoint &,int)'),slot);
     
 class EventLogger (Logger):
   def __init__(self,parent,name,evmask="*",*args,**kwargs):
@@ -285,17 +239,22 @@ class EventLogger (Logger):
     self._controlgrid_lo.insertWidget(1,self._evmask_field);
     self.wtop().connect(self._evmask_field,SIGNAL('returnPressed()'),
                     self._enter_mask);
-
   def _enter_mask(self):
     self.set_mask(str(self._evmask_field.text()));
-    
   def set_mask (self,mask):
     try:
       self.mask = make_hiid(mask);
     except: pass;
     self._evmask_field.setText(str(self.mask));
     self.wtop().emit(PYSIGNAL('maskChanged()'),(self.wtop(),self.mask));
-    
+  # for event viewers, use the event name as name, and 'event' as description
+  def add (self,msg,*args,**kwargs):
+    label = time.strftime("%H:%M:%S");
+    kw = kwargs.copy();
+    kw['label'] = label;
+    kw['name'] = msg;
+    kw['desc'] = 'event '+label;
+    Logger.add(self,msg,*args,**kw);
 
 class MessageLogger (Logger):
   def __init__(self,*args,**kwargs):
@@ -304,8 +263,8 @@ class MessageLogger (Logger):
     self.wtop().connect(self._lv,SIGNAL('clicked(QListViewItem*)'),
                         self._clear_error_count);
     
-  def add (self,msg,content=None,category=Logger.Normal,force=False):
-    Logger.add(self,msg,content,category,force);
+  def add (self,msg,category=Logger.Normal,*args,**kwargs):
+    Logger.add(self,msg,category=category,*args,**kwargs);
     # keep track of new errors
     if category is Logger.Error:
       if self._num_err == 0:
@@ -367,23 +326,23 @@ class app_proxy_gui(verbosity,QMainWindow):
     splitter.setResizeMode(maintab,QSplitter.KeepSize);
     
     #------ create a message log
-    self.msglog = MessageLogger(self,"message log",use_enable=False,limit=1000);
+    self.msglog = MessageLogger(self,"message log",use_enable=False,limit=1000,
+          click=self._process_logger_item_click,udi_name='message');
     self.msglog.add('start of log',category=Logger.Normal);
     self.msglog.wtop()._default_label = "Messages";
     self.msglog.wtop()._default_iconset = QIconSet();
     self.msglog.wtop()._error_label = "%d errors";
     self.msglog.wtop()._error_iconset = QIconSet(pixmaps.exclaim.pm());
     self.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
-    self.msglog.connect_click(self._process_logger_item_click);
     
     #------ create an event log
-    self.eventlog = EventLogger(self,"event log",limit=1000,evmask="*");
+    self.eventlog = EventLogger(self,"event log",limit=1000,evmask="*",
+          click=self._process_logger_item_click,udi_name='event');
     
     self.maintab.addTab(self.msglog.wtop(),self.msglog.wtop()._default_label);
     
     self.eventtab = QTabWidget(self.maintab);
     self.maintab.addTab(self.eventtab,"Events");
-    self.eventlog.connect_click(self._process_logger_item_click);
     
     #------ event window tab bar
     self.eventtab.setTabShape(QTabWidget.Triangular);
@@ -422,8 +381,9 @@ class app_proxy_gui(verbosity,QMainWindow):
     splitter.setResizeMode(gw.wtop(),QSplitter.Stretch);
     self.gw_visible = {};
     gw.wtop().hide();
-    gw.add_tool_button(Qt.TopLeft,pixmaps.remove.pm(),leftside=True,
+    gw.add_tool_button(Qt.TopRight,pixmaps.remove.pm(),
       tooltip="hide the value browser panel",click=self.hide_gridded_workspace);
+    QWidget.connect(self.gw.wtop(),PYSIGNAL("addedCell()"),self.show_gridded_workspace);
     
     self.show_workspace_button = QToolButton(maintab);
     self.show_workspace_button.setPixmap(pixmaps.view_right.pm());
@@ -476,22 +436,11 @@ class app_proxy_gui(verbosity,QMainWindow):
     # process left-clicks on column 1 only
     if button != 1 or col != 1:
       return;
-    # return if item is not a top-level item, or has no content
-    try: 
-      if not item._viewable: return;
-      content = item._content;
-    except: return;
-    # add item to workspace
-    cell_id = id(item);
-    cell = self.gw.reserve_or_find_cell(cell_id);
-    if cell.is_empty():
-      rb = RecordBrowser(cell.wtop(),content);
-      rb.wtop()._rb = rb;
-      cell.set_content(rb.wtop(),item.text(2)[:50],cell_id,
-          subname=item.text(0)[:50],refresh=False,disable=False);
-      cell.wtop().connect(rb.wtop(),PYSIGNAL("refresh()"),self._refresh_state_cell);
-      self.gw.wtop().updateGeometry();
-    self.show_gridded_workspace();
+    # call Logger to create a dataitem object from this list item
+    dataitem = Logger.make_data_item(item);
+    if dataitem:
+      self.gw.add_data_cell(dataitem);
+      self.show_gridded_workspace();
     
 ##### event relay: reposts message as a Qt custom event for ourselves
   MessageEventType = QEvent.User+1;
@@ -521,10 +470,10 @@ class app_proxy_gui(verbosity,QMainWindow):
       if isinstance(value,record):
         for (field,cat) in MessageCategories.items():
           if field in value:
-            self.msglog.add(value[field],value,cat);
+            self.msglog.add(value[field],content=value,category=cat);
             break;
       # add to event log (if enabled)
-      self.eventlog.add(str(ev),value,Logger.Event);
+      self.eventlog.add(str(ev),content=value,category=Logger.Event);
       # strip off index from end of event
       ev0 = ev;
       if int(ev0[-1]) >= 0:
@@ -546,12 +495,12 @@ class app_proxy_gui(verbosity,QMainWindow):
 ##### custom event handlers for various messages
   def ce_Hello (self,ev,value):
     self.emit(PYSIGNAL("connected()"),(value,));
-    self.msglog.add("connected to "+str(value),None,Logger.Normal);
+    self.msglog.add("connected to "+str(value),category=Logger.Normal);
     self.gw.clear();
     
   def ce_Bye (self,ev,value):
     self.emit(PYSIGNAL("disconnected()"),(value,));
-    self.msglog.add("lost connection to "+str(value),None,Logger.Error);
+    self.msglog.add("lost connection to "+str(value),category=Logger.Error);
     
   def ce_UpdateState (self,ev,value):
     self._update_app_state();
@@ -598,16 +547,18 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.eventtab.setTabLabel(logger,str(mask));
 ##### slot: adds error count to label of message logger
   def _indicate_msglog_errors (self,logger,numerr):
-    if numerr:
+    # only add when going from or to 0 errors
+    if numerr and not logger._numerr:
       self.maintab.changeTab(logger,logger._error_iconset,logger._error_label % numerr);
-    else:
+    elif not numerr and logger._numerr:
       self._reset_maintab_label(logger);
-##### slot: resets label of tabbed window to its default value
+    logger._numerr = numerr;
+  # resets tab label to default values
   def _reset_maintab_label (self,tabwin):
     self.maintab.changeTab(tabwin,tabwin._default_iconset,tabwin._default_label);
-  
+    
   def log_message(self,msg,rec=None,category=Logger.Normal):
-    self.msglog.add(msg,rec,category);
+    self.msglog.add(msg,content=rec,category=category);
 
   def await_gui_exit ():
     global MainApp,MainAppThread;
@@ -635,9 +586,13 @@ class MainAppClass (QApplication):
       raise "Only one MainApp may be started";
     QApplication.__init__(self,args);
     self.setDesktopSettingsAware(True);
-    font = QFont("Helvetica",10);
-    font.setStyleHint(QFont.SansSerif);
+    # set 10pt font as default
+    font = self.font();
+    font.setPointSize(10);
     self.setFont(font);
+#    font = QFont("Georgia",10);
+#    font.setStyleHint(QFont.System);
+#    self.setFont(font);
     self.connect(self,SIGNAL("lastWindowClosed()"),self,SLOT("quit()"));
     # notify all waiters
     self._waitcond.acquire();

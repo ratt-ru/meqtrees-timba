@@ -374,6 +374,15 @@ def dmi_type (x):
   else:
     return dmi_type_map.get(type(x),None);
   
+# curry() function to compose callbacks and such
+# See The Python Cookbook recipe 15.7
+def curry (*args,**kwds):
+  def callit(*args1,**kwds1):
+    kw = kwds.copy();
+    kw.update(kwds1);
+    return args[0](*(args[1:]+args1),**kw);
+  return callit;
+
 # import C module
 import octopython
 
