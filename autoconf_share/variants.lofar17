@@ -1,20 +1,19 @@
 gnu3.compiler.conf: CXX="$CCACHE /usr/bin/g++"
 gnu3.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/weekly/linux_gnu
-gnu3.compiler.sse.var:    --without-sse
 
 gnu.compiler.conf: CXX="$CCACHE /usr/bin/g++"
 gnu.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/weekly/linux_gnu
-gnu.compiler.sse.var:    --without-sse
 
 gnu34.compiler.conf: CXX="$CCACHE /usr/local/gcc343/bin/g++" --with-ldflags="-Wl,--rpath,/usr/local/gcc343/lib" 
 gnu34.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/weekly/linux_gnu34
+gnu34.compiler.sse.var:    --with-sse
 
 gnunew.compiler.conf: CXX="$CCACHE /usr/local/gcc343/bin/g++" --with-ldflags="-Wl,--rpath,/usr/local/gcc343/lib"
 gnunew.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/weekly/linux_gnu34
+gnunew.compiler.sse.var:    --with-sse
 
 icc.compiler.conf: CXX="$CCACHE /usr/local/compiler80/bin/icc" --with-cppflags="-cxxlib-gcc" --with-ldflags="-cxxlib-gcc -Xlinker -rpath -Xlinker /usr/local/compiler80/lib"
 icc.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/weekly/linux_gnu --with-blitz=/usr/local/blitz/gnu --with-fftw2=/usr/local/fftw2/gnu --with-dtl=/usr/local/dtl/gnu
-icc.compiler.sse.var:    --without-sse
 
 insure.variant.conf:     --with-insuretools=/usr/local/insure/bin.linux2 $(aipspp)
 
