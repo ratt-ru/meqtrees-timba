@@ -30,7 +30,7 @@ class ResultPlotter(BrowserPlugin):
     return len(data) > 0;
   is_viewable = staticmethod(is_viewable);
 
-  def __init__(self,parent,dataitem=None,default_open=None,**opts):
+  def __init__(self,parent=None,dataitem=None,default_open=None,**opts):
     """ Instantiate HippoDraw objects that are used to control
         various aspects of plotting
     """
