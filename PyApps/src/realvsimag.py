@@ -99,6 +99,7 @@ class realvsimag_plotter(object):
         'none': QwtSymbol.None,
         'rectangle': QwtSymbol.Rect,
         'ellipse': QwtSymbol.Ellipse,
+        'dot': QwtSymbol.Ellipse,
         'circle': QwtSymbol.Ellipse,
 	'xcross': QwtSymbol.XCross,
 	'cross': QwtSymbol.Cross,
@@ -498,7 +499,10 @@ class realvsimag_plotter(object):
         if self._plot_parms.has_key('attrib'):
           temp_parms = self._plot_parms.get('attrib')
           self._plot_parms = temp_parms
-        self._plot_type = self._plot_parms.get('plot_type', 'realvsimag')
+        if self._plot_parms.has_key('plot_type'):
+          self._plot_type = self._plot_parms.get('plot_type', 'realvsimag')
+        if self._plot_parms.has_key('type'):
+          self._plot_type = self._plot_parms.get('type', 'realvsimag')
         self.plot_mean_circles = self._plot_parms.get('mean_circle', False)
         self.plot_stddev_circles = self._plot_parms.get('stddev_circle', False)
         self.plot_mean_arrows = self._plot_parms.get('mean_arrow', False)
@@ -556,6 +560,8 @@ class realvsimag_plotter(object):
             _dprint(2,'self._plot_parms ', self._plot_parms);
             if self._plot_type is None and self._plot_parms.has_key('plot_type'):
               self._plot_type = self._plot_parms.get('plot_type')
+            if self._plot_type is None and self._plot_parms.has_key('type'):
+              self._plot_type = self._plot_parms.get('type')
             _dprint(2,'self._plot_x_axis_label ', self._plot_x_axis_label);
             _dprint(2,'self._plot_parms ', self._plot_parms);
             _dprint(2,'self._plot_parms.has_key(x_axis) ', self._plot_parms.has_key('x_axis'));
