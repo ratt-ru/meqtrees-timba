@@ -61,7 +61,7 @@ int BOIO::close ()
 // Reads object attaches to ref. Returns its TypeId, or 
 // 0 for no more objects
 //##ModelId=3DB949AE025C
-TypeId BOIO::read (ObjRef &ref)
+TypeId BOIO::readAny (ObjRef &ref)
 {
   FailWhen(fmode != READ,"not open for reading");
   TypeId tid = nextType();

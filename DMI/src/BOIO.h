@@ -1,8 +1,8 @@
 #ifndef _BOIO_h
 #define _BOIO_h 1
     
-    
-#include "DMI/BlockableObject.h"
+#include <DMI/BlockableObject.h>
+#include <DMI/TypeInfo.h>
   
 // BOIO - BlockableObject I/O class
 // Stores a BO to/from a data file  
@@ -35,13 +35,17 @@ class BOIO
       // Reads object attaches to ref. Returns its TypeId, or 
       // 0 for no more objects
     //##ModelId=3DB949AE025C
-      TypeId read (ObjRef &ref);
+      TypeId readAny (ObjRef &ref);
+
+      template<class T>
+      bool read (CountedRef<T> &ref);
 
       // Stream form of the read operation. Returns True if an object
       // was read
     //##ModelId=3DB949AE0260
-      bool operator >> (ObjRef &ref)
-      { return read(ref) != 0; } 
+      template<class T>
+      bool operator >> (CountedRef<T> &ref)
+      { return read(ref); } 
       
       // returns TypeId of next object in stream (or 0 for EOF)
     //##ModelId=3DB949AE0265
@@ -100,5 +104,21 @@ inline const string & BOIO::fileName () const
 {
   return fname;
 }
-    
+
+template<>
+inline bool BOIO::read (CountedRef<BlockableObject> &ref)
+{ return readAny(ref) != 0; }
+
+template<class T>
+inline bool BOIO::read (CountedRef<T> &ref)
+{
+  TypeId tid = nextType();
+  if( !tid )
+    return 0;
+  FailWhen( tid != DMITypeTraits<T>::typeId,
+      "expecting object of type "+typeIdOf(T).toString()+
+      ", boio file contains "+tid.toString());
+  return readAny(ref.ref_cast((BlockableObject*)0)) != 0;
+}
+      
 #endif
