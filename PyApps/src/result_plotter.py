@@ -422,4 +422,4 @@ class ResultPlotter(BrowserPlugin):
 
     _dprint(3, 'exiting set_data')
 
-gridded_workspace.registerViewer(dict,ResultPlotter,dmitype='meqresult',priority=-10)
+gridded_workspace.registerViewer(dict,ResultPlotter,dmitype='meqresult',priority=-20)
