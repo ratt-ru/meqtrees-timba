@@ -62,7 +62,6 @@ if test "$with_blitz" != "no"; then
     fi
     enable_blitz=yes
   fi
-]
 ##
 ## Look for header file in suggested locations or in its include subdir
 ##
@@ -80,10 +79,9 @@ if test "$with_blitz" != "no"; then
   fi
   for bdir in $blitz_inclist
   do
-    AC_CHECK_FILE([$bdir/include/blitz/array.h],
+    ]AC_CHECK_FILE([$bdir/include/blitz/array.h],
 			[lfr_header_blitz=$bdir/include],
-			[lfr_header_blitz=no])dnl
-[
+			[lfr_header_blitz=no])[
     if test "$lfr_header_blitz" != "no" ; then
       if test "$with_blitz_libdir" = ""; then
         with_blitz_libdir=$bdir/lib;
@@ -93,11 +91,9 @@ if test "$with_blitz" != "no"; then
   done
 
   if test "$with_blitz_libdir" != ""; then
-]
-    AC_CHECK_FILE([$with_blitz_libdir/libblitz.a],
+    ]AC_CHECK_FILE([$with_blitz_libdir/libblitz.a],
 			[lfr_lib_blitz=$with_blitz_libdir],
-			[lfr_lib_blitz=no])dnl
-[
+			[lfr_lib_blitz=no])[
   fi
 
   if test "$lfr_header_blitz" != "no"  -a  "$lfr_lib_blitz" != "no" ; then

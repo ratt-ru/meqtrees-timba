@@ -55,7 +55,6 @@ if test "$with_lapack" != "no"; then
     fi
     enable_lapack=yes
   fi
-]
 ##
 ## Look for library in suggested locations or in its lib subdir
 ##
@@ -73,18 +72,15 @@ if test "$with_lapack" != "no"; then
   fi
   for bdir in $lapack_inclist
   do
-    AC_CHECK_FILE([$bdir/lib/liblapack.a],
+    ]AC_CHECK_FILE([$bdir/lib/liblapack.a],
 			[lfr_lib_lapack=$bdir/lib],
-			[lfr_lib_lapack=no])dnl
-[
+			[lfr_lib_lapack=no])[
   done
 
   if test "$lfr_lib_lapack" != "no"; then
-]
-    AC_CHECK_FILE([$lfr_lib_lapack/libblas.a],
+    ]AC_CHECK_FILE([$lfr_lib_lapack/libblas.a],
 			[lfr_lib_blas=$lfr_lin_lapack/libblas.a],
-			[lfr_lib_blas=no])dnl
-[
+			[lfr_lib_blas=no])[
   fi
 
   if test "$lfr_lib_lapack" != "no"  -a  "$lfr_lib_blas" != "no" ; then
