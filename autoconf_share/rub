@@ -147,7 +147,10 @@ if [ "$variant" != "" ]; then
     echo "Cleaning the build/$variant directories of the packages ..."
     for PKG in `cat lofarconf.in.private`
     do
-      \rm -rf $PKG/build/$variant
+      \rm -rf `find $PKG/build/$variant -name .libs`
+      \rm -rf `find $PKG/build/$variant -name .deps`
+      \rm -rf `find $PKG/build/$variant -name "*.o"`
+      \rm -rf `find $PKG/build/$variant -name "*.la"`
     done
   fi
   echo "Building system in build/$variant ..."
