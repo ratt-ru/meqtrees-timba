@@ -53,8 +53,10 @@
 
 // Now define the macros themselves
 
-#define DoForAllNumericTypes(Do,arg) \
-          DoForSomeTypes(Numeric,Do,arg)
+#ifndef DoForAllNumericTypes
+  #define DoForAllNumericTypes(Do,arg) \
+            DoForSomeTypes(Numeric,Do,arg)
+#endif
           
 #define DoForAllBinaryTypes(Do,arg) \
           DoForSomeTypes(Binary,Do,arg)

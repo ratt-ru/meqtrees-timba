@@ -127,7 +127,7 @@ inline bool TypeInfo::isNumeric (TypeId tid)
 inline bool TypeInfo::isArrayable (TypeId tid)
 { 
   #define __compare(type,arg) (tid == Tp##type)
-  return DoForAllArrayTypes2(__compare,,||);
+  return DoForAllArrayTypes_Sep(__compare,,||);
   #undef __compare
 }
 
@@ -184,7 +184,9 @@ inline bool convertScalar ( const void *from,TypeId frid,void *to,TypeId toid )
 // at compile-time
 #define __typeIdOfPtr(T,arg) inline TypeId TpOfPtr (const T *) { return Tp##T; };
 DoForAllNumericTypes(__typeIdOfPtr,);
+#if !defined(LORRAYS_DEFINE_STRING)
  __typeIdOfPtr(string,);
+#endif
 
 // This is a more convenient macro form
 #define typeIdOf(type) TpOfPtr((type*)0)
@@ -192,12 +194,16 @@ DoForAllNumericTypes(__typeIdOfPtr,);
 // Similar function, but returns Tptype for an Array_type* argument
 #define __typeIdOfArrayElem(T,arg) inline TypeId TpOfArrayElem (const Array_##T *) { return Tp##T; };
 DoForAllArrayTypes(__typeIdOfArrayElem,);
+#if !defined(LORRAYS_DEFINE_STRING)
 __typeIdOfArrayElem(string,);
+#endif
 
 // Similar function, but returns TpArray_type for a type * argument
 #define __typeIdOfArray(T,arg) inline TypeId TpOfArrayPtr (const T *) { return TpArray_##T; };
 DoForAllArrayTypes(__typeIdOfArray,);
+#if !defined(LORRAYS_DEFINE_STRING)
 __typeIdOfArray(string,);
+#endif
 
 // These are more convenient macros (only need a type)
 #define typeIdOf(type) TpOfPtr((type*)0)
