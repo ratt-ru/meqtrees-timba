@@ -7,7 +7,7 @@ class Dispatcher;
         
 namespace Octopussy
 {
-  Dispatcher &  init     ();
+  Dispatcher &  init     (bool start_gateways=True);
   void          start    ();
   void          pollLoop ();
   void          stop     ();

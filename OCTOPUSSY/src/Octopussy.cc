@@ -11,12 +11,13 @@ Dispatcher *pdsp = 0;
 Thread::ThrID thread = 0;
   
         
-Dispatcher &  init     ()
+Dispatcher &  init     (bool start_gateways=True)
 {
   FailWhen( pdsp,"OCTOPUSSY already initialized" );
   pdsp = new Dispatcher;
   pdsp->attach(new LoggerWP(10,Message::LOCAL),DMI::ANON);
-  initGateways(*pdsp);
+  if( start_gateways )
+    initGateways(*pdsp);
   return *pdsp;
 }
 
