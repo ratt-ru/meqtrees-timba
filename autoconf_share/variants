@@ -18,7 +18,7 @@ lam-corba.variant.conf:   $(standard) $(lam) $(vbroker)
 scampi.variant.conf:	  $(standard) $(scampi)
 scampi-opt.variant.conf:  $(standard) $(scampi) $(optimize)
 mpich-prof.variant.conf:  $(standard) $(mpich) --enable-mpi-profiler --with-cxxflags="-DHAVE_MPE"
-bgl.variant.conf:         $(lofar_root) $(bgl_mpi) $(debugopt) $(nomtsupport) $(bgl_cpp) $(bgl_ldd) --without-log4cplus 
+bgl.variant.conf:         $(lofar_root) $(debugopt) $(nomtsupport) $(bgl_cpp) $(bgl_ldd) --without-log4cplus --with-bglmpich
 fakebgl.variant.conf:     $(lofar_root) $(debug) $(nomtsupport) --without-log4cplus --with-cxxflags="-DHAVE_BGL"
 nolog4cplus.variant.conf: $(standard) $(debug) --without-log4cplus 
 insure.variant.conf:	  $(standard) --with-insuretools
@@ -41,6 +41,5 @@ scampi.var:		   --with-scampi
 vbroker.var:		   --with-vbroker
 mtsupport.var:		   --with-threads
 nomtsupport.var: 	   --with-threads=no  
-bgl_mpi.var:		   --with-bglmpich
 bgl_cpp.var:               --with-cppflags='-qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/bgl/BlueLight/ppcfloor/bglsys/include/'
 bgl_ldd.var:               --with-ldflags='-L/bgl/BlueLight/ppcfloor/bglsys/lib -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts -lstandalone.440 -lcrypt -lnss_files -lnss_dns -lresolv -lc -lnss_files -lnss_dns -lresolv -lm'
