@@ -24,6 +24,7 @@
 #  lofar_compiler    compiler type used (gnu, kcc, or icc) derived from CXX
 #                    Other compilers are not recognized and result in
 #                    a warning.
+#  LOFAR_DEPEND      all lofar libraries this package is dependent on
 #
 # A warning is given if the compiler type mismatches the compiler part
 # of the variant.
@@ -202,6 +203,7 @@ AC_ARG_WITH(lofar-libdir,
   ln -s $lfr_curwd/src pkgbldinc/$lfr_pkg;
 
   CPPFLAGS="$CPPFLAGS -I$lfr_curwd/pkginc -I$lfr_curwd/pkgbldinc"
+  LOFAR_DEPEND=
 ]
 AC_CHECK_FILE([$lofar_root/LOFAR],
 			[lfr_root=yes],
@@ -236,11 +238,8 @@ AC_CHECK_FILE([$lfr_find], [lfr_var=yes], [lfr_var=no])
   AC_SUBST(lofar_variant)
   AC_SUBST(lofar_top_srcdir)
   AC_SUBST(lofar_sharedir)
+  AC_SUBST(LOFAR_DEPEND)
   AC_SUBST(CPPFLAGS)
   AC_SUBST(LDFLAGS)
-  [if test "$lofar_compiler" = "gnu"; then
-    CXXFLAGS="$CXXFLAGS -Wno-unknown-pragmas";]
-    AC_SUBST(CXXFLAGS)
-  [fi]
 
 ])
