@@ -81,12 +81,16 @@ BlockableObject * __construct_MeqRequest (int n) { return n>0 ? new Meq::Request
         TypeInfoReg::addToRegistry(-1246,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1246,__construct_MeqResult)+
         AtomicID::registerId(-1245,"results")+
-        AtomicID::registerId(-1215,"meqresultset")+
-        TypeInfoReg::addToRegistry(-1215,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1215,__construct_MeqResultSet)+
+        AtomicID::registerId(-1036,"fail")+
         AtomicID::registerId(-1233,"node")+
         AtomicID::registerId(-1248,"class")+
         AtomicID::registerId(-1188,"name")+
+        AtomicID::registerId(-1132,"origin")+
+        AtomicID::registerId(-1359,"line")+
+        AtomicID::registerId(-1045,"message")+
+        AtomicID::registerId(-1215,"meqresultset")+
+        TypeInfoReg::addToRegistry(-1215,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1215,__construct_MeqResultSet)+
         AtomicID::registerId(-1060,"state")+
         AtomicID::registerId(-1226,"child")+
         AtomicID::registerId(-1220,"children")+

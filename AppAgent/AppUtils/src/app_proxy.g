@@ -225,7 +225,9 @@ const app_proxy := function (appid,
     self.initrec_prev := initrec;
     self.dprint(3,'init: initrec is ',initrec);
     self.waiting_init := T;
-    public.command("Init",initrec);
+    res := public.command("Init",initrec);
+    if( is_fail(res) )
+      fail;
     if( wait )
     {
       while( self.waiting_init )

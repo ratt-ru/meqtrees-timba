@@ -48,6 +48,11 @@ const int AidDeriv_int = -1230;
 const AtomicID AidDomain(-1213);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cells.h:35
 const int AidDomain_int = -1213;
 #endif
+#ifndef _defined_id_AidFail
+#define _defined_id_AidFail 1
+const AtomicID AidFail(-1036);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:9
+const int AidFail_int = -1036;
+#endif
 #ifndef _defined_id_AidId
 #define _defined_id_AidId 1
 const AtomicID AidId(-1087);                      // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:10
@@ -57,6 +62,11 @@ const int AidId_int = -1087;
 #define _defined_id_AidIndex 1
 const AtomicID AidIndex(-1051);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:26
 const int AidIndex_int = -1051;
+#endif
+#ifndef _defined_id_AidLine
+#define _defined_id_AidLine 1
+const AtomicID AidLine(-1359);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ResultSet.h:33
+const int AidLine_int = -1359;
 #endif
 #ifndef _defined_id_AidMeqAdd
 #define _defined_id_AidMeqAdd 1
@@ -183,6 +193,11 @@ const int AidMeqToComplex_int = -1217;
 const AtomicID AidMeqUVW(-1239);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/UVW.h:29
 const int AidMeqUVW_int = -1239;
 #endif
+#ifndef _defined_id_AidMessage
+#define _defined_id_AidMessage 1
+const AtomicID AidMessage(-1045);                 // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:25
+const int AidMessage_int = -1045;
+#endif
 #ifndef _defined_id_AidName
 #define _defined_id_AidName 1
 const AtomicID AidName(-1188);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
@@ -197,6 +212,11 @@ const int AidNfreq_int = -1253;
 #define _defined_id_AidNode 1
 const AtomicID AidNode(-1233);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:33
 const int AidNode_int = -1233;
+#endif
+#ifndef _defined_id_AidOrigin
+#define _defined_id_AidOrigin 1
+const AtomicID AidOrigin(-1132);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
+const int AidOrigin_int = -1132;
 #endif
 #ifndef _defined_id_AidParm
 #define _defined_id_AidParm 1

@@ -240,56 +240,70 @@ int Node::getResult (ResultSet::Ref &ref, const Request &req)
   cdebug(3)<<"getResult, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
   // do we have a new request?
   bool newreq = req.id() != currentRequestId();
-  if( newreq )
+  try
   {
-    cdebug(3)<<"  new request, clearing cache"<<endl;
-    // clear cache
-    wstate()[AidResult].remove(); 
-    res_cache_.detach();
-    // change to the current request
-    setCurrentRequest(req);
-    // do we have a rider record? process it
-    if( req[AidRider].exists() )
+    if( newreq )
     {
-      const DataRecord &rider = req[AidRider];
-      processRequestRider(rider);
-      // process rider stuff common to all nodes (setState, etc.)
-      // ...
-      // none for now
+      cdebug(3)<<"  new request, clearing cache"<<endl;
+      // clear cache
+      wstate()[AidResult].remove(); 
+      res_cache_.detach();
+      // change to the current request
+      setCurrentRequest(req);
+      // do we have a rider record? process it
+      if( req[AidRider].exists() )
+      {
+        cdebug(3)<<"  processing request rider"<<endl;
+        const DataRecord &rider = req[AidRider];
+        processRequestRider(rider);
+        // process rider stuff common to all nodes (setState, etc.)
+        // ...
+        // none for now
+      }
     }
+    else // old request -- check the cache and return if it's valid
+    {
+      if( res_cache_.valid() )
+      {
+        ref.copy(res_cache_,DMI::PRESERVE_RW);
+        cdebug(3)<<"  old request, returning cached result"<<
+                   "    "<<ref->sdebug(DebugLevel-1,"    ")<<endl;
+        return 0;
+      }
+      else
+      {
+        cdebug(3)<<"  old request but cache is empty, redoing getResult"<<endl;
+      }
+    }
+    // new request and/or no cache -- recompute the result
+    int flags = getResultImpl(ref,req,newreq);
+    cdebug(3)<<"  getResultImpl returns flags: "<<flags<<endl;
+    cdebug(3)<<"  result is: "<<ref.sdebug(DebugLevel-1,"    ")<<endl;
+    if( DebugLevel>3 && ref.valid() )
+    {
+      if( ref->isFail() ) {
+        cdebug(4)<<"  result is marked as FAIL"<<endl;
+      } else {
+        for( int i=0; i<ref->numResults(); i++ ) {
+          cdebug(4)<<"  plane "<<i<<": "<<ref->resultConst(i).getValue()<<endl;
+        }
+      }
+    }
+    //  cache result in the state record
+    if( flags != RES_FAIL && !(flags&RES_WAIT) )
+    {
+      res_cache_.copy(ref,DMI::PRESERVE_RW);
+      wstate()[AidResult] <<= *ref; 
+    }
+    return flags;
   }
-  else // old request -- check the cache and return if it's valid
+  // catch any exceptions, return a FAIL
+  catch( std::exception &x )
   {
-    if( res_cache_.valid() )
-    {
-      ref.copy(res_cache_,DMI::PRESERVE_RW);
-      cdebug(3)<<"  old request, returning cached result"<<
-                 "    "<<ref->sdebug(DebugLevel-1,"    ")<<endl;
-      return 0;
-    }
-    else
-    {
-      cdebug(3)<<"  old request but cache is empty"<<endl;
-    }
+    ref <<= new ResultSet(-1);
+    MakeFailResult(ref(),string("exception occurred in getResult: ")+x.what());
+    return RES_FAIL;
   }
-  // new request and/or no cache -- recompute the result
-  int flags = getResultImpl(ref,req,newreq);
-  cdebug(3)<<"  getResultImpl returns flags: "<<flags<<endl;
-  cdebug(3)<<"  result is: "<<ref.sdebug(DebugLevel-1,"    ")<<endl;
-  if( DebugLevel>3 && ref.valid() )
-  {
-    for( int i=0; i<ref->numResults(); i++ )
-    {
-      cdebug(4)<<"  plane "<<i<<": "<<ref->resultConst(i).getValue()<<endl;
-    }
-  }
-  //  cache result in the state record
-  if( flags != RES_FAIL && !(flags&RES_WAIT) )
-  {
-    res_cache_.copy(ref,DMI::PRESERVE_RW);
-    wstate()[AidResult] <<= *ref; 
-  }
-  return flags;
 }
 
 // default version does nothing

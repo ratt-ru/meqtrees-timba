@@ -55,8 +55,13 @@ public:
   virtual TypeId objectType () const
   { return TpMeqCells; }
   
+//   // implement standard clone method via copy constructor
+//   virtual CountedRefTarget* clone (int flags, int depth) const
+//   { return new Cells(*this,flags,depth); }
+  
   // validate record contents and setup shortcuts to them. This is called 
-  // automatically whenever a ResultPlane is made from a DataRecord
+  // automatically whenever a Cells object is made from a DataRecord
+  // (or when the underlying DataRecord is privatized, etc.)
   virtual void validateContent ();
   
   // Get domain.
@@ -94,11 +99,11 @@ private:
   // Setup DataRecord with domain; sets up new arrays with given sizes
   void setDataRecord (const Domain&,int nfreq,int ntimes);
 
-  Domain*      itsDomain;
-  double       itsFreqStep;
-  int          itsNfreq;
-  LoVec_double itsTimes;
-  LoVec_double itsTimeSteps;
+  const Domain* itsDomain;
+  double        itsFreqStep;
+  int           itsNfreq;
+  LoVec_double  itsTimes;
+  LoVec_double  itsTimeSteps;
 };
 
 } //namespace Meq

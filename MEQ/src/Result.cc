@@ -88,7 +88,7 @@ static Vells * makeVells (NestableContainer &nc,const HIID &field)
   if( !nc[field].exists() )
     return new Vells();
   else
-    return new Vells(nc[field].as_wp<DataArray>());
+    return new Vells(nc[field].privatize(DMI::WRITE).as_wp<DataArray>());
 }
 
 void Result::validateContent ()
@@ -102,10 +102,10 @@ void Result::validateContent ()
     // get pointer to spids vector and its size
     if( (*this)[FSpids].exists() )
     {
-      itsSpids = (*this)[FSpids].as_wp<int>(itsNumSpids);
+      itsSpids = (*this)[FSpids].privatize(DMI::WRITE).as_wp<int>(itsNumSpids);
       int size;
       // get pointer to perturbations vector, verify size
-      itsPerturbations = (*this)[FPerturbations].as_wp<double>(size);
+      itsPerturbations = (*this)[FPerturbations].privatize(DMI::WRITE).as_wp<double>(size);
       FailWhen(size!=itsNumSpids,"size mismatch between spids and perturbations");
       // get value, if it exists in the data record
       itsValue <<= makeVells(*this,FValue);
@@ -113,7 +113,7 @@ void Result::validateContent ()
       itsPerturbedValues.resize(itsNumSpids);
       if( (*this)[FPerturbedValues].exists() )
       {
-        pnc_perturbed = (*this)[FPerturbedValues].as_wp<DataField>();
+        pnc_perturbed = (*this)[FPerturbedValues].privatize(DMI::WRITE).as_wp<DataField>();
         FailWhen( pnc_perturbed->size(TpDataArray) != itsNumSpids,
               "size mismatch between spids and perturbed values");
         // setup shortcuts to perturbation vells

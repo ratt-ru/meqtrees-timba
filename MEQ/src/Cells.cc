@@ -90,7 +90,7 @@ void Cells::validateContent ()
     itsNfreq = (*this)[AidNfreq].as<int>(0);
     if( (*this)[AidDomain].exists() )
     {
-      itsDomain = (*this)[AidDomain].as_wp<Domain>();
+      itsDomain = (*this)[AidDomain].as_p<Domain>();
       itsFreqStep  = (itsDomain->endFreq() - itsDomain->startFreq()) / itsNfreq;
     }
     else
@@ -142,7 +142,7 @@ void Cells::setDataRecord (const Domain& domain,int nfreq,int ntimes)
 {
   Assert (ntimes > 0  &&  nfreq > 0);
   itsDomain = new Domain(domain);
-  (*this)[AidDomain] <<= static_cast<DataField*>(itsDomain);
+  (*this)[AidDomain] <<= static_cast<const DataField*>(itsDomain);
   (*this)[AidNfreq] = itsNfreq = nfreq;
   (*this)[AidTimes] <<= new DataArray(Tpdouble,LoShape(ntimes));
   itsTimes.reference((*this)[AidTimes].as<LoVec_double>());

@@ -59,8 +59,13 @@ public:
   virtual TypeId objectType () const
   { return TpMeqResult; }
   
+//   // implement standard clone method via copy constructor
+//   virtual CountedRefTarget* clone (int flags, int depth) const
+//   { return new Result(*this,flags,depth); }
+  
   // validate record contents and setup shortcuts to them. This is called 
   // automatically whenever a Result is made from a DataRecord
+  // (or when the underlying DataRecord is privatized, etc.)
   virtual void validateContent ();
   
   // this disables removal of fields via hooks

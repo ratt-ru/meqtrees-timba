@@ -57,8 +57,13 @@ public:
   virtual TypeId objectType () const
   { return TpMeqDomain; }
   
+//   // implement standard clone method via copy constructor
+//   virtual CountedRefTarget* clone (int flags, int depth) const
+//   { return new Domain(*this,flags|(depth>0?DMI::DEEP:0)); }
+  
   // validate record contents and setup shortcuts to them. This is called 
-  // automatically whenever a ResultPlane is made from a DataRecord
+  // automatically whenever a Domain is made from a DataField
+  // (or when the underlying DataField is privatized, etc.)
   virtual void validateContent ();
   
   // Get offset and scale value.
