@@ -33,7 +33,7 @@
 #include <aips/OS/Timer.h>
 #include <aips/Exceptions/Error.h>
 #include <aips/iostream.h>
-#include <aips/strstream.h>
+#include <sstream>
 
 using namespace Meq;
 using namespace Meq::VellsMath;
@@ -175,7 +175,7 @@ int main (int argc, char** argv)
 {
   uInt nr = 100;
   if (argc > 1) {
-    istrstream istr(argv[1]);
+    std::istringstream istr(argv[1]);
     istr >> nr;
   }
   try {
