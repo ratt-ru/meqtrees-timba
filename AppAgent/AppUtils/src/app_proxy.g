@@ -188,10 +188,11 @@ const app_proxy := function (appid,
           self.dprintf(2,'init: initrec contains %s rec',f);
         else
         {
-          if( !has_field(self.initrec_prev,f) )
-            fail paste('no previous',f,'subrecord specified');
-          initrec[f] := self.initrec_prev[f];
-          self.dprintf(2,'init: using previous %s rec',f);
+          if( has_field(self.initrec_prev,f) )
+          {
+            initrec[f] := self.initrec_prev[f];
+            self.dprintf(2,'init: using previous %s rec',f);
+          }
         }
       }
     }
