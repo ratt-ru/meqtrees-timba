@@ -9,7 +9,7 @@ from ComplexColorMap import *
 import random
 
 from dmitypes import verbosity
-_dbg = verbosity(0,name='realvsimag');
+_dbg = verbosity(0,name='displayimage');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
@@ -146,7 +146,7 @@ class QwtPlotImage(QwtPlotMappedItem):
     
     def setDisplayType(self, display_type):
         self.display_type = display_type
-        _dprint(2,'display type set to ', self.display_type)
+        _dprint(2,'display type set to ', self.display_type);
         if self.display_type == "brentjens" and self.ValueAxis == None:
           self.ValueAxis =  UVPAxis()
           self.ComplexColorMap = ComplexColorMap(256)
@@ -215,13 +215,13 @@ class QwtPlotImage(QwtPlotMappedItem):
               value = self.ComplexColorMap.get_color_value(colre,colim)
               self.image.setPixel(i,j,value)
             else:
-              _dprint(2, "*************************************") 
-              _dprint(2, "colre: ", colre)
-              _dprint(2, "colim: ", colim) 
-              _dprint(2, "real : ", real_image[i,j])
-              _dprint(2, "imag : ", imag_image[i,j])
-              _dprint(2, "Ncol: ", Ncol)
-              _dprint(2, "*************************************") 
+              _dprint(2, "*************************************");
+              _dprint(2, "colre: ", colre);
+              _dprint(2, "colim: ", colim);
+              _dprint(2, "real : ", real_image[i,j]);
+              _dprint(2, "imag : ", imag_image[i,j]);
+              _dprint(2, "Ncol: ", Ncol);
+              _dprint(2, "*************************************");
         self.image.mirror(0,1)
 
     def setData(self, xyzs, xScale = None, yScale = None):
@@ -297,10 +297,10 @@ class QwtImagePlot(QwtPlot):
         'rectangle': QwtSymbol.Rect,
         'ellipse': QwtSymbol.Ellipse,
         'circle': QwtSymbol.Ellipse,
-	'xcross': QwtSymbol.XCross,
-	'cross': QwtSymbol.Cross,
-	'triangle': QwtSymbol.Triangle,
-	'diamond': QwtSymbol.Diamond,
+        'xcross': QwtSymbol.XCross,
+        'cross': QwtSymbol.Cross,
+        'triangle': QwtSymbol.Triangle,
+        'diamond': QwtSymbol.Diamond,
         }
 
     display_table = {
@@ -320,34 +320,34 @@ class QwtImagePlot(QwtPlot):
         self.x_array = None
         self.y_array = None
         self.x_index = None
-	# make a QwtPlot widget
+        # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
         self.plotLayout().setAlignCanvasToScales(1)
-	self.setTitle('QwtImagePlot: demo')
+        self.setTitle('QwtImagePlot: demo')
 #        self.setAutoLegend(1)
 #        self.setLegendPos(Qwt.Right)
-	# set default axis titles
-	self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
-	self.setAxisTitle(QwtPlot.yLeft, 'time (s)')
+        # set default axis titles
+        self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
+        self.setAxisTitle(QwtPlot.yLeft, 'time (s)')
         self.x_axis_title_set_in_plot_data = False
-	# insert a few curves
-	self.xCrossSection = self.insertCurve('xCrossSection')
-	self.yCrossSection = self.insertCurve('yCrossSection')
+        # insert a few curves
+        self.xCrossSection = self.insertCurve('xCrossSection')
+        self.yCrossSection = self.insertCurve('yCrossSection')
         self.enableAxis(QwtPlot.yRight)
         self.setAxisTitle(QwtPlot.yRight, 'signal')
-	# set curve styles
-	self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
-	self.setCurvePen(self.yCrossSection, QPen(Qt.red, 2))
+        # set curve styles
+        self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
+        self.setCurvePen(self.yCrossSection, QPen(Qt.red, 2))
         self.setCurveYAxis(self.xCrossSection, QwtPlot.yRight)
         self.setAxisAutoScale(QwtPlot.yRight)
 
-	# insert a horizontal marker at y = 0
-#	mY = self.insertLineMarker('y = 0', QwtPlot.yLeft)
-#	self.setMarkerYPos(mY, 0.0)
-	# insert a vertical marker at x = pi
-#	mX = self.insertLineMarker('x = pi', QwtPlot.xBottom)
-#	self.setMarkerXPos(mX, pi)
+        # insert a horizontal marker at y = 0
+#        mY = self.insertLineMarker('y = 0', QwtPlot.yLeft)
+#        self.setMarkerYPos(mY, 0.0)
+        # insert a vertical marker at x = pi
+#        mX = self.insertLineMarker('x = pi', QwtPlot.xBottom)
+#        self.setMarkerXPos(mX, pi)
 
 #        self.connect(
 #            self.__colorBar, PYSIGNAL("colorSelected"), self.setCanvasColor)
@@ -426,9 +426,9 @@ class QwtImagePlot(QwtPlot):
 
             for i in range(shape[0]):
               self.x_array[i] = self.raw_image[i,ypos]
-	    self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
+            self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
             self.replot()
-            _dprint(2, 'called replot in onMousePressed')
+            _dprint(2, 'called replot in onMousePressed');
            
         # fake a mouse move to show the cursor position
         self.onMouseMoved(e)
@@ -462,7 +462,7 @@ class QwtImagePlot(QwtPlot):
         self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
         self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
         self.replot()
-        _dprint(2, 'called replot in onMouseReleased')
+        _dprint(2, 'called replot in onMouseReleased');
 
     # onMouseReleased()
 
@@ -471,7 +471,7 @@ class QwtImagePlot(QwtPlot):
         if curve:
             curve.setEnabled(not curve.enabled())
             self.replot()
-            _dprint(2, 'called replot in toggleCurve')
+            _dprint(2, 'called replot in toggleCurve');
     # toggleCurve()
 
     def setDisplayType(self, display_type):
@@ -489,13 +489,13 @@ class QwtImagePlot(QwtPlot):
       else:
         self.plotImage.setImage(image)
       self.replot()
-      _dprint(2, 'called replot in display_image')
+      _dprint(2, 'called replot in display_image');
     # display_image()
 
     def plot_data(self, item_label, visu_record):
       """ process incoming data and attributes into the
           appropriate type of plot """
-      _dprint(2, 'in plot data')
+      _dprint(2, 'in plot data');
 
 # first find out what kind of plot we are making
       plot_types = None
@@ -523,7 +523,7 @@ class QwtImagePlot(QwtPlot):
           complex_type = False;
           if self._data_values[i].type() == Complex64:
             complex_type = True;
-          _dprint(2, 'complex type is ', complex_type)
+          _dprint(2, 'complex type is ', complex_type);
           if complex_type:
             data_label = plot_label +  "_" +str(i) +  "_complex" 
             if self.display_type != "brentjens":
@@ -535,11 +535,11 @@ class QwtImagePlot(QwtPlot):
                 for j in range(shape[1]):
                   temp_array[k,j] = real_array[k,j]
                   temp_array[k+shape[0],j] = imag_array[k,j]
-	      self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
+              self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
               self.x_axis_title_set_in_plot_data = True
               self.array_plot(data_label, temp_array)
             else:
-              _dprint(2, "calling array_plot with complex array")
+              _dprint(2, "calling array_plot with complex array");
               self.array_plot(data_label, self._data_values[i])
           else:
             data_label = plot_label +  "_" +str(i) +  "_real" 
@@ -573,12 +573,12 @@ class QwtImagePlot(QwtPlot):
 
 # test if we have a 2-D array
       if self.is_vector == False:
-	self.setAxisTitle(QwtPlot.yLeft, 'time (s)')
+        self.setAxisTitle(QwtPlot.yLeft, 'time (s)')
         if not self.x_axis_title_set_in_plot_data:
-	  if complex_type and self.display_type != "brentjens":
-	    self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
+          if complex_type and self.display_type != "brentjens":
+            self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
           else:
-	    self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
+            self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
         if self.x_dim != plot_array.shape[0]: 
           self.x_dim = plot_array.shape[0]
           self.set_data_called = False
@@ -590,7 +590,7 @@ class QwtImagePlot(QwtPlot):
       if self.is_vector == True:
         flattened_array = None
         if not self.x_axis_title_set_in_plot_data:
-	  self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
+          self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
 # set this flag in case an image follows
         self.set_data_called = False
 # make sure we are autoscaling in case an image was previous
@@ -600,8 +600,8 @@ class QwtImagePlot(QwtPlot):
         num_elements = n_rows*n_cols
         flattened_array = reshape(plot_array,(num_elements,))
 # we have a complex vector
-	if complex_type:
-	  self.setAxisTitle(QwtPlot.yLeft, 'Signal: real(black) imaginary(red)')
+        if complex_type:
+          self.setAxisTitle(QwtPlot.yLeft, 'Signal: real(black) imaginary(red)')
           if self.display_type == "brentjens":
             self.x_array =  flattened_array.getreal()
             self.y_array =  flattened_array.getimag()
@@ -621,7 +621,7 @@ class QwtImagePlot(QwtPlot):
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
           self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
         else:
-	  self.setAxisTitle(QwtPlot.yLeft, 'Signal')
+          self.setAxisTitle(QwtPlot.yLeft, 'Signal')
           if self.x_array is None:
             self.x_array = zeros(num_elements, Float32)
             self.y_array = zeros(num_elements, Float32)
@@ -630,7 +630,7 @@ class QwtImagePlot(QwtPlot):
           self.x_array =  flattened_array
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
         self.replot()
-        _dprint(2, 'called replot in array_plot')
+        _dprint(2, 'called replot in array_plot');
 
     def start_timer(self, time, test_complex, display_type):
       self.test_complex = test_complex
@@ -654,7 +654,7 @@ class QwtImagePlot(QwtPlot):
         for i in range(shape[0]):
           vector_array[i,0] = a[i,0]
         if self.index % 2 == 0:
-          _dprint(2, 'plotting vector')
+          _dprint(2, 'plotting vector');
           if self.display_type != "brentjens":
             real_array =  vector_array.getreal()
             imag_array =  vector_array.getimag()
@@ -690,10 +690,10 @@ class QwtImagePlot(QwtPlot):
         for i in range(shape[0]):
           vector_array[i,0] = m[i,0]
         if self.index % 2 == 0:
-	  _dprint(2, 'plotting vector')
+          _dprint(2, 'plotting vector');
           self.array_plot('test_vector', vector_array)
         else:
-	  _dprint(2, 'plotting array')
+          _dprint(2, 'plotting array');
           self.array_plot('test_image',m)
 
       self.index = self.index + 1
