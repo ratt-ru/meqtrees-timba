@@ -61,19 +61,25 @@
         Do(bool,arg)
 
 #define DoForAllIntermediateTypes(Do,arg) \
+        Do(Array_uchar,arg); \
+        Do(Array_short,arg); \
         Do(Array_int,arg); \
         Do(Array_float,arg); \
         Do(Array_double,arg); \
         Do(Array_fcomplex,arg); \
         Do(Array_dcomplex,arg); \
-        Do(Array_bool,arg)
+        Do(Array_bool,arg); \
+        Do(Array_string,arg)
 #define DoForAllIntermediateTypes1(Do,arg) \
+        Do(Array_uchar,arg), \
+        Do(Array_short,arg), \
         Do(Array_int,arg), \
         Do(Array_float,arg), \
         Do(Array_double,arg), \
         Do(Array_fcomplex,arg), \
         Do(Array_dcomplex,arg), \
-        Do(Array_bool,arg)
+        Do(Array_bool,arg), \
+        Do(Array_string,arg)
 
 #define DoForAllOtherTypes(Do,arg) \
         Do(ObjRef,arg)

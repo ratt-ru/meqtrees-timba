@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.16  2002/07/30 13:08:03  smirnov
+//  %[BugId: 26]%
+//  Lots of fixes for multithreading
+//
 //  Revision 1.15  2002/07/03 14:13:16  smirnov
 //  %[BugId: 26]%
 //  Major overhaul to enable multithreading (use "-pthread -DUSE_THREADS" flags
@@ -150,10 +154,13 @@ DataArray::DataArray (const Array<T>& array,
   *static_cast<Array<T>*>(itsArray) = array;
 }
 
+
 // instantiate this constructor template for all other types
 #undef __instantiate
 #define __instantiate(T,arg) template DataArray::DataArray (const Array<T>& array,int flags, int shm_flags);
 DoForAllArrayTypes(__instantiate,);
+// __instantiate(string,);
+
 
 DataArray::DataArray (const DataArray& other, int flags, int depth)
 : NestableContainer(flags&DMI::WRITE != 0),

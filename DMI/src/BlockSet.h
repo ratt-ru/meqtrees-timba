@@ -149,6 +149,8 @@ class BlockSet
       BlockRef & operator [] (int i);
       const BlockRef & operator [] (int i) const;
       
+      bool empty () const;
+      
       // This is a typical debug() method setup. The sdebug()
       // method creates a debug info string at the given level of detail.
       // If detail<0, then partial info is returned: e.g., for detail==-2,
@@ -235,6 +237,11 @@ inline BlockRef & BlockSet::operator [] (int i)
 inline const BlockRef & BlockSet::operator [] (int i) const
 {
   return refs[i];
+}
+
+inline bool BlockSet::empty () const
+{
+  return refs.empty();
 }
 //## end module%3C10CC810231.epilog
 

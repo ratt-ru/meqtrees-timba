@@ -37,7 +37,12 @@
 //## begin module%3C14B70800A2.additionalDeclarations preserve=yes
 using namespace std;
 
-
+#if __GNUC__ >= 3 || defined(__GLIBCPP__)
+  #define _strcompare(x,y,z) compare(x,y,z)
+#else
+  #define GCC_BROKEN_STL 1
+  #define _strcompare(x,y,z) compare(z,x,y)
+#endif
 
 //## end module%3C14B70800A2.additionalDeclarations
 

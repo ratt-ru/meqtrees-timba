@@ -124,6 +124,19 @@ class Timestamp
 
     // Additional Public Declarations
       //## begin Timestamp%3C7F3B1D025E.public preserve=yes
+      // constructs from a struct timeval
+      Timestamp (const struct timeval &tv)
+      { 
+        sec_ = tv.tv_sec; 
+        usec_ = tv.tv_usec; 
+      }
+      
+      // converts to a struct timeval
+      operator struct timeval ()
+      { 
+        struct timeval tv = { sec_,usec_ }; 
+        return tv;
+      }
       //## end Timestamp%3C7F3B1D025E.public
 
   protected:

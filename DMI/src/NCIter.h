@@ -160,6 +160,8 @@ class NCConstIter : public NCBaseIter  //## Inherits: <unnamed>%3D21769303BF
 
     // Additional Public Declarations
       //## begin NCConstIter%3D1C6DE50373.public preserve=yes
+      int size () const;
+      int nleft () const;
       //## end NCConstIter%3D1C6DE50373.public
 
   protected:
@@ -377,9 +379,7 @@ template <class T>
 inline T NCConstIter<T>::operator*() const
 {
   //## begin NCConstIter::operator*%3D1C6DE50373_deref.body preserve=yes
-  return *ptr();
-  return *ptr_++;
-  return *ptr_++ = value;
+  return *ptr_;
   //## end NCConstIter::operator*%3D1C6DE50373_deref.body
 }
 
@@ -534,9 +534,22 @@ inline T NCIter<T>::next (T value)
 }
 
 //## begin module%3D1C711B0168.epilog preserve=yes
+template <class T>
+int NCConstIter<T>::size () const
+{
+  return end_ptr_ - start_ptr_;
+}
+
+template <class T>
+int NCConstIter<T>::nleft () const
+{
+  return ptr_ - start_ptr_;
+}
+
+
 #define __declare_iter(T,arg) typedef NCConstIter<T> NCConstIter_##T; typedef NCIter<T> NCIter_##T;
 DoForAllNumericTypes(__declare_iter,);
-#undef __declare_iter;
+#undef __declare_iter
 //## end module%3D1C711B0168.epilog
 
 

@@ -354,8 +354,10 @@ inline CountedRefBase::CountedRefBase (const CountedRefBase& other, int flags, i
     return;
   if( flags&DMI::PRIVATIZE ) // constructing ref to privatized target
     privatizeOther(other,flags,depth);
-  else if( flags&DMI::COPYREF || other.isPersistent() ) // constructing true copy of reference
+  else if( flags&DMI::COPYREF ) // constructing true copy of reference
     copy(other,flags);
+  else if( other.isPersistent() ) // persistent: do true copy of reference
+    copy(other,flags|DMI::PRESERVE_RW);
   else  // else do destructive copy
     xfer(other);
   //## end CountedRefBase::CountedRefBase%3C0CE1C10277.body

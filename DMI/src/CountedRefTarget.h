@@ -24,9 +24,7 @@
 //## end module%3C10CC8103D6.additionalIncludes
 
 //## begin module%3C10CC8103D6.includes preserve=yes
-#ifdef USE_THREADS
 #include "Common/Thread.h"
-#endif
 //## end module%3C10CC8103D6.includes
 
 
@@ -130,6 +128,8 @@ class CountedRefTarget
       //## begin CountedRefTarget%3C0CDF41029F.public preserve=yes
       CountedRefBase * getOwner ();
       
+      Thread::Mutex & crefMutex();
+      
       // This is a typical debug() method setup. The sdebug()
       // method creates a debug info string at the given level of detail.
       // If detail<0, then partial info is returned: e.g., for detail==-2,
@@ -170,9 +170,7 @@ class CountedRefTarget
       //## begin CountedRefTarget%3C0CDF41029F.implementation preserve=yes
       mutable bool anon;
   
-      #ifdef USE_THREADS
       Thread::Mutex cref_mutex;
-      #endif
       //## end CountedRefTarget%3C0CDF41029F.implementation
 
   //## begin CountedRefTarget%3C0CDF41029F.friends preserve=no
@@ -275,6 +273,11 @@ inline CountedRefTarget* SingularRefTarget::clone (int , int ) const
 inline CountedRefBase * CountedRefTarget::getOwner () 
 {
   return owner_ref;
+}
+
+inline Thread::Mutex & CountedRefTarget::crefMutex()
+{
+  return cref_mutex;
 }
 //## end module%3C10CC8103D6.epilog
 

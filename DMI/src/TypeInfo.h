@@ -155,10 +155,12 @@ DoForAllNumericTypes(__typeIdOfPtr,);
 // Similar function, but returns Tptype for an Array_type* argument
 #define __typeIdOfArrayElem(T,arg) inline TypeId TpOfArrayElem (const Array_##T *) { return Tp##T; };
 DoForAllArrayTypes(__typeIdOfArrayElem,);
+__typeIdOfArrayElem(string,);
 
 // Similar function, but returns TpArray_type for a type * argument
 #define __typeIdOfArray(T,arg) inline TypeId TpOfArrayPtr (const T *) { return TpArray_##T; };
 DoForAllArrayTypes(__typeIdOfArray,);
+__typeIdOfArray(string,);
 
 // These are more convenient macros (only need a type)
 #define typeIdOf(type) TpOfPtr((type*)0)
