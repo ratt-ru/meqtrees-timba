@@ -45,7 +45,7 @@ fi
 if test -f "$srcdir/$1.in"; then
     \cp $srcdir/$1.in  .
 fi
-\cp $srcdir/$1.in_* . >& /dev/null
+\cp $srcdir/$1.in_* . > /dev/null 2>&1
 if test -f "$srcdir/$1.out"; then
     \cp $srcdir/$1.out .
 fi
