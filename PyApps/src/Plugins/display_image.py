@@ -933,6 +933,8 @@ class QwtImagePlot(QwtPlot):
     def onMouseMoved(self, e):
        if self._plot_type == 'histogram':
           return
+       if self.is_vector:
+          return
 #       pass
 
 #      self.statusBar().message(
