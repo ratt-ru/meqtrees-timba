@@ -9,7 +9,7 @@ void Meq::maskSubId (RequestId &id,int mask)
     id = AtomicID(0);
     return;
   }
-  // start from end 
+  // staqrt from end 
   HIID::reverse_iterator iter = id.rbegin();
   // ... until we run out of bits, or get to the start of BOTH ids
   for( int m1=1; 
