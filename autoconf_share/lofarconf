@@ -40,9 +40,8 @@ lfr_root=`echo $lfr_srcdir | sed -e "s%/LOFAR/.*%/LOFAR%"`
 lfr_base=$lfr_root/autoconf_share
 
 lfr_recur=1
-if [ "$1" != "-norecursive" ]; then
+if [ "$1" = "-norecursive" ]; then
   lfr_recur=0
-else
   shift
 fi
 

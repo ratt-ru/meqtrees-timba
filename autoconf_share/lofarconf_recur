@@ -100,7 +100,7 @@ do
     fi
     cd $subdir > /dev/null
   fi
-  if test 1 -eq $lfr_recur; then
+  if [ $lfr_recur = 1 ]; then
     echo && echo ":::::: CONFIGURE $lfr_pkg/$subdir"
     $lfr_base/lofarconf "$@" || exit 2
   fi
@@ -116,15 +116,11 @@ rm -rf Makefile
 touch Makefile
 echo "RECUR_PACKAGE = $sdir" >> Makefile
 echo "RECUR_VARIANT = $lfr_cvdir" >> Makefile
+echo "LOFARDIR = $lfr_root" >> Makefile
 cat <<'EOFXXXXX' >> Makefile
 RECUR_PACKAGES = $(RECUR_PACKAGE)
 RECUR_VARIANTS = $(RECUR_VARIANT)
 VARIANTNAMES = $(addsuffix .variant, $(RECUR_VARIANTS))
-#
-# Keep the make directory (which is LOFAR).
-#
-LOFARDIR = $(shell pwd)
-
 #
 # build: Target to compile in a bootstrapped and configured tree
 #
@@ -143,17 +139,28 @@ distclean: $(VARIANTNAMES:.variant=.variant_distclean)
 dist: $(VARIANTNAMES:.variant=.variant_dist)
 
 WITH_INSTALL=0
+PREFIX = /data/LOFAR/installed
 
 build_system:
+	@date; \
 	cd ../../; \
 	for pkg in $(RECUR_PACKAGES); do \
 	  if test -d $$pkg ; then \
 	      for var in $(RECUR_VARIANTS); do \
-	        echo ":::::: VARIANT $$var"; \
 		case $$var in gnu3*) inst_var=gcc3;; \
 	                      gnu*)  inst_var=gcc2;; \
 	                      icc*)  inst_var=icc;; \
 	        esac; \
+	        (echo \
+		&& echo ":::::: CONFIGURING VARIANT $$var FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& ((mkdir -p $$pkg/build/$$var; cd $$pkg/build/$$var \
+		&& $(LOFARDIR)/autoconf_share/lofarconf -norecursive --prefix=$(PREFIX)/$$inst_var ) \
+	   	  || echo ":::::: ERROR" ) \
+		&& echo \
+		&& echo ":::::: FINISHED CONFIGURING VARIANT $$var FOR PACKAGE $$pkg" \
+		&& echo ; ); \
 		(echo \
 		&& echo ":::::: BUILDING VARIANT $$var FOR PACKAGE $$pkg" \
 		&& echo \
