@@ -71,7 +71,11 @@ typedef long double ldouble;
 #pragma types :AtomicID
 
 // The null type 
-const TypeId NullType(0);
+const TypeId NullType(0),TpNull(0);
+
+// Numeric type
+const TypeId TpNumeric(-9);
+const TypeId TpIncomplete(-8);
 
 //## end TypeId%3BFBA88F001D.postscript
 

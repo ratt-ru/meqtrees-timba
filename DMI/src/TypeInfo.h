@@ -46,8 +46,12 @@ inline const TypeInfo & TypeInfo::find ( TypeId tid )
 const int StdTypeFirst=Tpbool,StdTypeLast=Tpchar;
 
 // returns True if a type is built-in
-inline bool isNumericType( int tid ) 
-    { return tid >= StdTypeFirst && tid <= StdTypeLast; }
+inline bool isNumericType (int tid) 
+  { return tid >= StdTypeFirst && tid <= StdTypeLast; }
+
+// returns True if type is dynamic
+inline bool isDynamicType (int tid)
+  { return tid==TpDataRecord || tid==TpDataField; }
 
 // These macros repeatedly invokes Do(type,arg) for all types in a specific
 // type set. Useful for making bulk definitions.
@@ -72,11 +76,12 @@ typedef void (*TypeConverter)(const void *from,void *to);
 extern TypeConverter _typeconverters[12][12];
 
 // Inline function to convert scalars  
-inline void convertScalar ( const void *from,TypeId frid,void *to,TypeId toid )
+inline bool convertScalar ( const void *from,TypeId frid,void *to,TypeId toid )
 {
-  FailWhen1(!isNumericType(frid) || !isNumericType(toid),
-      "illegal type conversion from "+frid.toString()+" to "+toid.toString());
+  if(!isNumericType(frid) || !isNumericType(toid))
+    return False;
   (*_typeconverters[Tpchar.id()-frid][Tpchar.id()-toid])(from,to);
+  return True;
 }
 
 #endif

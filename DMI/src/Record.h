@@ -45,6 +45,7 @@
 //## end DataRecord%3BB3112B0027.preface
 
 //## Class: DataRecord%3BB3112B0027
+//	DataRecord is the main container class of DMI.
 //## Category: PSCF::DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
@@ -116,22 +117,10 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       //## Operation: selectionToBlock%3C557610038B
       virtual int selectionToBlock (BlockSet& set);
 
-      //## Operation: get%3C56B00E0182
-      //	Implemetation of standard function for deep-dereferencing of
-      //	contents.
-      //	See NestableContainer for semantics.
-      virtual const void * get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const;
-
       //## Operation: getFieldInfo%3C57C63F03E4
       //	Returns type of field -- reimplemented for efficiency, so as not to
       //	unblock the field.
       bool getFieldInfo (const HIID &id, TypeId &tid, bool& can_write, bool no_throw = False) const;
-
-      //## Operation: operator []%3C67E345030C
-      DataField::Hook operator [] (const HIID &id);
-
-      //## Operation: operator []%3C67E3680050
-      DataField::ConstHook operator [] (const HIID &id) const;
 
       //## Operation: fromBlock%3C58216302F9
       //	Creates object from a set of block references. Appropriate number of
@@ -159,6 +148,21 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
 
       //## Operation: cloneOther%3C58239503D1
       void cloneOther (const DataRecord &other, int flags = 0);
+
+      //## Operation: get%3C56B00E0182
+      //	Implemetation of standard function for deep-dereferencing of
+      //	contents.
+      //	See NestableContainer for semantics.
+      virtual const void * get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const;
+
+      //## Operation: insert%3C7A16BB01D7
+      virtual void * insert (const HIID &id, TypeId tid, TypeId &real_tid);
+
+      //## Operation: size%3C7A16C4023F
+      virtual int size () const;
+
+      //## Operation: type%3C7A16CB023F
+      virtual TypeId type () const;
 
     //## Get and Set Operations for Class Attributes (generated)
 
@@ -242,6 +246,20 @@ inline void DataRecord::replace (const HIID &id, DataField *pfld, int flags)
   //## end DataRecord::replace%3C5FF10102CA.body
 }
 
+inline int DataRecord::size () const
+{
+  //## begin DataRecord::size%3C7A16C4023F.body preserve=yes
+  return fields.size();
+  //## end DataRecord::size%3C7A16C4023F.body
+}
+
+inline TypeId DataRecord::type () const
+{
+  //## begin DataRecord::type%3C7A16CB023F.body preserve=yes
+  return NullType;
+  //## end DataRecord::type%3C7A16CB023F.body
+}
+
 //## Get and Set Operations for Class Attributes (inline)
 
 inline const bool DataRecord::isWritable () const
@@ -254,31 +272,5 @@ inline const bool DataRecord::isWritable () const
 //## begin module%3C10CC820052.epilog preserve=yes
 //## end module%3C10CC820052.epilog
 
-
-#endif
-
-
-// Detached code regions:
-#if 0
-//## begin DataRecord::Hook::operator &%3C6153F301F4.body preserve=yes
-  FailWhen(addressed,"DataRecord[]: & applied twice");
-  addressed = True;
-  return *this;
-//## end DataRecord::Hook::operator &%3C6153F301F4.body
-
-//## begin DataRecord::Hook::operator &%3C61542A02E4.body preserve=yes
-  FailWhen(addressed,"DataRecord[]: & applied twice");
-  addressed = True;
-  return *this;
-//## end DataRecord::Hook::operator &%3C61542A02E4.body
-
-//## begin DataRecord::Hook::operator ->%3C6154510380.body preserve=yes
-  FailWhen(new_field,"DataRecord[]: can't \"->\" when inserting a new field");
-  HIID rest; bool dum;
-  const DataFieldRef &ref( parent.resolveField(id,rest,dum,False) );
-  
-  
-  
-//## end DataRecord::Hook::operator ->%3C6154510380.body
 
 #endif

@@ -33,21 +33,9 @@ static int nullheader_data[] = {0,0};
 static SmartBlock nullheader_block( nullheader_data,sizeof(nullheader_data),DMI::NO_DELETE );
 static BlockRef nullheader(nullheader_block,DMI::EXTERNAL|DMI::LOCK|DMI::READONLY);
 static ObjRef NullRef;
-
+static NestableContainer::Register reg(TpDataField,True);
 //## end module%3C10CC820126.additionalDeclarations
 
-
-// Class DataField::ConstHook 
-
-// Additional Declarations
-  //## begin DataField::ConstHook%3C614FDE0039.declarations preserve=yes
-  //## end DataField::ConstHook%3C614FDE0039.declarations
-
-// Class DataField::Hook 
-
-// Additional Declarations
-  //## begin DataField::Hook%3C62A13101C9.declarations preserve=yes
-  //## end DataField::Hook%3C62A13101C9.declarations
 
 // Class DataField 
 
@@ -67,7 +55,7 @@ DataField::DataField (const DataField &right, int flags)
   //## begin DataField::DataField%3C3EE3EA022A.hasinit preserve=no
   //## end DataField::DataField%3C3EE3EA022A.hasinit
   //## begin DataField::DataField%3C3EE3EA022A.initialization preserve=yes
-    : BlockableObject(),mytype(0)
+    : NestableContainer(),mytype(0)
   //## end DataField::DataField%3C3EE3EA022A.initialization
 {
   //## begin DataField::DataField%3C3EE3EA022A.body preserve=yes
@@ -117,16 +105,23 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
 {
   //## begin DataField::init%3C6161190193.body preserve=yes
   dprintf(2)("init(%s,%d,%x)\n",tid.toString().c_str(),num,(int)data);
-  FailWhen( valid(),"field is already initialized" );
-  FailWhen( num<0,"illegal field size" );
   // if null type, then reset the field to uninit state
   if( !tid )
   {
     mytype = 0;
     mysize = 0;
-    writable = True;
+    writable = scalar = True;
     return *this;
   }
+  FailWhen( valid(),"field is already initialized" );
+  if( num==-1 )
+  {
+    num = 1;
+    scalar = True;
+  }
+  else
+    scalar = False;
+  FailWhen( num<0,"illegal field size" );
   // obtain type information, check that type is supported
   const TypeInfo & typeinfo( TypeInfo::find(tid) );
   FailWhen( !typeinfo.category,"unknown data type "+tid.toString() );
@@ -190,6 +185,8 @@ void DataField::resize (int newsize)
   FailWhen( !isWritable(),"field is read-only" );
   FailWhen( !isWritable(),"field is read-only" );
   mysize = newsize;
+  if( newsize > 1 )
+    scalar = False;
   if( mytype == Tpstring )
   {
     headref().resize( sizeof(int)*(2+newsize) );
@@ -243,36 +240,6 @@ bool DataField::isValid (int n)
   //## end DataField::isValid%3C3EB9B902DF.body
 }
 
-const void * DataField::get (int n, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
-{
-  //## begin DataField::get%3C5FB272037E.body preserve=yes
-  FailWhen( !valid(),"uninitialized DataField");
-  tid = mytype;
-  FailWhen( check_tid && check_tid != tid,"type mismatch (expected "+check_tid.toString()+")" ); 
-  can_write = isWritable();
-  FailWhen( must_write && !can_write,"r/w access violation" );
-  
-  checkIndex(n);
-  if( mytype == Tpstring ) // string? return the string
-  {
-    strvec_modified |= can_write; // mark as modified
-    return &strvec[n];
-  }
-  else if( binary_type )
-  {
-    // else return pointer to item
-    return n*typesize + (char*)headerData();
-  }
-  else
-  {
-    if( must_write )
-      return &resolveObject(n,True).dewr();
-    else
-      return &resolveObject(n,False).deref();
-  }
-  //## end DataField::get%3C5FB272037E.body
-}
-
 ObjRef DataField::objwr (int n, int flags)
 {
   //## begin DataField::objwr%3C0E4619019A.body preserve=yes
@@ -285,6 +252,20 @@ ObjRef DataField::objwr (int n, int flags)
   //## end DataField::objwr%3C0E4619019A.body
 }
 
+DataField & DataField::put (int n, ObjRef &ref, int flags)
+{
+  //## begin DataField::put%3C7A305F0071.body preserve=yes
+  dprintf(2)("putting @%d: %s\n",n,ref.debug(2));
+  ObjRef &ref2 = prepareForPut( ref->objectType(),n,flags );
+  // grab the ref, and mark object as modified
+  if( flags&DMI::COPYREF )
+    ref2.copy(ref,flags);
+  else
+    ref2 = ref;
+  return *this;
+  //## end DataField::put%3C7A305F0071.body
+}
+
 ObjRef DataField::objref (int n) const
 {
   //## begin DataField::objref%3C3C8D7F03D8.body preserve=yes
@@ -295,20 +276,6 @@ ObjRef DataField::objref (int n) const
   // return a copy as a read-only ref
   return resolveObject(n,False).copy(DMI::READONLY);
   //## end DataField::objref%3C3C8D7F03D8.body
-}
-
-DataField & DataField::put (const ObjRef &obj, int n, int flags)
-{
-  //## begin DataField::put%3C3C84A40176.body preserve=yes
-  dprintf(2)("putting @%d: %s\n",n,obj.debug(2));
-  ObjRef &ref = prepareForPut( obj->objectType(),n,flags );
-  // grab the ref, and mark object as modified
-  if( flags&DMI::COPYREF )
-    ref.copy(obj,flags);
-  else
-    ref = obj;
-  return *this;
-  //## end DataField::put%3C3C84A40176.body
 }
 
 ObjRef DataField::remove (int n)
@@ -341,6 +308,13 @@ int DataField::fromBlock (BlockSet& set)
   // get type and size from header
   mytype = headerType();
   mysize = headerSize();
+  if( mysize == -1 )
+  {
+    mysize = 1;
+    scalar = True;
+  }
+  else
+    scalar = False;
   if( !mytype )  // uninitialized field
     return 1;
   // obtain type information, check that type is supported
@@ -433,7 +407,7 @@ int DataField::toBlock (BlockSet &set) const
                     DMI::WRITE|DMI::ANON|DMI::LOCK );
     // write basic fields
     headerType() = mytype;
-    headerSize() = mysize;
+    headerSize() = scalar ? -mysize : mysize;
     // write out lengths and string data into header block
     int *plen = &headerBlockSize(0);
     char *pdata = (char*)(plen + mysize);
@@ -450,6 +424,8 @@ int DataField::toBlock (BlockSet &set) const
       headref.change(DMI::READONLY);
   }
   // push out the header block
+  headerType() = mytype;
+  headerSize() = scalar ? -mysize : mysize;
   set.push(headref.copy(DMI::READONLY));
   // for dynamic types, do a toBlock on the objects, if needed
   if( dynamic_type )
@@ -652,6 +628,121 @@ void DataField::privatize (int flags)
   //## end DataField::privatize%3C3EDEBC0255.body
 }
 
+const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
+{
+  //## begin DataField::get%3C7A19790361.body preserve=yes
+  // null HIID implies access in scalar mode 
+  if( !id.size() )
+    return get(0,tid,can_write,check_tid,must_write);
+  // single-index HIID implies get[n]
+  if( id.size()==1 && id.front().index()>=0 )
+    return get(id.front().index(),tid,can_write,check_tid,must_write);
+  FailWhen( !valid(),"field not initialized" );
+  FailWhen( !size(),"uninitialized DataField" );
+  FailWhen( !scalar,"non-scalar field, explicit index expected" );
+  FailWhen( !isNestable(type()),"contents not a container" );
+  // resolve to pointer to container
+  const NestableContainer *nc = dynamic_cast<const NestableContainer *>
+      (&resolveObject(0,must_write).deref());
+  Assert(nc);
+  // defer to get[id] on container
+  return nc->get(id,tid,can_write,check_tid,must_write);
+  //## end DataField::get%3C7A19790361.body
+}
+
+const void * DataField::get (int n, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
+{
+  //## begin DataField::get%3C7A1983024D.body preserve=yes
+  FailWhen( !valid(),"field not initialized" );
+  FailWhen( n<0 || n>size(),"n out of range" );
+  if( n == size() )
+    return 0;
+  can_write = isWritable();
+  FailWhen(must_write && !can_write,"write access violation"); 
+  // check for type mismatch
+  if( check_tid && check_tid != mytype )
+    FailWhen( check_tid != TpNumeric || !isNumericType(type()),
+        "type mismatch: expecting "+check_tid.toString()+", got "+type().toString());
+  tid = mytype;
+  if( mytype == Tpstring )
+  {
+    if( must_write )
+      strvec_modified = True;
+    return &strvec[n];
+  }
+  else if( binary_type )
+    return n*typesize + (char*)headerData();
+  else
+    return &resolveObject(n,must_write);
+  //## end DataField::get%3C7A1983024D.body
+}
+
+void * DataField::insert (const HIID &id, TypeId tid, TypeId &real_tid)
+{
+  //## begin DataField::insert%3C7A198A0347.body preserve=yes
+  FailWhen( !id.size(),"null HIID" );
+  FailWhen( !valid() || !size(),"field not initialized" );
+  FailWhen( !scalar,"non-scalar field, explicit index expected" );
+  FailWhen( !isNestable(type()),"contents not a container" );
+  // resolve to pointer to container
+  NestableContainer *nc = dynamic_cast<NestableContainer *>
+      (&resolveObject(0,True).dewr());
+  Assert(nc);
+  // defer to insert[id] on container
+  return nc->insert(id,tid,real_tid);
+  //## end DataField::insert%3C7A198A0347.body
+}
+
+void * DataField::insert (int n, TypeId tid, TypeId &real_tid)
+{
+  //## begin DataField::insert%3C7A19930250.body preserve=yes
+  // empty field? init with one element
+  if( !valid() )
+  {
+    FailWhen( n,Debug::ssprintf("can't insert at [%d]",n) );
+    FailWhen( !tid,"can't initialize without type" );
+    init(real_tid=tid,-1); // init as scalar field
+  }
+  else // else extend field if inserting at end
+  {
+    FailWhen( n!=size(),Debug::ssprintf("can't insert at [%d]",n) );
+    resize( size()+1 );
+    // if types mismatch, fail unless both are numeric
+    if( tid && tid != type() )
+      FailWhen( !isNumericType(tid) || !isNumericType(type()),
+          "can't insert datatype "+tid.toString());
+    real_tid = type();
+  }
+  if( mytype == Tpstring )
+  {
+    strvec_modified = True;
+    return &strvec[n];
+  }
+  else if( binary_type )
+    return n*typesize + (char*)headerData();
+  else
+    return &resolveObject(n,True);
+  //## end DataField::insert%3C7A19930250.body
+}
+
+bool DataField::select (const HIIDSet &id)
+{
+  //## begin DataField::select%3C7A199F012B.body preserve=yes
+  //## end DataField::select%3C7A199F012B.body
+}
+
+void DataField::clearSelection ()
+{
+  //## begin DataField::clearSelection%3C7A19A5038C.body preserve=yes
+  //## end DataField::clearSelection%3C7A19A5038C.body
+}
+
+int DataField::selectionToBlock (BlockSet& set)
+{
+  //## begin DataField::selectionToBlock%3C7A19AC0147.body preserve=yes
+  //## end DataField::selectionToBlock%3C7A19AC0147.body
+}
+
 // Additional Declarations
   //## begin DataField%3BB317D8010B.declarations preserve=yes
 
@@ -678,171 +769,6 @@ ObjRef & DataField::prepareForPut (TypeId tid,int n,int flags)
   objstate[n] = MODIFIED;
   return objects[n];
 }
-
-// provide standard methods for DataAccessors
-DataField & DataField::attach_object (BlockableObject *obj,int flags,int n)
-{
-  // fail if uninitialized but indexed with >0
-  dprintf(2)("attaching @%d: %s\n",n,obj->sdebug(2).c_str());
-  FailWhen(n>0 && !valid(),"indexing into uninitialized DataField");
-  if( n<0 )  // n<0 implies call from DataField context (rather than
-  {          // Hook context), so assume 0 and do some extra checks
-    n=0;
-    FailWhen(size()>1,"can't assign scalar "+obj->objectType().toString()
-                            +" to vector field" );
-  }
-  ObjRef &ref = prepareForPut( obj->objectType(),n,flags|DMI::AUTOEXTEND );
-  ref.attach(obj,flags);
-  return *this;
-}
-
-DataField::operator ObjRef ()
-{
-  FailWhen(!valid() || !size(),"uninitialized DataField");
-  FailWhen(size()>1,"can't convert "+sdebug()+" to scalar ObjRef");
-  FailWhen( !DynamicTypeManager::isRegistered(type()),
-            "field does not contain a dynamic object");
-  int flags = isWritable() ? DMI::PRESERVE_RW : DMI::READONLY;
-  return resolveObject(0,True).copy(flags);
-}
-
-DataField::operator ObjRef () const
-{
-  FailWhen(!valid() || !size(),"uninitialized DataField");
-  FailWhen(size()>1,"can't convert "+sdebug()+" to scalar ObjRef");
-  FailWhen( !DynamicTypeManager::isRegistered(type()),
-            "field does not contain a dynamic object");
-  return resolveObject(0,False).copy(DMI::READONLY);
-}
-
-      // dereferences to a subrecord (throws exception if contents are not a DataRecord)
-
-const DataRecord * DataField::getSubRecord( bool write,int n ) const
-{
-  FailWhen( !valid(),"uninitialized DataField" );
-  FailWhen( mytype != TpDataRecord,"field does not contain a DataRecord" );
-  checkIndex(n);
-  // resolve object and downcast to DataRecord
-  const DataRecord *rec = dynamic_cast<const DataRecord *>
-            (&resolveObject(n,write).deref());
-  Assert(rec);
-  return rec;
-}
-
-// operator -> on a DataField accesses the contents as a record.
-// It will either produce a DataRecord*, or throw an exception
-// if the field does not contain one.
-const DataRecord * DataField::operator -> () const
-{
-  FailWhen( mysize > 1,"unexpected '->' operator on vector field" );
-  return getSubRecord(False,0);
-}
-
-DataRecord * DataField::operator -> ()
-{
-  FailWhen( mysize > 1,"unexpected '->' operator on vector field" );
-  return const_cast<DataRecord*>( getSubRecord(True,0) );
-}
-
-// [ HIID ] on a DataField is the same as applying [] to a subrecord
-// in the field, and is an error if the field does not contain a datarecord.
-// So we just resolve the field to a subrecord via the '->' operator defined
-// above, and call operator [] on that record.
-DataField & DataField::operator [] ( const HIID &id )
-{
-  return (*this)->operator [](id);
-}
-
-const DataField & DataField::operator [] ( const HIID &id ) const
-{
-  return (*this)->operator [](id);
-}
-
-// -> and [HIID] on a Hook do similar things
-const DataRecord * DataField::ConstHook::operator -> () const
-{
-  FailWhen1(addressed,"illegal use of '&' operator");
-  return parent->getSubRecord(False,max(index,0));
-}
-
-const DataField & DataField::ConstHook::operator [] ( const HIID &id ) const
-{
-  return (*this)->operator [](id);
-}
-
-DataRecord * DataField::Hook::operator -> () const
-{
-  FailWhen1(addressed,"illegal use of '&' operator");
-  return const_cast<DataRecord*>( parent->getSubRecord(True,max(index,0)) );
-}
-
-DataField & DataField::Hook::operator [] ( const HIID &id ) const
-{
-  return (*this)->operator [](id);
-}
-      
-const void * DataField::put_scalar( const void *data,TypeId tid,int n )
-{
-  // fail if uninitialized but indexed with >0
-  FailWhen(n>0 && !valid(),"indexing into uninitialized DataField");
-  if( n<0 )  // n<0 implies call from DataField context (rather than
-  {          // Hook context), so assume 0 and do some extra checks
-    n=0;
-    FailWhen(size()>1,"can't assign scalar "+tid.toString()
-                            +" to vector field" );
-  }
-  // if field is uninitialized, init with single scalar
-  if( !valid() )
-  {
-    init(tid,1,data);
-    return get(0,0,False);
-  }
-  // auto-resize if putting at end of vector
-  if( n == size() )
-    resize(n+1);
-  checkIndex(n);
-  if( binary_type ) // binary type: convert or bitwise copy
-  {
-    const void *ptr = get(n,0,True);
-    if( tid != mytype ) // convert [if allowed]...
-      convertScalar(data,tid,const_cast<void*>(ptr),mytype);
-    else // else just copy
-      memcpy(const_cast<void*>(ptr),data,typesize);
-    return ptr;
-  }
-  else if( mytype == Tpstring ) // string: special case
-  {
-    FailWhen( tid != Tpstring,"can't assign scalar "+tid.toString()+" to "+sdebug() );
-    strvec[n] = * static_cast<const string*>(data);
-    strvec_modified = True;
-    return &strvec[n];
-  }
-  else
-    Throw("can't assign "+tid.toString()+" to "+sdebug());
-  return 0;
-}
-
-
-DataField::Hook::operator ObjRef () const
-{
-  FailWhen1(addressed,"illegal use of '&' operator");
-  FailWhen1( !DynamicTypeManager::isRegistered(parent->type()),
-            "field does not contain a dynamic object");
-  int flags = parent->isWritable() ? DMI::PRESERVE_RW : DMI::READONLY;
-  return parent->resolveObject(0,True).copy(flags);
-}
-
-DataField::ConstHook::operator ObjRef () const
-{
-  FailWhen1(addressed,"illegal use of '&' operator");
-  FailWhen1( !DynamicTypeManager::isRegistered(parent->type()),
-            "field does not contain a dynamic object");
-  return parent->resolveObject(0,False).copy(DMI::READONLY);
-}
-
-
-
-
 
 string DataField::sdebug ( int detail,const string &prefix,const char *name ) const
 {
@@ -913,3 +839,46 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
 // Data
 
 //## end module%3C10CC820126.epilog
+
+
+// Detached code regions:
+#if 0
+//## begin DataField::put%3C3C84A40176.body preserve=yes
+  dprintf(2)("putting @%d: %s\n",n,obj.debug(2));
+  ObjRef &ref = prepareForPut( obj->objectType(),n,flags );
+  // grab the ref, and mark object as modified
+  if( flags&DMI::COPYREF )
+    ref.copy(obj,flags);
+  else
+    ref = obj;
+  return *this;
+//## end DataField::put%3C3C84A40176.body
+
+//## begin DataField::get%3C5FB272037E.body preserve=yes
+//   FailWhen( !valid(),"uninitialized DataField");
+//   tid = mytype;
+//   FailWhen( check_tid && check_tid != tid,"type mismatch (expected "+check_tid.toString()+")" ); 
+//   can_write = isWritable();
+//   FailWhen( must_write && !can_write,"r/w access violation" );
+//   
+//   checkIndex(n);
+//   if( mytype == Tpstring ) // string? return the string
+//   {
+//     strvec_modified |= can_write; // mark as modified
+//     return &strvec[n];
+//   }
+//   else if( binary_type )
+//   {
+//     // else return pointer to item
+//     return n*typesize + (char*)headerData();
+//   }
+//   else
+//   {
+//     if( must_write )
+//       return &resolveObject(n,True).dewr();
+//     else
+//       return &resolveObject(n,False).deref();
+//   }
+//## end DataField::get%3C5FB272037E.body
+
+#endif

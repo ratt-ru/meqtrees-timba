@@ -103,7 +103,7 @@ class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
       HIID & add (AtomicID aid);
 
       //## Operation: subId%3C55695F00CC
-      HIID subId (int first, int last) const;
+      HIID subId (int first, int last = -1) const;
 
       //## Operation: length%3C1A187E018C
       int length () const;
@@ -118,14 +118,14 @@ class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
       //## Operation: popTrailIndex%3C6B86D5003A
       int popTrailIndex ();
 
-      //## Operation: popLeadDelim%3C5952AD0261
-      //	If first atom of HIID is a delimiter,  pop and return it, else
-      //	return 0.
-      AtomicID popLeadDelim ();
+      //## Operation: popLeadSlashes%3C6B9FDD02FD
+      //	Removes any leading slashes from HIID, returns # of slashes actually
+      //	removed.
+      int popLeadSlashes ();
 
-      //## Operation: popAllLeadDelim%3C6B9FDD02FD
-      //	Pops all leading delimiters from HIID, returns # actually popped.
-      int popAllLeadDelim ();
+      //## Operation: findFirstSlash%3C7A1B6500C9
+      //	returns position of first slash in HIID, or -1 if none
+      int findFirstSlash () const;
 
       //## Operation: toString%3C0F8BD5004F
       string toString () const;
@@ -269,14 +269,17 @@ inline int HIID::length () const
   //## end HIID::length%3C1A187E018C.body
 }
 
-inline int HIID::popAllLeadDelim ()
+inline int HIID::popLeadSlashes ()
 {
-  //## begin HIID::popAllLeadDelim%3C6B9FDD02FD.body preserve=yes
+  //## begin HIID::popLeadSlashes%3C6B9FDD02FD.body preserve=yes
   int n=0;
-  while( popLeadDelim() )
+  while( front() == AidSlash )
+  {
+    pop_front();
     n++;
+  }
   return n;
-  //## end HIID::popAllLeadDelim%3C6B9FDD02FD.body
+  //## end HIID::popLeadSlashes%3C6B9FDD02FD.body
 }
 
 inline int HIID::byteSize () const

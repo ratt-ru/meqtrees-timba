@@ -117,17 +117,15 @@ int HIID::popTrailIndex ()
   //## end HIID::popTrailIndex%3C6B86D5003A.body
 }
 
-AtomicID HIID::popLeadDelim ()
+int HIID::findFirstSlash () const
 {
-  //## begin HIID::popLeadDelim%3C5952AD0261.body preserve=yes
-  if( !size() )
-    return 0;
-  AtomicID ret = front();
-  if( ret != AidDot ) 
-    return 0;
-  pop_front();
-  return ret;
-  //## end HIID::popLeadDelim%3C5952AD0261.body
+  //## begin HIID::findFirstSlash%3C7A1B6500C9.body preserve=yes
+  int pos = 0;
+  for( const_iterator iter = begin(); iter != end(); iter++,pos++ )
+    if( *iter == AidSlash )
+      return pos;
+  return -1;
+  //## end HIID::findFirstSlash%3C7A1B6500C9.body
 }
 
 string HIID::toString () const
@@ -138,8 +136,14 @@ string HIID::toString () const
   {
     const_iterator iter = begin();
     s = (*iter).toString();
+    bool slash = ( *iter == AidSlash );
     for( iter++; iter != end(); iter++ )
-      s += "." + (*iter).toString();
+    {
+      if( !slash && *iter != AidSlash )
+        s += ".";
+      s += (*iter).toString();
+      slash = ( *iter == AidSlash );
+    }
   }
   return s;
   //## end HIID::toString%3C0F8BD5004F.body
@@ -163,13 +167,53 @@ void HIID::addString (const string &str)
   // and create an AtomicID for each field
   while( p0 != string::npos )
   {
-    size_t len = p1 = str.find('.',p0);
+    size_t len = p1 = str.find_first_of("./",p0);
     if( len != string::npos )
       len -= p0;
     push_back( AtomicID( str.substr(p0,len) ) );
+    if( str[p1] == '/' )
+      push_back( AidSlash );
     p0 = p1 == string::npos ? p1 : p1+1;
   }
 }
   //## end HIID%3BE96FE601C5.declarations
 //## begin module%3C10CC820357.epilog preserve=yes
 //## end module%3C10CC820357.epilog
+
+
+// Detached code regions:
+#if 0
+//## begin HIID::popLeadSubId%3C6BC6DD0068.body preserve=yes
+// 
+//   // advance an iter past first sequence of leading slashes (if any)
+//   CVI iter0 = begin();
+//   while( iter0 != end() && *iter0 == AidSlash )
+//     iter0++;
+//   // now, look for next slash
+//   CVI iter = iter0;
+//   while( iter != end() && *iter != AidSlash )
+//     iter++;
+//   // got to end? Return copy of ourselves.
+//   if( iter == end() )
+//   {
+// //   HIID ret(iter0,end());
+//     clear();
+//     return ret;
+//   }
+//   // else return subsequence
+// //  HIID ret(iter0,iter);
+// //  erase(begin(),++iter);
+//   return ret;
+//## end HIID::popLeadSubId%3C6BC6DD0068.body
+
+//## begin HIID::popLeadDelim%3C5952AD0261.body preserve=yes
+  if( !size() )
+    return 0;
+  AtomicID ret = front();
+  if( ret != AidSlash ) 
+    return 0;
+  pop_front();
+  return ret;
+//## end HIID::popLeadDelim%3C5952AD0261.body
+
+#endif

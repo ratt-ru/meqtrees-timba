@@ -233,90 +233,85 @@ const DataFieldRef & DataRecord::resolveField (const HIID &id, HIID& rest, bool 
 {
   //## begin DataRecord::resolveField%3C552E2D009D.body preserve=yes
   FailWhen( !id.size(),"null HIID" );
-  // This macro checks must_write against a writable property, and
-  // updates the can_write variable. 
-  #define CanWrite(x) { FailWhen(must_write && !x,"r/w access violation"); if( !x ) can_write = False; }
-  can_write = True;
-  CanWrite( isWritable() );
-  rest.resize(0);
-  // try to find field "a.b.c" directly
   CFMI iter = fields.find(id);
-  if( iter != fields.end() )
+  if( iter == fields.end() )
   {
-    CanWrite( iter->second->isWritable() );
-    return iter->second;
+    rest = id;
+    return NullDataFieldRef;
   }
-  // if last atom is an index ("a.b.c.1"), assume it's an index into the field,
-  // so strip it off and try again
-  int idlen = id.size(),index = id.back().index();
-  if( idlen > 1 && index >= 0 )
-  {
-    iter = fields.find( id.subId(0,-2) );
-    if( iter != fields.end() ) 
-    {
-      rest.push_back( id.back() );
-      CanWrite( iter->second->isWritable() );
-      return iter->second;
-    }
-  }
-  // otherwise, try to recurse into sub-records, by trying all sub-ids
-  // ("a", then "a.b", etc.) one by one
-  // the idlast iterator points at one past the end of the current sub-id
-  for( int iatom=0; iatom<idlen; iatom++ )
-  {
-    // look for a field corresponding to the sub-id
-    iter = fields.find( id.subId(0,iatom) );
-    if( iter != fields.end() ) // found field?
-    {
-      CanWrite( iter->second->isWritable() );
-      // if next atom of remainder is an index, use that as an index into the field
-      HIID subid = id.subId(iatom+1,-1);
-      // is it a sub-record? Recurse into it
-      if( iter->second->type() == TpDataRecord ) 
-      {
-        int index = subid.popLeadIndex();
-        return ((DataRecord*)iter->second->get(index))->resolveField(subid,rest,must_write);
-      }
-      // else it's the final field, so return it
-      rest = subid;
-      return iter->second;
-    }
-  }
-  // nothing was found -- return invalid ref
-  return NullDataFieldRef;
+  can_write = iter->second->isWritable();
+  FailWhen( must_write && !can_write,"r/w access violation" );
+  rest.clear();
+  return iter->second;
+  
+//   // This macro checks must_write against a writable property, and
+//   // updates the can_write variable. 
+//   #define CanWrite(x) { FailWhen(must_write && !x,"r/w access violation"); if( !x ) can_write = False; }
+//   can_write = True;
+//   CanWrite( isWritable() );
+//   rest = id;
+//   const DataRecord *subrec = this; // current level in hierarchy
+//   const DataFieldRef *curref = 0;
+//   // examine the slash-separated sub-ids one by one
+//   while( rest.size() )
+//   {
+//     // strip off leading sub-id and look in record
+//     HIID id1 = rest.popLeadSubId();
+//     if( !id1.size() ) // nothing popped -- try again (rest is probably empty now, too)
+//       continue;
+//     //
+//     if( curref )
+//     {
+//       FailWhen( (*curref)->type() != TpDataRecord,id.toString()+" refers to an invalid subrecord" );
+//     }
+//     // try to find the sub-id
+//     CFMI iter = subrec->fields.find(id1);
+//     if( iter != subrec->fields.end() ) // found it? 
+//     {
+//       CanWrite( iter->second->isWritable() );
+//       curref = &iter->second;
+//       continue;
+//     }
+//   }
+//   // if last atom is an index ("a.b.c.1"), assume it's an index into the field,
+//   // so strip it off and try again
+//   int idlen = id.size(),index = id.back().index();
+//   if( idlen > 1 && index >= 0 )
+//   {
+//     CFMI iter = fields.find( id.subId(0,-2) );
+//     if( iter != fields.end() ) 
+//     {
+//       rest.push_back( id.back() );
+//       CanWrite( iter->second->isWritable() );
+//       return iter->second;
+//     }
+//   }
+//   // otherwise, try to recurse into sub-records, by trying all sub-ids
+//   // ("a", then "a.b", etc.) one by one
+//   // the idlast iterator points at one past the end of the current sub-id
+//   for( int iatom=0; iatom<idlen; iatom++ )
+//   {
+//     // look for a field corresponding to the sub-id
+//     iter = fields.find( id.subId(0,iatom) );
+//     if( iter != fields.end() ) // found field?
+//     {
+//       CanWrite( iter->second->isWritable() );
+//       // if next atom of remainder is an index, use that as an index into the field
+//       HIID subid = id.subId(iatom+1,-1);
+//       // is it a sub-record? Recurse into it
+//       if( iter->second->type() == TpDataRecord ) 
+//       {
+//         int index = subid.popLeadIndex();
+//         return ((DataRecord*)iter->second->get(index))->resolveField(subid,rest,must_write);
+//       }
+//       // else it's the final field, so return it
+//       rest = subid;
+//       return iter->second;
+//     }
+//   }
+//   // nothing was found -- return invalid ref
+//   return NullDataFieldRef;
   //## end DataRecord::resolveField%3C552E2D009D.body
-}
-
-const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
-{
-  //## begin DataRecord::get%3C56B00E0182.body preserve=yes
-  HIID rest;
-  const DataFieldRef & ref( resolveField(id,rest,can_write,must_write) );
-  // nothing found... return 0
-  if( !ref.valid() )
-    return 0;
-  // if remainder contains an index into the field, get it out
-  int index = rest.popLeadIndex();
-  // trim leading delimiters from remaining id
-  rest.popAllLeadDelim();
-  // nothing remains, so field completely resolved -- get its data
-  if( !rest.size() )
-  {
-    tid = ref->type();
-    FailWhen( check_tid && tid != check_tid, "field type mismatch" );
-    return ref->get(index);
-  }
-  // else not completely resolved -- then field has to be a container
-  else
-  {
-    // check that it is a sub-container
-    FailWhen( !isNestable(ref->type()),
-        id.toString() + ": sub-field is not a valid container (remainder is "+
-        rest.toString()+")" );
-    // recurse inside for rest of id sequence
-    return ((NestableContainer*)(ref->get(index)))->get(rest,tid,can_write,check_tid,must_write);
-  }
-  //## end DataRecord::get%3C56B00E0182.body
 }
 
 bool DataRecord::getFieldInfo (const HIID &id, TypeId &tid, bool& can_write, bool no_throw) const
@@ -331,7 +326,7 @@ bool DataRecord::getFieldInfo (const HIID &id, TypeId &tid, bool& can_write, boo
     // if remainder contains an index into the field, get it out
     int index = rest.popLeadIndex();
     // remove any delimiters
-    rest.popAllLeadDelim();
+    rest.popLeadSlashes();
     // nothing remains, so field completely resolved -- return its type
     if( !rest.size() )
     {
@@ -354,69 +349,6 @@ bool DataRecord::getFieldInfo (const HIID &id, TypeId &tid, bool& can_write, boo
   }
   return False;
   //## end DataRecord::getFieldInfo%3C57C63F03E4.body
-}
-
-DataField::Hook DataRecord::operator [] (const HIID &id)
-{
-  //## begin DataRecord::operator []%3C67E345030C.body preserve=yes
-  FailWhen( !isWritable(),"r/w access violation" );
-  HIID rest;
-  bool dum;
-  DataFieldRef &ref = const_cast<DataFieldRef&>(resolveField(id,rest,dum,True));
-  // id has resolved to a valid field? 
-  if( ref.valid() )
-  {
-    if( !rest.size() ) // completely resolved with no indexing
-      return DataField::Hook(ref,-1);
-    // pop index into field, if any, follwed by delimiters
-    int leadindex = rest.popLeadIndex();
-    rest.popAllLeadDelim();
-    // if nothing is left, then index into the field
-    if( !rest.size() )    
-      return DataField::Hook(ref,leadindex);
-    // else the remainder refers to a new sub-field within the resolved one --
-    // so create it. The resolved field must be a DataRecord
-    FailWhen(ref->type()!=TpDataRecord,id.toString()+" does not refer to a subrecord");
-    // check if there's a trailing index (i.e. into the new field), we can
-    // only allow 0 or none
-    int trailindex = rest.back().index();
-    if( trailindex >= 0 )
-      rest.pop_back();
-    FailWhen(trailindex>0,"indexing into uninitialized field "+rest.toString());
-    // create the field
-    DataField *f = new DataField;
-    ref()[leadindex].as_DataRecord_wr().fields[rest] = 
-      DataFieldRef(f,DMI::ANON|DMI::WRITE|DMI::LOCK);
-    // with no trailindex (i.e. -1), this returns an unindexed Hook
-    // Otherwise, a Hook indexed to [0] is returned.
-    return DataField::Hook(f,trailindex);
-  }
-  else // not resolved, so create a new field
-  {
-    // check for no (or =0) trailing index
-    int trailindex = rest.back().index();
-    if( trailindex >= 0 )
-      rest.pop_back();
-    DataField *f = new DataField;
-    fields[id] = DataFieldRef(f,DMI::ANON|DMI::WRITE|DMI::LOCK);
-    return DataField::Hook(f,trailindex);
-  }
-  //## end DataRecord::operator []%3C67E345030C.body
-}
-
-DataField::ConstHook DataRecord::operator [] (const HIID &id) const
-{
-  //## begin DataRecord::operator []%3C67E3680050.body preserve=yes
-  HIID rest;
-  bool dum;
-  const DataFieldRef &ref = resolveField(id,rest,dum,False);
-  FailWhen( !ref.valid(),id.toString()+" does not refer to a valid DataField");
-  if( !rest.size() ) // completely resolved, no index
-    return DataField::ConstHook(ref,-1);
-  int leadindex = rest.popLeadIndex();
-  FailWhen( rest.size(),id.toString()+" does not refer to a full DataField");
-  return DataField::ConstHook(ref,leadindex);
-  //## end DataRecord::operator []%3C67E3680050.body
 }
 
 int DataRecord::fromBlock (BlockSet& set)
@@ -528,6 +460,51 @@ void DataRecord::cloneOther (const DataRecord &other, int flags)
   //## end DataRecord::cloneOther%3C58239503D1.body
 }
 
+const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
+{
+  //## begin DataRecord::get%3C56B00E0182.body preserve=yes
+  FailWhen( !id.size(),"null HIID/can't access a DataRecord as scalar" );
+  CFMI iter = fields.find(id);
+  if( iter == fields.end() )
+    return 0;
+  FailWhen(check_tid && check_tid != TpDataField,"type mismatch: expecting "+
+      check_tid.toString()+", got DataField" );
+  tid = TpDataField;
+  can_write = iter->second->isWritable();
+  FailWhen(must_write && !can_write,"write access violation"); 
+  return &iter->second.deref();
+  //## end DataRecord::get%3C56B00E0182.body
+}
+
+void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
+{
+  //## begin DataRecord::insert%3C7A16BB01D7.body preserve=yes
+  FailWhen( !id.size(),"null HIID" );
+  CFMI iter = fields.find(id);
+  FailWhen( iter!=fields.end(),"field "+id.toString()+" already exists" );
+  if( tid == TpDataField )
+  {
+    real_tid = tid;
+    return &fields[id];
+  }
+  else if( tid )
+  {
+    real_tid = tid;
+    DataField *pf = new DataField(tid,-1);
+    fields[id].attach(pf,DMI::ANON|DMI::WRITE|DMI::LOCK);
+    TypeId dum1; bool dum2;
+    return const_cast<void*>( pf->get(0,dum1,dum2) );
+  }
+  else
+  {
+    real_tid = TpDataField;
+    DataField *pf = new DataField;
+    fields[id].attach(pf,DMI::ANON|DMI::WRITE|DMI::LOCK);
+    return pf;
+  }
+  //## end DataRecord::insert%3C7A16BB01D7.body
+}
+
 // Additional Declarations
   //## begin DataRecord%3BB3112B0027.declarations preserve=yes
   //## end DataRecord%3BB3112B0027.declarations
@@ -570,5 +547,3 @@ string DataRecord::sdebug ( int detail,const string &prefix,const char *name ) c
   return out;
 }
 //## end module%3C10CC82005C.epilog
-
-
