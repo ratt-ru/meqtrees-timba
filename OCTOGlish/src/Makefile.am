@@ -5,7 +5,7 @@ CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE
 
 lib_LTLIBRARIES = liboctoglish.la
 
-liboctoglish_la_SOURCES = GlishClientWP.cc AID-OCTOGlish-Registry.cc
+liboctoglish_la_SOURCES = GlishClientWP.cc GlishUtil.cc AID-OCTOGlish-Registry.cc
 
 bin_PROGRAMS   		= octoglish
 
