@@ -700,57 +700,25 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   
 \subsection{Result/Request dependencies}
 
-  
+  The simplest scenario of cache use is when identical requests (i.e. with
+  identical rqids) are sent to the same node. If a node has a cached result, it
+  can return that immediately rather than doing a wasteful recalculation.
 
-  Let's call the individual components of a request ID {\em dependencies} --
-  because the \RES{DEP} flags in the result code describe what the result
-  depends on. Note that a parent result inherits dependencies from all its
-  child results, thus the parent dependencies are always a superset of any
-  child dependencies (i.e. equal to or larger.) The following simple rules seem
-  reasonable:
+  Real-life trees involve some more sophisticated scenarios. For example, in a
+  solve-tree, a \qq{Solver} node iterates over a tree by issuing a series of
+  requests, with each subsequent request containing updates to parameter
+  values. Some branches of the tree have no dependence on solvable parameters,
+  it is obviously wasteful to recalculate those, so the cache must somehow be
+  used.
 
-  \begin{enumerate}
-  
-  \item If a dependency will change in the next request, then node can clear
-    cache (since the next request will invalidate it anyway).
-
-  \item If the parent dependencies are exactly equal to those of a child, then
-    the parent does not need the child's cache (because any request requiring a
-    recalculation of the parent result will also require a recalculation of the
-    child result.)
-
-  \item If the parent dependencies are larger than those of a child, then the 
-    child should retain cache (unless [1] holds for the child.) 
-
-  \item A child must retain cache unless [1] is true, or {\bf all} its parents
-    have told it to release cache.
-
-  \end{enumerate}
-  
-  Note also that when a node retains the result in a cache, it also retains the
-  dependency mask and the request ID. When deciding whether to return the
-  cached result or recalculate the request (see step [1] of \qq{execute()}),
-  the request IDs are matched according to the dependency mask.
-
-
-
-  As discussed in the section on requests above, a {\em depmask} is a bitwise
-  mask that describes a result's dependencies on particular properties of the
-  request, which are in turn indicated by individual indices of the request ID.
-  To enable proper use of the cache, all nodes in the tree should interpret
-  these bits and indices in a consistent way -- which is, by necessity,
-  application-dependent. Several fields of the node state provide a mechanism
-  for setting up these semantics and propagating them throughout trees. 
-
-**************************************************************    
-  Rqids play a pivotal role in caching behaviour. 
-  
-  When a node caches a result,
-  it also caches the rqid. In the trivial case, if the next request has the
-  same ID, the node can immediately return the cached result. In fact the cache
-  is somewhat more intelligent. Each cached result also has a {\em dependency
-  mask} (or {\bf depmask} for short) that describes {\em what properties of a
-  request the result depends on}. Typical dependencies include:
+  Thus, the decision to use cache hinges on knowing the {\bf dependencies} of a
+  particular \qq{Result}. When a node caches a result, it also caches the rqid.
+  In the trivial case, if the next request has the same rqid, the node can
+  immediately return the cached result. In fact the cache can be more
+  discriminating. Each cached result also has a {\em dependency mask} (or {\bf
+  depmask} for short) that describes {\em what properties of a request the
+  result depends on}. The depmask is a bitmask, with each bit indicating a
+  particular dependency. Typical dependencies include:
 
   \begin{itemize} 
   
@@ -793,13 +761,13 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   index corresponds to one bit in the depmask. For example, if the depmask is
   structured as follows:
   
-  \begin{center}\begin{tabular}{l|l}
-  \hline
+  \begin{center}\begin{tabular}{ll}
+  \toprule
   bit 0 & \qq{Parm} values from solver \\
   bit 1 & \qq{WSum} configuration \\
   bit 2 & resolution of \Cells \\ 
   bit 3 & envelope domain of \Cells \\
-  \hline\end{tabular}\end{center}
+  \bottomrule\end{tabular}\end{center}
   
   then the rqid is composed of four indices:
   
@@ -825,99 +793,96 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   up consistent semantics throughout the tree, see the discussion on {\em
   symdeps} below.
 
-  Note also that the general scheme implemented at the \qq{Node} level does not
-  assume any application-specific semantics at all. The depmask is a treated as
-  set of $N$ bits, and the rqid as a corresponding set of $N$ indices.
+  The general scheme implemented at the \qq{Node} level does not assume any
+  application-specific semantics at all. The depmask is simply treated as set of $N$
+  bits, and the rqid as a corresponding set of $N$ indices. All semantics are
+  defined at the application level!
 
-\section{Result codes}
+\subsection{Smart caching behaviour}
 
-  The return value of \qq{execute()} is meant to be a result code describing
-  certain properties  of the returned \Result. It is a bitmask composed of a
-  number of flags listed below. Each flag describes a certain property of the
-  \Result. The property semantics are defined in such a way that, in most
-  practical cases, a flagged property in any child result is inherited by the
-  parent's result. This allows \qq{execute()} to accumulate the correct result
-  code via a simple bitwise-OR. In other words, only a few classes (Parm, Time,
-  Freq, Spigot, and perhaps some special nodes) have any specific logic for
-  determining result codes. For all other classes, the correct result code is
-  simply the bitwise-OR of their children's codes. The following bits are
-  defined:
+  The previous discussion focused on how depmasks determine whether a cached
+  result can be reused. In a similar vein, depmasks can also help us define a
+  smart caching policy {\em (Note: this is not yet implemented.)}
   
-  \begin{description}
+  Let's assume that the request generator has knowledge of how the next request
+  it issues is going to be different from the current one. This seems a
+  reasonable assumption: a \qq{Sink} always knows that its next request is
+  going to have a different domain/cells, a \qq{Solver} knows that its next
+  request is going to contain updated parameter values, etc. This information
+  can be expressed as a {\bf diffmask}: a bitmask describing which components
+  of the rqid are going to change. The diffmask can be passed along in a request
+  record, and treated as a {\em hint} by the caching code.
   
-  \item[\RES{UPDATED}:] result has changed from that of previous \Request. This
-    bit is usually automatically cleared when the node returns a result 
-    from the cache, and set otherwise.
-     
-  \item[\RES{DEP(0)}, \RES{DEP(1)}, etc.:] result will change if the $i$-th
-    index of the request ID changes. This is simply the {\em depmask\/} discussed
-    in the section on Requests above.
+  Now, each node returning a result has the following information: its result
+  depmask, the depmasks of its children's results, and a diffmask hint 
+  describing the next expected request. The following caching behaviour appears reasonable:
+  
+  \begin{enumerate}
+  
+  \item If a dependency will change in the next request (\qq{diffmask \&
+    depmask != 0}), then the node can clear cache (since the next request will
+    invalidate it anyway).
 
-  \item[\RES{DEP\_VOLATILE}:] result may change in response to external events,
-    even without new requests. (This is not implemented for now, and only meant
-    as a placeholder for future developments, such as dynamically growing
-    domains, partial integration, etc.)
+  \item If the parent dependencies are exactly equal to those of a child, then
+    the parent does not need the child's cache (because any request requiring a
+    recalculation of the parent result will also require a recalculation of the
+    child result.) It can then tell the child to release cache. Note that this
+    decision does not require knowing the diffmask hint.
 
-  \item[\RES{FAIL}:] result is a ``complete'' fail. Note that this is not the
-    same thing as a result containing some mix of valid and failed VellSets;
-    rather, this indicates a failure for the whole result overall. \RES{FAIL}s
-    are usually generated when a node runs into some unrecoverable error.
+  \item If the parent dependencies are larger than those of a child, then the 
+    child should retain cache (unless it has already decided to clear it
+    based on the diffmask hint.) 
+
+  \item A child can clear cache if {\bf all} of its parents have told it to
+    release cache.
     
-    When this flag is returned, a \Result\ object is expected; it should
-    contain one or more fails describing the error. Note that dependency flags
-    can be meaningfully combined with \RES{FAIL}.
+    The child/parent interaction implies that regardless of diffmasks, cache
+    only needs to be retained {\em at those points of the tree where the
+    dependency set grows.}
 
-  \item[\RES{WAIT}:] no result available, wait for notification or try later.
-    If this flag is raised, then no \Result\ should be returned. Note that
-    dependency flags can and should be meaningfully combined with \RES{WAIT},
-    since it usually possible to indicate the dependencies of a node in
-    advance.
+  \end{enumerate}
+  
+  Note that the diffmask hint is not required for correct operation of the
+  caching system. If the hint is wrong, then the worst that can happen is
+  either cache retained when it shouldn't be, or cache cleared when it should
+  be. If the hint is missing, the nodes can fall back to a strategy of
+  aggressive caching (i.e. retaining cache at points where the dependency set
+  grows), or no caching at all. The two strategies can be implemented as
+  variations of the ``Smart'' caching policy.
 
-  \end{description}
-  
-  The return value of a node's \qq{getResult()} method should describe any {\bf
-  additional} properties introduced by the \qq{getResult()} calculation.
-  Most function nodes will
-  return zero, indicating that a node does not introduce any additional
-  dependencies into the result. 
+  We have now defined all cache-related behaviour locally: all decisions are
+  made on the basis of depmasks and diffmasks, and no knowledge of the
+  structure of a tree (or the application domain) is required. The next section
+  will describe how depmasks are actually generated.
 
-  \subsection{Cache and the state record}
-  
-  \subsection{\qq{request\_id}, \qq{cache\_result}, \qq{cache\_result\_code}}
-  
-  These three fields compose the node result cache. The first field -- a
-  \qq{HIID} -- is the ID of the most recent request. The second field is the
-  cached \qq{Result} of that request, if any (stored by reference). The third
-  field -- an integer -- is the cumulative result code (mainly its the depmask,
-  with a few additional flags, described in \qq{execute()} later on) of the
-  cached result.
+\subsection{Cache and the state record}
+
+  The cache is actually stored in the node state record. The \qq{cache\_result}
+  field contains a read-only counted ref to the result. The
+  \qq{cache\_result\_code} field contains the result code, which includes the
+  depmask (see~\ref{sec:resultcode}). The \qq{request\_id} field is the rqid of
+  the original requests.
 
   The node cache may be cleared by assigning a boolean \qq{false} to the
   \qq{cache\_result} field. It is also possible to modify the cache on the fly
   (for example, substituting in another result). This may be a useful feature
   for debugging and experimentation, though if used improperly, it can probably
   confuse the caching and dependency tracking mechanism.  
-
-
   
 \section{The local depmask}
   
-  The \qq{depend\_mask} field of the state record is the local depmask of the
-  node. The local depmask indicates which dependencies a node introduces into
-  its result. For most \qq{Function}-derived nodes, this mask is null,
+  The \qq{depend\_mask} field of the state record defines the local depmask of
+  the node. The local depmask indicates which dependencies a node introduces
+  into its result. For most \qq{Function}-derived nodes, this mask is null,
   indicating that the result dependencies are fully determined by child
-  dependencies. Leaf nodes, on the other hand, will have a non-null mask.
-
-  The local depmask is automatically ORed into the result code by
-  \qq{Node::execute()} (see below). Some nodes will set up the mask at init
-  time and never worry about it again. For other nodes, it may change depending
-  on node state.
+  dependencies. Leaf nodes, on the other hand, will generally have non-null
+  masks.
 
   The depmask is just a set of $N$ bits with no specific semantics associated
   with them. The association between individual bits and specific result
   properties is set up via the mechanism of {\em symbolic dependencies}, or
   {\em symdeps} for short.
-  
+
 \section{Symdeps in a nutshell}
   
   A {\em symdep} is a \qq{HIID} (thus, symbolic -- since \qq{HIID}s have a
@@ -941,67 +906,25 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   A node's set of symdeps is generally known to the node class at construction
   time. Then, when a tree is initialized, different symdeps are dynamically
   associated with different bits of the depmask, as described below.
-  Essentially, this maps the abstract concepts (the symdeps) onto specific bits
-  of the depmasks. In other words, this mechanism is what determines the
-  bitmask semantics.
-
-
-
-\subsection{Next\_request and request sequences}
-
-  The concept of a ``request sequence'' has been bandied about a lot (see the
-  ``Making Waves'' document, plus various discussions). The reason for this is
-  that a node needs some capability of ``looking ahead'' to future requests, in
-  order to efficiently utilize cache, and to enable ``rippling'' trees that
-  parallelize well.
-
-  In fact, it is sufficient to be able to answer the more limited question:
-  given request $X$, what is the next request likely to be? A node doesn't 
-  need to know the full request sequence -- only the next step of it. The
-  mechanism can be hidden behind a single method called, e.g.,
-  \qq{getNextRequestHint()}, implemented at the \Node\ level. This neatly
-  factors the issue into two independent ones:
-
-  \begin{itemize}
-  
-  \item {\em Where does the base \qq{\em Node} class get knowledge of the next
-    request?} Obviously, the originator of the \Request\ can have some idea. 
-    For example, a \qq{Solver} node would probably know if more iterations over
-    the same domain/source are required, or if we're going to the next domain.
-    A \qq{Sink} node may know what the next domain is going to be. Etc. It
-    seems reasonable to place this information into the \Request\ record
-    itself, hence the \qq{next\_request} field.
-
-  \item {\em Given knowledge of the next request, how does that help us in
-    caching and parallelization?} Parallelization was the subject of the
-    ``Making Waves'' document, while caching issues are discussed below.
-
-  \end{itemize}
-  
-  The next-request hint is just that, a hint, with no commitment implied. It is
-  not necessary at all for correct operation of the system -- even the hint
-  itself can even be wrong. The maximum penalty to pay for an incorrect hint is
-  recalculation of the tree rooted at the node in question. Efficient
-  operation, however, requires that the hint be correct most of the time.
-
-  {\em Hints and sequences are not implemented at the moment; the point of
-  the present discussion is to see where this fits into the data structure.}
+  Essentially, this maps abstract concepts (the symdeps) onto specific bits of
+  the depmask. In other words, this mechanism is defines the bitmask semantics.
 
 \subsection{Symdep masks}
 
   Note that certain nodes can be viewed as symdep {\em generators}. These are
   nodes that generate new requests. For example, the \qq{Sink} node generates
   requests with different domains and resolutions, thus we say that \qq{Sink}
-  generates the \qq{"Domain"} and \qq{"Resolution"} symdep. The \qq{ModRes} node
-  changes the resolution of requests, thus it generates the \qq{"Resolution"}
-  symdep. The \qq{Solver} node generates the \qq{"Parm.Value"} symdep.
-  
-  These nodes are responsible for associating a particular bit of the depmask
-  with each symdep that they generate. Typically, they will do this once when a
-  tree is initialized. These associations (known as {\em symdep masks}) are
-  then recursively sent up the tree, thus becoming known to all child nodes.
-  Nodes up the tree can then compute their local depmasks by combining the
-  symdep masks of their specific symdeps.
+  generates the \qq{"Domain"} and \qq{"Resolution"} symdep. The \qq{ModRes}
+  node changes the resolution of requests, thus it generates the
+  \qq{"Resolution"} symdep. The \qq{Solver} node generates the
+  \qq{"Parm.Value"} symdep.
+
+  These nodes are then made responsible for associating a particular bit of the
+  depmask with each symdep that they generate. Typically, the association is
+  performed when a tree is initialized. These associations (known as {\em
+  symdep masks}) are then recursively sent up the tree, thus becoming known to
+  all child nodes. Nodes up the tree can then compute their local depmasks by
+  combining the symdep masks of their specific symdeps.
 
 \section{Symdeps: the hairy details}
 
@@ -1011,9 +934,9 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 \subsection{Known and active symdeps} 
   
   The {\em known symdeps} of a node are just that, all the symdeps that a node
-  class knows about. Typically, this is specified once and for all in the
-  node class's constructor, by calling the \qq{setKnownSymDeps()} method.
-  
+  class knows about. Typically, this is specified once and for all in the node
+  class's constructor, by calling the \qq{setKnownSymDeps()} method. 
+
   A subset of the known symdeps -- the {\em active symdeps} set -- determines
   what symdeps currently apply to the node's result. For some node classes,
   this is always the entire known set. Some classes, however, may change their
@@ -1037,8 +960,8 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 \subsection{Propagating symdep masks}
 
   A node will automatically keep track of the symdep masks associated with its
-  known symdep set. This is done via the rider command facility (see below),
-  and implemented via \qq{Node::processCommands()}:
+  known symdep set. These are sent up as commands in a request (see
+  \ref{sec:nodecommands}), and processed at the \qq{Node} class level.
 
   \begin{itemize}
   
@@ -1070,13 +993,12 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
     the depmask. Thus, the \qq{"Parm.Value"} symdep of different groups of
     parms will actually be mapped to different depmasks!
     
-    Note that node group facility (see processing of rider commands, below)
-    provides an elegant mechanism for distributing different symdep masks to
-    different node groups.
-    
+    Note that node group facility (see \ref{sec:CSR}) provides an elegant
+    mechanism for distributing different symdep masks to different node groups.
+
   \item The map is small, and changes very infrequently (if at all -- usually,
-    it will be set up only once when a tree is initialized). Thus there is no
-    performance cost associated with keeping local copies.
+    it will be set up only once when a tree is initialized). Thus there is
+    really no performance cost associated with keeping local copies.
 
   \end{itemize}
   
@@ -1090,18 +1012,18 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   commands containing their symdep masks assignments. \qq{Node} provides a
   simple facility for doing this automatically.
   
-  A node class can specify its mapping of {\em generated symdeps} to masks
-  by calling the \qq{setGenSymDeps()} method at construction time. The standard
+  A node class can specify its mapping of {\em generated symdeps} to masks by
+  calling the \qq{setGenSymDeps()} method at construction time. The standard
   node classes specify some pre-assigned masks by default: bit 0 for
   \qq{"Parm.Value"}, bit 1 for \qq{"Resolution"}, bit 4 for \qq{"Domain"}. This
   allows for simple trees to be put together using just the defaults.
-  
+
   For more elaborate trees -- e.g., rippled trees with multiple solvers --
   different \qq{Solver} nodes need to be assigned different masks for the same
   symdep. This can be done via the \qq{gen\_symdeps} field of the state record.
   This field has to contain a map (e.g. record) of symdeps to depmasks; if
   specified, it overrides any previously set mappings. 
-  
+
   Additionally, a node may be configured to generate symdeps for a particular
   node group only. This useful for, e.g., multiple solvers. By default, the
   \qq{All} group is used, but this can be overridden via the
@@ -1113,7 +1035,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \qq{Node::processCommands} inserts the appropriate \qq{Add.Dep.Mask} commands
   into the request rider based on the current setting of \qq{gen\_symdeps} and
   \qq{gen\_symdeps\_group}.
-  
+
   Operationally, all this is typically done only once at init time:
   
   \begin{itemize}
@@ -1125,8 +1047,9 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \item Once all the nodes and trees have been created, a request containing
     two following two commands is given to all the root nodes:
     \qq{Resolve.Children} and \qq{Init.Dep.Masks}. (The first command is
-    required to resolve named children).
-    
+    required to resolve named children). This is done by the \qq{meqserver}
+    automatically, in response to the \qq{Resolve.Children} command.
+
   \item This initial request is propagated up the tree, acquiring symdep masks
     from generator nodes along the way. 
     
@@ -1156,7 +1079,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \end{enumerate}
   
   Basically, this order implies that if the local depmask is explicitly changed
-  via \qq{depend\_mask}, the specified value overrides any implict value
+  via \qq{depend\_mask}, the specified value overrides any implicit value
   calculated from, e.g., an \qq{active\_symdeps}.
   
 \subsection{Specialized node behaviour}  
