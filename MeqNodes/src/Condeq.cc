@@ -130,7 +130,8 @@ int Condeq::getResult (Result::Ref &resref,
     // Evaluate all perturbed values.
     vector<Vells*> perts(nrch);
     vector<int> indices(nrch, 0);
-    Vells deriv;
+    Vells::Ref deriv_ref;
+    Vells & deriv = deriv_ref <<= new Vells;
     for( uint j=0; j<spids.size(); j++ )
     {
       int inx0 = child_res[0]->isDefined(spids[j],indices[0]);
@@ -150,7 +151,7 @@ int Condeq::getResult (Result::Ref &resref,
         pert = calcDerivative(deriv,*child_res[0],inx0);
       else 
         deriv = Vells(0.);
-      vellset.setPerturbedValue(j,deriv);
+      vellset.setPerturbedValue(j,deriv_ref);
       vellset.setPerturbation(j,pert);
     }
     vellset.setSpids (spids);

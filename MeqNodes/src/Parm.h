@@ -107,7 +107,7 @@ public:
                          const Request &req,bool newreq);
 
   // process parm-specific rider commands
-  virtual int processCommands (const DataRecord &rec,Request::Ref &reqref);
+  virtual int processCommands (const DMI::Record &rec,Request::Ref &reqref);
 
   // Make the new value persistent (for the given domain).
     //##ModelId=3F86886F023C
@@ -133,7 +133,7 @@ protected:
   int Parm::initSolvable (Funklet &funklet,const Request &request);
 
     //##ModelId=400E5353033A
-  virtual void setStateImpl (DataRecord &rec,bool initializing);
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
   
 private:
     

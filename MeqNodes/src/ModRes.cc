@@ -50,7 +50,7 @@ ModRes::ModRes()
 ModRes::~ModRes()
 {}
 
-void ModRes::setStateImpl (DataRecord &rec,bool initializing)
+void ModRes::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   bool new_ops = false;

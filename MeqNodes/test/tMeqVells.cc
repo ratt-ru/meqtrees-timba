@@ -38,7 +38,7 @@
 using namespace LOFAR;
 using namespace Meq;
 using namespace Meq::VellsMath;
-
+using namespace casa;
 
 void showDouble (const Vells & v)
 {
@@ -55,8 +55,9 @@ void doIt()
   Double d2[] = {2,3,4,5,6,7};
   LoMat_double m1(d1, LoMatShape(2,3), blitz::neverDeleteData);
   LoMat_double m2(d2, LoMatShape(2,3), blitz::neverDeleteData);
-  Vells v1(m1);
-  Vells v2(m2);
+  DMI::NumArray am1(m1),am2(m2);
+  Vells v1(am1);
+  Vells v2(am2);
   Vells v3(double(10));
   showDouble (v1 + v2);
   showDouble (v1 + v2 + v1 + v2 + v3 + v3);
@@ -69,7 +70,8 @@ void doIt()
   dc1[4] = DComplex(9,10);
   dc1[5] = DComplex(11,12);
   LoMat_dcomplex mc1(dc1, LoMatShape(2,3), blitz::neverDeleteData);
-  Vells vc1 (mc1);
+  DMI::NumArray amc1(mc1);
+  Vells vc1 (amc1);
   Vells vc2 = v1 + v2 + vc1;
   Vells vc3 = v1 + vc1 + v2;
   Vells vc4 = vc1 + vc2;
@@ -116,7 +118,7 @@ void doIt2 (uInt length, uInt nr)
     delete [] r;
   }
   {
-    Vells v1(1.0,length,1,true);
+    Vells v1(1.0,LoShape(length),true);
     Vells v3(double(10));
     Vells v2;
     Timer tim;
@@ -127,16 +129,16 @@ void doIt2 (uInt length, uInt nr)
     Assert(memcmp(v2.getStorage<double>(),ref,sizeof(Double)*length)==0);
   }
   {
-    Vells v1(1.0,length,1,true);
+    Vells v1(1.0,LoShape(length,1),true);
     Vells v3(double(10));
-    Vells v2(0.0,length,1,false);
+    Vells v2(0.0,LoShape(length,1),false);
     Timer tim;
     for (i=0; i<nr; i++) {
-      v2.as<LoMat_double>() = 
-         v1.as<LoMat_double>() + v1.as<LoMat_double>() + v1.as<LoMat_double>() +
-         v3.as<double>() + v1.as<LoMat_double>() + v3.as<double>() +
-         v1.as<LoMat_double>() + v3.as<double>() + v1.as<LoMat_double>() +
-         v1.as<LoMat_double>();
+      v2.as<double,2>() = 
+         v1.as<double,2>() + v1.as<double,2>() + v1.as<double,2>() +
+         v3.as<double>() + v1.as<double,2>() + v3.as<double>() +
+         v1.as<double,2>() + v3.as<double>() + v1.as<double,2>() +
+         v1.as<double,2>();
     }
     tim.show ("Meq/B");
     Assert(memcmp(v2.getStorage<double>(),ref,sizeof(Double)*length)==0);

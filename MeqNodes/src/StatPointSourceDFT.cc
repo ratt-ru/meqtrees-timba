@@ -61,9 +61,9 @@ void StatPointSourceDFT::evalResult (std::vector<Vells> &res,
   // For the time being we only support scalars for LMN, 
   Assert(vl.isScalar() && vm.isScalar() && vn.isScalar() );
   // and only time-variable UVW
-  Assert(vu.shape(Axis::TIME) == vu.nelements());
-  Assert(vv.shape(Axis::TIME) == vv.nelements());
-  Assert(vw.shape(Axis::TIME) == vw.nelements());
+  Assert(vu.extent(Axis::TIME) == vu.nelements());
+  Assert(vv.extent(Axis::TIME) == vv.nelements());
+  Assert(vw.extent(Axis::TIME) == vw.nelements());
   // Loop over all frequency segments, and generate an F0/DF pair for each
   int iout = 0;
   for( int iseg = 0; iseg < cells.numSegments(Axis::FREQ); iseg++ )

@@ -81,14 +81,14 @@ public:
   virtual void checkChildren();
   
   // called to process request rider commands, if any.
-  virtual int processCommands (const DataRecord &rec,Request::Ref &reqref);
+  virtual int processCommands (const DMI::Record &rec,Request::Ref &reqref);
 
   LocalDebugContext;
 
 protected:
     //##ModelId=400E53550267
   //##Documentation
-  virtual void setStateImpl (DataRecord& rec,bool initializing);
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
   
     //##ModelId=400E5355026B
   //##Documentation
@@ -113,7 +113,7 @@ private:
   //## <br> If it is not the last iteration, the solution is put in the
   //## given request, so a next iteration can first update the parms.
   void solve (casa::Vector<double>& solution, Request::Ref &reqref,
-	      DataRecord& solRec, Result::Ref& resref,
+	      DMI::Record& solRec, Result::Ref& resref,
 	      std::vector<Result::Ref>& child_results,
 	      bool saveFunklets, bool lastIter);
 
@@ -126,8 +126,8 @@ private:
 
     //##ModelId=400E53550276
   //##Documentation
-  //## Fill the solution (per parmid) in the DataRecord.
-  void fillSolution (DataRecord& rec, const vector<int>& spids,
+  //## Fill the solution (per parmid) in the DMI::Record.
+  void fillSolution (DMI::Record& rec, const vector<int>& spids,
 		     const casa::Vector<double>& solution,bool save_polc);
 
     //##ModelId=400E53550257

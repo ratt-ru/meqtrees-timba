@@ -34,13 +34,13 @@ ZeroFlagger::ZeroFlagger()
 ZeroFlagger::~ZeroFlagger()
 {}
 
-void ZeroFlagger::setStateImpl (DataRecord &rec,bool initializing)
+void ZeroFlagger::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   // get flag bit
   rec[FFlagBit].get(flagbit_,initializing);
   // get operation
-  DataRecord::Hook oper(rec,FOper);
+  DMI::Record::Hook oper(rec,FOper);
   if( oper.exists() )
   {
     HIID op;
@@ -68,7 +68,6 @@ int ZeroFlagger::getResult (Result::Ref &resref,
   // copy child result to output; privatize for writing since we intend
   // to modify flags
   resref = childres[0];
-  resref.privatize(DMI::WRITE);
   Result & result = resref();
   // check # of input vellsets
   int nvs = result.numVellSets();

@@ -47,10 +47,8 @@ int MergeFlags::getResult (Result::Ref &resref,
     for( ; i<nch; i++ )
       flagmask_[i] = -1;
   }
-  // copy first child result to output; privatize for writing since we intend
-  // to modify flags
+  // copy first child result to output
   resref = childres[0];
-  resref.privatize(DMI::WRITE);
   Result & result = resref();
   // check # of input vellsets
   int nvs = result.numVellSets();

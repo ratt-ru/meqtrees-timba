@@ -51,7 +51,7 @@ protected:
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
 
-  virtual void setStateImpl (DataRecord &rec,bool initializing);
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
   
   HIID top_label_;
   

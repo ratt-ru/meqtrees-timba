@@ -39,14 +39,14 @@ Composer::~Composer()
 {}
 
 // //##ModelId=400E53050047
-// void Composer::checkInitState (DataRecord &rec)
+// void Composer::checkInitState (DMI::Record &rec)
 // {
 //   defaultInitField(rec,FContagiousFail,false);
 // }
 //     
 
 //##ModelId=400E5305004A
-void Composer::setStateImpl (DataRecord &rec,bool initializing)
+void Composer::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   rec[FContagiousFail].get(contagious_fail,initializing);
@@ -71,10 +71,10 @@ int Composer::getResult (Result::Ref &resref,
     int ires = 0;
     for( uint i=0; i<childres.size(); i++ )
     {
-      Result &chres = childres[i]();
+      const Result &chres = *childres[i];
       for( int j=0; j<chres.numVellSets(); j++ )
       {
-        VellSet &vs = chres.vellSetWr(j);
+        const VellSet &vs = chres.vellSet(j);
         if( vs.isFail() )
           result.setVellSet(ires++,&vs);
       }

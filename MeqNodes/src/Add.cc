@@ -39,7 +39,7 @@ Vells Add::evaluate (const Request&, const LoShape&,
 {
   if( values.empty() )
     return Vells(0.);
-  Vells result(*values[0],DMI::PRIVATIZE|DMI::WRITE);
+  Vells result(*values[0]);
   for( uint i=1; i<values.size(); i++ )
     result += *(values[i]);
   return result;

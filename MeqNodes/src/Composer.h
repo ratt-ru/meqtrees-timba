@@ -60,10 +60,10 @@ class Composer : public Node
     
   protected:
 //    //##ModelId=400E53050047
-//    virtual void checkInitState (DataRecord &rec);
+//    virtual void checkInitState (DMI::Record &rec);
       
     //##ModelId=400E5305004A
-    virtual void setStateImpl (DataRecord &rec,bool initializing);
+    virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
     // Get the result for the given request.
     //##ModelId=400E5305004F
     virtual int getResult (Result::Ref &resref, 

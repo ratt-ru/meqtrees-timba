@@ -57,7 +57,7 @@ class Selector : public Node
     
   protected:
     //##ModelId=400E53550233
-    virtual void setStateImpl (DataRecord &rec,bool initializing);
+    virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
     //##ModelId=400E53550237
     virtual int getResult (Result::Ref &resref, 
                            const std::vector<Result::Ref> &childres,

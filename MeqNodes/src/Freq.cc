@@ -41,7 +41,7 @@ Freq::~Freq()
 {}
 
 //##ModelId=400E53050217
-void Freq::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
+void Freq::init (DMI::Record::Ref::Xfer &initrec, Forest* frst)
 {
   Node::init(initrec,frst);
   FailWhen(numChildren(),"Freq node cannot have children");
@@ -63,7 +63,7 @@ int Freq::getResult (Result::Ref &resref,
     Vells::Shape shape;
     Axis::degenerateShape(shape,cells.rank());
     int nc = shape[Axis::FREQ] = cells.ncells(Axis::FREQ);
-    Vells & vells = vs.setValue(new Vells(0,shape,False));
+    Vells & vells = vs.setValue(new Vells(0,shape,false));
     memcpy(vells.realStorage(),cells.center(Axis::FREQ).data(),nc*sizeof(double));
   }
   else

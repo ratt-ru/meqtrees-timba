@@ -96,7 +96,7 @@ int Solver::pollChildren (std::vector<Result::Ref> &chres,
 
 // Process rider for the given request
 // (this will be called prior to getResult() on the same request)
-int Solver::processCommands (const DataRecord &rec,Request::Ref &reqref)
+int Solver::processCommands (const DMI::Record &rec,Request::Ref &reqref)
 {
   const Request &request = *reqref;
   int retcode = Node::processCommands(rec,reqref); // required
@@ -129,8 +129,8 @@ int Solver::processCommands (const DataRecord &rec,Request::Ref &reqref)
       itsSpids.clear();
     } else if (invertGiven && itsCurInvertMatrix) {
       Vector<double> solution(itsSpids.size());
-      DataRecord::Ref solRef;
-      DataRecord& solRec = solRef <<= new DataRecord;
+      DMI::Record::Ref solRef;
+      DMI::Record& solRec = solRef <<= new DMI::Record;
       std::vector<Result::Ref> child_results;
       Result::Ref resref;
       solve(solution,reqref,solRec,resref,child_results,
@@ -171,7 +171,7 @@ int Solver::getResult (Result::Ref &resref,
   // The result has 1 plane.
   Result& result = resref <<= new Result(1);
   VellSet& vellset = result.setNewVellSet(0);
-  DataRecord& metricsRec = result[FMetrics] <<= new DataRecord;
+  DMI::Record& metricsRec = result[FMetrics] <<= new DMI::Record;
   // Allocate variables needed for the solution.
   uint nspid;
   vector<int> spids;
@@ -193,8 +193,8 @@ int Solver::getResult (Result::Ref &resref,
   // rider of original request gets sent up the first time
   reqref().copyRider(request);
   if( state()[FSolvable].exists() ) {
-    DataRecord& rider = Rider::getRider(reqref);
-    rider[itsParmGroup].replace() <<= wstate()[FSolvable].as_wp<DataRecord>();
+    DMI::Record& rider = Rider::getRider(reqref);
+    rider[itsParmGroup].replace() <<= wstate()[FSolvable].as_wp<DMI::Record>();
   } else {
     // no solvables specified -- clear the group record
     Rider::getGroupRec(reqref,itsParmGroup,Rider::NEW_GROUPREC);
@@ -335,12 +335,12 @@ int Solver::getResult (Result::Ref &resref,
       break;
     }
     // Keep all solutions in a singlevector.
-    allSolutions.resize ((step+1)*nspid, True);
+    allSolutions.resize ((step+1)*nspid, true);
     // The last part is the current solution.
     Vector<double> vec(allSolutions(Slice(step*nspid, nspid)));
     solution.reference (vec);
     // Solve the equation.
-    DataRecord& solRec = metricsRec[step] <<= new DataRecord;
+    DMI::Record& solRec = metricsRec[step] <<= new DMI::Record;
     // request for last iteration is processed reparately
     bool lastIter = itsCurLastUpdate && step==itsCurNumIter-1;
     solve(solution, reqref, solRec, resref, child_results,
@@ -374,7 +374,7 @@ int Solver::getResult (Result::Ref &resref,
 }
 
 void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
-                    DataRecord& solRec, Result::Ref& resref,
+                    DMI::Record& solRec, Result::Ref& resref,
                     std::vector<Result::Ref>& child_results,
                     bool saveFunklets, bool lastIter)
 {
@@ -389,10 +389,8 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   {
     // generate a command-only (no cells) request for the last update
     reqref <<= new Request;
-    reqref[FRider] <<= new DataRecord;
+    reqref[FRider] <<= new DMI::Record;
   }
-  else // else privatize the request, since we're going to modify it
-    reqref.privatize(DMI::WRITE|DMI::DEEP);
   Request &req = reqref();
   req.clearRider();
   // It looks as if in LSQ solveLoop and getCovariance
@@ -426,8 +424,8 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   
   // Put the solution in the rider:
   //    [FRider][<parm_group>][CommandByNodeIndex][<parmid>]
-  // will contain a DataRecord for each parm 
-  DataRecord& dr1 = Rider::getCmdRec_ByNodeIndex(reqref,itsParmGroup,
+  // will contain a DMI::Record for each parm 
+  DMI::Record& dr1 = Rider::getCmdRec_ByNodeIndex(reqref,itsParmGroup,
                                                  Rider::NEW_GROUPREC);
   fillSolution (dr1,itsSpids, solution, saveFunklets);
   // make sure the request rider is validated
@@ -436,7 +434,7 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
 }
 
 //##ModelId=400E53550276
-void Solver::fillSolution (DataRecord& rec, const vector<int>& spids,
+void Solver::fillSolution (DMI::Record& rec, const vector<int>& spids,
                            const Vector<double>& solution, bool save_polc)
 {
   // Split the solution into vectors for each parm.
@@ -447,7 +445,7 @@ void Solver::fillSolution (DataRecord& rec, const vector<int>& spids,
   int lastParmid = spids[0] / 256;
   for (uint i=0; i<nspid; i++) {
     if (spids[i]/256 != lastParmid) {
-      DataRecord& drp = rec[lastParmid] <<= new DataRecord;
+      DMI::Record& drp = rec[lastParmid] <<= new DMI::Record;
       drp[FUpdateValues] = parmSol;
       lastParmid = spids[i] / 256;
       parmSol.resize(0);
@@ -456,14 +454,14 @@ void Solver::fillSolution (DataRecord& rec, const vector<int>& spids,
     }
     parmSol.push_back (solution[i]);
   }
-  DataRecord& drp = rec[lastParmid] <<= new DataRecord;
+  DMI::Record& drp = rec[lastParmid] <<= new DMI::Record;
   drp[FUpdateValues] = parmSol;
   if( save_polc )
     drp[FSaveFunklets] = true;
 }
 
 //##ModelId=400E53550267
-void Solver::setStateImpl (DataRecord& newst,bool initializing)
+void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
 {
   // special case: if parm_group is set but gen_symdep_group isn't,
   // set it into the record
@@ -476,16 +474,16 @@ void Solver::setStateImpl (DataRecord& newst,bool initializing)
   
   Node::setStateImpl(newst,initializing);
   
-  DataRecord *pdef = newst[FDefault].as_wpo<DataRecord>();
+  DMI::Record *pdef = newst[FDefault].as_wpo<DMI::Record>();
   
   // if no default record at init time, create a new one
   if( !pdef && initializing )
-    newst[FDefault] <<= pdef = new DataRecord; 
+    newst[FDefault] <<= pdef = new DMI::Record; 
   else
     itsResetCur = true;
   if( pdef )
   {
-    DataRecord &def = *pdef;
+    DMI::Record &def = *pdef;
     if( def[FNumIter].get(itsDefNumIter,initializing) &&
         itsDefNumIter < 1 )
       def[FNumIter] = itsDefNumIter = 1;

@@ -32,7 +32,7 @@
 #include <MeqNodes/Condeq.h>
 #include <MeqNodes/Solver.h>
 #include <MEQ/MeqVocabulary.h>
-#include <DMI/DataArray.h>
+#include <DMI/NumArray.h>
 #include <exception>
 
 using namespace Meq;
@@ -63,54 +63,55 @@ int main (int argc,const char* argv[])
     Forest forest;
 
     cout << "============ creating parm1 node ==================\n";
-    DataRecord::Ref rec_child1(DMI::ANONWR);
+    DMI::Record::Ref rec_child1(DMI::ANONWR);
     rec_child1["Class"] = "MeqParm";
     rec_child1["Name"] = "p1";
-    rec_child1["Default"] <<= new Polc(defVal1);
+    rec_child1["Default.Funklet"] <<= new Polc(defVal1);
     rec_child1["Node.Groups"] = HIID("Solvable.Parm");
     int index_child1;
     Node& child1 = forest.create(index_child1,rec_child1);
     
     cout << "============ creating child2 node ==================\n";
-    DataRecord::Ref rec_child2(DMI::ANONWR);
+    DMI::Record::Ref rec_child2(DMI::ANONWR);
     rec_child2["Class"] = "MeqParm";
     rec_child2["Name"] = "p2";
-    rec_child2["Default"] <<= new Polc(defVal2);
+    rec_child2["Default.Funklet"] <<= new Polc(defVal2);
     rec_child2["Node.Groups"] = HIID("Solvable.Parm");
     int index_child2;
     Node& child2 = forest.create(index_child2,rec_child2);
     
     cout << "============ creating condeq node ===\n";
-    DataRecord::Ref recc(DMI::ANONWR);
+    DMI::Record::Ref recc(DMI::ANONWR);
     recc["Class"] = "MeqCondeq";
     recc["Name"] = "condeq1";
-    recc["Children"] <<= new DataRecord;
+    recc["Children"] <<= new DMI::Record;
       recc["Children"]["A"] = "p1";
       recc["Children"]["B"] = "p2";
     int index_con;
     Node& chcon = forest.create(index_con,recc);
 
     cout << "============ creating solver node ===\n";
-    DataRecord::Ref rec(DMI::ANONWR);
+    DMI::Record::Ref rec(DMI::ANONWR);
     rec["Class"] = "MeqSolver";
     rec["Name"] = "solve1";
     rec["Num.Steps"] = 5;
     rec["Parm.Group"] = HIID("Solvable.Parm");
-    rec["Children"] <<= new DataRecord;
+    rec["Children"] <<= new DMI::Record;
       rec["Children"]["A"] = "condeq1";
-    DataRecord& recs = rec["Solvable"] <<= new DataRecord;
-    DataField& dfld = recs["Command.By.List"] <<= new DataField(TpDataRecord,2);
+    DMI::Record& recs = rec["Solvable"] <<= new DMI::Record;
+    DMI::Vec& dfld = recs["Command.By.List"] <<= new DMI::Vec(TpDMIRecord,2);
       dfld[0]["Name"] = "p2";
-      dfld[0]["State"] <<= new DataRecord;
+      dfld[0]["State"] <<= new DMI::Record;
       dfld[0]["State"]["Solvable"] = true;
       // wildcard: not solvable
-      dfld[1]["State"] <<= new DataRecord;
+      dfld[1]["State"] <<= new DMI::Record;
       dfld[1]["State"]["Solvable"] = false;
     int index_solv;
     Node& chsolv = forest.create(index_solv,rec);
     
-    cout << "============ resolving children on add =========\n";
-    chsolv.resolveChildren();
+    cout << "============ resolving =========\n";
+    DMI::Record::Ref depmasks(DMI::ANONWR);
+    chsolv.resolve(depmasks,0);
     
     for (int i=0; i<3; i++) {
       cout << "============ getting result " << i << " =========\n";

@@ -46,13 +46,13 @@ ReqMux::ReqMux()
 ReqMux::~ReqMux()
 {}
 
-void ReqMux::setStateImpl (DataRecord &rec,bool initializing)
+void ReqMux::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   // get dependency mask for resolution changes
   rec[FResolutionDependMask].get(res_depend_mask_,initializing);
   // check for operation specs
-  int noper = rec[FOper].size(TpDataRecord);
+  int noper = rec[FOper].size(TpDMI::Record);
   if( noper )
   {
     std::vector<OpSpec> ops(noper);
@@ -61,7 +61,7 @@ void ReqMux::setStateImpl (DataRecord &rec,bool initializing)
     for( int ich=0; ich<noper; ich++ )
     {
       OpSpec & op = ops[ich];
-      const DataRecord &oprec = rec[FOper][ich];
+      const DMI::Record &oprec = rec[FOper][ich];
       // get upsample/integrate commands
       for( int i=0; i<DOMAIN_NAXES; i++ )
       {

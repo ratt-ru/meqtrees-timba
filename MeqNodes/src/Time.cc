@@ -41,7 +41,7 @@ Time::~Time()
 {}
 
 //##ModelId=400E535502AF
-void Time::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
+void Time::init (DMI::Record::Ref::Xfer &initrec, Forest* frst)
 {
   Node::init(initrec,frst);
   FailWhen(numChildren(),"Time node cannot have children");
@@ -63,7 +63,7 @@ int Time::getResult (Result::Ref &resref,
     Vells::Shape shape;
     Axis::degenerateShape(shape,cells.rank());
     int nc = shape[Axis::TIME] = cells.ncells(Axis::TIME);
-    Vells & vells = vs.setValue(new Vells(0,shape,False));
+    Vells & vells = vs.setValue(new Vells(0,shape,false));
     memcpy(vells.realStorage(),cells.center(Axis::TIME).data(),nc*sizeof(double));
   }
   else

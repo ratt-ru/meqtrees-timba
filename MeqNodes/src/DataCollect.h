@@ -50,14 +50,14 @@ protected:
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
 
-  virtual void setStateImpl (DataRecord &rec,bool initializing);
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
   
   //##Documentation
 
   HIID top_label_;
   
   ObjRef attrib_;
-  DataField::Ref labels_;
+  DMI::Vec::Ref labels_;
 };
 
 

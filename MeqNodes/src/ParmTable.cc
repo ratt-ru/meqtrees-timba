@@ -21,6 +21,7 @@
 //# $Id$
 
 #include <MeqNodes/ParmTable.h>
+#include <MEQ/Meq.h>
 #include <MEQ/Domain.h>
 #include <MEQ/Polc.h>
 #include <Common/Debug.h>
@@ -43,6 +44,7 @@
 #include <casa/BasicMath/Math.h>
 
 using namespace casa;
+using namespace DebugMeq;
 
 namespace Meq {
 

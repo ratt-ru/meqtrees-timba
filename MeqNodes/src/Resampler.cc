@@ -43,7 +43,7 @@ Resampler::Resampler()
 Resampler::~Resampler()
 {}
 
-void Resampler::setStateImpl (DataRecord &rec,bool initializing)
+void Resampler::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
 //  rec[FIntegrate].get(integrate,initializing);

@@ -20,8 +20,8 @@
 //#
 
 #include "DataConcat.h"
-#include <DMI/DataList.h>
-#include <DMI/DataField.h>
+#include <DMI/List.h>
+#include <DMI/Vec.h>
 #include <MeqNodes/AID-MeqNodes.h>
     
 
@@ -41,12 +41,12 @@ DataConcat::~DataConcat()
 {
 }
 
-void DataConcat::setStateImpl (DataRecord &rec,bool initializing)
+void DataConcat::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   // get/init labels from state record
   rec[FTopLabel].get(top_label_,initializing);
-  // get attribute record -- boolean False means clear
+  // get attribute record -- boolean false means clear
   if( rec[FAttrib].exists() )
     if( rec[FAttrib].type() == Tpbool )
       attrib_.detach();
@@ -66,7 +66,7 @@ int DataConcat::getResult (Result::Ref &resref,
 	Result & result = resref <<= new Result(0);
   
   // init top-level record 
-  DataRecord &toprec = result[top_label_] <<= new DataRecord;
+  DMI::Record &toprec = result[top_label_] <<= new DMI::Record;
   // insert attributes, if any
   // if none are specified in the state record, then we'll use
   // the first Attrib record we find in a child result
@@ -74,23 +74,23 @@ int DataConcat::getResult (Result::Ref &resref,
   if( haveattr )
     toprec[FAttrib] <<= attrib_.copy();
   // concatenate all child plot records into value list
-  DataList &value_list = toprec[FValue] <<= new DataList;
+  DMI::List &value_list = toprec[FValue] <<= new DMI::List;
   std::vector<int> nval(numChildren(),0);
   bool has_labels = false;
   for( int ich=0; ich<numChildren(); ich++ )
   {
-    const DataRecord *chplot = child_result[ich][top_label_].as_po<DataRecord>();
+    const DMI::Record *chplot = child_result[ich][top_label_].as_po<DMI::Record>();
     if( chplot )
     {
       // get list of values -- must exist
-      const DataList *pval = (*chplot)[FValue].as_p<DataList>();
+      const DMI::List *pval = (*chplot)[FValue].as_p<DMI::List>();
       nval[ich] = pval->size();
       value_list.append(*pval);
       // do we have a labels?
-      const DataField *plbl = (*chplot)[FLabel].as_po<DataField>();
+      const DMI::Vec *plbl = (*chplot)[FLabel].as_po<DMI::Vec>();
       has_labels |= plbl && plbl->size();
       // if we have no attrs yet, try to get them too
-      DataRecord::Hook attr(*chplot,FAttrib);
+      DMI::Record::Hook attr(*chplot,FAttrib);
       if( !haveattr && attr.isRef() )
       {
         haveattr = true;
@@ -101,15 +101,15 @@ int DataConcat::getResult (Result::Ref &resref,
   // now, build list of labels if any were found
   if( has_labels )
   {
-    DataField &labels = toprec[FLabel] <<= new DataField(Tpstring,value_list.size());
+    DMI::Vec &labels = toprec[FLabel] <<= new DMI::Vec(Tpstring,value_list.size());
     int nlab = 0;
     for( int ich=0; ich<numChildren(); ich++ )
     {
-      const DataRecord *chplot = child_result[ich][top_label_].as_po<DataRecord>();
+      const DMI::Record *chplot = child_result[ich][top_label_].as_po<DMI::Record>();
       if( chplot )
       {
         // have we got any labels in this plot record? copy them
-        const DataField *plbl = (*chplot)[FLabel].as_po<DataField>();
+        const DMI::Vec *plbl = (*chplot)[FLabel].as_po<DMI::Vec>();
         if( plbl && plbl->size() )
         {
           FailWhen(plbl->size()!=nval[ich],

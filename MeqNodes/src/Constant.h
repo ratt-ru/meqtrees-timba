@@ -80,7 +80,7 @@ public:
 protected:
   // Set the state from the record.
     //##ModelId=400E530500B5
-  virtual void setStateImpl (DataRecord& rec, bool initializing);
+  virtual void setStateImpl (DMI::Record::Ref& rec, bool initializing);
 
 private:
     //##ModelId=400E53050085

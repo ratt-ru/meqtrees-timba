@@ -42,7 +42,7 @@ public:
   virtual ~Time();
   
     //##ModelId=400E535502AF
-  virtual void init (DataRecord::Ref::Xfer &initrec, Forest* frst);
+  virtual void init (DMI::Record::Ref::Xfer &initrec, Forest* frst);
   
     //##ModelId=400E535502B3
   virtual TypeId objectType() const

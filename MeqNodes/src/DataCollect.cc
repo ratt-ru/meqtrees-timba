@@ -20,8 +20,8 @@
 //#
 
 #include "DataCollect.h"
-#include <DMI/DataList.h>
-#include <DMI/DataField.h>
+#include <DMI/List.h>
+#include <DMI/Vec.h>
 #include <MeqNodes/AID-MeqNodes.h>
     
 
@@ -39,7 +39,7 @@ DataCollect::DataCollect()
 //    group_label_(AidData),
 //    item_label_(AidData)
 {
-  attrib_ <<= new DataRecord;
+  attrib_ <<= new DMI::Record;
   disableFailPropagation();
 }
 
@@ -48,7 +48,7 @@ DataCollect::~DataCollect()
 }
 
 
-void DataCollect::setStateImpl (DataRecord &rec,bool initializing)
+void DataCollect::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   // get/init labels from state record
@@ -63,7 +63,7 @@ void DataCollect::setStateImpl (DataRecord &rec,bool initializing)
     labels_ = rec[FLabel].ref();
   else if( initializing ) // initialize labels with child names
   {
-    DataField &lbl = rec[FLabel] <<= new DataField(Tpstring,numChildren());
+    DMI::Vec &lbl = rec[FLabel] <<= new DMI::Vec(Tpstring,numChildren());
     labels_ <<= &lbl;
     for( int i=0; i<numChildren(); i++ )
       lbl[i] = childName(i);
@@ -82,7 +82,7 @@ int DataCollect::getResult (Result::Ref &resref,
 // 0 means 0 VellSets in it
 	Result & result = resref <<= new Result(0);
 
-	DataRecord &toprec = result[top_label_] <<= new DataRecord;
+	DMI::Record &toprec = result[top_label_] <<= new DMI::Record;
 
   // put a copy of attributes into the subrecord
   if( attrib_.valid() )
@@ -94,7 +94,7 @@ int DataCollect::getResult (Result::Ref &resref,
 // Better to always use a list since we don't really know if a given 
 // child's Vells will be scalar or array -- easier to figure
 // this out on the python side
-	DataList &vallist = toprec[FValue] <<= new DataList;
+	DMI::List &vallist = toprec[FValue] <<= new DMI::List;
 
 // put stuff in list. Note that a child result may contain several vellsets,
 // so we just loop over them and collect everything into a flat list
@@ -102,7 +102,7 @@ int DataCollect::getResult (Result::Ref &resref,
   {
     const Result &chres = *child_result[i];
     // plot record in child result? (0 if none)
-    const DataRecord *chplot = chres[top_label_].as_po<DataRecord>();
+    const DMI::Record *chplot = chres[top_label_].as_po<DMI::Record>();
     int nvs = chres.numVellSets();
     // count of how many things need to be inserted: one for a valid
     // child plot record, and one per each valid VellSet
@@ -115,18 +115,18 @@ int DataCollect::getResult (Result::Ref &resref,
     // list, else insert a little sublist of stuff. If there's nothing
     // to insert, mark this by an empty sublist (since we must always have 
     // one entry per child)
-    DataList * plist;
+    DMI::List * plist;
     if( count == 1 )
       plist = &vallist;
     else
-      vallist.addBack(plist = new DataList);
+      vallist.addBack(plist = new DMI::List);
     // insert plot record, if any
     if( chplot )
       plist->addBack(chplot);
     // insert main values, if any
     for( int j=0; j<chres.numVellSets(); j++ )
       if( !chres.vellSet(j).isFail() )
-  		  plist->addBack(&(chres.vellSet(j).getValue().getDataArray()));
+  		  plist->addBack(&(chres.vellSet(j).getValue()));
 	}
  	return 0;
 }

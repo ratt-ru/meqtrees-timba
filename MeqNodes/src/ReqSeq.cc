@@ -46,7 +46,7 @@ ReqSeq::ReqSeq()
 ReqSeq::~ReqSeq()
 {}
 
-void ReqSeq::setStateImpl (DataRecord &rec,bool initializing)
+void ReqSeq::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   rec[FCellsOnly].get(cells_only_,initializing);

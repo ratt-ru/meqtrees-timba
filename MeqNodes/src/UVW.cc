@@ -79,7 +79,7 @@ int UVW::getResult (Result::Ref &resref,
     if( childres[i]->hasFails() )
       Debug::appendf(fails,"child %s: has fails",child_labels[i].toString().c_str());
     childvs_lock[i].relock(childres[i]->vellSet(0).mutex());
-    childval_lock[i].relock(childres[i]->vellSet(0).getValue().getDataArray().mutex());
+    childval_lock[i].relock(childres[i]->vellSet(0).getValue().mutex());
   }
   if( !fails.empty() )
     NodeThrow1(fails);

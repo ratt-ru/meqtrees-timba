@@ -39,9 +39,9 @@
 //  Request. Current version ignores cell centers, sizes, domains, etc.,
 //  and goes for a simple integrate/expand by an integer factor.
 //field: integrate F
-//  If True, then Vells are treated as integral values over a cell (i.e.,
+//  If true, then Vells are treated as integral values over a cell (i.e.,
 //  when downsampling, values are integrated; when upsampling, values are 
-//  divided). If False, then Vells are treated as samples at cell center 
+//  divided). If false, then Vells are treated as samples at cell center 
 //  (i.e., when downsampling, values are averaged; when upsampling, values 
 //  are duplicated).
 //field: flag_mask -1
@@ -73,7 +73,7 @@ public:
   
 
 protected:
-  virtual void setStateImpl (DataRecord &rec,bool initializing);
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
     
   virtual int pollChildren (std::vector<Result::Ref> &child_results,
                             Result::Ref &resref,

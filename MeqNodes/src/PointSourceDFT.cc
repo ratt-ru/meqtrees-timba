@@ -100,11 +100,11 @@ void PointSourceDFT::evalResult (std::vector<Vells> &res,
 
   // vn can be a scalar or an array (in time axis), so set its step to 0
   // if it is a scalar.
-  int stepnk = (vn.shape(Axis::TIME) > 1  ?  1 : 0);
-  int stepv  = (vs1f0.shape(Axis::TIME) > 1  ?  1 : 0);
-  Assert(vs1f0.shape(Axis::TIME) == vs2f0.shape(Axis::TIME)  &&
-	 vs1f0.shape(Axis::TIME) == vs1df.shape(Axis::TIME)  &&
-	 vs1f0.shape(Axis::TIME) == vs2df.shape(Axis::TIME) );
+  int stepnk = (vn.extent(Axis::TIME) > 1  ?  1 : 0);
+  int stepv  = (vs1f0.extent(Axis::TIME) > 1  ?  1 : 0);
+  Assert(vs1f0.extent(Axis::TIME) == vs2f0.extent(Axis::TIME)  &&
+	 vs1f0.extent(Axis::TIME) == vs1df.extent(Axis::TIME)  &&
+	 vs1f0.extent(Axis::TIME) == vs2df.extent(Axis::TIME) );
   for (int i=0; i<ntime; i++) {
     dcomplex val0 = *tmpr * conj(*tmpl) / *tmpnk;
     *resdata++ = val0;

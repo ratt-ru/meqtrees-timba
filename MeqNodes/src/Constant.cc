@@ -83,7 +83,7 @@ int Constant::getResult (Result::Ref& resref,
 }
 
 //##ModelId=400E530500B5
-void Constant::setStateImpl (DataRecord& rec, bool initializing)
+void Constant::setStateImpl (DMI::Record::Ref& rec, bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   // get integrated flag
@@ -95,8 +95,8 @@ void Constant::setStateImpl (DataRecord& rec, bool initializing)
       setActiveSymDeps();
   }
   // Get value
-  DataRecord::Hook hook(rec,FValue);
-  DataRecord::Hook hook2(rec,FVells);
+  DMI::Record::Hook hook(rec,FValue);
+  DMI::Record::Hook hook2(rec,FVells);
   if( hook.exists() ) 
   {
     TypeId type = hook.type();
@@ -109,12 +109,12 @@ void Constant::setStateImpl (DataRecord& rec, bool initializing)
   }
   else if( hook2.exists() )
   {
-    itsValue <<= new Vells(hook2.as_p<DataArray>());
+    itsValue <<= new Vells(hook2.as<DMI::NumArray>());
     hasShape = true;
   }
   else if( initializing ) // init state record with default value
   {
-    rec[FValue] <<= itsValue->getDataArray();
+    rec[FValue] <<= itsValue.copy();
     hasShape = false;
   }
 }

@@ -66,7 +66,7 @@ public:
 
 protected:
   //##ModelId=400E531402D1
-  virtual void setStateImpl (DataRecord &rec,bool initializing);
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
     
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,

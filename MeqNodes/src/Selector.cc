@@ -38,7 +38,7 @@ Selector::~Selector()
 {}
 
 //##ModelId=400E53550233
-void Selector::setStateImpl (DataRecord &rec,bool initializing)
+void Selector::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   rec[FIndex].get_vector(selection,initializing);

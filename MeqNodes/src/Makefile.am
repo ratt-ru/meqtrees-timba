@@ -11,7 +11,7 @@ LOCALSRCS = \
     Pow2.cc Pow3.cc Pow4.cc Pow5.cc Pow6.cc Pow7.cc Pow8.cc \
     Abs.cc Fabs.cc Norm.cc Arg.cc Real.cc Imag.cc MergeFlags.cc ReqSeq.cc  \
     Min.cc Max.cc Mean.cc Stripper.cc DataCollect.cc DataConcat.cc \
-    ParmTable.cc Rms.cc StdDev.cc
+    ParmTable.cc
 
 ## commented out for now:    
 ## ModRes.cc Resampler.cc ZeroFlagger.cc 
@@ -31,7 +31,7 @@ check_PROGRAMS =
 DEFREC_MAP = $(srcdir)/defrecs_$(PACKAGE).g
 
 # this rule shouldn't require any changes
-MAKEDEFREC = $(lofar_sharedir)/../CEP/CPA/PSS4/MEQ/src/makedefrecs.pl
+MAKEDEFREC = $(lofar_sharedir)/../TIMBA/MEQ/src/makedefrecs.pl
 $(DEFREC_MAP): $(DOCHDRS) $(MAKEDEFREC)
 	$(MAKEDEFREC) $@ $(addprefix $(srcdir)/,$(DOCHDRS))
 # ---------

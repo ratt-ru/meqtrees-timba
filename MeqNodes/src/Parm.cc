@@ -125,7 +125,6 @@ Funklet * Parm::findRelevantFunklet (Funklet::Ref &funkletref,const Domain &doma
       FailWhen(!deffunklet,"no funklets found and no default_funklet specified");
       cdebug(3)<<"no funklets found, using default value from state record"<<endl;
       funkletref <<= deffunklet;
-      funkletref.privatize(DMI::WRITE|DMI::DEEP);
     }
     funkletref().clearSolvable();
     funkletref().setDomain(domain);
@@ -266,7 +265,7 @@ void Parm::resetDependMasks ()
 }
 
 //##ModelId=400E5353033A
-void Parm::setStateImpl (DataRecord& rec, bool initializing)
+void Parm::setStateImpl (DMI::Record::Ref& rec, bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   // get parm name, or use node name by default
@@ -329,14 +328,14 @@ void Parm::setStateImpl (DataRecord& rec, bool initializing)
   }
 }
 
-int Parm::processCommands (const DataRecord &rec,Request::Ref &reqref)
+int Parm::processCommands (const DMI::Record &rec,Request::Ref &reqref)
 {
   // process parent class's commands
   int retcode = Node::processCommands(rec,reqref);
-  bool saved  = False;
+  bool saved  = false;
   
   // Is an Update.Values command specified? use it to update solve funklets
-  DataRecord::Hook hset(rec,FUpdateValues);
+  DMI::Record::Hook hset(rec,FUpdateValues);
   if( hset.exists() )
   {
     if( isSolvable() )
@@ -354,7 +353,7 @@ int Parm::processCommands (const DataRecord &rec,Request::Ref &reqref)
         if( auto_save_ )
         {
           save();
-          saved = True;
+          saved = true;
         }
         // result depends on everything
         retcode |= domain_depend_mask_|solve_depend_mask_;

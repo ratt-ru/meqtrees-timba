@@ -43,7 +43,7 @@ public:
   virtual ~Freq();
   
     //##ModelId=400E53050217
-  virtual void init (DataRecord::Ref::Xfer &initrec, Forest* frst);
+  virtual void init (DMI::Record::Ref::Xfer &initrec, Forest* frst);
   
     //##ModelId=400E5305021B
   virtual TypeId objectType() const
