@@ -63,15 +63,13 @@ if [ $notfound = 0  -a  "$pkgtag" != "" ]; then
     exit 1
   fi
 fi
-# Add it to the file to get correct build order.
-echo "$pkgname $pkgtag" >> allpkg.tmp
+
+# Checkout/update if needed.
 rtag=
 if [ "$pkgtag" != "" ]; then
   rtag="-r$pkgtag"
   tagstr=", cvstag $pkgtag"
 fi
-
-# Checkout/update if needed.
 if [ $notfound != 0  -a  $checkout = 1 ]; then
   if [ -d $pkgname ]; then
     echo "Update of package $pkgname$tagstr"
@@ -93,6 +91,8 @@ fi
 
 # Find all packages used to get correct build order.
 if [ -f $pkgname/configure.in ]; then
+  # Add (leaf) package to the file to get correct build order.
+  echo "$pkgname $pkgtag" >> allpkg.tmp
   # Do it recursively for packages used by this package.
   # Find them by looking in the configure.in file.
   pkgs=`grep "^[ \t]*lofar_\(PACKAGE\)\|\(INTERNAL\)[ \t]*(.*)" $pkgname/configure.in | sed -e 's/ //g'`
