@@ -20,9 +20,27 @@ if [ "$rootdir" = "" ]; then
   rootdir="/home/lofar/weekly/LOFAR";
 fi
 
-egrep '^lofar_' `find $rootdir -name configure.in` | \
+find $rootdir -name configure.in > tmp.fil
+egrep '^lofar_' `cat tmp.fil` | \
 sed -e 's%.*/LOFAR/%LOFAR/%' -e 's/,.*//' -e 's/).*//' -e 's%/configure.in:lofar_% %' | \
 egrep -v ' (INIT|DEBUG|QATOOLS|DOCXX|CHECK_PRETTY|CHECK_LONG_LONG)' | \
 sed -e 's% PACKAGE(% LOFAR/%' -e 's% INTERNAL(% LOFAR/%' -e 's% EXTERNAL(% %' -e s'%(.*%%' | \
 sort > finddep.uses
 awk '{ print $2, $1 }' finddep.uses | sort > finddep.used
+
+rm -f tmp.out
+for FIL in `cat tmp.fil`
+do
+  lfr=`echo $FIL | sed -e 's%.*/LOFAR/%%'`
+  first=`echo $lfr | sed -e 's%/.*%%'`
+  last=`echo $lfr | sed -e "s%$first/% %" -e 's%/configure.in%%'`
+  parts=`echo $last | sed -e 's%/% %g'`
+  for PART in $parts
+  do
+    echo "$first#$first/$PART" >> tmp.out
+    first="$first/$PART"
+  done
+done
+sort tmp.out | uniq | sed -e 's/#/ /' > finddep.pkg
+rm -r tmp.out tmp.fil
+
