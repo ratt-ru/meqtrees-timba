@@ -21,6 +21,9 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.6  2002/05/07 11:46:00  gvd
+//  The 'final' version supporting array subsets
+//
 //  Revision 1.5  2002/04/17 12:19:31  oms
 //  Added the "Intermediate" type category (for Array_xxx) and support for it
 //  in hooks.
@@ -47,16 +50,16 @@
 #ifndef DMI_DATAARRAY_H
 #define DMI_DATAARRAY_H
 
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 
 #pragma types #DataArray
 #pragma types %Array_bool %Array_int %Array_float %Array_double
 #pragma types %Array_fcomplex %Array_dcomplex
 
-#include "NestableContainer.h"
-#include "HIID.h"
-#include "SmartBlock.h"
+#include "DMI/NestableContainer.h"
+#include "DMI/HIID.h"
+#include "DMI/SmartBlock.h"
 
 #include <aips/Arrays/Array.h>
 
@@ -64,48 +67,80 @@
 class DataArray : public NestableContainer
 {
 public:
+  // Create the object without an array in it.
   explicit DataArray (int flags = DMI::WRITE);
 
+  // Create the object with an array of the given shape.
   DataArray (TypeId type, const IPosition& shape, int flags = DMI::WRITE,
 	     int shm_flags = 0);
 
+  // Copy (copy semantics).
   DataArray (const DataArray& other, int flags = 0, int depth = 0);
 
   ~DataArray();
 
+  // Assignment (copy semantics).
   DataArray& operator= (const DataArray& other);
 
-
+  // Return the object type (TpDataArray).
   virtual TypeId objectType() const;
 
+  // Reconstruct the DataArray object from a BlockSet.
   virtual int fromBlock (BlockSet& set);
 
+  // Add the DataArray object to the BlockSet.
   virtual int toBlock (BlockSet& set) const;
 
+  // Clone the object.
   virtual CountedRefTarget* clone (int flags = 0, int depth = 0) const;
 
+  // Privatize the object.
   virtual void privatize (int flags = 0, int depth = 0);
 
+  // Get the 
   virtual const void* get (const HIID& id, TypeId& tid, bool& can_write,
-			   TypeId check_tid = 0,int flags=0) const;
+			   TypeId check_tid = 0, int flags = 0) const;
 
+  // Insertion is not possible (throws exception).
   virtual void* insert (const HIID& id, TypeId tid, TypeId& real_tid);
 
+  // The size is the number of array elements.
   virtual int size() const;
 
+  // The actual type of the array (TpArray_float, etc.).
   virtual TypeId type() const;
   
-  string sdebug (int detail = 1, const string& prefix = "",
-		 const char* name = 0) const;
       
 private:
+  // The object is valid if it contains an array.
   bool valid() const 
     { return itsArray; }
-  void attach (const IPosition& shape);
-  void attach();
+
+  // Initialize internal shape and create array using the given shape.
+  void init (const IPosition& shape);
+
+  // Initialize shape and create array using internal shape.
+  void reinit();
+
+  // Create the actual Array object.
+  // It is created from the array data part in the SmartBlock.
   void makeArray();
+
+public:
+  // Parse a HIID describing a subset and fill start,end,incr.
+  // It fills in keepAxes telling if an axes should always be kept,
+  // even if it is degenerated (i.e. has length 1).
+  // It returns true if axes can be removed.
+  bool parseHIID (const HIID& id, IPosition& st, IPosition& end,
+		  IPosition& incr, IPosition& keepAxes) const;
+
+  // Clear the object (thus remove the Array).
   void clear();
+
+  // Clone the object.
   void cloneOther (const DataArray& other, int flags = 0, int depth = 0);
+
+  // Accessor functions to array type and size kept in the SmartBlock.
   int headerType() const
     { return static_cast<const int*>(*itsData.deref())[0]; }
   int headerSize() const
@@ -115,13 +150,15 @@ private:
   void setHeaderSize (int size)
     { static_cast<int*>(*itsData.dewr())[1] = size; }
 
-  IPosition  itsShape;
-  BlockRef   itsData;
-  TypeId     itsScaType;
-  int        itsElemSize;
-  int        itsDataOffset;
-  char*      itsArrayData;
-  void*      itsArray;
+
+  IPosition  itsShape;          // actual shape
+  BlockRef   itsData;           // SmartBlock holding the data
+  TypeId     itsScaType;        // scalar data type matching the array type
+  int        itsElemSize;       // #bytes of an array element
+  int        itsDataOffset;     // array data offset in SmartBlock
+  char*      itsArrayData;      // pointer to array data in SmartBlock
+  void*      itsArray;          // pointer to the Array object
+  void*      itsSubArray;       // pointer to Array object holding a subarray
 };
 
 

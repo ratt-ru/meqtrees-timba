@@ -21,12 +21,8 @@
 //  $Id$
 //
 //  $Log$
-//  Revision 1.4  2002/04/12 10:15:09  oms
-//  Added fcomplex and dcomplex types.
-//  Changes to NestableContainer::get():
-//   - merged autoprivatize and must_write args into a single flags arg
-//   - added NC_SCALAR and NC_POINTER flags that are passed to get()
-//  Got rid of isScalar() and isContiguous(), checking is now up to get().
+//  Revision 1.5  2002/05/07 11:46:00  gvd
+//  The 'final' version supporting array subsets
 //
 //  Revision 1.3  2002/04/08 14:27:07  oms
 //  Added isScalar(tid) to DataArray.
@@ -40,34 +36,43 @@
 //
 
 
-#include "DataArray.h"
+#include "DMI/DataArray.h"
 
-static NestableContainer::Register reg(TpDataArray,True);
+static NestableContainer::Register reg(TpDataArray,true);
 
 
 DataArray::DataArray (int flags)
 : NestableContainer(flags&DMI::WRITE != 0),
-  itsArray (0)
+  itsArray    (0),
+  itsSubArray (0)
 {}
 
 DataArray::DataArray (TypeId type, const IPosition& shape,
 		      int flags, int shm_flags)
 : NestableContainer(flags&DMI::WRITE != 0),
-  itsArray (0)
+  itsArray    (0),
+  itsSubArray (0)
 {
-  int tsz;
-  if (type == TpArray_float) {
-    tsz = sizeof(float);
+  if (type == TpArray_bool) {
+    itsElemSize = sizeof(bool);
+  } else if (type == TpArray_int) {
+    itsElemSize = sizeof(int);
+  } else if (type == TpArray_float) {
+    itsElemSize = sizeof(float);
   } else if (type == TpArray_double) {
-    tsz = sizeof(double);
+    itsElemSize = sizeof(double);
+  } else if (type == TpArray_fcomplex) {
+    itsElemSize = sizeof(fcomplex);
+  } else if (type == TpArray_dcomplex) {
+    itsElemSize = sizeof(dcomplex);
   } else {
-//    AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
+    AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
   }
   // Size of type + size + shape.
   int sz = sizeof(int) * (3+shape.nelements());
   // Align data on 8 bytes.
   itsDataOffset = (sz+7) / 8 * 8;
-  sz = itsDataOffset + shape.product() * tsz;
+  sz = itsDataOffset + shape.product() * itsElemSize;
   // Allocate enough space in the SmartBlock.
   /// Circumvent temporary SmartBlock problem
   ///  itsData.attach (new SmartBlock (sz, flags, shm_flags),
@@ -75,12 +80,13 @@ DataArray::DataArray (TypeId type, const IPosition& shape,
 		  DMI::WRITE|DMI::ANON|DMI::LOCK);
   setHeaderType (type);
   setHeaderSize (shape.product());
-  attach (shape);
+  init (shape);
 }
 
 DataArray::DataArray (const DataArray& other, int flags, int depth)
 : NestableContainer(flags&DMI::WRITE != 0),
-  itsArray (0)
+  itsArray    (0),
+  itsSubArray (0)
 {
   cloneOther (other, flags, depth);
 }
@@ -107,11 +113,11 @@ void DataArray::cloneOther (const DataArray& other, int flags, int)
     itsData.copy (other.itsData).privatize (flags|DMI::LOCK);
     itsData = other.itsData;
     itsDataOffset = other.itsDataOffset;
-    attach (other.itsShape);
+    init (other.itsShape);
   }
 }
 
-void DataArray::attach (const IPosition& shape)
+void DataArray::init (const IPosition& shape)
 {
   itsShape.resize (shape.nelements());
   itsShape = shape;
@@ -125,7 +131,7 @@ void DataArray::attach (const IPosition& shape)
   makeArray();
 }
 
-void DataArray::attach()
+void DataArray::reinit()
 {
   const void* dataPtr = itsData->data();
   Assert (dataPtr);
@@ -145,18 +151,38 @@ void DataArray::makeArray()
   itsArrayData = ptr + itsDataOffset;
   void* dataPtr = itsArrayData;
   int type = headerType();
-  if (type == TpArray_float) {
+  if (type == TpArray_bool) {
+    itsScaType = Tpbool;
+    itsArray = new Array_bool (itsShape,
+			       static_cast<bool*>(dataPtr), SHARE);
+    itsSubArray = new Array_bool();
+  } else if (type == TpArray_int) {
+    itsScaType = Tpint;
+    itsArray = new Array_int (itsShape,
+			      static_cast<int*>(dataPtr), SHARE);
+    itsSubArray = new Array_int();
+  } else if (type == TpArray_float) {
     itsScaType = Tpfloat;
-    itsElemSize = sizeof(float);
     itsArray = new Array_float (itsShape,
-			       static_cast<float*>(dataPtr), SHARE);
+				static_cast<float*>(dataPtr), SHARE);
+    itsSubArray = new Array_float();
   } else if (type == TpArray_double) {
     itsScaType = Tpdouble;
-    itsElemSize = sizeof(double);
     itsArray = new Array_double (itsShape,
-				static_cast<double*>(dataPtr), SHARE);
+				 static_cast<double*>(dataPtr), SHARE);
+    itsSubArray = new Array_double();
+  } else if (type == TpArray_fcomplex) {
+    itsScaType = Tpfcomplex;
+    itsArray = new Array_fcomplex (itsShape,
+				   static_cast<fcomplex*>(dataPtr), SHARE);
+    itsSubArray = new Array_fcomplex();
+  } else if (type == TpArray_dcomplex) {
+    itsScaType = Tpdcomplex;
+    itsArray = new Array_dcomplex (itsShape,
+				   static_cast<dcomplex*>(dataPtr), SHARE);
+    itsSubArray = new Array_dcomplex();
   } else {
-//    AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
+    AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
   }
 }
 
@@ -164,15 +190,30 @@ void DataArray::clear()
 {
   if (itsArray) {
     int type = headerType();
-    if (type == TpArray_float) {
+    if (type == TpArray_bool) {
+      delete static_cast<Array_bool*>(itsSubArray);
+      delete static_cast<Array_bool*>(itsArray);
+    } else if (type == TpArray_int) {
+      delete static_cast<Array_int*>(itsSubArray);
+      delete static_cast<Array_int*>(itsArray);
+    } else if (type == TpArray_float) {
+      delete static_cast<Array_float*>(itsSubArray);
       delete static_cast<Array_float*>(itsArray);
     } else if (type == TpArray_double) {
+      delete static_cast<Array_double*>(itsSubArray);
       delete static_cast<Array_double*>(itsArray);
+    } else if (type == TpArray_fcomplex) {
+      delete static_cast<Array_fcomplex*>(itsSubArray);
+      delete static_cast<Array_fcomplex*>(itsArray);
+    } else if (type == TpArray_dcomplex) {
+      delete static_cast<Array_dcomplex*>(itsSubArray);
+      delete static_cast<Array_dcomplex*>(itsArray);
     } else {
-//      AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
+      AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
     }
   }
-  itsArray = 0;
+  itsSubArray = 0;
+  itsArray    = 0;
   itsData.unlock().detach();
 }
 
@@ -199,10 +240,10 @@ int DataArray::fromBlock (BlockSet& set)
   set.pop (itsData);  
   int npopped = 1;
   size_t hsize = itsData->size();
-//  AssertStr (hsize >= 3*sizeof(int), "malformed header block");
+  AssertStr (hsize >= 3*sizeof(int), "malformed header block");
   itsData.privatize ((isWritable() ? DMI::WRITE : 0) | DMI::LOCK);
   // Create the Array object.
-  attach();
+  reinit();
   return npopped;
 }
 
@@ -238,47 +279,212 @@ void DataArray::privatize (int flags, int)
 // partial HIID -> type must be TpArray_float and create such array on heap
 //                 which gets deleted by clear()
 const void* DataArray::get (const HIID& id, TypeId& tid, bool& can_write,
-			    TypeId check_tid,
-			    int flags) const
+			    TypeId check_tid, int flags) const
 {
   can_write = isWritable();
-  tid = check_tid;
-  FailWhen(flags&DMI::WRITE && !can_write,"write access violation"); 
+  tid = headerType();
+  FailWhen (flags&DMI::WRITE && !can_write, "write access violation"); 
   int nid = id.length();
-// if flags&DMI::PRIVATIZE, you should privatize your data block
-  if (nid == int(itsShape.nelements())) {
-    FailWhen( check_tid && check_tid != itsScaType &&
-              (check_tid != TpNumeric || !TypeInfo::isNumeric(itsScaType)),
-	      "type mismatch: expecting "+check_tid.toString() + ", got " +
-	      itsScaType.toString());
-    tid = itsScaType;
+  int ndim = itsShape.nelements();
+  // If a full HIID is given, we might need to return a single element
+  // which is a scalar.
+  if (nid == ndim) {
+    bool single = true;
     IPosition which(itsShape.nelements());
     for (int i=0; i<nid; i++) {
       which(i) = id[i];
+      if (which(i) < 0) {
+	single = false;
+	break;
+      }
     }
-    // Use a global function in IPosition.h to get the element offset.
-    uInt offs = toOffsetInArray (which, itsShape);
-    return itsArrayData + itsElemSize*offs;
+    if (single) {
+      FailWhen (check_tid && check_tid != itsScaType &&
+		(check_tid != TpNumeric || !TypeInfo::isNumeric(itsScaType)),
+		"type mismatch: expecting "+check_tid.toString() + ", got " +
+		itsScaType.toString());
+      for (int i=0; i<nid; i++) {
+	AssertStr (which(i) < itsShape(i), "array position " << which
+		   << " outside shape " << itsShape);
+      }
+      // Return a single element in the array.
+      tid = itsScaType;
+      // Use a global function in IPosition.h to get the element offset.
+      uInt offs = toOffsetInArray (which, itsShape);
+      return itsArrayData + itsElemSize*offs;
+    }
   } else if (nid == 0) {
-    
+    // Return the full array.
     if (check_tid == itsScaType) {
-      // Fail if size>1 and !flags&DMI::NC_POINTER
+      AssertStr (flags&DMI::NC_POINTER,
+		 "array cannot be accessed as non-pointer scalar");
       return itsArrayData;
     }
-//    AssertStr (check_tid == headerType(), "array type mismatch");
+    AssertStr (check_tid == tid, "array type mismatch ("
+	       << check_tid.toString()
+	       << ' ' << tid.toString() << ')');
     return itsArray;
   }
-//  AssertMsg (0, "Partial DataArray's not supported yet");
+  // Return a subset of the array as an array.
+  AssertStr (!check_tid  ||  check_tid == tid,
+	     "array type mismatch (" << check_tid.toString()
+	     << ' ' << tid.toString() << ')');
+  IPosition st, end, incr, keepAxes;
+  bool removeAxes = parseHIID (id, st, end, incr, keepAxes);
+  int type = headerType();
+  if (type == TpArray_bool) {
+    Array_bool tmp =
+               (*static_cast<Array_bool*>(itsArray))(st, end, incr);
+    if (removeAxes) {
+      Array_bool tmp2 = tmp.nonDegenerate (keepAxes);
+      static_cast<Array_bool*>(itsSubArray)->reference (tmp2);
+    } else {
+      static_cast<Array_bool*>(itsSubArray)->reference (tmp);
+    }
+  } else if (type == TpArray_int) {
+    Array_int tmp =
+               (*static_cast<Array_int*>(itsArray))(st, end, incr);
+    if (removeAxes) {
+      Array_int tmp2 = tmp.nonDegenerate (keepAxes);
+      static_cast<Array_int*>(itsSubArray)->reference (tmp2);
+    } else {
+      static_cast<Array_int*>(itsSubArray)->reference (tmp);
+    }
+  } else if (type == TpArray_float) {
+    Array_float tmp =
+               (*static_cast<Array_float*>(itsArray))(st, end, incr);
+    if (removeAxes) {
+      Array_float tmp2 = tmp.nonDegenerate (keepAxes);
+      static_cast<Array_float*>(itsSubArray)->reference (tmp2);
+    } else {
+      static_cast<Array_float*>(itsSubArray)->reference (tmp);
+    }
+  } else if (type == TpArray_double) {
+    Array_double tmp =
+               (*static_cast<Array_double*>(itsArray))(st, end, incr);
+    if (removeAxes) {
+      Array_double tmp2 = tmp.nonDegenerate (keepAxes);
+      static_cast<Array_double*>(itsSubArray)->reference (tmp2);
+    } else {
+      static_cast<Array_double*>(itsSubArray)->reference (tmp);
+    }
+  } else if (type == TpArray_fcomplex) {
+    Array_fcomplex tmp =
+               (*static_cast<Array_fcomplex*>(itsArray))(st, end, incr);
+    if (removeAxes) {
+      Array_fcomplex tmp2 = tmp.nonDegenerate (keepAxes);
+      static_cast<Array_fcomplex*>(itsSubArray)->reference (tmp2);
+    } else {
+      static_cast<Array_fcomplex*>(itsSubArray)->reference (tmp);
+    }
+  } else if (type == TpArray_dcomplex) {
+    Array_dcomplex tmp =
+               (*static_cast<Array_dcomplex*>(itsArray))(st, end, incr);
+    if (removeAxes) {
+      Array_dcomplex tmp2 = tmp.nonDegenerate (keepAxes);
+      static_cast<Array_dcomplex*>(itsSubArray)->reference (tmp2);
+    } else {
+      static_cast<Array_dcomplex*>(itsSubArray)->reference (tmp);
+    }
+  } else {
+    AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
+  }
+  return itsSubArray;
+}
+
+bool DataArray::parseHIID (const HIID& id, IPosition& st, IPosition& end,
+			   IPosition& incr, IPosition& keepAxes) const
+{
+  int ndim = itsShape.nelements();
+  int nid = id.length();
+  // An axis can be removed if a single index is given for it.
+  IPosition singleAxes(ndim, 0);
+  // Initialize start, end, and stride to all elements.
+  st.resize(ndim);
+  end.resize(ndim);
+  incr.resize(ndim);
+  st = 0;
+  end = itsShape-1;
+  incr = 1;
+  int nraxes = 0;
+  int nr = 0;
+  // The user can specify ranges using the syntax st:end:incr
+  // where st, end, and incr are optional.
+  // If only an st value is given, the axis will later be removed
+  // Class HIID transforms a string to a HIID object, where each value and
+  // separator is an AtomicID (separator and wildcard have a negative value).
+  // When it finds two successive separators, it inserts AidEmpty, so e.g.
+  // the string ..::3 will get AidEmpty AidEmpty AidRange AidEmpty AidRange 3.
+  // AidEmpty is effectively the same as AidWildcard.
+  bool hadRange = true;
+  for (int i=0; i<nid; i++) {
+    if (id[i] == AidRange) {
+      AssertMsg (!hadRange, "HIID " << id.toString()
+		 << " does not have a value before range delimiter");
+      // 'Colon' found, thus next value for this axis.
+      // More than a single start value is given, thus keep the axis.
+      nr++;
+      singleAxes(nraxes) = 0;
+      hadRange = true;
+    } else {
+      if (!hadRange) {
+	nr = 0;
+	nraxes++;
+	AssertMsg (nraxes < ndim, "HIID " << id.toString()
+		   << " has more axes than the array (" << ndim << ')');
+      }
+      hadRange = false;
+      if (id[i] < 0) {
+	// Wildcard (or empty)is allowed.
+	AssertMsg (id[i] == AidWildcard  ||  id[i] == AidEmpty,
+		   "Invalid id " << id[i].toString()
+		   << " in HIID " << id.toString());
+	if (nr == 1) {
+	  end(nraxes) = itsShape(nraxes) - 1;
+	}
+      } else {
+	if (nr == 0) {
+	  st(nraxes) = id[i];
+	  end(nraxes) = id[i];
+	  singleAxes(nraxes) = 1;
+	  AssertMsg (st(nraxes) < itsShape(nraxes), "Start " << st(nraxes)
+		     << " should be < axis length " << itsShape(nraxes)
+		     << " in HIID " << id.toString());
+	} else if (nr == 1) {
+	  end(nraxes) = id[i];
+	  AssertMsg (end(nraxes) >= st(nraxes), "End " << end(nraxes)
+		     << " should be >= start " << st(nraxes)
+		     << " in HIID " << id.toString());
+	} else if (nr == 2) {
+	  incr(nraxes) = id[i];
+	  AssertMsg (incr(nraxes) > 0, "Stride " << incr(nraxes)
+		     << " should be > 0 in HIID " << id.toString());
+	} else {
+	  AssertMsg (0, "Only 3 values (start:end:incr) can be given per axis "
+		     "in HIID " << id.toString());
+	}
+      }
+    }
+  }
+  AssertMsg (!hadRange, "HIID " << id.toString()
+	     << " does not have a value after range delimiter");
+  // If all axes are not single, no axes have to be removed.
+  // Fill in the axis number of the ones to be kept.
+  bool removeAxes = false;
+  keepAxes.resize (ndim);
+  int nra = 0;
+  for (int i=0; i<ndim; i++) {
+    if (singleAxes(i) == 0) {
+      keepAxes(nra++) = i;
+    } else {
+      removeAxes = true;
+    }
+  }
+  keepAxes.resize (nra);
+  return removeAxes;
 }
 
 void* DataArray::insert (const HIID&, TypeId, TypeId&)
 {
-//  AssertMsg (0, "DataArray::insert is not possible");
-}
-
-
-string DataArray::sdebug (int detail, const string& prefix,
-			  const char* name) const
-{
-  return "";
+  AssertMsg (0, "DataArray::insert is not possible");
 }
