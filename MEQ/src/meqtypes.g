@@ -170,9 +170,9 @@ const meq.polc := function (coeff,axis=[],offset=[],scale=[],
 #-- meq.parm() -------------------------------------------------------------
 # Creates a Parm defrec
 
-const meq.parm := function (name,default=F,polc=F,groups="")
+const meq.parm := function (name,default=F,extra=[=],polc=F,groups="")
 {
-  rec := meq.node('MeqParm',name,groups=groups);
+  rec := meq.node('MeqParm',name,extra=extra,groups=groups);
   # set default if specified
   if( !is_boolean(default) )
   {
