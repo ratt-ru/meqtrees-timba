@@ -74,9 +74,9 @@ class CountedRefBase
       CountedRefBase & operator=(const CountedRefBase &right);
 
     //## Equality Operations (generated)
-      Bool operator==(const CountedRefBase &right) const;
+      bool operator==(const CountedRefBase &right) const;
 
-      Bool operator!=(const CountedRefBase &right) const;
+      bool operator!=(const CountedRefBase &right) const;
 
 
     //## Other Operations (specified)
@@ -340,14 +340,14 @@ inline CountedRefBase & CountedRefBase::operator=(const CountedRefBase &right)
 }
 
 
-inline Bool CountedRefBase::operator==(const CountedRefBase &right) const
+inline bool CountedRefBase::operator==(const CountedRefBase &right) const
 {
   //## begin CountedRefBase::operator==%3C0CDEE200FE_eq.body preserve=yes
   return valid() && target == right.target;
   //## end CountedRefBase::operator==%3C0CDEE200FE_eq.body
 }
 
-inline Bool CountedRefBase::operator!=(const CountedRefBase &right) const
+inline bool CountedRefBase::operator!=(const CountedRefBase &right) const
 {
   //## begin CountedRefBase::operator!=%3C0CDEE200FE_neq.body preserve=yes
   return !( (*this) == right );

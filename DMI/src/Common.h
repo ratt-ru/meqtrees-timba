@@ -47,7 +47,7 @@ using namespace std;
 
 //## begin Bool%3C14B6D4002F.postscript preserve=yes
 typedef bool Bool;
-const Bool False=0,True=1;
+const Bool False=false,True=true;
 //## end Bool%3C14B6D4002F.postscript
 
 //## begin module%3C14B70800A2.epilog preserve=yes

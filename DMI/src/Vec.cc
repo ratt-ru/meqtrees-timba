@@ -720,28 +720,34 @@ void * DataField::insert (int n, TypeId tid, TypeId &real_tid)
   if( !valid() )
   {
     FailWhen( n,Debug::ssprintf("can't insert at [%d]",n) );
-    FailWhen( !tid,"can't initialize without type" );
+    FailWhen( !tid || tid==TpObjRef || tid==TpObject || tid==TpNumeric,
+             "can't initialize without type" );
     init(real_tid=tid,-1); // init as scalar field
   }
   else // else extend field if inserting at end
   {
-    FailWhen( n!=size(),Debug::ssprintf("can't insert at [%d]",n) );
+    FailWhen( n != size(),Debug::ssprintf("can't insert at [%d]",n) );
     resize( size()+1 );
-    // if types mismatch, fail unless both are numeric
-    if( tid && tid != type() )
-      FailWhen( !isNumericType(tid) || !isNumericType(type()),
-          "can't insert datatype "+tid.toString());
     real_tid = type();
   }
-  if( mytype == Tpstring )
+  // now return pointer to datum
+  if( type() == Tpstring )
   {
+    FailWhen( tid && tid != type(),"can't insert "+tid.toString());
     strvec_modified = True;
     return &strvec[n];
   }
   else if( binary_type )
+  {
+    FailWhen( tid && tid!=type() && (!isNumericType(tid) || !isNumericType(type())),
+        "can't insert "+tid.toString());
     return n*typesize + (char*)headerData();
-  else
+  }
+  else // dynamic type
+  {
+    FailWhen(tid && tid!=type(),"can't insert "+tid.toString());
     return &resolveObject(n,True);
+  }
   //## end DataField::insert%3C7A19930250.body
 }
 

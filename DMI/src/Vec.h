@@ -103,7 +103,7 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       bool isValid (int n = 0);
 
       //## Operation: get%3C56B1DA0057
-      const void * get (int n = 0, TypeId check = 0, Bool must_write = False) const;
+      const void * get (int n = 0, TypeId check = 0, bool must_write = False) const;
 
       //## Operation: getWr%3BFCFA2902FB
       void* getWr (int n = 0, TypeId check = 0);
@@ -324,7 +324,7 @@ inline TypeId DataField::objectType () const
   //## end DataField::objectType%3C3EC27F0227.body
 }
 
-inline const void * DataField::get (int n, TypeId check, Bool must_write) const
+inline const void * DataField::get (int n, TypeId check, bool must_write) const
 {
   //## begin DataField::get%3C56B1DA0057.body preserve=yes
   TypeId dum1; bool dum2;
