@@ -1,7 +1,7 @@
 gnu3.compiler.conf: CXX=/usr/bin/g++
 gnu3.compiler.aipspp.var: --with-aipspp=/data/aips++/weekly/linux_gnu
 
-gnu34.compiler.conf: CXX=/home/loose/linux/usr/local/gcc-3.4.1/bin/g++
+gnu34.compiler.conf: CXX=/home/loose/linux/usr/local/gcc-3.4.2/bin/g++ --with-ldflags="-Wl,--rpath,/home/loose/linux/usr/local/gcc-3.4.2/lib"
 gnu34.compiler.aipspp.var: --with-aipspp=/data/aips++/weekly/linux_gnu
 
 icc.compiler.conf: CXX=/usr/local/compiler80/bin/icc --with-cppflags="-cxxlib-gcc" --with-ldflags="-cxxlib-gcc -Xlinker -rpath -Xlinker /usr/local/compiler80/lib"
