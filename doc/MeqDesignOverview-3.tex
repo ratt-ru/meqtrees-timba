@@ -656,9 +656,9 @@
   The \qq{resample\_child\_index} enables the ``Use Child'' strategy, if set
   to an ordinal child number ($\ge 1$ in Glish, $\ge 0$ in C++ -- note the \qq{index} suffix and remember automatic
   0-1-base conversion discussed in section \ref{sec:01base}) or a child label
-  (see \ref{sec:childlabels}). The specified child becomes the resolution
+  (see \ref{sec:children}). The specified child becomes the resolution
   driver. If the child returns a resolution-free result (see
-  \ref{sec:missingcells}), then a fail is reported.
+  \ref{sec:result-empty-cells}), then a fail is reported.
   
 
   \begin{description}
@@ -690,7 +690,7 @@
   nodes which enable auto-resampling are indicated by an "UPS" or "INT" label
   in the node box. 
 
-  \item A few utility nodes may be used to change resolution mid-tree.
+  A few utility nodes may be used to change resolution mid-tree.
   Initially, two such nodes will be provided:
 
     \begin{description}
@@ -714,18 +714,16 @@
   results of the child. At the moment, the \qq{ModRes} node is a suitable
   proxy. 
 
-  \item Data access nodes (\qq{Sink} and \qq{Spigot}) are coupled. For each
+   Data access nodes (\qq{Sink} and \qq{Spigot}) are coupled. For each
   snippet of data, the \qq{Sink} will issue a \Request\ with \Cells\
   corresponding to the data layout. The corresponding \qq{Spigot} will then be
   able to return a \Result\ with the same cells.
   
-  \item For the time being, we'll only support integral resolutions -- i.e.,
+   For the time being, we'll only support integral resolutions -- i.e.,
   the full resolution cells must be tilings of the reduced resolution cells.
   This keeps things simple, and avoids interpolation errors. In the future, we
   may support arbitrary regridding.
 
-  \end{enumerate}
-  
   It is, of course, up to the tree designer to ensure that resolution is
   changed up and down appropriately within the tree, by strategically
   positioning \qq{Resampler} and \qq{ModRes} nodes, and enabling
