@@ -17,6 +17,8 @@ dmirepr = dmi_repr.dmi_repr();
 _def_font = None;
 _def_bold_font = None;
 
+_MessageCategories = {};
+
 def defaultFont ():
   global _def_font;
   if _def_font is None:
@@ -37,27 +39,61 @@ class HierBrowser (object):
   MaxExpSeq      = 20;
   # max number of dictionary items to show in expanded view
   MaxExpDict     = 100;
+  
+  class BrowserItem (QListViewItem):
+    def __init__(self,*args):
+#      print args;
+      QListViewItem.__init__(self,*args);
+
+    def _subitem (self,*args):
+      return HierBrowser.subitem(self,*args);
+      
+    # caches content in an item: marks as expandable, ensures content is a dict
+    def cache_content(self,content,viewable=False):
+      self.setExpandable(True);
+      if isinstance(content,(dict,list,tuple,array_class)):
+        self._content = content;
+      elif isinstance(content,message):
+        self._content = {};
+        for k in filter(lambda x:not x.startswith('_'),dir(content)):
+          attr = getattr(content,k);
+          if not callable(attr):
+            self._content[k] = attr;
+      else:
+        self._content = {"":content};
+      self._viewable = viewable;
+      if viewable:
+        self.setPixmap(1,pixmaps.magnify.pm());
+        
+    # expands item content into subitems
+    def expand_self (self):
+      HierBrowser.expand_content(self,self._content);
 
   # init for HierBrowser
   def __init__(self,parent,name,name1=''):
     self._lv = QListView(parent);
     self._lv.addColumn(name1);
+    self._lv.addColumn('');
     self._lv.addColumn(name);
     self._lv.setRootIsDecorated(True);
     self._lv.setSorting(-1);
     self._lv.setResizeMode(QListView.NoColumn);
-    self._lv.setColumnWidthMode(0,QListView.Maximum);
-    self._lv.setColumnWidthMode(2,QListView.Maximum);
+#    for col in (0,1,2):
+#      self._lv.setColumnWidthMode(col,QListView.Maximum);
     self._lv.setFocus();
     self._lv.connect(self._lv,SIGNAL('expanded(QListViewItem*)'),
                      self._expand_item_content);
     self.items = [];
+
+    # expands item content into subitems
+    def expand_self (self):
+      HierBrowser.expand_content(self,self._content);
     
-  def subitem (parent,*args):
+  def subitem (parent,key,value):
     if hasattr(parent,'_content_list') and parent._content_list:
-      return HierBrowser.BrowserItem(parent,parent._content_list[-1],*args);
+      return HierBrowser.BrowserItem(parent,parent._content_list[-1],str(key),'',str(value));
     else:
-      return HierBrowser.BrowserItem(parent,*args);
+      return HierBrowser.BrowserItem(parent,str(key),'',str(value));
   subitem = staticmethod(subitem);
     
   # helper static method to expand content into BrowserItems record 
@@ -106,32 +142,6 @@ class HierBrowser (object):
       item._content_list.append(i0);
   expand_content = staticmethod(expand_content);
   
-  class BrowserItem (QListViewItem):
-    def __init__(self,*args):
-#      print args;
-      QListViewItem.__init__(self,*args);
-
-    def _subitem (self,*args):
-      return HierBrowser.subitem(self,*args);
-      
-    # caches content in an item: marks as expandable, ensures content is a dict
-    def cache_content(self,content):
-      self.setExpandable(True);
-      if isinstance(content,(dict,list,tuple,array_class)):
-        self._content = content;
-      elif isinstance(content,message):
-        self._content = {};
-        for k in filter(lambda x:not x.startswith('_'),dir(content)):
-          attr = getattr(content,k);
-          if not callable(attr):
-            self._content[k] = attr;
-      else:
-        self._content = {"":content};
-        
-    # expands item content into subitems
-    def expand_self (self):
-      HierBrowser.expand_content(self,self._content);
-  
   def wlistview (self):
     return self._lv;
   def wtop (self):
@@ -142,12 +152,11 @@ class HierBrowser (object):
       if hasattr(self._lv,attr):
         delattr(self._lv,attr);
   # inserts a new item into the browser
-  def new_item (self,*args):
+  def new_item (self,key,value):
     if self.items:
-      item = self.BrowserItem(self._lv,self.items[-1],*map(str,args));
+      item = self.BrowserItem(self._lv,self.items[-1],str(key),'',str(value));
     else:
-      item = self.BrowserItem(self._lv,*map(str,args));
-    item._top_level = True;
+      item = self.BrowserItem(self._lv,str(key),'',str(value));
     self.items.append(item);
     self._lv.ensureItemVisible(item);
     return item;
@@ -187,7 +196,7 @@ class Logger(HierBrowser):
     self._controlgrid_lo.addStretch();
     self.enabled = enable;
     if use_enable:
-      self._enable = QCheckBox("logging enabled",self._controlgrid);
+      self._enable = QCheckBox("log",self._controlgrid);
       self._enable.setChecked(enable);
       self._enable_dum = QVBox(self._controlgrid);
       self.wtop().connect(self._enable,SIGNAL('toggled(bool)'),self._toggle_enable);
@@ -246,11 +255,13 @@ class Logger(HierBrowser):
     item = self.new_item(label,msg);
     item._category = category;
     if content is not None:
-      item.cache_content(content);
+      viewable = isinstance(content,dict) and ( len(content)>1 or 
+                 (len(content)==1 and content.keys()[0] not in MessageCategories) );
+      item.cache_content(content,viewable=viewable);
     # add pixmap according to category
     pm = self._LogPixmaps.get(category,None);
     if pm is not None:
-      item.setPixmap(1,pm.pm());
+      item.setPixmap(2,pm.pm());
     # apply a log limit
     self.apply_limit(self._limit);
     
@@ -409,8 +420,17 @@ class app_proxy_gui(verbosity,QMainWindow):
     splitter.setResizeMode(gw.wtop(),QSplitter.Stretch);
     self.gw_visible = {};
     gw.wtop().hide();
-    splitter.setSizes([200,600]);
+    gw.add_tool_button(Qt.TopLeft,pixmaps.remove.pm(),leftside=True,
+      tooltip="hide the value browser panel",click=self.hide_gridded_workspace);
     
+    self.show_workspace_button = QToolButton(maintab);
+    self.show_workspace_button.setPixmap(pixmaps.view_right.pm());
+    self.show_workspace_button.setAutoRaise(True);
+    maintab.setCornerWidget(self.show_workspace_button,Qt.BottomRight);
+    QWidget.connect(self.show_workspace_button,SIGNAL("clicked()"),self.show_gridded_workspace);
+    QToolTip.add(self.show_workspace_button,"show the value browser panel");
+    
+    splitter.setSizes([200,600]);
 #    self.maintab.setCornerWidget(self.pause_button,Qt.TopRight);
     
   def _add_ce_handler (self,event,handler):
@@ -426,9 +446,15 @@ class app_proxy_gui(verbosity,QMainWindow):
     page = self.maintab.currentPage();
     self.gw_visible[page] = show;
     # hide or show the workspace
-    if show: self.gw.wtop().show();
-#      self.splitter.setSizes([100,300]);
-    else:    self.gw.wtop().hide();
+    if show: 
+      self.gw.wtop().show();
+      self.show_workspace_button.hide();
+    else:    
+      self.gw.wtop().hide();
+      self.show_workspace_button.show();
+    
+  def hide_gridded_workspace (self):
+    return self.show_gridded_workspace(False);
     
 ##### slot: called when change-of-page occurs
   def _change_current_page (self,page):
@@ -437,8 +463,10 @@ class app_proxy_gui(verbosity,QMainWindow):
     # show or hide the workspace
     if self.gw_visible.get(page,False):
       self.gw.wtop().show();
+      self.show_workspace_button.hide();
     else:
       self.gw.wtop().hide();
+      self.show_workspace_button.show();
       
 ##### slot: called when one of the logger items is clicked
   def _process_logger_item_click (self,button,item,point,col):
@@ -448,7 +476,7 @@ class app_proxy_gui(verbosity,QMainWindow):
       return;
     # return if item is not a top-level item, or has no content
     try: 
-      if not item._top_level: return;
+      if not item._viewable: return;
       content = item._content;
     except: return;
     # add item to workspace
@@ -457,8 +485,8 @@ class app_proxy_gui(verbosity,QMainWindow):
     if cell.is_empty():
       rb = RecordBrowser(cell.wtop(),content);
       rb.wtop()._rb = rb;
-      cell.set_content(rb.wtop(),item.text(1),cell_id,
-          subname=item.text(0),refresh=False,disable=False);
+      cell.set_content(rb.wtop(),item.text(2)[:50],cell_id,
+          subname=item.text(0)[:50],refresh=False,disable=False);
       cell.wtop().connect(rb.wtop(),PYSIGNAL("refresh()"),self._refresh_state_cell);
       self.gw.wtop().updateGeometry();
     self.show_gridded_workspace();
@@ -489,7 +517,7 @@ class app_proxy_gui(verbosity,QMainWindow):
   #    print value;
       msgtext = None; 
       if isinstance(value,record):
-        for (field,cat) in self._MessageFields:
+        for (field,cat) in MessageCategories.items():
           if field in value:
             self.msglog.add(value[field],value,cat);
             break;
@@ -572,10 +600,6 @@ class app_proxy_gui(verbosity,QMainWindow):
   def _reset_maintab_label (self,tabwin):
     self.maintab.changeTab(tabwin,tabwin._default_iconset,tabwin._default_label);
   
-  _MessageFields = (('error',   Logger.Error),
-                    ('message', Logger.Normal),
-                    ('text',    Logger.Normal));
-    
   def log_message(self,msg,rec=None,category=Logger.Normal):
     self.msglog.add(msg,rec,category);
 
@@ -590,6 +614,10 @@ class app_proxy_gui(verbosity,QMainWindow):
         
   await_gui_exit = staticmethod(await_gui_exit);  
 
+MessageCategories = record( error   = Logger.Error,
+                            message = Logger.Normal,
+                            text    = Logger.Normal );
+    
 #--------------------------------------------------------------
 #--- MainAppClass
 #--------------------------------------------------------------
@@ -622,7 +650,7 @@ class MainAppClass (QApplication):
       
   def postCallable(self,func,*args,**kwargs):
     self.postEvent(self,QCustomEvent(self.EvType_Callable,(func,args,kwargs)));
-    
+
 def mainapp ():
   """Creates if needed, and returns the MainApp object."""
   global MainApp;

@@ -274,31 +274,71 @@ class GriddedPage (object):
       raise RuntimeError,"failed to find a suitable layout";
   
 class GriddedWorkspace (object):
-  def __init__ (self,parent,max_nx=4,max_ny=4):
+  def __init__ (self,parent,max_nx=4,max_ny=4,use_hide=None):
     self._maintab = QTabWidget(parent);
     self._maintab.setTabPosition(QTabWidget.Top);
     
     self.max_nx = max_nx;
     self.max_ny = max_ny;
     self.add_page();
+    # set of parents for corners of the maintab (added on demand)
+    self._tb_corners = {};
     #------ align button
-    align_button = QToolButton(self._maintab);
-    align_button.setPixmap(pixmaps.matrix.pm());
-    align_button.setAutoRaise(True);
-    self._maintab.setCornerWidget(align_button,Qt.TopRight);
-    QWidget.connect(align_button,SIGNAL("clicked()"),self._align_grid);
-    QToolTip.add(align_button,"align child panels");
+    self.add_tool_button(Qt.TopRight,pixmaps.view_split.pm(),
+        tooltip="align child panels",
+        click=self._align_grid);
+    #------ add/remove tab        
+    self.add_tool_button(Qt.TopLeft,pixmaps.tab_new.pm(),
+        tooltip="open new browser page",
+        click=self.add_page);
+    self.add_tool_button(Qt.TopLeft,pixmaps.tab_remove.pm(),
+        tooltip="remove this browser page",
+        click=self.remove_current_page);
+      
+  def add_tool_button (self,corner,pixmap,tooltip=None,click=None,leftside=False):
+    # create corner box on demand
+    layout = self._tb_corners.get(corner,None);
+    if not layout:
+      parent = QWidget(self._maintab);
+      self._maintab.setCornerWidget(parent,corner);
+      if corner == Qt.TopLeft: # add extra space
+        lo1 = QHBoxLayout(parent);
+        parent = QWidget(parent);
+        lo1.addWidget(parent);
+        lo1.addSpacing(5);
+      self._tb_corners[corner] = layout = QHBoxLayout(parent);
+    # add button
+    button = QToolButton(layout.mainWidget());
+    if leftside:
+      layout.insertWidget(0,button);
+    else:
+      layout.addWidget(button);
+    button.setPixmap(pixmap);
+    button.setAutoRaise(True);
+    if tooltip:
+      QToolTip.add(button,tooltip);
+    if callable(click):
+      QWidget.connect(button,SIGNAL("clicked()"),click);
+    return button;
     
-  def wtop(self):
+  def wtop (self):
     return self._maintab;
     
-  def add_page(self,name=None):
+  def add_page (self,name=None):
     page = GriddedPage(self._maintab,max_nx=self.max_nx,max_ny=self.max_ny);
     page.wtop()._page = page;
     if name is None:
       name = 'Page '+str(self._maintab.count()+1);
     self._maintab.addTab(page.wtop(),name);
+    self._maintab.setCurrentPage(self._maintab.count()-1);
     return page;
+    
+  def remove_current_page (self):
+    page = self._maintab.currentPage()
+    page._page.clear();
+    # first page is cleared, never removed
+    if self._maintab.currentPageIndex():
+      self._maintab.removePage(page);
     
   def current_page (self):
     return self._maintab.currentPage()._page;
@@ -307,9 +347,13 @@ class GriddedWorkspace (object):
     self.current_page().align_layout();
     
   def clear (self):
+    dbg.dprint(5,'GriddedWorkspace: clearing');
     self._maintab.page(0)._page.clear();
     for p in range(1,self._maintab.count()):
-      self._maintab.removePage(self._maintab.page(p));
+      page = self._maintab.page(p);
+      page._page.clear();
+      if p:
+        self._maintab.removePage(page);
     
   def reserve_or_find_cell(self,cell_id):
     cell = self.current_page().reserve_or_find_cell(cell_id);
