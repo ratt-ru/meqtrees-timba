@@ -25,7 +25,8 @@
 #
 # Macro to check for BLITZ installation
 #
-# lofar_BLITZ([DEFAULT-PREFIX])
+# lofar_BLITZ(option, [DEFAULT-PREFIX])
+#     option 0 means that Blitz++ is optional, otherwise mandatory.
 #
 # e.g. lofar_BLITZ(["/usr/local/blitz"])
 # -------------------------
@@ -33,40 +34,74 @@
 AC_DEFUN(lofar_BLITZ,dnl
 [dnl
 AC_PREREQ(2.13)dnl
-ifelse($1, [], define(DEFAULT_BLITZ_PREFIX,[/usr/local/blitz]), define(DEFAULT_BLITZ_PREFIX,$1))
+ifelse($1, [], [lfr_option=0], [lfr_option=$1])
+ifelse($2, [], define(DEFAULT_BLITZ_PREFIX,[/usr/local]), define(DEFAULT_BLITZ_PREFIX,$2))
 AC_ARG_WITH(blitz,
 	[  --with-blitz[=PFX]     prefix where Blitz is installed (default=]DEFAULT_BLITZ_PREFIX[)],
 	[with_blitz=$withval],
-	[with_blitz="no"])
+	[with_blitz=""])
+AC_ARG_WITH(blitz-libdir,
+	[  --with-blitz-libdir=PFX   prefix where Blitz library is installed],
+	[with_blitzdir=$withval],
+	[with_blitzdir=""])
 [
-if test "$with_blitz" = "no"; then
-  enable_blitz=no
-else
-  if test "$with_blitz" = "yes"; then
-    blitz_prefix=]DEFAULT_BLITZ_PREFIX
-[
-  else
-    blitz_prefix=$withval
-  fi
+enable_blitz=no
+if test "$lfr_option" = "1"; then
   enable_blitz=yes
+fi
+if test "$with_blitz" != "no"; then
+  if test "$with_blitz" = ""; then
+    blitz_prefix=]DEFAULT_BLITZ_PREFIX[
+    if test "$with_blitzdir" != ""; then
+      enable_blitz=yes
+    fi
+  else
+    if test "$with_blitz" = "yes"; then
+      blitz_prefix=]DEFAULT_BLITZ_PREFIX[
+    else
+      blitz_prefix=$withval
+    fi
+    enable_blitz=yes
+  fi
 ]
 ##
-## Check in normal location and suggested location
+## Look for header file in suggested location or in its include subdir
 ##
-AC_CHECK_FILE([$blitz_prefix/blitz/array.h],
-			[lofar_cv_header_blitz=yes],
-			[lofar_cv_header_blitz=no])dnl
+  AC_CHECK_FILE([$blitz_prefix/blitz/array.h],
+			[lfr_header_blitz=$blitz_prefix/blitz],
+			[lfr_header_blitz=no])dnl
 [
-  if test $lofar_cv_header_blitz = yes ; then
+  if test "$lfr_header_blitz" != "no" ; then
+    if test "$with_blitzdir" = ""; then
+      with_blitzdir=$blitz_prefix/blitz/lib
+    fi
+  else
+]
+    AC_CHECK_FILE([$blitz_prefix/include/blitz/array.h],
+			[lfr_header_blitz=$blitz_prefix/include],
+			[lfr_lib_blitz=no])dnl
+[
+    if test "$lfr_header_blitz" != "no"; then
+      if test "$with_blitzdir" = ""; then
+        with_blitzdir=$blitz_prefix/lib
+      fi
+    fi
+  fi
+  if test "$with_blitzdir" != ""; then
+]
+    AC_CHECK_FILE([$with_blitzdir/libblitz.a],
+			[lfr_lib_blitz=$with_blitzdir],
+			[lfr_lib_blitz=no])dnl
+[
+  fi
 
-    BLITZ_PATH="$blitz_prefix"
-
-    BLITZ_CPPFLAGS="-I$BLITZ_PATH"
+  if test "$lfr_header_blitz" != "no"  -a  "$lfr_lib_blitz" != "no" ; then
+    BLITZ_CPPFLAGS="-I$lfr_header_blitz"
     BLITZ_CXXFLAGS=
     if test "$lofar_compiler" = "gnu"; then
       BLITZ_CXXFLAGS="-Wno-unused -ftemplate-depth-30"
     fi
-    BLITZ_LDFLAGS="-L$BLITZ_PATH/lib"
+    BLITZ_LDFLAGS="-L$lfr_lib_blitz"
     BLITZ_LIBS="-lblitz -lm"
 
     CPPFLAGS="$CPPFLAGS $BLITZ_CPPFLAGS"
@@ -75,16 +110,19 @@ AC_CHECK_FILE([$blitz_prefix/blitz/array.h],
     LIBS="$LIBS $BLITZ_LIBS"
 ]
 dnl
-AC_SUBST(CPPFLAGS)dnl
-AC_SUBST(CXXFLAGS)dnl
-AC_SUBST(LDFLAGS)dnl
-AC_SUBST(LIBS)dnl
+    AC_SUBST(CPPFLAGS)dnl
+    AC_SUBST(CXXFLAGS)dnl
+    AC_SUBST(LDFLAGS)dnl
+    AC_SUBST(LIBS)dnl
 dnl
-AC_DEFINE(HAVE_BLITZ, 1, [Define if Blitz is installed])dnl
+    AC_DEFINE(HAVE_BLITZ, 1, [Define if Blitz is installed])dnl
 [
-  else]
-AC_MSG_ERROR([Could not find Blitz in $blitz_prefix])
+  else
+    if test "$enable_blitz" = "yes" ; then
+]
+      AC_MSG_ERROR([Could not find Blitz headers or library in $blitz_prefix])
 [
+    fi
     enable_blitz=no
   fi
 fi]
