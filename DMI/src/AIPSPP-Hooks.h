@@ -13,8 +13,6 @@
 
 class casa::String;
 
-using LOFAR::copyArray;
-
 namespace AIPSPP_Hooks 
 {
   using namespace DebugDMI;
@@ -68,17 +66,19 @@ casa::Array<T> DMI::Container::Hook::as_AipsArray (Type2Type<T>) const
     casa::Array<T> out;
     switch( TypeInfo::rankOfArray(target.obj_tid) )
     {
-      case 1: copyArray(out,*static_cast<const blitz::Array<T,1>*>(target.ptr)); break;
-      case 2: copyArray(out,*static_cast<const blitz::Array<T,2>*>(target.ptr)); break;
-      case 3: copyArray(out,*static_cast<const blitz::Array<T,3>*>(target.ptr)); break;
-      case 4: copyArray(out,*static_cast<const blitz::Array<T,4>*>(target.ptr)); break;
-      case 5: copyArray(out,*static_cast<const blitz::Array<T,5>*>(target.ptr)); break;
-      case 6: copyArray(out,*static_cast<const blitz::Array<T,6>*>(target.ptr)); break;
-      case 7: copyArray(out,*static_cast<const blitz::Array<T,7>*>(target.ptr)); break;
-      case 8: copyArray(out,*static_cast<const blitz::Array<T,8>*>(target.ptr)); break;
+      case 1: B2A::copyArray(out,*static_cast<const blitz::Array<T,1>*>(target.ptr)); break;
+      case 2: B2A::copyArray(out,*static_cast<const blitz::Array<T,2>*>(target.ptr)); break;
+      case 3: B2A::copyArray(out,*static_cast<const blitz::Array<T,3>*>(target.ptr)); break;
+      case 4: B2A::copyArray(out,*static_cast<const blitz::Array<T,4>*>(target.ptr)); break;
+      case 5: B2A::copyArray(out,*static_cast<const blitz::Array<T,5>*>(target.ptr)); break;
+      case 6: B2A::copyArray(out,*static_cast<const blitz::Array<T,6>*>(target.ptr)); break;
+      case 7: B2A::copyArray(out,*static_cast<const blitz::Array<T,7>*>(target.ptr)); break;
+      case 8: B2A::copyArray(out,*static_cast<const blitz::Array<T,8>*>(target.ptr)); break;
+      case 9: B2A::copyArray(out,*static_cast<const blitz::Array<T,9>*>(target.ptr)); break;
+      case 10:B2A::copyArray(out,*static_cast<const blitz::Array<T,10>*>(target.ptr)); break;
       default: 
         ThrowExc(ConvError,"can't convert "+target.obj_tid.toString()+
-                    " to AIPS++ Array<"+typeIdOf(T).toString()+">");
+                    " to AIPS++ Array<"+typeIdOf(T).toString()+">: rank too high");
     }
     return out;
   }

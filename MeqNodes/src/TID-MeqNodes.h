@@ -10,8 +10,8 @@
 
 #ifndef _defined_id_TpMeqAbs
 #define _defined_id_TpMeqAbs 1
-const DMI::TypeId TpMeqAbs(-1206);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Abs.h:29
-const int TpMeqAbs_int = -1206;
+const DMI::TypeId TpMeqAbs(-1460);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Abs.h:29
+const int TpMeqAbs_int = -1460;
 namespace Meq { class Abs; };
             namespace DMI {
               template<>
@@ -29,8 +29,8 @@ namespace Meq { class Abs; };
 #endif
 #ifndef _defined_id_TpMeqAcos
 #define _defined_id_TpMeqAcos 1
-const DMI::TypeId TpMeqAcos(-1178);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Acos.h:29
-const int TpMeqAcos_int = -1178;
+const DMI::TypeId TpMeqAcos(-1411);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Acos.h:29
+const int TpMeqAcos_int = -1411;
 namespace Meq { class Acos; };
             namespace DMI {
               template<>
@@ -48,8 +48,8 @@ namespace Meq { class Acos; };
 #endif
 #ifndef _defined_id_TpMeqAdd
 #define _defined_id_TpMeqAdd 1
-const DMI::TypeId TpMeqAdd(-1215);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Add.h:30
-const int TpMeqAdd_int = -1215;
+const DMI::TypeId TpMeqAdd(-1418);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Add.h:30
+const int TpMeqAdd_int = -1418;
 namespace Meq { class Add; };
             namespace DMI {
               template<>
@@ -67,8 +67,8 @@ namespace Meq { class Add; };
 #endif
 #ifndef _defined_id_TpMeqArg
 #define _defined_id_TpMeqArg 1
-const DMI::TypeId TpMeqArg(-1209);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Arg.h:29
-const int TpMeqArg_int = -1209;
+const DMI::TypeId TpMeqArg(-1457);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Arg.h:29
+const int TpMeqArg_int = -1457;
 namespace Meq { class Arg; };
             namespace DMI {
               template<>
@@ -86,8 +86,8 @@ namespace Meq { class Arg; };
 #endif
 #ifndef _defined_id_TpMeqAsin
 #define _defined_id_TpMeqAsin 1
-const DMI::TypeId TpMeqAsin(-1236);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Asin.h:29
-const int TpMeqAsin_int = -1236;
+const DMI::TypeId TpMeqAsin(-1399);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Asin.h:29
+const int TpMeqAsin_int = -1399;
 namespace Meq { class Asin; };
             namespace DMI {
               template<>
@@ -105,8 +105,8 @@ namespace Meq { class Asin; };
 #endif
 #ifndef _defined_id_TpMeqAtan
 #define _defined_id_TpMeqAtan 1
-const DMI::TypeId TpMeqAtan(-1212);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Atan.h:29
-const int TpMeqAtan_int = -1212;
+const DMI::TypeId TpMeqAtan(-1428);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Atan.h:29
+const int TpMeqAtan_int = -1428;
 namespace Meq { class Atan; };
             namespace DMI {
               template<>
@@ -124,8 +124,8 @@ namespace Meq { class Atan; };
 #endif
 #ifndef _defined_id_TpMeqCeil
 #define _defined_id_TpMeqCeil 1
-const DMI::TypeId TpMeqCeil(-1239);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Ceil.h:30
-const int TpMeqCeil_int = -1239;
+const DMI::TypeId TpMeqCeil(-1437);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Ceil.h:30
+const int TpMeqCeil_int = -1437;
 namespace Meq { class Ceil; };
             namespace DMI {
               template<>
@@ -143,8 +143,8 @@ namespace Meq { class Ceil; };
 #endif
 #ifndef _defined_id_TpMeqComposer
 #define _defined_id_TpMeqComposer 1
-const DMI::TypeId TpMeqComposer(-1230);           // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Composer.h:30
-const int TpMeqComposer_int = -1230;
+const DMI::TypeId TpMeqComposer(-1442);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Composer.h:30
+const int TpMeqComposer_int = -1442;
 namespace Meq { class Composer; };
             namespace DMI {
               template<>
@@ -162,8 +162,8 @@ namespace Meq { class Composer; };
 #endif
 #ifndef _defined_id_TpMeqCondeq
 #define _defined_id_TpMeqCondeq 1
-const DMI::TypeId TpMeqCondeq(-1191);             // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Condeq.h:31
-const int TpMeqCondeq_int = -1191;
+const DMI::TypeId TpMeqCondeq(-1443);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:31
+const int TpMeqCondeq_int = -1443;
 namespace Meq { class Condeq; };
             namespace DMI {
               template<>
@@ -181,8 +181,8 @@ namespace Meq { class Condeq; };
 #endif
 #ifndef _defined_id_TpMeqConj
 #define _defined_id_TpMeqConj 1
-const DMI::TypeId TpMeqConj(-1179);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Conj.h:30
-const int TpMeqConj_int = -1179;
+const DMI::TypeId TpMeqConj(-1394);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Conj.h:30
+const int TpMeqConj_int = -1394;
 namespace Meq { class Conj; };
             namespace DMI {
               template<>
@@ -200,8 +200,8 @@ namespace Meq { class Conj; };
 #endif
 #ifndef _defined_id_TpMeqConstant
 #define _defined_id_TpMeqConstant 1
-const DMI::TypeId TpMeqConstant(-1216);           // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Constant.h:34
-const int TpMeqConstant_int = -1216;
+const DMI::TypeId TpMeqConstant(-1438);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Constant.h:34
+const int TpMeqConstant_int = -1438;
 namespace Meq { class Constant; };
             namespace DMI {
               template<>
@@ -219,8 +219,8 @@ namespace Meq { class Constant; };
 #endif
 #ifndef _defined_id_TpMeqCos
 #define _defined_id_TpMeqCos 1
-const DMI::TypeId TpMeqCos(-1232);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Cos.h:30
-const int TpMeqCos_int = -1232;
+const DMI::TypeId TpMeqCos(-1398);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Cos.h:30
+const int TpMeqCos_int = -1398;
 namespace Meq { class Cos; };
             namespace DMI {
               template<>
@@ -238,8 +238,8 @@ namespace Meq { class Cos; };
 #endif
 #ifndef _defined_id_TpMeqCosh
 #define _defined_id_TpMeqCosh 1
-const DMI::TypeId TpMeqCosh(-1210);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Cosh.h:29
-const int TpMeqCosh_int = -1210;
+const DMI::TypeId TpMeqCosh(-1415);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Cosh.h:29
+const int TpMeqCosh_int = -1415;
 namespace Meq { class Cosh; };
             namespace DMI {
               template<>
@@ -257,8 +257,8 @@ namespace Meq { class Cosh; };
 #endif
 #ifndef _defined_id_TpMeqDataCollect
 #define _defined_id_TpMeqDataCollect 1
-const DMI::TypeId TpMeqDataCollect(-1217);        // from /home/oms/LOFAR/TIMBA/MeqNodes/src/DataCollect.h:29
-const int TpMeqDataCollect_int = -1217;
+const DMI::TypeId TpMeqDataCollect(-1388);        // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:29
+const int TpMeqDataCollect_int = -1388;
 namespace Meq { class DataCollect; };
             namespace DMI {
               template<>
@@ -276,8 +276,8 @@ namespace Meq { class DataCollect; };
 #endif
 #ifndef _defined_id_TpMeqDataConcat
 #define _defined_id_TpMeqDataConcat 1
-const DMI::TypeId TpMeqDataConcat(-1177);         // from /home/oms/LOFAR/TIMBA/MeqNodes/src/DataConcat.h:30
-const int TpMeqDataConcat_int = -1177;
+const DMI::TypeId TpMeqDataConcat(-1448);         // from /home/oms/LOFAR/Timba/MeqNodes/src/DataConcat.h:30
+const int TpMeqDataConcat_int = -1448;
 namespace Meq { class DataConcat; };
             namespace DMI {
               template<>
@@ -295,8 +295,8 @@ namespace Meq { class DataConcat; };
 #endif
 #ifndef _defined_id_TpMeqDivide
 #define _defined_id_TpMeqDivide 1
-const DMI::TypeId TpMeqDivide(-1198);             // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Divide.h:30
-const int TpMeqDivide_int = -1198;
+const DMI::TypeId TpMeqDivide(-1385);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Divide.h:30
+const int TpMeqDivide_int = -1385;
 namespace Meq { class Divide; };
             namespace DMI {
               template<>
@@ -314,8 +314,8 @@ namespace Meq { class Divide; };
 #endif
 #ifndef _defined_id_TpMeqExp
 #define _defined_id_TpMeqExp 1
-const DMI::TypeId TpMeqExp(-1229);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Exp.h:30
-const int TpMeqExp_int = -1229;
+const DMI::TypeId TpMeqExp(-1393);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Exp.h:30
+const int TpMeqExp_int = -1393;
 namespace Meq { class Exp; };
             namespace DMI {
               template<>
@@ -333,8 +333,8 @@ namespace Meq { class Exp; };
 #endif
 #ifndef _defined_id_TpMeqFabs
 #define _defined_id_TpMeqFabs 1
-const DMI::TypeId TpMeqFabs(-1235);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Fabs.h:29
-const int TpMeqFabs_int = -1235;
+const DMI::TypeId TpMeqFabs(-1429);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Fabs.h:29
+const int TpMeqFabs_int = -1429;
 namespace Meq { class Fabs; };
             namespace DMI {
               template<>
@@ -352,8 +352,8 @@ namespace Meq { class Fabs; };
 #endif
 #ifndef _defined_id_TpMeqFloor
 #define _defined_id_TpMeqFloor 1
-const DMI::TypeId TpMeqFloor(-1243);              // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Floor.h:30
-const int TpMeqFloor_int = -1243;
+const DMI::TypeId TpMeqFloor(-1436);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Floor.h:30
+const int TpMeqFloor_int = -1436;
 namespace Meq { class Floor; };
             namespace DMI {
               template<>
@@ -371,8 +371,8 @@ namespace Meq { class Floor; };
 #endif
 #ifndef _defined_id_TpMeqFreq
 #define _defined_id_TpMeqFreq 1
-const DMI::TypeId TpMeqFreq(-1192);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Freq.h:30
-const int TpMeqFreq_int = -1192;
+const DMI::TypeId TpMeqFreq(-1420);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Freq.h:30
+const int TpMeqFreq_int = -1420;
 namespace Meq { class Freq; };
             namespace DMI {
               template<>
@@ -390,8 +390,8 @@ namespace Meq { class Freq; };
 #endif
 #ifndef _defined_id_TpMeqGaussNoise
 #define _defined_id_TpMeqGaussNoise 1
-const DMI::TypeId TpMeqGaussNoise(-1481);         // from /home/oms/LOFAR/Timba/MeqNodes/src/GaussNoise.h:31
-const int TpMeqGaussNoise_int = -1481;
+const DMI::TypeId TpMeqGaussNoise(-1449);         // from /home/oms/LOFAR/Timba/MeqNodes/src/GaussNoise.h:31
+const int TpMeqGaussNoise_int = -1449;
 namespace Meq { class GaussNoise; };
             namespace DMI {
               template<>
@@ -409,8 +409,8 @@ namespace Meq { class GaussNoise; };
 #endif
 #ifndef _defined_id_TpMeqImag
 #define _defined_id_TpMeqImag 1
-const DMI::TypeId TpMeqImag(-1182);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Imag.h:29
-const int TpMeqImag_int = -1182;
+const DMI::TypeId TpMeqImag(-1427);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Imag.h:29
+const int TpMeqImag_int = -1427;
 namespace Meq { class Imag; };
             namespace DMI {
               template<>
@@ -428,8 +428,8 @@ namespace Meq { class Imag; };
 #endif
 #ifndef _defined_id_TpMeqLMN
 #define _defined_id_TpMeqLMN 1
-const DMI::TypeId TpMeqLMN(-1190);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/LMN.h:30
-const int TpMeqLMN_int = -1190;
+const DMI::TypeId TpMeqLMN(-1410);                // from /home/oms/LOFAR/Timba/MeqNodes/src/LMN.h:30
+const int TpMeqLMN_int = -1410;
 namespace Meq { class LMN; };
             namespace DMI {
               template<>
@@ -447,8 +447,8 @@ namespace Meq { class LMN; };
 #endif
 #ifndef _defined_id_TpMeqLog
 #define _defined_id_TpMeqLog 1
-const DMI::TypeId TpMeqLog(-1201);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Log.h:29
-const int TpMeqLog_int = -1201;
+const DMI::TypeId TpMeqLog(-1397);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Log.h:29
+const int TpMeqLog_int = -1397;
 namespace Meq { class Log; };
             namespace DMI {
               template<>
@@ -466,8 +466,8 @@ namespace Meq { class Log; };
 #endif
 #ifndef _defined_id_TpMeqMax
 #define _defined_id_TpMeqMax 1
-const DMI::TypeId TpMeqMax(-1233);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Max.h:29
-const int TpMeqMax_int = -1233;
+const DMI::TypeId TpMeqMax(-1452);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Max.h:29
+const int TpMeqMax_int = -1452;
 namespace Meq { class Max; };
             namespace DMI {
               template<>
@@ -485,8 +485,8 @@ namespace Meq { class Max; };
 #endif
 #ifndef _defined_id_TpMeqMean
 #define _defined_id_TpMeqMean 1
-const DMI::TypeId TpMeqMean(-1181);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Mean.h:29
-const int TpMeqMean_int = -1181;
+const DMI::TypeId TpMeqMean(-1416);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Mean.h:29
+const int TpMeqMean_int = -1416;
 namespace Meq { class Mean; };
             namespace DMI {
               template<>
@@ -504,8 +504,8 @@ namespace Meq { class Mean; };
 #endif
 #ifndef _defined_id_TpMeqMergeFlags
 #define _defined_id_TpMeqMergeFlags 1
-const DMI::TypeId TpMeqMergeFlags(-1214);         // from /home/oms/LOFAR/TIMBA/MeqNodes/src/MergeFlags.h:31
-const int TpMeqMergeFlags_int = -1214;
+const DMI::TypeId TpMeqMergeFlags(-1441);         // from /home/oms/LOFAR/Timba/MeqNodes/src/MergeFlags.h:31
+const int TpMeqMergeFlags_int = -1441;
 namespace Meq { class MergeFlags; };
             namespace DMI {
               template<>
@@ -523,8 +523,8 @@ namespace Meq { class MergeFlags; };
 #endif
 #ifndef _defined_id_TpMeqMin
 #define _defined_id_TpMeqMin 1
-const DMI::TypeId TpMeqMin(-1185);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Min.h:29
-const int TpMeqMin_int = -1185;
+const DMI::TypeId TpMeqMin(-1392);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Min.h:29
+const int TpMeqMin_int = -1392;
 namespace Meq { class Min; };
             namespace DMI {
               template<>
@@ -542,8 +542,8 @@ namespace Meq { class Min; };
 #endif
 #ifndef _defined_id_TpMeqMultiply
 #define _defined_id_TpMeqMultiply 1
-const DMI::TypeId TpMeqMultiply(-1211);           // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Multiply.h:30
-const int TpMeqMultiply_int = -1211;
+const DMI::TypeId TpMeqMultiply(-1391);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Multiply.h:30
+const int TpMeqMultiply_int = -1391;
 namespace Meq { class Multiply; };
             namespace DMI {
               template<>
@@ -561,8 +561,8 @@ namespace Meq { class Multiply; };
 #endif
 #ifndef _defined_id_TpMeqNorm
 #define _defined_id_TpMeqNorm 1
-const DMI::TypeId TpMeqNorm(-1225);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Norm.h:29
-const int TpMeqNorm_int = -1225;
+const DMI::TypeId TpMeqNorm(-1459);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Norm.h:29
+const int TpMeqNorm_int = -1459;
 namespace Meq { class Norm; };
             namespace DMI {
               template<>
@@ -580,8 +580,8 @@ namespace Meq { class Norm; };
 #endif
 #ifndef _defined_id_TpMeqParm
 #define _defined_id_TpMeqParm 1
-const DMI::TypeId TpMeqParm(-1231);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Parm.h:35
-const int TpMeqParm_int = -1231;
+const DMI::TypeId TpMeqParm(-1454);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Parm.h:35
+const int TpMeqParm_int = -1454;
 namespace Meq { class Parm; };
             namespace DMI {
               template<>
@@ -599,8 +599,8 @@ namespace Meq { class Parm; };
 #endif
 #ifndef _defined_id_TpMeqPointSourceDFT
 #define _defined_id_TpMeqPointSourceDFT 1
-const DMI::TypeId TpMeqPointSourceDFT(-1200);     // from /home/oms/LOFAR/TIMBA/MeqNodes/src/PointSourceDFT.h:31
-const int TpMeqPointSourceDFT_int = -1200;
+const DMI::TypeId TpMeqPointSourceDFT(-1405);     // from /home/oms/LOFAR/Timba/MeqNodes/src/PointSourceDFT.h:31
+const int TpMeqPointSourceDFT_int = -1405;
 namespace Meq { class PointSourceDFT; };
             namespace DMI {
               template<>
@@ -618,8 +618,8 @@ namespace Meq { class PointSourceDFT; };
 #endif
 #ifndef _defined_id_TpMeqPolar
 #define _defined_id_TpMeqPolar 1
-const DMI::TypeId TpMeqPolar(-1242);              // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Polar.h:30
-const int TpMeqPolar_int = -1242;
+const DMI::TypeId TpMeqPolar(-1383);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Polar.h:30
+const int TpMeqPolar_int = -1383;
 namespace Meq { class Polar; };
             namespace DMI {
               template<>
@@ -637,8 +637,8 @@ namespace Meq { class Polar; };
 #endif
 #ifndef _defined_id_TpMeqPow
 #define _defined_id_TpMeqPow 1
-const DMI::TypeId TpMeqPow(-1184);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Pow.h:30
-const int TpMeqPow_int = -1184;
+const DMI::TypeId TpMeqPow(-1386);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Pow.h:30
+const int TpMeqPow_int = -1386;
 namespace Meq { class Pow; };
             namespace DMI {
               template<>
@@ -656,8 +656,8 @@ namespace Meq { class Pow; };
 #endif
 #ifndef _defined_id_TpMeqPow2
 #define _defined_id_TpMeqPow2 1
-const DMI::TypeId TpMeqPow2(-1218);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Pow2.h:29
-const int TpMeqPow2_int = -1218;
+const DMI::TypeId TpMeqPow2(-1439);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Pow2.h:29
+const int TpMeqPow2_int = -1439;
 namespace Meq { class Pow2; };
             namespace DMI {
               template<>
@@ -675,8 +675,8 @@ namespace Meq { class Pow2; };
 #endif
 #ifndef _defined_id_TpMeqPow3
 #define _defined_id_TpMeqPow3 1
-const DMI::TypeId TpMeqPow3(-1219);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Pow3.h:29
-const int TpMeqPow3_int = -1219;
+const DMI::TypeId TpMeqPow3(-1412);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Pow3.h:29
+const int TpMeqPow3_int = -1412;
 namespace Meq { class Pow3; };
             namespace DMI {
               template<>
@@ -694,8 +694,8 @@ namespace Meq { class Pow3; };
 #endif
 #ifndef _defined_id_TpMeqPow4
 #define _defined_id_TpMeqPow4 1
-const DMI::TypeId TpMeqPow4(-1220);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Pow4.h:29
-const int TpMeqPow4_int = -1220;
+const DMI::TypeId TpMeqPow4(-1403);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Pow4.h:29
+const int TpMeqPow4_int = -1403;
 namespace Meq { class Pow4; };
             namespace DMI {
               template<>
@@ -713,8 +713,8 @@ namespace Meq { class Pow4; };
 #endif
 #ifndef _defined_id_TpMeqPow5
 #define _defined_id_TpMeqPow5 1
-const DMI::TypeId TpMeqPow5(-1221);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Pow5.h:29
-const int TpMeqPow5_int = -1221;
+const DMI::TypeId TpMeqPow5(-1422);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Pow5.h:29
+const int TpMeqPow5_int = -1422;
 namespace Meq { class Pow5; };
             namespace DMI {
               template<>
@@ -732,8 +732,8 @@ namespace Meq { class Pow5; };
 #endif
 #ifndef _defined_id_TpMeqPow6
 #define _defined_id_TpMeqPow6 1
-const DMI::TypeId TpMeqPow6(-1222);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Pow6.h:29
-const int TpMeqPow6_int = -1222;
+const DMI::TypeId TpMeqPow6(-1445);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Pow6.h:29
+const int TpMeqPow6_int = -1445;
 namespace Meq { class Pow6; };
             namespace DMI {
               template<>
@@ -751,8 +751,8 @@ namespace Meq { class Pow6; };
 #endif
 #ifndef _defined_id_TpMeqPow7
 #define _defined_id_TpMeqPow7 1
-const DMI::TypeId TpMeqPow7(-1223);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Pow7.h:29
-const int TpMeqPow7_int = -1223;
+const DMI::TypeId TpMeqPow7(-1387);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Pow7.h:29
+const int TpMeqPow7_int = -1387;
 namespace Meq { class Pow7; };
             namespace DMI {
               template<>
@@ -770,8 +770,8 @@ namespace Meq { class Pow7; };
 #endif
 #ifndef _defined_id_TpMeqPow8
 #define _defined_id_TpMeqPow8 1
-const DMI::TypeId TpMeqPow8(-1224);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Pow8.h:29
-const int TpMeqPow8_int = -1224;
+const DMI::TypeId TpMeqPow8(-1395);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Pow8.h:29
+const int TpMeqPow8_int = -1395;
 namespace Meq { class Pow8; };
             namespace DMI {
               template<>
@@ -789,8 +789,8 @@ namespace Meq { class Pow8; };
 #endif
 #ifndef _defined_id_TpMeqRandomNoise
 #define _defined_id_TpMeqRandomNoise 1
-const DMI::TypeId TpMeqRandomNoise(-1482);        // from /home/oms/LOFAR/Timba/MeqNodes/src/RandomNoise.h:31
-const int TpMeqRandomNoise_int = -1482;
+const DMI::TypeId TpMeqRandomNoise(-1384);        // from /home/oms/LOFAR/Timba/MeqNodes/src/RandomNoise.h:31
+const int TpMeqRandomNoise_int = -1384;
 namespace Meq { class RandomNoise; };
             namespace DMI {
               template<>
@@ -808,8 +808,8 @@ namespace Meq { class RandomNoise; };
 #endif
 #ifndef _defined_id_TpMeqReal
 #define _defined_id_TpMeqReal 1
-const DMI::TypeId TpMeqReal(-1174);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Real.h:29
-const int TpMeqReal_int = -1174;
+const DMI::TypeId TpMeqReal(-1404);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Real.h:29
+const int TpMeqReal_int = -1404;
 namespace Meq { class Real; };
             namespace DMI {
               template<>
@@ -827,8 +827,8 @@ namespace Meq { class Real; };
 #endif
 #ifndef _defined_id_TpMeqReqSeq
 #define _defined_id_TpMeqReqSeq 1
-const DMI::TypeId TpMeqReqSeq(-1186);             // from /home/oms/LOFAR/TIMBA/MeqNodes/src/ReqSeq.h:31
-const int TpMeqReqSeq_int = -1186;
+const DMI::TypeId TpMeqReqSeq(-1425);             // from /home/oms/LOFAR/Timba/MeqNodes/src/ReqSeq.h:31
+const int TpMeqReqSeq_int = -1425;
 namespace Meq { class ReqSeq; };
             namespace DMI {
               template<>
@@ -846,8 +846,8 @@ namespace Meq { class ReqSeq; };
 #endif
 #ifndef _defined_id_TpMeqSelector
 #define _defined_id_TpMeqSelector 1
-const DMI::TypeId TpMeqSelector(-1247);           // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Selector.h:30
-const int TpMeqSelector_int = -1247;
+const DMI::TypeId TpMeqSelector(-1447);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:30
+const int TpMeqSelector_int = -1447;
 namespace Meq { class Selector; };
             namespace DMI {
               template<>
@@ -865,8 +865,8 @@ namespace Meq { class Selector; };
 #endif
 #ifndef _defined_id_TpMeqSin
 #define _defined_id_TpMeqSin 1
-const DMI::TypeId TpMeqSin(-1199);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Sin.h:30
-const int TpMeqSin_int = -1199;
+const DMI::TypeId TpMeqSin(-1430);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Sin.h:30
+const int TpMeqSin_int = -1430;
 namespace Meq { class Sin; };
             namespace DMI {
               template<>
@@ -884,8 +884,8 @@ namespace Meq { class Sin; };
 #endif
 #ifndef _defined_id_TpMeqSinh
 #define _defined_id_TpMeqSinh 1
-const DMI::TypeId TpMeqSinh(-1175);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Sinh.h:29
-const int TpMeqSinh_int = -1175;
+const DMI::TypeId TpMeqSinh(-1407);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Sinh.h:29
+const int TpMeqSinh_int = -1407;
 namespace Meq { class Sinh; };
             namespace DMI {
               template<>
@@ -903,8 +903,8 @@ namespace Meq { class Sinh; };
 #endif
 #ifndef _defined_id_TpMeqSolver
 #define _defined_id_TpMeqSolver 1
-const DMI::TypeId TpMeqSolver(-1183);             // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Solver.h:30
-const int TpMeqSolver_int = -1183;
+const DMI::TypeId TpMeqSolver(-1401);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:30
+const int TpMeqSolver_int = -1401;
 namespace Meq { class Solver; };
             namespace DMI {
               template<>
@@ -922,8 +922,8 @@ namespace Meq { class Solver; };
 #endif
 #ifndef _defined_id_TpMeqSqr
 #define _defined_id_TpMeqSqr 1
-const DMI::TypeId TpMeqSqr(-1240);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Sqr.h:30
-const int TpMeqSqr_int = -1240;
+const DMI::TypeId TpMeqSqr(-1458);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Sqr.h:30
+const int TpMeqSqr_int = -1458;
 namespace Meq { class Sqr; };
             namespace DMI {
               template<>
@@ -941,8 +941,8 @@ namespace Meq { class Sqr; };
 #endif
 #ifndef _defined_id_TpMeqSqrt
 #define _defined_id_TpMeqSqrt 1
-const DMI::TypeId TpMeqSqrt(-1245);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Sqrt.h:30
-const int TpMeqSqrt_int = -1245;
+const DMI::TypeId TpMeqSqrt(-1408);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Sqrt.h:30
+const int TpMeqSqrt_int = -1408;
 namespace Meq { class Sqrt; };
             namespace DMI {
               template<>
@@ -960,8 +960,8 @@ namespace Meq { class Sqrt; };
 #endif
 #ifndef _defined_id_TpMeqStatPointSourceDFT
 #define _defined_id_TpMeqStatPointSourceDFT 1
-const DMI::TypeId TpMeqStatPointSourceDFT(-1237); // from /home/oms/LOFAR/TIMBA/MeqNodes/src/StatPointSourceDFT.h:31
-const int TpMeqStatPointSourceDFT_int = -1237;
+const DMI::TypeId TpMeqStatPointSourceDFT(-1396); // from /home/oms/LOFAR/Timba/MeqNodes/src/StatPointSourceDFT.h:31
+const int TpMeqStatPointSourceDFT_int = -1396;
 namespace Meq { class StatPointSourceDFT; };
             namespace DMI {
               template<>
@@ -977,10 +977,29 @@ namespace Meq { class StatPointSourceDFT; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqStdDev
+#define _defined_id_TpMeqStdDev 1
+const DMI::TypeId TpMeqStdDev(-1491);             // from /home/oms/LOFAR/Timba/MeqNodes/src/StdDev.h:29
+const int TpMeqStdDev_int = -1491;
+namespace Meq { class StdDev; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::StdDev> : public TypeTraits<Meq::StdDev>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqStdDev_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::StdDev & ContainerReturnType;
+                typedef const Meq::StdDev & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqStripper
 #define _defined_id_TpMeqStripper 1
-const DMI::TypeId TpMeqStripper(-1227);           // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Stripper.h:30
-const int TpMeqStripper_int = -1227;
+const DMI::TypeId TpMeqStripper(-1409);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Stripper.h:30
+const int TpMeqStripper_int = -1409;
 namespace Meq { class Stripper; };
             namespace DMI {
               template<>
@@ -998,8 +1017,8 @@ namespace Meq { class Stripper; };
 #endif
 #ifndef _defined_id_TpMeqSubtract
 #define _defined_id_TpMeqSubtract 1
-const DMI::TypeId TpMeqSubtract(-1213);           // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Subtract.h:30
-const int TpMeqSubtract_int = -1213;
+const DMI::TypeId TpMeqSubtract(-1461);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Subtract.h:30
+const int TpMeqSubtract_int = -1461;
 namespace Meq { class Subtract; };
             namespace DMI {
               template<>
@@ -1017,8 +1036,8 @@ namespace Meq { class Subtract; };
 #endif
 #ifndef _defined_id_TpMeqTan
 #define _defined_id_TpMeqTan 1
-const DMI::TypeId TpMeqTan(-1249);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Tan.h:29
-const int TpMeqTan_int = -1249;
+const DMI::TypeId TpMeqTan(-1417);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Tan.h:29
+const int TpMeqTan_int = -1417;
 namespace Meq { class Tan; };
             namespace DMI {
               template<>
@@ -1036,8 +1055,8 @@ namespace Meq { class Tan; };
 #endif
 #ifndef _defined_id_TpMeqTanh
 #define _defined_id_TpMeqTanh 1
-const DMI::TypeId TpMeqTanh(-1244);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Tanh.h:29
-const int TpMeqTanh_int = -1244;
+const DMI::TypeId TpMeqTanh(-1450);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Tanh.h:29
+const int TpMeqTanh_int = -1450;
 namespace Meq { class Tanh; };
             namespace DMI {
               template<>
@@ -1055,8 +1074,8 @@ namespace Meq { class Tanh; };
 #endif
 #ifndef _defined_id_TpMeqTime
 #define _defined_id_TpMeqTime 1
-const DMI::TypeId TpMeqTime(-1202);               // from /home/oms/LOFAR/TIMBA/MeqNodes/src/Time.h:30
-const int TpMeqTime_int = -1202;
+const DMI::TypeId TpMeqTime(-1451);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Time.h:30
+const int TpMeqTime_int = -1451;
 namespace Meq { class Time; };
             namespace DMI {
               template<>
@@ -1074,8 +1093,8 @@ namespace Meq { class Time; };
 #endif
 #ifndef _defined_id_TpMeqToComplex
 #define _defined_id_TpMeqToComplex 1
-const DMI::TypeId TpMeqToComplex(-1188);          // from /home/oms/LOFAR/TIMBA/MeqNodes/src/ToComplex.h:30
-const int TpMeqToComplex_int = -1188;
+const DMI::TypeId TpMeqToComplex(-1413);          // from /home/oms/LOFAR/Timba/MeqNodes/src/ToComplex.h:30
+const int TpMeqToComplex_int = -1413;
 namespace Meq { class ToComplex; };
             namespace DMI {
               template<>
@@ -1093,8 +1112,8 @@ namespace Meq { class ToComplex; };
 #endif
 #ifndef _defined_id_TpMeqUVW
 #define _defined_id_TpMeqUVW 1
-const DMI::TypeId TpMeqUVW(-1226);                // from /home/oms/LOFAR/TIMBA/MeqNodes/src/UVW.h:31
-const int TpMeqUVW_int = -1226;
+const DMI::TypeId TpMeqUVW(-1421);                // from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:31
+const int TpMeqUVW_int = -1421;
 namespace Meq { class UVW; };
             namespace DMI {
               template<>
@@ -1112,8 +1131,8 @@ namespace Meq { class UVW; };
 #endif
 #ifndef _defined_id_TpMeqZeroFlagger
 #define _defined_id_TpMeqZeroFlagger 1
-const DMI::TypeId TpMeqZeroFlagger(-1489);        // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:32
-const int TpMeqZeroFlagger_int = -1489;
+const DMI::TypeId TpMeqZeroFlagger(-1434);        // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:32
+const int TpMeqZeroFlagger_int = -1434;
 namespace Meq { class ZeroFlagger; };
             namespace DMI {
               template<>

@@ -26,10 +26,18 @@
 // other code can use this symbol to check for blitz arrays
 #define LORRAYS_USE_BLITZ 1
 #define LORRAYS_DEFINE_STRING 1
-        
-// Redefine the default Blitz array storage to column-major
-#define BZ_DEFAULT_ARRAY_STORAGE ColumnMajorArray<N_rank>()
+
+// 20/01/05: newer versions of blitz (e.g. 0.8) do not use this macro,
+// and do not provide any way to change the global default storage
+// Thus, we'll move to row-major ordering and add conversion for aips++
+// arrays.        
+// // Redefine the default Blitz array storage to column-major
+// #define BZ_DEFAULT_ARRAY_STORAGE ColumnMajorArray<N_rank>()
+#undef restrict 
 #include <blitz/array.h>
+// blitz likes to define this and AIPS++ doesn't like it, I think it's fairly
+// safe to get rid of it, since blitz is not included anywhere else
+#undef restrict 
 
 #ifdef HAVE_AIPSPP
 # include <casa/Arrays/IPosition.h>

@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.34  2005/01/21 15:54:38  smirnov
+//  %[ER: ]%
+//  Made the changeover to C-storage Lorrays (i.e., use default
+//  blitz storage -- row-major -- and convert to aips++ arrays on the fly)
+//
 //  Revision 1.33  2005/01/19 17:46:41  smirnov
 //  %[ER: ]%
 //  A number of small changes to accomodate gcc-3.4.3.
@@ -180,6 +185,7 @@
 
 #ifdef HAVE_AIPSPP
 #include <casa/Arrays.h>
+#include <Common/BlitzToAips.h>
 #endif
 
 #pragma types #DMI::NumArray
@@ -266,16 +272,7 @@ public:
   
 #ifdef HAVE_AIPSPP
   // Returns contents as an AIPS++ array (by copy or reference)
-  // The dummy T* argument is to help in template instantiation
-  // (gcc has a problem resolving stuff like:
-  //
-  //    template<class T> T function_one ();
-  //    template<class T> T function_two ()
-  //    { return function_one<T>(); }
-  //  ... the <T> in the invocation is considered an error. The dummy
   //  argument allows you to say "function_one((T*)0)" instead)
-  template<class T>
-  casa::Array<T> refAipsArray (const T*);
   template<class T>
   casa::Array<T> copyAipsArray (const T*) const;
 #endif
@@ -517,8 +514,6 @@ private:
   template<class T>
   bool verifyAipsType (const T*) const;
   // helper function copies strings from source array
-    //##ModelId=3E9BD9190074
-  void copyStringArray (const void *source);
 #endif
 };
 
@@ -590,21 +585,13 @@ inline bool NumArray::verifyAipsType (const casa::String*) const
   return itsScaType == Tpstring;
 }
 
-//##ModelId=3E9BD9190074
-inline void NumArray::copyStringArray (const void *source)
-{
-  const casa::String *data = static_cast<const casa::String*>(source);
-  string *dest = reinterpret_cast<string *>(itsArrayData),*end = dest + itsSize;
-  for( ; dest < end; dest++,data++ )
-    *dest = *data;
-}
-
 // templated constructor from an AIPS++ array
 template<class T>
 NumArray::NumArray (const casa::Array<T> &array)
 : Container(),
   itsArray    (0)
 {
+  FailWhen( array.ndim() > 10,"NumArray(casa::Array<T>): illegal array rank" );
   initSubArray();
   itsScaType  = isStringArray(array) ? Tpstring : typeIdOf(T);
   itsElemSize = isStringArray(array) ? sizeof(string) : sizeof(T);
@@ -612,14 +599,20 @@ NumArray::NumArray (const casa::Array<T> &array)
   init(array.ndim() ? LoShape(array.shape()) : LoShape(0),DMI::NOZERO);
   // after an init, itsArray contains a valid array of the given shape,
   // so we can copy the data over
-  // BUG here! use a more efficient AIPS++ array iterator
-  bool del;
-  const T *data = array.getStorage(del);
-  if( isStringArray(array) )
-    copyStringArray(data);
-  else
-    memcpy(itsArrayData,data,itsSize*itsElemSize);
-  array.freeStorage(data,del);
+  switch( array.ndim() )
+  {
+    case 0:   break;
+    case 1:   B2A::assignArray(*static_cast<blitz::Array<T,1>*>(itsArray),array); break;
+    case 2:   B2A::assignArray(*static_cast<blitz::Array<T,2>*>(itsArray),array); break;
+    case 3:   B2A::assignArray(*static_cast<blitz::Array<T,3>*>(itsArray),array); break;
+    case 4:   B2A::assignArray(*static_cast<blitz::Array<T,4>*>(itsArray),array); break;
+    case 5:   B2A::assignArray(*static_cast<blitz::Array<T,5>*>(itsArray),array); break;
+    case 6:   B2A::assignArray(*static_cast<blitz::Array<T,6>*>(itsArray),array); break;
+    case 7:   B2A::assignArray(*static_cast<blitz::Array<T,7>*>(itsArray),array); break;
+    case 8:   B2A::assignArray(*static_cast<blitz::Array<T,8>*>(itsArray),array); break;
+    case 9:   B2A::assignArray(*static_cast<blitz::Array<T,9>*>(itsArray),array); break;
+    case 10:  B2A::assignArray(*static_cast<blitz::Array<T,10>*>(itsArray),array); break;
+  }
 }
 
 
@@ -628,15 +621,21 @@ casa::Array<T> NumArray::copyAipsArray (const T* dum) const
 {
   FailWhen( !valid(),"invalid NumArray" );
   FailWhen( !verifyAipsType(dum),"array type mismatch" );
-  return casa::Array<T>(itsShape,reinterpret_cast<const T*>(itsArrayData));
-}
-
-template<class T>
-casa::Array<T> NumArray::refAipsArray (const T* dum)
-{
-  FailWhen( !valid(),"invalid NumArray" );
-  FailWhen( !verifyAipsType(dum),"array type mismatch" );
-  return casa::Array<T>(itsShape,itsArrayData,casa::SHARE);
+  switch( rank() )
+  {
+    case 0: return casa::Array<T>();
+    case 1: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,1>*>(itsArray));
+    case 2: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,2>*>(itsArray));
+    case 3: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,3>*>(itsArray));
+    case 4: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,4>*>(itsArray));
+    case 5: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,5>*>(itsArray));
+    case 6: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,6>*>(itsArray));
+    case 7: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,7>*>(itsArray));
+    case 8: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,8>*>(itsArray));
+    case 9: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,9>*>(itsArray));
+    case 10:return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,10>*>(itsArray));
+    default: Throw("copyAipsArray(): array rank too high");
+  }
 }
 
 #endif

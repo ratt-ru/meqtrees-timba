@@ -653,20 +653,28 @@ PyObject * pyFromArray (const DMI::NumArray &da)
   }
   else // else regular array
   {
-    maybelong dims[rank];
-    maybelong strides[rank];
-    maybelong stride = da.elementSize();
-    for( int i=0; i<rank; i++ )
-    {
-      strides[i] = stride;
-      stride *= dims[i] = da.shape()[i];
-    }
     NumarrayType typecode = typeIdToNumarray(da.elementType());
+// 20/01/05: get rid of transpose here since NumArrays are in C order now
+// this is the old version: column-major ordering
+//     maybelong dims[rank];
+//     maybelong strides[rank];
+//     maybelong stride = da.elementSize();
+//     for( int i=0; i<rank; i++ )
+//     {
+//       strides[i] = stride;
+//       stride *= dims[i] = da.shape()[i];
+//     }
+//    PyObjectRef pyarr = (PyObject*)
+//        NA_NewAllStrides(rank,dims,strides,typecode,
+//                         const_cast<void*>(da.getConstDataPtr()),
+//                         0,NUM_LITTLE_ENDIAN,0,1);
+
+//  this is the new version: only specify shape (C order by default)
+    maybelong dims[rank];
+    for( int i=0; i<rank; i++ )
+      dims[i] = da.shape()[i];
     PyObjectRef pyarr = (PyObject*)
-        NA_NewAllStrides(rank,dims,strides,typecode,
-                         const_cast<void*>(da.getConstDataPtr()),
-                         0,NUM_LITTLE_ENDIAN,0,1);
-  //      NA_vNewArray(const_cast<void*>(da.getConstDataPtr()),typecode,rank,dims);
+      NA_vNewArray(const_cast<void*>(da.getConstDataPtr()),typecode,rank,dims);
     // insert __dmi_type tag, if object is actually a subclass of DMI::NumArray
     TypeId objtype = da.objectType();
     return ~pyarr;

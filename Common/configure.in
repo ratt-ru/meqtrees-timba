@@ -55,7 +55,6 @@ lofar_CHECK_PRETTY_FUNCTION
 lofar_CHECK_LONG_LONG
 lofar_QATOOLS
 lofar_DOCXX
-dnl lofar_LOG4CPLUS
 lofar_BLITZ
 lofar_MPI
 dnl

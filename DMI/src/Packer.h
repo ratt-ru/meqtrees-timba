@@ -408,10 +408,13 @@ void SeqPacker<Seq,ElemPacker>::unpack (Seq &seq, const void *block, size_t sz)
          sz0 = (1+(ElemPacker::binary()?0:n))*sizeof(size_t);
   FailWhen(sz<sz0,"corrupt block");
   const char *data = static_cast<const char*>(block) + sz0;
+  seq.clear();
+  seq.reserve(n);
   for( size_t i=0; i<n; i++ )
   {
     size_t s1 = ElemPacker::binary();
-    Val val;
+    seq.push_back(Val());
+    Val & val = seq.back();
     if( s1 )
     {
       sz0 += s1;
@@ -424,7 +427,6 @@ void SeqPacker<Seq,ElemPacker>::unpack (Seq &seq, const void *block, size_t sz)
       FailWhen(sz<sz0,"corrupt block");
       ElemPacker::unpack(val,data,s1);
     }
-    seq.insert(seq.end(),val);
     data += s1;
   }
   FailWhen(sz!=sz0,"corrupt block");

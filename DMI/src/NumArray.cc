@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.38  2005/01/21 15:54:38  smirnov
+//  %[ER: ]%
+//  Made the changeover to C-storage Lorrays (i.e., use default
+//  blitz storage -- row-major -- and convert to aips++ arrays on the fly)
+//
 //  Revision 1.37  2005/01/17 13:53:04  smirnov
 //  %[ER: 16]%
 //  DMI completely revised to DMI2
@@ -644,12 +649,10 @@ int DMI::NumArray::get (const HIID& id, ContentInfo &info,bool nonconst,int flag
       }
       // compute the element offset
       int offset = 0, stride = 1;
-      LoShape::const_iterator iwhich = which.begin(), 
-                              ishape = itsShape.begin();
-      for( ; iwhich != which.end(); iwhich++,ishape++ )
+      for( int i = ndim-1; i>=0; i-- )
       {
-        offset += *iwhich*stride;
-        stride *= *ishape;
+        offset += which[i]*stride;
+        stride *= itsShape[i];
       }
       info.ptr = itsArrayData + itsElemSize*offset;
       return 1;
@@ -681,8 +684,8 @@ int DMI::NumArray::get (const HIID& id, ContentInfo &info,bool nonconst,int flag
   // now check the type
   LoShape subshape(LoShape::SETRANK|naxes),
           substride(LoShape::SETRANK|naxes);
-  int iax=0, offset=0, stride=1;
-  for( int i=0; i<ndim; i++ )
+  int iax=naxes-1, offset=0, stride=1;
+  for( int i=ndim-1; i>=0; i-- )
   {
     // stride is the stride of the current (i'th) axis, in elements
     // Get the starting position within this axis and add it to offset
@@ -692,7 +695,7 @@ int DMI::NumArray::get (const HIID& id, ContentInfo &info,bool nonconst,int flag
     {
       subshape[iax] = (end[i]-st[i])/incr[i];
       substride[iax] = incr[i]*stride;
-      iax++;
+      iax--;
     }
     stride *= itsShape[i];
   }

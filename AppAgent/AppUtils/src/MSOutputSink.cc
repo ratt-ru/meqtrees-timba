@@ -221,10 +221,10 @@ void MSOutputSink::putColumn (Column &col,int irow,const LoMat_fcomplex &data)
     // (it ought to be!)
     LoMat_fcomplex revdata(data);
     revdata.reverseSelf(blitz::secondDim);
-    copyArray(aips_data,revdata);
+    B2A::copyArray(aips_data,revdata);
   }
   else
-    copyArray(aips_data,data);
+    B2A::copyArray(aips_data,data);
   cdebug(6)<<"writing "<<col.name<<": "<<aips_data<<endl;
   if( !col.col.isDefined(irow) )
     col.col.put(irow,null_cell_);
@@ -260,7 +260,8 @@ void MSOutputSink::doPutTile (const VTile &tile)
       flags = blitz::cast<bool>(iter.flags() & flagmask_ );
       if( flip_freq_ )
         flags.reverseSelf(blitz::secondDim);
-      Matrix<Bool> aflags = refBlitzToAips(flags);
+      Matrix<Bool> aflags;
+      B2A::copyArray(aflags,flags);
       cdebug(6)<<"writing to FLAG column: "<<aflags<<endl;
       flagCol_.putSlice(irow,column_slicer_,aflags);
     }

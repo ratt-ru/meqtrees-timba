@@ -9,7 +9,7 @@ octopython_la_SOURCES = \
   
 octopython_la_LDFLAGS = -module
 
-octopython_la_LIBADD = -llog4cplus
+# octopython_la_LIBADD = 
 
 octopython_la_DEPENDENCIES = \
   ../pkgbldinc/OCTOPUSSY/liboctopussy.la \

@@ -14,7 +14,7 @@ libmeqserver_la_SOURCES = \
 bin_PROGRAMS   		= meqserver
   
 meqserver_SOURCES		    = meqserver.cc
-meqserver_LDADD		      = libmeqserver.la -L/aips++/cfitsio -lcfitsio
+meqserver_LDADD		      = libmeqserver.la 
 # -lglish -lsos -lnpd
 meqserver_DEPENDENCIES	= libmeqserver.la $(LOFAR_DEPEND)
 

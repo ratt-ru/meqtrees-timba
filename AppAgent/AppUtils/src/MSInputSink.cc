@@ -117,8 +117,8 @@ void MSInputSink::fillHeader (DMI::Record &hdr,const DMI::Record &select)
     {
       dprintf(2)("reversing frequency channel\n");
       hdr[FFlipFreq] = flip_freq_ = true;
-      hdr[FChannelFreq] = refAipsToBlitz<double,1>(ch_freq1).reverse(blitz::firstDim);
-      hdr[FChannelWidth] = refAipsToBlitz<double,1>(ch_width1).reverse(blitz::firstDim);
+      hdr[FChannelFreq] = B2A::refAipsToBlitz<double,1>(ch_freq1).reverse(blitz::firstDim);
+      hdr[FChannelWidth] = B2A::refAipsToBlitz<double,1>(ch_width1).reverse(blitz::firstDim);
     }
     else
     {
@@ -303,11 +303,11 @@ int MSInputSink::refillStream ()
         ROScalarColumn<Bool> rowflagCol(table,"FLAG_ROW");
         // get array columns as Lorrays
         Matrix<Double> uvwmat1 = ROArrayColumn<Double>(table, "UVW").getColumn();
-        LoMat_double uvwmat = refAipsToBlitz<double,2>(uvwmat1);
+        LoMat_double uvwmat = B2A::refAipsToBlitz<double,2>(uvwmat1);
         Cube<Complex> datacube1 = ROArrayColumn<Complex>(table, dataColName_).getColumn();
-        LoCube_fcomplex datacube = refAipsToBlitz<fcomplex,3>(datacube1);
+        LoCube_fcomplex datacube = B2A::refAipsToBlitz<fcomplex,3>(datacube1);
         Cube<Bool> flagcube1 = ROArrayColumn<Bool>(table,"FLAG").getColumn();
-        LoCube_bool flagcube = refAipsToBlitz<bool,3>(flagcube1);
+        LoCube_bool flagcube = B2A::refAipsToBlitz<bool,3>(flagcube1);
         // flip along frequency axis, if asked to
         if( flip_freq_ )
         {
