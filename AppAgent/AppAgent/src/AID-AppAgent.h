@@ -105,7 +105,7 @@ const int AidInit_int = -1092;
 #endif
 #ifndef _defined_id_AidMode
 #define _defined_id_AidMode 1
-const AtomicID AidMode(-1330);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:18
+const AtomicID AidMode(-1330);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:20
 const int AidMode_int = -1330;
 #endif
 #ifndef _defined_id_AidName
@@ -115,7 +115,7 @@ const int AidName_int = -1163;
 #endif
 #ifndef _defined_id_AidNotify
 #define _defined_id_AidNotify 1
-const AtomicID AidNotify(-1311);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:20
+const AtomicID AidNotify(-1311);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:22
 const int AidNotify_int = -1311;
 #endif
 #ifndef _defined_id_AidParameters
@@ -125,17 +125,17 @@ const int AidParameters_int = -1282;
 #endif
 #ifndef _defined_id_AidPause
 #define _defined_id_AidPause 1
-const AtomicID AidPause(-1300);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:22
+const AtomicID AidPause(-1300);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:24
 const int AidPause_int = -1300;
 #endif
 #ifndef _defined_id_AidPaused
 #define _defined_id_AidPaused 1
-const AtomicID AidPaused(-1350);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:23
+const AtomicID AidPaused(-1350);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:25
 const int AidPaused_int = -1350;
 #endif
 #ifndef _defined_id_AidRequest
 #define _defined_id_AidRequest 1
-const AtomicID AidRequest(-1351);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:24
+const AtomicID AidRequest(-1351);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:26
 const int AidRequest_int = -1351;
 #endif
 #ifndef _defined_id_AidResume
@@ -155,7 +155,7 @@ const int AidState_int = -1052;
 #endif
 #ifndef _defined_id_AidStatus
 #define _defined_id_AidStatus 1
-const AtomicID AidStatus(-1349);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:28
+const AtomicID AidStatus(-1349);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:30
 const int AidStatus_int = -1349;
 #endif
 #ifndef _defined_id_AidStop
@@ -165,7 +165,7 @@ const int AidStop_int = -1138;
 #endif
 #ifndef _defined_id_AidString
 #define _defined_id_AidString 1
-const AtomicID AidString(-1128);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:30
+const AtomicID AidString(-1128);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:32
 const int AidString_int = -1128;
 #endif
 #ifndef _defined_id_AidText
@@ -175,22 +175,22 @@ const int AidText_int = -1269;
 #endif
 #ifndef _defined_id_AidThrow
 #define _defined_id_AidThrow 1
-const AtomicID AidThrow(-1305);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:32
+const AtomicID AidThrow(-1305);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:34
 const int AidThrow_int = -1305;
 #endif
 #ifndef _defined_id_AidUpdate
 #define _defined_id_AidUpdate 1
-const AtomicID AidUpdate(-1353);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:33
+const AtomicID AidUpdate(-1353);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:35
 const int AidUpdate_int = -1353;
 #endif
 #ifndef _defined_id_AidValue
 #define _defined_id_AidValue 1
-const AtomicID AidValue(-1352);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:34
+const AtomicID AidValue(-1352);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:36
 const int AidValue_int = -1352;
 #endif
 #ifndef _defined_id_AidWait
 #define _defined_id_AidWait 1
-const AtomicID AidWait(-1303);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:35
+const AtomicID AidWait(-1303);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:37
 const int AidWait_int = -1303;
 #endif
 

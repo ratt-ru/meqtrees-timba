@@ -8,14 +8,17 @@ using namespace VisAgent;
 
 InitDebugSubContext(VisRepeater,ApplicationBase,"VisRepeater");
 
-void VisRepeater::postDataEvent (const HIID &event,const string &msg)
+void VisRepeater::postDataEvent (const HIID &event,const string &msg,DataRecord::Ref::Xfer &rec)
 {
-  DataRecord::Ref rec(DMI::ANONWR);
+  if( !rec.valid() )
+    rec <<= new DataRecord;
   if( !vdsid_.empty() )
     rec()[FVDSID] = vdsid_;
+  if( !datatype_.empty() )
+    rec()[FDataType] = datatype_;
   if( msg.length() )
     rec()[AidText] = msg;
-  control().postEvent(event|vdsid_,rec);
+  control().postEvent(event|datatype_|vdsid_,rec);
 }
 
 //##ModelId=3E392C570286
@@ -40,7 +43,7 @@ void VisRepeater::run ()
       control().setState(STOPPED);
       continue;
     }
-    
+    auto_pause_ = (*initrec)[FAutoPause].as<bool>(False);
     bool output_open = True;
     int ntiles = 0;
     state_ = FOOTER;
@@ -52,6 +55,8 @@ void VisRepeater::run ()
     while( control().state() > 0 )  // while in a running state
     {
       HIID id;
+      DataRecord::Ref eventrec;
+      eventrec.detach();
       ObjRef ref;
       int outstat = AppEvent::SUCCESS;
       cdebug(4)<<"looking for data chunk\n";
@@ -73,23 +78,32 @@ void VisRepeater::run ()
               if( state_ != FOOTER )
               {
                 cdebug(2)<<"header interrupts previous data set "<<vdsid_<<endl;
-                postDataEvent(DataSetInterrupt,"unexpected header, interrupting data set");
+                postDataEvent(DataSetInterrupt,"unexpected header, interrupting data set",eventrec);
               }
+              datatype_ = HIID();
+              eventrec <<= new DataRecord;
+              if( ref.valid() )
+              {
+                header_ = ref.copy();
+                eventrec()[AidHeader] <<= ref.copy();
+                if( ref->objectType() == TpDataRecord )
+                {
+                  const DataRecord &rec = *ref.ref_cast<DataRecord>();
+                  datatype_ = rec[FDataType].as<HIID>(HIID());
+                  cdebug(2)<<"header: "<<rec.sdebug(5);
+                }
+              }
+              else
+                header_.detach();
+              state_ = HEADER;
+              event = DataSetHeader;
+              message = "received header for dataset "+id.toString();
+              if( !datatype_.empty() )
+                message += ", " + datatype_.toString();
               control().setStatus(StStreamState,"HEADER");
               control().setStatus(StNumTiles,ntiles=0);
               control().setStatus(StVDSID,vdsid_ = id);
-              state_ = HEADER;
-              event = DataSetHeader;
-              HIID type;
-              if( ref.valid() && ref->objectType() == TpDataRecord )
-              {
-                const DataRecord &rec = *ref.ref_cast<DataRecord>();
-                type = rec[FDataType].as<HIID>(HIID());
-                cdebug(2)<<"header: "<<rec.sdebug(5);
-              }
-              message = "received header for dataset "+id.toString();
-              if( !type.empty() )
-                message += ", " + type.toString();
+              control().setStatus(FDataType,datatype_);
               break;
             }
             case DATA:
@@ -114,6 +128,11 @@ void VisRepeater::run ()
             {
               if( state_ == HEADER || state_ == DATA )
               {
+                eventrec <<= new DataRecord;
+                if( header_.valid() )
+                  eventrec()[AidHeader] <<= header_.copy();
+                if( ref.valid() )
+                  eventrec()[AidFooter] <<= ref.copy();
                 if( id == vdsid_ )
                 {
                   cdebug(2)<<"received FOOTER "<<id<<endl;
@@ -123,12 +142,17 @@ void VisRepeater::run ()
                       id.toString().c_str(),ntiles);
                   control().setStatus(StStreamState,"FOOTER");
                   control().setStatus(StNumTiles,ntiles);
+                  if( auto_pause_ )
+                  {
+                    control().postEvent(AutoPauseNotify,"repeater auto-paused after footer");
+                    control().pause();
+                  }
                 }
                 else
                 {
                   write = False;
                   cdebug(3)<<"FOOTER "<<id<<" does not match dataset "<<vdsid_<<", dropping\n";
-                  postDataEvent(FooterMismatch,"footer id "+id.toString()+" does not match");
+                  postDataEvent(FooterMismatch,"footer id "+id.toString()+" does not match",eventrec);
                 }
               }
               else
@@ -149,7 +173,7 @@ void VisRepeater::run ()
             cdebug(3)<<"writing to output: "<<AtomicID(-intype)<<", id "<<id<<endl;
             outstat = output().put(intype,ref);
             if( !event.empty() )
-              postDataEvent(event,message);
+              postDataEvent(event,message,eventrec);
           }
         }
         else
@@ -164,7 +188,7 @@ void VisRepeater::run ()
         if( outstat == AppEvent::ERROR )
         {
           cdebug(2)<<"error on output: "<<output().stateString()<<endl;
-          postDataEvent(OutputErrorEvent,output().stateString());
+          postDataEvent(OutputErrorEvent,output().stateString(),eventrec);
           control().setState(OUTPUT_ERROR);
           output_open = False;
         }
@@ -174,14 +198,14 @@ void VisRepeater::run ()
           // the output wants a header
           cdebug(2)<<"warning: output stream returned "<<outstat<<endl;
           if( outstat == AppEvent::OUTOFSEQ )
-            postDataEvent(OutputSequenceEvent,"output is out of sequence");
+            postDataEvent(OutputSequenceEvent,"output is out of sequence",eventrec);
         }
       }
       // error on the input stream? terminate the transaction
       if( intype == AppEvent::ERROR )
       {
         cdebug(2)<<"error on input: "<<input().stateString()<<endl;
-        postDataEvent(InputErrorEvent,input().stateString());
+        postDataEvent(InputErrorEvent,input().stateString(),eventrec);
         control().setState(INPUT_ERROR);
         continue;
       }
@@ -189,7 +213,7 @@ void VisRepeater::run ()
       else if( intype == AppEvent::CLOSED )
       {
         cdebug(2)<<"input closed: "<<input().stateString()<<endl;
-        postDataEvent(InputClosedEvent,input().stateString());
+        postDataEvent(InputClosedEvent,input().stateString(),eventrec);
         control().setState(INPUT_CLOSED);
         continue;
       }

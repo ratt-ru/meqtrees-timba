@@ -70,17 +70,17 @@ const int AidOutput_int = -1130;
 #endif
 #ifndef _defined_id_AidRepeater
 #define _defined_id_AidRepeater 1
-const AtomicID AidRepeater(-1306);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:12
+const AtomicID AidRepeater(-1306);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:13
 const int AidRepeater_int = -1306;
 #endif
 #ifndef _defined_id_AidSeq
 #define _defined_id_AidSeq 1
-const AtomicID AidSeq(-1308);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:13
+const AtomicID AidSeq(-1308);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:14
 const int AidSeq_int = -1308;
 #endif
 #ifndef _defined_id_AidSet
 #define _defined_id_AidSet 1
-const AtomicID AidSet(-1381);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:14
+const AtomicID AidSet(-1381);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:15
 const int AidSet_int = -1381;
 #endif
 #ifndef _defined_id_AidState
@@ -90,12 +90,12 @@ const int AidState_int = -1052;
 #endif
 #ifndef _defined_id_AidStream
 #define _defined_id_AidStream 1
-const AtomicID AidStream(-1391);                  // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/VisRepeater.h:12
+const AtomicID AidStream(-1391);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:17
 const int AidStream_int = -1391;
 #endif
 #ifndef _defined_id_AidTiles
 #define _defined_id_AidTiles 1
-const AtomicID AidTiles(-1392);                   // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/VisRepeater.h:12
+const AtomicID AidTiles(-1392);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:18
 const int AidTiles_int = -1392;
 #endif
 #ifndef _defined_id_AidVDSID
@@ -105,7 +105,7 @@ const int AidVDSID_int = -1121;
 #endif
 #ifndef _defined_id_AidVisRepeater
 #define _defined_id_AidVisRepeater 1
-const AtomicID AidVisRepeater(-1310);             // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:15
+const AtomicID AidVisRepeater(-1310);             // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:20
 const int AidVisRepeater_int = -1310;
 #endif
 

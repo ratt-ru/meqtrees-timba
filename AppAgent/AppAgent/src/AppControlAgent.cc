@@ -270,6 +270,10 @@ int AppControlAgent::getCommand (HIID &id,DataRecord::Ref &data, int wait)
     if( isPaused() ) // if paused, force a blocking wait
       wait = AppEvent::BLOCK;
     res = sink().getEvent(id,data,ControlEventMask,wait,source);
+    if( isPaused() )
+    {
+      cdebug(2)<<"paused, and getEvent returns "<<res<<endl;
+    }
     if( res != SUCCESS ) // break out on error
     {
       if( res == CLOSED )

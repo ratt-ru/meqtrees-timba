@@ -10,6 +10,7 @@
 #pragma aid Data Set Header Footer Interrupt Mismatch
     
 #pragma aid Stream State Num Tiles VDSID
+#pragma aid Auto Pause
     
 namespace VisRepeaterVocabulary
 {
@@ -26,10 +27,14 @@ namespace VisRepeaterVocabulary
   } AppStates;
       
   const HIID 
+      // init parameter - pause at 
+      FAutoPause        = AidAuto|AidPause,
+      
       DataSetHeader     = AidData|AidSet|AidHeader,
       DataSetFooter     = AidData|AidSet|AidFooter,
       DataSetInterrupt  = AidData|AidSet|AidInterrupt,
       FooterMismatch    = AidFooter|AidID|AidMismatch,
+      AutoPauseNotify   = AidAuto|AidPause,
       
       StStreamState     = AidStream|AidState,
       StNumTiles        = AidNum|AidTiles,
@@ -50,7 +55,7 @@ class VisRepeater : public VisPipe
     //##ModelId=3E392EE403C8
     virtual string stateString() const;
     
-    void postDataEvent (const HIID &event,const string &msg = "");
+    void postDataEvent (const HIID &event,const string &msg,DataRecord::Ref::Xfer &rec);
     
     //##ModelId=3E3FEB5002A5
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
@@ -67,6 +72,10 @@ class VisRepeater : public VisPipe
     
     int state_;
     HIID vdsid_;
+    
+    ObjRef header_;
+    HIID datatype_;
+    bool auto_pause_;
 };
 
 #endif /* DATAREPEATER_H_HEADER_INCLUDED_BB5EBE76 */
