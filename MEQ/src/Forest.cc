@@ -197,22 +197,28 @@ const Node::Ref & Forest::getRef (int node_index)
 //##ModelId=3F9937F601A5
 const HIID & Forest::assignRequestId (Request &req)
 {
-  if( !last_req_cells.valid() ) // first request ever request?
+  if( !last_req_cells.valid() ) // first request ever?
   {
+    maskSubId(last_req_id,RQIDM_DATASET);
+    incrSubId(last_req_id,RQIDM_DATASET);
     last_req_cells.attach(req.cells()).privatize(DMI::READONLY|DMI::DEEP);
-    last_req_id = HIID(1);
   }
   else
   {
-    // cells do not match lastious request? Update the ID
+    // cells do not match last request? Update the ID
     if( req.cells() != *last_req_cells )
     {
       last_req_cells.attach(req.cells()).privatize(DMI::READONLY|DMI::DEEP);
-      last_req_id[0] = last_req_id[0]+1;
+      incrSubId(last_req_id,RQIDM_DOMAIN);
     }
   }
   req.setId(last_req_id);
   return last_req_id;
+}
+
+void Forest::resetForNewDataSet ()
+{
+  last_req_cells.detach();
 }
 
 int Forest::getNodeList (DataRecord &list,int content)

@@ -208,6 +208,7 @@ int Meq::VisDataMux::deliverHeader (const DataRecord &header)
     nstations = 30;
     cdebug(2)<<"no NumStations parameter in header, assuming 30\n";
   }
+  forest_.resetForNewDataSet();
   handlers_.resize(VisVocabulary::ifrNumber(nstations,nstations)+1);
   // get frequencies 
   if( !header[VisVocabulary::FChannelFreq].get(channel_freqs) ||

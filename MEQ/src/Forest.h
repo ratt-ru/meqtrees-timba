@@ -104,6 +104,9 @@ class Forest
     //## differ from the previous request, otherwise will re-use IDs
     const HIID & assignRequestId (Request &req);
     
+    //## resets request IDs at start of new dataset
+    void resetForNewDataSet ();
+    
     // manage subscriptions to various events
     // "Create" and "Delete" are the only ones known for now
     void addSubscriber    (const HIID &evtype,const EventSlot &slot)

@@ -1073,7 +1073,10 @@ int Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
     resolveChildren(false);
   }
   // process the "State" command: change node state
-  DataRecord::Hook hstate(rec,FState);
+  // since state needs to be writable, attach a ref to record: this will allow it
+  // to be privatized as needed
+  DataRecord::Ref recref(rec);
+  DataRecord::Hook hstate(recref,FState);
   if( hstate.exists() )
   {
     cdebug(4)<<"processCommands("<<FState<<"): calling setState()"<<endl;

@@ -16,8 +16,8 @@ typedef enum
 {
   RQIDM_VALUE       = 0x0001,
   RQIDM_RESOLUTION  = 0x0002,
-  RQIDM_DOMAIN      = 0x0010,
-  RQIDM_DATASET     = 0x0020,
+  RQIDM_DOMAIN      = 0x0004,
+  RQIDM_DATASET     = 0x0008,
   
   RQIDM_NBITS       = 16
 } RequestIdMasks;
