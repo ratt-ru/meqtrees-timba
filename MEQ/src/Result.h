@@ -68,6 +68,10 @@ public:
   const vector<int>& getSpids() const
     { return itsSpids; }
 
+  // Set the spids.
+  void setSpids (const vector<int>& spids)
+    { itsSpids = spids; }
+
   bool isDefined (int spid, int& index) const
   { return (index>=int(itsSpids.size())  ?  false :
 	    spid==itsSpids[index]  ?  index++,true : false); }
