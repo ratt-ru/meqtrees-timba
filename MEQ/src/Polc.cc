@@ -83,7 +83,9 @@ void Polc::evaluate (VellSet &result, const Request& request)
   PERFPROFILE(__PRETTY_FUNCTION__);
   // Find if perturbed values are to be calculated.
   bool makeDiff = itsNrSpid > 0  &&  request.calcDeriv();
-  result.setSpids (itsSpids);
+  if (makeDiff) {
+    result.setSpids (itsSpids);
+  }
   // It is not checked if the domain is valid.
   // In that way any value can be used for the default domain [-1,1].
   // Because the values are calculated for the center of each cell,
