@@ -172,22 +172,22 @@ class QwtPlotImage(QwtPlotMappedItem):
             v = 1.0 * i
             if (v < (vmin + 0.25 * dv)):
               r = 0;
-	      if dv != 0:
+              if dv != 0:
                 g = 4 * (v - vmin) / dv;
             elif (v < (vmin + 0.5 * dv)):
               r = 0;
-	      if dv != 0:
+              if dv != 0:
                 b = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
             elif (v < (vmin + 0.75 * dv)):
-	      if dv != 0:
-                r = 4 * (v - vmin - 0.5 * dv) / dv;
               b = 0;
+              if dv != 0:
+                r = 4 * (v - vmin - 0.5 * dv) / dv;
             else: 
-	      if dv != 0:
+              b = 0;
+              if dv != 0:
                 g = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
-	      else:
-	        r = 0
-              b = 0
+              else:
+                r = 0
             red   = int ( r * 255. )
             green = int ( g * 255. )
             blue  = int ( b * 255. )
@@ -236,13 +236,15 @@ class QwtPlotImage(QwtPlotMappedItem):
     def setData(self, xyzs, xScale = None, yScale = None):
         shape = xyzs.shape
         if xScale:
-            self.xMap = QwtDiMap(0, shape[0], xScale[0], xScale[1])
+#           self.xMap = QwtDiMap(0, shape[0], xScale[0], xScale[1])
+            self.xMap = QwtDiMap(0, shape[0]-1, xScale[0], xScale[1])
             self.plot.setAxisScale(QwtPlot.xBottom, *xScale)
         else:
             self.xMap = QwtDiMap(0, shape[0], 0, shape[0] )
             self.plot.setAxisScale(QwtPlot.xBottom, 0, shape[0])
         if yScale:
-            self.yMap = QwtDiMap(0, shape[1], yScale[0], yScale[1])
+#           self.yMap = QwtDiMap(0, shape[1], yScale[0], yScale[1])
+            self.yMap = QwtDiMap(0, shape[1]-1, yScale[0], yScale[1])
             self.plot.setAxisScale(QwtPlot.yLeft, *yScale)
         else:
             self.yMap = QwtDiMap(0, shape[1], 0, shape[1])
@@ -259,29 +261,39 @@ class QwtPlotImage(QwtPlotMappedItem):
         Calculate (x1, y1, x2, y2) so that it contains at least 1 pixel,
         and copy the visible region to scale it to the canvas.
         """
-#        print 'in drawImage'
+        print 'in drawImage'
+        print 'incoming x map ranges ',xMap.d1(), ' ', xMap.d2()
+        print 'incoming y map ranges ',yMap.d1(), ' ', yMap.d2()
         # calculate y1, y2
         y1 = y2 = self.image.height()
+#        y1 = y2 = self.image.height() - 1
+        print 'starting image height ', y1
         y1 *= (self.yMap.d2() - yMap.d2())
         y1 /= (self.yMap.d2() - self.yMap.d1())
+        print 'float y1 ', y1
         y1 = max(0, int(y1-0.5))
 #        y1 = max(0, (y1-0.5))
         y2 *= (self.yMap.d2() - yMap.d1())
         y2 /= (self.yMap.d2() - self.yMap.d1())
+        print 'float y2 ', y2
         y2 = min(self.image.height(), int(y2+0.5))
 #        y2 = min(self.image.height(), (y2+0.5))
-#        print 'y1, y2 ', y1, ' ', y2
+        print 'y1, y2 ', y1, ' ', y2
         # calculate x1, x1
-        x1 = x2 = self.image.width()
+        x1 = x2 = self.image.width() 
+#        x1 = x2 = self.image.width() - 1
+        print 'starting image width ', x1
         x1 *= (xMap.d1() - self.xMap.d1())
         x1 /= (self.xMap.d2() - self.xMap.d1())
+        print 'float x1 ', x1
         x1 = max(0, int(x1-0.5))
 #        x1 = max(0, (x1-0.5))
         x2 *= (xMap.d2() - self.xMap.d1())
         x2 /= (self.xMap.d2() - self.xMap.d1())
+        print 'float x2 ', x2
         x2 = min(self.image.width(), int(x2+0.5))
 #        x2 = min(self.image.width(), (x2+0.5))
-#        print 'x1, x2 ', x1, ' ', x2
+        print 'x1, x2 ', x1, ' ', x2
         # copy
         image = self.image.copy(x1, y1, x2-x1, y2-y1)
         # zoom
@@ -324,7 +336,6 @@ class QwtImagePlot(QwtPlot):
         self.setTitle('QwtImagePlot: demo')
         self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
         self.setAxisTitle(QwtPlot.yLeft, 'value')
-        # insert a few curves
         
         self.dummy_xCrossSection = None
         self.xCrossSection = None
@@ -347,6 +358,7 @@ class QwtImagePlot(QwtPlot):
         self.connect(self, SIGNAL("legendClicked(long)"), self.toggleCurve)
         self.index = 1
         self.is_vector = False
+
 
 #        self.__initContextMenu()
 
@@ -422,7 +434,7 @@ class QwtImagePlot(QwtPlot):
             self._next_plot[id] = self._label
             self._menu.insertItem(self._label,id)
           if self._vells_rec.vellsets[i].has_key("perturbed_value"):
-	    try:
+            try:
               number_of_perturbed_arrays = len(self._vells_rec.vellsets[i].perturbed_value)
               perturb_index  = perturb_index  + 1
               self._perturb_menu[perturb_index] = QPopupMenu(self._mainwin);
@@ -432,15 +444,16 @@ class QwtImagePlot(QwtPlot):
                 self._label =  "   -> go to plane " + str(i) + key + str(j) 
                 self._next_plot[id] = self._label 
                 self._menu.insertItem(self._label,id)
-	    except:
-	      Message =  'It would appear that there is a problem with perturbed values.\nThey cannot be displayed.'
+            except:
+              Message =  'It would appear that there is a problem with perturbed values.\nThey cannot be displayed.'
               mb_msg = QMessageBox("display_image.py",
-		               Message,
-		               QMessageBox.Warning,
-		               QMessageBox.Ok | QMessageBox.Default,
-		               QMessageBox.NoButton,
-		               QMessageBox.NoButton)
+                               Message,
+                               QMessageBox.Warning,
+                               QMessageBox.Ok | QMessageBox.Default,
+                               QMessageBox.NoButton,
+                               QMessageBox.NoButton)
               mb_msg.exec_loop()
+
         zoom = QAction(self);
         zoom.setIconSet(pixmaps.viewmag.iconset());
         zoom.setText("Disable zoomer");
@@ -491,11 +504,12 @@ class QwtImagePlot(QwtPlot):
           if self._vells_rec.vellsets[plane].value.type() == Complex64:
             complex_type = True;
           self._value_array = self._vells_rec.vellsets[plane].value
-	  array_shape = self._value_array.shape
-	  if len(array_shape) == 1 and array_shape[0] == 1: 
-	    temp_value = self._value_array[0]
+          _dprint(3, 'self._value_array ', self._value_array)
+          array_shape = self._value_array.shape
+          if len(array_shape) == 1 and array_shape[0] == 1:
+            temp_value = self._value_array[0]
             temp_array = numarray.asarray(temp_value)
-	    self._value_array = numarray.resize(temp_array,self._shape)
+            self._value_array = numarray.resize(temp_array,self._shape)
         except:
           temp_array = numarray.asarray(self._vells_rec.vellsets[i].value)
           self._value_array = numarray.resize(temp_array,self._shape)
@@ -556,7 +570,7 @@ class QwtImagePlot(QwtPlot):
         printer.setOrientation(QPrinter.Landscape)
         printer.setColorMode(QPrinter.Color)
         printer.setOutputToFile(True)
-        printer.setOutputFileName('plot-%s.ps' % qVersion())
+        printer.setOutputFileName('image_plot.ps')
         if printer.setup():
             filter = PrintFilter()
             if (QPrinter.GrayScale == printer.colorMode()):
@@ -564,6 +578,7 @@ class QwtImagePlot(QwtPlot):
                                   & ~QwtPlotPrintFilter.PrintCanvasBackground)
             self.printPlot(printer, filter)
     # printplot()
+
 
     def drawCanvasItems(self, painter, rectangle, maps, filter):
         if self.is_vector == False:
@@ -601,14 +616,21 @@ class QwtImagePlot(QwtPlot):
         elif Qt.MidButton == e.button():
             if self._vells_plot:
               print 'cross sections for vells are a work in progress!'
-              return
+#              return
             if self.active_image:
               xpos = e.pos().x()
               ypos = e.pos().y()
+              print 'raw mouse positions ', xpos, ' ', ypos
               xpos = self.invTransform(QwtPlot.xBottom, xpos)
               ypos = self.invTransform(QwtPlot.yLeft, ypos)
-              xpos = int(xpos)
-              ypos = int(ypos)
+              print 'inverted mouse positions ', xpos, ' ', ypos
+              if self._vells_plot:
+                xpos = self.plotImage.xMap.limTransform(xpos)
+                ypos = self.plotImage.yMap.limTransform(ypos)
+              else:
+                xpos = int(xpos)
+                ypos = int(ypos)
+              print 'image mouse positions ', xpos, ' ', ypos
               shape = self.raw_image.shape
               self.x_array = zeros(shape[0], Float32)
               self.x_index = arange(shape[0])
@@ -625,6 +647,9 @@ class QwtImagePlot(QwtPlot):
               self.enableAxis(QwtPlot.yRight)
               self.setAxisTitle(QwtPlot.yRight, 'cross-section value')
               self.setCurveYAxis(self.xCrossSection, QwtPlot.yRight)
+              if self._vells_plot:
+                self.setCurveXAxis(self.xCrossSection, QwtPlot.xTop)
+#                self.setAxisAutoScale(QwtPlot.xTop)
               self.setAxisAutoScale(QwtPlot.yRight)
               self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
               self.replot()
@@ -681,7 +706,8 @@ class QwtImagePlot(QwtPlot):
 
     def display_image(self, image):
       if self._vells_plot:
-#        print ' vells ranges ', self.vells_freq, ' ', self.vells_time
+        print ' vells ranges ', self.vells_freq, ' ', self.vells_time
+        print ' corresponding image shape ', image.shape
         self.plotImage.setData(image, self.vells_freq, self.vells_time)
       else:
         self.plotImage.setData(image)
@@ -845,11 +871,10 @@ class QwtImagePlot(QwtPlot):
 # how many VellSet planes (e.g. I, Q, U, V would each be a plane) are there?
         number_of_planes = len(self._vells_rec["vellsets"])
         _dprint(3, 'number of planes ', number_of_planes)
-# plot the first plane member
         if self._vells_rec.vellsets[0].has_key("shape"):
-	  self._shape = self._vells_rec.vellsets[0]["shape"]
-        if self._vells_rec.vellsets[0].has_key("value"):
           self._shape = self._vells_rec.vellsets[0]["shape"]
+# plot the first plane member
+        if self._vells_rec.vellsets[0].has_key("value"):
           key = " value "
           complex_type = False;
 # test if we have a numarray
@@ -859,11 +884,13 @@ class QwtImagePlot(QwtPlot):
             if self._vells_rec.vellsets[0].value.type() == Complex64:
               complex_type = True;
             self._value_array = self._vells_rec.vellsets[0].value
-	    array_shape = self._value_array.shape
-	    if len(array_shape) == 1 and array_shape[0] == 1: 
-	      temp_value = self._value_array[0]
+            _dprint(3, 'self._value_array ', self._value_array)
+            array_shape = self._value_array.shape
+            if len(array_shape) == 1 and array_shape[0] == 1:
+              temp_value = self._value_array[0]
               temp_array = numarray.asarray(temp_value)
-	      self._value_array = numarray.resize(temp_array,self._shape)
+              self._value_array = numarray.resize(temp_array,self._shape)
+
           except:
             temp_array = numarray.asarray(self._vells_rec.vellsets[0].value)
             self._shape = self._vells_rec.vellsets[0]["shape"]
@@ -938,6 +965,14 @@ class QwtImagePlot(QwtPlot):
 # test if we have a 2-D array
       if self.is_vector == False:
         self.active_image = True
+
+# create colorbar
+#        scale = self.axis(QwtPlot.yLeft)
+#        scale.setBaselineDist(10)
+#        self.colorBar = ColorBar(Qt.Vertical, scale)
+#        self.colorBar.setRange(Qt.red, Qt.darkBlue)
+#        self.colorBar.setFocusPolicy(QWidget.TabFocus)
+
 #        self.setAxisAutoScale(QwtPlot.xBottom)
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if complex_type and self._display_type != "brentjens":
