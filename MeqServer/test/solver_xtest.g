@@ -78,11 +78,14 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
   # stages 0 and 1: create forest
   if( stage != 2 )
   {
-    cc := [ a1=1,b1=1,a2=1,b2=-1,noisefreq=10,noiselevel=.1 ];
+    cc := [ a1=1,b1=1,a2=1,b2=-1 ]; 
     cc.c1 := cc.a1*x0 + cc.b1*y0;
     cc.c2 := cc.a2*x0 + cc.b2*y0;
     for( f in field_names(cc) )
       mqs.meq('Create.Node',meq.parm(f,meq.polc(array([cc[f],1e-8,1e-8,0],2,2))));
+    cc1 := [ noisefreq=10,noiselevel=.1 ];      
+    for( f in field_names(cc1) )
+      mqs.meq('Create.Node',meq.parm(f,meq.polc(cc1[f])));
     mqs.meq('Create.Node',meq.node('MeqMultiply','a1x',children="a1 x"));
     mqs.meq('Create.Node',meq.node('MeqMultiply','a2x',children="a2 x"));
     mqs.meq('Create.Node',meq.node('MeqMultiply','b1y',children="b1 y"));
