@@ -589,7 +589,11 @@ const DataRecord & VellSet::getFail (int i) const
 void VellSet::show (std::ostream& os) const
 {
   if( isFail() )
-    os << "FAIL" << endl;
+  {
+    const DataField & fails = (*this)[FFail];
+    for( int i=0; i<fails.size(); i++ )
+      os << "FAIL: " << fails[i][FMessage].as<string>() <<endl;
+  }
   else
   {
     os << "Value" << *value_;

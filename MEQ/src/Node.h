@@ -81,7 +81,8 @@ class Node : public BlockableObject
   
     //##ModelId=3F698825005B
     //##Documentation
-    //## These are flags returned by execute(), indicating result properties
+    //## These are flags returned by execute(), and processCommands(),
+    //## indicating result properties.
     //## The lower RQIDM_NBITS (currently 16) bits are reserved for request 
     //## dependency masks; see RequestId.h for details.
     //## Note that the meaning of the bits is chosen so that the flags of
@@ -89,9 +90,11 @@ class Node : public BlockableObject
     //## flags, plus any flags added by the node itself.
     typedef enum 
     {
-      // Result is volatile (i.e. may change even if the request doesn't) and
-      // thus should never be taken from cache
-      RES_VOLATILE     = 0x01<<RQIDM_NBITS,  
+      // Result should not be cached, either because it is volatile (i.e. may 
+      // change even if the request doesn't), or because node state has changed.
+      // In always-cache mode, we may still cache it (for debugging), but never
+      // use such a cache!
+      RES_NO_CACHE     = 0x01<<RQIDM_NBITS,  
       // Result has been updated (as opposed to pulled from the node's cache)
       RES_UPDATED      = 0x02<<RQIDM_NBITS,  
       // Result not yet available, must wait. This flag may be combined
@@ -393,7 +396,8 @@ class Node : public BlockableObject
     //## called to process request rider commands, if any. This is allowed
     //## to modify the request object, a ref is passed in to facilitate COW
     //## (since the request is normally received as read-only)
-    virtual void processCommands (const DataRecord &rec,Request::Ref &reqref);
+    //##
+    virtual int processCommands (const DataRecord &rec,Request::Ref &reqref);
 
     //##ModelId=400E531702FD
     //##Documentation
@@ -609,7 +613,7 @@ class Node : public BlockableObject
     //## processes the request rider, and calls processCommand() as appropriate.
     //## The request object may be modified; a ref is passed in to facilitate
     //## copy-on-write
-    void processRequestRider (Request::Ref &reqref);
+    int processRequestRider (Request::Ref &reqref);
     
     //##ModelId=400E530A0143
     //##Documentation
@@ -718,6 +722,9 @@ class Node : public BlockableObject
     //##Documentation
     //## container of child node indices
     NestableContainer::Ref child_indices_;
+    
+    // flag: children have been resolved
+    bool children_resolved_;
     
     //##Documentation
     //## auto-resample mode for child results

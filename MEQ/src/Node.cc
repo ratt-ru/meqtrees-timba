@@ -680,8 +680,10 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
     return false;
   // Do the request Ids match? Return cached result then
   // (note that an empty reqid never matches, hence it can be used to 
-  // always force a recalculation)
-  if( !current_reqid_.empty() && cache_result_.valid() && 
+  // always force a recalculation; also a cached NO_CACHE code always
+  // forces a mismatch)
+  if( !(cache_retcode_&RES_NO_CACHE) &&
+      !current_reqid_.empty() && cache_result_.valid() && 
       maskedCompare(req.id(),current_reqid_,cache_retcode_) )
   {
     ref.copy(cache_result_,DMI::PRESERVE_RW);
@@ -697,6 +699,8 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
 //##ModelId=400E531C0200
 int Node::cacheResult (const Result::Ref &ref,int retcode)
 {
+  // clear the updated flag from cached results
+  retcode &= ~RES_UPDATED;
   // for now, always cache, since we don't implement any other policy
   // NB: perhaps fails should be marked separately?
   cache_result_.copy(ref);
@@ -930,7 +934,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
 } 
 
 // process Node-specific commands
-void Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
+int Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
 {
   bool generate_symdeps = false;
   // process the Resolve.Children command: call resolve children
@@ -995,6 +999,8 @@ void Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
         hook = iter->second;
     }
   }
+  // should never cache a processCommand() result
+  return RES_NO_CACHE;
 }
 
 //##ModelId=3F6726C4039D
@@ -1033,18 +1039,22 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       setCurrentRequest(req0);
       // check for request riders
       if( req0.hasRider() )
-        processRequestRider(reqref);
+        retcode = processRequestRider(reqref);
     } // endif( newreq )
     // in case processRequestRider modified the request, work with the new
     // request object from now on
     const Request &req = *reqref;
+    // clear the retcode if the request has cells, children code + getResult() 
+    // will be considered the real result
+    if( req.hasCells() )
+      retcode = 0;
     // Pass request on to children and accumulate their results
     std::vector<Result::Ref> child_results(numChildren());
     Cells::Ref rescells;
     if( numChildren() )
     {
       stage = "polling children";
-      retcode = pollChildren(child_results,ref,req);
+      retcode |= pollChildren(child_results,ref,req);
       // a WAIT from any child is returned immediately w/o a result
       if( retcode&RES_WAIT )
         return retcode;

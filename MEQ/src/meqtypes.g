@@ -55,15 +55,6 @@ const meq.domain_ndim := function ()
 const meq.domain_axes := function ()
 { return "freq time"; }
 
-#-- meq.requestid() -------------------------------------------------------------
-# Creates a request ID
-
-const meq.requestid := function(domain_id,config_id=0,iter_id=0)
-{ 
-  return hiid(domain_id,config_id,iter_id);
-}
-
-
 #-- meq.node() -------------------------------------------------------------
 # Creates a basic defrec for a node
 
@@ -324,6 +315,58 @@ const meq_private.make_cmd_rec := function (node,command,value=T)
   return cmd;
 }
 
+# This maps request ID components onto positions in the request ID and bits
+# in the depmask (starting from ID end = bit 0).
+# The default settings here should correspond to MEQ/RequestId.h.
+# Note that some applications may redefine the mappings (see symdeps),
+# in which case they just have to provide their own.
+const meq._rqid_mapping := [ value=1,resolution=2,domain=5,dataset=6 ];
+const meq._rqid_maxlen := 16;
+
+#-- meq.rqid() -------------------------------------------------------------
+# Creates a request ID
+# With no arguments, creates a null ID
+const meq.rqid := function(domain=-1,dataset=0,resolution=0,value=0,
+                           mapping=meq._rqid_mapping)
+{ 
+  if( domain<0 )
+    return hiid('');
+  # create array of indices and insert arguments at appropriate positions
+  rqid := array(0,meq._rqid_maxlen);
+  n := len(rqid)+1;
+  rqid[n-mapping.domain] := domain;
+  rqid[n-mapping.dataset] := dataset;
+  rqid[n-mapping.resolution] := resolution;
+  rqid[n-mapping.value] := value;
+  # find first non-zero element
+  i0 := 1;
+  while( !rqid[i0] && i0<len(rqid) )
+    i0+:=1;
+  s := as_string(rqid[i0]);
+  while( i0<len(rqid) )
+    s := spaste(s,'.',rqid[i0+:=1]);
+  # create hiid
+  return hiid(s);
+}
+
+#-- meq.request() -------------------------------------------------------------
+# creates a request
+const meq.request := function (cells=F,rqid=F,calc_deriv=0)
+{
+  global _meqdomain_id;
+  # if no request ID supplied, generate one by incrementing the
+  # global domain ID. 
+  if( is_boolean(rqid) )
+    rqid := meq.rqid(_meqdomain_id+:=1);
+  req := [ request_id=hiid(rqid),
+           calc_deriv=as_integer(calc_deriv) ];
+  if( !is_boolean(cells) )
+    req.cells := cells;
+  req::dmi_actual_type := 'MeqRequest';
+  
+  return ref req;
+}
+
 #-- meq.node_spec() -------------------------------------------------------------
 # given a 'node' argument, adds it to spec record as 'name' or 'nodeindex',
 # depending on type. This is a common paradigm for specifying nodes.
@@ -338,26 +381,6 @@ const meq.node_spec := function (node,ref spec=[=])
   else 
     fail 'node must be specified by index or name';
   return ref spec;
-}
-
-#-- meq.request() -------------------------------------------------------------
-# creates a request
-const meq.request := function (cells=F,request_id=F,calc_deriv=0)
-{
-  global _meqdomain_id;
-  # if no request ID supplied, generate one by incrementing the
-  # global domain ID. 
-  if( is_boolean(request_id) )
-    request_id := meq.requestid(_meqdomain_id+:=1);
-  else  # else, setup global domain ID from the one given in the request ID
-    _meqdomain_id := as_integer(as_string(request_id) ~ s/\..*$//);
-  req := [ request_id=hiid(request_id),
-           calc_deriv=as_integer(calc_deriv) ];
-  if( !is_boolean(cells) )
-    req.cells := cells;
-  req::dmi_actual_type := 'MeqRequest';
-  
-  return ref req;
 }
 
 #-- meq.add_command() -------------------------------------------------------------

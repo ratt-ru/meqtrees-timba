@@ -33,14 +33,15 @@ namespace Meq {
 
 using Debug::ssprintf;
     
-void Node::processRequestRider (Request::Ref &reqref) 
+int Node::processRequestRider (Request::Ref &reqref) 
 {
   // since processCommands() is allowed to modify the request
   // (thus invoking copy-on-write), hold on to the old request in this ref 
   Request::Ref oldreq(reqref,DMI::COPYREF|DMI::READONLY);
   const Request &req = *reqref;
   if( !req.hasRider() )
-    return;
+    return 0;
+  int retcode = 0;
   cdebug(3)<<"  processing request rider"<<endl;
   const DataRecord &rider = req[FRider].as<DataRecord>();
   for( uint i=0; i<node_groups_.size(); i++ )
@@ -56,7 +57,7 @@ void Node::processRequestRider (Request::Ref &reqref)
         if( hlist.exists() )
         {
           cdebug(4)<<"    found "<<FCommandAll<<", calling processCommands()"<<endl;
-          processCommands(hlist.as<DataRecord>(),reqref);
+          retcode |= processCommands(hlist.as<DataRecord>(),reqref);
         }
       }
       // process command_by_list (pattern matching list)
@@ -93,7 +94,7 @@ void Node::processRequestRider (Request::Ref &reqref)
             if( matched )
             {
               cdebug(4)<<"        node matched, calling processCommands()"<<endl;
-              processCommands(entry,reqref);
+              retcode |= processCommands(entry,reqref);
             }
           }
           if( !matched ) {
@@ -107,11 +108,12 @@ void Node::processRequestRider (Request::Ref &reqref)
         if( hlist.exists() && hlist[nodeIndex()].exists() )
         {
           cdebug(4)<<"    found "<<FCommandByNodeIndex<<"["<<nodeIndex()<<"], calling processCommands()"<<endl;
-          processCommands(hlist.as<DataRecord>(),reqref);
+          retcode |= processCommands(hlist.as<DataRecord>(),reqref);
         }
       }
     }
   }
+  return retcode;
 }
 
 template<class Container,class Subcontainer>
