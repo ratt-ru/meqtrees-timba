@@ -32,7 +32,6 @@
 #include <ostream>
 
 #pragma aidgroup Meq
-#pragma aid Domain Nfreq Times TimeSteps
 #pragma types #Meq::Cells
 
 namespace Meq {

@@ -30,7 +30,6 @@
 #include <vector>
     
 #pragma aidgroup Meq
-#pragma aid Node Class Name State Child Children Request Result Rider Id
 #pragma types #Meq::Node
 
 namespace Meq {
@@ -143,11 +142,8 @@ class Node : public BlockableObject
     // helper function for nodes with multiple children:
     //  1. allocates vector for child ResultSets
     //  2. calls getResult() on all children
-    //  3. if none have failed, returns the bitwise OR of all flags
-    //  4. if one has failed, produces a fail-ResultSet and copies over all
-    //     fail records from all failed children, and returns RES_FAIL
+    //  3. returns the bitwise OR of all non-failed flags
     int getChildResults (std::vector<ResultSet::Ref> &childref,
-                         ResultSet::Ref &resref,
                          const Request& request);
         
   private:

@@ -26,6 +26,8 @@
 
 namespace Meq {
 
+using Debug::ssprintf;
+
 Function::Function()
 {}
 
@@ -97,9 +99,11 @@ bool Function::convertChildren (const vector<HIID>& childNames, int nchild)
 void Function::testChildren (int nchild) const
 {
   if (nchild > 0) {
-    Assert (numChildren() == nchild);
+    FailWhen(numChildren()!=nchild,
+        Debug::ssprintf("node has %d children, requires %d",numChildren(),nchild));
   } else if (nchild < 0) {
-    Assert (numChildren() > -nchild);
+    FailWhen(numChildren() <= -nchild,
+        Debug::ssprintf("node has %d children, requires at least %d",numChildren(),-nchild+1));
   }
 }
 
@@ -116,61 +120,92 @@ void Function::testChildren (const vector<TypeId>& types) const
 int Function::getResultImpl (ResultSet::Ref &resref, const Request& request, bool)
 {
   int nrch = itsChildren.size();
-  FailWhen( nrch<=0,"no children" );
+  FailWhen(nrch<=0,"node has no children" );
   vector<ResultSet::Ref> child_results;
   // collect child_results from children
-  int flag = getChildResults(child_results,resref,request);
-  // return a fail immediately
-  if( flag == Node::RES_FAIL )
-    return RES_FAIL;
-  // return flag is at least one child wants to wait
-  if (flag & Node::RES_WAIT) 
+  int flag = getChildResults(child_results,request);
+  // return flag is at least one child wants to wait. If all children have 
+  // failed, continue anyway: fails will be collected below.
+  if( flag != Node::RES_FAIL && flag&Node::RES_WAIT) 
     return flag;
-  // Check that number of child planes is the same
+  // figure out the number of child planes
   int nplanes = child_results[0]->numResults();
   for( int i=1; i<nrch; i++ )
-  {
-    FailWhen(child_results[i]->numResults()!=nplanes,
-        "mismatch in sizes of child result sets");
-  }
-  // Create result object and attach to the ref that was passed in
-  ResultSet & resultset = resref <<= new ResultSet(nplanes);
-  resultset.setCells(request.cells());
+    nplanes = std::max(nplanes,child_results[i]->numResults());
+  // Create result set and attach to the ref that was passed in
+  ResultSet & resultset = resref <<= new ResultSet(request,nplanes);
+//  resultset.setCells(request.cells());
   vector<Result*> child_res(nrch);
-  for( int iplane=0; iplane<nplanes; iplane++ )
+  vector<Vells*>  values(nrch);
+  int nfails = 0;
+  for( int iplane = 0; iplane < nplanes; iplane++ )
   {
-    // collect vector of pointers to children, and vector
-    // of pointers to main value
-    vector<Vells*> values(nrch);
+    // initialize result for this plane
+    Result &result = resultset.setNewResult(iplane);
+    // collect vector of pointers to child results, and vector of pointers 
+    // to main value. If some child is out of results, generate a fail. If 
+    // any child results are fails, collect them for propagation
     for( int i=0; i<nrch; i++ )
     {
-      child_res[i] = &(child_results[i]().result(iplane));
-      values[i] = &(child_res[i]->getValueRW());
-    }
-    // Find all spids from the children.
-    vector<int> spids = findSpids(child_res);
-    // allocate new result object with given number of spids, add to set
-    Result &result = resultset.setNewResult(iplane,spids.size());
-    // Evaluate the main value.
-    LoShape shape = resultShape(values);
-    result.setValue(evaluate(request,shape,values));
-    // Evaluate all perturbed values.
-    vector<Vells*> perts(nrch);
-    vector<int> indices(nrch, 0);
-    for (unsigned int j=0; j<spids.size(); j++) 
-    {
-      perts = values;
-      for (int i=0; i<nrch; i++) 
+      if( iplane >= child_results[i]->numResults() )
       {
-        int inx = child_res[i]->isDefined (spids[j], indices[i]);
-        if (inx >= 0) {
-	        perts[i] = &(child_res[i]->getPerturbedValueRW(inx));
+        MakeFailResult(result,ssprintf("child %d: not enough result planes",child_results[i]->numResults()));
+      }
+      else 
+      {
+        child_res[i] = &(child_results[i]().result(iplane));
+        if( child_res[i]->isFail() ) 
+        { // collect fails from child result
+          for( int j=0; j<child_res[i]->numFails(); j++ )
+            result.addFail(&child_res[i]->getFail(j));
+        }
+        else
+          values[i] = &(child_res[i]->getValueRW());
+      }
+    }
+    // continue evaluation only if no fails popped up
+    if( !result.isFail() )
+    {
+      // catch exceptions during evaluation and stuff them into fails
+      try
+      {
+        // Find all spids from the children.
+        vector<int> spids = findSpids(child_res);
+        // allocate new result object with given number of spids, add to set
+        result.setSpids(spids);
+        // Evaluate the main value.
+        LoShape shape = resultShape(values);
+        result.setValue(evaluate(request,shape,values));
+        // Evaluate all perturbed values.
+        vector<Vells*> perts(nrch);
+        vector<int> indices(nrch, 0);
+        for (unsigned int j=0; j<spids.size(); j++) 
+        {
+          perts = values;
+          for (int i=0; i<nrch; i++) 
+          {
+            int inx = child_res[i]->isDefined (spids[j], indices[i]);
+            if (inx >= 0) {
+	            perts[i] = &(child_res[i]->getPerturbedValueRW(inx));
+            }
+          }
+          result.setPerturbedValue(j,evaluate(request,shape,values));
         }
       }
-      result.setPerturbedValue(j,evaluate(request,shape,values));
+      catch( std::exception &x )
+      {
+        MakeFailResult(result,
+            string("exception occurred while evaluating a Function node getResult: ")
+            + x.what());
+      }
     }
-    result.setSpids (spids);
+    // count the # of fails
+    if( result.isFail() )
+      nfails++;
   }
+  // return RES_FAIL is all planes have failed
+  if( nfails == nplanes )
+    return RES_FAIL;
   return flag;
 }
 

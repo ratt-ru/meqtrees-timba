@@ -1,6 +1,6 @@
 SUBDIRS	= .
 
-DOCHDRS		 	= 			\
+DOCHDRS		 	= MeqVocabulary.h \
 Domain.h Cells.h Vells.h Result.h ResultSet.h Polc.h \
 Node.h Function.h Function1.h Function2.h \
 Parm.h Freq.h Time.h Selector.h Composer.h \

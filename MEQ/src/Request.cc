@@ -20,16 +20,12 @@
 //#
 //# $Id$
 
-#include <MEQ/Request.h>
+#include "Request.h"
+#include "MeqVocabulary.h"
 
 namespace Meq {
 
 static NestableContainer::Register reg(TpMeqRequest,True);
-
-const HIID FRequestId = AidRequest|AidId,
-           FCells     = AidCells,
-           FCalcDeriv = AidCalc|AidDeriv,
-           FRider     = AidRider;
 
 Request::Request()
     : itsCalcDeriv(False),itsCells(0)

@@ -28,7 +28,6 @@
 #include <DMI/DataRecord.h>
 
 #pragma aidgroup Meq
-#pragma aid Cells Request Id Calc Deriv Rider
 #pragma types #Meq::Request
 
 // This class represents a request for which an expression has to be

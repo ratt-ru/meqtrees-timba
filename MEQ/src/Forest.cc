@@ -21,7 +21,7 @@
 //#  $Id$
 
 #include "Forest.h"
-#include "AID-Meq.h"
+#include "MeqVocabulary.h"
 #include <DMI/DynamicTypeManager.h>
     
 // pull in registry
@@ -49,7 +49,7 @@ const Node::Ref & Forest::create (int &node_index,DataRecord::Ref::Xfer &initrec
   // get class from initrec and try to construct a node of that class
   try
   {
-    classname = (*initrec)[AidClass].as<string>("");
+    classname = (*initrec)[FClass].as<string>("");
     FailWhen( !classname.length(),"missing or invalid Class field in init record"); 
     BlockableObject * pbp = DynamicTypeManager::construct(TypeId(classname));
     FailWhen(!pbp,"construct failed");

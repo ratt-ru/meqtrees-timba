@@ -21,7 +21,8 @@
 //# $Id$
 
 
-#include <MEQ/Result.h>
+#include "Result.h"
+#include "MeqVocabulary.h"
 #include <DMI/HIID.h>
 #include <DMI/DataArray.h>
 #include <DMI/DataField.h>
@@ -29,12 +30,6 @@
 namespace Meq {
 
 static NestableContainer::Register reg(TpMeqResult,True);
-
-const HIID FValue           = AidValue,
-           FSpids           = AidSpid|AidIndex,
-           FPerturbedValues = AidPerturbed|AidValue,
-           FPerturbations   = AidPerturbations;
-//           FParmValue       = AidParm|AidValue;
 
 int Result::nctor = 0;
 int Result::ndtor = 0;
@@ -46,11 +41,11 @@ Result::Result (int nspid)
   itsPerturbedValues (nspid),
   itsPerturbations   (0),
   itsSpids           (0),
-  itsNumSpids        (nspid)
+  itsNumSpids        (nspid),
+  itsIsFail          (false)
 {
   nctor++;
-  // create appropriate fields in the record:
-  //    spids vector
+  // create appropriate fields in the record: spids vector and perturbations vector
   if( itsNumSpids )
   {
     DataField *pdf = new DataField(Tpint,nspid);
@@ -69,7 +64,8 @@ Result::Result (const DataRecord &other,int flags,int depth)
   itsDefPert         (0.),
   itsPerturbedValues (0),
   itsPerturbations   (0),
-  itsSpids           (0)
+  itsSpids           (0),
+  itsIsFail          (false)
 {
   nctor++;
   validateContent();
@@ -119,36 +115,44 @@ void Result::validateContent ()
   // indeed writable. Setup shortcuts to their contents
   try
   {
-    // get value, if it exists in the data record
-    itsValue <<= makeVells(*this,FValue);
-    // get pointer to spids vector and its size
-    if( (*this)[FSpids].exists() )
+    if( DataRecord::hasField(FFail) ) // a fail result
     {
-      itsSpids = (*this)[FSpids].as_p<int>(itsNumSpids);
-      int size;
-      // get pointer to perturbations vector, verify size
-      itsPerturbations = (*this)[FPerturbations].as_p<double>(size);
-      FailWhen(size!=itsNumSpids,"size mismatch between spids and perturbations");
-      // get perturbations, if they exist
-      itsPerturbedValues.resize(itsNumSpids);
-      if( (*this)[FPerturbedValues].exists() )
+      itsIsFail = true;
+    }
+    else
+    {
+      itsIsFail = false;
+      // get value, if it exists in the data record
+      itsValue <<= makeVells(*this,FValue);
+      // get pointer to spids vector and its size
+      if( DataRecord::hasField(FSpids) )
       {
-        perturbed_ref = (*this)[FPerturbedValues].ref(DMI::PRESERVE_RW);
-        FailWhen(perturbed_ref->size(TpDataArray) != itsNumSpids,
-              "size mismatch between spids and perturbed values");
-        // setup shortcuts to perturbation vells
-        // use different versions for writable/non-writable
-        if( perturbed_ref.isWritable() )
+        itsSpids = (*this)[FSpids].as_p<int>(itsNumSpids);
+        int size;
+        // get pointer to perturbations vector, verify size
+        itsPerturbations = (*this)[FPerturbations].as_p<double>(size);
+        FailWhen(size!=itsNumSpids,"size mismatch between spids and perturbations");
+        // get perturbations, if they exist
+        itsPerturbedValues.resize(itsNumSpids);
+        if( DataRecord::hasField(FPerturbedValues) )
         {
-          for( int i=0; i<itsNumSpids; i++ )
-            itsPerturbedValues[i] <<=
-                makeVells(perturbed_ref(),AtomicID(i));
-        }
-        else
-        {
-          for( int i=0; i<itsNumSpids; i++ )
-            itsPerturbedValues[i] <<=
-                makeVells(*perturbed_ref,AtomicID(i));
+          perturbed_ref = (*this)[FPerturbedValues].ref(DMI::PRESERVE_RW);
+          FailWhen(perturbed_ref->size(TpDataArray) != itsNumSpids,
+                "size mismatch between spids and perturbed values");
+          // setup shortcuts to perturbation vells
+          // use different versions for writable/non-writable
+          if( perturbed_ref.isWritable() )
+          {
+            for( int i=0; i<itsNumSpids; i++ )
+              itsPerturbedValues[i] <<=
+                  makeVells(perturbed_ref(),AtomicID(i));
+          }
+          else
+          {
+            for( int i=0; i<itsNumSpids; i++ )
+              itsPerturbedValues[i] <<=
+                  makeVells(*perturbed_ref,AtomicID(i));
+          }
         }
       }
     }
@@ -173,14 +177,25 @@ void Result::clear()
   itsPerturbedValues.resize(0);
   perturbed_ref.detach();
   itsValue.detach();
+  itsIsFail = false;
 }
 
 void Result::setSpids (const vector<int>& spids)
 {
-  FailWhen(spids.size() != uint(itsNumSpids),"setSpids: vector size mismatch" );
+  FailWhen(itsNumSpids && spids.size() != uint(itsNumSpids),"setSpids: vector size mismatch" );
   FailWhen(!isWritable(),"r/w access violation");
-  if( itsNumSpids )
+  if( itsNumSpids ) // assigning to existing vector
     (*this)[FSpids] = spids;
+  else // setting new vector
+  {
+    DataField *pdf = new DataField(Tpint,spids.size(),DMI::WRITE,&spids[0]);
+    DataRecord::add(FSpids,pdf,DMI::ANONWR);
+    itsSpids = (*pdf)[HIID()].as_wp<int>();
+    //    perturbations vector
+    pdf = new DataField(Tpdouble,spids.size());
+    DataRecord::add(FPerturbations,pdf,DMI::ANONWR);
+    itsPerturbations = (*pdf)[HIID()].as_wp<double>();
+  }
 }
 
 void Result::setPerturbation (int i, double value)
@@ -221,16 +236,73 @@ Vells & Result::setPerturbedValue (int i,Vells *pvells)
   return *pvells;
 }
 
+void Result::addFail (const DataRecord *rec,int flags)
+{
+  FailWhen(!isWritable(),"r/w access violation");
+  clear();
+  itsIsFail = true;
+  // clear out the DR
+  DataRecord::removeField(FValue,true);
+  DataRecord::removeField(FSpids,true);
+  DataRecord::removeField(FPerturbations,true);
+  DataRecord::removeField(FPerturbedValues,true);
+  // get address of fail field (create it as necessary)
+  DataField *fails;
+  if( DataRecord::hasField(FFail) )
+  {
+    fails = &(*this)[FFail];
+    // add record to fail field
+    fails->put(fails->size(),rec,(flags&~DMI::WRITE)|DMI::READONLY);
+  }
+  else
+  {
+    DataRecord::add(FFail,fails = new DataField(TpDataRecord,1),DMI::ANONWR);
+    // add record to fail field
+    fails->put(0,rec,(flags&~DMI::WRITE)|DMI::READONLY);
+  }
+}
+
+void Result::addFail (const string &nodename,const string &classname,
+                      const string &origin,int origin_line,const string &msg)
+{
+  DataRecord::Ref ref;
+  DataRecord & rec = ref <<= new DataRecord;
+  // populate the fail record
+  rec[FNodeName] = nodename;
+  rec[FClassName] = classname;
+  rec[FOrigin] = origin;
+  rec[FOriginLine] = origin_line;
+  rec[FMessage] = msg;
+  addFail(&rec);
+}
+
+int Result::numFails () const
+{
+  return (*this)[FFail].size();
+}
+  
+const DataRecord & Result::getFail (int i) const
+{
+  return (*this)[FFail][i].as<DataRecord>();
+}
+
+
+
 void Result::show (std::ostream& os) const
 {
-  os << "Value: " << *itsValue << endl;
-  for( uint i=0; i<itsPerturbedValues.size(); i++) 
+  if( isFail() )
+    os << "FAIL" << endl;
+  else
   {
-    os << "deriv parm " << itsSpids[i]
-       << " with " << itsPerturbations[i] << endl;
-    os << "   " << (*(itsPerturbedValues[i]) - *itsValue) << endl;
-    os << "   " << (*(itsPerturbedValues[i]) - *itsValue) /
-      Vells(itsPerturbations[i]) << endl;
+    os << "Value: " << *itsValue << endl;
+    for( uint i=0; i<itsPerturbedValues.size(); i++) 
+    {
+      os << "deriv parm " << itsSpids[i]
+         << " with " << itsPerturbations[i] << endl;
+      os << "   " << (*(itsPerturbedValues[i]) - *itsValue) << endl;
+      os << "   " << (*(itsPerturbedValues[i]) - *itsValue) /
+        Vells(itsPerturbations[i]) << endl;
+    }
   }
 }
 

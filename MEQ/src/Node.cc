@@ -22,6 +22,7 @@
 
 #include "Node.h"
 #include "Forest.h"
+#include "MeqVocabulary.h"
 #include <DMI/BlockSet.h>
 #include <DMI/DataRecord.h>
 #include <DMI/DataField.h>
@@ -111,15 +112,15 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   staterec_ = initrec;
   staterec_.privatize(DMI::WRITE|DMI::DEEP);
   // extract node name
-  myname_ = (*staterec_)[AidName].as<string>("");
+  myname_ = (*staterec_)[FName].as<string>("");
   cdebug(1)<<"initializing MeqNode "<<myname_<<endl;
   // setup child nodes, if specified
-  if( state()[AidChildren].exists() )
+  if( state()[FChildren].exists() )
   {
     // children specified via a record
-    if( state()[AidChildren].containerType() == TpDataRecord )
+    if( state()[FChildren].containerType() == TpDataRecord )
     {
-      DataRecord &childrec = wstate()[AidChildren].as_wr<DataRecord>();
+      DataRecord &childrec = wstate()[FChildren].as_wr<DataRecord>();
       // iterate through children record and create the child nodes
       DataRecord::Iterator iter = childrec.initFieldIter();
       HIID id;
@@ -127,15 +128,15 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
       while( childrec.getFieldIter(iter,id,child_ref) )
         processChildSpec(childrec,id);
     }
-    else if( state()[AidChildren].containerType() == TpDataField )
+    else if( state()[FChildren].containerType() == TpDataField )
     {
-      DataField &childrec = wstate()[AidChildren].as_wr<DataField>();
+      DataField &childrec = wstate()[FChildren].as_wr<DataField>();
       for( int i=0; i<childrec.size(); i++ )
         processChildSpec(childrec,AtomicID(i));
     }
-    else if( state()[AidChildren].containerType() == TpDataArray )
+    else if( state()[FChildren].containerType() == TpDataArray )
     {
-      DataArray &childarr = wstate()[AidChildren].as_wr<DataArray>();
+      DataArray &childarr = wstate()[FChildren].as_wr<DataArray>();
       FailWhen(childarr.rank()!=1,"illegal child array");
       for( int i=0; i<childarr.shape()[0]; i++ )
         processChildSpec(childarr,AtomicID(i));
@@ -225,13 +226,13 @@ void Node::setState (const DataRecord &rec)
 {
   // copy relevant fields from new record
   // the only relevant one at this level is Name
-  if( rec[AidName].exists() )
-    staterec_()[AidName] = myname_ = rec[AidName].as<string>();
+  if( rec[FName].exists() )
+    staterec_()[FName] = myname_ = rec[FName].as<string>();
 }
 
 void Node::setCurrentRequest (const Request &req)
 {
-  wstate()[AidRequest|AidId] = current_req_id_ = req.id();
+  wstate()[FRequestId] = current_req_id_ = req.id();
 }
 
 //##ModelId=3F6726C4039D
@@ -246,15 +247,15 @@ int Node::getResult (ResultSet::Ref &ref, const Request &req)
     {
       cdebug(3)<<"  new request, clearing cache"<<endl;
       // clear cache
-      wstate()[AidResult].remove(); 
+      wstate()[FResult].remove(); 
       res_cache_.detach();
       // change to the current request
       setCurrentRequest(req);
       // do we have a rider record? process it
-      if( req[AidRider].exists() )
+      if( req[FRider].exists() )
       {
         cdebug(3)<<"  processing request rider"<<endl;
-        const DataRecord &rider = req[AidRider];
+        const DataRecord &rider = req[FRider];
         processRequestRider(rider);
         // process rider stuff common to all nodes (setState, etc.)
         // ...
@@ -277,15 +278,23 @@ int Node::getResult (ResultSet::Ref &ref, const Request &req)
     }
     // new request and/or no cache -- recompute the result
     int flags = getResultImpl(ref,req,newreq);
+    // add cells if not there
+    if( ref.valid() && !ref->hasCells() )
+      ref().setCells(req.cells());
     cdebug(3)<<"  getResultImpl returns flags: "<<flags<<endl;
     cdebug(3)<<"  result is: "<<ref.sdebug(DebugLevel-1,"    ")<<endl;
     if( DebugLevel>3 && ref.valid() )
     {
-      if( ref->isFail() ) {
-        cdebug(4)<<"  result is marked as FAIL"<<endl;
-      } else {
-        for( int i=0; i<ref->numResults(); i++ ) {
-          cdebug(4)<<"  plane "<<i<<": "<<ref->resultConst(i).getValue()<<endl;
+      for( int i=0; i<ref->numResults(); i++ ) 
+      {
+        const Result &res = ref->resultConst(i);
+        if( res.isFail() )
+        {
+          cdebug(4)<<"  plane "<<i<<": FAIL "<<endl;
+        }
+        else
+        {
+          cdebug(4)<<"  plane "<<i<<": "<<res.getValue()<< endl;
         }
       }
     }
@@ -293,15 +302,16 @@ int Node::getResult (ResultSet::Ref &ref, const Request &req)
     if( flags != RES_FAIL && !(flags&RES_WAIT) )
     {
       res_cache_.copy(ref,DMI::PRESERVE_RW);
-      wstate()[AidResult] <<= *ref; 
+      wstate()[FResult] <<= *ref; 
     }
     return flags;
   }
-  // catch any exceptions, return a FAIL
+  // catch any exceptions, return a single FAIL
   catch( std::exception &x )
   {
-    ref <<= new ResultSet(-1);
-    MakeFailResult(ref(),string("exception occurred in getResult: ")+x.what());
+    ref <<= new ResultSet(1);
+    Result & res = ref().setNewResult(0);
+    MakeFailResult(res,string("exception occurred in getResult: ")+x.what());
     return RES_FAIL;
   }
 }
@@ -320,37 +330,22 @@ int Node::getResultImpl (ResultSet::Ref &, const Request &,bool)
 
 
 int Node::getChildResults (std::vector<ResultSet::Ref> &childref,
-                           ResultSet::Ref &resref,
                            const Request& request)
 {
   childref.resize(numChildren());
   int resflag=0;
-  int have_fail=False;
+  int nfails=0;
   // collect results from children
   for( int i=0; i<numChildren(); i++ )
   {
     int flag = getChild(i).getResult(childref[i],request);
     if( flag == RES_FAIL )
-      have_fail = True;
+      nfails++;
     else
       resflag |= flag;
   }
-  // have a fail? Collect fails from children into output ResultSet
-  if( have_fail )
-  {
-    ResultSet &result = resref <<= new ResultSet(-1); // -1 means a fail-set
-    // collect fails from failed children
-    for( uint i=0; i<childref.size(); i++ )
-    {
-      const ResultSet &childres = *childref[i];
-      if( childres.isFail() )
-      {
-        for( int j=0; j<childres.numFails(); j++ )
-          result.addFail(&childres.getFail(j),DMI::READONLY);
-      }
-    }
+  if( nfails == numChildren() )
     return RES_FAIL;
-  }
   return resflag;
 }
 

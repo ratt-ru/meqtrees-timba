@@ -22,7 +22,8 @@
 
 
 //# Includes
-#include <MEQ/Cells.h>
+#include "Cells.h"
+#include "MeqVocabulary.h"
 #include <DMI/DataArray.h>
 
 namespace Meq {
@@ -83,18 +84,18 @@ void Cells::validateContent ()
 {
   try
   {
-    if( (*this)[AidTimes].exists() )
-      itsTimes.reference((*this)[AidTimes].as<LoVec_double>());
+    if( (*this)[FTimes].exists() )
+      itsTimes.reference((*this)[FTimes].as<LoVec_double>());
     else
       itsTimes.resize(0);
-    if( (*this)[AidTimeSteps].exists() )
-      itsTimeSteps.reference((*this)[AidTimeSteps].as<LoVec_double>());
+    if( (*this)[FTimeSteps].exists() )
+      itsTimeSteps.reference((*this)[FTimeSteps].as<LoVec_double>());
     else
       itsTimeSteps.resize(0);
-    itsNfreq = (*this)[AidNfreq].as<int>(0);
-    if( (*this)[AidDomain].exists() )
+    itsNfreq = (*this)[FNumFreq].as<int>(0);
+    if( (*this)[FDomain].exists() )
     {
-      itsDomain = (*this)[AidDomain].as_p<Domain>();
+      itsDomain = (*this)[FDomain].as_p<Domain>();
       itsFreqStep  = (itsDomain->endFreq() - itsDomain->startFreq()) / itsNfreq;
     }
     else
@@ -146,12 +147,12 @@ void Cells::setDataRecord (const Domain& domain,int nfreq,int ntimes)
 {
   Assert (ntimes > 0  &&  nfreq > 0);
   itsDomain = new Domain(domain);
-  (*this)[AidDomain] <<= static_cast<const DataField*>(itsDomain);
-  (*this)[AidNfreq] = itsNfreq = nfreq;
-  (*this)[AidTimes] <<= new DataArray(Tpdouble,LoShape(ntimes));
-  itsTimes.reference((*this)[AidTimes].as<LoVec_double>());
-  (*this)[AidTimeSteps] <<= new DataArray(Tpdouble,LoShape(ntimes));
-  itsTimeSteps.reference((*this)[AidTimeSteps].as<LoVec_double>());
+  (*this)[FDomain] <<= static_cast<const DataField*>(itsDomain);
+  (*this)[FNumFreq] = itsNfreq = nfreq;
+  (*this)[FTimes] <<= new DataArray(Tpdouble,LoShape(ntimes));
+  itsTimes.reference((*this)[FTimes].as<LoVec_double>());
+  (*this)[FTimeSteps] <<= new DataArray(Tpdouble,LoShape(ntimes));
+  itsTimeSteps.reference((*this)[FTimeSteps].as<LoVec_double>());
 }
 
 } // namespace Meq
