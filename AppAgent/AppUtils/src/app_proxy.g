@@ -1,4 +1,33 @@
+###  app_proxy.g: application proxy class
+###
+###  Copyright (C) 2002-2003
+###  ASTRON (Netherlands Foundation for Research in Astronomy)
+###  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+###
+###  This program is free software; you can redistribute it and/or modify
+###  it under the terms of the GNU General Public License as published by
+###  the Free Software Foundation; either version 2 of the License, or
+###  (at your option) any later version.
+###
+###  This program is distributed in the hope that it will be useful,
+###  but WITHOUT ANY WARRANTY; without even the implied warranty of
+###  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+###  GNU General Public License for more details.
+###
+###  You should have received a copy of the GNU General Public License
+###  along with this program; if not, write to the Free Software
+###  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+###
+###  $Id$
 pragma include once
+
+# print software version
+if( has_field(lofar_software,'print_versions') &&
+    lofar_software.print_versions )
+{
+  print '$Id$';
+}
+
 include 'widgetserver.g'
 include 'octopussy.g'
 include 'recutil.g'
@@ -14,12 +43,9 @@ const start_octopussy := function(server,options="")
   global default_octopussy;
   if( is_boolean(default_octopussy) )
   {
-    default_octopussy := octopussy(server,options);
+    default_octopussy := octopussy(server,options,verbose=4);
     if( is_fail(default_octopussy) )
-    {
-      print 'fatal error: octopussy startup failed';
-      fail 'octopussy startup failed';
-    }
+      fail default_octopussy;
     default_octopussy.start();
   }
   return ref default_octopussy;

@@ -17848,7 +17848,7 @@
 				    parameters 	(list Parameters
 					(object Parameter "frst"
 					    quid       	"3F9FF71B0077"
-					    type       	"MEQ::Forest &"))
+					    type       	"Meq::Forest &"))
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
 				    uid        	0)
@@ -17939,7 +17939,16 @@
 				    exportControl 	"Public")
 				(object ClassAttribute "handlers_"
 				    quid       	"3F98DAE60247"
-				    type       	"std::vector<VisHandlerList>"))
+				    type       	"std::vector<VisHandlerList>")
+				(object ClassAttribute "out_columns_"
+				    quid       	"3FAA52A6008E"
+				    type       	"std::vector<int>")
+				(object ClassAttribute "out_colnames_"
+				    quid       	"3FAA52A6014F"
+				    type       	"std::vector<string>")
+				(object ClassAttribute "out_format_"
+				    quid       	"3FAA52A6018C"
+				    type       	"VisTile::Format::Ref"))
 			    module     	"Component View::AppAgent"
 			    quidu      	"3DF9FDED0011"
 			    language   	"ANSI C++"
@@ -18105,9 +18114,9 @@
 			(object Association "$UNNAMED$94"
 			    quid       	"3F9FF71B004D"
 			    roles      	(list role_list
-				(object Role "forest_: MEQ::Forest &"
+				(object Role "forest_:Meq::Forest &"
 				    quid       	"3F9FF71B004E"
-				    label      	"forest_: MEQ::Forest &"
+				    label      	"forest_:Meq::Forest &"
 				    supplier   	"Logical View::Meq::Forest"
 				    quidu      	"3F5F21740281"
 				    Containment 	"By Value"
@@ -18856,7 +18865,7 @@
 					icon_style 	"Icon"
 					fill_color 	13434879
 					anchor     	2
-					nlines     	12
+					nlines     	15
 					max_width  	957)
 				    width      	1018
 				    height     	931
