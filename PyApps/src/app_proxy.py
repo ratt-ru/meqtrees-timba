@@ -170,7 +170,7 @@ class app_proxy (verbosity):
       self.paused = value.paused;
       self.statestr = value.state_string;
     # update_status: update our status record
-    elif event[:3] == 'app.update.status':
+    elif event.startswith('app.update.status'):
       for f in value.field_names():
         self.status[f] = value[f];
       self.dprint(5,'new status record',self.status);

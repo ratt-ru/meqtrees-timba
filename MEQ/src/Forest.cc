@@ -243,9 +243,10 @@ int Forest::getNodeList (DataRecord &list,int content)
         if( lchildren )
         {
           DataRecord::Hook hook(node.state(),FChildren);
-          if( hook.type() == TpDataField )
+          TypeId tp = hook.type();
+          if( tp == TpDataField || tp == Tpint )
             lchildren->addBack(hook.as_p<DataField>());
-          else if( hook.type() == TpDataRecord )
+          else if( tp == TpDataRecord )
             lchildren->addBack(hook.as_p<DataRecord>());
           else
             lchildren->addBack(new DataField,DMI::ANONWR);

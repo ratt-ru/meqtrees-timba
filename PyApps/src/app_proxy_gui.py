@@ -366,8 +366,12 @@ class app_proxy_gui(verbosity,QMainWindow):
           break;
     # add to event log (if enabled)
     self.eventlog.add(str(ev),value,Logger.Event);
+    # strip off index from end of event
+    ev0 = ev;
+    if int(ev0[-1]) >= 0:
+      ev0 = ev0[:-1];
     # execute procedures from the custom map
-    for handler in self._ce_handler_map.get(ev,()):
+    for handler in self._ce_handler_map.get(ev0,()):
       handler(ev,value);
     # print 'customEvent returning';
     
@@ -378,11 +382,6 @@ class app_proxy_gui(verbosity,QMainWindow):
   def ce_UpdateState (self,ev,value):
     self._update_app_state();
     
-  customEventMap = { 
-    hiid("hello"):            (ce_Hello,ce_UpdateState),
-    hiid("bye"):              (ce_Bye,ce_UpdateState),
-    hiid("app.notify.state"): (ce_UpdateState,)                };
-  
 ##### updates status bar based on app state 
   StatePixmaps = { None: pixmaps.cancel };
   StatePixmap_Default = pixmaps.check;

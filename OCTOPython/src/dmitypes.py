@@ -41,6 +41,9 @@ class hiid (tuple):
   # matches() function matches hiids
   def matches (self,other):
     return octopython.hiid_matches(self,make_hiid(other));
+  def startswith (self,other):
+    other = make_hiid(other);
+    return self[:len(other)] == other;
   # concatenation with '+' must return a hiid
   def __add__ (self,other):
     return hiid(self,other);
@@ -52,6 +55,12 @@ class hiid (tuple):
   # as_str converts to string
   def as_str (self,sep='.'):
     return octopython.hiid_to_str(self,sep);
+  # as_int converts to int
+  def as_int (self):
+    if len(self) > 1:
+      raise TypeError,"can't convert multiple-element hiid to int";
+    return int(tuple.__getitem__(self,0));
+  __int__ = as_int;
 
 def type_maker(objtype,**kwargs):
   def maker(x):

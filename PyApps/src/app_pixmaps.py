@@ -126,6 +126,30 @@ pause_normal = QPixmapWrapper(["22 15 4 1",
                        "                      " ]);
 
 
+refresh = QPixmapWrapper([ "16 16 7 1",
+                   "  c #000000",
+                   ". c #00FF00",
+                   "X c None",
+                   "o c #00C000",
+                   "O c #008000",
+                   "+ c #004000",
+                   "@ c None",
+                   "XXXXXX     XXXXX",
+                   "XXXX  .oo  + XXX",
+                   "XXX .ooO XX   XX",
+                   "XXX ooO XXXXX XX",
+                   "XX .oO XXXXXXX X",
+                   "XX ooO XXXXXXXXX",
+                   " ..ooooO XX  XXX",
+                   "X .oooO XX    XX",
+                   "XX .oO XX      X",
+                   "XXX O XX        ",
+                   "XXXX XXXXX    XX",
+                   "X XXXXXXXX    XX",
+                   "XX XXXXXX    XXX",
+                   "XX   XX      XXX",
+                   "XXX         XXXX",
+                   "XXXXX     XXXXXX"  ]);
 
 
 

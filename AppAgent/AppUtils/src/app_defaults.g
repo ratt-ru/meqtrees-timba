@@ -62,6 +62,7 @@ if( use_valgrind )
   options := [options,"valgrind"];
 if( use_gui )
   options := [options,"gui"];
+  include_gui := True;
 if( len(options) )
   print '=======        Run-time options:',options;
 print '======= Default verbosity level:',default_verbosity;
