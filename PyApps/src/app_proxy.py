@@ -89,20 +89,19 @@ class app_proxy (verbosity):
     if gui:
       if not app_defaults.include_gui:
         raise ValueError,'gui=True but app_defaults.include_gui=False';
-      self.dprint(1,'initializing gui');
       # gui argument can be a callable object (called to start the gui),
       # or simply True to use a standard GUI.
       if callable(gui):
-        self._gui = gui(self,verbose=self.get_verbose());
+        self._gui = gui;
       else:
-        self._gui = app_proxy_gui.app_proxy_gui(self,verbose=self.get_verbose());
+        self._gui = app_proxy_gui.app_proxy_gui;
     else:     
       self._gui = None;
     # start the wp messaging thread
     self._pwp.start();
     
-  # message handler to start a GUI
-  def _start_gui (self):
+  # message handler to actually construct an application's GUI
+  def _construct_gui (self):
     self.dprint(2,"start_gui called, starting the GUI");
     self._gui = self._gui(self,verbose=self.get_verbose());
     
@@ -280,6 +279,7 @@ class app_proxy (verbosity):
     if not app_defaults.include_gui:
       raise RuntimeError,"Can't call run_gui without gui support";
     self._gui.await_exit();
+    self._pwp.stop();
     
 def _run_gui_target (appclass,*args,**kwargs):
   print 'running',appclass;

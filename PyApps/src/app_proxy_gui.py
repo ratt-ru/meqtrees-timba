@@ -66,7 +66,9 @@ class RecordBrowser (object):
     elif isinstance(content,message):
       item._content = {};
       for k in filter(lambda x:not x.startswith('_'),dir(content)):
-        item._content[k] = getattr(content,k);
+        attr = getattr(content,k);
+        if not callable(attr):
+          item._content[k] = attr;
     else:
       item._content = {"":content};
   
@@ -277,10 +279,10 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.app_thread.start();  # start application thread
     
   # whenever handler -- reposts everything as a Qt custom event for ourselves
-  CustomEventType = QEvent.User+1;
+  MessageEventType = QEvent.User+1;
   def _event_relay (self,msg):
 #    print 'eventRelay: ',msg;
-    MainApp.postEvent(self,QCustomEvent(self.CustomEventType,msg));
+    MainApp.postEvent(self,QCustomEvent(self.MessageEventType,msg));
 #    print 'eventRelay returning';
     
   # event handlers for octopussy messages
@@ -317,8 +319,28 @@ class app_proxy_gui(verbosity,QMainWindow):
     MainAppThread.join();
   await_exit = staticmethod(await_exit);  
 
-_mainapp_started = False;
-_mainapp_waitcond = qt_threading.Condition();
+class MainAppClass (QApplication):
+  _started = False;
+  _waitcond = qt_threading.Condition();
+  def __init__ (self):
+    if _started:
+      raise "Only one MainApp may be started";
+    QApplication.__init__(sys.argv);
+    self.connect(self,SIGNAL("lastWindowClosed()"),self,SLOT("quit()"));
+    initPixmaps();
+    # notify all waiters
+    self._waitcond.acquire();
+    self._started = True;
+    self._waitcond.notifyAll();
+    self._waitcond.release();
+    
+  
+  CallableEventType = QEvent.User+2;
+  def customEvent(self,ev):
+    if ev.type() == self.CallableEventType:
+      (func,args,kwargs) = ev.data();
+      func(*args,**kwargs);
+  
 
 def _run_mainapp_thread ():
   global MainApp,_mainapp_started,_mainapp_waitcond;
