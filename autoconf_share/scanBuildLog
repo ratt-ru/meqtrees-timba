@@ -550,13 +550,13 @@ def main(argv):
   #
   htmlFile.write("<tr>\n<th> </th>\n")
   for entry in variantPackageArray:
-    htmlFile.write("<th>"+entry[0]+"</th>\n")
+    htmlFile.write("<th align=left>"+entry[0]+"</th>\n")
   htmlFile.write("</tr>\n")
 
 
 
   for package in allBuildablePackages:
-    htmlFile.write("<tr>\n<th>\n"+package+"</th>\n")
+    htmlFile.write("<tr>\n<th align=left>\n"+package+"</th>\n")
 
     #
     # Look if this Package was also build in one of the variants
