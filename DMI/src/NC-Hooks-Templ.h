@@ -57,10 +57,10 @@ void NestableContainer::Hook::operator = (const blitz::Array<T,N> &other) const
 // helper function to assign sequences of non-arrayable types
 // -----------------------------------------------------------------------
 template<class T,class Iter> 
-void NestableContainer::Hook::assign_sequence (Iter begin,Iter end,Type2Type<T>) const
+void NestableContainer::Hook::assign_sequence(uint size,Iter begin,Iter end,Type2Type<T>) const
 { 
   const int tid = DMITypeTraits<T>::typeId;
-  T * ptr = static_cast<T*>( prepare_vector(tid,other.size()) ); 
+  T * ptr = static_cast<T*>( prepare_vector(tid,size) ); 
   for( ; begin != end; begin++ )
     *ptr++ = *begin; 
 }

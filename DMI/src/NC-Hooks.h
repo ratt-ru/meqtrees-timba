@@ -157,11 +157,11 @@ protected:
 //  void assign_arrayable (const std::vector<T> &other) const;
 // Templated function implements operator = (vector<T>) for other types
 template<class T,class Iter> 
-void assign_sequence (Iter begin,Iter end,Type2Type<T>) const;
+void assign_sequence (uint size,Iter begin,Iter end,Type2Type<T>) const;
 // helper template to select which vector assignment operation to use
 template<class T>
 void assign_vector_select (const std::vector<T> &other,Int2Type<false>) const
-{ assign_sequence(other.begin(),other.end(),Type2Type<T>()); }
+{ assign_sequence(other.size(),other.begin(),other.end(),Type2Type<T>()); }
 template<class T>
 void assign_vector_select (const std::vector<T> &other,Int2Type<true>) const
 { assign_arrayable(other.size(),other.begin(),other.end(),Type2Type<T>()); }
