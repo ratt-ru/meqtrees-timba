@@ -25,3 +25,4 @@ class ArrayPlotter(ArrayBrowser,BrowserPlugin):
 
 
 gridded_workspace.registerViewer(array_class,ArrayPlotter,priority=-10);
+

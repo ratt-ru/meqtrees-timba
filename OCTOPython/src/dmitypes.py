@@ -117,7 +117,7 @@ def dmize_object (obj):
       outlist.append(dmize_object(item));
     # convert resulting list back into original sequence type
     return seqtype(outlist);
-  raise TypeError,'dmi: type %s not supported'%type(item);
+  raise TypeError,'dmi: type %s not supported'%type(obj);
 
 
 # === class conv_error ===
@@ -181,7 +181,7 @@ class record (dict):
     try:   key = self.make_key(name);
     except ValueError,info: raise AttributeError,info;
     try:   return dict.__getitem__(self,key);
-    except KeyError: raise KeyError,"no such field: "+str(key);
+    except KeyError: raise AttributeError,"no such field: "+str(key);
   # __setattr__: sets entry in dict
   def __setattr__(self,name,value):
     if name.startswith('__'):
@@ -360,7 +360,7 @@ def is_scalar (x):
 dmi_type_map = { bool:'bool', int:'int', long:'long', float:'double',
                  complex:'dcomplex', str:'string', hiid:'HIID',
                  array_class:'DataArray', 
-                 record:'DataRecord', 
+                 record:'DataRecord',srecord:'DataRecord', 
                  message:'Message' };
 
 # tuple of python types supported by DMI                 

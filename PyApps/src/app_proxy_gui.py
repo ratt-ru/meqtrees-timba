@@ -12,6 +12,8 @@ from gridded_workspace import *
 from app_browsers import *
 import weakref
 import re
+import imp
+import sets
 
 MainApp = None;
 MainAppThread = None;
@@ -19,6 +21,28 @@ MainAppThread = None;
 dmirepr = dmi_repr.dmi_repr();
 
 _MessageCategories = {};
+
+# Reloads GUI modules on the fly
+# Does not work reliably, so:
+_reloading_enabled = False;
+
+_reloadables = sets.Set([ __name__,'app_pixmaps','dmi_repr','app_browsers','gridded_workspace','array_plotter']);
+def reloadableModule (name):
+  _reloadables.add(name);
+
+def reloadAllModules ():
+  imp.acquire_lock();
+  try:
+    for name in _reloadables:
+      try:
+        info = imp.find_module(name);
+      except ImportError,what:
+        print 'skipping module',name,':',what;
+      else:
+        print 'reloading module:',info[1];
+        imp.load_module(*((name,)+info));
+  finally:
+    imp.release_lock();
 
 def defaultFont ():
   global _def_font;
@@ -327,32 +351,36 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.eventtab.addTab(self.eventlog.wtop(),"*");
     self.connect(self.eventlog.wtop(),PYSIGNAL("maskChanged()"),self._change_eventlog_mask);
     
-    #------ status bar
+    #------ status bar, pause button
     self.statusbar = self.statusBar();
     self.pause_button = QToolButton(self.statusbar);
-#    self.pause_button = QToolButton(self.statusbar);
+    # self.pause_button.setAutoRaise(True);
     self.status_label = QLabel(self.statusbar);
     self.status_icon  = QLabel(self.statusbar);
     self.status_icon.setFrameStyle(QFrame.NoFrame);
     self.status_icon.setMinimumWidth(20);
     self.status_icon.setMaximumWidth(20);
     self.status_icon.setAlignment(QLabel.AlignVCenter|QLabel.AlignHCenter);
-    # self.status_icon.setFrameStyle(QFrame.NoFrame);
-    self.statusbar.addWidget(self.pause_button,0,True);
-    self.statusbar.addWidget(self.status_icon);
-    self.statusbar.addWidget(self.status_label);
                  
-    #------ pause button
-#    self.pause_button = QToolButton(self.maintab);
     self.pause_button.setIconSet(pixmaps.pause_normal.iconset());
     QToolTip.add(self.pause_button,"pause the application");
-#    self.pause_button.setAutoRaise(True);
-#    self.pause_button.setMinimumWidth(35);
-#    self.pause_button.setMaximumWidth(35);
     self.pause_button.setDisabled(True);
-    # self.pause_button.setToggleButton(True);
     self.connect(self.pause_button,SIGNAL("clicked()"),self._press_pause);
     self.pause_requested = None;
+    
+    #------ reload button
+    if _reloading_enabled:
+      reloadbtn = QToolButton(self.statusbar);
+      reloadbtn.setIconSet(pixmaps.reload_slick.iconset());
+      QToolTip.add(reloadbtn,"reload Python modules");
+      self.connect(reloadbtn,SIGNAL("clicked()"),reloadAllModules);
+    
+    # self.status_icon.setFrameStyle(QFrame.NoFrame);
+    self.statusbar.addWidget(self.pause_button,0,True);
+    if _reloading_enabled:
+      self.statusbar.addWidget(reloadbtn,0,True);
+    self.statusbar.addWidget(self.status_icon);
+    self.statusbar.addWidget(self.status_label);
     
     #------ gridded workspace
     self.gw = gw = GriddedWorkspace(splitter,max_nx=4,max_ny=4);

@@ -50,8 +50,8 @@ class HierBrowser (object):
   MaxExpDict     = 100;
   
   class Item (QListViewItem):
-    def __init__(self,parent,key,value,udi_key=None,udi=None,strfunc=None,prec=None,
-                 name=None,desc=''):
+    def __init__(self,parent,key,value,udi_key=None,udi=None,strfunc=None,
+                 prec=None,name=None,desc=''):
 #      print args;
       # insert item at end of parent's content list (if any)
       parent_content = getattr(parent,'_content_list',None);
@@ -70,7 +70,8 @@ class HierBrowser (object):
       self._prec_menu = None;
       # is udi directly specified?
       if udi:
-        self._udi = self._udi_key = udi;
+        self._udi = udi;
+        self._udi_key = udi_key or udi;
       else:
         # else generate udi key if none is specified
         if udi_key is id:
@@ -93,11 +94,25 @@ class HierBrowser (object):
       # other state
       self._curries  = [];
       
+    def set_udi (self,udi):
+      self.listView()._content_map[udi] = self;
+      self._udi = udi;
+      
     # caches content in an item: marks as expandable, ensures content is a dict
     # if viewable is None, decides if content is viewable based on its type
     # else, must be True or False to specify viewability explicitly
-    def cache_content(self,content,viewable=None,viewopts={}):
+    def cache_content(self,content,viewable=None,viewopts={},make_data=None):
       self.setExpandable(True);
+      # if already have content, remove it (remove all children)
+      try: delattr(self,'_content');
+      except: pass;
+      try: delattr(self,'_content_list');
+      except: pass;
+      i1 = self.firstChild(); 
+      while i1:
+        inext = i1.nextSibling();
+        self.takeItem(i1);
+        i1 = inext;
       # convert all content to dict
       if isinstance(content,(dict,list,tuple,array_class)):
         self._content = content;
@@ -119,6 +134,8 @@ class HierBrowser (object):
         self._viewopts = viewopts;
         self.setPixmap(1,pixmaps.magnify.pm());
         self.setDragEnabled(True);
+      # set the make_data property
+      self._make_data = make_data;
         
     # helper static method to expand content into Items record 
     # note that we make this a static method because 'item' may in fact be
@@ -178,6 +195,9 @@ class HierBrowser (object):
       self.expand_content(self,self._content);
 
     def make_data_item (self,viewer=None,viewopts={}):
+      make_data = getattr(self,'_make_data',None);
+      if callable(make_data):
+        return make_data(viewer=None,viewopts={});
       # return item only if viewable, has udi and contents
       if self._content is not None and self._udi and self._viewable: 
         vo = getattr(self,'_viewopts',{});
@@ -415,6 +435,18 @@ class HierBrowser (object):
     # call recursive helper on listview
     _set_open_items_impl(self._lv,openspec);
     
+  def change_item_content (self,item,content,keepopen=True,**kwargs):
+    """changes content of an item. If keepopen=True and item was open,
+    attempts to preserve open structure""";
+    openitems = None;
+    if item.isOpen():
+      openitems = (keepopen and self.get_open_items()) or None;
+      item.setOpen(False);
+    print openitems;
+    item.cache_content(content,**kwargs);
+    if openitems:
+      self.set_open_items(openitems);
+    
 class BrowserPlugin (object):
   _icon = pixmaps.magnify;  # default icon
   def icon (_class):
@@ -441,11 +473,8 @@ class RecordBrowser(HierBrowser,BrowserPlugin):
       self.set_data(dataitem);
   
   def set_data (self,dataitem,default_open=None,**opts):
-    # save currenty open tree
-    if self._rec is not None:
-      openitems = self.get_open_items();
-    else: # no data, use default open tree if specified
-      openitems = default_open or self._default_open;
+    # save currenty open tree, if nothing is open, try to use default
+    openitems = self.get_open_items() or default_open or self._default_open;
     # clear everything and reset data as new
     self.clear();
     self.set_udi_root(dataitem.udi);
@@ -557,4 +586,9 @@ gridded_workspace.registerViewer(dict,ResultBrowser,dmitype='meqresult',priority
 gridded_workspace.registerViewer(array_class,ArrayBrowser,priority=-5);
 
 # import the array plotter plug-in
-import array_plotter
+try:
+  __import__('array_plotter',globals(),locals(),[]);
+except ImportError,what:
+  print 'error importing array_plotter module:',what;
+  print 'Array Plotter will not be available.';
+

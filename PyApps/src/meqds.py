@@ -7,6 +7,7 @@ import weakref
 import types
 import new
 import sets
+import re
 
 class _meqnode_nodeclass(record):
   pass;
@@ -15,12 +16,13 @@ _NodeClassDict = { 'meqnode':_meqnode_nodeclass };
 
 # this function returns (creating as needed) the "Node class" class object
 # for a given classname
-def NodeClass(nodeclass=None):
+def NodeClass (nodeclass=None):
   global _NodeClassDict;
   if nodeclass is None:
     return _meqnode_nodeclass;
   elif not isinstance(nodeclass,str):
     nodeclass = getattr(nodeclass,'classname',None) or getattr(nodeclass,'class');
+  nodeclass = nodeclass.lower();
   cls = _NodeClassDict.get(nodeclass,None);
   if cls is None:
     cls = _NodeClassDict[nodeclass] = new.classobj(nodeclass,(_meqnode_nodeclass,),{});
@@ -120,13 +122,26 @@ class NodeList (object):
   is_valid_meqnodelist = staticmethod(is_valid_meqnodelist);
 
 # creates a UDI from a node record or node index or node name
-def node_udi (node):
+def node_udi (node,suffix=None):
   try: (name,index) = (node.name,node.nodeindex);
   except AttributeError,KeyError: 
     node = nodelist[node];
     (name,index) = (node.name,node.nodeindex);
-  return "/nodestate/%s#%d"%(name,index);
+  udi = "/node/%s#%d"%(name,index);
+  if suffix:
+    udi += "/" + suffix;
+  return udi;
 
+_patt_Udi_NodeState = re.compile("^/node/([^#/]*)(#[0-9]+)?$");
+def parse_node_udi (udi):
+  match = _patt_Udi_NodeState.match(udi);
+  if match is None:
+    return (None,None);
+  (name,ni) = match.groups();
+  if ni is not None:
+    ni = int(ni[1:]);
+  return (name,ni);
+  
 def set_meqserver (mqs1):
   global mqs;
   mqs = weakref.proxy(mqs1);
@@ -167,12 +182,16 @@ def subscribe_node_state (node,callback,weak=False):
   node_subscribers.setdefault(node.nodeindex,sets.Set()).add(callback);
 
 def request_node_state (node):
-  if not isinstance(node,record):
-    node = nodelist[node];
+  if isinstance(node,int):
+    ni = node;
+  elif isinstance(node,str):
+    ni = nodelist[node].nodeindex;
+  else:    
+    ni = node.nodeindex;
   mqs1 = mqs or mqs();
   if mqs1 is None:
     raise RuntimeError,"meqserver not initialized or not running";
-  mqs.meq('Node.Get.State',srecord(nodeindex=node.nodeindex),wait=False);
+  mqs.meq('Node.Get.State',srecord(nodeindex=ni),wait=False);
   
 def update_node_state (node,event):
   callbacks = node_subscribers.get(node.nodeindex,());

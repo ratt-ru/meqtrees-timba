@@ -173,7 +173,9 @@ class GridDataItem (object):
     viewer:   If None, a viewer will be selected from among the registered
               viewers for the data type. Otherwise, provide a callable 
               viewer plug-in. See registerViewer() for details.
-    viewopts: dict of extra viewer options.
+    viewopts: dict (of dicts) of viewer options. 
+              viewopts[None]         applies to all viewers,
+              viewopts[viewer_class] applies to a specific class (overrides [None])
     """;
     if self.refresh and not callable(self.refresh):
       raise ValueError,'refresh argument must be a callable';
@@ -435,13 +437,11 @@ class GridCell (object):
     
   MaxDescLen = 40;
 
-  def set_data_item (self,dataitem,pin=None,viewopts={},viewer=None):
+  def set_data_item (self,dataitem,pin=None,viewer=None):
     if not self.is_empty():
       self.wipe();
     dataitem.attach_cell(self);
     self._dataitem = dataitem;
-    self._viewopts = dataitem.viewopts.copy();
-    self._viewopts.update(viewopts);
     self._label.setText(dataitem.name);
     desc = dataitem.desc;
     # trim desc to reasonable length
@@ -478,7 +478,7 @@ class GridCell (object):
     self._wstack.show();
     self._wtop.show();
     
-  def change_viewer (self,viewer_class,dum=None):
+  def change_viewer (self,viewer_class,dum=None,viewopts={}):
              # note: dum argument is needed to make this function callable
              # from popupMenu(), since that passes an extra arg 
     # remove old viewer
@@ -502,11 +502,16 @@ class GridCell (object):
       self._menu.setItemEnabled(self._m_viewers,True);
     else:
       self._menu.setItemEnabled(self._m_viewers,False);
-
+    # build dict of extra viewer options
+    vopts = viewopts.copy();
+    vopts.update(self._dataitem.viewopts.get(None,{}));
+    for (vclass,vo) in self._dataitem.viewopts.iteritems():
+      if vclass and issubclass(viewer_class,vclass):
+        vopts.update(vo);
     # create a viewer, add data if specified
     self._viewer_class = viewer_class;
     self._viewer = viewer = viewer_class(self.wtop(),dataitem=self._dataitem,
-          context_menu=self._menu,**self._viewopts);
+          context_menu=self._menu,**vopts);
     widget = viewer.wtop();
     # connect displayDataItem() signal from viewer to be resent from top widget
     QWidget.connect(widget,PYSIGNAL("displayDataItem()"),
@@ -520,12 +525,10 @@ class GridCell (object):
     except AttributeError: icon = pixmaps.magnify.iconset();
     self._iconbutton.setIconSet(icon);
     
-  def update_data (self,dataitem,viewopts={},flash=True):
+  def update_data (self,dataitem,flash=True):
     if self._viewer:
-      kw = self._viewopts.copy();
-      kw.update(viewopts);
       self._dataitem = dataitem;
-      self._viewer.set_data(dataitem,**kw);
+      self._viewer.set_data(dataitem);
     self.enable();
     # flash the refresh button, if it's visible
     if flash:

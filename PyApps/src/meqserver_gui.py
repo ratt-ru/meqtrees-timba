@@ -39,29 +39,35 @@ from app_browsers import *
 # ---------------------------------------------------------------------------
 
 class NodeBrowser(HierBrowser,BrowserPlugin):
-  _icon = pixmaps.view_tree;
+  _icon = pixmaps.treeviewoblique;
   viewer_name = "Node Browser";
   
   def __init__(self,parent,dataitem=None,default_open=None,**opts):
     HierBrowser.__init__(self,parent,"value","field",
         udi_root=(dataitem and dataitem.udi));
-    self._node = dataitem.data;
+    # parse the udi
+    (name,ni) = meqds.parse_node_udi(dataitem.udi);
+    if ni is None:
+      node = meqds.nodelist[name];
+    else:
+      node = meqds.nodelist[ni];
+    self._default_open = default_open;
+    self._has_state = False;
     # at this point, _node is a very basic node record: all it has is a list
     # of children nodeindices, to which we'll dispatch update requests
     # construct basic view items
     lv = self.wlistview();
     self.set_udi_root(dataitem.udi);
     # Node state
-    self._item_state = HierBrowser.Item(lv,'State record','('+self._node.name+')',udi=dataitem.udi);
+    self._item_state = HierBrowser.Item(lv,'Current state','',udi=dataitem.udi,udi_key='state');
     # Node children
     # note that dataitem.data may be a node state or a node stub record,
     # depending on whether it is already available to us, so just to make sure
     # we always go back to meqds for the children list
-    children = meqds.nodelist[self._node.nodeindex].children;
-    if len(children):
-      childroot = HierBrowser.Item(lv,'Children','('+str(len(self._node.children))+')');
+    if len(node.children):
+      childroot = HierBrowser.Item(lv,'Children (%d)'%len(node.children),'',udi_key='child');
       self._child_items = {};
-      for (cid,child) in children: 
+      for (cid,child) in node.children: 
         # this registers out callback for whenever a child's state is sent over
         meqds.subscribe_node_state(child,self.set_child_state);
         # this initiates a state request for the child
@@ -71,36 +77,44 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
     else:
       self._child_items = None;
     # State snapshots
-    self._item_snapshots = HierBrowser.Item(lv,'Snapshots','(0)');
+    self._item_snapshots = HierBrowser.Item(lv,'Snapshots (0)','',udi_key='snapshot');
     # If we already have a full state record, go use it
     # Note that this will not always be the case; in the general case,
     # the node state will arrive later (perhaps even in between child
     # states)
-    if isinstance(self._node,meqds.NodeClass()):
+    if dataitem.data is not None:
       self.set_data(dataitem);
+    lv.setCurrentItem(None);
       
   # this callback is registered for all child node state updates
   def set_child_state (self,node,event):
-    print 'Got state for child',node.name,node.field_names();
-    print 'Event is',event;
+    #  print 'Got state for child',node.name,node.field_names();
+    #  print 'Event is',event;
     if not self._child_items:
       raise RuntimeError,'no children expected for this node';
     item = self._child_items.get(node.nodeindex,None);
     if not item:
       raise ValueError,'this is not our child';
-    # update state in here
+    # store node name in item
+    item.setText(2,"%s (%s)"%(node.name,node['class'].lower()));
+    item.set_udi(meqds.node_udi(node));
+    self.change_item_content(item,node,\
+      make_data=curry(makeNodeDataItem,node));
     
   def set_data (self,dataitem,default_open=None,**opts):
-          # save currenty open tree
-          #    if self._rec is not None:
-          #      openitems = self.get_open_items();
-          #    else: # no data, use default open tree if specified
-          #      openitems = default_open or self._default_open;
+    # open items (use default first time round)
+    openitems = default_open or self._default_open;
+    if self._has_state:
+      openitems = self.get_open_items() or openitems;
     # at this point, dataitem.data is a valid node state record
-    print 'Got state for node',self._node.name,dataitem.data.field_names();
-    self._item_state.cache_content(dataitem.data);
+    #    print 'Got state for node',self._node.name,dataitem.data.field_names();
+    self._item_state.cache_content(dataitem.data,viewable=False);
           # apply previously saved open tree
           # self.set_open_items(openitems);
+    self.change_item_content(self._item_state,dataitem.data,viewable=False);
+    # apply saved open tree
+    self.set_open_items(openitems);
+    self._has_state = True;
     
 class TreeBrowser (object):
   def __init__ (self,parent):
@@ -143,23 +157,21 @@ class TreeBrowser (object):
     self.nodelist = None;
     self._wait_nodestate = {};
 
-  patt_Udi_NodeState = re.compile("^/nodestate/([^#/]*)(#[0-9]+)?$");
   def get_data_item (self,udi):
-    match = self.patt_Udi_NodeState.match(udi);
-    if match is None:
-      return None;
-    (name,ni) = match.groups();
+    (name,ni) = meqds.parse_node_udi(udi);
     if ni is None:
+      if name is None:
+        return None;
       if not len(name):
         raise ValueError,'bad udi (either name or nodeindex must be supplied): '+udi;
       node = self.nodelist[name];
     else:
       try: 
-        node = self.nodelist[int(ni[1:])];
+        node = self.nodelist[ni];
       except ValueError: # can't convert nodeindex to int: malformed udi
         raise ValueError,'bad udi (nodeindex must be numeric): '+udi;
     # create and return dataitem object
-    return self._parent.make_node_data_item(node);
+    return makeNodeDataItem(node);
  
   def wtop (self):
     return self._wtop;
@@ -323,25 +335,9 @@ class meqserver_gui (app_proxy_gui):
     udi = meqds.node_udi(node);
     self.gw.update_data_item(udi,node);
     
-  defaultNodeViewopts = { \
-    'default_open': ({'cache_result':({'vellsets':None},None), \
-                      'request':None \
-                     },None)  \
-  };
-  def make_node_data_item (self,node):
-    """creates a GridDataItem for a node""";
-    # create and return dataitem object
-    reqrec = srecord(nodeindex=node.nodeindex);  # record used to request state
-    udi = meqds.node_udi(node);
-    # curry is used to create a Node.Get.State call for refreshing its state
-    return GridDataItem(udi,(node.name or '#'+str(node.nodeindex)),
-              desc='node state',data=node,datatype=meqds.NodeClass(node),
-              refresh=curry(self.mqs.meq,'Node.Get.State',reqrec,wait=False),
-              viewopts=self.defaultNodeViewopts);
-
   def _node_clicked (self,node):
     self.dprint(2,"node clicked, adding item");
-    self.gw.add_data_item(self.make_node_data_item(node));
+    self.gw.add_data_item(makeNodeDataItem(node));
     self.show_gridded_workspace();
     
   def _reset_resultlog_label (self,tabwin):
@@ -349,5 +345,31 @@ class meqserver_gui (app_proxy_gui):
       self._reset_maintab_label(tabwin);
     tabwin._newresults = False;
 
+def makeNodeDataItem (node,viewer=None,viewopts={}):
+  """creates a GridDataItem for a node""";
+  udi = meqds.node_udi(node);
+  nodeclass = meqds.NodeClass(node);
+  vo = viewopts.copy();
+  vo.update(_defaultNodeViewopts);
+  # curry is used to create a call for refreshing its state
+  return GridDataItem(udi,(node.name or '#'+str(node.nodeindex)),
+            desc=nodeclass.__name__,data=None,datatype=nodeclass,
+            refresh=curry(meqds.request_node_state,node),
+            viewer=viewer,viewopts=vo);
+
+
+
+_default_state_open =  ({'cache_result':({'vellsets':None},None), \
+                        'request':None },None);
+
+_defaultNodeViewopts = { \
+  RecordBrowser: { 'default_open': _default_state_open },
+  NodeBrowser:   { 'default_open': ({'state':_default_state_open},None) } };
+
+
 gridded_workspace.registerViewer(meqds.NodeClass(),NodeBrowser,priority=10);
+
+# register reloadables
+reloadableModule(__name__);
+# reloadableModule('meqds');
 
