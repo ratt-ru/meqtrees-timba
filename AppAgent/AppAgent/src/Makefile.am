@@ -4,6 +4,9 @@ lib_LTLIBRARIES = libappagent.la
 
 libappagent_la_SOURCES = \
   AID-AppAgent-Registry.cc \
+  AppAgent.cc \
+  AppEventSink.cc \
+  AppEventAgentBase.cc \
   AppControlAgent.cc
   
 

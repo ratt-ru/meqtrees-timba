@@ -10,13 +10,20 @@
       return 1;
     }
 
-static AtomicID::Register aid_reg_AppAgent(-1112,"AppAgent");
-static AtomicID::Register aid_reg_Event(-1060,"Event");
+static AtomicID::Register aid_reg_Throw(-1305,"Throw");
+static AtomicID::Register aid_reg_Error(-1071,"Error");
 static AtomicID::Register aid_reg_App(-1137,"App");
 static AtomicID::Register aid_reg_Control(-1141,"Control");
+static AtomicID::Register aid_reg_Parameters(-1282,"Parameters");
+static AtomicID::Register aid_reg_Event(-1060,"Event");
 static AtomicID::Register aid_reg_Init(-1092,"Init");
+static AtomicID::Register aid_reg_Start(-1134,"Start");
 static AtomicID::Register aid_reg_Stop(-1138,"Stop");
 static AtomicID::Register aid_reg_Pause(-1300,"Pause");
 static AtomicID::Register aid_reg_Resume(-1251,"Resume");
 static AtomicID::Register aid_reg_Halt(-1265,"Halt");
+static AtomicID::Register aid_reg_Always(-1304,"Always");
+static AtomicID::Register aid_reg_Wait(-1303,"Wait");
+static AtomicID::Register aid_reg_AppAgent(-1112,"AppAgent");
+static AtomicID::Register aid_reg_Text(-1269,"Text");
 
