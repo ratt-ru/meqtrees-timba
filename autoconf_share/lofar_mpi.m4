@@ -56,7 +56,7 @@ AC_DEFINE(HAVE_MPI,dnl
   [if test $enable_mpi = 0; then]
     AC_MSG_ERROR([Cannot enable MPI profiler without enabling MPI])
   [fi
-   LIBS="$LIBS -llmpe -lmpe";
+   LIBS="$LIBS /opt/scali/contrib/mpe/lib/liblmpe.a /opt/scali/contrib/mpe/lib/libmpe.a";
    ]
    AC_SUBST(LIBS)
    AC_DEFINE(HAVE_MPI_PROFILER,dnl
