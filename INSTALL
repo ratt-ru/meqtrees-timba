@@ -83,10 +83,10 @@
   make && make install
 
   Blitz is somewhat sensitive to compilers, hence you need to keep different
-  version if you use other compilers, the strange install path (the LOFAR build
-  system will look for it there). Build it with the same compiler as you use for 
-  the project.
-  
+  version if you use different compilers, the strange install path (the LOFAR build
+  system will look for it there). Build it with the same compiler as you use
+  for  the project.
+
   The make install script of Blitz is slightly broken, you will need to copy an
   additional file over manually:
   

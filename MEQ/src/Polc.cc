@@ -146,7 +146,7 @@ void Polc::setCoeff (double c00)
 {
   Thread::Mutex::Lock lock(mutex());
   FailWhen(rank()!=0,"Meq::Polc: coeff rank mismatch");
-  LoVec_double coeff(1);
+  LoMat_double coeff(1,1);
   coeff = c00;
   ObjRef ref(new DMI::NumArray(coeff));
   Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
@@ -161,7 +161,9 @@ void Polc::setCoeff (const LoVec_double & coeff)
   else {
     FailWhen(rank()!=1,"Meq::Polc: coeff rank mismatch");
   }
-  ObjRef ref(new DMI::NumArray(coeff));
+  LoMat_double c2(coeff.size(),1);
+  c2(LoRange::all(),0) = coeff;
+  ObjRef ref(new DMI::NumArray(c2));
   Field & field = Record::addField(FCoeff,ref,Record::PROTECT|DMI::REPLACE);
   pcoeff_ = &( field.ref.ref_cast<DMI::NumArray>() );
 }

@@ -26,6 +26,7 @@ importPlugin('array_plotter');
 importPlugin('result_plotter');
 importPlugin('hippo_array_plotter');
 importPlugin('parmfiddler');
+importPlugin('hippo_array_plotter');
 
 #-------- update default debuglevels
 app_defaults.debuglevels.update({

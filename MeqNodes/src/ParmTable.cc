@@ -227,8 +227,8 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   const Domain& domain = funklet.domain();
   const Polc & polc = dynamic_cast<const Polc&>(funklet);
   Assert(polc.rank()==2);
-  Assert(polc.getAxis(0)==Axis::FREQ);
-  Assert(polc.getAxis(1)==Axis::TIME);
+  Assert(polc.getAxis(1)==Axis::FREQ);
+  Assert(polc.getAxis(0)==Axis::TIME);
   const LoMat_double & values = polc.getCoeff2();
   int rownr = polc.getDbId();
   // have a row number? check name, etc.

@@ -14,7 +14,7 @@ const mqsinit := function (verbose=default_verbosity,debug=[=])
   global mqs;
   if( !is_record(mqs) )
   {
-    mqs := meq.server(verbose=verbose,options="-d0 -meq:M:M:MeqServer");
+    mqs := meq.server(verbose=verbose,options="-d0 -meq:M:O:MeqServer");
     if( is_fail(mqs) )
       fail;
     mqs.init([output_col="PREDICT",mandate_regular_grid=T],wait=F);

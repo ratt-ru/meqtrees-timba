@@ -110,10 +110,8 @@ public:
   double getCoeff0 () const
   { return *static_cast<const double*>(coeff().getConstDataPtr()); }
   
-  // Get vector or matrix of coeffs (exception if this does not match shape)
-  const LoVec_double & getCoeff1 () const
-  { return coeff().getConstArray<double,1>(); }
-  
+  // Get matrix of coeffs 
+  // (a 1D polc is represented by an Nx1 matrix)
   const LoMat_double & getCoeff2 () const
   { return coeff().getConstArray<double,2>(); }
 
