@@ -159,7 +159,9 @@ namespace VisVocabulary
     // this lets us end the list above with a comma
     __last_field_declaration;
 
-
+  
+  
+    typedef int FlagType;
     // flag value for missing data
     const int FlagMissing = 0xFFFFFFFF;
 
