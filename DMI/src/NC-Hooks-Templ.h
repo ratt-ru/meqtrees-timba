@@ -20,7 +20,7 @@ std::vector<T> NestableContainer::ConstHook::as_vector (const std::vector<T> &de
 {
   ContentInfo info;
   const T * ptr = as_impl_p(&deflt[0],info,True);
-  return ptr == &deflt[0] ? deflt : std::vector<T>(ptr,ptr+n);
+  return ptr == &deflt[0] ? deflt : std::vector<T>(ptr,ptr+info.size);
 }
 
 // -----------------------------------------------------------------------
