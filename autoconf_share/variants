@@ -3,9 +3,9 @@ kcc.compiler.conf:
 icc.compiler.conf:
 
 profile.variant.conf:	  $(aipspp) $(profile) $(mpe)
-debug.variant.conf:	  $(debug) $(aipspp)	
+debug.variant.conf:	  $(debug) $(aipspp) $(mtsupport)
 profopt.variant.conf:	  $(profopt) $(aipspp)
-opt.variant.conf:	  $(optimize) $(aipspp)
+opt.variant.conf:	  $(optimize) $(aipspp) $(mtsupport)
 debugopt.variant.conf:	  $(debugopt)
 mpich.variant.conf:	  $(mpich) $(aipspp)
 mpich-opt.variant.conf:	  $(mpich) $(optimize) $(aipspp)
@@ -19,8 +19,6 @@ insure.variant.make:	  QA=insure
 scampi.variant.conf:	  $(scampi) 
 scampi-opt.variant.conf:  $(scampi) $(optimize) 
 mpich-prof.variant.conf:  $(mpich) --enable-mpi-profiler $(aipspp)
-mtdebug.variant.conf:	  $(debug) $(aipspp) --with-threads
-mtopt.variant.conf:	  $(optimize) $(aipspp) --with-threads
 
 profile.var:		   --with-optimize='-pg -O2' --with-compiletools --with-ldflags='-lc_p'
 mpe.var:		   --with-mpich=/usr/local/mpich-1.2.5/ch_p4 --enable-mpi-profiler
@@ -33,3 +31,4 @@ mpich.var:		   --with-mpich
 lam.var:		   --with-lam
 scampi.var:		   --with-scampi
 vbroker.var:		   --with-vbroker
+mtsupport.var:		   --with-threads
