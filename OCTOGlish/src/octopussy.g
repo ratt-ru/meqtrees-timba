@@ -33,10 +33,10 @@ include 'debug_methods.g'
 include 'dmitypes.g'
 
 const define_octoserver := function (connpath,binary='',
-  options="",autostart=T,nostart=F,valgrind=F,valgrind_opts="")
+  options="",autostart=T,nostart=F,valgrind=F,opt=F,valgrind_opts="")
 {
   server := [ connpath=connpath,binary=binary,options=options,
-              autostart=autostart,nostart=nostart ];
+              autostart=autostart,nostart=nostart,opt=opt ];
   if( !is_boolean(valgrind) || valgrind )
   {
     server.valgrind := T;
@@ -113,7 +113,11 @@ const octopussy := function (server=default_octoserver,options="",
       }
       # try to start a server
       # make use of options attribute, if defined
-      cmd := paste(server.binary,server.options,options);
+      binname := server.binary;
+      if( server.opt )
+        binname := spaste(binname,'-opt');
+        
+      cmd := paste(binname,server.options,options);
       
       if( has_field(server,'valgrind') && server.valgrind ) # start under valgrind -- some trickery required
       {
@@ -139,7 +143,7 @@ const octopussy := function (server=default_octoserver,options="",
       else # start the server as an async shell command
       {
         self.dprint(1,'starting server and waiting for [PIPE] spec');
-        self.dprint(2,'command is: ',cmd);
+        self.dprint(1,'command is: ',cmd);
         self.shell_client := shell(cmd,async=T);
         if( is_fail(self.shell_client) )
         {
