@@ -15,6 +15,7 @@ class QwtErrorPlotCurve (QwtPlotCurve):
     def __init__(self, parent, penColor=Qt.black, lineThickness=2, lineStyle=Qt.SolidLine):
         QwtPlotCurve.__init__(self, parent)
         self.pen = QPen(penColor,lineThickness,lineStyle)
+        self.brush = QBrush(penColor)
         self.cap = 10
         self.type = 1
         self.size = QSize(1,1)
@@ -53,6 +54,7 @@ class QwtErrorPlotCurve (QwtPlotCurve):
       if ( self.verifyRange(ffrom, to) > 0 ):
         painter.save()
         painter.setPen(self.pen)
+        painter.setBrush(self.brush)
 	self.drawErrorBars(painter, xMap, yMap, ffrom, to)
         painter.restore()
     # draw()
