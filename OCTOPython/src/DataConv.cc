@@ -468,6 +468,7 @@ int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pve
           ObjRef seqref;
           if( use_list )
           {
+            cdebug(3)<<"converting sequence to DMI::List"<<endl;
             DMI::List *plist = new DMI::List;
             seqref <<= plist;
             for( int i=0; i<len; i++ )
@@ -481,12 +482,13 @@ int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pve
           }
           else // else using vector
           {
+            cdebug(3)<<"converting sequence of type "<<seqtype.toString()<<" to DMI::Vec"<<endl;
             // type will have been set if we have at least one element
             if( len )
               Assert(seqtype);
             // else we'll just init an empty vector
             DMI::Vec *pvec = seqtype ? new DMI::Vec(seqtype,len) : new DMI::Vec;
-            objref <<= pvec;
+            seqref <<= pvec;
             for( int i=0; i<len; i++ )
             {
               cdebug(4)<<objstr<<"converting seq element "<<i<<endl;
