@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.26  2003/10/08 12:29:18  diepen
+//  %[PR: 36]%
+//  Removed DataArray functionality to retrieve an array as a scalar
+//
 //  Revision 1.25  2003/09/10 15:11:05  smirnov
 //  %[BugId: ]%
 //  Various small fixes & cleanups.
@@ -690,7 +694,8 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
   // If a full HIID is given, we might need to return a single element
   // which is a scalar. 
   // If the array itself is scalar (itsSize==1), then it's considered 0-dimensional
-  if( nid == ndim || (!nid && itsSize == 1) )     // full HIID?
+//  if( nid == ndim || (!nid && itsSize == 1) )     // full HIID?
+  if( nid == ndim )     // full HIID?
   {
     bool single = true;
     LoShape which(LoShape::SETRANK|ndim);
@@ -707,7 +712,10 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
       }
     }
     else // this is the case of a single-element array, and a null HIID
+    {
+      single = false;
       which[0] = 0;
+    }
     // have we resolved to a single element?
     if( single )
     {
@@ -734,7 +742,7 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
       return itsArrayData + itsElemSize*offset;
     }
   } 
-  else if( nid == 0 )  // else not full HIID; null HIID?
+  if( nid == 0 )  // else not full HIID; null HIID?
   {
     // Scalar pointer requested? Return full array data
     if( check_tid == itsScaType ) 
@@ -811,7 +819,7 @@ int DataArray::parseHIID (const HIID& id, LoPos & st, LoPos & end,LoPos & incr,
   // When it finds two successive separators, it inserts AidEmpty, so e.g.
   // the string ..::3 will get AidEmpty AidEmpty AidRange AidEmpty AidRange 3.
   // AidEmpty is effectively the same as AidWildcard.
-  bool hadRange = true;
+  bool hadRange = nid>0;
   for( int i=0; i<nid; i++ ) 
   {
     if( id[i] == AidRange ) 

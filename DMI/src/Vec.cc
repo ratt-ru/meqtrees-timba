@@ -74,7 +74,9 @@ DataField & DataField::operator=(const DataField &right)
   {
     nc_writelock;
     dprintf(2)("assignment of %s\n",right.debug());
-    FailWhen( valid(),"field is already initialized" );
+// removed for now since it seems like a useless limitation
+// OMS 01/10/03
+//    FailWhen( valid(),"field is already initialized" );
     clear();
     cloneOther(right,0,0);
   }
