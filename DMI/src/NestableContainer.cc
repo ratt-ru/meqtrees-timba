@@ -46,7 +46,7 @@ bool NestableContainer::Hook::isWritable () const
 {
   //## begin NestableContainer::Hook::isWritable%3C87665E0178.body preserve=yes
   TypeId tid; bool write;
-  const void *target = collapseIndex(tid,write,0,False);
+  const void *target = collapseIndex(tid,write,0,0);
   // doesn't exist? It's writable if our container is writable
   if( !target )
     return nc->isWritable();
@@ -82,9 +82,9 @@ const NestableContainer::Hook & NestableContainer::Hook::privatize (int flags) c
   FailWhen(addressed,"unexpected '&' operator");
   bool dum; TypeId tid;
   if( index<0 )
-    nc->get(id,tid,dum,0,False,flags);
+    nc->get(id,tid,dum,0,flags|DMI::PRIVATIZE);
   else
-    nc->getn(index,tid,dum,0,False,flags);
+    nc->getn(index,tid,dum,0,flags|DMI::PRIVATIZE);
   return *this;
   //## end NestableContainer::Hook::privatize%3C8739B5017C.body
 }
@@ -139,7 +139,7 @@ NestableContainer::Hook NestableContainer::setBranch (const HIID &id, int flags)
   {
     dprintf(2)("privatizing branch %s\n",id.toString().c_str());
     // auto-privatizing hook
-    Hook hook(*this,id,DMI::WRITE);
+    Hook hook(*this,id,DMI::WRITE|DMI::PRIVATIZE);
     if( flags&DMI::DEEP )
       hook.privatize(DMI::WRITE|DMI::DEEP);
     return hook;
@@ -197,7 +197,7 @@ NestableContainer::Hook NestableContainer::setBranch (const HIID &id, int flags)
   for( int i=0; i<last_writable; i++,iter++ )
     hook1[iter->id];
   Assert(iter != branch.end() && iter->nc->isWritable() );
-  hook1.autoprivatize = DMI::WRITE;  // enable auto-privatize
+  hook1.autoprivatize = DMI::WRITE|DMI::PRIVATIZE;  // enable auto-privatize
   // apply remaining subscripts
   for( ; iter != branch.end(); iter++ )
     hook1[iter->id];
@@ -238,7 +238,7 @@ const NestableContainer * NestableContainer::ConstHook::asNestable (const void *
   if( !targ )
   {
     bool dum;
-    targ = collapseIndex(tid,dum,0,False);
+    targ = collapseIndex(tid,dum,0,0);
     if( !targ )
       return 0;
   }
@@ -260,7 +260,7 @@ NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ=0,Typ
   if( !targ )
   {
     bool dum;
-    targ = const_cast<void*>( collapseIndex(tid,dum,0,True) );
+    targ = const_cast<void*>( collapseIndex(tid,dum,0,DMI::WRITE) );
     if( !targ )
       return 0;
   }
@@ -287,7 +287,7 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) cons
   const void *target;
   if( index>=0 || id.size() )
   {
-    target = collapseIndex(target_tid,dum,0,False);
+    target = collapseIndex(target_tid,dum,0,0);
     FailWhen(!target,"uninitialized element");
   }
   else
@@ -303,13 +303,10 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) cons
     return;
   }
   // if target is a container, then try to access it in scalar mode
-  // // ...but not implicitly
-  // // FailWhen(implicit,"can't implicitly convert "+target_tid.toString()+" to "+tid.toString());
   const NestableContainer *nc = asNestable(target,target_tid);
   FailWhen(!nc,"can't convert "+target_tid.toString()+" to "+tid.toString());
-  // access in scalar mode, checking that type is built-in
-  FailWhen(!nc->isScalar(tid),"target container can't be accessed as a scalar "+tid.toString());
-  target = nc->get(HIID(),target_tid,dum,TpNumeric,False,autoprivatize);
+  // access in scalar mode, checking that type is numeric
+  target = nc->get(HIID(),target_tid,dum,TpNumeric,DMI::NC_SCALAR|autoprivatize);
   FailWhen( !convertScalar(target,target_tid,data,tid),
             "can't convert "+target_tid.toString()+" to "+tid.toString());
 }
@@ -318,11 +315,11 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) cons
 // If pointer is True, then a pointer type is being taken
 const void * NestableContainer::ConstHook::get_address(TypeId tid,bool must_write,bool,bool pointer ) const
 {
-  TypeId target_tid; bool dum; 
+  TypeId target_tid; bool write; 
   const void *target;
   if( index>=0 || id.size() )
   {
-    target = collapseIndex(target_tid,dum,0,False);
+    target = collapseIndex(target_tid,write,0,0);
     FailWhen(!target,"uninitialized element");
   }
   else
@@ -330,22 +327,16 @@ const void * NestableContainer::ConstHook::get_address(TypeId tid,bool must_writ
     target = nc;
     target_tid = nc->type();
   }
-  // If types don't match, then try to treat target as a container, 
-  // and return pointer to first element (if this is allowed)
+  // If types don't match, then try to treat target as a container in scalar mode
   if( tid != target_tid )
   {
     const NestableContainer *nc = asNestable(target,target_tid);
     FailWhen(!nc,"can't convert "+target_tid.toString()+" to "+tid.toString()+"*");
-    FailWhen(pointer && !nc->type(),"this container does not support pointers");
-    // check for scalar/vector violation
-    if( !nc->isScalar(tid) )
-    {
-      FailWhen(!pointer,"can't access this container as scalar");
-      FailWhen(!nc->isContiguous(),"can't take pointer: container is not contiguous");
-    }
-    // access first element, verifying type & writability
-    return nc->get(HIID(),target_tid,dum,tid,must_write,autoprivatize);
+    int flags = (must_write?DMI::WRITE:0)|autoprivatize|
+                DMI::NC_SCALAR|(pointer?DMI::NC_POINTER:0);
+    return nc->get(HIID(),target_tid,write,tid,flags);
   }
+  FailWhen(!write && must_write,"write access violation");
   return target;
 }
 
@@ -361,7 +352,7 @@ void * NestableContainer::Hook::prepare_put( TypeId &target_tid,TypeId tid ) con
 {
   FailWhen(addressed,"unexpected '&' operator");
   bool dum; 
-  void *target = const_cast<void*>( collapseIndex(target_tid,dum,0,True) );
+  void *target = const_cast<void*>( collapseIndex(target_tid,dum,0,DMI::WRITE) );
   // non-existing object: try to a insert new one
   if( !target  )
   {

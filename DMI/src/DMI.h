@@ -29,13 +29,13 @@ namespace DMI
   
   // These are used in privatize() and clone()
       // makes deep clone or privatizes deeply
-      DEEP             = 0x01000,  
+      DEEP           = 0x01000,  
       // for write-privatization or cloning, will delay actual cloning
       // until the next access
       DLY_CLONE      = 0x02000,  
       DEEP_DLY_CLONE = 0x06000,
       // for ref.privatize(), forces cloning immediately even when not needed
-      // (overrides DELAY_CLONE, hence the conflict with )
+      // (overrides DELAY_CLONE, hence the conflict with it)
       FORCE_CLONE     =  0x04000,
       
   // these are used in ref copy constructor calls to force copy() or privatize() 
@@ -53,7 +53,13 @@ namespace DMI
       ZERO            =DEEP,       // constructor: zeroes allocated block
       
   // BlockSet-specific flags
-      MAKE_READONLY   =0x4000000   // for copyAll(): makes source set read-only      
+      MAKE_READONLY   =0x4000000,   // for copyAll(): makes source set read-only      
+
+// NestableContainer::get flags
+      NC_SCALAR       =0x1000000,  // container accessed as a scalar
+      NC_POINTER      =0x2000000,  // container accessed as a pointer 
+      
+      DMI_ZERO_FLAG   =0
   }
   DMIFlags;
 

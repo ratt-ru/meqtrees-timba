@@ -143,10 +143,10 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       //	write is True, throws exception if data is read-only. Can throw
       //	exceptions if id is malformed (i.e. contains indices that are out of
       //	range).
-      virtual const void * get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False, int autoprivatize = 0) const;
+      virtual const void * get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid = 0, int flags = 0) const;
 
       //## Operation: getn%3C7A1983024D
-      virtual const void * getn (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False, int autoprivatize = 0) const;
+      virtual const void * getn (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, int flags = 0) const;
 
       //## Operation: insert%3C7A198A0347
       virtual void * insert (const HIID &id, TypeId tid, TypeId &real_tid);
@@ -163,15 +163,6 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       //	Removes object at specified index. Can only remove from the end of
       //	the array.
       virtual bool removen (int n);
-
-      //## Operation: isContiguous%3C7F9826016F
-      virtual bool isContiguous () const;
-
-      //## Operation: isScalar%3CB162BB0033
-      //	Returns True if the container can be treated as a scalar with the
-      //	given type (i.e. if the container as a whole can be retrieved as an
-      //	object of the given type). Default implementation returns False.
-      virtual bool isScalar (TypeId tid) const;
 
     //## Get and Set Operations for Class Attributes (generated)
 
@@ -205,7 +196,7 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
 
     //## Other Operations (specified)
       //## Operation: resolveObject%3C3D8C07027F
-      ObjRef & resolveObject (int n, bool write, int autoprivatize = 0) const;
+      ObjRef & resolveObject (int n, int flags = 0) const;
 
     // Additional Protected Declarations
       //## begin DataField%3BB317D8010B.protected preserve=yes

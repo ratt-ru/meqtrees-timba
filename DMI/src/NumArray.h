@@ -21,6 +21,13 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.4  2002/04/12 10:15:09  oms
+//  Added fcomplex and dcomplex types.
+//  Changes to NestableContainer::get():
+//   - merged autoprivatize and must_write args into a single flags arg
+//   - added NC_SCALAR and NC_POINTER flags that are passed to get()
+//  Got rid of isScalar() and isContiguous(), checking is now up to get().
+//
 //  Revision 1.3  2002/04/12 07:47:53  oms
 //  Added fcomplex and dcomplex types
 //
@@ -76,15 +83,9 @@ public:
   virtual void privatize (int flags = 0, int depth = 0);
 
   virtual const void* get (const HIID& id, TypeId& tid, bool& can_write,
-			   TypeId check_tid = 0,
-			   bool must_write = false,
-			   int autoprivatize = 0) const;
+			   TypeId check_tid = 0,int flags=0) const;
 
   virtual void* insert (const HIID& id, TypeId tid, TypeId& real_tid);
-
-  virtual bool isContiguous() const;
-
-  virtual bool isScalar (TypeId tid) const;
 
   virtual int size() const;
 

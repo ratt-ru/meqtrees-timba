@@ -287,7 +287,7 @@ ObjRef DataField::objwr (int n, int flags)
   checkIndex(n);
   if( !dynamic_type )
     return NullRef;
-  return resolveObject(n,True).copy(flags);
+  return resolveObject(n,DMI::WRITE).copy(flags);
   //## end DataField::objwr%3C0E4619019A.body
 }
 
@@ -313,7 +313,7 @@ ObjRef DataField::objref (int n) const
   if( !dynamic_type )
     return NullRef;
   // return a copy as a read-only ref
-  return resolveObject(n,False).copy(DMI::READONLY);
+  return resolveObject(n,DMI::READONLY).copy(DMI::READONLY);
   //## end DataField::objref%3C3C8D7F03D8.body
 }
 
@@ -479,16 +479,16 @@ int DataField::toBlock (BlockSet &set) const
   //## end DataField::toBlock%3C3D5F2403CC.body
 }
 
-ObjRef & DataField::resolveObject (int n, bool write, int autoprivatize) const
+ObjRef & DataField::resolveObject (int n, int flags) const
 {
   //## begin DataField::resolveObject%3C3D8C07027F.body preserve=yes
-  FailWhen(autoprivatize && !isWritable(),"can't autoprivatize in readonly field");
-  FailWhen(autoprivatize&DMI::READONLY && write,"can't autoprivatize for read while writing");
+  FailWhen(flags&DMI::PRIVATIZE && !isWritable(),"can't autoprivatize in readonly field");
   switch( objstate[n] )
   {
     // uninitialized object - create default
     case UNINITIALIZED:
         dprintf(3)("resolveObject(%d): creating new %s\n",n,mytype.toString().c_str());
+        FailWhen(!isWritable() && flags&DMI::WRITE,"write access violation");
         objects[n].attach( DynamicTypeManager::construct(mytype),
                           (isWritable()?DMI::WRITE:DMI::READONLY)|
                           DMI::ANON|DMI::LOCK );
@@ -498,8 +498,9 @@ ObjRef & DataField::resolveObject (int n, bool write, int autoprivatize) const
          
     // object hasn't been unblocked
     case INBLOCK:
+        FailWhen(!isWritable() && flags&DMI::WRITE,"write access violation");
         // if write access requested, simply unblock it
-        if( write )
+        if( flags&DMI::WRITE )
         {
           dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
           objects[n].attach( DynamicTypeManager::construct(mytype,blocks[n]),
@@ -514,8 +515,7 @@ ObjRef & DataField::resolveObject (int n, bool write, int autoprivatize) const
         // so we can just re-use the blockset in a future toBlock()
         else
         {
-          // make copy, retaining r/w privileges, and marking the 
-          // source as r/o
+          // make copy, retaining r/w privileges, and marking the source as r/o
           dprintf(3)("resolveObject(%d): read access, preserving old blocks\n",n);
           BlockSet set( blocks[n],DMI::PRESERVE_RW|DMI::MAKE_READONLY ); 
           // create object and attach a reference
@@ -529,8 +529,8 @@ ObjRef & DataField::resolveObject (int n, bool write, int autoprivatize) const
           objstate[n] = UNBLOCKED; 
         }
         // privatize if so requested
-        if( autoprivatize&DMI::WRITE )
-          objects[n].privatize(autoprivatize&(DMI::WRITE|DMI::DEEP)); 
+        if( flags&DMI::PRIVATIZE )
+          objects[n].privatize(flags&(DMI::READONLY|DMI::WRITE|DMI::DEEP)); 
         return objects[n];
 
     // object exists (unblocked and maybe modified)
@@ -539,16 +539,12 @@ ObjRef & DataField::resolveObject (int n, bool write, int autoprivatize) const
     {
         ObjRef &ref = objects[n];
         // privatize if requested
-        if( autoprivatize&DMI::WRITE )
-          objects[n].privatize(autoprivatize&(DMI::WRITE|DMI::DEEP)); 
+        if( flags&DMI::PRIVATIZE )
+          objects[n].privatize(flags&(DMI::READONLY|DMI::WRITE|DMI::DEEP)); 
         // do we need to write to it?
-        else if( write )
+        else if( flags&DMI::WRITE )
         {
-          if( !ref.isWritable() ) // auto-privatize if required
-          {
-            FailWhen( !autoprivatize&DMI::WRITE,"write access violation" );
-            ref.privatize(autoprivatize);
-          }
+          FailWhen(!ref.isWritable(),"write access violation");
           // flush cached blocks if any
           blocks[n].clear();
           objstate[n] = MODIFIED;
@@ -673,28 +669,32 @@ void DataField::privatize (int flags, int depth)
   //## end DataField::privatize%3C3EDEBC0255.body
 }
 
-const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write, int autoprivatize) const
+const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, int flags) const
 {
   //## begin DataField::get%3C7A19790361.body preserve=yes
   // null HIID implies scalar-mode access -- map to getn(0)
   if( !id.size() )
-    return getn(0,tid,can_write,check_tid,must_write,autoprivatize);
+    return getn(0,tid,can_write,check_tid,flags);
   // single-index HIID implies get[n]
   if( id.size() == 1 && id.front().index() >= 0 )
-    return getn(id.front().index(),tid,can_write,check_tid,must_write,autoprivatize);
+    return getn(id.front().index(),tid,can_write,check_tid,flags);
   FailWhen( !valid() || !size(),"field not initialized" );
   FailWhen( !isNestable(type()),"contents not a container" );
   FailWhen( !scalar,"non-scalar field, explicit numeric subscript expected" );
-  // resolve to pointer to container -- autoprivatize done by resolveObject
+  // Resolve to pointer to container
+  // Unless privatize is required, we resolve the container without the
+  // DMI::WRITE flag, since it's only the writability of its contents that
+  // matters -- nc->get() below will check that.
+  int contflags = flags&DMI::PRIVATIZE ? flags : flags &= ~DMI::WRITE;
   const NestableContainer *nc = dynamic_cast<const NestableContainer *>
-      (&resolveObject(0,must_write,autoprivatize).deref());
+      (&resolveObject(0,contflags).deref());
   Assert(nc);
-  // defer to get[id] on container (pass on autoprivatize)
-  return nc->get(id,tid,can_write,check_tid,must_write,autoprivatize);
+  // defer to get[id] on container 
+  return nc->get(id,tid,can_write,check_tid,flags);
   //## end DataField::get%3C7A19790361.body
 }
 
-const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write, int autoprivatize) const
+const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_tid, int flags) const
 {
   //## begin DataField::getn%3C7A1983024D.body preserve=yes
   FailWhen( !valid(),"field not initialized" );
@@ -702,12 +702,14 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
   if( n == size() )
     return 0;
   can_write = isWritable();
-  FailWhen(must_write && !can_write,"write access violation"); 
+  FailWhen(flags&DMI::PRIVATIZE && !can_write,"write access violation"); 
   if( binary_type ) // binary type
   {
+    FailWhen(flags&DMI::WRITE && !can_write,"write access violation"); 
+    FailWhen(flags&DMI::NC_SCALAR && !flags&DMI::NC_POINTER && size()>1,"non-scalar container");
     // types must match, or TpNumeric can match any numeric type
     FailWhen( check_tid && check_tid != type() &&
-              (check_tid != TpNumeric || !TypeInfo::isNumeric(type())),
+              (flags&DMI::NC_POINTER || check_tid != TpNumeric || !TypeInfo::isNumeric(type())),
         "type mismatch: requested "+check_tid.toString()+", have "+type().toString());
     tid = type();
     return n*typeinfo.size + (char*)headerData();
@@ -717,8 +719,9 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
     // default (if no checking) is to return the ObjRef
     if( !check_tid || check_tid == TpObjRef ) 
     {
+      FailWhen(flags&(DMI::NC_SCALAR|DMI::NC_POINTER) && size()>1,"non-scalar/non-contiguous container");
       tid = TpObjRef;
-      return &resolveObject(n,must_write,autoprivatize);
+      return &resolveObject(n,flags); // checks DMI::WRITE
     }
     else 
     {    
@@ -726,25 +729,31 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
       // deref and return object
       if( check_tid == type() || check_tid == TpObject )
       {
+        FailWhen(flags&(DMI::NC_SCALAR|DMI::NC_POINTER) && size()>1,"non-scalar/non-contiguous container");
         tid = type();
-        return &resolveObject(n,must_write,autoprivatize).deref();
+        return &resolveObject(n,flags).deref(); // checks DMI::WRITE
       }
-      // else mismatch. If it's a container, try accessing it in scalar mode.
+      // else mismatch -- If it's a container, try accessing it as a whole, 
+      // forcing scalar mode
+      flags |= DMI::NC_SCALAR;
       FailWhen( !isNestable(type()),
         "type mismatch: requested "+check_tid.toString()+", have "+type().toString());
+      // container resolved w/o DMI::WRITE -- see comments in get(), above
+      int contflags = flags&DMI::PRIVATIZE ? flags : flags &= ~DMI::WRITE;
       const NestableContainer *nc = 
-        dynamic_cast<const NestableContainer *>(resolveObject(n,must_write,autoprivatize).deref_p());
+        dynamic_cast<const NestableContainer *>(resolveObject(n,contflags).deref_p());
       FailWhen(!nc,"dynamic cast to expected container type failed");
-      FailWhen(!nc->isScalar(check_tid),"contents not a scalar, subscript required"); 
-      return nc->get(HIID(),tid,can_write,must_write,autoprivatize);
+      return nc->get(HIID(),tid,can_write,flags);
     }
   }
   else   // special type -- types must match
   {
-    FailWhen( check_tid && check_tid != type(),
+    FailWhen(flags&DMI::WRITE && !can_write,"write access violation"); 
+    FailWhen(flags&DMI::NC_SCALAR && !flags&DMI::NC_POINTER && size()>1,"non-scalar container");
+    FailWhen(check_tid && check_tid != type(),
         "type mismatch: expecting "+type().toString()+" got "+check_tid.toString() );
     tid = type();
-    if( must_write )
+    if( flags&DMI::WRITE )
       spvec_modified = True;
     return static_cast<char*const>(spvec) + n*typeinfo.size;
   }
@@ -840,35 +849,6 @@ bool DataField::removen (int n)
   resize(n);
   return True;
   //## end DataField::removen%3C877E260301.body
-}
-
-bool DataField::isContiguous () const
-{
-  //## begin DataField::isContiguous%3C7F9826016F.body preserve=yes
-  // non-dynamic objects are always contiguous
-  if( !dynamic_type )
-    return True;
-  // dynamic objects: non-contiguous,
-  // unless we have a single contiguous container
-  if( size() != 1 || !isNestable(type()) )
-    return False;
-  const NestableContainer *nc = 
-    dynamic_cast<const NestableContainer *>(resolveObject(0,False,0).deref_p());
-  FailWhen(!nc,"dynamic cast to expected container type failed");
-  return nc->isContiguous();
-  //## end DataField::isContiguous%3C7F9826016F.body
-}
-
-bool DataField::isScalar (TypeId tid) const
-{
-  //## begin DataField::isScalar%3CB162BB0033.body preserve=yes
-  // field can be treated as scalar when size = 0,1, and type
-  // is either uninitialized or compatible
-  return size()<2 && 
-      ( !type() || !tid || type() == tid || 
-        ( TypeInfo::isNumeric(type()) && TypeInfo::isNumeric(tid) ) 
-      );
-  //## end DataField::isScalar%3CB162BB0033.body
 }
 
 // Additional Declarations
@@ -971,6 +951,29 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
 
 // Detached code regions:
 #if 0
+//## begin DataField::isContiguous%3C7F9826016F.body preserve=yes
+  // non-dynamic objects are always contiguous
+  if( !dynamic_type )
+    return True;
+  // dynamic objects: non-contiguous,
+  // unless we have a single contiguous container
+  if( size() != 1 || !isNestable(type()) )
+    return False;
+  const NestableContainer *nc = 
+    dynamic_cast<const NestableContainer *>(resolveObject(0,False,0).deref_p());
+  FailWhen(!nc,"dynamic cast to expected container type failed");
+  return nc->isContiguous();
+//## end DataField::isContiguous%3C7F9826016F.body
+
+//## begin DataField::isScalar%3CB162BB0033.body preserve=yes
+  // field can be treated as scalar when size = 0,1, and type
+  // is either uninitialized or compatible
+  return size()<2 && 
+      ( !type() || !tid || type() == tid || 
+        ( TypeInfo::isNumeric(type()) && TypeInfo::isNumeric(tid) ) 
+      );
+//## end DataField::isScalar%3CB162BB0033.body
+
 //## begin DataField::remove%3C3EC3470153.body preserve=yes
   FailWhen( !valid(),"uninitialized DataField");
   FailWhen( !isWritable(),"field is read-only" );

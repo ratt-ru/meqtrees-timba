@@ -21,6 +21,13 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.4  2002/04/12 10:15:09  oms
+//  Added fcomplex and dcomplex types.
+//  Changes to NestableContainer::get():
+//   - merged autoprivatize and must_write args into a single flags arg
+//   - added NC_SCALAR and NC_POINTER flags that are passed to get()
+//  Got rid of isScalar() and isContiguous(), checking is now up to get().
+//
 //  Revision 1.3  2002/04/08 14:27:07  oms
 //  Added isScalar(tid) to DataArray.
 //  Fixed isContiguous() in DataField.
@@ -184,22 +191,6 @@ int DataArray::size () const
   return headerSize();
 }
 
-bool DataArray::isContiguous() const
-{
-  return true;
-}
-
-bool DataArray::isScalar (TypeId tid) const
-{
-  // for a single numeric type, scalar when size == 1
-  if( TypeInfo::isNumeric(tid) )
-    return itsShape.nelements() == 1 && itsShape(0) == 1;
-  // for Array_type, always scalar
-  // (should really check that tid == TpArray_<type>, but this is OK for now
-  // since get() will throw an exception anyway)
-  return True;
-}
-
 int DataArray::fromBlock (BlockSet& set)
 {
   dprintf1(2)("%s: fromBlock\n",debug());
@@ -248,12 +239,13 @@ void DataArray::privatize (int flags, int)
 //                 which gets deleted by clear()
 const void* DataArray::get (const HIID& id, TypeId& tid, bool& can_write,
 			    TypeId check_tid,
-			    bool must_write, int) const
+			    int flags) const
 {
   can_write = isWritable();
   tid = check_tid;
-  FailWhen(must_write && !can_write,"write access violation"); 
+  FailWhen(flags&DMI::WRITE && !can_write,"write access violation"); 
   int nid = id.length();
+// if flags&DMI::PRIVATIZE, you should privatize your data block
   if (nid == int(itsShape.nelements())) {
     FailWhen( check_tid && check_tid != itsScaType &&
               (check_tid != TpNumeric || !TypeInfo::isNumeric(itsScaType)),
@@ -268,7 +260,9 @@ const void* DataArray::get (const HIID& id, TypeId& tid, bool& can_write,
     uInt offs = toOffsetInArray (which, itsShape);
     return itsArrayData + itsElemSize*offs;
   } else if (nid == 0) {
+    
     if (check_tid == itsScaType) {
+      // Fail if size>1 and !flags&DMI::NC_POINTER
       return itsArrayData;
     }
 //    AssertStr (check_tid == headerType(), "array type mismatch");

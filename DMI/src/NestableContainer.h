@@ -232,7 +232,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           NestableContainer * asNestableWr(void *target=0,TypeId tid=0) const;
           
           // helper func: collapses the current index and returns new target
-          const void * collapseIndex (TypeId &tid,bool &can_write,TypeId check_tid,bool must_write) const;
+          const void * collapseIndex (TypeId &tid,bool &can_write,TypeId check_tid,int flags) const;
           
           // helper func: applies exiasting id or index to hook in preparation
            // for setting a new one
@@ -480,19 +480,14 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       	// object rather than the ref.
       	// 0: no type checking. For dynamic types, returning an ObjRef is
       	// preferred.
-      bool must_write = False, 	// If True and datum is read-only, throw an exception
-      int autoprivatize = 0	// If set to DMI::WRITE, and the object is accessed via a ref,
-      	// automatically privatize the ref. DMI::DEEP may also be passed in to
-      	// force deep privatization. If the method calls get() on any
-      	// subcontainer, then this argument should be passed on.
-      ) const = 0;
+      int flags = 0) const = 0;
 
       //## Operation: getn%3C7A13C90269
       //	getn(int): this is a version of get() with a numeric element
       //	specification. This is the method called by the hook operator
       //	[](int). The default implementation simply converts the index into a
       //	single-index HIID, and calls get(HIID).
-      virtual const void * getn (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False, int autoprivatize = 0) const;
+      virtual const void * getn (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, int flags = 0) const;
 
       //## Operation: insert%3C7A13D703AA
       //	insert(HIID). This is an abstract ethod for allocating a new element
@@ -545,17 +540,6 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       //	fixed type (e.g. a record), or hasn't been initialized yet, then
       //	just return NullType (0). Default version returns 0.
       virtual TypeId type () const;
-
-      //## Operation: isContiguous%3C7F97CB00F6
-      //	Returns True if storage of container is contiguous (i.e., if data[n]
-      //	is located at (&data[0])+n). Default implementation returns False.
-      virtual bool isContiguous () const;
-
-      //## Operation: isScalar%3CB161F10064
-      //	Returns True if the container can be treated as a scalar with the
-      //	given type (i.e. if the container as a whole can be retrieved as an
-      //	object of the given type). Default implementation returns False.
-      virtual bool isScalar (TypeId ) const;
 
       //## Operation: operator []%3C8742310264
       NestableContainer::ConstHook operator [] (const HIID &id) const;
@@ -727,7 +711,7 @@ inline bool NestableContainer::ConstHook::exists () const
 {
   //## begin NestableContainer::ConstHook::exists%3C8737D30041.body preserve=yes
   TypeId tid; bool dum;
-  return collapseIndex(tid,dum,0,False) != 0;
+  return collapseIndex(tid,dum,0,0) != 0;
   //## end NestableContainer::ConstHook::exists%3C8737D30041.body
 }
 
@@ -735,7 +719,7 @@ inline TypeId NestableContainer::ConstHook::type () const
 {
   //## begin NestableContainer::ConstHook::type%3C8737E002A3.body preserve=yes
   TypeId tid; bool dum;
-  const void *targ = collapseIndex(tid,dum,0,False);
+  const void *targ = collapseIndex(tid,dum,0,0);
   if( !targ )
     return 0;
   const NestableContainer *nc1 = asNestable(targ,tid);
@@ -747,7 +731,7 @@ inline TypeId NestableContainer::ConstHook::actualType () const
 {
   //## begin NestableContainer::ConstHook::actualType%3C8737F702D8.body preserve=yes
   TypeId tid; bool dum;
-  const void *targ = collapseIndex(tid,dum,0,False);
+  const void *targ = collapseIndex(tid,dum,0,0);
   return targ ? tid : NullType;
   //## end NestableContainer::ConstHook::actualType%3C8737F702D8.body
 }
@@ -771,7 +755,7 @@ inline bool NestableContainer::ConstHook::isRef () const
 {
   //## begin NestableContainer::ConstHook::isRef%3C876FF50114.body preserve=yes
   TypeId tid; bool dum;
-  const void *target = collapseIndex(tid,dum,0,False);
+  const void *target = collapseIndex(tid,dum,0,0);
   return target && tid == TpObjRef;
   //## end NestableContainer::ConstHook::isRef%3C876FF50114.body
 }
@@ -780,7 +764,7 @@ inline int NestableContainer::ConstHook::size () const
 {
   //## begin NestableContainer::ConstHook::size%3C87380503BE.body preserve=yes
   TypeId tid; bool dum;
-  const void *targ = collapseIndex(tid,dum,0,False);
+  const void *targ = collapseIndex(tid,dum,0,0);
   if( !targ )
     return 0;
   const NestableContainer *nc1 = asNestable();
@@ -947,10 +931,10 @@ inline NestableContainer::NestableContainer (bool write)
 
 
 //## Other Operations (inline)
-inline const void * NestableContainer::getn (int n, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write, int autoprivatize) const
+inline const void * NestableContainer::getn (int n, TypeId& tid, bool& can_write, TypeId check_tid, int flags) const
 {
   //## begin NestableContainer::getn%3C7A13C90269.body preserve=yes
-  return get(HIID(n),tid,can_write,check_tid,must_write,autoprivatize);
+  return get(HIID(n),tid,can_write,check_tid,flags);
   //## end NestableContainer::getn%3C7A13C90269.body
 }
 
@@ -980,20 +964,6 @@ inline TypeId NestableContainer::type () const
   //## begin NestableContainer::type%3C7A1552012E.body preserve=yes
   return TypeId(0);
   //## end NestableContainer::type%3C7A1552012E.body
-}
-
-inline bool NestableContainer::isContiguous () const
-{
-  //## begin NestableContainer::isContiguous%3C7F97CB00F6.body preserve=yes
-  return False;
-  //## end NestableContainer::isContiguous%3C7F97CB00F6.body
-}
-
-inline bool NestableContainer::isScalar (TypeId ) const
-{
-  //## begin NestableContainer::isScalar%3CB161F10064.body preserve=yes
-  return False;
-  //## end NestableContainer::isScalar%3CB161F10064.body
 }
 
 inline NestableContainer::ConstHook NestableContainer::operator [] (const HIID &id) const
@@ -1065,7 +1035,7 @@ inline const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
 {
   FailWhen(addressed,"unexpected '&' operator");
   TypeId tid; bool dum;
-  const void *target = collapseIndex(tid,dum,0,write);
+  const void *target = collapseIndex(tid,dum,0,write?DMI::WRITE:0);
   FailWhen(!target,"element does not exist");
   FailWhen(tid!=TpObjRef,"element is not held in an ObjRef");
   return static_cast<const ObjRef*>(target);
@@ -1082,11 +1052,11 @@ inline const void * NestableContainer::ConstHook::get_pointer(TypeId tid,bool mu
 
 // This applies the current subscript to the hook, updating the target
 inline const void * NestableContainer::ConstHook::collapseIndex (TypeId &tid,
-    bool &can_write,TypeId check_tid,bool must_write) const
+    bool &can_write,TypeId check_tid,int flags) const
 {
   return index<0 
-      ? nc->get(id,tid,can_write,check_tid,must_write,autoprivatize)
-      : nc->getn(index,tid,can_write,check_tid,must_write,autoprivatize);
+      ? nc->get(id,tid,can_write,check_tid,flags|autoprivatize)
+      : nc->getn(index,tid,can_write,check_tid,flags|autoprivatize);
 }
 
 // helper function applies current subscript to hook in preparation
@@ -1108,5 +1078,18 @@ inline void NestableContainer::Hook::assign_object( const BlockableObject *obj,T
 
 //## end module%3C10CC830067.epilog
 
+
+#endif
+
+
+// Detached code regions:
+#if 0
+//## begin NestableContainer::isContiguous%3C7F97CB00F6.body preserve=yes
+  return False;
+//## end NestableContainer::isContiguous%3C7F97CB00F6.body
+
+//## begin NestableContainer::isScalar%3CB161F10064.body preserve=yes
+  return False;
+//## end NestableContainer::isScalar%3CB161F10064.body
 
 #endif

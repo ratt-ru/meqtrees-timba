@@ -377,20 +377,22 @@ void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
   //## end DataRecord::cloneOther%3C58239503D1.body
 }
 
-const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write, int autoprivatize) const
+const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, int flags) const
 {
   //## begin DataRecord::get%3C56B00E0182.body preserve=yes
-  FailWhen( !id.size(),"null HIID/can't access a DataRecord as scalar" );
+  FailWhen(flags&DMI::NC_SCALAR,"can't access DataRecord in scalar mode");
+  FailWhen( !id.size(),"null field id" );
   CFMI iter = fields.find(id);
   if( iter == fields.end() )
     return 0;
   // This condition checks that we're not auto-privatizing a readonly container
   // (so that we can cast away const, below)
-  FailWhen(autoprivatize && !isWritable(),"can't autoprivatize in readonly record");
-  FailWhen(autoprivatize&DMI::READONLY && must_write,"can't autoprivatize for read while writing");
   // do unconditional privatize if required
-  if( autoprivatize )
-    const_cast<DataFieldRef*>(&iter->second)->privatize(autoprivatize&(DMI::WRITE|DMI::READONLY|DMI::DEEP)); 
+  if( flags&DMI::PRIVATIZE )
+  {
+    FailWhen(!isWritable(),"can't autoprivatize in readonly record");
+    const_cast<DataFieldRef*>(&iter->second)->privatize(flags&(DMI::READONLY|DMI::WRITE|DMI::DEEP)); 
+  }
   // writability is first determined by the field ref itself, plus the field
   // An invalid ref is considered writable (we'll check for our own writability
   // below)
@@ -402,13 +404,13 @@ const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, Type
     // since we're returning an objref, writability to the ref is limited
     // by our own writability too
     can_write &= isWritable();
-    FailWhen(must_write && !can_write,"write access violation"); 
+    FailWhen(flags&DMI::WRITE && !can_write,"write access violation"); 
     tid = TpObjRef;
     return &iter->second;
   }
   else // else a DataField (or Object) must have been explicitly requested
   {
-    // writability of ref already checked above
+    FailWhen(flags&DMI::WRITE && !can_write,"write access violation"); 
     FailWhen(check_tid != TpDataField && check_tid != TpObject,
         "type mismatch: expecting "+check_tid.toString()+", got DataField" );
     tid = TpDataField;
