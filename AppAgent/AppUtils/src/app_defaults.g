@@ -21,6 +21,8 @@ for( x in argv )
 {
   if( x == '-nostart' ) 
     use_nostart := T;
+  else if( x == '-opt' ) 
+    use_opt := T;
   else if( x == '-suspend' )
     use_suspend := T;
   else if( x == '-valgrind' )
