@@ -13,56 +13,81 @@
 #
 AC_DEFUN(lofar_BASESIM,dnl
 [dnl
+[MODULEBASE=]$1
 AC_PREREQ(2.13)dnl
 AC_ARG_WITH(basesim,
-	[  --with-basesim[=PFX]    prefix where BaseSim is installed],
+	[  --with-basesim[=PFX]    path to BaseSim build directory],
 	[with_basesim=$withval],
-	[with_basesim="no"])
+	[with_basesim="yes"])
 [
-if test "$with_basesim" = "no"; then
-  enable_basesim=no
+enable_basesim=yes
+if test "$with_basesim" = "no"; then]
+AC_MSG_ERROR([Cannot configure without BaseSim])
+[fi
+if test "$with_basesim" = "yes"; then
+
+  #
+  # Try to guess where the BaseSim directory is located
+  # Construct lofar_basesim_top_builddir
+  #
+  rel_top_builddir=`echo $PWD | sed -e "s%.*/$MODULEBASE/%%"`
+  lofar_base=`echo $PWD | sed -e "s%/LOFAR/.*%/LOFAR%"`
+  lofar_basesim_top_builddir=$lofar_base/BaseSim/$rel_top_builddir
+  lofar_basesim_top_srcdir=$lofar_base/BaseSim/src
+
+  # debugging echo statements
+  # echo rel_top_builddir = $rel_top_builddir
+  # echo lofar_base       = $lofar_base
+  # echo lofar_basesim_top_builddir = $lofar_basesim_top_builddir
+  # echo lofar_basesim_top_srcdir   = $lofar_basesim_top_srcdir
+
+  # Strip everything upto LOFAR component from start of pwd
+  # set BaseSim path to 
+
 else
-  if test "$with_basesim" = "yes"; then
-    basesim_prefix=]DEFAULT_BASESIM_PREFIX
-[
-  else
-    basesim_prefix=$withval
-  fi
-  enable_basesim=yes
+
+  lofar_basesim_top_builddir=$withval
+
+  lofar_basesim_top_srcdir=`echo $withval | sed -e "s%/BaseSim/.*%/BaseSim%"`
+  lofar_basesim_top_srcdir=$lofar_basesim_top_srcdir/src
+
+  # debugging echo statements
+  # echo lofar_basesim_top_builddir = $lofar_basesim_top_builddir
+  # echo lofar_basesim_top_srcdir   = $lofar_basesim_top_srcdir
+  
+fi
 ]
 ##
-## Check in normal location and suggested location
+## Check for BaseSim.h header file in src dir
 ##
-AC_CHECK_FILE([$basesim_prefix/libbasesim.la],
-			[lofar_cv_lib_basesim=yes],
-			[lofar_cv_lib_basesim=no])dnl
+AC_CHECK_FILE([$lofar_basesim_top_srcdir/BaseSim.h],
+			[lofar_cv_header_basesim=yes],
+			[lofar_cv_header_basesim=no])dnl
 [
-  if test $lofar_cv_lib_basesim = yes ; then
+  if test $lofar_cv_header_basesim = yes ; then
 
-	BASESIM_PATH="$matlab_prefix"
+	CFLAGS="$CFLAGS -I$lofar_basesim_top_srcdir"
+	CXXFLAGS="$CXXFLAGS -I$lofar_basesim_top_srcdir"
+	LIBS="$LIBS $lofar_basesim_top_builddir/src/libbasesim.la"
 
-	BASESIM_CFLAGS="-I$BASESIM_PATH/include"
-	BASESIM_LDFLAGS="-L$BASESIM_PATH/extern/lib/glnx86"
-	BASESIM_LIBS="-lmx -leng"
-
-	CFLAGS="$CFLAGS $BASESIM_CFLAGS"
-	CXXFLAGS="$CXXFLAGS $BASESIM_CFLAGS"
-	LDFLAGS="$LDFLAGS $BASESIM_LDFLAGS"
-	LIBS="$LIBS $BASESIM_LIBS"
+	# Two new variable for use in Makefile.am's
+	basesim_top_srcdir="$lofar_basesim_top_srcdir"
+	basesim_top_builddir="$lofar_basesim_top_builddir"
 ]
 dnl
 AC_SUBST(CFLAGS)dnl
 AC_SUBST(CXXFLAGS)dnl
-AC_SUBST(LDFLAGS)dnl
 AC_SUBST(LIBS)dnl
+AC_SUBST(basesim_top_srcdir)dnl
+AC_SUBST(basesim_top_builddir)dnl
 dnl
 dnl NOT NEEDED: AC_DEFINE(HAVE_BASESIM, 1, [Define if Matlab is installed])dnl
 [
   else]
-AC_MSG_ERROR([Could not find Matlab in $matlab_prefix])
+AC_MSG_ERROR([Could not find BaseSim installation in $lofar_basesim_top_srcdir])
 [
-    enable_matlab=no
+    enable_basesim=no
   fi
-fi]
+]
 dnl NOT NEEDED: AM_CONDITIONAL(HAVE_BASESIM, test "$enable_matlab" = "yes")
 ])
