@@ -1,50 +1,18 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
 
-//## begin module%3C10CC830069.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C10CC830069.cm
-
-//## begin module%3C10CC830069.cp preserve=no
-//## end module%3C10CC830069.cp
-
-//## Module: NestableContainer%3C10CC830069; Package body
-//## Subsystem: DMI%3C10CC810155
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\NestableContainer.cc
-
-//## begin module%3C10CC830069.additionalIncludes preserve=no
-//## end module%3C10CC830069.additionalIncludes
-
-//## begin module%3C10CC830069.includes preserve=yes
 #define NC_SKIP_HOOKS 1
-#include <list>
+#define NC_INCLUDE_VECTOR_HOOKS 1
+#include "DMI/NestableContainer.h"
 #include "DMI/DataArray.h"
 #include "DMI/DataField.h"
-//## end module%3C10CC830069.includes
+#include <list>
 
-// NestableContainer
-#include "DMI/NestableContainer.h"
-//## begin module%3C10CC830069.declarations preserve=no
-//## end module%3C10CC830069.declarations
-
-//## begin module%3C10CC830069.additionalDeclarations preserve=yes
 DefineRegistry(NestableContainer,False);
 
-//##ModelId=3DB934920303
 int NestableContainer::ConstHook::_dum_int;
-//##ModelId=3DB9349203A5
 NestableContainer::ContentInfo NestableContainer::ConstHook::_dum_info;
-//##ModelId=3C87380503BE
-//## end module%3C10CC830069.additionalDeclarations
 
 
-// Class NestableContainer::ConstHook 
 
-
-//## Other Operations (implementation)
 int NestableContainer::ConstHook::size (TypeId tid) const
 {
   //## begin NestableContainer::ConstHook::size%3C87380503BE.body preserve=yes

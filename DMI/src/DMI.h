@@ -1,6 +1,7 @@
 #ifndef DMI_h
 #define DMI_h 1
 
+#include "config.h"
 #include "DMI/Common.h"
 #include "Common/Debug.h"
 #include <stdio.h>

@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.19  2002/12/05 10:15:22  smirnov
+//  %[BugId: 112]%
+//  Fixed Lorray support in DataArrays, etc.
+//  Revised AIPS++ hooks.
+//
 //  Revision 1.18  2002/12/03 20:36:14  smirnov
 //  %[BugId: 112]%
 //  Ported DMI to use Lorrays (with blitz arrays)
@@ -172,6 +177,22 @@ DataArray::Destructor DataArray::destructor[NumTypes][MaxLorrayRank] =
 
 #undef OneLine  
 
+// initializes num std::string objects located at start
+static void initStringArray (void *start,int num)
+{
+  string *ptr = static_cast<string*>(start),*end = ptr+num,*dum;
+  for( ; ptr<end; ptr++ )
+    dum = new(ptr) string; 
+}
+// destroys num std::string objects located at start
+static void destroyStringArray (void *start,int num)
+{
+  string *ptr = static_cast<string*>(start),*end = ptr+num;
+  for( int i=0; i<num; i++,ptr++ )
+    for( ; ptr<end; ptr++ )
+      ptr->~string();
+}
+
 //##ModelId=3DB949AE039F
 DataArray::DataArray (int flags)
 : NestableContainer(flags&DMI::WRITE != 0),
@@ -204,7 +225,7 @@ DataArray::DataArray (TypeId type, const LoShape & shape,
     FailWhen( rank != shape.size(),
         Debug::ssprintf("TypeId %s conflicts with shape of rank %d",type.toString().c_str(),shape.size()));
   }
-  itsElemSize = TypeInfo::find(itsScaType).size;
+  itsElemSize = type == Tpstring ? sizeof(string) : TypeInfo::find(itsScaType).size;
   init(shape,flags);
 }
 
@@ -248,11 +269,26 @@ void DataArray::cloneOther (const DataArray& other, int flags, int)
   nc_readlock1(other);
   Assert (!valid());
   setWritable ((flags&DMI::WRITE) != 0);
-  if (other.itsArray) 
+  if( other.itsArray ) 
   {
-    itsData.copy (other.itsData).privatize(flags|DMI::LOCK);
+    itsScaType  = other.itsScaType;
+    itsType     = other.itsType;
+    itsShape    = other.itsShape;
+    itsSize     = other.itsSize;
+    itsElemSize = other.itsElemSize;
     itsDataOffset = other.itsDataOffset;
-    itsShape      = other.itsShape;
+    itsData.copy(other.itsData).privatize(flags|DMI::LOCK);
+    itsArrayData = const_cast<char*>(itsData->cdata()) + itsDataOffset;
+    // strings need to be initialized & copied over explicitly
+    if( itsScaType == Tpstring )
+    {
+      string *dest = reinterpret_cast<string*>(itsArrayData), 
+             *end = dest + itsSize;
+      const string *src = reinterpret_cast<string*>(other.itsArrayData);
+      // construct & assign strings in block
+      for( ; dest < end; dest++,src++ )
+        *(new(dest) string) = *src;
+    }
     makeArray();
   }
 }
@@ -311,46 +347,31 @@ void * DataArray::makeSubArray (void *data,const LoShape & shape,const LoShape &
 void DataArray::init (const LoShape & shape,int flags)
 {
   itsShape = shape;
-  int sz = sizeof(int) * (3 + shape.size());
+  itsSize  = shape.product();
+  int sz = sizeof(int) * (2 + shape.size());
   // Align data on 8 bytes.
   itsDataOffset = (sz+7) / 8 * 8;
-  sz = itsDataOffset + shape.product() * itsElemSize;
+  sz = itsDataOffset + itsSize*itsElemSize;
   // Allocate enough space in the SmartBlock.
   /// Circumvent temporary SmartBlock problem
   ///  itsData.attach (new SmartBlock (sz, flags, shm_flags),
-  itsData.attach (new SmartBlock(sz,flags),
-		  DMI::WRITE|DMI::ANON|DMI::LOCK);
-  setHeaderType(itsType);
-  setHeaderSize(shape.product());
-  void* dataPtr = itsData.dewr().data();
-  Assert(dataPtr);
-  int* hdrPtr = static_cast<int*>(dataPtr);
-  hdrPtr[2] = shape.size();
-  for (uInt i=0; i<shape.size(); i++) {
-    hdrPtr[i+3] = shape[i];
-  }
+  itsData.attach(new SmartBlock(sz,flags),DMI::ANONWR|DMI::LOCK);
+  void *dataptr = itsData().data();
+
+  // store type, ndim, and shape into block header
+  int *hdr = static_cast<int*>(dataptr);
+  *hdr++ = itsScaType;
+  *hdr++ = shape.size();
+  for( uint i=0; i<shape.size(); i++ )
+    *hdr++ = shape[i];
+  
   // take pointer to data
-  itsArrayData = static_cast<char*>(dataPtr) + itsDataOffset;
-  // allocate the array object
-  makeArray();
-}
-
-
-
-//##ModelId=3DB949AF0029
-void DataArray::reinit()
-{
-  const void* dataPtr = itsData->data();
-  Assert (dataPtr);
-  const int* hdrPtr = static_cast<const int*>(dataPtr);
-  int nrel = hdrPtr[2];
-  itsShape.resize(nrel);
-  for (int i=0; i<nrel; i++) 
-    itsShape[i] = hdrPtr[i+3];
-  int sz = sizeof(int) * (3+nrel);
-  // Data is aligned on 8 bytes.
-  itsDataOffset = (sz+7) / 8 * 8;
-  itsArrayData = const_cast<char *>(static_cast<const char*>(dataPtr) + itsDataOffset);
+  itsArrayData = static_cast<char*>(dataptr) + itsDataOffset;
+  
+  // init string objects, if needed
+  if( itsScaType == Tpstring )
+    initStringArray(itsArrayData,itsSize);
+  
   // allocate the array object
   makeArray();
 }
@@ -359,8 +380,14 @@ void DataArray::reinit()
 void DataArray::clear()
 {
   nc_writelock;
-  if( itsArray ) 
+  if( itsArray )
+  {
     destroyArray(elementType(),rank(),itsArray);
+    // destroy string objects, if needed
+    if( itsScaType == Tpstring )
+      destroyStringArray(itsArrayData,itsSize);
+  }
+  
 #ifdef USE_THREADS
   for( SubArrayMap::const_iterator iter = itsSubArrayMap.begin();
        iter != itsSubArrayMap.end(); iter ++ )
@@ -378,6 +405,7 @@ void DataArray::clear()
 #endif
   itsArray    = 0;
   itsShape.resize (0);
+  
   itsData.unlock().detach();
 }
 
@@ -398,7 +426,7 @@ int DataArray::size (TypeId tid) const
 {
   // by default, return size of scalar type
   if( !tid || tid == itsScaType )
-    return headerSize();
+    return itsSize;
   // else return 1 for full array type
   if( tid == itsType )
     return 1;
@@ -412,31 +440,122 @@ int DataArray::fromBlock (BlockSet& set)
   nc_writelock;
   dprintf1(2)("%s: fromBlock\n",debug());
   clear();
-  // Get data block and privatize.
-  set.pop (itsData);  
-  int npopped = 1;
-  size_t hsize = itsData->size();
-  AssertStr (hsize >= 3*sizeof(int), "malformed header block");
-  itsData.privatize ((isWritable() ? DMI::WRITE : 0) | DMI::LOCK);
+  
+  // Get data block.
+  BlockRef href;
+  set.pop(href);  
+  size_t hsize = href->size();
+  FailWhen( hsize < 2*sizeof(int), "malformed data block");
+  const int *hdr = static_cast<const int*>(href->data());
+  
+  // get element type and rank from header
+  itsScaType = *hdr++;
+  TypeInfo typeinfo = TypeInfo::find(itsScaType);
+  FailWhen( typeinfo.category != TypeInfo::NUMERIC && itsScaType != Tpstring,
+            "invalid array element type" + itsScaType.toString() ); 
+  uint rank = *hdr++;
+  FailWhen( rank < 1 || rank > MaxLorrayRank,"invalid array rank" );
+  FailWhen( hsize < (2+rank)*sizeof(int), "malformed data block" );
+  // derive array type & element size
+  itsType = TpArray(itsScaType,rank);
+  itsElemSize = itsScaType == Tpstring ? sizeof(string) : typeinfo.size;
+  
+  // get shape from header & compute total size
+  itsShape.resize(rank);
+  itsSize = 1;
+  for( uint i=0; i<rank; i++ )
+    itsSize *= itsShape[i] = *hdr++;
+  
+  // compute size of data block & offset into it
+  size_t blocksize = sizeof(int) * (2 + rank);
+  // Align data on 8 bytes.
+  itsDataOffset = (blocksize + 7) / 8 * 8;
+  blocksize = itsDataOffset + itsSize*itsElemSize;
+  
+  // strings are a special case since they need to be copied from the block
+  if( itsScaType == Tpstring )
+  {
+    size_t expected_size = (2 + rank + itsSize)*sizeof(int);
+    FailWhen( hsize < expected_size,"malformed data block" );
+    // actual array to be stored here
+    BlockRef newdata(new SmartBlock(blocksize),DMI::ANONWR);
+    itsArrayData = newdata().cdata() + itsDataOffset;
+    initStringArray(itsArrayData,itsSize);
+    // start of string array
+    string *pstr = reinterpret_cast<string*>(itsArrayData);
+    // hdr now points at array of string lengths
+    // string data starts at hdr[itsSize];
+    const char *chardata = reinterpret_cast<const char*>(hdr+itsSize);
+    // copy strings one by one
+    for( int i=0; i<itsSize; i++,pstr++ )
+    {
+      int len = *hdr++;       // length from header
+      expected_size += len;   // adjust expect size & check for spacd
+      FailWhen( hsize < expected_size,"malformed data block" );
+      // assign to string
+      pstr->assign(chardata,len); 
+      chardata += len;
+    }
+    FailWhen( hsize != expected_size,"malformed data block" );
+    // xfer data block
+    itsData = newdata;
+  }
+  else // else simply privatize the data block
+  {
+    FailWhen( blocksize != hsize,"malformed data block");
+    itsData = href;
+    itsData.privatize((isWritable() ? DMI::WRITE : 0) | DMI::LOCK);
+    itsArrayData = const_cast<char *>(itsData->cdata()) + itsDataOffset;
+  }
   // Create the Array object.
-  reinit();
-  return npopped;
+  makeArray();
+  return 1;
 }
 
 //##ModelId=3DB949AE03C5
 int DataArray::toBlock (BlockSet& set) const
 {
   nc_readlock;
-  if (!valid()) {
+  if( !valid() ) 
+  {
     dprintf1(2)("%s: toBlock=0 (field empty)\n",debug());
     return 0;
   }
   dprintf1(2)("%s: toBlock\n",debug());
-  set.push (itsData.copy(DMI::READONLY));
-  int npushed = 1;
-  return npushed;
+// strings are handled separately since the data needs to be copied out
+  if( itsScaType == Tpstring )
+  {
+    int totlen = 0;
+    // count up the string lengths
+    string *ptr = reinterpret_cast<string*>(itsArrayData);
+    for( int i=0; i<itsSize; i++,ptr++ )
+      totlen += ptr->length();
+    // allocate block for type, ndim, shape, string lengths & string data
+    BlockRef ref(new SmartBlock(
+        (2+itsShape.size()+itsSize)*sizeof(int) + totlen),DMI::ANONWR);
+    // fill the block, first the header
+    int *hdr   = static_cast<int*>(ref().data());
+    *hdr++ = Tpstring;
+    *hdr++ = itsShape.size();
+    for( uint i=0; i<itsShape.size(); i++ )
+      *hdr++ = itsShape[i];
+    // now store strings & string lengths
+    char *data = reinterpret_cast<char*>(hdr + itsSize);
+    ptr = reinterpret_cast<string*>(itsArrayData);
+    for( int i=0; i<itsSize; i++,ptr++ )
+    {
+      int len = *hdr++ = ptr->copy(data,string::npos);
+      data += len;
+    }
+    set.push(ref);
+  }
+  else // else simply push out copy of data block
+  {
+    set.push(itsData.copy(DMI::READONLY));
+  }
+  return 1;
 }
-
+  
 //##ModelId=3DB949AE03CB
 CountedRefTarget* DataArray::clone (int flags, int depth) const
 {
@@ -474,8 +593,8 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
   if( nid == ndim )     // full HIID?
   {
     bool single = true;
-    LoShape which(itsShape.nelements());
-    for (int i=0; i<nid; i++) 
+    LoShape which(LoShape::SETRANK|ndim);
+    for( int i=0; i<nid; i++ ) 
     {
       which[i] = id[i];
       if( which[i] < 0 ) // all elements for this axis?
@@ -484,7 +603,7 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
 	      break;
       }
     }
-    if( single ) 
+    if( single )
     {
       info.tid = itsScaType;
       FailWhen(check_tid && check_tid != itsScaType &&
@@ -503,7 +622,7 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
                               ishape = itsShape.begin();
       for( ; iwhich != which.end(); iwhich++,ishape++ )
       {
-        offset += *iwhich;
+        offset += *iwhich*stride;
         stride *= *ishape;
       }
       return itsArrayData + itsElemSize*offset;

@@ -1,15 +1,32 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+#ifndef DMI_NestableContainer_h
+#define DMI_NestableContainer_h 1
 
-#ifndef NestableContainer_h
-#define NestableContainer_h 1
-
+// Some notes on hooks.
+// NestableContainer can define an innumerable amount of inlined accessor
+// methods (basically, for all types known to the system).
+// This can lead to unnecessarily long compilation times, hence you can
+//    #define NC_SKIP_HOOKS 1
+// to have it skip all these methods.
+//
+// In addition, it can define accessors for some AIPS++ types (Arrays and 
+// Strings). This is off by default; if you do need them, you need to
+//    #define AIPSPP_HOOKS 1
+//    <include NestableContaine.h or some derived class>
+// and later, #include "DMI/AIPSPP-Hooks.h"
+// The reason you need to include AIPSPP-Hooks separately is that this file
+// pulls in DataField and DataArray, which are not available when NC is 
+// included for the first time.
+      
+#include "Common/Thread/Mutex.h"
 #include "DMI/Common.h"
 #include "DMI/DMI.h"
-
-#include "Common/Thread/Mutex.h"
 #include "DMI/TypeInfo.h"
 #include "DMI/Timestamp.h"
-    
+#include "DMI/BlockableObject.h"
+#include "DMI/Registry.h"
+#include "DMI/HIIDSet.h"
+
+// pull in type definitions from configured packages    
 #ifdef HAVE_LOFAR_OCTOPUSSY
   #include "OCTOPUSSY/TID-OCTOPUSSY.h"
 #endif
@@ -22,21 +39,18 @@
   #include "UVD/TID-UVD.h"
 #endif
 
+// pull in AIPS++ types if AIPS++ hooks are configured
 #ifdef AIPSPP_HOOKS
+#ifndef HAVE_AIPSPP
+  #error Must configure AIPS++ support for AIPSPP_HOOKS
+#endif
 #include <aips/Arrays/Array.h>
 #include <aips/Arrays/Vector.h>
 #include <aips/Arrays/Matrix.h>
 #include <aips/Utilities/String.h>
 #endif
 
-// BlockableObject
-#include "DMI/BlockableObject.h"
-// Registry
-#include "DMI/Registry.h"
-// HIIDSet
-#include "DMI/HIIDSet.h"
 using Debug::ssprintf;
-
 
 class NestableContainer;
 class NCBaseIter;
@@ -206,6 +220,7 @@ class NestableContainer : public BlockableObject
           const NestableContainer::ConstHook & operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
           { return (*this)[id1|id2|id3|id4]; }
           
+#ifndef NC_SKIP_HOOKS
           // Define as_Array templates. This makes use of the blitz::Array type
           // as_Lorray(): returns array by value
           template<class T,int N>
@@ -221,13 +236,14 @@ class NestableContainer : public BlockableObject
           template<class T,int N>
           operator blitz::Array<T,N> () const
           { return as_Lorray<T,N>(); }
-          
           // DataAcc-Const will define as_LoVec_type, as_LoMat_type, etc.
-#ifndef NC_SKIP_HOOKS
+          
           // pull in const accessor methods
           #include "DMI/DataAcc-Const.h"
-#endif          
           
+#endif
+          
+#if !defined(NC_SKIP_HOOKS) || defined(NC_INCLUDE_VECTOR_HOOKS)
           // Define an as_vector<> template. This should work for all
           // contiguous containers.
           template<class T>
@@ -235,18 +251,25 @@ class NestableContainer : public BlockableObject
           template<class T>
           operator vector<T> () const 
           { return as_vector<T>(); }
+#endif
           
-          // define AIPS++ accessors
 #ifdef AIPSPP_HOOKS
+          // define accessors for some AIPS++ types
           template<class T> 
-          Vector<T> as_Vector () const;
+          Matrix<T> as_AipsArray () const;
+          operator Array<T> () const 
+          { return as_AipsArray<T>(); }
           
+          template<class T> 
+          Vector<T> as_AipsVector () const;
           template<class T>
           operator Vector<T> () const 
-          { return as_Vector<T>(); }
+          { return as_AipsVector<T>(); }
 
           template<class T> 
-          Matrix<T> as_Matrix (int n1,int n2) const;
+          Matrix<T> as_AipsMatrix () const;
+          operator Matrix<T> () const 
+          { return as_AipsMatrix<T>(); }
           
         //##ModelId=3DB93499028E
           String as_String () const;
@@ -481,7 +504,7 @@ class NestableContainer : public BlockableObject
           // disabled since that confuses the compiler w.r.t. implicit conversions and stuff
 //          void operator = ( const ObjRef &ref );
           
-          
+#ifndef NC_SKIP_HOOKS
           // Define as_Lorray_w templates. This makes use of the blitz::Array type
           // as_Lorray_w(): returns writable array by value
           template<class T,int N>
@@ -497,10 +520,8 @@ class NestableContainer : public BlockableObject
           // DataAcc-Const will define as_LoVec_type_w, as_LoMat_type_w, etc.
           
           // pull non-in const accessor methods
-#ifndef NC_SKIP_HOOKS
           #define ForceConstDefinitions 1
           #include "DMI/DataAcc-NonConst.h"
-#endif
           
           // Assigning an Array either assigns to the underlying container,
           // or inits a new DataArray object
@@ -508,17 +529,23 @@ class NestableContainer : public BlockableObject
           // we can declare this as a template.
           template<class T,int N> 
           const blitz::Array<T,N> & operator = (const blitz::Array<T,N> &other) const;
+#endif          
           
-          // Assigning a vector of some type will assign to the underlying container
-          // (provided the shape/size matches), or inits a new DataField
+#if !defined(NC_SKIP_HOOKS) || defined(NC_INCLUDE_VECTOR_HOOKS)
+          // Assigning an STL vector of some type will assign to the underlying 
+          // container (provided the shape/size matches), or inits a new DataField
           template<class T> 
           const vector<T> & operator = (const vector<T> &other) const;
-          
+#endif
           // define accessors for AIPS++ types
 #ifdef AIPSPP_HOOKS
-          // assigning a vector of strings will init a DataField object
+          // assigning an AIPS++ array will init a DataArray object. This
+          // will also work for Vectors, Matrices and Cubes
+          template<class T>
+          const Array<T> & operator = (const Array<T> &other) const;
+          // note that assigning a vector of strings will init a DataField object
         //##ModelId=3DB934BA03A3
-          const Vector<String> & operator = (const Vector<String> &other) const;
+//          const Vector<String> & operator = (const Vector<String> &other) const;
           // assigning an AIPS++ String assigns an STL string.
         //##ModelId=3DB934BB02A0
           const String & operator = (const String &other) const;
@@ -1276,6 +1303,7 @@ inline NestableContainer * NestableContainer::ConstHook::nextNC (const NestableC
   return nc;
 }
 
+#ifndef NC_SKIP_HOOKS
 // Define an as_vector<> template. This should work for all
 // contiguous containers.
 // This copies data so is not very efficient, but is quite
@@ -1287,6 +1315,7 @@ inline vector<T> NestableContainer::ConstHook::as_vector () const
   const T *data = static_cast<const T*>(get_pointer(n,typeIdOf(T),False,False));
   return vector<T>(data,data+n);
 }
+#endif
 
 // const version of assign_object forces a read-only ref to be attached
 //##ModelId=3DB934C600BA
@@ -1297,7 +1326,7 @@ inline void NestableContainer::Hook::assign_object( const BlockableObject *obj,T
   return assign_object(const_cast<BlockableObject*>(obj),tid,(flags&~DMI::WRITE)|DMI::READONLY);
 }
 
-
+#ifndef NC_SKIP_HOOKS
 template<class T,int N> 
 inline const blitz::Array<T,N> & NestableContainer::Hook::operator = (const blitz::Array<T,N> &other) const
 {
@@ -1321,7 +1350,6 @@ inline const blitz::Array<T,N> & NestableContainer::Hook::operator = (const blit
   }
   return other;
 }
-
-
+#endif
 
 #endif

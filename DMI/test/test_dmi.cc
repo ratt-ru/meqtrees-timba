@@ -301,6 +301,27 @@ void TestDataRecord ()
       data.next(0);
   }
   
+  cout<<"======================= testing Array<string>\n";
+  DataArray &strarr = *new DataArray(Tpstring,makeLoShape(10,10),DMI::WRITE|DMI::ZERO);
+  rec["A.Z.G"] <<= strarr;
+  for(int i=0; i<10; i++)
+    for(int j=0; j<10; j++)
+      rec[HIID("A.Z.G")][HIID(i)|j] = Debug::ssprintf("%d-%d",i,j);
+//  cout<<"Array contents: "<<rec["A.Z.G"].as_LoMat_string()<<endl;
+  cout<<"converting to block\n";
+  BlockSet arrset;
+  strarr.toBlock(arrset);
+  
+  cout<<"converting from block\n";
+  DataArray strarr2(DMI::WRITE);
+  strarr2.fromBlock(arrset);
+//  cout<<"Array contents: "<<strarr2[HIID()].as_LoMat_string()<<endl;
+  for(int i=0; i<10; i++)
+    for(int j=0; j<10; j++)
+    {
+      Assert( strarr2[HIID(i)|j].as_string() == Debug::ssprintf("%d-%d",i,j));
+    }
+  
   cout<<"======================= testing BOIO\n";
   cout<<"======================= writing\n";
   BOIO boio("test.boio",BOIO::WRITE);
@@ -334,9 +355,7 @@ int main ( int argc,const char *argv[] )
   cout<<"Using libstdc++ version 2\n";
 #endif
   
-  Debug::getDebugContext().setLevel(10);
-  CountedRefBase::getDebugContext().setLevel(10);
-  
+  Debug::setLevel("CRef",1);
   Debug::initLevels(argc,argv);
   
   try 

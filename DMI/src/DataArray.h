@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.16  2002/12/05 10:15:22  smirnov
+//  %[BugId: 112]%
+//  Fixed Lorray support in DataArrays, etc.
+//  Revised AIPS++ hooks.
+//
 //  Revision 1.15  2002/12/03 20:36:14  smirnov
 //  %[BugId: 112]%
 //  Ported DMI to use Lorrays (with blitz arrays)
@@ -108,7 +113,12 @@
 #include "DMI/HIID.h"
 #include "DMI/SmartBlock.h"
 
+#ifdef HAVE_AIPSPP
+#include <aips/Arrays.h>
+#endif
+
 #pragma types #DataArray
+
 
 // We assume Blitz support here, AIPS++ can be re-integrated later
 #ifndef LORRAYS_USE_BLITZ
@@ -152,6 +162,13 @@ public:
   explicit DataArray (const blitz::Array<T,N> & array, int flags = DMI::WRITE,
 		      int shm_flags = 0);
 
+#ifdef HAVE_AIPSPP
+  // templated method to create a copy of the given AIPS++ array
+  template<class T>
+  explicit DataArray (const Array<T> & array, int flags = DMI::WRITE,
+		      int shm_flags = 0);
+#endif
+
   // Copy (copy semantics).
     //##ModelId=3DB949AE03AF
   DataArray (const DataArray& other, int flags = 0, int depth = 0);
@@ -177,6 +194,14 @@ public:
   // (the virtual type() method, below, overriding the abstract one in 
   // NestableContainer, will return the array type)
   TypeId elementType () const;
+  
+#ifdef HAVE_AIPSPP
+  // returns contents as an AIPS++ array (by copy or reference)
+  template<class T>
+  Array<T> refAipsArray ();
+  template<class T>
+  Array<T> copyAipsArray () const;
+#endif
 
   // Return the object type (TpDataArray).
     //##ModelId=3DB949AE03BE
@@ -229,15 +254,10 @@ public:
 
   static const int NumTypes = Tpbool_int - Tpstring_int + 1;
   
-      
 private:
   // Initialize internal shape and create array using the given shape.
     //##ModelId=3DB949AF0024
   void init (const LoShape & shape,int flags);
-
-  // Initialize shape and create array using internal shape.
-    //##ModelId=3DB949AF0029
-  void reinit();
 
   // Create the actual Array object.
   // It is created from the array data part in the SmartBlock.
@@ -252,20 +272,6 @@ private:
     //##ModelId=3DB949AF002E
   void cloneOther (const DataArray& other, int flags = 0, int depth = 0);
 
-  // Accessor functions to array type and size kept in the SmartBlock.
-    //##ModelId=3DB949AF0037
-  int headerType() const
-    { return static_cast<const int*>(*itsData.deref())[0]; }
-    //##ModelId=3DB949AF003A
-  int headerSize() const
-    { return static_cast<const int*>(*itsData.deref())[1]; }
-    //##ModelId=3DB949AF003C
-  void setHeaderType (int type)
-    { static_cast<int*>(*itsData.dewr())[0] = type; }
-    //##ModelId=3DB949AF0041
-  void setHeaderSize (int size)
-    { static_cast<int*>(*itsData.dewr())[1] = size; }
-
     //##ModelId=3DB949AE036D
   LoShape    itsShape;          // actual shape
   
@@ -275,6 +281,7 @@ private:
     //##ModelId=3DB949AE0383
   int        itsElemSize;       // #bytes of an array element
     //##ModelId=3DB949AE0389
+  int        itsSize;           // total size of array (in elements)
   int        itsDataOffset;     // array data offset in SmartBlock
     //##ModelId=3DB949AE038E
   char*      itsArrayData;      // pointer to array data in SmartBlock
@@ -345,7 +352,13 @@ private:
   // this helper function creates the subarray object with the given data,
   // shape & stride. 
   void * makeSubArray (void *data,const LoShape & shape,const LoShape &stride) const;
-
+  
+#ifdef HAVE_AIPSPP
+  // helper function to implement templates below without resorting to a
+  // specialization (which seems to cause redefined symbol trouble)
+  template<class T>
+  static bool isStringArray (const Array<T> &);
+#endif
 };
 
 DefineRefTypes(DataArray,DataArrayRef);
@@ -392,5 +405,74 @@ DataArray::DataArray (const blitz::Array<T,N>& array,
   // so we can assign the other array to it, to copy the data over
   *static_cast<blitz::Array<T,N>*>(itsArray) = array;
 }
+
+#ifdef HAVE_AIPSPP
+template<class T>
+inline bool DataArray::isStringArray (const Array<T> &)
+{ return False; }
+  
+template<>
+inline bool DataArray::isStringArray (const Array<String> &)
+{ return True; }
+
+// templated constructor from an AIPS++ array
+template<class T>
+DataArray::DataArray (const Array<T> &array,int flags, int )  // shm_flags not yet used
+: NestableContainer(flags&DMI::WRITE != 0),
+  itsArray    (0)
+{
+  initSubArray();
+  itsScaType  = isStringArray(array) ? Tpstring : typeIdOf(T);
+  itsElemSize = isStringArray(array) ? sizeof(string) : sizeof(T);
+  itsType     = TpArray(itsScaType,array.ndim());
+  init(LoShape(array.shape()),flags);
+  // after an init, itsArray contains a valid array of the given shape,
+  // so we can copy the data over
+  // BUG here! use a more efficient AIPS++ array iterator
+  bool del;
+  const T *data = array.getStorage(del);
+  if( isStringArray(array) )
+  {
+    string *dest = reinterpret_cast<string *>(itsArrayData),end = dest+itsSize;
+    for( ; dest < end; dest++,data++ )
+      *dest = *data;
+  }
+  else
+    memcpy(itsArrayData,data,itsSize*itsElemSize);
+  array.freeStorage(data,del);
+}
+
+template<class T>
+Array<T> DataArray::copyAipsArray () const
+{
+  FailWhen( !valid(),"invalid DataArray" );
+  if( isStringArray(Array<T>()) )
+  {
+    FailWhen( itsScaType != Tpstring,"array type mismatch" );
+    T *dest = new T[itsSize], *end = dest+itsSize;
+    const string *src = reinterpret_cast<const string *>(itsArrayData);
+    for( ; dest < end; dest++,src++ )
+      *dest = *src;
+    return Array<T>(static_cast<IPosition>(itsShape),dest,TAKE_OVER);
+  }
+  else
+  {
+    FailWhen( itsScaType != typeIdOf(T),"array type mismatch" );
+    return Array<T>(itsShape,itsArrayData);
+  }
+}
+
+template<class T>
+Array<T> DataArray::refAipsArray ()
+{
+  FailWhen( !valid(),"invalid DataArray" );
+  FailWhen( !isWritable(),"r/w access violation" );
+  if( isStringArray(Array<T>()) )
+    return copyAipsArray<T>();
+  FailWhen( itsScaType != typeIdOf(T),"array type mismatch" );
+  return Array<T>(itsShape,itsArrayData,SHARE);
+}
+
+#endif
 
 #endif
