@@ -38,8 +38,8 @@ namespace Meq {
 using namespace VellsMath;
 
 const HIID FTopLabel = AidTop|AidLabel;
-const HIID FSubLabel = AidSub|AidLabel;
-const HIID FDataLabel = AidData|AidLabel;
+const HIID FGroupLabel = AidGroup|AidLabel;
+const HIID FItemLabel = AidItem|AidLabel;
 // we use FValue too, but it's already defined somewhere for us in MeqVocabulary
 // const HIID FValue    = AidValue;
 const HIID FAttrib   = AidAttrib;
@@ -47,8 +47,8 @@ const HIID FAttrib   = AidAttrib;
 DataCollect::DataCollect()
   : Node(-1,0,1), // at least 1 child must be present
     top_label_(AidPlot|AidData),
-    sub_label_(AidData),
-    data_label_(AidData)
+    group_label_(AidData),
+    item_label_(AidData)
 {
   attrib_ <<= new DataRecord;
 }
@@ -63,8 +63,8 @@ void DataCollect::setStateImpl (DataRecord &rec,bool initializing)
   Node::setStateImpl(rec,initializing);
   // get/init labels from state record
   rec[FTopLabel].get(top_label_,initializing);
-  rec[FSubLabel].get(sub_label_,initializing);
-  rec[FDataLabel].get(data_label_,initializing);
+  rec[FGroupLabel].get(group_label_,initializing);
+  rec[FItemLabel].get(item_label_,initializing);
   // get attribute record
   if( rec[FAttrib].exists() )
     attrib_ = rec[FAttrib].ref();
@@ -90,8 +90,8 @@ int DataCollect::getResult (Result::Ref &resref,
 // 	result.setCells(res_cells);
 
 	DataRecord &toprec = result[top_label_] <<= new DataRecord;
-	DataRecord &subrec = toprec[sub_label_] <<= new DataRecord;
-	DataRecord &datarec = subrec[data_label_] <<= new DataRecord;
+	DataRecord &subrec = toprec[group_label_] <<= new DataRecord;
+	DataRecord &datarec = subrec[item_label_] <<= new DataRecord;
 
   // put a copy of attributes ino the subrecord
   datarec[FAttrib] <<= attrib_.copy();

@@ -27,7 +27,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 
 #pragma types #Meq::DataCollect
-#pragma aid Top Sub Label Attrib Plot Data
+#pragma aid Top Group Item Label Attrib Plot Data Color Style Size Profile Visu XX XY YX YY
 
 namespace Meq {
 
@@ -56,8 +56,8 @@ private:
   //##Documentation
 
   HIID top_label_;
-  HIID sub_label_;
-  HIID data_label_;
+  HIID group_label_;
+  HIID item_label_;
   
   DataRecord::Ref attrib_;
 };
