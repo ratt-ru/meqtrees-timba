@@ -289,6 +289,7 @@ MeqSpigot                        1468       ; from /home/oms/LOFAR/Timba/MeqServ
 #MeqStdDev                       1491       ; from /home/oms/LOFAR/Timba/MeqNodes/src/StdDev.h:29
 #MeqStripper                     1409       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Stripper.h:30
 #MeqSubtract                     1461       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Subtract.h:30
+#MeqSum                          1499       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sum.h:29
 #MeqTan                          1417       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Tan.h:29
 #MeqTanh                         1450       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Tanh.h:29
 #MeqTime                         1451       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Time.h:30
