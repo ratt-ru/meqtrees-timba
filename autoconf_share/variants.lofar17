@@ -1,16 +1,16 @@
-gnu3.compiler.conf: CXX=/usr/bin/g++
+gnu3.compiler.conf: CXX="$CCACHE /usr/bin/g++"
 gnu3.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/stable/linux_gnu
 
-gnu.compiler.conf: CXX=/usr/bin/g++
+gnu.compiler.conf: CXX="$CCACHE /usr/bin/g++"
 gnu.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/stable/linux_gnu
 
-gnu34.compiler.conf: CXX=/usr/local/gcc343/bin/g++ --with-ldflags="-Wl,--rpath,/usr/local/gcc343/lib" 
+gnu34.compiler.conf: CXX="$CCACHE /usr/local/gcc343/bin/g++" --with-ldflags="-Wl,--rpath,/usr/local/gcc343/lib" 
 gnu34.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/stable/linux_gnu34
 
-gnunew.compiler.conf: CXX=/usr/local/gcc343/bin/g++ --with-ldflags="-Wl,--rpath,/usr/local/gcc343/lib"
+gnunew.compiler.conf: CXX="$CCACHE /usr/local/gcc343/bin/g++" --with-ldflags="-Wl,--rpath,/usr/local/gcc343/lib"
 gnunew.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/stable/linux_gnu34
 
-icc.compiler.conf: CXX=/usr/local/compiler80/bin/icc --with-cppflags="-cxxlib-gcc" --with-ldflags="-cxxlib-gcc -Xlinker -rpath -Xlinker /usr/local/compiler80/lib"
+icc.compiler.conf: CXX="$CCACHE /usr/local/compiler80/bin/icc" --with-cppflags="-cxxlib-gcc" --with-ldflags="-cxxlib-gcc -Xlinker -rpath -Xlinker /usr/local/compiler80/lib"
 icc.compiler.aipspp.var: --with-aipspp=/data/aips++/stable/linux_gnu
 
 insure.variant.conf:     --with-insuretools=/usr/local/insure/bin.linux2 $(aipspp)
