@@ -168,6 +168,7 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
     Thread::Mutex::Lock lock(datafield.mutex());
 #endif
     TypeId fieldtype = datafield.type();
+    bool scalar = datafield.isScalar();
     // an invalid field? (case 2.4)
     if( !datafield.valid() )
     {
@@ -183,6 +184,7 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
         arr.addAttribute("dmi_actual_type",GlishArray(type_string));
         arr.addAttribute("dmi_datafield_content_type",GlishArray(datafield.type().toString()));
         arr.addAttribute("dmi_is_datafield",GlishArray(True));
+        arr.addAttribute("dmi_datafield_is_scalar",GlishArray(scalar));
         return arr;
       }
     }
@@ -198,6 +200,7 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
       subrec.addAttribute("dmi_actual_type",GlishArray(type_string));
       subrec.addAttribute("dmi_datafield_content_type",GlishArray(datafield.type().toString()));
       subrec.addAttribute("dmi_is_datafield",GlishArray(True));
+      subrec.addAttribute("dmi_datafield_is_scalar",GlishArray(scalar));
       return subrec;
     }
   }
@@ -238,13 +241,14 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
 
 // helper function to create a DataField from a GlishArray
 template<class T> 
-void GlishUtil::initDataField (DataField &field,const GlishArray &arr)
+void GlishUtil::initDataField (DataField &field,const GlishArray &arr,bool isScalar)
 {
   Array<T> array;
   arr.get(array);
   bool del;
   const T * data = array.getStorage(del);
-  field.init(typeIdOf(T),array.nelements(),data);
+  int nel = array.nelements() == 1 && isScalar ? -1 : array.nelements();
+  field.init(typeIdOf(T),nel,data);
   array.freeStorage(data,del);
 }
 
@@ -315,19 +319,19 @@ ObjRef GlishUtil::makeDataArray (const GlishArray &arr,bool isIndex)
 }
 
 // helper function creates a DataField from a GlishArray (must be 1D)
-void GlishUtil::makeDataField (DataField &field,const GlishArray &arr,bool isIndex)
+void GlishUtil::makeDataField (DataField &field,const GlishArray &arr,bool isIndex,bool isScalar)
 {
   ObjRef ref;
   switch( arr.elementType() )
   {
     case GlishArray::BOOL:      
-        initDataField<Bool>(field,arr);
+        initDataField<Bool>(field,arr,isScalar);
         break;
     case GlishArray::BYTE:
-        initDataField<uChar>(field,arr);
+        initDataField<uChar>(field,arr,isScalar);
         break;
     case GlishArray::SHORT:
-        initDataField<Short>(field,arr);
+        initDataField<Short>(field,arr,isScalar);
         break;
     // INT arrays may need to be explicitly adjust for index base
     case GlishArray::INT: 
@@ -338,21 +342,22 @@ void GlishUtil::makeDataField (DataField &field,const GlishArray &arr,bool isInd
           array -= 1;
         bool del;
         const Int * data = array.getStorage(del);
-        field.init(Tpint,array.nelements(),data);
+        int nel = array.nelements() == 1 && isScalar ? -1 : int(array.nelements());
+        field.init(Tpint,nel,data);
         array.freeStorage(data,del);
         break;
     }
     case GlishArray::FLOAT:
-        initDataField<Float>(field,arr);
+        initDataField<Float>(field,arr,isScalar);
         break;
     case GlishArray::DOUBLE:
-        initDataField<Double>(field,arr);
+        initDataField<Double>(field,arr,isScalar);
         break;
     case GlishArray::COMPLEX:
-        initDataField<Complex>(field,arr);
+        initDataField<Complex>(field,arr,isScalar);
         break;
     case GlishArray::DCOMPLEX:
-        initDataField<DComplex>(field,arr);
+        initDataField<DComplex>(field,arr,isScalar);
         break;
     case GlishArray::STRING: 
     {
@@ -366,7 +371,8 @@ void GlishUtil::makeDataField (DataField &field,const GlishArray &arr,bool isInd
           tmp.get(typestr);
           is_hiid |= ( strlowercase(typestr) == "hiid" );
         }
-        field.init(is_hiid?TpHIID:Tpstring,array.nelements());
+        int nel = array.nelements() == 1 && isScalar ? -1 : int(array.nelements());
+        field.init(is_hiid?TpHIID:Tpstring,nel);
         if( is_hiid )
         {
           for( uint i=0; i < array.nelements(); i++ )
@@ -420,6 +426,12 @@ Base * GlishUtil::createSubclass (ObjRef &ref,const GlishValue &val)
 ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
 {
   ObjRef ref; 
+  Bool isScalar = True;
+  if( val.attributeExists("dmi_datafield_is_scalar") )
+  {
+    GlishArray tmp = val.getAttribute("dmi_datafield_is_scalar"); 
+    tmp.get(isScalar);
+  }
   if( val.type() == GlishValue::ARRAY )
   {
     GlishArray arr = val;
@@ -448,7 +460,7 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
         field = GlishUtil::createSubclass<DataField>(ref,val);
       else
         ref <<= field = new DataField;
-      makeDataField(*field,arr,adjustIndex);
+      makeDataField(*field,arr,adjustIndex,isScalar);
       // validate the field (no-op for DataField itself, but may be meaningful for subclasses)
       field->validateContent(); 
       return ref;
@@ -481,7 +493,8 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
       TypeId fieldtype(typestr);
       // create a field and populate it with the objects recursively
       DataField *field = GlishUtil::createSubclass<DataField>(ref,val);
-      field->init(fieldtype,glrec.nelements());
+      int nel = glrec.nelements() == 1 && isScalar ? -1 : int(glrec.nelements());
+      field->init(fieldtype,nel);
       for( uint i=0;i<glrec.nelements(); i++ )
       {
         try 
