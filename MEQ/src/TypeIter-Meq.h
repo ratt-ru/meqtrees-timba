@@ -14,16 +14,20 @@
         Do(MeqCos,arg) separator \
         Do(MeqDivide,arg) separator \
         Do(MeqExp,arg) separator \
+        Do(MeqFreq,arg) separator \
         Do(MeqFunction,arg) separator \
         Do(MeqMultiply,arg) separator \
         Do(MeqNode,arg) separator \
-        Do(MeqParmPolcStored,arg) separator \
+        Do(MeqParm,arg) separator \
         Do(MeqPow,arg) separator \
         Do(MeqSin,arg) separator \
         Do(MeqSqr,arg) separator \
         Do(MeqSqrt,arg) separator \
         Do(MeqSubtract,arg) separator \
-        Do(MeqToComplex,arg)
+        Do(MeqTime,arg) separator \
+        Do(MeqToComplex,arg) separator \
+        Do(MeqUVW,arg) separator \
+        Do(MeqU,arg)
 
 #define DoForAllNumericTypes_Meq(Do,arg,separator) \
         

@@ -4,7 +4,7 @@
     _written   	"Rational Rose 2002.05.20"
     charSet    	0)
 
-(object Class_Category "MEQ"
+(object Class_Category "Meq"
     is_unit    	TRUE
     is_loaded  	TRUE
     attributes 	(list Attribute_Set
@@ -632,7 +632,7 @@
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
 		    quid       	"3F86886E028D"
-		    supplier   	"Logical View::MEQ::Function"
+		    supplier   	"Logical View::Meq::Function"
 		    quidu      	"3F86886E01A8"))
 	    operations 	(list Operations
 		(object Operation "Add"
@@ -1078,7 +1078,7 @@
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
 		    quid       	"3F86886E0351"
-		    supplier   	"Logical View::MEQ::Node"
+		    supplier   	"Logical View::Meq::Node"
 		    quidu      	"3F5F436202FE"))
 	    operations 	(list Operations
 		(object Operation "Function"
@@ -1209,7 +1209,7 @@
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
 		    quid       	"3F86886F0212"
-		    supplier   	"Logical View::MEQ::Function"
+		    supplier   	"Logical View::Meq::Function"
 		    quidu      	"3F86886E01A8"))
 	    operations 	(list Operations
 		(object Operation "Parm"
@@ -1438,7 +1438,7 @@
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
 		    quid       	"3F86886F024B"
-		    supplier   	"Logical View::MEQ::Parm"
+		    supplier   	"Logical View::Meq::Parm"
 		    quidu      	"3F86886E01BD"))
 	    operations 	(list Operations
 		(object Operation "ParmPolc"
@@ -1592,7 +1592,7 @@
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
 		    quid       	"3F86886F0270"
-		    supplier   	"Logical View::MEQ::ParmPolc"
+		    supplier   	"Logical View::Meq::ParmPolc"
 		    quidu      	"3F86886E01C7"))
 	    operations 	(list Operations
 		(object Operation "ParmPolcStored"
@@ -3251,23 +3251,23 @@
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
 		    quid       	"3F8688700393"
-		    supplier   	"Logical View::MEQ::VellsRep"
+		    supplier   	"Logical View::Meq::VellsRep"
 		    quidu      	"3F86886E0276"))
 	    used_nodes 	(list uses_relationship_list
 		(object Uses_Relationship
 		    quid       	"3F8688700394"
 		    stereotype 	"friend permission"
-		    supplier   	"Logical View::MEQ::VellsRealSca"
+		    supplier   	"Logical View::Meq::VellsRealSca"
 		    quidu      	"3F86886E0267")
 		(object Uses_Relationship
 		    quid       	"3F86887003A0"
 		    stereotype 	"friend permission"
-		    supplier   	"Logical View::MEQ::VellsRealArr"
+		    supplier   	"Logical View::Meq::VellsRealArr"
 		    quidu      	"3F86886E0257")
 		(object Uses_Relationship
 		    quid       	"3F86887003A2"
 		    stereotype 	"friend permission"
-		    supplier   	"Logical View::MEQ::VellsComplexSca"
+		    supplier   	"Logical View::Meq::VellsComplexSca"
 		    quidu      	"3F86886E0242"))
 	    operations 	(list Operations
 		(object Operation "VellsComplexArr"
@@ -3771,23 +3771,23 @@
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
 		    quid       	"3F868871003E"
-		    supplier   	"Logical View::MEQ::VellsRep"
+		    supplier   	"Logical View::Meq::VellsRep"
 		    quidu      	"3F86886E0276"))
 	    used_nodes 	(list uses_relationship_list
 		(object Uses_Relationship
 		    quid       	"3F868871003F"
 		    stereotype 	"friend permission"
-		    supplier   	"Logical View::MEQ::VellsRealSca"
+		    supplier   	"Logical View::Meq::VellsRealSca"
 		    quidu      	"3F86886E0267")
 		(object Uses_Relationship
 		    quid       	"3F8688710041"
 		    stereotype 	"friend permission"
-		    supplier   	"Logical View::MEQ::VellsRealArr"
+		    supplier   	"Logical View::Meq::VellsRealArr"
 		    quidu      	"3F86886E0257")
 		(object Uses_Relationship
 		    quid       	"3F8688710043"
 		    stereotype 	"friend permission"
-		    supplier   	"Logical View::MEQ::VellsComplexArr"
+		    supplier   	"Logical View::Meq::VellsComplexArr"
 		    quidu      	"3F86886E0235"))
 	    operations 	(list Operations
 		(object Operation "VellsComplexSca"
@@ -4282,23 +4282,23 @@
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
 		    quid       	"3F868871011C"
-		    supplier   	"Logical View::MEQ::VellsRep"
+		    supplier   	"Logical View::Meq::VellsRep"
 		    quidu      	"3F86886E0276"))
 	    used_nodes 	(list uses_relationship_list
 		(object Uses_Relationship
 		    quid       	"3F868871011D"
 		    stereotype 	"friend permission"
-		    supplier   	"Logical View::MEQ::VellsRealSca"
+		    supplier   	"Logical View::Meq::VellsRealSca"
 		    quidu      	"3F86886E0267")
 		(object Uses_Relationship
 		    quid       	"3F8688710120"
 		    stereotype 	"friend permission"
-		    supplier   	"Logical View::MEQ::VellsComplexSca"
+		    supplier   	"Logical View::Meq::VellsComplexSca"
 		    quidu      	"3F86886E0242")
 		(object Uses_Relationship
 		    quid       	"3F8688710122"
 		    stereotype 	"friend permission"
-		    supplier   	"Logical View::MEQ::VellsComplexArr"
+		    supplier   	"Logical View::Meq::VellsComplexArr"
 		    quidu      	"3F86886E0235"))
 	    operations 	(list Operations
 		(object Operation "VellsRealArr"
@@ -4887,23 +4887,23 @@
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
 		    quid       	"3F8688710240"
-		    supplier   	"Logical View::MEQ::VellsRep"
+		    supplier   	"Logical View::Meq::VellsRep"
 		    quidu      	"3F86886E0276"))
 	    used_nodes 	(list uses_relationship_list
 		(object Uses_Relationship
 		    quid       	"3F8688710242"
 		    stereotype 	"friend permission"
-		    supplier   	"Logical View::MEQ::VellsRealArr"
+		    supplier   	"Logical View::Meq::VellsRealArr"
 		    quidu      	"3F86886E0257")
 		(object Uses_Relationship
 		    quid       	"3F8688710245"
 		    stereotype 	"friend permission"
-		    supplier   	"Logical View::MEQ::VellsComplexSca"
+		    supplier   	"Logical View::Meq::VellsComplexSca"
 		    quidu      	"3F86886E0242")
 		(object Uses_Relationship
 		    quid       	"3F8688710247"
 		    stereotype 	"friend permission"
-		    supplier   	"Logical View::MEQ::VellsComplexArr"
+		    supplier   	"Logical View::Meq::VellsComplexArr"
 		    quidu      	"3F86886E0235"))
 	    operations 	(list Operations
 		(object Operation "VellsRealSca"
@@ -7294,7 +7294,7 @@
 		(object Role "forest"
 		    quid       	"3F5F218F02BD"
 		    label      	"forest"
-		    supplier   	"Logical View::MEQ::Forest"
+		    supplier   	"Logical View::Meq::Forest"
 		    quidu      	"3F5F21740281"
 		    client_cardinality 	(value cardinality "1")
 		    Containment 	"By Value"
@@ -7302,7 +7302,7 @@
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$1"
 		    quid       	"3F5F218F02C5"
-		    supplier   	"Logical View::AppAgents::MEQ::MeqServer"
+		    supplier   	"Logical View::AppAgents::MeqServer::Meq::MeqServer"
 		    quidu      	"3F5F195E013B"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$2"
@@ -7311,7 +7311,7 @@
 		(object Role "nodes:Repository"
 		    quid       	"3F5F439203E2"
 		    label      	"nodes:Repository"
-		    supplier   	"Logical View::MEQ::Node"
+		    supplier   	"Logical View::Meq::Node"
 		    quidu      	"3F5F436202FE"
 		    client_cardinality 	(value cardinality "0..*")
 		    Containment 	"By Reference"
@@ -7320,7 +7320,7 @@
 		(object Role "forest_"
 		    quid       	"3F5F43930004"
 		    label      	"forest_"
-		    supplier   	"Logical View::MEQ::Forest"
+		    supplier   	"Logical View::Meq::Forest"
 		    quidu      	"3F5F21740281"
 		    client_cardinality 	(value cardinality "1")
 		    exportControl 	"Private"
@@ -7332,14 +7332,14 @@
 		(object Role "name_map"
 		    quid       	"3F60697A00D5"
 		    label      	"name_map"
-		    supplier   	"Logical View::MEQ::Forest::NameMap"
+		    supplier   	"Logical View::Meq::Forest::NameMap"
 		    quidu      	"3F60697903C1"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$4"
 		    quid       	"3F60697A00D7"
-		    supplier   	"Logical View::MEQ::Forest"
+		    supplier   	"Logical View::Meq::Forest"
 		    quidu      	"3F5F21740281"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$5"
@@ -7348,14 +7348,14 @@
 		(object Role "command_map"
 		    quid       	"3F61920F0193"
 		    label      	"command_map"
-		    supplier   	"Logical View::AppAgents::MEQ::MeqServer::CommandMap"
+		    supplier   	"Logical View::AppAgents::MeqServer::Meq::MeqServer::CommandMap"
 		    quidu      	"3F61920F016E"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$6"
 		    quid       	"3F61920F0195"
-		    supplier   	"Logical View::AppAgents::MEQ::MeqServer"
+		    supplier   	"Logical View::AppAgents::MeqServer::Meq::MeqServer"
 		    quidu      	"3F5F195E013B"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$7"
@@ -7364,14 +7364,14 @@
 		(object Role "child_map_"
 		    quid       	"3F8433C2014B"
 		    label      	"child_map_"
-		    supplier   	"Logical View::MEQ::Node::ChildrenMap"
+		    supplier   	"Logical View::Meq::Node::ChildrenMap"
 		    quidu      	"3F8433C10295"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$8"
 		    quid       	"3F8433C2014D"
-		    supplier   	"Logical View::MEQ::Node"
+		    supplier   	"Logical View::Meq::Node"
 		    quidu      	"3F5F436202FE"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$9"
@@ -7380,14 +7380,14 @@
 		(object Role "children_:std::vector<Node::Ref>"
 		    quid       	"3F8433ED0337"
 		    label      	"children_:std::vector<Node::Ref>"
-		    supplier   	"Logical View::MEQ::Node"
+		    supplier   	"Logical View::Meq::Node"
 		    quidu      	"3F5F436202FE"
 		    client_cardinality 	(value cardinality "0..*")
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$10"
 		    quid       	"3F8433ED0368"
-		    supplier   	"Logical View::MEQ::Node"
+		    supplier   	"Logical View::Meq::Node"
 		    quidu      	"3F5F436202FE")))
 	(object Association "$UNNAMED$11"
 	    quid       	"3F86BFF8014F"
@@ -7395,13 +7395,13 @@
 		(object Role "itsDomain"
 		    quid       	"3F86BFF80150"
 		    label      	"itsDomain"
-		    supplier   	"Logical View::MEQ::Domain"
+		    supplier   	"Logical View::Meq::Domain"
 		    quidu      	"3F86886E0183"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$12"
 		    quid       	"3F86BFF80154"
-		    supplier   	"Logical View::MEQ::Cells"
+		    supplier   	"Logical View::Meq::Cells"
 		    quidu      	"3F86886E017A")))
 	(object Association "$UNNAMED$13"
 	    quid       	"3F86BFF801DF"
@@ -7409,13 +7409,13 @@
 		(object Role "itsTable"
 		    quid       	"3F86BFF801E0"
 		    label      	"itsTable"
-		    supplier   	"Logical View::MEQ::ParmTable"
+		    supplier   	"Logical View::Meq::ParmTable"
 		    quidu      	"3F86886E01E4"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$14"
 		    quid       	"3F86BFF801E2"
-		    supplier   	"Logical View::MEQ::ParmPolcStored"
+		    supplier   	"Logical View::Meq::ParmPolcStored"
 		    quidu      	"3F86886E01D0")))
 	(object Association "$UNNAMED$15"
 	    quid       	"3F86BFF80220"
@@ -7423,14 +7423,14 @@
 		(object Role "itsCoeff"
 		    quid       	"3F86BFF80221"
 		    label      	"itsCoeff"
-		    supplier   	"Logical View::MEQ::Vells"
+		    supplier   	"Logical View::Meq::Vells"
 		    quidu      	"3F86886E0229"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$16"
 		    quid       	"3F86BFF80223"
-		    supplier   	"Logical View::MEQ::Polc"
+		    supplier   	"Logical View::Meq::Polc"
 		    quidu      	"3F86886E01F6"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$17"
@@ -7439,14 +7439,14 @@
 		(object Role "itsSimCoeff"
 		    quid       	"3F86BFF8022A"
 		    label      	"itsSimCoeff"
-		    supplier   	"Logical View::MEQ::Vells"
+		    supplier   	"Logical View::Meq::Vells"
 		    quidu      	"3F86886E0229"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$18"
 		    quid       	"3F86BFF8022C"
-		    supplier   	"Logical View::MEQ::Polc"
+		    supplier   	"Logical View::Meq::Polc"
 		    quidu      	"3F86886E01F6"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$19"
@@ -7455,14 +7455,14 @@
 		(object Role "itsPertSimCoeff"
 		    quid       	"3F86BFF80235"
 		    label      	"itsPertSimCoeff"
-		    supplier   	"Logical View::MEQ::Vells"
+		    supplier   	"Logical View::Meq::Vells"
 		    quidu      	"3F86886E0229"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$20"
 		    quid       	"3F86BFF80237"
-		    supplier   	"Logical View::MEQ::Polc"
+		    supplier   	"Logical View::Meq::Polc"
 		    quidu      	"3F86886E01F6"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$21"
@@ -7471,14 +7471,14 @@
 		(object Role "itsPerturbation"
 		    quid       	"3F86BFF8023F"
 		    label      	"itsPerturbation"
-		    supplier   	"Logical View::MEQ::Vells"
+		    supplier   	"Logical View::Meq::Vells"
 		    quidu      	"3F86886E0229"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$22"
 		    quid       	"3F86BFF80241"
-		    supplier   	"Logical View::MEQ::Polc"
+		    supplier   	"Logical View::Meq::Polc"
 		    quidu      	"3F86886E01F6"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$23"
@@ -7487,14 +7487,14 @@
 		(object Role "itsDomain"
 		    quid       	"3F86BFF8024A"
 		    label      	"itsDomain"
-		    supplier   	"Logical View::MEQ::Domain"
+		    supplier   	"Logical View::Meq::Domain"
 		    quidu      	"3F86886E0183"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$24"
 		    quid       	"3F86BFF8024C"
-		    supplier   	"Logical View::MEQ::Polc"
+		    supplier   	"Logical View::Meq::Polc"
 		    quidu      	"3F86886E01F6"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$25"
@@ -7503,13 +7503,13 @@
 		(object Role "itsCells"
 		    quid       	"3F86BFF80269"
 		    label      	"itsCells"
-		    supplier   	"Logical View::MEQ::Cells"
+		    supplier   	"Logical View::Meq::Cells"
 		    quidu      	"3F86886E017A"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$26"
 		    quid       	"3F86BFF8026B"
-		    supplier   	"Logical View::MEQ::Request"
+		    supplier   	"Logical View::Meq::Request"
 		    quidu      	"3F86886E01FF")))
 	(object Association "$UNNAMED$27"
 	    quid       	"3F86BFF802A4"
@@ -7517,14 +7517,14 @@
 		(object Role "itsValue"
 		    quid       	"3F86BFF802A5"
 		    label      	"itsValue"
-		    supplier   	"Logical View::MEQ::Vells"
+		    supplier   	"Logical View::Meq::Vells"
 		    quidu      	"3F86886E0229"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$28"
 		    quid       	"3F86BFF802A7"
-		    supplier   	"Logical View::MEQ::Result"
+		    supplier   	"Logical View::Meq::Result"
 		    quidu      	"3F86886E020D"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$29"
@@ -7533,13 +7533,13 @@
 		(object Role "itsCells"
 		    quid       	"3F86BFF802B0"
 		    label      	"itsCells"
-		    supplier   	"Logical View::MEQ::Cells"
+		    supplier   	"Logical View::Meq::Cells"
 		    quidu      	"3F86886E017A"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$30"
 		    quid       	"3F86BFF802B2"
-		    supplier   	"Logical View::MEQ::Result"
+		    supplier   	"Logical View::Meq::Result"
 		    quidu      	"3F86886E020D")))
 	(object Association "$UNNAMED$31"
 	    quid       	"3F86BFF802FD"
@@ -7547,13 +7547,13 @@
 		(object Role "itsRep"
 		    quid       	"3F86BFF802FE"
 		    label      	"itsRep"
-		    supplier   	"Logical View::MEQ::VellsRep"
+		    supplier   	"Logical View::Meq::VellsRep"
 		    quidu      	"3F86886E0276"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$32"
 		    quid       	"3F86BFF80300"
-		    supplier   	"Logical View::MEQ::Vells"
+		    supplier   	"Logical View::Meq::Vells"
 		    quidu      	"3F86886E0229")))
 	(object Association "$UNNAMED$33"
 	    quid       	"3F86BFF90020"
@@ -7561,13 +7561,13 @@
 		(object Role "itsRep"
 		    quid       	"3F86BFF90021"
 		    label      	"itsRep"
-		    supplier   	"Logical View::MEQ::VellsRep"
+		    supplier   	"Logical View::Meq::VellsRep"
 		    quidu      	"3F86886E0276"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$34"
 		    quid       	"3F86BFF90023"
-		    supplier   	"Logical View::MEQ::VellsTmp"
+		    supplier   	"Logical View::Meq::VellsTmp"
 		    quidu      	"3F86886E0283")))
 	(object Association "$UNNAMED$35"
 	    quid       	"3F95060D011F"
@@ -7575,14 +7575,14 @@
 		(object Role "itsDefault"
 		    quid       	"3F95060D0120"
 		    label      	"itsDefault"
-		    supplier   	"Logical View::MEQ::Vells"
+		    supplier   	"Logical View::Meq::Vells"
 		    quidu      	"3F86886E0229"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$36"
 		    quid       	"3F95060D0122"
-		    supplier   	"Logical View::MEQ::ParmPolcStored"
+		    supplier   	"Logical View::Meq::ParmPolcStored"
 		    quidu      	"3F86886E01D0"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$37"
@@ -7598,7 +7598,7 @@
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$38"
 		    quid       	"3F9919B002DD"
-		    supplier   	"Logical View::MEQ::Node"
+		    supplier   	"Logical View::Meq::Node"
 		    quidu      	"3F5F436202FE"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$39"
@@ -7607,14 +7607,14 @@
 		(object Role "prev_request"
 		    quid       	"3F9926DE02AF"
 		    label      	"prev_request"
-		    supplier   	"Logical View::MEQ::Request"
+		    supplier   	"Logical View::Meq::Request"
 		    quidu      	"3F86886E01FF"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$40"
 		    quid       	"3F9926DE02B1"
-		    supplier   	"Logical View::MEQ::Forest"
+		    supplier   	"Logical View::Meq::Forest"
 		    quidu      	"3F5F21740281"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$41"
@@ -7623,14 +7623,14 @@
 		(object Role "unresolved_children_"
 		    quid       	"3F9927B3027E"
 		    label      	"unresolved_children_"
-		    supplier   	"Logical View::MEQ::Node::UnresolvedChildren"
+		    supplier   	"Logical View::Meq::Node::UnresolvedChildren"
 		    quidu      	"3F9927B301BC"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$42"
 		    quid       	"3F9927B30280"
-		    supplier   	"Logical View::MEQ::Node"
+		    supplier   	"Logical View::Meq::Node"
 		    quidu      	"3F5F436202FE"
 		    is_aggregate 	TRUE))))
     logical_presentations 	(list unit_reference_list
@@ -7673,7 +7673,7 @@
 		    height     	124
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::MEQ::Forest::NameMap" @2
+		(object ClassView "Class" "Logical View::Meq::Forest::NameMap" @2
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -7713,7 +7713,7 @@
 		    width      	294
 		    height     	228
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::MEQ::Forest" @3
+		(object ClassView "Class" "Logical View::Meq::Forest" @3
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -7849,47 +7849,7 @@
 			    line_style 	3
 			    origin_attachment 	(2784, 1549)
 			    terminal_attachment 	(2784, 1630))))
-		(object ClassView "Class" "Logical View::MEQ::Node::ChildrenMap" @9
-		    ShowCompartmentStereotypes 	TRUE
-		    SuppressAttribute 	TRUE
-		    SuppressOperation 	TRUE
-		    IncludeAttribute 	TRUE
-		    IncludeOperation 	TRUE
-		    location   	(544, 336)
-		    font       	(object Font
-			size       	10
-			face       	"arial"
-			bold       	FALSE
-			italics    	FALSE
-			underline  	FALSE
-			strike     	FALSE
-			color      	0
-			default_color 	TRUE)
-		    label      	(object ItemLabel
-			Parent_View 	@9
-			location   	(406, 284)
-			fill_color 	13434879
-			nlines     	1
-			max_width  	276
-			justify    	0
-			label      	"ChildrenMap")
-		    stereotype 	(object ItemLabel
-			Parent_View 	@9
-			location   	(406, 234)
-			fill_color 	13434879
-			anchor     	10
-			nlines     	1
-			max_width  	276
-			justify    	0
-			label      	"<<typedef>>")
-		    icon_style 	"Icon"
-		    line_color 	3342489
-		    fill_color 	13434879
-		    quidu      	"3F8433C10295"
-		    width      	294
-		    height     	228
-		    annotation 	8)
-		(object ClassView "Class" "Logical View::MEQ::Node" @10
+		(object ClassView "Class" "Logical View::Meq::Node" @9
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -7905,7 +7865,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@10
+			Parent_View 	@9
 			location   	(103, 774)
 			fill_color 	13434879
 			nlines     	1
@@ -7917,7 +7877,7 @@
 		    fill_color 	13434879
 		    quidu      	"3F5F436202FE"
 		    compartment 	(object Compartment
-			Parent_View 	@10
+			Parent_View 	@9
 			location   	(103, 835)
 			font       	(object Font
 			    size       	10
@@ -7936,14 +7896,14 @@
 		    width      	1637
 		    height     	1612
 		    annotation 	8)
-		(object AssociationViewNew "$UNNAMED$2" @11
+		(object AssociationViewNew "$UNNAMED$2" @10
 		    location   	(1890, 1035)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3F5F439200EB"
 		    roleview_list 	(list RoleViews
-			(object RoleView "forest_" @12
-			    Parent_View 	@11
+			(object RoleView "forest_" @11
+			    Parent_View 	@10
 			    location   	(-110, -901)
 			    font       	(object Font
 				size       	10
@@ -7954,8 +7914,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @13
-				Parent_View 	@12
+			    label      	(object SegLabel @12
+				Parent_View 	@11
 				location   	(1977, 993)
 				font       	(object Font
 				    size       	10
@@ -7978,13 +7938,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3F5F43930004"
-			    client     	@11
+			    client     	@10
 			    supplier   	@3
 			    line_style 	3
 			    origin_attachment 	(1890, 1035)
 			    terminal_attachment 	(2051, 1035)
-			    label      	(object SegLabel @14
-				Parent_View 	@12
+			    label      	(object SegLabel @13
+				Parent_View 	@11
 				location   	(2034, 1089)
 				font       	(object Font
 				    size       	10
@@ -8004,8 +7964,8 @@
 				pctDist    	0.900000
 				height     	54
 				orientation 	1))
-			(object RoleView "nodes:Repository" @15
-			    Parent_View 	@11
+			(object RoleView "nodes:Repository" @14
+			    Parent_View 	@10
 			    location   	(-110, -901)
 			    font       	(object Font
 				size       	10
@@ -8016,8 +7976,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @16
-				Parent_View 	@15
+			    label      	(object SegLabel @15
+				Parent_View 	@14
 				location   	(1784, 1078)
 				font       	(object Font
 				    size       	10
@@ -8040,13 +8000,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3F5F439203E2"
-			    client     	@11
-			    supplier   	@10
+			    client     	@10
+			    supplier   	@9
 			    line_style 	3
 			    origin_attachment 	(1890, 1035)
 			    terminal_attachment 	(1730, 1035)
-			    label      	(object SegLabel @17
-				Parent_View 	@15
+			    label      	(object SegLabel @16
+				Parent_View 	@14
 				location   	(1757, 1000)
 				font       	(object Font
 				    size       	10
@@ -8066,16 +8026,16 @@
 				pctDist    	0.831461
 				height     	36
 				orientation 	1))))
-		(object InheritView "" @18
+		(object InheritView "" @17
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3F5F4363030B"
-		    client     	@10
+		    client     	@9
 		    supplier   	@1
 		    line_style 	3
 		    origin_attachment 	(320, 762)
 		    terminal_attachment 	(320, 158))
-		(object AssociationViewNew "$UNNAMED$9" @19
+		(object AssociationViewNew "$UNNAMED$9" @18
 		    location   	(1387, 676)
 		    font       	(object Font
 			size       	10
@@ -8090,8 +8050,8 @@
 		    line_color 	3342489
 		    quidu      	"3F8433EA0387"
 		    roleview_list 	(list RoleViews
-			(object RoleView "children_:std::vector<Node::Ref>" @20
-			    Parent_View 	@19
+			(object RoleView "children_:std::vector<Node::Ref>" @19
+			    Parent_View 	@18
 			    location   	(523, -460)
 			    font       	(object Font
 				size       	10
@@ -8102,8 +8062,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @21
-				Parent_View 	@20
+			    label      	(object SegLabel @20
+				Parent_View 	@19
 				location   	(1416, 738)
 				font       	(object Font
 				    size       	10
@@ -8126,8 +8086,8 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3F8433ED0337"
-			    client     	@19
-			    supplier   	@10
+			    client     	@18
+			    supplier   	@9
 			    vertices   	(list Points
 				(1387, 676)
 				(1520, 676)
@@ -8135,8 +8095,8 @@
 			    line_style 	3
 			    origin_attachment 	(1387, 676)
 			    terminal_attachment 	(1520, 762)
-			    label      	(object SegLabel @22
-				Parent_View 	@20
+			    label      	(object SegLabel @21
+				Parent_View 	@19
 				location   	(1574, 739)
 				font       	(object Font
 				    size       	10
@@ -8156,14 +8116,14 @@
 				pctDist    	0.900000
 				height     	54
 				orientation 	0))
-			(object RoleView "$UNNAMED$10" @23
-			    Parent_View 	@19
+			(object RoleView "$UNNAMED$10" @22
+			    Parent_View 	@18
 			    location   	(523, -460)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3F8433ED0368"
-			    client     	@19
-			    supplier   	@10
+			    client     	@18
+			    supplier   	@9
 			    vertices   	(list Points
 				(1387, 676)
 				(1254, 676)
@@ -8171,6 +8131,46 @@
 			    line_style 	3
 			    origin_attachment 	(1387, 676)
 			    terminal_attachment 	(1254, 762))))
+		(object ClassView "Class" "Logical View::Meq::Node::ChildrenMap" @23
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(544, 336)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@23
+			location   	(406, 284)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	276
+			justify    	0
+			label      	"ChildrenMap")
+		    stereotype 	(object ItemLabel
+			Parent_View 	@23
+			location   	(406, 234)
+			fill_color 	13434879
+			anchor     	10
+			nlines     	1
+			max_width  	276
+			justify    	0
+			label      	"<<typedef>>")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3F8433C10295"
+		    width      	294
+		    height     	228
+		    annotation 	8)
 		(object AssociationViewNew "$UNNAMED$7" @24
 		    location   	(544, 606)
 		    stereotype 	TRUE
@@ -8215,7 +8215,7 @@
 			    line_color 	3342489
 			    quidu      	"3F8433C2014D"
 			    client     	@24
-			    supplier   	@10
+			    supplier   	@9
 			    line_style 	3
 			    origin_attachment 	(544, 606)
 			    terminal_attachment 	(544, 762))
@@ -8256,7 +8256,7 @@
 			    line_color 	3342489
 			    quidu      	"3F8433C2014B"
 			    client     	@24
-			    supplier   	@9
+			    supplier   	@23
 			    line_style 	3
 			    origin_attachment 	(544, 606)
 			    terminal_attachment 	(544, 450))))))
@@ -8269,7 +8269,7 @@
 	    origin_x   	1095
 	    origin_y   	0
 	    items      	(list diagram_item_list
-		(object ClassView "Class" "Logical View::MEQ::Function" @29
+		(object ClassView "Class" "Logical View::Meq::Function" @29
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -8285,7 +8285,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@29
-			location   	(558, 21)
+			location   	(558, 20)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	740
@@ -8315,7 +8315,7 @@
 		    width      	758
 		    height     	721
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::MEQ::Parm" @30
+		(object ClassView "Class" "Logical View::Meq::Parm" @30
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -8331,7 +8331,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@30
-			location   	(1101, 1011)
+			location   	(1101, 1010)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	870
@@ -8343,7 +8343,7 @@
 		    quidu      	"3F86886E01BD"
 		    compartment 	(object Compartment
 			Parent_View 	@30
-			location   	(1101, 1077)
+			location   	(1101, 1071)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -8361,7 +8361,7 @@
 		    width      	888
 		    height     	1236
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::MEQ::Add" @31
+		(object ClassView "Class" "Logical View::Meq::Add" @31
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -8377,7 +8377,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@31
-			location   	(142, 1290)
+			location   	(142, 1289)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	548
@@ -8407,7 +8407,7 @@
 		    width      	566
 		    height     	455
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::MEQ::ParmPolc" @32
+		(object ClassView "Class" "Logical View::Meq::ParmPolc" @32
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -8423,9 +8423,9 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@32
-			location   	(2293, 1141)
+			location   	(2293, 1140)
 			fill_color 	13434879
-			nlines     	2
+			nlines     	1
 			max_width  	854
 			justify    	0
 			label      	"ParmPolc")
@@ -8435,7 +8435,7 @@
 		    quidu      	"3F86886E01C7"
 		    compartment 	(object Compartment
 			Parent_View 	@32
-			location   	(2293, 1207)
+			location   	(2293, 1201)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -8462,7 +8462,7 @@
 		    line_style 	3
 		    origin_attachment 	(2284, 1429)
 		    terminal_attachment 	(1980, 1429))
-		(object ClassView "Class" "Logical View::MEQ::ParmTable" @34
+		(object ClassView "Class" "Logical View::Meq::ParmTable" @34
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -8478,7 +8478,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@34
-			location   	(59, 2485)
+			location   	(59, 2484)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	1002
@@ -8488,27 +8488,10 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3F86886E01E4"
-		    compartment 	(object Compartment
-			Parent_View 	@34
-			location   	(59, 2545)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	FALSE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	13434879
-			anchor     	2
-			nlines     	17
-			max_width  	911)
 		    width      	1020
 		    height     	816
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::MEQ::ParmPolcStored" @35
+		(object ClassView "Class" "Logical View::Meq::ParmPolcStored" @35
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -8524,7 +8507,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@35
-			location   	(2439, 2549)
+			location   	(2439, 2548)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	754
@@ -8591,7 +8574,7 @@
 		    origin_attachment 	(1415, 998)
 		    terminal_attachment 	(1415, 818)
 		    drawSupplier 	@37)
-		(object ClassView "Class" "Logical View::MEQ::Node" @40
+		(object ClassView "Class" "Logical View::Meq::Node" @40
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -8620,7 +8603,7 @@
 		    fill_color 	13434879
 		    quidu      	"3F5F436202FE"
 		    width      	210
-		    height     	117
+		    height     	114
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object InheritView "" @41
@@ -8641,7 +8624,7 @@
 	    origin_x   	0
 	    origin_y   	0
 	    items      	(list diagram_item_list
-		(object ClassView "Class" "Logical View::MEQ::VellsComplexArr" @42
+		(object ClassView "Class" "Logical View::Meq::VellsComplexArr" @42
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -8659,21 +8642,21 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@42
-			location   	(134, 2518)
+			location   	(136, 2514)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	404
+			max_width  	400
 			justify    	0
 			label      	"VellsComplexArr")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3F86886E0235"
-		    width      	422
-		    height     	109
+		    width      	418
+		    height     	117
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::MEQ::VellsComplexSca" @43
+		(object ClassView "Class" "Logical View::Meq::VellsComplexSca" @43
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -8691,21 +8674,21 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@43
-			location   	(412, 1718)
+			location   	(414, 1714)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	424
+			max_width  	420
 			justify    	0
 			label      	"VellsComplexSca")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3F86886E0242"
-		    width      	442
-		    height     	109
+		    width      	438
+		    height     	117
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::MEQ::VellsRealArr" @44
+		(object ClassView "Class" "Logical View::Meq::VellsRealArr" @44
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -8723,18 +8706,18 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@44
-			location   	(1043, 2070)
+			location   	(1042, 2066)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	314
+			max_width  	316
 			justify    	0
 			label      	"VellsRealArr")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3F86886E0257"
-		    width      	332
-		    height     	109
+		    width      	334
+		    height     	117
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object UsesView "" @45
@@ -8749,7 +8732,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @46
 			Parent_View 	@45
-			location   	(1234, 1915)
+			location   	(1232, 1914)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -8773,12 +8756,12 @@
 		    client     	@44
 		    supplier   	@43
 		    vertices   	(list Points
-			(1359, 2058)
-			(1359, 1795)
-			(845, 1795))
+			(1359, 2054)
+			(1359, 1794)
+			(843, 1794))
 		    line_style 	3
-		    origin_attachment 	(1359, 2058)
-		    terminal_attachment 	(845, 1795))
+		    origin_attachment 	(1359, 2054)
+		    terminal_attachment 	(843, 1794))
 		(object UsesView "" @47
 		    font       	(object Font
 			size       	10
@@ -8791,7 +8774,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @48
 			Parent_View 	@47
-			location   	(883, 2308)
+			location   	(883, 2307)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -8815,14 +8798,14 @@
 		    client     	@44
 		    supplier   	@42
 		    vertices   	(list Points
-			(1034, 2149)
-			(763, 2149)
-			(763, 2523)
-			(547, 2523))
+			(1033, 2147)
+			(763, 2147)
+			(763, 2519)
+			(545, 2519))
 		    line_style 	3
-		    origin_attachment 	(1034, 2149)
-		    terminal_attachment 	(547, 2523))
-		(object ClassView "Class" "Logical View::MEQ::VellsRealSca" @49
+		    origin_attachment 	(1033, 2147)
+		    terminal_attachment 	(545, 2519))
+		(object ClassView "Class" "Logical View::Meq::VellsRealSca" @49
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -8840,18 +8823,18 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@49
-			location   	(1655, 1798)
+			location   	(1658, 1794)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	338
+			max_width  	332
 			justify    	0
 			label      	"VellsRealSca")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3F86886E0267"
-		    width      	356
-		    height     	109
+		    width      	350
+		    height     	117
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object UsesView "" @50
@@ -8866,7 +8849,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @51
 			Parent_View 	@50
-			location   	(1412, 1759)
+			location   	(1416, 1759)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -8890,12 +8873,12 @@
 		    client     	@44
 		    supplier   	@49
 		    vertices   	(list Points
-			(1358, 2058)
+			(1358, 2054)
 			(1358, 1878)
-			(1646, 1878))
+			(1649, 1878))
 		    line_style 	3
-		    origin_attachment 	(1358, 2058)
-		    terminal_attachment 	(1646, 1878))
+		    origin_attachment 	(1358, 2054)
+		    terminal_attachment 	(1649, 1878))
 		(object UsesView "" @52
 		    font       	(object Font
 			size       	10
@@ -8908,7 +8891,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @53
 			Parent_View 	@52
-			location   	(1412, 1998)
+			location   	(1416, 1998)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -8932,12 +8915,12 @@
 		    client     	@49
 		    supplier   	@44
 		    vertices   	(list Points
-			(1646, 1878)
+			(1649, 1878)
 			(1358, 1878)
-			(1358, 2058))
+			(1358, 2054))
 		    line_style 	3
-		    origin_attachment 	(1646, 1878)
-		    terminal_attachment 	(1358, 2058))
+		    origin_attachment 	(1649, 1878)
+		    terminal_attachment 	(1358, 2054))
 		(object UsesView "" @54
 		    font       	(object Font
 			size       	10
@@ -8950,7 +8933,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @55
 			Parent_View 	@54
-			location   	(1437, 1875)
+			location   	(1433, 1875)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -8974,12 +8957,12 @@
 		    client     	@49
 		    supplier   	@43
 		    vertices   	(list Points
-			(1997, 1786)
+			(1997, 1782)
 			(1997, 1755)
-			(845, 1755))
+			(843, 1755))
 		    line_style 	3
-		    origin_attachment 	(1997, 1786)
-		    terminal_attachment 	(845, 1755))
+		    origin_attachment 	(1997, 1782)
+		    terminal_attachment 	(843, 1755))
 		(object UsesView "" @56
 		    font       	(object Font
 			size       	10
@@ -8992,7 +8975,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @57
 			Parent_View 	@56
-			location   	(718, 1998)
+			location   	(722, 1998)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -9016,12 +8999,12 @@
 		    client     	@49
 		    supplier   	@42
 		    vertices   	(list Points
-			(1646, 1878)
+			(1649, 1878)
 			(418, 1878)
-			(418, 2506))
+			(418, 2502))
 		    line_style 	3
-		    origin_attachment 	(1646, 1878)
-		    terminal_attachment 	(418, 2506))
+		    origin_attachment 	(1649, 1878)
+		    terminal_attachment 	(418, 2502))
 		(object UsesView "" @58
 		    font       	(object Font
 			size       	10
@@ -9058,13 +9041,13 @@
 		    client     	@43
 		    supplier   	@42
 		    vertices   	(list Points
-			(847, 1814)
+			(847, 1818)
 			(847, 2348)
 			(260, 2348)
-			(260, 2506))
+			(260, 2502))
 		    line_style 	3
-		    origin_attachment 	(847, 1814)
-		    terminal_attachment 	(260, 2506))
+		    origin_attachment 	(847, 1818)
+		    terminal_attachment 	(260, 2502))
 		(object UsesView "" @60
 		    font       	(object Font
 			size       	10
@@ -9077,7 +9060,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @61
 			Parent_View 	@60
-			location   	(593, 2030)
+			location   	(596, 2028)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -9101,12 +9084,12 @@
 		    client     	@43
 		    supplier   	@44
 		    vertices   	(list Points
-			(487, 1814)
-			(487, 2149)
-			(1034, 2149))
+			(487, 1818)
+			(487, 2147)
+			(1033, 2147))
 		    line_style 	3
-		    origin_attachment 	(487, 1814)
-		    terminal_attachment 	(1034, 2149))
+		    origin_attachment 	(487, 1818)
+		    terminal_attachment 	(1033, 2147))
 		(object UsesView "" @62
 		    font       	(object Font
 			size       	10
@@ -9119,7 +9102,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @63
 			Parent_View 	@62
-			location   	(1437, 1636)
+			location   	(1433, 1636)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -9143,12 +9126,12 @@
 		    client     	@43
 		    supplier   	@49
 		    vertices   	(list Points
-			(845, 1755)
+			(843, 1755)
 			(1997, 1755)
-			(1997, 1786))
+			(1997, 1782))
 		    line_style 	3
-		    origin_attachment 	(845, 1755)
-		    terminal_attachment 	(1997, 1786))
+		    origin_attachment 	(843, 1755)
+		    terminal_attachment 	(1997, 1782))
 		(object UsesView "" @64
 		    font       	(object Font
 			size       	10
@@ -9161,7 +9144,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @65
 			Parent_View 	@64
-			location   	(1005, 1920)
+			location   	(1008, 1920)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -9185,14 +9168,14 @@
 		    client     	@42
 		    supplier   	@43
 		    vertices   	(list Points
-			(536, 2506)
+			(536, 2502)
 			(536, 2039)
 			(1276, 2039)
 			(1276, 1803)
-			(845, 1803))
+			(843, 1803))
 		    line_style 	3
-		    origin_attachment 	(536, 2506)
-		    terminal_attachment 	(845, 1803))
+		    origin_attachment 	(536, 2502)
+		    terminal_attachment 	(843, 1803))
 		(object UsesView "" @66
 		    font       	(object Font
 			size       	10
@@ -9205,7 +9188,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @67
 			Parent_View 	@66
-			location   	(644, 2309)
+			location   	(644, 2308)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -9229,13 +9212,13 @@
 		    client     	@42
 		    supplier   	@44
 		    vertices   	(list Points
-			(547, 2523)
-			(763, 2523)
-			(763, 2149)
-			(1034, 2149))
+			(545, 2519)
+			(763, 2519)
+			(763, 2147)
+			(1033, 2147))
 		    line_style 	3
-		    origin_attachment 	(547, 2523)
-		    terminal_attachment 	(1034, 2149))
+		    origin_attachment 	(545, 2519)
+		    terminal_attachment 	(1033, 2147))
 		(object UsesView "" @68
 		    font       	(object Font
 			size       	10
@@ -9248,7 +9231,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @69
 			Parent_View 	@68
-			location   	(1470, 2404)
+			location   	(1466, 2400)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -9272,45 +9255,13 @@
 		    client     	@42
 		    supplier   	@49
 		    vertices   	(list Points
-			(547, 2523)
-			(1766, 2523)
-			(1766, 1894))
+			(545, 2519)
+			(1766, 2519)
+			(1766, 1898))
 		    line_style 	3
-		    origin_attachment 	(547, 2523)
-		    terminal_attachment 	(1766, 1894))
-		(object ClassView "Class" "Logical View::MEQ::VellsTmp" @70
-		    ShowCompartmentStereotypes 	TRUE
-		    SuppressAttribute 	TRUE
-		    SuppressOperation 	TRUE
-		    IncludeAttribute 	TRUE
-		    IncludeOperation 	TRUE
-		    location   	(1824, 1392)
-		    font       	(object Font
-			size       	10
-			face       	"arial"
-			bold       	FALSE
-			italics    	FALSE
-			underline  	FALSE
-			strike     	FALSE
-			color      	0
-			default_color 	TRUE)
-		    label      	(object ItemLabel
-			Parent_View 	@70
-			location   	(1705, 1350)
-			fill_color 	13434879
-			nlines     	1
-			max_width  	238
-			justify    	0
-			label      	"VellsTmp")
-		    icon_style 	"Icon"
-		    line_color 	3342489
-		    fill_color 	13434879
-		    quidu      	"3F86886E0283"
-		    width      	256
-		    height     	109
-		    annotation 	8
-		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::MEQ::Request" @71
+		    origin_attachment 	(545, 2519)
+		    terminal_attachment 	(1766, 1898))
+		(object ClassView "Class" "Logical View::Meq::Request" @70
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -9327,22 +9278,54 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@71
-			location   	(2306, 646)
+			Parent_View 	@70
+			location   	(2299, 642)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	220
+			max_width  	234
 			justify    	0
 			label      	"Request")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3F86886E01FF"
-		    width      	238
-		    height     	108
+		    width      	252
+		    height     	117
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::MEQ::Cells" @72
+		(object ClassView "Class" "Logical View::Meq::VellsTmp" @71
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(1824, 1392)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@71
+			location   	(1692, 1346)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	264
+			justify    	0
+			label      	"VellsTmp")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3F86886E0283"
+		    width      	282
+		    height     	117
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::Meq::Cells" @72
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -9360,7 +9343,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@72
-			location   	(1488, 678)
+			location   	(1488, 674)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	192
@@ -9371,18 +9354,18 @@
 		    fill_color 	13434879
 		    quidu      	"3F86886E017A"
 		    width      	210
-		    height     	108
+		    height     	117
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object AssociationViewNew "$UNNAMED$25" @73
-		    location   	(1993, 714)
+		    location   	(1989, 714)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3F86BFF80268"
 		    roleview_list 	(list RoleViews
 			(object RoleView "$UNNAMED$26" @74
 			    Parent_View 	@73
-			    location   	(521, 42)
+			    location   	(517, 42)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -9394,7 +9377,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @75
 				Parent_View 	@74
-				location   	(2235, 673)
+				location   	(2229, 673)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -9418,13 +9401,13 @@
 			    line_color 	3342489
 			    quidu      	"3F86BFF8026B"
 			    client     	@73
-			    supplier   	@71
+			    supplier   	@70
 			    line_style 	3
-			    origin_attachment 	(1993, 714)
-			    terminal_attachment 	(2297, 714))
+			    origin_attachment 	(1989, 714)
+			    terminal_attachment 	(2290, 714))
 			(object RoleView "itsCells" @76
 			    Parent_View 	@73
-			    location   	(521, 42)
+			    location   	(517, 42)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -9436,7 +9419,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @77
 				Parent_View 	@76
-				location   	(1751, 673)
+				location   	(1749, 673)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -9461,299 +9444,9 @@
 			    client     	@73
 			    supplier   	@72
 			    line_style 	3
-			    origin_attachment 	(1993, 714)
+			    origin_attachment 	(1989, 714)
 			    terminal_attachment 	(1689, 714))))
-		(object ClassView "Class" "Logical View::MEQ::Result" @78
-		    ShowCompartmentStereotypes 	TRUE
-		    SuppressAttribute 	TRUE
-		    SuppressOperation 	TRUE
-		    IncludeAttribute 	TRUE
-		    IncludeOperation 	TRUE
-		    location   	(1568, 1120)
-		    font       	(object Font
-			size       	10
-			face       	"arial"
-			bold       	FALSE
-			italics    	FALSE
-			underline  	FALSE
-			strike     	FALSE
-			color      	0
-			default_color 	TRUE)
-		    label      	(object ItemLabel
-			Parent_View 	@78
-			location   	(1472, 1078)
-			fill_color 	13434879
-			nlines     	1
-			max_width  	192
-			justify    	0
-			label      	"Result")
-		    icon_style 	"Icon"
-		    line_color 	3342489
-		    fill_color 	13434879
-		    quidu      	"3F86886E020D"
-		    width      	210
-		    height     	109
-		    annotation 	8
-		    autoResize 	TRUE)
-		(object AssociationViewNew "$UNNAMED$29" @79
-		    location   	(1576, 920)
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3F86BFF802AF"
-		    roleview_list 	(list RoleViews
-			(object RoleView "$UNNAMED$30" @80
-			    Parent_View 	@79
-			    location   	(104, 248)
-			    font       	(object Font
-				size       	10
-				face       	"arial"
-				bold       	FALSE
-				italics    	FALSE
-				underline  	FALSE
-				strike     	FALSE
-				color      	0
-				default_color 	TRUE)
-			    label      	(object SegLabel @81
-				Parent_View 	@80
-				location   	(1535, 1036)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				hidden     	TRUE
-				anchor     	1
-				anchor_loc 	1
-				nlines     	1
-				max_width  	450
-				justify    	0
-				label      	""
-				pctDist    	0.800000
-				height     	42
-				orientation 	1)
-			    stereotype 	TRUE
-			    line_color 	3342489
-			    quidu      	"3F86BFF802B2"
-			    client     	@79
-			    supplier   	@78
-			    line_style 	3
-			    origin_attachment 	(1576, 920)
-			    terminal_attachment 	(1576, 1066))
-			(object RoleView "itsCells" @82
-			    Parent_View 	@79
-			    location   	(104, 248)
-			    font       	(object Font
-				size       	10
-				face       	"arial"
-				bold       	FALSE
-				italics    	FALSE
-				underline  	FALSE
-				strike     	FALSE
-				color      	0
-				default_color 	TRUE)
-			    label      	(object SegLabel @83
-				Parent_View 	@82
-				location   	(1467, 802)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				anchor     	1
-				anchor_loc 	1
-				nlines     	1
-				max_width  	161
-				justify    	0
-				label      	"-itsCells"
-				pctDist    	0.815068
-				height     	110
-				orientation 	0)
-			    stereotype 	TRUE
-			    line_color 	3342489
-			    quidu      	"3F86BFF802B0"
-			    client     	@79
-			    supplier   	@72
-			    line_style 	3
-			    origin_attachment 	(1576, 920)
-			    terminal_attachment 	(1576, 774))))
-		(object ClassView "Class" "Logical View::MEQ::VellsRep" @84
-		    ShowCompartmentStereotypes 	TRUE
-		    SuppressAttribute 	TRUE
-		    SuppressOperation 	TRUE
-		    IncludeAttribute 	TRUE
-		    IncludeOperation 	TRUE
-		    location   	(736, 1408)
-		    font       	(object Font
-			size       	10
-			face       	"arial"
-			bold       	FALSE
-			italics    	FALSE
-			underline  	FALSE
-			strike     	FALSE
-			color      	0
-			default_color 	TRUE)
-		    label      	(object ItemLabel
-			Parent_View 	@84
-			location   	(619, 1366)
-			fill_color 	13434879
-			nlines     	1
-			max_width  	234
-			justify    	0
-			label      	"VellsRep")
-		    icon_style 	"Icon"
-		    line_color 	3342489
-		    fill_color 	13434879
-		    quidu      	"3F86886E0276"
-		    width      	252
-		    height     	109
-		    annotation 	8
-		    autoResize 	TRUE)
-		(object InheritTreeView "" @85
-		    location   	(736, 1552)
-		    line_color 	3342489
-		    fill_color 	13434879
-		    supplier   	@84
-		    vertices   	(list Points
-			(736, 1552)
-			(736, 1462)))
-		(object InheritView "" @86
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3F8688700393"
-		    client     	@42
-		    supplier   	@84
-		    line_style 	3
-		    origin_attachment 	(280, 2506)
-		    terminal_attachment 	(280, 1552)
-		    drawSupplier 	@85)
-		(object InheritView "" @87
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3F868871011C"
-		    client     	@44
-		    supplier   	@84
-		    line_style 	3
-		    origin_attachment 	(1200, 2058)
-		    terminal_attachment 	(1200, 1552)
-		    drawSupplier 	@85)
-		(object InheritView "" @88
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3F868871003E"
-		    client     	@43
-		    supplier   	@84
-		    line_style 	3
-		    origin_attachment 	(624, 1706)
-		    terminal_attachment 	(624, 1552)
-		    drawSupplier 	@85)
-		(object InheritView "" @89
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3F8688710240"
-		    client     	@49
-		    supplier   	@84
-		    line_style 	3
-		    origin_attachment 	(1824, 1786)
-		    terminal_attachment 	(1824, 1552)
-		    drawSupplier 	@85)
-		(object AssociationViewNew "$UNNAMED$33" @90
-		    location   	(1279, 1400)
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3F86BFF90020"
-		    roleview_list 	(list RoleViews
-			(object RoleView "$UNNAMED$34" @91
-			    Parent_View 	@90
-			    location   	(543, -8)
-			    font       	(object Font
-				size       	10
-				face       	"arial"
-				bold       	FALSE
-				italics    	FALSE
-				underline  	FALSE
-				strike     	FALSE
-				color      	0
-				default_color 	TRUE)
-			    label      	(object SegLabel @92
-				Parent_View 	@91
-				location   	(1612, 1359)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				hidden     	TRUE
-				anchor     	1
-				anchor_loc 	1
-				nlines     	1
-				max_width  	450
-				justify    	0
-				label      	""
-				pctDist    	0.800000
-				height     	42
-				orientation 	0)
-			    stereotype 	TRUE
-			    line_color 	3342489
-			    quidu      	"3F86BFF90023"
-			    client     	@90
-			    supplier   	@70
-			    line_style 	3
-			    origin_attachment 	(1279, 1400)
-			    terminal_attachment 	(1696, 1400))
-			(object RoleView "itsRep" @93
-			    Parent_View 	@90
-			    location   	(543, -8)
-			    font       	(object Font
-				size       	10
-				face       	"arial"
-				bold       	FALSE
-				italics    	FALSE
-				underline  	FALSE
-				strike     	FALSE
-				color      	0
-				default_color 	TRUE)
-			    label      	(object SegLabel @94
-				Parent_View 	@93
-				location   	(946, 1359)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				anchor     	1
-				anchor_loc 	1
-				nlines     	1
-				max_width  	142
-				justify    	0
-				label      	"-itsRep"
-				pctDist    	0.800000
-				height     	42
-				orientation 	1)
-			    stereotype 	TRUE
-			    line_color 	3342489
-			    quidu      	"3F86BFF90021"
-			    client     	@90
-			    supplier   	@84
-			    line_style 	3
-			    origin_attachment 	(1279, 1400)
-			    terminal_attachment 	(862, 1400))))
-		(object ClassView "Class" "Logical View::MEQ::Domain" @95
+		(object ClassView "Class" "Logical View::Meq::Domain" @78
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -9770,29 +9463,29 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@95
-			location   	(1465, 390)
+			Parent_View 	@78
+			location   	(1462, 386)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	206
+			max_width  	212
 			justify    	0
 			label      	"Domain")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3F86886E0183"
-		    width      	224
-		    height     	108
+		    width      	230
+		    height     	117
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object AssociationViewNew "$UNNAMED$11" @96
+		(object AssociationViewNew "$UNNAMED$11" @79
 		    location   	(1579, 576)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3F86BFF8014F"
 		    roleview_list 	(list RoleViews
-			(object RoleView "$UNNAMED$12" @97
-			    Parent_View 	@96
+			(object RoleView "$UNNAMED$12" @80
+			    Parent_View 	@79
 			    location   	(-165, 96)
 			    font       	(object Font
 				size       	10
@@ -9803,9 +9496,9 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @98
-				Parent_View 	@97
-				location   	(1538, 648)
+			    label      	(object SegLabel @81
+				Parent_View 	@80
+				location   	(1538, 645)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -9828,13 +9521,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3F86BFF80154"
-			    client     	@96
+			    client     	@79
 			    supplier   	@72
 			    line_style 	3
 			    origin_attachment 	(1579, 576)
-			    terminal_attachment 	(1579, 666))
-			(object RoleView "itsDomain" @99
-			    Parent_View 	@96
+			    terminal_attachment 	(1579, 662))
+			(object RoleView "itsDomain" @82
+			    Parent_View 	@79
 			    location   	(-165, 96)
 			    font       	(object Font
 				size       	10
@@ -9845,9 +9538,9 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @100
-				Parent_View 	@99
-				location   	(1455, 524)
+			    label      	(object SegLabel @83
+				Parent_View 	@82
+				location   	(1455, 527)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -9869,12 +9562,302 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3F86BFF80150"
-			    client     	@96
-			    supplier   	@95
+			    client     	@79
+			    supplier   	@78
 			    line_style 	3
 			    origin_attachment 	(1579, 576)
-			    terminal_attachment 	(1579, 486))))
-		(object ClassView "Class" "Logical View::MEQ::Polc" @101
+			    terminal_attachment 	(1579, 490))))
+		(object ClassView "Class" "Logical View::Meq::Result" @84
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(1568, 1120)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@84
+			location   	(1472, 1074)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	192
+			justify    	0
+			label      	"Result")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3F86886E020D"
+		    width      	210
+		    height     	117
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object AssociationViewNew "$UNNAMED$29" @85
+		    location   	(1576, 920)
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3F86BFF802AF"
+		    roleview_list 	(list RoleViews
+			(object RoleView "$UNNAMED$30" @86
+			    Parent_View 	@85
+			    location   	(104, 248)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @87
+				Parent_View 	@86
+				location   	(1535, 1034)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				hidden     	TRUE
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	450
+				justify    	0
+				label      	""
+				pctDist    	0.800000
+				height     	42
+				orientation 	1)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3F86BFF802B2"
+			    client     	@85
+			    supplier   	@84
+			    line_style 	3
+			    origin_attachment 	(1576, 920)
+			    terminal_attachment 	(1576, 1062))
+			(object RoleView "itsCells" @88
+			    Parent_View 	@85
+			    location   	(104, 248)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @89
+				Parent_View 	@88
+				location   	(1467, 805)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	161
+				justify    	0
+				label      	"-itsCells"
+				pctDist    	0.815068
+				height     	110
+				orientation 	0)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3F86BFF802B0"
+			    client     	@85
+			    supplier   	@72
+			    line_style 	3
+			    origin_attachment 	(1576, 920)
+			    terminal_attachment 	(1576, 778))))
+		(object ClassView "Class" "Logical View::Meq::VellsRep" @90
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(736, 1408)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@90
+			location   	(618, 1362)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	236
+			justify    	0
+			label      	"VellsRep")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3F86886E0276"
+		    width      	254
+		    height     	117
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object InheritTreeView "" @91
+		    location   	(736, 1556)
+		    line_color 	3342489
+		    fill_color 	13434879
+		    supplier   	@90
+		    vertices   	(list Points
+			(736, 1556)
+			(736, 1466)))
+		(object InheritView "" @92
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3F8688700393"
+		    client     	@42
+		    supplier   	@90
+		    line_style 	3
+		    origin_attachment 	(280, 2502)
+		    terminal_attachment 	(280, 1556)
+		    drawSupplier 	@91)
+		(object InheritView "" @93
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3F868871011C"
+		    client     	@44
+		    supplier   	@90
+		    line_style 	3
+		    origin_attachment 	(1200, 2054)
+		    terminal_attachment 	(1200, 1556)
+		    drawSupplier 	@91)
+		(object InheritView "" @94
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3F868871003E"
+		    client     	@43
+		    supplier   	@90
+		    line_style 	3
+		    origin_attachment 	(624, 1702)
+		    terminal_attachment 	(624, 1556)
+		    drawSupplier 	@91)
+		(object InheritView "" @95
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3F8688710240"
+		    client     	@49
+		    supplier   	@90
+		    line_style 	3
+		    origin_attachment 	(1824, 1782)
+		    terminal_attachment 	(1824, 1556)
+		    drawSupplier 	@91)
+		(object AssociationViewNew "$UNNAMED$33" @96
+		    location   	(1273, 1400)
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3F86BFF90020"
+		    roleview_list 	(list RoleViews
+			(object RoleView "$UNNAMED$34" @97
+			    Parent_View 	@96
+			    location   	(537, -8)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @98
+				Parent_View 	@97
+				location   	(1601, 1359)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				hidden     	TRUE
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	450
+				justify    	0
+				label      	""
+				pctDist    	0.800000
+				height     	42
+				orientation 	0)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3F86BFF90023"
+			    client     	@96
+			    supplier   	@71
+			    line_style 	3
+			    origin_attachment 	(1273, 1400)
+			    terminal_attachment 	(1683, 1400))
+			(object RoleView "itsRep" @99
+			    Parent_View 	@96
+			    location   	(537, -8)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @100
+				Parent_View 	@99
+				location   	(945, 1359)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	142
+				justify    	0
+				label      	"-itsRep"
+				pctDist    	0.800000
+				height     	42
+				orientation 	1)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3F86BFF90021"
+			    client     	@96
+			    supplier   	@90
+			    line_style 	3
+			    origin_attachment 	(1273, 1400)
+			    terminal_attachment 	(863, 1400))))
+		(object ClassView "Class" "Logical View::Meq::Polc" @101
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -9892,7 +9875,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@101
-			location   	(640, 390)
+			location   	(640, 386)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	192
@@ -9903,18 +9886,18 @@
 		    fill_color 	13434879
 		    quidu      	"3F86886E01F6"
 		    width      	210
-		    height     	109
+		    height     	117
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object AssociationViewNew "$UNNAMED$23" @102
-		    location   	(1148, 398)
+		    location   	(1147, 398)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3F86BFF80249"
 		    roleview_list 	(list RoleViews
 			(object RoleView "$UNNAMED$24" @103
 			    Parent_View 	@102
-			    location   	(-596, -82)
+			    location   	(-597, -82)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -9952,11 +9935,11 @@
 			    client     	@102
 			    supplier   	@101
 			    line_style 	3
-			    origin_attachment 	(1148, 398)
+			    origin_attachment 	(1147, 398)
 			    terminal_attachment 	(841, 398))
 			(object RoleView "itsDomain" @105
 			    Parent_View 	@102
-			    location   	(-596, -82)
+			    location   	(-597, -82)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -9968,7 +9951,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @106
 				Parent_View 	@105
-				location   	(1278, 356)
+				location   	(1276, 356)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -9991,11 +9974,11 @@
 			    line_color 	3342489
 			    quidu      	"3F86BFF8024A"
 			    client     	@102
-			    supplier   	@95
+			    supplier   	@78
 			    line_style 	3
-			    origin_attachment 	(1148, 398)
-			    terminal_attachment 	(1456, 398))))
-		(object ClassView "Class" "Logical View::MEQ::Vells" @107
+			    origin_attachment 	(1147, 398)
+			    terminal_attachment 	(1453, 398))))
+		(object ClassView "Class" "Logical View::Meq::Vells" @107
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -10013,7 +9996,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@107
-			location   	(640, 1094)
+			location   	(640, 1090)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	192
@@ -10024,7 +10007,7 @@
 		    fill_color 	13434879
 		    quidu      	"3F86886E0229"
 		    width      	210
-		    height     	108
+		    height     	117
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object AssociationViewNew "$UNNAMED$27" @108
@@ -10071,7 +10054,7 @@
 			    line_color 	3342489
 			    quidu      	"3F86BFF802A7"
 			    client     	@108
-			    supplier   	@78
+			    supplier   	@84
 			    line_style 	3
 			    origin_attachment 	(1152, 1136)
 			    terminal_attachment 	(1463, 1136))
@@ -10136,7 +10119,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @115
 				Parent_View 	@114
-				location   	(695, 1206)
+				location   	(695, 1210)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -10163,7 +10146,7 @@
 			    supplier   	@107
 			    line_style 	3
 			    origin_attachment 	(736, 1272)
-			    terminal_attachment 	(736, 1190))
+			    terminal_attachment 	(736, 1194))
 			(object RoleView "itsRep" @116
 			    Parent_View 	@113
 			    location   	(0, -136)
@@ -10178,7 +10161,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @117
 				Parent_View 	@116
-				location   	(695, 1338)
+				location   	(695, 1334)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -10201,10 +10184,10 @@
 			    line_color 	3342489
 			    quidu      	"3F86BFF802FE"
 			    client     	@113
-			    supplier   	@84
+			    supplier   	@90
 			    line_style 	3
 			    origin_attachment 	(736, 1272)
-			    terminal_attachment 	(736, 1354))))
+			    terminal_attachment 	(736, 1350))))
 		(object AssociationViewNew "$UNNAMED$21" @118
 		    location   	(770, 784)
 		    stereotype 	TRUE
@@ -10225,7 +10208,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @120
 				Parent_View 	@119
-				location   	(729, 547)
+				location   	(729, 549)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -10252,7 +10235,7 @@
 			    supplier   	@101
 			    line_style 	3
 			    origin_attachment 	(770, 784)
-			    terminal_attachment 	(770, 486))
+			    terminal_attachment 	(770, 490))
 			(object RoleView "itsPerturbation" @121
 			    Parent_View 	@118
 			    location   	(34, -352)
@@ -10267,7 +10250,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @122
 				Parent_View 	@121
-				location   	(837, 1000)
+				location   	(837, 997)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -10293,7 +10276,7 @@
 			    supplier   	@107
 			    line_style 	3
 			    origin_attachment 	(770, 784)
-			    terminal_attachment 	(770, 1082))))
+			    terminal_attachment 	(770, 1078))))
 		(object AssociationViewNew "$UNNAMED$19" @123
 		    location   	(701, 784)
 		    stereotype 	TRUE
@@ -10314,7 +10297,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @125
 				Parent_View 	@124
-				location   	(660, 547)
+				location   	(660, 549)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -10341,7 +10324,7 @@
 			    supplier   	@101
 			    line_style 	3
 			    origin_attachment 	(701, 784)
-			    terminal_attachment 	(701, 486))
+			    terminal_attachment 	(701, 490))
 			(object RoleView "itsPertSimCoeff" @126
 			    Parent_View 	@123
 			    location   	(-35, -352)
@@ -10356,7 +10339,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @127
 				Parent_View 	@126
-				location   	(659, 951)
+				location   	(659, 948)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -10382,7 +10365,7 @@
 			    supplier   	@107
 			    line_style 	3
 			    origin_attachment 	(701, 784)
-			    terminal_attachment 	(701, 1082))))
+			    terminal_attachment 	(701, 1078))))
 		(object AssociationViewNew "$UNNAMED$17" @128
 		    location   	(1004, 780)
 		    stereotype 	TRUE
@@ -10481,14 +10464,14 @@
 			    origin_attachment 	(1004, 780)
 			    terminal_attachment 	(841, 1099))))
 		(object AssociationViewNew "$UNNAMED$15" @133
-		    location   	(497, 773)
+		    location   	(497, 775)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3F86BFF80220"
 		    roleview_list 	(list RoleViews
 			(object RoleView "$UNNAMED$16" @134
 			    Parent_View 	@133
-			    location   	(-239, -363)
+			    location   	(-239, -361)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -10526,15 +10509,15 @@
 			    client     	@133
 			    supplier   	@101
 			    vertices   	(list Points
-				(497, 773)
+				(497, 775)
 				(497, 454)
 				(631, 454))
 			    line_style 	3
-			    origin_attachment 	(497, 773)
+			    origin_attachment 	(497, 775)
 			    terminal_attachment 	(631, 454))
 			(object RoleView "itsCoeff" @136
 			    Parent_View 	@133
-			    location   	(-239, -363)
+			    location   	(-239, -361)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -10546,7 +10529,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @137
 				Parent_View 	@136
-				location   	(518, 1117)
+				location   	(518, 1121)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -10571,9 +10554,9 @@
 			    client     	@133
 			    supplier   	@107
 			    vertices   	(list Points
-				(497, 773)
-				(497, 1093)
-				(631, 1093))
+				(497, 775)
+				(497, 1097)
+				(631, 1097))
 			    line_style 	3
-			    origin_attachment 	(497, 773)
-			    terminal_attachment 	(631, 1093))))))))
+			    origin_attachment 	(497, 775)
+			    terminal_attachment 	(631, 1097))))))))
