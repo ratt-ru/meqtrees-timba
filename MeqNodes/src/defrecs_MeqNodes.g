@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
-# Original file name: /home/mevius/LOFAR/Timba/MeqNodes/src/defrecs_MeqNodes.g
-# Generated on Mon Feb 14 19:07:19 CET 2005
+# Original file name: /home/oms/LOFAR/Timba/MeqNodes/src/defrecs_MeqNodes.g
+# Generated on Thu Mar 10 16:40:27 CET 2005
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 
@@ -8,7 +8,7 @@
 # 
 #
 # ---------- class MeqReqSeq
-# generated from /home/mevius/LOFAR/Timba/MeqNodes/src/ReqSeq.h
+# generated from /home/oms/LOFAR/Timba/MeqNodes/src/ReqSeq.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'Forwards its request to all children in sequence (i.e. each child is   \
@@ -19,7 +19,7 @@ r.result_index::description := 'Which child\'s result to return.';
 _meqdefrec_map.MeqReqSeq := r;
 #
 # ---------- class MeqSelector
-# generated from /home/mevius/LOFAR/Timba/MeqNodes/src/Selector.h
+# generated from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'A MeqSelector selects one or more results from the result set of its child. \
@@ -29,7 +29,7 @@ r.index::description := 'Indices (1-based) of results to be selected.';
 _meqdefrec_map.MeqSelector := r;
 #
 # ---------- class MeqParm
-# generated from /home/mevius/LOFAR/Timba/MeqNodes/src/Parm.h
+# generated from /home/oms/LOFAR/Timba/MeqNodes/src/Parm.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'Represents a parameter, either created on-the-fly (a default \
@@ -59,7 +59,7 @@ r.auto_save::description := 'if T, then any updates to a funklet are saved into 
 _meqdefrec_map.MeqParm := r;
 #
 # ---------- class MeqSolver
-# generated from /home/mevius/LOFAR/Timba/MeqNodes/src/Solver.h
+# generated from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := '***UPDATE THIS*** \
@@ -86,7 +86,7 @@ r.solvable::description := 'Command record which is sent up in the rider of the 
 _meqdefrec_map.MeqSolver := r;
 #
 # ---------- class MeqComposer
-# generated from /home/mevius/LOFAR/Timba/MeqNodes/src/Composer.h
+# generated from /home/oms/LOFAR/Timba/MeqNodes/src/Composer.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'A MeqComposer concatenates the results of all its children  \
@@ -99,7 +99,7 @@ r.contagious_fail::description := 'If true, then a fail in any child result caus
 _meqdefrec_map.MeqComposer := r;
 #
 # ---------- class MeqConstant
-# generated from /home/mevius/LOFAR/Timba/MeqNodes/src/Constant.h
+# generated from /home/oms/LOFAR/Timba/MeqNodes/src/Constant.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'Represents a constant node. A MeqConstant cannot have any children.';
@@ -113,7 +113,7 @@ r.integrated::description := 'if true, constant represents an integration -- res
 _meqdefrec_map.MeqConstant := r;
 #
 # ---------- class MeqMergeFlags
-# generated from /home/mevius/LOFAR/Timba/MeqNodes/src/MergeFlags.h
+# generated from /home/oms/LOFAR/Timba/MeqNodes/src/MergeFlags.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'Merges (bitwise-ORs) the flags supplied by all its children. \
@@ -125,7 +125,7 @@ r.flag_mask::description := 'Flag mask to apply during merge. -1 means full mask
 _meqdefrec_map.MeqMergeFlags := r;
 #
 # ---------- class MeqZeroFlagger
-# generated from /home/mevius/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h
+# generated from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'Sets flags in a VellSet based on a comparison of the main value with 0.';

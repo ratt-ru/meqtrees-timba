@@ -421,6 +421,13 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
         : maskedCompare(req.id(),current_reqid_,cache_retcode_) ) )
   {
     ref = cache_result_;
+    // UGLY KLUDGE ALERT:
+    // make sure cells of request match result!
+    if( req.hasCells() )
+    {
+      if( !ref->hasCells() || &(ref->cells()) != &(req.cells()) )
+        ref().setCells(req.cells());
+    }
     retcode = cache_retcode_;
     return true;
   }

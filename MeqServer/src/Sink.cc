@@ -94,6 +94,8 @@ void Sink::fillTileColumn (T *coldata,const LoShape &colshape,
   {
     Throw("output tile column must have 2 or 3 dimensions")
   }
+  // flip into freq-time order for assignment
+  colarr.transposeSelf(blitz::secondDim,blitz::firstDim);
   FailWhen(colarr.shape()!=arr.shape(),"shape of child result does not match output column");
   colarr = blitz::cast<T>(arr);
 }
@@ -219,8 +221,10 @@ int Sink::procPendingTile (VisCube::VTile::Ref &tileref)
         {
           cdebug(2)<<"shape of dataflags not compatible with data, omitting flags"<<endl;
         }
-        const Vells::Traits<VellsFlagType,2>::Array & fl = 
+        Vells::Traits<VellsFlagType,2>::Array fl = 
             realflags.getConstArray<VellsFlagType,2>();
+        // flip into freq-time order
+        fl.transposeSelf(blitz::secondDim,blitz::firstDim);
         // if flag bit is set, use a where-expression, else simply copy
         if( flag_bit )
           ptile->wtf_flags(icorr) = where(fl,flag_bit,0);

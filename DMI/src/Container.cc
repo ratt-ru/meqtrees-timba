@@ -94,7 +94,7 @@ const DMI::Container::Hook & DMI::Container::Hook::operator [] (const HIID &id1)
 //    is impossible. 
 // All flags are passed to the get() method.
 //##ModelId=4017F62501D7
-inline const void * DMI::Container::Hook::resolveTarget (int flags,TypeId hint) const
+const void * DMI::Container::Hook::resolveTarget (int flags,TypeId hint) const
 {
   bool writing = flags&DMI::WRITE;
   // container is const, but writing is required: try to resolve to a writable 
