@@ -121,9 +121,11 @@ else
 	echo '' >> .doxygenrc
       fi
     fi
+    lofar_doctool=doxygen
 ]
 dnl
     AC_SUBST(DOXYGEN)dnl
+    AC_SUBST(lofar_doctool)dnl
 dnl
 [
   fi
@@ -184,12 +186,14 @@ else
       DOCPPFLAGS=
     fi
     if test "$with_docpp_flags" = "yes"; then
-      DOCPPFLAGS="--all --no-define --private --filenames --gifs --dir docxxhtml"
+      DOCPPFLAGS="--all --no-define --private --filenames --gifs"
     fi
+    lofar_doctool=docpp
 ]
 dnl
     AC_SUBST(DOCPP)dnl
     AC_SUBST(DOCPPFLAGS)dnl
+    AC_SUBST(lofar_doctool)dnl
 dnl
 [
   fi
