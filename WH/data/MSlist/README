@@ -1,0 +1,9 @@
+This directory contains info on Measurement sets that are available on
+the Westerbokr archives and in the WH MS repository.
+
+File: Header
+      Header information for the MSlist-<year> files
+File: MSlist-<year>
+      Info on the MSses that are created in the given year.
+File: MSrepository
+      List of MSses that are available on /usr/local/PSS4/WH/WSRT
