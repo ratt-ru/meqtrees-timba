@@ -263,6 +263,23 @@ namespace Meq { class PointSourceDFT; };
               typedef const Meq::PointSourceDFT & ContainerParamType;
             };
 #endif
+#ifndef _defined_id_TpMeqPolRepToComplex
+#define _defined_id_TpMeqPolRepToComplex 1
+const TypeId TpMeqPolRepToComplex(-1501);         // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqNodes/src/PolRepToComplex.h:30
+const int TpMeqPolRepToComplex_int = -1501;
+namespace Meq { class PolRepToComplex; };
+            template<>
+            class DMIBaseTypeTraits<Meq::PolRepToComplex> : public TypeTraits<Meq::PolRepToComplex>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqPolRepToComplex_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::PolRepToComplex & ContainerReturnType;
+              typedef const Meq::PolRepToComplex & ContainerParamType;
+            };
+#endif
 #ifndef _defined_id_TpMeqPow
 #define _defined_id_TpMeqPow 1
 const TypeId TpMeqPow(-1214);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Pow.h:29

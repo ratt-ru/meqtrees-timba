@@ -67,7 +67,7 @@
   
 // Binary functions
 #define DoForAllBinaryFuncs(Do,x) \
-  Do(posdiff,x) Do(tocomplex,x) Do(pow,x) Do(atan2,x)
+  Do(posdiff,x) Do(tocomplex,x) Do(polreptocomplex,x) Do(pow,x) Do(atan2,x)
 
 namespace Meq {
 
@@ -529,6 +529,7 @@ defineUnaryFunc(product,Vells::VF_SCALAR);
 
 defineBinaryFunc(pow,0);
 defineBinaryFunc(tocomplex,Vells::VF_COMPLEX|Vells::VF_CHECKREAL);
+defineBinaryFunc(polreptocomplex,Vells::VF_COMPLEX|Vells::VF_CHECKREAL);
 defineBinaryFunc(posdiff,Vells::VF_REAL|Vells::VF_CHECKREAL);
 defineBinaryFunc(atan2,Vells::VF_REAL|Vells::VF_CHECKREAL);
 

@@ -865,6 +865,28 @@ void implement_binary_tocomplex<LoMat_double,LoMat_double> (Meq::Vells &out,cons
 Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_tocomplex_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
     ExpandBinaryLUTMatrix(tocomplex);
 
+// polreptocomplex()
+// default template reports error
+template<class TLeft,class TRight> 
+void implement_binary_polreptocomplex (Meq::Vells &,const Meq::Vells &,const Meq::Vells &)
+{ Throw("polreptocomplex() can only be used with two real Meq::Vells"); }
+// legal specializations for double arguments
+template<> 
+void implement_binary_polreptocomplex<double,double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right)
+{ out.as<dcomplex>() = left.as<double>()*exp(dcomplex(0,right.as<double>())); }
+template<> 
+void implement_binary_polreptocomplex<LoMat_double,double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right)
+{ out.as<LoMat_dcomplex>() = left.as<LoMat_double>()*exp(dcomplex(0,right.as<double>())); }
+template<> 
+void implement_binary_polreptocomplex<double,LoMat_double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right)
+{ out.as<LoMat_dcomplex>() = left.as<double>()*exp(zip(0,right.as<LoMat_double>(),dcomplex())); }
+template<> 
+void implement_binary_polreptocomplex<LoMat_double,LoMat_double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right)
+{ out.as<LoMat_dcomplex>() = left.as<LoMat_double>()*exp(zip(0,right.as<LoMat_double>(),dcomplex())); }
+
+Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_polreptocomplex_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
+    ExpandBinaryLUTMatrix(polreptocomplex);
+
 // posdiff() is defined for two real arguments
 //
 static inline double posdiff (double x,double y)

@@ -158,6 +158,11 @@ const int AidMeqParm_int = -1244;
 const AtomicID AidMeqPointSourceDFT(-1469);       // from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/PointSourceDFT.h:30
 const int AidMeqPointSourceDFT_int = -1469;
 #endif
+#ifndef _defined_id_AidMeqPolRepToComplex
+#define _defined_id_AidMeqPolRepToComplex 1
+const AtomicID AidMeqPolRepToComplex(-1501);      // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqNodes/src/PolRepToComplex.h:30
+const int AidMeqPolRepToComplex_int = -1501;
+#endif
 #ifndef _defined_id_AidMeqPow
 #define _defined_id_AidMeqPow 1
 const AtomicID AidMeqPow(-1214);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Pow.h:29

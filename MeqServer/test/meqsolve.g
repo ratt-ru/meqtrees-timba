@@ -88,8 +88,15 @@ const sta_dft_tree := function (st,src='')
     
   # builds an init-rec for a node called 'dft.N' with two children: 
   # lmn and uvw.N
-  return meq.node('MeqStatPointSourceDFT',fq_name('dft',src,st),[link_or_create=T],children=[
+  dft := meq.node('MeqStatPointSourceDFT',fq_name('dft0',src,st),[link_or_create=T],children=[
               lmn = fq_name('lmn',src),uvw=uvw ]);
+  # add antenna gains/phases
+  gain := meq.node('MeqPolRepToComplex',fq_name('G',st),[link_or_create=T],children=meq.list(
+              meq.parm(fq_name('GA',st),1.0,groups="a"),
+              meq.parm(fq_name('GP',st),0.0,groups="a") ) );
+              
+  return meq.node('MeqMultiply',fq_name('dft',src,st),[link_or_create=T],
+                    children=meq.list(dft,gain));
 }
 
 # builds an init-record for a "dft" tree for source 'src' and two stations (st1,st2)
@@ -335,7 +342,7 @@ use_initcol := T;       # initialize output column with zeroes
 const do_test := function (predict=F,subtract=F,solve=F,run=T,
     msname='test.ms',
     outcol='PREDICTED_DATA',        # output column of MS
-    st1set=[1],st2set=[2,3,4],      # stations for which to make trees
+    stset=1:4,                      # stations for which to make trees
     msuvw=F,                        # use UVW values from MS
     mepuvw=F,                       # use UVW from MEP table (should be filled already)
     load='',                        # load forest from file 
@@ -393,17 +400,26 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
     # make a solver node (since it's only one)
     if( solve )
     {
+      # accumulate list of IFR condeqs
       condeqs := [];
-      for( st1 in st1set )
-        for( st2 in st2set )
+      for( st1 in stset )
+        for( st2 in stset )
           if( st1 < st2 )
             condeqs := [condeqs,fq_name('ce',st1,st2)];
+      # solvable parms
+      solvables := "stokes_i.a ra.a dec.a stokes_i.b ra.b dec.b";      
+      if( solve_gains )
+        for( st in stset[2:len(stset)] )
+          solvables := [solvables,fq_name('GA',st)];
+      if( solve_phases )
+        for( st in stset[2:len(stset)] )
+          solvables := [solvables,fq_name('GP',st)];
       # note that child names will be resolved later
       global solver_defaults;
       rec := meq.node('MeqSolver','solver',[
           parm_group = hiid("a"),
           default    = solver_defaults,
-          solvable   = meq.solvable_list("stokes_i.a ra.a dec.a stokes_i.b ra.b dec.b") ],
+          solvable   = meq.solvable_list(solvables) ],
         children=condeqs);
       mqs.createnode(rec);
     }
@@ -418,8 +434,8 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
     }
     rootnodes := [];
     # make predict/condeq trees
-    for( st1 in st1set )
-      for( st2 in st2set )
+    for( st1 in stset )
+      for( st2 in stset )
         if( st1 < st2 )
         {
           if( solve )
@@ -473,9 +489,11 @@ msname := 'test.ms';
 # msname := 'test-wsrt.ms';
 mepuvw := T;
 filluvw := any(argv=='-filluvw');
+solve_gains := any(argv=='-gains');
+solve_phases := any(argv=='-phases');
 
-src_dra  := ([0,128]+10) * pi/(180*60*60); # perturb positions by # seconds
-src_ddec := ([0,128]+10) * pi/(180*60*60);
+src_dra  := ([0,128]+5) * pi/(180*60*60); # perturb positions by # seconds
+src_ddec := ([0,128]+5) * pi/(180*60*60);
 src_sti  := [1,1]   + 0.1;
 src_names := "a b";
 
@@ -497,13 +515,10 @@ inputrec := [ ms_name = msname,data_column_name = 'DATA',tile_size=5,
               selection = [ channel_start_index=1,channel_end_index=1 ] ];
 outputrec := [ write_flags=F,predict_column=outcol ]; 
 
-#do_test(predict=T,run=T,st1set=1,st2set=2,publish=2);
-# do_test(solve=T,run=T,st1set=1,st2set=1,publish=2);
-
 do_test(msname=msname,solve=T,subtract=F,run=T,
 #  st1set=[1:5]*4,st2set=[1:5]*4,
 #  st1set=[1:21]*4,st2set=[1:21]*4,
-  st1set=1+[0:3]*4,st2set=1+[0:3]*4,
+  stset=1+[0:20]*4,
 #  st1set=1+[0:20]*4,st2set=1+[0:20]*4,
 #  st1set=1:100,st2set=1:100,
   publish=1,mepuvw=mepuvw,msuvw=msuvw);

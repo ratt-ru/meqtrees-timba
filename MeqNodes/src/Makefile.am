@@ -5,8 +5,9 @@ LOCALHDRS =
 LOCALSRCS = \
     Constant.cc Parm.cc Freq.cc Time.cc Selector.cc Composer.cc Add.cc \
     Subtract.cc Multiply.cc Divide.cc  Sin.cc Cos.cc Exp.cc Pow.cc Sqr.cc \
-    Sqrt.cc Conj.cc ToComplex.cc  UVW.cc LMN.cc StatPointSourceDFT.cc \
-    PointSourceDFT.cc  ModRes.cc Condeq.cc Solver.cc ZeroFlagger.cc \
+    Sqrt.cc Conj.cc ToComplex.cc PolRepToComplex.cc UVW.cc LMN.cc \
+    StatPointSourceDFT.cc \
+    PointSourceDFT.cc ModRes.cc Condeq.cc Solver.cc ZeroFlagger.cc \
     MergeFlags.cc Resampler.cc ReqSeq.cc  \
     ParmTable.cc 
 

@@ -41,6 +41,8 @@ BlockableObject * __construct_MeqSqrt (int n) { return n>0 ? new Meq::Sqrt [n] :
 BlockableObject * __construct_MeqConj (int n) { return n>0 ? new Meq::Conj [n] : new Meq::Conj; }
 #include "ToComplex.h"
 BlockableObject * __construct_MeqToComplex (int n) { return n>0 ? new Meq::ToComplex [n] : new Meq::ToComplex; }
+#include "PolRepToComplex.h"
+BlockableObject * __construct_MeqPolRepToComplex (int n) { return n>0 ? new Meq::PolRepToComplex [n] : new Meq::PolRepToComplex; }
 #include "UVW.h"
 BlockableObject * __construct_MeqUVW (int n) { return n>0 ? new Meq::UVW [n] : new Meq::UVW; }
 #include "LMN.h"
@@ -122,6 +124,9 @@ BlockableObject * __construct_MeqReqSeq (int n) { return n>0 ? new Meq::ReqSeq [
         AtomicID::registerId(-1217,"meqtocomplex")+
         TypeInfoReg::addToRegistry(-1217,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1217,__construct_MeqToComplex)+
+        AtomicID::registerId(-1501,"meqpolreptocomplex")+
+        TypeInfoReg::addToRegistry(-1501,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1501,__construct_MeqPolRepToComplex)+
         AtomicID::registerId(-1239,"mequvw")+
         TypeInfoReg::addToRegistry(-1239,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1239,__construct_MeqUVW)+

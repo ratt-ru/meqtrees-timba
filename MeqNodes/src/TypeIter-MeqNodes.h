@@ -27,6 +27,7 @@
         Do(Meq::Sqrt,arg) separator \
         Do(Meq::Conj,arg) separator \
         Do(Meq::ToComplex,arg) separator \
+        Do(Meq::PolRepToComplex,arg) separator \
         Do(Meq::UVW,arg) separator \
         Do(Meq::LMN,arg) separator \
         Do(Meq::StatPointSourceDFT,arg) separator \
