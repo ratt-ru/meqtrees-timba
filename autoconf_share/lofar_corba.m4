@@ -9,22 +9,25 @@
 AC_DEFUN(lofar_CORBA,dnl
 lofar_HEADER_VISIBROKER([])
 lofar_HEADER_TAO([])
-[ if test "$enable_vbroker" = "yes"; then
-    if test "$enable_tao" = "yes"; then
-AC_MSG_ERROR([Can not have both Visibroker and TAO used at the same time])
-    fi
-  fi
-  if test "$enable_vbroker" = "yes"; then
-AC_DEFINE(HAVE_CORBA, 1, [Defined if Corba is used])
-AC_DEFINE(HAVE_CORBA, 1, [Defined if Visibroker is used])
-AM_CONDITIONAL(HAVE_CORBA, true)
-  fi
+[
+if test "$enable_vbroker" = "yes"; then
   if test "$enable_tao" = "yes"; then
-AC_DEFINE(HAVE_CORBA, 1, [Defined if Corba is used])
-AC_DEFINE(HAVE_TAO, 1, [Defined if TAO is used])
-AM_CONDITIONAL(HAVE_CORBA, true)
+   ]AC_MSG_ERROR([Can not have both Visibroker and TAO used at the same time])[
   fi
+fi
+have_corba=0;
+if test "$enable_vbroker" = "yes"; then
+  have_corba=1;
+  ]AC_DEFINE(HAVE_CORBA, 1, [Defined if Corba is used])[
+  ]AC_DEFINE(HAVE_VBROKER, 1, [Defined if Visibroker is used])[
+fi
+if test "$enable_tao" = "yes"; then
+  have_corba=1;
+  ]AC_DEFINE(HAVE_CORBA, 1, [Defined if Corba is used])[
+  ]AC_DEFINE(HAVE_TAO, 1, [Defined if TAO is used])[
+fi
 ]
+AM_CONDITIONAL(HAVE_CORBA, test $have_corba = 1)
 )dnl
 dnl
 #
