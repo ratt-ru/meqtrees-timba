@@ -21,9 +21,9 @@
   child nodes.
 
   \highlightbox{The \qq{Node::execute()} method is the fulcrum of the entire
-  MeqTree kernel. A solid understanding of how it works is necessary for
-  both tree design and node development. An understanding is highly
-  recommended to advanced users that need to deal directly with trees.}
+  MeqTree kernel. A solid understanding of how it works is vital for both tree
+  design and node development, and also beneficial to advanced users that need
+  to deal directly with trees.}
 
   
   \section{Base Node::execute() steps}
@@ -46,23 +46,31 @@
 
 \newcounter{execstep}
 \setcounter{execstep}{0}
+\newcommand{\ExecStepBox}[2]{\highlightbox{\mbox{#1. } #2}}
 \newcommand{\ExecStep}[1]
-{\addtocounter{execstep}{1}\highlightbox{\mbox{\bf Step \arabic{execstep}. }
-#1}}
+{\addtocounter{execstep}{1}\ExecStepBox{Step \arabic{execstep}}{#1}}
   
 \subsection{Checking the cache}
-  
-  \ExecStep{Compare the request id to the id of the previous request, if any. Sets a
-  local ``new request'' flag that affects further logic below.}
+
+  \ExecStepBox{Init retunr code}{Set the current return code to 0. It will be
+  accumulated in further steps (usually via a bitwise-OR).}
+
+  \ExecStep{Compare the request id to the id of the previous request, if any.
+  Sets a local ``new request'' flag that affects further logic below.}
 
   \ExecStep{If there's a cached \Result, and the request id matches the
   cached rqid/depmask (see \ref{sec:cache} for a discussion), immediately
   return the cached \Result\ and cached result code. On mismatch, clear the
   cache and proceed.}
   
+  Note that the caching policy also determines how fail-results are dealt with.
+  If the cache contains a fail-result, the node may choose to ignore it and
+  attempt to recalculate the result to see if the fail conditions have gone
+  away.
+
   \ExecStep{For new requests only: call the virtual \qq{readyForRequest()}
   handler, and if the return value of that is \qq{false}, immediately
-  return the code \RES{WAIT}.}
+  return the code \RES{WAIT} (result will be empty).}
   
 \begin{verbatim}  
   virtual bool readyForRequest (const Request &req);
@@ -81,8 +89,9 @@
 \subsection{Polling children}
     
   \ExecStep{If node has children, call the virtual \qq{pollChildren()}
-    handler to pass the request on to the children, and collect their
-    results.}
+    handler to pass the request on to the children and collect their
+    results. Bitwise-OR the return value of \qq{pollChildren()} into the current
+    return code.}
 
   \begin{verbatim}    
   virtual int pollChildren (std::vector<Result::Ref> &child_results,
@@ -103,10 +112,11 @@
 
   \begin{itemize}
 
-  \item Calls \qq{execute()} (with \qq{req}) on all the child nodes,
-  collects their \Result{}s into the \qq{child\_results} vector, and
+  \item Calls \qq{execute()} (with \qq{req}) on all the child nodes, collects
+  their \Result{}s (by ref) into the \qq{child\_results} vector, and
   accumulates a return code as a bitwise-OR of the children's \qq{execute()}
-  return values. 
+  return values. Note that the refs to child \Result{}s are expected to
+  be read-only. 
 
   \item If the accumulated return code has the \RES{FAIL} bit set, its is
   assumed that at least one of the children has returned a fail-result
@@ -125,7 +135,7 @@
   does to it will be simply ignored when no \RES{FAIL} is returned.)
 
   If the \qq{pollChildren()} return value contains \RES{WAIT} or \RES{FAIL},
-  \qq{execute()} returns immediately with the same return value. Otherwise,
+  \qq{execute()} returns (see section~\ref{execute-return}). Otherwise,
   it proceeds to the next step:
 
   \ExecStep{If auto-resampling is enabled (see \ref{sec:resample}), compare
@@ -133,163 +143,152 @@
   (\qq{Cells}) to resample them to, and perform the resampling. Throw an
   exception if this is not possible.}
   
-\subsection{Evaluating Cells}
+  A result \Cells\ may be initialized based on how the resampling went (see
+  \ref{sec:resample}). 
 
-  \ExecStep{If the request contains a \qq{cells} command (containing a
-  \Cells\ object), call the virtual \qq{getResult()} handler to process
-  the command, passing in the vector of child \Result{}s
-  returned by \qq{pollChildren()}. Bitwise-ORs the return value with 
-  the node's current depmask, and the cumulative result code from the 
-  children (if one was returned at the previous step).}
+\subsection{Evaluating \qq{cells}}
+
+  \ExecStep{If the request contains a \qq{cells} command (with a \Cells\
+  object), call the virtual \qq{getResult()} handler to process the command,
+  passing in the vector of child \Result{}s returned by \qq{pollChildren()}.
+  The return value of \qq{getResult()}, along with the node's current depmask
+  (see~\ref{sec:depmask}), is bitwise-ORed into the current return code.}
+  
+\begin{verbatim}
+  virtual int getResult (Result::Ref &resref,
+                         const Cells::Ref &cells,
+                         const std::vector<Result::Ref> &child_results,
+                         const Request &req,bool newreq);
+\end{verbatim}
+  
+  The \qq{resref} and \qq{req} arguments are the same as those passed to
+  \qq{execute()}. The \qq{cells} argument is a ref to the result cells, if any
+  were initialized during the resampling stage above, or otherwise to the
+  \Cells\ in the request (see~\ref{sec:resampling} for details). The
+  \qq{child\_results} vector is built up in \qq{pollChildren()}, it will be
+  empty if the node has no children. Finally, the \qq{newreq} flag indicates if
+  it is a new request, this flag is set in Step~1 above.
+  
+  The \qq{getResult()} handler is responsible for attaching a \Result\ object
+  to \qq{resref}. In most cases, it will create a new object. Note, however,
+  that certain nodes may pass on child results transparently (e.g.,
+  \qq{ModRes}, \qq{ReqSeq}), they do this by simply copying a ref from the
+  \qq{child\_results} vector. 
+  
+  If \qq{getResult()} returns a \RES{WAIT} code, it is allowed (and expected)
+  to leave \qq{resref} unattached. Otherwise, a valid \Result\ must be
+  provided! Any errors occurring inside \qq{getResult()} can be reported by
+  throwing an exception.
 
 \subsection{Handling exceptions}
 
-  \ExecStep{If an exception is thrown at any stage of the process,
-    \qq{execute()} will catch it, create an output \Result\ with a
-    fail-result describing the exception, and return \RES{FAIL}. Thus,
-    throwing an exception is a normal way for \qq{setState()} or
-    \qq{processCommands()} or \qq{getResult()} to indicate failure.}
+  \ExecStepBox{Error handling}{If an exception is thrown at any stage of the
+  process, \qq{execute()} will catch it, create an output \Result\ with a
+  fail-result describing the exception, and add \RES{FAIL} to the current
+  return code.}
 
-\subsection{Setting cache}
+  Thus, throwing an exception is the normal way for \qq{processCommands()},
+  \qq{getResult()}, or any other handler to indicate a failure. Note that a
+  node should remain in a usable state (i.e. should be able to process further
+  \Request{}s) after most exceptions; methods that are liable to leave the node
+  in a non-usable state should provide their own exception handling code that
+  performs the necessary cleanups and re-throws the exceptions. See the
+  \qq{setState()} rollback mechanism described in section
+  \ref{sec:state-rollback} for one such example.
 
-  \ExecStep{Upon exit, optionally stores the output \Result\ and result code
-    in the cache (see caching issues, below.)}
+\subsection{Caching and returning a \Result}
+\label{sec:execute-return}
+ 
+  \ExecStepBox{Returning}{Whenever any kind of \Result\ is returned, it is
+  stored in the cache according to the current policy, and returned via the
+  \qq{resref} argument. The accumulated return code is returned along with the
+  result. If the result is new (i.e. not returned from cache at step 2), the
+  \RES{UPDATED} flag is added to the return value.}
+
+  Note that if the accumulated return code contains \RES{WAIT}, then no
+  \Result\ is expected (\qq{resref} remains unattached). In all other cases, a
+  valid \Result\ object should be attached to \qq{resref} (in case of
+  exceptions, this will be a fail-result).
+
+\subsection{All Results are read-only!}
+
+  Prior to returning a \Result, \qq{execute()} recursively changes \qq{resref}
+  and all other refs found inside the result object to read-only. This implies
+  that the caller of \qq{execute()} (i.e. the parent node, or \qq{MeqServer})
+  cannot [legally] change the \Result\ contents. This is deliberate -- the node
+  can now hold a ref to the \Result\ in the cache, and be assured that no-one
+  can [legally] change the contents. 
+  
+  In most cases, parent nodes will process the \Result{}s of their children as
+  read-only, and discard them afterwards (actually, only the parents' refs are
+  discarded -- the \Result\ objects themselves persist if still referenced
+  somewhere, e.g., in a child's cache). Some nodes may want to modify child
+  \Result{}s ``in place''. To do this, they will need to privatize their refs
+  for writing first (see \ref{sec:countedrefs}), thus ensuring that a private
+  copy is made if the same object is still referenced somewhere. The same
+  applies to individual components of the \Result{}s. Essentially, this is a
+  robust copy-on-write mechanism that assures that data is duplicated only when
+  needed, with very little effort required from the node developer.
+  
+  Note also that when a \Result\ is moved across to the scripting layer, some
+  sort of copying is implicitly performed. Glish does not deal with \Result\
+  objects directly, but rather with their Glish representations.
 
 \section{Result codes}
 
-  The return value of \qq{execute()} is simply the accumulated result code.
-  
-
-  The return value of \qq{execute()} is meant to be a result code describing
-  certain properties  of the returned \Result. It is a bitmask composed of a
-  number of flags listed below. Each flag describes a certain property of the
-  \Result. The property semantics are defined in such a way that, in most
-  practical cases, a flagged property in any child result is inherited by the
-  parent's result. This allows \qq{execute()} to accumulate the correct result
-  code via a simple bitwise-OR. In other words, only a few classes (Parm, Time,
-  Freq, Spigot, and perhaps some special nodes) have any specific logic for
-  determining result codes. For all other classes, the correct result code is
-  simply the bitwise-OR of their children's codes. The following bits are
+  As described above, the return value of \qq{execute()} is simply the
+  accumulated result code. The result code describes certain properties of the
+  returned \Result. Part of it is simply the result depmask (see
+  \ref{sec:depmask-result}, the other part contains a number of bitflags listed
+  below. Note that the property semantics are defined in such a way that, in
+  most practical cases, a flagged property in any child result is inherited by
+  the parent's result. This allows \qq{execute()} to accumulate the correct
+  result code via a simple bitwise-OR. The following additional flags are
   defined:
-  
+ 
   \begin{description}
   
   \item[\RES{UPDATED}:] result has changed from that of previous \Request. This
-    bit is usually automatically cleared when the node returns a result 
-    from the cache, and set otherwise.
-     
-  \item[\RES{DEP(0)}, \RES{DEP(1)}, etc.:] result will change if the $i$-th
-    index of the request ID changes. This is simply the {\em depmask\/} discussed
-    in the section on Requests above.
+    bit is usually cleared when the node returns a result  from the cache, and
+    set otherwise.
 
-  \item[\RES{DEP\_VOLATILE}:] result may change in response to external events,
-    even without new requests. (This is not implemented for now, and only meant
+  \item[\RES{VOLATILE}:] result may change in response to external events,
+    even without new requests. {\em (This is not implemented for now, and only meant
     as a placeholder for future developments, such as dynamically growing
-    domains, partial integration, etc.)
+    domains, partial integration, etc.)}
 
-  \item[\RES{FAIL}:] result is a ``complete'' fail. Note that this is not the
-    same thing as a result containing some mix of valid and failed VellSets;
-    rather, this indicates a failure for the whole result overall. \RES{FAIL}s
-    are usually generated when a node runs into some unrecoverable error.
-    
-    When this flag is returned, a \Result\ object is expected; it should
-    contain one or more fails describing the error. Note that dependency flags
-    can be meaningfully combined with \RES{FAIL}.
+  \item[\RES{FAIL}:] result is a fail. Note that this is not the same thing as
+    a result containing some mix of valid and failed VellSets; rather, this
+    indicates a failure for the whole result overall. \RES{FAIL}s are usually
+    generated in an exception handler. Note that the default implementation of
+    \qq{pollChildren()} and \qq{execute()} causes fails to cascade down the
+    tree.
+
+    When this flag is returned, a \Result\ object is still expected; it should
+    contain one or more fails describing the error. Note that depmasks can be
+    meaningfully combined with \RES{FAIL}, to indicate that the fail depends on
+    something (i.e. may go away if a particular dependency changes). The
+    ``smart'' caching policy may make use of this. 
 
   \item[\RES{WAIT}:] no result available, wait for notification or try later.
     If this flag is raised, then no \Result\ should be returned. Note that
-    dependency flags can and should be meaningfully combined with \RES{WAIT},
-    since it usually possible to indicate the dependencies of a node in
-    advance.
+    dependency flags can be meaningfully combined with \RES{WAIT}, since it
+    usually possible to indicate the dependencies of a node in advance.
 
   \end{description}
   
   The return value of a node's \qq{getResult()} method should describe any {\bf
-  additional} properties introduced by the \qq{getResult()} calculation.
-  Most function nodes will
-  return zero, indicating that a node does not introduce any additional
-  dependencies into the result. 
-  
-\section{Caching issues}
+  additional} properties introduced by the \qq{getResult()} calculation
+  (additional with respect to the node's current depmask -- see
+  \ref{sec:depmask-node}). Most function nodes will return zero, indicating
+  no additional dependencies.
 
-\subsection{\qq{request\_id}, \qq{cache\_result}, \qq{cache\_result\_code}}
-  
-  These three fields compose the node result cache. The first field -- a
-  \qq{HIID} -- is the ID of the most recent request. The second field is the
-  cached \qq{Result} of that request, if any (stored by reference). The third
-  field -- an integer -- is the cumulative result code (mainly its the depmask,
-  with a few additional flags, described in \qq{execute()} later on) of the
-  cached result.
-
-  The node cache may be cleared by assigning a boolean \qq{false} to the
-  \qq{cache\_result} field. It is also possible to modify the cache on the fly
-  (for example, substituting in another result). This may be a useful feature
-  for debugging and experimentation, though if used improperly, it can probably
-  confuse the caching and dependency tracking mechanism.  
-
-
-
-  To avoid unnecessary recalculations, a node's result can be retained in a
-  cache. Obviously, this trades off performance against memory footprint. Three
-  broad caching policies have been identified so far:
-
-  \begin{description}
-  
-  \item[Never:] no caching at all, values are always recalculated anew. 
-   
-  \item[Always:] result is always cached, until a different request comes in.
-    (This is the policy implemented currently). While expensive in terms of
-    memory, this can be very useful for debugging, since it allows one to pause
-    the system and examine the most recent result of every node.
-
-  \item[Smart:] result is cached according to memory availability, expected
-    request sequence, etc.
-
-  \end{description}
-  
-  Caching policy should be settable on a per-node basis, via the init record
-  (and changed via \qq{setState()}). The cache itself is simply part of the
-  node's state record (and thus can even be changed manually if needed.)
-  
-  The ``Smart'' policy is the really interesting one. The combination of result
-  codes, hierarchical request IDs and next-request hints allows us to get
-  pretty smart. 
-  
-  Let's call the individual components of a request ID {\em dependencies} --
-  because the \RES{DEP} flags in the result code describe what the result
-  depends on. Note that a parent result inherits dependencies from all its
-  child results, thus the parent dependencies are always a superset of any
-  child dependencies (i.e. equal to or larger.) The following simple rules seem
-  reasonable:
-
-  \begin{enumerate}
-  
-  \item If a dependency will change in the next request, then node can clear
-    cache (since the next request will invalidate it anyway).
-
-  \item If the parent dependencies are exactly equal to those of a child, then
-    the parent does not need the child's cache (because any request requiring a
-    recalculation of the parent result will also require a recalculation of the
-    child result.)
-
-  \item If the parent dependencies are larger than those of a child, then the 
-    child should retain cache (unless [1] holds for the child.) 
-
-  \item A child must retain cache unless [1] is true, or {\bf all} its parents
-    have told it to release cache.
-
-  \end{enumerate}
-  
-  Note also that when a node retains the result in a cache, it also retains the
-  dependency mask and the request ID. When deciding whether to return the
-  cached result or recalculate the request (see step [1] of \qq{execute()}),
-  the request IDs are matched according to the dependency mask.
-  
 \section{Commands in request riders}
+\label{sec:rider}
 
   The optional \qq{rider} sub-record of a \Request\ may be used to send
-  additional commands to specific nodes. The Solver node, for example, makes
-  heavy use of this feature to implement iterative solutions. Command sets are
+  commands to specific nodes. The \qq{Solver} node, for example, makes heavy
+  use of this feature to implement iterative solutions. Command sets are
   specified via records, with the field names being the commands per se, and
   the field values being the command arguments. If the record contains multiple
   commands, they are processed in a specific order. Some example commands are:
