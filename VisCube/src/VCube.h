@@ -1,14 +1,15 @@
 #ifndef _VisCube_VisCube_h 
 #define _VisCube_VisCube_h 1
         
-#include "UVD/UVD.h"
-
-#include "VisCube/VisTile.h"
-#include "DMI/DataRecord.h"
 #include "Common/Thread/Mutex.h"
+#include "DMI/DataRecord.h"
+#include "VisCube/VisTile.h"
+#include "VisCube/AID-VisCube.h"
 
 class VisCube;
+
 #pragma types #VisCube
+#pragma aid Corr Freq
 
 DefineRefTypes(VisCube,VisCubeRef);
 

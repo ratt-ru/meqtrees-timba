@@ -25,6 +25,8 @@ static AtomicID::Register aid_reg_VisCube(-1038,"VisCube");
 static TypeInfoReg::Register ti_reg_VisCube(-1038,TypeInfo(TypeInfo::DYNAMIC,0));
 BlockableObject * __construct_VisCube (int n) { return n>0 ? new VisCube [n] : new VisCube; }
 static DynamicTypeManager::Register dtm_reg_VisCube(-1038,__construct_VisCube);
+static AtomicID::Register aid_reg_Corr(-1111,"Corr");
+static AtomicID::Register aid_reg_Freq(-1110,"Freq");
 static AtomicID::Register aid_reg_VisCubeSet(-1034,"VisCubeSet");
 #include "VisCubeSet.h"
 static TypeInfoReg::Register ti_reg_VisCubeSet(-1034,TypeInfo(TypeInfo::DYNAMIC,0));

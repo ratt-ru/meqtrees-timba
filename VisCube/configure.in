@@ -59,7 +59,6 @@ lofar_BLITZ(1)
 lofar_QATOOLS
 lofar_DOCXX
 lofar_PACKAGE(DMI)
-lofar_PACKAGE(CEP/CPA/UVD)
 
 dnl
 dnl Output Makefiles
