@@ -450,9 +450,8 @@ class ResultPlotter(GriddedPlugin):
 
 # there's a problem here somewhere ...
 #    if dmi.dmi_type(self._rec) != 'MeqResult': # data is not already a result?
-#      try: self._rec = self._rec.cached_result; # look for cached_result field
+#      try: self._rec = self._rec.cache_result; # look for cached_result field
 #      except AttributeError:
-      # print 'caught attribute error blah blah'
       # cached_result not found, display an empty viewer with a "no result
       # in this node record" message (the user can then use the Display with
       # menu to switch to a different viewer)
