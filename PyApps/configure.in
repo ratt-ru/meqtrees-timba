@@ -1,7 +1,7 @@
 dnl
 dnl Process this file with autoconf to produce a configure script.
 dnl
-AC_INIT(src/py_app_launcher.cc)
+AC_INIT
 dnl AC_CONFIG_AUX_DIR(config)
 dnl AM_CONFIG_HEADER(config/config.h)
 AM_CONFIG_HEADER(config.h)
@@ -51,19 +51,19 @@ dnl Check for LOFAR specific things
 dnl
 lofar_DEBUG_OPTIMIZE
 lofar_BLITZ(1)
-dnl lofar_AIPSPP(1)
+# lofar_AIPSPP(1)
 lofar_QATOOLS
 lofar_DOCXX
-lofar_PACKAGE(CEP/CPA/OCTOPython)
-lofar_PACKAGE(CEP/CPA/VisCube)
-lofar_PACKAGE(CEP/CPA/PSS4/MEQ)
-dnl lofar_PACKAGE(CEP/CPA/PSS4/MeqGen)
-dnl lofar_PACKAGE(CEP/CPA/AppAgent/AppAgent)
-dnl lofar_PACKAGE(CEP/CPA/AppAgent/VisAgent)
-dnl lofar_PACKAGE(CEP/CPA/AppAgent/OctoAgent)
-dnl lofar_PACKAGE(CEP/CPA/AppAgent/MSVisAgent)
-dnl lofar_PACKAGE(CEP/CPA/AppAgent/AppUtils)
-dnl lofar_PACKAGE(CEP/CPA/AppAgent/MeqServer)
+lofar_PACKAGE(Timba/DMI)
+lofar_PACKAGE(Timba/OCTOPUSSY)
+lofar_PACKAGE(Timba/OCTOPython)
+lofar_PACKAGE(Timba/VisCube)
+# lofar_PACKAGE(Timba/AppAgent/AppAgent)
+# lofar_PACKAGE(Timba/AppAgent/AppUtils)
+lofar_PACKAGE(Timba/MEQ)
+# lofar_PACKAGE(Timba/MeqNodes)
+# lofar_PACKAGE(Timba/MeqGen)
+# lofar_PACKAGE(Timba/MeqServer)
 dnl
 dnl Output Makefiles
 dnl

@@ -533,6 +533,7 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     self.debug_level = fst.debug_level;
     # do other stuff if debug is enabled
     if fst.debug_level:
+      print fst.keys();
       if meqds.nodelist and fst.debug_stack:
         for (n,frame) in enumerate(fst.debug_stack):
           try: node = meqds.nodelist[frame.nodeindex];

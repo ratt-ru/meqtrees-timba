@@ -9,6 +9,9 @@ import gridded_workspace
 from app_browsers import *
 from qt import *
 from dmitypes import *
+import sihippo
+print "HippoDraw version " + sihippo.__version__
+from sihippo import *
 from numarray import *
 from display_image import *
 from realvsimag import *
@@ -30,12 +33,15 @@ class ResultPlotter(BrowserPlugin):
     return len(data) > 0;
   is_viewable = staticmethod(is_viewable);
 
-  def __init__(self,parent=None,dataitem=None,default_open=None,**opts):
+  def __init__(self,parent,dataitem=None,default_open=None,**opts):
     """ Instantiate HippoDraw objects that are used to control
         various aspects of plotting
     """
     self._rec = None;
     self._hippo = None
+# this QLabel is needed so that Oleg's browser is
+# happy that a child is present
+#    self._wtop = QLabel("",parent);
     self._visu_plotter = None
     self._parent = parent;
     self._window_controller = None
@@ -71,12 +77,11 @@ class ResultPlotter(BrowserPlugin):
         if len(node['attrib']) > 0:
           attrib_parms = node['attrib']
           plot_type = attrib_parms.get('plot_type')
-          self._plot_type = plot_type
           if plot_type == 'spectra':
             self._visu_plotter = QwtImagePlot(plot_type,parent=self._parent)
             self._wtop = self._visu_plotter;       # QwtImagePlot inherits from QwtPlot
 
-          if plot_type == 'realvsimag' or plot_type == 'errors':
+          if plot_type == 'realvsimag':
             self._visu_plotter = realvsimag_plotter(plot_type,parent=self._parent)
             self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
 
@@ -97,76 +102,31 @@ class ResultPlotter(BrowserPlugin):
       return False
 
   def do_leafwork(self, leaf):
-    self._visu_plotter.plot_data(leaf)
+    self._visu_plotter.plot_data('item_label',leaf)
 
-  def tree_traversal (self, node, label=None):
-    _dprint(3,' ');
+  def tree_traversal (self, node):
     _dprint(3,' ******* ');
     _dprint(3,'in tree traversal with node having length ', len(node));
     _dprint(3,' ******* ');
-    if label is None:
-      label = 'root'
-    _dprint(3, 'node has incoming label ', label)
     if isinstance(node, dict):
-      _dprint(3, 'node is a dict')
       self.do_prework(node)
       if not self.is_leaf(node):
-        if node.has_key('label'):
-          _dprint(3, 'tree: dict node has label(s) ', node['label'])
-          if not node['label'] == label:
-            if isinstance(node['label'], tuple):
-              _dprint(3, 'tree: dict node label(s) is tuple')
-              temp = list(node['label'])
-              for j in range(0, len(temp)):
-                tmp = label + ' > ' + temp[j] 
-                temp[j] = tmp
-              node['label'] = tuple(temp)
-            else:
-              temp = label + ' > ' + node['label']
-              node['label'] = temp
         if node.has_key('value'):
-          self.tree_traversal(node['value'], node['label'])
+          self.tree_traversal(node['value'])
       else:
-        _dprint(3, 'tree: leaf node has label(s) ', node['label'])
-        _dprint(3, 'tree: leaf node has incoming label ', label)
         self.do_leafwork(node)
 #      self.do_postwork(node)
     if isinstance(node, list):
-      _dprint(3, 'node is a list')
       for i in range(len(node)):
-        temp_label = None
-        if isinstance(label, tuple):
-          temp_label = label[i]
-        else:
-          temp_label = label
-          
         if isinstance(node[i], dict):
-          if node[i].has_key('label'):
-            _dprint(3, 'tree: list node number has label(s) ', i, ' ',node[i]['label'])
-            if isinstance(node[i]['label'], tuple):
-              _dprint(3, 'tree: list node label(s) is tuple')
-              temp = list(node[i]['label'])
-              for j in range(0, len(temp)):
-                tmp = temp_label + ' > ' + temp[j]
-                temp[j] = tmp
-              node[i]['label'] = tuple(temp)
-            else:
-              temp = label + ' > ' + node[i]['label']
-              node[i]['label'] = temp
-          self.tree_traversal(node[i], node[i]['label'])
+          self.tree_traversal(node[i])
 
   def display_visu_data (self):
     """ extract group_label key from incoming visu data record and
       create a visu_plotter object to plot the data 
     """
-# traverse the plot record tree and retrieve data
-    _dprint(3, ' ')
-    _dprint(3, 'calling tree_traversal from display_visu_data')
+# traverse the plot record tree and plot data
     self.tree_traversal( self._rec.visu)
-# now update the plot for 'realvsimag' or 'errors' plot
-    if not self._visu_plotter is None and not self._plot_type == 'spectra':
-      self._visu_plotter.update_plot()
-      self._visu_plotter.reset_data_collectors()
 
   def display_vells_data (self, plot_array):
     """ extract parameters and data from an array that is
@@ -174,26 +134,23 @@ class ResultPlotter(BrowserPlugin):
 
 # construct hippo window if it doesn't exist
     if self._hippo is None:
-      import sihippo
-      _dprint(3,"HippoDraw version " + sihippo.__version__);
-      from sihippo import *
       self._ntuple_controller = NTupleController.instance()
       self._window_controller = WindowController.instance()
       self._window_controller.createInspector ()
-      self._window = CanvasWindow(self._parent, "MeqDisplay",0)
-      self._wtop = self._window
-
+      self._window = CanvasWindow(None, "MeqDisplay",0)
       self._window.setAllowClose()
       self._window.show()
       self._display_controller = DisplayController.instance()
       self._canvas = None
       self._image_ntuple = None
       self._simple_ntuple = None
+      self._realvsimag_ntuple = None
       self._hippo = True
 
 # figure out type and rank of incoming array
     array_dim = len(plot_array.shape)
     array_rank = plot_array.rank
+#    print "array rank is ", array_rank
     is_vector = False;
     is_one_point_image = False;
     n_rows = plot_array.shape[0]
@@ -220,15 +177,17 @@ class ResultPlotter(BrowserPlugin):
       image = []
       for j in range(0, n_rows ) :
         for i in range(0, n_cols) :
+#          print self._label, 'image appending ', plot_array[j][i]
           image.append(plot_array[j][i])
       if self._image_ntuple.isValidLabel(self._label):
         if len(image) != self._image_ntuple.rows():
-          _dprint(3, "Number of rows has changed! Clearing tuple!")
+          print "Number of rows has changed! Clearing tuple!"
           self._image_ntuple.clear()
         self._image_ntuple.replaceColumn (self._label,image)
       else:
 # add columns for new image data
         self._image_ntuple.addColumn (self._label,image)
+#        print "result_plotter added image column"
 # add time and frequency columns for xyz plots
 # first add frequency column
         if self._add_time_freq:
@@ -237,6 +196,7 @@ class ResultPlotter(BrowserPlugin):
           freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
           x_step = freq_range / n_rows
           start_freq = self._rec.cells.domain.freq[0] + 0.5 * x_step 
+#          print self._label, 'image appending ', plot_array[j][i]
           for j in range(0, n_rows ) :
             for i in range(0, n_cols) :
               if n_rows == 1:
@@ -309,7 +269,7 @@ class ResultPlotter(BrowserPlugin):
         image.append(flattened_array[j])
       if self._simple_ntuple.isValidLabel(self._label):
         if len(image) != self._simple_ntuple.rows():
-          _dprint(3, "Number of rows has changed! Clearing tuple!")
+          print "Number of rows has changed! Clearing tuple!"
           self._simple_ntuple.clear()
         self._simple_ntuple.replaceColumn (self._label,image)
       else:
@@ -404,6 +364,7 @@ class ResultPlotter(BrowserPlugin):
           number_of_perturbations = len(self._rec.vellsets[i].perturbations)
           for j in range(number_of_perturbations):
             perturb = self._rec.vellsets[i].perturbations[j]
+#            print "self._perturbations[j] ",  perturb
 
 # handle "perturbed_value"
         if self._rec.vellsets[i].has_key("perturbed_value"):

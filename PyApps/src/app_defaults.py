@@ -1,3 +1,5 @@
+import re
+
 # Default debug levels.
 # these may be overwritten/added to by other modules.
 # note that the "-debug" option sets a maximum that is applied here.
@@ -15,6 +17,8 @@ args = {
 include_gui = True;
 
 def parse_argv (argv):
+  dbgre = re.compile('-d(.+)=([0-9]+)');
+
   for arg in argv:
     if arg == "-spawn":
       (args['launch'],args['spawn']) = (None,True);
@@ -43,3 +47,9 @@ def parse_argv (argv):
       maxlev = int(arg.split('=',2)[1]);
       for k in debuglevels.keys():
         debuglevels[k] = min(debuglevels[k],maxlev);
+    
+    else:
+      m = dbgre.match(arg);    
+      if m:
+        print 'will set debug level ',m.group(1),' to ',m.group(2);
+        debuglevels[m.group(1)] = int(m.group(2));
