@@ -303,6 +303,7 @@ class ResultPlotter(GriddedPlugin):
       mb.exec_loop()
       self._plot_type = "realvsimag"
       self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.wparent())
+      self.set_widgets(self._visu_plotter,self.dataitem.caption,icon=self.icon())
       self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
 
 # now do the plotting
@@ -451,6 +452,7 @@ class ResultPlotter(GriddedPlugin):
     if self._rec.has_key("vellsets"):
       if self._visu_plotter is None:
         self._visu_plotter = QwtImagePlot('spectra',parent=self.wparent())
+        self.set_widgets(self._visu_plotter,self.dataitem.caption,icon=self.icon())
         self._wtop = self._visu_plotter;       # QwtImagePlot inherits from QwtPlot
       self._visu_plotter.plot_vells_data(self._rec)
 # otherwise we are dealing with a set of visualization data
@@ -462,7 +464,6 @@ class ResultPlotter(GriddedPlugin):
 # enable & highlight the cell
     self.enable();
     self.flash_refresh();
-
 
     _dprint(3, 'exiting set_data')
 
