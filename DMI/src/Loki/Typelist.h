@@ -18,8 +18,8 @@
 #ifndef TYPELIST_INC_
 #define TYPELIST_INC_
 
-#include "NullType.h"
-#include "TypeManip.h"
+#include <DMI/Loki/NullType.h>
+#include <DMI/Loki/TypeManip.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // macros TYPELIST_1, TYPELIST_2, ... TYPELIST_50
