@@ -1084,9 +1084,6 @@ class QwtImagePlot(QwtPlot):
      # now generate  particular plot type
       if  self._plot_type == 'spectra':
         self.initSpectrumContextMenu()
-        plot_label = 'spectra:' + self._string_tag
-        self.num_plot_arrays = len(self._data_values)
-        _dprint(2,' number of arrays to plot ', self.num_plot_arrays)
         self.data_label = ''
         if isinstance(self._data_labels, tuple):
           self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels[0]
@@ -1094,13 +1091,6 @@ class QwtImagePlot(QwtPlot):
           self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels
 # plot first instance of array
         self.array_plot(self.data_label, self._data_values[0])
-        if isinstance(self._data_labels, tuple):
-          if len(self._data_labels) > 1:
-            self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels[1]
-          else:
-            self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels[0]
-        else:
-          self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels
 
     # end plot_data()
 
