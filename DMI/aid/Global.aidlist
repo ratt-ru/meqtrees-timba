@@ -45,6 +45,7 @@ command                          1277       ; from /home/oms/LOFAR/CEP/CPA/AppAg
 connected                        1081       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 connection                       1106       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 connectionmgrwp                  1101       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:18
+contagious                       1364       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:34
 content                          1120       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
 control                          1131       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
 conv                             1195       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
