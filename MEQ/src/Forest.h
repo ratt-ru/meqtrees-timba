@@ -33,6 +33,15 @@ namespace Meq {
 class Forest
 {
   public:
+    typedef enum {
+      NL_NODEINDEX = 1,
+      NL_NAME      = 2,
+      NL_CLASS     = 4,
+      NL_CHILDREN  = 8,
+          
+      NL_DEFAULT   = NL_NODEINDEX|NL_NAME|NL_CLASS,
+    } NodeListContent;
+    
     //##ModelId=3F60697A00ED
     Forest();
     
@@ -81,6 +90,10 @@ class Forest
     int maxNodeIndex () const
     { return nodes.size()-1; }
     
+    // fills DataRecord with list of valid nodes, including information
+    // specified by content
+    int getNodeList (DataRecord &list,int content = NL_DEFAULT);
+    
     //##ModelId=3F9937F601A5
     //##Documentation
     //## Assigns ID to request object. WIll assign new ID if the cells
@@ -98,6 +111,8 @@ class Forest
     typedef std::vector<Node::Ref> Repository;
     //##ModelId=3F5F439203E2
     Repository nodes;
+    
+    int num_valid_nodes;
     
     //##ModelId=3F60697A00A3
     static const int RepositoryChunkSize = 8192;

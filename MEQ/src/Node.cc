@@ -139,9 +139,10 @@ void Node::initChildren (int nch)
   {
     NestableContainer *p1,*p2;
     // children are labelled: use records
+    child_indices_ <<= p1 = new DataField(Tpint,nch);
     if( child_labels_ )
     {
-      child_indices_ <<= p1 = new DataRecord;
+//      child_indices_ <<= p1 = new DataRecord;
       child_names_ <<= p2 = new DataRecord;
       // set up map from label to child number 
       for( int i=0; i<nch; i++ )
@@ -150,7 +151,7 @@ void Node::initChildren (int nch)
     // children are unlabelled: use fields
     else
     {
-      child_indices_ <<= p1 = new DataField(Tpint,nch);
+//      child_indices_ <<= p1 = new DataField(Tpint,nch);
       child_names_ <<= p2 = new DataField(Tpstring,nch);
       // set up trivial map ("i"->i)
       for( int i=0; i<nch; i++ )

@@ -39,6 +39,7 @@ Forest::Forest ()
   // resize repository to 1 initially, so that index #0 is never used
   nodes.reserve(RepositoryChunkSize);
   nodes.resize(1);
+  num_valid_nodes = 0;
 }
 
 //##ModelId=400E53050193
@@ -46,6 +47,7 @@ void Forest::clear ()
 {
   nodes.resize(1);
   name_map.clear();
+  num_valid_nodes = 0;
 }
 
 //##ModelId=3F5F572601B2
@@ -85,7 +87,7 @@ const Node::Ref & Forest::create (int &node_index,
   }
   // check the node name for duplicates
   string name = noderef->name();
-  if( name.length() && name_map.find(name) != name_map.end() )
+  if( !name.empty() && name_map.find(name) != name_map.end() )
     Throw("node '"+name+"' already exists");
   // check if node index is already set (i.e. via init record),
   if( node_index > 0 ) // node index already set (i.e. when reloading)
@@ -103,7 +105,9 @@ const Node::Ref & Forest::create (int &node_index,
   nodes[node_index] = noderef;
   pnode->setNodeIndex(node_index);
   // add to repository and name map
-  name_map[name] = node_index;
+  num_valid_nodes++;
+  if( !name.empty() )
+    name_map[name] = node_index;
   return nodes[node_index];
 }
 
@@ -119,11 +123,15 @@ int Forest::remove (int node_index)
   ref.detach();
   if( node_index == int(nodes.size())-1 )
     nodes.resize(node_index);
-  // remove name from map, ignore if not found
-  // (although it shouldn't happen)
-  NameMap::iterator iter = name_map.find(name);
-  if( iter != name_map.end() )
-    name_map.erase(iter);
+  num_valid_nodes--;
+  if( !name.empty() )
+  {
+    // remove name from map, ignore if not found
+    // (although it shouldn't happen)
+    NameMap::iterator iter = name_map.find(name);
+    if( iter != name_map.end() )
+      name_map.erase(iter);
+  }
   return 1;
 }
 
@@ -192,6 +200,49 @@ const HIID & Forest::assignRequestId (Request &req)
   }
   req.setId(last_req_id);
   return last_req_id;
+}
+
+int Forest::getNodeList (DataRecord &list,int content)
+{
+  int num = num_valid_nodes;
+  // create lists (arrays) for all known content
+  DataField *lni=0,*lname=0,*lclass=0,*lchildren=0;
+  if( content&NL_NODEINDEX )
+    list[AidNodeIndex] <<= lni = new DataField(Tpint,num);
+  if( content&NL_NAME )
+    list[AidName] <<= lname = new DataField(Tpstring,num);
+  if( content&NL_CLASS )
+    list[AidClass] <<= lclass = new DataField(Tpstring,num);
+  if( content&NL_CHILDREN )
+    list[AidChildren] <<= lchildren = new DataField(TpDataField,num);
+  if( num )
+  {
+    // fill them up
+    int i0 = 0;
+    for( uint i=1; i<nodes.size(); i++ )
+      if( nodes[i].valid() )
+      {
+        FailWhen(i0>num,"forest inconsistency: too many valid nodes");
+        const Node &node = *nodes[i];
+        if( lni )
+          (*lni)[i0] = i;
+        if( lname )
+          (*lname)[i0] = node.name();
+        if( lclass )
+          (*lclass)[i0] = node.className();
+        if( lchildren )
+        {
+          DataRecord::Hook hook(node.state(),FChildren);
+          if( hook.exists() )
+            (*lchildren)[i0] <<= hook.as_p<DataField>();
+          else
+            (*lchildren)[i0] <<= new DataField;
+        }
+        i0++;
+      }
+    FailWhen(i0<num,"forest inconsistency: too few valid nodes found");
+  }
+  return num;
 }
 
 } // namespace Meq
