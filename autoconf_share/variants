@@ -1,0 +1,26 @@
+gnu.compiler.conf:
+kcc.compiler.conf:
+icc.compiler.conf:
+
+debug.variant.conf:	  $(debug) $(aipspp)	
+opt.variant.conf:	  $(optimize) $(aipspp)
+mpich.variant.conf:	  $(mpich) $(aipspp)
+mpich-opt.variant.conf:	  $(mpich) $(optimize) $(aipspp)
+lam.variant.conf:	  $(lam)  $(aipspp)
+lam-opt.variant.conf:	  $(lam) $(optimize) $(aipspp)
+corba.variant.conf:	  $(vbroker) $(aipspp)
+mpich-corba.variant.conf: $(mpich) $(vbroker) $(aipspp)
+lam-corba.variant.conf:   $(lam) $(vbroker) $(aipspp)
+insure.variant.conf:	  --with-insure $(aipspp)
+insure.variant.make:	  QA=insure
+scampi.variant.conf:	  $(scampi) $(aipspp)
+scampi-opt.variant.conf:  $(scampi) $(optimize) $(aipspp)
+mpich-prof.variant.conf:  $(mpich) --enable-mpi-profiler $(aipspp)
+
+debug.var:		   
+optimize.var:		   --with-optimize
+aipspp.var:
+mpich.var:		   --with-mpich
+lam.var:		   --with-lam
+scampi.var:		   --with-scampi
+vbroker.var:		   --with-vbroker
