@@ -45,7 +45,7 @@ $a_root/autoconf_share/finddep
 
 # Execute pkgdep
 echo "Executing pkgdep ..."
-$a_pkgdep finddep.pkg top strip xhtml hdrtxt="%pkg% Package Directory Tree" href='<a href="makepage.php?name=%pkg%" target="description">' > finddep-pkg.html
+$a_pkgdep finddep.pkg top strip xhtml hdrtxt="%pkg% Package Directory Tree" href='<a href="../scripts/makepage.php?name=%pkg%" target="description">' > finddep-pkg.html
 $a_pkgdep finddep.used xhtml > finddep-used.html
 $a_pkgdep finddep.uses xhtml > finddep-uses.html
 $a_pkgdep finddep.used-all xhtml hdrtxt="%pkg% Cross Reference Tree<br>(shows in a recursive way the packages where %pkg% is used)" split=".used.html" 
