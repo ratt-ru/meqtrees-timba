@@ -4,8 +4,8 @@
 #include "DMI/DataArray.h"
 #include "DMI/NCIter.h"
 #include "Common/Stopwatch.h"
-#include "aips/Arrays/Matrix.h"
-#include "aips/Arrays/ArrayMath.h"
+//#include "aips/Arrays/Matrix.h"
+//#include "aips/Arrays/ArrayMath.h"
     
 #define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
     
@@ -51,12 +51,12 @@ int main ( int argc,const char *argv[] )
         "R1SCAN: sequential scan of 26-field record (fps)\n"
         "R1AFIX: assigning to fixed field of record (fps)\n"
         "R1RFIX: reading fixed field of record (fps)\n"
-        "ADSM1M: sum of 1000x1000 doubles, via AIPS++ Matrix(i,j) (ops)\n"
-        "ADSA1M: sum of 1000x1000 doubles, via AIPS++ sum() (ops)\n"
+        "ADSM1M: sum of 1000x1000 doubles, via Matrix(i,j) (ops)\n"
+        "ADSA1M: sum of 1000x1000 doubles, via sum() (ops)\n"
         "ADSI1M: sum of 1000x1000 doubles, via NCIter (ops)\n"
         "ADSH1M: sum of 1000x1000 doubles, via hooks (ops)\n"
-        "ADAM1M: addition of 1000x1000 doubles, via AIPS++ Matrix(i,j) (ops)\n"
-        "ADAA1M: addition of 1000x1000 doubles, via AIPS++ array math (ops)\n"
+        "ADAM1M: addition of 1000x1000 doubles, via Matrix(i,j) (ops)\n"
+        "ADAA1M: addition of 1000x1000 doubles, via array math (ops)\n"
         "ADAI1M: addition of 1000x1000 doubles, via NCIters (ops)\n"
         "ADAH1M: addition of 1000x1000 doubles, via hooks (ops)\n"
         
@@ -164,9 +164,9 @@ int main ( int argc,const char *argv[] )
     cout<<watch.dump("R1RFIX",nloops)<<endl;
 
     int size = 1000;
-    DataArray arr(Tpdouble,IPosition(2,size,size),DMI::ZERO|DMI::WRITE);
+    DataArray arr(Tpdouble,makeLoShape(size,size),DMI::ZERO|DMI::WRITE);
     ndone = size*size;
-    Matrix<double> mat(arr[HIID()].as_Array_double());
+    LoMat_double mat(arr[HIID()].as_LoMat_double());
       
     for( nloops=0; !watch.fired(); nloops+=10 )
     {
@@ -224,14 +224,14 @@ int main ( int argc,const char *argv[] )
     cout<<watch.dump("ADSH1M",ndone)<<endl;
     cerr<<dum<<endl;
         
-    DataArray arr2(Tpdouble,IPosition(2,size,size),DMI::WRITE|DMI::ZERO),
-              arr3(Tpdouble,IPosition(2,size,size),DMI::WRITE|DMI::ZERO);
+    DataArray arr2(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO),
+              arr3(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
     
     {
       ndone = size*size;
-      Matrix<double> mat(arr[HIID()].as_Array_double()),
-                     mat2(arr2[HIID()].as_Array_double()),
-                     mat3(arr3[HIID()].as_Array_double());
+      LoMat_double   mat(arr[HIID()].as_LoMat_double()),
+                     mat2(arr2[HIID()].as_LoMat_double()),
+                     mat3(arr3[HIID()].as_LoMat_double_w());
       watch.reset();
       for( nloops=0; !watch.fired(); nloops+=10 )
       {
@@ -250,14 +250,14 @@ int main ( int argc,const char *argv[] )
     }
     
     {
-      Matrix<double> mat(arr[HIID()].as_Array_double()),
-                     mat2(arr2[HIID()].as_Array_double());
+      LoMat_double mat(arr[HIID()].as_LoMat_double()),
+                   mat2(arr2[HIID()].as_LoMat_double());
       watch.reset();
       for( nloops=0; !watch.fired(); nloops+=10 )
       {
         for( int count=0; count<10; count++ )
         {
-          Matrix<double> mat3( mat2 + mat );
+          LoMat_double mat3( mat2 + mat );
           mat(10,10) += mat3(10,10);
         }
       }
@@ -281,7 +281,7 @@ int main ( int argc,const char *argv[] )
             { iter3.next( iter2.next()+iter.next() ); }
         }
       cout<<watch.dump("ADAI1M",ndone*nloops)<<endl;
-      cerr<<sum(arr3[HIID()].as_Array_double())<<endl;
+      cerr<<sum(arr3[HIID()].as_LoMat_double())<<endl;
     }
     
     {
@@ -294,17 +294,17 @@ int main ( int argc,const char *argv[] )
           arr3(i,j) = arr2(i,j).as_double() + arr(i,j).as_double();
         }
       cout<<watch.dump("ADAH1M",ndone)<<endl;
-      cerr<<sum(arr3[HIID()].as_Array_double())<<endl;
+      cerr<<sum(arr3[HIID()].as_LoMat_double())<<endl;
     }
   
     {  
       size = 5000;
-      DataArray arr(Tpdouble,IPosition(2,size,size),DMI::WRITE|DMI::ZERO);
-      DataArray arr2(Tpdouble,IPosition(2,size,size),DMI::WRITE|DMI::ZERO);
+      DataArray arr(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
+      DataArray arr2(Tpdouble,makeLoShape(size,size),DMI::WRITE|DMI::ZERO);
       
       {
       watch.reset();
-      DataArray arr3(Tpdouble,IPosition(2,size,size),DMI::WRITE);
+      DataArray arr3(Tpdouble,makeLoShape(size,size),DMI::WRITE);
       NCConstIter_double iter(arr[HIID()]);
       NCConstIter_double iter2(arr2[HIID()]);
       NCIter_double iter3(arr3[HIID()]);
@@ -313,14 +313,14 @@ int main ( int argc,const char *argv[] )
         iter3.next( iter2.next()+iter.next() ); 
       }
       cout<<watch.dump("ADAI25M",size*size)<<endl;
-      cerr<<sum(arr3[HIID()].as_Array_double())<<endl;
+      cerr<<sum(arr3[HIID()].as_LoMat_double())<<endl;
       }
       
       {
-      Matrix<double> mat(arr[HIID()].as_Array_double()),
-                     mat2(arr2[HIID()].as_Array_double());
+      LoMat_double mat(arr[HIID()].as_LoMat_double()),
+                   mat2(arr2[HIID()].as_LoMat_double());
       watch.reset();
-      Matrix<double> mat3(mat + mat2);
+      LoMat_double mat3(mat + mat2);
       cout<<watch.dump("ADAA25M",size*size)<<endl;
       cerr<<sum(mat3)<<endl;
       }

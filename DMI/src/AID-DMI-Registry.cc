@@ -10,50 +10,50 @@
       return 1;
     }
 
-static AtomicID::Register aid_reg_A(-396,"A");
-static AtomicID::Register aid_reg_B(-397,"B");
-static AtomicID::Register aid_reg_C(-398,"C");
-static AtomicID::Register aid_reg_D(-399,"D");
-static AtomicID::Register aid_reg_E(-400,"E");
-static AtomicID::Register aid_reg_F(-401,"F");
-static AtomicID::Register aid_reg_G(-402,"G");
-static AtomicID::Register aid_reg_H(-403,"H");
-static AtomicID::Register aid_reg_I(-404,"I");
-static AtomicID::Register aid_reg_J(-405,"J");
-static AtomicID::Register aid_reg_K(-406,"K");
-static AtomicID::Register aid_reg_L(-407,"L");
-static AtomicID::Register aid_reg_M(-408,"M");
-static AtomicID::Register aid_reg_N(-409,"N");
-static AtomicID::Register aid_reg_O(-410,"O");
-static AtomicID::Register aid_reg_P(-411,"P");
-static AtomicID::Register aid_reg_Q(-412,"Q");
-static AtomicID::Register aid_reg_R(-413,"R");
-static AtomicID::Register aid_reg_S(-414,"S");
-static AtomicID::Register aid_reg_T(-415,"T");
-static AtomicID::Register aid_reg_U(-416,"U");
-static AtomicID::Register aid_reg_V(-417,"V");
-static AtomicID::Register aid_reg_W(-418,"W");
-static AtomicID::Register aid_reg_X(-420,"X");
-static AtomicID::Register aid_reg_Y(-421,"Y");
-static AtomicID::Register aid_reg_Z(-422,"Z");
-static AtomicID::Register aid_reg_ObjRef(-394,"ObjRef");
-static TypeInfoReg::Register ti_reg_ObjRef(-394,TypeInfo(TypeInfo::OTHER,0));
-static AtomicID::Register aid_reg_DataArray(-393,"DataArray");
+static AtomicID::Register aid_reg_A(-1001,"A");
+static AtomicID::Register aid_reg_B(-1002,"B");
+static AtomicID::Register aid_reg_C(-1003,"C");
+static AtomicID::Register aid_reg_D(-1004,"D");
+static AtomicID::Register aid_reg_E(-1005,"E");
+static AtomicID::Register aid_reg_F(-1006,"F");
+static AtomicID::Register aid_reg_G(-1008,"G");
+static AtomicID::Register aid_reg_H(-1009,"H");
+static AtomicID::Register aid_reg_I(-1010,"I");
+static AtomicID::Register aid_reg_J(-1011,"J");
+static AtomicID::Register aid_reg_K(-1012,"K");
+static AtomicID::Register aid_reg_L(-1013,"L");
+static AtomicID::Register aid_reg_M(-1014,"M");
+static AtomicID::Register aid_reg_N(-1015,"N");
+static AtomicID::Register aid_reg_O(-1016,"O");
+static AtomicID::Register aid_reg_P(-1017,"P");
+static AtomicID::Register aid_reg_Q(-1018,"Q");
+static AtomicID::Register aid_reg_R(-1019,"R");
+static AtomicID::Register aid_reg_S(-1020,"S");
+static AtomicID::Register aid_reg_T(-1021,"T");
+static AtomicID::Register aid_reg_U(-1023,"U");
+static AtomicID::Register aid_reg_V(-1024,"V");
+static AtomicID::Register aid_reg_W(-1026,"W");
+static AtomicID::Register aid_reg_X(-1027,"X");
+static AtomicID::Register aid_reg_Y(-1028,"Y");
+static AtomicID::Register aid_reg_Z(-1029,"Z");
+static AtomicID::Register aid_reg_ObjRef(-1030,"ObjRef");
+static TypeInfoReg::Register ti_reg_ObjRef(-1030,TypeInfo(TypeInfo::OTHER,0));
+static AtomicID::Register aid_reg_DataArray(-1022,"DataArray");
 #include "DataArray.h"
-static TypeInfoReg::Register ti_reg_DataArray(-393,TypeInfo(TypeInfo::DYNAMIC,0));
+static TypeInfoReg::Register ti_reg_DataArray(-1022,TypeInfo(TypeInfo::DYNAMIC,0));
 BlockableObject * __construct_DataArray (int n) { return n>0 ? new DataArray [n] : new DataArray; }
-static DynamicTypeManager::Register dtm_reg_DataArray(-393,__construct_DataArray);
-static AtomicID::Register aid_reg_DataField(-423,"DataField");
+static DynamicTypeManager::Register dtm_reg_DataArray(-1022,__construct_DataArray);
+static AtomicID::Register aid_reg_DataField(-1031,"DataField");
 #include "DataField.h"
-static TypeInfoReg::Register ti_reg_DataField(-423,TypeInfo(TypeInfo::DYNAMIC,0));
+static TypeInfoReg::Register ti_reg_DataField(-1031,TypeInfo(TypeInfo::DYNAMIC,0));
 BlockableObject * __construct_DataField (int n) { return n>0 ? new DataField [n] : new DataField; }
-static DynamicTypeManager::Register dtm_reg_DataField(-423,__construct_DataField);
-static AtomicID::Register aid_reg_DataRecord(-395,"DataRecord");
+static DynamicTypeManager::Register dtm_reg_DataField(-1031,__construct_DataField);
+static AtomicID::Register aid_reg_DataRecord(-1033,"DataRecord");
 #include "DataRecord.h"
-static TypeInfoReg::Register ti_reg_DataRecord(-395,TypeInfo(TypeInfo::DYNAMIC,0));
+static TypeInfoReg::Register ti_reg_DataRecord(-1033,TypeInfo(TypeInfo::DYNAMIC,0));
 BlockableObject * __construct_DataRecord (int n) { return n>0 ? new DataRecord [n] : new DataRecord; }
-static DynamicTypeManager::Register dtm_reg_DataRecord(-395,__construct_DataRecord);
-static AtomicID::Register aid_reg_HIID(-419,"HIID");
+static DynamicTypeManager::Register dtm_reg_DataRecord(-1033,__construct_DataRecord);
+static AtomicID::Register aid_reg_HIID(-1025,"HIID");
 #include "HIID.h"
         void * __new_HIID  (int n) 
         { return new HIID [n]; }  
@@ -67,44 +67,44 @@ static AtomicID::Register aid_reg_HIID(-419,"HIID");
         { return ArrayPacker<HIID>::allocate(block,sz,n); } 
         size_t __packsize_HIID (const void *arr,int n) 
         { return ArrayPacker<HIID>::packSize(static_cast<const HIID*>(arr),n); }
-static TypeInfoReg::Register ti_reg_HIID(-419,TypeInfo(TypeInfo::SPECIAL,sizeof(HIID),__new_HIID,__delete_HIID,__copy_HIID,
+static TypeInfoReg::Register ti_reg_HIID(-1025,TypeInfo(TypeInfo::SPECIAL,sizeof(HIID),__new_HIID,__delete_HIID,__copy_HIID,
                 __pack_HIID,__unpack_HIID,__packsize_HIID));
-static AtomicID::Register aid_reg_Timestamp(-85,"Timestamp");
+static AtomicID::Register aid_reg_Timestamp(-1032,"Timestamp");
 #include "Timestamp.h"
-static TypeInfoReg::Register ti_reg_Timestamp(-85,TypeInfo(TypeInfo::BINARY,sizeof(Timestamp)));
-static AtomicID::Register aid_reg_char(-10,"char");
-static TypeInfoReg::Register ti_reg_char(-10,TypeInfo(TypeInfo::NUMERIC,sizeof(char)));
-static AtomicID::Register aid_reg_uchar(-11,"uchar");
-static TypeInfoReg::Register ti_reg_uchar(-11,TypeInfo(TypeInfo::NUMERIC,sizeof(uchar)));
-static AtomicID::Register aid_reg_short(-12,"short");
-static TypeInfoReg::Register ti_reg_short(-12,TypeInfo(TypeInfo::NUMERIC,sizeof(short)));
-static AtomicID::Register aid_reg_ushort(-13,"ushort");
-static TypeInfoReg::Register ti_reg_ushort(-13,TypeInfo(TypeInfo::NUMERIC,sizeof(ushort)));
-static AtomicID::Register aid_reg_int(-14,"int");
-static TypeInfoReg::Register ti_reg_int(-14,TypeInfo(TypeInfo::NUMERIC,sizeof(int)));
-static AtomicID::Register aid_reg_uint(-15,"uint");
-static TypeInfoReg::Register ti_reg_uint(-15,TypeInfo(TypeInfo::NUMERIC,sizeof(uint)));
-static AtomicID::Register aid_reg_long(-16,"long");
-static TypeInfoReg::Register ti_reg_long(-16,TypeInfo(TypeInfo::NUMERIC,sizeof(long)));
-static AtomicID::Register aid_reg_ulong(-17,"ulong");
-static TypeInfoReg::Register ti_reg_ulong(-17,TypeInfo(TypeInfo::NUMERIC,sizeof(ulong)));
-static AtomicID::Register aid_reg_longlong(-18,"longlong");
-static TypeInfoReg::Register ti_reg_longlong(-18,TypeInfo(TypeInfo::NUMERIC,sizeof(longlong)));
-static AtomicID::Register aid_reg_ulonglong(-19,"ulonglong");
-static TypeInfoReg::Register ti_reg_ulonglong(-19,TypeInfo(TypeInfo::NUMERIC,sizeof(ulonglong)));
-static AtomicID::Register aid_reg_float(-20,"float");
-static TypeInfoReg::Register ti_reg_float(-20,TypeInfo(TypeInfo::NUMERIC,sizeof(float)));
-static AtomicID::Register aid_reg_double(-21,"double");
-static TypeInfoReg::Register ti_reg_double(-21,TypeInfo(TypeInfo::NUMERIC,sizeof(double)));
-static AtomicID::Register aid_reg_ldouble(-22,"ldouble");
-static TypeInfoReg::Register ti_reg_ldouble(-22,TypeInfo(TypeInfo::NUMERIC,sizeof(ldouble)));
-static AtomicID::Register aid_reg_fcomplex(-23,"fcomplex");
-static TypeInfoReg::Register ti_reg_fcomplex(-23,TypeInfo(TypeInfo::NUMERIC,sizeof(fcomplex)));
-static AtomicID::Register aid_reg_dcomplex(-24,"dcomplex");
-static TypeInfoReg::Register ti_reg_dcomplex(-24,TypeInfo(TypeInfo::NUMERIC,sizeof(dcomplex)));
-static AtomicID::Register aid_reg_bool(-25,"bool");
-static TypeInfoReg::Register ti_reg_bool(-25,TypeInfo(TypeInfo::NUMERIC,sizeof(bool)));
-static AtomicID::Register aid_reg_string(-29,"string");
+static TypeInfoReg::Register ti_reg_Timestamp(-1032,TypeInfo(TypeInfo::BINARY,sizeof(Timestamp)));
+static AtomicID::Register aid_reg_bool(-32,"bool");
+static TypeInfoReg::Register ti_reg_bool(-32,TypeInfo(TypeInfo::NUMERIC,sizeof(bool)));
+static AtomicID::Register aid_reg_char(-33,"char");
+static TypeInfoReg::Register ti_reg_char(-33,TypeInfo(TypeInfo::NUMERIC,sizeof(char)));
+static AtomicID::Register aid_reg_uchar(-34,"uchar");
+static TypeInfoReg::Register ti_reg_uchar(-34,TypeInfo(TypeInfo::NUMERIC,sizeof(uchar)));
+static AtomicID::Register aid_reg_short(-35,"short");
+static TypeInfoReg::Register ti_reg_short(-35,TypeInfo(TypeInfo::NUMERIC,sizeof(short)));
+static AtomicID::Register aid_reg_ushort(-36,"ushort");
+static TypeInfoReg::Register ti_reg_ushort(-36,TypeInfo(TypeInfo::NUMERIC,sizeof(ushort)));
+static AtomicID::Register aid_reg_int(-37,"int");
+static TypeInfoReg::Register ti_reg_int(-37,TypeInfo(TypeInfo::NUMERIC,sizeof(int)));
+static AtomicID::Register aid_reg_uint(-38,"uint");
+static TypeInfoReg::Register ti_reg_uint(-38,TypeInfo(TypeInfo::NUMERIC,sizeof(uint)));
+static AtomicID::Register aid_reg_long(-39,"long");
+static TypeInfoReg::Register ti_reg_long(-39,TypeInfo(TypeInfo::NUMERIC,sizeof(long)));
+static AtomicID::Register aid_reg_ulong(-40,"ulong");
+static TypeInfoReg::Register ti_reg_ulong(-40,TypeInfo(TypeInfo::NUMERIC,sizeof(ulong)));
+static AtomicID::Register aid_reg_longlong(-41,"longlong");
+static TypeInfoReg::Register ti_reg_longlong(-41,TypeInfo(TypeInfo::NUMERIC,sizeof(longlong)));
+static AtomicID::Register aid_reg_ulonglong(-42,"ulonglong");
+static TypeInfoReg::Register ti_reg_ulonglong(-42,TypeInfo(TypeInfo::NUMERIC,sizeof(ulonglong)));
+static AtomicID::Register aid_reg_float(-43,"float");
+static TypeInfoReg::Register ti_reg_float(-43,TypeInfo(TypeInfo::NUMERIC,sizeof(float)));
+static AtomicID::Register aid_reg_double(-44,"double");
+static TypeInfoReg::Register ti_reg_double(-44,TypeInfo(TypeInfo::NUMERIC,sizeof(double)));
+static AtomicID::Register aid_reg_ldouble(-45,"ldouble");
+static TypeInfoReg::Register ti_reg_ldouble(-45,TypeInfo(TypeInfo::NUMERIC,sizeof(ldouble)));
+static AtomicID::Register aid_reg_fcomplex(-46,"fcomplex");
+static TypeInfoReg::Register ti_reg_fcomplex(-46,TypeInfo(TypeInfo::NUMERIC,sizeof(fcomplex)));
+static AtomicID::Register aid_reg_dcomplex(-47,"dcomplex");
+static TypeInfoReg::Register ti_reg_dcomplex(-47,TypeInfo(TypeInfo::NUMERIC,sizeof(dcomplex)));
+static AtomicID::Register aid_reg_string(-48,"string");
         void * __new_string  (int n) 
         { return new string [n]; }  
         void __delete_string (void *ptr) 
@@ -117,27 +117,9 @@ static AtomicID::Register aid_reg_string(-29,"string");
         { return ArrayPacker<string>::allocate(block,sz,n); } 
         size_t __packsize_string (const void *arr,int n) 
         { return ArrayPacker<string>::packSize(static_cast<const string*>(arr),n); }
-static TypeInfoReg::Register ti_reg_string(-29,TypeInfo(TypeInfo::SPECIAL,sizeof(string),__new_string,__delete_string,__copy_string,
+static TypeInfoReg::Register ti_reg_string(-48,TypeInfo(TypeInfo::SPECIAL,sizeof(string),__new_string,__delete_string,__copy_string,
                 __pack_string,__unpack_string,__packsize_string));
-static AtomicID::Register aid_reg_Array_uchar(-31,"Array_uchar");
-static TypeInfoReg::Register ti_reg_Array_uchar(-31,TypeInfo(TypeInfo::INTERMEDIATE,0));
-static AtomicID::Register aid_reg_Array_int(-34,"Array_int");
-static TypeInfoReg::Register ti_reg_Array_int(-34,TypeInfo(TypeInfo::INTERMEDIATE,0));
-static AtomicID::Register aid_reg_Array_short(-32,"Array_short");
-static TypeInfoReg::Register ti_reg_Array_short(-32,TypeInfo(TypeInfo::INTERMEDIATE,0));
-static AtomicID::Register aid_reg_Array_float(-40,"Array_float");
-static TypeInfoReg::Register ti_reg_Array_float(-40,TypeInfo(TypeInfo::INTERMEDIATE,0));
-static AtomicID::Register aid_reg_Array_double(-41,"Array_double");
-static TypeInfoReg::Register ti_reg_Array_double(-41,TypeInfo(TypeInfo::INTERMEDIATE,0));
-static AtomicID::Register aid_reg_Array_fcomplex(-43,"Array_fcomplex");
-static TypeInfoReg::Register ti_reg_Array_fcomplex(-43,TypeInfo(TypeInfo::INTERMEDIATE,0));
-static AtomicID::Register aid_reg_Array_dcomplex(-44,"Array_dcomplex");
-static TypeInfoReg::Register ti_reg_Array_dcomplex(-44,TypeInfo(TypeInfo::INTERMEDIATE,0));
-static AtomicID::Register aid_reg_Array_bool(-45,"Array_bool");
-static TypeInfoReg::Register ti_reg_Array_bool(-45,TypeInfo(TypeInfo::INTERMEDIATE,0));
-static AtomicID::Register aid_reg_Array_string(-49,"Array_string");
-static TypeInfoReg::Register ti_reg_Array_string(-49,TypeInfo(TypeInfo::INTERMEDIATE,0));
-static AtomicID::Register aid_reg_AtomicID(-392,"AtomicID");
+static AtomicID::Register aid_reg_AtomicID(-1007,"AtomicID");
 #include "TypeId.h"
-static TypeInfoReg::Register ti_reg_AtomicID(-392,TypeInfo(TypeInfo::BINARY,sizeof(AtomicID)));
+static TypeInfoReg::Register ti_reg_AtomicID(-1007,TypeInfo(TypeInfo::BINARY,sizeof(AtomicID)));
 

@@ -1,12 +1,17 @@
 #ifndef TypeId_h
 #define TypeId_h 1
 
+#include "Common/Lorrays.h"
 #include "DMI/Common.h"
 #include "DMI/DMI.h"
 #include "DMI/TypeIterMacros.h"
-
 #include "DMI/Registry.h"
+#include "DMI/AtomicID.h"
 #include <complex>
+    
+#ifndef LORRAYS_USE_BLITZ
+  #error AIPS++ array support disabled for now
+#endif
 
 // AtomicID
 #include "DMI/AtomicID.h"
@@ -62,7 +67,6 @@ typedef complex<double> dcomplex;
 // compatibility)
 
 #ifndef DoForAllArrayTypes
-
 // These are the type iterators for all arrayable types
 // NB: for now, strings are disabled, until Ger adds the template instantiation
 #define DoForAllArrayTypes_Sep(Do,arg,sep) Do(bool,arg) sep Do(uchar,arg) sep Do(short,arg) sep Do(int,arg) sep Do(float,arg) sep Do(double,arg) sep Do(dcomplex,arg) sep Do(fcomplex,arg) 
@@ -75,48 +79,47 @@ typedef complex<double> dcomplex;
 // the default template)
 #define DoForAllNonArrayTypes_Sep(Do,arg,sep) Do(char,arg) sep Do(ushort,arg) sep Do(uint,arg) sep Do(long,arg) sep Do(ulong,arg) sep Do(longlong,arg) sep Do(ulonglong,arg) sep Do(ldouble,arg) 
 #define DoForAllNonArrayTypes(Do,arg) DoForAllNonArrayTypes_Sep(Do,arg,;)
-
 #endif
 
-template<class T> class Array;
-#define __typedefArray(T,arg) typedef Array<T> Array_##T;
-DoForAllArrayTypes(__typedefArray,);
-__typedefArray(string,);
 
-// Declare the standard types (':' prefix means do not generate constructors)
-// Numbers will be explicitly assigned; note that TypeIDs are negative
-// so Tpchar will be -10, Tpuchar -11, etc.
-#pragma type +char=10 +uchar=11 +short=12 +ushort=13 +int=14 +uint=15 
-#pragma type +long=16 +ulong=17 +longlong=18 +ulonglong=19 
-#pragma type +float=20 +double=21 +ldouble=22 
-#pragma type +fcomplex=23 +dcomplex=24
-#pragma type +bool=25
+// Declare the standard types.
+// Numbers will be explicitly assigned; note that TypeIds are negative
+// so Tpbool will be -32, Tpchar -33, etc.
+// Basic types occupy the space between -32 and -63, ranked by precision.
+// Numerics are from -32 to -47, and string is -48.
+// Note that order is vitally important: the numbers must be defined in
+// the same order as in the DoForAllNumericTypes macro.
 
-#pragma type noinclude =string=29
+#pragma type +bool=32
+#pragma type +char=33 +uchar=34 +short=35 +ushort=36 +int=37 +uint=38 
+#pragma type +long=39 +ulong=40 +longlong=41 +ulonglong=42 
+#pragma type +float=43 +double=44 +ldouble=45 
+#pragma type +fcomplex=46 +dcomplex=47
+#pragma type noinclude =string=48
 
-// For arrays, numbers are explicitly assigned as type+20
+// For arrays, numbers are explicitly assigned as type + 32*(rank+1) 
+// but we don't define separate constants. Just these inlines here:
 
-#pragma type %Array_uchar=31 %Array_int=34 %Array_short=32 
-#pragma type %Array_float=40 %Array_double=41 
-#pragma type %Array_fcomplex=43 %Array_dcomplex=44
-#pragma type %Array_bool=45 %Array_string=49
-
-// commented out for now, to support a limited subset
-//
-//pragma type %Array_char=30 %Array_uchar=31 %Array_short=32 %Array_ushort=33 %Array_int=34 %Array_uint=35 
-//pragma type %Array_long=36 %Array_ulong=37 %Array_longlong=38 %Array_ulonglong=39 
-//pragma type %Array_float=40 %Array_double=41 %Array_ldouble=42 
-//pragma type %Array_fcomplex=43 %Array_dcomplex=44
-//pragma type %Array_bool=45
+// TpArray(tpelem,ndim) returns the TypeId of array with element type tpelem,
+// and rank ndim,
+inline TypeId TpArray (TypeId tpelem,int ndim)
+{ return - (32*ndim - tpelem.id()); }
+// Alias for vector
+inline TypeId TpVec (TypeId tpelem)
+{ return TpArray(tpelem,1); }
+// Alias for matrix
+inline TypeId TpMat (TypeId tpelem)
+{ return TpArray(tpelem,2); }
+// Alias for cube
+inline TypeId TpCube (TypeId tpelem)
+{ return TpArray(tpelem,3); }
 
 #pragma type :AtomicID
 
 // these constants are used to distinguish built-ins from other types
 // (note that actual numeric values are all negative)
-const int TpFirstNumeric = -25, TpLastNumeric = -10;
-
-// Offset between type and Array_type
-const int tpElemToArrayOffset = -20;
+const int TpFirstNumeric = -47, TpLastNumeric = -32,
+      TpNumberOfNumerics = TpLastNumeric - TpFirstNumeric;
 
 // Some special type constants
 // The null type 
@@ -127,8 +130,6 @@ const TypeId TpNumeric(-9);
 const TypeId TpIncomplete(-8);
 // Dereferenced type (see NestableContainer::get())
 const TypeId TpObject(-7);
-
-
 
 
 #endif

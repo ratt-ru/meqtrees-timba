@@ -260,18 +260,18 @@ void TestDataRecord ()
   cout<<"Source field is: "<<fref2.sdebug(10)<<endl;
   cout<<"======================= testing arrays\n";
   cout<<"Creating 10x10 double array\n";
-  rec["X"] <<= new DataArray(Tpdouble,IPosition(2,10,10));
+  rec["X"] <<= new DataArray(Tpdouble,makeLoShape(10,10));
   cout<<"Record is now: "<<rec.sdebug(10)<<endl;
   
   cout<<"Accessing the array\n";
-  Array_double arr = rec["X"];
+  LoMat_double arr = rec["X"];
   
   cout<<"Assigning array to another field\n";
   rec["Y"] = arr;
   cout<<"Record is now: "<<rec.sdebug(10)<<endl;
   
   cout<<"Accessing partial array\n";
-  Array_double row = rec["X/2.*"];
+  LoVec_double row = rec["X/2.*"];
   cout<<"Row shape is: "<<row.shape()<<endl;
   
   cout<<"Assigning partial array\n";
@@ -290,15 +290,15 @@ void TestDataRecord ()
   cout<<"Record is now: "<<rec.sdebug(10)<<endl;
   
   cout<<"Checking transparent array indexing\n";
-  rec["X.Y.Z"] <<= new DataArray(Tpdouble,IPosition(1,10),DMI::ZERO);
+  rec["X.Y.Z"] <<= new DataArray(Tpdouble,makeLoShape(10),DMI::ZERO);
   Assert(rec["X.Y.Z/0"][0].as_double() == 0);
   
   {
-  cout<<"Checking NCIters\n";
-  NCIter_double data(rec["X.Y.Z"]);
-  cout<<"filling "<<data.size()<<endl;
-  while( !data.end() )
-    data.next(0);
+    cout<<"Checking NCIters\n";
+    NCIter_double data(rec["X.Y.Z"]);
+    cout<<"filling "<<data.size()<<endl;
+    while( !data.end() )
+      data.next(0);
   }
   
   cout<<"======================= testing BOIO\n";

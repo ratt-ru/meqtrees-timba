@@ -82,10 +82,9 @@ class TypeInfo {
     //##ModelId=3DB949B000FB
       static bool isArray     (TypeId tid);
       
-    //##ModelId=3DB949B00103
-      static TypeId elemToArr (TypeId elem);
     //##ModelId=3DB949B0010B
-      static TypeId arrToElem (TypeId arr);
+      static TypeId typeOfArrayElem (TypeId arr);
+      static uint   rankOfArray     (TypeId arr);
 };
  
 // This is a helper class hosting a registry for TypeInfos
@@ -104,16 +103,15 @@ inline const TypeInfo & TypeInfo::find ( TypeId tid )
 { return TypeInfoReg::registry.find(tid); }
         
 
-// These functions convert the TypeId of a numeric type to/from an
-// Array_type
-//##ModelId=3DB949B00103
-inline TypeId TypeInfo::elemToArr (TypeId elem)
-{ return elem.id() + tpElemToArrayOffset; }
+inline TypeId TypeInfo::typeOfArrayElem (TypeId arr)
+{
+  return - ((-arr.id())%32) - 32;
+}
 
-//##ModelId=3DB949B0010B
-inline TypeId TypeInfo::arrToElem (TypeId arr)
-{ return arr.id() - tpElemToArrayOffset; }
-
+inline uint TypeInfo::rankOfArray (TypeId arr)
+{
+  return (-arr.id())/32 - 1;
+}
 
 // returns True if a type is built-in
 //##ModelId=3DB949B000E3
@@ -126,16 +124,16 @@ inline bool TypeInfo::isNumeric (TypeId tid)
 //##ModelId=3DB949B000F3
 inline bool TypeInfo::isArrayable (TypeId tid)
 { 
-  #define __compare(type,arg) (tid == Tp##type)
-  return DoForAllArrayTypes_Sep(__compare,,||);
-  #undef __compare
+  return isNumeric(tid) || tid == Tpstring;
 }
 
 // returns True if a type is an Array_type
 //##ModelId=3DB949B000FB
 inline bool TypeInfo::isArray (TypeId tid)
 { 
-  return isArrayable( arrToElem(tid) );
+  TypeId elem = typeOfArrayElem(tid);
+  int rank = rankOfArray(tid);
+  return rank>0 && rank<=11 && isArrayable(elem);
 }
 
 // returns True if type is dynamic
@@ -174,7 +172,7 @@ inline bool convertScalar ( const void *from,TypeId frid,void *to,TypeId toid )
 {
   if( !TypeInfo::isNumeric(frid) || !TypeInfo::isNumeric(toid))
     return False;
-  (*_typeconverters[Tpchar.id()-frid][Tpchar.id()-toid])(from,to);
+  (*_typeconverters[Tpbool.id()-frid][Tpbool.id()-toid])(from,to);
   return True;
 }
 
@@ -183,32 +181,26 @@ inline bool convertScalar ( const void *from,TypeId frid,void *to,TypeId toid )
 // This is used in various places where we want to convert a type to a TypeId
 // at compile-time
 #define __typeIdOfPtr(T,arg) inline TypeId TpOfPtr (const T *) { return Tp##T; };
-DoForAllNumericTypes(__typeIdOfPtr,);
-#if !defined(LORRAYS_DEFINE_STRING)
- __typeIdOfPtr(string,);
-#endif
+DoForAllArrayTypes(__typeIdOfPtr,);
 
-// This is a more convenient macro form
-#define typeIdOf(type) TpOfPtr((type*)0)
-
-// Similar function, but returns Tptype for an Array_type* argument
-#define __typeIdOfArrayElem(T,arg) inline TypeId TpOfArrayElem (const Array_##T *) { return Tp##T; };
+// Similar function, but returns Tptype for an array pointer argument
+#define __typeIdOfArrayElem(T,arg) template<int N> inline TypeId TpOfArrayElem (const blitz::Array<T,N> *) { return Tp##T; };
 DoForAllArrayTypes(__typeIdOfArrayElem,);
 #if !defined(LORRAYS_DEFINE_STRING)
 __typeIdOfArrayElem(string,);
 #endif
 
 // Similar function, but returns TpArray_type for a type * argument
-#define __typeIdOfArray(T,arg) inline TypeId TpOfArrayPtr (const T *) { return TpArray_##T; };
+#define __typeIdOfArray(T,arg) inline TypeId TpOfArrayPtr (const T *,int N) { return TpArray(Tp##T,N); };
 DoForAllArrayTypes(__typeIdOfArray,);
 #if !defined(LORRAYS_DEFINE_STRING)
 __typeIdOfArray(string,);
 #endif
 
-// These are more convenient macros (only need a type)
+
+// These are more convenient macros (only need a type as an argument)
 #define typeIdOf(type) TpOfPtr((type*)0)
-#define typeIdOfArray(type) TpOfArrayPtr((type*)0)
-
-
+#define typeIdOfArray(type,N) TpOfArrayPtr((type*)0,N)
+#define typeIdOfArrayElem(type) TpOfArrayElem((type*))
 
 #endif

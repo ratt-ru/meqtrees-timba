@@ -22,8 +22,6 @@
   #include "UVD/TID-UVD.h"
 #endif
 
-#include <aips/Arrays/Array.h>
-
 #ifdef AIPSPP_HOOKS
 #include <aips/Arrays/Array.h>
 #include <aips/Arrays/Vector.h>
@@ -208,6 +206,23 @@ class NestableContainer : public BlockableObject
           const NestableContainer::ConstHook & operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
           { return (*this)[id1|id2|id3|id4]; }
           
+          // Define as_Array templates. This makes use of the blitz::Array type
+          // as_Lorray(): returns array by value
+          template<class T,int N>
+          blitz::Array<T,N> as_Lorray () const
+          { return *static_cast<const blitz::Array<T,N>*>(
+                get_pointer(_dum_int,typeIdOfArray(T,N),False,False)); } 
+          // as_Lorray(deflt): return array by value, or default if not defined
+          template<class T,int N>
+          blitz::Array<T,N> as_Lorray (const blitz::Array<T,N> &deflt) const 
+          { return *static_cast<const blitz::Array<T,N>*>(
+                get_pointer(_dum_int,typeIdOfArray(T,N),False,False,&deflt)); } 
+          // implicit conversion operator
+          template<class T,int N>
+          operator blitz::Array<T,N> () const
+          { return as_Lorray<T,N>(); }
+          
+          // DataAcc-Const will define as_LoVec_type, as_LoMat_type, etc.
 #ifndef NC_SKIP_HOOKS
           // pull in const accessor methods
           #include "DMI/DataAcc-Const.h"
@@ -463,23 +478,41 @@ class NestableContainer : public BlockableObject
           { return (*this)[id1|id2|id3|id4]; }
           
           // allow assignment of all objrefs
+          // disabled since that confuses the compiler w.r.t. implicit conversions and stuff
 //          void operator = ( const ObjRef &ref );
           
-          // pull non-in const accessdor methods
+          
+          // Define as_Lorray_w templates. This makes use of the blitz::Array type
+          // as_Lorray_w(): returns writable array by value
+          template<class T,int N>
+          blitz::Array<T,N> as_Lorray_w () const
+          { return *static_cast<blitz::Array<T,N>*>(const_cast<void*>(
+              get_pointer(_dum_int,typeIdOfArray(T,N),True,False))); } 
+          // as_Lorray_w(deflt): return array by value, or default if not defined
+          template<class T,int N>
+          blitz::Array<T,N> as_Lorray_w (blitz::Array<T,N> &deflt) const 
+          { return *static_cast<blitz::Array<T,N>*>(const_cast<void*>(
+              get_pointer(_dum_int,typeIdOfArray(T,N),True,False,&deflt))); } 
+          
+          // DataAcc-Const will define as_LoVec_type_w, as_LoMat_type_w, etc.
+          
+          // pull non-in const accessor methods
 #ifndef NC_SKIP_HOOKS
           #define ForceConstDefinitions 1
           #include "DMI/DataAcc-NonConst.h"
 #endif
           
           // Assigning an Array either assigns to the underlying container,
-          // or inits a new DataArray object (or a DataField, for 1 dimension)
-          // Since Array_T is actually typedef'd Array<T>, we can declare this
-          // as a template.
-          template<class T> const Array<T> & operator = (const Array<T> &other) const;
+          // or inits a new DataArray object
+          // Since all arrays are actually typedef'd to blitz::Array<T,N>,
+          // we can declare this as a template.
+          template<class T,int N> 
+          const blitz::Array<T,N> & operator = (const blitz::Array<T,N> &other) const;
           
           // Assigning a vector of some type will assign to the underlying container
           // (provided the shape/size matches), or inits a new DataField
-          template<class T> const vector<T> & operator = (const vector<T> &other) const;
+          template<class T> 
+          const vector<T> & operator = (const vector<T> &other) const;
           
           // define accessors for AIPS++ types
 #ifdef AIPSPP_HOOKS
@@ -533,8 +566,12 @@ class NestableContainer : public BlockableObject
           // Helper functions for assignment of vectors
         //##ModelId=3DB934CA0142
           void * prepare_vector (TypeId tid,int size) const;
+          
           template<class T> 
           const vector<T> & assign_vector (const vector<T> &other,TypeId tid) const;
+
+          // helper function prepares for array assignment
+          void * prepare_assign_array (bool &haveArray,TypeId tid,const LoShape &shape) const;
 
       private:
         //##ModelId=3DB934CC00F5
@@ -1258,6 +1295,31 @@ inline void NestableContainer::Hook::assign_object( const BlockableObject *obj,T
 {
   // cast away const but that's OK since we force r/o ref  
   return assign_object(const_cast<BlockableObject*>(obj),tid,(flags&~DMI::WRITE)|DMI::READONLY);
+}
+
+
+template<class T,int N> 
+inline const blitz::Array<T,N> & NestableContainer::Hook::operator = (const blitz::Array<T,N> &other) const
+{
+  bool haveArray;
+  void * target = prepare_assign_array(haveArray,typeIdOf(T),other.shape());
+  if( !target )             // no object - create new field
+  {
+    ObjRef ref(new DataArray(other,DMI::WRITE),DMI::ANONWR);
+    assign_objref(ref,0);
+  }
+  else if( haveArray )       // got array object - use assignment
+  {
+    blitz::Array<T,N> *pdest = static_cast<blitz::Array<T,N>*>(target);
+    FailWhen(pdest->shape() != other.shape(),"can't assign array: shape mismatch");
+    (*pdest) = other;
+  }
+  else                      // got pointer to data - use flat copy
+  {
+    blitz::Array<T,N> dest(static_cast<T*>(target),other.shape(),blitz::neverDeleteData);
+    dest = other;
+  }
+  return other;
 }
 
 

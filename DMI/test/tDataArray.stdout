@@ -1,18 +1,26 @@
 
 Expect type mismatch exception ...
 >>>
-[CRefTarg/08288158 R:1 WR:1] Assert failed: array type mismatch (Array_double Array_float) (context: Global, at ../../../src/DataArray.cc:322)
+
+==================================== EXCEPTION ================================
+
+[CRefTarg/082709e0 R:1 WR:1] array type mismatch (Array(double,2)/Array(float,2)) (context: Global, at /home/oms/LOFAR/DMI/src/DataArray.cc:468)
+[CRefTarg/082709e0 R:1 WR:1] array type mismatch (Array(double,2)/Array(float,2)) (context: Global, at /home/oms/LOFAR/DMI/src/DataArray.cc:468)
 <<<
 
 Expect type mismatch exception ...
 >>>
-[CRefTarg/08288158 R:1 WR:1] Assert failed: array type mismatch (double Array_float) (context: Global, at ../../../src/DataArray.cc:322)
+
+==================================== EXCEPTION ================================
+
+[CRefTarg/082709e0 R:1 WR:1] array type mismatch (double/Array(float,2)) (context: Global, at /home/oms/LOFAR/DMI/src/DataArray.cc:468)
+[CRefTarg/082709e0 R:1 WR:1] array type mismatch (double/Array(float,2)) (context: Global, at /home/oms/LOFAR/DMI/src/DataArray.cc:468)
 <<<
-0[0, 0][9, 11][1, 1][0, 1]
-1[1, 2][1, 2][1, 1][]
-1[1, 0][1, 11][1, 1][1]
-1[0, 2][9, 2][1, 1][0]
-0[1, 0][3, 11][1, 2][0, 1]
+2[ 0 0 ][ 10 12 ][ 1 1 ][ 1 1 ]
+0[ 1 2 ][ 2 3 ][ 1 1 ][ 0 0 ]
+1[ 1 0 ][ 2 12 ][ 1 1 ][ 0 1 ]
+1[ 0 2 ][ 10 3 ][ 1 1 ][ 1 0 ]
+2[ 1 0 ][ 4 12 ][ 1 2 ][ 1 1 ]
 
 Expect some HIID parser exceptions ...
 Only 3 values (start:end:incr) can be given per axis in HIID 1:3._:_:_:2

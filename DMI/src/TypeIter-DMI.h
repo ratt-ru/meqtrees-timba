@@ -15,6 +15,7 @@
         Do(DataRecord,arg)
 
 #define DoForAllNumericTypes_DMI(Do,arg,separator) \
+        Do(bool,arg) separator \
         Do(char,arg) separator \
         Do(uchar,arg) separator \
         Do(short,arg) separator \
@@ -29,19 +30,10 @@
         Do(double,arg) separator \
         Do(ldouble,arg) separator \
         Do(fcomplex,arg) separator \
-        Do(dcomplex,arg) separator \
-        Do(bool,arg)
+        Do(dcomplex,arg)
 
 #define DoForAllIntermediateTypes_DMI(Do,arg,separator) \
-        Do(Array_uchar,arg) separator \
-        Do(Array_int,arg) separator \
-        Do(Array_short,arg) separator \
-        Do(Array_float,arg) separator \
-        Do(Array_double,arg) separator \
-        Do(Array_fcomplex,arg) separator \
-        Do(Array_dcomplex,arg) separator \
-        Do(Array_bool,arg) separator \
-        Do(Array_string,arg)
+        
 
 #define DoForAllOtherTypes_DMI(Do,arg,separator) \
         Do(ObjRef,arg)

@@ -5,13 +5,19 @@ static AtomicID::Register reg1(TpNumeric,"Numeric"),
     reg2(TpIncomplete,"Incomplete"),
     reg3(TpObject,"Object");
 
-    
+// This inserts AtomicID::Register definitions for all array types and ranks
+#define _regarray(type,rank) static AtomicID::Register reg##type##rank(TpArray(Tp##type,rank),"Array(" #type "," #rank ")");
+#define _regrank(rank,arg) DoForAllArrayTypes(_regarray,rank);
+DoForAllArrayRanks(_regrank,);
+#undef _regarray
+#undef _regrank
+
 // Defines the TypeInfo registry    
 DefineRegistry(TypeInfoReg,TypeInfo::NONE);
 
 // This is a templated implementation of a type converter 
 // Implemented as a template (but can be re-done explicitly by manually
-// definiting a shitload of functions
+// definining a shitload of functions
 template<class From,class To> 
 void _convertScalar( const void * from,void * to )
 { 

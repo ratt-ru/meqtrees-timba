@@ -258,7 +258,7 @@ const Key & BiRegistry<Key,Val,HostClass>::rfind (const Val& val)
   
   riter = RevMapPtr->find(val);
   
-  return riter == RevMapPtr->end() ? default_key : riter->second;
+  return ( riter == RevMapPtr->end() ) ? default_key : riter->second;
 }
 
 //##ModelId=3C5E8DA00097

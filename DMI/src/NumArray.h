@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.15  2002/12/03 20:36:14  smirnov
+//  %[BugId: 112]%
+//  Ported DMI to use Lorrays (with blitz arrays)
+//
 //  Revision 1.14  2002/10/29 16:28:17  smirnov
 //  %[BugId: 26]%
 //  Added missing TypeIter-DMI.h file.
@@ -95,16 +99,21 @@
 #ifndef DMI_DATAARRAY_H
 #define DMI_DATAARRAY_H
 
+#include "Common/Lorrays.h"
+#include "Common/Thread/Mutex.h"
+#include "Common/Thread/Key.h"
 #include "DMI/Common.h"
 #include "DMI/DMI.h"
-
-#pragma types #DataArray
-
 #include "DMI/NestableContainer.h"
 #include "DMI/HIID.h"
 #include "DMI/SmartBlock.h"
 
-#include <aips/Arrays/Array.h>
+#pragma types #DataArray
+
+// We assume Blitz support here, AIPS++ can be re-integrated later
+#ifndef LORRAYS_USE_BLITZ
+  #error This version of DataArray requires Blitz Lorrays
+#endif
 
 //##ModelId=3DB949AE00C5
 class DataArray : public NestableContainer
@@ -116,7 +125,7 @@ public:
 
   // Create the object with an array of the given shape.
     //##ModelId=3DB949AE03A4
-  DataArray (TypeId type, const IPosition& shape, int flags = DMI::WRITE,
+  DataArray (TypeId type, const LoShape & shape, int flags = DMI::WRITE,
 	     int shm_flags = 0);
 
   // Create the object with an array of the given shape.
@@ -133,8 +142,14 @@ public:
 //   explicit DataArray (const Array<dcomplex>& array, int flags = DMI::WRITE,
 // 		      int shm_flags = 0);
 //   
-  template<class T>
-  explicit DataArray (const Array<T>& array, int flags = DMI::WRITE,
+  // templated method to create a copy of the given Lorray.
+  // We make use of the fact that a Lorray(N,T) is actually a blitz::Array<T,N>.
+  // Hence this templated definition is equivalent to a bunch of non-templated
+  // ones, each with its own type and rank.
+  // For non-templated compilers, this can be redefined using the DoFor...()
+  // type iterator macros
+  template<class T,int N>
+  explicit DataArray (const blitz::Array<T,N> & array, int flags = DMI::WRITE,
 		      int shm_flags = 0);
 
   // Copy (copy semantics).
@@ -147,6 +162,21 @@ public:
   // Assignment (copy semantics).
     //##ModelId=3DB949AE03B9
   DataArray& operator= (const DataArray& other);
+
+  // True if the object contains an initialized array
+  //##ModelId=3DB949AF0022
+  bool valid() const;
+      
+  // returns rank of array
+  int rank () const;
+  
+  // returns shape of array
+  const LoShape & shape () const;
+  
+  // returns type of array element
+  // (the virtual type() method, below, overriding the abstract one in 
+  // NestableContainer, will return the array type)
+  TypeId elementType () const;
 
   // Return the object type (TpDataArray).
     //##ModelId=3DB949AE03BE
@@ -186,26 +216,24 @@ public:
   virtual TypeId type() const;
   
   // Parse a HIID describing a subset and fill start,end,incr.
-  // It fills in keepAxes telling if an axes should always be kept,
-  // even if it is degenerated (i.e. has length 1).
-  // It returns true if axes can be removed.
+  // NB: "end" is one past ending position at each axis: 
+  //        i.e. [start,end) is the interval, using conventional notation.
+  // It fills in keepAxes telling which axes should be kept in the
+  // subarray. Returns number of axes to keep.
     //##ModelId=3DB949AF000E
-  bool parseHIID (const HIID& id, IPosition& st, IPosition& end,
-		  IPosition& incr, IPosition& keepAxes) const;
+  int parseHIID (const HIID& id, LoPos& st, LoPos& end,LoPos& incr, 
+                 vector<bool> &keepAxes) const;
   
     //##ModelId=3DB949AF001C
   DefineRefTypes(DataArray,Ref);
 
+  static const int NumTypes = Tpbool_int - Tpstring_int + 1;
+  
       
 private:
-  // The object is valid if it contains an array.
-    //##ModelId=3DB949AF0022
-  bool valid() const 
-    { return itsArray; }
-
   // Initialize internal shape and create array using the given shape.
     //##ModelId=3DB949AF0024
-  void init (const IPosition& shape);
+  void init (const LoShape & shape,int flags);
 
   // Initialize shape and create array using internal shape.
     //##ModelId=3DB949AF0029
@@ -238,9 +266,10 @@ private:
   void setHeaderSize (int size)
     { static_cast<int*>(*itsData.dewr())[1] = size; }
 
-
     //##ModelId=3DB949AE036D
-  IPosition  itsShape;          // actual shape
+  LoShape    itsShape;          // actual shape
+  
+  TypeId     itsType;           // array TypeId
     //##ModelId=3DB949AE0379
   TypeId     itsScaType;        // scalar data type matching the array type
     //##ModelId=3DB949AE0383
@@ -250,14 +279,118 @@ private:
     //##ModelId=3DB949AE038E
   char*      itsArrayData;      // pointer to array data in SmartBlock
     //##ModelId=3DB949AE0394
-  void*      itsArray;          // pointer to the Array object
-    //##ModelId=3DB949AE039A
-  void*      itsSubArray;       // pointer to Array object holding a subarray
-    //##ModelId=3DB949AE0370
-    BlockRef itsData;
+  void *     itsArray;
+
+  //##ModelId=3DB949AE0370
+  BlockRef    itsData;
+
+  // OK, setup some circus hoops. Rank & type of DataArray is set at runtime,
+  // while for blitz arrays it's compile-time. So, for every blitz operation
+  // required in DataArray, we'll setup an N(ranks) x N(types) matrix of 
+  // function pointers, then use rank & type to call the appropriate function.
+  // This matrix is called the "method table".
+  
+  // Methods for the method table are naturally implemented via
+  // templates. Refer to DataArray.cc.
+  
+  // These are the actual method tables
+  typedef void * (*AllocatorWithData)(void*,const LoShape &);
+  typedef void * (*AllocatorDefault)();
+  typedef void (*AssignWithStride)(void*,void *,const LoShape &,const LoShape &);
+  typedef void (*Destructor)(void*);
+  
+  static AllocatorWithData    allocatorWithData   [NumTypes][MaxLorrayRank];
+  static AllocatorDefault     allocatorDefault    [NumTypes][MaxLorrayRank];
+  static AssignWithStride     assignerWithStride  [NumTypes][MaxLorrayRank];
+  static Destructor           destructor          [NumTypes][MaxLorrayRank];
+  
+  // converts a type id into a numeric offset into the table above
+  static int typeIndex (TypeId tid)
+  { return Tpbool_int - tid.id(); }
+  // These methods do a lookup & call into each method table
+  static void * allocateArrayWithData (TypeId tid,void *data,const LoShape &shape )
+  {
+    return (*allocatorWithData[typeIndex(tid)][shape.size()-1])(data,shape);
+  }
+  static void assignWithStride (TypeId tid,void *ptr,void *data,const LoShape &shape,const LoShape &stride )
+  {
+    (*assignerWithStride[typeIndex(tid)][shape.size()-1])(ptr,data,shape,stride);
+  }
+  static void * allocateArrayDefault (TypeId tid,int rank)
+  {
+    return (*allocatorDefault[typeIndex(tid)][rank-1])();
+  }
+  static void destroyArray (TypeId tid,int rank,void *ptr)
+  {
+    (*destructor[typeIndex(tid)][rank-1])(ptr);
+  }
+
+  // Define the subarray object (for slicing into an array)
+  typedef struct { void *ptr; int rank; }  SubArray;
+#ifdef USE_THREADS
+  // Each thread must have its own subarray pointer. Use a map to accomplish
+  // this -- I would use thread keys, but the number is way too limited.
+  typedef std::map<Thread::ThrID,SubArray> SubArrayMap;
+  mutable SubArrayMap itsSubArrayMap;
+  
+  void initSubArray () const
+  {}
+#else
+  // non-threaded mode -- keep a single entry
+  mutable SubArray itsSubArray;
+  
+  void initSubArray () const
+  { itsSubArray.ptr = 0; }
+#endif
+  // this helper function creates the subarray object with the given data,
+  // shape & stride. 
+  void * makeSubArray (void *data,const LoShape & shape,const LoShape &stride) const;
 
 };
 
 DefineRefTypes(DataArray,DataArrayRef);
+
+inline bool DataArray::valid () const
+{
+  return itsArray != 0 ;
+}
+
+    
+// returns rank of array
+inline int DataArray::rank () const
+{
+  return itsShape.size();
+}
+  
+// returns shape of array
+inline const LoShape & DataArray::shape () const
+{
+  return itsShape;
+}
+  
+// returns type of array element
+// (the virtual type() method, below, overriding the abstract one in 
+// NestableContainer, will return the array type)
+inline TypeId DataArray::elementType () const
+{
+  return itsScaType;
+}
+
+// templated constructor from a Blitz array
+template<class T,int N>
+DataArray::DataArray (const blitz::Array<T,N>& array,
+		      int flags, int )  // shm_flags not yet used
+: NestableContainer(flags&DMI::WRITE != 0),
+  itsArray    (0)
+{
+  initSubArray();
+  itsScaType  = typeIdOf(T);
+  itsElemSize = sizeof(T);
+  itsType     = typeIdOfArray(T,N);
+  init(array.shape(),flags);
+  // after an init, itsArray contains a valid array of the given shape,
+  // so we can assign the other array to it, to copy the data over
+  *static_cast<blitz::Array<T,N>*>(itsArray) = array;
+}
 
 #endif
