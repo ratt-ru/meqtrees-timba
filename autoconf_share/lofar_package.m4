@@ -234,7 +234,7 @@ else
   # Also assemble all new external packages and flags this package depends on.
     rm -f libnames_depend
     touch libnames_depend
-    $lofar_sharedir/makepkglinks $1 $lfr_include $lfr_libdir pkginc pkgbldinc libnames_depend lofar_config.h $lfr_recoption 0
+    $lofar_sharedir/makepkglinks $1 $lfr_include $lfr_libdir pkginc pkgbldinc libnames_depend lofar_config.h-pkg $lfr_recoption 0
   # Get the libraries this package is dependent on.
   # Use echo to remove the possible newlines.
     lfr_depend=`cat libnames_depend`
@@ -251,11 +251,23 @@ else
     lfr_pkgext=`echo $lfr_pkgext`
     for pkgnm in $lfr_pkgext
     do
-      echo "" >> lofar_config.h;
-      echo "#if !defined(HAVE_$pkgnm)" >> lofar_config.h
-      echo "# define HAVE_$pkgnm 1" >> lofar_config.h;
-      echo "#endif" >> lofar_config.h;
+      echo "" >> lofar_config.h-pkg;
+      echo "#if !defined(HAVE_$pkgnm)" >> lofar_config.h-pkg
+      echo "# define HAVE_$pkgnm 1" >> lofar_config.h-pkg;
+      echo "#endif" >> lofar_config.h-pkg;
     done
+  # Do the finalization (in case no lofar_package is used).
+    cp lofar_config.h-pkg lofar_config.h
+    echo "" >> lofar_config.h
+    echo "#endif" >> lofar_config.h
+  # If the current lofar_config.h is the same as the old one, move the
+  # old one back and create it again.
+    diff lofar_config.h lofar_config.old-h > /dev/null 2>&1
+    if [ $? = 0 ]; then
+      mv lofar_config.old-h lofar_config.h
+      touch lofar_config.old-h
+    fi
+
   # Add possible CPPFLAGS and CXXFLAGS.
     lfr_pkgext=`cat pkgextcppflags_diff`
     lfr_pkgext=`echo $lfr_pkgext`
