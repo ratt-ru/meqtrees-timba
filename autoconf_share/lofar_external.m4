@@ -39,6 +39,11 @@
 #         +pkg is a special name; it is replaced by the package name.
 #         +comp is a special name; it is replaced by the compiler name.
 #         default is "/usr/local/+pkg/+comp /usr/local/+pkg /usr/local /usr"
+#         The header and libraries are looked up in each directory of the
+#         search path and in include/lib subdirectories of them.
+#         The first match is taken.
+#         Note that at configure time the user can specify the directory
+#         for header and library which overrides the searchpath.
 #
 # Extra libraries can be given via the with-'package'-extra-libs
 # configure option.
@@ -167,7 +172,10 @@ else
     fi
   done
 
-## Look for the header file in include directories of the search list.
+## Look for the header file in directories of the search list
+## and in its include subdirectories.
+## Assume that libraries are in similar directory structure as headers.
+## (thus in lib subdirectory if header is in include subdirectory)
   for bdir in $lfr_slist
   do
     ]AC_CHECK_FILE([$bdir/include/$lfr_hdr],
@@ -176,6 +184,15 @@ else
     if test "$lfr_ext_inc" != "no" ; then
       if test "$lfr_external_libdir" = ""; then
         lfr_external_libdir=$bdir/lib;
+        break;
+      fi
+    fi
+    ]AC_CHECK_FILE([$bdir/$lfr_hdr],
+			[lfr_ext_inc=$bdir],
+			[lfr_ext_inc=no])[
+    if test "$lfr_ext_inc" != "no" ; then
+      if test "$lfr_external_libdir" = ""; then
+        lfr_external_libdir=$bdir;
         break;
       fi
     fi
