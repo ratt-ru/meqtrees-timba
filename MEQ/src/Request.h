@@ -28,7 +28,8 @@
 #include <DMI/DataRecord.h>
 
 #pragma aidgroup Meq
-#pragma aid Cells ReqId CalcDeriv Rider
+#pragma aid Cells Request Id Calc Deriv Rider
+#pragma types #Meq::Request
 
 // This class represents a request for which an expression has to be
 // evaluated. It contains the domain and cells to evaluate for.
@@ -39,41 +40,60 @@ namespace Meq {
 class Request : public DataRecord
 {
 public:
+  typedef CountedRef<Result> Ref;
+    
+  Request ();
+    
+  // Construct from DataRecord 
+  Request (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
+  
   // Create the request from the cells for which the expression has
   // to be calculated. Optionally no derivatives are calculated.
-  explicit Request (const DataRecord&);
+  explicit Request (const Cells&, bool calcDeriv=true, const HIID &id=HIID(),int cellflags=DMI::ANON);
 
-  // Create the request from the cells for which the expression has
-  // to be calculated. Optionally no derivatives are calculated.
-  explicit Request (const Cells&, bool calcDeriv=true, const HIID &id=HIID());
-
+  virtual TypeId objectType () const
+  { return TpMeqRequest; }
+  
+  // validate record contents and setup shortcuts to them. This is called 
+  // automatically whenever a Request is made from a DataRecord
+  virtual void validateContent ();
+  
+  // this disables removal of fields via hooks
+  virtual bool remove (const HIID &)
+  { Throw("remove() from a Meq::Result not allowed"); }
+  
   // Calculate derivatives if parameters are solvable?
   bool calcDeriv() const
-    { return itsCalcDeriv; }
+  { return itsCalcDeriv; }
 
-  // Set new domain cells.
-  void setCells (const Cells& cells)
-    { *itsCells = cells; }
-
-  // Get the domain cells.
+  // Set or get the cells.
+  void setCells (const Cells&,int flags = DMI::ANON);
+  
+  bool hasCells () const
+  { return itsCells; }
+    
   const Cells& cells() const
-    { return *itsCells; }
-
+  { DbgFailWhen(!itsCells,"no cells in Meq::Request");
+    return *itsCells; }
+  
   // Set the request id.
-  void setId (const HIID &id)
-    { itsId = id; }
+  void setId (const HIID &id);
 
   // Get the request id.
-  const HIID & getId() const
-    { return itsId; }
+  const HIID & id() const
+  { return itsId; }
 
-  // Get the rider subrecord.
-  DataRecord::Ref& getRider();
-
+protected: 
+  // disable public access to some DataRecord methods that would violate the
+  // structure of the container
+  DataRecord::remove;
+  DataRecord::replace;
+  DataRecord::removeField;
+  
 private:
   HIID   itsId;
   bool   itsCalcDeriv;
-  Cells* itsCells;
+  const  Cells* itsCells;
 };
 
 

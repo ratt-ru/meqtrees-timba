@@ -23,7 +23,7 @@
 #define MeqSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413
     
 #include <DMI/DataRecord.h>
-#include <MEQ/Result.h>
+#include <MEQ/ResultSet.h>
 #include <MEQ/AID-Meq.h>
 #include <MEQ/TID-Meq.h>
 #include <map>
@@ -78,7 +78,7 @@ class Node : public BlockableObject
     virtual void setState (const DataRecord &rec);
     
     //##ModelId=3F6726C4039D
-    int getResult (Result::Ref &resref, const Request &);
+    int getResult (ResultSet::Ref &resref, const Request &);
 
     const HIID & currentRequestId ();
     
@@ -135,7 +135,7 @@ class Node : public BlockableObject
     //##ModelId=3F98D9D2006B
     virtual void processRequestRider (const DataRecord &rider);
     //##ModelId=3F98D9D100B9
-    virtual int getResultImpl (Result::Ref &resref, const Request &req,bool newreq);
+    virtual int getResultImpl (ResultSet::Ref &resref, const Request &req,bool newreq);
     
   private:
     //##ModelId=3F9505E50010
@@ -153,7 +153,7 @@ class Node : public BlockableObject
     Forest *forest_;
     
     HIID current_req_id_;
-    Result::Ref res_cache_;
+    ResultSet::Ref res_cache_;
     
     //##ModelId=3F8433C10295
     typedef std::map<HIID,int> ChildrenMap;

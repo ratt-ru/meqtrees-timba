@@ -228,16 +228,18 @@ void Node::setState (const DataRecord &rec)
 
 void Node::setCurrentRequest (const Request &req)
 {
-  wstate()[AidRequest|AidId] = current_req_id_ = req.getId();
+  wstate()[AidRequest|AidId] = current_req_id_ = req.id();
 }
 
 //##ModelId=3F6726C4039D
-int Node::getResult (Result::Ref &ref, const Request &req)
+int Node::getResult (ResultSet::Ref &ref, const Request &req)
 {
+  cdebug(3)<<"getResult, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
   // do we have a new request?
-  bool newreq = req.getId() != currentRequestId();
+  bool newreq = req.id() != currentRequestId();
   if( newreq )
   {
+    cdebug(3)<<"  new request, clearing cache"<<endl;
     // clear cache
     wstate()[AidResult].remove(); 
     res_cache_.detach();
@@ -258,28 +260,36 @@ int Node::getResult (Result::Ref &ref, const Request &req)
     if( res_cache_.valid() )
     {
       ref.copy(res_cache_,DMI::PRESERVE_RW);
+      cdebug(3)<<"  old request, returning cached result"<<
+                 "    "<<ref->sdebug(DebugLevel-1,"    ")<<endl;
       return 0;
+    }
+    else
+    {
+      cdebug(3)<<"  old request but cache is empty"<<endl;
     }
   }
   // new request and/or no cache -- recompute the result
   int flags = getResultImpl(ref,req,newreq);
+  cdebug(3)<<"  getResultImpl returns flags: "<<flags<<endl;
+  cdebug(3)<<"  result is: "<<ref.sdebug(DebugLevel-1,"    ")<<endl;
   //  cache result in the state record
   if( flags != RES_FAIL && !(flags&RES_WAIT) )
   {
     res_cache_.copy(ref,DMI::PRESERVE_RW);
-    wstate()[AidResult] <<= static_cast<const DataRecord*>(ref.deref_p()); 
+    wstate()[AidResult] <<= *ref; 
   }
   return flags;
 }
 
 // default version does nothing
 //##ModelId=3F98D9D2006B
-void Node::processRequestRider (const DataRecord &rider)
+void Node::processRequestRider (const DataRecord &)
 {
 }
 
 //##ModelId=3F98D9D100B9
-int Node::getResultImpl (Result::Ref &, const Request &,bool)
+int Node::getResultImpl (ResultSet::Ref &, const Request &,bool)
 {
   Throw("Meq::Node::getResultImpl not implemented");
 }
@@ -328,7 +338,9 @@ string Node::sdebug (int detail, const string &prefix, const char *nm) const
     for( ; iter != child_map_.end(); iter++ )
     {
       out += "\n" + prefix + "  " + iter->first.toString() + ": " 
-           + children_[iter->second]->sdebug(abs(detail)-2);
+           + ( children_[iter->second].valid() 
+               ? children_[iter->second]->sdebug(abs(detail)-2)
+               : "unresolved" );
     }
   }
   return out;

@@ -62,7 +62,7 @@ public:
   //   in the derived class, because in that way some values can be
   //   calculated once for main value and perturbed values.
   // </ul>
-  virtual int getResultImpl (Result::Ref &resref, const Request&, bool newReq);
+  virtual int getResultImpl (ResultSet::Ref &resref, const Request&, bool newReq);
 
   // Find the type and shape of the result for evaluate.
   // It returns true if the result is real; otherwise false.
@@ -84,7 +84,7 @@ public:
 			      const vector<Vells*>& values);
 
   // Find all spids for this node by merging the children's spids.
-  vector<int> findSpids (const vector<Result::Ref>&) const;
+  vector<int> findSpids (const vector<Result*>&) const;
 
   // Returns the class TypeId
   virtual TypeId objectType() const;

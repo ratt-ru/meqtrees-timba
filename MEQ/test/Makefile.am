@@ -1,12 +1,9 @@
-#check_PROGRAMS 		= tPoly tMeqVells tMeqPolc tuvw
-check_PROGRAMS 		= tMeqVells tMeqPolc tForest tMeq tBlob
+check_PROGRAMS 		= tMeqVells tMeqPolc tForest tMeq 
+# uvwparm
+# tBlob
 
-#TESTS			= tPoly tMeqVells tMeqPolc tuvw
-TESTS			= tMeqVells tMeqPolc tForest tMeq tBlob
-
-#tPoly_SOURCES 		= tPoly.cc 
-#tPoly_LDADD		= ../src/libmeq.la 
-#tPoly_DEPENDENCIES	= ../src/libmeq.la $(LOFAR_DEPEND)
+TESTS			= tMeqVells tMeqPolc tForest tMeq 
+# tBlob
 
 tMeqVells_SOURCES 	= tMeqVells.cc 
 tMeqVells_LDADD		= ../src/libmeq.la 
@@ -24,13 +21,14 @@ tMeq_SOURCES	 	= tMeq.cc
 tMeq_LDADD		= ../src/libmeq.la 
 tMeq_DEPENDENCIES	= ../src/libmeq.la $(LOFAR_DEPEND)
 
-tBlob_SOURCES	 	= tBlob.cc 
-tBlob_LDADD		= ../src/libmeq.la 
-tBlob_DEPENDENCIES	= ../src/libmeq.la $(LOFAR_DEPEND)
+#tBlob_SOURCES	 	= tBlob.cc 
+#tBlob_LDADD		= ../src/libmeq.la 
+#tBlob_DEPENDENCIES	= ../src/libmeq.la $(LOFAR_DEPEND)
 
-#tuvw_SOURCES 		= tuvw.cc 
-#tuvw_LDADD		= ../src/libmeq.la 
-#tuvw_DEPENDENCIES	= ../src/libmeq.la $(LOFAR_DEPEND)
+#uvwparm_SOURCES	 	= uvwparm.cc 
+#uvwparm_LDADD		= ../src/libmeq.la 
+#uvwparm_DEPENDENCIES	= ../src/libmeq.la $(LOFAR_DEPEND)
+
 
 
 include $(lofar_sharedir)/Makefile.common

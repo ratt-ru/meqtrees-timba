@@ -25,6 +25,10 @@
 
 namespace Meq {
 
+// pull in registry definitions
+static int _dum = aidRegistry_Meq();
+static NestableContainer::Register reg(TpMeqDomain,True);
+
 Domain::Domain()
 : itsOffsetFreq (0),
   itsScaleFreq  (1),
@@ -34,13 +38,11 @@ Domain::Domain()
   setDMI();
 }
 
-Domain::Domain (const DataField& fld)
-: DataField     (fld),
-  itsOffsetFreq (fld[0]),
-  itsScaleFreq  (fld[1]),
-  itsOffsetTime (fld[2]),
-  itsScaleTime  (fld[3])
-{}
+Domain::Domain (const DataField& fld,int flags)
+: DataField(fld,flags|DMI::DEEP)
+{
+  validateContent();
+}
 
 Domain::Domain (double startFreq, double endFreq,
 		double startTime, double endTime)
@@ -56,6 +58,27 @@ Domain::Domain (double startFreq, double endFreq,
   setDMI();
 }
 
+void Domain::validateContent ()
+{
+  try
+  {
+    int size;
+    const double *fld = (*this)[HIID()].as_p<double>(size);
+    FailWhen(size!=4,"bad Domain field size");
+    itsOffsetFreq = fld[0];
+    itsScaleFreq  = fld[1];
+    itsOffsetTime = fld[2];
+    itsScaleTime  = fld[3];
+  }
+  catch( std::exception &err )
+  {
+    Throw(string("validate of Domain field failed: ") + err.what());
+  }
+  catch( ... )
+  {
+    Throw("validate of Domain field failed with unknown exception");
+  }  
+}
 
 void Domain::setDMI()
 {

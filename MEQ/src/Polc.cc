@@ -76,7 +76,7 @@ void Polc::setCoeffOnly (const Vells& values)
   clearSolvable();
 }
 
-void Polc::getResult (Result::Ref& res, const Request& request)
+void Polc::getResult (Result &result, const Request& request)
 {
   PERFPROFILE(__PRETTY_FUNCTION__);
   bool makeDiff = itsNrSpid > 0  &&  request.calcDeriv();
@@ -90,9 +90,7 @@ void Polc::getResult (Result::Ref& res, const Request& request)
   //Assert (domain.startTime() + request.stepY()/2 >= itsDomain.startTime());
   //Assert (domain.endX() - request.stepX()/2 <= itsDomain.endX());
   //Assert (domain.endY() - request.stepY()/2 <= itsDomain.endY());
-  // Create the result object containing as many spids as needed for
-  // this polynomial (but not more).
-  Result& result = res.dewr();
+  
   // If there is only one coefficient, the polynomial is independent
   // of x and y.
   // So set the value to the coefficient and possibly set the perturbed value.

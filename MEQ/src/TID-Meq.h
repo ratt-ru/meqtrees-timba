@@ -25,6 +25,40 @@ namespace Meq { class Add; };
               typedef const Meq::Add & ContainerParamType;
             };
 #endif
+#ifndef _defined_id_TpMeqCells
+#define _defined_id_TpMeqCells 1
+const TypeId TpMeqCells(-1402);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cells.h:36
+const int TpMeqCells_int = -1402;
+namespace Meq { class Cells; };
+            template<>
+            class DMIBaseTypeTraits<Meq::Cells> : public TypeTraits<Meq::Cells>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqCells_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::Cells & ContainerReturnType;
+              typedef const Meq::Cells & ContainerParamType;
+            };
+#endif
+#ifndef _defined_id_TpMeqComposer
+#define _defined_id_TpMeqComposer 1
+const TypeId TpMeqComposer(-1408);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Composer.h:29
+const int TpMeqComposer_int = -1408;
+namespace Meq { class Composer; };
+            template<>
+            class DMIBaseTypeTraits<Meq::Composer> : public TypeTraits<Meq::Composer>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqComposer_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::Composer & ContainerReturnType;
+              typedef const Meq::Composer & ContainerParamType;
+            };
+#endif
 #ifndef _defined_id_TpMeqConj
 #define _defined_id_TpMeqConj 1
 const TypeId TpMeqConj(-1348);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Conj.h:29
@@ -74,6 +108,23 @@ namespace Meq { class Divide; };
               enum { ParamByRef = true, ReturnByRef = true };
               typedef const Meq::Divide & ContainerReturnType;
               typedef const Meq::Divide & ContainerParamType;
+            };
+#endif
+#ifndef _defined_id_TpMeqDomain
+#define _defined_id_TpMeqDomain 1
+const TypeId TpMeqDomain(-1399);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Domain.h:39
+const int TpMeqDomain_int = -1399;
+namespace Meq { class Domain; };
+            template<>
+            class DMIBaseTypeTraits<Meq::Domain> : public TypeTraits<Meq::Domain>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqDomain_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::Domain & ContainerReturnType;
+              typedef const Meq::Domain & ContainerParamType;
             };
 #endif
 #ifndef _defined_id_TpMeqExp
@@ -195,6 +246,74 @@ namespace Meq { class Pow; };
               typedef const Meq::Pow & ContainerParamType;
             };
 #endif
+#ifndef _defined_id_TpMeqRequest
+#define _defined_id_TpMeqRequest 1
+const TypeId TpMeqRequest(-1407);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:32
+const int TpMeqRequest_int = -1407;
+namespace Meq { class Request; };
+            template<>
+            class DMIBaseTypeTraits<Meq::Request> : public TypeTraits<Meq::Request>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqRequest_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::Request & ContainerReturnType;
+              typedef const Meq::Request & ContainerParamType;
+            };
+#endif
+#ifndef _defined_id_TpMeqResult
+#define _defined_id_TpMeqResult 1
+const TypeId TpMeqResult(-1405);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:36
+const int TpMeqResult_int = -1405;
+namespace Meq { class Result; };
+            template<>
+            class DMIBaseTypeTraits<Meq::Result> : public TypeTraits<Meq::Result>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqResult_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::Result & ContainerReturnType;
+              typedef const Meq::Result & ContainerParamType;
+            };
+#endif
+#ifndef _defined_id_TpMeqResultSet
+#define _defined_id_TpMeqResultSet 1
+const TypeId TpMeqResultSet(-1401);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ResultSet.h:34
+const int TpMeqResultSet_int = -1401;
+namespace Meq { class ResultSet; };
+            template<>
+            class DMIBaseTypeTraits<Meq::ResultSet> : public TypeTraits<Meq::ResultSet>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqResultSet_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::ResultSet & ContainerReturnType;
+              typedef const Meq::ResultSet & ContainerParamType;
+            };
+#endif
+#ifndef _defined_id_TpMeqSelector
+#define _defined_id_TpMeqSelector 1
+const TypeId TpMeqSelector(-1409);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Selector.h:29
+const int TpMeqSelector_int = -1409;
+namespace Meq { class Selector; };
+            template<>
+            class DMIBaseTypeTraits<Meq::Selector> : public TypeTraits<Meq::Selector>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqSelector_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::Selector & ContainerReturnType;
+              typedef const Meq::Selector & ContainerParamType;
+            };
+#endif
 #ifndef _defined_id_TpMeqSin
 #define _defined_id_TpMeqSin 1
 const TypeId TpMeqSin(-1363);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Sin.h:29
@@ -295,23 +414,6 @@ namespace Meq { class ToComplex; };
               enum { ParamByRef = true, ReturnByRef = true };
               typedef const Meq::ToComplex & ContainerReturnType;
               typedef const Meq::ToComplex & ContainerParamType;
-            };
-#endif
-#ifndef _defined_id_TpMeqU
-#define _defined_id_TpMeqU 1
-const TypeId TpMeqU(-1362);                       // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/UVW.h:29
-const int TpMeqU_int = -1362;
-namespace Meq { class U; };
-            template<>
-            class DMIBaseTypeTraits<Meq::U> : public TypeTraits<Meq::U>
-            {
-              public:
-              enum { isContainable = true };
-              enum { typeId = TpMeqU_int };
-              enum { TypeCategory = TypeCategories::DYNAMIC };
-              enum { ParamByRef = true, ReturnByRef = true };
-              typedef const Meq::U & ContainerReturnType;
-              typedef const Meq::U & ContainerParamType;
             };
 #endif
 #ifndef _defined_id_TpMeqUVW

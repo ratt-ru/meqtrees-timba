@@ -5,6 +5,14 @@
     #include <DMI/DynamicTypeManager.h>
     #include <DMI/Packer.h>
     
+#include "Domain.h"
+BlockableObject * __construct_MeqDomain (int n) { return n>0 ? new Meq::Domain [n] : new Meq::Domain; }
+#include "Cells.h"
+BlockableObject * __construct_MeqCells (int n) { return n>0 ? new Meq::Cells [n] : new Meq::Cells; }
+#include "Result.h"
+BlockableObject * __construct_MeqResult (int n) { return n>0 ? new Meq::Result [n] : new Meq::Result; }
+#include "ResultSet.h"
+BlockableObject * __construct_MeqResultSet (int n) { return n>0 ? new Meq::ResultSet [n] : new Meq::ResultSet; }
 #include "Node.h"
 BlockableObject * __construct_MeqNode (int n) { return n>0 ? new Meq::Node [n] : new Meq::Node; }
 #include "Function.h"
@@ -15,6 +23,10 @@ BlockableObject * __construct_MeqParm (int n) { return n>0 ? new Meq::Parm [n] :
 BlockableObject * __construct_MeqFreq (int n) { return n>0 ? new Meq::Freq [n] : new Meq::Freq; }
 #include "Time.h"
 BlockableObject * __construct_MeqTime (int n) { return n>0 ? new Meq::Time [n] : new Meq::Time; }
+#include "Selector.h"
+BlockableObject * __construct_MeqSelector (int n) { return n>0 ? new Meq::Selector [n] : new Meq::Selector; }
+#include "Composer.h"
+BlockableObject * __construct_MeqComposer (int n) { return n>0 ? new Meq::Composer [n] : new Meq::Composer; }
 #include "Add.h"
 BlockableObject * __construct_MeqAdd (int n) { return n>0 ? new Meq::Add [n] : new Meq::Add; }
 #include "Subtract.h"
@@ -41,17 +53,37 @@ BlockableObject * __construct_MeqConj (int n) { return n>0 ? new Meq::Conj [n] :
 BlockableObject * __construct_MeqToComplex (int n) { return n>0 ? new Meq::ToComplex [n] : new Meq::ToComplex; }
 #include "UVW.h"
 BlockableObject * __construct_MeqUVW (int n) { return n>0 ? new Meq::UVW [n] : new Meq::UVW; }
-#include "UVW.h"
-BlockableObject * __construct_MeqU (int n) { return n>0 ? new Meq::U [n] : new Meq::U; }
+#include "Request.h"
+BlockableObject * __construct_MeqRequest (int n) { return n>0 ? new Meq::Request [n] : new Meq::Request; }
   
     int aidRegistry_Meq ()
     {
       static int res = 
 
+        AtomicID::registerId(-1399,"MeqDomain")+
+        TypeInfoReg::addToRegistry(-1399,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1399,__construct_MeqDomain)+
         AtomicID::registerId(-1322,"Domain")+
         AtomicID::registerId(-1357,"Nfreq")+
         AtomicID::registerId(-1356,"Times")+
         AtomicID::registerId(-1359,"TimeSteps")+
+        AtomicID::registerId(-1402,"MeqCells")+
+        TypeInfoReg::addToRegistry(-1402,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1402,__construct_MeqCells)+
+        AtomicID::registerId(-1351,"Cells")+
+        AtomicID::registerId(-1221,"Value")+
+        AtomicID::registerId(-1397,"Parm")+
+        AtomicID::registerId(-1400,"Spid")+
+        AtomicID::registerId(-1035,"Index")+
+        AtomicID::registerId(-1406,"Perturbed")+
+        AtomicID::registerId(-1349,"Perturbations")+
+        AtomicID::registerId(-1405,"MeqResult")+
+        TypeInfoReg::addToRegistry(-1405,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1405,__construct_MeqResult)+
+        AtomicID::registerId(-1398,"Results")+
+        AtomicID::registerId(-1401,"MeqResultSet")+
+        TypeInfoReg::addToRegistry(-1401,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1401,__construct_MeqResultSet)+
         AtomicID::registerId(-1253,"Node")+
         AtomicID::registerId(-1353,"Class")+
         AtomicID::registerId(-1145,"Name")+
@@ -79,6 +111,12 @@ BlockableObject * __construct_MeqU (int n) { return n>0 ? new Meq::U [n] : new M
         AtomicID::registerId(-1360,"MeqTime")+
         TypeInfoReg::addToRegistry(-1360,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1360,__construct_MeqTime)+
+        AtomicID::registerId(-1409,"MeqSelector")+
+        TypeInfoReg::addToRegistry(-1409,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1409,__construct_MeqSelector)+
+        AtomicID::registerId(-1408,"MeqComposer")+
+        TypeInfoReg::addToRegistry(-1408,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1408,__construct_MeqComposer)+
         AtomicID::registerId(-1366,"MeqAdd")+
         TypeInfoReg::addToRegistry(-1366,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1366,__construct_MeqAdd)+
@@ -118,16 +156,11 @@ BlockableObject * __construct_MeqU (int n) { return n>0 ? new Meq::U [n] : new M
         AtomicID::registerId(-1365,"MeqUVW")+
         TypeInfoReg::addToRegistry(-1365,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1365,__construct_MeqUVW)+
-        AtomicID::registerId(-1362,"MeqU")+
-        TypeInfoReg::addToRegistry(-1362,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1362,__construct_MeqU)+
-        AtomicID::registerId(-1351,"Cells")+
-        AtomicID::registerId(-1290,"Values")+
-        AtomicID::registerId(-1352,"ParmValues")+
-        AtomicID::registerId(-1364,"Spids")+
-        AtomicID::registerId(-1349,"Perturbations")+
-        AtomicID::registerId(-1389,"ReqId")+
-        AtomicID::registerId(-1388,"CalcDeriv")+
+        AtomicID::registerId(-1411,"Calc")+
+        AtomicID::registerId(-1410,"Deriv")+
+        AtomicID::registerId(-1407,"MeqRequest")+
+        TypeInfoReg::addToRegistry(-1407,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1407,__construct_MeqRequest)+
     0;
     return res;
   }

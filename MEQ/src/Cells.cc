@@ -27,22 +27,24 @@
 
 namespace Meq {
 
-Cells::Cells (const DataRecord& rec)
-: DataRecord   (rec),
-  itsDomain    (new Domain(rec[AidDomain])),
-  itsNfreq     (rec[AidNfreq]),
-  itsTimes     (rec[AidTimes].as<LoVec_double>()),
-  itsTimeSteps (rec[AidTimeSteps].as<LoVec_double>())
+static NestableContainer::Register reg(TpMeqCells,True);
+
+Cells::Cells ()
+: itsDomain(0),itsNfreq(0)
 {
-  itsFreqStep  = (itsDomain->endFreq() - itsDomain->startFreq()) / itsNfreq;
+}
+
+Cells::Cells (const DataRecord &other,int flags,int depth)
+: DataRecord(other,flags,depth)
+{
+  validateContent();
 }
 
 Cells::Cells (const Domain& domain, int nfreq, int ntimes)
-: itsNfreq     (nfreq),
-  itsTimes     (ntimes),
-  itsTimeSteps (ntimes)
+: itsNfreq     (nfreq)
 {
-  Assert (ntimes > 0  &&  nfreq > 0);
+  setDataRecord(domain,nfreq,ntimes);
+  // setup other vaklues
   itsFreqStep = (domain.endFreq() - domain.startFreq()) / nfreq;
   double time = domain.startTime();
   double step = (domain.endTime() - time) / ntimes;
@@ -52,18 +54,18 @@ Cells::Cells (const Domain& domain, int nfreq, int ntimes)
     itsTimeSteps(i) = step;
     time += step;
   }
-  setDMI (domain);
 }
- 
+
 Cells::Cells (const Domain& domain, int nfreq,
 	      const LoVec_double& startTimes,
 	      const LoVec_double& endTimes)
-: itsNfreq     (nfreq),
-  itsTimes     (startTimes.size()),
-  itsTimeSteps (startTimes.size())
+: itsNfreq     (nfreq)
 {
+  int ntimes = startTimes.size();
   Assert (startTimes.size() == endTimes.size());
   Assert (startTimes.size() > 0  &&  nfreq > 0);
+  setDataRecord(domain,nfreq,ntimes);
+  // set other values
   for (int i=0; i<startTimes.size(); i++) {
     Assert (endTimes(i) > startTimes(i));
     Assert (startTimes(i) >= domain.startTime());
@@ -71,12 +73,45 @@ Cells::Cells (const Domain& domain, int nfreq,
     itsTimeSteps(i) = endTimes(i) - startTimes(i);
     itsTimes(i) = startTimes(i) + itsTimeSteps(i) / 2;
   }
-  setDMI (domain);
 }
 
+void Cells::validateContent ()
+{
+  try
+  {
+    if( (*this)[AidDomain].exists() )
+    {
+      itsDomain = (*this)[AidDomain].as_wp<Domain>();
+      itsFreqStep  = (itsDomain->endFreq() - itsDomain->startFreq()) / itsNfreq;
+    }
+    else
+    {
+      itsDomain = 0;
+      itsFreqStep = 0;
+    }
+    itsNfreq = (*this)[AidNfreq].as<int>(0);
+    if( (*this)[AidTimes].exists() )
+      itsTimes.reference((*this)[AidTimes].as<LoVec_double>());
+    else
+      itsTimes.resize(0);
+    if( (*this)[AidTimeSteps].exists() )
+      itsTimeSteps.reference((*this)[AidTimeSteps].as<LoVec_double>());
+    else
+      itsTimeSteps.resize(0);
+    FailWhen( itsTimes.size() != itsTimeSteps.size(),"time/timestep size mismatch");
+  }
+  catch( std::exception &err )
+  {
+    Throw(string("validate of Cells record failed: ") + err.what());
+  }
+  catch( ... )
+  {
+    Throw("validate of Cells record failed with unknown exception");
+  }  
+}
+ 
 Cells::~Cells()
 {
-  DataRecord::operator= (DataRecord());
 }
 
 bool Cells::operator== (const Cells& that) const
@@ -103,14 +138,16 @@ std::ostream& operator<< (std::ostream& os, const Meq::Cells& cells)
   return os;
 }
 
-
-void Cells::setDMI (const Domain& domain)
+void Cells::setDataRecord (const Domain& domain,int nfreq,int ntimes)
 {
+  Assert (ntimes > 0  &&  nfreq > 0);
   itsDomain = new Domain(domain);
-  this->operator[](AidDomain) <<= static_cast<DataField*>(itsDomain);
-  this->operator[](AidNfreq) = itsNfreq;
-  this->operator[](AidTimes) = itsTimes;
-  this->operator[](AidTimeSteps) = itsTimeSteps;
+  (*this)[AidDomain] <<= static_cast<DataField*>(itsDomain);
+  (*this)[AidNfreq] = itsNfreq = nfreq;
+  (*this)[AidTimes] <<= new DataArray(Tpdouble,LoShape(ntimes));
+  itsTimes.reference((*this)[AidTimes].as<LoVec_double>());
+  (*this)[AidTimeSteps] <<= new DataArray(Tpdouble,LoShape(ntimes));
+  itsTimeSteps.reference((*this)[AidTimeSteps].as<LoVec_double>());
 }
 
 } // namespace Meq

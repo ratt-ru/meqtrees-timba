@@ -34,7 +34,9 @@
 
 
 #include <DMI/DataField.h>
+#include <MEQ/TID-Meq.h>
 
+#pragma types #Meq::Domain
 
 namespace Meq {
 
@@ -46,12 +48,19 @@ public:
   Domain();
 
   // Create from an existing data field.
-  Domain (const DataField&);
+  Domain (const DataField&,int flags=DMI::PRESERVE_RW);
 
   // Create a time,frequency domain.
   Domain (double startFreq, double endFreq,
 	  double startTime, double endTime);
 
+  virtual TypeId objectType () const
+  { return TpMeqDomain; }
+  
+  // validate record contents and setup shortcuts to them. This is called 
+  // automatically whenever a ResultPlane is made from a DataRecord
+  virtual void validateContent ();
+  
   // Get offset and scale value.
   double offsetFreq() const
     { return itsOffsetFreq; }

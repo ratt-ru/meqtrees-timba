@@ -1,5 +1,3 @@
-dmi_dir = $(lofar_sharedir)/../DMI
-
 CXXFLAGS += -D_GNU_SOURCE 
 
 lib_LTLIBRARIES = liboctopussy.la

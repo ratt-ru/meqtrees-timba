@@ -52,7 +52,7 @@ public:
   Polc();
 
   // Calculate the value and possible perturbations.
-  void getResult (Result::Ref&, const Request&);
+  void getResult (Result &, const Request&);
 
   // Get number of coefficients.
   int ncoeff() const

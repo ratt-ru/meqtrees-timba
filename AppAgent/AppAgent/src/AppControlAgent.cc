@@ -50,12 +50,14 @@ bool AppControlAgent::init (const DataRecord &data)
 {  
   rethrow_ = data[FThrowError].as<bool>(False);
   cdebug(1)<<"initializing control agent\n";
+  cdebug(3)<<"init record: "<<data.sdebug(DebugLevel-1,"  ")<<endl;
   try 
   {
     // no init sub-record? Do nothing then
     if( !data[initfield()].exists() )
       return True;
     const DataRecord &rec = data[initfield()];
+    cdebug(3)<<"subrecord: "<<rec.sdebug(DebugLevel-1,"  ")<<endl;
     initrec_used_ = True;
     // solicit application control commands
     solicitCommand(ControlPrefix|AidWildcard);

@@ -112,55 +112,79 @@ void Function::testChildren (const vector<TypeId>& types) const
   }
 }
 
-int Function::getResultImpl (Result::Ref &resref, const Request& request, bool)
+int Function::getResultImpl (ResultSet::Ref &resref, const Request& request, bool)
 {
   int nrch = itsChildren.size();
-  vector<Result::Ref> results(nrch);
-  vector<Vells*> values(nrch);
+  FailWhen( nrch<=0,"no children" );
+  vector<ResultSet::Ref> child_results(nrch);
+  // collect child_results from children
   int flag = 0;
   for (int i=0; i<nrch; i++) {
-    flag |= itsChildren[i]->getResult (results[i], request);
-    results[i].persist();
-    values[i] = &(results[i].dewr().getValueRW());
+    flag |= itsChildren[i]->getResult (child_results[i], request);
+    child_results[i].persist();
   }
+  // return flag is at least one child wants to wait
   if (flag & Node::RES_WAIT) {
     return flag;
   }
-  // Create result object and attach to the ref that was passed in
-  Result& result = resref <<= new Result();
-  // Evaluate the main value.
-  Vells vells = evaluate (request, values);
-  bool useVells;
-  int nx,ny;
-  bool isReal;
-  if (vells.nelements() > 0) {
-    useVells = false;
-    result.setValue (vells);
-  } else {
-    useVells = true;
-    isReal = resultTypeShape (nx, ny, request, values);
-    evaluateVells (result.setValue(isReal,nx,ny), request, values);
+  // Check that number of child planes is the same
+  int nplanes = child_results[0]->numResults();
+  for( int i=1; i<nrch; i++ )
+  {
+    FailWhen(child_results[i]->numResults()!=nplanes,
+        "mismatch in sizes of child result sets");
   }
-  // Find all spids from the children.
-  vector<int> spids = findSpids (results);
-  // Evaluate all perturbed values.
-  vector<Vells*> perts(nrch);
-  vector<int> indices(nrch, 0);
-  for (unsigned int j=0; j<spids.size(); j++) {
-    perts = values;
-    for (int i=0; i<nrch; i++) {
-      int inx = results[i].dewr().isDefined (spids[j], indices[i]);
-      if (inx >= 0) {
-	perts[i] = &(results[i].dewr().getPerturbedValueRW(inx));
+  // Create result object and attach to the ref that was passed in
+  ResultSet & resultset = resref <<= new ResultSet(nplanes);
+  vector<Result*> child_res(nrch);
+  for( int iplane=0; iplane<nplanes; iplane++ )
+  {
+    // collect vector of pointers to children, and vector
+    // of pointers to main value
+    vector<Vells*> values(nrch);
+    for( int i=0; i<nrch; i++ )
+    {
+      child_res[i] = &(child_results[i]().result(iplane));
+      values[i] = &(child_res[i]->getValueRW());
+    }
+    // Find all spids from the children.
+    vector<int> spids = findSpids(child_res);
+    // allocate new result object with given number of spids, add to set
+    Result &result = resultset.setNewResult(spids.size());
+    // Evaluate the main value.
+    Vells vells = evaluate (request, values);
+    bool useVells;
+    int nx,ny;
+    bool isReal;
+    if (vells.nelements() > 0) {
+      useVells = false;
+      result.setValue (vells);
+    } else {
+      useVells = true;
+      isReal = resultTypeShape (nx, ny, request, values);
+      evaluateVells(result.setValue(isReal,nx,ny), request, values);
+    }
+    // Evaluate all perturbed values.
+    vector<Vells*> perts(nrch);
+    vector<int> indices(nrch, 0);
+    for (unsigned int j=0; j<spids.size(); j++) 
+    {
+      perts = values;
+      for (int i=0; i<nrch; i++) 
+      {
+        int inx = child_res[i]->isDefined (spids[j], indices[i]);
+        if (inx >= 0) {
+	        perts[i] = &(child_res[i]->getPerturbedValueRW(inx));
+        }
+      }
+      if (useVells) {
+        evaluateVells (result.setPerturbedValue(j,isReal,nx,ny),request,values);
+      } else {
+        result.setPerturbedValue(j,evaluate(request,values));
       }
     }
-    if (useVells) {
-      evaluateVells (result.setPerturbedValue(j,isReal,nx,ny), request,values);
-    } else {
-      result.setPerturbedValue (j, evaluate(request,values));
-    }
+    result.setSpids (spids);
   }
-  result.setSpids (spids);
   return flag;
 }
 
@@ -190,13 +214,13 @@ void Function::evaluateVells (Vells&, const Request&, const vector<Vells*>&)
 	     "derived from MeqFunction");
 }
 
-vector<int> Function::findSpids (const vector<Result::Ref>& results) const
+vector<int> Function::findSpids (const vector<Result*> &results) const
 {
   // Determine the maximum number of spids.
   int nrspid = 0;
   int nrch = results.size();
   for (int i=0; i<nrch; i++) {
-    nrspid += results[i]->getSpids().size();
+    nrspid += results[i]->getNumSpids();
   }
   // Allocate a vector of that size.
   // Exit immediately if nothing to be done.
@@ -211,12 +235,11 @@ vector<int> Function::findSpids (const vector<Result::Ref>& results) const
   nrspid = 0;                  // no resulting spids yet
   // Loop through all children.
   for (int ch=0; ch<nrch; ch++) {
-    const vector<int>& chspids = results[ch]->getSpids();
-    int nrchsp = chspids.size();
+    const Result &resch = *results[ch];
+    int nrchsp = resch.getNumSpids();
     if (nrchsp > 0) {
       // Only handle a child with spids.
       // Get a direct pointer to its spids (is faster).
-      const int* chsp = &(chspids[0]);
       int inx = stinx;       // index where previous merge result starts.
       int lastinx = inx + nrspid;
       stinx -= nrchsp;       // index where new result is stored.
@@ -224,25 +247,25 @@ vector<int> Function::findSpids (const vector<Result::Ref>& results) const
       int lastspid = -1;
       // Loop through all spids of the child.
       for (int i=0; i<nrchsp; i++) {
-	// Copy spids until exceeding current child's spid.
-	int spid = chsp[i];
-	while (inx < lastinx  &&  spids[inx] <= spid) {
-	  lastspid = spids[inx++];
-	  spids[inxout++] = lastspid;
-	}
-	// Only store child's spid if different.
-	if (spid != lastspid) {
-	  spids[inxout++] = spid;
-	}
+	      // Copy spids until exceeding current child's spid.
+        int spid = resch.getSpid(i);
+        while (inx < lastinx  &&  spids[inx] <= spid) {
+          lastspid = spids[inx++];
+          spids[inxout++] = lastspid;
+	      }
+        // Only store child's spid if different.
+	      if (spid != lastspid) {
+          spids[inxout++] = spid;
+        }
       }
       // Copy possible remaining spids.
       while (inx < lastinx) {
-	spids[inxout++] = spids[inx++];
+        spids[inxout++] = spids[inx++];
       }
       nrspid = inxout - stinx;
     }
   }
-  spids.resize (nrspid);
+  spids.resize(nrspid);
   return spids;
 }
 

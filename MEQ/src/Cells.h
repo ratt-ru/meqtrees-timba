@@ -33,24 +33,33 @@
 
 #pragma aidgroup Meq
 #pragma aid Domain Nfreq Times TimeSteps
-
+#pragma types #Meq::Cells
 
 namespace Meq {
 
 class Cells : public DataRecord
 {
 public:
-  Cells (const DataRecord&);
+  Cells ();
+  // Construct from DataRecord. 
+  Cells (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
+  // construct from others
   Cells (const Domain& domain, int nfreq, int ntimes);
   Cells (const Domain& domain, int nfreq,
-	 const LoVec_double& startTimes,
-	 const LoVec_double& endTimes);
-
+	       const LoVec_double& startTimes,
+	       const LoVec_double& endTimes);
   ~Cells();
-
+  
+  virtual TypeId objectType () const
+  { return TpMeqCells; }
+  
+  // validate record contents and setup shortcuts to them. This is called 
+  // automatically whenever a ResultPlane is made from a DataRecord
+  virtual void validateContent ();
+  
   // Get domain.
   const Domain& domain() const
-    { return *itsDomain; }
+  { FailWhen(!itsDomain,"no domain"); return *itsDomain; }
 
   // Get nr of freq.
   int nfreq() const
@@ -80,8 +89,8 @@ public:
   friend std::ostream& operator<< (std::ostream& os, const Meq::Cells& cells);
 
 private:
-  // Set the values in the DMI DataField.
-  void setDMI (const Domain&);
+  // Setup DataRecord with domain; sets up new arrays with given sizes
+  void setDataRecord (const Domain&,int nfreq,int ntimes);
 
   Domain*      itsDomain;
   double       itsFreqStep;

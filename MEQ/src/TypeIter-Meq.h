@@ -9,11 +9,17 @@
         
 
 #define DoForAllDynamicTypes_Meq(Do,arg,separator) \
+        Do(MeqDomain,arg) separator \
+        Do(MeqCells,arg) separator \
+        Do(MeqResult,arg) separator \
+        Do(MeqResultSet,arg) separator \
         Do(MeqNode,arg) separator \
         Do(MeqFunction,arg) separator \
         Do(MeqParm,arg) separator \
         Do(MeqFreq,arg) separator \
         Do(MeqTime,arg) separator \
+        Do(MeqSelector,arg) separator \
+        Do(MeqComposer,arg) separator \
         Do(MeqAdd,arg) separator \
         Do(MeqSubtract,arg) separator \
         Do(MeqMultiply,arg) separator \
@@ -27,7 +33,7 @@
         Do(MeqConj,arg) separator \
         Do(MeqToComplex,arg) separator \
         Do(MeqUVW,arg) separator \
-        Do(MeqU,arg)
+        Do(MeqRequest,arg)
 
 #define DoForAllNumericTypes_Meq(Do,arg,separator) \
         

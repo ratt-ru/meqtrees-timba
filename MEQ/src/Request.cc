@@ -21,26 +21,74 @@
 //# $Id$
 
 #include <MEQ/Request.h>
-#include <MEQ/AID-Meq.h>
 
 namespace Meq {
 
-Request::Request (const DataRecord& rec)
-: DataRecord   (rec),
-  itsId        (rec[AidReqId].as<HIID>(HIID())),
-  itsCalcDeriv (rec[AidCalcDeriv]),
-  itsCells     (new Cells(rec[AidCells]))
-{}
+static NestableContainer::Register reg(TpMeqRequest,True);
 
-Request::Request (const Cells& cells, bool calcDeriv, const HIID &id)
-: itsId        (id),
-  itsCalcDeriv (calcDeriv),
+const HIID FRequestId = AidRequest|AidId,
+           FCells     = AidCells,
+           FCalcDeriv = AidCalc|AidDeriv,
+           FRider     = AidRider;
+
+Request::Request()
+    : itsCalcDeriv(False),itsCells(0)
+{
+}
+
+Request::Request (const DataRecord &other,int flags,int depth)
+: DataRecord   (other,flags,depth),
+  itsCalcDeriv (False),itsCells(0)
+{
+  validateContent();
+}
+
+Request::Request (const Cells& cells, bool calcDeriv, const HIID &id,int cellflags)
+: itsCalcDeriv (calcDeriv),
   itsCells     (0)
 {
-  itsCells = new Cells(cells);
-  this->operator[](AidCells) <<= static_cast<DataRecord*>(itsCells);
-  this->operator[](AidReqId) = id;
-  this->operator[](AidCalcDeriv) = calcDeriv;
+  setCells(cells,cellflags);
+  setId(id);
+  (*this)[FCalcDeriv] = calcDeriv;
 }
+
+// Set the request id.
+void Request::setId (const HIID &id)
+{
+  (*this)[FRequestId] = itsId = id;
+}
+
+void Request::setCells (const Cells& cells,int flags)
+{
+  itsCells = flags&DMI::CLONE ? new Cells(cells) : &cells;
+  DataRecord::replace(FCells,itsCells,flags|DMI::READONLY);
+}
+
+void Request::validateContent ()
+{
+  // ensure that our record contains all the right fields, and that they're
+  // indeed writable. Setup shortcuts to their contents
+  try
+  {
+    // get cells field
+    if( (*this)[FCells].exists() ) 
+      itsCells = (*this)[FCells].as_p<Cells>();
+    else
+      itsCells = 0;
+    // request ID
+    itsId = (*this)[FRequestId].as<HIID>(HIID());
+    // calc-driv flag
+    itsCalcDeriv = (*this)[FCalcDeriv].as<bool>(False);
+  }
+  catch( std::exception &err )
+  {
+    Throw(string("validate of ResultSet record failed: ") + err.what());
+  }
+  catch( ... )
+  {
+    Throw("validate of ResultSet record failed with unknown exception");
+  }  
+}
+
 
 } // namespace Meq

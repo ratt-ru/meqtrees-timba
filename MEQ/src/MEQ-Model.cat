@@ -7632,6 +7632,22 @@
 		    quid       	"3F9927B30280"
 		    supplier   	"Logical View::Meq::Node"
 		    quidu      	"3F5F436202FE"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$43"
+	    quid       	"3FA635FC007B"
+	    roles      	(list role_list
+		(object Role "res_cache_"
+		    quid       	"3FA635FC00AC"
+		    label      	"res_cache_"
+		    supplier   	"Logical View::Meq::Result::Ref"
+		    quidu      	"3F86886E0210"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$44"
+		    quid       	"3FA635FC00D7"
+		    supplier   	"Logical View::Meq::Node"
+		    quidu      	"3F5F436202FE"
 		    is_aggregate 	TRUE))))
     logical_presentations 	(list unit_reference_list
 	(object ClassDiagram "Node & Forest"

@@ -29,11 +29,11 @@
 #include <iostream>
 #include <DMI/DataRecord.h>
 #include <MEQ/AID-Meq.h>
-
+#include <MEQ/TID-Meq.h>
 
 #pragma aidgroup Meq
-#pragma aid Cells Values ParmValues Spids Perturbations
-
+#pragma aid Cells Value Parm Spid Index Perturbed Perturbations
+#pragma types #Meq::Result
 
 // This class represents a result of a domain for which an expression
 // has been evaluated.
@@ -51,12 +51,26 @@ public:
   // Create a time,frequency result for the given number of spids.
   explicit Result (int nspid=0);
 
+  // Construct from DataRecord. 
+  Result (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
+  
   ~Result();
+  
+  virtual TypeId objectType () const
+  { return TpMeqResult; }
+  
+  // validate record contents and setup shortcuts to them. This is called 
+  // automatically whenever a Result is made from a DataRecord
+  virtual void validateContent ();
+  
+  // this disables removal of fields via hooks
+  virtual bool remove (const HIID &)
+  { Throw("remove() from a Meq::Result not allowed"); }
 
-  // Set or get the cells.
-  void setCells (const Cells&);
-  const Cells& getCells() const
-    { return *itsCells; }
+//  // Set or get the cells.
+//  void setCells (const Cells&);
+//  const Cells& getCells() const
+//    { return *itsCells; }
 
   // Get the value.
   const Vells& getValue() const
@@ -65,27 +79,31 @@ public:
     { return itsValue; }
 
   // Get the spids.
-  const vector<int>& getSpids() const
-    { return itsSpids; }
-
+  int getNumSpids() const
+  { return itsNumSpids; }
+  int getSpid (int i) const
+  { return itsSpids[i]; }
+  
+//  // get all spids as a vector
+//  vector<int> getSpids() const;
   // Set the spids.
-  void setSpids (const vector<int>& spids)
-    { itsSpids = spids; }
+  void setSpids (const vector<int>& spids);
 
+  //
   bool isDefined (int spid, int& index) const
-  { return (index>=int(itsSpids.size())  ?  false :
+  { return (index>=itsNumSpids  ?  false :
 	    spid==itsSpids[index]  ?  index++,true : false); }
 
   // Get the i-th perturbed value.
   const Vells& getPerturbedValue (int i) const
-    { return *(itsPerturbedValues[i]); }
+  { return *(itsPerturbedValues[i]); }
 
   Vells& getPerturbedValueRW (int i)
-    { return *(itsPerturbedValues[i]); }
+  { return *(itsPerturbedValues[i]); }
 
   // Get the i-th perturbed parameter.
   double getPerturbation (int i) const
-    { return (itsPerturbations[i]); }
+  { return itsPerturbations[i]; }
 
   // Allocate the value with a given type and shape.
   // It won't change if the current value type and shape match.
@@ -121,10 +139,10 @@ public:
   void clear();
 
   int nperturbed() const
-    { return itsPerturbations.size(); }
+  { return itsNumSpids; }
 
-  // Set the i-th parm value.
-  void setParmValue (int i, const Vells&);
+//  // Set the i-th parm value.
+//  void setParmValue (int i, const Vells&);
 
   // Set the i-th perturbed value with a given type and shape.
   // It won't change if the current value type and shape matches.
@@ -153,7 +171,7 @@ public:
       return *(itsPerturbedValues[i]);
     }
 
-  // Set the i-th perturbed value.
+  // Set the i-th perturbed value (copies the array :-( )
   void setPerturbedValue (int i, const Vells&);
 
   // Set the i-th perturbed parameter.
@@ -165,26 +183,38 @@ public:
   static int nctor;
   static int ndtor;
 
+protected: 
+  // disable public access to some DataRecord methods that would violate the
+  // structure of the container
+  DataRecord::remove;
+  DataRecord::replace;
+  DataRecord::removeField;
+  
 private:
-  // Forbid copy and assignment.
-  Result (const Result&);
-  Result& operator= (const Result&);
-
   // Allocate the main value with given type and shape.
   void allocateReal (int nfreq, int  ntime);
   void allocateComplex (int nfreq, int ntime);
   // Allocate the i-th perturbed value with given type and shape.
   void allocatePertReal (int i, int nfreq, int ntime);
   void allocatePertComplex (int i, int nfreq, int ntime);
+  // Makes a Vells object from a container field
+  void makeVells (Vells &vells,NestableContainer &nc,const HIID &field);
+  // Allocate a sub-container for perturbations (if not already present),
+  // return ref to it
+  DataField & nc_perturbed ();
 
   int    itsCount;
   Vells  itsValue;
-  Cells* itsCells;
+//  Cells* itsCells;
   double itsDefPert;
+  
   vector<Vells*> itsPerturbedValues;
-  vector<double> itsPerturbations;
-  vector<double> itsParmValues;
-  vector<int>    itsSpids;
+  double * itsPerturbations;
+//  vector<double> itsParmValues;
+  int * itsSpids;
+  int   itsNumSpids;
+  
+  DataField *pnc_perturbed;
 };
 
 
