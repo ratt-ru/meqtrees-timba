@@ -2,7 +2,7 @@
 # Default rule will generate AIDs from all headers listed in $(DOCHDRS)
 
 # directory for global aid maps
-AID_MAP_DIR = $(lofar_sharedir)/../DMI/aid
+AID_MAP_DIR = $(lofar_sharedir)/../Timba/DMI/aid
 # script used to generate aids and types
 AID_MAP_BUILDER = $(AID_MAP_DIR)/build_aid_maps.pl 
 # location of global aid map
