@@ -52,7 +52,7 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
     else:
       node = meqds.nodelist[ni];
     self._default_open = default_open;
-    self._has_state = False;
+    self._state = None;
     # at this point, _node is a very basic node record: all it has is a list
     # of children nodeindices, to which we'll dispatch update requests
     # construct basic view items
@@ -77,7 +77,20 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
     else:
       self._child_items = None;
     # State snapshots
-    self._item_snapshots = HierBrowser.Item(lv,'Snapshots (0)','',udi_key='snapshot');
+    meqds.subscribe_node_state(ni,self.set_own_state);
+    sslist = meqds.get_node_snapshots(ni);
+    self._item_snapshots = HierBrowser.Item(lv,'','',udi_key='snapshot');
+    self._last_snapshot = None;
+    nss = 0;
+    for (stateref,event,timestamp) in sslist:
+      st = stateref();
+      if st is not None:
+        item = HierBrowser.Item(self._item_snapshots, \
+                time.strftime('%H:%M:%S',time.localtime(timestamp)),\
+                str(event),udi_key=str(nss));
+        item.cache_content(st);
+        nss += 1;
+    self._item_snapshots.setText(0,'Snapshots (%d)'%nss);
     # If we already have a full state record, go use it
     # Note that this will not always be the case; in the general case,
     # the node state will arrive later (perhaps even in between child
@@ -85,6 +98,20 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
     if dataitem.data is not None:
       self.set_data(dataitem);
     lv.setCurrentItem(None);
+
+  # our own state is added to snapshots here (and to the main view
+  # in set_data below)
+  def set_own_state (self,state,event):
+    if state is self._last_snapshot or getattr(state,'__nochange',False):
+      return;
+    # add snapshot
+    nss = self._item_snapshots.childCount();
+    item = HierBrowser.Item(self._item_snapshots, \
+           time.strftime('%H:%M:%S'),str(event),udi_key=str(nss));
+    item.cache_content(state);
+    self._last_snapshot = state;
+    # change label on snapshots item
+    self._item_snapshots.setText(0,'Snapshots (%d)'%(nss+1));
       
   # this callback is registered for all child node state updates
   def set_child_state (self,node,event):
@@ -104,17 +131,18 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
   def set_data (self,dataitem,default_open=None,**opts):
     # open items (use default first time round)
     openitems = default_open or self._default_open;
-    if self._has_state:
+    if self._state is not None:
+      # do nothing if state has already been marked as unchanged
+      if getattr(dataitem.data,'__nochange',False):
+        return;
+      # if something is already open, use that
       openitems = self.get_open_items() or openitems;
     # at this point, dataitem.data is a valid node state record
     #    print 'Got state for node',self._node.name,dataitem.data.field_names();
-    self._item_state.cache_content(dataitem.data,viewable=False);
-          # apply previously saved open tree
-          # self.set_open_items(openitems);
     self.change_item_content(self._item_state,dataitem.data,viewable=False);
     # apply saved open tree
     self.set_open_items(openitems);
-    self._has_state = True;
+    self._state = dataitem.data;
     
 class TreeBrowser (object):
   def __init__ (self,parent):
@@ -154,9 +182,6 @@ class TreeBrowser (object):
     # map the get_data_item method
     nlv.get_data_item = self.get_data_item;
     
-    self.nodelist = None;
-    self._wait_nodestate = {};
-
   def get_data_item (self,udi):
     (name,ni) = meqds.parse_node_udi(udi);
     if ni is None:
@@ -164,10 +189,10 @@ class TreeBrowser (object):
         return None;
       if not len(name):
         raise ValueError,'bad udi (either name or nodeindex must be supplied): '+udi;
-      node = self.nodelist[name];
+      node = meqds.nodelist[name];
     else:
       try: 
-        node = self.nodelist[ni];
+        node = meqds.nodelist[ni];
       except ValueError: # can't convert nodeindex to int: malformed udi
         raise ValueError,'bad udi (nodeindex must be numeric): '+udi;
     # create and return dataitem object
@@ -195,28 +220,26 @@ class TreeBrowser (object):
       item.setExpandable(True);
     return item;
 
-  def update_nodelist (self,nodelist):
-#    self._nl_update.setDisabled(False);
-    if self.nodelist is None:
-      # reset the nodelist view
-      self._nlv.clear();
-      all_item  = QListViewItem(self._nlv,"All Nodes (%d)"%len(nodelist));
-      all_item._iter_nodes = nodelist.iternodes();
-      all_item.setExpandable(True);
-      rootnodes = nodelist.rootnodes();
-      rootitem  = QListViewItem(self._nlv,all_item,"Root Nodes (%d)"%len(rootnodes));
-      rootitem._iter_nodes = iter(rootnodes);
-      rootitem.setExpandable(True);
-      classes = nodelist.classes();
-      cls_item  = item = QListViewItem(self._nlv,rootitem,"By Class (%d)"%len(classes));
-      for (cls,nodes) in classes.iteritems():
-        if len(nodes) == 1:
-          item = self.make_node_item(nodes[0],nodes[0].name,cls_item,item);
-        else:
-          item = QListViewItem(cls_item,item,"(%d)"%len(nodes),cls,"");
-          item.setExpandable(True);
-          item._iter_nodes = iter(nodes);
-      self.nodelist = nodelist;
+  def update_nodelist (self):
+    # reset the nodelist view
+    nodelist = meqds.nodelist;
+    self._nlv.clear();
+    all_item  = QListViewItem(self._nlv,"All Nodes (%d)"%len(nodelist));
+    all_item._iter_nodes = nodelist.iternodes();
+    all_item.setExpandable(True);
+    rootnodes = nodelist.rootnodes();
+    rootitem  = QListViewItem(self._nlv,all_item,"Root Nodes (%d)"%len(rootnodes));
+    rootitem._iter_nodes = iter(rootnodes);
+    rootitem.setExpandable(True);
+    classes = nodelist.classes();
+    cls_item  = item = QListViewItem(self._nlv,rootitem,"By Class (%d)"%len(classes));
+    for (cls,nodes) in classes.iteritems():
+      if len(nodes) == 1:
+        item = self.make_node_item(nodes[0],nodes[0].name,cls_item,item);
+      else:
+        item = QListViewItem(cls_item,item,"(%d)"%len(nodes),cls,"");
+        item.setExpandable(True);
+        item._iter_nodes = iter(nodes);
       
   def _node_clicked (self,button,item,point,col):
     if button == 1 and hasattr(item,'_node'):
@@ -237,7 +260,7 @@ class TreeBrowser (object):
     else:
       if not item._expanded:
         for (key,ni) in item._node.children:
-          node = self.nodelist[ni];
+          node = meqds.nodelist[ni];
           name = str(key) + ": " + node.name;
           i1 = self.make_node_item(node,name,item,i1);
         item._expanded = True;
@@ -256,8 +279,6 @@ class meqserver_gui (app_proxy_gui):
     self._add_ce_handler("app.result.get.node.list",self.ce_LoadNodeList);
     self._add_ce_handler("hello",self.ce_mqs_Hello);
     self._add_ce_handler("bye",self.ce_mqs_Bye);
-    
-    self._wait_nodestate = {};
     
   def populate (self,main_parent=None,*args,**kwargs):
     app_proxy_gui.populate(self,main_parent=main_parent,*args,**kwargs);
@@ -327,11 +348,11 @@ class meqserver_gui (app_proxy_gui):
       self.dprint(2,"got nodelist but it is not valid, ignoring");
       return;
     self.dprintf(2,"loaded %d nodes into nodelist\n",len(meqds.nodelist));
-    self.treebrowser.update_nodelist(meqds.nodelist);
+    self.treebrowser.update_nodelist();
       
   def update_node_state (self,node,event=None):
     meqds.reclassify_nodestate(node);
-    meqds.update_node_state(node,event);
+    meqds.add_node_snapshot(node,event);
     udi = meqds.node_udi(node);
     self.gw.update_data_item(udi,node);
     

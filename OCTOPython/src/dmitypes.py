@@ -3,6 +3,7 @@
 import string
 import numarray
 import sys
+import traceback
 
 from numarray import array;
 
@@ -137,7 +138,10 @@ class conv_error(TypeError):
     s = '<conv_error: ' + str(self.message);
     if( self.exc ): s += ','+str(self.exc);
     return s+'>';
-  
+  def __eq__ (self,other):
+    return True;
+  def __ne__ (self,other):
+    return False;
 # 
 # === class record ===
 # A record is a restricted dict that only allows specific kinds of keys
@@ -241,6 +245,38 @@ class record (dict):
     try: name = self.make_key(name);
     except ValueError,info: raise TypeError,info;
     return self.has_key(name);
+  def __eq__ (self,other):
+    if self is other:
+      return True;
+    if type(self) != type(other) or len(self) != len(other):
+      print 'type/len mismatch';
+      return False;
+    for (key,value) in self.iteritems():
+      if key not in other:
+        print 'key',key,'not in other';
+        return False;
+      value1 = other[key];
+      if type(value) != type(value1):
+        print 'key',key,'type mismatch';
+        return False;
+      elif isinstance(value,array_class):
+        try: 
+          if not numarray.alltrue(numarray.equal(value,value1)):
+            print 'key',key,'array mismatch';
+            return False;
+        except: 
+          ei = sys.exc_info();
+          print 'key',key,'array exception',ei;
+          traceback.print_tb(ei[2]);
+          return False;
+      else:
+        print 'key',key,'comparing subitem';
+        if not value == value1:
+          print 'key',key,'subitem mismatch';
+          return False;
+    return True;
+  def __ne__ (self,other):
+    return not self.__eq__(other);
 
 # 
 # === class srecord ===

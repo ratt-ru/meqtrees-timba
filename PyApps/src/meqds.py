@@ -8,6 +8,7 @@ import types
 import new
 import sets
 import re
+import time
 
 class _meqnode_nodeclass(record):
   pass;
@@ -164,47 +165,53 @@ class WeakInstanceMethod (object):
 
 def reclassify_nodestate (nodestate):
   nodestate.__class__ = NodeClass(nodestate['class']);
+  
+def nodeindex (node):
+  if isinstance(node,int):
+    return node;
+  elif isinstance(node,str):
+    return nodelist[node].nodeindex;
+  else:
+    return node.nodeindex
 
 # Adds a subscriber to node state changes
 #   If weak=True, callback will be held via weakref, otherwise
 #   via WeakInstanceMethod (if object method), otherwise via direct ref
 #
 def subscribe_node_state (node,callback,weak=False):
-  if not isinstance(node,record):
-    node = nodelist[node];
+  ni = nodeindex(node);
   if type(callback) == types.MethodType:
+    print "registering weak method callback";
     callback = WeakInstanceMethod(callback);
   elif not callable(callback):
     raise TypeError,"callback argument is not a callable";
   elif weak:
     callback = weakref.ref(callback);
   # add to subscriber list
-  node_subscribers.setdefault(node.nodeindex,sets.Set()).add(callback);
+  node_subscribers.setdefault(ni,sets.Set()).add(callback);
 
 def request_node_state (node):
-  if isinstance(node,int):
-    ni = node;
-  elif isinstance(node,str):
-    ni = nodelist[node].nodeindex;
-  else:    
-    ni = node.nodeindex;
+  ni = nodeindex(node);
   mqs1 = mqs or mqs();
   if mqs1 is None:
     raise RuntimeError,"meqserver not initialized or not running";
   mqs.meq('Node.Get.State',srecord(nodeindex=ni),wait=False);
   
 def update_node_state (node,event):
-  callbacks = node_subscribers.get(node.nodeindex,());
+  ni = nodeindex(node);
+  callbacks = node_subscribers.get(ni,());
   deleted = [];
   for cb in callbacks:
     if type(cb) == weakref.ReferenceType:
       cb1 = cb();
       if cb1 is None:
+        "removing dead callback";
         deleted.append(cb);
       else:
         cb1(node,event);
     elif isinstance(cb,WeakInstanceMethod):
       if cb(node,event) is WeakInstanceMethod.DeadRef:
+        "removing dead callback";
         deleted.append(cb);
     else:
       cb(node,event);
@@ -212,11 +219,29 @@ def update_node_state (node,event):
   for d in deleted:
     callbacks.remove(d);
 
+def add_node_snapshot (node,event):
+  ni = nodeindex(node);
+  # get list of snapshots and filter it to eliminate dead refs
+  sslist = filter(lambda s:s[0]() is not None,snapshots.get(ni,[]));
+  if len(sslist) and sslist[-1][0]() == node:
+    node.__nochange = True;
+    return;
+  sslist.append((weakref.ref(node),event,time.time()));
+  snapshots[ni] = sslist;
+  update_node_state(node,event);
+  
+def get_node_snapshots (node):
+  ni = nodeindex(node);
+  sslist0 = snapshots.get(ni,[]);
+  # filter out dead refs, reset list if it changes
+  sslist = filter(lambda s:s[0]() is not None,sslist0);
+  if len(sslist) != len(sslist0):
+    snapshots[ni] = sslist;
+  return sslist;
 
 # create global node list
+snapshots = {};
 nodelist = NodeList();
 
 node_subscribers = {};
 mqs = None;
-
-
