@@ -28,7 +28,7 @@ class app_proxy (verbosity):
   
   def __init__(self,appid,launch=None,spawn=None,
                verbose=0,wp_verbose=0,
-               gui=False,no_threads=False,debug=True):
+               gui=False,threads=False,debug=True):
     verbosity.__init__(self,verbose,name=str(appid));
     self.appid = hiid(appid);
     self._rcv_prefix = self.appid + "Out";          # messages from app
@@ -41,15 +41,15 @@ class app_proxy (verbosity):
     if wp_verbose is None:
       wp_verbose = verbose;
     
-    if no_threads:
-      _dprint(1,"running in non-threaded mode");
-      self._pwp = octopussy.proxy_wp(str(appid),verbose=wp_verbose);
-    else:
+    if threads:
       _dprint(1,"running in threaded mode");
       # select threading API
-      if gui: api = qt_threading;
+      if gui: api = Timba.qt_threading;
       else:   api = threading;
       self._pwp = octopussy.proxy_wp_thread(str(appid),verbose=wp_verbose,thread_api=api);
+    else:
+      _dprint(1,"running in non-threaded mode");
+      self._pwp = octopussy.proxy_wp(str(appid),verbose=wp_verbose);
       
     # subscribe and register handler for app events
     self._pwp.whenever(self._rcv_prefix+"*",self._event_handler,subscribe=True);
@@ -112,6 +112,7 @@ class app_proxy (verbosity):
     
     # start the gui, if so specified
     if gui:
+      _dprint(1,"starting a GUI");
       if not app_defaults.include_gui:
         raise ValueError,'gui=True but app_defaults.include_gui=False';
       # gui argument can be a callable object (called to start the gui),
@@ -119,15 +120,18 @@ class app_proxy (verbosity):
       if callable(gui):
         self._gui = gui;
       else:
-        self._gui = app_proxy_gui.app_proxy_gui;
-      if no_threads: # non-threaded: construct GUI here & now
-        self._construct_gui(poll_app=50);
-      else:
+        self._gui = Timba.GUI.app_proxy_gui.app_proxy_gui;
+      if threads: 
+        _dprint(1,"threading enabled, posting construct event");
         # threaded model: post a GUI construction event to the main app
-        mainapp = app_proxy_gui.mainapp();
+        mainapp = Timba.GUI.app_proxy_gui.mainapp();
         mainapp.postCallable(self._construct_gui);
         # after GUI has been constructed, start WP event thread
         mainapp.postCallable(self._pwp.start);
+      else:
+        # non-threaded: construct GUI here & now
+        _dprint(1,"threading disabled, constructing GUI immediately");
+        self._construct_gui(poll_app=50);
     else:     
       self._gui = None;
       # start the wp event thread now
@@ -143,7 +147,7 @@ class app_proxy (verbosity):
       self._pwp.stop();
       _dprint(1,"stopped");
     
-  # poll: dispatches all pending events. Only useful in the no_thread
+  # poll: dispatches all pending events. Only useful in the unthreaded
   # mode (when an event thread is not running)
   def poll (self):
     return self._pwp.poll_pending_events();

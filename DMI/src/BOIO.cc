@@ -76,11 +76,11 @@ TypeId BOIO::readAny (ObjRef &ref)
   if( feof(fp)  || fread(&sizes,sizeof(sizes),1,fp) != 1 )
     return 0;
   // allocate and read in blocks  
-  BlockSet set(header.nblocks);
+  BlockSet set;
   for( int i=0; i<header.nblocks; i++ )
   {
     SmartBlock *block = new SmartBlock(sizes[i]);
-    set[i] <<= block;
+    set.pushNew() <<= block;
     if( fread(block->data(),sizes[i],1,fp) != 1 )
       return 0;
   }
@@ -122,16 +122,19 @@ size_t BOIO::write (const DMI::BObj &obj)
   size_t written = sizeof(hdr);
   // format and write size array
   size_t sizes[hdr.nblocks];
-  for( int i=0; i<set.size(); i++ )
-    sizes[i] = set[i]->size();
+  BlockSet::iterator iter = set.begin();
+  for( int i=0; i<set.size(); i++,iter++ )
+    sizes[i] = (*iter)->size();
+  DbgAssert(iter == set.end());
   FailWhen( fwrite(&sizes,sizeof(sizes),1,fp) != 1,"write error" );
   // write out the blocks
-  for( int i=0; i<set.size(); i++ )
+  iter = set.begin();
+  for( int i=0; i<set.size(); i++,iter++ )
   {
-    FailWhen( fwrite(set[i]->data(),sizes[i],1,fp) != 1,"write error" );
+    FailWhen( fwrite((*iter)->data(),sizes[i],1,fp) != 1,"write error" );
     written += sizes[i];
   }
- 
+  DbgAssert(iter == set.end());
   return written;
 }
 

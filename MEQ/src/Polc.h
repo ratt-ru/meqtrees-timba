@@ -95,7 +95,7 @@ public:
     //##ModelId=3F86886F036F
   int ncoeff() const
   { return pcoeff_ ? pcoeff_->deref().size() : 0; }
-  // Get rank of polynomial
+  
   // Get shape of coefficients
   const LoShape & getCoeffShape () const
   { return coeff().shape(); }
@@ -110,8 +110,11 @@ public:
   double getCoeff0 () const
   { return *static_cast<const double*>(coeff().getConstDataPtr()); }
   
+  // Get vector of coeffs 
+  const LoVec_double & getCoeff1 () const
+  { return coeff().getConstArray<double,1>(); }
+  
   // Get matrix of coeffs 
-  // (a 1D polc is represented by an Nx1 matrix)
   const LoMat_double & getCoeff2 () const
   { return coeff().getConstArray<double,2>(); }
 

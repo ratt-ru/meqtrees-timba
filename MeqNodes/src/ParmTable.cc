@@ -226,10 +226,29 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   ScalarColumn<double> weightCol (itsTable, ColWeight);
   const Domain& domain = funklet.domain();
   const Polc & polc = dynamic_cast<const Polc&>(funklet);
+  // for the moment, only Time-Freq variable polcs are supported
   Assert(polc.rank()==2);
-  Assert(polc.getAxis(1)==Axis::FREQ);
   Assert(polc.getAxis(0)==Axis::TIME);
-  const LoMat_double & values = polc.getCoeff2();
+  Assert(polc.getAxis(1)==Axis::FREQ);
+  LoMat_double values;
+  // polc coefficients may actually be an N-vector or a scalar,
+  // so convert them to matrix anyway
+  const LoShape & polcshape = polc.getCoeffShape();
+  if( polcshape.size() == 2 )
+  {
+    values.resize(polcshape);
+    values = polc.getCoeff2();
+  }
+  else if( polcshape.size() == 1 )
+  {
+    values.resize(polcshape[0],1);
+    values(LoRange::all(),0) = polc.getCoeff1();
+  }
+  else if( polcshape.size() == 0 )
+  {
+    values.resize(1,1);
+    values = polc.getCoeff0();
+  }
   int rownr = polc.getDbId();
   // have a row number? check name, etc.
   if( rownr >= 0 )

@@ -1,3 +1,5 @@
+from Timba import dmi
+
 import re
 
 # Default debug levels.
@@ -6,11 +8,12 @@ import re
 debuglevels = {};
 
 # default arguments to app_proxy and derivatives
-args = {
+args = dmi.record({
   'launch':True,'spawn':None,
   'verbose':0,'wp_verbose':0,
+  'threads':True,
   'gui':False
-};
+});
 
 # if this is false, then all gui definitions are omitted at startup, and
 # a gui can't be enabled later (set via the "-nogui" option)
@@ -31,6 +34,9 @@ def parse_argv (argv):
       
     elif arg == "-gui":
       args['gui'] = True;
+      
+    elif arg == "-nothreads":
+      args['threads'] = False;
       
     elif arg == "-nogui":
       global include_gui;

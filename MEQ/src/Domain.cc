@@ -78,8 +78,9 @@ void Domain::validateContent (bool)
     { 
       const HIID &id = iter.id();
       FailWhen(id.size()!=1,"illegal axis ID "+id.toString());
-      const Container *pcont = dynamic_cast<const Container*>(iter.ref().deref_p());
-      FailWhen(!pcont,"illegal content for axis "+id.toString());
+      const BObj *pobj = iter.ref().deref_p();
+      const Container *pcont = dynamic_cast<const Container*>(pobj);
+      FailWhen(!pcont,"illegal content of type "+pobj->objectType().toString()+" for axis "+id.toString());
       int iaxis = id[0].index();
       if( iaxis<0 )
       {

@@ -15,6 +15,8 @@ py_app_launcher_la_LIBADD =
 
 py_app_launcher_la_DEPENDENCIES = $(LOFAR_DEPEND)
 
+bin_PROGRAMS        =
+
 check_PROGRAMS   		= 
 
 pythondir = $(libexecdir)/python
@@ -27,7 +29,9 @@ guidir = $(pythondir)/Timba/GUI
 meqdir = $(pythondir)/Timba/Meq
 plugindir = $(pythondir)/Timba/Plugins
 
-dist_python_SCRIPTS = meqbrowser.py 
+dist_bin_SCRIPTS = meqbrowser.py 
+
+dist_python_SCRIPTS = 
 
 dist_timba_SCRIPTS = pretty_print.py  
 

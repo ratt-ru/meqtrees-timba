@@ -255,8 +255,7 @@ class Node : public DMI::BObj
     
     // syncs rapidly-updated object state (that may not be immediately
     // put into the state record)
-    const DMI::Record & syncState() 
-    { wstate()[FControlStatus] = control_status_; return *staterec_; }
+    const DMI::Record & syncState();
     
     bool hasState () const
     { return staterec_.valid(); }
@@ -842,6 +841,7 @@ class Node : public DMI::BObj
     //##Documentation
     //## current (or last executed) request, set in execute()
     HIID current_reqid_;
+    Request::Ref current_request_;
     //##ModelId=400E530B01AF
     //##Documentation
     //## cached result of current request

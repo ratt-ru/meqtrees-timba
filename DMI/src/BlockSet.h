@@ -4,7 +4,7 @@
 #include <DMI/DMI.h>
 #include <DMI/SmartBlock.h>
 
-#include <deque>
+#include <list>
     
 namespace DMI
 {
@@ -14,81 +14,140 @@ namespace DMI
 //## A deque of block references.
 class BlockSet 
 {
-  ImportDebugContext(DebugDMI);
+  private:
+      typedef std::list<BlockRef> BlockList;
+  
   public:
+      typedef BlockList::const_iterator const_iterator;
+      typedef BlockList::iterator iterator;
+      
     //##ModelId=3BFA4B6501A7
-      BlockSet(const BlockSet &right);
-
       //##ModelId=3C3EBCBA0082
-      explicit BlockSet (int num = 0);
-
-      //##ModelId=3DB934480060
-      BlockSet (BlockSet& right, int flags);
+      BlockSet ()
+      : cursize(0) 
+      {}
+  
+      BlockSet(const BlockSet &right,int flags=0)
+      { right.copyAll(*this,flags); }
 
     //##ModelId=3DB93448029B
-      ~BlockSet();
+      ~BlockSet()
+      {}
 
     //##ModelId=3DB9344802F5
-      BlockSet & operator=(const BlockSet &right);
-
+      BlockSet & operator = (const BlockSet &right)
+      {
+        if( &right != this )
+          right.copyAll(*this);
+        return *this;
+      }
+      
+      const_iterator begin () const
+      { return refs.begin(); }
+      iterator begin ()
+      { return refs.begin(); }
+      const_iterator end () const
+      { return refs.end(); }
+      iterator end ()
+      { return refs.end(); }
 
       //##ModelId=3C1E1B0B014A
-      int size () const;
+      int size () const
+      { return cursize; }
 
       //##ModelId=3C3D854D000C
-      void clear ();
+      void clear ()
+      { refs.clear(); cursize=0;  }
 
       //##ModelId=3C974F800237
-      const BlockRef & front () const;
+      const BlockRef & front () const
+      { return refs.front(); }
 
       //##ModelId=3C9F331201C8
-      const BlockRef & back () const;
+      const BlockRef & back () const
+      { return refs.back(); }
 
       //##ModelId=3BFA537401F6
       //##Documentation
       //## Removes & returns first reference in set
-      BlockRef pop ();
+      BlockRef pop ()
+      {
+        BlockRef out = refs.front();
+        refs.pop_front();
+        --cursize;
+        return out;
+      }
 
       //##ModelId=3C5AB7F40257
-      void pop (BlockRef &out);
+      //## Removes & returns first reference in set via out
+      void pop (BlockRef &out)
+      {
+        out.xfer(refs.front());
+        refs.pop_front();
+        --cursize;
+      }
 
+      //##ModelId=3BFB873E0091
+      //##Documentation
+      //## Adds a BlockRef to the tail of a BlockSet
+      int push (const BlockRef &ref)
+      {
+        refs.push_back(ref);
+        return ++cursize;
+      }
+
+      //##ModelId=3C5AA4BF0279
+      //##Documentation
+      //## Adds with copy flags
+      int push (const BlockRef &ref, int flags)
+      {
+        pushNew().copy(ref,flags);
+        return size();
+      }
+
+      //##ModelId=3C5AB3880083
+      //##Documentation
+      //## Adds an empty ref at the end of the set, and returns a reference to
+      //## it.
+      BlockRef & pushNew ()
+      {
+        refs.push_back(BlockRef());
+        ++cursize;
+        return refs.back();
+      }
+
+      //##ModelId=3BFB89BE02AB
+      //##Documentation
+      //## Inserts a BlockRef at the head of the BlockSet
+      int pushFront (const BlockRef &ref)
+      {
+        refs.push_front(ref);
+        ++cursize;
+        return size();
+      }
+
+      //##ModelId=3BFB85F30334
+      //##Documentation
+      //## Copies all refs in the blockset to BlockSet out. 
+      int copyAll (BlockSet &out, int flags = 0) const
+      { 
+        out.clear(); 
+        out.pushCopy(*this,flags); 
+        return size(); 
+      }
+      
       //##ModelId=3BFA56540172
       //##Documentation
       //## Removes n refs from the start of a set, and places them into another
       //## BlockSet
       int popMove (BlockSet& outset, int count);
 
-      //##ModelId=3BFB873E0091
-      //##Documentation
-      //## Adds a BlockRef to the tail of a BlockSet
-      int push (const BlockRef &ref);
-
       //##ModelId=3C3EB55F00FD
       //##Documentation
       //## Adds copies of all refs in the argument set. The flags parameter is
       //## passed to ref.copy().
-      int pushCopy (BlockSet &set, int flags = 0);
+      int pushCopy (const BlockSet &set, int flags = 0);
 
-      //##ModelId=3C5AA4BF0279
-      //##Documentation
-      //## Adds copy of argument ref.
-      int pushCopy (const BlockRef &ref, int flags = 0);
-
-      //##ModelId=3C5AB3880083
-      //##Documentation
-      //## Adds an empty ref at the end of the set, and returns a reference to
-      //## it.
-      BlockRef & pushNew ();
-
-      //##ModelId=3BFB89BE02AB
-      //##Documentation
-      //## Inserts a BlockRef at the head of the BlockSet
-      int pushFront (BlockRef ref);
-
-      //##ModelId=3BFB85F30334
-      //##Documentation
-      //## Copies all refs in the blockset to BlockSet out. 
-      int copyAll (BlockSet &out, int flags = 0) const;
 
       //##ModelId=3BFB8A3301D6
       //## Privatizes all refs in the blockset 
@@ -112,14 +171,15 @@ class BlockSet
       //## cursor position. Returns # of refs destroyed.
       int flushToCursor ();
 
-    // Additional Public Declarations
-    //##ModelId=3DB934490076
-      BlockRef & operator [] (int i);
-    //##ModelId=3DB9344901E8
-      const BlockRef & operator [] (int i) const;
+//    // Additional Public Declarations
+//    //##ModelId=3DB934490076
+//      BlockRef & operator [] (int i);
+//    //##ModelId=3DB9344901E8
+//      const BlockRef & operator [] (int i) const;
       
     //##ModelId=3DB9344903A1
-      bool empty () const;
+      bool empty () const
+      { return refs.empty(); }
       
       // This is a typical debug() method setup. The sdebug()
       // method creates a debug info string at the given level of detail.
@@ -139,67 +199,25 @@ class BlockSet
       const char * debug ( int detail = 1,const string &prefix = "",
                            const char *name = 0 ) const
       { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
+      
+      ImportDebugContext(DebugDMI);
+      
   private:
     // Additional Private Declarations
-    //##ModelId=3DB9343A007C
-      typedef std::deque<BlockRef>::iterator DQI;
-    //##ModelId=3DB9343A00EA
-      typedef std::deque<BlockRef>::const_iterator CDQI;
+      BlockList refs;
+      int cursize;
       
     //##ModelId=3DB934460361
-      DQI cursor_iter;
+      BlockList::iterator cursor_iter;
     //##ModelId=3DB9344603D8
       size_t cursor_offset;
     //##ModelId=3BF90ECC024E
-      std::deque<BlockRef> refs;
       
     //##ModelId=3DB9344C0238
       size_t cursorSize ()   { return (*cursor_iter)->size(); }
       
-  private:
-    // Data Members for Associations
-
-
 };
 
-// Class BlockSet 
-
-
-//##ModelId=3C1E1B0B014A
-inline int BlockSet::size () const
-{
-  return refs.size();
-}
-
-//##ModelId=3C974F800237
-inline const BlockRef & BlockSet::front () const
-{
-  return refs.front();
-}
-
-//##ModelId=3C9F331201C8
-inline const BlockRef & BlockSet::back () const
-{
-  return refs.back();
-}
-
-//##ModelId=3DB934490076
-inline BlockRef & BlockSet::operator [] (int i)
-{
-  return refs[i];
-}
-
-//##ModelId=3DB9344901E8
-inline const BlockRef & BlockSet::operator [] (int i) const
-{
-  return refs[i];
-}
-
-//##ModelId=3DB9344903A1
-inline bool BlockSet::empty () const
-{
-  return refs.empty();
-}
 
 }; // namespace DMI
 #endif

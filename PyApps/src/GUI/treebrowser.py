@@ -12,6 +12,7 @@ import weakref
 import sets
 import re
 import copy
+import math
 
 _dbg = verbosity(0,name='tb');
 _dprint = _dbg.dprint;
@@ -151,9 +152,15 @@ class TreeBrowser (QObject):
       if self._expanded:
         return;
       i1 = self;
+      # format string for enumerating children -- need to use sufficient digits
+      chform = '%%0%dd: %%s' % (math.floor(math.log10(len(self.node.children)))+1,);
+      # generates entires for each child
       for (key,ni) in self.node.children:
         node = meqds.nodelist[ni];
-        name = str(key) + ": " + node.name;
+        if isinstance(key,int):
+          name = chform % (key,node.name);
+        else:
+          name = ': '.join(key,node.name);
         i1 = self.__class__(self.tb,node,name,self,i1);
       for ni in self.node.step_children:
         node = meqds.nodelist[ni];

@@ -35,8 +35,9 @@ const create_source_subtrees := function (sti,ra,dec,src='')
 {
   # meq.parm(), meq.node() return init-records
   # mqs.createnode() actually creates a node from an init-record.
-  
-  mqs.createnode(meq.parm(fq_name('stokes_i',src),sti,groups="a"));
+  parmrec := meq.parm(fq_name('stokes_i',src),sti,groups="a")
+  parmrec.table_name := 'test.mep';
+  mqs.createnode(parmrec);
   # note the nested-record syntax here, to create child nodes implicitly
   mqs.createnode(meq.node('MeqLMN',fq_name('lmn',src),children=[
                   ra_0  ='ra0',
@@ -511,6 +512,8 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
   # run over MS
   if( run )
     do_run();
+  else
+   print "Type do_run() to run this tree";
 }
 
 const do_run := function ()
@@ -528,6 +531,7 @@ filluvw := any(argv=='-filluvw');
 solve_gains := any(argv=='-gains');
 solve_phases := any(argv=='-phases');
 set_breakpoint := any(argv=='-bp');
+run := !any(argv=='-norun');
 
 src_dra  := ([0,142.5]+0) * pi/(180*60*60); # perturb positions by # seconds
 src_ddec := ([0,128]+0) * pi/(180*60*60);
@@ -547,21 +551,21 @@ else
   mepuvw := F;
 
 outcol := 'PREDICTED_DATA';
-solver_defaults := [ num_iter=10,save_funklets=F,last_update=F ];
+solver_defaults := [ num_iter=3,save_funklets=T,last_update=T ];
 
 inputrec := [ ms_name = msname,data_column_name = 'DATA',
               tile_size=5,# clear_flags=T,
               selection = [ channel_start_index=1,channel_end_index=1 ] ];
 outputrec := [ write_flags=T,predict_column=outcol ]; 
 
-res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=0.17,
+res := do_test(msname=msname,solve=T,subtract=T,run=run,flag=0.17,
 #  st1set=[1:5]*4,st2set=[1:5]*4,
 #  st1set=[1:21]*4,st2set=[1:21]*4,
-  stset=1+[0:10], #load='meqsolve50.forest',
+  stset=1+[0:6], #load='meqsolve50.forest',
 #  st1set=1+[0:20]*4,st2set=1+[0:20]*4,
 #  st1set=1:100,st2set=1:100,
   set_breakpoint=set_breakpoint,
-  publish=1,mepuvw=mepuvw,msuvw=msuvw);
+  publish=5,mepuvw=mepuvw,msuvw=msuvw);
 #do_test(solve=T,run=T,publish=2,load='solve-100.forest');
 
 print res;

@@ -375,21 +375,41 @@ inline int Node::getChildNumber (const HIID &id)
   return iter == child_map_.end() ? -1 : iter->second;
 }
 
+const DMI::Record & Node::syncState()
+{ 
+  DMI::Record & st = wstate();
+  if( current_request_.valid() )
+    st.replace(FRequest,current_request_);
+  else
+    st.remove(FRequest);
+  if( cache_result_.valid() )
+    st.replace(FCacheResult,cache_result_);
+  else
+    st.remove(FCacheResult);
+  st[FCacheResultCode] = cache_retcode_;
+  st[FRequestId]       = current_reqid_;
+  st[FControlStatus]   = control_status_; 
+  st[FBreakpointSingleShot] = breakpoints_ss_;
+  st[FBreakpoint] = breakpoints_;
+  return st; 
+}
+
 //##ModelId=3F9919B10014
 void Node::setCurrentRequest (const Request &req)
 {
-  wstate()[FRequest].replace().put(req);
-  wstate()[FRequestId].replace() = current_reqid_ = req.id();
+  current_request_.attach(req);
+  current_reqid_ = req.id();
 }
 
 //##ModelId=400E531300C8
 void Node::clearCache (bool recursive,bool quiet)
 {
   cache_result_.detach();
-  wstate()[FCacheResult].replace() = false;
-  wstate()[FCacheResultCode].replace() = cache_retcode_ = 0;
-  wstate()[FRequestId].replace() = current_reqid_ = HIID();
-  wstate()[FRequest].remove();
+  cache_retcode_ = 0;
+//  wstate()[FCacheResult].replace() = false;
+//  wstate()[FCacheResultCode].replace() = cache_retcode_ = 0;
+  current_reqid_.clear();
+  current_request_.detach();
   clearRCRCache();
   if( quiet )
     control_status_ &= ~CS_CACHED;
@@ -398,7 +418,7 @@ void Node::clearCache (bool recursive,bool quiet)
   if( recursive )
   {
     for( int i=0; i<numChildren(); i++ )
-      getChild(i).clearCache(true);
+      getChild(i).clearCache(true,quiet);
   }
 }
 
@@ -444,20 +464,20 @@ int Node::cacheResult (const Result::Ref &ref,int retcode)
   retcode &= ~RES_UPDATED;
   // for now, always cache, since we don't implement any other policy
   // NB: perhaps fails should be marked separately?
-  cache_result_.copy(ref);
-  wstate()[FCacheResult].replace() <<= cache_result_.deref_p();
-  wstate()[FCacheResultCode].replace() = cache_retcode_ = retcode;
+  cache_result_ = ref;
+  cache_retcode_ = retcode;
   cdebug(3)<<"  caching result with code "<<ssprintf("0x%x",retcode)<<endl;
-  // publish current state to all result subscribers
-  if( result_event_gen_.active() )
-    result_event_gen_.generateEvent(staterec_.copy());  
-  // NB***: if we don't cache the result, we have to publish it regardless
-  // this is to be implemented later, with caching policies
-  
   // control status set directly (not via setControlStatus call) because
   // caller (execute(), presumably) is going to update status anyway
   control_status_ |= CS_CACHED;
-  
+  // sync state and publish to all result subscribers
+  // NB***: if we don't cache the result, we have to publish it regardless
+  // this is to be implemented later, with caching policies
+  if( result_event_gen_.active() )
+  {
+    syncState();
+    result_event_gen_.generateEvent(staterec_.copy());  
+  }
   return retcode;
 }
 
@@ -1013,12 +1033,12 @@ void Node::setBreakpoint (int bpmask,bool oneshot)
 {
   if( oneshot )
   {
-    wstate()[FBreakpointSingleShot] = breakpoints_ss_ |= bpmask;
+    breakpoints_ss_ |= bpmask;
     setControlStatus(breakpoints_ss_ ? control_status_|CS_BREAKPOINT_SS : control_status_&~CS_BREAKPOINT_SS);
   }
   else
   {
-    wstate()[FBreakpoint] = breakpoints_ |= bpmask;
+    breakpoints_ |= bpmask;
     setControlStatus(breakpoints_ ? control_status_|CS_BREAKPOINT : control_status_&~CS_BREAKPOINT);
   }
 }
@@ -1027,12 +1047,12 @@ void Node::clearBreakpoint (int bpmask,bool oneshot)
 {
   if( oneshot )
   {
-    wstate()[FBreakpointSingleShot] = breakpoints_ss_ &= ~bpmask;
+    breakpoints_ss_ &= ~bpmask;
     setControlStatus(breakpoints_ss_ ? control_status_|CS_BREAKPOINT_SS : control_status_&~CS_BREAKPOINT_SS); 
   }
   else
   {
-    wstate()[FBreakpoint] = breakpoints_ &= ~bpmask;
+    breakpoints_ &= ~bpmask;
     setControlStatus(breakpoints_ ? control_status_|CS_BREAKPOINT : control_status_&~CS_BREAKPOINT);
   }
 }
@@ -1076,11 +1096,10 @@ void Node::setExecState (int es,int newst,bool sync)
     // notify the Forest that a breakpoint has been reached
     forest_->processBreakpoint(*this,es,!local);
     // clear stop bit from control status
-    setControlStatus(newst&~CS_STOP_BREAKPOINT,sync);
+    setControlStatus(control_status_&~CS_STOP_BREAKPOINT,sync);
   }
   else  // no breakpoints, simply update control status
     setControlStatus(newst,sync);
-  
 }
 
 std::string Node::getStrExecState (int state)

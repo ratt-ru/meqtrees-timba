@@ -77,7 +77,15 @@ class verbosity:
     self.verbosity_name = name;
   def get_verbosity_name (self):
     return self.verbosity_name;
-  
+    
+
+def _print_curry_exception ():
+  (et,ev,etb) = sys.exc_info();
+  print "%s: %s" % (getattr(ev,'_classname',ev.__class__.__name__),getattr(ev,'__doc__',''));
+  if hasattr(ev,'args'):
+    print "  ",' '.join(ev.args);
+  print '======== exception traceback follows:';
+  traceback.print_tb(etb);
   
 # curry() composes callbacks and such
 # See The Python Cookbook recipe 15.7
@@ -85,7 +93,16 @@ def curry (func,*args,**kwds):
   def callit(*args1,**kwds1):
     kw = kwds.copy();
     kw.update(kwds1);
-    return func(*(args+args1),**kw);
+    a = args+args1;
+    try:
+      return func(*a,**kw);
+    except:
+      print "======== curry: exception while calling a curried function";
+      print "  function:",func;
+      print "  args:",a;
+      print "  kwargs:",kw;
+      _print_curry_exception();
+      raise;
   return callit;
   
 # Extended curry() version
@@ -99,7 +116,14 @@ def xcurry (func,_args=(),_argslice=slice(0),_kwds={},**kwds):
     a = _args+args1[_argslice];
     kw = kwds0.copy();
     kw.update(kwds1);
-    return func(*a,**kw);
+    try: return func(*a,**kw);
+    except:
+      print "======== xcurry: exception while calling a curried function";
+      print "  function:",func;
+      print "  args:",a;
+      print "  kwargs:",kw;
+      _print_curry_exception();
+      raise;
   return callit;
   
 class PersistentCurrier (object):

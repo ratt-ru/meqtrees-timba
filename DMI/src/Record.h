@@ -26,8 +26,31 @@
 #include <DMI/DMI.h>
 #include <DMI/Container.h>
 #include <DMI/ObjectAssignerMacros.h>
+#include <DMI/HashMap.h>
 
 #pragma type #DMI::Record
+
+namespace DMI_hash_namespace
+{
+
+template<>
+struct hash<DMI::HIID> 
+{
+  size_t operator () (const DMI::HIID &x) const
+  {
+    size_t h = 0;
+    int bits = 0;
+    for( DMI::HIID::const_iterator p = x.begin(); p < x.end(); ++p )
+    {
+      uint a = p->id();
+      h ^= (a<<bits) | (a>>(32-bits));
+      bits = (bits+8)%32;
+    }
+    return h;
+  }
+};
+
+};
 
 //##ModelId=3BB3112B0027
 //##Documentation
@@ -46,7 +69,7 @@ class Record : public Container
         bool     protect;
       } Field;
 
-      typedef std::map<HIID,Field> FieldMap; 
+      typedef hash_map<HIID,Field> FieldMap; 
   
   public:
       typedef CountedRef<Record> Ref;
@@ -380,8 +403,9 @@ inline void Record::insert (const HIID &id,ObjRef &ref,int flags)
 inline void Record::replace (const HIID &id,ObjRef &ref,int flags)
 { addField(id,ref,flags|DMI::REPLACE|HONOR_PROTECT); };
 
+}; // namespace DMI
 
-};
+
 #endif
 
 

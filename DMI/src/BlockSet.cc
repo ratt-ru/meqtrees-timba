@@ -4,137 +4,35 @@
 namespace DMI
 {
   
-//##ModelId=3BFA4B6501A7
-
-BlockSet::BlockSet(const BlockSet &right)
-{
-  *this = right;
-}
-
-//##ModelId=3C3EBCBA0082
-BlockSet::BlockSet (int num)
-    : refs(num)
-{
-}
-
-//##ModelId=3DB934480060
-BlockSet::BlockSet (BlockSet& right, int flags)
-{
-  right.copyAll(*this,flags);
-}
-
-
-//##ModelId=3DB93448029B
-BlockSet::~BlockSet()
-{
-}
-
-
-//##ModelId=3DB9344802F5
-BlockSet & BlockSet::operator=(const BlockSet &right)
-{
-  if( &right != this )
-    right.copyAll(*this);
-  return *this;
-}
-
-
-
-//##ModelId=3C3D854D000C
-void BlockSet::clear ()
-{
-  refs.clear();
-}
-
-//##ModelId=3BFA537401F6
-BlockRef BlockSet::pop ()
-{
-  FailWhen( refs.empty(),"can't pop from empty set" );
-  BlockRef out = refs.front();
-  refs.pop_front();
-  return out;
-}
-
-//##ModelId=3C5AB7F40257
-void BlockSet::pop (BlockRef &out)
-{
-  FailWhen( refs.empty(),"can't pop from empty set" );
-  out.xfer(refs.front());
-  refs.pop_front();
-}
-
 //##ModelId=3BFA56540172
 int BlockSet::popMove (BlockSet& outset, int count)
 {
   FailWhen( count>size(),"Too many refs requested in popMove" );
-  int n = outset.size();
-  outset.refs.resize( n + count );
-//  out.refs.reserve(size());
-  for( DQI oiter = outset.refs.begin()+n; count>0; oiter++,count-- )
+  for( int i=0; i<count; i++ )
   {
-    (*oiter).xfer(refs.front());
+    outset.pushNew().xfer(refs.front());
     refs.pop_front();
   }
-  return size();
+  return cursize -= count;
 }
 
-//##ModelId=3BFB873E0091
-int BlockSet::push (const BlockRef &ref)
-{
-  refs.push_back(ref);
-  return size();
-}
 
 //##ModelId=3C3EB55F00FD
-int BlockSet::pushCopy (BlockSet &set, int flags)
+int BlockSet::pushCopy (const BlockSet &set, int flags)
 {
-  int n = size();
-  refs.resize( n + set.size() );
-  CDQI in_iter = set.refs.begin();
-  for( DQI iter = refs.begin()+n; iter != refs.end(); iter++,in_iter++ )
-    (*iter).copy(*in_iter,flags);
-  return size();
-}
-
-//##ModelId=3C5AA4BF0279
-int BlockSet::pushCopy (const BlockRef &ref, int flags)
-{
-  refs.resize( size() + 1 );
-  refs.back().copy(ref,flags);
-  return size();
-}
-
-//##ModelId=3C5AB3880083
-BlockRef & BlockSet::pushNew ()
-{
-  refs.resize( size() + 1 );
-  return refs.back();
-}
-
-//##ModelId=3BFB89BE02AB
-int BlockSet::pushFront (BlockRef ref)
-{
-  refs.push_front(ref);
-  return size();
-}
-
-//##ModelId=3BFB85F30334
-//##ModelId=3C3EBF410288
-int BlockSet::copyAll (BlockSet &out, int flags) const
-{
-  int n = out.size();
-  out.refs.resize( n + size() );
-  DQI oiter = out.refs.begin()+n;
-//  out.refs.reserve(size());
-  for( CDQI iter = refs.begin(); iter != refs.end(); iter++,oiter++ )
-    (*oiter).copy(*iter,flags);
-  return out.size();
+  BlockList::const_iterator iter = set.refs.begin();
+  for( ; iter != set.refs.end(); iter++ )
+  {
+    refs.push_back(BlockRef());
+    refs.back().copy(*iter,flags);
+  }
+  return cursize += set.size();
 }
 
 //##ModelId=3BFB8A3301D6
 int BlockSet::privatizeAll (int flags)
 {
-  for( DQI iter = refs.begin(); iter != refs.end(); iter++ )
+  for( BlockList::iterator iter = refs.begin(); iter != refs.end(); iter++ )
     (*iter).privatize(flags);
   return size();
 }
@@ -143,7 +41,7 @@ int BlockSet::privatizeAll (int flags)
 size_t BlockSet::initCursor ()
 {
   size_t total = 0;
-  for( CDQI iter = refs.begin(); iter != refs.end(); iter++ )
+  for( BlockList::const_iterator iter = refs.begin(); iter != refs.end(); iter++ )
     total += (*iter)->size();
   cursor_iter = refs.begin();
   cursor_offset = 0;
@@ -198,14 +96,14 @@ string BlockSet::sdebug ( int detail,const string &prefix,const char *name ) con
   {
     if( out.length() )
       out += "\n"+prefix+"  {";
-    for( CDQI iter = refs.begin(); iter != refs.end(); iter++ )
+    for( BlockList::const_iterator iter = refs.begin(); iter != refs.end(); iter++ )
       Debug::append(out,(*iter).sdebug(0,"",""));
     out += " }";
   }
   // higher detail - append ref list at higher detail
   if( ( detail >= 2 || detail <= -2 ) && size() )
   {
-    for( CDQI iter = refs.begin(); iter != refs.end(); iter++ )
+    for( BlockList::const_iterator iter = refs.begin(); iter != refs.end(); iter++ )
     {
       if( out.length() )
         out += "\n"+prefix;
