@@ -55,7 +55,7 @@ int main (int argc,const char* argv[])
     rec_child1()["Name"] = "p1";
     //    rec_child1()["Tablename"] = "meqadd.MEP";
     rec_child1()["Default"] = defVal1;
-    rec_child1()["Config.Groups"] = vector<HIID> (1, FSolvableParm);
+    rec_child1()["Config.Groups"] = FSolvableParm;
     int index_child1;
     Node& child1 = forest.create(index_child1,rec_child1);
     
@@ -65,7 +65,7 @@ int main (int argc,const char* argv[])
     rec_child2()["Name"] = "p2";
     //    rec_child2()["Tablename"] = "meqadd.MEP";
     rec_child2()["Default"] = defVal2;
-    rec_child2()["Config.Groups"] = vector<HIID> (1, FSolvableParm);
+    rec_child2()["Config.Groups"] = FSolvableParm;
     int index_child2;
     Node& child2 = forest.create(index_child2,rec_child2);
     
@@ -83,7 +83,7 @@ int main (int argc,const char* argv[])
     DataRecord::Ref rec(DMI::ANONWR);
     rec()["Class"] = "MeqSolver";
     rec()["Name"] = "solve1";
-    rec()["Num.Steps"] = 1;
+    rec()["Num.Steps"] = 3;
     rec()["Children"] <<= new DataRecord;
       rec()["Children"]["A"] = "condeq1";
     DataRecord& recs = rec()["Solvable.Parm"] <<= new DataRecord;
