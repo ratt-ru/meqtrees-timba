@@ -25,7 +25,7 @@
 #
 # Macro to check for suitable Corba implementation
 #
-AC_DEFUN(lofar_CORBA,dnl
+AC_DEFUN([lofar_CORBA],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 lofar_HEADER_VISIBROKER([])
@@ -63,7 +63,7 @@ dnl
 #
 # Macro to check corba.h header file
 #
-AC_DEFUN(lofar_HEADER_VISIBROKER,dnl
+AC_DEFUN([lofar_HEADER_VISIBROKER],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], define(DEFAULT_VBROKER_PREFIX,[/opt/inprise/vbroker]), define(DEFAULT_VBROKER_PREFIX,$1))
@@ -144,7 +144,7 @@ fi]
 #
 # Macro to check corba.h header file
 #
-AC_DEFUN(lofar_HEADER_TAO,dnl
+AC_DEFUN([lofar_HEADER_TAO],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], define(DEFAULT_TAO_PREFIX,[/usr/local/ACE]), define(DEFAULT_TAO_PREFIX,$1))

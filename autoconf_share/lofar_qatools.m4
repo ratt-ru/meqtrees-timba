@@ -25,7 +25,7 @@
 #
 # Macro to check for pure or insure checking tools
 #
-AC_DEFUN(lofar_QATOOLS,dnl
+AC_DEFUN([lofar_QATOOLS],dnl
 lofar_PURETOOLS([])dnl
 lofar_INSURETOOLS([])dnl
 lofar_COMPILETOOLS()dnl
@@ -48,7 +48,7 @@ fi]
 # e.g. lofar_PURETOOLS(["/opt/pure/purify"])
 # -------------------------
 #
-AC_DEFUN(lofar_PURETOOLS,dnl
+AC_DEFUN([lofar_PURETOOLS],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], define(DEFAULT_PURETOOLS_PREFIX,[/opt/pure]), define(DEFAULT_PURETOOLS_PREFIX,$1))
@@ -152,7 +152,7 @@ fi]
 # e.g. lofar_INSURETOOLS(["/opt/insure/bin"])
 # -------------------------
 #
-AC_DEFUN(lofar_INSURETOOLS,dnl
+AC_DEFUN([lofar_INSURETOOLS],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], define(DEFAULT_INSURETOOLS_PREFIX,[/usr/local/parasoft/bin.linux2]), define(DEFAULT_INSURETOOLS_PREFIX,$1))
@@ -268,7 +268,7 @@ fi]
 #
 # -------------------------
 #
-AC_DEFUN(lofar_COMPILETOOLS,dnl
+AC_DEFUN([lofar_COMPILETOOLS],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 AC_ARG_WITH(compiletools,

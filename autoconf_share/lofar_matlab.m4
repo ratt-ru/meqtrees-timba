@@ -30,7 +30,7 @@
 # e.g. lofar_MATLAB(["/usr/local/matlabr12"])
 # -------------------------
 #
-AC_DEFUN(lofar_MATLAB,dnl
+AC_DEFUN([lofar_MATLAB],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], define(DEFAULT_MATLAB_PREFIX,[/usr/local/matlabr12]), define(DEFAULT_MATLAB_PREFIX,$1))

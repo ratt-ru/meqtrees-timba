@@ -30,7 +30,7 @@
 # e.g. lofar_QT(["/usr/local/qtr12"])
 # -------------------------
 #
-AC_DEFUN(lofar_QT,dnl
+AC_DEFUN([lofar_QT],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], [qt_lfr_option=0], [qt_lfr_option=$1])

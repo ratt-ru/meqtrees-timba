@@ -31,7 +31,7 @@
 # e.g. lofar_PVSS(1)
 # --------------------
 #
-AC_DEFUN(lofar_PVSS,dnl
+AC_DEFUN([lofar_PVSS],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], [lfr_option=0], [lfr_option=$1])

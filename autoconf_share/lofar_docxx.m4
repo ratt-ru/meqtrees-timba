@@ -28,7 +28,7 @@
 # e.g. lofar_DOCXX
 # -------------------------
 #
-AC_DEFUN(lofar_DOCXX,dnl
+AC_DEFUN([lofar_DOCXX],dnl
 lofar_DOXYGEN([])dnl
 lofar_DOCPP([])dnl
 [
@@ -49,7 +49,7 @@ fi]
 # e.g. lofar_DOXYGEN(["/usr/bin"])
 # -------------------------
 #
-AC_DEFUN(lofar_DOXYGEN,dnl
+AC_DEFUN([lofar_DOXYGEN],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], define(DEFAULT_DOXYGEN_PREFIX,[/usr/bin]), define(DEFAULT_DOXYGEN_PREFIX,$1))
@@ -166,7 +166,7 @@ AM_CONDITIONAL(HAVE_DOXYGEN, [test "$enable_doxygen" = "yes"])
 # e.g. lofar_DOC++(["/usr/bin"])
 # -------------------------
 #
-AC_DEFUN(lofar_DOCPP,dnl
+AC_DEFUN([lofar_DOCPP],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], define(DEFAULT_DOCPP_PREFIX,[/usr/bin]), define(DEFAULT_DOCPP_PREFIX,$1))

@@ -33,7 +33,7 @@
 # e.g. lofar_AIPSPP
 # -------------------------
 #
-AC_DEFUN(lofar_AIPSPP,dnl
+AC_DEFUN([lofar_AIPSPP],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], [lfr_option=0], [lfr_option=$1])

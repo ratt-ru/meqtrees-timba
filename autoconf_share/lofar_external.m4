@@ -62,7 +62,7 @@
 #
 # -------------------------
 #
-AC_DEFUN(lofar_EXTERNAL,dnl
+AC_DEFUN([lofar_EXTERNAL],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 define(LOFAR_EXT_SYM,m4_toupper(patsubst([$1], [.*/])))

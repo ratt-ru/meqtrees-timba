@@ -72,7 +72,7 @@
 # e.g. lofar_PACKAGE(CEP/CPA/PSCF)
 # -------------------------
 #
-AC_DEFUN(lofar_PACKAGE,dnl
+AC_DEFUN([lofar_PACKAGE],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 define(LOFAR_PKG_SYM,patsubst([$1], [.*/]))

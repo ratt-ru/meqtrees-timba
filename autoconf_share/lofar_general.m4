@@ -37,7 +37,7 @@
 # Also the first one enables DBGASSERT by default.
 #
 #
-AC_DEFUN(lofar_DEBUG_OPTIMIZE,dnl
+AC_DEFUN([lofar_DEBUG_OPTIMIZE],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 AC_ARG_WITH(debug,
@@ -179,7 +179,7 @@ AC_MSG_ERROR([Can not have both --with-debug and --with-optimize])
 #
 # Based on ICE and DDD autoconf macros; added test for __FUNCTION__.
 #
-AC_DEFUN(lofar_CHECK_PRETTY_FUNCTION,[
+AC_DEFUN([lofar_CHECK_PRETTY_FUNCTION],[
   AC_PREREQ(2.13)
   AC_REQUIRE([AC_PROG_CXX])
   AC_MSG_CHECKING(whether ${CXX} supports __PRETTY_FUNCTION__)
@@ -222,7 +222,7 @@ AC_DEFUN(lofar_CHECK_PRETTY_FUNCTION,[
 #
 # Based on ICE and DDD autoconf macros.
 #
-AC_DEFUN(lofar_CHECK_LONG_LONG,[
+AC_DEFUN([lofar_CHECK_LONG_LONG],[
   AC_PREREQ(2.13)
   AC_REQUIRE([AC_PROG_CXX])
   AC_MSG_CHECKING(whether ${CXX} supports long long)

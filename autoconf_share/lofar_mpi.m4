@@ -25,7 +25,7 @@
 #
 # Macro to check for MPICH or ScaMPI mpi.h header file
 #
-AC_DEFUN(lofar_MPI,dnl
+AC_DEFUN([lofar_MPI],dnl
 [dnl
 AC_ARG_ENABLE(mpi-profiler,
 	[  --enable-mpi-profiler   enable MPI profiler (default=no)],
@@ -67,7 +67,7 @@ AC_DEFINE(HAVE_MPI,dnl
 # Macro to check for MPICH mpi.h header
 # -------------------------------------------------
 #
-AC_DEFUN(lofar_HEADER_MPICH,
+AC_DEFUN([lofar_HEADER_MPICH],
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], define(MPICH_VERSION,[]), define(MPICH_VERSION,$1))
@@ -123,7 +123,7 @@ fi]
 # Macro to check for LAM mpi.h header
 # -------------------------------------------------
 #
-AC_DEFUN(lofar_HEADER_LAM,
+AC_DEFUN([lofar_HEADER_LAM],
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], define(LAM_VERSION,[6.5.6]), define(LAM_VERSION,$1))
@@ -178,7 +178,7 @@ fi]
 # Macro to check for ScaMPI mpi.h header
 # -------------------------------------------------
 #
-AC_DEFUN(lofar_HEADER_SCAMPI,
+AC_DEFUN([lofar_HEADER_SCAMPI],
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], define(SCAMPI_DEFAULT_PREFIX,[/opt/scali]), define(SCAMPI_DEFAULT_PREFIX,$1))

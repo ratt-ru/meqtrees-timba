@@ -35,7 +35,7 @@
 #    ln -s libxerces-c1_7_0.so libxerces.so
 # -------------------------
 #
-AC_DEFUN(lofar_XERCES,dnl
+AC_DEFUN([lofar_XERCES],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], define(DEFAULT_XERCES_PREFIX,[/usr/local/xerces]), define(DEFAULT_XERCES_PREFIX,$1))

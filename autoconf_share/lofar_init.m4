@@ -60,7 +60,7 @@
 # It is checked whether the version and variant exist.
 #
 #
-AC_DEFUN(lofar_INIT,dnl
+AC_DEFUN([lofar_INIT],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 AC_ARG_WITH(lofar,
