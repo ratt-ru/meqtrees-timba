@@ -284,6 +284,12 @@ def nodeindex (node):
   else:
     return node.nodeindex;
 
+def nodeobject (node):
+  if isinstance(node,NodeList.Node):
+    return node;
+  else:
+    return nodelist[nodeindex(node)];
+
 def mqs ():
   mqs1 = _mqs or (callable(_mqs) and _mqs());
   if mqs1 is None:

@@ -28,8 +28,8 @@ class TreeBrowser (QObject):
     def __init__(self,tb,node,name,parent,after):
       QListViewItem.__init__(self,parent,after,name);
       # fill basic listview stuff
-      self.setText(tb._icol_class,str(node.classname));
-      self.setText(tb._icol_index,str(node.nodeindex));
+      self.setText(tb.icolumn("class"),str(node.classname));
+      self.setText(tb.icolumn("index"),str(node.nodeindex));
       self.setDragEnabled(True);
       if node.children:
         self.setExpandable(True);
@@ -59,8 +59,8 @@ class TreeBrowser (QObject):
       # flash the publish pixmap briefly to indicate new state
       # self._publish_pixmap is the "normal" (None or publish) pixmap set by _update_status()
       # below; we set a timer event to revert to it
-      self.setPixmap(self.tb._icol_publish,pixmaps.publish_active.pm());
-      QTimer.singleShot(500,self.xcurry(self.setPixmap,(self.tb._icol_publish,self._publish_pixmap)));
+      self.setPixmap(self.tb.icolumn("publish"),pixmaps.publish_active.pm());
+      QTimer.singleShot(500,self.xcurry(self.setPixmap,(self.tb.icolumn("publish"),self._publish_pixmap)));
               
     def _update_debug (self,node):
       """updates node item based on its debugging status.""";
@@ -86,21 +86,44 @@ class TreeBrowser (QObject):
       # determines background)
       self._update_debug(node);
       ## # update status column
-      ## self.setText(tb._icol_status,node.control_status_string);
+      ## self.setText(tb.icolumn("status"),node.control_status_string);
       # update breakpoint status pixmaps
       if control_status&meqds.CS_BREAKPOINT:
-        self.setPixmap(tb._icol_breakpoint,pixmaps.breakpoint.pm());
+        self.setPixmap(tb.icolumn("breakpoint"),pixmaps.breakpoint.pm());
       elif control_status&meqds.CS_BREAKPOINT_SS:
-        self.setPixmap(tb._icol_breakpoint,pixmaps.forward_to.pm());
+        self.setPixmap(tb.icolumn("breakpoint"),pixmaps.forward_to.pm());
       else:
-        self.setPixmap(tb._icol_breakpoint,QPixmap());
+        self.setPixmap(tb.icolumn("breakpoint"),QPixmap());
       # update exec state pixmaps and rqid string
       es = meqds.CS_ES_state(control_status);
-      self.setPixmap(tb._icol_execstate,es[4].pm());
+      self.setPixmap(tb.icolumn("execstate"),es[4].pm());
       if node.request_id is None:
-        self.setText(tb._icol_execstate,'');
+        self.setText(tb.icolumn("execstate"),'');
       else:
-        self.setText(tb._icol_execstate,str(node.request_id));
+        self.setText(tb.icolumn("execstate"),str(node.request_id));
+      # update result status pixmap
+      icol = tb.icolumn("result");
+      if result_status == meqds.CS_RES_NONE:
+        self.setPixmap(icol,QPixmap());
+      elif result_status == meqds.CS_RES_OK:
+        if control_status&meqds.CS_RETCACHE:
+          self.setPixmap(icol,pixmaps.blue_round_reload_return.pm());
+        else:
+          if control_status&meqds.CS_CACHED:
+            self.setPixmap(icol,pixmaps.blue_round_reload.pm());
+          else:
+            self.setPixmap(icol,pixmaps.green_return.pm());
+      elif result_status == meqds.CS_RES_WAIT:
+        self.setPixmap(icol,pixmaps.blue_round_clock.pm());
+      elif result_status == meqds.CS_RES_EMPTY:
+        if control_status&meqds.CS_RETCACHE:
+          self.setPixmap(icol,pixmaps.blue_round_empty_return.pm());
+        else:
+          self.setPixmap(icol,pixmaps.blue_round_empty.pm());
+      elif result_status == meqds.CS_RES_MISSING:
+        self.setPixmap(icol,pixmaps.grey_round_cross.pm());
+      elif result_status == meqds.CS_RES_FAIL:
+        self.setPixmap(icol,pixmaps.red_round_cross.pm());
       # update enabled/disabled pixmap
       if control_status&meqds.CS_ACTIVE:
         self.setPixmap(tb._icol_disable,QPixmap());
@@ -111,7 +134,7 @@ class TreeBrowser (QObject):
         self._publish_pixmap = pixmaps.publish.pm();
       else:
         self._publish_pixmap = QPixmap();
-      self.setPixmap(tb._icol_publish,self._publish_pixmap);
+      self.setPixmap(tb.icolumn("publish"),self._publish_pixmap);
       # update breakpoints menu
       try: menu = self._debug_bp_menu;
       except AttributeError: pass;
@@ -169,15 +192,15 @@ class TreeBrowser (QObject):
         for st in meqds.CS_ES_statelist:
           title = ''.join(('at ',node.name,':',st[1]));
           bpmask = meqds.breakpoint_mask(st[0]);
-          cb = self.xcurry(meqds.set_node_breakpoint,(node,bpmask),_argslice=slice(0));
+          cb = self.xcurry(meqds.set_node_breakpoint,(node.nodeindex,bpmask),_argslice=slice(0));
           item = menu1.insertItem(st[4].iconset(),title,cb);
           menu1.setItemChecked(item,(node.breakpoint&bpmask)!=0);
           self._debug_bp_items.append((item,bpmask));
         menu1.insertItem(pixmaps.node_any.iconset(),''.join(("at ",node.name,':all')),self.xcurry(\
-              meqds.set_node_breakpoint,(node,meqds.BP_ALL),_argslice=slice(0)));
+              meqds.set_node_breakpoint,(node.nodeindex,meqds.BP_ALL),_argslice=slice(0)));
         menu.insertItem(pixmaps.breakpoint.iconset(),"Set &breakpoint at",menu1);
         menu.insertItem(pixmaps.roadsign_nolimit.iconset(),"Clear &all breakpoints at "+node.name,self.xcurry(\
-              meqds.clear_node_breakpoint,(node,meqds.BP_ALL),_argslice=slice(0)));
+              meqds.clear_node_breakpoint,(node.nodeindex,meqds.BP_ALL),_argslice=slice(0)));
         self._fill_menu(menu,"debug",separator=True);
       return menu;
       
@@ -205,9 +228,9 @@ class TreeBrowser (QObject):
             except AttributeError: icon = QIconSet();
             # add entry to both menus ("Display with" and "New display with")
             menu1.insertItem(icon,name,
-              self.xcurry(self.tb.wtop().emit,(PYSIGNAL("view_node()"),(node,v)),_argslice=slice(0)));
+              self.xcurry(self.tb.wtop().emit,(PYSIGNAL("view_node()"),(node.nodeindex,v)),_argslice=slice(0)));
             menu2.insertItem(icon,name,
-              self.xcurry(self.tb.wtop().emit,(PYSIGNAL("view_node()"),(node,v,dict(newcell=True))),_argslice=slice(0)));
+              self.xcurry(self.tb.wtop().emit,(PYSIGNAL("view_node()"),(node.nodeindex,v,dict(newcell=True))),_argslice=slice(0)));
         # add node actions
         self._fill_menu(menu,"node",separator=True);
         # add debugging menu
@@ -301,6 +324,7 @@ class TreeBrowser (QObject):
     QObject.connect(self.wtop(),PYSIGNAL("leaving()"),self._toolbar,SLOT("hide()"));
     self._toolbar.hide();
     # ---------------------- other internal state
+    self._column_map = {};
     self._recent_item = None;
     self._current_debug_stack = None;
     self._callbacks = [];
@@ -309,17 +333,99 @@ class TreeBrowser (QObject):
     self.debug_level = 0;
     self.is_connected = self.is_loaded = self.is_running = self.is_stopped = False;
     
+  def update_nodelist (self):
+    # init columns if calling for the first time
+    # (we don't do it in the constructor because the number of columns
+    # depends on the available node actions)
+    # init one column per registered action; first one is always node name
+    if not self._nlv.columns(): 
+      self.add_column("node");
+      self.add_column("publish",'',24,iconset=pixmaps.publish.iconset());
+      self.add_column("breakpoint",'',24,iconset=pixmaps.breakpoint.iconset());
+      self.add_column("execstate","xs/rqid");
+      self.add_column("result",'',24,iconset=pixmaps.blue_round_result.iconset());
+      icol = self.add_column("class");
+      self._icol_disable = icol;
+      icol = self.add_column("index",width=60);
+      self._nlv.setColumnAlignment(icol,Qt.AlignRight);
+    # clear view
+    self.clear();
+    self.is_loaded = True;
+    self._update_all_controls();
+    # reset the nodelist view
+    nodelist = meqds.nodelist;
+    self._recent_item = None;
+    all_item  = QListViewItem(self._nlv,"All Nodes (%d)"%len(nodelist));
+    all_item._no_auto_open = True;
+    all_item._iter_nodes = nodelist.iternodes();
+    all_item.setExpandable(True);
+    rootnodes = nodelist.rootnodes();
+    rootitem  = self._nlv_rootitem = QListViewItem(self._nlv,all_item,"Root Nodes (%d)"%len(rootnodes));
+    rootitem._iter_nodes = iter(rootnodes);
+    rootitem.setExpandable(True);
+    classes = nodelist.classes();
+    cls_item  = item = QListViewItem(self._nlv,rootitem,"By Class (%d)"%len(classes));
+    cls_item._no_auto_open = True;
+    for (cls,nodes) in classes.iteritems():
+      if len(nodes) == 1:
+        item = self.NodeItem(self,nodes[0],nodes[0].name,cls_item,item);
+      else:
+        item = QListViewItem(cls_item,item,"(%d)"%len(nodes));
+        item.setText(self.icolumn("class"),cls);
+        item.setExpandable(True);
+        item._iter_nodes = iter(nodes);
+      item._no_auto_open = True;
+    
+    
   def xcurry (self,*args,**kwargs):
     cb = xcurry(*args,**kwargs);
     self._callbacks.append(cb);
     return cb;
+    
+  def add_column (self,colname,caption=None,width=-1,iconset=None):
+    """adds column to listview. Colname is column name, caption is displayed
+    name (same as colname by default), width is >=0 for fixed width""";
+    icol = self._nlv.columns();
+    if caption is None:
+      caption = colname;
+    if iconset:
+      self._nlv.addColumn(iconset,caption,width);
+    else:
+      self._nlv.addColumn(caption,width);
+    self._column_map[colname] = (icol,width);
+    return icol;
+    
+  def icolumn (self,colname):
+    """returns column number for a given colname""";
+    return self._column_map[colname][0];
+    
+  def show_column (self,colname,show=True):
+    """shows or hides the column specified by name""";
+    try: (icol,width) = self._column_map[colname];
+    except KeyError,AttributeError: return;
+    # make column visible or not
+    if show: 
+      if width >= 0:
+        self._nlv.setColumnWidth(icol,width);
+      else:
+        self._nlv.setColumnWidthMode(icol,QListView.Maximum);
+    else:
+      self._nlv.setColumnWidthMode(icol,QListView.Manual);
+      self._nlv.setColumnWidth(icol,0);
       
-  def _reset_toolbar (self):
-    self._set_debug_control(self.debug_level>0);
+  def _update_all_controls (self):
+    """updates state of toolbar and other controls based on app state""";
     _dprint(3,'reset_toolbars:',self.debug_level,self.is_connected,self.is_running,self.is_stopped);
+    self._set_debug_control(self.debug_level>0);
+    # toolbar
     for act in self._toolbar_actions:
       try: act.setEnabled(act._is_enabled());
       except AttributeError: pass;
+    # show/hide the breakpoint column
+    self.show_column("breakpoint",self.debug_level > 0);
+    self.show_column("result",self.debug_level > 0);
+    # show/hide the execstate column
+    self.show_column("execstate",self.debug_level > 0 and self.is_running);
 
   def _set_debug_control (self,enable):
     """This updates the state of the debug control without sending
@@ -341,14 +447,16 @@ class TreeBrowser (QObject):
         # confirm disable if in debugger
         if self._current_debug_stack:
           if QMessageBox.warning(None,"Disabling Tree Debugger",\
-               """This will disable the debugger and release the tree to ignore
-               all breakpoints and run until it is finished or out of data. 
-               Are you sure this is what you want?""",QMessageBox.Ok,\
+               """This will disable the debugger and release the tree. 
+The tree will then ignore all breakpoints and run until it 
+finishes executing the current request, or runs out of data.
+You will not be able to interrupt this process.
+Please press OK to confirm.""",QMessageBox.Ok,\
                QMessageBox.Cancel|QMessageBox.Default|QMessageBox.Escape) \
              != QMessageBox.Ok:
             self._set_debug_control(True);
             return;
-          mqs().meq('Debug.Set.Level',srecord(debug_level=0,get_forest_status=True),wait=False);
+        mqs().meq('Debug.Set.Level',srecord(debug_level=0,get_forest_status=True),wait=False);
       # really disable
       self.clear_debug_stack();
       self._qa_dbg_enable.setAccel(Qt.Key_F5);
@@ -391,13 +499,13 @@ class TreeBrowser (QObject):
     self._debug_node = self._current_debug_stack = None;
     self.NodeItem.clear_children(self._nlv);
     self._nlv.clear();
-    self._reset_toolbar();
+    self._update_all_controls();
     
   def connected (self,conn,auto_request=True):
     self.emit(PYSIGNAL("connected()"),(conn,));
     self.is_connected = conn;
     if conn is True:
-      self._reset_toolbar();
+      self._update_all_controls();
       if auto_request:
         self._request_nodelist();
     else:
@@ -405,10 +513,9 @@ class TreeBrowser (QObject):
 
   def update_app_state (self,state):
     self.app_state = state;
-    # enable pause control in running state 
     self.is_running = state in (AppState.Debug,AppState.Stream,AppState.Execute);
     self.is_stopped = state == AppState.Debug;
-    self._reset_toolbar();
+    self._update_all_controls();
     
   def update_forest_status (self,fst):
     """Updates forest status: enables/disables debug QActions as appropriate,
@@ -422,12 +529,6 @@ class TreeBrowser (QObject):
     self.debug_level = fst.debug_level;
     # do other stuff if debug is enabled
     if fst.debug_level:
-      _dprint(2,"debugging enabled");
-      try: 
-        self._nlv.setColumnWidthMode(self._icol_execstate,QListView.Maximum);
-        ## self._nlv.setColumnWidthMode(self._icol_status,QListView.Maximum);
-      except AttributeError: pass;
-      self._set_debug_control(True);
       if meqds.nodelist and fst.debug_stack:
         for (n,frame) in enumerate(fst.debug_stack):
           try: node = meqds.nodelist[frame.nodeindex];
@@ -443,13 +544,6 @@ class TreeBrowser (QObject):
             node.update_status(frame.control_status);
     else:
       _dprint(2,"debugging disabled");
-      self._set_debug_control(False);
-      try:
-        self._nlv.setColumnWidthMode(self._icol_execstate,QListView.Manual);
-        self._nlv.setColumnWidth(self._icol_execstate,0);
-        ## self._nlv.setColumnWidthMode(self._icol_status,QListView.Manual);
-        ## self._nlv.setColumnWidth(self._icol_status,0);
-      except AttributeError: pass;
     # nodes in the debug-stack will have been highlighted by
     # update_state/status above. We now need to remove highlighting from
     # nodes no longer in the stack:
@@ -460,8 +554,8 @@ class TreeBrowser (QObject):
     # make sure most recent node is open
     if self._debug_node:
       self.make_node_visible(self._debug_node);
-    # reset toolbar as appropriate
-    self._reset_toolbar();
+    # reset all controls
+    self._update_all_controls();
         
   def clear_debug_stack (self,clearset=None):
     """Clears highlighting of stopped nodes. If a set is supplied, that 
@@ -474,56 +568,6 @@ class TreeBrowser (QObject):
         delattr(node,'_stopped');
         node.emit(PYSIGNAL("update_debug()"),(node,));
   
-  def update_nodelist (self):
-    # init columns if calling for the first time
-    # (we don't do it in the constructor because the number of columns
-    # depends on the available node actions)
-    # init one column per registered action; first one is always node name
-    if not self._nlv.columns(): 
-      self._nlv.addColumn('node');
-      self._icol_publish = self._nlv.columns();
-      self._nlv.addColumn('',20);
-      # add status, class and index columns
-      self._icol_breakpoint = self._nlv.columns();
-      self._nlv.addColumn('',20);
-      self._icol_execstate = self._nlv.columns();
-      self._nlv.addColumn('xs/rqid');
-      self._icol_class = self._icol_disable = self._nlv.columns();
-      self._nlv.addColumn('Class');
-      # self._icol_status = self._nlv.columns();
-      # self._nlv.addColumn('(status)');
-      self._icol_index = self._nlv.columns();
-      self._nlv.addColumn('idx',60);
-    #      for icol in range(self._nlv.columns()):
-    #        self._nlv.setColumnWidthMode(icol,QListView.Maximum);
-    # clear view
-    self.clear();
-    self.is_loaded = True;
-    self._reset_toolbar();
-    # reset the nodelist view
-    nodelist = meqds.nodelist;
-    self._recent_item = None;
-    all_item  = QListViewItem(self._nlv,"All Nodes (%d)"%len(nodelist));
-    all_item._no_auto_open = True;
-    all_item._iter_nodes = nodelist.iternodes();
-    all_item.setExpandable(True);
-    rootnodes = nodelist.rootnodes();
-    rootitem  = self._nlv_rootitem = QListViewItem(self._nlv,all_item,"Root Nodes (%d)"%len(rootnodes));
-    rootitem._iter_nodes = iter(rootnodes);
-    rootitem.setExpandable(True);
-    classes = nodelist.classes();
-    cls_item  = item = QListViewItem(self._nlv,rootitem,"By Class (%d)"%len(classes));
-    cls_item._no_auto_open = True;
-    for (cls,nodes) in classes.iteritems():
-      if len(nodes) == 1:
-        item = self.NodeItem(self,nodes[0],nodes[0].name,cls_item,item);
-      else:
-        item = QListViewItem(cls_item,item,"(%d)"%len(nodes));
-        item.setText(self._icol_class,cls);
-        item.setExpandable(True);
-        item._iter_nodes = iter(nodes);
-      item._no_auto_open = True;
-    
   def is_node_visible (self,node):
     for itemref in getattr(node,'_tb_items',[]):
       if itemref() and itemref().isVisible():
@@ -593,7 +637,7 @@ class TreeBrowser (QObject):
   # slot: called to show a context menu for a browser item
   def _show_context_menu (self,item,point,col):
     if isinstance(item,self.NodeItem):
-      if col in (self._icol_execstate,self._icol_breakpoint):
+      if col in (self.icolumn("execstate"),self.icolumn("breakpoint")):
         menu = item.debug_menu();
       else:
         menu = item.context_menu();
@@ -631,25 +675,25 @@ class TreeBrowser (QObject):
   def _debug_single_step (self):
     self.clear_debug_stack();
     self.is_stopped = False;
-    self._reset_toolbar();
+    self._update_all_controls();
     mqs().meq('Debug.Single.Step',srecord(),wait=False);
   
   def _debug_next_node (self):
     self.clear_debug_stack();
     self.is_stopped = False;
-    self._reset_toolbar();
+    self._update_all_controls();
     mqs().meq('Debug.Next.Node',srecord(),wait=False);
     
   def _debug_until_node (self,node):
     self.clear_debug_stack();
     self.is_stopped = False;
-    self._reset_toolbar();
+    self._update_all_controls();
     mqs().meq('Debug.Until.Node',srecord(nodeindex=node.nodeindex),wait=False);
   
   def _debug_continue (self):
     self.clear_debug_stack();
     self.is_stopped = False;
-    self._reset_toolbar();
+    self._update_all_controls();
     mqs().meq('Debug.Continue',srecord(),wait=False);
     
   def _debug_pause (self):
@@ -713,7 +757,7 @@ def define_treebrowser_actions (tb):
   tb.add_action(save,40,callback=tb.save_forest_dialog);
   tb.add_separator(50);
   # Enable debugger
-  dbg_enable = tb._qa_dbg_enable = QAction("Enable debugger",pixmaps.eject.iconset(),"Enable &Debugger",Qt.Key_F5,parent,"",True);
+  dbg_enable = tb._qa_dbg_enable = QAction("Enable debugger",pixmaps.debugger.iconset(),"Enable &Debugger",Qt.Key_F5,parent,"",True);
   QObject.connect(dbg_enable,SIGNAL("toggled(bool)"),tb._debug_enable_slot);
   QObject.connect(tb,PYSIGNAL("debug_enabled()"),dbg_enable.setOn);
   dbg_enable._is_enabled = lambda tb=tb: tb.is_connected;
@@ -794,7 +838,7 @@ class NA_NodeDisable (NodeAction):
   iconset = pixmaps.cancel.iconset;
   def activate (self):
     cs = self.node.control_status ^ meqds.CS_ACTIVE;
-    meqds.set_node_state(node,control_status=cs);
+    meqds.set_node_state(self.node,control_status=cs);
   # define is_checked as a property that is computed on-the-fly
   def is_checked (self):
     return not self.node.is_active();

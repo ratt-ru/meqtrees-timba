@@ -190,7 +190,11 @@ class meqserver_gui (app_proxy_gui):
     self._add_ce_handler("app.update.status.num.tiles",self.ce_UpdateAppStatus);
     
   def populate (self,main_parent=None,*args,**kwargs):
+    # init icons
+    pixmaps.load_icons('treebrowser');
+    # populate GUI
     app_proxy_gui.populate(self,main_parent=main_parent,*args,**kwargs);
+    self.setIcon(pixmaps.trees48x48.pm());
     self.set_verbose(self.get_verbose());
     _dprint(2,"meqserver-specifc init"); 
     # add Tree browser panel
@@ -307,6 +311,7 @@ class meqserver_gui (app_proxy_gui):
     
   def _view_node (self,node,viewer=None,kws={}):
     _dprint(2,"node clicked, adding item");
+    node = meqds.nodeobject(node);
     self.gw.add_data_item(makeNodeDataItem(node,viewer),**kws);
     self.show_gridded_workspace();
     
@@ -344,7 +349,7 @@ def makeNodeDataItem (node,viewer=None,viewopts={}):
   # curry is used to create a call for refreshing its state
   return GridDataItem(udi,(node.name or '#'+str(node.nodeindex)),
             desc=nodeclass.__name__,data=None,datatype=nodeclass,
-            refresh=curry(meqds.request_node_state,node),
+            refresh=curry(meqds.request_node_state,node.nodeindex),
             viewer=viewer,viewopts=vo);
             
 

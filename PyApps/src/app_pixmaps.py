@@ -1,13 +1,23 @@
 #!/usr/bin/python
 
 from qt import QPixmap,QIconSet
+import sys
+import dmitypes
+
+_dbg = dmitypes.verbosity(0,name='pixmaps');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
 
 # A QPixMap wrapper defers initialization of a pixmap until the pixmap
 # is actually retrieved with the pm() method for the first time.
 class QPixmapWrapper(object):
-  def __init__(self,xpmstr):
-    self._xpmstr = xpmstr;
-    self._pm = None;
+  def __init__(self,pm):
+    if isinstance(pm,QPixmap):
+      self._pm = pm;
+    else:             # assume xpm string list to be decoded on-demand 
+      self._xpmstr = pm;
+      self._pm = None;
     self._iconset = None;
   def pm (self):
     if self._pm is None:
@@ -2916,3 +2926,29 @@ grey_cross = QPixmapWrapper(["16 16 97 2",
                                      ".l.x.H.W.2.2#c.H#h#l#p#A#z#B#C#D",
                                      "Qt.l.I.X.3.9#d#f#i#m#q.z#E.I#DQt"]);
 
+import os
+import os.path
+
+def load_icons (appname):
+  """load all icons found in path, subdirs 'icons/appname'""";
+  # loop over system path
+  for path in sys.path:
+    path = path or '.';
+    # for each entry, try <entry>/icons/<appname>'
+    trydir = os.path.join(path,'icons',appname);
+    _dprint(3,'trying icon path',trydir);
+    try: files = os.listdir(trydir);
+    except: continue;
+    _dprint(3,len(files),'entries in',trydir);
+    # loop over all files
+    nicons = 0;
+    for f in files:
+      (name,ext) = os.path.splitext(f);     # check extension
+      if ext in ('.png','.xpm','.gif'):
+        f = os.path.join(trydir,f);
+        try: pm = QPixmap(f);
+        except: continue;
+        # register pixmap as global symbol using the supplied name
+        globals()[name] = QPixmapWrapper(pm);
+        nicons += 1;
+    _dprint(1,nicons,'icons loaded from ',trydir);

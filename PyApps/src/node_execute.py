@@ -24,11 +24,15 @@ class NA_NodeExecute (NodeAction):
       self.item.tb._node_reexecute_dialog = dialog = NodeExecuteDialog(self.item.tb.wtop());
     dialog.show(self.node);
   def is_enabled (self):
-    # available in idle mode, or when stopped at a debugger, but node must be idle
-    return ( self.tb.is_stopped or not self.tb.is_running ) and self.node.is_idle();
+    # available in idle mode, or when stopped at a debugger. 
+    # If debug_level is set, node must be idle (otherwise, we can't trust the
+    # node control status to be up-to-date)
+    return ( self.tb.is_stopped or not self.tb.is_running ) and \
+           ( not self.tb.debug_level or self.node.is_idle() );
 
 
 class NodeExecuteDialog (QDialog):
+  defaultOpenItems = ({'cells':({'grid':None,'domain':None},None)},None);
   def __init__(self,parent = None,name = None,modal = 0,fl = 0):
     QDialog.__init__(self,parent,name,modal,fl)
     if not name:
@@ -38,6 +42,7 @@ class NodeExecuteDialog (QDialog):
     NodeExecuteDialogLayout = QVBoxLayout(self,11,6,"NodeExecuteDialogLayout")
 
     ### custom settings 
+    self.setIcon(pixmaps.reexecute.pm());
     reqFrame = QVBox(self);
     reqFrame.setFrameShape(QFrame.Panel+QFrame.Sunken);
     reqFrame.setMargin(10);
@@ -69,7 +74,7 @@ class NodeExecuteDialog (QDialog):
 
     self.languageChange()
 
-    self.resize(QSize(511,282).expandedTo(self.minimumSizeHint()))
+    self.resize(QSize(511,482).expandedTo(self.minimumSizeHint()))
     self.clearWState(Qt.WState_Polished)
 
     self.connect(self.buttonOk,SIGNAL("clicked()"),self.accept)
@@ -119,6 +124,8 @@ class NodeExecuteDialog (QDialog):
       self._request.request_id = hiid();
       self.buttonOk.setEnabled(True);
       self.reqView.set_content(self._request);
+      self.reqView.set_open_items(self.defaultOpenItems);
+
     
   def reject (self):
     self._node = self._request = self._callback = None; # this will disconnect the Qt signal
