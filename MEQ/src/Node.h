@@ -30,7 +30,7 @@
 #include <vector>
     
 #pragma aidgroup MEQ
-#pragma aid Node Class Name State Child Children
+#pragma aid Node Class Name State Child Children Result
 #pragma types #MEQ::Node
 
 namespace MEQ {

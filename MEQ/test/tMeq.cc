@@ -87,11 +87,10 @@ int main (int argc,const char* argv[])
     cout << "============ getting result =========\n";
     Domain domain(1,4, -2,3);
     Request req(Cells(domain, 4, 4));
-    Result res;
-    Result::Ref refres(res, DMI::WRITE||DMI::EXTERNAL);;
+    Result::Ref refres;
     int flag = chadd.getResult (refres, req);
     cout << flag << endl;
-    cout << res.getValue() << endl;
+    cout << refres->getValue() << endl;
   } 
   catch (std::exception& x) 
   {

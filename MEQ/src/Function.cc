@@ -48,12 +48,10 @@ void Function::checkChildren()
 int Function::getResult (Result::Ref &resref, const Request& request)
 {
   int nrch = itsChildren.size();
-  vector<Result::Ref> results;
+  vector<Result::Ref> results(nrch);
   vector<Vells*> values(nrch);
   int flag = 0;
   for (int i=0; i<nrch; i++) {
-    Result* res = new Result();
-    results.push_back (Result::Ref(res, DMI::WRITE||DMI::ANON));
     flag |= itsChildren[i]->getResult (results[i], request);
     results[i].persist();
     values[i] = &(results[i].dewr().getValueRW());
@@ -61,8 +59,12 @@ int Function::getResult (Result::Ref &resref, const Request& request)
   if (flag & Node::RES_WAIT) {
     return flag;
   }
+  // Create result object and attach to datarecord in the Node object.
+  Result* res = new Result();
+  resref <<= res;
+  wstate()[AidResult] <<= static_cast<DataRecord*>(res);
   // Evaluate the main value.
-  Result& result = resref.dewr();
+  Result& result = *res;
   Vells vells = evaluate (request, values);
   bool useVells;
   int nx,ny;

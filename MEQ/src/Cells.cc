@@ -27,6 +27,16 @@
 
 namespace MEQ {
 
+Cells::Cells (const DataRecord& rec)
+: DataRecord   (rec),
+  itsDomain    (new Domain(rec[AidDomain])),
+  itsNfreq     (rec[AidNfreq]),
+  itsTimes     (rec[AidTimes].as<LoVec_double>()),
+  itsTimeSteps (rec[AidTimeSteps].as<LoVec_double>())
+{
+  itsFreqStep  = (itsDomain->endFreq() - itsDomain->startFreq()) / itsNfreq;
+}
+
 Cells::Cells (const Domain& domain, int nfreq, int ntimes)
 : itsNfreq     (nfreq),
   itsTimes     (ntimes),

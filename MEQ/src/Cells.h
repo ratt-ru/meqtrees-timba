@@ -40,6 +40,7 @@ namespace MEQ {
 class Cells : public DataRecord
 {
 public:
+  Cells (const DataRecord&);
   Cells (const Domain& domain, int nfreq, int ntimes);
   Cells (const Domain& domain, int nfreq,
 	 const LoVec_double& startTimes,

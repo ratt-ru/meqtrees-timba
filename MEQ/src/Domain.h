@@ -45,6 +45,9 @@ public:
   // Create a time,frequency default domain of -1:1,-1:1..
   Domain();
 
+  // Create from an existing data field.
+  Domain (const DataField&);
+
   // Create a time,frequency domain.
   Domain (double startFreq, double endFreq,
 	  double startTime, double endTime);

@@ -34,6 +34,14 @@ Domain::Domain()
   setDMI();
 }
 
+Domain::Domain (const DataField& fld)
+: DataField     (fld),
+  itsOffsetFreq (fld[0]),
+  itsScaleFreq  (fld[1]),
+  itsOffsetTime (fld[2]),
+  itsScaleTime  (fld[3])
+{}
+
 Domain::Domain (double startFreq, double endFreq,
 		double startTime, double endTime)
 {

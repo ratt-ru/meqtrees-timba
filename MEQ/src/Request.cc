@@ -24,12 +24,22 @@
 
 namespace MEQ {
 
-Request::Request (const Cells& cells, Forest* forest,
-		  bool calcDeriv, int id)
+Request::Request (const DataRecord& rec)
+: DataRecord   (rec),
+  itsId        (rec[AidReqId]),
+  itsCalcDeriv (rec[AidCalcDeriv]),
+  itsCells     (new Cells(rec[AidCells]))
+{}
+
+Request::Request (const Cells& cells, bool calcDeriv, int id)
 : itsId        (id),
   itsCalcDeriv (calcDeriv),
-  itsCells     (cells),
-  itsForest    (forest)
-{}
+  itsCells     (0)
+{
+  itsCells = new Cells(cells);
+  this->operator[](AidCells) <<= static_cast<DataRecord*>(itsCells);
+  this->operator[](AidReqId) = id;
+  this->operator[](AidCalcDeriv) = calcDeriv;
+}
 
 } // namespace MEQ

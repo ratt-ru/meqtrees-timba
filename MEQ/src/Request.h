@@ -25,9 +25,10 @@
 
 //# Includes
 #include <MEQ/Cells.h>
-#include <MEQ/Forest.h>
 #include <DMI/DataRecord.h>
 
+#pragma aidgroup MEQ
+#pragma aid Cells ReqId CalcDeriv Rider
 
 // This class represents a request for which an expression has to be
 // evaluated. It contains the domain and cells to evaluate for.
@@ -40,13 +41,11 @@ class Request : public DataRecord
 public:
   // Create the request from the cells for which the expression has
   // to be calculated. Optionally no derivatives are calculated.
-  explicit Request (const DataRecord&, Forest* forest=0,
-		    bool calcDeriv=true, int id=0);
+  explicit Request (const DataRecord&);
 
   // Create the request from the cells for which the expression has
   // to be calculated. Optionally no derivatives are calculated.
-  explicit Request (const Cells&, Forest* forest=0,
-		    bool calcDeriv=true, int id=0);
+  explicit Request (const Cells&, bool calcDeriv=true, int id=0);
 
   // Calculate derivatives if parameters are solvable?
   bool calcDeriv() const
@@ -54,11 +53,11 @@ public:
 
   // Set new domain cells.
   void setCells (const Cells& cells)
-    { itsCells = cells; }
+    { *itsCells = cells; }
 
   // Get the domain cells.
   const Cells& cells() const
-    { return itsCells; }
+    { return *itsCells; }
 
   // Set the request id.
   void setId (int id)
@@ -68,22 +67,13 @@ public:
   int getId() const
     { return itsId; }
 
-  // Set the forest.
-  void setForest (Forest* forest)
-    { itsForest = forest; }
-
-  // Get the forest.
-  Forest* getForest()
-    { return itsForest; }
-
   // Get the rider subrecord.
   DataRecord::Ref& getRider();
 
 private:
-  int     itsId;
-  bool    itsCalcDeriv;
-  Cells   itsCells;
-  Forest* itsForest;
+  int    itsId;
+  bool   itsCalcDeriv;
+  Cells* itsCells;
 };
 
 
