@@ -103,6 +103,9 @@
 # $Id$
 #
 # $Log$
+# Revision 1.3  2003/08/27 12:31:53  smirnov
+# added './' to front of .run file, in case '.' is not in PATH
+#
 # Revision 1.2  2002/07/05 13:38:42  diepen
 # %[BugId: 56]%
 # Added copyright
@@ -137,7 +140,7 @@
 # If there is a .run file then use it.
   if [ -f "$1.run" ]
   then
-     COMMAND="$1.run"
+     COMMAND="./$1.run"
   fi
 
 # If there is a .in file then use it as input.
