@@ -717,11 +717,10 @@ int Node::cacheResult (const Result::Ref &ref,int retcode)
   wstate()[FCacheResultCode].replace() = cache_retcode_ = retcode;
   cdebug(3)<<"  caching result with code "<<ssprintf("0x%x",retcode)<<endl;
   // publish current state to all result subscribers
-  ResultSubscribers::const_iterator iter = result_subscribers_.begin();
-  for( ; iter != result_subscribers_.end(); iter++ )
-    iter->receive(staterec_.copy(DMI::READONLY));  
-  // note that if we don't cache the result, we have to publish it regardless
-  // this is to be implemented laterm, with caching policies
+  if( result_event_gen_.hasSlots() )
+    result_event_gen_.generateEvent(staterec_.copy());  
+  // NB***: if we don't cache the result, we have to publish it regardless
+  // this is to be implemented later, with caching policies
   return retcode;
 }
 
@@ -762,47 +761,20 @@ void Node::cacheRCR (int ich,const Result::Ref::Copy &res)
 
 void Node::addResultSubscriber (const EventSlot &slot)
 {
-  ResultSubscribers::const_iterator iter = 
-        std::find(result_subscribers_.begin(),result_subscribers_.end(),slot);
-  if( iter == result_subscribers_.end() )
-  {
-    result_subscribers_.push_back(slot);
-    cdebug(2)<<"added result subscription "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
-  }
-  else
-  {
-    cdebug(2)<<"already have a subscription for "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
-  }
+  result_event_gen_.addSlot(slot);
+  cdebug(2)<<"added result subscription "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
 }
 
 void Node::removeResultSubscriber (const EventRecepient *recepient)
 {
-  ResultSubscribers::iterator iter = result_subscribers_.begin();
-  while( iter != result_subscribers_.end())
-  {
-    if( recepient == iter->recepient() )
-    {
-      cdebug(2)<<"removing result subscriber "<<iter->evId().id()<<":"<<recepient<<endl;
-      result_subscribers_.erase(iter++);
-    }
-    else
-      iter++;
-  }
+  result_event_gen_.removeSlot(recepient);
+  cdebug(2)<<"removing all subscriptions for "<<recepient<<endl;
 }
 
 void Node::removeResultSubscriber (const EventSlot &slot)
 {
-  ResultSubscribers::iterator iter = result_subscribers_.begin();
-  while( iter != result_subscribers_.end())
-  {
-    if( slot.evId() == iter->evId() && slot.recepient() == iter->recepient() )
-    {
-      cdebug(2)<<"removing result subscriber "<<iter->evId().id()<<":"<<iter->recepient()<<endl;
-      result_subscribers_.erase(iter++);
-    }
-    else
-      iter++;
-  }
+  result_event_gen_.removeSlot(slot);
+  cdebug(2)<<"removing result subscriber "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
 }
 
 void Node::resampleChildren (Cells::Ref rescells,std::vector<Result::Ref> &childres)

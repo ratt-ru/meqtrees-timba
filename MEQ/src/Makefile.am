@@ -3,7 +3,7 @@ SUBDIRS	= .
 DOCHDRS		 	= MeqVocabulary.h RequestId.h \
 Domain.h Cells.h Vells.h VellSet.h Result.h Polc.h \
 ResampleMachine.h \
-Node.h Function.h \
+EventGenerator.h Node.h Function.h \
 Constant.h Parm.h Freq.h Time.h Selector.h Composer.h \
 Add.h Subtract.h Multiply.h Divide.h \
 Sin.h Cos.h Exp.h Pow.h Sqr.h Sqrt.h Conj.h ToComplex.h \
@@ -18,7 +18,8 @@ lib_LTLIBRARIES 	= libmeq.la
 libmeq_la_SOURCES 	= $(DOCHDRS)		\
 Domain.cc	Cells.cc Vells.cc VellSet.cc Result.cc Polc.cc \
 ResampleMachine.cc \
-RequestId.cc Node.cc Node_Riders.cc Function.cc \
+RequestId.cc EventGenerator.cc \
+Node.cc Node_Riders.cc Function.cc \
 Constant.cc Parm.cc Freq.cc Time.cc Selector.cc Composer.cc \
 Add.cc Subtract.cc Multiply.cc Divide.cc \
 Sin.cc Cos.cc Exp.cc Pow.cc Sqr.cc Sqrt.cc Conj.cc ToComplex.cc \

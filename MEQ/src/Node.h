@@ -23,7 +23,7 @@
 #define MeqSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413
     
 #include <DMI/DataRecord.h>
-#include <DMI/Events.h>
+#include <MEQ/EventGenerator.h>
 #include <MEQ/Result.h>
 #include <MEQ/RequestId.h>
 #include <MEQ/Request.h>
@@ -747,9 +747,8 @@ class Node : public BlockableObject
     std::vector<Result::Ref> rcr_cache_;
     
     //##Documentation
-    //## list of event recepients for when result is available
-    typedef std::list<EventSlot> ResultSubscribers;
-    ResultSubscribers result_subscribers_;
+    //## event generator for result-is-available events
+    EventGenerator result_event_gen_;
     
     static int checking_level_;
 };
