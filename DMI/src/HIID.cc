@@ -75,15 +75,16 @@ bool HIID::matches (const HIID &other) const
   //## begin HIID::matches%3BE9792B0135.body preserve=yes
   CVI iter = begin(),
       oiter = other.begin();
-  for( ; iter != end() && !iter->isWildcard() && 
-         oiter != other.end() && !oiter->isWildcard(); iter++,oiter++ )
+  for( ; iter != end() && oiter != other.end(); iter++,oiter++ )
   {
+    // hit a wildcard? matches everything till the end...
+    if( iter->isWildcard() || oiter->isWildcard() )
+      return True;
     if( !(*iter).matches(*oiter) )  // mismatch at this position - drop out
       return False;
   }
-  // got to end of one or the other? Then it's a match if both are at the end.
-  return ( iter == end() || iter->isWildcard() )
-      && ( oiter == other.end() || oiter->isWildcard() );
+  // got to end of one? Match only if this is simultaneous
+  return iter == end() && oiter == other.end();
   //## end HIID::matches%3BE9792B0135.body
 }
 

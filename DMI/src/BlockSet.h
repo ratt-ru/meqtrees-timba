@@ -13,7 +13,7 @@
 //## Module: BlockSet%3C10CC810231; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\BlockSet.h
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\BlockSet.h
 
 #ifndef BlockSet_h
 #define BlockSet_h 1
@@ -79,6 +79,9 @@ class BlockSet
 
       //## Operation: front%3C974F800237
       const BlockRef & front () const;
+
+      //## Operation: back%3C9F331201C8
+      const BlockRef & back () const;
 
       //## Operation: pop%3BFA537401F6
       //	Removes & returns first reference in set
@@ -211,6 +214,13 @@ inline const BlockRef & BlockSet::front () const
   //## begin BlockSet::front%3C974F800237.body preserve=yes
   return refs.front();
   //## end BlockSet::front%3C974F800237.body
+}
+
+inline const BlockRef & BlockSet::back () const
+{
+  //## begin BlockSet::back%3C9F331201C8.body preserve=yes
+  return refs.back();
+  //## end BlockSet::back%3C9F331201C8.body
 }
 
 //## begin module%3C10CC810231.epilog preserve=yes

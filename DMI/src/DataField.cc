@@ -575,7 +575,11 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
         // otherwise, privatize the object reference
         case UNBLOCKED:
         case MODIFIED:
-            objects[i].copy(other.objects[i],flags|DMI::LOCK);
+  // For ref.copy(), clear the DMI::WRITE flag and use DMI::PRESERVE_RW instead.
+  // (When depth>0, DMI::WRITE will take effect anyways via privatize().
+  //  When depth=0, we must preserve the write permissions of the contents.)
+            objects[i].copy(other.objects[i],
+                    (flags&~DMI::WRITE)|DMI::PRESERVE_RW|DMI::LOCK);
             if( flags&DMI::DEEP || depth>0 );
               objects[i].privatize(flags|DMI::LOCK,depth-1);
             break;

@@ -365,10 +365,14 @@ void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
   //## begin DataRecord::cloneOther%3C58239503D1.body preserve=yes
   fields.clear();
   setWritable( (flags&DMI::WRITE)!=0 );
-  // copy all field refs
+  // copy all field refs, then privatize them if depth>0.
+  // For ref.copy(), clear the DMI::WRITE flag and use DMI::PRESERVE_RW instead.
+  // (When depth>0, DMI::WRITE will take effect anyways via privatize().
+  //  When depth=0, we must preserve the write permissions of the contents.)
   for( CFMI iter = other.fields.begin(); iter != other.fields.end(); iter++ )
   {
-    DataFieldRef & ref( fields[iter->first].copy(iter->second,flags|DMI::LOCK) );
+    DataFieldRef & ref( fields[iter->first].copy(iter->second,
+            (flags&~DMI::WRITE)|DMI::PRESERVE_RW|DMI::LOCK) );
     if( flags&DMI::DEEP || depth>0 )
       ref.privatize(flags|DMI::LOCK,depth-1);
   }
