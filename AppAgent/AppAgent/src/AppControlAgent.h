@@ -235,7 +235,8 @@ class AppControlAgent : public AppEventAgentBase
                                 const HIID &source);
 
     //##ModelId=3EB2425303B2
-    void postCommandError (const string &msg,const HIID &id,DataRecord::Ref::Xfer &data,
+    void postCommandError (const string &msg,const HIID &id,
+                           const DataRecord::Ref::Xfer &data,
                            const HIID &source);
     
     // posts the current state as an event

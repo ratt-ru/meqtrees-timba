@@ -200,7 +200,7 @@ int AppControlAgent::checkStateEvent (const HIID &id,const DataRecord::Ref::Copy
     setState(HALTED,True);
     return NEWSTATE;
   }
-  return SUCCESS; // unknown event
+  return AppEvent::ERROR; // unknown event
 }
 
 //##ModelId=3EB24253018C
@@ -233,8 +233,12 @@ int AppControlAgent::processCommand (const HIID &id,const DataRecord::Ref &data,
   {
     // try to change state according to event
     Thread::Mutex::Lock lock(state_condition_);
-    if( checkStateEvent(id,data) == NEWSTATE )
+    int res = checkStateEvent(id,data);
+    if( res == NEWSTATE )
       return NEWSTATE;
+    else if( res == AppEvent::ERROR )
+      postCommandError("ignoring unrecognized command "+id.toString(),
+                        id,data.copy(),source);
     lock.release();
   }
   return SUCCESS;
@@ -242,7 +246,7 @@ int AppControlAgent::processCommand (const HIID &id,const DataRecord::Ref &data,
 
 //##ModelId=3EB2425303B2
 void AppControlAgent::postCommandError (const string &msg,const HIID &id,
-    DataRecord::Ref::Xfer &data,const HIID &source)
+    const DataRecord::Ref::Xfer &data,const HIID &source)
 {
   DataRecord::Ref ref(new DataRecord,DMI::ANONWR);
   ref()[AidText] = "Error processing command " +
