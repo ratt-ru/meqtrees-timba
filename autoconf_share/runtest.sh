@@ -71,6 +71,8 @@ else
 fi
 
 #
-# Run assay
+# Define source directory and run assay
 #
-$lfr_share_dir/assay $srcdir $1
+LOFAR_PKGSRCDIR=$srcdir
+export LOFAR_PKGSRCDIR
+$lfr_share_dir/assay $1
