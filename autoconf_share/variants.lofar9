@@ -1,12 +1,10 @@
-gnu3.compiler.conf: CXX=/usr/local/gcc-3.3.2/bin/g++ --with-cppflags="-Wno-deprecated"
-gnu3.compiler.aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu --with-threads
+gnu3.compiler.conf: CXX=ccache\ /usr/local0/gcc-3.4.3/bin/g++ --with-cppflags="-m32 -msse -m3dnow -Wno-deprecated -Wa,--32" --with-threads --with-ldflags="--enable-new-dtags"
+gnu3.compiler.aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu34
 
-gnu2.compiler.conf: CXX=/usr/local/gcc-2.95.3/bin/g++ 
+aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu3 --with-threads
 
-kcc.compiler.conf: CXX=/home/gvd/sim/import/kcc/KCC_BASE/bin/KCC
+opt.variant.conf:	 --with-optimize='-O4'
 
-icc.compiler.conf: CXX=/usr/local/intel/compiler70/ia32/bin/icc
+dopt.variant.conf:	 --with-optimize='-ggdb -O4'
 
-debugnt.variant.conf:	  $(aipspp)	
-
-aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu --with-threads
+prof.variant.conf:	 --with-optimize='-ggdb -pg'
