@@ -3,6 +3,7 @@
 DefineRegistry(DynamicTypeManager,0);
 
 
+//##ModelId=3BE96C5F03A7
 BlockableObject * DynamicTypeManager::construct (TypeId tid, BlockSet& bset, int n)
 {
   BlockableObject *obj = construct(tid,n);

@@ -118,6 +118,7 @@ int __register_extra_aids_ =
    AtomicID::registerId(AidEmpty.id(),"_") +
    AtomicID::registerId(AidHash.id(),"#");
 
+//##ModelId=400E4D68006E
 int AtomicID::registerId (int key,const char * value)
 {
   string val = value;

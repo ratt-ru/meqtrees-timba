@@ -34,11 +34,14 @@ namespace Meq {
 class Request;
 
 
+//##ModelId=3F86886E01A8
 class Function : public Node
 {
 public:
+    //##ModelId=3F86886E03C5
   Function();
 
+    //##ModelId=3F86886E03D1
   virtual ~Function();
 
   // Get the result for the given request.
@@ -62,6 +65,7 @@ public:
   //   in the derived class, because in that way some values can be
   //   calculated once for main value and perturbed values.
   // </ul>
+    //##ModelId=3F86886E03DD
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
@@ -69,35 +73,42 @@ public:
   // Find the shape of the result for evaluate. Usually the default 
   // implementation is sufficient which takes
   // the maximum of the values of the children.
+    //##ModelId=400E5306027C
   virtual LoShape resultShape (const vector<Vells*>& values);
 
   // Evaluate the value for the given request.
   // The default throws an exception.
   // NB: this will be phased out
+    //##ModelId=3F95060C0321
   virtual void evaluateVells (Vells& result,const Request&,
 			      const vector<Vells*>& values);
 
     
   // Evaluate the value for the given request. The output shape is
   // precomputed with resultShape() and passed in as the shape argument.
+    //##ModelId=3F86886F00B0
   virtual Vells evaluate (const Request &req,const LoShape &,const vector<Vells*>& values)
   { Vells res; evaluateVells(res,req,values); return res; }
 
   // Find all spids for this node by merging the spids in all results.
+    //##ModelId=3F86886F0108
   static vector<int> findSpids (const vector<VellSet*>&);
 
   // Returns the class TypeId
+    //##ModelId=400E53070274
   virtual TypeId objectType() const;
 
   // Check the children after they have been resolved in class Node.
   // The order of the children is the order as given when the Node object
   // was created.
+    //##ModelId=3F95060D0060
   virtual void checkChildren();
 
   // Same as checkChildren, but it also tests if the number of children
   // is correct (using the function testChildren).
   // This is only done if not already done yet for this node object.
   // If already done, false is returned.
+    //##ModelId=400E530702E6
   bool convertChildren (int nchild);
 
   // Same as convertChildren, but the order of the children is the order as
@@ -107,23 +118,28 @@ public:
   // If nchild==0, it is set to the vector size.
   // This is only done if not already done yet for this node object.
   // If already done, false is returned.
+    //##ModelId=400E5308008E
   bool convertChildren (const vector<HIID>& childNames, int nchild=0);
 
   // Test the number of children.
   // If the argument nchild is positive, it checks if the number
   // of children matches exactly. If negative, it checks if the
   // number of children is at least nchild. If zero, no test is done.
+    //##ModelId=400E53080325
   void testChildren (int nchild) const;
 
   // Test if the types of the children match the given types.
   // It has to be done after check/convertChildren is done.
+    //##ModelId=400E530900C1
   void testChildren (const vector<TypeId>& childTypes) const;
 
 protected:
+    //##ModelId=3F86886F01D9
   vector<Node*>& children()
     { return itsChildren; }
 
 private:
+    //##ModelId=3F86886E03A4
   vector<Node*> itsChildren;
 };
 

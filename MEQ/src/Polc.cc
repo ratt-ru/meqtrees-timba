@@ -35,10 +35,13 @@
 
 namespace Meq {
 
+//##ModelId=3F86886F0357
 double Polc::theirPascal[10][10];
+//##ModelId=3F86886F035E
 bool   Polc::theirPascalFilled = false;
 
 
+//##ModelId=3F86886F0366
 Polc::Polc()
 : itsNrSpid     (0),
   itsPertValue  (1e-6),
@@ -48,6 +51,7 @@ Polc::Polc()
   itsNormalized (false)
 {}
 
+//##ModelId=400E5354033A
 Polc::Polc (DataRecord &rec)
 : itsCoeff(rec[FVellSets].as_wp<DataArray>())
 {
@@ -60,6 +64,7 @@ Polc::Polc (DataRecord &rec)
   itsNormalized = rec[FNormalized];
 }
 
+//##ModelId=400E53540345
 void Polc::fillRecord (DataRecord &rec) 
 {
   rec[FDomain] <<= new Domain(domain());
@@ -72,6 +77,7 @@ void Polc::fillRecord (DataRecord &rec)
   rec[FNormalized] = itsNormalized;
 }
 
+//##ModelId=3F86886F0373
 void Polc::setCoeff (const Vells& values)
 {
   itsCoeff = values.clone();
@@ -82,6 +88,7 @@ void Polc::setCoeff (const Vells& values)
   clearSolvable();
 }
 
+//##ModelId=3F86886F037A
 void Polc::setCoeff (const Vells& values,
 		     const Matrix<bool>& mask)
 {
@@ -97,12 +104,14 @@ void Polc::setCoeff (const Vells& values,
   clearSolvable();
 }
 
+//##ModelId=3F86886F0384
 void Polc::setCoeffOnly (const Vells& values)
 {
   itsCoeff = values.clone();
   clearSolvable();
 }
 
+//##ModelId=400E53540350
 void Polc::evaluate (VellSet &result, const Request& request)
 {
   PERFPROFILE(__PRETTY_FUNCTION__);
@@ -253,6 +262,7 @@ void Polc::evaluate (VellSet &result, const Request& request)
   }
 }
 
+//##ModelId=3F86886F03A6
 int Polc::makeSolvable (int spidIndex)
 {
   Assert (itsSpidInx.size() == 0);
@@ -285,6 +295,7 @@ int Polc::makeSolvable (int spidIndex)
   return itsNrSpid;
 }
 
+//##ModelId=3F86886F03A4
 void Polc::clearSolvable()
 {
   itsSpidInx.resize (0);
@@ -293,6 +304,7 @@ void Polc::clearSolvable()
   itsPerturbation = Vells();
 }
 
+//##ModelId=3F86886F03AC
 void Polc::getInitial (Vells& values) const
 {
   double* data = values.realStorage();
@@ -305,6 +317,7 @@ void Polc::getInitial (Vells& values) const
   }
 }
 
+//##ModelId=3F86886F03B3
 void Polc::getCurrentValue (Vells& value, bool denorm) const
 {
   if (denorm && isNormalized()) {
@@ -314,6 +327,7 @@ void Polc::getCurrentValue (Vells& value, bool denorm) const
   }
 }
 
+//##ModelId=3F86886F03BE
 uint Polc::update (const double* values, uint nrval)
 {
   double* coeff = itsCoeff.realStorage();
@@ -328,6 +342,7 @@ uint Polc::update (const double* values, uint nrval)
 }
 
 
+//##ModelId=3F8688700008
 Vells Polc::normalize (const Vells& coeff, const Domain& domain)
 {
   return normDouble (coeff,
@@ -336,6 +351,7 @@ Vells Polc::normalize (const Vells& coeff, const Domain& domain)
 		     domain.offsetTime()-itsTime0);
 }
   
+//##ModelId=3F8688700011
 Vells Polc::denormalize (const Vells& coeff) const
 {
   return normDouble (coeff,
@@ -344,6 +360,7 @@ Vells Polc::denormalize (const Vells& coeff) const
 		     (itsTime0-itsDomain.offsetTime())/itsDomain.scaleTime());
 }
   
+//##ModelId=3F868870002F
 void Polc::fillPascal()
 {
   for (int j=0; j<10; j++) {
@@ -355,6 +372,7 @@ void Polc::fillPascal()
   theirPascalFilled = true;
 }
 
+//##ModelId=3F8688700019
 Vells Polc::normDouble (const Vells& coeff, double sx,
 			double sy, double ox, double oy)
 {

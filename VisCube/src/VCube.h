@@ -240,7 +240,7 @@ class VisCube : public BlockableObject
           Thread::Mutex::Lock cubelock;
           
       private:
-        //##ModelId=3DF9FDCD0124
+        //##ModelId=400E51D501F0
         //##Documentation
         //## This hides the base class' attach() methods
           void attach (const VisTile &tile);
@@ -300,7 +300,9 @@ class VisCube : public BlockableObject
 
       private:
         // Additional Private Declarations
+        //##ModelId=400E51D600B5
           void attach (const VisTile &tile);
+        //##ModelId=400E51D601C3
           void attach (const VisCube &cube);
     };
     

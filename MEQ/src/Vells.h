@@ -95,18 +95,23 @@ namespace VellsMath
 // vectors
 const int VELLS_LUT_SIZE = 4;
 
+//##ModelId=3F86886E0229
 class Vells : public SingularRefTarget
 {
 public:
+    //##ModelId=400E530400F0
   typedef CountedRef<Vells> Ref;
     
   // A null vector (i.e. no vector assigned yet).
   // This can be used to clear the 'cache'.
+    //##ModelId=3F86887001D4
   Vells();
 
   // Create a scalar Vells from a value. Default is temporary Vells.
   // <group>
+    //##ModelId=3F86887001D5
   Vells (double value,bool temp=True);
+    //##ModelId=3F86887001DC
   Vells (const dcomplex& value,bool temp=True);
   // <group>
 
@@ -114,13 +119,17 @@ public:
   // If the init flag is true, the matrix is initialized to the given value.
   // Otherwise the value only indicates the type of matrix to be created.
   // <group>
+    //##ModelId=3F86887001E3
   Vells (double, int nx, int ny, bool init=true);
+    //##ModelId=3F86887001F6
   Vells (const dcomplex&, int nx, int ny, bool init=true);
   // <group>
 
   // Create a Vells from a blitz array.
   // <group>
+    //##ModelId=3F8688700209
   explicit Vells (LoMat_double&);
+    //##ModelId=3F868870020F
   explicit Vells (LoMat_dcomplex&);
   // </group>
   
@@ -128,28 +137,37 @@ public:
   // Default is reference semantics (attaches ref to array), unless 
   // DMI::PRIVATIZE is specified, in which case the array is privatized.
   // <group>
+    //##ModelId=3F8688700216
   explicit Vells (DataArray *,int flags = 0);
+    //##ModelId=3F868870021C
   explicit Vells (const DataArray *,int flags = 0);
   // creates from array ref. Ref is transferred
+    //##ModelId=3F8688700223
   explicit Vells (const DataArray::Ref::Xfer &ref);
   // </group>
 
   // Copy constructor (reference semantics, unless DMI::PRIVATIZE is specified)
+    //##ModelId=3F868870022A
   Vells (const Vells& that,int flags = DMI::COPYREF);
 
+    //##ModelId=3F8688700238
   ~Vells();
 
   // Assignment (reference semantics).
+    //##ModelId=3F868870023B
   Vells& operator= (const Vells& other);
 
   // Assures of a private copy of the matrix
+    //##ModelId=400E5356008F
   Vells & privatize ();
   
   // Clones the matrix -- assures of a private copy
+    //##ModelId=3F8688700249
   Vells clone () const
   { return Vells(*this,DMI::PRIVATIZE); }
 
   // is it a null vells?
+    //##ModelId=3F8688700280
   bool isNull() const
     { return !(itsArray.valid()); }
 
@@ -157,73 +175,95 @@ public:
   // produce a non-temp Vells. Vells math (below) uses the private
   // constructors to produce temp Vells. Temp Vells allow for efficient 
   // re-use of storage.
+    //##ModelId=400E53560092
   bool isTemp () const
     { return itsIsTemp; }
   
+    //##ModelId=400E53560096
   bool isWritable () const
     { return itsIsWritable; }
   
+    //##ModelId=400E53560099
   void ensureWritable () const
     { FailWhen(!itsIsWritable,"r/w access violation"); }
 
   // changes the temp property
+    //##ModelId=400E5356009D
   Vells & makeTemp (bool temp=true) 
   { itsIsTemp = temp; return *this; }
   
+    //##ModelId=400E535600A9
   Vells & makeNonTemp () 
   { itsIsTemp = false; return *this; }
   
+    //##ModelId=3F8688700279
   int nx() const
     { return itsNx; }
 
+    //##ModelId=3F868870027C
   int ny() const
     { return itsNy; }
 
+    //##ModelId=3F868870027E
   int nelements() const
     { return itsNx*itsNy; }
 
+    //##ModelId=400E535600AC
   bool isScalar() const
     { return itsIsScalar; }
+    //##ModelId=400E535600B0
   bool isArray() const
     { return !itsIsScalar; }
   
+    //##ModelId=3F868870028A
   bool isReal() const
     { return itsRealArray != 0; }
+    //##ModelId=400E535600B5
   bool isComplex() const
     { return itsComplexArray != 0; }
   
 // returns true if this is a higher-ranked Vells (i.e. complex>double,array>scalar)
+    //##ModelId=400E535600B9
   bool higherThan (const Vells &other) const
   { return isComplex() > other.isComplex() || isArray() > other.isArray(); }
 
   // returns true if type/shape matches other
+    //##ModelId=400E535600CE
   bool isCongruent (const Vells &other) const
     { return isReal() == other.isReal() && nx() == other.nx() && ny() == other.ny(); }
   
   // returns true if type/shape matches the one specified
+    //##ModelId=400E535600E7
   bool isCongruent (bool is_Real,int nx1,int ny1) const
     { return isReal() == is_Real && nx() == nx1 && ny() == ny1; }
   
+    //##ModelId=400E53560109
   const DataArray & getDataArray () const
     { return *itsArray; }
   
+    //##ModelId=400E5356010C
   DataArray & getDataArray ()
     { return itsArray(); }
 
   // Provides access to underlying arrays
   // In debug mode, check type
+    //##ModelId=3F868870028C
   const LoMat_double& getRealArray() const
   { DbgAssert(itsRealArray!=0); return *itsRealArray; }
+    //##ModelId=3F868870028F
   const LoMat_dcomplex& getComplexArray() const
   { DbgAssert(itsComplexArray!=0); return *itsComplexArray; }
+    //##ModelId=3F8688700291
   LoMat_double& getRealArray()
   { DbgAssert(itsRealArray!=0); ensureWritable(); 
     return *const_cast<LoMat_double*>(itsRealArray); }
+    //##ModelId=3F8688700292
   LoMat_dcomplex& getComplexArray()
   { DbgAssert(itsComplexArray!=0); ensureWritable(); 
     return *const_cast<LoMat_dcomplex*>(itsComplexArray); }
   
   // initializes with value
+    //##ModelId=3F8688700294
   void init (double val)
   { if (isReal()) getRealArray()=val; else getComplexArray()=dcomplex(val); }
 
@@ -246,43 +286,61 @@ public:
   { STATIC_CHECK(0,illegal_Vells_getStorage_type); }
  
   // Provides access to array storage
+    //##ModelId=3F8688700295
   const double* realStorage() const
   { return getRealArray().data(); }
+    //##ModelId=3F8688700298
   double* realStorage()
   { return getRealArray().data(); }
+    //##ModelId=3F8688700299
   const dcomplex* complexStorage() const
   { return getComplexArray().data(); }
+    //##ModelId=3F868870029B
   dcomplex* complexStorage()
   { return getComplexArray().data(); }
   
   // copies data from other Vells. Checks for matching shape/type
+    //##ModelId=400E53560110
   void copyData (const Vells &other);
   
   // zeroes data
+    //##ModelId=400E5356011C
   void zeroData ();
   
   // dumps to output
+    //##ModelId=3F8688700282
   void show (std::ostream& os) const;
 
+    //##ModelId=400E5356011F
   string sdebug (int detail=1,const string &prefix="",const char *nm=0) const;
   
 
 private:
   // helper function for constructors
+    //##ModelId=400E5356013E
   void initFromDataArray (const DataArray *parr,int flags);
     
+    //##ModelId=400E53560024
   DataArray::Ref  itsArray;
 
+    //##ModelId=3F86887001A3
   const LoMat_double*   itsRealArray;
+    //##ModelId=3F86887001AB
   const LoMat_dcomplex* itsComplexArray;
+    //##ModelId=3F86887001B3
   int             itsNx;
+    //##ModelId=3F86887001BB
   int             itsNy;
+    //##ModelId=400E5356002F
   bool            itsIsTemp;
+    //##ModelId=400E53560039
   bool            itsIsWritable;
+    //##ModelId=3F86887001C3
   bool            itsIsScalar;
   
   // OK, now it gets hairy. Implement math on Vells
   // The following flags may be supplied to the constructors below:
+    //##ModelId=400E530400FC
   typedef enum { 
     VF_REAL         = 1, 
     VF_COMPLEX      = 2, 
@@ -300,6 +358,7 @@ private:
   //    flags&VF_SCALAR   forces a scalar Vells
   //    flags&VF_CHECKxxx input must be real/complex (exception otherwise)
   // The opname argument is used for error reporting
+    //##ModelId=3F8688700231
   Vells (const Vells &other,int flags,const std::string &opname);
 
   // Special constructor for a result of a binary Vells operation.
@@ -312,26 +371,32 @@ private:
   //    flags&VF_SCALAR   forces a scalar Vells
   //    flags&VF_CHECKxxx input must be real/complex (exception otherwise)
   // The opname argument is used for error reporting
+    //##ModelId=400E53560174
   Vells (const Vells &a,const Vells &b,int flags,const std::string &opname);
 
   // helper function for these two constructors
+    //##ModelId=400E5356019D
   bool tryReference (bool real,const Vells &other);
   
 // returns lookup table index for a combination of Vells properties
 //      bit 0: isComplex, bit 1: isArray
 // 0: real scalar 1: real array, 2: complex scalar, 3: complex array
+    //##ModelId=400E535601B4
   static int getLutIndex (bool isCompl,bool isArr)
   { return (isCompl<<1) + isArr; }
   
 // returns LUT index for this Vells  
+    //##ModelId=400E535601CB
   int getLutIndex () const
   { return getLutIndex(isComplex(),isArray()); }
   
   
 public:
 // pointer to function implementing an unary operation 
+    //##ModelId=400E53040108
   typedef void (*UnaryOperPtr)(Vells &out,const Vells &in);
 // pointer to function implementing a binary operation 
+    //##ModelId=400E53040116
   typedef void (*BinaryOperPtr)(Vells &out,const Vells &,const Vells &);
 // pointer to unary function returning new result by value
 //  typedef Vells (*UnaryFuncPtr)(const Vells &in);
@@ -388,10 +453,15 @@ public:
   private: static BinaryOperPtr binfunc_##FUNCNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  
 
 // insert all declarations using the macros above  
+    //##ModelId=400E535601D0
   DoForAllUnaryOperators(declareUnaryOperator,);
+    //##ModelId=400E535601D9
   DoForAllInPlaceOperators(declareInPlaceOperator,);
+    //##ModelId=400E535601E3
   DoForAllBinaryOperators(declareBinaryOperator,);
+    //##ModelId=400E535601EC
   DoForAllUnaryFuncs(declareUnaryFuncLut,);
+    //##ModelId=400E535601F6
   DoForAllBinaryFuncs(declareBinaryFuncLut,);
 
 #undef declareUnaryOperator
@@ -408,10 +478,12 @@ public:
 #ifndef MEQVELLS_SKIP_FUNCTIONS
   #define declareUnaryFunc(FUNCNAME,x) \
     public: friend Vells VellsMath::FUNCNAME (const Vells &);
+    //##ModelId=400E53560200
   DoForAllUnaryFuncs(declareUnaryFunc,);
   
   #define declareBinaryFunc(FUNCNAME,x) \
     public: friend Vells VellsMath::FUNCNAME (const Vells &,const Vells &);
+    //##ModelId=400E5356020A
   DoForAllBinaryFuncs(declareBinaryFunc,);
   
   #undef declareUnaryFunc

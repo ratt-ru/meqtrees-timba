@@ -28,6 +28,7 @@ class GlishClientWP : public WorkProcess
     //##ModelId=3DB9369201C7
       ~GlishClientWP();
 
+    //##ModelId=3E9BD6E900D3
       virtual void init ();
 
       //##ModelId=3CBA97E70232
@@ -51,7 +52,9 @@ class GlishClientWP : public WorkProcess
       static const int MaxEventsPerPoll = 10;
       
   protected:
+    //##ModelId=3E9BD6E900D5
       GlishValue messageToGlishValue (const Message &msg);
+    //##ModelId=3E9BD6E900D9
       MessageRef glishValueToMessage (const GlishValue &value);
   
   private:
@@ -73,6 +76,7 @@ class GlishClientWP : public WorkProcess
       void shutdown ();
       
       
+    //##ModelId=3E9BD6E900DD
       void handleEvent (GlishSysEvent &event);
       
   private:

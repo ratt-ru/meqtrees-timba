@@ -27,11 +27,13 @@ namespace Meq {
 
 static NestableContainer::Register reg(TpMeqRequest,True);
 
+//##ModelId=3F8688700056
 Request::Request()
     : itsCalcDeriv(False),itsCells(0)
 {
 }
 
+//##ModelId=3F8688700061
 Request::Request (const DataRecord &other,int flags,int depth)
 : DataRecord   (other,flags,depth),
   itsCalcDeriv (False),itsCells(0)
@@ -39,6 +41,7 @@ Request::Request (const DataRecord &other,int flags,int depth)
   validateContent();
 }
 
+//##ModelId=400E535403DD
 Request::Request (const Cells& cells, bool calcDeriv, const HIID &id,int cellflags)
 : itsCalcDeriv (calcDeriv),
   itsCells     (0)
@@ -48,6 +51,7 @@ Request::Request (const Cells& cells, bool calcDeriv, const HIID &id,int cellfla
   (*this)[FCalcDeriv] = calcDeriv;
 }
 
+//##ModelId=400E53550016
 Request::Request (const Cells * cells, bool calcDeriv, const HIID &id,int cellflags)
 : itsCalcDeriv (calcDeriv),
   itsCells     (0)
@@ -58,17 +62,20 @@ Request::Request (const Cells * cells, bool calcDeriv, const HIID &id,int cellfl
 }
 
 // Set the request id.
+//##ModelId=3F8688700075
 void Request::setId (const HIID &id)
 {
   (*this)[FRequestId] = itsId = id;
 }
 
+//##ModelId=3F868870006E
 void Request::setCells (const Cells * cells,int flags)
 {
   itsCells = flags&DMI::CLONE ? new Cells(*cells) : cells;
   DataRecord::replace(FCells,itsCells,flags|DMI::READONLY);
 }
 
+//##ModelId=400E53550049
 void Request::validateContent ()
 {
   Thread::Mutex::Lock lock(mutex());

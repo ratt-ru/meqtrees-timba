@@ -53,6 +53,7 @@ void Node::checkInitState (DataRecord &rec)
 
 
 // this initializes the children-related fields
+//##ModelId=400E531F0085
 void Node::initChildren (int nch)
 {
   // check against expected number
@@ -100,6 +101,7 @@ void Node::initChildren (int nch)
   }
 }
 
+//##ModelId=400E530F0090
 void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
 {
   cdebug(1)<<"reinitializing node"<<endl;
@@ -210,6 +212,7 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   }
 }
 
+//##ModelId=400E531402D1
 void Node::setStateImpl (DataRecord &rec,bool initializing)
 {
   // if not initializing, check for immutable fields
@@ -363,6 +366,7 @@ void Node::processChildSpec (NestableContainer &children,const HIID &chid,const 
   }
 }
 
+//##ModelId=400E53120082
 void Node::setNodeIndex (int nodeindex)
 {
   wstate()[FNodeIndex] = node_index_ = nodeindex;
@@ -400,6 +404,7 @@ void Node::addChild (const HIID &id,Node *childnode)
 
 // relink children -- resets pointers to all children. This is called
 // after restoring a node from a file. 
+//##ModelId=400E531101C8
 void Node::relinkChildren ()
 {
   for( int i=0; i<numChildren(); i++ )
@@ -471,11 +476,13 @@ inline int Node::getChildNumber (const HIID &id)
   return iter == child_map_.end() ? -1 : iter->second;
 }
 
+//##ModelId=3F9919B10014
 void Node::setCurrentRequest (const Request &req)
 {
   wstate()[FRequestId].replace() = current_reqid_ = req.id();
 }
 
+//##ModelId=400E531300C8
 void Node::clearCache (bool recursive)
 {
   cache_result_.detach();
@@ -489,6 +496,7 @@ void Node::clearCache (bool recursive)
 }
 
 // 
+//##ModelId=400E531A021A
 bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
 {
   // no cache -- return false
@@ -510,6 +518,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
 }
 
 // stores result in cache as per current policy, returns retcode
+//##ModelId=400E531C0200
 int Node::cacheResult (const Result::Ref &ref,int retcode)
 {
   // for now, always cache, since we don't implement any other policy
@@ -521,6 +530,7 @@ int Node::cacheResult (const Result::Ref &ref,int retcode)
   return retcode;
 }
 
+//##ModelId=400E531702FD
 int Node::pollChildren (std::vector<Result::Ref> &child_results,
                         Result::Ref &resref,
                         const Request &req)

@@ -31,10 +31,13 @@ namespace Meq {
 
 static NestableContainer::Register reg(TpMeqVellSet,True);
 
+//##ModelId=400E535502F6
 int VellSet::nctor = 0;
+//##ModelId=400E535502F8
 int VellSet::ndtor = 0;
 
 
+//##ModelId=400E5355031E
 VellSet::VellSet (int nspid)
 : itsCount           (0),
   itsDefPert         (0.),
@@ -58,6 +61,7 @@ VellSet::VellSet (int nspid)
   }
 }
 
+//##ModelId=400E53550322
 VellSet::VellSet (const DataRecord &other,int flags,int depth)
 : DataRecord(other,flags,depth),
   itsCount           (0),
@@ -72,6 +76,7 @@ VellSet::VellSet (const DataRecord &other,int flags,int depth)
 }
 
 
+//##ModelId=400E53550329
 VellSet::~VellSet()
 {
   clear();
@@ -98,6 +103,7 @@ static Vells * makeVells (const NestableContainer &nc,const HIID &field)
     return new Vells();
 }
 
+//##ModelId=400E53550333
 void VellSet::privatize (int flags, int depth)
 {
   // if deep-privatizing, clear all shortcuts. We can rely on
@@ -108,6 +114,7 @@ void VellSet::privatize (int flags, int depth)
   DataRecord::privatize(flags,depth);
 }
 
+//##ModelId=400E5355033A
 void VellSet::validateContent ()
 {
   Thread::Mutex::Lock lock(mutex());
@@ -169,6 +176,7 @@ void VellSet::validateContent ()
   }  
 }
 
+//##ModelId=400E535503B5
 void VellSet::clear()
 {
   itsNumSpids = 0;
@@ -180,6 +188,7 @@ void VellSet::clear()
   itsIsFail = false;
 }
 
+//##ModelId=400E53550344
 void VellSet::setSpids (const vector<int>& spids)
 {
   FailWhen(itsNumSpids && spids.size() != uint(itsNumSpids),"setSpids: vector size mismatch" );
@@ -200,6 +209,7 @@ void VellSet::setSpids (const vector<int>& spids)
   }
 }
 
+//##ModelId=400E53550353
 void VellSet::setPerturbation (int i, double value)
 { 
   DbgAssert(i>=0 && i<itsNumSpids);
@@ -207,6 +217,7 @@ void VellSet::setPerturbation (int i, double value)
 }
 
 // set all perturbations at once
+//##ModelId=400E53550359
 void VellSet::setPerturbations (const vector<double>& perts)
 {
   FailWhen(perts.size() != uint(itsNumSpids),"setPerturbations: vector size mismatch" );
@@ -218,6 +229,7 @@ void VellSet::setPerturbations (const vector<double>& perts)
   }
 }
 
+//##ModelId=400E53550360
 Vells & VellSet::setValue (Vells *pvells)
 {
   FailWhen(!isWritable(),"r/w access violation");
@@ -226,6 +238,7 @@ Vells & VellSet::setValue (Vells *pvells)
   return *pvells;
 }
 
+//##ModelId=400E53550387
 Vells & VellSet::setPerturbedValue (int i,Vells *pvells)
 {
   DbgAssert(i>=0 && i<itsNumSpids);
@@ -242,6 +255,7 @@ Vells & VellSet::setPerturbedValue (int i,Vells *pvells)
   return *pvells;
 }
 
+//##ModelId=400E53550393
 void VellSet::addFail (const DataRecord *rec,int flags)
 {
   FailWhen(!isWritable(),"r/w access violation");
@@ -268,6 +282,7 @@ void VellSet::addFail (const DataRecord *rec,int flags)
   }
 }
 
+//##ModelId=400E53550399
 void VellSet::addFail (const string &nodename,const string &classname,
                       const string &origin,int origin_line,const string &msg)
 {
@@ -282,11 +297,13 @@ void VellSet::addFail (const string &nodename,const string &classname,
   addFail(&rec);
 }
 
+//##ModelId=400E535503A7
 int VellSet::numFails () const
 {
   return (*this)[FFail].size();
 }
   
+//##ModelId=400E535503A9
 const DataRecord & VellSet::getFail (int i) const
 {
   return (*this)[FFail][i].as<DataRecord>();
@@ -294,6 +311,7 @@ const DataRecord & VellSet::getFail (int i) const
 
 
 
+//##ModelId=400E535503AE
 void VellSet::show (std::ostream& os) const
 {
   if( isFail() )

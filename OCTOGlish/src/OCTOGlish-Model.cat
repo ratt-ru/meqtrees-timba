@@ -1416,7 +1416,7 @@
 			    fill_color 	13434879
 			    quidu      	"3DF46AC0034D"
 			    width      	330
-			    height     	4550
+			    height     	4580
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -3658,7 +3658,7 @@
 			    ordinal    	51)
 			(object Destruction_Marker @175
 			    Parent_View 	@51
-			    location   	(2685, 5565)
+			    location   	(2685, 5595)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @176
@@ -4014,5 +4014,29 @@
 			    line_color 	3342489
 			    client     	@196
 			    supplier   	@160
-			    line_style 	0))))))
+			    line_style 	0)))))
+	(object Class_Category "GlishUtil"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"IsNamespace"
+		    value      	TRUE))
+	    quid       	"400E516F03A1"
+	    exportControl 	"Public"
+	    logical_models 	(list unit_reference_list
+		(object Class "GlishUtilDebugContext"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"GlishUtil.h"))
+		    quid       	"400E516F03A3"
+		    class_attributes 	(list class_attribute_list
+			(object ClassAttribute "LocalDebugContext"
+			    quid       	"400E516F03D8"
+			    exportControl 	"Public"))
+		    module     	"Component View::OCTOGlish"
+		    quidu      	"3E9BD681018B"
+		    language   	"ANSI C++"))
+	    logical_presentations 	(list unit_reference_list)))
     logical_presentations 	(list unit_reference_list))

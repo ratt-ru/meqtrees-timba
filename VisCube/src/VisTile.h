@@ -66,6 +66,7 @@ class VisCube;
   Do(int,2,flags,FLAGS);
 
 
+//##ModelId=400E51D401A0
 typedef CountedRef<VisTile> VisTileRef;
 
 //##ModelId=3DB964F20079
@@ -133,6 +134,7 @@ class VDSID : public HIID
 class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
 {
   public:
+    //##ModelId=400E51D40143
     typedef CountedRef<VisTile> Ref;
   
     //##ModelId=3DB964F200F4
@@ -161,6 +163,7 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //##ModelId=3DF9FDC9024D
     typedef Iterator iterator;
     
+    //##ModelId=400E51D40176
     typedef enum
     {
       // flag value for "missing data"

@@ -326,7 +326,7 @@ NestableContainer::Hook NestableContainer::setBranch (const HIID &id, int flags)
   //## end NestableContainer::setBranch%3CB2B438020F.body
 }
 
-//##ModelId=3BE982760231
+//##ModelId=400E4D6C02EB
 bool NestableContainer::select (const HIIDSet &)
 {
   //## begin NestableContainer::select%3BE982760231.body preserve=yes
@@ -334,14 +334,14 @@ bool NestableContainer::select (const HIIDSet &)
   //## end NestableContainer::select%3BE982760231.body
 }
 
-//##ModelId=3BFBDC0D025A
+//##ModelId=400E4D6C03D2
 void NestableContainer::clearSelection ()
 {
   //## begin NestableContainer::clearSelection%3BFBDC0D025A.body preserve=yes
   //## end NestableContainer::clearSelection%3BFBDC0D025A.body
 }
 
-//##ModelId=3BFBDC1D028F
+//##ModelId=400E4D6D004D
 int NestableContainer::selectionToBlock (BlockSet& )
 {
   //## begin NestableContainer::selectionToBlock%3BFBDC1D028F.body preserve=yes

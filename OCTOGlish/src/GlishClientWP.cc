@@ -20,6 +20,9 @@ static int dum2 = aidRegistry_Global();
 
 // Class GlishClientWP 
 
+//##ModelId=3CB562BB0226
+//##ModelId=3DB9369503DE
+//##ModelId=3DB9369600AA
 GlishClientWP::GlishClientWP (GlishSysEventSource *src, bool autostp, AtomicID wpc)
   : WorkProcess(wpc),evsrc(src),autostop_(autostp)
 {
@@ -35,6 +38,7 @@ GlishClientWP::~GlishClientWP()
     delete evsrc;
 }
 
+//##ModelId=3E9BD6E900D3
 void GlishClientWP::init ()
 {
 //  dprintf(2)("init: waiting for glish start event\n");
@@ -47,6 +51,7 @@ void GlishClientWP::init ()
   dprintf(2)("init complete\n");
 }
 
+//##ModelId=3E9BD6E900DD
 void GlishClientWP::handleEvent (GlishSysEvent &event)
 {
   dprintf(2)("got event '%s'\n", event.type().c_str());
@@ -245,7 +250,7 @@ int GlishClientWP::receive (MessageRef &mref)
   return Message::ACCEPT;
 }
 
-//##ModelId=3CB57CA00280
+//##ModelId=3E9BD6E900D5
 // Converts a Message to a GlishValue
 // (The payload is converted to a GlishValue, while message attributes
 // are passed as attributes) 
@@ -279,7 +284,7 @@ GlishValue GlishClientWP::messageToGlishValue (const Message &msg)
   return value;
 }
 
-//##ModelId=3CB57C8401D6
+//##ModelId=3E9BD6E900D9
 MessageRef GlishClientWP::glishValueToMessage (const GlishValue &value)
 {
   // get message attributes

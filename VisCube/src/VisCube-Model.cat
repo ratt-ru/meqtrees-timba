@@ -715,7 +715,7 @@
 			(object Attribute
 			    tool       	"Cplusplus"
 			    name       	"ImplementationType"
-			    value      	"struct { int nrow,idsize; }"))
+			    value      	"struct { int nrow,idsize; bool has_format; }"))
 		    quid       	"3DB964F20021"
 		    stereotype 	"typedef"
 		    exportControl 	"Private"
@@ -1756,6 +1756,22 @@
 		    name       	"BodySourceFile"
 		    value      	"VisTile.cc"))
 	    quid       	"3DB964F20079"
+	    documentation 	
+|VDSID is a "Visibility Dataset ID". This is a unique identifier of a
+|dataset. Thereis a unique VDSID assigned to each stream of visibility data
+|(as represented by a header record and a set of VisTiles).
+|Implementation-wise, it's just a HIID of a fixed length (3 for now).
+|The three components of a VDSID are segment ID, beam ID, observation ID,
+|though we could easily revise this in the future as required by 
+|applications. When reading an AIPS++ MS, segment maps to DATA_DESC, beam
+|maps to FIELD, and observation maps to different measurement sets.
+|
+	    
+	    superclasses 	(list inheritance_relationship_list
+		(object Inheritance_Relationship
+		    quid       	"400E51D403C7"
+		    supplier   	"Logical View::DOMIN0::HIID"
+		    quidu      	"3BE96FE601C5"))
 	    operations 	(list Operations
 		(object Operation "VDSID"
 		    quid       	"3DB964F40176"
@@ -4069,6 +4085,20 @@
 			    result     	"const char *"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "attach"
+			    quid       	"400E51D501F0"
+			    documentation 	
+|This hides the base class' attach() methods
+|
+			    
+			    parameters 	(list Parameters
+				(object Parameter "tile"
+				    quid       	"400E51D50303"
+				    type       	"const VisTile &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Private"
 			    uid        	0))
 		    class_attributes 	(list class_attribute_list
 			(object ClassAttribute "cuberef"
@@ -4084,13 +4114,6 @@
 			    quid       	"3DB964F40327"
 			    type       	"int"
 			    exportControl 	"Protected")
-			(object ClassAttribute "VisTile::ConstIterator::attach"
-			    quid       	"3DF9FDCD0124"
-			    documentation 	
-|This hides the base class' attach() methods
-|
-			    
-			    stereotype 	"using")
 			(object ClassAttribute "icubetime"
 			    quid       	"3DF9FDCD01FA"
 			    type       	"int"
@@ -4262,15 +4285,27 @@
 			    result     	"const char *"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "attach"
+			    quid       	"400E51D600B5"
+			    parameters 	(list Parameters
+				(object Parameter "tile"
+				    quid       	"400E51D60124"
+				    type       	"const VisTile &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Private"
+			    uid        	0)
+			(object Operation "attach"
+			    quid       	"400E51D601C3"
+			    parameters 	(list Parameters
+				(object Parameter "cube"
+				    quid       	"400E51D60229"
+				    type       	"const VisCube &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Private"
 			    uid        	0))
-		    class_attributes 	(list class_attribute_list
-			(object ClassAttribute "VisTile::Iterator::attach"
-			    quid       	"3DF9FDCE036C"
-			    documentation 	
-|This hides the base class' attach() methods
-|
-			    
-			    stereotype 	"using"))
 		    module     	"Component View::VisCube"
 		    quidu      	"3DB964AF02FA")
 		(object Class "TI"
@@ -4938,13 +4973,7 @@
 		(object ClassAttribute "DefineColumn"
 		    quid       	"3DF9FDD40042"
 		    type       	"DoForAllVisTileColumns"
-		    exportControl 	"Public")
-		(object ClassAttribute "MissingData"
-		    quid       	"3E53938F0381"
-		    type       	"const int"
-		    initv      	"0xFFFFFFFF"
-		    exportControl 	"Public"
-		    static     	TRUE))
+		    exportControl 	"Public"))
 	    module     	"Component View::VisCube"
 	    quidu      	"3DB964AF02FA"
 	    language   	"ANSI C++"
@@ -5531,7 +5560,57 @@
 		    quid       	"3F98DA6E00C1"
 		    stereotype 	"typedef"
 		    module     	"Component View::VisCube"
+		    quidu      	"3DB964AF02FA")
+		(object Class "Ref"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"VisTile.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"CountedRef<VisTile>"))
+		    quid       	"400E51D40143"
+		    stereotype 	"typedef"
+		    module     	"Component View::VisCube"
+		    quidu      	"3DB964AF02FA")
+		(object Class "OtherConstants"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"VisTile.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	
+|enum
+|    {
+|      // flag value for "missing data"
+|      // Missing rows are flagged by this value
+|      MissingData = 0xFFFFFFFF
+|    }
+			    ))
+		    quid       	"400E51D40176"
+		    stereotype 	"typedef"
+		    module     	"Component View::VisCube"
 		    quidu      	"3DB964AF02FA")))
+	(object Class "VisTileRef"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"HeaderSourceFile"
+		    value      	"VisTile.h")
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"ImplementationType"
+		    value      	"CountedRef<VisTile>"))
+	    quid       	"400E51D401A0"
+	    stereotype 	"typedef"
+	    module     	"Component View::VisCube"
+	    quidu      	"3DB964AF02FA"
+	    language   	"ANSI C++")
 	(object Association "$UNNAMED$0"
 	    quid       	"3DD100FA03AD"
 	    roles      	(list role_list
@@ -5671,6 +5750,22 @@
 		    quid       	"3DF9FDD40018"
 		    supplier   	"Logical View::VisCube::VisTile"
 		    quidu      	"3DB964F200EE"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$16"
+	    quid       	"400E51D401E7"
+	    roles      	(list role_list
+		(object Role "id_"
+		    quid       	"400E51D401E8"
+		    label      	"id_"
+		    supplier   	"Logical View::DOMIN0::HIID"
+		    quidu      	"3BE96FE601C5"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$17"
+		    quid       	"400E51D401EB"
+		    supplier   	"Logical View::VisCube::ColumnarTableTile"
+		    quidu      	"3DB964F20016"
 		    is_aggregate 	TRUE)))
 	(object Class_Category "Attic"
 	    quid       	"3DD4C333038C"
@@ -6650,6 +6745,23 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DB964F20016"
+		    compartment 	(object Compartment
+			Parent_View 	@36
+			location   	(1164, 1438)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	50
+			max_width  	0)
 		    width      	490
 		    height     	2786
 		    annotation 	8
@@ -6691,23 +6803,6 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DB964F200F9"
-		    compartment 	(object Compartment
-			Parent_View 	@37
-			location   	(78, 1515)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	FALSE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	16777215
-			anchor     	2
-			nlines     	26
-			max_width  	1831)
 		    width      	2166
 		    height     	1458
 		    annotation 	8
@@ -6741,7 +6836,7 @@
 		    quidu      	"3DB964F200EE"
 		    compartment 	(object Compartment
 			Parent_View 	@38
-			location   	(2934, 563)
+			location   	(2934, 562)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -6754,7 +6849,7 @@
 			icon_style 	"Icon"
 			fill_color 	16777215
 			anchor     	2
-			nlines     	40
+			nlines     	39
 			max_width  	1744)
 		    width      	2054
 		    height     	2126
@@ -6876,23 +6971,6 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DB964F200FB"
-		    compartment 	(object Compartment
-			Parent_View 	@44
-			location   	(93, 241)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	FALSE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	16777215
-			anchor     	2
-			nlines     	12
-			max_width  	1843)
 		    width      	2168
 		    height     	742
 		    annotation 	8
@@ -6999,6 +7077,23 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DB964F200C2"
+		    compartment 	(object Compartment
+			Parent_View 	@48
+			location   	(309, 2627)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	25
+			max_width  	0)
 		    width      	1350
 		    height     	1276
 		    annotation 	8
@@ -7150,6 +7245,23 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DB964F200C4"
+		    compartment 	(object Compartment
+			Parent_View 	@55
+			location   	(400, 617)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	14
+			max_width  	0)
 		    width      	1078
 		    height     	676
 		    annotation 	8

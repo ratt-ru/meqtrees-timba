@@ -43,6 +43,7 @@ DataRecord & DataRecord::operator=(const DataRecord &right)
   return *this;
 }
 
+//##ModelId=400E4D6903B8
 void DataRecord::merge (const DataRecord &other,bool overwrite,int flags)
 {
   if( &other != this )
@@ -85,6 +86,7 @@ void DataRecord::add (const HIID &id, const NCRef &ref, int flags)
     fields[id] = ref;
 }
 
+//##ModelId=3C5FF0D60106
 void DataRecord::add (const HIID &id,NestableContainer *pnc, int flags)
 {
   nc_writelock;
@@ -110,6 +112,7 @@ void DataRecord::replace (const HIID &id, const NCRef &ref, int flags)
     fields[id] = ref;
 }
 
+//##ModelId=3C5FF10102CA
 void DataRecord::replace (const HIID &id, NestableContainer *pnc, int flags)
 {
   nc_writelock;

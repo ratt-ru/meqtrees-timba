@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.24  2004/01/21 11:08:58  smirnov
+//  %[ER: 16]%
+//  brought the Rose model up-to-date; this got a bunch of IDs inserted into the
+//  sources, hence the massive update.
+//
 //  Revision 1.23  2003/11/24 22:13:25  smirnov
 //  %[ER: 16]%
 //  Some minor fixes related to data accessorts.
@@ -250,6 +255,7 @@ public:
   Array<T> copyAipsArray (const T*) const;
 #endif
   
+    //##ModelId=400E4D68035F
   const void * getArrayPtr (TypeId tid,uint nrank,bool write) const;
   
   template<class T,int N>
@@ -270,9 +276,11 @@ public:
   { ptr = static_cast<blitz::Array<T,N>*>(
           const_cast<void*>(getArrayPtr(typeIdOf(T),N,True))); }
   
+    //##ModelId=400E4D680386
   const void * getConstDataPtr () const
   { return itsArrayData; }
   
+    //##ModelId=400E4D68038A
   void * getDataPtr () 
   { FailWhen(!isWritable(),"r/w access violation"); return itsArrayData; }
 

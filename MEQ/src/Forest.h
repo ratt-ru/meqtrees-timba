@@ -37,6 +37,7 @@ class Forest
     Forest();
     
     // deletes all nodes
+    //##ModelId=400E53050193
     void clear();
     
     //##ModelId=3F5F572601B2
@@ -76,9 +77,11 @@ class Forest
     //## found.
     Node & findNode(const string &name);
     
+    //##ModelId=400E530501C2
     int maxNodeIndex () const
     { return nodes.size()-1; }
     
+    //##ModelId=3F9937F601A5
     //##Documentation
     //## Assigns ID to request object. WIll assign new ID if the cells
     //## differ from the previous request, otherwise will re-use IDs
@@ -87,6 +90,7 @@ class Forest
     //##ModelId=3F60697A0078
     LocalDebugContext;
     
+    //##ModelId=400E530501D7
     string sdebug (int=0) const { return getDebugContext().name(); }
 
   private:
@@ -103,7 +107,9 @@ class Forest
     //##ModelId=3F60697A00D5
     NameMap name_map;
     
+    //##ModelId=400E5305015A
     HIID last_req_id;
+    //##ModelId=400E53050170
     Meq::Cells::Ref last_req_cells;
 };
 

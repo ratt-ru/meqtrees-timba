@@ -554,6 +554,20 @@
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "registerId"
+		    quid       	"400E4D68006E"
+		    stereotype 	"static"
+		    parameters 	(list Parameters
+			(object Parameter "key"
+			    quid       	"400E4D6800A4"
+			    type       	"int")
+			(object Parameter "val"
+			    quid       	"400E4D6800FA"
+			    type       	"const char *"))
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
 		    uid        	0))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "aid"
@@ -1418,35 +1432,39 @@
 			(object Attribute
 			    tool       	"cg"
 			    name       	"cg_style"
-			    value      	"Inlined")
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
+			    value      	"Inlined"))
 		    quid       	"3C5FF0D60106"
 		    parameters 	(list Parameters
 			(object Parameter "id"
 			    quid       	"3C5FF0F90034"
 			    type       	"const HIID &")
-			(object Parameter "pfld"
+			(object Parameter "pnc"
 			    quid       	"3C5FF0F902C9"
 			    type       	"NestableContainer *"
 			    quidu      	"3BE97CE100AF")
 			(object Parameter "flags"
 			    quid       	"3C5FF0FA016C"
 			    type       	"int"
-			    initv      	"DMI::WRITE|DMI::ANON"))
+			    initv      	"DMI::ANONWR"))
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	1012900727)
 		(object Operation "removeField"
 		    quid       	"3BB311C903BE"
-		    documentation 	"Removes data field from container and returns a ref to the removed field"
+		    documentation 	
+|Removes data field from container and returns a ref to the removed
+|field. Throws exception if no such field and ignore_fail=false
+|
+		    
 		    parameters 	(list Parameters
 			(object Parameter "id"
 			    quid       	"3C14C9FF0339"
-			    type       	"const HIID &"))
+			    type       	"const HIID &")
+			(object Parameter "ignore_fail"
+			    quid       	"400E4D6B01CA"
+			    type       	"bool"
+			    initv      	"false"))
 		    result     	"NCRef"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
@@ -1474,24 +1492,20 @@
 			(object Attribute
 			    tool       	"cg"
 			    name       	"cg_style"
-			    value      	"Inlined")
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
+			    value      	"Inlined"))
 		    quid       	"3C5FF10102CA"
 		    parameters 	(list Parameters
 			(object Parameter "id"
 			    quid       	"3C5FF11C020B"
 			    type       	"const HIID &")
-			(object Parameter "pfld"
+			(object Parameter "pnc"
 			    quid       	"3C5FF11D005D"
 			    type       	"NestableContainer *"
 			    quidu      	"3BE97CE100AF")
 			(object Parameter "flags"
 			    quid       	"3C5FF11D02DE"
 			    type       	"int"
-			    initv      	"DMI::WRITE|DMI::ANON"))
+			    initv      	"DMI::ANONWR"))
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
@@ -1858,6 +1872,90 @@
 			    type       	"const char *"
 			    initv      	"0"))
 		    result     	"string"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "merge"
+		    quid       	"400E4D6903B8"
+		    documentation 	
+|merges other record into this one (adds all its fields).
+|If overwrite is True, overwrites existing fields, else skips
+|them. Refs to fields are copy()d using the supplied flags.
+|
+		    
+		    parameters 	(list Parameters
+			(object Parameter "other"
+			    quid       	"400E4D6A001D"
+			    type       	"const DataRecord &")
+			(object Parameter "overwrite"
+			    quid       	"400E4D6A00CB"
+			    type       	"bool"
+			    initv      	"True")
+			(object Parameter "flags"
+			    quid       	"400E4D6A0174"
+			    type       	"int"
+			    initv      	"DMI::PRESERVE_RW"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "add"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"400E4D6A0260"
+		    parameters 	(list Parameters
+			(object Parameter "id"
+			    quid       	"400E4D6A02A8"
+			    type       	"const HIID &")
+			(object Parameter "pnc"
+			    quid       	"400E4D6A0350"
+			    type       	"const NestableContainer *")
+			(object Parameter "flags"
+			    quid       	"400E4D6B0010"
+			    type       	"int"
+			    initv      	"DMI::ANONRO"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "hasField"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"400E4D6B00B9"
+		    stereotype 	"const"
+		    parameters 	(list Parameters
+			(object Parameter "id"
+			    quid       	"400E4D6B011D"
+			    type       	"const HIID &"))
+		    result     	"bool"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "replace"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"400E4D6B02BF"
+		    parameters 	(list Parameters
+			(object Parameter "id"
+			    quid       	"400E4D6B0309"
+			    type       	"const HIID &")
+			(object Parameter "pnc"
+			    quid       	"400E4D6B03B7"
+			    type       	"const NestableContainer *")
+			(object Parameter "flags"
+			    quid       	"400E4D6C007E"
+			    type       	"int"
+			    initv      	"DMI::ANONRO"))
+		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0))
@@ -2706,7 +2804,49 @@
 		    result     	"void *"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Private"
-		    uid        	0))
+		    uid        	0)
+		(object Operation "put"
+		    quid       	"400E4D6803D9"
+		    parameters 	(list Parameters
+			(object Parameter "n"
+			    quid       	"400E4D690034"
+			    type       	"int")
+			(object Parameter "obj"
+			    quid       	"400E4D6900B6"
+			    type       	"BlockableObject*"
+			    quidu      	"3BB1F71F03C9")
+			(object Parameter "flags"
+			    quid       	"400E4D690135"
+			    type       	"int"
+			    initv      	"DMI::ANONWR"))
+		    result     	"DataField &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0
+		    quidu      	"3BB317D8010B")
+		(object Operation "put"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"400E4D6901B7"
+		    parameters 	(list Parameters
+			(object Parameter "n"
+			    quid       	"400E4D6901F3"
+			    type       	"int")
+			(object Parameter "obj"
+			    quid       	"400E4D690275"
+			    type       	"const BlockableObject*")
+			(object Parameter "flags"
+			    quid       	"400E4D6902F7"
+			    type       	"int"
+			    initv      	"DMI::ANON"))
+		    result     	"DataField &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0
+		    quidu      	"3BB317D8010B"))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "mysize"
 		    attributes 	(list Attribute_Set
@@ -4464,45 +4604,67 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "~NestableContainer"
-		    quid       	"3F6709AF0084"
+		(object Operation "validateContent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"400E4D6C0281"
+		    documentation 	
+|This method is called after a copy constructor, assignment
+|or fromBlock() operation. It is meant to validate the integrity of 
+|the container, for application-specific containers derived 
+|from the standard system ones. Default version does nothing. 
+|
+		    
 		    stereotype 	"virtual"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "subscribe"
-		    quid       	"3F6709AF0144"
-		    parameters 	(list Parameters
-			(object Parameter "subs"
-			    quid       	"3F6709AF01C1"
-			    type       	"NestableContainer::Subscriber &")
-			(object Parameter "evmask"
-			    quid       	"3F6709AF0320"
-			    type       	"int"
-			    initv      	"NestableContainer::MODIFY"))
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "unsubscribe"
-		    quid       	"3F6709B00094"
+		(object Operation "select"
+		    quid       	"400E4D6C02EB"
+		    documentation 	
+|Selects a subset of a container. Meant to be abstract, but we make
+|it just virtual for now since this part is not implemented anywhere.
+|
+		    
+		    stereotype 	"virtual"
 		    parameters 	(list Parameters
-			(object Parameter "subs"
-			    quid       	"3F6709B00130"
-			    type       	"NestableContainer::Subscriber &"))
+			(object Parameter ""
+			    quid       	"400E4D6C034D"
+			    type       	"const HIIDSet &"))
+		    result     	"bool"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "clearSelection"
+		    quid       	"400E4D6C03D2"
+		    documentation 	
+|Clears the subset selection.
+|
+		    
+		    stereotype 	"virtual"
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "notifySubscribers"
-		    quid       	"3F6709B0027E"
+		(object Operation "selectionToBlock"
+		    quid       	"400E4D6D004D"
+		    documentation 	
+|Converts the selected subset to a BlockSet.
+|
+		    
+		    stereotype 	"virtual"
 		    parameters 	(list Parameters
-			(object Parameter "event"
-			    quid       	"3F6709B00349"
-			    type       	"int"))
-		    result     	"void"
+			(object Parameter ""
+			    quid       	"400E4D6D00AF"
+			    type       	"BlockSet&"
+			    quidu      	"3BEA80A703A9"))
+		    result     	"int"
 		    concurrency 	"Sequential"
-		    opExportControl 	"Protected"
+		    opExportControl 	"Public"
 		    uid        	0))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "writable"
@@ -4519,7 +4681,7 @@
 |list of subscribers to container events
 |
 		    
-		    type       	"SubscriptionList"))
+		    type       	"std::list<Subscription>"))
 	    module     	"Component View::DMI"
 	    quidu      	"3DB9342D017D"
 	    language   	"ANSI C++"
@@ -5036,11 +5198,7 @@
 			    opExportControl 	"Public"
 			    uid        	0)
 			(object Operation "asRef"
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"Inline"
-				    value      	TRUE))
+			    attributes 	(list Attribute_Set)
 			    quid       	"3DB9349E0198"
 			    stereotype 	"const"
 			    parameters 	(list Parameters
@@ -6118,7 +6276,32 @@
 			    uid        	0))
 		    module     	"Component View::DMI"
 		    quidu      	"3DB9342D017D"
-		    abstract   	TRUE)
+		    abstract   	TRUE
+		    nestedClasses 	(list nestedClasses
+			(object Class "ContainerEventTypes"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"NestableContainer.h")
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"ImplementationType"
+				    value      	(value Text 
+|enum
+|        {
+|          NC_MODIFY   = 1,    // contents modified
+|          NC_DELETE   = 2     // container deleted
+|        }
+				    )))
+			    quid       	"400E4D670364"
+			    documentation 	
+|Container event types
+|
+			    
+			    stereotype 	"typedef"
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")))
 		(object Class "Subscription"
 		    attributes 	(list Attribute_Set
 			(object Attribute
@@ -6174,41 +6357,6 @@
 |
 			    
 			    type       	"int"))
-		    module     	"Component View::DMI"
-		    quidu      	"3DB9342D017D")
-		(object Class "ContainerEventTypes"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"HeaderSourceFile"
-			    value      	"NestableContainer.h")
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"ImplementationType"
-			    value      	(value Text 
-|enum
-|    {
-|      NC_MODIFY   = 1,    // contents modified
-|      NC_DELETE   = 2     // container deleted
-|    }
-			    )))
-		    quid       	"3F6709AD030B"
-		    stereotype 	"typedef"
-		    module     	"Component View::DMI"
-		    quidu      	"3DB9342D017D")
-		(object Class "list<Subscription>"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"HeaderSourceFile"
-			    value      	"NestableContainer.h")
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"ImplementationType"
-			    value      	"SubscriptionList"))
-		    quid       	"3F6709AE0116"
-		    stereotype 	"typedef"
-		    exportControl 	"Private"
 		    module     	"Component View::DMI"
 		    quidu      	"3DB9342D017D")))
 	(object Class "SmartBlock"
@@ -8293,7 +8441,11 @@
 		(object ClassAttribute "anon"
 		    quid       	"3DB934650322"
 		    stereotype 	"mutable"
-		    type       	"bool"))
+		    type       	"bool")
+		(object ClassAttribute "DMI"
+		    quid       	"400E4D68027F"
+		    type       	"ImportDebugContext"
+		    exportControl 	"Public"))
 	    module     	"Component View::DMI"
 	    quidu      	"3DB9342D017D"
 	    language   	"ANSI C++"
@@ -9640,11 +9792,6 @@
 		    name       	"BodySourceFile"
 		    value      	"Registry1.cc"))
 	    quid       	"3C5E8CAC035D"
-	    superclasses 	(list inheritance_relationship_list
-		(object Inheritance_Relationship
-		    quid       	"3E9BDC300159"
-		    supplier   	"$UNNAMED$0"
-		    quidu      	"3E9BDC300145"))
 	    operations 	(list Operations
 		(object Operation "BiRegistry"
 		    quid       	"3C5E985C02A0"
@@ -10630,7 +10777,8 @@
 		    quidu      	"3DB9343A027B"))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "LocalDebugSubContext"
-		    quid       	"3DB9344D030C")
+		    quid       	"3DB9344D030C"
+		    exportControl 	"Public")
 		(object ClassAttribute "filename"
 		    quid       	"3DB9344E0141"
 		    type       	"string"))
@@ -11346,7 +11494,7 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "read"
+		(object Operation "readAny"
 		    quid       	"3DB949AE025C"
 		    parameters 	(list Parameters
 			(object Parameter "ref"
@@ -11357,21 +11505,6 @@
 		    opExportControl 	"Public"
 		    uid        	0
 		    quidu      	"3BFBA88F001D")
-		(object Operation "operator >>"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB949AE0260"
-		    parameters 	(list Parameters
-			(object Parameter "ref"
-			    quid       	"3DB949AE0261"
-			    type       	"ObjRef &"))
-		    result     	"bool"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
 		(object Operation "nextType"
 		    quid       	"3DB949AE0265"
 		    result     	"TypeId"
@@ -12132,6 +12265,48 @@
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "getArrayPtr"
+		    quid       	"400E4D68035F"
+		    stereotype 	"const"
+		    parameters 	(list Parameters
+			(object Parameter "tid"
+			    quid       	"400E4D680362"
+			    type       	"TypeId"
+			    quidu      	"3BFBA88F001D")
+			(object Parameter "nrank"
+			    quid       	"400E4D68036F"
+			    type       	"uint"
+			    quidu      	"3DB9343F012D")
+			(object Parameter "write"
+			    quid       	"400E4D68037B"
+			    type       	"bool"))
+		    result     	"const void *"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "getConstDataPtr"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"400E4D680386"
+		    stereotype 	"const"
+		    result     	"const void *"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "getDataPtr"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"400E4D68038A"
+		    result     	"void *"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
 		    uid        	0))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "itsShape"
@@ -12612,9 +12787,9 @@
 	    quid       	"3DB951DC03BA"
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
-		    quid       	"3DB951DE0121"
-		    supplier   	"$UNNAMED$1"
-		    quidu      	"3DB951DE010F"))
+		    quid       	"400E4D6C01C9"
+		    supplier   	"$UNNAMED$0"
+		    quidu      	"400E4D6C01BC"))
 	    operations 	(list Operations
 		(object Operation "NCIter"
 		    attributes 	(list Attribute_Set
@@ -13061,7 +13236,7 @@
 	    module     	"Component View::DMI"
 	    quidu      	"3DB9342D017D"
 	    language   	"ANSI C++")
-	(object Association "$UNNAMED$2"
+	(object Association "$UNNAMED$1"
 	    quid       	"3BF90ECB0365"
 	    roles      	(list role_list
 		(object Role "refs:deque<BlockRef>"
@@ -13082,14 +13257,14 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$3"
+		(object Role "$UNNAMED$2"
 		    attributes 	(list Attribute_Set)
 		    quid       	"3BF90ECC029E"
 		    supplier   	"Logical View::DOMIN0::BlockSet"
 		    quidu      	"3BEA80A703A9"
 		    client_cardinality 	(value cardinality "0..1")
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$4"
+	(object Association "$UNNAMED$3"
 	    quid       	"3C0F8F610325"
 	    roles      	(list role_list
 		(object Role "contents:set<HIID>"
@@ -13106,12 +13281,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$5"
+		(object Role "$UNNAMED$4"
 		    quid       	"3C0F8F620309"
 		    supplier   	"Logical View::DOMIN0::HIIDSet"
 		    quidu      	"3BFBAC350085"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$6"
+	(object Association "$UNNAMED$5"
 	    quid       	"3C0CE0F60398"
 	    documentation 	"Next/prev link all refs to the same target into a list."
 	    roles      	(list role_list
@@ -13165,7 +13340,7 @@
 		    Containment 	"By Reference"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)))
-	(object Association "$UNNAMED$7"
+	(object Association "$UNNAMED$6"
 	    quid       	"3C0CDF6500AC"
 	    documentation 	
 |Each CountedRef points to a target object. A target object points to the first ref in its reflist (the owner_ref).
@@ -13232,7 +13407,7 @@
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE
 		    friend     	TRUE)))
-	(object Association "$UNNAMED$8"
+	(object Association "$UNNAMED$7"
 	    quid       	"3C5565CF03D7"
 	    roles      	(list role_list
 		(object Role "the_AtomicID"
@@ -13243,12 +13418,12 @@
 		    client_cardinality 	(value cardinality "0..n")
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$9"
+		(object Role "$UNNAMED$8"
 		    quid       	"3C5565D300DA"
 		    supplier   	"Logical View::DOMIN0::Types and typedefs::Vector_AtomicID"
 		    quidu      	"3C55652D01B8"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$10"
+	(object Association "$UNNAMED$9"
 	    quid       	"3C87362A007E"
 	    roles      	(list role_list
 		(object Role "nc"
@@ -13272,11 +13447,11 @@
 		    client_cardinality 	(value cardinality "1")
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$11"
+		(object Role "$UNNAMED$10"
 		    quid       	"3C87362B011F"
 		    supplier   	"Logical View::DOMIN0::NestableContainer::ConstHook"
 		    quidu      	"3C614FDE0039")))
-	(object Association "$UNNAMED$12"
+	(object Association "$UNNAMED$11"
 	    quid       	"3DB934460360"
 	    roles      	(list role_list
 		(object Role "cursor_iter"
@@ -13287,12 +13462,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$13"
+		(object Role "$UNNAMED$12"
 		    quid       	"3DB93446036B"
 		    supplier   	"Logical View::DOMIN0::BlockSet"
 		    quidu      	"3BEA80A703A9"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$14"
+	(object Association "$UNNAMED$13"
 	    quid       	"3DB9344E0096"
 	    roles      	(list role_list
 		(object Role "config_"
@@ -13303,12 +13478,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$15"
+		(object Role "$UNNAMED$14"
 		    quid       	"3DB9344E00A0"
 		    supplier   	"Logical View::DOMIN0::ConfigMgr"
 		    quidu      	"3CCFFDC300DA"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$16"
+	(object Association "$UNNAMED$15"
 	    quid       	"3DB9346801A1"
 	    roles      	(list role_list
 		(object Role "headref"
@@ -13319,12 +13494,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$17"
+		(object Role "$UNNAMED$16"
 		    quid       	"3DB9346801AB"
 		    supplier   	"Logical View::DOMIN0::DataField"
 		    quidu      	"3BB317D8010B"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$18"
+	(object Association "$UNNAMED$17"
 	    quid       	"3DB934920263"
 	    roles      	(list role_list
 		(object Role "tid"
@@ -13334,12 +13509,12 @@
 		    quidu      	"3BFBA88F001D"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$19"
+		(object Role "$UNNAMED$18"
 		    quid       	"3DB934920266"
 		    supplier   	"Logical View::DOMIN0::NestableContainer::ContentInfo"
 		    quidu      	"3DB9343D035B"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$20"
+	(object Association "$UNNAMED$19"
 	    quid       	"3DB9349203A4"
 	    roles      	(list role_list
 		(object Role "_dum_info"
@@ -13351,12 +13526,12 @@
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE
 		    static     	TRUE)
-		(object Role "$UNNAMED$21"
+		(object Role "$UNNAMED$20"
 		    quid       	"3DB9349203A7"
 		    supplier   	"Logical View::DOMIN0::NestableContainer::ConstHook"
 		    quidu      	"3C614FDE0039"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$22"
+	(object Association "$UNNAMED$21"
 	    quid       	"3DB93493008F"
 	    roles      	(list role_list
 		(object Role "id"
@@ -13367,12 +13542,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$23"
+		(object Role "$UNNAMED$22"
 		    quid       	"3DB934930099"
 		    supplier   	"Logical View::DOMIN0::NestableContainer::ConstHook"
 		    quidu      	"3C614FDE0039"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$24"
+	(object Association "$UNNAMED$23"
 	    quid       	"3E7081A5015C"
 	    roles      	(list role_list
 		(object Role "lock"
@@ -13383,12 +13558,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$25"
+		(object Role "$UNNAMED$24"
 		    quid       	"3E7081A50160"
 		    supplier   	"Logical View::DOMIN0::NestableContainer::ConstHook"
 		    quidu      	"3C614FDE0039"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$26"
+	(object Association "$UNNAMED$25"
 	    quid       	"3E7081A6019F"
 	    roles      	(list role_list
 		(object Role "mutex_"
@@ -13399,12 +13574,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$27"
+		(object Role "$UNNAMED$26"
 		    quid       	"3E7081A601A2"
 		    supplier   	"Logical View::DOMIN0::NestableContainer"
 		    quidu      	"3BE97CE100AF"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$28"
+	(object Association "$UNNAMED$27"
 	    quid       	"3E9BD8620292"
 	    roles      	(list role_list
 		(object Role "lock"
@@ -13415,12 +13590,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$29"
+		(object Role "$UNNAMED$28"
 		    quid       	"3E9BD8620295"
 		    supplier   	"Logical View::DOMIN0::DataRecord::Iterator"
 		    quidu      	"3DB9343B029A"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$30"
+	(object Association "$UNNAMED$29"
 	    quid       	"3E9BD91501F3"
 	    roles      	(list role_list
 		(object Role "default_key: Key"
@@ -13431,12 +13606,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$31"
+		(object Role "$UNNAMED$30"
 		    quid       	"3E9BD91501F7"
 		    supplier   	"Logical View::DOMIN0::BiRegistry"
 		    quidu      	"3C5E8CAC035D"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$32"
+	(object Association "$UNNAMED$31"
 	    quid       	"3E9BD917024A"
 	    roles      	(list role_list
 		(object Role "cref_mutex"
@@ -13447,12 +13622,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$33"
+		(object Role "$UNNAMED$32"
 		    quid       	"3E9BD917024E"
 		    supplier   	"Logical View::DOMIN0::CountedRefTarget"
 		    quidu      	"3C0CDF41029F"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$34"
+	(object Association "$UNNAMED$33"
 	    quid       	"3E9BD91703B6"
 	    roles      	(list role_list
 		(object Role "itsType"
@@ -13463,12 +13638,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$35"
+		(object Role "$UNNAMED$34"
 		    quid       	"3E9BD91703B9"
 		    supplier   	"Logical View::DOMIN0::DataArray"
 		    quidu      	"3DB949AE00C5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$36"
+	(object Association "$UNNAMED$35"
 	    quid       	"3E9BD91703E0"
 	    roles      	(list role_list
 		(object Role "allocatorWithData: AllocatorWithData [NumTypes][MaxLorrayRank]"
@@ -13485,12 +13660,12 @@
 		    exportControl 	"Private"
 		    is_navigable 	TRUE
 		    static     	TRUE)
-		(object Role "$UNNAMED$37"
+		(object Role "$UNNAMED$36"
 		    quid       	"3E9BD91703E4"
 		    supplier   	"Logical View::DOMIN0::DataArray"
 		    quidu      	"3DB949AE00C5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$38"
+	(object Association "$UNNAMED$37"
 	    quid       	"3E9BD9180013"
 	    roles      	(list role_list
 		(object Role "allocatorDefault: AllocatorDefault [NumTypes][MaxLorrayRank]"
@@ -13507,12 +13682,12 @@
 		    exportControl 	"Private"
 		    is_navigable 	TRUE
 		    static     	TRUE)
-		(object Role "$UNNAMED$39"
+		(object Role "$UNNAMED$38"
 		    quid       	"3E9BD9180016"
 		    supplier   	"Logical View::DOMIN0::DataArray"
 		    quidu      	"3DB949AE00C5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$40"
+	(object Association "$UNNAMED$39"
 	    quid       	"3E9BD9180031"
 	    roles      	(list role_list
 		(object Role "assignerWithStride: AssignWithStride [NumTypes][MaxLorrayRank]"
@@ -13529,12 +13704,12 @@
 		    exportControl 	"Private"
 		    is_navigable 	TRUE
 		    static     	TRUE)
-		(object Role "$UNNAMED$41"
+		(object Role "$UNNAMED$40"
 		    quid       	"3E9BD9180035"
 		    supplier   	"Logical View::DOMIN0::DataArray"
 		    quidu      	"3DB949AE00C5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$42"
+	(object Association "$UNNAMED$41"
 	    quid       	"3E9BD9180051"
 	    roles      	(list role_list
 		(object Role "destructor: Destructor [NumTypes][MaxLorrayRank]"
@@ -13551,12 +13726,12 @@
 		    exportControl 	"Private"
 		    is_navigable 	TRUE
 		    static     	TRUE)
-		(object Role "$UNNAMED$43"
+		(object Role "$UNNAMED$42"
 		    quid       	"3E9BD9180055"
 		    supplier   	"Logical View::DOMIN0::DataArray"
 		    quidu      	"3DB949AE00C5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$44"
+	(object Association "$UNNAMED$43"
 	    quid       	"3E9BD9180074"
 	    roles      	(list role_list
 		(object Role "itsSubArrayMap"
@@ -13567,12 +13742,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$45"
+		(object Role "$UNNAMED$44"
 		    quid       	"3E9BD9180078"
 		    supplier   	"Logical View::DOMIN0::DataArray"
 		    quidu      	"3DB949AE00C5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$46"
+	(object Association "$UNNAMED$45"
 	    quid       	"3E9BD91A023B"
 	    roles      	(list role_list
 		(object Role "category: Category"
@@ -13582,12 +13757,12 @@
 		    quidu      	"3E9BD915013C"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$47"
+		(object Role "$UNNAMED$46"
 		    quid       	"3E9BD91A023F"
 		    supplier   	"Logical View::DOMIN0::TypeInfo"
 		    quidu      	"3DB949AE01B8"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$48"
+	(object Association "$UNNAMED$47"
 	    quid       	"3E9BD91A02BB"
 	    roles      	(list role_list
 		(object Role "default_value: Val"
@@ -13598,12 +13773,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$49"
+		(object Role "$UNNAMED$48"
 		    quid       	"3E9BD91A02BE"
 		    supplier   	"Logical View::DOMIN0::UniRegistry"
 		    quidu      	"3C5A6FD40213"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$50"
+	(object Association "$UNNAMED$49"
 	    quid       	"3F5487DA023E"
 	    roles      	(list role_list
 		(object Role "copier: ArrayCopier [NumTypes][MaxLorrayRank]"
@@ -13620,12 +13795,12 @@
 		    exportControl 	"Private"
 		    is_navigable 	TRUE
 		    static     	TRUE)
-		(object Role "$UNNAMED$51"
+		(object Role "$UNNAMED$50"
 		    quid       	"3F5487DA0249"
 		    supplier   	"Logical View::DOMIN0::DataArray"
 		    quidu      	"3DB949AE00C5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$52"
+	(object Association "$UNNAMED$51"
 	    quid       	"3F5487DA0272"
 	    roles      	(list role_list
 		(object Role "shapeOfArray: ShapeOfArray [NumTypes][MaxLorrayRank]"
@@ -13642,12 +13817,12 @@
 		    exportControl 	"Private"
 		    is_navigable 	TRUE
 		    static     	TRUE)
-		(object Role "$UNNAMED$53"
+		(object Role "$UNNAMED$52"
 		    quid       	"3F5487DA0275"
 		    supplier   	"Logical View::DOMIN0::DataArray"
 		    quidu      	"3DB949AE00C5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$54"
+	(object Association "$UNNAMED$53"
 	    quid       	"3F5487DD0213"
 	    roles      	(list role_list
 		(object Role "typeinfo"
@@ -13658,12 +13833,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$55"
+		(object Role "$UNNAMED$54"
 		    quid       	"3F5487DD0216"
 		    supplier   	"Logical View::DOMIN0::DataField"
 		    quidu      	"3BB317D8010B"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$56"
+	(object Association "$UNNAMED$55"
 	    quid       	"3F5487DD024B"
 	    roles      	(list role_list
 		(object Role "spdelete"
@@ -13674,12 +13849,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$57"
+		(object Role "$UNNAMED$56"
 		    quid       	"3F5487DD024E"
 		    supplier   	"Logical View::DOMIN0::DataField"
 		    quidu      	"3BB317D8010B"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$58"
+	(object Association "$UNNAMED$57"
 	    quid       	"3F5487DD0286"
 	    roles      	(list role_list
 		(object Role "mytype"
@@ -13690,12 +13865,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$59"
+		(object Role "$UNNAMED$58"
 		    quid       	"3F5487DD02E6"
 		    supplier   	"Logical View::DOMIN0::DataField"
 		    quidu      	"3BB317D8010B"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$60"
+	(object Association "$UNNAMED$59"
 	    quid       	"3F54929001F9"
 	    roles      	(list role_list
 		(object Role "subscriber:NestableContainer::Subscriber &"
@@ -13711,13 +13886,13 @@
 		    Containment 	"By Reference"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$61"
+		(object Role "$UNNAMED$60"
 		    quid       	"3F54929100CA"
 		    supplier   	"Logical View::DOMIN0::NestableContainer::Subscription"
 		    quidu      	"3F54921B0175"
 		    Containment 	"By Reference"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$62"
+	(object Association "$UNNAMED$61"
 	    quid       	"3F5D83F3016D"
 	    roles      	(list role_list
 		(object Role "id"
@@ -13732,12 +13907,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$63"
+		(object Role "$UNNAMED$62"
 		    quid       	"3F5D83F30170"
 		    supplier   	"Logical View::DOMIN0::NestableContainer::Subscription"
 		    quidu      	"3F54921B0175"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$64"
+	(object Association "$UNNAMED$63"
 	    quid       	"3F5D84100219"
 	    roles      	(list role_list
 		(object Role "subscriptions"
@@ -13753,7 +13928,7 @@
 		    client_cardinality 	(value cardinality "0..*")
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$65"
+		(object Role "$UNNAMED$64"
 		    attributes 	(list Attribute_Set
 			(object Attribute
 			    tool       	"Cplusplus"
@@ -13803,6 +13978,10 @@
 |      UNLOCKED        =0x200,
 |      PERSIST         =0x400,
 |      
+|  // when attaching a ref as ANON or EXTERN, and the target is already 
+|  // referenced, use the established ref type even if it conflicts with the flags
+|      NONSTRICT       =  0x80000,
+|      
 |  // some common combinations
 |      ANONWRITE       = WRITE|ANON,
 |      ANONWR          = ANONWRITE,
@@ -13839,9 +14018,9 @@
 |  // _BlockSet_-specific flags
 |      MAKE_READONLY   =0x4000000,   // for copyAll(): makes source set read-only
 |
-|  // NestableContainer::get flags
-|      NC_SCALAR       =0x1000000,  // container accessed as a scalar
-|      NC_POINTER      =0x2000000,  // container accessed as a pointer 
+|  // NestableContainer flags
+|      NC_SCALAR       =0x1000000,  // container accessed as a scalar (get())
+|      NC_POINTER      =0x2000000,  // container accessed as a pointer  (get())
 |      
 |      DMI_ZERO_FLAG   =0
 |  }
@@ -14216,7 +14395,7 @@
 			    stereotype 	"typedef"
 			    module     	"Component View::DMI"
 			    quidu      	"3DB9342D017D")
-			(object Class "$UNNAMED$66"
+			(object Class "$UNNAMED$65"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
@@ -14226,12 +14405,12 @@
 			    stereotype 	"enum"
 			    class_attributes 	(list class_attribute_list
 				(object ClassAttribute "isContainable"
-				    quid       	"3E9BD91702C0"
-				    initv      	"False"
+				    quid       	"400E4D6802F5"
+				    initv      	"false"
 				    exportControl 	"Public"))
 			    module     	"Component View::DMI"
 			    quidu      	"3DB9342D017D")
-			(object Class "$UNNAMED$67"
+			(object Class "$UNNAMED$66"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
@@ -14246,7 +14425,7 @@
 				    exportControl 	"Public"))
 			    module     	"Component View::DMI"
 			    quidu      	"3DB9342D017D")
-			(object Class "$UNNAMED$68"
+			(object Class "$UNNAMED$67"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
@@ -14270,9 +14449,9 @@
 		    quid       	"3E9BD91402E7"
 		    superclasses 	(list inheritance_relationship_list
 			(object Inheritance_Relationship
-			    quid       	"3E9BDC30026A"
-			    supplier   	"$UNNAMED$69"
-			    quidu      	"3E9BDC300256"))
+			    quid       	"400E4D68030F"
+			    supplier   	"$UNNAMED$68"
+			    quidu      	"400E4D680302"))
 		    module     	"Component View::DMI"
 		    quidu      	"3DB9342D017D"
 		    language   	"ANSI C++"
@@ -14286,7 +14465,7 @@
 			    stereotype 	"template_param"
 			    module     	"Component View::DMI"
 			    quidu      	"3DB9342D017D")
-			(object Class "$UNNAMED$70"
+			(object Class "$UNNAMED$69"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
@@ -14301,7 +14480,7 @@
 				    exportControl 	"Public"))
 			    module     	"Component View::DMI"
 			    quidu      	"3DB9342D017D")
-			(object Class "$UNNAMED$71"
+			(object Class "$UNNAMED$70"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
@@ -14316,7 +14495,7 @@
 				    exportControl 	"Public"))
 			    module     	"Component View::DMI"
 			    quidu      	"3DB9342D017D")
-			(object Class "$UNNAMED$72"
+			(object Class "$UNNAMED$71"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
@@ -14331,7 +14510,7 @@
 				    exportControl 	"Public"))
 			    module     	"Component View::DMI"
 			    quidu      	"3DB9342D017D")
-			(object Class "$UNNAMED$73"
+			(object Class "$UNNAMED$72"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
@@ -14346,7 +14525,7 @@
 				    exportControl 	"Public"))
 			    module     	"Component View::DMI"
 			    quidu      	"3DB9342D017D")
-			(object Class "$UNNAMED$74"
+			(object Class "$UNNAMED$73"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
@@ -14361,7 +14540,7 @@
 				    exportControl 	"Public"))
 			    module     	"Component View::DMI"
 			    quidu      	"3DB9342D017D")
-			(object Class "$UNNAMED$75"
+			(object Class "$UNNAMED$74"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
@@ -14376,7 +14555,7 @@
 				    exportControl 	"Public"))
 			    module     	"Component View::DMI"
 			    quidu      	"3DB9342D017D")
-			(object Class "$UNNAMED$76"
+			(object Class "$UNNAMED$75"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
@@ -14394,7 +14573,7 @@
 				    exportControl 	"Public"))
 			    module     	"Component View::DMI"
 			    quidu      	"3DB9342D017D")
-			(object Class "$UNNAMED$77"
+			(object Class "$UNNAMED$76"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
@@ -14457,20 +14636,7 @@
 		(object Class_Category "Instantiations"
 		    quid       	"3DB95284002B"
 		    exportControl 	"Public"
-		    logical_models 	(list unit_reference_list
-			(object Instantiated_Class "$UNNAMED$1"
-			    quid       	"3DB951DE010F"
-			    stereotype 	"anonymous_type"
-			    instantiation_relationship 	(object Instantiation_Relationship
-				quid       	"3DB951DE011B"
-				supplier   	"Logical View::DOMIN0::NCConstIter"
-				quidu      	"3DB951DC03A6")
-			    module     	"Component View::DMI"
-			    quidu      	"3DB9342D017D"
-			    language   	"ANSI C++"
-			    parameters 	(list Parameters
-				(object Parameter "T"
-				    quid       	"3DB951DE011A"))))
+		    logical_models 	(list unit_reference_list)
 		    logical_presentations 	(list unit_reference_list)))
 	    logical_presentations 	(list unit_reference_list))
 	(object Class_Category "Packer utility classes"
@@ -15487,7 +15653,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BF1004B02AE"
-				    supplier   	"$UNNAMED$78"
+				    supplier   	"$UNNAMED$77"
 				    quidu      	"3BF0FB5601E8"
 				    messages   	(list Messages
 					(object Message ""
@@ -15583,7 +15749,7 @@
 			    persistence 	"Transient"
 			    creationObj 	FALSE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$78"
+			(object Object "$UNNAMED$77"
 			    quid       	"3BF0FB5601E8"
 			    collaborators 	(list link_list
 				(object Link
@@ -15849,7 +16015,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3BFB847700C1"
-				    supplier   	"$UNNAMED$79"
+				    supplier   	"$UNNAMED$78"
 				    quidu      	"3BFB844F039F"
 				    messages   	(list Messages
 					(object Message "toBlock(BlockSet &)"
@@ -15872,7 +16038,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3BFB8B030212"
-				    supplier   	"$UNNAMED$80"
+				    supplier   	"$UNNAMED$79"
 				    quidu      	"3BFB8A9F00CD"
 				    messages   	(list Messages
 					(object Message "BlockRef()"
@@ -15887,7 +16053,7 @@
 					    creation   	TRUE)))
 				(object Link
 				    quid       	"3BFB8B0D031A"
-				    supplier   	"$UNNAMED$81"
+				    supplier   	"$UNNAMED$80"
 				    quidu      	"3BFB8ADA02A9"
 				    messages   	(list Messages
 					(object Message "SmartBlock(size_t, int)"
@@ -15933,7 +16099,7 @@
 			    persistence 	"Transient"
 			    creationObj 	FALSE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$79"
+			(object Object "$UNNAMED$78"
 			    quid       	"3BFB844F039F"
 			    collaborators 	(list link_list
 				(object Link
@@ -15973,7 +16139,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BFB8F9C0029"
-				    supplier   	"$UNNAMED$80"
+				    supplier   	"$UNNAMED$79"
 				    quidu      	"3BFB8A9F00CD"
 				    messages   	(list Messages
 					(object Message ""
@@ -15987,7 +16153,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3BFB8FCB00BD"
-				    supplier   	"$UNNAMED$82"
+				    supplier   	"$UNNAMED$81"
 				    quidu      	"3BFB87E7030B"
 				    messages   	(list Messages
 					(object Message ""
@@ -16158,7 +16324,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BFB87F70142"
-				    supplier   	"$UNNAMED$82"
+				    supplier   	"$UNNAMED$81"
 				    quidu      	"3BFB87E7030B"
 				    messages   	(list Messages
 					(object Message "BlockRef()"
@@ -16223,7 +16389,7 @@
 			    persistence 	"Transient"
 			    creationObj 	TRUE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$82"
+			(object Object "$UNNAMED$81"
 			    quid       	"3BFB87E7030B"
 			    collaborators 	(list link_list
 				(object Link
@@ -16245,12 +16411,12 @@
 			    persistence 	"Transient"
 			    creationObj 	TRUE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$80"
+			(object Object "$UNNAMED$79"
 			    quid       	"3BFB8A9F00CD"
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BFB8FA40035"
-				    supplier   	"$UNNAMED$81"
+				    supplier   	"$UNNAMED$80"
 				    quidu      	"3BFB8ADA02A9"
 				    messages   	(list Messages
 					(object Message ""
@@ -16267,7 +16433,7 @@
 			    persistence 	"Transient"
 			    creationObj 	TRUE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$81"
+			(object Object "$UNNAMED$80"
 			    quid       	"3BFB8ADA02A9"
 			    class      	"Logical View::DOMIN0::SmartBlock"
 			    quidu      	"3BEAACAB0041"
@@ -16558,7 +16724,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BFA52EB0249"
-				    supplier   	"$UNNAMED$83"
+				    supplier   	"$UNNAMED$82"
 				    quidu      	"3BFA52C9029A"
 				    messages   	(list Messages
 					(object Message "DataBlock( )"
@@ -16594,7 +16760,7 @@
 			    persistence 	"Static"
 			    creationObj 	FALSE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$83"
+			(object Object "$UNNAMED$82"
 			    quid       	"3BFA52C9029A"
 			    collaborators 	(list link_list
 				(object Link
@@ -16613,7 +16779,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3BFA53AE018B"
-				    supplier   	"$UNNAMED$83"
+				    supplier   	"$UNNAMED$82"
 				    quidu      	"3BFA52C9029A"
 				    messages   	(list Messages
 					(object Message "init( )"
@@ -16935,6 +17101,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3C0CDF41029F"
+			    compartment 	(object Compartment
+				Parent_View 	@17
+				location   	(3742, 4397)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	TRUE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	17
+				max_width  	0)
 			    width      	2344
 			    height     	1030
 			    annotation 	8
@@ -16970,7 +17153,7 @@
 			    height     	2764
 			    annotation 	8
 			    autoResize 	TRUE)
-			(object AssociationViewNew "$UNNAMED$7" @19
+			(object AssociationViewNew "$UNNAMED$6" @19
 			    location   	(4679, 5024)
 			    font       	(object Font
 				size       	10
@@ -17109,7 +17292,7 @@
 					pctDist    	0.906634
 					height     	65
 					orientation 	0))))
-			(object AssociationViewNew "$UNNAMED$6" @26
+			(object AssociationViewNew "$UNNAMED$5" @26
 			    location   	(6495, 7388)
 			    stereotype 	TRUE
 			    line_color 	3342489
@@ -17276,6 +17459,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BE96FE601C5"
+			    compartment 	(object Compartment
+				Parent_View 	@33
+				location   	(7390, 2417)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	33
+				max_width  	0)
 			    width      	1018
 			    height     	1258
 			    annotation 	8
@@ -17312,7 +17512,7 @@
 			    height     	964
 			    annotation 	8
 			    autoResize 	TRUE)
-			(object AssociationViewNew "$UNNAMED$4" @35
+			(object AssociationViewNew "$UNNAMED$3" @35
 			    location   	(8517, 3246)
 			    font       	(object Font
 				size       	10
@@ -17393,7 +17593,7 @@
 					pctDist    	0.915508
 					height     	57
 					orientation 	1))
-				(object RoleView "$UNNAMED$5" @39
+				(object RoleView "$UNNAMED$4" @39
 				    Parent_View 	@35
 				    location   	(5037, 2421)
 				    stereotype 	TRUE
@@ -17512,7 +17712,7 @@
 			    height     	178
 			    annotation 	8
 			    autoResize 	TRUE)
-			(object AssociationViewNew "$UNNAMED$8" @43
+			(object AssociationViewNew "$UNNAMED$7" @43
 			    location   	(7776, 1194)
 			    font       	(object Font
 				size       	9
@@ -17589,7 +17789,7 @@
 					pctDist    	0.797727
 					height     	54
 					orientation 	0))
-				(object RoleView "$UNNAMED$9" @47
+				(object RoleView "$UNNAMED$8" @47
 				    Parent_View 	@43
 				    location   	(2556, 774)
 				    stereotype 	TRUE
@@ -17852,13 +18052,13 @@
 			    height     	178
 			    annotation 	8
 			    autoResize 	TRUE)
-			(object AssociationViewNew "$UNNAMED$2" @58
+			(object AssociationViewNew "$UNNAMED$1" @58
 			    location   	(6153, 3674)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3BF90ECB0365"
 			    roleview_list 	(list RoleViews
-				(object RoleView "$UNNAMED$3" @59
+				(object RoleView "$UNNAMED$2" @59
 				    Parent_View 	@58
 				    location   	(2209, 2198)
 				    font       	(object Font
@@ -18254,7 +18454,7 @@
 			    height     	190
 			    annotation 	8
 			    autoResize 	TRUE)
-			(object AssociationViewNew "$UNNAMED$10" @78
+			(object AssociationViewNew "$UNNAMED$9" @78
 			    location   	(1952, 4150)
 			    stereotype 	TRUE
 			    line_color 	3342489
@@ -18322,7 +18522,7 @@
 					pctDist    	0.774059
 					height     	36
 					orientation 	1))
-				(object RoleView "$UNNAMED$11" @82
+				(object RoleView "$UNNAMED$10" @82
 				    Parent_View 	@78
 				    location   	(1157, -215)
 				    stereotype 	TRUE
@@ -18937,7 +19137,7 @@
 				height     	60
 				y_coord    	0
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$78" @119
+			(object InterObjView "$UNNAMED$77" @119
 			    location   	(735, 225)
 			    font       	(object Font
 				size       	10
@@ -20223,7 +20423,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB842A01C5"
 			    width      	446
-			    height     	5941
+			    height     	6001
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -20260,7 +20460,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB843101CF"
 			    width      	446
-			    height     	5941
+			    height     	6001
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -20293,7 +20493,7 @@
 				height     	570
 				y_coord    	510
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$79" @197
+			(object InterObjView "$UNNAMED$78" @197
 			    location   	(720, 225)
 			    font       	(object Font
 				size       	10
@@ -20318,7 +20518,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB844F039F"
 			    width      	456
-			    height     	5940
+			    height     	6000
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20337,7 +20537,7 @@
 				height     	60
 				y_coord    	0
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$80" @200
+			(object InterObjView "$UNNAMED$79" @200
 			    location   	(1050, 1950)
 			    font       	(object Font
 				size       	10
@@ -20362,7 +20562,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8A9F00CD"
 			    width      	525
-			    height     	4070
+			    height     	4130
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20412,7 +20612,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8456031D"
 			    width      	300
-			    height     	5805
+			    height     	5865
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20511,7 +20711,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB849102B3"
 			    width      	364
-			    height     	5940
+			    height     	6000
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20555,7 +20755,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84A50013"
 			    width      	406
-			    height     	5940
+			    height     	6000
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20592,7 +20792,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8674014F"
 			    width      	300
-			    height     	5940
+			    height     	6000
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20629,7 +20829,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84C802F8"
 			    width      	508
-			    height     	5940
+			    height     	6000
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20673,7 +20873,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84E50123"
 			    width      	536
-			    height     	5940
+			    height     	6000
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20710,7 +20910,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84EE0112"
 			    width      	396
-			    height     	5940
+			    height     	6000
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20722,7 +20922,7 @@
 				height     	540
 				y_coord    	480
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$82" @229
+			(object InterObjView "$UNNAMED$81" @229
 			    location   	(4440, 1170)
 			    font       	(object Font
 				size       	10
@@ -20747,7 +20947,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87E7030B"
 			    width      	480
-			    height     	4895
+			    height     	4955
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20797,7 +20997,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87DE0222"
 			    width      	330
-			    height     	4625
+			    height     	4685
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20822,7 +21022,7 @@
 				height     	60
 				y_coord    	0
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$81" @237
+			(object InterObjView "$UNNAMED$80" @237
 			    location   	(1320, 2130)
 			    font       	(object Font
 				size       	10
@@ -20847,7 +21047,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8ADA02A9"
 			    width      	330
-			    height     	3830
+			    height     	3890
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21994,12 +22194,12 @@
 			    ordinal    	27)
 			(object Destruction_Marker @297
 			    Parent_View 	@237
-			    location   	(1320, 6060)
+			    location   	(1320, 6120)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @298
 			    Parent_View 	@200
-			    location   	(990, 6120)
+			    location   	(990, 6180)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @299
@@ -22044,12 +22244,12 @@
 			    ordinal    	28)
 			(object Destruction_Marker @301
 			    Parent_View 	@229
-			    location   	(4440, 6165)
+			    location   	(4440, 6225)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @302
 			    Parent_View 	@233
-			    location   	(4725, 6105)
+			    location   	(4725, 6165)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @303
@@ -22127,7 +22327,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B150030"
 			    width      	446
-			    height     	6751
+			    height     	6811
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -22192,7 +22392,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B210330"
 			    width      	446
-			    height     	6751
+			    height     	6811
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -22236,7 +22436,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4D3A0258"
 			    width      	300
-			    height     	6075
+			    height     	6135
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22293,7 +22493,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4F6A02C1"
 			    width      	300
-			    height     	5505
+			    height     	5565
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22350,7 +22550,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CB80070"
 			    width      	300
-			    height     	6450
+			    height     	6510
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22400,7 +22600,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CF102DF"
 			    width      	300
-			    height     	6360
+			    height     	6420
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22450,7 +22650,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B51032F"
 			    width      	398
-			    height     	6500
+			    height     	6560
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22528,7 +22728,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5403038C"
 			    width      	300
-			    height     	4485
+			    height     	4545
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22585,7 +22785,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5582004D"
 			    width      	350
-			    height     	4470
+			    height     	4530
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22610,7 +22810,7 @@
 				height     	120
 				y_coord    	60
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$83" @349
+			(object InterObjView "$UNNAMED$82" @349
 			    location   	(3660, 2055)
 			    font       	(object Font
 				size       	10
@@ -22635,7 +22835,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA52C9029A"
 			    width      	582
-			    height     	4920
+			    height     	4980
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22706,7 +22906,7 @@
 			    fill_color 	8454016
 			    quidu      	"3BFA527601FA"
 			    width      	528
-			    height     	6750
+			    height     	6810
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22757,7 +22957,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA55CB01C5"
 			    width      	300
-			    height     	4050
+			    height     	4110
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -23944,7 +24144,7 @@
 			    ordinal    	28)
 			(object Destruction_Marker @422
 			    Parent_View 	@332
-			    location   	(1890, 6975)
+			    location   	(1890, 7035)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object NoteView @423
@@ -24175,7 +24375,7 @@
 				location   	(314, 278)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	1016
+				max_width  	1028
 				justify    	0
 				label      	"Data Transport")
 			    icon       	"control"
@@ -24205,7 +24405,7 @@
 				location   	(374, 1328)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	1019
+				max_width  	1031
 				justify    	0
 				label      	"P/S/M Layer")
 			    icon       	"control"
@@ -24398,7 +24598,7 @@
 			    subobjects 	0
 			    x_offset   	0.000000
 			    y_offset   	0.000000)
-			(object ObjectView "$UNNAMED$83" @446
+			(object ObjectView "$UNNAMED$82" @446
 			    location   	(1365, 1965)
 			    font       	(object Font
 				size       	10
@@ -25686,17 +25886,17 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@517
-			location   	(105, 1350)
+			location   	(108, 1349)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	430
+			max_width  	424
 			justify    	0
 			label      	"CountedRefTarget")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3C0CDF41029F"
-		    width      	448
+		    width      	442
 		    height     	111
 		    annotation 	8
 		    autoResize 	TRUE)
@@ -25717,7 +25917,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@518
-			location   	(1111, 11)
+			location   	(1111, 13)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	2322
@@ -25728,10 +25928,10 @@
 		    fill_color 	13434879
 		    quidu      	"3C0CDEE200FE"
 		    width      	2340
-		    height     	2788
+		    height     	2782
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object AssociationViewNew "$UNNAMED$6" @519
+		(object AssociationViewNew "$UNNAMED$5" @519
 		    location   	(3576, 1975)
 		    stereotype 	TRUE
 		    line_color 	3342489
@@ -25881,7 +26081,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @527
 			Parent_View 	@526
-			location   	(762, 1349)
+			location   	(761, 1349)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -25905,15 +26105,15 @@
 		    client     	@518
 		    supplier   	@517
 		    line_style 	0)
-		(object AssociationViewNew "$UNNAMED$7" @528
-		    location   	(822, 1392)
+		(object AssociationViewNew "$UNNAMED$6" @528
+		    location   	(821, 1392)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3C0CDF6500AC"
 		    roleview_list 	(list RoleViews
 			(object RoleView "target" @529
 			    Parent_View 	@528
-			    location   	(-154, 208)
+			    location   	(-155, 208)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -25925,7 +26125,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @530
 				Parent_View 	@529
-				location   	(648, 1453)
+				location   	(645, 1453)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -25952,7 +26152,7 @@
 			    line_style 	0
 			    label      	(object SegLabel @531
 				Parent_View 	@529
-				location   	(573, 1339)
+				location   	(570, 1339)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -25973,7 +26173,7 @@
 				orientation 	1))
 			(object RoleView "owner_ref" @532
 			    Parent_View 	@528
-			    location   	(-154, 208)
+			    location   	(-155, 208)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -25985,7 +26185,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @533
 				Parent_View 	@532
-				location   	(956, 1458)
+				location   	(954, 1458)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -26043,7 +26243,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @536
 			Parent_View 	@535
-			location   	(763, 1284)
+			location   	(762, 1284)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -26079,7 +26279,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@537
-			location   	(1744, 2877)
+			location   	(1744, 2875)
 			anchor_loc 	1
 			nlines     	1
 			max_width  	115
@@ -26092,7 +26292,7 @@
 		    supplier   	@518
 		    line_style 	3
 		    origin_attachment 	(1744, 2968)
-		    terminal_attachment 	(1744, 2786))
+		    terminal_attachment 	(1744, 2783))
 		(object ClassView "Class" "Logical View::DOMIN0::SingularRefTarget" @538
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
@@ -26111,7 +26311,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@538
-			location   	(172, 374)
+			location   	(172, 373)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	424
@@ -26161,17 +26361,17 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@540
-			location   	(253, 295)
+			location   	(249, 295)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	422
+			max_width  	430
 			justify    	0
 			label      	"CountedRefTarget")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3C0CDF41029F"
-		    width      	440
+		    width      	448
 		    height     	107
 		    annotation 	8
 		    autoResize 	TRUE)
@@ -26367,13 +26567,13 @@
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object InheritTreeView "" @547
-		    location   	(441, 1181)
+		    location   	(480, 1181)
 		    line_color 	3342489
 		    fill_color 	13434879
 		    supplier   	@546
 		    vertices   	(list Points
-			(441, 1181)
-			(441, 1013)))
+			(480, 1181)
+			(480, 1013)))
 		(object InheritView "" @548
 		    stereotype 	TRUE
 		    line_color 	3342489
@@ -26433,7 +26633,7 @@
 		    width      	1619
 		    height     	463
 		    annotation 	8)
-		(object AssociationViewNew "$UNNAMED$60" @552
+		(object AssociationViewNew "$UNNAMED$59" @552
 		    location   	(2032, 640)
 		    font       	(object Font
 			size       	10
@@ -26510,7 +26710,7 @@
 				pctDist    	0.797468
 				height     	33
 				orientation 	0))
-			(object RoleView "$UNNAMED$61" @556
+			(object RoleView "$UNNAMED$60" @556
 			    Parent_View 	@552
 			    location   	(224, -320)
 			    stereotype 	TRUE
@@ -26521,7 +26721,7 @@
 			    line_style 	3
 			    origin_attachment 	(2032, 640)
 			    terminal_attachment 	(2032, 793))))
-		(object AssociationViewNew "$UNNAMED$64" @557
+		(object AssociationViewNew "$UNNAMED$63" @557
 		    location   	(964, 963)
 		    font       	(object Font
 			size       	10
@@ -26598,7 +26798,7 @@
 				pctDist    	0.747934
 				height     	35
 				orientation 	1))
-			(object RoleView "$UNNAMED$65" @561
+			(object RoleView "$UNNAMED$64" @561
 			    Parent_View 	@557
 			    location   	(452, 3)
 			    stereotype 	TRUE
@@ -26641,13 +26841,13 @@
 		    height     	107
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object AssociationViewNew "$UNNAMED$62" @563
+		(object AssociationViewNew "$UNNAMED$61" @563
 		    location   	(2608, 1337)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3F5D83F3016D"
 		    roleview_list 	(list RoleViews
-			(object RoleView "$UNNAMED$63" @564
+			(object RoleView "$UNNAMED$62" @564
 			    Parent_View 	@563
 			    location   	(1360, -279)
 			    font       	(object Font

@@ -29,6 +29,7 @@ namespace Meq {
 static int _dum = aidRegistry_Meq();
 static NestableContainer::Register reg(TpMeqDomain,True);
 
+//##ModelId=3F86886E030D
 Domain::Domain()
 : // DataField(Tpdouble,4),
   itsOffsetFreq (0),
@@ -39,12 +40,14 @@ Domain::Domain()
 //  setDMI();
 }
 
+//##ModelId=3F86886E030E
 Domain::Domain (const DataField& fld,int flags)
 : DataField(fld,(flags&~DMI::WRITE)|DMI::DEEP|DMI::READONLY)
 {
   validateContent();
 }
 
+//##ModelId=3F95060C00A7
 Domain::Domain (double startFreq, double endFreq,
 		double startTime, double endTime)
 : DataField(Tpdouble,4)
@@ -60,6 +63,7 @@ Domain::Domain (double startFreq, double endFreq,
   setDMI();
 }
 
+//##ModelId=400E5305010B
 void Domain::validateContent ()
 {
   Thread::Mutex::Lock lock(mutex());
@@ -93,6 +97,7 @@ void Domain::validateContent ()
   }  
 }
 
+//##ModelId=400E53050125
 void Domain::show (std::ostream& os) const
 {
   os << "Meq::Domain [" << startFreq() << " : " << endFreq() << ','
@@ -101,6 +106,7 @@ void Domain::show (std::ostream& os) const
 
 
 
+//##ModelId=3F86886E0334
 void Domain::setDMI()
 {
   // Set array in DataField of 4 doubles.

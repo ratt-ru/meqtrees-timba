@@ -272,9 +272,9 @@ class WPInterface : public OctopussyDebugContext,
 #endif
       
     //##ModelId=3DB936F80042
-      Declare_sdebug(virtual);
+      virtual Declare_sdebug();
     //##ModelId=3DB936F803A9
-      Declare_debug( );
+      Declare_debug();
       
     //##ModelId=3DB937010095
       WPInterface::MessageQueue & queue ();

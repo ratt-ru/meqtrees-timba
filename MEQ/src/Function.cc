@@ -28,17 +28,21 @@ namespace Meq {
 
 using Debug::ssprintf;
 
+//##ModelId=3F86886E03C5
 Function::Function()
 {}
 
+//##ModelId=3F86886E03D1
 Function::~Function()
 {}
 
+//##ModelId=400E53070274
 TypeId Function::objectType() const
 {
   return TpMeqFunction;
 }
 
+//##ModelId=3F95060D0060
 void Function::checkChildren()
 {
   if (itsChildren.size() == 0) {
@@ -50,6 +54,7 @@ void Function::checkChildren()
   }
 }
 
+//##ModelId=400E530702E6
 bool Function::convertChildren (int nchild)
 {
   if (itsChildren.size() > 0) {
@@ -60,6 +65,7 @@ bool Function::convertChildren (int nchild)
   return true;
  }
 
+//##ModelId=400E5308008E
 bool Function::convertChildren (const vector<HIID>& childNames, int nchild)
 {
   if (itsChildren.size() > 0) {
@@ -96,6 +102,7 @@ bool Function::convertChildren (const vector<HIID>& childNames, int nchild)
   return true;
 }
 
+//##ModelId=400E53080325
 void Function::testChildren (int nchild) const
 {
   if (nchild > 0) {
@@ -107,6 +114,7 @@ void Function::testChildren (int nchild) const
   }
 }
 
+//##ModelId=400E530900C1
 void Function::testChildren (const vector<TypeId>& types) const
 {
   int nch = std::min (types.size(), itsChildren.size());
@@ -117,6 +125,7 @@ void Function::testChildren (const vector<TypeId>& types) const
   }
 }
 
+//##ModelId=3F86886E03DD
 int Function::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &childres,
                          const Request &request,bool)
@@ -210,6 +219,7 @@ int Function::getResult (Result::Ref &resref,
   return 0;
 }
 
+//##ModelId=400E5306027C
 LoShape Function::resultShape (const vector<Vells*>& values)
 {
   Assert (values.size() > 0);
@@ -222,12 +232,14 @@ LoShape Function::resultShape (const vector<Vells*>& values)
   return makeLoShape(nx,ny);
 }
 
+//##ModelId=3F95060C0321
 void Function::evaluateVells (Vells&, const Request&, const vector<Vells*>&)
 {
   AssertMsg (false, "evaluate or getResult not implemented in class "
 	     "derived from MeqFunction");
 }
 
+//##ModelId=3F86886F0108
 vector<int> Function::findSpids (const vector<VellSet*> &results)
 {
   // Determine the maximum number of spids.

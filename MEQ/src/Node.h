@@ -67,6 +67,7 @@ class Node : public BlockableObject
     
     // for generic dependency treatment:
     // returns bit indicating dependency on request ID index #n
+    //##ModelId=400E530D013F
     static int RES_DEP (int n)
     { return RES_DEPEND_LSB<<n; }
     
@@ -84,25 +85,30 @@ class Node : public BlockableObject
     //##ModelId=3F5F45D202D5
     virtual void init (DataRecord::Ref::Xfer &initrec, Forest* frst);
     
+    //##ModelId=400E530F0090
     virtual void reinit (DataRecord::Ref::Xfer &initrec, Forest* frst);
     
     //##ModelId=3F83FAC80375
     void resolveChildren();
     
+    //##ModelId=400E531101C8
     void relinkChildren ();
         
     //##ModelId=3F5F44820166
     const string & name() const;
     
+    //##ModelId=400E5311029C
     int nodeIndex() const 
     { return node_index_; }
     
+    //##ModelId=400E53110383
     string className() const
     { return objectType().toString(); }
     
     //##ModelId=3F5F441602D2
     const DataRecord & state() const;
     
+    //##ModelId=400E53120082
     void setNodeIndex (int nodeindex);
     
     //##ModelId=3F5F445A00AC
@@ -111,9 +117,11 @@ class Node : public BlockableObject
     //##ModelId=3F6726C4039D
     int execute (Result::Ref &resref, const Request &);
 
+    //##ModelId=3F9919B00313
     const HIID & currentRequestId ();
     
     // Clears cache (optionally recursively)
+    //##ModelId=400E531300C8
     void clearCache (bool recursive=false);
     
     //##ModelId=3F85710E002E
@@ -179,16 +187,19 @@ class Node : public BlockableObject
     // called from init() and setState(), meant to update internal state
     // in accordance to rec. If initializing==true (i.e. when called from 
     // init()), rec is a complete state record.
+    //##ModelId=400E531402D1
     virtual void setStateImpl (DataRecord &rec,bool initializing);
     
     // called from execute() when a new request is received. Should return
     // true if it is OK to proceed, false otherwise (RES_WAIT will be returned
     // by execute() on a false). Nodes tied to external data sources may need 
     // to override this.
+    //##ModelId=400E531600B8
     virtual bool readyForRequest (const Request &)
     { return true; } // base version always ready
         
     // called from execute() to process the request rider, if any.
+    //##ModelId=400E531603C7
     virtual void processRider (const DataRecord &)
     {} // base version does nothing
     
@@ -204,6 +215,7 @@ class Node : public BlockableObject
     // fail, resref is left untouched.
     // Nodes should only reimplement this if they prefer to poll children 
     // themselves (i.e. the Solver). 
+    //##ModelId=400E531702FD
     virtual int pollChildren (std::vector<Result::Ref> &child_results,
                               Result::Ref &resref,
                               const Request &req);
@@ -226,18 +238,22 @@ class Node : public BlockableObject
     DataRecord & wstate();
     
     // sets the current request
+    //##ModelId=3F9919B10014
     void setCurrentRequest (const Request &req);
 
     // Checks for cached result; if hit, attaches it to ref and returns true.
     // On a miss, clears the cache (NB: for now!)
+    //##ModelId=400E531A021A
     bool getCachedResult (int &retcode,Result::Ref &ref,const Request &req);
     
     // Conditionally stores result in cache according to current policy.
     // Returns the retcode.
+    //##ModelId=400E531C0200
     int cacheResult (const Result::Ref &ref,int retcode);
     
     
     // creates a message of the form "Node CLASS ('NAME'): MESSAGE"
+    //##ModelId=400E531E008F
     string makeMessage (const string &msg) const
       { return  "Node " + className() + "('" + name() + "'): " + msg; }
     
@@ -287,6 +303,7 @@ class Node : public BlockableObject
     }
       
   private:
+    //##ModelId=400E531F0085
     void initChildren (int nch);
     //##ModelId=3F9505E50010
     // processes a child specification. 'chid' specifies the child 
@@ -298,7 +315,9 @@ class Node : public BlockableObject
     //##ModelId=3F8433C20193
     void addChild (const HIID &id,Node *childnode);
     
+    //##ModelId=400E530A0143
     const HIID * child_labels_;      
+    //##ModelId=400E530A016A
     int check_nchildren_;
     
     //##ModelId=3F5F4363030D
@@ -306,18 +325,22 @@ class Node : public BlockableObject
     
     //##ModelId=3F5F48040177
     string myname_;
+    //##ModelId=400E530A0368
     int node_index_;
     //##ModelId=3F5F43930004
     Forest *forest_;
     
     // current (last) request
+    //##ModelId=400E530B018B
     HIID current_reqid_;
     // cached result of current request
+    //##ModelId=400E530B01AF
     Result::Ref cache_result_;
+    //##ModelId=400E530B01D2
     int cache_retcode_;
     
-    //##ModelId=3F8433C2014B
     // config group(s) that a node belongs to
+    //##ModelId=400E55D00080
     std::vector<HIID> config_groups_;
     
     //##ModelId=3F8433ED0337
@@ -328,16 +351,20 @@ class Node : public BlockableObject
     typedef std::map<HIID,int> ChildrenMap;
     // map from child labels to numbers (i.e. indices into the children_ vector)
     // if child labels are not defined, this a trivial i->i mapping
+    //##ModelId=400E530B03D6
     ChildrenMap child_map_;
     
     // container of child names. This is a DataRecord indexed by label 
     // if the node defines child labels, else a DataField (indexed by
     // child number) otherwise
+    //##ModelId=400E530C0011
     NestableContainer::Ref child_names_;
     // container of child node indices
+    //##ModelId=400E530C0216
     NestableContainer::Ref child_indices_;
 };
 
+//##ModelId=3F9919B00313
 inline const HIID & Node::currentRequestId ()
 {
   return current_reqid_;

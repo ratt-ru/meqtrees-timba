@@ -71,6 +71,7 @@ class DataRecord : public NestableContainer
       //## Returns the class TypeId
       virtual TypeId objectType () const;
       
+    //##ModelId=400E4D6903B8
       //##Documentation
       //## merges other record into this one (adds all its fields).
       //## If overwrite is True, overwrites existing fields, else skips
@@ -82,9 +83,11 @@ class DataRecord : public NestableContainer
       //##ModelId=3C5FF0D60106
       void add (const HIID &id, NestableContainer *pnc, int flags = DMI::ANONWR);
       
+    //##ModelId=400E4D6A0260
       void add (const HIID &id, const NestableContainer *pnc, int flags = DMI::ANONRO)
       { add(id,const_cast<NestableContainer*>(pnc),(flags&~DMI::WRITE)|DMI::READONLY); }
       
+    //##ModelId=400E4D6B00B9
       bool hasField (const HIID &id) const
       { return fields.find(id) != fields.end(); }
 
@@ -100,6 +103,7 @@ class DataRecord : public NestableContainer
       //##ModelId=3C5FF10102CA
       void replace (const HIID &id, NestableContainer *pnc, int flags = DMI::ANONWR);
       
+    //##ModelId=400E4D6B02BF
       void replace (const HIID &id, const NestableContainer *pnc, int flags = DMI::ANONRO)
       { replace(id,const_cast<NestableContainer*>(pnc),(flags&~DMI::WRITE)|DMI::READONLY); }
       

@@ -10,9 +10,12 @@
 
 namespace GlishUtil
 {
+//##ModelId=400E516F03A3
   class GlishUtilDebugContext
   {
-    public: LocalDebugContext;
+    public:
+    //##ModelId=400E516F03D8
+    LocalDebugContext;
   };
   
   ImportDebugContext(GlishUtilDebugContext);

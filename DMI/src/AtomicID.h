@@ -134,6 +134,7 @@ class AtomicID
       void print () const;
       
       // this is provided as an alternative to the standard registry function
+    //##ModelId=400E4D68006E
       static int registerId (int key,const char *val);
       
   private:

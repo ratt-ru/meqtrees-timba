@@ -41,6 +41,7 @@ Forest::Forest ()
   nodes.resize(1);
 }
 
+//##ModelId=400E53050193
 void Forest::clear ()
 {
   nodes.resize(1);
@@ -162,6 +163,7 @@ const Node::Ref & Forest::getRef (int node_index)
   return nodes[node_index];
 }
 
+//##ModelId=3F9937F601A5
 const HIID & Forest::assignRequestId (Request &req)
 {
   if( !last_req_cells.valid() ) // first request ever request?

@@ -41,76 +41,101 @@
 namespace Meq {
 
 
+//##ModelId=3F86886E0183
 class Domain : public DataField
 {
 public:
   // Create a time,frequency default domain of -1:1,-1:1..
+    //##ModelId=3F86886E030D
   Domain();
 
   // Create from an existing data field.
+    //##ModelId=3F86886E030E
   Domain (const DataField&,int flags=DMI::PRESERVE_RW);
 
   // Create a time,frequency domain.
+    //##ModelId=3F95060C00A7
   Domain (double startFreq, double endFreq,
 	  double startTime, double endTime);
 
+    //##ModelId=400E530500F5
   virtual TypeId objectType () const
   { return TpMeqDomain; }
   
   // implement standard clone method via copy constructor
+    //##ModelId=400E530500F9
   virtual CountedRefTarget* clone (int flags, int depth) const
   { return new Domain(*this,flags|(depth>0?DMI::DEEP:0)); }
   
   // validate record contents and setup shortcuts to them. This is called 
   // automatically whenever a Domain is made from a DataField
   // (or when the underlying DataField is privatized, etc.)
+    //##ModelId=400E5305010B
   virtual void validateContent ();
   
   // Get offset and scale value.
+    //##ModelId=3F86886E0316
   double offsetFreq() const
     { return itsOffsetFreq; }
+    //##ModelId=3F86886E0318
   double scaleFreq() const
     { return itsScaleFreq; }
+    //##ModelId=3F86886E031A
   double offsetTime() const
     { return itsOffsetTime; }
+    //##ModelId=3F86886E031C
   double scaleTime() const
     { return itsScaleTime; }
 
   // Transform a value to its normalized value.
+    //##ModelId=3F86886E031F
   double normalizeFreq (double value) const
     { return (value - itsOffsetFreq) / itsScaleFreq; }
+    //##ModelId=3F86886E0324
   double normalizeTime (double value) const
     { return (value - itsOffsetTime) / itsScaleTime; }
 
   // Get the start, end, and step of the domain.
+    //##ModelId=3F86886E032C
   double startFreq() const
     { return itsOffsetFreq - itsScaleFreq; }
+    //##ModelId=3F86886E032E
   double endFreq() const
     { return itsOffsetFreq + itsScaleFreq; }
+    //##ModelId=3F86886E0330
   double startTime() const
     { return itsOffsetTime - itsScaleTime; }
+    //##ModelId=3F86886E0332
   double endTime() const
     { return itsOffsetTime + itsScaleTime; }
 
+    //##ModelId=400E5305010E
   bool operator== (const Domain& that) const
   { return itsOffsetFreq == that.itsOffsetFreq
        &&  itsScaleFreq  == that.itsScaleFreq
        &&  itsOffsetTime == that.itsOffsetTime
        &&  itsScaleTime  == that.itsScaleTime; }
 
+    //##ModelId=400E5305011A
   bool operator!= (const Domain& that) const
     { return !(*this == that); }
   
   // print to stream
+    //##ModelId=400E53050125
   void show (std::ostream&) const;
 
 private:
   // Set the values in the DMI DataField.
+    //##ModelId=3F86886E0334
   void setDMI();
 
+    //##ModelId=3F86886E02F8
   double itsOffsetFreq;
+    //##ModelId=3F86886E02FD
   double itsScaleFreq;
+    //##ModelId=3F86886E0302
   double itsOffsetTime;
+    //##ModelId=3F86886E0307
   double itsScaleTime;
 };
 

@@ -28,6 +28,7 @@
 
 namespace Meq {
 
+//##ModelId=3F86887001D4
 Vells::Vells()
 : itsRealArray   (0),
   itsComplexArray(0),
@@ -38,6 +39,7 @@ Vells::Vells()
   itsIsScalar    (true)
 {}
 
+//##ModelId=3F86887001D5
 Vells::Vells (double value,bool temp)
 : itsRealArray   (0),
   itsComplexArray(0),
@@ -53,6 +55,7 @@ Vells::Vells (double value,bool temp)
   realStorage()[0] = value;
 }
 
+//##ModelId=3F86887001DC
 Vells::Vells (const dcomplex& value,bool temp)
 : itsRealArray   (0),
   itsComplexArray(0),
@@ -68,6 +71,7 @@ Vells::Vells (const dcomplex& value,bool temp)
   complexStorage()[0] = value;
 }
 
+//##ModelId=3F86887001E3
 Vells::Vells (double value, int nx, int ny, bool init)
 : itsRealArray   (0),
   itsComplexArray(0),
@@ -84,6 +88,7 @@ Vells::Vells (double value, int nx, int ny, bool init)
     getRealArray() = value;
 }
 
+//##ModelId=3F86887001F6
 Vells::Vells (const dcomplex& value, int nx, int ny, bool init)
 : itsRealArray   (0),
   itsComplexArray(0),
@@ -100,6 +105,7 @@ Vells::Vells (const dcomplex& value, int nx, int ny, bool init)
     getComplexArray() = value;
 }
 
+//##ModelId=3F8688700209
 Vells::Vells (LoMat_double& array)
 : itsRealArray   (0),
   itsComplexArray(0),
@@ -114,6 +120,7 @@ Vells::Vells (LoMat_double& array)
   parr->getConstArrayPtr(itsRealArray);
 }
 
+//##ModelId=3F868870020F
 Vells::Vells (LoMat_dcomplex& array)
 : itsRealArray   (0),
   itsComplexArray(0),
@@ -129,6 +136,7 @@ Vells::Vells (LoMat_dcomplex& array)
 }
 
 
+//##ModelId=400E5356013E
 void Vells::initFromDataArray (const DataArray *parr,int flags)
 {
   Assert( parr->rank() == 2 );
@@ -154,6 +162,7 @@ void Vells::initFromDataArray (const DataArray *parr,int flags)
   itsIsWritable = itsArray.isWritable() && parr->isWritable();
 }
   
+//##ModelId=3F8688700216
 Vells::Vells (DataArray *parr,int flags)
 : itsRealArray   (0),
   itsComplexArray(0)
@@ -162,6 +171,7 @@ Vells::Vells (DataArray *parr,int flags)
   initFromDataArray(parr,flags);
 }
 
+//##ModelId=3F868870021C
 Vells::Vells (const DataArray *parr,int flags)
 : itsRealArray   (0),
   itsComplexArray(0)
@@ -170,6 +180,7 @@ Vells::Vells (const DataArray *parr,int flags)
   initFromDataArray(parr,flags);
 }
 
+//##ModelId=3F8688700223
 Vells::Vells (const DataArray::Ref::Xfer &ref)
 : itsRealArray   (0),
   itsComplexArray(0)
@@ -178,6 +189,7 @@ Vells::Vells (const DataArray::Ref::Xfer &ref)
   initFromDataArray(itsArray.deref_p(),0);
 }
 
+//##ModelId=3F868870022A
 Vells::Vells (const Vells& that,int flags)
 : SingularRefTarget(),
   itsArray        (that.itsArray,flags|DMI::COPYREF|DMI::PRESERVE_RW),
@@ -205,6 +217,7 @@ Vells::Vells (const Vells& that,int flags)
 //  return Vells(itsRep->clone()); 
 //}
 
+//##ModelId=3F868870023B
 Vells& Vells::operator= (const Vells& that)
 {
   if (this != &that) 
@@ -221,10 +234,12 @@ Vells& Vells::operator= (const Vells& that)
   return *this;
 }
 
+//##ModelId=3F8688700238
 Vells::~Vells()
 {
 }
 
+//##ModelId=400E5356008F
 Vells & Vells::privatize()
 {
   if( itsArray.valid() )
@@ -239,6 +254,7 @@ Vells & Vells::privatize()
   return *this;
 }
 
+//##ModelId=3F8688700282
 void Vells::show (std::ostream& os) const
 {
   //  os<<sdebug(2);
@@ -252,6 +268,7 @@ void Vells::show (std::ostream& os) const
   }
 }
 
+//##ModelId=400E53560110
 void Vells::copyData (const Vells &other)
 {
   ensureWritable();
@@ -266,6 +283,7 @@ void Vells::copyData (const Vells &other)
   }
 }
   
+//##ModelId=400E5356011C
 void Vells::zeroData ()
 {
   ensureWritable();
@@ -275,6 +293,7 @@ void Vells::zeroData ()
     memset(complexStorage(),0,sizeof(dcomplex)*nelements());
 }
 
+//##ModelId=400E5356019D
 inline bool Vells::tryReference (bool real,const Vells &other)
 {
   if( other.isTemp() && other.isWritable() && other.isCongruent(real,itsNx,itsNy) )
@@ -289,6 +308,7 @@ inline bool Vells::tryReference (bool real,const Vells &other)
 }
 
 // constructor for a temp vells in unary expression
+//##ModelId=3F8688700231
 Vells::Vells (const Vells &other,int flags,const std::string &opname)
 : itsIsTemp       (true),
   itsIsWritable   (true)
@@ -326,6 +346,7 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
 }
 
 // constructor for a temp vells in binary expression
+//##ModelId=400E53560174
 Vells::Vells (const Vells &a,const Vells &b,int flags,const std::string &opname)
 : itsIsTemp       (true),
   itsIsWritable   (true)
@@ -364,6 +385,7 @@ Vells::Vells (const Vells &a,const Vells &b,int flags,const std::string &opname)
   }
 }
 
+//##ModelId=400E5356011F
 string Vells::sdebug (int detail,const string &,const char *nm) const
 {
   using Debug::append;
@@ -506,14 +528,21 @@ static void implement_zero (Meq::Vells &out,const Meq::Vells &)
 // InputIter<T> 
 //    const iterator, default version does not iterate at all (intended for
 //    scalars)
+//##ModelId=400E545202D8
 template<class T> class InputIter
 {
-  protected:  const T * ptr;
-  public:     InputIter  (const Meq::Vells &vells)
+  protected:
+    //##ModelId=400E54530027
+    const T * ptr;
+  public:
+    //##ModelId=400E54530035
+     InputIter  (const Meq::Vells &vells)
                 { STATIC_CHECK(Convert<T>::isScalar,InputIter_instantiated_for_array); 
                   ptr = vells.getStorage(Type2Type<T>()); } 
+    //##ModelId=400E5453003E
               const T & operator * ()
                 { return *ptr; }
+    //##ModelId=400E5453003F
               InputIter & operator ++ ()
                 { return *this; }   // default version does nothing -- we use this for scalars
 };
@@ -527,17 +556,28 @@ template<class T,int N> class InputIter <blitz::Array<T,N> > : public InputIter<
 // OutputIter<T> 
 //  This is a non-const, output iterator. This has an end-pointer, and a valid()
 //  method
+//##ModelId=400E545203CB
 template<class T> class OutputIter
 {
-  protected:  typedef typename Convert<T>::to_scalar ST;
-              ST * ptr,*endptr;
-  public:     OutputIter (Meq::Vells &vells)
+  protected:
+    //##ModelId=400E545203D4
+    typedef typename Convert<T>::to_scalar ST;
+    //##ModelId=400E545303DE
+    ST * ptr;
+    //##ModelId=400E54540003
+    ST * endptr;
+  public:
+    //##ModelId=400E54540012
+     OutputIter (Meq::Vells &vells)
                 { ptr = vells.getStorage(Type2Type<ST>()); 
                   endptr = ptr + vells.nelements(); };
+    //##ModelId=400E54540020
               ST & operator * ()
                 { return *ptr; }
+    //##ModelId=400E54540021
               OutputIter & operator ++ ()
                 { ptr++; return *this; }  // default version does nothing -- we use this for scalars
+    //##ModelId=400E54540023
               bool valid ()
                 { return ptr < endptr; }
 };

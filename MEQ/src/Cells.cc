@@ -30,12 +30,14 @@ namespace Meq {
 
 static NestableContainer::Register reg(TpMeqCells,True);
 
+//##ModelId=3F86886E02C1
 Cells::Cells ()
 : itsDomain(0),itsNfreq(0)
 {
   DataRecord::setWritable(False);
 }
 
+//##ModelId=3F86886E02C8
 Cells::Cells (const DataRecord &other,int flags,int depth)
 : DataRecord(other,flags,depth)
 {
@@ -43,6 +45,7 @@ Cells::Cells (const DataRecord &other,int flags,int depth)
   DataRecord::setWritable(False);
 }
 
+//##ModelId=3F95060B01D3
 Cells::Cells (const Domain& domain, int nfreq, int ntimes)
 : itsNfreq     (nfreq)
 {
@@ -60,6 +63,7 @@ Cells::Cells (const Domain& domain, int nfreq, int ntimes)
   DataRecord::setWritable(False);
 }
 
+//##ModelId=400E530403A0
 Cells::Cells (const Domain& domain, int nfreq,
 	      const LoVec_double& startTimes,
 	      const LoVec_double& endTimes)
@@ -80,6 +84,7 @@ Cells::Cells (const Domain& domain, int nfreq,
   DataRecord::setWritable(False);
 }
 
+//##ModelId=400E530403DB
 void Cells::validateContent ()
 {
   Thread::Mutex::Lock lock(mutex());
@@ -116,10 +121,12 @@ void Cells::validateContent ()
   }  
 }
  
+//##ModelId=3F86886E02D1
 Cells::~Cells()
 {
 }
 
+//##ModelId=400E530403DE
 bool Cells::operator== (const Cells& that) const
 {
   if (*itsDomain != *(that.itsDomain)
@@ -136,6 +143,7 @@ bool Cells::operator== (const Cells& that) const
   return true;
 }
 
+//##ModelId=400E5305000E
 void Cells::show (std::ostream& os) const
 {
   os << "Meq::Cells [" << nfreq() << ','
@@ -143,6 +151,7 @@ void Cells::show (std::ostream& os) const
      << domain() << endl;
 }
 
+//##ModelId=400E53050019
 void Cells::setDataRecord (const Domain& domain,int nfreq,int ntimes)
 {
   Assert (ntimes > 0  &&  nfreq > 0);

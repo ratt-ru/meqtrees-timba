@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.30  2004/01/21 11:08:58  smirnov
+//  %[ER: 16]%
+//  brought the Rose model up-to-date; this got a bunch of IDs inserted into the
+//  sources, hence the massive update.
+//
 //  Revision 1.29  2003/11/12 16:57:18  smirnov
 //  %[ER: 16]%
 //  Added arrays accessors to DataArray
@@ -689,6 +694,7 @@ void DataArray::privatize (int flags, int)
   itsData.privatize(flags|DMI::LOCK);
 }
 
+//##ModelId=400E4D68035F
 const void * DataArray::getArrayPtr (TypeId tid,uint nrank,bool write) const
 {
   FailWhen( itsScaType!=tid || nrank != itsShape.size(),

@@ -27,10 +27,6 @@
 	    quid       	"3C7B6A2D01F0"
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
-		    quid       	"3C7FA31802FF"
-		    supplier   	"Logical View::OCTOPUSSY::OctopussyDebugContext"
-		    quidu      	"3C7FA3020068")
-		(object Inheritance_Relationship
 		    quid       	"3E9BD71C0314"
 		    supplier   	"Logical View::DOMIN0::BlockableObject"
 		    quidu      	"3BB1F71F03C9"))
@@ -1095,6 +1091,10 @@
 		(object ClassAttribute "flags_"
 		    quid       	"3DB936A10054"
 		    type       	"int"
+		    exportControl 	"Public")
+		(object ClassAttribute "OctopussyDebugContext"
+		    quid       	"400E4FCF0049"
+		    type       	"ImportDebugContext"
 		    exportControl 	"Public"))
 	    module     	"Component View::OCTOPUSSY"
 	    quidu      	"3DB936450383"
@@ -1788,7 +1788,7 @@
 			    quid       	"3CA045B901F2"
 			    type       	"AtomicID"
 			    quidu      	"3BE970170297"
-			    initv      	"LogNormal"))
+			    initv      	"AidLogNormal"))
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
@@ -2081,10 +2081,7 @@
 		    uid        	0)
 		(object Operation "Declare_sdebug"
 		    quid       	"3DB936F80042"
-		    parameters 	(list Parameters
-			(object Parameter ""
-			    quid       	"3DB936F80150"
-			    type       	"InVALID!"))
+		    stereotype 	"virtual"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
@@ -3959,25 +3956,9 @@
 			    value      	TRUE))
 		    quid       	"3C8F9B8E0087"
 		    parameters 	(list Parameters
-			(object Parameter "wpc"
-			    quid       	"3DB936CA013B"
-			    type       	"AtomicID"
-			    quidu      	"3BE970170297")
-			(object Parameter "wpinst"
-			    quid       	"3C8F9BA10283"
-			    type       	"AtomicID"
-			    quidu      	"3BE970170297"
-			    initv      	"0")
-			(object Parameter "proc"
-			    quid       	"3C8F9BA103A6"
-			    type       	"AtomicID"
-			    quidu      	"3BE970170297"
-			    initv      	"AidLocal")
-			(object Parameter "host"
-			    quid       	"3DB936CA01C7"
-			    type       	"AtomicID"
-			    quidu      	"3BE970170297"
-			    initv      	"AidLocal"))
+			(object Parameter "id"
+			    quid       	"400E4FCF0089"
+			    type       	"const HIID &"))
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	1015840754)
@@ -4068,16 +4049,22 @@
 			    value      	TRUE))
 		    quid       	"3DB936CA0217"
 		    parameters 	(list Parameters
-			(object Parameter "wpid"
-			    quid       	"3DB936CA0235"
-			    type       	"const WPID&")
-			(object Parameter "proc"
+			(object Parameter "wpc"
+			    quid       	"400E4FCF0096"
+			    type       	"AtomicID"
+			    quidu      	"3BE970170297")
+			(object Parameter "wpinst"
 			    quid       	"3DB936CA028F"
+			    type       	"AtomicID"
+			    quidu      	"3BE970170297"
+			    initv      	"0")
+			(object Parameter "proc"
+			    quid       	"3DB936CA02E9"
 			    type       	"AtomicID"
 			    quidu      	"3BE970170297"
 			    initv      	"AidLocal")
 			(object Parameter "host"
-			    quid       	"3DB936CA02E9"
+			    quid       	"400E4FCF00A9"
 			    type       	"AtomicID"
 			    quidu      	"3BE970170297"
 			    initv      	"AidLocal"))
@@ -4096,7 +4083,31 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0
-		    quidu      	"3BE96FE601C5"))
+		    quidu      	"3BE96FE601C5")
+		(object Operation "MsgAddress"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"400E4FCF00B4"
+		    parameters 	(list Parameters
+			(object Parameter "wpid"
+			    quid       	"400E4FCF00B6"
+			    type       	"const WPID&")
+			(object Parameter "proc"
+			    quid       	"400E4FCF00C3"
+			    type       	"AtomicID"
+			    quidu      	"3BE970170297"
+			    initv      	"AidLocal")
+			(object Parameter "host"
+			    quid       	"400E4FCF00CD"
+			    type       	"AtomicID"
+			    quidu      	"3BE970170297"
+			    initv      	"AidLocal"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "byte_size"
 		    quid       	"3DB936CA007D"
@@ -4141,7 +4152,8 @@
 		    quidu      	"3C20B2850241"))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "LocalDebugContext"
-		    quid       	"3DB936CC02B0"))
+		    quid       	"3DB936CC02B0"
+		    exportControl 	"Public"))
 	    module     	"Component View::OCTOPUSSY"
 	    quidu      	"3DB936450383"
 	    language   	"ANSI C++")
@@ -4605,6 +4617,11 @@
 		    name       	"HeaderSourceFile"
 		    value      	"MsgAddress.h"))
 	    quid       	"3C8F9A340206"
+	    superclasses 	(list inheritance_relationship_list
+		(object Inheritance_Relationship
+		    quid       	"400E4FCF01B6"
+		    supplier   	"Logical View::DOMIN0::HIID"
+		    quidu      	"3BE96FE601C5"))
 	    operations 	(list Operations
 		(object Operation "WPID"
 		    attributes 	(list Attribute_Set
@@ -9602,6 +9619,53 @@
 		    supplier   	"Logical View::OCTOPUSSY::Message"
 		    quidu      	"3C7B6A2D01F0"
 		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$295"
+	    quid       	"400E4FCE028B"
+	    roles      	(list role_list
+		(object Role "id"
+		    quid       	"400E4FCE028C"
+		    label      	"id"
+		    supplier   	"Logical View::DOMIN0::HIID"
+		    quidu      	"3BE96FE601C5"
+		    Containment 	"By Value"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$296"
+		    quid       	"400E4FCE028F"
+		    supplier   	"Logical View::OCTOPUSSY::Dispatcher::TimeoutInfo"
+		    quidu      	"3DB9364D02AD"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$297"
+	    quid       	"400E4FCE029B"
+	    roles      	(list role_list
+		(object Role "startup_cond"
+		    quid       	"400E4FCE029C"
+		    label      	"startup_cond"
+		    supplier   	"Logical View::Common::Thread::Condition"
+		    quidu      	"3D1049B50012"
+		    Containment 	"By Value"
+		    exportControl 	"Protected"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$298"
+		    quid       	"400E4FCE029F"
+		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
+		    quidu      	"3C7B6A3E00A0"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$299"
+	    quid       	"400E4FCF005A"
+	    roles      	(list role_list
+		(object Role "id_"
+		    quid       	"400E4FCF005B"
+		    label      	"id_"
+		    supplier   	"Logical View::DOMIN0::HIID"
+		    quidu      	"3BE96FE601C5"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$300"
+		    quid       	"400E4FCF005F"
+		    supplier   	"Logical View::OCTOPUSSY::Message"
+		    quidu      	"3C7B6A2D01F0"
+		    is_aggregate 	TRUE)))
 	(object Class_Category "Net"
 	    quid       	"3C90CF69020B"
 	    exportControl 	"Public"
@@ -9824,7 +9888,7 @@
 		    module     	"Component View::OCTOPUSSY"
 		    quidu      	"3DB936450383"
 		    language   	"ANSI C++")
-		(object Association "$UNNAMED$295"
+		(object Association "$UNNAMED$301"
 		    quid       	"3DB958F202C9"
 		    roles      	(list role_list
 			(object Role "pinglat"
@@ -9835,12 +9899,12 @@
 			    Containment 	"By Value"
 			    exportControl 	"Protected"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$296"
+			(object Role "$UNNAMED$302"
 			    quid       	"3DB958F202CC"
 			    supplier   	"Logical View::OCTOPUSSY::Testing::EchoWP"
 			    quidu      	"3C7E498E00D1"
 			    is_aggregate 	TRUE)))
-		(object Association "$UNNAMED$297"
+		(object Association "$UNNAMED$303"
 		    quid       	"3DB958F202DF"
 		    roles      	(list role_list
 			(object Role "ponglat"
@@ -9851,7 +9915,7 @@
 			    Containment 	"By Value"
 			    exportControl 	"Protected"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$298"
+			(object Role "$UNNAMED$304"
 			    quid       	"3DB958F202E2"
 			    supplier   	"Logical View::OCTOPUSSY::Testing::EchoWP"
 			    quidu      	"3C7E498E00D1"
@@ -10132,7 +10196,7 @@
 		    module     	"Component View::OCTOPUSSY"
 		    quidu      	"3DB936450383"
 		    language   	"ANSI C++")
-		(object Association "$UNNAMED$299"
+		(object Association "$UNNAMED$305"
 		    quid       	"3E08FF110298"
 		    roles      	(list role_list
 			(object Role "proxy"
@@ -10143,7 +10207,7 @@
 			    Containment 	"By Value"
 			    exportControl 	"Private"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$300"
+			(object Role "$UNNAMED$306"
 			    quid       	"3E08FF11029C"
 			    supplier   	"Logical View::OCTOPUSSY::Octoproxy::Identity"
 			    quidu      	"3E08EBFD03B8"
@@ -10227,13 +10291,13 @@
 			    height     	178
 			    annotation 	8
 			    autoResize 	TRUE)
-			(object AssociationViewNew "$UNNAMED$299" @6
+			(object AssociationViewNew "$UNNAMED$305" @6
 			    location   	(1493, 1155)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E08FF110298"
 			    roleview_list 	(list RoleViews
-				(object RoleView "$UNNAMED$300" @7
+				(object RoleView "$UNNAMED$306" @7
 				    Parent_View 	@6
 				    location   	(1157, 803)
 				    font       	(object Font
@@ -12249,6 +12313,23 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3C7B6A3702E5"
+		    compartment 	(object Compartment
+			Parent_View 	@104
+			location   	(2667, 223)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	TRUE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	110
+			max_width  	0)
 		    width      	1308
 		    height     	5492
 		    annotation 	8)

@@ -29,11 +29,14 @@
 
 namespace Meq {
 
+//##ModelId=3F8688700098
 int Result::nctor = 0;
+//##ModelId=3F868870009A
 int Result::ndtor = 0;
 
 static NestableContainer::Register reg(TpMeqResult,True);
 
+//##ModelId=3F86887000CE
 Result::Result (int nvellsets)
 : itsCells(0)
 {
@@ -42,6 +45,7 @@ Result::Result (int nvellsets)
     allocateVellSets(nvellsets);
 }
 
+//##ModelId=400E535500F5
 Result::Result (int nvellsets,const Request &req)
 {
   nctor++;
@@ -50,6 +54,7 @@ Result::Result (int nvellsets,const Request &req)
   setCells(&req.cells());
 }
 
+//##ModelId=400E53550105
 Result::Result (const Request &req,int nvellsets)
 {
   nctor++;
@@ -58,12 +63,14 @@ Result::Result (const Request &req,int nvellsets)
   setCells(&req.cells());
 }
   
+//##ModelId=3F8688700151
 Result::Result (const Request &req)
 {
   nctor++;
   setCells(&req.cells());
 }
 
+//##ModelId=400E53550116
 Result::Result (const DataRecord &other,int flags,int depth)
 : DataRecord(other,flags,depth)
 {
@@ -71,11 +78,13 @@ Result::Result (const DataRecord &other,int flags,int depth)
   validateContent();
 }
 
+//##ModelId=3F86887000D3
 Result::~Result()
 {
   ndtor--;
 }
 
+//##ModelId=400E5355017B
 void Result::allocateVellSets (int nvellsets)
 {
   itsVellSets <<= new DataField(TpMeqVellSet,nvellsets);
@@ -83,6 +92,7 @@ void Result::allocateVellSets (int nvellsets)
 }
 
 //  implement privatize
+//##ModelId=400E53550142
 void Result::privatize (int flags, int depth)
 {
   // if deep-privatizing, detach shortcuts
@@ -91,6 +101,7 @@ void Result::privatize (int flags, int depth)
   DataRecord::privatize(flags,depth);
 }
 
+//##ModelId=400E53550156
 void Result::validateContent ()
 {
   Thread::Mutex::Lock lock(mutex());
@@ -120,6 +131,7 @@ void Result::validateContent ()
   }  
 }
 
+//##ModelId=3F86887000D4
 void Result::setCells (const Cells *cells,int flags)
 {
   FailWhen(!isWritable(),"r/w access violation");
@@ -127,6 +139,7 @@ void Result::setCells (const Cells *cells,int flags)
   DataRecord::replace(FCells,itsCells,flags|DMI::READONLY);
 }
 
+//##ModelId=400E5355019D
 VellSet & Result::setVellSet (int i,VellSet *vellset)
 {
   FailWhen(!isWritable(),"r/w access violation");
@@ -135,6 +148,7 @@ VellSet & Result::setVellSet (int i,VellSet *vellset)
   return *vellset;
 }
   
+//##ModelId=400E535501AD
 VellSet & Result::setVellSet (int i,VellSet::Ref::Xfer &vellset)
 {
   FailWhen(!isWritable(),"r/w access violation");
@@ -145,6 +159,7 @@ VellSet & Result::setVellSet (int i,VellSet::Ref::Xfer &vellset)
   return *pvs;
 }
 
+//##ModelId=400E535501D1
 bool Result::hasFails () const
 {
   for( int i=0; i<numVellSets(); i++ )
@@ -153,6 +168,7 @@ bool Result::hasFails () const
   return false;
 }
 
+//##ModelId=400E535501D4
 int Result::numFails () const
 {
   int count=0;
@@ -162,6 +178,7 @@ int Result::numFails () const
   return count;
 }
 
+//##ModelId=3F868870014C
 void Result::show (std::ostream& os) const
 {
   if( !isWritable() )

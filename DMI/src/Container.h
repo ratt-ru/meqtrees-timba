@@ -520,7 +520,7 @@ class NestableContainer : public BlockableObject
     class Subscriber
     {
       public:
-        //##ModelId=3F5D859F0363
+        //##ModelId=400E4D670364
         //##Documentation
         //## Container event types
         typedef enum
@@ -697,6 +697,7 @@ class NestableContainer : public BlockableObject
       //## just return NullType (0). Default version returns 0.
       virtual TypeId type () const;
       
+    //##ModelId=400E4D6C0281
       //##Documentation
       //## This method is called after a copy constructor, assignment
       //## or fromBlock() operation. It is meant to validate the integrity of 
@@ -719,18 +720,18 @@ class NestableContainer : public BlockableObject
       //##ModelId=3CB2B438020F
       NestableContainer::Hook setBranch (const HIID &id, int flags = DMI::WRITE);
       
-      //##ModelId=3BE982760231
+      //##ModelId=400E4D6C02EB
       //##Documentation
       //## Selects a subset of a container. Meant to be abstract, but we make
       //## it just virtual for now since this part is not implemented anywhere.
       virtual bool select (const HIIDSet &);
 
-      //##ModelId=3BFBDC0D025A
+      //##ModelId=400E4D6C03D2
       //##Documentation
       //## Clears the subset selection.
       virtual void clearSelection ();
 
-      //##ModelId=3BFBDC1D028F
+      //##ModelId=400E4D6D004D
       //##Documentation
       //## Converts the selected subset to a BlockSet.
       virtual int selectionToBlock (BlockSet& );
