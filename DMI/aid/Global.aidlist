@@ -88,6 +88,7 @@ dependency                       1444       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 deps                             1457       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:38
 deriv                            1230       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:31
 desc                             1148       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
+dft                              1475       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/PointSourceDFT.h:31
 diameter                         1145       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
 dir                              1130       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
 disable                          1420       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:15
@@ -407,6 +408,7 @@ source                           1174       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 spid                             1254       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:35
 spigot                           1325       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/Spigot.h:7
 spw                              1198       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
+st                               1474       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/PointSourceDFT.h:31
 start                            1105       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:9
 state                            1060       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:21
 station                          1126       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
