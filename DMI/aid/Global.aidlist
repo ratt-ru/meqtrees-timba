@@ -234,6 +234,7 @@ meqsubtractsource                1347       ; from /home/noordam/LOFAR/CEP/CPA/P
 meqwvl                           1353       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqWVL.h:14
 meqwvl2                          1348       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqWVL2.h:14
 message                          1045       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:25
+metrics                          1404       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 mismatch                         1320       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/VisRepeater.h:10
 mode                             1262       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/BOIOSink.h:9
 motion                           1171       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
