@@ -98,6 +98,8 @@ def main(argv):
       serverDir=arg
     elif opt in ("-s", "--server"):
       server=arg
+      if server=="dop40.nfra.nl":
+        server="www.lofar.org/software"
 
   #
   # open the index file in lastWeek
