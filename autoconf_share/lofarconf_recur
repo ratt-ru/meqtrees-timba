@@ -23,13 +23,15 @@
 #  $Id$
 
 
-# Run configure recursively on directories mentioned in lofarconf.in
+# Run configure recursively on directories mentioned in a lofarconf.in
 # The current directory is used as the variant name.
 #
 # Use as
-#    lofarconf_recur srcdir [configure-options]
+#    lofarconf_recur infile srcdir [configure-options]
 
-# Strip srcdir from arguments
+# Strip infile and srcdir from arguments
+lfr_infile="$1"
+shift
 lfr_srcdir="$1"
 shift
 # Get the current directory.
@@ -62,7 +64,7 @@ lfr_pkg=`echo $lfr_result | awk '{print $5}'`
 lfr_confdir=$lfr_root/$lfr_pkg;
 
 # Get all subdirectories from lofarconf.in while removing comments.
-subdirs=`sed $lfr_confdir/lofarconf.in -e s/#.*$//g`
+subdirs=`sed $lfr_infile -e s/#.*$//g`
 sdir=
 for subdir in $subdirs
 do

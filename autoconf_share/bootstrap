@@ -31,17 +31,30 @@ fi
 echo "Bootstrapping in `pwd`"
 
 # Make symlinks for ease of use.
-\rm -f autoconf_share lofarconf
-ln -s $1 autoconf_share
+# We might be in LOFAR directory, so do not delete autoconf_share in there.
+if [ "$1" != "autoconf_share" ]; then
+  \rm -f autoconf_share
+  ln -s $1 autoconf_share
+fi
+\rm -f lofarconf
 ln -s $1/lofarconf lofarconf
 
 # Bootstrap recursively if a file lofarconf.in exists.
 # Get subdirectories from that file.
 lfr_lofarconf=0
-if [ -r lofarconf.in ]; then
+if [ -r lofarconf.in.private ]; then
+  lfr_lofarconf=1
+  # Get all subdirectories from lofarconf.in.private while removing comments.
+  subdirs=`sed lofarconf.in.private -e s/#.*$//g`
+elif [ -r lofarconf.in ]; then
   lfr_lofarconf=1
   # Get all subdirectories from lofarconf.in while removing comments.
   subdirs=`sed lofarconf.in -e s/#.*$//g`
+fi
+if [ $lfr_lofarconf = 1 ]; then
+  if [ -r configure.in ]; then
+    echo " Error: configure.in or a lofarconf.in may exist, not both"
+  fi
   for subdir in $subdirs
   do
     if [ ! -d $subdir ]; then
@@ -62,9 +75,6 @@ fi
 
 # Initialize auto tools if configure.in exists.
 if [ -r configure.in ]; then
-  if test "$lfr_lofarconf" != 0; then
-    echo " Error: configure.in or lofarconf.in may exist, not both"
-  fi
   set -x
   aclocal -I $1 \
   && libtoolize --force --copy \
