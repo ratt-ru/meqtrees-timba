@@ -171,13 +171,14 @@ string HIID::toString () const
   {
     const_iterator iter = begin();
     s = (*iter).toString();
-    bool slash = ( *iter == AidSlash );
+    bool sep = ( *iter == AidSlash || *iter == AidRange );
     for( iter++; iter != end(); iter++ )
     {
-      if( !slash && *iter != AidSlash )
+      bool newsep = ( *iter == AidSlash || *iter == AidRange );
+      if( !sep && !newsep )
         s += ".";
       s += (*iter).toString();
-      slash = ( *iter == AidSlash );
+      sep = newsep;
     }
   }
   return s;
@@ -221,12 +222,12 @@ void HIID::addString (const string &str)
     size_t len = p1 = str.find_first_of("./:",p0);
     if( len != string::npos )
       len -= p0;
-    push_back( AtomicID( str.substr(p0,len) ) );
+    push_back( len ? AtomicID(str.substr(p0,len)) : AidEmpty);
     if( str[p1] == '/' )
       push_back( AidSlash );
     else if( str[p1] == ':' )
       push_back( AidRange );
-    p0 = p1 == string::npos ? p1 : p1+1;
+    p0 = ( p1 == string::npos ? p1 : p1+1 );
   }
 }
   //## end HIID%3BE96FE601C5.declarations

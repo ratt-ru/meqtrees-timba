@@ -382,7 +382,18 @@ const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, Type
   //## begin DataRecord::get%3C56B00E0182.body preserve=yes
   FailWhen(flags&DMI::NC_SCALAR,"can't access DataRecord in scalar mode");
   FailWhen( !id.size(),"null field id" );
-  CFMI iter = fields.find(id);
+  CFMI iter;
+  // a single numeric index is field #
+  if( id.size() == 1 && id.front().index() >= 0 )
+  {
+    iter = fields.begin();
+    for( int i=0; i< id.front().index(); i++,iter++ )
+      if( iter == fields.end() )
+        break;
+    FailWhen( iter == fields.end(),"record field number out of range");
+  }
+  else // else HIID is field name
+    iter = fields.find(id);
   if( iter == fields.end() )
     return 0;
   // This condition checks that we're not auto-privatizing a readonly container

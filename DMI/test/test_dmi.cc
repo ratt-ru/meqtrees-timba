@@ -270,6 +270,12 @@ int main ( int argc,const char *argv[] )
     TestCountedRefs();
     TestDataField();
     TestDataRecord();
+    
+    HIID test("1.");
+    cerr<<test.toString()<<endl;
+    test = test|5;
+    cerr<<test.toString()<<endl;
+    cerr<<HIID("_._.:6").toString()<<endl;
   }
   catch( Debug::Error err ) 
   {

@@ -81,7 +81,7 @@ static AtomicID::Register
      wild(AidWildcard.id(),"*"),
      slash(AidSlash.id(),"/"),
      range(AidRange.id(),":"),
-     empty(AidEmpty.id(),"");
+     empty(AidEmpty.id(),"_");
   //## end AtomicID%3BE970170297.declarations
 // Class AidIndex 
 
