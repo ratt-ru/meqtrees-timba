@@ -23,6 +23,7 @@
 //## end module%3C7E49E90390.additionalIncludes
 
 //## begin module%3C7E49E90390.includes preserve=yes
+#include "OCTOPUSSY/LatencyVector.h"
 //## end module%3C7E49E90390.includes
 
 // WorkProcess
@@ -88,10 +89,15 @@ class EchoWP : public WorkProcess  //## Inherits: <unnamed>%3C8F26580162
   
       long   bytecount,msgcount;
       double ts,timecount;
+#ifdef ENABLE_LATENCY_STATS
+      LatencyVector pinglat,ponglat;
+      int nping,npong;
+      double ping_ts,pong_ts;
+#endif
       
       void stepCounters ( size_t nb,const Timestamp &stamp );
   
-      void sendPing ();
+      void sendPing (int pc);
       //## end EchoWP%3C7E498E00D1.protected
   private:
     //## Constructors (generated)

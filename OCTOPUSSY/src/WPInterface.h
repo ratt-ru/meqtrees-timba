@@ -27,6 +27,7 @@
 #include <set>
 #include <queue>
 #include "OctopussyConfig.h"
+#include "Common/Config.h"
 #include "Common/Thread.h"
 #include "Common/Thread/Condition.h"
 //## end module%3C8F268F00DE.includes
@@ -91,12 +92,24 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
           MessageRef mref; 
           int priority; 
           ulong tick; 
+#ifdef ENABLE_LATENCY_STATS
+          Timestamp ts;  // timestamp of when message was enqueued (auto-initialized to ::now)
+#ifdef USE_THREADS
+          Thread::ThrID thrid; // enqueuing thread
+#endif
+#endif
           
           QueueEntry()
               : priority(0),tick(0)
+#if defined(ENABLE_LATENCY_STATS) && defined(USE_THREADS)
+              ,thrid(Thread::self())
+#endif
               {}
           QueueEntry(const MessageRef &mref_,int pri,ulong tick_)
               : mref(mref_),priority(pri),tick(tick_)
+#if defined(ENABLE_LATENCY_STATS) && defined(USE_THREADS)
+              ,thrid(Thread::self())
+#endif
               {}
       };
                      
@@ -390,9 +403,8 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       
 #ifdef USE_THREADS      
       // This is the entrypoint for every worker thread.
-      // Default version runs a simple loop, waiting on the queue
-      // condition variable, and exiting when stop_workerThreads is
-      // raised.
+      // Runs a simple loop, waiting on the queue condition variable, and 
+      // exiting when stop_workerThreads is raised.
       void runWorker ();
       
       // this is an mt-workprocess's worker thread
@@ -403,7 +415,36 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       static const int MaxWorkerThreads=16;
       Thread::ThrID worker_threads[MaxWorkerThreads];
       int num_worker_threads,num_initialized_workers;
+      // condition variables used to manage worker init & WP startup
+      Thread::Condition worker_cond,startup_cond;
+#ifdef ENABLE_LATENCY_STATS
+      // these two functions are called when a worker thread enters or exits
+      // a queue-wait state
+      void addWaiter    ();
+      void removeWaiter ();
+      void reportWaiters ();
+      // this keeps track of how many workers are waiting on the queue
+      int num_waiting_workers;
+      struct { 
+        struct { Timestamp start,total; } none,some,multi,all;
+        Timestamp last_report;
+      } tsw;
+#else
+      // when compiled w/o latency stats, the two functions map to nothing
+      void addWaiter ()     {}
+      void removeWaiter ()  {}
 #endif
+      
+#endif
+
+#ifdef ENABLE_LATENCY_STATS    
+      // timings for latency stats (i.e., time interval between enqueue
+      // and deliver), for single-threaded and multithreaded cases
+      Timestamp tot_qlat,tot_qlat_mt;
+      int nlat,nlat_mt;
+      double last_lat_report;
+#endif
+      
       //## end WPInterface%3C7B6A3702E5.private
 
   private: //## implementation

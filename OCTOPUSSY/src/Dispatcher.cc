@@ -162,7 +162,8 @@ const MsgAddress & Dispatcher::attach (WPRef &wpref)
     if( running )
     {
       wp.do_init();
-      repoll |= wp.do_start();
+      if( wp.do_start() )
+        repoll = True;
     }
   }
   return wp.address();
@@ -270,7 +271,8 @@ void Dispatcher::start ()
   dprintf(2)("start: starting WPs\n");
   map<WPID,WPRef> wps1 = wps;
   for( WPI iter = wps1.begin(); iter != wps1.end(); iter++ )
-    repoll |= iter->second().do_start();
+    if( iter->second().do_start() )
+      repoll = True;
   
 #ifdef USE_THREADS
 // signal that start is complete so that the event thread can proceed
@@ -295,7 +297,8 @@ void Dispatcher::start ()
       // release the wp map mutex before doing init or start on the wp
       lock.release();
       ref().do_init();
-      repoll |= ref().do_start();
+      if( ref().do_start() )
+        repoll = True;
       lock.relock(wpmutex);
       (wps[ref->wpid()] = ref).persist();
     }
@@ -351,6 +354,8 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
   int ndeliver = 0;
   Message &msg = mref;
   dprintf(2)("send(%s,%s)\n",msg.sdebug().c_str(),to.toString().c_str());
+  // add latency measurement (no-op when compiled w/o -DENABLE_LATENCY_STATS)
+  msg.latency.measure("<SND");
   // set the message to-address
   msg.setTo(to);
   // lock mutex on entry
@@ -414,7 +419,10 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
       }
   }
   if( !ndeliver )
-    dprintf(2)("not delivered anywhere\n");
+    { dprintf(2)("not delivered anywhere\n"); }
+  else
+    { dprintf(3)("send done, ndeliver=%d, repoll=%d\n",ndeliver,(int)repoll); }
+//  msg.latency.measure("SND>");
   return ndeliver;
   //## end Dispatcher::send%3C7B8867015B.body
 }
@@ -466,6 +474,7 @@ void Dispatcher::poll (int maxloops)
     int maxpri = -1;
     WPInterface *maxwp = 0;
     int num_repoll = 0; // # of WPs needing a repoll
+    repoll = False;
     // Find WP with maximum polling priority
     // Count the number of WPs that required polling, too
     Thread::Mutex::Lock lock(wpmutex);
@@ -485,12 +494,15 @@ void Dispatcher::poll (int maxloops)
     }
     lock.release();
     // if more than 1 WP needs a repoll, force another loop
-    repoll = ( num_repoll > 1 );
+    if( num_repoll > 1 )
+      repoll = True;
     // deliver message, if a queue was found
     if( maxwp )
     {
       dprintf(3)("poll: max priority %d in %s, repoll=%d\n",maxpri,maxwp->debug(1),(int)repoll);
-      repoll |= maxwp->do_poll(tick);
+      if( maxwp->do_poll(tick) )
+        repoll = True;
+      dprintf(3)("poll done: repoll=%d\n",(int)repoll);
     }
   }
   if( stop_polling )
@@ -569,13 +581,21 @@ void Dispatcher::addTimeout (WPInterface* pwp, const Timestamp &period, const HI
   TimeoutInfo ti(pwp,id,priority);
   ti.period = period;
   ti.next = Timestamp() + period;
-  if( !next_to || ti.next < next_to )
-    next_to = ti.next;
   ti.flags = flags;
   ti.id = id;
   // add to list
   Thread::Mutex::Lock lock(tomutex);
   timeouts.push_front(ti);
+  // check when it is to fire
+  if( !next_to || ti.next < next_to )
+  {
+    next_to = ti.next;
+#ifdef USE_THREADS
+    lock.release();
+    // send signal to event thread to re-do a select
+    Thread::kill(event_thread,SIGUSR1);
+#endif
+  }
   //## end Dispatcher::addTimeout%3C7D28C30061.body
 }
 
@@ -642,7 +662,8 @@ bool Dispatcher::removeTimeout (WPInterface* pwp, const HIID &id)
     if( iter->pwp == pwp && id.matches(iter->id) )
     {
       // remove any remaining timeout messages from this queue
-      repoll |= pwp->dequeue(iter->msg->id());
+      if( pwp->dequeue(iter->msg->id()) )
+        repoll = True;
       timeouts.erase(iter++);
       return True;
     }
@@ -707,7 +728,8 @@ bool Dispatcher::removeSignal (WPInterface* pwp, int signum)
   HIID id = AidEvent|AidSignal|AtomicID(signum);
   if( signum<0 )
     id[2] = AidWildcard;
-  repoll |= pwp->dequeue(id);
+  if( pwp->dequeue(id) )
+    repoll = True;
   
   if( res )
     rebuildSignals();
@@ -873,7 +895,7 @@ bool Dispatcher::checkEvents()
   Timestamp now;
   if( next_to && next_to <= now )
   {
-    next_to = 0;
+    next_to.reset();
     // see which timeouts are up, and update next_to as well
     for( TOILI iter = timeouts.begin(); iter != timeouts.end(); )
     {
@@ -893,17 +915,7 @@ bool Dispatcher::checkEvents()
       iter++;
     }
   }
-#ifdef USE_THREADS
-  // compute a struct timeval corresponding to the next timeout
-  // this is used in evenThread(), below
-  if( next_to )
-  {
-    next_timeout_tv = next_to - now;
-    pnext_timeout_tv = &next_timeout_tv;
-  }
-  else
-    pnext_timeout_tv = NULL;
-#endif
+  dprintf(5)("next timeout in %.6f\n",(next_to-now).seconds());
   lock.release();
   lock.relock(inpmutex);
   // ------ check inputs
@@ -1034,10 +1046,12 @@ void Dispatcher::enqueue (WPInterface *pwp,const Message::Ref &ref)
       repoll_cond.signal();
     }
   }
+  return;
 #else
 // non-threaded version: simply raise the repoll flag if enqueue indicates
 // that the WP needs a repoll
-  repoll |= res;
+  if( res )
+    repoll = True;
 #endif
 }
 
@@ -1070,15 +1084,29 @@ void * Dispatcher::eventThread ()
       checkEvents();
       if( stop_polling )
         stopPolling();
-      // pause until next heartbeat (SIGALRM), or until an fd is active
-// NB: when the fds are rebuilt, we should deliver a signal to this thread
-      Thread::Mutex::Lock lock(fds_watched_mutex);
+      // pause until next timeout, or until an fd is active
+      Thread::Mutex::Lock lock(tomutex);
+      struct timeval tv,*ptv = &tv;
+      if( next_to )
+      {
+        (next_to - Timestamp::now()).to_timeval(tv);
+//        dprintf(5)("next TO in %ld.%06ld\n",tv.tv_sec,tv.tv_usec);
+        if( tv.tv_sec < 0 ) // already time for timeout?
+          ptv = 0;
+      }
+      else
+        ptv = 0;
+      lock.relock(fds_watched_mutex);
       if( max_fd >= 0 ) // poll fds using select(2) 
       {
         fds_active = fds_watched;
         lock.release();
-        dprintf(5)("select(%d,%ld:%ld)\n",max_fd,pnext_timeout_tv->tv_sec,pnext_timeout_tv->tv_usec);
-        num_active_fds = select(max_fd,&fds_active.r,&fds_active.w,&fds_active.x,pnext_timeout_tv);
+        if( ptv )
+          { dprintf(5)("select(%d,%ld:%ld)\n",max_fd,ptv->tv_sec,ptv->tv_usec); }
+        else
+          { dprintf(5)("select(%d,null)\n",max_fd); }
+        // NB: if timeouts change, should also deliver a signal
+        num_active_fds = select(max_fd,&fds_active.r,&fds_active.w,&fds_active.x,ptv);
         // we don't expect any errors except perhaps EINTR (interrupted by signal)
         dprintf(5)("select()=%d, errno=%d (%s), running=%d\n",num_active_fds,num_active_fds<0?errno:0,num_active_fds<0?strerror(errno):"",(int)running);
         if( num_active_fds < 0 && errno != EINTR )
@@ -1087,8 +1115,11 @@ void * Dispatcher::eventThread ()
       else  // else just use select(2) to sleep until next timeout
       {
         lock.release();
-        dprintf(5)("select(%ld:%ld)\n",pnext_timeout_tv->tv_sec,pnext_timeout_tv->tv_usec);
-        int res = select(0,NULL,NULL,NULL,pnext_timeout_tv);
+        if( ptv )
+          { dprintf(5)("select(0,%ld:%ld)\n",ptv->tv_sec,ptv->tv_usec); }
+        else
+          { dprintf(5)("select(0,null)\n"); }
+        int res = select(0,NULL,NULL,NULL,ptv);
         dprintf(5)("select()=%d, errno=%d (%s), running=%d\n",res,res<0?errno:0,res<0?strerror(errno):"",(int)running);
       }
     }

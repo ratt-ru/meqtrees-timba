@@ -41,6 +41,85 @@
   #define stopwatch_reset  
 #endif
 
+#if defined(USE_THREADS) && defined(ENABLE_LATENCY_STATS)
+void WPInterface::addWaiter ()
+{
+  Timestamp now;
+  reportWaiters();
+  // if no-one was waiting, time it 
+  if( !num_waiting_workers++ )
+  {
+    tsw.none.total += now - tsw.none.start;
+    tsw.some.start = now;
+  }
+  else if( num_waiting_workers > 1 )
+    tsw.multi.start = now; 
+  // if everyone's waiting, time it
+  if( num_waiting_workers == num_worker_threads )
+    tsw.all.start = now;
+}
+
+void WPInterface::removeWaiter ()
+{
+  Timestamp now;
+  if( num_waiting_workers == num_worker_threads )
+    tsw.all.total += now - tsw.all.start;
+  if( num_waiting_workers == 2 )
+    tsw.multi.total += now - tsw.multi.start;
+  else if( num_waiting_workers == 1)
+  {
+    tsw.some.total += now - tsw.some.start;
+    tsw.none.start = now;
+  }
+  num_waiting_workers--;
+}
+
+void WPInterface::reportWaiters ()
+{
+  Timestamp now;
+  double total = now - tsw.last_report;
+  if( total < 10 )
+    return;
+  // add to existing stats
+  if( !num_waiting_workers )
+  {
+    tsw.none.total += now - tsw.none.start;
+    tsw.none.start = now;
+  }
+  else 
+  {
+    tsw.multi.total += now - tsw.multi.start;
+    tsw.multi.start = now;
+    if( num_waiting_workers < num_worker_threads )
+    {
+      tsw.some.total += now - tsw.some.start;
+      tsw.some.start = now;
+    }
+    else
+    {
+      tsw.all.total += now - tsw.all.start;
+      tsw.all.start = now;
+    }
+  }
+  // report the stats
+  dprintf(1)("%.2fs elapsed since last report, %d worker threads\n",
+      total,num_worker_threads);
+  dprintf(1)("no threads waiting for   %6.3fs (%5.2f%%)\n",
+      tsw.none.total.seconds(),tsw.none.total.seconds()/total*100);
+  dprintf(1)("at least one waiting for %6.3fs (%5.2f%%)\n",
+      tsw.some.total.seconds(),tsw.some.total.seconds()/total*100);
+  dprintf(1)("multiple waiting for     %6.3fs (%5.2f%%)\n",
+      tsw.multi.total.seconds(),tsw.multi.total.seconds()/total*100);
+  dprintf(1)("all threads waiting for  %6.3fs (%5.2f%%)\n",
+      tsw.all.total.seconds(),tsw.all.total.seconds()/total*100);
+  tsw.none.total.reset();
+  tsw.some.total.reset();
+  tsw.multi.total.reset();
+  tsw.all.total.reset();
+  tsw.last_report = now;
+}
+#endif
+
 #ifdef USE_THREADS
 // This is the multithreaded poll version: it checks the message queue,
 // and distributes all messages into receive/input/timeout/signal methods.
@@ -50,11 +129,43 @@ int WPInterface::deliver (Thread::Mutex::Lock &lock)
   // check if something is in the queue
   if( !queue().empty() )
   {
+    addWaiter();
     int res = Message::ACCEPT;
     // remove message from queue and release mutex
     QueueEntry qe = queue().front();
     queue().pop_front();
     setNeedRepoll(False);
+    
+#ifdef ENABLE_LATENCY_STATS
+    Timestamp now;
+    if( qe.thrid == Thread::self() )
+    {
+      tot_qlat += now - qe.ts;
+      nlat++;
+    }
+    else
+    {
+      tot_qlat_mt += now - qe.ts;
+      nlat_mt++;
+    }
+    if( now.seconds() >= last_lat_report + 10 )
+    {
+      if( nlat )
+      {
+        dprintf(1)("%d in-thread messages delivered, average latency %.3fms\n",
+            nlat,tot_qlat.seconds()*1000/nlat);
+      }
+      if( nlat_mt )
+      {
+        dprintf(1)("%d cross-thread messages delivered, average latency %.3fms\n",
+            nlat_mt,tot_qlat_mt.seconds()*1000/nlat_mt);
+      }
+      last_lat_report = now;
+      tot_qlat.reset(); tot_qlat_mt.reset();
+      nlat = nlat_mt = 0;
+    }
+#endif
+    removeWaiter();
     lock.release();
 
     const Message &msg = qe.mref.deref();
@@ -70,7 +181,10 @@ int WPInterface::deliver (Thread::Mutex::Lock &lock)
       // required (as opposed to updating a previous message that's still
       // undelivered). See Dispatcher::checkEvents() for details.
       if( qe.mref.isWritable() )
+      {
+        qe.mref().latency.measure("RCV");
         qe.mref().setState(0);
+      }
 
       if( id[1] == AidTimeout ) // deliver timeout message
       {
@@ -107,6 +221,8 @@ int WPInterface::deliver (Thread::Mutex::Lock &lock)
     }
     else // deliver regular message
     {
+      if( qe.mref.isWritable() )
+        qe.mref().latency.measure("RCV");
       res = receive(qe.mref);
     }
     // dispence of queue according to result code
@@ -118,7 +234,7 @@ int WPInterface::deliver (Thread::Mutex::Lock &lock)
     }
     else      // message not accepted, stays in queue
     {
-      FailWhen( !qe.mref.valid(),"message was not accepted but its ref was detached or xferred" );
+      FailWhen( !qe.mref.valid(),"message was not accepted but its ref was detached or xferred");
       old_msg = qe.mref.deref_p();
       if( res == Message::HOLD )
       {
@@ -169,17 +285,19 @@ bool WPInterface::mtWakeup (Thread::Mutex::Lock &lock)
 
 void WPInterface::runWorker ()
 {
-  Thread::Mutex::Lock lock(queueCondition());
+  Thread::Mutex::Lock lock(queue_cond);
   while( running )
   {
     stopwatch_init;
+    addWaiter();
     while( !needRepoll() && isRunning() )
     {
       stopwatch_reset;
       dprintf(3)("waiting on queue condition variable\n");
       queue_cond.wait();
-      dprintf(3)("wait time: %s\n",stopwatch_dump);
+      dprintf(3)("wait time: %s sec\n",stopwatch_dump);
     }
+    removeWaiter();
     // check for stop condition
     if( !isRunning() )
     {
@@ -205,18 +323,20 @@ void * WPInterface::workerThread ()
     dprintf(2)("initializing worker thread\n");
     bool res = mtInit(Thread::self());
     dprintf(2)("time: %s, signaling end of worker init\n",stopwatch_dump);
-    Thread::Mutex::Lock lock(queue_cond);
-    dprintf(3)("time spent waiting for mutex: %s\n",stopwatch_dump);
+    Thread::Mutex::Lock lock(worker_cond);
+    dprintf(3)("time spent waiting for worker_cond mutex: %s\n",stopwatch_dump);
     num_initialized_workers++;
-    queue_cond.signal();
-    // wait for main thread to complete startup
-    dprintf(2)("waiting for WP startup to complete\n");
-    stopwatch_reset;
-    while( !started )
-      queue_cond.wait();
-    dprintf(2)("WP startup complete, time: %s\n",stopwatch_dump);
-    // release queue mutex
+    worker_cond.broadcast();
     lock.release();
+    // wait for main thread to complete startup
+    stopwatch_reset;
+    dprintf(2)("waiting for WP startup to complete\n");
+    lock.relock(startup_cond);
+    dprintf(3)("time spent waiting for startup_cond mutex: %s\n",stopwatch_dump);
+    while( !started )
+      startup_cond.wait();
+    lock.release();
+    dprintf(2)("WP startup complete, time: %s\n",stopwatch_dump);
     // exit if init was false
     if( !res )
     {
@@ -270,7 +390,9 @@ Thread::ThrID WPInterface::createWorker ()
   dprintf(2)("launching worker thread\n");
   FailWhen(num_worker_threads>=MaxWorkerThreads,"too many worker threads started");
   stopwatch_init;
-  // launch into separate thread if specified
+  // launch worker thread
+  Thread::Mutex::Lock lock(worker_cond);
+  dprintf(3)("time to obtain worker_cond mutex: %s\n",stopwatch_dump);
   Thread::ThrID thr = Thread::create(start_workerThread,this);
   dprintf(3)("time to create thread: %s\n",stopwatch_dump);
   FailWhen(!thr,"Thread::create failed");
@@ -278,10 +400,8 @@ Thread::ThrID WPInterface::createWorker ()
   // wait for the worker thread to complete its startup
   dprintf(2)("waiting for WT %d to complete initialization\n",(int)thr);
   stopwatch_reset;
-  Thread::Mutex::Lock lock(queue_cond);
-  dprintf(3)("time to obtain mutex: %s\n",stopwatch_dump);
   while( num_initialized_workers < num_worker_threads )
-    queue_cond.wait();
+    worker_cond.wait();
   dprintf(2)("WT %d startup complete after %s\n",(int)thr,stopwatch_dump);
   return thr;
 }
@@ -355,6 +475,20 @@ void WPInterface::do_init ()
 bool WPInterface::do_start ()
 {
   //## begin WPInterface::do_start%3C99B00B00D1.body preserve=yes
+  Timestamp now;
+  last_lat_report = now;
+  tot_qlat.reset();
+  tot_qlat_mt.reset();
+  nlat = nlat_mt = 0;
+#if defined(USE_THREADS) && defined(ENABLE_LATENCY_STATS)
+  tsw.none.total.reset();
+  tsw.some.total.reset();
+  tsw.multi.total.reset();
+  tsw.all.total.reset();
+  tsw.none.start = now;
+  tsw.last_report = now;
+  num_waiting_workers = 0;
+#endif
   log("starting up",2);
   MessageRef ref(new Message(MsgHello|address()),DMI::ANON|DMI::WRITE);
   publish(ref);
@@ -379,10 +513,10 @@ bool WPInterface::do_start ()
 #ifdef USE_THREADS
   dprintf(2)("broadcasting that start() is complete\n");
   stopwatch_init;
-  Thread::Mutex::Lock lock(queue_cond);
-  dprintf(3)("time to obtain mutex: %s\n",stopwatch_dump);
+  Thread::Mutex::Lock lock(startup_cond);
+  dprintf(3)("time to obtain startup_cond mutex: %s\n",stopwatch_dump);
   started = True;
-  queue_cond.broadcast();
+  startup_cond.broadcast();
   lock.release();
 #else
   started = True;
@@ -507,6 +641,23 @@ bool WPInterface::do_poll (ulong tick)
   QueueEntry qe = queue().front();
   queue().pop_front();
   lock.release(); // release the queue lock
+  
+#ifdef ENABLE_LATENCY_STATS
+  Timestamp now;
+  tot_qlat += now - qe.ts;
+  nlat++;
+  if( Timestamp::now().seconds() >= last_lat_report + 10 )
+  {
+    if( nlat )
+    {
+      dprintf(1)("%d messages delivered, average latency %.3fms\n",
+          nlat,tot_qlat.seconds()*1e-3/nlat);
+    }
+    last_lat_report = now.seconds();
+    tot_qlat.reset();
+    nlat = 0;
+  }
+#endif
   
   const Message &msg = qe.mref.deref();
   const HIID &id = msg.id();

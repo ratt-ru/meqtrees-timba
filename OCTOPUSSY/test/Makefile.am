@@ -1,5 +1,4 @@
 CXXFLAGS += -D_GNU_SOURCE 
-# -DUSE_THREADS -pthread
 
 dmi_dir = $(lofar_sharedir)/../DMI
 

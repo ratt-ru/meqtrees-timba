@@ -328,11 +328,6 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       // repoll condition variable (poll thread sleeps on this)
       Thread::Condition repoll_cond;
       
-      // this the struct timeval corresponding to the next pending timeout
-      struct timeval next_to_tv,
-            // this either points to it, or is NULL
-            *pnext_to_tv;
-      
       static void * start_eventThread (void *pdsp);
       void * eventThread ();
 

@@ -23,8 +23,10 @@
 //## end module%3C7B7F2F0248.additionalIncludes
 
 //## begin module%3C7B7F2F0248.includes preserve=yes
-#include "OCTOPUSSY/TID-OCTOPUSSY.h"
+#include "Common/Config.h"
 #include "DMI/DataRecord.h"
+#include "OCTOPUSSY/TID-OCTOPUSSY.h"
+#include "OCTOPUSSY/LatencyVector.h"
 //## end module%3C7B7F2F0248.includes
 
 // CountedRef
@@ -45,6 +47,17 @@
 //## end module%3C7B7F2F0248.declarations
 
 //## begin module%3C7B7F2F0248.additionalDeclarations preserve=yes
+// in debug mode, enable latency stats, unless explicitly disabled
+#if defined(LOFAR_DEBUG) && !defined(DISABLE_LATENCY_STATS)
+#define ENABLE_LATENCY_STATS 1
+#endif
+
+#ifdef ENABLE_LATENCY_STATS
+  CHECK_CONFIG(LatencyStats,yes);
+#else
+  CHECK_CONFIG(LatencyStats,no);
+#endif
+
 #pragma types #Message
 #pragma aid Index
 
@@ -244,7 +257,8 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
 
     // Additional Public Declarations
       //## begin Message%3C7B6A2D01F0.public preserve=yes
-          //## Operation: Message%3C7B9C490384
+      int flags_; // user-defined flag field
+      
       Message (const HIID &id1, const BlockableObject *pload, int flags = 0, int pri = PRI_NORMAL);
       Message (const HIID &id1, const SmartBlock *bl, int flags = 0, int pri = PRI_NORMAL);
       
@@ -254,10 +268,10 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
       // This accesses the payload as a DataRecord, or throws an exception if it isn't one
       const DataRecord & record () const;
       DataRecord & wrecord ();
-      
 
+      // increments the hop count       
       short addHop ();
-            
+      
       // explicit versions of [] for string IDs
       NestableContainer::ConstHook operator [] (AtomicID id1) const
       { return (*this)[HIID(id1)]; }
@@ -274,12 +288,11 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
       
       typedef CountedRef<Message> Ref;
       
-//       typedef struct {
-//         WPQueue *wpq;
-//         int handle;
-//         HIID id;
-//         void *data;
-//       } TimeoutData;
+#ifdef ENABLE_LATENCY_STATS
+      LatencyVector latency;
+#else
+      static DummyLatencyVector latency;    
+#endif
       
       // This is a typical debug() method setup. The sdebug()
       // method creates a debug info string at the given level of detail.
@@ -294,15 +307,6 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
     // Additional Protected Declarations
       //## begin Message%3C7B6A2D01F0.protected preserve=yes
       BlockSet payload_set;
-      typedef struct {
-        size_t idsize;
-        int priority;
-        int state;
-        char to[MsgAddress::byte_size],
-             from[MsgAddress::byte_size];
-        int num_payload_blocks;
-        size_t block_size;
-      } MessageBlock;
       //## end Message%3C7B6A2D01F0.protected
   private:
     // Additional Private Declarations
@@ -358,11 +362,14 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
 
     // Additional Implementation Declarations
       //## begin Message%3C7B6A2D01F0.implementation preserve=yes
-      typedef struct {  int priority,state,idsize,fromsize,tosize;
-                        short hops;
-                        bool has_block;
-                        TypeId payload_type; 
-                     }  HeaderBlock;
+      typedef struct 
+      {  
+        int priority,state,flags,idsize,fromsize,tosize,latsize;
+        short hops;
+        bool has_block;
+        TypeId payload_type; 
+      }  
+      HeaderBlock;
                      
       //## end Message%3C7B6A2D01F0.implementation
 };

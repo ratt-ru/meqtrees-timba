@@ -165,7 +165,7 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
         int counter;
         double ts;
         unsigned long long read,written; 
-        Timestamp last_read,last_write;
+        Timestamp last_read,last_write,time_not_reading;
         Thread::Mutex read_mutex,write_mutex;
       } StatMon;
       StatMon statmon;
@@ -212,6 +212,12 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
       char *read_buf;
       int nread,read_buf_size;
       int read_checksum;
+      Timestamp start_message_read,
+      // these timestamps keep timing stats on how long we spend w/o any
+      // threads reading the socket
+          ts_stopread;
+      bool reading_socket,first_message_read; 
+      
       // incoming packet header & trailer
       PacketHeader header;
       DataTrailer  trailer;

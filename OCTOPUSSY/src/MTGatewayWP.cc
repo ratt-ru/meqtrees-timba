@@ -21,6 +21,7 @@
 #ifdef USE_THREADS
 
 #include "Gateways.h"
+#include <deque>
 //## end module%3C90BFDD0240.includes
 
 // MTGatewayWP
@@ -59,6 +60,9 @@ MTGatewayWP::MTGatewayWP (Socket* sk)
   setPeerState(INITIALIZING);
   peerlist = 0;
   rprocess = rhost = 0;
+  reading_socket = first_message_read = False;
+  shutdown_done = False;
+  statmon.time_not_reading.reset();
   //## end MTGatewayWP::MTGatewayWP%3C95C53D00AE.body
 }
 
@@ -172,13 +176,17 @@ bool MTGatewayWP::start ()
   
   // spawn worker threads (for writing)
   for( int i=0; i<NumWriterThreads; i++ )
-    createWorker();
+  {
+    Thread::ThrID tid = createWorker();
+    dprintf(0)("created worker thread %d\n",(int)tid);
+  }
   
   // spawn several reader threads
   for( int i=0; i<NumReaderThreads; i++ )
   {
     reader_threads[i] = Thread::create(start_readerThread,this);
     FailWhen(!reader_threads[i],"failed to create reader thread");
+    dprintf(0)("created reader thread %d\n",(int)reader_threads[i]);
   }
   
   return False;
@@ -323,12 +331,16 @@ int MTGatewayWP::timeout (const HIID &id)
     {
       Thread::Mutex::Lock lock2(statmon.read_mutex);
       Thread::Mutex::Lock lock3(statmon.write_mutex);
-      double now = Timestamp::now(), d = now - statmon.ts;
-      lprintf(3,"%.2f seconds elapsed since last stats report\n"
+      double now = Timestamp::now(), d = now - statmon.ts,
+        nr = statmon.time_not_reading;
+      statmon.time_not_reading.reset();
+      lprintf(2,"%.2f seconds elapsed since last stats report\n"
                  "read %llu bytes (%.3f MB/s)\n"
-                 "wrote %llu bytes (%.3f MB/s)\n",
+                 "wrote %llu bytes (%.3f MB/s)\n"
+                 "not reading for %.3f ms (%.2f%%)\n",
                  d,statmon.read,statmon.read/(1024*1024*d),
-                 statmon.written,statmon.written/(1024*1024*d));
+                 statmon.written,statmon.written/(1024*1024*d),
+                 nr*1000,nr/d*100);
       statmon.ts = now;
       statmon.read = statmon.written = 0;
     }
@@ -473,20 +485,29 @@ void MTGatewayWP::processIncoming (MessageRef &ref)
       return;
     }
     // publish (locally only) fake Hello messages on behalf of all remote WPs
+    // to avoid deadlock, we first generate a list of messages, then send them
+    // off once the remote_subs mutex has been released
+    deque<MessageRef> hellos;
     Thread::Mutex::Lock subslock(remote_subs_mutex);
     for( CRSI iter = remote_subs.begin(); iter != remote_subs.end(); iter++ )
     {
-      MessageRef mref;
-      mref.attach(new Message(MsgHello|iter->first),DMI::ANON|DMI::WRITE );
-      mref().setFrom(iter->first);
-      dsp()->send(mref,MsgAddress(AidPublish,AidPublish,
-                                address().process(),address().host()));
+      hellos.push_back(MessageRef());
+      Message *msg = new Message(MsgHello|iter->first);
+      hellos.back() <<= msg;
+      msg->setFrom(iter->first);
     }
     subslock.release();
     // tell dispatcher that we can forward messages now
     // (note that doing it here ensures that the GWRemoteUp message is
     // only published to peers on "this" side of the connection)
     dsp()->declareForwarder(this);
+    // send off the fake hello messages
+    while( !hellos.empty() )
+    {
+      dsp()->send(hellos.front(),MsgAddress(AidPublish,AidPublish,
+                                address().process(),address().host()));
+      hellos.pop_front();
+    }
   }
   else
   {

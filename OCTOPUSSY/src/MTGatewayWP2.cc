@@ -50,6 +50,10 @@ int MTGatewayWP::readyForData ( const PacketHeader &hdr,BlockSet &bset )
     return requestResync();
   }
   nread = 0;
+  // if this is the first block of a message, get a timestamp
+  if( bset.empty() )
+    Timestamp::now(&start_message_read);
+  
   SmartBlock * bl = new SmartBlock(read_buf_size);
   bset.pushNew().attach(bl,DMI::ANONWR);
   read_buf = static_cast<char*>(bl->data());
@@ -61,7 +65,7 @@ int MTGatewayWP::readyForData ( const PacketHeader &hdr,BlockSet &bset )
 
 void * MTGatewayWP::readerThread ()
 {
-  dprintf(4)("readerThread entry\n");
+  dprintf(3)("readerThread entry\n");
   Thread::signalMask(SIG_BLOCK,Dispatcher::validSignals());
   // unblock SIGPIPE so that our system calls can be interrupted
   Thread::signalMask(SIG_UNBLOCK,SIGPIPE);
@@ -75,6 +79,16 @@ void * MTGatewayWP::readerThread ()
     readyForHeader();
     while( isRunning() && !shutdown_done )
     {
+      // if we are not in a reading-socket state (i.e., after a message
+      // has been sent off), then time how long we were in it
+      if( !reading_socket )
+      { 
+        // time how long no-one was reading anything
+        Thread::Mutex::Lock lock(statmon.read_mutex);
+        if( first_message_read )
+          statmon.time_not_reading += Timestamp::now() - ts_stopread;
+        reading_socket = True;
+      }
       // read up to full buffer
       while( nread < read_buf_size )
       {
@@ -187,11 +201,19 @@ void * MTGatewayWP::readerThread ()
         {
           dprintf(4)("received block #%d of size %d, checksum OK\n",
               trailer.seq,bset.back()->size());
-          if( trailer.msgsize ) // accumulated a complete message?
+          // can't access some members anymore, since we're releasing the mutex
+          // so cache them as local variables
+          int tmsgsize = trailer.msgsize;
+          if( tmsgsize ) // accumulated a complete message?
           {
+            Timestamp start_read = start_message_read; // cache before releasing mutex
+            // maintain timings of when reading has stopped
+            Timestamp::now(&ts_stopread);
+            reading_socket = False;
+            first_message_read = True;
             // release the reader mutex so that other threads may go into their
             // own read state while we fuck around with the received message.
-            // If still initializing the connection, then acquire the gwmutex,
+            // If still initializing the connection, then also acquire the gwmutex,
             // to ensure that no incoming messages are processed until
             // parsing of the init-message is complete.
             if( peerState() == INITIALIZING )
@@ -199,16 +221,21 @@ void * MTGatewayWP::readerThread ()
             else
               reader_lock.release();
             
-            if( bset.size() != trailer.msgsize )
+            if( bset.size() != tmsgsize )
             { // major oops
-              lprintf(1,LogWarning,"unknown packet type %d, ignoring\n",header.type);
+              lprintf(1,LogWarning,"expected %d blocks, got %d, discarding message\n",tmsgsize,bset.size());
               bset.clear();
             }
             else
             {
               // convert & process the incoming message
-              MessageRef ref(new Message,DMI::ANONWR);
-              ref().fromBlock(bset);
+              Message *msg = new Message;
+              MessageRef ref(msg,DMI::ANONWR);
+              msg->fromBlock(bset);
+#ifdef ENABLE_LATENCY_STATS
+              msg->latency.add(start_read,"<RCV");
+              msg->latency.measure("RCV>");
+#endif
               if( !bset.empty() )
                 lprintf(2,"warning: %d unclaimed incoming blocks will be discarded\n",bset.size());
               // process the message
@@ -239,7 +266,7 @@ void * MTGatewayWP::readerThread ()
     shutdown();
   }
 
-  dprintf(2)("readerThread: exiting\n");
+  dprintf(3)("readerThread: exiting\n");
   return 0;
 }
 
@@ -255,6 +282,10 @@ void MTGatewayWP::reportWriteError ()
 void MTGatewayWP::transmitMessage (MessageRef &mref)
 {
   dprintf(4)("transmitMessage [%s]\n",mref->sdebug(1).c_str());
+#ifdef ENABLE_LATENCY_STATS
+  mref.privatize(DMI::WRITE,0);
+  mref().latency.measure("XMIT");
+#endif
   // convert the message to blocks, placing them into the write queue
   BlockSet bset;
   mref->toBlock(bset);
@@ -263,7 +294,6 @@ void MTGatewayWP::transmitMessage (MessageRef &mref)
   // privatize the blocks
   bset.privatizeAll(DMI::READONLY);
   
-  // grab the writer mutex (only one worker thread writes at a time)
   Thread::Mutex::Lock lock(writer_mutex);
   int nwr = 0;
   

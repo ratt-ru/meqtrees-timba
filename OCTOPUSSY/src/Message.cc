@@ -19,6 +19,7 @@
 
 //## begin module%3C7B7F2F024A.includes preserve=yes
 #include "DMI/DynamicTypeManager.h"
+#include "DMI/Packer.h"
 //## end module%3C7B7F2F024A.includes
 
 // Message
@@ -27,6 +28,9 @@
 //## end module%3C7B7F2F024A.declarations
 
 //## begin module%3C7B7F2F024A.additionalDeclarations preserve=yes
+#ifndef ENABLE_LATENCY_STATS
+DummyLatencyVector Message::latency;
+#endif
 //## end module%3C7B7F2F024A.additionalDeclarations
 
 
@@ -48,6 +52,9 @@ Message::Message(const Message &right)
   //## end Message::Message%3C7B6A2D01F0_copy.hasinit
   //## begin Message::Message%3C7B6A2D01F0_copy.initialization preserve=yes
     : BlockableObject()
+#ifdef ENABLE_LATENCY_STATS
+    ,latency(right.latency)
+#endif
   //## end Message::Message%3C7B6A2D01F0_copy.initialization
 {
   //## begin Message::Message%3C7B6A2D01F0_copy.body preserve=yes
@@ -143,6 +150,7 @@ Message & Message::operator=(const Message &right)
     from_ = right.from_;
     to_ = right.to_;
     state_ = right.state_;
+    hops_ = right.hops_;
   //  timestamp_ = right.timestamp_;
     payload_.copy(right.payload_,DMI::PRESERVE_RW|DMI::PERSIST);
     block_.copy(right.block_,DMI::PRESERVE_RW|DMI::PERSIST);
@@ -233,14 +241,21 @@ int Message::fromBlock (BlockSet& set)
   const HeaderBlock & hdr = *static_cast<const HeaderBlock*>(href->data());
   FailWhen(href->size() < sizeof(HeaderBlock) ||
            href->size() != sizeof(HeaderBlock) + 
-           hdr.idsize + hdr.fromsize + hdr.tosize,"corrupt header block");
+           hdr.idsize + hdr.fromsize + hdr.tosize + hdr.latsize,"corrupt header block");
   priority_ = hdr.priority;
   state_    = hdr.state;
   hops_     = hdr.hops;
+  flags_    = hdr.flags;
   const char *buf = static_cast<const char*>(href->data()) + sizeof(HeaderBlock);
   id_.unpack(buf,hdr.idsize);     buf += hdr.idsize;
   from_.unpack(buf,hdr.fromsize); buf += hdr.fromsize;
-  to_.unpack(buf,hdr.tosize);
+  to_.unpack(buf,hdr.tosize);     buf += hdr.tosize;
+#ifdef ENABLE_LATENCY_STATS
+  if( hdr.latsize )
+    latency.unpack(buf,hdr.latsize);
+  else
+    latency.clear();
+#endif
   //  got a data block?
   if( hdr.has_block )
   {
@@ -270,22 +285,33 @@ int Message::toBlock (BlockSet &set) const
   size_t idsize = id_.packSize(),
          tosize = to_.packSize(),
          fromsize = from_.packSize(),
-         hsize = idsize+tosize+fromsize;
+#ifdef ENABLE_LATENCY_STATS
+         latsize = latency.packSize(),
+#else
+         latsize = 0,
+#endif
+         hsize = idsize + tosize + fromsize + latsize;
+  
   SmartBlock *hdrblock = new SmartBlock(sizeof(HeaderBlock)+hsize);
   BlockRef bref(hdrblock,DMI::ANON|DMI::WRITE); 
   HeaderBlock & hdr = *static_cast<HeaderBlock*>(hdrblock->data());
   hdr.priority  = priority_;
   hdr.state     = state_;
+  hdr.flags     = flags_;
   hdr.hops      = hops_;
   hdr.idsize    = idsize;
   hdr.fromsize  = fromsize;
   hdr.tosize    = tosize;
+  hdr.latsize   = latsize;
   hdr.has_block = block_.valid(); 
   hdr.payload_type = payload_.valid() ? payload_->objectType() : NullType;
   char *buf = static_cast<char*>(hdrblock->data()) + sizeof(HeaderBlock);
   buf += id_.pack(buf,hsize);      
   buf += from_.pack(buf,hsize);    
-  to_.pack(buf,hsize);      
+  buf += to_.pack(buf,hsize);      
+#ifdef ENABLE_LATENCY_STATS
+  buf += latency.pack(buf,hsize);
+#endif
   
   // attach to set
   set.push(bref);
