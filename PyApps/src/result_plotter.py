@@ -18,13 +18,15 @@ class ResultPlotter(BrowserPlugin):
   is_viewable = staticmethod(is_viewable);
 
   def __init__(self,parent,dataitem=None,default_open=None,**opts):
-    print "in RecordPlotter constructor"
+#    print "in RecordPlotter constructor"
     self._rec = None;
     self._ntuple_controller = NTupleController.instance()
     self._window_controller = WindowController.instance()
     self._window_controller.createInspector ()
 # needed for destructor
     self._window = CanvasWindow(parent, "MeqDisplay",0)
+# uncommenting the following line causes all sorts of problems
+#    self._window.closeNoPrompt():
     self._window.show()
     self._display_controller = DisplayController.instance()
     self._canvas = None
@@ -35,8 +37,8 @@ class ResultPlotter(BrowserPlugin):
       self.set_data(dataitem);
 
   def __del__(self):
-    print "in destructor"
-    self._window.quitOnLastWindowClose(False)
+#    print "in destructor"
+    self._window_controller.closeAllWindows()
                                                                                            
   def wtop (self):
     return self._window
@@ -60,13 +62,14 @@ class ResultPlotter(BrowserPlugin):
       image = []
       for j in range(0, n_rows ) :
         for i in range(0, n_cols) :
-          print self._label, 'image appending ', plot_array[j][i]
+#          print self._label, 'image appending ', plot_array[j][i]
           image.append(plot_array[j][i])
       if self._image_ntuple.isValidLabel(self._label):
         self._image_ntuple.replaceColumn (self._label,image)
       else:
 # add columns for new image data
         self._image_ntuple.addColumn (self._label,image)
+#        print "result_plotter added image column"
 # add time and frequency columns for xyz plots
 # first add time column
         if self._add_time_freq:
@@ -80,6 +83,7 @@ class ResultPlotter(BrowserPlugin):
             for i in range(0, n_cols) :
               image.append(current_time)
           self._image_ntuple.addColumn (xyz_x_label, image)
+#          print "result_plotter added time column"
 # then add frequency column
           xyz_y_label = "freq"
           image = []
@@ -91,10 +95,12 @@ class ResultPlotter(BrowserPlugin):
               current_freq = start_freq + i * y_step
               image.append(current_freq)
           self._image_ntuple.addColumn (xyz_y_label, image)
+#          print "result_plotter added freq column"
           self._add_time_freq = False
 
 # do image plot
         image_plot = self._display_controller.createDisplay( 'Z Plot', self._image_ntuple,[self._label,])
+#        print "created image_plot object"
         freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
         time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
         x_step = time_range / n_rows
@@ -105,6 +111,7 @@ class ResultPlotter(BrowserPlugin):
         image_plot.setBinWidth ( 'y', y_step )
         image_plot.setRange ( 'x', start_time, start_time + n_rows * x_step)
         image_plot.setRange ( 'y', start_freq, start_freq + n_cols * y_step)
+#        print "called image_plot.setRange stuff"
         real_array = self._label.find("real")
 #        if real_array>=0:
 #          image_plot.setRange ( 'z', self._z_real_min, self._z_real_max)
@@ -112,15 +119,19 @@ class ResultPlotter(BrowserPlugin):
 #          image_plot.setRange ( 'z', self._z_imag_min, self._z_imag_max)
         image_plot.setOffset ( 'x', start_time )
         image_plot.setOffset ( 'y', start_freq )
+#        print "called image_plot.setOffset stuff"
 #        image_plot.setLabel ( 'x', 'Time' )
 #        image_plot.setLabel ( 'y', 'Freq' )
         image_plot.setLabel ( 'x', 'Freq' )
         image_plot.setLabel ( 'y', 'Time' )
         image_plot.setNumberOfBins ( 'x', n_rows )
         image_plot.setNumberOfBins ( 'y', n_cols )
+#        print "called image_plot.setNumberOfBins stuff"
         if self._canvas == None:
           self._canvas = self._window_controller.currentCanvas()
+#          print "created self._canvas object"
         self._canvas.addDisplay ( image_plot ) 
+#        print "result_plotter passed addDisplay ( image_plot )"
 
 # now do an XYZ plot
         bindings = ["time", "freq",  self._label ]

@@ -23,6 +23,8 @@ class ArrayPlotter(BrowserPlugin):
     self._window_controller.createInspector ()
 # needed for destructor
     self._window = CanvasWindow(parent, "MeqDisplay",0)
+# uncommenting the following line causes all sorts of problems!!
+#    self._window.closeNoPrompt():
     self._window.show()
     self._display_controller = DisplayController.instance()
     self._canvas = None
@@ -33,8 +35,8 @@ class ArrayPlotter(BrowserPlugin):
       self.set_data(dataitem);
 
   def __del__(self):
-    print "in destructor"
-    self._window.quitOnLastWindowClose(False)
+#    print "in destructor"
+    self._window_controller.closeAllWindows()
                                                                                            
   def wtop (self):
     return self._window
@@ -66,6 +68,7 @@ class ArrayPlotter(BrowserPlugin):
       else:
 # add columns for new image data
         self._image_ntuple.addColumn (self._label,image)
+#        print "added column"
 # add time and frequency columns for xyz plots
 # first add x column
         if self._add_x_y:
@@ -75,6 +78,7 @@ class ArrayPlotter(BrowserPlugin):
             for i in range(0, n_cols) :
               image.append(j)
           self._image_ntuple.addColumn (xyz_x_label, image)
+#          print "added x column"
 # then add y column
           xyz_y_label = "y"
           image = []
@@ -82,17 +86,22 @@ class ArrayPlotter(BrowserPlugin):
             for i in range(0, n_cols) :
               image.append(i)
           self._image_ntuple.addColumn (xyz_y_label, image)
+#          print "added y column"
           self._add_x_y = False
 
 # do image plot
         image_plot = self._display_controller.createDisplay( 'Z Plot', self._image_ntuple,[self._label,])
+#        print "created image_plot object"
         image_plot.setLabel ( 'x', 'x' )
         image_plot.setLabel ( 'y', 'y' )
         image_plot.setNumberOfBins ( 'x', n_rows )
         image_plot.setNumberOfBins ( 'y', n_cols )
+#        print "passed image_plot.setNumberOfBins"
         if self._canvas == None:
           self._canvas = self._window_controller.currentCanvas()
+#          print "created self._canvas object"
         self._canvas.addDisplay ( image_plot ) 
+#        print "called self._canvas.addDisplay(image_plot)"
 
 # now do an XYZ plot
         bindings = ["x", "y",  self._label ]
@@ -102,6 +111,7 @@ class ArrayPlotter(BrowserPlugin):
         if self._canvas == None:
           self._canvas = self._window_controller.currentCanvas()
         self._canvas.addDisplay ( xyz_plot )
+#        print "called self._canvas.addDisplay(xyz_plot)"
                                                                                 
     if n_cols == 1:
       if self._simple_ntuple == None:
