@@ -178,7 +178,7 @@ void MeqServer::nodeSetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   node.setState(rec[AidState].as_wr<DataRecord>());
   if( getstate )
     out[FNodeState] <<= node.syncState();
-  if( in[FGetForestStatus].as<bool>(false) )
+  if( rec[FGetForestStatus].as<bool>(false) )
     fillForestStatus(out());
 }
 
@@ -266,7 +266,7 @@ void MeqServer::nodeExecute (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
         node.nodeIndex(),node.name().c_str(),flags);
     if( getstate )
       out[FNodeState] <<= node.syncState();
-    if( in[FGetForestStatus].as<bool>(false) )
+    if( rec[FGetForestStatus].as<bool>(false) )
       fillForestStatus(out());
   }
   catch( std::exception &exc )
@@ -293,7 +293,7 @@ void MeqServer::nodeClearCache (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
       node.nodeIndex(),node.name().c_str(),recursive?" recursively":"");
   if( getstate )
     out[FNodeState] <<= node.syncState();
-  if( in[FGetForestStatus].as<bool>(false) )
+  if( rec[FGetForestStatus].as<bool>(false) )
     fillForestStatus(out());
 }
 
@@ -393,7 +393,7 @@ void MeqServer::publishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   }
   if( getstate )
     out[FNodeState] <<= node.syncState();
-  if( in[FGetForestStatus].as<bool>(false) )
+  if( rec[FGetForestStatus].as<bool>(false) )
     fillForestStatus(out());
 }
 
@@ -423,7 +423,7 @@ void MeqServer::nodeSetBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &i
         "new bp mask is %X",
         node.name().c_str(),oneshot?"one-shot":"",
         bpmask,node.getBreakpoints(oneshot));
-  if( in[FGetForestStatus].as<bool>(false) )
+  if( rec[FGetForestStatus].as<bool>(false) )
     fillForestStatus(out());
 }
 
@@ -440,7 +440,7 @@ void MeqServer::nodeClearBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer 
     out[FNodeState] <<= node.syncState();
   out[AidMessage] = Debug::ssprintf("node %s: clearing breakpoint %X; "
         "new bp mask is %X",node.name().c_str(),bpmask,node.getBreakpoints(oneshot));
-  if( in[FGetForestStatus].as<bool>(false) )
+  if( rec[FGetForestStatus].as<bool>(false) )
     fillForestStatus(out());
 }
 
