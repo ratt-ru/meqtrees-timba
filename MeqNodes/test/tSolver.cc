@@ -27,15 +27,17 @@
 #include <MEQ/Function.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
+#include <MEQ/Polc.h>
 #include <MEQ/TID-Meq.h>
 #include <MeqNodes/Condeq.h>
 #include <MeqNodes/Solver.h>
-#include <MeqNodes/Polc.h>
 #include <MEQ/MeqVocabulary.h>
 #include <DMI/DataArray.h>
 #include <exception>
 
 using namespace Meq;
+
+int dum = aidRegistry_Meq() + aidRegistry_MeqNodes();
 
 int main (int argc,const char* argv[])
 {

@@ -27,9 +27,9 @@
 #include <MEQ/Function.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
-#include <MeqNodes/Polc.h>
-#include <MeqNodes/TID-MeqNodes.h>
+#include <MEQ/Polc.h>
 #include <MEQ/TID-Meq.h>
+#include <MeqNodes/TID-MeqNodes.h>
 #include <DMI/DataArray.h>
 #include <exception>
 

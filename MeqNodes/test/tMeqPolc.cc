@@ -21,7 +21,7 @@
 //# $Id$
 
 
-#include <MeqNodes/Polc.h>
+#include <MEQ/Polc.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Vells.h>
