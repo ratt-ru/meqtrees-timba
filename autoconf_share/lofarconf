@@ -102,8 +102,9 @@ fi
 # Now do the configure.
 # Note that "$@" preserves quotes around each argument.
 echo "${lfr_cmp}_$lfr_var configure will be done on host $lfr_host for package $lfr_pkg"
-echo $lfr_confdir/configure "$opts" "$@"
-$lfr_confdir/configure "$opts" "$@"  ||  exit 2
+echo $lfr_confdir/configure $opts "$@"
+#trap '\rm -f /tmp/lofarconf.$PPID' EXIT
+eval "$lfr_confdir/configure $opts "$@"" ||  exit 2
 
 
 # Get the compiler make options.
