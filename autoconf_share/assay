@@ -112,39 +112,6 @@
 #
 # $Id$
 #
-# $Log$
-# Revision 1.5  2004/03/17 10:00:57  diepen
-# %[ER: 70]%
-# Do inline sed of >>><<< first
-#
-# Revision 1.4  2004/03/10 09:06:51  coolen
-# %[ER:70 ]%
-# added possibility to skip parts in the output rather then only total lines
-#
-# Revision 1.3  2003/08/27 12:31:53  smirnov
-# added './' to front of .run file, in case '.' is not in PATH
-#
-# Revision 1.2  2002/07/05 13:38:42  diepen
-# %[BugId: 56]%
-# Added copyright
-#
-# Revision 1.1  2002/05/03 10:50:41  gvd
-# Support of packages in build environement
-#
-# Revision 1.4  2001/09/18 10:21:34  gvd
-# Do not execute .run file with sh command
-#
-# Revision 1.3  2001/03/23 10:00:40  gvd
-# Improved documentation and test programs
-# Added clearEventCount function to Step
-#
-# Revision 1.2  2001/03/21 10:21:51  gvd
-# Improved comments
-#
-# Revision 1.1  2001/03/20 12:25:23  gvd
-# First version of script to run and check test programs
-#
-#
 #=============================================================================
 
 # Initialize the command to be executed.
@@ -189,6 +156,7 @@
      exit
   fi
 
+  echo "Comparing output with $1.out ..."
 # Strip out demarked text.
 # inline parts enclosed by >>> && <<<
   sed -e 's/>>>.*<<<//' ${1}_tmp.out > ${1}_tmp.out2
