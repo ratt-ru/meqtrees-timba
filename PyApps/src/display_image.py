@@ -440,6 +440,7 @@ class QwtImagePlot(QwtPlot):
 	self._x_axis = None
 	self._y_axis = None
 	self._title = None
+	self._menu = None
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -480,48 +481,52 @@ class QwtImagePlot(QwtPlot):
         if not self._mainwin:
           return;
 
-        self._menu = QPopupMenu(self._mainwin);
-        QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_spectrum_display);
-        id = -1
-        self._next_plot = {}
+        if self._menu is None:
+          self._menu = QPopupMenu(self._mainwin);
+          zoom = QAction(self);
+          zoom.setIconSet(pixmaps.viewmag.iconset());
+          zoom.setText("Disable zoomer");
+          zoom.addTo(self._menu);
+          printer = QAction(self);
+          printer.setIconSet(pixmaps.fileprint.iconset());
+          printer.setText("Print plot");
+          QObject.connect(printer,SIGNAL("activated()"),self.printplot);
+          printer.addTo(self._menu);
+          QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_spectrum_display);
+          self._signal_id = -1
+          self._plot_dict = {}
+          self._plot_label = {}
+
         plot_label = 'spectra:' + self._string_tag
         self.num_plot_arrays = len(self._data_values)
         _dprint(2,' number of arrays to plot ', self.num_plot_arrays)
         data_label = ''
         for i in range(self.num_plot_arrays):
-          id = id + 1
           data_label = ''
+	  plot_label = ''
           if isinstance(self._data_labels, tuple):
             data_label = 'go to ' + self._string_tag  +  " " +self._data_labels[i] + ' ?'
+            plot_label = 'spectra:' + self._string_tag  +  " " +self._data_labels[i]
           else:
             data_label = 'go to ' + self._string_tag  +  " " +self._data_labels +' ?'
-          self._menu.insertItem(data_label,id)
-          self._next_plot[id] = data_label + ' ' + str(id)
-        zoom = QAction(self);
-        zoom.setIconSet(pixmaps.viewmag.iconset());
-        zoom.setText("Disable zoomer");
-        zoom.addTo(self._menu);
-        printer = QAction(self);
-        printer.setIconSet(pixmaps.fileprint.iconset());
-        printer.setText("Print plot");
-        QObject.connect(printer,SIGNAL("activated()"),self.printplot);
-        printer.addTo(self._menu);
+            plot_label = 'spectra:' + self._string_tag  +  " " +self._data_labels
+	  plot_label_not_found = True
+	  for j in range(len(self._plot_label)):
+	    if self._plot_label[j] == plot_label:
+	      plot_label_not_found =False
+	      break
+          if plot_label_not_found:
+            self._signal_id = self._signal_id + 1
+            self._menu.insertItem(data_label,self._signal_id)
+	    self._plot_dict[self._signal_id] = self._data_values[i]
+	    self._plot_label[self._signal_id] = plot_label
 
 
     def update_spectrum_display(self, menuid):
       if menuid < 0:
         self.unzoom()
         return
-      id_string = self._next_plot[menuid]
-      plane = 0
-      plane_loc = len(id_string) -2
-      if plane_loc >= 0:
-        plane = int( id_string[plane_loc:len(id_string)])
-      if isinstance(self._data_labels, tuple):
-        self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels[plane]
-      else:
-        self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels
-      self.array_plot(self.data_label, self._data_values[plane])
+      self.array_plot(self._plot_label[menuid], self._plot_dict[menuid])
 
 
     def initVellsContextMenu (self):
@@ -838,10 +843,10 @@ class QwtImagePlot(QwtPlot):
               xpos = self.invTransform(QwtPlot.xBottom, xpos)
               ypos = self.invTransform(QwtPlot.yLeft, ypos)
 #              print 'inverted mouse positions ', xpos, ' ', ypos
-              temp_array = numarray.asarray(ypos)
-              self.x_arrayloc = numarray.resize(temp_array,shape[0])
-              temp_array = numarray.asarray(xpos)
-              self.y_arrayloc = numarray.resize(temp_array,shape[1])
+              temp_array = asarray(ypos)
+              self.x_arrayloc = resize(temp_array,shape[0])
+              temp_array = asarray(xpos)
+              self.y_arrayloc = resize(temp_array,shape[1])
               if self._vells_plot:
                 xpos = self.plotImage.xMap.limTransform(xpos)
                 ypos = self.plotImage.yMap.limTransform(ypos)
@@ -1150,11 +1155,11 @@ class QwtImagePlot(QwtPlot):
             array_shape = self._flags_array.shape
             if len(array_shape) == 1 and array_shape[0] == 1:
               temp_value = self._flags_array[0]
-              temp_array = numarray.asarray(temp_value)
-              self._flags_array = numarray.resize(temp_array,self._shape)
+              temp_array = asarray(temp_value)
+              self._flags_array = resize(temp_array,self._shape)
           except:
-            temp_array = numarray.asarray(self._vells_rec.vellsets[0].flags)
-            self._flags_array = numarray.resize(temp_array,self._shape)
+            temp_array = asarray(self._vells_rec.vellsets[0].flags)
+            self._flags_array = resize(temp_array,self._shape)
           self.plotImage.setFlagsArray(self._flags_array)
 
 # plot the first plane member
@@ -1171,13 +1176,13 @@ class QwtImagePlot(QwtPlot):
             array_shape = self._value_array.shape
             if len(array_shape) == 1 and array_shape[0] == 1:
               temp_value = self._value_array[0]
-              temp_array = numarray.asarray(temp_value)
-              self._value_array = numarray.resize(temp_array,self._shape)
+              temp_array = asarray(temp_value)
+              self._value_array = resize(temp_array,self._shape)
 
           except:
-            temp_array = numarray.asarray(self._vells_rec.vellsets[0].value)
+            temp_array = asarray(self._vells_rec.vellsets[0].value)
             self._shape = self._vells_rec.vellsets[0]["shape"]
-            self._value_array = numarray.resize(temp_array,self._shape)
+            self._value_array = resize(temp_array,self._shape)
             if self._value_array.type() == Complex32:
               complex_type = True;
             if self._value_array.type() == Complex64:
@@ -1456,7 +1461,7 @@ def make():
     demo.resize(500, 300)
     demo.show()
 # uncomment the following
-    demo.start_test_timer(5000, False, "grayscale")
+    demo.start_test_timer(5000, False, "brentjens")
 
 # or
 # uncomment the following three lines
