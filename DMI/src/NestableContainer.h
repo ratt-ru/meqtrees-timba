@@ -11,11 +11,11 @@
 // In addition, it can define accessors for some AIPS++ types (Arrays and 
 // Strings). This is off by default; if you do need them, you need to
 //    #define AIPSPP_HOOKS 1
-//    <include NestableContaine.h or some derived class>
+//    <include NestableContainer.h or another file that eventually includes it>
 // and later, #include "DMI/AIPSPP-Hooks.h"
 // The reason you need to include AIPSPP-Hooks separately is that this file
-// pulls in DataField and DataArray, which are not available when NC is 
-// included for the first time.
+// pulls in DataField.h and DataArray.h, which in turn include 
+// NestableContainer.h. 
       
 #include "Common/Thread/Mutex.h"
 #include "DMI/Common.h"
@@ -425,6 +425,14 @@ class NestableContainer : public BlockableObject
           
           //##ModelId=3C873AB8008D
           void operator <<= (const ObjRef &ref) const;
+          
+          template<class T>
+          void operator = (const CountedRef<T> &ref) const
+          { operator = ( ref.ref_cast((BlockableObject*)0) ); }
+          
+          template<class T>
+          void operator <<= (const CountedRef<T> &ref) const
+          { operator <<= ( ref.ref_cast((BlockableObject*)0) ); }
 
           //##ModelId=3C87864D031A
           void operator <<= (BlockableObject *obj) const;
@@ -1330,7 +1338,7 @@ inline void NestableContainer::Hook::assign_object( const BlockableObject *obj,T
 
 #ifndef NC_SKIP_HOOKS
 template<class T,int N> 
-inline const blitz::Array<T,N> & NestableContainer::Hook::operator = (const blitz::Array<T,N> &other) const
+const blitz::Array<T,N> & NestableContainer::Hook::operator = (const blitz::Array<T,N> &other) const
 {
   bool haveArray;
   void * target = prepare_assign_array(haveArray,typeIdOf(T),other.shape());

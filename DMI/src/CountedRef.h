@@ -192,15 +192,16 @@ class CountedRef : private CountedRefBase
       
       // add upcast/downcast methods for conversion between ref types
       // upcast() 
+      // The dummy U* argument is there to help template matching
       template<class U>
-      CountedRef<U> & ref_cast ()
+      CountedRef<U> & ref_cast (U* = 0)
       { 
         FailWhen( target && !dynamic_cast<U*>(target),"illegal ref conversion"); 
         return *reinterpret_cast<CountedRef<U> *>(this); 
       }
       
       template<class U>
-      const CountedRef<U> & ref_cast () const
+      const CountedRef<U> & ref_cast (U* = 0) const
       {
         FailWhen( target && !dynamic_cast<const U*>(target),"illegal ref conversion"); 
         return *reinterpret_cast<const CountedRef<U> *>(this); 

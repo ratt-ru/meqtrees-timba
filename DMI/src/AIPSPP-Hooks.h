@@ -96,6 +96,7 @@ template<class T>
 const Array<T> & NestableContainer::Hook::operator = (const Array<T> &other) const
 {
   (*this) <<= new DataArray(other,DMI::WRITE);
+  return other;
 }
 
 // assigning a String simply assigns a string

@@ -7,6 +7,7 @@
 #include "DMI/DMI.h"
 
 #include "Common/Thread.h"
+#include "Common/CheckConfig.h"    
 
 
 class CountedRefBase;
