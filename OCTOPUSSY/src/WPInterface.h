@@ -1,31 +1,24 @@
-#ifndef WPInterface_h
-#define WPInterface_h 1
+#ifndef OCTOPUSSY_WPInterface_h
+#define OCTOPUSSY_WPInterface_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
+#include <Common/Thread.h>
+#include <Common/Thread/Condition.h>
+#include <DMI/CountedRefTarget.h>
+#include <OCTOPUSSY/OctopussyConfig.h>
+#include <OCTOPUSSY/Subscriptions.h>
+#include <OCTOPUSSY/OctopussyDebugContext.h>
+#include <OCTOPUSSY/Message.h>
 
 #include <list>
 #include <set>
 #include <queue>
-#include "OctopussyConfig.h"
-#include "Common/Thread.h"
-#include "Common/Thread/Condition.h"
-
-// CountedRefTarget
-#include "DMI/CountedRefTarget.h"
-// Subscriptions
-#include "OCTOPUSSY/Subscriptions.h"
-// OctopussyDebugContext
-#include "OCTOPUSSY/OctopussyDebugContext.h"
-// Message
-#include "OCTOPUSSY/Message.h"
 
 class Dispatcher;
 
 // standard event messages
 #pragma aid WP Event Timeout Input Signal Subscribe
 // hello/bye/state messages for WPs
-#pragma aid Hello Bye State
+#pragma aid Hello Bye State Type Level
 
 // some service messages
 const HIID 
@@ -33,8 +26,6 @@ const HIID
   MsgBye(AidWP|AidBye),
   MsgWPState(AidWP|AidState),
   MsgSubscribe(AidWP|AidSubscribe);
-
-
 
 //##ModelId=3C7B6A3702E5
 
@@ -44,7 +35,7 @@ class WPInterface : public OctopussyDebugContext,
   public:
       // each WP has its own local debug context (subcontext of Octopussy)
       
-    //##ModelId=3DB958F70137
+    //##ModelId=3E08EC000224
       Debug::Context DebugContext; 
     //##ModelId=3DB936E60219
       ::Debug::Context & getDebugContext() { return DebugContext; };
@@ -59,13 +50,13 @@ class WPInterface : public OctopussyDebugContext,
           MessageRef mref; 
         //##ModelId=3DB936DC0067
           int priority; 
-        //##ModelId=3DB936DC0072
+        //##ModelId=3E08EC000211
           ulong tick; 
 #ifdef ENABLE_LATENCY_STATS
-        //##ModelId=3DB936DC00A4
+        //##ModelId=3E08EC000217
           Timestamp ts;  // timestamp of when message was enqueued (auto-initialized to ::now)
 #ifdef USE_THREADS
-        //##ModelId=3DB936DC00B8
+        //##ModelId=3E08EC00021C
           Thread::ThrID thrid; // enqueuing thread
 #endif
 #endif
@@ -118,6 +109,8 @@ class WPInterface : public OctopussyDebugContext,
       //##ModelId=3C7CBBD101E1
       bool isAttached () const;
 
+      void disablePolling ();
+      
       //##ModelId=3C99B0070017
       void do_init ();
 
@@ -237,11 +230,6 @@ class WPInterface : public OctopussyDebugContext,
     //##ModelId=3DB936EE00EB
       bool isRunning () const;
 
-    //##ModelId=3DB936EE02C2
-      static int logLevel ();
-    //##ModelId=3DB936EF00B1
-      static void setLogLevel (int value);
-
     //##ModelId=3DB936F00120
       Dispatcher * dsp () const;
 
@@ -263,6 +251,12 @@ class WPInterface : public OctopussyDebugContext,
     //##ModelId=3DB936F40172
       bool compareHeadOfQueue( const Message *pmsg );
       
+    //##ModelId=3DB936EE02C2
+      static int logLevel ();
+    //##ModelId=3DB936EF00B1
+      static void setLogLevel (int value);
+
+      
 #ifdef USE_THREADS
     //##ModelId=3DB936F50188
       bool isThreaded () const;
@@ -279,6 +273,10 @@ class WPInterface : public OctopussyDebugContext,
       Declare_sdebug(virtual);
     //##ModelId=3DB936F803A9
       Declare_debug( );
+      
+    //##ModelId=3DB937010095
+      WPInterface::MessageQueue & queue ();
+      
   protected:
       //##ModelId=3C7F882B00E6
       virtual void init ();
@@ -316,11 +314,9 @@ class WPInterface : public OctopussyDebugContext,
     //##ModelId=3DB937000170
       Subscriptions& getSubscriptions ();
       
-    //##ModelId=3DB937010095
-      WPInterface::MessageQueue & queue ();
       
       // condition variable & mutex for message queue
-    //##ModelId=3DB936DC02CB
+    //##ModelId=3E08EC00025E
       Thread::Condition queue_cond;
       
 #ifdef USE_THREADS
@@ -417,12 +413,12 @@ class WPInterface : public OctopussyDebugContext,
       // a number of worker threads may be run
     //##ModelId=3DB936DE013C
       static const int MaxWorkerThreads=16;
-    //##ModelId=3DB936DE038C
+    //##ModelId=3E08EC00028B
       Thread::ThrID worker_threads[MaxWorkerThreads];
     //##ModelId=3DB936DF006B
       int num_worker_threads,num_initialized_workers;
       // condition variables used to manage worker init & WP startup
-    //##ModelId=3DB936E00168
+    //##ModelId=3E08EC0002B9
       Thread::Condition worker_cond,startup_cond;
 #ifdef ENABLE_LATENCY_STATS
       // these two functions are called when a worker thread enters or exits
@@ -451,7 +447,7 @@ class WPInterface : public OctopussyDebugContext,
 #ifdef ENABLE_LATENCY_STATS    
       // timings for latency stats (i.e., time interval between enqueue
       // and deliver), for single-threaded and multithreaded cases
-    //##ModelId=3DB936E200F2
+    //##ModelId=3E08EC000321
       Timestamp tot_qlat,tot_qlat_mt;
     //##ModelId=3DB936E202D2
       int nlat,nlat_mt;
@@ -505,7 +501,7 @@ class WPInterface : public OctopussyDebugContext,
       
     //##ModelId=3DB936E6012A
       WPID wpid_;
-      
+
     //##ModelId=3DB936530174
       typedef MessageQueue::iterator MQI;
     //##ModelId=3DB93653023C

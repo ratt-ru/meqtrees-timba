@@ -10,7 +10,7 @@
 
 #ifndef _defined_id_TpMessage
 #define _defined_id_TpMessage 1
-const TypeId TpMessage(-1067);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:37
+const TypeId TpMessage(-1067);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:49
 const int TpMessage_int = -1067;
 class Message;
 #endif

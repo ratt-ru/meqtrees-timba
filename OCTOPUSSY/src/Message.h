@@ -1,28 +1,16 @@
-#ifndef Message_h
-#define Message_h 1
+#ifndef OCTOPUSSY_Message_h
+#define OCTOPUSSY_Message_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
+#include <Common/CheckConfig.h>
+#include <DMI/SmartBlock.h>
+#include <DMI/HIID.h>
+#include <DMI/DataRecord.h>
+#include <OCTOPUSSY/OctopussyDebugContext.h>
+#include <OCTOPUSSY/MsgAddress.h>
+#include <OCTOPUSSY/TID-OCTOPUSSY.h>
+#include <OCTOPUSSY/AID-OCTOPUSSY.h>
+#include <OCTOPUSSY/LatencyVector.h>
 
-#include "Common/CheckConfig.h"
-#include "DMI/DataRecord.h"
-#include "OCTOPUSSY/TID-OCTOPUSSY.h"
-#include "OCTOPUSSY/LatencyVector.h"
-
-// CountedRef
-#include "DMI/CountedRef.h"
-// SmartBlock
-#include "DMI/SmartBlock.h"
-// NestableContainer
-#include "DMI/NestableContainer.h"
-// HIID
-#include "DMI/HIID.h"
-// BlockableObject
-#include "DMI/BlockableObject.h"
-// OctopussyDebugContext
-#include "OCTOPUSSY/OctopussyDebugContext.h"
-// MsgAddress
-#include "OCTOPUSSY/MsgAddress.h"
 // in debug mode, enable latency stats, unless explicitly disabled
 #if defined(LOFAR_DEBUG) && !defined(DISABLE_LATENCY_STATS)
 #define ENABLE_LATENCY_STATS 1
@@ -35,17 +23,13 @@
 #endif
 
 #pragma types #Message
-#pragma aid Index
-
-#include "OCTOPUSSY/AID-OCTOPUSSY.h"
-
+#pragma aid Index Text
 
 class WPQueue;
 
 //##ModelId=3C7B6A2D01F0
 
-class Message : public OctopussyDebugContext,
-                	public BlockableObject
+class Message : public BlockableObject, public OctopussyDebugContext
 {
   public:
       // some predefined priority levels
@@ -77,8 +61,10 @@ class Message : public OctopussyDebugContext,
         CANCEL   = 3  // for input()/timeout()/signal(), cancel the input or timeout
       } MessageResults;
            
+    //##ModelId=3DB9365101AF
+      typedef CountedRef<Message> Ref;
+      
 
-  public:
     //##ModelId=3C8CB2CE00DC
       Message();
 
@@ -88,37 +74,40 @@ class Message : public OctopussyDebugContext,
       //##ModelId=3C7B9D0A01FB
       explicit Message (const HIID &id1, int pri = PRI_NORMAL);
 
+      // constructors with various payloads
       //##ModelId=3C7B9D3B02C3
       Message (const HIID &id1, BlockableObject *pload, int flags = 0, int pri = PRI_NORMAL);
-      
+      Message (const HIID &id1, const BlockableObject *pload, int flags = 0, int pri = PRI_NORMAL);
       //##ModelId=3C7B9D59014A
       Message (const HIID &id1, const ObjRef &pload, int flags = 0, int pri = PRI_NORMAL);
-//      Message (const HIID &id1, const ObjRef &pload, int flags = 0, int pri = PRI_NORMAL);
-
       //##ModelId=3C7BB3BD0266
       Message (const HIID &id1, SmartBlock *bl, int flags = 0, int pri = PRI_NORMAL);
-
+      Message (const HIID &id1, const SmartBlock *bl, int flags = 0, int pri = PRI_NORMAL);;
       //##ModelId=3DB936A5029F
       Message (const HIID &id1, const BlockRef &bl, int flags = 0, int pri = PRI_NORMAL);
-
       //##ModelId=3DB936A7019E
       Message (const HIID &id1, const char *data, size_t sz, int pri = PRI_NORMAL);
-
+      
     //##ModelId=3DB936A90143
       ~Message();
 
     //##ModelId=3DB936A901E3
       Message & operator=(const Message &right);
 
-
       //##ModelId=3C7B9DDE0137
-      Message & operator <<= (BlockableObject *pload);
+      BlockableObject & operator <<= (BlockableObject *pload);
+      
+      DataRecord & operator <<= (DataRecord *pload)
+      {
+        operator <<= ( static_cast<BlockableObject*>(pload) );
+        return *pload;
+      }
 
       //##ModelId=3C7B9DF20014
       Message & operator <<= (ObjRef &pload);
 
       //##ModelId=3C7B9E0A02AD
-      Message & operator <<= (SmartBlock *bl);
+      SmartBlock & operator <<= (SmartBlock *bl);
 
       //##ModelId=3C7B9E1601CE
       Message & operator <<= (BlockRef &bl);
@@ -138,20 +127,35 @@ class Message : public OctopussyDebugContext,
       //## privatization.
       virtual void privatize (int flags = 0, int depth = 0);
 
+      // map methods of NestableContainer directly onto message
       //##ModelId=3C7F56ED007D
       NestableContainer::Hook operator [] (const HIID &id);
-
       //##ModelId=3C7E4C310348
       NestableContainer::Hook operator [] (int n);
-
       //##ModelId=3C7E4C3E003A
       NestableContainer::ConstHook operator [] (const HIID &id) const;
-
       //##ModelId=3C7F56D90197
       NestableContainer::ConstHook operator [] (int n) const;
-
       //##ModelId=3CB42D0201B4
       NestableContainer::Hook setBranch (const HIID &id, int flags = DMI::WRITE);
+    //##ModelId=3DB936BD0306
+      NestableContainer::ConstHook operator [] (AtomicID id1) const
+      { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB936BF005B
+      NestableContainer::ConstHook operator [] (const string &id1) const
+      { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB936C00125
+      NestableContainer::ConstHook operator [] (const char *id1) const
+      { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB936C101D1
+      NestableContainer::Hook operator [] (AtomicID id1) 
+      { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB936C201D2
+      NestableContainer::Hook operator [] (const string &id1) 
+      { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB936C301E7
+      NestableContainer::Hook operator [] (const char *id1) 
+      { return (*this)[HIID(id1)]; }
 
       //##ModelId=3C7E443A016A
       void * data ();
@@ -194,6 +198,8 @@ class Message : public OctopussyDebugContext,
       short hops () const;
     //##ModelId=3DB936AD00DB
       void setHops (short value);
+    //##ModelId=3DB936BD01D9
+      short addHop ();
 
     //##ModelId=3DB936AD03CA
       const MsgAddress& to () const;
@@ -212,61 +218,37 @@ class Message : public OctopussyDebugContext,
 
     //##ModelId=3DB936B10360
       const ObjRef& payload () const;
+    //##ModelId=3DB936BC0051
+      ObjRef &     payload ();
+      
+      // returns type of payload object, or 0 for none
+      TypeId payloadType () const;
+     // This accesses the payload as a DataRecord, or throws an exception if it isn't one
+    //##ModelId=3DB936BC02B4
+      const DataRecord & record () const;
+    //##ModelId=3DB936BD00A3
+      DataRecord & wrecord ();
+      
 
     //##ModelId=3DB936B20112
       const BlockRef& block () const;
+    //##ModelId=3DB936BC0192
+      BlockRef &   block   ();
 
     //##ModelId=3DB936B202E9
       const MsgAddress& forwarder () const;
     //##ModelId=3DB936B300D8
       void setForwarder (const MsgAddress& value);
 
-    // Additional Public Declarations
+    // utility functions for constructing a message with a DataRecord payload
+    //##ModelId=3E301BB10085
+      static DataRecord & withDataRecord (Message::Ref &ref,const HIID &id);
+    // second form initializes record with a Text field
+    //##ModelId=3E301BB10140
+      static DataRecord & withDataRecord (Message::Ref &ref,const HIID &id,const string &text);
+
     //##ModelId=3DB936A10054
       int flags_; // user-defined flag field
-      
-    //##ModelId=3DB936B40140
-      Message (const HIID &id1, const BlockableObject *pload, int flags = 0, int pri = PRI_NORMAL);
-    //##ModelId=3DB936B80024
-      Message (const HIID &id1, const SmartBlock *bl, int flags = 0, int pri = PRI_NORMAL);
-      
-    //##ModelId=3DB936BC0051
-      ObjRef &     payload ();
-    //##ModelId=3DB936BC0192
-      BlockRef &   block   ();
-      
-      // This accesses the payload as a DataRecord, or throws an exception if it isn't one
-    //##ModelId=3DB936BC02B4
-      const DataRecord & record () const;
-    //##ModelId=3DB936BD00A3
-      DataRecord & wrecord ();
-
-      // increments the hop count       
-    //##ModelId=3DB936BD01D9
-      short addHop ();
-      
-      // explicit versions of [] for string IDs
-    //##ModelId=3DB936BD0306
-      NestableContainer::ConstHook operator [] (AtomicID id1) const
-      { return (*this)[HIID(id1)]; }
-    //##ModelId=3DB936BF005B
-      NestableContainer::ConstHook operator [] (const string &id1) const
-      { return (*this)[HIID(id1)]; }
-    //##ModelId=3DB936C00125
-      NestableContainer::ConstHook operator [] (const char *id1) const
-      { return (*this)[HIID(id1)]; }
-    //##ModelId=3DB936C101D1
-      NestableContainer::Hook operator [] (AtomicID id1) 
-      { return (*this)[HIID(id1)]; }
-    //##ModelId=3DB936C201D2
-      NestableContainer::Hook operator [] (const string &id1) 
-      { return (*this)[HIID(id1)]; }
-    //##ModelId=3DB936C301E7
-      NestableContainer::Hook operator [] (const char *id1) 
-      { return (*this)[HIID(id1)]; }
-      
-    //##ModelId=3DB9365101AF
-      typedef CountedRef<Message> Ref;
       
 #ifdef ENABLE_LATENCY_STATS
     //##ModelId=3DB958F6030D
@@ -280,14 +262,10 @@ class Message : public OctopussyDebugContext,
     //##ModelId=3DB936C40273
       string sdebug ( int detail = 1,const string &prefix = "",
                 const char *name = 0 ) const;
-    //##ModelId=3DB936C7012C
-      const char * debug ( int detail = 1,const string &prefix = "",
-                           const char *name = 0 ) const
-      { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
 
   protected:
     // Additional Protected Declarations
-    //##ModelId=3DB936A1038B
+    //##ModelId=3E08EC000079
       BlockSet payload_set;
   private:
     // Data Members for Class Attributes
@@ -309,13 +287,13 @@ class Message : public OctopussyDebugContext,
       //##ModelId=3C7B7106029D
       MsgAddress from_;
 
-      //##ModelId=3C7B718500FB
+      //##ModelId=3E08EC00008E
       HIID id_;
 
       //##ModelId=3DB958F60344
       ObjRef payload_;
 
-      //##ModelId=3DB963AB022B
+      //##ModelId=3E08EC0000A2
       BlockRef block_;
 
       //##ModelId=3CC9530903D9
@@ -520,6 +498,14 @@ inline BlockRef& Message::block ()
 inline short Message::addHop ()                               
 { 
   return ++hops_; 
+}
+
+inline TypeId Message::payloadType () const
+{
+  if( payload_.valid() )
+    return payload_->objectType();
+  else
+    return 0;
 }
 
 //##ModelId=3DB936BC02B4

@@ -75,6 +75,19 @@ Message::Message (const HIID &id1, const char *data, size_t sz, int pri)
   memcpy(bl->data(),data,sz);
 }
 
+//##ModelId=3DB936B40140
+Message::Message (const HIID &id1, const BlockableObject *pload, int flags, int pri)
+   : priority_(pri),state_(0),hops_(0),id_(id1)
+{
+  payload_.attach(pload,flags|DMI::PERSIST|DMI::READONLY);
+}
+
+//##ModelId=3DB936B80024
+Message::Message (const HIID &id1, const SmartBlock *bl, int flags, int pri)
+   : priority_(pri),state_(0),hops_(0),id_(id1)
+{
+  block_.attach(bl,flags|DMI::PERSIST|DMI::READONLY);
+}
 
 //##ModelId=3DB936A90143
 Message::~Message()
@@ -101,13 +114,11 @@ Message & Message::operator=(const Message &right)
   return *this;
 }
 
-
-
 //##ModelId=3C7B9DDE0137
-Message & Message::operator <<= (BlockableObject *pload)
+BlockableObject & Message::operator <<= (BlockableObject *pload)
 {
   payload_.attach(pload,DMI::ANON|DMI::WRITE|DMI::PERSIST);
-  return *this;
+  return *pload;
 }
 
 //##ModelId=3C7B9DF20014
@@ -118,10 +129,10 @@ Message & Message::operator <<= (ObjRef &pload)
 }
 
 //##ModelId=3C7B9E0A02AD
-Message & Message::operator <<= (SmartBlock *bl)
+SmartBlock & Message::operator <<= (SmartBlock *bl)
 {
   block_.attach(bl,DMI::ANON|DMI::WRITE|DMI::PERSIST);
-  return *this;
+  return *bl;
 }
 
 //##ModelId=3C7B9E1601CE
@@ -262,20 +273,22 @@ int Message::toBlock (BlockSet &set) const
   return blockcount;
 }
 
-// Additional Declarations
-//##ModelId=3DB936B40140
 
-Message::Message (const HIID &id1, const BlockableObject *pload, int flags, int pri)
-   : priority_(pri),state_(0),hops_(0),id_(id1)
+//##ModelId=3E301BB10085
+DataRecord & Message::withDataRecord (Message::Ref &ref,const HIID &id)
 {
-  payload_.attach(pload,flags|DMI::PERSIST|DMI::READONLY);
+  Message *pmsg = new Message;
+  ref <<= pmsg;
+  return (*pmsg) <<= new DataRecord;
 }
 
-//##ModelId=3DB936B80024
-Message::Message (const HIID &id1, const SmartBlock *bl, int flags, int pri)
-   : priority_(pri),state_(0),hops_(0),id_(id1)
+// second form initializes record with a Text field
+//##ModelId=3E301BB10140
+DataRecord & Message::withDataRecord (Message::Ref &ref,const HIID &id,const string &text)
 {
-  block_.attach(bl,flags|DMI::PERSIST|DMI::READONLY);
+  DataRecord &rec = withDataRecord(ref,id);
+  rec[AidText] = text;
+  return rec;
 }
 
 //##ModelId=3DB936C40273

@@ -1,74 +1,66 @@
-//##ModelId=3CA0451401B9
-//##ModelId=3DB9369B0043
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3CA045460090.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3CA045460090.cm
-
-//## begin module%3CA045460090.cp preserve=no
-//## end module%3CA045460090.cp
-
-//## Module: LoggerWP%3CA045460090; Package body
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Source file: F:\lofar8\oms\LOFAR\src-links\OCTOPUSSY\LoggerWP.cc
-
-//## begin module%3CA045460090.additionalIncludes preserve=no
-//## end module%3CA045460090.additionalIncludes
-
-//## begin module%3CA045460090.includes preserve=yes
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-//## end module%3CA045460090.includes
 
-// LoggerWP
-#include "OCTOPUSSY/LoggerWP.h"
-//## begin module%3CA045460090.declarations preserve=no
-//## end module%3CA045460090.declarations
+#include "LoggerWP.h"
+#include "AppRegistry.h"
 
-//## begin module%3CA045460090.additionalDeclarations preserve=yes
-//## end module%3CA045460090.additionalDeclarations
+  static int dum = LoggerWP::registerApp();
+        
+int LoggerWP::registerApp ()
+{
+  AppRegistry::registerApp(AidLoggerWP,constructor);
+  return 0;
+}
 
-
-// Class LoggerWP 
+WPRef LoggerWP::constructor (DataRecord::Ref &initrecord)
+{
+  int maxlev = 9999;
+  int scope = Message::GLOBAL;
+  if( initrecord.valid() )
+  {
+    const DataRecord &rec = *initrecord;
+    maxlev = rec[AidMax|AidLevel].as_int(maxlev);
+    if( rec[AidScope].exists() )
+      if( rec[AidScope].type() == Tpstring )
+      {
+        const string &str = rec[AidScope].as_string();
+        if( str == "GLOBAL" )
+          scope = Message::GLOBAL;
+        else if( str == "HOST" )
+          scope = Message::HOST;
+        else if( str == "LOCAL" )
+          scope = Message::LOCAL;
+      }
+      else
+        scope = rec[AidScope].as_int();
+  }
+  return WPRef(new LoggerWP(maxlev,scope),DMI::ANONWR);
+}
 
 LoggerWP::LoggerWP (int maxlev, int scope)
-  //## begin LoggerWP::LoggerWP%3CA0451401B9.hasinit preserve=no
-  //## end LoggerWP::LoggerWP%3CA0451401B9.hasinit
-  //## begin LoggerWP::LoggerWP%3CA0451401B9.initialization preserve=yes
-  : WorkProcess(AidLoggerWP),
+        : WorkProcess(AidLoggerWP),
     level_(maxlev),consoleLevel_(-1),scope_(scope),fd(-1)
-  //## end LoggerWP::LoggerWP%3CA0451401B9.initialization
 {
-  //## begin LoggerWP::LoggerWP%3CA0451401B9.body preserve=yes
-  //## end LoggerWP::LoggerWP%3CA0451401B9.body
 }
 
 
 //##ModelId=3DB9369A0073
 LoggerWP::~LoggerWP()
 {
-  //## begin LoggerWP::~LoggerWP%3CA044DE02AB_dest.body preserve=yes
   if( fd >= 0 )
     close(fd);
-  //## end LoggerWP::~LoggerWP%3CA044DE02AB_dest.body
 }
 
 
 
 //##ModelId=3CA045020054
-//## Other Operations (implementation)
 void LoggerWP::init ()
 {
-  //## begin LoggerWP::init%3CA045020054.body preserve=yes
-  // default logname is app path
+    // default logname is app path
   string filebase = config.appPath()+".log";
   filename_ = filebase;
   // .. but can be overridden by config
@@ -128,13 +120,11 @@ void LoggerWP::init ()
   if( !fstat(fd,&st) && st.st_size > 0 )
     logMessage(address().toString(),"----------------------------------------------",0,LogNormal);
   logMessage(address().toString(),hdr,0,LogNormal);
-  //## end LoggerWP::init%3CA045020054.body
-}
+  }
 
 //##ModelId=3CA05A7E01CE
 void LoggerWP::stop ()
 {
-  //## begin LoggerWP::stop%3CA05A7E01CE.body preserve=yes
   logMessage(address().toString(),"processing remaining messages",0,LogNormal);
   MessageRef mref;
   for(;;)
@@ -152,44 +142,38 @@ void LoggerWP::stop ()
   if( fd >= 0 )
     close(fd);
   fd = -1;
-  //## end LoggerWP::stop%3CA05A7E01CE.body
 }
 
 //##ModelId=3CA0450C0103
 int LoggerWP::receive (MessageRef &mref)
 {
-  //## begin LoggerWP::receive%3CA0450C0103.body preserve=yes
   const Message &msg = mref.deref();
   // process Log messages, but ignore from myself
-  if( msg.id()[0] == MsgLog && msg.from() != address() )
+  if( msg.id()[0] == MsgLog && msg.from() != address() && 
+      msg.payloadType() == TpDataRecord )
   {
-    int idlen = msg.id().size();
-    AtomicID type = idlen>1 ? msg.id()[1] : LogNormal;
-    int lev = idlen>2 ? msg.id()[2].id() : 0;
+    AtomicID type = msg[AidType].as_AtomicID(LogNormal);
+    int lev = msg[AidLevel].as_int(0);
     // compare to our log level
     if( lev <= level() )
     {
-      string str(static_cast<const char*>(msg.data()),msg.datasize() );
+      const string &str = msg[AidText].as_string();
       logMessage(msg.from().toString(),str,lev,type);
     }
   }
   return Message::ACCEPT;
-  //## end LoggerWP::receive%3CA0450C0103.body
 }
 
 //##ModelId=3CA04AF50212
 void LoggerWP::setScope (int scope)
 {
-  //## begin LoggerWP::setScope%3CA04AF50212.body preserve=yes
   unsubscribe(MsgLog|AidWildcard);
   subscribe(MsgLog|AidWildcard,scope_=scope);
-  //## end LoggerWP::setScope%3CA04AF50212.body
 }
 
 //##ModelId=3CA04A1F03D7
 void LoggerWP::logMessage (const string &source, const string &msg, int level, AtomicID type)
 {
-  //## begin LoggerWP::logMessage%3CA04A1F03D7.body preserve=yes
   string out = msg;
   // chop off trailing newlines
   while( out[out.length()-1] == '\n' )
@@ -222,12 +206,5 @@ void LoggerWP::logMessage (const string &source, const string &msg, int level, A
   {
     dprintf(0)("error writing to log file: only %d of %d bytes written\n",res,out.length());
   }
-  //## end LoggerWP::logMessage%3CA04A1F03D7.body
 }
-
-// Additional Declarations
-  //## begin LoggerWP%3CA044DE02AB.declarations preserve=yes
-  //## end LoggerWP%3CA044DE02AB.declarations
-
-//## begin module%3CA045460090.epilog preserve=yes
-//## end module%3CA045460090.epilog
+    

@@ -10,6 +10,19 @@
       return 1;
     }
 
+static AtomicID::Register aid_reg_AppManager(-1267,"AppManager");
+static AtomicID::Register aid_reg_AppManagerWP(-1287,"AppManagerWP");
+static AtomicID::Register aid_reg_Start(-1134,"Start");
+static AtomicID::Register aid_reg_Stop(-1138,"Stop");
+static AtomicID::Register aid_reg_Launch(-1262,"Launch");
+static AtomicID::Register aid_reg_Halt(-1265,"Halt");
+static AtomicID::Register aid_reg_Launched(-1263,"Launched");
+static AtomicID::Register aid_reg_Halted(-1281,"Halted");
+static AtomicID::Register aid_reg_App(-1137,"App");
+static AtomicID::Register aid_reg_Fail(-1266,"Fail");
+static AtomicID::Register aid_reg_ID(-1285,"ID");
+static AtomicID::Register aid_reg_Address(-1297,"Address");
+static AtomicID::Register aid_reg_Parameters(-1282,"Parameters");
 static AtomicID::Register aid_reg_Argv(-1049,"Argv");
 static AtomicID::Register aid_reg_ConnectionMgrWP(-1048,"ConnectionMgrWP");
 static AtomicID::Register aid_reg_GWServerWP(-1081,"GWServerWP");
@@ -48,22 +61,26 @@ static AtomicID::Register aid_reg_Hosts(-1078,"Hosts");
 static AtomicID::Register aid_reg_Ports(-1051,"Ports");
 static AtomicID::Register aid_reg_Gateway(-1046,"Gateway");
 static AtomicID::Register aid_reg_LoggerWP(-1099,"LoggerWP");
+static AtomicID::Register aid_reg_Max(-1149,"Max");
+static AtomicID::Register aid_reg_Level(-1264,"Level");
+static AtomicID::Register aid_reg_Scope(-1234,"Scope");
 static AtomicID::Register aid_reg_Message(-1067,"Message");
 #include "Message.h"
 static TypeInfoReg::Register ti_reg_Message(-1067,TypeInfo(TypeInfo::DYNAMIC,0));
 BlockableObject * __construct_Message (int n) { return n>0 ? new Message [n] : new Message; }
 static DynamicTypeManager::Register dtm_reg_Message(-1067,__construct_Message);
 static AtomicID::Register aid_reg_Index(-1045,"Index");
+static AtomicID::Register aid_reg_Text(-1269,"Text");
 static AtomicID::Register aid_reg_Dispatcher(-1097,"Dispatcher");
 static AtomicID::Register aid_reg_Publish(-1077,"Publish");
 static AtomicID::Register aid_reg_ReflectorWP(-1100,"ReflectorWP");
 static AtomicID::Register aid_reg_Reflect(-1064,"Reflect");
-static AtomicID::Register aid_reg_MsgLog(-1080,"MsgLog");
-static AtomicID::Register aid_reg_LogNormal(-1095,"LogNormal");
-static AtomicID::Register aid_reg_LogWarning(-1084,"LogWarning");
-static AtomicID::Register aid_reg_LogError(-1072,"LogError");
-static AtomicID::Register aid_reg_LogFatal(-1090,"LogFatal");
-static AtomicID::Register aid_reg_LogDebug(-1054,"LogDebug");
+static AtomicID::Register aid_reg_MsgLog(-1293,"MsgLog");
+static AtomicID::Register aid_reg_LogNormal(-1299,"LogNormal");
+static AtomicID::Register aid_reg_LogWarning(-1294,"LogWarning");
+static AtomicID::Register aid_reg_LogError(-1298,"LogError");
+static AtomicID::Register aid_reg_LogFatal(-1295,"LogFatal");
+static AtomicID::Register aid_reg_LogDebug(-1296,"LogDebug");
 static AtomicID::Register aid_reg_WP(-1093,"WP");
 static AtomicID::Register aid_reg_Event(-1060,"Event");
 static AtomicID::Register aid_reg_Timeout(-1088,"Timeout");

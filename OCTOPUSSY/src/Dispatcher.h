@@ -196,7 +196,8 @@ class Dispatcher : public OctopussyDebugContext
       const DataRecord& localData () const;
 
     // Additional Public Declarations
-      // pointer to static dispatcher object
+      // pointer to static dispatcher object -- only one can be
+      // instantiated per process
     //##ModelId=3DB936550230
       static Dispatcher * dispatcher;
 

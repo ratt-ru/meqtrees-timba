@@ -1,20 +1,17 @@
-#ifndef LoggerWP_h
-#define LoggerWP_h 1
+#ifndef OCTOPUSSY_LoggerWP_h
+#define OCTOPUSSY_LoggerWP_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-
-#include <stdio.h>
-
-// WorkProcess
-#include "OCTOPUSSY/WorkProcess.h"
-#pragma aid LoggerWP
-
+#include <OCTOPUSSY/WorkProcess.h>
+    
+#pragma aid LoggerWP Max Level Scope
 
 //##ModelId=3CA044DE02AB
 class LoggerWP : public WorkProcess
 {
   public:
+      static int registerApp ();
+      static WPRef constructor (DataRecord::Ref &initrecord);
+      
       //##ModelId=3CA0451401B9
       LoggerWP (int maxlev = 9999, int scope = Message::GLOBAL);
 
