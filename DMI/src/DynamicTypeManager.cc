@@ -53,7 +53,7 @@ BlockableObject * DynamicTypeManager::construct (TypeId tid, int n)
     cdebug1(2)<<"["<<n<<"]";
   cdebug1(2)<<": ";
   PtrConstructor ptr = registry.find(tid);
-  FailWhen1( !ptr,"Unregistered type "+tid.toString() );
+  FailWhen( !ptr,"Unregistered type "+tid.toString() );
   BlockableObject *obj = (*ptr)(n);
   dprintf1(2)(" @%p\n",obj);
   return obj;

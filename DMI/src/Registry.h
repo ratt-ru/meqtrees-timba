@@ -307,7 +307,7 @@ void UniRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val)
   if( iter != MapPtr->end() && iter->second != val )
   {
     cerr<<"Error: duplicate registry definition for key "<<key<<endl;
-    Throw1("Error: duplicate registry definition");
+    Throw("Error: duplicate registry definition");
   }
   MapPtr->insert(make_pair(key,val));
   

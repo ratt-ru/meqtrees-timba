@@ -13,7 +13,7 @@
 //## Module: HIID%3C10CC820357; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\HIID.cc
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\HIID.cc
 
 //## begin module%3C10CC820357.additionalIncludes preserve=no
 //## end module%3C10CC820357.additionalIncludes

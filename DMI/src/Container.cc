@@ -13,7 +13,7 @@
 //## Module: NestableContainer%3C10CC830069; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\NestableContainer.cc
+//## Source file: f:\lofar\dvl\lofar\cep\cpa\pscf\src\NestableContainer.cc
 
 //## begin module%3C10CC830069.additionalIncludes preserve=no
 //## end module%3C10CC830069.additionalIncludes

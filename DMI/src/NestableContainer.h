@@ -13,7 +13,7 @@
 //## Module: NestableContainer%3C10CC830067; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\NestableContainer.h
+//## Source file: f:\lofar\dvl\lofar\cep\cpa\pscf\src\NestableContainer.h
 
 #ifndef NestableContainer_h
 #define NestableContainer_h 1
@@ -260,30 +260,53 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
     //## Other Operations (specified)
       //## Operation: get%3C56A6C50088
-      //	Abstract virtual function for dereferencing a container field. Must
-      //	be implemented by all child classes. fieldType() and operator [],
-      //	below, are (by default) implemented in terms of this function
-      //	(although they may be re-implemented in subclasses for efficiency) .
-      //	Returns a pointer to the field data (0 for no such field).  Returns
-      //	the type and writable property in 'tid' and 'can_write'. If must_
-      //	write is True, throws exception if data is read-only. Can throw
-      //	exceptions if id is malformed (i.e. contains indices that are out of
-      //	range).
+      //	Abstract virtual function for dereferencing a container field
+      //	indicated by id. Must be implemented by all child classes.
+      //	This is the method called by the hook operator [](const HIID &).
+      //	Returns a pointer to the field data, or 0 for no such field.  For
+      //	dynamic types, this should be a pointer to an ObjRef, for all other
+      //	types, a pointer to the data itself. Returns the type and writable
+      //	property in 'tid' and 'can_write'. If must_write is True, should
+      //	throw an exception if data is read-only. If check_tid is non-0,
+      //	should throw exceptions on a type mismatch. The special case of Tp
+      //	Numeric should be honored: when check_tid==TpNumeric, then throw
+      //	exception only if type is not numeric. Can also throw exceptions if
+      //	id is malformed (i.e. contains indices that are out of range, etc.)
+      //	When called with a null HIID, this means the container is being
+      //	accessed as a scalar. You can then throw an exception if the
+      //	contents are not a scalar.
+      //	See DataRecord and DataField for example implementations.
       virtual const void * get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const = 0;
 
       //## Operation: get%3C7A13C90269
+      //	Version of get() for an integer field specification. Default
+      //	implementation  converts n into a single-index HIID.
       virtual const void * get (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const;
 
       //## Operation: insert%3C7A13D703AA
+      //	Abstract virtual method for allocating a new field in a container.
+      //	Must be implemented by all child classes.
+      //	Tid is the type of object to allocate (can throw exception if this
+      //	is not legal, e.g., if the container expects homogenous types or
+      //	something).
+      //	The actual type allocated is returned in real_tid, this may be !=
+      //	tid if both types are built-in numerics.
+      //	Returns pointer to new data, or pointer to an unattached ObjRef, in
+      //	the case of dynamic types.
       virtual void * insert (const HIID &id, TypeId tid, TypeId &real_tid) = 0;
 
       //## Operation: insert%3C7A140A003C
+      //	Version of insert() for a numeric index. Default implementation
+      //	simply maps to the standard insert() with a single-index HIID.
       virtual void * insert (int n, TypeId tid, TypeId &real_tid);
 
       //## Operation: size%3C7A154E01AB
+      //	Abstract virtual function. Should returns size of container.
       virtual int size () const = 0;
 
       //## Operation: type%3C7A1552012E
+      //	Abstract virtual function. Should return TypeId of contents. If
+      //	container is not type-homogenous, just return NullType.
       virtual TypeId type () const = 0;
 
       //## Operation: get%3C5FA32402A9
