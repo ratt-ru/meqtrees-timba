@@ -99,9 +99,13 @@ int Function::getResult (Result::Ref &resref,
   if( force_integrated_ )
     integr = integrated_;
   // Create result and attach to the ref that was passed in
-  Result & result = resref <<= new Result(request,nplanes,integr);
-  // Use cells of first child (they all must be the same anyway)
-  result.setCells(childres[0]->cells());
+  Result & result = resref <<= new Result(nplanes,integr);
+  // Use cells of first child (they all must be the same anyway, we'll verify
+  // at least shapes later on)
+  const Cells &res_cells = childres[0]->cells();
+  const LoShape &res_shape = res_cells.shape();
+  result.setCells(res_cells);
+  
   vector<const VellSet*> child_vs(nrch);
   vector<const Vells*>  values(nrch);
   int nfails = 0;
@@ -131,9 +135,13 @@ int Function::getResult (Result::Ref &resref,
             vellset.addFail(&child_vs[i]->getFail(j));
         }
         else
-          values[i] = &(child_vs[i]->getValue());
+        {
+          const Vells &val = child_vs[i]->getValue();
+          FailWhen(val.isArray() && val.shape() != res_shape,"mismatch in child result shapes");
+          values[i] = &val;
+        }
+        npertsets = std::max(npertsets,child_vs[i]->numPertSets());
       }
-      npertsets = std::max(npertsets,child_vs[i]->numPertSets());
     }
     // continue evaluation only if no fails popped up
     if( !vellset.isFail() )
@@ -147,9 +155,7 @@ int Function::getResult (Result::Ref &resref,
         vellset.setNumPertSets(npertsets);
         vellset.setSpids(spids);
         // Evaluate the main value.
-        LoShape shape = resultShape(values);
-        vellset.setShape(shape);
-        vellset.setValue(evaluate(request,shape,values).makeNonTemp());
+        vellset.setValue(evaluate(request,res_shape,values).makeNonTemp());
         // Evaluate flags
         if( enable_flags_ )
         {
@@ -197,7 +203,9 @@ int Function::getResult (Result::Ref &resref,
             {
               for( int ipert=0; ipert<std::max(vs.numPertSets(),npertsets); ipert++ )
               {
-                pert_values[ipert][ich] = &( vs.getPerturbedValue(inx,ipert) );
+                const Vells &pvv = vs.getPerturbedValue(inx,ipert);
+                FailWhen(pvv.isArray() && pvv.shape() != res_shape,"mismatch in child result shapes");
+                pert_values[ipert][ich] = &pvv;
                 if( found[ipert] >=0 )
                 {
                   FailWhen(pert[ipert]!=vs.getPerturbation(inx,ipert),
@@ -220,7 +228,7 @@ int Function::getResult (Result::Ref &resref,
                      ssprintf("no perturbation set %d found for spid %d",
                               ipert,spids[j]));
             vellset.setPerturbation(j,pert[ipert],ipert);
-            vellset.setPerturbedValue(j,evaluate(request,shape,pert_values[ipert]).makeNonTemp(),ipert);
+            vellset.setPerturbedValue(j,evaluate(request,res_shape,pert_values[ipert]).makeNonTemp(),ipert);
           }
         } // end for(j) over spids
       }
@@ -242,18 +250,20 @@ int Function::getResult (Result::Ref &resref,
   return 0;
 }
 
-//##ModelId=400E5306027C
-LoShape Function::resultShape (const vector<const Vells*>& values)
-{
-  Assert (values.size() > 0);
-  int nx = values[0]->nx();
-  int ny = values[0]->ny();
-  for (unsigned int i=0; i<values.size(); i++) {
-    nx = std::max(nx, values[i]->nx());
-    ny = std::max(ny, values[i]->ny());
-  }
-  return makeLoShape(nx,ny);
-}
+// 11/07/04 OMS: phased out: no need, shape obtained from Cells and
+// all children must conform
+// //##ModelId=400E5306027C
+// LoShape Function::resultShape (const vector<const Vells*>& values)
+// {
+//   Assert (values.size() > 0);
+//   int nx = values[0]->nx();
+//   int ny = values[0]->ny();
+//   for (unsigned int i=0; i<values.size(); i++) {
+//     nx = std::max(nx, values[i]->nx());
+//     ny = std::max(ny, values[i]->ny());
+//   }
+//   return makeLoShape(nx,ny);
+// }
 
 //##ModelId=3F86886F0108
 vector<int> Function::findSpids (const vector<const VellSet*> &results)

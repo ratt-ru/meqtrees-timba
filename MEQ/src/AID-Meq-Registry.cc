@@ -77,8 +77,8 @@ BlockableObject * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::Zer
 BlockableObject * __construct_MeqMergeFlags (int n) { return n>0 ? new Meq::MergeFlags [n] : new Meq::MergeFlags; }
 #include "Resampler.h"
 BlockableObject * __construct_MeqResampler (int n) { return n>0 ? new Meq::Resampler [n] : new Meq::Resampler; }
-#include "ReqMux.h"
-BlockableObject * __construct_MeqReqMux (int n) { return n>0 ? new Meq::ReqMux [n] : new Meq::ReqMux; }
+#include "ReqSeq.h"
+BlockableObject * __construct_MeqReqSeq (int n) { return n>0 ? new Meq::ReqSeq [n] : new Meq::ReqSeq; }
   
     int aidRegistry_Meq ()
     {
@@ -327,12 +327,10 @@ BlockableObject * __construct_MeqReqMux (int n) { return n>0 ? new Meq::ReqMux [
         DynamicTypeManager::addToRegistry(-1439,__construct_MeqResampler)+
         AtomicID::registerId(-1172,"integrate")+
         AtomicID::registerId(-1440,"density")+
-        AtomicID::registerId(-1443,"meqreqmux")+
-        TypeInfoReg::addToRegistry(-1443,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1443,__construct_MeqReqMux)+
-        AtomicID::registerId(-1442,"upsample")+
-        AtomicID::registerId(-1441,"pass")+
-        AtomicID::registerId(-1271,"wait")+
+        AtomicID::registerId(-1478,"meqreqseq")+
+        TypeInfoReg::addToRegistry(-1478,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1478,__construct_MeqReqSeq)+
+        AtomicID::registerId(-1477,"only")+
     0;
     return res;
   }

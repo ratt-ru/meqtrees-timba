@@ -463,10 +463,10 @@ const int AidMeqPolc_int = -1407;
 const AtomicID AidMeqPow(-1214);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Pow.h:29
 const int AidMeqPow_int = -1214;
 #endif
-#ifndef _defined_id_AidMeqReqMux
-#define _defined_id_AidMeqReqMux 1
-const AtomicID AidMeqReqMux(-1443);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqMux.h:30
-const int AidMeqReqMux_int = -1443;
+#ifndef _defined_id_AidMeqReqSeq
+#define _defined_id_AidMeqReqSeq 1
+const AtomicID AidMeqReqSeq(-1478);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqSeq.h:30
+const int AidMeqReqSeq_int = -1478;
 #endif
 #ifndef _defined_id_AidMeqRequest
 #define _defined_id_AidMeqRequest 1
@@ -598,6 +598,11 @@ const int AidNormalized_int = -1395;
 const AtomicID AidNum(-1177);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
 const int AidNum_int = -1177;
 #endif
+#ifndef _defined_id_AidOnly
+#define _defined_id_AidOnly 1
+const AtomicID AidOnly(-1477);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqSeq.h:31
+const int AidOnly_int = -1477;
+#endif
 #ifndef _defined_id_AidOper
 #define _defined_id_AidOper 1
 const AtomicID AidOper(-1435);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
@@ -617,11 +622,6 @@ const int AidOrigin_int = -1132;
 #define _defined_id_AidParm 1
 const AtomicID AidParm(-1234);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:35
 const int AidParm_int = -1234;
-#endif
-#ifndef _defined_id_AidPass
-#define _defined_id_AidPass 1
-const AtomicID AidPass(-1441);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqMux.h:31
-const int AidPass_int = -1441;
 #endif
 #ifndef _defined_id_AidPert
 #define _defined_id_AidPert 1
@@ -808,11 +808,6 @@ const int AidUVW_int = -1158;
 const AtomicID AidUpdate(-1265);                  // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:18
 const int AidUpdate_int = -1265;
 #endif
-#ifndef _defined_id_AidUpsample
-#define _defined_id_AidUpsample 1
-const AtomicID AidUpsample(-1442);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqMux.h:31
-const int AidUpsample_int = -1442;
-#endif
 #ifndef _defined_id_AidUseSVD
 #define _defined_id_AidUseSVD 1
 const AtomicID AidUseSVD(-1384);                  // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
@@ -842,11 +837,6 @@ const int AidVellSets_int = -1371;
 #define _defined_id_AidVells 1
 const AtomicID AidVells(-1370);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:31
 const int AidVells_int = -1370;
-#endif
-#ifndef _defined_id_AidWait
-#define _defined_id_AidWait 1
-const AtomicID AidWait(-1271);                    // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:17
-const int AidWait_int = -1271;
 #endif
 #ifndef _defined_id_AidWeight
 #define _defined_id_AidWeight 1

@@ -39,6 +39,13 @@ if( !is_record(meq_test) )
 if( !is_record(meq_private) )
   meq_private := [=];
   
+#-- setup shortcuts to dmi methods
+
+const meq.list  := dmi.list;
+const meq.add_list := dmi.add_list;
+const meq.merge_list := dmi.merge_list;
+const meq.field := dmi.field;
+  
 #-- meq.domain_ndim(), domain_axes()---------------------------------------------
 # Basic constants specifying layout of domain and cells
 
@@ -60,13 +67,16 @@ const meq.requestid := function(domain_id,config_id=0,iter_id=0)
 #-- meq.node() -------------------------------------------------------------
 # Creates a basic defrec for a node
 
-const meq.node := function (class,name,children=F,default=[=],groups="")
+const meq.node := function (class,name,extra=[=],children=F,default=[=],groups="")
 {
   defrec := [ class=class,name=name ];
   if( !is_boolean(children) )
     defrec.children := children;
   if( len(groups) )
     defrec.node_groups := hiid(groups);
+  if( len(extra) )
+    for( f in field_names(extra) )
+      defrec[f] := extra[f];
   return defrec;
 }
 
@@ -273,42 +283,8 @@ const meq.cells := function (domain=F,num_freq=F,num_time=F,
   return rec;
 }
 
-#-- meq.reclist() -------------------------------------------------------------
-# Creates a record list from its arguments.
-# A record list is turned into a DataField of DataRecords on the C++ side.
-# Arguments may be records or record lists; all arguments are concatenated 
-# into a single list.
-# If called with no arguments, returns an empty list.
-
-const meq.reclist := function (...)
-{
-  list := [=];
-  const list::dmi_datafield_content_type := 'DataRecord';
-  const list::dmi_is_reclist := T;
-  if( num_args(...) )
-    for( i in 1:num_args(...) )
-    {
-      arg := nth_arg(i,...);
-      if( !is_record(arg) )
-        fail 'meq.reclist(): arguments must be records';
-      # if argument is a reclist, merge wtih list
-      if( arg::dmi_is_reclist )
-      {
-        for( j in 1:len(arg) )
-          list[spaste('#',len(list)+1)] := arg[j];
-      }
-      else # else add to list
-      {
-        list[spaste('#',len(list)+1)] := arg;
-      }
-    }
-  return list;
-}
-
-
 #-- meq_private.merge_records()  ------------------------------------------------
 # private helper function to merge command records
-
 const meq_private.merge_records := function (ref rec,command,value)
 {
   if( is_string(command) )
@@ -320,23 +296,12 @@ const meq_private.merge_records := function (ref rec,command,value)
     fail 'command argument must be string or record';
 }
 
-#-- meq_private.initcmdlist() -------------------------------------------------------------
-# creates a command list for inclusion in a request
-
-const meq_private.initcmdlist := function ()
+#-- meq_private.makecmdrec() -------------------------------------------------------------
+# forms a command record from a node spec and a command 
+const meq_private.make_cmd_rec := function (node,command,value=T)
 {
-  return meq.reclist();
-}
-
-#-- meq_private.addcmdlist() -------------------------------------------------------------
-# adds to a command list 
-
-const meq_private.addcmdlist := function (ref cmdlist,node,command,value=F)
-{
-  if( !is_record(cmdlist) || !cmdlist::dmi_is_reclist )
-    cmdlist := meq.reclist();
   local cmd;
-  # resolve command argument
+  # resolve command argument - can be string or record
   if( is_string(command) )
   {
     cmd := [=];
@@ -356,13 +321,27 @@ const meq_private.addcmdlist := function (ref cmdlist,node,command,value=F)
     else 
       fail 'node must be specified by index or name';
   }
-  cmdlist[spaste('#',len(cmdlist)+1)] := cmd;
-  return ref cmdlist;
+  return cmd;
+}
+
+#-- meq.node_spec() -------------------------------------------------------------
+# given a 'node' argument, adds it to spec record as 'name' or 'nodeindex',
+# depending on type. This is a common paradigm for specifying nodes.
+# Optional spec argument may be used to update an existing record; if not
+# given, a new record is returned.
+const meq.node_spec := function (node,ref spec=[=])
+{
+  if( is_integer(node) )
+    spec.nodeindex := node;
+  else if( is_string(node) )
+    spec.name := node;
+  else 
+    fail 'node must be specified by index or name';
+  return ref spec;
 }
 
 #-- meq.request() -------------------------------------------------------------
 # creates a request
-
 const meq.request := function (cells=F,request_id=F,calc_deriv=0)
 {
   global _meqdomain_id;
@@ -402,7 +381,7 @@ const meq.request := function (cells=F,request_id=F,calc_deriv=0)
 # command: string command (used as field name in the maps), or a command 
 #         record. If a string is used, then the record is extended with 
 #         field command=value. If a record is used, then value is ignored.
-const meq.add_command := function (ref req,group,node,command,value=F)
+const meq.add_command := function (ref req,group,node,command,value=T)
 {
   # add node_state and group subrecord
   if( !has_field(req,'rider') )
@@ -431,9 +410,25 @@ const meq.add_command := function (ref req,group,node,command,value=F)
   }
   else # multiple indices or names: add to command_by_list map
   {
+    local cmdrec;
+    # resolve command argument - can be string or record
+    if( is_string(command) )
+    {
+      cmdrec := [=];
+      cmdrec[command] := value;
+    }
+    else if( is_record(command) )
+      cmdrec := command;
+    else
+      fail 'command argument must be string or record';
+    # zero-length node is wildcard; otherwise add node spec to record
+    if( len(node) )
+      cmdrec := meq.node_spec(node,cmdrec);
+    # create new list or add to end of existing list
     if( !has_field(ns,'command_by_list') )
-      ns.command_by_list := meq_private.initcmdlist();
-    meq_private.addcmdlist(ns.command_by_list,node,command,value);
+      ns.command_by_list := dmi.list(cmdrec);
+    else
+      dmi.add_list(ns.command_by_list,cmd);
   }
   return T;
 }
@@ -448,11 +443,10 @@ const meq.add_state := function (ref req,group,node,state)
 
 
 #-- meq.solvable_list() -------------------------------------------------------------
-# creates a command list to set the names parms solvable
+# creates a command list to set the named parms solvable
 
 const meq.solvable_list := function (names)
 {
-  return [ command_by_list=
-            meq.reclist([name=names,state=[solvable=T]],
-                        [state=[solvable=F]]) ];
+  return [ command_by_list = dmi.list([name=names,state=[solvable=T]],
+                      [state=[solvable=F]]) ];
 }

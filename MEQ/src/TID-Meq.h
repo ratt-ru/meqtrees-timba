@@ -365,21 +365,21 @@ namespace Meq { class Pow; };
               typedef const Meq::Pow & ContainerParamType;
             };
 #endif
-#ifndef _defined_id_TpMeqReqMux
-#define _defined_id_TpMeqReqMux 1
-const TypeId TpMeqReqMux(-1443);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqMux.h:30
-const int TpMeqReqMux_int = -1443;
-namespace Meq { class ReqMux; };
+#ifndef _defined_id_TpMeqReqSeq
+#define _defined_id_TpMeqReqSeq 1
+const TypeId TpMeqReqSeq(-1478);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqSeq.h:30
+const int TpMeqReqSeq_int = -1478;
+namespace Meq { class ReqSeq; };
             template<>
-            class DMIBaseTypeTraits<Meq::ReqMux> : public TypeTraits<Meq::ReqMux>
+            class DMIBaseTypeTraits<Meq::ReqSeq> : public TypeTraits<Meq::ReqSeq>
             {
               public:
               enum { isContainable = true };
-              enum { typeId = TpMeqReqMux_int };
+              enum { typeId = TpMeqReqSeq_int };
               enum { TypeCategory = TypeCategories::DYNAMIC };
               enum { ParamByRef = true, ReturnByRef = true };
-              typedef const Meq::ReqMux & ContainerReturnType;
-              typedef const Meq::ReqMux & ContainerParamType;
+              typedef const Meq::ReqSeq & ContainerReturnType;
+              typedef const Meq::ReqSeq & ContainerParamType;
             };
 #endif
 #ifndef _defined_id_TpMeqRequest

@@ -10,7 +10,7 @@ Sin.h Cos.h Exp.h Pow.h Sqr.h Sqrt.h Conj.h ToComplex.h \
 UVW.h Request.h \
 LMN.h StatPointSourceDFT.h PointSourceDFT.h \
 ModRes.h Condeq.h Solver.h \
-ZeroFlagger.h MergeFlags.h Resampler.h ReqMux.h \
+ZeroFlagger.h MergeFlags.h Resampler.h ReqSeq.h \
 Forest.h ParmTable.h
 
 lib_LTLIBRARIES 	= libmeq.la
@@ -25,7 +25,7 @@ Sin.cc Cos.cc Exp.cc Pow.cc Sqr.cc Sqrt.cc Conj.cc ToComplex.cc \
 UVW.cc Request.cc \
 LMN.cc StatPointSourceDFT.cc PointSourceDFT.cc \
 ModRes.cc Condeq.cc Solver.cc \
-ZeroFlagger.cc MergeFlags.cc Resampler.cc ReqMux.cc \
+ZeroFlagger.cc MergeFlags.cc Resampler.cc ReqSeq.cc \
 Forest.cc ParmTable.cc \
 AID-Meq-Registry.cc
 

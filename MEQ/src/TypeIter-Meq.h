@@ -54,7 +54,7 @@
         Do(Meq::ZeroFlagger,arg) separator \
         Do(Meq::MergeFlags,arg) separator \
         Do(Meq::Resampler,arg) separator \
-        Do(Meq::ReqMux,arg)
+        Do(Meq::ReqSeq,arg)
 
 #define DoForAllNumericTypes_Meq(Do,arg,separator) \
         

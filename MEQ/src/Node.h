@@ -228,66 +228,6 @@ class Node : public BlockableObject
     { return active_symdeps_; }
     
     //##Documentation
-    //## sets the node's dependency mask
-    void setDependMask (int mask);
-    
-    //##Documentation
-    //## sets the node's set of known symbolic dependencies. Should normally 
-    //## be done once at init time. Note that it also possible to only call 
-    //## setActiveSymDeps() directly from the constructor, if the known and
-    //## active set is the same to begin with.
-    //## Known symdeps will have their dependency masks tracked
-    //## by processCommand(). 
-    void setKnownSymDeps (const HIID deps[],int ndeps);
-    
-    void setKnownSymDeps (const std::vector<HIID> &deps)
-    { setKnownSymDeps(&deps.front(),deps.size()); }
-    
-    void setKnownSymDeps (const HIID &dep)
-    { setKnownSymDeps(&dep,1); }
-    
-    void setKnownSymDeps ()
-    { static HIID dum; setKnownSymDeps(&dum,0); }
-    
-    //##Documentation
-    //## Sets the node's set of active symbolic dependencies. Must be a subset
-    //## of the known symdeps. This will call recomputeDependMask().
-    void setActiveSymDeps (const HIID deps[],int ndeps);
-    
-    void setActiveSymDeps (const HIID &dep)
-    { setActiveSymDeps(&dep,1); }
-    
-    void setActiveSymDeps (const std::vector<HIID> &deps)
-    { setActiveSymDeps(&deps.front(),deps.size()); }
-    
-    void setActiveSymDeps ()
-    { static HIID dum; setActiveSymDeps(&dum,0); }
-    
-    //##Documentation
-    //## computes a dependency mask, by bitwise-ORing tracked symdep masks 
-    //## corresponding to currently active symdeps.
-    int computeDependMask (const std::vector<HIID> &symdeps);
-    
-    //##Documentation
-    //## Nodes that generate their own requests (e.g. Sink, Solver, ModRes)
-    //## have to define a mapping between named symdeps and masks (which are used
-    //## to generate new request IDs). These mappings will be sent up the tree
-    //## so that other nodes may collect the depmasks corresponding to their set
-    //## of known dependencies. This sets the node's generated symdeps.
-    //## An optional group argument restricts the symdeps to a specific node
-    //## group.
-    void setGenSymDeps (const HIID symdeps[],const int depmasks[],int ndeps,const HIID &group = HIID());
-    
-    void setGenSymDeps (const std::vector<HIID> &symdeps,
-                       const std::vector<int>  &depmasks,
-                       const HIID &group = HIID())
-    { DbgAssert(symdeps.size()==depmasks.size()); 
-      setGenSymDeps(&symdeps.front(),&depmasks.front(),symdeps.size(),group); }
-                       
-    void setGenSymDeps (const HIID &symdep,int depmask,const HIID &group = HIID())
-    { setGenSymDeps(&symdep,&depmask,1,group); }
-    
-    //##Documentation
     //## Gets the full generated symdep mask (bitwise OR of all generated
     //## symdeps)
     int getGenSymDepMask () const
@@ -405,6 +345,11 @@ class Node : public BlockableObject
 
   protected:
     // ----------------- virtual methods defining node behaviour --------------
+    //##Documentation
+    //## generally called from constructor, to indicate that a node class does   
+    //## not support auto-resampling of child results            
+    void disableAutoResample ()
+    { disable_auto_resample_ = True; auto_resample_ = RESAMPLE_NONE; }
       
     //##ModelId=3F83FADF011D
     //##Documentation
@@ -480,7 +425,72 @@ class Node : public BlockableObject
     virtual int getResult (Result::Ref &resref, 
                            const std::vector<Result::Ref> &childres,
                            const Request &req,bool newreq);
-
+    
+    // ----------------- symdep and depmask management ------------------------
+    
+    //##Documentation
+    //## sets the node's dependency mask
+    void setDependMask (int mask);
+    
+    //##Documentation
+    //## sets the node's set of known symbolic dependencies. Should normally 
+    //## be done once at init time. Note that it also possible to only call 
+    //## setActiveSymDeps() directly from the constructor, if the known and
+    //## active set is the same to begin with.
+    //## Known symdeps will have their dependency masks tracked
+    //## by processCommand(). 
+    void setKnownSymDeps (const HIID deps[],int ndeps);
+    
+    void setKnownSymDeps (const std::vector<HIID> &deps)
+    { setKnownSymDeps(&deps.front(),deps.size()); }
+    
+    void setKnownSymDeps (const HIID &dep)
+    { setKnownSymDeps(&dep,1); }
+    
+    void setKnownSymDeps ()
+    { static HIID dum; setKnownSymDeps(&dum,0); }
+    
+    //##Documentation
+    //## Sets the node's set of active symbolic dependencies. Must be a subset
+    //## of the known symdeps. This will call recomputeDependMask().
+    void setActiveSymDeps (const HIID deps[],int ndeps);
+    
+    void setActiveSymDeps (const HIID &dep)
+    { setActiveSymDeps(&dep,1); }
+    
+    void setActiveSymDeps (const std::vector<HIID> &deps)
+    { setActiveSymDeps(&deps.front(),deps.size()); }
+    
+    void setActiveSymDeps ()
+    { static HIID dum; setActiveSymDeps(&dum,0); }
+    
+    //##Documentation
+    //## computes a dependency mask, by bitwise-ORing tracked symdep masks 
+    //## corresponding to currently active symdeps.
+    int computeDependMask (const std::vector<HIID> &symdeps);
+    
+    //##Documentation
+    //## Nodes that generate their own requests (e.g. Sink, Solver, ModRes)
+    //## have to define a mapping between named symdeps and masks (which are used
+    //## to generate new request IDs). These mappings will be sent up the tree
+    //## so that other nodes may collect the depmasks corresponding to their set
+    //## of known dependencies. This sets the node's generated symdeps.
+    //## An optional group argument restricts the symdeps to a specific node
+    //## group.
+    void setGenSymDeps (const HIID symdeps[],const int depmasks[],int ndeps,const HIID &group = HIID());
+    
+    void setGenSymDeps (const std::vector<HIID> &symdeps,
+                       const std::vector<int>  &depmasks,
+                       const HIID &group = HIID())
+    { DbgAssert(symdeps.size()==depmasks.size()); 
+      setGenSymDeps(&symdeps.front(),&depmasks.front(),symdeps.size(),group); }
+                       
+    void setGenSymDeps (const HIID &symdep,int depmask,const HIID &group = HIID())
+    { setGenSymDeps(&symdep,&depmask,1,group); }
+    
+    void setGenSymDepGroup (const HIID &group)
+    { gen_symdep_group_ = group; }
+    
     // ----------------- misc helper methods ----------------------------------
     
     //##Documentation
@@ -712,6 +722,9 @@ class Node : public BlockableObject
     //##Documentation
     //## auto-resample mode for child results
     int auto_resample_;
+    //##Documentation
+    //## flag: auto-resampling for child results is not available
+    bool disable_auto_resample_;
     
     //##Documentation
     //## cache of resampled child results

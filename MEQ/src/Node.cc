@@ -43,7 +43,8 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
       check_nmandatory_(nmandatory),
       depend_mask_(0),
       node_groups_(1,FAll),
-      auto_resample_(RESAMPLE_NONE)
+      auto_resample_(RESAMPLE_NONE),
+      disable_auto_resample_(false)
 {
   Assert(nchildren>=0 || !labels);
   Assert(nchildren<0 || nchildren>=nmandatory);
@@ -100,6 +101,7 @@ void Node::setGenSymDeps (const HIID symdeps[],const int depmasks[],int ndeps,co
     gen_symdep_fullmask_ |= 
         gen_symdep_masks_[symdeps[i]] = depmasks[i];
   }
+  gen_symdep_group_ = group;
 }
 
 int Node::getGenSymDepMask (const HIID &symdep) const
@@ -184,12 +186,7 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
   if( rec[FNodeIndex].exists() )
     node_index_ = rec[FNodeIndex].as<int>();
   
-  // call setStateImpl to set up reconfigurable node state
-  cdebug(2)<<"reinitializing node (setStateImpl)"<<endl;
-  cdebug(3)<<"state is "<<staterec_().sdebug(10,"    ")<<endl;
-  setStateImpl(staterec_(),true);
-  
-  // setup children
+  // setup children directly from relevant fields
   if( rec[FChildren].exists() )
   {
     child_indices_ = rec[FChildren].ref(true);
@@ -205,6 +202,11 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
   {
     cdebug(2)<<"no children to reintialize"<<endl;
   }
+  
+  // finally, call setStateImpl to set up reconfigurable node state
+  cdebug(2)<<"reinitializing node (setStateImpl)"<<endl;
+  cdebug(3)<<"state is "<<staterec_().sdebug(10,"    ")<<endl;
+  setStateImpl(staterec_(),true);
 }  
 
 //##ModelId=3F5F45D202D5
@@ -229,11 +231,6 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
     rec[FClass] = objectType().toString();
   // do other checks
   checkInitState(rec);
-  
-  // call setStateImpl to set up reconfigurable node state
-  cdebug(2)<<"initializing node (setStateImpl)"<<endl;
-  cdebug(3)<<"initial state is "<<staterec_().sdebug(10,"    ")<<endl;
-  setStateImpl(staterec_(),true);
   
   // setup children
   cdebug(2)<<"initializing node (others)"<<endl;
@@ -269,9 +266,9 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
         ifield++;
       }
     }
-    else if( ref->objectType() == TpDataField )
+    else if( ref->objectType() == TpDataField || ref->objectType() == TpDataList )
     {
-      DataField &childrec = ref.ref_cast<DataField>();
+      NestableContainer &childrec = ref.ref_cast<NestableContainer>();
       initChildren(childrec.size());
       for( int i=0; i<childrec.size(); i++ )
         processChildSpec(childrec,AtomicID(i),AtomicID(i));
@@ -299,6 +296,11 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
     rcr_cache_.resize(children_.size());
     cdebug(2)<<numChildren()<<" children"<<endl;
   }
+  
+  // finally, call setStateImpl to set up reconfigurable node state
+  cdebug(2)<<"initializing node (setStateImpl)"<<endl;
+  cdebug(3)<<"initial state is "<<staterec_().sdebug(10,"    ")<<endl;
+  setStateImpl(staterec_(),true);
 }
 
 //##ModelId=400E531402D1
@@ -403,7 +405,15 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
   // set cache resultcode
   rec[FCacheResultCode].get(cache_retcode_);
   // set auto-resample mode
-  rec[FAutoResample].get(auto_resample_,initializing);
+  int ars = auto_resample_;
+  if( rec[FAutoResample].get(ars,initializing) )
+  {
+    if( disable_auto_resample_ && ars != RESAMPLE_NONE )
+    {
+      NodeThrow(FailWithCleanup,"can't use auto-resampling with this node");
+    }
+    auto_resample_ = ars;
+  }
 }
 
 //##ModelId=3F5F445A00AC
@@ -672,7 +682,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   // (note that an empty reqid never matches, hence it can be used to 
   // always force a recalculation)
   if( !current_reqid_.empty() && cache_result_.valid() && 
-      req.id() == current_reqid_ )
+      maskedCompare(req.id(),current_reqid_,cache_retcode_) )
   {
     ref.copy(cache_result_,DMI::PRESERVE_RW);
     retcode = cache_retcode_;

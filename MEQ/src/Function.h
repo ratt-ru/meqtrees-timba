@@ -44,11 +44,13 @@ public:
     //##ModelId=3F86886E03D1
   virtual ~Function();
 
-  // Find the shape of the result for evaluate. Usually the default 
-  // implementation is sufficient which takes
-  // the maximum of the values of the children.
-    //##ModelId=400E5306027C
-  virtual LoShape resultShape (const vector<const Vells*>& values);
+// 11/07/04 OMS: phased out: no need, shape obtained from Cells and
+// all children must conform
+//   // Find the shape of the result for evaluate. Usually the default 
+//   // implementation is sufficient which takes
+//   // the maximum of the values of the children.
+//     //##ModelId=400E5306027C
+//   virtual LoShape resultShape (const vector<const Vells*>& values);
 
 // phased out 22/03/04
 //   // Evaluate the value for the given request.
@@ -60,7 +62,8 @@ public:
 
     
   // Evaluate the value for the given request. The output shape is
-  // precomputed with resultShape() and passed in as the shape argument.
+  // passed in as the shape argument (usually taken from first child, rest
+  // mus conform)
     //##ModelId=3F86886F00B0
   virtual Vells evaluate (const Request &req,const LoShape &shape,const vector<const Vells*>&);
 

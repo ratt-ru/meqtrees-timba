@@ -400,11 +400,14 @@ void VellSet::setSpids (const vector<int>& spids)
   else // setting new vector
   {
     numspids_ = spids.size();
-    DataField *pdf = new DataField(Tpint,spids.size(),&spids[0]);
-    DataRecord::add(FSpids,pdf,DMI::ANONWR);
-    spids_ = (*pdf)[HIID()].as_wp<int>();
-    for( uint iset=0; iset<pset_.size(); iset++ )
-      setupPertData(iset);
+    if( numspids_ )
+    {
+      DataField *pdf = new DataField(Tpint,spids.size(),&spids[0]);
+      DataRecord::add(FSpids,pdf,DMI::ANONWR);
+      spids_ = (*pdf)[HIID()].as_wp<int>();
+      for( uint iset=0; iset<pset_.size(); iset++ )
+        setupPertData(iset);
+    }
   }
 }
 

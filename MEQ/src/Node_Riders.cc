@@ -64,12 +64,15 @@ void Node::processRequestRider (Request::Ref &reqref)
         DataRecord::Hook hlist(group,FCommandByList);
         if( hlist.exists() )
         {
-          DataField &list = hlist.as_wr<DataField>();
+          // access list as a NestableContainer (this can be a DataField or
+          // a DataList, either should work fine)
+          const NestableContainer &list = *(
+                hlist.ref().ref_cast<NestableContainer>());
           cdebug(3)<<"      checking "<<list.size()<<" list entries"<<endl;
           bool matched = false;
           for( int i=0; i<list.size() && !matched; i++ )
           {
-            DataRecord &entry = list[i].as_wr<DataRecord>();
+            const DataRecord &entry = list[i].as<DataRecord>();
             std::vector<string> names;
             std::vector<int> indices;
             DataRecord::Hook hnames(entry,FName),
