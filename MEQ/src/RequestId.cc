@@ -1,5 +1,22 @@
 #include "RequestId.h"
+#include "MeqVocabulary.h"
 
+using namespace DMI;
+    
+const std::map<HIID,int> & Meq::defaultSymdepMasks ()
+{
+  static std::map<HIID,int> masks;
+  static Thread::Mutex mutex;
+  Thread::Mutex::Lock lock(mutex);
+  if( masks.empty() )
+  {
+    masks[FParmValue]  = RQIDM_VALUE;
+    masks[FResolution] = RQIDM_RESOLUTION;
+    masks[FDomain]     = RQIDM_DOMAIN;
+    masks[FDataset]    = RQIDM_DATASET;
+  }
+  return masks;
+}
     
 void Meq::maskSubId (RequestId &id,int mask)
 {

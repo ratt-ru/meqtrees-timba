@@ -81,12 +81,6 @@ const HIID FInitDepMask = AidInit|AidDep|AidMask;
 const HIID FClearDepMask = AidClear|AidDep|AidMask;
 const HIID FAddDepMask = AidAdd|AidDep|AidMask;
 
-//=== Some standard symbolic deps
-const HIID FParmValue  = AidParm|AidValue;
-const HIID FResolution = AidResolution;
-// const HIID FDomain     = AidDomain;
-const HIID FDataset    = AidDataset;
-
 // the All group
 const HIID FAll = AidAll;
 

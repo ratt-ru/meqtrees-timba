@@ -502,7 +502,7 @@ const meq_private.make_cmd_rec := function (node,command,value=T)
 # The default settings here should correspond to MEQ/RequestId.h.
 # Note that some applications may redefine the mappings (see symdeps),
 # in which case they just have to provide their own.
-const meq._rqid_mapping := [ value=1,resolution=2,domain=5,dataset=6 ];
+const meq._rqid_mapping := [ value=1,resolution=2,domain=3,dataset=4 ];
 const meq._rqid_maxlen := 16;
 
 #-- meq.rqid() -------------------------------------------------------------

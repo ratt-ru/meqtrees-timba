@@ -43,6 +43,7 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
       check_nchildren_(nchildren),
       check_nmandatory_(nmandatory),
       depend_mask_(0),
+      symdep_masks_(defaultSymdepMasks()),
       node_groups_(1,FAll),
       auto_resample_(RESAMPLE_NONE),
       disable_auto_resample_(false),

@@ -2,8 +2,12 @@
 #define MeqSERVER_SRC_REQUESTID_H_HEADER_INCLUDED
     
 #include <DMI/HIID.h>
+#include <MEQ/AID-Meq.h>
     
-namespace Meq { using namespace DMI;
+namespace Meq 
+{ 
+  
+using namespace DMI;
   
 // -----------------------------------------------------------------------
 // dependency flags and symbolic dependencies
@@ -28,6 +32,17 @@ typedef enum
 //## the _last_ index. 
 typedef HIID RequestId;
 
+//=== Some standard symbolic deps
+const HIID FParmValue  = AidParm|AidValue;
+const HIID FResolution = AidResolution;
+// const HIID FDomain     = AidDomain; // already defined in MeqVocabulary
+const HIID FDataset    = AidDataset;
+
+// -----------------------------------------------------------------------
+// defaultSymdepMasks()
+// returns set of default symdep masks corresponding to RQIDMs above
+// -----------------------------------------------------------------------
+const std::map<HIID,int> & defaultSymdepMasks ();
 
 // -----------------------------------------------------------------------
 // maskSubId()
