@@ -310,6 +310,18 @@ const get_ms_info := function (msname='test.ms',uvw=T)
   return T;
 }
 
+
+const reexec := function (node='dft.a.4',nfreq=10,ntime=10)
+{
+  global rqid;
+  st := mqs.getnodestate(node);
+  dom := st.request.cells.domain;
+  cells := meq.cells(dom,nfreq,ntime);
+  req := meq.request(cells,hiid());
+  mqs.execute(node,req);
+  print 'you should be looking at node ',node;
+}
+
 use_initcol := T;       # initialize output column with zeroes
 
 # predict=T:  predict tree only (writes predict to output column)
@@ -363,6 +375,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
     fail;
   }
 
+  mqs.meq('Clear.Forest',[=]);
   # load forest if asked
   if( load )
     mqs.meq('Load.Forest',[file_name=load])
