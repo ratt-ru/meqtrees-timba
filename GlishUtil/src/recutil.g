@@ -175,7 +175,11 @@ const margin_print := function (...,left=2,right=78,sep=' ')
   }
 }
 
-
+const recprint := function(rec)
+{
+  for( s in rec2lines(rec,76) )
+    print sprintf('  %-76.76s',s);
+}
 
 ## # some tests -- commented out
 ##
