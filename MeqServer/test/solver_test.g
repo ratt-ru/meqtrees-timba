@@ -143,23 +143,28 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
     mqs.meq('Create.Node',meq.node('MeqCondeq','eq1',children="lhs1 c1n"));
     mqs.meq('Create.Node',meq.node('MeqCondeq','eq2',children="lhs2 c2n",
       step_children=meq.list(
-        meq.node('MeqAdd','sc_add',children=meq.list(
-          meq.node('MeqAdd','sc_add1',children=meq.list(
-            meq.node('MeqTime','sc_time'),
-            meq.node('MeqMultiply','sc_2freq',children=meq.list(
-              meq.node('MeqFreq','sc_freq'),
-              meq.node('MeqConstant','sc_2',[value=2])
+        meq.node('MeqMergeFlags','mergeflags',children=meq.list(
+          meq.node('MeqAdd','sc_add',children=meq.list(
+            meq.node('MeqAdd','sc_add1',children=meq.list(
+              meq.node('MeqTime','sc_time'),
+              meq.node('MeqMultiply','sc_2freq',children=meq.list(
+                meq.node('MeqFreq','sc_freq'),
+                meq.node('MeqConstant','sc_2',[value=2])
+              )),
+              meq.node('MeqGaussNoise','g1'),
+              meq.node('MeqGaussNoise','g2',[stddev=3.0],children=meq.list(
+                'sc_freq'
+              )),
+              meq.node('MeqAdd','ga3',children=meq.list(
+                meq.node('MeqGaussNoise','g3',[stddev=3.0,axes_index=[0]]),
+                'sc_time'
+              ))
             )),
-            meq.node('MeqGaussNoise','g1'),
-            meq.node('MeqGaussNoise','g2',[stddev=3.0],children=meq.list(
-              'sc_freq'
-            )),
-            meq.node('MeqAdd','ga3',children=meq.list(
-              meq.node('MeqGaussNoise','g3',[stddev=3.0,axes_index=[0]]),
-              'sc_time'
-            ))
+            meq.node('MeqFreq','sc_freq1')
           )),
-          meq.node('MeqFreq','sc_freq1')
+          meq.node('MeqZeroFlagger','flag',[flag_bit=2,oper='LE'],children=meq.list(
+            meq.node('MeqGaussNoise','g4')
+          ))
         ))
       ))
     );
