@@ -30,7 +30,7 @@ int Dispatcher::signal_counter[Dispatcher::max_signals];
 void Dispatcher::signalHandler (int signum,siginfo_t *,void *)
 {
 #ifdef USE_THREADS
-  printf("thread %d: received signal %d (%s)\n",(int)Thread::self(),signum,sys_siglist[signum]);
+//  printf("thread %d: received signal %d (%s)\n",(int)Thread::self(),signum,sys_siglist[signum]);
 #endif
   sigaddset(&raisedSignals,signum);
   signal_counter[signum]++;

@@ -40,10 +40,6 @@
 		    supplier   	"Logical View::OCTOPUSSY::MsgAddress"
 		    quidu      	"3C7B6F790197")
 		(object Uses_Relationship
-		    quid       	"3C7B708B00DD"
-		    supplier   	"Logical View::DOMIN0::HIID"
-		    quidu      	"3BE96FE601C5")
-		(object Uses_Relationship
 		    quid       	"3C7E4D87012D"
 		    supplier   	"Logical View::DOMIN0::NestableContainer"
 		    quidu      	"3BE97CE100AF"))
@@ -4609,11 +4605,6 @@
 		    name       	"HeaderSourceFile"
 		    value      	"MsgAddress.h"))
 	    quid       	"3C8F9A340206"
-	    superclasses 	(list inheritance_relationship_list
-		(object Inheritance_Relationship
-		    quid       	"3C8F9A5B0343"
-		    supplier   	"Logical View::DOMIN0::HIID"
-		    quidu      	"3BE96FE601C5"))
 	    operations 	(list Operations
 		(object Operation "WPID"
 		    attributes 	(list Attribute_Set
@@ -5562,10 +5553,6 @@
 		    quid       	"3C99C776028F"
 		    supplier   	"Logical View::OCTOPUSSY::MsgAddress"
 		    quidu      	"3C7B6F790197")
-		(object Uses_Relationship
-		    quid       	"3C99C78F0168"
-		    supplier   	"Logical View::DOMIN0::HIID"
-		    quidu      	"3BE96FE601C5")
 		(object Uses_Relationship
 		    quid       	"3C99C7CF0084"
 		    supplier   	"Logical View::OCTOPUSSY::Message"
@@ -8374,40 +8361,6 @@
 		    quidu      	"3C7B6A2D01F0"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$154"
-	    quid       	"3C7B71820219"
-	    roles      	(list role_list
-		(object Role "id"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"cg"
-			    name       	"cg_style"
-			    value      	"member_; member(); setMember()")
-			(object Attribute
-			    tool       	"cg"
-			    name       	"GetSetByReference"
-			    value      	TRUE)
-			(object Attribute
-			    tool       	"cg"
-			    name       	"GetResultIsConst"
-			    value      	("GetResultIsConstSet" 1))
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"CodeName"
-			    value      	"id_"))
-		    quid       	"3C7B718500FB"
-		    label      	"id"
-		    supplier   	"Logical View::DOMIN0::HIID"
-		    quidu      	"3BE96FE601C5"
-		    client_cardinality 	(value cardinality "1")
-		    Containment 	"By Value"
-		    exportControl 	"Private"
-		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$155"
-		    quid       	"3C7B71850155"
-		    supplier   	"Logical View::OCTOPUSSY::Message"
-		    quidu      	"3C7B6A2D01F0"
-		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$156"
 	    quid       	"3C7E14150352"
 	    roles      	(list role_list
 		(object Role "wps:map<WPID,WPRef>"
@@ -8449,7 +8402,7 @@
 		    exportControl 	"Private"
 		    is_navigable 	TRUE
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$157"
+	(object Association "$UNNAMED$155"
 	    quid       	"3C999CBF01D6"
 	    roles      	(list role_list
 		(object Role "subscriptions"
@@ -8470,12 +8423,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$158"
+		(object Role "$UNNAMED$156"
 		    quid       	"3C999CC00029"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$159"
+	(object Association "$UNNAMED$157"
 	    quid       	"3CA1A1AB0346"
 	    roles      	(list role_list
 		(object Role "queue"
@@ -8508,12 +8461,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$160"
+		(object Role "$UNNAMED$158"
 		    quid       	"3CA1A1AC01AF"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$161"
+	(object Association "$UNNAMED$159"
 	    quid       	"3CBEDD600298"
 	    roles      	(list role_list
 		(object Role "localData"
@@ -8542,12 +8495,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$162"
+		(object Role "$UNNAMED$160"
 		    quid       	"3CBEDD610240"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$163"
+	(object Association "$UNNAMED$161"
 	    quid       	"3CC9530802FB"
 	    roles      	(list role_list
 		(object Role "forwarder"
@@ -8576,12 +8529,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$164"
+		(object Role "$UNNAMED$162"
 		    quid       	"3CC9530A0041"
 		    supplier   	"Logical View::OCTOPUSSY::Message"
 		    quidu      	"3C7B6A2D01F0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$165"
+	(object Association "$UNNAMED$163"
 	    quid       	"3DB9365403AC"
 	    roles      	(list role_list
 		(object Role "lock"
@@ -8591,12 +8544,12 @@
 		    quidu      	"3D1049B40396"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$166"
+		(object Role "$UNNAMED$164"
 		    quid       	"3DB9365403B5"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher::WPIter"
 		    quidu      	"3DB9364D020D"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$167"
+	(object Association "$UNNAMED$165"
 	    quid       	"3DB9365403CB"
 	    roles      	(list role_list
 		(object Role "pwp"
@@ -8605,11 +8558,11 @@
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$168"
+		(object Role "$UNNAMED$166"
 		    quid       	"3DB9365403D4"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher::EventInfo"
 		    quidu      	"3DB9364D0267")))
-	(object Association "$UNNAMED$169"
+	(object Association "$UNNAMED$167"
 	    quid       	"3DB9365403DD"
 	    roles      	(list role_list
 		(object Role "msg"
@@ -8619,12 +8572,12 @@
 		    quidu      	"3C7B722600DE"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$170"
+		(object Role "$UNNAMED$168"
 		    quid       	"3DB9365403E0"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher::EventInfo"
 		    quidu      	"3DB9364D0267"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$171"
+	(object Association "$UNNAMED$169"
 	    quid       	"3DB936550028"
 	    roles      	(list role_list
 		(object Role "period"
@@ -8634,12 +8587,12 @@
 		    quidu      	"3C7F3B1D025E"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$172"
+		(object Role "$UNNAMED$170"
 		    quid       	"3DB93655002B"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher::TimeoutInfo"
 		    quidu      	"3DB9364D02AD"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$173"
+	(object Association "$UNNAMED$171"
 	    quid       	"3DB93655003B"
 	    roles      	(list role_list
 		(object Role "next"
@@ -8649,27 +8602,12 @@
 		    quidu      	"3C7F3B1D025E"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$174"
+		(object Role "$UNNAMED$172"
 		    quid       	"3DB93655003E"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher::TimeoutInfo"
 		    quidu      	"3DB9364D02AD"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$175"
-	    quid       	"3DB93655004F"
-	    roles      	(list role_list
-		(object Role "id"
-		    quid       	"3DB936550050"
-		    label      	"id"
-		    supplier   	"Logical View::DOMIN0::HIID"
-		    quidu      	"3BE96FE601C5"
-		    Containment 	"By Value"
-		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$176"
-		    quid       	"3DB93655005A"
-		    supplier   	"Logical View::OCTOPUSSY::Dispatcher::TimeoutInfo"
-		    quidu      	"3DB9364D02AD"
-		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$177"
+	(object Association "$UNNAMED$173"
 	    quid       	"3DB936550097"
 	    roles      	(list role_list
 		(object Role "last_msg"
@@ -8679,12 +8617,12 @@
 		    quidu      	"3C7B722600DE"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$178"
+		(object Role "$UNNAMED$174"
 		    quid       	"3DB93655009A"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher::InputInfo"
 		    quidu      	"3DB9364D02F3"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$179"
+	(object Association "$UNNAMED$175"
 	    quid       	"3DB936550226"
 	    roles      	(list role_list
 		(object Role "dispatcher"
@@ -8704,7 +8642,7 @@
 		    quidu      	"3C7B6A3E00A0"
 		    is_navigable 	TRUE
 		    static     	TRUE)))
-	(object Association "$UNNAMED$180"
+	(object Association "$UNNAMED$176"
 	    quid       	"3DB93658036B"
 	    roles      	(list role_list
 		(object Role "main_thread"
@@ -8715,12 +8653,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$181"
+		(object Role "$UNNAMED$177"
 		    quid       	"3DB936580376"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$182"
+	(object Association "$UNNAMED$178"
 	    quid       	"3DB936590037"
 	    roles      	(list role_list
 		(object Role "event_thread"
@@ -8731,12 +8669,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$183"
+		(object Role "$UNNAMED$179"
 		    quid       	"3DB93659003A"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$184"
+	(object Association "$UNNAMED$180"
 	    quid       	"3DB9365900E1"
 	    roles      	(list role_list
 		(object Role "repoll_cond"
@@ -8747,12 +8685,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$185"
+		(object Role "$UNNAMED$181"
 		    quid       	"3DB9365900EB"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$186"
+	(object Association "$UNNAMED$182"
 	    quid       	"3DB9365B01AD"
 	    roles      	(list role_list
 		(object Role "timeouts"
@@ -8763,12 +8701,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$187"
+		(object Role "$UNNAMED$183"
 		    quid       	"3DB9365B01B0"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$188"
+	(object Association "$UNNAMED$184"
 	    quid       	"3DB9365B026B"
 	    roles      	(list role_list
 		(object Role "next_to"
@@ -8779,12 +8717,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$189"
+		(object Role "$UNNAMED$185"
 		    quid       	"3DB9365B0277"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$190"
+	(object Association "$UNNAMED$186"
 	    quid       	"3DB9365C035D"
 	    roles      	(list role_list
 		(object Role "inputs"
@@ -8795,12 +8733,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$191"
+		(object Role "$UNNAMED$187"
 		    quid       	"3DB9365C0360"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$192"
+	(object Association "$UNNAMED$188"
 	    quid       	"3DB9365D0029"
 	    roles      	(list role_list
 		(object Role "fds_watched"
@@ -8811,12 +8749,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$193"
+		(object Role "$UNNAMED$189"
 		    quid       	"3DB9365D002C"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$194"
+	(object Association "$UNNAMED$190"
 	    quid       	"3DB9365D00E7"
 	    roles      	(list role_list
 		(object Role "fds_active"
@@ -8827,12 +8765,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$195"
+		(object Role "$UNNAMED$191"
 		    quid       	"3DB9365D00F1"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$196"
+	(object Association "$UNNAMED$192"
 	    quid       	"3DB9365D01B0"
 	    roles      	(list role_list
 		(object Role "fds_watched_mutex"
@@ -8843,12 +8781,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$197"
+		(object Role "$UNNAMED$193"
 		    quid       	"3DB9365D01BA"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$198"
+	(object Association "$UNNAMED$194"
 	    quid       	"3DB9365E032C"
 	    roles      	(list role_list
 		(object Role "next_select"
@@ -8859,12 +8797,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$199"
+		(object Role "$UNNAMED$195"
 		    quid       	"3DB9365E032F"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$200"
+	(object Association "$UNNAMED$196"
 	    quid       	"3DB9365F0016"
 	    roles      	(list role_list
 		(object Role "inputs_poll_period"
@@ -8875,12 +8813,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$201"
+		(object Role "$UNNAMED$197"
 		    quid       	"3DB9365F0020"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$202"
+	(object Association "$UNNAMED$198"
 	    quid       	"3DB9365F00D4"
 	    roles      	(list role_list
 		(object Role "signal_map"
@@ -8891,12 +8829,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$203"
+		(object Role "$UNNAMED$199"
 		    quid       	"3DB9365F00D7"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$204"
+	(object Association "$UNNAMED$200"
 	    quid       	"3DB936610005"
 	    roles      	(list role_list
 		(object Role "config: const OctopussyConfig &"
@@ -8907,12 +8845,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$205"
+		(object Role "$UNNAMED$201"
 		    quid       	"3DB93661000F"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$206"
+	(object Association "$UNNAMED$202"
 	    quid       	"3DB936620197"
 	    roles      	(list role_list
 		(object Role "wpmutex"
@@ -8923,12 +8861,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$207"
+		(object Role "$UNNAMED$203"
 		    quid       	"3DB93662019A"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$208"
+	(object Association "$UNNAMED$204"
 	    quid       	"3DB936620273"
 	    roles      	(list role_list
 		(object Role "tomutex"
@@ -8939,12 +8877,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$209"
+		(object Role "$UNNAMED$205"
 		    quid       	"3DB93662027E"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$210"
+	(object Association "$UNNAMED$206"
 	    quid       	"3DB93662034F"
 	    roles      	(list role_list
 		(object Role "inpmutex"
@@ -8955,12 +8893,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$211"
+		(object Role "$UNNAMED$207"
 		    quid       	"3DB93662035A"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$212"
+	(object Association "$UNNAMED$208"
 	    quid       	"3DB936630044"
 	    roles      	(list role_list
 		(object Role "sigmutex"
@@ -8971,12 +8909,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$213"
+		(object Role "$UNNAMED$209"
 		    quid       	"3DB93663004E"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$214"
+	(object Association "$UNNAMED$210"
 	    quid       	"3DB9367A0373"
 	    roles      	(list role_list
 		(object Role "now"
@@ -8987,12 +8925,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$215"
+		(object Role "$UNNAMED$211"
 		    quid       	"3DB9367A037D"
 		    supplier   	"Logical View::OCTOPUSSY::GWClientWP"
 		    quidu      	"3C95A941002E"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$216"
+	(object Association "$UNNAMED$212"
 	    quid       	"3DB9367B0099"
 	    roles      	(list role_list
 		(object Role "peerlist: DataRecord &"
@@ -9003,12 +8941,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$217"
+		(object Role "$UNNAMED$213"
 		    quid       	"3DB9367B00A3"
 		    supplier   	"Logical View::OCTOPUSSY::GWClientWP"
 		    quidu      	"3C95A941002E"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$218"
+	(object Association "$UNNAMED$214"
 	    quid       	"3DB9367E00D4"
 	    roles      	(list role_list
 		(object Role "advertisement"
@@ -9019,12 +8957,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$219"
+		(object Role "$UNNAMED$215"
 		    quid       	"3DB9367E00D7"
 		    supplier   	"Logical View::OCTOPUSSY::GWServerWP"
 		    quidu      	"3C8F942502BA"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$220"
+	(object Association "$UNNAMED$216"
 	    quid       	"3DB9367F0263"
 	    roles      	(list role_list
 		(object Role "rhost"
@@ -9035,12 +8973,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$221"
+		(object Role "$UNNAMED$217"
 		    quid       	"3DB9367F0266"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$222"
+	(object Association "$UNNAMED$218"
 	    quid       	"3DB9367F029F"
 	    roles      	(list role_list
 		(object Role "rprocess"
@@ -9051,12 +8989,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$223"
+		(object Role "$UNNAMED$219"
 		    quid       	"3DB9367F02A2"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$224"
+	(object Association "$UNNAMED$220"
 	    quid       	"3DB9367F02D1"
 	    roles      	(list role_list
 		(object Role "header"
@@ -9067,12 +9005,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$225"
+		(object Role "$UNNAMED$221"
 		    quid       	"3DB9367F02D4"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$226"
+	(object Association "$UNNAMED$222"
 	    quid       	"3DB9367F0303"
 	    roles      	(list role_list
 		(object Role "wr_header"
@@ -9083,12 +9021,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$227"
+		(object Role "$UNNAMED$223"
 		    quid       	"3DB9367F030E"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$228"
+	(object Association "$UNNAMED$224"
 	    quid       	"3DB9367F033F"
 	    roles      	(list role_list
 		(object Role "trailer"
@@ -9099,12 +9037,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$229"
+		(object Role "$UNNAMED$225"
 		    quid       	"3DB9367F0342"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$230"
+	(object Association "$UNNAMED$226"
 	    quid       	"3DB9367F0385"
 	    roles      	(list role_list
 		(object Role "wr_trailer"
@@ -9115,12 +9053,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$231"
+		(object Role "$UNNAMED$227"
 		    quid       	"3DB9367F0388"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$232"
+	(object Association "$UNNAMED$228"
 	    quid       	"3DB93680005B"
 	    roles      	(list role_list
 		(object Role "readstate"
@@ -9131,12 +9069,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$233"
+		(object Role "$UNNAMED$229"
 		    quid       	"3DB936800065"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$234"
+	(object Association "$UNNAMED$230"
 	    quid       	"3DB9368100C2"
 	    roles      	(list role_list
 		(object Role "read_bset"
@@ -9147,12 +9085,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$235"
+		(object Role "$UNNAMED$231"
 		    quid       	"3DB9368100CC"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$236"
+	(object Association "$UNNAMED$232"
 	    quid       	"3DB936810108"
 	    roles      	(list role_list
 		(object Role "writestate"
@@ -9163,12 +9101,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$237"
+		(object Role "$UNNAMED$233"
 		    quid       	"3DB936810113"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$238"
+	(object Association "$UNNAMED$234"
 	    quid       	"3DB93682004B"
 	    roles      	(list role_list
 		(object Role "write_queue"
@@ -9179,12 +9117,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$239"
+		(object Role "$UNNAMED$235"
 		    quid       	"3DB936820056"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$240"
+	(object Association "$UNNAMED$236"
 	    quid       	"3DB9368202F6"
 	    roles      	(list role_list
 		(object Role "pending_msg"
@@ -9195,12 +9133,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$241"
+		(object Role "$UNNAMED$237"
 		    quid       	"3DB9368202F9"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$242"
+	(object Association "$UNNAMED$238"
 	    quid       	"3DB936820364"
 	    roles      	(list role_list
 		(object Role "last_read"
@@ -9211,12 +9149,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$243"
+		(object Role "$UNNAMED$239"
 		    quid       	"3DB93682036F"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$244"
+	(object Association "$UNNAMED$240"
 	    quid       	"3DB9368203C8"
 	    roles      	(list role_list
 		(object Role "last_write"
@@ -9227,12 +9165,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$245"
+		(object Role "$UNNAMED$241"
 		    quid       	"3DB9368203CB"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$246"
+	(object Association "$UNNAMED$242"
 	    quid       	"3DB936830031"
 	    roles      	(list role_list
 		(object Role "last_write_to"
@@ -9243,12 +9181,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$247"
+		(object Role "$UNNAMED$243"
 		    quid       	"3DB93683003C"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$248"
+	(object Association "$UNNAMED$244"
 	    quid       	"3DB936830095"
 	    roles      	(list role_list
 		(object Role "statmon"
@@ -9259,12 +9197,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$249"
+		(object Role "$UNNAMED$245"
 		    quid       	"3DB936830098"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$250"
+	(object Association "$UNNAMED$246"
 	    quid       	"3DB9368300EF"
 	    roles      	(list role_list
 		(object Role "peerlist"
@@ -9274,11 +9212,11 @@
 		    quidu      	"3BB3112B0027"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$251"
+		(object Role "$UNNAMED$247"
 		    quid       	"3DB9368300FA"
 		    supplier   	"Logical View::OCTOPUSSY::GatewayWP"
 		    quidu      	"3C90BEF001E5")))
-	(object Association "$UNNAMED$252"
+	(object Association "$UNNAMED$248"
 	    quid       	"3DB936920145"
 	    roles      	(list role_list
 		(object Role "evtick"
@@ -9289,12 +9227,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$253"
+		(object Role "$UNNAMED$249"
 		    quid       	"3DB936920148"
 		    supplier   	"Logical View::OCTOGlish::GlishClientWP"
 		    quidu      	"3CB5618B0373"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$254"
+	(object Association "$UNNAMED$250"
 	    quid       	"3DB936A1038A"
 	    roles      	(list role_list
 		(object Role "payload_set"
@@ -9305,12 +9243,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$255"
+		(object Role "$UNNAMED$251"
 		    quid       	"3DB936A10394"
 		    supplier   	"Logical View::OCTOPUSSY::Message"
 		    quidu      	"3C7B6A2D01F0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$256"
+	(object Association "$UNNAMED$252"
 	    quid       	"3DB936CB00A6"
 	    roles      	(list role_list
 		(object Role "global_"
@@ -9335,7 +9273,7 @@
 		    exportControl 	"Private"
 		    is_navigable 	TRUE
 		    static     	TRUE)))
-	(object Association "$UNNAMED$257"
+	(object Association "$UNNAMED$253"
 	    quid       	"3DB936DB021E"
 	    roles      	(list role_list
 		(object Role "subs"
@@ -9346,12 +9284,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$258"
+		(object Role "$UNNAMED$254"
 		    quid       	"3DB936DB0221"
 		    supplier   	"Logical View::OCTOPUSSY::Subscriptions"
 		    quidu      	"3C999C8400AF"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$259"
+	(object Association "$UNNAMED$255"
 	    quid       	"3DB936DC0053"
 	    roles      	(list role_list
 		(object Role "mref"
@@ -9361,12 +9299,12 @@
 		    quidu      	"3C7B722600DE"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$260"
+		(object Role "$UNNAMED$256"
 		    quid       	"3DB936DC005F"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface::QueueEntry"
 		    quidu      	"3DB93652029F"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$261"
+	(object Association "$UNNAMED$257"
 	    quid       	"3DB936DC0071"
 	    roles      	(list role_list
 		(object Role "tick"
@@ -9376,12 +9314,12 @@
 		    quidu      	"3DB9343F015F"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$262"
+		(object Role "$UNNAMED$258"
 		    quid       	"3DB936DC0074"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface::QueueEntry"
 		    quidu      	"3DB93652029F"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$263"
+	(object Association "$UNNAMED$259"
 	    quid       	"3DB936DC00A3"
 	    roles      	(list role_list
 		(object Role "ts"
@@ -9391,12 +9329,12 @@
 		    quidu      	"3C7F3B1D025E"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$264"
+		(object Role "$UNNAMED$260"
 		    quid       	"3DB936DC00A6"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface::QueueEntry"
 		    quidu      	"3DB93652029F"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$265"
+	(object Association "$UNNAMED$261"
 	    quid       	"3DB936DC00B7"
 	    roles      	(list role_list
 		(object Role "thrid"
@@ -9406,12 +9344,12 @@
 		    quidu      	"3D1049B401F1"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$266"
+		(object Role "$UNNAMED$262"
 		    quid       	"3DB936DC00BA"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface::QueueEntry"
 		    quidu      	"3DB93652029F"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$267"
+	(object Association "$UNNAMED$263"
 	    quid       	"3DB936DC02CA"
 	    roles      	(list role_list
 		(object Role "queue_cond"
@@ -9422,12 +9360,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$268"
+		(object Role "$UNNAMED$264"
 		    quid       	"3DB936DC02CD"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$269"
+	(object Association "$UNNAMED$265"
 	    quid       	"3DB936DE006A"
 	    roles      	(list role_list
 		(object Role "config: const OctopussyConfig &"
@@ -9438,12 +9376,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$270"
+		(object Role "$UNNAMED$266"
 		    quid       	"3DB936DE0074"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$271"
+	(object Association "$UNNAMED$267"
 	    quid       	"3DB936DE038B"
 	    roles      	(list role_list
 		(object Role "worker_threads: Thread::ThrID [MaxWorkerThreads]"
@@ -9454,12 +9392,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$272"
+		(object Role "$UNNAMED$268"
 		    quid       	"3DB936DE038E"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$273"
+	(object Association "$UNNAMED$269"
 	    quid       	"3DB936E00167"
 	    roles      	(list role_list
 		(object Role "worker_cond"
@@ -9470,12 +9408,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$274"
+		(object Role "$UNNAMED$270"
 		    quid       	"3DB936E00171"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$275"
+	(object Association "$UNNAMED$271"
 	    quid       	"3DB936E002B1"
 	    roles      	(list role_list
 		(object Role "startup_cond"
@@ -9486,12 +9424,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$276"
+		(object Role "$UNNAMED$272"
 		    quid       	"3DB936E002B4"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$277"
+	(object Association "$UNNAMED$273"
 	    quid       	"3DB936E200F1"
 	    roles      	(list role_list
 		(object Role "tot_qlat"
@@ -9502,12 +9440,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$278"
+		(object Role "$UNNAMED$274"
 		    quid       	"3DB936E200F4"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$279"
+	(object Association "$UNNAMED$275"
 	    quid       	"3DB936E201E1"
 	    roles      	(list role_list
 		(object Role "tot_qlat_mt"
@@ -9518,12 +9456,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$280"
+		(object Role "$UNNAMED$276"
 		    quid       	"3DB936E201EB"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$281"
+	(object Association "$UNNAMED$277"
 	    quid       	"3DB936E60129"
 	    roles      	(list role_list
 		(object Role "wpid_"
@@ -9534,12 +9472,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$282"
+		(object Role "$UNNAMED$278"
 		    quid       	"3DB936E60133"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$283"
+	(object Association "$UNNAMED$279"
 	    quid       	"3DB958F1039B"
 	    roles      	(list role_list
 		(object Role "DebugContext"
@@ -9549,12 +9487,12 @@
 		    quidu      	"3C21B55E02FC"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$284"
+		(object Role "$UNNAMED$280"
 		    quid       	"3DB958F1039F"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$285"
+	(object Association "$UNNAMED$281"
 	    quid       	"3DB958F103DA"
 	    roles      	(list role_list
 		(object Role "address"
@@ -9565,12 +9503,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$286"
+		(object Role "$UNNAMED$282"
 		    quid       	"3DB958F103DE"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$287"
+	(object Association "$UNNAMED$283"
 	    quid       	"3DB958F20027"
 	    roles      	(list role_list
 		(object Role "tick"
@@ -9581,12 +9519,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$288"
+		(object Role "$UNNAMED$284"
 		    quid       	"3DB958F2002B"
 		    supplier   	"Logical View::OCTOPUSSY::Dispatcher"
 		    quidu      	"3C7B6A3E00A0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$289"
+	(object Association "$UNNAMED$285"
 	    quid       	"3DB958F6030C"
 	    roles      	(list role_list
 		(object Role "latency"
@@ -9596,12 +9534,12 @@
 		    quidu      	"3DB958F10229"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$290"
+		(object Role "$UNNAMED$286"
 		    quid       	"3DB958F60310"
 		    supplier   	"Logical View::OCTOPUSSY::Message"
 		    quidu      	"3C7B6A2D01F0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$291"
+	(object Association "$UNNAMED$287"
 	    quid       	"3DB958F70136"
 	    roles      	(list role_list
 		(object Role "DebugContext"
@@ -9611,12 +9549,12 @@
 		    quidu      	"3C21B55E02FC"
 		    Containment 	"By Value"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$292"
+		(object Role "$UNNAMED$288"
 		    quid       	"3DB958F70139"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$293"
+	(object Association "$UNNAMED$289"
 	    quid       	"3DB958F70187"
 	    roles      	(list role_list
 		(object Role "address_"
@@ -9627,12 +9565,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$294"
+		(object Role "$UNNAMED$290"
 		    quid       	"3DB958F7018A"
 		    supplier   	"Logical View::OCTOPUSSY::WPInterface"
 		    quidu      	"3C7B6A3702E5"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$295"
+	(object Association "$UNNAMED$291"
 	    quid       	"3DB963AB022A"
 	    roles      	(list role_list
 		(object Role "block_"
@@ -9643,12 +9581,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$296"
+		(object Role "$UNNAMED$292"
 		    quid       	"3DB963AB022D"
 		    supplier   	"Logical View::OCTOPUSSY::Message"
 		    quidu      	"3C7B6A2D01F0"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$297"
+	(object Association "$UNNAMED$293"
 	    quid       	"3E316F0402AA"
 	    roles      	(list role_list
 		(object Role "payload_"
@@ -9659,7 +9597,7 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$298"
+		(object Role "$UNNAMED$294"
 		    quid       	"3E316F0402AD"
 		    supplier   	"Logical View::OCTOPUSSY::Message"
 		    quidu      	"3C7B6A2D01F0"
@@ -9886,7 +9824,7 @@
 		    module     	"Component View::OCTOPUSSY"
 		    quidu      	"3DB936450383"
 		    language   	"ANSI C++")
-		(object Association "$UNNAMED$299"
+		(object Association "$UNNAMED$295"
 		    quid       	"3DB958F202C9"
 		    roles      	(list role_list
 			(object Role "pinglat"
@@ -9897,12 +9835,12 @@
 			    Containment 	"By Value"
 			    exportControl 	"Protected"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$300"
+			(object Role "$UNNAMED$296"
 			    quid       	"3DB958F202CC"
 			    supplier   	"Logical View::OCTOPUSSY::Testing::EchoWP"
 			    quidu      	"3C7E498E00D1"
 			    is_aggregate 	TRUE)))
-		(object Association "$UNNAMED$301"
+		(object Association "$UNNAMED$297"
 		    quid       	"3DB958F202DF"
 		    roles      	(list role_list
 			(object Role "ponglat"
@@ -9913,7 +9851,7 @@
 			    Containment 	"By Value"
 			    exportControl 	"Protected"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$302"
+			(object Role "$UNNAMED$298"
 			    quid       	"3DB958F202E2"
 			    supplier   	"Logical View::OCTOPUSSY::Testing::EchoWP"
 			    quidu      	"3C7E498E00D1"
@@ -10194,7 +10132,7 @@
 		    module     	"Component View::OCTOPUSSY"
 		    quidu      	"3DB936450383"
 		    language   	"ANSI C++")
-		(object Association "$UNNAMED$303"
+		(object Association "$UNNAMED$299"
 		    quid       	"3E08FF110298"
 		    roles      	(list role_list
 			(object Role "proxy"
@@ -10205,7 +10143,7 @@
 			    Containment 	"By Value"
 			    exportControl 	"Private"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$304"
+			(object Role "$UNNAMED$300"
 			    quid       	"3E08FF11029C"
 			    supplier   	"Logical View::OCTOPUSSY::Octoproxy::Identity"
 			    quidu      	"3E08EBFD03B8"
@@ -10289,13 +10227,13 @@
 			    height     	178
 			    annotation 	8
 			    autoResize 	TRUE)
-			(object AssociationViewNew "$UNNAMED$303" @6
+			(object AssociationViewNew "$UNNAMED$299" @6
 			    location   	(1493, 1155)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E08FF110298"
 			    roleview_list 	(list RoleViews
-				(object RoleView "$UNNAMED$304" @7
+				(object RoleView "$UNNAMED$300" @7
 				    Parent_View 	@6
 				    location   	(1157, 803)
 				    font       	(object Font
@@ -10696,7 +10634,7 @@
 		    height     	132
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object AssociationViewNew "$UNNAMED$157" @23
+		(object AssociationViewNew "$UNNAMED$155" @23
 		    location   	(2332, 1361)
 		    font       	(object Font
 			size       	10
@@ -10773,7 +10711,7 @@
 				pctDist    	0.902269
 				height     	37
 				orientation 	0))
-			(object RoleView "$UNNAMED$158" @27
+			(object RoleView "$UNNAMED$156" @27
 			    Parent_View 	@23
 			    location   	(-2469, -860)
 			    stereotype 	TRUE
@@ -10861,7 +10799,7 @@
 		    height     	138
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object AssociationViewNew "$UNNAMED$156" @32
+		(object AssociationViewNew "$UNNAMED$154" @32
 		    location   	(2778, 1056)
 		    stereotype 	TRUE
 		    line_color 	3342489
@@ -10991,7 +10929,7 @@
 				pctDist    	0.818731
 				height     	55
 				orientation 	0))))
-		(object AssociationViewNew "$UNNAMED$161" @39
+		(object AssociationViewNew "$UNNAMED$159" @39
 		    location   	(3424, 1251)
 		    font       	(object Font
 			size       	10
@@ -11068,7 +11006,7 @@
 				pctDist    	0.850622
 				height     	40
 				orientation 	0))
-			(object RoleView "$UNNAMED$162" @43
+			(object RoleView "$UNNAMED$160" @43
 			    Parent_View 	@39
 			    location   	(2033, -2090)
 			    stereotype 	TRUE
@@ -11143,47 +11081,7 @@
 		    height     	190
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::DOMIN0::HIID" @46
-		    ShowCompartmentStereotypes 	TRUE
-		    ShowOperationSignature 	TRUE
-		    location   	(304, 992)
-		    font       	(object Font
-			size       	10
-			face       	"arial"
-			bold       	FALSE
-			italics    	FALSE
-			underline  	FALSE
-			strike     	FALSE
-			color      	0
-			default_color 	TRUE)
-		    label      	(object ItemLabel
-			Parent_View 	@46
-			location   	(161, 911)
-			nlines     	1
-			max_width  	286
-			justify    	0
-			label      	"HIID")
-		    icon_style 	"Icon"
-		    line_color 	3342489
-		    quidu      	"3BE96FE601C5"
-		    width      	304
-		    height     	188
-		    annotation 	8
-		    autoResize 	TRUE)
-		(object InheritView "" @47
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3C8F9A5B0343"
-		    client     	@17
-		    supplier   	@46
-		    vertices   	(list Points
-			(1047, 1473)
-			(241, 1473)
-			(241, 1086))
-		    line_style 	3
-		    origin_attachment 	(1047, 1473)
-		    terminal_attachment 	(241, 1086))
-		(object ClassView "Class" "Logical View::OCTOPUSSY::MsgAddress" @48
+		(object ClassView "Class" "Logical View::OCTOPUSSY::MsgAddress" @46
 		    ShowCompartmentStereotypes 	TRUE
 		    ShowOperationSignature 	TRUE
 		    location   	(1215, 1080)
@@ -11197,7 +11095,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@48
+			Parent_View 	@46
 			location   	(680, 986)
 			fill_color 	13434879
 			nlines     	1
@@ -11212,16 +11110,16 @@
 		    height     	215
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object InheritView "" @49
+		(object InheritView "" @47
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3C8F9A8F0199"
-		    client     	@48
+		    client     	@46
 		    supplier   	@17
 		    line_style 	3
 		    origin_attachment 	(1155, 1187)
 		    terminal_attachment 	(1155, 1438))
-		(object ClassView "Class" "Logical View::OCTOPUSSY::Message" @50
+		(object ClassView "Class" "Logical View::OCTOPUSSY::Message" @48
 		    ShowCompartmentStereotypes 	TRUE
 		    ShowOperationSignature 	TRUE
 		    location   	(1168, 576)
@@ -11235,7 +11133,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@50
+			Parent_View 	@48
 			location   	(1045, 523)
 			fill_color 	13434879
 			nlines     	1
@@ -11250,99 +11148,7 @@
 		    height     	132
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object AssociationViewNew "$UNNAMED$154" @51
-		    location   	(586, 607)
-		    font       	(object Font
-			size       	10
-			face       	"arial"
-			bold       	FALSE
-			italics    	FALSE
-			underline  	FALSE
-			strike     	FALSE
-			color      	0
-			default_color 	TRUE)
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3C7B71820219"
-		    roleview_list 	(list RoleViews
-			(object RoleView "id" @52
-			    Parent_View 	@51
-			    location   	(245, -460)
-			    font       	(object Font
-				size       	10
-				face       	"arial"
-				bold       	FALSE
-				italics    	FALSE
-				underline  	FALSE
-				strike     	FALSE
-				color      	0
-				default_color 	TRUE)
-			    label      	(object SegLabel @53
-				Parent_View 	@52
-				location   	(480, 813)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				anchor     	1
-				anchor_loc 	1
-				nlines     	1
-				max_width  	62
-				justify    	0
-				label      	"-id"
-				pctDist    	0.811284
-				height     	53
-				orientation 	0)
-			    stereotype 	TRUE
-			    line_color 	3342489
-			    quidu      	"3C7B718500FB"
-			    client     	@51
-			    supplier   	@46
-			    vertices   	(list Points
-				(586, 607)
-				(427, 607)
-				(427, 898))
-			    line_style 	3
-			    origin_attachment 	(586, 607)
-			    terminal_attachment 	(427, 898)
-			    label      	(object SegLabel @54
-				Parent_View 	@52
-				location   	(391, 824)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				anchor     	2
-				anchor_loc 	1
-				nlines     	1
-				max_width  	34
-				justify    	0
-				label      	"1"
-				pctDist    	0.834630
-				height     	37
-				orientation 	1))
-			(object RoleView "$UNNAMED$155" @55
-			    Parent_View 	@51
-			    location   	(245, -460)
-			    stereotype 	TRUE
-			    line_color 	3342489
-			    quidu      	"3C7B71850155"
-			    client     	@51
-			    supplier   	@50
-			    line_style 	3
-			    origin_attachment 	(586, 607)
-			    terminal_attachment 	(1036, 607))))
-		(object AssociationViewNew "$UNNAMED$150" @56
+		(object AssociationViewNew "$UNNAMED$150" @49
 		    location   	(1168, 807)
 		    font       	(object Font
 			size       	10
@@ -11357,8 +11163,8 @@
 		    line_color 	3342489
 		    quidu      	"3C7B70FF033D"
 		    roleview_list 	(list RoleViews
-			(object RoleView "to" @57
-			    Parent_View 	@56
+			(object RoleView "to" @50
+			    Parent_View 	@49
 			    location   	(838, -258)
 			    font       	(object Font
 				size       	10
@@ -11369,8 +11175,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @58
-				Parent_View 	@57
+			    label      	(object SegLabel @51
+				Parent_View 	@50
 				location   	(1201, 944)
 				font       	(object Font
 				    size       	10
@@ -11393,13 +11199,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3C7B7100015E"
-			    client     	@56
-			    supplier   	@48
+			    client     	@49
+			    supplier   	@46
 			    line_style 	3
 			    origin_attachment 	(1168, 807)
 			    terminal_attachment 	(1168, 973)
-			    label      	(object SegLabel @59
-				Parent_View 	@57
+			    label      	(object SegLabel @52
+				Parent_View 	@50
 				location   	(1139, 939)
 				font       	(object Font
 				    size       	10
@@ -11419,18 +11225,18 @@
 				pctDist    	0.792683
 				height     	30
 				orientation 	1))
-			(object RoleView "$UNNAMED$151" @60
-			    Parent_View 	@56
+			(object RoleView "$UNNAMED$151" @53
+			    Parent_View 	@49
 			    location   	(838, -258)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3C7B7100017C"
-			    client     	@56
-			    supplier   	@50
+			    client     	@49
+			    supplier   	@48
 			    line_style 	3
 			    origin_attachment 	(1168, 807)
 			    terminal_attachment 	(1168, 642))))
-		(object AssociationViewNew "$UNNAMED$152" @61
+		(object AssociationViewNew "$UNNAMED$152" @54
 		    location   	(1063, 807)
 		    font       	(object Font
 			size       	10
@@ -11445,8 +11251,8 @@
 		    line_color 	3342489
 		    quidu      	"3C7B71050151"
 		    roleview_list 	(list RoleViews
-			(object RoleView "from" @62
-			    Parent_View 	@61
+			(object RoleView "from" @55
+			    Parent_View 	@54
 			    location   	(711, -263)
 			    font       	(object Font
 				size       	10
@@ -11457,8 +11263,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @63
-				Parent_View 	@62
+			    label      	(object SegLabel @56
+				Parent_View 	@55
 				location   	(986, 946)
 				font       	(object Font
 				    size       	10
@@ -11481,13 +11287,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3C7B7106029D"
-			    client     	@61
-			    supplier   	@48
+			    client     	@54
+			    supplier   	@46
 			    line_style 	3
 			    origin_attachment 	(1063, 807)
 			    terminal_attachment 	(1063, 973)
-			    label      	(object SegLabel @64
-				Parent_View 	@62
+			    label      	(object SegLabel @57
+				Parent_View 	@55
 				location   	(1091, 932)
 				font       	(object Font
 				    size       	10
@@ -11507,18 +11313,18 @@
 				pctDist    	0.750000
 				height     	28
 				orientation 	0))
-			(object RoleView "$UNNAMED$153" @65
-			    Parent_View 	@61
+			(object RoleView "$UNNAMED$153" @58
+			    Parent_View 	@54
 			    location   	(711, -263)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3C7B710602B1"
-			    client     	@61
-			    supplier   	@50
+			    client     	@54
+			    supplier   	@48
 			    line_style 	3
 			    origin_attachment 	(1063, 807)
 			    terminal_attachment 	(1063, 642))))
-		(object AssociationViewNew "$UNNAMED$163" @66
+		(object AssociationViewNew "$UNNAMED$161" @59
 		    location   	(1280, 807)
 		    font       	(object Font
 			size       	10
@@ -11533,8 +11339,8 @@
 		    line_color 	3342489
 		    quidu      	"3CC9530802FB"
 		    roleview_list 	(list RoleViews
-			(object RoleView "forwarder" @67
-			    Parent_View 	@66
+			(object RoleView "forwarder" @60
+			    Parent_View 	@59
 			    location   	(230, -480)
 			    font       	(object Font
 				size       	10
@@ -11545,8 +11351,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @68
-				Parent_View 	@67
+			    label      	(object SegLabel @61
+				Parent_View 	@60
 				location   	(1391, 941)
 				font       	(object Font
 				    size       	10
@@ -11569,13 +11375,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3CC9530903D9"
-			    client     	@66
-			    supplier   	@48
+			    client     	@59
+			    supplier   	@46
 			    line_style 	3
 			    origin_attachment 	(1280, 807)
 			    terminal_attachment 	(1280, 973)
-			    label      	(object SegLabel @69
-				Parent_View 	@67
+			    label      	(object SegLabel @62
+				Parent_View 	@60
 				location   	(1245, 957)
 				font       	(object Font
 				    size       	10
@@ -11595,18 +11401,18 @@
 				pctDist    	0.902116
 				height     	36
 				orientation 	1))
-			(object RoleView "$UNNAMED$164" @70
-			    Parent_View 	@66
+			(object RoleView "$UNNAMED$162" @63
+			    Parent_View 	@59
 			    location   	(230, -480)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3CC9530A0041"
-			    client     	@66
-			    supplier   	@50
+			    client     	@59
+			    supplier   	@48
 			    line_style 	3
 			    origin_attachment 	(1280, 807)
 			    terminal_attachment 	(1280, 642))))
-		(object NoteView @71
+		(object NoteView @64
 		    location   	(2976, 1904)
 		    font       	(object Font
 			size       	10
@@ -11618,7 +11424,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@71
+			Parent_View 	@64
 			location   	(2746, 1815)
 			fill_color 	13434879
 			nlines     	3
@@ -11628,13 +11434,13 @@
 		    fill_color 	16774861
 		    width      	485
 		    height     	191)
-		(object AttachView "" @72
+		(object AttachView "" @65
 		    stereotype 	TRUE
 		    line_color 	3342489
-		    client     	@71
+		    client     	@64
 		    supplier   	@14
 		    line_style 	0)
-		(object ClassView "Class" "Logical View::OCTOPUSSY::AppRegistry" @73
+		(object ClassView "Class" "Logical View::OCTOPUSSY::AppRegistry" @66
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -11650,7 +11456,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@73
+			Parent_View 	@66
 			location   	(116, 1872)
 			fill_color 	13434879
 			nlines     	1
@@ -11664,11 +11470,11 @@
 		    width      	1706
 		    height     	507
 		    annotation 	8)
-		(object UsesView "" @74
+		(object UsesView "" @67
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E30149A0385"
-		    client     	@73
+		    client     	@66
 		    supplier   	@22
 		    vertices   	(list Points
 			(1813, 1859)
@@ -11677,21 +11483,21 @@
 		    line_style 	3
 		    origin_attachment 	(1813, 1859)
 		    terminal_attachment 	(1948, 1115))
-		(object UsesView "" @75
+		(object UsesView "" @68
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E301406010B"
 		    client     	@14
-		    supplier   	@73
+		    supplier   	@66
 		    line_style 	3
 		    origin_attachment 	(1955, 2049)
 		    terminal_attachment 	(1813, 2049))
-		(object UsesView "" @76
+		(object UsesView "" @69
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3C7B726503E2"
 		    client     	@44
-		    supplier   	@50
+		    supplier   	@48
 		    line_style 	3
 		    origin_attachment 	(388, 549)
 		    terminal_attachment 	(1036, 549))))
@@ -11704,7 +11510,7 @@
 	    origin_x   	0
 	    origin_y   	0
 	    items      	(list diagram_item_list
-		(object ClassView "Class" "Logical View::OCTOPUSSY::MTGatewayWP" @77
+		(object ClassView "Class" "Logical View::OCTOPUSSY::MTGatewayWP" @70
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -11719,7 +11525,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@77
+			Parent_View 	@70
 			location   	(3337, 623)
 			fill_color 	13434879
 			nlines     	2
@@ -11733,7 +11539,7 @@
 		    width      	1184
 		    height     	3036
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::OCTOPUSSY::GWClientWP" @78
+		(object ClassView "Class" "Logical View::OCTOPUSSY::GWClientWP" @71
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -11748,7 +11554,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@78
+			Parent_View 	@71
 			location   	(136, 1874)
 			fill_color 	13434879
 			nlines     	2
@@ -11762,7 +11568,7 @@
 		    width      	738
 		    height     	1334
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::OCTOPUSSY::GWServerWP" @79
+		(object ClassView "Class" "Logical View::OCTOPUSSY::GWServerWP" @72
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -11777,7 +11583,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@79
+			Parent_View 	@72
 			location   	(947, 766)
 			fill_color 	13434879
 			nlines     	2
@@ -11791,7 +11597,7 @@
 		    width      	556
 		    height     	1118
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::OCTOPUSSY::GatewayWP" @80
+		(object ClassView "Class" "Logical View::OCTOPUSSY::GatewayWP" @73
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -11806,7 +11612,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@80
+			Parent_View 	@73
 			location   	(1846, 2557)
 			fill_color 	13434879
 			nlines     	2
@@ -11820,7 +11626,7 @@
 		    width      	1158
 		    height     	3008
 		    annotation 	8)
-		(object UsesView "" @81
+		(object UsesView "" @74
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -11830,8 +11636,8 @@
 			strike     	FALSE
 			color      	0
 			default_color 	TRUE)
-		    stereotype 	(object SegLabel @82
-			Parent_View 	@81
+		    stereotype 	(object SegLabel @75
+			Parent_View 	@74
 			location   	(1661, 2285)
 			font       	(object Font
 			    size       	10
@@ -11853,8 +11659,8 @@
 			orientation 	0)
 		    line_color 	3342489
 		    quidu      	"3C90BEFA02E4"
-		    client     	@79
-		    supplier   	@80
+		    client     	@72
+		    supplier   	@73
 		    vertices   	(list Points
 			(1494, 1260)
 			(1541, 1260)
@@ -11863,7 +11669,7 @@
 		    line_style 	3
 		    origin_attachment 	(1494, 1260)
 		    terminal_attachment 	(1837, 3063))
-		(object UsesView "" @83
+		(object UsesView "" @76
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -11873,8 +11679,8 @@
 			strike     	FALSE
 			color      	0
 			default_color 	TRUE)
-		    stereotype 	(object SegLabel @84
-			Parent_View 	@83
+		    stereotype 	(object SegLabel @77
+			Parent_View 	@76
 			location   	(1031, 3425)
 			font       	(object Font
 			    size       	10
@@ -11896,8 +11702,8 @@
 			orientation 	0)
 		    line_color 	3342489
 		    quidu      	"3C95AA83029E"
-		    client     	@78
-		    supplier   	@80
+		    client     	@71
+		    supplier   	@73
 		    vertices   	(list Points
 			(865, 2294)
 			(911, 2294)
@@ -11906,7 +11712,7 @@
 		    line_style 	3
 		    origin_attachment 	(865, 2294)
 		    terminal_attachment 	(1837, 3677))
-		(object ClassView "Class" "Logical View::OCTOPUSSY::WorkProcess" @85
+		(object ClassView "Class" "Logical View::OCTOPUSSY::WorkProcess" @78
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -11923,7 +11729,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@85
+			Parent_View 	@78
 			location   	(1496, 99)
 			fill_color 	13434879
 			nlines     	1
@@ -11938,54 +11744,54 @@
 		    height     	116
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object InheritTreeView "" @86
+		(object InheritTreeView "" @79
 		    location   	(1664, 362)
 		    line_color 	3342489
 		    fill_color 	13434879
-		    supplier   	@85
+		    supplier   	@78
 		    vertices   	(list Points
 			(1664, 362)
 			(1664, 202)))
-		(object InheritView "" @87
+		(object InheritView "" @80
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3C90BF100390"
-		    client     	@80
-		    supplier   	@85
+		    client     	@73
+		    supplier   	@78
 		    line_style 	3
 		    origin_attachment 	(2189, 2544)
 		    terminal_attachment 	(2189, 362)
-		    drawSupplier 	@86)
-		(object InheritView "" @88
+		    drawSupplier 	@79)
+		(object InheritView "" @81
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3C95A941009C"
-		    client     	@78
-		    supplier   	@85
+		    client     	@71
+		    supplier   	@78
 		    line_style 	3
 		    origin_attachment 	(491, 1861)
 		    terminal_attachment 	(491, 362)
-		    drawSupplier 	@86)
-		(object InheritView "" @89
+		    drawSupplier 	@79)
+		(object InheritView "" @82
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3C8F943E01B2"
-		    client     	@79
-		    supplier   	@85
+		    client     	@72
+		    supplier   	@78
 		    line_style 	3
 		    origin_attachment 	(1215, 753)
 		    terminal_attachment 	(1215, 362)
-		    drawSupplier 	@86)
-		(object InheritView "" @90
+		    drawSupplier 	@79)
+		(object InheritView "" @83
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DB958F301AA"
-		    client     	@77
-		    supplier   	@85
+		    client     	@70
+		    supplier   	@78
 		    line_style 	3
 		    origin_attachment 	(3917, 610)
 		    terminal_attachment 	(3917, 362)
-		    drawSupplier 	@86)))
+		    drawSupplier 	@79)))
 	(object ClassDiagram "System WPs"
 	    quid       	"3E30103A0231"
 	    title      	"System WPs"
@@ -11995,7 +11801,7 @@
 	    origin_x   	0
 	    origin_y   	800
 	    items      	(list diagram_item_list
-		(object ClassView "Class" "Logical View::OCTOPUSSY::LoggerWP" @91
+		(object ClassView "Class" "Logical View::OCTOPUSSY::LoggerWP" @84
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -12011,7 +11817,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@91
+			Parent_View 	@84
 			location   	(1750, 740)
 			fill_color 	13434879
 			nlines     	1
@@ -12025,7 +11831,7 @@
 		    width      	1063
 		    height     	1137
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::OCTOPUSSY::WorkProcess" @92
+		(object ClassView "Class" "Logical View::OCTOPUSSY::WorkProcess" @85
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -12041,7 +11847,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@92
+			Parent_View 	@85
 			location   	(1790, 113)
 			fill_color 	13434879
 			nlines     	1
@@ -12055,25 +11861,25 @@
 		    width      	438
 		    height     	118
 		    annotation 	8)
-		(object InheritTreeView "" @93
+		(object InheritTreeView "" @86
 		    location   	(2115, 584)
 		    line_color 	3342489
 		    fill_color 	13434879
-		    supplier   	@92
+		    supplier   	@85
 		    vertices   	(list Points
 			(2115, 584)
 			(2115, 219)))
-		(object InheritView "" @94
+		(object InheritView "" @87
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3CA044E9021B"
-		    client     	@91
-		    supplier   	@92
+		    client     	@84
+		    supplier   	@85
 		    line_style 	3
 		    origin_attachment 	(2272, 728)
 		    terminal_attachment 	(2272, 584)
-		    drawSupplier 	@93)
-		(object ClassView "Class" "Logical View::OCTOPUSSY::AppRegistry" @95
+		    drawSupplier 	@86)
+		(object ClassView "Class" "Logical View::OCTOPUSSY::AppRegistry" @88
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -12089,7 +11895,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@95
+			Parent_View 	@88
 			location   	(154, 68)
 			fill_color 	13434879
 			nlines     	1
@@ -12103,7 +11909,7 @@
 		    width      	1375
 		    height     	400
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::OCTOPUSSY::AppManagerWP" @96
+		(object ClassView "Class" "Logical View::OCTOPUSSY::AppManagerWP" @89
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -12118,7 +11924,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@96
+			Parent_View 	@89
 			location   	(298, 768)
 			fill_color 	13434879
 			nlines     	2
@@ -12132,7 +11938,7 @@
 		    width      	510
 		    height     	536
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::OCTOPUSSY::AppManagerWP::AppMap" @97
+		(object ClassView "Class" "Logical View::OCTOPUSSY::AppManagerWP::AppMap" @90
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -12149,7 +11955,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@97
+			Parent_View 	@90
 			location   	(250, 1829)
 			fill_color 	13434879
 			nlines     	1
@@ -12157,7 +11963,7 @@
 			justify    	0
 			label      	"AppMap")
 		    stereotype 	(object ItemLabel
-			Parent_View 	@97
+			Parent_View 	@90
 			location   	(250, 1779)
 			fill_color 	13434879
 			anchor     	10
@@ -12172,14 +11978,14 @@
 		    width      	414
 		    height     	178
 		    annotation 	8)
-		(object AssociationViewNew "" @98
+		(object AssociationViewNew "" @91
 		    location   	(472, 1529)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E316F2A01F0"
 		    roleview_list 	(list RoleViews
-			(object RoleView "" @99
-			    Parent_View 	@98
+			(object RoleView "" @92
+			    Parent_View 	@91
 			    location   	(40, -583)
 			    font       	(object Font
 				size       	10
@@ -12190,8 +11996,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @100
-				Parent_View 	@99
+			    label      	(object SegLabel @93
+				Parent_View 	@92
 				location   	(431, 1339)
 				font       	(object Font
 				    size       	10
@@ -12215,13 +12021,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E316F2A01F3"
-			    client     	@98
-			    supplier   	@96
+			    client     	@91
+			    supplier   	@89
 			    line_style 	3
 			    origin_attachment 	(472, 1529)
 			    terminal_attachment 	(472, 1292))
-			(object RoleView "appmap" @101
-			    Parent_View 	@98
+			(object RoleView "appmap" @94
+			    Parent_View 	@91
 			    location   	(40, -583)
 			    font       	(object Font
 				size       	10
@@ -12232,8 +12038,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @102
-				Parent_View 	@101
+			    label      	(object SegLabel @95
+				Parent_View 	@94
 				location   	(394, 1683)
 				font       	(object Font
 				    size       	10
@@ -12256,27 +12062,27 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E316F2A01F1"
-			    client     	@98
-			    supplier   	@97
+			    client     	@91
+			    supplier   	@90
 			    line_style 	3
 			    origin_attachment 	(472, 1529)
 			    terminal_attachment 	(472, 1767))))
-		(object InheritView "" @103
+		(object InheritView "" @96
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E316F2A01EB"
-		    client     	@96
-		    supplier   	@92
+		    client     	@89
+		    supplier   	@85
 		    line_style 	3
 		    origin_attachment 	(553, 756)
 		    terminal_attachment 	(553, 584)
-		    drawSupplier 	@93)
-		(object InheritView "" @104
+		    drawSupplier 	@86)
+		(object InheritView "" @97
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E316F2A01ED"
-		    client     	@96
-		    supplier   	@95
+		    client     	@89
+		    supplier   	@88
 		    line_style 	3
 		    origin_attachment 	(425, 756)
 		    terminal_attachment 	(425, 456))))
@@ -12289,7 +12095,7 @@
 	    origin_x   	0
 	    origin_y   	422
 	    items      	(list diagram_item_list
-		(object ClassView "Class" "Logical View::OCTOPUSSY::Dispatcher" @105
+		(object ClassView "Class" "Logical View::OCTOPUSSY::Dispatcher" @98
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -12305,7 +12111,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@105
+			Parent_View 	@98
 			location   	(175, 503)
 			fill_color 	13434879
 			nlines     	1
@@ -12319,14 +12125,14 @@
 		    width      	1909
 		    height     	3979
 		    annotation 	8)
-		(object AssociationViewNew "$UNNAMED$179" @106
+		(object AssociationViewNew "$UNNAMED$175" @99
 		    location   	(2203, 4082)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DB936550226"
 		    roleview_list 	(list RoleViews
-			(object RoleView "dispatcher" @107
-			    Parent_View 	@106
+			(object RoleView "dispatcher" @100
+			    Parent_View 	@99
 			    location   	(1643, 2082)
 			    font       	(object Font
 				size       	10
@@ -12337,8 +12143,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @108
-				Parent_View 	@107
+			    label      	(object SegLabel @101
+				Parent_View 	@100
 				location   	(1395, 4451)
 				font       	(object Font
 				    size       	10
@@ -12361,8 +12167,8 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3DB936550227"
-			    client     	@106
-			    supplier   	@105
+			    client     	@99
+			    supplier   	@98
 			    vertices   	(list Points
 				(2203, 4082)
 				(2203, 4492)
@@ -12371,8 +12177,8 @@
 			    line_style 	3
 			    origin_attachment 	(2203, 4082)
 			    terminal_attachment 	(1113, 4469))
-			(object RoleView "dispatcher" @109
-			    Parent_View 	@106
+			(object RoleView "dispatcher" @102
+			    Parent_View 	@99
 			    location   	(1643, 2082)
 			    font       	(object Font
 				size       	10
@@ -12383,8 +12189,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @110
-				Parent_View 	@109
+			    label      	(object SegLabel @103
+				Parent_View 	@102
 				location   	(2245, 2865)
 				font       	(object Font
 				    size       	10
@@ -12407,8 +12213,8 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3DB936550230"
-			    client     	@106
-			    supplier   	@105
+			    client     	@99
+			    supplier   	@98
 			    vertices   	(list Points
 				(2203, 4082)
 				(2203, 2688)
@@ -12416,7 +12222,7 @@
 			    line_style 	3
 			    origin_attachment 	(2203, 4082)
 			    terminal_attachment 	(2074, 2688))))
-		(object ClassView "Class" "Logical View::OCTOPUSSY::WPInterface" @111
+		(object ClassView "Class" "Logical View::OCTOPUSSY::WPInterface" @104
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -12432,7 +12238,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@111
+			Parent_View 	@104
 			location   	(2667, 162)
 			fill_color 	13434879
 			nlines     	1
@@ -12446,14 +12252,14 @@
 		    width      	1308
 		    height     	5492
 		    annotation 	8)
-		(object AssociationViewNew "$UNNAMED$156" @112
+		(object AssociationViewNew "$UNNAMED$154" @105
 		    location   	(2366, 2458)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3C7E14150352"
 		    roleview_list 	(list RoleViews
-			(object RoleView "dsp" @113
-			    Parent_View 	@112
+			(object RoleView "dsp" @106
+			    Parent_View 	@105
 			    location   	(-882, -294)
 			    font       	(object Font
 				size       	10
@@ -12464,8 +12270,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @114
-				Parent_View 	@113
+			    label      	(object SegLabel @107
+				Parent_View 	@106
 				location   	(2133, 2417)
 				font       	(object Font
 				    size       	10
@@ -12488,13 +12294,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3C7E1416017C"
-			    client     	@112
-			    supplier   	@105
+			    client     	@105
+			    supplier   	@98
 			    line_style 	3
 			    origin_attachment 	(2366, 2458)
 			    terminal_attachment 	(2074, 2458)
-			    label      	(object SegLabel @115
-				Parent_View 	@113
+			    label      	(object SegLabel @108
+				Parent_View 	@106
 				location   	(2103, 2512)
 				font       	(object Font
 				    size       	10
@@ -12514,8 +12320,8 @@
 				pctDist    	0.900000
 				height     	54
 				orientation 	0))
-			(object RoleView "wps:map<WPID,WPRef>" @116
-			    Parent_View 	@112
+			(object RoleView "wps:map<WPID,WPRef>" @109
+			    Parent_View 	@105
 			    location   	(-882, -294)
 			    font       	(object Font
 				size       	10
@@ -12526,8 +12332,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @117
-				Parent_View 	@116
+			    label      	(object SegLabel @110
+				Parent_View 	@109
 				location   	(2599, 2417)
 				font       	(object Font
 				    size       	10
@@ -12550,13 +12356,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3C7E1416010E"
-			    client     	@112
-			    supplier   	@111
+			    client     	@105
+			    supplier   	@104
 			    line_style 	3
 			    origin_attachment 	(2366, 2458)
 			    terminal_attachment 	(2658, 2458)
-			    label      	(object SegLabel @118
-				Parent_View 	@116
+			    label      	(object SegLabel @111
+				Parent_View 	@109
 				location   	(2629, 2512)
 				font       	(object Font
 				    size       	10

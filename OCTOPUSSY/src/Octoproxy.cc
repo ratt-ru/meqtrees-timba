@@ -53,6 +53,7 @@ bool Identity::receive(Message::Ref &mref,bool wait)
   mref.detach();
   Thread::Mutex::Lock lock(wp().queueCondition());
   wp().queueCondition().wait();
+  // bug, finish this
 }
 
 } // namespace Octoproxy
