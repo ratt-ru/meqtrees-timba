@@ -101,7 +101,7 @@ else
       AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_INTELCC"
     fi
     AIPSPP_LDFLAGS="-L$AIPSPP_PATH/$AIPSPP_ARCH/lib"
-    AIPSPP_LIBS="$AIPSPP_PATH/$AIPSPP_ARCH/lib/version.o -lglish -lsos -lnpd -ltrial -laips -ltrial_f -laips_f"
+    AIPSPP_LIBS="$AIPSPP_PATH/$AIPSPP_ARCH/lib/version.o -lglish -lsos -lnpd -laips -laips_f -ltrial -ltrial_f"
 
     if test "$with_pgplot" != "no"; then
       ]AC_CHECK_FILE([$with_pgplot],
