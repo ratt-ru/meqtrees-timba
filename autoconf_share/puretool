@@ -1,0 +1,91 @@
+#!/bin/sh
+
+#
+# Check for enough arguments
+#
+if test $# -lt 6 ; then
+  echo "usage: puretool [0|1]  [0|1]    [0|1] top_builddir puretool_prefix compiler ..."
+  echo "                  ^      ^        ^"
+  echo " enable         purify quantify purecov"
+  exit 1
+fi
+
+#
+# Determine which tools have been installed
+#
+have_purify=$1
+shift
+have_quantify=$1
+shift
+have_purecov=$1
+shift
+
+#
+# Determine location of build directory
+#
+top_builddir=$1
+shift
+
+#
+# Determine wether running purify, quantify or purecov
+#
+puretools_prefix=$1
+shift
+
+#
+# Test whether PURIFY env variable is set
+#
+if test "${QA+set}" != "set"; then
+
+  #
+  # PURIFY not defined so simply strip the path to the purify binary
+  # and call the compiler directly
+  #
+  $*
+
+else
+
+  #
+  # Purify found so save the path to purify and call purify
+  # with PURE_OPTIONS as arguments
+  #
+  error=0
+  case $QA in
+    purify);;
+    quantify);;
+    purecov);;
+    *)
+	echo QA should be set to one of:
+	if test $have_purify -eq 1; then
+	    echo "    purify"
+        fi
+	if test $have_quantify -eq 1; then
+	    echo "    quantify"
+        fi
+	if test $have_purecov -eq 1; then
+	    echo "    purecov"
+        fi
+	error=1
+  esac
+
+  #
+  # Define options for purify, quantify and purecov
+  #
+  if test "${PURE_OPTIONS+set}" != "set"; then
+
+    #
+    # Set different options for each purify tool
+    #
+    case $QA in
+	purify)   PURE_OPTIONS="-best-effort -cache-dir=$top_builddir/pure_cache -always-use-cache-dir -chain-length=50" ;;
+	quantify) PURE_OPTIONS="-best-effort -cache-dir=$top_builddir/pure_cache -always-use-cache-dir" ;;
+	purecov)  PURE_OPTIONS="-cache-dir=$top_builddir/pure_cache -always-use-cache-dir -chain-length=50" ;;
+    esac
+  fi
+
+  if test $error -eq 0; then
+    $puretools_prefix/$QA/$QA $PURE_OPTIONS $*
+  else
+    false
+  fi
+fi
