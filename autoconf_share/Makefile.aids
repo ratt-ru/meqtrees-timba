@@ -9,6 +9,6 @@ AID_MAP_BUILDER = $(AID_MAP_DIR)/build_aid_maps.pl
 AID_MAP_GLOBAL = $(AID_MAP_DIR)/Global.aidlist
 
 aids: 
-	$(AID_MAP_BUILDER) $(AID_MAP_GLOBAL) $(addprefix $(top_srcdir)/src/,$(DOCHDRS))
+	$(AID_MAP_BUILDER) $(AID_MAP_GLOBAL) $(addprefix $(srcdir)/,$(DOCHDRS))
   
 .PHONY: aids

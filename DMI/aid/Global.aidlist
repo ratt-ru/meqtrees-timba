@@ -15,6 +15,7 @@ Client                           1097       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 Connected                        1065       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 Connection                       1069       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 ConnectionMgrWP                  1039       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:18
+Content                          1123       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
 Count                            1119       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
 D                                1004       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Data                             1118       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
@@ -38,16 +39,19 @@ GWClientWP                       1094       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 GWServerWP                       1078       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:18
 Gateway                          1037       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWServerWP.h:15
 GatewayWP                        1041       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:18
+GlishClientWP                    1122       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:17
 H                                1009       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 HIID                             1025       ; from /home/oms/LOFAR/DMI/src/HIID.h:33
 Halt                             1106       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:9
 Halted                           1071       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:9
 Heartbeat                        1063       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MTGatewayWP.h:22
 Hello                            1085       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:21
+HelloWorld                       1125       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
 Host                             1082       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 Hosts                            1075       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWClientWP.h:17
 I                                1010       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 ID                               1105       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:10
+IMTestWP                         1124       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
 Index                            1035       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:26
 Init                             1095       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MTGatewayWP.h:22
 Input                            1072       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:19
@@ -125,6 +129,7 @@ ldouble                          45         ; from /home/oms/LOFAR/DMI/src/TypeI
 long                             39         ; from /home/oms/LOFAR/DMI/src/TypeId.h:101
 longlong                         41         ; from /home/oms/LOFAR/DMI/src/TypeId.h:101
 short                            35         ; from /home/oms/LOFAR/DMI/src/TypeId.h:100
+start                            1126       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
 string                           48         ; from /home/oms/LOFAR/DMI/src/TypeId.h:104
 uchar                            34         ; from /home/oms/LOFAR/DMI/src/TypeId.h:100
 uint                             38         ; from /home/oms/LOFAR/DMI/src/TypeId.h:100
