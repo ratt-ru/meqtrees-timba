@@ -83,6 +83,11 @@ if test "$with_pvss" != "no"; then
   if test "$lfr_lib_pvss" != "no" ; then
     PVSS_LDFLAGS="-L$lfr_lib_pvss"
     PVSS_LIBS="$lfr_lib_pvss/DpConfig.o $lfr_lib_pvss/DpConfigManager.o -lManager$PVSS_VERSION -lMessages$PVSS_VERSION -lDatapoint$PVSS_VERSION -lBasics$PVSS_VERSION -lbcm$PVSS_VERSION -lport -ldl"
+
+    echo "PVSS" >> pkgext
+    echo "$PVSS_CPPFLAGS" >> pkgextcppflags
+    echo "$PVSS_CXXFLAGS" >> pkgextcxxflags
+
     CPPFLAGS="$CPPFLAGS $PVSS_CPPFLAGS"
     CXXFLAGS="$CXXFLAGS $PVSS_CXXFLAGS"
     LDFLAGS="$LDFLAGS $PVSS_LDFLAGS"
