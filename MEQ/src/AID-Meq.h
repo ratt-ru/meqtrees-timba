@@ -328,6 +328,11 @@ const int AidMeqFunction_int = -1216;
 const AtomicID AidMeqNode(-1242);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:34
 const int AidMeqNode_int = -1242;
 #endif
+#ifndef _defined_id_AidMeqPolc
+#define _defined_id_AidMeqPolc 1
+const AtomicID AidMeqPolc(-1407);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Polc.h:32
+const int AidMeqPolc_int = -1407;
+#endif
 #ifndef _defined_id_AidMeqRequest
 #define _defined_id_AidMeqRequest 1
 const AtomicID AidMeqRequest(-1222);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:32

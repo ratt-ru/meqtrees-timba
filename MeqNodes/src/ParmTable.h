@@ -27,7 +27,7 @@
 #include <tables/Tables/Table.h>
 #include <tables/Tables/ColumnsIndex.h>
 #include <casa/Containers/RecordField.h>
-#include <MeqNodes/Polc.h>
+#include <MEQ/Polc.h>
 #include <Common/lofar_vector.h>
 #include <Common/Thread/Mutex.h>
 #include <map>

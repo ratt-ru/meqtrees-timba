@@ -26,8 +26,8 @@
 //# Includes
 #include <MEQ/Node.h>
 #include <MEQ/Vells.h>
+#include <MEQ/Polc.h>
 #include <MeqNodes/ParmTable.h>
-#include <MeqNodes/Polc.h>
 #include <Common/lofar_vector.h>
 
 #include <MeqNodes/TID-MeqNodes.h>

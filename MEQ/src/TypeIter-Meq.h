@@ -15,7 +15,8 @@
         Do(Meq::Result,arg) separator \
         Do(Meq::Request,arg) separator \
         Do(Meq::Node,arg) separator \
-        Do(Meq::Function,arg)
+        Do(Meq::Function,arg) separator \
+        Do(Meq::Polc,arg)
 
 #define DoForAllNumericTypes_Meq(Do,arg,separator) \
         

@@ -76,6 +76,23 @@ namespace Meq { class Node; };
               typedef const Meq::Node & ContainerParamType;
             };
 #endif
+#ifndef _defined_id_TpMeqPolc
+#define _defined_id_TpMeqPolc 1
+const TypeId TpMeqPolc(-1407);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Polc.h:32
+const int TpMeqPolc_int = -1407;
+namespace Meq { class Polc; };
+            template<>
+            class DMIBaseTypeTraits<Meq::Polc> : public TypeTraits<Meq::Polc>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqPolc_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::Polc & ContainerReturnType;
+              typedef const Meq::Polc & ContainerParamType;
+            };
+#endif
 #ifndef _defined_id_TpMeqRequest
 #define _defined_id_TpMeqRequest 1
 const TypeId TpMeqRequest(-1222);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:32

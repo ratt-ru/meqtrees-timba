@@ -19,6 +19,8 @@ BlockableObject * __construct_MeqRequest (int n) { return n>0 ? new Meq::Request
 BlockableObject * __construct_MeqNode (int n) { return n>0 ? new Meq::Node [n] : new Meq::Node; }
 #include "Function.h"
 BlockableObject * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n] : new Meq::Function; }
+#include "Polc.h"
+BlockableObject * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] : new Meq::Polc; }
   
     int aidRegistry_Meq ()
     {
@@ -160,6 +162,9 @@ BlockableObject * __construct_MeqFunction (int n) { return n>0 ? new Meq::Functi
         AtomicID::registerId(-1216,"meqfunction")+
         TypeInfoReg::addToRegistry(-1216,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1216,__construct_MeqFunction)+
+        AtomicID::registerId(-1407,"meqpolc")+
+        TypeInfoReg::addToRegistry(-1407,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1407,__construct_MeqPolc)+
         AtomicID::registerId(-1335,"delete")+
     0;
     return res;

@@ -63,8 +63,6 @@ BlockableObject * __construct_MeqMergeFlags (int n) { return n>0 ? new Meq::Merg
 BlockableObject * __construct_MeqResampler (int n) { return n>0 ? new Meq::Resampler [n] : new Meq::Resampler; }
 #include "ReqSeq.h"
 BlockableObject * __construct_MeqReqSeq (int n) { return n>0 ? new Meq::ReqSeq [n] : new Meq::ReqSeq; }
-#include "Polc.h"
-BlockableObject * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] : new Meq::Polc; }
   
     int aidRegistry_MeqNodes ()
     {
@@ -183,9 +181,6 @@ BlockableObject * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] :
         TypeInfoReg::addToRegistry(-1478,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1478,__construct_MeqReqSeq)+
         AtomicID::registerId(-1477,"only")+
-        AtomicID::registerId(-1407,"meqpolc")+
-        TypeInfoReg::addToRegistry(-1407,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1407,__construct_MeqPolc)+
     0;
     return res;
   }

@@ -8,7 +8,7 @@ LOCALSRCS = \
     Sqrt.cc Conj.cc ToComplex.cc  UVW.cc LMN.cc StatPointSourceDFT.cc \
     PointSourceDFT.cc  ModRes.cc Condeq.cc Solver.cc ZeroFlagger.cc \
     MergeFlags.cc Resampler.cc ReqSeq.cc  \
-    Polc.cc ParmTable.cc 
+    ParmTable.cc 
 
 DOCHDRS		= $(LOCALHDRS) \
             $(addsuffix .h,$(basename $(LOCALSRCS))) 

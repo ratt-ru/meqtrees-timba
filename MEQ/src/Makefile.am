@@ -5,7 +5,7 @@ LOCALHDRS = MeqVocabulary.h RequestId.h
 LOCALSRCS = \
   Domain.cc	Cells.cc Vells.cc VellSet.cc Result.cc \
   ResampleMachine.cc Request.cc RequestId.cc EventGenerator.cc \
-  Node.cc Function.cc CompoundFunction.cc Forest.cc 
+  Node.cc Function.cc CompoundFunction.cc Polc.cc Forest.cc 
 
 DOCHDRS		= $(LOCALHDRS) \
             $(addsuffix .h,$(basename $(LOCALSRCS))) 
