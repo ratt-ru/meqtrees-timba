@@ -20,7 +20,7 @@ class HippoArrayPlotter(BrowserPlugin):
   """ a class to plot raw arrays contained within a Meq tree """
 
   _icon = pixmaps.bars3d
-  viewer_name = "Hippo Plotter";
+  viewer_name = "Hippo Array Plotter";
   def is_viewable (data):
     return len(data) > 0;
   is_viewable = staticmethod(is_viewable);
@@ -49,6 +49,7 @@ class HippoArrayPlotter(BrowserPlugin):
       self.set_data(dataitem);
 
   def __del__(self):
+    print "in destructor"
     self._window_controller.closeAllWindows()
                                                                                            
   def wtop (self):
