@@ -609,11 +609,19 @@ PyObject * pyFromArray (const DataArray &da)
   // get rank & shape into terms that Numarray understands
   int rank = da.rank();
   maybelong dims[rank];
+  maybelong strides[rank];
+  maybelong stride = da.elementSize();
   for( int i=0; i<rank; i++ )
-    dims[i] = da.shape()[i];
+  {
+    strides[i] = stride;
+    stride *= dims[i] = da.shape()[i];
+  }
   NumarrayType typecode = typeIdToNumarray(da.elementType());
   PyObjectRef pyarr = (PyObject*)
-      NA_vNewArray(const_cast<void*>(da.getConstDataPtr()),typecode,rank,dims);
+      NA_NewAllStrides(rank,dims,strides,typecode,
+                       const_cast<void*>(da.getConstDataPtr()),
+                       0,NUM_LITTLE_ENDIAN,0,1);
+//      NA_vNewArray(const_cast<void*>(da.getConstDataPtr()),typecode,rank,dims);
   return ~pyarr;
 }
 
