@@ -38,6 +38,7 @@
 #
 #
 AC_DEFUN([lofar_DEBUG_OPTIMIZE],dnl
+lofar_SHMEM([])
 [dnl
 AC_PREREQ(2.13)dnl
 AC_ARG_WITH(debug,

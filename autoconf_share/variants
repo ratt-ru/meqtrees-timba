@@ -18,28 +18,30 @@ lam-corba.variant.conf:   $(standard) $(lam) $(vbroker)
 scampi.variant.conf:	  $(standard) $(scampi)
 scampi-opt.variant.conf:  $(standard) $(scampi) $(optimize)
 mpich-prof.variant.conf:  $(standard) $(mpich) --enable-mpi-profiler --with-cxxflags="-DHAVE_MPE"
-bgl.variant.conf:         $(lofar_root) $(debugopt) $(nomtsupport) $(bgl_cpp) $(bgl_ldd) --without-log4cplus --with-bglmpich --with-cxxflags="-DHAVE_BGL -DYY_NEVER_INTERACTIVE"
-fakebgl.variant.conf:     $(lofar_root) $(debug) $(nomtsupport) --without-log4cplus --with-cxxflags="-DHAVE_BGL"
+bgl.variant.conf:         $(lofar_root) $(debugopt) $(nothreads) $(noshmem) $(bgl_cpp) $(bgl_ldd) --without-log4cplus --with-bglmpich --with-cxxflags="-DHAVE_BGL -DYY_NEVER_INTERACTIVE"
+fakebgl.variant.conf:     $(lofar_root) $(debug) $(nothreads) $(noshmem) --without-log4cplus --with-cxxflags="-DHAVE_BGL"
 nolog4cplus.variant.conf: $(standard) $(debug) --without-log4cplus 
 insure.variant.conf:	  $(standard) --with-insuretools
 insure.variant.make:	  QA=insure
 
-standard.var:              $(lofar_root) $(aipspp) $(mtsupport)
+standard.var:             $(lofar_root) $(aipspp) $(threads) $(shmem)
 
 lofar_root.var:
 
-profile.var:		   --with-optimize='-pg -O2' --with-compiletools --with-ldflags='-lc_p'
-mpe.var:		   --with-mpich=/usr/local/mpich-1.2.5/ch_p4 --enable-mpi-profiler
-debug.var:		   --with-debug='-g'
-debugopt.var:		   --with-optimize='-g -O2'
-profopt.var:		   --with-optimize='-pg -O2' --with-ldflags='-lc_p'
-optimize.var:		   --with-optimize='-O2'
+profile.var:		  --with-optimize='-pg -O2' --with-compiletools --with-ldflags='-lc_p'
+mpe.var:		  --with-mpich=/usr/local/mpich-1.2.5/ch_p4 --enable-mpi-profiler
+debug.var:		  --with-debug='-g'
+debugopt.var:		  --with-optimize='-g -O2'
+profopt.var:		  --with-optimize='-pg -O2' --with-ldflags='-lc_p'
+optimize.var:		  --with-optimize='-O2'
 aipspp.var:
-mpich.var:		   --with-mpich
-lam.var:		   --with-lam
-scampi.var:		   --with-scampi
-vbroker.var:		   --with-vbroker
-mtsupport.var:		   --with-threads
-nomtsupport.var: 	   --with-threads=no  
-bgl_cpp.var:               --with-cppflags='-qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/bgl/BlueLight/ppcfloor/bglsys/include/'
-bgl_ldd.var:               --with-ldflags='-L/bgl/BlueLight/ppcfloor/bglsys/lib -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts -lstandalone.440 -lcrypt -lnss_files -lnss_dns -lresolv -lc -lnss_files -lnss_dns -lresolv -lm'
+mpich.var:                --with-mpich
+lam.var:		  --with-lam
+scampi.var:		  --with-scampi
+vbroker.var:		  --with-vbroker
+threads.var:              --with-threads
+nothreads.var:            --with-threads=no  
+shmem.var:                --with-shmem
+noshmem.var:              --with-shmem=no
+bgl_cpp.var:              --with-cppflags='-qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/bgl/BlueLight/ppcfloor/bglsys/include/'
+bgl_ldd.var:              --with-ldflags='-L/bgl/BlueLight/ppcfloor/bglsys/lib -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts -lstandalone.440 -lcrypt -lnss_files -lnss_dns -lresolv -lc -lnss_files -lnss_dns -lresolv -lm'
