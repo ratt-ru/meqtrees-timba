@@ -100,7 +100,7 @@ if test "$with_fftw" != "no"; then
 			[lfr_lib_fftw=$with_fftw_libdir],
 			[lfr_lib_fftw=no])[
     if test "$lfr_lib_fftw" != "no" ; then
-      ]AC_CHECK_FILE([$with_fftw_libdir/include/fftw.h],
+      ]AC_CHECK_FILE([$with_fftw_libdir/librfftw.a],
 			[lfr_lib_fftw=$with_fftw_libdir],
 			[lfr_lib_fftw=no])[
     fi
@@ -113,7 +113,7 @@ if test "$with_fftw" != "no"; then
       FFTW_CXXFLAGS="-Wno-unused -ftemplate-depth-30"
     fi
     FFTW_LDFLAGS="-L$lfr_lib_fftw"
-    FFTW_LIBS="-lfftw -lm"
+    FFTW_LIBS="-lrfftw -lfftw -lm"
 
     CPPFLAGS="$CPPFLAGS $FFTW_CPPFLAGS"
     CXXFLAGS="$CXXFLAGS $FFTW_CXXFLAGS"
