@@ -87,7 +87,7 @@ AC_DEFINE(LOFAR_DEBUG,dnl
 [ fi
   if test "$enable_debug" != "no"; then
     lfr_cflags="-g";
-    lfr_cxxflags="-g $lofar_warnflags";
+    lfr_cxxflags="-g $lofar_warnflags -DUSE_DEBUG";
     if test "$enable_dbgassert" = "default"; then
       enable_dbgassert="yes";
     fi
@@ -112,8 +112,8 @@ AC_DEFINE(LOFAR_DEBUG,dnl
   fi
 
   if test "$with_threads" != "no"; then
-    lfr_cppflags="-DUSE_THREADS";
-    lfr_ldflags="-lpthread";
+    lfr_cppflags="-DUSE_THREADS -pthread";
+    lfr_ldflags="";
   fi
 
   CPPFLAGS="$CPPFLAGS $lfr_cppflags $with_cppflags"
