@@ -8,6 +8,8 @@ clean-generic:
 	-rm -f .inslog*
 	-rm -f *.log
 	-rm -f *.i
+	-rm -f *.s
+	-rm -f src/*.h
 	-rm -f *.hh
 	-rm -f *.cc
 	-rm -f *.cs_cc
