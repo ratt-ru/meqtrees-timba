@@ -10,8 +10,17 @@
 #
 # Both files can be processed by pkgdep (in LCS/Common) to display the
 # packages dependencies in a tree-like format.
+#
+#  Run as:   finddep [rootdir]
+#    rootdir:   root of LOFAR software tree (default is ~lofar/weekly/LOFAR)
 
-egrep '^lofar_' `find ~lofar/weekly/LOFAR/ -name configure.in` | \
+rootdir="$1"
+echo "rootdir='$rootdir'"
+if [ "$rootdir" = "" ]; then
+  rootdir="/home/lofar/weekly/LOFAR";
+fi
+
+egrep '^lofar_' `find $rootdir -name configure.in` | \
 sed -e 's%.*/LOFAR/%LOFAR/%' -e 's/,.*//' -e 's/).*//' -e 's%/configure.in:lofar_% %' | \
 egrep -v ' (INIT|DEBUG|QATOOLS|DOCXX|CHECK_PRETTY|CHECK_LONG_LONG)' | \
 sed -e 's% PACKAGE(% LOFAR/%' -e 's% INTERNAL(% LOFAR/%' -e 's% EXTERNAL(% %' -e s'%(.*%%' | \
