@@ -497,23 +497,23 @@ inline PyObject * pyFromObjRef (const ObjRef &ref)
 }
 
 // -----------------------------------------------------------------------
-// pyFromField
+// pyFromVec
 // converts a DMI::Vec to a Python scalar or tuple
 // -----------------------------------------------------------------------
-PyObject * pyFromField (const DMI::Vec &df)
+PyObject * pyFromVec (const DMI::Vec &dv)
 {
-  Thread::Mutex::Lock lock(df.mutex());
+  Thread::Mutex::Lock lock(dv.mutex());
   // empty/uninit field -- return empty tuple
-  if( !df.valid() )
+  if( !dv.valid() )
   {
     cdebug(3)<<"pyFromDF: null DMI::Vec, returning ()\n";
     return PyTuple_New(0);
   }
-  TypeId type = df.type();
+  TypeId type = dv.type();
   const TypeInfo &typeinfo = TypeInfo::find(type);
-  int num = df.size();
+  int num = dv.size();
   PyObjectRef tuple;
-  if( df.isScalar() ) // scalar field: will be returned directly
+  if( dv.isScalar() ) // scalar field: will be returned directly
   {
     cdebug(3)<<"pyFromDF: will return scalar "<<type<<endl;
   }
@@ -531,12 +531,12 @@ PyObject * pyFromField (const DMI::Vec &df)
   // with ref counts.
   #define extractField(pyfunc,hookfunc) \
     { if( tuple ) { \
-        cdebug(4)<<"using "<<num<<" " #pyfunc "(df[i]." #hookfunc "())\n"; \
+        cdebug(4)<<"using "<<num<<" " #pyfunc "(dv[i]." #hookfunc "())\n"; \
         for( int i=0; i<num; i++ ) \
-          PyTuple_SET_ITEM(*tuple,i,pyfunc(df[i].hookfunc())); \
+          PyTuple_SET_ITEM(*tuple,i,pyfunc(dv[i].hookfunc())); \
       } else { \
-        cdebug(4)<<"using scalar " #pyfunc "(df." #hookfunc "())\n"; \
-        return pyfunc(df[HIID()].hookfunc()); } }
+        cdebug(4)<<"using scalar " #pyfunc "(dv." #hookfunc "())\n"; \
+        return pyfunc(dv[HIID()].hookfunc()); } }
   // now proceed depending on object type
   if( typeinfo.category == TypeCategories::NUMERIC )
   {
@@ -600,15 +600,6 @@ PyObject * pyFromRecord (const DMI::Record &dr)
   PyObjectRef pyrec = PyObject_CallObject(py_class.record,NULL);
   if( !pyrec )
     throwErrorOpt(Runtime,"failed to create a record instance");
-  // insert __dmi_type tag, if object is a subclass of record
-  TypeId objtype = dr.objectType();
-  if( objtype != TpDMIRecord )
-  {
-    cdebug(3)<<"pyFromRecord: actual DMI type is "<<objtype<<endl;
-    PyObjectRef type = PyString_FromString(const_cast<char*>(objtype.toString().c_str()));
-    if( PyObject_SetAttrString(*pyrec,const_cast<char*>(dmi_type_tag),*type) < 0 )
-      throwErrorOpt(Runtime,"failed to set attribute");
-  }
   for( DMI::Record::const_iterator iter = dr.begin(); iter != dr.end(); iter++ )
   {
     const ObjRef & content = iter.ref(); 
@@ -676,6 +667,8 @@ PyObject * pyFromArray (const DMI::NumArray &da)
                          const_cast<void*>(da.getConstDataPtr()),
                          0,NUM_LITTLE_ENDIAN,0,1);
   //      NA_vNewArray(const_cast<void*>(da.getConstDataPtr()),typecode,rank,dims);
+    // insert __dmi_type tag, if object is actually a subclass of DMI::NumArray
+    TypeId objtype = da.objectType();
     return ~pyarr;
   }
 }
@@ -733,19 +726,45 @@ PyObject * pyFromDMI (const DMI::BObj &obj,int err_policy)
   Thread::Mutex::Lock lock(obj.crefMutex());
   try
   {
-    TypeId type = obj.objectType();
+    TypeId objtype = obj.objectType();
+    TypeId base_objtype;
+    PyObjectRef pyobj;
     if( dynamic_cast<const DMI::Record *>(&obj) )
-      return pyFromRecord(dynamic_cast<const DMI::Record &>(obj));
+    {
+      base_objtype = TpDMIRecord;
+      pyobj = pyFromRecord(dynamic_cast<const DMI::Record &>(obj));
+    }
     else if( dynamic_cast<const DMI::Vec *>(&obj) )
-      return pyFromField(dynamic_cast<const DMI::Vec &>(obj));
-    else if( type == TpDMINumArray )
-      return pyFromArray(dynamic_cast<const DMI::NumArray &>(obj));
-    else if( type == TpDMIList )
-      return pyFromList(dynamic_cast<const DMI::List &>(obj));
-    else if( type == TpOctopussyMessage )
-      return pyFromMessage(dynamic_cast<const Message &>(obj));
+    {
+      base_objtype = TpDMIVec;
+      pyobj = pyFromVec(dynamic_cast<const DMI::Vec &>(obj));
+    }
+    else if( dynamic_cast<const DMI::NumArray *>(&obj) )
+    {
+      base_objtype = TpDMINumArray;
+      pyobj = pyFromArray(dynamic_cast<const DMI::NumArray &>(obj));
+    }
+    else if( dynamic_cast<const DMI::List *>(&obj) )
+    {
+      base_objtype = TpDMIList;
+      pyobj = pyFromList(dynamic_cast<const DMI::List &>(obj));
+    }
+    else if( dynamic_cast<const Message *>(&obj) )
+    {
+      base_objtype = TpOctopussyMessage;
+      pyobj = pyFromMessage(dynamic_cast<const Message &>(obj));
+    }
     else
-      throwError(Type,"dmi type "+type.toString()+" not supported");
+      throwError(Type,"dmi type "+objtype.toString()+" not supported");
+    // set the __dmi_type attribute if object is a subclass
+    if( objtype != base_objtype )
+    {
+      cdebug(3)<<"pyFromDMI: "<<objtype<<" is a subclass of "<<base_objtype<<endl;
+      PyObjectRef type = PyString_FromString(const_cast<char*>(objtype.toString().c_str()));
+      if( PyObject_SetAttrString(*pyobj,const_cast<char*>(dmi_type_tag),*type) < 0 )
+        throwErrorOpt(Runtime,"failed to set attribute");
+    }
+    return ~pyobj;
   }
   catch( std::exception &exc )
   {

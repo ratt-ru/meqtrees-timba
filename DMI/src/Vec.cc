@@ -135,7 +135,7 @@ DMI::Vec & DMI::Vec::init (TypeId tid, int num, const void *data)
         size_t datasize = typeinfo.size*mysize_;
         makeNewHeader(datasize);
         phead_->type = mytype;
-        phead_->size = mysize_;
+        phead_->size = scalar ? -mysize_ : mysize_;
         if( data )
           memcpy(phead_->data,data,datasize);
         else

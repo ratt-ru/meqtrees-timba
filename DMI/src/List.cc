@@ -81,28 +81,31 @@ DMI::List::ItemList::const_iterator DMI::List::applyIndexConst (int n) const
   }
 }
 
+// if inserting=true, then we want to insert BEFORE the given position
+//    thus: -1 == end(), -2 == end()-1, etc.
+// if inserting=false, then we want to replace AT the given position
+//    thus: -1 == end()-1, -2 == end()-2, etc.
 DMI::List::ItemList::iterator DMI::List::applyIndex (int n,bool inserting) 
 {
   ItemList::iterator iter;
   if( n<0 )
   {
     ItemList::reverse_iterator riter = items.rbegin();
-    n++;
+    if( inserting ) // do one less iteration when inserting, so that -1==end() (which ==rbegin())
+      n++;
     while( n<0 && riter != items.rend() )
       ++n,++riter;
     FailWhen(n,"index out of range"); 
-    iter = riter.base();
-    if( inserting )
-      ++iter;
+    return riter.base();
   }
   else 
   {
-    iter = items.begin();
+    ItemList::iterator iter = items.begin();
     while( n>0 && iter != items.end() )
       --n,++iter;
     FailWhen(n || (!inserting && iter == items.end()),"index out of range"); 
+    return iter;
   }
-  return iter;
 }
 
 void DMI::List::put (int n,ObjRef &ref,int flags)

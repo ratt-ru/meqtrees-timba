@@ -152,20 +152,18 @@ void Node::initChildren (int nch)
     DMI::Container *p1,*p2;
     if( !child_labels_.empty() ) // children are labelled: use records
     {
-      child_indices_ <<= p1 = new DMI::Record;
-      child_names_ <<= p2 = new DMI::Record;
+      wstate()[FChildren] <<= new DMI::Record;
+      wstate()[FChildrenNames] <<= new DMI::Record;
     }
     else // children are unlabelled: use fields
     {
-      child_indices_ <<= p1 = new DMI::Vec(Tpint,nch);
-      child_names_ <<= p2 = new DMI::Vec(Tpstring,nch);
+      wstate()[FChildren] <<= new DMI::Vec(Tpint,nch);
+      wstate()[FChildrenNames] <<= new DMI::Vec(Tpstring,nch);
     }
     // set up map from label to child number 
     // (if no labels are defined, trivial "0", "1", etc. are used)
     for( int i=0; i<nch; i++ )
       child_map_[getChildLabel(i)] = i;
-    wstate()[FChildren].replace() <<= p1;
-    wstate()[FChildrenNames].replace() <<= p2;
   }
   else
   {
@@ -195,16 +193,14 @@ void Node::reinit (DMI::Record::Ref &initrec, Forest* frst)
   node_resolve_id_ = rec[FResolveParentId].as<int>(-1);
   
   // setup children directly from relevant fields
-  if( rec[FChildren].exists() )
+  int nch = rec[FChildrenNames].size();
+  if( nch )
   {
-    child_indices_ = rec[FChildren].ref(true);
-    child_names_ = rec[FChildrenNames].ref(true);
-    int nch = child_indices_->size();
     children_.resize(nch);
     for( int i=0; i<nch; i++ )
       child_map_[getChildLabel(i)] = i;
-    rcr_cache_.resize(children_.size());
-    cdebug(2)<<"reinitialized with "<<children_.size()<<" children"<<endl;
+    rcr_cache_.resize(nch);
+    cdebug(2)<<"reinitialized with "<<nch<<" children"<<endl;
   }
   else
   {
@@ -296,7 +292,7 @@ void Node::init (DMI::Record::Ref &initrec, Forest* frst)
       FailWhen(children_.size()<uint(check_nmandatory_),"too few children specified");
       for( int i=0; i<check_nmandatory_; i++ )
         if( !children_[i].valid() && 
-            child_names_[child_map_[getChildLabel(i)]].as<string>().empty() )
+            initrec[FChildrenNames][child_map_[getChildLabel(i)]].as<string>().empty() )
         {
           Throw("mandatory child "+getChildLabel(i).toString()+" not specified" );
         }
@@ -319,6 +315,7 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   {
     protectStateField(rec,FClass);
     protectStateField(rec,FChildren);
+    protectStateField(rec,FChildrenNames);
     protectStateField(rec,FNodeIndex);
     protectStateField(rec,FResolveParentId);
   }
@@ -568,7 +565,7 @@ void Node::processChildSpec (DMI::Container &children,const HIID &chid,const HII
           cdebug(2)<<"  child "<<id<<"="<<name<<" currently unresolved"<<endl;
           addChild(chid,0);
           // add to child names so that we remember the name at least 
-          child_names_()[chid] = name;
+          wstate()[FChildrenNames][chid] = name;
         }
       }
     }
@@ -614,8 +611,8 @@ void Node::addChild (const HIID &id,Node *childnode)
   if( childnode )
   {
     children_[ich].attach(childnode,DMI::SHARED);
-    child_names_()[getChildLabel(ich)] = childnode->name();
-    child_indices_()[getChildLabel(ich)] = childnode->nodeIndex();
+    wstate()[FChildrenNames][getChildLabel(ich)] = childnode->name();
+    wstate()[FChildren][getChildLabel(ich)] = childnode->nodeIndex();
   }
   cdebug(3)<<"added child "<<ich<<": "<<id<<endl;
 }
@@ -627,7 +624,7 @@ void Node::relinkChildren ()
 {
   for( int i=0; i<numChildren(); i++ )
   {
-    children_[i].attach(forest().get((*child_indices_)[getChildLabel(i)]),DMI::SHARED);
+    children_[i].attach(forest().get(state()[FChildren][getChildLabel(i)]),DMI::SHARED);
   }
   checkChildren();
 }
@@ -641,7 +638,7 @@ void Node::resolveChildren (bool recursive)
     if( !children_[i].valid() )
     {
       HIID label = getChildLabel(i);
-      string name = (*child_names_)[label].as<string>();
+      string name = state()[FChildrenNames][label].as<string>();
       cdebug(3)<<"resolving child "<<i<<":"<<name<<endl;
       // findNode() will throw an exception if the node is not found,
       // which is exactly what we want
@@ -649,7 +646,7 @@ void Node::resolveChildren (bool recursive)
       {
         Node &childnode = forest_->findNode(name);
         children_[i].attach(childnode,DMI::SHARED);
-        child_indices_()[label] = childnode.nodeIndex();
+        wstate()[FChildren][label] = childnode.nodeIndex();
       }
       catch( ... )
       {

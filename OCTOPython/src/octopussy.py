@@ -1,10 +1,15 @@
 #!/usr/bin/python
 
+import sys
+import dl
+# this ensures that C++ symbols (RTTI, DMI registries, etc.) are
+# shared across dynamically-loaded modules
+sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
+
 import octopython
 from dmitypes import *
 import numarray
 import string
-import sys
 import time
 import threading
 

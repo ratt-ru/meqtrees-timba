@@ -68,7 +68,7 @@ namespace OctoPython
   // These function follow a EP_THROW error policy.
   PyObject * pyFromRecord   (const DMI::Record &);
   PyObject * pyFromList     (const DMI::List &);
-  PyObject * pyFromField    (const DMI::Vec &);
+  PyObject * pyFromVec      (const DMI::Vec &);
   PyObject * pyFromArray    (const DMI::NumArray &);
   PyObject * pyFromMessage  (const Message &);
   PyObject * pyFromHIID     (const HIID &);

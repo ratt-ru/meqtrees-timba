@@ -862,17 +862,6 @@ class Node : public DMI::BObj
     //## map from child labels to numbers (i.e. indices into the children_ vector)
     ChildrenMap child_map_;
     
-    //##ModelId=400E530C0011
-    //## container of child names. This is a DMI::Record indexed by label 
-    //## if the node defines child labels, else a DMI::Vec (indexed by
-    //## child number) otherwise
-    DMI::Container::Ref child_names_;
-    
-    //##ModelId=400E530C0216
-    //##Documentation
-    //## container of child node indices
-    DMI::Container::Ref child_indices_;
-    
     // flag: children have been resolved
     bool children_resolved_;
     
