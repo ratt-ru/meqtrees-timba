@@ -1,8 +1,8 @@
-#!/bin/sh -x
+#!/bin/sh
 
 # profiletool: shell script to perform a profiling run of a binary
 #
-#  Copyright (C) 2002
+#  Copyright (C) 2003
 #  ASTRON (Netherlands Foundation for Research in Astronomy)
 #  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
 #
@@ -101,11 +101,9 @@ declare -i progpid=0;
 declare -i loopcount=0;
 while test \( $progpid -eq 0 \) -a \( $loopcount -lt 5 \); do
     sleep 1
-    pstree -np $timepid 2> /dev/null | sed -e "s/^.*$binname(\([[:digit:]]\+\)).*$/\1/";
     declare -i progpid=`pstree -np $timepid 2> /dev/null | sed -e "s/^.*$binname(\([[:digit:]]\+\)).*$/\1/"`;
     loopcount=$loopcount+1;
 done
-echo progpid=$progpid
 
 # start top trace every 5 seconds
 toppid=0;
