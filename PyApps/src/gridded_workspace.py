@@ -61,7 +61,8 @@ def registerViewer (tp,viewer,dmitype=None,priority=0):
   already provides a refresh button, so this signal is normally not needed.
   """;
   global _reg_viewers;
-  _reg_viewers.setdefault((tp,dmitype),[]).append((priority,viewer));
+  _dprint(1,"registering",viewer,"for type",tp,dmitype);
+  _reg_viewers.setdefault((tp,dmitype and dmitype.lower()),[]).append((priority,viewer));
 
 def isViewableWith (arg,viewer):
   if type(arg) is type:
@@ -80,6 +81,7 @@ def isViewable (arg,dmitype=None):
   else:
     datatype = type(arg);
     dmitype  = dmi_type(arg);
+  dmitype=dmitype and dmitype.lower();
   for (tptuple,vlist) in _reg_viewers.iteritems():
     (tp,dmitp) = tptuple;
     # registered type must be a superclass of the supplied type;
@@ -100,6 +102,7 @@ def getViewerList (arg,dmitype=None):
   else:
     datatype = type(arg);
     dmitype  = dmi_type(arg);
+  dmitype=dmitype and dmitype.lower();
   viewer_list = [];
   # resolve data type (argument may be object or type)
   for (tptuple,vlist) in _reg_viewers.iteritems():
