@@ -278,6 +278,7 @@ meqflagger                       1261       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 #meqfreq                         1219       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Freq.h:29
 meqfunction                      1216       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Function.h:29
 meqfunklet                       1568       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Funklet.h:33
+#meqgauss                        1574       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Gauss.h:30
 meqha0                           1342       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqHA0.h:14
 #meqimag                         1523       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Imag.h:29
 #meqlmn                          1467       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/LMN.h:29
