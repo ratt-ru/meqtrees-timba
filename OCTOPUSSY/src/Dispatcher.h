@@ -322,6 +322,9 @@ class Dispatcher : public OctopussyDebugContext
     //##ModelId=3DB9365900E2
       Thread::Condition repoll_cond;
       
+      
+      Thread::Condition startup_cond;
+      
     //##ModelId=3DB9366A004E
       static void * start_eventThread (void *pdsp);
     //##ModelId=3DB9366B015E

@@ -195,6 +195,7 @@ void Dispatcher::declareForwarder (WPInterface *wp)
 //##ModelId=3C7DFF770140
 void Dispatcher::start ()
 {
+  dprintf(2)("start: running=in_start=True\n");
   running = in_start = True;
   in_pollLoop = False;
   stop_polling = False;
@@ -206,12 +207,9 @@ void Dispatcher::start ()
     iter->second().do_init();
 
 #ifdef USE_THREADS
-  // main thread blocks all signals
-  main_thread = Thread::self();
-  Thread::signalMask(SIG_BLOCK,validSignals());
-  // launch event processing thread -- no timer required
-  event_thread = Thread::create(start_eventThread,this);
-#else
+  // startup of event thread moved to end of start(), because otherwise
+  // it caused a (misdiagnosed?) deadlock when running under Valgrind
+#else            
   // setup heartbeat timer
   long period_usec = 1000000/heartbeat_hz;
   // when stuck in a poll loop, do a select() at least this often:
@@ -240,9 +238,10 @@ void Dispatcher::start ()
 #ifdef USE_THREADS
 // signal that start is complete so that the event thread can proceed
   {
-    Thread::Mutex::Lock lock(repoll_cond);
+    Thread::Mutex::Lock lock(startup_cond);
     in_start = False;
-    repoll_cond.broadcast();
+    dprintf(2)("start: in_start=False, broadcasting on condition variable\n");
+    startup_cond.broadcast();
   }
 #else
   in_start = False;
@@ -266,6 +265,14 @@ void Dispatcher::start ()
       (wps[ref->wpid()] = ref).persist();
     }
   }
+  // startup event thread
+#ifdef USE_THREADS
+  // main thread blocks all signals
+  main_thread = Thread::self();
+  Thread::signalMask(SIG_BLOCK,validSignals());
+  // launch event processing thread -- no timer required
+  event_thread = Thread::create(start_eventThread,this);
+#endif
   dprintf(2)("start: complete\n");
 }
 
@@ -1010,10 +1017,13 @@ void * Dispatcher::eventThread ()
     // unblock all signals
     Thread::signalMask(SIG_UNBLOCK,validSignals());
     // wait for startup to complete
-    Thread::Mutex::Lock lock(repoll_cond);
-    while( in_start )
-      repoll_cond.wait();
-    lock.release();
+    if( in_start )
+    {
+     dprintf(2)("event_thread: in_start, waiting on startup_cond\n");
+      Thread::Mutex::Lock lock(startup_cond);
+      while( in_start )
+        startup_cond.wait();
+    }
     dprintf(1)("Event thread startup complete\n");
       
     // loop while still running
@@ -1119,9 +1129,9 @@ Thread::ThrID Dispatcher::startThread (bool wait_for_start)
   if( wait_for_start )
   {
     dprintf(1)("waiting for dispatcher thread to complete startup\n");
-    Thread::Mutex::Lock lock(repoll_cond);
+    Thread::Mutex::Lock lock(startup_cond);
     while( !running || in_start )
-      repoll_cond.wait();
+      startup_cond.wait();
     dprintf(1)("dispatcher thread has completed startup\n");
   }
   return id;
