@@ -90,25 +90,48 @@ static PyObject * hiid_matches (PyObject *, PyObject *args)
   
   return PyInt_FromLong(match);
 }
+
+static bool octopussy_initialized = false;
   
+// -----------------------------------------------------------------------
+// init_octopussy ()
+// -----------------------------------------------------------------------
+static PyObject * init_octopussy (PyObject *, PyObject *args)
+{
+  int start_gateways;
+
+  if( !PyArg_ParseTuple(args, "i", &start_gateways) )
+    return NULL;
+  if( octopussy_initialized )
+    returnError(NULL,OctoPython,"octopussy already initialized");
+  // catch all exceptions below
+  try 
+  {
+    cdebug(1)<<"=================== initializing OCTOPUSSY =====================\n";
+    const char * argv[] = { "octopython" };
+    OctopussyConfig::initGlobal(1,argv);
+    Octopussy::init(start_gateways);
+  }
+  catchStandardErrors(NULL);
+  octopussy_initialized = true;
+  returnNone;
+}
+
 // -----------------------------------------------------------------------
 // start_octopussy ()
 // -----------------------------------------------------------------------
 static PyObject * start_octopussy (PyObject *, PyObject *args)
 {
-  int start_gateways,wait_start;
+  int wait_start;
   Thread::ThrID thread_id;
-
-  if( !PyArg_ParseTuple(args, "ii", &start_gateways,&wait_start) )
+  if( !PyArg_ParseTuple(args, "i", &wait_start) )
     return NULL;
+  if( !octopussy_initialized )
+    returnError(NULL,OctoPython,"octopussy not initialized, call init first");
   // catch all exceptions below
   try 
   {
-    cout<<"=================== initializing OCTOPUSSY =====================\n";
-    const char * argv[] = { "octopython" };
-    OctopussyConfig::initGlobal(1,argv);
-    Octopussy::init(start_gateways);
-    cout<<"=================== starting OCTOPUSSY thread =================\n";
+    cdebug(1)<<"=================== starting OCTOPUSSY thread =================\n";
     thread_id = Octopussy::initThread(wait_start);
     // unblock the SIGALRM signal in Python's thread
     // (Dispatcher::start() normally blocks it)
@@ -168,8 +191,10 @@ static PyObject * start_reflector (PyObject *, PyObject *args)
 static PyMethodDef OctoMethods[] = {
     { "set_debug", set_debug, METH_VARARGS, 
                     "sets a debug level" },
+    { "init", init_octopussy, METH_VARARGS, 
+                    "initializes OCTOPUSSY" },
     { "start", start_octopussy, METH_VARARGS, 
-                    "starts an OCTOPUSSY thread" },
+                    "starts OCTOPUSSY thread (and event loop)" },
     { "stop", stop_octopussy, METH_VARARGS, 
                     "stops current OCTOPUSSY thread" },
     { "str_to_hiid", string_to_hiid, METH_VARARGS, 

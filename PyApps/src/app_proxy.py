@@ -4,6 +4,7 @@ from dmitypes import *
 import octopussy
 import py_app_launcher
 import sys
+import os
 import string
 import time
 
@@ -14,7 +15,7 @@ class app_proxy (verbosity):
   set_debug = staticmethod(octopussy.set_debug);
   setdebug = staticmethod(octopussy.set_debug);
   
-  def __init__(self,appid,launch=None,verbose=0,wp_verbose=0):
+  def __init__(self,appid,launch=None,spawn=None,verbose=0,wp_verbose=0):
     verbosity.__init__(self,verbose,name=str(appid));
     self.appid = hiid(appid);
     self._rcv_prefix = self.appid + "Out";   # messages from app
@@ -25,15 +26,17 @@ class app_proxy (verbosity):
     if wp_verbose is None:
       wp_verbose = verbose;
     self._pwp = octopussy.proxy_wp_thread(verbose=wp_verbose);
-    # subscribe and register handler
+    # subscribe and register handler for app events
     self._pwp.whenever(self._rcv_prefix+"*",self._event_handler,subscribe=True);
+    # subscribe to app hello message 
+    self._pwp.whenever('wp.hello'+self.appid+'*',self._hello_handler,subscribe=True);
     # setup state
     self._verbose_events = True;
     self._error_log = [];
     self._rqid = 1;
     
     # this state is meant to be visible
-    self.state = -1;
+    self.state = None; # None means offline -- we'll get a Hello message for online
     self.statestr = 'unknown';
     self.status = record();
     self.paused = False;
@@ -43,18 +46,24 @@ class app_proxy (verbosity):
     self.pause_events = self._pwp.pause_events;
     
     # define default control record
-    rec = srecord(throw_error=True);
-    rec.control.event_map_in  = srecord(default_prefix=self._snd_prefix);
-    rec.control.event_map_out = srecord(default_prefix=self._rcv_prefix);
-    rec.control.stop_when_end = False;
-    self.initrec_prev = rec;
+    self.initrec_prev = srecord(
+      throw_error=True,
+      control=srecord(
+        event_map_in  = srecord(default_prefix=self._snd_prefix),
+        event_map_out = srecord(default_prefix=self._rcv_prefix),
+        stop_when_end = False ));
     
-    if isinstance(launch,str): # run external process
-      self.dprint(1,"launching",launch);
-      spawnv
-      
-    
-    if isinstance(launch,tuple): # use py_app_launcher to run a local app thread
+    if spawn: # run meqserver as external process
+      if launch:
+        raise ValueError,'specify either launch or spawn, not both';
+      if isinstance(spawn,str):
+        spawn = spawn.split(" ");
+      # subscribe to hello message from remot -- we wait for it
+      self.dprint(1,"spawning",spawn);
+      self.serv_pid = os.spawnv(os.P_NOWAIT,spawn[0],spawn);
+      self.dprint(1,"spawned external server, pid",self.serv_pid);
+      self.dprint(2,"waiting for Hello message from app");
+    elif launch: # use py_app_launcher to run a local app thread
       self.dprint(1,"launching",launch);
       (appname,inagent,outagent) = launch;
       if not appname in py_app_launcher.application_names:
@@ -63,10 +72,17 @@ class app_proxy (verbosity):
       py_app_launcher.launch_app(appname,inagent,outagent,self.initrec_prev);
     else: # no launch spec, simply wait for a connection
       pass;
+      
+  def _hello_handler (self,msg):
+    self.dprint(2,"got hello message:",msg);
+    if self.state is None:
+      self.state = -1;
 
   def _event_handler (self,msg):
     "event handler for app";
     self.dprint(5,"got message: ",msg.msgid);
+    if self.state is None:
+      self.state = -1;
     # extract event name: message ID is <appid>.Out.<event>, so get a slice
     event = msg.msgid[len(self.appid)+1:];
     value = msg.payload;
@@ -98,6 +114,17 @@ class app_proxy (verbosity):
     # $value::event_name := shortname;
     # self.relay->[shortname]($value);
     
+  def ensure_connection (self):
+    "If app is not connected, blocks until it is";
+    try:
+      self._pwp.pause_events();
+      while self.state is None:
+        self.dprint(2,'no connection to app, awaiting');
+        res = self._pwp.await('*');  # await anything, but keep looping until status changes
+        self.dprint(3,'await returns',res);
+    finally:
+      self._pwp.resume_events();
+    
   def send_command (self,msgid,payload=None,priority=5):
     "Sends an app control command to the app";
     msgid = self._snd_prefix + "App.Control" + msgid;
@@ -110,6 +137,7 @@ class app_proxy (verbosity):
     "or any may be omitted to reuse the old record"
     "If wait=T, waits for the app to complete init";
     self.dprint(1,'initializing');
+    self.ensure_connection();
     self.dprint(2,'initrec:',initrec);
     self.dprint(2,'input init:',inputinit);
     self.dprint(2,'output init:',outputinit);
@@ -142,7 +170,7 @@ class app_proxy (verbosity):
       self.pause_events();
     self.send_command("Init",initrec);
     if wait:
-      self.dprint(2,'init: awaiting app_notify_init event)');
+      self.dprint(2,'init: awaiting app.notify.init event');
       res = self.await('app.notify.init');
       self.dprint(2,'init: got event ',res);
 
@@ -155,7 +183,6 @@ class app_proxy (verbosity):
     ret = self._rqid;
     self._rqid = max(0,self._rqid+1);
     return ret;
-
 
   def log_error (self,event,error):
     "adds an entry to the error log";
@@ -187,12 +214,10 @@ class app_proxy (verbosity):
     "sends Request.Status command to app"
     return self.send_command("Request.Status");
 
-  def event_loop (self,*args,**kwargs):
+  def event_loop (self,await=(),*args,**kwargs):
     "interface to pwp's event loop, with message id translation";
-    evid = kwargs.get('await',None);
-    if evid:
-      kwargs['await'] = self._rcv_prefix + evid;
-    return self._pwp.event_loop(*args,**kwargs);
+    await = map(lambda x:self._rcv_prefix+x,make_hiid_list(await));
+    return self._pwp.event_loop(await=await,*args,**kwargs);
     
   def whenever (self,*args,**kwargs):
     "interface to pwp's whenever function, with message id translation";
@@ -201,13 +226,14 @@ class app_proxy (verbosity):
       kwargs['msgid'] = self._rcv_prefix + evid;
     return self._pwp.whenever(*args,**kwargs);
     
-  def await (self,event,timeout=None):
+  def await (self,what,timeout=None):
     "interface to pwp's event loop, in the await form";
-    return self._pwp.event_loop(await=self._rcv_prefix+event,timeout=timeout);
+    return self.event_loop(await=what,timeout=timeout);
     
 if __name__ == "__main__":
+  octopussy.init();
   octopussy.start();
-  app = app_proxy('a',launch=('repeater','o','o'),verbose=5,wp_verbose=0);
+  app = app_proxy('repeater',launch=('repeater','o','o'),verbose=5,wp_verbose=5);
   app.init(wait=True);
   print '================= going into event loop with await';
   msg = app.event_loop(await='app.update.status.*');

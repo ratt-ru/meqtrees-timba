@@ -2,27 +2,40 @@
 
 import octopussy
 import sys
+import os
 import string
 import time
 from pretty_print import PrettyPrinter
 from app_proxy import app_proxy
 from dmitypes import *
 
+
+# default launch arguments (for launch=True)
+default_launch = ('meqserver','M','M');
+# default spawn arguments (for spawn=True)
+default_spawn = ( os.environ['HOME']+'/LOFAR/installed/current/bin/meqserver',
+                  '-noglish','-meq:M:O:MeqServer' );
+
 class meqserver (app_proxy):
   "interface to MeqServer app";
-  def __init__(self,appid='meqserver',launch=None,verbose=0,**kwargs):
+  def __init__(self,appid='meqserver',launch=None,spawn=None,**kwargs):
+    # if launch or spawn is just True, substitute default values
     if launch:
-      if isinstance(launch,bool):
-        launch = ('meqserver','M','M');
+      if isinstance(launch,bool) and launch:
+        launch = default_launch;
       elif len(launch) == 2:
         launch = ('meqserver',) + launch;
-    app_proxy.__init__(self,appid,launch=launch,verbose=verbose,**kwargs);
+    if spawn and isinstance(spawn,bool):
+      spawn = default_spawn;
+    # init base class  
+    app_proxy.__init__(self,appid,launch=launch,spawn=spawn,**kwargs);
     
+    # setup own state
     self._we_track_results = None;
     self._pprint = PrettyPrinter(width=78,stream=sys.stderr);
-    if kwargs.get('verbose',0) > 0:
+    if self.get_verbose() > 0:
       self.dprint(1,'verbose>0: auto-enabling node_result output');
-      public.track_results(True);
+      self.track_results(True);
       self.dprint(1,'you can disable this by calling .track_results(False)');
   
   # define meqserver-specific methods
@@ -38,7 +51,7 @@ class meqserver (app_proxy):
         self.dprint(0,'warning: both wait and silent specified, ignoring silent flag');
       payload.request_id = self.new_rqid();
       replyname = 'app.result' + command + payload.request_id;
-      self.dprintf(3,'sending command %s with wait',command);
+      self.dprintf(3,'sending command %s with wait\n',command);
       self.dprint(5,'arguments are ',args);
       self.pause_events();
       self.send_command('command'+command,payload);
@@ -115,14 +128,20 @@ default_debuglevels = {
   
 mqs = None;
 
-
 # inits a meqserver
-def default_mqs (verbose=3,debug={},gui=False):
+def default_mqs (debug={},launch=True,spawn=None,**kwargs):
   global mqs;
-  if not octopussy.is_running():
-    octopussy.start();
   if not isinstance(mqs,meqserver):
-    mqs = meqserver(launch=True,verbose=verbose);
+    if not octopussy.is_initialized():
+      octopussy.init(gw=True);
+    if not octopussy.is_running():
+      octopussy.start(wait=True);
+    print launch,spawn;
+    if spawn:
+      launch = None;
+    if launch: 
+      spawn = None;
+    mqs = meqserver(launch=launch,spawn=spawn,**kwargs);
     mqs.init(srecord(output_col='PREDICT'),wait=True);
     if debug is None:
       pass;
@@ -136,9 +155,10 @@ def default_mqs (verbose=3,debug={},gui=False):
 # self-test block
 #
 if __name__ == '__main__':
-  default_mqs();
+  default_mqs(verbose=2);
   rec = srecord({'class':'MeqConstant'},name='x',value=0);
   print 'rec: ',rec;
   print 'createnode:',mqs.createnode(rec,wait=True);
+  mqs.halt();
   octopussy.stop();
 

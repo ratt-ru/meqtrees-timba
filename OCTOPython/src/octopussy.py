@@ -10,7 +10,7 @@ import types
 import time
 
 # pulls in various things from the C module directly
-from octopython import aid_map,aid_rmap,start_reflector
+from octopython import aid_map,aid_rmap,start_reflector,OctoPythonError
 
 def set_debug (context,level=0):
   if isinstance(context,str):
@@ -22,17 +22,29 @@ def set_debug (context,level=0):
     for c in context:
       octopython.set_debug(c,level);
       
+_octopussy_init = False;
 _octopussy_running = False;      
       
+def is_initialized ():
+  return _octopussy_init;
 def is_running ():
   return _octopussy_running;
 
-def start (gw=False,wait=True):
-  "Starts OCTOPUSSY thread. If gw=True (default False), also starts gateways"
+def init (gw=False):
+  "Inits OCTOPUSSY subsystem. If gw=True (default False), also creates gateways."
+  global _octopussy_running,_octopussy_init;
+  res = octopython.init(gw);
+  _octopussy_init = True;
+  return res;
+  
+def start (wait=True):
+  "Starts OCTOPUSSY event thread."
   "If wait=True (default), waits for startup to complete before returning."
   "Returns the thread id of the OCTOPUSSY thread.";
-  global _octopussy_running;
-  res = octopython.start(gw,wait);
+  global _octopussy_running,_octopussy_init;
+  if not _octopussy_init:
+    raise OctoPythonError,"octopussy not initialized, call init() first"
+  res = octopython.start(wait);
   _octopussy_running = True;
   return res;
 
@@ -148,9 +160,20 @@ class proxy_wp_thread(proxy_wp,threading.Thread):
   def lock (self):
     return self._lock;
     
-  # this is meant to pause() event processing -- do nothing since
-  # we don't deal in threads for now
+  # this is meant to pause and resume event processing -- no implementation
+  # needed since threads don't actually work for now (i.e., events are
+  # not being deal with outside await/event_loop calls)
+  
   def pause_events (self):
+    """pauses the event loop for this wp (if any); this will halt the"
+    processing of any whenevers. Note that a call to await() or event_loop()"
+    or flush_events() will resume the event loop automatically.
+    """;
+    pass;
+  # pauses the event loop for this wp (if any); this will halt the processing
+  #   of any whenevers
+  def resume_events (self):
+    """resumes the event loop for this wp""";
     pass;
     
 #  dprint = LockProtectedMethod(proxy_wp.dprint,lock);
@@ -193,10 +216,9 @@ class proxy_wp_thread(proxy_wp,threading.Thread):
   # await mask is received (returns message).
   # If timeout is supplied, returns None after it has expired.
   # Otherwise loop indefinitely, or until the C++ ProxyWP has exited
-  def event_loop (self,await=None,timeout=None):
-    # make sure await is a hiid
-    if await and not isinstance(await,hiid):
-      await = hiid(await);
+  def event_loop (self,await=[],timeout=None):
+    # convert await argument to list of hiids
+    await = make_hiid_list(await);
     self.dprint(1,"running event loop, timeout",timeout,"await",await);
     if timeout is None: 
       endtime = 1e+40; # quite long enough...
@@ -236,12 +258,16 @@ class proxy_wp_thread(proxy_wp,threading.Thread):
       self.dprintf(3,"firing %d matched whenevers\n",len(pending_list));
       for we in pending_list:
         we.fire(msg);
-      # check for await match
-      if await and await.matches(msg.msgid):
-        self.dprint(3,"matches await, returning");
-        return msg;
+      # check for a match in the await-list
+      for aw in await:
+        if aw.matches(msg.msgid):
+          self.dprintf(3,"matches await %s, returning\n",aw);
+          return msg;
     # end of while-loop, if we dropped out, it's a timeout, return None
     return None
+    
+  def await(self,what,timeout=None):
+    return self.event_loop(await=what,timeout=timeout);
   
   # flush_events(): dispatches all queued events
   #   this is actually an alias for event_loop with a 0 timeout
@@ -336,10 +362,8 @@ if __name__ == "__main__":
   set_debug("OctoPython",1);
   set_debug({"Dsp":1,"loggerwp":0});
   set_debug(("reflectorwp","python"),1);
-  # start/stop thread
-  print "start()";
-  thread = start();
-  print "Thread ID is:",thread;
+  print "init()"
+  init();
   addr_refl = start_reflector();
   print "Reflector address is:",addr_refl;
 
@@ -361,6 +385,12 @@ if __name__ == "__main__":
   wp1.subscribe("1.2.*","global");
   wp2.subscribe("b.c.*","local");
   wp1.unsubscribe("a");
+  
+  # start
+  print "start()";
+  thread = start();
+  print "Thread ID is:",thread;
+  
   print "wp1.receive(), no wait: ",wp1.receive(False);
   print "wp2.receive(), no wait: ",wp2.receive(False);
   msg1 = message('a.b.c');

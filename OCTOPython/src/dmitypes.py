@@ -4,6 +4,8 @@ import string
 import numarray
 import sys
 
+from numarray import array;
+
 # 
 # === class hiid ===
 #
@@ -38,8 +40,7 @@ class hiid (tuple):
     return "hiid('%s')" % str(self);
   # matches() function matches hiids
   def matches (self,other):
-    if isinstance(other,str): other=hiid(other);
-    return octopython.hiid_matches(self,other);
+    return octopython.hiid_matches(self,make_hiid(other));
   # concatenation with '+' must return a hiid
   def __add__ (self,other):
     return hiid(self,other);
@@ -59,7 +60,6 @@ def type_maker(objtype,**kwargs):
     return objtype(x);
   return maker;
   
-#
 # make_hiid()
 #   ensures argument is a hiid
 #    
@@ -68,7 +68,17 @@ def make_hiid (x,sep='.'):
   if isinstance(x,hiid):
     return x;
   return hiid(x,sep=sep);
-  
+
+# make_hiid_list()
+#   converts argument to list of HIIDs: argument can be a single hiid, a single
+#   string, or a sequence of such
+def make_hiid_list (x):
+  if isinstance(x,hiid):       # single hiid - to list
+    return [x];
+  elif isinstance(x,str):  # single string - to list
+    return [hiid(x)];
+  else: # treat everything else as a sequence of hiids or strings
+    return map(make_hiid,x); 
   
 #
 # === dmize_object() ===
@@ -165,6 +175,8 @@ class record (dict):
     except KeyError: raise KeyError,"no such field: "+str(key);
   # __setattr__: sets entry in dict
   def __setattr__(self,name,value):
+    if name.startswith('__dmi'):
+      return object.__setattr__(self,name,value);
     value = dmize_object(value);
     try:   key = self.make_key(name);
     except ValueError,info: raise AttributeError,info;
@@ -300,7 +312,7 @@ class verbosity(object):
       else:
         self.stream.write(self.vobj_name+': ');
         self.stream.write(s);
-  def verbose(self):
+  def get_verbose(self):
     return self.verbose;
   def set_verbose(self,verbose):
     self.verbose = verbose;
@@ -314,14 +326,40 @@ class verbosity(object):
 # array_class
 #   use class object from numarray (array() itself is only a function)
 array_class = type(numarray.array(0));
-  
-# tuple of dmi-compatible classes.
-dmi_supported_types = (int,long,float,complex,str,hiid,array_class,record,message);
 
+# shortcuts for array types 
+arr_double = numarray.Float64;
+arr_dcomplex = numarray.Complex64;
+
+
+def is_array (x):
+  return isinstance(x,array_class);
+  
+def is_scalar (x):
+  return isinstance(x,(int,long,float,complex));
+
+# map of python types to DMI type names
+dmi_type_map = { bool:'bool', int:'int', long:'long', float:'double',
+                 complex:'dcomplex', str:'string', hiid:'HIID',
+                 array_class:'DataArray', 
+                 record:'DataRecord', 
+                 message:'Message' };
+
+# list of python types supported by DMI                 
+dmi_supported_types = dmi_type_map.keys();
+  
+def dmi_type (x):
+  "returns the DMI type of its argument, or None if argument is not a DMI type";
+  # __dmi_type attribute overrides everything
+  if hasattr(x,'__dmi_type'):
+    return x.__dmi_type;
+  elif isinstance(x,record):       # record may have subclasses
+    return 'DataRecord';
+  else:
+    return dmi_type_map.get(type(x),None);
+  
 # import C module
 import octopython
-    
-
 
 #
 # self-test code follows
@@ -342,7 +380,8 @@ def __test_hiids():
   print x;
   print abca1b1[2];
   print abca1b1[2:6];
-  print type(x);
+  print 'type of x:',type(x);
+  print 'dmi_type of x:',dmi_type(x);
   print "exception expected now";
   try:
     print hiid('x_y_z');
@@ -368,7 +407,10 @@ def __test_records():
   rec1.b = "test";
   rec1.c = record();
   rec1.c.a = 0;
+  rec1.__dmi_type = 'Polc';
   print 'rec1:',rec1;
+  print 'rec1.__dmi_type:',rec1.__dmi_type;
+  print 'rec1 dmi type:',dmi_type(rec1);
   print "accessing unknown field, expecting exception";
   try: rec1.d
   except Exception,info: print "got exception:",info;
