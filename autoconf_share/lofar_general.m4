@@ -31,6 +31,12 @@
 #
 # Set debugging or optimisation flags for CC and CXX
 #
+# Please note that using --with-debug=-g and --with-optimize=-g have
+# the same effect for the compiler. However, the first one also defines
+# LOFAR_DEBUG in the config.h file, which the latter does not do.
+# Also the first one enables DBGASSERT by default.
+#
+#
 AC_DEFUN(lofar_DEBUG_OPTIMIZE,dnl
 [dnl
 AC_PREREQ(2.13)dnl
