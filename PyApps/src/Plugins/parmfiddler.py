@@ -25,19 +25,15 @@ class editParm(QDialog):
     def __init__(self, parent):
       self.parent = parent;
       self.parentname=parent._nodename;
-      funklet=parent._funklet;
+      funklet=self.parent._funklet;
       self._coeff=funklet.coeff;
-      #print self._coeff;
       if is_scalar(self._coeff):
           self._coeff=[[self._coeff]]
       if is_scalar(self._coeff[0]):
           self._coeff=[self._coeff];
-          
       self._nx=len(self._coeff);
       self._ny=len(self._coeff[0]);
-      #print "new:";
-      #print self._coeff;
-        
+
       QDialog.__init__(self, parent, 'TEST', 0, 0)
       self.setCaption('Funklet of '+self.parentname);
       self.v = QVBoxLayout(self, 10, 5)
@@ -45,11 +41,11 @@ class editParm(QDialog):
       self.funkgrid=QTable(self);
       self.funkgrid.setCaption("funklet values")
 
-      self.funkgrid.setNumRows(self._nx);
-      self.funkgrid.setNumCols(self._ny);
-
       self.horh = self.funkgrid.horizontalHeader()
       self.verth = self.funkgrid.verticalHeader()
+
+#      self.updateCoeff_fromparent();
+
       
       self.updategrid();
 
@@ -71,12 +67,15 @@ class editParm(QDialog):
       self.Bh.addWidget(self.cmdRemoveCol)
       self.Bh2 = QHBoxLayout(self.v, 5)
       
-      self.cmdOK = QPushButton('Update', self)
+      self.cmdOK = QPushButton('Change', self)
       QObject.connect(self.cmdOK, SIGNAL('clicked()'), self.slotcmdOK)
       self.Bh2.addWidget(self.cmdOK)
       self.cmdCancel = QPushButton('Cancel', self)
       QObject.connect(self.cmdCancel, SIGNAL('clicked()'), self.slotcmdCancel)
       self.Bh2.addWidget(self.cmdCancel)
+
+      self.cmdCancel.setIconSet(pixmaps.cancel.iconset());
+      self.cmdOK.setIconSet(pixmaps.check.iconset());
 
       QObject.connect(self.funkgrid,SIGNAL('valueChanged(int,int)'),self.updateCoeff);
       
@@ -141,7 +140,7 @@ class editParm(QDialog):
 
     def slotcmdCancel(self):
 #        self.parent._dorefresh();
-        self.close();
+        self.reject();
 
     def slotcmdOK(self):
 #        print self.parent._funklet.coeff;
@@ -157,6 +156,8 @@ class editParm(QDialog):
                 
                 
     def updategrid(self):
+        self.funkgrid.setNumRows(self._nx);
+        self.funkgrid.setNumCols(self._ny);
         maxc=1;
         for j in range(self._ny):
             self.horh.setLabel(j,"");
@@ -176,11 +177,18 @@ class editParm(QDialog):
     def updateCoeff_fromparent(self):
         funklet=self.parent._funklet;
         self._coeff=funklet.coeff;
+        if is_scalar(self._coeff):
+            self._coeff=[[self._coeff]]
+        if is_scalar(self._coeff[0]):
+            self._coeff=[self._coeff];
+        self._nx=len(self._coeff);
+        self._ny=len(self._coeff[0]);
         self.updategrid();
 
 class NA_ParmFiddler(NodeAction):
   text = "ParmFiddler";
   nodeclass = meqds.NodeClass('MeqParm');
+  iconset= pixmaps.green_return.iconset;
   def activate (self,node):
     try: dialog = self.item.tb._node_parmfiddler_dialog;
     except AttributeError:
@@ -195,6 +203,7 @@ class NA_ParmFiddler(NodeAction):
 
 
 class ParmFiddlerDialog (QDialog):
+
   def __init__(self,parent = None,name = None,modal = 0,fl = 0):
     QDialog.__init__(self,parent,name,modal,fl)
     if not name:
@@ -267,6 +276,8 @@ class ParmFiddlerDialog (QDialog):
       self.reqView.wlistview().setRootIsDecorated(False);
       QListViewItem(self.reqView.wlistview(),'','','(no funklet found in node)');
       self.buttonOk.setEnabled(False);
+      if self.edit:
+          self.edit.reject();
     else:
 #      print funklet;
 #      print self._node;
@@ -277,21 +288,26 @@ class ParmFiddlerDialog (QDialog):
       #      self.reqView.set_open_items(self.defaultOpenItems);
       if self.edit:
           self.edit.updateCoeff_fromparent();
-        
 
 
 
   def reject (self):
     self._node = self._funklet = self._callback = None; # this will disconnect the Qt signal
     self.killTimers();
-    QDialog.hide(self);
+    if self.edit:
+        self.edit.reject();
+    QDialog.reject(self);
 
 
   def change (self):
       if not self._funklet:
           return;
-      self.edit=editParm(self);
-      
+      if not self.edit:
+          self.edit=editParm(self);
+      else:
+          self.edit.updateCoeff_fromparent();
+          self.edit.show();
+          
   def updatechange (self):
       if not self._funklet:
           return;
