@@ -1,17 +1,14 @@
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
 
-#ifndef DynamicTypeManager_h
-#define DynamicTypeManager_h 1
+#ifndef DMI_DynamicTypeManager_h
+#define DMI_DynamicTypeManager_h 1
 
-#include  "Common.h"
+#include "DMI/DMI.h"
+#include "DMI/Registry.h"
+#include "DMI/BlockSet.h"
+#include "DMI/BlockableObject.h"
 #include <map>
 
-// Registry
-#include "DMI/Registry.h"
-// BlockSet
-#include "DMI/BlockSet.h"
-// BlockableObject
-#include "DMI/BlockableObject.h"
 
 //##ModelId=3BE96C040003
 //##Documentation

@@ -4061,63 +4061,6 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	1018275643)
-		(object Operation "select"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"cg"
-			    name       	"cg_style"
-			    value      	"Virtual function"))
-		    quid       	"3BE982760231"
-		    documentation 	
-|Selects a subset of a container. Meant to be abstract, but we make it just virtual for now since this part is not implemented anywhere.
-|
-		    
-		    stereotype 	"virtual"
-		    parameters 	(list Parameters
-			(object Parameter ""
-			    quid       	"3C8F330A0096"
-			    type       	"const HIIDSet &"))
-		    result     	"bool"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	1006178827)
-		(object Operation "clearSelection"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"cg"
-			    name       	"cg_style"
-			    value      	"Virtual function"))
-		    quid       	"3BFBDC0D025A"
-		    documentation 	
-|Clears the subset selection.
-|
-		    
-		    stereotype 	"virtual"
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	1007630424)
-		(object Operation "selectionToBlock"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"cg"
-			    name       	"cg_style"
-			    value      	"Virtual function"))
-		    quid       	"3BFBDC1D028F"
-		    documentation 	
-|Converts the selected subset to a BlockSet.
-|
-		    
-		    stereotype 	"virtual"
-		    parameters 	(list Parameters
-			(object Parameter ""
-			    quid       	"3C8F330F0093"
-			    type       	"BlockSet&"
-			    quidu      	"3BEA80A703A9"))
-		    result     	"int"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	1007630425)
 		(object Operation "isNestable"
 		    attributes 	(list Attribute_Set
 			(object Attribute
@@ -4520,6 +4463,46 @@
 			    type       	"Ref"))
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "~NestableContainer"
+		    quid       	"3F6709AF0084"
+		    stereotype 	"virtual"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "subscribe"
+		    quid       	"3F6709AF0144"
+		    parameters 	(list Parameters
+			(object Parameter "subs"
+			    quid       	"3F6709AF01C1"
+			    type       	"NestableContainer::Subscriber &")
+			(object Parameter "evmask"
+			    quid       	"3F6709AF0320"
+			    type       	"int"
+			    initv      	"NestableContainer::MODIFY"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "unsubscribe"
+		    quid       	"3F6709B00094"
+		    parameters 	(list Parameters
+			(object Parameter "subs"
+			    quid       	"3F6709B00130"
+			    type       	"NestableContainer::Subscriber &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "notifySubscribers"
+		    quid       	"3F6709B0027E"
+		    parameters 	(list Parameters
+			(object Parameter "event"
+			    quid       	"3F6709B00349"
+			    type       	"int"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
 		    uid        	0))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "writable"
@@ -4536,7 +4519,7 @@
 |list of subscribers to container events
 |
 		    
-		    type       	"std::list<Subscription>"))
+		    type       	"SubscriptionList"))
 	    module     	"Component View::DMI"
 	    quidu      	"3DB9342D017D"
 	    language   	"ANSI C++"
@@ -6110,12 +6093,17 @@
 		    quid       	"3F549251022F"
 		    documentation 	
 |Abstract base class for anything that needs to subscribe to
-|container events
+|container events. See NestableContainer::subscribe() below
 |
 		    
 		    operations 	(list Operations
 			(object Operation "ncSubscriberNotify"
 			    quid       	"3F5C8F2503AB"
+			    documentation 	
+|This virtual method is called every time a container
+|event occurs
+|
+			    
 			    stereotype 	"abstract"
 			    parameters 	(list Parameters
 				(object Parameter "id"
@@ -6130,28 +6118,7 @@
 			    uid        	0))
 		    module     	"Component View::DMI"
 		    quidu      	"3DB9342D017D"
-		    abstract   	TRUE
-		    nestedClasses 	(list nestedClasses
-			(object Class "ContainerEventTypes"
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"HeaderSourceFile"
-				    value      	"NestableContainer.h")
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"ImplementationType"
-				    value      	
-|enum
-|        {
-|          NC_MODIFY   = 1,    // contents modified
-|          NC_DELETE   = 2     // container deleted
-|        }
-				    ))
-			    quid       	"3F5D859F0363"
-			    stereotype 	"typedef"
-			    module     	"Component View::DMI"
-			    quidu      	"3DB9342D017D")))
+		    abstract   	TRUE)
 		(object Class "Subscription"
 		    attributes 	(list Attribute_Set
 			(object Attribute
@@ -6187,6 +6154,10 @@
 				    name       	"Inline"
 				    value      	TRUE))
 			    quid       	"3F5C8FBA0243"
+			    documentation 	
+|notifies subscriber if event matches mask
+|
+			    
 			    parameters 	(list Parameters
 				(object Parameter "event"
 				    quid       	"3F5D838E031F"
@@ -6198,7 +6169,46 @@
 		    class_attributes 	(list class_attribute_list
 			(object ClassAttribute "event_mask"
 			    quid       	"3F5D838600F4"
+			    documentation 	
+|mask of subscribed events
+|
+			    
 			    type       	"int"))
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D")
+		(object Class "ContainerEventTypes"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"NestableContainer.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	(value Text 
+|enum
+|    {
+|      NC_MODIFY   = 1,    // contents modified
+|      NC_DELETE   = 2     // container deleted
+|    }
+			    )))
+		    quid       	"3F6709AD030B"
+		    stereotype 	"typedef"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D")
+		(object Class "list<Subscription>"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"NestableContainer.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"SubscriptionList"))
+		    quid       	"3F6709AE0116"
+		    stereotype 	"typedef"
+		    exportControl 	"Private"
 		    module     	"Component View::DMI"
 		    quidu      	"3DB9342D017D")))
 	(object Class "SmartBlock"
@@ -13690,6 +13700,10 @@
 	    roles      	(list role_list
 		(object Role "subscriber:NestableContainer::Subscriber &"
 		    quid       	"3F54929100C0"
+		    documentation 	
+|ref to user's subscriber object
+|
+		    
 		    label      	"subscriber:NestableContainer::Subscriber &"
 		    supplier   	"Logical View::DOMIN0::NestableContainer::Subscriber"
 		    quidu      	"3F549251022F"
@@ -13708,6 +13722,10 @@
 	    roles      	(list role_list
 		(object Role "id"
 		    quid       	"3F5D83F3016E"
+		    documentation 	
+|user-supplied event ID. Can be anything
+|
+		    
 		    label      	"id"
 		    supplier   	"Logical View::DOMIN0::HIID"
 		    quidu      	"3BE96FE601C5"
@@ -17258,23 +17276,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BE96FE601C5"
-			    compartment 	(object Compartment
-				Parent_View 	@33
-				location   	(7390, 2417)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	33
-				max_width  	0)
 			    width      	1018
 			    height     	1258
 			    annotation 	8
@@ -18199,23 +18200,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BE97CE100AF"
-			    compartment 	(object Compartment
-				Parent_View 	@74
-				location   	(129, 2897)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	TRUE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	41
-				max_width  	0)
 			    width      	2850
 			    height     	2606
 			    annotation 	8
@@ -20239,7 +20223,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB842A01C5"
 			    width      	446
-			    height     	5851
+			    height     	5911
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -20276,7 +20260,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB843101CF"
 			    width      	446
-			    height     	5851
+			    height     	5911
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -20334,7 +20318,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB844F039F"
 			    width      	456
-			    height     	5850
+			    height     	5910
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20378,7 +20362,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8A9F00CD"
 			    width      	525
-			    height     	3980
+			    height     	4040
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20428,7 +20412,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8456031D"
 			    width      	300
-			    height     	5715
+			    height     	5775
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20527,7 +20511,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB849102B3"
 			    width      	364
-			    height     	5850
+			    height     	5910
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20571,7 +20555,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84A50013"
 			    width      	406
-			    height     	5850
+			    height     	5910
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20608,7 +20592,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8674014F"
 			    width      	300
-			    height     	5850
+			    height     	5910
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20645,7 +20629,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84C802F8"
 			    width      	508
-			    height     	5850
+			    height     	5910
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20689,7 +20673,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84E50123"
 			    width      	536
-			    height     	5850
+			    height     	5910
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20726,7 +20710,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84EE0112"
 			    width      	396
-			    height     	5850
+			    height     	5910
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20763,7 +20747,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87E7030B"
 			    width      	480
-			    height     	4805
+			    height     	4865
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20813,7 +20797,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87DE0222"
 			    width      	330
-			    height     	4535
+			    height     	4595
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20863,7 +20847,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8ADA02A9"
 			    width      	330
-			    height     	3740
+			    height     	3800
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22010,12 +21994,12 @@
 			    ordinal    	27)
 			(object Destruction_Marker @297
 			    Parent_View 	@237
-			    location   	(1320, 5970)
+			    location   	(1320, 6030)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @298
 			    Parent_View 	@200
-			    location   	(990, 6030)
+			    location   	(990, 6090)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @299
@@ -22060,12 +22044,12 @@
 			    ordinal    	28)
 			(object Destruction_Marker @301
 			    Parent_View 	@229
-			    location   	(4440, 6075)
+			    location   	(4440, 6135)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @302
 			    Parent_View 	@233
-			    location   	(4725, 6015)
+			    location   	(4725, 6075)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @303
@@ -22143,7 +22127,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B150030"
 			    width      	446
-			    height     	6661
+			    height     	6721
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -22208,7 +22192,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B210330"
 			    width      	446
-			    height     	6661
+			    height     	6721
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -22252,7 +22236,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4D3A0258"
 			    width      	300
-			    height     	5985
+			    height     	6045
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22309,7 +22293,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4F6A02C1"
 			    width      	300
-			    height     	5415
+			    height     	5475
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22366,7 +22350,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CB80070"
 			    width      	300
-			    height     	6360
+			    height     	6420
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22416,7 +22400,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CF102DF"
 			    width      	300
-			    height     	6270
+			    height     	6330
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22466,7 +22450,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B51032F"
 			    width      	398
-			    height     	6410
+			    height     	6470
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22544,7 +22528,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5403038C"
 			    width      	300
-			    height     	4395
+			    height     	4455
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22601,7 +22585,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5582004D"
 			    width      	350
-			    height     	4380
+			    height     	4440
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22651,7 +22635,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA52C9029A"
 			    width      	582
-			    height     	4830
+			    height     	4890
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22722,7 +22706,7 @@
 			    fill_color 	8454016
 			    quidu      	"3BFA527601FA"
 			    width      	528
-			    height     	6660
+			    height     	6720
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22773,7 +22757,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA55CB01C5"
 			    width      	300
-			    height     	3960
+			    height     	4020
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -23960,7 +23944,7 @@
 			    ordinal    	28)
 			(object Destruction_Marker @422
 			    Parent_View 	@332
-			    location   	(1890, 6885)
+			    location   	(1890, 6945)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object NoteView @423
@@ -24191,7 +24175,7 @@
 				location   	(314, 278)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	997
+				max_width  	1007
 				justify    	0
 				label      	"Data Transport")
 			    icon       	"control"
@@ -24221,7 +24205,7 @@
 				location   	(374, 1328)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	1000
+				max_width  	1011
 				justify    	0
 				label      	"P/S/M Layer")
 			    icon       	"control"
@@ -25658,7 +25642,7 @@
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(416, 2496)
+		    location   	(1744, 3104)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -25670,7 +25654,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@516
-			location   	(197, 2415)
+			location   	(1525, 3023)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	438
@@ -25690,7 +25674,7 @@
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(1056, 896)
+		    location   	(320, 1392)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -25702,7 +25686,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@517
-			location   	(841, 853)
+			location   	(105, 1350)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	430
@@ -25718,12 +25702,10 @@
 		    autoResize 	TRUE)
 		(object ClassView "Class" "Logical View::DOMIN0::CountedRefBase" @518
 		    ShowCompartmentStereotypes 	TRUE
-		    SuppressAttribute 	TRUE
-		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
 		    ShowOperationSignature 	TRUE
-		    location   	(448, 1664)
+		    location   	(2272, 1392)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -25735,29 +25717,46 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@518
-			location   	(247, 1545)
+			location   	(1111, 11)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	402
+			max_width  	2322
 			justify    	0
 			label      	"CountedRefBase")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3C0CDEE200FE"
-		    width      	420
-		    height     	265
+		    compartment 	(object Compartment
+			Parent_View 	@518
+			location   	(1111, 77)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	49
+			max_width  	1989)
+		    width      	2340
+		    height     	2788
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object AssociationViewNew "$UNNAMED$6" @519
-		    location   	(913, 2140)
+		    location   	(3576, 1975)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3C0CE0F60398"
 		    roleview_list 	(list RoleViews
 			(object RoleView "next" @520
 			    Parent_View 	@519
-			    location   	(253, 925)
+			    location   	(2916, 760)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -25769,7 +25768,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @521
 				Parent_View 	@520
-				location   	(831, 1609)
+				location   	(3535, 2550)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -25794,16 +25793,15 @@
 			    client     	@519
 			    supplier   	@518
 			    vertices   	(list Points
-				(913, 2140)
-				(973, 2140)
-				(973, 1650)
-				(658, 1650))
+				(3576, 1975)
+				(3576, 2560)
+				(3442, 2560))
 			    line_style 	3
-			    origin_attachment 	(913, 2140)
-			    terminal_attachment 	(658, 1650)
+			    origin_attachment 	(3576, 1975)
+			    terminal_attachment 	(3442, 2560)
 			    label      	(object SegLabel @522
 				Parent_View 	@520
-				location   	(745, 1704)
+				location   	(3514, 2614)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -25824,7 +25822,7 @@
 				orientation 	0))
 			(object RoleView "prev" @523
 			    Parent_View 	@519
-			    location   	(253, 925)
+			    location   	(2916, 760)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -25836,7 +25834,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @524
 				Parent_View 	@523
-				location   	(496, 1876)
+				location   	(3514, 1334)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -25861,15 +25859,15 @@
 			    client     	@519
 			    supplier   	@518
 			    vertices   	(list Points
-				(913, 2140)
-				(440, 2140)
-				(440, 1796))
+				(3576, 1975)
+				(3576, 1389)
+				(3442, 1389))
 			    line_style 	3
-			    origin_attachment 	(913, 2140)
-			    terminal_attachment 	(440, 1796)
+			    origin_attachment 	(3576, 1975)
+			    terminal_attachment 	(3442, 1389)
 			    label      	(object SegLabel @525
 				Parent_View 	@523
-				location   	(492, 1837)
+				location   	(3479, 1338)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -25900,7 +25898,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @527
 			Parent_View 	@526
-			location   	(866, 1206)
+			location   	(762, 1349)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -25925,14 +25923,14 @@
 		    supplier   	@517
 		    line_style 	0)
 		(object AssociationViewNew "$UNNAMED$7" @528
-		    location   	(781, 1241)
+		    location   	(822, 1392)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3C0CDF6500AC"
 		    roleview_list 	(list RoleViews
 			(object RoleView "target" @529
 			    Parent_View 	@528
-			    location   	(-195, 57)
+			    location   	(-154, 208)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -25944,7 +25942,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @530
 				Parent_View 	@529
-				location   	(879, 1021)
+				location   	(648, 1453)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -25971,7 +25969,7 @@
 			    line_style 	0
 			    label      	(object SegLabel @531
 				Parent_View 	@529
-				location   	(1029, 1015)
+				location   	(573, 1339)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -25992,7 +25990,7 @@
 				orientation 	1))
 			(object RoleView "owner_ref" @532
 			    Parent_View 	@528
-			    location   	(-195, 57)
+			    location   	(-154, 208)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -26004,7 +26002,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @533
 				Parent_View 	@532
-				location   	(411, 1501)
+				location   	(956, 1458)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -26020,8 +26018,8 @@
 				max_width  	227
 				justify    	0
 				label      	"-owner_ref"
-				pctDist    	1.174286
-				height     	131
+				pctDist    	0.480287
+				height     	66
 				orientation 	1)
 			    stereotype 	TRUE
 			    line_color 	3342489
@@ -26031,7 +26029,7 @@
 			    line_style 	0
 			    label      	(object SegLabel @534
 				Parent_View 	@532
-				location   	(617, 1535)
+				location   	(1072, 1339)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -26062,7 +26060,7 @@
 			default_color 	TRUE)
 		    stereotype 	(object SegLabel @536
 			Parent_View 	@535
-			location   	(915, 1247)
+			location   	(763, 1284)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -26098,7 +26096,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@537
-			location   	(309, 2078)
+			location   	(1744, 2877)
 			anchor_loc 	1
 			nlines     	1
 			max_width  	115
@@ -26110,15 +26108,15 @@
 		    client     	@516
 		    supplier   	@518
 		    line_style 	3
-		    origin_attachment 	(309, 2360)
-		    terminal_attachment 	(309, 1796))
+		    origin_attachment 	(1744, 2968)
+		    terminal_attachment 	(1744, 2786))
 		(object ClassView "Class" "Logical View::DOMIN0::SingularRefTarget" @538
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(1872, 880)
+		    location   	(384, 416)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -26130,7 +26128,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@538
-			location   	(1660, 837)
+			location   	(172, 374)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	424
@@ -26151,8 +26149,8 @@
 		    client     	@538
 		    supplier   	@517
 		    line_style 	3
-		    origin_attachment 	(1651, 882)
-		    terminal_attachment 	(1280, 882))))
+		    origin_attachment 	(278, 471)
+		    terminal_attachment 	(278, 1337))))
 	(object ClassDiagram "Containers"
 	    quid       	"3F54821D028D"
 	    title      	"Containers"
@@ -26168,7 +26166,7 @@
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(512, 352)
+		    location   	(464, 336)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -26180,18 +26178,18 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@540
-			location   	(218, 267)
+			location   	(253, 295)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	588
+			max_width  	422
 			justify    	0
 			label      	"CountedRefTarget")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3C0CDF41029F"
-		    width      	606
-		    height     	194
+		    width      	440
+		    height     	107
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object ClassView "Class" "Logical View::DOMIN0::DataRecord" @541
@@ -26200,7 +26198,7 @@
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(592, 1728)
+		    location   	(672, 1344)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -26212,18 +26210,18 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@541
-			location   	(401, 1643)
+			location   	(518, 1303)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	382
+			max_width  	308
 			justify    	0
 			label      	"DataRecord")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3BB3112B0027"
-		    width      	400
-		    height     	194
+		    width      	326
+		    height     	107
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object ClassView "Class" "Logical View::DOMIN0::BlockableObject" @542
@@ -26232,7 +26230,7 @@
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(512, 672)
+		    location   	(480, 672)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -26244,7 +26242,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@542
-			location   	(309, 631)
+			location   	(277, 631)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	406
@@ -26264,7 +26262,7 @@
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(896, 1440)
+		    location   	(400, 1504)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -26276,18 +26274,18 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@543
-			location   	(727, 1356)
+			location   	(277, 1463)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	338
+			max_width  	246
 			justify    	0
 			label      	"DataField")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3BB317D8010B"
-		    width      	356
-		    height     	193
+		    width      	264
+		    height     	107
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object ClassView "Class" "Logical View::DOMIN0::DataArray" @544
@@ -26296,7 +26294,7 @@
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(256, 1440)
+		    location   	(176, 1344)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -26308,30 +26306,21 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@544
-			location   	(75, 1356)
+			location   	(42, 1303)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	363
+			max_width  	268
 			justify    	0
 			label      	"DataArray")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DB949AE00C5"
-		    width      	381
-		    height     	193
+		    width      	286
+		    height     	107
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object InheritView "" @545
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3C0CEB760044"
-		    client     	@542
-		    supplier   	@540
-		    line_style 	3
-		    origin_attachment 	(428, 619)
-		    terminal_attachment 	(428, 449))
-		(object ClassView "Class" "Logical View::DOMIN0::NestableContainer::Subscriber" @546
+		(object ClassView "Class" "Logical View::DOMIN0::NestableContainer::Subscriber" @545
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    IncludeAttribute 	TRUE
@@ -26348,7 +26337,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@546
+			Parent_View 	@545
 			location   	(1232, 261)
 			fill_color 	13434879
 			nlines     	1
@@ -26359,33 +26348,16 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3F549251022F"
-		    compartment 	(object Compartment
-			Parent_View 	@546
-			location   	(1232, 366)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	TRUE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	16777215
-			anchor     	2
-			nlines     	1
-			max_width  	1282)
 		    width      	1619
 		    height     	238
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::DOMIN0::NestableContainer" @547
+		(object ClassView "Class" "Logical View::DOMIN0::NestableContainer" @546
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(512, 960)
+		    location   	(480, 960)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -26396,101 +26368,59 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@547
-			location   	(293, 919)
+			Parent_View 	@546
+			location   	(263, 919)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	438
+			max_width  	434
 			justify    	0
 			label      	"NestableContainer")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3BE97CE100AF"
-		    width      	456
+		    width      	452
 		    height     	107
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object InheritTreeView "" @548
-		    location   	(512, 1209)
+		(object InheritTreeView "" @547
+		    location   	(441, 1181)
 		    line_color 	3342489
 		    fill_color 	13434879
-		    supplier   	@547
+		    supplier   	@546
 		    vertices   	(list Points
-			(512, 1209)
-			(512, 1013)))
-		(object InheritView "" @549
+			(441, 1181)
+			(441, 1013)))
+		(object InheritView "" @548
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DB949AE036C"
 		    client     	@544
-		    supplier   	@547
+		    supplier   	@546
 		    line_style 	3
-		    origin_attachment 	(203, 1344)
-		    terminal_attachment 	(203, 1209)
-		    drawSupplier 	@548)
-		(object InheritView "" @550
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3C7A188A02EF"
-		    client     	@543
-		    supplier   	@547
-		    line_style 	3
-		    origin_attachment 	(944, 1344)
-		    terminal_attachment 	(944, 1209)
-		    drawSupplier 	@548)
-		(object InheritView "" @551
+		    origin_attachment 	(109, 1291)
+		    terminal_attachment 	(109, 1181)
+		    drawSupplier 	@547)
+		(object InheritView "" @549
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3BFCD87C0106"
-		    client     	@547
+		    client     	@546
 		    supplier   	@542
 		    line_style 	3
-		    origin_attachment 	(425, 907)
-		    terminal_attachment 	(425, 725))
-		(object InheritView "" @552
+		    origin_attachment 	(503, 907)
+		    terminal_attachment 	(503, 725))
+		(object InheritView "" @550
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3BFCD87E039E"
 		    client     	@541
-		    supplier   	@547
+		    supplier   	@546
 		    line_style 	3
-		    origin_attachment 	(597, 1631)
-		    terminal_attachment 	(597, 1209)
-		    drawSupplier 	@548)
-		(object ClassView "Class" "Logical View::DOMIN0::HIID" @553
-		    ShowCompartmentStereotypes 	TRUE
-		    SuppressAttribute 	TRUE
-		    SuppressOperation 	TRUE
-		    IncludeAttribute 	TRUE
-		    IncludeOperation 	TRUE
-		    location   	(2608, 1472)
-		    font       	(object Font
-			size       	10
-			face       	"arial"
-			bold       	FALSE
-			italics    	FALSE
-			underline  	FALSE
-			strike     	FALSE
-			color      	0
-			default_color 	TRUE)
-		    label      	(object ItemLabel
-			Parent_View 	@553
-			location   	(2512, 1431)
-			fill_color 	13434879
-			nlines     	1
-			max_width  	192
-			justify    	0
-			label      	"HIID")
-		    icon_style 	"Icon"
-		    line_color 	3342489
-		    fill_color 	13434879
-		    quidu      	"3BE96FE601C5"
-		    width      	210
-		    height     	107
-		    annotation 	8
-		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::DOMIN0::NestableContainer::Subscription" @554
+		    origin_attachment 	(672, 1291)
+		    terminal_attachment 	(672, 1181)
+		    drawSupplier 	@547)
+		(object ClassView "Class" "Logical View::DOMIN0::NestableContainer::Subscription" @551
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -26506,7 +26436,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@554
+			Parent_View 	@551
 			location   	(1232, 805)
 			fill_color 	13434879
 			nlines     	1
@@ -26517,27 +26447,10 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3F54921B0175"
-		    compartment 	(object Compartment
-			Parent_View 	@554
-			location   	(1232, 910)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	FALSE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	16777215
-			anchor     	2
-			nlines     	4
-			max_width  	1614)
 		    width      	1619
 		    height     	463
 		    annotation 	8)
-		(object AssociationViewNew "$UNNAMED$60" @555
+		(object AssociationViewNew "$UNNAMED$60" @552
 		    location   	(2032, 640)
 		    font       	(object Font
 			size       	10
@@ -26552,8 +26465,8 @@
 		    line_color 	3342489
 		    quidu      	"3F54929001F9"
 		    roleview_list 	(list RoleViews
-			(object RoleView "subscriber:NestableContainer::Subscriber &" @556
-			    Parent_View 	@555
+			(object RoleView "subscriber:NestableContainer::Subscriber &" @553
+			    Parent_View 	@552
 			    location   	(224, -320)
 			    font       	(object Font
 				size       	10
@@ -26564,8 +26477,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @557
-				Parent_View 	@556
+			    label      	(object SegLabel @554
+				Parent_View 	@553
 				location   	(2156, 506)
 				font       	(object Font
 				    size       	10
@@ -26588,13 +26501,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3F54929100C0"
-			    client     	@555
-			    supplier   	@546
+			    client     	@552
+			    supplier   	@545
 			    line_style 	3
 			    origin_attachment 	(2032, 640)
 			    terminal_attachment 	(2032, 487)
-			    label      	(object SegLabel @558
-				Parent_View 	@556
+			    label      	(object SegLabel @555
+				Parent_View 	@553
 				location   	(2000, 518)
 				font       	(object Font
 				    size       	10
@@ -26614,19 +26527,19 @@
 				pctDist    	0.797468
 				height     	33
 				orientation 	0))
-			(object RoleView "$UNNAMED$61" @559
-			    Parent_View 	@555
+			(object RoleView "$UNNAMED$61" @556
+			    Parent_View 	@552
 			    location   	(224, -320)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3F54929100CA"
-			    client     	@555
-			    supplier   	@554
+			    client     	@552
+			    supplier   	@551
 			    line_style 	3
 			    origin_attachment 	(2032, 640)
 			    terminal_attachment 	(2032, 793))))
-		(object AssociationViewNew "$UNNAMED$64" @560
-		    location   	(981, 960)
+		(object AssociationViewNew "$UNNAMED$64" @557
+		    location   	(964, 963)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -26640,9 +26553,9 @@
 		    line_color 	3342489
 		    quidu      	"3F5D84100219"
 		    roleview_list 	(list RoleViews
-			(object RoleView "subscriptions" @561
-			    Parent_View 	@560
-			    location   	(469, 0)
+			(object RoleView "subscriptions" @558
+			    Parent_View 	@557
+			    location   	(452, 3)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -26652,9 +26565,9 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @562
-				Parent_View 	@561
-				location   	(1064, 917)
+			    label      	(object SegLabel @559
+				Parent_View 	@558
+				location   	(1052, 921)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -26676,14 +26589,14 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3F5D8411004D"
-			    client     	@560
-			    supplier   	@554
+			    client     	@557
+			    supplier   	@551
 			    line_style 	3
-			    origin_attachment 	(981, 960)
-			    terminal_attachment 	(1223, 960)
-			    label      	(object SegLabel @563
-				Parent_View 	@561
-				location   	(1162, 995)
+			    origin_attachment 	(964, 963)
+			    terminal_attachment 	(1223, 963)
+			    label      	(object SegLabel @560
+				Parent_View 	@558
+				location   	(1158, 998)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -26702,25 +26615,57 @@
 				pctDist    	0.747934
 				height     	35
 				orientation 	1))
-			(object RoleView "$UNNAMED$65" @564
-			    Parent_View 	@560
-			    location   	(469, 0)
+			(object RoleView "$UNNAMED$65" @561
+			    Parent_View 	@557
+			    location   	(452, 3)
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3F5D8411005F"
-			    client     	@560
-			    supplier   	@547
+			    client     	@557
+			    supplier   	@546
 			    line_style 	3
-			    origin_attachment 	(981, 960)
-			    terminal_attachment 	(740, 960))))
-		(object AssociationViewNew "$UNNAMED$62" @565
+			    origin_attachment 	(964, 963)
+			    terminal_attachment 	(706, 963))))
+		(object ClassView "Class" "Logical View::DOMIN0::HIID" @562
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(2608, 1472)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@562
+			location   	(2512, 1431)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	192
+			justify    	0
+			label      	"HIID")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3BE96FE601C5"
+		    width      	210
+		    height     	107
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object AssociationViewNew "$UNNAMED$62" @563
 		    location   	(2608, 1337)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3F5D83F3016D"
 		    roleview_list 	(list RoleViews
-			(object RoleView "$UNNAMED$63" @566
-			    Parent_View 	@565
+			(object RoleView "$UNNAMED$63" @564
+			    Parent_View 	@563
 			    location   	(1360, -279)
 			    font       	(object Font
 				size       	10
@@ -26731,8 +26676,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @567
-				Parent_View 	@566
+			    label      	(object SegLabel @565
+				Parent_View 	@564
 				location   	(2567, 1271)
 				font       	(object Font
 				    size       	10
@@ -26756,13 +26701,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3F5D83F30170"
-			    client     	@565
-			    supplier   	@554
+			    client     	@563
+			    supplier   	@551
 			    line_style 	3
 			    origin_attachment 	(2608, 1337)
 			    terminal_attachment 	(2608, 1255))
-			(object RoleView "id" @568
-			    Parent_View 	@565
+			(object RoleView "id" @566
+			    Parent_View 	@563
 			    location   	(1360, -279)
 			    font       	(object Font
 				size       	10
@@ -26773,8 +26718,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @569
-				Parent_View 	@568
+			    label      	(object SegLabel @567
+				Parent_View 	@566
 				location   	(2567, 1403)
 				font       	(object Font
 				    size       	10
@@ -26797,8 +26742,27 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3F5D83F3016E"
-			    client     	@565
-			    supplier   	@553
+			    client     	@563
+			    supplier   	@562
 			    line_style 	3
 			    origin_attachment 	(2608, 1337)
-			    terminal_attachment 	(2608, 1419))))))))
+			    terminal_attachment 	(2608, 1419))))
+		(object InheritView "" @568
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3C0CEB760044"
+		    client     	@542
+		    supplier   	@540
+		    line_style 	3
+		    origin_attachment 	(484, 619)
+		    terminal_attachment 	(484, 389))
+		(object InheritView "" @569
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3C7A188A02EF"
+		    client     	@543
+		    supplier   	@546
+		    line_style 	3
+		    origin_attachment 	(400, 1451)
+		    terminal_attachment 	(400, 1181)
+		    drawSupplier 	@547)))))

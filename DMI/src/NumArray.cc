@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.27  2003/10/09 17:43:04  smirnov
+//  %[ER: 16]%
+//  Re-enabled single element access to DataArray, as removing it broke
+//  compatibility with Glish. Did it properly this time!
+//
 //  Revision 1.26  2003/10/08 12:29:18  diepen
 //  %[PR: 36]%
 //  Removed DataArray functionality to retrieve an array as a scalar
@@ -693,7 +698,7 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
   int ndim = itsShape.size();
   // If a full HIID is given, we might need to return a single element
   // which is a scalar. 
-  // If the array itself is scalar (itsSize==1), then it's considered 0-dimensional
+//  // If the array itself is scalar (itsSize==1), then it's considered 0-dimensional
 //  if( nid == ndim || (!nid && itsSize == 1) )     // full HIID?
   if( nid == ndim )     // full HIID?
   {
@@ -744,8 +749,17 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
   } 
   if( nid == 0 )  // else not full HIID; null HIID?
   {
+    // array is a single scalar? Return pointer
+    if( itsSize == 1 && ndim == 1 && 
+        ( check_tid == itsScaType ||
+          check_tid == TpNumeric && TypeInfo::isNumeric(itsScaType) ) )
+    {
+      info.tid = itsScaType;
+      info.size = 1;
+      return itsArrayData;
+    }
     // Scalar pointer requested? Return full array data
-    if( check_tid == itsScaType ) 
+    if( check_tid == itsScaType )
     {
       info.tid = itsScaType;
       FailWhen(!(flags&DMI::NC_POINTER),
