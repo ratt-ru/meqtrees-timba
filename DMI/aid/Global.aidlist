@@ -286,6 +286,7 @@ ping                             1114       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 point                            1204       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
 pointing                         1159       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
 polarization                     1149       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
+polc                             1412       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
 polcs                            1383       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
 poly                             1178       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
 pong                             1115       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:12
