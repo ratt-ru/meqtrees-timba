@@ -477,12 +477,15 @@ class ResultPlotter(GriddedPlugin):
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
       try: self._rec = self._rec.cache_result; # look for cached_result field
       except:
-# AttributeError:
-# to do: a popup message here ...
-       print 'we ended at this exception'
-      # cached_result not found, display an empty viewer with a "no result
-      # in this node record" message (the user can then use the Display with
-      # menu to switch to a different viewer)
+        Message = "No cache_result record was found, so no plot can be made with the <b>result plotter</b>! You may wish to select another type of display."
+        cache_message = QLabel(Message,self.wparent())
+        cache_message.setTextFormat(Qt.RichText)
+        self._wtop = cache_message
+        self.set_widgets(cache_message)
+        return
+# cached_result not found, display an empty viewer with a "no result
+# in this node record" message (the user can then use the Display with
+# menu to switch to a different viewer)
 
 # are we dealing with Vellsets?
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
