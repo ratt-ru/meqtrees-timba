@@ -172,17 +172,18 @@ class GridDataItem (object):
     # build list of compatible viewers
     self.viewer_list = getViewerList((data is None and datatype) or data);
     # is a viewer also explicitly specifed?
+    self.viewer = viewer;
     if viewer is None:
       if not self.viewer_list:
         raise TypeError,"no viewers registered and none specified";
-      viewer = self.viewer_list[0]; # no, pick first one from list
+      self.default_viewer = self.viewer_list[0];
     else:
       if not callable(viewer):
         raise TypeError,'viewer argument must be a callable';
       # prepend to list
       if viewer not in self.viewer_list:
         self.viewer_list.insert(0,viewer);
-    self.viewer = viewer;
+      self.default_viewer = viewer;
     self.cells = sets.Set();
   def refresh (self):
     self.refresh_func and self.refresh_func();
@@ -223,6 +224,17 @@ class GridCell (object):
       self._menu.exec_loop(ev.globalPos());
       
   def __init__ (self,parent):
+    # init state
+    self._viewer = None;
+    self._refresh_func = lambda:None;
+    self._dataitem = None;
+    
+    self._highlight_colors = \
+      (QApplication.palette().active().highlight(),\
+       QApplication.palette().active().highlightedText()); \
+    self._highlight = False;
+    
+    # init widgets
     wtop = self._wtop = self.TopLevelWidget(parent);
     wtop.hide();
     top_lo = QVBoxLayout(self._wtop);
@@ -296,14 +308,6 @@ class GridCell (object):
     control_box.setSizePolicy(hsp);
     control_box.hide();
     self._wtop.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding));
-    self._viewer = None;
-    self._refresh_func = lambda:None;
-    self._dataitem = None;
-    
-    self._highlight_colors = \
-      (QApplication.palette().active().highlight(),\
-       QApplication.palette().active().highlightedText()); \
-    self._highlight = False;
     
   # destructor
   def __del__ (self):
@@ -326,6 +330,8 @@ class GridCell (object):
   def set_pinned (self,state=True):
     self._pin.setOn(state);
     self._update_pin_menu(state);
+  def viewer (self):
+    return self._viewer;
     
   def udi (self):
     return self._dataitem and self._dataitem.udi;
@@ -422,7 +428,7 @@ class GridCell (object):
     # show the control box
     self._control_box.show();
     # set up the viewer
-    self.change_viewer(dataitem.viewer);
+    self.change_viewer(dataitem.default_viewer);
     # setup refresh function and button
     self._menu.setItemEnabled(self._m_refresh,dataitem.is_mutable());
     if dataitem.is_mutable():
@@ -777,14 +783,18 @@ class GriddedWorkspace (object):
       page = self._maintab.page(p);
       page._page.clear();
       self._maintab.removePage(page);
-  # highlights specfic item, removes highlights from previous items (if any)
-  def highlight_data_item (self,item):
-    # remove highlights from last item, if any
-    if self._highlight and self._highlight():
-      self._highlight().highlight(False);
-    # add highlight
-    item.highlight(self._highlight_color);
-    self._highlight = weakref.ref(item);
+  
+  # highlights specfic cells, removes highlights from previous cells (if any)
+  def highlight_cells (self,cells):
+    # ensure arg is sequence
+    if isinstance(cells,GridCell):
+      cells = (cells,);
+    # remove highlights from previous cells, if any
+    if self._highlight:
+      map(lambda c:c.highlight(False),self._highlight);
+    map(lambda c:c.highlight(self._highlight_color),cells);
+    self._highlight = cells;
+    
   # Adds a data cell with the given item
   #   cell:    if not None, must be a cell (or a callable returning a cell) to 
   #            which item will be added. If None, a cell will be allocated.
@@ -809,34 +819,39 @@ class GriddedWorkspace (object):
     # add page if requested
     if newpage:
       self.add_page();
-    # resolve cell and parent arguments try to resolve to a GridCell object
+    # resolve cell and parent arguments 
     cell = resolve_arg(cell,GridCell);
     parent = resolve_arg(parent,GridCell);
     parent_udi = parent and parent.udi();
-    # Are we already displaying this UDI? 
-    # Then item0 is not item
+    # Are we already displaying this UDI? If so, then item0 will be it,
+    # otherwise, item will be inserted into map (and thus item0 is item)
     item0 = self._dataitems.setdefault(item.udi,item);
-    # If a specific cell, or a new cell, or a new page, or a different viewer
-    # is requested, then pretend we're not
-    if cell or newcell or newpage:
+    # compile list of cells which display this item (and use the same viewer
+    # if one is explicitly specified)
+    if item0 is not item:
+      print 'item already displayed';
+      print map(lambda c:type(c.viewer()),item0.cells);
+      print item.viewer;
+      if item.viewer is None:
+        disp_cells = list(item0.cells);
+      else:
+        disp_cells = filter(lambda c:type(c.viewer()) is item.viewer,item0.cells);
+    else:
+      disp_cells = [];
+    # We 
+    # * cell/newcell/newpage is not specified
+    # * the cell is on the same page (i.e. visible) and uses the same viewer 
+    # Otherwise, set item=item0, so that further operations below are done
+    # on the original dataitem object
+    if cell or newcell or newpage \
+       or not filter(lambda c:c.wtop().isVisible(),disp_cells):
       item = item0;
-#    else: # now check if the specified viewer is being used
-#      print 'item viewer is',item.viewer;
-#      print 'item0 viewers are',map(lambda c:c._viewer_class,item0.cells);
-#      if item0.is_viewed_by(item0
-#     or item0.viewer is not item.viewer:
-    # a dataitem for this udi already exists, and specific cell is not specified:
-    # simply refresh the item and highlight the cell it is in
+    # 
     if item0 is not item:
       if item.data is None:  
         item0.refresh();
       else: 
         item0.update(item.data);
-      wpage = item0._pageref();
-      if wpage:
-        self._maintab.showPage(wpage);
-      # highlight the cell
-      self.highlight_data_item(item0);
     # else item is inserted into the specified cell
     else:
       # no cell specified (or callable returned None), allocate new cell/page
@@ -846,9 +861,11 @@ class GriddedWorkspace (object):
       cell.set_data_item(item);
       # ask for a refresh
       item.refresh();
-      item._pageref = weakref.ref(self._maintab.currentPage());
-      self.wtop().updateGeometry();
-      self.highlight_data_item(item);
+      cell.wtop().updateGeometry();
+      # self.wtop().updateGeometry();
+      disp_cells.append(cell); # will highlight below
+    # highlight all cells displaying this item
+    self.highlight_cells(disp_cells);
     self.wtop().emit(PYSIGNAL("addedDataItem()"),(item,));
     
   # updates a data item, if it is known
