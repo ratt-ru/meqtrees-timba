@@ -90,7 +90,7 @@ const Node::Ref & Forest::create (int &node_index,
   // check if node index is already set (i.e. via init record),
   if( node_index > 0 ) // node index already set (i.e. when reloading)
   {
-    FailWhen(node_index<nodes.size() && nodes[node_index].valid(),
+    FailWhen(node_index<int(nodes.size()) && nodes[node_index].valid(),
         Debug::ssprintf("node %d already created",node_index));
   }
   else  // not set, allocate new node index
@@ -98,7 +98,7 @@ const Node::Ref & Forest::create (int &node_index,
   // resize repository as needed, and put node into it
   if( node_index >= int(nodes.capacity()) )
     nodes.reserve(node_index + RepositoryChunkSize);
-  if( node_index >= nodes.size() )
+  if( node_index >= int(nodes.size()) )
     nodes.resize(node_index+1);
   nodes[node_index] = noderef;
   pnode->setNodeIndex(node_index);

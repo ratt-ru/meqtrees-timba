@@ -145,14 +145,15 @@ VisTile::Iterator & VisTile::Iterator::operator=(const VisTile::Iterator &right)
 //##ModelId=3DB964F802EF
 void VisTile::Iterator::attach (VisTile &tile)
 {
-  FailWhen( !tile.isWritable(),"tile not writable" );
+  tile.makeWritable();
   ConstIterator::attach(tile);
 }
 
 //##ModelId=3DB964F80334
 void VisTile::Iterator::attach (const VisTileRef &ref)
 {
-  FailWhen( !ref.isWritable() || !ref->isWritable(),"tile not writable" );
+  FailWhen(!ref.isWritable(),"tile ref not writable" );
+  ref().makeWritable();
   ConstIterator::attach(ref);
 }
 

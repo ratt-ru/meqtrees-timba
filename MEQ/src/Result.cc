@@ -131,10 +131,16 @@ void Result::validateContent ()
   }  
 }
 
+int Result::remove (const HIID &id)
+{ 
+  if( id == FCells || id == FVellSets )
+    Throw("remove(" + id.toString() +" from a Meq::Result not allowed"); 
+  return DataRecord::remove(id);
+}
+
 //##ModelId=3F86887000D4
 void Result::setCells (const Cells *cells,int flags)
 {
-  FailWhen(!isWritable(),"r/w access violation");
   itsCells = flags&DMI::CLONE ? new Cells(*cells) : cells;
   DataRecord::replace(FCells,itsCells,flags|DMI::READONLY);
 }
@@ -142,7 +148,6 @@ void Result::setCells (const Cells *cells,int flags)
 //##ModelId=400E5355019D
 VellSet & Result::setVellSet (int i,VellSet *vellset)
 {
-  FailWhen(!isWritable(),"r/w access violation");
 //  DbgFailWhen(isFail(),"Result marked as a fail, can't set vellset");
   itsVellSets().put(i,vellset,DMI::ANONWR);
   return *vellset;
@@ -151,7 +156,6 @@ VellSet & Result::setVellSet (int i,VellSet *vellset)
 //##ModelId=400E535501AD
 VellSet & Result::setVellSet (int i,VellSet::Ref::Xfer &vellset)
 {
-  FailWhen(!isWritable(),"r/w access violation");
 //  DbgFailWhen(isFail(),"Result marked as a fail, can't set vellset");
   VellSet *pvs;
   itsVellSets().put(i,pvs=vellset.dewr_p(),DMI::ANONWR);
@@ -181,8 +185,6 @@ int Result::numFails () const
 //##ModelId=3F868870014C
 void Result::show (std::ostream& os) const
 {
-  if( !isWritable() )
-    os << "(readonly)";
   for( int i=0; i<numVellSets(); i++ )
   {
     os << "VellSet "<<i<<endl;

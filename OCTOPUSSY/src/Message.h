@@ -127,35 +127,14 @@ class Message : public BlockableObject
       //## privatization.
       virtual void privatize (int flags = 0, int depth = 0);
 
-      // map methods of NestableContainer directly onto message
-      //##ModelId=3C7F56ED007D
+      // Define the subscript operator on messages
+      // This will subscript directly into the payload
+      NestableContainer::Hook operator [] (const HIID &id) const;
+      // If no payload, initializes new DataRecord
       NestableContainer::Hook operator [] (const HIID &id);
-      //##ModelId=3C7E4C310348
-      NestableContainer::Hook operator [] (int n);
-      //##ModelId=3C7E4C3E003A
-      NestableContainer::ConstHook operator [] (const HIID &id) const;
-      //##ModelId=3C7F56D90197
-      NestableContainer::ConstHook operator [] (int n) const;
-      //##ModelId=3CB42D0201B4
-      NestableContainer::Hook setBranch (const HIID &id, int flags = DMI::WRITE);
-    //##ModelId=3DB936BD0306
-      NestableContainer::ConstHook operator [] (AtomicID id1) const
-      { return (*this)[HIID(id1)]; }
-    //##ModelId=3DB936BF005B
-      NestableContainer::ConstHook operator [] (const string &id1) const
-      { return (*this)[HIID(id1)]; }
-    //##ModelId=3DB936C00125
-      NestableContainer::ConstHook operator [] (const char *id1) const
-      { return (*this)[HIID(id1)]; }
-    //##ModelId=3DB936C101D1
-      NestableContainer::Hook operator [] (AtomicID id1) 
-      { return (*this)[HIID(id1)]; }
-    //##ModelId=3DB936C201D2
-      NestableContainer::Hook operator [] (const string &id1) 
-      { return (*this)[HIID(id1)]; }
-    //##ModelId=3DB936C301E7
-      NestableContainer::Hook operator [] (const char *id1) 
-      { return (*this)[HIID(id1)]; }
+      
+      declareSubscriptAliases(NestableContainer::Hook,const);
+      declareSubscriptAliases(NestableContainer::Hook,);
 
       //##ModelId=3C7E443A016A
       void * data ();
@@ -326,42 +305,23 @@ inline Message::Message (const HIID &id1, int pri)
 }
 
 
+inline NestableContainer::Hook Message::operator [] (const HIID &id) const
+{
+  FailWhen(!payload_.valid() || !payload_->isNestable(),"message payload is not a container" ); 
+  const NestableContainer::Ref &ref = payload_.ref_cast<NestableContainer>();
+  return ref[id];
+}
 
-//##ModelId=3C7F56ED007D
-inline NestableContainer::Hook Message::operator [] (const HIID &id)
+inline NestableContainer::Hook Message::operator [] (const HIID &id) 
 {
   if( payload_.valid() )
-  { FailWhen( !payload_->isNestable(),"payload is not a container" ); }
+  { 
+    FailWhen( !payload_->isNestable(),"message payload is not a container" ); 
+  }
   else
-    payload_.attach(new DataRecord,DMI::ANON|DMI::WRITE|DMI::PERSIST);
-  return (*static_cast<NestableContainer*>(
-      const_cast<BlockableObject*>(&payload_.deref())))[id];
-}
-
-//##ModelId=3C7E4C310348
-inline NestableContainer::Hook Message::operator [] (int n)
-{
-  if( payload_.valid() )
-  { FailWhen( !payload_->isNestable(),"payload is not a container" ); }
-  else
-    payload_.attach(new DataRecord,DMI::ANON|DMI::WRITE|DMI::PERSIST);
-  
-  return (*static_cast<NestableContainer*>(
-      const_cast<BlockableObject*>(&payload_.deref())))[n];
-}
-
-//##ModelId=3C7E4C3E003A
-inline NestableContainer::ConstHook Message::operator [] (const HIID &id) const
-{
-  FailWhen( !payload_.valid() || !payload_->isNestable(),"payload is not a container" ); 
-  return (*static_cast<const NestableContainer*>(&payload_.deref()))[id];
-}
-
-//##ModelId=3C7F56D90197
-inline NestableContainer::ConstHook Message::operator [] (int n) const
-{
-  FailWhen( !payload_.valid() || !payload_->isNestable(),"payload is not a container" ); 
-  return (*static_cast<const NestableContainer*>(&payload_.deref()))[n];
+    payload_.attach(new DataRecord,DMI::ANONWR|DMI::PERSIST);
+  const NestableContainer::Ref &ref = payload_.ref_cast<NestableContainer>();
+  return ref[id];
 }
 
 //##ModelId=3C7E443A016A

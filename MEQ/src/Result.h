@@ -143,7 +143,9 @@ public:
   // returns the number of fails in the set
     //##ModelId=400E535501D4
   int numFails () const;
+
   
+  virtual int remove (const HIID &id);  
 
   // dumps result to stream
     //##ModelId=3F868870014C

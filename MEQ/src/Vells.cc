@@ -35,7 +35,6 @@ Vells::Vells()
   itsNx          (0),
   itsNy          (0),
   itsIsTemp      (false),
-  itsIsWritable  (true),
   itsIsScalar    (true)
 {}
 
@@ -46,7 +45,6 @@ Vells::Vells (double value,bool temp)
   itsNx          (1),
   itsNy          (1),
   itsIsTemp      (temp),
-  itsIsWritable  (true),
   itsIsScalar    (true)
 {
   DataArray *parr;
@@ -62,7 +60,6 @@ Vells::Vells (const dcomplex& value,bool temp)
   itsNx          (1),
   itsNy          (1),
   itsIsTemp      (temp),
-  itsIsWritable  (true),
   itsIsScalar    (true)
 {
   DataArray *parr;
@@ -78,7 +75,6 @@ Vells::Vells (double value, int nx, int ny, bool init)
   itsNx          (nx),
   itsNy          (ny),
   itsIsTemp      (false),
-  itsIsWritable  (true),
   itsIsScalar    (nx==1 && ny==1)
 {
   DataArray *parr;
@@ -95,7 +91,6 @@ Vells::Vells (const dcomplex& value, int nx, int ny, bool init)
   itsNx          (nx),
   itsNy          (ny),
   itsIsTemp      (false),
-  itsIsWritable  (true),
   itsIsScalar    (nx==1 && ny==1)
 {
   DataArray *parr;
@@ -112,7 +107,6 @@ Vells::Vells (LoMat_double& array)
   itsNx          (array.extent(blitz::firstDim)),
   itsNy          (array.extent(blitz::secondDim)),
   itsIsTemp      (false),
-  itsIsWritable  (true),
   itsIsScalar    (itsNx==1 && itsNy==1)
 {
   DataArray *parr;
@@ -127,7 +121,6 @@ Vells::Vells (LoMat_dcomplex& array)
   itsNx          (array.extent(blitz::firstDim)),
   itsNy          (array.extent(blitz::secondDim)),
   itsIsTemp      (false),
-  itsIsWritable  (true),
   itsIsScalar    (itsNx==1 && itsNy==1)
 {
   DataArray *parr;
@@ -136,12 +129,10 @@ Vells::Vells (LoMat_dcomplex& array)
 }
 
 
-//##ModelId=400E5356013E
-void Vells::initFromDataArray (const DataArray *parr,int flags)
+void Vells::initArrayPointers (const DataArray *parr,int flags)
 {
-  Assert( parr->rank() == 2 );
   // privatize if so asked
-  if( flags&DMI::PRIVATIZE )
+   if( flags&DMI::PRIVATIZE )
     parr = itsArray.privatize(flags|DMI::DEEP).dewr_p();
   // check type
   TypeId tid = parr->elementType();
@@ -153,13 +144,19 @@ void Vells::initFromDataArray (const DataArray *parr,int flags)
   {
     Throw("Meq::Vells does not support arrays of type "+tid.toString());
   }
+}
+
+
+//##ModelId=400E5356013E
+void Vells::initFromDataArray (const DataArray *parr,int flags)
+{
+  Assert( parr->rank() == 2 );
+  initArrayPointers(parr,flags);
   // set attributes from data array
   itsNx       = parr->shape()[0];
   itsNy       = parr->shape()[1];
   itsIsTemp   = false;
   itsIsScalar = (itsNx==1 && itsNy==1);
-  // set writable flag
-  itsIsWritable = itsArray.isWritable() && parr->isWritable();
 }
   
 //##ModelId=3F8688700216
@@ -198,7 +195,6 @@ Vells::Vells (const Vells& that,int flags)
   itsNx           (that.itsNx),
   itsNy           (that.itsNy),
   itsIsTemp       (false),
-  itsIsWritable   (that.itsIsWritable),
   itsIsScalar     (that.itsIsScalar)
 {
   // since array may have been privatized, re-obtain flags
@@ -208,7 +204,6 @@ Vells::Vells (const Vells& that,int flags)
       itsArray->getConstArrayPtr(itsRealArray);
     else 
       itsArray->getConstArrayPtr(itsComplexArray);
-    itsIsWritable = itsArray.isWritable() && itsArray->isWritable();
   }
 }
 
@@ -228,7 +223,6 @@ Vells& Vells::operator= (const Vells& that)
     itsNx           = that.itsNx;
     itsNy           = that.itsNy;
     itsIsTemp       = that.itsIsTemp;
-    itsIsWritable   = that.itsIsWritable;
     itsIsScalar     = that.itsIsScalar;
   }
   return *this;
@@ -249,7 +243,6 @@ Vells & Vells::privatize()
       parr->getConstArrayPtr(itsRealArray);
     else 
       parr->getConstArrayPtr(itsComplexArray);
-    itsIsWritable = true;
   }
   return *this;
 }
@@ -271,7 +264,7 @@ void Vells::show (std::ostream& os) const
 //##ModelId=400E53560110
 void Vells::copyData (const Vells &other)
 {
-  ensureWritable();
+  makeWritable();
   if( this != &other && itsArray != other.itsArray )
   {
     FailWhen( nx() != other.nx() || ny() != other.ny() || isReal() != other.isReal(),
@@ -286,7 +279,7 @@ void Vells::copyData (const Vells &other)
 //##ModelId=400E5356011C
 void Vells::zeroData ()
 {
-  ensureWritable();
+  makeWritable();
   if( isReal() )
     memset(realStorage(),0,sizeof(double)*nelements());
   else if( isComplex() )
@@ -296,12 +289,11 @@ void Vells::zeroData ()
 //##ModelId=400E5356019D
 inline bool Vells::tryReference (bool real,const Vells &other)
 {
-  if( other.isTemp() && other.isWritable() && other.isCongruent(real,itsNx,itsNy) )
+  if( other.isTemp() && other.isCongruent(real,itsNx,itsNy) )
   {
     itsArray.copy(other.itsArray,DMI::PRESERVE_RW);
     itsRealArray = other.itsRealArray;
     itsComplexArray = other.itsComplexArray;
-    itsIsWritable = true;
     return True;
   }
   return False;
@@ -310,8 +302,7 @@ inline bool Vells::tryReference (bool real,const Vells &other)
 // constructor for a temp vells in unary expression
 //##ModelId=3F8688700231
 Vells::Vells (const Vells &other,int flags,const std::string &opname)
-: itsIsTemp       (true),
-  itsIsWritable   (true)
+: itsIsTemp       (true)
 {
   // check input if requested by flags
   FailWhen(flags&VF_CHECKREAL && other.isComplex(),
@@ -348,8 +339,7 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
 // constructor for a temp vells in binary expression
 //##ModelId=400E53560174
 Vells::Vells (const Vells &a,const Vells &b,int flags,const std::string &opname)
-: itsIsTemp       (true),
-  itsIsWritable   (true)
+: itsIsTemp       (true)
 {
   // check input if requested by flags
   FailWhen(flags&VF_CHECKREAL && (a.isComplex() || b.isComplex()),
@@ -394,10 +384,9 @@ string Vells::sdebug (int detail,const string &,const char *nm) const
   string out;
   if( detail >= 0 ) // basic detail
   {
-    out = ssprintf("%s/%08x %s",nm?nm:"MeqVells",(void*)this,
-                    isWritable()?"RW":"RO");
+    out = ssprintf("%s/%08x",nm?nm:"MeqVells",(void*)this);
     if( isTemp() )
-      out += "t";
+      out += "/tmp";
   }
   else if( detail >= 1 || detail == -1 ) // basic detail
   {
@@ -405,8 +394,6 @@ string Vells::sdebug (int detail,const string &,const char *nm) const
       append(out,"(null)");
     else
       appendf(out,"%dx%d%s%s",nx(),ny(),isReal()?"R":"C");
-    if( !isWritable() )
-      appendf(out,"readonly");
   }
   else if( detail >= 2 || detail == -2 ) // basic detail
   {

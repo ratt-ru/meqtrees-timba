@@ -56,11 +56,15 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
     //##ModelId=3DB964F20207
       bool hasFormat () const;
 
-    //##ModelId=3DB964F2020A
-      bool isWritable () const;
-
     //##ModelId=3DB964F2020C
       bool defined (int icol) const;
+      
+      // makes data block writable (by privatizing) if not already so
+      void makeWritable ()
+      { 
+        if( datablock.valid() && !datablock.isWritable() )
+          datablock.privatize(DMI::WRITE); 
+      }
 
     // returns the tile ID
     //##ModelId=3DF9FDCA03BC
@@ -140,7 +144,7 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
       static const uint MaxIdSize = 16;
       
   protected:
-    // Additional Protected Declarations
+      
     //##ModelId=3DB964F20349
       // Internal methods for fastest access to column data bypassing all 
       // sanity checks (inlined below).
@@ -216,12 +220,6 @@ inline bool ColumnarTableTile::hasFormat () const
   return format_.valid();
 }
 
-//##ModelId=3DB964F2020A
-inline bool ColumnarTableTile::isWritable () const
-{
-  return !datablock.valid() || datablock.isWritable();
-}
-
 //##ModelId=3DF9FDCA03BC
 inline const HIID & ColumnarTableTile::tileId () const
 {
@@ -231,14 +229,14 @@ inline const HIID & ColumnarTableTile::tileId () const
 //##ModelId=3DB964F20243
 inline void * ColumnarTableTile::wcolumn (int icol)
 {
-  DbgFailWhen(!isWritable(),"r/w access violation" );
+  makeWritable();
   return const_cast<void*>(column(icol));
 }
 
 //##ModelId=3DB964F20251
 inline void * ColumnarTableTile::wcolumn (int icol, int irow)
 {
-  DbgFailWhen(!isWritable(),"r/w access violation" );
+  makeWritable();
   return const_cast<void*>(column(icol,irow));
 }
 

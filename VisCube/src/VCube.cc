@@ -583,12 +583,14 @@ void VisCube::setWritable(bool write)
   {
     writable_ = True;
     // privatize header
-    if( header_.valid() && ( !header_.isWritable() || !header_->isWritable() ) )
+    if( header_.valid() && !header_.isWritable() )
       header_.privatize(DMI::WRITE,0);
-    // privatize read-onlytiles for writing
+    // privatize tiles for writing as needed
     for( TI iter = tiles.begin(); iter != tiles.end(); iter++ )
-      if( !iter->isWritable() || !iter->deref().isWritable() )
-        iter->privatize(DMI::WRITE|DMI::DEEP,0);
+      if( iter->isWritable() )
+        iter->dewr().makeWritable();  // writable tile ref? ensure tile itself is writable
+      else
+        iter->privatize(DMI::WRITE|DMI::DEEP,0); // else privatize the ref
   }
 }
 
@@ -658,7 +660,6 @@ int VisCube::fromBlock (BlockSet& set)
     ret += ptile->fromBlock(set);
     if( phdr->hasformat )
       ptile->applyFormat(format_);
-    writable_ &= ptile->isWritable();
   }
   // get header [if available]
   if( phdr->hasheader )

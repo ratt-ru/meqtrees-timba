@@ -239,7 +239,7 @@ void ColumnarTableTile::addRows (int nr)
   if( !nr )
     return;
   FailWhen(nr<0,"illegal number of rows");
-  FailWhen(!isWritable(),"r/w access violation");
+  makeWritable();
   vector<int> offset;
   int totsize = computeOffsets(offset,format(),nrow()+nr);
   // allocate new block
@@ -279,7 +279,7 @@ void ColumnarTableTile::copy (int startrow, const ColumnarTableTile &other, int 
   if( !numrows )
     return;
   // check for writability
-  FailWhen(!isWritable(),"r/w access violation");
+  makeWritable();
   // uninitialized tile? Init with required size
   if( !nrow() )
     addRows(numrows);
@@ -410,7 +410,7 @@ void ColumnarTableTile::privatize (int flags, int depth)
 //##ModelId=3DF9FDCB008B
 void ColumnarTableTile::setTileId (const HIID &id)
 {
-  FailWhen(!isWritable(),"r/w access violation" );
+  makeWritable();
   FailWhen(id.size() > MaxIdSize,"Length of tile ID > maximum" );
   id_ = id;
   if( datablock.valid() )

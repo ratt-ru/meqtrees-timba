@@ -445,7 +445,7 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //    define some handy macros for column accessors. CheckWR checks
     //    the tile for writability, fails if not writable. 
     //    "wreturn" invokes CheckWR, followed by a return statement. 
-    #define CheckWR FailWhen(!isWritable(),"r/w access violation");
+    #define CheckWR makeWritable();
     #define wreturn CheckWR; return
     #define DefineColumn(type,dim,name,id) DefineColumn_##dim(type,name)
     #define ALL LoRange::all()
@@ -836,7 +836,7 @@ inline VisTile::ConstIterator VisTile::begin (int flags) const
 //##ModelId=3DD25962035B
 inline VisTile::Iterator VisTile::begin (int flags)
 {
-  FailWhen( !isWritable(),"r/w access violation" );
+  makeWritable();
   return flags ? Iterator(VisTileRef(this,flags)) : Iterator(*this);
 }
 

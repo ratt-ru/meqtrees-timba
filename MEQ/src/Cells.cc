@@ -34,7 +34,6 @@ static NestableContainer::Register reg(TpMeqCells,True);
 Cells::Cells ()
 : itsDomain(0),itsNfreq(0)
 {
-  DataRecord::setWritable(False);
 }
 
 //##ModelId=3F86886E02C8
@@ -42,7 +41,6 @@ Cells::Cells (const DataRecord &other,int flags,int depth)
 : DataRecord(other,flags,depth)
 {
   validateContent();
-  DataRecord::setWritable(False);
 }
 
 //##ModelId=3F95060B01D3
@@ -60,7 +58,6 @@ Cells::Cells (const Domain& domain, int nfreq, int ntimes)
     itsTimeSteps(i) = step;
     time += step;
   }
-  DataRecord::setWritable(False);
 }
 
 //##ModelId=400E530403A0
@@ -81,7 +78,6 @@ Cells::Cells (const Domain& domain, int nfreq,
     itsTimeSteps(i) = endTimes(i) - startTimes(i);
     itsTimes(i) = startTimes(i) + itsTimeSteps(i) / 2;
   }
-  DataRecord::setWritable(False);
 }
 
 //##ModelId=400E530403DB
@@ -155,8 +151,7 @@ void Cells::show (std::ostream& os) const
 void Cells::setDataRecord (const Domain& domain,int nfreq,int ntimes)
 {
   Assert (ntimes > 0  &&  nfreq > 0);
-  itsDomain = new Domain(domain);
-  (*this)[FDomain] <<= static_cast<const DataField*>(itsDomain);
+  (*this)[FDomain] <<= itsDomain = new Domain(domain);
   (*this)[FNumFreq] = itsNfreq = nfreq;
   (*this)[FTimes] <<= new DataArray(Tpdouble,LoShape(ntimes));
   itsTimes.reference((*this)[FTimes].as<LoVec_double>());

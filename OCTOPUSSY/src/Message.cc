@@ -162,20 +162,6 @@ void Message::privatize (int flags, int depth)
   }
 }
 
-//##ModelId=3CB42D0201B4
-NestableContainer::Hook Message::setBranch (const HIID &id, int flags)
-{
-  FailWhen( !payload_.valid() || !payload_->isNestable(),"payload is not a container" ); 
-  // privatize payload if required (or if not writable)
-  if( flags&DMI::PRIVATIZE ||
-      !payload_.isWritable() || 
-      dynamic_cast<NestableContainer&>(payload_.dewr()).isWritable() )
-    payload_.privatize(DMI::WRITE,0);
-  NestableContainer *nc = dynamic_cast<NestableContainer*>(payload_.dewr_p());
-  Assert(nc);
-  return nc->setBranch(id,flags);
-}
-
 //##ModelId=3C960F1B0373
 int Message::fromBlock (BlockSet& set)
 {

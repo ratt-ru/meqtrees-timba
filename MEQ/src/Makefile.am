@@ -24,11 +24,12 @@ Forest.cc ParmTable.cc \
 AID-Meq-Registry.cc
 
 
-check_PROGRAMS = uvwparm
+check_PROGRAMS = 
+# uvwparm
 
-uvwparm_SOURCES	 	= uvwparm.cc 
-uvwparm_LDADD		= libmeq.la 
-uvwparm_DEPENDENCIES	= libmeq.la $(LOFAR_DEPEND)
+# uvwparm_SOURCES	 	= uvwparm.cc 
+# uvwparm_LDADD		= libmeq.la 
+# uvwparm_DEPENDENCIES	= libmeq.la $(LOFAR_DEPEND)
 
 # --- begin generate defrec maps (copy this into local Makefiles)
 #     (shouldn't require any changes)

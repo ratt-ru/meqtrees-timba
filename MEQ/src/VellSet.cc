@@ -148,18 +148,8 @@ void VellSet::validateContent ()
                 "size mismatch between spids and perturbed values");
           // setup shortcuts to perturbation vells
           // use different versions for writable/non-writable
-          if( perturbed_ref.isWritable() )
-          {
-            for( int i=0; i<itsNumSpids; i++ )
-              itsPerturbedValues[i] <<=
-                  makeVells(perturbed_ref(),AtomicID(i));
-          }
-          else
-          {
-            for( int i=0; i<itsNumSpids; i++ )
-              itsPerturbedValues[i] <<=
-                  makeVells(*perturbed_ref,AtomicID(i));
-          }
+          for( int i=0; i<itsNumSpids; i++ )
+            itsPerturbedValues[i] <<= new Vells(perturbed_ref[i].ref(DMI::PRESERVE_RW));
         }
       }
     }
@@ -192,7 +182,6 @@ void VellSet::clear()
 void VellSet::setSpids (const vector<int>& spids)
 {
   FailWhen(itsNumSpids && spids.size() != uint(itsNumSpids),"setSpids: vector size mismatch" );
-  FailWhen(!isWritable(),"r/w access violation");
   if( itsNumSpids ) // assigning to existing vector
     (*this)[FSpids] = spids;
   else // setting new vector
@@ -221,7 +210,6 @@ void VellSet::setPerturbation (int i, double value)
 void VellSet::setPerturbations (const vector<double>& perts)
 {
   FailWhen(perts.size() != uint(itsNumSpids),"setPerturbations: vector size mismatch" );
-  FailWhen(!isWritable(),"r/w access violation");
   if( itsNumSpids )
   {
     (*this)[FPerturbations] = perts;
@@ -232,7 +220,6 @@ void VellSet::setPerturbations (const vector<double>& perts)
 //##ModelId=400E53550360
 Vells & VellSet::setValue (Vells *pvells)
 {
-  FailWhen(!isWritable(),"r/w access violation");
   itsValue <<= pvells;
   DataRecord::replace(FValue,&(pvells->getDataArray()),DMI::ANONWR);
   return *pvells;
@@ -245,7 +232,6 @@ Vells & VellSet::setPerturbedValue (int i,Vells *pvells)
   // allocate container for perturbed values
   if( !perturbed_ref.valid() )
   {
-    FailWhen(!isWritable(),"r/w access violation");
     DataField *df = new DataField(TpDataArray,itsNumSpids);
     perturbed_ref <<= df;
     DataRecord::add(FPerturbedValues,df,DMI::ANONWR);
@@ -258,7 +244,6 @@ Vells & VellSet::setPerturbedValue (int i,Vells *pvells)
 //##ModelId=400E53550393
 void VellSet::addFail (const DataRecord *rec,int flags)
 {
-  FailWhen(!isWritable(),"r/w access violation");
   clear();
   itsIsFail = true;
   // clear out the DR

@@ -73,10 +73,8 @@ public:
     //##ModelId=400E53550049
   virtual void validateContent ();
   
-  // this disables removal of fields via hooks
     //##ModelId=400E5355004C
-  virtual bool remove (const HIID &)
-  { Throw("remove() from a Meq::VellSet not allowed"); }
+  virtual int remove (const HIID &);
   
   // Calculate derivatives if parameters are solvable?
     //##ModelId=3F868870006C

@@ -221,7 +221,7 @@ public:
 
   // this disables removal of DataRecord fields via hooks
     //##ModelId=400E535503B1
-  virtual bool remove (const HIID &)
+  virtual int remove (const HIID &)
   { Throw("remove() from a Meq::VellSet not allowed"); }
   
     //##ModelId=400E535502F6

@@ -37,7 +37,6 @@ Domain::Domain()
   itsOffsetTime (0),
   itsScaleTime  (1)
 {
-//  setDMI();
 }
 
 //##ModelId=3F86886E030E
@@ -49,7 +48,7 @@ Domain::Domain (const DataField& fld,int flags)
 
 //##ModelId=3F95060C00A7
 Domain::Domain (double startFreq, double endFreq,
-		double startTime, double endTime)
+		            double startTime, double endTime)
 : DataField(Tpdouble,4)
 {
   AssertMsg (startFreq < endFreq, "Meq::Domain: startFreq " << startFreq <<
@@ -60,7 +59,11 @@ Domain::Domain (double startFreq, double endFreq,
   itsScaleFreq  = (endFreq - startFreq) * .5;
   itsOffsetTime = (endTime + startTime) * .5;
   itsScaleTime  = (endTime - startTime) * .5;
-  setDMI();
+  double *fld = (*this)[HIID()].as_wp<double>();
+  fld[0] = startFreq;
+  fld[1] = endFreq;
+  fld[2] = startTime;
+  fld[3] = endTime;
 }
 
 //##ModelId=400E5305010B
@@ -104,17 +107,5 @@ void Domain::show (std::ostream& os) const
      << startTime() << " : " << endTime() << "]";
 }
 
-
-
-//##ModelId=3F86886E0334
-void Domain::setDMI()
-{
-  // Set array in DataField of 4 doubles.
-  this->operator[](0) = startFreq();
-  this->operator[](1) = endFreq();
-  this->operator[](2) = startTime();
-  this->operator[](3) = endTime();
-  DataField::setWritable(False);
-}
 
 } // namespace Meq

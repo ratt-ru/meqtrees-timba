@@ -179,13 +179,12 @@ public:
   bool isTemp () const
     { return itsIsTemp; }
   
-    //##ModelId=400E53560096
-  bool isWritable () const
-    { return itsIsWritable; }
-  
     //##ModelId=400E53560099
-  void ensureWritable () const
-    { FailWhen(!itsIsWritable,"r/w access violation"); }
+  void makeWritable () 
+  { 
+    if( itsArray.valid() && !itsArray.isWritable() )
+      initArrayPointers(0,DMI::PRIVATIZE|DMI::WRITE);
+  }
 
   // changes the temp property
     //##ModelId=400E5356009D
@@ -255,11 +254,11 @@ public:
   { DbgAssert(itsComplexArray!=0); return *itsComplexArray; }
     //##ModelId=3F8688700291
   LoMat_double& getRealArray()
-  { DbgAssert(itsRealArray!=0); ensureWritable(); 
+  { DbgAssert(itsRealArray!=0); makeWritable(); 
     return *const_cast<LoMat_double*>(itsRealArray); }
     //##ModelId=3F8688700292
   LoMat_dcomplex& getComplexArray()
-  { DbgAssert(itsComplexArray!=0); ensureWritable(); 
+  { DbgAssert(itsComplexArray!=0); makeWritable(); 
     return *const_cast<LoMat_dcomplex*>(itsComplexArray); }
   
   // initializes with value
@@ -319,6 +318,7 @@ private:
   // helper function for constructors
     //##ModelId=400E5356013E
   void initFromDataArray (const DataArray *parr,int flags);
+  void initArrayPointers (const DataArray *parr,int flags);
     
     //##ModelId=400E53560024
   DataArray::Ref  itsArray;

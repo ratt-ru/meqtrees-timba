@@ -104,5 +104,11 @@ void Request::validateContent ()
   }  
 }
 
+int Request::remove (const HIID &id)
+{ 
+  if( id == FCells || id == FRequestId || id==FCalcDeriv )
+    Throw("remove(" + id.toString() +" from a Meq::Request not allowed"); 
+  return DataRecord::remove(id);
+}
 
 } // namespace Meq

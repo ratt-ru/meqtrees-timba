@@ -125,10 +125,6 @@ public:
   void show (std::ostream&) const;
 
 private:
-  // Set the values in the DMI DataField.
-    //##ModelId=3F86886E0334
-  void setDMI();
-
     //##ModelId=3F86886E02F8
   double itsOffsetFreq;
     //##ModelId=3F86886E02FD

@@ -633,10 +633,10 @@ int Node::execute (Result::Ref &ref, const Request &req)
               bool matched = false;
               for( int i=0; i<list.size() && !matched; i++ )
               {
-                DataRecord &entry = list[i];
+                DataRecord &entry = list[i].as_wr<DataRecord>();
                 std::vector<string> names;
                 std::vector<int> indices;
-                DataRecord &newst = entry[FState];
+                DataRecord &newst = entry[FState].as_wr<DataRecord>();
                 if( entry[FName].exists() ) // get list of names, if any
                   names = entry[FName];
                 if( entry[FNodeIndex].exists() ) // get list of node indices, if any
