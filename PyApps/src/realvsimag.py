@@ -197,6 +197,9 @@ class realvsimag_plotter(object):
   def set_compute_circles (self, do_compute_circles=True):
         self.plot_mean_circles = do_compute_circles
 
+  def set_compute_std_dev_circles (self, do_compute_stddev_circles=True):
+        self.plot_stddev_circles = do_compute_stddev_circles
+
 
 
   def __initTracking(self):
@@ -439,7 +442,8 @@ class realvsimag_plotter(object):
       if self._circle_dict.has_key(circle_key) == False: 
         key_circle = self.plot.insertCurve(circle_key)
         self._circle_dict[circle_key] = key_circle
-        self.plot.setCurvePen(key_circle, QPen(self._plot_color))
+        line_thickness = 2
+        self.plot.setCurvePen(key_circle, QPen(self._plot_color,line_thickness))
         self.plot.setCurveData(key_circle, x_pos, y_pos)
       else:
         key_circle = self._circle_dict[circle_key] 
@@ -928,20 +932,39 @@ class realvsimag_plotter(object):
 
 # plot circles in real vs imaginary plot?
         if not self.errors_plot and self.plot_mean_circles:
-          sum_r = 0.0
-          sum_i = 0.0
-          for j in range(0, len(data_r)): 
-            sum_r = sum_r + data_r[j]
-            sum_i = sum_i + data_i[j]
-          avg_r = sum_r / len(data_r)
-          avg_i = sum_i / len(data_i)
+          real_array = asarray(data_r)
+          avg_r = real_array.mean()
+          imag_array = asarray(data_i)
+          avg_i = imag_array.mean()
           x_sq = pow(avg_r, 2)
           y_sq = pow(avg_i, 2)
           radius = sqrt(x_sq + y_sq)
           self._plot_color = self._xy_plot_color[current_plot_key] 
-          self.compute_circles (current_plot_key, radius)
+          self.compute_circles (current_plot_key, radius, 0.0, 0.0)
           if self.plot_mean_arrows:
             self.compute_arrow (current_plot_key, avg_r, avg_i)
+
+# plot std dev circles?
+        if not self.errors_plot and self.plot_stddev_circles:
+# convert list to a complex array`
+          real_array = asarray(data_r)
+          avg_r = real_array.mean()
+          imag_array = asarray(data_i)
+          avg_i = imag_array.mean()
+          complex_data = zeros( (len(data_r),), type='Complex64' )
+          complex_data.setreal(real_array)
+          complex_data.setimag(imag_array)
+          complex_mean = complex_data.mean()
+          temp_array = complex_data - complex_mean
+# get the conjugate of temp_array ...
+          abs_array = abs(temp_array)
+          temp_array_conj = (abs_array * abs_array) / temp_array
+          temp_array = temp_array * temp_array_conj
+          mean = temp_array.mean()
+          std_dev = sqrt(mean)
+          radius = std_dev
+          self._plot_color = self._xy_plot_color[current_plot_key] 
+          self.compute_circles (current_plot_key + 'stddev', radius, avg_r, avg_i )
       self.plot.replot()
     # end of update_plot 
 
@@ -986,6 +1009,20 @@ class realvsimag_plotter(object):
         radius = sqrt(x_sq + y_sq)
         self.compute_circles (item_tag, radius)
         self.compute_arrow (item_tag, avg_r, avg_i)
+      if self.plot_stddev_circles:
+        complex_data = zeros( (len(x_pos),), type='Complex64' )
+        complex_data.setreal(x_pos)
+        complex_data.setimag(y_pos)
+        complex_mean = complex_data.mean()
+        temp_array = complex_data - complex_mean
+# get the conjugate of temp_array ...
+        abs_array = abs(temp_array)
+        temp_array_conj = (abs_array * abs_array) / temp_array
+        temp_array = temp_array * temp_array_conj
+        mean = temp_array.mean()
+        std_dev = sqrt(mean)
+        radius = std_dev
+        self.compute_circles (item_tag + 'stddev', radius, avg_r, avg_i )
       if counter == 0:
         self.clearZoomStack()
       else:
@@ -1142,6 +1179,7 @@ def make():
     demo = realvsimag_plotter('plot_key')
 # for real vs imaginary plot with circles
     demo.set_compute_circles(True)
+    demo.set_compute_std_dev_circles(True)
     demo.start_timer(1000)
     demo.plot.show()
     return demo
