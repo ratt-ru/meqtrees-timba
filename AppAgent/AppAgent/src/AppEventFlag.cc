@@ -1,8 +1,12 @@
 #include "AppEventFlag.h"
 
+namespace AppAgent
+{    
+
+    
 //##ModelId=3E43E49702A5
 AppEventFlag::AppEventFlag ()
-    : flagword(0),nsources(0),have_async(False)
+    : flagword(0),nsources(0),have_async(false)
 {
 }
 
@@ -32,7 +36,7 @@ int AppEventFlag::addSource (bool is_async)
 {
   FailWhen( nsources >= MAXSOURCES,"too many sinks registered");
   if( is_async )
-    have_async = True;
+    have_async = true;
   return nsources++;
 }
 
@@ -58,14 +62,15 @@ void AppEventFlag::clear (int snum)
 bool AppEventFlag::wait () const
 {
   if( flagword )
-    return True;
-  // if we don't have any async event sources, then return False
+    return true;
+  // if we don't have any async event sources, then return false
   // since then we would wait forever
   if( !have_async )
-    return False;
+    return false;
   Thread::Mutex::Lock lock(cond);
   while( !flagword )
     cond.wait();
-  return True;
+  return true;
 }
 
+};

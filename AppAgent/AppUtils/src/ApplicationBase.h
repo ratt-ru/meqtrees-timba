@@ -3,19 +3,21 @@
 
 #include <Common/Thread.h>    
 #include <Common/Thread/Mutex.h>    
-#include <DMI/DataRecord.h>    
+#include <DMI/Record.h>    
 #include <AppAgent/AppControlAgent.h>
-#include <VisAgent/InputAgent.h>
-#include <VisAgent/OutputAgent.h>
+#include <AppAgent/InputAgent.h>
+#include <AppAgent/OutputAgent.h>
 #include <AppUtils/AID-AppUtils.h>
-    
 #include <string>
 #include <list>
+
+namespace AppAgent
+{
+using namespace DMI;
 using std::string;
     
 #pragma aidgroup AppUtils
 #pragma aid Input Output Seq Error Closed Init Fail When
-    
 
 namespace ApplicationVocabulary
 {
@@ -57,10 +59,10 @@ class ApplicationBase : public SingularRefTarget
     virtual string stateString () const;
 
     //##ModelId=3E7894E90398
-    virtual bool verifySetup (bool throw_exc = False) const;
+    virtual bool verifySetup (bool throw_exc = false) const;
     
     //##ModelId=3E3FE1BB0220
-    Thread::ThrID runThread (bool del_on_exit = True);
+    Thread::ThrID runThread (bool del_on_exit = true);
 
     //##ModelId=3E3FE532001B
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
@@ -90,34 +92,44 @@ class ApplicationBase : public SingularRefTarget
     
     //##ModelId=3E77214903A2
     ApplicationBase & operator << (AppControlAgent &ctrl)
-    { attach(&ctrl,DMI::WRITE|DMI::EXTERNAL); return *this; }
+    { attach(&ctrl,DMI::EXTERNAL); return *this; }
     //##ModelId=3E77219B005A
     ApplicationBase & operator << (VisAgent::InputAgent &inp)
-    { attach(&inp,DMI::WRITE|DMI::EXTERNAL); return *this; }
+    { attach(&inp,DMI::EXTERNAL); return *this; }
     //##ModelId=3E7721B103B3
     ApplicationBase & operator << (VisAgent::OutputAgent &outp)
-    { attach(&outp,DMI::WRITE|DMI::EXTERNAL); return *this; }
+    { attach(&outp,DMI::EXTERNAL); return *this; }
     
     //##ModelId=3E77245E016D
     ApplicationBase & operator << (AppControlAgent *ctrl)
-    { attach(ctrl,DMI::ANONWR); return *this; }
+    { attach(ctrl,0); return *this; }
     //##ModelId=3E77245E02ED
     ApplicationBase & operator << (VisAgent::InputAgent *inp)
-    { attach(inp,DMI::ANONWR); return *this; }
+    { attach(inp,0); return *this; }
     //##ModelId=3E77245F0059
     ApplicationBase & operator << (VisAgent::OutputAgent *outp)
-    { attach(outp,DMI::ANONWR); return *this; }
+    { attach(outp,0); return *this; }
     
-    //##ModelId=3E9BD63E0356
-    ApplicationBase & operator << (const AppControlAgent::Ref::Copy &ctrl)
-    { attach(ctrl.dewr_p(),DMI::WRITE); return *this; }
-    //##ModelId=3E9BD63F005C
-    ApplicationBase & operator << (const VisAgent::InputAgent::Ref::Copy &inp)
-    { attach(inp.dewr_p(),DMI::WRITE); return *this; }
-    //##ModelId=3E9BD63F0135
-    ApplicationBase & operator << (const VisAgent::OutputAgent::Ref::Copy &outp)
-    { attach(outp.dewr_p(),DMI::WRITE); return *this; }
-
+    //##ModelId=3E77245E016D
+    ApplicationBase & operator << (AppControlAgent::Ref &ctrl)
+    { attach(ctrl.dewr_p(),0); return *this; }
+    //##ModelId=3E77245E02ED
+    ApplicationBase & operator << (VisAgent::InputAgent::Ref &inp)
+    { attach(inp.dewr_p(),0); return *this; }
+    //##ModelId=3E77245F0059
+    ApplicationBase & operator << (VisAgent::OutputAgent::Ref &outp)
+    { attach(outp.dewr_p(),0); return *this; }
+    
+//     //##ModelId=3E9BD63E0356
+//     ApplicationBase & operator << (const AppControlAgent::Ref &ctrl)
+//     { attach(ctrl.dewr_p(),DMI::WRITE); return *this; }
+//     //##ModelId=3E9BD63F005C
+//     ApplicationBase & operator << (const VisAgent::InputAgent::Ref &inp)
+//     { attach(inp.dewr_p(),DMI::WRITE); return *this; }
+//     //##ModelId=3E9BD63F0135
+//     ApplicationBase & operator << (const VisAgent::OutputAgent::Ref &outp)
+//     { attach(outp.dewr_p(),DMI::WRITE); return *this; }
+// 
     //##ModelId=3E7893B10086
     DefineRefTypes(ApplicationBase,Ref);
 
@@ -129,7 +141,7 @@ class ApplicationBase : public SingularRefTarget
     //##ModelId=3E3FE4020002
     ApplicationBase();
     //##ModelId=3E7722D50064
-    void attachRef(AppAgent::Ref::Xfer & agent);
+    void attachRef(AppAgent::Ref & agent);
 
 
   private:
@@ -151,4 +163,5 @@ class ApplicationBase : public SingularRefTarget
     std::list<AppAgent::Ref> agentrefs_;
 };
 
+};
 #endif /* APPLICATIONBASE_H_HEADER_INCLUDED_D448A9D9 */

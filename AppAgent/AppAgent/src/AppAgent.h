@@ -1,17 +1,21 @@
-
 #ifndef APPAGENT_SRC_APPAGENTBASE_H_HEADER_INCLUDED_E593B6F4
 #define APPAGENT_SRC_APPAGENTBASE_H_HEADER_INCLUDED_E593B6F4
     
 #include <Common/Debug.h>
 #include <DMI/CountedRef.h>
-#include <DMI/DataRecord.h>
+#include <DMI/Record.h>
 #include <AppAgent/AID-AppAgent.h>
 
 #pragma aidgroup AppAgent
 #pragma aid Throw Error
     
+namespace AppAgent
+{
+using namespace DMI;
+
 const HIID FThrowError = AidThrow|AidError;
 
+    
 namespace AppState
 {
   //##ModelId=3E8C1A5B00B9
@@ -29,7 +33,6 @@ namespace AppState
   } States;
 };
 
-    
 //##ModelId=3E40EACD0054
 class AppAgent : public SingularRefTarget
 {
@@ -41,8 +44,8 @@ class AppAgent : public SingularRefTarget
     //##Documentation
     //## Agent initialization method. Called by the application to initialize
     //## or reinitialize an agent. Agent parameters are supplied via a
-    //## DataRecord.
-    virtual bool init (const DataRecord &data) = 0;
+    //## DMI::Record.
+    virtual bool init (const DMI::Record &data) = 0;
 
     //##ModelId=3E40EB22007D
     //##Documentation
@@ -91,5 +94,5 @@ inline const HIID & AppAgent::initfield () const
   return initfield_;
 }
 
-
+};
 #endif /* APPAGENT_SRC_APPAGENTBASE_H_HEADER_INCLUDED_E593B6F4 */

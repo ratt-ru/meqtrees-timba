@@ -11,6 +11,10 @@
     
 #pragma aid Stream State Num Tiles VDSID
 #pragma aid Auto Pause
+
+namespace AppAgent
+{
+using namespace DMI;
     
 namespace VisRepeaterVocabulary
 {
@@ -56,7 +60,7 @@ class VisRepeater : public VisPipe
     virtual string stateString() const;
     
     //##ModelId=3F5F4366018C
-    void postDataEvent (const HIID &event,const string &msg,DataRecord::Ref::Xfer &rec);
+    void postDataEvent (const HIID &event,const string &msg,DMI::Record::Ref &rec);
     
     //##ModelId=3E3FEB5002A5
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
@@ -84,4 +88,5 @@ class VisRepeater : public VisPipe
     bool auto_pause_;
 };
 
+};
 #endif /* DATAREPEATER_H_HEADER_INCLUDED_BB5EBE76 */

@@ -2,9 +2,12 @@
 #define APPUTILS_SRC_VISPIPE_H_HEADER_INCLUDED_FF9DF2AD
     
 #include <AppUtils/ApplicationBase.h>
-#include <VisAgent/InputAgent.h>
-#include <VisAgent/OutputAgent.h>
+#include <AppAgent/InputAgent.h>
+#include <AppAgent/OutputAgent.h>
 
+namespace AppAgent
+{
+    
 //##ModelId=3E7727920352
 class VisPipe : public ApplicationBase
 {
@@ -21,7 +24,7 @@ class VisPipe : public ApplicationBase
     virtual void attach(VisAgent::OutputAgent *outp, int flags);
     
     //##ModelId=3E78955E0197
-    virtual bool verifySetup(bool throw_exc = False) const;
+    virtual bool verifySetup(bool throw_exc = false) const;
 
     //##ModelId=3E43BC04002F
     VisAgent::InputAgent &input()
@@ -53,6 +56,6 @@ class VisPipe : public ApplicationBase
 
 };
 
-
+};
 
 #endif /* APPUTILS_SRC_VISPIPE_H_HEADER_INCLUDED_FF9DF2AD */

@@ -4,7 +4,12 @@
 #include <AppAgent/AppAgent.h>
 #include <AppAgent/AppEventSink.h>
     
-class DataRecord;
+namespace DMI { class Record; }
+
+namespace AppAgent
+{
+using namespace DMI;
+    
 class AppEventFlag;
 class AppEventSink;
     
@@ -13,7 +18,7 @@ class AppEventAgentBase : public AppAgent
 {
   public:
     //##ModelId=3E47AA530111
-    void attach (AppEventFlag& evflag, int dmiflags = DMI::WRITE);
+    void attach (AppEventFlag& evflag,int flags=0);
   
     //##ModelId=3E47AF920205
     virtual bool isAsynchronous() const;
@@ -22,8 +27,8 @@ class AppEventAgentBase : public AppAgent
     //##Documentation
     //## Agent initialization method. Called by the application to initialize
     //## or reinitialize an agent. Agent parameters are supplied via a
-    //## DataRecord.
-    virtual bool init(const DataRecord &data);
+    //## DMI::Record.
+    virtual bool init(const DMI::Record &data);
 
     //##ModelId=3E41147E0126
     //##Documentation
@@ -47,17 +52,17 @@ class AppEventAgentBase : public AppAgent
     DefineRefTypes(AppEventAgentBase,Ref);
     
     //##ModelId=3E42967E027F
-    static const DataRecord & receiveEventList ();
+    static const DMI::Record & receiveEventList ();
     //##ModelId=3E4296940160
-    static const DataRecord & postEventList ();
+    static const DMI::Record & postEventList ();
 
   protected:
     //##ModelId=3E414887001F
     explicit AppEventAgentBase(const HIID &initf);
     //##ModelId=3E4148870295
-    AppEventAgentBase(AppEventSink &sink, const HIID &initf);
+    AppEventAgentBase(AppEventSink &sink,const HIID &initf,int flags=0);
     //##ModelId=3E50F9BB019B
-    AppEventAgentBase(AppEventSink *sink, int dmiflags, const HIID &initf);
+    AppEventAgentBase(AppEventSink *sink,const HIID &initf,int flags=0);
     
     //##ModelId=3E414A8301CB
     AppEventSink & sink();
@@ -66,9 +71,9 @@ class AppEventAgentBase : public AppAgent
     const AppEventSink & sink() const;
     
     //##ModelId=3E4295C503C9
-    static void fillReceiveEventList (DataRecord &list);
+    static void fillReceiveEventList (DMI::Record &list);
     //##ModelId=3E42973F0398
-    static void fillPostEventList    (DataRecord &list);
+    static void fillPostEventList    (DMI::Record &list);
 
     
   private:
@@ -97,4 +102,5 @@ inline const AppEventSink & AppEventAgentBase::sink() const
   return sink_.deref();
 }
 
+};
 #endif /* VISAGENT_SRC_VISAGENTBASE_H_HEADER_INCLUDED_D87E2C76 */

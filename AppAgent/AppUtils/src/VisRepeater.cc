@@ -1,5 +1,8 @@
 #include "VisRepeater.h"
 
+namespace AppAgent
+{
+    
 using namespace AppControlAgentVocabulary;
 using namespace VisRepeaterVocabulary;
 using namespace VisVocabulary;
@@ -9,10 +12,10 @@ using namespace VisAgent;
 InitDebugSubContext(VisRepeater,ApplicationBase,"VisRepeater");
 
 //##ModelId=3F5F4366018C
-void VisRepeater::postDataEvent (const HIID &event,const string &msg,DataRecord::Ref::Xfer &rec)
+void VisRepeater::postDataEvent (const HIID &event,const string &msg,DMI::Record::Ref &rec)
 {
   if( !rec.valid() )
-    rec <<= new DataRecord;
+    rec <<= new DMI::Record;
   if( !vdsid_.empty() )
     rec()[FVDSID] = vdsid_;
   if( !datatype_.empty() )
@@ -25,8 +28,8 @@ void VisRepeater::postDataEvent (const HIID &event,const string &msg,DataRecord:
 //##ModelId=3E392C570286
 void VisRepeater::run ()
 {
-  verifySetup(True);
-  DataRecord::Ref initrec;
+  verifySetup(true);
+  DMI::Record::Ref initrec;
   // keep running as long as start() on the control agent succeeds
   while( control().start(initrec) == RUNNING )
   {
@@ -44,8 +47,8 @@ void VisRepeater::run ()
       control().setState(STOPPED);
       continue;
     }
-    auto_pause_ = (*initrec)[FAutoPause].as<bool>(False);
-    bool output_open = True;
+    auto_pause_ = (*initrec)[FAutoPause].as<bool>(false);
+    bool output_open = true;
     int ntiles = 0;
     state_ = FOOTER;
     vdsid_.clear();
@@ -56,7 +59,7 @@ void VisRepeater::run ()
     while( control().state() > 0 )  // while in a running state
     {
       HIID id;
-      DataRecord::Ref eventrec;
+      DMI::Record::Ref eventrec;
       eventrec.detach();
       ObjRef ref;
       int outstat = AppEvent::SUCCESS;
@@ -66,7 +69,7 @@ void VisRepeater::run ()
       {
         if( output_open )
         {
-          bool write = True;
+          bool write = true;
           HIID event;
           string message;
           // check that type is consistent with state
@@ -82,14 +85,14 @@ void VisRepeater::run ()
                 postDataEvent(DataSetInterrupt,"unexpected header, interrupting data set",eventrec);
               }
               datatype_ = HIID();
-              eventrec <<= new DataRecord;
+              eventrec <<= new DMI::Record;
               if( ref.valid() )
               {
                 header_ = ref.copy();
                 eventrec()[AidHeader] <<= ref.copy();
-                if( ref->objectType() == TpDataRecord )
+                if( ref->objectType() == TpDMIRecord )
                 {
-                  const DataRecord &rec = *ref.ref_cast<DataRecord>();
+                  const DMI::Record &rec = *ref.ref_cast<DMI::Record>();
                   datatype_ = rec[FDataType].as<HIID>(HIID());
                   cdebug(2)<<"header: "<<rec.sdebug(5);
                 }
@@ -111,7 +114,7 @@ void VisRepeater::run ()
             {
               if( state_ != HEADER && state_ != DATA )
               {
-                write = False;
+                write = false;
                 cdebug(3)<<"DATA "<<id<<" out of sequence, state is "<<AtomicID(-state_)<<", dropping\n";
               }
               else
@@ -129,7 +132,7 @@ void VisRepeater::run ()
             {
               if( state_ == HEADER || state_ == DATA )
               {
-                eventrec <<= new DataRecord;
+                eventrec <<= new DMI::Record;
                 if( header_.valid() )
                   eventrec()[AidHeader] <<= header_.copy();
                 if( ref.valid() )
@@ -151,14 +154,14 @@ void VisRepeater::run ()
                 }
                 else
                 {
-                  write = False;
+                  write = false;
                   cdebug(3)<<"FOOTER "<<id<<" does not match dataset "<<vdsid_<<", dropping\n";
                   postDataEvent(FooterMismatch,"footer id "+id.toString()+" does not match",eventrec);
                 }
               }
               else
               {
-                write = False;
+                write = false;
                 cdebug(3)<<"FOOTER "<<id<<" out of sequence, state is "<<AtomicID(-state_)<<", dropping\n";
               }
               break;
@@ -166,7 +169,7 @@ void VisRepeater::run ()
             default:
             {
                cdebug(3)<<"unrecognized input type in event "<<id<<", dropping"<<endl;
-               write = False;
+               write = false;
             }
           }
           if( write )
@@ -191,7 +194,7 @@ void VisRepeater::run ()
           cdebug(2)<<"error on output: "<<output().stateString()<<endl;
           postDataEvent(OutputErrorEvent,output().stateString(),eventrec);
           control().setState(OUTPUT_ERROR);
-          output_open = False;
+          output_open = false;
         }
         else if( outstat != AppEvent::SUCCESS )
         {
@@ -220,7 +223,7 @@ void VisRepeater::run ()
       }
       // check for commands from the control agent
       HIID cmdid;
-      DataRecord::Ref cmddata;
+      DMI::Record::Ref cmddata;
       control().getCommand(cmdid,cmddata,AppEvent::WAIT);
       // .. but ignore them since we only watch for state changes anyway
     }
@@ -280,3 +283,4 @@ string VisRepeater::sdebug(int detail, const string &prefix, const char *name) c
   return out;
 }
 
+};

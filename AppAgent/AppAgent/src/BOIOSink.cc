@@ -1,5 +1,9 @@
 #include "BOIOSink.h"
 
+namespace AppAgent
+{    
+
+    
 InitDebugContext(BOIOSink,"BOIOSink");
 
 static int dum = aidRegistry_AppAgent();
@@ -8,7 +12,7 @@ using namespace AppEvent;
 using namespace AppState;
     
 //##ModelId=3E53C59D00EB
-bool BOIOSink::init (const DataRecord &data)
+bool BOIOSink::init (const DMI::Record &data)
 {
   string file = data[FBOIOFile].as<string>("");  
   FailWhen(!file.length(),FBOIOFile.toString()+" not specified");
@@ -33,7 +37,7 @@ bool BOIOSink::init (const DataRecord &data)
     Throw("unknown file access mode: "+mode);
   }
   setState(RUNNING);
-  return True;
+  return true;
 }
 
 //##ModelId=3E53C5A401E1
@@ -58,16 +62,16 @@ int BOIOSink::refillStream()
       setState(CLOSED);
       boio.close();
     }
-    else if( tid != TpDataRecord )
+    else if( tid != TpDMIRecord )
     {
       cdebug(2)<<"unexpected object ("<<tid<<") in BOIO file, ignoring"<<endl;
       // go back for another event
       continue;
     }
-    // else process the DataRecord
+    // else process the DMI::Record
     try
     {
-      DataRecord &rec = ref.ref_cast<DataRecord>().dewr();
+      DMI::Record &rec = ref.ref_cast<DMI::Record>().dewr();
       HIID id = rec[AidEvent].as<HIID>();
       ObjRef dataref;
       if( rec[AidData].exists() )
@@ -86,16 +90,16 @@ int BOIOSink::refillStream()
 //##ModelId=3E8C252801E8
 bool BOIOSink::isEventBound (const HIID &)
 {
-  return True;
+  return true;
 }
 
 //##ModelId=3E53C5C2003E
-void BOIOSink::postEvent (const HIID &id, const ObjRef::Xfer &data)
+void BOIOSink::postEvent (const HIID &id, const ObjRef &data)
 {
   if( boio.fileMode() == BOIO::WRITE || boio.fileMode() == BOIO::APPEND )
   {
     cdebug(3)<<"storing event "<<id<<endl;
-    DataRecord rec;
+    DMI::Record rec;
     rec[AidEvent] = id;
     if( data.valid() )
       rec[AidData] <<= data;
@@ -126,3 +130,5 @@ string BOIOSink::sdebug(int detail, const string &prefix, const char *name) cons
   
   return out;
 }
+
+};

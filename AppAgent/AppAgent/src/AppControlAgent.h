@@ -2,16 +2,19 @@
 #define APPAGENT_SRC_APPCONTROLAGENT_H_HEADER_INCLUDED_C530D733
     
 #include <Common/Thread/Condition.h>
-#include <DMI/DataRecord.h>
+#include <DMI/Record.h>
 #include <DMI/CountedRefTraits.h>
 #include <AppAgent/AppEventAgentBase.h>
 #include <AppAgent/AID-AppAgent.h>
     
 #include <functional>
-    
+
+namespace AppAgent
+{
+using namespace DMI;
+        
 class AppEventAgentBase;
 class AppEventSink;
-class DataRecord;
 
 #pragma aid App Control Parameters Event Init Start Stop Pause Resume Halt
 #pragma aid Always Wait Start Throw Error Notify Auto Exit Delay State String
@@ -86,12 +89,12 @@ namespace AppControlAgentVocabulary
 class AppControlAgent : public AppEventAgentBase
 {
   public:
-//     class NotifiedHook : public NestableContainer::Hook
+//     class NotifiedHook : public DMI::Container::Hook
 //     {
 //       friend AppControlAgent;
 //       
 //       protected:
-//           NotifiedHook (NestableContainer &parent,const HIID &id,AppControlAgent *invoker);
+//           NotifiedHook (DMI::Container &parent,const HIID &id,AppControlAgent *invoker);
 //           ~NotifiedHook ();
 //       
 //       private:
@@ -107,16 +110,16 @@ class AppControlAgent : public AppEventAgentBase
     //##ModelId=3E40EDC3036F
     explicit AppControlAgent (const HIID &initf = AidControl);
     //##ModelId=3E394E4F02D2
-    AppControlAgent(AppEventSink & sink, const HIID & initf = AidControl);
+    AppControlAgent(AppEventSink & sink,const HIID &initf = AidControl,int flags=0);
     //##ModelId=3E50FA3702B9
-    AppControlAgent(AppEventSink *sink, int dmiflags, const HIID &initf = AidControl);
+    AppControlAgent(AppEventSink * sink,const HIID &initf = AidControl,int flags=0);
     
     //##ModelId=3E3FF3FA00C0
     //##Documentation
     //## Agent initialization method. This should be called by whoever
     //## has instantiated the agent & application. The initrec will be
     //## cached, and returned to the application once it calls start()
-    virtual bool preinit (DataRecord::Ref::Xfer &initrec);
+    virtual bool preinit (DMI::Record::Ref &initrec);
     
     //##ModelId=3E510A600340
     //##Documentation
@@ -127,13 +130,13 @@ class AppControlAgent : public AppEventAgentBase
     //##Documentation
     //## Waits for a start event if one has been configured; sets state
     //## to RUNNING and returns an init record   
-    virtual int start (DataRecord::Ref &initrec);
+    virtual int start (DMI::Record::Ref &initrec);
 
     //##ModelId=3E8C3DDB02CA
     virtual void solicitCommand (const HIID &mask);
     
     //##ModelId=3E3957E10329
-    virtual int getCommand (HIID &id,DataRecord::Ref &data,int wait = AppEvent::WAIT);
+    virtual int getCommand (HIID &id,DMI::Record::Ref &data,int wait = AppEvent::WAIT);
     
     //##ModelId=3E4112CC0139
     virtual int hasCommand() const;
@@ -141,23 +144,23 @@ class AppControlAgent : public AppEventAgentBase
     //##ModelId=3E4274C60015
     //##Documentation
     //## Posts an event on behalf of the application.
-    virtual void postEvent (const HIID &id,const ObjRef::Xfer &data = ObjRef(),const HIID &dest = HIID());
+    virtual void postEvent (const HIID &id,const ObjRef &data = ObjRef(),const HIID &dest = HIID());
     //##ModelId=3E4274C601C8
-    void postEvent (const HIID &id,const DataRecord::Ref::Xfer &data,const HIID &dest = HIID());
+    void postEvent (const HIID &id,const DMI::Record::Ref &data,const HIID &dest = HIID());
     //##ModelId=3E4274C60230
     void postEvent (const HIID &id,const string &text,const HIID &dest = HIID());
     
     //##ModelId=3E8C209A01E7
     //##Documentation
     //## Checks whether a specific event is bound to any output. I.e., if the
-    //## event would be simply discarded when posted, returns False; otherwise,
-    //## returns True.
+    //## event would be simply discarded when posted, returns false; otherwise,
+    //## returns true.
     virtual bool isEventBound (const HIID &id);
 
     //##ModelId=3E394E080055
     //##Documentation
-    //## Changes state. If unpause=True, removes the paused flag
-    virtual int setState (int newstate,bool unpase=False);
+    //## Changes state. If unpause=true, removes the paused flag
+    virtual int setState (int newstate,bool unpase=false);
     
     //##ModelId=3EB2425300E4
     int pause ();
@@ -174,18 +177,18 @@ class AppControlAgent : public AppEventAgentBase
     virtual string stateString() const;
     
     //##ModelId=3E5650EE0209
-    const DataRecord & status() const;
+    const DMI::Record & status() const;
     
     //##ModelId=3E9D78BA02FD
     //##Documentation
     //## Blocks the calling thread until the control agent enters a state
-    //## for which predicate(state) == True
+    //## for which predicate(state) == true
     template<class Pred>
     void waitUntil (Pred predicate) const;
     
     //##Documentation
     //## Same as waitUntil() above, but has a timeout in secobds.
-    //## Returns True if wait was successful, or False on timeout.    
+    //## Returns true if wait was successful, or false on timeout.    
     template<class Pred>
     bool waitUntil (Pred predicate,double seconds) const;
     
@@ -230,18 +233,18 @@ class AppControlAgent : public AppEventAgentBase
     //##Documentation
     //## hide init method from applications. Must use preinit() and start()
     //## instead
-    bool init (const DataRecord &data);
+    bool init (const DMI::Record &data);
   
     //##ModelId=3E3A9E520156
-    int checkStateEvent (const HIID &id,const DataRecord::Ref::Copy &data);
+    int checkStateEvent (const HIID &id,const DMI::Record::Ref &data);
     
     //##ModelId=3EB24253018C
-    virtual int processCommand (const HIID &id,const DataRecord::Ref &data,
+    virtual int processCommand (const HIID &id,const DMI::Record::Ref &data,
                                 const HIID &source);
 
     //##ModelId=3EB2425303B2
     void postCommandError (const string &msg,const HIID &id,
-                           const DataRecord::Ref::Xfer &data,
+                           const DMI::Record::Ref &data,
                            const HIID &source);
     
     // posts the current state as an event
@@ -253,10 +256,10 @@ class AppControlAgent : public AppEventAgentBase
     void postStatus (const HIID &field = HIID(),const HIID &rqid = HIID(),const HIID &dest = HIID());
     
     //##ModelId=3EB2425501DA
-    void postStatusUpdate (const HIID &subrec,const HIID &field,DataRecord::Ref::Xfer &rec);
+    void postStatusUpdate (const HIID &subrec,const HIID &field,DMI::Record::Ref &rec);
     
 //    //##ModelId=3E5650FE024A
-//    DataRecord & statusRec();
+//    DMI::Record & statusRec();
   
   private:
     //##ModelId=3E394E1E0267
@@ -272,13 +275,13 @@ class AppControlAgent : public AppEventAgentBase
     //##ModelId=3E8C1A5B03D2
     bool rethrow_;
     //##ModelId=3E5650D900AE
-    DataRecord * pstatus_;
+    DMI::Record * pstatus_;
     
     //##ModelId=3E8C1A5C00A2
-    DataRecord::Ref status_ref_;
+    DMI::Record::Ref status_ref_;
 
     //##ModelId=3E8C1A5C0133
-    DataRecord::Ref initrec_ref_;
+    DMI::Record::Ref initrec_ref_;
     //##ModelId=3E8C1A5C01C5
     bool initrec_used_;
     
@@ -295,13 +298,13 @@ class AppControlAgent : public AppEventAgentBase
     
   private: // implements different setStatus versions
     //##ModelId=3EB24256003F
-    DataRecord & makeUpdateRecord (DataRecord::Ref &ref,const HIID &subrec)
+    DMI::Record & makeUpdateRecord (DMI::Record::Ref &ref,const HIID &subrec)
     {
-      ref <<= new DataRecord;
+      ref <<= new DMI::Record;
       if( subrec.empty() )
         return ref();
       else
-        return ref()[subrec] <<= new DataRecord;
+        return ref()[subrec] <<= new DMI::Record;
     }
       
         
@@ -323,7 +326,7 @@ class AppControlAgent : public AppEventAgentBase
     {
       (subrec.empty() ? (*pstatus_)[field] : (*pstatus_)[subrec][field]) 
           .replace() = value;
-      DataRecord::Ref ref;
+      DMI::Record::Ref ref;
       makeUpdateRecord(ref,subrec)[field] = value;
       postStatusUpdate(subrec,field,ref);
     }
@@ -338,7 +341,7 @@ class AppControlAgent : public AppEventAgentBase
     {
       (subrec.empty() ? (*pstatus_)[field] : (*pstatus_)[subrec][field])
           .replace() = value.copy(DMI::PRESERVE_RW);
-      DataRecord::Ref ref;
+      DMI::Record::Ref ref;
       makeUpdateRecord(ref,subrec)[field] = value.copy(DMI::READONLY);
       postStatusUpdate(subrec,field,ref);
     }
@@ -355,7 +358,7 @@ class AppControlAgent : public AppEventAgentBase
       int flags = (isPointer?DMI::ANON:0) | (isConst?DMI::READONLY:DMI::WRITE);
       (subrec.empty() ? (*pstatus_)[field] : (*pstatus_)[subrec][field])
           .replace() <<= ObjRef(value,flags);
-      DataRecord::Ref ref;
+      DMI::Record::Ref ref;
       makeUpdateRecord(ref,subrec)[field] <<= ObjRef(value,flags);
       postStatusUpdate(subrec,field,ref);
     }
@@ -367,14 +370,14 @@ class AppControlAgent : public AppEventAgentBase
     {
       setStatus(subrec,field,value,
           Int2Type< CountedRefTraits<T>::isCountedRef >(),
-          Int2Type< SUPERSUBCLASS(BlockableObject,T) >(),
+          Int2Type< SUPERSUBCLASS(DMI::BObj,T) >(),
           Int2Type< false >(),
           Int2Type< true >()
           );
     }
     
     //##ModelId=3EB242560217
-    inline void setStatus (const HIID &subrec,const HIID &field,const BlockableObject * value)
+    inline void setStatus (const HIID &subrec,const HIID &field,const DMI::BObj * value)
     {
       setStatus(subrec,field,value,
           Int2Type<false>(),
@@ -385,7 +388,7 @@ class AppControlAgent : public AppEventAgentBase
     }
     
     //##ModelId=3EB242590024
-    inline void setStatus (const HIID &subrec,const HIID &field,BlockableObject * value)
+    inline void setStatus (const HIID &subrec,const HIID &field,DMI::BObj * value)
     {
       setStatus(subrec,field,value,
           Int2Type<false>(),
@@ -403,13 +406,13 @@ class AppControlAgent : public AppEventAgentBase
 };
 
 //##ModelId=3E5650EE0209
-inline const DataRecord & AppControlAgent::status () const
+inline const DMI::Record & AppControlAgent::status () const
 {
   return *pstatus_;
 }
 
 //##ModelId=3E9D78BA02FD
-//inline DataRecord & AppControlAgent::wstatus ()
+//inline DMI::Record & AppControlAgent::wstatus ()
 //{
 //  return *pstatus_;
 //}
@@ -456,5 +459,6 @@ bool AppControlAgent::waitUntil (Pred predicate,double seconds) const
   return predicate(state_);
 }
 
+};
 #endif /* APPAGENT_SRC_APPCONTROLAGENT_H_HEADER_INCLUDED_C530D733 */
 

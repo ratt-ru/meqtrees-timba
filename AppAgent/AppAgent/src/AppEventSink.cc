@@ -23,6 +23,9 @@
 #include "AppEventSink.h"
 #include "AID-AppAgent.h"
 
+namespace AppAgent
+{    
+
 using namespace AppEvent;
 
 //##ModelId=3F5F43630252
@@ -49,15 +52,15 @@ void AppEventSink::attach (AppEventFlag& evflag,int dmiflags)
     FailWhen( eventFlag.deref_p() != &evflag,"sink already has an AppEventFlag attached");
     return;
   }
-  eventFlag.attach(evflag,dmiflags|DMI::WRITE);
+  eventFlag.attach(evflag,dmiflags|DMI::SHARED|DMI::WRITE);
   sink_num = evflag.addSource(isAsynchronous());
 }
 
 
 //##ModelId=3E4143B200F2
-bool AppEventSink::init (const DataRecord &)
+bool AppEventSink::init (const DMI::Record &)
 {
-  return True;
+  return true;
 }
     
 //##ModelId=3E394D4C02BB
@@ -78,7 +81,7 @@ int AppEventSink::hasEvent (const HIID &,HIID &) const
 }
 
 //##ModelId=3E394D4C02C9
-void AppEventSink::postEvent (const HIID &, const ObjRef::Xfer &ref,const HIID &)
+void AppEventSink::postEvent (const HIID &, const ObjRef &ref,const HIID &)
 {
   // this is OK since we're meant to xfer the ref anyway
   const_cast<ObjRef&>(ref).detach();
@@ -89,22 +92,22 @@ void AppEventSink::flush ()
 }
 
 //##ModelId=3E3E744E0258
-int AppEventSink::getEvent (HIID &id, DataRecord::Ref &data, 
+int AppEventSink::getEvent (HIID &id, DMI::Record::Ref &data, 
                             const HIID &mask,int wait,HIID &source)
 {
   ObjRef ref;
   int res = getEvent(id,ref,mask,wait,source);
   if( res == SUCCESS && ref.valid() )
-    data = ref.ref_cast<DataRecord>();
+    data = ref.ref_cast<DMI::Record>();
   return res;
 }
 
 //##ModelId=3E3E747A0120
-void AppEventSink::postEvent (const HIID &id, const DataRecord::Ref::Xfer &data,
+void AppEventSink::postEvent (const HIID &id, const DMI::Record::Ref &data,
                               const HIID &destination)
 {
   if( data.valid() )
-    postEvent(id,data.ref_cast<BlockableObject>(),destination);
+    postEvent(id,data.ref_cast<DMI::BObj>(),destination);
   else
     postEvent(id,ObjRef(),destination);
 }
@@ -113,8 +116,8 @@ void AppEventSink::postEvent (const HIID &id, const DataRecord::Ref::Xfer &data,
 void AppEventSink::postEvent (const HIID &id, const string &text,
                               const HIID &destination)
 {
-  DataRecord::Ref ref;
-  ref <<= new DataRecord;
+  DMI::Record::Ref ref;
+  ref <<= new DMI::Record;
   ref()[AidText] = text;
   postEvent(id,ref,destination);
 }
@@ -141,7 +144,7 @@ int AppEventSink::waitOtherEvents (int wait) const
     // if we have an event flag, then we can wait on it and return an 
     // out-of-sequence error when an event arrives for another sink.
     // If there are no sinks around capable of generating asyncronous events,
-    // AppEventFlag::wait() will return False
+    // AppEventFlag::wait() will return false
     FailWhen(!eventFlag.valid() || !eventFlag->wait(),
         "waiting for an event here would block indefinitely");
     return OUTOFSEQ;
@@ -157,7 +160,7 @@ int AppEventSink::waitOtherEvents (int wait) const
 //##ModelId=3E8C1F8703DC
 bool AppEventSink::isEventBound (const HIID &)
 {
-  return False;
+  return false;
 }
 
 //##ModelId=3E8C3BDC0159
@@ -165,3 +168,4 @@ void AppEventSink::solicitEvent (const HIID &)
 {
 }
 
+};

@@ -4,6 +4,10 @@
 #include <Common/Thread/Condition.h>
 #include <DMI/CountedRef.h>
 
+namespace AppAgent
+{    
+using namespace DMI;
+
 //##ModelId=3E43E34D0342
 class AppEventFlag : public SingularRefTarget
 {
@@ -16,7 +20,7 @@ class AppEventFlag : public SingularRefTarget
     AppEventFlag& operator=(const AppEventFlag& right);
 
     //##ModelId=3E43EDCD037F
-    int addSource (bool is_async = False);
+    int addSource (bool is_async = false);
 
     //##ModelId=3E43E440007D
     void raise (int snum);
@@ -27,13 +31,12 @@ class AppEventFlag : public SingularRefTarget
     bool wait() const;
     
     //##ModelId=3E43E88B02ED
-    DefineRefTypes(AppEventFlag,Ref);
+    typedef CountedRef<AppEventFlag> Ref;
+    
     //##ModelId=3E477BBC03A2
     bool isRaised() const;
 
-
   private:
-
     //##ModelId=3E43E4150343
     Thread::Condition cond;
 
@@ -57,5 +60,5 @@ inline bool AppEventFlag::isRaised () const
 }
 
 
-
+};
 #endif /* APPAGENT_SRC_APPEVENTFLAG_H_HEADER_INCLUDED_EC72D1EB */

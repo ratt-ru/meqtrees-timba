@@ -1,7 +1,7 @@
 #ifndef APPAGENT_SRC_FILESINK_H_HEADER_INCLUDED_CA2F6569
 #define APPAGENT_SRC_FILESINK_H_HEADER_INCLUDED_CA2F6569
 
-#include <DMI/BlockableObject.h>
+#include <DMI/BObj.h>
 #include <DMI/HIID.h>
 #include <AppAgent/AppEventSink.h>
 #include <AppAgent/AID-AppAgent.h>    
@@ -10,6 +10,9 @@
 
 #pragma aid Header Data Footer
     
+namespace AppAgent
+{    
+
 namespace AppState
 {
 //##ModelId=3EC9F6EB02F7
@@ -57,7 +60,7 @@ class FileSink : public AppEventSink
     virtual int refillStream () =0;
     
     //##ModelId=3EB92AEE0279
-    void putOnStream (const HIID &id,const ObjRef::Xfer &ref);
+    void putOnStream (const HIID &id,const ObjRef &ref);
     
     //##ModelId=3EC2461201A1
     int setState (int newstate);
@@ -89,4 +92,5 @@ inline int FileSink::state() const
   return state_;
 }
 
+};
 #endif /* APPAGENT_SRC_FILESINK_H_HEADER_INCLUDED_CA2F6569 */

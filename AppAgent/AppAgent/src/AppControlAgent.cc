@@ -1,6 +1,9 @@
 #include "AppControlAgent.h"
 #include "AppEventSink.h"
-    
+
+namespace AppAgent
+{    
+        
 using namespace AppControlAgentVocabulary;
 using namespace AppState;
 using namespace AppEvent;
@@ -15,30 +18,30 @@ using namespace std;
 AppControlAgent::AppControlAgent (const HIID &initf)
     : AppEventAgentBase(initf),state_(AppState::STOPPED)
 {
-  status_ref_ <<= pstatus_ = new DataRecord;
+  status_ref_ <<= pstatus_ = new DMI::Record;
 }
 
 //##ModelId=3E394E4F02D2
-AppControlAgent::AppControlAgent (AppEventSink & sink, const HIID & initf)
-    : AppEventAgentBase(sink,initf),state_(AppState::STOPPED)
+AppControlAgent::AppControlAgent (AppEventSink & sink, const HIID & initf,int flags)
+    : AppEventAgentBase(sink,initf,flags),state_(AppState::STOPPED)
 {
-  status_ref_ <<= pstatus_ = new DataRecord;
+  status_ref_ <<= pstatus_ = new DMI::Record;
 }
 
 //##ModelId=3E50FA3702B9
-AppControlAgent::AppControlAgent (AppEventSink *sink, int dmiflags, const HIID &initf)
-    : AppEventAgentBase(sink,dmiflags,initf),state_(AppState::STOPPED)
+AppControlAgent::AppControlAgent (AppEventSink *sink, const HIID &initf,int flags)
+    : AppEventAgentBase(sink,initf,flags),state_(AppState::STOPPED)
 {
-  status_ref_ <<= pstatus_ = new DataRecord;
+  status_ref_ <<= pstatus_ = new DMI::Record;
 }
 
-bool AppControlAgent::preinit (DataRecord::Ref::Xfer &initrec)
+bool AppControlAgent::preinit (DMI::Record::Ref &initrec)
 {
   // set the INIT state
   cdebug(1)<<"pre-initializing control agent\n";
   // cache the init record
   initrec_ref_ <<= initrec;  
-  initrec_used_ = False;
+  initrec_used_ = false;
   // try an init
   bool res = init(*initrec_ref_);
   FailWhen( !res,"control agent init failed" ); 
@@ -46,35 +49,35 @@ bool AppControlAgent::preinit (DataRecord::Ref::Xfer &initrec)
 }
   
 //##ModelId=3E40F90F02BA
-bool AppControlAgent::init (const DataRecord &data)
+bool AppControlAgent::init (const DMI::Record &data)
 {  
-  rethrow_ = data[FThrowError].as<bool>(False);
+  rethrow_ = data[FThrowError].as<bool>(false);
   cdebug(1)<<"initializing control agent\n";
   cdebug(3)<<"init record: "<<data.sdebug(DebugLevel-1,"  ")<<endl;
   try 
   {
     // no init sub-record? Do nothing then
     if( !data[initfield()].exists() )
-      return True;
-    const DataRecord &rec = data[initfield()].as<DataRecord>();
+      return true;
+    const DMI::Record &rec = data[initfield()].as<DMI::Record>();
     cdebug(3)<<"subrecord: "<<rec.sdebug(DebugLevel-1,"  ")<<endl;
-    initrec_used_ = True;
+    initrec_used_ = true;
     // solicit application control commands
     solicitCommand(ControlPrefix|AidWildcard);
     // if init record specifies delayed initialization, then we don't
     // transit to INIT state here. This will cause start() below to wait
     // for another init event
-    if( !rec[FDelayInit].as<bool>(False) )
+    if( !rec[FDelayInit].as<bool>(false) )
       setState(INIT); 
     // init event base (and event sink)
     if( !AppEventAgentBase::init(data) )
       Throw("event base init failed");
     // setup the auto_exit parameter
-    auto_exit_ = rec[FAutoExit].as<bool>(False);
+    auto_exit_ = rec[FAutoExit].as<bool>(false);
     // setup the waitstart_ parameter
-    waitstart_ = rec[FWaitStart].as<bool>(False);
+    waitstart_ = rec[FWaitStart].as<bool>(false);
     postEvent(InitNotifyEvent);
-    return True;
+    return true;
   }
   catch( std::exception &exc )
   {
@@ -82,16 +85,16 @@ bool AppControlAgent::init (const DataRecord &data)
     if( rethrow_ )
       throw(exc);
     setErrorState(exc.what());
-    return False;
+    return false;
   }
 }
 
 //##ModelId=3E8C1A5C030E
-int AppControlAgent::start (DataRecord::Ref &initrec)
+int AppControlAgent::start (DMI::Record::Ref &initrec)
 {
   try
   {
-    paused_ = False;
+    paused_ = false;
     // if called while not in an INIT state, wait for transition
     while( state() != INIT )
     {
@@ -99,7 +102,7 @@ int AppControlAgent::start (DataRecord::Ref &initrec)
       if( state() == HALTED )
         return HALTED;
       HIID id;
-      DataRecord::Ref dum;
+      DMI::Record::Ref dum;
       int res = getCommand(id,dum,AppEvent::BLOCK);
       FailWhen(res<0,"getCommand() failed while waiting for INIT transition");
       cdebug(2)<<"got command "<<id<<", state is now "<<stateString()<<endl;
@@ -118,7 +121,7 @@ int AppControlAgent::start (DataRecord::Ref &initrec)
     {
       cdebug(1)<<"waiting for transition out of INIT state\n";
       HIID id;
-      DataRecord::Ref dum;
+      DMI::Record::Ref dum;
       while( state() == INIT )
       {
         int res = getCommand(id,dum,AppEvent::BLOCK);
@@ -158,7 +161,7 @@ int AppControlAgent::pause ()
 {
   if( paused_ )
     return SUCCESS;
-  paused_ = True;
+  paused_ = true;
   postState();
   return PAUSED;
 }
@@ -168,19 +171,19 @@ int AppControlAgent::resume ()
 {
   if( !paused_ )
     return SUCCESS;
-  paused_ = False;
+  paused_ = false;
   postState();
   return RESUMED;
 }
 
 //##ModelId=3E3A9E520156
-int AppControlAgent::checkStateEvent (const HIID &id,const DataRecord::Ref::Copy &data)
+int AppControlAgent::checkStateEvent (const HIID &id,const DMI::Record::Ref &data)
 {
   if( id == InitEvent )
   {
-    initrec_ref_.copy(data,DMI::PRESERVE_RW);
-    initrec_used_ = False;
-    setState(INIT,True);
+    initrec_ref_.copy(data);
+    initrec_used_ = false;
+    setState(INIT,true);
     return NEWSTATE;
   }
   else if( id == StartEvent )
@@ -194,19 +197,19 @@ int AppControlAgent::checkStateEvent (const HIID &id,const DataRecord::Ref::Copy
   }
   else if( id == StopEvent )
   {
-    setState(STOPPED,True);
+    setState(STOPPED,true);
     return NEWSTATE;
   }
   else if( id == HaltEvent )
   {
-    setState(HALTED,True);
+    setState(HALTED,true);
     return NEWSTATE;
   }
   return AppEvent::ERROR; // unknown event
 }
 
 //##ModelId=3EB24253018C
-int AppControlAgent::processCommand (const HIID &id,const DataRecord::Ref &data,const HIID &source)
+int AppControlAgent::processCommand (const HIID &id,const DMI::Record::Ref &data,const HIID &source)
 {
   cdebug(3)<<"got control event "<<id<<" from ["<<source<<"]\n";
   // is it a status request?
@@ -248,9 +251,9 @@ int AppControlAgent::processCommand (const HIID &id,const DataRecord::Ref &data,
 
 //##ModelId=3EB2425303B2
 void AppControlAgent::postCommandError (const string &msg,const HIID &id,
-    const DataRecord::Ref::Xfer &data,const HIID &source)
+    const DMI::Record::Ref &data,const HIID &source)
 {
-  DataRecord::Ref ref(new DataRecord,DMI::ANONWR);
+  DMI::Record::Ref ref(new DMI::Record,DMI::ANONWR);
   ref()[AidText] = "Error processing command " +
                     id.toString() + ": " + msg;
   ref()[AidError] = msg;
@@ -262,7 +265,7 @@ void AppControlAgent::postCommandError (const string &msg,const HIID &id,
 
 
 //##ModelId=3E3957E10329
-int AppControlAgent::getCommand (HIID &id,DataRecord::Ref &data, int wait)
+int AppControlAgent::getCommand (HIID &id,DMI::Record::Ref &data, int wait)
 {
   // get an application control event, return error code if not successful
   int res;
@@ -281,7 +284,7 @@ int AppControlAgent::getCommand (HIID &id,DataRecord::Ref &data, int wait)
       if( res == CLOSED )
       {
         cdebug(1)<<"event sink closed, setting state to HALTED\n";
-        setState(HALTED,True);
+        setState(HALTED,true);
         return NEWSTATE;
       }
       return res;
@@ -325,14 +328,14 @@ bool AppControlAgent::isEventBound (const HIID &id)
 
 
 //##ModelId=3E4274C60015
-void AppControlAgent::postEvent (const HIID &id,const ObjRef::Xfer &data,
+void AppControlAgent::postEvent (const HIID &id,const ObjRef &data,
                                  const HIID &destination)
 {
   sink().postEvent(id,data,destination);
 }
 
 //##ModelId=3E4274C601C8
-void AppControlAgent::postEvent (const HIID &id, const DataRecord::Ref::Xfer &data,
+void AppControlAgent::postEvent (const HIID &id, const DMI::Record::Ref &data,
                                  const HIID &destination)
 {
   sink().postEvent(id,data,destination);
@@ -358,7 +361,7 @@ int AppControlAgent::setState (int newstate,bool unpause)
     }
     state_ = newstate;
     if( unpause )
-      paused_ = False;
+      paused_ = false;
     state_condition_.broadcast();
     postState();
   }
@@ -371,8 +374,8 @@ void AppControlAgent::postState (const HIID &rqid,const HIID &destination)
   Thread::Mutex::Lock lock(state_condition_);
   cdebug(2)<<"state is now "<<stateString()<<endl;
   cdebug(3)<<"posting state to ["<<destination<<"] with RQID="<<rqid<<endl;
-  DataRecord::Ref ref;
-  DataRecord &rec = ref <<= new DataRecord;
+  DMI::Record::Ref ref;
+  DMI::Record &rec = ref <<= new DMI::Record;
   rec[FState] = state();
   rec[FPaused] = isPaused();
   rec[FStateString] = stateString();
@@ -385,8 +388,8 @@ void AppControlAgent::postStatus (const HIID &field,const HIID &rqid,const HIID 
 {
   cdebug(3)<<"posting status field ["<<field<<"] to ["<<destination
             <<"] with RQID="<<rqid<<endl;
-  DataRecord::Ref ref;
-  DataRecord &rec = ref <<= new DataRecord;
+  DMI::Record::Ref ref;
+  DMI::Record &rec = ref <<= new DMI::Record;
   if( field.empty() )
   {
     rec[FField] = HIID();
@@ -411,7 +414,7 @@ void AppControlAgent::postStatus (const HIID &field,const HIID &rqid,const HIID 
 
 //##ModelId=3EB2425501DA
 void AppControlAgent::postStatusUpdate (
-    const HIID &subrec,const HIID &field,DataRecord::Ref::Xfer &rec)
+    const HIID &subrec,const HIID &field,DMI::Record::Ref &rec)
 {
   cdebug(3)<<"posting update for status field ["<<subrec<<"/"<<field<<"]\n";
   HIID evname = StatusUpdateEvent;
@@ -492,3 +495,4 @@ string AppControlAgent::sdebug (int detail,const string &prefix,const char *name
 }
 
 
+};

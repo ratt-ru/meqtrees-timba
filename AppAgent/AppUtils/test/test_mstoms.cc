@@ -21,14 +21,17 @@
 //  $Id$
 
 #include <AppAgent/AppControlAgent.h>
-#include <VisAgent/InputAgent.h>
-#include <VisAgent/OutputAgent.h>
-#include <MSVisAgent/MSInputSink.h>
-#include <MSVisAgent/MSOutputSink.h>
+#include <AppAgent/InputAgent.h>
+#include <AppAgent/OutputAgent.h>
+#include <AppUtils/MSInputSink.h>
+#include <AppUtils/MSOutputSink.h>
 #include "../src/VisRepeater.h"
+
+using namespace casa;
 
 int main (int argc,const char *argv[])
 {
+  using namespace AppAgent;
   using namespace MSVisAgent;
   using namespace AppControlAgentVocabulary;
   
@@ -46,40 +49,41 @@ int main (int argc,const char *argv[])
     Debug::initLevels(argc,argv);
 
       // initialize parameter record
-    DataRecord::Ref paramref;
-    DataRecord &params = paramref <<= new DataRecord;
-    params[FThrowError] = True;
+    DMI::Record::Ref paramref;
+    DMI::Record &params = paramref <<= new DMI::Record;
+    params[FThrowError] = true;
     
-    DataRecord &args = params[AidInput] <<= new DataRecord;
+    DMI::Record &args = params[AidInput] <<= new DMI::Record;
       args[FMSName] = "test.ms";
       args[FDataColumnName] = "DATA";
       args[FTileSize] = 10;
       // setup selection
-      DataRecord &select = args[FSelection] <<= new DataRecord;
+      DMI::Record &select = args[FSelection] <<= new DMI::Record;
         select[FDDID] = 0;
-        select[FFieldIndex] = 1;
+        select[FFieldIndex] = 0;
         select[FChannelStartIndex] = 10;
         select[FChannelEndIndex]   = 20;
         select[FSelectionString] = "ANTENNA1=1 && ANTENNA2=2";
         
-    DataRecord &outargs = params[AidOutput] <<= new DataRecord;
-      outargs[FWriteFlags]  = True;
+    DMI::Record &outargs = params[AidOutput] <<= new DMI::Record;
+      outargs[FWriteFlags]  = true;
       outargs[FFlagMask]    = 0xFF;
       outargs[FDataColumn]  = "MODEL_DATA";
       
-    DataRecord &ctrlargs = params[AidControl] <<= new DataRecord;
-      ctrlargs[FAutoExit] = True;
+    DMI::Record &ctrlargs = params[AidControl] <<= new DMI::Record;
+      ctrlargs[FAutoExit] = true;
 
     cout<<"=================== creating input agent =======================\n";
-    VisAgent::InputAgent::Ref inagent;
-    inagent <<= new VisAgent::InputAgent(new MSVisAgent::MSInputSink,DMI::ANONWR);
+    VisAgent::InputAgent::Ref inagent(
+      new VisAgent::InputAgent(new MSVisAgent::MSInputSink),DMI::SHARED);
   
     cout<<"=================== creating output agent ======================\n";
-    VisAgent::OutputAgent::Ref outagent;
-    outagent <<= new VisAgent::OutputAgent(new MSVisAgent::MSOutputSink,DMI::ANONWR);
+    VisAgent::OutputAgent::Ref outagent(
+      new VisAgent::OutputAgent(new MSVisAgent::MSOutputSink),DMI::SHARED);
     
     cout<<"=================== creating control agent =====================\n";
-    AppControlAgent::Ref controlagent(DMI::ANONWR);
+    AppControlAgent::Ref controlagent(
+      new AppControlAgent,DMI::SHARED);
     
     cout<<"=================== creating event flag ========================\n";
     AppEventFlag::Ref eventflag(DMI::ANONWR);

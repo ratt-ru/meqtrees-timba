@@ -7,6 +7,9 @@
 #include <DMI/HIID.h>
     
 #pragma aid BOIO File Name Mode Event Data
+
+namespace AppAgent
+{    
     
 namespace AppEvent
 {
@@ -26,7 +29,7 @@ class BOIOSink : public FileSink
       
     //##ModelId=3E53C59D00EB
     //##Documentation
-    virtual bool init(const DataRecord &data);
+    virtual bool init(const DMI::Record &data);
 
     //##ModelId=3E53C5A401E1
     //##Documentation
@@ -35,11 +38,11 @@ class BOIOSink : public FileSink
     //##ModelId=3E53C5C2003E
     //##Documentation
     //## Posts an event on behalf of the application.
-    virtual void postEvent(const HIID &id, const ObjRef::Xfer &data = ObjRef());
+    virtual void postEvent(const HIID &id, const ObjRef &data = ObjRef());
     //##ModelId=3E8C252801E8
     //##Documentation
     //## Checks whether a specific event is bound to any output. Always returns
-    //## True, since all BOIO events are bound to the file.
+    //## true, since all BOIO events are bound to the file.
     virtual bool isEventBound(const HIID &id);
 
     //##ModelId=3E53C5CE0339
@@ -58,4 +61,5 @@ class BOIOSink : public FileSink
   
 };
 
+};
 #endif /* APPAGENT_SRC_BOIOSINK_H_HEADER_INCLUDED_D0F0C734 */

@@ -1,15 +1,17 @@
-DOCHDRS = VisPipe.h ApplicationBase.h VisRepeater.h
-
 lib_LTLIBRARIES = libapputils.la
 
-libapputils_la_SOURCES = \
-  ApplicationBase.cc VisPipe.cc VisRepeater.cc AID-AppUtils-Registry.cc
+DOCHDRS = VisPipe.h ApplicationBase.h VisRepeater.h \
+          MSInputSink.h MSOutputSink.h MSVisAgentVocabulary.h
+
+libapputils_la_SOURCES = AID-AppUtils-Registry.cc \
+  ApplicationBase.cc VisPipe.cc VisRepeater.cc \
+  MSInputSink.cc MSOutputSink.cc \
+  MSVisAgentDebugContext.cc 
 
 glishdir = $(libexecdir)/glish/appagent
 dist_glish_SCRIPTS = app_proxy.g app_defaults.g
 
 include $(lofar_sharedir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
-
 
 AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL

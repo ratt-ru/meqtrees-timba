@@ -22,16 +22,19 @@
 
 #include <AppAgent/AppControlAgent.h>
 #include <AppAgent/BOIOSink.h>
-#include <VisAgent/InputAgent.h>
-#include <VisAgent/OutputAgent.h>
-#include <MSVisAgent/MSInputSink.h>
-#include <MSVisAgent/MSOutputSink.h>
-#include <OctoAgent/EventMultiplexer.h>
+#include <AppAgent/InputAgent.h>
+#include <AppAgent/OutputAgent.h>
+#include <AppUtils/MSInputSink.h>
+#include <AppUtils/MSOutputSink.h>
+#include <AppAgent/OctoEventMultiplexer.h>
 #include <OCTOPUSSY/Octopussy.h>
 #include "../src/VisRepeater.h"
 
+using namespace casa;
+
 int main (int argc,const char *argv[])
 {
+  using namespace AppAgent;
   using namespace MSVisAgent;
   using namespace AppControlAgentVocabulary;
   using namespace VisRepeaterVocabulary;
@@ -56,42 +59,42 @@ int main (int argc,const char *argv[])
     Debug::initLevels(argc,argv);
     
     cout<<"=================== starting OCTOPUSSY thread ==================\n";
-    Octopussy::initThread(True);
+    Octopussy::initThread(true);
 
     cout<<"=================== creating input repeater ====================\n";
       // initialize parameter record
-    DataRecord::Ref params1ref;
-    DataRecord & params1 = params1ref <<= new DataRecord;
+    DMI::Record::Ref params1ref;
+    DMI::Record & params1 = params1ref <<= new DMI::Record;
     {
-      params1[FThrowError] = True;
-      DataRecord &args = params1[AidInput] <<= new DataRecord;
+      params1[FThrowError] = true;
+      DMI::Record &args = params1[AidInput] <<= new DMI::Record;
         args[FMSName] = "test.ms";
         args[FDataColumnName] = "DATA";
         args[FTileSize] = 10;
         // setup selection
-        DataRecord &select = args[FSelection] <<= new DataRecord;
+        DMI::Record &select = args[FSelection] <<= new DMI::Record;
           select[FDDID] = 0;
-          select[FFieldIndex] = 1;
+          select[FFieldIndex] = 0;
           select[FChannelStartIndex] = 10;
           select[FChannelEndIndex]   = 20;
           select[FSelectionString] = "ANTENNA1=1 && ANTENNA2=2";
 
-      DataRecord &outargs = params1[AidOutput] <<= new DataRecord;
-        outargs[FEventMapOut] <<= new DataRecord;
+      DMI::Record &outargs = params1[AidOutput] <<= new DMI::Record;
+        outargs[FEventMapOut] <<= new DMI::Record;
           outargs[FEventMapOut][FDefaultPrefix] = HIID("A");
 
-      DataRecord &ctrlargs = params1[AidControl] <<= new DataRecord;
-        ctrlargs[FAutoExit] = True;
-        ctrlargs[FEventMapIn] <<= new DataRecord;
+      DMI::Record &ctrlargs = params1[AidControl] <<= new DMI::Record;
+        ctrlargs[FAutoExit] = true;
+        ctrlargs[FEventMapIn] <<= new DMI::Record;
           ctrlargs[FEventMapIn][InitNotifyEvent] = HIID("Output.VisRepeater.Init");
-        ctrlargs[FEventMapOut] <<= new DataRecord;
+        ctrlargs[FEventMapOut] <<= new DMI::Record;
           ctrlargs[FEventMapOut][StopNotifyEvent] = HIID("Input.VisRepeater.Stop");
     }
         
     OctoAgent::EventMultiplexer::Ref mux1(
         new OctoAgent::EventMultiplexer(AidVisRepeater),DMI::ANONWR);
     VisAgent::InputAgent::Ref inagent1(
-        new VisAgent::InputAgent(new MSVisAgent::MSInputSink,DMI::ANONWR,AidInput),DMI::ANONWR);
+        new VisAgent::InputAgent(new MSVisAgent::MSInputSink,AidInput),DMI::ANONWR);
     VisAgent::OutputAgent::Ref outagent1(
         new VisAgent::OutputAgent(mux1().newSink(),AidOutput),DMI::ANONWR);
     AppControlAgent::Ref controlagent1(
@@ -105,39 +108,39 @@ int main (int argc,const char *argv[])
     
     cout<<"=================== creating output repeater ===================\n";
       // initialize parameter record
-    DataRecord::Ref params2ref;
-    DataRecord & params2 = params2ref <<= new DataRecord;
+    DMI::Record::Ref params2ref;
+    DMI::Record & params2 = params2ref <<= new DMI::Record;
     {
-      params2[FThrowError] = True;
+      params2[FThrowError] = true;
 
-      DataRecord &args = params2[AidInput] <<= new DataRecord;
-        args[FEventMapIn] <<= new DataRecord;
+      DMI::Record &args = params2[AidInput] <<= new DMI::Record;
+        args[FEventMapIn] <<= new DMI::Record;
           args[FEventMapIn][FDefaultPrefix] = HIID("A");
 
-      DataRecord &outargs = params2[AidOutput] <<= new DataRecord;
+      DMI::Record &outargs = params2[AidOutput] <<= new DMI::Record;
           outargs[AppEvent::FBOIOFile] = "test.boio";
           outargs[AppEvent::FBOIOMode] = "write";
-//        outargs[FWriteFlags]  = True;
+//        outargs[FWriteFlags]  = true;
 //        outargs[FFlagMask]    = 0xFF;
 //        outargs[FDataColumn]      = "MODEL_DATA";
 
-      DataRecord &ctrlargs = params2[AidControl] <<= new DataRecord;
-        ctrlargs[FAutoExit] = True;
-        ctrlargs[FEventMapIn] <<= new DataRecord;
+      DMI::Record &ctrlargs = params2[AidControl] <<= new DMI::Record;
+        ctrlargs[FAutoExit] = true;
+        ctrlargs[FEventMapIn] <<= new DMI::Record;
           ctrlargs[FEventMapIn][HaltEvent] = HIID("Input.VisRepeater.Stop");
-        ctrlargs[FEventMapOut] <<= new DataRecord;
+        ctrlargs[FEventMapOut] <<= new DMI::Record;
           ctrlargs[FEventMapOut][InitNotifyEvent] = HIID("Output.VisRepeater.Init");
     }
         
     OctoAgent::EventMultiplexer::Ref mux2(
-        new OctoAgent::EventMultiplexer(AidVisRepeater),DMI::ANONWR);
+        new OctoAgent::EventMultiplexer(AidVisRepeater));
     VisAgent::InputAgent::Ref inagent2(
-        new VisAgent::InputAgent(mux2().newSink(),AidInput),DMI::ANONWR);
+        new VisAgent::InputAgent(mux2().newSink(),AidInput));
 //    MSVisAgent::MSOutputAgent outagent2(AidOutput);
     VisAgent::OutputAgent::Ref outagent2(
-        new VisAgent::OutputAgent(new BOIOSink,DMI::ANONWR,AidOutput),DMI::ANONWR);
+        new VisAgent::OutputAgent(new BOIOSink,AidOutput));
     AppControlAgent::Ref controlagent2(
-        new AppControlAgent(mux2().newSink(),AidControl),DMI::ANONWR);
+        new AppControlAgent(mux2().newSink(),AidControl));
     outagent2().attach(mux2().eventFlag());
 //    controlagent2().attach(mux2().eventFlag());
     
@@ -152,14 +155,14 @@ int main (int argc,const char *argv[])
     
     Thread::ThrID id1,id2;
     
-    id2 = repeater2().runThread(False);
+    id2 = repeater2().runThread(false);
     // wait for it to start
     cout<<"=================== waiting for output thread to start =====\n";
     repeater2().control().waitUntilLeavesState(AppState::INIT);
     
     cout<<"=================== launching input thread =================\n";
     // now run the input repeater
-    id1 = repeater1().runThread(False),
+    id1 = repeater1().runThread(false),
     
     cout<<"=================== rejoining threads =========================\n";
     id1.join();

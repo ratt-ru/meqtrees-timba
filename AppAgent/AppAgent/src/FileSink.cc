@@ -1,5 +1,8 @@
 #include "FileSink.h"
     
+namespace AppAgent
+{    
+
 using namespace AppState;
 using namespace AppEvent;
 
@@ -9,12 +12,12 @@ FileSink::FileSink ()
 {
 }
 
-void FileSink::putOnStream (const HIID &id,const ObjRef::Xfer &ref)
+void FileSink::putOnStream (const HIID &id,const ObjRef &ref)
 {
   raiseEventFlag();    // we now generate events
   input_stream_.push_back(StreamEntry());
   input_stream_.back().id = id;
-  input_stream_.back().ref.xfer(ref);
+  input_stream_.back().ref = ref;
 }
 
 //##ModelId=3EB9169701B4
@@ -88,3 +91,5 @@ string FileSink::stateString() const
       return AtomicID(state()>0?-state():state()).toString();
   }
 }
+
+};

@@ -1,5 +1,8 @@
 #include "AppEventAgentBase.h"
-#include <DMI/DataRecord.h>
+#include <DMI/Record.h>
+
+namespace AppAgent
+{    
 
 static int dum = aidRegistry_AppAgent();
 
@@ -17,17 +20,17 @@ void AppEventAgentBase::attach(AppEventFlag& evflag, int dmiflags)
 }
 
 //##ModelId=3E4148870295
-AppEventAgentBase::AppEventAgentBase (AppEventSink &evsink, const HIID &initf)
+AppEventAgentBase::AppEventAgentBase (AppEventSink &evsink,const HIID &initf,int flags)
     : AppAgent(initf)
 {
-  sink_.attach(evsink,DMI::WRITE); // attach default ref (extern if first ref)
+  sink_.attach(evsink,flags); 
 }
 
 //##ModelId=3E50F9BB019B
-AppEventAgentBase::AppEventAgentBase(AppEventSink *evsink, int dmiflags, const HIID &initf)
+AppEventAgentBase::AppEventAgentBase (AppEventSink *evsink,const HIID &initf,int flags)
     : AppAgent(initf)
 {
-  sink_.attach(evsink,dmiflags|DMI::WRITE);
+  sink_.attach(evsink,flags);
 }
 
 //##ModelId=3E47AF920205
@@ -37,10 +40,10 @@ bool AppEventAgentBase::isAsynchronous() const
 }
 
 //##ModelId=3E41147B0049
-bool AppEventAgentBase::init (const DataRecord &data)
+bool AppEventAgentBase::init (const DMI::Record &data)
 {
-  const DataRecord dum;
-  return sink().init(data[initfield()].as<DataRecord>(dum));
+  const DMI::Record dum;
+  return sink().init(data[initfield()].as<DMI::Record>(dum));
 }
 
 //##ModelId=3E41147E0126
@@ -89,25 +92,27 @@ string AppEventAgentBase::sdebug (int detail, const string &prefix, const char *
   return out;
 }
 //##ModelId=3E4295C503C9
-void AppEventAgentBase::fillReceiveEventList (DataRecord &)
+void AppEventAgentBase::fillReceiveEventList (DMI::Record &)
 {
 }
 
 //##ModelId=3E42973F0398
-void AppEventAgentBase::fillPostEventList (DataRecord &)
+void AppEventAgentBase::fillPostEventList (DMI::Record &)
 {
 }
 
 //##ModelId=3E42967E027F
-const DataRecord & AppEventAgentBase::receiveEventList ()
+const DMI::Record & AppEventAgentBase::receiveEventList ()
 {
-  static DataRecord dum;
+  static DMI::Record dum;
   return dum;
 }
 
 //##ModelId=3E4296940160
-const DataRecord & AppEventAgentBase::postEventList ()
+const DMI::Record & AppEventAgentBase::postEventList ()
 {
-  static DataRecord dum;
+  static DMI::Record dum;
   return dum;
 }
+
+};

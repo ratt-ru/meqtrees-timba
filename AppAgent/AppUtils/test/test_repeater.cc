@@ -22,7 +22,7 @@
 
 #include "../src/MSVisInputAgent.h"
 #include "../src/MSVisOutputAgent.h"
-#include <DMI/DataArray.h>
+#include <DMI/NumArray.h>
 
 #include <AppAgent/AppControlAgent.h>
 
@@ -39,9 +39,9 @@ void checkEvents (AppAgent &agent)
   {
     FailWhen1( count++ > 100, "Too many events. I bet the agent is not flushing them." );
     HIID name;
-    DataRecord::Ref data;
+    DMI::Record::Ref data;
     bool res = agent.getEvent(name,data);
-    FailWhen1( !res,"Oops, hasEvents() is True but getEvent() has failed. Debug your agent." );
+    FailWhen1( !res,"Oops, hasEvents() is true but getEvent() has failed. Debug your agent." );
     cout<<"getEvent: "<<name.toString()<<" data: "<<data.sdebug(10)<<endl;
     if( data.valid() )
     {
@@ -65,17 +65,17 @@ int main (int argc,const char *argv[])
     Debug::initLevels(argc,argv);
 
     // initialize top-level parameter record
-    DataRecord::Ref dataref;
-    DataRecord &toprecord = dataref <<= new DataRecord;
+    DMI::Record::Ref dataref;
+    DMI::Record &toprecord = dataref <<= new DMI::Record;
 
-    DataRecord &args = toprecord[MSVisInputAgent::FParams()] <<= new DataRecord;
+    DMI::Record &args = toprecord[MSVisInputAgent::FParams()] <<= new DMI::Record;
     
       args[FMSName] = "test.ms";
       args[FDataColumnName] = "DATA";
       args[FTileSize] = 10;
 
       // setup selection
-      DataRecord &select = *new DataRecord;
+      DMI::Record &select = *new DMI::Record;
       args[FSelection] <<= select;
 
         select[FDDID] = 0;
@@ -84,10 +84,10 @@ int main (int argc,const char *argv[])
         select[FChannelEndIndex]   = 20;
         select[FSelectionString] = "ANTENNA1=1 && ANTENNA2=2";
         
-    DataRecord &outargs = *new DataRecord;
+    DMI::Record &outargs = *new DMI::Record;
     dataref()[MSVisOutputAgent::FParams()] <<= outargs;
     
-      outargs[FWriteFlags]  = True;
+      outargs[FWriteFlags]  = true;
       outargs[FFlagMask]    = 0xFF;
       
       outargs[FDataColumn]      = "";
@@ -132,7 +132,7 @@ int main (int argc,const char *argv[])
     }
 
     cout<<"=================== getting header ============================\n";
-    DataRecord::Ref header;
+    DMI::Record::Ref header;
     cout<<"getHeader(): "<<agent.getHeader(header)<<endl;
     cout<<header->sdebug(10)<<endl;
     checkEvents(agent);
@@ -145,7 +145,7 @@ int main (int argc,const char *argv[])
     int state = 1;
     while( state > 0 )
     {
-      VisTile::Ref tile;
+      VisCube::VCube::VTile::Ref tile;
       cout<<"getNextTile(): "<<(state=agent.getNextTile(tile))<<endl;
       checkEvents(agent);
       if( state > 0 )
@@ -153,10 +153,10 @@ int main (int argc,const char *argv[])
         cout<<tile->sdebug(10)<<endl;
         // add columns to tile
         LoShape shape = tile->data().shape();
-        VisTile::Format::Ref newformat;
-        newformat <<= new VisTile::Format(tile->format());
-        newformat().add(VisTile::PREDICT,Tpfcomplex,tile->data().shape())
-                   .add(VisTile::RESIDUALS,Tpfcomplex,tile->data().shape());
+        VisCube::VCube::VTile::Format::Ref newformat;
+        newformat <<= new VisCube::VCube::VTile::Format(tile->format());
+        newformat().add(VisCube::VCube::VTile::PREDICT,Tpfcomplex,tile->data().shape())
+                   .add(VisCube::VCube::VTile::RESIDUALS,Tpfcomplex,tile->data().shape());
         // fill the columns
         tile().wpredict()   = -tile->data();
         tile().wresiduals() = conj(tile->data());

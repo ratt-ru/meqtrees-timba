@@ -2,6 +2,9 @@
 #include "ApplicationBase.h"
 #include "AID-AppUtils.h"
     
+namespace AppAgent
+{
+    
 InitDebugContext(ApplicationBase,"Applications");
 
 static int dum = aidRegistry_AppUtils ();
@@ -20,7 +23,7 @@ ApplicationBase::~ApplicationBase()
 //##ModelId=3E77212C02CD
 void ApplicationBase::attach (AppControlAgent *ctrl, int flags)
 {
-  AppAgent::Ref ref(ctrl,flags);
+  AppAgent::Ref ref(ctrl,flags|DMI::SHARED|DMI::WRITE);
   FailWhen(control_,"control agent already attached");
   control_ = ctrl;
   attachRef(ref);
@@ -39,7 +42,7 @@ void ApplicationBase::attach (VisAgent::OutputAgent *, int)
 }
 
 //##ModelId=3E7722D50064
-void ApplicationBase::attachRef (AppAgent::Ref::Xfer & agent)
+void ApplicationBase::attachRef (AppAgent::Ref & agent)
 {
   agentrefs_.push_front(agent);
 }
@@ -63,10 +66,10 @@ bool ApplicationBase::verifySetup (bool throw_exc) const
   {
     if( throw_exc )
       Throw("control agent not attached");
-    return False;
+    return false;
   }
   else
-    return True;
+    return true;
 }
 
 //##ModelId=3E3FE1BB0220
@@ -108,3 +111,5 @@ string ApplicationBase::sdebug (int,const string &,const char *name) const
 {
   return name ? name : "App";
 }
+
+};

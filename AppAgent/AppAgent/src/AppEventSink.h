@@ -29,6 +29,9 @@
 #pragma aidgroup AppAgent
 #pragma aid AppAgent Event Text
 
+namespace AppAgent
+{    
+
 namespace AppEvent
 {
   //##ModelId=3E8C1A5B0043
@@ -62,7 +65,7 @@ namespace AppEventSinkVocabulary
 //## measurement set, a pipeline, a test file, etc.
 //## 
 //## Agents talk to an application by exchanging events. Each event has an id
-//## (a HIID), and can contain an arbitrary DataRecord.
+//## (a HIID), and can contain an arbitrary DMI::Record.
 class AppEventSink : public AppAgent
 {
   protected:
@@ -86,8 +89,8 @@ class AppEventSink : public AppAgent
     //##Documentation
     //## Agent initialization method. Called by the application to initialize
     //## or reinitialize an agent. Agent parameters are supplied via a
-    //## DataRecord.
-    virtual bool init (const DataRecord &data);
+    //## DMI::Record.
+    virtual bool init (const DMI::Record &data);
   
     //##ModelId=3E8C3BDC0159
     //##Documentation
@@ -153,14 +156,14 @@ class AppEventSink : public AppAgent
     //## this (e.g., if responding to a request event, destination could be
     //## equal to the original event source).
       virtual void postEvent (const HIID &id,
-                              const ObjRef::Xfer &data = ObjRef(),
+                              const ObjRef &data = ObjRef(),
                               const HIID &destination = HIID() );
     //##ModelId=3E8C1F8703DC
     //##Documentation
     //## Checks whether a specific event is bound to any output. I.e., if the
-    //## event would be simply discarded when posted, returns False; otherwise,
-    //## returns True. Apps can check this before posting "expensive" events.
-    //## Default implementation always returns False.
+    //## event would be simply discarded when posted, returns false; otherwise,
+    //## returns true. Apps can check this before posting "expensive" events.
+    //## Default implementation always returns false.
       virtual bool isEventBound (const HIID &id);
 
     //##ModelId=3E394D4C02D7
@@ -176,21 +179,21 @@ class AppEventSink : public AppAgent
       
       //##ModelId=3E47852A012C
       virtual bool isAsynchronous() const
-      { return False; }
+      { return false; }
       
     //##ModelId=3E4790150278
       int waitOtherEvents (int wait) const;
           
     //##ModelId=3E3E744E0258
     //##Documentation
-    //## alias for getEvent which expects a DataRecord event payload
-      int getEvent (HIID &id, DataRecord::Ref &data, const HIID &mask,
+    //## alias for getEvent which expects a DMI::Record event payload
+      int getEvent (HIID &id, DMI::Record::Ref &data, const HIID &mask,
                     int wait = AppEvent::WAIT,HIID &source = _dummy_hiid );
 
     //##ModelId=3E3E747A0120
     //##Documentation
-    //## alias for postEvent to post a DataRecord 
-      void postEvent (const HIID &id, const DataRecord::Ref::Xfer & data,const HIID &destination = HIID());
+    //## alias for postEvent to post a DMI::Record 
+      void postEvent (const HIID &id, const DMI::Record::Ref & data,const HIID &destination = HIID());
       
     //##ModelId=3E3FD6180308
     //##Documentation
@@ -208,8 +211,8 @@ class AppEventSink : public AppAgent
     //##ModelId=3E3E74620245
     //##Documentation
     //## Alias for getEvent() with an empty mask, which retrieves the next
-    //## pending event whatever it is, with a DataRecord payload
-      int getEvent(HIID &id, DataRecord::Ref &data, 
+    //## pending event whatever it is, with a DMI::Record payload
+      int getEvent(HIID &id, DMI::Record::Ref &data, 
                    int wait = AppEvent::WAIT,HIID &source = _dummy_hiid)
       { return getEvent(id,data,HIID(),wait,source); }
       
@@ -223,13 +226,13 @@ class AppEventSink : public AppAgent
 
   private:
     //##ModelId=3E43E3B30155
-    AppEventFlag::Ref eventFlag;
+    mutable AppEventFlag::Ref eventFlag;
     //##ModelId=3E47837F02C2
     int sink_num;
 
 
 };
     
-    
+};    
 #endif
     
