@@ -38,7 +38,7 @@ typedef complex<float> fcomplex;
 //##ModelId=3DB9343E03CB
 typedef complex<double> dcomplex;
 
-// Defines alternative version of the f"for all numeric types"
+// Defines alternative version of the "for all numeric types"
 // macro, with comma as separator
 #define DoForAllNumericTypes1(Do,arg) \
         Do(char,arg) , \
