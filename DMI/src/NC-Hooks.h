@@ -2,7 +2,7 @@ protected:
 // -----------------------------------------------------------------------
 // as_impl_wp<T>()
 // Internal helper template that maps to get_address
-// If used with an incompatile type, a compile-time error is generated
+// If used with an incompatible type, a compile-time error is generated
 // -----------------------------------------------------------------------
 template<class T>
 T * as_impl_wp (T *,ContentInfo &info=_dum_info,bool pointer=False) const
@@ -218,7 +218,7 @@ template<class T,class isRef>
 typename RefTraits<T>::RetType xfer_impl ( T * ptr,int flags,isRef ) const
 { 
   STATIC_CHECK(SUPERSUBCLASS(BlockableObject,T),xfer_operator_only_available_for_dynamic_types);
-  assign_object(ptr,DMITypeTraits<T>::typeId,flags); 
+  assign_object(ptr,ptr->objectType(),flags); 
   return *ptr; 
 };
 template<class T>
