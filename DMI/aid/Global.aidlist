@@ -235,9 +235,11 @@ masks                            1454       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 matrix                           1422       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 max                              1039       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
 meas                             1201       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
+#meqabs                          1524       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Abs.h:29
 #meqacos                         1506       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/ACos.h:29
 #meqadd                          1236       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Add.h:29
 meqaddsource                     1354       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqAddSource.h:14
+#meqarg                          1526       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Arg.h:29
 #meqasin                         1505       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/ASin.h:29
 #meqatan                         1512       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/ATan.h:29
 #meqceil                         1520       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Ceil.h:30
@@ -254,6 +256,7 @@ meqdft_gvd                       1259       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 #meqdivide                       1223       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Divide.h:29
 meqdomain                        1235       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Domain.h:39
 #meqexp                          1240       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Exp.h:29
+#meqfabs                         1525       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Fabs.h:29
 meqfarot                         1341       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqFarot.h:14
 meqflagcompare                   1427       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/FlagCompare.h:29
 meqflagger                       1261       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqFlagger.h:14
@@ -261,6 +264,7 @@ meqflagger                       1261       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 #meqfreq                         1219       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Freq.h:29
 meqfunction                      1216       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Function.h:29
 meqha0                           1342       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqHA0.h:14
+#meqimag                         1523       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Imag.h:29
 #meqlmn                          1467       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/LMN.h:29
 #meqlog                          1507       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Log.h:29
 meqlsm_i                         1349       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqLSM_I.h:14
@@ -272,6 +276,7 @@ meqm2uvw                         1360       ; from /home/noordam/LOFAR/CEP/CPA/P
 meqmodres                        1447       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ModRes.h:31
 #meqmultiply                     1227       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Multiply.h:29
 meqnode                          1242       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:34
+#meqnorm                         1527       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Norm.h:29
 #meqparm                         1244       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Parm.h:35
 #meqpointsourcedft               1469       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/PointSourceDFT.h:30
 #meqpolar                        1503       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Polar.h:30
@@ -293,6 +298,7 @@ meqpredictsource_xx              1343       ; from /home/noordam/LOFAR/CEP/CPA/P
 meqpredictsource_xy              1344       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_XY.h:14
 meqpredictsource_yx              1345       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_YX.h:14
 meqpredictsource_yy              1346       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_YY.h:14
+#meqreal                         1522       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Real.h:29
 meqreqmux                        1443       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqMux.h:30
 #meqreqseq                       1478       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqSeq.h:30
 meqrequest                       1222       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:32
