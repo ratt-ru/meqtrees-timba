@@ -30,6 +30,9 @@ class hiid (tuple):
       else:
         raise ValueError, "can't construct hiid from a %s"%type(x);
     return tuple.__new__(self,mylist);
+  # get(n) returns element N as integer
+  def get (self,n):
+    return tuple.__getitem__(self,n);
   # redefine __getitem__: if key is a slice, then the subsequence should be
   # converted to hiid
   def __getitem__ (self,key):
