@@ -91,6 +91,16 @@ class AppAgent
       virtual void flush ()
       {}
       
+      
+    //##ModelId=3E00AFAE01D7
+      virtual string sdebug ( int detail = 1,const string &prefix = "",
+                              const char *name = 0 ) const
+      { return "AppAgent"; }
+
+    //##ModelId=3E00AFB100F5
+      const char * debug ( int detail = 1,const string &prefix = "",
+                           const char *name = 0 ) const
+      { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
 };
     
     

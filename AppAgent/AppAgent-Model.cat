@@ -125,8 +125,7 @@
 		    parameters 	(list Parameters
 			(object Parameter "hdr"
 			    quid       	"3DF9FECD0260"
-			    type       	"DataRecord &"
-			    quidu      	"3BB3112B0027")
+			    type       	"DataRecord &")
 			(object Parameter "selection"
 			    quid       	"3DF9FECD0278"
 			    type       	"const DataRecord &"))
@@ -139,8 +138,7 @@
 		    parameters 	(list Parameters
 			(object Parameter "hdr"
 			    quid       	"3DF9FECD0286"
-			    type       	"DataRecord &"
-			    quidu      	"3BB3112B0027")
+			    type       	"DataRecord &")
 			(object Parameter "selection"
 			    quid       	"3DF9FECD0292"
 			    type       	"const DataRecord &"))
@@ -167,33 +165,6 @@
 			    type       	"const char *"
 			    initv      	"0"))
 		    result     	"string"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "debug"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DFDFC0603C3"
-		    stereotype 	"const"
-		    parameters 	(list Parameters
-			(object Parameter "detail"
-			    quid       	"3DFDFC0603D4"
-			    type       	"int"
-			    initv      	"1")
-			(object Parameter "prefix"
-			    quid       	"3DFDFC070001"
-			    type       	"const string &"
-			    initv      	
-|""
-			    )
-			(object Parameter "name"
-			    quid       	"3DFDFC070016"
-			    type       	"const char *"
-			    initv      	"0"))
-		    result     	"const char *"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0))
@@ -242,7 +213,11 @@
 		    type       	"string")
 		(object ClassAttribute "current_timeslot_"
 		    quid       	"3DFDFC060354"
-		    type       	"int"))
+		    type       	"int")
+		(object ClassAttribute "vdsid_"
+		    quid       	"3E00AA5101A0"
+		    type       	"VDSID"
+		    quidu      	"3DB964F20079"))
 	    module     	"Component View::AppAgent"
 	    quidu      	"3DF9FDED0011"
 	    language   	"ANSI C++"
@@ -302,7 +277,8 @@
 		    uid        	0))
 	    module     	"Component View::AppAgent"
 	    quidu      	"3DF9FDED0011"
-	    language   	"ANSI C++")
+	    language   	"ANSI C++"
+	    abstract   	TRUE)
 	(object Class "VisFileInputAgent"
 	    attributes 	(list Attribute_Set
 		(object Attribute
@@ -401,15 +377,13 @@
 		    result     	"DataRecord &"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Protected"
-		    uid        	0
-		    quidu      	"3BB3112B0027")
+		    uid        	0)
 		(object Operation "initHeader"
 		    quid       	"3DF9FECE03AB"
 		    result     	"DataRecord &"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Protected"
-		    uid        	0
-		    quidu      	"3BB3112B0027")
+		    uid        	0)
 		(object Operation "getHeader"
 		    quid       	"3DF9FECE03D1"
 		    stereotype 	"virtual"
@@ -445,8 +419,7 @@
 		    parameters 	(list Parameters
 			(object Parameter ""
 			    quid       	"3DF9FECF00F4"
-			    type       	"HIID &"
-			    quidu      	"3BE96FE601C5")
+			    type       	"HIID &")
 			(object Parameter "data"
 			    quid       	"3DF9FECF013D"
 			    type       	"DataRecord::Ref &")
@@ -487,10 +460,15 @@
 		    type       	"DataRecord::Ref")
 		(object ClassAttribute "eventdata_"
 		    quid       	"3DF9FECE009E"
-		    type       	"DataRecord::Ref"))
+		    type       	"DataRecord::Ref")
+		(object ClassAttribute "event_"
+		    quid       	"3E00AA520286"
+		    type       	"HIID"
+		    quidu      	"3BE96FE601C5"))
 	    module     	"Component View::AppAgent"
 	    quidu      	"3DF9FDED0011"
 	    language   	"ANSI C++"
+	    abstract   	TRUE
 	    nestedClasses 	(list nestedClasses
 		(object Class "FileState"
 		    attributes 	(list Attribute_Set
@@ -545,7 +523,8 @@
 			    value      	TRUE))
 		    quid       	"3DF9FECF029C"
 		    documentation 	
-|This is the id of the "data header ready" event.
+|generated when a data set header is available on the stream
+|
 		    
 		    stereotype 	"static"
 		    result     	"const HIID &"
@@ -559,6 +538,10 @@
 			    name       	"Inline"
 			    value      	TRUE))
 		    quid       	"3DF9FECF02B7"
+		    documentation 	
+|generated when data begins arriving on the stream      
+|
+		    
 		    stereotype 	"static"
 		    result     	"const HIID &"
 		    concurrency 	"Sequential"
@@ -571,6 +554,10 @@
 			    name       	"Inline"
 			    value      	TRUE))
 		    quid       	"3DF9FECF02D1"
+		    documentation 	
+|generated when a data set ends   
+|
+		    
 		    stereotype 	"static"
 		    result     	"const HIID &"
 		    concurrency 	"Sequential"
@@ -583,6 +570,10 @@
 			    name       	"Inline"
 			    value      	TRUE))
 		    quid       	"3DF9FECF02EB"
+		    documentation 	
+|generated when an error occurs
+|
+		    
 		    stereotype 	"static"
 		    result     	"const HIID &"
 		    concurrency 	"Sequential"
@@ -696,6 +687,7 @@
 	    module     	"Component View::AppAgent"
 	    quidu      	"3DF9FDED0011"
 	    language   	"ANSI C++"
+	    abstract   	TRUE
 	    nestedClasses 	(list nestedClasses
 		(object Class "ReturnCodes"
 		    attributes 	(list Attribute_Set
@@ -780,8 +772,7 @@
 		    parameters 	(list Parameters
 			(object Parameter ""
 			    quid       	"3DF9FEEC0075"
-			    type       	"HIID &"
-			    quidu      	"3BE96FE601C5")
+			    type       	"HIID &")
 			(object Parameter ""
 			    quid       	"3DF9FEEC0076"
 			    type       	"DataRecord::Ref &")
@@ -847,6 +838,321 @@
 			    value      	TRUE))
 		    quid       	"3DF9FEEC006B"
 		    documentation 	"Flushes any output events (commits to disk, or sends out to OCTOPUSSY, or whatever)"
+		    stereotype 	"virtual"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "sdebug"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E00AFAE01D7"
+		    stereotype 	"const,virtual"
+		    parameters 	(list Parameters
+			(object Parameter "detail"
+			    quid       	"3E00AFAF00AB"
+			    type       	"int"
+			    initv      	"1")
+			(object Parameter "prefix"
+			    quid       	"3E00AFAF035B"
+			    type       	"const string &"
+			    initv      	
+|""
+			    )
+			(object Parameter "name"
+			    quid       	"3E00AFB00234"
+			    type       	"const char *"
+			    initv      	"0"))
+		    result     	"string"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "debug"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E00AFB100F5"
+		    stereotype 	"const"
+		    parameters 	(list Parameters
+			(object Parameter "detail"
+			    quid       	"3E00AFB1021F"
+			    type       	"int"
+			    initv      	"1")
+			(object Parameter "prefix"
+			    quid       	"3E00AFB200E5"
+			    type       	"const string &"
+			    initv      	
+|""
+			    )
+			(object Parameter "name"
+			    quid       	"3E00AFB20391"
+			    type       	"const char *"
+			    initv      	"0"))
+		    result     	"const char *"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0))
+	    module     	"Component View::AppAgent"
+	    quidu      	"3DF9FDED0011"
+	    language   	"ANSI C++"
+	    abstract   	TRUE)
+	(object Class "AppControlAgent"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"HeaderSourceFile"
+		    value      	(value Text "AppAgent/src/AppControlAgent.h")))
+	    quid       	"3DFF2FC1009C"
+	    superclasses 	(list inheritance_relationship_list
+		(object Inheritance_Relationship
+		    quid       	"3DFF303D0170"
+		    supplier   	"Logical View::AppAgents::AppAgent"
+		    quidu      	"3DF9FEEC0043"))
+	    operations 	(list Operations
+		(object Operation "InitEvent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DFF35700297"
+		    stereotype 	"static"
+		    result     	"const HIID &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "StopEvent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DFF357002AB"
+		    stereotype 	"static"
+		    result     	"const HIID &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "ReinitEvent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DFF357002BE"
+		    stereotype 	"static"
+		    result     	"const HIID &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "TerminateEvent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DFF357002D2"
+		    stereotype 	"static"
+		    result     	"const HIID &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0))
+	    module     	"Component View::AppAgent"
+	    quidu      	"3DF9FDED0011"
+	    language   	"ANSI C++"
+	    abstract   	TRUE)
+	(object Class "BaseSolver"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"HeaderSourceFile"
+		    value      	"Solver/src/BaseSolver.h")
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"BodySourceFile"
+		    value      	"Solver/src/BaseSolver.cc"))
+	    quid       	"3E00AA510095"
+	    operations 	(list Operations
+		(object Operation "BaseSolver"
+		    quid       	"3E00AC30030A"
+		    parameters 	(list Parameters
+			(object Parameter "in"
+			    quid       	"3E00AC300322"
+			    type       	"VisInputAgent &")
+			(object Parameter "out"
+			    quid       	"3E00AC3E010B"
+			    type       	"VisOutputAgent &")
+			(object Parameter "control"
+			    quid       	"3E00AC3E0159"
+			    type       	"SolverControlAgent &"
+			    quidu      	"3DFF2B6D01FF"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "init"
+		    quid       	"3E00AA510160"
+		    stereotype 	"virtual"
+		    parameters 	(list Parameters
+			(object Parameter "data"
+			    quid       	"3E00AA510162"
+			    type       	"const DataRecord::Ref &"))
+		    result     	"bool"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "run"
+		    quid       	"3E00AA510173"
+		    stereotype 	"abstract"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "sdebug"
+		    quid       	"3E00B22801E4"
+		    stereotype 	"const,virtual"
+		    parameters 	(list Parameters
+			(object Parameter "detail"
+			    quid       	"3E00B2290126"
+			    type       	"int"
+			    initv      	"1")
+			(object Parameter "prefix"
+			    quid       	"3E00B22902C3"
+			    type       	"const string &"
+			    initv      	
+|""
+			    )
+			(object Parameter "name"
+			    quid       	"3E00B22903B9"
+			    type       	"const char *"
+			    initv      	"0"))
+		    result     	"string"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "debug"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E00B22A011F"
+		    stereotype 	"const"
+		    parameters 	(list Parameters
+			(object Parameter "detail"
+			    quid       	"3E00B22A01B8"
+			    type       	"int"
+			    initv      	"1")
+			(object Parameter "prefix"
+			    quid       	"3E00B22A02CD"
+			    type       	"const string &"
+			    initv      	
+|""
+			    )
+			(object Parameter "name"
+			    quid       	"3E00B22A03E2"
+			    type       	"const char *"
+			    initv      	"0"))
+		    result     	"const char *"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "input"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E00C7DC027D"
+		    result     	"VisInputAgent  &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0)
+		(object Operation "output"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E00C7DC0304"
+		    result     	"VisOutputAgent &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0)
+		(object Operation "control"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E00C7DC0393"
+		    result     	"SolverControl::SolverControlAgent &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0))
+	    class_attributes 	(list class_attribute_list
+		(object ClassAttribute "LocalDebugContext"
+		    quid       	"3E00C7DB0324"
+		    exportControl 	"Public"))
+	    module     	"Component View::AppAgent"
+	    quidu      	"3DF9FDED0011"
+	    language   	"ANSI C++"
+	    abstract   	TRUE)
+	(object Class "VisOutputAgent"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"HeaderSourceFile"
+		    value      	"VisAgent/src/VisOutputAgent.h"))
+	    quid       	"3E00AA5100F9"
+	    stereotype 	"Interface"
+	    superclasses 	(list inheritance_relationship_list
+		(object Inheritance_Relationship
+		    quid       	"3E00AA52038B"
+		    supplier   	"Logical View::AppAgents::AppAgent"
+		    quidu      	"3DF9FEEC0043"))
+	    module     	"Component View::AppAgent"
+	    quidu      	"3DF9FDED0011"
+	    language   	"ANSI C++")
+	(object Class "DummySolver"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"HeaderSourceFile"
+		    value      	(value Text "Solver/src/DummySolver.h"))
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"BodySourceFile"
+		    value      	"Solver/src/DummySolver.cc"))
+	    quid       	"3E00ACBD03DD"
+	    superclasses 	(list inheritance_relationship_list
+		(object Inheritance_Relationship
+		    quid       	"3E00ACCA0036"
+		    supplier   	"Logical View::AppAgents::BaseSolver"
+		    quidu      	"3E00AA510095"))
+	    operations 	(list Operations
+		(object Operation "DummySolver"
+		    quid       	"3E00ACF002AB"
+		    parameters 	(list Parameters
+			(object Parameter "in"
+			    quid       	"3E00ACF002AC"
+			    type       	"VisInputAgent &")
+			(object Parameter "out"
+			    quid       	"3E00ACF002AD"
+			    type       	"VisOutputAgent &")
+			(object Parameter "control"
+			    quid       	"3E00ACF002AE"
+			    type       	"SolverControlAgent &"
+			    quidu      	"3DFF2B6D01FF"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "run"
+		    quid       	"3E00ACED00BB"
 		    stereotype 	"virtual"
 		    result     	"void"
 		    concurrency 	"Sequential"
@@ -919,6 +1225,54 @@
 		    supplier   	"Logical View::AppAgents::VisFileInputAgent"
 		    quidu      	"3DF9FECD0159"
 		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$8"
+	    quid       	"3E00AA51011D"
+	    roles      	(list role_list
+		(object Role "inputAgent: VisInputAgent &"
+		    quid       	"3E00AA51011E"
+		    label      	"inputAgent: VisInputAgent &"
+		    supplier   	"Logical View::AppAgents::VisInputAgent"
+		    quidu      	"3DF9FECD0169"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$9"
+		    quid       	"3E00AA510120"
+		    supplier   	"Logical View::AppAgents::BaseSolver"
+		    quidu      	"3E00AA510095"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$10"
+	    quid       	"3E00AA51012B"
+	    roles      	(list role_list
+		(object Role "outputAgent: VisOutputAgent &"
+		    quid       	"3E00AA51012C"
+		    label      	"outputAgent: VisOutputAgent &"
+		    supplier   	"Logical View::AppAgents::VisOutputAgent"
+		    quidu      	"3E00AA5100F9"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$11"
+		    quid       	"3E00AA51012E"
+		    supplier   	"Logical View::AppAgents::BaseSolver"
+		    quidu      	"3E00AA510095"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$12"
+	    quid       	"3E00AA51013C"
+	    roles      	(list role_list
+		(object Role "controlAgent: SolverControl::SolverControlAgent &"
+		    quid       	"3E00AA51013D"
+		    label      	"controlAgent: SolverControl::SolverControlAgent &"
+		    supplier   	"Logical View::AppAgents::SolverControl::SolverControlAgent"
+		    quidu      	"3DFF2B6D01FF"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$13"
+		    quid       	"3E00AA51013F"
+		    supplier   	"Logical View::AppAgents::BaseSolver"
+		    quidu      	"3E00AA510095"
+		    is_aggregate 	TRUE)))
 	(object Class_Category "Analysis"
 	    quid       	"3DF074380274"
 	    exportControl 	"Public"
@@ -974,8 +1328,7 @@
 			    parameters 	(list Parameters
 				(object Parameter "cmd"
 				    quid       	"3DF07B7400E2"
-				    type       	"HIID &"
-				    quidu      	"3BE96FE601C5")
+				    type       	"HIID &")
 				(object Parameter "data"
 				    quid       	"3DF07B7401BE"
 				    type       	"DataRecord : :Ref &"))
@@ -1168,121 +1521,121 @@
 			    quidu      	"3DF080F903CC")))
 		(object Class "Solver"
 		    quid       	"3DF4BD180077")
-		(object Association "$UNNAMED$8"
+		(object Association "$UNNAMED$14"
 		    quid       	"3DF07F2500EA"
 		    roles      	(list role_list
-			(object Role "$UNNAMED$9"
+			(object Role "$UNNAMED$15"
 			    quid       	"3DF07F2502FD"
 			    supplier   	"Logical View::UVD::MSReader"
 			    quidu      	"3CF237080203"
 			    Containment 	"By Value")
-			(object Role "$UNNAMED$10"
+			(object Role "$UNNAMED$16"
 			    quid       	"3DF07F260023"
 			    supplier   	"Logical View::AppAgents::Analysis::MSReaderAgent"
 			    quidu      	"3DF07E9B0195"
 			    is_aggregate 	TRUE)))
-		(object Association "$UNNAMED$11"
+		(object Association "$UNNAMED$17"
 		    quid       	"3DF07F4703C2"
 		    roles      	(list role_list
-			(object Role "$UNNAMED$12"
+			(object Role "$UNNAMED$18"
 			    quid       	"3DF07F48023D"
 			    supplier   	"Logical View::UVD::MSFiller"
 			    quidu      	"3CEA4A9E0070"
 			    Containment 	"By Value")
-			(object Role "$UNNAMED$13"
+			(object Role "$UNNAMED$19"
 			    quid       	"3DF07F4802AB"
 			    supplier   	"Logical View::AppAgents::Analysis::MSWriterAgent"
 			    quidu      	"3DF07EB60023"
 			    is_aggregate 	TRUE)))
-		(object Association "$UNNAMED$14"
+		(object Association "$UNNAMED$20"
 		    quid       	"3DF0816D036A"
 		    roles      	(list role_list
-			(object Role "$UNNAMED$15"
+			(object Role "$UNNAMED$21"
 			    quid       	"3DF0816E037C"
 			    supplier   	"Logical View::AppAgents::Analysis::OctoProxyClient"
 			    quidu      	"3DF081550222"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$16"
+			(object Role "$UNNAMED$22"
 			    quid       	"3DF0816E0386"
 			    supplier   	"Logical View::AppAgents::Analysis::VisOctopussyAgent"
 			    quidu      	"3DF080F903CC"
 			    is_aggregate 	TRUE)))
-		(object Association "$UNNAMED$17"
+		(object Association "$UNNAMED$23"
 		    quid       	"3DF081D00211"
 		    roles      	(list role_list
-			(object Role "$UNNAMED$18"
+			(object Role "$UNNAMED$24"
 			    quid       	"3DF081D10027"
 			    supplier   	"Logical View::AppAgents::Analysis::OctoProxyWP"
 			    quidu      	"3DF081B503B3"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$19"
+			(object Role "$UNNAMED$25"
 			    quid       	"3DF081D10059"
 			    supplier   	"Logical View::AppAgents::Analysis::OctoProxyClient"
 			    quidu      	"3DF081550222")))
-		(object Association "$UNNAMED$20"
+		(object Association "$UNNAMED$26"
 		    quid       	"3DF082A80297"
 		    roles      	(list role_list
-			(object Role "$UNNAMED$21"
+			(object Role "$UNNAMED$27"
 			    quid       	"3DF082A9005D"
 			    supplier   	"Logical View::AppAgents::Analysis::OctoProxyWP"
 			    quidu      	"3DF081B503B3"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$22"
+			(object Role "$UNNAMED$28"
 			    quid       	"3DF082A9007B"
 			    supplier   	"Logical View::AppAgents::Analysis::OCTOPUSSY"
 			    quidu      	"3DF0823B0088"
 			    is_navigable 	TRUE
 			    is_aggregate 	TRUE)))
-		(object Association "$UNNAMED$23"
+		(object Association "$UNNAMED$29"
 		    quid       	"3DF082DC014B"
 		    roles      	(list role_list
-			(object Role "$UNNAMED$24"
+			(object Role "$UNNAMED$30"
 			    quid       	"3DF082DC033F"
 			    supplier   	"Logical View::AppAgents::Analysis::OctoProxyClient"
 			    quidu      	"3DF081550222"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$25"
+			(object Role "$UNNAMED$31"
 			    quid       	"3DF082DC0367"
 			    supplier   	"Logical View::AppAgents::Analysis::Main"
 			    quidu      	"3DF082B6020A"
 			    is_navigable 	TRUE
 			    is_aggregate 	TRUE)))
-		(object Association "$UNNAMED$26"
+		(object Association "$UNNAMED$32"
 		    quid       	"3DF4BD0D00E0"
 		    roles      	(list role_list
-			(object Role "$UNNAMED$27"
+			(object Role "$UNNAMED$33"
 			    quid       	"3DF4BD0D02B7"
 			    supplier   	"Logical View::AppAgents::Analysis::OctopussySolverAgent"
 			    quidu      	"3DF4BA91032E"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$28"
+			(object Role "$UNNAMED$34"
 			    quid       	"3DF4BD0D02C1"
 			    supplier   	"Logical View::AppAgents::Analysis::Main"
 			    quidu      	"3DF082B6020A"
 			    is_navigable 	TRUE
 			    is_aggregate 	TRUE)))
-		(object Association "$UNNAMED$29"
+		(object Association "$UNNAMED$35"
 		    quid       	"3DF4BD2402AA"
 		    roles      	(list role_list
-			(object Role "$UNNAMED$30"
+			(object Role "$UNNAMED$36"
 			    quid       	"3DF4BD2500B7"
 			    supplier   	"Logical View::AppAgents::Analysis::OctopussySolverAgent"
 			    quidu      	"3DF4BA91032E"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$31"
+			(object Role "$UNNAMED$37"
 			    quid       	"3DF4BD2500CB"
 			    supplier   	"Logical View::AppAgents::Analysis::Solver"
 			    quidu      	"3DF4BD180077"
 			    is_aggregate 	TRUE)))
-		(object Association "$UNNAMED$32"
+		(object Association "$UNNAMED$38"
 		    quid       	"3DF4BD3C038C"
 		    roles      	(list role_list
-			(object Role "$UNNAMED$33"
+			(object Role "$UNNAMED$39"
 			    quid       	"3DF4BD3D017B"
 			    supplier   	"Logical View::AppAgents::Analysis::Solver"
 			    quidu      	"3DF4BD180077"
 			    is_navigable 	TRUE)
-			(object Role "$UNNAMED$34"
+			(object Role "$UNNAMED$40"
 			    quid       	"3DF4BD3D018F"
 			    supplier   	"Logical View::AppAgents::Analysis::Main"
 			    quidu      	"3DF082B6020A"
@@ -1354,7 +1707,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3DF45F3B00EC"
-				    supplier   	"$UNNAMED$35"
+				    supplier   	"$UNNAMED$41"
 				    quidu      	"3DF45A490217"))
 			    class      	"Logical View::AppAgents::Analysis::Main"
 			    quidu      	"3DF082B6020A"
@@ -1366,7 +1719,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3DF45942036B"
-				    supplier   	"$UNNAMED$36"
+				    supplier   	"$UNNAMED$42"
 				    quidu      	"3DF4593D007A"
 				    messages   	(list Messages
 					(object Message ""
@@ -1421,7 +1774,7 @@
 					    creation   	TRUE)))
 				(object Link
 				    quid       	"3DF45A6C0183"
-				    supplier   	"$UNNAMED$35"
+				    supplier   	"$UNNAMED$41"
 				    quidu      	"3DF45A490217"
 				    messages   	(list Messages
 					(object Message ""
@@ -1456,12 +1809,12 @@
 			    persistence 	"Transient"
 			    creationObj 	TRUE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$36"
+			(object Object "$UNNAMED$42"
 			    quid       	"3DF4593D007A"
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3DF45A95039F"
-				    supplier   	"$UNNAMED$35"
+				    supplier   	"$UNNAMED$41"
 				    quidu      	"3DF45A490217"
 				    messages   	(list Messages
 					(object Message "// init( )"
@@ -1578,12 +1931,12 @@
 			    persistence 	"Transient"
 			    creationObj 	TRUE
 			    multi      	TRUE)
-			(object Object "$UNNAMED$35"
+			(object Object "$UNNAMED$41"
 			    quid       	"3DF45A490217"
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3DF45AD10248"
-				    supplier   	"$UNNAMED$35"
+				    supplier   	"$UNNAMED$41"
 				    quidu      	"3DF45A490217"
 				    messages   	(list Messages
 					(object Message "// subscribe()"
@@ -1826,7 +2179,7 @@
 			    line_style 	3
 			    origin_attachment 	(773, 463)
 			    terminal_attachment 	(401, 463))
-			(object AssociationViewNew "$UNNAMED$8" @9
+			(object AssociationViewNew "$UNNAMED$14" @9
 			    location   	(1354, 425)
 			    font       	(object Font
 				size       	10
@@ -1841,7 +2194,7 @@
 			    line_color 	3342489
 			    quidu      	"3DF07F2500EA"
 			    roleview_list 	(list RoleViews
-				(object RoleView "$UNNAMED$9" @10
+				(object RoleView "$UNNAMED$15" @10
 				    Parent_View 	@9
 				    location   	(379, -25)
 				    stereotype 	TRUE
@@ -1852,7 +2205,7 @@
 				    line_style 	3
 				    origin_attachment 	(1354, 425)
 				    terminal_attachment 	(1531, 425))
-				(object RoleView "$UNNAMED$10" @11
+				(object RoleView "$UNNAMED$16" @11
 				    Parent_View 	@9
 				    location   	(379, -25)
 				    stereotype 	TRUE
@@ -1934,7 +2287,7 @@
 			    line_style 	3
 			    origin_attachment 	(797, 915)
 			    terminal_attachment 	(386, 915))
-			(object AssociationViewNew "$UNNAMED$11" @15
+			(object AssociationViewNew "$UNNAMED$17" @15
 			    location   	(1374, 915)
 			    font       	(object Font
 				size       	10
@@ -1949,7 +2302,7 @@
 			    line_color 	3342489
 			    quidu      	"3DF07F4703C2"
 			    roleview_list 	(list RoleViews
-				(object RoleView "$UNNAMED$12" @16
+				(object RoleView "$UNNAMED$18" @16
 				    Parent_View 	@15
 				    location   	(384, 0)
 				    stereotype 	TRUE
@@ -1958,7 +2311,7 @@
 				    client     	@15
 				    supplier   	@12
 				    line_style 	0)
-				(object RoleView "$UNNAMED$13" @17
+				(object RoleView "$UNNAMED$19" @17
 				    Parent_View 	@15
 				    location   	(384, 0)
 				    stereotype 	TRUE
@@ -2377,7 +2730,7 @@
 			    client     	@29
 			    supplier   	@36
 			    line_style 	0)
-			(object AssociationViewNew "$UNNAMED$20" @38
+			(object AssociationViewNew "$UNNAMED$26" @38
 			    location   	(529, 1755)
 			    font       	(object Font
 				size       	10
@@ -2392,7 +2745,7 @@
 			    line_color 	3342489
 			    quidu      	"3DF082A80297"
 			    roleview_list 	(list RoleViews
-				(object RoleView "$UNNAMED$21" @39
+				(object RoleView "$UNNAMED$27" @39
 				    Parent_View 	@38
 				    location   	(214, 0)
 				    stereotype 	TRUE
@@ -2401,7 +2754,7 @@
 				    client     	@38
 				    supplier   	@36
 				    line_style 	0)
-				(object RoleView "$UNNAMED$22" @40
+				(object RoleView "$UNNAMED$28" @40
 				    Parent_View 	@38
 				    location   	(214, 0)
 				    stereotype 	TRUE
@@ -2440,7 +2793,7 @@
 			    height     	122
 			    annotation 	8
 			    autoResize 	TRUE)
-			(object AssociationViewNew "$UNNAMED$14" @42
+			(object AssociationViewNew "$UNNAMED$20" @42
 			    location   	(840, 997)
 			    font       	(object Font
 				size       	10
@@ -2455,7 +2808,7 @@
 			    line_color 	3342489
 			    quidu      	"3DF0816D036A"
 			    roleview_list 	(list RoleViews
-				(object RoleView "$UNNAMED$15" @43
+				(object RoleView "$UNNAMED$21" @43
 				    Parent_View 	@42
 				    location   	(-195, 127)
 				    stereotype 	TRUE
@@ -2466,7 +2819,7 @@
 				    line_style 	3
 				    origin_attachment 	(840, 997)
 				    terminal_attachment 	(840, 1184))
-				(object RoleView "$UNNAMED$16" @44
+				(object RoleView "$UNNAMED$22" @44
 				    Parent_View 	@42
 				    location   	(-195, 127)
 				    stereotype 	TRUE
@@ -2477,7 +2830,7 @@
 				    line_style 	3
 				    origin_attachment 	(840, 997)
 				    terminal_attachment 	(840, 811))))
-			(object AssociationViewNew "$UNNAMED$17" @45
+			(object AssociationViewNew "$UNNAMED$23" @45
 			    location   	(838, 1500)
 			    font       	(object Font
 				size       	10
@@ -2492,7 +2845,7 @@
 			    line_color 	3342489
 			    quidu      	"3DF081D00211"
 			    roleview_list 	(list RoleViews
-				(object RoleView "$UNNAMED$18" @46
+				(object RoleView "$UNNAMED$24" @46
 				    Parent_View 	@45
 				    location   	(-197, 270)
 				    stereotype 	TRUE
@@ -2503,7 +2856,7 @@
 				    line_style 	3
 				    origin_attachment 	(838, 1500)
 				    terminal_attachment 	(838, 1694))
-				(object RoleView "$UNNAMED$19" @47
+				(object RoleView "$UNNAMED$25" @47
 				    Parent_View 	@45
 				    location   	(-197, 270)
 				    stereotype 	TRUE
@@ -2589,7 +2942,7 @@
 			    height     	122
 			    annotation 	8
 			    autoResize 	TRUE)
-			(object AssociationViewNew "$UNNAMED$29" @52
+			(object AssociationViewNew "$UNNAMED$35" @52
 			    location   	(455, 450)
 			    font       	(object Font
 				size       	10
@@ -2604,7 +2957,7 @@
 			    line_color 	3342489
 			    quidu      	"3DF4BD2402AA"
 			    roleview_list 	(list RoleViews
-				(object RoleView "$UNNAMED$30" @53
+				(object RoleView "$UNNAMED$36" @53
 				    Parent_View 	@52
 				    location   	(230, 0)
 				    stereotype 	TRUE
@@ -2615,7 +2968,7 @@
 				    line_style 	3
 				    origin_attachment 	(455, 450)
 				    terminal_attachment 	(581, 450))
-				(object RoleView "$UNNAMED$31" @54
+				(object RoleView "$UNNAMED$37" @54
 				    Parent_View 	@52
 				    location   	(230, 0)
 				    stereotype 	TRUE
@@ -2664,7 +3017,7 @@
 			    height     	167
 			    annotation 	8
 			    autoResize 	TRUE)
-			(object AssociationViewNew "$UNNAMED$23" @56
+			(object AssociationViewNew "$UNNAMED$29" @56
 			    location   	(536, 1068)
 			    font       	(object Font
 				size       	10
@@ -2679,7 +3032,7 @@
 			    line_color 	3342489
 			    quidu      	"3DF082DC014B"
 			    roleview_list 	(list RoleViews
-				(object RoleView "$UNNAMED$24" @57
+				(object RoleView "$UNNAMED$30" @57
 				    Parent_View 	@56
 				    location   	(266, -27)
 				    stereotype 	TRUE
@@ -2688,7 +3041,7 @@
 				    client     	@56
 				    supplier   	@41
 				    line_style 	0)
-				(object RoleView "$UNNAMED$25" @58
+				(object RoleView "$UNNAMED$31" @58
 				    Parent_View 	@56
 				    location   	(266, -27)
 				    stereotype 	TRUE
@@ -2697,7 +3050,7 @@
 				    client     	@56
 				    supplier   	@55
 				    line_style 	0)))
-			(object AssociationViewNew "$UNNAMED$26" @59
+			(object AssociationViewNew "$UNNAMED$32" @59
 			    location   	(540, 648)
 			    font       	(object Font
 				size       	10
@@ -2712,7 +3065,7 @@
 			    line_color 	3342489
 			    quidu      	"3DF4BD0D00E0"
 			    roleview_list 	(list RoleViews
-				(object RoleView "$UNNAMED$27" @60
+				(object RoleView "$UNNAMED$33" @60
 				    Parent_View 	@59
 				    location   	(360, -417)
 				    stereotype 	TRUE
@@ -2721,7 +3074,7 @@
 				    client     	@59
 				    supplier   	@49
 				    line_style 	0)
-				(object RoleView "$UNNAMED$28" @61
+				(object RoleView "$UNNAMED$34" @61
 				    Parent_View 	@59
 				    location   	(360, -417)
 				    stereotype 	TRUE
@@ -2730,7 +3083,7 @@
 				    client     	@59
 				    supplier   	@55
 				    line_style 	0)))
-			(object AssociationViewNew "$UNNAMED$32" @62
+			(object AssociationViewNew "$UNNAMED$38" @62
 			    location   	(210, 648)
 			    font       	(object Font
 				size       	10
@@ -2745,7 +3098,7 @@
 			    line_color 	3342489
 			    quidu      	"3DF4BD3C038C"
 			    roleview_list 	(list RoleViews
-				(object RoleView "$UNNAMED$33" @63
+				(object RoleView "$UNNAMED$39" @63
 				    Parent_View 	@62
 				    location   	(15, -222)
 				    stereotype 	TRUE
@@ -2754,7 +3107,7 @@
 				    client     	@62
 				    supplier   	@51
 				    line_style 	0)
-				(object RoleView "$UNNAMED$34" @64
+				(object RoleView "$UNNAMED$40" @64
 				    Parent_View 	@62
 				    location   	(15, -222)
 				    stereotype 	TRUE
@@ -3145,7 +3498,7 @@
 				height     	360
 				y_coord    	300
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$35" @88
+			(object InterObjView "$UNNAMED$41" @88
 			    location   	(1140, 1155)
 			    font       	(object Font
 				size       	10
@@ -3244,7 +3597,7 @@
 				height     	60
 				y_coord    	0
 				Nested     	TRUE))
-			(object InterObjView "$UNNAMED$36" @99
+			(object InterObjView "$UNNAMED$42" @99
 			    location   	(1560, 690)
 			    font       	(object Font
 				size       	10
@@ -4692,47 +5045,956 @@
 			    line_color 	3342489
 			    client     	@164
 			    supplier   	@171
-			    line_style 	0))))))
+			    line_style 	0)))))
+	(object Class_Category "SolverControl"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"IsNamespace"
+		    value      	TRUE))
+	    quid       	"3DFF2B2102FC"
+	    stereotype 	"namespace"
+	    exportControl 	"Public"
+	    logical_models 	(list unit_reference_list
+		(object Class "SolverControlAgent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	(value Text "SolverControl/src/SolverControlAgent.h"))
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"BodySourceFile"
+			    value      	"SolverControl/src/SolverControlAgent.cc"))
+		    quid       	"3DFF2B6D01FF"
+		    documentation 	
+|This is an abstract prototype class for solver control agents. It implements a few features common to all such agents; specifically, it keeps track of solution parameters (convergence & such). See method documentation for details.
+|
+|The class also includes a mutex member; all functions obtain a lock on this mutex prior to operation. This makes the control agent thread-safe.
+		    
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3DFF36340263"
+			    supplier   	"Logical View::AppAgents::AppControlAgent"
+			    quidu      	"3DFF2FC1009C"))
+		    operations 	(list Operations
+			(object Operation "init"
+			    quid       	"3E01FD1D03DB"
+			    documentation 	"Agent initialization method. Called by the application to initialize or reinitializean agent. Agent parameters are supplied via a DataRecord."
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "data"
+				    quid       	"3E01FD1D03DC"
+				    type       	"const DataRecord::Ref &"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "startDomain"
+			    quid       	"3DFF2D300027"
+			    documentation 	
+|Called by application to start solving for a new domain
+|Should clear all parameters and reset the solution queue to beginning.
+|Base version simply posts a StartDomainEvent
+|
+			    
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "data"
+				    quid       	"3E01F9A201A3"
+				    type       	"const DataRecord::Ref &"
+				    initv      	"DataRecord::Ref()"))
+			    result     	"SolutionState"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0
+			    quidu      	"3E00AA5100D5")
+			(object Operation "startSolution"
+			    quid       	"3E01F9A203A4"
+			    documentation 	
+|Called by application to start a solution within a domain
+|Should clear all solution parameters and reset iteration count to 0
+|(by calling initSolution(), below.)
+|Returns a record of the solve parameters for the next solution job.
+|Base version simply posts a StartSolutionEvent
+|
+			    
+			    stereotype 	"abstract"
+			    parameters 	(list Parameters
+				(object Parameter "params"
+				    quid       	"3E01F9A300CC"
+				    type       	"DataRecord::Ref &"))
+			    result     	"SolutionState"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0
+			    quidu      	"3E00AA5100D5")
+			(object Operation "endDomain"
+			    quid       	"3E01F9A302C5"
+			    documentation 	
+|Called by application to indicate that it has finished with a particular
+|domain.
+|Base version simply posts an EndDomainEvent
+|
+			    
+			    stereotype 	"virtual"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "endIteration"
+			    quid       	"3E005C9C0382"
+			    documentation 	
+|Called by the solver application at end of every iteration.
+|This updates the convergence parameter, increments the iteration count, stuffs them into the status record, and posts an EndIterationEvent containing the status record.
+|(NB: the application may also fill the status record with any other relevant information prior to calling endIteration().)
+|
+|Returns True if solving is to continue, or False to stop. Base version always returns True, but subclasses will override this function to provide more meaningful behavior. Note that if False is returned here by a child class, then stop_flag_ should also be raised. The application may watch for StopEvents() and/or check the isStopped() function and/or rely on the return code.
+|
+			    
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "conv"
+				    quid       	"3E005CAA01FA"
+				    type       	"double"))
+			    result     	"SolutionState"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0
+			    quidu      	"3E00AA5100D5")
+			(object Operation "getEvent"
+			    attributes 	(list Attribute_Set)
+			    quid       	"3DFF2D4C0068"
+			    documentation 	"As long as the stop_flag_ is raised, returns StopEvent(). Otherwise returns no events."
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "event"
+				    quid       	"3E005C4A0122"
+				    type       	"HIID &")
+				(object Parameter "dataref"
+				    quid       	"3E005C4A029D"
+				    type       	"DataRecord::Ref &")
+				(object Parameter "wait"
+				    quid       	"3DFF2D4C006B"
+				    type       	"bool"
+				    initv      	"False"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "hasEvent"
+			    attributes 	(list Attribute_Set)
+			    quid       	"3DFF2D5F0008"
+			    documentation 	"True for StopEvent() events as long as the stop_flag_ is raised."
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "mask"
+				    quid       	"3DFF2D5F0009"
+				    type       	"const HIID &"
+				    initv      	"HIID()")
+				(object Parameter "outOfSeq"
+				    quid       	"3DFF2D5F000A"
+				    type       	"bool"
+				    initv      	"False"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "postEvent"
+			    attributes 	(list Attribute_Set)
+			    quid       	"3E00C57E0304"
+			    documentation 	"Base version does nothing except debug-print the event"
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter ""
+				    quid       	"3E00C57E0305"
+				    type       	"const HIID &")
+				(object Parameter ""
+				    quid       	"3E00C57E0306"
+				    type       	"const DataRecord::Ref &"
+				    initv      	"DataRecord::Ref()"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "close"
+			    attributes 	(list Attribute_Set)
+			    quid       	"3DFF2D6400EA"
+			    documentation 	"Clears flags and solution parameters"
+			    stereotype 	"virtual"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "endSolution"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3E00650B036F"
+			    parameters 	(list Parameters
+				(object Parameter "msg"
+				    quid       	"3E006523036E"
+				    type       	"const string &"
+				    initv      	
+|""
+				    )
+				(object Parameter "newstate"
+				    quid       	"3E0097B40204"
+				    type       	"SolutionState"
+				    quidu      	"3E00AA5100D5"
+				    initv      	"NEXT"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "stopSolution"
+			    quid       	"3DFF5B240397"
+			    documentation 	
+|Called to interrupt a solution. Sets the new state and generates
+|the given event on behalf of the application. The current status 
+|record will be attached to the event. If a message is supplied,
+|it will be placed into the status record as [FMessage].
+|
+			    
+			    parameters 	(list Parameters
+				(object Parameter "msg"
+				    quid       	"3E0067060266"
+				    type       	"const string &"
+				    initv      	
+|""
+				    )
+				(object Parameter "newstate"
+				    quid       	"3E008FB803A8"
+				    type       	"SolutionState"
+				    quidu      	"3E00AA5100D5"
+				    initv      	"HALT")
+				(object Parameter "event"
+				    quid       	"3E0097B30115"
+				    type       	"const HIID &"
+				    initv      	"StopSolutionEvent"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "state"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3E005FB7018E"
+			    documentation 	
+|Returns the solution state
+|
+			    
+			    stereotype 	"const"
+			    result     	"SolutionState"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0
+			    quidu      	"3E00AA5100D5")
+			(object Operation "status"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3E005CBB0301"
+			    documentation 	"Returns the status record"
+			    stereotype 	"const"
+			    result     	"const DataRecord &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "status"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3E005CCD0018"
+			    documentation 	"Returns the status record"
+			    result     	"DataRecord &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "convergence"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"InitialCodeBody"
+				    value      	(value Text 
+|{
+|    return convergence_;
+|}
+				    ))
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DFF37F3018B"
+			    documentation 	"Returns current convergence parameter"
+			    stereotype 	"const"
+			    result     	"double"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "domainNum"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3E01FD0E011A"
+			    documentation 	
+|Returns value of domain counter
+|
+			    
+			    stereotype 	"const"
+			    result     	"int"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "iterationNum"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"InitialCodeBody"
+				    value      	(value Text 
+|{
+|    return iterationNum_;
+|}
+				    ))
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DFF37F30341"
+			    documentation 	"Returns value of iteration counter"
+			    stereotype 	"const"
+			    result     	"int"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "mutex"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"InitialCodeBody"
+				    value      	(value Text 
+|{
+|    return mutex_;
+|}
+				    ))
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DFF5AAE0003"
+			    documentation 	"Returns object mutex by reference"
+			    stereotype 	"const"
+			    result     	"Thread::Mutex &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "sdebug"
+			    quid       	"3E00C8540129"
+			    stereotype 	"const"
+			    parameters 	(list Parameters
+				(object Parameter "detail"
+				    quid       	"3E00C8540373"
+				    type       	"int"
+				    initv      	"1")
+				(object Parameter "prefix"
+				    quid       	"3E00C855019C"
+				    type       	"const string &"
+				    initv      	
+|""
+				    )
+				(object Parameter "name"
+				    quid       	"3E00C8560054"
+				    type       	"const char *"
+				    initv      	"0"))
+			    result     	"string"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "initSolution"
+			    quid       	"3E0095CB0143"
+			    documentation 	
+|Initializes for a new solution. Clears everything and posts
+|a StartSolutionEvent. Meant to be called from a child
+|class's startSolution()
+|
+			    
+			    parameters 	(list Parameters
+				(object Parameter "params"
+				    quid       	"3E0098880173"
+				    type       	"const DataRecord::Ref &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
+			    uid        	0)
+			(object Operation "SolverControlAgent"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"InitialCodeBody"
+				    value      	(value Text 
+|{
+|}
+|
+				    ))
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3E00592800CD"
+			    documentation 	"Constructor is protected; objects of this class may not be instantiated directly."
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
+			    uid        	0))
+		    class_attributes 	(list class_attribute_list
+			(object ClassAttribute "convergence_"
+			    quid       	"3DFF2D790018"
+			    documentation 	"Current convergence value"
+			    type       	"double")
+			(object ClassAttribute "iterationNum_"
+			    quid       	"3DFF365B0304"
+			    documentation 	"Current iteration number"
+			    type       	"int")
+			(object ClassAttribute "state_"
+			    quid       	"3DFF5B4D00FE"
+			    documentation 	"If raised, a StopEvent() will be returned to the application."
+			    type       	"SolutionState"
+			    quidu      	"3E00AA5100D5")
+			(object ClassAttribute "status_"
+			    quid       	"3E005C7A016B"
+			    documentation 	"Record containing current soution status"
+			    type       	"DataRecord::Ref")
+			(object ClassAttribute "mutex_"
+			    quid       	"3DFF5A88032E"
+			    documentation 	"Mutex for thread-safety"
+			    stereotype 	"mutable"
+			    type       	"Thread::Mutex")
+			(object ClassAttribute "LocalDebugContext"
+			    quid       	"3E00AA51022A"
+			    documentation 	
+|Declares a local debug context for SolverControl
+|
+			    
+			    exportControl 	"Public")
+			(object ClassAttribute "domainNum_"
+			    quid       	"3E01FD0D01EC"
+			    documentation 	
+|Current domain number
+|
+			    
+			    type       	"int"))
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++"
+		    abstract   	TRUE)
+		(object Class "BatchAgent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	(value Text "SolverControl/src/BatchAgent.h"))
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"BodySourceFile"
+			    value      	"SolverControl/src/BatchAgent.cc"))
+		    quid       	"3DFF2C0700D8"
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3DFF2C2103E4"
+			    supplier   	"Logical View::AppAgents::SolverControl::SolverControlAgent"
+			    quidu      	"3DFF2B6D01FF"))
+		    operations 	(list Operations
+			(object Operation "BatchAgent"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"InitialCodeBody"
+				    value      	(value Text 
+|{
+|}
+|
+				    )))
+			    quid       	"3DFF2CCD01A1"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "init"
+			    quid       	"3E005A8403E5"
+			    documentation 	"Initializes solution criteria."
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "data"
+				    quid       	"3E005A8403E6"
+				    type       	"const DataRecord::Ref &"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "startDomain"
+			    quid       	"3E01FA8D02FF"
+			    documentation 	
+|Called by application to start solving for a new domain
+|Should clear all parameters and reset the solution queue to beginning.
+|Base version simply posts a StartDomainEvent
+|
+			    
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "data"
+				    quid       	"3E01FA8D0300"
+				    type       	"const DataRecord::Ref &"
+				    initv      	"DataRecord::Ref()"))
+			    result     	"SolutionState"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0
+			    quidu      	"3E00AA5100D5")
+			(object Operation "startSolution"
+			    quid       	"3E0098E90136"
+			    documentation 	"Clears all solution parameters and resets iteration count to 0."
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "params"
+				    quid       	"3E0098E90137"
+				    type       	"DataRecord::Ref &"))
+			    result     	"SolutionState"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0
+			    quidu      	"3E00AA5100D5")
+			(object Operation "endIteration"
+			    quid       	"3E0060C50000"
+			    documentation 	"Keeps track of solution status, and compares it against the initialized criteria. Once a criteria is hit, posts an EndSolveEvent to advertise this, calls stopSolution(), and returns False to wind things down."
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "conv"
+				    quid       	"3E0060C50001"
+				    type       	"double"))
+			    result     	"SolutionState"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0
+			    quidu      	"3E00AA5100D5")
+			(object Operation "close"
+			    attributes 	(list Attribute_Set)
+			    quid       	"3E009B2E01DF"
+			    documentation 	"Clears flags and solution parameters"
+			    stereotype 	"virtual"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "sdebug"
+			    quid       	"3E00C7F3027E"
+			    stereotype 	"const"
+			    parameters 	(list Parameters
+				(object Parameter "detail"
+				    quid       	"3E00C7F302AA"
+				    type       	"int"
+				    initv      	"1")
+				(object Parameter "prefix"
+				    quid       	"3E00C7F302F0"
+				    type       	"const string &"
+				    initv      	
+|""
+				    )
+				(object Parameter "name"
+				    quid       	"3E00C7F30335"
+				    type       	"const char *"
+				    initv      	"0"))
+			    result     	"string"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "BatchAgent"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"GenerateFunctionBody"
+				    value      	("GenerateFunctionBodySet" 0)))
+			    quid       	"3DFF2CCD01B4"
+			    parameters 	(list Parameters
+				(object Parameter "right"
+				    quid       	"3DFF2CCD01C9"
+				    type       	"const BatchAgent&"))
+			    concurrency 	"Sequential"
+			    opExportControl 	"Private"
+			    uid        	0)
+			(object Operation "operator="
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"GenerateFunctionBody"
+				    value      	("GenerateFunctionBodySet" 0)))
+			    quid       	"3DFF2CCD021E"
+			    parameters 	(list Parameters
+				(object Parameter "right"
+				    quid       	"3DFF2CCD0236"
+				    type       	"const BatchAgent&"))
+			    result     	"BatchAgent&"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Private"
+			    uid        	0
+			    quidu      	"3DFF2C0700D8"))
+		    class_attributes 	(list class_attribute_list
+			(object ClassAttribute "max_iterations_"
+			    quid       	"3E0060D20249"
+			    documentation 	"Criterion: maximum number of solve iterations"
+			    type       	"int")
+			(object ClassAttribute "conv_threshold_"
+			    quid       	"3E0060D901DE"
+			    documentation 	"Criterion: required convergence"
+			    type       	"double")
+			(object ClassAttribute "params_"
+			    quid       	"3E00990E03DD"
+			    type       	"std::deque<DataRecord::Ref>"))
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++")
+		(object Class "OctoAgent"
+		    quid       	"3DFF2C3B0386"
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3DFF2C4E0021"
+			    supplier   	"Logical View::AppAgents::SolverControl::SolverControlAgent"
+			    quidu      	"3DFF2B6D01FF")
+			(object Inheritance_Relationship
+			    quid       	"3DFF2C880255"
+			    supplier   	"Logical View::AppAgents::OctoAgent"
+			    quidu      	"3DF9FECD014B"))
+		    language   	"ANSI C++")
+		(object Class "SolutionState"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"SolverControl/src/SolverControlAgent.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	(value Text 
+|enum
+|{
+|  CONTINUE = 0,   // continue with current solution
+|  NEXT     = 1,   // stop and go on to next solution
+|  HALT     = -1   // stop everything
+|}
+			    )))
+		    quid       	"3E00AA5100D5"
+		    stereotype 	"typedef"
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++"))
+	    logical_presentations 	(list unit_reference_list
+		(object ClassDiagram "Main"
+		    quid       	"3DFF2B5C020C"
+		    title      	"Main"
+		    zoom       	100
+		    max_height 	28350
+		    max_width  	21600
+		    origin_x   	0
+		    origin_y   	1762
+		    items      	(list diagram_item_list
+			(object ClassView "Class" "Logical View::AppAgents::AppAgent" @187
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressOperation 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(208, 80)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	TRUE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@187
+				location   	(207, 185)
+				anchor_loc 	1
+				nlines     	1
+				max_width  	508
+				justify    	0
+				label      	"AppAgent")
+			    icon       	"Interface"
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF9FEEC0043"
+			    width      	52
+			    height     	52
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::SolverControl::SolverControlAgent" @188
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    ShowOperationSignature 	TRUE
+			    location   	(1840, 1312)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	TRUE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@188
+				location   	(517, 556)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	2646
+				justify    	0
+				label      	"SolverControlAgent")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DFF2B6D01FF"
+			    width      	2664
+			    height     	1536
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::SolverControl::BatchAgent" @189
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    ShowOperationSignature 	TRUE
+			    location   	(1760, 2896)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@189
+				location   	(732, 2540)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	2056
+				justify    	0
+				label      	"BatchAgent")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DFF2C0700D8"
+			    width      	2074
+			    height     	736
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::SolverControl::OctoAgent" @190
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(176, 2448)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@190
+				location   	(41, 2397)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	270
+				justify    	0
+				label      	"OctoAgent")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DFF2C3B0386"
+			    width      	288
+			    height     	126
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object InheritTreeView "" @191
+			    location   	(1840, 2181)
+			    line_color 	3342489
+			    fill_color 	13434879
+			    supplier   	@188
+			    vertices   	(list Points
+				(1840, 2181)
+				(1840, 2080)))
+			(object ClassView "Class" "Logical View::AppAgents::OctoAgent" @192
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressAttribute 	TRUE
+			    SuppressOperation 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(224, 448)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	TRUE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@192
+				location   	(75, 398)
+				nlines     	1
+				max_width  	298
+				justify    	0
+				label      	"OctoAgent")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    quidu      	"3DF9FECD014B"
+			    width      	316
+			    height     	124
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object InheritView "" @193
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DFF2C2103E4"
+			    client     	@189
+			    supplier   	@188
+			    line_style 	3
+			    origin_attachment 	(1616, 2528)
+			    terminal_attachment 	(1616, 2181)
+			    drawSupplier 	@191)
+			(object ClassView "Class" "Logical View::AppAgents::AppControlAgent" @194
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(1008, 224)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	TRUE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@194
+				location   	(671, 45)
+				nlines     	1
+				max_width  	674
+				justify    	0
+				label      	"AppControlAgent")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    quidu      	"3DFF2FC1009C"
+			    width      	692
+			    height     	382
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object InheritView "" @195
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF9FEEC0098"
+			    client     	@192
+			    supplier   	@187
+			    line_style 	3
+			    origin_attachment 	(225, 386)
+			    terminal_attachment 	(225, 210))
+			(object InheritView "" @196
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DFF2C4E0021"
+			    client     	@190
+			    supplier   	@188
+			    line_style 	3
+			    origin_attachment 	(225, 2385)
+			    terminal_attachment 	(225, 2181)
+			    drawSupplier 	@191)
+			(object InheritView "" @197
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DFF2C880255"
+			    client     	@190
+			    supplier   	@192
+			    line_style 	3
+			    origin_attachment 	(201, 2385)
+			    terminal_attachment 	(201, 510))
+			(object InheritView "" @198
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DFF303D0170"
+			    client     	@194
+			    supplier   	@187
+			    line_style 	3
+			    origin_attachment 	(662, 75)
+			    terminal_attachment 	(234, 75))
+			(object InheritView "" @199
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DFF36340263"
+			    client     	@188
+			    supplier   	@194
+			    vertices   	(list Points
+				(1541, 544)
+				(1541, 324)
+				(1354, 324))
+			    line_style 	3
+			    origin_attachment 	(1541, 544)
+			    terminal_attachment 	(1354, 324)))))))
     logical_presentations 	(list unit_reference_list
-	(object ClassDiagram "Main"
+	(object ClassDiagram "Main w/signatures"
 	    quid       	"3DF9FEF20222"
-	    title      	"Main"
+	    title      	"Main w/signatures"
 	    zoom       	80
 	    max_height 	28350
 	    max_width  	21600
-	    origin_x   	1289
-	    origin_y   	234
+	    origin_x   	1204
+	    origin_y   	2977
 	    items      	(list diagram_item_list
-		(object ClassView "Class" "Logical View::AppAgents::AppAgent" @187
+		(object ClassView "Class" "Logical View::AppAgents::AppAgent" @200
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
 		    ShowOperationSignature 	TRUE
-		    location   	(1020, 480)
+		    location   	(1104, 480)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
 			bold       	FALSE
-			italics    	FALSE
+			italics    	TRUE
 			underline  	FALSE
 			strike     	FALSE
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@187
-			location   	(5, 267)
+			Parent_View 	@200
+			location   	(5, 217)
 			fill_color 	16777215
 			nlines     	1
-			max_width  	2030
+			max_width  	2198
 			justify    	0
 			label      	"AppAgent")
 		    stereotype 	(object ItemLabel
-			Parent_View 	@187
-			location   	(5, 216)
+			Parent_View 	@200
+			location   	(5, 166)
 			fill_color 	13434879
 			anchor     	10
 			nlines     	1
-			max_width  	2030
+			max_width  	2198
 			justify    	0
 			label      	"<<Interface>>")
 		    icon       	"Interface"
@@ -4740,40 +6002,40 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DF9FEEC0043"
-		    width      	2048
-		    height     	552
+		    width      	2216
+		    height     	652
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::VisInputAgent" @188
+		(object ClassView "Class" "Logical View::AppAgents::VisInputAgent" @201
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
 		    ShowOperationSignature 	TRUE
-		    location   	(1110, 1410)
+		    location   	(3120, 496)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
 			bold       	FALSE
-			italics    	FALSE
+			italics    	TRUE
 			underline  	FALSE
 			strike     	FALSE
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@188
-			location   	(295, 1095)
+			Parent_View 	@201
+			location   	(2304, 181)
 			fill_color 	16777215
 			nlines     	1
-			max_width  	1630
+			max_width  	1632
 			justify    	0
 			label      	"VisInputAgent")
 		    stereotype 	(object ItemLabel
-			Parent_View 	@188
-			location   	(295, 1044)
+			Parent_View 	@201
+			location   	(2304, 130)
 			fill_color 	13434879
 			anchor     	10
 			nlines     	1
-			max_width  	1630
+			max_width  	1632
 			justify    	0
 			label      	"<<Interface>>")
 		    icon       	"Interface"
@@ -4781,47 +6043,47 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DF9FECD0169"
-		    width      	1648
+		    width      	1650
 		    height     	756
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::VisFileInputAgent" @189
+		(object ClassView "Class" "Logical View::AppAgents::VisFileInputAgent" @202
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
 		    ShowOperationSignature 	TRUE
-		    location   	(3225, 1395)
+		    location   	(3184, 1792)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
 			bold       	FALSE
-			italics    	FALSE
+			italics    	TRUE
 			underline  	FALSE
 			strike     	FALSE
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@189
-			location   	(2315, 939)
+			Parent_View 	@202
+			location   	(2258, 1302)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	1820
+			max_width  	1852
 			justify    	0
 			label      	"VisFileInputAgent")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DF9FECD0159"
-		    width      	1838
-		    height     	936
+		    width      	1870
+		    height     	1004
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::MSVisInputAgent" @190
+		(object ClassView "Class" "Logical View::AppAgents::MSVisInputAgent" @203
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
 		    ShowOperationSignature 	TRUE
-		    location   	(2700, 3268)
+		    location   	(2704, 3264)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -4832,27 +6094,241 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@190
-			location   	(1615, 2562)
+			Parent_View 	@203
+			location   	(1685, 2544)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	2170
+			max_width  	2038
 			justify    	0
 			label      	"MSVisInputAgent")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DF9FECD013C"
-		    width      	2188
-		    height     	1436
+		    width      	2056
+		    height     	1464
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::OctoAgent" @191
+		(object ClassView "Class" "Logical View::AppAgents::OctoAgent" @204
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
 		    ShowOperationSignature 	TRUE
-		    location   	(600, 2325)
+		    location   	(624, 2320)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@204
+			location   	(11, 2187)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	1226
+			justify    	0
+			label      	"OctoAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DF9FECD014B"
+		    width      	1244
+		    height     	290
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object InheritView "" @205
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DF9FEEC0098"
+		    client     	@204
+		    supplier   	@200
+		    line_style 	3
+		    origin_attachment 	(108, 2175)
+		    terminal_attachment 	(108, 806))
+		(object InheritView "" @206
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DF9FEEC00CA"
+		    client     	@201
+		    supplier   	@200
+		    line_style 	3
+		    origin_attachment 	(2295, 480)
+		    terminal_attachment 	(2212, 480))
+		(object InheritView "" @207
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DF9FECD0196"
+		    client     	@203
+		    supplier   	@202
+		    line_style 	3
+		    origin_attachment 	(3033, 2532)
+		    terminal_attachment 	(3033, 2294))
+		(object InheritView "" @208
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DF9FECD02BD"
+		    client     	@202
+		    supplier   	@201
+		    line_style 	3
+		    origin_attachment 	(3120, 1290)
+		    terminal_attachment 	(3120, 874))
+		(object ClassView "Class" "Logical View::AppAgents::AppControlAgent" @209
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(896, 1104)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@209
+			location   	(557, 945)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	678
+			justify    	0
+			label      	"AppControlAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DFF2FC1009C"
+		    width      	696
+		    height     	342
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object InheritView "" @210
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DFF303D0170"
+		    client     	@209
+		    supplier   	@200
+		    line_style 	3
+		    origin_attachment 	(880, 933)
+		    terminal_attachment 	(880, 806))))
+	(object ClassDiagram "Main"
+	    quid       	"3DFF2FE60300"
+	    title      	"Main"
+	    zoom       	100
+	    max_height 	28350
+	    max_width  	21600
+	    origin_x   	0
+	    origin_y   	0
+	    items      	(list diagram_item_list
+		(object ClassView "Class" "Logical View::AppAgents::AppAgent" @211
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(1344, 80)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@211
+			location   	(1343, 185)
+			anchor_loc 	1
+			nlines     	1
+			max_width  	619
+			justify    	0
+			label      	"AppAgent")
+		    icon       	"Interface"
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DF9FEEC0043"
+		    width      	52
+		    height     	52
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::VisInputAgent" @212
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(2176, 544)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@212
+			location   	(2175, 649)
+			anchor_loc 	1
+			nlines     	1
+			max_width  	727
+			justify    	0
+			label      	"VisInputAgent")
+		    icon       	"Interface"
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DF9FECD0169"
+		    width      	52
+		    height     	52
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::VisFileInputAgent" @213
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(2208, 1232)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@213
+			location   	(1994, 1191)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	428
+			justify    	0
+			label      	"VisFileInputAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DF9FECD0159"
+		    width      	446
+		    height     	107
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::MSVisInputAgent" @214
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(2192, 1536)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -4863,54 +6339,791 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@191
-			location   	(3, 2195)
+			Parent_View 	@214
+			location   	(1987, 1495)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	1194
+			max_width  	410
+			justify    	0
+			label      	"MSVisInputAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DF9FECD013C"
+		    width      	428
+		    height     	107
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::OctoAgent" @215
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(1120, 848)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@215
+			location   	(985, 807)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	270
 			justify    	0
 			label      	"OctoAgent")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3DF9FECD014B"
-		    width      	1212
-		    height     	286
+		    width      	288
+		    height     	107
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object InheritView "" @192
-		    stereotype 	TRUE
+		(object ClassView "Class" "Logical View::AppAgents::AppControlAgent" @216
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(512, 592)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@216
+			location   	(312, 551)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	400
+			justify    	0
+			label      	"AppControlAgent")
+		    icon_style 	"Icon"
 		    line_color 	3342489
-		    quidu      	"3DF9FECD02BD"
-		    client     	@189
-		    supplier   	@188
-		    line_style 	3
-		    origin_attachment 	(2306, 1281)
-		    terminal_attachment 	(1934, 1281))
-		(object InheritView "" @193
+		    fill_color 	13434879
+		    quidu      	"3DFF2FC1009C"
+		    width      	418
+		    height     	107
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object InheritTreeView "" @217
+		    location   	(1344, 367)
+		    line_color 	3342489
+		    fill_color 	13434879
+		    supplier   	@211
+		    vertices   	(list Points
+			(1344, 367)
+			(1344, 210)))
+		(object InheritView "" @218
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DF9FEEC0098"
-		    client     	@191
-		    supplier   	@187
+		    client     	@215
+		    supplier   	@211
 		    line_style 	3
-		    origin_attachment 	(108, 2182)
-		    terminal_attachment 	(108, 756))
-		(object InheritView "" @194
+		    origin_attachment 	(1119, 795)
+		    terminal_attachment 	(1119, 367)
+		    drawSupplier 	@217)
+		(object ClassView "Class" "Logical View::AppAgents::SolverControl::SolverControlAgent" @219
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(512, 1296)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@219
+			location   	(286, 1246)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	452
+			justify    	0
+			label      	"SolverControlAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DFF2B6D01FF"
+		    width      	470
+		    height     	124
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object InheritView "" @220
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DFF36340263"
+		    client     	@219
+		    supplier   	@216
+		    line_style 	3
+		    origin_attachment 	(512, 1234)
+		    terminal_attachment 	(512, 645))
+		(object ClassView "Class" "Logical View::AppAgents::SolverControl::BatchAgent" @221
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(240, 1600)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@221
+			location   	(65, 1550)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	350
+			justify    	0
+			label      	"BatchAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DFF2C0700D8"
+		    width      	368
+		    height     	124
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::SolverControl::OctoAgent" @222
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(768, 1600)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@222
+			location   	(594, 1550)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	348
+			justify    	0
+			label      	"OctoAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DFF2C3B0386"
+		    width      	366
+		    height     	124
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::VisOutputAgent" @223
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(1600, 528)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@223
+			location   	(1599, 633)
+			anchor_loc 	1
+			nlines     	2
+			max_width  	237
+			justify    	0
+			label      	"VisOutputAgent")
+		    icon       	"Interface"
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3E00AA5100F9"
+		    width      	52
+		    height     	52
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object InheritView "" @224
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DF9FEEC00CA"
-		    client     	@188
-		    supplier   	@187
+		    client     	@212
+		    supplier   	@211
 		    line_style 	3
-		    origin_attachment 	(521, 1032)
-		    terminal_attachment 	(521, 756))
-		(object InheritView "" @195
+		    origin_attachment 	(2180, 516)
+		    terminal_attachment 	(2180, 367)
+		    drawSupplier 	@217)
+		(object InheritView "" @225
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E00AA52038B"
+		    client     	@223
+		    supplier   	@211
+		    line_style 	3
+		    origin_attachment 	(1604, 500)
+		    terminal_attachment 	(1604, 367)
+		    drawSupplier 	@217)
+		(object InheritView "" @226
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DFF303D0170"
+		    client     	@216
+		    supplier   	@211
+		    line_style 	3
+		    origin_attachment 	(450, 539)
+		    terminal_attachment 	(450, 367)
+		    drawSupplier 	@217)
+		(object InheritView "" @227
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DFF2C2103E4"
+		    client     	@221
+		    supplier   	@219
+		    line_style 	3
+		    origin_attachment 	(342, 1538)
+		    terminal_attachment 	(342, 1358))
+		(object InheritView "" @228
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DFF2C4E0021"
+		    client     	@222
+		    supplier   	@219
+		    line_style 	3
+		    origin_attachment 	(658, 1538)
+		    terminal_attachment 	(658, 1358))
+		(object InheritView "" @229
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DFF2C880255"
+		    client     	@222
+		    supplier   	@215
+		    vertices   	(list Points
+			(875, 1538)
+			(875, 1250)
+			(1103, 1250)
+			(1103, 901))
+		    line_style 	3
+		    origin_attachment 	(875, 1538)
+		    terminal_attachment 	(1103, 901))
+		(object InheritView "" @230
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DF9FECD02BD"
+		    client     	@213
+		    supplier   	@212
+		    line_style 	3
+		    origin_attachment 	(2166, 1179)
+		    terminal_attachment 	(2166, 674))
+		(object InheritView "" @231
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DF9FECD0196"
-		    client     	@190
-		    supplier   	@189
+		    client     	@214
+		    supplier   	@213
 		    line_style 	3
-		    origin_attachment 	(2974, 2550)
-		    terminal_attachment 	(2974, 1863))))))
+		    origin_attachment 	(2181, 1483)
+		    terminal_attachment 	(2181, 1285))))
+	(object ClassDiagram "Solvers"
+	    quid       	"3E00AAEF020A"
+	    title      	"Solvers"
+	    zoom       	100
+	    max_height 	28350
+	    max_width  	21600
+	    origin_x   	0
+	    origin_y   	0
+	    items      	(list diagram_item_list
+		(object ClassView "Class" "Logical View::AppAgents::VisInputAgent" @232
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(912, 96)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@232
+			location   	(911, 201)
+			anchor_loc 	1
+			nlines     	2
+			max_width  	237
+			justify    	0
+			label      	"VisInputAgent")
+		    icon       	"Interface"
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DF9FECD0169"
+		    width      	52
+		    height     	52
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::VisOutputAgent" @233
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(416, 112)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@233
+			location   	(415, 217)
+			anchor_loc 	1
+			nlines     	2
+			max_width  	237
+			justify    	0
+			label      	"VisOutputAgent")
+		    icon       	"Interface"
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3E00AA5100F9"
+		    width      	52
+		    height     	52
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::BaseSolver" @234
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    ShowOperationSignature 	TRUE
+		    location   	(1248, 864)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@234
+			location   	(148, 583)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	2200
+			justify    	0
+			label      	"BaseSolver")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3E00AA510095"
+		    compartment 	(object Compartment
+			Parent_View 	@234
+			location   	(148, 644)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	TRUE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	13434879
+			anchor     	2
+			nlines     	10
+			max_width  	1886)
+		    width      	2218
+		    height     	586
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object AssociationViewNew "$UNNAMED$8" @235
+		    location   	(910, 410)
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E00AA51011D"
+		    roleview_list 	(list RoleViews
+			(object RoleView "$UNNAMED$9" @236
+			    Parent_View 	@235
+			    location   	(222, -86)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @237
+				Parent_View 	@236
+				location   	(952, 538)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				hidden     	TRUE
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	450
+				justify    	0
+				label      	""
+				pctDist    	0.800000
+				height     	42
+				orientation 	0)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E00AA510120"
+			    client     	@235
+			    supplier   	@234
+			    line_style 	3
+			    origin_attachment 	(910, 410)
+			    terminal_attachment 	(910, 571))
+			(object RoleView "inputAgent: VisInputAgent &" @238
+			    Parent_View 	@235
+			    location   	(222, -86)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @239
+				Parent_View 	@238
+				location   	(901, 302)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	566
+				justify    	0
+				label      	"-inputAgent"
+				pctDist    	0.683417
+				height     	10
+				orientation 	0)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E00AA51011E"
+			    client     	@235
+			    supplier   	@232
+			    line_style 	3
+			    origin_attachment 	(910, 410)
+			    terminal_attachment 	(910, 250))))
+		(object AssociationViewNew "$UNNAMED$10" @240
+		    location   	(413, 418)
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E00AA51012B"
+		    roleview_list 	(list RoleViews
+			(object RoleView "$UNNAMED$11" @241
+			    Parent_View 	@240
+			    location   	(-35, -302)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @242
+				Parent_View 	@241
+				location   	(372, 540)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				hidden     	TRUE
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	450
+				justify    	0
+				label      	""
+				pctDist    	0.800000
+				height     	42
+				orientation 	1)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E00AA51012E"
+			    client     	@240
+			    supplier   	@234
+			    line_style 	3
+			    origin_attachment 	(413, 418)
+			    terminal_attachment 	(413, 571))
+			(object RoleView "outputAgent: VisOutputAgent &" @243
+			    Parent_View 	@240
+			    location   	(-35, -302)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @244
+				Parent_View 	@243
+				location   	(399, 312)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	622
+				justify    	0
+				label      	"-outputAgent"
+				pctDist    	0.706806
+				height     	15
+				orientation 	0)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E00AA51012C"
+			    client     	@240
+			    supplier   	@233
+			    line_style 	3
+			    origin_attachment 	(413, 418)
+			    terminal_attachment 	(413, 266))))
+		(object ClassView "Class" "Logical View::AppAgents::SolverControl::SolverControlAgent" @245
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(1600, 128)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@245
+			location   	(1374, 78)
+			nlines     	1
+			max_width  	452
+			justify    	0
+			label      	"SolverControlAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    quidu      	"3DFF2B6D01FF"
+		    width      	470
+		    height     	124
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object AssociationViewNew "$UNNAMED$12" @246
+		    location   	(1601, 380)
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E00AA51013C"
+		    roleview_list 	(list RoleViews
+			(object RoleView "$UNNAMED$13" @247
+			    Parent_View 	@246
+			    location   	(129, -244)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @248
+				Parent_View 	@247
+				location   	(1560, 533)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				hidden     	TRUE
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	450
+				justify    	0
+				label      	""
+				pctDist    	0.800000
+				height     	42
+				orientation 	1)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E00AA51013F"
+			    client     	@246
+			    supplier   	@234
+			    line_style 	3
+			    origin_attachment 	(1601, 380)
+			    terminal_attachment 	(1601, 571))
+			(object RoleView "controlAgent: SolverControl::SolverControlAgent &" @249
+			    Parent_View 	@246
+			    location   	(129, -244)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @250
+				Parent_View 	@249
+				location   	(1601, 240)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	992
+				justify    	0
+				label      	"-controlAgent"
+				pctDist    	0.742222
+				height     	0
+				orientation 	1)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E00AA51013D"
+			    client     	@246
+			    supplier   	@245
+			    line_style 	3
+			    origin_attachment 	(1601, 380)
+			    terminal_attachment 	(1601, 190))))
+		(object ClassView "Class" "Logical View::AppAgents::DummySolver" @251
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    ShowOperationSignature 	TRUE
+		    location   	(1248, 1584)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@251
+			location   	(249, 1478)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	1998
+			justify    	0
+			label      	"DummySolver")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3E00ACBD03DD"
+		    compartment 	(object Compartment
+			Parent_View 	@251
+			location   	(249, 1539)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	13434879
+			anchor     	2
+			nlines     	3
+			max_width  	1714)
+		    width      	2016
+		    height     	236
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object InheritView "" @252
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E00ACCA0036"
+		    client     	@251
+		    supplier   	@234
+		    line_style 	3
+		    origin_attachment 	(1168, 1466)
+		    terminal_attachment 	(1168, 1157))))))

@@ -12,4 +12,9 @@
 
 static AtomicID::Register aid_reg_AppAgent(-1112,"AppAgent");
 static AtomicID::Register aid_reg_Event(-1060,"Event");
+static AtomicID::Register aid_reg_App(-1137,"App");
+static AtomicID::Register aid_reg_Stop(-1138,"Stop");
+static AtomicID::Register aid_reg_Init(-1092,"Init");
+static AtomicID::Register aid_reg_Reinit(-1136,"Reinit");
+static AtomicID::Register aid_reg_Terminate(-1139,"Terminate");
 
