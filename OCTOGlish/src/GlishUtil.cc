@@ -148,7 +148,9 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
   if( dynamic_cast<const DataRecord *>(&obj) ) // (case DataRecord)
   {
     const DataRecord &rec = dynamic_cast<const DataRecord &>(obj);
+#ifdef USE_THREADS
     Thread::Mutex::Lock lock(rec.mutex());
+#endif
     GlishValue val = recToGlish(rec);
     val.addAttribute("dmi_actual_type",GlishArray(type.toString()));
     return val;
@@ -156,7 +158,9 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
   else if( dynamic_cast<const DataField *>(&obj) ) // (case DataField)
   {
     const DataField &datafield = dynamic_cast<const DataField &>(obj);
+#ifdef USE_THREADS
     Thread::Mutex::Lock lock(datafield.mutex());
+#endif
     TypeId fieldtype = datafield.type();
     // a numeric/string/HIID type? (case 2.1)
     if( TypeInfo::isNumeric(fieldtype) || fieldtype == Tpstring || fieldtype == TpHIID )
@@ -187,7 +191,9 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
   else if( type == TpDataArray )  // (case DataArray)
   {
     const DataArray &dataarray = dynamic_cast<const DataArray &>(obj);
+#ifdef USE_THREADS
     Thread::Mutex::Lock lock(dataarray.mutex());
+#endif
     GlishArray arr;
     // convert to array and add (case 3.1)
     if( makeGlishArray(arr,dataarray,dataarray.elementType(),adjustIndex) )
