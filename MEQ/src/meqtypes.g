@@ -31,14 +31,18 @@ if( has_field(lofar_software,'print_versions') &&
   print '$Id$';
 }
 
+# create global namespaces meq and meq_test
+meq := [=];
+meq_test := [=];
+
 # Creates a request ID
-const meqrequestid := function(domain_id,config_id=0,iter_id=0)
+const meq.requestid := function(domain_id,config_id=0,iter_id=0)
 { 
   return hiid(domain_id,config_id,iter_id);
 }
 
 # Creates a defrec for a node
-const meqnode := function (class,name,children=F,default=[=],config_groups="")
+const meq.node := function (class,name,children=F,default=[=],config_groups="")
 {
   defrec := [ class=class,name=name ];
   if( !is_boolean(children) )
@@ -49,23 +53,26 @@ const meqnode := function (class,name,children=F,default=[=],config_groups="")
 }
 
 # Creates a Polc
-const meqpolc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
-                           weight=1,domain=F,dbid=-1)
+const meq.polc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
+                           scale=F,weight=1,domain=F,dbid=-1)
 {
-  rec := [ freq_0=freq0,time_0=time0,freq_scale=freqsc,
-           time_scale=timesc,pert=pert,weight=weight,dbid_index=dbid ];
+  if( is_boolean(scale) )
+    scale := [freq0,freqsc,time0,timesc];
+  rec := [ freq_0=scale[1],freq_scale=scale[2],
+           time_0=scale[3],time_scale=scale[4],
+           pert=pert,weight=weight,dbid_index=dbid ];
   # set coeff  
   if( len(coeff) == 1 )
     rec.coeff := array(as_double(coeff),1,1);
   else if( !has_field(coeff::,'shape') || len(coeff::shape) != 2 )
-    fail 'meqpolc: coeff must be either scalar or a 2D array';
+    fail 'meq.polc: coeff must be either scalar or a 2D array';
   else
     rec.coeff := as_double(coeff);
   # set domain if specified
   if( !is_boolean(domain) )
   {
     if( !is_dmi_type(domain,'MeqDomain') )
-      fail 'meqpolc: domain argument must be a meqdomain';
+      fail 'meq.polc: domain argument must be a meq.domain';
     rec.domain := domain;
   }
   rec::dmi_actual_type := 'MeqPolc';
@@ -73,14 +80,14 @@ const meqpolc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
 }
 
 # Creates a Parm defrec
-const meqparm := function (name,default=F,polc=F,config_groups="")
+const meq.parm := function (name,default=F,polc=F,config_groups="")
 {
-  rec := meqnode('MeqParm',name,config_groups=config_groups);
+  rec := meq.node('MeqParm',name,config_groups=config_groups);
   # set default if specified
   if( !is_boolean(default) )
   {
     if( !is_dmi_type(default,'MeqPolc') )
-      default := meqpolc(default);
+      default := meq.polc(default);
     rec.default := default;
   }
   # set polcs if specified
@@ -93,7 +100,7 @@ const meqparm := function (name,default=F,polc=F,config_groups="")
       for( i in 1:len(polc) )  # else must be a vector of polcs
       {
         if( !is_dmi_type(polc[i],'MeqPolc') )
-          fail 'meqparm: polc argument must be a meqpolc or a vector of meqpolcs';
+          fail 'meq.parm: polc argument must be a meq.polc or a vector of meqpolcs';
       }
       rec.polcs := polc;
       rec.polcs::dmi_datafield_content_type := 'MeqPolc';
@@ -103,7 +110,7 @@ const meqparm := function (name,default=F,polc=F,config_groups="")
 }
 
 # Creates a Meq::Domain
-const meqdomain := function (startfreq,endfreq,starttime,endtime)
+const meq.domain := function (startfreq,endfreq,starttime,endtime)
 {
   domain := as_double([startfreq,endfreq,starttime,endtime]);
   domain::dmi_datafield_content_type := 'double';
@@ -113,13 +120,13 @@ const meqdomain := function (startfreq,endfreq,starttime,endtime)
 
 # Creates a Meq::Cells
 # Two options are available:
-#   meqcells(domain,nf,nt) creates regularly-spaced cells
-#   meqcells(domain,nf,times=[...],time_steps=[...]) creates cells with
+#   meq.cells(domain,nf,nt) creates regularly-spaced cells
+#   meq.cells(domain,nf,times=[...],time_steps=[...]) creates cells with
 #               explicit time sampling
-const meqcells := function (domain,num_freq,num_time=F,times=F,time_steps=F)
+const meq.cells := function (domain,num_freq,num_time=F,times=F,time_steps=F)
 {
   if( !is_dmi_type(domain,'MeqDomain') )
-    fail 'domain argument must be a meqdomain object';
+    fail 'domain argument must be a meq.domain object';
   if( is_integer(num_time) )
   {
     dt := (domain[4]-domain[3])/num_time;
@@ -134,7 +141,7 @@ const meqcells := function (domain,num_freq,num_time=F,times=F,time_steps=F)
 }
 
 # creates a state list for inclusion in a request
-const meqinitstatelist := function ()
+const meq.initstatelist := function ()
 {
   rec := [=];
   rec::dmi_datafield_content_type := 'DataRecord';
@@ -142,7 +149,7 @@ const meqinitstatelist := function ()
 }
 
 # adds to a state list 
-const meqaddstatelist := function (ref rec,node,state)
+const meq.addstatelist := function (ref rec,node,state)
 {
   if( is_integer(node) )
     rec[spaste('#',len(rec)+1)] := [ nodeindex=node,state=state ];
@@ -154,13 +161,13 @@ const meqaddstatelist := function (ref rec,node,state)
 }
 
 # creates a request
-const meqrequest := function (cells=F,request_id=F,calc_deriv=0)
+const meq.request := function (cells=F,request_id=F,calc_deriv=0)
 {
   global _meqdomain_id;
   # if no request ID supplied, generate one by incrementing the
   # global domain ID. 
   if( is_boolean(request_id) )
-    request_id := meqrequestid(_meqdomain_id+:=1);
+    request_id := meq.requestid(_meqdomain_id+:=1);
   else  # else, setup global domain ID from the one given in the request ID
     _meqdomain_id := as_integer(as_string(request_id) ~ s/\..*$//);
   rec := [ request_id=hiid(request_id),
@@ -190,18 +197,18 @@ const meqrequest := function (cells=F,request_id=F,calc_deriv=0)
       else # multiple indices: add to by_list map
       {
         if( !has_field(ns,'by_list') )
-          ns.by_list := meqinitstatelist();
-        meqaddstatelist(ns.by_list,node,state);
+          ns.by_list := meq.initstatelist();
+        meq.addstatelist(ns.by_list,node,state);
       }
     }
     else if( is_string(node) ) # string nodes: add to by_list map
     {
       if( !has_field(ns,'by_list') )
-        ns.by_list := meqinitstatelist();
-      meqaddstatelist(ns.by_list,node,state);
+        ns.by_list := meq.initstatelist();
+      meq.addstatelist(ns.by_list,node,state);
     }
     else
-      fail 'meqrequest.addstate(): node must be specified by index or name(s)';
+      fail 'meq.request.addstate(): node must be specified by index or name(s)';
     return T;
   }
   

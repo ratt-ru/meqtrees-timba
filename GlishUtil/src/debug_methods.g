@@ -28,7 +28,7 @@ if( has_field(lofar_software,'print_versions') &&
   print '$Id$';
 }
 
-# debug_methods.g
+# define_debug_methods
 #   defines a set of standard debug methods inside a Glish object
 #
 #   Example of use:
@@ -61,6 +61,13 @@ const define_debug_methods := function (ref self,ref public,initverbose=1)
       print spaste('[== ',self.appid,' ==] ',sprintf(format,...));
     return T;
   }
+  # verbose(level)
+  #   Returns the verbosity level 
+  const public.verbose := function ()
+  {
+    wider self;
+    return self.verbose;
+  }
   # setverbose(level)
   #   Sets the verbosity level 
   const public.setverbose := function (level)
@@ -74,3 +81,16 @@ const define_debug_methods := function (ref self,ref public,initverbose=1)
   
   return T;
 }
+
+# debug_sink()
+#   Defines a debug sink: an object with a controllable verbosity level,
+#   and with dprint/dprintf methods.
+const debug_sink := function (appid,initverbose=1)
+{
+  self := [appid=appid];
+  public := [=];
+  define_debug_methods(self,public,initverbose);
+  return ref public;
+}
+
+const default_debug_sink := debug_sink('',0);
