@@ -44,7 +44,19 @@ lfr_curdir=`pwd`
 # Get the LOFAR base from the full path of this script.
 lfr_sdir=`dirname $0`
 lfr_base=`(cd $lfr_sdir && pwd) | sed -e "s%/LOFAR/.*%/LOFAR%"`
-
+# Check if no remaining LOFAR part is in rest of path.
+lfr_rest=`(cd $lfr_sdir && pwd) | sed -e "s%^$lfr_base%%"`
+case "$lfr_rest"
+in */LOFAR/*)
+  echo "Your current directory path should not contain LOFAR multiple times"
+  exit 2
+  ;;
+esac
+# Check if root does not have a LOFAR directory.
+if [ -d $lfr_base/LOFAR ]; then
+  echo "Your current LOFAR directory should not have a subdirectory LOFAR"
+  exit 2
+fi
 # Try to determine the build area and the package name.
 # Either the build area is a subdirectory of the package or the
 # package is a subdirectory of the build area.
