@@ -69,7 +69,7 @@ public:
 
   // Find all spids for this node by merging the spids in all results.
     //##ModelId=3F86886F0108
-  static vector<int> findSpids (const vector<const VellSet*>&);
+  static vector<int> findSpids (int & npertsets,const vector<const VellSet*> &);
 
   // Returns the class TypeId
     //##ModelId=400E53070274
@@ -136,6 +136,12 @@ protected:
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
+
+  // helper function: combines child flags into output vellset using the
+  // flag settings below. Returns true if a flag column is generated, false 
+  // if none
+  bool combineChildFlags (VellSet &vellset,const std::vector<const VellSet*> &child_vs);
+
 
 //*** OMS 08/07/04: phased out, see above
 //    //##ModelId=3F86886F01D9

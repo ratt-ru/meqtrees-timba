@@ -601,6 +601,15 @@ class Node : public BlockableObject
 //     template<class T>
 //     bool getStateField (T &out,const DataRecord &rec,const HIID &field)
 
+  
+    //##Documentation
+    //## Returns label for child #i
+    //## If i>(number of defined labels), then this is simply "i".
+    //## Labels are used as indices into the child_names and child_indices
+    //## containers.
+    HIID getChildLabel (int ich) const
+    { return ich<int(child_labels_.size()) ? child_labels_[ich] : AtomicID(ich); }
+
         
   private:
     //##ModelId=400E531F0085
@@ -629,13 +638,6 @@ class Node : public BlockableObject
     //## '0', '1', etc.
     vector<HIID> child_labels_;
     
-    //##Documentation
-    //## Returns label for child #i
-    //## If i>(number of defined labels), then this is simply "i".
-    //## Labels are used as indices into the child_names and child_indices
-    //## containers.
-    HIID getChildLabel (int ich) const
-    { return ich<int(child_labels_.size()) ? child_labels_[ich] : AtomicID(ich); }
     
     //##ModelId=400E530A016A
     //##Documentation

@@ -77,7 +77,7 @@ const meq.node := function (class,name,extra=[=],children=F,default=[=],groups="
 # Creates a Polc object
 
 const meq.polc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
-                           scale=F,weight=1,domain=F,dbid=-1)
+                            scale=F,weight=1,domain=F,dbid=-1)
 {
   if( is_boolean(scale) )
     scale := [freq0,freqsc,time0,timesc];

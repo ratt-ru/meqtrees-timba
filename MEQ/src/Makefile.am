@@ -19,7 +19,7 @@ libmeq_la_SOURCES 	= $(DOCHDRS)		\
 Domain.cc	Cells.cc Vells.cc VellSet.cc Result.cc Polc.cc \
 ResampleMachine.cc \
 RequestId.cc EventGenerator.cc \
-Node.cc Node_Riders.cc Function.cc \
+Node.cc Node_Riders.cc Function.cc CompoundFunction.cc \
 Constant.cc Parm.cc Freq.cc Time.cc Selector.cc Composer.cc \
 Add.cc Subtract.cc Multiply.cc Divide.cc \
 Sin.cc Cos.cc Exp.cc Pow.cc Sqr.cc Sqrt.cc Conj.cc ToComplex.cc \

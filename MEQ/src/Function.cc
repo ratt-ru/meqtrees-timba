@@ -77,6 +77,36 @@ void Function::setStateImpl (DataRecord &rec,bool initializing)
   }
 }
 
+bool Function::combineChildFlags (VellSet &vellset,const std::vector<const VellSet*> &child_vs)
+{
+  bool res = false;
+  if( enable_flags_ )
+  {
+    for( uint i=0; i<child_vs.size(); i++ )
+      if( child_vs[i]->hasOptCol(VellSet::FLAGS) )
+      {
+        res = true;
+        // if vellset has no flags and no mask is specified, just take 
+        // a r/o ref to the child flags
+        if( flagmask_.empty() && !vellset.hasOptCol(VellSet::FLAGS) )
+          vellset.setOptCol(VellSet::FLAGS,child_vs[i]->getOptColRef(VellSet::FLAGS,DMI::READONLY));
+        // else |= the vellset flags. Note that this will automatically
+        // privatize a r/o ref upon first access
+        else
+        {
+          const VellSet::FlagArrayType &chflag = 
+                child_vs[i]->getOptCol<VellSet::FLAGS>();
+          if( flagmask_.empty() )
+            vellset.getOptColWr<VellSet::FLAGS>() |= chflag;
+          else
+            vellset.getOptColWr<VellSet::FLAGS>() |= chflag & flagmask_[i];
+        }
+      }
+  }
+  return res;
+}
+
+
 //##ModelId=3F86886E03DD
 int Function::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &childres,
@@ -111,7 +141,6 @@ int Function::getResult (Result::Ref &resref,
   int nfails = 0;
   for( int iplane = 0; iplane < nplanes; iplane++ )
   {
-    int npertsets = 0;
     // create a vellset for this plane
     VellSet &vellset = result.setNewVellSet(iplane,0,0);
     // collect vector of pointers to child vellsets #iplane, and a vector of 
@@ -140,7 +169,6 @@ int Function::getResult (Result::Ref &resref,
           FailWhen(val.isArray() && val.shape() != res_shape,"mismatch in child result shapes");
           values[i] = &val;
         }
-        npertsets = std::max(npertsets,child_vs[i]->numPertSets());
       }
     }
     // continue evaluation only if no fails popped up
@@ -150,35 +178,15 @@ int Function::getResult (Result::Ref &resref,
       try
       {
         // Find all spids from the children.
-        vector<int> spids = findSpids(child_vs);
+        int npertsets;
+        vector<int> spids = findSpids(npertsets,child_vs);
         // allocate new vellset object with given number of spids, add to set
         vellset.setNumPertSets(npertsets);
         vellset.setSpids(spids);
         // Evaluate the main value.
         vellset.setValue(evaluate(request,res_shape,values).makeNonTemp());
         // Evaluate flags
-        if( enable_flags_ )
-        {
-          for( int i=0; i<nrch; i++ )
-            if( child_vs[i]->hasOptCol(VellSet::FLAGS) )
-            {
-              // if vellset has no flags and no mask is specified, just take 
-              // a r/o ref to the child flags
-              if( flagmask_.empty() && !vellset.hasOptCol(VellSet::FLAGS) )
-                vellset.setOptCol(VellSet::FLAGS,child_vs[i]->getOptColRef(VellSet::FLAGS,DMI::READONLY));
-              // else |= the vellset flags. Note that this will automatically
-              // privatize a r/o ref upon first access
-              else
-              {
-                const VellSet::FlagArrayType &chflag = 
-                      child_vs[i]->getOptCol<VellSet::FLAGS>();
-                if( flagmask_.empty() )
-                  vellset.getOptColWr<VellSet::FLAGS>() |= chflag;
-                else
-                  vellset.getOptColWr<VellSet::FLAGS>() |= chflag & flagmask_[i];
-              }
-            }
-        }
+        combineChildFlags(vellset,child_vs);
         // Evaluate all perturbed values.
         vector<vector<const Vells*> > pert_values(npertsets);
         vector<double> pert(npertsets);
@@ -266,7 +274,7 @@ int Function::getResult (Result::Ref &resref,
 // }
 
 //##ModelId=3F86886F0108
-vector<int> Function::findSpids (const vector<const VellSet*> &results)
+vector<int> Function::findSpids (int &npertsets,const vector<const VellSet*> &results)
 {
   // Determine the maximum number of spids.
   int nrspid = 0;
@@ -274,6 +282,7 @@ vector<int> Function::findSpids (const vector<const VellSet*> &results)
   for (int i=0; i<nrch; i++) {
     nrspid += results[i]->numSpids();
   }
+  npertsets = 0;
   // Allocate a vector of that size.
   // Exit immediately if nothing to be done.
   vector<int> spids(nrspid);
@@ -288,6 +297,7 @@ vector<int> Function::findSpids (const vector<const VellSet*> &results)
   // Loop through all children.
   for (int ch=0; ch<nrch; ch++) {
     const VellSet &resch = *results[ch];
+    npertsets = std::max(npertsets,resch.numPertSets());
     int nrchsp = resch.numSpids();
     if (nrchsp > 0) {
       // Only handle a child with spids.
