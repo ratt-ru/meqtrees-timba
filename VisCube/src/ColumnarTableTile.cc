@@ -14,11 +14,9 @@ ColumnarTableTile::ColumnarTableTile()
 
 //##ModelId=3DB964F20172
 ColumnarTableTile::ColumnarTableTile (const ColumnarTableTile &other, int flags,int)
-  : BlockableObject(),ncol_(0),nrow_(other.nrow())
+  : BlockableObject(),ncol_(0),nrow_(other.nrow()),id_(other.id_)
 {
   Thread::Mutex::Lock lock2(other.mutex_);
-  // copy over the ID
-  setTileId(other.tileId());
   // copy format
   if( other.format_.valid() )
   {
@@ -66,8 +64,7 @@ ColumnarTableTile & ColumnarTableTile::operator=(const ColumnarTableTile &right)
   {
     Thread::Mutex::Lock lock(mutex_);
     reset();
-    // copy ID
-    setTileId(right.tileId());
+    id_ = right.id_;
     // copy format
     if( right.format_.valid() )
     {
@@ -91,15 +88,15 @@ void ColumnarTableTile::init (const FormatRef &form, int nr,
   Thread::Mutex::Lock lock(mutex_);
   reset();
   FailWhen(nr<0,"illegal numer of rows");
-  setTileId(id);
   format_.copy(form,DMI::READONLY).lock();
+  id_ = id;
   nrow_ = nr;
   ncol_ = format_->maxcol();
   if( nrow() )
   {
     // compute offsets within block and total data size
     vector<int> offset;
-    int totsize = computeOffsets(offset,maxIdSize(),format(),nrow());
+    int totsize = computeOffsets(offset,format(),nrow());
     if( !nrow() ) // point to null block
       datablock.copy(nullBlock,DMI::WRITE).lock();
     else // else allocate block
@@ -117,7 +114,6 @@ void ColumnarTableTile::initBlock (void *data,size_t sz) const
 {
   BlockHeader *hdr = static_cast<BlockHeader*>(data);
   hdr->nrow = nrow();
-  hdr->maxidsize = maxIdSize();
   // pack ID following the header
   sz -= sizeof(BlockHeader);
   hdr->idsize = id_.pack(static_cast<char*>(data) + sizeof(BlockHeader),sz);
@@ -154,7 +150,7 @@ void ColumnarTableTile::applyFormat (const FormatRef &form)
       FailWhen( !datablock.valid(),"missing data block" );
       // compute offsets within block and total data size
       vector<int> offset;
-      uint totsize = computeOffsets(offset,maxIdSize(),form.deref(),nrow());
+      uint totsize = computeOffsets(offset,form.deref(),nrow());
       // check block size
       FailWhen(datablock->size() != totsize,"format not compatible with contents");
       // setup pointers to column data
@@ -178,7 +174,7 @@ void ColumnarTableTile::changeFormat (const FormatRef &form)
     FailWhen( !datablock.valid(),"missing data block" );
     // allocate new datablock and compute offsets within
     vector<int> offset;
-    int totsize = computeOffsets(offset,maxIdSize(),newform,nrow());
+    int totsize = computeOffsets(offset,newform,nrow());
     BlockRef newblock(new SmartBlock(totsize,DMI::ZERO),DMI::ANONWR);
     // setup pointers to new column data
     vector<const void *> newptr;
@@ -241,7 +237,7 @@ void ColumnarTableTile::addRows (int nr)
   FailWhen(nr<0,"illegal number of rows");
   FailWhen(!isWritable(),"r/w access violation");
   vector<int> offset;
-  int totsize = computeOffsets(offset,maxIdSize(),format(),nrow()+nr);
+  int totsize = computeOffsets(offset,format(),nrow()+nr);
   // allocate new block
   BlockRef newblock(new SmartBlock(totsize,DMI::ZERO),DMI::ANONWR);
   // setup pointers to new column data
@@ -305,8 +301,7 @@ int ColumnarTableTile::fromBlock (BlockSet& set)
   datablock.lock();
   const BlockHeader* hdr = static_cast<const BlockHeader*>(datablock->data());
   nrow_ = hdr->nrow;
-  FailWhen( hdr->maxidsize != maxIdSize(),"ID size in block does not match this tile class" );
-  int maxsz = HIID::HIIDSize(maxIdSize());
+  const int maxsz = HIID::HIIDSize(MaxIdSize);
   FailWhen( datablock->size() < sizeof(BlockHeader) + maxsz,"corrupt block");
   // unpack the ID from the block
   id_.unpack(datablock->cdata()+sizeof(BlockHeader),hdr->idsize);
@@ -323,7 +318,7 @@ int ColumnarTableTile::fromBlock (BlockSet& set)
     if( hasFormat() )
     {
       vector<int> offset;
-      size_t totsize = computeOffsets(offset,maxIdSize(),format(),nrow());
+      size_t totsize = computeOffsets(offset,format(),nrow());
       FailWhen(totsize != datablock->size(),"block not compatible with tile format");
       // setup pointers to column data
       applyOffsets(pdata,offset,datablock->cdata());
@@ -351,7 +346,7 @@ int ColumnarTableTile::toBlock (BlockSet &set) const
   // else push out the nil representation
   else
   {
-    BlockRef ref(new SmartBlock(sizeof(BlockHeader) + HIID::HIIDSize(maxIdSize())),
+    BlockRef ref(new SmartBlock(sizeof(BlockHeader) + HIID::HIIDSize(MaxIdSize)),
         DMI::WRITE|DMI::ANON);
     initBlock(ref().data(),ref->size());
     set.push(ref);
@@ -378,9 +373,10 @@ void ColumnarTableTile::privatize (int flags, int depth)
     datablock.privatize(flags,depth);
     // recompute offsets into data block since it may have changed
     vector<int> offset;
-    computeOffsets(offset,maxIdSize(),format(),nrow());
+    computeOffsets(offset,format(),nrow());
     applyOffsets(pdata,offset,datablock->cdata());
-    initBlock(datablock().data(),datablock->size());
+    // should not be necessary since data in block will have been copied over:
+    //    initBlock(datablock().data(),datablock->size());
   }
 }
 
@@ -388,7 +384,7 @@ void ColumnarTableTile::privatize (int flags, int depth)
 void ColumnarTableTile::setTileId (const HIID &id)
 {
   FailWhen(!isWritable(),"r/w access violation" );
-  FailWhen( id.size() > uint(maxIdSize()),"ID too long for this tile class" );
+  FailWhen(id.size() > MaxIdSize,"Length of tile ID > maximum" );
   id_ = id;
   if( datablock.valid() )
   {
@@ -398,9 +394,9 @@ void ColumnarTableTile::setTileId (const HIID &id)
 }
 
 //##ModelId=3DB964F30005
-int ColumnarTableTile::computeOffsets (vector<int> &offset,int maxidsz,const Format &format,int nrow)
+int ColumnarTableTile::computeOffsets (vector<int> &offset,const Format &format,int nrow)
 {
-  int totsize = sizeof(BlockHeader) + HIID::HIIDSize(maxidsz);
+  int totsize = sizeof(BlockHeader) + HIID::HIIDSize(MaxIdSize);
   offset.resize(format.maxcol());
   offset.assign(format.maxcol(),-1);
   // -1 marks undefined column. With 0 rows, all columns are undefined.

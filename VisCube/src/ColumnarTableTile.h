@@ -134,6 +134,11 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
       string sdebug ( int detail = 1,const string &prefix = "",
                       const char *name = 0 ) const;
       
+    //##ModelId=3E53937F03C2
+    //##Documentation
+    // maximum tile ID length
+      static const uint MaxIdSize = 16;
+      
   protected:
     // Additional Protected Declarations
     //##ModelId=3DB964F20349
@@ -159,13 +164,6 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
     //##ModelId=3DB964F203DF
       void *      cwdata (int icol); 
 
-  protected:
-      // returns maximum length of tile ID. Is meant to be redefined by
-      // specialized subclasses
-    //##ModelId=3DF9FDCB02C5
-      virtual int maxIdSize () const
-      { return 0; }
-      
   private:
     //##ModelId=3DB964F2011C
       BlockRef datablock;
@@ -189,9 +187,9 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
       vector<const void *> pdata;
       
       // computes offset of each column in block, given format
-      // (taking block header + tile id size into account)
+      // (taking block header + tile id into account)
     //##ModelId=3DB964F30005
-      static int computeOffsets (vector<int> &offsets,int maxidsize,const Format &format,int nr);
+      static int computeOffsets (vector<int> &offsets,const Format &format,int nr);
       // computes the pdata vector, given the offsets returned by 
       // computeOffsets, and a pointer to a block
     //##ModelId=3DB964F3002D
@@ -201,7 +199,7 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
       void initBlock (void *data,size_t sz) const;
       
     //##ModelId=3DB964F20021
-      typedef struct { int nrow,maxidsize,idsize; } BlockHeader;
+      typedef struct { int nrow,idsize; } BlockHeader;
       
     //##ModelId=3DF9FDC90364
       mutable Thread::Mutex mutex_;

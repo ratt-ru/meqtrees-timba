@@ -161,6 +161,7 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     
     // flag value for "missing data"
     // Missing rows are flagged by this value
+    //##ModelId=3E53938F0381
     static const int MissingData = 0xFFFFFFFF;
       
 
@@ -361,13 +362,6 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
       string sdebug ( int detail = 1,const string &prefix = "",
                       const char *name = 0 ) const;
 
-  protected:
-      // a VisTile ID is Antenna1+Antenna2+VDSID
-    //##ModelId=3DF9FDD40370
-      virtual int maxIdSize () const
-      { return 2 + VDSID::Length(); }
-        
-      
   private:
     //##ModelId=3DB964F901F6
     //##Documentation
@@ -728,6 +722,7 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
           { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
 
       private:
+        //##ModelId=3E53938F0276
         //##Documentation
         //## This hides ConstIterator's attach() methods
           void attach (const VisTile &tile);

@@ -171,6 +171,7 @@ VisTile::VisTile (const VisTile &right, int flags,int depth)
     : ColumnarTableTile(right,flags,depth),
       ncorr_(right.ncorr_),nfreq_(right.nfreq_)
 {
+  // temporarily make 
   if( hasFormat() )
     initArrays();
 }
@@ -335,14 +336,15 @@ void VisTile::initArrays ()
   FailWhen(!hasFormat(),"tile format not defined");
   const Format &form = format();
 
-//   use a macro to initialize all arrays in a consistent manner
+// use a macro to initialize all arrays in a consistent manner
+// Note that we cast away const, because the tile may be read-only.
   #define initRefArray(type,ndim,name,columnId) \
     if( form.defined(columnId) ) \
     { \
       LoShape shape = form.shape(columnId); \
       shape.push_back(ntime()); \
       name##_array_.reference(blitz::Array<type,ndim+1> \
-        (static_cast<type*>(wcolumn(columnId)),shape,blitz::neverDeleteData)); \
+        (static_cast<type*>(const_cast<void*>(column(columnId))),shape,blitz::neverDeleteData)); \
     } \
     else \
       name##_array_.free();
