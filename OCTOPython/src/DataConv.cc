@@ -349,13 +349,26 @@ int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
   // (int,long,float,complex,str,hiid,array_class,record,message);
   Assert(!seqpos || seqpos<seqlen);
   // this is really a switch calling different kinds of object builders
+  DataArray *parr;
   if( PyInt_Check(obj) )
   {
-    makeField(objref,seqpos,seqlen,Tpint)[seqpos] = int( PyInt_AS_LONG(obj) );
+    if( seqlen )
+      makeField(objref,seqpos,seqlen,Tpint)[seqpos] = int( PyInt_AS_LONG(obj) );
+    else
+    {
+      objref <<= parr = new DataArray(Tpint,LoShape(1));
+      *static_cast<int*>(parr->getDataPtr()) = int( PyInt_AS_LONG(obj) );
+    }
   }
   else if( PyLong_Check(obj) )
   {
-    makeField(objref,seqpos,seqlen,Tplong)[seqpos] = PyLong_AsLong(obj);
+    if( seqlen )
+      makeField(objref,seqpos,seqlen,Tplong)[seqpos] = PyLong_AsLong(obj);
+    else // single numeric scalar -- convert to DatArray
+    {
+      objref <<= parr = new DataArray(Tplong,LoShape(1));
+      *static_cast<long*>(parr->getDataPtr()) = PyLong_AsLong(obj);
+    }
     // check for overflow
     if( PyErr_Occurred() )
     {
@@ -366,12 +379,24 @@ int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
   }
   else if( PyFloat_Check(obj) )
   {
-    makeField(objref,seqpos,seqlen,Tpdouble)[seqpos] = PyFloat_AS_DOUBLE(obj);
+    if( seqlen )
+      makeField(objref,seqpos,seqlen,Tpdouble)[seqpos] = PyFloat_AS_DOUBLE(obj);
+    else
+    {
+      objref <<= parr = new DataArray(Tpdouble,LoShape(1));
+      *static_cast<double*>(parr->getDataPtr()) = PyFloat_AS_DOUBLE(obj);
+    }
   }
   else if( PyComplex_Check(obj) )
   {
     Py_complex pc = PyComplex_AsCComplex(obj);
-    makeField(objref,seqpos,seqlen,Tpdcomplex)[seqpos] = dcomplex(pc.real,pc.imag);
+    if( seqlen )
+      makeField(objref,seqpos,seqlen,Tpdcomplex)[seqpos] = dcomplex(pc.real,pc.imag);
+    else
+    {
+      objref <<= parr = new DataArray(Tpdcomplex,LoShape(1));
+      *static_cast<dcomplex*>(parr->getDataPtr()) = dcomplex(pc.real,pc.imag);
+    }
   }
   else if( PyString_Check(obj) )
   {
