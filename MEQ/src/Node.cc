@@ -680,7 +680,7 @@ int Node::cacheResult (const Result::Ref &ref,int retcode)
   cache_result_.copy(ref);
   wstate()[FCacheResult].replace() <<= cache_result_.deref_p();
   wstate()[FCacheResultCode].replace() = cache_retcode_ = retcode;
-  cdebug(3)<<"  caching result with code "<<retcode<<endl;
+  cdebug(3)<<"  caching result with code "<<ssprintf("%x",retcode)<<endl;
   // publish current state to all result subscribers
   ResultSubscribers::const_iterator iter = result_subscribers_.begin();
   for( ; iter != result_subscribers_.end(); iter++ )

@@ -95,10 +95,11 @@ Cells::Cells (const Domain& domain,int nfreq,int ntime)
 // creates a combination of the two grids, depending on resample>0
 // (uses higher-sampled grid) or <0 (uses lower-sampled grid)
 Cells::Cells (const Cells &a,const Cells &b,int resample)
+: shape_(0,0)
 {
   // setup datarecord
   // domain
-  DbgAssert(*(a.domain_) != *(b.domain_));
+  DbgAssert(*(a.domain_) == *(b.domain_));
   (*this)[FDomain] <<= domain_ = a.domain_;
   // subrecords
   DataRecord &grid = (*this)[FGrid] <<= new DataRecord;
@@ -110,7 +111,7 @@ Cells::Cells (const Cells &a,const Cells &b,int resample)
   for( int i=0; i<DOMAIN_NAXES; i++ )
   {
     const Cells &c = (a.ncells(i) > b.ncells(i)) ^ (resample>0) ? b : a;
-    int nc = c.ncells(i);
+    int nc = shape_[i] = c.ncells(i);
     setRecVector(grid_[i],grid[axisId(i)],nc);
     grid_[i] = c.grid_[i];
     // cell size subrecord
@@ -127,6 +128,7 @@ Cells::Cells (const Cells &a,const Cells &b,int resample)
 }
 
 Cells::Cells (const Cells &other,const int ops[DOMAIN_NAXES],const int args[DOMAIN_NAXES])
+: shape_(0,0)
 {
   // setup datarecord
   // domain
@@ -163,8 +165,9 @@ Cells::Cells (const Cells &other,const int ops[DOMAIN_NAXES],const int args[DOMA
                        &csz0 = other.cell_size_[iaxis];
     if( op == NONE ) // no op: simply copy the grid
     {
+      shape_[iaxis] = nc0;
       setRecVector(grid_[iaxis],grid[axisId(iaxis)],nc0);
-      setRecVector(cell_size_[iaxis],grid[axisId(iaxis)],nc0);
+      setRecVector(cell_size_[iaxis],cellsize[axisId(iaxis)],nc0);
       grid_[iaxis] = grid0;
       cell_size_[iaxis] = csz0;
       // copy over segments info
@@ -177,9 +180,9 @@ Cells::Cells (const Cells &other,const int ops[DOMAIN_NAXES],const int args[DOMA
     } 
     else if( op == INTEGRATE )
     {
-      int nc1 = nc0/arg;
+      int nc1 = shape_[iaxis] = nc0/arg;
       setRecVector(grid_[iaxis],grid[axisId(iaxis)],nc1);
-      setRecVector(cell_size_[iaxis],grid[axisId(iaxis)],nc1);
+      setRecVector(cell_size_[iaxis],cellsize[axisId(iaxis)],nc1);
       int i00=0,i01=arg-1; // original cells [i00:i01] become single cell [iaxis]
       for( int i1=0; i1<nc1; i1++,i00+=arg,i01+=arg )
       {
@@ -191,9 +194,9 @@ Cells::Cells (const Cells &other,const int ops[DOMAIN_NAXES],const int args[DOMA
     }
     else if( op == UPSAMPLE )
     {
-      int nc1 = nc0*arg;
+      int nc1 = shape_[iaxis] = nc0*arg;
       setRecVector(grid_[iaxis],grid[axisId(iaxis)],nc1);
-      setRecVector(cell_size_[iaxis],grid[axisId(iaxis)],nc1);
+      setRecVector(cell_size_[iaxis],cellsize[axisId(iaxis)],nc1);
       int i1=0;
       for( int i0=0; i0<nc0; i0++ )
       {
