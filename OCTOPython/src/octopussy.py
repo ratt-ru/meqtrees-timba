@@ -55,7 +55,6 @@ def stop ():
   _octopussy_running = False;
   return res;
   
-  
 #
 # proxy_wp
 #   This is an interface to a WorkProcess
@@ -63,12 +62,38 @@ def stop ():
 class proxy_wp(octopython.proxy_wp,verbosity):
   "represents an OCTOPUSSY connection endpoint (i.e. WorkProcess)"
   
+  class whenever_handler(object):
+    """wrapper for a message handler to be registered vith the whenever
+    function""";
+    def __init__(self,weid,target,pass_msg=False,args=(),kwargs={}):
+      self.weid = weid;
+      self.target = target;
+      self.args = args;
+      self.kwargs = kwargs;
+      self.pass_msg = pass_msg;
+      self.active = True;
+    def get_id(self):
+      return self.weid;
+    def activate(self):
+      self.active = True;
+    def deactivate(self):
+      self.active = False;
+    def fire (self,msg):
+      if self.active: 
+        if self.pass_msg:
+          self.kwargs['msg'] = msg;
+        self.target(*self.args,**self.kwargs);
+  
   def __init__(self,wpid=None,verbose=0,vobj_name=None):
+    # init base classes
     octopython.proxy_wp.__init__(self,wpid);
     verbosity.__init__(self,verbose);
     self.set_vobj_name(vobj_name or str(self.address()));
     self.dprint(1,"initializing");
-  
+    # registered whenevers
+    self._we_ids   = {};  # dict of whenevers (for exact matches)
+    self._we_masks = {};  # list of whenevers (for mask lookups)
+
   def send (self,msg,to,payload=None,priority=0):
     "sends message to recepient";
     msg = make_message(msg,payload,priority);
@@ -92,104 +117,42 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     "unsubscribes WP from mask";
     self.dprintf(2,"unsubscribing from %s\n",mask);
     return octopython.proxy_wp.unsubscribe(self,make_hiid(mask));
-
-
-#
-# Wrapper for an object method that is protected by entry/exit locks
-# See proxy_wp_thread() below for examples of use
-#
-class LockProtectedMethod(object):
-  def __init__(self,method,lockmethod):
-    self.func = method; # ThreadSafeFunctionWrapper(f,lock);
-    self.lock = lockmethod;
-  def __get__(self,obj,objtype=None):
-#    print 'get:',self,obj,objtype;
-    def wrapper(*args,**kwargs):
-      self.lock(obj).acquire();
-      args = (obj,)+args;
-      try: return self.func(*args,**kwargs);
-      finally: self.lock(obj).release();
-    return wrapper;
-  def __set__(self,obj,value):
-    raise RuntimeError,"can't set method attribute";
-  def __delete__(self,obj):
-    raise RuntimeError,"can't delete method attribute";
-
-#  class dummylock(object):
-#    def acquire(self):
-#      print self,'acquire';
-#    def release(self):
-#      print self,'release';
   
-    
-#
-# proxy_wp_thread
-#    
-class proxy_wp_thread(proxy_wp,threading.Thread):
-  "represents an OCTOPUSSY connection endpoint (i.e. WorkProcess)"
-  class whenever_handler(object):
-    def __init__(self,weid,target,args=(),kwargs={}):
-      self.weid = weid;
-      self.target = target;
-      self.args = args;
-      self.kwargs = kwargs;
-      self.active = True;
-    def get_id(self):
-      return self.weid;
-    def activate(self):
-      self.active = True;
-    def deactivate(self):
-      self.active = False;
-    def fire (self,msg):
-      if self.active: 
-        self.kwargs['msg'] = msg;
-        self.target(*self.args,**self.kwargs);
-        
-  def __init__ (self,wpid='python',verbose=0):
-    self._lock = threading.RLock(); # verbose=True)
-    proxy_wp.__init__(self,wpid,verbose=verbose);
-    self.name = 'pwpt:'+str(self.address());
-    threading.Thread.__init__(self,name=self.name);
-    self.set_vobj_name(self.name);
-    self.we_ids   = {};  # dict of whenevers (for exact matches)
-    self.we_masks = {};  # list of whenevers (for mask lookups)
-    self._awaiting = None;
-    self._await_cond = octopython.thread_condition(verbose=True);
-    self._await_cond_locks = 0;
-    
-  def lock (self):
-    return self._lock;
-    
   # this is meant to pause and resume event processing -- no implementation
-  # needed since threads don't actually work for now (i.e., events are
-  # not being deal with outside await/event_loop calls)
-  
+  # needed since this class is synchronous (i.e., events are not being dealt 
+  # with outside await/event_loop calls), but thje threaded proxy class
+  # may override this
   def pause_events (self):
-    """pauses the event loop for this wp (if any); this will halt the"
-    processing of any whenevers. Note that a call to await() or event_loop()"
+    """pauses the event loop for this wp (if any); this will halt the
+    processing of any whenevers. Note that a call to await() or event_loop()
     or flush_events() will resume the event loop automatically.
     """;
     pass;
-  # pauses the event loop for this wp (if any); this will halt the processing
-  #   of any whenevers
+    
   def resume_events (self):
     """resumes the event loop for this wp""";
     pass;
     
-#  dprint = LockProtectedMethod(proxy_wp.dprint,lock);
-#  dprintf = LockProtectedMethod(proxy_wp.dprintf,lock);
-
-  # adds an event handler to the thread tables    
-  def whenever (self,msgid,target,args=(),kwargs={},subscribe=False):
+  def whenever (self,msgid,target,args=(),kwargs={},subscribe=False,pass_msg=True):
+    """adds an event handler. 'target' (must be a callable object) will be 
+    called whenever a message matching 'msgid' (may be a mask with wildcards)
+    is received. 'args' and 'kwargs' are passed to the target (the message
+    itself is passed kwargs['msg'], unless 'pass_msg' is False). 
+    If 'subscribe' is True, calls subscribe() to subscribe the WP to 'msgid'.
+    """;
     msgid = make_hiid(msgid);
     is_mask = '?' in str(msgid) or '*' in str(msgid);
-    we = self.whenever_handler(msgid,target,args,kwargs);
-    if is_mask:
-      self.dprint(2,"adding masked whenever:",str(msgid),str(target));
-      self.we_masks.setdefault(msgid,[]).append(we);
-    else:
-      self.dprint(2,"adding matched whenever:",str(msgid),str(target));
-      self.we_ids.setdefault(msgid,[]).append(we);
+    we = self.whenever_handler(msgid,target,pass_msg,args,kwargs);
+    self.pause_events();
+    try:
+      if is_mask:
+        self.dprint(2,"adding masked whenever:",str(msgid),str(target));
+        self._we_masks.setdefault(msgid,[]).append(we);
+      else:
+        self.dprint(2,"adding matched whenever:",str(msgid),str(target));
+        self._we_ids.setdefault(msgid,[]).append(we);
+    finally:
+      self.resume_events();
     # add subscription if asked to
     if subscribe:
       self.subscribe(msgid);
@@ -198,17 +161,19 @@ class proxy_wp_thread(proxy_wp,threading.Thread):
   # removes event handler
   def cancel_whenever(self,we):
     msgid = we.get_id();
-    for dicts in (self.we_masks,self.we_ids):
-      seq = dicts.get(msgid,[]);
-      for i in range(len(seq)):
-        if we is seq[i]:
-          self.dprint(2,"cancelling whenever:",str(msgid));
-          del seq[i];
-          return;
+    self.pause_events();
+    try:
+      for dicts in (self._we_masks,self._we_ids):
+        seq = dicts.get(msgid,[]);
+        for i in range(len(seq)):
+          if we is seq[i]:
+            self.dprint(2,"cancelling whenever:",str(msgid));
+            del seq[i];
+            return;
+    finally:
+      self.resume_events();
     self.dprintf(2,"whenever for %s not found",str(msgid));
     
-  whenever = LockProtectedMethod(whenever,lock);
-
   # event_loop()
   # Calls receive() in a continuous loop, processes events by invoking
   # their whenever handlers.
@@ -217,6 +182,13 @@ class proxy_wp_thread(proxy_wp,threading.Thread):
   # If timeout is supplied, returns None after it has expired.
   # Otherwise loop indefinitely, or until the C++ ProxyWP has exited
   def event_loop (self,await=[],timeout=None):
+    """runs event loop for this WP -- calls receive() to fetch messages,
+    dispatches whenevers, discards messages not matching a whenever. 'await'
+    may be set to one or more msgids, in this case the method will  exit when a
+    matching message is received. 'timeout' may be used to specify a time
+    limit, use None to loop indefinitely (or until the C++ WP has  exited). If
+    timeout=0, processes all pending messages and returns. 
+    """;
     # convert await argument to list of hiids
     await = make_hiid_list(await);
     self.dprint(1,"running event loop, timeout",timeout,"await",await);
@@ -240,21 +212,16 @@ class proxy_wp_thread(proxy_wp,threading.Thread):
         continue;
       # got message, process it
       pending_list = [];
-      self._lock.acquire();
-      try:
-        self.dprint(3,"processing message",msg.msgid);
-        # check for current await
-        # check the matched dictionary
-        welist = self.we_ids.get(msg.msgid,[]);
-        self.dprintf(3,"found %d matched whenevers for %s\n",len(welist),msg.msgid);
-        pending_list += welist;
-        # check the masks list
-        for mask,welist in self.we_masks.iteritems():
-          if msg.msgid.matches(mask):
-            self.dprintf(3,"found %d mask whenevers for %s\n",len(welist),mask);
-            pending_list += welist;
-      finally:
-        self._lock.release();
+      self.dprint(3,"processing message",msg.msgid);
+      # check the matched dictionary
+      welist = self._we_ids.get(msg.msgid,[]);
+      self.dprintf(3,"found %d matched whenevers for %s\n",len(welist),msg.msgid);
+      pending_list += welist;
+      # check the masks list
+      for mask,welist in self._we_masks.iteritems():
+        if msg.msgid.matches(mask):
+          self.dprintf(3,"found %d mask whenevers for %s\n",len(welist),mask);
+          pending_list += welist;
       self.dprintf(3,"firing %d matched whenevers\n",len(pending_list));
       for we in pending_list:
         we.fire(msg);
@@ -265,93 +232,137 @@ class proxy_wp_thread(proxy_wp,threading.Thread):
           return msg;
     # end of while-loop, if we dropped out, it's a timeout, return None
     return None
-    
-  def await(self,what,timeout=None):
+
+  def await(self,what,timeout=None,resume=False):
+    """alias for event_loop() with an await argument.
+    if resume is true, resumes the event loop before commencing await. This
+    is meant for child classes only.
+    """;
     return self.event_loop(await=what,timeout=timeout);
   
   # flush_events(): dispatches all queued events
   #   this is actually an alias for event_loop with a 0 timeout
   def flush_events(self):
+    """alias for event_loop() with timeout=0""";
     return self.event_loop(timeout=0);
 
-##   # pause suspends the event loop by acquiring lock
-##   def await_lock (self):
-##     self._await_cond.lock();
-##     self._await_cond_locks += 1;
-##     self.dprint(2,"await_lock: thread",threading.currentThread().getName());
-##     
-##   def await_unlock (self):
-##     self.dprint(2,"await_unlock: thread",threading.currentThread().getName());
-##     self._await_cond.unlock();
-##     
-##   # await blocks until the specified message has been received
-##   # (with optional timeout)
-##   def await (self,msgid,timeout=None):
-##     self.dprint(2,"await: thread",threading.currentThread().getName());
-##     self.dprintf(2,"await: waiting for %s, timeout %s\n",msgid,timeout);
-##     # start by setting a lock on the wait condition
-##     self._await_cond.lock();
-##     self._await_cond_locks += 1;
-##     try:
-##       self._awaiting = hiid(msgid);
-##       self._await_result = None;
-##       self.dprint(3,"calling wait on awaitcond");
-##       endtime = timeout and time.time() + timeout;
-##       while self._await_result is None:
-##         if endtime and time.time() >= endtime: # timeout
-##           return None;
-##         self._await_cond.wait(.1);
-##         self.dprint(2,"await: wait returns ",self._await_result);
-##     finally:
-##       self._awaiting = None;
-##       n = self._await_cond_locks;
-##       self._await_cond_locks = 0;  
-##       for i in range(n):
-##         self._await_cond.unlock();
-##     return self._await_result;
-##   #  await = LockProtectedMethod(await,lock);
-## 
-##   # the run-loop: calls receive() in a continuous loop, processes events
-##   def run (self):
-##     running = 1;
-##     self.dprint(1,"running thread");
-##     while True:
-##       try:  
-##         self.dprint(3,"going into receive()");
-##         msg = self.receive();
-##       except octopython.OctoPythonError, value:
-##         self.dprint(1,"exiting on receive error:",value);
-##         return;
-##       # got message, process it
-##       pending_list = [];
-##       self._lock.acquire();
-##       try:
-##         self.dprint(3,"processing message",msg.msgid);
-##         # check for current await
-##         self._await_cond.lock();
-##         try:
-##           if self._awaiting and msg.msgid.matches(self._awaiting):
-##             self.dprint(3,"matches current await, notifying");
-##             self._await_result = msg;
-##             self._await_cond.notify();
-##         finally:
-##           self._await_cond.unlock();
-##         # check the matched dictionary
-##         we = self.we_ids.get(msg.msgid,None);
-##         if we != None:
-##           self.dprint(3,"found matched whenever",msg.msgid);
-##           pending_list.append(we);
-##         # check the maks list
-##         for wem in self.we_masks:
-##           if msg.msgid.matches(wem[0]):
-##             self.dprint(3,"found mask whenever",wem[0]);
-##             pending_list.append(wem[1]);
-##       finally:
-##         self.dprintf(3,"firing %d matched whenevers\n",len(pending_list));
-##         self._lock.release();
-##       for we in pending_list:
-##         we.fire(msg);
-##     # end of while-loop (exit is inside) 
+#
+# proxy_wp_thread
+#    
+class proxy_wp_thread(proxy_wp,threading.Thread):
+  "represents an OCTOPUSSY connection endpoint (i.e. WorkProcess)"
+  def __init__ (self,wpid='python',verbose=0):
+    proxy_wp.__init__(self,wpid,verbose=verbose);
+    self.name = 'pwpt:'+str(self.address());
+    threading.Thread.__init__(self,name=self.name);
+    self.set_vobj_name(self.name);
+    # lock for event queue
+    self._lock = threading.RLock(); 
+    self._paused = 0;
+    # await-related stuff 
+    self._awaiting = {};
+    self._await_cond = threading.Condition();
+    
+    
+  def lock (self):
+    return self._lock;
+    
+  # this is meant to pause and resume event processing -- no implementation
+  # needed since threads don't actually work for now (i.e., events are
+  # not being deal with outside await/event_loop calls)
+  
+  def pause_events (self):
+    """pauses the event loop for this wp (if any); this will halt the"
+    processing of any whenevers. Note that a call to await() or event_loop()"
+    or flush_events() will resume the event loop automatically.
+    """;
+    self._lock.acquire();
+    self._paused += 1;
+    self.dprintf(3,"pausing event loop (count %d)\n",self._paused);
+    
+  # pauses the event loop for this wp (if any); this will halt the processing
+  #   of any whenevers
+  def resume_events (self):
+    """resumes the event loop for this wp""";
+    if self._paused > 0:
+      self._lock.release();
+      self._paused = max(self._paused-1,0);
+    self.dprintf(3,"resuming event loop (count %d)\n",self._paused);
+    
+  # await blocks until the specified message has been received
+  # (with optional timeout)
+  def await (self,what,timeout=None,resume=False):
+    thread_name = threading.currentThread().getName();
+    if thread_name == threading.Thread.getName(self):
+      raise AssertionError,"can't call await() from event handler thread";
+    self.dprint(2,"await: thread",thread_name);
+    self.dprint(2,"await: waiting for",what,"timeout ",timeout);
+    what = make_hiid_list(what);
+    await_pair = [make_hiid_list(what),None];  # result will be returned as second item
+    thread_name = threading.currentThread().getName();
+    # start by setting a lock on the wait condition
+    self._await_cond.acquire();
+    self._awaiting[thread_name] = await_pair;
+    try:
+      if resume:
+        self.resume_events();
+      self.dprint(3,"calling wait on awaitcond");
+      endtime = timeout and time.time() + timeout;
+      while await_pair[1] is None:
+        if endtime and time.time() >= endtime: # timeout
+          return None;
+        self._await_cond.wait(timeout);
+        self.dprint(2,"await: wait returns ",await_pair[1]);
+    finally:
+      del self._awaiting[thread_name];
+      self._await_cond.release();
+    return await_pair[1];
+    
+  # the run-loop: calls receive() in a continuous loop, processes events
+  def run (self):
+    running = 1;
+    self.dprint(1,"running thread");
+    while True:
+      try:  
+        self.dprint(3,"going into receive()");
+        msg = self.receive_threaded();
+      except octopython.OctoPythonError, value:
+        self.dprint(1,"exiting on receive error:",value);
+        return;
+      # got message, process it
+      pending_list = [];
+      self._lock.acquire();
+      try:
+        self.dprint(3,"processing message",msg.msgid);
+        # check the matched dictionary
+        welist = self._we_ids.get(msg.msgid,[]);
+        self.dprintf(3,"found %d matched whenevers for %s\n",len(welist),msg.msgid);
+        pending_list += welist;
+        # check the masks list
+        for mask,welist in self._we_masks.iteritems():
+          if msg.msgid.matches(mask):
+            self.dprintf(3,"found %d mask whenevers for %s\n",len(welist),mask);
+            pending_list += welist;
+      finally:
+        self._lock.release();
+      self.dprintf(3,"firing %d matched whenevers\n",len(pending_list));
+      for we in pending_list:
+        we.fire(msg);
+      # now, check for matching awaits
+      self._lock.acquire();
+      self._await_cond.acquire();
+      try:
+        for awp in self._awaiting.itervalues():
+          for msgid in awp[0]:
+            if msg.msgid.matches(msgid):
+              self.dprintf(3,"matches await %s, notifying\n",msgid);
+              awp[1] = msg;
+              self._await_cond.notifyAll();
+              break; # break out to next awaiting pair
+      finally:
+        self._await_cond.release();
+        self._lock.release();
+    # end of while-loop (exit is inside) 
  
 # self-test code 
 if __name__ == "__main__":
@@ -373,12 +384,20 @@ if __name__ == "__main__":
   print "WP1 address is:",wp1.address();
   wp2 = proxy_wp("Python",verbose=2);
   print "WP2 address is:",wp2.address();
-  wp3 = proxy_wp_thread("Python",verbose=3);
+  wp3 = proxy_wp("Python",verbose=3);
   print "WP3 address is:",wp2.address();
   wp3.subscribe("1.2.*");
   wp3.subscribe("Reflect.*");
+  
+  wp4 = proxy_wp_thread("Python",verbose=3);
+  print "WP4 address is:",wp2.address();
+  wp4.subscribe("1.2.*");
+  wp4.subscribe("Reflect.*");
+  wp4.start();
+  
 #  wp3.start();
-  we = wp3.whenever("*",lambda msg,header: sys.stderr.write(header+str(msg)+'\n'),(),{'header':'======'});
+  we3 = wp3.whenever("*",lambda msg,header: sys.stderr.write(header+str(msg)+'\n'),(),{'header':'[3]======'});
+  we4 = wp4.whenever("*",lambda msg,header: sys.stderr.write(header+str(msg)+'\n'),(),{'header':'[4]======'});
   
   print "=== (2) ===";
   
@@ -410,13 +429,19 @@ if __name__ == "__main__":
   wp2.publish(msg2);
 #  set_debug("OctoPython",2);
 
+  wp4.pause_events();
+
   msg2.msgid = hiid('Reflect.1');
   print "=== (2b) ===";
   wp2.publish(msg2);
   print "=== (2c) ===";
   wp1.send(msg1,addr_refl);
   print "=== (2d) ===";
-  time.sleep(.5);
+#  time.sleep(.5);
+  
+  print "awaiting on wp4...";
+  res = wp4.await("reflect.*",resume=True);
+  print "await result: ",res;
   
   print "=== (3) ===";
   
@@ -446,7 +471,9 @@ if __name__ == "__main__":
   print 'going into wp3.event_loop()';
   wp3.event_loop(await='x.*');
 
-  wp3.cancel_whenever(we);
+  wp3.cancel_whenever(we3);
+  wp4.cancel_whenever(we4);
+  
   print "=== (5) ===";
   
   time.sleep(.5);

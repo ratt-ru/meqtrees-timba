@@ -212,7 +212,7 @@ static PyMethodDef OctoMethods[] = {
 PyMODINIT_FUNC initoctopython ()
 {
   Debug::Context::initialize();
-  
+
   // init proxywp type
   if( PyType_Ready(&PyProxyWPType) < 0 ||
       PyType_Ready(&PyThreadCondType) < 0 )

@@ -211,9 +211,9 @@ static PyObject * PyProxyWP_receive (PyProxyWP* self,PyObject *args)
     return NULL;
   try
   {
+    Message::Ref mref;
     WPInterface &wp = self->wpref();
     Thread::Mutex::Lock lock(wp.queueCondition());
-    // wait for something to arrive in queue (if asked to)
     while( wp.queue().empty() )
     {
       if( !wp.isRunning() )
@@ -230,13 +230,54 @@ static PyObject * PyProxyWP_receive (PyProxyWP* self,PyObject *args)
         wp.queueCondition().wait();
     }
     // pop first message and return it
-    PyObject * py_msg = pyFromMessage(wp.queue().front().mref.deref());
+    mref = wp.queue().front().mref;
     wp.queue().pop_front();
+    PyObject * py_msg = pyFromMessage(*mref);
     return py_msg;
   }
   catchStandardErrors(NULL);
 }
 
+// -----------------------------------------------------------------------
+// receive_threaded
+// returns first message from WP's queue (threaded version)
+// -----------------------------------------------------------------------
+static PyObject * PyProxyWP_receive_threaded (PyProxyWP* self,PyObject *args)
+{
+  double timeout=-1;
+  if( !PyArg_ParseTuple(args,"|d",&timeout) )
+    return NULL;
+  try
+  {
+    Message::Ref mref;
+    WPInterface &wp = self->wpref();
+    Thread::Mutex::Lock lock(wp.queueCondition());
+    // wait for something to arrive in queue (if asked to)
+    while( wp.queue().empty() )
+    {
+      Py_BEGIN_ALLOW_THREADS
+      if( !wp.isRunning() )
+        returnError(NULL,OctoPython,"proxy wp no longer running");
+      // timeout>=0: return None if queue is empty
+      if( timeout>=0 )
+      {
+        if( timeout>0 )
+          wp.queueCondition().wait(timeout);
+        if( wp.queue().empty() )
+          returnNone;
+      }
+      else // timeout<0: wait indefinitely
+        wp.queueCondition().wait();
+      Py_END_ALLOW_THREADS
+    }
+    // pop first message and return it
+    mref = wp.queue().front().mref;
+    wp.queue().pop_front();
+    PyObject * py_msg = pyFromMessage(*mref);
+    return py_msg;
+  }
+  catchStandardErrors(NULL);
+}
 
 // -----------------------------------------------------------------------
 // members/data structures init
@@ -257,6 +298,8 @@ static PyMethodDef PyProxyWP_methods[] = {
                   "number of pending messages in queue" },
     {"receive",     (PyCFunction)PyProxyWP_receive, METH_VARARGS,
                   "receives message from queue" },
+    {"receive_threaded",(PyCFunction)PyProxyWP_receive_threaded, METH_VARARGS,
+                  "receives message from queue (threaded version)" },
     {NULL}  /* Sentinel */
 };
 

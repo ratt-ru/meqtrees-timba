@@ -256,7 +256,7 @@ make_srecord = type_maker(srecord);
 #
 class message (object):
   "Represents an OCTOPUSSY message";
-  stdattrs = ("from","to","priority","state","hops");
+  _stdattrs = ("from","to","priority","state","hops");
   def __init__ (self,msgid,payload=None,priority=0):
     self.msgid = hiid(msgid);
     self.payload = payload;
@@ -266,7 +266,7 @@ class message (object):
   def __str__ (self):
     s = "message(" + str(self.msgid);
     attrs = dir(self);
-    stds = [ "%s=%s" % (x,getattr(self,x)) for x in message.stdattrs 
+    stds = [ "%s=%s" % (x,getattr(self,x)) for x in message._stdattrs 
                                               if x in attrs ];
     return string.join([s]+stds,";") + ")";
     
@@ -294,7 +294,7 @@ def make_scope (scope):
 # === class verbosity ===
 # Verbosity includes methods for verbosity levels and conditional printing
 #
-class verbosity(object):
+class verbosity:
   def __init__(self,verbose=0,stream=sys.stderr,name=None):
     self.verbose = verbose;
     self.stream = stream;
