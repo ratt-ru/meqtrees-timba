@@ -73,7 +73,10 @@ class ResultPlotter(BrowserPlugin):
         if len(node['attrib']) > 0:
           attrib_parms = node['attrib']
           plot_parms = attrib_parms.get('plot')
-          self._plot_type = plot_parms.get('plot_type')
+          if plot_parms.has_key('plot_type'):
+            self._plot_type = plot_parms.get('plot_type')
+          if plot_parms.has_key('type'):
+            self._plot_type = plot_parms.get('type')
       else:
 # first get plot_type at first possible point in list - nearest root
         list_length = len(attribute_list)
@@ -89,6 +92,9 @@ class ResultPlotter(BrowserPlugin):
               plot_parms = temp_parms
             if plot_parms.has_key('plot_type'):
               self._plot_type = plot_parms.get('plot_type')
+              break
+            if plot_parms.has_key('type'):
+              self._plot_type = plot_parms.get('type')
               break
       _dprint(3, 'pre_work gives plot_type ', self._plot_type)
       if self._plot_type == 'spectra':
@@ -406,6 +412,7 @@ class ResultPlotter(BrowserPlugin):
         the functions which does the actual plotting """
 
     self._rec = dataitem.data;
+    _dprint(3, 'set data received record ', self._rec)
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
     if isinstance(self._rec, bool):
