@@ -33,6 +33,7 @@
 #pragma aid Parm Spid Perturbed Perturbations
 #pragma aid Cells Results Fail Origin Line Message Contagious 
 #pragma aid Solvable Config Groups All By List Polcs
+#pragma aid Epsilon UseSVD
 
 namespace Meq
 {
@@ -84,8 +85,8 @@ namespace Meq
     FSolvable        = AidSolvable,
     FSolvableParm    = AidSolvable|AidParm,
     FNumSteps        = AidNum|AidSteps,
-    FEpsilon         = FNumSteps,
-    FUseSVD          = FNumSteps,
+    FEpsilon         = AidEpsilon,
+    FUseSVD          = AidUseSVD,
 
     FContagiousFail  = AidContagious|AidFail,
     

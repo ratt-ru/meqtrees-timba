@@ -111,6 +111,8 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1382,"by")+
         AtomicID::registerId(-1046,"list")+
         AtomicID::registerId(-1383,"polcs")+
+        AtomicID::registerId(-1385,"epsilon")+
+        AtomicID::registerId(-1384,"usesvd")+
         AtomicID::registerId(-1235,"meqdomain")+
         TypeInfoReg::addToRegistry(-1235,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1235,__construct_MeqDomain)+

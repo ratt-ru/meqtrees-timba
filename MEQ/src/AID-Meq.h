@@ -83,6 +83,11 @@ const int AidDeriv_int = -1230;
 const AtomicID AidDomain(-1213);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cells.h:35
 const int AidDomain_int = -1213;
 #endif
+#ifndef _defined_id_AidEpsilon
+#define _defined_id_AidEpsilon 1
+const AtomicID AidEpsilon(-1385);                 // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
+const int AidEpsilon_int = -1385;
+#endif
 #ifndef _defined_id_AidFail
 #define _defined_id_AidFail 1
 const AtomicID AidFail(-1036);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:9
@@ -382,6 +387,11 @@ const int AidTime_int = -1152;
 #define _defined_id_AidTimes 1
 const AtomicID AidTimes(-1252);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cells.h:35
 const int AidTimes_int = -1252;
+#endif
+#ifndef _defined_id_AidUseSVD
+#define _defined_id_AidUseSVD 1
+const AtomicID AidUseSVD(-1384);                  // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
+const int AidUseSVD_int = -1384;
 #endif
 #ifndef _defined_id_AidValue
 #define _defined_id_AidValue 1
