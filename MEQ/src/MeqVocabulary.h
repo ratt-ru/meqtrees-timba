@@ -34,6 +34,8 @@
 #pragma aid Cells Results Fail Origin Line Message Contagious  Normalized
 #pragma aid Solvable Config Groups All By List Polcs
 #pragma aid Epsilon UseSVD
+#pragma aid Metrics Rank Fit Errors CoVar Flag Mu StdDev Chi
+
 
 namespace Meq
 {
@@ -94,6 +96,16 @@ namespace Meq
     FNumSteps        = AidNum|AidSteps,
     FEpsilon         = AidEpsilon,
     FUseSVD          = AidUseSVD,
+
+    FMetrics         = AidMetrics,
+    FRank            = AidRank,
+    FFit             = AidFit,
+    FErrors          = AidErrors,
+    FCoVar           = AidCoVar,
+    FFlag            = AidFlag,
+    FMu              = AidMu,
+    FStdDev          = AidStdDev,
+    FChi             = AidChi,
 
     FContagiousFail  = AidContagious|AidFail,
     
