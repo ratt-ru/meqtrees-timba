@@ -30,6 +30,30 @@ def bytescale(data, cmin=None, cmax=None, high=255, low=0):
     bytedata = ((data*1.0-cmin)*scale + 0.4999).astype(UInt8) + asarray(low).astype(UInt8)
     return bytedata 
 
+def flagbytescale(data, flags_array,cmin=None, cmax=None, high=255, low=0):
+    print 'starting flagbytescale'
+    if data.type() == UInt8:
+        return data
+    high = high - low
+    n_rows = flags_array.shape[0]
+    n_cols = flags_array.shape[1]
+    byte_flags_max = 0.0
+    byte_flags_min = 0.0
+    for j in range(0, n_rows ) :
+      for i in range(0, n_cols) :
+        if not flags_array[j][i] > 0:
+          byte_flags_max = max(byte_flags_max, data[j][i])
+          byte_flags_min = min(byte_flags_min, data[j][i])
+    if cmin is None:
+        cmin = byte_flags_min
+    if cmax is None:
+        cmax = byte_flags_max
+    scale = high *1.0 / (cmax-cmin or 1)
+#    print 'starting conversion to bytedata'
+    bytedata = ((data*1.0-cmin)*scale + 0.4999).astype(UInt8) + asarray(low).astype(UInt8)
+#    print 'exiting flagbytescale'
+    return bytedata 
+
 def linearX(nx, ny):
     return repeat(arange(nx, typecode = Float32)[:, NewAxis], ny, -1)
 
@@ -144,6 +168,8 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.display_type = "hippo"
         self.ValueAxis =  None
         self.ComplexColorMap = None
+	self._flags_array = None
+	self._display_flags = False
 
     # __init__()
     
@@ -155,11 +181,41 @@ class QwtPlotImage(QwtPlotMappedItem):
           self.ComplexColorMap = ComplexColorMap(256)
     # setDisplayType
 
+    def setFlagsArray(self, flags_array):
+        self._flags_array = flags_array
+    # setFlagsArray
+
+    def setDisplayFlag(self, display_flags):
+        self._display_flags = display_flags
+    # setDisplayFlag
+
     def setImage(self, image):
+# turm image into a QImage	
         byte_image = bytescale(image)
+	
+	flags_image = None
+	byte_flags_min = 0
+	byte_flags_max = 0
+	byte_flags_range = 0
+	if not self._flags_array is None:
+	  temp_image = image.copy()
+          flags_image = flagbytescale(temp_image, self._flags_array)
+          n_rows = self._flags_array.shape[0]
+          n_cols = self._flags_array.shape[1]
+	  for j in range(0, n_rows ) :
+	    for i in range(0, n_cols) :
+	      if not self._flags_array[j][i] > 0:
+	        byte_flags_max = max(byte_flags_max, flags_image[j][i])
+	        byte_flags_min = min(byte_flags_min, flags_image[j][i])
+	  byte_flags_range = byte_flags_max - byte_flags_min
+
         byte_range = 1.0 * (byte_image.max() - byte_image.min())
+#	print 'byte_flags_range byte_range ', byte_flags_range, ' ', byte_range
         byte_min = 1.0 * (byte_image.min())
+#	print 'byte_flags_min byte_min ', byte_flags_min, ' ', byte_min
         self.image = toQImage(byte_image).mirror(0, 1)
+	if not flags_image is None:
+          self.byte_flags_image = toQImage(flags_image).mirror(0, 1)
 
 # set color scale a la HippoDraw Scale
         if self.display_type == "hippo":
@@ -194,11 +250,59 @@ class QwtPlotImage(QwtPlotMappedItem):
 # the following call will use the previous computations to
 # set up a hippo-like color display
             self.image.setColor(i, qRgb(red, green, blue))
+	  if not self._flags_array is None:
+            dv = byte_flags_range
+            vmin = byte_flags_min
+            for i in range(0, 256):
+              r = 1.0
+              g = 1.0
+              b = 1.0
+              v = 1.0 * i
+              if (v < (vmin + 0.25 * dv)):
+                r = 0;
+                if dv != 0:
+                  g = 4 * (v - vmin) / dv;
+              elif (v < (vmin + 0.5 * dv)):
+                r = 0;
+                if dv != 0:
+                  b = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
+              elif (v < (vmin + 0.75 * dv)):
+                b = 0;
+                if dv != 0:
+                  r = 4 * (v - vmin - 0.5 * dv) / dv;
+              else: 
+                b = 0;
+                if dv != 0:
+                  g = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
+                else:
+                  r = 0
+              red   = int ( r * 255. )
+              green = int ( g * 255. )
+              blue  = int ( b * 255. )
+# the following call will use the previous computations to
+# set up a hippo-like color display
+              self.byte_flags_image.setColor(i, qRgb(red, green, blue))
 
 # the following call will set up gray scale
         if self.display_type == "grayscale":
           for i in range(0, 256):
             self.image.setColor(i, qRgb(i, i, i))
+
+# compute flagged array
+        if not self._flags_array is None:
+          n_rows = self._flags_array.shape[0]
+          n_cols = self._flags_array.shape[1]
+	  for j in range(0, n_rows ) :
+	    for i in range(0, n_cols) :
+# display is mirrored in vertical direction	    
+	      mirror_col = n_cols-1-i
+	      if self._flags_array[j][i] > 0:
+ 	        self.byte_flags_image.setPixel(j,mirror_col,0)
+# display flag image pixels in black 
+          self.byte_flags_image.setColor(0, qRgb(0, 0, 0))
+
+#for testing only
+# 	  self.image = self.flag_image
 
     def setBrentjensImage(self, image):
       absmin = abs(image.min())
@@ -206,7 +310,6 @@ class QwtPlotImage(QwtPlotMappedItem):
       if (absmin > MaxAbs):
         MaxAbs = absmin
       self.ValueAxis.calcTransferFunction(-MaxAbs, MaxAbs, 0, self.ComplexColorMap.getNumberOfColors()-1)
-
 
       if image.min() != image.max():
 # get real and imaginary arrays
@@ -295,7 +398,11 @@ class QwtPlotImage(QwtPlotMappedItem):
 #        x2 = min(self.image.width(), (x2+0.5))
 #        print 'x1, x2 ', x1, ' ', x2
         # copy
-        image = self.image.copy(x1, y1, x2-x1, y2-y1)
+	image = None
+	if self._display_flags:
+          image = self.byte_flags_image.copy(x1, y1, x2-x1, y2-y1)
+	else:
+          image = self.image.copy(x1, y1, x2-x1, y2-y1)
         # zoom
         image = image.smoothScale(xMap.i2()-xMap.i1()+1, yMap.i1()-yMap.i2()+1)
         # draw
@@ -323,6 +430,8 @@ class QwtImagePlot(QwtPlot):
 
         self._first_plot = True
         self._vells_plot = False
+	self._flags_array = None
+	self.flag_toggle = False
 
 # save raw data
         self.plot_key = plot_key
@@ -452,6 +561,10 @@ class QwtImagePlot(QwtPlot):
                                QMessageBox.NoButton,
                                QMessageBox.NoButton)
               mb_msg.exec_loop()
+          if self._vells_rec.vellsets[i].has_key("flags"):
+            self._label = "toggle flagged data for plane " + str(i) 
+	    toggle_id = 200
+            self._menu.insertItem(self._label,toggle_id)
 
         zoom = QAction(self);
         zoom.setIconSet(pixmaps.viewmag.iconset());
@@ -462,7 +575,7 @@ class QwtImagePlot(QwtPlot):
         printer.setText("Print plot");
         QObject.connect(printer,SIGNAL("activated()"),self.printplot);
         printer.addTo(self._menu);
-    # end plot_vells_data()
+    # end initVellsContextMenu()
 
     def unzoom(self):
         self.zooming = 0
@@ -478,6 +591,16 @@ class QwtImagePlot(QwtPlot):
       if menuid < 0:
         self.unzoom()
         return
+
+# toggle flags display	
+      if menuid == 200:
+        if self.flag_toggle == False:
+          self.flag_toggle = True
+        else:
+          self.flag_toggle = False
+        self.plotImage.setDisplayFlag(self.flag_toggle)
+        self.replot()
+	return
 
       id_string = self._next_plot[menuid]
       perturb = -1
@@ -613,9 +736,6 @@ class QwtImagePlot(QwtPlot):
             self._menu.popup(e.globalPos());
 
         elif Qt.MidButton == e.button():
-#            if self._vells_plot:
-#              print 'cross sections for vells are a work in progress!'
-#              return
             if self.active_image:
               xpos = e.pos().x()
               ypos = e.pos().y()
@@ -642,12 +762,17 @@ class QwtImagePlot(QwtPlot):
                 self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
                 plot_curve=self.curve(self.xCrossSection)
                 plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, 
-                   QBrush(Qt.red), QPen(Qt.red), QSize(5,5)))
+                   QBrush(Qt.black), QPen(Qt.black), QSize(10,10)))
               self.enableAxis(QwtPlot.yRight)
               self.setAxisTitle(QwtPlot.yRight, 'cross-section value')
               self.setCurveYAxis(self.xCrossSection, QwtPlot.yRight)
               if self._vells_plot:
-                self.setCurveXAxis(self.xCrossSection, QwtPlot.xTop)
+                delta_vells = self.vells_end_freq - self.vells_start_freq
+                x_step = delta_vells / shape[0] 
+                start_freq = self.vells_start_freq + 0.5 * x_step
+                for i in range(shape[0]):
+                  self.x_index[i] = start_freq + i * x_step
+#                self.setCurveXAxis(self.xCrossSection, QwtPlot.xTop)
 #                self.setAxisAutoScale(QwtPlot.xTop)
               self.setAxisAutoScale(QwtPlot.yRight)
               self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
@@ -842,13 +967,13 @@ class QwtImagePlot(QwtPlot):
 
     def calc_vells_ranges(self):
                                                                                 
-      vells_start_freq = self._vells_rec.cells.domain.freq[0] 
-      vells_end_freq  =  self._vells_rec.cells.domain.freq[1]
-      vells_start_time = self._vells_rec.cells.domain.time[0] 
-      vells_end_time  =  self._vells_rec.cells.domain.time[1]
+      self.vells_start_freq = self._vells_rec.cells.domain.freq[0] 
+      self.vells_end_freq  =  self._vells_rec.cells.domain.freq[1]
+      self.vells_start_time = self._vells_rec.cells.domain.time[0] 
+      self.vells_end_time  =  self._vells_rec.cells.domain.time[1]
 
-      self.vells_freq = (vells_start_freq,vells_end_freq)
-      self.vells_time = (vells_start_time,vells_end_time)
+      self.vells_freq = (self.vells_start_freq,self.vells_end_freq)
+      self.vells_time = (self.vells_start_time,self.vells_end_time)
 
                                                                                 
     def plot_vells_data (self, vells_record):
@@ -872,6 +997,23 @@ class QwtImagePlot(QwtPlot):
         _dprint(3, 'number of planes ', number_of_planes)
         if self._vells_rec.vellsets[0].has_key("shape"):
           self._shape = self._vells_rec.vellsets[0]["shape"]
+
+# do we have flags for data	  
+        if self._vells_rec.vellsets[0].has_key("flags"):
+# test if we have a numarray
+          try:
+            self._flags_array = self._vells_rec.vellsets[0].flags
+            _dprint(3, 'self._flags_array ', self._flags_array)
+            array_shape = self._flags_array.shape
+            if len(array_shape) == 1 and array_shape[0] == 1:
+              temp_value = self._flags_array[0]
+              temp_array = numarray.asarray(temp_value)
+              self._flags_array = numarray.resize(temp_array,self._shape)
+          except:
+            temp_array = numarray.asarray(self._vells_rec.vellsets[0].flags)
+            self._flags_array = numarray.resize(temp_array,self._shape)
+          self.plotImage.setFlagsArray(self._flags_array)
+
 # plot the first plane member
         if self._vells_rec.vellsets[0].has_key("value"):
           complex_type = False;
@@ -939,6 +1081,8 @@ class QwtImagePlot(QwtPlot):
       self.setTitle(data_label)
 
 # figure out type and rank of incoming array
+      is_time = False
+      is_frequency = False
       self.is_vector = False;
       array_dim = len(plot_array.shape)
       array_rank = plot_array.rank
@@ -947,11 +1091,13 @@ class QwtImagePlot(QwtPlot):
       n_rows = plot_array.shape[0]
       if n_rows == 1:
         self.is_vector = True
+        is_time = True
       n_cols = 1
       if array_rank == 2:
         n_cols = plot_array.shape[1]
         if n_cols == 1:
           self.is_vector = True
+          is_frequency = True
 
 # test for real or complex
       complex_type = False;
@@ -1004,17 +1150,34 @@ class QwtImagePlot(QwtPlot):
           self.display_image(plot_array)
 
       if self.is_vector == True:
-        self.active_image = False
-        flattened_array = None
-        if self._vells_plot:
-          self.setAxisTitle(QwtPlot.xBottom, 'Frequency')
-        else:
-          self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
 # make sure we are autoscaling in case an image was previous
         self.setAxisAutoScale(QwtPlot.xBottom)
         self.setAxisAutoScale(QwtPlot.yLeft)
         self.setAxisAutoScale(QwtPlot.yRight)
+
+        self.active_image = False
         num_elements = n_rows*n_cols
+        if self._vells_plot:
+          if is_frequency:
+            self.setAxisTitle(QwtPlot.xBottom, 'Frequency')
+            delta_vells = self.vells_end_freq - self.vells_start_freq
+            x_step = delta_vells / n_rows 
+            start_freq = self.vells_start_freq + 0.5 * x_step
+            self.x_index = zeros(num_elements, Float32)
+            for j in range(n_rows):
+              self.x_index[j] = start_freq + j * x_step
+          else:
+            self.setAxisTitle(QwtPlot.xBottom, 'Time')
+            delta_vells = self.vells_end_time - self.vells_start_time
+            x_step = delta_vells / n_cols 
+            start_time = self.vells_start_time + 0.5 * x_step
+            self.x_index = zeros(num_elements, Float32)
+            for j in range(n_cols):
+              self.x_index[j] = start_time + j * x_step
+        else:
+          self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
+          self.x_index = arange(num_elements)
+          self.x_index = self.x_index + 0.5
         flattened_array = reshape(plot_array,(num_elements,))
 # we have a complex vector
         if complex_type:
@@ -1029,14 +1192,12 @@ class QwtImagePlot(QwtPlot):
           self.setCurveYAxis(self.yCrossSection, QwtPlot.yRight)
           plot_curve=self.curve(self.xCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
-                     QPen(Qt.red), QSize(5,5)))
+                     QPen(Qt.red), QSize(10,10)))
           plot_curve=self.curve(self.yCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.green),
-                     QPen(Qt.green), QSize(5,5)))
+                     QPen(Qt.green), QSize(10,10)))
           self.x_array =  flattened_array.getreal()
           self.y_array =  flattened_array.getimag()
-          self.x_index = arange(num_elements)
-          self.x_index = self.x_index + 0.5
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
           self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
           if not self.dummy_xCrossSection is None:
@@ -1047,8 +1208,6 @@ class QwtImagePlot(QwtPlot):
           self.enableAxis(QwtPlot.yRight, False)
           self.x_array = zeros(num_elements, Float32)
           self.y_array = zeros(num_elements, Float32)
-          self.x_index = arange(num_elements)
-          self.x_index = self.x_index + 0.5
           self.x_array =  flattened_array
           self.xCrossSection = self.insertCurve('xCrossSection')
           self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
@@ -1056,7 +1215,7 @@ class QwtImagePlot(QwtPlot):
           self.setCurveYAxis(self.xCrossSection, QwtPlot.yLeft)
           plot_curve=self.curve(self.xCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
-                     QPen(Qt.red), QSize(5,5)))
+                     QPen(Qt.red), QSize(10,10)))
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
           if not self.dummy_xCrossSection is None:
             self.removeCurve(self.dummy_xCrossSection)
@@ -1065,11 +1224,11 @@ class QwtImagePlot(QwtPlot):
         _dprint(2, 'called replot in array_plot');
     # array_plot()
 
-    def start_timer(self, time, test_complex, display_type):
+    def start_test_timer(self, time, test_complex, display_type):
       self.test_complex = test_complex
       self.setDisplayType(display_type)
       self.startTimer(time)
-     # start_timer()
+     # start_test_timer()
                                                                                 
     def timerEvent(self, e):
       if self.test_complex:
@@ -1119,7 +1278,7 @@ def make():
     demo.resize(500, 300)
     demo.show()
 # uncomment the following
-    demo.start_timer(5000, False, "grayscale")
+    demo.start_test_timer(5000, False, "grayscale")
 
 # or
 # uncomment the following three lines
