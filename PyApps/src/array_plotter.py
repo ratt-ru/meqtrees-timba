@@ -21,10 +21,8 @@ class ArrayPlotter(BrowserPlugin):
     """ instantiate various HippoDraw objects that are needed to
         control various aspects of plotting """
 
-
-# used for 'standalone display'
-    self._Qlabel = QLabel("",parent);
-    self._plotter = QwtImagePlot('plot_key')
+# create the plotter
+    self._plotter = QwtImagePlot('plot_key', parent)
     self._plotter.show()
 
 # have Hippo window close without asking permission to discard etc
@@ -36,8 +34,7 @@ class ArrayPlotter(BrowserPlugin):
     print "in destructor"
                                                                                            
   def wtop (self):
-    return self._Qlabel
-#    return self.__plotter
+    return self._plotter
 
   def set_data (self,dataitem,default_open=None,**opts):
     """ this function is the callback interface to the meqbrowser and
@@ -60,7 +57,7 @@ class ArrayPlotter(BrowserPlugin):
         for j in range(shape[1]):
           temp_array[k,j] = real_array[k,j]
           temp_array[k+shape[0],j] = imag_array[k,j]
-      self._plotter.array_plot('complex data value', real_array)
+      self._plotter.array_plot('complex data value', temp_array)
     else:
       self._plotter.array_plot('real data value', dataitem.data)
     
