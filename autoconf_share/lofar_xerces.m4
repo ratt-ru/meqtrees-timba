@@ -39,5 +39,5 @@ AC_DEFUN(lofar_XERCES,dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], define(DEFAULT_XERCES_PREFIX,[/usr/local/xerces]), define(DEFAULT_XERCES_PREFIX,$1))
-lofar_EXTERNAL(XERCES,1,xercesc/sax2,,DEFAULT_XERCES_PREFIX)
+lofar_EXTERNAL(XERCES,0,xercesc/sax2,,DEFAULT_XERCES_PREFIX)
 ])
