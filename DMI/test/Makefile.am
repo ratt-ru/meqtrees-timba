@@ -1,8 +1,6 @@
 CXXFLAGS += -Wno-unknown-pragmas
 
-INCLUDES			= -I$(top_srcdir)/src \
-                -I$(lofar_sharedir)/../CEP/CPA/PSCF/src \
-                -I$(lofar_sharedir)/../src-links
+INCLUDES			= -I$(lofar_sharedir)/../CEP/CPA/PSCF/src
 
 check_PROGRAMS			= test_dmi tDataArray
 
@@ -12,9 +10,14 @@ test_dmi_LDADD			= $(top_builddir)/src/libdmi.la
 tDataArray_SOURCES 		= tDataArray.cc
 tDataArray_LDADD		= $(top_builddir)/src/libdmi.la
 
-TESTS				= test_dmi tDataArray
+TESTS	=					\
+	test_dmi				\
+	tDataArray_test.sh			
 
-EXTRA_DIST			=
+EXTRA_DIST = 					\
+	tDataArray_test.sh			\
+	tDataArray.out				
+
 
 # script used to generate AID maps
 MAPBUILDER = $(top_srcdir)/src/build_aid_maps.pl 
