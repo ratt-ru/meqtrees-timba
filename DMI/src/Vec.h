@@ -260,6 +260,9 @@ class Vec : public Container
       // cached blockset header (+data, for binary types)
       mutable BlockRef headref_;
       mutable HeaderBlock * phead_;
+      
+      // "empty" header used for uninitialized fields
+      mutable BlockRef emptyhdr_;
 };
 
 //##ModelId=3DB9343B0254

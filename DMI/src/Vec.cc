@@ -248,6 +248,7 @@ void DMI::Vec::resize (int newsize)
 void DMI::Vec::clear ()
 {
   Thread::Mutex::Lock _nclock(mutex());
+  emptyhdr_.detach();
   if( spvec )
   {
     Assert(spdelete);
@@ -449,8 +450,16 @@ int DMI::Vec::toBlock (BlockSet &set) const
       switch( objstate[i] )
       {
         case UNINITIALIZED: // if uninitialized, then do nothing
-            dprintf(3)("toBlock: [%d] is uninitialized, 0 blocks\n",i);
-            nb = 0;
+            dprintf(3)("toBlock: [%d] is uninitialized, 1 header block\n",i);
+            if( !emptyhdr_.valid() )
+            {
+              emptyhdr_ <<= new SmartBlock(sizeof(BObj::Header),DMI::ZERO);
+              BObj::Header * hdr = emptyhdr_().pdata<Header>();
+              hdr->tid = mytype;
+              hdr->blockcount = 1;
+            }
+            set.push(emptyhdr_);
+            nb = 1;
             break;
         case INBLOCK:
             npushed += nb = blocks[i].size();

@@ -51,7 +51,7 @@ public:
   // The integrated flag specifies whether the result is an integration
   // over the specified cells, or a sampling at the cell center.  
     //##ModelId=3F86887000CE
-  explicit Result (int nresults=1,bool integrated=false);
+  explicit Result (int nresults=0,bool integrated=false);
   
     //##ModelId=3F8688700151
   explicit Result (const Request &req,bool integrated=false);

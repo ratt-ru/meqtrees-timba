@@ -143,7 +143,10 @@ void Result::setIsIntegrated (bool integrated)
 {
   Thread::Mutex::Lock lock(mutex());
   is_integrated_ = integrated;
-  (*this)[FIntegrated] = integrated;
+  if( integrated )
+    (*this)[FIntegrated] = integrated;
+  else
+    Record::removeField(FIntegrated,true);
 }
 
 VellSet & Result::setNewVellSet (int i,int nspids,int npertsets)
