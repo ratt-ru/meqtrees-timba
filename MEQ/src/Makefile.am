@@ -19,7 +19,6 @@ Parm.cc Freq.cc Time.cc Selector.cc Composer.cc \
 Add.cc Subtract.cc Multiply.cc Divide.cc \
 Sin.cc Cos.cc Exp.cc Pow.cc Sqr.cc Sqrt.cc Conj.cc ToComplex.cc \
 UVW.cc Request.cc \
-Condeq.cc \
 Forest.cc ParmTable.cc \
 AID-Meq-Registry.cc
 
