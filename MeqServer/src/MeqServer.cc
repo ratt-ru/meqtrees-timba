@@ -625,6 +625,7 @@ void MeqServer::processCommands ()
     DataRecord::Ref retval(DMI::ANONWR);
     bool have_error = true;
     string error_str;
+    int oldstate = control().state();
     try
     {
       request_id = cmddata[FRequestId].as<int>(0);
@@ -657,6 +658,7 @@ void MeqServer::processCommands ()
       have_error = true;
       error_str = "unknown exception while processing command";
     }
+    control().setState(oldstate);
     // send back reply if quiet flag has not been raised;
     // errors are always sent back
     if( !silent || have_error )
