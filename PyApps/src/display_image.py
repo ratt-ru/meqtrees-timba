@@ -261,39 +261,39 @@ class QwtPlotImage(QwtPlotMappedItem):
         Calculate (x1, y1, x2, y2) so that it contains at least 1 pixel,
         and copy the visible region to scale it to the canvas.
         """
-        print 'in drawImage'
-        print 'incoming x map ranges ',xMap.d1(), ' ', xMap.d2()
-        print 'incoming y map ranges ',yMap.d1(), ' ', yMap.d2()
+#        print 'in drawImage'
+#        print 'incoming x map ranges ',xMap.d1(), ' ', xMap.d2()
+#        print 'incoming y map ranges ',yMap.d1(), ' ', yMap.d2()
         # calculate y1, y2
         y1 = y2 = self.image.height()
 #        y1 = y2 = self.image.height() - 1
-        print 'starting image height ', y1
+#        print 'starting image height ', y1
         y1 *= (self.yMap.d2() - yMap.d2())
         y1 /= (self.yMap.d2() - self.yMap.d1())
-        print 'float y1 ', y1
+#        print 'float y1 ', y1
         y1 = max(0, int(y1-0.5))
 #        y1 = max(0, (y1-0.5))
         y2 *= (self.yMap.d2() - yMap.d1())
         y2 /= (self.yMap.d2() - self.yMap.d1())
-        print 'float y2 ', y2
+#        print 'float y2 ', y2
         y2 = min(self.image.height(), int(y2+0.5))
 #        y2 = min(self.image.height(), (y2+0.5))
-        print 'y1, y2 ', y1, ' ', y2
+#        print 'y1, y2 ', y1, ' ', y2
         # calculate x1, x1
         x1 = x2 = self.image.width() 
 #        x1 = x2 = self.image.width() - 1
-        print 'starting image width ', x1
+#        print 'starting image width ', x1
         x1 *= (xMap.d1() - self.xMap.d1())
         x1 /= (self.xMap.d2() - self.xMap.d1())
-        print 'float x1 ', x1
+#        print 'float x1 ', x1
         x1 = max(0, int(x1-0.5))
 #        x1 = max(0, (x1-0.5))
         x2 *= (xMap.d2() - self.xMap.d1())
         x2 /= (self.xMap.d2() - self.xMap.d1())
-        print 'float x2 ', x2
+#        print 'float x2 ', x2
         x2 = min(self.image.width(), int(x2+0.5))
 #        x2 = min(self.image.width(), (x2+0.5))
-        print 'x1, x2 ', x1, ' ', x2
+#        print 'x1, x2 ', x1, ' ', x2
         # copy
         image = self.image.copy(x1, y1, x2-x1, y2-y1)
         # zoom
@@ -429,8 +429,7 @@ class QwtImagePlot(QwtPlot):
         for i in range(number_of_planes):
           id = id + 1
           if self._vells_rec.vellsets[i].has_key("value"):
-            key = " value"
-            self._label = "go to plane " + str(i) + key 
+            self._label = "go to plane " + str(i) + " value" 
             self._next_plot[id] = self._label
             self._menu.insertItem(self._label,id)
           if self._vells_rec.vellsets[i].has_key("perturbed_value"):
@@ -495,7 +494,6 @@ class QwtImagePlot(QwtPlot):
       self._shape = self._vells_rec.vellsets[plane]["shape"]
 # handle "value" first
       if perturb < 0 and self._vells_rec.vellsets[plane].has_key("value"):
-        key = " value "
         complex_type = False;
 # test if we have a numarray
         try:
@@ -518,6 +516,7 @@ class QwtImagePlot(QwtPlot):
           if self._value_array.type() == Complex64:
             complex_type = True;
 
+        key = " value "
         if complex_type:
           _dprint(3,'handling complex array')
 #extract real component
@@ -706,8 +705,8 @@ class QwtImagePlot(QwtPlot):
 
     def display_image(self, image):
       if self._vells_plot:
-        print ' vells ranges ', self.vells_freq, ' ', self.vells_time
-        print ' corresponding image shape ', image.shape
+#        print ' vells ranges ', self.vells_freq, ' ', self.vells_time
+#        print ' corresponding image shape ', image.shape
         self.plotImage.setData(image, self.vells_freq, self.vells_time)
       else:
         self.plotImage.setData(image)
@@ -875,7 +874,6 @@ class QwtImagePlot(QwtPlot):
           self._shape = self._vells_rec.vellsets[0]["shape"]
 # plot the first plane member
         if self._vells_rec.vellsets[0].has_key("value"):
-          key = " value "
           complex_type = False;
 # test if we have a numarray
           try:
