@@ -446,8 +446,6 @@ int DMI::Vec::toBlock (BlockSet &set) const
     for( int i=0; i<mysize_; i++ )
     {
       int nb;
-      if( !objects[i].valid() )
-        objstate[i] = UNINITIALIZED;
       switch( objstate[i] )
       {
         case UNINITIALIZED: // if uninitialized, then do nothing
@@ -458,13 +456,21 @@ int DMI::Vec::toBlock (BlockSet &set) const
             npushed += nb = blocks[i].size();
             dprintf(3)("toBlock: [%d] still cached in %d blocks, copying\n",i,nb);
             set.pushCopy(blocks[i]);
-            npushed += nb;
             break;
         case UNBLOCKED:
         case MODIFIED:
             blocks[i].clear();
-            npushed += nb = objects[i]->toBlock(set);
-            dprintf(3)("toBlock: [%d] converted to %d blocks\n",i,nb);
+            if( objects[i].valid() )
+            {
+              npushed += nb = objects[i]->toBlock(set);
+              dprintf(3)("toBlock: [%d] converted to %d blocks\n",i,nb);
+            }
+            else
+            {
+              dprintf(3)("toBlock: [%d] is uninitialized, 0 blocks\n",i);
+              objstate[i] = UNINITIALIZED;
+              nb = 0;
+            }
             break;
         default:
             Throw("inconsistent object state");

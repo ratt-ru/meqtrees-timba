@@ -328,9 +328,16 @@ void MeqServer::saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
     Throw1("can't execute Save.Forest while debugging");
   string filename = (*in)[FFileName].as<string>();
   cdebug(1)<<"saving forest to file "<<filename<<endl;
+  postMessage(ssprintf("saving forest to file %s, please wait",filename.c_str()));
   BOIO boio(filename,BOIO::WRITE);
   int nsaved = 0;
+  // write header record
+  DMI::Record header;
+  header["Forest.Header.Version"] = 1;
+  boio << header;
+  // write forest state
   boio << forest.state();
+  // write all nodes
   for( int i=1; i<=forest.maxNodeIndex(); i++ )
     if( forest.valid(i) )
     {
@@ -353,17 +360,40 @@ void MeqServer::loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
     Throw1("can't execute Load.Forest while debugging");
   string filename = (*in)[FFileName].as<string>();
   cdebug(1)<<"loading forest from file "<<filename<<endl;
-  BOIO boio(filename,BOIO::READ);
+  postMessage(ssprintf("loading forest from file %s, please wait",filename.c_str()));
   forest.clear();
   int nloaded = 0;
   DMI::Record::Ref ref;
-  // get forest state out first
+  std::string fmessage;
+  // open file
+  BOIO boio(filename,BOIO::READ);
+  // get header record out
   if( ! (boio >> ref) )
   {
-    Throw("no forest state in file");
+    Throw("no records in file");
   }
-  forest.setState(ref,true);
-  while( boio >> ref )
+  // is this a version record?
+  int version = ref["Forest.Header.Version"].as<int>(-1);
+  if( version >=1 )
+  {
+    // version 1+: forest state comes first
+    if( !(boio >> ref) )
+    {
+      Throw("no forest state in file");
+    }
+    forest.setState(ref,true);
+    // then get next node record for loop below
+    if( !(boio >> ref) )
+      ref.detach();
+    fmessage = "loaded %d nodes and forest state from file %s";
+  }
+  else
+  {
+    // else version 0: nothing but node records in here, so fall through
+    fmessage = "loaded %d nodes from old-style file %s";
+  }
+  // ok, at this point we expect a bunch of node records
+  do
   {
     int nodeindex;
     // create the node, while
@@ -371,6 +401,7 @@ void MeqServer::loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
     cdebug(3)<<"loaded node "<<node.name()<<endl;
     nloaded++;
   }
+  while( boio >> ref );
   cdebug(2)<<"loaded "<<nloaded<<" nodes, setting child links"<<endl;
   for( int i=1; i<=forest.maxNodeIndex(); i++ )
     if( forest.valid(i) )
@@ -379,8 +410,7 @@ void MeqServer::loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
       cdebug(3)<<"setting children for node "<<node.name()<<endl;
       node.relinkChildren();
     }
-  out[AidMessage] = ssprintf("loaded %d nodes from file %s",
-      nloaded,filename.c_str());
+  out[AidMessage] = ssprintf(fmessage.c_str(),nloaded,filename.c_str());
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
   out[FForestChanged] = true;
 }
@@ -538,6 +568,16 @@ int MeqServer::receiveEvent (const EventIdentifier &evid,const ObjRef &evdata,vo
   cdebug(4)<<"received event "<<evid.id()<<endl;
   control().postEvent(evid.id(),evdata);
   return 1;
+}
+
+void MeqServer::postMessage (const std::string &msg,const HIID &type,AtomicID category)
+{
+  DMI::Record::Ref out(new DMI::Record);
+  if( type == HIID(AidError) )
+    out[AidError] = msg;
+  else
+    out[AidMessage] = msg;
+  control().postEvent(type,out,category);
 }
 
 void MeqServer::reportNodeStatus (Node &node,int oldstat,int newstat)

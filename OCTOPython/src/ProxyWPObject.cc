@@ -286,27 +286,61 @@ static PyObject * PyProxyWP_receive_threaded (PyProxyWP* self,PyObject *args)
     Message::Ref mref;
     WPInterface &wp = self->wpref();
     Thread::Mutex::Lock lock(wp.queueCondition());
-    // wait for something to arrive in queue (if asked to)
-    while( wp.queue().empty() )
+    if( !wp.isRunning() )
     {
-      Py_BEGIN_ALLOW_THREADS
-      if( !wp.isRunning() )
-        returnError(NULL,OctoPython,"proxy wp no longer running");
-      // timeout>=0: return None if queue is empty
-      if( timeout>=0 )
+      returnError(NULL,OctoPython,"proxy wp no longer running");
+    }
+    // else already have something in queue -- get it out
+    else if( !wp.queue().empty() )
+    {
+      mref = wp.queue().front().mref;
+      wp.queue().pop_front();
+      lock.release();
+    }
+    else if( timeout != 0 ) // queue is empty but we can wait
+    {
+      // release GIL
+      Py_BEGIN_ALLOW_THREADS 
+      // need to release the queue lock before attempting to reacquire GIL
+      // (deadlock with send thread may occur otherwise), hence releasing
+      // the queue lock is also our exit condition
+      while( lock.locked() )
       {
+        // timeout>0: wait with timeout
         if( timeout>0 )
           wp.queueCondition().wait(timeout);
-        if( wp.queue().empty() )
-          returnNone;
+        else if( timeout<0 ) // timeout<0: wait indefinitely
+          wp.queueCondition().wait();
+        // check that WP is not stopped
+        if( !wp.isRunning() )
+          lock.release();
+        // is queue still empty?
+        else if( wp.queue().empty() )
+        {
+          if( timeout>0 ) // we had a limited timeout, so release lock to exit loop
+            lock.release();
+          // else go back for one more wait
+        }
+        else // something in queue, hurrah!
+        {
+          mref = wp.queue().front().mref;
+          wp.queue().pop_front();
+          lock.release();
+        }
       }
-      else // timeout<0: wait indefinitely
-        wp.queueCondition().wait();
-      Py_END_ALLOW_THREADS
+      Py_END_ALLOW_THREADS 
     }
-    // pop first message and return it
-    mref = wp.queue().front().mref;
-    wp.queue().pop_front();
+    // wp not running, return error
+    if( !wp.isRunning() )
+    {
+      returnError(NULL,OctoPython,"proxy wp no longer running");
+    }
+    // no message received, return None
+    else if( !mref.valid() )  
+    {
+      returnNone;
+    }
+    // got a message, return it
     PyObject * py_msg = pyFromMessage(*mref);
     return py_msg;
   }

@@ -11,7 +11,7 @@
 #pragma aid Node Name NodeIndex MeqServer
 #pragma aid Create Delete Get Set State Request Resolve Child Children List
 #pragma aid App Command Args Result Data Processing Error Message Code
-#pragma aid Execute Clear Cache Save Load Forest Recursive 
+#pragma aid Execute Clear Cache Save Load Forest Recursive Forest Header Version 
 #pragma aid Publish Results Enable Disable Event Id Silent Idle Stream 
 #pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Level
 #pragma aid Get Forest Status Stack Running Changed All Disabled Publishing
@@ -94,6 +94,9 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     void debugUntilNode     (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
     virtual int receiveEvent (const EventIdentifier &evid,const ObjRef &,void *);
+
+    // posts a message or error event (with type==AidError) to the control agent
+    void postMessage (const std::string &msg,const HIID &type = AidMessage,AtomicID category = AidNormal);
     
     //##ModelId=3F5F195E0156
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;

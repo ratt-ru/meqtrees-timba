@@ -168,6 +168,11 @@ const int AidGrid_int = -1302;
 const DMI::AtomicID AidGroup(-1166);              // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:33
 const int AidGroup_int = -1166;
 #endif
+#ifndef _defined_id_AidHeader
+#define _defined_id_AidHeader 1
+const DMI::AtomicID AidHeader(-1201);             // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
+const int AidHeader_int = -1201;
+#endif
 #ifndef _defined_id_AidId
 #define _defined_id_AidId 1
 const DMI::AtomicID AidId(-1208);                 // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
@@ -412,6 +417,11 @@ const int AidUVW_int = -1123;
 #define _defined_id_AidUntil 1
 const DMI::AtomicID AidUntil(-1475);              // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:16
 const int AidUntil_int = -1475;
+#endif
+#ifndef _defined_id_AidVersion
+#define _defined_id_AidVersion 1
+const DMI::AtomicID AidVersion(-1512);            // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:14
+const int AidVersion_int = -1512;
 #endif
 #ifndef _defined_id_AidVisHandlerNode
 #define _defined_id_AidVisHandlerNode 1
