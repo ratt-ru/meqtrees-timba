@@ -103,7 +103,7 @@ else
     AIPSPP_LDFLAGS="-L$AIPSPP_PATH/$AIPSPP_ARCH/lib"
     # For one reason or another -ltrial -laips links in a lot of rubbish
     # (like MiriadImage). Therefore do -laips first.
-    AIPSPP_LIBS="$AIPSPP_PATH/$AIPSPP_ARCH/lib/version.o -laips -ltrial -ltrial_f -laips -laips_f -lglish -lsos -lnpd"
+    AIPSPP_LIBS="$AIPSPP_PATH/$AIPSPP_ARCH/lib/version.o -laips -ltrial -ltrial_f -laips -laips_f -lwcs w-lglish -lsos -lnpd"
 
     if test "$with_pgplot" != "no"; then
       ]AC_CHECK_FILE([$with_pgplot],
