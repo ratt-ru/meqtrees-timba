@@ -15,33 +15,121 @@ DoForAllArrayRanks(_regrank,);
 // Defines the TypeInfo registry    
 DefineRegistry(TypeInfoReg,TypeInfo::NONE);
 
-// This is a templated implementation of a type converter 
-// Implemented as a template (but can be re-done explicitly by manually
-// definining a shitload of functions
+// -----------------------------------------------------------------------
+// type converter, scalar-scalar
+// -----------------------------------------------------------------------
+//--- templated implementation of a type converter, scalar to scalar
 template<class From,class To> 
-void _convertScalar( const void * from,void * to )
+bool _convertScaSca (const void * from,void * to)
 { 
-  *static_cast<To*>(to) = (To) *static_cast<const From *>(from); 
+  *static_cast<To*>(to) = To(*static_cast<const From *>(from)); 
+  return True;
+}
+//    special case for complex: use real part
+template<class From,class To> 
+bool _convertComplexScaSca (const void * from,void * to)
+{ 
+  *static_cast<To*>(to) = To(static_cast<const From *>(from)->real()); 
+  return True;
+}
+//--- convert scalar to single-element vector
+template<class From,class To> 
+bool _convertScaVec (const void * from,void * to)
+{ 
+  blitz::Array<To,1> &arr = *static_cast<blitz::Array<To,1>*>(to);
+  if( arr.numElements() != 1 )
+    return False;
+  *(arr.data()) = To(*static_cast<const From *>(from)); 
+  return True;
+}
+//    special case for complex: use real part
+template<class From,class To> 
+bool _convertComplexScaVec (const void * from,void * to)
+{ 
+  blitz::Array<To,1> &arr = *static_cast<blitz::Array<To,1>*>(to);
+  if( arr.numElements() != 1 )
+    return False;
+  *(arr.data()) = To(static_cast<const From *>(from)->real()); 
+  return True;
+}
+//--- convert single-element vector to scalar
+template<class From,class To> 
+bool _convertVecSca (const void * from,void * to)
+{ 
+  const blitz::Array<From,1> &arr = *static_cast<const blitz::Array<From,1>*>(from);
+  if( arr.numElements() != 1 )
+    return False;
+  *static_cast<To*>(to) = To(*(arr.data()));
+  return True;
+}
+//    special case for complex: use real part
+template<class From,class To> 
+bool _convertComplexVecSca (const void * from,void * to)
+{ 
+  const blitz::Array<From,1> &arr 
+      = *static_cast<const blitz::Array<From,1>*>(from);
+  if( arr.numElements() != 1 )
+    return False;
+  *static_cast<To*>(to) = To(arr.data()->real());
+  return True;
 }
 
-template<class From,class To> 
-void _convertComplex( const void * from,void * to )
-{ 
-  *static_cast<To*>(to) = (To) static_cast<const From *>(from)->real(); 
-}
-
-//template<> 
-//void _convertScalar<dcomplex,class To>( const void * from,void * to )
-//{ 
-//  *static_cast<To*>(to) = (To) static_cast<const dcomplex *>(from)->real(); 
-//}
-
-// This defines the conversion matrix
+// This defines the conversion matrices
 #undef From
-#define From(type,arg) _convertScalar<arg,type>
+#define From(type,arg) _convertScaSca<arg,type>
 #undef FromComplex
-#define FromComplex(type,arg) _convertComplex<arg,type>
-TypeConverter _typeconverters[16][16] = 
+#define FromComplex(type,arg) _convertComplexScaSca<arg,type>
+TypeConverter _typeconverters_sca_sca[16][16] = 
+{
+  { DoForAllNumericTypes1(From,bool) },
+  { DoForAllNumericTypes1(From,char) },
+  { DoForAllNumericTypes1(From,uchar) },
+  { DoForAllNumericTypes1(From,short) },
+  { DoForAllNumericTypes1(From,ushort) },
+  { DoForAllNumericTypes1(From,int) },
+  { DoForAllNumericTypes1(From,uint) },
+  { DoForAllNumericTypes1(From,long) },
+  { DoForAllNumericTypes1(From,ulong) },
+  { DoForAllNumericTypes1(From,longlong) },
+  { DoForAllNumericTypes1(From,ulonglong) },
+  { DoForAllNumericTypes1(From,float) },
+  { DoForAllNumericTypes1(From,double) },
+  { DoForAllNumericTypes1(From,ldouble) },
+  { DoForAllNumericTypes1(FromComplex,fcomplex) },
+  { DoForAllNumericTypes1(FromComplex,dcomplex) } 
+};
+
+// This defines the conversion matrices
+#undef From
+#define From(type,arg) _convertVecSca<arg,type>
+#undef FromComplex
+#define FromComplex(type,arg) _convertComplexVecSca<arg,type>
+TypeConverter _typeconverters_vec_sca[16][16] = 
+{
+  { DoForAllNumericTypes1(From,bool) },
+  { DoForAllNumericTypes1(From,char) },
+  { DoForAllNumericTypes1(From,uchar) },
+  { DoForAllNumericTypes1(From,short) },
+  { DoForAllNumericTypes1(From,ushort) },
+  { DoForAllNumericTypes1(From,int) },
+  { DoForAllNumericTypes1(From,uint) },
+  { DoForAllNumericTypes1(From,long) },
+  { DoForAllNumericTypes1(From,ulong) },
+  { DoForAllNumericTypes1(From,longlong) },
+  { DoForAllNumericTypes1(From,ulonglong) },
+  { DoForAllNumericTypes1(From,float) },
+  { DoForAllNumericTypes1(From,double) },
+  { DoForAllNumericTypes1(From,ldouble) },
+  { DoForAllNumericTypes1(FromComplex,fcomplex) },
+  { DoForAllNumericTypes1(FromComplex,dcomplex) } 
+};
+
+// This defines the conversion matrices
+#undef From
+#define From(type,arg) _convertScaVec<arg,type>
+#undef FromComplex
+#define FromComplex(type,arg) _convertComplexScaVec<arg,type>
+TypeConverter _typeconverters_sca_vec[16][16] = 
 {
   { DoForAllNumericTypes1(From,bool) },
   { DoForAllNumericTypes1(From,char) },

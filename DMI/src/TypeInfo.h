@@ -84,11 +84,21 @@ class TypeInfo : public TypeCategories {
     //##ModelId=3E9BD91A0261
       static uint   rankOfArray     (TypeId arr);
       
+      static bool isNumericArrayOfRank( TypeId arr,int rank)
+      { 
+        return isArray(arr) && rankOfArray(arr) == 1 && 
+               isNumeric(typeOfArrayElem(arr));
+      }
+      
       // can one type be converted to another?
       // only defined for numerics, for now
     //##ModelId=4017F63303AC
       static bool isConvertible (TypeId from,TypeId to)
-      { return from == to || ( isNumeric(from) && isNumeric(to) ); }
+      { 
+        return from == to || 
+                ( ( isNumeric(from) || isNumericArrayOfRank(from,1) ) &&
+                ( isNumeric(to) || isNumericArrayOfRank(to,1) )  ); 
+      }
       
       // do the conversion, return True on success, False if not convertible
     //##ModelId=4017F63303BF
@@ -169,21 +179,39 @@ inline bool TypeInfo::isDynamic (TypeId tid)
 #define ForAllFloats1(Do,arg) \
   Do(float,arg),Do(double,arg),Do(ldouble,arg)
 
-// A type converter function converts between built-in types
+// A type converter function converts between types; returns True on
+// success or false if conversion not possible
 //##ModelId=3DB949AE01A9
-typedef void (*TypeConverter)(const void *from,void *to);
+typedef bool (*TypeConverter)(const void *from,void *to);
 
 // This is a matrix of converters for the built-in scalar types.
-extern TypeConverter _typeconverters[16][16];
+extern TypeConverter _typeconverters_sca_sca[16][16];
+// This is a matrix of converters from scalars to single-element vectors
+extern TypeConverter _typeconverters_sca_vec[16][16];
+// This is a matrix of converters from single-element vectors to scalars
+extern TypeConverter _typeconverters_vec_sca[16][16];
 
 // Inline function to convert scalars  
 //##ModelId=4017F63303BF
-inline bool TypeInfo::convert ( const void *from,TypeId frid,void *to,TypeId toid )
+inline bool TypeInfo::convert (const void *from,TypeId frid,void *to,TypeId toid)
 {
-  if( !TypeInfo::isNumeric(frid) || !TypeInfo::isNumeric(toid) )
+  const int firstvec = TpArray(Tpdcomplex,1).id(),
+            lastvec = TpArray(Tpbool,1).id();
+  if( TypeInfo::isNumeric(frid) )
+  {
+    if( TypeInfo::isNumeric(toid) )
+      return (*_typeconverters_sca_sca[Tpbool.id()-frid][Tpbool.id()-toid])(from,to);
+    else if( toid.id() >= firstvec && toid.id() <= lastvec )
+      return (*_typeconverters_sca_vec[Tpbool.id()-frid][lastvec-toid])(from,to);
+    else
+      return False;
+  } else if( TypeInfo::isNumeric(toid) &&
+             frid.id() >= firstvec && frid.id() <= lastvec )
+  {
+    return (*_typeconverters_vec_sca[lastvec-frid][Tpbool.id()-toid])(from,to);
+  }
+  else
     return False;
-  (*_typeconverters[Tpbool.id()-frid][Tpbool.id()-toid])(from,to);
-  return True;
 }
 
 // define the typeIdOfPtr() helper function, returning a TypeId for a given type
