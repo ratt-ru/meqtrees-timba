@@ -13,7 +13,7 @@
 //## Module: HIID%3C10CC820357; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\HIID.cc
+//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\HIID.cc
 
 //## begin module%3C10CC820357.additionalIncludes preserve=no
 //## end module%3C10CC820357.additionalIncludes
@@ -32,18 +32,16 @@
 
 // Class HIID 
 
-HIID::HIID (const char* block, int size)
+HIID::HIID (const char* block, int sz)
   //## begin HIID::HIID%3C556A470346.hasinit preserve=no
   //## end HIID::HIID%3C556A470346.hasinit
   //## begin HIID::HIID%3C556A470346.initialization preserve=yes
-  : Vector_AtomicID(size/sizeof(int))
+  : Vector_AtomicID(sz/sizeof(int))
   //## end HIID::HIID%3C556A470346.initialization
 {
   //## begin HIID::HIID%3C556A470346.body preserve=yes
   reserve();
-  const int *data = (const int*) block;
-  for( VI iter = begin(); iter != end(); iter++ )
-    *iter = *(data++);
+  unpack(block,sz);
   //## end HIID::HIID%3C556A470346.body
 }
 
@@ -75,20 +73,38 @@ HIID HIID::subId (int first, int last) const
 bool HIID::matches (const HIID &other) const
 {
   //## begin HIID::matches%3BE9792B0135.body preserve=yes
-  if( other.length() > length() )  // other is longer - no match then
-    return False;
+  CVI iter = begin(),
+      oiter = other.begin();
+  for( ; iter != end() && !iter->isWildcard() && 
+         oiter != other.end() && !oiter->isWildcard(); iter++,oiter++ )
+  {
+    if( !(*iter).matches(*oiter) )  // mismatch at this position - drop out
+      return False;
+  }
+  // got to end of one or the other? Then it's a match if both are at the end.
+  return ( iter == end() || iter->isWildcard() )
+      && ( oiter == other.end() || oiter->isWildcard() );
+  //## end HIID::matches%3BE9792B0135.body
+}
+
+bool HIID::subsetOf (const HIID &other) const
+{
+  //## begin HIID::subsetOf%3C99A0400186.body preserve=yes
   CVI iter = begin(),
       oiter = other.begin();
   for( ; iter != end() && oiter != other.end(); iter++,oiter++ )
   {
-    if( (*iter).isWildcard() || (*oiter).isWildcard() )   // wildcard in either will match
+    if( (*oiter).isWildcard() )       // other is "*" so we're always a subset
       return True;
-    if( !(*iter).matches(*oiter) )  // mismatch at this position - drop out
+    if( (*iter).isWildcard()  ||      // we have "*" and they don't => fail
+        ((*iter).isAny() && !(*oiter).isAny()) || // we have "?" they don't => fail
+        !(*iter).matches(*oiter)  )   // mismatch at this position
       return False;
-  } 
-  // got to end of one or the other? Then it's a match if both are at the end.
-  return iter == end() && oiter == other.end();
-  //## end HIID::matches%3BE9792B0135.body
+  }
+  // both had to have ended simultaneously (or the other HIID might have
+  // an extra wildcard)
+  return iter == end() && ( oiter == other.end() || oiter->isWildcard());
+  //## end HIID::subsetOf%3C99A0400186.body
 }
 
 int HIID::popLeadIndex ()
@@ -149,13 +165,25 @@ string HIID::toString () const
   //## end HIID::toString%3C0F8BD5004F.body
 }
 
-void HIID::copy (char *block) const
+size_t HIID::pack (void *block) const
 {
-  //## begin HIID::copy%3C5912FE0134.body preserve=yes
-  int *data = (int*) block;
+  //## begin HIID::pack%3C5912FE0134.body preserve=yes
+  int *data = reinterpret_cast<int*>(block);
   for( CVI iter = begin(); iter != end(); iter++ )
     *(data++) = *(iter);
-  //## end HIID::copy%3C5912FE0134.body
+  return size()*sizeof(int);
+  //## end HIID::pack%3C5912FE0134.body
+}
+
+void HIID::unpack (const void* block, size_t sz)
+{
+  //## begin HIID::unpack%3C970F91006F.body preserve=yes
+  FailWhen(sz%sizeof(int),"bad block size");
+  resize(sz/sizeof(int));
+  const int *data = reinterpret_cast<const int*>(block);
+  for( VI iter = begin(); iter != end(); iter++ )
+    *iter = *(data++);
+  //## end HIID::unpack%3C970F91006F.body
 }
 
 // Additional Declarations

@@ -24,8 +24,7 @@
 //## end module%3C10CC820052.additionalIncludes
 
 //## begin module%3C10CC820052.includes preserve=yes
-#pragma typegroup Global
-#pragma types DataRecord
+#pragma type #DataRecord
 //## end module%3C10CC820052.includes
 
 // NestableContainer

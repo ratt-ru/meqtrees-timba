@@ -32,7 +32,7 @@
 //## end module%3C10CC810157.declarations
 
 //## begin module%3C10CC810157.additionalDeclarations preserve=yes
-#pragma aidgroup Basic
+#pragma aidgroup DMI
 #pragma aid A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
 //## end module%3C10CC810157.additionalDeclarations
 
@@ -226,6 +226,7 @@ inline AtomicID::AtomicID (const string &str)
   //## end AtomicID::AtomicID%3C5E74CB0112.initialization
 {
   //## begin AtomicID::AtomicID%3C5E74CB0112.body preserve=yes
+  FailWhen(!aid && str[0] != '0' ,"Unknown AtomicID `"+str+"'");
   //## end AtomicID::AtomicID%3C5E74CB0112.body
 }
 

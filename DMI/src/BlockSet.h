@@ -13,7 +13,7 @@
 //## Module: BlockSet%3C10CC810231; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\BlockSet.h
+//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\BlockSet.h
 
 #ifndef BlockSet_h
 #define BlockSet_h 1
@@ -40,7 +40,7 @@
 
 //## Class: BlockSet%3BEA80A703A9
 //	A deque of block references.
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -76,6 +76,9 @@ class BlockSet
 
       //## Operation: clear%3C3D854D000C
       void clear ();
+
+      //## Operation: front%3C974F800237
+      const BlockRef & front () const;
 
       //## Operation: pop%3BFA537401F6
       //	Removes & returns first reference in set
@@ -177,7 +180,7 @@ class BlockSet
   private: //## implementation
     // Data Members for Associations
 
-      //## Association: PSCF::DMI::<unnamed>%3BF90ECB0365
+      //## Association: DMI::<unnamed>%3BF90ECB0365
       //## Role: BlockSet::refs%3BF90ECC024E
       //## begin BlockSet::refs%3BF90ECC024E.role preserve=no  private: BlockRef {0..1 -> 0..*VHgN}
       deque<BlockRef> refs;
@@ -201,6 +204,13 @@ inline int BlockSet::size () const
   //## begin BlockSet::size%3C1E1B0B014A.body preserve=yes
   return refs.size();
   //## end BlockSet::size%3C1E1B0B014A.body
+}
+
+inline const BlockRef & BlockSet::front () const
+{
+  //## begin BlockSet::front%3C974F800237.body preserve=yes
+  return refs.front();
+  //## end BlockSet::front%3C974F800237.body
 }
 
 //## begin module%3C10CC810231.epilog preserve=yes

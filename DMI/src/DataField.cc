@@ -92,10 +92,13 @@ DataField::~DataField()
 DataField & DataField::operator=(const DataField &right)
 {
   //## begin DataField::operator=%3BB317D8010B_assign.body preserve=yes
-  dprintf(2)("assignment of %s\n",right.debug());
-  FailWhen( valid(),"field is already initialized" );
-  clear();
-  cloneOther(right,0,0);
+  if( &right != this )
+  {
+    dprintf(2)("assignment of %s\n",right.debug());
+    FailWhen( valid(),"field is already initialized" );
+    clear();
+    cloneOther(right,0,0);
+  }
   return *this;
   //## end DataField::operator=%3BB317D8010B_assign.body
 }
@@ -106,6 +109,10 @@ DataField & DataField::operator=(const DataField &right)
 DataField & DataField::init (TypeId tid, int num, const void *data)
 {
   //## begin DataField::init%3C6161190193.body preserve=yes
+  //
+  // NB: shared memory flags ought to be passed into the SmartBlock
+  //
+  
   dprintf(2)("init(%s,%d,%x)\n",tid.toString().c_str(),num,(int)data);
   // if null type, then reset the field to uninit state
   if( !tid )
@@ -658,7 +665,7 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
   {
     // types must match, or TpNumeric can match any numeric type
     FailWhen( check_tid && check_tid != type() &&
-              (check_tid != TpNumeric || !isNumericType(type())),
+              (check_tid != TpNumeric || !TypeInfo::isNumeric(type())),
         "type mismatch: expecting "+check_tid.toString()+", got "+type().toString());
     tid = type();
     return n*typesize + (char*)headerData();
@@ -728,7 +735,8 @@ void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
   }
   else if( binary_type )
   {
-    FailWhen( tid && tid!=type() && (!isNumericType(tid) || !isNumericType(type())),
+    FailWhen( tid && tid!=type() && 
+              (!TypeInfo::isNumeric(tid) || !TypeInfo::isNumeric(type())),
         "can't insert "+tid.toString());
     return n*typesize + (char*)headerData();
   }

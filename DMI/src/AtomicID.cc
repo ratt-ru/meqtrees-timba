@@ -32,7 +32,8 @@
 DefineBiRegistry(AtomicID,0,"");
 
 // pull in all auto-generated registry definitions
-#include "AID-Registry.h"
+int aidRegistry_DMI();
+static int dum = aidRegistry_DMI();
 //## end module%3C10CC81015F.additionalDeclarations
 
 

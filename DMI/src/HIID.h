@@ -13,7 +13,7 @@
 //## Module: HIID%3C10CC820355; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\HIID.h
+//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\HIID.h
 
 #ifndef HIID_h
 #define HIID_h 1
@@ -40,7 +40,7 @@
 //## end Vector_AtomicID%3C55652D01B8.preface
 
 //## Class: Vector_AtomicID%3C55652D01B8
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -57,7 +57,7 @@ typedef deque<AtomicID> Vector_AtomicID;
 //## end HIID%3BE96FE601C5.preface
 
 //## Class: HIID%3BE96FE601C5
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -92,7 +92,7 @@ class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
 
       //## Operation: HIID%3C556A470346
       //	Creates a HIID from a block of raw bytes
-      HIID (const char* block, int size);
+      HIID (const char* block, int sz);
 
 
     //## Other Operations (specified)
@@ -109,7 +109,20 @@ class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
       int length () const;
 
       //## Operation: matches%3BE9792B0135
+      //	Does a comparison with another HIID, interpreting the Any ("?") and
+      //	Wildcard ("*") AIDs in the conventional way.   Returns True when
+      //	there is a match.
+      //	NB: Currently, the "*" wildcard should only appear at the end of a
+      //	HIID. Anything following the * is ignored for the purposes of this
+      //	function.
       bool matches (const HIID &other) const;
+
+      //## Operation: subsetOf%3C99A0400186
+      //	Does a comparison with another HIID, interpreting the Any ("?") and
+      //	Wildcard ("*") AIDs in the conventional way.   Returns True if this
+      //	HIID is a  subset of the other HIID (i.e., when all HIIDs matching _
+      //	this_ also match  _other_).
+      bool subsetOf (const HIID &other) const;
 
       //## Operation: popLeadIndex%3C59522600D6
       //	If first atom of HIID is an index, pop and return it, else return 0.
@@ -130,13 +143,16 @@ class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
       //## Operation: toString%3C0F8BD5004F
       string toString () const;
 
-      //## Operation: byteSize%3C591278038A
-      //	Returns # of bytes required to store the HIID
-      int byteSize () const;
-
-      //## Operation: copy%3C5912FE0134
+      //## Operation: pack%3C5912FE0134
       //	Stores HIID into raw data block
-      void copy (char *block) const;
+      size_t pack (void *block) const;
+
+      //## Operation: unpack%3C970F91006F
+      void unpack (const void* block, size_t sz);
+
+      //## Operation: packSize%3C591278038A
+      //	Returns # of bytes required to store the HIID
+      size_t packSize () const;
 
     // Additional Public Declarations
       //## begin HIID%3BE96FE601C5.public preserve=yes
@@ -191,19 +207,19 @@ inline HIID operator | (const HIID &id1,int id2)
 { HIID ret(id1); return ret|=AtomicID(id2); }
 
 inline HIID operator | (AtomicID id1,const HIID &id2)
-{ return id2|id1; }
+{ HIID ret(id1); return ret|=id2; }
 
 inline HIID operator | (AtomicID id1,AtomicID id2)
-{ return HIID(id1)|id2; }
+{ HIID ret(id1); return ret|=id2; }
 
 inline HIID operator | (AtomicID id1,int id2)
-{ return HIID(id1)|id2; }
+{ HIID ret(id1); return ret|=id2; }
 
 inline HIID operator | (int id1,const HIID &id2)
-{ return id2|id1; }
+{ HIID ret(id1); return ret|=id2; }
 
 inline HIID operator | (int id1,AtomicID id2)
-{ return id2|id1; }
+{ HIID ret(id1); return ret|=id2; }
 //## end HIID%3BE96FE601C5.postscript
 
 // Class HIID 
@@ -249,8 +265,8 @@ inline HIID::HIID (const char *str)
   //## end HIID::HIID%3C6141BA03B4.initialization
 {
   //## begin HIID::HIID%3C6141BA03B4.body preserve=yes
-  FailWhen(!str,"can't create HIID from (null) string");
-  addString(str);
+  if( str )
+    addString(str);
   //## end HIID::HIID%3C6141BA03B4.body
 }
 
@@ -285,11 +301,11 @@ inline int HIID::popLeadSlashes ()
   //## end HIID::popLeadSlashes%3C6B9FDD02FD.body
 }
 
-inline int HIID::byteSize () const
+inline size_t HIID::packSize () const
 {
-  //## begin HIID::byteSize%3C591278038A.body preserve=yes
+  //## begin HIID::packSize%3C591278038A.body preserve=yes
   return size()*sizeof(int);
-  //## end HIID::byteSize%3C591278038A.body
+  //## end HIID::packSize%3C591278038A.body
 }
 
 //## begin module%3C10CC820355.epilog preserve=yes

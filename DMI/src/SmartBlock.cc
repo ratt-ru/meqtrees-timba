@@ -13,7 +13,7 @@
 //## Module: SmartBlock%3C10CC83016E; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\SmartBlock.cc
+//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\SmartBlock.cc
 
 //## begin module%3C10CC83016E.additionalIncludes preserve=no
 //## end module%3C10CC83016E.additionalIncludes
@@ -110,14 +110,17 @@ SmartBlock::~SmartBlock()
 SmartBlock & SmartBlock::operator=(const SmartBlock &right)
 {
   //## begin SmartBlock::operator=%3BEAACAB0041_assign.body preserve=yes
-  dprintf(2)("assignment of %s\n",right.debug());
-  destroy();
-  // clone the block
-  if( !right.size() )
-    return *this;
-  block = new char[ datasize = right.size() ];
-  delete_block = True;
-  memcpy(block,*right,datasize);
+  if( &right != this )
+  {
+    dprintf(2)("assignment of %s\n",right.debug());
+    destroy();
+    // clone the block
+    if( !right.size() )
+      return *this;
+    block = new char[ datasize = right.size() ];
+    delete_block = True;
+    memcpy(block,*right,datasize);
+  }
   return *this;
   //## end SmartBlock::operator=%3BEAACAB0041_assign.body
 }

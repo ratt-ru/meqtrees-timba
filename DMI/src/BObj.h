@@ -38,8 +38,7 @@
 //## end module%3C10CC81019B.declarations
 
 //## begin module%3C10CC81019B.additionalDeclarations preserve=yes
-#pragma typegroup Global
-#pragma types -ObjRef
+#pragma type -ObjRef
 //## end module%3C10CC81019B.additionalDeclarations
 
 

@@ -1,7 +1,7 @@
 #ifndef TypeInfo_h
 #define TypeInfo_h 1
 
-#include "TID.h"
+#include "TID-DMI.h"
 
 // The TypeInfo class is basically a simple struct containing information
 // on various types. 
@@ -22,6 +22,10 @@ class TypeInfo {
       
       //  Looks up type info in the registry
       static const TypeInfo & find ( TypeId tid );
+      
+      // Returns True if type is numeric or dynamic
+      static bool isNumeric (TypeId tid);
+      static bool isDynamic (TypeId tid);
 };
  
 // This is a helper class hosting a registry for TypeInfos
@@ -46,12 +50,16 @@ inline const TypeInfo & TypeInfo::find ( TypeId tid )
 const int StdTypeFirst=Tpbool,StdTypeLast=Tpchar;
 
 // returns True if a type is built-in
-inline bool isNumericType (int tid) 
-  { return tid >= StdTypeFirst && tid <= StdTypeLast; }
+inline bool TypeInfo::isNumeric (TypeId tid)
+{ 
+  return tid.id() >= StdTypeFirst && tid.id() <= StdTypeLast; 
+}
 
 // returns True if type is dynamic
-inline bool isDynamicType (int tid)
-  { return tid==TpDataRecord || tid==TpDataField; }
+inline bool TypeInfo::isDynamic (TypeId tid) 
+{ 
+  return find(tid).category == TypeInfo::DYNAMIC;  
+}
 
 // These macros repeatedly invokes Do(type,arg) for all types in a specific
 // type set. Useful for making bulk definitions.
@@ -78,7 +86,7 @@ extern TypeConverter _typeconverters[12][12];
 // Inline function to convert scalars  
 inline bool convertScalar ( const void *from,TypeId frid,void *to,TypeId toid )
 {
-  if(!isNumericType(frid) || !isNumericType(toid))
+  if( !TypeInfo::isNumeric(frid) || !TypeInfo::isNumeric(toid))
     return False;
   (*_typeconverters[Tpchar.id()-frid][Tpchar.id()-toid])(from,to);
   return True;

@@ -367,10 +367,13 @@ inline CountedRefBase & CountedRefBase::operator=(const CountedRefBase &right)
 {
   //## begin CountedRefBase::operator=%3C0CDEE200FE_assign.body preserve=yes
   dprintf(5)("assignment of %s\n",right.debug(1));
-  if( right.isPersistent() )
-    copy(right,0);
-  else
-    xfer((CountedRefBase&)right);
+  if( &right != this )
+  {
+    if( right.isPersistent() )
+      copy(right,0);
+    else
+      xfer((CountedRefBase&)right);
+  }
   return *this;
   //## end CountedRefBase::operator=%3C0CDEE200FE_assign.body
 }

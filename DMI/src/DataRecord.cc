@@ -72,8 +72,11 @@ DataRecord::~DataRecord()
 DataRecord & DataRecord::operator=(const DataRecord &right)
 {
   //## begin DataRecord::operator=%3BB3112B0027_assign.body preserve=yes
-  dprintf(2)("assignment op, cloning from %s\n",right.debug(1));
-  cloneOther(right,0,0);
+  if( &right != this )
+  {
+    dprintf(2)("assignment op, cloning from %s\n",right.debug(1));
+    cloneOther(right,0,0);
+  }
   return *this;
   //## end DataRecord::operator=%3BB3112B0027_assign.body
 }
@@ -310,7 +313,7 @@ int DataRecord::toBlock (BlockSet &set) const
   // compute header size
   size_t hsize = sizeof(int)*(1+fields.size());
   for( CFMI iter = fields.begin(); iter != fields.end(); iter++ )
-    hsize += iter->first.byteSize();
+    hsize += iter->first.packSize();
   // allocate new header block
   SmartBlock *header = new SmartBlock(hsize);
   // store header info
@@ -322,8 +325,8 @@ int DataRecord::toBlock (BlockSet &set) const
   // store IDs and convert everything
   for( CFMI iter = fields.begin(); iter != fields.end(); iter++ )
   {
-    *hdata = iter->first.byteSize();
-    iter->first.copy(hids);
+    *hdata = iter->first.packSize();
+    iter->first.pack(hids);
     hids += *hdata;
     hdata++;
     int nr1 = iter->second->toBlock(set);

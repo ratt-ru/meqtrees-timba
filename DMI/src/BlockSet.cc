@@ -13,7 +13,7 @@
 //## Module: BlockSet%3C10CC81023B; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\BlockSet.cc
+//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\BlockSet.cc
 
 //## begin module%3C10CC81023B.additionalIncludes preserve=no
 //## end module%3C10CC81023B.additionalIncludes
@@ -76,7 +76,8 @@ BlockSet::~BlockSet()
 BlockSet & BlockSet::operator=(const BlockSet &right)
 {
   //## begin BlockSet::operator=%3BEA80A703A9_assign.body preserve=yes
-  right.copyAll(*this);
+  if( &right != this )
+    right.copyAll(*this);
   return *this;
   //## end BlockSet::operator=%3BEA80A703A9_assign.body
 }

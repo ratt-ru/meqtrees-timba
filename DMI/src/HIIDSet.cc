@@ -13,7 +13,7 @@
 //## Module: HIIDSet%3C10CC8203CF; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\HIIDSet.cc
+//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\HIIDSet.cc
 
 //## begin module%3C10CC8203CF.additionalIncludes preserve=no
 //## end module%3C10CC8203CF.additionalIncludes
@@ -132,6 +132,53 @@ bool HIIDSet::contains (const HIID& id) const
       return True;
   return False;
   //## end HIIDSet::contains%3BFBAE650315.body
+}
+
+size_t HIIDSet::pack (void* block) const
+{
+  //## begin HIIDSet::pack%3C98CFEF00B6.body preserve=yes
+  int sz = sizeof(int)*(1 + contents.size());
+  int *bl =  static_cast<int*>(block);
+  char *data = static_cast<char*>(block) + sz; // skip to beginning of HIID storage
+  // first int is size of set
+  *(bl++) = contents.size();
+  // go thru HIIDs, packing them in
+  for( CSI iter = contents.begin(); iter != contents.end(); iter++ )
+  {
+    int sz1 = iter->pack(data);
+    data += *(bl++) = sz1;
+    sz += sz1;
+  }
+  return sz;
+  //## end HIIDSet::pack%3C98CFEF00B6.body
+}
+
+void HIIDSet::unpack (const void* block, size_t sz)
+{
+  //## begin HIIDSet::unpack%3C98CFEF0110.body preserve=yes
+  const int *bl = static_cast<const int*>(block);
+  int n = *(bl++);
+  const char *data = static_cast<const char*>(block) += sizeof(int)*(n+1); // skip to beginning of HIID storage
+  sz -= sizeof(int)*(n+1);   // remaining size
+  for( int i=0; i<n; i++,bl++ )
+  {
+    size_t sz1 = *bl;  // size of next HIID
+    FailWhen(sz<sz1,"corrupt block");
+    contents.insert( HIID(data,sz1) );
+    data += sz1; 
+  }
+  FailWhen(sz,"corrupt block");
+  //## end HIIDSet::unpack%3C98CFEF0110.body
+}
+
+size_t HIIDSet::packSize () const
+{
+  //## begin HIIDSet::packSize%3C98CFEF016A.body preserve=yes
+  int sz = sizeof(int)*(1 + contents.size());
+  for( CSI iter = contents.begin(); iter != contents.end(); iter++ )
+    sz += iter->packSize();
+  return sz;
+  //## end HIIDSet::packSize%3C98CFEF016A.body
 }
 
 // Additional Declarations

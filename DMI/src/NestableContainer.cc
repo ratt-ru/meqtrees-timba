@@ -210,7 +210,7 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) cons
   const void *target = collapseIndex(target_tid,dum,0,False);
   FailWhen(!target,"uninitialized element");
   // if referring to a non-dynamic type, attempt the conversion
-  if( !isDynamicType(target_tid) && target_tid != TpObjRef )
+  if( !TypeInfo::isDynamic(target_tid) && target_tid != TpObjRef )
   {
     FailWhen(!convertScalar(target,target_tid,data,tid),
              "can't convert "+target_tid.toString()+" to "+tid.toString());
@@ -267,7 +267,7 @@ void * NestableContainer::Hook::resolveTarget( TypeId &target_tid,TypeId tid ) c
     // in the case of scalars (where conversion is allowed)
     target = index>=0 ? nc->insertn(index,tid,target_tid)
                       : nc->insert(id,tid,target_tid);
-    if( isDynamicType(target_tid) )
+    if( TypeInfo::isDynamic(target_tid) )
       target_tid = TpObjRef;
   }
   else
@@ -278,7 +278,7 @@ void * NestableContainer::Hook::resolveTarget( TypeId &target_tid,TypeId tid ) c
     if( nc1 && nc1->objectType() != tid )
     {
       target = nc1->insert(HIID(),tid,target_tid);
-      if( isDynamicType(target_tid) )
+      if( TypeInfo::isDynamic(target_tid) )
         target_tid = TpObjRef;
     }
   }

@@ -13,7 +13,7 @@
 //## Module: HIIDSet%3C10CC8203CD; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\HIIDSet.h
+//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\HIIDSet.h
 
 #ifndef HIIDSet_h
 #define HIIDSet_h 1
@@ -42,7 +42,7 @@
 //## Class: HIIDSet%3BFBAC350085
 //	A set of multiple hierarchical IDs
 //	(may include masks, etc.)
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -63,6 +63,9 @@ class HIIDSet
     //## Constructors (specified)
       //## Operation: HIIDSet%3BFBAE2403DA
       HIIDSet (const HIID& id);
+
+      //## Operation: HIIDSet%3C98D01B036C
+      HIIDSet (const char* block, int sz);
 
     //## Destructor (generated)
       ~HIIDSet();
@@ -102,6 +105,17 @@ class HIIDSet
       //## Operation: contains%3BFBAE650315
       bool contains (const HIID& id) const;
 
+      //## Operation: pack%3C98CFEF00B6
+      //	Stores HIID into raw data block
+      size_t pack (void* block) const;
+
+      //## Operation: unpack%3C98CFEF0110
+      void unpack (const void* block, size_t sz);
+
+      //## Operation: packSize%3C98CFEF016A
+      //	Returns # of bytes required to store the HIID
+      size_t packSize () const;
+
     // Additional Public Declarations
       //## begin HIIDSet%3BFBAC350085.public preserve=yes
       //## end HIIDSet%3BFBAC350085.public
@@ -119,7 +133,7 @@ class HIIDSet
   private: //## implementation
     // Data Members for Associations
 
-      //## Association: PSCF::DMI::<unnamed>%3C0F8F610325
+      //## Association: DMI::<unnamed>%3C0F8F610325
       //## Role: HIIDSet::contents%3C0F8F6202E1
       //## begin HIIDSet::contents%3C0F8F6202E1.role preserve=no  private: HIID { -> 0..*VHgN}
       set<HIID> contents;
@@ -137,6 +151,18 @@ class HIIDSet
 //## end HIIDSet%3BFBAC350085.postscript
 
 // Class HIIDSet 
+
+inline HIIDSet::HIIDSet (const char* block, int sz)
+  //## begin HIIDSet::HIIDSet%3C98D01B036C.hasinit preserve=no
+  //## end HIIDSet::HIIDSet%3C98D01B036C.hasinit
+  //## begin HIIDSet::HIIDSet%3C98D01B036C.initialization preserve=yes
+  //## end HIIDSet::HIIDSet%3C98D01B036C.initialization
+{
+  //## begin HIIDSet::HIIDSet%3C98D01B036C.body preserve=yes
+  unpack(block,sz);
+  //## end HIIDSet::HIIDSet%3C98D01B036C.body
+}
+
 
 
 //## Other Operations (inline)

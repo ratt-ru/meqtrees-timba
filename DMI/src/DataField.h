@@ -38,9 +38,7 @@
 //## end module%3C10CC820124.declarations
 
 //## begin module%3C10CC820124.additionalDeclarations preserve=yes
-
-#pragma typegroup Global
-#pragma types DataField
+#pragma type #DataField
 //## end module%3C10CC820124.additionalDeclarations
 
 
