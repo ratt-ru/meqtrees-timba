@@ -504,6 +504,9 @@ void MTGatewayWP::shutdown ()
   if( shutdown_done )
     return;
   shutdown_done = true;
+  // release gwmutex now: now that the flag is set, only one thread
+  // will get this far
+  lock.release();
   if( peerState() == CONNECTED )     // publish a Remote.Down message
   {
     HIID peerid = rprocess|rhost;

@@ -401,12 +401,19 @@ void MTGatewayWP::transmitMessage (Message::Ref &mref)
     else
       n = -1;
     if( n < 0 )
+    {
+      lock.release(); // release writer lock to report error
       reportWriteError();
-    // update status monitor
-    Thread::Mutex::Lock stlock(statmon.write_mutex);
-    statmon.written += nwr;
-    Timestamp::now(&statmon.last_write);
-    stlock.release();
+      break;
+    }
+    else
+    {
+      // update status monitor
+      Thread::Mutex::Lock stlock(statmon.write_mutex);
+      statmon.written += nwr;
+      Timestamp::now(&statmon.last_write);
+      stlock.release();
+    }
     nwr = 0;
   } // end  while( !bset.empty()) 
   writing = false;
