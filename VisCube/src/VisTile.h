@@ -26,8 +26,13 @@ class VisCube;
 #pragma aidgroup VisCube
 #pragma type #VisTile
 
-// This macro defines all the columns available in a VisTile
-// New columns should be added at the end of the list
+// This macro defines all the columns available in a VisTile.
+// New columns should be added at the end of the list.
+// The macro is used to automatically insert accessors for all
+// columns. The four arguments of Do() are:
+//    Do(type,num_dimensions,column_name,column_id)
+// column_name will be used to name accessor methods.
+// column_id   must be one of the VisTile::Columns enum values (see below)
 #define DoForAllVisTileColumns(Do) \
   Do(double,0,time,TIME); \
   Do(double,0,interval,INTERVAL); \
@@ -43,6 +48,15 @@ class VisCube;
 DefineRefTypes(VisTile,VisTileRef);
 
 //##ModelId=3DB964F20079
+//##Documentation
+//## VDSID is a "Visibility Dataset ID". This is a unique identifier of a
+//## dataset. Thereis a unique VDSID assigned to each stream of visibility data
+//## (as represented by a header record and a set of VisTiles).
+//## Implementation-wise, it's just a HIID of a fixed length (3 for now).
+//## The three components of a VDSID are segment ID, beam ID, observation ID,
+//## though we could easily revise this in the future as required by 
+//## applications. When reading an AIPS++ MS, segment maps to DATA_DESC, beam
+//## maps to FIELD, and observation maps to different measurement sets.
 class VDSID : public HIID
 {
   public: 
@@ -102,26 +116,15 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //##Documentation
     //## This enum lists all the possible columns in a visibility dataset.
       typedef enum {
-// time centroid
         TIME = 0,
-// time interval
         INTERVAL,
-// observed data (Ncorr x Nchan)
         DATA,
-// data flags (Ncorr x Nchan)
         FLAGS,
-// row flag 
         ROWFLAG,
-// UVW coordinates (3 values)
         UVW,
-// weight
         WEIGHT,
-// application-defined sequence number
-// this is the row number when tile originated in an AIPS++ MS
         SEQNR,
-// predicted data (Ncorr x Nchan)
         PREDICT,
-            
         MAXCOL
       } Columns;
         
@@ -279,24 +282,31 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //##ModelId=3DB964F9018D
       int ntime () const;
       
-    // sets the tile ID from antenna1, antenna2 & a VDSID
     //##ModelId=3DF9FDD4016A
+    //##Documentation
+    //## Sets the ID of this tile, forming it from two antenna indices,
+    //## plus the VDSID. See also ColumnarTableTile::tileId().
       void setTileId (int ant1,int ant2,const VDSID &vdsid)
       { 
         ColumnarTableTile::setTileId(vdsid|ant1|ant2); 
       }
-    // extracts components of the tile ID
     //##ModelId=3DF9FDD4029A
+    //##Documentation
+    //## Returns the index of the first antenna (from tileId)
       int antenna1 () const
       {
         return tileId().size()>VDSID::Length() ? tileId()[VDSID::Length()].id() : -1;
       }
     //##ModelId=3DF9FDD402E1
+    //##Documentation
+    //## Returns the index of the second antenna (from tileId)
       int antenna2 () const
       {
         return tileId().size()>VDSID::Length()+1 ? tileId()[VDSID::Length()+1].id() : -1;
       }
     //##ModelId=3DF9FDD40328
+    //##Documentation
+    //## Returns the VDSID
       VDSID vdsId () const
       {
         return tileId().size() >= VDSID::Length()
@@ -390,23 +400,19 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     // Re-open the public section because we really want to define accessor
     // methods as inlines.
       
-    // Individual column accessors, inlined right here for brevity.
-    // When more columns are defined, corresponding accessors should be 
-    // added here.
+    // We use macros to declare accessors. This helps insure consistency,
+    // and makes adding new columns easier.
+     
       
     //    define some handy macros for column accessors. CheckWR checks
     //    the tile for writability, fails if not writable. 
     //    "wreturn" invokes CheckWR, followed by a return statement. 
     #define CheckWR FailWhen(!isWritable(),"r/w access violation");
     #define wreturn CheckWR; return
-
-    // We use macros to declare accessors. This helps insure consistency,
-    // and makes adding new columns easier
-
     #define DefineColumn(type,dim,name,id) DefineColumn_##dim(type,name)
     #define ALL LoRange::all()
 
-    // The scalarColumn(T,name) macro defines a scalar column, plus
+    // This defines a scalar column, plus
     // four inlined accessor methods: name() and wname() to access as a vector,
     // and name(i) and set_name(i,val) to access individual elements.
     #define DefineColumn_0(type,name) \
@@ -419,7 +425,7 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
                { wreturn name##_array_; } \
                void set_##name (int it,type val) \
                { CheckWR; name##_array_(it) = val; } 
-    // The vectorColumn(T,name) macro defines a vector column, plus
+    // This defines a vector column, plus
     // four inlined accessor methods: name() and wname() to access as a matrix,
     // and name(i) and wname(i) to access individual vectors.
     #define DefineColumn_1(type,name) \
@@ -432,7 +438,7 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
                { return name##_array_(ALL,it); } \
                LoVec_##type w##name (int it) \
                { wreturn name##_array_(ALL,it); } 
-    // The matrixColumn(T,name) macro defines a 2D column, plus
+    // This defines a 2D column, plus
     // four inlined accessor methods: name() and wname() to access as a cube,
     // and tf_name(i) and wtf_name(i,val) to access as TF-planes.
     #define DefineColumn_2(type,name) \
@@ -543,15 +549,15 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
           void attach (const VisTileRef &ref);
 
         // define macros for implementing per-column accessors
-          #define accessor_2(type,name) \
-                     LoMat_##type name () const \
-                     { return ptile->name()(ALL,ALL,itime); }
-          #define accessor_1(type,name) \
-                     LoVec_##type name () const \
-                     { return ptile->name()(ALL,itime); }
           #define accessor_0(type,name) \
                      type name () const \
                      { return ptile->name()(itime); }
+          #define accessor_1(type,name) \
+                     LoVec_##type name () const \
+                     { return ptile->name()(ALL,itime); }
+          #define accessor_2(type,name) \
+                     LoMat_##type name () const \
+                     { return ptile->name()(ALL,ALL,itime); }
 
           #define DefineAccessor(type,dim,name,id) accessor_##dim(type,name)
                      
