@@ -1,7 +1,7 @@
 #ifndef DMI_TypeIterMacros_h
 #define DMI_TypeIterMacros_h 1
     
-#include "lofar_config.h"
+#include "config.h"
     
 // 
 // This file defines "type iterator" macros, i.e. macros that will repeat
