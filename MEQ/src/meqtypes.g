@@ -63,8 +63,9 @@ const meq.node := function (class,name,extra=[=],children=F,default=[=],groups="
   defrec := [ class=class,name=name ];
   if( !is_boolean(children) )
     defrec.children := children;
+  # group field: convert to hiid implicitly
   if( len(groups) )
-    defrec.node_groups := hiid(groups);
+    defrec.node_groups := dmi.hiid_list(groups);
   if( len(extra) )
     for( f in field_names(extra) )
       defrec[f] := extra[f];
