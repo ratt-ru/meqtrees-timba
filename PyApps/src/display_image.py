@@ -8,6 +8,8 @@ from UVPAxis import *
 from printfilter import *
 from ComplexColorMap import *
 from ComplexScaleDraw import *
+from dialog import *
+from app_browsers import *
 import random
 
 from dmitypes import verbosity
@@ -184,7 +186,7 @@ class QwtPlotImage(QwtPlotMappedItem):
             red   = int ( r * 255. )
             green = int ( g * 255. )
             blue  = int ( b * 255. )
-# the following call will use the previosu computations to
+# the following call will use the previous computations to
 # set up a hippo-like color display
             self.image.setColor(i, qRgb(red, green, blue))
 
@@ -281,30 +283,6 @@ class QwtPlotImage(QwtPlotMappedItem):
     
 class QwtImagePlot(QwtPlot):
 
-    color_table = {
-        'none': None,
-        'black': Qt.black,
-        'blue': Qt.blue,
-        'cyan': Qt.cyan,
-        'gray': Qt.gray,
-        'green': Qt.green,
-        'magenta': Qt.magenta,
-        'red': Qt.red,
-        'white': Qt.white,
-        'yellow': Qt.yellow,
-        }
-
-    symbol_table = {
-        'none': QwtSymbol.None,
-        'rectangle': QwtSymbol.Rect,
-        'ellipse': QwtSymbol.Ellipse,
-        'circle': QwtSymbol.Ellipse,
-        'xcross': QwtSymbol.XCross,
-        'cross': QwtSymbol.Cross,
-        'triangle': QwtSymbol.Triangle,
-        'diamond': QwtSymbol.Diamond,
-        }
-
     display_table = {
         'hippo': 'hippo',
         'grayscale': 'grayscale',
@@ -314,8 +292,13 @@ class QwtImagePlot(QwtPlot):
     def __init__(self, plot_key=None, parent=None):
         QwtPlot.__init__(self, plot_key, parent)
 
+        self._mainwin = parent and parent.topLevelWidget();
+
 # set default display type to 'hippo'
         self._display_type = "hippo"
+
+        self._first_plot = True
+        self._vells_plot = False
 
 # save raw data
         self.plot_key = plot_key
@@ -381,6 +364,189 @@ class QwtImagePlot(QwtPlot):
         self.x_dim = 0
         self.y_dim = 0
 
+#        self.__initContextMenu()
+
+    def initSpectrumContextMenu(self):
+        """Initialize the spectra context menu
+        """
+        # skip if no main window
+        if not self._mainwin:
+          return;
+          
+        self._menu = QPopupMenu(self._mainwin);
+        
+        self._next_plot = QAction(self);
+        self._next_plot.setIconSet(pixmaps.blue_round_reload.iconset());
+        self._next_plot.setText("Go to next plot");
+        QObject.connect(self._next_plot,SIGNAL("activated()"),self.update_plot);
+        self._next_plot.addTo(self._menu);
+
+        zoom = QAction(self);
+        zoom.setIconSet(pixmaps.viewmag.iconset());
+        zoom.setText("Disable zoomer");
+        QObject.connect(zoom,SIGNAL("activated()"),self.unzoom);
+        zoom.addTo(self._menu);
+    # __initContextmenu()
+
+    def initVellsContextMenu (self):
+        # skip if no main window
+        if not self._mainwin:
+          return;
+          
+        self._menu = QPopupMenu(self._mainwin);
+        QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_vells_display);
+        id = -1
+        perturb_index = -1
+
+# are we dealing with Vellsets?
+        number_of_planes = len(self._vells_rec["vellsets"])
+        _dprint(3, 'number of planes ', number_of_planes)
+        self._next_plot = {}
+        self._perturb_menu = {}
+        for i in range(number_of_planes):
+          id = id + 1
+          if self._vells_rec.vellsets[i].has_key("value"):
+            key = " value"
+            self._label = "go to plane " + str(i) + key 
+            self._next_plot[id] = self._label
+            self._menu.insertItem(self._label,id)
+          if self._vells_rec.vellsets[i].has_key("perturbed_value"):
+            number_of_perturbed_arrays = len(self._vells_rec.vellsets[i].perturbed_value)
+            perturb_index  = perturb_index  + 1
+            self._perturb_menu[perturb_index] = QPopupMenu(self._mainwin);
+            for j in range(number_of_perturbed_arrays):
+              id = id + 1
+              key = " perturbed_value "
+              self._label =  "   -> go to plane " + str(i) + key + str(j) 
+              self._next_plot[id] = self._label 
+              self._menu.insertItem(self._label,id)
+        zoom = QAction(self);
+        zoom.setIconSet(pixmaps.viewmag.iconset());
+        zoom.setText("Disable zoomer");
+#        QObject.connect(zoom,SIGNAL("activated()"),self.unzoom);
+        zoom.addTo(self._menu);
+    # end plot_vells_data()
+
+    def unzoom(self):
+        self.zooming = 0
+        if len(self.zoomStack):
+          xmin, xmax, ymin, ymax = self.zoomStack.pop()
+          self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+          self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+          self.replot()
+        else:
+          return
+
+    def update_vells_display(self, menuid):
+      if menuid < 0:
+        self.unzoom()
+        return
+
+      id_string = self._next_plot[menuid]
+      perturb = -1
+      plane = 0
+      perturb_loc = id_string.find("perturbed_value")
+      str_len = len(id_string)
+      if perturb_loc >= 0:
+        perturb = int(id_string[perturb_loc+15:str_len])
+      plane_loc = id_string.find("go to plane")
+      if plane_loc >= 0:
+        plane = int( id_string[plane_loc+12:plane_loc+14])
+# get the shape tuple - useful if the Vells have been compressed down to
+# a constant
+      self._shape = self._vells_rec.vellsets[plane]["shape"]
+# handle "value" first
+      if perturb < 0 and self._vells_rec.vellsets[plane].has_key("value"):
+        key = " value "
+        complex_type = False;
+# test if we have a numarray
+        try:
+          if self._vells_rec.vellsets[plane].value.type() == Complex32:
+            complex_type = True;
+          if self._vells_rec.vellsets[plane].value.type() == Complex64:
+            complex_type = True;
+          self._value_array = self._vells_rec.vellsets[plane].value
+          _dprint(3, 'self._value_array ', self._value_array)
+        except:
+          temp_array = numarray.asarray(self._vells_rec.vellsets[i].value)
+          self._value_array = numarray.resize(temp_array,self._shape)
+          if self._value_array.type() == Complex32:
+            complex_type = True;
+          if self._value_array.type() == Complex64:
+            complex_type = True;
+
+        if complex_type:
+          _dprint(3,'handling complex array')
+#extract real component
+          self._value_real_array = self._value_array.getreal()
+          self._z_real_min = self._value_real_array.min()
+          self._z_real_max = self._value_real_array.max()
+#extract imaginary component
+          self._value_imag_array = self._value_array.getimag()
+          self._z_imag_min = self._value_imag_array.min()
+          self._z_imag_max = self._value_imag_array.max()
+          self._label = "plane " + str(plane) + key 
+          self.array_plot(self._label, self._value_array)
+        else:
+#we have a real array
+          _dprint(3,'handling real array')
+          self._label = "plane " + str(plane) + key 
+          self._z_real_min = self._value_array.min()
+          self._z_real_max = self._value_array.max()
+          self.array_plot(self._label, self._value_array)
+
+      else:
+# handle "perturbed_value"
+        if self._vells_rec.vellsets[plane].has_key("perturbed_value"):
+# test if we have a numarray
+          complex_type = False;
+          perturbed_array_diff = None
+          try:
+            if self._vells_rec.vellsets[plane].perturbed_value[perturb].type() == Complex32:
+              complex_type = True;
+            if self._vells_rec.vellsets[plane].perturbed_value[perturb].type() == Complex64:
+              complex_type = True;
+            perturbed_array_diff = self._vells_rec.vellsets[plane].perturbed_value[perturb]
+          except:
+            temp_array = numarray.asarray(self._vells_rec.vellsets[plane].perturbed_value[perturb])
+            perturbed_array_diff = numarray.resize(temp_array,self._shape)
+            if perturbed_array_diff.type() == Complex32:
+              complex_type = True;
+            if perturbed_array_diff.type() == Complex64:
+              complex_type = True;
+
+          key = " perturbed_value "
+          self._label =  "plane " + str(plane) + key + str(perturb)
+          self.array_plot(self._label, perturbed_array_diff)
+        
+    def update_plot(self):
+# do update of spectrum plots
+      if self.num_plot_arrays <= 1:
+        return
+      self.plot_counter = self.plot_counter + 1
+      data_label = ''
+      if (self.plot_counter < self.num_plot_arrays) and (not self._first_plot):
+        if isinstance(self._data_labels, tuple):
+          self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels[self.plot_counter]
+        else:
+          self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels
+      else:
+        self.plot_counter = 0
+        if isinstance(self._data_labels, tuple):
+          self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels[self.plot_counter]
+        else:
+          self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels
+      self.array_plot(self.data_label, self._data_values[self.plot_counter])
+      counter = self.plot_counter + 1
+      if counter >= self.num_plot_arrays:
+        counter = 0
+      if isinstance(self._data_labels, tuple):
+        self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels[counter]
+      else:
+        self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels
+      Message = 'Continue to plot of ' + self.data_label + '?'
+      self._next_plot.setText(Message)
+
     def printPlot(self):
         try:
             printer = QPrinter(QPrinter.HighResolution)
@@ -428,7 +594,9 @@ class QwtImagePlot(QwtPlot):
                     self.axisScale(QwtPlot.yLeft).hBound(),
                     )
         elif Qt.RightButton == e.button():
-            self.zooming = 0
+            e.accept()
+            self._menu.popup(e.globalPos());
+
         elif Qt.MidButton == e.button():
             xpos = e.pos().x()
             ypos = e.pos().y()
@@ -519,8 +687,9 @@ class QwtImagePlot(QwtPlot):
 # first find out what kind of plot we are making
       self._plot_type = None
       self._display_type = None
+      self._string_tag = None
+      self._data_labels = None
       self._tag_plot_attrib={}
-      tag = None
       if attribute_list is None: 
         if visu_record.has_key('attrib'):
           self._attrib_parms = visu_record['attrib']
@@ -559,12 +728,34 @@ class QwtImagePlot(QwtPlot):
               self._plot_type = plot_parms.get('plot_type')
             if self._display_type is None and plot_parms.has_key('spectrum_color'):
               self._display_type = plot_parms.get('spectrum_color')
-          if tag is None and self._attrib_parms.has_key('tag'):
+          if self._attrib_parms.has_key('tag'):
             tag = self._attrib_parms.get('tag')
+            if self._string_tag is None:
+              self._string_tag = ''
+            if isinstance(tag, tuple):
+              _dprint(2,'tuple tag ', tag);
+              for i in range(0, len(tag)):
+                if self._string_tag.find(tag[i]) < 0:
+                  temp_tag = self._string_tag + ' ' + tag[i]
+                  self._string_tag = temp_tag
+              _dprint(2,'self._string_tag ', self._string_tag);
+            else:
+              _dprint(2,'non tuple tag ', tag);
+              if self._string_tag is None:
+                self._string_tag = ''
+              if self._string_tag.find(tag) < 0:
+                temp_tag = self._string_tag + ' ' + tag
+                self._string_tag = temp_tag
+
+      if visu_record.has_key('label'):
+        self._data_labels = visu_record['label']
+        _dprint(2,'display_image: self._data_labels ', self._data_labels);
+      else:
+        self._data_labels = ''
 
 # set defaults for anything that is not specified
-      if tag is None:
-        tag = ''
+      if self._string_tag is None:
+        self._string_tag = ''
       if self._display_type is None:
         self._display_type = 'hippo'
       if self._plot_type is None:
@@ -572,7 +763,6 @@ class QwtImagePlot(QwtPlot):
 
 # set the display color type in the low level QwtPlotImage class
       self.setDisplayType(self._display_type)
-
 
       if visu_record.has_key('value'):
         self._data_values = visu_record['value']
@@ -583,19 +773,97 @@ class QwtImagePlot(QwtPlot):
 # extract and define labels for this data item
      # now generate  particular plot type
       if  self._plot_type == 'spectra':
-        plot_label = 'spectra:'
-        if isinstance(tag, tuple):
-          for i in range(0, len(tag)):
-            temp_key =  plot_label + tag[i]
-            plot_label = temp_key
+        self.initSpectrumContextMenu()
+        plot_label = 'spectra:' + self._string_tag
+        self.num_plot_arrays = len(self._data_values)
+        _dprint(2,' number of arrays to plot ', self.num_plot_arrays)
+        self.data_label = ''
+        if isinstance(self._data_labels, tuple):
+          self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels[0]
         else:
-          plot_label = 'spectra: ' + tag
-        num_plot_arrays = len(self._data_values)
-        _dprint(2,' number of arrays to plot ', num_plot_arrays)
-        for i in range(0, num_plot_arrays):
-          data_label = plot_label +  "_" +str(i) 
-          self.array_plot(data_label, self._data_values[i])
-    # plot_data()
+          self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels
+# plot first instance of array
+        self.array_plot(self.data_label, self._data_values[0])
+        if isinstance(self._data_labels, tuple):
+          if len(self._data_labels) > 1:
+            self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels[1]
+          else:
+            self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels[0]
+        else:
+          self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels
+        Message = 'Continue to plot of ' + self.data_label + '?'
+        self._next_plot.setText(Message)
+        self.plot_counter = 0
+
+
+      self._first_plot = False
+
+    # end plot_data()
+
+    def plot_vells_data (self, vells_record):
+      """ process incoming data and attributes into the
+          appropriate type of plot """
+      _dprint(2, 'in plot_vells_data');
+      self._vells_rec = vells_record;
+# if we are single stepping through requests, Oleg may reset the
+# cache, so check for a non-data record situation
+      if isinstance(self._vells_rec, bool):
+        return
+
+# are we dealing with Vellsets?
+      if self._vells_rec.has_key("vellsets"):
+        self._vells_plot = True
+        self. initVellsContextMenu()
+        _dprint(3, 'handling vellsets')
+# how many VellSet planes (e.g. I, Q, U, V would each be a plane) are there?
+        number_of_planes = len(self._vells_rec["vellsets"])
+        _dprint(3, 'number of planes ', number_of_planes)
+# plot the first plane member
+        if self._vells_rec.vellsets[0].has_key("value"):
+          key = " value "
+          complex_type = False;
+# test if we have a numarray
+          try:
+            if self._vells_rec.vellsets[0].value.type() == Complex32:
+              complex_type = True;
+            if self._vells_rec.vellsets[0].value.type() == Complex64:
+              complex_type = True;
+            self._value_array = self._vells_rec.vellsets[0].value
+            _dprint(3, 'self._value_array ', self._value_array)
+          except:
+            temp_array = numarray.asarray(self._vells_rec.vellsets[0].value)
+            self._shape = self._vells_rec.vellsets[0]["shape"]
+            self._value_array = numarray.resize(temp_array,self._shape)
+            if self._value_array.type() == Complex32:
+              complex_type = True;
+            if self._value_array.type() == Complex64:
+              complex_type = True;
+
+          key = " value "
+          if complex_type:
+            _dprint(3,'handling complex array')
+#extract real component
+            self._value_real_array = self._value_array.getreal()
+            self._z_real_min = self._value_real_array.min()
+            self._z_real_max = self._value_real_array.max()
+#extract imaginary component
+            self._value_imag_array = self._value_array.getimag()
+            self._z_imag_min = self._value_imag_array.min()
+            self._z_imag_max = self._value_imag_array.max()
+            self._label = "plane " + str(0) + key 
+            self.array_plot(self._label, self._value_array)
+          else:
+#we have a real array
+            _dprint(3,'handling real array')
+            self._label = "plane " + str(0) + key 
+            self._z_real_min = self._value_array.min()
+            self._z_real_max = self._value_array.max()
+            self.array_plot(self._label, self._value_array)
+
+    # end plot_vells_data()
+
+    def handle_finished (self):
+      print 'in handle_finished'
 
     def array_plot (self, data_label, plot_array):
       """ figure out shape, rank etc of a spectrum array and
@@ -630,7 +898,11 @@ class QwtImagePlot(QwtPlot):
         self.setAxisAutoScale(QwtPlot.yRight)
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if complex_type and self._display_type != "brentjens":
-          self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
+          if self._vells_plot:
+            self.setAxisTitle(QwtPlot.xBottom, 'Frequency (real followed by imaginary)')
+            self.setAxisTitle(QwtPlot.yLeft, 'Time')
+          else:
+            self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
           myXScale = ComplexScaleDraw(plot_array.shape[0])
           self.setAxisScaleDraw(QwtPlot.xBottom, myXScale)
 # create array of reals followed bu imaginaries
@@ -650,7 +922,11 @@ class QwtImagePlot(QwtPlot):
             self.set_data_called = False
           self.display_image(temp_array)
         else:
-          self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
+          if self._vells_plot:
+            self.setAxisTitle(QwtPlot.xBottom, 'Frequency')
+            self.setAxisTitle(QwtPlot.yLeft, 'Time')
+          else:
+            self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
           if self.x_dim != plot_array.shape[0]: 
             self.x_dim = plot_array.shape[0]
             self.set_data_called = False
@@ -661,7 +937,10 @@ class QwtImagePlot(QwtPlot):
 
       if self.is_vector == True:
         flattened_array = None
-        self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
+        if self._vells_plot:
+          self.setAxisTitle(QwtPlot.xBottom, 'Frequency')
+        else:
+          self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
 # set this flag in case an image follows
         self.set_data_called = False
 # make sure we are autoscaling in case an image was previous
@@ -755,13 +1034,13 @@ def make():
     demo.resize(500, 300)
     demo.show()
 # uncomment the following
-#    demo.start_timer(1000, True, "grayscale")
+    demo.start_timer(1000, False, "grayscale")
 
 # or
 # uncomment the following three lines
-    import pyfits
-    m51 = pyfits.open('./m51.fits')
-    demo.array_plot('m51', m51[0].data)
+#    import pyfits
+#    m51 = pyfits.open('./m51.fits')
+#    demo.array_plot('m51', m51[0].data)
 
     return demo
 
@@ -775,7 +1054,4 @@ def main(args):
 # Admire
 if __name__ == '__main__':
     main(sys.argv)
-
-
-
 
