@@ -75,7 +75,7 @@
         Do(Meq::DataCollect,arg) separator \
         Do(Meq::DataConcat,arg) separator \
         Do(Meq::Rms,arg) separator \
-        Do(Meq::Rmsrms,arg)
+        Do(Meq::StdDev,arg)
 
 #define DoForAllNumericTypes_MeqNodes(Do,arg,separator) \
         

@@ -119,8 +119,8 @@ BlockableObject * __construct_MeqDataCollect (int n) { return n>0 ? new Meq::Dat
 BlockableObject * __construct_MeqDataConcat (int n) { return n>0 ? new Meq::DataConcat [n] : new Meq::DataConcat; }
 #include "Rms.h"
 BlockableObject * __construct_MeqRms (int n) { return n>0 ? new Meq::Rms [n] : new Meq::Rms; }
-#include "Rmsrms.h"
-BlockableObject * __construct_MeqRmsrms (int n) { return n>0 ? new Meq::Rmsrms [n] : new Meq::Rmsrms; }
+#include "StdDev.h"
+BlockableObject * __construct_MeqStdDev (int n) { return n>0 ? new Meq::StdDev [n] : new Meq::StdDev; }
   
     int aidRegistry_MeqNodes ()
     {
@@ -326,9 +326,9 @@ BlockableObject * __construct_MeqRmsrms (int n) { return n>0 ? new Meq::Rmsrms [
         AtomicID::registerId(-1571,"meqrms")+
         TypeInfoReg::addToRegistry(-1571,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1571,__construct_MeqRms)+
-        AtomicID::registerId(-1572,"meqrmsrms")+
-        TypeInfoReg::addToRegistry(-1572,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1572,__construct_MeqRmsrms)+
+        AtomicID::registerId(-1573,"meqstddev")+
+        TypeInfoReg::addToRegistry(-1573,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1573,__construct_MeqStdDev)+
     0;
     return res;
   }

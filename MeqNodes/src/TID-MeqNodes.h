@@ -739,23 +739,6 @@ namespace Meq { class Rms; };
               typedef const Meq::Rms & ContainerParamType;
             };
 #endif
-#ifndef _defined_id_TpMeqRmsrms
-#define _defined_id_TpMeqRmsrms 1
-const TypeId TpMeqRmsrms(-1572);                  // from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Rmsrms.h:29
-const int TpMeqRmsrms_int = -1572;
-namespace Meq { class Rmsrms; };
-            template<>
-            class DMIBaseTypeTraits<Meq::Rmsrms> : public TypeTraits<Meq::Rmsrms>
-            {
-              public:
-              enum { isContainable = true };
-              enum { typeId = TpMeqRmsrms_int };
-              enum { TypeCategory = TypeCategories::DYNAMIC };
-              enum { ParamByRef = true, ReturnByRef = true };
-              typedef const Meq::Rmsrms & ContainerReturnType;
-              typedef const Meq::Rmsrms & ContainerParamType;
-            };
-#endif
 #ifndef _defined_id_TpMeqSelector
 #define _defined_id_TpMeqSelector 1
 const TypeId TpMeqSelector(-1255);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Selector.h:29
@@ -873,6 +856,23 @@ namespace Meq { class StatPointSourceDFT; };
               enum { ParamByRef = true, ReturnByRef = true };
               typedef const Meq::StatPointSourceDFT & ContainerReturnType;
               typedef const Meq::StatPointSourceDFT & ContainerParamType;
+            };
+#endif
+#ifndef _defined_id_TpMeqStdDev
+#define _defined_id_TpMeqStdDev 1
+const TypeId TpMeqStdDev(-1573);                  // from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/StdDev.h:29
+const int TpMeqStdDev_int = -1573;
+namespace Meq { class StdDev; };
+            template<>
+            class DMIBaseTypeTraits<Meq::StdDev> : public TypeTraits<Meq::StdDev>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqStdDev_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::StdDev & ContainerReturnType;
+              typedef const Meq::StdDev & ContainerParamType;
             };
 #endif
 #ifndef _defined_id_TpMeqStripper

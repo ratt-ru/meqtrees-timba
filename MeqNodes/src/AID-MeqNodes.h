@@ -273,11 +273,6 @@ const int AidMeqReqSeq_int = -1478;
 const AtomicID AidMeqRms(-1571);                  // from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Rms.h:29
 const int AidMeqRms_int = -1571;
 #endif
-#ifndef _defined_id_AidMeqRmsrms
-#define _defined_id_AidMeqRmsrms 1
-const AtomicID AidMeqRmsrms(-1572);               // from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Rmsrms.h:29
-const int AidMeqRmsrms_int = -1572;
-#endif
 #ifndef _defined_id_AidMeqSelector
 #define _defined_id_AidMeqSelector 1
 const AtomicID AidMeqSelector(-1255);             // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Selector.h:29
@@ -312,6 +307,11 @@ const int AidMeqSqrt_int = -1251;
 #define _defined_id_AidMeqStatPointSourceDFT 1
 const AtomicID AidMeqStatPointSourceDFT(-1468);   // from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/StatPointSourceDFT.h:30
 const int AidMeqStatPointSourceDFT_int = -1468;
+#endif
+#ifndef _defined_id_AidMeqStdDev
+#define _defined_id_AidMeqStdDev 1
+const AtomicID AidMeqStdDev(-1573);               // from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/StdDev.h:29
+const int AidMeqStdDev_int = -1573;
 #endif
 #ifndef _defined_id_AidMeqStripper
 #define _defined_id_AidMeqStripper 1
