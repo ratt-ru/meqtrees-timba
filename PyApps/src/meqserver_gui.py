@@ -166,8 +166,8 @@ class meqserver_gui (app_proxy_gui):
     self._add_ce_handler("node.result",self.ce_NodeResult);
     self._add_ce_handler("app.result.node.get.state",self.ce_NodeState);
     self._add_ce_handler("app.result.get.node.list",self.ce_LoadNodeList);
-    self._add_ce_handler("hello",self.ce_Hello);
-    self._add_ce_handler("bye",self.ce_Bye);
+    self._add_ce_handler("hello",self.ce_mqs_Hello);
+    self._add_ce_handler("bye",self.ce_mqs_Bye);
     
     self._wait_nodestate = {};
     
@@ -192,11 +192,13 @@ class meqserver_gui (app_proxy_gui):
     self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
     self.resultlog.connect_click(self._process_logger_item_click);
     
-  def ce_Hello (self,ev,value):
+  def ce_mqs_Hello (self,ev,value):
     self.treebrowser.clear();
     self.treebrowser.connected(True);  
+    self.resultlog.clear();
     
-  def ce_Bye (self,ev,value):
+  def ce_mqs_Bye (self,ev,value):
+    app_proxy_gui.ce_Hello(self,ev,value);
     self.treebrowser.connected(False);  
     
   def ce_NodeState (self,ev,value):

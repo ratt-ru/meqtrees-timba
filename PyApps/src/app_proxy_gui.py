@@ -539,12 +539,12 @@ class app_proxy_gui(verbosity,QMainWindow):
       
 ##### custom event handlers for various messages
   def ce_Hello (self,ev,value):
-    self.wtop().emit(PYSIGNAL("connected()"),(value,));
+    self.emit(PYSIGNAL("connected()"),(value,));
     self.msglog.add("connected to "+str(value),None,Logger.Normal);
     self.gw.clear();
     
   def ce_Bye (self,ev,value):
-    self.wtop().emit(PYSIGNAL("disconnected()"),(value,));
+    self.emit(PYSIGNAL("disconnected()"),(value,));
     self.msglog.add("lost connection to "+str(value),None,Logger.Error);
     
   def ce_UpdateState (self,ev,value):
