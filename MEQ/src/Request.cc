@@ -68,6 +68,12 @@ void Request::setId (const HIID &id)
   (*this)[FRequestId] = itsId = id;
 }
 
+void Request::setCalcDeriv (bool calc)
+{ 
+  (*this)[FCalcDeriv] = itsCalcDeriv = calc; 
+}
+
+
 //##ModelId=3F868870006E
 void Request::setCells (const Cells * cells,int flags)
 {

@@ -106,6 +106,7 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
 {
   cdebug(1)<<"reinitializing node"<<endl;
   forest_ = frst;
+      
   // xfer & privatize the state record -- we don't want anyone
   // changichildrec.size()ng it under us
   DataRecord &rec = staterec_.xfer(initrec).privatize(DMI::WRITE|DMI::DEEP);
@@ -147,6 +148,7 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
 {
   cdebug(1)<<"initializing node"<<endl;
   forest_ = frst;
+  
   // xfer & privatize the state record -- we don't want anyone
   // changichildrec.size()ng it under us
   DataRecord &rec = staterec_.xfer(initrec).privatize(DMI::WRITE|DMI::DEEP);
@@ -224,6 +226,7 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
     protectStateField(rec,FClass);
     protectStateField(rec,FChildren);
     protectStateField(rec,FNodeIndex);
+    protectStateField(rec,FRequest);
   }
   // set/clear cached result
   //   the cache_result field must be either a Result object,
@@ -482,6 +485,7 @@ inline int Node::getChildNumber (const HIID &id)
 //##ModelId=3F9919B10014
 void Node::setCurrentRequest (const Request &req)
 {
+  wstate()[FRequest].put(req,DMI::READONLY);
   wstate()[FRequestId].replace() = current_reqid_ = req.id();
 }
 
@@ -530,8 +534,45 @@ int Node::cacheResult (const Result::Ref &ref,int retcode)
   wstate()[FCacheResult].replace() <<= cache_result_.dewr_p();
   wstate()[FCacheResultCode].replace() = cache_retcode_ = retcode;
   cdebug(3)<<"  caching result with code "<<retcode<<endl;
+  // publish current state to all result subscribers
+  ResultSubscribers::const_iterator iter = result_subscribers_.begin();
+  for( ; iter != result_subscribers_.end(); iter++ )
+    iter->receive(staterec_.copy(DMI::READONLY));  
+  // note that if we don't cache the result, we have to publish it regardless
+  // this is to be implemented laterm, with caching policies
   return retcode;
 }
+
+void Node::addResultSubscriber (const EventSlot &slot)
+{
+  ResultSubscribers::const_iterator iter = 
+        std::find(result_subscribers_.begin(),result_subscribers_.end(),slot);
+  if( iter == result_subscribers_.end() )
+  {
+    result_subscribers_.push_back(slot);
+    cdebug(2)<<"added result subscription "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
+  }
+  else
+  {
+    cdebug(2)<<"already have a subscription for "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
+  }
+}
+
+void Node::removeResultSubscriber (const EventSlot &slot)
+{
+  ResultSubscribers::iterator iter = result_subscribers_.begin();
+  while( iter != result_subscribers_.end())
+  {
+    if( slot.evId() == iter->evId() && slot.recepient() == iter->recepient() )
+    {
+      result_subscribers_.erase(iter++);
+      cdebug(2)<<"removing result subscriber "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
+    }
+    else
+      iter++;
+  }
+}
+
 
 //##ModelId=400E531702FD
 int Node::pollChildren (std::vector<Result::Ref> &child_results,
@@ -580,6 +621,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
 //##ModelId=3F6726C4039D
 int Node::execute (Result::Ref &ref, const Request &req)
 {
+  DbgFailWhen(!req.getOwner(),"Request object must have at least one ref attached");
   cdebug(3)<<"execute, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
   // this indicates the current stage (for exception handler)
   string stage;
@@ -612,15 +654,13 @@ int Node::execute (Result::Ref &ref, const Request &req)
       {
         stage = "processing node_state";
         cdebug(3)<<"  processing node_state"<<endl;
-        // *** cast away const for now, need to revise this later on
-        DataRecord &nodestate = const_cast<DataRecord&>(req[FNodeState].as<DataRecord>());
+        const DataRecord &nodestate = req[FNodeState].as<DataRecord>();
         for( uint i=0; i<config_groups_.size(); i++ )
         {
           if( nodestate[config_groups_[i]].exists() )
           {
             cdebug(3)<<"    found config group "<<config_groups_[i]<<endl;
-            DataRecord &group = nodestate[config_groups_[i]].as_wr<DataRecord>();
-            // check for entry nodeindex map
+            DataRecord::Ref group = nodestate[config_groups_[i]].ref();
             if( group[FByNodeIndex].exists() && group[FByNodeIndex][nodeIndex()].exists() )
             {
               cdebug(4)<<"    found "<<FByNodeIndex<<"["<<nodeIndex()<<"]"<<endl;
@@ -713,8 +753,8 @@ int Node::execute (Result::Ref &ref, const Request &req)
     else // no cells, ensure an empty result
     {
       ref <<= new Result(0);
-      cdebug(3)<<"  empty result; cumulative result code is "<<retcode<<endl;
-      return retcode; // no caching of empty results
+      cdebug(3)<<"  empty result. Cumulative result code is "<<retcode<<endl;
+      return cacheResult(ref,retcode);
     }
     // OK, at this point we have a valid Result to return
     if( DebugLevel>=3 ) // print it out

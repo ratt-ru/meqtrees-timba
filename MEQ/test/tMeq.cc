@@ -48,56 +48,56 @@ int main (int argc,const char* argv[])
 
     cout << "============ creating parm1 node ==================\n";
     DataRecord::Ref rec_child1(DMI::ANONWR);
-    rec_child1()["Class"] = "MeqParm";
-    rec_child1()["Name"] = "p1";
-    //    rec_child1()["Table.Name"] = "meqadd.MEP";
-    rec_child1()["Default"] = defVal1;
+    rec_child1["Class"] = "MeqParm";
+    rec_child1["Name"] = "p1";
+    //    rec_child1["Table.Name"] = "meqadd.MEP";
+    rec_child1["Default"] = defVal1;
     int index_child1;
     Node& child1 = forest.create(index_child1,rec_child1);
     
     cout << "============ creating child2 node ==================\n";
     DataRecord::Ref rec_child2(DMI::ANONWR);
-    rec_child2()["Class"] = "MeqParm";
-    rec_child2()["Name"] = "p2";
-    //    rec_child2()["Table.Name"] = "meqadd.MEP";
-    rec_child2()["Default"] = defVal2;
+    rec_child2["Class"] = "MeqParm";
+    rec_child2["Name"] = "p2";
+    //    rec_child2["Table.Name"] = "meqadd.MEP";
+    rec_child2["Default"] = defVal2;
     int index_child2;
     Node& child2 = forest.create(index_child2,rec_child2);
     
     cout << "============ creating child3 node ==================\n";
     DataRecord::Ref rec_child3(DMI::ANONWR);
-    rec_child3()["Class"] = "MeqConstant";
-    rec_child3()["Name"] = "c3";
-    rec_child3()["Value"] = double(3);
+    rec_child3["Class"] = "MeqConstant";
+    rec_child3["Name"] = "c3";
+    rec_child3["Value"] = double(3);
     int index_child3;
     Node& child3 = forest.create(index_child3,rec_child3);
     
     cout << "============ creating child4 node ==================\n";
     DataRecord::Ref rec_child4(DMI::ANONWR);
-    rec_child4()["Class"] = "MeqConstant";
-    rec_child4()["Name"] = "c4";
-    rec_child4()["Value"] = dcomplex(2, 1.1);
+    rec_child4["Class"] = "MeqConstant";
+    rec_child4["Name"] = "c4";
+    rec_child4["Value"] = dcomplex(2, 1.1);
     int index_child4;
     Node& child4 = forest.create(index_child4,rec_child4);
     
     cout << "============ creating cos node ===\n";
     DataRecord::Ref recc(DMI::ANONWR);
-    recc()["Class"] = "MeqCos";
-    recc()["Name"] = "cosp1";
-    recc()["Children"] <<= new DataRecord;
-      recc()["Children"]["A"] = "p1";
+    recc["Class"] = "MeqCos";
+    recc["Name"] = "cosp1";
+    recc["Children"] <<= new DataRecord;
+      recc["Children"]["A"] = "p1";
     int index_cos;
     Node& chcos = forest.create(index_cos,recc);
 
     cout << "============ creating add node ===\n";
     DataRecord::Ref rec(DMI::ANONWR);
-    rec()["Class"] = "MeqAdd";
-    rec()["Name"] = "add1_2";
-    rec()["Children"] <<= new DataRecord;
-      rec()["Children"]["A"] = "cosp1";
-      rec()["Children"]["B"] = index_child2; 
-      rec()["Children"]["C"] = "c3";
-      rec()["Children"]["D"] = "c4";
+    rec["Class"] = "MeqAdd";
+    rec["Name"] = "add1_2";
+    rec["Children"] <<= new DataRecord;
+      rec["Children"]["A"] = "cosp1";
+      rec["Children"]["B"] = index_child2; 
+      rec["Children"]["C"] = "c3";
+      rec["Children"]["D"] = "c4";
     int index_add;
     Node& chadd = forest.create(index_add,rec);
     
@@ -110,9 +110,10 @@ int main (int argc,const char* argv[])
 
     cout << "============ getting result =========\n";
     Domain domain(1,4, -2,3);
-    Request req(new Cells(domain, 4, 4));
+    Request::Ref reqref;
+    reqref <<= new Request(new Cells(domain, 4, 4));
     Result::Ref refres;
-    int flag = chadd.execute(refres, req);
+    int flag = chadd.execute(refres,*reqref);
     cout << flag << endl;
     cout << refres().vellSet(0).getValue() << endl;
   } 

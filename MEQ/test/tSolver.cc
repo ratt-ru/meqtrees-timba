@@ -61,40 +61,40 @@ int main (int argc,const char* argv[])
 
     cout << "============ creating parm1 node ==================\n";
     DataRecord::Ref rec_child1(DMI::ANONWR);
-    rec_child1()["Class"] = "MeqParm";
-    rec_child1()["Name"] = "p1";
-    rec_child1()["Default"] = defVal1;
-    rec_child1()["Config.Groups"] = FSolvableParm;
+    rec_child1["Class"] = "MeqParm";
+    rec_child1["Name"] = "p1";
+    rec_child1["Default"] = defVal1;
+    rec_child1["Config.Groups"] = FSolvableParm;
     int index_child1;
     Node& child1 = forest.create(index_child1,rec_child1);
     
     cout << "============ creating child2 node ==================\n";
     DataRecord::Ref rec_child2(DMI::ANONWR);
-    rec_child2()["Class"] = "MeqParm";
-    rec_child2()["Name"] = "p2";
-    rec_child2()["Default"] = defVal2;
-    rec_child2()["Config.Groups"] = FSolvableParm;
+    rec_child2["Class"] = "MeqParm";
+    rec_child2["Name"] = "p2";
+    rec_child2["Default"] = defVal2;
+    rec_child2["Config.Groups"] = FSolvableParm;
     int index_child2;
     Node& child2 = forest.create(index_child2,rec_child2);
     
     cout << "============ creating condeq node ===\n";
     DataRecord::Ref recc(DMI::ANONWR);
-    recc()["Class"] = "MeqCondeq";
-    recc()["Name"] = "condeq1";
-    recc()["Children"] <<= new DataRecord;
-      recc()["Children"]["A"] = "p1";
-      recc()["Children"]["B"] = "p2";
+    recc["Class"] = "MeqCondeq";
+    recc["Name"] = "condeq1";
+    recc["Children"] <<= new DataRecord;
+      recc["Children"]["A"] = "p1";
+      recc["Children"]["B"] = "p2";
     int index_con;
     Node& chcon = forest.create(index_con,recc);
 
     cout << "============ creating solver node ===\n";
     DataRecord::Ref rec(DMI::ANONWR);
-    rec()["Class"] = "MeqSolver";
-    rec()["Name"] = "solve1";
-    rec()["Num.Steps"] = 5;
-    rec()["Children"] <<= new DataRecord;
-      rec()["Children"]["A"] = "condeq1";
-    DataRecord& recs = rec()["Solvable.Parm"] <<= new DataRecord;
+    rec["Class"] = "MeqSolver";
+    rec["Name"] = "solve1";
+    rec["Num.Steps"] = 5;
+    rec["Children"] <<= new DataRecord;
+      rec["Children"]["A"] = "condeq1";
+    DataRecord& recs = rec["Solvable.Parm"] <<= new DataRecord;
     DataField& dfld = recs["By.List"] <<= new DataField(TpDataRecord,2);
       dfld[0]["Name"] = "p2";
       dfld[0]["State"] <<= new DataRecord;
@@ -110,7 +110,8 @@ int main (int argc,const char* argv[])
     
     cout << "============ getting result =========\n";
     Domain domain(1,4, -2,3);
-    Request req(new Cells(domain, 4, 4));
+    Request::Ref reqref;
+    Request &req = reqref <<= new Request(new Cells(domain, 4, 4));
     Result::Ref refres;
     child1.execute(refres, req);
     cout << "p1 before " << refres().vellSet(0).getValue() << endl;

@@ -41,7 +41,7 @@ class Request : public DataRecord
 {
 public:
     //##ModelId=400E53040057
-  typedef CountedRef<VellSet> Ref;
+  typedef CountedRef<Request> Ref;
     
     //##ModelId=3F8688700056
   Request ();
@@ -80,6 +80,8 @@ public:
     //##ModelId=3F868870006C
   bool calcDeriv() const
   { return itsCalcDeriv; }
+  
+  void setCalcDeriv (bool calc=True);
 
   // Attaches cells object (default as anon). Can also specify DMI::CLONE
   // to copy

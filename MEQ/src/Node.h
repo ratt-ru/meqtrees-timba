@@ -23,6 +23,7 @@
 #define MeqSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413
     
 #include <DMI/DataRecord.h>
+#include <DMI/Events.h>
 #include <MEQ/Result.h>
 #include <MEQ/RequestId.h>
 #include <MEQ/AID-Meq.h>
@@ -105,6 +106,12 @@ class Node : public BlockableObject
     //##ModelId=400E531300C8
     void clearCache (bool recursive=false);
     
+    void addResultSubscriber (const EventSlot &slot);
+    void removeResultSubscriber (const EventSlot &slot);
+    
+    //##ModelId=3F98D9D20372
+    Forest & forest ();
+
     //##ModelId=3F85710E002E
     int numChildren () const;
     
@@ -117,10 +124,6 @@ class Node : public BlockableObject
     //##ModelId=3F98D9D20201
     int getChildNumber (const HIID &id);
     
-    //##ModelId=3F98D9D20372
-    Forest & forest ();
-
-    // implement abstract methods inherited from BlockableObject 
     //##ModelId=3F5F4363030F
     //##Documentation
     //## Clones a node. 
@@ -343,6 +346,10 @@ class Node : public BlockableObject
     // container of child node indices
     //##ModelId=400E530C0216
     NestableContainer::Ref child_indices_;
+    
+    // list of event recepients for when result is available
+    typedef std::list<EventSlot> ResultSubscribers;
+    ResultSubscribers result_subscribers_;
 };
 
 //##ModelId=3F9919B00313

@@ -360,9 +360,10 @@ const app_proxy := function (appid,
       self.gui.eventlog.text->append(str,'event');
       if( has_field(value,'text') )
       {
-        tag := 'text';
         if( has_field(value,'error') )
           tag := 'error';
+        else
+          tag := 'text';
         self.gui.eventlog.text->append(spaste(value.text,'\n'),tag);
       }
     }

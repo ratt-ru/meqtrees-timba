@@ -51,6 +51,7 @@ namespace Meq
     FClassName       = AidClass|AidName,
     FVellSets        = AidVellSets,
     FResult          = AidResult,
+    FRequest         = AidRequest,
     FChildren        = AidChildren,
     FChildrenNames   = AidChildren|AidName,
     FName            = AidName,
