@@ -6,12 +6,12 @@
 static int dum = aidRegistry_VisCube ();
 
 //##ModelId=3DB964F40176
-VDSID::VDSID (int segid,int beamid,int obsid)
+VDSID::VDSID (int obs,int dom,int iter)
 {
   resize(3);
-  (*this)[2] = segid;
-  (*this)[1] = beamid;
-  (*this)[0] = obsid;
+  (*this)[2] = iter;
+  (*this)[1] = dom;
+  (*this)[0] = obs;
 }
   
 //##ModelId=3DB964F40177

@@ -83,7 +83,7 @@ class VDSID : public HIID
   public: 
     // default constructor
     //##ModelId=3DB964F40176
-    VDSID (int segid=0,int beamid=0,int obsid=0);
+    VDSID (int obs=0,int dom=0,int iter=0);
   
     // construct from HIID (checks for correct length)
     //##ModelId=3DB964F40177
@@ -91,11 +91,11 @@ class VDSID : public HIID
     
     // returns individual components
     //##ModelId=3DF9FDCD008A
-    int segment     () const      { return (*this)[2]; }
+    int iteration   () const      { return (*this)[2]; }
     //##ModelId=3DB964F4017E
-    int beam        () const      { return (*this)[1]; }
+    int domain      () const      { return (*this)[1]; }
     //##ModelId=3DF9FDCD008E
-    int observation () const      { return (*this)[0]; }
+    int sequence    () const      { return (*this)[0]; }
     
     // length of a VDSID
     //##ModelId=3DF9FDCD0090
@@ -313,9 +313,13 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //##Documentation
     //## Sets the ID of this tile, forming it from two antenna indices,
     //## plus the VDSID. See also ColumnarTableTile::tileId().
-      void setTileId (int ant1,int ant2,const VDSID &vdsid)
+      void setTileId (int ant1 = -1,int ant2 = -1,const VDSID &vdsid = HIID())
       { 
-        ColumnarTableTile::setTileId(vdsid|ant1|ant2); 
+        ColumnarTableTile::setTileId(
+            (vdsid.empty() ? vdsId() : vdsid ) |
+            (ant1<0 ? antenna1() : ant1) |
+            (ant2<0 ? antenna2() : ant2)
+        ); 
       }
     //##ModelId=3DF9FDD4029A
     //##Documentation

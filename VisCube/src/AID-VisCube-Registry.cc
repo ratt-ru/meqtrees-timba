@@ -121,4 +121,5 @@ static AtomicID::Register aid_reg_Meas(-1188,"Meas");
 static AtomicID::Register aid_reg_Centroid(-1171,"Centroid");
 static AtomicID::Register aid_reg_AIPSPP(-1191,"AIPSPP");
 static AtomicID::Register aid_reg_Ignore(-1160,"Ignore");
+static AtomicID::Register aid_reg_VDSID(-1121,"VDSID");
 

@@ -1,8 +1,8 @@
 CXXFLAGS += -D_GNU_SOURCE -Wno-unused
 
-check_PROGRAMS		= 
+check_PROGRAMS		= test_viscube
 
-bin_PROGRAMS   		= test_viscube
+bin_PROGRAMS   		= 
 
 test_viscube_SOURCES 	= test_viscube.cc 
 
