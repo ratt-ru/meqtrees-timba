@@ -1,20 +1,12 @@
 
 Expect type mismatch exception ...
 >>>
-
-==================================== EXCEPTION ================================
-
-[DataArray/0827dcb8 RW Array(float,2)  10x12] array type mismatch (Array(double,2)/Array(float,2)) (context: Global, at /home/oms/LOFAR/DMI/src/DataArray.cc:743)
-[DataArray/0827dcb8 RW Array(float,2)  10x12] array type mismatch (Array(double,2)/Array(float,2)) (context: Global, at /home/oms/LOFAR/DMI/src/DataArray.cc:743)
+[DataArray/082a4d38 RW Array(float,2)  10x12] array type mismatch (Array(double,2)/Array(float,2)) (context: Global)
 <<<
 
 Expect type mismatch exception ...
 >>>
-
-==================================== EXCEPTION ================================
-
-[DataArray/0827dcb8 RW Array(float,2)  10x12] array type mismatch (double/Array(float,2)) (context: Global, at /home/oms/LOFAR/DMI/src/DataArray.cc:743)
-[DataArray/0827dcb8 RW Array(float,2)  10x12] array type mismatch (double/Array(float,2)) (context: Global, at /home/oms/LOFAR/DMI/src/DataArray.cc:743)
+[DataArray/082a4d38 RW Array(float,2)  10x12] array type mismatch (double/Array(float,2)) (context: Global)
 <<<
 2[ 0 0 ][ 10 12 ][ 1 1 ][ 1 1 ]
 0[ 1 2 ][ 2 3 ][ 1 1 ][ 0 0 ]
@@ -24,20 +16,11 @@ Expect type mismatch exception ...
 
 Expect some HIID parser exceptions ...
 Only 3 values (start:end:incr) can be given per axis in HIID 1:3._:_:_:2
-Only 3 values (start:end:incr) can be given per axis in HIID 1:3._:_:_:2
-Start 10 should be < axis length 10 in HIID 10._
 Start 10 should be < axis length 10 in HIID 10._
 Start 12 should be < axis length 12 in HIID _.12
-Start 12 should be < axis length 12 in HIID _.12
-End 9 should be >= start 10 in HIID _.10:9
 End 9 should be >= start 10 in HIID _.10:9
 Stride 0 should be > 0 in HIID _.9:10:0
-Stride 0 should be > 0 in HIID _.9:10:0
-HIID _._._ has more axes than the array (2)
 HIID _._._ has more axes than the array (2)
 HIID : does not have a value before range delimiter
-HIID : does not have a value before range delimiter
 HIID 1:: does not have a value before range delimiter
-HIID 1:: does not have a value before range delimiter
-HIID 1: does not have a value after range delimiter
 HIID 1: does not have a value after range delimiter
