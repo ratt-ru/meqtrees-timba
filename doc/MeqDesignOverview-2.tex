@@ -21,7 +21,7 @@
   \item Each node has a unique {\bf node index} (integer$>$0) and an optional
     unique {\bf node name}. A \qq{Forest} object acts as a repository of
     nodes, and maintains a map between names, indices and node objects (see
-    section~\ref{sec:meqserver}).
+    section~\ref{sec:meqforest}).
 
   \item A \Node\ maintains a {\bf node state record}, which should completely
     determine the behaviour of the node. 
@@ -31,7 +31,7 @@
     \qq{execute()} with the same \Request\ on its children, and form its result
     based on the results of its children. Thus, requests propagate up the tree,
     and results percolate down the tree. This is discussed in
-    Chapter~\ref{sec:execute}. 
+    Chapter~\ref{chap:execute}. 
 
   \end{itemize}
   
@@ -59,14 +59,14 @@
   On the C++ side, state may be read via the \qq{Node::state()} method, and
   changed via the \qq{Node::setState()} method. On the Glish side, these are
   mapped to the \qq{getnodestate()} and \qq{setnodestate()} methods of the
-  \qq{meqserver} proxy (see Chapter~\ref{sec:meqserver}). The argument to
+  \qq{meqserver} proxy (see Chapter~\ref{chap:meqserver}). The argument to
   \qq{setState()} (or \qq{setnodestate()}) does not have to be a complete new
   state record; instead, it should only contain those fields that actually need
   to be changed. 
   
   Another mechanism of state changes is the {\em request rider}. A \qq{Request}
   can contain a command that changes the state of a node or a group of nodes
-  (section~\ref{sec:request-set-state}).
+  (section~\ref{sec:rider-setstate}).
 
   When a node is constructed, it is passed\footnote{ via the \qq{init()} method
   in C++, or via the \qq{createnode()} call in  Glish.} an {\bf init-record}
@@ -215,7 +215,7 @@
   \statetableentry{cache\_result\_code}{int}{0}{cached result code}
 %                                  
   \tablesubheading{4}{depmask-related dynamic state (see
-      Chapter~\ref{sec:depmasks}):} \\
+      Chapter~\ref{sec:symdeps}):} \\
 %
   \statetableentry{depend\_mask}{int}{0}{current depmask }
   \statetableentry{known\_symdeps}{HIID[]}{[]}{list of known symdeps }
@@ -289,7 +289,7 @@
   \item A string node name, which does not have to match an existing node. The
     child can be created later on; \qq{MeqServer} includes a mechanism  for
     recusively {\em resolving} named children (see
-    Chapter~\ref{sec:meqserver}).
+    Chapter~\ref{chap:meqserver}).
 
   \item A record, which will be used as an init-record to create a child node on
     the fly. This option allows whole subtrees to be specified via one big
@@ -426,8 +426,9 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 \end{verbatim}
 
 \subsection{Managing data objects via CountedRefs}
+\label{sec:countedrefs}
 
-  Many of the methods described here (and in Chapter~\ref{sec:execute})
+  Many of the methods described here (and in Chapter~\ref{chap:execute})
   take arguments of type {\sl Class}\qq{::Ref::Xfer} or \qq{Ref::Copy}.
   These arguments are known as {\bf counted refs}. Counted refs are properly
   documented in the DMI Programmer's Guide; this section provides a brief
@@ -612,6 +613,8 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   state listed in Table~\ref{table:nodestate}.
 
 \subsection{setState()}
+\label{sec:setState}
+\label{sec:state-rollback}
 
   The non-virtual \qq{setState()} method defined in \qq{Node} provides the
   public interface for setting state. Basically, it defers parsing the record
@@ -673,6 +676,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 \chapter{The Node Cache, Symdeps \& Depmasks}
 
 \section{Caching issues}
+  \label{sec:cache}
 
   To avoid unnecessary recalculations, a node's result can be retained in a
   cache. Obviously, this trades off performance against memory footprint. Three
@@ -701,6 +705,8 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   number of mechanisms that allow a node to get pretty smart about its cache.
 
 \subsection{Result/Request dependencies}
+\label{sec:depmask-result}
+\label{sec:rqid-contract}
 
   The simplest scenario of cache use is when identical requests (i.e. with
   identical rqids) are sent to the same node. If a node has a cached result, it
@@ -801,6 +807,8 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   defined at the application level!
 
 \subsection{Smart caching behaviour}
+  \label{sec:smartcache}
+  \label{sec:nextreq}
 
   The previous discussion focused on how depmasks determine whether a cached
   result can be reused. In a similar vein, depmasks can also help us define a
@@ -862,7 +870,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   The cache is actually stored in the node state record. The \qq{cache\_result}
   field contains a read-only counted ref to the result. The
   \qq{cache\_result\_code} field contains the result code, which includes the
-  depmask (see~\ref{sec:resultcode}). The \qq{request\_id} field is the rqid of
+  depmask (see~\ref{sec:execute-resultcode}). The \qq{request\_id} field is the rqid of
   the original request.
 
   The node cache may be cleared by assigning a boolean \qq{false} to the
@@ -872,6 +880,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   confuse the caching and dependency tracking mechanism.  
 
 \section{The local depmask}
+\label{sec:depmask-node}
   
   The \qq{depend\_mask} field of the state record defines the local depmask of
   the node. The local depmask indicates which dependencies a node introduces
@@ -886,6 +895,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   {\em symdeps} for short.
 
 \section{Symdeps in a nutshell}
+  \label{sec:symdeps}
   
   A {\em symdep} is a \qq{HIID} (thus, symbolic -- since \qq{HIID}s have a
   symbolic representation) that identifies some application-specific dependency
@@ -963,7 +973,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   A node will automatically keep track of the symdep masks associated with its
   known symdep set. These are sent up as commands in a request (see
-  \ref{sec:nodecommands}), and processed at the \qq{Node} class level.
+  \ref{sec:rider}), and processed at the \qq{Node} class level.
 
   \begin{itemize}
   

@@ -455,13 +455,13 @@
   commands are kept inside a {\bf rider} sub-record, and are subject to a {\em
   node selection} mechanism that allows commands to be directed to all nodes,
   individual nodes, or groups of nodes (this is described in further detail in
-  section~\ref{CSR}).
+  section~\ref{sec:CSR}).
 
   Each \Request\ is assigned a unique request ID ({\bf rqid}, pronounced
   ``arr-cue-d''). This is a \qq{HIID} describing various properties of the
   request. Request generators are expected to follow a certain {\em contract},
   and assign rqids in a consistent way. This is covered in detail in
-  section~\ref{sec:rqid}.
+  section~\ref{sec:rqid-contract}.
 
   On the C++ side, a \Request\ is derived from \qq{DataRecord}. It can contain
   the following fields (of which only \qq{request\_id} is obligatory).
@@ -834,7 +834,8 @@
   On the Glish side, a \Vells\ object is simply a \qq{double} or \qq{complex}
   scalar or a 2D array. On the C++ side, \Vells\ is a wrapper class around the
   scalar/array, providing some run-time type and size information, and built-in
-  mathematical operations (see \qq{Function} nodes, section~\ref{sec:Function}).
+  mathematical operations (see \qq{Function} nodes,
+  section~\ref{sec:Function}).
 
   Scalar \Vells\ represent values with no time-frequency variation. Array
   \Vells\ represent dependence {\em over a specific Cells.} This implies that

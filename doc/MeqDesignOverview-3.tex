@@ -1,4 +1,5 @@
 \chapter{Executing Requests}
+  \label{chap:execute}
 
   The virtual \qq{Node::execute()} method is responsible for processing a
   \Request:
@@ -26,7 +27,9 @@
   to deal directly with trees.}
 
   
-  \section{Base Node::execute() steps}
+\section{Base Node::execute() steps}
+   \label{sec:execute}
+  
   
   The \qq{Node::execute()} method looks at the request, and calls a number
   of virtual {\em handler} methods for various aspects of processing. Most
@@ -135,16 +138,16 @@
   does to it will be simply ignored when no \RES{FAIL} is returned.)
 
   If the \qq{pollChildren()} return value contains \RES{WAIT} or \RES{FAIL},
-  \qq{execute()} returns (see section~\ref{execute-return}). Otherwise,
+  \qq{execute()} returns (see section~\ref{sec:execute-return}). Otherwise,
   it proceeds to the next step:
 
-  \ExecStep{If auto-resampling is enabled (see \ref{sec:resample}), compare
+  \ExecStep{If auto-resampling is enabled (see \ref{sec:resampling}), compare
   the resolutions of the child results, figure out a common resolution
   (\qq{Cells}) to resample them to, and perform the resampling. Throw an
   exception if this is not possible.}
   
   A result \Cells\ may be initialized based on how the resampling went (see
-  \ref{sec:resample}). 
+  \ref{sec:resampling}). 
 
 \subsection{Evaluating \qq{cells}}
 
@@ -152,7 +155,7 @@
   object), call the virtual \qq{getResult()} handler to process the command,
   passing in the vector of child \Result{}s returned by \qq{pollChildren()}.
   The return value of \qq{getResult()}, along with the node's current depmask
-  (see~\ref{sec:depmask}), is bitwise-ORed into the current return code.}
+  (see~\ref{sec:depmask-node}), is bitwise-ORed into the current return code.}
   
 \begin{verbatim}
   virtual int getResult (Result::Ref &resref,
@@ -235,6 +238,7 @@
   objects directly, but rather with their Glish representations.
 
 \section{Result codes}
+\label{sec:execute-resultcode}
 
   As described above, the return value of \qq{execute()} is simply the
   accumulated result code. The result code describes certain properties of the
@@ -273,7 +277,8 @@
   \item[\RES{WAIT}:] no result available, wait for notification or try later.
     If this flag is raised, then no \Result\ should be returned. Note that
     dependency flags can be meaningfully combined with \RES{WAIT}, since it
-    usually possible to indicate the dependencies of a node in advance.
+    usually possible to indicate the dependencies of a node in advance. No
+    current code uses this, however.
 
   \end{description}
   
@@ -284,7 +289,9 @@
   no additional dependencies.
 
 \section{Commands in request riders}
-\label{sec:rider}
+  \label{sec:rider}
+  \label{sec:CSR}
+  \label{sec:rider-setstate}
 
   The optional \qq{rider} sub-record of a \Request\ may be used to send
   commands to specific nodes. The \qq{Solver} node, for example, makes heavy
@@ -398,6 +405,7 @@
 \subsection{Standard node commands}
   
 \section{Resolution \& resampling}
+\label{sec:resampling}
 
   Resolution \& gridding is a complicated business. Some basic requirements
   are:
@@ -517,10 +525,16 @@
   example of this.
 
 \chapter{The MeqServer Interface}
+\label{chap:meqserver}
+\label{sec:meqserver}
+\label{sec:meqforest}
 
-Coming soon.
+  Coming soon.
 
 \chapter{Description of specialized nodes}
+
+\section{Function nodes}
+\label{sec:Function}
 
 \section{ReqSeq}
 
