@@ -79,11 +79,13 @@ public:
   int getSpid (int i) const
   { return itsSpids[i]; }
   
-  // nperurbed() is the same as getNumSpids
+  // nperturbed() is the same as getNumSpids
   int nperturbed() const
   { return itsNumSpids; }
 
-  // Set the spids.
+  // Set the spids. If VellSet was created with a >0 nspids,
+  // then the size of the vector must match. If VellSet was created
+  // with 0 spids, this can be used to initialize the number
   void setSpids (const vector<int>& spids);
 
   // is spid defined at this position? increments index if true
