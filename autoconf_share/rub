@@ -312,5 +312,10 @@ do
     echo " *** Building package $pkg ***" >> build.log
     echo "(cd $pkg; mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake)" >> build.log
     eval "(cd $pkg; mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake)" >> build.log 2>&1
+    status=$?
+    if [ "$status" != 0 ]; then
+      echo " Error during build (see build.log for details)"
+      exit $status
+    fi
   done
 done
