@@ -28,6 +28,7 @@
 #include <Common/lofar_vector.h>
 #include <MEQ/Vells.h>
 #include <DMI/DataRecord.h>
+#include <DMI/DataField.h>
 #include <MEQ/TID-Meq.h>
 
 #pragma aidgroup Meq
@@ -139,9 +140,9 @@ public:
   // ------------------------ PERTURBED VALUES
   // Get the i-th perturbed value.
   const Vells& getPerturbedValue (int i) const
-  { return itsPerturbedValues[i].deref(); }
+  { DbgAssert(i>=0 && i<itsNumSpids); return itsPerturbedValues[i].deref(); }
   Vells& getPerturbedValueRW (int i)
-  { return itsPerturbedValues[i].dewr(); }
+  {  DbgAssert(i>=0 && i<itsNumSpids); return itsPerturbedValues[i].dewr(); }
 
   // Attaches the given Vells to i-th perturbed value (as an anon object)
   Vells & setPerturbedValue (int i,Vells *);
@@ -149,32 +150,6 @@ public:
   Vells & setPerturbedValue (int i, const Vells & value)
     { return setPerturbedValue(i,new Vells(value)); }
 
-  // Set the i-th perturbed value with a given type and shape.
-  // It won't change if the current value type and shape matches.
-  LoMat_double& setPerturbedReal (int i, int nfreq, int ntime)
-    { if( itsPerturbedValues[i].valid() && 
-          itsPerturbedValues[i]->isCongruent(true,nfreq,ntime) ) 
-        return itsPerturbedValues[i]().getRealArray();
-      else
-        return allocatePertReal(i, nfreq, ntime).getRealArray();
-    }
-  LoMat_dcomplex& setPerturbedComplex (int i, int nfreq, int ntime)
-    { if( itsPerturbedValues[i].valid() && 
-          itsPerturbedValues[i]->isCongruent(false,nfreq,ntime) ) 
-        return itsPerturbedValues[i]().getComplexArray();
-      else
-        return allocatePertComplex(i, nfreq, ntime).getComplexArray();
-    }
-  Vells& setPerturbedValue (int i, bool isReal, int nfreq, int ntime)
-    { if( itsPerturbedValues[i].valid() && 
-          itsPerturbedValues[i]->isCongruent(isReal,nfreq,ntime) )
-        return itsPerturbedValues[i]();
-      else if( isReal )
-        return allocatePertReal(i,nfreq, ntime);
-      else 
-        return allocatePertComplex(i,nfreq, ntime);
-    }
-    
   // ------------------------ FAIL RECORDS
   // A VellSet may be a Fail. A Fail will not contain any values or 
   // perturbations, but rather a field of 1+ fail records.
@@ -245,7 +220,7 @@ private:
   double itsDefPert;
   
   vector<Vells::Ref> itsPerturbedValues;
-  NestableContainer::Ref perturbed_ref;
+  DataField::Ref perturbed_ref;
   
   const double * itsPerturbations;
   const int *    itsSpids;

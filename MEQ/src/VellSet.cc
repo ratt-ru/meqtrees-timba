@@ -195,11 +195,14 @@ void VellSet::setSpids (const vector<int>& spids)
     pdf = new DataField(Tpdouble,spids.size());
     DataRecord::add(FPerturbations,pdf,DMI::ANONWR);
     itsPerturbations = (*pdf)[HIID()].as_wp<double>();
+    itsNumSpids = spids.size();
+    itsPerturbedValues.resize(itsNumSpids);
   }
 }
 
 void VellSet::setPerturbation (int i, double value)
 { 
+  DbgAssert(i>=0 && i<itsNumSpids);
   (*this)[FPerturbations][i] = value;
 }
 
@@ -225,13 +228,16 @@ Vells & VellSet::setValue (Vells *pvells)
 
 Vells & VellSet::setPerturbedValue (int i,Vells *pvells)
 {
+  DbgAssert(i>=0 && i<itsNumSpids);
   // allocate container for perturbed values
   if( !perturbed_ref.valid() )
   {
     FailWhen(!isWritable(),"r/w access violation");
-    perturbed_ref <<= new DataField(TpDataArray,itsNumSpids);
+    DataField *df = new DataField(TpDataArray,itsNumSpids);
+    perturbed_ref <<= df;
+    DataRecord::add(FPerturbedValues,df,DMI::ANONWR);
   }
-  perturbed_ref()[i].replace() <<= &(pvells->getDataArray());
+  perturbed_ref().put(i,&(pvells->getDataArray()),DMI::ANONWR);
   itsPerturbedValues[i] <<= pvells;
   return *pvells;
 }
