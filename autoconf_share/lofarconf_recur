@@ -149,6 +149,18 @@ if test $lfr_dirform = 0; then
         cd ../..; \
 	for pkg in $(PACKAGES); do \
 	    if test -d $$pkg; then \
+	      if test -d $$pkg/src; then \
+		( echo \
+		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& (( cd $$pkg/build/$$variant \
+		&& make -k $(MAKE_OPTIONS) `cat makeoptions` ) \
+                || echo ":::::: ERROR" ) \
+		&& echo \
+		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; ) \
+	      else \
 		( echo \
 		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
 		&& echo \
@@ -159,6 +171,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
 		&& echo ; ) \
+	      fi\
 	    fi\
 	done; \
 	date
@@ -175,9 +188,9 @@ if test $lfr_dirform = 0; then
 		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
 		&& echo \
 		&& date \
-		&& cd $$pkg/build/$$variant \
-		&& make $(MAKE_OPTIONS) `cat makeoptions` build \
-                || echo ":::::: ERROR" \
+		&& ( cd $$pkg/build/$$variant \
+		&& make $(MAKE_OPTIONS) `cat makeoptions` \
+                || exit 2 ) || exit 2 \
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
 		&& echo ; \
