@@ -55,6 +55,7 @@ class VisRepeater : public VisPipe
     //##ModelId=3E392EE403C8
     virtual string stateString() const;
     
+    //##ModelId=3F5F4366018C
     void postDataEvent (const HIID &event,const string &msg,DataRecord::Ref::Xfer &rec);
     
     //##ModelId=3E3FEB5002A5
@@ -70,11 +71,16 @@ class VisRepeater : public VisPipe
     //##ModelId=3E392B78038F
     VisRepeater& operator=(const VisRepeater& right);
     
+    //##ModelId=3F5F436600F5
     int state_;
+    //##ModelId=3F5F43660123
     HIID vdsid_;
     
+    //##ModelId=3F5F43660137
     ObjRef header_;
+    //##ModelId=3F5F43660146
     HIID datatype_;
+    //##ModelId=3F5F4366015C
     bool auto_pause_;
 };
 

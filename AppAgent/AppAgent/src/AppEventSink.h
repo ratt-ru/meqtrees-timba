@@ -66,7 +66,7 @@ namespace AppEventSinkVocabulary
 class AppEventSink : public AppAgent
 {
   protected:
-    //##ModelId=3EB242E800B1
+    //##ModelId=3F5F43630252
     static HIID _dummy_hiid;
   
   public:

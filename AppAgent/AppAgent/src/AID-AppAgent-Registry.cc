@@ -38,6 +38,7 @@
         AtomicID::registerId(-1350,"Paused")+
         AtomicID::registerId(-1338,"Command")+
         AtomicID::registerId(-1353,"Update")+
+        AtomicID::registerId(-1421,"Result")+
         AtomicID::registerId(-1112,"AppAgent")+
         AtomicID::registerId(-1269,"Text")+
         AtomicID::registerId(-1329,"BOIO")+

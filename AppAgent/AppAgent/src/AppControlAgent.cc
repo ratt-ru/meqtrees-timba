@@ -229,7 +229,7 @@ int AppControlAgent::processCommand (const HIID &id,const DataRecord::Ref &data,
     else
       postState(HIID(),source);
   }
-  else
+  else if( !id.matches(AppCommandMask) )
   {
     // try to change state according to event
     Thread::Mutex::Lock lock(state_condition_);
@@ -284,18 +284,23 @@ int AppControlAgent::getCommand (HIID &id,DataRecord::Ref &data, int wait)
       }
       return res;
     }
-    // attempt to process the command
-    try
+    // app-specific command to be returned directly to application?
+    if( id.matches(AppCommandMask) )
+      res = AppEvent::SUCCESS;
+    else // attempt to process the command in the control agent
     {
-      res = processCommand(id,data,source);
-    }
-    catch( std::exception &exc )
-    {
-      postCommandError(exc.what(),id,data,source);
-    }
-    catch( ... )
-    {
-      postCommandError("unknown exception",id,data,source);
+      try
+      {
+        res = processCommand(id,data,source);
+      }
+      catch( std::exception &exc )
+      {
+        postCommandError(exc.what(),id,data,source);
+      }
+      catch( ... )
+      {
+        postCommandError("unknown exception",id,data,source);
+      }
     }
   }
   // if the agent gets paused, this will cause it to loop until

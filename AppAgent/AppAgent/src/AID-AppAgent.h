@@ -138,6 +138,11 @@ const int AidPaused_int = -1350;
 const AtomicID AidRequest(-1351);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:26
 const int AidRequest_int = -1351;
 #endif
+#ifndef _defined_id_AidResult
+#define _defined_id_AidResult 1
+const AtomicID AidResult(-1421);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/MeqServer/src/MeqServer.aidlist:14
+const int AidResult_int = -1421;
+#endif
 #ifndef _defined_id_AidResume
 #define _defined_id_AidResume 1
 const AtomicID AidResume(-1251);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/VisAgent/src/VisAgent.aidlist:8

@@ -15,8 +15,8 @@ class DataRecord;
 
 #pragma aid App Control Parameters Event Init Start Stop Pause Resume Halt
 #pragma aid Always Wait Start Throw Error Notify Auto Exit Delay State String
-#pragma aid Status Request Field Value ID Paused Command Update
-
+#pragma aid Status Request Field Value ID Paused Command Update Result
+ 
 namespace AppEvent 
 {
   //##ModelId=3E8C1A5B0010
@@ -65,6 +65,9 @@ namespace AppControlAgentVocabulary
       // state & status request events
       StateRequest     = ControlPrefix|AidRequest|AidState,
       StatusRequest    = ControlPrefix|AidRequest|AidStatus,
+      
+      // app-specific command mask
+      AppCommandMask   = AidApp|AidControl|AidCommand|AidWildcard,
 
       // notifications posted by the control agent
       StateNotifyEvent  = AidApp|AidNotify|AidState,          // new state
@@ -72,6 +75,8 @@ namespace AppControlAgentVocabulary
       StatusUpdateEvent = AidApp|AidUpdate|AidStatus,         // update in status
       InitNotifyEvent   = AidApp|AidNotify|AidInit,           // initialized
       StopNotifyEvent   = AidApp|AidNotify|AidStop,           // stopped
+      
+      CommandResultPrefix =  AidApp|AidResult,                // responce to app-specific commands
       
       CommandErrorNotifyEvent = AidApp|AidNotify|AidCommand|AidError;
 };

@@ -25,7 +25,7 @@
 
 using namespace AppEvent;
 
-//##ModelId=3EB242E800B1
+//##ModelId=3F5F43630252
 HIID AppEventSink::_dummy_hiid;
 
 //##ModelId=3E4100E40257
