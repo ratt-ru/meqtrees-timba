@@ -832,6 +832,7 @@ void Dispatcher::rebuildSignals (WPInterface *remove)
 //##ModelId=3DB9367202F9
 bool Dispatcher::checkEvents()
 {
+  bool wakeup = false;
   // ------ check timeouts
   // next_to gives us the timestamp of the nearest timeout
   Thread::Mutex::Lock wplock(wpmutex);
@@ -873,6 +874,7 @@ bool Dispatcher::checkEvents()
     // we don't expect any errors except perhaps EINTR (interrupted by signal)
     if( num_active_fds < 0 && errno != EINTR )
       dprintf(0)("select(): unexpected error %d (%s)\n",errno,strerror(errno));
+    dprintf(1)("select()=%d, errno=%d (%s), running=%d\n",num_active_fds,num_active_fds<0?errno:0,num_active_fds<0?strerror(errno):"",(int)running);
     next_select = now + inputs_poll_period;
   }
   if( num_active_fds>0 )
@@ -891,21 +893,25 @@ bool Dispatcher::checkEvents()
       // anything raised?
       if( flags )
       {
+        dprintf(1)("adding input message for %s\n",iter->pwp->debug(2));
         MessageRef & ref = iter->last_msg;
         // is a previous message still undelivered?
         // (WPInterface::poll() will reset its state to 0 when delivered)
         if( ref.valid() && ref->state() != 0 )
         {
+          dprintf(1)("input message already found in queue\n");
           ref().setState(ref->state()|flags); // update state
           // is this same message at the head of the queue? repoll then
           if( iter->pwp->compareHeadOfQueue(ref) )
           {
-            repoll = True;     
+            dprintf(1)("head of queue changed, repoll required\n");
+            repoll = wakeup = True;     
             iter->pwp->setNeedRepoll(True);
           }
         }
         else // not found, so enqueue a message
         {
+          dprintf(1)("enqueueing new input message\n");
           // make a writable copy of the template message, because we set state
           ref = iter->msg.copy().privatize(DMI::WRITE);
           ref().setState(flags);
@@ -953,7 +959,7 @@ bool Dispatcher::checkEvents()
             {
               // simply ask for a repoll if the message is at top of queue
               if( iter->second.pwp->compareHeadOfQueue(iter->second.msg) )
-                iter->second.pwp->setNeedRepoll(repoll=True);
+                iter->second.pwp->setNeedRepoll(repoll=wakeup=True);
             }
             else // not in queue anymore, so enqueue a message
             {
@@ -970,7 +976,16 @@ bool Dispatcher::checkEvents()
       }
     }
   }
-  
+#ifdef USE_THREADS
+  // if wakeup is True, wake up polling thread (otherwise, enqueue() would 
+  // have done it for us)
+  if( wakeup )
+  {
+    Thread::Mutex::Lock lock(repoll_cond);
+    repoll_cond.broadcast();
+    lock.release();
+  }
+#endif
   return repoll;
 }
 
@@ -1040,7 +1055,8 @@ void * Dispatcher::eventThread ()
       if( next_to )
       {
         (next_to - Timestamp::now()).to_timeval(tv);
-        dprintf(5)("next TO in %ld.%06ld\n",tv.tv_sec,tv.tv_usec);
+        dprintf(1)("next TO in %ld.%06ld\n",tv.tv_sec,tv.tv_usec);
+//        dprintf(5)("next TO in %ld.%06ld\n",tv.tv_sec,tv.tv_usec);
         // if it happens to be time for another timeout already, reset the interval to 0,
         // so that the select() call below only checks the fds and does not sleep
         if( tv.tv_sec < 0 || (!tv.tv_sec && tv.tv_usec<0) )
@@ -1060,7 +1076,8 @@ void * Dispatcher::eventThread ()
         // NB: if timeouts change, should also deliver a signal
         num_active_fds = select(max_fd,&fds_active.r,&fds_active.w,&fds_active.x,ptv);
         // we don't expect any errors except perhaps EINTR (interrupted by signal)
-        dprintf(5)("select()=%d, errno=%d (%s), running=%d\n",num_active_fds,num_active_fds<0?errno:0,num_active_fds<0?strerror(errno):"",(int)running);
+        dprintf(1)("select()=%d, errno=%d (%s), running=%d\n",num_active_fds,num_active_fds<0?errno:0,num_active_fds<0?strerror(errno):"",(int)running);
+//        dprintf(5)("select()=%d, errno=%d (%s), running=%d\n",num_active_fds,num_active_fds<0?errno:0,num_active_fds<0?strerror(errno):"",(int)running);
         if( num_active_fds < 0 && errno != EINTR )
           dprintf(0)("select(): unexpected error %d (%s)\n",errno,strerror(errno));
       }
