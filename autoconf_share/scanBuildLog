@@ -33,6 +33,7 @@ import os
 import fnmatch
 import re
 import getopt
+from datetime import date
 
 def remoteFileMove(lofarServer,serverDir):
   # move the html Files that reside in the "thisWeek" directory
@@ -180,7 +181,7 @@ def usage():
   print "       -n,--nocopy     - Do not copy thisWeek to lastWeek"
   print "       -d,--directory  - LOFAR base directory"
   print "       -f,--filebase   - basename from logfiles. E.g. week441"
-  print "       -t,--testserver - give an alternative testserver"
+  print "       -t,--testserver - give an alternative testserver(usr@www.server.nl)"
   print "       -s,--serverdir  - give an alternative serverdirectory"
   sys.exit(2)
 
@@ -211,6 +212,10 @@ def main(argv):
     elif opt in ("-t", "--testserver"):
       lofarServer = arg
 
+  if lofarServer.find('@') < 0:
+    print "Error in serverstring: "+ server
+    usage()
+    
   server=str.split(lofarServer,'@')[1]
   if fileBase=="None":
     print "No filebase specified"
@@ -244,7 +249,7 @@ def main(argv):
   #
   # Patterns to look for in the logfile
   #
-  # find the PACKAGE(S) line to get all Packages being build
+  # findthe PACKAGE(S) line to get all Packages being build
   #
   packagePattern = re.compile('(PACKAGES *= *".*?")|(PACKAGES *= *[^ ]*)',re.IGNORECASE)
   #
@@ -298,7 +303,7 @@ def main(argv):
 
     #
     # keep last found build start
-    #
+   #
     keepLastFoundBuildArray=[]
 
     try:
@@ -384,7 +389,10 @@ def main(argv):
       #
       if str.find(aLine,'configure: error: ') > -1:
         aFile=str.split(aLine,' ')
-        aPack=aFile[4]+" not configured"
+        if aFile[4] == "find":
+          aPack=aFile[5]+" not configured"
+        else:
+          aPack=aFile[4]+" not configured"
         buildResultsArray.append([aPack,keepLastFoundBuildArray[3],
                                   keepLastFoundBuildArray[6],nfile])
         #
@@ -528,7 +536,8 @@ def main(argv):
   #
   # Open html page
   #
-  openHTMLPage(htmlFile,"BuildReport on "+machineName(),"yes")
+  dateString = date.today().isoformat()
+  openHTMLPage(htmlFile,"BuildReport on "+machineName()+" "+dateString,"yes")
 
 
   #
