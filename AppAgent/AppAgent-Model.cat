@@ -1,0 +1,4916 @@
+
+(object Petal
+    version    	46
+    _written   	"Rational Rose 2002.05.20"
+    charSet    	0)
+
+(object Class_Category "AppAgents"
+    is_unit    	TRUE
+    is_loaded  	TRUE
+    quid       	"3DF9FD6E0235"
+    exportControl 	"Public"
+    logical_models 	(list unit_reference_list
+	(object Class "MSVisInputAgent"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"HeaderSourceFile"
+		    value      	"MSVisAgent/src/MSVisInputAgent.h")
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"BodySourceFile"
+		    value      	"MSVisAgent/src/MSVisInputAgent.cc"))
+	    quid       	"3DF9FECD013C"
+	    documentation 	
+|MSVisInputAgent is an input agent for reading data from an AIPS++
+|Measurement Set. It is initialized from a DataRecord laid out as follows:
+|
+|rec[MSVisInputAgentParams]  (record)    contains all parameters below
+|   +--[FMSName]             (string)    MS filename (must be present)
+|   +--[FDataColumnName]     (string)    column to read visibilities from
+|                                        (default is "DATA", but can use, 
+|                                          e.g., "MODEL_DATA")
+|   +--[FTileSize]           (int)       tile size (default: 1 timeslot)
+|   +--[FSelection]          (record)    determines MS selection:
+|      +--[FDDID]              (int)     selects data description ID 
+|      +--[FFieldIndex]        (int)     selects field  
+|      +--[FChannelStartIndex] (int)     starting channel (default: 0)
+|      +--[FChannelEndIndex]   (int)     ending channel (default: last chan.)
+|      +--[FSelectionString] (string)    additional TaQL selection applied 
+|                                          to MS
+|
+	    
+	    superclasses 	(list inheritance_relationship_list
+		(object Inheritance_Relationship
+		    quid       	"3DF9FECD0196"
+		    supplier   	"Logical View::AppAgents::VisFileInputAgent"
+		    quidu      	"3DF9FECD0159"))
+	    operations 	(list Operations
+		(object Operation "MSVisInputAgent"
+		    quid       	"3DF9FECD0219"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "getNextTile"
+		    quid       	"3DF9FECD021B"
+		    stereotype 	"virtual"
+		    parameters 	(list Parameters
+			(object Parameter "tile"
+			    quid       	"3DF9FECD021D"
+			    type       	"VisTile::Ref &")
+			(object Parameter "wait"
+			    quid       	"3DF9FECD0228"
+			    type       	"bool"
+			    initv      	"False"))
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "init"
+		    quid       	"3DF9FECD0235"
+		    stereotype 	"virtual"
+		    parameters 	(list Parameters
+			(object Parameter "data"
+			    quid       	"3DF9FECD0238"
+			    type       	"const DataRecord::Ref &"))
+		    result     	"bool"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "close"
+		    quid       	"3DF9FECD0244"
+		    stereotype 	"virtual"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "FParams"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FECD0246"
+		    documentation 	
+|Field name for parameter record.
+|
+		    
+		    stereotype 	"static"
+		    result     	"const HIID &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "MSVisInputAgent"
+		    quid       	"3DF9FECD0248"
+		    parameters 	(list Parameters
+			(object Parameter ""
+			    quid       	"3DF9FECD0249"
+			    type       	"const MSVisInputAgent &"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "operator ="
+		    quid       	"3DF9FECD0253"
+		    parameters 	(list Parameters
+			(object Parameter ""
+			    quid       	"3DF9FECD0254"
+			    type       	"const MSVisInputAgent &"))
+		    result     	"MSVisInputAgent &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0
+		    quidu      	"3DF9FECD013C")
+		(object Operation "openMS"
+		    quid       	"3DF9FECD025E"
+		    parameters 	(list Parameters
+			(object Parameter "hdr"
+			    quid       	"3DF9FECD0260"
+			    type       	"DataRecord &"
+			    quidu      	"3BB3112B0027")
+			(object Parameter "selection"
+			    quid       	"3DF9FECD0278"
+			    type       	"const DataRecord &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "fillHeader"
+		    quid       	"3DF9FECD0285"
+		    parameters 	(list Parameters
+			(object Parameter "hdr"
+			    quid       	"3DF9FECD0286"
+			    type       	"DataRecord &"
+			    quidu      	"3BB3112B0027")
+			(object Parameter "selection"
+			    quid       	"3DF9FECD0292"
+			    type       	"const DataRecord &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "sdebug"
+		    quid       	"3DFDFC060373"
+		    stereotype 	"const"
+		    parameters 	(list Parameters
+			(object Parameter "detail"
+			    quid       	"3DFDFC060382"
+			    type       	"int"
+			    initv      	"1")
+			(object Parameter "prefix"
+			    quid       	"3DFDFC060398"
+			    type       	"const string &"
+			    initv      	
+|""
+			    )
+			(object Parameter "name"
+			    quid       	"3DFDFC0603AC"
+			    type       	"const char *"
+			    initv      	"0"))
+		    result     	"string"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "debug"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DFDFC0603C3"
+		    stereotype 	"const"
+		    parameters 	(list Parameters
+			(object Parameter "detail"
+			    quid       	"3DFDFC0603D4"
+			    type       	"int"
+			    initv      	"1")
+			(object Parameter "prefix"
+			    quid       	"3DFDFC070001"
+			    type       	"const string &"
+			    initv      	
+|""
+			    )
+			(object Parameter "name"
+			    quid       	"3DFDFC070016"
+			    type       	"const char *"
+			    initv      	"0"))
+		    result     	"const char *"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0))
+	    class_attributes 	(list class_attribute_list
+		(object ClassAttribute "ms_"
+		    quid       	"3DF9FECD0199"
+		    type       	"MeasurementSet")
+		(object ClassAttribute "selms_"
+		    quid       	"3DF9FECD019A"
+		    type       	"MeasurementSet")
+		(object ClassAttribute "obsid_"
+		    quid       	"3DF9FECD01A9"
+		    type       	"int")
+		(object ClassAttribute "dataColName_"
+		    quid       	"3DF9FECD01B0"
+		    type       	"string")
+		(object ClassAttribute "tilesize_"
+		    quid       	"3DF9FECD01C0"
+		    type       	"int")
+		(object ClassAttribute "channels_"
+		    quid       	"3DF9FECD01C8"
+		    type       	"int [2]")
+		(object ClassAttribute "num_channels_"
+		    quid       	"3DF9FECD01D0"
+		    type       	"int")
+		(object ClassAttribute "num_corrs_"
+		    quid       	"3DF9FECD01D7"
+		    type       	"int")
+		(object ClassAttribute "num_antennas_"
+		    quid       	"3DF9FECD01DF"
+		    type       	"int")
+		(object ClassAttribute "num_ifrs_"
+		    quid       	"3DF9FECD01E6"
+		    type       	"int")
+		(object ClassAttribute "tableiter_"
+		    quid       	"3DF9FECD01EE"
+		    type       	"TableIterator")
+		(object ClassAttribute "tileformat_"
+		    quid       	"3DF9FECD01F6"
+		    type       	"VisTile::Format::Ref")
+		(object ClassAttribute "tileiter_"
+		    quid       	"3DF9FECD020D"
+		    type       	"TileCache::iterator")
+		(object ClassAttribute "msname_"
+		    quid       	"3DFDFC06033A"
+		    type       	"string")
+		(object ClassAttribute "current_timeslot_"
+		    quid       	"3DFDFC060354"
+		    type       	"int"))
+	    module     	"Component View::AppAgent"
+	    quidu      	"3DF9FDED0011"
+	    language   	"ANSI C++"
+	    nestedClasses 	(list nestedClasses
+		(object Class "TileCache"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"MSVisAgent/src/MSVisInputAgent.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"vector<VisTile::Ref>"))
+		    quid       	"3DF9FECD0142"
+		    stereotype 	"typedef"
+		    exportControl 	"Private"
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011")))
+	(object Class "OctoAgent"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"HeaderSourceFile"
+		    value      	"OctoAgent/src/OctoAgent.h"))
+	    quid       	"3DF9FECD014B"
+	    superclasses 	(list inheritance_relationship_list
+		(object Inheritance_Relationship
+		    quid       	"3DF9FEEC0098"
+		    supplier   	"Logical View::AppAgents::AppAgent"
+		    quidu      	"3DF9FEEC0043"
+		    virtual    	TRUE))
+	    operations 	(list Operations
+		(object Operation "~OctoAgent"
+		    quid       	"3DF9FECD02A8"
+		    stereotype 	"virtual"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "init"
+		    quid       	"3DF9FECD02AA"
+		    stereotype 	"virtual"
+		    parameters 	(list Parameters
+			(object Parameter "data"
+			    quid       	"3DF9FECD02AC"
+			    type       	"const DataRecord::Ref &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "flush"
+		    quid       	"3DF9FECD02AD"
+		    stereotype 	"virtual"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0))
+	    module     	"Component View::AppAgent"
+	    quidu      	"3DF9FDED0011"
+	    language   	"ANSI C++")
+	(object Class "VisFileInputAgent"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"HeaderSourceFile"
+		    value      	"VisAgent/src/VisFileInputAgent.h")
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"BodySourceFile"
+		    value      	"VisAgent/src/VisFileInputAgent.cc"))
+	    quid       	"3DF9FECD0159"
+	    documentation 	
+|VisFileInputAgent implements some common features & services for agents that get their input from a static data file (e.g., AIPS++ MSs, BOIO files).
+|
+	    
+	    superclasses 	(list inheritance_relationship_list
+		(object Inheritance_Relationship
+		    quid       	"3DF9FECD02BD"
+		    supplier   	"Logical View::AppAgents::VisInputAgent"
+		    quidu      	"3DF9FECD0169"))
+	    operations 	(list Operations
+		(object Operation "VisFileInputAgent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FECE00FC"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0)
+		(object Operation "fileState"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FECE012A"
+		    stereotype 	"const"
+		    result     	"FileState"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0
+		    quidu      	"3DF9FECD015F")
+		(object Operation "setFileState"
+		    quid       	"3DF9FECE0154"
+		    parameters 	(list Parameters
+			(object Parameter "state"
+			    quid       	"3DF9FECE0179"
+			    type       	"FileState"
+			    quidu      	"3DF9FECD015F"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0)
+		(object Operation "setErrorState"
+		    quid       	"3DF9FECE01CA"
+		    parameters 	(list Parameters
+			(object Parameter "msg"
+			    quid       	"3DF9FECE01FC"
+			    type       	"const string &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0)
+		(object Operation "generateEvent"
+		    quid       	"3DF9FECE024A"
+		    parameters 	(list Parameters
+			(object Parameter "evname"
+			    quid       	"3DF9FECE026F"
+			    type       	"const HIID &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0)
+		(object Operation "generateEvent"
+		    quid       	"3DF9FECE02BA"
+		    parameters 	(list Parameters
+			(object Parameter "evname"
+			    quid       	"3DF9FECE02E1"
+			    type       	"const HIID &")
+			(object Parameter "data"
+			    quid       	"3DF9FECE0337"
+			    type       	"DataRecord::Ref &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0)
+		(object Operation "header"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FECE0384"
+		    result     	"DataRecord &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0
+		    quidu      	"3BB3112B0027")
+		(object Operation "initHeader"
+		    quid       	"3DF9FECE03AB"
+		    result     	"DataRecord &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0
+		    quidu      	"3BB3112B0027")
+		(object Operation "getHeader"
+		    quid       	"3DF9FECE03D1"
+		    stereotype 	"virtual"
+		    parameters 	(list Parameters
+			(object Parameter "hdr"
+			    quid       	"3DF9FECF0004"
+			    type       	"DataRecord::Ref &")
+			(object Parameter "wait"
+			    quid       	"3DF9FECF0051"
+			    type       	"bool"
+			    initv      	"True"))
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "hasHeader"
+		    quid       	"3DF9FECF009D"
+		    stereotype 	"const,virtual"
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "hasTile"
+		    quid       	"3DF9FECF00BF"
+		    stereotype 	"const,virtual"
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "getEvent"
+		    quid       	"3DF9FECF00DB"
+		    stereotype 	"virtual"
+		    parameters 	(list Parameters
+			(object Parameter ""
+			    quid       	"3DF9FECF00F4"
+			    type       	"HIID &"
+			    quidu      	"3BE96FE601C5")
+			(object Parameter "data"
+			    quid       	"3DF9FECF013D"
+			    type       	"DataRecord::Ref &")
+			(object Parameter "wait"
+			    quid       	"3DF9FECF018B"
+			    type       	"bool"
+			    initv      	"False"))
+		    result     	"bool"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "hasEvent"
+		    quid       	"3DF9FECF01DA"
+		    stereotype 	"virtual"
+		    parameters 	(list Parameters
+			(object Parameter "mask"
+			    quid       	"3DF9FECF01F4"
+			    type       	"const HIID &"
+			    initv      	"HIID()")
+			(object Parameter "outOfSeq"
+			    quid       	"3DF9FECF0243"
+			    type       	"bool"
+			    initv      	"False"))
+		    result     	"bool"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "fileStateString"
+		    quid       	"3DFDFC07004C"
+		    stereotype 	"const"
+		    result     	"string"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0))
+	    class_attributes 	(list class_attribute_list
+		(object ClassAttribute "header_"
+		    quid       	"3DF9FECE0055"
+		    type       	"DataRecord::Ref")
+		(object ClassAttribute "eventdata_"
+		    quid       	"3DF9FECE009E"
+		    type       	"DataRecord::Ref"))
+	    module     	"Component View::AppAgent"
+	    quidu      	"3DF9FDED0011"
+	    language   	"ANSI C++"
+	    nestedClasses 	(list nestedClasses
+		(object Class "FileState"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"VisAgent/src/VisFileInputAgent.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	(value Text 
+|enum {
+|        CLOSED  = 0,
+|        HEADER  = 1,
+|        DATA    = 2,
+|        ENDFILE = 3,
+|        ERROR   = 4
+|      }
+			    )))
+		    quid       	"3DF9FECD015F"
+		    stereotype 	"typedef"
+		    exportControl 	"Protected"
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011")))
+	(object Class "VisInputAgent"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"HeaderSourceFile"
+		    value      	"VisAgent/src/VisInputAgent.h"))
+	    quid       	"3DF9FECD0169"
+	    documentation 	
+|VisInputAgent is an specialized agent representing an input stream of visibility data. Applications that work with visibilities talk to VisInputAgents.
+|
+|VisInputAgent  is an abstract interface. Specific visibility data sources (e.g.: input from an AIPS++ MS, input from a BOIO file, input from an OCTOPUSSY WorkProcess) are implemented as derived classes.
+|
+|A visibility stream is represented by a header (a DataRecord), followed by a number of VisTiles. 
+	    
+	    stereotype 	"Interface"
+	    superclasses 	(list inheritance_relationship_list
+		(object Inheritance_Relationship
+		    quid       	"3DF9FEEC00CA"
+		    supplier   	"Logical View::AppAgents::AppAgent"
+		    quidu      	"3DF9FEEC0043"
+		    virtual    	TRUE))
+	    operations 	(list Operations
+		(object Operation "HeaderEvent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FECF029C"
+		    documentation 	
+|This is the id of the "data header ready" event.
+		    
+		    stereotype 	"static"
+		    result     	"const HIID &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "DataEvent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FECF02B7"
+		    stereotype 	"static"
+		    result     	"const HIID &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "EndDataEvent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FECF02D1"
+		    stereotype 	"static"
+		    result     	"const HIID &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "InputErrorEvent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FECF02EB"
+		    stereotype 	"static"
+		    result     	"const HIID &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "getHeader"
+		    quid       	"3DF9FECF0310"
+		    documentation 	
+|Gets visibilities header from input stream. If wait=True, blocks until one has arrived.
+|Returns: SUCCESS   on success
+|         WAIT      header has not yet arrived (only for wait=False)
+|         CLOSED    stream closed
+|         OUTOFSEQ  next object in stream is not a header (i.e. a tile)
+|
+|
+		    
+		    stereotype 	"abstract"
+		    parameters 	(list Parameters
+			(object Parameter "hdr"
+			    quid       	"3DF9FECF032D"
+			    type       	"DataRecord::Ref &")
+			(object Parameter "wait"
+			    quid       	"3DF9FECF036A"
+			    type       	"bool"
+			    initv      	"True"))
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "getNextTile"
+		    quid       	"3DF9FECF03A9"
+		    documentation 	
+|Gets next available tile from input stream. If wait=True, blocks until one has arrived.
+|Returns: SUCCESS   on success
+|         WAIT      a tile has not yet arrived (only for wait=False)
+|         CLOSED    stream closed
+|         OUTOFSEQ  next object in stream is not a tile (i.e. a header)
+|
+		    
+		    stereotype 	"abstract"
+		    parameters 	(list Parameters
+			(object Parameter "tile"
+			    quid       	"3DF9FECF03C2"
+			    type       	"VisTile::Ref &")
+			(object Parameter "wait"
+			    quid       	"3DF9FED0001B"
+			    type       	"bool"
+			    initv      	"True"))
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "hasHeader"
+		    quid       	"3DF9FED0005A"
+		    documentation 	"Checks if a header is waiting in the stream. Return value: same as would have been returned by getHeader(wait=False)."
+		    stereotype 	"const,abstract"
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "hasTile"
+		    quid       	"3DF9FED00076"
+		    documentation 	"Checks if a tile is waiting in the stream. Return value: same as would have been returned by getNextTile(wait=False)."
+		    stereotype 	"const,abstract"
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "suspend"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FED00090"
+		    documentation 	
+|Tells the agent to suspend the input stream. Agents are not obliged to implement this. An application can use suspend() to "advise" the input agent that it is not keeping up with the input data rate; the agent can use this to determine it queuing or load balancing strategy.
+|
+		    
+		    stereotype 	"virtual"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "resume"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FED000AA"
+		    documentation 	"Resumes a stream after a suspend(). "
+		    stereotype 	"virtual"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "numPendingTiles"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FED000C6"
+		    documentation 	"Returns the number of tiles queued up in a stream. Agents are not obliged to implement this. Control agents are meant to use this method in combination with suspend()/resume() to control the data flow. "
+		    stereotype 	"const,virtual"
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0))
+	    module     	"Component View::AppAgent"
+	    quidu      	"3DF9FDED0011"
+	    language   	"ANSI C++"
+	    nestedClasses 	(list nestedClasses
+		(object Class "ReturnCodes"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"VisAgent/src/VisInputAgent.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	(value Text 
+|enum {
+|          SUCCESS   = 1,
+|          WAIT      = 0,    // must wait for data
+|          CLOSED    = -1,   // input stream is closed (or not connected)
+|          OUTOFSEQ  = -2,   // request is out of sequence (see below)
+|      }
+			    )))
+		    quid       	"3DF9FECD016F"
+		    stereotype 	"typedef"
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011")))
+	(object Class "AppAgent"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"HeaderSourceFile"
+		    value      	"AppAgent/src/AppAgent.h"))
+	    quid       	"3DF9FEEC0043"
+	    documentation 	
+|AppAgent is an abstract interface class for an "application agent". An agent sits between an application and a data source or sink. The AppAgent interface hides the details of a particular data source: it can be a measurement set, a pipeline, a test file, etc.
+|
+|Agents talk to an application by exchanging events. Each event has an id (a HIID), and can contain an arbitrary DataRecord.
+	    
+	    stereotype 	"Interface"
+	    operations 	(list Operations
+		(object Operation "~AppAgent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FEEC0066"
+		    stereotype 	"virtual"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "init"
+		    quid       	"3DF9FEEC0068"
+		    documentation 	"Agent initialization method. Called by the application to initialize or reinitializean agent. Agent parameters are supplied via a DataRecord."
+		    stereotype 	"abstract"
+		    parameters 	(list Parameters
+			(object Parameter "data"
+			    quid       	"3DF9FEEC006A"
+			    type       	"const DataRecord::Ref &"))
+		    result     	"bool"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "close"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FEEC006D"
+		    documentation 	"Applications call close() when they're done speaking to an agent."
+		    stereotype 	"virtual"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "getEvent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FEEC0073"
+		    documentation 	"Requests the next event from an agent. The event's id and DataRecord are returned via the first two parameters. If no event is currently pending, the agent should either block & wait for an event (for wait=True), or return False (for wait=False). On success, True is returned."
+		    stereotype 	"virtual"
+		    parameters 	(list Parameters
+			(object Parameter ""
+			    quid       	"3DF9FEEC0075"
+			    type       	"HIID &"
+			    quidu      	"3BE96FE601C5")
+			(object Parameter ""
+			    quid       	"3DF9FEEC0076"
+			    type       	"DataRecord::Ref &")
+			(object Parameter "wait"
+			    quid       	"3DF9FEEC0077"
+			    type       	"bool"
+			    initv      	"False"))
+		    result     	"bool"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "hasEvent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FEEC0078"
+		    documentation 	
+|Returns True if there is an event pending that matches the specified mask (default - no mask - matches any event). If the agent maintains an ordered event queue, then outOfSeq=True can be specified to look ahead into the queue.
+|
+		    
+		    stereotype 	"virtual"
+		    parameters 	(list Parameters
+			(object Parameter "mask"
+			    quid       	"3DF9FEEC007A"
+			    type       	"const HIID &"
+			    initv      	"HIID()")
+			(object Parameter "outOfSeq"
+			    quid       	"3DF9FEEC007B"
+			    type       	"bool"
+			    initv      	"False"))
+		    result     	"bool"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "postEvent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FEEC006F"
+		    documentation 	"Posts an event on behalf of the application."
+		    stereotype 	"virtual"
+		    parameters 	(list Parameters
+			(object Parameter ""
+			    quid       	"3DF9FEEC0071"
+			    type       	"const HIID &")
+			(object Parameter ""
+			    quid       	"3DF9FEEC0072"
+			    type       	"const DataRecord::Ref &"
+			    initv      	"DataRecord::Ref()"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "flush"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DF9FEEC006B"
+		    documentation 	"Flushes any output events (commits to disk, or sends out to OCTOPUSSY, or whatever)"
+		    stereotype 	"virtual"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0))
+	    module     	"Component View::AppAgent"
+	    quidu      	"3DF9FDED0011"
+	    language   	"ANSI C++")
+	(object Association "$UNNAMED$0"
+	    quid       	"3DF9FECD019C"
+	    roles      	(list role_list
+		(object Role "vdsid_"
+		    quid       	"3DF9FECD019D"
+		    label      	"vdsid_"
+		    supplier   	"Logical View::VisCube::VDSID"
+		    quidu      	"3DB964F20079"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$1"
+		    quid       	"3DF9FECD01A0"
+		    supplier   	"Logical View::AppAgents::MSVisInputAgent"
+		    quidu      	"3DF9FECD013C"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$2"
+	    quid       	"3DF9FECD01FE"
+	    roles      	(list role_list
+		(object Role "tiles_"
+		    quid       	"3DF9FECD01FF"
+		    label      	"tiles_"
+		    supplier   	"Logical View::AppAgents::MSVisInputAgent::TileCache"
+		    quidu      	"3DF9FECD0142"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$3"
+		    quid       	"3DF9FECD0201"
+		    supplier   	"Logical View::AppAgents::MSVisInputAgent"
+		    quidu      	"3DF9FECD013C"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$4"
+	    quid       	"3DF9FECE0046"
+	    roles      	(list role_list
+		(object Role "filestate_"
+		    quid       	"3DF9FECE0047"
+		    label      	"filestate_"
+		    supplier   	"Logical View::AppAgents::VisFileInputAgent::FileState"
+		    quidu      	"3DF9FECD015F"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$5"
+		    quid       	"3DF9FECE0049"
+		    supplier   	"Logical View::AppAgents::VisFileInputAgent"
+		    quidu      	"3DF9FECD0159"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$6"
+	    quid       	"3DF9FECE00EA"
+	    roles      	(list role_list
+		(object Role "event_"
+		    quid       	"3DF9FECE00EB"
+		    label      	"event_"
+		    supplier   	"Logical View::DOMIN0::HIID"
+		    quidu      	"3BE96FE601C5"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$7"
+		    quid       	"3DF9FECE00EE"
+		    supplier   	"Logical View::AppAgents::VisFileInputAgent"
+		    quidu      	"3DF9FECD0159"
+		    is_aggregate 	TRUE)))
+	(object Class_Category "Analysis"
+	    quid       	"3DF074380274"
+	    exportControl 	"Public"
+	    logical_models 	(list unit_reference_list
+		(object Class "VisInputAgent"
+		    quid       	"3DF07A3E02DA"
+		    stereotype 	"Interface"
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3DF07DC30334"
+			    supplier   	"Logical View::AppAgents::Analysis::AppAgent"
+			    quidu      	"3DF07CF902B4"))
+		    operations 	(list Operations
+			(object Operation "getHeader"
+			    quid       	"3DF07A9F00A1"
+			    parameters 	(list Parameters
+				(object Parameter "hdr"
+				    quid       	"3DF07B4D0026"
+				    type       	"DataRecord : :Ref")
+				(object Parameter "wait"
+				    quid       	"3DF07B4D00F9"
+				    type       	"bool"
+				    initv      	"True"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "getNextTile"
+			    quid       	"3DF07ABE0192"
+			    parameters 	(list Parameters
+				(object Parameter "tile"
+				    quid       	"3DF07B580182"
+				    type       	"VisTile : :Ref &")
+				(object Parameter "wait"
+				    quid       	"3DF07B580237"
+				    type       	"bool"
+				    initv      	"True"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)))
+		(object Class "AppControlAgent"
+		    quid       	"3DF07BDB0049"
+		    stereotype 	"Interface"
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3DF07DD102F6"
+			    supplier   	"Logical View::AppAgents::Analysis::AppAgent"
+			    quidu      	"3DF07CF902B4"))
+		    operations 	(list Operations
+			(object Operation "checkCommand"
+			    quid       	"3DF07B060248"
+			    parameters 	(list Parameters
+				(object Parameter "cmd"
+				    quid       	"3DF07B7400E2"
+				    type       	"HIID &"
+				    quidu      	"3BE96FE601C5")
+				(object Parameter "data"
+				    quid       	"3DF07B7401BE"
+				    type       	"DataRecord : :Ref &"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "setStatus"
+			    quid       	"3DF07B290266"
+			    parameters 	(list Parameters
+				(object Parameter "status"
+				    quid       	"3DF07B7D031C"
+				    type       	"const DataRecord::Ref &"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "pause"
+			    quid       	"3DF4BA8103A6"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "resume"
+			    quid       	"3DF4BA8602E9"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)))
+		(object Class "VisOutputAgent"
+		    quid       	"3DF07C240071"
+		    stereotype 	"Interface"
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3DF07DCD026E"
+			    supplier   	"Logical View::AppAgents::Analysis::AppAgent"
+			    quidu      	"3DF07CF902B4"))
+		    operations 	(list Operations
+			(object Operation "putHeader"
+			    quid       	"3DF07AD0019A"
+			    parameters 	(list Parameters
+				(object Parameter "hdr"
+				    quid       	"3DF07B5F0086"
+				    type       	"const DataRecord : :Ref &"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "putNextTile"
+			    quid       	"3DF07AF3031E"
+			    parameters 	(list Parameters
+				(object Parameter "tile"
+				    quid       	"3DF07B68019D"
+				    type       	"const VisTile : :Ref &"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)))
+		(object Class "AppAgent"
+		    quid       	"3DF07CF902B4"
+		    stereotype 	"Interface"
+		    operations 	(list Operations
+			(object Operation "init"
+			    quid       	"3DF07D6E00EB"
+			    parameters 	(list Parameters
+				(object Parameter "data"
+				    quid       	"3DF07D810064"
+				    type       	"const DataRecord::Ref &"))
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "flush"
+			    quid       	"3DF07D5702B8"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "close"
+			    quid       	"3DF083C20189"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)))
+		(object Class "MSReaderAgent"
+		    quid       	"3DF07E9B0195"
+		    realized_interfaces 	(list realize_rel_list
+			(object Realize_Relationship
+			    quid       	"3DF07EE10381"
+			    supplier   	"Logical View::AppAgents::Analysis::VisInputAgent"
+			    quidu      	"3DF07A3E02DA")))
+		(object Class "MSWriterAgent"
+		    quid       	"3DF07EB60023"
+		    realized_interfaces 	(list realize_rel_list
+			(object Realize_Relationship
+			    quid       	"3DF07EEE00D1"
+			    supplier   	"Logical View::AppAgents::Analysis::VisOutputAgent"
+			    quidu      	"3DF07C240071")))
+		(object Class "GlishControlAgent"
+		    quid       	"3DF07EC80263"
+		    realized_interfaces 	(list realize_rel_list
+			(object Realize_Relationship
+			    quid       	"3DF07EF10207"
+			    supplier   	"Logical View::AppAgents::Analysis::AppControlAgent"
+			    quidu      	"3DF07BDB0049")))
+		(object Class "BatchControlAgent"
+		    quid       	"3DF07F8700CF"
+		    realized_interfaces 	(list realize_rel_list
+			(object Realize_Relationship
+			    quid       	"3DF07F920159"
+			    supplier   	"Logical View::AppAgents::Analysis::AppControlAgent"
+			    quidu      	"3DF07BDB0049")))
+		(object Class "VisOctopussyAgent"
+		    quid       	"3DF080F903CC"
+		    realized_interfaces 	(list realize_rel_list
+			(object Realize_Relationship
+			    quid       	"3DF081130228"
+			    supplier   	"Logical View::AppAgents::Analysis::VisOutputAgent"
+			    quidu      	"3DF07C240071")
+			(object Realize_Relationship
+			    quid       	"3DF08116027A"
+			    supplier   	"Logical View::AppAgents::Analysis::VisInputAgent"
+			    quidu      	"3DF07A3E02DA")
+			(object Realize_Relationship
+			    quid       	"3DF081190288"
+			    supplier   	"Logical View::AppAgents::Analysis::AppControlAgent"
+			    quidu      	"3DF07BDB0049")))
+		(object Class "OctoProxyClient"
+		    quid       	"3DF081550222"
+		    operations 	(list Operations
+			(object Operation "// construct"
+			    quid       	"3DF4598101C1"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "// register me"
+			    quid       	"3DF45A11034A"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "// get"
+			    quid       	"3DF45FAF0144"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "// publish"
+			    quid       	"3DF45FEC03A2"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)))
+		(object Class "OctoProxyWP"
+		    quid       	"3DF081B503B3"
+		    operations 	(list Operations
+			(object Operation "// init"
+			    quid       	"3DF45AA902CB"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "// subscribe()"
+			    quid       	"3DF45AD70182"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "// start"
+			    quid       	"3DF45B6302E2"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "// receive"
+			    quid       	"3DF45F100070"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "// get"
+			    quid       	"3DF45F3E03DB"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)))
+		(object Class "OCTOPUSSY"
+		    quid       	"3DF0823B0088"
+		    stereotype 	"thread")
+		(object Class "Main"
+		    quid       	"3DF082B6020A"
+		    stereotype 	"thread")
+		(object Class "OctopussySolverAgent"
+		    quid       	"3DF4BA91032E"
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3DF4BCBF0369"
+			    supplier   	"Logical View::AppAgents::Analysis::VisOctopussyAgent"
+			    quidu      	"3DF080F903CC")))
+		(object Class "Solver"
+		    quid       	"3DF4BD180077")
+		(object Association "$UNNAMED$8"
+		    quid       	"3DF07F2500EA"
+		    roles      	(list role_list
+			(object Role "$UNNAMED$9"
+			    quid       	"3DF07F2502FD"
+			    supplier   	"Logical View::UVD::MSReader"
+			    quidu      	"3CF237080203"
+			    Containment 	"By Value")
+			(object Role "$UNNAMED$10"
+			    quid       	"3DF07F260023"
+			    supplier   	"Logical View::AppAgents::Analysis::MSReaderAgent"
+			    quidu      	"3DF07E9B0195"
+			    is_aggregate 	TRUE)))
+		(object Association "$UNNAMED$11"
+		    quid       	"3DF07F4703C2"
+		    roles      	(list role_list
+			(object Role "$UNNAMED$12"
+			    quid       	"3DF07F48023D"
+			    supplier   	"Logical View::UVD::MSFiller"
+			    quidu      	"3CEA4A9E0070"
+			    Containment 	"By Value")
+			(object Role "$UNNAMED$13"
+			    quid       	"3DF07F4802AB"
+			    supplier   	"Logical View::AppAgents::Analysis::MSWriterAgent"
+			    quidu      	"3DF07EB60023"
+			    is_aggregate 	TRUE)))
+		(object Association "$UNNAMED$14"
+		    quid       	"3DF0816D036A"
+		    roles      	(list role_list
+			(object Role "$UNNAMED$15"
+			    quid       	"3DF0816E037C"
+			    supplier   	"Logical View::AppAgents::Analysis::OctoProxyClient"
+			    quidu      	"3DF081550222"
+			    is_navigable 	TRUE)
+			(object Role "$UNNAMED$16"
+			    quid       	"3DF0816E0386"
+			    supplier   	"Logical View::AppAgents::Analysis::VisOctopussyAgent"
+			    quidu      	"3DF080F903CC"
+			    is_aggregate 	TRUE)))
+		(object Association "$UNNAMED$17"
+		    quid       	"3DF081D00211"
+		    roles      	(list role_list
+			(object Role "$UNNAMED$18"
+			    quid       	"3DF081D10027"
+			    supplier   	"Logical View::AppAgents::Analysis::OctoProxyWP"
+			    quidu      	"3DF081B503B3"
+			    is_navigable 	TRUE)
+			(object Role "$UNNAMED$19"
+			    quid       	"3DF081D10059"
+			    supplier   	"Logical View::AppAgents::Analysis::OctoProxyClient"
+			    quidu      	"3DF081550222")))
+		(object Association "$UNNAMED$20"
+		    quid       	"3DF082A80297"
+		    roles      	(list role_list
+			(object Role "$UNNAMED$21"
+			    quid       	"3DF082A9005D"
+			    supplier   	"Logical View::AppAgents::Analysis::OctoProxyWP"
+			    quidu      	"3DF081B503B3"
+			    is_navigable 	TRUE)
+			(object Role "$UNNAMED$22"
+			    quid       	"3DF082A9007B"
+			    supplier   	"Logical View::AppAgents::Analysis::OCTOPUSSY"
+			    quidu      	"3DF0823B0088"
+			    is_navigable 	TRUE
+			    is_aggregate 	TRUE)))
+		(object Association "$UNNAMED$23"
+		    quid       	"3DF082DC014B"
+		    roles      	(list role_list
+			(object Role "$UNNAMED$24"
+			    quid       	"3DF082DC033F"
+			    supplier   	"Logical View::AppAgents::Analysis::OctoProxyClient"
+			    quidu      	"3DF081550222"
+			    is_navigable 	TRUE)
+			(object Role "$UNNAMED$25"
+			    quid       	"3DF082DC0367"
+			    supplier   	"Logical View::AppAgents::Analysis::Main"
+			    quidu      	"3DF082B6020A"
+			    is_navigable 	TRUE
+			    is_aggregate 	TRUE)))
+		(object Association "$UNNAMED$26"
+		    quid       	"3DF4BD0D00E0"
+		    roles      	(list role_list
+			(object Role "$UNNAMED$27"
+			    quid       	"3DF4BD0D02B7"
+			    supplier   	"Logical View::AppAgents::Analysis::OctopussySolverAgent"
+			    quidu      	"3DF4BA91032E"
+			    is_navigable 	TRUE)
+			(object Role "$UNNAMED$28"
+			    quid       	"3DF4BD0D02C1"
+			    supplier   	"Logical View::AppAgents::Analysis::Main"
+			    quidu      	"3DF082B6020A"
+			    is_navigable 	TRUE
+			    is_aggregate 	TRUE)))
+		(object Association "$UNNAMED$29"
+		    quid       	"3DF4BD2402AA"
+		    roles      	(list role_list
+			(object Role "$UNNAMED$30"
+			    quid       	"3DF4BD2500B7"
+			    supplier   	"Logical View::AppAgents::Analysis::OctopussySolverAgent"
+			    quidu      	"3DF4BA91032E"
+			    is_navigable 	TRUE)
+			(object Role "$UNNAMED$31"
+			    quid       	"3DF4BD2500CB"
+			    supplier   	"Logical View::AppAgents::Analysis::Solver"
+			    quidu      	"3DF4BD180077"
+			    is_aggregate 	TRUE)))
+		(object Association "$UNNAMED$32"
+		    quid       	"3DF4BD3C038C"
+		    roles      	(list role_list
+			(object Role "$UNNAMED$33"
+			    quid       	"3DF4BD3D017B"
+			    supplier   	"Logical View::AppAgents::Analysis::Solver"
+			    quidu      	"3DF4BD180077"
+			    is_navigable 	TRUE)
+			(object Role "$UNNAMED$34"
+			    quid       	"3DF4BD3D018F"
+			    supplier   	"Logical View::AppAgents::Analysis::Main"
+			    quidu      	"3DF082B6020A"
+			    is_navigable 	TRUE
+			    is_aggregate 	TRUE)))
+		(object Mechanism @1
+		    logical_models 	(list unit_reference_list
+			(object Object "thread"
+			    quid       	"3DF4585D030A"
+			    collaborators 	(list link_list
+				(object Link
+				    quid       	"3DF458E8006D"
+				    supplier   	"proxy"
+				    quidu      	"3DF458C503D5"
+				    messages   	(list Messages
+					(object Message ""
+					    quid       	"3DF458E8006E"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"1"
+					    ordinal    	0
+					    quidu      	"000000000000"
+					    creation   	TRUE)
+					(object Message "// register me( )"
+					    quid       	"3DF45A0E0396"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"5"
+					    ordinal    	4
+					    quidu      	"3DF45A11034A"
+					    creation   	FALSE)
+					(object Message "proxy id"
+					    quid       	"3DF45BF103A4"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Return"
+					    dir        	"ToClientFromSupplier"
+					    sequence   	"5.3"
+					    ordinal    	9
+					    quidu      	"000000000000"
+					    creation   	FALSE)
+					(object Message "// get( )"
+					    quid       	"3DF45FA80276"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"8"
+					    ordinal    	18
+					    quidu      	"3DF45FAF0144"
+					    creation   	FALSE)
+					(object Message "(message)"
+					    quid       	"3DF45FD0034A"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Return"
+					    dir        	"ToClientFromSupplier"
+					    sequence   	"9.1"
+					    ordinal    	22
+					    quidu      	"000000000000"
+					    creation   	FALSE)
+					(object Message "// publish( )"
+					    quid       	"3DF45FE80270"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"10"
+					    ordinal    	23
+					    quidu      	"3DF45FEC03A2"
+					    creation   	FALSE)))
+				(object Link
+				    quid       	"3DF45F3B00EC"
+				    supplier   	"$UNNAMED$35"
+				    quidu      	"3DF45A490217"))
+			    class      	"Logical View::AppAgents::Analysis::Main"
+			    quidu      	"3DF082B6020A"
+			    persistence 	"Transient"
+			    creationObj 	FALSE
+			    multi      	FALSE)
+			(object Object "proxy"
+			    quid       	"3DF458C503D5"
+			    collaborators 	(list link_list
+				(object Link
+				    quid       	"3DF45942036B"
+				    supplier   	"$UNNAMED$36"
+				    quidu      	"3DF4593D007A"
+				    messages   	(list Messages
+					(object Message ""
+					    quid       	"3DF45942036C"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"2"
+					    ordinal    	1
+					    quidu      	"000000000000"
+					    creation   	TRUE)
+					(object Message "start( )"
+					    quid       	"3DF459B20212"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"4"
+					    ordinal    	3
+					    quidu      	"3C7DFF770140"
+					    creation   	FALSE)
+					(object Message "attach(WPRef &)"
+					    quid       	"3DF45A7F0033"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"5.2"
+					    ordinal    	6
+					    quidu      	"3C8CDDFD0361"
+					    creation   	FALSE)
+					(object Message "// deliver"
+					    quid       	"3DF4600302FC"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"10.1"
+					    ordinal    	24
+					    quidu      	"000000000000"
+					    creation   	FALSE)))
+				(object Link
+				    quid       	"3DF459580226"
+				    supplier   	"gateways"
+				    quidu      	"3DF459540045"
+				    messages   	(list Messages
+					(object Message ""
+					    quid       	"3DF45972006B"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"3"
+					    ordinal    	2
+					    quidu      	"000000000000"
+					    creation   	TRUE)))
+				(object Link
+				    quid       	"3DF45A6C0183"
+				    supplier   	"$UNNAMED$35"
+				    quidu      	"3DF45A490217"
+				    messages   	(list Messages
+					(object Message ""
+					    quid       	"3DF45A6C0184"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"5.1"
+					    ordinal    	5
+					    quidu      	"000000000000"
+					    creation   	TRUE)
+					(object Message "// get( )"
+					    quid       	"3DF45FBE00DE"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"8.1"
+					    ordinal    	19
+					    quidu      	"3DF45F3E03DB"
+					    creation   	FALSE)
+					(object Message "(message)"
+					    quid       	"3DF45FCC01D9"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Return"
+					    dir        	"ToClientFromSupplier"
+					    sequence   	"9"
+					    ordinal    	21
+					    quidu      	"000000000000"
+					    creation   	FALSE))))
+			    class      	"Logical View::AppAgents::Analysis::OctoProxyClient"
+			    quidu      	"3DF081550222"
+			    persistence 	"Transient"
+			    creationObj 	TRUE
+			    multi      	FALSE)
+			(object Object "$UNNAMED$36"
+			    quid       	"3DF4593D007A"
+			    collaborators 	(list link_list
+				(object Link
+				    quid       	"3DF45A95039F"
+				    supplier   	"$UNNAMED$35"
+				    quidu      	"3DF45A490217"
+				    messages   	(list Messages
+					(object Message "// init( )"
+					    quid       	"3DF45A9503A0"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"5.2.1"
+					    ordinal    	7
+					    quidu      	"3DF45AA902CB"
+					    creation   	FALSE)
+					(object Message "// start( )"
+					    quid       	"3DF45C19005C"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"5.2.2"
+					    ordinal    	10
+					    quidu      	"3DF45B6302E2"
+					    creation   	FALSE)
+					(object Message "(HELLO)"
+					    quid       	"3DF45C240077"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Return"
+					    dir        	"ToClientFromSupplier"
+					    sequence   	"5.2.2.1"
+					    ordinal    	11
+					    quidu      	"000000000000"
+					    creation   	FALSE)
+					(object Message "// receive( )"
+					    quid       	"3DF45F0C00B1"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"7.1"
+					    ordinal    	16
+					    quidu      	"3DF45F100070"
+					    creation   	FALSE)))
+				(object Link
+				    quid       	"3DF45B030263"
+				    supplier   	"gateways"
+				    quidu      	"3DF459540045"
+				    messages   	(list Messages
+					(object Message "receive(MessageRef&)"
+					    quid       	"3DF45C3B0177"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"5.2.3"
+					    ordinal    	12
+					    quidu      	"3C90BF63005A"
+					    creation   	FALSE)
+					(object Message "// deliver()"
+					    quid       	"3DF45EDE000E"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"ToClientFromSupplier"
+					    sequence   	"7"
+					    ordinal    	15
+					    Operation  	"// deliver"
+					    quidu      	"000000000000"
+					    creation   	FALSE)
+					(object Message "receive(MessageRef&)"
+					    quid       	"3DF4601C0395"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"10.1.1"
+					    ordinal    	25
+					    quidu      	"3C90BF63005A"
+					    creation   	FALSE))))
+			    class      	"Logical View::OCTOPUSSY::Dispatcher"
+			    quidu      	"3C7B6A3E00A0"
+			    persistence 	"Transient"
+			    creationObj 	TRUE
+			    multi      	FALSE)
+			(object Object "gateways"
+			    quid       	"3DF459540045"
+			    collaborators 	(list link_list
+				(object Link
+				    quid       	"3DF45BAE02F4"
+				    supplier   	"gateways"
+				    quidu      	"3DF459540045"
+				    messages   	(list Messages
+					(object Message "receive from remote"
+					    quid       	"3DF45DC100BE"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Asynchronous"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"6"
+					    ordinal    	14
+					    quidu      	"000000000000"
+					    creation   	FALSE)
+					(object Message "enqueue for sending"
+					    quid       	"3DF4602A0056"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"10.1.1.1"
+					    ordinal    	26
+					    quidu      	"000000000000"
+					    creation   	FALSE)
+					(object Message "enqueue for sending"
+					    quid       	"3DF4603A024D"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"5.2.3.1"
+					    ordinal    	13
+					    quidu      	"000000000000"
+					    creation   	FALSE))))
+			    class      	"Logical View::OCTOPUSSY::GatewayWP"
+			    quidu      	"3C90BEF001E5"
+			    persistence 	"Transient"
+			    creationObj 	TRUE
+			    multi      	TRUE)
+			(object Object "$UNNAMED$35"
+			    quid       	"3DF45A490217"
+			    collaborators 	(list link_list
+				(object Link
+				    quid       	"3DF45AD10248"
+				    supplier   	"$UNNAMED$35"
+				    quidu      	"3DF45A490217"
+				    messages   	(list Messages
+					(object Message "// subscribe()"
+					    quid       	"3DF45AD10249"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"5.2.1.1"
+					    ordinal    	8
+					    quidu      	"3DF45AD70182"
+					    creation   	FALSE)
+					(object Message "enqueue"
+					    quid       	"3DF45F1B0062"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"7.1.1"
+					    ordinal    	17
+					    quidu      	"000000000000"
+					    creation   	FALSE)
+					(object Message "dequeue"
+					    quid       	"3DF45FC403D1"
+					    frequency  	"Aperiodic"
+					    synchronization 	"Simple"
+					    dir        	"FromClientToSupplier"
+					    sequence   	"8.1.1"
+					    ordinal    	20
+					    quidu      	"000000000000"
+					    creation   	FALSE))))
+			    class      	"Logical View::AppAgents::Analysis::OctoProxyWP"
+			    quidu      	"3DF081B503B3"
+			    persistence 	"Transient"
+			    creationObj 	TRUE
+			    multi      	FALSE))))
+	    logical_presentations 	(list unit_reference_list
+		(object ClassDiagram "Agents: standalone testing"
+		    quid       	"3DF07E43004C"
+		    title      	"Agents: standalone testing"
+		    zoom       	100
+		    max_height 	28350
+		    max_width  	21600
+		    origin_x   	0
+		    origin_y   	0
+		    items      	(list diagram_item_list
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::AppControlAgent" @2
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressAttribute 	TRUE
+			    SuppressOperation 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(330, 1440)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@2
+				location   	(329, 1545)
+				anchor_loc 	1
+				nlines     	2
+				max_width  	297
+				justify    	0
+				label      	"AppControlAgent")
+			    icon       	"Interface"
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07BDB0049"
+			    width      	52
+			    height     	52
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::VisInputAgent" @3
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressOperation 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(375, 465)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@3
+				location   	(374, 570)
+				anchor_loc 	1
+				nlines     	2
+				max_width  	291
+				justify    	0
+				label      	"VisInputAgent")
+			    icon       	"Interface"
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07A3E02DA"
+			    width      	52
+			    height     	52
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::VisOutputAgent" @4
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressOperation 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(360, 915)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@4
+				location   	(359, 1020)
+				anchor_loc 	1
+				nlines     	2
+				max_width  	304
+				justify    	0
+				label      	"VisOutputAgent")
+			    icon       	"Interface"
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07C240071"
+			    width      	52
+			    height     	52
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::GlishControlAgent" @5
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(990, 1275)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@5
+				location   	(779, 1226)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	422
+				justify    	0
+				label      	"GlishControlAgent")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07EC80263"
+			    width      	440
+			    height     	122
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::UVD::MSReader" @6
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressAttribute 	TRUE
+			    SuppressOperation 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(1680, 420)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@6
+				location   	(1540, 369)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	280
+				justify    	0
+				label      	"MSReader")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3CF237080203"
+			    width      	298
+			    height     	124
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::MSReaderAgent" @7
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(975, 450)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@7
+				location   	(782, 401)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	386
+				justify    	0
+				label      	"MSReaderAgent")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07E9B0195"
+			    width      	404
+			    height     	122
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object RealizeView "" @8
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF07EE10381"
+			    client     	@7
+			    supplier   	@3
+			    line_style 	3
+			    origin_attachment 	(773, 463)
+			    terminal_attachment 	(401, 463))
+			(object AssociationViewNew "$UNNAMED$8" @9
+			    location   	(1354, 425)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF07F2500EA"
+			    roleview_list 	(list RoleViews
+				(object RoleView "$UNNAMED$9" @10
+				    Parent_View 	@9
+				    location   	(379, -25)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF07F2502FD"
+				    client     	@9
+				    supplier   	@6
+				    line_style 	3
+				    origin_attachment 	(1354, 425)
+				    terminal_attachment 	(1531, 425))
+				(object RoleView "$UNNAMED$10" @11
+				    Parent_View 	@9
+				    location   	(379, -25)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF07F260023"
+				    client     	@9
+				    supplier   	@7
+				    line_style 	3
+				    origin_attachment 	(1354, 425)
+				    terminal_attachment 	(1177, 425))))
+			(object ClassView "Class" "Logical View::UVD::MSFiller" @12
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressAttribute 	TRUE
+			    SuppressOperation 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(1695, 915)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@12
+				location   	(1575, 864)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	240
+				justify    	0
+				label      	"MSFiller")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3CEA4A9E0070"
+			    width      	258
+			    height     	124
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::MSWriterAgent" @13
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(990, 915)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@13
+				location   	(806, 866)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	368
+				justify    	0
+				label      	"MSWriterAgent")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07EB60023"
+			    width      	386
+			    height     	122
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object RealizeView "" @14
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF07EEE00D1"
+			    client     	@13
+			    supplier   	@4
+			    line_style 	3
+			    origin_attachment 	(797, 915)
+			    terminal_attachment 	(386, 915))
+			(object AssociationViewNew "$UNNAMED$11" @15
+			    location   	(1374, 915)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF07F4703C2"
+			    roleview_list 	(list RoleViews
+				(object RoleView "$UNNAMED$12" @16
+				    Parent_View 	@15
+				    location   	(384, 0)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF07F48023D"
+				    client     	@15
+				    supplier   	@12
+				    line_style 	0)
+				(object RoleView "$UNNAMED$13" @17
+				    Parent_View 	@15
+				    location   	(384, 0)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF07F4802AB"
+				    client     	@15
+				    supplier   	@13
+				    line_style 	0)))
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::BatchControlAgent" @18
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(975, 1620)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@18
+				location   	(753, 1571)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	444
+				justify    	0
+				label      	"BatchControlAgent")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07F8700CF"
+			    width      	462
+			    height     	122
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object NoteView @19
+			    location   	(1725, 1275)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@19
+				location   	(1572, 1181)
+				fill_color 	13434879
+				nlines     	4
+				max_width  	270
+				label      	"Talks to Glish over Glish bus?")
+			    line_color 	3342489
+			    fill_color 	13434879
+			    width      	330
+			    height     	200)
+			(object AttachView "" @20
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@19
+			    supplier   	@5
+			    line_style 	0)
+			(object NoteView @21
+			    location   	(1725, 1635)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@21
+				location   	(1535, 1534)
+				fill_color 	13434879
+				nlines     	4
+				max_width  	345
+				label      	"No interactive control, just run until specified condition is met")
+			    line_color 	3342489
+			    fill_color 	13434879
+			    width      	405
+			    height     	215)
+			(object AttachView "" @22
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@21
+			    supplier   	@18
+			    line_style 	3
+			    origin_attachment 	(1522, 1620)
+			    terminal_attachment 	(1206, 1620))
+			(object Label @23
+			    location   	(720, 105)
+			    font       	(object Font
+				size       	12
+				face       	"arial"
+				bold       	TRUE
+				italics    	FALSE
+				underline  	TRUE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    nlines     	1
+			    max_width  	1079
+			    label      	"VisAgents For Standalone testing")
+			(object RealizeView "" @24
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF07EF10207"
+			    client     	@5
+			    supplier   	@2
+			    vertices   	(list Points
+				(770, 1284)
+				(320, 1284)
+				(320, 1412))
+			    line_style 	3
+			    origin_attachment 	(770, 1284)
+			    terminal_attachment 	(320, 1412))
+			(object RealizeView "" @25
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF07F920159"
+			    client     	@18
+			    supplier   	@2
+			    vertices   	(list Points
+				(744, 1620)
+				(330, 1620)
+				(330, 1570))
+			    line_style 	3
+			    origin_attachment 	(744, 1620)
+			    terminal_attachment 	(330, 1570))))
+		(object ClassDiagram "Agents: pipeline scenario"
+		    quid       	"3DF08060007E"
+		    title      	"Agents: pipeline scenario"
+		    zoom       	100
+		    max_height 	28350
+		    max_width  	21600
+		    origin_x   	75
+		    origin_y   	0
+		    items      	(list diagram_item_list
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::AppControlAgent" @26
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressOperation 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(1740, 930)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@26
+				location   	(1739, 1035)
+				anchor_loc 	1
+				nlines     	2
+				max_width  	301
+				justify    	0
+				label      	"AppControlAgent")
+			    icon       	"Interface"
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07BDB0049"
+			    width      	52
+			    height     	52
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::VisInputAgent" @27
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressOperation 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(1410, 735)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@27
+				location   	(1409, 840)
+				anchor_loc 	1
+				nlines     	2
+				max_width  	294
+				justify    	0
+				label      	"VisInputAgent")
+			    icon       	"Interface"
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07A3E02DA"
+			    width      	52
+			    height     	52
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::VisOutputAgent" @28
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressOperation 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(1740, 630)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@28
+				location   	(1739, 735)
+				anchor_loc 	1
+				nlines     	2
+				max_width  	307
+				justify    	0
+				label      	"VisOutputAgent")
+			    icon       	"Interface"
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07C240071"
+			    width      	52
+			    height     	52
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object NoteView @29
+			    location   	(1515, 1500)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@29
+				location   	(1302, 1354)
+				fill_color 	13434879
+				nlines     	6
+				max_width  	390
+				label      	"This pair of classes implements the generic push-pull interface to OCTOPUSSY")
+			    line_color 	3342489
+			    fill_color 	16711373
+			    width      	450
+			    height     	305)
+			(object Label @30
+			    location   	(645, 105)
+			    font       	(object Font
+				size       	12
+				face       	"arial"
+				bold       	TRUE
+				italics    	FALSE
+				underline  	TRUE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    nlines     	1
+			    max_width  	1079
+			    label      	"Agents For OCTOPUSSY Pipeline")
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::OCTOPUSSY" @31
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressAttribute 	TRUE
+			    SuppressOperation 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(255, 1755)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@31
+				location   	(86, 1734)
+				nlines     	1
+				max_width  	338
+				justify    	0
+				label      	"OCTOPUSSY")
+			    stereotype 	(object ItemLabel
+				Parent_View 	@31
+				location   	(86, 1684)
+				anchor     	10
+				nlines     	1
+				max_width  	338
+				justify    	0
+				label      	"<<thread>>")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    quidu      	"3DF0823B0088"
+			    width      	356
+			    height     	167
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::VisOctopussyAgent" @32
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(855, 750)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@32
+				location   	(620, 701)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	470
+				justify    	0
+				label      	"VisOctopussyAgent")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF080F903CC"
+			    width      	488
+			    height     	122
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object RealizeView "" @33
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF081130228"
+			    client     	@32
+			    supplier   	@28
+			    vertices   	(list Points
+				(1099, 705)
+				(1198, 705)
+				(1198, 630)
+				(1712, 630))
+			    line_style 	3
+			    origin_attachment 	(1099, 705)
+			    terminal_attachment 	(1712, 630))
+			(object RealizeView "" @34
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF08116027A"
+			    client     	@32
+			    supplier   	@27
+			    line_style 	3
+			    origin_attachment 	(1099, 733)
+			    terminal_attachment 	(1382, 733))
+			(object RealizeView "" @35
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF081190288"
+			    client     	@32
+			    supplier   	@26
+			    vertices   	(list Points
+				(1099, 753)
+				(1200, 753)
+				(1200, 911)
+				(1710, 911))
+			    line_style 	3
+			    origin_attachment 	(1099, 753)
+			    terminal_attachment 	(1710, 911))
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::OctoProxyWP" @36
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(810, 1755)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@36
+				location   	(635, 1706)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	350
+				justify    	0
+				label      	"OctoProxyWP")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF081B503B3"
+			    width      	368
+			    height     	122
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object AttachView "" @37
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@29
+			    supplier   	@36
+			    line_style 	0)
+			(object AssociationViewNew "$UNNAMED$20" @38
+			    location   	(529, 1755)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF082A80297"
+			    roleview_list 	(list RoleViews
+				(object RoleView "$UNNAMED$21" @39
+				    Parent_View 	@38
+				    location   	(214, 0)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF082A9005D"
+				    client     	@38
+				    supplier   	@36
+				    line_style 	0)
+				(object RoleView "$UNNAMED$22" @40
+				    Parent_View 	@38
+				    location   	(214, 0)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF082A9007B"
+				    client     	@38
+				    supplier   	@31
+				    line_style 	0)))
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::OctoProxyClient" @41
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(840, 1245)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@41
+				location   	(647, 1196)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	386
+				justify    	0
+				label      	"OctoProxyClient")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF081550222"
+			    width      	404
+			    height     	122
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object AssociationViewNew "$UNNAMED$14" @42
+			    location   	(840, 997)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF0816D036A"
+			    roleview_list 	(list RoleViews
+				(object RoleView "$UNNAMED$15" @43
+				    Parent_View 	@42
+				    location   	(-195, 127)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF0816E037C"
+				    client     	@42
+				    supplier   	@41
+				    line_style 	3
+				    origin_attachment 	(840, 997)
+				    terminal_attachment 	(840, 1184))
+				(object RoleView "$UNNAMED$16" @44
+				    Parent_View 	@42
+				    location   	(-195, 127)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF0816E0386"
+				    client     	@42
+				    supplier   	@32
+				    line_style 	3
+				    origin_attachment 	(840, 997)
+				    terminal_attachment 	(840, 811))))
+			(object AssociationViewNew "$UNNAMED$17" @45
+			    location   	(838, 1500)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF081D00211"
+			    roleview_list 	(list RoleViews
+				(object RoleView "$UNNAMED$18" @46
+				    Parent_View 	@45
+				    location   	(-197, 270)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF081D10027"
+				    client     	@45
+				    supplier   	@36
+				    line_style 	3
+				    origin_attachment 	(838, 1500)
+				    terminal_attachment 	(838, 1694))
+				(object RoleView "$UNNAMED$19" @47
+				    Parent_View 	@45
+				    location   	(-197, 270)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF081D10059"
+				    client     	@45
+				    supplier   	@41
+				    line_style 	3
+				    origin_attachment 	(838, 1500)
+				    terminal_attachment 	(838, 1306))))
+			(object AttachView "" @48
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@29
+			    supplier   	@41
+			    line_style 	0)
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::OctopussySolverAgent" @49
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(855, 450)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@49
+				location   	(590, 401)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	530
+				justify    	0
+				label      	"OctopussySolverAgent")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF4BA91032E"
+			    width      	548
+			    height     	122
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object InheritView "" @50
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF4BCBF0369"
+			    client     	@49
+			    supplier   	@32
+			    line_style 	3
+			    origin_attachment 	(855, 511)
+			    terminal_attachment 	(855, 689))
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::Solver" @51
+			    ShowCompartmentStereotypes 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(225, 450)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@51
+				location   	(129, 401)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	192
+				justify    	0
+				label      	"Solver")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF4BD180077"
+			    width      	210
+			    height     	122
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object AssociationViewNew "$UNNAMED$29" @52
+			    location   	(455, 450)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF4BD2402AA"
+			    roleview_list 	(list RoleViews
+				(object RoleView "$UNNAMED$30" @53
+				    Parent_View 	@52
+				    location   	(230, 0)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF4BD2500B7"
+				    client     	@52
+				    supplier   	@49
+				    line_style 	3
+				    origin_attachment 	(455, 450)
+				    terminal_attachment 	(581, 450))
+				(object RoleView "$UNNAMED$31" @54
+				    Parent_View 	@52
+				    location   	(230, 0)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF4BD2500CB"
+				    client     	@52
+				    supplier   	@51
+				    line_style 	3
+				    origin_attachment 	(455, 450)
+				    terminal_attachment 	(330, 450))))
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::Main" @55
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressAttribute 	TRUE
+			    SuppressOperation 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    location   	(195, 870)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@55
+				location   	(56, 849)
+				nlines     	1
+				max_width  	278
+				justify    	0
+				label      	"Main")
+			    stereotype 	(object ItemLabel
+				Parent_View 	@55
+				location   	(56, 799)
+				anchor     	10
+				nlines     	1
+				max_width  	278
+				justify    	0
+				label      	"<<thread>>")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    quidu      	"3DF082B6020A"
+			    width      	296
+			    height     	167
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object AssociationViewNew "$UNNAMED$23" @56
+			    location   	(536, 1068)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF082DC014B"
+			    roleview_list 	(list RoleViews
+				(object RoleView "$UNNAMED$24" @57
+				    Parent_View 	@56
+				    location   	(266, -27)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF082DC033F"
+				    client     	@56
+				    supplier   	@41
+				    line_style 	0)
+				(object RoleView "$UNNAMED$25" @58
+				    Parent_View 	@56
+				    location   	(266, -27)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF082DC0367"
+				    client     	@56
+				    supplier   	@55
+				    line_style 	0)))
+			(object AssociationViewNew "$UNNAMED$26" @59
+			    location   	(540, 648)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF4BD0D00E0"
+			    roleview_list 	(list RoleViews
+				(object RoleView "$UNNAMED$27" @60
+				    Parent_View 	@59
+				    location   	(360, -417)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF4BD0D02B7"
+				    client     	@59
+				    supplier   	@49
+				    line_style 	0)
+				(object RoleView "$UNNAMED$28" @61
+				    Parent_View 	@59
+				    location   	(360, -417)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF4BD0D02C1"
+				    client     	@59
+				    supplier   	@55
+				    line_style 	0)))
+			(object AssociationViewNew "$UNNAMED$32" @62
+			    location   	(210, 648)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF4BD3C038C"
+			    roleview_list 	(list RoleViews
+				(object RoleView "$UNNAMED$33" @63
+				    Parent_View 	@62
+				    location   	(15, -222)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF4BD3D017B"
+				    client     	@62
+				    supplier   	@51
+				    line_style 	0)
+				(object RoleView "$UNNAMED$34" @64
+				    Parent_View 	@62
+				    location   	(15, -222)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3DF4BD3D018F"
+				    client     	@62
+				    supplier   	@55
+				    line_style 	0)))))
+		(object ClassDiagram "Agent interfaces"
+		    quid       	"3DF07576027B"
+		    title      	"Agent interfaces"
+		    zoom       	70
+		    max_height 	28350
+		    max_width  	21600
+		    origin_x   	0
+		    origin_y   	0
+		    items      	(list diagram_item_list
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::VisInputAgent" @65
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressAttribute 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    ShowOperationSignature 	TRUE
+			    location   	(2160, 1155)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@65
+				location   	(1978, 1126)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	364
+				justify    	0
+				label      	"VisInputAgent")
+			    stereotype 	(object ItemLabel
+				Parent_View 	@65
+				location   	(1978, 1076)
+				fill_color 	13434879
+				anchor     	10
+				nlines     	1
+				max_width  	364
+				justify    	0
+				label      	"<<Interface>>")
+			    icon       	"Interface"
+			    icon_style 	"Label"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07A3E02DA"
+			    width      	382
+			    height     	182
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::AppControlAgent" @66
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressAttribute 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    ShowOperationSignature 	TRUE
+			    location   	(975, 2265)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@66
+				location   	(761, 2236)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	428
+				justify    	0
+				label      	"AppControlAgent")
+			    stereotype 	(object ItemLabel
+				Parent_View 	@66
+				location   	(761, 2186)
+				fill_color 	13434879
+				anchor     	10
+				nlines     	1
+				max_width  	428
+				justify    	0
+				label      	"<<Interface>>")
+			    icon       	"Interface"
+			    icon_style 	"Label"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07BDB0049"
+			    width      	446
+			    height     	182
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::VisOutputAgent" @67
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressAttribute 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    ShowOperationSignature 	TRUE
+			    location   	(1515, 1725)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@67
+				location   	(1315, 1696)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	400
+				justify    	0
+				label      	"VisOutputAgent")
+			    stereotype 	(object ItemLabel
+				Parent_View 	@67
+				location   	(1315, 1646)
+				fill_color 	13434879
+				anchor     	10
+				nlines     	1
+				max_width  	400
+				justify    	0
+				label      	"<<Interface>>")
+			    icon       	"Interface"
+			    icon_style 	"Label"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07C240071"
+			    width      	418
+			    height     	182
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object ClassView "Class" "Logical View::AppAgents::Analysis::AppAgent" @68
+			    ShowCompartmentStereotypes 	TRUE
+			    SuppressAttribute 	TRUE
+			    IncludeAttribute 	TRUE
+			    IncludeOperation 	TRUE
+			    ShowOperationSignature 	TRUE
+			    location   	(1020, 600)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@68
+				location   	(844, 571)
+				fill_color 	13434879
+				nlines     	1
+				max_width  	352
+				justify    	0
+				label      	"AppAgent")
+			    stereotype 	(object ItemLabel
+				Parent_View 	@68
+				location   	(844, 521)
+				fill_color 	13434879
+				anchor     	10
+				nlines     	1
+				max_width  	352
+				justify    	0
+				label      	"<<Interface>>")
+			    icon       	"Interface"
+			    icon_style 	"Label"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF07CF902B4"
+			    width      	370
+			    height     	182
+			    annotation 	8
+			    autoResize 	TRUE)
+			(object InheritTreeView "" @69
+			    location   	(1020, 918)
+			    line_color 	3342489
+			    fill_color 	13434879
+			    supplier   	@68
+			    vertices   	(list Points
+				(1020, 918)
+				(1020, 691)))
+			(object InheritView "" @70
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF07DD102F6"
+			    client     	@66
+			    supplier   	@68
+			    line_style 	3
+			    origin_attachment 	(975, 2174)
+			    terminal_attachment 	(975, 918)
+			    drawSupplier 	@69)
+			(object InheritView "" @71
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF07DCD026E"
+			    client     	@67
+			    supplier   	@68
+			    line_style 	3
+			    origin_attachment 	(1515, 1634)
+			    terminal_attachment 	(1515, 918)
+			    drawSupplier 	@69)
+			(object InheritView "" @72
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3DF07DC30334"
+			    client     	@65
+			    supplier   	@68
+			    line_style 	3
+			    origin_attachment 	(1971, 1064)
+			    terminal_attachment 	(1971, 918)
+			    drawSupplier 	@69)
+			(object Label @73
+			    location   	(1200, 180)
+			    font       	(object Font
+				size       	12
+				face       	"arial"
+				bold       	TRUE
+				italics    	FALSE
+				underline  	TRUE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    nlines     	1
+			    max_width  	1079
+			    label      	"VisAgent Interfaces")))
+		(object InteractionDiagram "OctoProxy interaction"
+		    mechanism_ref 	@1
+		    quid       	"3DF458500317"
+		    title      	"OctoProxy interaction"
+		    zoom       	85
+		    max_height 	28350
+		    max_width  	21600
+		    origin_x   	0
+		    origin_y   	2130
+		    items      	(list diagram_item_list
+			(object InterObjView "thread" @74
+			    location   	(195, 225)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	TRUE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@74
+				location   	(195, 225)
+				fill_color 	13434879
+				anchor_loc 	1
+				nlines     	2
+				max_width  	282
+				justify    	0
+				label      	"thread")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF4585D030A"
+			    width      	300
+			    height     	3555
+			    icon_height 	0
+			    icon_width 	0
+			    icon_y_offset 	0
+			    annotation 	1
+			    Focus_Of_Control 	(object Focus_Of_Control "" @75
+				location   	(195, 360)
+				line_color 	3342489
+				InterObjView 	@74
+				height     	195
+				y_coord    	135
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @76
+				location   	(195, 1125)
+				line_color 	3342489
+				InterObjView 	@74
+				height     	570
+				y_coord    	510
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @77
+				location   	(195, 1515)
+				line_color 	3342489
+				InterObjView 	@74
+				height     	60
+				y_coord    	0
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @78
+				location   	(195, 2790)
+				line_color 	3342489
+				InterObjView 	@74
+				height     	900
+				y_coord    	840
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @79
+				location   	(195, 3060)
+				line_color 	3342489
+				InterObjView 	@74
+				height     	60
+				y_coord    	0
+				Nested     	FALSE))
+			(object InterObjView "proxy" @80
+			    location   	(645, 360)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	TRUE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@80
+				location   	(645, 360)
+				fill_color 	13434879
+				anchor_loc 	1
+				nlines     	2
+				max_width  	306
+				justify    	0
+				label      	"proxy")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	13434879
+			    quidu      	"3DF458C503D5"
+			    width      	324
+			    height     	3420
+			    icon_height 	0
+			    icon_width 	0
+			    icon_y_offset 	0
+			    annotation 	1
+			    Focus_Of_Control 	(object Focus_Of_Control "" @81
+				location   	(645, 360)
+				line_color 	3342489
+				InterObjView 	@80
+				height     	135
+				y_coord    	75
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @82
+				location   	(645, 420)
+				InterObjView 	@80
+				height     	60
+				y_coord    	0
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @83
+				location   	(645, 690)
+				line_color 	3342489
+				InterObjView 	@80
+				height     	951
+				y_coord    	891
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @84
+				location   	(645, 1125)
+				line_color 	3342489
+				InterObjView 	@80
+				height     	510
+				y_coord    	450
+				Nested     	TRUE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @85
+				location   	(645, 2790)
+				line_color 	3342489
+				InterObjView 	@80
+				height     	396
+				y_coord    	336
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @86
+				location   	(645, 3015)
+				line_color 	3342489
+				InterObjView 	@80
+				height     	165
+				y_coord    	105
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @87
+				location   	(645, 3270)
+				line_color 	3342489
+				InterObjView 	@80
+				height     	360
+				y_coord    	300
+				Nested     	FALSE))
+			(object InterObjView "$UNNAMED$35" @88
+			    location   	(1140, 1155)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	TRUE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@88
+				location   	(1140, 1155)
+				fill_color 	13434879
+				anchor_loc 	1
+				nlines     	2
+				max_width  	282
+				justify    	0
+				label      	"")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	16711373
+			    quidu      	"3DF45A490217"
+			    width      	300
+			    height     	2625
+			    icon_height 	0
+			    icon_width 	0
+			    icon_y_offset 	0
+			    annotation 	1
+			    Focus_Of_Control 	(object Focus_Of_Control "" @89
+				location   	(1140, 1155)
+				line_color 	3342489
+				InterObjView 	@88
+				height     	60
+				y_coord    	0
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @90
+				location   	(1140, 1215)
+				InterObjView 	@88
+				height     	60
+				y_coord    	0
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @91
+				location   	(1140, 1440)
+				line_color 	3342489
+				InterObjView 	@88
+				height     	180
+				y_coord    	120
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @92
+				location   	(1140, 1500)
+				line_color 	3342489
+				InterObjView 	@88
+				height     	60
+				y_coord    	0
+				Nested     	TRUE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @93
+				location   	(1140, 1710)
+				line_color 	3342489
+				InterObjView 	@88
+				height     	210
+				y_coord    	150
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @94
+				location   	(1140, 2415)
+				line_color 	3342489
+				InterObjView 	@88
+				height     	255
+				y_coord    	195
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @95
+				location   	(1140, 2550)
+				line_color 	3342489
+				InterObjView 	@88
+				height     	60
+				y_coord    	0
+				Nested     	TRUE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @96
+				location   	(1140, 2709)
+				line_color 	3342489
+				InterObjView 	@88
+				height     	306
+				y_coord    	246
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @97
+				location   	(1140, 2835)
+				line_color 	3342489
+				InterObjView 	@88
+				height     	180
+				y_coord    	120
+				Nested     	TRUE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @98
+				location   	(1140, 2895)
+				line_color 	3342489
+				InterObjView 	@88
+				height     	60
+				y_coord    	0
+				Nested     	TRUE))
+			(object InterObjView "$UNNAMED$36" @99
+			    location   	(1560, 690)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	TRUE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@99
+				location   	(1560, 690)
+				fill_color 	13434879
+				anchor_loc 	1
+				nlines     	2
+				max_width  	282
+				justify    	0
+				label      	"")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	16711373
+			    quidu      	"3DF4593D007A"
+			    width      	300
+			    height     	3090
+			    icon_height 	0
+			    icon_width 	0
+			    icon_y_offset 	0
+			    annotation 	1
+			    Focus_Of_Control 	(object Focus_Of_Control "" @100
+				location   	(1560, 690)
+				line_color 	3342489
+				InterObjView 	@99
+				height     	60
+				y_coord    	0
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @101
+				location   	(1560, 750)
+				InterObjView 	@99
+				height     	60
+				y_coord    	0
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @102
+				location   	(1560, 945)
+				line_color 	3342489
+				InterObjView 	@99
+				height     	60
+				y_coord    	0
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @103
+				location   	(1560, 1350)
+				line_color 	3342489
+				InterObjView 	@99
+				height     	750
+				y_coord    	690
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @104
+				location   	(1560, 1800)
+				line_color 	3342489
+				InterObjView 	@99
+				height     	60
+				y_coord    	0
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @105
+				location   	(1560, 2370)
+				line_color 	3342489
+				InterObjView 	@99
+				height     	360
+				y_coord    	300
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @106
+				location   	(1560, 3300)
+				line_color 	3342489
+				InterObjView 	@99
+				height     	270
+				y_coord    	210
+				Nested     	FALSE))
+			(object InterObjView "gateways" @107
+			    location   	(2115, 855)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	TRUE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@107
+				location   	(2115, 855)
+				fill_color 	13434879
+				anchor_loc 	1
+				nlines     	2
+				max_width  	408
+				justify    	0
+				label      	"gateways")
+			    icon_style 	"Icon"
+			    line_color 	3342489
+			    fill_color 	16711373
+			    quidu      	"3DF459540045"
+			    width      	426
+			    height     	2925
+			    icon_height 	0
+			    icon_width 	0
+			    icon_y_offset 	0
+			    annotation 	1
+			    Focus_Of_Control 	(object Focus_Of_Control "" @108
+				location   	(2115, 855)
+				line_color 	3342489
+				InterObjView 	@107
+				height     	60
+				y_coord    	0
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @109
+				location   	(2115, 915)
+				InterObjView 	@107
+				height     	60
+				y_coord    	0
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @110
+				location   	(2115, 1860)
+				line_color 	3342489
+				InterObjView 	@107
+				height     	180
+				y_coord    	120
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @111
+				location   	(2115, 1920)
+				line_color 	3342489
+				InterObjView 	@107
+				height     	60
+				y_coord    	0
+				Nested     	TRUE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @112
+				location   	(2115, 2280)
+				line_color 	3342489
+				InterObjView 	@107
+				height     	510
+				y_coord    	450
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @113
+				location   	(2115, 2280)
+				line_color 	3342489
+				InterObjView 	@107
+				height     	60
+				y_coord    	0
+				Nested     	TRUE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @114
+				location   	(2115, 3330)
+				line_color 	3342489
+				InterObjView 	@107
+				height     	180
+				y_coord    	120
+				Nested     	FALSE)
+			    Focus_Of_Control 	(object Focus_Of_Control "" @115
+				location   	(2115, 3390)
+				line_color 	3342489
+				InterObjView 	@107
+				height     	60
+				y_coord    	0
+				Nested     	TRUE))
+			(object InterMessView "" @116
+			    location   	(15, 360)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @117
+				Parent_View 	@116
+				location   	(346, 316)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF458E8006E"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	230
+				justify    	0
+				label      	""
+				pctDist    	0.500000
+				height     	45
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@74
+			    supplier   	@80
+			    Focus_Src  	@75
+			    Focus_Entry 	@81
+			    origin     	(210, 360)
+			    terminus   	(483, 360)
+			    ordinal    	0)
+			(object InterMessView "" @118
+			    location   	(15, 690)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @119
+				Parent_View 	@118
+				location   	(1035, 662)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45942036C"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	195
+				justify    	0
+				label      	""
+				pctDist    	0.500000
+				height     	29
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@80
+			    supplier   	@99
+			    Focus_Src  	@83
+			    Focus_Entry 	@100
+			    origin     	(660, 690)
+			    terminus   	(1410, 690)
+			    ordinal    	1)
+			(object InterMessView "" @120
+			    location   	(15, 855)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @121
+				Parent_View 	@120
+				location   	(1137, 827)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45972006B"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	195
+				justify    	0
+				label      	""
+				pctDist    	0.384615
+				height     	29
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@80
+			    supplier   	@107
+			    Focus_Src  	@83
+			    Focus_Entry 	@108
+			    origin     	(660, 855)
+			    terminus   	(1902, 855)
+			    ordinal    	2)
+			(object InterMessView "" @122
+			    location   	(1110, 945)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @123
+				Parent_View 	@122
+				location   	(1071, 917)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF459B20212"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	126
+				justify    	0
+				label      	"start( )"
+				pctDist    	0.465517
+				height     	29
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@80
+			    supplier   	@99
+			    Focus_Src  	@83
+			    Focus_Entry 	@102
+			    origin     	(660, 945)
+			    terminus   	(1544, 945)
+			    ordinal    	3)
+			(object InterMessView "" @124
+			    location   	(420, 1125)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @125
+				Parent_View 	@124
+				location   	(419, 1081)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45A0E0396"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	294
+				justify    	0
+				label      	"// register me( )"
+				pctDist    	0.500000
+				height     	45
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@74
+			    supplier   	@80
+			    Focus_Src  	@76
+			    Focus_Entry 	@84
+			    origin     	(210, 1125)
+			    terminus   	(629, 1125)
+			    ordinal    	4)
+			(object InterMessView "" @126
+			    location   	(15, 1155)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @127
+				Parent_View 	@126
+				location   	(825, 1111)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45A6C0184"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	195
+				justify    	0
+				label      	""
+				pctDist    	0.500000
+				height     	45
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@80
+			    supplier   	@88
+			    Focus_Src  	@84
+			    Focus_Entry 	@89
+			    origin     	(660, 1155)
+			    terminus   	(990, 1155)
+			    ordinal    	5)
+			(object InterMessView "" @128
+			    location   	(1170, 1350)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @129
+				Parent_View 	@128
+				location   	(1088, 1322)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45A7F0033"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	329
+				justify    	0
+				label      	"attach(WPRef &)"
+				pctDist    	0.484789
+				height     	29
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@80
+			    supplier   	@99
+			    Focus_Src  	@84
+			    Focus_Entry 	@103
+			    origin     	(660, 1350)
+			    terminus   	(1544, 1350)
+			    ordinal    	6)
+			(object InterMessView "" @130
+			    location   	(1425, 1440)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @131
+				Parent_View 	@130
+				location   	(1350, 1396)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45A9503A0"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	129
+				justify    	0
+				label      	"// init( )"
+				pctDist    	0.500000
+				height     	45
+				orientation 	1)
+			    line_color 	3342489
+			    client     	@99
+			    supplier   	@88
+			    Focus_Src  	@103
+			    Focus_Entry 	@91
+			    origin     	(1544, 1440)
+			    terminus   	(1156, 1440)
+			    ordinal    	7)
+			(object SelfMessView "" @132
+			    location   	(15, 1500)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @133
+				Parent_View 	@132
+				location   	(1231, 1472)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45AD10249"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	253
+				justify    	0
+				label      	"// subscribe()"
+				pctDist    	0.500000
+				height     	29
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@88
+			    supplier   	@88
+			    Focus_Src  	@91
+			    Focus_Entry 	@92
+			    origin     	(1156, 1500)
+			    terminus   	(1306, 1500)
+			    ordinal    	8)
+			(object InterMessView "" @134
+			    location   	(15, 1515)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @135
+				Parent_View 	@134
+				location   	(420, 1488)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45BF103A4"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	147
+				justify    	0
+				label      	"proxy id"
+				pctDist    	0.502232
+				height     	28
+				orientation 	1)
+			    line_color 	3342489
+			    client     	@80
+			    supplier   	@74
+			    Focus_Src  	@84
+			    Focus_Entry 	@77
+			    origin     	(629, 1515)
+			    terminus   	(211, 1515)
+			    ordinal    	9)
+			(object InterMessView "" @136
+			    location   	(1350, 1710)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @137
+				Parent_View 	@136
+				location   	(1350, 1666)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45C19005C"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	162
+				justify    	0
+				label      	"// start( )"
+				pctDist    	0.500000
+				height     	45
+				orientation 	1)
+			    line_color 	3342489
+			    client     	@99
+			    supplier   	@88
+			    Focus_Src  	@103
+			    Focus_Entry 	@93
+			    origin     	(1544, 1710)
+			    terminus   	(1156, 1710)
+			    ordinal    	10)
+			(object InterMessView "" @138
+			    location   	(1350, 1800)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @139
+				Parent_View 	@138
+				location   	(1349, 1771)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45C240077"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	171
+				justify    	0
+				label      	"(HELLO)"
+				pctDist    	0.498715
+				height     	30
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@88
+			    supplier   	@99
+			    Focus_Src  	@93
+			    Focus_Entry 	@104
+			    origin     	(1155, 1800)
+			    terminus   	(1544, 1800)
+			    ordinal    	11)
+			(object InterMessView "" @140
+			    location   	(1845, 1860)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @141
+				Parent_View 	@140
+				location   	(1837, 1816)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45C3B0177"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	438
+				justify    	0
+				label      	"receive(MessageRef&)"
+				pctDist    	0.500000
+				height     	45
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@99
+			    supplier   	@107
+			    Focus_Src  	@103
+			    Focus_Entry 	@110
+			    origin     	(1575, 1860)
+			    terminus   	(2099, 1860)
+			    ordinal    	12)
+			(object NoteView @142
+			    location   	(420, 690)
+			    font       	(object Font
+				size       	8
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@142
+				location   	(282, 606)
+				fill_color 	13434879
+				nlines     	4
+				max_width  	240
+				label      	"Specifies my ID and initial subscriptions")
+			    line_color 	3342489
+			    fill_color 	13434879
+			    width      	300
+			    height     	180)
+			(object AttachView "" @143
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@142
+			    supplier   	@124
+			    line_style 	0)
+			(object NoteView @144
+			    location   	(1830, 1395)
+			    font       	(object Font
+				size       	8
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@144
+				location   	(1692, 1311)
+				fill_color 	13434879
+				nlines     	4
+				max_width  	240
+				label      	"Broadcasts my subscriptions")
+			    line_color 	3342489
+			    fill_color 	13434879
+			    width      	300
+			    height     	180)
+			(object AttachView "" @145
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@144
+			    supplier   	@141
+			    line_style 	0)
+			(object NoteView @146
+			    location   	(1920, 1005)
+			    font       	(object Font
+				size       	8
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@146
+				location   	(1782, 921)
+				fill_color 	13434879
+				nlines     	4
+				max_width  	240
+				label      	"Standard OCTOPUSSY startup sequence")
+			    line_color 	3342489
+			    fill_color 	13434879
+			    width      	300
+			    height     	180)
+			(object AttachView "" @147
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@146
+			    supplier   	@139
+			    line_style 	0)
+			(object AttachView "" @148
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@146
+			    supplier   	@118
+			    line_style 	0)
+			(object SelfMessView "" @149
+			    location   	(15, 2280)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @150
+				Parent_View 	@149
+				location   	(2207, 2253)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45DC100BE"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	385
+				justify    	0
+				label      	"receive from remote"
+				pctDist    	0.506667
+				height     	28
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@107
+			    supplier   	@107
+			    Focus_Src  	@112
+			    Focus_Entry 	@113
+			    origin     	(2131, 2280)
+			    terminus   	(2281, 2280)
+			    ordinal    	14)
+			(object NoteView @151
+			    location   	(645, 105)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@151
+				location   	(507, 45)
+				nlines     	2
+				max_width  	240
+				label      	"Main thread")
+			    line_color 	3342489
+			    width      	300
+			    height     	132)
+			(object AttachView "" @152
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@151
+			    supplier   	@80
+			    line_style 	0)
+			(object AttachView "" @153
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@151
+			    supplier   	@74
+			    line_style 	0)
+			(object NoteView @154
+			    location   	(2115, 105)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@154
+				location   	(1955, 41)
+				nlines     	2
+				max_width  	285
+				label      	"Gateway r/w threads")
+			    line_color 	3342489
+			    width      	345
+			    height     	140)
+			(object AttachView "" @155
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@154
+			    supplier   	@107
+			    line_style 	0)
+			(object NoteView @156
+			    location   	(1575, 150)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@156
+				location   	(1405, 69)
+				nlines     	3
+				max_width  	305
+				label      	"Shared and used by all threads")
+			    line_color 	3342489
+			    width      	365
+			    height     	175)
+			(object AttachView "" @157
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@156
+			    supplier   	@99
+			    line_style 	0)
+			(object InterMessView "" @158
+			    location   	(15, 2370)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @159
+				Parent_View 	@158
+				location   	(1838, 2326)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45EDE000E"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	188
+				justify    	0
+				label      	"// deliver()"
+				pctDist    	0.500000
+				height     	45
+				orientation 	1)
+			    line_color 	3342489
+			    client     	@107
+			    supplier   	@99
+			    Focus_Src  	@112
+			    Focus_Entry 	@105
+			    origin     	(2099, 2370)
+			    terminus   	(1576, 2370)
+			    ordinal    	15)
+			(object InterMessView "" @160
+			    location   	(15, 2415)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @161
+				Parent_View 	@160
+				location   	(1350, 2371)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45F0C00B1"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	215
+				justify    	0
+				label      	"// receive( )"
+				pctDist    	0.500000
+				height     	45
+				orientation 	1)
+			    line_color 	3342489
+			    client     	@99
+			    supplier   	@88
+			    Focus_Src  	@105
+			    Focus_Entry 	@94
+			    origin     	(1544, 2415)
+			    terminus   	(1156, 2415)
+			    ordinal    	16)
+			(object SelfMessView "" @162
+			    location   	(15, 2550)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @163
+				Parent_View 	@162
+				location   	(1231, 2506)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45F1B0062"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	165
+				justify    	0
+				label      	"enqueue"
+				pctDist    	0.500000
+				height     	45
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@88
+			    supplier   	@88
+			    Focus_Src  	@94
+			    Focus_Entry 	@95
+			    origin     	(1156, 2550)
+			    terminus   	(1306, 2550)
+			    ordinal    	17)
+			(object NoteView @164
+			    location   	(870, 2520)
+			    font       	(object Font
+				size       	8
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object ItemLabel
+				Parent_View 	@164
+				location   	(732, 2459)
+				nlines     	3
+				max_width  	240
+				label      	"Obtains mutex")
+			    line_color 	3342489
+			    width      	300
+			    height     	135)
+			(object AttachView "" @165
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@164
+			    supplier   	@163
+			    line_style 	0)
+			(object InterMessView "" @166
+			    location   	(15, 2790)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @167
+				Parent_View 	@166
+				location   	(419, 2746)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45FA80276"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	135
+				justify    	0
+				label      	"// get( )"
+				pctDist    	0.500000
+				height     	45
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@74
+			    supplier   	@80
+			    Focus_Src  	@78
+			    Focus_Entry 	@85
+			    origin     	(210, 2790)
+			    terminus   	(629, 2790)
+			    ordinal    	18)
+			(object InterMessView "" @168
+			    location   	(15, 2835)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @169
+				Parent_View 	@168
+				location   	(892, 2791)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45FBE00DE"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	135
+				justify    	0
+				label      	"// get( )"
+				pctDist    	0.500000
+				height     	45
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@80
+			    supplier   	@88
+			    Focus_Src  	@85
+			    Focus_Entry 	@97
+			    origin     	(660, 2835)
+			    terminus   	(1124, 2835)
+			    ordinal    	19)
+			(object SelfMessView "" @170
+			    location   	(15, 2895)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @171
+				Parent_View 	@170
+				location   	(1231, 2851)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45FC403D1"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	165
+				justify    	0
+				label      	"dequeue"
+				pctDist    	0.500000
+				height     	45
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@88
+			    supplier   	@88
+			    Focus_Src  	@97
+			    Focus_Entry 	@98
+			    origin     	(1156, 2895)
+			    terminus   	(1306, 2895)
+			    ordinal    	20)
+			(object InterMessView "" @172
+			    location   	(15, 3015)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @173
+				Parent_View 	@172
+				location   	(893, 2971)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45FCC01D9"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	209
+				justify    	0
+				label      	"(message)"
+				pctDist    	0.500000
+				height     	45
+				orientation 	1)
+			    line_color 	3342489
+			    client     	@88
+			    supplier   	@80
+			    Focus_Src  	@96
+			    Focus_Entry 	@86
+			    origin     	(1124, 3015)
+			    terminus   	(661, 3015)
+			    ordinal    	21)
+			(object InterMessView "" @174
+			    location   	(15, 3060)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @175
+				Parent_View 	@174
+				location   	(420, 3016)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45FD0034A"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	209
+				justify    	0
+				label      	"(message)"
+				pctDist    	0.500000
+				height     	45
+				orientation 	1)
+			    line_color 	3342489
+			    client     	@80
+			    supplier   	@74
+			    Focus_Src  	@86
+			    Focus_Entry 	@79
+			    origin     	(629, 3060)
+			    terminus   	(211, 3060)
+			    ordinal    	22)
+			(object InterMessView "" @176
+			    location   	(420, 3270)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @177
+				Parent_View 	@176
+				location   	(419, 3226)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF45FE80270"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	212
+				justify    	0
+				label      	"// publish( )"
+				pctDist    	0.500000
+				height     	45
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@74
+			    supplier   	@80
+			    Focus_Src  	@78
+			    Focus_Entry 	@87
+			    origin     	(210, 3270)
+			    terminus   	(629, 3270)
+			    ordinal    	23)
+			(object InterMessView "" @178
+			    location   	(15, 3300)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @179
+				Parent_View 	@178
+				location   	(1102, 3273)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF4600302FC"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	159
+				justify    	0
+				label      	"// deliver"
+				pctDist    	0.500000
+				height     	28
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@80
+			    supplier   	@99
+			    Focus_Src  	@87
+			    Focus_Entry 	@106
+			    origin     	(660, 3300)
+			    terminus   	(1544, 3300)
+			    ordinal    	24)
+			(object InterMessView "" @180
+			    location   	(15, 3330)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @181
+				Parent_View 	@180
+				location   	(1837, 3286)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF4601C0395"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	438
+				justify    	0
+				label      	"receive(MessageRef&)"
+				pctDist    	0.500000
+				height     	45
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@99
+			    supplier   	@107
+			    Focus_Src  	@106
+			    Focus_Entry 	@114
+			    origin     	(1575, 3330)
+			    terminus   	(2099, 3330)
+			    ordinal    	25)
+			(object SelfMessView "" @182
+			    location   	(15, 3390)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @183
+				Parent_View 	@182
+				location   	(2206, 3346)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF4602A0056"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	388
+				justify    	0
+				label      	"enqueue for sending"
+				pctDist    	0.500000
+				height     	45
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@107
+			    supplier   	@107
+			    Focus_Src  	@114
+			    Focus_Entry 	@115
+			    origin     	(2131, 3390)
+			    terminus   	(2281, 3390)
+			    ordinal    	26)
+			(object SelfMessView "" @184
+			    location   	(15, 1920)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @185
+				Parent_View 	@184
+				location   	(2206, 1876)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				quidu      	"3DF4603A024D"
+				anchor_loc 	1
+				nlines     	1
+				max_width  	388
+				justify    	0
+				label      	"enqueue for sending"
+				pctDist    	0.500000
+				height     	45
+				orientation 	0)
+			    line_color 	3342489
+			    client     	@107
+			    supplier   	@107
+			    Focus_Src  	@110
+			    Focus_Entry 	@111
+			    origin     	(2131, 1920)
+			    terminus   	(2281, 1920)
+			    ordinal    	13)
+			(object AttachView "" @186
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    client     	@164
+			    supplier   	@171
+			    line_style 	0))))))
+    logical_presentations 	(list unit_reference_list
+	(object ClassDiagram "Main"
+	    quid       	"3DF9FEF20222"
+	    title      	"Main"
+	    zoom       	80
+	    max_height 	28350
+	    max_width  	21600
+	    origin_x   	1289
+	    origin_y   	234
+	    items      	(list diagram_item_list
+		(object ClassView "Class" "Logical View::AppAgents::AppAgent" @187
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    ShowOperationSignature 	TRUE
+		    location   	(1020, 480)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@187
+			location   	(5, 267)
+			fill_color 	16777215
+			nlines     	1
+			max_width  	2030
+			justify    	0
+			label      	"AppAgent")
+		    stereotype 	(object ItemLabel
+			Parent_View 	@187
+			location   	(5, 216)
+			fill_color 	13434879
+			anchor     	10
+			nlines     	1
+			max_width  	2030
+			justify    	0
+			label      	"<<Interface>>")
+		    icon       	"Interface"
+		    icon_style 	"Label"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DF9FEEC0043"
+		    width      	2048
+		    height     	552
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::VisInputAgent" @188
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    ShowOperationSignature 	TRUE
+		    location   	(1110, 1410)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@188
+			location   	(295, 1095)
+			fill_color 	16777215
+			nlines     	1
+			max_width  	1630
+			justify    	0
+			label      	"VisInputAgent")
+		    stereotype 	(object ItemLabel
+			Parent_View 	@188
+			location   	(295, 1044)
+			fill_color 	13434879
+			anchor     	10
+			nlines     	1
+			max_width  	1630
+			justify    	0
+			label      	"<<Interface>>")
+		    icon       	"Interface"
+		    icon_style 	"Label"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DF9FECD0169"
+		    width      	1648
+		    height     	756
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::VisFileInputAgent" @189
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    ShowOperationSignature 	TRUE
+		    location   	(3225, 1395)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@189
+			location   	(2315, 939)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	1820
+			justify    	0
+			label      	"VisFileInputAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DF9FECD0159"
+		    width      	1838
+		    height     	936
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::MSVisInputAgent" @190
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    ShowOperationSignature 	TRUE
+		    location   	(2700, 3268)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@190
+			location   	(1615, 2562)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	2170
+			justify    	0
+			label      	"MSVisInputAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DF9FECD013C"
+		    width      	2188
+		    height     	1436
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::OctoAgent" @191
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    ShowOperationSignature 	TRUE
+		    location   	(600, 2325)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@191
+			location   	(3, 2195)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	1194
+			justify    	0
+			label      	"OctoAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DF9FECD014B"
+		    width      	1212
+		    height     	286
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object InheritView "" @192
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DF9FECD02BD"
+		    client     	@189
+		    supplier   	@188
+		    line_style 	3
+		    origin_attachment 	(2306, 1281)
+		    terminal_attachment 	(1934, 1281))
+		(object InheritView "" @193
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DF9FEEC0098"
+		    client     	@191
+		    supplier   	@187
+		    line_style 	3
+		    origin_attachment 	(108, 2182)
+		    terminal_attachment 	(108, 756))
+		(object InheritView "" @194
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DF9FEEC00CA"
+		    client     	@188
+		    supplier   	@187
+		    line_style 	3
+		    origin_attachment 	(521, 1032)
+		    terminal_attachment 	(521, 756))
+		(object InheritView "" @195
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DF9FECD0196"
+		    client     	@190
+		    supplier   	@189
+		    line_style 	3
+		    origin_attachment 	(2974, 2550)
+		    terminal_attachment 	(2974, 1863))))))
