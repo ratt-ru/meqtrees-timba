@@ -19,8 +19,8 @@
     infer things from the requests that it receives.
 
   \item Each node has a unique {\bf node index} (integer$>$0) and an optional
-    unique {\bf node name}. A MeqForest object acts as a repository of nodes,
-    and maintains a map between names, indices and node objects (see
+    unique {\bf node name}. A \qq{Forest} object acts as a repository of
+    nodes, and maintains a map between names, indices and node objects (see
     section~\ref{sec:meqserver}).
 
   \item A \Node\ maintains a {\bf node state record}, which should completely
@@ -121,9 +121,9 @@
   specifies state changes, issues initial requests, etc.
 
   From a node's point of view, the client is any external entity that accesses
-  the node interface. From the \qq{meqserver}'s point of view, the client is the
-  scripting layer, or perhaps another C++ component that interfaces with the
-  \qq{meqserver}. From the scripting layer's point of view, the client is the
+  the node interface. From the \qq{MeqServer}'s point of view, the client is
+  the scripting layer, or perhaps another C++ component that interfaces with it
+  via OCTOPUSSY. From the scripting layer's point of view, the client is the
   user himself, or perhaps a batch script run by the user that uses standard
   functions in the scripting layer.
 
@@ -158,7 +158,7 @@
   
   It is helpful to view the kernel in the context of a multi-layered software
   system. The lowest level is the MeqTree kernel itself; on top of that is the
-  \qq{meqserver}, which provides an interface to a thin scripting layer. On top
+  \qq{MeqServer} interface, and on top of that a thin scripting layer. On top
   of that -- now completely in the scripting domain -- we have
   application-specific scripts to build trees, and still higher up, user-level
   tools to operate, manage and visualize trees. The interfaces grow more
@@ -168,7 +168,7 @@
   higher layers in the scripting domain can ensure more and more elaborate
   aspects of the node contracts, until the user is completely protected from
   these complexities. 
-  
+
   Note that an end user will hardly ever need to change (or even see) node
   state directly; a tree developer, however, will be working with this stuff
   constantly. As will become apparent in this chapter, a node's internals are
@@ -249,8 +249,8 @@
 
   The class of a node is obviously an external, static property -- once a node
   object is instantiated, its class is defined ``for life''. The \qq{class}
-  field is usually set by the client in the scripting layer, and used by the
-  \qq{meqserver} component as a key into a {\em node constructor registry},
+  field is usually set by the client in the scripting layer, and used by 
+  \qq{MeqServer} as a key into a {\em node constructor registry},
   when determining which node class to actually instantiate. The \qq{class}
   string is usually formed by concatenating the C++ namespace identifier with
   the C++ class name. Thus, a \qq{Meq::Parm} is specified as \qq{"MeqParm"}.
@@ -261,11 +261,11 @@
 
   The node name (field \qq{name}) is just a free-form identifier supplied by
   the client. The name is used to identify the object for subsequent
-  operations. The \qq{meqserver} layer maintains a \qq{Forest}, which is
-  essentially just a repository of node objects, with name$\rightarrow$node
-  and  index$\rightarrow$node maps. A node may be created with an empty name
-  (which is the default), such {\em anonymous} nodes are then only identifiable
-  by their indices. Note that while the name of the node may be changed via a
+  operations. The \qq{MeqServer} object maintains a \qq{Forest}, which is essentially
+  just a repository of node objects, with name$\rightarrow$node and 
+  index$\rightarrow$node maps. A node may be created with an empty name (which
+  is the default), such {\em anonymous} nodes are then only identifiable by
+  their indices. Note that while the name of the node may be changed via a
   \qq{setState()} call, this is probably a bad idea, since the current
   \qq{Forest} implementation does not support node renaming (i.e. cannot update
   the name$\rightarrow$object map).
@@ -287,9 +287,10 @@
   \item An integer node index referring to an already existing node.
   
   \item A string node name, which does not have to match an existing node. The
-    child can be created later on; the \qq{meqserver} includes a mechanism 
-    for {\em resolving} named children (see Chapter~\ref{sec:meqserver}).
-    
+    child can be created later on; \qq{MeqServer} includes a mechanism  for
+    recusively {\em resolving} named children (see
+    Chapter~\ref{sec:meqserver}).
+
   \item A record, which will be used as an init-record to create a child node on
     the fly. This option allows whole subtrees to be specified via one big
     nested record.
@@ -648,17 +649,18 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
 \subsection{Serialization \& persistency issues}
 
-  The \qq{meqserver} already supports persistent nodes (i.e. being able to
+  \qq{MeqServer} already supports persistent nodes (i.e. being able to
   save/load nodes and trees to a file). Further down the road, we plan for the
-  the capability to move a node across a network. Both functions hinge on being
-  able to serialize a node -- i.e., to turn it into a stream of bytes, and to
-  unpack it from a stream of bytes.
+  the capability to move a node across a network. Both capabilities hinge on
+  being able to serialize a node -- i.e., to turn it into a stream of bytes,
+  and to unpack it from a stream of bytes.
 
-  Serialization is implemented through DMI mechanisms. A \qq{DataRecord} is
-  inherently serializable. To serialize a node, the control code will simply
-  serialize its state record. To unserialize a node, it will recreate the state
-  record, create a node object (as specified by the \qq{class} field), and call
-  \qq{init()} on it with the record. 
+  Serialization is implemented through standard DMI mechanisms. A
+  \qq{DataRecord} is inherently serializable. To serialize a node,
+  \qq{MeqServer} simply serializes its state record. To unserialize a node, it
+  recreates (un-serializes) the state record, creates a node object (as
+  specified by the record's \qq{class} field), and calls \qq{init()} on it with
+  the record. 
 
   Thus, subclasses of \Node\ should take care to maintain their state record
   appropriately. Each node class should ensure that it is completely
@@ -686,18 +688,18 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
     system and examine the most recent result of every node.
 
   \item[Smart:] result is cached according to memory availability, expected
-    request sequence, etc.
+    request sequence, etc. Some varieties of this policy are discussed here.
 
   \end{description}
   
-  Caching policy is settable on a per-node basis, via the \qq{cache\_policy}
+  Caching policy can be set on a per-node basis, via the \qq{cache\_policy}
   field of the state record. The cache itself is also part of the node's state
   record (and thus can even be changed manually if needed.)
 
-  The ``Smart'' policy is the really interesting one. As will be discussed
-  in this chapter, the kernel provides a number of mechanisms that allows a node
-  to get pretty smart about its cache.
-  
+  From a design point of view, the ``Smart'' policy is really the only
+  interesting one. As will be discussed in this chapter, the kernel provides a
+  number of mechanisms that allow a node to get pretty smart about its cache.
+
 \subsection{Result/Request dependencies}
 
   The simplest scenario of cache use is when identical requests (i.e. with
@@ -752,10 +754,10 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   further requests with the same \Cells\ can be served from the cache. The same
   applies to other dependencies. In global optimization terms, this means that
   when a tree is re-evaluated for a slightly different request, it recalculates
-  only those sub-trees that need it. The problem is how to determine if a
-  different request has the same \Cells, without doing a brute-force comparison
-  (which can be quite expensive if done at every node). This is where the {\em
-  hierarchical} part of request IDs come in.
+  only those sub-trees that have been updated. The problem is how to determine
+  if a different request has the same \Cells, without doing a brute-force
+  comparison (which can be quite expensive if done at every node). This is
+  where the {\em hierarchical} part of request IDs come in.
 
   An rqid is a \qq{HIID} -- essentially, a string of integer indices. Each
   index corresponds to one bit in the depmask. For example, if the depmask is
@@ -805,14 +807,14 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   smart caching policy {\em (Note: this is not yet implemented.)}
   
   Let's assume that the request generator has knowledge of how the next request
-  it issues is going to be different from the current one. This seems a
-  reasonable assumption: a \qq{Sink} always knows that its next request is
-  going to have a different domain/cells, a \qq{Solver} knows that its next
-  request is going to contain updated parameter values, etc. This information
-  can be expressed as a {\bf diffmask}: a bitmask describing which components
-  of the rqid are going to change. The diffmask can be passed along in a request
-  record, and treated as a {\em hint} by the caching code.
-  
+  is going to be different from the current one. This seems a reasonable
+  assumption: a \qq{Sink} always knows that its next request is going to have a
+  different domain/cells, a \qq{Solver} knows that its next request is going to
+  contain updated parameter values, etc. This information can be expressed as a
+  {\bf diffmask}: a bitmask describing which components of the rqid are going
+  to change. The diffmask can be passed along in the request record, and
+  treated as a {\em hint} by the caching code.
+
   Now, each node returning a result has the following information: its result
   depmask, the depmasks of its children's results, and a diffmask hint 
   describing the next expected request. The following caching behaviour appears reasonable:
@@ -827,7 +829,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
     the parent does not need the child's cache (because any request requiring a
     recalculation of the parent result will also require a recalculation of the
     child result.) It can then tell the child to release cache. Note that this
-    decision does not require knowing the diffmask hint.
+    decision does not require a diffmask hint.
 
   \item If the parent dependencies are larger than those of a child, then the 
     child should retain cache (unless it has already decided to clear it
@@ -843,12 +845,12 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \end{enumerate}
   
   Note that the diffmask hint is not required for correct operation of the
-  caching system. If the hint is wrong, then the worst that can happen is
-  either cache retained when it shouldn't be, or cache cleared when it should
-  be. If the hint is missing, the nodes can fall back to a strategy of
-  aggressive caching (i.e. retaining cache at points where the dependency set
-  grows), or no caching at all. The two strategies can be implemented as
-  variations of the ``Smart'' caching policy.
+  caching system. If the hint is wrong, then the worst that can happen is that
+  either cache is retained or cleared when it shouldn't be. If the hint is
+  missing, the nodes can fall back to a strategy of aggressive caching (i.e.
+  retaining cache at points where the dependency set grows), or no caching at
+  all. The two strategies can be implemented as variations of the ``Smart''
+  caching policy.
 
   We have now defined all cache-related behaviour locally: all decisions are
   made on the basis of depmasks and diffmasks, and no knowledge of the
@@ -861,14 +863,14 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   field contains a read-only counted ref to the result. The
   \qq{cache\_result\_code} field contains the result code, which includes the
   depmask (see~\ref{sec:resultcode}). The \qq{request\_id} field is the rqid of
-  the original requests.
+  the original request.
 
   The node cache may be cleared by assigning a boolean \qq{false} to the
   \qq{cache\_result} field. It is also possible to modify the cache on the fly
   (for example, substituting in another result). This may be a useful feature
-  for debugging and experimentation, though if used improperly, it can probably
+  for debugging and experimentation, though if abused, it can thoroughly
   confuse the caching and dependency tracking mechanism.  
-  
+
 \section{The local depmask}
   
   The \qq{depend\_mask} field of the state record defines the local depmask of
@@ -888,7 +890,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   A {\em symdep} is a \qq{HIID} (thus, symbolic -- since \qq{HIID}s have a
   symbolic representation) that identifies some application-specific dependency
   of the result. Node classes will typically define some standard symdeps, such
-  as these -- used in the standard nodes:
+  as this set used in the standard nodes:
 
   \begin{description}
   
@@ -907,7 +909,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   time. Then, when a tree is initialized, different symdeps are dynamically
   associated with different bits of the depmask, as described below.
   Essentially, this maps abstract concepts (the symdeps) onto specific bits of
-  the depmask. In other words, this mechanism is defines the bitmask semantics.
+  the depmask. In other words, this mechanism defines the bitmask semantics.
 
 \subsection{Symdep masks}
 
@@ -919,33 +921,33 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \qq{"Resolution"} symdep. The \qq{Solver} node generates the
   \qq{"Parm.Value"} symdep.
 
-  These nodes are then made responsible for associating a particular bit of the
-  depmask with each symdep that they generate. Typically, the association is
-  performed when a tree is initialized. These associations (known as {\em
-  symdep masks}) are then recursively sent up the tree, thus becoming known to
-  all child nodes. Nodes up the tree can then compute their local depmasks by
-  combining the symdep masks of their specific symdeps.
+  These nodes are responsible for associating a particular bit of the depmask
+  with each symdep that they generate. Typically, the association is fixed when
+  a tree is initialized. These associations (known as {\em symdep masks}) are
+  then recursively sent up the tree, thus becoming known to all child nodes.
+  Nodes up the tree can then compute their local depmasks by combining the
+  symdep masks of their specific symdeps.
 
 \section{Symdeps: the hairy details}
 
   This section describes the details of how symdeps and depmasks are set up and
-  maintained. Note that all this is maintained in the node state record.
+  maintained. Note that all of this is maintained in the node state record.
 
 \subsection{Known and active symdeps} 
   
   The {\em known symdeps} of a node are just that, all the symdeps that a node
-  class knows about. Typically, this is specified once and for all in the node
-  class's constructor, by calling the \qq{setKnownSymDeps()} method. 
+  (typically, its class) knows about. This is usually specified once and for
+  all in the node's constructor, by calling the \qq{setKnownSymDeps()} method. 
 
   A subset of the known symdeps -- the {\em active symdeps} set -- determines
   what symdeps currently apply to the node's result. For some node classes,
-  this is always the entire known set. Some classes, however, may change their
+  this is always the entire known set. Other classes, however, may change their
   active set depending on state. For example, if a \qq{Constant} node is
   configured to provide a constant value as a sampling, then it has no active
   symdeps at all, as the value will be the same for any domain or resolution.
   However, if it is (re)configured to provide the constant as an integration,
   then it begins to depend on resolution -- since the integrated value is the
-  product of the sample value and cell size.
+  product of the value by cell size.
 
   The active symdeps set may be changed by calling the \qq{setActiveSymDeps()}
   method, or by changing the \qq{active\_symdeps} field (a list of \qq{HIID}s)
@@ -967,7 +969,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   
   \item The \qq{Add.Dep.Mask} command contains a map of symdeps to symdep
     masks. (This command usually originates at the symdep generator nodes, see
-    ``Generated symdeps'' below). In response to this command, \qq{Node} adds
+    \ref{sec:gensymdeps} below). In response to this command, \qq{Node} adds
     all the masks it finds for its known symdeps to its internal map of symdep
     masks. After this, it calls \qq{resetDependMasks()} to recalculate its
     local depmask. 
@@ -1007,6 +1009,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   automatic call to \qq{resetDependMasks()} always results.
 
 \subsection{Generating symdep masks}
+\label{sec:gensymdeps}
 
   Nodes that generate new requests also need to generate \qq{Add.Dep.Mask}
   commands containing their symdep masks assignments. \qq{Node} provides a
@@ -1036,7 +1039,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   into the request rider based on the current setting of \qq{gen\_symdeps} and
   \qq{gen\_symdeps\_group}.
 
-  Operationally, all this is typically done only once at init time:
+  Operationally, all this is typically done once at init time:
   
   \begin{itemize}
   
@@ -1045,13 +1048,13 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
     need to be overridden).
     
   \item Once all the nodes and trees have been created, a request containing
-    two following two commands is given to all the root nodes:
+    the following two commands is given to all the root nodes:
     \qq{Resolve.Children} and \qq{Init.Dep.Masks}. (The first command is
-    required to resolve named children). This is done by the \qq{meqserver}
+    required to resolve named children.) This is done by \qq{MeqServer}
     automatically, in response to the \qq{Resolve.Children} command.
 
-  \item This initial request is propagated up the tree, acquiring symdep masks
-    from generator nodes along the way. 
+  \item This initial request is propagated up the tree, accumulating
+    symdep masks from other generator nodes along the way. 
     
   \item All trees are now ready for use.
   

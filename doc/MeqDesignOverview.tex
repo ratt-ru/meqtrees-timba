@@ -59,6 +59,14 @@ $ $Revision$ $\\$ $Date$ $}
 \definecolor{tableheading}{rgb}{0.8,0.85,1}
 \definecolor{tabletext}{gray}{0}
 \definecolor{tablesubheading}{gray}{.9}
+%
+\definecolor{highlight}{rgb}{1,1,0}
+
+% this command creates a paragraph with a highlit background, separated
+% by extra space from surrounding paragraphs.
+\newcommand{\highlightbox}[1]{\smallskip\noindent\colorbox{highlight}{\parbox{\textwidth}
+{\noindent #1}}\smallskip}%
+% \addvspace{\smallskipamount}}
 
 % \tablesubheading{n}{text} inserts a sub-heading into a table.
 % n argument is the number of columns that the sub-heading will span

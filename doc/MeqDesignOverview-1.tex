@@ -72,15 +72,16 @@
   correlation $XX\in\CC$, the Stokes parameters $(IQUV)\in\RR^4$, four complex
   correlations in $\CC^4$, etc.
 
-  The actual function {\bf domain} $[x_1,x_2]\times[y_1,y_2]$  is a rectangular
-  subset of $\RR^2$. Within the domain, we work with sets of $N\times M$ {\bf
-  cells}. Each cell ${\mathbf c}_{ij}$ is a $\Delta x_i\times\Delta y_j$
-  rectangle, centered on point $(x_i,y_j)$. The function itself is represented
-  by an object called the {\bf vells}, which is essentially a set of $N\times
-  M$ {\em samplings}\/ $\{f_{ij}\}$:  $$f_{ij}=f(x_i,y_j),$$ or $N\times M$
-  {\em integrations}\/ $\{\tilde{f}_{ij}\}$: $$
-  \tilde{f}_{ij}=\mathop{\int\!\!\!\int}_{{\mathbf c}_{ij}}f(x,y)\,dx\,dy.$$
-  
+  The actual function {\bf domain} $[X_1,X_2]\times[Y_1,Y_2]$  is a rectangular
+  subset of $\RR^2$. This domain is fully or partially covered  by a set of
+  $N\times M$ {\bf cells}. Each cell ${\mathbf c}_{ij}$ is a $\Delta
+  x_i\times\Delta y_j$ rectangle, centered on point $(x_i,y_j)$. The function
+  itself is represented by an object called the {\bf vells}, which is
+  essentially a set of $N\times M$ {\em samplings}\/ $\{f_{ij}\}$: 
+  $$f_{ij}=f(x_i,y_j),$$ or $N\times M$ {\em integrations}\/
+  $\{\tilde{f}_{ij}\}$: $$ \tilde{f}_{ij}=\mathop{\int\!\!\!\int}_{{\mathbf
+  c}_{ij}}f(x,y)\,dx\,dy.$$
+
   A vells $\{f_{ij}\}$ can also represent a set of {\em measured data}, such as
   observed complex visibilities. 
   
@@ -97,17 +98,17 @@
   $$ \chi^2(\vec{p}) = \sum_{ij} (f(x_i,y_j;\vec{p}) - \hat{f}_{ij})^2w_{ij},$$
   
   Solving the minimization problem hinges on estimating the gradients of $f$ in
-  $\PP$ space.\footnote{The exact expressions are slightly different when
-  dealing with integrations (as we do in the case of visibilities), but most
-  operations remain essentially the same.} Given a tree that computes
-  $f_{ij}=f(x_i,y_j;\vec{p})$, we can numerically estimate each partial
-  derivative ${\partial f}/{\partial p_k}(x,y;\vec{p})$ by taking a small {\bf
-  perturbation} $\delta_k$, and using the same tree to compute $K$ {\bf
-  perturbed values} $f^{(k)}_{ij} =
-  f(x_i,y_j;p_1,...,p_{k-1},p_k+\delta_k,p_{k+1},...,p_{K})$. In fact, trees
-  are designed to automatically compute perturbed values along with the
-  function value. These are returned as a {\bf vellset}, which is composed of
-  the {\em value vells} $\{f_{ij}\}$, and $K$ {\em perturbed value vells}
+  $\PP$ space.\footnote{The exact mathematical expressions are slightly
+  different when dealing with integrations (as we do in the case of
+  visibilities), but most operations remain essentially the same.} Given a tree
+  that computes $f_{ij}=f(x_i,y_j;\vec{p})$, we can numerically estimate each
+  partial derivative ${\partial f}/{\partial p_k}(x,y;\vec{p})$ by taking a
+  small {\bf perturbation} $\delta_k$, and using the same tree to compute a
+  {\bf perturbed value} for parameter $k$: $f^{(k)}_{ij} =
+  f(x_i,y_j;p_1,...,p_{k-1},p_k+\delta_k,p_{k+1},...,p_{K})$. In fact, the
+  kernel is designed to automatically compute perturbed values when needed.
+  These are passed around as a {\bf vellset}, which is composed of the {\em
+  value vells} $\{f_{ij}\}$, and $K$ {\em perturbed value vells}
   $\{f^{(k)}_{ij}\}$.
 
 
@@ -172,7 +173,7 @@
 \section{Software components}
 
   An interface to the kernel is provided via a \qq{MeqServer} object. The
-  \qq{MeqServer} maintains a {\bf forest} (a collection of nodes and trees), and
+  \qq{MeqServer} maintains a \qq{Forest} (a collection of nodes and trees), and
   provides operations such as:
 
   \begin{itemize}
@@ -188,8 +189,9 @@
   \end{itemize}
 
   \qq{MeqServer} plugs into the OCTOPUSSY publish/subscribe framework, and
-  thorugh it can can transparently support any number of local or remote clients,
-  such as Glish sessions.
+  through it can can transparently support any number of local or remote
+  clients, such as Glish sessions. The \qq{MeqServer} object is instantiated
+  inside a \qq{meqserver} process.
 
   All application-dependent logic (``policy'') is meant to reside in the scripting
   layer (Glish, and in the future Python).
@@ -260,7 +262,7 @@
   underscore (\qq{"\_"}) as the separator, is used for Glish record fields,
   e.g., \qq{rec.request\_id\_1}. 
 
-  The reason we use such HIIDs instead of plain strings is efficiency on the
+  The reason we use HIIDs instead of plain strings is efficiency on the
   C++ side -- many data storage classes engage in parsing or building up HIIDs,
   and vectors of integers are much easier to manipulate than strings. Note that
   the symbol-to-ID mapping is also available as C++ header files containing
@@ -270,9 +272,9 @@
   const HIID MyFieldName = AidRequest | AidId | 1;
   \end{verbatim}
   
-  is a convenient and visually obvious way to define a constant HIID
+  which is a convenient and visually obvious way to define a constant HIID
   corresponding to \qq{"Request.ID.1"}. The compiler turns this declaration
-  into a constant vector of integers.
+  into a \qq{const HIID} object -- essentially, a constant vector of integers.
 
   HIIDs are covered in more detail in the documentation for DMI. Here we'll
   only dwell on their Glish form. There's two forms in which HIIDs appear in
@@ -330,7 +332,7 @@
     counterpart in Glish.
 
   \item Even though the languages we use are case-sensitive, HIIDs aren't. A
-    good reason to avoid relying character case to distinguish identifiers is
+    good reason to avoid relying on character case to distinguish identifiers is
     that different languages and contexts have different capitalization
     conventions -- compare, e.g., \qq{Meq::Request} in C++, as opposed to
     \qq{meq.request} in Glish. Thus we should always avoid assigning
@@ -420,7 +422,7 @@
   back and forth. As our experience with AIPS++ has shown, keeping track of
   index conversion on an individual basis is completely impractical.
 
-  {\bf The Glish/C++ conversion layer attempts to address this issue by
+  \highlightbox{The Glish/C++ conversion layer attempts to address this issue by
   providing {\em automatic conversion} of indices. If a record field's name
   ends in \qq{\_index} (on the C++ side this corresponds to a field HIID ending
   in the atomic ID \qq{"Index"}), and the field contains a single integer or a
@@ -434,8 +436,7 @@
   \qq{double} value in one case, and a subrecord in the other case).
 
   Automatic conversion, of course, introduces its own potential for confusion
-  if forgotten about. This is why you simply shouldn't forget about it. As a
-  visual aid, the paragraph above is highlighted in bold.
+  if forgotten about. This is why you simply shouldn't forget about it. 
 
 \section{MeqRequest and related data objects}
   \label{sec:request}

@@ -1,64 +1,164 @@
 \chapter{Executing Requests}
 
   The virtual \qq{Node::execute()} method is responsible for processing a
-  \Request. The default version decomposes the request and calls a number of
-  virtual methods to handle it. All but the most exotic nodes should only need
-  to implement the handlers -- but the possibility to reimplement
-  \qq{execute()} itself is always there. \qq{Node::execute()} does the
-  following:
-
-  \begin{enumerate}
+  \Request:
   
-  \item Compares the request id to the id of the previous request, if any. If
-    there's a cached \Result, and the request id ``matches'' the cached request
-    id, then does nothing, immediately returning the cached \Result.  If IDs do
-    not match, clears the cache. (Note that the matching is not a literal
-    comparison -- instead, the depmask is taken into account. See the discussion
-    on depmasks above).
+  \begin{verbatim}
+  virtual int execute (Result::Ref &resref,const Request &req);
+  \end{verbatim}
+  
+  \noindent The node is supplied a \qq{Request} object, and it is expected to return a
+  \qq{Result} by attaching it to the counted ref passed in as the first
+  argument. The return value is called the {\bf result code}: this
+  incorporates the depmask of the result, plus several additional flags such
+  as \RES{WAIT} and \RES{FAIL} (see below).
 
-  \item For new requests only: calls the virtual \qq{readyForRequest()} method,
-    and if the return value is false, immediately returns \qq{RES\_WAIT}.
+  A parent node will generally call the \qq{execute()} methods of its
+  children. In the current single-threaded implementation, the entire tree
+  is evaluated via nested \qq{execute()} calls. In a multi-threaded or
+  distributed implementation, the parent will probably call stub methods in
+  the communication layer, which will in turn call \qq{execute()} on the
+  child nodes.
 
-  \item For new requests only: if a rider record is present, parses it and 
-    calls the virtual \qq{processCommands()} method if a command set for the
-    node is found (see details below).
+  \highlightbox{The \qq{Node::execute()} method is the fulcrum of the entire
+  MeqTree kernel. A solid understanding of how it works is necessary for
+  both tree design and node development. An understanding is highly
+  recommended to advanced users that need to deal directly with trees.}
 
-  \item If node has children, calls the virtual \qq{pollChildren()} method to
-    collect results from its children. The default implementation of this
-    method calls \qq{execute()} with the same \Request\ on all the child nodes,
-    collecting their \Result{}s into a vector of \qq{Result::Ref}s, and
-    computing the {\em cumulative result code} as a bitwise-OR of the child
-    return values. If any child returns a \RES{FAIL}, it creates an output
-    \Result\ containing a merge of all the fail-results. Otherwise, if
-    auto-resampling is enabled (see below), it will compare the child results'
-    resolutions, and resample them as appropriate.
+  
+  \section{Base Node::execute() steps}
+  
+  The \qq{Node::execute()} method looks at the request, and calls a number
+  of virtual {\em handler} methods for various aspects of processing. Most
+  node classes will override one or more of these handler method(s) to
+  implement their specific node behaviour. \qq{Node::execute()} also
+  provides fundamental node functionality, such as cache management and
+  exception handling.\footnote{You may have noted that \qq{execute()} is
+  declared virtual. Most node classes will only redefine specific handler
+  methods, not \qq{execute()} itself.  The possibility to reimplement
+  \qq{execute()} is reserved for the exotic cases. This is not to be
+  undertaken lightly, however, as the base \qq{Node::execute()} provides so
+  much useful behaviour.}
 
-    If the cumulative result code from \qq{pollChildren()} contains \RES{WAIT}
-    or \RES{FAIL}, \qq{execute()} returns immediately with that result code.  
+  The base \qq{Node::execute()} performs a number of processing steps. These
+  will now be described in detail, grouped by function.
+  
 
-    Note that the default implementation of \qq{pollChildren()} is appropriate
-    for most node classes, with the exception of specialized ``control'' nodes
-    such as \qq{Sink} and \qq{Solver}.
+\newcounter{execstep}
+\setcounter{execstep}{0}
+\newcommand{\ExecStep}[1]
+{\addtocounter{execstep}{1}\highlightbox{\mbox{\bf Step \arabic{execstep}. }
+#1}}
+  
+\subsection{Checking the cache}
+  
+  \ExecStep{Compare the request id to the id of the previous request, if any. Sets a
+  local ``new request'' flag that affects further logic below.}
 
-  \item If a \Cells\ object is present, calls the virtual \qq{getResult()}
-    method, passing in the vector of child \Result{}s returned by
-    \qq{pollChildren()}. Bitwise-ORs the return value with the cumulative
-    result code from the children, OR the local node depmask.
+  \ExecStep{If there's a cached \Result, and the request id matches the
+  cached rqid/depmask (see \ref{sec:cache} for a discussion), immediately
+  return the cached \Result\ and cached result code. On mismatch, clear the
+  cache and proceed.}
+  
+  \ExecStep{For new requests only: call the virtual \qq{readyForRequest()}
+  handler, and if the return value of that is \qq{false}, immediately
+  return the code \RES{WAIT}.}
+  
+\begin{verbatim}  
+  virtual bool readyForRequest (const Request &req);
+\end{verbatim}
 
-  \item If an exception is thrown at any stage of the process, \qq{execute()}
-    will catch it, create an output \Result\ with a fail-result describing the
-    exception, and return \RES{FAIL}. Thus, throwing an exception is a normal
-    way for \qq{setState()} or \qq{processCommands()} or \qq{getResult()} to
-    indicate failure.
+  \noindent The handler is passed the current \Request, i.e., the \qq{req}
+  argument to \qq{execute()} itself. The purpose of this handler is to
+  support nodes that block on external events. None as such have been
+  implemented, so this is currently just a placeholder. The default handler
+  always returns \qq{true}.
 
-  \item Upon exit, optionally stores the output \Result\ and result code in the
-    cache (see caching issues, below).
+  \medskip \ExecStep{For new requests only: if a rider subrecord is present,
+  parse it and call the virtual \qq{processCommands()} handler to process
+  commands targeted at the node (see details in~\ref{sec:CSR}).}
 
-  \end{enumerate}
+\subsection{Polling children}
+    
+  \ExecStep{If node has children, call the virtual \qq{pollChildren()}
+    handler to pass the request on to the children, and collect their
+    results.}
+
+  \begin{verbatim}    
+  virtual int pollChildren (std::vector<Result::Ref> &child_results,
+                            Result::Ref &resref,
+                            const Request &req);
+  \end{verbatim}
+    
+  \noindent The handler is called with the same \qq{resref} and \qq{req}
+  arguments  that were given to \qq{execute()} itself. The
+  \qq{child\_results} vector where the child results are returned, it is
+  pre-sized to the number of children prior to calling \qq{pollChildren()}.
+
+  The default implementation of \qq{pollChildren()} is appropriate for most
+  node classes that pass their requests on to the children unmodified. 
+  ``Control'' nodes (e.g. \qq{Sink}, \qq{Solver}, \qq{ModRes},\qq{ReqSeq}) will
+  define their own version. This is the default \qq{Node::pollChildren()}
+  behaviour:
+
+  \begin{itemize}
+
+  \item Calls \qq{execute()} (with \qq{req}) on all the child nodes,
+  collects their \Result{}s into the \qq{child\_results} vector, and
+  accumulates a return code as a bitwise-OR of the children's \qq{execute()}
+  return values. 
+
+  \item If the accumulated return code has the \RES{FAIL} bit set, its is
+  assumed that at least one of the children has returned a fail-result
+  (see~\ref{sec:fail}). In this case, \qq{pollChildren()} creates a new
+  fail-\Result\ object, attaches it to \qq{resref}, and fills it with 
+  all the fail-records found in child results.
+
+  \item The accumulated return code is the return value of the handler.
+
+  \end{itemize}
+  
+  Note that \qq{resref} is passed to \qq{pollChildren()} only as a means of
+  reporting possible fails. If the handler returns a code with \RES{FAIL} in
+  it, it should attach a fail-result to \qq{resref}. If no \RES{FAIL} is
+  reported, the handler should leave \qq{resref} alone (in fact, anything it
+  does to it will be simply ignored when no \RES{FAIL} is returned.)
+
+  If the \qq{pollChildren()} return value contains \RES{WAIT} or \RES{FAIL},
+  \qq{execute()} returns immediately with the same return value. Otherwise,
+  it proceeds to the next step:
+
+  \ExecStep{If auto-resampling is enabled (see \ref{sec:resample}), compare
+  the resolutions of the child results, figure out a common resolution
+  (\qq{Cells}) to resample them to, and perform the resampling. Throw an
+  exception if this is not possible.}
+  
+\subsection{Evaluating Cells}
+
+  \ExecStep{If the request contains a \qq{cells} command (containing a
+  \Cells\ object), call the virtual \qq{getResult()} handler to process
+  the command, passing in the vector of child \Result{}s
+  returned by \qq{pollChildren()}. Bitwise-ORs the return value with 
+  the node's current depmask, and the cumulative result code from the 
+  children (if one was returned at the previous step).}
+
+\subsection{Handling exceptions}
+
+  \ExecStep{If an exception is thrown at any stage of the process,
+    \qq{execute()} will catch it, create an output \Result\ with a
+    fail-result describing the exception, and return \RES{FAIL}. Thus,
+    throwing an exception is a normal way for \qq{setState()} or
+    \qq{processCommands()} or \qq{getResult()} to indicate failure.}
+
+\subsection{Setting cache}
+
+  \ExecStep{Upon exit, optionally stores the output \Result\ and result code
+    in the cache (see caching issues, below.)}
+
+\section{Result codes}
 
   The return value of \qq{execute()} is simply the accumulated result code.
   
-\section{Result codes}
 
   The return value of \qq{execute()} is meant to be a result code describing
   certain properties  of the returned \Result. It is a bitmask composed of a
