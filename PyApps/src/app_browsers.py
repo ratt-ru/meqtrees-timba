@@ -608,6 +608,12 @@ except ImportError,what:
   print 'Array Plotter will not be available.';
 
 try:
+  __import__('hippo_array_plotter',globals(),locals(),[]);
+except ImportError,what:
+  print 'error importing hippo_array_plotter module:',what;
+  print 'Hippo Array Plotter will not be available.';
+
+try:
   __import__('result_plotter',globals(),locals(),[]);
 except ImportError,what:
   print 'error importing result_plotter  module:',what;
