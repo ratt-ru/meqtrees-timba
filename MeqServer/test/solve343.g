@@ -176,7 +176,7 @@ const make_subtract_tree := function (st1,st2,src=[''])
   # other fields in the init-record
   mqs.createnode(
     meq.node('MeqSink',sinkname,
-                         [ output_col      = 'PREDICT',
+                         [ output_col      = '',
                            station_1_index = st1,
                            station_2_index = st2,
                            corr_index      = [1],
@@ -253,7 +253,7 @@ const make_solve_tree := function (st1,st2,src=[''],subtract=F,flag=F)
   
   # create root tree (plugs into solver & subtract)     
   mqs.createnode(
-    meq.node('MeqSink',sinkname,[ output_col      = 'PREDICT',
+    meq.node('MeqSink',sinkname,[ output_col      = '',
                                   station_1_index = st1,
                                   station_2_index = st2,
                                   corr_index      = [1], 
@@ -436,7 +436,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
                   if( st1 < st2 )
                       condeqs := [condeqs,fq_name('ce',st1,st2)];
           # solvable parms
-          solvables := "stokes_i.a stokes_i.b";      
+          solvables := "stokes_i.3C343_1 stokes_i.3C343";      
           if( solve_gains )
               for( st in stset[2:len(stset)] )
                   solvables := [solvables,fq_name('GA',st)];
@@ -554,12 +554,12 @@ outcol := 'PREDICTED_DATA';
 solver_defaults := [ num_iter=10,save_funklets=F,last_update=F ];
 
 inputrec := [ ms_name = msname,data_column_name = 'DATA',
-              tile_size=5,# clear_flags=T,
-              selection = [ channel_start_index=20, channel_end_index=20 ] ];
+              tile_size=1,# clear_flags=T,
+              selection = [ channel_start_index=20, channel_end_index=20 ,selection_string='TIME < 4.472033050e+9 && TIME >4.472033020e+9'] ];
 
 outputrec := [ write_flags=T,predict_column=outcol ]; 
 
-res := do_test(msname=msname,solve=T,subtract=T,run=F,flag=0.17,
+res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
                stset=[1,10,14],
                set_breakpoint=set_breakpoint,
                publish=1,mepuvw=mepuvw,msuvw=msuvw);
