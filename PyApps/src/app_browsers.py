@@ -53,6 +53,7 @@ class HierBrowser (object):
     def __init__(self,parent,key,value,udi_key=None,udi=None,strfunc=None,
                  prec=None,name=None,desc=''):
 #      print args;
+      (key,value) = (str(key),str(value));
       # insert item at end of parent's content list (if any)
       parent_content = getattr(parent,'_content_list',None);
       if parent_content:
@@ -182,8 +183,11 @@ class HierBrowser (object):
                   curry(dmirepr.expanded_repr_str,value,False));
         item._content_list.append(i0);
         # cache value for expansion, if not inlined
-        if isinstance(value,(list,tuple,array_class)):
-          if not inlined:
+        if isinstance(value,(list,tuple)):
+          if len(value) > 1 or not inlined:
+            i0.cache_content(value);
+        elif isinstance(value,array_class):
+          if value.nelements() > 1 or not inlined:
             i0.cache_content(value);
         # dicts and messages always cached for expansion
         elif isinstance(value,(dict,message)):

@@ -24,9 +24,9 @@ def str_float (x,prec=None):
     
 def str_complex (x,prec=None):
   if prec is None:
-    return ''.join((str(x.real),'+',str(x.imag),'i'));
+    return "%f%+fi"%(x.real,x.imag);
   else:
-    return "%.*g+%*.gi" % (prec,x.real,prec,x.imag);
+    return "%.*g%+.*gi" % (prec,x.real,prec,x.imag);
 
 # Map of inline conversion methods. Only available for those types for which
 # a complete & brief string form is available.
@@ -55,11 +55,10 @@ TypeToRepr[message]    = lambda msg,prec=None: class_name(msg) + ": "+str(msg.ms
 # class contains methods to convert DMI objects to string representations
 #
 class dmi_repr (object):
-  def __init__ (self,maxlen=256,inline_arr=5,inline_arr_maxlen=32,
+  def __init__ (self,maxlen=256,inline_arr=5,
                 max_inline_arr=50,inline_seq=5):
     self.maxlen            = maxlen;
     self.inline_arr        = inline_arr;
-    self.inline_arr_maxlen = inline_arr_maxlen;
     self.inline_seq        = inline_seq;
     self.max_inline_arr    = max_inline_arr;
 
@@ -78,13 +77,13 @@ class dmi_repr (object):
       else:
         return ''.join(('[',','.join(res),']'));
     if value.nelements() <= self.inline_arr:
-      s = list_to_str(value,prec=prec);
-      if s and len(s) <= self.inline_arr_maxlen:
+      s = list_to_str(value.tolist(),prec=prec);
+      if s:
         return (s,True);
     return (None,False);
   
   def _arrToRepr (self,value,prec=None):
-    res = self._arrToInline(value);
+    res = self._arrToInline(value,prec=prec);
     if res[0] is None:
       return ("<array:%s:%s>" % (str(value.type()),",".join(map(str,value.shape))),False);
     return res;
@@ -128,7 +127,8 @@ class dmi_repr (object):
       if inlined:  # if this is true, str0 already contains complete array
         return (str0+"   <array:%s:%s>" % (str(value.type()),",".join(map(str,value.shape))),False);
       # array size + array stats
-      str1 = map(lambda attr:':'.join((attr,str_float(getattr(value,attr)(),prec=prec))), \
+      func = str_float;
+      str1 = map(lambda attr:':'.join((attr,func(getattr(value,attr)(),prec=prec))), \
                   ("mean","min","max"));
       str1 = ' '.join(str1);
       return (''.join((str0,'   ',str1)),False);
