@@ -31,6 +31,7 @@ Cache                            1316       ; from /home/oms/LOFAR/Timba/MEQ/src
 Calc                             1290       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
 Calibrated                       1275       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
 Calibration                      1140       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
+Category                         1496       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:30
 Cell                             1301       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 Cells                            1291       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
 Centroid                         1186       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:35
@@ -64,6 +65,7 @@ Corr                             1188       ; from /home/oms/LOFAR/Timba/VisCube
 Count                            1099       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
 CoVar                            1299       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 Create                           1312       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:40
+Critical                         1497       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:31
 D                                1003       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Data                             1103       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
 Dataset                          1376       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:39
@@ -81,6 +83,7 @@ Dependency                       1300       ; from /home/oms/LOFAR/Timba/MEQ/src
 Deps                             1327       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:38
 Deriv                            1324       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
 Desc                             1152       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:33
+Destination                      1495       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:30
 DFT                              1423       ; from /home/oms/LOFAR/Timba/MeqNodes/src/PointSourceDFT.h:32
 Diameter                         1197       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
 Dir                              1127       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
@@ -160,7 +163,7 @@ Higher                           1222       ; from /home/oms/LOFAR/Timba/AppAgen
 Host                             1096       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
 Hosts                            1065       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
 I                                1027       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
-Id                               1208       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
+ID                               1208       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
 Idle                             1477       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:15
 IF                               1114       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:33
 IFR                              1179       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
@@ -170,6 +173,7 @@ In                               1207       ; from /home/oms/LOFAR/Timba/AppAgen
 Index                            1061       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:30
 Indexing                         1143       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
 Inf                              1282       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
+Info                             1494       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:31
 Init                             1038       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MTGatewayWP.h:16
 Input                            1036       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
 int                              37         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:105
@@ -318,7 +322,7 @@ Normalized                       1334       ; from /home/oms/LOFAR/Timba/MEQ/src
 Notify                           1210       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
 Num                              1163       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
 O                                1034       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
-#OctopussyMessage                1049       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:29
+OctopussyMessage                 1049       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:29
 Offset                           1195       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
 Only                             1390       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ReqSeq.h:32
 Open                             1045       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
@@ -438,7 +442,7 @@ Step                             1473       ; from /home/oms/LOFAR/Timba/MeqServ
 Steps                            1284       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
 Stop                             1247       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:19
 Stream                           1268       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:12
-string                           48         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:109
+String                           48         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:109
 Style                            1406       ; from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
 Subscribe                        1042       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
 Subscriptions                    1074       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MTGatewayWP.h:16
@@ -494,6 +498,7 @@ VisRepeater                      1264       ; from /home/oms/LOFAR/Timba/AppAgen
 Visu                             1440       ; from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
 W                                1022       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Wait                             1206       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
+Warning                          1493       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:31
 Weight                           1137       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
 Weights                          1285       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
 When                             1249       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20
