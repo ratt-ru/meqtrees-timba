@@ -613,23 +613,23 @@ class QwtImagePlot(QwtPlot):
             self._menu.popup(e.globalPos());
 
         elif Qt.MidButton == e.button():
-            if self._vells_plot:
-              print 'cross sections for vells are a work in progress!'
+#            if self._vells_plot:
+#              print 'cross sections for vells are a work in progress!'
 #              return
             if self.active_image:
               xpos = e.pos().x()
               ypos = e.pos().y()
-              print 'raw mouse positions ', xpos, ' ', ypos
+#              print 'raw mouse positions ', xpos, ' ', ypos
               xpos = self.invTransform(QwtPlot.xBottom, xpos)
               ypos = self.invTransform(QwtPlot.yLeft, ypos)
-              print 'inverted mouse positions ', xpos, ' ', ypos
+#              print 'inverted mouse positions ', xpos, ' ', ypos
               if self._vells_plot:
                 xpos = self.plotImage.xMap.limTransform(xpos)
                 ypos = self.plotImage.yMap.limTransform(ypos)
               else:
                 xpos = int(xpos)
                 ypos = int(ypos)
-              print 'image mouse positions ', xpos, ' ', ypos
+#              print 'image mouse positions ', xpos, ' ', ypos
               shape = self.raw_image.shape
               self.x_array = zeros(shape[0], Float32)
               self.x_index = arange(shape[0])
