@@ -566,8 +566,9 @@ size_t ArrayPacker<T,ElemPacker>::pack (const T* arr, int n, void* block, size_t
   //   1 x size_t: N - number of objects in array
   //   N x size_t: size of each object's data, in bytes (unless binary)
   // This is followed by the objects' data:
-  size_t  elsize = ElemPacker::binary(),
-          sz = (1+ (elsize?0:n))*sizeof(size_t);
+  size_t elsize = ElemPacker::binary();
+  const size_t nnn    = elsize ? 0 : n;  
+  size_t sz = (1+ nnn)*sizeof(size_t);
   FailWhen(sz>nleft,"block too small");
   size_t *hdr = static_cast<size_t*>(block);
   *(hdr++) = n;
@@ -601,7 +602,8 @@ void ArrayPacker<T,ElemPacker>::unpack (T* arr, int n, const void *block, size_t
   int n0   = (int) *(hdr++);
   FailWhen(n!=n0,"incorrect number of elements in array block");
   size_t  elsize = ElemPacker::binary();
-  size_t  sz0 = (1+ (elsize?0:n))*sizeof(size_t);
+  size_t  nnn    = (elsize?0:n);
+  size_t  sz0 = (1+ nnn)*sizeof(size_t);
   FailWhen(sz<sz0,"corrupt block");
   const char *data = static_cast<const char*>(block) + sz0;
   if( elsize ) // binary (fixed) elements

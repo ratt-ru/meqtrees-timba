@@ -24,7 +24,7 @@ typename DMITypeTraits<T>::ContainerReturnType
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   ContentInfo info;
   const void *ptr = get_address(info,DMITypeTraits<T>::typeId,False,
-                                pointer,false); 
+                                false,false); 
   return ptr ? *static_cast<const T*>(ptr) : deflt;
 }
 // version for scalars: pass in and return by value, with conversion
@@ -206,7 +206,7 @@ operator const T * () const
   FailWhen(!addressed,"missing '&' operator");
   ContentInfo info;
   return static_cast<const T*>( get_address(info,DMITypeTraits<T>::typeId,False,
-                                pointer,True) ); 
+                                True,True) ); 
 }
 
 

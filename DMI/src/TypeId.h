@@ -182,17 +182,17 @@ class DMITypeTraits : public DMIBaseTypeTraits<T>
   public:
   //    some simple bools derived from the type category
     //##ModelId=3E9BD91702EB
-  enum { isNumeric      = int(TypeCategory) == int(TypeCategories::NUMERIC) };
+  enum { isNumeric      = int(DMIBaseTypeTraits<T>::TypeCategory) == int(TypeCategories::NUMERIC) };
     //##ModelId=3E9BD91702F7
-  enum { isBinary       = int(TypeCategory) == int(TypeCategories::BINARY) };
+  enum { isBinary       = int(DMIBaseTypeTraits<T>::TypeCategory) == int(TypeCategories::BINARY) };
     //##ModelId=3E9BD9170304
-  enum { isDynamic      = int(TypeCategory) == int(TypeCategories::DYNAMIC) };
+  enum { isDynamic      = int(DMIBaseTypeTraits<T>::TypeCategory) == int(TypeCategories::DYNAMIC) };
     //##ModelId=3E9BD9170311
-  enum { isSpecial      = int(TypeCategory) == int(TypeCategories::SPECIAL) };
+  enum { isSpecial      = int(DMIBaseTypeTraits<T>::TypeCategory) == int(TypeCategories::SPECIAL) };
     //##ModelId=3E9BD917031D
-  enum { isIntermediate = int(TypeCategory) == int(TypeCategories::INTERMEDIATE) };
+  enum { isIntermediate = int(DMIBaseTypeTraits<T>::TypeCategory) == int(TypeCategories::INTERMEDIATE) };
     //##ModelId=3E9BD917032A
-  enum { isOther        = int(TypeCategory) == int(TypeCategories::OTHER) };
+  enum { isOther        = int(DMIBaseTypeTraits<T>::TypeCategory) == int(TypeCategories::OTHER) };
   // does this type support Lorrays?
     //##ModelId=3E9BD9170337
   enum { isLorrayable = DMI_TL::IndexOf<DMI_TL::Arrayables,T>::value >= 0 };

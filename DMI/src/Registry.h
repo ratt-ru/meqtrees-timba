@@ -23,8 +23,8 @@
           static const Registry::Map & getRegistryMap () { return *_registry_map; } \
   private: static Registry registry;    \
            static Registry::Map *_registry_map;    \
-           friend class Registry;    \
-           friend class Register;    \
+           friend class UniRegistry<Key,Value,Class>;    \
+           friend class Registrar<Key,Value,Class>;    \
            declareMutex;   \
 
 // macro: inserts registry definitions into .cc file
@@ -46,9 +46,9 @@
   private:  static Registry registry;    \
             static Registry::Map *_registry_map;    \
             static Registry::RevMap *_registry_rmap;    \
-            friend class Registry;    \
+            friend class BiRegistry<Key,Value,Class>;    \
             friend class UniRegistry<Key,Value,Class>;    \
-            friend class Register;    \
+            friend class Registrar<Key,Value,Class>;    \
             declareMutex;   
             
 // macro: inserts registry definitions into .cc file

@@ -24,7 +24,7 @@ class DynamicTypeManager
     //##Documentation
     //## This defines a pointer to a "constructor" function for constructing
     //## a particular type of object
-    typedef BlockableObject * (*PtrConstructor)(int n=0);
+    typedef BlockableObject * (*PtrConstructor)(int n);
 
 
       //##ModelId=3BE96C5F03A7

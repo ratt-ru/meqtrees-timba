@@ -243,11 +243,6 @@ class CountedRef : private CountedRefBase
       //## Changes ref properties -- see CountedRefBase::change().
       CountedRef<T>& change (int flags);
 
-      //##ModelId=3C1897B50178
-      //##Documentation
-      //## Makes exclusive writer -- see  CountedRefBase::setExclusiveWrite()
-      CountedRef<T>& setExclusiveWrite ();
-
       //##ModelId=3BFA4DF4027D
       //##Documentation
       //## Various methods to attach to target object. See CountedRefBase::
@@ -550,14 +545,6 @@ template <class T>
 inline CountedRef<T>& CountedRef<T>::change (int flags)
 {
   CountedRefBase::change(flags);
-  return *this;
-}
-
-//##ModelId=3C1897B50178
-template <class T>
-inline CountedRef<T>& CountedRef<T>::setExclusiveWrite ()
-{
-  CountedRefBase::setExclusiveWrite();
   return *this;
 }
 
