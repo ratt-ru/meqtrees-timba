@@ -399,6 +399,18 @@ int DMI::Vec::fromBlock (BlockSet& set)
   return npopped;
 }
 
+const DMI::BlockRef & DMI::Vec::emptyObjectBlock () const
+{
+  if( !emptyhdr_.valid() )
+  {
+    emptyhdr_ <<= new SmartBlock(sizeof(BObj::Header),DMI::ZERO);
+    BObj::Header * hdr = emptyhdr_().pdata<Header>();
+    hdr->tid = mytype;
+    hdr->blockcount = 1;
+  }
+  return emptyhdr_;
+}
+
 //##ModelId=3C3D5F2403CC
 int DMI::Vec::toBlock (BlockSet &set) const
 {
@@ -450,19 +462,12 @@ int DMI::Vec::toBlock (BlockSet &set) const
       switch( objstate[i] )
       {
         case UNINITIALIZED: // if uninitialized, then do nothing
-            dprintf(3)("toBlock: [%d] is uninitialized, 1 header block\n",i);
-            if( !emptyhdr_.valid() )
-            {
-              emptyhdr_ <<= new SmartBlock(sizeof(BObj::Header),DMI::ZERO);
-              BObj::Header * hdr = emptyhdr_().pdata<Header>();
-              hdr->tid = mytype;
-              hdr->blockcount = 1;
-            }
-            set.push(emptyhdr_);
-            nb = 1;
+            dprintf(3)("toBlock: [%d] is uninitialized, no blocks\n",i);
+            // set.push(emptyObjectBlock());
+            nb = 0;
             break;
         case INBLOCK:
-            npushed += nb = blocks[i].size();
+            nb = blocks[i].size();
             dprintf(3)("toBlock: [%d] still cached in %d blocks, copying\n",i,nb);
             set.pushCopy(blocks[i]);
             break;
@@ -471,13 +476,14 @@ int DMI::Vec::toBlock (BlockSet &set) const
             blocks[i].clear();
             if( objects[i].valid() )
             {
-              npushed += nb = objects[i]->toBlock(set);
+              nb = objects[i]->toBlock(set);
               dprintf(3)("toBlock: [%d] converted to %d blocks\n",i,nb);
             }
             else
             {
               dprintf(3)("toBlock: [%d] is uninitialized, 0 blocks\n",i);
               objstate[i] = UNINITIALIZED;
+              // set.push(emptyObjectBlock());
               nb = 0;
             }
             break;
@@ -485,6 +491,7 @@ int DMI::Vec::toBlock (BlockSet &set) const
             Throw("inconsistent object state");
       }
       // store or check block count in header
+      npushed += nb;
       if( new_header )
         blockcounts[i] = nb;
       else
@@ -518,7 +525,8 @@ DMI::ObjRef & DMI::Vec::resolveObject (int n) const
         dprintf(3)("resolveObject(%d): creating new %s\n",n,mytype.toString().c_str());
         objects[n].attach(DynamicTypeManager::construct(mytype),DMI::LOCK);
         objstate[n] = MODIFIED;
-        // ignore autoprivatize since this is a new object
+        headref_.detach(); // in case we implicitly initialized
+        phead_ = 0;
         return objects[n];
     }
     // object hasn't been unblocked
@@ -527,9 +535,9 @@ DMI::ObjRef & DMI::Vec::resolveObject (int n) const
         dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
         objects[n] = DynamicTypeManager::construct(0,blocks[n]);
         objects[n].lock();
-        blocks[n].clear();
         // verify that no blocks were left over
         FailWhen( blocks[n].size()>0,"block count mismatch" );
+        blocks[n].clear();
         objstate[n] = MODIFIED;
         return objects[n];
     }

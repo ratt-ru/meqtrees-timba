@@ -236,6 +236,8 @@ class Vec : public Container
       void makeNewHeader (size_t extra_size) const;
       
       void makeWritable ();
+      
+      const BlockRef & emptyObjectBlock () const;
 
       //##ModelId=3F5487DD028A
       TypeId mytype;

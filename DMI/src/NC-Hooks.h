@@ -112,16 +112,16 @@ T& assign_impl (const T& value,Any1,Int2Type<true>,Any2) const
 // when declaration of T is not yet available, thus static_cast to BObj* 
 // doesn't work. These functions are only called for dynamic types
 template<class T>
-T& assign_dyn_impl (T& value) const
+T& assign_dyn_impl (T* value,int flags) const
 { 
-  assign_object(reinterpret_cast<BObj*>(&value),TypeId(DMITypeTraits<T>::typeId),DMI::AUTOCLONE);
-  return value;
+  assign_object(reinterpret_cast<BObj*>(value),TypeId(DMITypeTraits<T>::typeId),flags);
+  return *value;
 }
 template<class T>
-const T& assign_const_dyn_impl (const T& value) const
+const T& assign_const_dyn_impl (const T* value,int flags) const
 { 
-  assign_object(const_cast<BObj*>(reinterpret_cast<const BObj*>(&value)),TypeId(DMITypeTraits<T>::typeId),DMI::READONLY|DMI::AUTOCLONE);
-  return value;
+  assign_object(const_cast<BObj*>(reinterpret_cast<const BObj*>(value)),TypeId(DMITypeTraits<T>::typeId),DMI::READONLY|flags);
+  return *value;
 }
 
 // numeric types assigned by value
@@ -155,8 +155,10 @@ DoForAllSpecialTypes(__assign,);
 DoForAllBinaryTypes(__assign,);
 #undef __assign
 #define __assign(T,arg) \
-  T& operator = (T& value) const { return assign_dyn_impl(value); } \
-  const T& operator = (const T& value) const { return assign_const_dyn_impl(value); } 
+  T& operator = (T& value) const { return assign_dyn_impl(&value,DMI::AUTOCLONE); } \
+  const T& operator = (const T& value) const { return assign_const_dyn_impl(&value,DMI::AUTOCLONE); } \
+  T& operator = (T* value) const { return assign_dyn_impl(value,0); } \
+  const T& operator = (const T* value) const { return assign_const_dyn_impl(value,0); } 
 DoForAllDynamicTypes(__assign,);
 #undef __assign
 // -----------------------------------------------------------------------

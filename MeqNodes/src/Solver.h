@@ -29,6 +29,8 @@
 
 #pragma types #Meq::Solver
 
+#pragma aid Solve Result Incremental Solutions
+
 // The comments below are used to automatically generate a default
 // init-record for the class 
 

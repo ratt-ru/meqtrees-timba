@@ -37,6 +37,9 @@ namespace Meq {
 
 InitDebugContext(Solver,"MeqSolver");
 
+const HIID FSolverResult = AidSolver|AidResult;
+const HIID FIncrementalSolutions = AidIncremental|AidSolutions;
+
 //##ModelId=400E53550260
 Solver::Solver()
 : itsSolver          (1),
@@ -172,9 +175,10 @@ int Solver::getResult (Result::Ref &resref,
   // Use 1 derivative by default, or 2 if specified in request
   int calcDeriv = std::max(request.calcDeriv(),1);
   // The result has 1 plane.
-  Result& result = resref <<= new Result(1);
-  VellSet& vellset = result.setNewVellSet(0);
-  DMI::Vec& metricsList = result[FMetrics] <<= new DMI::Vec(TpDMIRecord,1);
+  Result& result = resref <<= new Result(0);
+//  VellSet& vellset = result.setNewVellSet(0);
+  DMI::Record &solveResult = result[FSolverResult] <<= new DMI::Record;
+  DMI::Vec& metricsList = solveResult[FMetrics] <<= new DMI::Vec(TpDMIRecord,1);
   // Allocate variables needed for the solution.
   uint nspid = 0;
   vector<int> spids;
@@ -417,9 +421,8 @@ int Solver::getResult (Result::Ref &resref,
     allSolutions(step,LoRange::all()) = B2A::refAipsToBlitz<double,1>(solution);
   }
   // Put the spids in the result.
-  vellset.setSpids(spids);
-  // Distribute the last solution (if there is one).
-  vellset.setValue(new Vells(allSolutions));
+  solveResult[FSpids] = spids;
+  solveResult[FIncrementalSolutions] = new DMI::NumArray(allSolutions);
   return 0;
 }
 
