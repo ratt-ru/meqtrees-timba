@@ -524,8 +524,10 @@ class app_proxy_gui(verbosity,QMainWindow):
     if MainAppThread:
       MainAppThread.join();
     else:
-      print 'exec_loop';
-      MainApp.exec_loop(); 
+      try:
+        MainApp.exec_loop(); 
+      except KeyboardInterrupt: pass;
+        
   await_gui_exit = staticmethod(await_gui_exit);  
 
 #--------------------------------------------------------------
