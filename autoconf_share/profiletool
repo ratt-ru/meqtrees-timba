@@ -65,11 +65,15 @@ if test -f $target.compile.log; then
 fi
 
 # save command
-echo $command $* > $profdir/cmdline
+echo $command $* > $profdir/cmdline 2>&1
 
 # save various aspects of machine state
-uname -a > $profdir/uname
-cat /proc/cpuinfo > $profdir/cpuinfo
+uname -a > $profdir/uname 2>&1
+cat /proc/cpuinfo > $profdir/cpuinfo 2>&1
+
+# save information on shared libraries used by the binary
+echo "output of 'ldd -v -d -r $binname'" > $profdir/ldd.out 2>&1
+ldd -v -d -r $binname >> $profdir/ldd.out 2>&1
 
 #
 # save meminfo before running program
@@ -82,7 +86,7 @@ cat /proc/meminfo >> $profdir/meminfo
 # save loadavg statistics before running program
 #
 echo -n "START " > $profdir/loadavg
-cat /proc/loadavg >> $profdir/loadavg
+cat /proc/loadavg >> $profdir/loadavg 2>&1
 
 #
 # Do single top before starting command
@@ -140,8 +144,14 @@ trap "killproc $progpid $toppid; killall -9 $command > /dev/null 2>&1" EXIT
 wait $timepid > /dev/null 2>&1;
 retcode=$?;
 if test $retcode -ne 0; then
+    # log to epoch file
     echo -n "FAIL (retcode=$retcode) " >> $profdir/epoch
     date >> $profdir/epoch
+    
+    # show problem to the user
+    tail $profdir/stderr
+    echo -n "FAIL (retcode=$retcode) "
+    date
 fi
 killproc $toppid;
 wait $toppid > /dev/null 2>&1;
@@ -162,14 +172,14 @@ cat /proc/loadavg >> $profdir/loadavg
 #
 echo >> $profdir/meminfo
 echo "STOP" >> $profdir/meminfo
-cat /proc/meminfo >> $profdir/meminfo
+cat /proc/meminfo >> $profdir/meminfo 2>&1
 
 #
 # produce gprof output
 #
 if test -f gmon.out; then
     cp gmon.out $profdir
-    gprof -b $binname $profdir/gmon.out > $profdir/gprof.out
+    gprof -b $binname $profdir/gmon.out > $profdir/gprof.out 2>&1
 fi
 
 #

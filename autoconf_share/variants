@@ -2,7 +2,7 @@ gnu.compiler.conf:
 kcc.compiler.conf:
 icc.compiler.conf:
 
-profile.variant.conf:	  $(aipspp) $(profile)
+profile.variant.conf:	  $(aipspp) $(profile) $(mpe)
 debug.variant.conf:	  $(debug) $(aipspp)	
 opt.variant.conf:	  $(optimize) $(aipspp)
 mpich.variant.conf:	  $(mpich) $(aipspp)
@@ -18,7 +18,8 @@ scampi.variant.conf:	  $(scampi)
 scampi-opt.variant.conf:  $(scampi) $(optimize) 
 mpich-prof.variant.conf:  $(mpich) --enable-mpi-profiler $(aipspp)
 
-profile.var:		   --with-optimize='-pg -O4' --with-compiletools --with-mpich=/usr/local/mpich-1.2.5/ch_p4 --enable-mpi-profiler
+profile.var:		   --with-optimize='-pg -O4' --with-compiletools
+mpe.var:		   --with-mpich=/usr/local/mpich-1.2.5/ch_p4 --enable-mpi-profiler
 debug.var:
 optimize.var:		   --with-optimize
 aipspp.var:
