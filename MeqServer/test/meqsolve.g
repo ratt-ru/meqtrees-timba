@@ -493,7 +493,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
     mqs.meq('Save.Forest',[file_name=save]);
   
   # get a list of nodes
-  nodelist := mqs.getnodelist(children=T);
+  # nodelist := mqs.getnodelist(children=T);
   # print 'Nodes: ',nodelist.name;
   
   # enable publishing of solver results
@@ -503,9 +503,10 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
 #    mqs.meq('Node.Publish.Results',[name=fq_name('U',8)]);
   }
   
-  if( set_breakpoint )
+  if( set_breakpoint ) {
     mqs.meq('Node.Set.Breakpoint',[name='solver']);
-  mqs.meq('Debug.Set.Level',[debug_level=100]);
+    mqs.meq('Debug.Set.Level',[debug_level=100]);
+  }
 
   # run over MS
   if( run )
@@ -556,7 +557,7 @@ outputrec := [ write_flags=T,predict_column=outcol ];
 res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=0.17,
 #  st1set=[1:5]*4,st2set=[1:5]*4,
 #  st1set=[1:21]*4,st2set=[1:21]*4,
-  stset=1+[0:3]*4,
+  stset=1+[0:50],load='meqsolve50.forest',
 #  st1set=1+[0:20]*4,st2set=1+[0:20]*4,
 #  st1set=1:100,st2set=1:100,
   set_breakpoint=set_breakpoint,

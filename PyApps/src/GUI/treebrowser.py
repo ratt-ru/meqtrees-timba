@@ -855,7 +855,7 @@ def define_treebrowser_actions (tb):
   # Pause
   pause = QAction("Pause",pixmaps.pause.iconset(),"&Pause",Qt.Key_F6,parent);
   pause._is_enabled = lambda tb=tb: tb.is_connected and tb.debug_level>0 and \
-                                        tb.is_running and not tb.is_stopped;
+                                    tb.is_running and not tb.is_stopped;
   tb.add_action(pause,70,callback=tb._debug_pause);
   tb.add_separator(80);
   # Debug action group
@@ -878,7 +878,7 @@ def define_treebrowser_actions (tb):
   tb.add_separator(100);
   show_help = QAction("Show icon reference",pixmaps.info_blue_round.iconset(),"Show icon &reference...",Qt.Key_F1,parent);
   QObject.connect(show_help,SIGNAL("activated()"),tb.show_icon_reference);
-  show_help._is_enabled = lambda:True;
+  show_help._is_enabled = lambda tb=tb:True;
   tb.add_action(show_help,100);
   tb.add_action(show_help,5,where="node");
   

@@ -578,3 +578,19 @@ const stress_test := function (n=10000,verbose=0)
   }
 }
 
+const misc_test := function ()
+{
+  if( is_fail(mqsinit(verbose=verbose)) )
+  {
+    print mqs;
+    fail;
+  }
+  a := meq.node('MeqConstant','a',[value=0]);
+  a.link_or_create := T;
+  mqs.meq('Create.Node',a,wait_reply=T,silent=T); 
+  add := meq.node('MeqAdd','add',children=meq.list(
+    a,
+    meq.node('MeqConstant','b',[value=0])
+  ));
+  mqs.meq('Create.Node',add,wait_reply=T,silent=T); 
+}

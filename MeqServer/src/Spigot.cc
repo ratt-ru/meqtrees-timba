@@ -135,7 +135,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
         for( int i=0; i<nplanes; i++ )
         {
           Vells::Ref flagref;
-          FlagMatrix * pfl;
+          FlagMatrix * pfl = 0;
           // get flags
           if( flag_mask )
           {
@@ -154,7 +154,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
             (*pfl)(0,LoRange::all()) |= rowflag & row_flag_mask;
           }
           // only attach data flags if they're non-0
-          if( blitz::any(*pfl) )
+          if( pfl && blitz::any(*pfl) )
           {
             if( flag_bit ) // override with flag bit if requested
               *pfl = blitz::where(*pfl,flag_bit,0);

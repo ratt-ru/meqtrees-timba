@@ -17,8 +17,8 @@ std::map<AtomicID,int> _num_map;
 
 static int initDefaultMaps ()
 {
-  _num_map[ _name_map[0] = AidFreq ] = FREQ = 0;
-  _num_map[ _name_map[1] = AidTime ] = TIME = 1;
+  _num_map[ _name_map[0] = AidTime ] = TIME = 0;
+  _num_map[ _name_map[1] = AidFreq ] = FREQ = 1;
   for( int i=2; i<MaxAxis; i++ )
     _num_map[ _name_map[i] = AtomicID(i) ] = i;
   return 0;

@@ -339,7 +339,7 @@ void Cells::recomputeSegments (int iaxis)
     LoVec_int start(num),end(num);
     start(0)=0; end(0)=0;
     int iseg = 0;
-    double dx0;
+    double dx0 = 0;
     double h0  = h(0);
     bool in_segment = false;
     for( int i=1; i<num; i++ )

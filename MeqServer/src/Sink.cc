@@ -151,7 +151,7 @@ int Sink::procPendingTile (VisCube::VTile::Ref &tileref)
   // loop over vellsets and get a tf-plane from each
   VisCube::VTile *ptile = 0; 
   const VisCube::VTile::Format *pformat = 0;
-  void *coldata; 
+  void *coldata = 0; 
   TypeId coltype;
   LoShape colshape; 
   int ncorr = tileref->ncorr();
