@@ -168,7 +168,11 @@ class realvsimag_plotter(object):
         self._y_errors_dict = {}
         self._flags_i_dict = {}
         self._flags_r_dict = {}
+        self.flag_plot_dict={}
 
+        self.flag_toggle = True
+        self.flag_blink = False
+        self.toggle_menu_added = False
         self.plot_mean_circles = False
         self.plot_stddev_circles = False
         self.plot_mean_arrows = False
@@ -287,6 +291,8 @@ class realvsimag_plotter(object):
           return;
           
         self._menu = QPopupMenu(self._mainwin);
+        QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_display);
+
         
         zoom = QAction(self.plot);
         zoom.setIconSet(pixmaps.viewmag.iconset());
@@ -348,6 +354,48 @@ class realvsimag_plotter(object):
 ##                     self.zoom)
 
     # __initToolBar()
+
+  def update_display(self, menuid):
+
+    if menuid < 0:
+      return
+	
+# toggle flags display	
+    if menuid == 200:
+      if self.flag_toggle == False:
+        self.flag_toggle = True
+        self.plot_flags()
+      else:
+        self.flag_toggle = False
+        self.remove_flags()
+      self.plot.replot()
+      return
+
+# blink flags display	
+    if menuid == 201:
+      if self.flag_blink == False:
+        self.flag_blink = True
+        self.timer = QTimer(self.plot)
+        self.timer.connect(self.timer, SIGNAL('timeout()'), self.timerEvent_blink)
+        self.timer.start(2000)
+      else:
+        self.flag_blink = False
+      return
+
+  def timerEvent_blink(self):
+# start or stop blinking
+    if not self.flag_blink:
+      self.timer.stop()
+      self.flag_toggle = False
+      self.remove_flags()
+    else:
+      if self.flag_toggle == False:
+        self.flag_toggle = True
+        self.plot_flags()
+      else:
+        self.flag_toggle = False
+        self.remove_flags()
+    self.plot.replot()
 
   def slotMousePressed(self, e):
     "Mouse press processing instructions go here"
@@ -880,8 +928,19 @@ class realvsimag_plotter(object):
       if visu_record.has_key('flags'):
         self._data_flags = visu_record['flags']
 
-# eventually indent the next line?
-#     self._plot_flags = True
+        self._plot_flags = True
+
+# if we have read in flagged data, need to add 
+# toggle stuff to context menu
+        if not self.toggle_menu_added:
+          caption = "toggle flagged data" 
+          toggle_id = 200
+          self._menu.insertItem(caption,toggle_id)
+          caption = "toggle blink of flagged data"
+          toggle_id = 201
+          self._menu.insertItem(caption,toggle_id)
+          self.toggle_menu_added = True
+
 
 # note: the self._data_labels field that we now extract
 # was generated in the result_plotter.py script as it
@@ -901,12 +960,13 @@ class realvsimag_plotter(object):
       """ plot real vs imaginary values together with circles
           indicating average values """
  
+      _dprint(2,'x_vs_y_plot: item_tag is ', item_tag);
 # Get and combine all plot array data together into one python list
 # We are actually converting python numarrays into a list -
 # Maybe we can be more efficient if we store the numarrays in a group
 # of tuples or something. To be investigated ....
       num_plot_arrays = len(self._data_values)
-      _dprint(2,' num_plot_arrays ', num_plot_arrays);
+      _dprint(2,'x_vs_y_plot: num_plot_arrays ', num_plot_arrays);
       self._is_complex = True;
 # we have separate lists for real, imaginary and flag data
       data_r = []
@@ -1014,7 +1074,7 @@ class realvsimag_plotter(object):
 # incoming data in a plotterlabels_start dict
         self._plotterlabels_start[self._label_r] = start_pos
 
-# if we have flag data
+# if we have flag data, store it
         if len(data_r_f) > 0:
           if self.errors_plot: 
             if self._label_r.find(self.error_tag) < 0:
@@ -1038,6 +1098,7 @@ class realvsimag_plotter(object):
 # stored in the plotterlabels_start dict
         self._plotterlabels_start[self._label_r] = self._plotterlabels_start[self._label_r] + start_pos
 
+# if we have flag data, store it
         if len(data_r_f) > 0:
           if self.errors_plot: 
             if self._label_r.find(self.error_tag) < 0:
@@ -1056,6 +1117,8 @@ class realvsimag_plotter(object):
         if self._plotter_dict.has_key(self._label_i) == False:
 #add the new data to a 'dict' of visualization lists
           self._plotter_dict[self._label_i] = data_i
+
+# if we have imaginary flag data, store it
           if len(data_i_f) > 0:
             self._flags_i_dict[self._label_i] =  data_i_f
         else:
@@ -1063,10 +1126,10 @@ class realvsimag_plotter(object):
           if len(data_i_f) > 0:
             self._flags_i_dict[self._label_i] =  self._flags_i_dict[self._label_i] + data_i_f
 
-# we have now stored data and some associated 'meta data' - labels
-# and starting positions, in various python dictionaries.
+# We have now stored data and some associated 'meta data' - labels
+# and starting positions, flagged data etc in various python dictionaries.
 
-# we now set up the qwt plot components for the data we have just stored
+# We now set up the qwt plot components for the data we have just stored
 
 # If this is a new item_tag, add a new curve to the qwt plot.
 # At the same time, construct basic plot attributes, title etc,
@@ -1337,7 +1400,7 @@ class realvsimag_plotter(object):
           self.compute_circles (current_item_tag + 'stddev', radius, mean_r, mean_i)
 
 # add in flag data to plots if requested
-      if self._plot_flags:
+      if self._plot_flags and self.flag_toggle:
         self.plot_flags()
 
 # we have inserted all data into curves etc, so as the last step
@@ -1349,24 +1412,39 @@ class realvsimag_plotter(object):
   def plot_flags(self):
 
 # set up and plot flags in their entirety
-    self.flag_plot_dict={}
     if len(self._flags_r_dict) > 0:
       plot_flag_r_keys = self._flags_r_dict.keys()
       for i in range(0, len(plot_flag_r_keys)):
+         key_flag_plot = -1
          flag_data_r = self._flags_r_dict[plot_flag_r_keys[i]]
          end_location = len(plot_flag_r_keys[i])
+# get the equivalent for the imaginary data
          flag_data_i_string = plot_flag_r_keys[i][:end_location-2] + '_i'
          flag_data_i = self._flags_i_dict[flag_data_i_string]
 
-         key_flag_plot = self.plot.insertCurve(plot_flag_r_keys[i])
-         self.flag_plot_dict[plot_flag_r_keys[i]] = key_flag_plot
+         if self.flag_plot_dict.has_key(plot_flag_r_keys[i]) == False:
+           key_flag_plot = self.plot.insertCurve(plot_flag_r_keys[i])
+           self.flag_plot_dict[plot_flag_r_keys[i]] = key_flag_plot
 
-         self.plot.setCurvePen(key_flag_plot, QPen(Qt.black))
-         self.plot.setCurveStyle(key_flag_plot, QwtCurve.Dots)
-         plot_flag_curve = self.plot.curve(key_flag_plot)
-         plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
+           self.plot.setCurvePen(key_flag_plot, QPen(Qt.black))
+           self.plot.setCurveStyle(key_flag_plot, QwtCurve.Dots)
+           plot_flag_curve = self.plot.curve(key_flag_plot)
+           plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
                      QPen(Qt.black), QSize(15, 15)))
-         self.plot.setCurveData(key_flag_plot, flag_data_r, flag_data_i)
+         else:
+           key_flag_plot = self.flag_plot_dict[plot_flag_r_keys[i]]
+         if key_flag_plot >= 0:
+           self.plot.setCurveData(key_flag_plot, flag_data_r, flag_data_i)
+
+  def remove_flags(self):
+
+# remove curves associated with flag data
+    if len(self.flag_plot_dict) > 0:
+      plot_flag_keys = self.flag_plot_dict.keys()
+      for i in range(0, len(plot_flag_keys)):
+         key_flag_plot = self.flag_plot_dict[plot_flag_keys[i]]
+         self.plot.removeCurve(key_flag_plot)
+      self.flag_plot_dict = {}
 
   def go(self, counter):
       """Create and plot some garbage data
