@@ -276,6 +276,10 @@ int Node::getResult (ResultSet::Ref &ref, const Request &req)
         cdebug(3)<<"  old request but cache is empty, redoing getResult"<<endl;
       }
     }
+    if( DebugLevel>2 && req.hasCells() )
+    {
+      cdebug(3)<<"  cells are "<<req.cells();
+    }
     // new request and/or no cache -- recompute the result
     int flags = getResultImpl(ref,req,newreq);
     // add cells if not there

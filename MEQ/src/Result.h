@@ -203,8 +203,7 @@ public:
   int numFails () const;
   // returns the i-th fail record
   const DataRecord & getFail (int i=0) const;
-    
-
+  
   // print Result to stream
   void show (std::ostream&) const;
 
@@ -255,5 +254,11 @@ private:
 
 
 } // namespace Meq
+
+inline std::ostream& operator << (std::ostream& os, const Meq::Result& res)
+{
+  res.show(os);
+  return os;
+}
 
 #endif

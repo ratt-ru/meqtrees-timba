@@ -135,12 +135,11 @@ bool Cells::operator== (const Cells& that) const
   return true;
 }
 
-std::ostream& operator<< (std::ostream& os, const Meq::Cells& cells)
+void Cells::show (std::ostream& os) const
 {
-  os << "Meq::Cells [" << cells.nfreq() << ','
-     << cells.itsTimes.size() << "]  "
-     << cells.domain() << endl;
-  return os;
+  os << "Meq::Cells [" << nfreq() << ','
+     << itsTimes.size() << "]  "
+     << domain() << endl;
 }
 
 void Cells::setDataRecord (const Domain& domain,int nfreq,int ntimes)

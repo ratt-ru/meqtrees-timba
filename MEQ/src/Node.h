@@ -70,6 +70,9 @@ class Node : public BlockableObject
     //##ModelId=3F5F44820166
     const string & name() const;
     
+    int nodeIndex() const 
+    { return node_index_; }
+    
     string className() const
     { return objectType().toString(); }
     
@@ -158,6 +161,7 @@ class Node : public BlockableObject
     DataRecord::Ref staterec_;
     //##ModelId=3F5F48040177
     string myname_;
+    int node_index_;
     //##ModelId=3F5F43930004
     Forest *forest_;
     

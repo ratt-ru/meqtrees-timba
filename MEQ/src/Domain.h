@@ -100,6 +100,9 @@ public:
 
   bool operator!= (const Domain& that) const
     { return !(*this == that); }
+  
+  // print to stream
+  void show (std::ostream&) const;
 
 private:
   // Set the values in the DMI DataField.
@@ -111,7 +114,12 @@ private:
   double itsScaleTime;
 };
 
-
 } // namespace Meq
+
+inline std::ostream& operator << (std::ostream& os, const Meq::Domain& dom)
+{
+  dom.show(os);
+  return os;
+}
 
 #endif

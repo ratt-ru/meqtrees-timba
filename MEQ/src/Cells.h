@@ -92,8 +92,9 @@ public:
   bool operator!= (const Cells& that) const
     { return !(*this == that); }
 
-  friend std::ostream& operator<< (std::ostream& os, const Meq::Cells& cells);
-
+  // print to stream
+  void show (std::ostream&) const;
+  
 private:
   // Setup DataRecord with domain; sets up new arrays with given sizes
   void setDataRecord (const Domain&,int nfreq,int ntimes);
@@ -106,5 +107,12 @@ private:
 };
 
 } //namespace Meq
+
+inline std::ostream& operator << (std::ostream& os, const Meq::Cells& cells)
+{
+  cells.show(os);
+  return os;
+}
+
 
 #endif

@@ -30,13 +30,13 @@ static int _dum = aidRegistry_Meq();
 static NestableContainer::Register reg(TpMeqDomain,True);
 
 Domain::Domain()
-: DataField(Tpdouble,4),
+: // DataField(Tpdouble,4),
   itsOffsetFreq (0),
   itsScaleFreq  (1),
   itsOffsetTime (0),
   itsScaleTime  (1)
 {
-  setDMI();
+//  setDMI();
 }
 
 Domain::Domain (const DataField& fld,int flags)
@@ -64,13 +64,23 @@ void Domain::validateContent ()
 {
   try
   {
-    int size;
-    const double *fld = (*this)[HIID()].as_p<double>(size);
-    FailWhen(size!=4,"bad Domain field size");
-    itsOffsetFreq = fld[0];
-    itsScaleFreq  = fld[1];
-    itsOffsetTime = fld[2];
-    itsScaleTime  = fld[3];
+    if( DataField::valid() )
+    {
+      int size;
+      const double *fld = (*this)[HIID()].as_p<double>(size);
+      FailWhen(size!=4,"bad Domain field size");
+      itsOffsetFreq = ( fld[1] + fld[0] ) * .5;
+      itsScaleFreq  = ( fld[1] - fld[0] ) * .5;
+      itsOffsetTime = ( fld[3] + fld[2] ) * .5;
+      itsScaleTime  = ( fld[3] - fld[2] ) * .5;
+    }
+    else
+    {
+      itsOffsetFreq = 0;
+      itsScaleFreq  = 1;
+      itsOffsetTime = 0;
+      itsScaleTime  = 1;
+    }
   }
   catch( std::exception &err )
   {
@@ -81,6 +91,14 @@ void Domain::validateContent ()
     Throw("validate of Domain field failed with unknown exception");
   }  
 }
+
+void Domain::show (std::ostream& os) const
+{
+  os << "Meq::Domain [" << startFreq() << " : " << endFreq() << ','
+     << startTime() << " : " << endTime() << "]";
+}
+
+
 
 void Domain::setDMI()
 {
