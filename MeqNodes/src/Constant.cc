@@ -100,6 +100,9 @@ void Constant::setStateImpl (DMI::Record::Ref& rec, bool initializing)
   if( hook.exists() ) 
   {
     TypeId type = hook.type();
+    // a scalar may have been passed in as a 1-element array
+    if( TypeInfo::isArray(type) )
+      type = TypeInfo::typeOfArrayElem(type);
     // complex values forced to dcomplex; all other to double
     if( type == Tpdcomplex || type == Tpfcomplex ) 
       itsValue <<= new Vells(hook.as<dcomplex>());
