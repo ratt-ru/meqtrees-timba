@@ -9,8 +9,8 @@
 =                                1020       ; from /home/oms/LOFAR/Timba/DMI/src/HIID.h:32
 #                                1016       ; from /home/oms/LOFAR/Timba/DMI/src/List.h:30
 #                                1010       ; from /home/oms/LOFAR/Timba/DMI/src/NumArray.h:185
--                                1029       ; from /home/oms/LOFAR/Timba/DMI/src/BObj.h:32
-#                                1031       ; from /home/oms/LOFAR/Timba/DMI/src/Record.h:30
+-                                1028       ; from /home/oms/LOFAR/Timba/DMI/src/BObj.h:32
+#                                1030       ; from /home/oms/LOFAR/Timba/DMI/src/Record.h:30
 :                                1013       ; from /home/oms/LOFAR/Timba/DMI/src/Timestamp.h:7
 #                                1008       ; from /home/oms/LOFAR/Timba/DMI/src/Vec.h:28
 +double                          44         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:107
@@ -28,8 +28,8 @@
 +ldouble                         45         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:107
 +long                            39         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:106
 +longlong                        41         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:106
-                                 1030       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
-                                 1028       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+                                 1031       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+                                 1029       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
                                  1034       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
                                  1033       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
                                  1018       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
