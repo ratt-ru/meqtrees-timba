@@ -21,6 +21,13 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.11  2002/06/10 12:39:18  smirnov
+//  %[BugId: 26]%
+//  Revised NestableContainer::get() interface to return info in a ContentInfo
+//  structure.
+//  Added optional size argument to hook.as_type_p() and _wp() methods.
+//  Cleaned up size handling, added working as_vector<T> and =(vector<T>).
+//
 //  Revision 1.10  2002/06/07 14:22:48  smirnov
 //  %[BugId: 26]%
 //  Many revisions related to support of arrays and vectors (including AIPS++) by
@@ -133,7 +140,7 @@ public:
   virtual void privatize (int flags = 0, int depth = 0);
 
   // Get the 
-  virtual const void* get (const HIID& id, TypeId& tid, bool& can_write,
+  virtual const void* get (const HIID& id, ContentInfo &info,
 			   TypeId check_tid = 0, int flags = 0) const;
 
   // Insertion is not possible (throws exception).

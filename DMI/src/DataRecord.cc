@@ -377,12 +377,13 @@ void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
   //## end DataRecord::cloneOther%3C58239503D1.body
 }
 
-const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, int flags) const
+const void * DataRecord::get (const HIID &id, ContentInfo &info, TypeId check_tid, int flags) const
 {
   //## begin DataRecord::get%3C56B00E0182.body preserve=yes
   FailWhen(flags&DMI::NC_SCALAR,"can't access DataRecord in scalar mode");
   FailWhen( !id.size(),"null field id" );
   CFMI iter;
+  info.size = 1;
   // a single numeric index is field #
   if( id.size() == 1 && id.front().index() >= 0 )
   {
@@ -407,24 +408,24 @@ const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, Type
   // writability is first determined by the field ref itself, plus the field
   // An invalid ref is considered writable (we'll check for our own writability
   // below)
-  can_write = !iter->second.valid() || 
+  info.writable = !iter->second.valid() || 
       ( iter->second.isWritable() && iter->second->isWritable() );
   // default is to return an objref to the field
   if( !check_tid || check_tid == TpObjRef )
   {
     // since we're returning an objref, writability to the ref is limited
     // by our own writability too
-    can_write &= isWritable();
-    FailWhen(flags&DMI::WRITE && !can_write,"write access violation"); 
-    tid = TpObjRef;
+    info.writable &= isWritable();
+    FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
+    info.tid = TpObjRef;
     return &iter->second;
   }
   else // else a DataField (or Object) must have been explicitly requested
   {
-    FailWhen(flags&DMI::WRITE && !can_write,"write access violation"); 
+    FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
     FailWhen(check_tid != TpDataField && check_tid != TpObject,
         "type mismatch: expecting "+check_tid.toString()+", got DataField" );
-    tid = TpDataField;
+    info.tid = TpDataField;
     return &iter->second.deref();
   }
   //## end DataRecord::get%3C56B00E0182.body
@@ -445,8 +446,8 @@ void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
     real_tid = tid;
     DataField *pf = new DataField(tid,-1);
     fields[id].attach(pf,DMI::ANON|DMI::WRITE|DMI::LOCK);
-    TypeId dum1; bool dum2;
-    return const_cast<void*>( pf->getn(0,dum1,dum2,0,True) );
+    ContentInfo info;
+    return const_cast<void*>( pf->getn(0,info,0,True) );
   }
   //## end DataRecord::insert%3C7A16BB01D7.body
 }

@@ -31,6 +31,9 @@
 
 //## begin module%3C10CC830069.additionalDeclarations preserve=yes
 DefineRegistry(NestableContainer,False);
+
+int NestableContainer::ConstHook::_dum_int;
+NestableContainer::ContentInfo NestableContainer::ConstHook::_dum_info;
 //## end module%3C10CC830069.additionalDeclarations
 
 
@@ -47,24 +50,24 @@ DefineRegistry(NestableContainer,False);
 bool NestableContainer::Hook::isWritable () const
 {
   //## begin NestableContainer::Hook::isWritable%3C87665E0178.body preserve=yes
-  TypeId tid; bool write;
-  const void *target = collapseIndex(tid,write,0,0);
+  ContentInfo info;
+  const void *target = collapseIndex(info,0,0);
   // doesn't exist? It's writable if our container is writable
   if( !target )
     return nc->isWritable();
   // is it a reference? Deref it then
-  if( tid == TpObjRef )
+  if( info.tid == TpObjRef )
   {
     if( !static_cast<const ObjRef*>(target)->isWritable() ) // non-writable ref?
       return False;
     target = &static_cast<const ObjRef*>(target)->deref();
-    tid = static_cast<const BlockableObject*>(target)->objectType();
+    info.tid = static_cast<const BlockableObject*>(target)->objectType();
   }
   // is it a sub-container? Return its writable property
-  if( NestableContainer::isNestable(tid) )
+  if( NestableContainer::isNestable(info.tid) )
     return static_cast<const NestableContainer*>(target)->isWritable();
   // otherwise, it's writable according to what collapseIndex() returned
-  return write;
+  return info.writable;
   //## end NestableContainer::Hook::isWritable%3C87665E0178.body
 }
 
@@ -72,8 +75,8 @@ const NestableContainer::Hook & NestableContainer::Hook::init (TypeId tid) const
 {
   //## begin NestableContainer::Hook::init%3C8739B5017B.body preserve=yes
   FailWhen(addressed,"unexpected '&' operator");
-  TypeId target_tid;
-  prepare_put(target_tid,tid);
+  ContentInfo info;
+  prepare_put(info,tid);
   return *this;
   //## end NestableContainer::Hook::init%3C8739B5017B.body
 }
@@ -82,11 +85,11 @@ const NestableContainer::Hook & NestableContainer::Hook::privatize (int flags) c
 {
   //## begin NestableContainer::Hook::privatize%3C8739B5017C.body preserve=yes
   FailWhen(addressed,"unexpected '&' operator");
-  bool dum; TypeId tid;
+  ContentInfo info;
   if( index<0 )
-    nc->get(id,tid,dum,0,flags|DMI::PRIVATIZE);
+    nc->get(id,info,0,flags|DMI::PRIVATIZE);
   else
-    nc->getn(index,tid,dum,0,flags|DMI::PRIVATIZE);
+    nc->getn(index,info,0,flags|DMI::PRIVATIZE);
   return *this;
   //## end NestableContainer::Hook::privatize%3C8739B5017C.body
 }
@@ -236,21 +239,22 @@ const NestableContainer * NestableContainer::ConstHook::asNestable (const void *
 {
   if( index<-1 ) // uninitialized -- just return nc
     return nc;
+  ContentInfo info;
+  info.tid = tid;
   if( !targ )
   {
-    bool dum;
-    targ = collapseIndex(tid,dum,0,0);
+    targ = collapseIndex(info,0,0);
     if( !targ )
       return 0;
   }
-  if( tid == TpObjRef )
+  if( info.tid == TpObjRef )
   {
     if( !static_cast<const ObjRef*>(targ)->valid() )
       return 0;
     targ = &static_cast<const ObjRef*>(targ)->deref();
-    tid = static_cast<const BlockableObject*>(targ)->objectType();
+    info.tid = static_cast<const BlockableObject*>(targ)->objectType();
   }
-  return NestableContainer::isNestable(tid) 
+  return NestableContainer::isNestable(info.tid) 
     ? static_cast<const NestableContainer*>(targ) 
     : 0;
 }
@@ -260,10 +264,11 @@ NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ,TypeI
 {
   if( index<-1 ) // uninitialized -- just return nc
     return nc;
+  ContentInfo info;
+  info.tid = tid;
   if( !targ )
   {
-    bool dum;
-    targ = const_cast<void*>( collapseIndex(tid,dum,0,DMI::WRITE) );
+    targ = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
     if( !targ )
       return 0;
   }
@@ -272,9 +277,9 @@ NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ,TypeI
     if( !static_cast<ObjRef*>(targ)->valid() )
       return 0;
     targ = &static_cast<ObjRef*>(targ)->dewr();
-    tid = static_cast<BlockableObject*>(targ)->objectType();
+    info.tid = static_cast<BlockableObject*>(targ)->objectType();
   }
-  return NestableContainer::isNestable(tid) 
+  return NestableContainer::isNestable(info.tid) 
     ? static_cast<NestableContainer*>(targ) 
     : 0;
 }
@@ -284,11 +289,11 @@ bool NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool nothro
 {
   // check for residual index
   FailWhen(addressed,"unexpected '&' operator");
-  TypeId target_tid; bool dum; 
+  ContentInfo info;
   const void *target;
   if( index>=0 || id.size() )
   {
-    target = collapseIndex(target_tid,dum,0,0);
+    target = collapseIndex(info,0,0);
     if( !target )
     {
       FailWhen(!nothrow,"uninitialized element");
@@ -298,35 +303,34 @@ bool NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool nothro
   else
   {
     target = nc;
-    target_tid = nc->objectType();
+    info.tid = nc->objectType();
   }
   // if referring to a non-dynamic type, attempt the conversion
-  if( !TypeInfo::isDynamic(target_tid) && target_tid != TpObjRef )
+  if( !TypeInfo::isDynamic(info.tid) && info.tid != TpObjRef )
   {
-    FailWhen(!convertScalar(target,target_tid,data,tid),
-             "can't convert "+target_tid.toString()+" to "+tid.toString());
+    FailWhen(!convertScalar(target,info.tid,data,tid),
+             "can't convert "+info.tid.toString()+" to "+tid.toString());
     return True;
   }
   // if target is a container, then try to access it in scalar mode
-  const NestableContainer *nc = asNestable(target,target_tid);
-  FailWhen(!nc,"can't convert "+target_tid.toString()+" to "+tid.toString());
+  const NestableContainer *nc = asNestable(target,info.tid);
+  FailWhen(!nc,"can't convert "+info.tid.toString()+" to "+tid.toString());
   // access in scalar mode, checking that type is numeric
-  target = nc->get(HIID(),target_tid,dum,TpNumeric,DMI::NC_SCALAR|autoprivatize);
-  FailWhen( !convertScalar(target,target_tid,data,tid),
-            "can't convert "+target_tid.toString()+" to "+tid.toString());
+  target = nc->get(HIID(),info,TpNumeric,DMI::NC_SCALAR|autoprivatize);
+  FailWhen( !convertScalar(target,info.tid,data,tid),
+            "can't convert "+info.tid.toString()+" to "+tid.toString());
   
   return True;
 }
 
 // This is called to access by reference, for all types
 // If pointer is True, then a pointer type is being taken
-const void * NestableContainer::ConstHook::get_address (TypeId tid,bool must_write,bool pointer,const void *deflt) const
+const void * NestableContainer::ConstHook::get_address (ContentInfo &info,TypeId tid,bool must_write,bool pointer,const void *deflt) const
 {
-  TypeId target_tid; bool write; 
   const void *target;
   if( index>=0 || id.size() )
   {
-    target = collapseIndex(target_tid,write,0,0);
+    target = collapseIndex(info,0,0);
     if( !target )
     {
       FailWhen(!deflt,"uninitialized element");
@@ -336,32 +340,34 @@ const void * NestableContainer::ConstHook::get_address (TypeId tid,bool must_wri
   else
   {
     target = nc;
-    target_tid = nc->objectType();
+    info.tid = nc->objectType();
+    info.size = 1;
   }
   // If types don't match, then 
   // (b) else try to treat target as a container in scalar mode
-  if( tid != target_tid )
+  if( tid != info.tid )
   {
     // (a) if target is an ObjRef, try to resolve to ref target
-    if( target_tid == TpObjRef )
+    if( info.tid == TpObjRef )
     {
       FailWhen( !static_cast<const ObjRef*>(target)->valid(),
-                "can't convert "+target_tid.toString()+" to "+tid.toString()+"*");
-      write = static_cast<const ObjRef*>(target)->isWritable();
+                "can't convert "+info.tid.toString()+" to "+tid.toString()+"*");
+      info.writable = static_cast<const ObjRef*>(target)->isWritable();
       target = static_cast<const ObjRef*>(target)->deref_p();
-      target_tid = static_cast<const BlockableObject *>(target)->objectType();
+      info.tid = static_cast<const BlockableObject *>(target)->objectType();
+      info.size = 1;
     }
     // still no match? Try to treat target as a container in scalar mode
-    if( tid != target_tid )
+    if( tid != info.tid )
     {
-      const NestableContainer *nc = asNestable(target,target_tid);
-      FailWhen(!nc,"can't convert "+target_tid.toString()+" to "+tid.toString()+"*");
+      const NestableContainer *nc = asNestable(target,info.tid);
+      FailWhen(!nc,"can't convert "+info.tid.toString()+" to "+tid.toString()+"*");
       int flags = (must_write?DMI::WRITE:0)|autoprivatize|
                   DMI::NC_SCALAR|(pointer?DMI::NC_POINTER:0);
-      return nc->get(HIID(),target_tid,write,tid,flags);
+      return nc->get(HIID(),info,tid,flags);
     }
   }
-  FailWhen(!write && must_write,"write access violation");
+  FailWhen(!info.writable && must_write,"write access violation");
   return target;
 }
 
@@ -373,40 +379,38 @@ const void * NestableContainer::ConstHook::get_address (TypeId tid,bool must_wri
 // (a) tid & container type are both dynamic (then target must be an ObjRef)
 // (b) tid & container type are both numeric (Hook will do conversion)
 // For other type categories, a strict match should be enforced by the container.
-void * NestableContainer::Hook::prepare_put( TypeId &target_tid,TypeId tid ) const
+void * NestableContainer::Hook::prepare_put( ContentInfo &info,TypeId tid ) const
 {
   FailWhen(addressed,"unexpected '&' operator");
-  bool dum; 
-  void *target = const_cast<void*>( collapseIndex(target_tid,dum,0,DMI::WRITE) );
+  void *target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
   // non-existing object: try to a insert new one
   if( !target  )
   {
     // The resulting target_tid may be different from the requested tid
     // in the case of scalars (where conversion is allowed)
-    target = index>=0 ? nc->insertn(index,tid,target_tid)
-                      : nc->insert(id,tid,target_tid);
-    if( TypeInfo::isDynamic(target_tid) )
-      target_tid = TpObjRef;
+    target = index>=0 ? nc->insertn(index,tid,info.tid)
+                      : nc->insert(id,tid,info.tid);
+    if( TypeInfo::isDynamic(info.tid) )
+      info.tid = TpObjRef;
   }
   else
   {
     // have we resolved to an existing sub-container, and we're not explicitly
     // trying to assign the same type of sub-container? Try to either init the 
     // container with whatever is being assigned, or assign to it as a scalar
-    NestableContainer *nc1 = asNestableWr(target,target_tid);
+    NestableContainer *nc1 = asNestableWr(target,info.tid);
     if( nc1 && nc1->objectType() != tid )
     {
       if( nc1->size() )
       {
-        bool dum;
         target = const_cast<void*>(
-            nc1->get(HIID(),target_tid,dum,tid,DMI::WRITE|DMI::NC_SCALAR));
+            nc1->get(HIID(),info,tid,DMI::WRITE|DMI::NC_SCALAR));
       }
       else
       {
-        target = nc1->insert(HIID(),tid,target_tid);
-        if( TypeInfo::isDynamic(target_tid) )
-          target_tid = TpObjRef;
+        target = nc1->insert(HIID(),tid,info.tid);
+        if( TypeInfo::isDynamic(info.tid) )
+          info.tid = TpObjRef;
       }
     }
   }
@@ -416,12 +420,12 @@ void * NestableContainer::Hook::prepare_put( TypeId &target_tid,TypeId tid ) con
 // This is called to assign a value, for scalar & binary types
 const void * NestableContainer::Hook::put_scalar( const void *data,TypeId tid,size_t sz ) const
 {
-  TypeId target_tid;
-  void *target = prepare_put(target_tid,tid);
+  ContentInfo info;
+  void *target = prepare_put(info,tid);
   // if types don't match, assume standard conversion
-  if( tid != target_tid )
-    FailWhen( !convertScalar(data,tid,target,target_tid),
-          "can't assign "+tid.toString()+" to "+target_tid.toString() )
+  if( tid != info.tid )
+    FailWhen( !convertScalar(data,tid,target,info.tid),
+          "can't assign "+tid.toString()+" to "+info.tid.toString() )
   else // else a binary type
     memcpy(const_cast<void*>(target),data,sz);
   return target;
@@ -430,9 +434,9 @@ const void * NestableContainer::Hook::put_scalar( const void *data,TypeId tid,si
 // Helper function to assign an object.  
 void NestableContainer::Hook::assign_object( BlockableObject *obj,TypeId tid,int flags ) const
 {
-  TypeId target_tid;
-  void *target = prepare_put(target_tid,tid);
-  FailWhen(target_tid!=TpObjRef,"can't attach "+tid.toString()+" to "+target_tid.toString());
+  ContentInfo info;
+  void *target = prepare_put(info,tid);
+  FailWhen(info.tid!=TpObjRef,"can't attach "+tid.toString()+" to "+info.tid.toString());
   static_cast<ObjRef*>(target)->unlock().attach(obj,flags).lock();
 }
 
@@ -440,9 +444,9 @@ void NestableContainer::Hook::assign_object( BlockableObject *obj,TypeId tid,int
 ObjRef & NestableContainer::Hook::assign_objref ( const ObjRef &ref,int flags ) const
 {
   FailWhen(addressed,"unexpected '&' operator");
-  TypeId target_tid;
-  void *target = prepare_put(target_tid,ref->objectType());
-  FailWhen(target_tid!=TpObjRef,"can't assign ObjRef to "+target_tid.toString());
+  ContentInfo info;
+  void *target = prepare_put(info,ref->objectType());
+  FailWhen(info.tid!=TpObjRef,"can't assign ObjRef to "+info.tid.toString());
   if( flags&DMI::COPYREF )
     return static_cast<ObjRef*>(target)->unlock().copy(ref,flags).lock();
   else
@@ -456,9 +460,8 @@ template<class T>
 const Array<T> & NestableContainer::Hook::operator = (const Array<T> &other) const
 {
   FailWhen(addressed,"unexpected '&' operator");
-  bool dum; 
-  TypeId target_tid;
-  void *target = const_cast<void*>( collapseIndex(target_tid,dum,0,DMI::WRITE) );
+  ContentInfo info;
+  void *target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
   // non-existing object: try to a initialize a new DataArray
   if( !target  )
   {
@@ -466,7 +469,7 @@ const Array<T> & NestableContainer::Hook::operator = (const Array<T> &other) con
     assign_objref(ref,0);
   }
   // hook resolved to an array -- check shapes, etc.
-  else if( target_tid == typeIdOfArray(T) )
+  else if( info.tid == typeIdOfArray(T) )
   {
     Array<T> *arr = static_cast<Array<T>*>(target);
     FailWhen( arr->shape() != other.shape(),"can't assign array: shape mismatch" );
@@ -475,7 +478,7 @@ const Array<T> & NestableContainer::Hook::operator = (const Array<T> &other) con
   // else we should have resolved to an existing sub-container
   else
   {
-    NestableContainer *nc1 = asNestableWr(target,target_tid);
+    NestableContainer *nc1 = asNestableWr(target,info.tid);
     FailWhen(!nc1,"can't assign array: type mismatch");
     // for 1D arrays, use linear addressing, so all contiguous containers
     // are supported
@@ -486,7 +489,7 @@ const Array<T> & NestableContainer::Hook::operator = (const Array<T> &other) con
       // get pointer to first element (use pointer mode to ensure contiguity,
       // and pass in T as the check_tid.
       target = const_cast<void*>(
-          nc1->get(HIID(),target_tid,dum,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER));
+          nc1->get(HIID(),info,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER));
       FailWhen(!target,"uninitialized element");
       Array<T> arr(other.shape(),static_cast<T*>(target),SHARE);
       arr = other;
@@ -497,7 +500,7 @@ const Array<T> & NestableContainer::Hook::operator = (const Array<T> &other) con
       FailWhen( TpOfArrayElem(&other) == Tpstring,
           "multidimensional arrays of strings not supported" );
       target = const_cast<void*>(
-          nc1->get(HIID(),target_tid,dum,typeIdOfArray(T),DMI::WRITE));
+          nc1->get(HIID(),info,typeIdOfArray(T),DMI::WRITE));
       FailWhen(!target,"uninitialized element");
       Array<T> *arr = static_cast<Array<T>*>(target);
       FailWhen(arr->shape() != other.shape(),"can't assign array: shape mismatch" );
@@ -515,23 +518,22 @@ template<class T>
 const vector<T> & NestableContainer::Hook::assign_arrayable (const vector<T> &other) const
 {
   FailWhen(addressed,"unexpected '&' operator");
-  bool dum; 
-  TypeId target_tid;
-  void *target = const_cast<void*>( collapseIndex(target_tid,dum,0,DMI::WRITE) );
+  ContentInfo info;
+  void *target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
   // non-existing object: try to a initialize a new DataArray
   if( !target  )
   {
     DataArray *darr = new DataArray(typeIdOf(T),IPosition(1,other.size()),DMI::WRITE);
     ObjRef ref(darr,DMI::ANONWR);
     T * ptr = static_cast<T*>( const_cast<void*>(
-        darr->get(HIID(),target_tid,dum,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER) 
+        darr->get(HIID(),info,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER) 
         ));
     for( vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ )
       *ptr++ = *iter;
     assign_objref(ref,0);
   }
   // else maybe hook has resolved to an array -- check shapes, etc.
-  else if( target_tid == typeIdOfArray(T) )
+  else if( info.tid == typeIdOfArray(T) )
   {
     // NB: typeinfo should incorporate mapping between array types and
     // numeric types
@@ -545,7 +547,7 @@ const vector<T> & NestableContainer::Hook::assign_arrayable (const vector<T> &ot
   // else we should have resolved to an existing sub-container
   else
   {
-    NestableContainer *nc1 = asNestableWr(target,target_tid);
+    NestableContainer *nc1 = asNestableWr(target,info.tid);
     // if nc1 resolves to a DataField, then look for an array inside it
     if( nc1->objectType() == TpDataField && nc1->type() == TpDataArray )
     {
@@ -553,12 +555,12 @@ const vector<T> & NestableContainer::Hook::assign_arrayable (const vector<T> &ot
       
     }
     FailWhen(!nc1,"can't assign vector: type mismatch");
-    FailWhen( nc1->size() != (int)other.size(),"can't assign vector: shape mismatch" );
     // get pointer to first element (use pointer mode to ensure contiguity,
     // and pass in T as the check_tid.
     target = const_cast<void*>(
-        nc1->get(HIID(),target_tid,dum,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER));
+        nc1->get(HIID(),info,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER));
     FailWhen(!target,"can't assign vector");
+    FailWhen(info.size != (int)other.size(),"can't assign vector: shape mismatch" );
     T * ptr = static_cast<T*>(target);
     for( vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ )
       *ptr++ = *iter;
@@ -571,10 +573,9 @@ const vector<T> & NestableContainer::Hook::assign_arrayable (const vector<T> &ot
 void * NestableContainer::Hook::prepare_vector (TypeId tid,int size) const
 {
   FailWhen(addressed,"unexpected '&' operator");
-  bool dum; 
-  TypeId target_tid;
+  ContentInfo info;
   NestableContainer *nc1;
-  void *target = const_cast<void*>( collapseIndex(target_tid,dum,0,DMI::WRITE) );
+  void *target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
   // non-existing object: try to a initialize a new DataField
   if( !target  )
   {
@@ -584,16 +585,16 @@ void * NestableContainer::Hook::prepare_vector (TypeId tid,int size) const
   // else we should have resolved to an existing sub-container
   else
   {
-    NestableContainer *nc1 = asNestableWr(target,target_tid);
+    NestableContainer *nc1 = asNestableWr(target,info.tid);
     FailWhen(!nc1,"can't assign vector: type mismatch");
-    FailWhen(nc1->size() != size,"can't assign vector: shape mismatch");
     // get pointer to first element (use pointer mode to ensure contiguity,
     // and pass in T as the check_tid.
   }
   // get pointer to first element (use pointer mode to ensure contiguity)
   // cast away const since we set DMI::WRITE
   target = const_cast<void*>(
-      nc1->get(HIID(),target_tid,dum,tid,DMI::WRITE|DMI::NC_POINTER));
+      nc1->get(HIID(),info,tid,DMI::WRITE|DMI::NC_POINTER));
+  FailWhen(info.size != size,"can't assign vector: shape mismatch");
   FailWhen(!target,"can't assign vector");
   return target;
 }

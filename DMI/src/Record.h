@@ -141,7 +141,7 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       //	Implemetation of standard function for deep-dereferencing of
       //	contents.
       //	See NestableContainer for semantics.
-      virtual const void * get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid = 0, int flags = 0) const;
+      virtual const void * get (const HIID &id, ContentInfo &info, TypeId check_tid = 0, int flags = 0) const;
 
       //## Operation: insert%3C7A16BB01D7
       virtual void * insert (const HIID &id, TypeId tid, TypeId &real_tid);

@@ -21,6 +21,13 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.13  2002/06/10 12:39:18  smirnov
+//  %[BugId: 26]%
+//  Revised NestableContainer::get() interface to return info in a ContentInfo
+//  structure.
+//  Added optional size argument to hook.as_type_p() and _wp() methods.
+//  Cleaned up size handling, added working as_vector<T> and =(vector<T>).
+//
 //  Revision 1.12  2002/06/07 14:22:48  smirnov
 //  %[BugId: 26]%
 //  Many revisions related to support of arrays and vectors (including AIPS++) by
@@ -341,12 +348,13 @@ void DataArray::privatize (int flags, int)
 // no HIID   -> type can be TpArray_float (or Tpfloat if array has 1 element)
 // partial HIID -> type must be TpArray_float and create such array on heap
 //                 which gets deleted by clear()
-const void* DataArray::get (const HIID& id, TypeId& tid, bool& can_write,
+const void* DataArray::get (const HIID& id, ContentInfo &info,
 			    TypeId check_tid, int flags) const
 {
-  can_write = isWritable();
-  tid = headerType();
-  FailWhen (flags&DMI::WRITE && !can_write, "write access violation"); 
+  info.writable = isWritable();
+  info.tid = headerType();
+  info.size = 1;
+  FailWhen (flags&DMI::WRITE && !info.writable, "write access violation"); 
   int nid = id.length();
   int ndim = itsShape.nelements();
   // If a full HIID is given, we might need to return a single element
@@ -371,9 +379,10 @@ const void* DataArray::get (const HIID& id, TypeId& tid, bool& can_write,
 		   << " outside shape " << itsShape);
       }
       // Return a single element in the array.
-      tid = itsScaType;
+      info.tid = itsScaType;
       // Use a global function in IPosition.h to get the element offset.
       uInt offs = toOffsetInArray (which, itsShape);
+      info.size = 1;
       return itsArrayData + itsElemSize*offs;
     }
   } else if (nid == 0) {
@@ -381,17 +390,18 @@ const void* DataArray::get (const HIID& id, TypeId& tid, bool& can_write,
     if (check_tid == itsScaType) {
       AssertStr (flags&DMI::NC_POINTER,
 		 "array cannot be accessed as non-pointer scalar");
+      info.size = itsShape.product();
       return itsArrayData;
     }
-    AssertStr (check_tid == tid, "array type mismatch ("
+    AssertStr (check_tid == info.tid, "array type mismatch ("
 	       << check_tid.toString()
-	       << ' ' << tid.toString() << ')');
+	       << ' ' << info.tid.toString() << ')');
     return itsArray;
   }
   // Return a subset of the array as an array.
-  AssertStr (!check_tid  ||  check_tid == tid,
+  AssertStr (!check_tid  ||  check_tid == info.tid,
 	     "array type mismatch (" << check_tid.toString()
-	     << ' ' << tid.toString() << ')');
+	     << ' ' << info.tid.toString() << ')');
   IPosition st, end, incr, keepAxes;
   bool removeAxes = parseHIID (id, st, end, incr, keepAxes);
   int type = headerType();

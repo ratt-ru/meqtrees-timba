@@ -28,12 +28,12 @@
 #include "DMI/HIID.h"
 //## end module%3C10CC820124.includes
 
-// NestableContainer
-#include "DMI/NestableContainer.h"
 // BlockSet
 #include "DMI/BlockSet.h"
 // BlockableObject
 #include "DMI/BlockableObject.h"
+// NestableContainer
+#include "DMI/NestableContainer.h"
 //## begin module%3C10CC820124.declarations preserve=no
 //## end module%3C10CC820124.declarations
 
@@ -143,10 +143,10 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       //	write is True, throws exception if data is read-only. Can throw
       //	exceptions if id is malformed (i.e. contains indices that are out of
       //	range).
-      virtual const void * get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid = 0, int flags = 0) const;
+      virtual const void * get (const HIID &id, ContentInfo &info, TypeId check_tid = 0, int flags = 0) const;
 
       //## Operation: getn%3C7A1983024D
-      virtual const void * getn (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, int flags = 0) const;
+      virtual const void * getn (int n, ContentInfo &info, TypeId check_tid = 0, int flags = 0) const;
 
       //## Operation: insert%3C7A198A0347
       virtual void * insert (const HIID &id, TypeId tid, TypeId &real_tid);

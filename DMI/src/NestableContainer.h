@@ -39,12 +39,12 @@
 #endif
 //## end module%3C10CC830067.includes
 
+// BlockableObject
+#include "DMI/BlockableObject.h"
 // Registry
 #include "DMI/Registry.h"
 // HIIDSet
 #include "DMI/HIIDSet.h"
-// BlockableObject
-#include "DMI/BlockableObject.h"
 //## begin module%3C10CC830067.declarations preserve=no
 //## end module%3C10CC830067.declarations
 
@@ -92,6 +92,16 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
     //## begin NestableContainer::ConstHook%3C614FDE0039.preface preserve=yes
     class ConstHook;
     class Hook;
+    
+    // the ContentInfo struct is used to return information on
+    //
+    class ContentInfo
+    {
+      public:
+        TypeId tid;         // type of contents
+        bool writable;      // writability of contents
+        int  size;          // # of elements
+    };
     //## end NestableContainer::ConstHook%3C614FDE0039.preface
 
     //## Class: ConstHook%3C614FDE0039
@@ -122,6 +132,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       // Note that since Hooks are almost always treated as const 
       // (since they only appear as temporary objects), all their methods have to
       // be declared as const. Ugly, but that's C++ for you...
+      
+      protected:
+          static int _dum_int; // dummy by-ref argument
+          static ContentInfo _dum_info;
       //## end NestableContainer::ConstHook%3C614FDE0039.initialDeclarations
 
       public:
@@ -275,7 +289,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           NestableContainer * asNestableWr(void *target=0,TypeId tid=0) const;
           
           // helper func: collapses the current index and returns new target
-          const void * collapseIndex (TypeId &tid,bool &can_write,TypeId check_tid,int flags) const;
+          const void * collapseIndex (ContentInfo &info,TypeId check_tid,int flags) const;
           
           // helper func: applies exiasting id or index to hook in preparation
            // for setting a new one
@@ -285,10 +299,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           bool get_scalar( void *data,TypeId tid,bool nothrow=False ) const;
 
           // This is called to access by reference, for all types
-          const void *get_address(TypeId tid,bool must_write,bool pointer=False,const void *deflt=0) const;
+          const void *get_address(ContentInfo &info,TypeId tid,bool must_write,bool pointer=False,const void *deflt=0) const;
 
           // This is called to access by pointer, for all types
-          const void *get_pointer(TypeId tid,bool must_write,bool implicit=False,const void *deflt=0) const;
+          const void *get_pointer(int &sz,TypeId tid,bool must_write,bool implicit=False,const void *deflt=0) const;
 
           //## end NestableContainer::ConstHook%3C614FDE0039.protected
       private:
@@ -481,7 +495,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
         // Additional Protected Declarations
           //## begin NestableContainer::Hook%3C8739B50135.protected preserve=yes
           // Helper function resolves current index to target *
-          void * prepare_put( TypeId &target_tid,TypeId tid ) const;
+          void * prepare_put( ContentInfo &info,TypeId tid ) const;
               
           // This is called to assign a value, for scalar & binary types
           const void * put_scalar( const void *data,TypeId tid,size_t sz ) const;
@@ -543,7 +557,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       //	The return value is a pointer to the data element (or to an ObjRef
       //	to the data, see below). A return value of 0 indicates that the
       //	element doesn't exist but can be insert()ed (e.g. no such field in
-      //	record). An exception may be thrown otherwise (e.g. array inndex out
+      //	record). An exception may be thrown otherwise (e.g. array index out
       //	of range).
       virtual const void * get (const HIID &id, 	// Specifies an element
       	// in the container.
@@ -551,8 +565,9 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       	// Throw an exception if this is incompatible with check_tid. E.g. an
       	// array may be accessed as an Array_int, but if it has only a single
       	// element, then also as an int..
-      TypeId& tid, 	// Return the actual type of the element here.
-      bool& can_write, 	// Return True if the datum is writable, False if not.
+      ContentInfo &info, 	// This struct is filled in with information on the contents: tid is
+      	// the TypeId, writable indicates writability, size is the number of
+      	// elements (for access by pointer).
       TypeId check_tid = 0, 	// This is the type being requested.
       	// An exception should be thrown if there's a mismatch with the
       	// contents type. The following special cases must be handled:
@@ -570,7 +585,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       //	specification. This is the method called by the hook operator
       //	[](int). The default implementation simply converts the index into a
       //	single-index HIID, and calls get(HIID).
-      virtual const void * getn (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, int flags = 0) const;
+      virtual const void * getn (int n, ContentInfo &info, TypeId check_tid = 0, int flags = 0) const;
 
       //## Operation: insert%3C7A13D703AA
       //	insert(HIID). This is an abstract ethod for allocating a new element
@@ -797,29 +812,29 @@ inline const NestableContainer::ConstHook & NestableContainer::ConstHook::operat
 inline bool NestableContainer::ConstHook::exists () const
 {
   //## begin NestableContainer::ConstHook::exists%3C8737D30041.body preserve=yes
-  TypeId tid; bool dum;
-  return collapseIndex(tid,dum,0,0) != 0;
+  ContentInfo info;
+  return collapseIndex(info,0,0) != 0;
   //## end NestableContainer::ConstHook::exists%3C8737D30041.body
 }
 
 inline TypeId NestableContainer::ConstHook::type () const
 {
   //## begin NestableContainer::ConstHook::type%3C8737E002A3.body preserve=yes
-  TypeId tid; bool dum;
-  const void *targ = collapseIndex(tid,dum,0,0);
+  ContentInfo info;
+  const void *targ = collapseIndex(info,0,0);
   if( !targ )
     return 0;
-  const NestableContainer *nc1 = asNestable(targ,tid);
-  return nc1 ? nc1->type() : tid;
+  const NestableContainer *nc1 = asNestable(targ,info.tid);
+  return nc1 ? nc1->type() : info.tid;
   //## end NestableContainer::ConstHook::type%3C8737E002A3.body
 }
 
 inline TypeId NestableContainer::ConstHook::actualType () const
 {
   //## begin NestableContainer::ConstHook::actualType%3C8737F702D8.body preserve=yes
-  TypeId tid; bool dum;
-  const void *targ = collapseIndex(tid,dum,0,0);
-  return targ ? tid : NullType;
+  ContentInfo info;
+  const void *targ = collapseIndex(info,0,0);
+  return targ ? info.tid : NullType;
   //## end NestableContainer::ConstHook::actualType%3C8737F702D8.body
 }
 
@@ -841,17 +856,17 @@ inline bool NestableContainer::ConstHook::isContainer () const
 inline bool NestableContainer::ConstHook::isRef () const
 {
   //## begin NestableContainer::ConstHook::isRef%3C876FF50114.body preserve=yes
-  TypeId tid; bool dum;
-  const void *target = collapseIndex(tid,dum,0,0);
-  return target && tid == TpObjRef;
+  ContentInfo info;
+  const void *target = collapseIndex(info,0,0);
+  return target && info.tid == TpObjRef;
   //## end NestableContainer::ConstHook::isRef%3C876FF50114.body
 }
 
 inline int NestableContainer::ConstHook::size () const
 {
   //## begin NestableContainer::ConstHook::size%3C87380503BE.body preserve=yes
-  TypeId tid; bool dum;
-  const void *targ = collapseIndex(tid,dum,0,0);
+  ContentInfo info;
+  const void *targ = collapseIndex(info,0,0);
   if( !targ )
     return 0;
   const NestableContainer *nc1 = asNestable();
@@ -1018,10 +1033,10 @@ inline NestableContainer::NestableContainer (bool write)
 
 
 //## Other Operations (inline)
-inline const void * NestableContainer::getn (int n, TypeId& tid, bool& can_write, TypeId check_tid, int flags) const
+inline const void * NestableContainer::getn (int n, ContentInfo &info, TypeId check_tid, int flags) const
 {
   //## begin NestableContainer::getn%3C7A13C90269.body preserve=yes
-  return get(HIID(n),tid,can_write,check_tid,flags);
+  return get(HIID(n),info,check_tid,flags);
   //## end NestableContainer::getn%3C7A13C90269.body
 }
 
@@ -1121,29 +1136,33 @@ inline bool NestableContainer::isWritable () const
 inline const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
 {
   FailWhen(addressed,"unexpected '&' operator");
-  TypeId tid; bool dum;
-  const void *target = collapseIndex(tid,dum,0,write?DMI::WRITE:0);
+  ContentInfo info;
+  const void *target = collapseIndex(info,0,write?DMI::WRITE:0);
   FailWhen(!target,"element does not exist");
-  FailWhen(tid!=TpObjRef,"element is not held in an ObjRef");
+  FailWhen(info.tid != TpObjRef,"element is not held in an ObjRef");
   return static_cast<const ObjRef*>(target);
 }
 
 // This is called to access by pointer, for all types
 // Defers to get_address(pointer=True)
-inline const void * NestableContainer::ConstHook::get_pointer (TypeId tid,bool must_write,bool implicit,const void *deflt) const
+inline const void * NestableContainer::ConstHook::get_pointer (int &sz,TypeId tid,bool must_write,bool implicit,const void *deflt) const
 {
   FailWhen(!addressed && implicit,"missing '&' operator");
   // Defers to get_address(pointer=True)
-  return get_address(tid,must_write,True,deflt);
+  ContentInfo info;
+  const void *ret = get_address(info,tid,must_write,True,deflt);
+  sz = info.size;
+  return ret;
 }
 
 // This applies the current subscript to the hook, updating the target
-inline const void * NestableContainer::ConstHook::collapseIndex (TypeId &tid,
-    bool &can_write,TypeId check_tid,int flags) const
+inline const void * NestableContainer::ConstHook::collapseIndex (
+    ContentInfo &info,TypeId check_tid,int flags) const
 {
-  return index<0 
-      ? nc->get(id,tid,can_write,check_tid,flags|autoprivatize)
-      : nc->getn(index,tid,can_write,check_tid,flags|autoprivatize);
+  const void *ret = index<0 
+      ? nc->get(id,info,check_tid,flags|autoprivatize)
+      : nc->getn(index,info,check_tid,flags|autoprivatize);
+  return ret;
 }
 
 // helper function applies current subscript to hook in preparation

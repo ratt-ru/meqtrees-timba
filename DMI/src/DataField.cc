@@ -670,15 +670,15 @@ void DataField::privatize (int flags, int depth)
   //## end DataField::privatize%3C3EDEBC0255.body
 }
 
-const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, int flags) const
+const void * DataField::get (const HIID &id, ContentInfo &info, TypeId check_tid, int flags) const
 {
   //## begin DataField::get%3C7A19790361.body preserve=yes
   // null HIID implies scalar-mode access -- map to getn(0)
   if( !id.size() )
-    return getn(0,tid,can_write,check_tid,flags);
+    return getn(0,info,check_tid,flags);
   // single-index HIID implies get[n]
   if( id.size() == 1 && id.front().index() >= 0 )
-    return getn(id.front().index(),tid,can_write,check_tid,flags);
+    return getn(id.front().index(),info,check_tid,flags);
   FailWhen( !valid() || !size(),"field not initialized" );
   FailWhen( !isNestable(type()),"contents not a container" );
   FailWhen( !scalar,"non-scalar field, explicit numeric subscript expected" );
@@ -691,28 +691,29 @@ const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeI
       (&resolveObject(0,contflags).deref());
   Assert(nc);
   // defer to get[id] on container 
-  return nc->get(id,tid,can_write,check_tid,flags);
+  return nc->get(id,info,check_tid,flags);
   //## end DataField::get%3C7A19790361.body
 }
 
-const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_tid, int flags) const
+const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int flags) const
 {
   //## begin DataField::getn%3C7A1983024D.body preserve=yes
   FailWhen( !valid(),"field not initialized" );
-  FailWhen( n<0 || n>size(),"n out of range" );
-  if( n == size() )
+  info.size = size();
+  FailWhen( n<0 || n>info.size,"n out of range" );
+  if( n == info.size )
     return 0;
-  can_write = isWritable();
-  FailWhen(flags&DMI::PRIVATIZE && !can_write,"write access violation"); 
+  info.writable = isWritable();
+  FailWhen(flags&DMI::PRIVATIZE && !info.writable,"write access violation"); 
   if( binary_type ) // binary type
   {
-    FailWhen(flags&DMI::WRITE && !can_write,"write access violation"); 
+    FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
     FailWhen(flags&DMI::NC_SCALAR && !flags&DMI::NC_POINTER && size()>1,"non-scalar container");
     // types must match, or TpNumeric can match any numeric type
     FailWhen( check_tid && check_tid != type() &&
               (flags&DMI::NC_POINTER || check_tid != TpNumeric || !TypeInfo::isNumeric(type())),
         "type mismatch: requested "+check_tid.toString()+", have "+type().toString());
-    tid = type();
+    info.tid = type();
     return n*typeinfo.size + (char*)headerData();
   }
   else if( dynamic_type )
@@ -721,7 +722,7 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
     if( !check_tid || check_tid == TpObjRef ) 
     {
       FailWhen(flags&(DMI::NC_SCALAR|DMI::NC_POINTER) && size()>1,"non-scalar/non-contiguous container");
-      tid = TpObjRef;
+      info.tid = TpObjRef;
       return &resolveObject(n,flags); // checks DMI::WRITE
     }
     else 
@@ -731,7 +732,7 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
       if( check_tid == type() || check_tid == TpObject )
       {
         FailWhen(flags&(DMI::NC_SCALAR|DMI::NC_POINTER) && size()>1,"non-scalar/non-contiguous container");
-        tid = type();
+        info.tid = type();
         return &resolveObject(n,flags).deref(); // checks DMI::WRITE
       }
       // else mismatch -- If it's a container, try accessing it as a whole, 
@@ -744,16 +745,16 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
       const NestableContainer *nc = 
         dynamic_cast<const NestableContainer *>(resolveObject(n,contflags).deref_p());
       FailWhen(!nc,"dynamic cast to expected container type failed");
-      return nc->get(HIID(),tid,can_write,check_tid,flags);
+      return nc->get(HIID(),info,check_tid,flags);
     }
   }
   else   // special type -- types must match
   {
-    FailWhen(flags&DMI::WRITE && !can_write,"write access violation"); 
+    FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
     FailWhen(flags&DMI::NC_SCALAR && !flags&DMI::NC_POINTER && size()>1,"non-scalar container");
     FailWhen(check_tid && check_tid != type(),
         "type mismatch: expecting "+type().toString()+" got "+check_tid.toString() );
-    tid = type();
+    info.tid = type();
     if( flags&DMI::WRITE )
       spvec_modified = True;
     return static_cast<char*const>(spvec) + n*typeinfo.size;
