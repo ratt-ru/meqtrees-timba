@@ -25,14 +25,14 @@ class ResultPlotter(BrowserPlugin):
     self._window_controller.createInspector ()
 
 # used for 'embedded display'
-    self._window = CanvasWindow(parent, "MeqDisplay",0)
+#    self._window = CanvasWindow(parent, "MeqDisplay",0)
 
 # used for 'standalone display'
-#    self._window = CanvasWindow(None, "MeqDisplay",0)
-#    self._label = QLabel("",parent);
+    self._window = CanvasWindow(None, "MeqDisplay",0)
+    self._Qlabel = QLabel("",parent);
 
 # the next function call is not yet available in the standard HippoDraw
-# distribution
+# distribution (and there is still some quirkiness, in any case
 #    self._window.setAllowClose()
     self._window.show()
     self._display_controller = DisplayController.instance()
@@ -49,10 +49,10 @@ class ResultPlotter(BrowserPlugin):
                                                                                            
   def wtop (self):
 # used for 'embedded display'
-    return self._window
+#    return self._window
 
 # used for 'standalone display'
-#    return self._label
+    return self._Qlabel
 
   def display_data (self, plot_array):
 # figure out type and rank of incoming array
