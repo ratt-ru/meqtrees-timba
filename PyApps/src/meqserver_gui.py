@@ -174,9 +174,9 @@ class GriddedPage (object):
     self.align_layout();
   
   def align_layout (self):
-    xsizes = [100]*self.max_nx;
+    xsizes = [1000]*self.max_nx;
     map(lambda row:row.setSizes(xsizes),self._rows);
-    self._topgrid.setSizes([100]*self.max_ny);
+    self._topgrid.setSizes([1000]*self.max_ny);
     
   # returns top-level widget
   def wtop   (self):
@@ -373,7 +373,7 @@ class TreeBrowser (object):
     self._nlv.connect(self._nlv,SIGNAL('clicked(QListViewItem*)'),
                       self._node_clicked);
     # workspace
-    self._gw = GriddedWorkspace(self._splitter,max_nx=2,max_ny=2);
+    self._gw = GriddedWorkspace(self._splitter,max_nx=4,max_ny=4);
     
     self._splitter.setSizes([100,200]);
     
