@@ -122,6 +122,7 @@ void VisRepeater::run ()
                   message = ssprintf("received footer for dataset %s, %d tiles written",
                       id.toString().c_str(),ntiles);
                   control().setStatus(StStreamState,"FOOTER");
+                  control().setStatus(StNumTiles,ntiles);
                 }
                 else
                 {
