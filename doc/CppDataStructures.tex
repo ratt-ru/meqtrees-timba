@@ -115,69 +115,78 @@ meetings. The document is available via CVS at
     virtual int execute (Result::Ref &result,const Request &request);
 \end{verbatim}
 
-    \Result s are returned by attaching them to the CountedRef. The return code
+    \Result{}s are returned by attaching them to the CountedRef. The return code
     of \qq{execute()} is significant; see details below.
 
   \end{itemize}
 
 \subsection{Initialization and state}
   
-  A node's full {\em state} should be represented by a {\em state record}.
-  State may be requested via \qq{getState()} and changed via \qq{setState()}.
-  Note that the argument to \qq{setState()} does not have to be a complete new state
+  A node's full {\em state} should be mapped to a {\em state record}. State may
+  be requested via \qq{getState()} and changed via \qq{setState()}. Note that
+  the argument to \qq{setState()} does not have to be a complete new state
   record; instead, it should contains only those fields that actually need to
   be changed. 
 
-  When a node is constructed, it is passed an {\em init-record} (via the \qq{init()}
-  method), which is essentially a complete initial state record. This is the
-  way that all run-time arguments are specified! The \qq{setState()} method may the
-  be called later on to reconfigure a node. Note that a derived node class is
-  not obliged to be reconfigurable in every single aspect, but it's good design
-  to make it so. If some of the node state may only be set once via \qq{init()} and
-  not changed via \qq{setState()}, it should be clearly documented as such (the
-  assumed default is reconfigurable).
+  When a node is constructed, it is passed an {\em init-record} (via the
+  \qq{init()} method), which is essentially a complete initial state record.
+  This is the way that all run-time arguments to a node are specified! Later 
+  in a node's lifetime, the \qq{setState()} method may the be called to
+  reconfigure  it. Note that a node class is not obliged to be reconfigurable
+  in every single aspect, but it's good design to make it so as much as
+  possible. If some of the node state may only be set once via \qq{init()} and
+  not changed later on via \qq{setState()} -- call this {\em static\/} state --
+  it should be clearly documented as such. The assumed default is {\em
+  dynamic\/} state, i.e., state that is freely reconfigurable via
+  \qq{setState()}.
+
+  The following methods are responsible for initializing and changing state:
 
 \begin{verbatim}
-// C++
-// Ref::Xfer implies that ref to record should be taken over
+  // public: Initializes node with init record
+  //         Note that Ref::Xfer implies that ref to record will be taken over
 virtual void init (DataRecord::Ref::Xfer &initrec);
-\end{verbatim}
-  
-  The \qq{init()} method should do the following:
-  
-  \begin{enumerate}
-  
-  \item call the parent class's \qq{init()} with the record.
-  
-  \item configure internal object state according to what is now in the  node's
-    state record.
-    
-  \item throw exceptions on failure (malformed init record, etc.)
 
-  \end{enumerate}
+  // public: Changes dynamic node state (note: non-virtual)
+  //         Node can attach to/take over record contents as needed.
+void setState (DataRecord &rec);
+
+  // protected: Checks init record for missing fields, fills in defaults where needed
+  //            (called from Node::init())
+virtual void checkInitState (DataRecord &rec);
+
+  // protected: Implementation for setting or changing internal dynamic state 
+  //            (called from Node::setState())
+  //            Node can attach to record contents as needed. If initializing,
+  //            then record is the state record and should not be changed. If
+  //            not initializing, node can take over contents as well.
+virtual void setStateImpl (DataRecord &rec,bool initializing);
+\end{verbatim}
+
+\subsubsection{init()}
 
   The base \qq{Node::init()} does the following:
 
   \begin{enumerate}
   
-  \item takes over the init record, sets it as the state record.
+  \item Takes over the init record,  sets it as the state record, ensures a
+    private \& writable copy.
     
-  \item gets node name (\qq{rec.name}) and index (\qq{rec.nodeindex})
-        from the state record.
+  \item Adds the node's classname (\qq{rec.class}) to the state record if not
+    already present. If present, checks that the name actually matches the node
+    class.
 
-  \item gets the configuration group(s) from the state record 
-    (\qq{rec.config\_group}, see below).
+  \item Calls the virtual \qq{checkInitState()} method with the state record,
+    to ensure that it's complete, and that any missing defaults are filled in.
 
-  \item sets up caching policy according to what is specified in the
-    init record (\qq{rec.cache\_policy}, details TBD).
-    
-  \item adds the node's classname (\qq{rec.class}) to the state record if not
-    already present (this is obviously not reconfigurable).
+  \item Calls \qq{setStateImpl(staterec,true)} to set up internal state from
+    the state record (the \qq{true} argument indicates that the node is being
+    initialized with the state record.)
 
-  \item looks at \qq{rec.children} to set up child nodes. Children may be specified
-    via a either a list or a record. Both may contain any mix of the
+  \item Looks at \qq{rec.children} to set up child nodes. Children may be
+    specified via a either a list or a record, containing any mix of the
     following:
-    
+
     \begin{itemize}
       \item integer node indices referring to existing nodes.
 
@@ -198,37 +207,142 @@ virtual void init (DataRecord::Ref::Xfer &initrec);
     processed just like a list, with no specific order ensured). The record
     form allows for a more formal child specification in the case where
     children are semantically different.
+    
+  \item Any errors will result in an exception being thrown at the caller. A
+    node object that fails \qq{init()} is under no obligation to be usable; the
+    only method that's not allowed to fail is the destructor.
 
   \end{enumerate}
 
-\begin{verbatim}
-// C++
-// record contents should be copied as needed
-virtual void setState (const DataRecord &rec);
-\end{verbatim}
+  Derived classes need to reimplement \qq{init()} only if they have additional
+  static state of their own. A derived \qq{init()} should do the following:
+
+  \begin{enumerate}
   
-  This method should do the following:
+  \item Call the parent class's \qq{init()} with the initrec. This should
+    ultimately call \qq{Node::init()}, thus setting up the state record  and
+    calling \qq{setStateImpl()} to set up dynamic state.
+
+  \item Set up static state, as defined at the child class level, in accordance
+    with the state record.
+
+  \item Throw exceptions on any error. 
+
+  \end{enumerate}
+  
+  Note the virtual \qq{checkInitState()} method is called from
+  \qq{Node::init()}. This is meant to check the init record for required
+  fields, and fill in any missing defaults. The following two macros/inlines
+  (defined in \qq{Node}) are handy for this:
 
   \begin{itemize}
-    
-  \item call the parent class's \qq{setState()} with the same record.
   
-  \item check the record for all relevant fields. For each field that is
-    present, copy its value into its state record, and reconfigure itself
-    accordingly.
+  \item \qq{requiresInitField(record,field)} will throw an exception if the
+    field is missing.
 
-  \item irrelevant fields (or fields that are not reconfigurable) can be
-    ignored.
-    
-  \item throw exceptions on failure.
+  \item \qq{defaultInitField(record,field,deflt)} will insert a default value
+    for a field if it is missing.
 
   \end{itemize}
   
-  The base \qq{Node::setState()} method processes and reconfigures everything
-  that \qq{Node::init()} does (see above), with the exception of \qq{.class}
-  and \qq{.children}.
+  The base \qq{Node::checkInitState()} only fills in a default for \qq{.name}
+  (empty). A derived \qq{checkInitState()} should call the parent version, then
+  check for additional defaults and required fields as defined by the child
+  class.
+
+\subsubsection{setState() and setStateImpl()}
+
+  The non-virtual \qq{setState()} method defined in \qq{Node} provides the
+  public interface for setting state. Basically, it defers parsing the record
+  to \qq{setStateImpl()}, while providing a transaction mechanism of sorts:
+
+\begin{enumerate}
+
+  \item Calls \qq{setStateImpl(rec,false)} to process the record. The
+    \qq{false} value indicates that state is being modified rather than
+    [re]initialized. (Note that if the supplied record happens to be the node
+    state record itself, \qq{true} will be passed in instead.)
+
+  \item Catches \qq{Node::FailWithoutCleanup} exceptions and rethrows them at the
+    caller with no additional action.
+    
+  \item Catches all other execeptions, and does a cleanup before rethrowing
+    them. The cleanup consists of calling \qq{setStateImpl(staterec,true)}, so
+    as to reset internal state from the current state record. This is meant to
+    roll back from situations where an error midway through \qq{setStateImpl()}
+    could cause internal state to decohere from the state record.
+
+  \item On success, merges the supplied record into the current state record.
+
+\end{enumerate}
+
+  This design ensures that if a \qq{setState()} call fails (i.e., with an
+  exception), both the state record and the internal state of the object are
+  rolled back to their values prior to the call. (Assuming they were mutually
+  consistent to begin with.) In other words, the node object is guaranteed to
+  remain usable.
+
+  The virtual \qq{setNodeState()} method is responsible for changing dynamic
+  state. It should do the following:
+
+\begin{enumerate}
+
+  \item If the \qq{initializing} flag is not set, check the record for
+    ``forbidden'' fields, i.e., attempts to modify static state. Throw a
+    \qq{FailWithoutCleanup} if any are present. The
+    \qq{protectStateField(record,field)}  macro/inline is a convenient way to
+    do this.
+
+  \item Call the parent \qq{setStateImpl()}, which will check for forbidden fields and 
+    change dynamic state defined at the parent class level.
+    
+  \item Parse the record and modify state defined at the child class level.
+    
+  \item Throw exceptions on error. A \qq{Node::FailWithoutCleanup} should be
+    thrown if and only if no state was modified. All other exceptions will
+    invoke the ``rollback'' mechanism above. You can rely on \qq{DataRecord}
+    (and other DMI classes) to throw an exception when datatypes mismatch or
+    something else goes wrong; throw a \qq{Node::FailWithCleanup} if you want
+    to indicate some other kind of failure.
+
+\end{enumerate}
+
+  For reference, the base \qq{Node::setStateImpl()} does the following:  
+
+\begin{enumerate}
+
+  \item Unless initializing, fails if static state: \qq{.class}, \qq{.children}
+    or \qq{.nodeindex} is specified.
+
+  \item Gets node name (\qq{.name}) from the state record.
+
+  \item Gets the configuration group(s) from the state record 
+    (\qq{.config\_groups}, see below).
+
+  \item Sets up caching policy according to what is specified in the init
+    record (\qq{.cache\_policy}, details TBD).
+
+\end{enumerate}
+
+\subsubsection{Unrecognized state fields}
+
+  Note that these implementations of \qq{init()} and \qq{setState()} will
+  ignore any unrecognized fields in the init and state record, all the while 
+  diligently maintaining and changing them as requested. This allows for a few
+  interesting possibilities:
+
+  \begin{itemize}
   
-\subsection{Node serialization}
+  \item Nodes may be assigned arbitary additional attributes and data,
+    meaningless to the node itself, but perhaps useful to the control layer.
+
+  \item Things like the result cache (see below) -- which is stored directly in
+    the state record -- may be accessed and changed externally (i.e. from the
+    scripting level). This may be useful for debugging and testing.
+
+  \end{itemize}
+
+\subsection{Node serialization \& persistency}
 
   In the near future we will need persistent nodes (i.e. being able to
   save/load the nodes to a file or database), and further down the road, the
@@ -649,5 +763,9 @@ virtual void setState (const DataRecord &rec);
   application-specific node classes. Arguably, MeqParms should be hardwired
   members of \qq{Solvable}, because knowledge of this group would already be
   hardwired into the Solver node.
+  
+\section{MeqServer interface}
+
+Coming soon.
 
 \end{document}
