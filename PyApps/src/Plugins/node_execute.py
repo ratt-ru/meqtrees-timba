@@ -86,7 +86,7 @@ class editRequest(QDialog):
     self.close()
 
 class startLoop(QDialog):
-  def __init__(self, parent, name='LoopCnt', modal=1):
+  def __init__(self, parent, name='LoopCnt', modal=0):
     self.parent = parent
     QDialog.__init__(self, parent._wtop, name, modal, 0)
     self.setCaption('LoopCnt')
