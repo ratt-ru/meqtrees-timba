@@ -17,7 +17,9 @@ ColumnarTableTile::ColumnarTableTile (const ColumnarTableTile &other, int flags,
   : BlockableObject(),ncol_(0),nrow_(other.nrow())
 {
   Thread::Mutex::Lock lock2(other.mutex_);
-  
+  // copy over the ID
+  setTileId(other.tileId());
+  // copy format
   if( other.format_.valid() )
   {
     format_.copy(other.format_,DMI::READONLY).lock();
@@ -31,9 +33,10 @@ ColumnarTableTile::ColumnarTableTile (const ColumnarTableTile &other, int flags,
 }
 
 //##ModelId=3DB964F2018C
-ColumnarTableTile::ColumnarTableTile (const FormatRef &form, int nr)
+ColumnarTableTile::ColumnarTableTile (const FormatRef &form, int nr,
+                                      const HIID &id)
 {
-  init(form,nr);
+  init(form,nr,id);
 }
 
 //##ModelId=3DB964F201A6
@@ -41,8 +44,8 @@ ColumnarTableTile::ColumnarTableTile (const ColumnarTableTile &a, const Columnar
 {
   Thread::Mutex::Lock lock2(a.mutex_);  
   Thread::Mutex::Lock lock3(b.mutex_);  
-
-  init(a.formatRef(),a.nrow()+b.nrow());
+  // init with the first tile's format & ID
+  init(a.formatRef(),a.nrow()+b.nrow(),a.tileId());
   copy(a);
   copy(a.nrow(),b);
 }
@@ -63,29 +66,32 @@ ColumnarTableTile & ColumnarTableTile::operator=(const ColumnarTableTile &right)
   {
     Thread::Mutex::Lock lock(mutex_);
     reset();
-    format_.unlock().detach();
-    datablock.unlock().detach();
+    // copy ID
+    setTileId(right.tileId());
+    // copy format
     if( right.format_.valid() )
     {
       format_.copy(right.format_,DMI::READONLY).lock();
       ncol_ = format_->maxcol();
     }
     nrow_ = right.nrow_;
+    // deep-copy other's data block
     if( right.datablock.valid() )
       datablock.unlock().copy(right.datablock,DMI::WRITE|DMI::DEEP).lock();
+    
     pdata = right.pdata;
   }
   return *this;
 }
 
-
-
 //##ModelId=3DB964F201D0
-void ColumnarTableTile::init (const FormatRef &form, int nr)
+void ColumnarTableTile::init (const FormatRef &form, int nr,
+                              const HIID &id)
 {
   Thread::Mutex::Lock lock(mutex_);
   reset();
   FailWhen(nr<0,"illegal numer of rows");
+  setTileId(id);
   format_.copy(form,DMI::READONLY).lock();
   nrow_ = nr;
   ncol_ = format_->maxcol();
@@ -93,17 +99,28 @@ void ColumnarTableTile::init (const FormatRef &form, int nr)
   {
     // compute offsets within block and total data size
     vector<int> offset;
-    int totsize = computeOffsets(offset,format(),nrow());
+    int totsize = computeOffsets(offset,maxIdSize(),format(),nrow());
     if( !nrow() ) // point to null block
       datablock.copy(nullBlock,DMI::WRITE).lock();
     else // else allocate block
     {
       datablock.attach(new SmartBlock(totsize,DMI::ZERO),DMI::ANONWR|DMI::LOCK);
-      static_cast<BlockHeader*>(datablock().data())->nrow = nrow();
+      initBlock(datablock().data(),totsize);
     }
     // setup pointers to column data
     applyOffsets(pdata,offset,datablock->cdata());
   }
+}
+
+//##ModelId=3DF9FDCC00FB
+void ColumnarTableTile::initBlock (void *data,size_t sz) const
+{
+  BlockHeader *hdr = static_cast<BlockHeader*>(data);
+  hdr->nrow = nrow();
+  hdr->maxidsize = maxIdSize();
+  // pack ID following the header
+  sz -= sizeof(BlockHeader);
+  hdr->idsize = id_.pack(static_cast<char*>(data) + sizeof(BlockHeader),sz);
 }
 
 //##ModelId=3DB964F201EA
@@ -113,6 +130,7 @@ void ColumnarTableTile::reset ()
   format_.unlock().detach();
   datablock.unlock().detach();
   nrow_ = ncol_ = 0;
+  id_ = HIID();
   pdata.resize(0);
 }
 
@@ -136,7 +154,7 @@ void ColumnarTableTile::applyFormat (const FormatRef &form)
       FailWhen( !datablock.valid(),"missing data block" );
       // compute offsets within block and total data size
       vector<int> offset;
-      uint totsize = computeOffsets(offset,form.deref(),nrow());
+      uint totsize = computeOffsets(offset,maxIdSize(),form.deref(),nrow());
       // check block size
       FailWhen(datablock->size() != totsize,"format not compatible with contents");
       // setup pointers to column data
@@ -160,7 +178,7 @@ void ColumnarTableTile::changeFormat (const FormatRef &form)
     FailWhen( !datablock.valid(),"missing data block" );
     // allocate new datablock and compute offsets within
     vector<int> offset;
-    int totsize = computeOffsets(offset,newform,nrow());
+    int totsize = computeOffsets(offset,maxIdSize(),newform,nrow());
     BlockRef newblock(new SmartBlock(totsize,DMI::ZERO),DMI::ANONWR);
     // setup pointers to new column data
     vector<const void *> newptr;
@@ -180,6 +198,7 @@ void ColumnarTableTile::changeFormat (const FormatRef &form)
     // take over new block
     pdata = newptr;
     datablock.unlock().xfer(newblock).lock();
+    initBlock(datablock().data(),totsize);
   }
   // remember new format
   format_.copy(form,DMI::READONLY).lock();
@@ -222,7 +241,7 @@ void ColumnarTableTile::addRows (int nr)
   FailWhen(nr<0,"illegal number of rows");
   FailWhen(!isWritable(),"r/w access violation");
   vector<int> offset;
-  int totsize = computeOffsets(offset,format(),nrow()+nr);
+  int totsize = computeOffsets(offset,maxIdSize(),format(),nrow()+nr);
   // allocate new block
   BlockRef newblock(new SmartBlock(totsize,DMI::ZERO),DMI::ANONWR);
   // setup pointers to new column data
@@ -238,7 +257,7 @@ void ColumnarTableTile::addRows (int nr)
   nrow_ += nr;
   pdata = newptr;
   datablock.unlock().xfer(newblock).lock();
-  static_cast<BlockHeader*>(datablock().data())->nrow = nrow();
+  initBlock(datablock().data(),totsize);
 }
 
 //##ModelId=3DB964F20295
@@ -255,6 +274,7 @@ void ColumnarTableTile::copy (int startrow, const ColumnarTableTile &other, int 
   
   // if we have no format, this sets it from other, else checks for consistency
   applyFormat(other.format_);
+        
   // return if 0 rows are to be copied
   if( !numrows )
     return;
@@ -267,6 +287,9 @@ void ColumnarTableTile::copy (int startrow, const ColumnarTableTile &other, int 
   {
     FailWhen(startrow + numrows > nrow(),"insufficient space for copy");
   }
+  // if no ID, get it from other
+  if( !id_.size() )
+    setTileId(other.id_);
   // copy data from other tile
   for( int i=0; i<format().maxcol(); i++ )
     if( defined(i) )
@@ -280,11 +303,17 @@ int ColumnarTableTile::fromBlock (BlockSet& set)
   datablock.unlock();
   set.pop(datablock);
   datablock.lock();
-  nrow_ = static_cast<const BlockHeader*>(datablock->data())->nrow;
-  // no data -- set the nil representation
+  const BlockHeader* hdr = static_cast<const BlockHeader*>(datablock->data());
+  nrow_ = hdr->nrow;
+  FailWhen( hdr->maxidsize != maxIdSize(),"ID size in block does not match this tile class" );
+  int maxsz = HIID::HIIDSize(maxIdSize());
+  FailWhen( datablock->size() < sizeof(BlockHeader) + maxsz,"corrupt block");
+  // unpack the ID from the block
+  id_.unpack(datablock->cdata()+sizeof(BlockHeader),hdr->idsize);
+  // no data -- get ID out of the block and set the nil representation
   if( !nrow_ )
   {
-    FailWhen(sizeof(BlockHeader) != datablock->size(),"corrupt block");
+    id_.unpack(datablock->cdata()+sizeof(BlockHeader),hdr->idsize);
     pdata.resize(0);
     datablock.unlock().detach();
   }
@@ -294,7 +323,7 @@ int ColumnarTableTile::fromBlock (BlockSet& set)
     if( hasFormat() )
     {
       vector<int> offset;
-      size_t totsize = computeOffsets(offset,format(),nrow());
+      size_t totsize = computeOffsets(offset,maxIdSize(),format(),nrow());
       FailWhen(totsize != datablock->size(),"block not compatible with tile format");
       // setup pointers to column data
       applyOffsets(pdata,offset,datablock->cdata());
@@ -305,12 +334,15 @@ int ColumnarTableTile::fromBlock (BlockSet& set)
       pdata.resize(0);
     }
   }
+  // get ID from block
   return 1;
 }
 
 //##ModelId=3DB964F202FE
 int ColumnarTableTile::toBlock (BlockSet &set) const
 {
+  // note that for empty tiles (with no data or rows in them)
+  // IDs will not be preserved
   Thread::Mutex::Lock lock(mutex_);
   FailWhen(nrow() && !datablock.valid(),"tile data missing??");
   // if we have data, push it out
@@ -318,7 +350,12 @@ int ColumnarTableTile::toBlock (BlockSet &set) const
     set.push(datablock.copy(DMI::READONLY));
   // else push out the nil representation
   else
-    set.push(nullBlock.copy(DMI::READONLY));
+  {
+    BlockRef ref(new SmartBlock(sizeof(BlockHeader) + HIID::HIIDSize(maxIdSize())),
+        DMI::WRITE|DMI::ANON);
+    initBlock(ref().data(),ref->size());
+    set.push(ref);
+  }
   return 1;
 }
 
@@ -341,15 +378,29 @@ void ColumnarTableTile::privatize (int flags, int depth)
     datablock.privatize(flags,depth);
     // recompute offsets into data block since it may have changed
     vector<int> offset;
-    computeOffsets(offset,format(),nrow());
+    computeOffsets(offset,maxIdSize(),format(),nrow());
     applyOffsets(pdata,offset,datablock->cdata());
+    initBlock(datablock().data(),datablock->size());
+  }
+}
+
+//##ModelId=3DF9FDCB008B
+void ColumnarTableTile::setTileId (const HIID &id)
+{
+  FailWhen(!isWritable(),"r/w access violation" );
+  FailWhen( id.size() > uint(maxIdSize()),"ID too long for this tile class" );
+  id_ = id;
+  if( datablock.valid() )
+  {
+    // re-init block to copy new ID into it
+    initBlock(datablock().data(),datablock->size());
   }
 }
 
 //##ModelId=3DB964F30005
-int ColumnarTableTile::computeOffsets (vector<int> &offset,const Format &format,int nrow)
+int ColumnarTableTile::computeOffsets (vector<int> &offset,int maxidsz,const Format &format,int nrow)
 {
-  int totsize = sizeof(BlockHeader);
+  int totsize = sizeof(BlockHeader) + HIID::HIIDSize(maxidsz);
   offset.resize(format.maxcol());
   offset.assign(format.maxcol(),-1);
   // -1 marks undefined column. With 0 rows, all columns are undefined.
@@ -396,6 +447,7 @@ string ColumnarTableTile::sdebug ( int detail,const string &,const char *name ) 
   }
   if( detail >= 1 || detail == -1 )
   {
+    appendf(out,"id=%s",id_.toString().c_str());
     appendf(out,"%d rows",nrow());
     if( datablock.valid() )
       appendf(out,"%ld bytes @%x",datablock->size(),datablock->data());

@@ -3,14 +3,12 @@
 
 #include "VisCube/TableFormat.h"
 #include "VisCube/TID-VisCube.h"
-
-// BlockableObject
+#include "DMI/HIID.h"
 #include "DMI/BlockableObject.h"
 
 #pragma type #ColumnarTableTile
 
-class ColumnarTableTile : public BlockableObject,  //## Inherits: <unnamed>%3D919C2B03DA
-                          public VisCubeDebugContext
+class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919C2B03DA
 {
   public:
     //##ModelId=3DB964F20016
@@ -29,7 +27,8 @@ class ColumnarTableTile : public BlockableObject,  //## Inherits: <unnamed>%3D91
       ColumnarTableTile (const ColumnarTableTile &other, int flags = DMI::WRITE, int depth = 0);
 
     //##ModelId=3DB964F2018C
-      ColumnarTableTile (const FormatRef &form, int nr = 0);
+      ColumnarTableTile (const FormatRef &form, int nr = 0, 
+                         const HIID &id = HIID());
 
     //##ModelId=3DB964F201A6
       ColumnarTableTile (const ColumnarTableTile &a, const ColumnarTableTile &b);
@@ -42,7 +41,8 @@ class ColumnarTableTile : public BlockableObject,  //## Inherits: <unnamed>%3D91
 
 
     //##ModelId=3DB964F201D0
-      void init (const FormatRef &form, int nr = 0);
+      void init (const FormatRef &form, int nr = 0, 
+                 const HIID &id = HIID());
 
     //##ModelId=3DB964F201EA
       void reset ();
@@ -61,6 +61,14 @@ class ColumnarTableTile : public BlockableObject,  //## Inherits: <unnamed>%3D91
 
     //##ModelId=3DB964F2020C
       bool defined (int icol) const;
+
+    // returns the tile ID
+    //##ModelId=3DF9FDCA03BC
+      const HIID & tileId () const;
+      
+    // sets or changes the tile ID
+    //##ModelId=3DF9FDCB008B
+      void setTileId (const HIID &id);
 
     //##ModelId=3DB964F2021A
       const void * column (int icol) const;
@@ -93,7 +101,7 @@ class ColumnarTableTile : public BlockableObject,  //## Inherits: <unnamed>%3D91
       int ncol () const;
     //##ModelId=3DB964F20343
       int nrow () const;
-
+      
     //##ModelId=3DB964F20345
       const ColumnarTableTile::FormatRef& formatRef () const;
     //##ModelId=3DB964F20347
@@ -111,6 +119,7 @@ class ColumnarTableTile : public BlockableObject,  //## Inherits: <unnamed>%3D91
     //##ModelId=3DB964F2033F
       TypeId objectType () const;
       
+    //##ModelId=3DF9FDCB0203
     //##Documentation
     //## accessor to mutex
       Thread::Mutex & mutex () const;
@@ -150,9 +159,13 @@ class ColumnarTableTile : public BlockableObject,  //## Inherits: <unnamed>%3D91
     //##ModelId=3DB964F203DF
       void *      cwdata (int icol); 
 
-  private:
-    // Additional Private Declarations
-
+  protected:
+      // returns maximum length of tile ID. Is meant to be redefined by
+      // specialized subclasses
+    //##ModelId=3DF9FDCB02C5
+      virtual int maxIdSize () const
+      { return 0; }
+      
   private:
     //##ModelId=3DB964F2011C
       BlockRef datablock;
@@ -163,6 +176,9 @@ class ColumnarTableTile : public BlockableObject,  //## Inherits: <unnamed>%3D91
     //##ModelId=3DB964F20138
       ColumnarTableTile::FormatRef format_;
       
+      // tile ID
+    //##ModelId=3DF9FDC90314
+      HIID id_;
       
       // common "null" block for 0-row representations
     //##ModelId=3DB964F20141
@@ -173,16 +189,21 @@ class ColumnarTableTile : public BlockableObject,  //## Inherits: <unnamed>%3D91
       vector<const void *> pdata;
       
       // computes offset of each column in block, given format
-      // (taking block header into account)
+      // (taking block header + tile id size into account)
     //##ModelId=3DB964F30005
-      static int computeOffsets (vector<int> &offsets,const Format &format,int nr);
-      // computes the pdata vector, given the offsets and a pointer to a block
+      static int computeOffsets (vector<int> &offsets,int maxidsize,const Format &format,int nr);
+      // computes the pdata vector, given the offsets returned by 
+      // computeOffsets, and a pointer to a block
     //##ModelId=3DB964F3002D
       static void applyOffsets (vector<const void *> &ptrs,const vector<int> &offsets,const char *ptr0);
+    // helper function to stuff header & ID into a data block
+    //##ModelId=3DF9FDCC00FB
+      void initBlock (void *data,size_t sz) const;
       
     //##ModelId=3DB964F20021
-      typedef struct { int nrow; } BlockHeader;
+      typedef struct { int nrow,maxidsize,idsize; } BlockHeader;
       
+    //##ModelId=3DF9FDC90364
       mutable Thread::Mutex mutex_;
       
 };
@@ -201,6 +222,12 @@ inline bool ColumnarTableTile::hasFormat () const
 inline bool ColumnarTableTile::isWritable () const
 {
   return !datablock.valid() || datablock.isWritable();
+}
+
+//##ModelId=3DF9FDCA03BC
+inline const HIID & ColumnarTableTile::tileId () const
+{
+  return id_;
 }
 
 //##ModelId=3DB964F20243
@@ -299,6 +326,7 @@ inline void *       ColumnarTableTile::cwdata (int icol)
 }
 
 
+//##ModelId=3DF9FDCB0203
 inline Thread::Mutex & ColumnarTableTile::mutex () const
 {
   return mutex_;

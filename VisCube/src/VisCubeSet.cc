@@ -226,6 +226,7 @@ int VisCubeSet::toBlock(BlockSet &set) const
 
 
 
+//##ModelId=3DF9FDD20007
 string VisCubeSet::sdebug ( int detail,const string &prefix,
                             const char *name) const
 {

@@ -13,7 +13,7 @@
 //## TableFormat is used to describe the layout of a table. This is a
 //## BlockableObject, so it may be placed in containers, shipped across the
 //## netowkr, etc.
-class TableFormat : public BlockableObject, public VisCubeDebugContext
+class TableFormat : public BlockableObject
 {
   public:
       

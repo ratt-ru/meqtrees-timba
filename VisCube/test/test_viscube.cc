@@ -20,15 +20,16 @@ int main (int argc,const char *argv[])
   
   for( VisCube::iterator iter = vc().begin(); iter != vc().end(); iter++ )
   {
-    iter.setTime(time++);
-    iter.setRowflag(rowflag++);
-    iter.setWeight(weight++);
+    iter.set_time(time++);
+    iter.set_seqnr(time++);
+    iter.set_rowflag(rowflag++);
+    iter.set_weight(weight++);
     dataplane = dataval++;
     flagplane = flagval++;
     uvwvec = uvwval++,uvwval++,uvwval++;
-    iter.setData(dataplane);
-    iter.setFlags(flagplane);
-    iter.setUvw(uvwvec);
+    iter.set_data(dataplane);
+    iter.set_flags(flagplane);
+    iter.set_uvw(uvwvec);
   }
   cout<<"=================== cube contents (on the fly) ====\n";
   cout<<"TIME:\n"<<vc->time()<<endl;

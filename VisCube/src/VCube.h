@@ -57,8 +57,7 @@ DefineRefTypes(VisCube,VisCubeRef);
 //## * Do we need a move()/pop() method that moves or pops complete tiles
 //##   off a VisCube?
 //##
-class VisCube : public BlockableObject,
-                public VisCubeDebugContext
+class VisCube : public BlockableObject
 {
   public:
     //##ModelId=3DB964F200B9
@@ -170,6 +169,7 @@ class VisCube : public BlockableObject,
         //## via a ref, the ref is released at this point.
           void detach ();
           
+        //##ModelId=3DF9FDCD02BB
         //##Documentation
         //## standard debug info method, depending on level includes:
         //## 0: class name & object address
@@ -178,6 +178,7 @@ class VisCube : public BlockableObject,
           string sdebug ( int detail = 1,const string &prefix = "",
                           const char *name = 0 ) const;
           
+        //##ModelId=3DF9FDCE0117
           const char * debug ( int detail = 1,const string &prefix = "",
                                const char *name = 0 ) const
           { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
@@ -208,13 +209,16 @@ class VisCube : public BlockableObject,
           int itile;
           
         // index of timeslot within cube
+        //##ModelId=3DF9FDCD01FA
           int icubetime;
           
+        //##ModelId=3DF9FDCD02A2
         //##Documentation
         //## keep cube locked while iterating
           Thread::Mutex::Lock cubelock;
           
       private:
+        //##ModelId=3DF9FDCD0124
         //##Documentation
         //## This hides the base class' attach() methods
           VisTile::ConstIterator::attach;
@@ -255,13 +259,16 @@ class VisCube : public BlockableObject,
           void attach (const VisCubeRef &cuberef);
           
         // override this from VisTile because we cache the times
+        //##ModelId=3DF9FDCF0000
           void setTime (double x) const;
 
+        //##ModelId=3DF9FDCF0081
         //## standard debug info method, see ConstIterator above
           string sdebug ( int detail = 1,const string &prefix = "",
                           const char *name = 0 ) const
           { return ConstIterator::sdebug(detail,prefix,name?name:"I{VisCube}"); }
           
+        //##ModelId=3DF9FDCF01B7
           const char * debug ( int detail = 1,const string &prefix = "",
                                const char *name = 0 ) const
           { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
@@ -271,7 +278,7 @@ class VisCube : public BlockableObject,
 
       private:
         // Additional Private Declarations
-        //##ModelId=3DB964F502C8
+        //##ModelId=3DF9FDCE036C
         //##Documentation
         //## This hides the base class' attach() methods
 //          ConstIterator::attach;
@@ -279,7 +286,9 @@ class VisCube : public BlockableObject,
 
     };
     
+    //##ModelId=3DF9FDC900FF
     typedef ConstIterator const_iterator;
+    //##ModelId=3DF9FDC90144
     typedef Iterator iterator;
 
     //##ModelId=3DB964F60138
@@ -302,7 +311,7 @@ class VisCube : public BlockableObject,
     //## same format object). See above for meaning of nt and tilesize.
     VisCube (const Format::Ref &form, int nt = 0,int tilesize = 0);
 
-  //##ModelId=3DB964F603D0
+  //##ModelId=3DD374F4021E
     //##Documentation
     //## Copy constructor. Depth and flags are used as follows:
     //## * refs to tiles are copied with the supplied flags and depth-1.
@@ -314,7 +323,7 @@ class VisCube : public BlockableObject,
     //##   copy the top-level record by-value.
     VisCube (const VisCube &right, int flags = DMI::PRESERVE_RW, int depth = 0);
 
-  //##ModelId=3DD374F4021E
+  //##ModelId=3DB964F603D0
     //##Documentation
     //## Makes a copy of a subset of another cube, from timeslot it0 to
     //## timeslot it0+nt-1 (or to end of cube, if nt<0). Partial tile segments,
@@ -532,10 +541,12 @@ class VisCube : public BlockableObject,
     TypeId objectType () const
     { return TpVisCube; }
     
+    //##ModelId=3DF9FDD00141
     //##Documentation
     //## Mutex for cube ops
     Thread::Mutex & mutex () const;
     
+    //##ModelId=3DF9FDD001AB
   //##Documentation
   //## standard debug info method, depending on level includes:
   //## 0: class name & object address
@@ -544,6 +555,7 @@ class VisCube : public BlockableObject,
     string sdebug ( int detail = 1,const string &prefix = "",
                     const char *name = 0 ) const;
     
+    //##ModelId=3DF9FDD003B3
     DefineRefTypes(VisCube,Ref);
 
   private:
@@ -633,7 +645,7 @@ class VisCube : public BlockableObject,
   //##ModelId=3DD100FB02D8
     const LoCube_fcomplex & dataCol (bool on_the_fly = False) const
             { return getTiledArray(on_the_fly,datacube,&VisTile::data); }
-    //##ModelId=3DD100FC0079
+    //##ModelId=3DF9FDD100E2
     LoCube_fcomplex & wdataCol ()   // will auto-consolidate
             { return getTiledArray(datacube,&VisTile::wdata); }
     //##ModelId=3DD100FC00DD
@@ -646,7 +658,7 @@ class VisCube : public BlockableObject,
     //##ModelId=3DD100FD00D7
     const LoCube_int & flagsCol (bool on_the_fly = False) const
             { return getTiledArray(on_the_fly,flagcube,&VisTile::flags); }
-    //##ModelId=3DD100FD0274
+    //##ModelId=3DF9FDD10127
     LoCube_int & wflagsCol ()              // will auto-consolidate
             { return getTiledArray(flagcube,&VisTile::wflags); }
    //##ModelId=3DD100FD02DE
@@ -659,7 +671,7 @@ class VisCube : public BlockableObject,
     //##ModelId=3DD100FE0309
     const LoMat_double & uvwCol (bool on_the_fly = False) const
             { return getTiledArray(on_the_fly,uvwmatrix,&VisTile::uvw); }
-    //##ModelId=3DD100FF00D2
+    //##ModelId=3DF9FDD1016C
     LoMat_double & wuvwCol ()     // will auto-consolidate
             { return getTiledArray(uvwmatrix,&VisTile::wuvw); }
    //##ModelId=3DD100FF0141
@@ -672,7 +684,7 @@ class VisCube : public BlockableObject,
     //##ModelId=3DD101000160
     const LoVec_float & weightCol (bool on_the_fly = False) const
             { return getTiledArray(on_the_fly,weightvec,&VisTile::weight); }
-    //##ModelId=3DD101000324
+    //##ModelId=3DF9FDD101DD
     LoVec_float & wweightCol ()   // will auto-consolidate
             { return getTiledArray(weightvec,&VisTile::wweight); }
     //##ModelId=3DD101000398
@@ -685,7 +697,7 @@ class VisCube : public BlockableObject,
   //##ModelId=3DD101020083
     const LoVec_int & rowflagCol (bool on_the_fly = False) const
             { return getTiledArray(on_the_fly,rowflagvec,&VisTile::rowflag); }
-    //##ModelId=3DD10102025C
+    //##ModelId=3DF9FDD10223
     LoVec_int & wrowflagCol ()   // will auto-consolidate
             { return getTiledArray(rowflagvec,&VisTile::wrowflag); }
   //##ModelId=3DD1010202D8
@@ -834,6 +846,7 @@ class VisCube : public BlockableObject,
     //##ModelId=3DD100FA03AE
       mutable BlockRef hdrblock;
       
+    //##ModelId=3DF9FDCF02FC
     //##Documentation
     //## Mutex for cube ops
       mutable Thread::Mutex mutex_;
@@ -886,9 +899,10 @@ inline bool VisCube::ConstIterator::next ()
   return True;
 }
 
+//##ModelId=3DF9FDCF0000
 inline void VisCube::Iterator::setTime (double x) const
 {
-  VisTile::Iterator::setTime(x);
+  VisTile::Iterator::set_time(x);
   pcube->timeslots(icubetime) = x;
 }
 
@@ -1113,6 +1127,7 @@ inline void VisCube::setTileElement (
 }
     
 
+//##ModelId=3DF9FDD00141
 inline Thread::Mutex & VisCube::mutex () const
 { 
   return mutex_; 

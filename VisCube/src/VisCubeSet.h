@@ -25,18 +25,21 @@ DefineRefTypes(VisCubeSet,VisCubeSetRef);
 //## Counted refs allow for both read-only and read-write containment; a
 //## VisCubeSet may in fact contain a mix of both. See also the setWritable()
 //## method below.
-class VisCubeSet :  public BlockableObject,
-                    public VisCubeDebugContext
+class VisCubeSet :  public BlockableObject
 
 {
   private:
     //##ModelId=3DB964F401EB
     deque<VisCubeRef> cubes;
     
+    //##ModelId=3DF9FDC90196
     typedef deque<VisCubeRef>::iterator CI;
+    //##ModelId=3DF9FDC901B2
     typedef deque<VisCubeRef>::reverse_iterator RCI;
+    //##ModelId=3DF9FDC901CF
     typedef deque<VisCubeRef>::const_iterator CCI;
     
+    //##ModelId=3DF9FDD1036E
     mutable Thread::Mutex mutex_;
 
   public:
@@ -192,9 +195,11 @@ class VisCubeSet :  public BlockableObject,
     TypeId objectType() const
     { return TpVisCubeSet; }
     
+    //##ModelId=3DF9FDD103C7
     Thread::Mutex & mutex () const
     { return mutex_; }
     
+    //##ModelId=3DF9FDD20007
   //##Documentation
   //## standard debug info method, depending on level includes:
   //## 0: class name & object address & # of cubes
@@ -202,14 +207,17 @@ class VisCubeSet :  public BlockableObject,
     string sdebug ( int detail = 1,const string &prefix = "",
                     const char *name = 0 ) const;
     
+    //##ModelId=3DF9FDD200D5
     DefineRefTypes(VisCubeSet,Ref);
 
   private:
       
       
     // implementation of header block for from/toBlock conversions
+    //##ModelId=3DF9FDC901EB
     typedef struct { int ncubes; } HeaderBlock;
   
+    //##ModelId=3DF9FDD1038C
     mutable BlockRef hdrblock; // ref to cached block
 
 };

@@ -174,7 +174,7 @@ VisCube::VisCube()
 {
 }
 
-//##ModelId=3DD374F4021E
+//##ModelId=3DB964F603D0
 VisCube::VisCube (const VisCube &right, int flags, int depth, int it0, int nt)
 {
   Thread::Mutex::Lock lock2(right.mutex_);
@@ -194,7 +194,7 @@ VisCube::VisCube (const VisCube &right, int flags, int depth, int it0, int nt)
   writable_ = right.writable_;
 }
 
-//##ModelId=3DB964F603D0
+//##ModelId=3DD374F4021E
 VisCube::VisCube (const VisCube &right, int flags, int depth)
     : BlockableObject()
 {
@@ -369,7 +369,7 @@ LoMat_fcomplex VisCube::tfData (int icorr)
     return LoMat_fcomplex();
   else if( tiles.size() > 1 )
     consolidate();
-  return tiles[0].dewr().tfData(icorr);
+  return tiles[0].dewr().tf_data(icorr);
 }
     
 //##ModelId=3DD101070096
@@ -379,7 +379,7 @@ LoMat_int VisCube::tfFlags (int icorr)
     return LoMat_int();
   else if( tiles.size() > 1 )
     consolidate();
-  return tiles[0].dewr().tfFlags(icorr);
+  return tiles[0].dewr().tf_flags(icorr);
 }
 
 //##ModelId=3DB964F602F0
@@ -823,6 +823,7 @@ instantiate(int,3);
 #error VisCube no longer supports AIPS++ arrays
 #endif
 
+//##ModelId=3DF9FDD001AB
 string VisCube::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   Thread::Mutex::Lock lock(mutex_);
@@ -864,6 +865,7 @@ string VisCube::sdebug ( int detail,const string &prefix,const char *name ) cons
 }
 
 
+//##ModelId=3DF9FDCD02BB
 string VisCube::ConstIterator::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   using Debug::append;

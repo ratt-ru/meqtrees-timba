@@ -15,12 +15,12 @@ const int AidColumnarTableTile_int = -1037;
 #endif
 #ifndef _defined_id_AidCorr
 #define _defined_id_AidCorr 1
-const AtomicID AidCorr(-1111);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisCube.h:12
+const AtomicID AidCorr(-1111);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:2
 const int AidCorr_int = -1111;
 #endif
 #ifndef _defined_id_AidFreq
 #define _defined_id_AidFreq 1
-const AtomicID AidFreq(-1110);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisCube.h:12
+const AtomicID AidFreq(-1110);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:3
 const int AidFreq_int = -1110;
 #endif
 #ifndef _defined_id_AidTableFormat

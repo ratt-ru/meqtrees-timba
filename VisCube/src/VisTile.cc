@@ -1,6 +1,29 @@
 // VisTile
-#include "VisCube/VisTile.h"
+#include "VisTile.h"
+#include "AID-VisCube.h"
+    
+// pull in registry
+static int dum = aidRegistry_VisCube ();
 
+//##ModelId=3DB964F40176
+VDSID::VDSID (int segid,int beamid,int obsid)
+{
+  resize(3);
+  (*this)[2] = segid;
+  (*this)[1] = beamid;
+  (*this)[0] = obsid;
+}
+  
+//##ModelId=3DB964F40177
+VDSID::VDSID (const HIID &id)
+{
+  resize(3);
+  (*this)[0] = id[0];
+  (*this)[1] = id[1];
+  (*this)[2] = id[2];
+}
+    
+    
 // Class VisTile::ConstIterator 
 
 //##ModelId=3DB964F701E6
@@ -43,6 +66,7 @@ VisTile::ConstIterator & VisTile::ConstIterator::operator=(const VisTile::ConstI
   return *this;
 }
 
+//##ModelId=3DF9FDD2025D
 VisTile::ConstIterator::~ConstIterator()
 {
   // make sure lock is released before possibly releasing tile
@@ -199,10 +223,12 @@ void VisTile::makeDefaultFormat (Format &form, int nc, int nf)
   form.init(MAXCOL);
   form.add(DATA,Tpfcomplex,shape)
       .add(TIME,Tpdouble)
+      .add(INTERVAL,Tpdouble)
       .add(WEIGHT,Tpfloat)
       .add(UVW,Tpdouble,LoShape(3))
       .add(FLAGS,Tpint,shape)
-      .add(ROWFLAG,Tpint);
+      .add(ROWFLAG,Tpint)
+      .add(SEQNR,Tpint);
 }
 
 //##ModelId=3DB964F90117
@@ -300,47 +326,22 @@ CountedRefTarget* VisTile::clone (int flags, int depth) const
 //##ModelId=3DB964F901F6
 void VisTile::initArrays ()
 {
-#if defined(LORRAYS_USE_BLITZ)
-  initArrays_Blitz();
-#elif defined(LORRAYS_USE_AIPSPP)
-  initArrays_AIPSPP();
-#endif
-}
+  FailWhen(!hasFormat(),"tile format not defined");
+  const Format &form = format();
 
-void VisTile::initArrays_Blitz ()
-{
-#if defined(LORRAYS_USE_BLITZ)
-  LoCubeShape cubeshape(ncorr(),nfreq(),ntime());
-  datacube.reference( LoCube_fcomplex(static_cast<fcomplex*>(wcolumn(DATA)),cubeshape,blitz::neverDeleteData) );
-  flagcube.reference( LoCube_int(static_cast<int*>(wcolumn(FLAGS)),cubeshape,blitz::neverDeleteData) );
-  
-  LoVecShape vecshape(ntime());
-  timevec.reference( LoVec_double(static_cast<double*>(wcolumn(TIME)),vecshape,blitz::neverDeleteData) );
-  weightvec.reference( LoVec_float(static_cast<float*>(wcolumn(WEIGHT)),vecshape,blitz::neverDeleteData) );
-  rowflagvec.reference( LoVec_int(static_cast<int*>(wcolumn(ROWFLAG)),vecshape,blitz::neverDeleteData) );
-  
-  uvwmatrix.reference( LoMat_double(static_cast<double*>(wcolumn(UVW)),LoMatShape(3,ntime()),blitz::neverDeleteData) );
-  // additional columns go here
-#endif
-}
+//   use a macro to initialize all arrays in a consistent manner
+  #define initRefArray(type,ndim,name,columnId) \
+    if( form.defined(columnId) ) \
+    { \
+      LoShape shape = form.shape(columnId); \
+      shape.push_back(ntime()); \
+      name##_array_.reference(blitz::Array<type,ndim+1> \
+        (static_cast<type*>(wcolumn(columnId)),shape,blitz::neverDeleteData)); \
+    } \
+    else \
+      name##_array_.free();
 
-void VisTile::initArrays_AIPSPP ()
-{
-#if defined(LORRAYS_USE_AIPSPP)
-  // this initializes internal arrays to represent columns
-  // note the SHARE argument point the arrays at the tile data itself
-  IPosition cubeshape(3,ncorr(),nfreq(),ntime());
-  datacube.takeStorage(cubeshape,static_cast<fcomplex*>(wcolumn(DATA)),SHARE); 
-  flagcube.takeStorage(cubeshape,static_cast<int*>(wcolumn(FLAGS)),SHARE);
-  
-  IPosition vecshape(1,ntime());
-  timevec.takeStorage(vecshape,static_cast<double*>(wcolumn(TIME)),SHARE);
-  weightvec.takeStorage(vecshape,static_cast<float*>(wcolumn(WEIGHT)),SHARE);
-  rowflagvec.takeStorage(vecshape,static_cast<int*>(wcolumn(ROWFLAG)),SHARE);
-  
-  uvwmatrix.takeStorage(IPosition(2,3,ntime()),static_cast<double*>(wcolumn(UVW)),SHARE);
-  // additional columns go here
-#endif
+  DoForAllVisTileColumns(initRefArray);      
 }
 
 //##ModelId=3DD3C6CB02E9
