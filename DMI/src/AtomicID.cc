@@ -53,12 +53,12 @@ string AtomicID::toString () const
     return s;
   }
   // lookup ID in symbolic name map, return if found
-  string name = registry.find(id());
-  if( name.length() )
-    return name;
+  return registry.find(id());
+//  if( name.length() )
+//  return name;
   // else return unknown ID
-  sprintf(s,"[?%d]",id());
-  return s;
+//  sprintf(s,"[?%d]",id());
+//  return s;
   //## end AtomicID::toString%3BE9709700A7.body
 }
 
