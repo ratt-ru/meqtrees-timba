@@ -183,7 +183,7 @@ class meqserver_gui (app_proxy_gui):
     self.connect(self.treebrowser.wtop(),PYSIGNAL("node_clicked()"),self._node_clicked);
     
     # add Result Log panel
-    self.resultlog = Logger(self,"node result log",limit=100);
+    self.resultlog = Logger(self,"node result log",limit=1000);
     self.maintab.insertTab(self.resultlog.wtop(),"Results",2);
     self.resultlog.wtop()._default_iconset = QIconSet();
     self.resultlog.wtop()._default_label   = "Results";
