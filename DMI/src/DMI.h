@@ -26,6 +26,11 @@ namespace DMI
       LOCK            =LOCKED,
       UNLOCKED        =0x200,
       PERSIST         =0x400,
+      
+  // some common combinations
+      ANONWRITE       = WRITE|ANON,
+      ANONWR          = ANONWRITE,
+      ANONRO          = READONLY|ANON,
   
   // These are used in privatize() and clone()
       // makes deep clone or privatizes deeply

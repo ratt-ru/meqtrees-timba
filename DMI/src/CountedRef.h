@@ -565,7 +565,7 @@ template <class T>
 CountedRef<T> & CountedRef<T>::operator <<= (const T* targ)
 {
   //## begin CountedRef::operator <<=%3CBEE39B0011.body preserve=yes
-  attach(targ,DMI::ANON|DMI::READONLY);
+  return attach(targ,DMI::ANON|DMI::READONLY);
   //## end CountedRef::operator <<=%3CBEE39B0011.body
 }
 
@@ -573,7 +573,7 @@ template <class T>
 CountedRef<T> & CountedRef<T>::operator <<= (T* targ)
 {
   //## begin CountedRef::operator <<=%3CBEE3AC0105.body preserve=yes
-  attach(targ,DMI::ANON|DMI::WRITE);
+  return attach(targ,DMI::ANON|DMI::WRITE);
   //## end CountedRef::operator <<=%3CBEE3AC0105.body
 }
 

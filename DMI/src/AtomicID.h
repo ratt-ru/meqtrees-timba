@@ -225,11 +225,11 @@ inline AtomicID::AtomicID (const string &str)
   //## begin AtomicID::AtomicID%3C5E74CB0112.hasinit preserve=no
   //## end AtomicID::AtomicID%3C5E74CB0112.hasinit
   //## begin AtomicID::AtomicID%3C5E74CB0112.initialization preserve=yes
-  : aid( str.length() ? findName(str) : AidEmpty.id() )
+  : aid( findName(str) )
   //## end AtomicID::AtomicID%3C5E74CB0112.initialization
 {
   //## begin AtomicID::AtomicID%3C5E74CB0112.body preserve=yes
-  FailWhen(!aid && str[0] != '0' ,"Unknown AtomicID `"+str+"'");
+  FailWhen(!aid && (!str.length() || str[0] != '0') ,"Unknown AtomicID `"+str+"'");
   //## end AtomicID::AtomicID%3C5E74CB0112.body
 }
 
