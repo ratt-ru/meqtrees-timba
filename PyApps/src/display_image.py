@@ -426,7 +426,6 @@ class QwtImagePlot(QwtPlot):
 # set default display type to 'hippo'
         self._display_type = "hippo"
 
-        self._first_plot = True
         self._vells_plot = False
 	self._flags_array = None
 	self.flag_toggle = False
@@ -742,7 +741,7 @@ class QwtImagePlot(QwtPlot):
 
 
     def drawCanvasItems(self, painter, rectangle, maps, filter):
-        if self.is_vector == False:
+        if not self.is_vector:
           self.plotImage.drawImage(
             painter, maps[QwtPlot.xBottom], maps[QwtPlot.yLeft])
         QwtPlot.drawCanvasItems(self, painter, rectangle, maps, filter)
@@ -915,7 +914,6 @@ class QwtImagePlot(QwtPlot):
                 self.setCurveXAxis(self.yCrossSectionLoc, QwtPlot.xBottom)
               self.setCurveData(self.yCrossSectionLoc, self.y_arrayloc, self.y_index)
               self.replot()
-              _dprint(2, 'called replot in onMousePressed');
            
 # fake a mouse move to show the cursor position
         self.onMouseMoved(e)
@@ -949,7 +947,6 @@ class QwtImagePlot(QwtPlot):
         self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
         self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
         self.replot()
-        _dprint(2, 'called replot in onMouseReleased');
 
     # onMouseReleased()
 
@@ -958,7 +955,6 @@ class QwtImagePlot(QwtPlot):
         if curve:
             curve.setEnabled(not curve.enabled())
             self.replot()
-            _dprint(2, 'called replot in toggleCurve');
     # toggleCurve()
 
     def setDisplayType(self, display_type):
@@ -980,7 +976,6 @@ class QwtImagePlot(QwtPlot):
       else:
         self.plotImage.setImage(image)
       self.replot()
-      _dprint(2, 'called replot in display_image');
     # display_image()
 
     def plot_data(self, visu_record, attribute_list=None):
@@ -1106,10 +1101,6 @@ class QwtImagePlot(QwtPlot):
             self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels[0]
         else:
           self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels
-        Message = 'Continue to plot of ' + self.data_label + '?'
-        self.plot_counter = 0
-
-      self._first_plot = False
 
     # end plot_data()
 
@@ -1404,7 +1395,6 @@ class QwtImagePlot(QwtPlot):
             self.removeCurve(self.dummy_xCrossSection)
             self.dummy_xCrossSection = None
         self.replot()
-        _dprint(2, 'called replot in array_plot');
     # array_plot()
 
     def start_test_timer(self, time, test_complex, display_type):
