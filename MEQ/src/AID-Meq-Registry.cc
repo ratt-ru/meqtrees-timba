@@ -92,6 +92,8 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1256,"value")+
         AtomicID::registerId(-1051,"index")+
         AtomicID::registerId(-1177,"num")+
+        AtomicID::registerId(-1375,"cache")+
+        AtomicID::registerId(-1164,"code")+
         AtomicID::registerId(-1234,"parm")+
         AtomicID::registerId(-1254,"spid")+
         AtomicID::registerId(-1229,"perturbed")+
@@ -105,6 +107,9 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1366,"solvable")+
         AtomicID::registerId(-1373,"config")+
         AtomicID::registerId(-1374,"groups")+
+        AtomicID::registerId(-1381,"all")+
+        AtomicID::registerId(-1382,"by")+
+        AtomicID::registerId(-1046,"list")+
         AtomicID::registerId(-1235,"meqdomain")+
         TypeInfoReg::addToRegistry(-1235,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1235,__construct_MeqDomain)+
@@ -177,6 +182,11 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1239,"mequvw")+
         TypeInfoReg::addToRegistry(-1239,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1239,__construct_MeqUVW)+
+        AtomicID::registerId(-1380,"ra")+
+        AtomicID::registerId(-1379,"dec")+
+        AtomicID::registerId(-1376,"stx")+
+        AtomicID::registerId(-1377,"sty")+
+        AtomicID::registerId(-1378,"stz")+
         AtomicID::registerId(-1222,"meqrequest")+
         TypeInfoReg::addToRegistry(-1222,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1222,__construct_MeqRequest)+

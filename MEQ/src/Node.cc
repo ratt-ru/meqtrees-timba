@@ -122,17 +122,33 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
     protectStateField(rec,FChildren);
     protectStateField(rec,FNodeIndex);
   }
+  // set/clear cached result
+  //   the cache_result field must be either a Result object,
+  //   or a boolean false to clear the cache. Else throw exception.
+  TypeId type = rec[FCacheResult].type();
+  if( type == TpMeqResult ) // a result
+    cache_result_ <<= rec[FCacheResult].as_wp<Result>();
+  else if( type == Tpbool && !rec[FCacheResult].as<bool>() ) // a bool False
+    cache_result_.detach();
+  else if( type != 0 ) // anything else (if type=0, then field is missing)
+  {
+    NodeThrow(FailWithCleanup,"illegal state."+FCacheResult.toString()+" field");
+  }
   // set the name
-  if( rec[FName].exists() )
-    myname_ = rec[FName].as<string>();
-       //  // set the node index
-       //  if( rec[FNodeIndex].exists() )
-       //    node_index_ = rec[FNodeIndex].as<int>();
+  getStateField(myname_,rec,FName);
   // set the caching policy
   //      TBD
   // set config groups
   if( rec[FConfigGroups].exists() )
+  {
     config_groups_ = rec[FConfigGroups].as_vector<HIID>();
+    // the "All" group is defined for every node
+    config_groups_.push_back(FAll);
+  }
+  // set current request ID
+  getStateField(current_reqid_,rec,FRequestId);
+  // set cache resultcode
+  getStateField(cache_retcode_,rec,FCacheResultCode);
 }
 
 //##ModelId=3F5F445A00AC
@@ -300,12 +316,6 @@ void Node::resolveChildren ()
   checkChildren();
 }
 
-//##ModelId=3F83FADF011D
-void Node::checkChildren ()
-{
-// default version does nothing, always succeeeds
-}
-
 //##ModelId=3F85710E011F
 Node & Node::getChild (int i)
 {
@@ -328,32 +338,193 @@ inline int Node::getChildNumber (const HIID &id)
   return iter == child_map_.end() ? -1 : iter->second;
 }
 
-
-
 void Node::setCurrentRequest (const Request &req)
 {
-  wstate()[FRequestId] = current_req_id_ = req.id();
+  wstate()[FRequestId].replace() = current_reqid_ = req.id();
 }
+
+void Node::clearLocalCache ()
+{
+  cache_result_.detach();
+  wstate()[FCacheResult].replace() = false;
+  wstate()[FCacheResultCode].replace() = cache_retcode_ = 0;
+}
+
+// 
+bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
+{
+  // no cache -- return false
+  if( !cache_result_.valid() )
+    return false;
+  // Do the request Ids match? Return cached result then
+  // (note that an empty reqid never matches, hence it can be used to 
+  // always force a recalculation)
+  if( !current_reqid_.empty() && cache_result_.valid() && 
+      req.id() == current_reqid_ )
+  {
+    ref.copy(cache_result_,DMI::PRESERVE_RW);
+    retcode = cache_retcode_;
+    return true;
+  }
+  // no match -- clear cache and return 
+  clearLocalCache();
+  return false; 
+}
+
+// stores result in cache as per current policy, returns retcode
+int Node::cacheResult (const Result::Ref &ref,int retcode)
+{
+  // for now, always cache, since we don't implement any other policy
+  // NB: perhaps fails should be marked separately?
+  cache_result_.copy(ref,DMI::WRITE);
+  wstate()[FCacheResult].replace() <<= cache_result_.dewr_p();
+  wstate()[FCacheResultCode].replace() = retcode;
+  return retcode;
+}
+
+int Node::pollChildren (std::vector<Result::Ref> &child_results,
+                        Result::Ref &resref,
+                        const Request &req)
+{
+  int retcode = 0;
+  cdebug(3)<<"  calling execute() on "<<numChildren()<<" child nodes"<<endl;
+  std::vector<Result *> child_fails; // RES_FAILs from children are kept track of separately
+  child_fails.reserve(numChildren());
+  int nfails = 0;
+  for( int i=0; i<numChildren(); i++ )
+  {
+    int childcode = getChild(i).execute(child_results[i],req);
+    retcode |= childcode;
+    if( !(childcode&RES_WAIT) && childcode&RES_FAIL )
+    {
+      Result *pchildres = child_results[i].dewr_p();
+      child_fails.push_back(pchildres);
+      nfails += pchildres->numFails();
+    }
+  }
+  // if any child has completely failed, return a Result containing all of the fails 
+  if( !child_fails.empty() )
+  {
+    cdebug(3)<<"  got RES_FAIL from children ("<<nfails<<"), returning"<<endl;
+    Result &result = resref <<= new Result(nfails,req);
+    int ires = 0;
+    for( uint i=0; i<child_fails.size(); i++ )
+    {
+      Result &childres = *(child_fails[i]);
+      for( int j=0; j<childres.numVellSets(); j++ )
+      {
+        VellSet &vs = childres.vellSet(j);
+        if( vs.isFail() )
+          result.setVellSet(ires++,&vs);
+      }
+    }
+    // cache & return fail code
+    return cacheResult(resref,retcode);
+  }
+  cdebug(3)<<"  cumulative result code is "<<retcode<<endl;
+  return retcode;
+} 
 
 //##ModelId=3F6726C4039D
 int Node::execute (Result::Ref &ref, const Request &req)
 {
   cdebug(3)<<"execute, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
-  // do we have a new request?
-  bool newreq = req.id() != currentRequestId();
+  // this indicates the current stage (for exception handler)
+  string stage;
   try
   {
+    int retcode = 0;
+    // check the cache, return on match (method will clear on mismatch)
+    stage = "checking cache";
+    if( getCachedResult(retcode,ref,req) )
+    {
+        cdebug(3)<<"  cache hit, returning cached result"<<
+                   "    "<<ref->sdebug(DebugLevel-1,"    ")<<endl;
+        return retcode;
+    }
+    // do we have a new request? Empty request id treated as always new
+    bool newreq = req.id().empty() || ( req.id() != current_reqid_ );
     if( newreq )
     {
-      cdebug(3)<<"  new request, clearing cache"<<endl;
-      // clear cache
-      wstate()[FResult].remove(); 
-      res_cache_.detach();
-      // change to the current request
+      // check if node is ready to go on to the new request, return WAIT if not
+      stage = "calling readyForRequest()";
+      if( !readyForRequest(req) )
+      {
+        cdebug(3)<<"  node not ready for new request, returning RES_WAIT"<<endl;
+        return RES_WAIT;
+      }
+      // set this request as current
       setCurrentRequest(req);
-      // do we have a rider record? process it
+      // check for change-of-state in the request
+      if( req[FNodeState].exists() )
+      {
+        stage = "processing node_state";
+        cdebug(3)<<"  processing node_state"<<endl;
+        // *** cast away const for now, need to revise this later on
+        DataRecord &nodestate = const_cast<DataRecord&>(req[FNodeState].as<DataRecord>());
+        for( uint i=0; i<config_groups_.size(); i++ )
+        {
+          if( nodestate[config_groups_[i]].exists() )
+          {
+            cdebug(3)<<"    found config group "<<config_groups_[i]<<endl;
+            DataRecord &group = nodestate[config_groups_[i]].as_wr<DataRecord>();
+            // check for entry nodeindex map
+            if( group[FByNodeIndex].exists() && group[FByNodeIndex][nodeIndex()].exists() )
+            {
+              cdebug(4)<<"    found "<<FByNodeIndex<<"["<<nodeIndex()<<"]"<<endl;
+              setState(group[FByNodeIndex][nodeIndex()].as_wr<DataRecord>());
+            }
+            if( group[FByList].exists() )
+            {
+              DataField &list = group[FByList].as_wr<DataField>();
+              cdebug(3)<<"      checking "<<list.size()<<" list entries"<<endl;
+              bool matched = false;
+              for( int i=0; i<list.size() && !matched; i++ )
+              {
+                std::vector<string> names;
+                std::vector<int> indices;
+                DataRecord &entry = list[i];
+                if( entry[FName].exists() ) // get list of names, if any
+                  names = entry[FName];
+                if( entry[FNodeIndex].exists() ) // get list of node indices, if any
+                  names = entry[FNodeIndex];
+                DataRecord &newst = list[i][FState];
+                cdebug(4)<<"        "<<indices.size()<<" indices, "<<
+                           names.size()<<" names"<<endl;
+                for( uint j=0; j<indices.size(); j++ )
+                {
+                  if( matched = ( indices[j] == nodeIndex() ) )
+                  {
+                    cdebug(4)<<"        matched "<<indices[j]<<", setting state"<<endl;
+                    matched = true;
+                    setState(newst);
+                    break;
+                  }
+                }
+                if( matched )
+                  break;
+                for( uint j=0; j<names.size(); j++ )
+                {
+                  if( matched = ( names[j] == "*" || names[j] == name() ) )
+                  {
+                    cdebug(4)<<"        matched "<<names[j]<<", setting state"<<endl;
+                    matched = true;
+                    setState(newst);
+                    break;
+                  }
+                }
+              }
+              if( !matched ) {
+                cdebug(3)<<"      no matches in list"<<endl;
+              }
+            }
+          }
+        }
+      }
+      // check for request rider
       if( req[FRider].exists() )
       {
+        stage = "processing rider";
         cdebug(3)<<"  processing request rider"<<endl;
         const DataRecord &rider = req[FRider];
         processRider(rider);
@@ -361,115 +532,102 @@ int Node::execute (Result::Ref &ref, const Request &req)
         // ...
         // none for now
       }
-    }
-    else // old request -- check the cache and return if it's valid
+    } // endif( newreq )
+    
+    // Pass request on to children and accumulate their results
+    std::vector<Result::Ref> child_results(numChildren());
+    if( numChildren() )
     {
-      if( res_cache_.valid() )
+      stage = "polling children";
+      retcode = pollChildren(child_results,ref,req);
+      // a WAIT from any child is returned immediately w/o a result
+      if( retcode&RES_WAIT )
+        return retcode;
+      // if failed, then cache & return the fail
+      if( retcode&RES_FAIL )
+        return cacheResult(ref,retcode);
+    }
+    
+    // does request have a Cells object? Compute our Result then
+    if( req.hasCells() )
+    {
+      stage = "getting result";
+      cdebug(3)<<"  calling getResult(): cells are "<<req.cells();
+      int code = getResult(ref,child_results,req,newreq);
+      cdebug(3)<<"  getResult() returns code "<<code<<endl;
+      // a WAIT is returned immediately with no valid result expected
+      if( code&RES_WAIT ) 
+        return code;
+      // else we must have a valid Result object now, even if it's a fail.
+      // (in case of RES_FAIL, getResult() should have put a fail in there)
+      if( !ref.valid() )
       {
-        ref.copy(res_cache_,DMI::PRESERVE_RW);
-        cdebug(3)<<"  old request, returning cached result"<<
-                   "    "<<ref->sdebug(DebugLevel-1,"    ")<<endl;
-        return 0;
+        NodeThrow1("must return a valid Result or else RES_WAIT");
       }
-      else
-      {
-        cdebug(3)<<"  old request but cache is empty, redoing execute"<<endl;
-      }
+      // Make sure the Cells are in the Result object
+      if( !(code&RES_FAIL) && !ref->hasCells() )
+        ref().setCells(req.cells());
     }
-    if( DebugLevel>2 && req.hasCells() )
+    else // no cells, ensure an empty result
     {
-      cdebug(3)<<"  cells are "<<req.cells();
+      ref <<= new Result;
     }
-    // new request and/or no cache -- recompute the result
-    int flags = getResult(ref,req,newreq);
-    // add cells if not there
-    if( ref.valid() && !ref->hasCells() )
-      ref().setCells(req.cells());
-    cdebug(3)<<"  getResult returns flags: "<<flags<<endl;
-    cdebug(3)<<"  result is: "<<ref.sdebug(DebugLevel-1,"    ")<<endl;
-    if( DebugLevel>3 && ref.valid() )
+    // OK, at this point we have a valid Result to return
+    if( DebugLevel>=3 ) // print it out
     {
-      for( int i=0; i<ref->numVellSets(); i++ ) 
+      cdebug(3)<<"  cumulative result code is "<<retcode<<endl;
+      cdebug(3)<<"  result is "<<ref->sdebug(DebugLevel-1,"    ")<<endl;
+      if( DebugLevel>3 )
       {
-        const VellSet &vs = ref->vellSetConst(i);
-        if( vs.isFail() )
+        for( int i=0; i<ref->numVellSets(); i++ ) 
         {
-          cdebug(4)<<"  vellset "<<i<<": FAIL "<<endl;
-        }
-        else
-        {
-          cdebug(4)<<"  vellset "<<i<<": "<<vs.getValue()<< endl;
+          const VellSet &vs = ref->vellSetConst(i);
+          if( vs.isFail() ) {
+            cdebug(4)<<"    vellset "<<i<<": FAIL "<<endl;
+          } else {
+            cdebug(4)<<"    vellset "<<i<<": "<<vs.getValue()<< endl;
+          }
         }
       }
     }
-    //  cache result in the state record
-    if( flags != RES_FAIL && !(flags&RES_WAIT) )
-    {
-      res_cache_.copy(ref,DMI::PRESERVE_RW);
-      wstate()[FResult] <<= *ref; 
-    }
-    return flags;
+    // cache & return accumulated return code
+    return cacheResult(ref,retcode);
   }
-  // catch any exceptions, return a single FAIL
+  // catch any exceptions, return a single fail result
   catch( std::exception &x )
   {
     ref <<= new Result(1);
     VellSet & res = ref().setNewVellSet(0);
-    MakeFailVellSet(res,string("exception occurred in execute: ")+x.what());
-    return RES_FAIL;
+    MakeFailVellSet(res,string("exception in execute() while "+stage+": ")+x.what());
+    return cacheResult(ref,RES_FAIL);
   }
-}
-
-// default version does nothing
-//##ModelId=3F98D9D2006B
-void Node::processRider (const DataRecord &)
-{
 }
 
 //##ModelId=3F98D9D100B9
-int Node::getResult (Result::Ref &, const Request &,bool)
+int Node::getResult (Result::Ref &,const std::vector<Result::Ref> &,
+                     const Request &,bool)
 {
-  Throw("Meq::Node::getResult not implemented");
+  NodeThrow1("getResult() not implemented");
 }
 
-
-int Node::getChildResults (std::vector<Result::Ref> &childref,
-                           const Request& request)
-{
-  childref.resize(numChildren());
-  int resflag=0;
-  int nfails=0;
-  // collect results from children
-  for( int i=0; i<numChildren(); i++ )
-  {
-    int flag = getChild(i).execute(childref[i],request);
-    if( flag == RES_FAIL )
-      nfails++;
-    else
-      resflag |= flag;
-  }
-  if( nfails == numChildren() )
-    return RES_FAIL;
-  return resflag;
-}
 
 // throw exceptions for unimplemented DMI functions
 //##ModelId=3F5F4363030F
 CountedRefTarget* Node::clone(int,int) const
 {
-  Throw("Meq::Node::clone not implemented");
+  NodeThrow1("clone() not implemented");
 }
 
 //##ModelId=3F5F43630315
 int Node::fromBlock(BlockSet&)
 {
-  Throw("Meq::Node::fromBlock not implemented");
+  NodeThrow1("fromBlock() not implemented");
 }
 
 //##ModelId=3F5F43630318
 int Node::toBlock(BlockSet &) const
 {
-  Throw("Meq::Node::toBlock not implemented");
+  NodeThrow1("toBlock() not implemented");
 }
 
 //##ModelId=3F5F48180303

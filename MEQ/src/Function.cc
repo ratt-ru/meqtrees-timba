@@ -117,65 +117,62 @@ void Function::testChildren (const vector<TypeId>& types) const
   }
 }
 
-int Function::getResult (Result::Ref &resref, const Request& request, bool)
+int Function::getResult (Result::Ref &resref,
+                         const std::vector<Result::Ref> &childres,
+                         const Request &request,bool)
 {
-  int nrch = itsChildren.size();
-  FailWhen(nrch<=0,"node has no children" );
-  vector<Result::Ref> child_results;
-  // collect child_results from children
-  int flag = getChildResults(child_results,request);
-  // return flag if at least one child wants to wait. If all children have 
-  // failed, continue anyway: fails will be collected below.
-  if( flag != Node::RES_FAIL && flag&Node::RES_WAIT) 
-    return flag;
-  // figure out the number of child planes
-  int nplanes = child_results[0]->numVellSets();
+  // figure out the max number of child planes
+  int nrch = numChildren();
+  Assert(nrch>0);
+  int nplanes = childres[0]->numVellSets();
   for( int i=1; i<nrch; i++ )
-    nplanes = std::max(nplanes,child_results[i]->numVellSets());
-  // Create result set and attach to the ref that was passed in
-  Result & resultset = resref <<= new Result(request,nplanes);
-//  resultset.setCells(request.cells());
-  vector<VellSet*> child_res(nrch);
+    nplanes = std::max(nplanes,childres[i]->numVellSets());
+  // Create result and attach to the ref that was passed in
+  Result & result = resref <<= new Result(request,nplanes);
+  vector<VellSet*> child_vs(nrch);
   vector<Vells*>  values(nrch);
   int nfails = 0;
   for( int iplane = 0; iplane < nplanes; iplane++ )
   {
-    // initialize result for this plane
-    VellSet &result = resultset.setNewVellSet(iplane);
-    // collect vector of pointers to child results, and vector of pointers 
-    // to main value. If some child is out of results, generate a fail. If 
-    // any child results are fails, collect them for propagation
+    // create a vellset for this plane
+    VellSet &vellset = result.setNewVellSet(iplane);
+    // collect vector of pointers to child vellsets #iplane, and a vector of 
+    // pointers to their main values. If a child has fewer vellsets, generate 
+    // a fail -- unless the child returned exactly 1 vellset, in which
+    // case it is reused repeatedly. If any child vellsets are fails, collect 
+    // them for propagation
     for( int i=0; i<nrch; i++ )
     {
-      if( iplane >= child_results[i]->numVellSets() )
+      int nvs = childres[i]->numVellSets();
+      if( nvs != 1 && iplane >= nvs )
       {
-        MakeFailVellSet(result,ssprintf("child %d: not enough result planes",child_results[i]->numVellSets()));
+        MakeFailVellSet(vellset,ssprintf("child %d: only %d vellsets",i,nvs));
       }
       else 
       {
-        child_res[i] = &(child_results[i]().vellSet(iplane));
-        if( child_res[i]->isFail() ) 
-        { // collect fails from child result
-          for( int j=0; j<child_res[i]->numFails(); j++ )
-            result.addFail(&child_res[i]->getFail(j));
+        child_vs[i] = &(childres[i]().vellSet(nvs==1?0:iplane));
+        if( child_vs[i]->isFail() ) 
+        { // collect fails from child vellset
+          for( int j=0; j<child_vs[i]->numFails(); j++ )
+            vellset.addFail(&child_vs[i]->getFail(j));
         }
         else
-          values[i] = &(child_res[i]->getValueRW());
+          values[i] = &(child_vs[i]->getValueRW());
       }
     }
     // continue evaluation only if no fails popped up
-    if( !result.isFail() )
+    if( !vellset.isFail() )
     {
       // catch exceptions during evaluation and stuff them into fails
       try
       {
         // Find all spids from the children.
-        vector<int> spids = findSpids(child_res);
-        // allocate new result object with given number of spids, add to set
-        result.setSpids(spids);
+        vector<int> spids = findSpids(child_vs);
+        // allocate new vellset object with given number of spids, add to set
+        vellset.setSpids(spids);
         // Evaluate the main value.
         LoShape shape = resultShape(values);
-        result.setValue(evaluate(request,shape,values));
+        vellset.setValue(evaluate(request,shape,values));
         // Evaluate all perturbed values.
         vector<Vells*> perts(nrch);
         vector<int> indices(nrch, 0);
@@ -184,29 +181,30 @@ int Function::getResult (Result::Ref &resref, const Request& request, bool)
           perts = values;
           for (int i=0; i<nrch; i++) 
           {
-            int inx = child_res[i]->isDefined (spids[j], indices[i]);
+            int inx = child_vs[i]->isDefined(spids[j], indices[i]);
             if (inx >= 0) {
-	            perts[i] = &(child_res[i]->getPerturbedValueRW(inx));
+	            perts[i] = &(child_vs[i]->getPerturbedValueRW(inx));
             }
           }
-          result.setPerturbedValue(j,evaluate(request,shape,values));
+          vellset.setPerturbedValue(j,evaluate(request,shape,values));
         }
       }
       catch( std::exception &x )
       {
-        MakeFailVellSet(result,
+        MakeFailVellSet(vellset,
             string("exception in Function::getResult: ")
             + x.what());
       }
-    }
+    } // endif( !vellset.isFail() )
     // count the # of fails
-    if( result.isFail() )
+    if( vellset.isFail() )
       nfails++;
   }
   // return RES_FAIL is all planes have failed
   if( nfails == nplanes )
     return RES_FAIL;
-  return flag;
+  // return 0 flag, since we don't add any dependencies of our own
+  return 0;
 }
 
 LoShape Function::resultShape (const vector<Vells*>& values)

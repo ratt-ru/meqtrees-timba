@@ -44,17 +44,32 @@ class Node : public BlockableObject
     //##ModelId=3F5F43620304
     typedef CountedRef<Node> Ref;
   
-  
-    // these are flags returned by execute(), indicating result properties
     //##ModelId=3F698825005B
+    // these are flags returned by execute(), indicating result properties
     typedef enum {
-      RES_WAIT    = 1,    // result not yet available, must wait
-      RES_MUTABLE = 2,    // result may change for this request
-      RES_UPDATED = 4,    // result updated since last request
+      RES_WAIT          = 0x01,    // result not yet available, must wait
+      RES_UPDATED       = 0x02,    // result updated since last request
           
-      RES_FAIL    = -1    // result is a fail (this is a value, not a bit flag)
+      RES_FAIL          = 0x80,    // result is complete fail
+          
+      // bitmask of result dependencies
+      RES_DEPEND_MASK  = 0xFFFF00, // full dependency mask
+      RES_DEPEND_NBITS = 16,       // number of bits in dependency mask
+      RES_DEPEND_LSB   = 0x100,    // LSB of dependency mask
+          
+      // predefine some constants for application-specific dependencies
+      RES_DEP_VOLATILE = 0x100,    // result is volatile (depends on external events)
+      RES_DEP_DOMAIN   = 0x200,    // depends on domain
+      RES_DEP_CONFIG   = 0x400,    // depends on config
+      RES_DEP_VALUE    = 0x800,    // depends on parm values
+          
     } ResultAttributes;
-
+    
+    // for generic dependency treatment:
+    // returns bit indicating dependency on request ID index #n
+    static int RES_DEP (int n)
+    { return RES_DEPEND_LSB<<n; }
+    
   
     //##ModelId=3F5F43E000A0
     // Child labels may be specified in constructror as a C array of HIIDs.
@@ -139,6 +154,80 @@ class Node : public BlockableObject
     LocalDebugContext;
     
   protected:
+    // ----------------- virtual methods defining node behaviour --------------
+      
+    //##ModelId=3F83FADF011D
+    // called from resolveChildren(), meant to check children types if the node
+    // requires specific children. Throw exception on failure. 
+    virtual void checkChildren()
+    {} // base version does no checking
+    
+    //##ModelId=3F98D9D2006B
+    // called from init(), meant to check the initrec for required fields,
+    // and to fill in any missing defaults. Throws exception on failure 
+    // (i.e. if a required field is missing)
+    virtual void checkInitState (DataRecord &rec);
+    
+    // called from init() and setState(), meant to update internal state
+    // in accordance to rec. If initializing==true (i.e. when called from 
+    // init()), rec is a complete state record.
+    virtual void setStateImpl (DataRecord &rec,bool initializing);
+    
+    // called from execute() when a new request is received. Should return
+    // true if it is OK to proceed, false otherwise (RES_WAIT will be returned
+    // by execute() on a false). Nodes tied to external data sources may need 
+    // to override this.
+    virtual bool readyForRequest (const Request &)
+    { return true; } // base version always ready
+        
+    // called from execute() to process the request rider, if any.
+    virtual void processRider (const DataRecord &)
+    {} // base version does nothing
+    
+    // Called from execute() to collect the child results for a given request.
+    // Child_results vector is pre-sized to the number of children.
+    // The method is expected to pass the request on to the children,  
+    // collect their results in the vector, and return the accumulated
+    // result code. If RES_FAIL is returned, then resref should point
+    // to a Result with the fails in it; this result will be returned by
+    // execute() immediately with the RES_FAIl code.
+    // Default version does just that. If any child returns RES_FAIL,
+    // collects all fails into resref and returns RES_FAIL. If no children
+    // fail, resref is left untouched.
+    // Nodes should only reimplement this if they prefer to poll children 
+    // themselves (i.e. the Solver). 
+    virtual int pollChildren (std::vector<Result::Ref> &child_results,
+                              Result::Ref &resref,
+                              const Request &req);
+
+    //##ModelId=3F98D9D100B9
+    // Called from execute() to compute the result of a request.
+    //  childres is a vector of child results (empty if no children);
+    //  req is request; newreq is true if the request is new.
+    // Result should be created and attached to resref. Return code indicates
+    // result properties. If the RES_WAIT flag isis returned, then no result is 
+    // expected; otherwise a Result must be attached to the ref.
+    // RES_FAIL may be returned to indicate complete failure.
+    virtual int getResult (Result::Ref &resref, 
+                           const std::vector<Result::Ref> &childres,
+                           const Request &req,bool newreq);
+    
+    // ----------------- misc helper methods ----------------------------------
+    //##ModelId=3F83F9A5022C
+    // write-access to the state record
+    DataRecord & wstate();
+    
+    // Checks for cached result; if hit, attaches it to ref and returns true.
+    // On a miss, clears the cache (NB: for now!)
+    bool getCachedResult (int &retcode,Result::Ref &ref,const Request &req);
+    
+    // Conditionally stores result in cache according to current policy.
+    // Returns the retcode.
+    int cacheResult (const Result::Ref &ref,int retcode);
+    
+    // Clears cache (not recursively)
+    void clearLocalCache ();
+      
     // creates a message of the form "Node CLASS ('NAME'): MESSAGE"
     string makeMessage (const string &msg) const
       { return  "Node " + className() + "('" + name() + "'): " + msg; }
@@ -147,20 +236,22 @@ class Node : public BlockableObject
     // getResult(), processRider() and setStateImpl() when something goes 
     // wrong. The type of the exception indicates whether any cleanup is 
     // required.
-    EXCEPTION_CLASS(FailWithCleanup,LOFAR::Exception);
-    EXCEPTION_CLASS(FailWithoutCleanup,LOFAR::Exception);
+    EXCEPTION_CLASS(FailWithCleanup,LOFAR::Exception)
+    EXCEPTION_CLASS(FailWithoutCleanup,LOFAR::Exception)
   
     //  NodeThrow can be used to throw an exception, with the message
     // passed through makeMessage()
     #define NodeThrow(exc,msg) \
       { THROW(exc,makeMessage(msg)); }
+    #define NodeThrow1(msg) \
+      { THROW(FailWithoutCleanup,makeMessage(msg)); }
 
     // Helper method for init(). Checks that initrec field exists, throws a
     // FailWithoutCleanup with the appropriate message if it doesn't.
     // Defined as macro so that exception gets proper file/line info
     #define requiresInitField(rec,field) \
       { if( !(rec)[field].exists() ) \
-         NodeThrow(FailWithoutCleanup,"missing initrec field \'"+(field).toString()+"'"); } \
+         NodeThrow(FailWithoutCleanup,"missing initrec."+(field).toString()); } \
     // Helper method for init(). Checks that initrec field exists and inserts
     // a default value if it doesn't.
     #define defaultInitField(rec,field,deflt) \
@@ -172,31 +263,20 @@ class Node : public BlockableObject
     // Defined as macro so that exception gets proper file/line info
     #define protectStateField(rec,field) \
       { if( (rec)[field].exists() ) \
-          NodeThrow(FailWithoutCleanup,"can't reconfigure state field \'"+(field).toString()+"'"); }
+          NodeThrow(FailWithoutCleanup,"state."+(field).toString()+" not reconfigurable"); }
+          
+    // Helper method for setStateImpl(). Checks if rec[field] exists, if yes,
+    // assigns it to 'out', returns true. Otherwise returns false.
+    template<class T>
+    bool getStateField (T &out,const DataRecord &rec,const HIID &field)
+    { if( rec[field].exists() ) {
+        out = rec[field].as(Type2Type<T>());
+        return true;
+      } else {
+        return false;
+      }
+    }
       
-    //##ModelId=3F83F9A5022C
-    DataRecord & wstate();
-    
-    //##ModelId=3F83FADF011D
-    virtual void checkChildren();
-    
-    //##ModelId=3F98D9D2006B
-    virtual void checkInitState (DataRecord &rec);
-    
-    virtual void setStateImpl (DataRecord &rec,bool initializing);
-    
-    virtual void processRider (const DataRecord &rider);
-    
-    //##ModelId=3F98D9D100B9
-    virtual int getResult (Result::Ref &resref, const Request &req,bool newreq);
-    
-    // helper function for nodes with multiple children:
-    //  1. allocates vector for child ResultSets
-    //  2. calls execute() on all children
-    //  3. returns the bitwise OR of all non-failed flags
-    int getChildResults (std::vector<Result::Ref> &childref,
-                         const Request& request);
-        
   private:
     //##ModelId=3F9505E50010
     void processChildSpec (NestableContainer &children,const HIID &id);
@@ -210,14 +290,18 @@ class Node : public BlockableObject
     
     //##ModelId=3F5F4363030D
     DataRecord::Ref staterec_;
+    
     //##ModelId=3F5F48040177
     string myname_;
     int node_index_;
     //##ModelId=3F5F43930004
     Forest *forest_;
     
-    HIID current_req_id_;
-    Result::Ref res_cache_;
+    HIID current_reqid_;
+    
+    // cached result of current request
+    Result::Ref cache_result_;
+    int cache_retcode_;
     
     //##ModelId=3F8433C10295
     typedef std::map<HIID,int> ChildrenMap;
@@ -236,7 +320,7 @@ class Node : public BlockableObject
 
 inline const HIID & Node::currentRequestId ()
 {
-  return current_req_id_;
+  return current_reqid_;
 }
 
 //##ModelId=3F85710E002E

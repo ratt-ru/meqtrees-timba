@@ -62,7 +62,9 @@ public:
   //   in the derived class, because in that way some values can be
   //   calculated once for main value and perturbed values.
   // </ul>
-  virtual int getResult (Result::Ref &resref, const Request&, bool newReq);
+  virtual int getResult (Result::Ref &resref, 
+                         const std::vector<Result::Ref> &childres,
+                         const Request &req,bool newreq);
 
   // Find the shape of the result for evaluate. Usually the default 
   // implementation is sufficient which takes
