@@ -147,6 +147,7 @@ void Cells::setNumSegments (int iaxis,int nseg)
 
 void Cells::recomputeSegments (int iaxis)
 {
+  using std::fabs;
   Assert(iaxis>=0 && iaxis<DOMAIN_NAXES);
   int num = grid_[iaxis].size();
   // less than 3 points: always regular, assign single segment
@@ -160,6 +161,9 @@ void Cells::recomputeSegments (int iaxis)
   else
   {
     const LoVec_double &x = grid_[iaxis];
+    // epsilon value used to compare steps for near-equality
+    double epsilon = fabs(x(0) - x(num-1))*1e-6;
+    
     LoVec_int start(num),end(num);
     start(0)=0; end(0)=1;
     int   iseg = 0;
@@ -167,8 +171,8 @@ void Cells::recomputeSegments (int iaxis)
     for( int i=2; i<num; i++ )
     {
       double dx = x(i) - x(i-1);
-      // if in the middle of segment and step changes, start new
-      if( end(iseg) != start(iseg) && dx != dx0 ) 
+      // if in the middle of segment and step changes, start anew
+      if( end(iseg) != start(iseg) && fabs(dx-dx0)>epsilon )
       {
         iseg++;
         start(iseg) = end(iseg) = i;

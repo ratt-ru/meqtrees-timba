@@ -314,6 +314,23 @@ namespace Meq { class Pow; };
               typedef const Meq::Pow & ContainerParamType;
             };
 #endif
+#ifndef _defined_id_TpMeqReqMux
+#define _defined_id_TpMeqReqMux 1
+const TypeId TpMeqReqMux(-1443);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqMux.h:30
+const int TpMeqReqMux_int = -1443;
+namespace Meq { class ReqMux; };
+            template<>
+            class DMIBaseTypeTraits<Meq::ReqMux> : public TypeTraits<Meq::ReqMux>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqReqMux_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::ReqMux & ContainerReturnType;
+              typedef const Meq::ReqMux & ContainerParamType;
+            };
+#endif
 #ifndef _defined_id_TpMeqRequest
 #define _defined_id_TpMeqRequest 1
 const TypeId TpMeqRequest(-1222);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:32

@@ -57,8 +57,8 @@ Domain::Domain (double startFreq, double endFreq,
   range_[FREQ][1] = endFreq;
   range_[TIME][0] = startTime;
   range_[TIME][1] = endTime;
-  (*this)[FFreq] <<= new DataField(Tpdouble,2,DMI::WRITE,range_[FREQ]);
-  (*this)[FTime] <<= new DataField(Tpdouble,2,DMI::WRITE,range_[TIME]);
+  (*this)[FFreq] <<= new DataField(Tpdouble,2,range_[FREQ]);
+  (*this)[FTime] <<= new DataField(Tpdouble,2,range_[TIME]);
 }
 
 

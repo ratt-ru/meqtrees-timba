@@ -274,7 +274,8 @@ class Node : public BlockableObject
     // Helper method for init(). Checks that initrec field exists and inserts
     // a default value if it doesn't.
     #define defaultInitField(rec,field,deflt) \
-      { if( !(rec)[field].exists() ) (rec)[field] = (deflt); }
+      { DataRecord::Hook hook(rec,field); \
+        if( !hook.exists() ) hook = (deflt); }
         
     // Helper method for setStateImpl(). Meant to check for immutable state 
     // fields. Checks if record rec contains the given field, throws a 
@@ -283,19 +284,14 @@ class Node : public BlockableObject
     #define protectStateField(rec,field) \
       { if( (rec)[field].exists() ) \
           NodeThrow(FailWithoutCleanup,"state."+(field).toString()+" not reconfigurable"); }
-          
-    // Helper method for setStateImpl(). Checks if rec[field] exists, if yes,
-    // assigns it to 'out', returns true. Otherwise returns false.
-    template<class T>
-    bool getStateField (T &out,const DataRecord &rec,const HIID &field)
-    { if( rec[field].exists() ) {
-        out = rec[field].as(Type2Type<T>());
-        return true;
-      } else {
-        return false;
-      }
-    }
-      
+
+// 31/03/04: phased out, since rec[Field].get(variable) does the same thing
+//     // Helper method for setStateImpl(). Checks if rec[field] exists, if yes,
+//     // assigns it to 'out', returns true. Otherwise returns false.
+//     template<class T>
+//     bool getStateField (T &out,const DataRecord &rec,const HIID &field)
+        
+        
   private:
     //##ModelId=400E531F0085
     void initChildren (int nch);

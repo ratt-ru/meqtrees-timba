@@ -116,6 +116,12 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // set node index, if specified
   if( rec[FNodeIndex].exists() )
     node_index_ = rec[FNodeIndex].as<int>();
+  
+  // call setStateImpl to set up reconfigurable node state
+  cdebug(2)<<"reinitializing node (setStateImpl)"<<endl;
+  cdebug(3)<<"state is "<<staterec_().sdebug(10,"    ")<<endl;
+  setStateImpl(staterec_(),true);
+  
   // setup children
   if( rec[FChildren].exists() )
   {
@@ -136,10 +142,6 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
   {
     cdebug(2)<<"no children to reintialize"<<endl;
   }
-  // call setStateImpl to set up reconfigurable node state
-  cdebug(2)<<"reinitializing node (setStateImpl)"<<endl;
-  cdebug(3)<<"state is "<<staterec_().sdebug(10,"    ")<<endl;
-  setStateImpl(staterec_(),true);
 }  
 
 //##ModelId=3F5F45D202D5
@@ -164,6 +166,11 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
     rec[FClass] = objectType().toString();
   // do other checks
   checkInitState(rec);
+  
+  // call setStateImpl to set up reconfigurable node state
+  cdebug(2)<<"initializing node (setStateImpl)"<<endl;
+  cdebug(3)<<"initial state is "<<staterec_().sdebug(10,"    ")<<endl;
+  setStateImpl(staterec_(),true);
   
   // setup children
   cdebug(2)<<"initializing node (others)"<<endl;
@@ -221,10 +228,6 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
     }
     cdebug(2)<<numChildren()<<" children"<<endl;
   }
-  // call setStateImpl to set up reconfigurable node state
-  cdebug(2)<<"initializing node (setStateImpl)"<<endl;
-  cdebug(3)<<"initial state is "<<staterec_().sdebug(10,"    ")<<endl;
-  setStateImpl(staterec_(),true);
 }
 
 //##ModelId=400E531402D1
@@ -241,31 +244,31 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
   // set/clear cached result
   //   the cache_result field must be either a Result object,
   //   or a boolean false to clear the cache. Else throw exception.
-  TypeId type = rec[FCacheResult].type();
+  DataRecord::Hook hcache(rec,FCacheResult);
+  TypeId type = hcache.type();
   if( type == TpMeqResult ) // a result
-    cache_result_ <<= rec[FCacheResult].as_wp<Result>();
-  else if( type == Tpbool && !rec[FCacheResult].as<bool>() ) // a bool False
+    cache_result_ <<= hcache.as_wp<Result>();
+  else if( type == Tpbool && !hcache.as<bool>() ) // a bool False
     cache_result_.detach();
   else if( type != 0 ) // anything else (if type=0, then field is missing)
   {
     NodeThrow(FailWithCleanup,"illegal state."+FCacheResult.toString()+" field");
   }
   // set the name
-  getStateField(myname_,rec,FName);
+  rec[FName].get(myname_);
   // set the caching policy
   //      TBD
   
   // set node groups
-  if( rec[FNodeGroups].exists() )
+  if( rec[FNodeGroups].get_vector(node_groups_) )
   {
-    node_groups_ = rec[FNodeGroups].as_vector<HIID>();
     // the "All" group is defined for every node
     node_groups_.push_back(FAll);
   }
   // set current request ID
-  getStateField(current_reqid_,rec,FRequestId);
+  rec[FRequestId].get(current_reqid_);
   // set cache resultcode
-  getStateField(cache_retcode_,rec,FCacheResultCode);
+  rec[FCacheResultCode].get(cache_retcode_);
 }
 
 //##ModelId=3F5F445A00AC

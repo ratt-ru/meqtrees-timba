@@ -131,11 +131,10 @@ void Function::setStateImpl (DataRecord &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   // get [vector of] flag mask
-  DataRecord::Hook hmask(rec,FFlagMask);
-  if( hmask.exists() )
+  vector<int> fm;
+  if( rec[FFlagMask].get_vector(fm) )
   {
     enable_flags_ = true;
-    vector<int> fm = hmask.as_vector<int>();
     // single element? 
     if( fm.size() == 1 )
     {

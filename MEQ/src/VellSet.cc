@@ -143,7 +143,7 @@ void VellSet::setShape (const LoShape2 &shp)
   }
   shape_ = shp;
   int vec[2] = { shape_[0] , shape_[1] };
-  DataRecord::replace(FShape,new DataField(Tpint,2,DMI::WRITE,vec),DMI::ANONWR);
+  DataRecord::replace(FShape,new DataField(Tpint,2,vec),DMI::ANONWR);
 }
     
 //##ModelId=400E53550333
@@ -399,7 +399,7 @@ void VellSet::setSpids (const vector<int>& spids)
   else // setting new vector
   {
     numspids_ = spids.size();
-    DataField *pdf = new DataField(Tpint,spids.size(),DMI::WRITE,&spids[0]);
+    DataField *pdf = new DataField(Tpint,spids.size(),&spids[0]);
     DataRecord::add(FSpids,pdf,DMI::ANONWR);
     spids_ = (*pdf)[HIID()].as_wp<int>();
     for( uint iset=0; iset<pset_.size(); iset++ )
