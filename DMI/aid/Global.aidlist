@@ -35,6 +35,7 @@ centroid                         1138       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 chain                            1141       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
 channel                          1196       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
 char                             33         ; from /home/oms/LOFAR/DMI/src/TypeId.h:100
+chi                              1398       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 child                            1226       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:33
 children                         1220       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:33
 chunk                            1187       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:29
@@ -57,6 +58,7 @@ control                          1131       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 conv                             1195       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
 corr                             1153       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
 count                            1109       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
+covar                            1401       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 create                           1332       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:11
 d                                1008       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 data                             1116       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
@@ -85,6 +87,7 @@ effective                        1194       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 end                              1283       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:35
 epsilon                          1385       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
 error                            1084       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
+errors                           1397       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 event                            1070       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:19
 execute                          1372       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:13
 exit                             1263       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:17
@@ -97,6 +100,7 @@ fcomplex                         46         ; from /home/oms/LOFAR/DMI/src/TypeI
 feed                             1121       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
 field                            1193       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
 file                             1275       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/BOIOSink.h:9
+fit                              1403       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 flag                             1135       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
 flags                            1298       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:35
 float                            43         ; from /home/oms/LOFAR/DMI/src/TypeId.h:102
@@ -236,6 +240,7 @@ motion                           1171       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 mount                            1192       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
 ms                               1207       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
 msglog                           1072       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:32
+mu                               1400       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 n                                1020       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 name                             1188       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
 names                            1396       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:33
@@ -292,6 +297,7 @@ publish                          1055       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 q                                1023       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 r                                1024       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 ra                               1380       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/UVW.h:30
+rank                             1402       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 raw                              1169       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
 receive                          1311       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:13
 receptor                         1173       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
@@ -341,6 +347,7 @@ start                            1105       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 state                            1060       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:21
 station                          1126       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
 status                           1269       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:18
+stddev                           1399       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 step                             1362       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:31
 steps                            1363       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:31
 stop                             1054       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:9
