@@ -62,7 +62,6 @@ if test "$with_fftw" != "no"; then
     fi
     enable_fftw=yes
   fi
-]
 ##
 ## Look for header file in suggested locations or in its include subdir
 ##
@@ -80,24 +79,31 @@ if test "$with_fftw" != "no"; then
   fi
   for bdir in $fftw_inclist
   do
-    AC_CHECK_FILE([$bdir/include/fftw/array.h],
+    ]AC_CHECK_FILE([$bdir/include/fftw.h],
 			[lfr_header_fftw=$bdir/include],
-			[lfr_header_fftw=no])dnl
-[
+			[lfr_header_fftw=no])[
     if test "$lfr_header_fftw" != "no" ; then
-      if test "$with_fftw_libdir" = ""; then
-        with_fftw_libdir=$bdir/lib;
-        break;
+      ]AC_CHECK_FILE([$bdir/include/rfftw.h],
+			[lfr_header_fftw=$bdir/include],
+			[lfr_header_fftw=no])[
+      if test "$lfr_header_fftw" != "no" ; then
+        if test "$with_fftw_libdir" = ""; then
+          with_fftw_libdir=$bdir/lib;
+          break;
+        fi
       fi
     fi
   done
 
   if test "$with_fftw_libdir" != ""; then
-]
-    AC_CHECK_FILE([$with_fftw_libdir/libfftw.a],
+    ]AC_CHECK_FILE([$with_fftw_libdir/libfftw.a],
 			[lfr_lib_fftw=$with_fftw_libdir],
-			[lfr_lib_fftw=no])dnl
-[
+			[lfr_lib_fftw=no])[
+    if test "$lfr_lib_fftw" != "no" ; then
+      ]AC_CHECK_FILE([$with_fftw_libdir/include/fftw.h],
+			[lfr_lib_fftw=$with_fftw_libdir],
+			[lfr_lib_fftw=no])[
+    fi
   fi
 
   if test "$lfr_header_fftw" != "no"  -a  "$lfr_lib_fftw" != "no" ; then
