@@ -47,11 +47,25 @@ class Node : public BlockableObject
     typedef CountedRef<Node> Ref;
   
     //##ModelId=3F698825005B
-    // these are flags returned by execute(), indicating result properties
-    typedef enum {
-      RES_WAIT          = 0x01,    // result not yet available, must wait
-      RES_UPDATED       = 0x02,    // result updated since last request
-      RES_FAIL          = 0x80     // result is complete fail
+    // These are flags returned by execute(), indicating result properties
+    // The lower 16 (=RQIDM_NBITS) bits are reserved for request dependency 
+    // masks; see RequestId.h for details.
+    // Note that the meaning of the bits is chosen so that the flags of
+    // of a node's result will generally be a bitwise OR of the child
+    // flags, plus any flags added by the node itself.
+    typedef enum 
+    {
+      // Result is volatile (i.e. may change even if the request doesn't) and
+      // thus should not be cached
+      RES_VOLATILE     = 0x01<<RQIDM_NBITS,  
+      // Result has been updated (as opposed to pulled from the node's cache)
+      RES_UPDATED      = 0x02<<RQIDM_NBITS,  
+      // Result not yet available, must wait. This flag may be combined
+      // with other flags (except FAIL) to indicate dependencies.
+      RES_WAIT         = 0x10<<RQIDM_NBITS,    
+      // Result is a complete fail (i.e. not a mix of failed and OK VellSets,
+      // just a complete fail)
+      RES_FAIL         = 0x80<<RQIDM_NBITS    
     } ResultAttributes;
   
     //##ModelId=3F5F43E000A0
@@ -139,6 +153,10 @@ class Node : public BlockableObject
     const std::vector<HIID> & getNodeGroups () const
     { return node_groups_; }
     
+    
+    int getDependMask ()
+    { return depend_mask_; }
+    
     //##ModelId=3F5F4363030F
     //##Documentation
     //## Clones a node. 
@@ -181,7 +199,8 @@ class Node : public BlockableObject
     // called from init(), meant to check the initrec for required fields,
     // and to fill in any missing defaults. Throws exception on failure 
     // (i.e. if a required field is missing)
-    virtual void checkInitState (DataRecord &rec);
+    virtual void checkInitState (DataRecord &rec)
+    {}
     
     // called from init() and setState(), meant to update internal state
     // in accordance to rec. If initializing==true (i.e. when called from 
@@ -225,7 +244,10 @@ class Node : public BlockableObject
     virtual int getResult (Result::Ref &resref, 
                            const std::vector<Result::Ref> &childres,
                            const Request &req,bool newreq);
-    
+
+    //  sets the default dependency mask
+    void setDependMask (int mask);
+        
     // ----------------- misc helper methods ----------------------------------
     //##ModelId=3F83F9A5022C
     // write-access to the state record
@@ -329,6 +351,8 @@ class Node : public BlockableObject
     Result::Ref cache_result_;
     //##ModelId=400E530B01D2
     int cache_retcode_;
+    
+    int depend_mask_;
     
     // group(s) that a node belongs to
     //##ModelId=400E55D00080

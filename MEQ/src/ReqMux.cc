@@ -38,7 +38,8 @@ const HIID FWait = AidWait;
 
 //##ModelId=400E5355029C
 ReqMux::ReqMux()
-: Node(-1,0,1) // at least one child required
+: Node(-1,0,1), // at least one child required
+  res_depend_mask_(RQIDM_RESOLUTION)
 {}
 
 //##ModelId=400E5355029D
@@ -48,6 +49,8 @@ ReqMux::~ReqMux()
 void ReqMux::setStateImpl (DataRecord &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
+  // get dependency mask for resolution changes
+  rec[FResolutionDependMask].get(res_depend_mask_,initializing);
   // check for operation specs
   int noper = rec[FOper].size(TpDataRecord);
   if( noper )
@@ -94,8 +97,6 @@ int ReqMux::pollChildren (std::vector<Result::Ref> &child_results,
   int retcode = 0;
   // get components of domain ID
   RequestId rqid = req.id();
-  HIID dom_id = getDomainId(rqid);
-  int nreq = 0;
   
   // figure out the child requests first
   child_results.resize(numChildren());
@@ -114,7 +115,8 @@ int ReqMux::pollChildren (std::vector<Result::Ref> &child_results,
       {
         reqref <<= preq = newreq = new Request(req);
         // set new request ID, by adding an extra index to the domain ID
-        newreq->setId( setDomainId(rqid,dom_id|AtomicID(++nreq)) );
+        incrSubId(rqid,res_depend_mask_);
+        newreq->setId(rqid);
       }
       // create new cells object
       Cells *pc = new Cells;

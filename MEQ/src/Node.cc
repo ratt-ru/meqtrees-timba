@@ -37,7 +37,8 @@ InitDebugContext(Node,"MeqNode");
 Node::Node (int nchildren,const HIID *labels,int nmandatory)
     : child_labels_(labels),
       check_nchildren_(nchildren),
-      check_nmandatory_(nmandatory)
+      check_nmandatory_(nmandatory),
+      depend_mask_(0)
 {
   Assert(nchildren>=0 || !labels);
   Assert(nchildren<0 || nchildren>=nmandatory);
@@ -48,10 +49,11 @@ Node::~Node()
 {
 }
 
-void Node::checkInitState (DataRecord &rec)
+void Node::setDependMask (int mask)
 {
-  defaultInitField(rec,FName,"");
-      // defaultInitField(rec,FNodeIndex,0);
+  depend_mask_ = mask;
+  if( staterec_.valid() )
+    staterec_()[FDependMask] = mask;
 }
 
 
@@ -255,9 +257,12 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
     NodeThrow(FailWithCleanup,"illegal state."+FCacheResult.toString()+" field");
   }
   // set the name
-  rec[FName].get(myname_);
+  rec[FName].get(myname_,initializing);
   // set the caching policy
   //      TBD
+  
+  // set the default dependency mask
+  rec[FDependMask].get(depend_mask_,initializing);
   
   // set node groups
   if( rec[FNodeGroups].get_vector(node_groups_) )
@@ -716,10 +721,10 @@ int Node::execute (Result::Ref &ref, const Request &req)
       stage = "getting result";
       cdebug(3)<<"  calling getResult(): cells are "<<req.cells();
       int code = getResult(ref,child_results,req,newreq);
-      retcode |= code;
+      retcode |= code | depend_mask_;
       cdebug(3)<<"  getResult() returns code "<<code<<", cumulative "<<retcode<<endl;
       // a WAIT is returned immediately with no valid result expected
-      if( code&RES_WAIT ) 
+      if( code&RES_WAIT )
         return retcode;
       // else we must have a valid Result object now, even if it's a fail.
       // (in case of RES_FAIL, getResult() should have put a fail in there)

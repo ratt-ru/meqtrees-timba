@@ -103,6 +103,8 @@ private:
   std::vector<OpSpec> ops_;
   int pass_child_;
   
+  int res_depend_mask_;
+  
 };
 
 

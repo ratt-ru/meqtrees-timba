@@ -29,6 +29,7 @@
 #pragma aidgroup Meq
 #pragma aid Node Class Name State Child Children Request Result VellSet 
 #pragma aid Rider Command Id Group Add Update Value Values Solve Solver
+#pragma aid Dependency Resolution Depend Mask
 #pragma aid Cells Domain Freq Time Calc Deriv Vells VellSets Flags Weights
 #pragma aid Shape Grid Cell Size Segments Start End Steps
 #pragma aid NodeIndex Table Name Default Index Num Cache Code 
@@ -58,11 +59,12 @@ namespace Meq
     FState           = AidState,
     
     // Node staterec
-    FChildren        = AidChildren,
-    FChildrenNames   = AidChildren|AidName,
-    FName            = AidName,
-    FNodeIndex       = AidNodeIndex,
-    FNodeGroups      = AidNode|AidGroups,
+    FChildren           = AidChildren,
+    FChildrenNames      = AidChildren|AidName,
+    FName               = AidName,
+    FNodeIndex          = AidNodeIndex,
+    FNodeGroups         = AidNode|AidGroups,
+    FDependMask         = AidDepend|AidMask,
     
     // Request rider fields (for commands)
     FAll                = AidAll,
@@ -92,6 +94,10 @@ namespace Meq
     FAutoSave        = AidAuto|AidSave,
     FDomainId        = AidDomain|AidId,
     FSolveDomainId   = AidSolve|AidDomain|AidId,
+    
+    FSolveDependMask  = AidSolve|AidDepend|AidMask,
+    FDomainDependMask = AidDomain|AidDepend|AidMask,
+    
     // FDomain      defined previously
     FSolveDomain     = AidSolve|AidDomain,
     FPolcs           = AidPolcs,
@@ -156,6 +162,8 @@ namespace Meq
     FStdDev          = AidStdDev,
     FChi             = AidChi,
 
+    FResolutionDependMask = AidResolution|AidDepend|AidMask,
+    
     FContagiousFail  = AidContagious|AidFail,
     
     FIndex           = AidIndex;

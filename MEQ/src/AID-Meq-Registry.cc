@@ -95,6 +95,10 @@ BlockableObject * __construct_MeqReqMux (int n) { return n>0 ? new Meq::ReqMux [
         AtomicID::registerId(-1413,"values")+
         AtomicID::registerId(-1414,"solve")+
         AtomicID::registerId(-1339,"solver")+
+        AtomicID::registerId(-1444,"dependency")+
+        AtomicID::registerId(-1179,"resolution")+
+        AtomicID::registerId(-1445,"depend")+
+        AtomicID::registerId(-1287,"mask")+
         AtomicID::registerId(-1247,"cells")+
         AtomicID::registerId(-1213,"domain")+
         AtomicID::registerId(-1128,"freq")+
@@ -128,7 +132,6 @@ BlockableObject * __construct_MeqReqMux (int n) { return n>0 ? new Meq::ReqMux [
         AtomicID::registerId(-1396,"names")+
         AtomicID::registerId(-1394,"pert")+
         AtomicID::registerId(-1393,"relative")+
-        AtomicID::registerId(-1287,"mask")+
         AtomicID::registerId(-1245,"results")+
         AtomicID::registerId(-1036,"fail")+
         AtomicID::registerId(-1132,"origin")+
