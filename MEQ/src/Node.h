@@ -37,7 +37,6 @@ namespace Meq {
 class Forest;
 class Request;
 
-
 //##ModelId=3F5F436202FE
 class Node : public BlockableObject
 {
@@ -58,7 +57,12 @@ class Node : public BlockableObject
 
   
     //##ModelId=3F5F43E000A0
-    Node();
+    // Child labels may be specified in constructror as a C array of HIIDs.
+    // If nchildren>=0, specifies that an exact number of children is expected.
+    // If nchildren<0, spefifies that at least -(nchildren+1) are expected
+    // (hence -1 implies no checking)
+    Node (int nchildren=-1,const HIID *labels = 0);
+        
     //##ModelId=3F5F44A401BC
     virtual ~Node();
 
@@ -79,8 +83,10 @@ class Node : public BlockableObject
     //##ModelId=3F5F441602D2
     const DataRecord & state() const;
     
+    void setNodeIndex (int nodeindex);
+    
     //##ModelId=3F5F445A00AC
-    virtual void setState (const DataRecord &rec);
+    void setState (DataRecord &rec);
     
     //##ModelId=3F6726C4039D
     int execute (Result::Ref &resref, const Request &);
@@ -133,15 +139,57 @@ class Node : public BlockableObject
     LocalDebugContext;
     
   protected:
-    //##ModelId=3F83FADF011D
-    virtual void checkChildren();
+    // creates a message of the form "Node CLASS ('NAME'): MESSAGE"
+    string makeMessage (const string &msg) const
+      { return  "Node " + className() + "('" + name() + "'): " + msg; }
+    
+    // These exception are meant to be thrown from methods like init(),
+    // getResult(), processRider() and setStateImpl() when something goes 
+    // wrong. The type of the exception indicates whether any cleanup is 
+    // required.
+    EXCEPTION_CLASS(FailWithCleanup,LOFAR::Exception);
+    EXCEPTION_CLASS(FailWithoutCleanup,LOFAR::Exception);
+  
+    //  NodeThrow can be used to throw an exception, with the message
+    // passed through makeMessage()
+    #define NodeThrow(exc,msg) \
+      { THROW(exc,makeMessage(msg)); }
+
+    // Helper method for init(). Checks that initrec field exists, throws a
+    // FailWithoutCleanup with the appropriate message if it doesn't.
+    // Defined as macro so that exception gets proper file/line info
+    #define requiresInitField(rec,field) \
+      { if( !(rec)[field].exists() ) \
+         NodeThrow(FailWithoutCleanup,"missing initrec field \'"+(field).toString()+"'"); } \
+    // Helper method for init(). Checks that initrec field exists and inserts
+    // a default value if it doesn't.
+    #define defaultInitField(rec,field,deflt) \
+      { if( !(rec)[field].exists() ) (rec)[field] = (deflt); }
+        
+    // Helper method for setStateImpl(). Meant to check for immutable state 
+    // fields. Checks if record rec contains the given field, throws a 
+    // FailWithoutCleanup with the appropriate message if it does.
+    // Defined as macro so that exception gets proper file/line info
+    #define protectStateField(rec,field) \
+      { if( (rec)[field].exists() ) \
+          NodeThrow(FailWithoutCleanup,"can't reconfigure state field \'"+(field).toString()+"'"); }
+      
     //##ModelId=3F83F9A5022C
     DataRecord & wstate();
+    
+    //##ModelId=3F83FADF011D
+    virtual void checkChildren();
+    
     //##ModelId=3F98D9D2006B
-    virtual void processRequestRider (const DataRecord &rider);
+    virtual void checkInitState (DataRecord &rec);
+    
+    virtual void setStateImpl (DataRecord &rec,bool initializing);
+    
+    virtual void processRider (const DataRecord &rider);
+    
     //##ModelId=3F98D9D100B9
     virtual int getResult (Result::Ref &resref, const Request &req,bool newreq);
-
+    
     // helper function for nodes with multiple children:
     //  1. allocates vector for child ResultSets
     //  2. calls execute() on all children
@@ -156,7 +204,10 @@ class Node : public BlockableObject
     void addChild (const HIID &id,Node *childnode);
     
     void setCurrentRequest (const Request &req);
-      
+
+    const HIID * child_labels_;      
+    int check_nchildren_;
+    
     //##ModelId=3F5F4363030D
     DataRecord::Ref staterec_;
     //##ModelId=3F5F48040177
@@ -179,6 +230,8 @@ class Node : public BlockableObject
     ChildrenMap child_map_;
     //##ModelId=3F8433C2016F
     UnresolvedChildren unresolved_children_;
+    
+    std::vector<HIID> config_groups_;
 };
 
 inline const HIID & Node::currentRequestId ()

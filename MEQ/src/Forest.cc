@@ -46,6 +46,7 @@ const Node::Ref & Forest::create (int &node_index,DataRecord::Ref::Xfer &initrec
 {
   string classname;
   Node::Ref noderef;
+  Node *pnode;
   // get class from initrec and try to construct a node of that class
   try
   {
@@ -53,7 +54,7 @@ const Node::Ref & Forest::create (int &node_index,DataRecord::Ref::Xfer &initrec
     FailWhen( !classname.length(),"missing or invalid Class field in init record"); 
     BlockableObject * pbp = DynamicTypeManager::construct(TypeId(classname));
     FailWhen(!pbp,"construct failed");
-    Meq::Node * pnode = dynamic_cast<Meq::Node*>(pbp);
+    pnode = dynamic_cast<Meq::Node*>(pbp);
     if( !pnode )
     {
       delete pbp;
@@ -78,6 +79,7 @@ const Node::Ref & Forest::create (int &node_index,DataRecord::Ref::Xfer &initrec
   node_index = nodes.size();
   if( node_index >= int(nodes.capacity()) )
     nodes.reserve(nodes.size()+RepositoryChunkSize);
+  pnode->setNodeIndex(node_index);
   // add to repository and name map
   nodes.push_back(noderef);
   name_map[name] = node_index;

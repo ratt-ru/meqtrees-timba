@@ -85,8 +85,10 @@ int main (int argc,const char* argv[])
     
     cout << "============ resolving children on add =========\n";
     chadd.resolveChildren();
-    vector<TypeId> types(2, TpMeqFunction);
-    dynamic_cast<Function&>(chadd).testChildren (types);
+    
+    // test children type matching
+    vector<TypeId> types(1, TpMeqParm);
+    dynamic_cast<Function&>(chcos).testChildren (types);
 
     cout << "============ getting result =========\n";
     Domain domain(1,4, -2,3);

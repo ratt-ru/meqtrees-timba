@@ -86,6 +86,7 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1230,"deriv")+
         AtomicID::registerId(-1370,"vells")+
         AtomicID::registerId(-1371,"vellsets")+
+        AtomicID::registerId(-1324,"nodeindex")+
         AtomicID::registerId(-1361,"table")+
         AtomicID::registerId(-1231,"default")+
         AtomicID::registerId(-1256,"value")+
@@ -102,6 +103,8 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1045,"message")+
         AtomicID::registerId(-1364,"contagious")+
         AtomicID::registerId(-1366,"solvable")+
+        AtomicID::registerId(-1373,"config")+
+        AtomicID::registerId(-1374,"groups")+
         AtomicID::registerId(-1235,"meqdomain")+
         TypeInfoReg::addToRegistry(-1235,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1235,__construct_MeqDomain)+

@@ -33,6 +33,11 @@ const int AidChildren_int = -1220;
 const AtomicID AidClass(-1248);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:33
 const int AidClass_int = -1248;
 #endif
+#ifndef _defined_id_AidConfig
+#define _defined_id_AidConfig 1
+const AtomicID AidConfig(-1373);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
+const int AidConfig_int = -1373;
+#endif
 #ifndef _defined_id_AidContagious
 #define _defined_id_AidContagious 1
 const AtomicID AidContagious(-1364);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:34
@@ -62,6 +67,11 @@ const int AidFail_int = -1036;
 #define _defined_id_AidFreq 1
 const AtomicID AidFreq(-1128);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
 const int AidFreq_int = -1128;
+#endif
+#ifndef _defined_id_AidGroups
+#define _defined_id_AidGroups 1
+const AtomicID AidGroups(-1374);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
+const int AidGroups_int = -1374;
 #endif
 #ifndef _defined_id_AidId
 #define _defined_id_AidId 1
@@ -227,6 +237,11 @@ const int AidName_int = -1188;
 #define _defined_id_AidNode 1
 const AtomicID AidNode(-1233);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:33
 const int AidNode_int = -1233;
+#endif
+#ifndef _defined_id_AidNodeIndex
+#define _defined_id_AidNodeIndex 1
+const AtomicID AidNodeIndex(-1324);               // from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:10
+const int AidNodeIndex_int = -1324;
 #endif
 #ifndef _defined_id_AidNum
 #define _defined_id_AidNum 1

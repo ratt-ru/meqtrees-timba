@@ -33,13 +33,158 @@ namespace Meq {
 InitDebugContext(Node,"MeqNode");
 
 //##ModelId=3F5F43E000A0
-Node::Node()
+Node::Node (int nchildren,const HIID *labels)
+    : child_labels_(labels),
+      check_nchildren_(nchildren)
 {
 }
 
 //##ModelId=3F5F44A401BC
 Node::~Node()
 {
+}
+
+void Node::checkInitState (DataRecord &rec)
+{
+  defaultInitField(rec,FName,"");
+      // defaultInitField(rec,FNodeIndex,0);
+}
+
+//##ModelId=3F5F45D202D5
+void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
+{
+  cdebug(1)<<"initializing node"<<endl;
+  forest_ = frst;
+  // xfer & privatize the state record -- we don't want anyone
+  // changing it under us
+  DataRecord &rec = staterec_.xfer(initrec).privatize(DMI::WRITE|DMI::DEEP);
+  
+  // set defaults and check for missing fields
+  cdebug(2)<<"initializing node (checkInitState)"<<endl;
+  // add node class if needed, else check for consistency
+  if( rec[FClass].exists() )
+  {
+    FailWhen(strlowercase(rec[FClass].as<string>()) != strlowercase(objectType().toString()),
+      "node class does not match initrec.class. This is not supposed to happen!");
+  }
+  else
+    rec[FClass] = objectType().toString();
+  // do other checks
+  checkInitState(rec);
+  
+  // call setStateImpl to set up reconfigurable node state
+  cdebug(2)<<"initializing node (setStateImpl)"<<endl;
+  setStateImpl(staterec_(),true);
+  
+  // setup the non-reconfigurable stuff
+  cdebug(2)<<"initializing node (others)"<<endl;
+  // set node index, if specified
+  if( rec[FNodeIndex].exists() )
+    node_index_ = rec[FNodeIndex].as<int>();
+  // setup child nodes, if specified
+  if( rec[FChildren].exists() )
+  {
+    // children specified via a record
+    if( rec[FChildren].containerType() == TpDataRecord )
+    {
+      DataRecord &childrec = rec[FChildren].as_wr<DataRecord>();
+      // iterate through children record and create the child nodes
+      DataRecord::Iterator iter = childrec.initFieldIter();
+      HIID id;
+      NestableContainer::Ref child_ref;
+      while( childrec.getFieldIter(iter,id,child_ref) )
+        processChildSpec(childrec,id);
+    }
+    else if( rec[FChildren].containerType() == TpDataField )
+    {
+      DataField &childrec = rec[FChildren].as_wr<DataField>();
+      for( int i=0; i<childrec.size(); i++ )
+        processChildSpec(childrec,AtomicID(i));
+    }
+    else if( rec[FChildren].containerType() == TpDataArray )
+    {
+      DataArray &childarr = rec[FChildren].as_wr<DataArray>();
+      FailWhen(childarr.rank()!=1,"illegal child array");
+      for( int i=0; i<childarr.shape()[0]; i++ )
+        processChildSpec(childarr,AtomicID(i));
+    }
+    cdebug(2)<<numChildren()<<" children, "
+             <<unresolved_children_.size()<<" unresolved"<<endl;
+  }
+}
+
+void Node::setStateImpl (DataRecord &rec,bool initializing)
+{
+  // if not initializing, check for immutable fields
+  if( !initializing )
+  {
+    protectStateField(rec,FClass);
+    protectStateField(rec,FChildren);
+    protectStateField(rec,FNodeIndex);
+  }
+  // set the name
+  if( rec[FName].exists() )
+    myname_ = rec[FName].as<string>();
+       //  // set the node index
+       //  if( rec[FNodeIndex].exists() )
+       //    node_index_ = rec[FNodeIndex].as<int>();
+  // set the caching policy
+  //      TBD
+  // set config groups
+  if( rec[FConfigGroups].exists() )
+    config_groups_ = rec[FConfigGroups].as_vector<HIID>();
+}
+
+//##ModelId=3F5F445A00AC
+void Node::setState (DataRecord &rec)
+{
+  // lock records until we're through
+  Thread::Mutex::Lock lock(rec.mutex()),lock2(state().mutex());
+  // when initializing, we're called with our own state record, which
+  // makes the rules somewhat different:
+  bool initializing = ( &rec != &(wstate()) );
+  string fail;
+  // setStateImpl() is allowed to throw exceptions if something goes wrong.
+  // This may leave the node with an inconsistency between the state record
+  // and internal state. To recover from this, we can call setStateImpl() with
+  // the current state record to reset the node state.
+  // If the exception occurs before any change of state, then no cleanup is 
+  // needed. Implementations may throw a FailWithoutCleanup exception to
+  // indicate this.
+  try
+  {
+    setStateImpl(rec,initializing);
+  }
+  catch( FailWithoutCleanup &exc )
+  {
+    throw exc; // No cleanup required, just re-throw
+  }
+  catch( std::exception &exc )
+  {
+    fail = string("setState() failed: ") + exc.what();
+  }
+  catch( ... )
+  {
+    fail = "setState() failed with unknown exception";
+  }
+  // has setStateImpl() failed?
+  if( fail.length() )
+  {
+    // reset the state by reinitializing with the state record (this is
+    // obviously pointless if we were initializing to begin with). Note
+    // that an exception from this call indicates that the node is well 
+    // & truly fscked (a good node should always be reinitializable), so
+    // we might as well let the caller deal with it.
+    if( !initializing )
+      setStateImpl(wstate(),true);
+    Throw(fail); // rethrow the fail
+  }
+  else // success
+  {
+    // success: merge record into state record; deep-privatize for writing 
+    if( !initializing )
+      wstate().merge(rec,True,DMI::PRIVATIZE|DMI::WRITE|DMI::DEEP);
+  }
 }
 
 //##ModelId=3F9505E50010
@@ -103,47 +248,9 @@ void Node::processChildSpec (NestableContainer &children,const HIID &id)
   }
 }
 
-//##ModelId=3F5F45D202D5
-void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
+void Node::setNodeIndex (int nodeindex)
 {
-  forest_ = frst;
-  // xfer & privatize the state record -- we don't want anyone
-  // changing it under us
-  staterec_ = initrec;
-  staterec_.privatize(DMI::WRITE|DMI::DEEP);
-  // extract node name
-  myname_ = (*staterec_)[FName].as<string>("");
-  cdebug(1)<<"initializing MeqNode "<<myname_<<endl;
-  // setup child nodes, if specified
-  if( state()[FChildren].exists() )
-  {
-    // children specified via a record
-    if( state()[FChildren].containerType() == TpDataRecord )
-    {
-      DataRecord &childrec = wstate()[FChildren].as_wr<DataRecord>();
-      // iterate through children record and create the child nodes
-      DataRecord::Iterator iter = childrec.initFieldIter();
-      HIID id;
-      NestableContainer::Ref child_ref;
-      while( childrec.getFieldIter(iter,id,child_ref) )
-        processChildSpec(childrec,id);
-    }
-    else if( state()[FChildren].containerType() == TpDataField )
-    {
-      DataField &childrec = wstate()[FChildren].as_wr<DataField>();
-      for( int i=0; i<childrec.size(); i++ )
-        processChildSpec(childrec,AtomicID(i));
-    }
-    else if( state()[FChildren].containerType() == TpDataArray )
-    {
-      DataArray &childarr = wstate()[FChildren].as_wr<DataArray>();
-      FailWhen(childarr.rank()!=1,"illegal child array");
-      for( int i=0; i<childarr.shape()[0]; i++ )
-        processChildSpec(childarr,AtomicID(i));
-    }
-    cdebug(2)<<numChildren()<<" children, "
-             <<unresolved_children_.size()<<" unresolved"<<endl;
-  }
+  wstate()[FNodeIndex] = node_index_ = nodeindex;
 }
 
 //##ModelId=3F8433C20193
@@ -221,14 +328,7 @@ inline int Node::getChildNumber (const HIID &id)
   return iter == child_map_.end() ? -1 : iter->second;
 }
 
-//##ModelId=3F5F445A00AC
-void Node::setState (const DataRecord &rec)
-{
-  // copy relevant fields from new record
-  // the only relevant one at this level is Name
-  if( rec[FName].exists() )
-    staterec_()[FName] = myname_ = rec[FName].as<string>();
-}
+
 
 void Node::setCurrentRequest (const Request &req)
 {
@@ -256,7 +356,7 @@ int Node::execute (Result::Ref &ref, const Request &req)
       {
         cdebug(3)<<"  processing request rider"<<endl;
         const DataRecord &rider = req[FRider];
-        processRequestRider(rider);
+        processRider(rider);
         // process rider stuff common to all nodes (setState, etc.)
         // ...
         // none for now
@@ -322,7 +422,7 @@ int Node::execute (Result::Ref &ref, const Request &req)
 
 // default version does nothing
 //##ModelId=3F98D9D2006B
-void Node::processRequestRider (const DataRecord &)
+void Node::processRider (const DataRecord &)
 {
 }
 

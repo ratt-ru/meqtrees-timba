@@ -29,10 +29,10 @@
 #pragma aidgroup Meq
 #pragma aid Node Class Name State Child Children Request Result VellSet Rider Id
 #pragma aid Cells Domain Freq Time Times Step Steps Calc Deriv Vells VellSets
-#pragma aid Table Name Default Value Index Num
-#pragma aid Parm Spid Index Perturbed Perturbations
+#pragma aid NodeIndex Table Name Default Value Index Num
+#pragma aid Parm Spid Perturbed Perturbations
 #pragma aid Cells Results Fail Origin Line Message Contagious 
-#pragma aid Solvable
+#pragma aid Solvable Config Groups
 
 namespace Meq
 {
@@ -50,6 +50,8 @@ namespace Meq
     FResult          = AidResult,
     FChildren        = AidChildren,
     FName            = AidName,
+    FNodeIndex       = AidNode|AidIndex,
+    FConfigGroups    = AidConfig|AidGroups,
 
     FDomain          = AidDomain,
     FTimes           = AidTimes,
@@ -57,9 +59,10 @@ namespace Meq
     FNumFreq         = AidNum|AidFreq,
     
     FDefault         = AidDefault,
-    FTableName       = AidTable|AidName,
-    
     FValue           = AidValue,
+    FTableName       = AidTable|AidName,
+    FParmName        = AidParm|AidName,
+    
     FSpids           = AidSpid|AidIndex,
     FPerturbedValues = AidPerturbed|AidValue,
     FPerturbations   = AidPerturbations,
