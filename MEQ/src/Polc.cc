@@ -232,9 +232,9 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
   if( coeff_rank == 1 || cshape[0] == 1 || cshape[1] == 1 ) // evaluate 1D poly
   {
     // determine which grid points to actually use
-    LoVec_double grid(cshape[0] > 1 ? grid[0] : grid[1]);
+    LoVec_double gridn(cshape[0] > 1 ? grid[0] : grid[1]);
     // Get number of steps and coefficients in x and y 
-    int ndx = grid.size();
+    int ndx = gridn.size();
     int ncx = coeff_size;
     // Evaluate the expression (as double).
     const double* coeffData = static_cast<const double *>(coeff().getConstDataPtr());
@@ -255,7 +255,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     double* value = vs.setValue(new Vells(double(0),res_shape,true)).realStorage();
     for( int i=0; i<ndx; i++ )
     {
-      double valx = grid(i);
+      double valx = gridn(i);
       double total = coeffData[ncx-1];
       for (int j=ncx-2; j>=0; j--) 
       {
