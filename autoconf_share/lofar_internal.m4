@@ -27,12 +27,16 @@
 # It does the same as LOFAR_EXTERNAL, but gives a means to distinguish
 # internal and external packages.
 #
-# lofar_INTERNAL(package, [option], headerfile, [libraries], [searchpath].
+# lofar_INTERNAL(package-path, package, [cvs-versiontag],
+#            [option], headerfile, [libraries], [searchpath].
 #            [extra_cppflags],[extra_cxxflags],[extra_ldflags],[extra_libs])
+#
+# E.g.
+#   lofar_INTERNAL(LCS/Common, Common, 1.3,, Common/LofarLogger.h)
 #
 #
 AC_DEFUN([lofar_INTERNAL],dnl
 [dnl
 AC_PREREQ(2.13)dnl
-lofar_EXTERNAL($1,$2,$3,$4,$5,$6,$7,$8,$9)
+lofar_EXTERNAL($2,$4,$5,$6,$7,$8,$9,$10,$11)
 ])
