@@ -96,7 +96,7 @@ class Node : public BlockableObject
       // change even if the request doesn't), or because node state has changed.
       // In always-cache mode, we may still cache it (for debugging), but never
       // use such a cache!
-      RES_NO_CACHE     = 0x01<<RQIDM_NBITS,  
+      RES_VOLATILE     = 0x01<<RQIDM_NBITS,  
       // Result has been updated (as opposed to pulled from the node's cache)
       RES_UPDATED      = 0x02<<RQIDM_NBITS,  
       // Result not yet available, must wait. This flag may be combined

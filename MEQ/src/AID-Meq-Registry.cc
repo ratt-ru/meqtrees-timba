@@ -180,6 +180,7 @@ BlockableObject * __construct_MeqReqSeq (int n) { return n>0 ? new Meq::ReqSeq [
         AtomicID::registerId(-1399,"stddev")+
         AtomicID::registerId(-1398,"chi")+
         AtomicID::registerId(-1421,"iter")+
+        AtomicID::registerId(-1484,"last")+
         AtomicID::registerId(-1235,"meqdomain")+
         TypeInfoReg::addToRegistry(-1235,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1235,__construct_MeqDomain)+
@@ -286,8 +287,6 @@ BlockableObject * __construct_MeqReqSeq (int n) { return n>0 ? new Meq::ReqSeq [
         AtomicID::registerId(-1467,"meqlmn")+
         TypeInfoReg::addToRegistry(-1467,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1467,__construct_MeqLMN)+
-        AtomicID::registerId(-1466,"rasrc")+
-        AtomicID::registerId(-1465,"decsrc")+
         AtomicID::registerId(-1468,"meqstatpointsourcedft")+
         TypeInfoReg::addToRegistry(-1468,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1468,__construct_MeqStatPointSourceDFT)+

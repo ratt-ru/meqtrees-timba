@@ -687,13 +687,16 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   // no cache -- return false
   if( !cache_result_.valid() )
     return false;
-  // Do the request Ids match? Return cached result then
-  // (note that an empty reqid never matches, hence it can be used to 
-  // always force a recalculation; also a cached NO_CACHE code always
-  // forces a mismatch)
-  if( !(cache_retcode_&RES_NO_CACHE) &&
-      !current_reqid_.empty() && cache_result_.valid() && 
-      maskedCompare(req.id(),current_reqid_,cache_retcode_) )
+  // Check that cached result is applicable:
+  // (1) An empty reqid never matches, hence it can be used to 
+  //     always force a recalculation.
+  // (2) A cached RES_VOLATILE code requires an exact ID match
+  //     (i.e. volatile results recomputed for any different request)
+  // (3) Otherwise, do a masked compare using the cached result code
+  if( !req.id().empty() &&
+      (cache_retcode_&RES_VOLATILE 
+        ? req.id() == current_reqid_
+        : maskedCompare(req.id(),current_reqid_,cache_retcode_) ) )
   {
     ref.copy(cache_result_,DMI::PRESERVE_RW);
     retcode = cache_retcode_;
@@ -1057,8 +1060,10 @@ int Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
         hook = iter->second;
     }
   }
-  // should never cache a processCommand() result
-  return RES_NO_CACHE;
+//  // should never cache a processCommand() result
+// or should we? I think we should (if only to ignore the same command
+// coming from multiple parents)
+  return RES_VOLATILE;
 }
 
 //##ModelId=3F6726C4039D
