@@ -158,6 +158,11 @@ const int AidFit_int = -1403;
 const AtomicID AidFlag(-1135);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
 const int AidFlag_int = -1135;
 #endif
+#ifndef _defined_id_AidFlags
+#define _defined_id_AidFlags 1
+const AtomicID AidFlags(-1298);                   // from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:35
+const int AidFlags_int = -1298;
+#endif
 #ifndef _defined_id_AidFreq
 #define _defined_id_AidFreq 1
 const AtomicID AidFreq(-1128);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
@@ -617,6 +622,11 @@ const int AidVells_int = -1370;
 #define _defined_id_AidWeight 1
 const AtomicID AidWeight(-1189);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
 const int AidWeight_int = -1189;
+#endif
+#ifndef _defined_id_AidWeights
+#define _defined_id_AidWeights 1
+const AtomicID AidWeights(-1423);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:32
+const int AidWeights_int = -1423;
 #endif
 #ifndef _defined_id_Aidaxes
 #define _defined_id_Aidaxes 1

@@ -48,6 +48,14 @@ static inline HIID FiPerturbedValues (int iset)
   return FieldWithSuffix(FPerturbedValues,iset);
 }
 
+const HIID & OptionalColumns::optColFieldId (uint icol)
+{
+  const HIID ids[] = { FFlags, FWeight };
+  DbgAssert1(icol<NUM_OPTIONAL_COL);
+  return ids[icol];
+}
+
+
 //##ModelId=400E5355031E
 VellSet::VellSet (int nspid,int nset)
 : default_pert_ (0.),
@@ -56,6 +64,9 @@ VellSet::VellSet (int nspid,int nset)
   numspids_     (nspid),
   is_fail_      (false)
 {
+  // clear optional columns
+  for( uint i=0; i<NUM_OPTIONAL_COL; i++ )
+    optcol_[i].ptr = 0;
   // create appropriate fields in the record: spids vector and perturbations vector
   if( nspid )
   {
@@ -73,6 +84,9 @@ VellSet::VellSet (const DataRecord &other,int flags,int depth)
 : DataRecord(other,flags,depth),
   default_pert_ (0.)
 {
+  // clear optional columns
+  for( uint i=0; i<NUM_OPTIONAL_COL; i++ )
+    optcol_[i].ptr = 0;
   validateContent();
 }
 
@@ -123,10 +137,20 @@ void VellSet::validateContent ()
     {
       is_fail_ = false;
       // get value, if it exists in the data record
-      if( DataRecord::hasField(FValue) )
-        value_ <<= new Vells((*this)[FValue].ref(DMI::PRESERVE_RW));
+      Hook hval(*this,FValue);
+      if( hval.exists() )
+        value_ <<= new Vells(hval.ref(DMI::PRESERVE_RW));
       else
         value_ <<= new Vells;
+      // get optional columns, if they exist in the data record
+      for( int i=0; i<NUM_OPTIONAL_COL; i++ )
+      {
+        Hook hcol(*this,optColFieldId(i));
+        if( hcol.exists() )
+          optcol_[i].ptr = (optcol_[i].ref = hcol.ref(DMI::WRITE)).dewr_p();
+        else
+          optcol_[i].ptr = 0;
+      }
       // get pointer to spids vector and its size
       if( DataRecord::hasField(FSpids) )
       {
@@ -190,7 +214,60 @@ void VellSet::clear()
   pset_.resize(0);
   value_.detach();
   is_fail_ = false;
+  // clear optional columns
+  for( int i=0; i<NUM_OPTIONAL_COL; i++ )
+  {
+    optcol_[i].ptr = 0;
+    optcol_[i].ref.detach();
+  }
 }
+
+void * VellSet::writeOptCol (uint icol)
+{
+  Assert(hasOptCol(icol));
+  if( !optcol_[icol].ref.isWritable() )
+  {
+    // if not writable, privatize for writing. The hook will do it for us
+    optcol_[icol].ref <<= (*this)[optColFieldId(icol)].ref(DMI::WRITE);
+    optcol_[icol].ptr = optcol_[icol].ref().getArrayPtr(optColArrayType(icol));
+  }
+  return optcol_[icol].ptr;
+}
+
+void * VellSet::initOptCol (uint icol,int nfreq,int ntime)
+{
+  // attach & return
+  DataArray *parr = new DataArray(optColArrayType(icol),LoShape(nfreq,ntime),DMI::ZERO);
+  optcol_[icol].ref <<= parr;
+  (*this)[optColFieldId(icol)].replace() <<= parr;
+  return optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
+}
+
+void VellSet::doSetOptCol (uint icol,DataArray *parr,int dmiflags)
+{
+  // get pointer to blitz array (this also verifies type)
+  optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
+  // attach & return
+  optcol_[icol].ref.attach(parr,dmiflags);
+  (*this)[optColFieldId(icol)].replace().put(*parr,dmiflags);
+}
+
+void VellSet::setOptCol (uint icol,const DataArray::Ref::Xfer &ref)
+{
+  // get pointer to blitz array (this also verifies type)
+  optcol_[icol].ptr = const_cast<void*>(ref->getConstArrayPtr(optColArrayType(icol)));
+  // attach & return
+  optcol_[icol].ref <<= ref;
+  (*this)[optColFieldId(icol)].replace() <<= optcol_[icol].ref.copy();
+}
+
+void VellSet::clearOptCol (int icol)
+{
+  DataRecord::removeField(optColFieldId(icol),true);
+  optcol_[icol].ref.detach();
+  optcol_[icol].ptr = 0;
+}
+
 
 void VellSet::setNumPertSets (int nsets)
 {

@@ -186,6 +186,19 @@ int Function::getResult (Result::Ref &resref,
         // Evaluate the main value.
         LoShape shape = resultShape(values);
         vellset.setValue(evaluate(request,shape,values).makeNonTemp());
+        // Evaluate flags
+        for( int i=0; i<nrch; i++ )
+          if( child_vs[i]->hasOptCol(VellSet::FLAGS) )
+          {
+            // if vellset has no flags, just take a r/o ref to the child flags
+            if( !vellset.hasOptCol(VellSet::FLAGS) )
+              vellset.setOptCol(VellSet::FLAGS,child_vs[i]->getOptColRef(VellSet::FLAGS,DMI::READONLY));
+            // else |= the vellset flags. Note that this will automatically
+            // privatize a r/o ref upon first access
+            else
+              vellset.getOptColRW<VellSet::FLAGS>() |= 
+                  child_vs[i]->getOptCol<VellSet::FLAGS>();
+          }
         // Evaluate all perturbed values.
         vector<vector<Vells*> > pert_values(npertsets);
         vector<double> pert(npertsets);

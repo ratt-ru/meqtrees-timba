@@ -39,14 +39,69 @@
 
 namespace Meq {
 
-class Cells;
+class OptionalColumns
+{
+  public:
+    typedef enum
+    {
+        FLAGS   = 0,
+        WEIGHT  = 1,
+
+        NUM_OPTIONAL_COL = 2
+    }
+    OptionalColumnEnums;
+
+    template<int N> class Traits
+    {
+      public:
+          typedef void ElementType;
+          typedef void ArrayType;
+    };
+
+    static TypeId optColElementType (uint icol);
+
+    static TypeId optColArrayType (uint icol);
+
+    static const HIID & optColFieldId (uint icol);
+};
+
+template<> class OptionalColumns::Traits<OptionalColumns::FLAGS> 
+{
+  public:
+      typedef ulong ElementType;
+      typedef blitz::Array<ElementType,2> ArrayType;
+};
+
+template<> class OptionalColumns::Traits<OptionalColumns::WEIGHT> 
+{
+  public:
+      typedef float ElementType;
+      typedef blitz::Array<ElementType,2> ArrayType;
+};
+
+
+inline TypeId OptionalColumns::optColElementType (uint icol)
+{
+  const TypeId type[] = { typeIdOf(Traits<FLAGS>::ElementType),
+                          typeIdOf(Traits<WEIGHT>::ElementType) };
+  DbgAssert1(icol<NUM_OPTIONAL_COL);
+  return type[icol];  
+}
+
+inline TypeId OptionalColumns::optColArrayType (uint icol)
+{
+  const TypeId type[] = { typeIdOf(Traits<FLAGS>::ArrayType),
+                          typeIdOf(Traits<WEIGHT>::ArrayType) };
+  DbgAssert1(icol<NUM_OPTIONAL_COL);
+  return type[icol];  
+}
 
 
 //##ModelId=400E530400D3
-class VellSet : public DataRecord
+class VellSet : public DataRecord , public OptionalColumns
 {
 public:
-    //##ModelId=400E530400D6
+  //##ModelId=400E530400D6
   typedef CountedRef<VellSet> Ref;
 
   // Create a time,frequency result for the given number of spids.
@@ -168,7 +223,58 @@ public:
       else 
         return allocateComplex(nfreq, ntime);
     }
+    
+  // ------------------------ OPTIONAL COLUMNS
+protected:
+  // ensures writability of optional column by privatizing for writing as needed;
+  // returns pointer to blitz array
+  void * writeOptCol (uint icol);
+      
+  void * initOptCol (uint icol,int nfreq,int ntime);
 
+  void   doSetOptCol (uint icol,DataArray *parr,int dmiflags);
+  
+public:
+          
+  bool hasOptCol (uint icol) const
+  { 
+    DbgAssert1(icol<NUM_OPTIONAL_COL); 
+    return optcol_[icol].ptr != 0;
+  }
+  
+  template<int N>
+  bool hasOptCol () const
+    { return hasOptCol(N); }
+  
+  template<int N>
+  const typename Traits<N>::ArrayType & getOptCol () const
+    { Assert(hasOptCol(N)); return *static_cast<const typename Traits<N>::ArrayType *>(optcol_[N].ptr); }
+  
+  template<int N>
+  typename Traits<N>::ArrayType & getOptColRW ()
+    { return *static_cast<typename Traits<N>::ArrayType *>(writeOptCol(N)); }
+  
+  DataArray::Ref getOptColRef (int icol,int dmiflags=DMI::PRESERVE_RW) const
+    { Assert(hasOptCol(icol)); return optcol_[icol].ref.copy(dmiflags); }
+
+  template<int N>
+  typename Traits<N>::ArrayType & initOptCol (int nfreq,int ntime)
+    { return *static_cast<typename Traits<N>::ArrayType *>(
+        initOptCol(N,nfreq,ntime)); }
+
+  void setOptCol (uint icol,const DataArray *parr,int dmiflags=DMI::ANON|DMI::READONLY)
+    { doSetOptCol(icol,const_cast<DataArray*>(parr),(dmiflags&~DMI::WRITE)|DMI::READONLY); }
+    
+  void setOptCol (uint icol,DataArray *parr,int dmiflags=DMI::ANONWR)
+    { doSetOptCol(icol,parr,dmiflags); }
+  
+  void setOptCol (uint icol,const DataArray::Ref::Xfer & ref);
+  
+  void clearOptCol (int icol);
+  
+  template<int N>
+  void clearOptCol () { clearOptCol(N); }
+  
   // ------------------------ PERTURBED VALUES
   // Get the i-th perturbed value from set iset
     //##ModelId=400E5355037E
@@ -272,6 +378,14 @@ private:
   } PerturbationSet;
   
   vector<PerturbationSet> pset_;
+  
+  typedef struct 
+  {
+    DataArray::Ref ref;
+    void          *ptr;
+  } OptionalColumnData;
+  
+  OptionalColumnData optcol_[NUM_OPTIONAL_COL];
   
     //##ModelId=400E53550314
   const int *    spids_;

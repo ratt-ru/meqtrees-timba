@@ -95,6 +95,8 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1230,"deriv")+
         AtomicID::registerId(-1370,"vells")+
         AtomicID::registerId(-1371,"vellsets")+
+        AtomicID::registerId(-1298,"flags")+
+        AtomicID::registerId(-1423,"weights")+
         AtomicID::registerId(-1417,"grid")+
         AtomicID::registerId(-1418,"cell")+
         AtomicID::registerId(-1292,"size")+
