@@ -115,6 +115,8 @@ int Function::getResult (Result::Ref &resref,
   int nrch = numChildren();
   Assert(nrch>0);
   Assert(flagmask_.empty() || flagmask_.size() == childres.size());
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  lockMutexes(child_reslock,childres);
   std::vector<Thread::Mutex::Lock> childvs_lock(nrch);
   std::vector<Thread::Mutex::Lock> childval_lock(nrch);
   std::vector<Thread::Mutex::Lock> childpvv_lock[2];

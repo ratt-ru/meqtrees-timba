@@ -197,7 +197,7 @@ void MeqServer::resolve (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
       node.nodeIndex(),node.name().c_str());
   if( getstate )
     out[FNodeState] <<= node.syncState();
-  if( in[FGetForestStatus].as<bool>(false) )
+  if( rec[FGetForestStatus].as<bool>(false) )
     fillForestStatus(out());
 }
 

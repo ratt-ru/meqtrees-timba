@@ -830,6 +830,8 @@ void Node::resampleChildren (Cells::Ref rescells,std::vector<Result::Ref> &child
     return;
   const Cells *pcells = 0;
   rescells.detach();
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  lockMutexes(child_reslock,childres);
 //  rescells <<= pcells = &( childres[0]->cells() );
   bool need_resampling = false;
   for( uint ich=0; ich<childres.size(); ich++ )
@@ -846,6 +848,7 @@ void Node::resampleChildren (Cells::Ref rescells,std::vector<Result::Ref> &child
         int res = pcells->compare(cc);
         if( res<0 )       // result<0: domains differ, fail
         {
+          res = pcells->compare(cc); // again, for debugging
           NodeThrow1("domains of child results do not match");
         }
         else if( res>0 )  // result>0: domains same, resolutions differ
@@ -1210,15 +1213,16 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       retcode = 0;
     // Pass request on to children and accumulate their results
     std::vector<Result::Ref> child_results(numChildren());
-    std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+//    std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
     Cells::Ref rescells;
     if( numChildren() )
     {
       stage = "polling children";
       retcode |= pollChildren(child_results,ref,req);
-      for( int i=0; i<numChildren(); i++ )
-        if( child_results[i].valid() )
-          child_reslock[i].relock(child_results[i]->mutex());
+//      lockMutexes(child_reslock,
+//      for( int i=0; i<numChildren(); i++ )
+//        if( child_results[i].valid() )
+//          child_reslock[i].relock(child_results[i]->mutex());
       // a WAIT from any child is returned immediately w/o a result
       if( retcode&RES_WAIT )
       {

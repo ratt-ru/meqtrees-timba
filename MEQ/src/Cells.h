@@ -94,6 +94,7 @@ public:
   // (or when the underlying DataRecord is privatized, etc.)
     //##ModelId=400E530403DB
   virtual void validateContent ();
+  virtual void revalidateContent ();
 
   // returns true if some cells are defined over the given axis
   bool isDefined (int iaxis) const
@@ -201,10 +202,8 @@ public:
     //##ModelId=400E5305000E
   void show (std::ostream&) const;
 
-  // override privatize() to not be deep
-  // (since contents of record are not accessible directly anyway)
-  virtual void privatize (int flags = 0, int depth = 0)
-  {};
+  // override privatize() to detach/reattach shortcuts
+  virtual void privatize (int flags = 0, int depth = 0);
   
 private:
   DataRecord::merge;

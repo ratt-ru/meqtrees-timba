@@ -56,6 +56,7 @@ Domain::Domain (double x1,double x2,double y1,double y2)
 
 void Domain::defineAxis (int iaxis,double a1,double a2)
 {
+  Thread::Mutex::Lock lock(mutex());
   FailWhen(iaxis<0 || iaxis>=Axis::MaxAxis,"illegal axis argument");
   FailWhen(a1>=a2,"segment start must be < end");
   range_[iaxis][0] = a1;
@@ -64,6 +65,12 @@ void Domain::defineAxis (int iaxis,double a1,double a2)
   // add to record
   (*this)[Axis::name(iaxis)] <<= new DataField(Tpdouble,2,range_[iaxis]);
 }
+
+
+void Domain::revalidateContent ()
+{
+  protectAllFields();
+}  
 
 //##ModelId=400E5305010B
 void Domain::validateContent ()
@@ -93,6 +100,7 @@ void Domain::validateContent ()
       range_[iaxis][1] = a[1];
       defined_[iaxis]  = true;
     }
+    protectAllFields();
   }
   catch( std::exception &err )
   {
@@ -106,6 +114,8 @@ void Domain::validateContent ()
 
 bool Domain::supersetOfProj (const Domain &other) const
 {
+  Thread::Mutex::Lock lock(mutex());
+  Thread::Mutex::Lock lock2(other.mutex());
   for( int i=0; i<Axis::MaxAxis; i++ )
     if( isDefined(i) &&
         ( !other.isDefined(i) || start(i) > other.start(i) || end(i) < other.end(i) ) )
@@ -115,6 +125,8 @@ bool Domain::supersetOfProj (const Domain &other) const
 
 Domain Domain::envelope (const Domain &a,const Domain &b)
 {
+  Thread::Mutex::Lock lock(a.mutex());
+  Thread::Mutex::Lock lock2(b.mutex());
   Domain out;
   using std::min;
   using std::max;

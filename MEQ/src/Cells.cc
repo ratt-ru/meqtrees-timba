@@ -70,6 +70,7 @@ Cells::Cells (const Domain& domain,int nx,int ny)
 
 void Cells::setDomain (const Domain &domain)
 {
+  Thread::Mutex::Lock lock(mutex());
   shape_.reserve(Axis::MaxAxis);
   defined_.reserve(Axis::MaxAxis);
   shape_.clear();
@@ -83,6 +84,7 @@ void Cells::setDomain (const Domain &domain)
 
 void Cells::init (const Domain& domain)
 {
+  Thread::Mutex::Lock lock(mutex());
   setDomain(domain);
   // grid subrecord
   (*this)[FGrid] <<= new DataRecord;
@@ -205,6 +207,7 @@ Cells::Cells (const Cells &other,const int ops[Axis::MaxAxis],const int args[Axi
 
 void Cells::setAxisShape (int iaxis,int num)
 {
+  Thread::Mutex::Lock lock(mutex());
   int sz = shape_.size();
   if( iaxis >= sz )
   {
@@ -373,6 +376,22 @@ void Cells::recomputeDomain ()
   (*this)[FDomain].replace() <<= domain_.copy();
 }
 
+void Cells::privatize (int flags,int depth)
+{
+  // if deep-privatizing, then detach shortcuts -- they will be reattached 
+  // by validateContent()
+//  if( flags&DMI::DEEP || depth>0 )
+//  {
+//    domain_.detach();
+  DataRecord::privatize(flags,depth);
+//  }
+}
+
+
+void Cells::revalidateContent ()
+{
+  protectAllFields();
+}
 
 //##ModelId=400E530403DB
 void Cells::validateContent ()
@@ -384,16 +403,17 @@ void Cells::validateContent ()
   defined_.clear();
   try
   {
-    Hook hdom = (*this)[FDomain],
-         hgrid = (*this)[FGrid],
-         hcs = (*this)[FCellSize],
-         hseg = (*this)[FSegments];
+    protectAllFields();
+    Hook hdom   = (*this)[FDomain],
+         hgrid  = (*this)[FGrid],
+         hcs    = (*this)[FCellSize],
+         hseg   = (*this)[FSegments];
     if( hdom.exists() )
     {
       domain_.attach(hdom.as_p<Domain>());
-      DataRecord &rgrid = hgrid.as_wr<DataRecord>();
-      DataRecord &rcs   = hcs.as_wr<DataRecord>();
-      DataRecord &rseg  = hseg.as_wr<DataRecord>();
+      const DataRecord &rgrid = hgrid.as<DataRecord>();
+      const DataRecord &rcs   = hcs.as<DataRecord>();
+      const DataRecord &rseg  = hseg.as<DataRecord>();
       // now loop over the grid record to determine which axes are
       // defined
       HIID id;

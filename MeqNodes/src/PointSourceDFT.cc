@@ -127,6 +127,9 @@ int PointSourceDFT::getResult (Result::Ref &resref,
                                const std::vector<Result::Ref> &childres,
                                const Request &request, bool newreq)
 {
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  lockMutexes(child_reslock,childres);
+  
   const int expect_nvs[]        = {2,2,1};
   const int expect_integrated[] = {-1,-1,0};
   

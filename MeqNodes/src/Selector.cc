@@ -49,6 +49,8 @@ int Selector::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &childref,
                          const Request &request,bool)
 {
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  lockMutexes(child_reslock,childref);
   // otherwise, select sub-results
   Result &result = resref <<= new Result(selection.size(),request);
   const Result &childres = *childref[0];

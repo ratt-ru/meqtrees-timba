@@ -68,6 +68,8 @@ int DataConcat::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &child_result,
                        const Request &, bool)
 {
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  lockMutexes(child_reslock,child_result);
 // attaches new result to countedref (for returning to caller), and 
 // inits a local variable to point to it.
 // 0 means 0 VellSets in it

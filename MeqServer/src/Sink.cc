@@ -135,8 +135,6 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
             (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
     return RES_FAIL;
   }
-  int nvs = resref->numVellSets();
-  cdebug(3)<<"child returns "<<nvs<<" vellsets, resflag "<<resflag<<endl;
   if( output_col<0 )
   {
     cdebug(3)<<"output disabled, skipping"<<endl;
@@ -145,6 +143,9 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
     return resflag;
   }
   setExecState(CS_ES_EVALUATING);
+  Thread::Mutex::Lock lock(resref->mutex());
+  int nvs = resref->numVellSets();
+  cdebug(3)<<"child returns "<<nvs<<" vellsets, resflag "<<resflag<<endl;
   // store resulting Vells into the tile
   // loop over vellsets and get a tf-plane from each
   VisTile *ptile = 0;  // we will privatize the tile for writing as needed
@@ -206,6 +207,9 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
       resflag |= RES_UPDATED;
     }
   }
+  lock.release();
+  setExecState(CS_ES_IDLE,
+            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_EMPTY);
   return resflag;
 }
 

@@ -69,9 +69,9 @@ public:
   
   // validate record contents and setup shortcuts to them. This is called 
   // automatically whenever a Domain is made from a DataRecord
-  // (or when the underlying DataRecord is privatized, etc.)
     //##ModelId=400E5305010B
   virtual void validateContent ();
+  virtual void revalidateContent ();
 
   double start (int iaxis) const
   {
@@ -93,11 +93,15 @@ public:
 
     //##ModelId=400E5305010E
   bool operator == (const Domain& other) const
-    { return memcmp(range_,other.range_,sizeof(range_)) == 0; }
+  { 
+    Thread::Mutex::Lock lock(mutex());
+    Thread::Mutex::Lock lock2(other.mutex());
+    return memcmp(range_,other.range_,sizeof(range_)) == 0; 
+  }
   
     //##ModelId=400E5305011A
   bool operator!= (const Domain& other) const
-    { return !(*this == other); }
+  { return !(*this == other); }
 
 //   // returns true if this domain is a subset of other
 //   bool subsetOf (const Domain &other) const

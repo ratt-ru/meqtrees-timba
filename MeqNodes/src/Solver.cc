@@ -208,7 +208,10 @@ int Solver::getResult (Result::Ref &resref,
   for (step=0; step<itsCurNumIter; step++) 
   {
     for( int i=0; i<numChildren(); i++ )
-      child_reslock[i].release();
+    {
+	    child_reslock[i].release();
+      child_results[i].detach();
+    }
     int retcode = Node::pollChildren (child_results, resref, *reqref);
     setExecState(CS_ES_EVALUATING);
     for( int i=0; i<numChildren(); i++ )
@@ -347,7 +350,10 @@ int Solver::getResult (Result::Ref &resref,
       ParmTable::lockTables();
       // unlock all child results
       for( int i=0; i<numChildren(); i++ )
-	child_reslock[i].release();
+      {
+	      child_reslock[i].release();
+        child_results[i].detach();
+      }
       Node::pollChildren(child_results, resref, *reqref);
     }
     // Unlock all parm tables used.

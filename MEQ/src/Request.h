@@ -79,6 +79,7 @@ public:
   //## automatically whenever a Request is made from a DataRecord
   //## (or when the underlying DataRecord is privatized, etc.)
   virtual void validateContent ();
+  virtual void revalidateContent ();
   
     //##ModelId=400E5355004C
   virtual int remove (const HIID &);
@@ -110,12 +111,12 @@ public:
   //##Documentation
   //## True if a cells object is attached
   bool hasCells () const
-  { return cells_; }
+  { return cells_.valid(); }
     //##ModelId=3F8688700073
   //##Documentation
   //## Returns cells
   const Cells& cells() const
-  { DbgFailWhen(!cells_,"no cells in Meq::Request");
+  { DbgFailWhen(!cells_.valid(),"no cells in Meq::Request");
     return *cells_; }
   
     //##ModelId=3F8688700075
@@ -145,6 +146,8 @@ public:
   //## should be called after an app has changed the rider
   void validateRider ();
   
+  void privatize (int,int);
+  
 protected: 
     //##ModelId=400E5354039C
   //##Documentation
@@ -162,7 +165,7 @@ private:
     //##ModelId=3F868870003C
   int    calcDeriv_;
     //##ModelId=3F86BFF80269
-  const  Cells* cells_;
+  Cells::Ref cells_;
   
   bool   hasRider_;
   

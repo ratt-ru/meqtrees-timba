@@ -224,8 +224,19 @@ void Polc::setCoeff (const LoMat_double & coeff)
 
 void Polc::privatize (int flags,int depth)
 {
-  Thread::Mutex::Lock lock(mutex());
-  DataRecord::privatize(flags,depth);
+  // if deep-privatizing, then detach shortcuts -- they will be reattached 
+  // by validateContent()
+  if( flags&DMI::DEEP || depth>0 )
+  {
+    Thread::Mutex::Lock lock(mutex());
+    coeff_.detach();
+    DataRecord::privatize(flags,depth);
+  }
+}
+
+void Polc::revalidateContent ()    
+{
+  protectAllFields();
 }
   
 void Polc::validateContent ()    
@@ -235,6 +246,7 @@ void Polc::validateContent ()
   // to their contents
   try
   {
+    protectAllFields();
     rank_ = -1;
     if( DataRecord::hasField(FDomain) ) // verify cells field
       domain_ <<= (*this)[FDomain].as_p<Domain>();
@@ -544,6 +556,7 @@ uint Polc::update (const double* values, uint nrval)
   {
     coeff_.privatize(DMI::WRITE|DMI::DEEP);
     DataRecord::replace(FCoeff,coeff_.dewr_p(),DMI::WRITE);
+    protectAllFields();
   }
   double* coeff = static_cast<double*>(coeff_().getDataPtr());
   uint inx=0;

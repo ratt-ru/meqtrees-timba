@@ -56,6 +56,8 @@ int Resampler::getResult (Result::Ref &resref,
                            const std::vector<Result::Ref> &childres,
                            const Request &request,bool)
 {
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  lockMutexes(child_reslock,childres);
   Assert(childres.size()==1);
   const Result &chres = *( childres.front() );
   const Cells &incells = chres.cells();

@@ -354,7 +354,8 @@ class Node : public BlockableObject
     
     int getBreakpoints (bool single_shot=false) const
     { return single_shot ? breakpoints_ss_ : breakpoints_; }
-        
+    
+    
     //##ModelId=3F5F4363030F
     //##Documentation
     //## Clones a node. 
@@ -888,6 +889,24 @@ class Node : public BlockableObject
     
     static int checking_level_;
 };
+
+// convenience functions to lock/unlock objects en-masse
+template<class T>
+void lockMutexes (std::vector<Thread::Mutex::Lock> &mutexes,
+                   const std::vector<CountedRef<T> > &containers )
+{
+  mutexes.resize(containers.size());
+  for( uint i=0; i<containers.size(); i++ )
+    if( containers[i].valid() )
+      mutexes[i].relock(containers[i]->mutex());
+}
+
+    
+inline void releaseMutexes (std::vector<Thread::Mutex::Lock> &mutexes)
+{
+  for( uint i=0; i<mutexes.size(); i++ )
+    mutexes[i].release();
+}   
 
 } // namespace Meq
 

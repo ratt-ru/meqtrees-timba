@@ -38,7 +38,6 @@ static NestableContainer::Register reg(TpMeqResult,True);
 
 //##ModelId=3F86887000CE
 Result::Result (int nvellsets,bool integrated)
-: itsCells(0)
 {
   nctor++;
   setIsIntegrated(integrated);
@@ -95,20 +94,36 @@ Result::~Result()
 void Result::allocateVellSets (int nvellsets)
 {
   Thread::Mutex::Lock lock(mutex());
-  itsVellSets <<= new DataField(TpMeqVellSet,nvellsets);
-  DataRecord::replace(FVellSets,itsVellSets.dewr_p(),DMI::ANONWR);
+  vellsets_ <<= new DataField(TpMeqVellSet,nvellsets);
+  DataRecord::replace(FVellSets,vellsets_.dewr_p(),DMI::ANONWR);
 }
 
 //  implement privatize
 //##ModelId=400E53550142
 void Result::privatize (int flags, int depth)
 {
-  Thread::Mutex::Lock lock(mutex());
   // if deep-privatizing, then detach shortcuts -- they will be reattached 
   // by validateContent()
   if( flags&DMI::DEEP || depth>0 )
-    itsVellSets.detach();
-  DataRecord::privatize(flags,depth);
+  {
+    Thread::Mutex::Lock lock(mutex());
+    vellsets_.detach();
+    DataRecord::privatize(flags,depth);
+  }
+}
+
+void Result::revalidateContent ()
+{
+  Thread::Mutex::Lock lock(mutex());
+  if( DataRecord::hasField(FVellSets) )
+    vellsets_ <<= (*this)[FVellSets].ref();
+  else
+    vellsets_.detach();
+  if( DataRecord::hasField(FCells) )
+    cells_ <<= (*this)[FCells].ref();
+  else
+    cells_.detach();
+  protectAllFields();
 }
 
 //##ModelId=400E53550156
@@ -119,18 +134,8 @@ void Result::validateContent ()
   // indeed writable. Setup shortcuts to their contents
   try
   {
-    itsIsIntegrated = (*this)[FIntegrated].as<bool>(false);
-    if( hasField(FCells) ) // verify cells field
-      itsCells = (*this)[FCells].as_p<Cells>();
-    else
-      itsCells = 0;
-    itsVellSets.detach();
-    // get pointer to vellsets field
-    if( DataRecord::hasField(FVellSets) )
-    {
-      itsVellSets <<= (*this)[FVellSets].ref();
-      FailWhen(itsVellSets->type()!=TpMeqVellSet,"illegal "+FVellSets.toString()+" field");
-    }
+    is_integrated_ = (*this)[FIntegrated].as<bool>(false);
+    revalidateContent();
   }
   catch( std::exception &err )
   {
@@ -155,31 +160,28 @@ void Result::setCells (const Cells *cells,int flags)
   Thread::Mutex::Lock lock(mutex());
   // if we have no idea how to attach object, make a copy
   if( !(flags&(DMI::ANON|DMI::EXTERNAL)) && !cells->refCount() )
-  {
-    itsCells = new Cells(*cells);
-    flags = (flags&~DMI::EXTERNAL) | DMI::ANON;
-  }
+    cells_ <<= new Cells(*cells);
   else
-    itsCells = cells;
-  DataRecord::replace(FCells,itsCells,flags|DMI::READONLY);
+    cells_ <<= cells;
+  DataRecord::replace(FCells,cells_.deref_p(),DMI::READONLY);
 }
 
 void Result::setIsIntegrated (bool integrated)
 {
   Thread::Mutex::Lock lock(mutex());
-  itsIsIntegrated = integrated;
-  DataRecord::replace(FIntegrated,new DataField(Tpbool,-1,&itsIsIntegrated),DMI::ANONWR);
+  is_integrated_ = integrated;
+  DataRecord::replace(FIntegrated,new DataField(Tpbool,-1,&is_integrated_),DMI::ANONWR);
 }
 
 DataField & Result::wrVellSets ()
 {
   Thread::Mutex::Lock lock(mutex());
-  if( !itsVellSets.isWritable() )
+  if( !vellsets_.isWritable() )
   {
-    itsVellSets.privatize(DMI::WRITE);
-    DataRecord::replace(FVellSets,itsVellSets.dewr_p(),DMI::ANONWR);
+    vellsets_.privatize(DMI::WRITE);
+    DataRecord::replace(FVellSets,vellsets_.dewr_p(),DMI::ANONWR);
   }
-  return itsVellSets();
+  return vellsets_();
 }
 
 VellSet & Result::setNewVellSet (int i,int nspids,int nset)

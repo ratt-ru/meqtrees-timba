@@ -62,6 +62,8 @@ int UVW::getResult (Result::Ref &resref,
                     const std::vector<Result::Ref> &childres,
                     const Request &request,bool newreq)
 {
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  lockMutexes(child_reslock,childres);
   // Check that child results are all OK (no fails, 1 vellset per child)
   string fails;
   std::vector<Thread::Mutex::Lock> childvs_lock(num_children);

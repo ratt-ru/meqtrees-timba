@@ -233,6 +233,7 @@ public:
   // (or when the underlying DataRecord is privatized, etc.)
     //##ModelId=400E53550156
   virtual void validateContent ();
+  virtual void revalidateContent ();
 
 
 protected:

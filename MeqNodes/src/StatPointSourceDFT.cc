@@ -86,6 +86,8 @@ int StatPointSourceDFT::getResult (Result::Ref &resref,
 				   const std::vector<Result::Ref> &childres,
 				   const Request &request, bool newreq)
 {
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  lockMutexes(child_reslock,childres);
   const int expect_nvs[]        = {3,3};
   const int expect_integrated[] = {-1,-1};
   Assert(int(childres.size()) == num_children);

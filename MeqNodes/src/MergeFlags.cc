@@ -36,6 +36,8 @@ int MergeFlags::getResult (Result::Ref &resref,
                             const std::vector<Result::Ref> &childres,
                             const Request &request,bool)
 {
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  lockMutexes(child_reslock,childres);
   int nch = childres.size();
   // if not enough flags in mask, extend with default value
   int i = flagmask_.size();

@@ -144,6 +144,7 @@ public:
   // (or when the underlying DataRecord is privatized, etc.)
     //##ModelId=400E5355033A
   virtual void validateContent ();
+  virtual void revalidateContent ();
   
   // changes all ref in VellSet to read-only (so that the next write
   // forces a privatize)

@@ -28,6 +28,7 @@
 #include <DMI/DataRecord.h>
 #include <DMI/DataField.h>
 #include <MEQ/VellSet.h>
+#include <MEQ/Cells.h>
 
 #pragma aidgroup Meq
 #pragma type #Meq::Result
@@ -36,8 +37,6 @@
 // has been evaluated.
 
 namespace Meq {
-
-class Cells;
 
 //##ModelId=3F86886E020D
 class Result : public DataRecord
@@ -86,6 +85,7 @@ public:
   // (or when the underlying DataRecord is privatized, etc.)
     //##ModelId=400E53550156
   virtual void validateContent ();
+  virtual void revalidateContent ();
   
 
   // ------------------------ CELLS
@@ -101,17 +101,17 @@ public:
 
     //##ModelId=400E53550174
   bool hasCells () const
-  { return itsCells; }
+  { return cells_.valid(); }
     
     //##ModelId=400E53550178
   const Cells& cells() const
-  { DbgFailWhen(!itsCells,"no cells in Meq::Result");
-    return *itsCells; }
+  { DbgFailWhen(!cells_.valid(),"no cells in Meq::Result");
+    return *cells_; }
     
   // ------------------------ INTEGRATED property
   // this is set at construction time
   bool isIntegrated () const
-  { return itsIsIntegrated; }
+  { return is_integrated_; }
   
   // integrates all VellSets (multiplies values by cell size)
   // if integrate=true, does nothing
@@ -128,14 +128,14 @@ public:
     
     //##ModelId=400E53550185
   int numVellSets () const
-    { return itsVellSets.valid() ? itsVellSets->size() : 0; }
+    { return vellsets_.valid() ? vellsets_->size() : 0; }
   
     //##ModelId=400E53550189
   const VellSet & vellSet (int i) const
-    { return (*itsVellSets)[i].as<VellSet>(); }
+    { return (*vellsets_)[i].as<VellSet>(); }
   
   VellSet::Ref vellSetRef (int i) const
-    { return (*itsVellSets)[i].ref(); }
+    { return (*vellsets_)[i].ref(); }
   
     //##ModelId=400E53550193
   VellSet & vellSetWr (int i)
@@ -189,16 +189,16 @@ private:
   // sets the integrated property, including underlying record
   void setIsIntegrated (bool integrated);
     
-  // helper function: privatizes the itsVellSets field for writing if 
+  // helper function: privatizes the vellsets_ field for writing if 
   // needed, dereferences
   DataField &     wrVellSets ();
     
     //##ModelId=400E535500B8
-  DataField::Ref  itsVellSets;
+  DataField::Ref  vellsets_;
     //##ModelId=3F86BFF802B0
-  const Cells    *itsCells;
+  Cells::Ref      cells_;
   
-  bool            itsIsIntegrated;
+  bool            is_integrated_;
 };
 
 

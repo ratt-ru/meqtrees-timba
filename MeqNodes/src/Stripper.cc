@@ -41,6 +41,8 @@ int Stripper::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &child_results, 
 		                     const Request &request,bool newreq)
 {
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  lockMutexes(child_reslock,child_results);
   // Create result object and attach to the ref that was passed in.
   // use same # of vellsets and integration flag as input result
   const Result & child_res = *child_results[0];

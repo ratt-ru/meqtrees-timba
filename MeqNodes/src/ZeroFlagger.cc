@@ -63,6 +63,8 @@ int ZeroFlagger::getResult (Result::Ref &resref,
                             const Request &request,bool)
 {
   DbgAssert(childres.size() == 1 );
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  lockMutexes(child_reslock,childres);
   // copy child result to output; privatize for writing since we intend
   // to modify flags
   resref = childres[0];

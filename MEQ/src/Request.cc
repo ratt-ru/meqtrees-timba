@@ -30,21 +30,21 @@ static NestableContainer::Register reg(TpMeqRequest,True);
 
 //##ModelId=3F8688700056
 Request::Request()
-: calcDeriv_(0),cells_(0),hasRider_(false),cache_override_(false)
+: calcDeriv_(0),hasRider_(false),cache_override_(false)
 {
 }
 
 //##ModelId=3F8688700061
 Request::Request (const DataRecord &other,int flags,int depth)
 : DataRecord  (other,flags,depth),
-  calcDeriv_(0),cells_(0),hasRider_(false),cache_override_(false)
+  calcDeriv_(0),hasRider_(false),cache_override_(false)
 {
   validateContent();
 }
 
 //##ModelId=400E535403DD
 Request::Request (const Cells& cells,int calcDeriv,const HIID &id,int cellflags)
-: cells_(0),hasRider_(false),cache_override_(false)
+: hasRider_(false),cache_override_(false)
 {
   setCells(cells,cellflags);
   setId(id);
@@ -53,7 +53,7 @@ Request::Request (const Cells& cells,int calcDeriv,const HIID &id,int cellflags)
 
 //##ModelId=400E53550016
 Request::Request (const Cells * cells, int calcDeriv, const HIID &id,int cellflags)
-: cells_(0),hasRider_(false),cache_override_(false)
+: hasRider_(false),cache_override_(false)
 {
   setCells(cells,cellflags);
   setId(id);
@@ -80,8 +80,34 @@ void Request::setCacheOverride (bool flag)
 //##ModelId=3F868870006E
 void Request::setCells (const Cells * cells,int flags)
 {
-  cells_ = flags&DMI::CLONE ? new Cells(*cells) : cells;
-  DataRecord::replace(FCells,cells_,flags|DMI::READONLY);
+  // if we have no idea how to attach object, make a copy
+  if( !(flags&(DMI::ANON|DMI::EXTERNAL)) && !cells->refCount() )
+    cells_ <<= new Cells(*cells);
+  else
+    cells_ <<= cells;
+  DataRecord::replace(FCells,cells_.deref_p(),DMI::READONLY);
+}
+
+void Request::privatize (int flags,int depth)
+{
+  // if deep-privatizing, then detach shortcuts -- they will be reattached 
+  // by validateContent()
+  if( flags&DMI::DEEP || depth>0 )
+  {
+    cells_.detach();
+    DataRecord::privatize(flags,depth);
+  }
+}
+
+void Request::revalidateContent ()
+{
+  Thread::Mutex::Lock lock(mutex());
+  protectAllFields();
+  Hook hcells(*this,FCells);
+  if( hcells.exists() )
+    cells_ <<= hcells.as_p<Cells>();
+  else
+    cells_.detach();
 }
 
 //##ModelId=400E53550049
@@ -93,11 +119,7 @@ void Request::validateContent ()
   try
   {
     // get cells field
-    Hook hcells(*this,FCells);
-    if( hcells.exists() )
-      cells_ = hcells.as_p<Cells>();
-    else
-      cells_ = 0;
+    revalidateContent();
     // request ID
     id_ = (*this)[FRequestId].as<HIID>(HIID());
     // calc-deriv flag

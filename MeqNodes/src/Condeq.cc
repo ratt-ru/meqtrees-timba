@@ -82,6 +82,8 @@ int Condeq::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &child_result,
                        const Request &request,bool)
 {
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+  lockMutexes(child_reslock,child_result);
   int nrch = child_result.size();
   std::vector<Thread::Mutex::Lock> childvs_lock(nrch);
   std::vector<Thread::Mutex::Lock> childval_lock(nrch);

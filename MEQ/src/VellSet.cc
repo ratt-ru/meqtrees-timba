@@ -153,12 +153,30 @@ void VellSet::setShape (const Vells::Shape &shp)
 //##ModelId=400E53550333
 void VellSet::privatize (int flags, int depth)
 {
-  Thread::Mutex::Lock lock(mutex());
   // if deep-privatizing, then detach shortcuts -- they will be reattached 
   // by validateContent()
-  if( flags&DMI::DEEP || depth>0 )
-    clear();
-  DataRecord::privatize(flags,depth);
+//  if( flags&DMI::DEEP || depth>0 )
+//  {
+//    Thread::Mutex::Lock lock(mutex());
+    DataRecord::privatize(flags,depth);
+//  }
+}
+
+void VellSet::revalidateContent ()
+{
+  Thread::Mutex::Lock lock(mutex());
+  protectAllFields();
+  if( DataRecord::hasField(FSpids) )
+  {
+    spids_ = (*this)[FSpids].as_p<int>(numspids_);
+    for( uint i=0; i<pset_.size(); i++ )
+      pset_[i].pert = (*this)[FiPerturbations(i)].as_p<double>();
+  }
+  else
+  {
+    spids_ = 0;
+    numspids_ = 0;
+  }
 }
 
 //##ModelId=400E5355033A
@@ -214,8 +232,8 @@ void VellSet::validateContent ()
       // get pointer to spids vector and its size
       if( DataRecord::hasField(FSpids) )
       {
-        FailWhen(!has_value,"missing main value");
         spids_ = (*this)[FSpids].as_p<int>(numspids_);
+        FailWhen(!has_value,"missing main value");
         int size;
         // figure out number of perturbation sets in the record
         int nsets = 0;
@@ -257,7 +275,13 @@ void VellSet::validateContent ()
           }
         }
       }
+      else
+      {
+        spids_ = 0;
+        numspids_ = 0;
+      }
     }
+    protectAllFields();
   }
   catch( std::exception &err )
   {
