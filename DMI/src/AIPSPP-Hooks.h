@@ -10,6 +10,8 @@
     
 #include "DMI/DataArray.h"
 
+class String;
+
 namespace AIPSPP_Hooks 
 {
   // templated helper method to create a 1D array using a copy of data
@@ -29,6 +31,7 @@ namespace AIPSPP_Hooks
       *dest = *src;
     return Array<String>(IPosition(1,n),dest0,TAKE_OVER);
   };
+  
 };
 
 

@@ -36,12 +36,11 @@ template <class T>
 class CountedRef : private CountedRefBase
 {
   public:
-    //##ModelId=3BF9396D01A7
+      //##ModelId=3BF9396D01A7
       CountedRef();
 
-    //##ModelId=3BF93C020247
+      //##ModelId=3BF93C020247
       CountedRef(const CountedRef<T> &right);
-
       //##ModelId=3BF93D620128
       //##Documentation
       //## Generic copy constructor -- see same method in CountedRefBase.
@@ -49,13 +48,10 @@ class CountedRef : private CountedRefBase
 
       //##ModelId=3BF93F8D0054
       explicit CountedRef (T& targ, int flags = 0);
-
       //##ModelId=3BF93F9702C5
       explicit CountedRef (const T& targ, int flags = 0);
-
       //##ModelId=3DB934560267
       explicit CountedRef (T* targ, int flags = 0);
-
       //##ModelId=3DB934570236
       explicit CountedRef (const T* targ, int flags = 0);
 
@@ -63,10 +59,10 @@ class CountedRef : private CountedRefBase
       CountedRef<T> & operator=(const CountedRef<T> &right);
 
     //##ModelId=3DB934590080
-      bool operator==(const CountedRef<T> &right) const;
+      bool operator == (const CountedRef<T> &right) const;
 
     //##ModelId=3DB934590329
-      bool operator!=(const CountedRef<T> &right) const;
+      bool operator != (const CountedRef<T> &right) const;
 
 
       //##ModelId=3C8F61C80241
@@ -178,16 +174,18 @@ class CountedRef : private CountedRefBase
       //##ModelId=3CBEE39B0011
       //##Documentation
       //## <<= on const target ptr is alias for attach as readonly, anonymous
-      CountedRef<T> & operator <<= (const T* targ)
+      const T& operator <<= (const T* targ)
       {
-        return attach(targ,DMI::ANON|DMI::READONLY);
+        attach(targ,DMI::ANON|DMI::READONLY);
+        return *targ;
       }
       //##ModelId=3CBEE3AC0105
       //##Documentation
       //## <<= on target ptr is alias for attach as r/w, anonymous
-      CountedRef<T> & operator <<= (T* targ)
+      T& operator <<= (T* targ)
       {
-        return attach(targ,DMI::ANON|DMI::WRITE);
+        attach(targ,DMI::ANON|DMI::WRITE);
+        return *targ;
       }
       
       //##ModelId=3E01B1AB0345

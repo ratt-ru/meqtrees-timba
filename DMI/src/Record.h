@@ -43,7 +43,7 @@ class DataRecord : public NestableContainer
 
   public:
       //##ModelId=3C5820AD00C6
-      DataRecord (int flags = DMI::WRITE);
+      explicit DataRecord (int flags = DMI::WRITE);
 
       //##ModelId=3C5820C7031D
       DataRecord (const DataRecord &other, int flags = DMI::PRESERVE_RW, int depth = 0);

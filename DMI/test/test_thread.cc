@@ -164,7 +164,7 @@ int main ( int argc,const char *argv[] )
   cout<<"Created thread "<<(tid[5]=Thread::create(rec_thread3))<<endl;
   
   for( int i=0; i<6; i++ )
-    Thread::join(tid[i]);
+    tid[i].join();
   
   return 0;
 }

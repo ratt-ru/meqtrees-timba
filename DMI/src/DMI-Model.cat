@@ -9318,7 +9318,7 @@
 			(object Parameter "targ"
 			    quid       	"3CBEE3AC026E"
 			    type       	"const T*"))
-		    result     	"CountedRef<T> &"
+		    result     	"const T&"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	1019056486)
@@ -9337,7 +9337,7 @@
 			(object Parameter "targ"
 			    quid       	"3CBEE3B4026F"
 			    type       	"T*"))
-		    result     	"CountedRef<T> &"
+		    result     	"T&"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	1019056487)
@@ -9375,23 +9375,23 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "operator=="
-		    quid       	"3DB934590080"
+		(object Operation "operator =="
+		    quid       	"3E316E8A013C"
 		    stereotype 	"const"
 		    parameters 	(list Parameters
 			(object Parameter "right"
-			    quid       	"3DB9345901B7"
+			    quid       	"3E316E8A01A2"
 			    type       	"const CountedRef<T> &"))
 		    result     	"bool"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "operator!="
-		    quid       	"3DB934590329"
+		(object Operation "operator !="
+		    quid       	"3E316E8A021E"
 		    stereotype 	"const"
 		    parameters 	(list Parameters
 			(object Parameter "right"
-			    quid       	"3DB9345A006E"
+			    quid       	"3E316E8A0280"
 			    type       	"const CountedRef<T> &"))
 		    result     	"bool"
 		    concurrency 	"Sequential"
@@ -9820,7 +9820,8 @@
 			    name       	"cg_style"
 			    value      	"No get/set operations"))
 		    quid       	"3C5EA181038C"
-		    type       	"Key")
+		    type       	"Key"
+		    quidu      	"3DB9343D01DF")
 		(object ClassAttribute "riter"
 		    quid       	"3DB934460125"
 		    type       	"typename RevMap::const_iterator"))
@@ -15982,7 +15983,7 @@
 			    quidu      	"3BEFECFF0287"
 			    compartment 	(object Compartment
 				Parent_View 	@16
-				location   	(6721, 6077)
+				location   	(6721, 6084)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -15995,7 +15996,7 @@
 				icon_style 	"Icon"
 				fill_color 	13434879
 				anchor     	2
-				nlines     	39
+				nlines     	10
 				max_width  	1465
 				compartmentItems 	(list Compartment
 				    "+ attach(targ : T*, flags : int = 0) : CountedRef<T> &"
@@ -16040,23 +16041,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3C0CDF41029F"
-			    compartment 	(object Compartment
-				Parent_View 	@17
-				location   	(3742, 4397)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	TRUE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	17
-				max_width  	0)
 			    width      	2344
 			    height     	1030
 			    annotation 	8
@@ -16088,23 +16072,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3C0CDEE200FE"
-			    compartment 	(object Compartment
-				Parent_View 	@18
-				location   	(4145, 6167)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	49
-				max_width  	0)
 			    width      	2318
 			    height     	2764
 			    annotation 	8
@@ -16415,23 +16382,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BE96FE601C5"
-			    compartment 	(object Compartment
-				Parent_View 	@33
-				location   	(7390, 2417)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	33
-				max_width  	0)
 			    width      	1018
 			    height     	1258
 			    annotation 	8
@@ -16623,23 +16573,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BE970170297"
-			    compartment 	(object Compartment
-				Parent_View 	@41
-				location   	(7251, 782)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	30
-				max_width  	0)
 			    width      	1026
 			    height     	904
 			    annotation 	8
@@ -18272,7 +18205,7 @@
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @123
-				location   	(405, 405)
+				location   	(400, 405)
 				line_color 	3342489
 				InterObjView 	@122
 				height     	1950
@@ -19636,7 +19569,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB842A01C5"
 			    width      	446
-			    height     	5401
+			    height     	5521
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -19673,13 +19606,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB843101CF"
 			    width      	446
-			    height     	5401
+			    height     	5521
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @205
-				location   	(330, 360)
+				location   	(336, 360)
 				line_color 	3342489
 				InterObjView 	@204
 				height     	2295
@@ -19700,7 +19633,7 @@
 				y_coord    	0
 				Nested     	TRUE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @208
-				location   	(330, 2775)
+				location   	(336, 2775)
 				line_color 	3342489
 				InterObjView 	@204
 				height     	570
@@ -19731,7 +19664,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB844F039F"
 			    width      	456
-			    height     	5400
+			    height     	5520
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -19775,7 +19708,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8A9F00CD"
 			    width      	525
-			    height     	3530
+			    height     	3650
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -19825,7 +19758,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8456031D"
 			    width      	300
-			    height     	5265
+			    height     	5385
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -19924,7 +19857,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB849102B3"
 			    width      	364
-			    height     	5400
+			    height     	5520
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -19968,7 +19901,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84A50013"
 			    width      	406
-			    height     	5400
+			    height     	5520
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20005,7 +19938,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8674014F"
 			    width      	300
-			    height     	5400
+			    height     	5520
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20042,7 +19975,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84C802F8"
 			    width      	508
-			    height     	5400
+			    height     	5520
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20086,7 +20019,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84E50123"
 			    width      	536
-			    height     	5400
+			    height     	5520
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20123,7 +20056,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84EE0112"
 			    width      	396
-			    height     	5400
+			    height     	5520
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20160,7 +20093,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87E7030B"
 			    width      	480
-			    height     	4355
+			    height     	4475
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20210,7 +20143,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87DE0222"
 			    width      	330
-			    height     	4085
+			    height     	4205
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20260,7 +20193,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8ADA02A9"
 			    width      	330
-			    height     	3290
+			    height     	3410
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21407,12 +21340,12 @@
 			    ordinal    	27)
 			(object Destruction_Marker @309
 			    Parent_View 	@249
-			    location   	(1320, 5520)
+			    location   	(1320, 5640)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @310
 			    Parent_View 	@212
-			    location   	(990, 5580)
+			    location   	(990, 5700)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @311
@@ -21457,12 +21390,12 @@
 			    ordinal    	28)
 			(object Destruction_Marker @313
 			    Parent_View 	@241
-			    location   	(4440, 5625)
+			    location   	(4440, 5745)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @314
 			    Parent_View 	@245
-			    location   	(4725, 5565)
+			    location   	(4725, 5685)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @315
@@ -21540,7 +21473,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B150030"
 			    width      	446
-			    height     	6211
+			    height     	6331
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -21605,13 +21538,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B210330"
 			    width      	446
-			    height     	6211
+			    height     	6331
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @324
-				location   	(435, 360)
+				location   	(432, 360)
 				line_color 	3342489
 				InterObjView 	@323
 				height     	3705
@@ -21649,7 +21582,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4D3A0258"
 			    width      	300
-			    height     	5535
+			    height     	5655
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21706,7 +21639,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4F6A02C1"
 			    width      	300
-			    height     	4965
+			    height     	5085
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21763,7 +21696,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CB80070"
 			    width      	300
-			    height     	5910
+			    height     	6030
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21813,7 +21746,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CF102DF"
 			    width      	300
-			    height     	5820
+			    height     	5940
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21863,7 +21796,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B51032F"
 			    width      	398
-			    height     	5960
+			    height     	6080
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21941,7 +21874,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5403038C"
 			    width      	300
-			    height     	3945
+			    height     	4065
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21998,7 +21931,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5582004D"
 			    width      	350
-			    height     	3930
+			    height     	4050
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22048,7 +21981,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA52C9029A"
 			    width      	582
-			    height     	4380
+			    height     	4500
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22119,7 +22052,7 @@
 			    fill_color 	8454016
 			    quidu      	"3BFA527601FA"
 			    width      	528
-			    height     	6210
+			    height     	6330
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22170,7 +22103,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA55CB01C5"
 			    width      	300
-			    height     	3510
+			    height     	3630
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -23357,7 +23290,7 @@
 			    ordinal    	28)
 			(object Destruction_Marker @434
 			    Parent_View 	@344
-			    location   	(1890, 6435)
+			    location   	(1890, 6555)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object NoteView @435
@@ -23588,7 +23521,7 @@
 				location   	(314, 278)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	879
+				max_width  	910
 				justify    	0
 				label      	"Data Transport")
 			    icon       	"control"
@@ -23618,7 +23551,7 @@
 				location   	(374, 1328)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	883
+				max_width  	912
 				justify    	0
 				label      	"P/S/M Layer")
 			    icon       	"control"
@@ -25075,23 +25008,6 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3BEFECFF0287"
-		    compartment 	(object Compartment
-			Parent_View 	@528
-			location   	(2726, 159)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	FALSE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	16777215
-			anchor     	2
-			nlines     	52
-			max_width  	897)
 		    width      	1062
 		    height     	2720
 		    annotation 	8
@@ -25123,23 +25039,6 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3C0CDEE200FE"
-		    compartment 	(object Compartment
-			Parent_View 	@529
-			location   	(67, 69)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	FALSE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	16777215
-			anchor     	2
-			nlines     	49
-			max_width  	1859)
 		    width      	2188
 		    height     	2536
 		    annotation 	8
@@ -25188,10 +25087,6 @@
 			    quidu      	"3C0CE0FB0010"
 			    client     	@530
 			    supplier   	@529
-			    vertices   	(list Points
-				(2277, 2477)
-				(2277, 1264)
-				(2246, 1264))
 			    line_style 	0
 			    label      	(object SegLabel @533
 				Parent_View 	@531
@@ -25252,11 +25147,6 @@
 			    quidu      	"3C0CE0FA0394"
 			    client     	@530
 			    supplier   	@529
-			    vertices   	(list Points
-				(2277, 2477)
-				(2277, 2564)
-				(1152, 2564)
-				(1152, 2532))
 			    line_style 	0
 			    label      	(object SegLabel @536
 				Parent_View 	@534
