@@ -99,12 +99,12 @@ class ResultPlotter(BrowserPlugin):
           image = []
           freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
           x_step = freq_range / n_rows
-          start_freq = self._rec.cells.domain.freq[0] 
+          start_freq = self._rec.cells.domain.freq[0] + 0.5 * x_step 
 #          print self._label, 'image appending ', plot_array[j][i]
           for j in range(0, n_rows ) :
             for i in range(0, n_cols) :
               if n_rows == 1:
-                current_freq = start_freq + 0.5 * x_step
+                current_freq = start_freq 
               else:
                 current_freq = start_freq + j * x_step
               image.append(current_freq)
@@ -116,11 +116,11 @@ class ResultPlotter(BrowserPlugin):
           image = []
           time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
           y_step = time_range / n_cols
-          start_time = self._rec.cells.domain.time[0] 
+          start_time = self._rec.cells.domain.time[0] + 0.5 * y_step 
           for j in range(0, n_rows ) :
             for i in range(0, n_cols) :
               if n_cols == 1:
-                current_time = start_time + 0.5 * y_step
+                current_time = start_time 
               else:
                 current_time = start_time + i * y_step
               image.append(current_time)
