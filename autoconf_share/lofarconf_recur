@@ -163,7 +163,7 @@ build_system:
 		&& echo ":::::: FINISHED CONFIGURING VARIANT $$var FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; ); \
 		(echo \
-		&& echo ":::::: BUILDING VARIANT $$var FOR PACKAGE $$pkg" \
+		&& echo ":::::: BUILDING VARIANT $$var FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& (( cd $$pkg/build/$$var \
