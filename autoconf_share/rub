@@ -65,7 +65,7 @@
 # If an option is given multiple times, only the last value takes effect.
 
 # For example:
-#   rub -cvs "cvs -d :pserver:user@astron28:/cvs/cvsroot" CEP/CPA/PSS3/BBS
+#   rub -cvs "cvs -d :pserver:user@cvs.astron.nl:/cvs/cvsroot" CEP/CPA/PSS3/BBS
 
 
 # Find the path used to start the script.
