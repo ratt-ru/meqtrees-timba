@@ -119,7 +119,7 @@ class Node : public BlockableObject
     //##ModelId=3F83FADF011D
     virtual void checkChildren();
     //##ModelId=3F83F9A5022C
-    DataRecord & state();
+    DataRecord & wstate();
     
   private:
     //##ModelId=3F8433C20193
@@ -164,7 +164,7 @@ inline const DataRecord & Node::state() const
 }
 
 //##ModelId=3F83F9A5022C
-inline DataRecord & Node::state() 
+inline DataRecord & Node::wstate() 
 {
   return staterec_();
 }
