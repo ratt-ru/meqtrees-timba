@@ -69,7 +69,8 @@
      [ domain         = [ freq=[f1,f2],time=[t1,t2] ],    # the envelope domain
        grid           = [ freq=[...],time=[...] ],
        cell_size      = [ freq=[...],time=[...] ],
-       segment_index  = [ freq=[...],time=[...] ]         # see below   
+       segments       = [ freq=[start_index,end_index],
+                          time=[start_index,end_index] ]  # see below   
      ]
   
   Note that the "freq" and "time" field names have the same meaning as for 
@@ -77,14 +78,14 @@
   things like cells.grid[1], to be dimension-agnostic.
   
   Some nodes (e.g. DFT?) can be significantly optimized for the case of 
-  regular grids. The cells.segment_index field provides information on grid
+  regular grids. The cells.segments field provides information on grid
   regularity. For example, if the freq axis of a cells consists of M
-  regularly-gridded segments, then cells.segment_index.freq (aka 
-  cells.segment_index[1]) is a [2,M] array giving the starting and ending 
-  index of each segment (note that the _index suffix causes the Glish/C++ layer
-  to automatically adjust for 0/1-base, so the field retains its meaning in
-  C++). In the simplest case, segment_index is just [1,N], i.e., the entire
-  axis is regularly gridded.
+  regularly-gridded segments, then cells.segment.freq.start_index and
+  end_index will be integer vectors of length M giving the starting and 
+  ending index of each segment (note that the _index suffix causes the 
+  Glish/C++ layer to automatically adjust for 0/1-base, so the fields retain 
+  their exact meaning in C++). In the simplest case, start_index=[1]
+  and end_index=[N], i.e., the entire axis is regularly gridded.
 
   On the C++ side, we could provide some shortcut methods to easily iterate
   over segments. We'd also have simplified constructors such as:

@@ -1,0 +1,680 @@
+\chapter{Executing Requests}
+
+  The virtual \qq{Node::execute()} method is responsible for processing a
+  \Request. The default version decomposes the request and calls a number of
+  virtual methods to handle it. All but the most exotic nodes should only need
+  to implement the handlers -- but the possibility to reimplement
+  \qq{execute()} itself is always there. \qq{Node::execute()} does the
+  following:
+
+  \begin{enumerate}
+  
+  \item Compares the request id to the id of the previous request, if any. If
+    there's a cached \Result, and the request id ``matches'' the cached request
+    id, then does nothing, immediately returning the cached \Result.  If IDs do
+    not match, clears the cache. (Note that the matching is not a literal
+    comparison -- instead, the depmask is taken into account. See the discussion
+    on depmasks above).
+
+  \item For new requests only: calls the virtual \qq{readyForRequest()} method,
+    and if the return value is false, immediately returns \qq{RES\_WAIT}.
+
+  \item For new requests only: if a rider record is present, parses it and 
+    calls the virtual \qq{processCommands()} method if a command set for the
+    node is found (see details below).
+
+  \item If node has children, calls the virtual \qq{pollChildren()} method to
+    collect results from its children. The default implementation of this
+    method calls \qq{execute()} with the same \Request\ on all the child nodes,
+    collecting their \Result{}s into a vector of \qq{Result::Ref}s, and
+    computing the {\em cumulative result code} as a bitwise-OR of the child
+    return values. If any child returns a \RES{FAIL}, it creates an output
+    \Result\ containing a merge of all the fail-results. Otherwise, if
+    auto-resampling is enabled (see below), it will compare the child results'
+    resolutions, and resample them as appropriate.
+
+    If the cumulative result code from \qq{pollChildren()} contains \RES{WAIT}
+    or \RES{FAIL}, \qq{execute()} returns immediately with that result code.  
+
+    Note that the default implementation of \qq{pollChildren()} is appropriate
+    for most node classes, with the exception of specialized ``control'' nodes
+    such as \qq{Sink} and \qq{Solver}.
+
+  \item If a \Cells\ object is present, calls the virtual \qq{getResult()}
+    method, passing in the vector of child \Result{}s returned by
+    \qq{pollChildren()}. Bitwise-ORs the return value with the cumulative
+    result code from the children, OR the local node depmask.
+
+  \item If an exception is thrown at any stage of the process, \qq{execute()}
+    will catch it, create an output \Result\ with a fail-result describing the
+    exception, and return \RES{FAIL}. Thus, throwing an exception is a normal
+    way for \qq{setState()} or \qq{processCommands()} or \qq{getResult()} to
+    indicate failure.
+
+  \item Upon exit, optionally stores the output \Result\ and result code in the
+    cache (see caching issues, below).
+
+  \end{enumerate}
+
+  The return value of \qq{execute()} is simply the accumulated result code.
+  
+\section{Result codes}
+
+  The return value of \qq{execute()} is meant to be a result code describing
+  certain properties  of the returned \Result. It is a bitmask composed of a
+  number of flags listed below. Each flag describes a certain property of the
+  \Result. The property semantics are defined in such a way that, in most
+  practical cases, a flagged property in any child result is inherited by the
+  parent's result. This allows \qq{execute()} to accumulate the correct result
+  code via a simple bitwise-OR. In other words, only a few classes (Parm, Time,
+  Freq, Spigot, and perhaps some special nodes) have any specific logic for
+  determining result codes. For all other classes, the correct result code is
+  simply the bitwise-OR of their children's codes. The following bits are
+  defined:
+  
+  \begin{description}
+  
+  \item[\RES{UPDATED}:] result has changed from that of previous \Request. This
+    bit is usually automatically cleared when the node returns a result 
+    from the cache, and set otherwise.
+     
+  \item[\RES{DEP(0)}, \RES{DEP(1)}, etc.:] result will change if the $i$-th
+    index of the request ID changes. This is simply the {\em depmask\/} discussed
+    in the section on Requests above.
+
+  \item[\RES{DEP\_VOLATILE}:] result may change in response to external events,
+    even without new requests. (This is not implemented for now, and only meant
+    as a placeholder for future developments, such as dynamically growing
+    domains, partial integration, etc.)
+
+  \item[\RES{FAIL}:] result is a ``complete'' fail. Note that this is not the
+    same thing as a result containing some mix of valid and failed VellSets;
+    rather, this indicates a failure for the whole result overall. \RES{FAIL}s
+    are usually generated when a node runs into some unrecoverable error.
+    
+    When this flag is returned, a \Result\ object is expected; it should
+    contain one or more fails describing the error. Note that dependency flags
+    can be meaningfully combined with \RES{FAIL}.
+
+  \item[\RES{WAIT}:] no result available, wait for notification or try later.
+    If this flag is raised, then no \Result\ should be returned. Note that
+    dependency flags can and should be meaningfully combined with \RES{WAIT},
+    since it usually possible to indicate the dependencies of a node in
+    advance.
+
+  \end{description}
+  
+  The return value of a node's \qq{getResult()} method should describe any {\bf
+  additional} properties introduced by the \qq{getResult()} calculation.
+  Most function nodes will
+  return zero, indicating that a node does not introduce any additional
+  dependencies into the result. 
+  
+\section{Caching issues}
+
+  To avoid unnecessary recalculations, a node's result can be retained in a
+  cache. Obviously, this trades off performance against memory footprint. Three
+  broad caching policies have been identified so far:
+
+  \begin{description}
+  
+  \item[Never:] no caching at all, values are always recalculated anew. 
+   
+  \item[Always:] result is always cached, until a different request comes in.
+    (This is the policy implemented currently). While expensive in terms of
+    memory, this can be very useful for debugging, since it allows one to pause
+    the system and examine the most recent result of every node.
+
+  \item[Smart:] result is cached according to memory availability, expected
+    request sequence, etc.
+
+  \end{description}
+  
+  Caching policy should be settable on a per-node basis, via the init record
+  (and changed via \qq{setState()}). The cache itself is simply part of the
+  node's state record (and thus can even be changed manually if needed.)
+  
+  The ``Smart'' policy is the really interesting one. The combination of result
+  codes, hierarchical request IDs and next-request hints allows us to get
+  pretty smart. 
+  
+  Let's call the individual components of a request ID {\em dependencies} --
+  because the \RES{DEP} flags in the result code describe what the result
+  depends on. Note that a parent result inherits dependencies from all its
+  child results, thus the parent dependencies are always a superset of any
+  child dependencies (i.e. equal to or larger.) The following simple rules seem
+  reasonable:
+
+  \begin{enumerate}
+  
+  \item If a dependency will change in the next request, then node can clear
+    cache (since the next request will invalidate it anyway).
+
+  \item If the parent dependencies are exactly equal to those of a child, then
+    the parent does not need the child's cache (because any request requiring a
+    recalculation of the parent result will also require a recalculation of the
+    child result.)
+
+  \item If the parent dependencies are larger than those of a child, then the 
+    child should retain cache (unless [1] holds for the child.) 
+
+  \item A child must retain cache unless [1] is true, or {\bf all} its parents
+    have told it to release cache.
+
+  \end{enumerate}
+  
+  Note also that when a node retains the result in a cache, it also retains the
+  dependency mask and the request ID. When deciding whether to return the
+  cached result or recalculate the request (see step [1] of \qq{execute()}),
+  the request IDs are matched according to the dependency mask.
+  
+\section{Commands in request riders}
+
+  The optional \qq{rider} sub-record of a \Request\ may be used to send
+  additional commands to specific nodes. The Solver node, for example, makes
+  heavy use of this feature to implement iterative solutions. Command sets are
+  specified via records, with the field names being the commands per se, and
+  the field values being the command arguments. If the record contains multiple
+  commands, they are processed in a specific order. Some example commands are:
+
+  \begin{description}
+  
+  \item[\qq{state}:] to change the state of a node (available for all nodes);
+  
+  \item[\qq{set\_value}:] to change the values of a polc in a MeqParm (see
+  below);
+  
+  \item[\qq{save\_polc}:] to save the polc(s) in a MeqParm (see below).
+  
+  \end{description}
+  
+  The rider record is structured so that it is possible to associate a command
+  with a specific node or a set of nodes. A node will check if the request
+  contains any commands for itself. Note that in a very large tree, these
+  repeated checks may become expensive. It is for this reason that we introduce
+  the concept of {\em node groups}. 
+  
+  A node may be associated with one or more groups. Groups are specified via a
+  list of HIIDs passed in the \qq{.node\_groups} field of the init record (they
+  can subsequently be changed via \qq{setState()}). All nodes automatically
+  belong to the \qq{all} group. A node's groups are used as a first-level index
+  into the \qq{rider} record. If a node belongs to groups \qq{foo} and
+  \qq{bar}, then \qq{Node::execute()} will check for the {\em command
+  subrecords}\/ (CSRs) \qq{rider.foo}, \qq{rider.bar}, and \qq{rider.all}, in
+  that order, and process any subrecords that it finds.
+
+  Each CSRs contains a number of command sets. These command sets may be
+  associated with specific nodes. There are three ways to specify these
+  associations:
+  
+  \paragraph{All nodes in group:} The command sets specified via the field
+  \qq{command\_all} is applied to all nodes in the group. For example:
+
+\begin{verbatim}
+  - req.rider.foo.command_all
+  [ save_polc=T,state=[solvable=F] ]  
+\end{verbatim}
+
+  ...will call \qq{processCommands()} on all nodes in group \qq{foo} (saving
+  polcs and setting their state to non-solvable.)
+
+  \paragraph{Via node index:} Command sets may be associated with a specific
+  node index. This is done via field \qq{command\_by\_nodeindex}, which is
+  essentially a map from node index to command set. For example:
+
+\begin{verbatim}
+  - req.rider.foo.command_by_nodeindex
+  [ #19 = [ value=1,save_polc=T ], #41 = [ value=2,save_polc=T ] ]
+\end{verbatim}
+
+  ...will cause a \qq{processCommands()} call on nodes 19 and 41. (Note that
+  since Glish only supports strings for record field names, the \qq{'\#ddd'}
+  form is used to specify a ``numeric'' node index.)
+
+  \paragraph{Via lists:} The third way is to associate command sets with nodes
+  listed by name or node index. This is specified via field
+  \qq{command\_by\_list}. For example:
+
+\begin{verbatim}
+  - req.rider.foo.by_list
+  [ *1 = [ name="RA DEC",nodeindex=[17,32],state=[solvable=T],command=[save_polc=T] ],
+    *2 = [ state=[solvable=F] ]
+\end{verbatim}
+
+  ...will call \qq{processCommands()} with the first command set on nodes RA,
+  DEC, \#17 and \#32, and with the second command set on all other nodes in
+  group \qq{foo}. To be more specific, the \qq{command\_by\_list} field is
+  treated as a list  of records. Each record in the list is a command set, with
+  an additional \qq{name} field (string or vector of strings) and/or a
+  \qq{nodeindex} field (integer or vector of integers). \qq{Node::execute()}
+  will iterate through the records one by one; if the node's name is found in
+  \qq{name}\footnote{In the future, pattern matching will be supported as
+  well.}, or the node index is found in \qq{nodeindex}, then
+  \qq{processCommands()} is called with the contents of that record. Once a
+  match is found, list processing stops. As a special case, if neither
+  \qq{name} nor \qq{index} is specified, then the entry is a ``wildcard''
+  matching any node. Wilcards are only useful at the end of the list, to catch
+  nodes not already matched by previous entries.
+  
+\subsection{Command evaluation order}
+
+  In cases where a node finds more than one command set associated with it, the
+  order of processing becomes important. The rider is parsed in the following
+  order:
+
+  \begin{itemize}
+  
+  \item The outer loop is over node groups, in the order in which they are
+  specified in the node state record. The \qq{all} group is checked last.
+  
+  \item Within a group's command sub-record, the processing order is from least
+  specific to most specific: \qq{command\_all}, \qq{command\_by\_list},
+  \qq{command\_by\_nodeindex}.
+  
+  \item Once a command set is passed to a node's \qq{processCommands()} method,
+  the order of processing is determined by the node class implementation.
+  Generally, a subclass should call its parent's \qq{processCommands()} first,
+  so general commands (such as \qq{state}) should be processed before
+  more class-specific commands (such as \qq{save\_polc}).
+  
+  \end{itemize}
+  
+\subsection{Standard node commands}
+  
+\section{Resolution \& resampling}
+
+  Resolution \& gridding is a complicated business. Some basic requirements
+  are:
+
+  \begin{itemize}
+  
+  \item In the first instance, the grid/resolution is determined by incoming
+  data. We'll call this the {\em full resolution} grid.
+
+  \item It may be prohibitively expensive to evaluate some subtrees (e.g.
+  predict) at full resolution. Thus we should support going from full
+  resolution to {\em reduced resolution} (integration) and back (upsampling). 
+  
+  \item Parent nodes will not always have sufficient information to determine
+  what the best resolution for a child is. Thus, a child should be able to 
+  return data at any resolution is deems fit, and let the parent deal with it.
+  
+  \end{itemize}
+  
+  To satisfy these requirements, the following behaviour w.r.t. resolution
+  is implemented:
+  
+  \begin{enumerate}
+  
+  \item The resolution (and gridding) of a \Request\ is determined by the
+  \Cells\ object within. The \Cells\ contains a vector of cell centers and cell
+  sizes along each axis (time, frequency), plus the envelope domain. 
+
+  \item The \Cells\ of a \Request\ are merely a hint! A node is not obligated
+  to honor the requested grid -- only its envelope domain. The gridding of the
+  result is indicated by the \Cells\ returned in the \Result\ object.
+
+    \begin{itemize} 
+
+    \item Some nodes (e.g. \qq{Parm}, \qq{Freq}, \qq{Time} -- generally, nodes
+    meant to evaluate some analytic function of time and frequency -- are able
+    to evaluate themselves over any given grid. These nodes will always return
+    a \Result\ with the same \Cells\ as the \Request; the tree designer may
+    rely on this behaviour.
+
+    \item Data-driven nodes (e.g. \qq{Spigot}) completely ignore the \Cells\
+    of the \Request. The gridding of their \Result\ is fully determined by
+    incoming data.
+
+    \end{itemize}
+    
+  \item A lot of node classes (e.g., all the \qq{Function}-derived ones)
+  require child results to have the same resolution. In the event that this is
+  not the case, a node can be configured to deal with it in one of four ways,
+  as determined by the \qq{auto\_resample} field of the state record:
+
+    \begin{description}
+    
+    \item[NONE $(=0)$:] do nothing, do not even check the child resolutions. This
+    is the default setting initialized by the \qq{Node} class constructor.
+
+    \item[FAIL $(=-2)$:] check resolutions and return a \qq{RES\_FAIL} if they do
+    not match. This is the default setting  initialized by the \qq{Function}
+    class constructor. Since this is somewhat slower that the NONE setting, 
+    perhaps it should only be the default in debug mode?
+    
+    \item[INTEGRATE $(=-1)$:] evaluate and return a \Result\ at the lower
+    resolution, by integrating higher-resolved child results.
+
+    \item[UPSAMPLE $(=1)$:] evaluate and return a \Result\ at the higher
+    resolution, by upsampling lower-resolved child results.
+
+    \end{description}
+    
+  Auto-resampling is handled at the base \qq{Node} level (in
+  \qq{Node::processChildren()}, and thus may be enabled for any individual node
+  (although node classes that do their own polling of children -- e.g.,
+  \qq{Solver} -- may ignore the flag.) In the rippled solvers tree (Fig. ??),
+  nodes which enable auto-resampling are indicated by an "UPS" or "INT" label
+  in the node box. 
+
+  \item A few utility nodes may be used to change resolution mid-tree.
+  Initially, two such nodes will be provided:
+
+    \begin{description}
+    
+    \item[\qq{Resampler}:] this node guarantees a \Result\ at the requested
+    resolution. A \qq{Resampler} has a single child. It passes the parent's
+    \Request\ on to the child, and if the returned \Cells\ are different from
+    the requested ones, then it resamples the result to the requested \Cells\
+    before returning it to the parent.
+
+    \item[\qq{ModRes}:] this node modifies a \Request's resolution up or down
+    by a fixed factor (or to a fixed number of cells along either axis), as as
+    determined by its state record (dynamic configuration). This node has a
+    single child. The modified \Request\ is passed on to its child, and the
+    child's \Result\ is returned.
+
+    \end{description}
+    
+  In the future, we envision more nodes, such as an adaptive resolution
+  reducer, which adaptively selects a minimum required resolution based on the
+  results of the child. At the moment, the \qq{ModRes} node is a suitable
+  proxy. 
+
+  \item Data access nodes (\qq{Sink} and \qq{Spigot}) are coupled. For each
+  snippet of data, the \qq{Sink} will issue a \Request\ with \Cells\
+  corresponding to the data layout. The corresponding \qq{Spigot} will then be
+  able to return a \Result\ with the same cells.
+  
+  \item For the time being, we'll only support integral resolutions -- i.e.,
+  the full resolution cells must be tilings of the reduced resolution cells.
+  This keeps things simple, and avoids interpolation errors. In the future, we
+  may support arbitrary regridding.
+
+  \end{enumerate}
+  
+  It is, of course, up to the tree designer to ensure that resolution is
+  changed up and down appropriately within the tree, by strategically
+  positioning \qq{Resampler} and \qq{ModRes} nodes, and enabling
+  auto-resampling at a few specific nodes. The tree in Fig. ?? provides a good
+  example of this.
+
+\chapter{The MeqServer Interface}
+
+Coming soon.
+
+\chapter{Description of specialized nodes}
+
+\section{ReqSeq}
+
+  \qq{ReqSeq} is the {\em request sequencer} node. It is used to sequence the
+  execution of requests between subtrees.
+  
+  Normally, if a node has multiple children, they may recieve \& execute their
+  requests in parallel, with no predefined order (note that in a
+  single-threaded system, they will effectively execute in sequence, however,
+  you cannot design a tree to rely on this behaviour). Some applications
+  require that branches of the tree are evaluated in a specific order. For
+  example, in the rippled solvers tree (Fig. ??), the Predict--Solver branch
+  must be executed first, to determine values for the solvable parameters,
+  followed by Predict--Subtract.
+  
+  The sequencer (\qq{ReqSeq}) node provides an easy way to sequence these
+  requests. A sequencer may have any number of children. Upon receiving a
+  request from its parent, the sequencer will pass it on to the first child,
+  and wait for the first child to return a result. Then it will go on to the
+  second child, etc. For its own result, the sequencer returns the result of
+  one of the children, as determined by its state record (run-time
+  configurable).
+
+\section{Resampler}
+
+\section{ModRes}
+
+\section{MeqParm}
+
+  The \Parm\ node implements a possibly solvable Measurement Equation
+  parameter. The parameter is represented by one or more \Polc\ objects.
+
+\subsection{MeqPolc}
+
+  The \Polc\ class implements a 2D polynomial in time and frequency. The Glish
+  equivalent is a \qq{meq.polc} record. This record will contain the following
+  fields:
+  
+  \noindent\begin{tabular}{lp{.8\textwidth}}
+  \qq{.coeff}  &  a 2D array of polynomial coefficients.\\
+  \qq{.freq\_0}  &  \\
+  \qq{.freq\_scale}  &  \\
+  \qq{.time\_0}  &  \\
+  \qq{.time\_scale}  & the scale of the polc (see below)\\
+  \qq{.domain}  & (optional) the polc \Domain.\\
+  \qq{.weight}  & weight\\
+  \qq{.pert}  & perturbation to use for computing derivatives\\
+  \qq{.dbid\_index}  & database ID (see below)\\
+  \qq{.inf\_domain} &  optional flag: infinite domain (see below)\\
+  \qq{.grow\_domain} &  optional flag: growing domain (see below)\\
+  \end{tabular}
+  
+  The value of a polc for frequency $f$ and time $t$ is computed as follows:
+
+  \begin{equation}
+  p(f,t) = \sum_{i=0}^{N-1}\sum_{j=0}^{M-1} c_{ij}(\frac{f-f_0}{s_f})^i(\frac{t-t_0}{s_t})^j
+  \end{equation}
+  
+  Here, $c_{ij}$ is an $N\times M$ array of coefficients (\qq{coeff}), and
+  $f_0,s_f,t_0,s_t$ is the scale of the polc. The scale is only necessary to
+  keep numbers small so as to avoid round-off errors.
+
+\subsection{MeqParm state}
+
+  Here's the layout for a \Parm\ state record. All of these attributes are
+  dynamic state, that is, they may be changed at any time via \qq{setState()}:
+  
+  \begin{description}
+
+  \item[\qq{solvable}] (bool, optional) is this \Parm\ solvable or not?
+    Default is non-solvable.
+
+  \item[\qq{polcs}] (list of \Polc{}s, optional) the parm's polc list (see below).
+
+  \item[\qq{table\_name}] (string, optional) the name of a MEP table. Default is none.
+    If no table is provided, then polcs must be specified via either the
+    \qq{polcs} or the \qq{default} field.
+
+  \item[\qq{parm\_name}] (string, optional) the name to use when working with a MEP
+    table. Default is to use the node name itself.
+
+  \item[\qq{default}] (\Polc, optional) a default \Polc, to be used as a last
+    resort (i.e. if no polcs found in the MEP table).
+
+  \item[\qq{auto\_save}] (bool, optional) If true, any updates to the parm's 
+    polcs are immediately saved to the MEP table. If false, updates need to be
+    explicitly saved (more on this below). Default is false.
+
+  \end{description}
+  
+\subsection{Selecting polcs}
+
+  The \qq{Parm::getResult()} method is responsible for evaluating a parm over a
+  \Cells\ (specifically, over the domain of the \Cells). To do this, the parm
+  needs to find an appropriate polc or polcs for the given domain. Most of the
+  tricky logic of the \Parm\ class is dedicated to choosing the right set of
+  polcs.  Currently, it will select polc(s) as follows:
+
+  \begin{enumerate}
+  
+  \item If no MEP table and no default polc has been set in the state record,
+    then the parm will blindly re-use the current polc list (i.e. the
+    \qq{polcs} field of the state record), or fail if the list is empty.  No
+    further error checking is done, and it is up to the user to ensure that the
+    parm has been initialized with polcs that are meaningful w.r.t. the domain
+    of the request.
+
+  \item Otherwise, the parm will first see if it can re-use the current polc 
+    anyway. The current list must contain a single polc, which is tested for
+    re-usability as follows:
+
+    \begin{enumerate}
+    
+    \item If the \qq{inf\_domain} flag is set, the polc has an infinite domain, 
+      and can be re-used.
+      
+    \item If the \qq{grow\_domain} flag is set, and the requested domain is a
+      superset of the polc's current domain, then the domain of the polc is
+      expanded to match the requested domain, and the polc can be re-used. 
+
+    \item If the requested domain is a subset of the polc's current domain, the
+      polc is re-used.
+
+    \end{enumerate}
+
+  \item If no re-use is possible, the current polc list is cleared. The parm
+    will then query its MEP table for polcs whose domain overlaps the requested
+    domain. These polcs are loaded into the polc list.
+
+  \item If no polcs are found in the MEP table, the table is checked for a
+    default polc. Note that default polcs have no domain (generally, they will
+    only have a $c_{00}$ coefficient). If a default polc is found, it is placed
+    in the list, and its domain is set to the requested domain.
+
+  \item If no default polc is found in the table, or if no table is available,
+    then default polc from the state record is copied into the list, and its
+    domain is set to the requested domain. Note that the case of no table and
+    no default polc is covered by (1), above.
+
+  \end{enumerate}
+  
+  Once the selection is complete, the parm will have at its disposal a list of
+  one or more polcs. 
+
+\subsection{Selecting a single solvable polc}
+  
+  If the parm is set to solvable, the polc list is then culled to a single polc
+  (NB: future versions may support solving for multiple polcs). This polc is
+  selected according to the following criteria (in descending order of
+  importance):
+
+  \begin{itemize}
+  
+  \item an exact match of the requested domain to the polc domain;
+  
+  \item weight (higher is better);
+  
+  \item database ID (higher, i.e. more recent, is better).
+  
+  \end{itemize}
+  
+  Once a single solvable polc is selected, its domain is set equal to the
+  requested domain.
+  
+\subsection{Evaluating the polc list}
+
+  A single polc is evaluated directly over the \Cells\ of the incoming
+  \Request. The resulting \VellSet\ object (polc value, plus optional
+  derivatives) is then returned to the caller. 
+  
+  If the parm contains multiple polcs, different evaluation schemes are
+  possible:
+
+  \begin{description}
+
+  \item[Tiled polcs.] This is the only scheme implemented by \Parm\ at time of
+  writing. For every polc in the list, \Parm\ computes the overlap between
+  the polc's domain and the domain of the request. The polc is then evaluated
+  over that part of the \Cells\ grid which falls within the overlapping area.
+  This step is repeated for every polc. Sections of the grid with no polc
+  domain coverage are assigned a zero value.
+
+  Obviously, this scheme is most suitable when the polcs neatly tile
+  the request domain. Note that the result is generally discontinuous across
+  tile boundaries, which can be quite useful for representing things such as
+  phase jumps. On the other  hand, if the request domain is not completely
+  covered, or if the polc domains overlap, the results of this scheme are not
+  very well defined. 
+
+  \item[Weighted mean.] Each polc is associated with a set of weights, defined
+  on the \Cells\ grid. Different weighting schemes may be employed. Presumably,
+  grid points within the polc's domain are assigned a higher weight, while
+  points outside the domain get a lower weight, further decreasing as we get
+  further away from the domain. The value of the parm at each grid point is
+  then simply a weighted mean of all the polcs' values.
+
+  The advantage of this scheme is that it gracefully incorporates polcs with
+  overlapping domains, while allowing for extrapolation to non-covered areas of
+  the request domain. The result is always smooth and continous -- which, on the
+  other hand, may not always be what you want. The downside is computational
+  expense, as each polc needs to be evaluated at each grid point.
+
+  \item[Reduction to single polc.] This scheme involves fitting a single polc
+  (usually of a higher order) to multiple polcs. It can already be implemented
+  externally (see \qq{fitpolcs\_wlc.g} for an example), as a ``preprocessing''
+  stage of sorts. The scheme works by evaluating the polcs over some set of
+  points within the request domain (not necessarily the \Cells\ grid at all),
+  combining the results using some sort of weighted mean, then doing a
+  least-squares fit of a new polc to the resulting values.
+
+  \end{description}
+
+\subsection{Updating and saving polcs}    
+
+  In the course of a solution, the Solver node updates the values of solvable
+  polcs by sending up new values in the request rider. This is done by
+  including the \qq{Update.Values} command in the rider. The value of the
+  command is expected to be a vector of new coefficients, in the same order in
+  which spids were assigned. More specifically:
+
+  \begin{itemize}
+  
+  \item When a \Parm\ that has been set solvable initializes a new polc for a
+  domain, it associates a number of spids with its coefficients. Spids are
+  assigned as $256*${\em nodeindex}$+i$, where $i$ is the number of the
+  coefficient.
+  
+  \item These spids are included in the resulting \Vells; as results percolate
+  down the tree, spid vectors and corresponding perturbed values from different
+  solvable \Parm{}s are merged. The \Vells\ received by the solver contain the
+  full set of spids from all the solvable \Parm{}s in its trees.
+
+  \item The Solver computes a set of incremental updates. Note that the Solver
+  knows nothing of \Polc{}s or \Parm{}s; instead, it only deals with abstract
+  ``atomic parameters'' identified by spid.
+
+  \item The solver inserts the updates into the rider of the next request, as
+  a set of \qq{Update.Values} commands. This request is then used to recalculate
+  the trees for the next iteration. If this is the last iteration, then a
+  request without a \Cells\ is sent up -- this updates the values without
+  recalculating anything.
+  
+  \end{itemize}
+  
+  Presumably, at some point the new polc values need to be stored into a MEP
+  table. There are two ways to accomplish this:
+
+  \begin{description}
+  
+  \item[Automatically:] if the \qq{auto\_save} flag is set in the \Parm\ state
+  record, then each update via \qq{set\_value} is immediately committed to the
+  MEP table.
+
+  \item[With explicit command:] whenever the \Parm\ receives a request with a
+  \qq{Save.Polcs} command in the rider, it commits all its polcs to the MEP
+  table.
+
+  \end{description}
+  
+  The \qq{dbid\_index} attribute of the \Polc\ is used to keep track of its
+  location in the MEP table. When a polc is loaded from the table (whether on
+  the C++ side, or via the Glish \qq{meptable()} object), \qq{dbid\_index} is
+  set to its DB identifier.\footnote{As long as we use AIPS++ tables, this is
+  simply the row number. If and when we employ other storage schemes, dbid  may
+  become something different, but is in any case a key into the database.} 
+  When a polc is subsequently saved, its dbid is used to locate the correct
+  entry in the table. New polcs are created with a dbid of -1; when they are
+  subsequently saved, a new entry is allocated in the MEP table, and the polc
+  object is updated with the dbid. During normal operation, the user need not
+  worry about this since everything happens automatically; some advanced
+  scripting may require knowledge of the dbid.
+
+
