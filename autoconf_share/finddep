@@ -20,14 +20,18 @@ if [ "$rootdir" = "" ]; then
   rootdir="/home/lofar/weekly/LOFAR";
 fi
 
+# Find all used packages from all configure.in files.
+# It gives the 'uses' relation.
 find $rootdir -name configure.in > tmp.fil
 egrep '^lofar_' `cat tmp.fil` | \
 sed -e 's%.*/LOFAR/%LOFAR/%' -e 's/,.*//' -e 's/).*//' -e 's%/configure.in:lofar_% %' | \
 egrep -v ' (INIT|DEBUG|QATOOLS|DOCXX|CHECK_PRETTY|CHECK_LONG_LONG)' | \
 sed -e 's% PACKAGE(% LOFAR/%' -e 's% INTERNAL(% LOFAR/%' -e 's% EXTERNAL(% %' -e s'%(.*%%' | \
 sort > finddep.uses
+# Make a reversed copy to get the 'used by' relation.
 awk '{ print $2, $1 }' finddep.uses | sort > finddep.used
 
+# Make a file giving the LOFAR package directory structure.
 rm -f tmp.out
 for FIL in `cat tmp.fil`
 do
@@ -44,3 +48,26 @@ done
 sort tmp.out | uniq | sed -e 's/#/ /' > finddep.pkg
 rm -r tmp.out tmp.fil
 
+# Now 'expand' the uses and used file to get the relations for the
+# higher level packages.
+for FIL in finddep.uses finddep.used
+do
+  rm -f tmp.fil
+  for LIN in `sed $FIL -e 's/ /,/'`
+  do
+    part2=`echo $LIN | awk -F, '{ print $2 }'`
+    part1=`echo $LIN | awk -F, '{ print $1 }' | sed -e 's%/% %g'`
+    parts=
+    for part in $part1
+    do
+      if [ "$parts" = "" ]; then
+        parts="$part"
+      else
+        parts="$parts/$part"
+      fi
+      echo "$parts $part2" >> tmp.fil
+    done
+  done
+  sort tmp.fil | uniq > $FIL-all
+  rm -f tmp.fil
+done
