@@ -296,6 +296,7 @@ MeqSpigot                        1468       ; from /home/oms/LOFAR/Timba/MeqServ
 #MeqTanh                         1450       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Tanh.h:29
 #MeqTime                         1451       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Time.h:30
 #MeqToComplex                    1413       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ToComplex.h:30
+#MeqUVBrick                      1505       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/UVBrick.h:31
 #MeqUVW                          1421       ; from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:31
 MeqVells                         1341       ; from /home/oms/LOFAR/Timba/MEQ/src/Vells.h:30
 MeqVellSet                       1307       ; from /home/oms/LOFAR/Timba/MEQ/src/VellSet.h:35
