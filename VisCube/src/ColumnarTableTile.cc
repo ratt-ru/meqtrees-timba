@@ -117,6 +117,7 @@ void ColumnarTableTile::initBlock (void *data,size_t sz) const
   // pack ID following the header
   sz -= sizeof(BlockHeader);
   hdr->idsize = id_.pack(static_cast<char*>(data) + sizeof(BlockHeader),sz);
+  hdr->has_format = format_.valid();
 }
 
 //##ModelId=3DB964F201EA
@@ -296,6 +297,7 @@ void ColumnarTableTile::copy (int startrow, const ColumnarTableTile &other, int 
 int ColumnarTableTile::fromBlock (BlockSet& set)
 {
   Thread::Mutex::Lock lock(mutex_);
+  int count = 1;
   datablock.unlock();
   set.pop(datablock);
   datablock.lock();
@@ -305,6 +307,13 @@ int ColumnarTableTile::fromBlock (BlockSet& set)
   FailWhen( datablock->size() < sizeof(BlockHeader) + maxsz,"corrupt block");
   // unpack the ID from the block
   id_.unpack(datablock->cdata()+sizeof(BlockHeader),hdr->idsize);
+  // do we have a format? from-block it then.
+  if( hdr->has_format )
+  {
+    TableFormat *form = new TableFormat;
+    format_.unlock().attach(form,DMI::ANON|DMI::READONLY).lock();
+    count += form->fromBlock(set);
+  }
   // no data -- get ID out of the block and set the nil representation
   if( !nrow_ )
   {
@@ -329,8 +338,7 @@ int ColumnarTableTile::fromBlock (BlockSet& set)
       pdata.resize(0);
     }
   }
-  // get ID from block
-  return 1;
+  return count;
 }
 
 //##ModelId=3DB964F202FE
@@ -340,9 +348,13 @@ int ColumnarTableTile::toBlock (BlockSet &set) const
   // IDs will not be preserved
   Thread::Mutex::Lock lock(mutex_);
   FailWhen(nrow() && !datablock.valid(),"tile data missing??");
+  int count = 1;
   // if we have data, push it out
   if( nrow() )
+  {
+    static_cast<BlockHeader*>(datablock().data())->has_format = format_.valid();
     set.push(datablock.copy(DMI::READONLY));
+  }
   // else push out the nil representation
   else
   {
@@ -351,7 +363,10 @@ int ColumnarTableTile::toBlock (BlockSet &set) const
     initBlock(ref().data(),ref->size());
     set.push(ref);
   }
-  return 1;
+  // push out format
+  if( format_.valid() )
+    count += format_->toBlock(set);
+  return count;
 }
 
 //##ModelId=3DB964F2030D

@@ -199,7 +199,7 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
       void initBlock (void *data,size_t sz) const;
       
     //##ModelId=3DB964F20021
-      typedef struct { int nrow,idsize; } BlockHeader;
+      typedef struct { int nrow,idsize; bool has_format; } BlockHeader;
       
     //##ModelId=3DF9FDC90364
       mutable Thread::Mutex mutex_;
