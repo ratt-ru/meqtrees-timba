@@ -13,20 +13,24 @@ AC_ARG_ENABLE(mpi-profiler,
 	[  --enable-mpi-profiler   enable MPI profiler (default=no)],
 	[mpi_profiler=yes], [mpi_profiler=no])
 lofar_HEADER_MPICH([])dnl
+lofar_HEADER_LAM([])dnl
 lofar_HEADER_SCAMPI()dnl
 [
+declare -i enable_mpi
 enable_mpi=0
 if test "$enable_mpich" = "yes"; then
-  enable_mpi=1
-  if test "$enable_scampi" = "yes"; then
-]
-    AC_MSG_ERROR([Cannot use both MPICH and ScaMPI. Reconfigure with --without-mpich or --without-scampi])
-[ fi
-else
-  if test "$enable_scampi" = "yes"; then
-    enable_mpi=1
-  fi
+  enable_mpi=$enable_mpi+1
 fi
+if test "$enable_lam" = "yes"; then
+  enable_mpi=$enable_mpi+1
+fi
+if test "$enable_scampi" = "yes"; then
+  enable_mpi=$enable_mpi+1
+fi
+if test $enable_mpi -gt 1; then
+]
+    AC_MSG_ERROR([Cannot use more than one MPI implementation.])
+[fi
 if test $enable_mpi = 1; then]
 AC_DEFINE(HAVE_MPI,dnl
 	1, [Define if we have an MPI implementation installed])dnl
@@ -52,7 +56,7 @@ AC_DEFINE(HAVE_MPI,dnl
 AC_DEFUN(lofar_HEADER_MPICH,
 [dnl
 AC_PREREQ(2.13)dnl
-ifelse($1, [], define(MPICH_VERSION,[1.2.1]), define(MPICH_VERSION,$1))
+ifelse($1, [], define(MPICH_VERSION,[1.2.3]), define(MPICH_VERSION,$1))
 AC_ARG_WITH(mpich,
 	[  --with-mpich[=PFX]      prefix where MPICH is installed (default=/usr/local/mpich-]MPICH_VERSION[)],
 	[mpich_prefix="$withval"],
@@ -88,6 +92,55 @@ AC_DEFINE(HAVE_MPICH,dnl
 	else]
 AC_MSG_ERROR([Could not find MPICH in $mpich_prefix])
 [		enable_mpich=no
+	fi
+fi]
+])
+#
+#
+# lofar_HEADER_LAM([VERSION])
+#
+# Macro to check for LAM mpi.h header
+# -------------------------------------------------
+#
+AC_DEFUN(lofar_HEADER_LAM,
+[dnl
+AC_PREREQ(2.13)dnl
+ifelse($1, [], define(LAM_VERSION,[6.5.6]), define(LAM_VERSION,$1))
+AC_ARG_WITH(lam,
+	[  --with-lam[=PFX]        prefix where LAM is installed (default=/usr/local/lam-]LAM_VERSION[)],
+	[lam_prefix="$withval"],
+	[lam_prefix="no"])
+[
+if test "$lam_prefix" = "no" ; then
+  enable_lam=no
+else
+  if test "$lam_prefix" = "yes"; then
+    lam_prefix=/usr/local/lam-]LAM_VERSION
+[
+  fi
+  enable_lam=yes
+]
+dnl
+AC_CHECK_FILE([$lam_prefix/include/mpi.h],
+	[lofar_cv_header_lam=yes],
+	[lofar_cv_header_lam=no])
+[
+	if test $lofar_cv_header_lam = yes ; then
+
+		LAM_CC="$lam_prefix/bin/mpicc"
+		LAM_CXX="$lam_prefix/bin/mpiCC"
+
+		CC="$LAM_CC"
+		CXX="$LAM_CXX"
+]
+AC_SUBST(CC)dnl
+AC_SUBST(CXX)dnl
+AC_DEFINE(HAVE_LAM,dnl
+	1, [Define if LAM is installed])dnl
+[
+	else]
+AC_MSG_ERROR([Could not find LAM in $lam_prefix])
+[		enable_lam=no
 	fi
 fi]
 ])
