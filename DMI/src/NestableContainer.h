@@ -28,6 +28,8 @@
 // pull in PSCF types
 #include "TID-PSCF.h"
 #include "Timestamp.h"
+// for now:
+#include <aips/Arrays/Array.h>
 //## end module%3C10CC830067.includes
 
 // Registry

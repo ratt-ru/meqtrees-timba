@@ -8,7 +8,7 @@
 class TypeInfo {
   public:
       // enum of type categories
-      typedef enum { NONE=0,NUMERIC=1,BINARY=2,DYNAMIC=3,SPECIAL=4,OTHER=5 } Category;
+      typedef enum { NONE=0,NUMERIC=1,BINARY=2,DYNAMIC=3,SPECIAL=4,INTERMEDIATE=5,OTHER=6 } Category;
       // ...stored here:
       Category category;
       size_t   size;

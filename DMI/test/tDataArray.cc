@@ -10,14 +10,14 @@ int main()
     DataArray *arr = new DataArray(TpArray_float, IPosition(2,10,12));
     rec["A"] <<= arr;
     float* ptr1 = rec["A/5.5"].as_float_wp();
-    Array_float* farr = &rec["A"];
+    Array_float farr = rec["A"];
     
     // a-ha! I've fixed this, it works now:
-    Array_float* farr2 = &(*arr)[HIID()];
+//    Array_float* farr2 = &(*arr)[HIID()];
     
     
-    Assert (farr->nelements() == 20*12);
-    indgen (*farr);
+    Assert (farr.nelements() == 20*12);
+    indgen (farr);
     float* ptr = &rec["A"];
     for (int i=0; i<10*12; i++) {
       Assert (ptr[i] == i);

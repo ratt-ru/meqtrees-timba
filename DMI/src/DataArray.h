@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.5  2002/04/17 12:19:31  oms
+//  Added the "Intermediate" type category (for Array_xxx) and support for it
+//  in hooks.
+//
 //  Revision 1.4  2002/04/12 10:15:09  oms
 //  Added fcomplex and dcomplex types.
 //  Changes to NestableContainer::get():
@@ -47,8 +51,8 @@
 #include "DMI.h"
 
 #pragma types #DataArray
-#pragma types -Array_bool -Array_int -Array_float -Array_double
-#pragma types -Array_fcomplex -Array_dcomplex
+#pragma types %Array_bool %Array_int %Array_float %Array_double
+#pragma types %Array_fcomplex %Array_dcomplex
 
 #include "NestableContainer.h"
 #include "HIID.h"
