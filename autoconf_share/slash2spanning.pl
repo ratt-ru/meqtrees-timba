@@ -86,13 +86,13 @@ sub change_comment_style
                 $comment = $3;
 
                 # Begin the spanning comment block.
-                push @spanning_comment, "$1\/**\n";
+                push @spanning_comment, "$1\/**";
 
                 # Add the comment that follows, but ONLY if the comment
-                # does not start with a hash character.
+                # does NOT start with a hash character.
                 if ($comment !~ /^\#/)
                 {
-                    push @spanning_comment, "$indent $comment\n";
+                    push @spanning_comment, "$comment";
                 }
             }
 
@@ -111,10 +111,16 @@ sub change_comment_style
                 $indent = $1;
                 $comment = $3;
 
+                # Add the comment that follows, but ONLY if the comment
+                # does NOT start with a hash character.
                 if ($comment !~ /^\#/)
                 {
-                    push @spanning_comment, "$indent $comment\n";
+                    push @spanning_comment, "\n$indent   $comment";
                 }
+		else
+		{
+		    push @spanning_comment, "\n";
+		}
             }
 
             # Otherwise, the comment block has ended and the spanning
@@ -122,7 +128,7 @@ sub change_comment_style
             else
             {
                 $state = $NON_COMMENT_BLOCK;
-                push @spanning_comment, "$indent */\n";
+                push @spanning_comment, " */\n";
                 print @spanning_comment;
                 @spanning_comment = ();
                 print $line;
