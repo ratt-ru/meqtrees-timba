@@ -245,16 +245,11 @@ if test $lfr_cv_hdr_package = yes  &&  test $lfr_cv_lib_package = yes; then
   lfr_pkgext=`echo $lfr_pkgext`
   for pkgnm in $lfr_pkgext
   do
+    echo "" >> lofar_config.h;
     echo "#if !defined(HAVE_$pkgnm)" >> lofar_config.h
     echo "# define HAVE_$pkgnm 1" >> lofar_config.h;
     echo "#endif" >> lofar_config.h;
   done
-  # Keep the original lofar_config.h if not different (to keep date for make).
-  diff lofar_config.h lofar_config.h.orig >& /dev/null
-  if [ $? = 0 ]; then
-    mv lofar_config.h.orig lofar_config.h  # keep original date
-    touch lofar_config.h.orig              # create new one in case used again
-  fi    
   # Add possible CPPFLAGS and CXXFLAGS.
   lfr_pkgext=`cat pkgextcppflags_diff`
   lfr_pkgext=`echo $lfr_pkgext`

@@ -86,6 +86,7 @@ ln -s $libdir/src $liblin/$pkgnm
 
 if [ "$option" != 2 ]; then
   echo "$libdir/src/lib$libnm.la" >> $libdep;
+  echo "" >> $conffile
   echo "#if !defined(HAVE_LOFAR_$upkgnm)" >> $conffile;
   echo "# define HAVE_LOFAR_$upkgnm 1" >> $conffile;
   echo "#endif" >> $conffile;
