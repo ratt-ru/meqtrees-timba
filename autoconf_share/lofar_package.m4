@@ -178,10 +178,10 @@ if test $lfr_cv_hdr_package = yes  &&  test $lfr_cv_lib_package = yes; then
   LDFLAGS="$LDFLAGS -L$lfr_package_libdir/src"
   LIBS="$LIBS -l"]LOFAR_PKG_LIB[
 
-  # Create symlink to the include directory
+  # Create symlink to the source and build directory
   # Do the same (recursively) for all packages used by this package.
 #  \rm -f pkglib/tmp_alllibnames
-  $lofar_sharedir/makepkglinks $1 $lfr_package_include $lfr_package_libdir pkginc pkglib pkglib/tmp_alllibnames 0
+  $lofar_sharedir/makepkglinks $1 $lfr_package_include $lfr_package_libdir pkginc pkgbldinc pkglib/tmp_alllibnames 0
 #  LIBS="$LIBS `cat pkglib/tmp_alllibnames`"
 #  \rm -f pkglib/tmp_alllibnames
 ]

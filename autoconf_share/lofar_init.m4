@@ -187,6 +187,7 @@ AC_ARG_WITH(lofar-libdir,
 
   # Create pkginc (used by lofar_package.m4) if not existing yet.
   # Create a symlink to the source directory of the package being configured.
+  # Do the same for the build directory (for files creates from e.g. idl).
   if [ ! -d pkginc ]; then
     mkdir pkginc;
   fi
@@ -194,8 +195,13 @@ AC_ARG_WITH(lofar-libdir,
   lfr_pkg=`basename $lfr_srcdir`;
   \rm -f pkginc/$lfr_pkg;
   ln -s $lfr_srcdir/src pkginc/$lfr_pkg;
+  if [ ! -d pkgbldinc ]; then
+    mkdir pkgbldinc;
+  fi
+  \rm -f pkgbldinc/$lfr_pkg;
+  ln -s $lfr_curwd/src pkgbldinc/$lfr_pkg;
 
-  CPPFLAGS="$CPPFLAGS -I$lfr_curwd/pkginc"
+  CPPFLAGS="$CPPFLAGS -I$lfr_curwd/pkginc -I$lfr_curwd/pkgbldinc"
 
 ]
 AC_CHECK_FILE([$lofar_root/LOFAR],

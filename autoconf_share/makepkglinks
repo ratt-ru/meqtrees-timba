@@ -33,11 +33,11 @@ incdir2=`echo $incdir | sed -e "s%.*/$fullnm%%"`
 libdir1=`echo $libdir | sed -e "s%/$fullnm/.*%/%" -e "s%$fullnm$%%"`
 libdir2=`echo $libdir | sed -e "s%.*/$fullnm%%"`
 
-# Create symlink to the include directory and to the library
+# Create symlink to the include directory and to the build directory
 \rm -f $inclin/$pkgnm
 ln -s $incdir/src $inclin/$pkgnm
-##\rm -f $liblin/lib$libnm.la
-##ln -s $libdir/src/lib$libnm.la $liblin/lib$libnm.la
+\rm -f $liblin/$pkgnm
+ln -s $libdir/src $liblin/$pkgnm
 
 ##echo '-l'$libnm >> $filnm
 
