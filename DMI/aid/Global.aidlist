@@ -328,7 +328,7 @@ meqrescoupler                    1438       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 meqresult                        1246       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:36
 meqresultset                     1215       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ResultSet.h:34
 #meqrms                          1571       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Rms.h:29
-#meqrmsrms                       1572       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Rmsrms.h:29
+meqrmsrms                        1572       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Rmsrms.h:29
 #meqselector                     1255       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Selector.h:29
 meqserver                        1327       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:10
 meqshiftphasecentre              1260       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqShiftPhaseCentre.h:14
@@ -340,6 +340,7 @@ meqspigot                        1330       ; from /home/oms/LOFAR/CEP/CPA/AppAg
 #meqsqr                          1249       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Sqr.h:29
 #meqsqrt                         1251       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Sqrt.h:29
 #meqstatpointsourcedft           1468       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/StatPointSourceDFT.h:30
+#meqstddev                       1573       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/StdDev.h:29
 #meqstripper                     1547       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Stripper.h:29
 #meqsubtract                     1232       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Subtract.h:29
 meqsubtractsource                1347       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqSubtractSource.h:14
