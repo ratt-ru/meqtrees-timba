@@ -35,7 +35,7 @@ awk '{ print $2, $1 }' finddep.uses | sort > finddep.used
 rm -f tmp.out
 for FIL in `cat tmp.fil`
 do
-  lfr=`echo $FIL | sed -e 's%.*/LOFAR/%%'`
+  lfr=`echo $FIL | sed -e 's%.*/LOFAR/%LOFAR/%'`
   first=`echo $lfr | sed -e 's%/.*%%'`
   last=`echo $lfr | sed -e "s%$first/% %" -e 's%/configure.in%%'`
   parts=`echo $last | sed -e 's%/% %g'`
