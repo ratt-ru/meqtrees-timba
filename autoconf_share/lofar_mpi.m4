@@ -16,22 +16,21 @@ lofar_HEADER_MPICH([])dnl
 lofar_HEADER_LAM([])dnl
 lofar_HEADER_SCAMPI()dnl
 [
-declare -i enable_mpi
 enable_mpi=0
 if test "$enable_mpich" = "yes"; then
-  enable_mpi=$enable_mpi+1
+  enable_mpi=${enable_mpi}1
 fi
 if test "$enable_lam" = "yes"; then
-  enable_mpi=$enable_mpi+1
+  enable_mpi=${enable_mpi}1
 fi
 if test "$enable_scampi" = "yes"; then
-  enable_mpi=$enable_mpi+1
+  enable_mpi=${enable_mpi}1
 fi
 if test $enable_mpi -gt 1; then
 ]
     AC_MSG_ERROR([Cannot use more than one MPI implementation.])
 [fi
-if test $enable_mpi = 1; then]
+if test $enable_mpi -eq 1; then]
 AC_DEFINE(HAVE_MPI,dnl
 	1, [Define if we have an MPI implementation installed])dnl
 [fi]
