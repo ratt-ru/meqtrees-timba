@@ -11,6 +11,8 @@ from sihippo import *
 from numarray import *
 
 class ArrayPlotter(BrowserPlugin):
+  """ a class to plot raw arrays contained within a Meq tree """
+
   _icon = pixmaps.bars3d
   viewer_name = "Array Plotter";
   def is_viewable (data):
@@ -18,6 +20,9 @@ class ArrayPlotter(BrowserPlugin):
   is_viewable = staticmethod(is_viewable);
 
   def __init__(self,parent,dataitem=None,**opts):
+    """ instantiate various HippoDraw objects that are needed to
+        control various aspects of plotting """
+
     self._ntuple_controller = NTupleController.instance()
     self._window_controller = WindowController.instance()
     self._window_controller.createInspector ()
@@ -26,6 +31,8 @@ class ArrayPlotter(BrowserPlugin):
     self._window = CanvasWindow(None, "MeqDisplay",0)
     self._Qlabel = QLabel("",parent);
 
+# have Hippo window close without asking permission to discard etc
+    self._window.setAllowClose()
     self._window.show()
     self._display_controller = DisplayController.instance()
     self._canvas = None
@@ -43,6 +50,8 @@ class ArrayPlotter(BrowserPlugin):
     return self._Qlabel
 
   def display_data (self, plot_array):
+    """ figure out shape, rank etc of an incoming array and
+        plot it with an appropriate HippoDraw plot type """
 # figure out type and rank of incoming array
     is_vector = False;
     array_dim = len(plot_array.shape)
@@ -155,6 +164,10 @@ class ArrayPlotter(BrowserPlugin):
         self._canvas.addDisplay ( plot )
 
   def set_data (self,dataitem,default_open=None,**opts):
+    """ this function is the callback interface to the meqbrowser and
+        handles new incoming data """
+
+# is incoming array real or complex?
     complex_type = False;
     if dataitem.data.type() == Complex32:
       complex_type = True;
