@@ -191,6 +191,7 @@ line                             1359       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 lines                            1208       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
 link                             1460       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:40
 list                             1046       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWClientWP.h:17
+lmn                              1476       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/StatPointSourceDFT.h:31
 load                             1390       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:13
 local                            1069       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MsgAddress.h:12
 logdebug                         1041       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:32
