@@ -1,0 +1,653 @@
+\documentclass[10pt]{article}
+
+\oddsidemargin=-5mm
+\oddsidemargin=-5mm
+\topmargin=-5mm
+\textwidth=170mm
+\textheight=240mm
+
+\title{MeqTree C++ Interfaces \& Data Structures}
+\author{O. Smirnov}
+
+\begin{document}
+\sloppy
+
+\newcommand{\url}[1]{{\tt #1}}
+
+\maketitle
+
+% \qq{text} used to quote code (in fixed font)
+\newcommand{\qq}[1]{{\tt #1}}
+
+\newcommand{\Request}{{\tt Request}}
+\newcommand{\RequestId}{{\tt RequestId}}
+\newcommand{\Result}{{\tt Result}}
+\newcommand{\VellSet}{{\tt VellSet}}
+\newcommand{\Cells}{{\tt Cells}}
+\newcommand{\Vells}{{\tt Vells}}
+\newcommand{\Domain}{{\tt Domain}}
+\newcommand{\Node}{{\tt Node}}
+\newcommand{\RES}[1]{{\tt RES\_#1}}
+
+
+\section{Introduction}
+
+The purpose of this document is to provide a C++ analogue of the MeqTree
+handbook. I will try to keep it updated with design decisions we make in our
+meetings. The document is available via CVS at
+\qq{LOFAR/doc/MEQ/CppDataStructures.tex}.
+
+\section{General principles}
+
+\subsection{Choice of data structures}
+
+  All data structures used in the Meq {\em interface} must be mappable to data
+  structures of the scripting language of choice. Currently, this is Glish, in
+  the future this will be Python; we should in any case restrict ourself to
+  common primitives which we can expect to be available in any mature scripting
+  language. Thus, we'll define ``legal objects'' as:
+
+  \begin{itemize}
+  
+  \item scalars (integer, double, double complex)
+  
+  \item strings
+  
+  \item multidimensional arrays of scalars
+  
+  \item lists of legal objects (in Glish this is represented either  via a
+    vector of scalars or strings, or via a record with fields indexed by
+    number)
+
+  \item records of legal objects (a.k.a. dictionaries/maps/hashes with a string key
+    and a legal object value)
+    
+  \end{itemize}
+
+  On the C++ side, data objects are based on the DMI \qq{DataRecord}, \qq{DataField} and
+  \qq{DataArray} classes. Most data classes are in fact derived from \qq{DataRecord}, and
+  are essentially a record with some predefined structure, and some extra
+  ``shortcut'' methods. 
+
+\subsection{Naming conventions}
+
+  \begin{itemize}
+
+  \item Names are case-insensitive
+  
+  \item Standard nodes \& data structures reside in the Meq namespace. On the 
+    Glish side, the ``\qq{::}'' is omitted, thus \qq{Meq::\Request} is known as a
+    `\qq{MeqRequest}'.
+    
+  \item The C++ side uses DMI HIIDs (hierarchical IDs) extensively, which map
+    to strings of the form ``\qq{Request.ID}''. When used as record field
+    names on the Glish side, the same HIID takes the form \qq{request\_id}. We
+    will use both forms interchangably here. Note the case insensitivity.
+
+  \end{itemize}
+    
+\section{MeqNode}
+
+  The abstract base class \qq{Meq::Node} implements the basic node behaviour:
+
+  \begin{itemize}
+
+  \item A node may have a number of child nodes. Generally, a node has no
+    knowledge of the types of its children. Subclasses may assign formal child
+    labels (akin to argument names) to specify semantics, or may leave their
+    children unlabeled. Child labels are assigned via the constructor of the
+    subclass.
+
+  \item To nail down directional terms: root nodes and parents are at the {\em
+    bottom}, children and leaves are at the top. 
+
+  \item Each node is assigned a unique index (integer$>$0) and an optional name. A
+    MeqForest object acts as a repository of nodes, and maintains a map between
+    names, indices and node objects.
+
+  \item \Node\ has an \qq{execute()} method, taking a \Request\ parameter,
+    and returning a \Result. Normally, a node is expected to call execute()
+    with the same \Request\ on its children, and form its result based on the
+    results of its children. Thus, requests propagate up the tree, and results
+    percolate down the tree.
+
+\begin{verbatim}
+    virtual int execute (Result::Ref &result,const Request &request);
+\end{verbatim}
+
+    \Result s are returned by attaching them to the CountedRef. The return code
+    of \qq{execute()} is significant; see details below.
+
+  \end{itemize}
+
+\subsection{Initialization and state}
+  
+  A node's full {\em state} should be represented by a {\em state record}.
+  State may be requested via \qq{getState()} and changed via \qq{setState()}.
+  Note that the argument to \qq{setState()} does not have to be a complete new state
+  record; instead, it should contains only those fields that actually need to
+  be changed. 
+
+  When a node is constructed, it is passed an {\em init-record} (via the \qq{init()}
+  method), which is essentially a complete initial state record. This is the
+  way that all run-time arguments are specified! The \qq{setState()} method may the
+  be called later on to reconfigure a node. Note that a derived node class is
+  not obliged to be reconfigurable in every single aspect, but it's good design
+  to make it so. If some of the node state may only be set once via \qq{init()} and
+  not changed via \qq{setState()}, it should be clearly documented as such (the
+  assumed default is reconfigurable).
+
+\begin{verbatim}
+// C++
+// Ref::Xfer implies that ref to record should be taken over
+virtual void init (DataRecord::Ref::Xfer &initrec);
+\end{verbatim}
+  
+  The \qq{init()} method should do the following:
+  
+  \begin{enumerate}
+  
+  \item call the parent class's \qq{init()} with the record.
+  
+  \item configure internal object state according to what is now in the  node's
+    state record.
+    
+  \item throw exceptions on failure (malformed init record, etc.)
+
+  \end{enumerate}
+
+  The base \qq{Node::init()} does the following:
+
+  \begin{enumerate}
+  
+  \item takes over the init record, sets it as the state record.
+    
+  \item gets node name (\qq{rec.name}) and index (\qq{rec.nodeindex})
+        from the state record.
+
+  \item gets the configuration group(s) from the state record 
+    (\qq{rec.config\_group}, see below).
+
+  \item sets up caching policy according to what is specified in the
+    init record (\qq{rec.cache\_policy}, details TBD).
+    
+  \item adds the node's classname (\qq{rec.class}) to the state record if not
+    already present (this is obviously not reconfigurable).
+
+  \item looks at \qq{rec.children} to set up child nodes. Children may be specified
+    via a either a list or a record. Both may contain any mix of the
+    following:
+    
+    \begin{itemize}
+      \item integer node indices referring to existing nodes.
+
+      \item string node names, referring to existing or yet-to-be-created
+        nodes. In the latter case, \qq{Node::resolveChildren()} must be called
+        later on; this will recursively resolve all children not found at
+        \qq{init()} time.
+
+      \item init-records, to recursively create child nodes on-the-fly (each of
+        these records must have a field named \qq{class}, containing the child
+        node classname).
+
+    \end{itemize}
+
+    If a list is specified, then the children are simply attached in the given
+    order. If a record is specified, then the field names must match the child
+    labels set up by the subclass (if no labels are set up, the record is
+    processed just like a list, with no specific order ensured). The record
+    form allows for a more formal child specification in the case where
+    children are semantically different.
+
+  \end{enumerate}
+
+\begin{verbatim}
+// C++
+// record contents should be copied as needed
+virtual void setState (const DataRecord &rec);
+\end{verbatim}
+  
+  This method should do the following:
+
+  \begin{itemize}
+    
+  \item call the parent class's \qq{setState()} with the same record.
+  
+  \item check the record for all relevant fields. For each field that is
+    present, copy its value into its state record, and reconfigure itself
+    accordingly.
+
+  \item irrelevant fields (or fields that are not reconfigurable) can be
+    ignored.
+    
+  \item throw exceptions on failure.
+
+  \end{itemize}
+  
+  The base \qq{Node::setState()} method processes and reconfigures everything
+  that \qq{Node::init()} does (see above), with the exception of \qq{.class}
+  and \qq{.children}.
+  
+\subsection{Node serialization}
+
+  In the near future we will need persistent nodes (i.e. being able to
+  save/load the nodes to a file or database), and further down the road, the
+  possibly the capability to move a node across a network. This implies being
+  able to serialize a node.
+  
+  Serialization is implemented through DMI mechanisms. A \qq{DataRecord} is
+  inherently serializable. To serialize a node, the control code will simply
+  serialize its state record. To unserialize a node, it will recover the
+  record, create a node object (as specified by the \qq{class} field), and call
+  \qq{init()} on it. 
+
+  Thus, subclasses of \Node\ should take care to maintain their state record
+  appropriately. Basically, each node class should ensure that it is completely
+  re-creatable (via \qq{init()}) from a snapshot of its state record at any
+  point in time.
+
+\section{MeqRequest}
+
+  A \Request\ is an {\em atomic job description,} because generally speaking,
+  it contains everything a node needs to know in order to produce a \Result. A
+  \Request\ contains one or more of the following components:
+
+  \begin{description}
+  \item[Node state,] specifying change of state for specific nodes up the tree.
+    E.g., make some parameters solvable or non-solvable, or change wsum
+    settings. 
+
+  \item[Cells,] specifying a domain \& grid over which a node is to be
+    evaluated.
+
+  \item[optional flags] \& other attributes (if needed for \Cells\ or change of
+    state. E.g. the calc\_deriv flag).
+
+  \item[optional rider] record.
+  
+  \end{description}
+      
+  A \Request\ always has a unique \RequestId\ (see below). Whenever a different
+  request is generated, it must be assigned a different id (see below).
+
+  \Request\ is derived from \qq{DataRecord}. It has the following fields (of
+  which only request\_id is obligatory).
+
+  \noindent\begin{tabular}{lp{.8\textwidth}}
+  \qq{.request\_id} & the request ID (a HIID)\\
+  \qq{.cells}       & [opt] a \Cells\ object (see below)\\
+  \qq{.node\_state} & [opt] new node states (see below)\\
+  \qq{.calc\_deriv} & [opt] boolean: compute derivatives over cells? 
+                      Default is false.\\
+  \qq{.next\_request} & [opt] a hint of what the next request is going to be.
+                      This matters for caching decisions, and for ``rippling''
+                      trees.\\
+  \qq{.rider}       & [opt] rider record, used for additional commands, 
+                      etc. E.g. \qq{rider.save\_params=T} can be used to save 
+                      all parameters.
+  \end{tabular}
+  
+\subsection{Request IDs}
+
+  In our discussions, it's become apparent that to make optimal use of the node
+  cache during solving, what we really need is a {\em hierarchical} request ID.
+  For example, the request ID could be represented by a HIID composed of three
+  indices:
+
+  {\tt\em  
+  $<$cells\_index$>$.$<$config\_index$>$.$<$value\_index$>$
+  }
+  
+  The components of the request ID describe how this \Request\ is different
+  from the previous one. The domain index changes whenever a new \Cells\ is
+  used. The config index changes whenever a tree is reconfigured (via, e.g.,
+  changing the weights of a MeqWSum node, etc.) The value index changes
+  whenever MeqParms are assigned new values (i.e., with every solve iteration).
+  It is up to the generator of the \Request\ to make sure that the indices
+  follow these rules. The reasoning behind this will be expounded below, in the
+  discussion on caching behaviour.
+
+  Note that this interpretation of the request ID is highly
+  application-specific. As will become apparent below, it is worthwhile to
+  think of the ID in more general terms, that is, as a sequence of $N$ indices,
+  each one referring to a particular property of the request. 
+
+\subsection{Next\_request and request sequences}
+
+  The concept of a ``request sequence'' has been bandied about a lot (see the
+  ``Making Waves'' document, plus various discussions). The reason for this is
+  that a node needs some capability of ``looking ahead'' to future requests, in
+  order to efficiently utilize cache, and to enable ``rippling'' trees that
+  parallelize well.
+
+  In fact, it is sufficient to be able to answer the more limited question:
+  given request $X$, what is the next request likely to be? A node doesn't 
+  need to know the full request sequence -- only the next step of it. The
+  mechanism can be hidden behind a single method called, e.g.,
+  \qq{getNextRequestHint()}, implemented at the \Node\ level. This neatly
+  factors the issue into two independent ones:
+
+  \begin{itemize}
+  
+  \item {\em Where does the base \qq{\em Node} class get knowledge of the
+    next request?} Obviously, the originator of the \Request\ can have some
+    idea.  For example, a Solver node would probably know if more iterations
+    over the same domain/source are required, or if we're going to the next
+    domain. A Sink node may know what the next domain is going to be. Etc. It
+    seems reasonable to place this information into the \Request\ record
+    itself, hence the \qq{next\_request} field.
+
+  \item {\em Given knowledge of the next request, how does that help us in
+    caching and parallelization?} Parallelization was the subject of the
+    ``Making Waves'' document, while caching issues are discussed below.
+
+  \end{itemize}
+  
+  The next-request hint is just that, a hint, with no commitment implied. It is
+  not necessary at all for correct operation of the system -- even the hint
+  itself can even be wrong. The maximum penalty to pay for an incorrect hint is
+  recalculation of the tree rooted at the node in question. Efficient
+  operation, however, requires that the hint be correct most of the time.
+
+  {\em Hints and sequences are probably outside of PSS-4 scope; the point of
+  the present discussion is to run through mental models of the mechanism and
+  convince ourselves that we're making the right decisions.}
+
+\section{Results}
+
+\subsection{MeqResult}
+
+  A \Result\ contains the result of a \Request's execution. It is derived from a
+  \qq{DataRecord}, and may contain the following fields:
+
+  \noindent\begin{tabular}{lp{.8\textwidth}}
+  \qq{.cells} & [optional] the originating request's \Cells, if any.\\
+  \qq{.values} & [optional] a list of \VellSet\ objects for these \Cells.\\
+  etc. & any optional flags \& attributes (e.g. solver may use these to
+                return the solution).
+  \end{tabular}
+    
+\subsection{MeqVellSet}
+
+  A \VellSet\ contains a value plus optional perturbed values for a \Cells. It
+  is derived from a \qq{DataRecord}, and contains the following fields:
+
+  \noindent\begin{tabular}{lp{.8\textwidth}}
+  \qq{.value}  &  the value: a \Vells\ of the shape determined by \Cells, or 
+                  scalar if constant in time/freq).\\
+  \qq{.spids}  &  [opt] a list of spids\\
+  \qq{.perturbations}  & [opt] a list of perturbations (same length as spids)\\
+  \qq{.perturbed\_value} & [opt] perturbed values: a list (same length as spids); 
+                    of array or scalar \Vells\\
+  \qq{.fail}  & a list of one or more fail-records (see below)
+                describing failures that have occurred\\
+  etc. &        any optional flags \& attributes.
+  \end{tabular}
+                    
+  The \qq{value} and \qq{fail} fields are mutually exclusive. A \VellSet\ with
+  neither is an empty (uninitialized). A \VellSet\ with a \qq{fail} in it is
+  called a fail-\VellSet\ (or simply a fail). The \qq{spids},
+  \qq{perturbations} and \qq{perturbed\_value} fields are optional, but either
+  none or all three must be present at the same time.
+  
+  Note also that this layout could be extended in the future to accomodate
+  double derivatives and analytic derivatives.
+
+\subsubsection{MeqVells}
+
+  On the scripting side, a \Vells\ object is simply a scalar or an array. On
+  the C++ side, it is also essentially an array, with some run-time type and
+  size information. The current implementation supports double and
+  double-precision complex types, in either scalar or 2D-array form, but this
+  could be extended in the future.
+
+  \Vells\ are covered in some more detail in the description of \qq{Function}
+  nodes, below.
+
+\subsection{Multiple values}
+
+  The point of defining a \Result\ as a set of \VellSet{}s is to allow multiple
+  return values for a single \Cells\ (a.k.a. "multiple planes"). E.g., a
+  \qq{Spigot} may return four values at a time (for the four correlations).
+  Function nodes expect all child \Result{}s to have the same shape (i.e., same
+  number of values), and will apply the function to each "plane" independently.
+
+  The Selector and Composer nodes can be used to decompose and assemble
+  \Result{}s.
+  
+\subsection{Fail propagation}
+
+  Note that a set may contain a mix of failed and normal \VellSet{}s. Failed
+  values should propagate down the tree in an orderly fashion. Normally, a
+  fail-value from one of its children produces a fail at the same position in
+  the output \Result\ (the contents of the fail -- origin \& description -- are
+  preserved.)
+
+  For example, if a \qq{Spigot} node is configured to return four correlations,
+  and the data source only has XX and YY, then XY/YXs will be represented by
+  fails. These fails would propagate all the way down the XY/YX trees, to a
+  \qq{Sink} node, which can handle them benignly (by not writing XY/YX data,
+  for example).
+
+\section{The details of Node::execute()}
+
+  The virtual \qq{Node::execute()} method is responsible for processing a
+  \Request. The default version decomposes the request and calls a number of
+  virtual methods to handle it. All but the most exotic nodes should only need
+  to implement the handlers -- but the possibility to reimplement \qq{execute()}
+  itself is always there. \qq{Node::execute()} does the following:
+
+  \begin{enumerate}
+  
+  \item If there's a cached \Result, and the request id ``matches'' the cached
+    request id, then does nothing, immediately returning the cached \Result. 
+    If ids do not ``match'', clears the cache. See caching issues, below,
+    for a definition of ``match''.
+
+  \item If a \qq{node\_state} record is present in the request, interprets that
+    (see below) and calls the virtual \qq{setState()} method as required. 
+
+  \item If a rider record is present, calls the virtual \qq{processRider()}
+    method (default implementation does nothing).
+
+  \item If node has children, then calls \qq{execute()} with the same \Request\
+    on all the child nodes, collecting their \Result{}s into a vector of
+    \qq{Result::Ref}s. Computes the {\em cumulative result code} as a
+    bitwise-OR of the child return values. If any child returns a \RES{FAIL},
+    makes an output \Result\ containing a merge of all the fail-results, and
+    returns a \RES{FAIL}. If the cumulative result code contains \RES{WAIT},
+    returns it immediately with no output \Result.
+
+  \item If a \Cells\ object is present, calls the virtual \qq{getResult()}
+    method, passing in the vector of child \Result{}s. Bitwise-ORs the return
+    value with the cumulative result code.
+
+    If \qq{getResult()} returns a valid \Result, optionally stores that in
+    the cache (see caching issues, below).
+
+  \item If an exception is thrown at any stage of the process, \qq{execute()}
+    will catch it, create an output \Result\ with a fail-result describing the
+    exception, and return \RES{FAIL}. Thus, an exception is the normal way for
+    \qq{setState()} or \qq{processRider()} to indicate failure.
+
+  \end{enumerate}
+
+  The return value of \qq{execute()} is simply the accumulated result code.
+  
+\subsection{Result codes}
+
+  The return value is meant to be a result code describing certain properties 
+  of the returned \Result. 
+  
+  The special case \RES{FAIL} indicates complete failure (note that this is not
+  the same thing as a valid \Result\ that contains a mix of values and fails).
+  The \Result\ is then expected to contain a fail-\VellSet\ describing the
+  failure condition. 
+
+  If the code is not \RES{FAIL}, then it is a bitmask composed of a number of
+  flags listed below. Each flag describes a certain property of the \Result.
+  The property semantics are defined in such a way that, in most practical
+  cases, a flagged property in any child result is inherited by the parent's
+  result. This allows \qq{execute()} to accumulate the correct result code via
+  a simple bitwise-OR. In other words, only a few classes (Parms, Spigots, and
+  perhaps some special nodes) have any specific logic for determining result
+  codes. For all other  classes, their result code is simply the bitwise-OR of
+  the children's codes.
+
+  \begin{description}
+  
+  \item[\RES{UPDATED}:] result has changed from that of previous \Request. This
+     is meant as a caching hint; if you're not sure, raise the flag.
+
+  \item[\RES{DEP(1)}, \RES{DEP(2)}, etc.:] result will change if the $i$-th
+    index of the request ID changes. For calibration \& solving applications,
+    request ID has a specific form (see above), and the following aliases may
+    be defined:
+
+    \begin{description}
+    
+    \item[\RES{DEP\_DOMAIN = RES\_DEP(1)}:] result will change if domain/cells
+      change. True for all Spigots and all Parms having a time/freq dependence,
+      false for constant Parms.
+
+    \item[\RES{DEP\_CONFIG = RES\_DEP(2)}:] result will change if configuration
+      changes. True for nodes like WSum.
+
+    \item[\RES{DEP\_VALUE = RES\_DEP(3)}:] result will change if parameter values
+      change. True for solvable Parms, false for all others.
+
+    \end{description}
+    
+    Note that it is only the leaf nodes (which tend to be application-specific)
+    and the \Request\ originator (ditto) that care about specific meanings of
+    the request ID sub-indices and specific \RES{DEP} flags. All other nodes
+    can ``think'' of it in abstract terms, i.e., with $N$ sub-indices of the
+    request ID mapping to flags (see discussion on caching, below).
+
+  \item[\RES{VOLATILE}:] result may change in response to external events, even
+    without new requests. (This is not implemented for now, and only meant as a
+    placeholder for future developments, such as growing domains, partial
+    integration, etc.)
+
+  \item[\RES{WAIT}:] no result available, wait for notification or try later. If
+    this flag is raised, then no \Result\ should be returned. Note that other
+    flags can and should be meaningfully combined with \RES{WAIT}, since it
+    usually possible to indicate the behaviour of a node in advance.
+
+  \end{description}
+
+\subsection{Caching issues}
+
+  To avoid unnecessary recalculations, a node's result can be retained in a
+  cache. Obviously, this trades off performance against memory footprint. Three
+  broad caching policies have been identified so far:
+
+  \begin{description}
+  
+  \item[Never:] no caching at all, values are always recalculated anew. 
+   
+  \item[Always:] result is always cached, until a different request comes in.
+    (This is the policy implemented currently). While expensive in terms of
+    memory, this can be very useful for debugging, since it allows one to pause
+    the system and examine the most recent result of every node.
+
+  \item[Smart:] result is cached according to memory availability, expected
+    request sequence, etc.
+
+  \end{description}
+  
+  Caching policy should be settable on a per-node basis, via the init record
+  (and changed via \qq{setState()}). The cache itself is simply part of the
+  node's state record (and thus can even be changed manually if needed.)
+  
+  The ``Smart'' policy is the really interesting one. The combination of result
+  codes, hierarchical request IDs and next-request hints allows us to get
+  pretty smart. 
+  
+  Let's call the individual components of a request ID {\em dependencies} --
+  because the \RES{DEP} flags in the result code describe what the result
+  depends on. Note that a parent result inherits dependencies from all its
+  child results, thus the parent dependencies are always a superset of any
+  child dependencies (i.e. equal to or larger.) The following simple rules seem
+  reasonable:
+
+  \begin{enumerate}
+  
+  \item If a dependency will change in the next request, then node can clear
+    cache (since the next request will invalidate it anyway).
+
+  \item If the parent dependencies are exactly equal to those of a child, then
+    the parent does not need the child's cache (because any request requiring a
+    recalculation of the parent result will also require a recalculation of the
+    child result.)
+
+  \item If the parent dependencies are larger than those of a child, then the 
+    child should retain cache (unless [1] holds for the child.) 
+
+  \item A child must retain cache unless [1] is true, or {\bf all} its parents
+    have told it to release cache.
+
+  \end{enumerate}
+  
+  Note also that when a node retains the result in a cache, it also retains the
+  dependency mask and the request ID. When deciding whether to return the
+  cached result or recalculate the request (see step [1] of \qq{execute()}),
+  the request IDs are matched according to the dependency mask.
+  
+\subsection{Using node\_state}
+
+  The optional \qq{node\_state} sub-record of a \Request\ may be used to
+  reconfigure specific nodes. In a very large tree, it may be very expensive
+  for every single node to look itself up in the record for possible changes.
+  For this reason, we introduce the concept of {\em configuration groups}. 
+  
+  A node's config groups are specified via a list of HIIDs passed in the
+  \qq{.config\_group} field of the init record (they can subsequently be
+  changed via \qq{setState()}). Nodes not assigned to any config group will
+  ignore \qq{Request.node\_state} completely. Nodes assigned to config groups
+  will use the group names to index into the \qq{node\_state} record and to see
+  if new state is specified. This means that only a limited subset of nodes
+  will actually spend time looking up the \qq{node\_state} record.
+
+  Thus, the field names of the \qq{node\_state} record are names of config
+  groups. If a node belongs to config groups \qq{foo} and \qq{bar},
+  \qq{Node::execute()} will look for fields \qq{node\_state.foo} and
+  \qq{node\_state.bar}. Each such field is expected to be a list of subrecords,
+  specifying updates to node state. Here's an example layout for specifying
+  solvable parameters (assuming all MeqParms are included in config group
+  \qq{Solvable}):
+
+\begin{verbatim}
+  # makes RA, DEC solvable, and everything else non-solvable
+  node_state.solvable := [
+    *1 = [ name="RA DEC",state=[ solvable=T ] ],
+    *2 = [ name="*",     state=[ solvable=F ] ]
+  ];
+\end{verbatim}
+
+  Every record in the list must have either a \qq{name} field (string or array
+  of strings) or a \qq{nodeindex} field (integer or array of integers), as well
+  as a \qq{state} sub-record. Each node will iterate through this list; if
+  the node's name matches one of the names (or patterns) in \qq{name}, or the
+  node index matches one of the indices in \qq{nodeindex}, then \qq{setState()}
+  is called with the record in the \qq{state} field. Once a match is found,
+  list processing stops (hence the wildcard at the end of the list will apply 
+  only to nodes not already matched).
+  
+  Here's an example of setting parameter values. Normally, a record like this
+  will be formed inside the Solver node rather than Glish:
+
+\begin{verbatim}
+  # updates values for RA and DEC
+  node_state.solvable := [
+    *1 = [ name="RA",state=[ value=1 ] ],
+    *2 = [ name="DEC",state=[ value=1 ] ]
+  ];
+\end{verbatim}  
+  
+  Note that we could also hardwire some preset config groups into
+  application-specific node classes. Arguably, MeqParms should be hardwired
+  members of \qq{Solvable}, because knowledge of this group would already be
+  hardwired into the Solver node.
+
+\end{document}
