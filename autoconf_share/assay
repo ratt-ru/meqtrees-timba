@@ -180,7 +180,7 @@
      if [ $STATUS = 3 ]
      then
         echo "UNTESTED: $*"
-        STATUS=0
+        STATUS=77
      else
         echo "FAIL (execution failure): $*"
      fi

@@ -1,4 +1,5 @@
 log4cplus.rootLogger=TRACE, TESTOUT
+log4cplus.logger.TRC=DEBUG
 log4cplus.appender.TESTOUT=log4cplus::FileAppender
 log4cplus.appender.TESTOUT.File=<LOGFILENAME>
 log4cplus.appender.TESTOUT.layout=log4cplus::PatternLayout
