@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.7  2002/05/14 08:08:03  oms
+//  Added operator () to hooks.
+//  Fixed flags in DataArray.
+//
 //  Revision 1.6  2002/05/13 08:59:42  gvd
 //  Fixed cloneOther (removed assignment) and added Tpbool, etc. to constructor
 //
@@ -119,7 +123,10 @@ void DataArray::cloneOther (const DataArray& other, int flags, int)
   Assert (!valid());
   setWritable ((flags&DMI::WRITE) != 0);
   if (other.itsArray) {
-    itsData.copy (other.itsData).privatize (flags|DMI::LOCK);
+    // clear the read-only flag and always privatize as writable because
+    // writability is checked explicitly.
+    flags &= ~DMI::READONLY;
+    itsData.copy (other.itsData).privatize(flags|DMI::WRITE|DMI::LOCK);
     itsDataOffset = other.itsDataOffset;
     init (other.itsShape);
   }

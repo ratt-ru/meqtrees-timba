@@ -186,6 +186,16 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           { return (*this)[HIID(id1)]; }
           const NestableContainer::ConstHook & operator [] (const char *id1) const 
           { return (*this)[HIID(id1)]; }
+          // The () operator is an alternative version for concatenating IDs
+          const NestableContainer::ConstHook & operator () (AtomicID id1) const 
+          { return (*this)[id1]; }
+          const NestableContainer::ConstHook & operator () (AtomicID id1,AtomicID id2) const 
+          { return (*this)[id1|id2]; }
+          const NestableContainer::ConstHook & operator () (AtomicID id1,AtomicID id2,AtomicID id3) const 
+          { return (*this)[id1|id2|id3]; }
+          const NestableContainer::ConstHook & operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
+          { return (*this)[id1|id2|id3|id4]; }
+          
       
           // pull in const accessdor methods
           #include "DMI/DataAcc-Const.h"
@@ -392,6 +402,15 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           { return (*this)[HIID(id1)]; }
           const NestableContainer::Hook & operator [] (const char *id1) const 
           { return (*this)[HIID(id1)]; }
+          // The () operator is an alternative version for concatenating IDs
+          const NestableContainer::Hook & operator () (AtomicID id1) const 
+          { return (*this)[id1]; }
+          const NestableContainer::Hook & operator () (AtomicID id1,AtomicID id2) const 
+          { return (*this)[id1|id2]; }
+          const NestableContainer::Hook & operator () (AtomicID id1,AtomicID id2,AtomicID id3) const 
+          { return (*this)[id1|id2|id3]; }
+          const NestableContainer::Hook & operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
+          { return (*this)[id1|id2|id3|id4]; }
           
           // pull non-in const accessdor methods
           #define ForceConstDefinitions 1

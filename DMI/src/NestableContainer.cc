@@ -293,7 +293,7 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) cons
   else
   {
     target = nc;
-    target_tid = nc->type();
+    target_tid = nc->objectType();
   }
   // if referring to a non-dynamic type, attempt the conversion
   if( !TypeInfo::isDynamic(target_tid) && target_tid != TpObjRef )
@@ -325,7 +325,7 @@ const void * NestableContainer::ConstHook::get_address(TypeId tid,bool must_writ
   else
   {
     target = nc;
-    target_tid = nc->type();
+    target_tid = nc->objectType();
   }
   // If types don't match, then 
   // (b) else try to treat target as a container in scalar mode
@@ -380,14 +380,23 @@ void * NestableContainer::Hook::prepare_put( TypeId &target_tid,TypeId tid ) con
   else
   {
     // have we resolved to an existing sub-container, and we're not explicitly
-    // trying to assign the same type of sub-container? Try to init the container
-    // with whatever is being assigned
+    // trying to assign the same type of sub-container? Try to either init the 
+    // container with whatever is being assigned, or assign to it as a scalar
     NestableContainer *nc1 = asNestableWr(target,target_tid);
     if( nc1 && nc1->objectType() != tid )
     {
-      target = nc1->insert(HIID(),tid,target_tid);
-      if( TypeInfo::isDynamic(target_tid) )
-        target_tid = TpObjRef;
+      if( nc1->size() )
+      {
+        bool dum;
+        target = const_cast<void*>(
+            nc1->get(HIID(),target_tid,dum,tid,DMI::WRITE|DMI::NC_SCALAR));
+      }
+      else
+      {
+        target = nc1->insert(HIID(),tid,target_tid);
+        if( TypeInfo::isDynamic(target_tid) )
+          target_tid = TpObjRef;
+      }
     }
   }
   return target;
