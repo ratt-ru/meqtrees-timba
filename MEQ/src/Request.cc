@@ -103,7 +103,7 @@ void Request::revalidateContent ()
 {
   protectAllFields();
   if( DataRecord::hasField(FCells) )
-    cells_ = DataRecord::field(FCells);
+    cells_ = DataRecord::fieldWr(FCells);
   else
     cells_.detach();
 }

@@ -200,13 +200,16 @@ int Solver::getResult (Result::Ref &resref,
   }
   reqref().validateRider();
   // Take care that the matrix is cleared if needed.
-  if (itsCurClearMatrix) {
+  if (itsCurClearMatrix) 
       itsSpids.clear();
-  }
   // Iterate as many times as needed.
   int step;
   for (step=0; step<itsCurNumIter; step++) 
   {
+    // increment the solve-dependent parts of the request ID
+    incrSubId(rqid,getGenSymDepMask());
+    reqref().setId(rqid);
+    // clear/unlock child results
     for( int i=0; i<numChildren(); i++ )
     {
 	    child_reslock[i].release();
@@ -341,12 +344,12 @@ int Solver::getResult (Result::Ref &resref,
     bool lastIter = itsCurLastUpdate && step==itsCurNumIter-1;
     solve(solution, reqref, solRec, resref, child_results,
           itsCurSaveFunklets,lastIter);
-    // increment the solve-dependent parts of the request ID
-    incrSubId(rqid,getGenSymDepMask());
-    reqref().setId(rqid);
     // send up one final update if needed
     if( lastIter )
     {
+      // increment the solve-dependent parts of the request ID one last time
+      incrSubId(rqid,getGenSymDepMask());
+      reqref().setId(rqid);
       ParmTable::lockTables();
       // unlock all child results
       for( int i=0; i<numChildren(); i++ )

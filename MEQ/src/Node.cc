@@ -705,7 +705,7 @@ void Node::setCurrentRequest (const Request &req)
 }
 
 //##ModelId=400E531300C8
-void Node::clearCache (bool recursive)
+void Node::clearCache (bool recursive,bool quiet)
 {
   cache_result_.detach();
   wstate()[FCacheResult].replace() = false;
@@ -713,6 +713,10 @@ void Node::clearCache (bool recursive)
   wstate()[FRequestId].replace() = current_reqid_ = HIID();
   wstate()[FRequest].remove();
   clearRCRCache();
+  if( quiet )
+    control_status_ &= ~CS_CACHED;
+  else
+    setControlStatus(control_status_ & ~CS_CACHED);
   if( recursive )
   {
     for( int i=0; i<numChildren(); i++ )
@@ -810,7 +814,7 @@ void Node::cacheRCR (int ich,const Result::Ref::Copy &res)
 void Node::addResultSubscriber (const EventSlot &slot)
 {
   result_event_gen_.addSlot(slot);
-  wstate()[FControlStatus] = control_status_ |= CS_PUBLISHING;
+  setControlStatus(control_status_ | CS_PUBLISHING);
   cdebug(2)<<"added result subscription "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
 }
 
@@ -818,7 +822,7 @@ void Node::removeResultSubscriber (const EventRecepient *recepient)
 {
   result_event_gen_.removeSlot(recepient);
   if( !result_event_gen_.active() )
-    wstate()[FControlStatus] = control_status_ &= ~CS_PUBLISHING;
+    setControlStatus(control_status_ & ~CS_PUBLISHING);
   cdebug(2)<<"removing all subscriptions for "<<recepient<<endl;
 }
 
@@ -826,7 +830,7 @@ void Node::removeResultSubscriber (const EventSlot &slot)
 {
   result_event_gen_.removeSlot(slot);
   if( !result_event_gen_.active() )
-    wstate()[FControlStatus] = control_status_ &= ~CS_PUBLISHING;
+    setControlStatus(control_status_ & ~CS_PUBLISHING);
   cdebug(2)<<"removing result subscriber "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
 }
 
@@ -1174,6 +1178,9 @@ int Node::execute (Result::Ref &ref,const Request &req0)
         setExecState(CS_ES_IDLE,control_status_|CS_RETCACHE);
         return retcode;
     }
+    // clear out the RETCACHE flag and the result state, since we
+    // have no result for now
+    control_status_ &= ~(CS_RETCACHE|CS_RES_MASK);
     // do we have a new request? Empty request id treated as always new
     bool newreq = req0.id().empty() || ( req0.id() != current_reqid_ );
     // attach a ref to the request; processRequestRider() is allowed to modify
@@ -1186,8 +1193,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       if( !readyForRequest(req0) )
       {
         cdebug(3)<<"  node not ready for new request, returning RES_WAIT"<<endl;
-        setExecState(CS_ES_IDLE,
-            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_WAIT);
+        setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
         return RES_WAIT;
       }
       // set this request as current
@@ -1206,8 +1212,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       ref <<= new Result(0);
       cdebug(3)<<"  node deactivated, empty result. Cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
       int ret = cacheResult(ref,retcode) | RES_UPDATED;
-      setExecState(CS_ES_IDLE,
-            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_EMPTY);
+      setExecState(CS_ES_IDLE,control_status_|CS_RES_EMPTY);
       return ret;
     }
     // in case processRequestRider modified the request, work with the new
@@ -1232,16 +1237,14 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       // a WAIT from any child is returned immediately w/o a result
       if( retcode&RES_WAIT )
       {
-        setExecState(CS_ES_IDLE,
-            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_WAIT);
+        setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
         return retcode;
       }
       // if failed, then cache & return the fail
       if( retcode&RES_FAIL )
       {
         int ret = cacheResult(ref,retcode) | RES_UPDATED;
-        setExecState(CS_ES_IDLE,
-              (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
+        setExecState(CS_ES_IDLE,control_status_|CS_RES_FAIL);
         return ret;
       }
       // resample children (will do nothing if disabled)
@@ -1261,8 +1264,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       // a WAIT is returned immediately with no valid result expected
       if( code&RES_WAIT )
       {
-        setExecState(CS_ES_IDLE,
-            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_WAIT);
+        setExecState(CS_ES_IDLE,control_status_|CS_RES_WAIT);
         return retcode;
       }
       // else we must have a valid Result object now, even if it's a fail.
@@ -1283,8 +1285,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       ref <<= new Result(0);
       cdebug(3)<<"  empty result. Cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
       int ret = cacheResult(ref,retcode) | RES_UPDATED;
-      setExecState(CS_ES_IDLE,
-          (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_EMPTY);
+      setExecState(CS_ES_IDLE,control_status_|CS_RES_EMPTY);
       return ret;
     }
     // OK, at this point we have a valid Result to return
@@ -1300,8 +1301,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     // cache & return accumulated return code
     int ret = cacheResult(ref,retcode) | RES_UPDATED;
     int st = ret&RES_FAIL ? CS_RES_FAIL : CS_RES_OK;
-    setExecState(CS_ES_IDLE,
-        (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|st);
+    setExecState(CS_ES_IDLE,control_status_|st);
     return ret;
   }
   // catch any exceptions, return a single fail result

@@ -145,7 +145,7 @@ void Polc::revalidateContent ()
   Thread::Mutex::Lock lock(mutex());
   Funklet::revalidateContent();
   if( DataRecord::hasField(FCoeff) )
-    coeff_ = DataRecord::field(FCoeff);
+    coeff_ = DataRecord::fieldWr(FCoeff);
   else
     coeff_.detach();
 }

@@ -116,11 +116,11 @@ void Result::revalidateContent ()
 {
   Thread::Mutex::Lock lock(mutex());
   if( DataRecord::hasField(FVellSets) )
-    vellsets_ <<= (*this)[FVellSets].ref();
+    vellsets_ = DataRecord::fieldWr(FVellSets);
   else
     vellsets_.detach();
   if( DataRecord::hasField(FCells) )
-    cells_ <<= (*this)[FCells].ref();
+    cells_ = DataRecord::fieldWr(FCells);
   else
     cells_.detach();
   protectAllFields();

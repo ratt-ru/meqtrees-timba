@@ -286,7 +286,8 @@ class Node : public BlockableObject
     //##ModelId=400E531300C8
     //##Documentation
     //## Clears cache (optionally recursively)
-    void clearCache (bool recursive=false);
+    //## If quiet is false, updates control_status but does not advertise
+    void clearCache (bool recursive=false,bool quiet=false);
     
     //##Documentation
     //## adds an event slot to which generated results will be published
