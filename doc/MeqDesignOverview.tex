@@ -1,4 +1,4 @@
-\documentclass[10pt,twoside]{article}
+\documentclass[10pt,twoside]{book}
 
 \oddsidemargin=-5mm
 \evensidemargin=-5mm
@@ -8,19 +8,26 @@
 
 \pagestyle{myheadings}
 
-\markboth{MeqTree Design Overview}{\small CVS:
-LOFAR/doc/MEQ/MeqDesignOverview.tex~~~~~~$$Revision$$~~~~~~$$Date$$}
+\markboth{\dotfill MeqTree Kernel Design Overview}{\small\tt
+LOFAR/doc/MEQ/MeqDesignOverview.tex\em~~$\circ$~$ $Revision$ $~$\circ$~$ $Date$ $\dotfill}
 
+\title{MeqTree Kernel Design Overview (PSS4)}
 
-\title{MeqTree Design Overview (PSS4)}
 \author{O.M. Smirnov}
 
+\date{\vspace{2cm}\small CVS path: \tt LOFAR/doc/MEQ/MeqDesignOverview.tex\\\rm
+$ $Revision$ $\\$ $Date$ $}
+
+
+
 \begin{document}
+
 \sloppy
 
 \newcommand{\url}[1]{{\tt #1}}
 
 \maketitle
+\tableofcontents
 
 % \qq{text} used to quote code (in fixed font)
 \newcommand{\qq}[1]{{\tt #1}}
@@ -38,28 +45,160 @@ LOFAR/doc/MEQ/MeqDesignOverview.tex~~~~~~$$Revision$$~~~~~~$$Date$$}
 \newcommand{\RES}[1]{{\tt RES\_#1}}
 
 
+\chapter*{Introduction}
 
+The purpose of this document is to provide an overview of the MeqTree kernel
+and related interfaces. The following subjects will be covered:
 
-\section{Introduction}
+\begin{itemize}
 
-The purpose of this document is to provide a C++ analogue of the MeqTree
-handbook. I will try to keep it updated with design decisions we make in our
-meetings. Un updated version of this document may be obtained via CVS at
-\qq{LOFAR/doc/MEQ/MeqDesignOverview.tex}.
+\item Basic terms and concepts.
 
-\section{Data structures} 
+\item System components.
 
-\subsection{Basic principles}
+\item Data structures employed in the MeqTree kernel.
 
-  All data structures used in the Meq {\em interface} must be mappable to data
-  structures of the scripting language of choice. Currently, this is Glish, in
-  the future this will be Python; we should in any case restrict ourself to
-  common primitives which we can expect to be available in any mature scripting
-  language. Thus, we'll define ``legal objects'' as:
+\item Standard node state \& functionality.
+
+\item Interaction between nodes, and how it is affected by state.
+
+\item Interaction with Glish (and in the future, other scripting languages).
+
+\item Examples of some standard and application-specific nodes.
+
+\end{itemize}
+
+The intended audience for this document is:
+
+\begin{description}
+
+\item[The Tree Designer,] since a thorough understanding of how nodes interact
+is critical in construction of complex and efficient trees.
+
+\item[The Node Developer] needing to implement specialized node classes.
+
+\end{description}
+
+\section*{Trees}
+
+The MeqTree kernel provides a C++ implementation of the MeqTree concept. A {\bf
+MeqTree} (or simply ``tree'') is a collection of interconnected {\bf MeqNodes}
+(or simply ``nodes''). Nodes have a directed parent--child relationship; a
+parent may have any number of children, and a child can have multiple parents.
+Cycles are forbidden. Technically, this makes the MeqTree a {\em directed
+acyclic graph}, but the term ``tree'' is retained for historical and
+aesthetical reasons.
+
+We will often use directional terms when discussing trees, {\bf up} is from
+parent to child, and {\bf down} is from child to parent.
+
+In broad terms, the life of a node generally consists of receiving {\bf
+requests} from its parent(s), passing them on to its children, receiving {\bf
+results} in response, performing some calculation on the child results, and
+returning the result of that its parent. Thus, requests generally originate
+somewhere down the tree and propagate up, while results germinate at the top
+and percolate down. 
+
+\section*{Nodes}
+
+Nodes are implemented as C++ objects, subclassed from the abstract
+\qq{Meq::Node} class\footnote{All the MeqTree kernel classes reside in the
+\qq{Meq} namespace; we will omit \qq{Meq::} from names from now on.}. All
+interaction with nodes is done via the \Node\ class interface. Consequently, a
+node has no direct knowledge of the {\em type} of its children. Nodes may be
+connected together in a practically arbitrary manner. Given a rich toolbox of
+elementary node classes, trees representing arbitrary mathematical expressions
+may thus be constructed. 
+
+All nodes have a {\bf state record} that determines their behaviour. The state
+record is fully accessible from the outside. The initial state record is also
+called the {\bf defrec} (from definition record), and is usually supplied from
+the scripting layer when the node is created.
+
+Nodes also have a {\bf result cache} that may retain the most recently computed
+result. The cache is intended to save processing time for repeated (or similar
+enough) requests.
+
+\section*{Design philosophy}
+
+These principles are key to understanding the design philosophy behind the
+kernel:
+
+\begin{description}
+
+\item[Locality:] all functionality is defined in terms of local parent--child
+request--result interactions. There is no centralized ``control'' as such.
+
+\item[KISS the nodes and rely on emergent behaviour:] complex behaviour of the
+tree as a whole emerges from primitive request--result interactions at the
+local level. Most node classes are designed to be simple (K.I.S.S.!), with a
+single well-defined purpose. If some sort of specific functionality is
+required, it is almost always preferrable to implement it by building the right
+tree, rather than developing specialized nodes.
+
+\item[Policy-free:] kernel node classes are largely policy-free. By policy we
+mean any sort of application-specific behaviour or concepts. Policy may only
+emerge at the tree level (by connecting the nodes in a specific way), and/or at
+the scripting level.
+
+\item[There is more than one way to do it:] (with a nod to Larry Wall and Perl)
+in a lot of cases, the kernel provides several ways of accomplishing the same 
+result. There is not necessarily a single ``right'' way, it all depends on the
+particular application context. This redundancy is by design, as it increases
+the overall adapatability of the system.
+
+\end{description}
+
+\section*{Software components}
+
+An interface to the kernel is provided via a \qq{MeqServer} object. The
+\qq{MeqServer} maintains a {\bf forest} (a collection of nodes and trees), and
+provides operations such as:
+
+\begin{itemize}
+
+\item Create, connect and delete node objects.
+
+\item Inspect and modify node state records.
+
+\item Issue requests and return results.
+
+\item Connect trees to data sources (e.g. Measurement Sets).
+
+\end{itemize}
+
+\qq{MeqServer} plugs into the OCTOPUSSY publish/subscribe framework, and
+thorugh it can can transparently support any number of local or remote clients,
+such as Glish sessions.
+
+All application-dependent logic (``policy'') is meant to reside in the scripting
+layer (Glish, and in the future Python).
+
+\chapter{Data structures} 
+
+\section{Basic principles}
+
+  The main priciple driving data structure design in MeqTrees is {\bf
+  congruity}: all C++ objects used to {\em pass information} within a tree must
+  be mappable without any loss of information to and from data structures on
+  the scripting side. Fully {\em private} structures (e.g., private nested
+  classes) can be defined in C++ terms only.
+
+  Congruity allows {\bf transparency}: most of the inner workings of a tree are
+  readily accessible from the scripting side. This allows for very elaborate
+  monitoring schemes, and is a great debugging aid when something goes wrong.
+  
+\subsection{Data types}
+  
+  The choice of atomic data types is limited by the requirement of congruity.
+  Currently, the only supported scripting language is Glish, but Python 
+  support is expected in the near future. In any case, the kernel  restricts
+  itself to common primitives that are supported by all mature scripting
+  languages. We'll define ``legal data objects'' as:
 
   \begin{itemize}
   
-  \item scalars (bool, integer, float, double, float or double complex);
+  \item scalars -- bool, integer, float, double, float or double complex;
   
   \item strings;
   
@@ -75,8 +214,19 @@ meetings. Un updated version of this document may be obtained via CVS at
 
   On the C++ side, data objects are based on the DMI \qq{DataRecord},
   \qq{DataField} and \qq{DataArray} classes. Most data classes are in fact
-  derived from \qq{DataRecord}, and are essentially a record with some
-  predefined structure, and some extra ``shortcut'' methods. 
+  derived from \qq{DataRecord}, and are at core a record with some (sometimes
+  loosely) predefined structure.
+
+\subsection{HIIDs}
+
+  The \qq{HIID} (hierarchical indentifier) class of the DMI package is used for
+  all data-related indentifiers in the kernel. At core, a HIID is a vector of
+  integers (a.k.a. atomic IDs). Negative atomic IDs map to symbolic 
+  equivalents, while positive IDs are treated as integer indices. 
+  
+  
+
+  
 
 \subsection{Naming conventions}
 
@@ -150,7 +300,7 @@ meetings. Un updated version of this document may be obtained via CVS at
   name, node name, optional children specification, optional node group
   list. \qq{meq.parm()} is a specialization for constructing \Parm\ defrecs.
     
-\section{MeqNode}
+\chapter{MeqNode}
 
   The abstract base class \qq{Meq::Node} implements the basic node behaviour:
 
@@ -174,6 +324,10 @@ meetings. Un updated version of this document may be obtained via CVS at
     with the same \Request\ on its children, and form its result based on the
     results of its children. Thus, requests propagate up the tree, and results
     percolate down the tree.
+    
+A node also has no direct knowledge of its parents, and is only allowed to
+infer things from the requests that it receives.
+
 
 \begin{verbatim}
     virtual int execute (Result::Ref &result,const Request &request);
@@ -184,7 +338,7 @@ meetings. Un updated version of this document may be obtained via CVS at
 
   \end{itemize}
 
-\subsection{Initialization and state}
+\section{Initialization and state}
   
   A node's full {\em state} should be mapped to a {\em state record}. State may
   be requested via \qq{getState()} and changed via \qq{setState()}. Note that
@@ -227,7 +381,7 @@ virtual void checkInitState (DataRecord &rec);
 virtual void setStateImpl (DataRecord &rec,bool initializing);
 \end{verbatim}
 
-\subsubsection{init()}
+\subsection{init()}
 
   The base \qq{Node::init()} does the following:
 
@@ -310,7 +464,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   the node is being initialized, and check for missing fields and/or fill in
   defaults as apporpriate.
 
-\subsubsection{setState() and setStateImpl()}
+\subsection{setState() and setStateImpl()}
 
   The non-virtual \qq{setState()} method defined in \qq{Node} provides the
   public interface for setting state. Basically, it defers parsing the record
@@ -395,7 +549,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   The base \qq{Node::setStateImpl()} method is described in detail in a later
   section on basic node state.
 
-\subsubsection{Unrecognized state fields}
+\subsection{Unrecognized state fields}
 
   Note that these implementations of \qq{init()} and \qq{setState()} will
   ignore any unrecognized fields in the init and state record, all the while 
@@ -413,7 +567,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   \end{itemize}
 
-\subsection{Node serialization \& persistency}
+\section{Node serialization \& persistency}
 
   In the near future we will need persistent nodes (i.e. being able to
   save/load the nodes to a file or database), and further down the road, the
@@ -434,7 +588,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   this are internal caches; if these are not maintained in the state record,
   then the worst than can happen from re-creating a node is a cleared cache.
 
-\section{MeqRequest}
+\chapter{MeqRequest}
 
   A \Request\ is a {\em job description} containing a number of commands
   that a node executes to produce a \Result. A \Request\ is a record with a
@@ -466,7 +620,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   represents the bulk of the system's workload. All other commands are placed
   into the rider record, which will be described in detail below.
 
-\subsection{Request IDs and the node cache}
+\section{Request IDs and the node cache}
 
   Request IDs (RqIDs) are first of all used to distinguish different \Request\
   objects. The originator (creator) of the request is responsible for assigning
@@ -556,7 +710,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   assume any application-specific semantics at all. The depmask is a treated as
   set of $N$ bits, and the RqID as a corresponding set of $N$ indices.
 
-\subsection{Next\_request and request sequences}
+\section{Next\_request and request sequences}
 
   The concept of a ``request sequence'' has been bandied about a lot (see the
   ``Making Waves'' document, plus various discussions). The reason for this is
@@ -597,9 +751,9 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   the present discussion is to run through mental models of the mechanism and
   convince ourselves that we're making the right decisions.}
 
-\section{Results}
+\chapter{Results}
 
-\subsection{MeqResult}
+\section{MeqResult}
 
   A \Result\ contains the result of a \Request's execution. It is derived from
   a \qq{DataRecord}, and may contain the following fields:
@@ -622,7 +776,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   more detail in the section on individual node classes below. This flag is
   also taken into account when performing resampling of results, see below.
 
-\subsection{MeqVellSet}
+\section{MeqVellSet}
 
   A \VellSet\ contains a value plus optional perturbed values for a \Cells. It
   is derived from a \qq{DataRecord}, and contains the following fields:
@@ -648,7 +802,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   Note also that this layout could be extended in the future to accomodate
   double derivatives and analytic derivatives.
 
-\subsubsection{MeqVells}
+\subsection{MeqVells}
 
   On the scripting side, a \Vells\ object is simply a scalar or an array. On
   the C++ side, it is also essentially an array, with some run-time type and
@@ -659,7 +813,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \Vells\ are covered in some more detail in the description of \qq{Function}
   nodes, below.
 
-\subsection{Multiple values}
+\section{Multiple values}
 
   The point of defining a \Result\ as a set of \VellSet{}s is to allow multiple
   return values for a single \Cells\ (a.k.a. "multiple planes"). For example, a
@@ -672,7 +826,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   The \qq{Selector} and \qq{Composer} nodes can be used to decompose and
   assemble \Result{}s.
 
-\subsection{Fail propagation}
+\section{Fail propagation}
 
   Note that a set may contain a mix of failed and normal \VellSet{}s. Failed
   values should propagate down the tree in an orderly fashion. Normally, a
@@ -686,7 +840,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \qq{Sink} node, which can handle them benignly (by not writing XY/YX data,
   for example).
 
-\section{Base Node state}
+\chapter{Base Node state}
 
   The base \qq{Node} class maintains a number of state fields via its
   \qq{setStateImpl()} method. This section describes the state in detail.
@@ -700,18 +854,18 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   of its state record from the outside. We assume that it is up to the
   scripting-side tools to shield the end users from ``dangerous'' capabilities.
 
-\subsection{\qq{class}, \qq{nodeindex}, \qq{children}} 
+\section{\qq{class}, \qq{nodeindex}, \qq{children}} 
   
   These fields represent static properties of the node. \qq{setStateImpl()}
   will throw an exception if an attempt is made to change them. \qq{class} is a
   string classname, \qq{nodeindex} is an integer node index, and \qq{children}
   is a list of child node indices (if any).
 
-\subsection{\qq{name}}
+\section{\qq{name}}
   
   This is just the node name (a string). 
  
-\subsection{\qq{node\_groups}}
+\section{\qq{node\_groups}}
   
   A node may be assigned to one or more node groups. The purpose of this is
   described in detail below (see the section on command processing). The
@@ -719,12 +873,12 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   nodes are implicitly members of the \qq{All} group; thus \qq{"All"} is not
   explicitly present in the list.
 
-\subsection{\qq{auto\_resample}}
+\section{\qq{auto\_resample}}
   
   This flag specifies if auto-resampling of child results is enabled. See
   detailed discussion later on.
 
-\subsection{\qq{request\_id}, \qq{cache\_result}, \qq{cache\_result\_code}}
+\section{\qq{request\_id}, \qq{cache\_result}, \qq{cache\_result\_code}}
   
   These three fields compose the node result cache. The first field -- a
   \qq{HIID} -- is the ID of the most recent request. The second field is the
@@ -739,19 +893,19 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   for debugging and experimentation, though if used improperly, it can probably
   confuse the caching and dependency tracking mechanism.  
   
-\subsection{\qq{request}}
+\section{\qq{request}}
 
   This is a (read-only) reference to the most recently processed \qq{Request}
   object. This field is maintained for information purposes only, \qq{Node}
   fills it whenever it executes a request, but does not use it for anything
   else (so modifying this field will have no effect).
 
-\subsection{\qq{cache\_policy}}
+\section{\qq{cache\_policy}}
 
   This is a placeholder for the caching policy (see discussion below). This is
   not yet implemented -- all current nodes always cache results.
 
-\subsection{\qq{depend\_mask}, \qq{known\_symdeps}, \qq{active\_symdeps}, 
+\section{\qq{depend\_mask}, \qq{known\_symdeps}, \qq{active\_symdeps}, 
             \qq{symdep\_masks}, \qq{gen\_symdeps}, \qq{gen\_symdeps\_group}}
               
   These fields are responsible for maintenance of dependency masks. This is a
@@ -759,7 +913,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   the default settings for these fields are practically always good enough, but
   they are exposed for purposes of experimentation and debugging.
 
-\section{Symdeps and depmasks}
+\chapter{Symdeps and depmasks}
 
   As discussed in the section on requests above, a {\em depmask} is a bitwise
   mask that describes a result's dependencies on particular properties of the
@@ -769,7 +923,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   application-dependent. Several fields of the node state provide a mechanism
   for setting up these semantics and propagating them throughout trees. 
 
-\subsection{The local depmask}
+\section{The local depmask}
   
   The \qq{depend\_mask} field of the state record is the local depmask of the
   node. The local depmask indicates which dependencies a node introduces into
@@ -787,7 +941,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   properties is set up via the mechanism of {\em symbolic dependencies}, or
   {\em symdeps} for short.
   
-\subsection{Symdeps in a nutshell}
+\section{Symdeps in a nutshell}
   
   A {\em symdep} is a \qq{HIID} (thus, symbolic -- since \qq{HIID}s have a
   symbolic representation) that identifies some application-specific dependency
@@ -814,7 +968,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   of the depmasks. In other words, this mechanism is what determines the
   bitmask semantics.
 
-\subsubsection{Symdep masks}
+\subsection{Symdep masks}
 
   Note that certain nodes can be viewed as symdep {\em generators}. These are
   nodes that generate new requests. For example, the \qq{Sink} node generates
@@ -830,12 +984,12 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   Nodes up the tree can then compute their local depmasks by combining the
   symdep masks of their specific symdeps.
 
-\subsection{Symdeps: the hairy details}
+\section{Symdeps: the hairy details}
 
   This section describes the details of how symdeps and depmasks are set up and
   maintained. Note that all this is maintained in the node state record.
 
-\subsubsection{Known and active symdeps} 
+\subsection{Known and active symdeps} 
   
   The {\em known symdeps} of a node are just that, all the symdeps that a node
   class knows about. Typically, this is specified once and for all in the
@@ -861,7 +1015,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   why anyone would want to do this), by calling the \qq{setKnownSymDeps()}
   method, or by changing the \qq{known\_symdeps}  field of the state record. 
   
-\subsubsection{Propagating symdep masks}
+\subsection{Propagating symdep masks}
 
   A node will automatically keep track of the symdep masks associated with its
   known symdep set. This is done via the rider command facility (see below),
@@ -911,7 +1065,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   the node state record. It is possible to change this field on the fly, an
   automatic call to \qq{resetDependMasks()} always results.
 
-\subsubsection{Generating symdep masks}
+\subsection{Generating symdep masks}
 
   Nodes that generate new requests also need to generate \qq{Add.Dep.Mask}
   commands containing their symdep masks assignments. \qq{Node} provides a
@@ -961,7 +1115,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   
   \end{itemize}
 
-\subsubsection{Order of state updates}
+\subsection{Order of state updates}
 
   Because it is possible to change everything about a node's symdeps and masks
   by modifying the state record, and a state update may contain multiple
@@ -986,7 +1140,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   via \qq{depend\_mask}, the specified value overrides any implict value
   calculated from, e.g., an \qq{active\_symdeps}.
   
-\subsubsection{Specialized node behaviour}  
+\subsection{Specialized node behaviour}  
   
   Note that all these facilities are provided at the basic \qq{Node} level, but
   special node classes are free to ignore them, or make use of only some
@@ -1012,7 +1166,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   \end{itemize}
   
-\section{The details of Node::execute()}
+\chapter{The details of Node::execute()}
 
   The virtual \qq{Node::execute()} method is responsible for processing a
   \Request. The default version decomposes the request and calls a number of
@@ -1072,7 +1226,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   The return value of \qq{execute()} is simply the accumulated result code.
   
-\subsection{Result codes}
+\section{Result codes}
 
   The return value of \qq{execute()} is meant to be a result code describing
   certain properties  of the returned \Result. It is a bitmask composed of a
@@ -1124,7 +1278,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   return zero, indicating that a node does not introduce any additional
   dependencies into the result. 
   
-\subsection{Caching issues}
+\section{Caching issues}
 
   To avoid unnecessary recalculations, a node's result can be retained in a
   cache. Obviously, this trades off performance against memory footprint. Three
@@ -1182,7 +1336,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   cached result or recalculate the request (see step [1] of \qq{execute()}),
   the request IDs are matched according to the dependency mask.
   
-\subsection{Commands in request riders}
+\section{Commands in request riders}
 
   The optional \qq{rider} sub-record of a \Request\ may be used to send
   additional commands to specific nodes. The Solver node, for example, makes
@@ -1270,7 +1424,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   matching any node. Wilcards are only useful at the end of the list, to catch
   nodes not already matched by previous entries.
   
-\subsubsection{Command evaluation order}
+\subsection{Command evaluation order}
 
   In cases where a node finds more than one command set associated with it, the
   order of processing becomes important. The rider is parsed in the following
@@ -1293,7 +1447,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   
   \end{itemize}
   
-\section{Resolution \& Gridding}
+\chapter{Resolution \& Gridding}
 
   Resolution \& gridding is a complicated business. Some basic requirements
   are:
@@ -1413,9 +1567,9 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   example of this.
 
 
-\section{Description of specialized nodes}
+\chapter{Description of specialized nodes}
 
-\subsection{ReqSeq}
+\section{ReqSeq}
 
   \qq{ReqSeq} is the {\em request sequencer} node. It is used to sequence the
   execution of requests between subtrees.
@@ -1437,16 +1591,16 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   one of the children, as determined by its state record (run-time
   configurable).
 
-\subsection{Resampler}
+\section{Resampler}
 
-\subsection{ModRes}
+\section{ModRes}
 
-\subsection{MeqParm}
+\section{MeqParm}
 
   The \Parm\ node implements a possibly solvable Measurement Equation
   parameter. The parameter is represented by one or more \Polc\ objects.
 
-\subsubsection{MeqPolc}
+\subsection{MeqPolc}
 
   The \Polc\ class implements a 2D polynomial in time and frequency. The Glish
   equivalent is a \qq{meq.polc} record. This record will contain the following
@@ -1476,7 +1630,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   $f_0,s_f,t_0,s_t$ is the scale of the polc. The scale is only necessary to
   keep numbers small so as to avoid round-off errors.
 
-\subsubsection{MeqParm state}
+\subsection{MeqParm state}
 
   Here's the layout for a \Parm\ state record. All of these attributes are
   dynamic state, that is, they may be changed at any time via \qq{setState()}:
@@ -1504,7 +1658,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   \end{description}
   
-\subsubsection{Selecting polcs}
+\subsection{Selecting polcs}
 
   The \qq{Parm::getResult()} method is responsible for evaluating a parm over a
   \Cells\ (specifically, over the domain of the \Cells). To do this, the parm
@@ -1558,7 +1712,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   Once the selection is complete, the parm will have at its disposal a list of
   one or more polcs. 
 
-\subsubsection{Selecting a single solvable polc}
+\subsection{Selecting a single solvable polc}
   
   If the parm is set to solvable, the polc list is then culled to a single polc
   (NB: future versions may support solving for multiple polcs). This polc is
@@ -1578,7 +1732,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   Once a single solvable polc is selected, its domain is set equal to the
   requested domain.
   
-\subsubsection{Evaluating the polc list}
+\subsection{Evaluating the polc list}
 
   A single polc is evaluated directly over the \Cells\ of the incoming
   \Request. The resulting \VellSet\ object (polc value, plus optional
@@ -1626,7 +1780,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   \end{description}
 
-\subsubsection{Updating and saving polcs}    
+\subsection{Updating and saving polcs}    
 
   In the course of a solution, the Solver node updates the values of solvable
   polcs by sending up new values in the request rider. This is done by
@@ -1686,7 +1840,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   worry about this since everything happens automatically; some advanced
   scripting may require knowledge of the dbid.
 
-\section{MeqServer interface}
+\chapter{MeqServer interface}
 
 Coming soon.
 
