@@ -1,10 +1,30 @@
+//#  DataRecord.h: record of containers
+//#
+//#  Copyright (C) 2002-2003
+//#  ASTRON (Netherlands Foundation for Research in Astronomy)
+//#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//#
+//#  This program is free software; you can redistribute it and/or modify
+//#  it under the terms of the GNU General Public License as published by
+//#  the Free Software Foundation; either version 2 of the License, or
+//#  (at your option) any later version.
+//#
+//#  This program is distributed in the hope that it will be useful,
+//#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//#  GNU General Public License for more details.
+//#
+//#  You should have received a copy of the GNU General Public License
+//#  along with this program; if not, write to the Free Software
+//#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//#
+//#  $Id$
+
 #ifndef DMI_DataRecord_h
 #define DMI_DataRecord_h 1
 
-#include <DMI/DMI.h>
-#include <DMI/NestableContainer.h>
-#include <DMI/HIID.h>
-#include <DMI/DataField.h>
+#include "DMI/DMI.h"
+#include "DMI/NestableContainer.h"
 
 #pragma type #DataRecord
 
@@ -15,7 +35,6 @@
 class DataRecord : public NestableContainer
 {
   public:
-      friend class DataField;
     //##ModelId=3DB9343B029A
       class Iterator
       {
@@ -69,17 +88,6 @@ class DataRecord : public NestableContainer
 
       //##ModelId=3C5FF10102CA
       void replace (const HIID &id, NestableContainer *pfld, int flags = DMI::WRITE|DMI::ANON);
-
-      //##ModelId=3C57D02B0148
-      //##Documentation
-      //## Returns true if id refers to a valid DataField (i.e., that can be
-      //## fetched with field()). Throws no exceptions.
-      bool isDataField (const HIID &id) const;
-    //##ModelId=3E9BD86203AC
-      //##Documentation
-      //## Returns true if id refers to a valid DataArray (i.e., that can be
-      //## fetched with field()). Throws no exceptions.
-      bool isDataArray (const HIID &id) const;
 
       //##ModelId=3C57CFFF005E
       NCRef field (const HIID &id) const;

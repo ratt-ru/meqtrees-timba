@@ -107,7 +107,8 @@ int __register_extra_aids_ =
    AtomicID::registerId(AidWildcard.id(),"*") +
    AtomicID::registerId(AidSlash.id(),"/") +
    AtomicID::registerId(AidRange.id(),":") +
-   AtomicID::registerId(AidEmpty.id(),"_");
+   AtomicID::registerId(AidEmpty.id(),"_") +
+   AtomicID::registerId(AidHash.id(),"#");
 
 int AtomicID::registerId (int key,const char * value)
 {

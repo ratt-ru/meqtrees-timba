@@ -1,4 +1,4 @@
-//  DataArray.cc: DMI Array class (using AIPS++ Arrays)
+//  DataArray.h: Array container (using Blitz Arrays)
 //
 //  Copyright (C) 2002
 //  ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -21,6 +21,15 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.21  2003/09/10 15:11:05  smirnov
+//  %[BugId: ]%
+//  Various small fixes & cleanups.
+//  Allowed numeric (i.e. single-index) field names in DataRecord. The old
+//  way of accessing field by its number is available via the special HIID "#.n"
+//  (AidHash|n).
+//  Fixed bug with resizing DataFields with a dynamic type content -- these would
+//  fail a toBlock/fromBlock after a resize.
+//
 //  Revision 1.20  2003/05/14 10:28:11  smirnov
 //  %[BugId: 26]%
 //  Fixed bug when constructing from a 0-dim AIPS++ array
@@ -116,19 +125,14 @@
 //  Revision 1.1  2002/04/05 13:05:46  gvd
 //  First version
 //
-
-
 #ifndef DMI_DATAARRAY_H
 #define DMI_DATAARRAY_H
 
 #include "Common/Lorrays.h"
 #include "Common/Thread/Mutex.h"
 #include "Common/Thread/Key.h"
-#include "DMI/Common.h"
 #include "DMI/DMI.h"
 #include "DMI/NestableContainer.h"
-#include "DMI/HIID.h"
-#include "DMI/SmartBlock.h"
 
 #ifdef HAVE_AIPSPP
 #include <aips/Arrays.h>
@@ -157,6 +161,7 @@ public:
   
   // Create the object, and initialize data from array. "other" should point 
   // to a Lorray<T,N> object (where T,N correspond to array_tid)
+    //##ModelId=3DB949AE03AF
   DataArray (TypeId array_tid, const void *other, int flags = DMI::WRITE,
 	     int shm_flags = 0);
 
@@ -192,7 +197,7 @@ public:
 #endif
 
   // Copy (copy semantics).
-    //##ModelId=3DB949AE03AF
+    //##ModelId=3F5487DA034E
   DataArray (const DataArray& other, int flags = 0, int depth = 0);
 
     //##ModelId=3DB949AE03B8
@@ -281,6 +286,7 @@ public:
   int parseHIID (const HIID& id, LoPos& st, LoPos& end,LoPos& incr, 
                  vector<bool> &keepAxes) const;
   
+    //##ModelId=3F5487DB0110
   string sdebug ( int detail = 1,const string &prefix = "",
                   const char *name = 0 ) const;
   
@@ -347,15 +353,19 @@ private:
     //##ModelId=3E9BD91403A0
   typedef void (*Destructor)(void*);
   
+    //##ModelId=3F5487DA00A7
   typedef void (*ArrayCopier)(void*,const void*);
   
+    //##ModelId=3F5487DA015B
   typedef void (*ShapeOfArray)(LoShape &,const void*);
   
   static AllocatorWithData    allocatorWithData   [NumTypes][MaxLorrayRank];
   static AllocatorDefault     allocatorDefault    [NumTypes][MaxLorrayRank];
   static AssignWithStride     assignerWithStride  [NumTypes][MaxLorrayRank];
   static Destructor           destructor          [NumTypes][MaxLorrayRank];
+    //##ModelId=3F5487DA023F
   static ArrayCopier          copier              [NumTypes][MaxLorrayRank];
+    //##ModelId=3F5487DA0273
   static ShapeOfArray         shapeOfArray        [NumTypes][MaxLorrayRank];
   
   // converts a type id into a numeric offset into the table above
@@ -384,11 +394,13 @@ private:
     (*destructor[typeIndex(tid)][rank-1])(ptr);
   }
   
+    //##ModelId=3F5487DB02E7
   static void copyArray (TypeId tid,int rank,void *target,const void *source)
   {
     (*copier[typeIndex(tid)][rank-1])(target,source);
   }
   
+    //##ModelId=3F5487DC0121
   static void getShapeOfArray (TypeId tid,int rank,LoShape &shape,const void *ptr)
   {
     (*shapeOfArray[typeIndex(tid)][rank-1])(shape,ptr);

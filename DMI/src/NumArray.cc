@@ -1,4 +1,4 @@
-//  DataArray.cc: DMI Array class (using AIPS++ Arrays)
+//  DataArray.cc: Array container (using Blitz Arrays)
 //
 //  Copyright (C) 2002
 //  ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -21,6 +21,15 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.25  2003/09/10 15:11:05  smirnov
+//  %[BugId: ]%
+//  Various small fixes & cleanups.
+//  Allowed numeric (i.e. single-index) field names in DataRecord. The old
+//  way of accessing field by its number is available via the special HIID "#.n"
+//  (AidHash|n).
+//  Fixed bug with resizing DataFields with a dynamic type content -- these would
+//  fail a toBlock/fromBlock after a resize.
+//
 //  Revision 1.24  2003/05/14 10:28:11  smirnov
 //  %[BugId: 26]%
 //  Fixed bug when constructing from a 0-dim AIPS++ array
@@ -127,7 +136,7 @@
 
 
 #define NC_SKIP_HOOKS 1
-#include "DMI/DataArray.h"
+#include "DataArray.h"
 
 static NestableContainer::Register reg(TpDataArray,true);
 
@@ -212,6 +221,7 @@ DataArray::Destructor DataArray::destructor[NumTypes][MaxLorrayRank] =
 #undef OneElement
 };
 
+//##ModelId=3F5487DA023F
 DataArray::ArrayCopier DataArray::copier[NumTypes][MaxLorrayRank] =
 {
 #define OneElement(N,T) &copyArrayImpl<T,N>
@@ -219,6 +229,7 @@ DataArray::ArrayCopier DataArray::copier[NumTypes][MaxLorrayRank] =
 #undef OneElement
 };
 
+//##ModelId=3F5487DA0273
 DataArray::ShapeOfArray DataArray::shapeOfArray[NumTypes][MaxLorrayRank] =
 {
 #define OneElement(N,T) &returnShapeOfArray<T,N>
@@ -282,6 +293,7 @@ DataArray::DataArray (TypeId type, const LoShape & shape,
   init(shape,flags);
 }
 
+//##ModelId=3DB949AE03AF
 DataArray::DataArray (TypeId tid,const void *other,int flags,int shm_flags)
   // WRITE is always set unless READONLY is specified
 : NestableContainer(flags |= (flags&DMI::READONLY ? 0 : DMI::WRITE)),
@@ -315,7 +327,7 @@ DataArray::DataArray (TypeId tid,const void *other,int flags,int shm_flags)
 // __instantiate(string,);
 
 
-//##ModelId=3DB949AE03AF
+//##ModelId=3F5487DA034E
 DataArray::DataArray (const DataArray& other, int flags, int depth)
 : NestableContainer(flags |= (flags&DMI::READONLY ? 0 : DMI::WRITE)),
   itsArray    (0)
@@ -879,6 +891,7 @@ void* DataArray::insert (const HIID&, TypeId, TypeId&)
   Throw("insert() not supported for DataArray");
 }
 
+//##ModelId=3F5487DB0110
 string DataArray::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   nc_readlock;

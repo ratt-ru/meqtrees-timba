@@ -2,6 +2,7 @@
     
 #include "DynamicTypeManager.h"
 #include "DataRecord.h"
+#include "DataField.h"
 
     // register as a nestable container
 static NestableContainer::Register reg(TpDataRecord,True);
@@ -263,11 +264,11 @@ const void * DataRecord::get (const HIID &id, ContentInfo &info, TypeId check_ti
   FailWhen( !id.size(),"null field id" );
   CFMI iter;
   info.size = 1;
-  // a single numeric index is field #
-  if( id.size() == 1 && id.front().index() >= 0 )
+  // "AidHash" followed by a single numeric index is field #
+  if( id.size() == 2 && id[0] == AidHash && id[1].index() >= 0 )
   {
     iter = fields.begin();
-    for( int i=0; i< id.front().index(); i++,iter++ )
+    for( int i=0; i<id[1]; i++,iter++ )
       if( iter == fields.end() )
         break;
     FailWhen( iter == fields.end(),"record field number out of range");

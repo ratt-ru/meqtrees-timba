@@ -160,7 +160,9 @@ const AtomicID AidNull(0),
                AidWildcard(-2),   // "*"
                AidSlash(-3),      // "/"
                AidRange(-4),      // ":"
-               AidEmpty(-5);      // "" (zero-length string)
+               AidEmpty(-5),      // "" (zero-length string)
+               AidHash(-6);       // "#"
+              
 
 //##ModelId=3C553F440092
 //##Documentation

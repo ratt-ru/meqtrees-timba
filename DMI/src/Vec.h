@@ -1,32 +1,36 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+//#  DataField.h: a container for a single object or a vector of objects
+//#
+//#  Copyright (C) 2002-2003
+//#  ASTRON (Netherlands Foundation for Research in Astronomy)
+//#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//#
+//#  This program is free software; you can redistribute it and/or modify
+//#  it under the terms of the GNU General Public License as published by
+//#  the Free Software Foundation; either version 2 of the License, or
+//#  (at your option) any later version.
+//#
+//#  This program is distributed in the hope that it will be useful,
+//#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//#  GNU General Public License for more details.
+//#
+//#  You should have received a copy of the GNU General Public License
+//#  along with this program; if not, write to the Free Software
+//#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//#
+//#  $Id$
+#ifndef DMI_DataField_h
+#define DMI_DataField_h 1
 
-#ifndef DataField_h
-#define DataField_h 1
-
-#include "DMI/Common.h"
 #include "DMI/DMI.h"
-
-#include "DMI/TypeInfo.h"
-#include "DMI/HIID.h"
-
-// BlockSet
-#include "DMI/BlockSet.h"
-// BlockableObject
-#include "DMI/BlockableObject.h"
-// NestableContainer
 #include "DMI/NestableContainer.h"
 
 #pragma type #DataField
-
-
-class DataRecord;
 
 //##ModelId=3BB317D8010B
 
 class DataField : public NestableContainer
 {
-  friend class DataRecord;
-
   public:
       //##ModelId=3C3D64DC016E
       explicit DataField (int flags = DMI::WRITE);
@@ -181,10 +185,6 @@ class DataField : public NestableContainer
     //##ModelId=3DB9347800CF
       ObjRef & prepareForPut (TypeId tid,int n);
       
-      // gets sub-record at position n, throws exception if field
-      // does not contain a DataRecord
-    //##ModelId=3DB9347A0027
-      const DataRecord * getSubRecord( bool write,int n=0 ) const;
   private:
     // Additional Private Declarations
       // verifies that index is in range
@@ -201,14 +201,14 @@ class DataField : public NestableContainer
     //##ModelId=3DB934680272
       mutable vector<int> objstate;
 
-    //##ModelId=3DB934690197
+    //##ModelId=3F5487DD0214
       TypeInfo typeinfo;  // type info for current field
 
       // for SPECIAL category types (string, HIID), this holds a vector of objects
     //##ModelId=3DB9346A0026
       void *spvec;
       // this is the address of the delete method, called to delete spvec
-    //##ModelId=3DB9346A032D
+    //##ModelId=3F5487DD024C
       TypeInfo::DeleteMethod spdelete;
     //##ModelId=3DB9346B01E4
       mutable bool spvec_modified; // flag: vector has been modified
@@ -238,7 +238,7 @@ class DataField : public NestableContainer
   private:
     // Data Members for Class Attributes
 
-      //##ModelId=3BB317E3002B
+      //##ModelId=3F5487DD028A
       TypeId mytype;
 
       //##ModelId=3C3D60C103DA
@@ -252,10 +252,10 @@ class DataField : public NestableContainer
 
     // Data Members for Associations
 
-      //##ModelId=3BEBD96601BE
+      //##ModelId=3F5487DD031B
       mutable vector<BlockSet> blocks;
 
-      //##ModelId=3BEBD9780228
+      //##ModelId=3F5487DE0143
       mutable vector<ObjRef> objects;
     //##ModelId=3DB9346801A2
     mutable BlockRef headref;

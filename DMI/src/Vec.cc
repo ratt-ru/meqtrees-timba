@@ -1,30 +1,37 @@
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-
-//	  %X% %Q% %Z% %W%
-
-
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-
+//  DataField.cc: DataField implementation
+//
+//  Copyright (C) 2002
+//  ASTRON (Netherlands Foundation for Research in Astronomy)
+//  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//  $Id$
 
 #define NC_SKIP_HOOKS 1
-#include "DMI/DynamicTypeManager.h"
-#include "DMI/DataRecord.h"
-#include "DMI/Packer.h"
-
-// DataField
-#include "DMI/DataField.h"
+#include "DataField.h"
+#include "DynamicTypeManager.h"
+#include "Packer.h"
 
 static int nullheader_data[] = {0,0};
 static SmartBlock nullheader_block( nullheader_data,sizeof(nullheader_data),DMI::NO_DELETE );
 static BlockRef nullheader(nullheader_block,DMI::EXTERNAL|DMI::LOCK|DMI::READONLY);
 static ObjRef NullRef;
 static NestableContainer::Register reg(TpDataField,True);
+
 //##ModelId=3C3D64DC016E
-
-
-// Class DataField 
-
 DataField::DataField (int flags)
   : NestableContainer(flags&DMI::WRITE!=0),
     spvec(0),mytype(0),mysize_(0),selected(False)
@@ -179,14 +186,23 @@ void DataField::resize (int newsize)
   FailWhen( !valid(),"uninitialized DataField" );
   FailWhen( !isWritable(),"field is read-only" );
   int minsize = min(mysize_,newsize);
-  mysize_ = newsize;
   if( newsize > 1 )
     scalar = False;
   if( binary_type )
     headref().resize( sizeof(int)*2 + typeinfo.size*newsize );
   else if( dynamic_type )
   {
+    // this is horribly inefficient, but we really must keep the object
+    // references locked. Hence, unlock first...
+    if( newsize>mysize_ )
+      for( vector<ObjRef>::iterator iter = objects.begin(); iter != objects.end(); iter++ )
+        iter->unlock();
+    // resize (since this involves a ref assignment)
     objects.resize(newsize);
+    // relock
+    if( newsize>mysize_ )
+      for( vector<ObjRef>::iterator iter = objects.begin(); iter != objects.end(); iter++ )
+        iter->lock();
     blocks.resize(newsize);
     objstate.resize(newsize);
     // note that when resizing upwards, this implicitly fills the empty
@@ -411,7 +427,14 @@ int DataField::toBlock (BlockSet &set) const
     if( !isWritable() )
       headref.change(DMI::READONLY);
   }
-  // push out the header block
+  // for dynamic types, check that the header block is still consistent
+  if( dynamic_type )
+  {
+    size_t hsize = sizeof(int)*(2+mysize_);
+    if( !headref.valid() || headref->size() != hsize )
+      headref.unlock().attach(new SmartBlock(hsize,DMI::ZERO),DMI::ANONWR|DMI::LOCK);
+  }
+  // fill and push out header block
   headerType() = mytype;
   headerSize() = scalar ? -mysize_ : mysize_;
   set.push(headref.copy(DMI::READONLY));
@@ -468,7 +491,7 @@ ObjRef & DataField::resolveObject (int n, int flags) const
         FailWhen(!isWritable() && flags&DMI::WRITE,"write access violation");
         objects[n].attach( DynamicTypeManager::construct(mytype),
                           (isWritable()?DMI::WRITE:DMI::READONLY)|
-                          DMI::ANON|DMI::LOCK );
+                          DMI::ANON|DMI::LOCK);
         objstate[n] = MODIFIED;
         // ignore autoprivatize since this is a new object
         return objects[n];
@@ -892,9 +915,7 @@ bool DataField::removen (int n)
   return True;
 }
 
-// Additional Declarations
 //##ModelId=3DB9347800CF
-
 ObjRef & DataField::prepareForPut (TypeId tid,int n ) 
 {
   FailWhen( !isWritable(),"field is read-only" );

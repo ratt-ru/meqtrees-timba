@@ -17,27 +17,26 @@
 // pulls in DataField.h and DataArray.h, which in turn include 
 // NestableContainer.h. 
       
-#include <Common/Thread/Mutex.h>
-#include <DMI/Common.h>
-#include <DMI/DMI.h>
-#include <DMI/TypeInfo.h>
-#include <DMI/Timestamp.h>
-#include <DMI/BlockableObject.h>
-#include <DMI/Registry.h>
-#include <DMI/HIIDSet.h>
-#include <DMI/Loki/TypeManip.h>
+#include "Common/Thread/Mutex.h"
+#include "DMI/DMI.h"
+#include "DMI/TypeInfo.h"
+#include "DMI/Timestamp.h"
+#include "DMI/BlockableObject.h"
+#include "DMI/Registry.h"
+#include "DMI/HIIDSet.h"
+#include "DMI/Loki/TypeManip.h"
 #ifndef NC_SKIP_HOOKS
-  #include <DMI/TID-DMI.h>
-  #include <DMI/TypeIterMacros.h>
+  #include "DMI/TID-DMI.h"
+  #include "DMI/TypeIterMacros.h"
 #endif
 
 // pull in type definitions from configured packages    
+// if you add DMI-aware types to a package of your own, add it here
 #ifdef HAVE_LOFAR_OCTOPUSSY
-  #include <OCTOPUSSY/TID-OCTOPUSSY.h>
+  #include "OCTOPUSSY/TID-OCTOPUSSY.h"
 #endif
-
 #ifdef HAVE_LOFAR_VISCUBE
-  #include <VisCube/TID-VisCube.h>
+  #include "VisCube/TID-VisCube.h"
 #endif
 
 // pull in AIPS++ types if AIPS++ hooks are configured
@@ -50,6 +49,9 @@
 #include <aips/Arrays/Matrix.h>
 #include <aips/Utilities/String.h>
 #endif
+
+#include <list>
+
 
 using Debug::ssprintf;
 using Loki::Int2Type;
@@ -95,8 +97,6 @@ class NestableContainer : public BlockableObject
         //##ModelId=3DB934920277
         int  size;          // # of elements
     };
-// to save compilation time, omit Hook declarations if NC_SKIP_HOOKS is defined
-
 
     //##ModelId=3C614FDE0039
     //##Documentation
@@ -265,7 +265,7 @@ class NestableContainer : public BlockableObject
 
           
           // Each hook maintains a mutex on the nestable container
-        //##ModelId=3DB934930201
+        //##ModelId=3E7081A5015D
           mutable Thread::Mutex::Lock lock;
           
           // if target is an ObjRef, returns it, checking for writability
@@ -396,6 +396,7 @@ class NestableContainer : public BlockableObject
           //## returns an invalid ref.
           ObjRef remove () const;
           
+        //##ModelId=3F5C8EBD01C4
           //##Documentation
           //## Marks the hook for "replacing". The next assignment operation
           //## will attempt to replace the element being pointed to. The 
@@ -500,6 +501,7 @@ class NestableContainer : public BlockableObject
           
           // flag: next assignment to replace current target element. This
           // is raised by the replace() method above
+        //##ModelId=3F5C8EBD016A
           mutable bool replacing;
           
       private:
@@ -510,6 +512,62 @@ class NestableContainer : public BlockableObject
           Hook & operator= (const Hook &right);
 
     };
+    
+    //##ModelId=3F549251022F
+    //##Documentation
+    //## Abstract base class for anything that needs to subscribe to
+    //## container events. See NestableContainer::subscribe() below
+    class Subscriber
+    {
+      public:
+        //##ModelId=3F5D859F0363
+        //##Documentation
+        //## Container event types
+        typedef enum
+        {
+          NC_MODIFY   = 1,    // contents modified
+          NC_DELETE   = 2     // container deleted
+        }
+        ContainerEventTypes;
+          
+        //##ModelId=3F5C8F2503AB
+        //##Documentation
+        //## This virtual method is called every time a container
+        //## event occurs
+        virtual int ncSubscriberNotify (const HIID &id, int event) = 0;
+    };
+
+    //##ModelId=3F54921B0175
+    class Subscription
+    {
+      private:
+        //##ModelId=3F5D83F3016E
+        //##Documentation
+        //## user-supplied event ID. Can be anything
+        HIID id;
+        //##ModelId=3F54929100C0
+        //##Documentation
+        //## ref to user's subscriber object
+        NestableContainer::Subscriber &subscriber;
+        //##ModelId=3F5D838600F4
+        //##Documentation
+        //## mask of subscribed events
+        int event_mask;
+
+      public:
+        //##ModelId=3F5C8F9700E4
+        Subscription (const HIID& id_, NestableContainer::Subscriber &subs, int evmask)
+          : id(id_),subscriber(subs),event_mask(evmask) {}
+      
+        //##ModelId=3F5C8FBA0243
+        //##Documentation
+        //## notifies subscriber if event matches mask
+        int notify (int event)
+        { return event&event_mask 
+                 ? subscriber.ncSubscriberNotify(id,event) : 1; }
+        
+    };
+
 
       //##ModelId=3C7F928D00C0
       NestableContainer (bool write = True);
@@ -689,7 +747,6 @@ class NestableContainer : public BlockableObject
       typedef NestableContainer::Ref NCRef;
 
   public:
-    // Additional Public Declarations
       friend class ConstHook;
       friend class Hook;
       
@@ -792,6 +849,11 @@ class NestableContainer : public BlockableObject
       //##ModelId=3C7F924300A6
       bool writable;
 
+      //##ModelId=3F5D822702D6
+      //##Documentation
+      //## list of subscribers to container events
+      std::list<Subscription> subscriptions;
+      
     // Additional Implementation Declarations
     //##ModelId=3DB9343D03AB
       typedef struct {
@@ -804,8 +866,9 @@ class NestableContainer : public BlockableObject
       } BranchEntry;
       
 #ifdef USE_THREADS
-    //##ModelId=3DB934D1008A
+    //##ModelId=3E7081A601A0
       Thread::Mutex mutex_;
+
 #endif      
 };
 
@@ -921,6 +984,7 @@ inline const NestableContainer::Hook & NestableContainer::Hook::operator & () co
   return *this;
 }
 
+//##ModelId=3F5C8EBD01C4
 inline const NestableContainer::Hook & NestableContainer::Hook::replace () const
 {
   replacing = True;
@@ -1085,7 +1149,7 @@ inline const void * NestableContainer::ConstHook::collapseIndex (ContentInfo &in
 }
 
 #ifndef NC_SKIP_HOOKS
-  #include <DMI/NC-Hooks-Templ.h>
+  #include "DMI/NC-Hooks-Templ.h"
 #endif
 
 #endif

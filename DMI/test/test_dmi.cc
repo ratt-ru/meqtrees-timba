@@ -2,6 +2,7 @@
 #include "DMI/TID-DMI.h"
 #include "DMI/DataRecord.h"
 #include "DMI/DataArray.h"
+#include "DMI/DataField.h"
 #include "DMI/BOIO.h"
 #include "DMI/NCIter.h"
     
@@ -304,6 +305,14 @@ void TestDataRecord ()
     while( !data.end() )
       data.next(0);
   }
+  cout<<"======================= testing sparse DataField\n";
+  cout<<"Checking sparse DataField\n";
+  rec["G"] <<= new DataField(TpDataArray,5);
+  rec["G"][0] <<= new DataArray(Tpint,makeLoShape(10,10));
+  rec["G"][5] <<= new DataArray(Tpint,makeLoShape(10,10));
+  cout<<"DF[0]: "<<rec["G"][0].exists()<<endl;
+  cout<<"DF[1]: "<<rec["G"][1].exists()<<endl;
+  cout<<"DF[5]: "<<rec["G"][5].exists()<<endl;
   
   cout<<"======================= testing Array<string>\n";
   DataArray &strarr = *new DataArray(Tpstring,makeLoShape(10,10),DMI::WRITE|DMI::ZERO);
