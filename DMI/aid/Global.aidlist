@@ -166,6 +166,7 @@ meqaddsource                     1354       ; from /home/noordam/LOFAR/CEP/CPA/P
 #meqcells                        1237       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cells.h:36
 meqcompare                       1258       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqCompare.h:14
 #meqcomposer                     1241       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Composer.h:29
+#meqcondeq                       1365       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/Condeq.h:29
 #meqconj                         1212       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Conj.h:29
 meqcopy                          1257       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqCopy.h:14
 #meqcos                          1243       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cos.h:29
