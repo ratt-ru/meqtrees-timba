@@ -14,8 +14,8 @@ mpich-corba.variant.conf: $(mpich) $(vbroker) $(aipspp)
 lam-corba.variant.conf:   $(lam) $(vbroker) $(aipspp)
 insure.variant.conf:	  --with-insure $(aipspp)
 insure.variant.make:	  QA=insure
-scampi.variant.conf:	  $(scampi) $(aipspp)
-scampi-opt.variant.conf:  $(scampi) $(optimize) $(aipspp)
+scampi.variant.conf:	  $(scampi) 
+scampi-opt.variant.conf:  $(scampi) $(optimize) 
 mpich-prof.variant.conf:  $(mpich) --enable-mpi-profiler $(aipspp)
 
 profile.var:		   --with-optimize='-pg -O4' --with-compiletools
