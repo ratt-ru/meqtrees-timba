@@ -282,4 +282,8 @@ AC_CHECK_FILE([$lfr_find], [lfr_var=yes], [lfr_var=no])
   AC_SUBST(CPPFLAGS)
   AC_SUBST(LDFLAGS)
 
+# Check for endianness. 
+# If the system is big-endian WORDS_BIGENDIAN will be defined. 
+  AC_C_BIGENDIAN
+
 ])
