@@ -254,7 +254,7 @@ if test "$bglmpich_prefix" = "no" ; then
   enable_bglmpich=no
 else
   if test "$bglmpich_prefix" = "yes"; then
-    bglmpich_prefix=/bgl/BlueLight/floor/bglsys]
+    bglmpich_prefix=/bgl/BlueLight/ppcfloor/bglsys]
 [
   fi
   enable_bglmpich=yes
