@@ -183,7 +183,7 @@ public:
     //##ModelId=400E53560099
   void makeWritable () 
   { 
-    FailWhen(!itsArray.isWritable(),"Vells: r/w access violation");
+//    FailWhen(!itsArray.isWritable(),"Vells: r/w access violation");
     if( itsArray.valid() && !itsArray.isWritable() )
       initArrayPointers(0,DMI::PRIVATIZE|DMI::WRITE);
   }

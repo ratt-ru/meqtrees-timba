@@ -36,6 +36,7 @@ InitDebugContext(Node,"MeqNode");
 
 using Debug::ssprintf;
 
+
 //##ModelId=3F5F43E000A0
 Node::Node (int nchildren,const HIID *labels,int nmandatory)
     : child_labels_(labels),
@@ -242,10 +243,18 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // set node index, if specified
   if( rec[FNodeIndex].exists() )
     node_index_ = rec[FNodeIndex].as<int>();
-  // setup child nodes, if specified
-  if( rec[FChildren].exists() )
+  
+  // get children spec. If this is a single boolean False, then ignore
+  DataRecord::Hook hchildren(rec,FChildren);
+  if( hchildren.type() == Tpbool && hchildren.size() == 1 &&
+      !hchildren.as<bool>() )
   {
-    ObjRef ref = rec[FChildren].remove();
+    cdebug(2)<<"Children=[False], skipping child creation"<<endl;
+  }
+  // Not [F}, so go on to process children
+  else if( hchildren.exists() )
+  {
+    ObjRef ref = hchildren.remove();
     // children specified via a record
     if( ref->objectType() == TpDataRecord )
     {
@@ -462,17 +471,35 @@ void Node::processChildSpec (NestableContainer &children,const HIID &chid,const 
   if( spec_type == TpDataRecord )
   {
     cdebug(4)<<"  child "<<id<<" specified by init record"<<endl;
-    int index;
-    ObjRef child_initrec = children[id].remove();
-    try
+    DataRecord::Ref child_initrec = children[id].remove();
+    // check if named child already exists
+    string name = child_initrec[FName].as<string>("");
+    int index = forest_->findIndex(name);
+    if( index >= 0 )
     {
-      cdebug(2)<<"  creating child "<<id<<endl;
-      Node &child = forest_->create(index,child_initrec.ref_cast<DataRecord>());
+      cdebug(4)<<"  child already exists as #"<<index<<endl;
+      // If link_or_create=T, we allow this, otherwise, throw exception
+      if( !child_initrec[FLinkOrCreate].as<bool>(false) )
+      {
+        Throw("Failed to create child node "+id.toString()+": a node named '"
+              +name+"' already exists");
+      }
+      Node &child = forest_->get(index);
+      cdebug(2)<<"  child "<<id<<"="<<name<<" relinked as #"<<index<<endl;
       addChild(chid,&child);
     }
-    catch( std::exception &exc )
+    else
     {
-      Throw("Failed to create child node "+id.toString()+": "+exc.what());
+      try
+      {
+        cdebug(2)<<"  creating child "<<id<<endl;
+        Node &child = forest_->create(index,child_initrec.ref_cast<DataRecord>());
+        addChild(chid,&child);
+      }
+      catch( std::exception &exc )
+      {
+        Throw("Failed to create child node "+id.toString()+": "+exc.what());
+      }
     }
   }
   else // not an init record
@@ -680,7 +707,7 @@ int Node::cacheResult (const Result::Ref &ref,int retcode)
   cache_result_.copy(ref);
   wstate()[FCacheResult].replace() <<= cache_result_.deref_p();
   wstate()[FCacheResultCode].replace() = cache_retcode_ = retcode;
-  cdebug(3)<<"  caching result with code "<<ssprintf("%x",retcode)<<endl;
+  cdebug(3)<<"  caching result with code "<<ssprintf("0x%x",retcode)<<endl;
   // publish current state to all result subscribers
   ResultSubscribers::const_iterator iter = result_subscribers_.begin();
   for( ; iter != result_subscribers_.end(); iter++ )
@@ -874,7 +901,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   for( int i=0; i<numChildren(); i++ )
   {
     int childcode = getChild(i).execute(child_results[i],req);
-    cdebug(4)<<"    child "<<i<<" returns code "<<childcode<<endl;
+    cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
     retcode |= childcode;
     if( !(childcode&RES_WAIT) && childcode&RES_FAIL )
     {
@@ -903,7 +930,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
       }
     }
   }
-  cdebug(3)<<"  cumulative result code is "<<retcode<<endl;
+  cdebug(3)<<"  cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
   return retcode;
 } 
 
@@ -989,7 +1016,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     stage = "checking cache";
     if( getCachedResult(retcode,ref,req0) )
     {
-        cdebug(3)<<"  cache hit, returning cached code "<<retcode<<" and result:"<<endl<<
+        cdebug(3)<<"  cache hit, returning cached code "<<ssprintf("0x%x",retcode)<<" and result:"<<endl<<
                    "    "<<ref->sdebug(DebugLevel-1,"    ")<<endl;
         return retcode;
     }
@@ -1040,7 +1067,8 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       int code = getResult(ref,child_results,req,newreq);
       // default dependency mask added to return code
       retcode |= code | getDependMask();
-      cdebug(3)<<"  getResult() returns code "<<code<<", cumulative "<<retcode<<endl;
+      cdebug(3)<<"  getResult() returns code "<<ssprintf("0x%x",code)<<
+          ", cumulative "<<ssprintf("0x%x",retcode)<<endl;
       // a WAIT is returned immediately with no valid result expected
       if( code&RES_WAIT )
         return retcode;
@@ -1060,13 +1088,13 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     else // no cells, ensure an empty result
     {
       ref <<= new Result(0);
-      cdebug(3)<<"  empty result. Cumulative result code is "<<retcode<<endl;
+      cdebug(3)<<"  empty result. Cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
       return cacheResult(ref,retcode) | RES_UPDATED;
     }
     // OK, at this point we have a valid Result to return
     if( DebugLevel>=3 ) // print it out
     {
-      cdebug(3)<<"  cumulative result code is "<<retcode<<endl;
+      cdebug(3)<<"  cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
       cdebug(3)<<"  result is "<<ref.sdebug(DebugLevel-1,"    ")<<endl;
       if( DebugLevel>3 && ref.valid() )
       {

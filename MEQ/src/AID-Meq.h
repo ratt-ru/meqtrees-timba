@@ -113,6 +113,11 @@ const int AidConfig_int = -1373;
 const AtomicID AidContagious(-1364);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:34
 const int AidContagious_int = -1364;
 #endif
+#ifndef _defined_id_AidCreate
+#define _defined_id_AidCreate 1
+const AtomicID AidCreate(-1332);                  // from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:11
+const int AidCreate_int = -1332;
+#endif
 #ifndef _defined_id_AidDataset
 #define _defined_id_AidDataset 1
 const AtomicID AidDataset(-1452);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/RequestId.h:6
@@ -312,6 +317,11 @@ const int AidLT_int = -1436;
 #define _defined_id_AidLine 1
 const AtomicID AidLine(-1359);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ResultSet.h:33
 const int AidLine_int = -1359;
+#endif
+#ifndef _defined_id_AidLink
+#define _defined_id_AidLink 1
+const AtomicID AidLink(-1460);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:40
+const int AidLink_int = -1460;
 #endif
 #ifndef _defined_id_AidList
 #define _defined_id_AidList 1
@@ -557,6 +567,11 @@ const int AidNum_int = -1177;
 #define _defined_id_AidOper 1
 const AtomicID AidOper(-1435);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
 const int AidOper_int = -1435;
+#endif
+#ifndef _defined_id_AidOr
+#define _defined_id_AidOr 1
+const AtomicID AidOr(-1461);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:40
+const int AidOr_int = -1461;
 #endif
 #ifndef _defined_id_AidOrigin
 #define _defined_id_AidOrigin 1

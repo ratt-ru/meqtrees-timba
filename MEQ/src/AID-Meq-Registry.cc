@@ -205,6 +205,9 @@ BlockableObject * __construct_MeqReqMux (int n) { return n>0 ? new Meq::ReqMux [
         AtomicID::registerId(-1452,"dataset")+
         AtomicID::registerId(-1331,"resolve")+
         AtomicID::registerId(-1091,"init")+
+        AtomicID::registerId(-1460,"link")+
+        AtomicID::registerId(-1461,"or")+
+        AtomicID::registerId(-1332,"create")+
         AtomicID::registerId(-1216,"meqfunction")+
         TypeInfoReg::addToRegistry(-1216,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1216,__construct_MeqFunction)+

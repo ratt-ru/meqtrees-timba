@@ -37,12 +37,17 @@
 #pragma types #Meq::Node
 #pragma aid Add Clear Known Active Gen Dep Deps Symdep Symdeps Mask Masks
 #pragma aid Parm Value Resolution Domain Dataset Resolve Init
+#pragma aid Link Or Create
     
 
 namespace Meq {
 
 class Forest;
 class Request;
+
+// flag for child init-records, specifying that child node may be directly
+// libnked to if it already exists
+const HIID FLinkOrCreate = AidLink|AidOr|AidCreate;
 
 const HIID FDependMask = AidDep|AidMask;
 const HIID FKnownSymDeps = AidKnown|AidSymdeps;
