@@ -5,41 +5,13 @@
 namespace Octoproxy 
 {
   
-//##ModelId=3E08FF0D035E
-class ProxyWP : public WorkProcess
-{
-  public:
-    //##ModelId=3E08FFD30196
-    ProxyWP(AtomicID wpid);
-  
-  
-  protected:
-
-  private:
-
-    //##ModelId=3E08FF12002C
-    ProxyWP();
-
-    //##ModelId=3E08FF120032
-    ProxyWP& operator=(const ProxyWP& right);
-    //##ModelId=3E08FF12002E
-    ProxyWP(const ProxyWP& right);
-};
-
-ProxyWP::ProxyWP (AtomicID wpid)
-    : WorkProcess(wpid)
-{
-// disable polling of this WP, since all dequeue operations will be
-// handled by the main thread on our behalf
-  disablePolling();
-}
-  
 Identity::Identity (AtomicID wpid)
 {
   FailWhen(!Dispatcher::dispatcher,"OCTOPUSSY dispatcher not initialized");
   // instantiate proxy and attach to Dispatcher
   proxy <<= new ProxyWP(wpid);
-  Dispatcher::dispatcher->attach(proxy.copy(DMI::READWRITE));
+  WPRef ref(proxy,DMI::COPYREF|DMI::WRITE);
+  Dispatcher::dispatcher->attach(ref);
 }
 
 

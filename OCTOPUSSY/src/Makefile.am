@@ -9,6 +9,7 @@ liboctopussy_la_SOURCES = Dispatcher.cc  Message.cc  MsgAddress.cc  \
   GWClientWP.cc GWServerWP.cc GatewayWP.cc MTGatewayWP.cc MTGatewayWP2.cc \
   LoggerWP.cc LatencyVector.cc OctopussyConfig.cc \
   Subscriptions.cc ReflectorWP.cc AppRegistry.cc AppManagerWP.cc \
+  Octoproxy.cc OctoproxyWP.cc \
   AID-OCTOPUSSY-Registry.cc
   
 
