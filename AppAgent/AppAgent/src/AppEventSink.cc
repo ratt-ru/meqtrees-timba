@@ -23,6 +23,8 @@
 #include "AppEventSink.h"
 #include "AID-AppAgent.h"
 
+using namespace AppEvent;
+
 //##ModelId=3E4100E40257
 AppEventSink::AppEventSink(const HIID &initf)
   : AppAgent(initf)

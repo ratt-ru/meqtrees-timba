@@ -28,10 +28,31 @@
 #pragma aidgroup AppAgent
 #pragma aid AppAgent Event Text
 
+namespace AppEvent
+{
+  //##ModelId=3E40FE3E03B7
+  //##Documentation
+  //## This defines the return codes for the getEvent/hasEvent methods,
+  //## as well as wait-states, etc.
+  typedef enum {
+    SUCCESS   = 1,
+    WAIT      = 0,      // no event pending, must wait
+    OUTOFSEQ  = -1,     // request is out of sequence (see below)
+    CLOSED    = -2,     // event stream is closed or disconnected
+    ERROR     = -999,   // generic error code
+
+    // defines values for the wait argument to getEvent() below
+    // WAIT=0 already defined above
+    NOWAIT    = -1,   
+    BLOCK     = 1
+
+  } EventCodes;
+};
+
 namespace AppEventSinkVocabulary
 {
-}
-    
+};
+  
 //##ModelId=3E394D4C0195
 //##Documentation
 //## AppAgent is an abstract interface class for an "application agent". An
@@ -44,24 +65,6 @@ namespace AppEventSinkVocabulary
 class AppEventSink : public AppAgent
 {
   public:
-    //##ModelId=3E40FE3E03B7
-    //##Documentation
-    //## This defines the return codes for the getEvent/hasEvent methods,
-    //## as well as wait-states, etc.
-    typedef enum {
-        SUCCESS   = 1,
-        WAIT      = 0,      // no event pending, must wait
-        OUTOFSEQ  = -1,     // request is out of sequence (see below)
-        CLOSED    = -2,     // event stream is closed or disconnected
-        ERROR     = -999,   // generic error code
-
-        // defines values for the wait argument to getEvent() below
-        // WAIT=0 already defined above
-        NOWAIT    = -1,   
-        BLOCK     = 1
-            
-    } ReturnCodes;
-    
     //##ModelId=3E410DB50060
     DefineRefTypes(AppEventSink,Ref);
   
@@ -102,7 +105,7 @@ class AppEventSink : public AppAgent
     //##            could be indefinitely blocked by a non-matching one.
     //##            In this case, an exception should be thrown (instead of
     //##            waiting forever).
-      virtual int getEvent (HIID &id,ObjRef &data,const HIID &mask,int wait = AppEventSink::WAIT);
+      virtual int getEvent (HIID &id,ObjRef &data,const HIID &mask,int wait = AppEvent::WAIT);
 
     //##ModelId=3E394D4C02C1
     //##Documentation
@@ -124,7 +127,7 @@ class AppEventSink : public AppAgent
       virtual void flush ();
       
     //##ModelId=3E3E744E0258
-      int getEvent (HIID &id, DataRecord::Ref &data, const HIID &mask, int wait = AppEventSink::WAIT);
+      int getEvent (HIID &id, DataRecord::Ref &data, const HIID &mask, int wait = AppEvent::WAIT);
 
     //##ModelId=3E3E747A0120
       void postEvent (const HIID &id, const DataRecord::Ref & data);
@@ -136,11 +139,11 @@ class AppEventSink : public AppAgent
     //##Documentation
     //## Alias for getEvent() with an empty mask, which retrieves the next
     //## pending event whatever it is.
-      int getEvent(HIID &id, ObjRef &data, int wait = AppEventSink::WAIT)
+      int getEvent(HIID &id, ObjRef &data, int wait = AppEvent::WAIT)
       { return getEvent(id,data,HIID(),wait); }
       
     //##ModelId=3E3E74620245
-      int getEvent(HIID &id, DataRecord::Ref &data, int wait = AppEventSink::WAIT)
+      int getEvent(HIID &id, DataRecord::Ref &data, int wait = AppEvent::WAIT)
       { return getEvent(id,data,HIID(),wait); }
       
     //##ModelId=3E394D4C02DE

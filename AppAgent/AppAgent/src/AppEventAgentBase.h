@@ -3,26 +3,12 @@
     
 #include <AppAgent/AppAgent.h>
 #include <AppAgent/AppEventSink.h>
+class DataRecord;
     
 //##ModelId=3E4147EF00D6
 class AppEventAgentBase : public AppAgent
 {
   public:
-    //##ModelId=3E4150BC00F9
-    typedef enum
-    {
-      // import some symbols from AppEventSink
-      SUCCESS   = AppEventSink::SUCCESS,
-      WAIT      = AppEventSink::WAIT,     // no event pending, must wait
-      OUTOFSEQ  = AppEventSink::OUTOFSEQ, // request is out of sequence (see below)
-      CLOSED    = AppEventSink::CLOSED,   // event stream is closed or disconnected
-      ERROR     = AppEventSink::ERROR,    // generic error code
-          
-      NOWAIT    = AppEventSink::NOWAIT, 
-      BLOCK     = AppEventSink::BLOCK,  
-          
-    } ReturnCodes;
-    
     //##ModelId=3E41147B0049
     //##Documentation
     //## Agent initialization method. Called by the application to initialize
@@ -47,7 +33,11 @@ class AppEventAgentBase : public AppAgent
 
     //##ModelId=3E4148900162
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
-
+    
+    //##ModelId=3E42967E027F
+    static const DataRecord & receiveEventList ();
+    //##ModelId=3E4296940160
+    static const DataRecord & postEventList ();
 
   protected:
     //##ModelId=3E414887001F
@@ -62,15 +52,20 @@ class AppEventAgentBase : public AppAgent
     //##ModelId=3E414AC00074
     const AppEventSink & sink() const;
     
+    //##ModelId=3E4295C503C9
+    static void fillReceiveEventList (DataRecord &list);
+    //##ModelId=3E42973F0398
+    static void fillPostEventList    (DataRecord &list);
+    
   private:
     //##ModelId=3E41495203E0
     AppEventAgentBase (const AppEventAgentBase& right);
-
     //##ModelId=3E41495303B7
     AppEventAgentBase& operator= (const AppEventAgentBase& right);
     //##ModelId=3E414C0A00D4
     AppEventAgentBase();
     
+
     //##ModelId=3E424AAC0172
     AppEventSink::Ref sink_;
 

@@ -1,4 +1,5 @@
 #include "AppEventAgentBase.h"
+#include <DMI/DataRecord.h>
 
 //##ModelId=3E414887001F
 AppEventAgentBase::AppEventAgentBase (const HIID &initf)
@@ -64,4 +65,27 @@ string AppEventAgentBase::sdebug (int detail, const string &prefix, const char *
   }
   
   return out;
+}
+//##ModelId=3E4295C503C9
+void AppEventAgentBase::fillReceiveEventList (DataRecord &)
+{
+}
+
+//##ModelId=3E42973F0398
+void AppEventAgentBase::fillPostEventList (DataRecord &)
+{
+}
+
+//##ModelId=3E42967E027F
+const DataRecord & AppEventAgentBase::receiveEventList ()
+{
+  static DataRecord dum;
+  return dum;
+}
+
+//##ModelId=3E4296940160
+const DataRecord & AppEventAgentBase::postEventList ()
+{
+  static DataRecord dum;
+  return dum;
 }

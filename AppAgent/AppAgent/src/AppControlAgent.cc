@@ -1,6 +1,8 @@
 #include "AppControlAgent.h"
 
 using namespace AppControlAgentVocabulary;
+using namespace AppState;
+using namespace AppEvent;
     
 //##ModelId=3E40F90F02BA
 bool AppControlAgent::init (bool waitstart, const DataRecord &data)
@@ -21,7 +23,7 @@ bool AppControlAgent::init (bool waitstart, const DataRecord &data)
       DataRecord::Ref dum;
       while( state() == INIT )
       {
-        int res = getCommand(id,dum,AppEventSink::BLOCK);
+        int res = getCommand(id,dum,AppEvent::BLOCK);
         FailWhen( res != SUCCESS,"getCommand() failed while waiting for start event");
         cdebug(2)<<"got command "<<id<<", state is now "<<stateString()<<endl;
       }
@@ -159,7 +161,7 @@ int AppControlAgent::setErrorState (const string& msg)
 {
   Thread::Mutex::Lock lock(mutex_);
   errmsg_ = msg;
-  return state_ = ERROR;
+  return state_ = AppState::ERROR;
 }
 
 //##ModelId=3E394E960305
@@ -175,11 +177,11 @@ string AppControlAgent::stateString () const
   Thread::Mutex::Lock lock(mutex_);
   switch( state() )
   {
-    case INIT:     out = "INIT";     break;
-    case RUNNING:  out = "RUNNING";  break;
-    case STOPPED:  out = "STOPPED";  break;
-    case HALTED:   out = "HALTED";   break;
-    case ERROR:    out = "ERROR: " + errmsg_; break;
+    case INIT:            out = "INIT";     break;
+    case RUNNING:         out = "RUNNING";  break;
+    case STOPPED:         out = "STOPPED";  break;
+    case HALTED:          out = "HALTED";   break;
+    case AppState::ERROR: out = "ERROR: " + errmsg_; break;
   }
   if( isPaused() )
     out += "(PAUSED)";

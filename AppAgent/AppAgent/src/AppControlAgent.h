@@ -7,7 +7,37 @@
 
 #pragma aid App Control Parameters Event Init Start Stop Pause Resume Halt
 #pragma aid Always Wait Start Throw Error
+
+namespace AppEvent 
+{
+  //##ModelId=3E40FDEA0225
+  typedef enum
+  {
+    // additional return codes for AppControlAgent::getCommand()
+    NEWSTATE =     100,   // got state-changing command
+    PAUSED   =     -100,  // got pause command
+    RESUMED  =     -101,  // got resume command
+
+  } AppControl_EventCodes;
+};
     
+namespace AppState
+{
+  //##ModelId=3E40FDEA018D
+  typedef enum 
+  {
+    // standard states
+    // subclasses may extend this with their own states. The convention is that
+    // operational states are >0, and error/stopped states are <0
+    INIT    =     0,   // initializing (on startup/after Init/Reinit event)
+    RUNNING =     1,   // application is running
+    STOPPED =     -1,  // stopped 
+    HALTED  =     -2,  // halted
+    ERROR   =     AppEvent::ERROR
+        
+  } States;
+};
+
 namespace AppControlAgentVocabulary
 {
   using namespace AppEventSinkVocabulary;
@@ -27,36 +57,13 @@ namespace AppControlAgentVocabulary
       ControlEventMask = AidApp|AidControl|AidWildcard;
       
 };
+
     
 //##ModelId=3DFF2FC1009C
 class AppControlAgent : public AppEventAgentBase
 {
   public:
-    //##ModelId=3E40FDEA0225
-    typedef enum
-    {
-      // additional return codes from getCommand()
-      NEWSTATE =     100,   // got state-changing command
-      PAUSED   =     -100,  // got pause command
-      RESUMED  =     -101,  // got resume command
-
-    } ReturnCodes;
-    
-    //##ModelId=3E40FDEA018D
-    typedef enum 
-    {
-      // standard states
-      // subclasses may extend this with their own states. The convention is that
-      // operational states are >0, and error/stopped states are <0
-      INIT    =     0,   // initializing (on startup/after Init/Reinit event)
-      RUNNING =     1,   // application is running
-      STOPPED =     -1,  // stopped 
-      HALTED  =     -2,  // halted
-      // ERROR   already defined above
-
-    } States;
-
-    
+      
     //##ModelId=3E40EDC3036F
     explicit AppControlAgent (const HIID &initf = AppControlAgentVocabulary::FControlParams)
         : AppEventAgentBase(initf) {}
@@ -76,10 +83,19 @@ class AppControlAgent : public AppEventAgentBase
     virtual bool init (bool waitstart = False, const DataRecord &data = DataRecord() );
 
     //##ModelId=3E3957E10329
-    virtual int getCommand (HIID &id,DataRecord::Ref &data,int wait = AppEventSink::WAIT);
+    virtual int getCommand (HIID &id,DataRecord::Ref &data,int wait = AppEvent::WAIT);
     
     //##ModelId=3E4112CC0139
     virtual int hasCommand() const;
+    
+    //##ModelId=3E4274C60015
+    //##Documentation
+    //## Posts an event on behalf of the application.
+    virtual void postEvent(const HIID &id, const ObjRef &data = ObjRef());
+    //##ModelId=3E4274C601C8
+    void postEvent(const HIID &id, const DataRecord::Ref &data);
+    //##ModelId=3E4274C60230
+    void postEvent(const HIID &id, const string &text);
 
     //##ModelId=3E394E080055
     //##Documentation
@@ -102,18 +118,6 @@ class AppControlAgent : public AppEventAgentBase
     
     //##ModelId=3E40FEA700DF
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
-    //##ModelId=3E4274C60015
-    //##Documentation
-    //## Posts an event on behalf of the application.
-    virtual void postEvent(const HIID &id, const ObjRef &data = ObjRef());
-
-
-    //##ModelId=3E4274C601C8
-    void postEvent(const HIID &id, const DataRecord::Ref &data);
-
-  
-    //##ModelId=3E4274C60230
-    void postEvent(const HIID &id, const string &text);
 
   protected:
     //##ModelId=3E3A9E520156
