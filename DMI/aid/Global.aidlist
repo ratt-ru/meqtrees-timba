@@ -242,6 +242,7 @@ meqaddsource                     1354       ; from /home/noordam/LOFAR/CEP/CPA/P
 #meqarg                          1526       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Arg.h:29
 #meqasin                         1505       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/ASin.h:29
 #meqatan                         1512       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/ATan.h:29
+#meqatan2                        1535       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Atan2.h:29
 #meqceil                         1520       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Ceil.h:30
 meqcells                         1237       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cells.h:36
 meqcompare                       1258       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqCompare.h:14
@@ -272,9 +273,13 @@ meqlsm_q                         1350       ; from /home/noordam/LOFAR/CEP/CPA/P
 meqlsm_u                         1351       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqLSM_U.h:14
 meqlsm_v                         1352       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqLSM_V.h:14
 meqm2uvw                         1360       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqM2uvw.h:14
+#meqmax                          1530       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Max.h:29
+#meqmean                         1528       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Mean.h:29
 #meqmergeflags                   1437       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MergeFlags.h:30
+#meqmin                          1532       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Min.h:29
 meqmodres                        1447       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ModRes.h:31
 #meqmultiply                     1227       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Multiply.h:29
+#meqnelements                    1533       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Nelements.h:29
 meqnode                          1242       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:34
 #meqnorm                         1527       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Norm.h:29
 #meqparm                         1244       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Parm.h:35
@@ -282,6 +287,7 @@ meqnode                          1242       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 #meqpolar                        1503       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Polar.h:30
 meqpolc                          1407       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Polc.h:32
 meqpolreptocomplex               1501       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqNodes/src/PolRepToComplex.h:30
+#meqposdiff                      1534       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Posdiff.h:29
 #meqpow                          1214       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Pow.h:29
 #meqpow2                         1513       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Pow2.h:29
 #meqpow3                         1514       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Pow3.h:29
@@ -298,6 +304,7 @@ meqpredictsource_xx              1343       ; from /home/noordam/LOFAR/CEP/CPA/P
 meqpredictsource_xy              1344       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_XY.h:14
 meqpredictsource_yx              1345       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_YX.h:14
 meqpredictsource_yy              1346       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqPredictSource_YY.h:14
+#meqproduct                      1529       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Product.h:29
 #meqreal                         1522       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Real.h:29
 meqreqmux                        1443       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqMux.h:30
 #meqreqseq                       1478       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqSeq.h:30
@@ -319,6 +326,7 @@ meqspigot                        1330       ; from /home/oms/LOFAR/CEP/CPA/AppAg
 #meqstatpointsourcedft           1468       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/StatPointSourceDFT.h:30
 #meqsubtract                     1232       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Subtract.h:29
 meqsubtractsource                1347       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqSubtractSource.h:14
+#meqsum                          1531       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Sum.h:29
 #meqtan                          1511       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Tan.h:29
 #meqtanh                         1509       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Tanh.h:29
 #meqtime                         1225       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Time.h:29
