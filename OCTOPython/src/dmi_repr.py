@@ -24,7 +24,7 @@ def str_float (x,prec=None):
     
 def str_complex (x,prec=None):
   if prec is None:
-    return ''.join(str(x.real),'+',str(x.imag),'i');
+    return ''.join((str(x.real),'+',str(x.imag),'i'));
   else:
     return "%.*g+%*.gi" % (prec,x.real,prec,x.imag);
 

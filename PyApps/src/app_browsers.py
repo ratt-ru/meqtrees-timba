@@ -55,12 +55,12 @@ class HierBrowser (object):
 #      print args;
       # insert item at end of parent's content list (if any)
       parent_content = getattr(parent,'_content_list',None);
-      if parent_content is not None:
+      if parent_content:
         QListViewItem.__init__(self,parent,parent_content[-1],str(key),'',str(value));
         parent_content.append(self);
       else:
         QListViewItem.__init__(self,parent,str(key),'',str(value));
-        parent._content_list = [];
+        parent._content_list = [self];
       # set viewable and content attributes
       self._viewable  = False;
       self._content   = None;

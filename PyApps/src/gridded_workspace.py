@@ -377,7 +377,7 @@ class GridCell (object):
     if state is None:
       state = self.is_pinned();
     self._menu.setItemChecked(pinid,state);
-    self._menu.changeItem(pindid,(state and "Unpin") or "Pin");
+    self._menu.changeItem(pinid,(state and "Unpin") or "Pin");
     
   # highlights a cell
   # pass in a QColor, or True for default color, or False value to disable highlights
