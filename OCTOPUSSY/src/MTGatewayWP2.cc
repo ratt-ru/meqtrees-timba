@@ -51,7 +51,7 @@ int MTGatewayWP::readyForData ( const PacketHeader &hdr,BlockSet &bset )
   read_buf_size = hdr.content;
   if( read_buf_size > MaxBlockSize )
   {
-    lprintf(1,LogWarning,"incoming block too big (%d), skipping\n",read_buf_size);
+    lprintf(1,AidLogWarning,"incoming block too big (%d), skipping\n",read_buf_size);
     return requestResync();
   }
   nread = 0;
@@ -112,7 +112,7 @@ void * MTGatewayWP::readerThread ()
         {
           // on read error, just commit harakiri. GWClient/ServerWP will
           // take care of reopening a connection, eventually
-          lprintf(1,LogError,"error on socket read(): %s. Aborting.\n",sock->errstr().c_str());
+          lprintf(1,AidLogError,"error on socket read(): %s. Aborting.\n",sock->errstr().c_str());
           shutdown();
           return 0; 
         }
@@ -167,7 +167,7 @@ void * MTGatewayWP::readerThread ()
           if( read_junk )
           { 
             // got any junk before it? report it
-            lprintf(2,LogWarning,"%d junk bytes before header were discarded\n",read_junk);
+            lprintf(2,AidLogWarning,"%d junk bytes before header were discarded\n",read_junk);
             read_junk = 0;
           }
           switch( header.type )
@@ -188,7 +188,7 @@ void * MTGatewayWP::readerThread ()
                 // to do later
                 break;
             default:
-                lprintf(2,LogWarning,"unknown packet type %d, ignoring\n",header.type);
+                lprintf(2,AidLogWarning,"unknown packet type %d, ignoring\n",header.type);
           }
         } // end else header is valid
       } // end if( readState() == HEADER )
@@ -220,7 +220,7 @@ void * MTGatewayWP::readerThread ()
             
             if( bset.size() != tmsgsize )
             { // major oops
-              lprintf(1,LogWarning,"expected %d blocks, got %d, discarding message\n",tmsgsize,bset.size());
+              lprintf(1,AidLogWarning,"expected %d blocks, got %d, discarding message\n",tmsgsize,bset.size());
               bset.clear();
             }
             else
@@ -268,7 +268,7 @@ void * MTGatewayWP::readerThread ()
   }
   catch( std::exception &exc )
   {
-    lprintf(0,LogError,"Reader thread %d terminated with exception %s",(int)Thread::self(),exc.what());
+    lprintf(0,AidLogError,"Reader thread %d terminated with exception %s",(int)Thread::self(),exc.what());
     shutdown();
   }
 
@@ -281,7 +281,7 @@ void MTGatewayWP::reportWriteError ()
 {
   // on write error, just commit harakiri. GWClient/ServerWP will
   // take care of reopening a connection eventually
-  lprintf(1,LogError,"error on socket write(): %s. Aborting.\n",sock->errstr().c_str());
+  lprintf(1,AidLogError,"error on socket write(): %s. Aborting.\n",sock->errstr().c_str());
   shutdown();
 }
 

@@ -188,7 +188,7 @@ int GWClientWP::receive (MessageRef& mref)
       string host = msg[AidHost];
       int port = msg[AidPort];
       Connection &cx = addConnection(host,port,type);
-      lprintf(2,LogNormal,"adding %s:%d to connection list",host.c_str(),port);
+      lprintf(2,AidLogNormal,"adding %s:%d to connection list",host.c_str(),port);
       if( state() != STOPPED )
         tryConnect(cx);
     }
@@ -264,9 +264,9 @@ int GWClientWP::receive (MessageRef& mref)
       const string &host = msg[AidHost];
       int port = msg[AidPort];
       if( removeConnection(host,port) )
-        lprintf(2,LogNormal,"removed duplicate connection %s:%d",host.c_str(),port);
+        lprintf(2,AidLogNormal,"removed duplicate connection %s:%d",host.c_str(),port);
 //      else
-//        lprintf(2,LogWarning,"%s:%d not known, ignoring [%s]",
+//        lprintf(2,AidLogWarning,"%s:%d not known, ignoring [%s]",
 //            host.c_str(),port,msg.sdebug(1).c_str());
     }
   }

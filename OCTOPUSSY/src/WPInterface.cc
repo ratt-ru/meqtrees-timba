@@ -343,7 +343,7 @@ void * WPInterface::workerThread ()
   }
   catch( std::exception &exc )
   {
-    lprintf(0,LogFatal,"worker thread %d terminated with exception: %s",(int)Thread::self(),exc.what());
+    lprintf(0,AidLogFatal,"worker thread %d terminated with exception: %s",(int)Thread::self(),exc.what());
   }
   return 0;
 }
@@ -443,7 +443,7 @@ void WPInterface::do_init ()
       init(); 
     }
     catch(std::exception &exc) {
-      lprintf(0,LogFatal,"caught exception in init(): %s; shutting down",exc.what());
+      lprintf(0,AidLogFatal,"caught exception in init(): %s; shutting down",exc.what());
       dsp()->detach(this,True);
     }
   }
@@ -480,7 +480,7 @@ bool WPInterface::do_start ()
       raiseNeedRepoll( start() );
     }
     catch(std::exception &exc) {
-      lprintf(0,LogFatal,"caught exception in start(): %s; shutting down",exc.what());
+      lprintf(0,AidLogFatal,"caught exception in start(): %s; shutting down",exc.what());
       dsp()->detach(this,True);
       return False;
     }
@@ -533,7 +533,7 @@ void WPInterface::do_stop ()
       stop();
     }
     catch(std::exception &exc) {
-      lprintf(0,LogError,"caught exception in stop(): %s; ignoring",exc.what());
+      lprintf(0,AidLogError,"caught exception in stop(): %s; ignoring",exc.what());
     }
   }
   else  
@@ -598,7 +598,7 @@ bool WPInterface::do_poll (ulong tick)
       setNeedRepoll( poll(tick) );
     }
     catch(std::exception &exc) {
-      lprintf(2,LogError,"caught exception in poll(): %s; ignoring",exc.what());
+      lprintf(2,AidLogError,"caught exception in poll(): %s; ignoring",exc.what());
     }
   }
   else  
@@ -653,7 +653,7 @@ bool WPInterface::do_poll (ulong tick)
           res = timeout(to_id);
         }
         catch(std::exception &exc) {
-          lprintf(2,LogError,"caught exception in timeout(): %s; ignoring",exc.what());
+          lprintf(2,AidLogError,"caught exception in timeout(): %s; ignoring",exc.what());
         }
       }
       else  
@@ -675,7 +675,7 @@ bool WPInterface::do_poll (ulong tick)
             res = input(fd,flags);
           }
           catch(std::exception &exc) {
-            lprintf(2,LogError,"caught exception in input(): %s; ignoring",exc.what());
+            lprintf(2,AidLogError,"caught exception in input(): %s; ignoring",exc.what());
           }
         }
         else  
@@ -696,7 +696,7 @@ bool WPInterface::do_poll (ulong tick)
           res = signal(signum);
         }
         catch(std::exception &exc) {
-          lprintf(2,LogError,"caught exception in signal(): %s; ignoring",exc.what());
+          lprintf(2,AidLogError,"caught exception in signal(): %s; ignoring",exc.what());
         }
       }
       else  
@@ -727,7 +727,7 @@ bool WPInterface::do_poll (ulong tick)
         res = receive(qe.mref);
       }
       catch(std::exception &exc) {
-        lprintf(2,LogError,"caught exception in receive(): %s; ignoring message",exc.what());
+        lprintf(2,AidLogError,"caught exception in receive(): %s; ignoring message",exc.what());
       }
     }
     else  
@@ -1073,7 +1073,7 @@ void WPInterface::log (string str, int level, AtomicID type)
     return;
   // see if type override was specified in the string
   const char * stypes[] = { "warning:", "error:", "fatal:", "debug:", "normal:" };
-  const AtomicID types[] = { LogWarning,LogError,LogFatal,LogDebug,LogNormal };
+  const AtomicID types[] = { AidLogWarning,AidLogError,AidLogFatal,AidLogDebug,AidLogNormal };
   for( int i=0; i<4; i++ )
   {
     uint len = strlen(stypes[i]);
@@ -1091,9 +1091,9 @@ void WPInterface::log (string str, int level, AtomicID type)
   if( level <= DebugLevel )
   {
     const char *tps = "";
-    if( type == LogWarning )
+    if( type == AidLogWarning )
       tps = stypes[0];
-    else if( type == LogError )
+    else if( type == AidLogError )
       tps = stypes[1];
     Debug::dbg_stream<<sdebug(1)<<":"<<tps<<" "<<str;
     if( str[str.length()-1] != '\n' )
@@ -1101,7 +1101,7 @@ void WPInterface::log (string str, int level, AtomicID type)
   }
   // publish as MsgLog
   MessageRef mref;
-  DataRecord &rec = Message::withDataRecord(mref,MsgLog|type|level,str);
+  DataRecord &rec = Message::withDataRecord(mref,AidMsgLog|type|level,str);
   rec[AidType] = type;
   rec[AidLevel] = level;
   publish(mref);
@@ -1131,7 +1131,7 @@ void WPInterface::lprintf (int level, const char *format, ... )
   va_start(ap,format);
   vsnprintf(str,sizeof(str),format,ap);
   va_end(ap);
-  log(str,level,LogNormal);
+  log(str,level,AidLogNormal);
 }
 
 // Additional Declarations

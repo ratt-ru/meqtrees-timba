@@ -385,7 +385,7 @@ int GatewayWP::input (int fd, int flags)
         // if GW is being closed, detach now
         if( peerState() == CLOSING )
         {
-          lprintf(2,LogError,"write finished, shutting down");
+          lprintf(2,AidLogError,"write finished, shutting down");
           detachMyself();
           return Message::ACCEPT;
         }
@@ -409,7 +409,7 @@ int GatewayWP::input (int fd, int flags)
       // if GW is being closed, detach now
       if( peerState() == CLOSING )
       {
-        lprintf(2,LogError,"write finished, shutting down");
+        lprintf(2,AidLogError,"write finished, shutting down");
         detachMyself();
         return Message::ACCEPT;
       }
@@ -797,7 +797,7 @@ void GatewayWP::processIncoming()
       // (this really ought not to happen)
       if( (*peerlist)[peerid].exists() )
       {
-        lprintf(1,LogError,"already connected to %s (%s:%d %s), closing gateway",
+        lprintf(1,AidLogError,"already connected to %s (%s:%d %s), closing gateway",
               peerid.toString().c_str(),
              (*peerlist)[peerid][AidHost].as<string>().c_str(),
              (*peerlist)[peerid][AidPort].as<int>(),
@@ -811,13 +811,13 @@ void GatewayWP::processIncoming()
         // if not writing anything, detach ourselves immediately
         if( writeState() == IDLE )
         {
-          lprintf(2,LogError,"shutting down immediately");
+          lprintf(2,AidLogError,"shutting down immediately");
           detachMyself();
         }
         else
         {
           // else stop reading, and allow the writing to finish
-          lprintf(2,LogError,"will shut down once write is complete");
+          lprintf(2,AidLogError,"will shut down once write is complete");
           removeInput(sock->getSid(),EV_FDREAD);
         }
         return;

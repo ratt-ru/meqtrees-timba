@@ -333,7 +333,7 @@ int MTGatewayWP::timeout (const HIID &id)
     // check that write is not blocked
     if( writing && Timestamp::now() - write_timestamp >= to_write )
     {
-      lprintf(1,LogError,"timed out waiting for write()\n");
+      lprintf(1,AidLogError,"timed out waiting for write()\n");
       shutdown();
     }
     // report on status
@@ -451,7 +451,7 @@ void MTGatewayWP::processIncoming (MessageRef &ref)
       // (this really ought not to happen)
       if( (*peerlist)[peerid].exists() )
       {
-        lprintf(1,LogError,"already connected to %s (%s:%d %s), closing gateway",
+        lprintf(1,AidLogError,"already connected to %s (%s:%d %s), closing gateway",
               peerid.toString().c_str(),
              (*peerlist)[peerid][AidHost].as<string>().c_str(),
              (*peerlist)[peerid][AidPort].as<int>(),

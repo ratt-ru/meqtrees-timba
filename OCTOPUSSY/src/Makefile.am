@@ -4,6 +4,16 @@ CXXFLAGS += -D_GNU_SOURCE
 
 lib_LTLIBRARIES = liboctopussy.la
 
+DOCHDRS =  LatencyVector.h  Octopussy.h \
+  AppManagerWP.h     LoggerWP.h               ReflectorWP.h \
+  AppRegistry.h      Message.h                Subscriptions.h \
+  ConnectionMgrWP.h  MsgAddress.h             \
+  Dispatcher.h       MTGatewayWP.h            \
+  Gateways.h         Octoproxy.h              WorkProcess.h \
+  GatewayWP.h        OctoproxyWP.h            WPInterface.h \
+  GWClientWP.h       OctopussyConfig.h \
+  GWServerWP.h       OctopussyDebugContext.h
+
 liboctopussy_la_SOURCES = Dispatcher.cc Octopussy.cc Message.cc  MsgAddress.cc \
 	WPInterface.cc WorkProcess.cc OctopussyDebugContext.cc \
   GWClientWP.cc GWServerWP.cc GatewayWP.cc MTGatewayWP.cc MTGatewayWP2.cc \
@@ -15,19 +25,6 @@ liboctopussy_la_SOURCES = Dispatcher.cc Octopussy.cc Message.cc  MsgAddress.cc \
 #  AppManagerWP.cc 
   
 
-# script used to generate AID maps
-MAPBUILDER = $(dmi_dir)/src/build_aid_maps.pl 
-
-# All .aidlist files below this dir will be scanned
-BASELISTDIR = $(lofar_sharedir)/..
-
-# Your package's subdirectory
-AID_DIR = $(top_srcdir)/src
-
-
-aids:
-	$(MAPBUILDER) `find $(BASELISTDIR) -name \*.aidlist` $(AID_DIR)/*.h 
- 
-
 include $(lofar_sharedir)/Makefile.common
+include $(lofar_sharedir)/Makefile.aids
 

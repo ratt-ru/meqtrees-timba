@@ -22,7 +22,7 @@ int main (int argc,const char *argv[])
     dsp.pollLoop();
     dsp.stop();
   }
-  catch( Debug::Error err ) 
+  catch( std::exception &err ) 
   {
     cerr<<"\nCaught exception:\n"<<err.what()<<endl;
     return 1;

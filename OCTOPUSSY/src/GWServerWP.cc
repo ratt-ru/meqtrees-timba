@@ -264,12 +264,12 @@ void GWServerWP::tryOpen ()
       else // some other error
       {
         string err = sock->errstr();
-        lprintf(1,LogError,"fatal error (%s) on server socket %s:%d\n",
+        lprintf(1,AidLogError,"fatal error (%s) on server socket %s:%d\n",
                    err.c_str(),hostname.c_str(),port);
         delete sock; sock=0;
         if( open_retries++ > MaxOpenRetries )
         {
-          lprintf(1,LogError,"fatal error (%s) on server socket %s:%d, giving up\n",
+          lprintf(1,AidLogError,"fatal error (%s) on server socket %s:%d, giving up\n",
                      err.c_str(),hostname.c_str(),port);
           MessageRef mref(new Message(MsgGWServerFatalError),DMI::ANON|DMI::WRITE);
           Message &msg = mref;
@@ -282,7 +282,7 @@ void GWServerWP::tryOpen ()
         }
         else // retry later - schedule a timeout
         {
-          lprintf(1,LogError,"fatal error (%s) on server socket %s:%d, will retry later\n",
+          lprintf(1,AidLogError,"fatal error (%s) on server socket %s:%d, will retry later\n",
                      err.c_str(),hostname.c_str(),port);
           addTimeout(Timeout_Retry,0,EV_ONESHOT);
         }

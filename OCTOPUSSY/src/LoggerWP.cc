@@ -80,7 +80,7 @@ void LoggerWP::init ()
       level_,consoleLevel_,scope_);
 
   // subscribe to log messages
-  subscribe(MsgLog|AidWildcard,scope_);
+  subscribe(AidMsgLog|AidWildcard,scope_);
   
   // try to open log file and grab a write-lock on it. If that fails, try 
   // "file.1", etc. This ensures that different processes do not write 
@@ -120,18 +120,18 @@ void LoggerWP::init ()
               Timestamp::now().toString("%d/%m/%y").c_str(),level_,scope_);
   struct stat st;
   if( !fstat(fd,&st) && st.st_size > 0 )
-    logMessage(address().toString(),"----------------------------------------------",0,LogNormal);
-  logMessage(address().toString(),hdr,0,LogNormal);
+    logMessage(address().toString(),"----------------------------------------------",0,AidLogNormal);
+  logMessage(address().toString(),hdr,0,AidLogNormal);
   }
 
 //##ModelId=3CA05A7E01CE
 void LoggerWP::stop ()
 {
-  logMessage(address().toString(),"processing remaining messages",0,LogNormal);
+  logMessage(address().toString(),"processing remaining messages",0,AidLogNormal);
   MessageRef mref;
   for(;;)
   {
-    dequeue(MsgLog|AidWildcard,&mref);
+    dequeue(AidMsgLog|AidWildcard,&mref);
     if( mref.valid() )
     {
       receive(mref);
@@ -140,7 +140,7 @@ void LoggerWP::stop ()
     else
       break;
   }
-  logMessage(address().toString(),"logger stopped",0,LogNormal);
+  logMessage(address().toString(),"logger stopped",0,AidLogNormal);
   if( fd >= 0 )
     close(fd);
   fd = -1;
@@ -151,10 +151,10 @@ int LoggerWP::receive (MessageRef &mref)
 {
   const Message &msg = mref.deref();
   // process Log messages, but ignore from myself
-  if( msg.id()[0] == MsgLog && msg.from() != address() && 
+  if( msg.id()[0] == AidMsgLog && msg.from() != address() && 
       msg.payloadType() == TpDataRecord )
   {
-    AtomicID type = msg[AidType].as<AtomicID>(LogNormal);
+    AtomicID type = msg[AidType].as<AtomicID>(AidLogNormal);
     int lev = msg[AidLevel].as<int>(0);
     // compare to our log level
     if( lev <= level() )
@@ -169,8 +169,8 @@ int LoggerWP::receive (MessageRef &mref)
 //##ModelId=3CA04AF50212
 void LoggerWP::setScope (int scope)
 {
-  unsubscribe(MsgLog|AidWildcard);
-  subscribe(MsgLog|AidWildcard,scope_=scope);
+  unsubscribe(AidMsgLog|AidWildcard);
+  subscribe(AidMsgLog|AidWildcard,scope_=scope);
 }
 
 //##ModelId=3CA04A1F03D7

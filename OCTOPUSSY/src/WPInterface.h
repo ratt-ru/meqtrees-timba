@@ -210,7 +210,7 @@ class WPInterface : public OctopussyDebugContext,
       void setState (int newstate, bool delay_publish = False);
 
       //##ModelId=3CA0457F01BD
-      void log (string str, int level = 0, AtomicID type = LogNormal);
+      void log (string str, int level = 0, AtomicID type = AidLogNormal);
 
       //##ModelId=3CA0738D007F
       void lprintf (int level, int type, const char *format, ... );
