@@ -34,7 +34,7 @@
 AC_DEFUN([lofar_DTL],dnl
 [dnl
 AC_PREREQ(2.13)dnl
-ifelse($1, [], [lfr_option=0], [lfr_option=$1])
+ifelse($1, [], [lfr_dtl_option=0], [lfr_dtl_option=$1])
 lofar_EXTERNAL(odbc,0,sql.h)
-lofar_EXTERNAL(dtl,[$lfr_option],dtl/DTL.h,,,,"gnu:-Wno-unused-parameter gnunew:-Wno-unused-parameter")
+lofar_EXTERNAL(dtl,[$lfr_dtl_option],dtl/DTL.h,,,,"gnu:-Wno-unused-parameter gnunew:-Wno-unused-parameter")
 ])
