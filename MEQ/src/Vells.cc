@@ -555,21 +555,6 @@ template<class T> class OutputIter
 DoForAllUnaryOperators(implementUnaryOperator,);
 
 // -----------------------------------------------------------------------
-// definitions for in-place operators
-// -----------------------------------------------------------------------
-
-#define implementInPlaceOperator(OPER,OPERNAME,x) \
-  template<class T> \
-  static void implement_##OPERNAME (Meq::Vells &out,const Meq::Vells &in) \
-  { OutputIter<T> oi(out); InputIter<T> ii(in); \
-    for( ; oi.valid(); ++oi,++ii ) *oi OPER *ii; } \
-  \
-  Meq::Vells::UnaryOperPtr Meq::Vells::inplace_##OPERNAME##_lut[VELLS_LUT_SIZE] = \
-    ExpandMethodList(OPERNAME);
-
-DoForAllInPlaceOperators(implementInPlaceOperator,);
-
-// -----------------------------------------------------------------------
 // definitions for unary functions, Group 1
 // for all types, preserves type
 // -----------------------------------------------------------------------
@@ -762,6 +747,39 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_product_lut[VELLS_LUT_SIZE] =
     ExpandBinaryLUTMatrix(OPERNAME);
 
 DoForAllBinaryOperators(implementBinaryOperator,);
+
+// -----------------------------------------------------------------------
+// definitions for in-place operators
+// -----------------------------------------------------------------------
+
+#define defineInPlaceOperTemplate(OPER,OPERNAME) \
+  template<class TLeft,class TRight> \
+  static void implement_inplace_##OPERNAME (Meq::Vells &out,const Meq::Vells &in) \
+  { OutputIter<typename Promote<TRight,TLeft>::type> oi(out); \
+    InputIter<TRight> ii(in); \
+    for( ; oi.valid(); ++oi,++ii ) *oi OPER##= *ii; \
+  } 
+    
+// Expands to address of in-place operator defined above
+#define AddrInPlaceOperator(TRight,TLeft,FUNC) \
+  &implement_inplace_##FUNC<TLeft,TRight>
+
+// Expands to one row of binary LUT table. TLeft is constant, TRight
+// goes through all LUT indices
+#define InPlaceLUTRow(TLeft,FUNC) \
+  { RepeatForLUTs2(AddrInPlaceOperator,TLeft,FUNC) } 
+    
+#define ExpandInPlaceLUTMatrix(FUNC) \
+  { RepeatForLUTs1(InPlaceLUTRow,FUNC) }
+
+// Implements all binary operators via the template above  
+#define implementInPlaceOperator(OPER,OPERNAME,dum) \
+  defineInPlaceOperTemplate(OPER,OPERNAME) \
+  Meq::Vells::UnaryOperPtr Meq::Vells::inplace_##OPERNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
+    ExpandInPlaceLUTMatrix(OPERNAME);
+
+DoForAllInPlaceOperators(implementInPlaceOperator,);
+
 
 // -----------------------------------------------------------------------
 // definitions for binary functions

@@ -35,7 +35,7 @@
           Do(+,ADD,x) Do(-,SUB,x) Do(*,MUL,x) Do(/,DIV,x) 
 // In-place operators
 #define DoForAllInPlaceOperators(Do,x) \
-          Do(+=,ADD1,x) Do(-=,SUB1,x) Do(*=,MUL1,x) Do(/=,DIV1,x) 
+          Do(+,ADD1,x) Do(-,SUB1,x) Do(*,MUL1,x) Do(/,DIV1,x) 
 
 // Unary functions are split up several groups
 #define DoForAllUnaryFuncs(Do,x)  DoForAllUnaryFuncs1(Do,x)  \
@@ -167,8 +167,11 @@ public:
     { FailWhen(!itsIsWritable,"r/w access violation"); }
 
   // changes the temp property
-  void makeTemp (bool temp) 
-    { itsIsTemp = temp; }
+  Vells & makeTemp (bool temp=true) 
+  { itsIsTemp = temp; return *this; }
+  
+  Vells & makeNonTemp () 
+  { itsIsTemp = false; return *this; }
   
   int nx() const
     { return itsNx; }
@@ -188,6 +191,10 @@ public:
     { return itsRealArray != 0; }
   bool isComplex() const
     { return itsComplexArray != 0; }
+  
+// returns true if this is a higher-ranked Vells (i.e. complex>double,array>scalar)
+  bool higherThan (const Vells &other) const
+  { return isComplex() > other.isComplex() || isArray() > other.isArray(); }
 
   // returns true if type/shape matches other
   bool isCongruent (const Vells &other) const
@@ -320,6 +327,7 @@ private:
   int getLutIndex () const
   { return getLutIndex(isComplex(),isArray()); }
   
+  
 public:
 // pointer to function implementing an unary operation 
   typedef void (*UnaryOperPtr)(Vells &out,const Vells &in);
@@ -340,15 +348,7 @@ public:
           { Vells result(*this,0,"operator "#OPER); \
             (*unary_##OPERNAME##_lut[getLutIndex()])(result,*this);  \
             return result; }
-// Declares in-place (i.e. += and such) operator OPER (internally named OPERNAME)
-// plus lookup table for implementations
-// This just calls the method in the OPERNAME_lut lookup table, using the
-// LUT index of this Vells object. The Vells itself is used as the result
-// storage.
-#define declareInPlaceOperator(OPER,OPERNAME,x) \
-  private: static UnaryOperPtr inplace_##OPERNAME##_lut[VELLS_LUT_SIZE];  \
-  public: Vells & operator OPER (const Vells &right) \
-          { (*inplace_##OPERNAME##_lut[getLutIndex()])(*this,right); return *this; }
+          
 // Declares binary operator OPER (internally named OPERNAME)
 // plus lookup table for implementations
 // This: 1. Creates a result Vells (using the special constructor to
@@ -361,6 +361,22 @@ public:
           { Vells result(*this,right,0,"operator "#OPER); \
             (*binary_##OPERNAME##_lut[getLutIndex()][right.getLutIndex()])(result,*this,right);  \
             return result; }
+            
+// Declares in-place (i.e. += and such) operator OPER (internally named OPERNAME)
+// plus lookup table for implementations
+// This just calls the method in the OPERNAME_lut lookup table, using the
+// LUT index of this Vells object. The Vells itself is used as the result
+// storage.
+#define declareInPlaceOperator(OPER,OPERNAME,x) \
+  private: static UnaryOperPtr inplace_##OPERNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  \
+  public: Vells & operator OPER##= (const Vells &right) \
+          { if( right.higherThan(*this) ) { \
+              (*this) = (*this) OPER right; \
+            } else { \
+              (*inplace_##OPERNAME##_lut[getLutIndex()][right.getLutIndex()])(*this,right); \
+            } \
+            return *this; \
+          }
 
 // Defines lookup tables for implementations of unary math functions
 #define declareUnaryFuncLut(FUNCNAME,x) \

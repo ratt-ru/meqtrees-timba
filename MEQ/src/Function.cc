@@ -172,7 +172,7 @@ int Function::getResult (Result::Ref &resref,
         vellset.setSpids(spids);
         // Evaluate the main value.
         LoShape shape = resultShape(values);
-        vellset.setValue(evaluate(request,shape,values));
+        vellset.setValue(evaluate(request,shape,values).makeNonTemp());
         // Evaluate all perturbed values.
         vector<Vells*> perts(nrch);
         vector<int> indices(nrch, 0);
@@ -188,7 +188,7 @@ int Function::getResult (Result::Ref &resref,
               perturbation = child_vs[i]->getPerturbation(inx);
             }
           }
-          vellset.setPerturbedValue(j,evaluate(request,shape,values));
+          vellset.setPerturbedValue(j,evaluate(request,shape,values).makeNonTemp());
           vellset.setPerturbation(j,perturbation);
         }
       }
