@@ -32,7 +32,7 @@
 #pragma aid NodeIndex Table Name Default Value Index Num Cache Code
 #pragma aid Parm Spid Perturbed Perturbations
 #pragma aid Cells Results Fail Origin Line Message Contagious 
-#pragma aid Solvable Config Groups All By List
+#pragma aid Solvable Config Groups All By List Polcs
 
 namespace Meq
 {
@@ -74,6 +74,7 @@ namespace Meq
     FSpids           = AidSpid|AidIndex,
     FPerturbedValues = AidPerturbed|AidValue,
     FPerturbations   = AidPerturbations,
+    FPolcs           = AidPolcs,
 
     FFail            = AidFail,
     FOrigin          = AidOrigin,

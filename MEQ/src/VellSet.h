@@ -90,9 +90,10 @@ public:
   void setSpids (const vector<int>& spids);
 
   // is spid defined at this position? increments index if true
-  bool isDefined (int spid, int& index) const
-  { return (index>=itsNumSpids  ?  false :
-	    spid==itsSpids[index]  ?  index++,true : false); }
+  // It returns the index (-1 if not found).
+  int isDefined (int spid, int& index) const
+  { return (index>=itsNumSpids  ?  -1 :
+	    spid==itsSpids[index]  ?  index++ : -1); }
 
   // Get the i-th perturbed parameter.
   double getPerturbation (int i) const

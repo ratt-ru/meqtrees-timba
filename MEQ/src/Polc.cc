@@ -81,7 +81,9 @@ void Polc::setCoeffOnly (const Vells& values)
 void Polc::evaluate (VellSet &result, const Request& request)
 {
   PERFPROFILE(__PRETTY_FUNCTION__);
+  // Find if perturbed values are to be calculated.
   bool makeDiff = itsNrSpid > 0  &&  request.calcDeriv();
+  result.setSpids (itsSpids);
   // It is not checked if the domain is valid.
   // In that way any value can be used for the default domain [-1,1].
   // Because the values are calculated for the center of each cell,
@@ -102,9 +104,8 @@ void Polc::evaluate (VellSet &result, const Request& request)
     matv(0,0) = itsCoeff.realStorage()[0];
     if (makeDiff) {
       double pert = *itsPerturbation.realStorage();
-      LoMat_double& matp = result.setPerturbedReal (itsSpidInx[0], 1, 1);
-      matp(0,0) = *itsCoeff.realStorage() + pert;
-      result.setPerturbation (itsSpidInx[0], pert);
+      result.setPerturbedValue (0, Vells(*itsCoeff.realStorage() + pert));
+      result.setPerturbation (0, pert);
 // 	cout << "polc " << itsSpidInx[0] << ' ' << result.getValue()
 // 	     << result.getPerturbedValue(itsSpidInx[0]) << itsPerturbation
 // 	     << ' ' << itsCoeff << endl;
@@ -135,10 +136,9 @@ void Polc::evaluate (VellSet &result, const Request& request)
       // Keep a pointer to the internal matrix data.
       for (unsigned int i=0; i<itsSpidInx.size(); i++) {
 	if (itsSpidInx[i] >= 0) {
-	  LoMat_double& matp = result.setPerturbedReal (itsSpidInx[i],
-							ndx, ndy);
-	  matp = 0;
-	  pertValPtr[i] = matp.data();
+	  Vells vells(0., ndx, ndy, true);
+	  result.setPerturbedValue (itsSpidInx[i], vells);
+	  pertValPtr[i] = vells.realStorage();
 	}
       }
     }
@@ -230,21 +230,20 @@ int Polc::makeSolvable (int spidIndex)
 {
   Assert (itsSpidInx.size() == 0);
   itsSpidInx.resize (itsCoeff.nelements());
+  itsSpids.reserve (itsCoeff.nelements());
   itsNrSpid = 0;
-  int nr=0;
   for (int i=0; i<itsCoeff.nelements(); i++) {
     if (itsMask[i]) {
-      itsSpidInx[i] = spidIndex++;
-      itsNrSpid++;
-      nr++;
+      itsSpidInx[i] = itsNrSpid++;
+      itsSpids.push_back (spidIndex++);
     } else {
-      itsSpidInx[i] = -1;          // not solvable
+      itsSpidInx[i] = -1;
     }
   }
   // Precalculate the perturbed coefficients.
   // The perturbation is absolute or a factor of the coefficient.
   // If the coefficient is too small, take absolute.
-  if (nr > 0) {
+  if (itsNrSpid > 0) {
     itsPerturbation = itsCoeff.clone();
     const double* coeff = itsCoeff.realStorage();
     double* pert  = itsPerturbation.realStorage();
@@ -256,12 +255,13 @@ int Polc::makeSolvable (int spidIndex)
       pert[i] = perturbation;
     }
   }
-  return nr;
+  return itsNrSpid;
 }
 
 void Polc::clearSolvable()
 {
   itsSpidInx.resize (0);
+  itsSpids.resize (0);
   itsNrSpid       = 0;
   itsPerturbation = Vells();
 }
@@ -287,14 +287,17 @@ void Polc::getCurrentValue (Vells& value, bool denorm) const
   }
 }
 
-void Polc::update (const Vells& value)
+uint Polc::update (const double* values, uint nrval)
 {
   double* coeff = itsCoeff.realStorage();
+  uint inx=0;
   for (unsigned int i=0; i<itsSpidInx.size(); i++) {
     if (itsSpidInx[i] >= 0) {
-      coeff[i] = value.realStorage()[itsSpidInx[i]];
+      Assert (inx < nrval);
+      coeff[i] += values[inx++];
     }
   }
+  return inx;
 }
 
 

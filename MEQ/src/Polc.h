@@ -106,7 +106,8 @@ public:
   void getCurrentValue (Vells& value, bool denormalize) const;
 
   // Update the solvable parameters with the new values.
-  void update (const Vells& value);
+  // It returns the number of values used.
+  uint update (const double* values, uint nrval);
 
   // Set the original simulation coefficients.
   void setSimCoeff (const Vells& coeff)
@@ -154,6 +155,10 @@ public:
   static Vells normDouble (const Vells& coeff, double sx,
 			   double sy, double ox, double oy);
 
+  // Get the spids.
+  const vector<int> getSpids() const
+    { return itsSpids; }
+
 private:
   // Fill Pascal's triangle.
   static void fillPascal();
@@ -165,6 +170,7 @@ private:
   Domain       itsDomain;
   std::vector<bool> itsMask;
   std::vector<int>  itsSpidInx;     //# -1 is not solvable
+  std::vector<int>  itsSpids;
   int          itsNrSpid;
   double       itsPertValue;
   bool         itsIsRelPert;   //# true = perturbation is relative

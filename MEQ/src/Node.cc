@@ -560,7 +560,7 @@ int Node::execute (Result::Ref &ref, const Request &req)
     }
     else // no cells, ensure an empty result
     {
-      ref <<= new Result;
+      ref <<= new Result(0);
     }
     // OK, at this point we have a valid Result to return
     if( DebugLevel>=3 ) // print it out
