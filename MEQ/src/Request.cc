@@ -25,7 +25,7 @@
 namespace MEQ {
 
 Request::Request (const Cells& cells, Forest* forest,
-		  Bool calcDeriv, int id)
+		  bool calcDeriv, int id)
 : itsId        (id),
   itsCalcDeriv (calcDeriv),
   itsCells     (cells),

@@ -31,18 +31,18 @@ Function::Function()
 Function::~Function()
 {}
 
-void Function::init (DataRecord::Ref::Xfer& initrec)
+void Function::checkChildren()
 {
-}
-
-void Function::setState (const DataRecord& rec)
-{
-}
-
-string Function::sdebug (int detail, const string& prefix,
-			 const char* name) const
-{
-  return Node::sdebug (detail, prefix, name);
+  // Transform a Node* to a Function* if not done.
+  if (itsChildren.size() == 0) {
+    int nch = numChildren();
+    itsChildren.resize (nch);
+    for (int i=0; i<nch; i++) {
+      itsChildren[i] = dynamic_cast<Function*>(&(getChild(i)));
+      AssertStr (itsChildren[i], "child " << i << " of function node "
+		 << name() << " is not a Meq::Function");
+    }
+  }
 }
 
 int Function::getResult (Result::Ref &resref, const Request& request)
@@ -63,9 +63,18 @@ int Function::getResult (Result::Ref &resref, const Request& request)
   }
   // Evaluate the main value.
   Result& result = resref.dewr();
+  Vells vells = evaluate (request, values);
+  bool useVells;
   int nx,ny;
-  bool isReal = resultTypeShape (nx, ny, request, values);
-  evaluate (result.setValue(isReal,nx,ny), request, values);
+  bool isReal;
+  if (vells.nelements() > 0) {
+    useVells = false;
+    result.setValue (vells);
+  } else {
+    useVells = true;
+    isReal = resultTypeShape (nx, ny, request, values);
+    evaluateVells (result.setValue(isReal,nx,ny), request, values);
+  }
   // Find all spids from the children.
   vector<int> spids = findSpids (results);
   // Evaluate all perturbed values.
@@ -79,7 +88,11 @@ int Function::getResult (Result::Ref &resref, const Request& request)
 	perts[i] = &(results[i].dewr().getPerturbedValueRW(inx));
       }
     }
-    evaluate (result.setPerturbedValue(j,isReal,nx,ny), request, values);
+    if (useVells) {
+      evaluateVells (result.setPerturbedValue(j,isReal,nx,ny), request,values);
+    } else {
+      result.setPerturbedValue (j, evaluate(request,values));
+    }
   }
   return flag;
 }
@@ -99,9 +112,14 @@ bool Function::resultTypeShape (int& nx, int& ny, const Request&,
   return isReal;
 }
 
-void Function::evaluate (Vells&, const Request&, const vector<Vells*>&)
+Vells Function::evaluate (const Request&, const vector<Vells*>&)
 {
-  AssertMsg (False, "evaluate or getResult not implemented in class "
+  return Vells();
+}
+
+void Function::evaluateVells (Vells&, const Request&, const vector<Vells*>&)
+{
+  AssertMsg (false, "evaluate or getResult not implemented in class "
 	     "derived from MeqFunction");
 }
 

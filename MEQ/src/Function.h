@@ -39,31 +39,53 @@ public:
   virtual ~Function();
 
   // Get the result for the given request.
-  // By default it calls evaluate.
+  // The default implementation works as follows:
+  // <ul>
+  // <li> It evaluates the function for the main value and all perturbed values
+  //   by calling the evaluate or evaluateVells function.
+  // <li> First it calls evaluate for the main value. It that returns an
+  //   empty value, it knows that evaluateSpec should be called.
+  // <li> Function evaluate is meant for returning the result by value.
+  //   Usually this is the best way to go.
+  // <li> Function evaluateSpec is slightly faster to use because the
+  //   result is passed in by reference, so one can, say, use
+  //   result+=value. See class Add for an example of that.
+  //   It requires that the result type and shape are known. They are
+  //   determined by function resultTypeShape. Its default implementation is
+  //   usually sufficient.
+  // <li> For the calculation of all perturbed values the same function as
+  //   for the main value is used.
+  // <li> Usually the fastest way to go is to overload function getResult
+  //   in the derived class, because in that way some values can be
+  //   calculated once for main value and perturbed values.
+  // </ul>
   virtual int getResult (Result::Ref &resref, const Request&);
 
   // Find the type and shape of the result for evaluate.
   // It returns true if the result is real; otherwise false.
-  // It is used when evaluate is used.
-  // Usually the default implementation is sufficient.
+  // It is used when evaluateVells is used.
+  // Usually the default implementation is sufficient which takes
+  // the maximum of the values of the children.
   virtual bool resultTypeShape (int& nx, int& ny, const Request&,
 				const vector<Vells*>& values);
 
   // Evaluate the value for the given request.
-  virtual void evaluate (Vells& result, const Request&,
-			 const vector<Vells*>& values);
+  // The default returns an empty Vells telling that evaluate is not
+  // implemented.
+  virtual Vells evaluate (const Request&,
+			  const vector<Vells*>& values);
+
+  // Evaluate the value for the given request.
+  // The default throws an exception.
+  virtual void evaluateVells (Vells& result, const Request&,
+			      const vector<Vells*>& values);
 
   // Find all spids for this node by merging the children's spids.
   vector<int> findSpids (const vector<Result::Ref>&) const;
 
-  virtual void init (DataRecord::Ref::Xfer& initrec);
-
-  virtual void setState (const DataRecord& rec);
-    
-    
-  //## Standard debug info method
-  virtual string sdebug (int detail = 1, const string& prefix = "",
-			 const char* name = 0) const;
+  // Check the children after they have been resolve in class Node.
+  // It does a checked cast of Node* to Function*.
+  virtual void checkChildren();
 
 protected:
   vector<Function*>& children()

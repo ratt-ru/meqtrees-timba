@@ -37,8 +37,8 @@ Vells::Vells()
   itsComplexArray(0),
   itsNx          (0),
   itsNy          (0),
-  itsIsScalar    (True),
-  itsIsOwner     (False)
+  itsIsScalar    (true),
+  itsIsOwner     (false)
 {}
 
 Vells::Vells (double value)
@@ -46,8 +46,8 @@ Vells::Vells (double value)
   itsComplexArray(0),
   itsNx          (1),
   itsNy          (1),
-  itsIsScalar    (True),
-  itsIsOwner     (True)
+  itsIsScalar    (true),
+  itsIsOwner     (true)
 {
   VellsRealSca* v = new VellsRealSca (value);
   itsRep = v->link();
@@ -61,8 +61,8 @@ Vells::Vells (const dcomplex& value)
   itsComplexArray(0),
   itsNx          (1),
   itsNy          (1),
-  itsIsScalar    (True),
-  itsIsOwner     (True)
+  itsIsScalar    (true),
+  itsIsOwner     (true)
 {
   VellsComplexSca* v = new VellsComplexSca (value);
   itsRep = v->link();
@@ -77,7 +77,7 @@ Vells::Vells (double value, int nx, int ny, bool init)
   itsNx          (nx),
   itsNy          (ny),
   itsIsScalar    (nx==1 && ny==1),
-  itsIsOwner     (True)
+  itsIsOwner     (true)
 {
   if (itsIsScalar) {
     VellsRealSca* v = new VellsRealSca (value);
@@ -100,7 +100,7 @@ Vells::Vells (const dcomplex& value, int nx, int ny, bool init)
   itsNx          (nx),
   itsNy          (ny),
   itsIsScalar    (nx==1 && ny==1),
-  itsIsOwner     (True)
+  itsIsOwner     (true)
 {
   if (itsIsScalar) {
     VellsComplexSca* v = new VellsComplexSca (value);
@@ -123,7 +123,7 @@ Vells::Vells (LoMat_double& array)
   itsNx          (array.extent(blitz::firstDim)),
   itsNy          (array.extent(blitz::secondDim)),
   itsIsScalar    (itsNx==1 && itsNy==1),
-  itsIsOwner     (True)
+  itsIsOwner     (true)
 {
   Assert (array.isStorageContiguous());
   if (itsIsScalar) {
@@ -141,7 +141,7 @@ Vells::Vells (LoMat_dcomplex& array)
   itsNx          (array.extent(blitz::firstDim)),
   itsNy          (array.extent(blitz::secondDim)),
   itsIsScalar    (itsNx==1 && itsNy==1),
-  itsIsOwner     (True)
+  itsIsOwner     (true)
 {
   Assert (array.isStorageContiguous());
   if (itsIsScalar) {
@@ -159,7 +159,7 @@ Vells::Vells (LoMat_double* array)
   itsNx          (array->extent(blitz::firstDim)),
   itsNy          (array->extent(blitz::secondDim)),
   itsIsScalar    (itsNx==1 && itsNy==1),
-  itsIsOwner     (False)
+  itsIsOwner     (false)
 {
   Assert (array->isStorageContiguous());
   if (itsIsScalar) {
@@ -177,7 +177,7 @@ Vells::Vells (LoMat_dcomplex* array)
   itsNx          (array->extent(blitz::firstDim)),
   itsNy          (array->extent(blitz::secondDim)),
   itsIsScalar    (itsNx==1 && itsNy==1),
-  itsIsOwner     (False)
+  itsIsOwner     (false)
 {
   Assert (array->isStorageContiguous());
   if (itsIsScalar) {
@@ -237,7 +237,7 @@ Vells::Vells (const VellsTmp& that)
   itsNx           (that.nx()),
   itsNy           (that.ny()),
   itsIsScalar     (that.nelements()==1),
-  itsIsOwner      (True)
+  itsIsOwner      (true)
 {
   if (that.isReal()) {
     itsRealArray = new LoMat_double (itsRep->realStorage(),
@@ -291,7 +291,7 @@ Vells& Vells::operator= (const VellsTmp& that)
   itsNx           = that.nx();
   itsNy           = that.ny();
   itsIsScalar     = that.nelements()==1;
-  itsIsOwner      = True;
+  itsIsOwner      = true;
   if (that.isReal()) {
     itsRealArray = new LoMat_double (itsRep->realStorage(),
 				     LoMatShape(itsNx,itsNy),
@@ -342,42 +342,42 @@ void Vells::setComplexArray (int nx, int ny)
 
 void Vells::operator+= (const Vells& right)
 {
-  VellsRep* res = itsRep->add (*right.itsRep, False);
+  VellsRep* res = itsRep->add (*right.itsRep, false);
   AssertStr (res == itsRep, "Mismatching types");
 }   
 void Vells::operator+= (const VellsTmp& right)
 {
-  VellsRep* res = itsRep->add (*right.rep(), False);
+  VellsRep* res = itsRep->add (*right.rep(), false);
   AssertStr (res == itsRep, "Mismatching types");
 }   
 void Vells::operator-= (const Vells& right)
 {
-  VellsRep* res = itsRep->subtract (*right.rep(), False);
+  VellsRep* res = itsRep->subtract (*right.rep(), false);
   AssertStr (res == itsRep, "Mismatching types");
 }   
 void Vells::operator-= (const VellsTmp& right)
 {
-  VellsRep* res = itsRep->subtract (*right.rep(), False);
+  VellsRep* res = itsRep->subtract (*right.rep(), false);
   AssertStr (res == itsRep, "Mismatching types");
 }   
 void Vells::operator*= (const Vells& right)
 {
-  VellsRep* res = itsRep->multiply (*right.rep(), False);
+  VellsRep* res = itsRep->multiply (*right.rep(), false);
   AssertStr (res == itsRep, "Mismatching types");
 }   
 void Vells::operator*= (const VellsTmp& right)
 {
-  VellsRep* res = itsRep->multiply (*right.rep(), False);
+  VellsRep* res = itsRep->multiply (*right.rep(), false);
   AssertStr (res == itsRep, "Mismatching types");
 }   
 void Vells::operator/= (const Vells& right)
 {
-  VellsRep* res = itsRep->divide (*right.rep(), False);
+  VellsRep* res = itsRep->divide (*right.rep(), false);
   AssertStr (res == itsRep, "Mismatching types");
 }   
 void Vells::operator/= (const VellsTmp& right)
 {
-  VellsRep* res = itsRep->divide (*right.rep(), False);
+  VellsRep* res = itsRep->divide (*right.rep(), false);
   AssertStr (res == itsRep, "Mismatching types");
 }   
 
