@@ -490,21 +490,11 @@ class realvsimag_plotter(object):
   # timerEvent_marker()
 
 # compute points for two circles
-  def compute_circles (self, item_tag, radius, x_cen=0.0, y_cen=0.0, line_style='lines'):
-      """ compute values for circle running through specified
-          point and a line pointing to the point """
+  def setup_circle (self, item_tag, line_style='lines'):
+      """ store plotting parameters for future 
+          circles plots """
 
-      # compute circle that will run through average value
-      x_pos = zeros((73,),Float64)
-      y_pos = zeros((73,),Float64)
-      angle = -5.0
-      for j in range(0, 73 ) :
-        angle = angle + 5.0
-        x_pos[j] = x_cen + radius * cos(angle/57.2957795)
-        y_pos[j] = y_cen + radius * sin(angle/57.2957795)
-
-      # if this is a new item_tag, add a new circle,
-      # otherwise, replace old one
+# if this is a new item_tag, add a new circle
       circle_key = item_tag + '_circle'
       if self._circle_dict.has_key(circle_key) == False: 
         plot_color = None
@@ -526,26 +516,32 @@ class realvsimag_plotter(object):
           self.plot.setCurvePen(key_circle, QPen(plot_color,line_thickness))
         else:
           self.plot.setCurvePen(key_circle, QPen(plot_color,line_thickness,circle_line_style))
-        self.plot.setCurveData(key_circle, x_pos, y_pos)
-      else:
-        key_circle = self._circle_dict[circle_key] 
-        self.plot.setCurveData(key_circle, x_pos, y_pos)
 
-  def compute_arrow (self, item_tag,avg_r, avg_i, x_cen=0.0, y_cen=0.0, line_style='lines'):
+# compute points for two circles
+  def compute_circles (self, item_tag, radius, x_cen=0.0, y_cen=0.0):
       """ compute values for circle running through specified
           point and a line pointing to the point """
 
-      # compute line that will go from centre of circle to 
-      # position of average value
-      x1_pos = zeros((2,),Float64)
-      y1_pos = zeros((2,),Float64)
-      x1_pos[0] = x_cen
-      y1_pos[0] = y_cen
-      x1_pos[1] = avg_r
-      y1_pos[1] = avg_i
+      # compute circle that will run through average value
+      x_pos = zeros((73,),Float64)
+      y_pos = zeros((73,),Float64)
+      angle = -5.0
+      for j in range(0, 73 ) :
+        angle = angle + 5.0
+        x_pos[j] = x_cen + radius * cos(angle/57.2957795)
+        y_pos[j] = y_cen + radius * sin(angle/57.2957795)
 
-      # if this is a new item_tag, add a new arrow,
-      # otherwise, replace old one
+# get the key for this circle
+      circle_key = item_tag + '_circle'
+      if self._circle_dict.has_key(circle_key):
+        key_circle = self._circle_dict[circle_key] 
+        self.plot.setCurveData(key_circle, x_pos, y_pos)
+
+  def setup_arrow (self, item_tag, line_style='lines'):
+      """ store plotting parameters for future
+          arrow plots """
+
+# if this is a new item_tag, add a new arrow
       line_key = item_tag + '_arrow'
       if self._line_dict.has_key(line_key) == False: 
         key_line = self.plot.insertCurve(line_key)
@@ -562,9 +558,23 @@ class realvsimag_plotter(object):
           self.plot.setCurvePen(key_line, QPen(self._mean_circle_color,line_thickness))
         else:
           self.plot.setCurvePen(key_line, QPen(self._mean_circle_color,line_thickness,arrow_line_style))
-        self.plot.setCurveData(key_line, x1_pos, y1_pos)
-      else:
-        key_line = self._line_dict[line_key]
+
+  def compute_arrow (self, item_tag,avg_r, avg_i, x_cen=0.0, y_cen=0.0):
+      """ compute plot values for arrows """
+
+      # compute line that will go from centre of circle to 
+      # position of average value
+      x1_pos = zeros((2,),Float64)
+      y1_pos = zeros((2,),Float64)
+      x1_pos[0] = x_cen
+      y1_pos[0] = y_cen
+      x1_pos[1] = avg_r
+      y1_pos[1] = avg_i
+
+# get the plot key for this arrow
+      line_key = item_tag + '_arrow'
+      if self._line_dict.has_key(line_key):
+        key_line = self._line_dict[line_key] 
         self.plot.setCurveData(key_line, x1_pos, y1_pos)
 
   def plot_data(self, visu_record, attribute_list=None):
@@ -1119,6 +1129,14 @@ class realvsimag_plotter(object):
           plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
                      QPen(self._plot_color), QSize(self.plot_symbol_size, self.plot_symbol_size)))
 
+# set up to plot circles
+	  if self.plot_mean_circles:
+            self.setup_circle (item_tag+'mean', self._mean_circle_style)
+            if self.plot_mean_arrows:
+              self.setup_arrow (item_tag, self._mean_circle_style)
+	  if self.plot_stddev_circles:
+            self.setup_circle (item_tag+'stddev', self._stddev_circle_style)
+
 # if we have error data
         else:
 # store an integer value of -1 in the xy_plot_dict using the
@@ -1287,7 +1305,7 @@ class realvsimag_plotter(object):
 # get the color to plot this circle
           self._plot_color = self._xy_plot_color[current_item_tag] 
 # plot the mean circle
-          self.compute_circles (current_item_tag, radius, 0.0, 0.0, self._mean_circle_style)
+          self.compute_circles (current_item_tag+'mean', radius, 0.0, 0.0)
 # plot an 'arrow' if requested
           if self.plot_mean_arrows:
             self.compute_arrow (current_item_tag, mean_r, mean_i)
@@ -1316,7 +1334,7 @@ class realvsimag_plotter(object):
 # get the color to plot this circle
           self._plot_color = self._xy_plot_color[current_item_tag] 
 # plot the stddev circle
-          self.compute_circles (current_item_tag + 'stddev', radius, mean_r, mean_i, self._stddev_circle_style)
+          self.compute_circles (current_item_tag + 'stddev', radius, mean_r, mean_i)
 
 # add in flag data to plots if requested
       if self._plot_flags:
@@ -1334,7 +1352,6 @@ class realvsimag_plotter(object):
     self.flag_plot_dict={}
     if len(self._flags_r_dict) > 0:
       plot_flag_r_keys = self._flags_r_dict.keys()
-      plot_flag_i_keys = self._flags_i_dict.keys()
       for i in range(0, len(plot_flag_r_keys)):
          flag_data_r = self._flags_r_dict[plot_flag_r_keys[i]]
          end_location = len(plot_flag_r_keys[i])
