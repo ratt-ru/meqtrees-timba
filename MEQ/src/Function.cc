@@ -90,12 +90,12 @@ bool Function::convertChildren (const vector<HIID>& childNames, int nchild)
       Node * ptr = &(getChild(childNames[i]));
       bool fnd = false;
       for (int j=0; j<nhiid; j++) {
-	if (ptr == itsChildren[j]) {
-	  fnd = true;
-	}
+        if (ptr == itsChildren[j]) {
+          fnd = true;
+        }
       }
       if (!fnd) {
-	itsChildren[inx++] = ptr;
+        itsChildren[inx++] = ptr;
       }
     }
   }
@@ -120,8 +120,8 @@ void Function::testChildren (const vector<TypeId>& types) const
   int nch = std::min (types.size(), itsChildren.size());
   for (int i=0; i<nch; i++) {
     AssertStr (itsChildren[i]->objectType() == types[i],
-	       "expected type " << types[i] << ", but found "
-	       << itsChildren[i]->objectType());
+               "expected type " << types[i] << ", but found "
+               << itsChildren[i]->objectType());
   }
 }
 
@@ -146,7 +146,7 @@ int Function::getResult (Result::Ref &resref,
   {
     int npertsets = 0;
     // create a vellset for this plane
-    VellSet &vellset = result.setNewVellSet(iplane);
+    VellSet &vellset = result.setNewVellSet(iplane,0,0);
     // collect vector of pointers to child vellsets #iplane, and a vector of 
     // pointers to their main values. If a child has fewer vellsets, generate 
     // a fail -- unless the child returned exactly 1 vellset, in which
@@ -187,26 +187,55 @@ int Function::getResult (Result::Ref &resref,
         LoShape shape = resultShape(values);
         vellset.setValue(evaluate(request,shape,values).makeNonTemp());
         // Evaluate all perturbed values.
-        vector<Vells*> perts(nrch);
-        vector<int> indices(nrch, 0);
-        for( int ipert=0; ipert<npertsets; ipert++ )
+        vector<vector<Vells*> > pert_values(npertsets);
+        vector<double> pert(npertsets);
+        vector<int> indices(nrch,0);
+        vector<int> found(npertsets);
+        for( uint j=0; j<spids.size(); j++) 
         {
-          for( uint j=0; j<spids.size(); j++) 
+          found.assign(npertsets,-1);
+          // pert_values start with pointers to each child's main value
+          pert_values.assign(npertsets,values);
+          // loop over children. For every child that contains a perturbed
+          // value for spid[j], put a pointer to the perturbed value into 
+          // pert_values[ipert][ichild]. For children that do not contain a 
+          // perturbed value, it will retain a pointer to the main value.
+          // The pertubations themselves are collected into pert[]; these
+          // must match across all children
+          for( int ich=0; ich<nrch; ich++ )
           {
-            double perturbation;
-            perts = values;
-            for (int i=0; i<nrch; i++) 
+            VellSet &vs = *(child_vs[ich]);
+            int inx = vs.isDefined(spids[j],indices[ich]);
+            if( inx >= 0 )
             {
-              int inx = child_vs[i]->isDefined(spids[j],indices[i]);
-              if( ipert < child_vs[i]->numPertSets() && inx >= 0 ) {
-	              perts[i] = &(child_vs[i]->getPerturbedValueRW(inx,ipert));
-                perturbation = child_vs[i]->getPerturbation(inx,ipert);
+              for( int ipert=0; ipert<std::max(vs.numPertSets(),npertsets); ipert++ )
+              {
+                pert_values[ipert][ich] = &(vs.getPerturbedValueRW(inx,ipert));
+                if( found[ipert] >=0 )
+                {
+                  FailWhen(pert[ipert]!=vs.getPerturbation(inx,ipert),
+                      ssprintf("perturbation %d for spid %d does not match between child results %d and %d",
+                        ipert,spids[j],found[ipert],ich));
+                }
+                else
+                {
+                  pert[ipert] = vs.getPerturbation(inx,ipert);
+                  found[ipert] = ich;
+                }
               }
             }
-            vellset.setPerturbedValue(j,evaluate(request,shape,perts).makeNonTemp(),ipert);
-            vellset.setPerturbation(j,perturbation,ipert);
           }
-        }
+          // now, call evaluate() on the pert_values vectors to obtain the
+          // perturbed values of the function
+          for( int ipert=0; ipert<npertsets; ipert++ )
+          {
+            FailWhen(found[ipert]<0,
+                     ssprintf("no perturbation set %d found for spid %d",
+                              ipert,spids[j]));
+            vellset.setPerturbation(j,pert[ipert],ipert);
+            vellset.setPerturbedValue(j,evaluate(request,shape,pert_values[ipert]).makeNonTemp(),ipert);
+          }
+        } // end for(j) over spids
       }
       catch( std::exception &x )
       {
@@ -243,7 +272,7 @@ LoShape Function::resultShape (const vector<Vells*>& values)
 void Function::evaluateVells (Vells&, const Request&, const vector<Vells*>&)
 {
   AssertMsg (false, "evaluate or getResult not implemented in class "
-	     "derived from MeqFunction");
+             "derived from MeqFunction");
 }
 
 //##ModelId=3F86886F0108
@@ -280,14 +309,14 @@ vector<int> Function::findSpids (const vector<VellSet*> &results)
       int lastspid = -1;
       // Loop through all spids of the child.
       for (int i=0; i<nrchsp; i++) {
-	// Copy spids until exceeding current child's spid.
+        // Copy spids until exceeding current child's spid.
         int spid = resch.getSpid(i);
         while (inx < lastinx  &&  spids[inx] <= spid) {
           lastspid = spids[inx++];
           spids[inxout++] = lastspid;
-	}
+        }
         // Only store child's spid if different.
-	if (spid != lastspid) {
+        if (spid != lastspid) {
           spids[inxout++] = spid;
         }
       }
