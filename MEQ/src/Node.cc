@@ -41,6 +41,7 @@ using Debug::ssprintf;
 Node::Node (int nchildren,const HIID *labels,int nmandatory)
     : check_nchildren_(nchildren),
       check_nmandatory_(nmandatory),
+      control_state_(CS_ACTIVE),
       depend_mask_(0),
       node_groups_(1,FAll),
       auto_resample_(RESAMPLE_NONE),
@@ -179,7 +180,9 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // xfer & privatize the state record -- we don't want anyone
   // changichildrec.size()ng it under us
   DataRecord &rec = staterec_.xfer(initrec).privatize(DMI::WRITE|DMI::DEEP);
-  
+
+  // set control state
+  control_state_ = rec[FControlState].as<int>();
   // set num children based on the FChildren field
   cdebug(2)<<"reinitializing node children"<<endl;
   // set node index, if specified
@@ -235,6 +238,8 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   FailWhen(rec[FResolveParentId].exists(),"can't specify "+FResolveParentId.toString()+" in init record");
   node_resolve_id_ = -1;
   checkInitState(rec);
+  // add state word
+  rec[FControlState] = control_state_;
   
   // setup children
   cdebug(2)<<"initializing node (others)"<<endl;
@@ -317,6 +322,13 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
     protectStateField(rec,FChildren);
     protectStateField(rec,FNodeIndex);
     protectStateField(rec,FResolveParentId);
+  }
+  // apply changes to mutable bits of control state
+  int cstate;
+  if( rec[FControlState].get(cstate) )
+  {
+    rec[FControlState] = control_state_ = 
+        (control_state_&~CS_CONTROL_MASK)|(cstate&CS_CONTROL_MASK);
   }
   // set/clear cached result
   //   the cache_result field must be either a Result object,
@@ -765,18 +777,23 @@ void Node::cacheRCR (int ich,const Result::Ref::Copy &res)
 void Node::addResultSubscriber (const EventSlot &slot)
 {
   result_event_gen_.addSlot(slot);
+  wstate()[FControlState] = control_state_ |= CS_PUBLISHING;
   cdebug(2)<<"added result subscription "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
 }
 
 void Node::removeResultSubscriber (const EventRecepient *recepient)
 {
   result_event_gen_.removeSlot(recepient);
+  if( !result_event_gen_.active() )
+    wstate()[FControlState] = control_state_ &= ~CS_PUBLISHING;
   cdebug(2)<<"removing all subscriptions for "<<recepient<<endl;
 }
 
 void Node::removeResultSubscriber (const EventSlot &slot)
 {
   result_event_gen_.removeSlot(slot);
+  if( !result_event_gen_.active() )
+    wstate()[FControlState] = control_state_ &= ~CS_PUBLISHING;
   cdebug(2)<<"removing result subscriber "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
 }
 
@@ -1108,6 +1125,13 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       if( req0.hasRider() )
         retcode = processRequestRider(reqref);
     } // endif( newreq )
+    // if node is deactivated, return an empty result at this point
+    if( !getControlState(CS_ACTIVE) )
+    {
+      ref <<= new Result(0);
+      cdebug(3)<<"  node deactivated, empty result. Cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
+      return cacheResult(ref,retcode) | RES_UPDATED;
+    }
     // in case processRequestRider modified the request, work with the new
     // request object from now on
     const Request &req = *reqref;

@@ -37,7 +37,7 @@
 #pragma types #Meq::Node
 #pragma aid Add Clear Known Active Gen Dep Deps Symdep Symdeps Mask Masks
 #pragma aid Parm Value Resolution Domain Dataset Resolve Parent Init Id
-#pragma aid Link Or Create
+#pragma aid Link Or Create Control State
     
 
 namespace Meq {
@@ -45,8 +45,11 @@ namespace Meq {
 class Forest;
 class Request;
 
+// ControlState word
+const HIID FControlState = AidControl|AidState;
+
 // flag for child init-records, specifying that child node may be directly
-// libnked to if it already exists
+// linked to if it already exists
 const HIID FLinkOrCreate = AidLink|AidOr|AidCreate;
 
 const HIID FDependMask = AidDep|AidMask;
@@ -122,6 +125,26 @@ class Node : public BlockableObject
       // upsample all child results to highest resolution
       RESAMPLE_UPSAMPLE  =  1,
     } AutoResampleModes; 
+      
+    //##Documentation
+    //## Control state bitmasks. These are set in control_state_
+    typedef enum 
+    { 
+      // node is active
+      CS_ACTIVE         = 0x01,
+      // node is publishing
+      CS_PUBLISHING     = 0x10,
+      // breakpoint on request
+      CS_BREAK_REQUEST  = 0x10000,
+      // breakpoint on result
+      CS_BREAK_RESULT   = 0x20000,
+      
+      // mask of all breakpoint-related bits
+      CS_MASK_BREAKPOINTS = 0xF0000,
+          
+      // mask of bits that may be set from outside (via setState)
+      CS_CONTROL_MASK   = 0xFFFFFF0F,
+    } ControlStates;
 
     //##ModelId=3F5F43E000A0
     //##Documentation
@@ -171,6 +194,12 @@ class Node : public BlockableObject
     
     bool hasState () const
     { return staterec_.valid(); }
+    
+    int getControlState () const
+    { return control_state_; }
+    
+    bool getControlState (int mask) const
+    { return control_state_&mask; }
     
     //##ModelId=400E53120082
     void setNodeIndex (int nodeindex);
@@ -593,7 +622,7 @@ class Node : public BlockableObject
     //## Defined as macro so that exception gets proper file/line info
     #define protectStateField(rec,field) \
       { if( (rec)[field].exists() ) \
-          NodeThrow(FailWithoutCleanup,"state."+(field).toString()+" not reconfigurable"); }
+          NodeThrow(FailWithoutCleanup,"state field "+(field).toString()+" not reconfigurable"); }
 
 // 31/03/04: phased out, since rec[Field].get(variable) does the same thing
 //     // Helper method for setStateImpl(). Checks if rec[field] exists, if yes,
@@ -648,6 +677,9 @@ class Node : public BlockableObject
     //## specified in constructor. If non-0, node must have no less than 
     //## that number of children
     int check_nmandatory_;
+    
+    //## control_state word
+    int control_state_;
     
     //##ModelId=3F5F4363030D
     DataRecord::Ref staterec_;

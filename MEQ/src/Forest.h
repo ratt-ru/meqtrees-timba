@@ -37,12 +37,13 @@ class Forest
 {
   public:
     typedef enum {
-      NL_NODEINDEX = 1,
-      NL_NAME      = 2,
-      NL_CLASS     = 4,
-      NL_CHILDREN  = 8,
+      NL_NODEINDEX     = 1,
+      NL_NAME          = 2,
+      NL_CLASS         = 4,
+      NL_CHILDREN      = 8,
+      NL_CONTROL_STATE = 16,
           
-      NL_DEFAULT   = NL_NODEINDEX|NL_NAME|NL_CLASS,
+      NL_DEFAULT   = NL_NODEINDEX|NL_NAME|NL_CLASS|NL_CONTROL_STATE,
     } NodeListContent;
     
     //##ModelId=3F60697A00ED

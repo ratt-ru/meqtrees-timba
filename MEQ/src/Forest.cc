@@ -215,7 +215,7 @@ int Forest::getNodeList (DataRecord &list,int content)
 {
   int num = num_valid_nodes;
   // create lists (arrays) for all known content
-  DataField *lni=0,*lname=0,*lclass=0;
+  DataField *lni=0,*lname=0,*lclass=0,*lstate=0;
   DataList *lchildren=0;
   if( content&NL_NODEINDEX )
     list[AidNodeIndex] <<= lni = new DataField(Tpint,num);
@@ -225,6 +225,8 @@ int Forest::getNodeList (DataRecord &list,int content)
     list[AidClass] <<= lclass = new DataField(Tpstring,num);
   if( content&NL_CHILDREN )
     list[AidChildren] <<= lchildren = new DataList;
+  if( content&NL_CONTROL_STATE )
+    list[FControlState] <<= lstate = new DataField(Tpint,num);
   if( num )
   {
     // fill them up
@@ -240,6 +242,8 @@ int Forest::getNodeList (DataRecord &list,int content)
           (*lname)[i0] = node.name();
         if( lclass )
           (*lclass)[i0] = node.className();
+        if( lstate )
+          (*lstate)[i0] = node.getControlState();
         if( lchildren )
         {
           DataRecord::Hook hook(node.state(),FChildren);

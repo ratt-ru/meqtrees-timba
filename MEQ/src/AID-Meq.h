@@ -123,6 +123,11 @@ const int AidConfig_int = -1373;
 const AtomicID AidContagious(-1364);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:34
 const int AidContagious_int = -1364;
 #endif
+#ifndef _defined_id_AidControl
+#define _defined_id_AidControl 1
+const AtomicID AidControl(-1131);                 // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
+const int AidControl_int = -1131;
+#endif
 #ifndef _defined_id_AidCreate
 #define _defined_id_AidCreate 1
 const AtomicID AidCreate(-1332);                  // from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:11
