@@ -17,6 +17,11 @@
 #ifndef Common_h
 #define Common_h 1
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+
 //## begin module%3C14B70800A2.additionalIncludes preserve=no
 //## end module%3C14B70800A2.additionalIncludes
 
@@ -45,13 +50,27 @@ using namespace std;
 
 
 
+// Forward declare the DataArray classes.
+template<class T> class Array;
+typedef Array<float>   Arrayfloat;
+typedef Array<int>     Arrayint;
+
+
 //## begin Bool%3C14B6D4002F.postscript preserve=yes
-typedef bool Bool;
-const Bool False=false,True=true;
+// Define capitalized Bool types.
+// If available, use AIPS++ to do that.
+#if defined(HAVE_AIPSPP)
+# include <aips/aipstype.h>
+#else
+ typedef bool Bool;
+ const Bool True = true;
+ const Bool False = false;
+#endif
 //## end Bool%3C14B6D4002F.postscript
 
 //## begin module%3C14B70800A2.epilog preserve=yes
 //## end module%3C14B70800A2.epilog
+
 
 
 #endif
