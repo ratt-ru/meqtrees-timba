@@ -140,7 +140,7 @@ const int AidT_int = -1021;
 #endif
 #ifndef _defined_id_AidTimestamp
 #define _defined_id_AidTimestamp 1
-const AtomicID AidTimestamp(-1032);               // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:27
+const AtomicID AidTimestamp(-1032);               // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:73
 const int AidTimestamp_int = -1032;
 #endif
 #ifndef _defined_id_AidU
@@ -230,7 +230,7 @@ const int Aidshort_int = -35;
 #endif
 #ifndef _defined_id_Aidstring
 #define _defined_id_Aidstring 1
-const AtomicID Aidstring(-48);                    // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:45
+const AtomicID Aidstring(-48);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgent.aidlist:37
 const int Aidstring_int = -48;
 #endif
 #ifndef _defined_id_Aiduchar

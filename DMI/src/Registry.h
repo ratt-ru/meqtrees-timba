@@ -1,13 +1,11 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+#ifndef DMI_Registry_h
+#define DMI_Registry_h 1
 
-#ifndef Registry_h
-#define Registry_h 1
-
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
+#include <DMI/Common.h>
+#include <DMI/DMI.h>
 
 #ifdef USE_THREADS
-#include "Common/Thread/Mutex.h"
+#include <Common/Thread/Mutex.h>
 #define lockMutex Thread::Mutex::Lock _lock(HostClass::_registry_mutex)
 #define declareMutex static pthread_mutex_t _registry_mutex
 #define defineMutex(Class) pthread_mutex_t Class::_registry_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
@@ -17,17 +15,48 @@
 #define defineMutex(Class) 
 #endif
 
-
 // macro: inserts a registry into a class declaration
-#define DeclareRegistry(Class,Key,Value) public: typedef UniRegistry<Key,Value,Class> Registry; typedef Registrar<Key,Value,Class> Register; private: static Registry registry; static Registry::Map *_registry_map; friend class Registry; friend class Register; declareMutex;
+#define DeclareRegistry(Class,Key,Value)    \
+  public: typedef UniRegistry<Key,Value,Class> Registry;    \
+          typedef Registrar<Key,Value,Class> Register;    \
+          static int addToRegistry(const Key&,const Value&); \
+  private: static Registry registry;    \
+           static Registry::Map *_registry_map;    \
+           friend class Registry;    \
+           friend class Register;    \
+           declareMutex;   \
 
 // macro: inserts registry definitions into .cc file
-#define DefineRegistry(Class,defval) Class::Registry Class::registry(defval); Class::Registry::Map * Class::_registry_map = 0; defineMutex(Class);
+#define DefineRegistry(Class,defval) \
+  Class::Registry Class::registry(defval); \
+  Class::Registry::Map * Class::_registry_map = 0; \
+  defineMutex(Class); \
+  int Class::addToRegistry (const Class::Registry::KeyType &key,\
+                            const Class::Registry::Value &val) \
+  { registry.add(key,val); return 1; }
 
 // macro: inserts a registry into a class declaration
-#define DeclareBiRegistry(Class,Key,Value) public: typedef BiRegistry<Key,Value,Class> Registry; typedef Registrar<Key,Value,Class> Register; private: static Registry registry; static Registry::Map *_registry_map; static Registry::RevMap *_registry_rmap; friend class Registry; friend class UniRegistry<Key,Value,Class>; friend class Register; declareMutex;
+#define DeclareBiRegistry(Class,Key,Value)    \
+  public: typedef BiRegistry<Key,Value,Class> Registry;    \
+          typedef Registrar<Key,Value,Class> Register;    \
+          static int addToRegistry(const Key&,const Value&); \
+  private:  static Registry registry;    \
+            static Registry::Map *_registry_map;    \
+            static Registry::RevMap *_registry_rmap;    \
+            friend class Registry;    \
+            friend class UniRegistry<Key,Value,Class>;    \
+            friend class Register;    \
+            declareMutex;   
+            
 // macro: inserts registry definitions into .cc file
-#define DefineBiRegistry(Class,defkey,defval) Class::Registry Class::registry(defkey,defval); Class::Registry::Map * Class::_registry_map = 0; Class::Registry::RevMap * Class::_registry_rmap = 0; defineMutex(Class);
+#define DefineBiRegistry(Class,defkey,defval)    \
+  Class::Registry Class::registry(defkey,defval);    \
+  Class::Registry::Map * Class::_registry_map = 0;    \
+  Class::Registry::RevMap * Class::_registry_rmap = 0;    \
+  defineMutex(Class);  \
+  int Class::addToRegistry (const Class::Registry::KeyType &key,\
+                            const Class::Registry::Value &val) \
+  { registry.add(key,val); return 1; }
 
 
 //##ModelId=3C5A6FD40213

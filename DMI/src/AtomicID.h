@@ -131,6 +131,9 @@ class AtomicID
     //##ModelId=3E01BE06024F
       void print () const;
       
+      // this is provided as an alternative to the standard registry function
+      static int registerId (int key,const char *val);
+      
   private:
     // Additional Private Declarations
     //##ModelId=3DB934450106

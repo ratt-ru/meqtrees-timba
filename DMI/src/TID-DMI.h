@@ -100,7 +100,7 @@ const int TpObjRef_int = -1030;
 #endif
 #ifndef _defined_id_TpTimestamp
 #define _defined_id_TpTimestamp 1
-const TypeId TpTimestamp(-1032);                  // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:27
+const TypeId TpTimestamp(-1032);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:73
 const int TpTimestamp_int = -1032;
 class Timestamp;
             template<>
@@ -293,7 +293,7 @@ const int Tpshort_int = -35;
 #endif
 #ifndef _defined_id_Tpstring
 #define _defined_id_Tpstring 1
-const TypeId Tpstring(-48);                       // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:45
+const TypeId Tpstring(-48);                       // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgent.aidlist:37
 const int Tpstring_int = -48;
             template<>
             class DMIBaseTypeTraits<string> : public TypeTraits<string>

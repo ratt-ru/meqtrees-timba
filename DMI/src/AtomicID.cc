@@ -101,23 +101,19 @@ Registrar<int,string,AtomicID>::Registrar (const int &key, const string &val)
 }
 #endif
 
-static AtomicID::Register
-     null(AidNull.id(),"0"),
-     any(AidAny.id(),"?"),
-     wild(AidWildcard.id(),"*"),
-     slash(AidSlash.id(),"/"),
-     range(AidRange.id(),":"),
-     empty(AidEmpty.id(),"_");
+int __register_extra_aids_ =
+   AtomicID::registerId(AidNull.id(),"0") +
+   AtomicID::registerId(AidAny.id(),"?") +
+   AtomicID::registerId(AidWildcard.id(),"*") +
+   AtomicID::registerId(AidSlash.id(),"/") +
+   AtomicID::registerId(AidRange.id(),":") +
+   AtomicID::registerId(AidEmpty.id(),"_");
 
-// Class AidIndex 
-
-// Additional Declarations
-
-
-
-// Detached code regions:
-#if 0
-  cerr<<"Registering key "<<key<<"="<<val<<endl;
-  AtomicID::registry.add(key,val);
-
-#endif
+int AtomicID::registerId (int key,const char * value)
+{
+  string val = value;
+//  cerr<<"Registering key "<<key<<"="<<val<<endl;
+  registry.add(key,val,strlowercase(val));
+  return key;
+}
+      

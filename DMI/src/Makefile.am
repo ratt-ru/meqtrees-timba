@@ -80,7 +80,8 @@ REGISTRY_FILES = $(foreach pkg,$(REGISTRY_PACKAGES),$(wildcard $(lofar_sharedir)
 
 $(top_srcdir)/src/Global-Registry.cc: $(top_srcdir)/src/Global-Registry.header $(REGISTRY_FILES)
 	cp $< $@
-	(for f in $(REGISTRY_FILES); do grep "AtomicID::Register" $$f; done)|sort|uniq >>$@
+	(for f in $(REGISTRY_FILES); do grep "AtomicID::registerId" $$f; done)|sort|uniq >>$@
+	cat $(top_srcdir)/src/Global-Registry.footer >>$@
 
 # script used to generate AID maps
 MAPBUILDER = $(top_srcdir)/src/build_aid_maps.pl 
