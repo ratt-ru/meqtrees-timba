@@ -1030,11 +1030,13 @@ void * Dispatcher::eventThread ()
       if( next_to )
       {
         (next_to - Timestamp::now()).to_timeval(tv);
-//        dprintf(5)("next TO in %ld.%06ld\n",tv.tv_sec,tv.tv_usec);
-        if( tv.tv_sec < 0 ) // already time for timeout?
-          ptv = 0;
+        dprintf(5)("next TO in %ld.%06ld\n",tv.tv_sec,tv.tv_usec);
+        // if it happens to be time for another timeout already, reset the interval to 0,
+        // so that the select() call below only checks the fds and does not sleep
+        if( tv.tv_sec < 0 || (!tv.tv_sec && tv.tv_usec<0) )
+          tv.tv_sec = tv.tv_usec = 0;
       }
-      else
+      else // no timeouts pending at all, so wait indefinitely on the fds
         ptv = 0;
       lock.relock(fds_watched_mutex);
       if( max_fd >= 0 ) // poll fds using select(2) 
