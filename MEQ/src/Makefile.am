@@ -29,7 +29,7 @@ VellsComplexSca.cc VellsComplexArr.cc \
 Request.cc Result.cc \
 Forest.cc \
 ParmTable.cc \
-AID-MEQ-Registry.cc
+AID-Meq-Registry.cc
 
 #EXTRA_DIST		=			\
 #Beam.m						\
