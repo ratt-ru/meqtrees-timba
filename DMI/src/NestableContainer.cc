@@ -686,7 +686,14 @@ void * NestableContainer::Hook::prepare_assign_array (bool &haveArray,TypeId tid
 {
   FailWhen(addressed,"unexpected '&' operator");
   ContentInfo info;
-  void *target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
+  // are we replacing the element? Start by removing existing target
+  if( replacing )
+  {
+    index >= 0 ? nc->removen(index) 
+               : nc->remove(id);
+    return 0; // non-existing object
+  }
+  void * target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
   if( !target  )   // non-existing object
     return 0; 
   // hook resolved to an array -- check shapes, etc.
@@ -735,7 +742,15 @@ void NestableContainer::Hook::assign_arrayable (int size,Iter begin,Iter end,Typ
 {
   FailWhen(addressed,"unexpected '&' operator");
   ContentInfo info;
-  void *target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
+  void *target=0;
+  // are we replacing the element? Start by removing existing target
+  if( replacing )
+  {
+    index >= 0 ? nc->removen(index) 
+               : nc->remove(id);
+  }
+  else
+    target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
   T * ptr; // pointer to destination array data 
   // non-existing object: try to a initialize a new DataArray
   if( !target  )
@@ -792,7 +807,15 @@ void * NestableContainer::Hook::prepare_vector (TypeId tid,int size) const
 {
   FailWhen(addressed,"unexpected '&' operator");
   ContentInfo info;
-  void *target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
+  // are we replacing the element? Start by removing existing target
+  void *target = 0;
+  if( replacing )
+  {
+    index >= 0 ? nc->removen(index) 
+               : nc->remove(id);
+  }
+  else
+    target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
   // non-existing object: try to a initialize a new DataField
   if( !target  )
   {
