@@ -170,6 +170,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.ComplexColorMap = None
 	self._flags_array = None
 	self._display_flags = False
+        self.image = None
 
     # __init__()
     
@@ -363,6 +364,9 @@ class QwtPlotImage(QwtPlotMappedItem):
         Calculate (x1, y1, x2, y2) so that it contains at least 1 pixel,
         and copy the visible region to scale it to the canvas.
         """
+        if self.image is None:
+          return
+
 #        print 'in drawImage'
 #        print 'incoming x map ranges ',xMap.d1(), ' ', xMap.d2()
 #        print 'incoming y map ranges ',yMap.d1(), ' ', yMap.d2()
@@ -537,6 +541,7 @@ class QwtImagePlot(QwtPlot):
             self._signal_id = self._signal_id + 1
             self._menu.insertItem(data_label,self._signal_id)
 	    self._plot_dict[self._signal_id] = self._data_values[i].copy()
+            self._plot_dict_size = len(self._plot_dict)
 	    self._plot_label[self._signal_id] = plot_label
             self._combined_label_dict[self._signal_id] = combined_display_label
 # otherwise create or update the combined image
@@ -1218,6 +1223,7 @@ class QwtImagePlot(QwtPlot):
               data_label = 'spectra:' + self._string_tag +  " " +self._data_labels
             _dprint(3, 'plotting array with label ', data_label)
             self.array_plot(data_label, self._data_values[0])
+      _dprint(2, 'exiting plot_data');
 
     # end plot_data()
 
