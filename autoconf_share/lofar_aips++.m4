@@ -43,8 +43,7 @@ AC_MSG_RESULT([yes])
 		AIPSPP_LIBS="-laips"
 
 		CPPFLAGS="$CPPFLAGS $AIPSPP_CPPFLAGS"
-		lofar_compiler=`basename $CXX`;
-		if test "$lofar_compiler" = "g++"; then
+		if test "$lofar_compiler" = "gnu"; then
 		  CXXFLAGS="$CXXFLAGS -Wno-non-template-friend"
 		fi
 		LDFLAGS="$LDFLAGS $AIPSPP_LDFLAGS"

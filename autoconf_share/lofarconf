@@ -1,0 +1,126 @@
+#!/bin/sh
+
+# Run configure for a specific build variant.
+# The current directory is used as the variant name.
+#
+# Use as
+#    lofarconf configure-directory [configure-options]
+
+# Get the current directory.
+lfr_curdir=`pwd`
+# Get the LOFAR base from the full path of this script.
+lfr_sdir=`dirname $0`
+lfr_base=`(cd $lfr_sdir && pwd) | sed -e "s%/LOFAR/.*%/LOFAR%"`
+
+# Try to determine the build area and the package name.
+# Either the build area is a subdirectory of the package or the
+# package is a subdirectory of the build area.
+# So strip until 'build' from the path. If a single name
+# is left, we know that the build is a directory of the package.
+lfr_rest=`echo $lfr_curdir/ | sed -e "s%.*/build/%%"`;
+if [ "$lfr_rest" = "$lfr_curdir/" ]; then
+  lfr_error=1;
+elif [ "$lfr_rest" = "" ]; then
+  lfr_error=1;
+fi
+
+if [ "$lfr_error" = "" ]; then
+  lfr_rest=`echo $lfr_rest | sed -e "s%/\$%%"`;
+  lfr_cvdir=`echo $lfr_rest | sed -e "s%/.*%%"`;
+  if [ "$lfr_cvdir" = "$lfr_rest" ]; then
+    # We have to find the package name.
+    # Although the build area is a subdirectory of the package,
+    # it still does not mean it is in the LOFAR tree.
+    # So try to match the path before 'build' with the tree below LOFAR.
+    lfr_pkg=`echo $lfr_curdir | sed -e "s%/build/.*%%"`;
+    while [ ! -d ${lfr_base}/${lfr_pkg} ]
+    do
+      lfr_tdir=`echo $lfr_pkg | sed -e "s%[^/]*/%%"`;
+      if [ "$lfr_tdir" = "$lfr_pkg" ]; then
+        lfr_error=1;
+	break;
+      fi
+      lfr_pkg=$lfr_tdir;
+    done
+  else
+    # Package is subdirectory of build area.
+    # Error if it does not exist.
+    lfr_pkg=`echo $lfr_rest | sed -e "s%$lfr_cvdir/%%"`;
+    if [ ! -d ${lfr_base}/${lfr_pkg} ]; then
+      lfr_error=1;
+    fi
+  fi
+fi
+
+if [ "$lfr_error" != "" ]; then
+  echo "Could not derive package from current build directory";
+  echo "The build directory should be in the source tree like"
+  echo "      LOFAR/'package'/build/'variant'"
+  echo "or in another tree like"
+  echo "      something/build/'variant'/'package'"
+  echo "or    something/'package'/build/'variant'"
+  echo "where variant is, for example, gnu_opt."
+  exit 1;
+fi
+
+# Derive compiler and variant from build area.
+lfr_cmp=`echo $lfr_cvdir | sed -e "s/_.*//"`
+lfr_var=`echo $lfr_cvdir | sed -e "s/.*_//"`
+
+# The configure script for the package is in the same tree as
+# this script is in.
+lfr_confdir=$lfr_base/$lfr_pkg;
+
+# Get the configure and make options from the variants file.
+# Look first for a host specific one; if not found, for a general one.
+lfr_host=`uname -n`
+cmpopts=
+varopts=
+cmpmakes=
+varmakes=
+if [ -f $lfr_base/variants.$lfr_host ]; then
+  cmpopts=`egrep "^$lfr_cmp.compiler.conf:" $lfr_base/variants.$lfr_host`
+  varopts=`egrep "^$lfr_var.variant.conf:" $lfr_base/variants.$lfr_host`
+  cmpmakes=`egrep "^$lfr_cmp.compiler.make:" $lfr_base/variants.$lfr_host`
+  varmakes=`egrep "^$lfr_var.variant.make:" $lfr_base/variants.$lfr_host`
+fi
+if [ "x$cmpopts" = "x" ]; then
+  cmpopts=`egrep "^$lfr_cmp.compiler.conf:" $lfr_base/variants`
+fi
+if [ "x$varopts" = "x" ]; then
+  varopts=`egrep "^$lfr_var.variant.conf:" $lfr_base/variants`
+fi
+if [ "x$varmakes" = "x" ]; then
+  varmakes=`egrep "^$lfr_var.variant.make:" $lfr_base/variants`
+fi
+if [ "x$cmpmakes" = "x" ]; then
+  cmpmakes=`egrep "^$lfr_cmp.compiler.make:" $lfr_base/variants`
+fi
+
+# Exit if the compiler is unknown.
+if [ "x$cmpopts" = "x" ]; then
+  echo "Cannot configure; $lfr_cmp.compiler.conf not found in $lfr_base/variants[.$lfr_host]"
+  exit 1;
+fi
+# Get the options only from the configure lines.
+cmpopts=`echo $cmpopts | sed -e "s%.*\.compiler\.conf: *%%"`
+varopts=`echo $varopts | sed -e "s%.*\.variant\.conf: *%%"`
+
+# Now do the configure.
+echo "${lfr_cmp}_$lfr_var configure will be done on host $lfr_host for package $lfr_pkg"
+echo $lfr_confdir/configure $cmpopts $varopts $*
+$lfr_confdir/configure $cmpopts $varopts $*
+
+
+# Get the compiler make options.
+cmpmakes=`echo $cmpmakes | sed -e "s%.*\.compiler\.make: *%%"`
+varmakes=`echo $varmakes | sed -e "s%.*\.variant\.make: *%%"`
+
+# Write the options into the makeoptions file.
+\rm -f makeoptions
+touch makeoptions
+if [ "$cmpmakes$varmakes" != "" ]; then
+  echo ""
+  echo "$cmpmakes $varmakes" > makeoptions
+  echo "make options\n  $cmpmakes $varmakes\nwritten into makeoptions file";
+fi

@@ -4,6 +4,13 @@ if test $# != 1; then
   exit 1
 fi
 set -x
+
+# Make symlinks for ease of use.
+\rm -f autoconf_share lofarconf
+ln -s $1 autoconf_share
+ln -s $1/lofarconf lofarconf
+
+# Initialize auto tools
 aclocal -I $1 \
 && libtoolize --force --copy \
 && autoheader \

@@ -30,12 +30,11 @@ AC_ARG_ENABLE(dbgassert,
     with_debug="-g"
   fi
 
-  lofar_compiler=`basename $CXX`;
-  if test "$lofar_compiler" = "g++"; then
+  if test "$lofar_compiler" = "gnu"; then
     lofar_warnflags="-W -Wall";
   fi
 # Suppress KCC warnings about returning by const value and about double ;
-  if test "$lofar_compiler" = "KCC"; then
+  if test "$lofar_compiler" = "kcc"; then
     lofar_warnflags="--display_error_number --restrict --diag_suppress 815,381";
   fi
 
@@ -56,7 +55,7 @@ AC_ARG_ENABLE(dbgassert,
   fi
 
   if test "$with_optimize" = "yes"; then
-    if test "$lofar_compiler" = "KCC"; then
+    if test "$lofar_compiler" = "kcc"; then
       with_optimize="+K3"
     else
       with_optimize="-O3"

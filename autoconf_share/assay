@@ -1,0 +1,198 @@
+#!/bin/sh
+#
+# assay: Invoke a BaseSim test program and verify its output
+#
+#  Copyright (C) 2001
+#  ASTRON (Netherlands Foundation for Research in Astronomy)
+#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#  $Id$
+#
+#  $Log$
+#  Revision 1.1  2002/05/03 10:50:41  gvd
+#  Support of packages in build environement
+#
+#  Revision 1.4  2001/09/18 10:21:34  gvd
+#  Do not execute .run file with sh command
+#
+#  Revision 1.3  2001/03/23 10:00:40  gvd
+#  Improved documentation and test programs
+#  Added clearEventCount function to Step
+#
+#  Revision 1.2  2001/03/21 10:21:51  gvd
+#  Improved comments
+#
+#  Revision 1.1  2001/03/20 12:25:23  gvd
+#  First version of script to run and check test programs
+#
+#
+#-----------------------------------------------------------------------------
+# Usage: assay <testexe and arguments>
+#-----------------------------------------------------------------------------
+# This script is an adapted version of the AIPS++ assay script.
+#
+# assay invokes a LofarSim test program. If the test program has an associated
+# .run file then it simply invokes it. Otherwise assay invokes the test
+# executable directly and, if there is a corresponding .in file,
+# redirect stdin from it.
+#
+# assay redirects the output of program or .run file to a temporary file
+# and compare it with a corresponding .out file (if there) using diff.
+# Parts of the output can be skipped using special markers (>>> and <<<).
+#
+# A .run file is necessary in the following cases:
+# 1. There are other input files. In that case the .run file should
+#    copy those files to the working directory. If needed, it should
+#    guard against the case where the working directory is already the
+#    directory containing the input files.
+# 2. There are multiple output files that should be compared.
+# 3. The test program has to be run multiple times with various arguments.
+# Note that the .run file can be executed from the source directory
+# or from the machine/test directory.
+#
+# An example t_fft.run file could look like:
+#
+#  #!/bin/sh
+#
+#  # Get working directory.
+#  wdir=`pwd`
+#  # Get source directory (by removing trailing part like /dop08/test).
+#  sdir=`pwd | sed 's#/[^/]*/test$##'`
+#  echo $wdir
+#  echo $sdir
+#  # Copy input files (actually, guard is not needed in this case).
+#  if [ "$wdir" != "$sdir/BASELINE" ]
+#  then
+#    cp $sdir/BASELINE/*.in* .
+#    cp $sdir/BASELINE/*.coef .
+#  fi
+#  # Execute the program.
+#  t_fft
+#  STATUS=$?
+#  if [ $STATUS ]
+#  then
+#    # Do a difference of all output files.
+#    mdiff *.out $sdir/BASELINE
+#    STATUS=$?
+#  fi
+#  # Remove the files created.
+#  if [ "$wdir" != "$sdir/BASELINE" ]
+#  then
+#    \rm -f *.in* *.coef
+#  fi
+#  # Remove .out files only if succesfully ended.
+#  if [ $STATUS ]
+#  then
+#    \rm -f *.out*
+#  fi
+#  exit $STATUS
+##########################################################
+#
+# Options:
+#   none
+#
+# Status returns:
+#    0:  success
+#    1:  test execution failed
+#    2:  test output disagreement
+#    3:  untested (as returned from a .run)
+#  130:  interrupt
+#
+# Notes:
+#    1) It is assumed that the test executable exists in the working directory.
+#
+# Original: 1995/11/01 by Mark Calabretta, ATNF
+#
+# $Id$
+#
+# $Log$
+# Revision 1.1  2002/05/03 10:50:41  gvd
+# Support of packages in build environement
+#
+# Revision 1.4  2001/09/18 10:21:34  gvd
+# Do not execute .run file with sh command
+#
+# Revision 1.3  2001/03/23 10:00:40  gvd
+# Improved documentation and test programs
+# Added clearEventCount function to Step
+#
+# Revision 1.2  2001/03/21 10:21:51  gvd
+# Improved comments
+#
+# Revision 1.1  2001/03/20 12:25:23  gvd
+# First version of script to run and check test programs
+#
+#
+#=============================================================================
+
+# Initialize the command to be executed.
+  COMMAND="./$@"
+
+# Define exit and interrupt handler.
+  trap 'rm -rf $CLEANUP core ${1}_tmp* ; \
+        trap 0 ; \
+        exit $STATUS' 0 1 2 3 15
+
+# If there is a .run file then use it.
+  if [ -f "$1.run" ]
+  then
+     COMMAND="$1.run"
+  fi
+
+# If there is a .in file then use it as input.
+  if [ -f "$1.in" ]
+  then
+     COMMAND="$COMMAND < $1.in"
+  fi
+
+# Execute the command.
+  if eval "$COMMAND" > ${1}_tmp.out
+  then
+     if [ -f $1.out ]
+     then
+        CAT=cat
+     else
+        echo "PASS (execution succeeded): $*"
+        STATUS=0
+        exit
+     fi
+  else
+     STATUS=$?
+     if [ $STATUS = 3 ]
+     then
+        echo "UNTESTED: $*"
+     else
+        echo "FAIL (execution failure): $*"
+     fi
+     exit
+  fi
+
+# Strip out demarked text.
+  sed -e '/^>>>/,/^<<</d' ${1}_tmp.out > ${1}_tmp.out2
+  mv -f ${1}_tmp.out2 ${1}_tmp.out
+
+# Compare with the expected output.
+  if $CAT $1.out | sed -e '/^>>>/,/^<<</d' | diff ${1}_tmp.out -
+  then
+     echo "PASS (output verified): $*"
+     STATUS=0
+     exit
+  else
+     echo "FAIL (output not verified): $*"
+     STATUS=2
+     exit
+  fi

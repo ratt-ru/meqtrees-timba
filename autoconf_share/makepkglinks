@@ -1,0 +1,55 @@
+#!/bin/sh
+
+# This script is used by lofar_package.m4 to create symlinks for
+# packages used by the given package.
+# It is done in a recursive way.
+#
+# usage:
+#  makepkglinks pkgname incdir libdir pkginc pkglib filename count
+
+# The package name is the last part of the full package name.
+# The library name is the lowercase version of the package name.
+
+fullnm=$1
+pkgnm=`echo $fullnm | sed -e "s%.*/%%g"`
+libnm=`echo $pkgnm | tr [A-Z] [a-z]`
+incdir=`cd $2  &&  pwd`
+libdir=`cd $3  &&  pwd`
+inclin=$4
+liblin=$5
+filnm=$6
+count=$7
+
+# The count is used to detect mutual dependencies
+if [ "$count" -gt 25 ]; then
+  echo "Mutual package dependencies found for package $fullnm"
+  exit 1;
+fi
+
+# Remove the full package name from the include and library path to be able
+# to derive the library path of subpackages from it.
+incdir1=`echo $incdir | sed -e "s%/$fullnm/.*%/%" -e "s%$fullnm$%%"`
+incdir2=`echo $incdir | sed -e "s%.*/$fullnm%%"`
+libdir1=`echo $libdir | sed -e "s%/$fullnm/.*%/%" -e "s%$fullnm$%%"`
+libdir2=`echo $libdir | sed -e "s%.*/$fullnm%%"`
+
+# Create symlink to the include directory and to the library
+\rm -f $inclin/$pkgnm
+ln -s $incdir/src $inclin/$pkgnm
+##\rm -f $liblin/lib$libnm.la
+##ln -s $libdir/src/lib$libnm.la $liblin/lib$libnm.la
+
+##echo '-l'$libnm >> $filnm
+
+# Make symlinks to packages used by this package.
+confs=`find $incdir1/$fullnm -name configure.in -print`
+for conf in $confs
+do
+  pkgs=`grep "lofar_PACKAGE" $conf`
+  for pkg in $pkgs
+  do
+    nm=`echo $pkg | sed -e "s/.*lofar_PACKAGE//" -e "s/.*(//" -e "s/).*//"`
+    cnt=`expr $count + 1`
+    $0 $nm $incdir1/$nm/$incdir2 $libdir1/$nm/$libdir2 $inclin $liblin $filnm $cnt  ||  exit 1
+  done
+done
