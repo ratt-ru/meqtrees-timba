@@ -397,7 +397,7 @@ class app_proxy_gui(verbosity,QMainWindow):
   def _relay_event (self,event,value):
     # print 'eventRelay: ',msg;
     self.dprint(5,'_relay_event:',event,value);
-    QThread.postEvent(self,QCustomEvent(self.MessageEventType,(event,value)));
+    QApplication.postEvent(self,QCustomEvent(self.MessageEventType,(event,value)));
     self.dprint(5,'_relay_event: event posted');
     # print 'eventRelay returning';
 
@@ -454,7 +454,7 @@ class app_proxy_gui(verbosity,QMainWindow):
       else:                 
         self.pause_button.setIconSet(QIconSet(pixmaps.pause_normal.pm()));
         QToolTip.add(self.pause_button,"pause the application");
-      print self.app.paused,self.pause_requested;
+      # print self.app.paused,self.pause_requested;
       # if requested pause/resume state is reached, get button up and clear
       if self.pause_requested == self.app.paused:
         print 'Pause state reached!'
