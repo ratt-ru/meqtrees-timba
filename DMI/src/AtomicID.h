@@ -35,6 +35,8 @@
 
 // define the strlowercase function, for want of a better place
 string strlowercase (const string &);
+// define the struppercase function, for want of a better place
+string struppercase (const string &);
 
 //##ModelId=3BE970170297
 //##Documentation

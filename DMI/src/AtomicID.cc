@@ -38,6 +38,14 @@ string strlowercase (const string &in)
   return out;
 }
 
+string struppercase (const string &in)
+{
+  string out = in;
+  for( string::iterator iter = out.begin(); iter != out.end(); iter++ )
+    *iter = toupper(*iter);
+  return out;
+}
+
 //##ModelId=3BE9709700A7
 string AtomicID::toString () const
 {
