@@ -141,7 +141,7 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       //	Polls inputs, checks timeouts, and delivers any queued messages.
       //	Does not block.
       //	This method should be called by WPs when busy with long jobs.
-      void poll ();
+      void poll (int maxloops = -1);
 
       //## Operation: pollLoop%3C8C87AF031F
       //	Goes into polling loop. Shoud be called after start() to run the

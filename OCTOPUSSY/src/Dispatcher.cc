@@ -355,7 +355,7 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
   //## end Dispatcher::send%3C7B8867015B.body
 }
 
-void Dispatcher::poll ()
+void Dispatcher::poll (int maxloops)
 {
   //## begin Dispatcher::poll%3C7B888E01CF.body preserve=yes
   if( Debug(11) )
@@ -373,8 +373,12 @@ void Dispatcher::poll ()
     while( detached_wps.size() )
       detached_wps.pop();
   // main polling loop
+  int nloop = 0;
   while( !stop_polling && ( checkEvents() || repoll ) )
   {
+    // break out if max number of loops exceeded
+    if( maxloops >= 0 && nloop++ > maxloops )
+      break;
     tick++;
     // find max priority queue
     int maxpri = -1;
