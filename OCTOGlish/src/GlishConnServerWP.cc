@@ -10,7 +10,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-    
+using namespace casa;    
 using LOFAR::StringUtil;
 
 InitDebugContext(GlishConnServerWP,"GlishServ");

@@ -21,31 +21,31 @@ namespace GlishUtil
   
   ImportDebugContext(GlishUtilDebugContext);
   
-  GlishArray makeFailField ( const String &msg );
+  casa::GlishArray makeFailField ( const casa::String &msg );
 
-  bool makeGlishArray (GlishArray &arr,const NestableContainer &nc,TypeId tid,bool adjustIndex);
+  bool makeGlishArray (casa::GlishArray &arr,const NestableContainer &nc,TypeId tid,bool adjustIndex);
     
-  GlishRecord recToGlish (const DataRecord &rec);
+  casa::GlishRecord recToGlish (const DataRecord &rec);
 
-  GlishValue objectToGlishValue (const BlockableObject &obj,bool adjustIndex);
+  casa::GlishValue objectToGlishValue (const BlockableObject &obj,bool adjustIndex);
 
-  ObjRef makeDataArray (const GlishArray &arr,bool adjustIndex);
+  ObjRef makeDataArray (const casa::GlishArray &arr,bool adjustIndex);
 
-  void makeDataField (DataField &field,const GlishArray &arr,bool adjustIndex,bool isScalar);
+  void makeDataField (DataField &field,const casa::GlishArray &arr,bool adjustIndex,bool isScalar);
       
-  ObjRef glishValueToObject (const GlishValue &val,bool adjustIndex);
+  ObjRef glishValueToObject (const casa::GlishValue &val,bool adjustIndex);
 
-  GlishRecord objectToBlockRec (const BlockableObject &obj);
+  casa::GlishRecord objectToBlockRec (const BlockableObject &obj);
 
-  BlockableObject * blockRecToObject (const GlishRecord &rec);
+  BlockableObject * blockRecToObject (const casa::GlishRecord &rec);
 
   template<class T> 
-  void initDataField (DataField &field,const GlishArray &arr,bool isScalar);
+  void initDataField (DataField &field,const casa::GlishArray &arr,bool isScalar);
   
   template<class T> 
-  void newDataArray (ObjRef &ref,const GlishArray &arr);
+  void newDataArray (ObjRef &ref,const casa::GlishArray &arr);
   
   template<class Base>
-  Base * createSubclass (ObjRef &ref,const GlishValue &val);
+  Base * createSubclass (ObjRef &ref,const casa::GlishValue &val);
 }
 #endif

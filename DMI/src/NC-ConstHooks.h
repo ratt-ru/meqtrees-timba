@@ -298,23 +298,23 @@ operator std::vector<T> () const
 #ifdef AIPSPP_HOOKS
 // define accessors for some AIPS++ types
 template<class T> 
-Array<T> as_AipsArray (Type2Type<T> =Type2Type<T>()) const;
+casa::Array<T> as_AipsArray (Type2Type<T> =Type2Type<T>()) const;
 template<class T> 
-Vector<T> as_AipsVector (Type2Type<T> =Type2Type<T>()) const;
+casa::Vector<T> as_AipsVector (Type2Type<T> =Type2Type<T>()) const;
 template<class T> 
-Matrix<T> as_AipsMatrix (Type2Type<T> =Type2Type<T>()) const;
-String as_String () const;
+casa::Matrix<T> as_AipsMatrix (Type2Type<T> =Type2Type<T>()) const;
+casa::String as_String () const;
 
 // provide implicit conversions using the accessors above
 template<class T> 
-operator Array<T> () const 
+operator casa::Array<T> () const 
 { return as_AipsArray(Type2Type<T>()); }
 template<class T>
-operator Vector<T> () const 
+operator casa::Vector<T> () const 
 { return as_AipsVector(Type2Type<T>()); }
 template<class T> 
-operator Matrix<T> () const 
+operator casa::Matrix<T> () const 
 { return as_AipsMatrix(Type2Type<T>()); }
-operator String () const
+operator casa::String () const
 { return as_String(); }
 #endif

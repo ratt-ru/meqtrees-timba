@@ -12,6 +12,8 @@
 
 #include "GlishThreadWP.h"
 
+using namespace casa;
+
 static int dum = aidRegistry_OCTOGlish();
 static int dum2 = aidRegistry_Global();
 

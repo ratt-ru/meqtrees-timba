@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.29  2005/01/07 07:56:28  diepen
+//  %[ER: 222]%
+//  Use AIPS++ casa namespace
+//
 //  Revision 1.28  2004/09/13 15:40:52  smirnov
 //  %[ER: 16]%
 //  Added elementSize() convenience function
@@ -224,7 +228,7 @@ public:
 #ifdef HAVE_AIPSPP
   // templated method to create a copy of the given AIPS++ array
   template<class T>
-  explicit DataArray (const Array<T> & array,int flags=0,int shm_flags=0);
+  explicit DataArray (const casa::Array<T> & array,int flags=0,int shm_flags=0);
 #endif
 
   // Copy (copy semantics).
@@ -271,9 +275,9 @@ public:
   //  ... the <T> in the invocation is considered an error. The dummy
   //  argument allows you to say "function_one((T*)0)" instead)
   template<class T>
-  Array<T> refAipsArray (const T*);
+  casa::Array<T> refAipsArray (const T*);
   template<class T>
-  Array<T> copyAipsArray (const T*) const;
+  casa::Array<T> copyAipsArray (const T*) const;
 #endif
   
     //##ModelId=400E4D68035F
@@ -508,7 +512,7 @@ private:
   // helper function to implement templates below without resorting to a
   // specialization (which seems to cause redefined symbol trouble)
   template<class T>
-  static bool isStringArray (const Array<T> &);
+  static bool isStringArray (const casa::Array<T> &);
   // helper function returns True if array contains the same data type
   // (with AIPS++ String matching Tpstring)
   template<class T>
@@ -569,11 +573,11 @@ DataArray::DataArray (const blitz::Array<T,N>& array,
 
 #ifdef HAVE_AIPSPP
 template<class T>
-inline bool DataArray::isStringArray (const Array<T> &)
+inline bool DataArray::isStringArray (const casa::Array<T> &)
 { return False; }
   
 template<>
-inline bool DataArray::isStringArray (const Array<String> &)
+inline bool DataArray::isStringArray (const casa::Array<casa::String> &)
 { return True; }
 
 template<class T> 
@@ -583,7 +587,7 @@ inline bool DataArray::verifyAipsType (const T*) const
 }
 
 template<> 
-inline bool DataArray::verifyAipsType (const String*) const
+inline bool DataArray::verifyAipsType (const casa::String*) const
 {
   return itsScaType == Tpstring;
 }
@@ -591,7 +595,7 @@ inline bool DataArray::verifyAipsType (const String*) const
 //##ModelId=3E9BD9190074
 inline void DataArray::copyStringArray (const void *source)
 {
-  const String *data = static_cast<const String*>(source);
+  const casa::String *data = static_cast<const casa::String*>(source);
   string *dest = reinterpret_cast<string *>(itsArrayData),*end = dest + itsSize;
   for( ; dest < end; dest++,data++ )
     *dest = *data;
@@ -599,13 +603,13 @@ inline void DataArray::copyStringArray (const void *source)
 
 // templated constructor from an AIPS++ array
 template<class T>
-DataArray::DataArray (const Array<T> &array,int flags, int )  // shm_flags not yet used
+DataArray::DataArray (const casa::Array<T> &array,int flags, int )  // shm_flags not yet used
 : NestableContainer(),
   itsArray    (0)
 {
   initSubArray();
   itsScaType  = isStringArray(array) ? Tpstring : typeIdOf(T);
-  itsElemSize = isStringArray(array) ? sizeof(string) : sizeof(T);
+  itsElemSize = isStringArray(array) ? sizeof(casa::String) : sizeof(T);
   itsType     = TpArray(itsScaType,array.ndim());
   init(array.ndim() ? LoShape(array.shape()) : LoShape(0),flags);
   // after an init, itsArray contains a valid array of the given shape,
@@ -622,20 +626,20 @@ DataArray::DataArray (const Array<T> &array,int flags, int )  // shm_flags not y
 
 
 template<class T>
-Array<T> DataArray::copyAipsArray (const T* dum) const
+casa::Array<T> DataArray::copyAipsArray (const T* dum) const
 {
   FailWhen( !valid(),"invalid DataArray" );
   FailWhen( !verifyAipsType(dum),"array type mismatch" );
-  return Array<T>(itsShape,reinterpret_cast<const T*>(itsArrayData));
+  return casa::Array<T>(itsShape,reinterpret_cast<const T*>(itsArrayData));
 }
 
 template<class T>
-Array<T> DataArray::refAipsArray (const T*)
+casa::Array<T> DataArray::refAipsArray (const T*)
 {
   FailWhen( !valid(),"invalid DataArray" );
   FailWhen( !isWritable(),"r/w access violation" );
   FailWhen( !verifyAipsType(dum),"array type mismatch" );
-  return Array<T>(itsShape,itsArrayData,SHARE);
+  return casa::Array<T>(itsShape,itsArrayData,SHARE);
 }
 
 #endif

@@ -7,7 +7,10 @@
 #include <OCTOPUSSY/WorkProcess.h>
 #pragma aid GlishConnServerWP
 
+namespace casa {
 class GlishSysEventSource;
+}
+
     
 class GlishConnServerWP : public WorkProcess
 {
@@ -33,7 +36,7 @@ class GlishConnServerWP : public WorkProcess
       GlishConnServerWP & operator=(const GlishConnServerWP &right);
 
       // helper function creates a Glish event source
-      static GlishSysEventSource * makeEventSource (std::vector<std::string> &args);
+      static casa::GlishSysEventSource * makeEventSource (std::vector<std::string> &args);
 
       // path to pipe for receiving new commnections
       std::string connpath_;

@@ -13,7 +13,8 @@ class GlishThreadedClientWP : public GlishClientWP
       // src is passed on to GlishClientWP, and used to _SEND_ events
       // to Glish, while spigot is maintained in the receiveThread here,
       // and used to _RECEIVE_ events
-      GlishThreadedClientWP (GlishSysEventSource *src,GlishSysEventSource *spig,
+      GlishThreadedClientWP (casa::GlishSysEventSource *src,
+			     casa::GlishSysEventSource *spig,
                              bool autostp=True,AtomicID wpc=AidGlishClientWP);
 
       ~GlishThreadedClientWP();
@@ -29,7 +30,7 @@ class GlishThreadedClientWP : public GlishClientWP
       
       void * receiveThread ();
       
-      GlishSysEventSource & eventSpigot ()
+      casa::GlishSysEventSource & eventSpigot ()
       { return *evspigot; }
 
   private:
@@ -37,7 +38,7 @@ class GlishThreadedClientWP : public GlishClientWP
       GlishThreadedClientWP(const GlishClientWP &right);
       GlishThreadedClientWP & operator=(const GlishClientWP &right);
 
-      GlishSysEventSource *evspigot;
+      casa::GlishSysEventSource *evspigot;
       
       Thread::ThrID rcv_thread_;
 };

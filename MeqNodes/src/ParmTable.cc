@@ -42,6 +42,8 @@
 #include <casa/Utilities/GenSort.h>
 #include <casa/BasicMath/Math.h>
 
+using namespace casa;
+
 namespace Meq {
 
 // define some column names

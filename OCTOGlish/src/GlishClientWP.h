@@ -8,10 +8,12 @@
 #include <DMI/DMI.h>
 #include <OCTOGlish/AID-OCTOGlish.h>
 #include <OCTOPUSSY/WorkProcess.h>
-    
+
+namespace casa {    
 class GlishSysEvent;
 class GlishSysEventSource;
 class GlishRecord;
+}
 
 #pragma aidgroup OCTOGlish
 #pragma aid GlishClientWP
@@ -23,7 +25,7 @@ class GlishClientWP : public WorkProcess
 {
   public:
       //##ModelId=3CB562BB0226
-      GlishClientWP (GlishSysEventSource *src, bool autostp = True, AtomicID wpc = AidGlishClientWP);
+      GlishClientWP (casa::GlishSysEventSource *src, bool autostp = True, AtomicID wpc = AidGlishClientWP);
 
     //##ModelId=3DB9369201C7
       ~GlishClientWP();
@@ -56,9 +58,9 @@ class GlishClientWP : public WorkProcess
       
   protected:
     //##ModelId=3E9BD6E900D5
-      GlishValue messageToGlishValue (const Message &msg);
+      casa::GlishValue messageToGlishValue (const Message &msg);
     //##ModelId=3E9BD6E900D9
-      MessageRef glishValueToMessage (const GlishValue &value);
+      MessageRef glishValueToMessage (const casa::GlishValue &value);
   
     //##ModelId=3DB9369803A7
       bool autostop () const
@@ -72,9 +74,9 @@ class GlishClientWP : public WorkProcess
       void shutdown ();
       
     //##ModelId=3E9BD6E900DD
-      GlishValue handleEvent (GlishSysEvent &event);
+      casa::GlishValue handleEvent (casa::GlishSysEvent &event);
       
-      GlishSysEventSource & eventSource ()
+      casa::GlishSysEventSource & eventSource ()
       { return *evsrc; }
       
   private:
@@ -86,7 +88,7 @@ class GlishClientWP : public WorkProcess
       GlishClientWP & operator=(const GlishClientWP &right);
 
       //##ModelId=3CB561E2013E
-      GlishSysEventSource *evsrc;
+      casa::GlishSysEventSource *evsrc;
 
       //##ModelId=3CBAE1740040
       bool autostop_;

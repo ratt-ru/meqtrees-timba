@@ -94,11 +94,11 @@ public:
 
   // Open the table if not opened yet. If opened, it is added to the map.
     //##ModelId=3F95060D033E
-  static ParmTable* openTable (const String& tableName);
+  static ParmTable* openTable (const casa::String& tableName);
 
   // Create a new table.
     //##ModelId=400E535402E7
-  static void createTable (const String& tableName);
+  static void createTable (const casa::String& tableName);
 
   // Close all tables in the map. All ParmTable objects are deleted.
     //##ModelId=3F95060D0372
@@ -116,20 +116,20 @@ private:
   // Find the table subset containing the parameter values for the
   // requested domain.
     //##ModelId=3F86886F02CE
-  Table find (const string& parmName, const Domain& domain);
+  casa::Table find (const string& parmName, const Domain& domain);
 
     //##ModelId=3F86886F0297
-  Table                  itsTable;
+  casa::Table                        itsTable;
     //##ModelId=3F86886F029C
-  ColumnsIndex           itsIndex;
+  casa::ColumnsIndex                 itsIndex;
     //##ModelId=3F86886F02A1
-  RecordFieldPtr<String> itsIndexName;
+  casa::RecordFieldPtr<casa::String> itsIndexName;
     //##ModelId=3F86886F02A6
-  Table                  itsInitTable;
+  casa::Table                        itsInitTable;
     //##ModelId=3F86886F02AB
-  ColumnsIndex*          itsInitIndex;
+  casa::ColumnsIndex*                itsInitIndex;
     //##ModelId=3F86886F02B0
-  RecordFieldPtr<String> itsInitIndexName;
+  casa::RecordFieldPtr<casa::String> itsInitIndexName;
 
     //##ModelId=3F95060D031A
   static std::map<string, ParmTable*> theirTables;

@@ -158,9 +158,9 @@ string & operator = ( const char *cstr ) const
 // assigning an AIPS++ array will init a DataArray object. This
 // will also work for Vectors, Matrices and Cubes
 template<class T>
-void operator = (const Array<T> &other) const;
+void operator = (const casa::Array<T> &other) const;
 // assigning an AIPS++ string assigns an STL string 
-string & operator = (const String &other) const;
+string & operator = (const casa::String &other) const;
 #endif
 
 // assigning an array returns void

@@ -20,7 +20,7 @@
 #include "AID-OCTOGlish.h"
 #include "GlishUtil.h"
 
-// using namespace LOFAR;
+using namespace casa;
 
 InitDebugContext(GlishUtil::GlishUtilDebugContext,"Glish");
 

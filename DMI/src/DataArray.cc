@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.34  2005/01/07 07:56:28  diepen
+//  %[ER: 222]%
+//  Use AIPS++ casa namespace
+//
 //  Revision 1.33  2004/10/03 20:59:26  smirnov
 //  %[ER: 16]%
 //  Fixed error in DataArray::privatize
@@ -475,7 +479,7 @@ void DataArray::init (const LoShape & shape,int flags)
 {
 #ifdef HAVE_AIPSPP
   // sanity check -- can we treat string as an AIPS++ String?
-  FailWhen( sizeof(string) != sizeof(String),"AIPS++ String is not equivalent to std::string" );
+  FailWhen( sizeof(string) != sizeof(casa::String),"AIPS++ String is not equivalent to std::string" );
 #endif
       
   itsShape = shape;
