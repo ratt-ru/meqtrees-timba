@@ -122,12 +122,26 @@ def DataDroppableWidget (parent_class):
     def __init__ (self,*args):
       parent_class.__init__(self,*args);
       self.setAcceptDrops(True);
+      self._accept_drops_from_children = False;
+    def setAcceptDropsFromChildren(self,value):
+      self._accept_drops_from_children = value;
     # Drag objects must be text drags containing a UDI, originating from 
     # another widget (i.e., within the same app). The widget must implement a 
     # get_data_item(udi) method.
     def dragEnterEvent (self,ev):
       udi = QString();
-      try: ev.accept(callable(ev.source().get_data_item) and QTextDrag.decode(ev,udi));
+      try: 
+        wsrc = ev.source();
+        try: 
+          if not (callable(wsrc.get_data_item) and QTextDrag.decode(ev,udi)):
+            return;
+        except AttributeError: return;
+        if not self._accept_drops_from_children:
+          while wsrc:
+            if wsrc is self:
+              return;
+            wsrc = wsrc.parent();
+        ev.accept(True);
       except AttributeError: pass;
     # The text drag is decoded into a UDI, a data item is fetched from the 
     # source using get_data_item(udi), and a dataItemDropped() signal is 

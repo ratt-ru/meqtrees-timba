@@ -20,6 +20,7 @@ from app_browsers import *
 #   + Refresh of tree view with an empty forest list throws exception
 #
 # Minor fixes:
+#   Disallow drag-and-drop from a viewer onto the same cell
 #   Do not compare result records, only state updates (and only if too recent)
 #   Improve result labels, name them snapshots
 #   Disorderly thread error or SEGV on exit
