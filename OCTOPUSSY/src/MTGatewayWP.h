@@ -13,7 +13,7 @@ using std::deque;
 //##ModelId=3DB958F10261
 
 // Socket
-#include "OCTOPUSSY/Net/Socket.h"
+#include "Common/Net/Socket.h"
 // Subscriptions
 #include "OCTOPUSSY/Subscriptions.h"
 // WorkProcess

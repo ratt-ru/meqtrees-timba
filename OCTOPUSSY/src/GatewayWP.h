@@ -5,7 +5,7 @@
 #include "DMI/DMI.h"
 
 // Socket
-#include "OCTOPUSSY/Net/Socket.h"
+#include "Common/Net/Socket.h"
 // Subscriptions
 #include "OCTOPUSSY/Subscriptions.h"
 // WorkProcess

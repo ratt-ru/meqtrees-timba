@@ -7,7 +7,7 @@
 #include "OCTOPUSSY/MTGatewayWP.h"
 
 // Socket
-#include "OCTOPUSSY/Net/Socket.h"
+#include "Common/Net/Socket.h"
 // GatewayWP
 #include "OCTOPUSSY/GatewayWP.h"
 // WorkProcess
