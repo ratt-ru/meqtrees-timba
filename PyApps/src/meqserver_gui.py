@@ -40,16 +40,17 @@ mqs = None;
 #   + Enable drop on "show viewer" button
 #
 # Enhancements:
-#   When first switching to the Trees panel, and have connection, and no nodelist
-#     is loaded, request one
-#   When getting node list, include debug status if we have one. Perhaps expand
-#     the get node list into a full status call?
 #   If all nodes are de-published, notify the browser somehow   
-#   Context menu for Tree Browser
 #   Option to specify udi directly in HierBrowser
 #   Drop of a dataitem can create a cell with multiple items (think,
 #       e.g., several 1D plots), if the viewer object supports it.
 #   User-defined node groups in tree viewer
+#   + Context menu for Tree Browser
+#   + When first switching to the Trees panel, and have connection, and no 
+#     nodelist is loaded, request one
+#   + When getting node list, include debug status if we have one. Perhaps 
+#     expand
+#     the get node list into a full status call?
 #   + Enhanced 'verbosity' interface (look for option parsing modules?)
 #   + Right-button actions
 #   + Enable views/drags/drops of sub-items (i.e. "nodestate:name/cache_result")

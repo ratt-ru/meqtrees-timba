@@ -535,9 +535,9 @@ Please press OK to confirm.""",QMessageBox.Ok,\
           except KeyError: continue;
           # top (most recently stopped) node gets special treatment
           if not n:
-            self._debug_node = node;
+            self._debug_node = weakref_proxy(node);
           node._stopped = n;
-          debug_stack.add(node);
+          debug_stack.add(node.nodeindex);
           if hasattr(frame,'state'):
             node.update_state(frame.state);
           else:
@@ -564,7 +564,9 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       clearset = self._current_debug_stack;
       self._current_debug_stack = None;
     if clearset:
-      for node in clearset:
+      for ni in clearset:
+        try: node = meqds.nodelist[ni];
+        except keyError: continue;
         delattr(node,'_stopped');
         node.emit(PYSIGNAL("update_debug()"),(node,));
   

@@ -473,6 +473,7 @@ inline PyObject * pyFromObjRef (const ObjRef &ref)
 // -----------------------------------------------------------------------
 PyObject * pyFromField (const DataField &df)
 {
+  Thread::Mutex::Lock lock(df.mutex());
   // empty/uninit field -- return empty tuple
   if( !df.valid() )
   {
@@ -545,6 +546,7 @@ PyObject * pyFromField (const DataField &df)
 // -----------------------------------------------------------------------
 PyObject * pyFromList (const DataList &dl)
 {
+  Thread::Mutex::Lock lock(dl.mutex());
   int len = dl.size();
   cdebug(3)<<"pyFromList: converting DataList of "<<len<<" items\n";
   PyObjectRef pylist = PyList_New(len);
@@ -564,6 +566,7 @@ PyObject * pyFromList (const DataList &dl)
 // -----------------------------------------------------------------------
 PyObject * pyFromRecord (const DataRecord &dr)
 {
+  Thread::Mutex::Lock lock(dr.mutex());
   cdebug(3)<<"pyFromRecord: converting DataRecord"<<endl;
   PyObjectRef pyrec = PyObject_CallObject(py_class.record,NULL);
   if( !pyrec )
@@ -606,6 +609,7 @@ PyObject * pyFromRecord (const DataRecord &dr)
 // -----------------------------------------------------------------------
 PyObject * pyFromArray (const DataArray &da)
 {
+  Thread::Mutex::Lock lock(da.mutex());
   // get rank & shape into terms that Numarray understands
   int rank = da.rank();
   // a [1] array is converted to a scalar
@@ -659,7 +663,7 @@ PyObject * pyFromMessage (const Message &msg)
   if( payload.valid() )
     py_payload = pyFromDMI(*payload,EP_CONV_ERROR); 
   else
-    py_payload = PyObjectRef(Py_None); // grab new ref to None
+    py_payload = PyObjectRef(Py_None,true); // grab new ref to None (incref=true)
   
   // create message object
   PyObjectRef args = Py_BuildValue("(NNN)",
@@ -698,6 +702,7 @@ PyObject * pyFromMessage (const Message &msg)
 // -----------------------------------------------------------------------
 PyObject * pyFromDMI (const BlockableObject &obj,int err_policy)
 {
+  Thread::Mutex::Lock lock(obj.crefMutex());
   try
   {
     TypeId type = obj.objectType();
