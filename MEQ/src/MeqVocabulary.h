@@ -29,7 +29,7 @@
 #pragma aidgroup Meq
 #pragma aid Node Class Name State Child Children Request Result VellSet 
 #pragma aid Rider Command Id Group Add Update Value Values Solve Solver
-#pragma aid Dependency Resolution Depend Mask Resample Integrated
+#pragma aid Dependency Resolution Depend Mask Resample Integrated Dims
 #pragma aid Cells Domain Freq Time Calc Deriv Vells VellSets Flags Weights
 #pragma aid Shape Grid Cell Size Segments Start End Steps Axis Axes Offset
 #pragma aid NodeIndex Table Name Default Index Num Cache Code Funklet Funklets
@@ -54,11 +54,14 @@ namespace Meq
     FNodeState       = AidNode|AidState,
     FClass           = AidClass,
     FClassName       = AidClass|AidName,
-    FVellSets        = AidVellSets,
     FResult          = AidResult,
     FRequest         = AidRequest,
     FState           = AidState,
     FCacheOverride   = AidCache|AidOverride,
+    
+    // result fields
+    FVellSets        = AidVellSets,
+    FDims            = AidDims,
     
     // Request rider fields (for commands)
 //    FAll                = AidAll,
