@@ -64,15 +64,15 @@ bool HIID::matches (const HIID &other) const
   for( ; iter != end() && oiter != other.end(); iter++,oiter++ )
   {
     // hit a wildcard? matches everything till the end...
-    if( iter->isWildcard() || oiter->isWildcard() )
+    if( (*iter).isWildcard() || (*oiter).isWildcard() )
       return True;
     if( !(*iter).matches(*oiter) )  // mismatch at this position - drop out
       return False;
   }
   // got to end of one? Match only if this is simultaneous, or either one
   // ends with wildcard
-  return ( iter == end() || iter->isWildcard() ) && 
-         ( oiter == other.end() || oiter->isWildcard() );
+  return ( iter == end() || (*iter).isWildcard() ) && 
+         ( oiter == other.end() || (*oiter).isWildcard() );
 }
 
 //##ModelId=3C99A0400186
@@ -94,7 +94,7 @@ bool HIID::subsetOf (const HIID &other) const
   }
   // both had to have ended simultaneously (or the other HIID might have
   // an extra wildcard)
-  return iter == end() && ( oiter == other.end() || oiter->isWildcard() );
+  return iter == end() && ( oiter == other.end() || (*oiter).isWildcard() );
 }
 
 //##ModelId=3C59522600D6
