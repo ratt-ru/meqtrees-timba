@@ -2,6 +2,8 @@
 
 from Timba.dmi import *
 
+from numarray import *
+
 domain_ndim = 2;
 domain_axes = ( "freq","time" );
 
@@ -75,6 +77,8 @@ def parm (name,default=None,polcs=None,*args,**kwargs):
 def domain (startfreq,endfreq,starttime,endtime):
   return _domain_type(freq=map(float,(startfreq,endfreq)),
                 time=map(float,(starttime,endtime)));
+
+_make_domain = domain;
   
 # helper function to resolve a meq.cells grid for one axis
 # returns (grid,cellsize,segs) tuple
@@ -169,7 +173,7 @@ def cells(domain=None,num_freq=None,num_time=None,
   (time_grid,time_cell_size,ts) = _resolve_grid(
         'time',dt,num_time,time_grid,time_cell_size);
   # create record
-  rec = _cells_type(domain    = domain(df[1],df[2],dt[1],dt[2]),
+  rec = _cells_type(domain    = _make_domain(df[0],df[1],dt[0],dt[1]),
                  grid      = record(freq=freq_grid,time=time_grid),
                  cell_size = record(freq=freq_cell_size,time=time_cell_size),
                  segments  = record(freq=fs,time=ts));
@@ -277,10 +281,11 @@ def request (cells=None,rqid=None,calc_deriv=0):
     _meqdomain_id += 1;
   else:
     _meqdomain_id = rqid[0];
-  rec = _cells_type(request_id=make_hiid(request_id),calc_deriv=calc_deriv);
+  rec = _request_type(request_id=make_hiid(rqid),calc_deriv=calc_deriv);
   if cells is not None:
     if not isinstance(cells,_cells_type):
       raise TypeError,'cells argument must me a MeqCells object';
+    rec.cells = cells;
   return rec;
   
 # #-- meq.add_command() -------------------------------------------------------------
