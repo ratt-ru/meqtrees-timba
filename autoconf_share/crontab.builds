@@ -1,9 +1,15 @@
 #
 # crontab for daily and weekly builds of LOFAR source code
 #
+
+#
+# setup environment
+#
 SHELL=/bin/sh
 MAILTO=schaaf@astron.nl
+CVSROOT=:pserver:lofar@dop01:/dop01_0/cvs/cvsroot
 
+#
 # FORMAT
 #              field          allowed values
 #              -----          --------------
@@ -13,9 +19,24 @@ MAILTO=schaaf@astron.nl
 #              month          1-12 (or names, see below)
 #              day of week    0-7 (0 or 7 is Sun, or use names)
 
+#
 # Run daily compile at 5 minutes past midnight
-5 0 * * *	( mkdir -p $HOME/daily && cd $HOME/daily && (cvs co LOFAR > cvs_co_LOFAR.log 2>&1) && (cvs status -v > cvs_status_v.log 2>&1 ) && cd $HOME/daily/LOFAR && make 2>&1 | tee build_daily.log  | grep ^:::::: )
+#
+# Daily compile consists of:
+# 	* check out sources into $HOME/daily (log in cvs_co_LOFAR.log)
+#	* save status of checkout files into cvs_status_v_log.gz
+#	* build and check all packages as specified in toplevel Makefile
+#
+5 0 * * *	( mkdir -p $HOME/daily && cd $HOME/daily && (cvs co LOFAR > cvs_co_LOFAR.log 2>&1) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz) && cd $HOME/daily/LOFAR && make 2>&1 | tee build_daily.log  | grep ^:::::: )
 
+#
 # Run weekly compile at 30 minutes past midnight on Saturday
-30 0 * * *	( rm -rf $HOME/weekly && mkdir -p $HOME/weekly && cd $HOME/weekly && (cvs co LOFAR > cvs_co_LOFAR.log 2>&1) && (cvs status -v > cvs_status_v.log 2>&1 ) && cd $HOME/weekly/LOFAR && make 2>&1 | tee build_daily.log  | grep ^:::::: )
+#
+# Weekly compile consists of:
+#	* remove $HOME/weekly to ensure clean checkout
+# 	* check out sources into $HOME/weekly (log in cvs_co_LOFAR.log)
+#	* save status of checkout files into cvs_status_v_log.gz
+#	* build and check all packages as specified in toplevel Makefile
+#
+30 0 * * *	( rm -rf $HOME/weekly && mkdir -p $HOME/weekly && cd $HOME/weekly && (cvs co LOFAR > cvs_co_LOFAR.log 2>&1) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz ) && cd $HOME/weekly/LOFAR && make 2>&1 | tee build_daily.log  | grep ^:::::: )
 
