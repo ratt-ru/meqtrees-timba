@@ -46,6 +46,6 @@ namespace GlishUtil
   void newDataArray (ObjRef &ref,const GlishArray &arr);
   
   template<class Base>
-  Base * GlishUtil::createSubclass (ObjRef &ref,const GlishValue &val);
+  Base * createSubclass (ObjRef &ref,const GlishValue &val);
 }
 #endif

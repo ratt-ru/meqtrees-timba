@@ -27,6 +27,7 @@
 #include <MEQ/Vells.h>
 #include <Common/Debug.h>
 
+using namespace LOFAR;
 using namespace Meq;
 using namespace Meq::VellsMath;
 

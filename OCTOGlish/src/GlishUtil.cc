@@ -20,6 +20,8 @@
 #include "AID-OCTOGlish.h"
 #include "GlishUtil.h"
 
+using namespace LOFAR;
+
 InitDebugContext(GlishUtil::GlishUtilDebugContext,"Glish");
 
 namespace GlishUtil {

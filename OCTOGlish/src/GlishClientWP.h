@@ -102,7 +102,7 @@ class GlishClientWP : public WorkProcess
 
 // Class GlishClientWP 
 
-GlishClientWP * makeGlishClientWP (int argv,const char *argv[],bool autstop=False );
+GlishClientWP * makeGlishClientWP (int argc,const char *argv[],bool autstop=False );
 
 
 #endif

@@ -14,7 +14,6 @@ using std::deque;
 
 // Socket
 #include "Common/Net/Socket.h"
-using namespace LOFAR;
 
 // Subscriptions
 #include "OCTOPUSSY/Subscriptions.h"
@@ -23,6 +22,7 @@ using namespace LOFAR;
 
 #pragma aid Subscriptions Init Heartbeat
 
+using LOFAR::Socket;
 
 class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
 {

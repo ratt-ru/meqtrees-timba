@@ -4,8 +4,7 @@
 #include <Common/Thread.h>
     
 class Dispatcher;    
-using namespace LOFAR;
-        
+
 namespace Octopussy
 {
   Dispatcher &  init     (bool start_gateways=true);

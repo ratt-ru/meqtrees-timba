@@ -15,6 +15,8 @@
   #define stopwatch_reset  
 #endif
 
+using namespace LOFAR;
+
 #if defined(USE_THREADS) && defined(ENABLE_LATENCY_STATS)
 //##ModelId=3DB937230313
 void WPInterface::addWaiter ()

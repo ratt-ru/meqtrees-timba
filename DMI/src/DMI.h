@@ -29,8 +29,6 @@
 #include <Common/Debug.h>
 #include <stdio.h>
 
-using namespace LOFAR;
-
 namespace DMI
 {
   extern ::Debug::Context DebugContext; 

@@ -30,8 +30,6 @@
 
 #include <Common/lofar_iostream.h>
 
-using LOFAR::Thread;
-
 class CountedRefBase;
 
 CHECK_CONFIG_THREADS(DMI);

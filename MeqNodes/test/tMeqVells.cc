@@ -35,6 +35,7 @@
 #include <casa/iostream.h>
 #include <sstream>
 
+using namespace LOFAR;
 using namespace Meq;
 using namespace Meq::VellsMath;
 
