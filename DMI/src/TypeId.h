@@ -24,6 +24,7 @@
 //## end module%3C10CC8301F8.additionalIncludes
 
 //## begin module%3C10CC8301F8.includes preserve=yes
+#include "Registry.h"
 //## end module%3C10CC8301F8.includes
 
 // AtomicID
@@ -59,18 +60,18 @@ typedef unsigned int uint;
 typedef unsigned long ulong;
 typedef long double ldouble;
 
-// declare the standard types (':' prefix means do not generate constructors)
+// Declare the standard types (':' prefix means do not generate constructors)
+// Numbers will be explicitly assigned; note that TypeIDs are negative
+// so Tpchar will be -10, Tpuchar -11, etc.
 #pragma typegroup Global
-#pragma types :char=10 :uchar=11 :short=12 :ushort=13 :int=14 :uint=15 
-#pragma types :long=16 :ulong=17 :float=18 :double=19 :ldouble=20 :string=21
-#pragma types :bool=22 
+#pragma types +char=10 +uchar=11 +short=12 +ushort=13 +int=14 +uint=15 
+#pragma types +long=16 +ulong=17 +float=18 +double=19 +ldouble=20 +bool=21
+#pragma types -string=30
 
+#pragma types :AtomicID
+
+// The null type 
 const TypeId NullType(0);
-
-// These macros convert a type name or an expression into a TypeId.
-// They use the auto-generated typeIdOf() inlines.
-#define type2id(type) typeIdOfPtr((type*)0)
-#define expr2id(expr) typeIdOf(expr)
 
 //## end TypeId%3BFBA88F001D.postscript
 

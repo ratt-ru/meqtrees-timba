@@ -98,6 +98,12 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
       //	(=DMI::ANON) in flags to see if it must be deleted.
       void init (void* data, size_t size, int flags, int shm_flags);
 
+      //## Operation: resize%3C639C340295
+      //	Resizes block. Old data is copied over as much as possible. If
+      //	resizing upwards and DMI::ZERO is specified, the empty space is
+      //	filled with 0s.
+      void resize (size_t newsize, int flags = 0);
+
       //## Operation: destroy%3C1E0D8D0391
       void destroy ();
 
@@ -116,7 +122,7 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
     //## Get and Set Operations for Class Attributes (generated)
 
       //## Attribute: block%3BEAACB9029A
-      const void* data () const;
+      const char* data () const;
 
       //## Attribute: datasize%3BEAACBD0318
       const size_t size () const;
@@ -149,8 +155,8 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
   private: //## implementation
     // Data Members for Class Attributes
 
-      //## begin SmartBlock::block%3BEAACB9029A.attr preserve=no  public: void* {U} 
-      void* block;
+      //## begin SmartBlock::block%3BEAACB9029A.attr preserve=no  public: char* {U} 
+      char* block;
       //## end SmartBlock::block%3BEAACB9029A.attr
 
       //## begin SmartBlock::datasize%3BEAACBD0318.attr preserve=no  public: size_t {U} 
@@ -224,7 +230,7 @@ inline const void * SmartBlock::operator * () const
 
 //## Get and Set Operations for Class Attributes (inline)
 
-inline const void* SmartBlock::data () const
+inline const char* SmartBlock::data () const
 {
   //## begin SmartBlock::data%3BEAACB9029A.get preserve=no
   return block;

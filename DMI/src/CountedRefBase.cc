@@ -32,7 +32,7 @@ InitDebugContext(CountedRefBase,"CRef");
 
 void CountedRefBase::cloneTarget () const
 {
-  if( !isValid() )
+  if( !valid() )
     return;
   dprintf1(2)("  %s: cloning target\n",debug(0));
   // clone the target
@@ -59,12 +59,15 @@ void CountedRefBase::cloneTarget () const
 
 
 //## Other Operations (implementation)
+//## Operation: copy%3C0CDEE2018A; C++
+//	Makes this a copy of the other reference. Flags are: DMI::LOCKED to
+//	lock the copy, DMI::WRITE for writable copy (defaults is READONLY).
 void CountedRefBase::copy (const CountedRefBase& other, int flags)
 {
   //## begin CountedRefBase::copy%3C0CDEE2018A.body preserve=yes
   dprintf(2)("copying from %s\n",other.debug());
   detach();
-  if( !other.isValid() ) // copying invalid ref?
+  if( !other.valid() ) // copying invalid ref?
     empty();
   else
   {
@@ -98,6 +101,8 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags)
   //## end CountedRefBase::copy%3C0CDEE2018A.body
 }
 
+//## Operation: xfer%3C0CDEE20180; C++
+//	Destructive transfer of other ref
 void CountedRefBase::xfer (CountedRefBase& other)
 {
   //## begin CountedRefBase::xfer%3C0CDEE20180.body preserve=yes
@@ -127,11 +132,21 @@ void CountedRefBase::xfer (CountedRefBase& other)
   //## end CountedRefBase::xfer%3C0CDEE20180.body
 }
 
+//## Operation: privatize%3C0CDEE20164; C++
+//	Creates a "private copy" of the target. Will clone() the target as
+//	necessary. Without DMI::WRITE, simply guarantees a non-volatile
+//	target (i.e. clones it in the presense of any writers). With WRITE,
+//	makes a writable clone of the target. With the DMI::DEEP flag set,
+//	does "deep" privatization & cloning: i.e., the privatize() method of
+//	the target will be called to make sure that all nested structures
+//	are privatized as well. Other flags: DMI::FORCE_CLONE to force
+//	cloning, DMI::LOCKED to lock the ref, DMI::EXCL_WRITE to make
+//	exclusive writer.
 CountedRefBase& CountedRefBase::privatize (int flags)
 {
   //## begin CountedRefBase::privatize%3C0CDEE20164.body preserve=yes
   dprintf1(2)("%s: %s target:\n",debug(),flags&DMI::DEEP?"privatizing":"deep-privatizing");
-  FailWhen( !isValid(),"can't privatize an invalid ref" );
+  FailWhen( !valid(),"can't privatize an invalid ref" );
   dprintf1(2)("  %s\n",target->debug(2,"  "));
   // readonly overrides writable and disables delayed cloning
   if( flags&DMI::READONLY )
@@ -209,12 +224,15 @@ CountedRefBase& CountedRefBase::privatize (int flags)
   //## end CountedRefBase::privatize%3C0CDEE20164.body
 }
 
+//## Operation: change%3C18873600E9; C++
+//	Changes ref properties, if possible. Recognized flags:
+//	DMI::WRITE/READONLY, LOCKED/UNLOCKED, EXCL_WRITE/NONEXCL_WRITE.
 CountedRefBase& CountedRefBase::change (int flags)
 {
   //## begin CountedRefBase::change%3C18873600E9.body preserve=yes
   // readonly downgrade
   dprintf(3)("changing to ");
-  FailWhen( !isValid(),"changing an invalid ref");
+  FailWhen( !valid(),"changing an invalid ref");
   if( flags&DMI::READONLY )
     writable = False;
   else if( flags&DMI::WRITE )
@@ -243,13 +261,16 @@ CountedRefBase& CountedRefBase::change (int flags)
   //## end CountedRefBase::change%3C18873600E9.body
 }
 
+//## Operation: setExclusiveWrite%3C1888B001A1; C++
+//	Makes the ref an exclusive writer, if no other writers exist
+//	(exception otherwise)
 CountedRefBase& CountedRefBase::setExclusiveWrite ()
 {
   //## begin CountedRefBase::setExclusiveWrite%3C1888B001A1.body preserve=yes
   dprintf(3)("setExclusiveWrite\n");
   if( !isExclusiveWrite() )
   {
-    FailWhen( !isValid(),"ref is invalid");
+    FailWhen( !valid(),"ref is invalid");
     FailWhen( !isWritable(),"ref is read-only, can't make it exclusive-write");
     FailWhen( hasOtherWriters(),"can't make exclusive because other writable refs exist");
     writable = exclusiveWrite = True;
@@ -258,24 +279,29 @@ CountedRefBase& CountedRefBase::setExclusiveWrite ()
   //## end CountedRefBase::setExclusiveWrite%3C1888B001A1.body
 }
 
+//## Operation: attach%3C0CDEE20171; C++
+//	Attaches to target object. Flags:
+//	DMI::ANON for anonymous object (default EXTERNAL), WRITE for
+//	writable ref (default READONLY), LOCKED to lock the ref, EXCL_WRITE
+//	for exclusive write access.
 CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
 {
   //## begin CountedRefBase::attach%3C0CDEE20171.body preserve=yes
   // detach from old target, if any
   dprintf(3)("attaching to %s\n",targ->debug());
-  if( isValid() )
+  if( valid() )
     detach();
   // refuse to attach to NULL targets
   FailWhen( !targ,"can't attach to null target" );
   // If anon/external specified explicitly, check for consistency with
   // other refs to same object. Otherwise, inherit property from other refs.
   // If no other refs and nothing specified, assume external.
-  Bool anon = (flags&DMI::ANON)!=0;
+  bool anon = (flags&DMI::ANON)!=0;
   if( targ->getOwner() )
   {
-    Bool other = targ->getOwner()->isAnonObject();
-    FailWhen( anon && !other, "object already referenced as external, can't attach as anon");
-    FailWhen( (flags&DMI::NON_ANON) && other, "object already referenced as anon, can't attach as external");
+    bool other = targ->getOwner()->isAnonObject();
+    FailWhen( flags&DMI::ANON && !other,"object already referenced as external, can't attach as anon" );
+    FailWhen( !(flags&DMI::ANON) && other,"object already referenced as anon, can't attach as external" );
     anon = other;
   }
   // setup properties
@@ -305,10 +331,12 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   //## end CountedRefBase::attach%3C0CDEE20171.body
 }
 
+//## Operation: detach%3C1612A60137; C++
+//	Detaches ref from its target. Can't be called if ref is locked.
 void CountedRefBase::detach ()
 {
   //## begin CountedRefBase::detach%3C1612A60137.body preserve=yes
-  if( !isValid() )
+  if( !valid() )
     return;
   dprintf1(3)("%s: detaching\n",debug());
   // locked refs can't be detached (only destroyed)
@@ -337,10 +365,12 @@ void CountedRefBase::detach ()
   //## end CountedRefBase::detach%3C1612A60137.body
 }
 
+//## Operation: hasOtherWriters%3C583B9F03B8
+//	Returns True if there exist other refs to target that are writable
 bool CountedRefBase::hasOtherWriters ()
 {
   //## begin CountedRefBase::hasOtherWriters%3C583B9F03B8.body preserve=yes
-  if( !isValid() )
+  if( !valid() )
     return False;
   for( const CountedRefBase *ref = target->getOwner(); ref != 0; ref = ref->next )
     if( ref != this && ref->isWritable() )
@@ -349,6 +379,8 @@ bool CountedRefBase::hasOtherWriters ()
   //## end CountedRefBase::hasOtherWriters%3C583B9F03B8.body
 }
 
+//## Operation: privatizeOther%3C1611C702DB; C++
+//	Privatizes a reference.
 void CountedRefBase::privatizeOther (const CountedRefBase& other, int flags)
 {
   //## begin CountedRefBase::privatizeOther%3C1611C702DB.body preserve=yes
@@ -373,7 +405,7 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
   if( detail>=0 )
   {
     Debug::appendf(out,"%s/%08x",name?name:"CRef",(int)this);
-    if( isValid() )
+    if( valid() )
     {
       out += Debug::ssprintf(">%08x",(int)target); 
       if( delayed_clone )
@@ -388,9 +420,9 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
       out += ">-";
     }
   }
-  if( detail >= 1 || detail == -1 && isValid() )   // normal detail
+  if( detail >= 1 || detail == -1 && valid() )   // normal detail
   {
-    if( isValid() )
+    if( valid() )
     {
       Debug::appendf(out,"%c%c%c%c%c",
                          isAnonObject() ? 'A' : '-', 

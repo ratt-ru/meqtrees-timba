@@ -66,7 +66,7 @@ SmartBlock::SmartBlock (size_t size, int flags)
 {
   //## begin SmartBlock::SmartBlock%3BFE299902D7.body preserve=yes
   dprintf(2)("constructor(size=%d,fl=%x)\n",size,flags);
-  init( malloc(size),size,DMI::DELETE,0 );
+  init( new char[size],size,DMI::DELETE,0 );
   //## end SmartBlock::SmartBlock%3BFE299902D7.body
 }
 
@@ -115,7 +115,7 @@ SmartBlock & SmartBlock::operator=(const SmartBlock &right)
   // clone the block
   if( !right.size() )
     return *this;
-  block = malloc(datasize = right.size());
+  block = new char[ datasize = right.size() ];
   delete_block = True;
   memcpy(block,*right,datasize);
   return *this;
@@ -130,8 +130,9 @@ void SmartBlock::init (void* data, size_t size, int flags, int shm_flags)
   //## begin SmartBlock::init%3BFE37C3022B.body preserve=yes
   if( block || datasize || shmid )
     destroy();
+  FailWhen(size && !data,"attempt to init() null block");
   FailWhen( flags&DMI::SHMEM,"shared memory not yet implemented" );
-  block = data;
+  block = static_cast<char*>(data);
   datasize = size;
   delete_block = (flags&DMI::DELETE)!=0;
   shmid = 0;
@@ -141,12 +142,40 @@ void SmartBlock::init (void* data, size_t size, int flags, int shm_flags)
   //## end SmartBlock::init%3BFE37C3022B.body
 }
 
+void SmartBlock::resize (size_t newsize, int flags)
+{
+  //## begin SmartBlock::resize%3C639C340295.body preserve=yes
+  // if resizing an empty block, just init
+  if( !block || !datasize )
+  {
+    if( newsize )
+      init( new char[newsize],newsize,flags|DMI::DELETE,0 );
+  }
+  else
+  {
+  // allocate new block and copy data
+    char *newblock = 0;
+    if( newsize )
+    {
+      newblock = new char[newsize];
+      memcpy(newblock,block,min(datasize,newsize));
+    // pad with 0 if needed
+      if( newsize > datasize && flags&DMI::ZERO )
+        memset(newblock+datasize,0,newsize-datasize);
+    // get rid of old block
+    }
+    destroy();
+    init( newblock,newsize,flags|DMI::DELETE,0 );
+  }
+  //## end SmartBlock::resize%3C639C340295.body
+}
+
 void SmartBlock::destroy ()
 {
   //## begin SmartBlock::destroy%3C1E0D8D0391.body preserve=yes
   dprintf(2)("%s: destroying\n",debug());
   if( block && delete_block )
-    free(block); 
+    delete [] block; 
   block=0; datasize=0; shmid=0;
   //## end SmartBlock::destroy%3C1E0D8D0391.body
 }

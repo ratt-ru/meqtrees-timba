@@ -67,16 +67,16 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       CountedRef (const CountedRef<T>& other, int flags);
 
       //## Operation: CountedRef%3BF93C020247; C++
-      CountedRef (T& targ, int flags = 0);
+      explicit CountedRef (T& targ, int flags = 0);
 
       //## Operation: CountedRef%3BF93D620128; C++
-      CountedRef (const T& targ, int flags = 0);
+      explicit CountedRef (const T& targ, int flags = 0);
 
       //## Operation: CountedRef%3BF93F8D0054; C++
-      CountedRef (T* targ, int flags = 0);
+      explicit CountedRef (T* targ, int flags = 0);
 
       //## Operation: CountedRef%3BF93F9702C5; C++
-      CountedRef (const T* targ, int flags = 0);
+      explicit CountedRef (const T* targ, int flags = 0);
 
     //## Assignment Operation (generated)
       CountedRef< T > & operator=(const CountedRef< T > &right);
@@ -171,7 +171,7 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       //## begin CountedRef%3BEFECFF0287.public preserve=yes
       // make public some methods of CountedRefBase which would otherwise
       // be hidden by private inheritance
-      CountedRefBase::isValid;
+      CountedRefBase::valid;
       CountedRefBase::detach;
       CountedRefBase::isLocked;
       CountedRefBase::isWritable;
@@ -341,6 +341,8 @@ inline CountedRef<T>::CountedRef (T* targ, int flags)
   //## end CountedRef::CountedRef%3BF93F8D0054.initialization
 {
   //## begin CountedRef::CountedRef%3BF93F8D0054.body preserve=yes
+  if( !flags&DMI::EXTERNAL )
+    flags |= DMI::ANON;
   attach(targ,flags);
   //## end CountedRef::CountedRef%3BF93F8D0054.body
 }
@@ -354,6 +356,8 @@ inline CountedRef<T>::CountedRef (const T* targ, int flags)
   //## end CountedRef::CountedRef%3BF93F9702C5.initialization
 {
   //## begin CountedRef::CountedRef%3BF93F9702C5.body preserve=yes
+  if( !flags&DMI::EXTERNAL )
+    flags |= DMI::ANON;
   attach(targ,flags|DMI::READONLY);
   //## end CountedRef::CountedRef%3BF93F9702C5.body
 }
@@ -621,8 +625,6 @@ inline LockedCountedRef<T>::~LockedCountedRef()
 //    BlockRef (as CountedRef<SmartBlock>), 
 //    and LockedBlockRef (as LockedCountedRef)
 #define DefineRefTypes(type,reftype) typedef CountedRef<type> reftype; typedef LockedCountedRef<type> Locked##reftype;
-
-#define newAnon(type) type##ref(new type,DMI::ANON|DMI::WRITE)
 
 //## end module%3C10CC810321.epilog
 

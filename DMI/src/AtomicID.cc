@@ -38,26 +38,6 @@ DefineBiRegistry(AtomicID,0,"");
 
 // Class AtomicID 
 
-AtomicID::AtomicID (const string &str)
-  //## begin AtomicID::AtomicID%3C5E74CB0112.hasinit preserve=no
-  //## end AtomicID::AtomicID%3C5E74CB0112.hasinit
-  //## begin AtomicID::AtomicID%3C5E74CB0112.initialization preserve=yes
-  //## end AtomicID::AtomicID%3C5E74CB0112.initialization
-{
-  //## begin AtomicID::AtomicID%3C5E74CB0112.body preserve=yes
-  // check if string consists only of digits, if a non-digit was
-  // found, then assume it's a name and look it up in the registry
-  for( size_t i=0; i<str.length(); i++ )
-    if( !isdigit( str[i] ) )
-    {
-      aid = registry.rfind(str);
-      return;
-    }
-  aid = atoi(str.c_str());
-  //## end AtomicID::AtomicID%3C5E74CB0112.body
-}
-
-
 
 //## Other Operations (implementation)
 string AtomicID::toString () const
@@ -81,6 +61,16 @@ string AtomicID::toString () const
   //## end AtomicID::toString%3BE9709700A7.body
 }
 
+int AtomicID::findName (const string &str)
+{
+  //## begin AtomicID::findName%3C68D5ED01F8.body preserve=yes
+  for( size_t i=0; i<str.length(); i++ )
+    if( !isdigit( str[i] ) )
+      return registry.rfind(str);
+  return atoi(str.c_str());
+  //## end AtomicID::findName%3C68D5ED01F8.body
+}
+
 // Additional Declarations
   //## begin AtomicID%3BE970170297.declarations preserve=yes
 //template class StaticRegistry<AtomicID,int,string>;
@@ -98,3 +88,4 @@ static AtomicID::Register
 
 //## begin module%3C10CC81015F.epilog preserve=yes
 //## end module%3C10CC81015F.epilog
+

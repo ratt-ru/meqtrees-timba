@@ -35,13 +35,13 @@
 
 //## begin UniRegistry%3C5A6FD40213.preface preserve=yes
 // macro: inserts a registry into a class declaration
-#define DeclareRegistry(Class,Key,Value) typedef UniRegistry<Key,Value,Class> Registry; typedef Registrar<Key,Value,Class> Register; static Registry registry; static Registry::Map *_registry_map; friend Registry; friend Register;
+#define DeclareRegistry(Class,Key,Value) public: typedef UniRegistry<Key,Value,Class> Registry; typedef Registrar<Key,Value,Class> Register; private: static Registry registry; static Registry::Map *_registry_map; friend Registry; friend Register;
 
 // macro: inserts registry definitions into .cc file
 #define DefineRegistry(Class,defval) Class##::Registry Class##::registry(defval); Class##::Registry::Map * Class##::_registry_map = 0;
 
 // macro: inserts a registry into a class declaration
-#define DeclareBiRegistry(Class,Key,Value) typedef BiRegistry<Key,Value,Class> Registry; typedef Registrar<Key,Value,Class> Register; static Registry registry; static Registry::Map *_registry_map; static Registry::RevMap *_registry_rmap; friend Registry; friend UniRegistry<Key,Value,Class>; friend Register;
+#define DeclareBiRegistry(Class,Key,Value) public: typedef BiRegistry<Key,Value,Class> Registry; typedef Registrar<Key,Value,Class> Register; private: static Registry registry; static Registry::Map *_registry_map; static Registry::RevMap *_registry_rmap; friend Registry; friend UniRegistry<Key,Value,Class>; friend Register;
 // macro: inserts registry definitions into .cc file
 #define DefineBiRegistry(Class,defkey,defval) Class##::Registry Class##::registry(defkey,defval); Class##::Registry::Map * Class##::_registry_map = 0; Class##::Registry::RevMap * Class##::_registry_rmap = 0;
 

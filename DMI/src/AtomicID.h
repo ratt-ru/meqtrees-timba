@@ -66,6 +66,9 @@ class AtomicID
       //	Constructs AtomicID by its name
       AtomicID (const string &str);
 
+      //## Operation: AtomicID%3C68D5220318
+      AtomicID (const char *str);
+
     //## Equality Operations (generated)
       Bool operator==(const AtomicID &right) const;
 
@@ -108,6 +111,9 @@ class AtomicID
       //## Operation: toString%3BE9709700A7
       string toString () const;
 
+      //## Operation: findName%3C68D5ED01F8
+      static int findName (const string &str);
+
     //## Get and Set Operations for Class Attributes (generated)
 
       //## Attribute: aid%3BE9706902BD
@@ -116,7 +122,6 @@ class AtomicID
     // Additional Public Declarations
       //## begin AtomicID%3BE970170297.public preserve=yes
       //## end AtomicID%3BE970170297.public
-
   protected:
     // Additional Protected Declarations
       //## begin AtomicID%3BE970170297.protected preserve=yes
@@ -205,6 +210,28 @@ inline AtomicID::AtomicID (int n)
 {
   //## begin AtomicID::AtomicID%3BE970C40246.body preserve=yes
   //## end AtomicID::AtomicID%3BE970C40246.body
+}
+
+inline AtomicID::AtomicID (const string &str)
+  //## begin AtomicID::AtomicID%3C5E74CB0112.hasinit preserve=no
+  //## end AtomicID::AtomicID%3C5E74CB0112.hasinit
+  //## begin AtomicID::AtomicID%3C5E74CB0112.initialization preserve=yes
+  : aid( findName(str) )
+  //## end AtomicID::AtomicID%3C5E74CB0112.initialization
+{
+  //## begin AtomicID::AtomicID%3C5E74CB0112.body preserve=yes
+  //## end AtomicID::AtomicID%3C5E74CB0112.body
+}
+
+inline AtomicID::AtomicID (const char *str)
+  //## begin AtomicID::AtomicID%3C68D5220318.hasinit preserve=no
+  //## end AtomicID::AtomicID%3C68D5220318.hasinit
+  //## begin AtomicID::AtomicID%3C68D5220318.initialization preserve=yes
+  : aid( findName(str) )
+  //## end AtomicID::AtomicID%3C68D5220318.initialization
+{
+  //## begin AtomicID::AtomicID%3C68D5220318.body preserve=yes
+  //## end AtomicID::AtomicID%3C68D5220318.body
 }
 
 

@@ -128,6 +128,8 @@ class BlockableObject : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB
 
 //## begin BlockableObject%3BB1F71F03C9.postscript preserve=yes
 DefineRefTypes(BlockableObject,ObjRef);
+
+#define newAnon(type) ObjRef(new type,DMI::ANON|DMI::WRITE)
 //## end BlockableObject%3BB1F71F03C9.postscript
 
 // Class BlockableObject 

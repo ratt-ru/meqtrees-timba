@@ -127,6 +127,12 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       //	unblock the field.
       bool getFieldInfo (const HIID &id, TypeId &tid, bool& can_write, bool no_throw = False) const;
 
+      //## Operation: operator []%3C67E345030C
+      DataField::Hook operator [] (const HIID &id);
+
+      //## Operation: operator []%3C67E3680050
+      DataField::ConstHook operator [] (const HIID &id) const;
+
       //## Operation: fromBlock%3C58216302F9
       //	Creates object from a set of block references. Appropriate number of
       //	references are removed from the head of the BlockSet. Returns # of
@@ -161,7 +167,6 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
 
     // Additional Public Declarations
       //## begin DataRecord%3BB3112B0027.public preserve=yes
-      
       // debug info method
       string sdebug ( int detail = 1,const string &prefix = "",
                       const char *name = 0 ) const;
@@ -185,6 +190,7 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
     // Additional Private Declarations
       //## begin DataRecord%3BB3112B0027.private preserve=yes
       //## end DataRecord%3BB3112B0027.private
+
   private: //## implementation
     // Data Members for Class Attributes
 
@@ -248,5 +254,31 @@ inline const bool DataRecord::isWritable () const
 //## begin module%3C10CC820052.epilog preserve=yes
 //## end module%3C10CC820052.epilog
 
+
+#endif
+
+
+// Detached code regions:
+#if 0
+//## begin DataRecord::Hook::operator &%3C6153F301F4.body preserve=yes
+  FailWhen(addressed,"DataRecord[]: & applied twice");
+  addressed = True;
+  return *this;
+//## end DataRecord::Hook::operator &%3C6153F301F4.body
+
+//## begin DataRecord::Hook::operator &%3C61542A02E4.body preserve=yes
+  FailWhen(addressed,"DataRecord[]: & applied twice");
+  addressed = True;
+  return *this;
+//## end DataRecord::Hook::operator &%3C61542A02E4.body
+
+//## begin DataRecord::Hook::operator ->%3C6154510380.body preserve=yes
+  FailWhen(new_field,"DataRecord[]: can't \"->\" when inserting a new field");
+  HIID rest; bool dum;
+  const DataFieldRef &ref( parent.resolveField(id,rest,dum,False) );
+  
+  
+  
+//## end DataRecord::Hook::operator ->%3C6154510380.body
 
 #endif

@@ -115,10 +115,17 @@ class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
       //	If first atom of HIID is an index, pop and return it, else return 0.
       int popLeadIndex ();
 
+      //## Operation: popTrailIndex%3C6B86D5003A
+      int popTrailIndex ();
+
       //## Operation: popLeadDelim%3C5952AD0261
       //	If first atom of HIID is a delimiter,  pop and return it, else
       //	return 0.
       AtomicID popLeadDelim ();
+
+      //## Operation: popAllLeadDelim%3C6B9FDD02FD
+      //	Pops all leading delimiters from HIID, returns # actually popped.
+      int popAllLeadDelim ();
 
       //## Operation: toString%3C0F8BD5004F
       string toString () const;
@@ -260,6 +267,16 @@ inline int HIID::length () const
   //## begin HIID::length%3C1A187E018C.body preserve=yes
   return size();
   //## end HIID::length%3C1A187E018C.body
+}
+
+inline int HIID::popAllLeadDelim ()
+{
+  //## begin HIID::popAllLeadDelim%3C6B9FDD02FD.body preserve=yes
+  int n=0;
+  while( popLeadDelim() )
+    n++;
+  return n;
+  //## end HIID::popAllLeadDelim%3C6B9FDD02FD.body
 }
 
 inline int HIID::byteSize () const

@@ -65,14 +65,6 @@ class CountedRefBase
 
     //## Constructors (specified)
       //## Operation: CountedRefBase%3C0CE1C10277; C++
-      //	Generic copy constructor. Default is destructive transfer (via xfer
-      //	Other(). If  DMI::COPY is used, calls copyOther() to make a copy. If
-      //	DMI::PRIVATIZE is used, calls privatizeOther(). See
-      //	copy()/privatize() for other flags.
-      //
-      //	Flags with xfer: none
-      //	Flags with DMI::PRIVATIZE: DMI::FORCE_CLONE to force target cloning,
-      //	see attach() for all others.
       CountedRefBase (const CountedRefBase& other, int flags = 0);
 
     //## Destructor (generated)
@@ -88,51 +80,31 @@ class CountedRefBase
 
 
     //## Other Operations (specified)
-      //## Operation: isValid%3C0CDEE2015A; C++
-      //	Returns True if reference is valid (i.e. has a target).
-      bool isValid () const;
+      //## Operation: valid%3C0CDEE2015A; C++
+      bool valid () const;
 
       //## Operation: getTarget%3C0CDEE2015B; C++
-      //	Dereferences, returns const reference to target.
       const CountedRefTarget* getTarget () const;
 
       //## Operation: getTargetWr%3C0CE2970094; C++
-      //	Dereferences to writable target (exception if not writable).
       CountedRefTarget* getTargetWr ();
 
       //## Operation: copy%3C0CDEE20162; C++
-      //	Makes and returns a second copy of  the reference. Flags are:
-      //	DMI::LOCKED to lock the copy, DMI::WRITE for writable copy (defaults
-      //	is READONLY).
       CountedRefBase copy (int flags = 0) const;
 
       //## Operation: copy%3C0CDEE2018A; C++
-      //	Makes this a copy of the other reference. Flags are: DMI::LOCKED to
-      //	lock the copy, DMI::WRITE for writable copy (defaults is READONLY).
       void copy (const CountedRefBase& other, int flags = 0);
 
       //## Operation: xfer%3C0CDEE20180; C++
-      //	Destructive transfer of other ref
       void xfer (CountedRefBase& other);
 
       //## Operation: privatize%3C0CDEE20164; C++
-      //	Creates a "private copy" of the target. Will clone() the target as
-      //	necessary. Without DMI::WRITE, simply guarantees a non-volatile
-      //	target (i.e. clones it in the presense of any writers). With WRITE,
-      //	makes a writable clone of the target. With the DMI::DEEP flag set,
-      //	does "deep" privatization & cloning: i.e., the privatize() method of
-      //	the target will be called to make sure that all nested structures
-      //	are privatized as well. Other flags: DMI::FORCE_CLONE to force
-      //	cloning, DMI::LOCKED to lock the ref, DMI::EXCL_WRITE to make
-      //	exclusive writer.
       CountedRefBase& privatize (int flags = 0);
 
       //## Operation: lock%3C187D92023F; C++
-      //	Locks the ref. Locked refs can't be detached or transferred.
       CountedRefBase& lock ();
 
       //## Operation: unlock%3C187D9A022C; C++
-      //	Unlocks the ref.
       CountedRefBase& unlock ();
 
       //## Operation: persist%3C5019FB0000
@@ -142,28 +114,18 @@ class CountedRefBase
       CountedRefBase& unpersist ();
 
       //## Operation: change%3C18873600E9; C++
-      //	Changes ref properties, if possible. Recognized flags:
-      //	DMI::WRITE/READONLY, LOCKED/UNLOCKED, EXCL_WRITE/NONEXCL_WRITE.
       CountedRefBase& change (int flags);
 
       //## Operation: setExclusiveWrite%3C1888B001A1; C++
-      //	Makes the ref an exclusive writer, if no other writers exist
-      //	(exception otherwise)
       CountedRefBase& setExclusiveWrite ();
 
       //## Operation: attach%3C0CDEE20171; C++
-      //	Attaches to target object. Flags:
-      //	DMI::ANON for anonymous object (default EXTERNAL), WRITE for
-      //	writable ref (default READONLY), LOCKED to lock the ref, EXCL_WRITE
-      //	for exclusive write access.
       CountedRefBase& attach (CountedRefTarget* targ, int flags = 0);
 
       //## Operation: attach%3C0CDEE20178; C++
-      //	Attaches to target, with READONLY forced.
       CountedRefBase& attach (const CountedRefTarget* targ, int flags = 0);
 
       //## Operation: detach%3C1612A60137; C++
-      //	Detaches ref from its target. Can't be called if ref is locked.
       void detach ();
 
       //## Operation: isWrite%3C19F62B0137
@@ -171,7 +133,6 @@ class CountedRefBase
       bool isWrite () const;
 
       //## Operation: hasOtherWriters%3C583B9F03B8
-      //	Returns True if there exist other refs to target that are writable
       bool hasOtherWriters ();
 
     //## Get and Set Operations for Class Attributes (generated)
@@ -238,11 +199,9 @@ class CountedRefBase
 
     //## Other Operations (specified)
       //## Operation: privatizeOther%3C1611C702DB; C++
-      //	Privatizes a reference.
       void privatizeOther (const CountedRefBase& other, int flags);
 
       //## Operation: empty%3C161C330291; C++
-      //	Nulls internals.
       void empty ();
 
     // Additional Protected Declarations
@@ -327,6 +286,15 @@ inline CountedRefBase::CountedRefBase()
   //## end CountedRefBase::CountedRefBase%3C0CDEE200FE_const.body
 }
 
+//## Operation: CountedRefBase%3C0CE1C10277; C++
+//	Generic copy constructor. Default is destructive transfer (via xfer
+//	Other(). If  DMI::COPY is used, calls copyOther() to make a copy. If
+//	DMI::PRIVATIZE is used, calls privatizeOther(). See
+//	copy()/privatize() for other flags.
+//
+//	Flags with xfer: none
+//	Flags with DMI::PRIVATIZE: DMI::FORCE_CLONE to force target cloning,
+//	see attach() for all others.
 inline CountedRefBase::CountedRefBase (const CountedRefBase& other, int flags)
   //## begin CountedRefBase::CountedRefBase%3C0CE1C10277.hasinit preserve=no
   //## end CountedRefBase::CountedRefBase%3C0CE1C10277.hasinit
@@ -336,7 +304,7 @@ inline CountedRefBase::CountedRefBase (const CountedRefBase& other, int flags)
   //## begin CountedRefBase::CountedRefBase%3C0CE1C10277.body preserve=yes
   empty();
   dprintf(5)("copy constructor(%s,%x)\n",other.debug(1),flags);
-  if( !other.isValid() ) // construct empty ref
+  if( !other.valid() ) // construct empty ref
     return;
   else if( flags&DMI::PRIVATIZE ) // constructing ref to privatized target
     privatizeOther(other,flags);
@@ -375,7 +343,7 @@ inline CountedRefBase & CountedRefBase::operator=(const CountedRefBase &right)
 inline Bool CountedRefBase::operator==(const CountedRefBase &right) const
 {
   //## begin CountedRefBase::operator==%3C0CDEE200FE_eq.body preserve=yes
-  return isValid() && target == right.target;
+  return valid() && target == right.target;
   //## end CountedRefBase::operator==%3C0CDEE200FE_eq.body
 }
 
@@ -389,17 +357,21 @@ inline Bool CountedRefBase::operator!=(const CountedRefBase &right) const
 
 
 //## Other Operations (inline)
-inline bool CountedRefBase::isValid () const
+//## Operation: valid%3C0CDEE2015A; C++
+//	Returns True if reference is valid (i.e. has a target).
+inline bool CountedRefBase::valid () const
 {
-  //## begin CountedRefBase::isValid%3C0CDEE2015A.body preserve=yes
+  //## begin CountedRefBase::valid%3C0CDEE2015A.body preserve=yes
   return target != 0;
-  //## end CountedRefBase::isValid%3C0CDEE2015A.body
+  //## end CountedRefBase::valid%3C0CDEE2015A.body
 }
 
+//## Operation: getTarget%3C0CDEE2015B; C++
+//	Dereferences, returns const reference to target.
 inline const CountedRefTarget* CountedRefBase::getTarget () const
 {
   //## begin CountedRefBase::getTarget%3C0CDEE2015B.body preserve=yes
-  FailWhen( !isValid(),"dereferencing invalid ref");
+  FailWhen( !valid(),"dereferencing invalid ref");
   if( delayed_clone )
   {
     dprintf1(2)("%s: performing delayed cloning\n",debug());
@@ -410,10 +382,12 @@ inline const CountedRefTarget* CountedRefBase::getTarget () const
   //## end CountedRefBase::getTarget%3C0CDEE2015B.body
 }
 
+//## Operation: getTargetWr%3C0CE2970094; C++
+//	Dereferences to writable target (exception if not writable).
 inline CountedRefTarget* CountedRefBase::getTargetWr ()
 {
   //## begin CountedRefBase::getTargetWr%3C0CE2970094.body preserve=yes
-  FailWhen( !isValid(),"dereferencing invalid ref");
+  FailWhen( !valid(),"dereferencing invalid ref");
   FailWhen( !isWritable(),"r/w access violation: non-const dereference");
   if( delayed_clone )
   {
@@ -424,6 +398,10 @@ inline CountedRefTarget* CountedRefBase::getTargetWr ()
   //## end CountedRefBase::getTargetWr%3C0CE2970094.body
 }
 
+//## Operation: copy%3C0CDEE20162; C++
+//	Makes and returns a second copy of  the reference. Flags are:
+//	DMI::LOCKED to lock the copy, DMI::WRITE for writable copy (defaults
+//	is READONLY).
 inline CountedRefBase CountedRefBase::copy (int flags) const
 {
   //## begin CountedRefBase::copy%3C0CDEE20162.body preserve=yes
@@ -431,6 +409,8 @@ inline CountedRefBase CountedRefBase::copy (int flags) const
   //## end CountedRefBase::copy%3C0CDEE20162.body
 }
 
+//## Operation: lock%3C187D92023F; C++
+//	Locks the ref. Locked refs can't be detached or transferred.
 inline CountedRefBase& CountedRefBase::lock ()
 {
   //## begin CountedRefBase::lock%3C187D92023F.body preserve=yes
@@ -440,6 +420,8 @@ inline CountedRefBase& CountedRefBase::lock ()
   //## end CountedRefBase::lock%3C187D92023F.body
 }
 
+//## Operation: unlock%3C187D9A022C; C++
+//	Unlocks the ref.
 inline CountedRefBase& CountedRefBase::unlock ()
 {
   //## begin CountedRefBase::unlock%3C187D9A022C.body preserve=yes
@@ -467,6 +449,8 @@ inline CountedRefBase& CountedRefBase::unpersist ()
   //## end CountedRefBase::unpersist%3C501A0201A5.body
 }
 
+//## Operation: attach%3C0CDEE20178; C++
+//	Attaches to target, with READONLY forced.
 inline CountedRefBase& CountedRefBase::attach (const CountedRefTarget* targ, int flags)
 {
   //## begin CountedRefBase::attach%3C0CDEE20178.body preserve=yes
@@ -486,6 +470,8 @@ inline bool CountedRefBase::isWrite () const
   //## end CountedRefBase::isWrite%3C19F62B0137.body
 }
 
+//## Operation: empty%3C161C330291; C++
+//	Nulls internals.
 inline void CountedRefBase::empty ()
 {
   //## begin CountedRefBase::empty%3C161C330291.body preserve=yes

@@ -123,6 +123,20 @@ bool CountedRefTarget::refWriteExclusions () const
   //## end CountedRefTarget::refWriteExclusions%3C18C6A603DA.body
 }
 
+bool CountedRefTarget::hasExternalRefs () const
+{
+  //## begin CountedRefTarget::hasExternalRefs%3C63B97601B9.body preserve=yes
+  return owner_ref && !owner_ref->isAnonObject();
+  //## end CountedRefTarget::hasExternalRefs%3C63B97601B9.body
+}
+
+bool CountedRefTarget::hasAnonRefs () const
+{
+  //## begin CountedRefTarget::hasAnonRefs%3C63BA8800B9.body preserve=yes
+  return owner_ref && owner_ref->isAnonObject();
+  //## end CountedRefTarget::hasAnonRefs%3C63BA8800B9.body
+}
+
 // Additional Declarations
   //## begin CountedRefTarget%3C0CDF41029F.declarations preserve=yes
 string CountedRefTarget::sdebug ( int detail,const string &prefix,const char *name ) const

@@ -86,6 +86,7 @@ void DataRecord::add (const HIID &id, const DataFieldRef &ref, int flags)
   //## begin DataRecord::add%3BFBF5B600EB.body preserve=yes
   dprintf(2)("add(%s,[%s],%x)\n",id.toString().c_str(),ref->debug(1),flags);
   FailWhen( !id.size(),"null HIID" );
+  FailWhen( id.back().index()>=0,"unexpected trailing index in "+id.toString());
   FailWhen( !isWritable(),"r/w access violation" );
   // check that id does not conflict with existing IDs (including
   // recursive containers)
@@ -177,7 +178,7 @@ DataFieldRef DataRecord::field (const HIID &id) const
   //## begin DataRecord::field%3C57CFFF005E.body preserve=yes
   HIID rest; bool dum;
   const DataFieldRef &ref( resolveField(id,rest,dum,False) );
-  FailWhen( !ref.isValid(),"field "+id.toString()+" not found" );
+  FailWhen( !ref.valid(),"field "+id.toString()+" not found" );
   FailWhen( rest.size(),id.toString()+" does not resolve to a complete field" );
   return ref.copy(DMI::READONLY);
   //## end DataRecord::field%3C57CFFF005E.body
@@ -189,7 +190,7 @@ bool DataRecord::isDataField (const HIID &id) const
   HIID rest; bool dum;
   try { 
     const DataFieldRef &ref( resolveField(id,rest,dum,False) );
-    return ref.isValid() && !rest.size();
+    return ref.valid() && !rest.size();
   } catch (Debug::Error &x) {
     return False;
   }
@@ -202,7 +203,7 @@ DataFieldRef DataRecord::fieldWr (const HIID &id, int flags)
   FailWhen( !isWritable(),"r/w access violation" );
   HIID rest; bool dum;
   const DataFieldRef &ref( resolveField(id,rest,dum,True) );
-  FailWhen( !ref.isValid(),"field "+id.toString()+" not found" );
+  FailWhen( !ref.valid(),"field "+id.toString()+" not found" );
   FailWhen( rest.size(),id.toString()+" does not resolve to a complete field" );
   return ref.copy(flags);
   //## end DataRecord::fieldWr%3BFBF49D00A1.body
@@ -292,12 +293,12 @@ const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, Type
   HIID rest;
   const DataFieldRef & ref( resolveField(id,rest,can_write,must_write) );
   // nothing found... return 0
-  if( !ref.isValid() )
+  if( !ref.valid() )
     return 0;
   // if remainder contains an index into the field, get it out
   int index = rest.popLeadIndex();
   // trim leading delimiters from remaining id
-  while( rest.popLeadDelim() ) {};
+  rest.popAllLeadDelim();
   // nothing remains, so field completely resolved -- get its data
   if( !rest.size() )
   {
@@ -325,12 +326,12 @@ bool DataRecord::getFieldInfo (const HIID &id, TypeId &tid, bool& can_write, boo
     HIID rest; 
     const DataFieldRef & ref( resolveField(id,rest,can_write,False) );
     // nothing found... return 0
-    if( !ref.isValid() )
+    if( !ref.valid() )
       return False;
     // if remainder contains an index into the field, get it out
     int index = rest.popLeadIndex();
     // remove any delimiters
-    rest.popLeadDelim();
+    rest.popAllLeadDelim();
     // nothing remains, so field completely resolved -- return its type
     if( !rest.size() )
     {
@@ -353,6 +354,69 @@ bool DataRecord::getFieldInfo (const HIID &id, TypeId &tid, bool& can_write, boo
   }
   return False;
   //## end DataRecord::getFieldInfo%3C57C63F03E4.body
+}
+
+DataField::Hook DataRecord::operator [] (const HIID &id)
+{
+  //## begin DataRecord::operator []%3C67E345030C.body preserve=yes
+  FailWhen( !isWritable(),"r/w access violation" );
+  HIID rest;
+  bool dum;
+  DataFieldRef &ref = const_cast<DataFieldRef&>(resolveField(id,rest,dum,True));
+  // id has resolved to a valid field? 
+  if( ref.valid() )
+  {
+    if( !rest.size() ) // completely resolved with no indexing
+      return DataField::Hook(ref,-1);
+    // pop index into field, if any, follwed by delimiters
+    int leadindex = rest.popLeadIndex();
+    rest.popAllLeadDelim();
+    // if nothing is left, then index into the field
+    if( !rest.size() )    
+      return DataField::Hook(ref,leadindex);
+    // else the remainder refers to a new sub-field within the resolved one --
+    // so create it. The resolved field must be a DataRecord
+    FailWhen(ref->type()!=TpDataRecord,id.toString()+" does not refer to a subrecord");
+    // check if there's a trailing index (i.e. into the new field), we can
+    // only allow 0 or none
+    int trailindex = rest.back().index();
+    if( trailindex >= 0 )
+      rest.pop_back();
+    FailWhen(trailindex>0,"indexing into uninitialized field "+rest.toString());
+    // create the field
+    DataField *f = new DataField;
+    ref()[leadindex].as_DataRecord_wr().fields[rest] = 
+      DataFieldRef(f,DMI::ANON|DMI::WRITE|DMI::LOCK);
+    // with no trailindex (i.e. -1), this returns an unindexed Hook
+    // Otherwise, a Hook indexed to [0] is returned.
+    return DataField::Hook(f,trailindex);
+  }
+  else // not resolved, so create a new field
+  {
+    // check for no (or =0) trailing index
+    int trailindex = rest.back().index();
+    if( trailindex >= 0 )
+      rest.pop_back();
+    DataField *f = new DataField;
+    fields[id] = DataFieldRef(f,DMI::ANON|DMI::WRITE|DMI::LOCK);
+    return DataField::Hook(f,trailindex);
+  }
+  //## end DataRecord::operator []%3C67E345030C.body
+}
+
+DataField::ConstHook DataRecord::operator [] (const HIID &id) const
+{
+  //## begin DataRecord::operator []%3C67E3680050.body preserve=yes
+  HIID rest;
+  bool dum;
+  const DataFieldRef &ref = resolveField(id,rest,dum,False);
+  FailWhen( !ref.valid(),id.toString()+" does not refer to a valid DataField");
+  if( !rest.size() ) // completely resolved, no index
+    return DataField::ConstHook(ref,-1);
+  int leadindex = rest.popLeadIndex();
+  FailWhen( rest.size(),id.toString()+" does not refer to a full DataField");
+  return DataField::ConstHook(ref,leadindex);
+  //## end DataRecord::operator []%3C67E3680050.body
 }
 
 int DataRecord::fromBlock (BlockSet& set)
@@ -508,10 +572,3 @@ string DataRecord::sdebug ( int detail,const string &prefix,const char *name ) c
 //## end module%3C10CC82005C.epilog
 
 
-// Detached code regions:
-#if 0
-//## begin DataRecord::add%3C5FF0D60106.body preserve=yes
-  add(id,DataFieldRef(pfld,flags));
-//## end DataRecord::add%3C5FF0D60106.body
-
-#endif

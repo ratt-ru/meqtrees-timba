@@ -93,6 +93,12 @@ class CountedRefTarget
       //	Returns True is exclusive-write refs to the object exist.
       virtual bool refWriteExclusions () const;
 
+      //## Operation: hasExternalRefs%3C63B97601B9
+      bool hasExternalRefs () const;
+
+      //## Operation: hasAnonRefs%3C63BA8800B9
+      bool hasAnonRefs () const;
+
     //## Get and Set Operations for Associations (generated)
 
       //## Association: PSCF::DMI::<unnamed>%3C0CDF6500AC
@@ -172,3 +178,5 @@ inline CountedRefBase * CountedRefTarget::getOwner ()
 
 
 #endif
+
+

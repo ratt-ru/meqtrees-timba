@@ -83,20 +83,8 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       //	Field() and getFieldWr() macros.
       const void * get (const HIID &id, TypeId check_tid) const;
 
-      //## Operation: operator []%3C5575480316
-      //	Accesses a field (const version).
-      //	Can throw exceptions if id is malformed (i.e. contains indices that
-      //	are out of range).
-      virtual const void * operator [] (const HIID &id) const;
-
       //## Operation: getWr%3C5FB39A027F
       void * getWr (const HIID &id, TypeId check_tid);
-
-      //## Operation: operator []%3C55752601EA
-      //	Accesses a field for read/write. Returns 0 if no such field.
-      //	Can throw exceptions if id is malformed (i.e. contains indices that
-      //	are out of range), or if field is read-only.
-      virtual void * operator [] (const HIID &id);
 
       //## Operation: getFieldInfo%3BE9828D0266
       //	Universal function to request all  info about a field. Returns False
@@ -136,12 +124,12 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
     // Additional Public Declarations
       //## begin NestableContainer%3BE97CE100AF.public preserve=yes
-      // templated getf() and getfwr() methods provide an alternative interface
-      template<class T> const T * getf( const HIID &id ) const
-      { return (const T *) get(id,type2id(T)); }
-      
-      template<class T> T * getfwr( const HIID &id ) 
-      { return (T *) getWr(id,type2id(T)); }
+//       // templated getf() and getfwr() methods provide an alternative interface
+//       template<class T> const T * getf( const HIID &id ) const
+//       { return (const T *) get(id,type2id(T)); }
+//       
+//       template<class T> T * getfwr( const HIID &id ) 
+//       { return (T *) getWr(id,type2id(T)); }
       //## end NestableContainer%3BE97CE100AF.public
   protected:
     // Additional Protected Declarations
@@ -175,28 +163,12 @@ inline const void * NestableContainer::get (const HIID &id, TypeId check_tid) co
   //## end NestableContainer::get%3C5FA32402A9.body
 }
 
-inline const void * NestableContainer::operator [] (const HIID &id) const
-{
-  //## begin NestableContainer::operator []%3C5575480316.body preserve=yes
-  TypeId dum1; bool dum2;
-  return get(id,dum1,dum2,0,False);
-  //## end NestableContainer::operator []%3C5575480316.body
-}
-
 inline void * NestableContainer::getWr (const HIID &id, TypeId check_tid)
 {
   //## begin NestableContainer::getWr%3C5FB39A027F.body preserve=yes
   TypeId dum1; bool dum2;
   return (void*)get(id,dum1,dum2,check_tid,True);
   //## end NestableContainer::getWr%3C5FB39A027F.body
-}
-
-inline void * NestableContainer::operator [] (const HIID &id)
-{
-  //## begin NestableContainer::operator []%3C55752601EA.body preserve=yes
-  TypeId dum1; bool dum2;
-  return (void*) get(id,dum1,dum2,0,True);
-  //## end NestableContainer::operator []%3C55752601EA.body
 }
 
 inline bool NestableContainer::isNestable ()
@@ -224,6 +196,16 @@ inline bool NestableContainer::isNestable (TypeId tid)
 
 // Detached code regions:
 #if 0
+//## begin NestableContainer::operator []%3C5575480316.body preserve=yes
+  TypeId dum1; bool dum2;
+  return get(id,dum1,dum2,0,False);
+//## end NestableContainer::operator []%3C5575480316.body
+
+//## begin NestableContainer::operator []%3C55752601EA.body preserve=yes
+  TypeId dum1; bool dum2;
+  return (void*) get(id,dum1,dum2,0,True);
+//## end NestableContainer::operator []%3C55752601EA.body
+
 //## begin NestableContainer::hasField%3C56AC2902A1.body preserve=yes
   TypeId dum1; bool dum2;
   return getFieldInfo(id,dum1,dum2,True);

@@ -104,6 +104,19 @@ int HIID::popLeadIndex ()
   //## end HIID::popLeadIndex%3C59522600D6.body
 }
 
+int HIID::popTrailIndex ()
+{
+  //## begin HIID::popTrailIndex%3C6B86D5003A.body preserve=yes
+  if( !size() )
+    return 0;
+  int ret = front().index();
+  if( ret<0 ) 
+    return 0;
+  pop_back();
+  return ret;
+  //## end HIID::popTrailIndex%3C6B86D5003A.body
+}
+
 AtomicID HIID::popLeadDelim ()
 {
   //## begin HIID::popLeadDelim%3C5952AD0261.body preserve=yes
@@ -160,4 +173,3 @@ void HIID::addString (const string &str)
   //## end HIID%3BE96FE601C5.declarations
 //## begin module%3C10CC820357.epilog preserve=yes
 //## end module%3C10CC820357.epilog
-
