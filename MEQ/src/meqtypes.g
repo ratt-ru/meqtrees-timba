@@ -313,6 +313,19 @@ const meq.initcmdlist := function ()
   return meq.reclist();
 }
 
+#-- meq_private.merge_records()  ------------------------------------------------
+# private helper function to merge command records
+
+const meq_private.merge_records := function (ref rec,command,value)
+{
+  if( is_string(command) )
+    rec[command] := value;
+  else if( is_record(command) )
+    for( f in field_names(command) )
+      rec[f] := command[f];
+  else
+    fail 'command argument must be string or record';
+}
 
 
 #-- meq.addcmdlist() -------------------------------------------------------------
@@ -322,8 +335,17 @@ const meq.addcmdlist := function (ref cmdlist,node,command,value=F)
 {
   if( !is_record(cmdlist) || !cmdlist::dmi_is_reclist )
     cmdlist := meq.reclist();
-  cmd := [=];
-  cmd[command] := value;
+  local cmd;
+  # resolve command argument
+  if( is_string(command) )
+  {
+    cmd := [=];
+    cmd[command] := value;
+  }
+  else if( is_record(command) )
+    cmd := command;
+  else
+    fail 'command argument must be string or record';
   # zero-length node is wildcard
   if( len(node) )
   {
@@ -374,6 +396,9 @@ const meq.request := function (cells=F,request_id=F,calc_deriv=0,clear_solver=T)
   #         (e) empty string array (""): adds a wildcard entry to 
   #             command_by_list, which will match all nodes not matched
   #             by a previous entry.
+  # command: string command (used as field name in the maps), or a command 
+  #         record. If a string is used, then the record is extended with 
+  #         field command=value. If a record is used, then value is ignored.
   const rec.add_command := function (group,node,command,value=F)
   {
     wider rec;
@@ -384,13 +409,13 @@ const meq.request := function (cells=F,request_id=F,calc_deriv=0,clear_solver=T)
       rec.rider[group] := [=];
     ns := ref rec.rider[group];
     if( !is_integer(node) && !is_string(node) )
-      fail 'meq.request.add_command(): node must be specified by index or name(s)';
+      fail 'node must be specified by index or name(s)';
     # empty node argument: add to command_all list
     if( len(node) == 0 )
     {
       if( !has_field(ns,'command_all') )
         ns.command_all := [=];
-      ns.command_all[command] := value;
+      mqs_private.merge_records(ns.command_all,command,value);
     }
     # single nodeindex: add to command_by_nodeindex map
     else if( is_integer(node) && len(node)==1 ) 
@@ -400,7 +425,7 @@ const meq.request := function (cells=F,request_id=F,calc_deriv=0,clear_solver=T)
       key := spaste('#',as_string(node));
       if( !has_field(ns.command_by_nodeindex,key) )
         ns.command_by_nodeindex[key] := [=];
-      ns.command_by_nodeindex[key][command] := value;
+      mqs_private.merge_records(ns.command_by_nodeindex[key],command,value);
     }
     else # multiple indices or names: add to command_by_list map
     {

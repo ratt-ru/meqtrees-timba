@@ -34,9 +34,9 @@
 #pragma aid NodeIndex Table Name Default Index Num Cache Code 
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cell Results Fail Origin Line Message Contagious  Normalized
-#pragma aid Solvable Config Groups All By List Polc Polcs Scale
-#pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear
-#pragma aid Metrics Rank Fit Errors CoVar Flag Mu StdDev Chi
+#pragma aid Solvable Config Groups All By List Polc Polcs Scale Matrix
+#pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear Invert
+#pragma aid Metrics Rank Fit Errors CoVar Flag Mu StdDev Chi Iter
 
 
 namespace Meq
@@ -63,7 +63,7 @@ namespace Meq
     FChildrenNames   = AidChildren|AidName,
     FName            = AidName,
     FNodeIndex       = AidNodeIndex,
-    FNodeGroups         = AidNode|AidGroups,
+    FNodeGroups      = AidNode|AidGroups,
     
     // Request rider fields (for commands)
     FAll                = AidAll,
@@ -133,6 +133,12 @@ namespace Meq
     FNumSteps        = AidNum|AidSteps,
     FEpsilon         = AidEpsilon,
     FUseSVD          = AidUseSVD,
+    
+    // Solver commands
+    FClearMatrix     = AidClear|AidMatrix,
+    FInvertMatrix    = AidInvert|AidMatrix,
+    FNumIter         = AidNum|AidIter,
+    // FSavePolcs already defined above
 
     // Solver result rider
     FMetrics         = AidMetrics,

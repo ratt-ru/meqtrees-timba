@@ -642,7 +642,7 @@ void Node::processCommands (const DataRecord &rec,const Request &)
   DataRecord::Hook hstate(rec,FState);
   if( hstate.exists() )
   {
-    cdebug(4)<<"processCommands()"<<FState<<"): calling setState()"<<endl;
+    cdebug(4)<<"processCommands("<<FState<<"): calling setState()"<<endl;
     setState(hstate.as_wr<DataRecord>());
   }
 }
