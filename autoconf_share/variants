@@ -1,7 +1,7 @@
 gnu.compiler.conf:
 kcc.compiler.conf:
 icc.compiler.conf:
-xlc.compiler.conf: CXX=blrts_xlC CC=blrts_xlc
+xlc.compiler.conf: CC=blrts_xlc CXX=blrts_xlC
 
 profile.variant.conf:	  $(profile_root) $(aipspp) $(profile) $(mpe)
 debug.variant.conf:	  $(debug_root) $(debug) $(aipspp) $(mtsupport)
@@ -18,7 +18,7 @@ lam-corba.variant.conf:   $(lam-corba_root) $(lam) $(vbroker) $(aipspp)
 scampi.variant.conf:	  $(scampi_root) $(scampi) 
 scampi-opt.variant.conf:  $(scampi-opt_root) $(scampi) $(optimize) 
 mpich-prof.variant.conf:  $(mpich-prof_root) $(mpich) --enable-mpi-profiler $(aipspp)
-bgl.variant.conf:         $(bgl_root) $(debugopt) $(nomtsupport) $(bgl_cpp) $(bgl_ldd)
+bgl.variant.conf:         $(bgl_root) $(bgl_mpi) $(debugopt) $(nomtsupport) $(bgl_cpp) $(bgl_ldd) 
 fakebgl.variant.conf:     $(fakebgl_root) $(debug) $(nomtsupport) --without-log4cplus 
 insure.variant.conf:	  $(insure_root) --with-insuretools $(aipspp)
 insure.variant.make:	  QA=insure
@@ -57,5 +57,6 @@ scampi.var:		   --with-scampi
 vbroker.var:		   --with-vbroker
 mtsupport.var:		   --with-threads
 nomtsupport.var: 	   --with-threads=no  
-bgl_cpp.var: --with-cppflags='-D__BLRTS__ -qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/bgl/BlueLight/floor/bglsys/include/'
-bgl_ldd.var: --with-ldflags='-L/bgl/BlueLight/floor/bglsys/lib -lmsglayer.rts -lmpich.rts -lrts.rts -ldevices.rts -lstandalone.440 -lm'
+bgl_mpi.var:		   --with-bglmpich
+bgl_cpp.var:               --with-cppflags='-qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/bgl/BlueLight/floor/bglsys/include/'
+bgl_ldd.var:               --with-ldflags='-L/bgl/BlueLight/floor/bglsys/lib -lmsglayer.rts -lmpich.rts -lrts.rts -ldevices.rts -lstandalone.440 -lcrypt -lnss_files -lnss_dns -lresolv -lc -lnss_files -lnss_dns -lresolv -lm'
