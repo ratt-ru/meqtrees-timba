@@ -96,7 +96,7 @@ void DataRecord::replace (const HIID &id, NestableContainer *pnc, int flags)
 
 
 //##ModelId=3BB311C903BE
-NCRef DataRecord::removeField (const HIID &id)
+NCRef DataRecord::removeField (const HIID &id,bool ignore_fail)
 {
   nc_writelock;
   dprintf(2)("remove(%s)\n",id.toString().c_str());
@@ -110,7 +110,8 @@ NCRef DataRecord::removeField (const HIID &id)
     dprintf(2)("  removing %s\n",ref->debug(1));
     return ref;
   }
-  Throw("field "+id.toString()+" not found");
+  FailWhen(!ignore_fail,"field "+id.toString()+" not found");
+  return NCRef();
 }
 
 //##ModelId=3C57CFFF005E

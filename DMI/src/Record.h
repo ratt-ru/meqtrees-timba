@@ -85,8 +85,9 @@ class DataRecord : public NestableContainer
       //##ModelId=3BB311C903BE
       //##Documentation
       //## Removes data field from container and returns a ref to the removed
-      //## field
-      NCRef removeField (const HIID &id);
+      //## field. Throws exception if no such field and ignore_fail=false
+      NCRef removeField (const HIID &id,bool ignore_fail=false);
+      
 
       //##ModelId=3BFCD4BB036F
       void replace (const HIID &id, const NCRef &ref, int flags = DMI::XFER);
