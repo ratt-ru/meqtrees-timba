@@ -1,19 +1,9 @@
 
 protected:
-//---------- various helper as_impl() methods:
-
-// // as_impl_p()
-// // Internal helper template that eventually maps to get_address
-// // If used with an incompatible type, a compile-time error is generated
-// template<class T>
-// const T * as_impl_p (const T * deflt,ContentInfo &info=_dum_info,bool pointer=False) const
-// { 
-//   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
-//   const void *ptr = get_address(info,DMITypeTraits<T>::typeId,False,
-//                                 pointer,deflt!=0); 
-//   return ptr ? static_cast<const T*>(ptr) : deflt;
-// }
-// 
+// -----------------------------------------------------------------------
+// as_impl()
+// helper methods for as<T>()
+// -----------------------------------------------------------------------
 
 // as_impl() with default value
 // This is a version for non-scalar types; pass in by ref; return ref/value
@@ -69,7 +59,10 @@ T as_impl (Int2Type<true>,Type2Type<T> = Type2Type<T>()) const
  return x; 
 }
 
-//---------- various helper get_impl() methods:
+// -----------------------------------------------------------------------
+// get_impl()
+// helper methods for get<T>()
+// -----------------------------------------------------------------------
 
 // get_impl(T &val): assign & return true if value is available, return 
 // false if not
@@ -122,7 +115,9 @@ bool get_impl (T &value,Int2Type<TypeCategories::INTERMEDIATE>) const
   return get_impl_intermediate(value,Int2Type<DMITypeTraits<T>::isArray>());
 }
 
-//---------- public as<T>(), as<T>(default) and as_p<T>() methods:
+// -----------------------------------------------------------------------
+// as<T>(), as<T>(default), as_p<T>()
+// -----------------------------------------------------------------------
 
 public:
 // as<T>() 
@@ -157,13 +152,20 @@ const T * as_po (int &sz=_dum_int,Type2Type<T> = Type2Type<T>()) const
   return static_cast<const T*>(ptr);
 }
 
-//---------- public get(T &what) methods:
+// -----------------------------------------------------------------------
+// get(T &var)
+// if hook target exists, assigns to var and returns true
+// if target does not exist, returns false
+// -----------------------------------------------------------------------
 
 template<class T>
 bool get (T &value) const
 { return get_impl(value,Int2Type<DMITypeTraits<T>::TypeCategory>()); }
 
-//---------- implicit conversion operators
+
+// -----------------------------------------------------------------------
+// implicit conversion operators
+// -----------------------------------------------------------------------
 
 // stupid compiler can't figure this out, hence the explicit instantiations below:
 // template<class T>
@@ -178,15 +180,22 @@ DoForAllDynamicTypes(__convert,);
 // DoForAllIntermediateTypes(__convert,);
 #undef __convert
 
-//---------- arrays returned by value
+
+// -----------------------------------------------------------------------
+// conversion to array 
 // BUG, damn it! Lorrays inhibit checking for writability
+// -----------------------------------------------------------------------
 
 template<class T,int N>
 operator blitz::Array<T,N> () const
 { return as(Type2Type<blitz::Array<T,N> >()); }
 
 
-//---------- implicit conversions to pointers
+
+// -----------------------------------------------------------------------
+// implicit conversion to pointers
+// -----------------------------------------------------------------------
+
 template<class T>
 operator const T * () const 
 { 
@@ -200,27 +209,36 @@ operator const T * () const
 }
 
 
-//---------- conversions to std::vector (get_vector/as_vector, get<>/as<vector>)
+// -----------------------------------------------------------------------
+// conversion to std::vector
+// -----------------------------------------------------------------------
 
+// helper function gets vector, optionally ensuring existence
+protected:
+template<class T>
+bool get_vector_impl (std::vector<T> &value,bool must_exist) const;
+
+public:
 // Define a get_vector<> template. This should work for all contiguous 
 // containers.
 template<class T>
-bool get_vector (std::vector<T> &value,bool must_exist=false) const;
+bool get_vector (std::vector<T> &value) const
+{ return get_vector_impl(value,false); }
 
 // Define an as_vector<> template. This should work for all
 // contiguous containers.
 template<class T>
 std::vector<T> as_vector (Type2Type<T> =Type2Type<T>()) const
-{ std::vector<T> res; get_vector(res,true); return res; }
+{ std::vector<T> res; get_vector_impl(res,true); return res; }
 // second version provides a default value
 template<class T>
 std::vector<T> as_vector (const std::vector<T> &deflt) const
-{ std::vector<T> res; return get_vector(res,false) ?  res : deflt; }
+{ std::vector<T> res; return get_vector_impl(res,false) ?  res : deflt; }
 
 // partial specialization of implicit conversion to vectors
 template<class T>
 operator std::vector<T> () const
-{ std::vector<T> res; get_vector(res,true); return res; }
+{ std::vector<T> res; get_vector_impl(res,true); return res; }
 
 // // define a specialization of as<T> for T=vector<T1>
 // NB: doesn't work, as it confuses the compiler
@@ -236,6 +254,10 @@ operator std::vector<T> () const
 // bool get (std::vector<T> &value) const
 // { return get_vector(value,false); }
     
+
+// -----------------------------------------------------------------------
+// conversion to some AIPS++ types
+// -----------------------------------------------------------------------
 
 #ifdef AIPSPP_HOOKS
 // define accessors for some AIPS++ types

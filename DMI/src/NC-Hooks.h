@@ -72,7 +72,7 @@ T & as_wr (Type2Type<T> =Type2Type<T>()) const
 // #undef __convert1
 // #undef __convert2
 // 
- 
+
 // -----------------------------------------------------------------------
 // operator =
 // -----------------------------------------------------------------------
@@ -192,6 +192,32 @@ void operator = (const std::vector<T> &other) const
                Vector_cannot_be_assigned_to_container);
   assign_vector_select(other,Int2Type<TT::isLorrayable>());
 }
+
+// -----------------------------------------------------------------------
+// get(T &var,bool init), get_vector(std::vector<T> &var,bool init)
+// if hook target exists, assigns to var and returns true
+// if target does not exist: if init=true, assigns var to target. Returns false
+// -----------------------------------------------------------------------
+template<class T>
+bool get (T &value,bool init) const
+{ 
+  if( get_impl(value,Int2Type<DMITypeTraits<T>::TypeCategory>()) )
+    return true;
+  if( init )
+    operator = (value);
+  return False;
+}
+
+template<class T>
+bool get_vector (std::vector<T> &value,bool init) const
+{ 
+  if( get_vector_impl(value,false) )
+    return true;
+  if( init )
+    operator = (value);
+  return false;
+}
+
 
 // -----------------------------------------------------------------------
 // <<= and =: xfer or copy CountedRefs

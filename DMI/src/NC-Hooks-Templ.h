@@ -8,7 +8,7 @@
 // This copies data so is not very efficient, but is quite
 // convenient where sizes are small.
 template<class T>
-bool NestableContainer::Hook::get_vector (std::vector<T> &value,bool must_exist) const
+bool NestableContainer::Hook::get_vector_impl (std::vector<T> &value,bool must_exist) const
 {
   int n;
   const T *data = as_po(n,Type2Type<T>());

@@ -155,6 +155,29 @@ void TestDataRecord ()
   Assert( id1 == HIID("A.B.C.D") );
   Assert( rec["A.B.C.E"].as_p<HIID>() != 0 );
   Assert( rec["A.B.C.F"].as_po<HIID>() == 0 );
+  
+  //  test get-and-init
+  Assert( rec["A.B.C.Z"].get(id1,false) == false );
+  Assert( rec["A.B.C.Z"].exists() == false );
+  Assert( rec["A.B.C.E"].get(id1,false) == true );
+  Assert( rec["A.B.C.Z"].get(id1,true) == false );
+  Assert( rec["A.B.C.Z"].exists() == true );
+  Assert( rec["A.B.C.Z"].as<HIID>() == id1 );
+  
+  //  test vectors
+  HIID id2("A.B.C.D.2");
+  rec["A.B.C.Z/1"] = id2;
+  std::vector<HIID> hvec,hvec1;
+  Assert( rec["A.B.C.Y"].get_vector(hvec) == false );
+  Assert( rec["A.B.C.Z"].get_vector(hvec) == true );
+  Assert( hvec.size()==2 && hvec[0]==id1 && hvec[1]==id2);
+  Assert( rec["A.B.C.Z"].get_vector(hvec,false) == true );
+  Assert( rec["A.B.C.Y"].get_vector(hvec,false) == false );
+  Assert( rec["A.B.C.Y"].get_vector(hvec,true) == false );
+  Assert( rec["A.B.C.Y"].exists());
+  Assert( rec["A.B.C.Y"].get_vector(hvec1,true) == true );
+  Assert( hvec1.size()==2 && hvec1[0]==id1 && hvec1[1]==id2);
+  
 
   rec["A.B.C.F"] = "test string";
   rec["A.B.C.F"][1] = "another test string";
