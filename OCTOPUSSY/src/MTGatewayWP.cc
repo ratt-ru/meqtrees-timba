@@ -620,14 +620,14 @@ void MTGatewayWP::stopWorkers ()
   // send interruption signals and rejoin the reader threads
   dprintf(1)("stopWorkers: interrupting and rejoining reader threads\n");
   for( int i=0; i < NumReaderThreads; i++ )
-    Thread::kill(reader_threads[i],SIGPIPE);
+    reader_threads[i].kill(SIGPIPE);
   for( int i=0; i < NumReaderThreads; i++ )
-    Thread::join(reader_threads[i]);
+    reader_threads[i].join();
   // send termination signals to interrupt the worker threads
   // (in case they're busy in a write() call)
   dprintf(1)("stopWorkers: interrupting worker threads\n");
   for( int i=0; i < numWorkers(); i++ )
-    Thread::kill( workerID(i),SIGPIPE );
+    workerID(i).kill(SIGPIPE);
 }
 
 //##ModelId=3DB958F60246

@@ -284,11 +284,11 @@ void Dispatcher::stop ()
     Thread::Mutex::Lock lock(repoll_cond);
     repoll_cond.signal();
     lock.release();
-    Thread::join(main_thread);
+    main_thread.join();
   }
   // cancel the event thread
-  Thread::kill(event_thread,SIGUSR1);
-  Thread::join(event_thread);
+  event_thread.kill(SIGUSR1);
+  event_thread.join();
 #else
   running = False;
   // stop the heartbeat timer
@@ -549,7 +549,7 @@ void Dispatcher::addTimeout (WPInterface* pwp, const Timestamp &period, const HI
 #ifdef USE_THREADS
     lock.release();
     // send signal to event thread to re-do a select
-    Thread::kill(event_thread,SIGUSR1);
+    event_thread.kill(SIGUSR1);
 #endif
   }
 }
@@ -768,7 +768,7 @@ void Dispatcher::rebuildInputs (WPInterface *remove)
 #ifdef USE_THREADS
   // send a signal to the event thread, to re-do a select() with the new fd sets
   lock2.release();
-  Thread::kill(event_thread,SIGUSR1);
+  event_thread.kill(SIGUSR1);
 #endif
 }
 

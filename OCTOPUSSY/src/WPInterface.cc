@@ -521,7 +521,7 @@ void WPInterface::do_stop ()
     for( int i=0; i<num_worker_threads; i++ )
     {
       dprintf(2)("re-joining worker thread %d\n",(int)worker_threads[i]);
-      Thread::join(worker_threads[i]);
+      worker_threads[i].join();
     }
   }
 #endif
