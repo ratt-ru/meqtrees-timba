@@ -22,7 +22,7 @@ mpich-prof.variant.conf:  $(mpich) --enable-mpi-profiler $(aipspp)
 
 profile.var:		   --with-optimize='-pg -O4' --with-compiletools --with-ldflags='-lc_p'
 mpe.var:		   --with-mpich=/usr/local/mpich-1.2.5/ch_p4 --enable-mpi-profiler
-debug.var:		   --with-optimize='-ggdb'
+debug.var:		   --with-optimize='-g'
 debugopt.var:		   --with-optimize='-g -O4'
 profopt.var:		   --with-optimize='-pg -O4' --with-ldflags='-lc_p'
 optimize.var:		   --with-optimize='-O4'
