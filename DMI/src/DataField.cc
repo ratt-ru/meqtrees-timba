@@ -439,8 +439,11 @@ int DataField::toBlock (BlockSet &set) const
   nc_writelock;
   if( !valid() )
   {
-    dprintf1(2)("%s: toBlock=0 (field empty)\n",debug());
-    return 0;
+    dprintf1(2)("%s: toBlock=1 (field empty)\n",debug());
+    // for empty fields, use null block of two integers to represent them
+    static SmartBlock nullBlock(sizeof(int)*2,DMI::ZERO);
+    set.push(BlockRef(&nullBlock,DMI::EXTERNAL|DMI::READONLY));
+    return 1;
   }
   dprintf1(2)("%s: toBlock\n",debug());
   int npushed = 1,tmp; // 1 header block as a minimum

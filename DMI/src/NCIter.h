@@ -370,6 +370,7 @@ int NCConstIter<T>::nleft () const
 
 #define __declare_iter(T,arg) typedef NCConstIter<T> NCConstIter_##T; typedef NCIter<T> NCIter_##T;
 DoForAllNumericTypes(__declare_iter,);
+__declare_iter(string,arg);
 #undef __declare_iter
 
 
