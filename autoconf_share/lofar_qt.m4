@@ -33,11 +33,12 @@
 AC_DEFUN(lofar_QT,dnl
 [dnl
 AC_PREREQ(2.13)dnl
-ifelse($1, [], define(DEFAULT_QT_PREFIX,[/usr/lib/qt-2.3.1]), define(DEFAULT_QT_PREFIX,$1))
+ifelse($1, [], [qt_lfr_option=0], [qt_lfr_option=$1])
+ifelse($2, [], define(DEFAULT_QT_PREFIX,[/usr/lib/qt-2.3.1]), define(DEFAULT_QT_PREFIX,$2))
 AC_ARG_WITH(qt,
 	[  --with-qt[=PFX]     prefix where Qt is installed (default=]DEFAULT_QT_PREFIX[)],
 	[with_qt=$withval],
-	[with_qt="no"])
+	[with_qt=""])
 [
 if test "$with_qt" = "no"; then
   enable_qt=no
@@ -45,9 +46,18 @@ else
   if test "$with_qt" = "yes"; then
     qt_prefix=]DEFAULT_QT_PREFIX[
   else
-    qt_prefix=$withval
+   if test "$with_qt" = ""; then
+     if test $qt_lfr_option = "0"; then
+       enable_qt=no;
+     else   
+       enable_qt=yes;
+       qt_prefix=]DEFAULT_QT_PREFIX[
+     fi  
+   else
+     qt_prefix=$withval
+     enable_qt=yes
+   fi
   fi
-  enable_qt=yes
 ]
 ##
 ## Check in normal location and suggested location
