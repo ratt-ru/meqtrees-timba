@@ -8,7 +8,7 @@
 SHELL=/bin/sh
 MAILTO=LOFAR_CRONMAILTO
 CROOT=LOFAR_CRONROOT
-CVSROOT=:pserver:lofar@dop01:/dop01_0/cvs/cvsroot
+CVSROOT=:pserver:LOFAR_CRONCVSUSER@dop01:/dop01_0/cvs/cvsroot
 
 #
 # FORMAT
@@ -30,7 +30,7 @@ CVSROOT=:pserver:lofar@dop01:/dop01_0/cvs/cvsroot
 # Every Saturday a full check-out (a la weekly) is done.
 #
 5 0 * * 0-5	( mkdir -p $CROOT/daily && cd $CROOT/daily && (cvs co LOFAR 2>&1 | gzip > cvs_co_LOFAR_log.gz) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz ) && cd $CROOT/daily/LOFAR && make daily 2>&1 | tee build.log  | grep ^:::::: )
-5 0 * * 6	( rm -rf $CROOT/daily/* && rm -f $CROOT/daily/*.gz && mkdir -p $CROOT/daily && cd $CROOT/daily && (cvs co LOFAR 2>&1 | gzip > cvs_co_LOFAR_log.gz ) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz ) && cd $CROOT/daily/LOFAR && make daily 2>&1 | tee build.log  | grep ^:::::: )
+5 0 * * 6	( rm -rf $CROOT/daily/LOFAR && rm -f $CROOT/daily/*log.gz && mkdir -p $CROOT/daily && cd $CROOT/daily && (cvs co LOFAR 2>&1 | gzip > cvs_co_LOFAR_log.gz ) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz ) && cd $CROOT/daily/LOFAR && make daily 2>&1 | tee build.log  | grep ^:::::: )
 
 #
 # Run weekly compile at 2 hours past midnight on Saturday
@@ -41,5 +41,5 @@ CVSROOT=:pserver:lofar@dop01:/dop01_0/cvs/cvsroot
 #    * save status of checkout files into zipped logfile: cvs_status_v_log.gz
 #    * build and check all packages as specified in toplevel Makefile
 #
-00 2 * * 6	( rm -rf $CROOT/weekly/* && rm -f $CROOT/weekly/*.gz && mkdir -p $CROOT/weekly && cd $CROOT/weekly && (cvs co LOFAR 2>&1 | gzip > cvs_co_LOFAR_log.gz ) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz ) && cd $CROOT/weekly/LOFAR && make weekly 2>&1 | tee build.log  | grep ^:::::: )
+00 2 * * 6	( rm -rf $CROOT/weekly/LOFAR && rm -f $CROOT/weekly/*log.gz && mkdir -p $CROOT/weekly && cd $CROOT/weekly && (cvs co LOFAR 2>&1 | gzip > cvs_co_LOFAR_log.gz ) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz ) && cd $CROOT/weekly/LOFAR && make weekly 2>&1 | tee build.log  | grep ^:::::: )
 
