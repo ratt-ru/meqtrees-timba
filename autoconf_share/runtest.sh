@@ -73,4 +73,4 @@ fi
 #
 # Run assay
 #
-$lfr_share_dir/assay $1
+$lfr_share_dir/assay $srcdir $1

@@ -112,6 +112,10 @@
 #
 #=============================================================================
 
+# Get the source directory.
+  srcdir=$1
+  shift
+
 # CHECKTOOL is a Make option that contains the checktoolcommand. To be able to 
 # insert the programname into the options (for logfile nameing for example)
 # a [PROGNAME] can be inserted into the call, this will be substituted by the
@@ -143,8 +147,8 @@
 # If there is a .run file then use it.
   if [ -f "$1.run" ]
   then
-     COMMAND="./$1.run"
-     CHECKTOOLCOMMAND="./$1.run '$CHKTOOL'"
+     COMMAND="./$1.run $srcdir"
+     CHECKTOOLCOMMAND="./$1.run $srcdir '$CHKTOOL'"
   fi
 
 # Determine if this program also needs another checktool check.
