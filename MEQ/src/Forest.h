@@ -23,6 +23,7 @@
 #define MEQSERVER_SRC_FOREST_H_HEADER_INCLUDED_C53FA569
 
 #include <MEQ/Node.h>
+#include <MEQ/Request.h>
 #include <vector>
 #include <map>
     
@@ -70,6 +71,11 @@ class Forest
     //## Finds node by name, returns reference to node. Throws exception if not
     //## found.
     Node & findNode(const string &name);
+    
+    //##Documentation
+    //## Assigns ID to request object. WIll assign new ID if the cells
+    //## differ from the previous request, otherwise will re-use IDs
+    const HIID & assignRequestId (Request &req);
 
     //##ModelId=3F60697A0078
     LocalDebugContext;
@@ -87,6 +93,8 @@ class Forest
     typedef std::map<string,int> NameMap;
     //##ModelId=3F60697A00D5
     NameMap name_map;
+    
+    Request prev_request;
 };
 
 } // namespace MEQ

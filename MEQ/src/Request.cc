@@ -26,12 +26,12 @@ namespace MEQ {
 
 Request::Request (const DataRecord& rec)
 : DataRecord   (rec),
-  itsId        (rec[AidReqId]),
+  itsId        (rec[AidReqId].as<HIID>(HIID())),
   itsCalcDeriv (rec[AidCalcDeriv]),
   itsCells     (new Cells(rec[AidCells]))
 {}
 
-Request::Request (const Cells& cells, bool calcDeriv, int id)
+Request::Request (const Cells& cells, bool calcDeriv, const HIID &id)
 : itsId        (id),
   itsCalcDeriv (calcDeriv),
   itsCells     (0)

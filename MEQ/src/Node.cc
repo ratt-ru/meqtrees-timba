@@ -41,6 +41,7 @@ Node::~Node()
 {
 }
 
+//##ModelId=3F9505E50010
 void Node::processChildSpec (NestableContainer &children,const HIID &id)
 {
   // child specified by init-record: create recursively
@@ -54,7 +55,7 @@ void Node::processChildSpec (NestableContainer &children,const HIID &id)
     {
       cdebug(2)<<"  creating child "<<id<<endl;
       Node &child = forest_->create(index,child_initrec.ref_cast<DataRecord>());
-      addChild(id,child);
+      addChild(id,&child);
     }
     catch( std::exception &exc )
     {
@@ -75,13 +76,13 @@ void Node::processChildSpec (NestableContainer &children,const HIID &id)
       {
         Node &child = forest_->get(index);
         cdebug(2)<<"  child "<<id<<"="<<name<<" resolves to node "<<index<<endl;
-        addChild(id,child);
+        addChild(id,&child);
       }
       else
       { // defer until later if not found
         cdebug(2)<<"  child "<<id<<"="<<name<<" currently unresolved"<<endl;
-        unresolved_children_.push_back(
-            UnresolvedChild(id,name));
+        addChild(id,0);
+        unresolved_children_.push_back(name);
       }
     }
     // child specified by index -- just get & attach it directly
@@ -90,7 +91,7 @@ void Node::processChildSpec (NestableContainer &children,const HIID &id)
       int index = children[id];
       Node &child = forest_->get(index);
       cdebug(2)<<"  child "<<id<<"="<<index<<endl;
-      addChild(id,child);
+      addChild(id,&child);
     }
     else
       Throw("illegal specification for child "+id.toString()+" (type "+
@@ -136,18 +137,20 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
       for( int i=0; i<childarr.shape()[0]; i++ )
         processChildSpec(childarr,AtomicID(i));
     }
-    cdebug(2)<<numChildren()<<" children attached, "
-             <<unresolved_children_.size()<<" deferred"<<endl;
+    cdebug(2)<<numChildren()<<" children, "
+             <<unresolved_children_.size()<<" unresolved"<<endl;
   }
 }
 
 //##ModelId=3F8433C20193
-void Node::addChild (const HIID &id,Node &childnode)
+void Node::addChild (const HIID &id,Node *childnode)
 {
   int n = children_.size();
   children_.resize(n+1);
-  children_[n].attach(childnode,DMI::WRITE);
   child_map_[id] = n;
+  // attach ref to child if specified (will stay unresolved otherwise)
+  if( childnode )
+    children_[n].attach(childnode,DMI::WRITE);
   cdebug(3)<<"added child "<<n<<": "<<id<<endl;
 }
 
@@ -157,24 +160,27 @@ void Node::resolveChildren ()
   if( !unresolved_children_.empty() )
   {
     cdebug(2)<<"trying to resolve "<<unresolved_children_.size()<<" children"<<endl;
-  }
-  
-  while( !unresolved_children_.empty() )
-  {
-    UnresolvedChild &child = unresolved_children_.front();
-    cdebug(3)<<"resolving child "<<child.first<<"="<<child.second<<endl;
-    // findNode() will throw an exception if the node is not found,
-    // which is exactly what we want
-    try
+    for( int i=0; i<numChildren(); i++ )
     {
-      Node & childnode = forest_->findNode(child.second);
-      addChild(child.first,childnode);
+      if( !children_[i].valid() )
+      {
+        string name = unresolved_children_.front();
+        cdebug(3)<<"resolving child "<<i<<":"<<name<<endl;
+        // findNode() will throw an exception if the node is not found,
+        // which is exactly what we want
+        try
+        {
+          Node &childnode = forest_->findNode(name);
+          children_[i].attach(childnode,DMI::WRITE);
+        }
+        catch( ... )
+        {
+          Throw(Debug::ssprintf("failed to resolve child %d:%s",i,name.c_str()));
+        }
+        unresolved_children_.pop_front();
+      }
     }
-    catch( ... )
-    {
-      Throw("failed to resolve child "+child.first.toString()+"="+child.second);
-    }
-    unresolved_children_.pop_front();
+    FailWhen(!unresolved_children_.empty(),"error, unexpected unresolved names remain");
   }
   // recursively call resolve on the children
   for( int i=0; i<numChildren(); i++ )
@@ -189,11 +195,26 @@ void Node::checkChildren ()
 // default version does nothing, always succeeeds
 }
 
+//##ModelId=3F85710E011F
+Node & Node::getChild (int i)
+{
+  FailWhen(!children_[i].valid(),"unresolved child");
+  return children_[i].dewr();
+}
+
+//##ModelId=3F85710E028E
 Node & Node::getChild (const HIID &id)
 {
   ChildrenMap::const_iterator iter = child_map_.find(id);
-  FailWhen(iter==child_map_.end(),"unresolved child "+id.toString());
+  FailWhen(iter==child_map_.end(),"unknown child "+id.toString());
   return getChild(iter->second);
+}
+
+//##ModelId=3F98D9D20201
+inline int Node::getChildNumber (const HIID &id)
+{
+  ChildrenMap::const_iterator iter = child_map_.find(id);
+  return iter == child_map_.end() ? -1 : iter->second;
 }
 
 //##ModelId=3F5F445A00AC
@@ -205,10 +226,43 @@ void Node::setState (const DataRecord &rec)
     staterec_()[AidName] = myname_ = rec[AidName].as<string>();
 }
 
-//##ModelId=3F6726C4039D
-int Node::getResult (Result::Ref &, const Request&)
+void Node::setCurrentRequest (const Request &req)
 {
-  Throw("MEQ::Node::getResult not implemented");
+  current_req_id_ = req.getId();
+}
+
+//##ModelId=3F6726C4039D
+int Node::getResult (Result::Ref &ref, const Request &req)
+{
+  // do we have a new request?
+  bool newreq = req.getId() != currentRequestId();
+  setCurrentRequest(req);
+  // do we have a rider record?
+  if( newreq && req[AidRider].exists() )
+  {
+    const DataRecord &rider = req[AidRider];
+    processRequestRider(rider);
+    // process rider stuff common to all nodes (setState, etc.)
+    // ...
+    // none for now
+  }
+  // ...
+  // cache handling code ought to go here, but for now, let's simply
+  // call getResultImpl()
+  //
+  return getResultImpl(ref,req,newreq);
+}
+
+// default version does nothing
+//##ModelId=3F98D9D2006B
+void Node::processRequestRider (const DataRecord &rider)
+{
+}
+
+//##ModelId=3F98D9D100B9
+int Node::getResultImpl (Result::Ref &, const Request &,bool)
+{
+  Throw("MEQ::Node::getResultImpl not implemented");
 }
 
 // throw exceptions for unimplemented DMI functions

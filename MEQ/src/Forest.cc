@@ -35,6 +35,7 @@ InitDebugContext(Forest,"MeqForest");
   
 //##ModelId=3F60697A00ED
 Forest::Forest ()
+    : prev_request(Cells(Domain(),1,1))
 {
   // resize repository to 1 initially, so that index #0 is never used
   nodes.reserve(RepositoryChunkSize);
@@ -148,6 +149,21 @@ const Node::Ref & Forest::getRef (int node_index)
   FailWhen(node_index<=0 || node_index>int(nodes.size()),
           "invalid node index");
   return nodes[node_index];
+}
+
+const HIID & Forest::assignRequestId (Request &req)
+{
+  // this will always create a new ID
+  // TODO: create sane IDs by comparing domains, cells, etc.
+  HIID id = prev_request.getId();
+  if( id.length() )
+    id[0] = id[0].id()+1;
+  else
+    id = AtomicID(1);
+  
+  req.setId(id);
+  prev_request = req;
+  return req.getId();
 }
 
 } // namespace MEQ

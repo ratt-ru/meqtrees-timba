@@ -30,7 +30,7 @@
 #include <vector>
     
 #pragma aidgroup MEQ
-#pragma aid Node Class Name State Child Children Result
+#pragma aid Node Class Name State Child Children Result Rider
 #pragma types #MEQ::Node
 
 namespace MEQ {
@@ -53,6 +53,8 @@ class Node : public BlockableObject
       RES_WAIT    = 1,    // result not yet available, must wait
       RES_MUTABLE = 2,    // result may change for this request
       RES_UPDATED = 4,    // result updated since last request
+          
+      RES_FAIL    = -1    // result is a fail (this is a value, not a bit flag)
     } ResultAttributes;
 
   
@@ -76,14 +78,24 @@ class Node : public BlockableObject
     virtual void setState (const DataRecord &rec);
     
     //##ModelId=3F6726C4039D
-    virtual int getResult (Result::Ref &resref, const Request&);
+    int getResult (Result::Ref &resref, const Request &);
+
+    const HIID & currentRequestId ();
     
-    
+    //##ModelId=3F85710E002E
     int numChildren () const;
     
+    //##ModelId=3F85710E011F
     Node & getChild (int i);
     
+    //##ModelId=3F85710E028E
     Node & getChild (const HIID &id);
+    
+    //##ModelId=3F98D9D20201
+    int getChildNumber (const HIID &id);
+    
+    //##ModelId=3F98D9D20372
+    Forest & forest ();
 
     // implement abstract methods inherited from BlockableObject 
     //##ModelId=3F5F4363030F
@@ -120,11 +132,18 @@ class Node : public BlockableObject
     virtual void checkChildren();
     //##ModelId=3F83F9A5022C
     DataRecord & wstate();
+    //##ModelId=3F98D9D2006B
+    virtual void processRequestRider (const DataRecord &rider);
+    //##ModelId=3F98D9D100B9
+    virtual int getResultImpl (Result::Ref &resref, const Request &req,bool newreq);
     
   private:
+    //##ModelId=3F9505E50010
     void processChildSpec (NestableContainer &children,const HIID &id);
     //##ModelId=3F8433C20193
-    void addChild (const HIID &id,Node &childnode );
+    void addChild (const HIID &id,Node *childnode);
+    
+    void setCurrentRequest (const Request &req);
       
     //##ModelId=3F5F4363030D
     DataRecord::Ref staterec_;
@@ -133,12 +152,12 @@ class Node : public BlockableObject
     //##ModelId=3F5F43930004
     Forest *forest_;
     
+    HIID current_req_id_;
+    
     //##ModelId=3F8433C10295
     typedef std::map<HIID,int> ChildrenMap;
-    //##ModelId=3F8433C102D3
-    typedef std::pair<HIID,string> UnresolvedChild;
     //##ModelId=3F8433C10322
-    typedef std::list<UnresolvedChild> UnresolvedChildren;
+    typedef std::list<string> UnresolvedChildren;
     
     //##ModelId=3F8433ED0337
     std::vector<Node::Ref> children_;
@@ -148,14 +167,15 @@ class Node : public BlockableObject
     UnresolvedChildren unresolved_children_;
 };
 
+inline const HIID & Node::currentRequestId ()
+{
+  return current_req_id_;
+}
+
+//##ModelId=3F85710E002E
 inline int Node::numChildren () const
 {
   return children_.size();
-}
-
-inline Node & Node::getChild (int i)
-{
-  return children_[i].dewr();
 }
 
 //##ModelId=3F5F441602D2
@@ -174,6 +194,12 @@ inline DataRecord & Node::wstate()
 inline const string & Node::name() const
 {
   return myname_;
+}
+
+//##ModelId=3F98D9D20372
+inline Forest & Node::forest() 
+{
+  return *forest_;
 }
 
 } // namespace MEQ

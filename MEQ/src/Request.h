@@ -45,7 +45,7 @@ public:
 
   // Create the request from the cells for which the expression has
   // to be calculated. Optionally no derivatives are calculated.
-  explicit Request (const Cells&, bool calcDeriv=true, int id=0);
+  explicit Request (const Cells&, bool calcDeriv=true, const HIID &id=HIID());
 
   // Calculate derivatives if parameters are solvable?
   bool calcDeriv() const
@@ -60,18 +60,18 @@ public:
     { return *itsCells; }
 
   // Set the request id.
-  void setId (int id)
+  void setId (const HIID &id)
     { itsId = id; }
 
   // Get the request id.
-  int getId() const
+  const HIID & getId() const
     { return itsId; }
 
   // Get the rider subrecord.
   DataRecord::Ref& getRider();
 
 private:
-  int    itsId;
+  HIID   itsId;
   bool   itsCalcDeriv;
   Cells* itsCells;
 };
