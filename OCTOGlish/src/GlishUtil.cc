@@ -4,9 +4,9 @@
 #include <sys/types.h> 
 #include <unistd.h> 
     
-#include <aips/Glish.h>
-#include <aips/Arrays/Array.h>
-#include <aips/Arrays/ArrayMath.h>
+#include <tasking/Glish.h>
+#include <casa/Arrays/Array.h>
+#include <casa/Arrays/ArrayMath.h>
 
 #include <DMI/DataRecord.h>
 #include <DMI/DataField.h>

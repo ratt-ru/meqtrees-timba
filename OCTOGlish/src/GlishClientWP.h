@@ -1,9 +1,9 @@
 #ifndef OCTOGlish_GlishClientWP_h
 #define OCTOGlish_GlishClientWP_h 1
 
-#include <aips/Glish.h>
-#include <aips/Arrays/Array.h>
-#include <aips/Arrays/ArrayMath.h>
+#include <tasking/Glish.h>
+#include <casa/Arrays/Array.h>
+#include <casa/Arrays/ArrayMath.h>
 
 #include <DMI/DMI.h>
 #include <OCTOGlish/AID-OCTOGlish.h>

@@ -2,7 +2,7 @@
 #include "GlishThreadWP.h"
 
 #include <Common/StringUtil.h>
-#include <aips/Glish.h>
+#include <tasking/Glish.h>
 
 #include <pwd.h>
 #include <sys/types.h>

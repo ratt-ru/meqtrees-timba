@@ -7,7 +7,7 @@
 #include <DMI/DataField.h>
 #include <DMI/DataArray.h>
     
-#include <aips/Glish.h>
+#include <tasking/Glish.h>
 
 namespace GlishUtil
 {
