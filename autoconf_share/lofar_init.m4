@@ -218,7 +218,7 @@ AC_ARG_WITH(lofar-libdir,
 
   # Create pkginc (used by lofar_package.m4) if not existing yet.
   # Create a symlink to the source directory of the package being configured.
-  # Do the same for the build directory (for files creates from e.g. idl).
+  # Do the same for the build directory (for files created from e.g. idl).
   if [ ! -d pkginc ]; then
     mkdir pkginc;
   fi
@@ -231,12 +231,19 @@ AC_ARG_WITH(lofar-libdir,
   fi
   \rm -f pkgbldinc/$lfr_pkg;
   ln -s $lfr_curwd/src pkgbldinc/$lfr_pkg;
+  \rm -f pkgext*
+  touch pkgext pkgextcppflags pkgextcxxflags
 
   # Create the lofar_config.h file.
   # Define a line for the package being configured.
   \rm -f lofar_config.h
   lfr_upkg=`echo $lfr_pkg | tr a-z A-Z`
-  echo "#define HAVE_LOFAR_$lfr_upkg 1" > lofar_config.h
+  echo "#if defined(HAVE_CONFIG_H)" >> lofar_config.h
+  echo "#include <config.h>" >> lofar_config.h
+  echo "#endif" >> lofar_config.h
+  echo "" >> lofar_config.h
+  echo "#define HAVE_LOFAR_$lfr_upkg 1" >> lofar_config.h
+  echo "" >> lofar_config.h
 
   CPPFLAGS="$CPPFLAGS -I$lfr_curwd/pkginc -I$lfr_curwd/pkgbldinc -I$lfr_curwd"
   LOFAR_DEPEND=
