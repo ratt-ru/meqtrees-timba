@@ -49,10 +49,11 @@ const meqnode := function (class,name,children=F,default=[=],config_groups="")
 }
 
 # Creates a Polc
-const meqpolc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=F,
-                           domain=F)
+const meqpolc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
+                           weight=1,domain=F,dbid=-1)
 {
-  rec := [ freq_0=freq0,time_0=time0,freq_scale=freqsc,time_scale=timesc ];
+  rec := [ freq_0=freq0,time_0=time0,freq_scale=freqsc,
+           time_scale=timesc,pert=pert,weight=weight,dbid=dbid ];
   # set coeff  
   if( len(coeff) == 1 )
     rec.coeff := array(as_double(coeff),1,1);
@@ -60,9 +61,6 @@ const meqpolc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=F,
     fail 'meqpolc: coeff must be either scalar or a 2D array';
   else
     rec.coeff := as_double(coeff);
-  # set perturbation if specified
-  if( !is_boolean(pert) )
-    rec.pert := pert;
   # set domain if specified
   if( !is_boolean(domain) )
   {

@@ -32,10 +32,7 @@ static NestableContainer::Register reg(TpMeqDomain,True);
 //##ModelId=3F86886E030D
 Domain::Domain()
 : // DataField(Tpdouble,4),
-  itsOffsetFreq (0),
-  itsScaleFreq  (1),
-  itsOffsetTime (0),
-  itsScaleTime  (1)
+  freq0_(0),freq1_(1),time0_(0),time1_(1)
 {
 }
 
@@ -55,15 +52,11 @@ Domain::Domain (double startFreq, double endFreq,
 	     " must be < endFreq " << endFreq);
   AssertMsg (startTime < endTime, "Meq::Domain: startTime " << startTime <<
 	     " must be < endTime " << endTime);
-  itsOffsetFreq = (endFreq + startFreq) * .5;
-  itsScaleFreq  = (endFreq - startFreq) * .5;
-  itsOffsetTime = (endTime + startTime) * .5;
-  itsScaleTime  = (endTime - startTime) * .5;
   double *fld = (*this)[HIID()].as_wp<double>();
-  fld[0] = startFreq;
-  fld[1] = endFreq;
-  fld[2] = startTime;
-  fld[3] = endTime;
+  fld[0] = freq0_ = startFreq;
+  fld[1] = freq1_ = endFreq;
+  fld[2] = time0_ = startTime;
+  fld[3] = time1_ = endTime;
 }
 
 //##ModelId=400E5305010B
@@ -77,17 +70,15 @@ void Domain::validateContent ()
       int size;
       const double *fld = (*this)[HIID()].as_p<double>(size);
       FailWhen(size!=4,"bad Domain field size");
-      itsOffsetFreq = ( fld[1] + fld[0] ) * .5;
-      itsScaleFreq  = ( fld[1] - fld[0] ) * .5;
-      itsOffsetTime = ( fld[3] + fld[2] ) * .5;
-      itsScaleTime  = ( fld[3] - fld[2] ) * .5;
+      freq0_ = fld[0];
+      freq1_ = fld[1];
+      time0_ = fld[2];
+      time1_ = fld[3];
     }
     else
     {
-      itsOffsetFreq = 0;
-      itsScaleFreq  = 1;
-      itsOffsetTime = 0;
-      itsScaleTime  = 1;
+      freq0_ = time0_ = 0;
+      freq1_ = time1_ = 1;
     }
   }
   catch( std::exception &err )

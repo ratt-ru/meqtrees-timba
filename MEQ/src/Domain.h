@@ -73,48 +73,48 @@ public:
     //##ModelId=400E5305010B
   virtual void validateContent ();
   
-  // Get offset and scale value.
-    //##ModelId=3F86886E0316
-  double offsetFreq() const
-    { return itsOffsetFreq; }
-    //##ModelId=3F86886E0318
-  double scaleFreq() const
-    { return itsScaleFreq; }
-    //##ModelId=3F86886E031A
-  double offsetTime() const
-    { return itsOffsetTime; }
-    //##ModelId=3F86886E031C
-  double scaleTime() const
-    { return itsScaleTime; }
-
-  // Transform a value to its normalized value.
-    //##ModelId=3F86886E031F
-  double normalizeFreq (double value) const
-    { return (value - itsOffsetFreq) / itsScaleFreq; }
-    //##ModelId=3F86886E0324
-  double normalizeTime (double value) const
-    { return (value - itsOffsetTime) / itsScaleTime; }
+//   // Get offset and scale value.
+//     //##ModelId=3F86886E0316
+//   double offsetFreq() const
+//     { return itsOffsetFreq; }
+//     //##ModelId=3F86886E0318
+//   double scaleFreq() const
+//     { return itsScaleFreq; }
+//     //##ModelId=3F86886E031A
+//   double offsetTime() const
+//     { return itsOffsetTime; }
+//     //##ModelId=3F86886E031C
+//   double scaleTime() const
+//     { return itsScaleTime; }
+// 
+//   // Transform a value to its normalized value.
+//     //##ModelId=3F86886E031F
+//   double normalizeFreq (double value) const
+//     { return (value - itsOffsetFreq) / itsScaleFreq; }
+//     //##ModelId=3F86886E0324
+//   double normalizeTime (double value) const
+//     { return (value - itsOffsetTime) / itsScaleTime; }
 
   // Get the start, end, and step of the domain.
     //##ModelId=3F86886E032C
   double startFreq() const
-    { return itsOffsetFreq - itsScaleFreq; }
+    { return freq0_; }
     //##ModelId=3F86886E032E
   double endFreq() const
-    { return itsOffsetFreq + itsScaleFreq; }
+    { return freq1_; }
     //##ModelId=3F86886E0330
   double startTime() const
-    { return itsOffsetTime - itsScaleTime; }
+    { return time0_; }
     //##ModelId=3F86886E0332
   double endTime() const
-    { return itsOffsetTime + itsScaleTime; }
+    { return time1_; }
 
     //##ModelId=400E5305010E
   bool operator== (const Domain& that) const
-  { return itsOffsetFreq == that.itsOffsetFreq
-       &&  itsScaleFreq  == that.itsScaleFreq
-       &&  itsOffsetTime == that.itsOffsetTime
-       &&  itsScaleTime  == that.itsScaleTime; }
+  { return freq0_ == that.freq0_
+       &&  freq1_ == that.freq1_
+       &&  time0_ == that.time0_
+       &&  time1_ == that.time1_; }
   
   bool subsetOf (const Domain &other) const
   { return 
@@ -123,7 +123,6 @@ public:
   
   bool supersetOf (const Domain &other) const
   { return other.subsetOf(*this); }
-  
 
     //##ModelId=400E5305011A
   bool operator!= (const Domain& that) const
@@ -135,13 +134,13 @@ public:
 
 private:
     //##ModelId=3F86886E02F8
-  double itsOffsetFreq;
+  double freq0_;
     //##ModelId=3F86886E02FD
-  double itsScaleFreq;
+  double freq1_;
     //##ModelId=3F86886E0302
-  double itsOffsetTime;
+  double time0_;
     //##ModelId=3F86886E0307
-  double itsScaleTime;
+  double time1_;
 };
 
 } // namespace Meq

@@ -90,7 +90,7 @@ namespace Meq
     FTimeScale       = AidTime|AidScale,
     FGrowDomain      = AidGrow|AidDomain,
     FInfDomain       = AidInf|AidDomain,
-    FDbId            = AidDbId,
+    FDbId            = AidDbId|AidIndex,
     
     FSpids           = AidSpid|AidIndex,
     FPerturbedValues = AidPerturbed|AidValue,
