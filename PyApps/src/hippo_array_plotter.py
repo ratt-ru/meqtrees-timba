@@ -10,6 +10,12 @@ print "HippoDraw version " + sihippo.__version__
 from sihippo import *
 from numarray import *
 
+from dmitypes import verbosity
+_dbg = verbosity(0,name='hippo_array_plotter');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
+
 class HippoArrayPlotter(BrowserPlugin):
   """ a class to plot raw arrays contained within a Meq tree """
 
@@ -19,7 +25,7 @@ class HippoArrayPlotter(BrowserPlugin):
     return len(data) > 0;
   is_viewable = staticmethod(is_viewable);
 
-  def __init__(self,parent,dataitem=None,**opts):
+  def __init__(self,parent=None,dataitem=None,**opts):
     """ instantiate various HippoDraw objects that are needed to
         control various aspects of plotting """
 
@@ -28,7 +34,7 @@ class HippoArrayPlotter(BrowserPlugin):
     self._window_controller.createInspector ()
 
 # used for 'standalone display'
-    self._window = CanvasWindow(None, "MeqDisplay",0)
+    self._window = CanvasWindow(parent, "MeqDisplay",0)
     self._wtop = self._window
 
 # have Hippo window close without asking permission to discard etc
@@ -43,7 +49,6 @@ class HippoArrayPlotter(BrowserPlugin):
       self.set_data(dataitem);
 
   def __del__(self):
-#    print "in destructor"
     self._window_controller.closeAllWindows()
                                                                                            
   def wtop (self):
@@ -122,7 +127,6 @@ class HippoArrayPlotter(BrowserPlugin):
 #        if self._canvas == None:
 #          self._canvas = self._window_controller.currentCanvas()
 #        self._canvas.addDisplay ( xyz_plot )
-#        print "called self._canvas.addDisplay(xyz_plot)"
                                                                                 
     if is_vector == True:
       if self._simple_ntuple == None:
