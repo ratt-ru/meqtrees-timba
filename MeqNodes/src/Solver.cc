@@ -54,6 +54,9 @@ Solver::Solver()
   // Set this flag, so setCurState will be called in first getResult.
   itsResetCur = true;
   setGenSymDeps(FParmValue,RQIDM_VALUE,itsParmGroup);
+  // set Solver dependencies
+  const HIID symdeps[] = { FDomain,FResolution };
+  setActiveSymDeps(symdeps,2);
 }
 
 //##ModelId=400E53550261
