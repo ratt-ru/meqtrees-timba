@@ -1,0 +1,122 @@
+#! /usr/bin/env python
+#
+# This file should reside on the lofar server in the BuildResults directory
+# it can be called by scanBuildLog on the machines where mainbuilds take place
+# to create index files in lastWeek and thisWeek depending on the builds that
+# are available in that directories
+#
+
+#
+# Import all packages we need
+#
+import sys
+import os
+import re
+import fnmatch
+
+def find(pattern, startdir=os.curdir):
+  #
+  #Function to walk directory structures and find pattern matches.
+  #
+  # args:
+  #   - pattern           filepattern to look for
+  #   - startdir          directory to start search from
+  #
+  matches=[]
+  os.path.walk(startdir, findvisitor, (matches, pattern))
+  matches.sort()
+  return matches
+
+def findvisitor((matches, pattern), thisdir, nameshere):
+  #
+  #Function called by find to search for patterns in directories
+  #
+  # args:
+  #   - matches           array containing found matches
+  #   - pattern           pattern to search for
+  #   - thisdir           present directory
+  #   - nameshere         all files in this directory
+  #
+  for name in nameshere:
+    if fnmatch.fnmatch(name, pattern):
+      fullpath = os.path.join(thisdir, name)
+      matches.append(fullpath)
+
+
+def openHTMLPage(file,title,withHeader):
+  #
+  #Function to make the uniform pageheader voor CM.
+  #
+  # args:
+  #   - file              file to print to
+  #   - title             title for the page
+  #   - withHeader        Will the header be printed on top of the page
+  #
+  file.write('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">\n')
+  file.write("<html>\n")
+  file.write("<head>\n")
+  file.write("<title>"+title+"</title>\n")
+  file.write("<body>\n")
+  if withHeader:
+    file.write("<center>\n")
+    file.write("<h1>"+title+"</h1>\n")
+    file.write("</center>\n")
+    
+
+def closeHTMLPage(file):
+  #
+  # Closes the html page
+  #
+  # args:
+  #  - file               file to write the html stuff to
+
+  file.write("</body>\n")
+  file.write("</html>\n")
+  file.close()
+
+#
+# open the index file in lastWeek
+#
+try:
+    lastWeekIndexFile=open("/usr/local/httpd/htdocs/BuildResults/lastWeek/index.html",'w')
+except IOError, message:
+    sys.exit( "Error opening file: %s" % message )
+    
+#
+# open the index file in thisWeek
+#
+try:
+    thisWeekIndexFile=open("/usr/local/httpd/htdocs/BuildResults/thisWeek/index.html",'w')
+except IOError, message:
+    sys.exit( "Error opening file: %s" % message )
+
+openHTMLPage(lastWeekIndexFile,"Last Weeks BuildResults","yes")
+openHTMLPage(thisWeekIndexFile,"Present Week BuildResults","yes")
+
+lastWeekIndexFile.write('<ul>\n')
+thisWeekIndexFile.write('<ul>\n')
+
+for file in find('BuildPage*.html','thisWeek'):
+  machine=re.sub('thisWeek/BuildPage_','',re.sub('.html','',file))
+  thisWeekIndexFile.write('<li>\n')
+  thisWeekIndexFile.write('<a href="http://lofar0.nfra.nl/BuildResults/thisWeek/BuildPage_'+machine+'.html"><font size="+1">'+machine+'</font></a>\n')
+  thisWeekIndexFile.write('</li>\n')
+
+for file in find('BuildPage*.html','lastWeek'):
+  machine=re.sub('lastWeek/BuildPage_','',re.sub('.html','',file))
+  lastWeekIndexFile.write('<li>\n')
+  lastWeekIndexFile.write('<a href="http://lofar0.nfra.nl/BuildResults/lastWeek/BuildPage_'+machine+'.html"><font size="+1">'+machine+'</font></a>\n')
+  lastWeekIndexFile.write('</li>\n')
+
+
+lastWeekIndexFile.write('</ul>\n')
+thisWeekIndexFile.write('</ul>\n')
+
+
+
+
+#
+# close html page
+#
+closeHTMLPage(lastWeekIndexFile)
+closeHTMLPage(thisWeekIndexFile)
