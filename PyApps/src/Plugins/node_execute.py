@@ -114,19 +114,25 @@ class editRequest(QDialog):
     self.close();
 
   def slotcmdOK(self):
-    tvalue = str(self.X0.text())
-    s1 = split(tvalue)
-    if len(s1) == 1:
-      self.parent.f0 = s1[0]
-    else:
-      print 'DEBUG - ', len(s1)
-    self.parent.f0 = float(str(self.X0.text()))
-    self.parent.f1 = float(str(self.X1.text()))
-    self.parent.fn = int(str(self.Xn.text()))
+    f0 = float(str(self.X0.text()));
+    f1 = float(str(self.X1.text()));
+    fn = int(str(self.Xn.text()))
 
-    self.parent.t1 = float(str(self.Y1.text()))
-    self.parent.tn = int(str(self.Yn.text()))
+    if f0 == f1:
+       f1 = f1 + 1;
+    if fn == 0: fn = 1
 
+    self.parent.f0 = f0;
+    self.parent.f1 = f1;
+    self.parent.fn = fn;
+
+    t1 = float(str(self.Y1.text()))
+    tn = int(str(self.Yn.text()))
+    if tn == 0: tn = 1
+    self.parent.tn = tn
+#
+# Allow three values for t0
+#
     tvalue = str(self.Y0.text())
     s1 = split(tvalue)
     l = len(s1)
@@ -140,9 +146,12 @@ class editRequest(QDialog):
     else:
       t01 = float(s1[1])
       t02 = float(s1[2])
-    dt = self.parent.t1 - t00
+    dt = t1 - t00
     if t02 == -1:
       self.parent.t0 = t00
+      if t1 == t00:
+        t1 = t1+1
+      self.parent.t1 = t1
       self.parent.doNewRequest()
     else:
       t = t00
@@ -151,6 +160,7 @@ class editRequest(QDialog):
         self.parent.t1 = self.parent.t0 + dt
 	self.parent.doNewRequest()
         t = t + t01
+
 #    self.close()
 
 class startLoop(QDialog):
@@ -294,6 +304,11 @@ class Executor (browsers.GriddedPlugin):
     # set data
     if dataitem.data is not None:
       self.set_data(dataitem);
+
+    self.rid1 = 0
+    self.rid2 = 0
+    self.rid3 = 0
+    self.rid4 = 0
     
   def wtop(self):
     return self._wtop;
@@ -354,17 +369,27 @@ class Executor (browsers.GriddedPlugin):
     else:
       self.f0 = self._request.cells.domain.freq[0];
       self.f1 = self._request.cells.domain.freq[1];
-      self.fn = len(self._request.cells.cell_size.freq);
+      if self._request.cells.segments.freq.start_index == self._request.cells.segments.freq.end_index:
+        self.fn = 1
+      else:
+        self.fn = len(self._request.cells.cell_size.freq);
       self.t0 = self._request.cells.domain.time[0];
       self.t1 = self._request.cells.domain.time[1];
-      self.tn = len(self._request.cells.cell_size.time);
+      if self._request.cells.segments.time.start_index == self._request.cells.segments.time.end_index:
+        self.tn = 1
+      else:
+        self.tn = len(self._request.cells.cell_size.time);
     editRequest(self);
 
   def doNewRequest(self):
     newd = meq.domain(self.f0, self.f1, self.t0, self.t1);
     newc = meq.cells(domain=newd, num_freq=self.fn, num_time=self.tn);
     self._request = meq.request(cells=newc);
-    self._request.request_id = hiid();
+    self._request.request_id = hiid(self.rid1, self.rid2, self.rid3, self.rid4);
+    self.rid1 = self.rid1 + 1
+    self.rid2 = self.rid2 + 1
+    self.rid3 = self.rid3 + 1
+    self.rid4 = self.rid4 + 1
     cmd = record(nodeindex=self._node,request=self._request,get_state=True);
     mqs().meq('Node.Execute',cmd,wait=False);
 
