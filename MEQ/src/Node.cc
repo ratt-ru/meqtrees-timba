@@ -74,6 +74,7 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   
   // call setStateImpl to set up reconfigurable node state
   cdebug(2)<<"initializing node (setStateImpl)"<<endl;
+  cdebug(3)<<"initial state is "<<staterec_().sdebug(10,"    ")<<endl;
   setStateImpl(staterec_(),true);
   
   // setup the non-reconfigurable stuff
@@ -159,6 +160,7 @@ void Node::setState (DataRecord &rec)
   // when initializing, we're called with our own state record, which
   // makes the rules somewhat different:
   bool initializing = ( &rec == &(wstate()) );
+  cdebug(2)<<"setState(init="<<initializing<<"): "<<rec.sdebug(10)<<endl;
   string fail;
   // setStateImpl() is allowed to throw exceptions if something goes wrong.
   // This may leave the node with an inconsistency between the state record
@@ -566,18 +568,10 @@ int Node::execute (Result::Ref &ref, const Request &req)
     if( DebugLevel>=3 ) // print it out
     {
       cdebug(3)<<"  cumulative result code is "<<retcode<<endl;
-      cdebug(3)<<"  result is "<<ref->sdebug(DebugLevel-1,"    ")<<endl;
-      if( DebugLevel>3 )
+      cdebug(3)<<"  result is "<<ref.sdebug(DebugLevel-1,"    ")<<endl;
+      if( DebugLevel>3 && ref.valid() )
       {
-        for( int i=0; i<ref->numVellSets(); i++ ) 
-        {
-          const VellSet &vs = ref->vellSetConst(i);
-          if( vs.isFail() ) {
-            cdebug(4)<<"    vellset "<<i<<": FAIL "<<endl;
-          } else {
-            cdebug(4)<<"    vellset "<<i<<": "<<vs.getValue()<< endl;
-          }
-        }
+        ref->show(Debug::dbg_stream);
       }
     }
     // cache & return accumulated return code

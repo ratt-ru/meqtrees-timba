@@ -305,9 +305,16 @@ void VellSet::show (std::ostream& os) const
     {
       os << "deriv parm " << itsSpids[i]
          << " with " << itsPerturbations[i] << endl;
-      os << "   " << (*(itsPerturbedValues[i]) - *itsValue) << endl;
-      os << "   " << (*(itsPerturbedValues[i]) - *itsValue) /
-        Vells(itsPerturbations[i]) << endl;
+      if( itsPerturbedValues[i].valid() )
+      {
+        os << "   " << (*(itsPerturbedValues[i]) - *itsValue) << endl;
+        os << "   " << (*(itsPerturbedValues[i]) - *itsValue) /
+          Vells(itsPerturbations[i]) << endl;
+      }
+      else
+      {
+        os << "oops, perturbed vells "<<i<<" missing???"<<endl;
+      }
     }
   }
 }
