@@ -323,6 +323,7 @@ String                           1230       ; from /home/oms/LOFAR/CEP/CPA/AppAg
 Subscribe                        1099       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:19
 Subscriptions                    1034       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MTGatewayWP.h:22
 Subtable                         1196       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
+Suspend                          1387       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/VisAgent/src/VisAgentVocabulary.h:11
 T                                1021       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 TableFormat                      1133       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/TableFormat.h:9
 Tablename                        1361       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Parm.h:34
