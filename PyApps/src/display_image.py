@@ -520,30 +520,9 @@ class QwtImagePlot(QwtPlot):
         plot_label = self._attrib_parms.get('label','')
         num_plot_arrays = len(self._data_values)
         for i in range(0, num_plot_arrays):
-          complex_type = False;
-          if self._data_values[i].type() == Complex64:
-            complex_type = True;
-          _dprint(2, 'complex type is ', complex_type);
-          if complex_type:
-            data_label = plot_label +  "_" +str(i) +  "_complex" 
-            if self.display_type != "brentjens":
-# create array of reals followed bu imaginaries
-              real_array =  self._data_values[i].getreal()
-              imag_array =  self._data_values[i].getimag()
-              shape = real_array.shape
-              temp_array = zeros((2*shape[0],shape[1]), Float32)
-              for k in range(shape[0]):
-                for j in range(shape[1]):
-                  temp_array[k,j] = real_array[k,j]
-                  temp_array[k+shape[0],j] = imag_array[k,j]
-              self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
-              self.array_plot(data_label, temp_array)
-            else:
-              _dprint(2, "calling array_plot with complex array");
-              self.array_plot(data_label, self._data_values[i])
-          else:
-            data_label = plot_label +  "_" +str(i) +  "_real" 
-            self.array_plot(data_label, self._data_values[i])
+          data_label = plot_label +  "_" +str(i) 
+          self.array_plot(data_label, self._data_values[i])
+    # plot_data()
 
     def array_plot (self, data_label, plot_array):
       """ figure out shape, rank etc of a spectrum array and
@@ -570,25 +549,39 @@ class QwtImagePlot(QwtPlot):
         complex_type = True;
       if plot_array.type() == Complex64:
         complex_type = True;
-      if data_label.find('complex') >= 0:
-        complex_type = True;
 
 # test if we have a 2-D array
       if self.is_vector == False:
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if complex_type and self.display_type != "brentjens":
-          myXScale = ComplexScaleDraw(plot_array.shape[0] / 2)
-          self.setAxisScaleDraw(QwtPlot.xBottom, myXScale)
           self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
+          myXScale = ComplexScaleDraw(plot_array.shape[0])
+          self.setAxisScaleDraw(QwtPlot.xBottom, myXScale)
+# create array of reals followed bu imaginaries
+          real_array =  plot_array.getreal()
+          imag_array =  plot_array.getimag()
+          shape = real_array.shape
+          temp_array = zeros((2*shape[0],shape[1]), Float32)
+          for k in range(shape[0]):
+            for j in range(shape[1]):
+              temp_array[k,j] = real_array[k,j]
+              temp_array[k+shape[0],j] = imag_array[k,j]
+          if self.x_dim != plot_array.shape[0]: 
+            self.x_dim = 2 * plot_array.shape[0]
+            self.set_data_called = False
+          if self.y_dim != plot_array.shape[1]: 
+            self.y_dim = plot_array.shape[1]
+            self.set_data_called = False
+          self.display_image(temp_array)
         else:
           self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
-        if self.x_dim != plot_array.shape[0]: 
-          self.x_dim = plot_array.shape[0]
-          self.set_data_called = False
-        if self.y_dim != plot_array.shape[1]: 
-          self.y_dim = plot_array.shape[1]
-          self.set_data_called = False
-        self.display_image(plot_array)
+          if self.x_dim != plot_array.shape[0]: 
+            self.x_dim = plot_array.shape[0]
+            self.set_data_called = False
+          if self.y_dim != plot_array.shape[1]: 
+            self.y_dim = plot_array.shape[1]
+            self.set_data_called = False
+          self.display_image(plot_array)
 
       if self.is_vector == True:
         flattened_array = None
@@ -607,22 +600,11 @@ class QwtImagePlot(QwtPlot):
           self.setAxisTitle(QwtPlot.yRight, 'Signal: imaginary (red)')
           self.setCurveYAxis(self.xCrossSection, QwtPlot.yLeft)
           self.setCurveYAxis(self.yCrossSection, QwtPlot.yRight)
-          if self.display_type == "brentjens":
-            self.x_array =  flattened_array.getreal()
-            self.y_array =  flattened_array.getimag()
-            if self.x_index is None:
-              self.x_index = arange(num_elements)
-              self.x_index = self.x_index + 0.5
-          else:
-            num_elements = num_elements / 2
-            if self.x_array is None:
-              self.x_array = zeros(num_elements, Float32)
-              self.y_array = zeros(num_elements, Float32)
-              self.x_index = arange(num_elements)
-              self.x_index = self.x_index + 0.5
-            for i in range(num_elements):
-              self.x_array[i] =  flattened_array[i]
-              self.y_array[i] =  flattened_array[i+num_elements]
+          self.x_array =  flattened_array.getreal()
+          self.y_array =  flattened_array.getimag()
+          if self.x_index is None:
+            self.x_index = arange(num_elements)
+            self.x_index = self.x_index + 0.5
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
           self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
         else:
@@ -636,6 +618,7 @@ class QwtImagePlot(QwtPlot):
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
         self.replot()
         _dprint(2, 'called replot in array_plot');
+    # array_plot()
 
     def start_timer(self, time, test_complex, display_type):
       self.test_complex = test_complex
@@ -660,31 +643,10 @@ class QwtImagePlot(QwtPlot):
           vector_array[i,0] = a[i,0]
         if self.index % 2 == 0:
           _dprint(2, 'plotting vector');
-          if self.display_type != "brentjens":
-            real_array =  vector_array.getreal()
-            imag_array =  vector_array.getimag()
-            shape = real_array.shape
-            temp_array = zeros((2*shape[0],shape[1]), Float32)
-            for k in range(shape[0]):
-              for j in range(shape[1]):
-                temp_array[k,j] = real_array[k,j]
-                temp_array[k+shape[0],j] = imag_array[k,j]
-            self.array_plot('test_vector_complex',temp_array)
-          else:
-            self.array_plot('test_vector_complex', vector_array)
+          self.array_plot('test_vector_complex', vector_array)
         else:
-          if self.display_type != "brentjens":
-            real_array =  m
-            imag_array =  n
-            shape = real_array.shape
-            temp_array = zeros((2*shape[0],shape[1]), Float32)
-            for k in range(shape[0]):
-              for j in range(shape[1]):
-                temp_array[k,j] = real_array[k,j]
-                temp_array[k+shape[0],j] = imag_array[k,j]
-            self.array_plot('test_image_complex',temp_array)
-          else:
-            self.array_plot('test_image_complex',a)
+          _dprint(2, 'plotting array');
+          self.array_plot('test_image_complex',a)
       else:
         vector_array = zeros((30,1), Float32)
         m = fromfunction(dist, (30,20))
@@ -710,7 +672,8 @@ def make():
     demo.resize(500, 300)
     demo.show()
 # uncomment the following
-    demo.start_timer(1000, True, "grayscale")
+#    demo.start_timer(1000, True, "grayscale")
+#    demo.start_timer(1000, True, "grayscale")
 
 # or
 # uncomment the following three lines
