@@ -344,6 +344,7 @@ vistile                          1181       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 w                                1029       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 wait                             1271       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:17
 weight                           1189       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
+when                             1340       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/ApplicationBase.h:17
 width                            1123       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
 wp                               1071       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:19
 write                            1290       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:35
