@@ -506,6 +506,7 @@ class GridCell (object):
     vopts = viewopts.copy();
     vopts.update(self._dataitem.viewopts.get(None,{}));
     for (vclass,vo) in self._dataitem.viewopts.iteritems():
+      print vclass,viewer_class;
       if vclass and issubclass(viewer_class,vclass):
         vopts.update(vo);
     # create a viewer, add data if specified

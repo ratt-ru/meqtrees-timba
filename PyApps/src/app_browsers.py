@@ -226,7 +226,6 @@ class HierBrowser (object):
       
     # changes display precision of item
     def set_precision (self,prec,set_menu=True):
-      print 'set_precision',prec;
       self._prec = prec;
       if callable(self._strfunc):
         (txt,inlined) = self._strfunc(prec=prec);
@@ -296,6 +295,7 @@ class HierBrowser (object):
     # if item is displayable, creates a dataitem from it and
     # emits a displayDataItem(dataitem,(),kwargs) signal
     def emit_display_signal (self,viewer=None,**kwargs):
+      print "emit signal";
       dataitem = self.make_data_item(viewer=viewer);
       if dataitem:
         self.listView().emit(PYSIGNAL("displayDataItem()"),(dataitem,(),kwargs));
@@ -446,7 +446,6 @@ class HierBrowser (object):
     if item.isOpen():
       openitems = (keepopen and self.get_open_items()) or None;
       item.setOpen(False);
-    print openitems;
     item.cache_content(content,**kwargs);
     if openitems:
       self.set_open_items(openitems);
@@ -517,7 +516,6 @@ class ArrayBrowser(BrowserPlugin):
       self.repaint_cells();
     # changes precision
     def set_precision (self,prec):
-      print 'table set prec',prec;
       self._prec = prec;
       self.repaint_cells();
       

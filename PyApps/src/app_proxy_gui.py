@@ -334,12 +334,12 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.msglog.wtop()._error_label = "%d errors";
     self.msglog.wtop()._error_iconset = pixmaps.exclaim.iconset();
     QWidget.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
-    QWidget.connect(self.msglog.wtop(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    QWidget.connect(self.msglog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     
     #------ create an event log
     self.eventlog = EventLogger(self,"event log",limit=1000,evmask="*",
           udi_root='event');
-    QWidget.connect(self.eventlog.wtop(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    QWidget.connect(self.eventlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     
     self.maintab.addTab(self.msglog.wtop(),self.msglog.wtop()._default_label);
     
@@ -438,7 +438,7 @@ class app_proxy_gui(verbosity,QMainWindow):
       self.show_workspace_button.show();
       
 ##### displays data item in gridded workspace
-  def display_data_item (self,item,*args,**kwargs):
+  def display_data_item (self,item,args=(),kwargs={}):
     self.gw.add_data_item(item,*args,**kwargs);
     self.show_gridded_workspace();
     

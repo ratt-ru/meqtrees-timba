@@ -300,7 +300,7 @@ class meqserver_gui (app_proxy_gui):
     self.resultlog.wtop()._newres_iconset  = pixmaps.check.iconset();
     self.resultlog.wtop()._newres_label    = "Results";
     self.resultlog.wtop()._newresults      = False;
-    QWidget.connect(self.resultlog.wtop(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    QWidget.connect(self.resultlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     QWidget.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
     
   def ce_mqs_Hello (self,ev,value):
@@ -319,9 +319,6 @@ class meqserver_gui (app_proxy_gui):
       self.dprint(5,'got state for node ',value.name);
       self.update_node_state(value,ev);
   
-  defaultResultViewopts = { \
-    'default_open': ({'cache_result':({'vellsets':None},None)},None)  \
-  };
   def ce_NodeResult (self,ev,value):
     self.update_node_state(value,ev);
     if self.resultlog.enabled:
@@ -335,7 +332,7 @@ class meqserver_gui (app_proxy_gui):
         txt = ''.join((txt,' rqid:',rqid));
         desc = desc + ':' + rqid;
       self.resultlog.add(txt,content=value,category=Logger.Event, 
-        name=name,desc=desc,viewopts=self.defaultResultViewopts);
+        name=name,desc=desc,viewopts=_defaultResultViewopts);
       wtop = self.resultlog.wtop();
       if self.maintab.currentPage() is not wtop and not wtop._newresults:
         self.maintab.changeTab(wtop,wtop._newres_iconset,wtop._newres_label);
@@ -386,6 +383,10 @@ _default_state_open =  ({'cache_result':({'vellsets':None},None), \
 _defaultNodeViewopts = { \
   RecordBrowser: { 'default_open': _default_state_open },
   NodeBrowser:   { 'default_open': ({'state':_default_state_open},None) } };
+
+_defaultResultViewopts = { \
+  RecordBrowser: { 'default_open': _default_state_open }, \
+  };
 
 
 gridded_workspace.registerViewer(meqds.NodeClass(),NodeBrowser,priority=10);
