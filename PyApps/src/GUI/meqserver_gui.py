@@ -301,7 +301,7 @@ class meqserver_gui (app_proxy_gui):
     
   def _view_forest_state (self,viewer=None,**kws):
     _dprint(2,"adding viewer for forest state");
-    item = Grid.DataItem('/forest',name='Forest state',caption='Forest state',
+    item = Grid.DataItem('/forest',name='Forest state',caption='<b>Forest state</b>',
                           desc='State of forest',data=meqds.get_forest_state(),
                           refresh=meqds.request_forest_state,viewer=viewer);
     Grid.addDataItem(item,**kws);
