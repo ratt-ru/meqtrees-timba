@@ -1,0 +1,156 @@
+#!/bin/sh
+
+# rub: do recursive update/checkout and build of packages
+#
+#  Copyright (C) 2004
+#  ASTRON (Netherlands Foundation for Research in Astronomy)
+#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#  $Id$
+
+
+# This script is useful to checkout all code needed for a package.
+# It checks out the package itself, looks in its configure.in file which
+# other packages it needs, checks those out, etc..
+# If the package already exists in the code tree, the package is updated,
+# otherwise the package is checked out. The cvs log output is written
+# to the file rub.log. The script generates a warning if it finds
+# that there are cvs update conflicts.
+# Furthermore it generates a lofarconf.in.private file which makes it possible
+# to bootstrap, configure and build all those packages (in the correct order).
+#
+# The command has to be run from the LOFAR directory in the user's tree.
+#
+# Run as:
+#   rub [-cvs cvs-command] [-build variant] -clean package1 [package2 ...]
+#
+#     -cvs cvs-command  is an optional cvs command making it possible to
+#                       specify (for example) the root.
+#                       It defaults to cvs.
+#     -bui              indicates that a build should be done.
+#     -build variant    gives the variant to build (e.g. gnu3_debug)
+#     -clean            indicates that all build/<variant> directories
+#                       will be deleted in order to start a clean build.
+#                       It only takes effect if -build is also given.
+#     package           is the name of the packages to update/checkout and
+#                       optionally build.
+#
+# For example:
+#   rub -cvs "cvs -d :pserver:user@astron28:/cvs/cvsroot" CEP/CPA/PSS3/BBS
+
+
+# Find the path used to start the script.
+pgmpath=
+pgmbase=`basename $0`
+if [ $pgmbase != $0 ]; then
+  pgmpath=`dirname $0`/
+fi
+
+# Handle possible options.
+cvscomm=cvs
+variant=
+clean=0
+while [ 1 = 1 ]
+do
+  # Special cvs command?
+  if [ "$1" = "-cvs" ]; then
+    shift
+    cvscomm="$1"
+    shift
+  # Do we have to build after the checkout/update?
+  elif [ "$1" = -build ]; then
+    shift
+    variant="$1"
+    shift
+  # Do we have to remove all build directories?
+  elif [ "$1" = -clean ]; then
+    shift
+    clean=1
+  else
+    break;
+  fi
+done
+
+# Check if in correct directory.
+curwd=`pwd`
+curwdl=`basename $curwd`
+if [ "$curwdl" != "LOFAR" ]; then
+  echo "rub should be run from the LOFAR directory in the code tree"
+  exit 1
+fi
+if [ "$1" = "" ]; then
+  echo "Run as:  rub <package> <optional cvs-command>"
+  exit 1
+fi
+\rm -f allpkg.tmp rub.log
+touch allpkg.tmp rub.log
+
+# First update autoconf_share.
+${pgmpath}rub1 autoconf_share 1 "$cvscomm"
+\rm -f allpkg.tmp
+touch allpkg.tmp
+
+# Update the packages and all packages they need.
+for PKG in $*
+do
+  ${pgmpath}rub1 $PKG 1 "$cvscomm"
+done
+
+# Convert allpkg.tmp to lofarconf.in.private
+# Do it by reversing the order and skipping duplicates.
+if [ -f lofarconf.in.private ]; then
+  mv lofarconf.in.private lofarconf.in.private.bak
+fi
+\rm -f lofarconf.in.private
+touch lofarconf.in.private
+while [ 1 = 1 ]
+do
+  pkg=`tail -1 allpkg.tmp`
+  if [ "$pkg" = "" ]; then
+    break;
+  fi
+  fgrep -v "$pkg" allpkg.tmp > allpkg.tmp1
+  mv allpkg.tmp1 allpkg.tmp
+  echo "$pkg" >> lofarconf.in.private
+done
+\rm -f allpkg.tmp
+echo "Created lofarconf.in.private containing all these packages"
+
+echo "See rub.log for cvs update/checkout details"
+egrep "^C " rub.log > greplog.tmp 2>&1
+if [ $? = 0 ]; then
+  echo "Error: there are update conflicts"
+  cat greplog.tmp
+  \rm -f greplog.tmp
+  exit 1
+else
+  echo "There are no update conflicts"
+fi
+\rm -f greplog.tmp
+
+if [ "$variant" != "" ]; then
+  if [ $clean = 1 ]; then
+    echo "Cleaning the build/$variant directories of the packages ..."
+    for PKG in `cat lofarconf.in.private`
+    do
+      \rm -rf $PKG/build/$variant
+    done
+  fi
+  echo "Building system in build/$variant ..."
+  echo "See build.log for build details"
+  (mkdir -p build/$variant; ./bootstrap; cd build/$variant; ../../lofarconf; make) > build.log 2>&1
+fi

@@ -1,0 +1,79 @@
+#!/bin/sh
+
+# rub1: helper script for rub
+#
+#  Copyright (C) 2004
+#  ASTRON (Netherlands Foundation for Research in Astronomy)
+#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#  $Id$
+
+
+# This script is used by rub to do the actual checkout/update.
+# See rub for more details.
+#
+# Use as:
+#   rub1 package checkout cvscomm
+#
+#     package     name of package to checkout/update
+#     checkout    1 = do actual checkout/update if not done yet
+#                 0 = do not checkout/update, but only write used
+#                     packages in allpkg.tmp. This is needed for rub
+#                     to get the correct build order.
+#     cvscomm     cvs command to be used
+
+
+# Get package name.
+pkgname="$1"
+# Does an actual checkout/update needs to be done.
+checkout="$2"
+# Get cvs command (defaults to cvs).
+cvscomm="$3"
+if [ "$cvscomm" = "" ]; then
+  cvscomm="cvs"
+fi
+# See if this package was already updated.
+fgrep "$pkgname" allpkg.tmp  2>&1 > /dev/null 2>&1
+status=$?
+# Add it to the file to get correct build order.
+echo "$pkgname" >> allpkg.tmp
+
+# Checkout/update if needed.
+if [ $status != 0  -a  $checkout = 1 ]; then
+  if [ -d $pkgname ]; then
+    echo "Update of package $pkgname"
+    (cd $pkgname  &&  $cvscomm update -dAP) >> rub.log 2>&1
+  else
+    echo "Checkout of package $pkgname"
+    (cd ..  &&  $cvscomm checkout LOFAR/$pkgname) >> rub.log 2>&1
+  fi
+fi
+
+# Find all packages used to get correct build order.
+if [ -f $pkgname/configure.in ]; then
+  # Do it recursively for packages used by this package.
+  # Find them by looking in the configure.in file.
+  pkgs=`grep "^[ \t]*lofar_PACKAGE[ \t]*(.*)" $pkgname/configure.in`
+  for pkg in $pkgs
+  do
+    # Extract package name.
+    nm=`echo $pkg | sed -e "s/.*lofar_PACKAGE//" -e "s/ //g" -e "s/.*(//" -e "s/).*//"`
+    nm=`echo $nm | sed -e "s/,.*//"`
+    # Check out the package
+    $0 $nm $checkout "$cvscomm"  ||  exit 1
+  done
+fi
