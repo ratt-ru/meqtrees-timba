@@ -31,8 +31,9 @@ class ResultPlotter(BrowserPlugin):
 #    self._window = CanvasWindow(None, "MeqDisplay",0)
 #    self._label = QLabel("",parent);
 
-# uncommenting the following line causes all sorts of problems
-#    self._window.closeNoPrompt()
+# the next function call is not yet available in the standard HippoDraw
+# distribution
+#    self._window.setAllowClose()
     self._window.show()
     self._display_controller = DisplayController.instance()
     self._canvas = None
@@ -92,38 +93,40 @@ class ResultPlotter(BrowserPlugin):
         self._image_ntuple.addColumn (self._label,image)
 #        print "result_plotter added image column"
 # add time and frequency columns for xyz plots
-# first add time column
+# first add frequency column
         if self._add_time_freq:
-          xyz_x_label = "time"
-          image = []
-          time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
-          x_step = time_range / n_rows
-          start_time = self._rec.cells.domain.time[0] 
-          for j in range(0, n_rows ) :
-            if n_rows == 1:
-              current_time = start_time + 0.5 * x_step
-            else:
-              current_time = start_time + j * x_step
-            for i in range(0, n_cols) :
-              image.append(current_time)
-          self._image_ntuple.addColumn (xyz_x_label, image)
-#          print "result_plotter added time column"
-# then add frequency column
-          xyz_y_label = "freq"
+          xyz_x_label = "freq"
           image = []
           freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
-          y_step = freq_range / n_cols
+          x_step = freq_range / n_rows
           start_freq = self._rec.cells.domain.freq[0] 
+#          print self._label, 'image appending ', plot_array[j][i]
+          for j in range(0, n_rows ) :
+            for i in range(0, n_cols) :
+              if n_rows == 1:
+                current_freq = start_freq + 0.5 * x_step
+              else:
+                current_freq = start_freq + j * x_step
+              image.append(current_freq)
+          self._image_ntuple.addColumn (xyz_x_label, image)
+#          print "result_plotter added freq column"
+# now add time column
+        if self._add_time_freq:
+          xyz_y_label = "time"
+          image = []
+          time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
+          y_step = time_range / n_cols
+          start_time = self._rec.cells.domain.time[0] 
           for j in range(0, n_rows ) :
             for i in range(0, n_cols) :
               if n_cols == 1:
-                current_freq = start_freq + 0.5 * y_step
+                current_time = start_time + 0.5 * y_step
               else:
-                current_freq = start_freq + i * y_step
-              image.append(current_freq)
+                current_time = start_time + i * y_step
+              image.append(current_time)
           self._image_ntuple.addColumn (xyz_y_label, image)
-#          print "result_plotter added freq column"
           self._add_time_freq = False
+#          print "result_plotter added time column"
 
 # do image plot
         if is_one_point_image == False:
@@ -131,22 +134,22 @@ class ResultPlotter(BrowserPlugin):
 #        print "created image_plot object"
           freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
           time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
-          x_step = time_range / n_rows
-          y_step = freq_range / n_cols
+          y_step = time_range / n_cols
+          x_step = freq_range / n_rows
           start_time = self._rec.cells.domain.time[0] 
           start_freq = self._rec.cells.domain.freq[0] 
           image_plot.setBinWidth ( 'x', x_step )
           image_plot.setBinWidth ( 'y', y_step )
-          image_plot.setRange ( 'x', start_time, start_time + n_rows * x_step)
-          image_plot.setRange ( 'y', start_freq, start_freq + n_cols * y_step)
+          image_plot.setRange ( 'x', start_freq, start_freq + n_rows * x_step)
+          image_plot.setRange ( 'y', start_time, start_time + n_cols * y_step)
  #        print "called image_plot.setRange stuff"
           real_array = self._label.find("real")
 #        if real_array>=0:
 #          image_plot.setRange ( 'z', self._z_real_min, self._z_real_max)
 #        else:
 #          image_plot.setRange ( 'z', self._z_imag_min, self._z_imag_max)
-          image_plot.setOffset ( 'x', start_time )
-          image_plot.setOffset ( 'y', start_freq )
+          image_plot.setOffset ( 'x', start_freq )
+          image_plot.setOffset ( 'y', start_time )
 #        print "called image_plot.setOffset stuff"
 #        image_plot.setLabel ( 'x', 'Time' )
 #        image_plot.setLabel ( 'y', 'Freq' )
@@ -162,10 +165,10 @@ class ResultPlotter(BrowserPlugin):
 #        print "result_plotter passed addDisplay ( image_plot )"
 
 # now do an XYZ plot 
-        bindings = ["time", "freq",  self._label ]
+        bindings = ["freq", "time",  self._label ]
         xyz_plot = self._display_controller.createDisplay ( 'XYZ Plot', self._image_ntuple, bindings )
-        xyz_plot.setLabel ( 'x', 'Time' )
-        xyz_plot.setLabel ( 'y', 'Freq' )
+        xyz_plot.setLabel ( 'x', 'Freq' )
+        xyz_plot.setLabel ( 'y', 'Time' )
         if self._canvas == None:
           self._canvas = self._window_controller.currentCanvas()
         self._canvas.addDisplay ( xyz_plot )
