@@ -1,0 +1,15 @@
+system.path.include := [system.path.include,
+   spaste(environ.HOME,'/LOFAR/installed/current/libexec/glish') ];
+
+lofar_software := [=];
+lofar_software.basepath := spaste(environ.HOME,'/LOFAR/installed/current');
+
+lofar_software.print_versions := T;
+
+lofar_software.gsm := [=];
+lofar_software.gsm.default_gsm_table := spaste(lofar_software.basepath,'/share/GSM/gsm.tab');
+
+lofar_software.meq := [=];
+lofar_software.meq.servers := [ './meqserver',spaste(lofar_software.basepath,'/bin/meqserver') ];
+
+# print lofar_software;
