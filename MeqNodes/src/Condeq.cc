@@ -143,9 +143,9 @@ int Condeq::getResult (Result::Ref &resref,
     vector<Vells*> perts(nrch);
     vector<int> indices(nrch, 0);
     Vells::Ref deriv_ref;
-    Vells & deriv = deriv_ref <<= new Vells;
     for( uint j=0; j<spids.size(); j++ )
     {
+      Vells & deriv = deriv_ref <<= new Vells;
       int inx0 = child_res[0]->isDefined(spids[j],indices[0]);
       int inx1 = child_res[1]->isDefined(spids[j],indices[1]);
       double pert = 0;
