@@ -8,6 +8,9 @@ clean-generic:
 	-rm -f .inslog*
 	-rm -f *.log
 	-rm -f *.i
+	-rm -f *.hh
+	-rm -f *.cc
+	-rm -f *.cs_cc
 	-rm -f doxygen.cfg
 	-rm -rf $(top_builddir)/pure_cache
 	-rm -rf docxxhtml
@@ -20,28 +23,13 @@ clean-generic:
 	$(CC) -E $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< > $@
 
 
-
-# Rules for compiling Corba IDL files.
-SUFFIXES = .idl
-
-%_c.hh %_s.hh: %.idl
+# Rules for preprocessing idl files.
+# There should be a corresponding .cc file in the source directory
+# including the .cs_cc file.
+%.cs_cc: %.idl
 	$(IDLCXX) $(IDLFLAGS) $(AM_IDLFLAGS) $<
-
-.idl.o:
-	$(IDLCXX) $(IDLFLAGS) $(AM_IDLFLAGS) $<
-	echo '#include "$*_c.cc"' >  $*_cs.cc
-	echo '#include "$*_s.cc"' >> $*_cs.cc
-	$(LTCXXCOMPILE) -c $*_cs.cc
-	mv $*_cs.o  $*.o
-	mv $*_cs.lo $*.lo
-
-.idl.lo:
-	$(IDLCXX) $(IDLFLAGS) $(AM_IDLFLAGS) $<
-	echo '#include "$*_c.cc"' >  $*_cs.cc
-	echo '#include "$*_s.cc"' >> $*_cs.cc
-	$(LTCXXCOMPILE) -c $*_cs.cc
-	mv $*_cs.o  $*.o
-	mv $*_cs.lo $*.lo
+	echo '#include "$*_c.cc"' >  $*.cs_cc
+	echo '#include "$*_s.cc"' >> $*.cs_cc
 
 
 # Rules for preprocessing Qt sources.
