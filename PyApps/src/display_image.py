@@ -172,16 +172,22 @@ class QwtPlotImage(QwtPlotMappedItem):
             v = 1.0 * i
             if (v < (vmin + 0.25 * dv)):
               r = 0;
-              g = 4 * (v - vmin) / dv;
+	      if dv != 0:
+                g = 4 * (v - vmin) / dv;
             elif (v < (vmin + 0.5 * dv)):
               r = 0;
-              b = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
+	      if dv != 0:
+                b = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
             elif (v < (vmin + 0.75 * dv)):
-              r = 4 * (v - vmin - 0.5 * dv) / dv;
+	      if dv != 0:
+                r = 4 * (v - vmin - 0.5 * dv) / dv;
               b = 0;
             else: 
-              g = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
-              b = 0;
+	      if dv != 0:
+                g = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
+	      else:
+	        r = 0
+              b = 0
             red   = int ( r * 255. )
             green = int ( g * 255. )
             blue  = int ( b * 255. )
@@ -416,15 +422,25 @@ class QwtImagePlot(QwtPlot):
             self._next_plot[id] = self._label
             self._menu.insertItem(self._label,id)
           if self._vells_rec.vellsets[i].has_key("perturbed_value"):
-            number_of_perturbed_arrays = len(self._vells_rec.vellsets[i].perturbed_value)
-            perturb_index  = perturb_index  + 1
-            self._perturb_menu[perturb_index] = QPopupMenu(self._mainwin);
-            for j in range(number_of_perturbed_arrays):
-              id = id + 1
-              key = " perturbed_value "
-              self._label =  "   -> go to plane " + str(i) + key + str(j) 
-              self._next_plot[id] = self._label 
-              self._menu.insertItem(self._label,id)
+	    try:
+              number_of_perturbed_arrays = len(self._vells_rec.vellsets[i].perturbed_value)
+              perturb_index  = perturb_index  + 1
+              self._perturb_menu[perturb_index] = QPopupMenu(self._mainwin);
+              for j in range(number_of_perturbed_arrays):
+                id = id + 1
+                key = " perturbed_value "
+                self._label =  "   -> go to plane " + str(i) + key + str(j) 
+                self._next_plot[id] = self._label 
+                self._menu.insertItem(self._label,id)
+	    except:
+	      Message =  'It would appear that there is a problem with perturbed values.\nThey cannot be displayed.'
+              mb_msg = QMessageBox("display_image.py",
+		               Message,
+		               QMessageBox.Warning,
+		               QMessageBox.Ok | QMessageBox.Default,
+		               QMessageBox.NoButton,
+		               QMessageBox.NoButton)
+              mb_msg.exec_loop()
         zoom = QAction(self);
         zoom.setIconSet(pixmaps.viewmag.iconset());
         zoom.setText("Disable zoomer");
@@ -475,7 +491,11 @@ class QwtImagePlot(QwtPlot):
           if self._vells_rec.vellsets[plane].value.type() == Complex64:
             complex_type = True;
           self._value_array = self._vells_rec.vellsets[plane].value
-          _dprint(3, 'self._value_array ', self._value_array)
+	  array_shape = self._value_array.shape
+	  if len(array_shape) == 1 and array_shape[0] == 1: 
+	    temp_value = self._value_array[0]
+            temp_array = numarray.asarray(temp_value)
+	    self._value_array = numarray.resize(temp_array,self._shape)
         except:
           temp_array = numarray.asarray(self._vells_rec.vellsets[i].value)
           self._value_array = numarray.resize(temp_array,self._shape)
@@ -826,7 +846,10 @@ class QwtImagePlot(QwtPlot):
         number_of_planes = len(self._vells_rec["vellsets"])
         _dprint(3, 'number of planes ', number_of_planes)
 # plot the first plane member
+        if self._vells_rec.vellsets[0].has_key("shape"):
+	  self._shape = self._vells_rec.vellsets[0]["shape"]
         if self._vells_rec.vellsets[0].has_key("value"):
+          self._shape = self._vells_rec.vellsets[0]["shape"]
           key = " value "
           complex_type = False;
 # test if we have a numarray
@@ -836,7 +859,11 @@ class QwtImagePlot(QwtPlot):
             if self._vells_rec.vellsets[0].value.type() == Complex64:
               complex_type = True;
             self._value_array = self._vells_rec.vellsets[0].value
-            _dprint(3, 'self._value_array ', self._value_array)
+	    array_shape = self._value_array.shape
+	    if len(array_shape) == 1 and array_shape[0] == 1: 
+	      temp_value = self._value_array[0]
+              temp_array = numarray.asarray(temp_value)
+	      self._value_array = numarray.resize(temp_array,self._shape)
           except:
             temp_array = numarray.asarray(self._vells_rec.vellsets[0].value)
             self._shape = self._vells_rec.vellsets[0]["shape"]
