@@ -232,6 +232,12 @@ AC_ARG_WITH(lofar-libdir,
   \rm -f pkgbldinc/$lfr_pkg;
   ln -s $lfr_curwd/src pkgbldinc/$lfr_pkg;
 
+  # Create the lofar_config.h file.
+  # Define a line for the package being configured.
+  \rm -f lofar_config.h
+  lfr_upkg=`echo $lfr_pkg | tr a-z A-Z`
+  echo "#define HAVE_LOFAR_$lfr_pkg 1" > lofar_config.h
+
   CPPFLAGS="$CPPFLAGS -I$lfr_curwd/pkginc -I$lfr_curwd/pkgbldinc -I$lfr_curwd"
   LOFAR_DEPEND=
 ]
