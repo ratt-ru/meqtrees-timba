@@ -466,6 +466,8 @@ int DataField::toBlock (BlockSet &set) const
   {
     for( int i=0; i<mysize_; i++ )
     {
+      if( !objects[i].valid() )
+        objstate[i] = UNINITIALIZED;
       switch( objstate[i] )
       {
         case UNINITIALIZED: // if uninitialized, then do nothing
