@@ -110,8 +110,12 @@ class Node : public BlockableObject
     //##ModelId=400E531300C8
     void clearCache (bool recursive=false);
     
-    void addResultSubscriber (const EventSlot &slot);
+    // adds an event slot to which generated results will be published
+    void addResultSubscriber    (const EventSlot &slot);
+    // removes subscription for specified event slot
     void removeResultSubscriber (const EventSlot &slot);
+    // removes all subscriptions for specified recepient
+    void removeResultSubscriber (const EventRecepient *recepient);
     
     //##ModelId=3F98D9D20372
     Forest & forest ();

@@ -38,6 +38,11 @@ const int AidCache_int = -1375;
 const AtomicID AidCalc(-1211);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:31
 const int AidCalc_int = -1211;
 #endif
+#ifndef _defined_id_AidCell
+#define _defined_id_AidCell 1
+const AtomicID AidCell(-1418);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:33
+const int AidCell_int = -1418;
+#endif
 #ifndef _defined_id_AidCells
 #define _defined_id_AidCells 1
 const AtomicID AidCells(-1247);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:35
@@ -123,6 +128,11 @@ const int AidDeriv_int = -1230;
 const AtomicID AidDomain(-1213);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cells.h:35
 const int AidDomain_int = -1213;
 #endif
+#ifndef _defined_id_AidEnd
+#define _defined_id_AidEnd 1
+const AtomicID AidEnd(-1283);                     // from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:35
+const int AidEnd_int = -1283;
+#endif
 #ifndef _defined_id_AidEpsilon
 #define _defined_id_AidEpsilon 1
 const AtomicID AidEpsilon(-1385);                 // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
@@ -152,6 +162,11 @@ const int AidFlag_int = -1135;
 #define _defined_id_AidFreq 1
 const AtomicID AidFreq(-1128);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
 const int AidFreq_int = -1128;
+#endif
+#ifndef _defined_id_AidGrid
+#define _defined_id_AidGrid 1
+const AtomicID AidGrid(-1417);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:33
+const int AidGrid_int = -1417;
 #endif
 #ifndef _defined_id_AidGroup
 #define _defined_id_AidGroup 1
@@ -468,10 +483,20 @@ const int AidSave_int = -1391;
 const AtomicID AidScale(-1405);                   // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
 const int AidScale_int = -1405;
 #endif
+#ifndef _defined_id_AidSegments
+#define _defined_id_AidSegments 1
+const AtomicID AidSegments(-1419);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:33
+const int AidSegments_int = -1419;
+#endif
 #ifndef _defined_id_AidSet
 #define _defined_id_AidSet 1
 const AtomicID AidSet(-1316);                     // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/VisRepeater.h:10
 const int AidSet_int = -1316;
+#endif
+#ifndef _defined_id_AidSize
+#define _defined_id_AidSize 1
+const AtomicID AidSize(-1292);                    // from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:34
+const int AidSize_int = -1292;
 #endif
 #ifndef _defined_id_AidSolvable
 #define _defined_id_AidSolvable 1
@@ -508,6 +533,11 @@ const int AidStY_int = -1377;
 const AtomicID AidStZ(-1378);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/UVW.h:30
 const int AidStZ_int = -1378;
 #endif
+#ifndef _defined_id_AidStart
+#define _defined_id_AidStart 1
+const AtomicID AidStart(-1105);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:9
+const int AidStart_int = -1105;
+#endif
 #ifndef _defined_id_AidState
 #define _defined_id_AidState 1
 const AtomicID AidState(-1060);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:21
@@ -517,11 +547,6 @@ const int AidState_int = -1060;
 #define _defined_id_AidStdDev 1
 const AtomicID AidStdDev(-1399);                  // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 const int AidStdDev_int = -1399;
-#endif
-#ifndef _defined_id_AidStep
-#define _defined_id_AidStep 1
-const AtomicID AidStep(-1362);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:31
-const int AidStep_int = -1362;
 #endif
 #ifndef _defined_id_AidSteps
 #define _defined_id_AidSteps 1
@@ -537,11 +562,6 @@ const int AidTable_int = -1361;
 #define _defined_id_AidTime 1
 const AtomicID AidTime(-1152);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
 const int AidTime_int = -1152;
-#endif
-#ifndef _defined_id_AidTimes
-#define _defined_id_AidTimes 1
-const AtomicID AidTimes(-1252);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cells.h:35
-const int AidTimes_int = -1252;
 #endif
 #ifndef _defined_id_AidUpdate
 #define _defined_id_AidUpdate 1
@@ -582,6 +602,16 @@ const int AidVells_int = -1370;
 #define _defined_id_AidWeight 1
 const AtomicID AidWeight(-1189);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
 const int AidWeight_int = -1189;
+#endif
+#ifndef _defined_id_Aidaxes
+#define _defined_id_Aidaxes 1
+const AtomicID Aidaxes(-1415);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Domain.h:37
+const int Aidaxes_int = -1415;
+#endif
+#ifndef _defined_id_Aidndim
+#define _defined_id_Aidndim 1
+const AtomicID Aidndim(-1416);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Domain.h:37
+const int Aidndim_int = -1416;
 #endif
 
 

@@ -26,37 +26,43 @@
 
 // This class represents a domain for which an expression has to be
 // evaluated.
-// The domain is normalized to the interval [-1,1].
-//    offset = (st+end)/2    and    scale = (end-st)/2.
-//    st = off-scale         and    end = off+scale
-// Then
-//    scaledvalue = (realvalue - offset) / scale
 
 
-#include <DMI/DataField.h>
+#include <DMI/DataRecord.h>
 #include <MEQ/TID-Meq.h>
 
 #pragma types #Meq::Domain
 
+// dummy aids used for glish functions
+#pragma aid ndim axes
+
 namespace Meq {
 
+typedef enum 
+{
+  FREQ = 0,
+  TIME = 1,
+      
+  DOMAIN_NAXES = 2
+} StandardDomainAxes;
 
+  
 //##ModelId=3F86886E0183
-class Domain : public DataField
+class Domain : public DataRecord
 {
 public:
   // Create a time,frequency default domain of -1:1,-1:1..
     //##ModelId=3F86886E030D
   Domain();
 
-  // Create from an existing data field.
+  // Create from an existing data record
     //##ModelId=3F86886E030E
-  Domain (const DataField&,int flags=DMI::PRESERVE_RW);
+  Domain (const DataRecord &,int flags=DMI::PRESERVE_RW);
 
   // Create a time,frequency domain.
     //##ModelId=3F95060C00A7
   Domain (double startFreq, double endFreq,
-	  double startTime, double endTime);
+	        double startTime, double endTime);
 
     //##ModelId=400E530500F5
   virtual TypeId objectType () const
@@ -95,26 +101,38 @@ public:
 //   double normalizeTime (double value) const
 //     { return (value - itsOffsetTime) / itsScaleTime; }
 
-  // Get the start, end, and step of the domain.
-    //##ModelId=3F86886E032C
-  double startFreq() const
-    { return freq0_; }
-    //##ModelId=3F86886E032E
-  double endFreq() const
-    { return freq1_; }
-    //##ModelId=3F86886E0330
-  double startTime() const
-    { return time0_; }
-    //##ModelId=3F86886E0332
-  double endTime() const
-    { return time1_; }
+  double start (int iaxis) const
+  {
+    DbgFailWhen(iaxis<0 || iaxis>=DOMAIN_NAXES,"illegal axis argument");
+    return range_[iaxis][0];
+  }
+  
+  double end   (int iaxis) const
+  {
+    DbgFailWhen(iaxis<0 || iaxis>=DOMAIN_NAXES,"illegal axis argument");
+    return range_[iaxis][1];
+  }
+
+//   // Get the start, end, and step of the domain.
+//     //##ModelId=3F86886E032C
+//   double startFreq() const
+//     { return range_[FREQ][0]; }
+//     //##ModelId=3F86886E032E
+//   double endFreq() const
+//     { return range_[FREQ][1]; }
+//     //##ModelId=3F86886E0330
+//   double startTime() const
+//     { return range_[TIME][0]; }
+//     //##ModelId=3F86886E0332
+//   double endTime() const
+//     { return range_[TIME][1]; }
 
     //##ModelId=400E5305010E
   bool operator== (const Domain& that) const
-  { return freq0_ == that.freq0_
-       &&  freq1_ == that.freq1_
-       &&  time0_ == that.time0_
-       &&  time1_ == that.time1_; }
+  { return range_[FREQ][0] == that.range_[FREQ][0]
+       &&  range_[FREQ][1] == that.range_[FREQ][1]
+       &&  range_[TIME][0] == that.range_[TIME][0]
+       &&  range_[TIME][1] == that.range_[TIME][1]; }
   
     //##ModelId=400E5305011A
   bool operator!= (const Domain& that) const
@@ -123,8 +141,8 @@ public:
   // returns true if this domain is a subset of other
   bool subsetOf (const Domain &other) const
   { return 
-      startFreq() >= other.startFreq() && endFreq() <= other.endFreq() &&
-      startTime() >= other.startTime() && endTime() <= other.endTime(); }
+      start(FREQ) >= other.start(FREQ) && end(FREQ) <= other.end(FREQ) &&
+      start(TIME) >= other.start(TIME) && end(TIME) <= other.end(TIME); }
   
   // returns true if this domain is a superset of other
   bool supersetOf (const Domain &other) const
@@ -143,13 +161,7 @@ public:
 
 private:
     //##ModelId=3F86886E02F8
-  double freq0_;
-    //##ModelId=3F86886E02FD
-  double freq1_;
-    //##ModelId=3F86886E0302
-  double time0_;
-    //##ModelId=3F86886E0307
-  double time1_;
+  double range_[2][2];
 };
 
 } // namespace Meq

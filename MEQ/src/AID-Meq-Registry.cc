@@ -91,13 +91,17 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1213,"domain")+
         AtomicID::registerId(-1128,"freq")+
         AtomicID::registerId(-1152,"time")+
-        AtomicID::registerId(-1252,"times")+
-        AtomicID::registerId(-1362,"step")+
-        AtomicID::registerId(-1363,"steps")+
         AtomicID::registerId(-1211,"calc")+
         AtomicID::registerId(-1230,"deriv")+
         AtomicID::registerId(-1370,"vells")+
         AtomicID::registerId(-1371,"vellsets")+
+        AtomicID::registerId(-1417,"grid")+
+        AtomicID::registerId(-1418,"cell")+
+        AtomicID::registerId(-1292,"size")+
+        AtomicID::registerId(-1419,"segments")+
+        AtomicID::registerId(-1105,"start")+
+        AtomicID::registerId(-1283,"end")+
+        AtomicID::registerId(-1363,"steps")+
         AtomicID::registerId(-1324,"nodeindex")+
         AtomicID::registerId(-1361,"table")+
         AtomicID::registerId(-1231,"default")+
@@ -152,6 +156,8 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1235,"meqdomain")+
         TypeInfoReg::addToRegistry(-1235,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1235,__construct_MeqDomain)+
+        AtomicID::registerId(-1416,"ndim")+
+        AtomicID::registerId(-1415,"axes")+
         AtomicID::registerId(-1237,"meqcells")+
         TypeInfoReg::addToRegistry(-1237,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1237,__construct_MeqCells)+

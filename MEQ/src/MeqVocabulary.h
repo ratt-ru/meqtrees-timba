@@ -29,10 +29,11 @@
 #pragma aidgroup Meq
 #pragma aid Node Class Name State Child Children Request Result VellSet 
 #pragma aid Rider Command Id Group Add Update Value Values Solve Solver
-#pragma aid Cells Domain Freq Time Times Step Steps Calc Deriv Vells VellSets
+#pragma aid Cells Domain Freq Time Calc Deriv Vells VellSets
+#pragma aid Grid Cell Size Segments Start End Steps
 #pragma aid NodeIndex Table Name Default Index Num Cache Code 
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
-#pragma aid Cells Results Fail Origin Line Message Contagious  Normalized
+#pragma aid Cell Results Fail Origin Line Message Contagious  Normalized
 #pragma aid Solvable Config Groups All By List Polc Polcs Scale
 #pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear
 #pragma aid Metrics Rank Fit Errors CoVar Flag Mu StdDev Chi
@@ -73,11 +74,17 @@ namespace Meq
     FCacheResult     = AidCache|AidResult,
     FCacheResultCode = AidCache|AidResult|AidCode,
     
+    // Domain fields
+    FFreq            = AidFreq,
+    FTime            = AidTime,
+    
     // Cells fields
     FDomain          = AidDomain,
-    FTimes           = AidTimes,
-    FTimeSteps       = AidTime|AidSteps,
-    FNumFreq         = AidNum|AidFreq,
+    FGrid            = AidGrid,
+    FCellSize        = AidCell|AidSize,
+    FSegments        = AidSegments,
+    FStartIndex      = AidStart|AidIndex,
+    FEndIndex        = AidEnd|AidIndex,
     
     // Parm staterec fields
     FDefault         = AidDefault,

@@ -561,6 +561,21 @@ void Node::addResultSubscriber (const EventSlot &slot)
   }
 }
 
+void Node::removeResultSubscriber (const EventRecepient *recepient)
+{
+  ResultSubscribers::iterator iter = result_subscribers_.begin();
+  while( iter != result_subscribers_.end())
+  {
+    if( recepient == iter->recepient() )
+    {
+      cdebug(2)<<"removing result subscriber "<<iter->evId().id()<<":"<<recepient<<endl;
+      result_subscribers_.erase(iter++);
+    }
+    else
+      iter++;
+  }
+}
+
 void Node::removeResultSubscriber (const EventSlot &slot)
 {
   ResultSubscribers::iterator iter = result_subscribers_.begin();
@@ -568,14 +583,13 @@ void Node::removeResultSubscriber (const EventSlot &slot)
   {
     if( slot.evId() == iter->evId() && slot.recepient() == iter->recepient() )
     {
+      cdebug(2)<<"removing result subscriber "<<iter->evId().id()<<":"<<iter->recepient()<<endl;
       result_subscribers_.erase(iter++);
-      cdebug(2)<<"removing result subscriber "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
     }
     else
       iter++;
   }
 }
-
 
 //##ModelId=400E531702FD
 int Node::pollChildren (std::vector<Result::Ref> &child_results,

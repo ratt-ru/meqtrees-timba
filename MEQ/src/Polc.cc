@@ -181,26 +181,23 @@ void Polc::setCoeff (const Vells& values)
 }
 
 //##ModelId=400E53540350
-void Polc::evaluate (VellSet &result, const Request& request) const
+void Polc::evaluate (VellSet &result,const Request& request) const
+{
+  PERFPROFILE(__PRETTY_FUNCTION__);
+  const Cells& cells = request.cells();
+  evaluate(result,cells.center(0),cells.center(1),request.calcDeriv());
+}
+
+//##ModelId=400E53540350
+void Polc::evaluate (VellSet &result,
+    const LoVec_double &xgrid,const LoVec_double &ygrid,int makeDiff) const
 {
   PERFPROFILE(__PRETTY_FUNCTION__);
   // Find if perturbed values are to be calculated.
-  int makeDiff = request.calcDeriv();
-  if( itsNrSpid <= 0 ) // no active solvable spids? No perturbations then
+  if( itsNrSpid <= 0 ) // no active solvable spids? Force no perturbations then
     makeDiff = 0;
-  if( makeDiff ) 
+  else if( makeDiff ) 
     result.setSpids(itsSpids);
-  // It is not checked if the domain is valid.
-  // In that way any value can be used for the default domain [-1,1].
-  // Because the values are calculated for the center of each cell,
-  // it is only checked if the centers are in the polc domain.
-  const Cells& cells = request.cells();
-  const Domain& domain = cells.domain();
-  //Assert (domain.startFreq() + request.stepX()/2 >= itsDomain.startFreq());
-  //Assert (domain.startTime() + request.stepY()/2 >= itsDomain.startTime());
-  //Assert (domain.endX() - request.stepX()/2 <= itsDomain.endX());
-  //Assert (domain.endY() - request.stepY()/2 <= itsDomain.endY());
-  
   // If there is only one coefficient, the polynomial is independent
   // of x and y.
   // So set the value to the coefficient and possibly set the perturbed value.
@@ -215,18 +212,19 @@ void Polc::evaluate (VellSet &result, const Request& request) const
       result.setPerturbedValue(0,new Vells(c00+d,false),ipert);
       result.setPerturbation(0,d,ipert);
     }
-  } 
+  }
   else 
   {
     // The polynomial has multiple coefficients.
-    // Get the step and start values in the normalized domain.
-    double stepx = cells.stepFreq() / itsFreqScale;
-    double stx = (domain.startFreq() - itsFreq0) / itsFreqScale + stepx * .5;
-    // Get number of steps and coefficients in x (freq) and y (time).
-    int ndx = cells.nfreq();
-    int ndy = cells.ntime();
+    // Get number of steps and coefficients in x (freq) and y (time);
+    int ndx = xgrid.extent(0);
+    int ndy = ygrid.extent(0);
     int ncx = itsCoeff.nx();
     int ncy = itsCoeff.ny();
+    // Get normalized values
+    LoVec_double vecx(ndx),vecy(ndy);
+    vecx = (xgrid - itsFreq0) / itsFreqScale;
+    vecy = (ygrid - itsTime0) / itsTimeScale;
     // Evaluate the expression (as double).
     const double* coeffData = itsCoeff.realStorage();
     double* pertValPtr[MaxNumPerts][100];
@@ -249,15 +247,16 @@ void Polc::evaluate (VellSet &result, const Request& request) const
     // Iterate over all cells in the domain.
     for (int j=0; j<ndy; j++) 
     {
-      double valy = (cells.time(j) - itsTime0) / itsTimeScale;
-      double valx = stx;
+      double valy = vecy(j);
       for (int i=0; i<ndx; i++) 
       {
+        double valx = vecx(i);
         const double* coeff = coeffData;
         double total = 0;
-        if (ncx == 1) {
-          // Only 1 coefficient in X, it is independent of x.
-          // So only calculate for the Y values in the most efficient way.
+        // Only 1 coefficient in X, it is independent of x.
+        // So only calculate for the Y values in the most efficient way.
+        if (ncx == 1) 
+        {
           total = coeff[ncy-1];
           for (int iy=ncy-2; iy>=0; iy--) {
             total *= valy;
@@ -276,11 +275,15 @@ void Polc::evaluate (VellSet &result, const Request& request) const
               powy *= valy;
             }
           }
-        } else {
+        } 
+        else // multiple coeffs in X
+        {
           double powy = 1;
-          for (int iy=0; iy<ncy; iy++) {
+          for (int iy=0; iy<ncy; iy++) 
+          {
             double tmp = coeff[ncx-1];
-            for (int ix=ncx-2; ix>=0; ix--) {
+            for (int ix=ncx-2; ix>=0; ix--) 
+            {
               tmp *= valx;
               tmp += coeff[ix];
             }
@@ -314,7 +317,6 @@ void Polc::evaluate (VellSet &result, const Request& request) const
           }
         }
         *value++ = total;
-        valx += stepx;
       } // endfor(i) over cells
     } // endfor(j) over cells
     // Set the perturbations.

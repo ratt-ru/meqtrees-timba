@@ -100,9 +100,15 @@ public:
     //##ModelId=400E53550156
   virtual void validateContent ();
 
-  // Calculate the value and possible perturbations.
+
+  // Calculate the value and possible perturbations (deriv>0)
+  // for the given grid
+  void evaluate (VellSet &,const LoVec_double &xgrid,
+                 const LoVec_double &ygrid,int deriv=0) const;
+  
+  // shortcut for using the grid in the request
     //##ModelId=400E53540350
-  void evaluate (VellSet &, const Request&) const;
+  void evaluate (VellSet &,const Request&) const;
 
   // Get number of coefficients.
     //##ModelId=3F86886F036F

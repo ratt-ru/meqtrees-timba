@@ -38,12 +38,12 @@ default_octopussy := F;
 # Starts a global octopussy proxy with the given arguments, 
 # unless already started.
 # Returns a ref to the proxy object.
-const start_octopussy := function(server,options="")
+const start_octopussy := function(server,options="",verbose=1)
 {
   global default_octopussy;
   if( is_boolean(default_octopussy) )
   {
-    default_octopussy := octopussy(server,options,verbose=4);
+    default_octopussy := octopussy(server,options,verbose=verbose);
     if( is_fail(default_octopussy) )
       fail default_octopussy;
     default_octopussy.start();
@@ -63,7 +63,7 @@ const app_proxy := function (appid,
   # define standard debug methods
   define_debug_methods(self,public,verbose);
   # init octopussy
-  self.octo := start_octopussy(server,options);
+  self.octo := start_octopussy(server,options,verbose=verbose);
   if( is_fail(self.octo) )
     fail;
   # init everything else
@@ -77,6 +77,7 @@ const app_proxy := function (appid,
   self.paused := F;
   self.statestr := "unknown";
   self.verbose_events := T;
+  self.error_log := [=];
   self.rqid := 1;
   self.waiting_init := F;
   self.last_cmd_arg := [=];
@@ -261,6 +262,27 @@ const app_proxy := function (appid,
     wider self;
     public.command("Resume",rec,priority=10);
   }
+  # Logs an error
+  const self.log_error := function (event,error)
+  {
+    wider self;
+    self.error_log[len(self.error_log)+1] := [event=event,error=error];
+  }
+  # Returns number of accumulated errors
+  const public.num_errors := function ()
+  {
+    wider self;
+    return len(self.error_log);
+  }
+  # Returns log of accumulated errors, clears the error log if clear=T
+  const public.get_error_log := function (clear=T)
+  {
+    wider self;
+    log := self.error_log;
+    if( clear )
+      self.error_log := [=];
+    return log;
+  }
   # Returns current state, pause state and state string
   const public.state := function ()
   {
@@ -358,14 +380,16 @@ const app_proxy := function (appid,
     {
       str := sprintf('%.120s\n',spaste(name0,': ',value));
       self.gui.eventlog.text->append(str,'event');
-      if( has_field(value,'text') )
-      {
-        if( has_field(value,'error') )
-          tag := 'error';
-        else
-          tag := 'text';
-        self.gui.eventlog.text->append(spaste(value.text,'\n'),tag);
-      }
+      for( f in "error message text" )
+        if( has_field(value,f) )
+        {
+          if( f == 'error' )
+            tag := 'error';
+          else
+            tag := 'text';
+          self.gui.eventlog.text->append(spaste(value[f],'\n'),tag);
+          break;
+        }
     }
     return T;
   }
@@ -647,15 +671,19 @@ const app_proxy := function (appid,
       {
         self.waiting_init := F;
       }
-      # if event has a text component, print it
-      if( has_field($value,'text') )
-        public.dprint(1,$value.text); 
+      # accumulate error events
+      if( has_field($value,'error') )
+        self.log_error(shortname,$value.error);
       # print events if so requested
       if( self.verbose_events )
       {
         public.dprint(2,'   event: ', shortname);
         public.dprint(3,'   value: ', $value);
       }
+      # if event has a text, message or error component, print it
+      for( f in "text message error" )
+        if( has_field($value,f) )
+          public.dprint(1,'[',f,'] ',$value[f]); 
       # forward event to local relay agent
       $value::event_name := shortname;
       self.relay->[shortname]($value);

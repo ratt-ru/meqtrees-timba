@@ -20,8 +20,10 @@
 //#
 //# $Id$
 
-#include <MEQ/Domain.h>
 #include <Common/Debug.h>
+#include <DMI/DataField.h>
+#include "Domain.h"
+#include "MeqVocabulary.h"
 
 namespace Meq {
 
@@ -31,14 +33,14 @@ static NestableContainer::Register reg(TpMeqDomain,True);
 
 //##ModelId=3F86886E030D
 Domain::Domain()
-: // DataField(Tpdouble,4),
-  freq0_(0),freq1_(1),time0_(0),time1_(1)
 {
+  range_[FREQ][0] = range_[TIME][0] = 0;
+  range_[FREQ][1] = range_[TIME][1] = 1;
 }
 
 //##ModelId=3F86886E030E
-Domain::Domain (const DataField& fld,int flags)
-: DataField(fld,(flags&~DMI::WRITE)|DMI::DEEP|DMI::READONLY)
+Domain::Domain (const DataRecord & rec,int flags)
+: DataRecord(rec,(flags&~DMI::WRITE)|DMI::DEEP|DMI::READONLY)
 {
   validateContent();
 }
@@ -46,18 +48,19 @@ Domain::Domain (const DataField& fld,int flags)
 //##ModelId=3F95060C00A7
 Domain::Domain (double startFreq, double endFreq,
 		            double startTime, double endTime)
-: DataField(Tpdouble,4)
 {
   AssertMsg (startFreq < endFreq, "Meq::Domain: startFreq " << startFreq <<
 	     " must be < endFreq " << endFreq);
   AssertMsg (startTime < endTime, "Meq::Domain: startTime " << startTime <<
 	     " must be < endTime " << endTime);
-  double *fld = (*this)[HIID()].as_wp<double>();
-  fld[0] = freq0_ = startFreq;
-  fld[1] = freq1_ = endFreq;
-  fld[2] = time0_ = startTime;
-  fld[3] = time1_ = endTime;
+  range_[FREQ][0] = startFreq;
+  range_[FREQ][1] = endFreq;
+  range_[TIME][0] = startTime;
+  range_[TIME][1] = endTime;
+  (*this)[FFreq] <<= new DataField(Tpdouble,2,DMI::WRITE,range_[FREQ]);
+  (*this)[FTime] <<= new DataField(Tpdouble,2,DMI::WRITE,range_[TIME]);
 }
+
 
 //##ModelId=400E5305010B
 void Domain::validateContent ()
@@ -65,20 +68,23 @@ void Domain::validateContent ()
   Thread::Mutex::Lock lock(mutex());
   try
   {
-    if( DataField::valid() )
+    Hook fhook(*this,FFreq);
+    Hook thook(*this,FTime);
+    // if neither is specified, use default
+    if( !fhook.exists() && !thook.exists() )
     {
-      int size;
-      const double *fld = (*this)[HIID()].as_p<double>(size);
-      FailWhen(size!=4,"bad Domain field size");
-      freq0_ = fld[0];
-      freq1_ = fld[1];
-      time0_ = fld[2];
-      time1_ = fld[3];
+      range_[FREQ][0] = range_[TIME][0] = 0;
+      range_[FREQ][1] = range_[TIME][1] = 1;
     }
     else
     {
-      freq0_ = time0_ = 0;
-      freq1_ = time1_ = 1;
+      int size1,size2;
+      const double *fq = fhook.as_p<double>(size1);
+      const double *tm = thook.as_p<double>(size2);
+      FailWhen(size1!=2,"bad Freq field");
+      FailWhen(size2!=2,"bad Time field");
+      range_[FREQ][0] = fq[0]; range_[FREQ][1] = fq[1];
+      range_[TIME][0] = tm[0]; range_[TIME][1] = tm[1];
     }
   }
   catch( std::exception &err )
@@ -95,15 +101,15 @@ Domain Domain::envelope (const Domain &a,const Domain &b)
 {
   using std::min;
   using std::max;
-  return Domain(min(a.freq0_,b.freq0_),max(a.freq1_,b.freq1_),
-                min(a.time0_,b.time0_),max(a.time1_,b.time1_));
+  return Domain(min(a.range_[FREQ][0],b.range_[FREQ][0]),max(a.range_[FREQ][1],b.range_[FREQ][1]),
+                min(a.range_[TIME][0],b.range_[TIME][0]),max(a.range_[TIME][1],b.range_[TIME][1]));
 }
 
 //##ModelId=400E53050125
 void Domain::show (std::ostream& os) const
 {
-  os << "Meq::Domain [" << startFreq() << " : " << endFreq() << ','
-     << startTime() << " : " << endTime() << "]";
+  os << "Meq::Domain [" << start(FREQ) << ":" << end(FREQ) << ','
+                        << start(TIME) << ":" << end(TIME) << "]";
 }
 
 
