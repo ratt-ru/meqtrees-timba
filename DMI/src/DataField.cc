@@ -32,7 +32,7 @@ static ObjRef NullRef;
 static NestableContainer::Register reg(TpDataField,True);
 
 //##ModelId=3C3D64DC016E
-DataField::DataField (int flags)
+DataField::DataField ()
   : spvec(0),mytype(0),mysize_(0),selected(False)
 {
   dprintf(2)("default constructor\n");
@@ -48,10 +48,10 @@ DataField::DataField (const DataField &right, int flags, int depth)
 }
 
 //##ModelId=3BFA54540099
-DataField::DataField (TypeId tid, int num, int flags, const void *data)
+DataField::DataField (TypeId tid, int num, const void *data)
     : spvec(0),mytype(0),mysize_(0),selected(False)
 {
-  dprintf(2)("constructor(%s,%d,%x)\n",tid.toString().c_str(),num,flags);
+  dprintf(2)("constructor(%s,%d)\n",tid.toString().c_str(),num);
   init(tid,num,data);
 }
 

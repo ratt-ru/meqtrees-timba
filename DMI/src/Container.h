@@ -453,18 +453,24 @@ class NestableContainer : public BlockableObject
           void resolveToWritableContainer() const;
           
           // This is called to get a value, for built-in scalar types only
+          // If no such element exists: if must_exist=True, throws 
+          // an Uninitialized exception, else returns False
         //##ModelId=4017F626017A
-          bool get_scalar( void *data,TypeId tid,bool nothrow=False ) const;
+          bool get_scalar( void *data,TypeId tid,bool must_exist=True ) const;
 
-          // This is called to access by reference, for all types
+          // This is called to access by reference, for all types.
+          // If no such element exists: if must_exist=True, throws 
+          // an Uninitialized exception, else returns 0
         //##ModelId=4017F6260346
-          const void *get_address(ContentInfo &info,TypeId tid,bool must_write,
-              bool pointer=False,const void *deflt=0,Thread::Mutex::Lock *keeplock=0) const;
+          const void * get_address(ContentInfo &info,TypeId tid,bool must_write,
+              bool pointer=False,bool must_exist=True,Thread::Mutex::Lock *keeplock=0) const;
 
-          // This is called to access by pointer, for all types
+          // This is called to access by pointer, for all types.
+          // If must_exist=True but no such element exists, throws 
+          // an Uninitialized exception, else returns 0
         //##ModelId=4017F62702A0
           const void *get_pointer(int &sz,TypeId tid,bool must_write,bool implicit=False,
-              const void *deflt=0,Thread::Mutex::Lock *keeplock=0) const;
+              bool must_exist=True,Thread::Mutex::Lock *keeplock=0) const;
 
           // Helper function resolves current index to a target. Returns target
           // in info

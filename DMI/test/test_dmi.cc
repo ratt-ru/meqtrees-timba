@@ -149,6 +149,12 @@ void TestDataRecord ()
   Assert( rec["A.B.C.E"].actualType() == TpObjRef );
   Assert( rec["A.B.C.E"].containerType() == TpDataField );
   Assert( rec["A.B.C.E/0"].as<HIID>() == HIID("A.B.C.D") );
+  HIID id1;
+  Assert( rec["A.B.C.E"].get(id1) );
+  Assert( !rec["A.B.C.F"].get(id1) );
+  Assert( id1 == HIID("A.B.C.D") );
+  Assert( rec["A.B.C.E"].as_p<HIID>() != 0 );
+  Assert( rec["A.B.C.F"].as_po<HIID>() == 0 );
 
   rec["A.B.C.F"] = "test string";
   rec["A.B.C.F"][1] = "another test string";
@@ -159,6 +165,10 @@ void TestDataRecord ()
   Assert( rec["A.B.C.F"].actualType() == TpObjRef );
   Assert( rec["A.B.C.F"].containerType() == TpDataField );
   Assert( rec["A.B.C.F/1"].as<string>() == "another test string" );
+  string str1;
+  Assert( rec["A.B.C.F/1"].get(str1) );
+  Assert( !rec["A.B.C.G"].get(str1) );
+  Assert( str1 == "another test string" );
   
   cout<<"======================= record debug info:\n";
   cout<<rec.sdebug(3)<<endl;

@@ -32,7 +32,7 @@ class DataField : public NestableContainer
 {
   public:
       //##ModelId=3C3D64DC016E
-      explicit DataField (int flags = DMI::WRITE);
+      DataField ();
 
       //##ModelId=3C3EE3EA022A
       DataField (const DataField &right, int flags = DMI::PRESERVE_RW, int depth = 0);
@@ -40,7 +40,7 @@ class DataField : public NestableContainer
       //##ModelId=3BFA54540099
       //##Documentation
       //## Constructs an empty data field
-      explicit DataField (TypeId tid, int num = -1, int flags = DMI::WRITE, const void *data = 0);
+      explicit DataField (TypeId tid, int num = -1, const void *data = 0);
 
     //##ModelId=3DB9346F0095
       ~DataField();

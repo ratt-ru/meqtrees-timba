@@ -198,6 +198,8 @@ class DMITypeTraits : public DMIBaseTypeTraits<T>
   enum { isLorrayable = DMI_TL::IndexOf<DMI_TL::Arrayables,T>::value >= 0 };
     //##ModelId=3E9BD9170345
   enum { isArrayable  = isLorrayable };
+  enum { isLorray     = False };
+  enum { isArray      = True };
 };
 
 // a partial specialization of the traits for Lorrays
@@ -209,6 +211,7 @@ class DMIBaseTypeTraits< blitz::Array<T,N> > : public TypeTraits< blitz::Array<T
   enum { typeId = TpintArray(DMIBaseTypeTraits<T>::typeId,N) };
   enum { TypeCategory = TypeCategories::INTERMEDIATE };
   enum { isLorray     = True };
+  enum { isArray      = True };
   typedef T ArrayElemType; 
   typedef blitz::Array<T,N> ContainerReturnType;
   typedef const blitz::Array<T,N> & ContainerParamType;

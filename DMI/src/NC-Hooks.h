@@ -10,22 +10,33 @@ T * as_impl_wp (T *,ContentInfo &info=_dum_info,bool pointer=False) const
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   return static_cast<T*>(const_cast<void*>(
       get_address(info,DMITypeTraits<T>::typeId,True,pointer))); 
-} 
+}
 
 public:
 // -----------------------------------------------------------------------
-// as_wr<T>(); as_wp<T>()
-// returns non-const ("writable") reference or pointer
+// as_wp<T>(); as_wpo<T>(); as_wr<T>(); 
+// returns non-const ("writable") pointer or reference
 // + implicit conversion operators  
 // -----------------------------------------------------------------------
 template<class T>
-T * as_wp (int &sz=_dum_int) const
+T * as_wp (int &sz=_dum_int,Type2Type<T> =Type2Type<T>()) const
 { 
+  STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   ContentInfo info;
-  T * ptr = as_impl_wp((T*)0,info,True);
+  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,True,True,True); 
   sz = info.size;
-  return ptr;
-} 
+  return static_cast<T*>(const_cast<void*>(ptr));
+}
+
+template<class T>
+T * as_wpo (int &sz=_dum_int,Type2Type<T> =Type2Type<T>()) const
+{ 
+  STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
+  ContentInfo info;
+  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,True,True,False); 
+  sz = info.size;
+  return static_cast<T*>(const_cast<void*>(ptr));
+}
 
 template<class T>
 T * implicit_ptr (Type2Type<T> =Type2Type<T>()) const 
@@ -39,8 +50,11 @@ T * implicit_ptr (Type2Type<T> =Type2Type<T>()) const
 template<class T>
 T & as_wr (Type2Type<T> =Type2Type<T>()) const
 { 
-  return *as_impl_wp((T*)0);
-} 
+  STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
+  ContentInfo info;
+  return *static_cast<T*>(const_cast<void*>(
+        get_address(info,DMITypeTraits<T>::typeId,True,True,True))); 
+}
 
 #define __convert1(T,arg) operator T* () const { return implicit_ptr(Type2Type<T>()); }
 // #define __convert2(T,arg) operator T& () const { return as_wr(Type2Type<T>()); }

@@ -1,26 +1,22 @@
 // -----------------------------------------------------------------------
 // access as STL vectors 
 // -----------------------------------------------------------------------
+
 // some out-of-line templates for hooks
-// Define an as_vector<> template. This should work for all
+// Define an get_vector<> template. This should work for all
 // contiguous containers.
 // This copies data so is not very efficient, but is quite
 // convenient where sizes are small.
 template<class T>
-std::vector<T> NestableContainer::Hook::as_vector (Type2Type<T>) const
+bool NestableContainer::Hook::get_vector (std::vector<T> &value,bool must_exist)
 {
   int n;
-  const T *data = as_p(n,Type2Type<T>());
-  return std::vector<T>(data,data+n);
-}
-
-// second version provides a default value
-template<class T>
-std::vector<T> NestableContainer::Hook::as_vector (const std::vector<T> &deflt) const
-{
-  ContentInfo info;
-  const T * ptr = as_impl_p(&deflt[0],info,True);
-  return ptr == &deflt[0] ? deflt : std::vector<T>(ptr,ptr+info.size);
+  const T *data = as_po(n,Type2Type<T>());
+  if( !data )
+    return False;
+  value.resize(n);
+  value.assign(data,data+n);
+  return True;
 }
 
 // -----------------------------------------------------------------------

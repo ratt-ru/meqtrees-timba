@@ -366,12 +366,12 @@ inline ObjRef NestableContainer::Hook::ref (bool write) const
 //##ModelId=4017F62702A0
 const void * NestableContainer::Hook::get_pointer (int &sz,
     TypeId tid,bool must_write,bool implicit,
-    const void *deflt,Thread::Mutex::Lock *keeplock) const
+    bool must_exist,Thread::Mutex::Lock *keeplock) const
 {
   DbgFailWhen(!addressed && implicit,"missing '&' operator");
   // Defers to get_address(pointer=True)
   ContentInfo info;
-  const void *ret = get_address(info,tid,must_write,True,deflt,keeplock);
+  const void *ret = get_address(info,tid,must_write,True,must_exist,keeplock);
   sz = info.size;
   return ret;
 }
@@ -461,11 +461,11 @@ const NestableContainer::Hook & NestableContainer::Hook::detach (ObjRef* ref) co
 
 // This is called to get a value, for built-in scalar types only.
 // Automatic conversion is done between numeric types.
-// Returns True on success. If no such element and nothrow=True, returns False,
-// else throws an Uninitialized execption.
+// If no such element exists: if must_exist=True, throws 
+// an Uninitialized exception, else returns False
 // Always throws ConvError on type mismatch.
 //##ModelId=4017F626017A
-bool NestableContainer::Hook::get_scalar( void *data,TypeId tid,bool nothrow ) const
+bool NestableContainer::Hook::get_scalar( void *data,TypeId tid,bool must_exist ) const
 {
   DbgFailWhen(addressed,"unexpected '&' operator");
   int flags = DMI::NC_DEREFERENCE;
@@ -485,7 +485,7 @@ bool NestableContainer::Hook::get_scalar( void *data,TypeId tid,bool nothrow ) c
     } 
     if( !targ )
     {
-      if( !nothrow ) 
+      if( must_exist ) 
         ThrowUninitialized;
       return False;
     }
@@ -513,7 +513,7 @@ bool NestableContainer::Hook::get_scalar( void *data,TypeId tid,bool nothrow ) c
 //##ModelId=4017F6260346
 const void * NestableContainer::Hook::get_address (ContentInfo &info,
     TypeId tid,bool must_write,bool pointer,
-    const void *deflt,Thread::Mutex::Lock *keeplock) const
+    bool must_exist,Thread::Mutex::Lock *keeplock) const
 {
   // we ask the container for an ObjRef or just an object
   int flags = (tid==TpObjRef ? 0 : DMI::NC_DEREFERENCE) |
@@ -530,9 +530,9 @@ const void * NestableContainer::Hook::get_address (ContentInfo &info,
     // fail if no such element, unless a default is provided
     if( !targ )
     {
-      if( !deflt ) 
+      if( must_exist ) 
         ThrowUninitialized;
-      return deflt;
+      return 0;
     }
     // success: types match
     if( tid == TpObjRef || tid == target.obj_tid )
@@ -855,8 +855,8 @@ void * NestableContainer::Hook::assign_vector (TypeId tid,int size) const
   void * targ = prepare_assign_vector(tid,size);
   if( targ )
     return targ;
-  // else non-existing object: try to a initialize a new DataArray
-  NestableContainer *df = new DataField(tid,size,DMI::WRITE);
+  // else non-existing object: try to a initialize a new DataField
+  NestableContainer *df = new DataField(tid,size);
   ObjRef ref(df,DMI::ANONWR);
   assign_objref(ref,0);
   ContentInfo info; 
