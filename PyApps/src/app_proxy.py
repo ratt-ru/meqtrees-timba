@@ -3,6 +3,9 @@
 import app_defaults
 if app_defaults.include_gui:
   print '========================== Using gui';
+  import app_proxy_gui
+  from app_proxy_gui import app_gui
+  import qt
 
 from dmitypes import *
 import octopussy
@@ -12,8 +15,6 @@ import os
 import string
 import time
 
-  
-
 # class app_proxy
 class app_proxy (verbosity):
   "app_proxy is an interface to a C++ ApplicationBase (see AppAgents)"
@@ -21,7 +22,9 @@ class app_proxy (verbosity):
   set_debug = staticmethod(octopussy.set_debug);
   setdebug = staticmethod(octopussy.set_debug);
   
-  def __init__(self,appid,launch=None,spawn=None,verbose=0,wp_verbose=0,gui=False):
+  def __init__(self,appid,launch=None,spawn=None,
+               verbose=0,wp_verbose=0,
+               gui=False):
     verbosity.__init__(self,verbose,name=str(appid));
     self.appid = hiid(appid);
     self._rcv_prefix = self.appid + "Out";   # messages from app
@@ -40,26 +43,35 @@ class app_proxy (verbosity):
     self._verbose_events = True;
     self._error_log = [];
     self._rqid = 1;
-    
-    # this state is meant to be visible
+    # ------------------------------ this state is meant to be visible
     self.state = None; # None means offline -- we'll get a Hello message for online
     self.statestr = 'unknown';
     self.status = record();
     self.paused = False;
-    
-    # export some proxy_wp and octopussy methods
-    self.flush_events = self._pwp.flush_events;
+    # ------------------------------ export some proxy_wp and octopussy methods
     self.pause_events = self._pwp.pause_events;
-    
-    # define default control record
+    self.resume_events = self._pwp.resume_events;
+    # ------------------------------ define default control record
     self.initrec_prev = srecord(
       throw_error=True,
       control=srecord(
         event_map_in  = srecord(default_prefix=self._snd_prefix),
         event_map_out = srecord(default_prefix=self._rcv_prefix),
         stop_when_end = False ));
-    
-    if spawn: # run meqserver as external process
+    # ------------------------------ create a gui if requested
+    if gui:
+      self.dprint(1,'initializing gui');
+      if not app_defaults.include_gui:
+        raise ValueError,'gui=True but app_defaults.include_gui=False';
+      self._gui = app_gui(self,verbose);
+      # halt & exit when window is closed
+      qapp = app_proxy_gui.MainApp;
+      qapp.connect(qapp, qt.SIGNAL("lastWindowClosed()"),self.halt);
+      qapp.connect(qapp, qt.SIGNAL("lastWindowClosed()"),octopussy.stop);
+      app_proxy_gui.start();
+      
+    # ------------------------------ run/connect to app process
+    if spawn: 
       if launch:
         raise ValueError,'specify either launch or spawn, not both';
       if isinstance(spawn,str):
@@ -78,6 +90,11 @@ class app_proxy (verbosity):
       py_app_launcher.launch_app(appname,inagent,outagent,self.initrec_prev);
     else: # no launch spec, simply wait for a connection
       pass;
+    # start the WP thread
+    self._pwp.start();
+    
+  def name(self):
+    return str(self.appid);
       
   def _hello_handler (self,msg):
     self.dprint(2,"got hello message:",msg);
@@ -126,7 +143,7 @@ class app_proxy (verbosity):
       self._pwp.pause_events();
       while self.state is None:
         self.dprint(2,'no connection to app, awaiting');
-        res = self._pwp.await('*');  # await anything, but keep looping until status changes
+        res = self._pwp.await('*',resume=True);  # await anything, but keep looping until status changes
         self.dprint(3,'await returns',res);
     finally:
       self._pwp.resume_events();
@@ -177,7 +194,7 @@ class app_proxy (verbosity):
     self.send_command("Init",initrec);
     if wait:
       self.dprint(2,'init: awaiting app.notify.init event');
-      res = self.await('app.notify.init');
+      res = self.await('app.notify.init',resume=True);
       self.dprint(2,'init: got event ',res);
 
   def set_verbose_events (self,verb=True):
@@ -219,34 +236,43 @@ class app_proxy (verbosity):
   def reqstatus (self):
     "sends Request.Status command to app"
     return self.send_command("Request.Status");
-
-  def event_loop (self,await=(),*args,**kwargs):
-    "interface to pwp's event loop, with message id translation";
-    await = map(lambda x:self._rcv_prefix+x,make_hiid_list(await));
-    return self._pwp.event_loop(await=await,*args,**kwargs);
     
+  def trim_msgid (self,msgid):
+    if msgid[:len(self._rcv_prefix)] == self._rcv_prefix:
+      return msgid[len(self._rcv_prefix):];
+    return msgid;
+
   def whenever (self,*args,**kwargs):
     "interface to pwp's whenever function, with message id translation";
     evid = kwargs.get('msgid',None);
     if evid:
       kwargs['msgid'] = self._rcv_prefix + evid;
+    elif len(args):
+      args = (self._rcv_prefix + args[0],) + args[1:];
     return self._pwp.whenever(*args,**kwargs);
     
-  def await (self,what,timeout=None):
+  def await (self,what,timeout=None,resume=False):
     "interface to pwp's event loop, in the await form";
-    return self.event_loop(await=what,timeout=timeout);
+    return self._pwp.await(self._rcv_prefix + what,timeout=timeout,resume=resume);
     
 if __name__ == "__main__":
+  app_defaults.parse_argv(sys.argv);
   octopussy.init();
   octopussy.start();
-  app = app_proxy('repeater',launch=('repeater','o','o'),verbose=5,wp_verbose=5);
+  args = app_defaults.args;
+  args['verbose'] = 2;
+  args['wp_verbose'] = 2;
+  args['launch'] = ('repeater','o','o');
+  print '================= launching app';
+  print 'Args are:',args;
+  app = app_proxy('repeater',**args);
+  print '================= going into init()';
   app.init(wait=True);
-  print '================= going into event loop with await';
-  msg = app.event_loop(await='app.update.status.*');
-  print msg;
-  print '================= flushing events';
-  app.flush_events();
-  print '================= going into permanent event loop';
-  app.event_loop();
+  
+  if not args['gui']:
+    print '================= sleeping for 2 sec';
+    time.sleep(2);
+    print '================= stopping octopussy';
+    octopussy.stop();
   
   

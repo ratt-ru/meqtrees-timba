@@ -33,6 +33,7 @@ import octopussy
 from pretty_print import PrettyPrinter
 from app_proxy import app_proxy
 from dmitypes import *
+import meq
 
 
 # default launch arguments (for launch=True)
@@ -80,7 +81,7 @@ class meqserver (app_proxy):
       self.dprint(5,'arguments are ',args);
       self.pause_events();
       self.send_command('command'+command,payload);
-      msg = self.await(replyname);
+      msg = self.await(replyname,resume=True);
       return msg.payload;
     # else simply send command
     else: 
@@ -172,11 +173,13 @@ def default_mqs (debug={},**kwargs):
 #
 if __name__ == '__main__':
   app_defaults.parse_argv(sys.argv[1:]);
-  
   default_mqs();
-  rec = srecord({'class':'MeqConstant'},name='x',value=0);
-  print 'rec: ',rec;
-  print 'createnode:',mqs.createnode(rec,wait=True);
-  mqs.halt();
-  octopussy.stop();
+  for i in range(1,500):
+    print 'createnode:',mqs.createnode(meq.node('MeqConstant','x'+str(i),value=0),wait=True);
+  
+  if not app_defaults.args['gui']:
+    print "===== calling mqs.halt() =====";
+    mqs.halt();
+    print "===== calling octopussy.stop() =====";
+    octopussy.stop();
 
