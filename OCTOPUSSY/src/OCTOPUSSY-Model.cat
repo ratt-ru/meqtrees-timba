@@ -8,6 +8,7 @@
     is_unit    	TRUE
     is_loaded  	TRUE
     quid       	"3BCEC935032A"
+    stereotype 	"subsystem"
     external_docs 	(list external_doc_list
 	(object external_doc
 	    external_doc_path 	"F:/LOFAR/doc/OCTOPUSSY/PSCF Design Proposal.doc"))

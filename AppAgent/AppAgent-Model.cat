@@ -10,233 +10,6 @@
     quid       	"3DF9FD6E0235"
     exportControl 	"Public"
     logical_models 	(list unit_reference_list
-	(object Class "MSVisInputAgent"
-	    attributes 	(list Attribute_Set
-		(object Attribute
-		    tool       	"Cplusplus"
-		    name       	"HeaderSourceFile"
-		    value      	"MSVisAgent/src/MSVisInputAgent.h")
-		(object Attribute
-		    tool       	"Cplusplus"
-		    name       	"BodySourceFile"
-		    value      	"MSVisAgent/src/MSVisInputAgent.cc"))
-	    quid       	"3DF9FECD013C"
-	    documentation 	
-|MSVisInputAgent is an input agent for reading data from an AIPS++
-|Measurement Set. It is initialized from a DataRecord laid out as follows:
-|
-|rec[MSVisInputAgentParams]  (record)    contains all parameters below
-|   +--[FMSName]             (string)    MS filename (must be present)
-|   +--[FDataColumnName]     (string)    column to read visibilities from
-|                                        (default is "DATA", but can use, 
-|                                          e.g., "MODEL_DATA")
-|   +--[FTileSize]           (int)       tile size (default: 1 timeslot)
-|   +--[FSelection]          (record)    determines MS selection:
-|      +--[FDDID]              (int)     selects data description ID 
-|      +--[FFieldIndex]        (int)     selects field  
-|      +--[FChannelStartIndex] (int)     starting channel (default: 0)
-|      +--[FChannelEndIndex]   (int)     ending channel (default: last chan.)
-|      +--[FSelectionString] (string)    additional TaQL selection applied 
-|                                          to MS
-|
-	    
-	    superclasses 	(list inheritance_relationship_list
-		(object Inheritance_Relationship
-		    quid       	"3DF9FECD0196"
-		    supplier   	"Logical View::AppAgents::VisFileInputAgent"
-		    quidu      	"3DF9FECD0159"))
-	    operations 	(list Operations
-		(object Operation "MSVisInputAgent"
-		    quid       	"3DF9FECD0219"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "getNextTile"
-		    quid       	"3DF9FECD021B"
-		    stereotype 	"virtual"
-		    parameters 	(list Parameters
-			(object Parameter "tile"
-			    quid       	"3DF9FECD021D"
-			    type       	"VisTile::Ref &")
-			(object Parameter "wait"
-			    quid       	"3DF9FECD0228"
-			    type       	"bool"
-			    initv      	"False"))
-		    result     	"int"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "init"
-		    quid       	"3DF9FECD0235"
-		    stereotype 	"virtual"
-		    parameters 	(list Parameters
-			(object Parameter "data"
-			    quid       	"3DF9FECD0238"
-			    type       	"const DataRecord::Ref &"))
-		    result     	"bool"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "close"
-		    quid       	"3DF9FECD0244"
-		    stereotype 	"virtual"
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "FParams"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DF9FECD0246"
-		    documentation 	
-|Field name for parameter record.
-|
-		    
-		    stereotype 	"static"
-		    result     	"const HIID &"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "MSVisInputAgent"
-		    quid       	"3DF9FECD0248"
-		    parameters 	(list Parameters
-			(object Parameter ""
-			    quid       	"3DF9FECD0249"
-			    type       	"const MSVisInputAgent &"))
-		    concurrency 	"Sequential"
-		    opExportControl 	"Private"
-		    uid        	0)
-		(object Operation "operator ="
-		    quid       	"3DF9FECD0253"
-		    parameters 	(list Parameters
-			(object Parameter ""
-			    quid       	"3DF9FECD0254"
-			    type       	"const MSVisInputAgent &"))
-		    result     	"MSVisInputAgent &"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Private"
-		    uid        	0
-		    quidu      	"3DF9FECD013C")
-		(object Operation "openMS"
-		    quid       	"3DF9FECD025E"
-		    parameters 	(list Parameters
-			(object Parameter "hdr"
-			    quid       	"3DF9FECD0260"
-			    type       	"DataRecord &")
-			(object Parameter "selection"
-			    quid       	"3DF9FECD0278"
-			    type       	"const DataRecord &"))
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Private"
-		    uid        	0)
-		(object Operation "fillHeader"
-		    quid       	"3DF9FECD0285"
-		    parameters 	(list Parameters
-			(object Parameter "hdr"
-			    quid       	"3DF9FECD0286"
-			    type       	"DataRecord &")
-			(object Parameter "selection"
-			    quid       	"3DF9FECD0292"
-			    type       	"const DataRecord &"))
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Private"
-		    uid        	0)
-		(object Operation "sdebug"
-		    quid       	"3DFDFC060373"
-		    stereotype 	"const"
-		    parameters 	(list Parameters
-			(object Parameter "detail"
-			    quid       	"3DFDFC060382"
-			    type       	"int"
-			    initv      	"1")
-			(object Parameter "prefix"
-			    quid       	"3DFDFC060398"
-			    type       	"const string &"
-			    initv      	
-|""
-			    )
-			(object Parameter "name"
-			    quid       	"3DFDFC0603AC"
-			    type       	"const char *"
-			    initv      	"0"))
-		    result     	"string"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0))
-	    class_attributes 	(list class_attribute_list
-		(object ClassAttribute "ms_"
-		    quid       	"3DF9FECD0199"
-		    type       	"MeasurementSet")
-		(object ClassAttribute "selms_"
-		    quid       	"3DF9FECD019A"
-		    type       	"MeasurementSet")
-		(object ClassAttribute "obsid_"
-		    quid       	"3DF9FECD01A9"
-		    type       	"int")
-		(object ClassAttribute "dataColName_"
-		    quid       	"3DF9FECD01B0"
-		    type       	"string")
-		(object ClassAttribute "tilesize_"
-		    quid       	"3DF9FECD01C0"
-		    type       	"int")
-		(object ClassAttribute "channels_"
-		    quid       	"3DF9FECD01C8"
-		    type       	"int [2]")
-		(object ClassAttribute "num_channels_"
-		    quid       	"3DF9FECD01D0"
-		    type       	"int")
-		(object ClassAttribute "num_corrs_"
-		    quid       	"3DF9FECD01D7"
-		    type       	"int")
-		(object ClassAttribute "num_antennas_"
-		    quid       	"3DF9FECD01DF"
-		    type       	"int")
-		(object ClassAttribute "num_ifrs_"
-		    quid       	"3DF9FECD01E6"
-		    type       	"int")
-		(object ClassAttribute "tableiter_"
-		    quid       	"3DF9FECD01EE"
-		    type       	"TableIterator")
-		(object ClassAttribute "tileformat_"
-		    quid       	"3DF9FECD01F6"
-		    type       	"VisTile::Format::Ref")
-		(object ClassAttribute "tileiter_"
-		    quid       	"3DF9FECD020D"
-		    type       	"TileCache::iterator")
-		(object ClassAttribute "msname_"
-		    quid       	"3DFDFC06033A"
-		    type       	"string")
-		(object ClassAttribute "current_timeslot_"
-		    quid       	"3DFDFC060354"
-		    type       	"int")
-		(object ClassAttribute "vdsid_"
-		    quid       	"3E00AA5101A0"
-		    type       	"VDSID"
-		    quidu      	"3DB964F20079"))
-	    module     	"Component View::AppAgent"
-	    quidu      	"3DF9FDED0011"
-	    language   	"ANSI C++"
-	    nestedClasses 	(list nestedClasses
-		(object Class "TileCache"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"HeaderSourceFile"
-			    value      	"MSVisAgent/src/MSVisInputAgent.h")
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"ImplementationType"
-			    value      	"vector<VisTile::Ref>"))
-		    quid       	"3DF9FECD0142"
-		    stereotype 	"typedef"
-		    exportControl 	"Private"
-		    module     	"Component View::AppAgent"
-		    quidu      	"3DF9FDED0011")))
 	(object Class "OctoAgent"
 	    attributes 	(list Attribute_Set
 		(object Attribute
@@ -279,437 +52,6 @@
 	    quidu      	"3DF9FDED0011"
 	    language   	"ANSI C++"
 	    abstract   	TRUE)
-	(object Class "VisFileInputAgent"
-	    attributes 	(list Attribute_Set
-		(object Attribute
-		    tool       	"Cplusplus"
-		    name       	"HeaderSourceFile"
-		    value      	"VisAgent/src/VisFileInputAgent.h")
-		(object Attribute
-		    tool       	"Cplusplus"
-		    name       	"BodySourceFile"
-		    value      	"VisAgent/src/VisFileInputAgent.cc"))
-	    quid       	"3DF9FECD0159"
-	    documentation 	
-|VisFileInputAgent implements some common features & services for agents that get their input from a static data file (e.g., AIPS++ MSs, BOIO files).
-|
-	    
-	    superclasses 	(list inheritance_relationship_list
-		(object Inheritance_Relationship
-		    quid       	"3DF9FECD02BD"
-		    supplier   	"Logical View::AppAgents::VisInputAgent"
-		    quidu      	"3DF9FECD0169"))
-	    operations 	(list Operations
-		(object Operation "VisFileInputAgent"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DF9FECE00FC"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Protected"
-		    uid        	0)
-		(object Operation "fileState"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DF9FECE012A"
-		    stereotype 	"const"
-		    result     	"FileState"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Protected"
-		    uid        	0
-		    quidu      	"3DF9FECD015F")
-		(object Operation "setFileState"
-		    quid       	"3DF9FECE0154"
-		    parameters 	(list Parameters
-			(object Parameter "state"
-			    quid       	"3DF9FECE0179"
-			    type       	"FileState"
-			    quidu      	"3DF9FECD015F"))
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Protected"
-		    uid        	0)
-		(object Operation "setErrorState"
-		    quid       	"3DF9FECE01CA"
-		    parameters 	(list Parameters
-			(object Parameter "msg"
-			    quid       	"3DF9FECE01FC"
-			    type       	"const string &"))
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Protected"
-		    uid        	0)
-		(object Operation "generateEvent"
-		    quid       	"3DF9FECE024A"
-		    parameters 	(list Parameters
-			(object Parameter "evname"
-			    quid       	"3DF9FECE026F"
-			    type       	"const HIID &"))
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Protected"
-		    uid        	0)
-		(object Operation "generateEvent"
-		    quid       	"3DF9FECE02BA"
-		    parameters 	(list Parameters
-			(object Parameter "evname"
-			    quid       	"3DF9FECE02E1"
-			    type       	"const HIID &")
-			(object Parameter "data"
-			    quid       	"3DF9FECE0337"
-			    type       	"DataRecord::Ref &"))
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Protected"
-		    uid        	0)
-		(object Operation "header"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DF9FECE0384"
-		    result     	"DataRecord &"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Protected"
-		    uid        	0)
-		(object Operation "initHeader"
-		    quid       	"3DF9FECE03AB"
-		    result     	"DataRecord &"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Protected"
-		    uid        	0)
-		(object Operation "getHeader"
-		    quid       	"3DF9FECE03D1"
-		    stereotype 	"virtual"
-		    parameters 	(list Parameters
-			(object Parameter "hdr"
-			    quid       	"3DF9FECF0004"
-			    type       	"DataRecord::Ref &")
-			(object Parameter "wait"
-			    quid       	"3DF9FECF0051"
-			    type       	"bool"
-			    initv      	"True"))
-		    result     	"int"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "hasHeader"
-		    quid       	"3DF9FECF009D"
-		    stereotype 	"const,virtual"
-		    result     	"int"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "hasTile"
-		    quid       	"3DF9FECF00BF"
-		    stereotype 	"const,virtual"
-		    result     	"int"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "getEvent"
-		    quid       	"3DF9FECF00DB"
-		    stereotype 	"virtual"
-		    parameters 	(list Parameters
-			(object Parameter ""
-			    quid       	"3DF9FECF00F4"
-			    type       	"HIID &")
-			(object Parameter "data"
-			    quid       	"3DF9FECF013D"
-			    type       	"DataRecord::Ref &")
-			(object Parameter "wait"
-			    quid       	"3DF9FECF018B"
-			    type       	"bool"
-			    initv      	"False"))
-		    result     	"bool"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "hasEvent"
-		    quid       	"3DF9FECF01DA"
-		    stereotype 	"virtual"
-		    parameters 	(list Parameters
-			(object Parameter "mask"
-			    quid       	"3DF9FECF01F4"
-			    type       	"const HIID &"
-			    initv      	"HIID()")
-			(object Parameter "outOfSeq"
-			    quid       	"3DF9FECF0243"
-			    type       	"bool"
-			    initv      	"False"))
-		    result     	"bool"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "fileStateString"
-		    quid       	"3DFDFC07004C"
-		    stereotype 	"const"
-		    result     	"string"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Protected"
-		    uid        	0))
-	    class_attributes 	(list class_attribute_list
-		(object ClassAttribute "header_"
-		    quid       	"3DF9FECE0055"
-		    type       	"DataRecord::Ref")
-		(object ClassAttribute "eventdata_"
-		    quid       	"3DF9FECE009E"
-		    type       	"DataRecord::Ref")
-		(object ClassAttribute "event_"
-		    quid       	"3E00AA520286"
-		    type       	"HIID"
-		    quidu      	"3BE96FE601C5"))
-	    module     	"Component View::AppAgent"
-	    quidu      	"3DF9FDED0011"
-	    language   	"ANSI C++"
-	    abstract   	TRUE
-	    nestedClasses 	(list nestedClasses
-		(object Class "FileState"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"HeaderSourceFile"
-			    value      	"VisAgent/src/VisFileInputAgent.h")
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"ImplementationType"
-			    value      	(value Text 
-|enum {
-|        CLOSED  = 0,
-|        HEADER  = 1,
-|        DATA    = 2,
-|        ENDFILE = 3,
-|        ERROR   = 4
-|      }
-			    )))
-		    quid       	"3DF9FECD015F"
-		    stereotype 	"typedef"
-		    exportControl 	"Protected"
-		    module     	"Component View::AppAgent"
-		    quidu      	"3DF9FDED0011")))
-	(object Class "VisInputAgent"
-	    attributes 	(list Attribute_Set
-		(object Attribute
-		    tool       	"Cplusplus"
-		    name       	"HeaderSourceFile"
-		    value      	"VisAgent/src/VisInputAgent.h"))
-	    quid       	"3DF9FECD0169"
-	    documentation 	
-|VisInputAgent is an specialized agent representing an input stream of visibility data. Applications that work with visibilities talk to VisInputAgents.
-|
-|VisInputAgent  is an abstract interface. Specific visibility data sources (e.g.: input from an AIPS++ MS, input from a BOIO file, input from an OCTOPUSSY WorkProcess) are implemented as derived classes.
-|
-|A visibility stream is represented by a header (a DataRecord), followed by a number of VisTiles. 
-	    
-	    stereotype 	"Interface"
-	    superclasses 	(list inheritance_relationship_list
-		(object Inheritance_Relationship
-		    quid       	"3DF9FEEC00CA"
-		    supplier   	"Logical View::AppAgents::AppAgent"
-		    quidu      	"3DF9FEEC0043"
-		    virtual    	TRUE))
-	    operations 	(list Operations
-		(object Operation "HeaderEvent"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DF9FECF029C"
-		    documentation 	
-|generated when a data set header is available on the stream
-|
-		    
-		    stereotype 	"static"
-		    result     	"const HIID &"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "DataEvent"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DF9FECF02B7"
-		    documentation 	
-|generated when data begins arriving on the stream      
-|
-		    
-		    stereotype 	"static"
-		    result     	"const HIID &"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "EndDataEvent"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DF9FECF02D1"
-		    documentation 	
-|generated when a data set ends   
-|
-		    
-		    stereotype 	"static"
-		    result     	"const HIID &"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "InputErrorEvent"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DF9FECF02EB"
-		    documentation 	
-|generated when an error occurs
-|
-		    
-		    stereotype 	"static"
-		    result     	"const HIID &"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "getHeader"
-		    quid       	"3DF9FECF0310"
-		    documentation 	
-|Gets visibilities header from input stream. If wait=True, blocks until one has arrived.
-|Returns: SUCCESS   on success
-|         WAIT      header has not yet arrived (only for wait=False)
-|         CLOSED    stream closed
-|         OUTOFSEQ  next object in stream is not a header (i.e. a tile)
-|
-|
-		    
-		    stereotype 	"abstract"
-		    parameters 	(list Parameters
-			(object Parameter "hdr"
-			    quid       	"3DF9FECF032D"
-			    type       	"DataRecord::Ref &")
-			(object Parameter "wait"
-			    quid       	"3DF9FECF036A"
-			    type       	"bool"
-			    initv      	"True"))
-		    result     	"int"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "getNextTile"
-		    quid       	"3DF9FECF03A9"
-		    documentation 	
-|Gets next available tile from input stream. If wait=True, blocks until one has arrived.
-|Returns: SUCCESS   on success
-|         WAIT      a tile has not yet arrived (only for wait=False)
-|         CLOSED    stream closed
-|         OUTOFSEQ  next object in stream is not a tile (i.e. a header)
-|
-		    
-		    stereotype 	"abstract"
-		    parameters 	(list Parameters
-			(object Parameter "tile"
-			    quid       	"3DF9FECF03C2"
-			    type       	"VisTile::Ref &")
-			(object Parameter "wait"
-			    quid       	"3DF9FED0001B"
-			    type       	"bool"
-			    initv      	"True"))
-		    result     	"int"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "hasHeader"
-		    quid       	"3DF9FED0005A"
-		    documentation 	"Checks if a header is waiting in the stream. Return value: same as would have been returned by getHeader(wait=False)."
-		    stereotype 	"const,abstract"
-		    result     	"int"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "hasTile"
-		    quid       	"3DF9FED00076"
-		    documentation 	"Checks if a tile is waiting in the stream. Return value: same as would have been returned by getNextTile(wait=False)."
-		    stereotype 	"const,abstract"
-		    result     	"int"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "suspend"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DF9FED00090"
-		    documentation 	
-|Tells the agent to suspend the input stream. Agents are not obliged to implement this. An application can use suspend() to "advise" the input agent that it is not keeping up with the input data rate; the agent can use this to determine it queuing or load balancing strategy.
-|
-		    
-		    stereotype 	"virtual"
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "resume"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DF9FED000AA"
-		    documentation 	"Resumes a stream after a suspend(). "
-		    stereotype 	"virtual"
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "numPendingTiles"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DF9FED000C6"
-		    documentation 	"Returns the number of tiles queued up in a stream. Agents are not obliged to implement this. Control agents are meant to use this method in combination with suspend()/resume() to control the data flow. "
-		    stereotype 	"const,virtual"
-		    result     	"int"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0))
-	    module     	"Component View::AppAgent"
-	    quidu      	"3DF9FDED0011"
-	    language   	"ANSI C++"
-	    abstract   	TRUE
-	    nestedClasses 	(list nestedClasses
-		(object Class "ReturnCodes"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"HeaderSourceFile"
-			    value      	"VisAgent/src/VisInputAgent.h")
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"ImplementationType"
-			    value      	(value Text 
-|enum {
-|          SUCCESS   = 1,
-|          WAIT      = 0,    // must wait for data
-|          CLOSED    = -1,   // input stream is closed (or not connected)
-|          OUTOFSEQ  = -2,   // request is out of sequence (see below)
-|      }
-			    )))
-		    quid       	"3DF9FECD016F"
-		    stereotype 	"typedef"
-		    module     	"Component View::AppAgent"
-		    quidu      	"3DF9FDED0011")))
 	(object Class "AppAgent"
 	    attributes 	(list Attribute_Set
 		(object Attribute
@@ -1102,22 +444,6 @@
 	    quidu      	"3DF9FDED0011"
 	    language   	"ANSI C++"
 	    abstract   	TRUE)
-	(object Class "VisOutputAgent"
-	    attributes 	(list Attribute_Set
-		(object Attribute
-		    tool       	"Cplusplus"
-		    name       	"HeaderSourceFile"
-		    value      	"VisAgent/src/VisOutputAgent.h"))
-	    quid       	"3E00AA5100F9"
-	    stereotype 	"Interface"
-	    superclasses 	(list inheritance_relationship_list
-		(object Inheritance_Relationship
-		    quid       	"3E00AA52038B"
-		    supplier   	"Logical View::AppAgents::AppAgent"
-		    quidu      	"3DF9FEEC0043"))
-	    module     	"Component View::AppAgent"
-	    quidu      	"3DF9FDED0011"
-	    language   	"ANSI C++")
 	(object Class "DummySolver"
 	    attributes 	(list Attribute_Set
 		(object Attribute
@@ -1174,7 +500,7 @@
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$1"
 		    quid       	"3DF9FECD01A0"
-		    supplier   	"Logical View::AppAgents::MSVisInputAgent"
+		    supplier   	"Logical View::AppAgents::MSVisAgent::MSVisInputAgent"
 		    quidu      	"3DF9FECD013C"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$2"
@@ -1183,14 +509,14 @@
 		(object Role "tiles_"
 		    quid       	"3DF9FECD01FF"
 		    label      	"tiles_"
-		    supplier   	"Logical View::AppAgents::MSVisInputAgent::TileCache"
+		    supplier   	"Logical View::AppAgents::MSVisAgent::MSVisInputAgent::TileCache"
 		    quidu      	"3DF9FECD0142"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$3"
 		    quid       	"3DF9FECD0201"
-		    supplier   	"Logical View::AppAgents::MSVisInputAgent"
+		    supplier   	"Logical View::AppAgents::MSVisAgent::MSVisInputAgent"
 		    quidu      	"3DF9FECD013C"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$4"
@@ -1199,14 +525,14 @@
 		(object Role "filestate_"
 		    quid       	"3DF9FECE0047"
 		    label      	"filestate_"
-		    supplier   	"Logical View::AppAgents::VisFileInputAgent::FileState"
+		    supplier   	"Logical View::AppAgents::VisAgent::VisFileInputAgent::FileState"
 		    quidu      	"3DF9FECD015F"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$5"
 		    quid       	"3DF9FECE0049"
-		    supplier   	"Logical View::AppAgents::VisFileInputAgent"
+		    supplier   	"Logical View::AppAgents::VisAgent::VisFileInputAgent"
 		    quidu      	"3DF9FECD0159"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$6"
@@ -1222,7 +548,7 @@
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$7"
 		    quid       	"3DF9FECE00EE"
-		    supplier   	"Logical View::AppAgents::VisFileInputAgent"
+		    supplier   	"Logical View::AppAgents::VisAgent::VisFileInputAgent"
 		    quidu      	"3DF9FECD0159"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$8"
@@ -1231,7 +557,7 @@
 		(object Role "inputAgent: VisInputAgent &"
 		    quid       	"3E00AA51011E"
 		    label      	"inputAgent: VisInputAgent &"
-		    supplier   	"Logical View::AppAgents::VisInputAgent"
+		    supplier   	"Logical View::AppAgents::VisAgent::VisInputAgent"
 		    quidu      	"3DF9FECD0169"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
@@ -1247,7 +573,7 @@
 		(object Role "outputAgent: VisOutputAgent &"
 		    quid       	"3E00AA51012C"
 		    label      	"outputAgent: VisOutputAgent &"
-		    supplier   	"Logical View::AppAgents::VisOutputAgent"
+		    supplier   	"Logical View::AppAgents::VisAgent::VisOutputAgent"
 		    quidu      	"3E00AA5100F9"
 		    Containment 	"By Value"
 		    exportControl 	"Private"
@@ -5954,7 +5280,716 @@
 				(1354, 324))
 			    line_style 	3
 			    origin_attachment 	(1541, 544)
-			    terminal_attachment 	(1354, 324)))))))
+			    terminal_attachment 	(1354, 324))))))
+	(object Class_Category "VisAgent"
+	    quid       	"3E02FFA10266"
+	    exportControl 	"Public"
+	    logical_models 	(list unit_reference_list
+		(object Class "VisFileInputAgent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"VisAgent/src/VisFileInputAgent.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"BodySourceFile"
+			    value      	"VisAgent/src/VisFileInputAgent.cc"))
+		    quid       	"3DF9FECD0159"
+		    documentation 	
+|VisFileInputAgent implements some common features & services for agents that get their input from a static data file (e.g., AIPS++ MSs, BOIO files).
+|
+		    
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3DF9FECD02BD"
+			    supplier   	"Logical View::AppAgents::VisAgent::VisInputAgent"
+			    quidu      	"3DF9FECD0169"))
+		    operations 	(list Operations
+			(object Operation "VisFileInputAgent"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DF9FECE00FC"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
+			    uid        	0)
+			(object Operation "fileState"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DF9FECE012A"
+			    stereotype 	"const"
+			    result     	"FileState"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
+			    uid        	0
+			    quidu      	"3DF9FECD015F")
+			(object Operation "setFileState"
+			    quid       	"3DF9FECE0154"
+			    parameters 	(list Parameters
+				(object Parameter "state"
+				    quid       	"3DF9FECE0179"
+				    type       	"FileState"
+				    quidu      	"3DF9FECD015F"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
+			    uid        	0)
+			(object Operation "setErrorState"
+			    quid       	"3DF9FECE01CA"
+			    parameters 	(list Parameters
+				(object Parameter "msg"
+				    quid       	"3DF9FECE01FC"
+				    type       	"const string &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
+			    uid        	0)
+			(object Operation "generateEvent"
+			    quid       	"3DF9FECE024A"
+			    parameters 	(list Parameters
+				(object Parameter "evname"
+				    quid       	"3DF9FECE026F"
+				    type       	"const HIID &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
+			    uid        	0)
+			(object Operation "generateEvent"
+			    quid       	"3DF9FECE02BA"
+			    parameters 	(list Parameters
+				(object Parameter "evname"
+				    quid       	"3DF9FECE02E1"
+				    type       	"const HIID &")
+				(object Parameter "data"
+				    quid       	"3DF9FECE0337"
+				    type       	"DataRecord::Ref &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
+			    uid        	0)
+			(object Operation "header"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DF9FECE0384"
+			    result     	"DataRecord &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
+			    uid        	0)
+			(object Operation "initHeader"
+			    quid       	"3DF9FECE03AB"
+			    result     	"DataRecord &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
+			    uid        	0)
+			(object Operation "getHeader"
+			    quid       	"3DF9FECE03D1"
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "hdr"
+				    quid       	"3DF9FECF0004"
+				    type       	"DataRecord::Ref &")
+				(object Parameter "wait"
+				    quid       	"3DF9FECF0051"
+				    type       	"bool"
+				    initv      	"True"))
+			    result     	"int"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "hasHeader"
+			    quid       	"3DF9FECF009D"
+			    stereotype 	"const,virtual"
+			    result     	"int"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "hasTile"
+			    quid       	"3DF9FECF00BF"
+			    stereotype 	"const,virtual"
+			    result     	"int"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "getEvent"
+			    quid       	"3DF9FECF00DB"
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter ""
+				    quid       	"3DF9FECF00F4"
+				    type       	"HIID &")
+				(object Parameter "data"
+				    quid       	"3DF9FECF013D"
+				    type       	"DataRecord::Ref &")
+				(object Parameter "wait"
+				    quid       	"3DF9FECF018B"
+				    type       	"bool"
+				    initv      	"False"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "hasEvent"
+			    quid       	"3DF9FECF01DA"
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "mask"
+				    quid       	"3DF9FECF01F4"
+				    type       	"const HIID &"
+				    initv      	"HIID()")
+				(object Parameter "outOfSeq"
+				    quid       	"3DF9FECF0243"
+				    type       	"bool"
+				    initv      	"False"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "fileStateString"
+			    quid       	"3DFDFC07004C"
+			    stereotype 	"const"
+			    result     	"string"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
+			    uid        	0))
+		    class_attributes 	(list class_attribute_list
+			(object ClassAttribute "header_"
+			    quid       	"3DF9FECE0055"
+			    type       	"DataRecord::Ref")
+			(object ClassAttribute "eventdata_"
+			    quid       	"3DF9FECE009E"
+			    type       	"DataRecord::Ref")
+			(object ClassAttribute "event_"
+			    quid       	"3E00AA520286"
+			    type       	"HIID"))
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++"
+		    abstract   	TRUE
+		    nestedClasses 	(list nestedClasses
+			(object Class "FileState"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"VisAgent/src/VisFileInputAgent.h")
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"ImplementationType"
+				    value      	(value Text 
+|enum {
+|        CLOSED  = 0,
+|        HEADER  = 1,
+|        DATA    = 2,
+|        ENDFILE = 3,
+|        ERROR   = 4
+|      }
+				    )))
+			    quid       	"3DF9FECD015F"
+			    stereotype 	"typedef"
+			    exportControl 	"Protected"
+			    module     	"Component View::AppAgent"
+			    quidu      	"3DF9FDED0011")))
+		(object Class "VisFileOutputAgent"
+		    quid       	"3E02FF13009E"
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3E02FF58006F"
+			    supplier   	"Logical View::AppAgents::VisAgent::VisOutputAgent"
+			    quidu      	"3E00AA5100F9"))
+		    language   	"ANSI C++"
+		    abstract   	TRUE)
+		(object Class "VisInputAgent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"VisAgent/src/VisInputAgent.h"))
+		    quid       	"3DF9FECD0169"
+		    documentation 	
+|VisInputAgent is an specialized agent representing an input stream of visibility data. Applications that work with visibilities talk to VisInputAgents.
+|
+|VisInputAgent  is an abstract interface. Specific visibility data sources (e.g.: input from an AIPS++ MS, input from a BOIO file, input from an OCTOPUSSY WorkProcess) are implemented as derived classes.
+|
+|A visibility stream is represented by a header (a DataRecord), followed by a number of VisTiles. 
+		    
+		    stereotype 	"Interface"
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3DF9FEEC00CA"
+			    supplier   	"Logical View::AppAgents::AppAgent"
+			    quidu      	"3DF9FEEC0043"
+			    virtual    	TRUE))
+		    operations 	(list Operations
+			(object Operation "HeaderEvent"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DF9FECF029C"
+			    documentation 	
+|generated when a data set header is available on the stream
+|
+			    
+			    stereotype 	"static"
+			    result     	"const HIID &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "DataEvent"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DF9FECF02B7"
+			    documentation 	
+|generated when data begins arriving on the stream      
+|
+			    
+			    stereotype 	"static"
+			    result     	"const HIID &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "EndDataEvent"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DF9FECF02D1"
+			    documentation 	
+|generated when a data set ends   
+|
+			    
+			    stereotype 	"static"
+			    result     	"const HIID &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "InputErrorEvent"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DF9FECF02EB"
+			    documentation 	
+|generated when an error occurs
+|
+			    
+			    stereotype 	"static"
+			    result     	"const HIID &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "getHeader"
+			    quid       	"3DF9FECF0310"
+			    documentation 	
+|Gets visibilities header from input stream. If wait=True, blocks until one has arrived.
+|Returns: SUCCESS   on success
+|         WAIT      header has not yet arrived (only for wait=False)
+|         CLOSED    stream closed
+|         OUTOFSEQ  next object in stream is not a header (i.e. a tile)
+|
+|
+			    
+			    stereotype 	"abstract"
+			    parameters 	(list Parameters
+				(object Parameter "hdr"
+				    quid       	"3DF9FECF032D"
+				    type       	"DataRecord::Ref &")
+				(object Parameter "wait"
+				    quid       	"3DF9FECF036A"
+				    type       	"bool"
+				    initv      	"True"))
+			    result     	"int"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "getNextTile"
+			    quid       	"3DF9FECF03A9"
+			    documentation 	
+|Gets next available tile from input stream. If wait=True, blocks until one has arrived.
+|Returns: SUCCESS   on success
+|         WAIT      a tile has not yet arrived (only for wait=False)
+|         CLOSED    stream closed
+|         OUTOFSEQ  next object in stream is not a tile (i.e. a header)
+|
+			    
+			    stereotype 	"abstract"
+			    parameters 	(list Parameters
+				(object Parameter "tile"
+				    quid       	"3DF9FECF03C2"
+				    type       	"VisTile::Ref &")
+				(object Parameter "wait"
+				    quid       	"3DF9FED0001B"
+				    type       	"bool"
+				    initv      	"True"))
+			    result     	"int"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "hasHeader"
+			    quid       	"3DF9FED0005A"
+			    documentation 	"Checks if a header is waiting in the stream. Return value: same as would have been returned by getHeader(wait=False)."
+			    stereotype 	"const,abstract"
+			    result     	"int"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "hasTile"
+			    quid       	"3DF9FED00076"
+			    documentation 	"Checks if a tile is waiting in the stream. Return value: same as would have been returned by getNextTile(wait=False)."
+			    stereotype 	"const,abstract"
+			    result     	"int"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "suspend"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DF9FED00090"
+			    documentation 	
+|Tells the agent to suspend the input stream. Agents are not obliged to implement this. An application can use suspend() to "advise" the input agent that it is not keeping up with the input data rate; the agent can use this to determine it queuing or load balancing strategy.
+|
+			    
+			    stereotype 	"virtual"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "resume"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DF9FED000AA"
+			    documentation 	"Resumes a stream after a suspend(). "
+			    stereotype 	"virtual"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "numPendingTiles"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DF9FED000C6"
+			    documentation 	"Returns the number of tiles queued up in a stream. Agents are not obliged to implement this. Control agents are meant to use this method in combination with suspend()/resume() to control the data flow. "
+			    stereotype 	"const,virtual"
+			    result     	"int"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0))
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++"
+		    abstract   	TRUE
+		    nestedClasses 	(list nestedClasses
+			(object Class "ReturnCodes"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"VisAgent/src/VisInputAgent.h")
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"ImplementationType"
+				    value      	(value Text 
+|enum {
+|          SUCCESS   = 1,
+|          WAIT      = 0,    // must wait for data
+|          CLOSED    = -1,   // input stream is closed (or not connected)
+|          OUTOFSEQ  = -2,   // request is out of sequence (see below)
+|      }
+				    )))
+			    quid       	"3DF9FECD016F"
+			    stereotype 	"typedef"
+			    module     	"Component View::AppAgent"
+			    quidu      	"3DF9FDED0011")))
+		(object Class "VisOutputAgent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"VisAgent/src/VisOutputAgent.h"))
+		    quid       	"3E00AA5100F9"
+		    stereotype 	"Interface"
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3E00AA52038B"
+			    supplier   	"Logical View::AppAgents::AppAgent"
+			    quidu      	"3DF9FEEC0043"))
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++"
+		    abstract   	TRUE))
+	    logical_presentations 	(list unit_reference_list
+		(object ClassDiagram "Main"
+		    quid       	"3E02FFE902A7"
+		    title      	"Main"
+		    zoom       	100
+		    max_height 	28350
+		    max_width  	21600
+		    origin_x   	0
+		    origin_y   	0
+		    items      	(list diagram_item_list))))
+	(object Class_Category "MSVisAgent"
+	    quid       	"3E02FFA90127"
+	    exportControl 	"Public"
+	    logical_models 	(list unit_reference_list
+		(object Class "MSVisOutputAgent"
+		    quid       	"3E02FF340070"
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3E02FF5C030F"
+			    supplier   	"Logical View::AppAgents::VisAgent::VisFileOutputAgent"
+			    quidu      	"3E02FF13009E"))
+		    language   	"ANSI C++")
+		(object Class "MSVisInputAgent"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"MSVisAgent/src/MSVisInputAgent.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"BodySourceFile"
+			    value      	"MSVisAgent/src/MSVisInputAgent.cc"))
+		    quid       	"3DF9FECD013C"
+		    documentation 	
+|MSVisInputAgent is an input agent for reading data from an AIPS++
+|Measurement Set. It is initialized from a DataRecord laid out as follows:
+|
+|rec[MSVisInputAgentParams]  (record)    contains all parameters below
+|   +--[FMSName]             (string)    MS filename (must be present)
+|   +--[FDataColumnName]     (string)    column to read visibilities from
+|                                        (default is "DATA", but can use, 
+|                                          e.g., "MODEL_DATA")
+|   +--[FTileSize]           (int)       tile size (default: 1 timeslot)
+|   +--[FSelection]          (record)    determines MS selection:
+|      +--[FDDID]              (int)     selects data description ID 
+|      +--[FFieldIndex]        (int)     selects field  
+|      +--[FChannelStartIndex] (int)     starting channel (default: 0)
+|      +--[FChannelEndIndex]   (int)     ending channel (default: last chan.)
+|      +--[FSelectionString] (string)    additional TaQL selection applied 
+|                                          to MS
+|
+		    
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3DF9FECD0196"
+			    supplier   	"Logical View::AppAgents::VisAgent::VisFileInputAgent"
+			    quidu      	"3DF9FECD0159"))
+		    operations 	(list Operations
+			(object Operation "MSVisInputAgent"
+			    quid       	"3DF9FECD0219"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "getNextTile"
+			    quid       	"3DF9FECD021B"
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "tile"
+				    quid       	"3DF9FECD021D"
+				    type       	"VisTile::Ref &")
+				(object Parameter "wait"
+				    quid       	"3DF9FECD0228"
+				    type       	"bool"
+				    initv      	"False"))
+			    result     	"int"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "init"
+			    quid       	"3DF9FECD0235"
+			    stereotype 	"virtual"
+			    parameters 	(list Parameters
+				(object Parameter "data"
+				    quid       	"3DF9FECD0238"
+				    type       	"const DataRecord::Ref &"))
+			    result     	"bool"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "close"
+			    quid       	"3DF9FECD0244"
+			    stereotype 	"virtual"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "FParams"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3DF9FECD0246"
+			    documentation 	
+|Field name for parameter record.
+|
+			    
+			    stereotype 	"static"
+			    result     	"const HIID &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "MSVisInputAgent"
+			    quid       	"3DF9FECD0248"
+			    parameters 	(list Parameters
+				(object Parameter ""
+				    quid       	"3DF9FECD0249"
+				    type       	"const MSVisInputAgent &"))
+			    concurrency 	"Sequential"
+			    opExportControl 	"Private"
+			    uid        	0)
+			(object Operation "operator ="
+			    quid       	"3DF9FECD0253"
+			    parameters 	(list Parameters
+				(object Parameter ""
+				    quid       	"3DF9FECD0254"
+				    type       	"const MSVisInputAgent &"))
+			    result     	"MSVisInputAgent &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Private"
+			    uid        	0
+			    quidu      	"3DF9FECD013C")
+			(object Operation "openMS"
+			    quid       	"3DF9FECD025E"
+			    parameters 	(list Parameters
+				(object Parameter "hdr"
+				    quid       	"3DF9FECD0260"
+				    type       	"DataRecord &")
+				(object Parameter "selection"
+				    quid       	"3DF9FECD0278"
+				    type       	"const DataRecord &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Private"
+			    uid        	0)
+			(object Operation "fillHeader"
+			    quid       	"3DF9FECD0285"
+			    parameters 	(list Parameters
+				(object Parameter "hdr"
+				    quid       	"3DF9FECD0286"
+				    type       	"DataRecord &")
+				(object Parameter "selection"
+				    quid       	"3DF9FECD0292"
+				    type       	"const DataRecord &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Private"
+			    uid        	0)
+			(object Operation "sdebug"
+			    quid       	"3DFDFC060373"
+			    stereotype 	"const"
+			    parameters 	(list Parameters
+				(object Parameter "detail"
+				    quid       	"3DFDFC060382"
+				    type       	"int"
+				    initv      	"1")
+				(object Parameter "prefix"
+				    quid       	"3DFDFC060398"
+				    type       	"const string &"
+				    initv      	
+|""
+				    )
+				(object Parameter "name"
+				    quid       	"3DFDFC0603AC"
+				    type       	"const char *"
+				    initv      	"0"))
+			    result     	"string"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0))
+		    class_attributes 	(list class_attribute_list
+			(object ClassAttribute "ms_"
+			    quid       	"3DF9FECD0199"
+			    type       	"MeasurementSet")
+			(object ClassAttribute "selms_"
+			    quid       	"3DF9FECD019A"
+			    type       	"MeasurementSet")
+			(object ClassAttribute "obsid_"
+			    quid       	"3DF9FECD01A9"
+			    type       	"int")
+			(object ClassAttribute "dataColName_"
+			    quid       	"3DF9FECD01B0"
+			    type       	"string")
+			(object ClassAttribute "tilesize_"
+			    quid       	"3DF9FECD01C0"
+			    type       	"int")
+			(object ClassAttribute "channels_"
+			    quid       	"3DF9FECD01C8"
+			    type       	"int [2]")
+			(object ClassAttribute "num_channels_"
+			    quid       	"3DF9FECD01D0"
+			    type       	"int")
+			(object ClassAttribute "num_corrs_"
+			    quid       	"3DF9FECD01D7"
+			    type       	"int")
+			(object ClassAttribute "num_antennas_"
+			    quid       	"3DF9FECD01DF"
+			    type       	"int")
+			(object ClassAttribute "num_ifrs_"
+			    quid       	"3DF9FECD01E6"
+			    type       	"int")
+			(object ClassAttribute "tableiter_"
+			    quid       	"3DF9FECD01EE"
+			    type       	"TableIterator")
+			(object ClassAttribute "tileformat_"
+			    quid       	"3DF9FECD01F6"
+			    type       	"VisTile::Format::Ref")
+			(object ClassAttribute "tileiter_"
+			    quid       	"3DF9FECD020D"
+			    type       	"TileCache::iterator")
+			(object ClassAttribute "msname_"
+			    quid       	"3DFDFC06033A"
+			    type       	"string")
+			(object ClassAttribute "current_timeslot_"
+			    quid       	"3DFDFC060354"
+			    type       	"int")
+			(object ClassAttribute "vdsid_"
+			    quid       	"3E00AA5101A0"
+			    type       	"VDSID"))
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++"
+		    nestedClasses 	(list nestedClasses
+			(object Class "TileCache"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"MSVisAgent/src/MSVisInputAgent.h")
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"ImplementationType"
+				    value      	"vector<VisTile::Ref>"))
+			    quid       	"3DF9FECD0142"
+			    stereotype 	"typedef"
+			    exportControl 	"Private"
+			    module     	"Component View::AppAgent"
+			    quidu      	"3DF9FDED0011"))))
+	    logical_presentations 	(list unit_reference_list)))
     logical_presentations 	(list unit_reference_list
 	(object ClassDiagram "Main w/signatures"
 	    quid       	"3DF9FEF20222"
@@ -6006,7 +6041,7 @@
 		    height     	652
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::VisInputAgent" @201
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::VisInputAgent" @201
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -6047,7 +6082,7 @@
 		    height     	756
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::VisFileInputAgent" @202
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::VisFileInputAgent" @202
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -6078,7 +6113,7 @@
 		    height     	1004
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::MSVisInputAgent" @203
+		(object ClassView "Class" "Logical View::AppAgents::MSVisAgent::MSVisInputAgent" @203
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -6257,13 +6292,13 @@
 		    height     	52
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::VisInputAgent" @212
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::VisInputAgent" @212
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(2176, 544)
+		    location   	(2560, 672)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -6275,10 +6310,10 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@212
-			location   	(2175, 649)
+			location   	(2559, 777)
 			anchor_loc 	1
 			nlines     	1
-			max_width  	727
+			max_width  	730
 			justify    	0
 			label      	"VisInputAgent")
 		    icon       	"Interface"
@@ -6290,13 +6325,13 @@
 		    height     	52
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::VisFileInputAgent" @213
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::VisFileInputAgent" @213
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(2208, 1232)
+		    location   	(2560, 1056)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -6308,7 +6343,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@213
-			location   	(1994, 1191)
+			location   	(2346, 1007)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	428
@@ -6319,16 +6354,16 @@
 		    fill_color 	13434879
 		    quidu      	"3DF9FECD0159"
 		    width      	446
-		    height     	107
+		    height     	122
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::MSVisInputAgent" @214
+		(object ClassView "Class" "Logical View::AppAgents::MSVisAgent::MSVisInputAgent" @214
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(2192, 1536)
+		    location   	(2560, 1696)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -6340,7 +6375,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@214
-			location   	(1987, 1495)
+			location   	(2355, 1647)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	410
@@ -6351,7 +6386,7 @@
 		    fill_color 	13434879
 		    quidu      	"3DF9FECD013C"
 		    width      	428
-		    height     	107
+		    height     	122
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object ClassView "Class" "Logical View::AppAgents::OctoAgent" @215
@@ -6360,7 +6395,7 @@
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(1120, 848)
+		    location   	(992, 720)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -6372,7 +6407,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@215
-			location   	(985, 807)
+			location   	(857, 679)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	270
@@ -6426,17 +6461,7 @@
 		    vertices   	(list Points
 			(1344, 367)
 			(1344, 210)))
-		(object InheritView "" @218
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3DF9FEEC0098"
-		    client     	@215
-		    supplier   	@211
-		    line_style 	3
-		    origin_attachment 	(1119, 795)
-		    terminal_attachment 	(1119, 367)
-		    drawSupplier 	@217)
-		(object ClassView "Class" "Logical View::AppAgents::SolverControl::SolverControlAgent" @219
+		(object ClassView "Class" "Logical View::AppAgents::SolverControl::SolverControlAgent" @218
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -6453,7 +6478,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@219
+			Parent_View 	@218
 			location   	(286, 1246)
 			fill_color 	13434879
 			nlines     	1
@@ -6468,22 +6493,13 @@
 		    height     	124
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object InheritView "" @220
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3DFF36340263"
-		    client     	@219
-		    supplier   	@216
-		    line_style 	3
-		    origin_attachment 	(512, 1234)
-		    terminal_attachment 	(512, 645))
-		(object ClassView "Class" "Logical View::AppAgents::SolverControl::BatchAgent" @221
+		(object ClassView "Class" "Logical View::AppAgents::SolverControl::BatchAgent" @219
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(240, 1600)
+		    location   	(304, 1584)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -6494,8 +6510,8 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@221
-			location   	(65, 1550)
+			Parent_View 	@219
+			location   	(129, 1534)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	350
@@ -6509,13 +6525,13 @@
 		    height     	124
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::SolverControl::OctoAgent" @222
+		(object ClassView "Class" "Logical View::AppAgents::SolverControl::OctoAgent" @220
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(768, 1600)
+		    location   	(832, 1600)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -6526,8 +6542,8 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@222
-			location   	(594, 1550)
+			Parent_View 	@220
+			location   	(658, 1550)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	348
@@ -6541,26 +6557,26 @@
 		    height     	124
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::VisOutputAgent" @223
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::VisOutputAgent" @221
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(1600, 528)
+		    location   	(1872, 656)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
 			bold       	FALSE
-			italics    	FALSE
+			italics    	TRUE
 			underline  	FALSE
 			strike     	FALSE
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@223
-			location   	(1599, 633)
+			Parent_View 	@221
+			location   	(1871, 761)
 			anchor_loc 	1
 			nlines     	2
-			max_width  	237
+			max_width  	231
 			justify    	0
 			label      	"VisOutputAgent")
 		    icon       	"Interface"
@@ -6572,27 +6588,17 @@
 		    height     	52
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object InheritView "" @224
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3DF9FEEC00CA"
-		    client     	@212
-		    supplier   	@211
-		    line_style 	3
-		    origin_attachment 	(2180, 516)
-		    terminal_attachment 	(2180, 367)
-		    drawSupplier 	@217)
-		(object InheritView "" @225
+		(object InheritView "" @222
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E00AA52038B"
-		    client     	@223
+		    client     	@221
 		    supplier   	@211
 		    line_style 	3
-		    origin_attachment 	(1604, 500)
-		    terminal_attachment 	(1604, 367)
+		    origin_attachment 	(1872, 628)
+		    terminal_attachment 	(1872, 367)
 		    drawSupplier 	@217)
-		(object InheritView "" @226
+		(object InheritView "" @223
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DFF303D0170"
@@ -6602,56 +6608,239 @@
 		    origin_attachment 	(450, 539)
 		    terminal_attachment 	(450, 367)
 		    drawSupplier 	@217)
-		(object InheritView "" @227
+		(object InheritView "" @224
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DFF2C2103E4"
-		    client     	@221
-		    supplier   	@219
+		    client     	@219
+		    supplier   	@218
 		    line_style 	3
-		    origin_attachment 	(342, 1538)
-		    terminal_attachment 	(342, 1358))
-		(object InheritView "" @228
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3DFF2C4E0021"
-		    client     	@222
-		    supplier   	@219
-		    line_style 	3
-		    origin_attachment 	(658, 1538)
-		    terminal_attachment 	(658, 1358))
-		(object InheritView "" @229
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3DFF2C880255"
-		    client     	@222
-		    supplier   	@215
-		    vertices   	(list Points
-			(875, 1538)
-			(875, 1250)
-			(1103, 1250)
-			(1103, 901))
-		    line_style 	3
-		    origin_attachment 	(875, 1538)
-		    terminal_attachment 	(1103, 901))
-		(object InheritView "" @230
+		    origin_attachment 	(350, 1522)
+		    terminal_attachment 	(350, 1358))
+		(object InheritView "" @225
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DF9FECD02BD"
 		    client     	@213
 		    supplier   	@212
 		    line_style 	3
-		    origin_attachment 	(2166, 1179)
-		    terminal_attachment 	(2166, 674))
-		(object InheritView "" @231
+		    origin_attachment 	(2559, 995)
+		    terminal_attachment 	(2559, 845))
+		(object InheritView "" @226
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DF9FECD0196"
 		    client     	@214
 		    supplier   	@213
 		    line_style 	3
-		    origin_attachment 	(2181, 1483)
-		    terminal_attachment 	(2181, 1285))))
+		    origin_attachment 	(2563, 1635)
+		    terminal_attachment 	(2563, 1117))
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::VisFileOutputAgent" @227
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(1888, 1056)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@227
+			location   	(1656, 1007)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	464
+			justify    	0
+			label      	"VisFileOutputAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3E02FF13009E"
+		    width      	482
+		    height     	122
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::MSVisAgent::MSVisOutputAgent" @228
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(1888, 1696)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@228
+			location   	(1659, 1647)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	458
+			justify    	0
+			label      	"MSVisOutputAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3E02FF340070"
+		    width      	476
+		    height     	122
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object InheritView "" @229
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DF9FEEC00CA"
+		    client     	@212
+		    supplier   	@211
+		    line_style 	3
+		    origin_attachment 	(2550, 644)
+		    terminal_attachment 	(2550, 367)
+		    drawSupplier 	@217)
+		(object InheritView "" @230
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E02FF58006F"
+		    client     	@227
+		    supplier   	@221
+		    line_style 	3
+		    origin_attachment 	(1871, 995)
+		    terminal_attachment 	(1871, 854))
+		(object InheritView "" @231
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E02FF5C030F"
+		    client     	@228
+		    supplier   	@227
+		    line_style 	3
+		    origin_attachment 	(1888, 1635)
+		    terminal_attachment 	(1888, 1117))
+		(object CategoryView "Logical View::AppAgents::SolverControl" @232
+		    location   	(656, 1456)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	TRUE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@232
+			location   	(53, 1109)
+			nlines     	2
+			max_width  	1206
+			justify    	0
+			label      	"SolverControl")
+		    stereotype 	(object ItemLabel
+			Parent_View 	@232
+			location   	(53, 1059)
+			anchor     	10
+			nlines     	1
+			max_width  	1206
+			justify    	0
+			label      	"<<namespace>>")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    quidu      	"3DFF2B2102FC"
+		    width      	1219
+		    height     	806)
+		(object InheritView "" @233
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DFF36340263"
+		    client     	@218
+		    supplier   	@216
+		    line_style 	3
+		    origin_attachment 	(406, 1234)
+		    terminal_attachment 	(406, 645))
+		(object InheritView "" @234
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DFF2C4E0021"
+		    client     	@220
+		    supplier   	@218
+		    line_style 	3
+		    origin_attachment 	(690, 1538)
+		    terminal_attachment 	(690, 1358))
+		(object InheritView "" @235
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DFF2C880255"
+		    client     	@220
+		    supplier   	@215
+		    line_style 	3
+		    origin_attachment 	(981, 1538)
+		    terminal_attachment 	(981, 773))
+		(object CategoryView "Logical View::AppAgents::VisAgent" @236
+		    location   	(2192, 912)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	TRUE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@236
+			location   	(1545, 606)
+			nlines     	2
+			max_width  	1294
+			justify    	0
+			label      	"VisAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    quidu      	"3E02FFA10266"
+		    width      	1306
+		    height     	625)
+		(object CategoryView "Logical View::AppAgents::MSVisAgent" @237
+		    location   	(2192, 1664)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	TRUE
+			underline  	TRUE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@237
+			location   	(1539, 1452)
+			nlines     	2
+			max_width  	1306
+			justify    	0
+			label      	"MSVisAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    quidu      	"3E02FFA90127"
+		    width      	1318
+		    height     	437)
+		(object InheritView "" @238
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3DF9FEEC0098"
+		    client     	@215
+		    supplier   	@211
+		    line_style 	3
+		    origin_attachment 	(981, 667)
+		    terminal_attachment 	(981, 367)
+		    drawSupplier 	@217)))
 	(object ClassDiagram "Solvers"
 	    quid       	"3E00AAEF020A"
 	    title      	"Solvers"
@@ -6661,7 +6850,7 @@
 	    origin_x   	0
 	    origin_y   	0
 	    items      	(list diagram_item_list
-		(object ClassView "Class" "Logical View::AppAgents::VisInputAgent" @232
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::VisInputAgent" @239
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -6678,7 +6867,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@232
+			Parent_View 	@239
 			location   	(911, 201)
 			anchor_loc 	1
 			nlines     	2
@@ -6694,7 +6883,7 @@
 		    height     	52
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::VisOutputAgent" @233
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::VisOutputAgent" @240
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -6703,17 +6892,17 @@
 			size       	10
 			face       	"arial"
 			bold       	FALSE
-			italics    	FALSE
+			italics    	TRUE
 			underline  	FALSE
 			strike     	FALSE
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@233
+			Parent_View 	@240
 			location   	(415, 217)
 			anchor_loc 	1
 			nlines     	2
-			max_width  	237
+			max_width  	231
 			justify    	0
 			label      	"VisOutputAgent")
 		    icon       	"Interface"
@@ -6725,7 +6914,7 @@
 		    height     	52
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::BaseSolver" @234
+		(object ClassView "Class" "Logical View::AppAgents::BaseSolver" @241
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -6741,7 +6930,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@234
+			Parent_View 	@241
 			location   	(148, 583)
 			fill_color 	13434879
 			nlines     	1
@@ -6752,35 +6941,18 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3E00AA510095"
-		    compartment 	(object Compartment
-			Parent_View 	@234
-			location   	(148, 644)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	TRUE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	13434879
-			anchor     	2
-			nlines     	10
-			max_width  	1886)
 		    width      	2218
 		    height     	586
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object AssociationViewNew "$UNNAMED$8" @235
+		(object AssociationViewNew "$UNNAMED$8" @242
 		    location   	(910, 410)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E00AA51011D"
 		    roleview_list 	(list RoleViews
-			(object RoleView "$UNNAMED$9" @236
-			    Parent_View 	@235
+			(object RoleView "$UNNAMED$9" @243
+			    Parent_View 	@242
 			    location   	(222, -86)
 			    font       	(object Font
 				size       	10
@@ -6791,8 +6963,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @237
-				Parent_View 	@236
+			    label      	(object SegLabel @244
+				Parent_View 	@243
 				location   	(952, 538)
 				font       	(object Font
 				    size       	10
@@ -6816,13 +6988,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E00AA510120"
-			    client     	@235
-			    supplier   	@234
+			    client     	@242
+			    supplier   	@241
 			    line_style 	3
 			    origin_attachment 	(910, 410)
 			    terminal_attachment 	(910, 571))
-			(object RoleView "inputAgent: VisInputAgent &" @238
-			    Parent_View 	@235
+			(object RoleView "inputAgent: VisInputAgent &" @245
+			    Parent_View 	@242
 			    location   	(222, -86)
 			    font       	(object Font
 				size       	10
@@ -6833,8 +7005,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @239
-				Parent_View 	@238
+			    label      	(object SegLabel @246
+				Parent_View 	@245
 				location   	(901, 302)
 				font       	(object Font
 				    size       	10
@@ -6857,19 +7029,19 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E00AA51011E"
-			    client     	@235
-			    supplier   	@232
+			    client     	@242
+			    supplier   	@239
 			    line_style 	3
 			    origin_attachment 	(910, 410)
-			    terminal_attachment 	(910, 250))))
-		(object AssociationViewNew "$UNNAMED$10" @240
+			    terminal_attachment 	(910, 226))))
+		(object AssociationViewNew "$UNNAMED$10" @247
 		    location   	(413, 418)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E00AA51012B"
 		    roleview_list 	(list RoleViews
-			(object RoleView "$UNNAMED$11" @241
-			    Parent_View 	@240
+			(object RoleView "$UNNAMED$11" @248
+			    Parent_View 	@247
 			    location   	(-35, -302)
 			    font       	(object Font
 				size       	10
@@ -6880,8 +7052,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @242
-				Parent_View 	@241
+			    label      	(object SegLabel @249
+				Parent_View 	@248
 				location   	(372, 540)
 				font       	(object Font
 				    size       	10
@@ -6905,13 +7077,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E00AA51012E"
-			    client     	@240
-			    supplier   	@234
+			    client     	@247
+			    supplier   	@241
 			    line_style 	3
 			    origin_attachment 	(413, 418)
 			    terminal_attachment 	(413, 571))
-			(object RoleView "outputAgent: VisOutputAgent &" @243
-			    Parent_View 	@240
+			(object RoleView "outputAgent: VisOutputAgent &" @250
+			    Parent_View 	@247
 			    location   	(-35, -302)
 			    font       	(object Font
 				size       	10
@@ -6922,8 +7094,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @244
-				Parent_View 	@243
+			    label      	(object SegLabel @251
+				Parent_View 	@250
 				location   	(399, 312)
 				font       	(object Font
 				    size       	10
@@ -6946,12 +7118,12 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E00AA51012C"
-			    client     	@240
-			    supplier   	@233
+			    client     	@247
+			    supplier   	@240
 			    line_style 	3
 			    origin_attachment 	(413, 418)
-			    terminal_attachment 	(413, 266))))
-		(object ClassView "Class" "Logical View::AppAgents::SolverControl::SolverControlAgent" @245
+			    terminal_attachment 	(413, 242))))
+		(object ClassView "Class" "Logical View::AppAgents::SolverControl::SolverControlAgent" @252
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -6968,7 +7140,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@245
+			Parent_View 	@252
 			location   	(1374, 78)
 			nlines     	1
 			max_width  	452
@@ -6981,14 +7153,14 @@
 		    height     	124
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object AssociationViewNew "$UNNAMED$12" @246
+		(object AssociationViewNew "$UNNAMED$12" @253
 		    location   	(1601, 380)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E00AA51013C"
 		    roleview_list 	(list RoleViews
-			(object RoleView "$UNNAMED$13" @247
-			    Parent_View 	@246
+			(object RoleView "$UNNAMED$13" @254
+			    Parent_View 	@253
 			    location   	(129, -244)
 			    font       	(object Font
 				size       	10
@@ -6999,8 +7171,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @248
-				Parent_View 	@247
+			    label      	(object SegLabel @255
+				Parent_View 	@254
 				location   	(1560, 533)
 				font       	(object Font
 				    size       	10
@@ -7024,13 +7196,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E00AA51013F"
-			    client     	@246
-			    supplier   	@234
+			    client     	@253
+			    supplier   	@241
 			    line_style 	3
 			    origin_attachment 	(1601, 380)
 			    terminal_attachment 	(1601, 571))
-			(object RoleView "controlAgent: SolverControl::SolverControlAgent &" @249
-			    Parent_View 	@246
+			(object RoleView "controlAgent: SolverControl::SolverControlAgent &" @256
+			    Parent_View 	@253
 			    location   	(129, -244)
 			    font       	(object Font
 				size       	10
@@ -7041,8 +7213,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @250
-				Parent_View 	@249
+			    label      	(object SegLabel @257
+				Parent_View 	@256
 				location   	(1601, 240)
 				font       	(object Font
 				    size       	10
@@ -7065,12 +7237,12 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E00AA51013D"
-			    client     	@246
-			    supplier   	@245
+			    client     	@253
+			    supplier   	@252
 			    line_style 	3
 			    origin_attachment 	(1601, 380)
 			    terminal_attachment 	(1601, 190))))
-		(object ClassView "Class" "Logical View::AppAgents::DummySolver" @251
+		(object ClassView "Class" "Logical View::AppAgents::DummySolver" @258
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
@@ -7086,7 +7258,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@251
+			Parent_View 	@258
 			location   	(249, 1478)
 			fill_color 	13434879
 			nlines     	1
@@ -7097,33 +7269,16 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3E00ACBD03DD"
-		    compartment 	(object Compartment
-			Parent_View 	@251
-			location   	(249, 1539)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	FALSE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	13434879
-			anchor     	2
-			nlines     	3
-			max_width  	1714)
 		    width      	2016
 		    height     	236
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object InheritView "" @252
+		(object InheritView "" @259
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E00ACCA0036"
-		    client     	@251
-		    supplier   	@234
+		    client     	@258
+		    supplier   	@241
 		    line_style 	3
 		    origin_attachment 	(1168, 1466)
 		    terminal_attachment 	(1168, 1157))))))
