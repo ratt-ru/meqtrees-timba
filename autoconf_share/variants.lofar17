@@ -1,6 +1,9 @@
 gnu3.compiler.conf: CXX=/usr/bin/g++
 gnu3.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/weekly/linux_gnu
 
+gnu.compiler.conf: CXX=/usr/bin/g++
+gnu.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/weekly/linux_gnu
+
 gnu34.compiler.conf: CXX=/home/loose/linux/usr/local/gcc-3.4.3/bin/g++ --with-ldflags="-Wl,--rpath,/home/loose/linux/usr/local/gcc-3.4.3/lib" --with-dtl=/home/loose/linux/usr/local/dtl/gnu34 --with-log4cplus=/home/loose/linux/usr/local/log4cplus/gnu34 --with-blitz=/home/loose/linux/usr/local/blitz/gnu34  
 gnu34.compiler.aipspp.var: --with-aipspp=/lofarbuild/aips++/weekly/linux_gnu34
 
