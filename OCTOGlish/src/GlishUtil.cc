@@ -115,10 +115,6 @@ GlishRecord GlishUtil::recToGlish (const DataRecord &rec)
     {
       glrec.add(name,makeFailField(exc.what()));
     }
-    catch( AipsError &err )
-    {
-      glrec.add(name,makeFailField(err.getMesg()));
-    }
     catch( ... )
     {
       glrec.add(name,makeFailField("unknown exception"));
@@ -393,11 +389,6 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
           dprintf(2)("warning: ignoring field [%d] (got exception: %s)\n",
               i,exc.what());
         }
-        catch( AipsError &err )
-        {
-          dprintf(2)("warning: ignoring field [%d] (got exception: %s)\n",
-              i,err.getMesg().c_str());
-        }
         catch( ... )
         {
           dprintf(2)("warning: ignoring field [%d] (got unknown exception)\n",i);
@@ -448,11 +439,6 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
         {
           dprintf(2)("warning: ignoring field %s[%d] (got exception: %s)\n",
               field_name.c_str(),i,exc.what());
-        }
-        catch( AipsError &err )
-        {
-          dprintf(2)("warning: ignoring field %s[%d] (got exception: %s)\n",
-              field_name.c_str(),i,err.getMesg().c_str());
         }
         catch( ... )
         {

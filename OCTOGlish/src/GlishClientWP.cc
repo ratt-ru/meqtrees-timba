@@ -150,11 +150,6 @@ void GlishClientWP::handleEvent (GlishSysEvent &event)
       dprintf(1)("exception processing glish event, ignoring: %s\n",exc.what());
       result = False;
     }
-    catch ( AipsError &err ) 
-    {
-      dprintf(1)("AIPS++ error processing glish event, ignoring: %s\n",err.getMesg().c_str());
-      result = False;
-    }
     catch ( ... ) 
     {
       dprintf(1)("unknown exception processing glish event\n");
