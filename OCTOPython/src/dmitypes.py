@@ -68,7 +68,9 @@ array_class = numarray.array(0).__class__;
 dmi_supported_types = (int,long,float,complex,str,hiid,array_class,dmi_container);
   
 #
-# dmize_object helper func
+# dmize_object() function
+# Converts obj to DMI-compatible representation, or raises TypeError if this
+# is impossible
 #
 def dmize_object (obj):
   "coerces object into a DMI-supported type as needed. Returns the "
@@ -92,50 +94,59 @@ def dmize_object (obj):
     return seqtype(outlist);
   raise TypeError,'dmi: type %s not supported'%type(item);
   
+# 
+# A record is a dict with string keys, which can also be accessed as attributes.
+# Values are limited to dmizable objects
+#
 class record (dict,dmi_container):
-  "represents a DMI record";
-  def __init__ (self,initdict={},verbose=0):
-    # initialize from dictionary, checking for valid (hiid) jkeys
-    if len(initdict):
-      dictiter = initdict.iteritems();
+  "represents a record class with string keys";
+  def __init__ (self,init=None,verbose=0):
+    # initialize from init dictionary, checking for valid keys
+    if isinstance(init,dict) and len(init):
+      dictiter = init.iteritems();
       for (key,value) in dictiter:
         try:
-          key = make_hiid(key,sep='._');
-        except ValueError,info:
+          key = self.make_key(key);
+        except Exception,info:
           if verbose>0: print "skipping %s=%s (%s)" % (key,value,info);
           continue;
         try:
           value = dmize_object(value);
-        except TypeError,info:
+        except Exception,info:
           if verbose>0: print "skipping %s=%s (%s)" % (key,value,info);
           continue;
         dict.__setitem__(self,key,value);
         if verbose>1: print "adding %s=%s" % (key,value);
       if verbose>0: print "initialized",dict.__len__(self),"fields";
+  # make_key: coerces value to legal key, throws ValueError if illegal
+  def make_key (self,key): 
+    "checks key for validity, returns key, raises TypeError if key is illegal";
+    return str(key);
   # __getattr__: dict contents are exposed as extra attributes
   def __getattr__(self,name):
+    # try to access attribute directly first
     try: return dict.__getattr__(self,name);
     except AttributeError: pass
-    # print 'getattr(%s) failed, looking up key'%name;
-    try:    key = make_hiid(name,sep='._');
+    # if no found, go look for a dict key
+    try:   key = self.make_key(name);
     except ValueError,info: raise AttributeError,info;
-    try:    return dict.__getitem__(self,key);
+    try:   return dict.__getitem__(self,key);
     except KeyError: raise KeyError,"no such field: "+str(key);
   # __setattr__: sets entry in dict
   def __setattr__(self,name,value):
     value = dmize_object(value);
-    try:    key = make_hiid(name,sep='._');
+    try:   key = self.make_key(name);
     except ValueError,info: raise AttributeError,info;
     return dict.__setitem__(self,key,value);
   # __delattr__: deletes key
   def __delattr__(self,name):
-    try:    key = make_hiid(name,sep='._');
+    try:    key = self.make_key(name);
     except ValueError,info: raise AttributeError,info;
     return dict.__delitem__(self,key);
   # __getitem__: string names implicitly converted to HIIDs
   def __getitem__(self,name):
     if isinstance(name,str):
-      try: name = make_hiid(name,sep='._');
+      try: name = self.make_key(name);
       except ValueError,info: raise TypeError,info;
       try: return dict.__getitem__(self,name);
       except KeyError: raise KeyError,"no such field: "+str(name);
@@ -143,34 +154,47 @@ class record (dict,dmi_container):
   # __setitem__: check types, string names implicitly converted to HIIDs
   def __setitem__ (self,name,value):
     value = dmize_object(value);
-    try:    name = make_hiid(name,sep='._');
+    try: name = self.make_key(name);
     except ValueError,info: raise TypeError,info;
     return dict.__setitem__(self,name,value);
   # __contains__: string names implicitly converted to HIIDs
   def __contains__(self,name):
     try: 
-      return dict.__contains__(self,make_hiid(name,sep='._'));
+      return dict.__contains__(self,self.make_key(name));
     except: 
       return False;
-    
-  def field_names (self):
-    "returns a list of field names, in underscore-separator format";
-    return map(lambda x:x.as_str('_'),self.keys());
-    
+    # return map(lambda x:x.as_str('_'),self.keys());
+  # __str__: pretty-print
   def __str__ (self):
     dictiter = self.iteritems();
     items = [];
     for (key,value) in dictiter:
-      items += ["%s: %s" % (key.as_str('_'),str(value)) ];
+      items += ["%s: %s" % (key,str(value)) ];
     return "{ " + string.join(items,', ') + " }";
-  
+  # __repr__: official form
   def __repr__ (self):
     dictiter = self.iteritems();
     items = [];
     for (key,value) in dictiter:
-      items += ["'%s':%s" % (key.as_str('.'),repr(value)) ];
-    return "record({" + string.join(items,',') + "})";
-  
+      items += ["'%s':%s" % (key,repr(value)) ];
+    return self.__class__.__name__+"({" + string.join(items,',') + "})";
+  # field_names: list of dictionary keys  
+  def field_names (self):
+    "returns a list of field names, in underscore-separator format";
+    return self.keys();
+
+# 
+# A srecord is a strict-record: all keys must have a valid HIID representation
+#
+class srecord (record):
+  "represents a strict DMI-like record (all keys must be legal HIIDs)";
+  # redefine make_key to check for HIIDs
+  def make_key (self,key): 
+    "checks key for validity (must be hiid), returns key, raises "
+    "TypeError if key is illegal";
+    try: make_hiid(key,sep='._');
+    except Exception,info: raise TypeError,info;
+    return str(key);
     
 class message (object):
   "Represents an OCTOPUSSY message";
@@ -239,20 +263,45 @@ def __test_messages():
   
 def __test_records():
   global rec1,rec2;
+  print '------------- building record (non-strict) -------------------------';
   rec1 = record();
   rec1.a_b = 0;
   rec1.b = "test";
   rec1.c = record();
   rec1.c.a = 0;
-  print rec1;
-  print "accessing unknown field";
+  print 'rec1:',rec1;
+  print "accessing unknown field, expecting exception";
   try: rec1.d
-  except: print "got exception";
-  print rec1.field_names();
-  rec2 = record({'a':0,'b':1,'c_d':2,'e':[1,2,3],'f':('x','y'),'g':[1,'x'],'z':(hiid('a'),hiid('b')),'notincluded':4},2);
-  print rec1;
-  print rec2;
-  print `rec1`;
+  except Exception,info: print "got exception:",info;
+  print "assigning illegal type, expecting exception";
+  try: rec1.d = [0,'x'];
+  except Exception,info: print "got exception:",info;
+  print 'rec1.field_names():',rec1.field_names();
+  print 'rec1.repr():',`rec1`;
+  print '------------- building record (strict) -----------------------------';
+  srec1 = srecord();
+  srec1.a_b = 0;
+  srec1.b = "test";
+  srec1.c = srecord();
+  srec1.c.a = 0;
+  print 'srec1:',srec1;
+  print "accessing unknown field, expecting exception";
+  try: print srec1.d;
+  except Exception,info: print "got exception:",info;
+  print "accessing illegal field, expecting exception";
+  try: print srec1.nonhiid;
+  except Exception,info: print "got exception:",info;
+  print "assigning to illegal field, expecting exception";
+  try: srec1.nonhiid = 0;
+  except Exception,info: print "got exception:",info;
+  print 'srec1.field_names():',srec1.field_names();
+  print 'srec1.repr():',`srec1`;
+  print '------------- initializing strict record from dict -----------------';
+  rec2 = srecord({'a':0,'b':1,'c_d':2,'e':[1,2,3],'f':('x','y'),'g':[1,'x'],'z':(hiid('a'),hiid('b')),'nonhiid':4},verbose=2);
+  print 'rec2:',rec2;
+  print '------------- initializing non-strict record from dict -------------';
+  rec3 = record({'a':0,'b':1,'c_d':2,'e':[1,2,3],'f':('x','y'),'g':[1,'x'],'z':(hiid('a'),hiid('b')),'nonhiid':4},verbose=2);
+  print 'rec3:',rec3;
   return rec1;
     
 if __name__ == "__main__":
