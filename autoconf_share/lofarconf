@@ -42,6 +42,7 @@ if [ "$lfr_error" = "" ]; then
       fi
       lfr_pkg=$lfr_tdir;
     done
+    lfr_pkg=`echo $lfr_pkg | sed -e "s%^LOFAR/%%"`;
   else
     # Package is subdirectory of build area.
     # Error if it does not exist.
