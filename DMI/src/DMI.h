@@ -65,9 +65,9 @@ namespace DMI
   // _BlockSet_-specific flags
       MAKE_READONLY   =0x4000000,   // for copyAll(): makes source set read-only
 
-  // NestableContainer::get flags
-      NC_SCALAR       =0x1000000,  // container accessed as a scalar
-      NC_POINTER      =0x2000000,  // container accessed as a pointer 
+  // NestableContainer flags
+      NC_SCALAR       =0x1000000,  // container accessed as a scalar (get())
+      NC_POINTER      =0x2000000,  // container accessed as a pointer  (get())
       
       DMI_ZERO_FLAG   =0
   }

@@ -390,6 +390,7 @@ int DataField::fromBlock (BlockSet& set)
     default:
         Throw("unsupported data type "+mytype.toString());  
   }
+  validateContent();
   return npopped;
 }
 
@@ -640,6 +641,7 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
     }
     spvec_modified = other.spvec_modified;
   }
+  validateContent();
   // for binary types, do nothing since they're already in the header block
 }
 

@@ -58,6 +58,43 @@ void DataRecord::add (const HIID &id, const NCRef &ref, int flags)
     fields[id] = ref;
 }
 
+void DataRecord::add (const HIID &id,NestableContainer *pnc, int flags)
+{
+  nc_writelock;
+  dprintf(2)("add(%s,[%s],%x)\n",id.toString().c_str(),pnc->debug(1),flags);
+  FailWhen( !id.size(),"null HIID" );
+  FailWhen( !isWritable(),"r/w access violation" );
+  FailWhen( fields.find(id) != fields.end(), "field already exists" );
+  fields[id].attach(pnc,flags);
+}
+
+//##ModelId=3BFCD4BB036F
+void DataRecord::replace (const HIID &id, const NCRef &ref, int flags)
+{
+  nc_writelock;
+  dprintf(2)("replace(%s,[%s],%x)\n",id.toString().c_str(),ref->debug(1),flags);
+//  FailWhen( ref->objectType() != TpDataField && ref->objectType() != TpDataArray,
+//            "illegal field object" );
+  FailWhen( !id.size(),"null HIID" );
+  FailWhen( !isWritable(),"r/w access violation" );
+  if( flags&DMI::COPYREF )
+    fields[id].copy(ref,flags);
+  else
+    fields[id] = ref;
+}
+
+void DataRecord::replace (const HIID &id, NestableContainer *pnc, int flags)
+{
+  nc_writelock;
+  dprintf(2)("replace(%s,[%s],%x)\n",id.toString().c_str(),pnc->debug(1),flags);
+//  FailWhen( ref->objectType() != TpDataField && ref->objectType() != TpDataArray,
+//            "illegal field object" );
+  FailWhen( !id.size(),"null HIID" );
+  FailWhen( !isWritable(),"r/w access violation" );
+  fields[id].attach(pnc,flags);
+}
+
+
 //##ModelId=3BB311C903BE
 NCRef DataRecord::removeField (const HIID &id)
 {
@@ -74,27 +111,6 @@ NCRef DataRecord::removeField (const HIID &id)
     return ref;
   }
   Throw("field "+id.toString()+" not found");
-}
-
-//##ModelId=3BFCD4BB036F
-void DataRecord::replace (const HIID &id, const NCRef &ref, int flags)
-{
-  nc_writelock;
-  dprintf(2)("replace(%s,[%s],%x)\n",id.toString().c_str(),ref->debug(1),flags);
-  FailWhen( ref->objectType() != TpDataField && ref->objectType() != TpDataArray,
-            "illegal field object" );
-  FailWhen( !id.size(),"null HIID" );
-  FailWhen( !isWritable(),"r/w access violation" );
-  // is it our field -- just remove it
-  CFMI iter = fields.find(id);
-  if( iter != fields.end() )
-  {
-    if( flags&DMI::COPYREF )
-      fields[id].copy(ref,flags);
-    else
-      fields[id] = ref;
-    return;
-  }
 }
 
 //##ModelId=3C57CFFF005E
@@ -177,6 +193,7 @@ int DataRecord::fromBlock (BlockSet& set)
           id.toString().c_str(),field->sdebug(1).c_str(),nr);
   }
   dprintf(2)("fromBlock: %d total blocks used\n",nref);
+  validateContent();
   return nref;
 }
 
@@ -254,6 +271,7 @@ void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
       ref.privatize(flags|DMI::LOCK,depth-1);
     
   }
+  validateContent();
 }
 
 //##ModelId=3C56B00E0182

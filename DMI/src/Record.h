@@ -23,8 +23,8 @@
 #ifndef DMI_DataRecord_h
 #define DMI_DataRecord_h 1
 
-#include "DMI/DMI.h"
-#include "DMI/NestableContainer.h"
+#include <DMI/DMI.h>
+#include <DMI/NestableContainer.h>
 
 #pragma type #DataRecord
 
@@ -73,9 +73,11 @@ class DataRecord : public NestableContainer
 
       //##ModelId=3BFBF5B600EB
       void add (const HIID &id, const NCRef &ref, int flags = DMI::XFER);
-
       //##ModelId=3C5FF0D60106
-      void add (const HIID &id, NestableContainer *pfld, int flags = DMI::WRITE|DMI::ANON);
+      void add (const HIID &id, NestableContainer *pnc, int flags = DMI::ANONWR);
+      
+      void add (const HIID &id, const NestableContainer *pnc, int flags = DMI::ANONRO)
+      { add(id,const_cast<NestableContainer*>(pnc),(flags&~DMI::WRITE)|DMI::READONLY); }
 
       //##ModelId=3BB311C903BE
       //##Documentation
@@ -85,10 +87,12 @@ class DataRecord : public NestableContainer
 
       //##ModelId=3BFCD4BB036F
       void replace (const HIID &id, const NCRef &ref, int flags = DMI::XFER);
-
       //##ModelId=3C5FF10102CA
-      void replace (const HIID &id, NestableContainer *pfld, int flags = DMI::WRITE|DMI::ANON);
-
+      void replace (const HIID &id, NestableContainer *pnc, int flags = DMI::ANONWR);
+      
+      void replace (const HIID &id, const NestableContainer *pnc, int flags = DMI::ANONRO)
+      { replace(id,const_cast<NestableContainer*>(pnc),(flags&~DMI::WRITE)|DMI::READONLY); }
+      
       //##ModelId=3C57CFFF005E
       NCRef field (const HIID &id) const;
       
@@ -195,18 +199,6 @@ DefineRefTypes(DataRecord,DataRecordRef);
 inline TypeId DataRecord::objectType () const
 {
   return TpDataRecord;
-}
-
-//##ModelId=3C5FF0D60106
-inline void DataRecord::add (const HIID &id, NestableContainer *pfld, int flags)
-{
-  add(id,NCRef(pfld,flags));
-}
-
-//##ModelId=3C5FF10102CA
-inline void DataRecord::replace (const HIID &id,  NestableContainer *pfld, int flags)
-{
-  replace(id,NCRef(pfld,flags));
 }
 
 //##ModelId=3CA20ACE00F8

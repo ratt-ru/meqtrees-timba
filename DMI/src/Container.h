@@ -12,31 +12,31 @@
 // Strings). This is off by default; if you do need them, you need to
 //    #define AIPSPP_HOOKS 1
 //    <include NestableContainer.h or another file that eventually includes it>
-// and later, #include "DMI/AIPSPP-Hooks.h"
+// and later, #include <DMI/AIPSPP-Hooks.h>
 // The reason you need to include AIPSPP-Hooks separately is that this file
 // pulls in DataField.h and DataArray.h, which in turn include 
 // NestableContainer.h. 
       
-#include "Common/Thread/Mutex.h"
-#include "DMI/DMI.h"
-#include "DMI/TypeInfo.h"
-#include "DMI/Timestamp.h"
-#include "DMI/BlockableObject.h"
-#include "DMI/Registry.h"
-#include "DMI/HIIDSet.h"
-#include "DMI/Loki/TypeManip.h"
+#include <Common/Thread/Mutex.h>
+#include <DMI/DMI.h>
+#include <DMI/TypeInfo.h>
+#include <DMI/Timestamp.h>
+#include <DMI/BlockableObject.h>
+#include <DMI/Registry.h>
+#include <DMI/HIIDSet.h>
+#include <DMI/Loki/TypeManip.h>
 #ifndef NC_SKIP_HOOKS
-  #include "DMI/TID-DMI.h"
-  #include "DMI/TypeIterMacros.h"
+  #include <DMI/TID-DMI.h>
+  #include <DMI/TypeIterMacros.h>
 #endif
 
 // pull in type definitions from configured packages    
 // if you add DMI-aware types to a package of your own, add it here
 #ifdef HAVE_LOFAR_OCTOPUSSY
-  #include "OCTOPUSSY/TID-OCTOPUSSY.h"
+  #include <OCTOPUSSY/TID-OCTOPUSSY.h>
 #endif
 #ifdef HAVE_LOFAR_VISCUBE
-  #include "VisCube/TID-VisCube.h"
+  #include <VisCube/TID-VisCube.h>
 #endif
 
 // pull in AIPS++ types if AIPS++ hooks are configured
@@ -696,6 +696,13 @@ class NestableContainer : public BlockableObject
       //## fixed type (e.g. a record), or hasn't been initialized yet, then
       //## just return NullType (0). Default version returns 0.
       virtual TypeId type () const;
+      
+      //##Documentation
+      //## This method is called after a copy constructor, assignment
+      //## or fromBlock() operation. It is meant to validate the integrity of 
+      //## the container, for application-specific containers derived 
+      //## from the standard system ones. Default version does nothing. 
+      virtual void validateContent () {};
 
       //##ModelId=3C8742310264
       NestableContainer::ConstHook operator [] (const HIID &id) const;
@@ -1149,7 +1156,7 @@ inline const void * NestableContainer::ConstHook::collapseIndex (ContentInfo &in
 }
 
 #ifndef NC_SKIP_HOOKS
-  #include "DMI/NC-Hooks-Templ.h"
+  #include <DMI/NC-Hooks-Templ.h>
 #endif
 
 #endif
