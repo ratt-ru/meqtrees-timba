@@ -12,10 +12,10 @@
 # packages dependencies in a tree-like format.
 #
 #  Run as:   finddep [rootdir]
-#    rootdir:   root of LOFAR software tree (default is ~lofar/weekly/LOFAR)
+#    rootdir:   root of LOFAR software tree
+#                 (default is /home/lofar/weekly/LOFAR)
 
 rootdir="$1"
-echo "rootdir='$rootdir'"
 if [ "$rootdir" = "" ]; then
   rootdir="/home/lofar/weekly/LOFAR";
 fi
