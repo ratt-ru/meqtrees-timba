@@ -13,7 +13,7 @@
 //## Module: SmartBlock%3C10CC83016C; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\SmartBlock.h
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\SmartBlock.h
 
 #ifndef SmartBlock_h
 #define SmartBlock_h 1
@@ -26,12 +26,12 @@
 //## begin module%3C10CC83016C.includes preserve=yes
 //## end module%3C10CC83016C.includes
 
-// CountedRef
-#include "CountedRef.h"
 // CountedRefTarget
 #include "CountedRefTarget.h"
 // Debug
 #include "Debug.h"
+// CountedRef
+#include "CountedRef.h"
 //## begin module%3C10CC83016C.declarations preserve=no
 //## end module%3C10CC83016C.declarations
 
@@ -122,7 +122,7 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
     //## Get and Set Operations for Class Attributes (generated)
 
       //## Attribute: block%3BEAACB9029A
-      const char* data () const;
+      const void* data () const;
 
       //## Attribute: datasize%3BEAACBD0318
       size_t size () const;
@@ -132,7 +132,7 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
 
     // Additional Public Declarations
       //## begin SmartBlock%3BEAACAB0041.public preserve=yes
-      char * data ();
+      void * data ();
       
       DefineRefTypes(SmartBlock,Ref);
       
@@ -155,8 +155,8 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
   private: //## implementation
     // Data Members for Class Attributes
 
-      //## begin SmartBlock::block%3BEAACB9029A.attr preserve=no  public: char* {U} 
-      char* block;
+      //## begin SmartBlock::block%3BEAACB9029A.attr preserve=no  public: void* {U} 
+      void* block;
       //## end SmartBlock::block%3BEAACB9029A.attr
 
       //## begin SmartBlock::datasize%3BEAACBD0318.attr preserve=no  public: size_t {U} 
@@ -230,7 +230,7 @@ inline const void * SmartBlock::operator * () const
 
 //## Get and Set Operations for Class Attributes (inline)
 
-inline const char* SmartBlock::data () const
+inline const void* SmartBlock::data () const
 {
   //## begin SmartBlock::data%3BEAACB9029A.get preserve=no
   return block;
@@ -252,7 +252,7 @@ inline int SmartBlock::getShmid () const
 }
 
 //## begin module%3C10CC83016C.epilog preserve=yes
-inline char * SmartBlock::data ()
+inline void * SmartBlock::data ()
 {
   return block;
 }

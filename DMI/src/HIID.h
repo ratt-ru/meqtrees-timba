@@ -187,6 +187,16 @@ class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
 };
 
 //## begin HIID%3BE96FE601C5.postscript preserve=yes
+// comparison operators for single AtomicIDs
+inline bool operator == (const HIID &id1,AtomicID id2)
+{ return id1 == HIID(id2); }
+inline bool operator != (const HIID &id1,AtomicID id2)
+{ return id1 != HIID(id2); }
+inline bool operator == (AtomicID id1,const HIID &id2)
+{ return id2 == id1; }
+inline bool operator != (AtomicID id1,const HIID &id2)
+{ return id2 != id1; }
+
 // concatenation operations
 inline HIID & HIID::operator |= (const HIID &other)
   { return add(other); }

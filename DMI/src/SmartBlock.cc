@@ -13,7 +13,7 @@
 //## Module: SmartBlock%3C10CC83016E; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\SmartBlock.cc
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\SmartBlock.cc
 
 //## begin module%3C10CC83016E.additionalIncludes preserve=no
 //## end module%3C10CC83016E.additionalIncludes
@@ -178,7 +178,7 @@ void SmartBlock::destroy ()
   //## begin SmartBlock::destroy%3C1E0D8D0391.body preserve=yes
   dprintf(2)("%s: destroying\n",debug());
   if( block && delete_block )
-    delete [] block; 
+    delete [] static_cast<char*>(block); 
   block=0; datasize=0; shmid=0;
   //## end SmartBlock::destroy%3C1E0D8D0391.body
 }
