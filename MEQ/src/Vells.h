@@ -157,9 +157,7 @@ public:
     //##ModelId=3F868870023B
   Vells& operator= (const Vells& other);
 
-  // Assures of a private copy of the matrix
-    //##ModelId=400E5356008F
-  Vells & privatize ();
+  virtual void privatize (int flags=0,int depth=0);
   
   // Clones the matrix -- assures of a private copy
     //##ModelId=3F8688700249
@@ -179,9 +177,13 @@ public:
   bool isTemp () const
     { return itsIsTemp; }
   
+  bool isWritable () const
+    { return !itsArray.valid() || itsArray.isWritable(); }
+  
     //##ModelId=400E53560099
   void makeWritable () 
   { 
+    FailWhen(!itsArray.isWritable(),"Vells: r/w access violation");
     if( itsArray.valid() && !itsArray.isWritable() )
       initArrayPointers(0,DMI::PRIVATIZE|DMI::WRITE);
   }
@@ -247,7 +249,7 @@ public:
     { return *itsArray; }
   
     //##ModelId=400E5356010C
-  DataArray & getDataArray ()
+  DataArray & getDataArrayWr ()
     { return itsArray(); }
 
   // Provides access to underlying arrays

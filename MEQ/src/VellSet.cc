@@ -305,7 +305,7 @@ Vells & VellSet::getValueWr ()
   Thread::Mutex::Lock lock(mutex());
   FailWhen( !value_.valid(),"no main value" );
   // if not writable, privatize for writing
-  if( !value_.isWritable() )
+  if( !value_.isWritable() || !value_->isWritable() )
   {
     value_.privatize(DMI::WRITE|DMI::DEEP);
     DataRecord::replace(FValue,&(value_().getDataArray()),DMI::WRITE);

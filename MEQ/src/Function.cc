@@ -30,6 +30,7 @@ using Debug::ssprintf;
 
 //##ModelId=3F86886E03C5
 Function::Function()
+  : enable_flags_(true)
 {}
 
 //##ModelId=3F86886E03D1
@@ -125,6 +126,38 @@ void Function::testChildren (const vector<TypeId>& types) const
   }
 }
 
+
+void Function::setStateImpl (DataRecord &rec,bool initializing)
+{
+  Node::setStateImpl(rec,initializing);
+  // get [vector of] flag mask
+  DataRecord::Hook hmask(rec,FFlagMask);
+  if( hmask.exists() )
+  {
+    enable_flags_ = true;
+    vector<int> fm = hmask.as_vector<int>();
+    // single element? 
+    if( fm.size() == 1 )
+    {
+      int flag = fm.front();
+      if( flag == -1 )        // [-1] means full mask (i.e. disable masking completely)
+        flagmask_.clear();    //      this is indicated by clearing the vector
+      else if( flag == 0 )    // [0] means no flags on output
+        enable_flags_ = false;
+      else                    // [M] same mask for all elements
+        flagmask_.assign(numChildren(),flag);
+    }
+    else // must have Nchildren masks
+    {
+      if( fm.size() != uint(numChildren()) )
+        NodeThrow1("size of "+FFlagMask.toString()+" vector does not match number of children");
+      flagmask_ = fm;
+    }
+  }
+}
+
+
+
 //##ModelId=3F86886E03DD
 int Function::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &childres,
@@ -134,6 +167,7 @@ int Function::getResult (Result::Ref &resref,
   // w.r.t. number of perturbation sets
   int nrch = numChildren();
   Assert(nrch>0);
+  Assert(flagmask_.empty() || flagmask_.size() == childres.size());
   int nplanes = childres[0]->numVellSets();
   for( int i=1; i<nrch; i++ )
     nplanes = std::max(nplanes,childres[i]->numVellSets());
@@ -188,18 +222,28 @@ int Function::getResult (Result::Ref &resref,
         vellset.setShape(shape);
         vellset.setValue(evaluate(request,shape,values).makeNonTemp());
         // Evaluate flags
-        for( int i=0; i<nrch; i++ )
-          if( child_vs[i]->hasOptCol(VellSet::FLAGS) )
-          {
-            // if vellset has no flags, just take a r/o ref to the child flags
-            if( !vellset.hasOptCol(VellSet::FLAGS) )
-              vellset.setOptCol(VellSet::FLAGS,child_vs[i]->getOptColRef(VellSet::FLAGS,DMI::READONLY));
-            // else |= the vellset flags. Note that this will automatically
-            // privatize a r/o ref upon first access
-            else
-              vellset.getOptColWr<VellSet::FLAGS>() |= 
-                  child_vs[i]->getOptCol<VellSet::FLAGS>();
-          }
+        if( enable_flags_ )
+        {
+          for( int i=0; i<nrch; i++ )
+            if( child_vs[i]->hasOptCol(VellSet::FLAGS) )
+            {
+              // if vellset has no flags and no mask is specified, just take 
+              // a r/o ref to the child flags
+              if( flagmask_.empty() && !vellset.hasOptCol(VellSet::FLAGS) )
+                vellset.setOptCol(VellSet::FLAGS,child_vs[i]->getOptColRef(VellSet::FLAGS,DMI::READONLY));
+              // else |= the vellset flags. Note that this will automatically
+              // privatize a r/o ref upon first access
+              else
+              {
+                const VellSet::FlagArrayType &chflag = 
+                      child_vs[i]->getOptCol<VellSet::FLAGS>();
+                if( flagmask_.empty() )
+                  vellset.getOptColWr<VellSet::FLAGS>() |= chflag;
+                else
+                  vellset.getOptColWr<VellSet::FLAGS>() |= chflag & flagmask_[i];
+              }
+            }
+        }
         // Evaluate all perturbed values.
         vector<vector<const Vells*> > pert_values(npertsets);
         vector<double> pert(npertsets);

@@ -27,12 +27,14 @@
 #include <MEQ/VellSet.h>
 
 #pragma types #Meq::Function
+#pragma aid Flag Mask
 
 
 namespace Meq {    
 
-class Request;
+const HIID FFlagMask = AidFlag|AidMask;
 
+class Request;
 
 //##ModelId=3F86886E01A8
 class Function : public Node
@@ -43,23 +45,6 @@ public:
 
     //##ModelId=3F86886E03D1
   virtual ~Function();
-
-  // Get the result for the given request.
-  // The default implementation works as follows:
-  // <ul>
-  // <li> It evaluates the function for the main value and all perturbed values
-  //   by calling the evaluate or evaluateVells function.
-  // <li> First it calls evaluate for the main value. 
-  // <li> For the calculation of all perturbed values the same function as
-  //   for the main value is used.
-  // <li> Usually the fastest way to go is to overload function getResult
-  //   in the derived class, because in that way some values can be
-  //   calculated once for main value and perturbed values.
-  // </ul>
-    //##ModelId=3F86886E03DD
-  virtual int getResult (Result::Ref &resref, 
-                         const std::vector<Result::Ref> &childres,
-                         const Request &req,bool newreq);
 
   // Find the shape of the result for evaluate. Usually the default 
   // implementation is sufficient which takes
@@ -125,13 +110,36 @@ public:
   void testChildren (const vector<TypeId>& childTypes) const;
 
 protected:
+  virtual void setStateImpl (DataRecord &rec,bool initializing);
+
+  // Get the result for the given request.
+  // The default implementation works as follows:
+  // <ul>
+  // <li> It evaluates the function for the main value and all perturbed values
+  //   by calling the evaluate or evaluateVells function.
+  // <li> First it calls evaluate for the main value. 
+  // <li> For the calculation of all perturbed values the same function as
+  //   for the main value is used.
+  // <li> Usually the fastest way to go is to overload function getResult
+  //   in the derived class, because in that way some values can be
+  //   calculated once for main value and perturbed values.
+  // </ul>
+    //##ModelId=3F86886E03DD
+  virtual int getResult (Result::Ref &resref, 
+                         const std::vector<Result::Ref> &childres,
+                         const Request &req,bool newreq);
+
     //##ModelId=3F86886F01D9
   vector<Node*>& children()
     { return itsChildren; }
 
+  vector<int> flagmask_;
+  bool enable_flags_;
+
 private:
     //##ModelId=3F86886E03A4
   vector<Node*> itsChildren;
+
 };
 
 

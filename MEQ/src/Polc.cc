@@ -58,7 +58,7 @@ Polc::Polc(double c00,double freq0,double freqsc,double time0,double timesc,
             double pert,double weight,DbId id)
   : itsCoeff(c00),itsDomain(&nullDomain),itsNrSpid(0)
 {
-  (*this)[FCoeff] <<= itsCoeff.getDataArray();
+  DataRecord::replace(FCoeff,&itsCoeff.getDataArray(),DMI::WRITE);
   setEverything(freq0,freqsc,time0,timesc,pert,weight,id);
 }
 
@@ -66,7 +66,7 @@ Polc::Polc(LoMat_double arr,double freq0,double freqsc,double time0,double times
             double pert,double weight,DbId id)
   : itsCoeff(arr),itsDomain(&nullDomain),itsNrSpid(0)
 {
-  (*this)[FCoeff] <<= itsCoeff.getDataArray();
+  DataRecord::replace(FCoeff,&itsCoeff.getDataArray(),DMI::WRITE);
   setEverything(freq0,freqsc,time0,timesc,pert,weight,id);
 }
 
@@ -74,7 +74,7 @@ Polc::Polc(DataArray *parr,double freq0,double freqsc,double time0,double timesc
             double pert,double weight,DbId id)
   : itsCoeff(parr),itsDomain(&nullDomain),itsNrSpid(0)
 {
-  (*this)[FCoeff] <<= itsCoeff.getDataArray();
+  DataRecord::replace(FCoeff,&itsCoeff.getDataArray(),DMI::WRITE);
   setEverything(freq0,freqsc,time0,timesc,pert,weight,id);
 }
 
@@ -83,14 +83,14 @@ Polc::Polc(const Vells &coeff,double freq0,double freqsc,double time0,double tim
   : itsDomain(&nullDomain),itsNrSpid(0)
 {
   itsCoeff = coeff.clone();
-  (*this)[FCoeff] <<= itsCoeff.getDataArray();
+  DataRecord::replace(FCoeff,&itsCoeff.getDataArray(),DMI::WRITE);
   setEverything(freq0,freqsc,time0,timesc,pert,weight,id);
 }
 
 void Polc::setEverything (double freq0,double freqsc,double time0,double timesc,
                           double pert,double weight,DbId id)
 {
-  (*this)[FCoeff] <<= itsCoeff.getDataArray();
+  DataRecord::replace(FCoeff,&itsCoeff.getDataArray(),DMI::WRITE);
   (*this)[FPerturbation] = itsPertValue = pert;
   (*this)[FFreq0] = itsFreq0 = freq0;
   (*this)[FTime0] = itsTime0 = time0;
@@ -181,10 +181,11 @@ void Polc::setTimeScale (double timeScale)
 //##ModelId=3F86886F0373
 void Polc::setCoeff (const Vells& values)
 {
+  Thread::Mutex::Lock lock(mutex());
   // note that record contains a separate Vells object, but internally
   // they will reference the same DataArray
   itsCoeff = values.clone();
-  (*this)[FCoeff].replace() <<= itsCoeff.getDataArray();
+  DataRecord::replace(FCoeff,&itsCoeff.getDataArray(),DMI::WRITE);
   clearSolvable();
 }
 
@@ -402,6 +403,12 @@ void Polc::getCurrentValue (Vells& value, bool denorm) const
 //##ModelId=3F86886F03BE
 uint Polc::update (const double* values, uint nrval)
 {
+  Thread::Mutex::Lock lock(mutex());
+  if( !itsCoeff.isWritable() )
+  {
+    itsCoeff.privatize(DMI::WRITE|DMI::DEEP);
+    DataRecord::replace(FCoeff,&itsCoeff.getDataArray(),DMI::WRITE);
+  }
   double* coeff = itsCoeff.realStorage();
   uint inx=0;
   for (unsigned int i=0; i<itsSpidInx.size(); i++) {

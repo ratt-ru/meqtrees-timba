@@ -194,7 +194,7 @@ Vells::Vells (const DataArray::Ref::Xfer &ref)
 //##ModelId=3F868870022A
 Vells::Vells (const Vells& that,int flags)
 : SingularRefTarget(),
-  itsArray        (that.itsArray,flags|DMI::COPYREF|DMI::PRESERVE_RW),
+  itsArray        (that.itsArray,flags|DMI::COPYREF),
   itsRealArray    (0),
   itsComplexArray (0),
   itsShape        (that.itsShape),
@@ -236,18 +236,16 @@ Vells::~Vells()
 {
 }
 
-//##ModelId=400E5356008F
-Vells & Vells::privatize()
+void Vells::privatize (int flags,int depth)
 {
   if( itsArray.valid() )
   {
-    DataArray *parr = itsArray.privatize(DMI::WRITE|DMI::DEEP).dewr_p();
+    DataArray *parr = itsArray.privatize(flags,depth).dewr_p();
     if( isReal() )
       parr->getConstArrayPtr(itsRealArray);
     else 
       parr->getConstArrayPtr(itsComplexArray);
   }
-  return *this;
 }
 
 //##ModelId=3F8688700282
@@ -292,7 +290,8 @@ void Vells::zeroData ()
 //##ModelId=400E5356019D
 inline bool Vells::tryReference (bool real,const Vells &other)
 {
-  if( other.isTemp() && other.isCongruent(real,itsShape) )
+  if( other.isTemp() && other.isCongruent(real,itsShape) &&
+      other.isWritable() )
   {
     itsArray.copy(other.itsArray,DMI::PRESERVE_RW);
     itsRealArray = other.itsRealArray;
