@@ -735,8 +735,6 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
       dialog.setCaption("Save forest");
-    else:
-      dialog.rereadDir();
     if dialog.exec_loop() == QDialog.Accepted:
       fname = str(dialog.selectedFile());
       rec = srecord(file_name=fname,get_forest_status=True);
@@ -750,8 +748,6 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
       dialog.setCaption("Load forest");
-    else:
-      dialog.rereadDir();
     if dialog.exec_loop() == QDialog.Accepted:
       fname = str(dialog.selectedFile());
       rec = srecord(file_name=fname,get_forest_status=True);
@@ -957,3 +953,5 @@ class NA_ContinueUntil (NodeAction):
 
 ### import plug-ins
 import node_execute
+import parmfiddler
+
