@@ -91,6 +91,7 @@ Port                             1081       ; from /home/oms/LOFAR/Timba/OCTOPUS
 Ports                            1083       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
 Process                          1104       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
 Publish                          1060       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MsgAddress.h:9
+Python                           1113       ; from /home/oms/LOFAR/Timba/OCTOPython/src/OctoPython.h:9
 Q                                1018       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 R                                1023       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Reconnect                        1044       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
