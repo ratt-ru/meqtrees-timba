@@ -3678,8 +3678,13 @@
 			    value      	TRUE))
 		    quid       	"3C56A6C50088"
 		    documentation 	
-|get(HIID): Abstract method for dereferencing a container element indicated by id. Must be implemented by all child classes. This is the method called by the hook operator [](const HIID &). See DataRecord and DataField for example implementations. 
-|The return value is a pointer to the data element (or to an ObjRef to the data, see below). A return value of 0 indicates that the element doesn't exist but can be insert()ed (e.g. no such field in record). An exception may be thrown otherwise (e.g. array index out of range).
+|get(HIID): Abstract method for dereferencing a container element
+|indicated by id. Must be implemented by all child classes. This is
+|the method called by the hook operator [](const HIID &). See Data
+|Record and DataField for example implementations.
+|The return value is a pointer to the data element (or to an ObjRef
+|to the data, see below). If the container stores dynamic objects via
+|refs, it _must_ return a pointer to the ref, unless overridden by the
 |
 		    
 		    stereotype 	"const,abstract"
@@ -3700,12 +3705,18 @@
 			(object Parameter "check_tid"
 			    quid       	"3C57C50202F8"
 			    documentation 	
-|This is the type being requested. 
-|An exception should be thrown if there's a mismatch with the contents type. The following special cases must be handled:
-|TpNumeric: any built-in numeric type is expected. 
-|TpObjRef: a dynamic type is expected, return pointer to ObjRef, and set tid=TpObjRef.
-|TpObject: a dynamic type is expected, return pointer to actual object rather than the ref.
-|0: no type checking. For dynamic types, returning an ObjRef is preferred.
+|This is the type being requested.
+|An exception should be thrown if there's a mismatch with the
+|contents type. The following special cases must be handled:
+|TpNumeric: any built-in numeric type is expected.
+|TpObjRef: a ref to dynamic type is expected. info.tid will contain
+|the actual type expected (or 0 if no type checking). 
+|Will return pointer to ObjRef, and set info.tid=TpObjRef. 
+|TpObject: a dynamic type is expected, return pointer to actual
+|object rather than the ref, set info.tid to object type. 
+|0: no type checking. For dynamic types, returning an ObjRef is
+|preferred.
+|
 			    
 			    type       	"TypeId"
 			    quidu      	"3BFBA88F001D"
@@ -3771,9 +3782,13 @@
 			    value      	"Abstract virtual function"))
 		    quid       	"3C7A13D703AA"
 		    documentation 	
-|insert(HIID). This is an abstract ethod for allocating a new element in a container. Must be implemented by all child classes. 
-|Inserts element and returns a pointer to it. If the data type is dynamic, then must insert a new (unattached) ObjRef, and return a pointer to that. 
-| 
+|insert(HIID). This is an abstract method for allocating a new element
+|in a container. Must be implemented by all child classes.
+|Inserts element and returns a pointer to it. 
+|If tid=TpObjRef, then a new (unattached) ObjRef must be inserted
+|and a pointer to it returned. Otherwise, a new object should be 
+|initialized, and the return value must be a pointer to the object.
+|
 		    
 		    stereotype 	"abstract"
 		    parameters 	(list Parameters
@@ -3788,15 +3803,32 @@
 			(object Parameter "tid"
 			    quid       	"3C7A140A0317"
 			    documentation 	
-|Type of element to be inserted.  An exception should be thrown if this is not compatible with the container (i.e., if the container is of a fixed type.) Since hooks support implicit conversion between standard types, no exception should be thrown if both tid and the container types are standard.
-|If tid is 0, and the container is of a fixed type and has been initialized, then a new element should be inserted. Otherwise an exception should be thrown.
-|The actual type of the element must always be returned via real_tid.
+|Type of element to be inserted.  An exception should be thrown if
+|this is not compatible with the container (i.e., if the container
+|is of a fixed type.) Since hooks support implicit conversion
+|between numeric types, no exception should be thrown if both tid
+|and the container types are numerics.
+|If tid=TpObjRef, then element is inserted by reference. On entry,
+|real_tid will contain the actual object type (containers that
+|enforce type must check this). A pointer to an ObjRef must then be 
+|returned. 
+|If tid is 0, and the container is of a fixed type and has been
+|initialized, then a new element should be inserted. Otherwise an
+|exception should be thrown.
+|The actual type of the element must always be returned via 
+|real_tid.
+|
 			    
 			    type       	"TypeId"
 			    quidu      	"3BFBA88F001D")
 			(object Parameter "real_tid"
 			    quid       	"3C7A140B0106"
-			    documentation 	"The actual type inserted into the container is returned here."
+			    documentation 	
+|The actual type inserted into the container is returned here.
+|If on entry tid=TpObjRef, then this contains the type of the
+|object that will be attached.
+|
+			    
 			    type       	"TypeId &"
 			    quidu      	"3BFBA88F001D"))
 		    result     	"void *"
@@ -4497,10 +4529,7 @@
 			    name       	"cg_style"
 			    value      	"Boolean get/no set operation"))
 		    quid       	"3C7F924300A6"
-		    type       	"bool")
-		(object ClassAttribute "mutex_"
-		    quid       	"3DB934D1008A"
-		    type       	"Thread::Mutex"))
+		    type       	"bool"))
 	    module     	"Component View::DMI"
 	    quidu      	"3DB9342D017D"
 	    language   	"ANSI C++"
@@ -5276,11 +5305,6 @@
 			    quid       	"3DB93493016B"
 			    stereotype 	"mutable"
 			    type       	"int"
-			    exportControl 	"Protected")
-			(object ClassAttribute "lock"
-			    quid       	"3DB934930201"
-			    stereotype 	"mutable"
-			    type       	"Thread::Mutex::Lock"
 			    exportControl 	"Protected"))
 		    module     	"Component View::DMI"
 		    quidu      	"3DB9342D017D")
@@ -5917,8 +5941,8 @@
 			    parameters 	(list Parameters
 				(object Parameter "other"
 				    quid       	"3DB934BB00FB"
-				    type       	"const Vector<String> &"))
-			    result     	"const Vector<String> &"
+				    type       	"const String &"))
+			    result     	"const String &"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
@@ -5927,12 +5951,12 @@
 			    quid       	"3DB934BB02A0"
 			    stereotype 	"const"
 			    parameters 	(list Parameters
-				(object Parameter "other"
-				    quid       	"3DB934BC0016"
-				    type       	"const String &"))
-			    result     	"const String &"
+				(object Parameter ""
+				    quid       	"3E7081A6012B"
+				    type       	"const BlockableObject *"))
+			    result     	"void"
 			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
+			    opExportControl 	"Private"
 			    uid        	0)
 			(object Operation "sdebug"
 			    attributes 	(list Attribute_Set
@@ -6115,32 +6139,38 @@
 			    uid        	0
 			    quidu      	"3C8739B50135")
 			(object Operation "operator ="
-			    attributes 	(list Attribute_Set)
-			    quid       	"3DB934CD0377"
-			    stereotype 	"const"
-			    parameters 	(list Parameters
-				(object Parameter ""
-				    quid       	"3DB934CE0308"
-				    type       	"const BlockableObject *"))
-			    result     	"void"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Private"
-			    uid        	0)
-			(object Operation "operator ="
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
 				    name       	"Inline"
 				    value      	TRUE))
-			    quid       	"3DB934CF0101"
+			    quid       	"3DB934CD0377"
 			    stereotype 	"const"
 			    parameters 	(list Parameters
 				(object Parameter ""
-				    quid       	"3DB934D00012"
+				    quid       	"3DB934CE0308"
 				    type       	"const BlockableObject &"))
 			    result     	"void"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Private"
+			    uid        	0)
+			(object Operation "prepare_assign_array"
+			    quid       	"3E7081A50350"
+			    stereotype 	"const"
+			    parameters 	(list Parameters
+				(object Parameter "haveArray"
+				    quid       	"3E7081A503BB"
+				    type       	"bool &")
+				(object Parameter "tid"
+				    quid       	"3E7081A60031"
+				    type       	"TypeId"
+				    quidu      	"3BFBA88F001D")
+				(object Parameter "shape"
+				    quid       	"3E7081A6008C"
+				    type       	"const LoShape &"))
+			    result     	"void *"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Protected"
 			    uid        	0))
 		    module     	"Component View::DMI"
 		    quidu      	"3DB9342D017D")
@@ -13172,6 +13202,38 @@
 		    supplier   	"Logical View::DOMIN0::NestableContainer::ConstHook"
 		    quidu      	"3C614FDE0039"
 		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$28"
+	    quid       	"3E7081A5015C"
+	    roles      	(list role_list
+		(object Role "lock"
+		    quid       	"3E7081A5015D"
+		    label      	"lock"
+		    supplier   	"Logical View::Common::Thread::Mutex::Lock"
+		    quidu      	"3D1049B40396"
+		    Containment 	"By Value"
+		    exportControl 	"Protected"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$29"
+		    quid       	"3E7081A50160"
+		    supplier   	"Logical View::DOMIN0::NestableContainer::ConstHook"
+		    quidu      	"3C614FDE0039"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$30"
+	    quid       	"3E7081A6019F"
+	    roles      	(list role_list
+		(object Role "mutex_"
+		    quid       	"3E7081A601A0"
+		    label      	"mutex_"
+		    supplier   	"Logical View::Common::Thread::Mutex"
+		    quidu      	"3D1049B40332"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$31"
+		    quid       	"3E7081A601A2"
+		    supplier   	"Logical View::DOMIN0::NestableContainer"
+		    quidu      	"3BE97CE100AF"
+		    is_aggregate 	TRUE)))
 	(object Class_Category "DMI"
 	    attributes 	(list Attribute_Set
 		(object Attribute
@@ -14627,7 +14689,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BF1004B02AE"
-				    supplier   	"$UNNAMED$28"
+				    supplier   	"$UNNAMED$32"
 				    quidu      	"3BF0FB5601E8"
 				    messages   	(list Messages
 					(object Message ""
@@ -14723,7 +14785,7 @@
 			    persistence 	"Transient"
 			    creationObj 	FALSE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$28"
+			(object Object "$UNNAMED$32"
 			    quid       	"3BF0FB5601E8"
 			    collaborators 	(list link_list
 				(object Link
@@ -14989,7 +15051,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3BFB847700C1"
-				    supplier   	"$UNNAMED$29"
+				    supplier   	"$UNNAMED$33"
 				    quidu      	"3BFB844F039F"
 				    messages   	(list Messages
 					(object Message "toBlock(BlockSet &)"
@@ -15012,7 +15074,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3BFB8B030212"
-				    supplier   	"$UNNAMED$30"
+				    supplier   	"$UNNAMED$34"
 				    quidu      	"3BFB8A9F00CD"
 				    messages   	(list Messages
 					(object Message "BlockRef()"
@@ -15027,7 +15089,7 @@
 					    creation   	TRUE)))
 				(object Link
 				    quid       	"3BFB8B0D031A"
-				    supplier   	"$UNNAMED$31"
+				    supplier   	"$UNNAMED$35"
 				    quidu      	"3BFB8ADA02A9"
 				    messages   	(list Messages
 					(object Message "SmartBlock(size_t, int)"
@@ -15073,7 +15135,7 @@
 			    persistence 	"Transient"
 			    creationObj 	FALSE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$29"
+			(object Object "$UNNAMED$33"
 			    quid       	"3BFB844F039F"
 			    collaborators 	(list link_list
 				(object Link
@@ -15113,7 +15175,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BFB8F9C0029"
-				    supplier   	"$UNNAMED$30"
+				    supplier   	"$UNNAMED$34"
 				    quidu      	"3BFB8A9F00CD"
 				    messages   	(list Messages
 					(object Message ""
@@ -15127,7 +15189,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3BFB8FCB00BD"
-				    supplier   	"$UNNAMED$32"
+				    supplier   	"$UNNAMED$36"
 				    quidu      	"3BFB87E7030B"
 				    messages   	(list Messages
 					(object Message ""
@@ -15298,7 +15360,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BFB87F70142"
-				    supplier   	"$UNNAMED$32"
+				    supplier   	"$UNNAMED$36"
 				    quidu      	"3BFB87E7030B"
 				    messages   	(list Messages
 					(object Message "BlockRef()"
@@ -15363,7 +15425,7 @@
 			    persistence 	"Transient"
 			    creationObj 	TRUE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$32"
+			(object Object "$UNNAMED$36"
 			    quid       	"3BFB87E7030B"
 			    collaborators 	(list link_list
 				(object Link
@@ -15385,12 +15447,12 @@
 			    persistence 	"Transient"
 			    creationObj 	TRUE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$30"
+			(object Object "$UNNAMED$34"
 			    quid       	"3BFB8A9F00CD"
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BFB8FA40035"
-				    supplier   	"$UNNAMED$31"
+				    supplier   	"$UNNAMED$35"
 				    quidu      	"3BFB8ADA02A9"
 				    messages   	(list Messages
 					(object Message ""
@@ -15407,7 +15469,7 @@
 			    persistence 	"Transient"
 			    creationObj 	TRUE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$31"
+			(object Object "$UNNAMED$35"
 			    quid       	"3BFB8ADA02A9"
 			    class      	"Logical View::DOMIN0::SmartBlock"
 			    quidu      	"3BEAACAB0041"
@@ -15698,7 +15760,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BFA52EB0249"
-				    supplier   	"$UNNAMED$33"
+				    supplier   	"$UNNAMED$37"
 				    quidu      	"3BFA52C9029A"
 				    messages   	(list Messages
 					(object Message "DataBlock( )"
@@ -15734,7 +15796,7 @@
 			    persistence 	"Static"
 			    creationObj 	FALSE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$33"
+			(object Object "$UNNAMED$37"
 			    quid       	"3BFA52C9029A"
 			    collaborators 	(list link_list
 				(object Link
@@ -15753,7 +15815,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3BFA53AE018B"
-				    supplier   	"$UNNAMED$33"
+				    supplier   	"$UNNAMED$37"
 				    quidu      	"3BFA52C9029A"
 				    messages   	(list Messages
 					(object Message "init( )"
@@ -15964,7 +16026,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@15
-				location   	(1923, 6078)
+				location   	(1923, 6099)
 				fill_color 	13434879
 				nlines     	1
 				max_width  	324
@@ -15972,7 +16034,7 @@
 				label      	"TypeId")
 			    stereotype 	(object ItemLabel
 				Parent_View 	@15
-				location   	(1923, 6028)
+				location   	(1923, 6032)
 				fill_color 	13434879
 				anchor     	10
 				nlines     	1
@@ -16030,7 +16092,7 @@
 				icon_style 	"Icon"
 				fill_color 	13434879
 				anchor     	2
-				nlines     	10
+				nlines     	1
 				max_width  	1465
 				compartmentItems 	(list Compartment
 				    "+ attach(targ : T*, flags : int = 0) : CountedRef<T> &"
@@ -16418,7 +16480,7 @@
 			    quidu      	"3BE96FE601C5"
 			    compartment 	(object Compartment
 				Parent_View 	@33
-				location   	(7390, 2427)
+				location   	(7390, 2417)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -16646,7 +16708,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@42
-				location   	(7519, 1308)
+				location   	(7519, 1329)
 				fill_color 	13434879
 				nlines     	1
 				max_width  	442
@@ -16654,7 +16716,7 @@
 				label      	"Vector_AtomicID")
 			    stereotype 	(object ItemLabel
 				Parent_View 	@42
-				location   	(7519, 1258)
+				location   	(7519, 1262)
 				fill_color 	13434879
 				anchor     	10
 				nlines     	1
@@ -16913,7 +16975,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@54
-				location   	(5628, 3723)
+				location   	(5628, 3744)
 				fill_color 	13434879
 				nlines     	1
 				max_width  	324
@@ -16921,7 +16983,7 @@
 				label      	"BlockRef")
 			    stereotype 	(object ItemLabel
 				Parent_View 	@54
-				location   	(5628, 3673)
+				location   	(5628, 3677)
 				fill_color 	13434879
 				anchor     	10
 				nlines     	1
@@ -16964,6 +17026,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BB3112B0027"
+			    compartment 	(object Compartment
+				Parent_View 	@55
+				location   	(224, 1082)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	27
+				max_width  	0)
 			    width      	2450
 			    height     	1436
 			    annotation 	8
@@ -17597,6 +17676,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BE97CE100AF"
+			    compartment 	(object Compartment
+				Parent_View 	@86
+				location   	(129, 2897)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	TRUE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	39
+				max_width  	0)
 			    width      	2850
 			    height     	2606
 			    annotation 	8
@@ -17647,6 +17743,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3C614FDE0039"
+			    compartment 	(object Compartment
+				Parent_View 	@89
+				location   	(6, 4390)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	36
+				max_width  	0)
 			    width      	3906
 			    height     	2178
 			    annotation 	8
@@ -17758,6 +17871,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3C8739B50135"
+			    compartment 	(object Compartment
+				Parent_View 	@95
+				location   	(1438, 4525)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	41
+				max_width  	0)
 			    width      	2782
 			    height     	2462
 			    annotation 	8
@@ -18334,7 +18464,7 @@
 				height     	60
 				y_coord    	0
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$28" @131
+			(object InterObjView "$UNNAMED$32" @131
 			    location   	(735, 225)
 			    font       	(object Font
 				size       	10
@@ -19620,7 +19750,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB842A01C5"
 			    width      	446
-			    height     	5611
+			    height     	5641
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -19657,7 +19787,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB843101CF"
 			    width      	446
-			    height     	5611
+			    height     	5641
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -19690,7 +19820,7 @@
 				height     	570
 				y_coord    	510
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$29" @209
+			(object InterObjView "$UNNAMED$33" @209
 			    location   	(720, 225)
 			    font       	(object Font
 				size       	10
@@ -19715,7 +19845,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB844F039F"
 			    width      	456
-			    height     	5610
+			    height     	5640
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -19734,7 +19864,7 @@
 				height     	60
 				y_coord    	0
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$30" @212
+			(object InterObjView "$UNNAMED$34" @212
 			    location   	(1050, 1950)
 			    font       	(object Font
 				size       	10
@@ -19759,7 +19889,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8A9F00CD"
 			    width      	525
-			    height     	3740
+			    height     	3770
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -19809,7 +19939,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8456031D"
 			    width      	300
-			    height     	5475
+			    height     	5505
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -19908,7 +20038,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB849102B3"
 			    width      	364
-			    height     	5610
+			    height     	5640
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -19952,7 +20082,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84A50013"
 			    width      	406
-			    height     	5610
+			    height     	5640
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -19989,7 +20119,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8674014F"
 			    width      	300
-			    height     	5610
+			    height     	5640
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20026,7 +20156,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84C802F8"
 			    width      	508
-			    height     	5610
+			    height     	5640
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20070,7 +20200,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84E50123"
 			    width      	536
-			    height     	5610
+			    height     	5640
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20107,7 +20237,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84EE0112"
 			    width      	396
-			    height     	5610
+			    height     	5640
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20119,7 +20249,7 @@
 				height     	540
 				y_coord    	480
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$32" @241
+			(object InterObjView "$UNNAMED$36" @241
 			    location   	(4440, 1170)
 			    font       	(object Font
 				size       	10
@@ -20144,7 +20274,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87E7030B"
 			    width      	480
-			    height     	4565
+			    height     	4595
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20194,7 +20324,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87DE0222"
 			    width      	330
-			    height     	4295
+			    height     	4325
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20219,7 +20349,7 @@
 				height     	60
 				y_coord    	0
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$31" @249
+			(object InterObjView "$UNNAMED$35" @249
 			    location   	(1320, 2130)
 			    font       	(object Font
 				size       	10
@@ -20244,7 +20374,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8ADA02A9"
 			    width      	330
-			    height     	3500
+			    height     	3530
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21391,12 +21521,12 @@
 			    ordinal    	27)
 			(object Destruction_Marker @309
 			    Parent_View 	@249
-			    location   	(1320, 5730)
+			    location   	(1320, 5760)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @310
 			    Parent_View 	@212
-			    location   	(990, 5790)
+			    location   	(990, 5820)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @311
@@ -21441,12 +21571,12 @@
 			    ordinal    	28)
 			(object Destruction_Marker @313
 			    Parent_View 	@241
-			    location   	(4440, 5835)
+			    location   	(4440, 5865)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @314
 			    Parent_View 	@245
-			    location   	(4725, 5775)
+			    location   	(4725, 5805)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @315
@@ -21524,7 +21654,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B150030"
 			    width      	446
-			    height     	6421
+			    height     	6451
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -21589,7 +21719,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B210330"
 			    width      	446
-			    height     	6421
+			    height     	6451
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -21633,7 +21763,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4D3A0258"
 			    width      	300
-			    height     	5745
+			    height     	5775
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21690,7 +21820,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4F6A02C1"
 			    width      	300
-			    height     	5175
+			    height     	5205
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21747,7 +21877,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CB80070"
 			    width      	300
-			    height     	6120
+			    height     	6150
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21797,7 +21927,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CF102DF"
 			    width      	300
-			    height     	6030
+			    height     	6060
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21847,7 +21977,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B51032F"
 			    width      	398
-			    height     	6170
+			    height     	6200
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21925,7 +22055,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5403038C"
 			    width      	300
-			    height     	4155
+			    height     	4185
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21982,7 +22112,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5582004D"
 			    width      	350
-			    height     	4140
+			    height     	4170
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22007,7 +22137,7 @@
 				height     	120
 				y_coord    	60
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$33" @361
+			(object InterObjView "$UNNAMED$37" @361
 			    location   	(3660, 2055)
 			    font       	(object Font
 				size       	10
@@ -22032,7 +22162,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA52C9029A"
 			    width      	582
-			    height     	4590
+			    height     	4620
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22103,7 +22233,7 @@
 			    fill_color 	8454016
 			    quidu      	"3BFA527601FA"
 			    width      	528
-			    height     	6420
+			    height     	6450
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22154,7 +22284,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA55CB01C5"
 			    width      	300
-			    height     	3720
+			    height     	3750
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -23341,7 +23471,7 @@
 			    ordinal    	28)
 			(object Destruction_Marker @434
 			    Parent_View 	@344
-			    location   	(1890, 6645)
+			    location   	(1890, 6675)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object NoteView @435
@@ -23572,7 +23702,7 @@
 				location   	(314, 278)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	940
+				max_width  	952
 				justify    	0
 				label      	"Data Transport")
 			    icon       	"control"
@@ -23602,7 +23732,7 @@
 				location   	(374, 1328)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	943
+				max_width  	955
 				justify    	0
 				label      	"P/S/M Layer")
 			    icon       	"control"
@@ -23795,7 +23925,7 @@
 			    subobjects 	0
 			    x_offset   	0.000000
 			    y_offset   	0.000000)
-			(object ObjectView "$UNNAMED$33" @458
+			(object ObjectView "$UNNAMED$37" @458
 			    location   	(1365, 1965)
 			    font       	(object Font
 				size       	10
@@ -23970,7 +24100,7 @@
 			    supplier   	@450
 			    line_style 	0)
 			(object MessView "" @466
-			    location   	(301, 699)
+			    location   	(302, 702)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -23983,7 +24113,7 @@
 			    line_color 	3342489
 			    label      	(object SegLabel @467
 				Parent_View 	@466
-				location   	(258, 701)
+				location   	(259, 704)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -24004,7 +24134,7 @@
 				orientation 	0)
 			    label      	(object SegLabel @468
 				Parent_View 	@466
-				location   	(258, 749)
+				location   	(259, 752)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -24025,7 +24155,7 @@
 				orientation 	0)
 			    label      	(object SegLabel @469
 				Parent_View 	@466
-				location   	(258, 797)
+				location   	(259, 800)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -24046,7 +24176,7 @@
 				orientation 	0)
 			    label      	(object SegLabel @470
 				Parent_View 	@466
-				location   	(258, 845)
+				location   	(259, 848)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -24067,7 +24197,7 @@
 				orientation 	0)
 			    label      	(object SegLabel @471
 				Parent_View 	@466
-				location   	(258, 893)
+				location   	(259, 896)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -24091,8 +24221,8 @@
 			    height     	45
 			    orientation 	0
 			    dir        	1
-			    origin     	(303, 758)
-			    terminus   	(299, 640))
+			    origin     	(304, 761)
+			    terminus   	(300, 643))
 			(object LinkView "" @472
 			    stereotype 	TRUE
 			    line_color 	3342489
@@ -24305,7 +24435,7 @@
 			    supplier   	@457
 			    line_style 	0)
 			(object MessView "" @485
-			    location   	(420, 1643)
+			    location   	(420, 1648)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -24318,7 +24448,7 @@
 			    line_color 	3342489
 			    label      	(object SegLabel @486
 				Parent_View 	@485
-				location   	(465, 1643)
+				location   	(465, 1648)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -24342,10 +24472,10 @@
 			    height     	45
 			    orientation 	0
 			    dir        	1
-			    origin     	(420, 1583)
-			    terminus   	(420, 1703))
+			    origin     	(420, 1588)
+			    terminus   	(420, 1708))
 			(object MessView "" @487
-			    location   	(331, 1643)
+			    location   	(331, 1648)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -24358,7 +24488,7 @@
 			    line_color 	3342489
 			    label      	(object SegLabel @488
 				Parent_View 	@487
-				location   	(287, 1643)
+				location   	(287, 1648)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -24382,8 +24512,8 @@
 			    height     	45
 			    orientation 	1
 			    dir        	-1
-			    origin     	(331, 1702)
-			    terminus   	(331, 1584))
+			    origin     	(331, 1707)
+			    terminus   	(331, 1589))
 			(object LinkView "" @489
 			    stereotype 	TRUE
 			    line_color 	3342489

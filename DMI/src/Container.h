@@ -629,7 +629,10 @@ class NestableContainer : public BlockableObject
       //## the method called by the hook operator [](const HIID &). See Data
       //## Record and DataField for example implementations.
       //## The return value is a pointer to the data element (or to an ObjRef
-      //## to the data, see below). A return value of 0 indicates that the
+      //## to the data, see below). If the container stores dynamic objects via
+      //## refs, it _must_ return a pointer to the ref, unless overridden by the
+      //##
+      //## A return value of 0 indicates that the
       //## element doesn't exist but can be insert()ed (e.g. no such field in
       //## record). An exception may be thrown otherwise (e.g. array index out
       //## of range).
@@ -652,10 +655,11 @@ class NestableContainer : public BlockableObject
           //## An exception should be thrown if there's a mismatch with the
           //## contents type. The following special cases must be handled:
           //## TpNumeric: any built-in numeric type is expected.
-          //## TpObjRef: a dynamic type is expected, return pointer to ObjRef, and
-          //## set tid=TpObjRef.
+          //## TpObjRef: a ref to dynamic type is expected. info.tid will contain
+          //## the actual type expected (or 0 if no type checking). 
+          //## Will return pointer to ObjRef. 
           //## TpObject: a dynamic type is expected, return pointer to actual
-          //## object rather than the ref.
+          //## object rather than the ref, set info.tid to object type. 
           //## 0: no type checking. For dynamic types, returning an ObjRef is
           //## preferred.
           TypeId check_tid = 0,
@@ -671,11 +675,12 @@ class NestableContainer : public BlockableObject
 
       //##ModelId=3C7A13D703AA
       //##Documentation
-      //## insert(HIID). This is an abstract ethod for allocating a new element
+      //## insert(HIID). This is an abstract method for allocating a new element
       //## in a container. Must be implemented by all child classes.
-      //## Inserts element and returns a pointer to it. If the data type is
-      //## dynamic, then must insert a new (unattached) ObjRef, and return a
-      //## pointer to that.
+      //## Inserts element and returns a pointer to it. 
+      //## If tid=TpObjRef, then a new (unattached) ObjRef must be inserted
+      //## and a pointer to it returned. Otherwise, a new object should be 
+      //## initialized, and the return value must be a pointer to the object.
       virtual void * insert (
           //##Documentation
           //## ID of element to be allocated.
@@ -686,15 +691,22 @@ class NestableContainer : public BlockableObject
           //## Type of element to be inserted.  An exception should be thrown if
           //## this is not compatible with the container (i.e., if the container
           //## is of a fixed type.) Since hooks support implicit conversion
-          //## between standard types, no exception should be thrown if both tid
-          //## and the container types are standard.
+          //## between numeric types, no exception should be thrown if both tid
+          //## and the container types are numerics.
+          //## If tid=TpObjRef, then element is inserted by reference. On entry,
+          //## real_tid will contain the actual object type (containers that
+          //## enforce type must check this). A pointer to an ObjRef must then be 
+          //## returned. 
           //## If tid is 0, and the container is of a fixed type and has been
           //## initialized, then a new element should be inserted. Otherwise an
           //## exception should be thrown.
-          //## The actual type of the element must always be returned via real_tid.
+          //## The actual type of the element must always be returned via 
+          //## real_tid.
           TypeId tid,
           //##Documentation
           //## The actual type inserted into the container is returned here.
+          //## If on entry tid=TpObjRef, then this contains the type of the
+          //## object that will be attached.
           TypeId &real_tid
       ) = 0;
 

@@ -585,7 +585,8 @@ ObjRef & DataField::resolveObject (int n, int flags) const
         // do we need to write to it?
         else if( flags&DMI::WRITE )
         {
-          FailWhen(!ref.isWritable(),"write access violation");
+          // removed: FailWhen(!ref.isWritable(),"write access violation");
+          // removed: because writability will be checked in ref anyway
           // flush cached blocks if any
           blocks[n].clear();
           objstate[n] = MODIFIED;
@@ -798,13 +799,25 @@ const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int fl
   }
   else if( dynamic_type )
   {
+    FailWhen( check_tid == TpObjRef && info.tid && info.tid != type(),
+        "type mismatch: requested "+info.tid.toString()+", have "+type().toString());
     // default (if no checking) is to return the ObjRef
-    if( !check_tid || check_tid == TpObjRef ) 
+    if( !check_tid || check_tid == TpObjRef )
     {
-      FailWhen(flags&(DMI::NC_SCALAR|DMI::NC_POINTER) && mysize()>1,"non-scalar/non-contiguous container");
       info.tid = TpObjRef;
       // bit of thread trouble here, if we return by ref
-      return &resolveObject(n,flags); // checks DMI::WRITE
+      // if dealing with an uninitialized ref, just return it
+      if( objstate[n] == UNINITIALIZED )
+      {
+        if( flags&DMI::WRITE )
+        {
+          FailWhen(!isWritable(),"write access violation");
+          objstate[n] = MODIFIED;
+        }
+        return &objects[n];
+      }
+      // else resolve to object
+      return &resolveObject(n,flags);
     }
     else 
     {    
@@ -875,13 +888,18 @@ void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
   //## begin DataField::insertn%3C7A19930250.body preserve=yes
   nc_writelock;
   // empty field? init with one element
-  dprintf(2)("insertn(%d,%s)\n",n,tid.toString().c_str());
+  dprintf(2)("insertn(%d,%s)\n",n,
+      tid == TpObjRef 
+      ? ("ref:"+real_tid.toString()).c_str()
+      : tid.toString().c_str() );
   if( !valid() )
   {
     FailWhen( n,Debug::ssprintf("can't insert at [%d]",n) );
-    FailWhen( !tid || tid==TpObjRef || tid==TpObject || tid==TpNumeric,
+    FailWhen( !tid || tid==TpObject || tid==TpNumeric,
              "can't initialize without type" );
-    init(real_tid=tid,-1); // init as scalar field
+    if( tid != TpObjRef )
+      real_tid = tid;
+    init(real_tid,-1); // init as scalar field
   }
   else // else extend field if inserting at end
   {
@@ -898,8 +916,16 @@ void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
   }
   else if( dynamic_type )
   {
-    FailWhen(tid && tid!=type(),"can't insert "+tid.toString());
-    return &resolveObject(n,True);
+    FailWhen(real_tid!=type(),"can't insert "+real_tid.toString());
+    ObjRef &ref = resolveObject(n,True);
+    // asked to return pointer to ObjRef: return it
+    if( tid == TpObjRef )
+    {
+      objstate[n] = MODIFIED;
+      return &objects[n];
+    }
+    // else return pointer to object
+    resolveObject(n,True).dewr_p();
   }
   else // special type
   {

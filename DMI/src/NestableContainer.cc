@@ -392,10 +392,10 @@ const void * NestableContainer::ConstHook::get_address (ContentInfo &info,
 
 // This prepares the hook for assignment, by resolving to the target element,
 // and failing that, trying to insert() a new element.
-// The actual type of the target element is returned via target_tid. 
+// The actual type of the target element is returned via info.tid. 
 // Normally, this will be ==tid (or an exception will be thrown by the
 // container), unless:
-// (a) tid & container type are both dynamic (then target must be an ObjRef)
+// (a) tid==TpObjRef: info.tid must contain actual object type on entry
 // (b) tid & container type are both numeric (Hook will do conversion)
 // For other type categories, a strict match should be enforced by the container.
 //##ModelId=3DB934C00071
@@ -413,8 +413,8 @@ void * NestableContainer::Hook::prepare_put( ContentInfo &info,TypeId tid ) cons
     // in the case of scalars (where conversion is allowed)
     target = index>=0 ? nc->insertn(index,tid,info.tid)
                       : nc->insert(id,tid,info.tid);
-    if( TypeInfo::isDynamic(info.tid) )
-      info.tid = TpObjRef;
+//    if( TypeInfo::isDynamic(info.tid) )
+//      info.tid = TpObjRef;
   }
   else
   {
@@ -432,8 +432,8 @@ void * NestableContainer::Hook::prepare_put( ContentInfo &info,TypeId tid ) cons
       else
       {
         target = nc1->insert(HIID(),tid,info.tid);
-        if( TypeInfo::isDynamic(info.tid) )
-          info.tid = TpObjRef;
+//        if( TypeInfo::isDynamic(info.tid) )
+//          info.tid = TpObjRef;
       }
     }
   }
@@ -460,8 +460,8 @@ const void * NestableContainer::Hook::put_scalar( const void *data,TypeId tid,si
 void NestableContainer::Hook::assign_object( BlockableObject *obj,TypeId tid,int flags ) const
 {
   ContentInfo info;
-  void *target = prepare_put(info,tid);
-  FailWhen(info.tid!=TpObjRef,"can't attach "+tid.toString()+" to "+info.tid.toString());
+  info.tid = tid;
+  void *target = prepare_put(info,TpObjRef);
   static_cast<ObjRef*>(target)->unlock().attach(obj,flags).lock();
 }
 
@@ -471,8 +471,8 @@ ObjRef & NestableContainer::Hook::assign_objref ( const ObjRef &ref,int flags ) 
 {
   FailWhen(addressed,"unexpected '&' operator");
   ContentInfo info;
-  void *target = prepare_put(info,ref->objectType());
-  FailWhen(info.tid!=TpObjRef,"can't assign ObjRef to "+info.tid.toString());
+  info.tid = ref->objectType();
+  void *target = prepare_put(info,TpObjRef);
   if( flags&DMI::COPYREF )
     return static_cast<ObjRef*>(target)->unlock().copy(ref,flags).lock();
   else

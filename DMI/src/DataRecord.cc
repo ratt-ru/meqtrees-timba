@@ -401,18 +401,29 @@ void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
   nc_writelock;
   FailWhen( !id.size(),"null HIID" );
   FailWhen( fields.find(id) != fields.end(),"field "+id.toString()+" already exists" );
-  if( tid == TpDataField || !tid ) // inserting a new DataField?
-  {
+  if( tid != TpObjRef )
     real_tid = tid;
-    return &fields[id];
+  if( real_tid == TpDataField ) // inserting a new DataField?
+  {
+    if( tid == TpObjRef )
+    {
+      real_tid = TpObjRef;
+      return &fields[id];
+    }
+    else
+    {
+      DataField *pf = new DataField;
+      fields[id].attach(pf,DMI::ANONWR|DMI::LOCK);
+      return pf;
+    }
   }
   else     // inserting new DataField contents?
   {
-    real_tid = tid;
-    DataField *pf = new DataField(tid,-1);
-    fields[id].attach(pf,DMI::ANON|DMI::WRITE|DMI::LOCK);
+    DataField *pf = new DataField(real_tid,-1);
+    fields[id].attach(pf,DMI::ANONWR|DMI::LOCK);
     ContentInfo info;
-    return const_cast<void*>( pf->getn(0,info,0,True) );
+    info.tid = real_tid;
+    return const_cast<void*>( pf->getn(0,info,tid,True) );
   }
   //## end DataRecord::insert%3C7A16BB01D7.body
 }
