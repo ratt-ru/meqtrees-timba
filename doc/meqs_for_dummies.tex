@@ -457,6 +457,57 @@ the HippoDraw canvas.}
 \label{fig:browser4}
 \end{figure}
 
+Sometimes you are interested in examining the contents of an individual
+array, not the entire contents of a cache\_result. You can
+do this if you left click on the `magnifying glass' next to an
+array object. To access an array object you must be at the
+node level where the contents of the array are defined. The example in
+Figure ~\ref{fig:ArraySelect} shows you how to do this. The left
+figure shows the contents of a cache\_result. We can expand the
+contents of vellsets 0, by clicking on the `plus' sign next to the
+0. By doing so we split up the contents into separate `shape' and `value'
+labels. The contents of the `value' label begin with the word `array',
+so you know that you are at the level where you can directly access
+the contents of the array. Left clicking on the magnifying glass icon
+next to the word `array' will cause a plot of the specified array
+to appear. Although Figure ~\ref{fig:add} shows an array plot generated
+by right clicking on a {\tt cache\_result} label, you would get a similar
+result if you choose to get a plot by selecting an individual array.
+
+You can directly view the numerical contents of an array by right-clicking
+on an array label. This will cause a context menu to appear. Keeping
+the right mouse button down, slide your mouse to the `Display with' option.
+This will cause a new sub-menu to appear. Slide your mouse to the
+`Array Browser' option and release the mouse. This will cause a
+display similar to the one in  Figure ~\ref{fig:ArrayBrowser}
+to appear. This display shows the numerical contents of the array
+plotted in Figure ~\ref{fig:add}.
+
+
+\begin{figure}
+  \centering
+  \begin{minipage}[c]{0.5\textwidth}
+     \centering \includegraphics[width=2.5in]{Figures/browser_small1}
+  \end{minipage}%
+  \begin{minipage}[c]{0.5\textwidth}
+     \centering \includegraphics[width=2.5in]{Figures/browser_small2}
+  \end{minipage}
+  \caption {The browser display of (left) a cache\_result node, and 
+(right) the expanded contents of this node after clicking on the
++ sign next to `0' under vellsets.}
+  \label{fig:ArraySelect}
+\end{figure}
+
+\begin{figure}
+{\par\centering
+\resizebox*{0.8\columnwidth}{!}{\includegraphics{Figures/array_browser}}
+\par}
+\caption {The numerical contents of an array that the browser shows
+when one selects the `Array Browser' option. 
+These contents are those of the array plotted in Figure ~\ref{fig:add}.}
+\label{fig:ArrayBrowser}
+\end{figure}
+
 The display of 1 and 2-dimensional data is presently done with the
 HippoDraw package written by Paul Kunz \cite{kunz}. The HippoDraw web 
 page \cite{kunz} has
@@ -533,54 +584,6 @@ ASTRON, Dwingeloo, the Netherlands
 \end{thebibliography}
  
 \appendix{Appendix}
-
-\section{Creating Your Own Nodes }
-
-Although it is unlikely that end users will want to create their
-own specialized nodes, they may well work with a computer 
-programmer to do so. Here are the instructions for a developer
-to create his or her own Meq nodes inside the LOFAR environment.
-
-\begin{verbatim}
-Enter the directory where the source code for the nodes are kept:
-
-   cd ~/LOFAR/CEP/CPA/PSS4/MeqNodes/src
-
-Create the source code for the node (canabalize existing code):
-create/edit <node>.cc and <node.h>
-Add the <node>.cc file Makefile.am
-Add the code to cvs:
-   cvs add <node>.cc
-   cvs add <node>.h
-
-Enter the build directory:
-   cd ~/LOFAR/CEP/CPA/PSS4/MeqNodes/build/gnu3_debug
-
-Issue the command
-   make aids (This will generate a global header file)
-
-If you are on the LOFAR cluster you can do a parallel make by
-issuing the command
-
-   make -j40
-
-otherwise, just issue the command
-
-   make
-
-Then link with the LOFAR system
-
-cd ~/LOFAR/build/gnu3_debug
-
-If you are on the LOFAR cluster you can do a parallel make by
-issuing the command
-
-   make -j40 
-
-otherwise, just issue the command
-
-   make
-\end{verbatim}
 
 \section {Installation instructions for PSS4}
 This section is basically a verbatim copy of a set of instructions
@@ -918,7 +921,7 @@ document written by Ger van Diepen \cite{diepen}.
 
   8a. When things go wrong(TM)
 
-    The kernel is run in a process called 'meqserver'. This process wil usually
+    The kernel is run in a process called 'meqserver'. This process will usually
     exit when you exit your glish session, but for reasons that are not yet 
     entirely clear, it may sometimes stay running in the background. Then, next
     time around you may end up with two running meqservers, at which point
@@ -953,6 +956,147 @@ document written by Ger van Diepen \cite{diepen}.
 
     Everything else is controlled by editing meqsolve.g itself...
 \end{verbatim}
-    
+     
+\section{Creating Your Own Nodes }
+
+Although it is unlikely that end users will want to create their
+own specialized nodes, there may well be a requirement for a computer 
+programmer to do so. Here are the instructions for a developer
+to create his or her own Meq nodes inside the LOFAR environment.
+
+\begin{verbatim}
+Enter the directory where the source code for the nodes are kept:
+
+   cd ~/LOFAR/CEP/CPA/PSS4/MeqNodes/src
+
+Create the source code for the node (canabalize existing code):
+create/edit <node>.cc and <node.h>
+Add the <node>.cc file Makefile.am
+Add the code to cvs:
+   cvs add <node>.cc
+   cvs add <node>.h
+
+Enter the build directory:
+   cd ~/LOFAR/CEP/CPA/PSS4/MeqNodes/build/gnu3_debug
+
+Issue the command
+   make aids (This will generate a global header file)
+
+When you have created a new node class, you do a `make aids' to 
+register the new type and allocate identifiers for
+it. This regenerates a few source files, most notably
+AID-MeqNodes.h, TID-MeqNodes.h, and AID-MeqNodes-Registry.cc 
+in ~/LOFAR/CEP/CPA/PSS4/MeqNodes/src. 
+
+Now, make sure that your code is up to date with regard to everyone 
+else's check-ins.  A `cvs up' in CEP/CPA/PSS4/MeqNodes should be sufficient.
+                                                                                
+A rebuild is needed for MeqNodes, and all packages depending on it. But
+if you do the make in ~/LOFAR/build/gnu3_debug, that should build
+everything that's needs it.
+
+So, to make and link with the LOFAR system:
+
+cd ~/LOFAR/build/gnu3_debug
+
+If you are on the LOFAR cluster you can do a parallel make by
+issuing the command
+
+   make -j40 
+
+otherwise, just issue the command
+
+   make
+
+When you are sure that your new node works properly you should check in 
+the regenerated files mentioned above along with the new node classes.
+
+\end{verbatim}
+\section {Code Maintenance and Dependency Issues} 
+ 
+Oleg's advice on what to to if things are suddenly not building 
+or not working: 
+
+First of all, I've noticed the compiler crash randomly with an internal 
+error. This has started happening since I've installed ccache and 
+distcc. I'll look into the problem; in the meantime, I don't want to 
+just disable these tools since they're saving an enormous amount of 
+compilation time even despite the occasional glitches. So, if you see an 
+internal error, just re-run make, it should be ok.
+
+Now, if things are still truly screwed. If you just did a cvs up 
+somewhere, then most likely you need to update some other package too. 
+The full list of packages, in order of dependency, is as follows (also 
+listed in LOFAR/lofarconf.in.private):
+
+\begin{verbatim}
+autoconf_share
+LCS/Common
+DMI
+CEP/CPA/OCTOPUSSY
+CEP/CPA/OCTOPython
+CEP/CPA/GlishUtil
+CEP/CPA/OCTOGlish
+CEP/CPA/VisCube
+CEP/CPA/AppAgent
+CEP/CPA/PSS4
+CEP/CPA/OCTOPython
+CEP/CPA/PyApps
+\end{verbatim}
+
+Any time you do a checkout of some package, you
+can check if something else under LOFAR/CEP/CPA needs updating by doing:
+                                                                                
+\begin{verbatim}
+$ cd ~/LOFAR/CEP/CPA
+$ cvs -n up        # if you want to be careful: -n option means show
+what's new but do not modify any files
+$ cvs up             # check out the updates
+$ cd ~/LOFAR/build/gnu3_debug
+$ make -j40      # rebuild
+\end{verbatim}
+
+Usually I just do a `cvs up LOFAR/CEP/CPA', to get all of CEP/CPA updated.
+Very rarely, LCS/Common and DMI need an update too. If things still fail to
+build then, it may be due to changes in the system build environment, or to
+old libtool files (an unfortunate `feature' of the LOFAR build system). In
+this case, try a complete clean:
+
+\begin{verbatim}
+$ cd LOFAR
+$ cvs up autoconf_share
+$ cd build/gnu3_debug
+$ make distclean
+$ cd ~/LOFAR
+$ ./bootstrap
+$ cd build/gnu3_debug
+$ ../../lofarconf 
+$ make -j40
+\end{verbatim}
+
+
+Note also the following cvs features:
+
+- you can specify `cvs up -D $<$date$>$ package' to roll a specific package
+back to a specific date. E.g. `cvs up -D yesterday' actually works as
+expected.
+
+One can get more specific with regard to date by doing e.g.
+
+ cvs up -D `2004-07-11 20:05' package
+
+- this operation places a `date tag' on that package, so it stays `frozen'
+at the version checked out and ignores further updates. To reset it to the
+most current version again, use `cvs up -A'.
+
+- `cvs up' normally does not check out new directories, so if a package has
+changed directory structure (very rarely, but happens), or if a new
+directory is available, you have to use `cvs up -d'. Use this command with
+discretion however: if you do a `cvs up -d' in LOFAR/CEP/CPA (or, worse yet,
+in LOFAR), it will check out a zillion other packages that you really don't
+want. Hence, you should only use it on a per-package basis.
+
+- `cvs up -dPA' is the most `thorough' way to check out a package (but see
+caution on using `d' above).
   
 \end{document}
