@@ -1,47 +1,48 @@
-//##ModelId=3DB964F401F2
-    
-#include "VisCube/VisCubeSet.h"
-#include "VisCubeSet.h"
+#include "VCubeSet.h"
 
+namespace VisCube 
+{
 
-//##ModelId=3DB964F401F2
-
-// Class VisCubeSet 
-
-VisCubeSet::VisCubeSet()
+VCubeSet::VCubeSet()
 {
 }
 
 
 //##ModelId=3DB964F401F3
-VisCubeSet::VisCubeSet(const VisCubeSet &right,int flags,int depth)
-    : BlockableObject()
+VCubeSet::VCubeSet(const VCubeSet &right,int flags,int depth)
+    : DMI::BObj()
 {
   assign(right,flags,depth);
 }
 
 
 //##ModelId=3DB964F401FB
-VisCubeSet::~VisCubeSet()
+VCubeSet::~VCubeSet()
 {
 }
 
 
 //##ModelId=3DB964F401FC
-VisCubeSet& VisCubeSet::operator=(const VisCubeSet &right)
+VCubeSet& VCubeSet::operator=(const VCubeSet &right)
 {
   assign(right);
   return *this;
 }
 
+}
+namespace DMI
+{
 // instantiate a copyRefContainer template (from DMI/CountedRef.h)
 template
-void copyRefContainer (deque<VisCube::Ref> &dest,
-                       const deque<VisCube::Ref> &src,
-                       int flags=DMI::PRESERVE_RW,int depth=-1);
+void copyRefContainer (std::deque<VisCube::VCube::Ref> &dest,
+                       const std::deque<VisCube::VCube::Ref> &src,
+                       int flags=0,int depth=0);
+}
+namespace VisCube
+{
 
 //##ModelId=3DC694770211
-void VisCubeSet::assign(const VisCubeSet &other, int flags, int depth)
+void VCubeSet::assign(const VCubeSet &other, int flags, int depth)
 {
   Thread::Mutex::Lock lock(mutex_);
   Thread::Mutex::Lock lock2(other.mutex_);
@@ -50,101 +51,86 @@ void VisCubeSet::assign(const VisCubeSet &other, int flags, int depth)
 // of all flags.
 // Note "depth-1" below: if it was 0 to begin with (default), only a copy is done
 // If 1, then refs are privatized, etc.
-  copyRefContainer(cubes,other.cubes,flags,depth-1);
+  DMI::copyRefContainer(cubes,other.cubes,flags,depth-1);
 }
-
-//##ModelId=3DC675980286
-void VisCubeSet::setWritable (bool writable)
-{
-  Thread::Mutex::Lock lock(mutex_);
-  if( writable )  // upgrade all cube refs are writable
-  {
-    for( CI iter = cubes.begin(); iter != cubes.end(); iter++ )
-      if( !iter->isWritable() )
-        iter->privatize(DMI::WRITE,1); // depth=1 to make cube writable too
-  }
-  else            // downgrade all refs to readonly
-  {
-    for( CI iter = cubes.begin(); iter != cubes.end(); iter++ )
-      iter->change(DMI::READONLY);
-  }
-}
-
 
 //##ModelId=3DD23C430260
-void VisCubeSet::push(VisCubeRef ref)
+void VCubeSet::push(const VCube::Ref &ref)
 {
   Thread::Mutex::Lock lock(mutex_);
   cubes.push_back(ref);
 }
 
 //##ModelId=3DD23CAB01E6
-void VisCubeSet::pushFront(VisCubeRef ref)
+void VCubeSet::pushFront(const VCube::Ref &ref)
 {
   Thread::Mutex::Lock lock(mutex_);
   cubes.push_front(ref);
 }
 
 //##ModelId=3DD23C840029
-void VisCubeSet::operator <<=(VisCubeRef ref)
+void VCubeSet::operator <<= (VCube::Ref &ref)
 {
   Thread::Mutex::Lock lock(mutex_);
-  cubes.push_back(ref);
-}
+  cubes.push_back(VCube::Ref());
+  cubes.back().xfer(ref);
+} 
 
 //##ModelId=3DD23C930309
-void VisCubeSet::operator <<=(VisCube* cube)
+void VCubeSet::operator <<= (VCube* cube)
 {
   Thread::Mutex::Lock lock(mutex_);
-  cubes.push_back(VisCubeRef());
+  cubes.push_back(VCube::Ref());
   cubes.back() <<= cube;
 }
 
 //##ModelId=3DD23C5A0318
-VisCubeRef VisCubeSet::pop()
+VCube::Ref VCubeSet::pop()
 {
   Thread::Mutex::Lock lock(mutex_);
-  VisCubeRef ret = cubes.front();
+  VCube::Ref ret;
+  ret.xfer(cubes.front());
   cubes.pop_front();
   return ret;
 }
 
 //##ModelId=3DD23CCB0339
-VisCubeRef VisCubeSet::popBack()
+VCube::Ref VCubeSet::popBack()
 {
   Thread::Mutex::Lock lock(mutex_);
-  VisCubeRef ret = cubes.back();
+  VCube::Ref ret;
+  ret.xfer(cubes.back());
   cubes.pop_back();
   return ret;
 }
 
 //##ModelId=3DD23C720071
-void VisCubeSet::pop(VisCubeRef &out)
+void VCubeSet::pop(VCube::Ref &out)
 {
   Thread::Mutex::Lock lock(mutex_);
-  out = cubes.front();
+  out.xfer(cubes.front());
   cubes.pop_front();
 }
 
 //##ModelId=3DD23CDB00C2
-void VisCubeSet::popBack(VisCubeRef &out)
+void VCubeSet::popBack(VCube::Ref &out)
 {
   Thread::Mutex::Lock lock(mutex_);
-  out = cubes.back();
+  out.xfer(cubes.back());
   cubes.pop_back();
 }
 
 //##ModelId=3DD4C8A5012B
-VisCubeRef VisCubeSet::remove(int icube)
+VCube::Ref VCubeSet::remove(int icube)
 {
   Thread::Mutex::Lock lock(mutex_);
-  VisCubeRef ret;
+  VCube::Ref ret;
   remove(icube,ret);
   return ret;
 }
 
 //##ModelId=3DD4C8AE03D6
-void VisCubeSet::remove(int icube, VisCubeRef& out)
+void VCubeSet::remove(int icube, VCube::Ref& out)
 {
   Thread::Mutex::Lock lock(mutex_);
   if( icube >= 0 )
@@ -152,7 +138,7 @@ void VisCubeSet::remove(int icube, VisCubeRef& out)
     CI iter;
     for( iter = cubes.begin(); icube > 0; icube-- )
       iter++;
-    out = *iter;
+    out.xfer(*iter);
     cubes.erase(iter);
   }
   else
@@ -160,28 +146,19 @@ void VisCubeSet::remove(int icube, VisCubeRef& out)
     RCI iter;
     for( iter = cubes.rbegin(); icube < -1; icube++ )
       iter++;
-    out = *iter;
+    out.xfer(*iter);
     cubes.erase(iter.base());
   }      
 }
 
 //##ModelId=3DC672CA0323
-CountedRefTarget* VisCubeSet::clone(int flags, int depth) const
+CountedRefTarget* VCubeSet::clone(int flags, int depth) const
 {
-  return new VisCubeSet(*this,flags,depth);
-}
-
-//##ModelId=3DC672CE034B
-void VisCubeSet::privatize(int flags, int depth)
-{
-  Thread::Mutex::Lock lock(mutex_);
-  if( flags&DMI::DEEP || depth>0 )
-    for( CI iter = cubes.begin(); iter != cubes.end(); iter++ )
-      iter->privatize(flags,depth-1);
+  return new VCubeSet(*this,flags,depth);
 }
 
 //##ModelId=3DC672E10339
-int VisCubeSet::fromBlock(BlockSet& set)
+int VCubeSet::fromBlock(BlockSet& set)
 {
   Thread::Mutex::Lock lock(mutex_);
   int ret = 1;
@@ -194,7 +171,7 @@ int VisCubeSet::fromBlock(BlockSet& set)
   cubes.resize(phdr->ncubes);
   for( CI iter = cubes.begin(); iter != cubes.end(); iter++ )
   {
-    VisCube *pcube = new VisCube;
+    VCube *pcube = new VCube;
     (*iter) <<= pcube;
     ret += pcube->fromBlock(set);
   }
@@ -202,19 +179,19 @@ int VisCubeSet::fromBlock(BlockSet& set)
 }
 
 //##ModelId=3DC672EB001E
-int VisCubeSet::toBlock(BlockSet &set) const
+int VCubeSet::toBlock(BlockSet &set) const
 {
   Thread::Mutex::Lock lock(mutex_);
   int ret = 1;
   // push out a header block
+  HeaderBlock header = { cubes.size() };
   if( !hdrblock.valid() )
-    hdrblock <<= new SmartBlock(sizeof(HeaderBlock));
-  else // else privatize the existing header block
-    hdrblock.privatize(DMI::WRITE,0);
-  HeaderBlock * phdr = hdrblock().ptr_cast<HeaderBlock>();
-  // fill in header
-  phdr->ncubes = cubes.size();
-  hdrblock.change(DMI::READONLY);
+  {
+    hdrblock <<= new SmartBlock(sizeof(header));
+    memcpy(hdrblock().data(),&header,sizeof(header));
+  }
+  else if( !memcmp(hdrblock->data(),&header,sizeof(header)) )
+    memcpy(hdrblock().data(),&header,sizeof(header));
   set.pushCopy(hdrblock);
   
   // convert cubes
@@ -224,10 +201,8 @@ int VisCubeSet::toBlock(BlockSet &set) const
   return ret;
 }
 
-
-
 //##ModelId=3DF9FDD20007
-string VisCubeSet::sdebug ( int detail,const string &prefix,
+string VCubeSet::sdebug ( int detail,const string &prefix,
                             const char *name) const
 {
   using Debug::append;
@@ -237,7 +212,7 @@ string VisCubeSet::sdebug ( int detail,const string &prefix,
   string out;
   if( detail >= 0 ) // basic detail
   {
-    appendf(out,"%s/%08x",name?name:"CI:VisCubeSet",(int)this);
+    appendf(out,"%s/%08x",name?name:"CI:VCubeSet",(int)this);
   }
   if( detail >= 1 || detail == -1 )
   {
@@ -254,3 +229,5 @@ string VisCubeSet::sdebug ( int detail,const string &prefix,
   }
   return out;
 }
+
+};

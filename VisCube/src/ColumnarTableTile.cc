@@ -1,10 +1,12 @@
 //##ModelId=3DB964F20141
-#include "VisCube/ColumnarTableTile.h"
+#include "ColumnarTableTile.h"
 
+namespace VisCube 
+{
+    
 // the null block represents an empty tile
 BlockRef ColumnarTableTile::nullBlock
-    (new SmartBlock(sizeof(BlockHeader),DMI::ZERO),
-      DMI::ANON|DMI::READONLY|DMI::LOCK);
+    (new SmartBlock(sizeof(BlockHeader),DMI::ZERO),DMI::LOCK);
 
 //##ModelId=3DB964F20171
 ColumnarTableTile::ColumnarTableTile()
@@ -13,25 +15,14 @@ ColumnarTableTile::ColumnarTableTile()
 }
 
 //##ModelId=3DB964F20172
-ColumnarTableTile::ColumnarTableTile (const ColumnarTableTile &other, int flags,int)
-  : BlockableObject(),ncol_(0),nrow_(other.nrow()),id_(other.id_)
+ColumnarTableTile::ColumnarTableTile (const ColumnarTableTile &other,int flags,int depth)
+  : DMI::BObj(),ncol_(0)
 {
-  Thread::Mutex::Lock lock2(other.mutex_);
-  // copy format
-  if( other.format_.valid() )
-  {
-    format_.copy(other.format_,DMI::READONLY).lock();
-    ncol_ = format_->maxcol();
-  }
-  // deep-copy the datablock regardless of other flags
-  if( other.datablock.valid() )
-    datablock.copy(other.datablock,flags|DMI::DEEP).lock();
-  
-  pdata = other.pdata;
+  cloneOther(other,flags,depth);
 }
 
 //##ModelId=3DB964F2018C
-ColumnarTableTile::ColumnarTableTile (const FormatRef &form, int nr,
+ColumnarTableTile::ColumnarTableTile (const Format::Ref &form, int nr,
                                       const HIID &id)
 {
   init(form,nr,id);
@@ -61,28 +52,41 @@ ColumnarTableTile::~ColumnarTableTile()
 ColumnarTableTile & ColumnarTableTile::operator=(const ColumnarTableTile &right)
 {
   if( this != &right )
-  {
-    Thread::Mutex::Lock lock(mutex_);
-    reset();
-    id_ = right.id_;
-    // copy format
-    if( right.format_.valid() )
-    {
-      format_.copy(right.format_,DMI::READONLY).lock();
-      ncol_ = format_->maxcol();
-    }
-    nrow_ = right.nrow_;
-    // deep-copy other's data block
-    if( right.datablock.valid() )
-      datablock.unlock().copy(right.datablock,DMI::WRITE|DMI::DEEP).lock();
-    
-    pdata = right.pdata;
-  }
+    cloneOther(right,0,0);
   return *this;
 }
 
+void ColumnarTableTile::cloneOther (const ColumnarTableTile &right,int flags,int depth)
+{
+  Thread::Mutex::Lock lock(mutex_);
+  Thread::Mutex::Lock lock2(right.mutex_);
+  reset();
+  id_ = right.id_;
+  // copy format
+  if( right.format_.valid() )
+  {
+    format_.copy(right.format_).lock();
+    ncol_ = format_->maxcol();
+  }
+  nrow_ = right.nrow_;
+  datablock.unlock().copy(right.datablock,flags,depth).lock();
+  if( datablock == right.datablock )
+    pdata = right.pdata;
+  else
+    setupDataPointers();
+}
+
+void ColumnarTableTile::setupDataPointers ()
+{
+  // recompute offsets into data block since it may have changed
+  std::vector<int> offset;
+  computeOffsets(offset,format(),nrow());
+  applyOffsets(pdata,offset,datablock->cdata());
+}
+
+
 //##ModelId=3DB964F201D0
-void ColumnarTableTile::init (const FormatRef &form, int nr,
+void ColumnarTableTile::init (const Format::Ref &form, int nr,
                               const HIID &id)
 {
   Thread::Mutex::Lock lock(mutex_);
@@ -98,10 +102,10 @@ void ColumnarTableTile::init (const FormatRef &form, int nr,
     vector<int> offset;
     int totsize = computeOffsets(offset,format(),nrow());
     if( !nrow() ) // point to null block
-      datablock.copy(nullBlock,DMI::WRITE).lock();
+      datablock.copy(nullBlock).lock();
     else // else allocate block
     {
-      datablock.attach(new SmartBlock(totsize,DMI::ZERO),DMI::ANONWR|DMI::LOCK);
+      datablock.attach(new SmartBlock(totsize,DMI::ZERO),DMI::LOCK);
       initBlock(datablock().data(),totsize);
     }
     // setup pointers to column data
@@ -132,7 +136,7 @@ void ColumnarTableTile::reset ()
 }
 
 //##ModelId=3DB964F201EC
-void ColumnarTableTile::applyFormat (const FormatRef &form)
+void ColumnarTableTile::applyFormat (const Format::Ref &form)
 {
   Thread::Mutex::Lock lock(mutex_);
   if( format_.valid() )
@@ -157,15 +161,15 @@ void ColumnarTableTile::applyFormat (const FormatRef &form)
       // setup pointers to column data
       applyOffsets(pdata,offset,datablock->cdata());
     }
-    format_.copy(form,DMI::READONLY).lock();
+    format_.copy(form).lock();
     ncol_ = format().maxcol();
-    if( datablock.isWritable() )
-      static_cast<BlockHeader*>(datablock().data())->has_format = True;
+    if( datablock.isDirectlyWritable() )
+      static_cast<BlockHeader*>(datablock().data())->has_format = true;
   }
 }
 
 //##ModelId=3DB964F201F9
-void ColumnarTableTile::changeFormat (const FormatRef &form)
+void ColumnarTableTile::changeFormat (const Format::Ref &form)
 {
   Thread::Mutex::Lock lock(mutex_);
   // change only applies when we already have a format
@@ -178,12 +182,12 @@ void ColumnarTableTile::changeFormat (const FormatRef &form)
     // allocate new datablock and compute offsets within
     vector<int> offset;
     int totsize = computeOffsets(offset,newform,nrow());
-    BlockRef newblock(new SmartBlock(totsize,DMI::ZERO),DMI::ANONWR);
+    BlockRef newblock(new SmartBlock(totsize,DMI::ZERO));
     // setup pointers to new column data
     vector<const void *> newptr;
     applyOffsets(newptr,offset,newblock->cdata());
     // copy across all matching columns
-    int ncol = min(oldform.maxcol(),newform.maxcol());
+    int ncol = std::min(oldform.maxcol(),newform.maxcol());
     for( int icol=0; icol < ncol; icol++ )
     {
       // skip column if absent in either format
@@ -198,10 +202,10 @@ void ColumnarTableTile::changeFormat (const FormatRef &form)
     pdata = newptr;
     datablock.unlock().xfer(newblock).lock();
     initBlock(datablock().data(),totsize);
-    static_cast<BlockHeader*>(datablock().data())->has_format = True;
+    static_cast<BlockHeader*>(datablock().data())->has_format = true;
   }
   // remember new format
-  format_.unlock().copy(form,DMI::READONLY).lock();
+  format_.unlock().copy(form).lock();
   ncol_ = format().maxcol();
 }
 
@@ -243,7 +247,7 @@ void ColumnarTableTile::addRows (int nr)
   vector<int> offset;
   int totsize = computeOffsets(offset,format(),nrow()+nr);
   // allocate new block
-  BlockRef newblock(new SmartBlock(totsize,DMI::ZERO),DMI::ANONWR);
+  BlockRef newblock(new SmartBlock(totsize,DMI::ZERO));
   // setup pointers to new column data
   vector<const void *> newptr;
   applyOffsets(newptr,offset,newblock->cdata());
@@ -314,7 +318,7 @@ int ColumnarTableTile::fromBlock (BlockSet& set)
   if( hdr->has_format )
   {
     TableFormat *form = new TableFormat;
-    format_.unlock().attach(form,DMI::ANON|DMI::READONLY).lock();
+    format_.unlock().attach(form).lock();
     count += form->fromBlock(set);
   }
   // no data -- get ID out of the block and set the nil representation
@@ -355,23 +359,16 @@ int ColumnarTableTile::toBlock (BlockSet &set) const
   // if we have data, push it out
   if( nrow() )
   {
-    BlockRef ref = datablock.copy(DMI::PRESERVE_RW);
-    // make sure the has_format flag is set correctly
+    BlockRef ref = datablock;
+    // make sure the has_format flag is set correctly (COW if not)
     if( format_.valid() != static_cast<const BlockHeader*>(ref->data())->has_format )
-    {
-      void *hdr;
-      if( !ref.isWritable() )
-        ref.privatize(DMI::WRITE);
       static_cast<BlockHeader*>(ref().data())->has_format = format_.valid();
-    }
-    ref.change(DMI::READONLY);
     set.push(ref);
   }
   // else push out the nil representation
   else
   {
-    BlockRef ref(new SmartBlock(sizeof(BlockHeader) + HIID::HIIDSize(MaxIdSize)),
-        DMI::WRITE|DMI::ANON);
+    BlockRef ref(new SmartBlock(sizeof(BlockHeader) + HIID::HIIDSize(MaxIdSize)));
     initBlock(ref().data(),ref->size());
     set.push(ref);
   }
@@ -385,26 +382,6 @@ int ColumnarTableTile::toBlock (BlockSet &set) const
 CountedRefTarget* ColumnarTableTile::clone (int flags, int depth)
 {
   return new ColumnarTableTile(*this,flags,depth);
-}
-
-//##ModelId=3DB964F20324
-void ColumnarTableTile::privatize (int flags, int depth)
-{
-  Thread::Mutex::Lock lock(mutex_);
-  // Note that the format component is never privatized since it is not really
-  // an aggregate part of the tile (also, it is always read-only.)
-  // The datablock is privatized with the supplied flags and depth
-  // (since the datablock _is_ the tile, for all intents and purposed)
-  if( datablock.valid() )
-  {
-    datablock.privatize(flags,depth);
-    // recompute offsets into data block since it may have changed
-    vector<int> offset;
-    computeOffsets(offset,format(),nrow());
-    applyOffsets(pdata,offset,datablock->cdata());
-    // should not be necessary since data in block will have been copied over:
-    //    initBlock(datablock().data(),datablock->size());
-  }
 }
 
 //##ModelId=3DF9FDCB008B
@@ -486,3 +463,4 @@ string ColumnarTableTile::sdebug ( int detail,const string &,const char *name ) 
   return out;
 }
     
+};

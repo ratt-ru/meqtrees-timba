@@ -1,33 +1,35 @@
-#ifndef ColumnarTableTile_h
-#define ColumnarTableTile_h 1
+#ifndef VCube_ColumnarTableTile_h
+#define VCube_ColumnarTableTile_h 1
 
-#include "VisCube/TableFormat.h"
-#include "VisCube/TID-VisCube.h"
-#include "DMI/HIID.h"
-#include "DMI/BlockableObject.h"
+#include <VisCube/TableFormat.h>
+#include <VisCube/TID-VisCube.h>
+#include <DMI/HIID.h>
+#include <DMI/BObj.h>
 
-#pragma type #ColumnarTableTile
+namespace VisCube 
+{
+using namespace DMI;
 
-class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919C2B03DA
+#pragma type #VisCube::ColumnarTableTile
+
+class ColumnarTableTile : public DMI::BObj  //## Inherits: <unnamed>%3D919C2B03DA
 {
   public:
     //##ModelId=3DB964F20016
       typedef TableFormat Format;
     //##ModelId=3DB964F2015D
-      DefineRefTypes(Format,FormatRef);
   
     //##ModelId=3DB964F20171
       ColumnarTableTile();
 
     //##ModelId=3DB964F20172
     //##Documentation
-    //## A tile is simply a datablock, so copies are always made by-value
-    //## (that is, the datablock ref is copy-privatized)
-    //## The depth argument is here for consistency, it's simply ignored.
-      ColumnarTableTile (const ColumnarTableTile &other, int flags = DMI::WRITE, int depth = 0);
+    //## A tile is simply a datablock, so copies are always made by-ref
+    //## (internally, we make use of COW), unless DMI::DEEP is set.
+      ColumnarTableTile (const ColumnarTableTile &other, int flags=0, int depth=0);
 
     //##ModelId=3DB964F2018C
-      ColumnarTableTile (const FormatRef &form, int nr = 0, 
+      ColumnarTableTile (const Format::Ref &form, int nr = 0, 
                          const HIID &id = HIID());
 
     //##ModelId=3DB964F201A6
@@ -41,17 +43,17 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
 
 
     //##ModelId=3DB964F201D0
-      void init (const FormatRef &form, int nr = 0, 
+      void init (const Format::Ref &form, int nr = 0, 
                  const HIID &id = HIID());
 
     //##ModelId=3DB964F201EA
       void reset ();
 
     //##ModelId=3DB964F201EC
-      void applyFormat (const FormatRef &form);
+      void applyFormat (const Format::Ref &form);
 
     //##ModelId=3DB964F201F9
-      void changeFormat (const FormatRef &form);
+      void changeFormat (const Format::Ref &form);
 
     //##ModelId=3DB964F20207
       bool hasFormat () const;
@@ -59,13 +61,17 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
     //##ModelId=3DB964F2020C
       bool defined (int icol) const;
       
-      // makes data block writable (by privatizing) if not already so
-      void makeWritable ()
+      // makes data block writable by ensuring COW and recomputing offsets
+      // if needed; returns true if this was done, or false if nothing
+      // was changed (i.e. already writable)
+      bool makeWritable ()
       { 
-        if( datablock.valid() && !datablock.isWritable() )
-          datablock.privatize(DMI::WRITE); 
+        if( !datablock.valid() || datablock.isDirectlyWritable() )
+          return false;
+        datablock.privatize(DMI::WRITE);
+        setupDataPointers();
+        return true;
       }
-
     // returns the tile ID
     //##ModelId=3DF9FDCA03BC
       const HIID & tileId () const;
@@ -107,7 +113,7 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
       int nrow () const;
       
     //##ModelId=3DB964F20345
-      const ColumnarTableTile::FormatRef& formatRef () const;
+      const ColumnarTableTile::Format::Ref& formatRef () const;
     //##ModelId=3DB964F20347
       const Format & format () const
       { return *formatRef(); }
@@ -117,9 +123,8 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
     //##ModelId=3DB964F202FE
       int toBlock (BlockSet &set) const;
     //##ModelId=3DB964F2030D
-      CountedRefTarget* clone (int flags = 0, int depth = 0);
-    //##ModelId=3DB964F20324
-      void privatize (int flags = 0, int depth = 0);
+      CountedRefTarget* clone (int flags=0, int depth=0);
+      
     //##ModelId=3DB964F2033F
       TypeId objectType () const;
       
@@ -169,6 +174,23 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
       void *      cwdata (int icol); 
 
   private:
+      void cloneOther (const ColumnarTableTile &other, int flags=0, int depth=0);
+  
+      // helper function to reset internal data pointers to data block
+      void setupDataPointers ();
+      
+      // computes offset of each column in block, given format
+      // (taking block header + tile id into account)
+    //##ModelId=3DB964F30005
+      static int computeOffsets (std::vector<int> &offsets,const Format &format,int nr);
+      // computes the pdata vector, given the offsets returned by 
+      // computeOffsets, and a pointer to a block
+    //##ModelId=3DB964F3002D
+      static void applyOffsets (std::vector<const void *> &ptrs,const std::vector<int> &offsets,const char *ptr0);
+    // helper function to stuff header & ID into a data block
+    //##ModelId=3DF9FDCC00FB
+      void initBlock (void *data,size_t sz) const;
+      
     //##ModelId=3DB964F2011C
       BlockRef datablock;
     //##ModelId=3DB964F20128
@@ -176,7 +198,7 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
     //##ModelId=3DB964F20130
       int nrow_;
     //##ModelId=3DB964F20138
-      ColumnarTableTile::FormatRef format_;
+      Format::Ref format_;
       
       // tile ID
     //##ModelId=400E51D401E8
@@ -188,19 +210,7 @@ class ColumnarTableTile : public BlockableObject  //## Inherits: <unnamed>%3D919
       
       // vector of pointers to start of each column
     //##ModelId=3DB964F20150
-      vector<const void *> pdata;
-      
-      // computes offset of each column in block, given format
-      // (taking block header + tile id into account)
-    //##ModelId=3DB964F30005
-      static int computeOffsets (vector<int> &offsets,const Format &format,int nr);
-      // computes the pdata vector, given the offsets returned by 
-      // computeOffsets, and a pointer to a block
-    //##ModelId=3DB964F3002D
-      static void applyOffsets (vector<const void *> &ptrs,const vector<int> &offsets,const char *ptr0);
-    // helper function to stuff header & ID into a data block
-    //##ModelId=3DF9FDCC00FB
-      void initBlock (void *data,size_t sz) const;
+      std::vector<const void *> pdata;
       
     //##ModelId=3DB964F20021
       typedef struct { int nrow,idsize; bool has_format; } BlockHeader;
@@ -255,7 +265,7 @@ inline void ColumnarTableTile::copy (const ColumnarTableTile &other, int other_s
 //##ModelId=3DB964F2033F
 inline TypeId ColumnarTableTile::objectType () const
 {
-  return TpColumnarTableTile;
+  return TpVisCubeColumnarTableTile;
 }
 
 //##ModelId=3DB964F20341
@@ -273,7 +283,7 @@ inline int ColumnarTableTile::nrow () const
 
 //##ModelId=3DB964F20345
 
-inline const ColumnarTableTile::FormatRef& ColumnarTableTile::formatRef () const
+inline const ColumnarTableTile::Format::Ref& ColumnarTableTile::formatRef () const
 {
   return format_;
 }
@@ -328,7 +338,9 @@ inline Thread::Mutex & ColumnarTableTile::mutex () const
   return mutex_;
 }
 
+};
 
 #endif
+
 
 

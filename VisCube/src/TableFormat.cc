@@ -1,5 +1,8 @@
-#include "VisCube/TableFormat.h"
+#include "TableFormat.h"
 #include "DMI/TypeInfo.h"
+
+namespace VisCube 
+{
     
 //##ModelId=3DB964F30069
 TableFormat::ColumnFormat 
@@ -10,7 +13,7 @@ TableFormat::ColumnFormat
 
 //##ModelId=3DB964F300AD
 TableFormat::TableFormat(const TableFormat &right)
-    : BlockableObject()
+    : DMI::BObj()
 {
   operator = (right);
 }
@@ -35,7 +38,7 @@ TableFormat & TableFormat::operator=(const TableFormat &right)
   if( &right != this )
   {
     if( right.block.valid() )
-      block.copy(right.block,DMI::READONLY);
+      block.copy(right.block);
     else
       block.detach();
     cols = right.cols;
@@ -49,21 +52,21 @@ TableFormat & TableFormat::operator=(const TableFormat &right)
 bool TableFormat::operator==(const TableFormat &right) const
 {
   if( &right == this )
-    return True;
+    return true;
   // since refs are only == when both valid and pointing to the same target,
   // having the same cached block implies equality of formats
   if( block == right.block )
-    return True;
+    return true;
   if( maxcol() != right.maxcol() )
-    return False;
+    return false;
   for( int i=0; i<maxcol(); i++ )
     if( type(i) || right.type(i) )
     {
       if( type(i) != right.type(i) || cellsize(i) != right.cellsize(i) ||
           shapes[i] != right.shapes[i] )
-        return False;
+        return false;
     }
-  return True;
+  return true;
 }
 
 //##ModelId=3DB964F30112
@@ -206,3 +209,5 @@ string TableFormat::sdebug ( int detail,const string &,const char *name ) const
   return out;
 }
 
+
+};

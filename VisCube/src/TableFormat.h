@@ -1,19 +1,23 @@
-#ifndef VisCube_TableFormat_h
-#define VisCube_TableFormat_h 1
+#ifndef VCube_TableFormat_h
+#define VCube_TableFormat_h 1
 
-#include "DMI/BlockableObject.h"
-#include "DMI/Packer.h"
-#include "VisCube/VisCommon.h"
-#include "VisCube/TID-VisCube.h"
+#include <DMI/BObj.h>
+#include <DMI/Packer.h>
+#include <VisCube/VisCommon.h>
+#include <VisCube/TID-VisCube.h>
     
-#pragma type #TableFormat
+#pragma type #VisCube::TableFormat
+
+namespace VisCube 
+{
+using namespace DMI;
     
 //##ModelId=3DB964F20032
 //##Documentation
 //## TableFormat is used to describe the layout of a table. This is a
-//## BlockableObject, so it may be placed in containers, shipped across the
+//## DMI::BObj, so it may be placed in containers, shipped across the
 //## netowkr, etc.
-class TableFormat : public BlockableObject
+class TableFormat : public DMI::BObj
 {
   public:
       
@@ -123,13 +127,7 @@ class TableFormat : public BlockableObject
                       const char *name = 0 ) const;
       
     //##ModelId=3DB964F302CC
-      DefineRefTypes(TableFormat,Ref);
-
-  protected:
-    // Additional Protected Declarations
-
-  private:
-    // Additional Private Declarations
+      typedef CountedRef<TableFormat> Ref;
 
   private:
     //##ModelId=3DB964F2003C
@@ -162,8 +160,6 @@ class TableFormat : public BlockableObject
     //##ModelId=3DB964F20052
       typedef SeqPacker<ShapesVector,SeqPacker<LoShape> > ColumnShapePacker;
 };
-
-DefineRefTypes(TableFormat,TableFormatRef);
 
 //##ModelId=3DB964F301D5
 inline int TableFormat::maxcol () const
@@ -205,7 +201,10 @@ inline const LoShape & TableFormat::shape (int icol) const
 //##ModelId=3DB964F302B0
 inline TypeId TableFormat::objectType () const
 {
-  return TpTableFormat;
+  return TpVisCubeTableFormat;
 }
 
+};
+
 #endif
+

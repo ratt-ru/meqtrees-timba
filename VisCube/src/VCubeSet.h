@@ -1,43 +1,43 @@
-#ifndef VisCube_VisCubeSet_h
-#define VisCube_VisCubeSet_h 1
+#ifndef VCube_VCubeSet_h
+#define VCube_VCubeSet_h 1
 
-#include "DMI/BlockableObject.h"
-#include "VisCube/VisCube.h"
-#include "Common/Thread/Mutex.h"
+#include <DMI/BObj.h>
+#include <VisCube/VCube.h>
+#include <Common/Thread/Mutex.h>
+#include <deque>
+    
+#pragma types #VisCube::VCubeSet
 
-class VisCubeSet;
-
-DefineRefTypes(VisCubeSet,VisCubeSetRef);
-
-#pragma types #VisCubeSet
+namespace VisCube 
+{
+using namespace DMI;
 
 //##ModelId=3DB964F2008B
 //##Documentation
-//## A VisCubeSet is (surprise, surprise!) a set of VisCubes. (More
+//## A VCubeSet is (surprise, surprise!) a set of VCubes. (More
 //## specifically, it is a double-ended queue.) The class provides some extra
 //## functionality not available with regular (e.g. STL) containers:
 //## 
 //## * thread-safe container;
 //## * cubes held via counted refs, so may be shared with other objects;
-//## * Derived from BlockableObject, hence a VisCubeSet may be sent in
-//## Messages, DataRecords, BOIO'd to disk, etc.
+//## * Derived from DMI::BObj, hence a VCubeSet may be sent in
+//## Messages, DMI::Records, BOIO'd to disk, etc.
 //## 
 //## Counted refs allow for both read-only and read-write containment; a
-//## VisCubeSet may in fact contain a mix of both. See also the setWritable()
+//## VCubeSet may in fact contain a mix of both. See also the setWritable()
 //## method below.
-class VisCubeSet :  public BlockableObject
-
+class VCubeSet :  public DMI::BObj
 {
   private:
     //##ModelId=3DB964F401EB
-    deque<VisCubeRef> cubes;
+    std::deque<VCube::Ref> cubes;
     
     //##ModelId=3DF9FDC90196
-    typedef deque<VisCubeRef>::iterator CI;
+    typedef std::deque<VCube::Ref>::iterator CI;
     //##ModelId=3DF9FDC901B2
-    typedef deque<VisCubeRef>::reverse_iterator RCI;
+    typedef std::deque<VCube::Ref>::reverse_iterator RCI;
     //##ModelId=3DF9FDC901CF
-    typedef deque<VisCubeRef>::const_iterator CCI;
+    typedef std::deque<VCube::Ref>::const_iterator CCI;
     
     //##ModelId=3DF9FDD1036E
     mutable Thread::Mutex mutex_;
@@ -46,34 +46,32 @@ class VisCubeSet :  public BlockableObject
     //##ModelId=3DB964F401F2
     //##Documentation
     //## Creates empty set
-    VisCubeSet();
+    VCubeSet();
 
     //##ModelId=3DB964F401F3
     //##Documentation
     //## Copy constructor. By default, all cubes are assigned by reference.
-    //## flags and 'depth-1' are passed to CountedRef::copy(), hence:
-    //## * if depth>0 or DMI::DEEP is set, then the cube refs are privatized.
-    //## * DMI::PRIVATIZE implies a depth of 1.
-    VisCubeSet(const VisCubeSet &right,int flags=DMI::PRESERVE_RW,int depth=0);
+    //## flags and 'depth-1' are passed to CountedRef::copy(), hence
+    //## if depth>0 or DMI::DEEP is set, then the cube refs are privatized.
+    VCubeSet(const VCubeSet &right,int flags=0,int depth=0);
 
     //##ModelId=3DB964F401FB
-    ~VisCubeSet();
+    ~VCubeSet();
 
     //##ModelId=3DB964F401FC
     //##Documentation
     //## Assignment op. Clears all data from set, then assigns other set by
     //## reference. Equivalent to calling assign() below with default
     //## arguments.
-    VisCubeSet& operator=(const VisCubeSet &right);
+    VCubeSet& operator=(const VCubeSet &right);
       
     //##ModelId=3DC694770211
     //##Documentation
     //## Assignment method, used by copy constructor and operator =.  By
     //## default, all cubes are assigned by reference. 
-    //## 'flags' and 'depth-1' are passed to CountedRef::copy(), hence:
-    //## * if depth>0 or DMI::DEEP is set, then the cube refs are privatized.
-    //## * DMI::PRIVATIZE implies a depth of 1.
-    void assign (const VisCubeSet &other, int flags = DMI::PRESERVE_RW, int depth = 0);
+    //## 'flags' and 'depth-1' are passed to CountedRef::copy(), hence
+    //## if depth>0 or DMI::DEEP is set, then the cube refs are privatized.
+    void assign (const VCubeSet &other, int flags = 0, int depth = 0);
     
     //##ModelId=3DC6751D0277
     //##Documentation
@@ -90,96 +88,83 @@ class VisCubeSet :  public BlockableObject
     //##Documentation
     //## Returns cube #icube as a const reference.
     //## A negative icube means count from the back (i.e. -1 = last)
-    const VisCube & cube (int icube=0) const
+    const VCube & cube (int icube=0) const
     { return cubes[ icube>=0 ? icube : ncubes()-icube ].deref(); }
     //##ModelId=3DB964F4020E
     //##Documentation
-    //## Returns cube #icube as a non-const reference. Will fail if that cube
-    //## is held via a read-only ref.
+    //## Returns cube #icube as a non-const reference. 
     //## A negative icube means count from the back (i.e. -1 = last)
-    VisCube & wcube (int icube=0) const
+    VCube & wcube (int icube=0) 
     { return cubes[ icube>=0 ? icube : ncubes()-icube ].dewr(); }
       
     //##ModelId=3DB964F40216
     //##Documentation
     //## Same as cube(icube)
-    const VisCube & operator [] (int icube) const
+    const VCube & operator [] (int icube) const
     { return cube(icube); }
     //##ModelId=3DB964F40220
     //##Documentation
     //## Same as wcube(icube)
-    VisCube & operator () (int icube = 0) const
+    VCube & operator () (int icube = 0) 
     { return wcube(icube); }
       
-    //##ModelId=3DC675980286
-    //##Documentation
-    //## Sets uniform r/w privileges for all cube refs in the set:
-    //## * setWritable(False) will change all cube refs to read-only
-    //## * setWritable(True) will go through the set, find all readonly refs,
-    //## and privatize them for read-write.
-    void setWritable(bool writable = True);
-    
     //##ModelId=3DD23C430260
     //##Documentation
-    //## Adds a cube to the back of the set. Ref is transferred.
-    void push(VisCubeRef ref);
+    //## Adds a cube to the back of the set. Ref is copied.
+    void push (const VCube::Ref &ref);
     //##ModelId=3DD23CAB01E6
     //##Documentation
-    //## Adds a cube to the front of the set. Ref is transferred.
-    void pushFront(VisCubeRef ref);
+    //## Adds a cube to the front of the set. Ref is copied.
+    void pushFront (const VCube::Ref &ref);
 
     //##ModelId=3DD23C840029
     //##Documentation
-    //## Same as push(). Ref is transferred.
-    void operator <<=(VisCubeRef ref);
+    //## Same as push(), but ref is transferred.
+    void operator <<= (VCube::Ref &ref);
     //##ModelId=3DD23C930309
     //##Documentation
     //## Attaches an anonymous, read/write ref to cube, and adds it to the back
     //## of the set.
-    void operator <<=(VisCube* cube);
+    void operator <<= (VCube* cube);
 
   
     //##ModelId=3DD23C5A0318
     //##Documentation
     //## Pops a cube from the front of the set. Returns ref to popped cube.
-    VisCubeRef pop();
+    VCube::Ref pop();
     //##ModelId=3DD23CCB0339
     //##Documentation
     //## Pops a cube from the back of the set. Returns ref to popped cube.
-    VisCubeRef popBack();
+    VCube::Ref popBack();
 
     //##ModelId=3DD23C720071
     //##Documentation
     //## Pops a cube from the front of the set, and attaches it to the 'out'
     //## ref.
-    void pop(VisCubeRef &out);
+    void pop (VCube::Ref &out);
     //##ModelId=3DD23CDB00C2
     //##Documentation
     //## Pops a cube from the back of the set, and attaches it to the 'out'
     //## ref.
-    void popBack(VisCubeRef &out);
+    void popBack (VCube::Ref &out);
 
     //##ModelId=3DD4C8A5012B
     //##Documentation
     //## Removes cube #icube from the set. Returns ref to removed cube.
     //## A negative icube means count from the back (i.e. -1 = last)
-    VisCubeRef remove(int icube);
+    VCube::Ref remove(int icube);
     //##ModelId=3DD4C8AE03D6
     //##Documentation
     //## Removes cube #icube from the set, and attaches it to the 'out' ref.
     //## A negative icube means count from the back (i.e. -1 = last)
-    void remove(int icube, VisCubeRef& out);
+    void remove(int icube, VCube::Ref& out);
     
-    // BlockableObject methods
+    // DMI::BObj methods
     //##ModelId=3DC672CA0323
     //##Documentation
     //## Standard clone method
     CountedRefTarget* clone(int flags = 0, int depth = 0) const;
-    //##ModelId=3DC672CE034B
-    //##Documentation
-    //## Standard privatize method. All refs to cubes are privatized with
-    //## depth-1
-    virtual void privatize(int flags = 0, int depth = 0);
+
     //##ModelId=3DC672E10339
     //##Documentation
     //## Standard fromBlock method
@@ -193,7 +178,7 @@ class VisCubeSet :  public BlockableObject
     //##Documentation
     //## Returns the class TypeId
     TypeId objectType() const
-    { return TpVisCubeSet; }
+    { return TpVisCubeVCubeSet; }
     
     //##ModelId=3DF9FDD103C7
     Thread::Mutex & mutex () const
@@ -208,7 +193,7 @@ class VisCubeSet :  public BlockableObject
                     const char *name = 0 ) const;
     
     //##ModelId=3DF9FDD200D5
-    DefineRefTypes(VisCubeSet,Ref);
+    typedef CountedRef<VCubeSet> Ref;
 
   private:
       
@@ -222,4 +207,5 @@ class VisCubeSet :  public BlockableObject
 
 };
 
+};
 #endif

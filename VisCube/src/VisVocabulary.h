@@ -19,8 +19,8 @@
 //  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 //  $Id$
-#ifndef VisCube_VisVocabulary_h
-#define VisCube_VisVocabulary_h 1
+#ifndef VCube_VisVocabulary_h
+#define VCube_VisVocabulary_h 1
     
 #pragma aidgroup VisCube
 #pragma aid UVData UVSet Row Raw Sorted Unsorted Time Timeslot Channel Num
@@ -40,6 +40,7 @@
     
 namespace VisVocabulary
 {
+  using DMI::HIID;
   static int dummy = aidRegistry_VisCube();
   
   const HIID 

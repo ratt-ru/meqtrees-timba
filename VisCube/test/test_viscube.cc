@@ -1,5 +1,8 @@
-#include "VisCube/VisCubeSet.h"
+#include "VisCube/VCubeSet.h"
 #include "DMI/BOIO.h"
+    
+using namespace VisCube;
+using namespace DebugDefault;
     
 int main (int argc,const char *argv[])
 {
@@ -8,8 +11,8 @@ int main (int argc,const char *argv[])
   Debug::initLevels(argc,argv);
   
   cout<<"=================== new cube ======================\n";
-  VisCube::Ref vc;
-  vc <<= new VisCube(NCORR,NFREQ,200,50);
+  VCube::Ref vc;
+  vc <<= new VCube(NCORR,NFREQ,200,50);
   cout<<vc->sdebug(5)<<endl;
   
   cout<<"=================== filling via iterators =========\n";
@@ -18,7 +21,7 @@ int main (int argc,const char *argv[])
   LoMat_int flagplane(NCORR,NFREQ);
   LoVec_double uvwvec(3);
   
-  for( VisCube::iterator iter = vc().begin(); iter != vc().end(); iter++ )
+  for( VCube::iterator iter = vc().begin(); iter != vc().end(); iter++ )
   {
     iter.set_time(time++);
     iter.set_seqnr(time++);
@@ -32,7 +35,7 @@ int main (int argc,const char *argv[])
     iter.set_uvw(uvwvec);
   }
   cout<<"=================== access via iterators =========\n";
-  for( VisCube::const_iterator iter = vc().begin(); iter != vc().end(); iter++ )
+  for( VCube::const_iterator iter = vc().begin(); iter != vc().end(); iter++ )
   {
     LoVec_fcomplex f_data = iter.f_data(0);
     Assert( f_data.shape()[0] == NFREQ );
@@ -40,11 +43,11 @@ int main (int argc,const char *argv[])
   
   cout<<"=================== cube contents (on the fly) ====\n";
   cout<<"TIME:\n"<<vc->time()<<endl;
-//   cout<<"DATA:\n"<<vc->dataCol(True)<<endl;
-//   cout<<"FLAGS:\n"<<vc->flagsCol(True)<<endl;
-//   cout<<"ROWFLAG:\n"<<vc->rowflagCol(True)<<endl;
-//   cout<<"WEIGHT:\n"<<vc->weightCol(True)<<endl;
-  cout<<"UVW:\n"<<vc->uvwCol(True)<<endl;
+//   cout<<"DATA:\n"<<vc->dataCol(true)<<endl;
+//   cout<<"FLAGS:\n"<<vc->flagsCol(true)<<endl;
+//   cout<<"ROWFLAG:\n"<<vc->rowflagCol(true)<<endl;
+//   cout<<"WEIGHT:\n"<<vc->weightCol(true)<<endl;
+  cout<<"UVW:\n"<<vc->uvwCol(true)<<endl;
   
   
   cout<<"=================== consolidating =================\n";
@@ -57,32 +60,32 @@ int main (int argc,const char *argv[])
 //   cout<<"FLAGS:\n"<<vc->flagsCol()<<endl;
 //   cout<<"ROWFLAG:\n"<<vc->rowflagCol()<<endl;
 //   cout<<"WEIGHT:\n"<<vc->weightCol()<<endl;
-  cout<<"UVW:\n"<<vc->uvwCol(True)<<endl;
+  cout<<"UVW:\n"<<vc->uvwCol(true)<<endl;
   
   cout<<"=================== subset-copy constructor =======\n";
-  VisCube::Ref vc2;
-  vc2 <<= new VisCube(*vc,DMI::WRITE,0,50,50);
+  VCube::Ref vc2;
+  vc2 <<= new VCube(*vc,0,0,50,50);
   cout<<vc2->sdebug(5)<<endl;
-  cout<<"UVW:\n"<<vc2->uvwCol(True)<<endl;
+  cout<<"UVW:\n"<<vc2->uvwCol(true)<<endl;
   
   cout<<"=================== append ========================\n";
   vc2().append(*vc,100,50);
   cout<<vc2->sdebug(5)<<endl;
-  cout<<"UVW:\n"<<vc2->uvwCol(True)<<endl;
+  cout<<"UVW:\n"<<vc2->uvwCol(true)<<endl;
 
   cout<<"=================== append by ref ======================\n";
-  VisCube::Ref vc3;
-  vc3 <<= new VisCube(*vc,DMI::WRITE,0,0,50);
-  vc3().append(*vc2,0,50,VisCube::BOTTOM);
+  VCube::Ref vc3;
+  vc3 <<= new VCube(*vc,0,0,0,50);
+  vc3().append(*vc2,0,50,VCube::BOTTOM);
   cout<<vc3->sdebug(5)<<endl;
-  cout<<"UVW:\n"<<vc3->uvwCol(True)<<endl;
+  cout<<"UVW:\n"<<vc3->uvwCol(true)<<endl;
   
   cout<<"=================== pop ======================\n";
-  vc2().pop(50,VisCube::TOP);
+  vc2().pop(50,VCube::TOP);
   cout<<vc2->sdebug(5)<<endl;
-  cout<<"UVW:\n"<<vc2->uvwCol(True)<<endl;
+  cout<<"UVW:\n"<<vc2->uvwCol(true)<<endl;
   cout<<vc3->sdebug(5)<<endl;
-  cout<<"UVW:\n"<<vc3->uvwCol(True)<<endl;
+  cout<<"UVW:\n"<<vc3->uvwCol(true)<<endl;
   
   cout<<"=================== storing to file ==========\n";
   BOIO outfile("test.vc",BOIO::WRITE);
@@ -95,16 +98,16 @@ int main (int argc,const char *argv[])
   infile>>ref;
   infile>>ref2;
   infile.close();
-  VisCube::Ref vc4 = ref.ref_cast<VisCube>(),
-               vc5 = ref2.ref_cast<VisCube>();
+  VCube::Ref vc4 = ref.ref_cast<VCube>(),
+               vc5 = ref2.ref_cast<VCube>();
   
   cout<<vc4->sdebug(5)<<endl;
-  cout<<"UVW:\n"<<vc4->uvwCol(True)<<endl;
+  cout<<"UVW:\n"<<vc4->uvwCol(true)<<endl;
   cout<<vc5->sdebug(5)<<endl;
-  cout<<"UVW:\n"<<vc5->uvwCol(True)<<endl;
+  cout<<"UVW:\n"<<vc5->uvwCol(true)<<endl;
   
   cout<<"=================== forming set ==============\n";
-  VisCubeSet::Ref cset(DMI::ANONWR);
+  VCubeSet::Ref cset(DMI::ANONWR);
   cset() <<= vc;
   cset() <<= vc2;
   cset() <<= vc3;
@@ -120,7 +123,7 @@ int main (int argc,const char *argv[])
   cout<<"=================== reading from file ========\n";
   infile.open("test.vcs");
   infile>>ref;
-  VisCubeSet::Ref cset2 = ref.ref_cast<VisCubeSet>();
+  VCubeSet::Ref cset2 = ref.ref_cast<VCubeSet>();
   cout<<cset2->sdebug(4)<<endl;
   
   cout<<"=================== indexing set ==============\n";
