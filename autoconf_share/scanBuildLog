@@ -3,7 +3,7 @@
 # Script to read all the logfiles from a given LOFAR system build
 #
 # Usage:
-#        ./scanBuildLog.py [base logname]
+#        ./scanBuildLog -d [lofarBasDir] -f [base logname]
 # Args:
 #       base logname:  The base name for the logfiles.
 #
@@ -17,7 +17,7 @@
 #                                               week441-docxxx.log
 #
 #      and the command to produce the html pages would be:
-#      ./scanBuildLog.py week441
+#      ./scanBuildLog -d LOFAR -f week441
 #
 # The resulting html pages will be copied to the lofar apache server so
 # they can be accessed by others.
@@ -34,34 +34,34 @@ import fnmatch
 import re
 import getopt
 
-def remoteFileMove():
+def remoteFileMove(lofarServer,serverDir):
   # move the html Files that reside in the "thisWeek" directory
   # on the server and have to do with this machines build to the
   # "lastWeek" directory
-  cmd="mv /usr/local/httpd/htdocs/BuildResults/thisWeek/*" + machineName() + \
-       "* /usr/local/httpd/htdocs/BuildResults/lastWeek/"
-  return os.system("ssh -1 lofar@lofar0.nfra.nl " + cmd)
+  cmd="mv "+serverDir+"/BuildResults/thisWeek/*" + machineName() + \
+       "* "+serverDir+"/BuildResults/lastWeek/"
+  return os.system("ssh -1 "+lofarServer+"  " + cmd)
 
-def copyServerSideScript():
+def copyServerSideScript(lofarServer,serverDir):
   #
   # copy the Serverside script (createNewIndex) to the lofar server
   # in the BuildResults directory.
-  return os.system("scp -oProtocol=1 -B LOFAR/autoconf_share/createNewIndex lofar@lofar0.nfra.nl:/usr/local/httpd/htdocs/BuildResults")
+  return os.system("scp -oProtocol=1 LOFAR/autoconf_share/createNewIndex "+lofarServer+":"+serverDir+"/BuildResults")
 
-def runServerSideScript():
+def runServerSideScript(lofarServer,serverDir,server):
   #
   # run the serverSideScript to generate the new index files
   #
-  return os.system('ssh -1 lofar@lofar0.nfra.nl "cd /usr/local/httpd/htdocs/BuildResults;./createNewIndex"')
+  return os.system('ssh -1 '+lofarServer+' "cd '+serverDir+'/BuildResults;./createNewIndex -d '+serverDir+' -s '+server+'"')
 
-def copyFiles2Server(copyDir):
+def copyFiles2Server(copyDir,lofarServer):
   #
   # function to copy the generated html pages to the server
   # The Protocol=1 flag will be passed to ssh on lofar0 to
   # enable Protocol 1 authorisation. This is needed at the moment
   # because lofar0 is still an older machine that has no ssh2 installed
   #
-  return os.system("scp -oProtocol=1 -B *.html lofar@lofar0.nfra.nl:"+copyDir)
+  return os.system("scp -oProtocol=1 *.html "+lofarServer+":"+copyDir)
   
 def find(pattern, startdir=os.curdir):
   #
@@ -174,24 +174,24 @@ def extendPackageArray(packageArray,allBuildablePackages):
   return newPackageArray
 
 def usage():
-  print "usage: scanBuildLog [-h] [-l arg] [-f arg]"
+  print "usage: "+sys.argv[0]+" [-h] [-d arg] [-f arg] [-s arg] [-t arg]"
   print "args:  -h,--help       - print usage"
-  print "       -d,-- directory - LOFAR base directory"
+  print "       -d,--directory  - LOFAR base directory"
   print "       -f,--filebase   - basename from logfiles. E.g. week441"
+  print "       -t,--testserver - give an alternative testserver"
+  print "       -s,--serverdir  - give an alternative serverdirectory"
   sys.exit(2)
 
 
 def main(argv):
   lofarDir = "None"
   fileBase = "None"
+  lofarServer ="lofar@lofar0.nfra.nl"
+  serverDir = "/usr/local/httpd/htdocs"
   try:
-    opts, args = getopt.getopt(argv, "d:f:h",["directory=","help","filebase="])
-    print "opts: "
-    for o in opts:
-      print o
-    print "arg: "
-    for a in args:
-      print a
+    opts, args = getopt.getopt(argv, "d:f:hs:t:",
+                               ["directory=","help","filebase=",
+                                "testserver=","serverdir="])
   except getopt.GetoptError:
     usage()
   for opt, arg in opts:
@@ -201,9 +201,12 @@ def main(argv):
       fileBase = arg
     elif opt in ("-d", "--directory"):
       lofarDir = arg
+    elif opt in ("-s", "--serverdir"):
+      serverDir = arg
+    elif opt in ("-t", "--testserver"):
+      lofarServer = arg
 
-  print "dir: "+lofarDir
-  
+  server=str.split(lofarServer,'@')[1]
   if fileBase==None:
     print "No filebase specified"
     usage()
@@ -221,6 +224,7 @@ def main(argv):
   # print machine
   #
   print "This build took place on: " + machineName() + "\n\n"
+  print "Using : " + serverDir + " on "+lofarServer+"\n\n"
 
 
   #
@@ -232,9 +236,36 @@ def main(argv):
   buildResultsArray=[]
   allBuildablePackages=[]
 
-  packageObj = re.compile('(PACKAGES *= *".*?")|(PACKAGES *= *[^ ]*)',re.IGNORECASE)
-  variantObj = re.compile('(VARIANTS *= *".*?")|(VARIANTS *= *[^ ]*)',re.IGNORECASE)
-
+  #
+  # Patterns to look for in the logfile
+  #
+  # find the PACKAGE(S) line to get all Packages being build
+  #
+  packagePattern = re.compile('(PACKAGES *= *".*?")|(PACKAGES *= *[^ ]*)',re.IGNORECASE)
+  #
+  # find the VARIANT(S) line to get the Variant being build
+  #
+  variantPattern = re.compile('(VARIANTS *= *".*?")|(VARIANTS *= *[^ ]*)',re.IGNORECASE)
+  #
+  # find the Compiletool line for compiling
+  #
+  compilePattern = re.compile('^.*compiletool .*mode=compile.*$')
+  #
+  # find the Compiletool line for linking
+  #
+  linkPattern = re.compile('^.*compiletool .*mode=link.*$')
+  #
+  # find the Compiletool line for install
+  #
+  installPattern = re.compile('^.*compiletool .*mode=install.*$')
+  #
+  # find the target  file within a compile (link)line
+  #
+  linkTargetPattern=re.compile('^.*mode=link.* -o ([^ ]+).*$')
+  #
+  # find the sourcefile in a source= line
+  #
+  sourcePattern=re.compile("^.*source='(.*/)?(.*.cc).*object='(.*)'.*$")
 
 
   #
@@ -266,12 +297,20 @@ def main(argv):
     keepLastFoundBuildArray=[]
 
     try:
-      readFile=open(file, 'r')
+      readLogFile=open(file, 'r')
+      sfile=file.split(fileBase)
+      nfile=machineName()+sfile[1]+".html"
+      writeLogFile=open(nfile, 'w')
     except IOError, message:
       sys.exit( "Error opening file: %s" % message )
-        
-    aLine=readFile.readline()
+
+
+    openHTMLPage(writeLogFile,"Tagged "+file+" on "+machineName(),"yes")
+    writeLogFile.write('<pre>\n')
+
+    aLine=readLogFile.readline()
     print "File: "+file
+
 
     while aLine != "":
       #
@@ -281,10 +320,10 @@ def main(argv):
         #
         # If PACKAGES found then lift out the different PACKAGES
         #
-        matchPackageObj = packageObj.search(aLine)
+        matchPackage = packagePattern.search(aLine)
       
-        if matchPackageObj:
-          start,end=matchPackageObj.span()
+        if matchPackage:
+          start,end=matchPackage.span()
           pckArray = re.split(' *',re.sub('(PACKAGES *= *)|(packages *= *)'
                                           ,'',re.sub('"','',aLine[start:end],2)))
 
@@ -300,9 +339,9 @@ def main(argv):
         #
         # search for VARIANTS in same line
         #
-        matchVariantObj = variantObj.search(aLine)
-        if matchVariantObj:
-          start,end=matchVariantObj.span()
+        matchVariant = variantPattern.search(aLine)
+        if matchVariant:
+          start,end=matchVariant.span()
           for variant in re.split(' *',re.sub('(VARIANTS *= *)|(variants *= *)',
                                               '',re.sub('"','',aLine[start:end],2))):
             variantPackageArray.append([variant,pckArray])
@@ -310,52 +349,98 @@ def main(argv):
       # Find CONFIGURING start
       #
       
-      elif str.find(aLine,":::::: CONFIGURING VARIANT")>-1:
+      if str.find(aLine,":::::: CONFIGURING VARIANT")>-1:
         keepLastFoundBuildArray=re.split(' *',re.sub('\n','',aLine))
       
       #
       #  Find BUILDING start
       #
-      elif str.find(aLine,":::::: BUILDING VARIANT")>-1:
+      if str.find(aLine,":::::: BUILDING VARIANT")>-1:
         keepLastFoundBuildArray=re.split(' *',re.sub('\n','',aLine))
       
       #
       # Find Failed test
       #
-      elif str.find(aLine,'FAIL:')>-1:
+      if str.find(aLine,'FAIL:')>-1:
         failedProg=re.sub('FAIL:','',re.sub('\n','',aLine))
         testResultsArray.append([failedProg,keepLastFoundBuildArray[3],
-                                 keepLastFoundBuildArray[6]])
+                                 keepLastFoundBuildArray[6],nfile])
+        #
+        # Write target in log file to be able to find the error later
+        #
+        writeLogFile.write('</pre>\n')
+        writeLogFile.write('<a name="'+keepLastFoundBuildArray[6]+
+                           '/'+failedProg+'">\n')
+        writeLogFile.write('<pre>\n')
 
 
       #
       # Find Configure errors
       #
-      elif str.find(aLine,'configure: error: ') > -1:
+      if str.find(aLine,'configure: error: ') > -1:
         aFile=str.split(aLine,' ')
         aPack=aFile[4]+" not configured"
         buildResultsArray.append([aPack,keepLastFoundBuildArray[3],
-                                  keepLastFoundBuildArray[6]])
+                                  keepLastFoundBuildArray[6],nfile])
+        #
+        # Write target in log file to be able to find the error later
+        #
+        writeLogFile.write('</pre>\n')
+        writeLogFile.write('<a name="'+keepLastFoundBuildArray[6]+
+                           '/'+aPack+'">\n')
+
+        writeLogFile.write('<pre>\n')
 
       #
       # Find Compile && Link errors
       # Search for strings like:
       #      make[5]: *** [PO_DH_PL.lo] Error 1
       #
-      elif str.find(aLine,' *** ') > -1:
+      if str.find(aLine,' *** ') > -1:
         if str.find(aLine,' Error ') > -1:
           aFile=str.split(str.replace(str.replace(aLine,'[',''),']',''))[2]
           aFile=re.sub('check-TESTS','',
                        re.sub('check-am','',
-                       re.sub('check-recursive','',
-                       re.sub('all','',
-                       re.sub('all-recursive','',aFile)))))
+                              re.sub('check-recursive','',
+                                     re.sub('all','',
+                                            re.sub('all-recursive','',aFile)))))
           if aFile:
             buildResultsArray.append([aFile,keepLastFoundBuildArray[3],
-                                      keepLastFoundBuildArray[6]])
-      
-      aLine=readFile.readline()
-    readFile.close()
+                                      keepLastFoundBuildArray[6],nfile])
+
+      #
+      # Find Source line and filter out the src that is been compiled here
+      #
+      match=sourcePattern.search(aLine)
+      if match:
+        writeLogFile.write('</pre>\n')
+        writeLogFile.write('<a name="'+keepLastFoundBuildArray[6]+
+                           '/'+match.group(2)+'">\n')
+        writeLogFile.write('<a name="'+keepLastFoundBuildArray[6]+
+                           '/'+match.group(3)+'">\n')
+        writeLogFile.write('<pre>\n')
+
+      #
+      # Find compiletool with mode=link
+      if linkPattern.search(aLine):
+        match=linkTargetPattern.search(aLine)
+        if match:
+          writeLogFile.write('</pre>\n')
+          writeLogFile.write('<a name="'+keepLastFoundBuildArray[6]+
+                           '/'+match.group(1)+'">\n')
+          writeLogFile.write('<pre>\n')
+
+
+        
+      #        elif installPattern.search(aLine):
+      #          print "found install line"
+
+      writeLogFile.write(aLine)
+      aLine=readLogFile.readline()
+    readLogFile.close()
+    writeLogFile.write('</pre>\n')
+    closeHTMLPage(writeLogFile)
+    writeLogFile.close()
 
 
   #
@@ -390,7 +475,7 @@ def main(argv):
                  "Variant: "+row[1]+"</h3></center>\n")
       file.write('<ul>\n')
       usedFiles.append(fileName)
-    file.write('<li>'+row[0]+'</li>\n')
+    file.write('<li><A href="'+row[3]+'#'+row[2]+'/'+row[0]+'">'+row[0]+'</A></li>\n')
     file.close()
 
   for row in buildResultsArray:
@@ -412,7 +497,7 @@ def main(argv):
                  "Variant: "+row[1]+"</h3></center>\n")
       file.write('<ul>\n')
       usedFiles.append(fileName)
-    file.write('<li>'+row[0]+'</li>\n')
+    file.write('<li><A href="'+row[3]+'#'+row[2]+'/'+row[0]+'">'+row[0]+'</A></li>\n')
     file.close()
 
   #
@@ -433,31 +518,31 @@ def main(argv):
   #
   # open main HTML file for writing
   #
-  writeFile=open("BuildPage_"+machineName()+".html",'w')
+  htmlFile=open("BuildPage_"+machineName()+".html",'w')
 
   #
   # Open html page
   #
-  openHTMLPage(writeFile,"BuildReport on "+machineName(),"yes")
+  openHTMLPage(htmlFile,"BuildReport on "+machineName(),"yes")
 
 
   #
   # Start the table
   #
-  writeFile.write("<table border cellspacing=2 cellpadding=5>\n")
+  htmlFile.write("<table border cellspacing=2 cellpadding=5>\n")
 
   #
   # add all different variants to the collumns
   #
-  writeFile.write("<tr>\n<th> </th>\n")
+  htmlFile.write("<tr>\n<th> </th>\n")
   for entry in variantPackageArray:
-    writeFile.write("<th>"+entry[0]+"</th>\n")
-  writeFile.write("</tr>\n")
+    htmlFile.write("<th>"+entry[0]+"</th>\n")
+  htmlFile.write("</tr>\n")
 
 
 
   for package in allBuildablePackages:
-    writeFile.write("<tr>\n<th>\n"+package+"</th>\n")
+    htmlFile.write("<tr>\n<th>\n"+package+"</th>\n")
 
     #
     # Look if this Package was also build in one of the variants
@@ -472,30 +557,30 @@ def main(argv):
             findFailedBuilds(entry[0],package,buildResultsArray)):
           rawName=entry[0]+'_'+package+'_Failed_'+machineName()+'.html'
           linkName=str.replace(rawName,'/','_')
-          writeFile.write('<td bgcolor="RED">'
+          htmlFile.write('<td bgcolor="RED">'
                           '<a href="'+linkName+'">')
-          writeFile.write('<font color="red">')
+          htmlFile.write('<font color="red">')
           for i in entry[0][1:len(entry[0])]:
-            writeFile.write('x')
+            htmlFile.write('x')
           
-          writeFile.write('</font></a></td>\n')
+          htmlFile.write('</font></a></td>\n')
         else:
-          writeFile.write('<td bgcolor="GREEN"> &nbsp</td>\n')
+          htmlFile.write('<td bgcolor="GREEN"> &nbsp</td>\n')
       else:
-        writeFile.write('<td bgcolor="GRAY"> &nbsp</td>\n')    
-    writeFile.write("</tr>")
-  writeFile.write("</table>\n")
+        htmlFile.write('<td bgcolor="GRAY"> &nbsp</td>\n')    
+    htmlFile.write("</tr>")
+  htmlFile.write("</table>\n")
 
   #
   # close html page
   #
-  closeHTMLPage(writeFile)
+  closeHTMLPage(htmlFile)
 
 
   #
   # Copy the "old" files from this machine in thisWeek to lastWeek
   #
-  if remoteFileMove() > 0:
+  if remoteFileMove(lofarServer,serverDir) > 0:
     print "Move new to old on server not done because of errors"
   else:
     print "Move new to old on server done"
@@ -503,7 +588,7 @@ def main(argv):
   #
   # Copy createNewIndex.py to the server
   #
-  if copyServerSideScript() > 0:
+  if copyServerSideScript(lofarServer,serverDir) > 0:
     print "Move script to server not done because of errors"
   else:
     print "Move script to server done"
@@ -511,7 +596,8 @@ def main(argv):
   #
   # Copy the new generated html files to the Server
   #
-  if copyFiles2Server("/usr/local/httpd/htdocs/BuildResults/thisWeek") > 0:
+  if copyFiles2Server(serverDir+"/BuildResults/thisWeek",
+                      lofarServer) > 0:
     print "Copy html files not done because of errors"
   else:
     print "Copy html files to server done"
@@ -520,7 +606,7 @@ def main(argv):
   #
   # run server side script to generate new index files there
   #
-  if runServerSideScript() > 0:
+  if runServerSideScript(lofarServer,serverDir,server) > 0:
     print "Run script on server failed"
   else:
     print "Run script on server done"

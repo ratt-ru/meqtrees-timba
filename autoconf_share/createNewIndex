@@ -13,6 +13,7 @@ import sys
 import os
 import re
 import fnmatch
+import getopt
 
 def find(pattern, startdir=os.curdir):
   #
@@ -74,49 +75,78 @@ def closeHTMLPage(file):
   file.write("</html>\n")
   file.close()
 
-#
-# open the index file in lastWeek
-#
-try:
-    lastWeekIndexFile=open("/usr/local/httpd/htdocs/BuildResults/lastWeek/index.html",'w')
-except IOError, message:
+def usage():
+  print "usage: "+sys.argv[0]+" [-h] [-d arg] [-f arg] [-s arg] [-t arg]"
+  print "args:  -h,--help       - print usage"
+  print "       -d,--directory  - base directory"
+  print "       -s,--server     - server we work on"
+  sys.exit(2)
+                
+
+
+def main(argv):
+  serverDir="/usr/local/httpd/htdocs"
+  server="lofar0.nfra.nl"
+  try:
+    opts, args = getopt.getopt(argv, "d:s:h", ["directory=","server="])
+  except getopt.GetoptError:
+    usage()
+  for opt, arg in opts:
+    if opt in ("-h", "--help"):
+      usage()
+    elif opt in ("-d", "--directory"):
+      serverDir=arg
+    elif opt in ("-s", "--server"):
+      server=arg
+
+  #
+  # open the index file in lastWeek
+  #
+  try:
+    lastWeekIndexFile=open(serverDir+"/BuildResults/lastWeek/index.html",'w')
+  except IOError, message:
     sys.exit( "Error opening file: %s" % message )
     
-#
-# open the index file in thisWeek
-#
-try:
-    thisWeekIndexFile=open("/usr/local/httpd/htdocs/BuildResults/thisWeek/index.html",'w')
-except IOError, message:
+  #
+  # open the index file in thisWeek
+  #
+  try:
+    thisWeekIndexFile=open(serverDir+"/BuildResults/thisWeek/index.html",'w')
+  except IOError, message:
     sys.exit( "Error opening file: %s" % message )
 
-openHTMLPage(lastWeekIndexFile,"Last Weeks BuildResults","yes")
-openHTMLPage(thisWeekIndexFile,"Present Week BuildResults","yes")
+  openHTMLPage(lastWeekIndexFile,"Last Weeks BuildResults","yes")
+  openHTMLPage(thisWeekIndexFile,"Present Week BuildResults","yes")
 
-lastWeekIndexFile.write('<ul>\n')
-thisWeekIndexFile.write('<ul>\n')
+  lastWeekIndexFile.write('<ul>\n')
+  thisWeekIndexFile.write('<ul>\n')
 
-for file in find('BuildPage*.html','thisWeek'):
-  machine=re.sub('thisWeek/BuildPage_','',re.sub('.html','',file))
-  thisWeekIndexFile.write('<li>\n')
-  thisWeekIndexFile.write('<a href="http://lofar0.nfra.nl/BuildResults/thisWeek/BuildPage_'+machine+'.html"><font size="+1">'+machine+'</font></a>\n')
-  thisWeekIndexFile.write('</li>\n')
+  for file in find('BuildPage*.html','thisWeek'):
+    machine=re.sub('thisWeek/BuildPage_','',re.sub('.html','',file))
+    thisWeekIndexFile.write('<li>\n')
+    thisWeekIndexFile.write('<a href="http://"+server+"/BuildResults/thisWeek/BuildPage_'+machine+'.html"><font size="+1">'+machine+'</font></a>\n')
+    thisWeekIndexFile.write('</li>\n')
 
-for file in find('BuildPage*.html','lastWeek'):
-  machine=re.sub('lastWeek/BuildPage_','',re.sub('.html','',file))
-  lastWeekIndexFile.write('<li>\n')
-  lastWeekIndexFile.write('<a href="http://lofar0.nfra.nl/BuildResults/lastWeek/BuildPage_'+machine+'.html"><font size="+1">'+machine+'</font></a>\n')
-  lastWeekIndexFile.write('</li>\n')
-
-
-lastWeekIndexFile.write('</ul>\n')
-thisWeekIndexFile.write('</ul>\n')
+  for file in find('BuildPage*.html','lastWeek'):
+    machine=re.sub('lastWeek/BuildPage_','',re.sub('.html','',file))
+    lastWeekIndexFile.write('<li>\n')
+    lastWeekIndexFile.write('<a href="http://"+server+"/BuildResults/lastWeek/BuildPage_'+machine+'.html"><font size="+1">'+machine+'</font></a>\n')
+    lastWeekIndexFile.write('</li>\n')
 
 
+  lastWeekIndexFile.write('</ul>\n')
+  thisWeekIndexFile.write('</ul>\n')
 
+  #
+  # close html page
+  #
+  closeHTMLPage(lastWeekIndexFile)
+  closeHTMLPage(thisWeekIndexFile)
+
+  sys.exit(0)
 
 #
-# close html page
+# this is the main entry
 #
-closeHTMLPage(lastWeekIndexFile)
-closeHTMLPage(thisWeekIndexFile)
+if __name__ == "__main__":
+  main(sys.argv[1:])
