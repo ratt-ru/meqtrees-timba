@@ -114,6 +114,7 @@ touch makeoptions
 # The structure of the Makefile is similar to the top LOFAR Makefile
 rm -rf Makefile
 touch Makefile
+echo "LOFARPACKAGE = $lfr_pkg" >> Makefile
 echo "RECUR_PACKAGE = $sdir" >> Makefile
 echo "RECUR_VARIANT = $lfr_cvdir" >> Makefile
 echo "LOFARDIR = $lfr_root" >> Makefile
@@ -152,14 +153,14 @@ build_system:
 	                      icc*)  inst_var=icc;; \
 	        esac; \
 	        (echo \
-		&& echo ":::::: CONFIGURING VARIANT $$var FOR PACKAGE $$pkg" \
+		&& echo ":::::: CONFIGURING VARIANT $$var FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& ((mkdir -p $$pkg/build/$$var; cd $$pkg/build/$$var \
 		&& $(LOFARDIR)/autoconf_share/lofarconf -norecursive --prefix=$(PREFIX)/$$inst_var ) \
 	   	  || echo ":::::: ERROR" ) \
 		&& echo \
-		&& echo ":::::: FINISHED CONFIGURING VARIANT $$var FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED CONFIGURING VARIANT $$var FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; ); \
 		(echo \
 		&& echo ":::::: BUILDING VARIANT $$var FOR PACKAGE $$pkg" \
@@ -169,11 +170,11 @@ build_system:
 		&& $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` build_system WITH_INSTALL=$(WITH_INSTALL) PREFIX=$(PREFIX) ) \
 			|| echo ":::::: ERROR" ) \
 		&& echo \
-		&& echo ":::::: FINISHED BUILDING VARIANT $$var FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED BUILDING VARIANT $$var FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ;); \
 	      done; \
 	  else \
-	    echo ":::::: ERROR $$pkg does not exist"; \
+	    echo ":::::: ERROR $(LOFARPACKAGE)/$$pkg does not exist"; \
 	  fi \
 	done; \
 
@@ -192,25 +193,25 @@ if test $lfr_dirform = 0; then
 	    if test -d $$pkg; then \
 	      if test -d $$pkg/src; then \
 		( echo \
-		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& (( cd $$pkg/build/$$variant \
 		&& $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` ) \
                 || echo ":::::: ERROR" ) \
 		&& echo \
-		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; ) \
 	      else \
 		( echo \
-		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& (( cd $$pkg/build/$$variant \
 		&& $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` buildall ) \
                 || echo ":::::: ERROR" ) \
 		&& echo \
-		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; ) \
 	      fi\
 	    fi\
@@ -226,14 +227,14 @@ if test $lfr_dirform = 0; then
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		echo \
-		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& ( cd $$pkg/build/$$variant \
 		&& $(MAKE) $(MAKE_OPTIONS) `cat makeoptions` \
                 || exit 2 ) || exit 2 \
 		&& echo \
-		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -248,14 +249,14 @@ if test $lfr_dirform = 0; then
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: CHECKING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& cd $$pkg/build/$$variant \
 		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` check \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
-		&& echo ":::::: FINISHED CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED CHECKING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -270,14 +271,14 @@ if test $lfr_dirform = 0; then
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: INSTALLING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& cd $$pkg/build/$$variant \
 		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` install \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
-		&& echo ":::::: FINISHED INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED INSTALLING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -292,14 +293,14 @@ if test $lfr_dirform = 0; then
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: UNINSTALLING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& cd $$pkg/build/$$variant \
 		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` uninstall \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
-		&& echo ":::::: FINISHED UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED UNINSTALLING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -314,14 +315,14 @@ if test $lfr_dirform = 0; then
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: CLEANING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& cd $$pkg/build/$$variant \
 		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` clean \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
-		&& echo ":::::: FINISHED CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED CLEANING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -336,14 +337,14 @@ if test $lfr_dirform = 0; then
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: DISTCLEANING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& cd $$pkg/build/$$variant \
 		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` distclean \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
-		&& echo ":::::: FINISHED DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED DISTCLEANING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -358,14 +359,14 @@ if test $lfr_dirform = 0; then
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: MAKING DIST OF VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& cd $$pkg/build/$$variant \
 		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` dist \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
-		&& echo ":::::: FINISHED MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED MAKING DIST OF VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -383,14 +384,14 @@ else
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& (( cd $$pkg \
 		&& $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` buildall ) \
 			|| echo ":::::: ERROR" ) \
 		&& echo \
-		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; ) \
 	    fi\
 	done; \
@@ -404,14 +405,14 @@ else
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& (( cd $$pkg \
 		&& $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` build ) \
 			|| echo ":::::: ERROR" ) \
 		&& echo \
-		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; ) \
 	    fi\
 	done; \
@@ -425,14 +426,14 @@ else
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: CHECKING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& cd $$pkg \
 		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` check \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
-		&& echo ":::::: FINISHED CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED CHECKING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -446,14 +447,14 @@ else
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: INSTALLING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& cd $$pkg \
 		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` install \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
-		&& echo ":::::: FINISHED INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED INSTALLING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -467,14 +468,14 @@ else
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: UNINSTALLING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& cd $$pkg \
 		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` uninstall \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
-		&& echo ":::::: FINISHED UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED UNINSTALLING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -488,14 +489,14 @@ else
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: CLEANING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& cd $$pkg \
 		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` clean \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
-		&& echo ":::::: FINISHED CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED CLEANING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -509,14 +510,14 @@ else
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: DISTCLEANING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& cd $$pkg \
 		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` distclean \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
-		&& echo ":::::: FINISHED DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED DISTCLEANING VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -530,14 +531,14 @@ else
 	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
-		&& echo ":::::: MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: MAKING DIST OF VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo \
 		&& date \
 		&& cd $$pkg \
 		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` dist \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
-		&& echo ":::::: FINISHED MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ":::::: FINISHED MAKING DIST OF VARIANT $$variant FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
