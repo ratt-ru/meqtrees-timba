@@ -36,14 +36,16 @@
 # The command has to be run from the LOFAR directory in the user's tree.
 #
 # Run as:
-#   rub [-cvs cvs-command] [-build variant] -[dist]clean -check -install package1 [...]
+#   rub [-cvs cvs-command] [-build variants] -[dist]clean -check -install package1 [...]
 #
 #     -cvs cvs-command  is an optional cvs command making it possible to
 #                       specify (for example) the root.
 #                       It defaults to cvs.
 #     -updq string      is a string containing qualifiers for the cvs update
 #                       command (default is empty)
-#     -build variant    gives the variant to build (e.g. gnu3_debug)
+#     -build variants   gives the variants to build (e.g. gnu3_debug)
+#                       Separate multiple variants by whitespace, thus they
+#                       have to be enclosed in quotes then.
 #     -conf             do bootstrap and configure before build
 #                       It only takes effect if -build is also given.
 #     -clean            indicates that all build/<variant> directories
@@ -81,7 +83,7 @@ fi
 cvsdefault=cvs
 cvscomm=$cvsdefault
 updq=
-variant=
+variants=
 conf=0
 clean=0
 distclean=0
@@ -108,11 +110,11 @@ do
   # Do we have to build after the checkout/update?
   elif [ "$1" = -build ]; then
     shift
-    variant="$1"
+    variants="$1"
     shift
   elif [ "$1" = -nobuild ]; then
     shift
-    variant=
+    variants=
   elif [ "$1" = -conf ]; then
     shift
     conf=1
@@ -210,32 +212,46 @@ else
 fi
 \rm -f greplog.tmp
 
-if [ "$variant" != "" ]; then
-  echo "Building packages in build/$variant ..."
-  echo "See build.log for build details"
-  bootcmd=
-  confcmd=
-  premake=
-  postmake=
-  if [ $conf = 1 ]; then
-    bootcmd="./bootstrap; "
-    confcmd="../../lofarconf; "
-    echo "Packages will be bootstrapped and configured first"
-  fi
-  if [ $clean = 1 ]; then
-    premake="make clean; "
-    echo "Packages will be cleaned first"
-  elif [ $clean = 2 ]; then
-    premake="make distclean; ../../lofarconf; "
-    echo "Packages will be distcleaned first"
-  fi
-  if [ $check = 1 ]; then
-    postmake="make check; "
-    echo "Packages will be checked at the end"
-  fi
-  if [ $install = 1 ]; then
-    postmake="$postmake make install; "
-    echo "Packages will be installed at the end"
-  fi
-  eval "mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake" > build.log 2>&1
+if [ "$variants" = "" ]; then
+  exit 0;
 fi
+
+# Determine the build commands.
+echo "Variants to be built: $variants"
+echo "See build.log for build details"
+bootcmd=
+confcmd=
+premake=
+postmake=
+if [ $conf = 1 ]; then
+  bootcmd="./bootstrap; "
+  confcmd="../../lofarconf; "
+  echo "Packages will be bootstrapped and configured first"
+fi
+if [ $clean = 1 ]; then
+  premake="make clean; "
+  echo "Packages will be cleaned first"
+elif [ $clean = 2 ]; then
+  premake="make distclean; ../../lofarconf; "
+  echo "Packages will be distcleaned first"
+fi
+if [ $check = 1 ]; then
+  postmake="make check; "
+  echo "Packages will be checked at the end"
+fi
+if [ $install = 1 ]; then
+  postmake="$postmake make install; "
+  echo "Packages will be installed at the end"
+fi
+
+# Build all variants.
+\rm -f build.log
+touch build.log
+for variant in $variants
+do
+  echo "Building packages in build/$variant ..."
+  echo "" >> build.log
+  echo "***** Building packages in build/$variant ..." >> build.log
+  echo "(mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake)"
+  eval "(mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake)" >> build.log 2>&1
+done
