@@ -43,70 +43,141 @@ AC_ARG_WITH(aipspp,
 	[  --with-aipspp[=PFX]         enable use of AIPS++ (via AIPSPATH or explicit path)],
 	[with_aipspp="$withval"],
 	[with_aipspp=""])
+AC_ARG_WITH(casa,
+	[  --with-casa[=PFX]           enable use of casa (via casapath or explicit path)],
+	[with_casa="$withval"],
+	[with_casa=""])
 AC_ARG_WITH(pgplot,
 	[  --with-pgplot[=PFX]         enable use of PGPLOT if needed by AIPS++],
 	[with_pgplot="$withval"],
 	[with_pgplot=""])
 [
-if test "$with_aipspp" = ""; then
-  if test $lfr_option = "0"; then
-    with_aipspp=no;
-  else
-    with_aipspp=yes;
-  fi
-fi
+
+
 if test "$with_pgplot" = ""; then
     with_pgplot=no;
 fi
 
-if test "$with_aipspp" = "no"; then
-  if test "$lfr_option" != "0"; then
-    ]AC_MSG_ERROR([AIPS++ is needed, but --with-aipspp=no has been given])[
+# the path where the libraries can be found
+AIPSPP_LIB_PATH=""
+# the path where the include files can be found
+AIPSPP_INC_PATH=""
+
+# if casa and aips are both set, casa will be used
+# check the --with-casa option
+if test "$with_casa" = ""; then
+  # --with-casa was not given, so look in casapath if it exists
+  ]AC_MSG_CHECKING([whether casapath environment variable is set])[
+  if test "${casapath}set" != "set"; then
+    ]AC_MSG_RESULT([yes])[
+    AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${casapath}"
+    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${casapath}"
+  else
+    ]AC_MSG_RESULT([no])[
+  fi
+elif test "$with_casa" = "no"; then
+  # do nothing
+  echo
+elif test "$with_casa" = "yes"; then
+  # --with-casa was given, so look in casapath if it exists otherwise give an error
+  ]AC_MSG_CHECKING([whether casapath environment variable is set])[
+  if test "${casapath}set" != "set"; then
+    ]AC_MSG_RESULT([yes])[
+    AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${casapath}"
+    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${casapath}"
+  else
+    echo
+    ]AC_MSG_RESULT([no])[
+    ]AC_MSG_ERROR([--with-casa=yes has been given, but casapath has not been set])[
   fi
 else
-  if test "$with_aipspp" = "yes"; then
-    ]AC_MSG_CHECKING([whether AIPSPATH environment variable is set])[
-    if test "${AIPSPATH+set}" != "set"; then]
-      AC_MSG_RESULT([no])
-      AC_MSG_ERROR([AIPSPATH not set and no explicit path is given])
-    [else]
-      AC_MSG_RESULT([yes])
-    [
-      AIPSPP_PATH=`expr "$AIPSPATH" : "\(.*\) .* .* .*"`;
-      AIPSPP_ARCH=`expr "$AIPSPATH" : ".* \(.*\) .* .*"`;
+  # the casa path was given manually so look there
+  AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${AIPSPP_LIB_PATH} ${with_casa}"
+  AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${AIPSPP_INC_PATH} ${with_casa}"
+fi
+
+# check the --with-aipspp option
+if test "$with_aipspp" = ""; then
+  # --with-aips was not given, so look in AIPSPATH if it exists
+  ]AC_MSG_CHECKING([whether AIPSPATH environment variable is set])[
+  if test "${AIPSPATH}set" != "set"; then
+    ]AC_MSG_RESULT([yes])[
+    AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/`expr "$AIPSPATH" : ".* \(.*\) .* .*"`"
+    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/code"
+  else
+    ]AC_MSG_RESULT([no])[
+  fi
+elif test "$with_aipspp" = "no"; then
+  # do nothing
+  echo
+elif test "$with_aipspp" = "yes"; then
+  # --with-aips was given, so look in AIPSPATH if it exists otherwise give an error
+  ]AC_MSG_CHECKING([whether AIPSPATH environment variable is set])[
+  if test "${AIPSPATH}set" != "set"; then
+    ]AC_MSG_RESULT([yes])[
+    AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/`expr "$AIPSPATH" : ".* \(.*\) .* .*"`"
+    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/code"
+  else
+    echo
+    ]AC_MSG_RESULT([no])[
+    ]AC_MSG_ERROR([--with-aipspp=yes has been given, but AIPSPATH has not been set])[
+  fi
+else
+  # the aips path was given manually so look there
+  AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${with_aipspp}";
+  AIPSPP_INC_PATH="${AIPSPP_INC_PATH} `dirname $with_aipspp`/code";
+fi
+
+# Do we have enough info?
+if test "$AIPSPP_LIB_PATH" = ""; then
+  if test "$lfr_option" != "0"; then
+    ]AC_MSG_ERROR([AIPS++ is needed, but casapath and AIPSPATH have not been set and  --with-aipspp=path and --with-casa=path have not been given])[
+  fi
+else
+  # Now we have the paths and we can start searching for the aips installation
+
+  # I don't know a nicer way to do a for loop over two lists
+  INDEX=0
+  for dummy in $AIPSPP_LIB_PATH; do
+    let "INDEX += 1"
+    AIP=`echo $AIPSPP_INC_PATH | awk '{print $'$INDEX'}'`
+    ALP=`echo $AIPSPP_LIB_PATH | awk '{print $'$INDEX'}'`
+
+    ALL_FOUND="yes"
+    ]AC_CHECK_FILE([$AIP/include],, [ALL_FOUND="no"])[
+    ]AC_CHECK_FILE([$ALP/lib],, [ALL_FOUND="no"])[
+    if test "$ALL_FOUND" = "yes"; then
+      # we have a winner
+      break
+    fi
+  done
+
+  if test "$ALL_FOUND" = "no"; then 
+    # the paths do not contain the needed files/dirs
+    if test "$lfr_option" != "0"; then
+      ]AC_MSG_ERROR([AIPS++ installation not found])[
     fi
   else
-    # A path like /aips++/daily/dop29_gnu has been given.
-    # Last part is ARCH, rest is PATH.
-    AIPSPP_PATH=`dirname $with_aipspp`;
-    AIPSPP_ARCH=`basename $with_aipspp`;
-  fi
-
-  ]AC_CHECK_FILE([$AIPSPP_PATH/code/include],
-	         [lfr_var1=yes], [lfr_var1=no])[
-  ]AC_CHECK_FILE([$AIPSPP_PATH/$AIPSPP_ARCH/lib],
-	         [lfr_var2=yes], [lfr_var2=no])[
-  if test $lfr_var1 = yes  &&  test $lfr_var2 = yes; then
     case `uname -s` in
-	SunOS)  arch=SOLARIS;;
-	Linux)  arch=LINUX;;
-	IRIX32) arch=IRIX;;
-	IRIX64) arch=IRIX;;
-	*)      arch=UNKNOWN;;
+      SunOS)  arch=SOLARIS;;
+      Linux)  arch=LINUX;;
+      IRIX32) arch=IRIX;;
+      IRIX64) arch=IRIX;;
+      *)      arch=UNKNOWN;;
     esac
 
-    AIPSPP_CPPFLAGS="-I$AIPSPP_PATH/code/include -DAIPS_$arch"
+    AIPSPP_CPPFLAGS="-I$AIP/include -DAIPS_$arch"
     if test "$lofar_compiler" = "kcc"; then
       AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_KAICC"
     fi
-    AIPSPP_LDFLAGS="-L$AIPSPP_PATH/$AIPSPP_ARCH/lib -Wl,-rpath,$AIPSPP_PATH/$AIPSPP_ARCH/lib"
+    AIPSPP_LDFLAGS="-L$ALP/lib -Wl,-rpath,$ALP/lib"
     # For one reason or another -ltrial -laips links in a lot of rubbish
     # (like MiriadImage). Therefore do -laips first.
-    AIPSPP_LIBS="$AIPSPP_PATH/$AIPSPP_ARCH/lib/version.o $lfr_aipslibs"
+    AIPSPP_LIBS="$ALP/lib/version.o $lfr_aipslibs"
 
     if test "$with_pgplot" != "no"; then
       ]AC_CHECK_FILE([$with_pgplot],
-	             [lfr_pg=yes], [lfr_pg=no])[
+            [lfr_pg=yes], [lfr_pg=no])[
       if test $lfr_pg = no; then
         ]AC_MSG_ERROR([given PGPLOT directory not found])[
       fi
@@ -124,9 +195,9 @@ else
     fi
     LDFLAGS="$LDFLAGS $AIPSPP_LDFLAGS"
     LIBS="$LIBS $AIPSPP_LIBS"
-    AIPSPP="$AIPSPP_PATH/$AIPSPP_ARCH"
+    AIPSPP="$ALP"
 
-  ]
+    ]
 dnl
     AC_SUBST(AIPSPP)dnl
     AC_SUBST(CPPFLAGS)dnl
@@ -135,11 +206,9 @@ dnl
     AC_SUBST(LIBS)dnl
 dnl
     AC_DEFINE(HAVE_AIPSPP, 1, [Define if AIPS++ is installed])dnl
-[
-  else
-    ]AC_MSG_ERROR([AIPS++ installation not found])[
+    AM_CONDITIONAL(HAVE_AIPSPP, [test "true" = "true"])dnl
+    [
   fi
 fi
 ]
-AM_CONDITIONAL(HAVE_AIPSPP, [test "$with_aipspp" != "no"])
 ])
