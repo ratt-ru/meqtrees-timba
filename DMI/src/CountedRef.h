@@ -178,6 +178,12 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       //## Operation: attach%3C179DA9016B; C++
       CountedRef<T> & attach (const T* targ, int flags = 0);
 
+      //## Operation: operator <<=%3CBEE39B0011
+      CountedRef<T> & operator <<= (const T* targ);
+
+      //## Operation: operator <<=%3CBEE3AC0105
+      CountedRef<T> & operator <<= (T* targ);
+
     // Additional Public Declarations
       //## begin CountedRef%3BEFECFF0287.public preserve=yes
       // make public some methods of CountedRefBase which would otherwise
@@ -552,6 +558,24 @@ bool CountedRef<T>::operator!=(const CountedRef<T> &right) const
   //## end CountedRef::operator!=%3BEFECFF0287_neq.body
 }
 
+
+
+//## Other Operations (implementation)
+template <class T>
+CountedRef<T> & CountedRef<T>::operator <<= (const T* targ)
+{
+  //## begin CountedRef::operator <<=%3CBEE39B0011.body preserve=yes
+  attach(targ,DMI::ANON|DMI::READONLY);
+  //## end CountedRef::operator <<=%3CBEE39B0011.body
+}
+
+template <class T>
+CountedRef<T> & CountedRef<T>::operator <<= (T* targ)
+{
+  //## begin CountedRef::operator <<=%3CBEE3AC0105.body preserve=yes
+  attach(targ,DMI::ANON|DMI::WRITE);
+  //## end CountedRef::operator <<=%3CBEE3AC0105.body
+}
 
 // Additional Declarations
   //## begin CountedRef%3BEFECFF0287.declarations preserve=yes

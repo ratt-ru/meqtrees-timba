@@ -213,16 +213,19 @@ void HIID::unpack (const void* block, size_t sz)
 void HIID::addString (const string &str)
 {
   size_t p0=0,p1;
-  // split string into fields separated by '.',
-  // and create an AtomicID for each field
+  // split string into fields separated by '.', and create an 
+  // AtomicID for each field. "/" and ":" also serve as separators,
+  // but they also correspond to their own AtomicIDs
   while( p0 != string::npos )
   {
-    size_t len = p1 = str.find_first_of("./",p0);
+    size_t len = p1 = str.find_first_of("./:",p0);
     if( len != string::npos )
       len -= p0;
     push_back( AtomicID( str.substr(p0,len) ) );
     if( str[p1] == '/' )
       push_back( AidSlash );
+    else if( str[p1] == ':' )
+      push_back( AidRange );
     p0 = p1 == string::npos ? p1 : p1+1;
   }
 }

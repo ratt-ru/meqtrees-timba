@@ -152,11 +152,13 @@ class AtomicID
 };
 
 //## begin AtomicID%3BE970170297.postscript preserve=yes
+// some special AtomicIDs
 const AtomicID AidNull(0),
-               AidAny(-1),
-               AidWildcard(-2),
-               AidSlash(-3),
-               AidRange(-4);
+               AidAny(-1),        // "?" 
+               AidWildcard(-2),   // "*"
+               AidSlash(-3),      // "/"
+               AidRange(-4),      // ":"
+               AidEmpty(-5);      // "" (zero-length string)
 //## end AtomicID%3BE970170297.postscript
 
 //## begin AidIndex%3C553F440092.preface preserve=yes
@@ -223,7 +225,7 @@ inline AtomicID::AtomicID (const string &str)
   //## begin AtomicID::AtomicID%3C5E74CB0112.hasinit preserve=no
   //## end AtomicID::AtomicID%3C5E74CB0112.hasinit
   //## begin AtomicID::AtomicID%3C5E74CB0112.initialization preserve=yes
-  : aid( findName(str) )
+  : aid( str.length() ? findName(str) : AidEmpty.id() )
   //## end AtomicID::AtomicID%3C5E74CB0112.initialization
 {
   //## begin AtomicID::AtomicID%3C5E74CB0112.body preserve=yes

@@ -130,6 +130,10 @@ class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
       //	this_ also match  _other_).
       bool subsetOf (const HIID &other) const;
 
+      //## Operation: prefixedBy%3CBEB7E2034E
+      //	Returns True if other is a prefix of this.
+      bool prefixedBy (const HIID &other) const;
+
       //## Operation: popLeadIndex%3C59522600D6
       //	If first atom of HIID is an index, pop and return it, else return 0.
       int popLeadIndex ();
@@ -327,6 +331,13 @@ inline int HIID::length () const
   //## begin HIID::length%3C1A187E018C.body preserve=yes
   return size();
   //## end HIID::length%3C1A187E018C.body
+}
+
+inline bool HIID::prefixedBy (const HIID &other) const
+{
+  //## begin HIID::prefixedBy%3CBEB7E2034E.body preserve=yes
+  return matches(other|AidWildcard);
+  //## end HIID::prefixedBy%3CBEB7E2034E.body
 }
 
 inline int HIID::popLeadSlashes ()

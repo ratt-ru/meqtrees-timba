@@ -76,11 +76,12 @@ int AtomicID::findName (const string &str)
   //## begin AtomicID%3BE970170297.declarations preserve=yes
 //template class StaticRegistry<AtomicID,int,string>;
 static AtomicID::Register
-     null (AidNull.id(),"0"),
-     any (AidAny.id(),"?"),
+     null(AidNull.id(),"0"),
+     any(AidAny.id(),"?"),
      wild(AidWildcard.id(),"*"),
      slash(AidSlash.id(),"/"),
-     range(AidRange.id(),":");
+     range(AidRange.id(),":"),
+     empty(AidEmpty.id(),"");
   //## end AtomicID%3BE970170297.declarations
 // Class AidIndex 
 

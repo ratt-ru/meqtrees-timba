@@ -179,7 +179,9 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           //## begin NestableContainer::ConstHook%3C614FDE0039.public preserve=yes
           friend NestableContainer;
           
-          // explicit versions of [] for string IDs
+          // explicit versions of [] for other HIID forms
+          const NestableContainer::ConstHook & operator [] (AtomicID id1) const
+          { return (*this)[HIID(id1)]; }
           const NestableContainer::ConstHook & operator [] (const string &id1) const 
           { return (*this)[HIID(id1)]; }
           const NestableContainer::ConstHook & operator [] (const char *id1) const 
@@ -384,6 +386,8 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           friend NestableContainer;
           
           // explicit versions of [] for string IDs
+          const NestableContainer::Hook & operator [] (AtomicID id1) const 
+          { return (*this)[HIID(id1)]; }
           const NestableContainer::Hook & operator [] (const string &id1) const 
           { return (*this)[HIID(id1)]; }
           const NestableContainer::Hook & operator [] (const char *id1) const 
@@ -591,9 +595,13 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       friend Hook;
       
       // explicit versions of [] for string IDs
+      NestableContainer::ConstHook operator [] (AtomicID id1) const
+      { return (*this)[HIID(id1)]; }
       NestableContainer::ConstHook operator [] (const string &id1) const
       { return (*this)[HIID(id1)]; }
       NestableContainer::ConstHook operator [] (const char *id1) const
+      { return (*this)[HIID(id1)]; }
+      NestableContainer::Hook operator [] (AtomicID id1) 
       { return (*this)[HIID(id1)]; }
       NestableContainer::Hook operator [] (const string &id1) 
       { return (*this)[HIID(id1)]; }
