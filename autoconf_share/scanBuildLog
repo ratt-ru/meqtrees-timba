@@ -42,16 +42,17 @@ def remoteFileMove(lofarServer,serverDir):
        "* "+serverDir+"/BuildResults/lastWeek/"
   return os.system("ssh -1 "+lofarServer+"  " + cmd)
 
-def copyServerSideScript(lofarServer,serverDir):
+def copyServerSideScript(lofarServer,serverDir,lofarDir):
   #
   # copy the Serverside script (createNewIndex) to the lofar server
   # in the BuildResults directory.
-  return os.system("scp -oProtocol=1 LOFAR/autoconf_share/createNewIndex "+lofarServer+":"+serverDir+"/BuildResults")
+  return os.system("scp -oProtocol=1 "+lofarDir+"/autoconf_share/createNewIndex "+lofarServer+":"+serverDir+"/BuildResults")
 
 def runServerSideScript(lofarServer,serverDir,server):
   #
   # run the serverSideScript to generate the new index files
   #
+  print 'ssh -1 '+lofarServer+' "cd '+serverDir+'/BuildResults;./createNewIndex -d '+serverDir+' -s '+server+'"'
   return os.system('ssh -1 '+lofarServer+' "cd '+serverDir+'/BuildResults;./createNewIndex -d '+serverDir+' -s '+server+'"')
 
 def copyFiles2Server(copyDir,lofarServer):
@@ -174,8 +175,9 @@ def extendPackageArray(packageArray,allBuildablePackages):
   return newPackageArray
 
 def usage():
-  print "usage: "+sys.argv[0]+" [-h] [-d arg] [-f arg] [-s arg] [-t arg]"
+  print "usage: "+sys.argv[0]+" [-h] -n [-d arg] [-f arg] [-s arg] [-t arg]"
   print "args:  -h,--help       - print usage"
+  print "       -n,--nocopy     - Do not copy thisWeek to lastWeek"
   print "       -d,--directory  - LOFAR base directory"
   print "       -f,--filebase   - basename from logfiles. E.g. week441"
   print "       -t,--testserver - give an alternative testserver"
@@ -188,15 +190,18 @@ def main(argv):
   fileBase = "None"
   lofarServer ="lofar@lofar0.nfra.nl"
   serverDir = "/usr/local/httpd/htdocs"
+  noCopy=0
   try:
-    opts, args = getopt.getopt(argv, "d:f:hs:t:",
+    opts, args = getopt.getopt(argv, "d:f:hns:t:",
                                ["directory=","help","filebase=",
-                                "testserver=","serverdir="])
+                                "testserver=","serverdir=","nocopy"])
   except getopt.GetoptError:
     usage()
   for opt, arg in opts:
     if opt in ("-h", "--help"):
       usage()
+    elif opt in ("-n", "--nocopy"):
+      noCopy = 1
     elif opt in ("-f", "--filebase"):
       fileBase = arg
     elif opt in ("-d", "--directory"):
@@ -580,15 +585,16 @@ def main(argv):
   #
   # Copy the "old" files from this machine in thisWeek to lastWeek
   #
-  if remoteFileMove(lofarServer,serverDir) > 0:
-    print "Move new to old on server not done because of errors"
-  else:
-    print "Move new to old on server done"
+  if noCopy==0:
+    if remoteFileMove(lofarServer,serverDir) > 0:
+      print "Move new to old on server not done because of errors"
+    else:
+      print "Move new to old on server done"
 
   #
   # Copy createNewIndex.py to the server
   #
-  if copyServerSideScript(lofarServer,serverDir) > 0:
+  if copyServerSideScript(lofarServer,serverDir,lofarDir) > 0:
     print "Move script to server not done because of errors"
   else:
     print "Move script to server done"

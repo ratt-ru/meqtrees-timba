@@ -124,13 +124,13 @@ def main(argv):
   for file in find('BuildPage*.html','thisWeek'):
     machine=re.sub('thisWeek/BuildPage_','',re.sub('.html','',file))
     thisWeekIndexFile.write('<li>\n')
-    thisWeekIndexFile.write('<a href="http://"+server+"/BuildResults/thisWeek/BuildPage_'+machine+'.html"><font size="+1">'+machine+'</font></a>\n')
+    thisWeekIndexFile.write('<a href="http://'+server+'/BuildResults/thisWeek/BuildPage_'+machine+'.html"><font size="+1">'+machine+'</font></a>\n')
     thisWeekIndexFile.write('</li>\n')
 
   for file in find('BuildPage*.html','lastWeek'):
     machine=re.sub('lastWeek/BuildPage_','',re.sub('.html','',file))
     lastWeekIndexFile.write('<li>\n')
-    lastWeekIndexFile.write('<a href="http://"+server+"/BuildResults/lastWeek/BuildPage_'+machine+'.html"><font size="+1">'+machine+'</font></a>\n')
+    lastWeekIndexFile.write('<a href="http://'+server+'/BuildResults/lastWeek/BuildPage_'+machine+'.html"><font size="+1">'+machine+'</font></a>\n')
     lastWeekIndexFile.write('</li>\n')
 
 
