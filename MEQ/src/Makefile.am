@@ -7,6 +7,7 @@ Node.h Function.h Function1.h Function2.h \
 Parm.h ParmPolc.h ParmPolcStored.h \
 Add.h Subtract.h Multiply.h Divide.h \
 Sin.h Cos.h Exp.h Pow.h Sqr.h Sqrt.h Conj.h ToComplex.h \
+UVW.h \
 Vells.h VellsTmp.h VellsRep.h \
 VellsRealSca.h VellsRealArr.h \
 VellsComplexSca.h VellsComplexArr.h \
@@ -23,6 +24,7 @@ Node.cc Function.cc Function1.cc Function2.cc \
 Parm.cc ParmPolc.cc ParmPolcStored.cc \
 Add.cc Subtract.cc Multiply.cc Divide.cc \
 Sin.cc Cos.cc Exp.cc Pow.cc Sqr.cc Sqrt.cc Conj.cc ToComplex.cc \
+UVW.cc \
 Vells.cc VellsTmp.cc VellsRep.cc \
 VellsRealSca.cc VellsRealArr.cc \
 VellsComplexSca.cc VellsComplexArr.cc \
