@@ -587,7 +587,6 @@ CountedRef<T> & CountedRef<T>::operator <<= (T* targ)
 // E.g.: DefineRefType(SmartBlock,BlockRef) will define
 //    BlockRef (as CountedRef<SmartBlock>), 
 #define DefineRefTypes(type,reftype) typedef CountedRef<type> reftype; 
-
 //## end module%3C10CC810321.epilog
 
 

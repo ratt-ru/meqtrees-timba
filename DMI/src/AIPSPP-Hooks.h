@@ -17,15 +17,26 @@ inline String NestableContainer::ConstHook::as_String () const
 }
 
 template<class T>
-Vector<T> NestableContainer::ConstHook::as_Vector () const
+inline Vector<T> NestableContainer::ConstHook::as_Vector () const
 {
   int n;
   const T *data = &((*this).size(n));
   return Vector<T>(IPosition(1,n),data);
 }
 
+template<>
+inline Vector<String> NestableContainer::ConstHook::as_Vector<String> () const
+{
+  int n;
+  const string *data = &((*this).size(n));
+  Vector<String> vec(n);
+  for( int i=0; i<n; i++ )
+    vec(i) = data[i];
+  return vec;
+}
+
 template<class T>
-Matrix<T> NestableContainer::ConstHook::as_Matrix (int n1,int n2) const
+inline Matrix<T> NestableContainer::ConstHook::as_Matrix (int n1,int n2) const
 {
   int n;
   const T *data = &((*this).size(n));
@@ -52,7 +63,7 @@ Matrix<T> NestableContainer::ConstHook::as_Matrix (int n1,int n2) const
 DoForAllNumericTypes(__typeIdOfPtr,);
 
 template<class T> 
-const Vector<T> & NestableContainer::Hook::operator = (const Vector<T> &other) const
+inline const Vector<T> & NestableContainer::Hook::operator = (const Vector<T> &other) const
 {
   bool del;
   const T *data = other.getStorage(del);
@@ -63,7 +74,7 @@ const Vector<T> & NestableContainer::Hook::operator = (const Vector<T> &other) c
 
 // specialization for vectors of Strings
 template<> 
-const Vector<String> & NestableContainer::Hook::operator = (const Vector<String> &other) const
+inline const Vector<String> & NestableContainer::Hook::operator = (const Vector<String> &other) const
 {
   DataField *df = new DataField(Tpstring,other.nelements());
   (*this) <<= df;
@@ -73,13 +84,12 @@ const Vector<String> & NestableContainer::Hook::operator = (const Vector<String>
 }
 
 template<class T> 
-const Array<T> & NestableContainer::Hook::operator = ( const Array<T> &other) const
+inline const Array<T> & NestableContainer::Hook::operator = ( const Array<T> &other) const
 {
   if( other.shape().nelements() == 1 )
     return (*this) = Vector<T>(other);
-  DataArray *darr = new DataArray(typeIdOfPtr((T*)0),other.shape());
+  DataArray *darr = new DataArray(other);
   (*this) <<= darr;
-  (*darr)[HIID()] = other;
   return other;
 }
 
