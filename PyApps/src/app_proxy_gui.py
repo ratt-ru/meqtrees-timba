@@ -112,6 +112,8 @@ class HierBrowser (object):
     self.items = [];
   def wlistview (self):
     return self._lv;
+  def wtop (self):
+    return self._lv;
   # inserts a new item into the browser
   def new_item (self,*args):
     if self.items:
