@@ -12,9 +12,11 @@ import re
 # ---------------- TODO -----------------------------------------------------
 # Bugs:
 #   Tree browser not always enabled! (Hello message lost??)
+#   Drop an item on "new panel" when item already exists on other page
+#     causes a page switch, this is counter-intuitive
 #
 # Minor fixes:
-#   Allow data drops to create multiple views of the same item
+#   Enable drop on "show viewer" button
 #
 # Enhancements:
 #   Viewer plugin interface
@@ -176,7 +178,8 @@ class TreeBrowser (object):
     reqrec = srecord(nodeindex=node.nodeindex);  # record used to request state
     udi = makeNodeUdi(node);
     # curry is used to create a Node.Get.State call for refreshing its state
-    return GridDataItem(udi,(node.name or '#'+str(node.nodeindex)),desc='node state',
+    return GridDataItem(udi,(node.name or '#'+str(node.nodeindex)),
+              desc='node state',datatype=srecord,
               refresh=curry(self._mqs.meq,'Node.Get.State',reqrec,wait=False));
  
   def wtop (self):
@@ -333,15 +336,17 @@ class meqserver_gui (app_proxy_gui):
       
   def update_node_state (self,node):
     udi = makeNodeUdi(node);
-    self.gw.update_data_cell(udi,node);
+    self.gw.update_data_item(udi,node);
 
   def _node_clicked (self,node):
     udi = makeNodeUdi(node)
     self.dprint(2,"node clicked, adding item",udi);
     item = GridDataItem(makeNodeUdi(node),node.name,desc='node state',
+              datatype=srecord,
               refresh=curry(self.mqs.meq,'Node.Get.State',
               srecord(nodeindex=node.nodeindex),wait=False));
-    self.gw.add_data_cell(item);
+    self.gw.add_data_item(item);
+    self.show_gridded_workspace();
     
   def _reset_resultlog_label (self,tabwin):
     if tabwin is self.resultlog.wtop() and tabwin._newresults:

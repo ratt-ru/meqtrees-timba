@@ -149,7 +149,7 @@ class HierBrowser (object):
   # called when an item is expanded                    
   def _expand_item_content (self,item):
     item.expand_self();
-    
+
 class RecordBrowser(HierBrowser):
   def __init__(self,parent,rec=None,udi=None):
     HierBrowser.__init__(self,parent,"value","field");
@@ -162,4 +162,6 @@ class RecordBrowser(HierBrowser):
     self.expand_content(self._lv,self._rec);
   set_data = set_record;
     
-    
+# register the RecordBrowser as a viewer for the appropriate types
+for tp in (dict,list,tuple,array_class):
+  gridded_workspace.registerViewer(tp,RecordBrowser);

@@ -432,14 +432,14 @@ class app_proxy_gui(verbosity,QMainWindow):
       
 ##### slot: called when one of the logger items is clicked
   def _process_logger_item_click (self,button,item,point,col):
-    print self,button,item,col;
+    self.dprint(3,'logger item clicked:',self,button,item,col);
     # process left-clicks on column 1 only
     if button != 1 or col != 1:
       return;
     # call Logger to create a dataitem object from this list item
     dataitem = Logger.make_data_item(item);
     if dataitem:
-      self.gw.add_data_cell(dataitem);
+      self.gw.add_data_item(dataitem);
       self.show_gridded_workspace();
     
 ##### event relay: reposts message as a Qt custom event for ourselves
@@ -470,7 +470,7 @@ class app_proxy_gui(verbosity,QMainWindow):
       if isinstance(value,record):
         for (field,cat) in MessageCategories.items():
           if field in value:
-            self.msglog.add(value[field],content=value,category=cat);
+            self.log_message(value[field],content=value,category=cat);
             break;
       # add to event log (if enabled)
       self.eventlog.add(str(ev),content=value,category=Logger.Event);
@@ -495,12 +495,12 @@ class app_proxy_gui(verbosity,QMainWindow):
 ##### custom event handlers for various messages
   def ce_Hello (self,ev,value):
     self.emit(PYSIGNAL("connected()"),(value,));
-    self.msglog.add("connected to "+str(value),category=Logger.Normal);
+    self.log_message("connected to "+str(value),category=Logger.Normal);
     self.gw.clear();
     
   def ce_Bye (self,ev,value):
     self.emit(PYSIGNAL("disconnected()"),(value,));
-    self.msglog.add("lost connection to "+str(value),category=Logger.Error);
+    self.log_message("lost connection to "+str(value),category=Logger.Error);
     
   def ce_UpdateState (self,ev,value):
     self._update_app_state();
@@ -557,8 +557,10 @@ class app_proxy_gui(verbosity,QMainWindow):
   def _reset_maintab_label (self,tabwin):
     self.maintab.changeTab(tabwin,tabwin._default_iconset,tabwin._default_label);
     
-  def log_message(self,msg,rec=None,category=Logger.Normal):
-    self.msglog.add(msg,content=rec,category=category);
+  def log_message(self,msg,content=None,category=Logger.Normal):
+    self.msglog.add(msg,content=content,category=category);
+    if self.maintab.currentPage() is not self.msglog.wtop():
+      self.statusbar.message(msg,2000);
 
   def await_gui_exit ():
     global MainApp,MainAppThread;
