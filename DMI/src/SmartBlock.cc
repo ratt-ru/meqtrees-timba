@@ -66,7 +66,7 @@ SmartBlock::SmartBlock (size_t size, int flags)
 {
   //## begin SmartBlock::SmartBlock%3BFE299902D7.body preserve=yes
   dprintf(2)("constructor(size=%d,fl=%x)\n",size,flags);
-  init( new char[size],size,DMI::DELETE,0 );
+  init( new char[size],size,flags|DMI::DELETE,0 );
   //## end SmartBlock::SmartBlock%3BFE299902D7.body
 }
 
@@ -79,7 +79,7 @@ SmartBlock::SmartBlock (size_t size, int shm_flags, int flags)
 {
   //## begin SmartBlock::SmartBlock%3BFA4FCA0387.body preserve=yes
   dprintf(2)("constructor(size=%d,shmfl=%x,fl=%x)",size,shm_flags,flags);
-  init(0,size,DMI::SHMEM,shm_flags);
+  init(0,size,flags|DMI::SHMEM,shm_flags);
   //## end SmartBlock::SmartBlock%3BFA4FCA0387.body
 }
 

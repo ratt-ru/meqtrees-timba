@@ -13,7 +13,7 @@
 //## Module: BlockableObject%3C10CC81019D; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\BlockableObject.cc
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\BlockableObject.cc
 
 //## begin module%3C10CC81019D.additionalIncludes preserve=no
 //## end module%3C10CC81019D.additionalIncludes

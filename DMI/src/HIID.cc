@@ -83,7 +83,7 @@ bool HIID::matches (const HIID &other) const
   {
     if( (*iter).isWildcard() || (*oiter).isWildcard() )   // wildcard in either will match
       return True;
-    if( (*iter).matches(*oiter) )  // mismatch at this position - drop out
+    if( !(*iter).matches(*oiter) )  // mismatch at this position - drop out
       return False;
   } 
   // got to end of one or the other? Then it's a match if both are at the end.

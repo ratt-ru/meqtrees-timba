@@ -1,9 +1,11 @@
 
+SUBDIRS=. pscf
+
 CXXFLAGS += -Wno-unknown-pragmas
 
-lib_LTLIBRARIES = libpscf.la
+lib_LTLIBRARIES = libdmi.la
 
-libpscf_la_SOURCES =   Debug.cc    DMI.cc \
+libdmi_la_SOURCES =   Debug.cc    DMI.cc \
   AtomicID.cc         CountedRefTarget.cc    HIID.cc               TypeInfo.cc   \
   BlockSet.cc         DataField.cc           HIIDSet.cc   \
   BlockableObject.cc  DataRecord.cc          NestableContainer.cc   \

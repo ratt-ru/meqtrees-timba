@@ -13,7 +13,7 @@
 //## Module: AtomicID%3C10CC81015F; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\AtomicID.cc
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\AtomicID.cc
 
 //## begin module%3C10CC81015F.additionalIncludes preserve=no
 //## end module%3C10CC81015F.additionalIncludes
@@ -88,4 +88,3 @@ static AtomicID::Register
 
 //## begin module%3C10CC81015F.epilog preserve=yes
 //## end module%3C10CC81015F.epilog
-

@@ -142,6 +142,8 @@ class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
       //## begin HIID%3BE96FE601C5.public preserve=yes
       // templated constructor (constructs from input iterator)
       template<class In> HIID( In first,In last );
+      
+      static size_t HIIDSize (int n)  { return n*sizeof(int); }
       //## end HIID%3BE96FE601C5.public
   protected:
     // Additional Protected Declarations

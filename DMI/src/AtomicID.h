@@ -13,7 +13,7 @@
 //## Module: AtomicID%3C10CC810157; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\AtomicID.h
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\AtomicID.h
 
 #ifndef AtomicID_h
 #define AtomicID_h 1
@@ -70,18 +70,18 @@ class AtomicID
       AtomicID (const char *str);
 
     //## Equality Operations (generated)
-      Bool operator==(const AtomicID &right) const;
+      bool operator==(const AtomicID &right) const;
 
-      Bool operator!=(const AtomicID &right) const;
+      bool operator!=(const AtomicID &right) const;
 
     //## Relational Operations (generated)
-      Bool operator<(const AtomicID &right) const;
+      bool operator<(const AtomicID &right) const;
 
-      Bool operator>(const AtomicID &right) const;
+      bool operator>(const AtomicID &right) const;
 
-      Bool operator<=(const AtomicID &right) const;
+      bool operator<=(const AtomicID &right) const;
 
-      Bool operator>=(const AtomicID &right) const;
+      bool operator>=(const AtomicID &right) const;
 
 
     //## Other Operations (specified)
@@ -117,10 +117,16 @@ class AtomicID
     //## Get and Set Operations for Class Attributes (generated)
 
       //## Attribute: aid%3BE9706902BD
-      const int id () const;
+      int id () const;
 
     // Additional Public Declarations
       //## begin AtomicID%3BE970170297.public preserve=yes
+      bool operator==(int right) const;
+      bool operator!=(int right) const;
+      bool operator<(int right) const;
+      bool operator>(int right) const;
+      bool operator<=(int right) const;
+      bool operator>=(int right) const;
       //## end AtomicID%3BE970170297.public
   protected:
     // Additional Protected Declarations
@@ -235,14 +241,14 @@ inline AtomicID::AtomicID (const char *str)
 }
 
 
-inline Bool AtomicID::operator==(const AtomicID &right) const
+inline bool AtomicID::operator==(const AtomicID &right) const
 {
   //## begin AtomicID::operator==%3BE970170297_eq.body preserve=yes
   return aid == right.aid;
   //## end AtomicID::operator==%3BE970170297_eq.body
 }
 
-inline Bool AtomicID::operator!=(const AtomicID &right) const
+inline bool AtomicID::operator!=(const AtomicID &right) const
 {
   //## begin AtomicID::operator!=%3BE970170297_neq.body preserve=yes
   return aid != right.aid;
@@ -250,28 +256,28 @@ inline Bool AtomicID::operator!=(const AtomicID &right) const
 }
 
 
-inline Bool AtomicID::operator<(const AtomicID &right) const
+inline bool AtomicID::operator<(const AtomicID &right) const
 {
   //## begin AtomicID::operator<%3BE970170297_ls.body preserve=yes
   return aid < right.aid;
   //## end AtomicID::operator<%3BE970170297_ls.body
 }
 
-inline Bool AtomicID::operator>(const AtomicID &right) const
+inline bool AtomicID::operator>(const AtomicID &right) const
 {
   //## begin AtomicID::operator>%3BE970170297_gt.body preserve=yes
   return aid > right.aid;
   //## end AtomicID::operator>%3BE970170297_gt.body
 }
 
-inline Bool AtomicID::operator<=(const AtomicID &right) const
+inline bool AtomicID::operator<=(const AtomicID &right) const
 {
   //## begin AtomicID::operator<=%3BE970170297_lseq.body preserve=yes
   return aid <= right.aid;
   //## end AtomicID::operator<=%3BE970170297_lseq.body
 }
 
-inline Bool AtomicID::operator>=(const AtomicID &right) const
+inline bool AtomicID::operator>=(const AtomicID &right) const
 {
   //## begin AtomicID::operator>=%3BE970170297_gteq.body preserve=yes
   return aid >= right.aid;
@@ -335,7 +341,7 @@ inline bool AtomicID::matches (const AtomicID &other) const
 
 //## Get and Set Operations for Class Attributes (inline)
 
-inline const int AtomicID::id () const
+inline int AtomicID::id () const
 {
   //## begin AtomicID::id%3BE9706902BD.get preserve=no
   return aid;
@@ -357,6 +363,30 @@ inline AidIndex::AidIndex (int index)
 
 
 //## begin module%3C10CC810157.epilog preserve=yes
+inline bool AtomicID::operator==(int right) const
+{
+  return aid == right;
+}
+inline bool AtomicID::operator!=(int right) const
+{
+  return aid != right;
+}
+inline bool AtomicID::operator<(int right) const
+{
+  return aid < right;
+}
+inline bool AtomicID::operator>(int right) const
+{
+  return aid > right;
+}
+inline bool AtomicID::operator<=(int right) const
+{
+  return aid <= right;
+}
+inline bool AtomicID::operator>=(int right) const
+{
+  return aid >= right;
+}
 //## end module%3C10CC810157.epilog
 
 

@@ -13,7 +13,7 @@
 //## Module: NestableContainer%3C10CC830069; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar\dvl\lofar\cep\cpa\pscf\src\NestableContainer.cc
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\NestableContainer.cc
 
 //## begin module%3C10CC830069.additionalIncludes preserve=no
 //## end module%3C10CC830069.additionalIncludes
@@ -97,16 +97,16 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool implic
   FailWhen(resid.size(),"uninitialized element ["+resid.toString()+"]"); 
   FailWhen(resindex>=0,ssprintf("uninitialized element [%d]",resindex)); 
   // if referring to a non-object type, attempt the conversion
-  if( !isDynamicType(target_tid) )
+  if( !isDynamicType(target_tid) && target_tid != TpObjRef )
   {
-    convertScalar(target,target_tid,data,tid);
+    FailWhen(!convertScalar(target,target_tid,data,tid),
+             "can't convert "+target_tid.toString()+" to "+tid.toString());
     return;
   }
   // if target is a container, then try to access it in scalar mode
   // ...but not implicitly
   FailWhen(implicit,"can't implicitly convert "+target_tid.toString()+" to "+tid.toString());
-  const NestableContainer *nc = NestableContainer::isNestable(target_tid) ?
-      static_cast<NestableContainer *>(target) : 0;
+  const NestableContainer *nc = asNestable();
   FailWhen(!nc,"can't convert "+target_tid.toString()+" to "+tid.toString());
   TypeId ttid; bool dum;
   // access in scalar mode, checking that type is built-in
@@ -116,31 +116,39 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool implic
 }
 
 // This is called to access by reference, for all types
-const void * NestableContainer::ConstHook::get_address(TypeId tid,bool must_write,bool implicit,bool pointer ) const
+const void * NestableContainer::ConstHook::get_address(TypeId tid,bool must_write,bool,bool pointer ) const
 {
   // check for residual index
   FailWhen(resid.size(),"uninitialized element ["+resid.toString()+"]"); 
   FailWhen(resindex>=0,ssprintf("uninitialized element [%d]",resindex)); 
   if( tid != target_tid )
   {
-    // type mismatch? Fail if implicit
-    FailWhen(implicit,"can't implicitly convert "+target_tid.toString()+"* to "+tid.toString()+"*");
-    // else try to treat it as a container, and access in scalar mode 
-    const NestableContainer *nc = NestableContainer::isNestable(target_tid) ?
-        static_cast<NestableContainer *>(target) : 0;
+    // If types don't match, then try to treat it as a container, 
+    // and return pointer to first element (if this is allowed)
+    const NestableContainer *nc = asNestable();
     FailWhen(!nc,"can't convert "+target_tid.toString()+" to "+tid.toString());
     FailWhen(!nc->type(),"this container does not support pointers");
     // check for scalar/vector violation
     if( nc->size()>1 )
     {
-      FailWhen(!pointer,"accessing vector container as scalar");
-      FailWhen(isDynamicType(nc->type()),"can't take pointer to vector of dynamic objects");
+      FailWhen(!pointer,"can't access multiple-element container as scalar");
+      FailWhen(!nc->isContiguous() && nc->size()>1,
+                "can't take pointer to this container's storage");
     }
-    // access in scalar mode, verifying type & writability
+    // access first element, verifying type & writability
     TypeId ttid; bool dum;
     return nc->get(HIID(),ttid,dum,tid,must_write);
   }
   return target;
+}
+
+inline NestableContainer::Hook NestableContainer::ConstHook::privatize (int flags = 0) const
+{
+  FailWhen(addressed,"unexpected '&' operator");
+  FailWhen(target_tid!=TpObjRef,"can't privatize type "+target_tid.toString());
+  static_cast<ObjRef*>(target)->privatize(flags);
+  return NestableContainer::Hook(target,target_tid,
+             static_cast<ObjRef*>(target)->isWritable());
 }
 
 // This is called to assign a value, for scalar & binary types
@@ -151,16 +159,13 @@ const void * NestableContainer::Hook::put_scalar( const void *data,TypeId tid,si
   // if we have a residual index, then assume container & create new object
   if( resid.size() || resindex>=0 )
   {
-    FailWhen( !isDynamicType(target_tid),"element ["+resid.toString()+"] is not initialized");
-    NestableContainer *nc = NestableContainer::isNestable(target_tid) ?
-        static_cast<NestableContainer *>(target) : 0;
+    NestableContainer *nc = asNestableWr();
     FailWhen(!nc,"can't assign "+tid.toString()+" to "+target_tid.toString());
     // This will allocate space in the container for the object.
     // The resulting target_tid may be different from the requested tid
     // in the case of scalars (where conversion is allowed)
-    TypeId dum;
-    target = resindex>=0 ? nc->insert(resindex,tid,dum)
-                         : nc->insert(resid,tid,dum);
+    target = resindex>=0 ? nc->insert(resindex,tid,target_tid)
+                         : nc->insert(resid,tid,target_tid);
   }
   if( tid != target_tid )
     FailWhen( !convertScalar(data,tid,target,target_tid),
@@ -176,9 +181,7 @@ const void * NestableContainer::Hook::put_scalar( const void *data,TypeId tid,si
 // This is called to allocate a new object in the container (index is >0)
 ObjRef * NestableContainer::Hook::alloc_objref (TypeId tid) const
 {
-  FailWhen( !isDynamicType(target_tid),"element ["+resid.toString()+"] is not initialized");
-  NestableContainer *nc = NestableContainer::isNestable(target_tid) ?
-        static_cast<NestableContainer *>(target) : 0;
+  NestableContainer *nc = asNestableWr();
   FailWhen(!nc,"can't assign "+tid.toString()+" to "+target_tid.toString());
   // This will allocate space in the container for the object, and
   // return a pointer to the ObjRef
@@ -194,9 +197,12 @@ void NestableContainer::Hook::assign_object( BlockableObject *obj,TypeId tid,int
   FailWhen(!writable,"write access violation");
   // residual index -- allocate
   if( resid.size() || resindex>=0 )
+  {
     target = alloc_objref(tid);
+    target_tid = TpObjRef;
+  }
   else
-    FailWhen(target_tid != tid,"can't assign "+tid.toString()+" to "+target_tid.toString());
+    FailWhen(target_tid != TpObjRef,"can't attach "+tid.toString()+" to "+target_tid.toString());
   static_cast<ObjRef*>(target)->unlock().attach(obj,flags);
 }
 
@@ -223,9 +229,8 @@ const NestableContainer::Hook & NestableContainer::Hook::init () const
   FailWhen(!writable,"write access violation");
   if( resid.size() || resindex>=0 )
   {
-    FailWhen( !isDynamicType(target_tid),"not a container");
-    NestableContainer *nc = NestableContainer::isNestable(target_tid) ?
-          static_cast<NestableContainer *>(target) : 0;
+    FailWhen(!isDynamicType(target_tid),"not a container");
+    NestableContainer *nc = asNestableWr();
     FailWhen(!nc,"not a container");
     // This will allocate space in the container for the object
     TypeId dum;
@@ -234,6 +239,18 @@ const NestableContainer::Hook & NestableContainer::Hook::init () const
     else
       nc->insert(resid,0,dum);
   }
+  return *this;
+}
+
+// privatizes target, if it is a dynamic object
+const NestableContainer::Hook & NestableContainer::Hook::privatize (int flags = 0) const
+{
+  FailWhen(addressed,"unexpected '&' operator");
+  FailWhen(resid.size(),"uninitialized element ["+resid.toString()+"]"); 
+  FailWhen(resindex>=0,ssprintf("uninitialized element [%d]",resindex)); 
+  FailWhen(target_tid!=TpObjRef,"can't privatize type "+target_tid.toString());
+  static_cast<ObjRef*>(target)->privatize(flags);
+  writable = static_cast<ObjRef*>(target)->isWritable();
   return *this;
 }
 

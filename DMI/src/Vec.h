@@ -13,7 +13,7 @@
 //## Module: DataField%3C10CC820124; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\DataField.h
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataField.h
 
 #ifndef DataField_h
 #define DataField_h 1
@@ -165,6 +165,9 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       //## Operation: insert%3C7A19930250
       virtual void * insert (int n, TypeId tid, TypeId &real_tid);
 
+      //## Operation: isContiguous%3C7F9826016F
+      virtual bool isContiguous () const;
+
       //## Operation: select%3C7A199F012B
       virtual bool select (const HIIDSet &id);
 
@@ -183,13 +186,10 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       int size () const;
 
       //## Attribute: selected%3BEBE89602BC
-      const bool isSelected () const;
-
-      //## Attribute: writable%3BFCD90E0110
-      const bool isWritable () const;
+      bool isSelected () const;
 
       //## Attribute: scalar%3C7A2BC7030F
-      const bool isScalar () const;
+      bool isScalar () const;
 
     // Additional Public Declarations
       //## begin DataField%3BB317D8010B.public preserve=yes
@@ -271,10 +271,6 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       bool selected;
       //## end DataField::selected%3BEBE89602BC.attr
 
-      //## begin DataField::writable%3BFCD90E0110.attr preserve=no  public: bool {U} 
-      bool writable;
-      //## end DataField::writable%3BFCD90E0110.attr
-
       //## begin DataField::scalar%3C7A2BC7030F.attr preserve=no  public: bool {U} 
       bool scalar;
       //## end DataField::scalar%3C7A2BC7030F.attr
@@ -343,6 +339,13 @@ inline void* DataField::getWr (int n, TypeId check)
   //## end DataField::getWr%3BFCFA2902FB.body
 }
 
+inline bool DataField::isContiguous () const
+{
+  //## begin DataField::isContiguous%3C7F9826016F.body preserve=yes
+  return !dynamic_type && mytype != Tpstring;
+  //## end DataField::isContiguous%3C7F9826016F.body
+}
+
 //## Get and Set Operations for Class Attributes (inline)
 
 inline TypeId DataField::type () const
@@ -359,21 +362,14 @@ inline int DataField::size () const
   //## end DataField::size%3C3D60C103DA.get
 }
 
-inline const bool DataField::isSelected () const
+inline bool DataField::isSelected () const
 {
   //## begin DataField::isSelected%3BEBE89602BC.get preserve=no
   return selected;
   //## end DataField::isSelected%3BEBE89602BC.get
 }
 
-inline const bool DataField::isWritable () const
-{
-  //## begin DataField::isWritable%3BFCD90E0110.get preserve=no
-  return writable;
-  //## end DataField::isWritable%3BFCD90E0110.get
-}
-
-inline const bool DataField::isScalar () const
+inline bool DataField::isScalar () const
 {
   //## begin DataField::isScalar%3C7A2BC7030F.get preserve=no
   return scalar;

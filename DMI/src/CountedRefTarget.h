@@ -13,7 +13,7 @@
 //## Module: CountedRefTarget%3C10CC8103D6; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\CountedRefTarget.h
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\CountedRefTarget.h
 
 #ifndef CountedRefTarget_h
 #define CountedRefTarget_h 1
@@ -66,16 +66,21 @@ class CountedRefTarget
 
     //## Other Operations (specified)
       //## Operation: clone%3C0CE728002B; C++
-      //	Abstract method for cloning an object. Should return pointer to new
-      //	object. Flags: DMI::WRITE if writable clone is required, DMI::DEEP
-      //	for deep cloning (i.e. contents of object will be cloned as well).
+      //	Abstract method for cloning an object. Should allocate a new object
+      //	with "new" and return pointer to it.
+      //	The following flags should be processed:
+      //	DMI::WRITE: a writable clone is required
+      //	DMI::DEEP: do deep cloning, i.e., contents of object should be
+      //	cloned as well. I.e. if your object containes CountedRefs to other
+      //	objects, non-deep cloning can simply copy the refs, while deep
+      //	cloning should copy & privatize them.
       virtual CountedRefTarget* clone (int flags = 0) const = 0;
 
       //## Operation: privatize%3C3EDD7D0301
       //	Virtual method for privatization of an object. If the object
-      //	contains other refs, they should be privatized by this method. The
-      //	DMI::DEEP flag should be passed on to child refs, for deep
-      //	privatization.
+      //	contains other refs, they should be privatized by this method. Flags
+      //	should be passed on to the refs (i.e. DMI::DEEP will be passed on to
+      //	cause deep privatization.) Default version does nothing.
       virtual void privatize (int flags = 0);
 
       //## Operation: refCount%3C18899002BB; C++
@@ -178,5 +183,3 @@ inline CountedRefBase * CountedRefTarget::getOwner ()
 
 
 #endif
-
-

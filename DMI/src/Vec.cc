@@ -13,7 +13,7 @@
 //## Module: DataField%3C10CC820126; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\DataField.cc
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataField.cc
 
 //## begin module%3C10CC820126.additionalIncludes preserve=no
 //## end module%3C10CC820126.additionalIncludes
@@ -43,7 +43,8 @@ DataField::DataField (int flags)
   //## begin DataField::DataField%3C3D64DC016E.hasinit preserve=no
   //## end DataField::DataField%3C3D64DC016E.hasinit
   //## begin DataField::DataField%3C3D64DC016E.initialization preserve=yes
-  : mytype(0),mysize(0),selected(False),writable((flags&DMI::WRITE)!=0)
+  : NestableContainer(flags&DMI::WRITE!=0),
+    mytype(0),mysize(0),selected(False)
   //## end DataField::DataField%3C3D64DC016E.initialization
 {
   //## begin DataField::DataField%3C3D64DC016E.body preserve=yes
@@ -55,7 +56,7 @@ DataField::DataField (const DataField &right, int flags)
   //## begin DataField::DataField%3C3EE3EA022A.hasinit preserve=no
   //## end DataField::DataField%3C3EE3EA022A.hasinit
   //## begin DataField::DataField%3C3EE3EA022A.initialization preserve=yes
-    : NestableContainer(),mytype(0)
+    : NestableContainer(flags&DMI::WRITE!=0),mytype(0)
   //## end DataField::DataField%3C3EE3EA022A.initialization
 {
   //## begin DataField::DataField%3C3EE3EA022A.body preserve=yes
@@ -68,7 +69,8 @@ DataField::DataField (TypeId tid, int num, int flags)
   //## begin DataField::DataField%3BFA54540099.hasinit preserve=no
   //## end DataField::DataField%3BFA54540099.hasinit
   //## begin DataField::DataField%3BFA54540099.initialization preserve=yes
-    : mytype(0),mysize(0),writable((flags&DMI::WRITE)!=0)
+    : NestableContainer(flags&DMI::WRITE!=0),
+      mytype(0),mysize(0),selected(False)
   //## end DataField::DataField%3BFA54540099.initialization
 {
   //## begin DataField::DataField%3BFA54540099.body preserve=yes
@@ -631,7 +633,7 @@ void DataField::privatize (int flags)
 const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
 {
   //## begin DataField::get%3C7A19790361.body preserve=yes
-  // null HIID implies access in scalar mode 
+  // null HIID implies access to first element
   if( !id.size() )
     return get(0,tid,can_write,check_tid,must_write);
   // single-index HIID implies get[n]
@@ -659,21 +661,39 @@ const void * DataField::get (int n, TypeId& tid, bool& can_write, TypeId check_t
     return 0;
   can_write = isWritable();
   FailWhen(must_write && !can_write,"write access violation"); 
-  // check for type mismatch
-  if( check_tid && check_tid != mytype )
-    FailWhen( check_tid != TpNumeric || !isNumericType(type()),
-        "type mismatch: expecting "+check_tid.toString()+", got "+type().toString());
-  tid = mytype;
-  if( mytype == Tpstring )
+  if( type() == Tpstring ) // string type -- types must match
   {
+    FailWhen( check_tid && check_tid != Tpstring,
+        "type mismatch: expecting "+check_tid.toString()+", got "+type().toString());
+    tid = Tpstring;
     if( must_write )
       strvec_modified = True;
     return &strvec[n];
   }
-  else if( binary_type )
+  else if( binary_type ) // binary type
+  {
+    // types must match, or TpNumeric can match any numeric type
+    FailWhen( check_tid && check_tid != type() &&
+              (check_tid != TpNumeric || !isNumericType(type())),
+        "type mismatch: expecting "+check_tid.toString()+", got "+type().toString());
+    tid = type();
     return n*typesize + (char*)headerData();
-  else
-    return &resolveObject(n,must_write);
+  }
+  else // dynamic type
+  {
+    if( !check_tid || check_tid == TpObjRef ) // defaultis to return a reference
+    {
+      tid = TpObjRef;
+      return &resolveObject(n,must_write);
+    }
+    else // else types must match, or TpObject can be specified as 
+    {    //    a special case that forces dereferencing
+      FailWhen( check_tid != type() && check_tid != TpObject,
+          "type mismatch: expecting "+check_tid.toString()+", got "+type().toString());
+      tid = type();
+      return &resolveObject(n,must_write).deref();
+    }
+  }
   //## end DataField::get%3C7A1983024D.body
 }
 

@@ -13,7 +13,7 @@
 //## Module: DataRecord%3C10CC82005C; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\DataRecord.cc
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataRecord.cc
 
 //## begin module%3C10CC82005C.additionalIncludes preserve=no
 //## end module%3C10CC82005C.additionalIncludes
@@ -39,11 +39,11 @@ DataRecord::DataRecord (int flags)
   //## begin DataRecord::DataRecord%3C5820AD00C6.hasinit preserve=no
   //## end DataRecord::DataRecord%3C5820AD00C6.hasinit
   //## begin DataRecord::DataRecord%3C5820AD00C6.initialization preserve=yes
+  : NestableContainer(flags&DMI::WRITE!=0)
   //## end DataRecord::DataRecord%3C5820AD00C6.initialization
 {
   //## begin DataRecord::DataRecord%3C5820AD00C6.body preserve=yes
   dprintf(2)("default constructor\n");
-  writable = (flags&DMI::WRITE) != 0;
   //## end DataRecord::DataRecord%3C5820AD00C6.body
 }
 
@@ -51,7 +51,7 @@ DataRecord::DataRecord (const DataRecord &other, int flags)
   //## begin DataRecord::DataRecord%3C5820C7031D.hasinit preserve=no
   //## end DataRecord::DataRecord%3C5820C7031D.hasinit
   //## begin DataRecord::DataRecord%3C5820C7031D.initialization preserve=yes
-    : NestableContainer()
+  : NestableContainer(flags&DMI::WRITE!=0)
   //## end DataRecord::DataRecord%3C5820C7031D.initialization
 {
   //## begin DataRecord::DataRecord%3C5820C7031D.body preserve=yes
@@ -467,12 +467,22 @@ const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, Type
   CFMI iter = fields.find(id);
   if( iter == fields.end() )
     return 0;
-  FailWhen(check_tid && check_tid != TpDataField,"type mismatch: expecting "+
-      check_tid.toString()+", got DataField" );
-  tid = TpDataField;
+  // check writability
   can_write = iter->second->isWritable();
   FailWhen(must_write && !can_write,"write access violation"); 
-  return &iter->second.deref();
+  // default is to return an objref to the field
+  if( !check_tid || check_tid == TpObjRef )
+  {
+    tid = TpObjRef;
+    return &iter->second;
+  }
+  else // else a DataField (or Object) must be explicitly requested
+  {
+    FailWhen(check_tid != TpDataField && check_tid != TpObject,
+        "type mismatch: expecting "+check_tid.toString()+", got DataField" );
+    tid = TpDataField;
+    return &iter->second.deref();
+  }
   //## end DataRecord::get%3C56B00E0182.body
 }
 
@@ -480,28 +490,27 @@ void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
 {
   //## begin DataRecord::insert%3C7A16BB01D7.body preserve=yes
   FailWhen( !id.size(),"null HIID" );
-  CFMI iter = fields.find(id);
-  FailWhen( iter!=fields.end(),"field "+id.toString()+" already exists" );
-  if( tid == TpDataField )
+  FailWhen( fields.find(id) != fields.end(),"field "+id.toString()+" already exists" );
+  if( tid == TpDataField || !tid ) // inserting a new DataField?
   {
     real_tid = tid;
     return &fields[id];
   }
-  else if( tid )
+  else if( tid )     // inserting new DataField contents?
   {
     real_tid = tid;
     DataField *pf = new DataField(tid,-1);
     fields[id].attach(pf,DMI::ANON|DMI::WRITE|DMI::LOCK);
     TypeId dum1; bool dum2;
-    return const_cast<void*>( pf->get(0,dum1,dum2) );
+    return const_cast<void*>( pf->get(0,dum1,dum2,0,True) );
   }
-  else
-  {
-    real_tid = TpDataField;
-    DataField *pf = new DataField;
-    fields[id].attach(pf,DMI::ANON|DMI::WRITE|DMI::LOCK);
-    return pf;
-  }
+//  else // inserting a new DataField
+//  {
+//    real_tid = TpDataField;
+//    DataField *pf = new DataField;
+//    fields[id].attach(pf,DMI::ANON|DMI::WRITE|DMI::LOCK);
+//    return pf;
+//  }
   //## end DataRecord::insert%3C7A16BB01D7.body
 }
 

@@ -108,26 +108,31 @@ void CountedRefBase::xfer (CountedRefBase& other)
   //## begin CountedRefBase::xfer%3C0CDEE20180.body preserve=yes
   dprintf(3)("xferring from %s\n",other.debug());
   detach();
-  FailWhen( other.isLocked(),"can't transfer a locked ref" );
-  FailWhen( other.isPersistent(),"can't transfer a persistent ref" );
-  // insert myself into list in place of other
-  if( (prev = other.prev) !=0 )
-    other.prev->next = this;
-  else if( other.target )
-    other.target->owner_ref = this;
+  if( !other.valid() )
+    empty();
   else
-    Throw("transfer of corrupted ref");
-  if( (next = other.next) != 0 )
-    other.next->prev = this;
-  // copy all fields
-  target = other.target;
-  locked = False;
-  anonObject = other.isAnonObject();
-  writable = other.isWritable();
-  exclusiveWrite = other.isExclusiveWrite();
-  delayed_clone = False;
-  // invalidate other ref
-  other.empty();
+  {
+    FailWhen( other.isLocked(),"can't transfer a locked ref" );
+    FailWhen( other.isPersistent(),"can't transfer a persistent ref" );
+    // insert myself into list in place of other
+    if( (prev = other.prev) !=0 )
+      other.prev->next = this;
+    else if( other.target )
+      other.target->owner_ref = this;
+    else
+      Throw("transfer of corrupted ref");
+    if( (next = other.next) != 0 )
+      other.next->prev = this;
+    // copy all fields
+    target = other.target;
+    locked = False;
+    anonObject = other.isAnonObject();
+    writable = other.isWritable();
+    exclusiveWrite = other.isExclusiveWrite();
+    delayed_clone = False;
+    // invalidate other ref
+    other.empty();
+  }
   dprintf(3)("  is now %s\n",debug(-1));
   //## end CountedRefBase::xfer%3C0CDEE20180.body
 }

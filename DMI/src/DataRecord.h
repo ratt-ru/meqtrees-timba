@@ -13,7 +13,7 @@
 //## Module: DataRecord%3C10CC820052; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\DataRecord.h
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataRecord.h
 
 #ifndef DataRecord_h
 #define DataRecord_h 1
@@ -164,11 +164,6 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       //## Operation: type%3C7A16CB023F
       virtual TypeId type () const;
 
-    //## Get and Set Operations for Class Attributes (generated)
-
-      //## Attribute: writable%3BFCD97F01DA
-      const bool isWritable () const;
-
     // Additional Public Declarations
       //## begin DataRecord%3BB3112B0027.public preserve=yes
       // debug info method
@@ -196,12 +191,6 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       //## end DataRecord%3BB3112B0027.private
 
   private: //## implementation
-    // Data Members for Class Attributes
-
-      //## begin DataRecord::writable%3BFCD97F01DA.attr preserve=no  public: bool {U} 
-      bool writable;
-      //## end DataRecord::writable%3BFCD97F01DA.attr
-
     // Data Members for Associations
 
       //## Association: PSCF::<unnamed>%3BE123050350
@@ -258,15 +247,6 @@ inline TypeId DataRecord::type () const
   //## begin DataRecord::type%3C7A16CB023F.body preserve=yes
   return NullType;
   //## end DataRecord::type%3C7A16CB023F.body
-}
-
-//## Get and Set Operations for Class Attributes (inline)
-
-inline const bool DataRecord::isWritable () const
-{
-  //## begin DataRecord::isWritable%3BFCD97F01DA.get preserve=no
-  return writable;
-  //## end DataRecord::isWritable%3BFCD97F01DA.get
 }
 
 //## begin module%3C10CC820052.epilog preserve=yes

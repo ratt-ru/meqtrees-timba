@@ -13,7 +13,7 @@
 //## Module: BlockableObject%3C10CC81019B; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\BlockableObject.h
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\BlockableObject.h
 
 #ifndef BlockableObject_h
 #define BlockableObject_h 1
@@ -26,18 +26,20 @@
 //## begin module%3C10CC81019B.includes preserve=yes
 //## end module%3C10CC81019B.includes
 
-// BlockSet
-#include "BlockSet.h"
 // CountedRef
 #include "CountedRef.h"
 // CountedRefTarget
 #include "CountedRefTarget.h"
 // TypeId
 #include "TypeId.h"
+// BlockSet
+#include "BlockSet.h"
 //## begin module%3C10CC81019B.declarations preserve=no
 //## end module%3C10CC81019B.declarations
 
 //## begin module%3C10CC81019B.additionalDeclarations preserve=yes
+#pragma typegroup Global
+#pragma types -ObjRef
 //## end module%3C10CC81019B.additionalDeclarations
 
 
@@ -91,7 +93,7 @@ class BlockableObject : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB
       //## Operation: isNestable%3BFA7DBF00D7
       //	Returns True if the class realizes the NestableContainerInterface.
       //	Default implementation: False
-      virtual bool isNestable ();
+      virtual bool isNestable () const;
 
       //## Operation: isPersistent%3BFA7DC8017B
       //	Returns True if the class realizes the Persistency Interface.
@@ -99,10 +101,10 @@ class BlockableObject : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB
       virtual bool isPersistent ();
 
       //## Operation: clone%3BFE5FE103C5
-      //	Clones (makes a deep copy) of the object. Default implementation
-      //	executes a toBlock() - BlockSet::cloneAll() - fromBlock() sequence,
-      //	so if your to/fromBlock is efficient enough, you don't need to
-      //	provide an implementation.
+      //	Clones the object. Default implementation creates a clone via a to
+      //	Block() - BlockSet::privatizeAll() - fromBlock() sequence, so if
+      //	your to/fromBlock is efficient enough, you don't need to provide
+      //	your own clone().
       CountedRefTarget * clone (int flags = 0);
 
     // Additional Public Declarations
@@ -143,7 +145,7 @@ inline BlockableObject::~BlockableObject()
 
 
 //## Other Operations (inline)
-inline bool BlockableObject::isNestable ()
+inline bool BlockableObject::isNestable () const
 {
   //## begin BlockableObject::isNestable%3BFA7DBF00D7.body preserve=yes
   //## end BlockableObject::isNestable%3BFA7DBF00D7.body

@@ -13,7 +13,7 @@
 //## Module: HIIDSet%3C10CC8203CF; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\HIIDSet.cc
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\HIIDSet.cc
 
 //## begin module%3C10CC8203CF.additionalIncludes preserve=no
 //## end module%3C10CC8203CF.additionalIncludes
@@ -83,6 +83,13 @@ HIIDSet & HIIDSet::operator=(const HIIDSet &right)
 
 
 //## Other Operations (implementation)
+void HIIDSet::clear ()
+{
+  //## begin HIIDSet::clear%3C7E15F90113.body preserve=yes
+  contents.clear();
+  //## end HIIDSet::clear%3C7E15F90113.body
+}
+
 HIIDSet & HIIDSet::add (const HIID &id)
 {
   //## begin HIIDSet::add%3C1DF8510016.body preserve=yes

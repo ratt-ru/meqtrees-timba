@@ -13,7 +13,7 @@
 //## Module: HIIDSet%3C10CC8203CD; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\HIIDSet.h
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\HIIDSet.h
 
 #ifndef HIIDSet_h
 #define HIIDSet_h 1
@@ -72,6 +72,9 @@ class HIIDSet
 
 
     //## Other Operations (specified)
+      //## Operation: clear%3C7E15F90113
+      void clear ();
+
       //## Operation: add%3C1DF8510016
       HIIDSet & add (const HIID &id);
 

@@ -36,11 +36,11 @@ class TypeInfoReg
 inline const TypeInfo & TypeInfo::find ( TypeId tid )
 { return TypeInfoReg::registry.find(tid); }
         
-// These macros convert a type name or an expression into a TypeId.
-// They use the auto-generated typeIdOf() inlines.
-#define type2id(type) typeIdOfPtr((type*)0)
-#define expr2id(expr) typeIdOf(expr)
-
+// // These macros convert a type name or an expression into a TypeId.
+// // They use the auto-generated typeIdOf() inlines.
+// #define type2id(type) typeIdOfPtr((type*)0)
+// #define expr2id(expr) typeIdOf(expr)
+// 
 // these constants are used to distinguish built-ins from other types
 // (note that actual numeric values are all negative)
 const int StdTypeFirst=Tpbool,StdTypeLast=Tpchar;

@@ -44,9 +44,9 @@ using namespace std;
 
 
 
-typedef int Bool;
 
 //## begin Bool%3C14B6D4002F.postscript preserve=yes
+typedef bool Bool;
 const Bool False=0,True=1;
 //## end Bool%3C14B6D4002F.postscript
 

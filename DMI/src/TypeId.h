@@ -67,15 +67,19 @@ typedef long double ldouble;
 #pragma types +char=10 +uchar=11 +short=12 +ushort=13 +int=14 +uint=15 
 #pragma types +long=16 +ulong=17 +float=18 +double=19 +ldouble=20 +bool=21
 #pragma types -string=30
-
 #pragma types :AtomicID
+
+// Some special type constants
 
 // The null type 
 const TypeId NullType(0),TpNull(0);
-
 // Numeric type
 const TypeId TpNumeric(-9);
+// Incomplete type
 const TypeId TpIncomplete(-8);
+// Dereferenced type (see NestableContainer::get())
+const TypeId TpObject(-7);
+
 
 //## end TypeId%3BFBA88F001D.postscript
 
