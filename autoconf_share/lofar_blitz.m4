@@ -68,12 +68,14 @@ if test "$with_blitz" != "no"; then
 ##
   blitz_inclist=$blitz_prefix;
   if test "$blitz_prefix" = ""; then
-    blitz_inclist="/usr/local/blitz/$lofar_compiler";
-    case "lofar_compiler" in
-    gnu?*)
-      blitz_inclist="$blitz_inclist /usr/local/blitz/gnu";
-      ;;
-    esac
+    blitz_inclist=
+    lfr_buildcomp=`echo $lofar_variant | sed -e "s/_.*//"`
+    if test "$lfr_buildcomp" != ""; then
+      blitz_inclist="/usr/local/blitz/$lfr_buildcomp";
+    fi
+    if test "$lfr_buildcomp" != "$lofar_compiler"; then
+      blitz_inclist="$blitz_inclist /usr/local/blitz/$lofar_compiler";
+    fi
     blitz_inclist="$blitz_inclist /usr/local";
   fi
   for bdir in $blitz_inclist
