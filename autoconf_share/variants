@@ -18,7 +18,7 @@ scampi.variant.conf:	  $(scampi)
 scampi-opt.variant.conf:  $(scampi) $(optimize) 
 mpich-prof.variant.conf:  $(mpich) --enable-mpi-profiler $(aipspp)
 
-profile.var:		   --with-optimize='-pg -O4' --with-compiletools --with-mpich --enable-mpi-profiler
+profile.var:		   --with-optimize='-pg -O4' --with-compiletools --with-mpich=/usr/local/mpich-1.2.5/ch_p4 --enable-mpi-profiler
 debug.var:
 optimize.var:		   --with-optimize
 aipspp.var:

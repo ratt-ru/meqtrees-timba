@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# use -x option on sh to enable trace debuggin
+
 # profiletool: shell script to perform a profiling run of a binary
 #
 #  Copyright (C) 2003
@@ -93,6 +95,9 @@ top -b -n1 > $profdir/top.log 2>&1
 /usr/bin/time -o $profdir/time.out $command $* > $profdir/stdout 2> $profdir/stderr &
 timepid=$!;
 
+# wait some time before
+sleep 5;
+
 #
 # find $binname pid, the loop is needed because it may not have started yet
 # wait a maximum of 5 seconds to prevent hang when command doesn't start
@@ -101,6 +106,7 @@ declare -i progpid=0;
 declare -i loopcount=0;
 while test \( $progpid -eq 0 \) -a \( $loopcount -lt 5 \); do
     sleep 1
+#    pstree -np $timepid 2> /dev/null
     declare -i progpid=`pstree -np $timepid 2> /dev/null | sed -e "s/^.*$binname(\([[:digit:]]\+\)).*$/\1/"`;
     loopcount=$loopcount+1;
 done
@@ -182,3 +188,8 @@ tar zcvf $profdir.tgz $profdir > /dev/null 2>&1
 # log end
 echo -n "STOP " >> $profdir/epoch
 date >> $profdir/epoch
+
+#
+# bye bye
+#
+echo "profiletool: profile saved in $profdir (and compressed into $profdir.tgz)"
