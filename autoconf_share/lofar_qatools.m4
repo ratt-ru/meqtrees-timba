@@ -28,6 +28,7 @@
 AC_DEFUN(lofar_QATOOLS,dnl
 lofar_PURETOOLS([])dnl
 lofar_INSURETOOLS([])dnl
+lofar_COMPILETOOLS()dnl
 [
 if test "$enable_puretools" = "yes"; then
   if test "$enable_insuretools" = "yes"; then
@@ -257,4 +258,36 @@ AC_MSG_ERROR([Could not find Parasoft insure, inuse, tca, or Chaperon in $insure
     enable_insuretools=no
   fi
 fi]
+])
+#
+#
+#
+# lofar_COMPILETOOLS
+#
+# Macro to check for and enable compileline logging option
+#
+# -------------------------
+#
+AC_DEFUN(lofar_COMPILETOOLS,dnl
+[dnl
+AC_PREREQ(2.13)dnl
+AC_ARG_WITH(compiletools,
+	[  --with-compiletools       enable compile command logging],
+	[with_compiletools="$withval"],
+	[with_compiletools="yes"])dnl
+[
+if test "$with_compiletools" = "yes"; then
+    # Get absolute top_srcdir for comiletool
+    lofar_srcdir=`cd $srcdir && pwd`
+    lofar_base=`echo $lofar_srcdir | sed -e "s%/LOFAR/.*%/LOFAR%"`
+    lofar_tooldir=$lofar_base/autoconf_share
+
+#    CC="$lofar_tooldir/compiletool CC $CC"
+#    CXX="$lofar_tooldir/compiletool CXX $CXX"
+    LIBTOOL="$lofar_tooldir/compiletool LIBTOOL $LIBTOOL"
+fi
+]
+dnl
+AC_SUBST(LIBTOOL)dnl
+dnl
 ])
