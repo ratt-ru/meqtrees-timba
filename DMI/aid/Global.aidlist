@@ -105,6 +105,7 @@ effective                        1320       ; from /home/oms/LOFAR/TIMBA/VisCube
 enable                           1403       ; from /home/oms/LOFAR/TIMBA/MeqServer/src/MeqServer.h:15
 end                              1048       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:34
 epsilon                          1162       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:39
+eq                               1490       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 error                            1350       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppAgent/src/AppAgent.h:10
 errors                           1079       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:40
 event                            1349       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppAgent/src/BOIOSink.h:9
@@ -133,6 +134,7 @@ funklets                         1159       ; from /home/oms/LOFAR/TIMBA/MEQ/src
 g                                1013       ; from /home/oms/LOFAR/TIMBA/DMI/src/AtomicID.h:33
 gateway                          1459       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/GWServerWP.h:10
 gatewaywp                        1464       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Gateways.h:23
+ge                               1483       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 gen                              1131       ; from /home/oms/LOFAR/TIMBA/MEQ/src/Node.h:38
 get                              1422       ; from /home/oms/LOFAR/TIMBA/MeqServer/src/MeqServer.h:12
 glishclientwp                    1251       ; from /home/oms/LOFAR/TIMBA/OCTOGlish/src/GlishClientWP.h:17
@@ -143,6 +145,7 @@ grid                             1076       ; from /home/oms/LOFAR/TIMBA/MEQ/src
 group                            1036       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:31
 groups                           1160       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:38
 grow                             1061       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:39
+gt                               1484       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 gw                               1430       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Gateways.h:24
 gwclientwp                       1429       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Gateways.h:23
 gwserverwp                       1451       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Gateways.h:23
@@ -185,6 +188,7 @@ label                            1228       ; from /home/oms/LOFAR/TIMBA/MeqNode
 lag                              1045       ; from /home/oms/LOFAR/TIMBA/MEQ/src/Axis.h:32
 last                             1168       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:40
 ldouble                          45         ; from /home/oms/LOFAR/TIMBA/DMI/src/TypeId.h:107
+le                               1486       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 level                            1426       ; from /home/oms/LOFAR/TIMBA/MeqServer/src/MeqServer.h:16
 line                             1081       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:37
 lines                            1328       ; from /home/oms/LOFAR/TIMBA/VisCube/src/VisVocabulary.h:34
@@ -204,6 +208,7 @@ longlong                         41         ; from /home/oms/LOFAR/TIMBA/DMI/src
 low                              1357       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppAgent/src/OctoEventSink.h:14
 lower                            1330       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppAgent/src/OctoEventSink.h:14
 lowest                           1369       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppAgent/src/OctoEventSink.h:14
+lt                               1487       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 m                                1020       ; from /home/oms/LOFAR/TIMBA/DMI/src/AtomicID.h:33
 mandate                          1412       ; from /home/oms/LOFAR/TIMBA/MeqServer/src/VisHandlerNode.h:12
 map                              1364       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppAgent/src/OctoEventSink.h:12
@@ -284,6 +289,7 @@ meqspigot                        1409       ; from /home/oms/LOFAR/TIMBA/MeqServ
 #mequvw                          1226       ; from /home/oms/LOFAR/TIMBA/MeqNodes/src/UVW.h:31
 meqvells                         1051       ; from /home/oms/LOFAR/TIMBA/MEQ/src/Vells.h:30
 meqvellset                       1095       ; from /home/oms/LOFAR/TIMBA/MEQ/src/VellSet.h:35
+#meqzeroflagger                  1489       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:32
 message                          1115       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:37
 metrics                          1126       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:40
 mismatch                         1383       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppUtils/src/VisRepeater.h:10
@@ -297,6 +303,7 @@ n                                1021       ; from /home/oms/LOFAR/TIMBA/DMI/src
 name                             1121       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:30
 names                            1172       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:36
 ndim                             1073       ; from /home/oms/LOFAR/TIMBA/MEQ/src/Domain.h:33
+ne                               1488       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 net                              1271       ; from /home/oms/LOFAR/TIMBA/VisCube/src/VisVocabulary.h:32
 network                          1440       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Gateways.h:24
 new                              1097       ; from /home/oms/LOFAR/TIMBA/MEQ/src/Node.h:40
@@ -313,6 +320,7 @@ octopussymessage                 1437       ; from /home/oms/LOFAR/TIMBA/OCTOPUS
 offset                           1135       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:34
 only                             1187       ; from /home/oms/LOFAR/TIMBA/MeqNodes/src/ReqSeq.h:32
 open                             1431       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Gateways.h:25
+oper                             1485       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 or                               1063       ; from /home/oms/LOFAR/TIMBA/MEQ/src/Node.h:40
 origin                           1054       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:37
 original                         1380       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:37
