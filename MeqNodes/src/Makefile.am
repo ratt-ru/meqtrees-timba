@@ -10,7 +10,7 @@ LOCALSRCS = \
     PointSourceDFT.cc Condeq.cc Solver.cc Ceil.cc Floor.cc Atan.cc \
     Pow2.cc Pow3.cc Pow4.cc Pow5.cc Pow6.cc Pow7.cc Pow8.cc \
     Abs.cc Fabs.cc Norm.cc Arg.cc Real.cc Imag.cc MergeFlags.cc ReqSeq.cc  \
-    Min.cc Max.cc Mean.cc DataCollect.cc DataConcat.cc \
+    Min.cc Max.cc Mean.cc \
     ParmTable.cc
 
 ## commented out for now:    
