@@ -22,7 +22,6 @@
 #
 #  $Id$
 
-
 # Run configure for a specific build variant.
 # The current directory is used as the variant name.
 #
@@ -135,7 +134,7 @@ done
 # Save old lofar_config file, so it can be restored if not changed.
 # In that case the dates are preserved, so make won't do a total recompilation.
 touch lconfig.h.lofarsav
-if [ -e lofar_config.h ]; then
+if [ -f lofar_config.h ]; then
   mv lofar_config.h lconfig.h.lofarsav
 fi
 echo $lfr_confdir/configure $opts
