@@ -220,12 +220,14 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) cons
   const NestableContainer *nc = asNestable(target,target_tid);
   FailWhen(!nc,"can't convert "+target_tid.toString()+" to "+tid.toString());
   // access in scalar mode, checking that type is built-in
+  FailWhen(!nc->isScalar(tid),"target container can't be accessed as a scalar "+tid.toString());
   target = nc->get(HIID(),target_tid,dum,TpNumeric,False,autoprivatize);
   FailWhen( !convertScalar(target,target_tid,data,tid),
             "can't convert "+target_tid.toString()+" to "+tid.toString());
 }
 
 // This is called to access by reference, for all types
+// If pointer is True, then a pointer type is being taken
 const void * NestableContainer::ConstHook::get_address(TypeId tid,bool must_write,bool,bool pointer ) const
 {
   TypeId target_tid; bool dum; 
@@ -239,11 +241,10 @@ const void * NestableContainer::ConstHook::get_address(TypeId tid,bool must_writ
     FailWhen(!nc,"can't convert "+target_tid.toString()+" to "+tid.toString()+"*");
     FailWhen(pointer && !nc->type(),"this container does not support pointers");
     // check for scalar/vector violation
-    if( nc->size()>1 )
+    if( !nc->isScalar(tid) )
     {
-      FailWhen(!pointer,"can't access multiple-element container as scalar");
-      FailWhen(!nc->isContiguous() && nc->size()>1,
-                "can't take pointer: container is not contiguous");
+      FailWhen(!pointer,"can't access this container as scalar");
+      FailWhen(!nc->isContiguous(),"can't take pointer: container is not contiguous");
     }
     // access first element, verifying type & writability
     return nc->get(HIID(),target_tid,dum,tid,must_write,autoprivatize);

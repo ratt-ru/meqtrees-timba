@@ -33,6 +33,7 @@ BlockSet.cc			\
 BlockableObject.cc		\
 CountedRefBase.cc		\
 CountedRefTarget.cc		\
+Debug.cc			\
 DMI.cc				\
 DataArray.cc			\
 DataField.cc			\

@@ -120,6 +120,7 @@ void TestDataRecord ()
   DataField &f = f2.dewr();
   f[0] = 1;
   f[15] = 2.5;
+//  Assert(f[HIID()].as_int_p() != 0);
   cerr<<f2->sdebug(2)<<endl;
   for( int i=0; i<32; i++ )
     cerr<<(float)(f[i])<<" ";
@@ -142,8 +143,8 @@ void TestDataRecord ()
       <<"  "<<rec["A.B.C.D"].as_int_p()<<" }}}\n";
   Assert( rec["A.B.C.D/20"].as_int() == 5 );
   
-//  int *ptr = rec["A.B.C.D"];
-//  Assert(ptr != 0 );
+  int *ptr = &rec["A.B.C.D"];
+  Assert(ptr != 0 );
   
   rec["A.B.C.E"] = HIID("A.B.C.D");
   Assert( rec["A.B.C.E"].exists() );

@@ -213,8 +213,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
         // Additional Protected Declarations
           //## begin NestableContainer::ConstHook%3C614FDE0039.protected preserve=yes
           mutable bool addressed;     // flag: & operator has been applied
-          mutable HIID id;            // id being applied to target
-          mutable int  index;         // index being applied to target (-1 for not set)
+          mutable HIID id;            // HIID subscript being applied to target
+          mutable int  index;         // numeric subscript being applied to target 
+          // if index==-1, then subscript is a HIID
+          // if index==-2, then evrything's uniinitialized
           
           // flag: privatize all read-only refs as we go along
           // (this is only set for Hook. Always False for ConstHook.)
@@ -535,15 +537,21 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       virtual int size () const = 0;
 
       //## Operation: type%3C7A1552012E
-      //	Abstract method. Should return the type of the contents. If
-      //	container is not of a fixed type (e.g. a record), or hasn't been
-      //	initialized yet, then just return NullType (0).
-      virtual TypeId type () const = 0;
+      //	 Should return the type of the contents. If container is not of a
+      //	fixed type (e.g. a record), or hasn't been initialized yet, then
+      //	just return NullType (0). Default version returns 0.
+      virtual TypeId type () const;
 
       //## Operation: isContiguous%3C7F97CB00F6
       //	Returns True if storage of container is contiguous (i.e., if data[n]
       //	is located at (&data[0])+n). Default implementation returns False.
       virtual bool isContiguous () const;
+
+      //## Operation: isScalar%3CB161F10064
+      //	Returns True if the container can be treated as a scalar with the
+      //	given type (i.e. if the container as a whole can be retrieved as an
+      //	object of the given type). Default implementation returns False.
+      virtual bool isScalar (TypeId ) const;
 
       //## Operation: operator []%3C8742310264
       NestableContainer::ConstHook operator [] (const HIID &id) const;
@@ -642,7 +650,7 @@ inline NestableContainer::ConstHook::ConstHook (const NestableContainer &parent,
   //## end NestableContainer::ConstHook::ConstHook%3C87374503C2.hasinit
   //## begin NestableContainer::ConstHook::ConstHook%3C87374503C2.initialization preserve=yes
   :  nc(const_cast<NestableContainer *>(&parent)),addressed(False),
-     index(-1),autoprivatize(0)
+     index(-2),autoprivatize(0)
   //## end NestableContainer::ConstHook::ConstHook%3C87374503C2.initialization
 {
   //## begin NestableContainer::ConstHook::ConstHook%3C87374503C2.body preserve=yes
@@ -676,10 +684,11 @@ inline const NestableContainer::ConstHook & NestableContainer::ConstHook::operat
     return (*this)[id1.subId(0,id1.size()-1)];
   else if( sep > 0 )
     return (*this)[id1.subId(0,sep-1)][id1.subId(sep+1)];
-  // if no subscript (as in, being called from constructor), then don't apply
-  // anything, just set it
-  if( index >= 0 || id.size() )
+  // if index==-2, we've been called from constructor, so don't
+  // apply any existing subscripts
+  if( index >= -1 ) 
     nextIndex();
+  // set the new subscript
   id=id1; index=-1;
   return *this;
   //## end NestableContainer::ConstHook::operator []%3C87377803A8.body
@@ -790,7 +799,7 @@ inline NestableContainer::Hook::Hook (NestableContainer &parent, const HIID &id1
   //## begin NestableContainer::Hook::Hook%3C8739B50153.hasinit preserve=no
   //## end NestableContainer::Hook::Hook%3C8739B50153.hasinit
   //## begin NestableContainer::Hook::Hook%3C8739B50153.initialization preserve=yes
-    : ConstHook(parent,-1)
+    : ConstHook(parent,-2)
   //## end NestableContainer::Hook::Hook%3C8739B50153.initialization
 {
   //## begin NestableContainer::Hook::Hook%3C8739B50153.body preserve=yes
@@ -956,11 +965,25 @@ inline bool NestableContainer::removen (int n)
   //## end NestableContainer::removen%3C87753803B8.body
 }
 
+inline TypeId NestableContainer::type () const
+{
+  //## begin NestableContainer::type%3C7A1552012E.body preserve=yes
+  return TypeId(0);
+  //## end NestableContainer::type%3C7A1552012E.body
+}
+
 inline bool NestableContainer::isContiguous () const
 {
   //## begin NestableContainer::isContiguous%3C7F97CB00F6.body preserve=yes
   return False;
   //## end NestableContainer::isContiguous%3C7F97CB00F6.body
+}
+
+inline bool NestableContainer::isScalar (TypeId ) const
+{
+  //## begin NestableContainer::isScalar%3CB161F10064.body preserve=yes
+  return False;
+  //## end NestableContainer::isScalar%3CB161F10064.body
 }
 
 inline NestableContainer::ConstHook NestableContainer::operator [] (const HIID &id) const

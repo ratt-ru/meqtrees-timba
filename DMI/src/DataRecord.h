@@ -153,9 +153,6 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       //## Operation: size%3C7A16C4023F
       virtual int size () const;
 
-      //## Operation: type%3C7A16CB023F
-      virtual TypeId type () const;
-
       //## Operation: initFieldIter%3CA20ACE00F8
       DataRecord::Iterator initFieldIter () const;
 
@@ -240,13 +237,6 @@ inline int DataRecord::size () const
   //## end DataRecord::size%3C7A16C4023F.body
 }
 
-inline TypeId DataRecord::type () const
-{
-  //## begin DataRecord::type%3C7A16CB023F.body preserve=yes
-  return NullType;
-  //## end DataRecord::type%3C7A16CB023F.body
-}
-
 inline DataRecord::Iterator DataRecord::initFieldIter () const
 {
   //## begin DataRecord::initFieldIter%3CA20ACE00F8.body preserve=yes
@@ -257,5 +247,18 @@ inline DataRecord::Iterator DataRecord::initFieldIter () const
 //## begin module%3C10CC820052.epilog preserve=yes
 //## end module%3C10CC820052.epilog
 
+
+#endif
+
+
+// Detached code regions:
+#if 0
+//## begin DataRecord::type%3C7A16CB023F.body preserve=yes
+  return NullType;
+//## end DataRecord::type%3C7A16CB023F.body
+
+//## begin DataRecord::isScalar%3CB1628C037E.body preserve=yes
+  return False;
+//## end DataRecord::isScalar%3CB1628C037E.body
 
 #endif

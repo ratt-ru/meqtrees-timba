@@ -675,16 +675,15 @@ void DataField::privatize (int flags, int depth)
 const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write, int autoprivatize) const
 {
   //## begin DataField::get%3C7A19790361.body preserve=yes
-  // null HIID implies access to first element
+  // null HIID implies scalar-mode access -- map to getn(-1)
   if( !id.size() )
     return getn(0,tid,can_write,check_tid,must_write);
   // single-index HIID implies get[n]
-  if( id.size()==1 && id.front().index()>=0 )
+  if( id.size() == 1 && id.front().index() >= 0 )
     return getn(id.front().index(),tid,can_write,check_tid,must_write,autoprivatize);
-  FailWhen( !valid(),"field not initialized" );
-  FailWhen( !size(),"uninitialized DataField" );
+  FailWhen( !valid() || !size(),"field not initialized" );
   FailWhen( !isNestable(type()),"contents not a container" );
-  FailWhen( !scalar,"non-scalar field, explicit index expected" );
+  FailWhen( !scalar,"non-scalar field, explicit numeric subscript expected" );
   // resolve to pointer to container
   const NestableContainer *nc = dynamic_cast<const NestableContainer *>
       (&resolveObject(0,must_write,autoprivatize).deref());
@@ -734,7 +733,8 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
         "type mismatch: requested "+check_tid.toString()+", have "+type().toString());
       const NestableContainer *nc = 
         dynamic_cast<const NestableContainer *>(resolveObject(n,must_write,autoprivatize).deref_p());
-      FailWhen(!nc,"dynamic cast to expected type failed");
+      FailWhen(!nc,"dynamic cast to expected container type failed");
+      FailWhen(!nc->isScalar(check_tid),"contents not a scalar, subscript required"); 
       return nc->get(HIID(),tid,can_write,must_write,autoprivatize);
     }
   }
@@ -832,14 +832,25 @@ bool DataField::remove (const HIID &id)
 bool DataField::removen (int n)
 {
   //## begin DataField::removen%3C877E260301.body preserve=yes
-  // empty field? init with one element
   dprintf(2)("removen(%d)\n",n);
   FailWhen( !valid() || !size(),"field not initialized or empty" );
-  FailWhen( n!=size()-1,"can only remove from end of field" );
+  FailWhen( n != size()-1,"can only remove from end of field" );
   dprintf(2)("removen: resizing to %d elements\n",n);
   resize(n);
   return True;
   //## end DataField::removen%3C877E260301.body
+}
+
+bool DataField::isScalar (TypeId tid) const
+{
+  //## begin DataField::isScalar%3CB162BB0033.body preserve=yes
+  // field can be treated as scalar when size = 0,1, and type
+  // is either uninitialized or compatible
+  return size()<2 && 
+      ( !type() || !tid || type() == tid || 
+        ( TypeInfo::isNumeric(type()) && TypeInfo::isNumeric(tid) ) 
+      );
+  //## end DataField::isScalar%3CB162BB0033.body
 }
 
 // Additional Declarations

@@ -167,6 +167,12 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       //## Operation: isContiguous%3C7F9826016F
       virtual bool isContiguous () const;
 
+      //## Operation: isScalar%3CB162BB0033
+      //	Returns True if the container can be treated as a scalar with the
+      //	given type (i.e. if the container as a whole can be retrieved as an
+      //	object of the given type). Default implementation returns False.
+      virtual bool isScalar (TypeId tid) const;
+
     //## Get and Set Operations for Class Attributes (generated)
 
       //## Attribute: mytype%3BB317E3002B

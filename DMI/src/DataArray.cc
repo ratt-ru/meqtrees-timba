@@ -21,6 +21,9 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.2  2002/04/08 13:53:48  oms
+//  Many fixes to hooks. Added NestableContainer::isContiguous() method.
+//
 //  Revision 1.1  2002/04/05 13:05:46  gvd
 //  First version
 //
@@ -47,7 +50,7 @@ DataArray::DataArray (TypeId type, const IPosition& shape,
   } else if (type == TpArray_double) {
     tsz = sizeof(double);
   } else {
-    AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
+//    AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
   }
   // Size of type + size + shape.
   int sz = sizeof(int) * (3+shape.nelements());
@@ -142,7 +145,7 @@ void DataArray::makeArray()
     itsArray = new Array_double (itsShape,
 				static_cast<double*>(dataPtr), SHARE);
   } else {
-    AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
+//    AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
   }
 }
 
@@ -155,7 +158,7 @@ void DataArray::clear()
     } else if (type == TpArray_double) {
       delete static_cast<Array_double*>(itsArray);
     } else {
-      AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
+//      AssertMsg (0, "Typeid " << type << " is not a valid DataArray type");
     }
   }
   itsArray = 0;
@@ -190,7 +193,7 @@ int DataArray::fromBlock (BlockSet& set)
   set.pop (itsData);  
   int npopped = 1;
   size_t hsize = itsData->size();
-  AssertStr (hsize >= 3*sizeof(int), "malformed header block");
+//  AssertStr (hsize >= 3*sizeof(int), "malformed header block");
   itsData.privatize ((isWritable() ? DMI::WRITE : 0) | DMI::LOCK);
   // Create the Array object.
   attach();
@@ -253,15 +256,15 @@ const void* DataArray::get (const HIID& id, TypeId& tid, bool& can_write,
     if (check_tid == itsScaType) {
       return itsArrayData;
     }
-    AssertStr (check_tid == headerType(), "array type mismatch");
+//    AssertStr (check_tid == headerType(), "array type mismatch");
     return itsArray;
   }
-  AssertMsg (0, "Partial DataArray's not supported yet");
+//  AssertMsg (0, "Partial DataArray's not supported yet");
 }
 
 void* DataArray::insert (const HIID&, TypeId, TypeId&)
 {
-  AssertMsg (0, "DataArray::insert is not possible");
+//  AssertMsg (0, "DataArray::insert is not possible");
 }
 
 
