@@ -1,3 +1,25 @@
+//#  NestableContainer.h: base class for containers
+//#
+//#  Copyright (C) 2002-2003
+//#  ASTRON (Netherlands Foundation for Research in Astronomy)
+//#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//#
+//#  This program is free software; you can redistribute it and/or modify
+//#  it under the terms of the GNU General Public License as published by
+//#  the Free Software Foundation; either version 2 of the License, or
+//#  (at your option) any later version.
+//#
+//#  This program is distributed in the hope that it will be useful,
+//#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//#  GNU General Public License for more details.
+//#
+//#  You should have received a copy of the GNU General Public License
+//#  along with this program; if not, write to the Free Software
+//#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//#
+//#  $Id$
+
 #ifndef DMI_NestableContainer_h
 #define DMI_NestableContainer_h 1
 
@@ -146,6 +168,15 @@ class NestableContainer : public BlockableObject
           static ContentInfo _dum_info; 
 
       public:
+          // some public constructors
+          Hook (const NestableContainer &parent,const HIID &id1);
+          Hook (NestableContainer &parent,const HIID &id1);
+      
+          template<class T>
+          Hook (const CountedRef<T> &parent,const HIID &id1);
+          template<class T>
+          Hook (CountedRef<T> &parent,const HIID &id1);
+
 
           //##ModelId=3C8739B50167
           //##Documentation
@@ -301,15 +332,15 @@ class NestableContainer : public BlockableObject
         //##ModelId=3DB934BE007D
           const char *debug (int detail = 1,const string &prefix = "",const char *name = "Hook") const
           { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
-
+          
       protected:
           //##ModelId=3C8739B50153
-          //##Documentation
-          //## Constructors are protected since only NestableContainers are allowed
-          //## to create hooks.
-          Hook (const NestableContainer &parent,bool write,const HIID &id1);
+          Hook (const NestableContainer &parent,const HIID &id1,bool nonconst);
           //##ModelId=3C8739B5015E
-          Hook (const NestableContainer::Ref &parent,bool write,const HIID &id1);
+          Hook (const NestableContainer::Ref &parent,const HIID &id1,bool nonconst);
+          
+          void initialize (const NestableContainer *pnc,const HIID &id1,bool nonconst);
+          
           
           // When repeated subscripts are applied to non-writable containers,
           // a chain is maintained in the hook so that if a write to the 
@@ -385,6 +416,10 @@ class NestableContainer : public BlockableObject
           mutable bool addressed;     // flag: & operator has been applied
         //##ModelId=3F5C8EBD016A
           mutable bool replacing;     // flag: replace allowed
+          
+          
+          
+          
           
           // if target is an ObjRef, returns it, checking for writability
           // else throws an exception
@@ -689,28 +724,28 @@ class NestableContainer : public BlockableObject
       friend class Hook;
     //##ModelId=4017F61E00B4
       typedef Hook OpSubscriptReturnType;
-    //##ModelId=4017F61E00F4
-      typedef NestableContainer OpSubscriptRefType;
   
       //##ModelId=3C8742310264
       NestableContainer::Hook operator [] (const HIID &id) const
-      { return Hook(*this,False,id); }
+      { return Hook(*this,id,False); }
 
       //##ModelId=3C874250006A
       NestableContainer::Hook operator [] (const HIID &id)
-      { return Hook(*this,True,id); }
+      { return Hook(*this,id,True); }
 
       // static method called by ::Ref::operator [] to create a hook
       // from a const container reference
     //##ModelId=4017F62F02D6
-      static NestableContainer::Hook apply_subscript (const NestableContainer::Ref &ref,const HIID &id)
-      { return Hook(ref,False,id); }
+      template<class T>
+      static NestableContainer::Hook apply_subscript (const CountedRef<T> &ref,const HIID &id)
+      { return Hook(ref.ref_cast(Type2Type<NestableContainer>()),id,False); }
       
       // static method called by ::Ref::operator [] to create a hook
       // from a non-const container reference
     //##ModelId=4017F63000ED
-      static NestableContainer::Hook apply_subscript (NestableContainer::Ref &ref,const HIID &id)
-      { return Hook(ref,True,id); }
+      template<class T>
+      static NestableContainer::Hook apply_subscript (CountedRef<T> &ref,const HIID &id)
+      { return Hook(ref.ref_cast(Type2Type<NestableContainer>()),id,True); }
       
         // declare inlined operator [] for other forms of HIIDs (see CountedRef.h)
     //##ModelId=4017F63002D9
@@ -747,43 +782,80 @@ class NestableContainer : public BlockableObject
       Thread::Mutex mutex_;
 };
 
-// construct from container [HIID]
-// The ncwrite argument is True if the container is non-const
-//##ModelId=3C8739B50153
-inline NestableContainer::Hook::Hook (const NestableContainer &parent,bool nonconst,const HIID &id1)
-  : nc(const_cast<NestableContainer *>(&parent)),
-    nc_writable(nonconst),
-    link0(parent,HIID()),
-    ncref0(0),
-    ncptr0(nc_writable?nc:0), 
-    nclock0(nc->crefMutex()),
-    pid(0),  // pid==0 implies initializing 
-    addressed(False),replacing(False)
+// common init code for constructors
+inline void NestableContainer::Hook::initialize (const NestableContainer *pnc,const HIID &id1,bool nonconst)
 {
+  nc = const_cast<NestableContainer *>(pnc);
+  nclock0.relock(nc->crefMutex());
+  nc_writable = nonconst;
+  pid = 0;  // pid==0 implies initializing 
+  ncptr0 = nc_writable ? nc : 0; 
+  addressed = replacing = False;
   target.ptr = 0;
   // initialize via operator []. We don't initialize directly because
   // id may contain multiple subscripts (separated by slashes); hence let
   // operator [] comlete the initialization
-  (*this)[id1];
+  operator [] (id1);
 }
+
+// construct from container [HIID]
+// The ncwrite argument is True if the container is non-const
+//##ModelId=3C8739B50153
+inline NestableContainer::Hook::Hook (const NestableContainer &parent,const HIID &id1,bool nonconst)
+  : link0(parent,HIID()),
+    ncref0(0)
+{
+  initialize(&parent,id1,nonconst);
+}
+
 
 // construct from container ref [HIID]
 // The ncwrite argument is True if the ref object is non-const
 //##ModelId=3C8739B5015E
-inline NestableContainer::Hook::Hook (const NestableContainer::Ref &ref,bool refnonconst,const HIID &id1)
-  : nc(const_cast<NestableContainer *>(ref.deref_p())),
-    nc_writable(ref.isWritable()),
-    link0(*ref,HIID()),
-    ncref0((refnonconst && !nc_writable) 
-             ? const_cast<NestableContainer::Ref *>(&ref) : 0),
-    ncptr0(nc_writable?nc:0), 
-    nclock0(nc->crefMutex()),
-    pid(0),  // pid==0 implies initializing 
-    addressed(False),replacing(False)
+inline NestableContainer::Hook::Hook (const NestableContainer::Ref &ref,const HIID &id1,bool refnonconst)
+  : link0(*ref,HIID()),
+    ncref0((refnonconst && !ref.isWritable())
+             ? const_cast<NestableContainer::Ref *>(&ref) : 0)
 {
-  target.ptr = 0;
-  (*this)[id1];
+  initialize(ref.deref_p(),id1,ref.isWritable());
 }
+
+
+inline NestableContainer::Hook::Hook (const NestableContainer &parent,const HIID &id1)
+  : link0(parent,HIID()),
+    ncref0(0)
+{ 
+  initialize(&parent,id1,False);
+}
+
+inline NestableContainer::Hook::Hook (NestableContainer &parent,const HIID &id1)
+  : link0(parent,HIID()),
+    ncref0(0)
+{ 
+  initialize(&parent,id1,True);
+}
+
+
+template<class T>
+inline NestableContainer::Hook::Hook (const CountedRef<T> &ref,const HIID &id1)
+  : nc(const_cast<NestableContainer *>(ref.ref_cast(Type2Type<NestableContainer>()).deref_p())),
+    link0(*nc,HIID()),
+    ncref0(0)
+{ 
+  initialize(nc,id1,False);
+}
+
+
+template<class T>
+inline NestableContainer::Hook::Hook (CountedRef<T> &ref,const HIID &id1)
+  : nc(const_cast<NestableContainer *>(ref.ref_cast(Type2Type<NestableContainer>()).deref_p())),
+    link0(*nc,HIID()),
+    ncref0(ref.isWritable() 
+             ? reinterpret_cast<NestableContainer::Ref *>(&ref) : 0)
+{ 
+  initialize(nc,id1,True);
+}
+
 
 // Hook::operator & simply raises the addressed flag
 //##ModelId=3C8739B50176

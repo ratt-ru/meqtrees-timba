@@ -353,11 +353,11 @@ class CountedRef : private CountedRefBase
       // So far, this is only implemented in NestableContainer
     //##ModelId=4017F61F039E
       typename T::OpSubscriptReturnType operator [] (const HIID &id) const
-      { return T::apply_subscript(ref_cast<typename T::OpSubscriptRefType>(),id); }
+      { return T::apply_subscript(*this,id); }
       
     //##ModelId=4017F6200027
       typename T::OpSubscriptReturnType operator [] (const HIID &id)
-      { return T::apply_subscript(ref_cast<typename T::OpSubscriptRefType>(),id); }
+      { return T::apply_subscript(*this,id); }
       
 #define declareSubscriptAliases(RetType,constness) \
           RetType operator [] (int id1) constness  \
