@@ -26,7 +26,6 @@ if [ "$edir" = "" -o "$edir" = "." ]; then
 else
   edir=`cd $edir > /dev/null; pwd`
 fi
-echo "edir=$edir"
 
 # Set indentation for level.
 indent=""
