@@ -260,6 +260,7 @@ meqcopy                          1257       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 #meqcos                          1243       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cos.h:29
 #meqcosh                         1510       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Cosh.h:29
 #meqdatacollect                  1550       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqNodes/src/DataCollect.h:29
+#meqdataconcat                   1553       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqNodes/src/DataConcat.h:29
 meqdft_gvd                       1259       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqDFT_GVD.h:14
 #meqdivide                       1223       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Divide.h:29
 meqdomain                        1235       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Domain.h:39
