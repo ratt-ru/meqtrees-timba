@@ -17,4 +17,4 @@ insure.variant.conf:     --with-insuretools=/usr/local/insure/bin.linux2 $(aipsp
 
 mpich.var:		 --with-mpich=/usr/local/mpich
 
-lofar_root.var:		 --with-lofar-default=weekly
+lofar_root.var:		 --with-lofar-default=weekly --with-doxygen=/usr/local/doxygen/bin
