@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.33  2004/10/03 20:59:26  smirnov
+//  %[ER: 16]%
+//  Fixed error in DataArray::privatize
+//
 //  Revision 1.32  2004/03/17 07:51:20  smirnov
 //  %[ER: 16]%
 //  Extended access by pointer in DataArray
@@ -697,7 +701,15 @@ void DataArray::privatize (int flags, int)
   if( !valid() ) 
     return;
   // Privatize the data.
+  const char *oldptr = itsData->cdata();
   itsData.privatize(DMI::WRITE|DMI::LOCK);
+  // reset array and pointer to array data
+  const char *newptr = itsData->cdata();
+  if( newptr != oldptr )
+  {
+    itsArrayData = const_cast<char*>(newptr) + itsDataOffset;
+    makeArray();
+  }
 }
 
 //##ModelId=400E4D68035F
