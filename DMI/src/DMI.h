@@ -47,7 +47,7 @@ namespace DMI
       FORCE_CLONE     =  0x04000,
       
   // these are used in ref copy constructor calls to force copy() or privatize() 
-      PRIVATIZE       =  0x10000,  
+      PRIVATIZE       =  0x10000,
       COPYREF         =  0x20000,
       XFER            =  0,        // XFER is the default, so 0
   // preserve r/w privilege for ref copy
@@ -60,11 +60,11 @@ namespace DMI
       SHARED          =0x1000000,  // constructor hint: block will be sent
                                    //     to other processes, so consider shmem
       SHMEM           =0x2000000,  // constructor: forces use of shmem
-      CLONE           =PRIVATIZE,  // copy constructor: clones block
+      CLONE           =COPYREF,    // copy constructor: clones block
       ZERO            =DEEP,       // constructor: zeroes allocated block
       
   // _BlockSet_-specific flags
-      MAKE_READONLY   =0x4000000,   // for copyAll(): makes source set read-only      
+      MAKE_READONLY   =0x4000000,   // for copyAll(): makes source set read-only
 
   // NestableContainer::get flags
       NC_SCALAR       =0x1000000,  // container accessed as a scalar

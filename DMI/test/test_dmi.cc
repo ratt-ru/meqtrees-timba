@@ -3,6 +3,7 @@
 #include "DMI/DataRecord.h"
 #include "DMI/DataArray.h"
 #include "DMI/BOIO.h"
+#include "DMI/NCIter.h"
     
 #define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
     
@@ -291,6 +292,14 @@ void TestDataRecord ()
   cout<<"Checking transparent array indexing\n";
   rec["X.Y.Z"] <<= new DataArray(Tpdouble,IPosition(1,10),DMI::ZERO);
   Assert(rec["X.Y.Z/0"][0].as_double() == 0);
+  
+  {
+  cout<<"Checking NCIters\n";
+  NCIter_double data(rec["X.Y.Z"]);
+  cout<<"filling "<<data.size()<<endl;
+  while( !data.end() )
+    data.next(0);
+  }
   
   cout<<"======================= testing BOIO\n";
   cout<<"======================= writing\n";

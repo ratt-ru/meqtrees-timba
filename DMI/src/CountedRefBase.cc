@@ -124,23 +124,30 @@ void CountedRefBase::verify (const CountedRefBase *start)
 
 
 //## Other Operations (implementation)
-void CountedRefBase::copy (const CountedRefBase& other, int flags)
+void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
 {
   //## begin CountedRefBase::copy%3C0CDEE2018A.body preserve=yes
-  dprintf(2)("copying from %s\n",other.debug());
+  dprintf(2)("copying from %s(%x,%d)\n",other.debug(),flags,depth);
   detach();
   if( !other.valid() ) // copying invalid ref?
     empty();
   else
   {
-// if DMI::PRIVATIZE is set, do a read-only copy, followed by privatize
-    int privatize_flags = 0;
-    if( flags&DMI::PRIVATIZE )
+    int privatize_flags;
+    // are we doing a deep copy (with auto-privatize?)
+    // do we have explicit or infinite depth?
+    if( depth >=0 || flags&(DMI::DEEP|DMI::PRIVATIZE) )
     {
+      // depth >= 0 or DMI::DEEP enables privatization
+      // DMI::PRIVATIZE effectively sets depth to max(depth,0)
+      if( depth<0 )
+        depth = 0;
       dprintf(2)("  copy-and-privatize requested\n");
-      privatize_flags = flags&~DMI::PRIVATIZE;
+      // if so, then do a simple readonly copy, and pass all other
+      // flags to privatize below
+      privatize_flags = flags & ~DMI::PRIVATIZE;
       flags = DMI::READONLY;
-    } 
+    }
     threadLock(other.target);
 #if COUNTEDREF_VERIFY
     other.verify();
@@ -164,17 +171,25 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags)
     if( next )
       next->prev = this;
     VERIFY;
-    // setup properties
-    locked = (flags&DMI::LOCKED) != 0;
-    // writable property is inherited unless exclusive, or READONLY is specified
-    // (guard condition above already checks for access violations)
-    writable = (flags&DMI::WRITE) != 0 ||
-               ( (flags&DMI::PRESERVE_RW) && other.isWritable() );
-    persistent = (flags&DMI::PERSIST) != 0;
-    exclusiveWrite = delayed_clone = False;
-    // do implicit privatize if so requested
-    if( privatize_flags )
-      privatize(privatize_flags,0);
+    // deep copy? do a privatize now
+    if( depth >=0 )
+    {
+      // clear all properties (privatize() will set them up according to flags)
+      locked = exclusiveWrite = persistent = False;
+      privatize(privatize_flags,depth);
+    }
+    // else use remaining flags to set up ref properties
+    else
+    {
+      // setup properties
+      locked = (flags&DMI::LOCKED) != 0;
+      // writable property is inherited unless exclusive, or READONLY is specified
+      // (guard condition above already checks for access violations)
+      writable = (flags&DMI::WRITE) != 0 ||
+                 ( (flags&DMI::PRESERVE_RW) && other.isWritable() );
+      persistent = (flags&DMI::PERSIST) != 0;
+      exclusiveWrite = delayed_clone = False;
+    }
   }
   dprintf1(2)("  made %s\n",debug(Debug(3)?3:2,"  "));
   //## end CountedRefBase::copy%3C0CDEE2018A.body

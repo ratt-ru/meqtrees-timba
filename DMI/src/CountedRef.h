@@ -27,7 +27,7 @@ class CountedRef : private CountedRefBase
       //##ModelId=3BF93D620128
       //##Documentation
       //## Generic copy constructor -- see same method in CountedRefBase.
-      CountedRef (const CountedRef<T>& other, int flags, int depth = 1);
+      CountedRef (const CountedRef<T>& other, int flags, int depth = -1);
 
       //##ModelId=3BF93F8D0054
       explicit CountedRef (T& targ, int flags = 0);
@@ -99,10 +99,10 @@ class CountedRef : private CountedRefBase
       //##ModelId=3BF93A170291
       //##Documentation
       //## Copies ref -- see CountedRefBase::copy().
-      CountedRef<T> copy (int flags = 0) const;
+      CountedRef<T> copy (int flags = 0,int depth = -1) const;
 
       //##ModelId=3C1F2DB802D2
-      CountedRef<T> & copy (const CountedRef<T>& other, int flags = 0);
+      CountedRef<T> & copy (const CountedRef<T>& other, int flags = 0, int depth = -1);
 
       //##ModelId=3C1F2DD30353
       CountedRef<T> & xfer (const CountedRef<T>& other);
@@ -362,16 +362,16 @@ inline CountedRef<T>::operator T* () const
 
 //##ModelId=3BF93A170291
 template <class T>
-inline CountedRef<T> CountedRef<T>::copy (int flags) const
+inline CountedRef<T> CountedRef<T>::copy (int flags,int depth) const
 {
-  return CountedRef<T>(*this,flags|DMI::COPYREF);
+  return CountedRef<T>(*this,flags|DMI::COPYREF,depth);
 }
 
 //##ModelId=3C1F2DB802D2
 template <class T>
-inline CountedRef<T> & CountedRef<T>::copy (const CountedRef<T>& other, int flags)
+inline CountedRef<T> & CountedRef<T>::copy (const CountedRef<T>& other, int flags,int depth)
 {
-  CountedRefBase::copy(other,flags);
+  CountedRefBase::copy(other,flags,depth);
   return *this;
 }
 
@@ -515,7 +515,7 @@ inline CountedRef<T>::CountedRef (int flags)
 // Template for copying STL containers of CountedRefs. Uses iterators
 // to copy() every ref in the source container, passing the supplied flags
 // to ref.copy(). For this implementation to work, destination
-// Dcontainer must support the explicit resize operation.
+// container must support the explicit resize operation.
 template<class SrcCont,class DestCont>
 void copyRefContainer (DestCont &dest,const SrcCont &src,int flags=DMI::PRESERVE_RW)
 {

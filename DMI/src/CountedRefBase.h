@@ -36,16 +36,12 @@ class CountedRefBase
       CountedRefBase();
 
       //##ModelId=3DB9345D022B
-      //##Documentation
-      //## Generic copy constructor. Default is destructive transfer (via xfer
-      //## Other(). If  DMI::COPY is used, calls copyOther() to make a copy. If
-      //## DMI::PRIVATIZE is used, calls privatizeOther(). See
-      //## copy()/privatize() for other flags.
-      //## 
-      //## Flags with xfer: none
-      //## Flags with DMI::PRIVATIZE: DMI::FORCE_CLONE to force target cloning,
-      //## see attach() for all others.
-      CountedRefBase (const CountedRefBase& other, int flags = 0, int depth = 1);
+    //##Documentation
+    //## Generic copy constructor. Default behaviour is destructive transfer
+    //## (via xferOther()). If the DMI::COPYREF flag is used, calls copy(other)
+    //## to make a copy. If depth>=0 or DMI::DEEP or DMI::PRIVATIZE is used,
+    //## will privatize the copy. See copy()/privatize() below for other flags.
+      CountedRefBase (const CountedRefBase& other, int flags = 0, int depth = -1);
 
     //##ModelId=3DB9345E0229
       ~CountedRefBase();
@@ -70,17 +66,20 @@ class CountedRefBase
       CountedRefTarget* getTargetWr () const;
 
       //##ModelId=3C0CDEE20162
-      //##Documentation
-      //## Makes and returns a second copy of  the reference. Flags are:
-      //## DMI::LOCKED to lock the copy, DMI::WRITE for writable copy (defaults
-      //## is READONLY).
-      CountedRefBase copy (int flags = 0) const;
+    //##Documentation
+    //## Makes and returns a copy of the reference. If DMI::DEEP and/or
+    //## DMI::PRIVATIZE  is set and/or depth>=0, then makes a r/o copy, and
+    //## privatizes it using the supplied flags and depth (DMI::PRIVATIZE by
+    //## itself is equivalent to depth=0). Other flags are
+    //## DMI::LOCKED to lock the copy, DMI::WRITE for writable copy (defaults
+    //## is READONLY), DMI::PRESERVE_RW to preserve original r/w permissions.
+      CountedRefBase copy (int flags = 0, int depth = -1) const;
 
       //##ModelId=3C0CDEE2018A
-      //##Documentation
-      //## Makes this a copy of the other reference. Flags are: DMI::LOCKED to
-      //## lock the copy, DMI::WRITE for writable copy (defaults is READONLY).
-      void copy (const CountedRefBase& other, int flags = 0);
+    //##Documentation
+    //## Makes this a copy of the other reference. 
+    //## See copy() above for meaning of flags and depth.
+      void copy (const CountedRefBase& other, int flags = 0, int depth = -1);
 
       //##ModelId=3C0CDEE20180
       //##Documentation
@@ -304,14 +303,13 @@ inline CountedRefBase::CountedRefBase()
 inline CountedRefBase::CountedRefBase (const CountedRefBase& other, int flags, int depth)
 {
   empty();
-  dprintf(5)("copy constructor(%s,%x)\n",other.debug(1),flags);
+  dprintf(5)("copy constructor(%s,%x,%d)\n",other.debug(1),flags,depth);
   if( !other.valid() ) // construct empty ref
     return;
-  if( flags&DMI::PRIVATIZE ) // constructing ref to privatized target
-    privatizeOther(other,flags,depth);
-  else if( flags&DMI::COPYREF ) // constructing true copy of reference
-    copy(other,flags);
-  else if( other.isPersistent() ) // persistent: do true copy of reference
+  // constructing [maybe private] copy of reference  
+  else if( depth >= 0 || flags&(DMI::COPYREF|DMI::DEEP|DMI::PRIVATIZE) ) 
+    copy(other,flags&~DMI::COPYREF);
+  else if( other.isPersistent() ) // persistent: do true copy of reference too
     copy(other,flags|DMI::PRESERVE_RW);
   else  // else do destructive copy
     xfer(other);
@@ -378,9 +376,9 @@ inline CountedRefTarget* CountedRefBase::getTargetWr () const
 }
 
 //##ModelId=3C0CDEE20162
-inline CountedRefBase CountedRefBase::copy (int flags) const
+inline CountedRefBase CountedRefBase::copy (int flags, int depth) const
 {
-  return CountedRefBase(*this,flags|DMI::COPYREF);
+  return CountedRefBase(*this,flags|DMI::COPYREF,depth);
 }
 
 //##ModelId=3C187D92023F
