@@ -45,6 +45,10 @@ namespace DMI
   using std::string;
   using std::vector;
   
+// must be called somewhere on startup before any DMI-using
+// global initializers constructors
+  extern int initialize ();
+  
 //##ModelId=3DB949AE00AC
   typedef enum { 
   // flags for r/w access rights (refs, containers and such)

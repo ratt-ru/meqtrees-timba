@@ -22,6 +22,7 @@ static DMI::Vec::Ref axis_recs,axis_ids;
 
 static void defineAxis (int i,const HIID &name)
 {
+  _init();
   FailWhen(!_default_mapping && _name_map[i] != name,
       "different axis mapping already defined");
   _name_map[i] = axis_ids[i] = name;
@@ -35,6 +36,7 @@ static void defineAxis (int i,const HIID &name)
 template<class Iter>
 static void setAxisMap (Iter begin,Iter end)
 {
+  _init();
   int i=0;
   for( ; begin<end; i++,begin++ )
   {
@@ -56,6 +58,7 @@ static void setAxisMap (Iter begin,Iter end)
 
 void setAxisMap (const DMI::Vec &map)
 {
+  _init();
   FailWhen(map.type() != TpDMIHIID,"axis map: expected HIIDs, got "+map.type().toString());
   FailWhen(map.size() > MaxAxis,"too many axes in mapping");
   for( int i=0; i<map.size(); i++ )
@@ -75,16 +78,19 @@ void setAxisMap (const HIID names[],int num)
 
 const DMI::Vec & getAxisRecords ()
 {
+  _init();
   return *axis_recs;
 }
 
 const DMI::Vec & getAxisIds ()
 {
+  _init();
   return *axis_ids;
 }
 
 void setAxisRecords (const DMI::Vec & vec)
 {
+  _init();
   FailWhen(vec.type() != TpDMIRecord,"expected vector of axis records");
   FailWhen(vec.size() > MaxAxis,"too many axis records specified");
   int i=0;
@@ -111,6 +117,7 @@ void setAxisRecords (const DMI::Vec & vec)
 
 int addAxis (const HIID &name)
 {
+  _init();
   // return axis if found
   int n = axis(name,true);
   if( n >= 0 )
@@ -127,7 +134,7 @@ int addAxis (const HIID &name)
 }
 
 // init default map of TIME/FREQ
-static int initDefaultMaps ()
+void initDefaultMaps ()
 {
   axis_recs <<= new DMI::Vec(TpDMIRecord,MaxAxis);
   axis_ids  <<= new DMI::Vec(TpDMIHIID,MaxAxis);
@@ -137,13 +144,7 @@ static int initDefaultMaps ()
   
   // reset default_mapping flag that was cleared by setAxisMap()
   _default_mapping = true;
-  
-  return 0;
 }
-
-// initialize the default map
-static int dum = initDefaultMaps();
-
 
 }}; // close both namespaces
   

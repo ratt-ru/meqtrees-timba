@@ -52,17 +52,34 @@ namespace Axis
 // shape type used to represent a hypercube
   typedef LoShape Shape;
   
+// initialized default mapping. Should be called automatically from _init()
+  extern void initDefaultMaps ();
+  
+// internal initialization functions (called only once)
+  inline void _init ()
+  {
+    static bool done = false;
+    static Thread::Mutex mutex;
+    Thread::Mutex::Lock lock(mutex);
+    if( !done )
+    {
+      done = true;
+      initDefaultMaps();
+    }
+  }
+  
   
 //=========== standard functions to access the axis mappings
 
   // returns id of axis #n
   inline const HIID & axisId (int n)
-  { return _name_map[n]; }
+  { _init(); return _name_map[n]; }
 
   // returns ordinal number of named axis. If no such axis, either throws an
   // exception, or returns -1 (nothrow=true)
   inline int axis (const HIID &id,bool nothrow=false)
   { 
+    _init();
     std::map<HIID,int>::const_iterator f = _num_map.find(id);
     if( f == _num_map.end() )
     {
@@ -100,7 +117,7 @@ namespace Axis
   
   // are we using a default mapping?
   inline bool isDefaultMap ()
-  { return _default_mapping; }
+  { _init(); return _default_mapping; }
   
   // allocate a new axis in the mapping, if not present. Nodes that use non-default 
   // axes should call this method in the constructor, this will allow them
