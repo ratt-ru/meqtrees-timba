@@ -17302,562 +17302,162 @@
 	    exportControl 	"Public"
 	    logical_models 	(list unit_reference_list
 		(object Class_Category "MEQ"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"IsNamespace"
-			    value      	TRUE))
-		    quid       	"3F5F20FA0039"
+		    quid       	"3F83F6B5012A"
 		    stereotype 	"namespace"
 		    exportControl 	"Public"
 		    logical_models 	(list unit_reference_list
-			(object Class "MeqServer"
+			(object Class "SpigotMux"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
 				    name       	"HeaderSourceFile"
-				    value      	(value Text "MeqServer/src/MeqServer.h"))
+				    value      	(value Text "MeqServer/src/SpigotMux.h"))
 				(object Attribute
 				    tool       	"Cplusplus"
 				    name       	"BodySourceFile"
-				    value      	(value Text "MeqServer/src/MeqServer.cc")))
-			    quid       	"3F5F195E013B"
-			    documentation 	"Returns True if a valid node exists for the given index"
-			    superclasses 	(list inheritance_relationship_list
-				(object Inheritance_Relationship
-				    quid       	"3F5F195E015B"
-				    supplier   	"Logical View::AppAgents::AppUtils::VisPipe"
-				    quidu      	"3E7727920352"))
+				    value      	"MeqServer/src/SpigotMux.cc"))
+			    quid       	"3F6EDADF01C2"
 			    operations 	(list Operations
-				(object Operation "MeqServer"
-				    quid       	"3F5F195E0140"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "run"
-				    quid       	"3F608106021C"
-				    stereotype 	"virtual"
+				(object Operation "init"
+				    quid       	"3F71705201BD"
+				    parameters 	(list Parameters
+					(object Parameter "max_stations"
+					    quid       	"3F71705B01FC"
+					    type       	"int")
+					(object Parameter "max_corr"
+					    quid       	"3F71706C0365"
+					    type       	"int"))
 				    result     	"void"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
 				    uid        	0)
-				(object Operation "createNode"
-				    quid       	"3F61920F01A8"
+				(object Operation "add"
+				    quid       	"3F716E98002E"
 				    parameters 	(list Parameters
-					(object Parameter "out"
-					    quid       	"3F61920F01BA"
-					    type       	"DataRecord::Ref &")
-					(object Parameter "initrec"
-					    quid       	"3F61920F01DA"
-					    type       	"DataRecord::Ref::Xfer &"))
+					(object Parameter "ref"
+					    quid       	"3F716EAA0111"
+					    type       	"const Node::Ref &"))
 				    result     	"void"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "deleteNode"
-				    quid       	"3F61920F01FA"
-				    parameters 	(list Parameters
-					(object Parameter "out"
-					    quid       	"3F61920F020C"
-					    type       	"DataRecord::Ref &")
-					(object Parameter "in"
-					    quid       	"3F61920F022D"
-					    type       	"DataRecord::Ref::Xfer &"))
-				    result     	"void"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "getNodeState"
-				    quid       	"3F61920F024E"
-				    parameters 	(list Parameters
-					(object Parameter "out"
-					    quid       	"3F61920F025F"
-					    type       	"DataRecord::Ref &")
-					(object Parameter "in"
-					    quid       	"3F61920F0283"
-					    type       	"DataRecord::Ref::Xfer &"))
-				    result     	"void"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "setNodeState"
-				    quid       	"3F61920F02A4"
-				    parameters 	(list Parameters
-					(object Parameter "out"
-					    quid       	"3F61920F02B6"
-					    type       	"DataRecord::Ref &")
-					(object Parameter "in"
-					    quid       	"3F61920F02D7"
-					    type       	"DataRecord::Ref::Xfer &"))
-				    result     	"void"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "resolveNode"
-				    quid       	"3F6196800325"
-				    parameters 	(list Parameters
-					(object Parameter "rec"
-					    quid       	"3F6196800348"
-					    type       	"const DataRecord &"))
-				    result     	"Node &"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Private"
-				    uid        	0
-				    quidu      	"3F5F436202FE")
-				(object Operation "sdebug"
-				    quid       	"3F5F195E0156"
-				    stereotype 	"const,virtual"
-				    parameters 	(list Parameters
-					(object Parameter "detail"
-					    quid       	"3F5F195E0157"
-					    type       	"int"
-					    initv      	"1")
-					(object Parameter "prefix"
-					    quid       	"3F5F195E0158"
-					    type       	"const string &"
-					    initv      	
-|""
-					    )
-					(object Parameter "name"
-					    quid       	"3F5F195E0159"
-					    type       	"const char *"
-					    initv      	"0"))
-				    result     	"string"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0))
-			    class_attributes 	(list class_attribute_list
-				(object ClassAttribute "LocalDebugContext"
-				    quid       	"3F5F195E013F"
-				    exportControl 	"Public"))
-			    module     	"Component View::AppAgent"
-			    quidu      	"3DF9FDED0011"
-			    language   	"ANSI C++"
-			    nestedClasses 	(list nestedClasses
-				(object Class "PtrCommandMethod"
-				    attributes 	(list Attribute_Set
-					(object Attribute
-					    tool       	"Cplusplus"
-					    name       	"HeaderSourceFile"
-					    value      	"MeqServer/src/MeqServer.h")
-					(object Attribute
-					    tool       	"Cplusplus"
-					    name       	"ImplementationType"
-					    value      	"void (* )(DataRecord::Ref &out,DataRecord::Ref::Xfer &in)"))
-				    quid       	"3F61920F0158"
-				    stereotype 	"typedef"
-				    exportControl 	"Private"
-				    module     	"Component View::AppAgent"
-				    quidu      	"3DF9FDED0011")
-				(object Class "CommandMap"
-				    attributes 	(list Attribute_Set
-					(object Attribute
-					    tool       	"Cplusplus"
-					    name       	"HeaderSourceFile"
-					    value      	"MeqServer/src/MeqServer.h")
-					(object Attribute
-					    tool       	"Cplusplus"
-					    name       	"ImplementationType"
-					    value      	"std::map<HIID,PtrCommandMethod>"))
-				    quid       	"3F61920F016E"
-				    stereotype 	"typedef"
-				    exportControl 	"Private"
-				    module     	"Component View::AppAgent"
-				    quidu      	"3DF9FDED0011")))
-			(object Class "NodeRepository"
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"HeaderSourceFile"
-				    value      	(value Text "MeqServer/src/NodeRepository.h"))
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"BodySourceFile"
-				    value      	(value Text "MeqServer/src/NodeRepository.cc")))
-			    quid       	"3F5F21740281"
-			    operations 	(list Operations
-				(object Operation "create"
-				    quid       	"3F5F572601B2"
-				    documentation 	
-|Creates a node using the given init record. The class of the node is determined by initrec["Class"].
-|Returns node index.
-				    
-				    parameters 	(list Parameters
-					(object Parameter "initrec"
-					    quid       	"3F5F5B4F01C6"
-					    type       	"DataRecord::Ref::Xfer &"))
-				    result     	"int"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
 				    uid        	0)
 				(object Operation "remove"
-				    quid       	"3F5F5CA300E0"
-				    documentation 	"Removes the node with the given index."
+				    quid       	"3F716EAA0106"
 				    parameters 	(list Parameters
-					(object Parameter "node_index"
-					    quid       	"3F5F5CBB01C5"
-					    type       	"int"))
-				    result     	"int"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "get"
-				    quid       	"3F5F5B4F01BD"
-				    documentation 	"Returns node specified by index"
-				    parameters 	(list Parameters
-					(object Parameter "node_index"
-					    quid       	"3F5F5B690318"
-					    type       	"int"))
-				    result     	"Node &"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0
-				    quidu      	"3F5F436202FE")
-				(object Operation "valid"
-				    quid       	"3F5F5B9D016A"
-				    stereotype 	"const"
-				    parameters 	(list Parameters
-					(object Parameter "node_index"
-					    quid       	"3F5F5BB20339"
-					    type       	"int"))
-				    result     	"bool"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "findIndex"
-				    quid       	"3F5F5BB2032C"
-				    documentation 	"Finds node by name, returns index (<0 if not found)"
-				    stereotype 	"const"
-				    parameters 	(list Parameters
-					(object Parameter "name"
-					    quid       	"3F5F5C9F01EA"
-					    type       	"const string&"))
-				    result     	"int"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "findNode"
-				    quid       	"3F60549B02FE"
-				    documentation 	
-|Finds node by name, returns reference to node. Throws exception if not found.
-|
-				    
-				    parameters 	(list Parameters
-					(object Parameter "name"
-					    quid       	"3F6054A80377"
-					    type       	"const string &"))
-				    result     	"Node &"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0
-				    quidu      	"3F5F436202FE")
-				(object Operation "NodeRepository"
-				    quid       	"3F60697A00ED"
+					(object Parameter "ref"
+					    quid       	"3F716EC5025D"
+					    type       	"const Node::Ref &"))
+				    result     	"void"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
 				    uid        	0))
 			    class_attributes 	(list class_attribute_list
-				(object ClassAttribute "LocalDebugContext"
-				    quid       	"3F60697A0078"
-				    exportControl 	"Public")
-				(object ClassAttribute "RepositoryChunkSize"
-				    quid       	"3F60697A00A3"
-				    type       	"const int"
-				    initv      	"8192"
-				    static     	TRUE))
+				(object ClassAttribute "ncorr_"
+				    quid       	"3F7195CF0001"
+				    type       	"int"))
 			    module     	"Component View::AppAgent"
 			    quidu      	"3DF9FDED0011"
-			    language   	"ANSI C++"
-			    nestedClasses 	(list nestedClasses
-				(object Class "Repository"
-				    attributes 	(list Attribute_Set
-					(object Attribute
-					    tool       	"Cplusplus"
-					    name       	"HeaderSourceFile"
-					    value      	"MeqServer/src/NodeRepository.h")
-					(object Attribute
-					    tool       	"Cplusplus"
-					    name       	"ImplementationType"
-					    value      	"std::vector<Node::Ref>"))
-				    quid       	"3F60697903A7"
-				    stereotype 	"typedef"
-				    exportControl 	"Private"
-				    module     	"Component View::AppAgent"
-				    quidu      	"3DF9FDED0011")
-				(object Class "NameMap"
-				    attributes 	(list Attribute_Set
-					(object Attribute
-					    tool       	"Cplusplus"
-					    name       	"HeaderSourceFile"
-					    value      	"MeqServer/src/NodeRepository.h")
-					(object Attribute
-					    tool       	"Cplusplus"
-					    name       	"ImplementationType"
-					    value      	"std::map<string,int>"))
-				    quid       	"3F60697903C1"
-				    stereotype 	"typedef"
-				    exportControl 	"Private"
-				    module     	"Component View::AppAgent"
-				    quidu      	"3DF9FDED0011")))
-			(object Class "Node"
+			    language   	"ANSI C++")
+			(object Class "Spigot"
 			    attributes 	(list Attribute_Set
 				(object Attribute
 				    tool       	"Cplusplus"
 				    name       	"HeaderSourceFile"
-				    value      	"MeqServer/src/Node.h")
+				    value      	(value Text "MeqServer/src/Spigot.h"))
 				(object Attribute
 				    tool       	"Cplusplus"
 				    name       	"BodySourceFile"
-				    value      	"MeqServer/src/Node.cc"))
-			    quid       	"3F5F436202FE"
+				    value      	"MeqServer/src/Spigot.cc"))
+			    quid       	"3F671A55028F"
 			    superclasses 	(list inheritance_relationship_list
 				(object Inheritance_Relationship
-				    quid       	"3F5F4363030B"
-				    supplier   	"Logical View::DOMIN0::BlockableObject"
-				    quidu      	"3BB1F71F03C9"))
+				    quid       	"3F671A7901D8"
+				    supplier   	"Logical View::MEQ::Node"
+				    quidu      	"3F5F436202FE"))
 			    operations 	(list Operations
-				(object Operation "Node"
-				    quid       	"3F5F43E000A0"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "~Node"
-				    quid       	"3F5F44A401BC"
-				    stereotype 	"virtual"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "init"
-				    quid       	"3F5F45D202D5"
-				    stereotype 	"virtual"
-				    parameters 	(list Parameters
-					(object Parameter "initrec"
-					    quid       	"3F5F45D202F6"
-					    type       	"DataRecord::Ref::Xfer &"))
-				    result     	"void"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "name"
-				    quid       	"3F5F44820166"
-				    stereotype 	"const"
-				    result     	"const string &"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "state"
-				    attributes 	(list Attribute_Set
-					(object Attribute
-					    tool       	"Cplusplus"
-					    name       	"Inline"
-					    value      	TRUE))
-				    quid       	"3F5F441602D2"
-				    stereotype 	"const"
-				    result     	"const DataRecord &"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "setState"
-				    quid       	"3F5F445A00AC"
-				    stereotype 	"virtual"
-				    parameters 	(list Parameters
-					(object Parameter "rec"
-					    quid       	"3F5F450403A9"
-					    type       	"const DataRecord &"))
-				    result     	"void"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0)
-				(object Operation "clone"
-				    quid       	"3F5F4363030F"
-				    documentation 	
-|Clones a node. 
-|Currently not implemented (throws exception)
-|
-				    
-				    stereotype 	"const,virtual"
-				    parameters 	(list Parameters
-					(object Parameter "flags"
-					    quid       	"3F5F43630311"
-					    type       	"int"
-					    initv      	"0")
-					(object Parameter "depth"
-					    quid       	"3F5F43630312"
-					    type       	"int"
-					    initv      	"0"))
-				    result     	"CountedRefTarget*"
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
-				    uid        	0
-				    quidu      	"3C0CDF41029F")
 				(object Operation "objectType"
 				    attributes 	(list Attribute_Set
 					(object Attribute
 					    tool       	"Cplusplus"
 					    name       	"Inline"
 					    value      	TRUE))
-				    quid       	"3F5F43630313"
-				    documentation 	
-|Returns the class TypeId
-|
-				    
+				    quid       	"3F7045B60117"
 				    stereotype 	"virtual,const"
 				    result     	"TypeId"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
 				    uid        	0
 				    quidu      	"3BFBA88F001D")
-				(object Operation "fromBlock"
-				    quid       	"3F5F43630315"
-				    documentation 	
-|Un-serialize.
-|Currently not implemented (throws exception)
-|
-				    
+				(object Operation "init"
+				    quid       	"3F7045BA0290"
 				    stereotype 	"virtual"
 				    parameters 	(list Parameters
-					(object Parameter "set"
-					    quid       	"3F5F43630317"
-					    type       	"BlockSet&"
-					    quidu      	"3BEA80A703A9"))
+					(object Parameter "initrec"
+					    quid       	"3F7045BA0291"
+					    type       	"DataRecord::Ref::Xfer &")
+					(object Parameter "frst"
+					    quid       	"3F7045BA0292"
+					    type       	"Forest&"
+					    quidu      	"3F5F21740281"))
+				    result     	"void"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
+				    uid        	0)
+				(object Operation "getResult"
+				    quid       	"3F7045BE00FB"
+				    stereotype 	"virtual"
+				    parameters 	(list Parameters
+					(object Parameter "resref"
+					    quid       	"3F7045BE00FC"
+					    type       	"Result::Ref &")
+					(object Parameter "rqid"
+					    quid       	"3F7045BE00FD"
+					    type       	"RequestId"))
 				    result     	"int"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
 				    uid        	0)
-				(object Operation "toBlock"
-				    quid       	"3F5F43630318"
-				    documentation 	
-|Serialize.
-|Currently not implemented (throws exception)
-|
-				    
-				    stereotype 	"const,virtual"
+				(object Operation "setState"
+				    quid       	"3F7045C00348"
+				    stereotype 	"virtual"
 				    parameters 	(list Parameters
-					(object Parameter "set"
-					    quid       	"3F5F4363031A"
-					    type       	"BlockSet &"
-					    quidu      	"3BEA80A703A9"))
+					(object Parameter "rec"
+					    quid       	"3F7045C00349"
+					    type       	"const DataRecord &"))
+				    result     	"void"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
+				    uid        	0)
+				(object Operation "spigotId"
+				    attributes 	(list Attribute_Set
+					(object Attribute
+					    tool       	"Cplusplus"
+					    name       	"Inline"
+					    value      	TRUE))
+				    quid       	"3F7195C802D8"
+				    stereotype 	"const"
 				    result     	"int"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
 				    uid        	0)
-				(object Operation "sdebug"
-				    quid       	"3F5F48180303"
-				    documentation 	
-|Standard debug info method
-|
-				    
-				    stereotype 	"const,virtual"
-				    parameters 	(list Parameters
-					(object Parameter "detail"
-					    quid       	"3F5F48180304"
-					    type       	"int"
-					    initv      	"1")
-					(object Parameter "prefix"
-					    quid       	"3F5F48180305"
-					    type       	"const string &"
-					    initv      	
-|""
-					    )
-					(object Parameter "name"
-					    quid       	"3F5F48180306"
-					    type       	"const char *"
-					    initv      	"0"))
-				    result     	"string"
+				(object Operation "setSpigotId"
+				    attributes 	(list Attribute_Set
+					(object Attribute
+					    tool       	"Cplusplus"
+					    name       	"Inline"
+					    value      	TRUE))
+				    quid       	"3F7195C802FD"
+				    result     	"void"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
 				    uid        	0))
 			    class_attributes 	(list class_attribute_list
-				(object ClassAttribute "staterec"
-				    quid       	"3F5F4363030D"
-				    type       	"DataRecord::Ref")
-				(object ClassAttribute "myname"
-				    quid       	"3F5F48040177"
-				    type       	"string"))
+				(object ClassAttribute "spigot_id"
+				    quid       	"3F70631002BA"
+				    type       	"int"))
 			    module     	"Component View::AppAgent"
 			    quidu      	"3DF9FDED0011"
-			    language   	"ANSI C++"
-			    nestedClasses 	(list nestedClasses
-				(object Class "Ref"
-				    attributes 	(list Attribute_Set
-					(object Attribute
-					    tool       	"Cplusplus"
-					    name       	"HeaderSourceFile"
-					    value      	"MeqServer/src/Node.h")
-					(object Attribute
-					    tool       	"Cplusplus"
-					    name       	"ImplementationType"
-					    value      	"CountedRef<Node>"))
-				    quid       	"3F5F43620304"
-				    stereotype 	"typedef"
-				    module     	"Component View::AppAgent"
-				    quidu      	"3DF9FDED0011")))
-			(object Association "$UNNAMED$88"
-			    quid       	"3F5F218F0055"
-			    roles      	(list role_list
-				(object Role "noderep"
-				    quid       	"3F5F218F02BD"
-				    label      	"noderep"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::NodeRepository"
-				    quidu      	"3F5F21740281"
-				    client_cardinality 	(value cardinality "1")
-				    Containment 	"By Value"
-				    exportControl 	"Private"
-				    is_navigable 	TRUE)
-				(object Role "$UNNAMED$89"
-				    quid       	"3F5F218F02C5"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::MeqServer"
-				    quidu      	"3F5F195E013B"
-				    is_aggregate 	TRUE)))
-			(object Association "$UNNAMED$90"
-			    quid       	"3F5F439200EB"
-			    roles      	(list role_list
-				(object Role "nodes:Repository"
-				    quid       	"3F5F439203E2"
-				    label      	"nodes:Repository"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::Node"
-				    quidu      	"3F5F436202FE"
-				    client_cardinality 	(value cardinality "0..*")
-				    Containment 	"By Reference"
-				    exportControl 	"Private"
-				    is_navigable 	TRUE)
-				(object Role "$UNNAMED$91"
-				    quid       	"3F5F43930004"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::NodeRepository"
-				    quidu      	"3F5F21740281"
-				    is_aggregate 	TRUE)))
-			(object Association "$UNNAMED$92"
-			    quid       	"3F60697A00D4"
-			    roles      	(list role_list
-				(object Role "name_map"
-				    quid       	"3F60697A00D5"
-				    label      	"name_map"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::NodeRepository::NameMap"
-				    quidu      	"3F60697903C1"
-				    Containment 	"By Value"
-				    exportControl 	"Private"
-				    is_navigable 	TRUE)
-				(object Role "$UNNAMED$93"
-				    quid       	"3F60697A00D7"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::NodeRepository"
-				    quidu      	"3F5F21740281"
-				    is_aggregate 	TRUE)))
-			(object Association "$UNNAMED$94"
-			    quid       	"3F61920F0192"
-			    roles      	(list role_list
-				(object Role "command_map"
-				    quid       	"3F61920F0193"
-				    label      	"command_map"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::MeqServer::CommandMap"
-				    quidu      	"3F61920F016E"
-				    Containment 	"By Value"
-				    exportControl 	"Private"
-				    is_navigable 	TRUE)
-				(object Role "$UNNAMED$95"
-				    quid       	"3F61920F0195"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::MeqServer"
-				    quidu      	"3F5F195E013B"
-				    is_aggregate 	TRUE))))
+			    language   	"ANSI C++"))
 		    logical_presentations 	(list unit_reference_list
 			(object ClassDiagram "Main"
 			    quid       	"3F5F0B4901EE"
@@ -17866,7 +17466,7 @@
 			    max_height 	28350
 			    max_width  	21600
 			    origin_x   	0
-			    origin_y   	618
+			    origin_y   	0
 			    items      	(list diagram_item_list
 				(object ClassView "Class" "Logical View::AppAgents::AppUtils::VisPipe" @475
 				    ShowCompartmentStereotypes 	TRUE
@@ -17874,7 +17474,7 @@
 				    SuppressOperation 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
-				    location   	(208, 976)
+				    location   	(240, 352)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -17886,7 +17486,7 @@
 					default_color 	TRUE)
 				    label      	(object ItemLabel
 					Parent_View 	@475
-					location   	(79, 927)
+					location   	(111, 303)
 					nlines     	1
 					max_width  	258
 					justify    	0
@@ -17904,7 +17504,7 @@
 				    SuppressOperation 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
-				    location   	(2496, 976)
+				    location   	(1872, 112)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -17916,7 +17516,7 @@
 					default_color 	TRUE)
 				    label      	(object ItemLabel
 					Parent_View 	@476
-					location   	(2290, 926)
+					location   	(1666, 62)
 					nlines     	1
 					max_width  	412
 					justify    	0
@@ -17928,12 +17528,14 @@
 				    height     	124
 				    annotation 	8
 				    autoResize 	TRUE)
-				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::Node" @477
+				(object ClassView "Class" "Logical View::MEQ::Node" @477
 				    ShowCompartmentStereotypes 	TRUE
+				    SuppressAttribute 	TRUE
+				    SuppressOperation 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
 				    ShowOperationSignature 	TRUE
-				    location   	(2080, 1824)
+				    location   	(1856, 432)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -17945,51 +17547,28 @@
 					default_color 	TRUE)
 				    label      	(object ItemLabel
 					Parent_View 	@477
-					location   	(1374, 1358)
+					location   	(1754, 382)
 					fill_color 	13434879
 					nlines     	1
-					max_width  	1413
+					max_width  	204
 					justify    	0
 					label      	"Node")
 				    icon_style 	"Icon"
 				    line_color 	3342489
 				    fill_color 	13434879
 				    quidu      	"3F5F436202FE"
-				    compartment 	(object Compartment
-					Parent_View 	@477
-					location   	(1374, 1419)
-					font       	(object Font
-					    size       	10
-					    face       	"arial"
-					    bold       	FALSE
-					    italics    	FALSE
-					    underline  	FALSE
-					    strike     	FALSE
-					    color      	0
-					    default_color 	TRUE)
-					icon_style 	"Icon"
-					fill_color 	13434879
-					anchor     	2
-					nlines     	14
-					max_width  	1881)
-				    width      	1431
-				    height     	956
-				    annotation 	8)
-				(object InheritView "" @478
-				    stereotype 	TRUE
-				    line_color 	3342489
-				    quidu      	"3F5F4363030B"
-				    client     	@477
-				    supplier   	@476
-				    line_style 	3
-				    origin_attachment 	(2544, 1346)
-				    terminal_attachment 	(2544, 1038))
-				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::NodeRepository" @479
+				    width      	222
+				    height     	124
+				    annotation 	8
+				    autoResize 	TRUE)
+				(object ClassView "Class" "Logical View::MEQ::Forest" @478
 				    ShowCompartmentStereotypes 	TRUE
+				    SuppressAttribute 	TRUE
+				    SuppressOperation 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
 				    ShowOperationSignature 	TRUE
-				    location   	(1264, 640)
+				    location   	(1120, 432)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -18000,39 +17579,23 @@
 					color      	0
 					default_color 	TRUE)
 				    label      	(object ItemLabel
-					Parent_View 	@479
-					location   	(586, 249)
+					Parent_View 	@478
+					location   	(1018, 382)
 					fill_color 	13434879
 					nlines     	1
-					max_width  	1357
+					max_width  	204
 					justify    	0
-					label      	"NodeRepository")
+					label      	"Forest")
 				    icon_style 	"Icon"
 				    line_color 	3342489
 				    fill_color 	13434879
 				    quidu      	"3F5F21740281"
-				    compartment 	(object Compartment
-					Parent_View 	@479
-					location   	(586, 310)
-					font       	(object Font
-					    size       	10
-					    face       	"arial"
-					    bold       	FALSE
-					    italics    	FALSE
-					    underline  	FALSE
-					    strike     	FALSE
-					    color      	0
-					    default_color 	TRUE)
-					icon_style 	"Icon"
-					fill_color 	13434879
-					anchor     	2
-					nlines     	10
-					max_width  	915)
-				    width      	1375
-				    height     	806
-				    annotation 	8)
-				(object AssociationViewNew "$UNNAMED$90" @480
-				    location   	(1656, 1194)
+				    width      	222
+				    height     	124
+				    annotation 	8
+				    autoResize 	TRUE)
+				(object AssociationViewNew "" @479
+				    location   	(1488, 441)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -18046,9 +17609,9 @@
 				    line_color 	3342489
 				    quidu      	"3F5F439200EB"
 				    roleview_list 	(list RoleViews
-					(object RoleView "nodes:Repository" @481
-					    Parent_View 	@480
-					    location   	(744, 442)
+					(object RoleView "nodes:Repository" @480
+					    Parent_View 	@479
+					    location   	(581, -317)
 					    font       	(object Font
 						size       	10
 						face       	"arial"
@@ -18058,9 +17621,9 @@
 						strike     	FALSE
 						color      	0
 						default_color 	TRUE)
-					    label      	(object SegLabel @482
-						Parent_View 	@481
-						location   	(1752, 1322)
+					    label      	(object SegLabel @481
+						Parent_View 	@480
+						location   	(1654, 396)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18076,20 +17639,20 @@
 						max_width  	614
 						justify    	0
 						label      	"-nodes"
-						pctDist    	0.842105
-						height     	96
+						pctDist    	0.651452
+						height     	46
 						orientation 	0)
 					    stereotype 	TRUE
 					    line_color 	3342489
 					    quidu      	"3F5F439203E2"
-					    client     	@480
+					    client     	@479
 					    supplier   	@477
 					    line_style 	3
-					    origin_attachment 	(1656, 1194)
-					    terminal_attachment 	(1656, 1346)
-					    label      	(object SegLabel @483
-						Parent_View 	@481
-						location   	(1598, 1319)
+					    origin_attachment 	(1488, 441)
+					    terminal_attachment 	(1745, 441)
+					    label      	(object SegLabel @482
+						Parent_View 	@480
+						location   	(1704, 469)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18105,295 +17668,53 @@
 						max_width  	15
 						justify    	0
 						label      	"0..*"
-						pctDist    	0.828947
-						height     	59
+						pctDist    	0.843373
+						height     	28
 						orientation 	1))
-					(object RoleView "$UNNAMED$91" @484
-					    Parent_View 	@480
-					    location   	(744, 442)
+					(object RoleView "forest_" @483
+					    Parent_View 	@479
+					    location   	(581, -317)
+					    font       	(object Font
+						size       	10
+						face       	"arial"
+						bold       	FALSE
+						italics    	FALSE
+						underline  	FALSE
+						strike     	FALSE
+						color      	0
+						default_color 	TRUE)
+					    label      	(object SegLabel @484
+						Parent_View 	@483
+						location   	(1318, 396)
+						font       	(object Font
+						    size       	10
+						    face       	"arial"
+						    bold       	FALSE
+						    italics    	FALSE
+						    underline  	FALSE
+						    strike     	FALSE
+						    color      	0
+						    default_color 	TRUE)
+						anchor     	1
+						anchor_loc 	1
+						nlines     	1
+						max_width  	144
+						justify    	0
+						label      	"-forest_"
+						pctDist    	0.663900
+						height     	46
+						orientation 	1)
 					    stereotype 	TRUE
 					    line_color 	3342489
 					    quidu      	"3F5F43930004"
-					    client     	@480
-					    supplier   	@479
+					    client     	@479
+					    supplier   	@478
 					    line_style 	3
-					    origin_attachment 	(1656, 1194)
-					    terminal_attachment 	(1656, 1043))))
-				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::NodeRepository::NameMap" @485
-				    ShowCompartmentStereotypes 	TRUE
-				    SuppressAttribute 	TRUE
-				    SuppressOperation 	TRUE
-				    IncludeAttribute 	TRUE
-				    IncludeOperation 	TRUE
-				    location   	(2480, 368)
-				    font       	(object Font
-					size       	10
-					face       	"arial"
-					bold       	FALSE
-					italics    	FALSE
-					underline  	FALSE
-					strike     	FALSE
-					color      	0
-					default_color 	TRUE)
-				    label      	(object ItemLabel
-					Parent_View 	@485
-					location   	(2287, 316)
-					fill_color 	13434879
-					nlines     	1
-					max_width  	386
-					justify    	0
-					label      	"NameMap")
-				    stereotype 	(object ItemLabel
-					Parent_View 	@485
-					location   	(2287, 266)
-					fill_color 	13434879
-					anchor     	10
-					nlines     	1
-					max_width  	386
-					justify    	0
-					label      	"<<typedef>>")
-				    icon_style 	"Icon"
-				    line_color 	3342489
-				    fill_color 	13434879
-				    quidu      	"3F60697903C1"
-				    width      	404
-				    height     	228
-				    annotation 	8)
-				(object AssociationViewNew "$UNNAMED$92" @486
-				    location   	(2114, 368)
-				    stereotype 	TRUE
-				    line_color 	3342489
-				    quidu      	"3F60697A00D4"
-				    roleview_list 	(list RoleViews
-					(object RoleView "$UNNAMED$93" @487
-					    Parent_View 	@486
-					    location   	(-174, -128)
-					    font       	(object Font
-						size       	10
-						face       	"arial"
-						bold       	FALSE
-						italics    	FALSE
-						underline  	FALSE
-						strike     	FALSE
-						color      	0
-						default_color 	TRUE)
-					    label      	(object SegLabel @488
-						Parent_View 	@487
-						location   	(1984, 327)
-						font       	(object Font
-						    size       	10
-						    face       	"arial"
-						    bold       	FALSE
-						    italics    	FALSE
-						    underline  	FALSE
-						    strike     	FALSE
-						    color      	0
-						    default_color 	TRUE)
-						hidden     	TRUE
-						anchor     	1
-						anchor_loc 	1
-						nlines     	1
-						max_width  	450
-						justify    	0
-						label      	""
-						pctDist    	0.800000
-						height     	42
-						orientation 	1)
-					    stereotype 	TRUE
-					    line_color 	3342489
-					    quidu      	"3F60697A00D7"
-					    client     	@486
-					    supplier   	@479
-					    line_style 	3
-					    origin_attachment 	(2114, 368)
-					    terminal_attachment 	(1951, 368))
-					(object RoleView "name_map" @489
-					    Parent_View 	@486
-					    location   	(-174, -128)
-					    font       	(object Font
-						size       	10
-						face       	"arial"
-						bold       	FALSE
-						italics    	FALSE
-						underline  	FALSE
-						strike     	FALSE
-						color      	0
-						default_color 	TRUE)
-					    label      	(object SegLabel @490
-						Parent_View 	@489
-						location   	(2152, 326)
-						font       	(object Font
-						    size       	10
-						    face       	"arial"
-						    bold       	FALSE
-						    italics    	FALSE
-						    underline  	FALSE
-						    strike     	FALSE
-						    color      	0
-						    default_color 	TRUE)
-						anchor     	1
-						anchor_loc 	1
-						nlines     	1
-						max_width  	227
-						justify    	0
-						label      	"-name_map"
-						pctDist    	0.232558
-						height     	43
-						orientation 	0)
-					    stereotype 	TRUE
-					    line_color 	3342489
-					    quidu      	"3F60697A00D5"
-					    client     	@486
-					    supplier   	@485
-					    line_style 	3
-					    origin_attachment 	(2114, 368)
-					    terminal_attachment 	(2278, 368))))
-				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::MeqServer::CommandMap" @491
-				    ShowCompartmentStereotypes 	TRUE
-				    SuppressAttribute 	TRUE
-				    SuppressOperation 	TRUE
-				    IncludeAttribute 	TRUE
-				    IncludeOperation 	TRUE
-				    location   	(256, 2704)
-				    font       	(object Font
-					size       	10
-					face       	"arial"
-					bold       	FALSE
-					italics    	FALSE
-					underline  	FALSE
-					strike     	FALSE
-					color      	0
-					default_color 	TRUE)
-				    label      	(object ItemLabel
-					Parent_View 	@491
-					location   	(105, 2652)
-					fill_color 	13434879
-					nlines     	2
-					max_width  	302
-					justify    	0
-					label      	"CommandMap")
-				    stereotype 	(object ItemLabel
-					Parent_View 	@491
-					location   	(105, 2602)
-					fill_color 	13434879
-					anchor     	10
-					nlines     	1
-					max_width  	302
-					justify    	0
-					label      	"<<typedef>>")
-				    icon_style 	"Icon"
-				    line_color 	3342489
-				    fill_color 	13434879
-				    quidu      	"3F61920F016E"
-				    width      	320
-				    height     	228
-				    annotation 	8)
-				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::MeqServer" @492
-				    ShowCompartmentStereotypes 	TRUE
-				    IncludeAttribute 	TRUE
-				    IncludeOperation 	TRUE
-				    ShowOperationSignature 	TRUE
-				    location   	(544, 1872)
-				    font       	(object Font
-					size       	10
-					face       	"arial"
-					bold       	FALSE
-					italics    	FALSE
-					underline  	FALSE
-					strike     	FALSE
-					color      	0
-					default_color 	TRUE)
-				    label      	(object ItemLabel
-					Parent_View 	@492
-					location   	(106, 1453)
-					fill_color 	13434879
-					nlines     	1
-					max_width  	876
-					justify    	0
-					label      	"MeqServer")
-				    icon_style 	"Icon"
-				    line_color 	3342489
-				    fill_color 	13434879
-				    quidu      	"3F5F195E013B"
-				    compartment 	(object Compartment
-					Parent_View 	@492
-					location   	(106, 1514)
-					font       	(object Font
-					    size       	10
-					    face       	"arial"
-					    bold       	FALSE
-					    italics    	FALSE
-					    underline  	FALSE
-					    strike     	FALSE
-					    color      	0
-					    default_color 	TRUE)
-					icon_style 	"Icon"
-					fill_color 	13434879
-					anchor     	2
-					nlines     	10
-					max_width  	1878)
-				    width      	894
-				    height     	862
-				    annotation 	8)
-				(object AssociationViewNew "$UNNAMED$88" @493
-				    location   	(784, 1242)
-				    font       	(object Font
-					size       	10
-					face       	"arial"
-					bold       	FALSE
-					italics    	FALSE
-					underline  	FALSE
-					strike     	FALSE
-					color      	0
-					default_color 	TRUE)
-				    stereotype 	TRUE
-				    line_color 	3342489
-				    quidu      	"3F5F218F0055"
-				    roleview_list 	(list RoleViews
-					(object RoleView "noderep" @494
-					    Parent_View 	@493
-					    location   	(336, 474)
-					    font       	(object Font
-						size       	10
-						face       	"arial"
-						bold       	FALSE
-						italics    	FALSE
-						underline  	FALSE
-						strike     	FALSE
-						color      	0
-						default_color 	TRUE)
-					    label      	(object SegLabel @495
-						Parent_View 	@494
-						location   	(878, 1066)
-						font       	(object Font
-						    size       	10
-						    face       	"arial"
-						    bold       	FALSE
-						    italics    	FALSE
-						    underline  	FALSE
-						    strike     	FALSE
-						    color      	0
-						    default_color 	TRUE)
-						anchor     	1
-						anchor_loc 	1
-						nlines     	1
-						max_width  	166
-						justify    	0
-						label      	"-noderep"
-						pctDist    	0.887417
-						height     	94
-						orientation 	1)
-					    stereotype 	TRUE
-					    line_color 	3342489
-					    quidu      	"3F5F218F02BD"
-					    client     	@493
-					    supplier   	@479
-					    line_style 	3
-					    origin_attachment 	(784, 1242)
-					    terminal_attachment 	(784, 1043)
-					    label      	(object SegLabel @496
-						Parent_View 	@494
-						location   	(740, 1074)
+					    origin_attachment 	(1488, 441)
+					    terminal_attachment 	(1231, 441)
+					    label      	(object SegLabel @485
+						Parent_View 	@483
+						location   	(1282, 470)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18409,38 +17730,57 @@
 						max_width  	15
 						justify    	0
 						label      	"1"
-						pctDist    	0.847682
-						height     	45
-						orientation 	0))
-					(object RoleView "$UNNAMED$89" @497
-					    Parent_View 	@493
-					    location   	(336, 474)
-					    stereotype 	TRUE
-					    line_color 	3342489
-					    quidu      	"3F5F218F02C5"
-					    client     	@493
-					    supplier   	@492
-					    line_style 	3
-					    origin_attachment 	(784, 1242)
-					    terminal_attachment 	(784, 1441))))
-				(object InheritView "" @498
+						pctDist    	0.807229
+						height     	29
+						orientation 	0))))
+				(object ClassView "Class" "Logical View::AppAgents::MEQ::MeqServer" @486
+				    ShowCompartmentStereotypes 	TRUE
+				    IncludeAttribute 	TRUE
+				    IncludeOperation 	TRUE
+				    ShowOperationSignature 	TRUE
+				    location   	(688, 1136)
+				    font       	(object Font
+					size       	10
+					face       	"arial"
+					bold       	FALSE
+					italics    	FALSE
+					underline  	FALSE
+					strike     	FALSE
+					color      	0
+					default_color 	TRUE)
+				    label      	(object ItemLabel
+					Parent_View 	@486
+					location   	(122, 710)
+					fill_color 	13434879
+					nlines     	1
+					max_width  	1132
+					justify    	0
+					label      	"MeqServer")
+				    icon_style 	"Icon"
+				    line_color 	3342489
+				    fill_color 	13434879
+				    quidu      	"3F5F195E013B"
+				    width      	1150
+				    height     	876
+				    annotation 	8)
+				(object AssociationViewNew "" @487
+				    location   	(1120, 596)
+				    font       	(object Font
+					size       	10
+					face       	"arial"
+					bold       	FALSE
+					italics    	FALSE
+					underline  	FALSE
+					strike     	FALSE
+					color      	0
+					default_color 	TRUE)
 				    stereotype 	TRUE
 				    line_color 	3342489
-				    quidu      	"3F5F195E015B"
-				    client     	@492
-				    supplier   	@475
-				    line_style 	3
-				    origin_attachment 	(181, 1441)
-				    terminal_attachment 	(181, 1037))
-				(object AssociationViewNew "$UNNAMED$94" @499
-				    location   	(253, 2446)
-				    stereotype 	TRUE
-				    line_color 	3342489
-				    quidu      	"3F61920F0192"
+				    quidu      	"3F5F218F0055"
 				    roleview_list 	(list RoleViews
-					(object RoleView "$UNNAMED$95" @500
-					    Parent_View 	@499
-					    location   	(-387, -18)
+					(object RoleView "forest" @488
+					    Parent_View 	@487
+					    location   	(672, -172)
 					    font       	(object Font
 						size       	10
 						face       	"arial"
@@ -18450,9 +17790,137 @@
 						strike     	FALSE
 						color      	0
 						default_color 	TRUE)
-					    label      	(object SegLabel @501
-						Parent_View 	@500
-						location   	(212, 2332)
+					    label      	(object SegLabel @489
+						Parent_View 	@488
+						location   	(1200, 518)
+						font       	(object Font
+						    size       	10
+						    face       	"arial"
+						    bold       	FALSE
+						    italics    	FALSE
+						    underline  	FALSE
+						    strike     	FALSE
+						    color      	0
+						    default_color 	TRUE)
+						anchor     	1
+						anchor_loc 	1
+						nlines     	1
+						max_width  	472
+						justify    	0
+						label      	"-forest"
+						pctDist    	0.779141
+						height     	80
+						orientation 	1)
+					    stereotype 	TRUE
+					    line_color 	3342489
+					    quidu      	"3F5F218F02BD"
+					    client     	@487
+					    supplier   	@478
+					    line_style 	3
+					    origin_attachment 	(1120, 596)
+					    terminal_attachment 	(1120, 494)
+					    label      	(object SegLabel @490
+						Parent_View 	@488
+						location   	(1087, 506)
+						font       	(object Font
+						    size       	10
+						    face       	"arial"
+						    bold       	FALSE
+						    italics    	FALSE
+						    underline  	FALSE
+						    strike     	FALSE
+						    color      	0
+						    default_color 	TRUE)
+						anchor     	2
+						anchor_loc 	1
+						nlines     	1
+						max_width  	15
+						justify    	0
+						label      	"1"
+						pctDist    	0.883871
+						height     	34
+						orientation 	0))
+					(object RoleView "" @491
+					    Parent_View 	@487
+					    location   	(672, -172)
+					    stereotype 	TRUE
+					    line_color 	3342489
+					    quidu      	"3F5F218F02C5"
+					    client     	@487
+					    supplier   	@486
+					    line_style 	3
+					    origin_attachment 	(1120, 596)
+					    terminal_attachment 	(1120, 698))))
+				(object InheritView "" @492
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3F5F195E015B"
+				    client     	@486
+				    supplier   	@475
+				    line_style 	3
+				    origin_attachment 	(240, 698)
+				    terminal_attachment 	(240, 413))
+				(object ClassView "Class" "Logical View::AppAgents::MEQ::MeqServer::CommandMap" @493
+				    ShowCompartmentStereotypes 	TRUE
+				    SuppressAttribute 	TRUE
+				    SuppressOperation 	TRUE
+				    IncludeAttribute 	TRUE
+				    IncludeOperation 	TRUE
+				    location   	(192, 2080)
+				    font       	(object Font
+					size       	10
+					face       	"arial"
+					bold       	FALSE
+					italics    	FALSE
+					underline  	FALSE
+					strike     	FALSE
+					color      	0
+					default_color 	TRUE)
+				    label      	(object ItemLabel
+					Parent_View 	@493
+					location   	(41, 2028)
+					fill_color 	13434879
+					nlines     	1
+					max_width  	302
+					justify    	0
+					label      	"CommandMap")
+				    stereotype 	(object ItemLabel
+					Parent_View 	@493
+					location   	(41, 1978)
+					fill_color 	13434879
+					anchor     	10
+					nlines     	1
+					max_width  	302
+					justify    	0
+					label      	"<<typedef>>")
+				    icon_style 	"Icon"
+				    line_color 	3342489
+				    fill_color 	13434879
+				    quidu      	"3F61920F016E"
+				    width      	320
+				    height     	228
+				    annotation 	8)
+				(object AssociationViewNew "" @494
+				    location   	(232, 1770)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3F61920F0192"
+				    roleview_list 	(list RoleViews
+					(object RoleView "" @495
+					    Parent_View 	@494
+					    location   	(-408, -694)
+					    font       	(object Font
+						size       	10
+						face       	"arial"
+						bold       	FALSE
+						italics    	FALSE
+						underline  	FALSE
+						strike     	FALSE
+						color      	0
+						default_color 	TRUE)
+					    label      	(object SegLabel @496
+						Parent_View 	@495
+						location   	(191, 1614)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18475,14 +17943,14 @@
 					    stereotype 	TRUE
 					    line_color 	3342489
 					    quidu      	"3F61920F0195"
-					    client     	@499
-					    supplier   	@492
+					    client     	@494
+					    supplier   	@486
 					    line_style 	3
-					    origin_attachment 	(253, 2446)
-					    terminal_attachment 	(253, 2303))
-					(object RoleView "command_map" @502
-					    Parent_View 	@499
-					    location   	(-387, -18)
+					    origin_attachment 	(232, 1770)
+					    terminal_attachment 	(232, 1574))
+					(object RoleView "command_map" @497
+					    Parent_View 	@494
+					    location   	(-408, -694)
 					    font       	(object Font
 						size       	10
 						face       	"arial"
@@ -18492,9 +17960,9 @@
 						strike     	FALSE
 						color      	0
 						default_color 	TRUE)
-					    label      	(object SegLabel @503
-						Parent_View 	@502
-						location   	(227, 2527)
+					    label      	(object SegLabel @498
+						Parent_View 	@497
+						location   	(215, 1878)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18510,17 +17978,346 @@
 						max_width  	301
 						justify    	0
 						label      	"-command_map"
-						pctDist    	0.562500
-						height     	27
+						pctDist    	0.554878
+						height     	18
 						orientation 	1)
 					    stereotype 	TRUE
 					    line_color 	3342489
 					    quidu      	"3F61920F0193"
-					    client     	@499
-					    supplier   	@491
+					    client     	@494
+					    supplier   	@493
 					    line_style 	3
-					    origin_attachment 	(253, 2446)
-					    terminal_attachment 	(253, 2590)))))))))
+					    origin_attachment 	(232, 1770)
+					    terminal_attachment 	(232, 1966))))
+				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::Spigot" @499
+				    ShowCompartmentStereotypes 	TRUE
+				    IncludeAttribute 	TRUE
+				    IncludeOperation 	TRUE
+				    ShowOperationSignature 	TRUE
+				    location   	(2416, 1104)
+				    font       	(object Font
+					size       	10
+					face       	"arial"
+					bold       	FALSE
+					italics    	FALSE
+					underline  	FALSE
+					strike     	FALSE
+					color      	0
+					default_color 	TRUE)
+				    label      	(object ItemLabel
+					Parent_View 	@499
+					location   	(1710, 801)
+					fill_color 	13434879
+					nlines     	1
+					max_width  	1413
+					justify    	0
+					label      	"Spigot")
+				    icon_style 	"Icon"
+				    line_color 	3342489
+				    fill_color 	13434879
+				    quidu      	"3F671A55028F"
+				    width      	1431
+				    height     	631
+				    annotation 	8)
+				(object InheritView "" @500
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3F671A7901D8"
+				    client     	@499
+				    supplier   	@477
+				    line_style 	3
+				    origin_attachment 	(1856, 789)
+				    terminal_attachment 	(1856, 494))
+				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::SpigotMux" @501
+				    ShowCompartmentStereotypes 	TRUE
+				    IncludeAttribute 	TRUE
+				    IncludeOperation 	TRUE
+				    ShowOperationSignature 	TRUE
+				    location   	(2400, 2112)
+				    font       	(object Font
+					size       	10
+					face       	"arial"
+					bold       	FALSE
+					italics    	FALSE
+					underline  	FALSE
+					strike     	FALSE
+					color      	0
+					default_color 	TRUE)
+				    label      	(object ItemLabel
+					Parent_View 	@501
+					location   	(1953, 1908)
+					fill_color 	13434879
+					nlines     	1
+					max_width  	894
+					justify    	0
+					label      	"SpigotMux")
+				    icon_style 	"Icon"
+				    line_color 	3342489
+				    fill_color 	13434879
+				    quidu      	"3F6EDADF01C2"
+				    width      	912
+				    height     	432
+				    annotation 	8)
+				(object AssociationViewNew "" @502
+				    location   	(2377, 1657)
+				    font       	(object Font
+					size       	10
+					face       	"arial"
+					bold       	FALSE
+					italics    	FALSE
+					underline  	FALSE
+					strike     	FALSE
+					color      	0
+					default_color 	TRUE)
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3F7040660130"
+				    roleview_list 	(list RoleViews
+					(object RoleView "spigots_:std::vector<Node::Ref *>" @503
+					    Parent_View 	@502
+					    location   	(1145, -967)
+					    font       	(object Font
+						size       	10
+						face       	"arial"
+						bold       	FALSE
+						italics    	FALSE
+						underline  	FALSE
+						strike     	FALSE
+						color      	0
+						default_color 	TRUE)
+					    label      	(object SegLabel @504
+						Parent_View 	@503
+						location   	(2251, 1437)
+						font       	(object Font
+						    size       	10
+						    face       	"arial"
+						    bold       	FALSE
+						    italics    	FALSE
+						    underline  	FALSE
+						    strike     	FALSE
+						    color      	0
+						    default_color 	TRUE)
+						anchor     	1
+						anchor_loc 	1
+						nlines     	1
+						max_width  	626
+						justify    	0
+						label      	"-spigots_"
+						pctDist    	0.926471
+						height     	127
+						orientation 	0)
+					    stereotype 	TRUE
+					    line_color 	3342489
+					    quidu      	"3F7040660312"
+					    client     	@502
+					    supplier   	@499
+					    line_style 	3
+					    origin_attachment 	(2377, 1657)
+					    terminal_attachment 	(2377, 1419)
+					    label      	(object SegLabel @505
+						Parent_View 	@503
+						location   	(2433, 1439)
+						font       	(object Font
+						    size       	10
+						    face       	"arial"
+						    bold       	FALSE
+						    italics    	FALSE
+						    underline  	FALSE
+						    strike     	FALSE
+						    color      	0
+						    default_color 	TRUE)
+						anchor     	2
+						anchor_loc 	1
+						nlines     	1
+						max_width  	15
+						justify    	0
+						label      	"0..*"
+						pctDist    	0.914706
+						height     	56
+						orientation 	1))
+					(object RoleView "" @506
+					    Parent_View 	@502
+					    location   	(1145, -967)
+					    stereotype 	TRUE
+					    line_color 	3342489
+					    quidu      	"3F704066031C"
+					    client     	@502
+					    supplier   	@501
+					    line_style 	3
+					    origin_attachment 	(2377, 1657)
+					    terminal_attachment 	(2377, 1896))))
+				(object InheritView "" @507
+				    stereotype 	TRUE
+				    line_color 	3342489
+				    quidu      	"3F5F4363030B"
+				    client     	@477
+				    supplier   	@476
+				    line_style 	3
+				    origin_attachment 	(1862, 370)
+				    terminal_attachment 	(1862, 174)))))))
+	    logical_presentations 	(list unit_reference_list))
+	(object Class_Category "MEQ"
+	    attributes 	(list Attribute_Set
+		(object Attribute
+		    tool       	"Cplusplus"
+		    name       	"IsNamespace"
+		    value      	TRUE))
+	    quid       	"3F85556101F2"
+	    exportControl 	"Public"
+	    logical_models 	(list unit_reference_list
+		(object Class "MeqServer"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	(value Text "MeqServer/src/MeqServer.h"))
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"BodySourceFile"
+			    value      	(value Text "MeqServer/src/MeqServer.cc")))
+		    quid       	"3F5F195E013B"
+		    documentation 	"Returns True if a valid node exists for the given index"
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3F5F195E015B"
+			    supplier   	"Logical View::AppAgents::AppUtils::VisPipe"
+			    quidu      	"3E7727920352"))
+		    operations 	(list Operations
+			(object Operation "MeqServer"
+			    quid       	"3F5F195E0140"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "run"
+			    quid       	"3F608106021C"
+			    stereotype 	"virtual"
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "createNode"
+			    quid       	"3F61920F01A8"
+			    parameters 	(list Parameters
+				(object Parameter "out"
+				    quid       	"3F61920F01BA"
+				    type       	"DataRecord::Ref &")
+				(object Parameter "initrec"
+				    quid       	"3F61920F01DA"
+				    type       	"DataRecord::Ref::Xfer &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "deleteNode"
+			    quid       	"3F61920F01FA"
+			    parameters 	(list Parameters
+				(object Parameter "out"
+				    quid       	"3F61920F020C"
+				    type       	"DataRecord::Ref &")
+				(object Parameter "in"
+				    quid       	"3F61920F022D"
+				    type       	"DataRecord::Ref::Xfer &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "getNodeState"
+			    quid       	"3F61920F024E"
+			    parameters 	(list Parameters
+				(object Parameter "out"
+				    quid       	"3F61920F025F"
+				    type       	"DataRecord::Ref &")
+				(object Parameter "in"
+				    quid       	"3F61920F0283"
+				    type       	"DataRecord::Ref::Xfer &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "setNodeState"
+			    quid       	"3F61920F02A4"
+			    parameters 	(list Parameters
+				(object Parameter "out"
+				    quid       	"3F61920F02B6"
+				    type       	"DataRecord::Ref &")
+				(object Parameter "in"
+				    quid       	"3F61920F02D7"
+				    type       	"DataRecord::Ref::Xfer &"))
+			    result     	"void"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "resolveNode"
+			    quid       	"3F6196800325"
+			    parameters 	(list Parameters
+				(object Parameter "rec"
+				    quid       	"3F6196800348"
+				    type       	"const DataRecord &"))
+			    result     	"Node &"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Private"
+			    uid        	0
+			    quidu      	"3F5F436202FE")
+			(object Operation "sdebug"
+			    quid       	"3F5F195E0156"
+			    stereotype 	"const,virtual"
+			    parameters 	(list Parameters
+				(object Parameter "detail"
+				    quid       	"3F5F195E0157"
+				    type       	"int"
+				    initv      	"1")
+				(object Parameter "prefix"
+				    quid       	"3F5F195E0158"
+				    type       	"const string &"
+				    initv      	
+|""
+				    )
+				(object Parameter "name"
+				    quid       	"3F5F195E0159"
+				    type       	"const char *"
+				    initv      	"0"))
+			    result     	"string"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
+			    uid        	0))
+		    class_attributes 	(list class_attribute_list
+			(object ClassAttribute "LocalDebugContext"
+			    quid       	"3F5F195E013F"
+			    exportControl 	"Public"))
+		    module     	"Component View::AppAgent"
+		    quidu      	"3DF9FDED0011"
+		    language   	"ANSI C++"
+		    nestedClasses 	(list nestedClasses
+			(object Class "PtrCommandMethod"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"MeqServer/src/MeqServer.h")
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"ImplementationType"
+				    value      	"void (MeqServer::* )(DataRecord::Ref &out,DataRecord::Ref::Xfer &in)"))
+			    quid       	"3F61920F0158"
+			    stereotype 	"typedef"
+			    exportControl 	"Private"
+			    module     	"Component View::AppAgent"
+			    quidu      	"3DF9FDED0011")
+			(object Class "CommandMap"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"MeqServer/src/MeqServer.h")
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"ImplementationType"
+				    value      	"std::map<HIID,PtrCommandMethod>"))
+			    quid       	"3F61920F016E"
+			    stereotype 	"typedef"
+			    exportControl 	"Private"
+			    module     	"Component View::AppAgent"
+			    quidu      	"3DF9FDED0011"))))
 	    logical_presentations 	(list unit_reference_list)))
     logical_presentations 	(list unit_reference_list
 	(object ClassDiagram "Main"
@@ -18532,7 +18329,7 @@
 	    origin_x   	0
 	    origin_y   	125
 	    items      	(list diagram_item_list
-		(object ClassView "Class" "Logical View::AppAgents::VisAgent::FileInputAgent" @504
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::FileInputAgent" @508
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18549,7 +18346,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@504
+			Parent_View 	@508
 			location   	(772, 1261)
 			fill_color 	13434879
 			nlines     	1
@@ -18564,7 +18361,7 @@
 		    height     	126
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::MSVisAgent::MSInputSink" @505
+		(object ClassView "Class" "Logical View::AppAgents::MSVisAgent::MSInputSink" @509
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18581,7 +18378,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@505
+			Parent_View 	@509
 			location   	(713, 1594)
 			fill_color 	13434879
 			nlines     	1
@@ -18596,7 +18393,7 @@
 		    height     	132
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::Solver::SolverControl::BatchAgent" @506
+		(object ClassView "Class" "Logical View::AppAgents::Solver::SolverControl::BatchAgent" @510
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18613,7 +18410,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@506
+			Parent_View 	@510
 			location   	(2056, 1370)
 			fill_color 	13434879
 			nlines     	1
@@ -18628,7 +18425,7 @@
 		    height     	132
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::VisAgent::FileOutputAgent" @507
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::FileOutputAgent" @511
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18645,7 +18442,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@507
+			Parent_View 	@511
 			location   	(1339, 1278)
 			fill_color 	13434879
 			nlines     	1
@@ -18660,7 +18457,7 @@
 		    height     	124
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::MSVisAgent::MSOutputSink" @508
+		(object ClassView "Class" "Logical View::AppAgents::MSVisAgent::MSOutputSink" @512
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18677,7 +18474,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@508
+			Parent_View 	@512
 			location   	(1337, 1569)
 			fill_color 	13434879
 			nlines     	1
@@ -18692,7 +18489,7 @@
 		    height     	182
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::AppAgent Base::AppAgent" @509
+		(object ClassView "Class" "Logical View::AppAgents::AppAgent Base::AppAgent" @513
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18709,7 +18506,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@509
+			Parent_View 	@513
 			location   	(735, 201)
 			anchor_loc 	1
 			nlines     	2
@@ -18724,7 +18521,7 @@
 		    width      	52
 		    height     	52
 		    annotation 	8)
-		(object ClassView "Class" "Logical View::AppAgents::OctoAgent::EventMultiplexer" @510
+		(object ClassView "Class" "Logical View::AppAgents::OctoAgent::EventMultiplexer" @514
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18741,7 +18538,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@510
+			Parent_View 	@514
 			location   	(80, 1375)
 			nlines     	1
 			max_width  	384
@@ -18754,7 +18551,7 @@
 		    height     	122
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::OctoAgent::EventSink" @511
+		(object ClassView "Class" "Logical View::AppAgents::OctoAgent::EventSink" @515
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18771,7 +18568,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@511
+			Parent_View 	@515
 			location   	(38, 799)
 			fill_color 	13434879
 			nlines     	1
@@ -18786,7 +18583,7 @@
 		    height     	122
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::Solver::SolverControl::SolverControlAgent" @512
+		(object ClassView "Class" "Logical View::AppAgents::Solver::SolverControl::SolverControlAgent" @516
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18803,7 +18600,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@512
+			Parent_View 	@516
 			location   	(2079, 1018)
 			fill_color 	13434879
 			nlines     	1
@@ -18818,7 +18615,7 @@
 		    height     	132
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::AppAgent Base::AppControlAgent" @513
+		(object ClassView "Class" "Logical View::AppAgents::AppAgent Base::AppControlAgent" @517
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18835,7 +18632,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@513
+			Parent_View 	@517
 			location   	(2035, 762)
 			fill_color 	13434879
 			nlines     	1
@@ -18850,7 +18647,7 @@
 		    height     	132
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::VisAgent::OutputAgent" @514
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::OutputAgent" @518
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18867,7 +18664,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@514
+			Parent_View 	@518
 			location   	(1366, 751)
 			fill_color 	16777215
 			nlines     	1
@@ -18882,7 +18679,7 @@
 		    height     	122
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::VisAgent::InputAgent" @515
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::InputAgent" @519
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18899,7 +18696,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@515
+			Parent_View 	@519
 			location   	(822, 751)
 			fill_color 	16777215
 			nlines     	1
@@ -18914,7 +18711,7 @@
 		    height     	122
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::AppAgent Base::AppEventAgentBase" @516
+		(object ClassView "Class" "Logical View::AppAgents::AppAgent Base::AppEventAgentBase" @520
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18931,7 +18728,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@516
+			Parent_View 	@520
 			location   	(1042, 490)
 			fill_color 	13434879
 			nlines     	1
@@ -18946,7 +18743,7 @@
 		    height     	132
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object ClassView "Class" "Logical View::AppAgents::AppAgent Base::AppEventSink" @517
+		(object ClassView "Class" "Logical View::AppAgents::AppAgent Base::AppEventSink" @521
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -18963,7 +18760,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@517
+			Parent_View 	@521
 			location   	(83, 474)
 			fill_color 	13434879
 			nlines     	1
@@ -18978,14 +18775,14 @@
 		    height     	132
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object AssociationViewNew "$UNNAMED$2" @518
+		(object AssociationViewNew "$UNNAMED$2" @522
 		    location   	(815, 536)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E424AAB03BA"
 		    roleview_list 	(list RoleViews
-			(object RoleView "$UNNAMED$3" @519
-			    Parent_View 	@518
+			(object RoleView "$UNNAMED$3" @523
+			    Parent_View 	@522
 			    location   	(-657, -216)
 			    font       	(object Font
 				size       	10
@@ -18996,8 +18793,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @520
-				Parent_View 	@519
+			    label      	(object SegLabel @524
+				Parent_View 	@523
 				location   	(989, 495)
 				font       	(object Font
 				    size       	10
@@ -19021,13 +18818,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E424AAC018F"
-			    client     	@518
-			    supplier   	@516
+			    client     	@522
+			    supplier   	@520
 			    line_style 	3
 			    origin_attachment 	(815, 536)
 			    terminal_attachment 	(1033, 536))
-			(object RoleView "sink_:AppEventSink::Ref" @521
-			    Parent_View 	@518
+			(object RoleView "sink_:AppEventSink::Ref" @525
+			    Parent_View 	@522
 			    location   	(-657, -216)
 			    font       	(object Font
 				size       	10
@@ -19038,8 +18835,8 @@
 				strike     	FALSE
 				color      	0
 				default_color 	TRUE)
-			    label      	(object SegLabel @522
-				Parent_View 	@521
+			    label      	(object SegLabel @526
+				Parent_View 	@525
 				location   	(677, 495)
 				font       	(object Font
 				    size       	10
@@ -19062,13 +18859,13 @@
 			    stereotype 	TRUE
 			    line_color 	3342489
 			    quidu      	"3E424AAC0172"
-			    client     	@518
-			    supplier   	@517
+			    client     	@522
+			    supplier   	@521
 			    line_style 	3
 			    origin_attachment 	(815, 536)
 			    terminal_attachment 	(598, 536)
-			    label      	(object SegLabel @523
-				Parent_View 	@521
+			    label      	(object SegLabel @527
+				Parent_View 	@525
 				location   	(645, 572)
 				font       	(object Font
 				    size       	10
@@ -19088,82 +18885,82 @@
 				pctDist    	0.788679
 				height     	36
 				orientation 	0))))
-		(object InheritTreeView "" @524
+		(object InheritTreeView "" @528
 		    location   	(736, 402)
 		    line_color 	3342489
 		    fill_color 	13434879
-		    supplier   	@509
+		    supplier   	@513
 		    vertices   	(list Points
 			(736, 402)
 			(736, 280)))
-		(object InheritView "" @525
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3E41481B03D8"
-		    client     	@516
-		    supplier   	@509
-		    line_style 	3
-		    origin_attachment 	(1164, 478)
-		    terminal_attachment 	(1164, 402)
-		    drawSupplier 	@524)
-		(object InheritView "" @526
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3E40ED720340"
-		    client     	@517
-		    supplier   	@509
-		    line_style 	3
-		    origin_attachment 	(324, 462)
-		    terminal_attachment 	(324, 402)
-		    drawSupplier 	@524)
-		(object InheritTreeView "" @527
-		    location   	(1296, 700)
-		    line_color 	3342489
-		    fill_color 	13434879
-		    supplier   	@516
-		    vertices   	(list Points
-			(1296, 700)
-			(1296, 610)))
-		(object InheritView "" @528
-		    stereotype 	TRUE
-		    line_color 	3342489
-		    quidu      	"3E41480F0168"
-		    client     	@514
-		    supplier   	@516
-		    line_style 	3
-		    origin_attachment 	(1511, 739)
-		    terminal_attachment 	(1511, 700)
-		    drawSupplier 	@527)
 		(object InheritView "" @529
 		    stereotype 	TRUE
 		    line_color 	3342489
-		    quidu      	"3E41480703D1"
-		    client     	@515
-		    supplier   	@516
+		    quidu      	"3E41481B03D8"
+		    client     	@520
+		    supplier   	@513
 		    line_style 	3
-		    origin_attachment 	(875, 739)
-		    terminal_attachment 	(875, 700)
-		    drawSupplier 	@527)
+		    origin_attachment 	(1164, 478)
+		    terminal_attachment 	(1164, 402)
+		    drawSupplier 	@528)
 		(object InheritView "" @530
 		    stereotype 	TRUE
 		    line_color 	3342489
+		    quidu      	"3E40ED720340"
+		    client     	@521
+		    supplier   	@513
+		    line_style 	3
+		    origin_attachment 	(324, 462)
+		    terminal_attachment 	(324, 402)
+		    drawSupplier 	@528)
+		(object InheritTreeView "" @531
+		    location   	(1296, 700)
+		    line_color 	3342489
+		    fill_color 	13434879
+		    supplier   	@520
+		    vertices   	(list Points
+			(1296, 700)
+			(1296, 610)))
+		(object InheritView "" @532
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E41480F0168"
+		    client     	@518
+		    supplier   	@520
+		    line_style 	3
+		    origin_attachment 	(1511, 739)
+		    terminal_attachment 	(1511, 700)
+		    drawSupplier 	@531)
+		(object InheritView "" @533
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E41480703D1"
+		    client     	@519
+		    supplier   	@520
+		    line_style 	3
+		    origin_attachment 	(875, 739)
+		    terminal_attachment 	(875, 700)
+		    drawSupplier 	@531)
+		(object InheritView "" @534
+		    stereotype 	TRUE
+		    line_color 	3342489
 		    quidu      	"3E414CEA0007"
-		    client     	@513
-		    supplier   	@516
+		    client     	@517
+		    supplier   	@520
 		    line_style 	3
 		    origin_attachment 	(2285, 750)
 		    terminal_attachment 	(2285, 700)
-		    drawSupplier 	@527)
-		(object InheritView "" @531
+		    drawSupplier 	@531)
+		(object InheritView "" @535
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DFF36340263"
-		    client     	@512
-		    supplier   	@513
+		    client     	@516
+		    supplier   	@517
 		    line_style 	3
 		    origin_attachment 	(2277, 1006)
 		    terminal_attachment 	(2277, 882))
-		(object ClassView "Class" "Logical View::AppAgents::VisAgent::FileAgentBase" @532
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::FileAgentBase" @536
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -19180,7 +18977,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@532
+			Parent_View 	@536
 			location   	(1043, 927)
 			fill_color 	13434879
 			nlines     	1
@@ -19195,34 +18992,34 @@
 		    height     	122
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object InheritTreeView "" @533
+		(object InheritTreeView "" @537
 		    location   	(1216, 1129)
 		    line_color 	3342489
 		    fill_color 	13434879
-		    supplier   	@532
+		    supplier   	@536
 		    vertices   	(list Points
 			(1216, 1129)
 			(1216, 1037)))
-		(object InheritView "" @534
+		(object InheritView "" @538
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E02FF58006F"
-		    client     	@507
-		    supplier   	@514
+		    client     	@511
+		    supplier   	@518
 		    line_style 	3
 		    origin_attachment 	(1520, 1266)
 		    terminal_attachment 	(1520, 861))
-		(object InheritView "" @535
+		(object InheritView "" @539
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E282C2B0293"
-		    client     	@507
-		    supplier   	@532
+		    client     	@511
+		    supplier   	@536
 		    line_style 	3
 		    origin_attachment 	(1438, 1266)
 		    terminal_attachment 	(1438, 1129)
-		    drawSupplier 	@533)
-		(object CategoryView "Logical View::OCTOPUSSY" @536
+		    drawSupplier 	@537)
+		(object CategoryView "Logical View::OCTOPUSSY" @540
 		    location   	(272, 2048)
 		    font       	(object Font
 			size       	10
@@ -19234,7 +19031,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@536
+			Parent_View 	@540
 			location   	(94, 2011)
 			fill_color 	13434879
 			nlines     	2
@@ -19242,7 +19039,7 @@
 			justify    	0
 			label      	"OCTOPUSSY")
 		    stereotype 	(object ItemLabel
-			Parent_View 	@536
+			Parent_View 	@540
 			location   	(94, 1961)
 			fill_color 	13434879
 			anchor     	10
@@ -19256,16 +19053,16 @@
 		    quidu      	"3BCEC935032A"
 		    width      	368
 		    height     	186)
-		(object DependencyView "" @537
+		(object DependencyView "" @541
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E424CB20038"
-		    client     	@510
-		    supplier   	@536
+		    client     	@514
+		    supplier   	@540
 		    line_style 	3
 		    origin_attachment 	(205, 1485)
 		    terminal_attachment 	(205, 1900))
-		(object CategoryView "Logical View::External packages::AIPS++::MS" @538
+		(object CategoryView "Logical View::External packages::AIPS++::MS" @542
 		    location   	(1264, 2080)
 		    font       	(object Font
 			size       	10
@@ -19277,7 +19074,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@538
+			Parent_View 	@542
 			location   	(1120, 1996)
 			fill_color 	13434879
 			nlines     	2
@@ -19290,30 +19087,30 @@
 		    quidu      	"3E424D6803B3"
 		    width      	300
 		    height     	180)
-		(object DependencyView "" @539
+		(object DependencyView "" @543
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E424D8B0251"
-		    client     	@505
-		    supplier   	@538
+		    client     	@509
+		    supplier   	@542
 		    line_style 	0)
-		(object DependencyView "" @540
+		(object DependencyView "" @544
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E424D8E00FC"
-		    client     	@508
-		    supplier   	@538
+		    client     	@512
+		    supplier   	@542
 		    line_style 	0)
-		(object InheritView "" @541
+		(object InheritView "" @545
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DFF2C2103E4"
-		    client     	@506
-		    supplier   	@512
+		    client     	@510
+		    supplier   	@516
 		    line_style 	3
 		    origin_attachment 	(2250, 1358)
 		    terminal_attachment 	(2250, 1138))
-		(object ClassView "Class" "Logical View::AppAgents::AppAgent Base::BOIOSink" @542
+		(object ClassView "Class" "Logical View::AppAgents::AppAgent Base::BOIOSink" @546
 		    ShowCompartmentStereotypes 	TRUE
 		    SuppressAttribute 	TRUE
 		    SuppressOperation 	TRUE
@@ -19330,7 +19127,7 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@542
+			Parent_View 	@546
 			location   	(243, 794)
 			fill_color 	13434879
 			nlines     	1
@@ -19345,40 +19142,40 @@
 		    height     	132
 		    annotation 	8
 		    autoResize 	TRUE)
-		(object InheritTreeView "" @543
+		(object InheritTreeView "" @547
 		    location   	(336, 707)
 		    line_color 	3342489
 		    fill_color 	13434879
-		    supplier   	@517
+		    supplier   	@521
 		    vertices   	(list Points
 			(336, 707)
 			(336, 594)))
-		(object InheritView "" @544
+		(object InheritView "" @548
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E428A6402AB"
-		    client     	@511
-		    supplier   	@517
+		    client     	@515
+		    supplier   	@521
 		    line_style 	3
 		    origin_attachment 	(145, 787)
 		    terminal_attachment 	(145, 707)
-		    drawSupplier 	@543)
-		(object InheritView "" @545
+		    drawSupplier 	@547)
+		(object InheritView "" @549
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3DF9FECD02BD"
-		    client     	@504
-		    supplier   	@515
+		    client     	@508
+		    supplier   	@519
 		    line_style 	3
 		    origin_attachment 	(919, 1249)
 		    terminal_attachment 	(919, 861))
-		(object InheritView "" @546
+		(object InheritView "" @550
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E282C2002FF"
-		    client     	@504
-		    supplier   	@532
+		    client     	@508
+		    supplier   	@536
 		    line_style 	3
 		    origin_attachment 	(997, 1249)
 		    terminal_attachment 	(997, 1129)
-		    drawSupplier 	@533)))))
+		    drawSupplier 	@537)))))

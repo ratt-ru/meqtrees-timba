@@ -1756,11 +1756,6 @@
 		    name       	"BodySourceFile"
 		    value      	"VisTile.cc"))
 	    quid       	"3DB964F20079"
-	    superclasses 	(list inheritance_relationship_list
-		(object Inheritance_Relationship
-		    quid       	"3DB964F40173"
-		    supplier   	"Logical View::DOMIN0::HIID"
-		    quidu      	"3BE96FE601C5"))
 	    operations 	(list Operations
 		(object Operation "VDSID"
 		    quid       	"3DB964F40176"
@@ -4859,13 +4854,16 @@
 		    parameters 	(list Parameters
 			(object Parameter "ant1"
 			    quid       	"3DF9FDD40194"
-			    type       	"int")
+			    type       	"int"
+			    initv      	"-1")
 			(object Parameter "ant2"
 			    quid       	"3DF9FDD401EC"
-			    type       	"int")
+			    type       	"int"
+			    initv      	"-1")
 			(object Parameter "vdsid"
 			    quid       	"3DF9FDD40243"
-			    type       	"const VDSID &"))
+			    type       	"const VDSID &"
+			    initv      	"HIID()"))
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
@@ -5285,6 +5283,23 @@
 			    result     	"LoVec_int"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
+			    uid        	0)
+			(object Operation "f_residuals"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"Inline"
+				    value      	TRUE))
+			    quid       	"3F5C8E3F0009"
+			    stereotype 	"const"
+			    parameters 	(list Parameters
+				(object Parameter "icorr"
+				    quid       	"3F5C8E3F005E"
+				    type       	"int"
+				    initv      	"0"))
+			    result     	"LoVec_fcomplex"
+			    concurrency 	"Sequential"
+			    opExportControl 	"Public"
 			    uid        	0))
 		    class_attributes 	(list class_attribute_list
 			(object ClassAttribute "tileref"
@@ -5512,22 +5527,6 @@
 		    quidu      	"3DB964F200B3"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$2"
-	    quid       	"3DF9FDC90313"
-	    roles      	(list role_list
-		(object Role "id_"
-		    quid       	"3DF9FDC90314"
-		    label      	"id_"
-		    supplier   	"Logical View::DOMIN0::HIID"
-		    quidu      	"3BE96FE601C5"
-		    Containment 	"By Value"
-		    exportControl 	"Private"
-		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$3"
-		    quid       	"3DF9FDC90317"
-		    supplier   	"Logical View::VisCube::ColumnarTableTile"
-		    quidu      	"3DB964F20016"
-		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$4"
 	    quid       	"3DF9FDC90363"
 	    roles      	(list role_list
 		(object Role "mutex_"
@@ -5538,12 +5537,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$5"
+		(object Role "$UNNAMED$3"
 		    quid       	"3DF9FDC90366"
 		    supplier   	"Logical View::VisCube::ColumnarTableTile"
 		    quidu      	"3DB964F20016"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$6"
+	(object Association "$UNNAMED$4"
 	    quid       	"3DF9FDCD02A1"
 	    roles      	(list role_list
 		(object Role "cubelock"
@@ -5558,12 +5557,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$7"
+		(object Role "$UNNAMED$5"
 		    quid       	"3DF9FDCD02A4"
 		    supplier   	"Logical View::VisCube::VisCube::ConstIterator"
 		    quidu      	"3DB964F200C2"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$8"
+	(object Association "$UNNAMED$6"
 	    quid       	"3DF9FDCF02FB"
 	    roles      	(list role_list
 		(object Role "mutex_"
@@ -5578,12 +5577,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$9"
+		(object Role "$UNNAMED$7"
 		    quid       	"3DF9FDCF02FE"
 		    supplier   	"Logical View::VisCube::VisCube"
 		    quidu      	"3DB964F200B3"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$10"
+	(object Association "$UNNAMED$8"
 	    quid       	"3DF9FDD1036D"
 	    roles      	(list role_list
 		(object Role "mutex_"
@@ -5594,12 +5593,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$11"
+		(object Role "$UNNAMED$9"
 		    quid       	"3DF9FDD10371"
 		    supplier   	"Logical View::VisCube::VisCubeSet"
 		    quidu      	"3DB964F2008B"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$12"
+	(object Association "$UNNAMED$10"
 	    quid       	"3DF9FDD1038B"
 	    roles      	(list role_list
 		(object Role "hdrblock"
@@ -5610,12 +5609,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$13"
+		(object Role "$UNNAMED$11"
 		    quid       	"3DF9FDD10398"
 		    supplier   	"Logical View::VisCube::VisCubeSet"
 		    quidu      	"3DB964F2008B"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$14"
+	(object Association "$UNNAMED$12"
 	    quid       	"3DF9FDD2023E"
 	    roles      	(list role_list
 		(object Role "tilelock"
@@ -5630,12 +5629,12 @@
 		    Containment 	"By Value"
 		    exportControl 	"Protected"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$15"
+		(object Role "$UNNAMED$13"
 		    quid       	"3DF9FDD20242"
 		    supplier   	"Logical View::VisCube::VisTile::ConstIterator"
 		    quidu      	"3DB964F200F9"
 		    is_aggregate 	TRUE)))
-	(object Association "$UNNAMED$16"
+	(object Association "$UNNAMED$14"
 	    quid       	"3DF9FDD40015"
 	    roles      	(list role_list
 		(object Role "mutex_"
@@ -5646,7 +5645,7 @@
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
-		(object Role "$UNNAMED$17"
+		(object Role "$UNNAMED$15"
 		    quid       	"3DF9FDD40018"
 		    supplier   	"Logical View::VisCube::VisTile"
 		    quidu      	"3DB964F200EE"

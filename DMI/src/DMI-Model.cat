@@ -20223,7 +20223,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB842A01C5"
 			    width      	446
-			    height     	5911
+			    height     	5941
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -20260,7 +20260,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB843101CF"
 			    width      	446
-			    height     	5911
+			    height     	5941
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -20318,7 +20318,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB844F039F"
 			    width      	456
-			    height     	5910
+			    height     	5940
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20362,7 +20362,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8A9F00CD"
 			    width      	525
-			    height     	4040
+			    height     	4070
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20412,7 +20412,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8456031D"
 			    width      	300
-			    height     	5775
+			    height     	5805
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20511,7 +20511,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB849102B3"
 			    width      	364
-			    height     	5910
+			    height     	5940
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20555,7 +20555,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84A50013"
 			    width      	406
-			    height     	5910
+			    height     	5940
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20592,7 +20592,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8674014F"
 			    width      	300
-			    height     	5910
+			    height     	5940
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20629,7 +20629,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84C802F8"
 			    width      	508
-			    height     	5910
+			    height     	5940
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20673,7 +20673,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84E50123"
 			    width      	536
-			    height     	5910
+			    height     	5940
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20710,7 +20710,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84EE0112"
 			    width      	396
-			    height     	5910
+			    height     	5940
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20747,7 +20747,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87E7030B"
 			    width      	480
-			    height     	4865
+			    height     	4895
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20797,7 +20797,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87DE0222"
 			    width      	330
-			    height     	4595
+			    height     	4625
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20847,7 +20847,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8ADA02A9"
 			    width      	330
-			    height     	3800
+			    height     	3830
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21994,12 +21994,12 @@
 			    ordinal    	27)
 			(object Destruction_Marker @297
 			    Parent_View 	@237
-			    location   	(1320, 6030)
+			    location   	(1320, 6060)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @298
 			    Parent_View 	@200
-			    location   	(990, 6090)
+			    location   	(990, 6120)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @299
@@ -22044,12 +22044,12 @@
 			    ordinal    	28)
 			(object Destruction_Marker @301
 			    Parent_View 	@229
-			    location   	(4440, 6135)
+			    location   	(4440, 6165)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @302
 			    Parent_View 	@233
-			    location   	(4725, 6075)
+			    location   	(4725, 6105)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @303
@@ -22127,7 +22127,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B150030"
 			    width      	446
-			    height     	6721
+			    height     	6751
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -22192,7 +22192,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B210330"
 			    width      	446
-			    height     	6721
+			    height     	6751
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -22236,7 +22236,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4D3A0258"
 			    width      	300
-			    height     	6045
+			    height     	6075
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22293,7 +22293,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4F6A02C1"
 			    width      	300
-			    height     	5475
+			    height     	5505
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22350,7 +22350,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CB80070"
 			    width      	300
-			    height     	6420
+			    height     	6450
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22400,7 +22400,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CF102DF"
 			    width      	300
-			    height     	6330
+			    height     	6360
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22450,7 +22450,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B51032F"
 			    width      	398
-			    height     	6470
+			    height     	6500
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22528,7 +22528,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5403038C"
 			    width      	300
-			    height     	4455
+			    height     	4485
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22585,7 +22585,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5582004D"
 			    width      	350
-			    height     	4440
+			    height     	4470
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22635,7 +22635,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA52C9029A"
 			    width      	582
-			    height     	4890
+			    height     	4920
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22706,7 +22706,7 @@
 			    fill_color 	8454016
 			    quidu      	"3BFA527601FA"
 			    width      	528
-			    height     	6720
+			    height     	6750
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22757,7 +22757,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA55CB01C5"
 			    width      	300
-			    height     	4020
+			    height     	4050
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -23944,7 +23944,7 @@
 			    ordinal    	28)
 			(object Destruction_Marker @422
 			    Parent_View 	@332
-			    location   	(1890, 6945)
+			    location   	(1890, 6975)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object NoteView @423
@@ -24175,7 +24175,7 @@
 				location   	(314, 278)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	1007
+				max_width  	1016
 				justify    	0
 				label      	"Data Transport")
 			    icon       	"control"
@@ -24205,7 +24205,7 @@
 				location   	(374, 1328)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	1011
+				max_width  	1019
 				justify    	0
 				label      	"P/S/M Layer")
 			    icon       	"control"
@@ -25727,23 +25727,6 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3C0CDEE200FE"
-		    compartment 	(object Compartment
-			Parent_View 	@518
-			location   	(1111, 77)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	FALSE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	16777215
-			anchor     	2
-			nlines     	49
-			max_width  	1989)
 		    width      	2340
 		    height     	2788
 		    annotation 	8
