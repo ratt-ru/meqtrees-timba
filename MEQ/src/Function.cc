@@ -227,7 +227,7 @@ void Function::evaluateVells (Vells&, const Request&, const vector<Vells*>&)
 	     "derived from MeqFunction");
 }
 
-vector<int> Function::findSpids (const vector<Result*> &results) const
+vector<int> Function::findSpids (const vector<Result*> &results)
 {
   // Determine the maximum number of spids.
   int nrspid = 0;

@@ -81,8 +81,8 @@ public:
   virtual Vells evaluate (const Request &req,const LoShape &,const vector<Vells*>& values)
   { Vells res; evaluateVells(res,req,values); return res; }
 
-  // Find all spids for this node by merging the children's spids.
-  vector<int> findSpids (const vector<Result*>&) const;
+  // Find all spids for this node by merging the spids in all results.
+  static vector<int> findSpids (const vector<Result*>&);
 
   // Returns the class TypeId
   virtual TypeId objectType() const;
