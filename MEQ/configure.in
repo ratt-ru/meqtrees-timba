@@ -53,8 +53,8 @@ dnl
 lofar_DEBUG_OPTIMIZE
 dnl lofar_CORBA
 dnl lofar_MATLAB
-lofar_AIPSPP(1)
-lofar_MPI
+dnl lofar_AIPSPP(1)
+dnl lofar_MPI
 lofar_QATOOLS
 lofar_DOCXX
 lofar_BLITZ(1)

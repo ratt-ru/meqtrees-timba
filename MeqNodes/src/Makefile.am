@@ -1,30 +1,24 @@
 SUBDIRS	= .
 
-LOCALHDRS = MeqVocabulary.h RequestId.h 
+LOCALHDRS = 
 
 LOCALSRCS = \
-  Domain.cc	Cells.cc Vells.cc VellSet.cc Result.cc \
-  ResampleMachine.cc Request.cc RequestId.cc EventGenerator.cc \
-  Node.cc Function.cc CompoundFunction.cc Forest.cc 
+    Constant.cc Parm.cc Freq.cc Time.cc Selector.cc Composer.cc Add.cc \
+    Subtract.cc Multiply.cc Divide.cc  Sin.cc Cos.cc Exp.cc Pow.cc Sqr.cc \
+    Sqrt.cc Conj.cc ToComplex.cc  UVW.cc LMN.cc StatPointSourceDFT.cc \
+    PointSourceDFT.cc  ModRes.cc Condeq.cc Solver.cc ZeroFlagger.cc \
+    MergeFlags.cc Resampler.cc ReqSeq.cc  \
+    Polc.cc ParmTable.cc 
 
 DOCHDRS		= $(LOCALHDRS) \
             $(addsuffix .h,$(basename $(LOCALSRCS))) 
-  
-lib_LTLIBRARIES 	= libmeq.la
 
-libmeq_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) \
-  Node_Riders.cc AID-Meq-Registry.cc
+lib_LTLIBRARIES 	= libmeqnodes.la
+
+libmeqnodes_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) \
+  AID-MeqNodes-Registry.cc
 
 check_PROGRAMS = 
-
-# uvwparm
-
-# uvwparm_SOURCES	 	= uvwparm.cc 
-# uvwparm_LDADD		= libmeq.la 
-# uvwparm_DEPENDENCIES	= libmeq.la $(LOFAR_DEPEND)
-
-# --- begin generate defrec maps (copy this into local Makefiles)
-#     (shouldn't require any changes)
 
 # this defines the name of the local defrec script
 DEFREC_MAP = $(srcdir)/defrecs_$(PACKAGE).g
@@ -37,7 +31,7 @@ $(DEFREC_MAP): $(DOCHDRS) $(MAKEDEFREC)
   
 # place scripts into libexec/glish/meq
 glishdir = $(libexecdir)/glish/meq
-dist_glish_SCRIPTS = $(DEFREC_MAP) meqtypes.g
+dist_glish_SCRIPTS = $(DEFREC_MAP) meptable.g
 
 defrecs: $(DEFREC_MAP)
 

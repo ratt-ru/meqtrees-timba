@@ -37,7 +37,7 @@
 #pragma aid Cell Results Fail Origin Line Message Contagious  Normalized
 #pragma aid Solvable Config Groups All By List Polc Polcs Scale Matrix
 #pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear Invert
-#pragma aid Metrics Rank Fit Errors CoVar Flag Mu StdDev Chi Iter Last Update
+#pragma aid Metrics Rank Fit Errors CoVar Flag Bit Mu StdDev Chi Iter Last Update
 
 
 namespace Meq
