@@ -257,3 +257,29 @@ AC_DEFUN([lofar_CHECK_LONG_LONG],[
   fi
   echo "LONG_LONG" >> pkgext;
 ])
+
+#
+# lofar_CHECK_SSTREAM
+#
+# If the C++ compiler supports the stringstream classes, define `HAVE_SSTREAM'.
+#
+AC_DEFUN([lofar_CHECK_SSTREAM],[
+  AC_PREREQ(2.13)
+  AC_REQUIRE([AC_PROG_CXX])
+  AC_MSG_CHECKING(whether ${CXX} supports stringstream)
+  AC_CACHE_VAL(lofar_cv_have_sstream, [
+    AC_LANG_PUSH(C++)
+    AC_TRY_COMPILE(
+      [#include <sstream>],
+      [std::istringstream i;
+       std::ostringstream o;],
+      lofar_cv_have_sstream=yes,
+      lofar_cv_have_sstream=no)
+    AC_LANG_POP(C++)
+  ])
+  AC_MSG_RESULT($lofar_cv_have_sstream)
+  if test "$lofar_cv_have_sstream" = yes; then
+    AC_DEFINE(HAVE_SSTREAM,1,[Define if `sstream' is supported])
+  fi
+  echo "SSTREAM" >> pkgext;
+])
