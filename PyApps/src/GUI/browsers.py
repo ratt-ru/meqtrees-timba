@@ -87,7 +87,7 @@ class HierBrowser (object):
   
   class Item (QListViewItem):
     def __init__(self,parent,key,value,udi_key=None,udi=None,strfunc=None,
-                 prec=(None,'g'),name=None,desc=''):
+                 prec=(None,'g'),name=None,caption=None,desc=''):
       (key,value) = (str(key),str(value));
       # insert item at end of parent's content list (if any)
       parent_content = getattr(parent,'_content_list',None);
@@ -111,7 +111,7 @@ class HierBrowser (object):
       else:
         # else generate udi key if none is specified
         if udi_key is id:
-          udi_key = str(id(self));
+          udi_key = "%-X" % (id(self),);
         elif udi_key is None:
           udi_key = key;
         self._udi_key = udi_key;
@@ -127,6 +127,7 @@ class HierBrowser (object):
       # set name and/or description
       self._name     = name or self._udi or str(key);
       self._desc     = desc;
+      self._caption  = caption or self._udi or str(key);
       # other state
       self._curries  = [];
       
@@ -248,7 +249,8 @@ class HierBrowser (object):
         # a refresh function may be defined in the list view
         refresh = getattr(self.listView(),'_refresh_func',None);
         # make item and return
-        return Grid.DataItem(self._udi,name,desc,
+        return Grid.DataItem(self._udi,
+                  name=self._name,caption=self._caption,desc=self._desc,
                   data=self._content,viewer=viewer,viewopts=vo,
                   refresh=refresh);
       return None;
@@ -344,7 +346,7 @@ class HierBrowser (object):
         self.listView().emit(PYSIGNAL("displayDataItem()"),(dataitem,kwargs));
 
   # init for HierBrowser
-  def __init__(self,parent,name,name1='',udi_root=None,prec=(None,'g')):
+  def __init__(self,parent,name,name1='',udi_root=None,caption=None,prec=(None,'g')):
     self._lv = widgets.DataDraggableListView(parent);
     self._lv.addColumn(name1);
     self._lv.addColumn('');

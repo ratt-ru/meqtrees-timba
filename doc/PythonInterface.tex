@@ -553,10 +553,27 @@ Grid.Services.registerViewer(meqds.NodeClass(),Executor,priority=25);
   class that the standard RecordBrowser viewer uses:
     
 \begin{verbatim}  
-  self.reqView = browsers.HierBrowser(self.wtop(),"","");
-  ...
-  self.reqView.set_content(self._request);
-  self.reqView.set_open_items(self.defaultOpenItems);
+    udi_root = dataitem.udi;
+    if not udi_root.endswith('/request'): # not a direct request object
+      udi_root += '/request';
+    self.reqView = browsers.HierBrowser(self.wtop(),"","",udi_root=udi_root);
+    QObject.connect(self.reqView.wtop(),PYSIGNAL("displayDataItem()"),
+                    self.wtop(),PYSIGNAL("displayDataItem()"));
+    self.reqView.set_refresh_func(dataitem.refresh_func);
+\end{verbatim}  
+
+  The extra incantations are necessary to get HierBrowser to play nicely with
+  the grid displays (i.e., to display ``looking glass'' icons next to
+  sub-fields, and to launch new viewers from them). We could also do without
+  them and simply create a HierBrowser object as is, but then display of
+  sub-items would not be available.
+
+  The record browser is then populated with content later on in
+  \qq{set\_data()}:
+  
+\begin{verbatim}  
+    self.reqView.set_content(self._request);
+    self.reqView.set_open_items(self.defaultOpenItems);
 \end{verbatim}  
 
 \subsection{Talking to the node}

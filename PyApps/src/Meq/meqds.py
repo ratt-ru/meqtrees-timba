@@ -262,8 +262,8 @@ class NodeList (object):
     return True;
   is_valid_meqnodelist = staticmethod(is_valid_meqnodelist);
 
-# creates a UDI from a node record or node index or node name
 def node_udi (node,suffix=None):
+  """creates a UDI from a node record or node index or node name""";
   try: (name,index) = (node.name,node.nodeindex);
   except AttributeError,KeyError: 
     node = nodelist[node];
@@ -273,12 +273,23 @@ def node_udi (node,suffix=None):
     udi += "/" + suffix;
   return udi;
 
-_patt_Udi_NodeState = re.compile("^/node/([^#/]*)(#[0-9]+)?(/.*)?$");
+def snapshot_udi (node,suffix=None):
+  """creates a snapshot UDI from a node state record.""";
+  try: (name,index) = (node.name,node.nodeindex);
+  except AttributeError,KeyError: 
+    node = nodelist[node];
+    (name,index) = (node.name,node.nodeindex);
+  udi = "/snapshot/%X/%s#%d"%(id(node),name,index);
+  if suffix:
+    udi += "/" + suffix;
+  return udi;
+
+_patt_Udi_NodeState = re.compile("^/(node|snapshot/[^/]+)/([^#/]*)(#[0-9]+)?(/.*)?$");
 def parse_node_udi (udi):
   match = _patt_Udi_NodeState.match(udi);
   if match is None:
     return (None,None);
-  (name,ni,rest) = match.groups();
+  (prefix,name,ni,rest) = match.groups();
   if ni is not None:
     ni = int(ni[1:]);
   return (name,ni);

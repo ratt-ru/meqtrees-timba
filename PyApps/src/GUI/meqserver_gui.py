@@ -170,13 +170,13 @@ class meqserver_gui (app_proxy_gui):
     self.connect(self.treebrowser.wtop(),PYSIGNAL("view_node()"),self._view_node);
     
     # add Result Log panel
-    self.resultlog = Logger(self,"node result log",limit=1000,
-          udi_root='noderes');
+    self.resultlog = Logger(self,"node snapshot log",limit=1000,
+          udi_root='snapshot');
     self.maintab.insertTab(self.resultlog.wtop(),"Results",2);
     self.resultlog.wtop()._default_iconset = QIconSet();
-    self.resultlog.wtop()._default_label   = "Results";
+    self.resultlog.wtop()._default_label   = "Snapshots";
     self.resultlog.wtop()._newres_iconset  = pixmaps.check.iconset();
-    self.resultlog.wtop()._newres_label    = "Results";
+    self.resultlog.wtop()._newres_label    = "Snapshots";
     self.resultlog.wtop()._newresults      = False;
     QWidget.connect(self.resultlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     QWidget.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
@@ -235,16 +235,19 @@ class meqserver_gui (app_proxy_gui):
     self.update_node_state(value,ev);
     if self.resultlog.enabled:
       txt = '';
-      name = ('name' in value and value.name) or '<unnamed>';
-      cls  = ('class' in value and value['class']) or '?';
-      rqid = 'request_id' in value and str(value.request_id);
+      name = getattr(value,'name','') or '<unnamed>';
+      cls  = getattr(value,'class','') or '?';
+      rqid = str(getattr(value,'request_id',None)) or None;
       txt = ''.join((name,' <',cls.lower(),'>'));
-      desc = 'result';
+      desc = 'snapshot for %s (%s)' % (name,cls);
+      caption = '<B>%s</B> s/shot' % (name,);
       if rqid:
         txt = ''.join((txt,' rqid:',rqid));
-        desc = desc + ':' + rqid;
-      self.resultlog.add(txt,content=value,category=Logger.Event, 
-        name=name,desc=desc,viewopts=_defaultResultViewopts);
+        desc = desc + '; rqid: ' + rqid;
+        caption = caption + ( ' <small>(rqid: %s)</small>' % (rqid,) );
+      udi = meqds.snapshot_udi(value);
+      self.resultlog.add(txt,content=value,category=Logger.Event,
+        udi=udi,name=name,desc=desc,caption=caption,viewopts=_defaultResultViewopts);
       wtop = self.resultlog.wtop();
       if self.maintab.currentPage() is not wtop and not wtop._newresults:
         self.maintab.changeTab(wtop,wtop._newres_iconset,wtop._newres_label);

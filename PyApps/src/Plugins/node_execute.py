@@ -50,7 +50,13 @@ class Executor (browsers.GriddedPlugin):
     self._request = None;
     self._wtop = QVBox(self.wparent());
   
-    self.reqView = browsers.HierBrowser(self.wtop(),"","");
+    udi_root = dataitem.udi;
+    if not udi_root.endswith('/request'): # not a direct request object
+      udi_root += '/request';
+    self.reqView = browsers.HierBrowser(self.wtop(),"","",udi_root=udi_root);
+    QObject.connect(self.reqView.wtop(),PYSIGNAL("displayDataItem()"),
+                    self.wtop(),PYSIGNAL("displayDataItem()"));
+    self.reqView.set_refresh_func(dataitem.refresh_func);
     
     buttonbox = QHBox(self.wtop());
     self.buttonOk = QPushButton(buttonbox,"buttonOk");

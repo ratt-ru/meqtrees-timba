@@ -181,7 +181,7 @@ class Logger(HierBrowser):
     
   def add (self,msg,label=None,content=None,
            category=Normal,force=False,
-           udi_key=None,name=None,desc=None,viewopts={}):
+           udi=None,udi_key=None,name=None,caption=None,desc=None,viewopts={}):
     """Adds item to logger. Arguments are:
       msg:     item message (for message column)
       label:   item label (for label column -- timestamp is used if this is None)
@@ -203,14 +203,15 @@ class Logger(HierBrowser):
     # if label not specified, use a timestamp 
     if label is None:
       label = time.strftime("%H:%M:%S");
-    # if udi_key is None, set to 'id'. This will tell new_item to use
-    # the item id for key, rather than the text in column 0
-    if udi_key is None:
+    # if udi_key is None, set to the id type object. This will tell the
+    # HierBrowser.Item constructor to use the item id for key, rather than 
+    # the text in column 0
+    if udi is None and udi_key is None:
       udi_key = id;
     # create listview item
-    item = self.Item(self.wlistview(),label,msg,udi_key=udi_key, \
+    item = self.Item(self.wlistview(),label,msg,udi=udi,udi_key=udi_key, \
       name=name or self._LogCatNames.get(category,self._udi_root),\
-      desc=desc or label);
+      desc=desc or label,caption=caption or name);
     item._category = category;
     # if content is specified, cache it inside the item
     if content is not None:
