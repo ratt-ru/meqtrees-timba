@@ -52,6 +52,10 @@ class GriddedPage (object):
       
     def wtop (self):
       return self._wtop;
+    def hide (self):
+      self._wtop.hide();
+    def show (self):
+      self._wtop.show();
       
     def _dorefresh (self):
       self.wtop().emit(PYSIGNAL("refresh()"),(self,));
@@ -123,7 +127,7 @@ class GriddedPage (object):
       self._rows.append(row);
       for i in range(self.max_nx):
         cell = self.Cell(row);
-        row.cells().append(cell);
+        row._cells.append(cell);
         self.wtop().connect(cell.wtop(),PYSIGNAL("clear()"),self._clear_cell);
     # prepare layout
     self.set_layout(0);
@@ -133,10 +137,13 @@ class GriddedPage (object):
     self._cur_layout_num = nlo;
     (nrow,ncol) = self._cur_layout = self._layouts[nlo];
     for row in self._rows[:nrow]:
-      map(lambda c:c.wtop().show(),row.cells()[:ncol]);
-      map(lambda c:c.wtop().hide(),row.cells()[ncol:]);
+      for cell in row.cells()[:ncol]:
+        cell.show();
+      for cell in row.cells()[ncol:]:
+        cell.hide();
+      row.show();
     for row in self._rows[nrow:]:
-      map(lambda c:c.wtop().hide(),row.cells());
+      row.hide();
     
   # returns top-level widget
   def wtop   (self):
@@ -193,8 +200,7 @@ class GriddedPage (object):
         self.set_layout(i);
         break;
     else:
-      raise RuntimeError,"failed to find a suitable layotu";
-    self._find_nextcell();
+      raise RuntimeError,"failed to find a suitable layout";
   
 class GriddedWorkspace (object):
   def __init__ (self,parent,max_nx=4,max_ny=4):
@@ -359,10 +365,11 @@ class TreeBrowser (object):
       self.nodelist = nodelist;
       
   def update_node_state(self,value):
+    ni = value.nodeindex;
     cell = self._wait_nodestate.get(value.nodeindex,None);
     if cell is not None:
       del self._wait_nodestate[value.nodeindex];
-      cell._widget.set_record(value);
+      cell._widget._rb.set_record(value);
       cell.enable();
 
   def _node_clicked (self,item):
@@ -372,6 +379,7 @@ class TreeBrowser (object):
       cell = self._gw.reserve_or_find_cell(cell_id);
       if cell.is_empty():
         rb = RecordBrowser(cell.wtop());
+        rb.wtop()._rb = rb;
         cell.set_content(rb.wtop(),item._node.name,cell_id,refresh=True,disable=True);
         cell.wtop().connect(cell.wtop(),PYSIGNAL("refresh()"),self._refresh_state_cell);
       cell._node = item._node;
@@ -417,7 +425,7 @@ class meqserver_gui (app_proxy_gui):
     self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
     # add handler for result log
     self._add_ce_handler("node.result",self.ce_NodeResult);
-    self._add_ce_handler("app.result.get.node.state",self.ce_NodeState);
+    self._add_ce_handler("app.result.node.get.state",self.ce_NodeState);
     self._add_ce_handler("app.result.get.node.list",self.ce_LoadNodeList);
     self._add_ce_handler("hello",self.ce_Hello);
     self._add_ce_handler("bye",self.ce_Bye);

@@ -22,14 +22,17 @@ class HierBrowser (object):
   MaxExpDict     = 100;
 
   def subitem (parent,*args):
-    return HierBrowser.BrowserItem(parent,parent._content_list[-1],*map(str,args));
+    if hasattr(parent,'_content_list') and parent._content_list:
+      return HierBrowser.BrowserItem(parent,parent._content_list[-1],*args);
+    else:
+      return HierBrowser.BrowserItem(parent,*args);
   subitem = staticmethod(subitem);
     
   # helper static method to expand content into BrowserItems record 
   def expand_content(item,content):
     if hasattr(item,'_content_list'):
       return;
-    item._content_list = [item];
+    item._content_list = [];
     # Setup content_iter as an iterator that returns (label,value)
     # pairs, depending on content type.
     # Apply limits here
@@ -142,7 +145,7 @@ class RecordBrowser(HierBrowser):
     self._rec = rec;
     self._lv.clear();
     # expand first level of record
-    self.expand_content(self._lv,self_rec);
+    self.expand_content(self._lv,self._rec);
     
 class Logger(HierBrowser):
   Normal = 0;
