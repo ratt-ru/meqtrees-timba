@@ -3,6 +3,7 @@
 
 # CLEANFILES cannot delete directories, therefore use target clean-generic.
 clean-generic:
+	-rm -rf ti_files
 	-rm -f tca.*
 	-rm -f .inslog*
 	-rm -f *.log
@@ -58,13 +59,15 @@ doc:
 	  echo "HTML_OUTPUT = $(DOCDIR)" >> doxygen.cfg ; \
 	  $(DOXYGEN) doxygen.cfg ; \
 	else \
-	  $(DOCPP) $(DOCPPFLAGS) --dir $(DOCDIR) `find $(srcdir) -name "*.h" -print` ; \
+	  if [ "$(lofar_doctool)" = "docpp" ] ; then \
+	    $(DOCPP) $(DOCPPFLAGS) --dir $(DOCDIR) `find $(srcdir) -name "*.h" -print` ; \
+	  else \
+	    echo "Error: No documentation tool configured" ; \
+	  fi \
 	fi
 
 docthis:
-	echo $(lofar_doctool) "$(DOCDIR)"
 	@if [ "$(lofar_doctool)" = "doxygen" ] ; then \
-	echo $(lofar_doctool) "$(DOCDIR)" ; \
 	  cp $(top_builddir)/.doxygenrc doxygen.cfg ; \
 	  projnm=`(cd $(srcdir) && pwd) | sed -e "s%.*/LOFAR/%%"` ; \
 	  echo "PROJECT_NAME = $$projnm" >> doxygen.cfg ; \
@@ -73,5 +76,9 @@ docthis:
 	  echo "HTML_OUTPUT = $(DOCDIR)" >> doxygen.cfg ; \
 	  $(DOXYGEN) doxygen.cfg ; \
 	else \
-	  $(DOCPP) $(DOCPPFLAGS) --dir $(DOCDIR) $(srcdir)/*.h ; \
+	  if [ "$(lofar_doctool)" = "docpp" ] ; then \
+	    $(DOCPP) $(DOCPPFLAGS) --dir $(DOCDIR) $(srcdir)/*.h ; \
+	  else \
+	    echo "Error: No documentation tool configured" ; \
+	  fi \
 	fi
