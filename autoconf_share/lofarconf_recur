@@ -67,7 +67,7 @@ lfr_pkg=`echo $lfr_result | awk '{print $5}'`
 lfr_confdir=$lfr_root/$lfr_pkg;
 
 # Get all subdirectories from lofarconf.in while removing comments.
-subdirs=`sed $lfr_infile -e s/#.*$//g`
+subdirs=`sed -e s/#.*$//g $lfr_infile`
 sdir=
 for subdir in $subdirs
 do
@@ -139,6 +139,9 @@ clean: $(VARIANTNAMES:.variant=.variant_clean)
 distclean: $(VARIANTNAMES:.variant=.variant_distclean)
 dist: $(VARIANTNAMES:.variant=.variant_dist)
 
+# Default check, but no clean and install.
+WITH_CLEAN=0
+WITH_CHECK=1
 WITH_INSTALL=0
 PREFIX = /data/LOFAR/installed
 
@@ -167,7 +170,7 @@ build_system:
 		&& echo \
 		&& date \
 		&& (( cd $$pkg/build/$$var \
-		&& $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` build_system WITH_INSTALL=$(WITH_INSTALL) PREFIX=$(PREFIX) ) \
+		&& $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` build_system WITH_CLEAN=$(WITH_CLEAN) WITH_CHECK=$(WITH_CHECK) WITH_INSTALL=$(WITH_INSTALL) PREFIX=$(PREFIX) ) \
 			|| echo ":::::: ERROR" ) \
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$var FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \

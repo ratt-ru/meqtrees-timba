@@ -89,15 +89,28 @@ docthis:
 
 #
 #
-#
+# Target to be able to do a system build.
+# By default it does a check, but no install.
+WITH_CLEAN=1
+WITH_CHECK=1
 WITH_INSTALL=0
 build_system:
-	@$(MAKE); \
-	$(MAKE) check; \
-        if test 1 -eq $(WITH_INSTALL); then \
+	@if test 2 -eq $(WITH_CLEAN); then \
+	  $(MAKE) cleandist ; \
+	  ../../lofarconf; \
+	fi; \
+	if test 1 -eq $(WITH_CLEAN); then \
+	  $(MAKE) clean ; \
+	fi; \
+	$(MAKE); \
+	if test 1 -eq $(WITH_CHECK); then \
+	  $(MAKE) check ; \
+	fi; \
+	if test 1 -eq $(WITH_INSTALL); then \
 	  $(MAKE) install ; \
 	fi;
 
+# Show the important make variables.
 show_env:
 	@echo "CXX      = $(CXX)";
 	@echo "   `$(CXX) --version | head -1`";
