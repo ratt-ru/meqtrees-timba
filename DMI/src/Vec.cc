@@ -789,11 +789,12 @@ const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int fl
       // if dealing with an uninitialized ref, just return it
       if( objstate[n] == UNINITIALIZED )
       {
-        if( flags&DMI::WRITE )
-        {
-          FailWhen(!isWritable(),"write access violation");
+// NB: temporary kludge here to work around bug mentioned in NC::Hook::prepare_put.
+//        if( flags&DMI::WRITE )
+//        {
+//          FailWhen(!isWritable(),"write access violation");
           objstate[n] = MODIFIED;
-        }
+//        }
         return &objects[n];
       }
       // else resolve to object
