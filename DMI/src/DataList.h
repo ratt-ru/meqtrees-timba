@@ -63,6 +63,11 @@ class DataList : public NestableContainer
       void replace  (int n, const NestableContainer *pnc, int flags = DMI::ANONRO)
       { replace(n,const_cast<NestableContainer*>(pnc),(flags&~DMI::WRITE)|DMI::READONLY); }
 
+      // appends everything from other list to end of this one, as read-only
+      void append (const DataList &other,int flags=DMI::READONLY);
+      // same version, but preserves writability
+      void append (DataList &other,int flags=DMI::PRESERVE_RW);
+
       int numItems  () const
       { return items.size(); }
       

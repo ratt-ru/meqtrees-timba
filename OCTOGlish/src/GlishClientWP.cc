@@ -54,7 +54,7 @@ void GlishClientWP::init ()
 GlishValue GlishClientWP::handleEvent (GlishSysEvent &event)
 {
   dprintf(2)("got event '%s'\n", event.type().c_str());
-  Bool result = True;       // AIPS++ Bool for event result
+  GlishValue result = GlishArray(true);     // default result is T for success
 
   if( event.type() == "shutdown" ) // shutdown event
   {
@@ -152,15 +152,15 @@ GlishValue GlishClientWP::handleEvent (GlishSysEvent &event)
     catch ( std::exception &exc ) 
     {
       dprintf(1)("exception processing glish event, ignoring: %s\n",exc.what());
-      result = False;
+      result = GlishArray(exc.what());
     }
     catch ( ... ) 
     {
       dprintf(1)("unknown exception processing glish event\n");
-      result = False;
+      result = GlishArray("unknown exception");
     }
   }
-  return GlishArray(result);
+  return result;
 }
 
 //##ModelId=3CBA97E70232

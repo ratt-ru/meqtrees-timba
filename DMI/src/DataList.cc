@@ -149,6 +149,23 @@ void DataList::addBack (NestableContainer *pnc, int flags)
   items.push_back(NCRef(pnc,flags));
 }
 
+
+void DataList::append (const DataList &other,int flags)
+{
+  Thread::Mutex::Lock _nclock(mutex());
+  Thread::Mutex::Lock _nclock2(other.mutex());
+  for( ItemList::const_iterator iter = other.items.begin(); iter != other.items.end(); iter++ )
+    items.push_back(iter->copy(flags));
+}
+
+void DataList::append (DataList &other,int flags)
+{
+  Thread::Mutex::Lock _nclock(mutex());
+  Thread::Mutex::Lock _nclock2(other.mutex());
+  for( ItemList::iterator iter = other.items.begin(); iter != other.items.end(); iter++ )
+    items.push_back(iter->copy(flags));
+}
+
 NCRef DataList::remove (int n)
 {
   Thread::Mutex::Lock _nclock(mutex());

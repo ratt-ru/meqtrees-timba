@@ -147,6 +147,13 @@ class NodeList (object):
     def subscribe_state (self,callback):
       _dprint(4,"connecting state of node ",self.name," to ",callback);
       QObject.connect(self,PYSIGNAL("state()"),callback);
+    def unsubscribe_status (self,callback):
+      _dprint(4,"disconnecting status of node ",self.name," from ",callback);
+      QObject.disconnect(self,PYSIGNAL("status()"),callback);
+    # Adds a subscriber to node state changes
+    def unsubscribe_state (self,callback):
+      _dprint(4,"disconnecting state of node ",self.name," from ",callback);
+      QObject.disconnect(self,PYSIGNAL("state()"),callback);
 
   # init node list
   def __init__ (self,meqnl=None):

@@ -31,8 +31,8 @@ void Meq::incrSubId (RequestId &id,int mask)
   for( int m1=mask; m1 != 0; m1 >>= 1 )
     msb++;
   // if request ID is shorter, resize
-  while( id.size() < msb )
-    id.push_front(0);
+  if( id.size() < msb )
+    id.push_front(0,msb-id.size());
   // start from end 
   HIID::reverse_iterator iter = id.rbegin();
   // ... until we run out of bits, or get to the start of BOTH ids

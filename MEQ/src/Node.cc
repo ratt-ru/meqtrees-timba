@@ -676,6 +676,12 @@ Node & Node::getChild (int i)
   return children_[i].dewr();
 }
 
+const Node & Node::getChild (int i) const
+{
+  FailWhen(!children_[i].valid(),"unresolved child");
+  return children_[i].deref();
+}
+
 //##ModelId=3F85710E028E
 Node & Node::getChild (const HIID &id)
 {

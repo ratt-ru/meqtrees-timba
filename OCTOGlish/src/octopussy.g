@@ -288,6 +288,15 @@ const octopussy := function (server=default_octoserver,options="",
     return T;
   }
   
+  const self.command := function(cmd,arg)
+  {
+    wider self;
+    res := self.send_client->[cmd](arg);
+    if( is_boolean(res) && res )
+      return res;
+    fail spaste(cmd,'() failed: ',res);
+  }
+  
   const public.subscribe := function (ids,scope="global")
   {
     # set the scope parameter
@@ -299,8 +308,9 @@ const octopussy := function (server=default_octoserver,options="",
     {
       self.dprint(2,"subscribing: ",id,sc);
       # send event
-      if( !self.send_client->subscribe([id=id,scope=sc]) )
-        fail 'subscribe() failed';
+      res := self.command('subscribe',[id=id,scope=sc]);
+      if( is_fail(res) )
+        fail res;
     }
     return T;
   }
@@ -308,10 +318,7 @@ const octopussy := function (server=default_octoserver,options="",
   const public.unsubscribe := function (id)
   {
     wider self;
-    if( self.send_client->unsubscribe([id=id]) )
-      return T;
-    else
-      fail 'unsubscribe() failed';
+    return self.command('unsubscribe',[id=id]);
   }
   
   const public.start := function ()
@@ -319,13 +326,13 @@ const octopussy := function (server=default_octoserver,options="",
     wider self;
     if( self.started  )
       fail 'octopussy already started';
-    if( self.send_client->start([=]) )
+    res := self.command('start',[=]);
+    if( res )
     {
       self.started := T;
       return T;
     }
-    else
-      fail 'start() failed';
+    return res;
   }
 
   const public.log := function (msg,type="normal",level=1)
@@ -349,10 +356,7 @@ const octopussy := function (server=default_octoserver,options="",
     else
       fail paste('unknown log message type: ',type);
     # send the event
-    if( self.send_client->log([msg=msg,level=level,type=tp]) )
-      return T;
-    else
-      fail 'log() failed';
+    return self.command('log',[msg=msg,level=level,type=tp]);
   }
   
   const public.send := function (id,dest,rec=F,priority=0,datablock=F,blockset=F)
@@ -364,10 +368,7 @@ const octopussy := function (server=default_octoserver,options="",
     rec := self.makemsg(id,rec,priority,datablock,blockset);
     rec::to := dest;
     # send the event
-    if( self.send_client->send(rec) )
-      return T;
-    else
-      fail 'send() failed';
+    return self.command('send',rec);
   }
 
   const public.publish := function (id,rec=F,scope="global",priority=0,datablock=F,blockset=F)
@@ -386,10 +387,7 @@ const octopussy := function (server=default_octoserver,options="",
     rec::scope := sc;
     self.dprint(3,"publishing: ",rec::);
     # send the event
-    if( self.send_client->publish(rec) )
-      return T;
-    else
-      fail 'publish() failed';
+    return self.command('publish',rec);
   }
 
   const public.receive := function (ref value)
@@ -411,10 +409,7 @@ const octopussy := function (server=default_octoserver,options="",
     # check that we're started
     if( !self.started )
       fail 'octopussy not started';
-    if( self.send_client->debug([context=context,level=level]) )
-      return T;
-    else
-      fail 'setdebug failed'; 
+    return self.command('debug',[context=context,level=level]);
   }
   
   const public.state := function ()

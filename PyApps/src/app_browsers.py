@@ -441,6 +441,10 @@ class HierBrowser (object):
     # call recursive helper on listview
     _set_open_items_impl(self._lv,openspec);
     
+  def set_content (self,content):
+    # expand first level of record
+    HierBrowser.Item.expand_content(self._lv,content);
+    
   def change_item_content (self,item,content,keepopen=True,**kwargs):
     """changes content of an item. If keepopen=True and item was open,
     attempts to preserve open structure""";
@@ -490,7 +494,7 @@ class RecordBrowser(HierBrowser,BrowserPlugin):
     self._pprint = PrettyPrinter(width=78,stream=sys.stderr);
     self.set_refresh_func(dataitem.refresh_func);
     # expand first level of record
-    HierBrowser.Item.expand_content(self._lv,self._rec);
+    self.set_content(self._rec);
     # apply saved open tree
     self.set_open_items(openitems);
 

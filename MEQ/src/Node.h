@@ -309,12 +309,16 @@ class Node : public BlockableObject
     //##ModelId=3F85710E011F
     Node & getChild (int i);
     
+    const Node & getChild (int i) const;
+    
     //##ModelId=3F85710E028E
     Node & getChild (const HIID &id);
     
     //##ModelId=3F98D9D20201
     int getChildNumber (const HIID &id);
     
+    const std::string & childName (int i) const
+    { return getChild(i).name(); }
     
     const std::vector<HIID> & getNodeGroups () const
     { return node_groups_; }

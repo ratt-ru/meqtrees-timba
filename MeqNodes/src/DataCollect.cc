@@ -19,36 +19,25 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#include <MEQ/Request.h>
-#include <MEQ/Vells.h>
-#include <MEQ/Function.h>
-#include <MEQ/MeqVocabulary.h>
-#include <DMI/DynamicTypeManager.h>
+#include "DataCollect.h"
 #include <DMI/DataList.h>
-#include <MeqNodes/DataCollect.h>
-#include <MeqNodes/Condeq.h>
-#include <MeqNodes/ParmTable.h>
+#include <DMI/DataField.h>
 #include <MeqNodes/AID-MeqNodes.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Vector.h>
     
 
 namespace Meq {
 
-using namespace VellsMath;
-
 const HIID FTopLabel = AidTop|AidLabel;
-const HIID FGroupLabel = AidGroup|AidLabel;
-const HIID FItemLabel = AidItem|AidLabel;
-// we use FValue too, but it's already defined somewhere for us in MeqVocabulary
-// const HIID FValue    = AidValue;
+const HIID FValue    = AidValue;
 const HIID FAttrib   = AidAttrib;
+const HIID FLabel    = AidLabel;
+
 
 DataCollect::DataCollect()
   : Node(-1,0,1), // at least 1 child must be present
-    top_label_(AidPlot|AidData),
-    group_label_(AidData),
-    item_label_(AidData)
+    top_label_(AidPlot|AidData)
+//    group_label_(AidData),
+//    item_label_(AidData)
 {
   attrib_ <<= new DataRecord;
   disableFailPropagation();
@@ -64,11 +53,21 @@ void DataCollect::setStateImpl (DataRecord &rec,bool initializing)
   Node::setStateImpl(rec,initializing);
   // get/init labels from state record
   rec[FTopLabel].get(top_label_,initializing);
-  rec[FGroupLabel].get(group_label_,initializing);
-  rec[FItemLabel].get(item_label_,initializing);
+//  rec[FGroupLabel].get(group_label_,initializing);
+//  rec[FItemLabel].get(item_label_,initializing);
   // get attribute record
   if( rec[FAttrib].exists() )
     attrib_ = rec[FAttrib].ref();
+  // get labels field
+  if( rec[FLabel].exists() )
+    labels_ = rec[FLabel].ref();
+  else if( initializing ) // initialize labels with child names
+  {
+    DataField &lbl = rec[FLabel] <<= &lbl;
+    labels_ <<= &lbl;
+    for( int i=0; i<numChildren(); i++ )
+      lbl[i] = childName(i);
+  }
 }
 
 
@@ -83,37 +82,51 @@ int DataCollect::getResult (Result::Ref &resref,
 // 0 means 0 VellSets in it
 	Result & result = resref <<= new Result(0);
 
-/// no cells in result, since it won't have a Vells either
-// // Use cells of first child (they ought to be the same across children 
-// // anyway -- we can check later on, but if they're not the same, 
-// // someone's put the tree together wrong). We will verify
-// // shapes only below, it's faster and easier
-// 	const Cells &res_cells = child_result[0]->cells();
-// 	const LoShape &res_shape = res_cells.shape();
-// 	result.setCells(res_cells);
-
 	DataRecord &toprec = result[top_label_] <<= new DataRecord;
-	DataRecord &subrec = toprec[group_label_] <<= new DataRecord;
-	DataRecord &datarec = subrec[item_label_] <<= new DataRecord;
 
-  // put a copy of attributes ino the subrecord
-  datarec[FAttrib] <<= attrib_.copy();
+  // put a copy of attributes into the subrecord
+  if( attrib_.valid() )
+    toprec[FAttrib] <<= attrib_.copy();
+  if( labels_.valid() )
+    toprec[FLabel] <<= labels_.copy();
 
 // create a list for children's Vells, and put it into the subrecord
 // Better to always use a list since we don't really know if a given 
 // child's Vells will be scalar or array -- easier to figure
 // this out on the python side
-	DataList &list = datarec[FValue] <<= new DataList;
+	DataList &vallist = toprec[FValue] <<= new DataList;
 
 // put stuff in list. Note that a child result may contain several vellsets,
 // so we just loop over them and collect everything into a flat list
-  int nlist=0;
 	for( int i=0; i<numChildren(); i++ ) 
   {
     const Result &chres = *child_result[i];
+    // plot record in child result? (0 if none)
+    const DataRecord *chplot = chres[top_label_].as_po<DataRecord>();
+    int nvs = chres.numVellSets();
+    // count of how many things need to be inserted: one for a valid
+    // child plot record, and one per each valid VellSet
+    int count = chplot ? 1 : 0;
     for( int j=0; j<chres.numVellSets(); j++ )
       if( !chres.vellSet(j).isFail() )
-  		  list[nlist++] <<= chres.vellSet(j).getValue().getDataArray();
+  		  count++;
+    // Determine how to insert. If only one thing to insert (i.e. 
+    // one main value, or one plot record), insert directly into value
+    // list, else insert a little sublist of stuff. If there's nothing
+    // to insert, mark this by an empty sublist (since we must always have 
+    // one entry per child)
+    DataList * plist;
+    if( count == 1 )
+      plist = &vallist;
+    else
+      vallist.addBack(plist = new DataList);
+    // insert plot record, if any
+    if( chplot )
+      plist->addBack(chplot);
+    // insert main values, if any
+    for( int j=0; j<chres.numVellSets(); j++ )
+      if( !chres.vellSet(j).isFail() )
+  		  plist->addBack(&(chres.vellSet(j).getValue().getDataArray()));
 	}
  	return 0;
 }

@@ -27,14 +27,14 @@
 #include <DMI/DMI.h>
 #include <DMI/AtomicID.h>
 
-#include <deque>
+#include <vector>
 #include <Common/lofar_iostream.h>
     
 #pragma type =HIID
 
 
 //##ModelId=3C55652D01B8
-typedef std::deque<AtomicID> Vector_AtomicID;
+typedef std::vector<AtomicID> Vector_AtomicID;
 
 //##ModelId=3BE96FE601C5
 class HIID : public Vector_AtomicID
@@ -48,16 +48,17 @@ class HIID : public Vector_AtomicID
 
       //##ModelId=3C6141BA03B4
       //##Documentation
-      //## Constructs HIID from string form, using '.' separator
-      //## ("A.B.C.D", etc.)
+      //## Constructs HIID from string form, using default separator set ("._")
+      //## ("A.B.C.D", "a_b_c_d", etc.)
       HIID (const string &str);
       HIID (const char *str);
       
       //## Constructs HIID from string form, using custom separator.
       //## ("A_B_C_D", etc.)
-      //## The dummy int argument is needed to distinguish from other
-      //## constructors
-      HIID (const string &str,int,const string &sep_set);
+      //## If allow_literals is true, then if any AtomicID is not found,
+      //## the HIID is converted using literal string mapping
+      //## (NB: still to be implemented!)
+      HIID (const string &str,bool allow_literals,const string &sep_set);
 
       
       //##ModelId=3DB934880197
@@ -131,9 +132,14 @@ class HIID : public Vector_AtomicID
       //## Finds first "/" separator, splits off the sub-id. Removes up to and
       //## including the slash, but returns sub-id w/o the slash.
       HIID splitAtSlash ();
+      
+      // removes N elements from front of vector
+      void pop_front (uint n=1);
+      // adds N elements to front of vector
+      void push_front (AtomicID aid,uint n=1);
 
       //##ModelId=3C0F8BD5004F
-      string toString (char separator = '.') const;
+      string toString (char separator = '_') const;
 
       //##ModelId=3C5912FE0134
       //##Documentation
@@ -187,13 +193,12 @@ class HIID : public Vector_AtomicID
       typedef Vector_AtomicID::const_iterator CVI;  
       
       // this function reserves initial space for the HIID vector
-      // no-op for now
     //##ModelId=3DB9348C0215
-      void reserve ()     {};
-      
+      void reserve ()     { Vector_AtomicID::reserve(8); };
+
       // creates from string
     //##ModelId=3DB9348C0305
-      void addString ( const string &,const string &sep_set = ".");
+      void addString (const string &,const string &sep_set = "._");
 };
 
 // stream operator
@@ -278,18 +283,21 @@ inline HIID::HIID (AtomicID aid)
 //##ModelId=3C6141BA03B4
 inline HIID::HIID (const string &str)
 {
+  reserve();
   addString(str);
 }
 
 inline HIID::HIID (const char *str)
 {
+  reserve();
   if( str )
     addString(str);
 }
 
 //##ModelId=3C556A470346
-inline HIID::HIID (const string &str,int,const string &sepset)
+inline HIID::HIID (const string &str,bool,const string &sepset)
 {
+  reserve();
   addString(str,sepset);
 }
 
@@ -322,16 +330,57 @@ inline bool HIID::prefixedBy (const HIID &other) const
 }
 
 //##ModelId=3C6B9FDD02FD
+inline void HIID::pop_front (uint n)
+{
+  if( n )
+  {
+    int nleft = int(size()) - int(n);
+    if( nleft<=0 )
+      resize(0);
+    else
+    {
+      memmove(&(front()),&((*this)[n]),nleft*sizeof(AtomicID));
+      resize(nleft);
+    }
+  }
+}
+
+inline void HIID::push_front (AtomicID aid,uint n)
+{
+  if( n )
+  {
+    int sz0 = size();
+    resize(sz0+n);
+    memmove(&(*this)[n],&(front()),sz0);
+    for( uint i=0; i<n; i++ )
+      (*this)[i] = aid;
+  }
+}
+
 inline int HIID::popLeadSlashes ()
 {
-  int n=0;
-  while( front() == AidSlash )
-  {
-    pop_front();
+  uint n=0;
+  while( n < size() && (*this)[n] == AidSlash )
     n++;
-  }
-  return n;
+  pop_front(n);
+// when this was a deque, we did:   
+//  {
+//    pop_front();
+//    n++;
+//  }
+  return int(n);
 }
+
+//##ModelId=3C7A1B6500C9
+inline int HIID::findFirstSlash () const
+{
+  int pos = 0;
+  for( const_iterator iter = begin(); iter != end(); iter++,pos++ )
+    if( *iter == AidSlash )
+      return pos;
+  return -1;
+}
+
 
 //##ModelId=3C591278038A
 inline size_t HIID::packSize () const

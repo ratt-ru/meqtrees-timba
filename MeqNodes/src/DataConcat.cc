@@ -19,50 +19,40 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#include <MEQ/Request.h>
-#include <MEQ/Vells.h>
-#include <MEQ/Function.h>
-#include <MEQ/MeqVocabulary.h>
-#include <DMI/DynamicTypeManager.h>
+#include "DataConcat.h"
 #include <DMI/DataList.h>
-#include <MeqNodes/DataConcat.h>
-#include <MeqNodes/Condeq.h>
-#include <MeqNodes/ParmTable.h>
+#include <DMI/DataField.h>
 #include <MeqNodes/AID-MeqNodes.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Vector.h>
     
 
 namespace Meq {
 
-using namespace VellsMath;
-
 const HIID FTopLabel = AidTop|AidLabel;
-const HIID FSkeleton = AidSkeleton;
+const HIID FValue    = AidValue;
+const HIID FAttrib   = AidAttrib;
+const HIID FLabel    = AidLabel;
 
 DataConcat::DataConcat()
-  : Node(-1,0,1), // at least 1 child must be present
-    top_label_("Plot.Data")
+  : top_label_("Plot.Data")
 {
-  skel_ <<= new DataRecord;
-  disableFailPropagation();
 }
 
 DataConcat::~DataConcat()
 {
 }
 
-
 void DataConcat::setStateImpl (DataRecord &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
-  // get/init list top-level label from state record. 
+  // get/init labels from state record
   rec[FTopLabel].get(top_label_,initializing);
-  // get/init skeleton record
-  if( rec[FSkeleton].exists() )
-    skel_ = rec[FSkeleton].ref();
+  // get attribute record -- boolean False means clear
+  if( rec[FAttrib].exists() )
+    if( rec[FAttrib].type() == Tpbool )
+      attrib_.detach();
+    else
+      attrib_ = rec[FAttrib].ref();
 }
-
 
 int DataConcat::getResult (Result::Ref &resref, 
                        const std::vector<Result::Ref> &child_result,
@@ -75,35 +65,67 @@ int DataConcat::getResult (Result::Ref &resref,
 // 0 means 0 VellSets in it
 	Result & result = resref <<= new Result(0);
   
-  // init top-level record by creating a private deep-copy of the skeleton
-  DataRecord &toprec = result[top_label_] <<= new DataRecord(*skel_,DMI::WRITE|DMI::PRIVATIZE|DMI::DEEP);
-  for( int j=0; j<numChildren(); j++ )
+  // init top-level record 
+  DataRecord &toprec = result[top_label_] <<= new DataRecord;
+  // insert attributes, if any
+  // if none are specified in the state record, then we'll use
+  // the first Attrib record we find in a child result
+  bool haveattr = attrib_.valid();
+  if( haveattr )
+    toprec[FAttrib] <<= attrib_.copy();
+  // concatenate all child plot records into value list
+  DataList &value_list = toprec[FValue] <<= new DataList;
+  std::vector<int> nval(numChildren(),0);
+  bool has_labels = false;
+  for( int ich=0; ich<numChildren(); ich++ )
   {
-    const Result &chres = *child_result[j];
-    // merge corresponding top-level record from each child.
-    // DataRecord has a convenient merge() method for this.
-    // The true/false arguemtn tells it whether to overwrite existing
-    // fields or not
-    if( chres[top_label_].exists() )
+    const DataRecord *chplot = child_result[ich][top_label_].as_po<DataRecord>();
+    if( chplot )
     {
-      const DataRecord &child_toprec = chres[top_label_].as<DataRecord>();
-      // iterate over all fields in the child's top-level record
-      HIID id;
-      NestableContainer::Ref ncref;
-      DataRecord::Iterator iter = child_toprec.initFieldIter();
-      while( child_toprec.getFieldIter(iter,id,ncref) )
+      // get list of values -- must exist
+      const DataList *pval = (*chplot)[FValue].as_p<DataList>();
+      nval[ich] = pval->size();
+      value_list.append(*pval);
+      // do we have a labels?
+      const DataField *plbl = (*chplot)[FLabel].as_po<DataField>();
+      has_labels |= plbl && plbl->size();
+      // if we have no attrs yet, try to get them too
+      DataRecord::Hook attr(*chplot,FAttrib);
+      if( !haveattr && attr.isRef() )
       {
-        // cast the field reference to a sub-record -- this will throw an exception
-        // if the field is not a DataRecord, but in this case we're entitled to fail anyway
-        const DataRecord &child_subrec = *(ncref.ref_cast<DataRecord>());
-        // if subrecord already exists in the top-level record, merge child into it
-        if( toprec[id].exists() )
-          toprec[id].as_wr<DataRecord>().merge(child_subrec);
-        else // else init with a deep-copy of child
-          toprec[id] <<= new DataRecord(child_subrec,DMI::WRITE|DMI::PRIVATIZE|DMI::DEEP);
+        haveattr = true;
+        toprec[FAttrib] <<= attr.ref();
       }
     }
   }
+  // now, build list of labels if any were found
+  if( has_labels )
+  {
+    DataField &labels = toprec[FLabel] <<= new DataField(Tpstring,value_list.size());
+    int nlab = 0;
+    for( int ich=0; ich<numChildren(); ich++ )
+    {
+      const DataRecord *chplot = child_result[ich][top_label_].as_po<DataRecord>();
+      if( chplot )
+      {
+        // have we got any labels in this plot record? copy them
+        const DataField *plbl = (*chplot)[FLabel].as_po<DataField>();
+        if( plbl && plbl->size() )
+        {
+          FailWhen(plbl->size()!=nval[ich],
+              "mismatch in sizes of Value/Label fields of child plot record");
+          for( int i=0; i<nval[ich]; i++ )
+            labels[nlab++] = (*plbl)[i].as<string>();
+        }
+        else // if none, then fill with empty strings to keep alignment with Value list
+        {
+          for( int i=0; i<nval[ich]; i++ )
+            labels[nlab++] = "";
+        }
+      }
+    }
+  }
+  
  	return 0;
 }
 

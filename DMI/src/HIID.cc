@@ -33,7 +33,6 @@ HIID::HIID (const void* block, int sz)
 }
 
 
-
 //##ModelId=3BE977510397
 HIID & HIID::add (const HIID &other)
 {
@@ -101,6 +100,7 @@ bool HIID::subsetOf (const HIID &other) const
   return iter == end() && ( oiter == other.end() || (*oiter).isWildcard() );
 }
 
+
 //##ModelId=3C59522600D6
 int HIID::popLeadIndex ()
 {
@@ -109,7 +109,7 @@ int HIID::popLeadIndex ()
   int ret = front().index();
   if( ret<0 ) 
     return 0;
-  pop_front();
+  pop_front(1);
   return ret;
 }
 
@@ -118,36 +118,42 @@ int HIID::popTrailIndex ()
 {
   if( !size() )
     return 0;
-  int ret = front().index();
+  int ret = back().index();
   if( ret<0 ) 
     return 0;
-  pop_back();
+  resize(size()-1);
   return ret;
-}
-
-//##ModelId=3C7A1B6500C9
-int HIID::findFirstSlash () const
-{
-  int pos = 0;
-  for( const_iterator iter = begin(); iter != end(); iter++,pos++ )
-    if( *iter == AidSlash )
-      return pos;
-  return -1;
 }
 
 //##ModelId=3CAD7B2901CA
 HIID HIID::splitAtSlash ()
 {
   HIID subid;
-  while( size() )
+//   while( size() )
+//   {
+//     if( front() == AidSlash )
+//     {
+//       pop_front(1);
+//       return subid;
+//     }
+//     subid.push_back(front());
+//     pop_front();
+//   }
+  int pos = findFirstSlash();
+  // no slash -- return entire id and clear
+  if( pos<0 )
   {
-    if( front() == AidSlash )
+    subid = (*this);
+    clear();
+  }
+  else // copy subid up to and including slash; pop everything including slash
+  {
+    if( pos )
     {
-      pop_front();
-      return subid;
+      subid.resize(pos);
+      memcpy(&subid.front(),&front(),pos*sizeof(AtomicID));
     }
-    subid.push_back(front());
-    pop_front();
+    pop_front(pos+1);
   }
   return subid;
 }
@@ -183,11 +189,13 @@ void HIID::print () const
 //##ModelId=3C5912FE0134
 size_t HIID::pack (void *block, size_t &nleft) const
 {
-  size_t sz = size()*sizeof(int);
+  size_t sz = size()*sizeof(AtomicID);
   FailWhen(nleft<sz,"block too small");
-  int *data = static_cast<int*>(block);
-  for( CVI iter = begin(); iter != end(); iter++ )
-    *(data++) = *(iter);
+// vector is contigous, so just use:
+  memcpy(block,&(front()),sz);
+//   int *data = static_cast<int*>(block);
+//   for( CVI iter = begin(); iter != end(); iter++ )
+//     *(data++) = *(iter);
   nleft -= sz;
   return sz;
 }
@@ -195,11 +203,13 @@ size_t HIID::pack (void *block, size_t &nleft) const
 //##ModelId=3C970F91006F
 void HIID::unpack (const void* block, size_t sz)
 {
-  FailWhen(sz%sizeof(int),"bad block size");
-  resize(sz/sizeof(int));
-  const int *data = reinterpret_cast<const int*>(block);
-  for( VI iter = begin(); iter != end(); iter++ )
-    *iter = *(data++);
+  FailWhen(sz%sizeof(AtomicID),"bad block size");
+  resize(sz/sizeof(AtomicID));
+// vector is contigous, so just use:
+  memcpy(&(front()),block,sz);
+//  const int *data = reinterpret_cast<const int*>(block);
+//  for( VI iter = begin(); iter != end(); iter++ )
+//    *iter = *(data++);
 }
 
 // Additional Declarations
@@ -210,10 +220,12 @@ bool HIID::operator== (const HIID &right) const
     return True;
   if( size() != right.size() )
     return False;
-  for( CVI iter = begin(),oiter = right.begin(); iter != end(); iter++,oiter++ )
-    if( *iter != *oiter )
-      return False;
-  return True;
+// vector is contigous, so just use:
+  return !memcmp(&(front()),&(right.front()),size()*sizeof(AtomicID));
+//  for( CVI iter = begin(),oiter = right.begin(); iter != end(); iter++,oiter++ )
+//    if( *iter != *oiter )
+//      return False;
+//  return True;
 }
 
 //##ModelId=3DB9348B01E2

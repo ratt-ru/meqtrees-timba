@@ -25,6 +25,7 @@
 #include <MEQ/Node.h>
 #include <MEQ/VellSet.h>
 #include <MeqNodes/TID-MeqNodes.h>
+#include <MeqNodes/DataCollect.h>
 
 #pragma types #Meq::DataConcat
 #pragma aid Top Label Plot Data Skeleton
@@ -52,10 +53,9 @@ protected:
 
   virtual void setStateImpl (DataRecord &rec,bool initializing);
   
-private:
-  //##Documentation
   HIID top_label_;
-  DataRecord::Ref skel_;
+  
+  ObjRef attrib_;
 };
 
 

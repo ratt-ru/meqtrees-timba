@@ -9,6 +9,7 @@ import sets
 import re
 import meqds
 import meqserver_gui
+import copy
 from meqds import mqs
 
 _dbg = verbosity(3,name='tb');
@@ -20,6 +21,12 @@ class AppState (object):
   Stream     = -hiid('stream').get(0);
   Debug      = -hiid('debug').get(0);
   Execute    = -hiid('execute').get(0);
+  
+def weakref_proxy (obj):
+  if type(obj) in weakref.ProxyTypes:
+    return obj;
+  else:
+    return weakref.proxy(obj);
 
 class TreeBrowser (QObject):
 
@@ -32,12 +39,15 @@ class TreeBrowser (QObject):
       self.setDragEnabled(True);
       if node.children:
         self.setExpandable(True);
+      # external state
+      self.tb = weakref_proxy(tb);      # self.tb returns treebrowser
+      self.node = weakref_proxy(node);  # self.node returns meqds node
       # internal state, etc.
-      self.tb = weakref.ref(tb);  # self.tb() returns treebrowser
-      self._node = weakref.proxy(node);
       self._expanded = False;
       self._udi  = meqds.node_udi(node);
       self._callbacks = [];
+      self._menu_actions = [];
+      self._cg_name = self._color_group = None;
       # add ourselves to the item list for this node
       if not hasattr(node,'_tb_items'):
         node._tb_items = [];
@@ -47,7 +57,6 @@ class TreeBrowser (QObject):
       node.subscribe_state(self._update_state);
       QObject.connect(node,PYSIGNAL("update_debug()"),self._update_debug);
       # default color group is None to use normal colors
-      self._cg_name = self._color_group = None;
       # make sure pixmaps, etc. are updated
       self._update_status(node,node.control_status);
       
@@ -56,26 +65,18 @@ class TreeBrowser (QObject):
       # flash the publish pixmap briefly to indicate new state
       # self._publish_pixmap is the "normal" (None or publish) pixmap set by _update_status()
       # below; we set a timer event to revert to it
-      self.setPixmap(self.tb()._icol_publish,pixmaps.publish_active.pm());
-      QTimer.singleShot(500,self.xcurry(self.setPixmap,(self.tb()._icol_publish,self._publish_pixmap)));
-      # update context menu
-      if state is not None:
-        try: menu = self._context_menu;
-        except AttributeError: pass;
-        else:
-          for (act_id,act) in menu._actions.iteritems():
-            if hasattr(act,'eval_state'):
-              menu.setItemChecked(act_id,act.eval_state(state));
+      self.setPixmap(self.tb._icol_publish,pixmaps.publish_active.pm());
+      QTimer.singleShot(500,self.xcurry(self.setPixmap,(self.tb._icol_publish,self._publish_pixmap)));
               
     def _update_debug (self,node):
       """updates node item based on its debugging status.""";
       try: stopped = min(node._stopped,1);
       except AttributeError: stopped = -1;
-      self._color_group = self.tb().get_color_group(self._cg_name,stopped);
+      self._color_group = self.tb.get_color_group(self._cg_name,stopped);
       
     def _update_status (self,node,old_status):
       """updates node item based on node status.""";
-      tb = self.tb();
+      tb = self.tb;
       control_status = node.control_status;
       # choose a colorgroup name for the item based on its status
       stopped = bool(control_status&meqds.CS_STOP_BREAKPOINT);
@@ -90,8 +91,8 @@ class TreeBrowser (QObject):
       # call update_debug to complete setting of color group (debug state
       # determines background)
       self._update_debug(node);
-      # update status column
-      self.setText(tb._icol_status,node.control_status_string);
+      ## # update status column
+      ## self.setText(tb._icol_status,node.control_status_string);
       # update breakpoint status pixmaps
       if control_status&meqds.CS_BREAKPOINT:
         self.setPixmap(tb._icol_breakpoint,pixmaps.breakpoint.pm());
@@ -121,36 +122,52 @@ class TreeBrowser (QObject):
       try: menu = self._debug_bp_menu;
       except AttributeError: pass;
       else:
-        _dprint(3,'node',self._node.name,'breakpoint mask is',self._node.breakpoint);
+        _dprint(3,'node',self.node.name,'breakpoint mask is',self.node.breakpoint);
         for (item,bp) in self._debug_bp_items:
-          menu.setItemChecked(item,(self._node.breakpoint&bp)!=0);
-      # update context menu
-      try: menu = self._context_menu;
-      except AttributeError: pass;
-      else:
-        for (act_id,act) in menu._actions.iteritems():
-          if hasattr(act,'eval_status'):
-            menu.setItemChecked(act_id,act.eval_status(node));
+          menu.setItemChecked(item,(self.node.breakpoint&bp)!=0);
     
     def expand (self):
       if self._expanded:
         return;
       i1 = self;
-      for (key,ni) in self._node.children:
+      for (key,ni) in self.node.children:
         node = meqds.nodelist[ni];
         name = str(key) + ": " + node.name;
-        i1 = self.__class__(self.tb(),node,name,self,i1);
+        i1 = self.__class__(self.tb,node,name,self,i1);
       self._expanded = True;
       
     def xcurry (self,*args,**kwargs):
       cb = xcurry(*args,**kwargs);
       self._callbacks.append(cb);
       return cb;
+      
+    def _fill_menu (self,menu,which,separator=False):
+      """adds node-related actions defined in the TreeBrowser to the
+      specified menu."""
+      acts = self.tb.get_action_list(which);
+      acts.sort(); # sorts by priority
+      for (pri,action) in acts:
+        if action is None:                # add separator
+          separator = True;
+        elif isinstance(action,QAction):  # add regular action 
+          if separator:
+            menu.insertSeparator();
+            separator = False;
+          action.addTo(menu);
+        elif callable(action):            # assume NodeAction
+          # instantiate action, add to menu if successful
+          try:
+            na = action(self,menu,separator=separator);
+          except:
+            _dprint(1,'error adding action to node menu:',sys.exc_info());
+          else:
+            self._menu_actions.append(na);
+            separator = False;
     
     def debug_menu (self):
       try: menu = self._debug_menu;
       except AttributeError:
-        node = self._node;
+        node = self.node;
         menu = self._debug_menu = QPopupMenu();
         menu1 = self._debug_bp_menu = QPopupMenu();
         self._debug_bp_items = [];
@@ -167,17 +184,14 @@ class TreeBrowser (QObject):
         menu.insertItem(pixmaps.breakpoint.iconset(),"Set &breakpoint at",menu1);
         menu.insertItem(pixmaps.roadsign_nolimit.iconset(),"Clear &all breakpoints at "+node.name,self.xcurry(\
               meqds.clear_node_breakpoint,(node,meqds.BP_ALL),_argslice=slice(0)));
-        menu.insertSeparator();
-        menu.insertItem(pixmaps.forward_to.iconset(),"Continue &until "+node.name,self.xcurry(self.tb()._debug_until_node,(node,),_argslice=slice(0)));
-#        menu.insertSeparator();
-#        self.tb()._ag_debug.addTo(menu);
+        self._fill_menu(menu,"debug",separator=True);
       return menu;
       
     def context_menu (self):
       try: menu = self._context_menu;
       except AttributeError:
         # create menu on the fly when first called for this item
-        node = self._node;
+        node = self.node;
         menu = self._context_menu = QPopupMenu();
         # insert title
         menu.insertItem("%s: %s"%(node.name,node.classname));
@@ -197,21 +211,15 @@ class TreeBrowser (QObject):
             except AttributeError: icon = QIconSet();
             # add entry to both menus ("Display with" and "New display with")
             menu1.insertItem(icon,name,
-              self.xcurry(self.tb().wtop().emit,(PYSIGNAL("view_node()"),(node,v)),_argslice=slice(0)));
+              self.xcurry(self.tb.wtop().emit,(PYSIGNAL("view_node()"),(node,v)),_argslice=slice(0)));
             menu2.insertItem(icon,name,
-              self.xcurry(self.tb().wtop().emit,(PYSIGNAL("view_node()"),(node,v,dict(newcell=True))),_argslice=slice(0)));
+              self.xcurry(self.tb.wtop().emit,(PYSIGNAL("view_node()"),(node,v,dict(newcell=True))),_argslice=slice(0)));
         # add node actions
-        if self.tb().get_node_actions():
-          menu._actions = {};
-          menu.insertSeparator();
-          for act in self.tb().get_node_actions():
-            if act.applies_to(node):
-              act_id = act.add_to_menu(self,menu);
-              # add to action map
-              menu._actions[act_id] = act;
-        # add debugging
+        self._fill_menu(menu,"node",separator=True);
+        # add debugging menu
         menu.insertItem(pixmaps.breakpoint.iconset(),"Debug",self.debug_menu());
-      # display menu if defined
+      # refresh all node actions
+      map(lambda a:a.update(menu),self._menu_actions);
       return menu;
       
     def paintCell (self,painter,cg,column,width,align):
@@ -264,43 +272,54 @@ class TreeBrowser (QObject):
       # color groups for failed nodes
       self._cg[("fail",stopped)] = \
         self._new_colorgroup(stopcolor[stopped],QColor("red"));
-    # ---------------------- setup toolbars, QActions and menus
-    # scan all modules for defined toolbar actions
-    self._toolbar_actions = [];
+    # ---------------------- setup toolbars, QActions, menus, etc.
+    # scan all modules for define_treebrowser_actions method, and call them all
+    self._actions = {};
     funcs = sets.Set();
     for (name,mod) in sys.modules.iteritems():
       _dprint(4,'looking for treebrowser actions in',name);
       try: 
-        if callable(mod.define_treebrowser_toolbar_actions):
+        if callable(mod.define_treebrowser_actions):
           _dprint(3,'tb action found in',name,'adding to set');
-          funcs.add(mod.define_treebrowser_toolbar_actions);
+          funcs.add(mod.define_treebrowser_actions);
       except AttributeError: pass;
     _dprint(1,len(funcs),'unique treebrowser action-definition methods found');
     for f in funcs:
       f(self);
-    # build up toolbar
-    self._toolbar = QToolBar("Tree operations",parent);
-    tba = self._toolbar_actions;
+    # --- now, build up toolbar from defined actions
+    self._toolbar = QToolBar("Trees",parent);
     self._toolbar_actions = [];
+    tba = self.get_action_list("toolbar");
     tba.sort();
+    prev_sep = True; # flag: previous entry is a separator, true at top
     for (pri,action) in tba:
       if action is None:
-        self._toolbar.addSeparator();
-      else:
+        if not have_sep: 
+          self._toolbar.addSeparator();
+          have_sep = True;
+      elif isinstance(action,QAction):
         self._toolbar_actions.append(action);
         action.addTo(self._toolbar);
         action.setEnabled(False);
+        have_sep = False;
+    # make toolbar disappear when we leave this panel
     QObject.connect(self.wtop(),PYSIGNAL("entering()"),self._toolbar,SLOT("show()"));
     QObject.connect(self.wtop(),PYSIGNAL("leaving()"),self._toolbar,SLOT("hide()"));
     self._toolbar.hide();
     # ---------------------- other internal state
     self._recent_item = None;
     self._current_debug_stack = None;
+    self._callbacks = [];
     #----------------------- public state
     self.app_state = None;
     self.debug_level = 0;
     self.is_connected = self.is_loaded = self.is_running = self.is_stopped = False;
     
+  def xcurry (self,*args,**kwargs):
+    cb = xcurry(*args,**kwargs);
+    self._callbacks.append(cb);
+    return cb;
+      
   def _reset_toolbar (self):
     self._set_debug_control(self.debug_level>0);
     _dprint(3,'reset_toolbars:',self.debug_level,self.is_connected,self.is_running,self.is_stopped);
@@ -354,16 +373,6 @@ class TreeBrowser (QObject):
       cg.setColor(QColorGroup.Text,foreground);
     return (cg,palette);
     
-  # init empty set of node actions
-  _node_actions = [];
-  def add_node_action (action):
-    """Registers a node action for the tree browser context menu.""";
-    TreeBrowser._node_actions.append(action);
-  add_node_action = staticmethod(add_node_action);
-  
-  def get_node_actions (self):
-    return self._node_actions;
-
   def get_data_item (self,udi):
     (name,ni) = meqds.parse_node_udi(udi);
     if ni is None:
@@ -422,7 +431,7 @@ class TreeBrowser (QObject):
       _dprint(2,"debugging enabled");
       try: 
         self._nlv.setColumnWidthMode(self._icol_execstate,QListView.Maximum);
-        self._nlv.setColumnWidthMode(self._icol_status,QListView.Maximum);
+        ## self._nlv.setColumnWidthMode(self._icol_status,QListView.Maximum);
       except AttributeError: pass;
       self._set_debug_control(True);
       if meqds.nodelist and fst.debug_stack:
@@ -444,8 +453,8 @@ class TreeBrowser (QObject):
       try:
         self._nlv.setColumnWidthMode(self._icol_execstate,QListView.Manual);
         self._nlv.setColumnWidth(self._icol_execstate,0);
-        self._nlv.setColumnWidthMode(self._icol_status,QListView.Manual);
-        self._nlv.setColumnWidth(self._icol_status,0);
+        ## self._nlv.setColumnWidthMode(self._icol_status,QListView.Manual);
+        ## self._nlv.setColumnWidth(self._icol_status,0);
       except AttributeError: pass;
     # nodes in the debug-stack will have been highlighted by
     # update_state/status above. We now need to remove highlighting from
@@ -477,7 +486,6 @@ class TreeBrowser (QObject):
     # depends on the available node actions)
     # init one column per registered action; first one is always node name
     if not self._nlv.columns(): 
-      self._node_actions = TreeBrowser._node_actions;
       self._nlv.addColumn('node');
       self._icol_publish = self._nlv.columns();
       self._nlv.addColumn('',20);
@@ -488,8 +496,8 @@ class TreeBrowser (QObject):
       self._nlv.addColumn('xs/rqid');
       self._icol_class = self._icol_disable = self._nlv.columns();
       self._nlv.addColumn('Class');
-      self._icol_status = self._nlv.columns();
-      self._nlv.addColumn('(status)');
+      # self._icol_status = self._nlv.columns();
+      # self._nlv.addColumn('(status)');
       self._icol_index = self._nlv.columns();
       self._nlv.addColumn('idx',60);
     #      for icol in range(self._nlv.columns()):
@@ -579,10 +587,10 @@ class TreeBrowser (QObject):
     item = start.firstChild();
     while item:
       if isinstance(item,self.NodeItem):
-        if item._node.nodeindex == active_ni and not active_item:   
+        if item.node.nodeindex == active_ni and not active_item:   
           self._nlv.ensureItemVisible(item);
           active_item = item;
-        if (item._node.control_status&meqds.CS_MASK_EXECSTATE) != meqds.CS_ES_IDLE:
+        if (item.node.control_status&meqds.CS_MASK_EXECSTATE) != meqds.CS_ES_IDLE:
           i1 = self.expand_active_tree(item,active_ni);
           active_item = active_item or i1;
       item = item.nextSibling();
@@ -591,7 +599,7 @@ class TreeBrowser (QObject):
   # slot: called to show a context menu for a browser item
   def _show_context_menu (self,item,point,col):
     if isinstance(item,self.NodeItem):
-      if col in (self._icol_status,self._icol_execstate,self._icol_breakpoint):
+      if col in (self._icol_execstate,self._icol_breakpoint):
         menu = item.debug_menu();
       else:
         menu = item.context_menu();
@@ -602,7 +610,7 @@ class TreeBrowser (QObject):
     self._recent_item = item;
     if isinstance(item,self.NodeItem):
       if button == 1:
-        self.wtop().emit(PYSIGNAL("view_node()"),(item._node,None));
+        self.wtop().emit(PYSIGNAL("view_node()"),(item.node,None));
         
   def _set_recent_item (self,item):
     self._recent_item = item;
@@ -626,32 +634,6 @@ class TreeBrowser (QObject):
     _dprint(1,"requesting node list");
     mqs().meq('Get.Node.List',meqds.NodeList.RequestRecord,wait=False);
     
-  def _save_forest (self):
-    try: dialog = _save_dialog;
-    except AttributeError:
-      dialog = self._save_dialog = QFileDialog(self._nlv,"save dialog",True);
-      dialog.setMode(QFileDialog.AnyFile);
-      dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
-      dialog.setViewMode(QFileDialog.Detail);
-      dialog.setCaption("Save forest");
-    if dialog.exec_loop() == QDialog.Accepted:
-      fname = str(dialog.selectedFile());
-      rec = srecord(file_name=fname,get_forest_status=True);
-      mqs().meq('Save.Forest',rec,wait=False);
-
-  def _load_forest (self):
-    try: dialog = self._load_dialog;
-    except AttributeError:
-      dialog = self._load_dialog = QFileDialog(self._nlv,"load dialog",True);
-      dialog.setMode(QFileDialog.ExistingFile);
-      dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
-      dialog.setViewMode(QFileDialog.Detail);
-      dialog.setCaption("Load forest");
-    if dialog.exec_loop() == QDialog.Accepted:
-      fname = str(dialog.selectedFile());
-      rec = srecord(file_name=fname,get_forest_status=True);
-      mqs().meq('Load.Forest',rec,wait=False);
-      
   def _debug_single_step (self):
     self.clear_debug_stack();
     self.is_stopped = False;
@@ -679,42 +661,135 @@ class TreeBrowser (QObject):
   def _debug_pause (self):
     mqs().meq('Debug.Pause',srecord(),wait=False);
 
-  def add_toolbar_action (self,action,callback=None,order=1000,menus=None):
+  def add_action (self,action,order=1000,where="toolbar",callback=None):
     if callback:
       QObject.connect(action,SIGNAL("activated()"),callback);
-    action._tb_menus = menus;
-    self._toolbar_actions.append((order,action));
+    self._actions.setdefault(where,[]).append((order,action));
     
-  def add_toolbar_separator (self,order=1000):
-    self._toolbar_actions.append((order,None));
+  def add_separator (self,order=1000,where="toolbar"):
+    self._actions.setdefault(where,[]).append((order,None));
+    
+  def get_action_list (self,which):
+    return self._actions.get(which,[]);
 
-def define_treebrowser_toolbar_actions (tb):
+  def save_forest_dialog (self):
+    try: dialog = self._save_forest_dialog;
+    except AttributeError:
+      self._save_forest_dialog = dialog = QFileDialog(self.wtop(),"save dialog",True);
+      dialog.setMode(QFileDialog.AnyFile);
+      dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
+      dialog.setViewMode(QFileDialog.Detail);
+      dialog.setCaption("Save forest");
+      if parent is not None:
+        parent._save_forest_dialog = dialog;
+    if dialog.exec_loop() == QDialog.Accepted:
+      fname = str(dialog.selectedFile());
+      rec = srecord(file_name=fname,get_forest_status=True);
+      mqs().meq('Save.Forest',rec,wait=False);
+
+  def load_forest_dialog (self):
+    try: dialog = self._load_forest_dialog;
+    except AttributeError:
+      self._load_forest_dialog = dialog = QFileDialog(self.wtop(),"load dialog",True);
+      dialog.setMode(QFileDialog.ExistingFile);
+      dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
+      dialog.setViewMode(QFileDialog.Detail);
+      dialog.setCaption("Load forest");
+      if parent is not None:
+        parent._load_forest_dialog = dialog;
+    if dialog.exec_loop() == QDialog.Accepted:
+      fname = str(dialog.selectedFile());
+      rec = srecord(file_name=fname,get_forest_status=True);
+      mqs().meq('Load.Forest',rec,wait=False);
+      
+  def node_execute_dialog (self,node):
+    try: dialog = self._node_reexecute_dialog;
+    except AttributeError:
+      self._node_reexecute_dialog = dialog = NodeExecuteDialog(self.wtop())
+    dialog.show(node);
+
+class NodeExecuteDialog (QDialog):
+  def __init__(self,parent):
+    QDialog.__init__(self,parent,"reexecute",False);
+    # create GUI
+    top_box = QWidget(self);
+    top_lo = QVBoxLayout(top_box);
+    self._reqbr = HierBrowser(top_box,"value","field");
+    control_box = QWidget(top_box);
+    control_lo = QHBoxLayout(control_box);
+    top_lo.addWidget(self._reqbr.wtop());
+    top_lo.addWidget(control_box);
+    # buttons
+    self._exec_btn = QPushButton(pixmaps.reexecute.iconset(),"Execute",control_box);
+    self._exec_btn.setEnabled(False);
+    self._exec_btn.setDefault(True);
+    QObject.connect(self._exec_btn,SIGNAL("clicked()"),self.execute);
+    cancel = QPushButton(pixmaps.cancel.iconset(),"Cancel",control_box);
+    QObject.connect(cancel,SIGNAL("clicked()"),self.hide);
+    control_lo.addWidget(self._exec_btn);
+    control_lo.addWidget(cancel);
+    
+  def show (self,node):
+    self.setCaption("Execute node "+node.name);
+    self._request = None;
+    self._callback = curry(self._update_state);
+    # request node state, and subscribe to it via the curried callback
+    # the curry() is handy because it will automatically disconnect the
+    # subscription when deleted
+    node.subscribe_state(self._callback);
+    meqds.request_node_state(node);
+    QDialog.show(self);
+    
+  def hide (self):
+    self._request = None;
+    self._callback = None; # this will disconnect the Qt signal
+    QDialog.hide(self);
+  
+  def _update_state(self,node,state,event=None):
+    if hasattr(self,'_request'):
+      return;
+    try: request = state.request;
+    except AttributeError: return;
+    self._request = copy.deepcopy(request);
+    self._request.request_id = hiid();
+    self._exec_btn.setEnable(True);
+    self._reqbr.set_content(self._request);
+    
+  def execute (self,ni):
+    try: request = self._request;
+    except AttributeError: return;
+    cmd = srecord(nodeindex=ni,request=request,get_state=True);
+    mqs().meq('Node.Execute',cmd,wait_reply=False);
+    self.hide();
+
+def define_treebrowser_actions (tb):
   _dprint(1,'defining standard treebrowser actions');
   parent = tb.wtop();
+  # populate the toolbar
   # Refresh
   refresh = QAction("Refresh",pixmaps.refresh.iconset(),"Refresh node list",Qt.Key_F2,parent);
   refresh._is_enabled = lambda tb=tb: tb.is_connected;
-  tb.add_toolbar_action(refresh,tb._request_nodelist,10);
-  tb.add_toolbar_separator(20);
+  tb.add_action(refresh,10,callback=tb._request_nodelist);
+  tb.add_separator(20);
   # Save and load
   load = QAction("Load",pixmaps.file_open.iconset(),"Load forest",Qt.Key_L+Qt.ALT,parent);
   save = QAction("Save",pixmaps.file_save.iconset(),"Save forest",Qt.Key_S+Qt.ALT,parent);
   load._is_enabled = save._is_enabled = lambda tb=tb: tb.is_connected and tb.app_state == AppState.Idle;
-  tb.add_toolbar_action(load,tb._load_forest,30);
-  tb.add_toolbar_action(save,tb._save_forest,40);
-  tb.add_toolbar_separator(50);
+  tb.add_action(load,30,callback=tb.load_forest_dialog);
+  tb.add_action(save,40,callback=tb.save_forest_dialog);
+  tb.add_separator(50);
   # Enable debugger
   dbg_enable = tb._qa_dbg_enable = QAction("Enable debugger",pixmaps.eject.iconset(),"Enable &Debugger",Qt.Key_F5,parent,"",True);
   QObject.connect(dbg_enable,SIGNAL("toggled(bool)"),tb._debug_enable_slot);
   QObject.connect(tb,PYSIGNAL("debug_enabled()"),dbg_enable.setOn);
   dbg_enable._is_enabled = lambda tb=tb: tb.is_connected;
-  tb.add_toolbar_action(dbg_enable,None,60);
+  tb.add_action(dbg_enable,60);
   # Pause
   pause = QAction("Pause",pixmaps.pause.iconset(),"&Pause",Qt.Key_F6,parent);
   dbg_enable.is_enabled = lambda tb=tb: tb.is_connected and tb.debug_level>0 and \
                                         tb.is_running and not tb.is_stopped;
-  tb.add_toolbar_action(pause,tb._debug_pause,70);
-  tb.add_toolbar_separator(80);
+  tb.add_action(pause,70,callback=tb._debug_pause);
+  tb.add_separator(80);
   # Debug action group
   ag_debug = QActionGroup(parent);
   dbgcont  = QAction("Continue",pixmaps.right_2triangles.iconset(),"&Continue",Qt.Key_F6+Qt.SHIFT,parent);      
@@ -728,62 +803,92 @@ def define_treebrowser_toolbar_actions (tb):
   ag_debug.add(dbgcont);
   ag_debug.add(dbgstep);
   ag_debug.add(dbgnext);
-  tb.add_toolbar_action(ag_debug,None,90);
+  tb.add_action(ag_debug,90);
   
+  # populate node context menu
+  tb.add_action(NA_NodeDisable,10,where="node");
+  tb.add_action(NA_NodePublish,20,where="node");
+  tb.add_action(NA_NodeExecute,30,where="node");
+
+  # populate debug context sub-menu
+  tb.add_action(NA_ContinueUntil,10,where="debug");
+  tb.add_action(ag_debug,20,where="debug");
+
+
 class NodeAction (object):
-  """NodeAction is a class describing a node-associated action.""";
-  # these class attributes are meant to be redefined by subclasses
+  """NodeAction is a class implementing a node-associated action.""";
+  # static attributes of action
+  # these are meant to be redefined by subclasses
   text = 'unknown action';
   iconset = None;
   nodeclass = None;  # None means all nodes; else assign meqds.NodeClass('class');
-  def applies_to_all (self):
-    return self.nodeclass is None;
-  def applies_to (self,node):
-    return self.applies_to_all() or issubclass(meqds.NodeClass(node.nodeclass),self.nodeclass);
-  def add_to_menu (self,item,menu):
-    cb = item.xcurry(self.activate,(item._node,),_argslice=slice(0));
+  # static methods describing properties of this action
+  def applies_to_node (self,node):
+    return self.nodeclass is None or issubclass(meqds.NodeClass(node.nodeclass),self.nodeclass);
+  applies_to_node = classmethod(applies_to_node);
+  
+  def __init__ (self,item,menu,callback=None,separator=False):
+    """instantiates action and adds it to the given menu.
+    item is a TreeBrowser.NodeItem with which the menu is associated."""
+    self.item = weakref_proxy(item);
+    if separator:
+      menu.insertSeparator();
     if self.iconset:
-      iid = menu.insertItem(self.iconset(),self.text,cb);
+      self.item_id = menu.insertItem(self.iconset(),self.text,callback or self.activate);
     else:
-      iid = menu.insertItem(self.text,cb);
-    if hasattr(self,'eval_status'):
-      menu.setItemChecked(iid,self.eval_status(item._node));
-    return iid;
-  ### if eval_status() defined in a sub-class, then the menu entry for this node action will be 
-  ### "checkable", with the "checked" status determined by calling this method with the node's
-  ### control status whenever that is updated.
-  ## def eval_status (self,node):
-  ##   return False;
-  ### if eval_state() defined in a sub-class, then the menu entry for this node action will be 
-  ### "checkable", with the "checked" status determined by calling this method with the node's
-  ### state record whenever that is updated.
-  ## def eval_state (self,state):
-  ##   return False;
-  # activate is called whenever this action is selected from the context menu
-  def activate (self,node):
-    """this method is called whenever this action is selected from the context menu""";
-    raise "activate() not defined in NodeAction of type "+str(type(self));
-    
-class NTA_NodeDisable (NodeAction):
+      self.item_id = menu.insertItem(self.text,callback or self.activate);
+      
+  def update (self,menu):
+    """this is called whenever a menu is being displayed. Subclasses may
+    redefine this to set up the item as appropriate""";
+    # if an is_enabled attribute exists, enable item
+    try: enable = self.is_enabled();
+    except AttributeError: pass;
+    else: menu.setItemEnabled(self.item_id,enable);
+    # if an is_checked attribute exists, set item as checked
+    try: checked = self.is_checked();
+    except AttributeError: pass;
+    else: menu.setItemChecked(self.item_id,checked);
+      
+  def activate (self):
+    """callback: called whenever the menu item is selected""";
+    pass;
+      
+class NA_NodeDisable (NodeAction):
   text = "Disable";
   iconset = pixmaps.cancel.iconset;
-  def activate (self,node):
-    cs = node.control_status ^ meqds.CS_ACTIVE;
+  def activate (self):
+    cs = self.item.node.control_status ^ meqds.CS_ACTIVE;
     meqds.set_node_state(node,control_status=cs);
-  def eval_status (self,node):
-    return not node.is_active();
+  # define is_checked as a property that is computed on-the-fly
+  def is_checked (self):
+    return not self.item.node.is_active();
 
-class NTA_NodePublish (NodeAction):
+class NA_NodePublish (NodeAction):
   text = "Publish";
   iconset = pixmaps.publish.iconset;
-  def activate (self,node):
+  def activate (self):
+    node = self.item.node;
     cmd = srecord(nodeindex=node.nodeindex,get_state=True,enable=not node.is_publishing());
     mqs().meq('Node.Publish.Results',cmd,wait=False);
-  def eval_status (self,node):
-    return node.is_publishing();
+  def is_checked (self):
+    return self.item.node.is_publishing();
 
-TreeBrowser.add_node_action(NTA_NodeDisable());
-TreeBrowser.add_node_action(NTA_NodePublish());
+class NA_ContinueUntil (NodeAction):
+  text = "Continue until";
+  iconset = pixmaps.forward_to.iconset;
+  def __init__ (self,item,menu,**kw):
+    NodeAction.__init__(self,item,menu,**kw);
+    menu.changeItem(self.item_id,"Continue &until "+item.node.name);
+    self.tb = self.item.tb;
+  def activate (self):
+    self.tb._debug_until_node(self.item.node);
+  def is_enabled (self):
+    return self.tb.debug_level>0 and self.tb.is_running and self.tb.is_stopped;
 
-
-
+class NA_NodeExecute (NodeAction):
+  text = "Reexecute";
+  iconset = pixmaps.reexecute.iconset;
+  def activate (self):
+    self.item.tb.node_execute_dialog(self.item.node);
+  
