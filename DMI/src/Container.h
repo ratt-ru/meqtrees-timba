@@ -25,8 +25,9 @@
 
 //## begin module%3C10CC830067.includes preserve=yes
 #include "TypeInfo.h"
-#include "pscf/TID-PSCF.h"
-#include "pscf/Timestamp.h"
+// for now:
+//#include "pscf/TID-PSCF.h"
+//#include "pscf/Timestamp.h"
 //## end module%3C10CC830067.includes
 
 // Registry

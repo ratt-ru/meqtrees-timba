@@ -1,6 +1,4 @@
 
-SUBDIRS=. pscf 
-
 CXXFLAGS += -Wno-unknown-pragmas
 
 lib_LTLIBRARIES = libdmi.la
@@ -21,8 +19,9 @@ BASELISTDIR = $(lofar_sharedir)/..
 # Your package's subdirectory
 AID_DIR = $(top_srcdir)/src
 
-ids:
-	$(MAPBUILDER) `find $(BASELISTDIR) -name \*.aidlist` $(AID_DIR)/*.h
+aids:
+	$(MAPBUILDER) `find $(BASELISTDIR) -name \*.aidlist` $(AID_DIR)/*.h $(AID_DIR)/TypeIterMacros.h
+  
 
 include $(lofar_sharedir)/Makefile.common
 
