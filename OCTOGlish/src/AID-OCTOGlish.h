@@ -28,6 +28,11 @@ const int AidHelloWorld_int = -1040;
 const AtomicID AidIMTestWP(-1041);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOGlish/src/OCTOGlish.aidlist:4
 const int AidIMTestWP_int = -1041;
 #endif
+#ifndef _defined_id_AidIndex
+#define _defined_id_AidIndex 1
+const AtomicID AidIndex(-1045);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:40
+const int AidIndex_int = -1045;
+#endif
 #ifndef _defined_id_Aidstart
 #define _defined_id_Aidstart 1
 const AtomicID Aidstart(-1043);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOGlish/src/OCTOGlish.aidlist:5

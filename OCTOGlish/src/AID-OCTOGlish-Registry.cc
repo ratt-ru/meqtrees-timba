@@ -11,6 +11,7 @@
     }
 
 static AtomicID::Register aid_reg_GlishClientWP(-1039,"GlishClientWP");
+static AtomicID::Register aid_reg_Index(-1045,"Index");
 static AtomicID::Register aid_reg_start(-1043,"start");
 static AtomicID::Register aid_reg_IMTestWP(-1041,"IMTestWP");
 static AtomicID::Register aid_reg_HelloWorld(-1040,"HelloWorld");

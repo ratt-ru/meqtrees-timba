@@ -2,7 +2,8 @@ pragma include once
 
 include "note.g";
 
-octopussy := function (wpclass="",server="./octoglish",options="",autoexit=T) 
+octopussy := function (wpclass="",server="./octoglish",
+          options="",autoexit=T,suspend=F,verbose=1) 
 {
   self := [=];
   public := [=];
@@ -11,29 +12,38 @@ octopussy := function (wpclass="",server="./octoglish",options="",autoexit=T)
   self.opClient::Died := T;
   self.state := 0;
   self.started := F;
+  self.verbose := verbose;
 
 # Private functions
 #------------------------------------------------------------------------------
-  const self.makeclient := function (server,wpclass="",options="") 
+  const self.dprint := function (level,...)
   {
     wider self;
-#    if( wpclass == "" ) { 
-      print "starting client(",server,",",options,")";
-      self.opClient := client(server,options);
-#    } else {
-#      print "starting client(",server,",-wpc,",wpclass,",",options;
-#      self.opClient := client(server,"-wpc",wpclass,options);
-#    }
-    print self.opClient;
+    if( level <= self.verbose )
+     print spaste(...);
+  }
+  
+  const public.setverbose := function (level)
+  {
+    wider self;
+    self.verbose := level;
+    return level;
+  }
+
+  const self.makeclient := function (server,wpclass="",options="",suspend=F) 
+  {
+    wider self;
+    self.dprint(1,"starting client(",server,",",options,")");
+    self.opClient := client(server,options,suspend=suspend);
     if( !is_agent(self.opClient) ) 
       fail paste('server',server,'could not be started');
-    print "connected";
+    self.dprint(1,"connected");
     self.opClient::Died := F;
     # set up fail/exit handler
     whenever self.opClient->["fail done"] do 
     {
       self.opClient::Died := T;
-      print 'octoglish: remote client has terminated with event ',$name,$value;
+      self.dprint(1,'octoglish: remote client has terminated with event ',$name,$value);
     }
     return T;
   }
@@ -80,12 +90,12 @@ octopussy := function (wpclass="",server="./octoglish",options="",autoexit=T)
   
 # Public functions
 #------------------------------------------------------------------------------
-  const public.init := function (wpclass="",server="",options="") 
+  const public.init := function (wpclass="",server="",options="",suspend=F) 
   {
     wider self;
     if( is_boolean(self.opClient) || self.opClient::Died ) 
     {
-      self.makeclient(server,wpclass=wpclass,options=options);
+      self.makeclient(server,wpclass=wpclass,options=options,suspend=suspend);
     }
     return T;
   }
@@ -104,7 +114,7 @@ octopussy := function (wpclass="",server="./octoglish",options="",autoexit=T)
       fail sc;
     for( id in ids )
     {
-      print "subscribing: ",id,sc;
+     self.dprint(2,"subscribing: ",id,sc);
       # send event
       if( !self.opClient->subscribe([id=id,scope=sc]) )
         fail 'subscribe() failed';
@@ -184,14 +194,14 @@ octopussy := function (wpclass="",server="./octoglish",options="",autoexit=T)
     if( !self.started )
       fail 'octopussy not started';
     # set the scope
-    print "publish: ",id,scope;
+    self.dprint(3,"publish: ",id,scope);
     sc := self.getscope(scope);
     if( is_fail(sc) )
       return sc;
     # create message record
     rec := self.makemsg(id,rec,priority,datablock,blockset);
     rec::scope := sc;
-    print "publishing: ",rec::;
+    self.dprint(3,"publishing: ",rec::);
     # send the event
     if( self.opClient->publish(rec) )
       return T;
@@ -208,7 +218,7 @@ octopussy := function (wpclass="",server="./octoglish",options="",autoexit=T)
     # wait for message
     await self.opClient->*;
     val value := $value;
-    print "got event: ",$name;
+    self.dprint(3,"got event: ",$name);
     return $name;
   }
   
@@ -248,13 +258,14 @@ octopussy := function (wpclass="",server="./octoglish",options="",autoexit=T)
     return self.started;
   }
   
-  res := public.init(wpclass,server=server,options=options);
+  res := public.init(wpclass,server=server,options=options,suspend=suspend);
   if( is_fail(res) )
     return res;
   
   if( autoexit )
-    whenever self.opClient->exit do {
-      print "Got 'exit' event, exiting";
+    whenever self.opClient->exit do 
+    {
+      self.dprint(0,"Got 'exit' event, auto-exit enabled, exiting");
       exit 1;
     }
   
@@ -295,11 +306,11 @@ test_octopussy := function (server="./test_glish",options="")
 }
 
 # makes a HIID object from a string
-hiid := function(str)
+hiid := function(...)
 {
-  value := str;
-  value::is_hiid = T;
-  return value;
+  ret := paste(...,sep=".");
+  ret::is_hiid := T;
+  return ret;
 }
 
 

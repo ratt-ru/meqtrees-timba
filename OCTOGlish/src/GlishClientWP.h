@@ -1,20 +1,21 @@
-#ifndef GlishClientWP_h
-#define GlishClientWP_h 1
+#ifndef OCTOGlish_GlishClientWP_h
+#define OCTOGlish_GlishClientWP_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
+#include <aips/Glish.h>
+#include <aips/Arrays/Array.h>
+#include <aips/Arrays/ArrayMath.h>
 
-#include "OCTOGlish/AID-OCTOGlish.h"
-
-// WorkProcess
-#include "OCTOPUSSY/WorkProcess.h"
-#pragma aidgroup OCTOGlish
-#pragma aid GlishClientWP
-#pragma aid start IMTestWP HelloWorld Content
-
+#include <DMI/DMI.h>
+#include <OCTOGlish/AID-OCTOGlish.h>
+#include <OCTOPUSSY/WorkProcess.h>
+    
 class GlishSysEvent;
 class GlishSysEventSource;
 class GlishRecord;
+
+#pragma aidgroup OCTOGlish
+#pragma aid GlishClientWP
+#pragma aid Index start IMTestWP HelloWorld Content
 
 
 //##ModelId=3CB5618B0373
@@ -44,28 +45,15 @@ class GlishClientWP : public WorkProcess
       //##ModelId=3CB5622B01ED
       virtual int receive (MessageRef &mref);
 
-      //##ModelId=3CB57C8401D6
-      MessageRef glishRecToMessage (const GlishRecord &glrec);
-
-      //##ModelId=3CB57CA00280
-      bool messageToGlishRec (const Message &msg, GlishRecord &glrec);
-
     // Additional Public Declarations
       // max number of glish events processed per one polling loop
     //##ModelId=3DB93691036B
       static const int MaxEventsPerPoll = 10;
       
-    //##ModelId=3DB9369202CC
-      static void recToGlish (const DataRecord &rec, GlishRecord& glrec);
-    //##ModelId=3DB936930231
-      static void objectToBlockRec (const BlockableObject &obj,GlishRecord &rec );
-      
   protected:
-    // Additional Protected Declarations
-    //##ModelId=3DB936940034
-      void glishToRec (const GlishRecord &glrec, DataRecord& rec);
-    //##ModelId=3DB93695024D
-      BlockableObject * blockRecToObject (const GlishRecord &rec );
+      GlishValue messageToGlishValue (const Message &msg);
+      MessageRef glishValueToMessage (const GlishValue &value);
+  
   private:
     //##ModelId=3DB9369503DE
       GlishClientWP();
@@ -113,7 +101,7 @@ inline bool GlishClientWP::autostop () const
   return autostop_;
 }
 
-GlishClientWP * makeGlishClientWP (int argv,const char *argv[] );
+GlishClientWP * makeGlishClientWP (int argv,const char *argv[],bool autstop=False );
 
 
 #endif

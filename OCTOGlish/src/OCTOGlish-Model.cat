@@ -19,11 +19,11 @@
 		(object Attribute
 		    tool       	"Cplusplus"
 		    name       	"HeaderSourceFile"
-		    value      	"Glish/GlishClientWP.h")
+		    value      	"GlishClientWP.h")
 		(object Attribute
 		    tool       	"Cplusplus"
 		    name       	"BodySourceFile"
-		    value      	"Glish/GlishClientWP.cc"))
+		    value      	"GlishClientWP.cc"))
 	    quid       	"3CB5618B0373"
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
@@ -125,90 +125,11 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	1018518859)
-		(object Operation "glishRecToMessage"
-		    attributes 	(list Attribute_Set)
-		    quid       	"3CB57C8401D6"
-		    parameters 	(list Parameters
-			(object Parameter "glrec"
-			    quid       	"3CB58548032D"
-			    type       	"const GlishRecord &"))
-		    result     	"MessageRef"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	1018518861
-		    quidu      	"3C7B722600DE")
-		(object Operation "messageToGlishRec"
-		    attributes 	(list Attribute_Set)
-		    quid       	"3CB57CA00280"
-		    parameters 	(list Parameters
-			(object Parameter "msg"
-			    quid       	"3CB57CC40070"
-			    type       	"const Message &")
-			(object Parameter "glrec"
-			    quid       	"3CB5854F039B"
-			    type       	"GlishRecord &"))
-		    result     	"bool"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	1018518862)
 		(object Operation "~GlishClientWP"
 		    quid       	"3DB9369201C7"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "recToGlish"
-		    quid       	"3DB9369202CC"
-		    stereotype 	"static"
-		    parameters 	(list Parameters
-			(object Parameter "rec"
-			    quid       	"3DB9369300AB"
-			    type       	"const DataRecord &")
-			(object Parameter "glrec"
-			    quid       	"3DB93693017D"
-			    type       	"GlishRecord&"))
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "objectToBlockRec"
-		    quid       	"3DB936930231"
-		    stereotype 	"static"
-		    parameters 	(list Parameters
-			(object Parameter "obj"
-			    quid       	"3DB9369302BD"
-			    type       	"const BlockableObject &")
-			(object Parameter "rec"
-			    quid       	"3DB936930372"
-			    type       	"GlishRecord &"))
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "glishToRec"
-		    quid       	"3DB936940034"
-		    parameters 	(list Parameters
-			(object Parameter "glrec"
-			    quid       	"3DB9369400DE"
-			    type       	"const GlishRecord &")
-			(object Parameter "rec"
-			    quid       	"3DB93695018F"
-			    type       	"DataRecord&"
-			    quidu      	"3BB3112B0027"))
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Protected"
-		    uid        	0)
-		(object Operation "blockRecToObject"
-		    quid       	"3DB93695024D"
-		    parameters 	(list Parameters
-			(object Parameter "rec"
-			    quid       	"3DB9369502F7"
-			    type       	"const GlishRecord &"))
-		    result     	"BlockableObject *"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Protected"
-		    uid        	0
-		    quidu      	"3BB1F71F03C9")
 		(object Operation "GlishClientWP"
 		    quid       	"3DB9369503DE"
 		    concurrency 	"Sequential"
@@ -251,6 +172,44 @@
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "init"
+		    quid       	"3E9BD6E900D3"
+		    stereotype 	"virtual"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "messageToGlishValue"
+		    quid       	"3E9BD6E900D5"
+		    parameters 	(list Parameters
+			(object Parameter "msg"
+			    quid       	"3E9BD6E900D6"
+			    type       	"const Message &"))
+		    result     	"GlishValue"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0)
+		(object Operation "glishValueToMessage"
+		    quid       	"3E9BD6E900D9"
+		    parameters 	(list Parameters
+			(object Parameter "value"
+			    quid       	"3E9BD6E900DA"
+			    type       	"const GlishValue &"))
+		    result     	"MessageRef"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Protected"
+		    uid        	0
+		    quidu      	"3C7B722600DE")
+		(object Operation "handleEvent"
+		    quid       	"3E9BD6E900DD"
+		    parameters 	(list Parameters
+			(object Parameter "event"
+			    quid       	"3E9BD6E900DF"
+			    type       	"GlishSysEvent &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
 		    uid        	0))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "evsrc"
@@ -284,9 +243,12 @@
 		    type       	"bool")
 		(object ClassAttribute "has_events"
 		    quid       	"3DB93692009B"
+		    type       	"bool")
+		(object ClassAttribute "glish_started"
+		    quid       	"3E9BD6E900CF"
 		    type       	"bool"))
-	    module     	"Component View::OCTOPUSSY"
-	    quidu      	"3DB936450383"
+	    module     	"Component View::OCTOGlish"
+	    quidu      	"3E9BD681018B"
 	    language   	"ANSI C++")
 	(object Class_Category "Analysis"
 	    quid       	"3DF467760164"
@@ -1454,7 +1416,7 @@
 			    fill_color 	13434879
 			    quidu      	"3DF46AC0034D"
 			    width      	330
-			    height     	4520
+			    height     	4550
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -3696,7 +3658,7 @@
 			    ordinal    	51)
 			(object Destruction_Marker @175
 			    Parent_View 	@51
-			    location   	(2685, 5535)
+			    location   	(2685, 5565)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @176
