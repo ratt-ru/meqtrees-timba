@@ -13,7 +13,7 @@
 //## Module: Packer%3CA2F0DC004E; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\Packer.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\Packer.h
 
 #ifndef Packer_h
 #define Packer_h 1

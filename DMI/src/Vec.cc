@@ -13,7 +13,7 @@
 //## Module: DataField%3C10CC820126; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\DataField.cc
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\DataField.cc
 
 //## begin module%3C10CC820126.additionalIncludes preserve=no
 //## end module%3C10CC820126.additionalIncludes

@@ -13,7 +13,7 @@
 //## Module: TypeId%3C10CC8301F8; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\TypeId.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\TypeId.h
 
 #ifndef TypeId_h
 #define TypeId_h 1
@@ -41,7 +41,7 @@
 //## end TypeId%3BFBA88F001D.preface
 
 //## Class: TypeId%3BFBA88F001D
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n

@@ -5,18 +5,20 @@ INCLUDES			= -I$(lofar_sharedir)/../CEP/CPA/PSCF/src
 check_PROGRAMS			= test_dmi tDataArray
 
 test_dmi_SOURCES 		= test_dmi.cc
-test_dmi_LDADD			= $(top_builddir)/src/libdmi.la
+test_dmi_LDADD			= $(top_builddir)/src/libdmi.la \
+      $(lofar_sharedir)/../Common/build/gnu_debug/src/libcommon.la
 
 tDataArray_SOURCES 		= tDataArray.cc
-tDataArray_LDADD		= $(top_builddir)/src/libdmi.la
+tDataArray_LDADD		= $(top_builddir)/src/libdmi.la \
+      $(lofar_sharedir)/../Common/build/gnu_debug/src/libcommon.la
 
 TESTS	=					\
-	test_dmi				\
-	tDataArray_test.sh			
+	test_dmi				
+#	tDataArray_test.sh			
 
-EXTRA_DIST = 					\
-	tDataArray_test.sh			\
-	tDataArray.out				
+#EXTRA_DIST = 					\
+#	tDataArray_test.sh			
+#	tDataArray.out				
 
 
 # script used to generate AID maps

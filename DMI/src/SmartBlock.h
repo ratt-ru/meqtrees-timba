@@ -13,7 +13,7 @@
 //## Module: SmartBlock%3C10CC83016C; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\SmartBlock.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\SmartBlock.h
 
 #ifndef SmartBlock_h
 #define SmartBlock_h 1
@@ -26,12 +26,12 @@
 //## begin module%3C10CC83016C.includes preserve=yes
 //## end module%3C10CC83016C.includes
 
-// CountedRefTarget
-#include "DMI/CountedRefTarget.h"
 // Debug
 #include "Common/Debug.h"
 // CountedRef
 #include "DMI/CountedRef.h"
+// CountedRefTarget
+#include "DMI/CountedRefTarget.h"
 //## begin module%3C10CC83016C.declarations preserve=no
 //## end module%3C10CC83016C.declarations
 
@@ -45,7 +45,7 @@
 //## Class: SmartBlock%3BEAACAB0041
 //	SmartBlock is a block of bytes with a reference count. Optionally,
 //	it can be located in shared memory
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -188,7 +188,7 @@ class SmartBlock;
 
 //## Class: BlockRef%3BEA7FF50154
 //	This is a reference to a SmartBlock.
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n

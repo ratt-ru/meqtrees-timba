@@ -13,13 +13,13 @@
 //## Module: DynamicTypeManager%3C10CC8202B5; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\DynamicTypeManager.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\DynamicTypeManager.h
 
 #ifndef DynamicTypeManager_h
 #define DynamicTypeManager_h 1
 
 //## begin module%3C10CC8202B5.additionalIncludes preserve=no
-#include  "DMI/Common.h"
+#include  "Common.h"
 #include <map>
 //## end module%3C10CC8202B5.additionalIncludes
 
@@ -47,16 +47,16 @@
 //	run-time maintenance of maps of "virtual constructors". Virtual
 //	constructors are used to convert data blocks back into Blockable
 //	Objects.
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: 1..1
 
 
 
-//## Uses: <unnamed>%3BE96CE70063;BlockableObject { -> }
 //## Uses: <unnamed>%3BF905650030;BlockSet { -> }
 //## Uses: <unnamed>%3C5A78A401D0;UniRegistry { -> }
+//## Uses: <unnamed>%3CB1AFE30197;BlockableObject { -> }
 
 class DynamicTypeManager 
 {
@@ -70,7 +70,7 @@ class DynamicTypeManager
     //## Class: PtrConstructor%3BF559FF0375
     //	This defines a pointer to a "constructor" function for constructing
     //	a particular type of object
-    //## Category: PSCF::DMI%3BEAB1F2006B; Global
+    //## Category: DOMIN0%3BEAB1F2006B; Global
     //## Subsystem: DMI%3C10CC810155
     //## Persistence: Transient
     //## Cardinality/Multiplicity: n

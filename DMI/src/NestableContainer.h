@@ -13,7 +13,7 @@
 //## Module: NestableContainer%3C10CC830067; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\NestableContainer.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\NestableContainer.h
 
 #ifndef NestableContainer_h
 #define NestableContainer_h 1
@@ -26,7 +26,7 @@
 //## begin module%3C10CC830067.includes preserve=yes
 #include "DMI/TypeInfo.h"
 // pull in PSCF types
-//#include "PSCF/TID-PSCF.h"
+#include "PSCF/TID-PSCF.h"
 #include "PSCF/Timestamp.h"
 // for now:
 #include <aips/Arrays/Array.h>

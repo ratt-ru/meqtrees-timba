@@ -13,13 +13,13 @@
 //## Module: AtomicID%3C10CC810157; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\AtomicID.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\AtomicID.h
 
 #ifndef AtomicID_h
 #define AtomicID_h 1
 
 //## begin module%3C10CC810157.additionalIncludes preserve=no
-#include "DMI/Common.h"
+#include "Common.h"
 #include <map>
 //## end module%3C10CC810157.additionalIncludes
 
@@ -43,7 +43,7 @@
 //## Class: AtomicID%3BE970170297
 //	Atomic identifier (numeric, but with a mapping mechanism to symbolic
 //	IDs)
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -64,7 +64,7 @@ class AtomicID
 
       //## Operation: AtomicID%3C5E74CB0112
       //	Constructs AtomicID by its name
-      AtomicID (const string &str);
+      explicit AtomicID (const string &str);
 
       //## Operation: AtomicID%3C68D5220318
       AtomicID (const char *str);
@@ -167,7 +167,7 @@ const AtomicID AidNull(0),
 //## Class: AidIndex%3C553F440092
 //	AidIndex is a helper class which may be used to create an AtomicID
 //	corresponding to an array index
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n

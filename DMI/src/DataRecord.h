@@ -13,7 +13,7 @@
 //## Module: DataRecord%3C10CC820052; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\DataRecord.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\DataRecord.h
 
 #ifndef DataRecord_h
 #define DataRecord_h 1

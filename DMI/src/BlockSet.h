@@ -13,13 +13,13 @@
 //## Module: BlockSet%3C10CC810231; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\BlockSet.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\BlockSet.h
 
 #ifndef BlockSet_h
 #define BlockSet_h 1
 
 //## begin module%3C10CC810231.additionalIncludes preserve=no
-#include "DMI/Common.h"
+#include "Common.h"
 #include <deque>
 //## end module%3C10CC810231.additionalIncludes
 
@@ -40,7 +40,7 @@
 
 //## Class: BlockSet%3BEA80A703A9
 //	A deque of block references.
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -183,7 +183,7 @@ class BlockSet
   private: //## implementation
     // Data Members for Associations
 
-      //## Association: DMI::<unnamed>%3BF90ECB0365
+      //## Association: DOMIN0::<unnamed>%3BF90ECB0365
       //## Role: BlockSet::refs%3BF90ECC024E
       //## begin BlockSet::refs%3BF90ECC024E.role preserve=no  private: BlockRef {0..1 -> 0..*VHgN}
       deque<BlockRef> refs;

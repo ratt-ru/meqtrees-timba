@@ -13,7 +13,7 @@
 //## Module: Registry%3C5A7367022E; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\Registry.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\Registry.h
 
 #ifndef Registry_h
 #define Registry_h 1
@@ -64,7 +64,7 @@
 //	constructing objects of type YourClass::Registry. In this way, you
 //	can have the registry populated on strartup via simple static object
 //	declarations. See AtomicID for an example.
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -138,7 +138,7 @@ class UniRegistry
 //## end BiRegistry%3C5E8CAC035D.preface
 
 //## Class: BiRegistry%3C5E8CAC035D; Parameterized Class
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -211,12 +211,14 @@ class BiRegistry : public UniRegistry<Key, Val, HostClass>  //## Inherits: <unna
 //## end Registrar%3C5E8E9D011D.preface
 
 //## Class: Registrar%3C5E8E9D011D; Parameterized Class
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
 
 
+
+//## Uses: <unnamed>%3C5FA31301BE;UniRegistry { -> }
 
 template <class Key, class Val, class HostClass>
 class Registrar 

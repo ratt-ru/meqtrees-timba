@@ -11,16 +11,12 @@
 //## end module%3C14B70800A2.cp
 
 //## Module: Common%3C14B70800A2; Package specification
-//## Subsystem: <Top Level>
-//## Source file: F:\LOFAR\dvl\LOFAR\CEP\CPA\PSCF\src\Common.h
+//## Subsystem: DMI%3C10CC810155
+//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\Common.h
 
 #ifndef Common_h
 #define Common_h 1
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 
 //## begin module%3C14B70800A2.additionalIncludes preserve=no
 //## end module%3C14B70800A2.additionalIncludes
@@ -41,33 +37,25 @@ using namespace std;
 //## end module%3C14B70800A2.additionalDeclarations
 
 
-//## begin Bool%3C14B6D4002F.preface preserve=yes
-//## end Bool%3C14B6D4002F.preface
-
-//## Class: Bool%3C14B6D4002F
-//## Category: Common%3C14B6CE0199
-//## Subsystem: <Top Level>
-//## Persistence: Transient
-//## Cardinality/Multiplicity: n
-
-
-
-
-//## begin Bool%3C14B6D4002F.postscript preserve=yes
+//## begin module%3C14B70800A2.epilog preserve=yes
 // Define capitalized Bool types.
 // If available, use AIPS++ to do that.
-#if defined(HAVE_AIPSPP)
-# include <aips/aipstype.h>
+#if defined(HAVE_AIPSPP) || defined(AIPS_LINUX)
+  #include <aips/aipstype.h>
 #else
- typedef bool Bool;
- const Bool True = true;
- const Bool False = false;
+  typedef bool Bool;
+  const Bool True = true;
+  const Bool False = false;
 #endif
-//## end Bool%3C14B6D4002F.postscript
-
-//## begin module%3C14B70800A2.epilog preserve=yes
 //## end module%3C14B70800A2.epilog
 
 
+#endif
+
+
+// Detached code regions:
+#if 0
+//## begin Bool%3C14B6D4002F.postscript preserve=yes
+//## end Bool%3C14B6D4002F.postscript
 
 #endif

@@ -13,7 +13,7 @@
 //## Module: DataRecord%3C10CC82005C; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\DataRecord.cc
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\DataRecord.cc
 
 //## begin module%3C10CC82005C.additionalIncludes preserve=no
 //## end module%3C10CC82005C.additionalIncludes

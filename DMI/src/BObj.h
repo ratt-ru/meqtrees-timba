@@ -13,7 +13,7 @@
 //## Module: BlockableObject%3C10CC81019B; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\BlockableObject.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\BlockableObject.h
 
 #ifndef BlockableObject_h
 #define BlockableObject_h 1

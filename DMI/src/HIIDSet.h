@@ -13,7 +13,7 @@
 //## Module: HIIDSet%3C10CC8203CD; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\HIIDSet.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\HIIDSet.h
 
 #ifndef HIIDSet_h
 #define HIIDSet_h 1
@@ -42,7 +42,7 @@
 //## Class: HIIDSet%3BFBAC350085
 //	A set of multiple hierarchical IDs
 //	(may include masks, etc.)
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -133,7 +133,7 @@ class HIIDSet
   private: //## implementation
     // Data Members for Associations
 
-      //## Association: DMI::<unnamed>%3C0F8F610325
+      //## Association: DOMIN0::<unnamed>%3C0F8F610325
       //## Role: HIIDSet::contents%3C0F8F6202E1
       //## begin HIIDSet::contents%3C0F8F6202E1.role preserve=no  private: HIID { -> 0..*VHgN}
       set<HIID> contents;

@@ -13,7 +13,7 @@
 //## Module: BlockSet%3C10CC81023B; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\BlockSet.cc
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\BlockSet.cc
 
 //## begin module%3C10CC81023B.additionalIncludes preserve=no
 //## end module%3C10CC81023B.additionalIncludes

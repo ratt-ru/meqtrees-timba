@@ -13,7 +13,7 @@
 //## Module: ConfigMgr%3CCFFF3301FC; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\dmi\src\ConfigMgr.cc
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\ConfigMgr.cc
 
 //## begin module%3CCFFF3301FC.additionalIncludes preserve=no
 //## end module%3CCFFF3301FC.additionalIncludes

@@ -13,7 +13,7 @@
 //## Module: CountedRefTarget%3C10CC8103D6; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\CountedRefTarget.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\CountedRefTarget.h
 
 #ifndef CountedRefTarget_h
 #define CountedRefTarget_h 1
@@ -42,7 +42,7 @@ class CountedRefBase;
 //## Class: CountedRefTarget%3C0CDF41029F; Abstract
 //	Abstract base class for anything that can be referenced by a Counted
 //	Ref.
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -118,7 +118,7 @@ class CountedRefTarget
 
     //## Get and Set Operations for Associations (generated)
 
-      //## Association: DMI::<unnamed>%3C0CDF6500AC
+      //## Association: DOMIN0::<unnamed>%3C0CDF6500AC
       //## Role: CountedRefTarget::owner_ref%3C0CDF6503B9
       //	First ref in list of refs to this target
       const CountedRefBase * getOwner () const;
@@ -153,7 +153,7 @@ class CountedRefTarget
   private:
     // Data Members for Associations
 
-      //## Association: DMI::<unnamed>%3C0CDF6500AC
+      //## Association: DOMIN0::<unnamed>%3C0CDF6500AC
       //## begin CountedRefTarget::owner_ref%3C0CDF6503B9.role preserve=no  public: CountedRefBase {0..1 -> 0..1RFHNM}
       mutable CountedRefBase *owner_ref;
       //## end CountedRefTarget::owner_ref%3C0CDF6503B9.role
@@ -186,7 +186,7 @@ class CountedRefTarget
 //	auto pointers (i.e., to automatically delete an object once the last
 //	ref has been detached), but do not want to implement cloning or
 //	privatization.
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n

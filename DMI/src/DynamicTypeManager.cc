@@ -13,7 +13,7 @@
 //## Module: DynamicTypeManager%3C10CC8202B7; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\DynamicTypeManager.cc
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\DynamicTypeManager.cc
 
 //## begin module%3C10CC8202B7.additionalIncludes preserve=no
 //## end module%3C10CC8202B7.additionalIncludes
@@ -73,9 +73,3 @@ bool DynamicTypeManager::isRegistered (TypeId tid)
 
 //## begin module%3C10CC8202B7.epilog preserve=yes
 //## end module%3C10CC8202B7.epilog
-
-
-// Detached code regions:
-#if 0
-
-#endif

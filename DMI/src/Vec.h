@@ -13,7 +13,7 @@
 //## Module: DataField%3C10CC820124; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\DataField.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\DataField.h
 
 #ifndef DataField_h
 #define DataField_h 1

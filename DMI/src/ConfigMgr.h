@@ -13,7 +13,7 @@
 //## Module: ConfigMgr%3CCFFF3301E8; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\dmi\src\ConfigMgr.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\ConfigMgr.h
 
 #ifndef ConfigMgr_h
 #define ConfigMgr_h 1

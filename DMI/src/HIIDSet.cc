@@ -13,7 +13,7 @@
 //## Module: HIIDSet%3C10CC8203CF; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\HIIDSet.cc
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\HIIDSet.cc
 
 //## begin module%3C10CC8203CF.additionalIncludes preserve=no
 //## end module%3C10CC8203CF.additionalIncludes

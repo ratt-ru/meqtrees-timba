@@ -13,7 +13,7 @@
 //## Module: HIID%3C10CC820355; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\HIID.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\HIID.h
 
 #ifndef HIID_h
 #define HIID_h 1

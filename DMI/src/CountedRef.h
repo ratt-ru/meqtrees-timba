@@ -13,7 +13,7 @@
 //## Module: CountedRef%3C10CC810321; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\DMI\src\CountedRef.h
+//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\CountedRef.h
 
 #ifndef CountedRef_h
 #define CountedRef_h 1
