@@ -36,6 +36,9 @@ template <class T>
 class CountedRef : private CountedRefBase
 {
   public:
+      typedef CountedRef<T> Xfer;
+      typedef CountedRef<T> Copy;
+      
       //##ModelId=3BF9396D01A7
       CountedRef();
 

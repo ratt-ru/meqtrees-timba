@@ -4,7 +4,7 @@
     
 //##ModelId=3DB949AE024E
 BOIO::BOIO ()
-    : fp(0)
+    : fp(0),fmode(CLOSED)
 {
 }
 
@@ -18,7 +18,7 @@ BOIO::~BOIO ()
 
 //##ModelId=3DB949AE024F
 BOIO::BOIO (const string &filename,int mode)
-    : fp(0)
+    : fp(0),fmode(CLOSED)
 {
   open(filename,mode);
 }
@@ -29,15 +29,17 @@ int BOIO::open (const string &filename,int mode)
 {
   close();
   const char *mstr;
-  switch( fmode = mode )
+  switch( mode )
   {
     case READ:    mstr = "rb"; break;
     case WRITE:   mstr = "wb"; break;
     case APPEND:  mstr = "ab"; break;
-    default:      Throw("open(): unknown mode");
+    default:      Throw("open(): invalid mode");
   }
   fp = fopen(filename.c_str(),mstr);
   FailWhen( !fp,"error opening file "+filename );
+  fname = filename;
+  fmode = mode;
   have_header = False;
   return 1;
 }
@@ -50,6 +52,8 @@ int BOIO::close ()
   {
     fclose(fp);
     fp = 0;
+    fmode = CLOSED;
+    fname = "";
   }
   return 1;
 }
@@ -127,4 +131,19 @@ size_t BOIO::write (const BlockableObject &obj)
   }
  
   return written;
+}
+
+
+string BOIO::stateString () const
+{
+  if( !fp )
+    return "(closed)";
+  string out = fname;
+  switch( fmode )
+  {
+    case READ: out += "(r)"; break;
+    case WRITE: out += "(w)"; break;
+    case APPEND: out += "(a)"; break;
+  }
+  return out;
 }

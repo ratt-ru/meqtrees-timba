@@ -12,7 +12,7 @@ class BOIO
   public:
     //##ModelId=3DB949AE0048
       typedef enum { 
-        READ,WRITE,APPEND 
+        CLOSED,READ,WRITE,APPEND,
       } FileMode;
   
     //##ModelId=3DB949AE024E
@@ -60,6 +60,13 @@ class BOIO
     //##ModelId=3DB949AE026F
       BOIO & operator << (const BlockableObject &obj)
       { write(obj); return *this; } 
+      
+    //##ModelId=3E53C7990224
+      int fileMode () const;
+      
+      const string & fileName () const;
+      
+      string stateString () const;
   
   private:
     //##ModelId=3DB949AE004D
@@ -70,6 +77,7 @@ class BOIO
       
     //##ModelId=3DB949AE023F
       FILE *fp;
+      string fname;
     //##ModelId=3DB949AE0241
       int  fmode;
     //##ModelId=3DB949AE0243
@@ -78,5 +86,15 @@ class BOIO
       ObjHeader header;
 };    
     
+//##ModelId=3E53C7990224
+inline int BOIO::fileMode () const
+{
+  return fmode;
+}
+
+inline const string & BOIO::fileName () const
+{
+  return fname;
+}
     
 #endif
