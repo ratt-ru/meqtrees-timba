@@ -36,6 +36,7 @@ typedef complex<float> fcomplex;
 //##ModelId=3DB9343E03CB
 typedef complex<double> dcomplex;
 
+#ifndef DoForAllNumericTypes1
 // Defines alternative version of the "for all numeric types"
 // macro, with comma as separator
 #define DoForAllNumericTypes1(Do,arg) \
@@ -55,23 +56,27 @@ typedef complex<double> dcomplex;
         Do(fcomplex,arg) , \
         Do(dcomplex,arg) , \
         Do(bool,arg) 
+#endif
 
 // arrays are supported for a limited subset of scalar types (for Glish
 // compatibility)
 
+#ifndef DoForAllArrayTypes
+
 // These are the type iterators for all arrayable types
 // NB: for now, strings are disabled, until Ger adds the template instantiation
-#define DoForAllArrayTypes2(Do,arg,sep) Do(bool,arg) sep Do(uchar,arg) sep Do(short,arg) sep Do(int,arg) sep Do(float,arg) sep Do(double,arg) sep Do(dcomplex,arg) sep Do(fcomplex,arg) 
-#define DoForAllArrayTypes(Do,arg) DoForAllArrayTypes2(Do,arg,;)
+#define DoForAllArrayTypes_Sep(Do,arg,sep) Do(bool,arg) sep Do(uchar,arg) sep Do(short,arg) sep Do(int,arg) sep Do(float,arg) sep Do(double,arg) sep Do(dcomplex,arg) sep Do(fcomplex,arg) 
+#define DoForAllArrayTypes(Do,arg) DoForAllArrayTypes_Sep(Do,arg,;)
 #define DoForAllArrayTypes1(Do,arg) Do(bool,arg), Do(uchar,arg), Do(short,arg), Do(int,arg), Do(float,arg), Do(double,arg), Do(dcomplex,arg), Do(fcomplex,arg)
 
 // Another iterator for numeric but non-arrayble types (this is needed
 // for, e.g., template instantiation, where you define a specialization for
 // arrayable types, and want to instantiate the non-arrayable ones from
 // the default template)
-#define DoForAllNonArrayTypes2(Do,arg,sep) Do(char,arg) sep Do(ushort,arg) sep Do(uint,arg) sep Do(long,arg) sep Do(ulong,arg) sep Do(longlong,arg) sep Do(ulonglong,arg) sep Do(ldouble,arg) 
-#define DoForAllNonArrayTypes(Do,arg) DoForAllNonArrayTypes2(Do,arg,;)
+#define DoForAllNonArrayTypes_Sep(Do,arg,sep) Do(char,arg) sep Do(ushort,arg) sep Do(uint,arg) sep Do(long,arg) sep Do(ulong,arg) sep Do(longlong,arg) sep Do(ulonglong,arg) sep Do(ldouble,arg) 
+#define DoForAllNonArrayTypes(Do,arg) DoForAllNonArrayTypes_Sep(Do,arg,;)
 
+#endif
 
 template<class T> class Array;
 #define __typedefArray(T,arg) typedef Array<T> Array_##T;
@@ -90,10 +95,19 @@ __typedefArray(string,);
 #pragma type noinclude =string=29
 
 // For arrays, numbers are explicitly assigned as type+20
+
 #pragma type %Array_uchar=31 %Array_int=34 %Array_short=32 
 #pragma type %Array_float=40 %Array_double=41 
 #pragma type %Array_fcomplex=43 %Array_dcomplex=44
 #pragma type %Array_bool=45 %Array_string=49
+
+// commented out for now, to support a limited subset
+//
+//pragma type %Array_char=30 %Array_uchar=31 %Array_short=32 %Array_ushort=33 %Array_int=34 %Array_uint=35 
+//pragma type %Array_long=36 %Array_ulong=37 %Array_longlong=38 %Array_ulonglong=39 
+//pragma type %Array_float=40 %Array_double=41 %Array_ldouble=42 
+//pragma type %Array_fcomplex=43 %Array_dcomplex=44
+//pragma type %Array_bool=45
 
 #pragma type :AtomicID
 
