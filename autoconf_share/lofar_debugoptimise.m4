@@ -47,7 +47,7 @@ AC_ARG_ENABLE(dbgassert,
     fi
   fi
   if test "$enable_debug" = "yes"; then]
-AC_DEFINE(DEBUG,dnl
+AC_DEFINE(LOFAR_DEBUG,dnl
 	1, [Define if we are compiling with debugging information])dnl
 [ fi
   if test "$enable_debug" != "no"; then
