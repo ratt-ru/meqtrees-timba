@@ -31,19 +31,23 @@ if( has_field(lofar_software,'print_versions') &&
   print '$Id$';
 }
 
-# create global namespaces meq and meq_test
+# init global namespaces meq and meq_test
 if( !is_record(meq) )
   meq := [=];
 if( !is_record(meq_test) )
   meq_test := [=];
 
+
 # Creates a request ID
+
 const meq.requestid := function(domain_id,config_id=0,iter_id=0)
 { 
   return hiid(domain_id,config_id,iter_id);
 }
 
-# Creates a defrec for a node
+
+# Creates a basic defrec for a node
+
 const meq.node := function (class,name,children=F,default=[=],groups="")
 {
   defrec := [ class=class,name=name ];
@@ -54,7 +58,9 @@ const meq.node := function (class,name,children=F,default=[=],groups="")
   return defrec;
 }
 
+
 # Creates a Polc
+
 const meq.polc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
                            scale=F,weight=1,domain=F,dbid=-1)
 {
@@ -81,7 +87,9 @@ const meq.polc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
   return rec;
 }
 
+
 # Creates a Parm defrec
+
 const meq.parm := function (name,default=F,polc=F,groups="")
 {
   rec := meq.node('MeqParm',name,groups=groups);
@@ -111,7 +119,9 @@ const meq.parm := function (name,default=F,polc=F,groups="")
   return rec;
 }
 
+
 # Creates a Meq::Domain
+
 const meq.domain := function (startfreq,endfreq,starttime,endtime)
 {
   domain := as_double([startfreq,endfreq,starttime,endtime]);
@@ -120,11 +130,13 @@ const meq.domain := function (startfreq,endfreq,starttime,endtime)
   return domain;
 }
 
+
 # Creates a Meq::Cells
 # Two options are available:
 #   meq.cells(domain,nf,nt) creates regularly-spaced cells
 #   meq.cells(domain,nf,times=[...],time_steps=[...]) creates cells with
 #               explicit time sampling
+
 const meq.cells := function (domain,num_freq,num_time=F,times=F,time_steps=F)
 {
   if( !is_dmi_type(domain,'MeqDomain') )
@@ -142,17 +154,54 @@ const meq.cells := function (domain,num_freq,num_time=F,times=F,time_steps=F)
   return rec;
 }
 
-# creates a command list for inclusion in a request
-const meq.initcmdlist := function ()
+
+
+# Creates a record list from its arguments.
+# A record list is turned into a DataField of DataRecords on the C++ side.
+# Arguments may be records or record lists; all arguments are concatenated 
+# into a single list.
+# If called with no arguments, returns an empty list.
+
+const meq.reclist := function (...)
 {
-  rec := [=];
-  rec::dmi_datafield_content_type := 'DataRecord';
-  return rec;
+  list := [=];
+  list::dmi_datafield_content_type := 'DataRecord';
+  list::dmi_is_reclist := T;
+  for( i in 1:num_args(...) )
+  {
+    arg := nth_arg(i,...);
+    if( !is_record(arg) )
+      fail 'meq.reclist(): arguments must be records';
+    # if argument is a reclist, merge wtih list
+    if( arg::dmi_is_reclist )
+    {
+      for( j in 1:len(arg) )
+        list[spaste('#',len(list)+1)] := arg[j];
+    }
+    else # else add to list
+    {
+      list[spaste('#',len(list)+1)] := arg;
+    }
+  }
+  return list;
 }
 
-# adds to a command list 
-const meq.addcmdlist := function (ref rec,node,command,value=F)
+
+# creates a command list for inclusion in a request
+
+const meq.initcmdlist := function ()
 {
+  return meq.reclist();
+}
+
+
+
+# adds to a command list 
+
+const meq.addcmdlist := function (ref cmdlist,node,command,value=F)
+{
+  if( !is_record(cmdlist) || !cmdlist::dmi_is_reclist )
+    cmdlist := meq.reclist();
   cmd := [=];
   cmd[command] := value;
   # zero-length node is wildcard
@@ -165,8 +214,8 @@ const meq.addcmdlist := function (ref rec,node,command,value=F)
     else 
       fail 'node must be specified by index or name';
   }
-  rec[spaste('#',len(rec)+1)] := cmd;
-  return ref rec;
+  cmdlist[spaste('#',len(cmdlist)+1)] := cmd;
+  return ref cmdlist;
 }
 
 # creates a request
@@ -226,4 +275,14 @@ const meq.request := function (cells=F,request_id=F,calc_deriv=0)
   rec.add_state::dmi_ignore := T;
   
   return ref rec;
+}
+
+
+# creates a command list to set the names parms solvable
+
+const meq.solvable_list := function (names)
+{
+  return [ command_by_list=
+            meq.reclist([name=names,state=[solvable=T]],
+                        [state=[solvable=F]]) ];
 }

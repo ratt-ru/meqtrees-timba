@@ -298,7 +298,7 @@ void Node::setState (DataRecord &rec)
     // obviously pointless if we were initializing to begin with). Note
     // that an exception from this call indicates that the node is well 
     // & truly fscked (a good node should always be reinitializable), so
-    // we might as well let the caller deal with it.
+    // we might as well re-throw itm, letting the caller deal with it.
     if( !initializing )
       setStateImpl(wstate(),true);
     Throw(fail); // rethrow the fail

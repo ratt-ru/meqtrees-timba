@@ -46,7 +46,7 @@ static NestableContainer::Register reg(TpMeqPolc,True);
 static Domain nullDomain;
 
 Polc::Polc()
-    : itsDomain(&nullDomain)
+    : itsDomain(&nullDomain),itsNrSpid(0)
 { 
   itsPertValue = defaultPolcPerturbation; 
   itsWeight = defaultPolcWeight;
@@ -103,7 +103,7 @@ void Polc::setEverything (double freq0,double freqsc,double time0,double timesc,
 
 //##ModelId=400E5354033A
 Polc::Polc (const DataRecord &other,int flags,int depth)
-  : DataRecord(other,flags,depth)
+  : DataRecord(other,flags,depth),itsDomain(&nullDomain),itsNrSpid(0)
 {
   validateContent();
 }

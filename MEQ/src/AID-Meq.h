@@ -63,6 +63,11 @@ const int AidChildren_int = -1220;
 const AtomicID AidClass(-1248);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:33
 const int AidClass_int = -1248;
 #endif
+#ifndef _defined_id_AidClear
+#define _defined_id_AidClear 1
+const AtomicID AidClear(-1389);                   // from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:13
+const int AidClear_int = -1389;
+#endif
 #ifndef _defined_id_AidCoVar
 #define _defined_id_AidCoVar 1
 const AtomicID AidCoVar(-1401);                   // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
@@ -472,6 +477,11 @@ const int AidSet_int = -1316;
 #define _defined_id_AidSolvable 1
 const AtomicID AidSolvable(-1366);                // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
 const int AidSolvable_int = -1366;
+#endif
+#ifndef _defined_id_AidSolve
+#define _defined_id_AidSolve 1
+const AtomicID AidSolve(-1414);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:31
+const int AidSolve_int = -1414;
 #endif
 #ifndef _defined_id_AidSpid
 #define _defined_id_AidSpid 1

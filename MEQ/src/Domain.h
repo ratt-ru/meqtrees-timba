@@ -116,17 +116,26 @@ public:
        &&  time0_ == that.time0_
        &&  time1_ == that.time1_; }
   
+    //##ModelId=400E5305011A
+  bool operator!= (const Domain& that) const
+    { return !(*this == that); }
+
+  // returns true if this domain is a subset of other
   bool subsetOf (const Domain &other) const
   { return 
       startFreq() >= other.startFreq() && endFreq() <= other.endFreq() &&
       startTime() >= other.startTime() && endTime() <= other.endTime(); }
   
+  // returns true if this domain is a superset of other
   bool supersetOf (const Domain &other) const
   { return other.subsetOf(*this); }
-
-    //##ModelId=400E5305011A
-  bool operator!= (const Domain& that) const
-    { return !(*this == that); }
+  
+  // returns the envelope of two domains
+  static Domain envelope (const Domain &a,const Domain &b);
+  
+  // returns the envelope of this and the other domain
+  Domain envelope (const Domain &other) const
+  { return envelope(*this,other); }
   
   // print to stream
     //##ModelId=400E53050125

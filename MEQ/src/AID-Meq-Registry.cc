@@ -85,6 +85,7 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1265,"update")+
         AtomicID::registerId(-1256,"value")+
         AtomicID::registerId(-1413,"values")+
+        AtomicID::registerId(-1414,"solve")+
         AtomicID::registerId(-1247,"cells")+
         AtomicID::registerId(-1213,"domain")+
         AtomicID::registerId(-1128,"freq")+
@@ -137,6 +138,7 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1316,"set")+
         AtomicID::registerId(-1273,"auto")+
         AtomicID::registerId(-1391,"save")+
+        AtomicID::registerId(-1389,"clear")+
         AtomicID::registerId(-1404,"metrics")+
         AtomicID::registerId(-1402,"rank")+
         AtomicID::registerId(-1403,"fit")+

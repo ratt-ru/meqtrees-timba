@@ -28,13 +28,13 @@
 
 #pragma aidgroup Meq
 #pragma aid Node Class Name State Child Children Request Result VellSet 
-#pragma aid Rider Command Id Group Add Update Value Values
+#pragma aid Rider Command Id Group Add Update Value Values Solve
 #pragma aid Cells Domain Freq Time Times Step Steps Calc Deriv Vells VellSets
-#pragma aid NodeIndex Table Name Default Index Num Cache Code
+#pragma aid NodeIndex Table Name Default Index Num Cache Code 
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cells Results Fail Origin Line Message Contagious  Normalized
 #pragma aid Solvable Config Groups All By List Polc Polcs Scale
-#pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save
+#pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear
 #pragma aid Metrics Rank Fit Errors CoVar Flag Mu StdDev Chi
 
 
@@ -82,11 +82,18 @@ namespace Meq
     FDefault         = AidDefault,
     FTableName       = AidTable|AidName,
     FParmName        = AidParm|AidName,
-    FDomainId        = AidDomain|AidId,
     FAutoSave        = AidAuto|AidSave,
+    FDomainId        = AidDomain|AidId,
+    FSolveDomainId   = AidSolve|AidDomain|AidId,
+    // FDomain      defined previously
+    FSolveDomain     = AidSolve|AidDomain,
+    FPolcs           = AidPolcs,
+    FSolvePolcs      = AidSolve|AidPolcs,
+    
     // Parm rider commands
     FUpdateValues    = AidUpdate|AidValues,
-    FSavePolc        = AidSave|AidPolc,
+    FSavePolcs       = AidSave|AidPolcs,
+    FClearPolcs      = AidClear|AidPolcs,
     
     // Polc fields
     FCoeff           = AidCoeff,
@@ -105,7 +112,6 @@ namespace Meq
     FSpids           = AidSpid|AidIndex,
     FPerturbedValues = AidPerturbed|AidValue,
     FPerturbations   = AidPerturbations,
-    FPolcs           = AidPolcs,
 
     // Fail fields
     FFail            = AidFail,

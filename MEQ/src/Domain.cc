@@ -91,6 +91,14 @@ void Domain::validateContent ()
   }  
 }
 
+Domain Domain::envelope (const Domain &a,const Domain &b)
+{
+  using std::min;
+  using std::max;
+  return Domain(min(a.freq0_,b.freq0_),max(a.freq1_,b.freq1_),
+                min(a.time0_,b.time0_),max(a.time1_,b.time1_));
+}
+
 //##ModelId=400E53050125
 void Domain::show (std::ostream& os) const
 {
