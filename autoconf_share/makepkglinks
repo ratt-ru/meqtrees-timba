@@ -78,7 +78,7 @@ if [ "$option" = "0" ]; then
   confs=`find $incdir1/$fullnm -name configure.in -print`
   for conf in $confs
   do
-    pkgs=`egrep "^lofar_PACKAGE" $conf`
+    pkgs=`grep "^[ \t]*lofar_PACKAGE[ \t]*(.*)" $conf`
     for pkg in $pkgs
     do
       # Only keep package name possibly followed by ,option.
