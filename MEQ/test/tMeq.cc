@@ -38,7 +38,7 @@ int main (int argc,const char* argv[])
   Debug::initLevels(argc,argv);
   try 
   {
-    LoMat_double defVal1(2,2);
+    LoMat_double defVal1(1,1);
     defVal1 = 1.;
     LoMat_double defVal2(1,1);
     defVal2 = 2.;
@@ -48,7 +48,7 @@ int main (int argc,const char* argv[])
     DataRecord::Ref rec_child1(DMI::ANONWR);
     rec_child1()["Class"] = "MEQParmPolcStored";
     rec_child1()["Name"] = "p1";
-    rec_child1()["Tablename"] = "meqadd.MEP";
+    //    rec_child1()["Tablename"] = "meqadd.MEP";
     rec_child1()["Default"] = defVal1;
     int index_child1;
     Node& child1 = forest.create(index_child1,rec_child1);
@@ -57,7 +57,7 @@ int main (int argc,const char* argv[])
     DataRecord::Ref rec_child2(DMI::ANONWR);
     rec_child2()["Class"] = "MEQParmPolcStored";
     rec_child2()["Name"] = "p2";
-    rec_child2()["Tablename"] = "meqadd.MEP";
+    //    rec_child2()["Tablename"] = "meqadd.MEP";
     rec_child2()["Default"] = defVal2;
     int index_child2;
     Node& child2 = forest.create(index_child2,rec_child2);
