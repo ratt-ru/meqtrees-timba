@@ -67,7 +67,9 @@ Message::Message (const HIID &id1, BlockableObject *pload, int flags, int pri)
   //## end Message::Message%3C7B9C490384.body
 }
 
-Message::Message (const HIID &id1, ObjRef &pload, int flags, int pri)
+
+
+Message::Message (const HIID &id1, const ObjRef &pload, int flags, int pri)
   //## begin Message::Message%3C7B9D0A01FB.hasinit preserve=no
   //## end Message::Message%3C7B9D0A01FB.hasinit
   //## begin Message::Message%3C7B9D0A01FB.initialization preserve=yes
@@ -94,7 +96,7 @@ Message::Message (const HIID &id1, SmartBlock *bl, int flags, int pri)
   //## end Message::Message%3C7B9D3B02C3.body
 }
 
-Message::Message (const HIID &id1, BlockRef &bl, int flags, int pri)
+Message::Message (const HIID &id1, const BlockRef &bl, int flags, int pri)
   //## begin Message::Message%3C7B9D59014A.hasinit preserve=no
   //## end Message::Message%3C7B9D59014A.hasinit
   //## begin Message::Message%3C7B9D59014A.initialization preserve=yes
@@ -301,6 +303,19 @@ int Message::toBlock (BlockSet &set) const
 
 // Additional Declarations
   //## begin Message%3C7B6A2D01F0.declarations preserve=yes
+
+Message::Message (const HIID &id1, const BlockableObject *pload, int flags, int pri)
+   : priority_(pri),state_(0),hops_(0),id_(id1)
+{
+  payload_.attach(pload,flags|DMI::PERSIST|DMI::READONLY);
+}
+
+Message::Message (const HIID &id1, const SmartBlock *bl, int flags, int pri)
+   : priority_(pri),state_(0),hops_(0),id_(id1)
+{
+  block_.attach(bl,flags|DMI::PERSIST|DMI::READONLY);
+}
+
 string Message::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   string out;

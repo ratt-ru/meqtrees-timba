@@ -31,9 +31,10 @@
 // all packet headers must start with this signature
 static const char PacketSignature[] = "oMs";
 
-const Timeval to_init(5.0),
-              to_write(5.0),
-              to_heartbeat(2.0);
+// use large timeouts because we're not multithreaded anymore
+const Timeval to_init(30.0),
+              to_write(30.0),
+              to_heartbeat(5.0);
     
 //## end module%3C90BFDD0240.additionalDeclarations
 

@@ -115,13 +115,13 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
       Message (const HIID &id1, BlockableObject *pload, int flags = 0, int pri = PRI_NORMAL);
 
       //## Operation: Message%3C7B9D0A01FB
-      Message (const HIID &id1, ObjRef &pload, int flags = 0, int pri = PRI_NORMAL);
+      Message (const HIID &id1, const ObjRef &pload, int flags = 0, int pri = PRI_NORMAL);
 
       //## Operation: Message%3C7B9D3B02C3
       Message (const HIID &id1, SmartBlock *bl, int flags = 0, int pri = PRI_NORMAL);
 
       //## Operation: Message%3C7B9D59014A
-      Message (const HIID &id1, BlockRef &bl, int flags = 0, int pri = PRI_NORMAL);
+      Message (const HIID &id1, const BlockRef &bl, int flags = 0, int pri = PRI_NORMAL);
 
       //## Operation: Message%3C7BB3BD0266
       Message (const HIID &id1, const char *data, size_t sz, int pri = PRI_NORMAL);
@@ -244,6 +244,10 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
 
     // Additional Public Declarations
       //## begin Message%3C7B6A2D01F0.public preserve=yes
+          //## Operation: Message%3C7B9C490384
+      Message (const HIID &id1, const BlockableObject *pload, int flags = 0, int pri = PRI_NORMAL);
+      Message (const HIID &id1, const SmartBlock *bl, int flags = 0, int pri = PRI_NORMAL);
+      
       ObjRef& payload ();
       BlockRef& block ();
 
