@@ -4,6 +4,8 @@ import string
 import numarray
 import sys
 import traceback
+import types
+import weakref
 
 from numarray import array;
 
@@ -447,6 +449,23 @@ def xcurry (func,_args=(),_argslice=slice(None),_kwds={},**kwds):
     kw.update(kwds1);
     return func(*(_args+args1[_argslice]),**kw);
   return callit;
+
+class WeakInstanceMethod (object):
+  # return value indicating call of a weakinstancemethod whose object
+  # has gone
+  DeadRef = object();
+  def __init__ (self,method):
+    if type(method) != types.MethodType:
+      raise TypeError,"weakinstancemethod must be constructed from an instancemethod";
+    (self.im_func,self.im_self) = (method.im_func,weakref.ref(method.im_self));
+  def __nonzero__ (self):
+    return self.im_self() is not None;
+  def __call__ (self,*args,**kwargs):
+    obj = self.im_self();
+    if obj is None:
+      return self.DeadRef;
+    return self.im_func(obj,*args,**kwargs);
+
 
 # import C module
 import octopython
