@@ -1,5 +1,5 @@
-#include <DMI/Global-Registry.h>
 #include <OCTOPUSSY/Octopussy.h>
+#include <DMI/Global-Registry.h>
 #include <OCTOPUSSY/OctopussyConfig.h>
 #include <OCTOPUSSY/ReflectorWP.h>
 #include "OctoPython.h"

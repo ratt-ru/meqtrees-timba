@@ -23,6 +23,8 @@
 #ifndef DMI_DMI_H
 #define DMI_DMI_H 1
 
+#define MAKE_LOFAR_SYMBOLS_GLOBAL 1
+
 #include "config.h"
 #include "lofar_config.h"
 #include <DMI/Common.h>
@@ -119,6 +121,9 @@ namespace DMI
 //  (void)sizeof( Checker( ERROR_##msg() ) ); }
 
 // OMS: 21/10/04: reverting to using namespace LOFAR in DMI etc. for now
-using namespace LOFAR;
+// using namespace LOFAR;
+
+// OMS: 26/11/04: need this because DMI pulls in Thread, so verything that uses
+// DMI better have this symbol defined!
 
 #endif

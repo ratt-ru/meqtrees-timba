@@ -13,6 +13,8 @@
 
 class String;
 
+using LOFAR::copyArray;
+
 namespace AIPSPP_Hooks 
 {
   // templated helper method to create a 1D array using a copy of data

@@ -1,5 +1,6 @@
-#include <OCTOPUSSY/OctoproxyWP.h>
+#include <DMI/DMI.h>
 #include <OCTOPUSSY/Octopussy.h>
+#include <OCTOPUSSY/OctoproxyWP.h>
 #include <Python.h>
 #include "OctoPython.h"
 #include "AID-OctoPython.h"
