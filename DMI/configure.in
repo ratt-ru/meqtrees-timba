@@ -58,7 +58,7 @@ dnl lofar_MPI
 lofar_BLITZ(1)
 lofar_QATOOLS
 lofar_DOCXX
-lofar_PACKAGE(Common)
+lofar_PACKAGE(LCS/Common)
 
 dnl
 dnl Output Makefiles
