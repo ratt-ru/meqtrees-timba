@@ -49,23 +49,57 @@ int Function::getResult (Result::Ref &resref, const Request& request)
 {
   int nrch = itsChildren.size();
   vector<Result::Ref> results;
+  vector<Vells*> values(nrch);
   int flag = 0;
   for (int i=0; i<nrch; i++) {
     Result* res = new Result();
     results.push_back (Result::Ref(res, DMI::WRITE||DMI::ANON));
     flag |= itsChildren[i]->getResult (results[i], request);
     results[i].persist();
+    values[i] = &(results[i].dewr().getValueRW());
   }
   if (flag & Node::RES_WAIT) {
     return flag;
   }
   // Evaluate the main value.
+  Result& result = resref.dewr();
+  int nx,ny;
+  bool isReal = resultTypeShape (nx, ny, request, values);
+  evaluate (result.setValue(isReal,nx,ny), request, values);
   // Find all spids from the children.
   vector<int> spids = findSpids (results);
+  // Evaluate all perturbed values.
+  vector<Vells*> perts(nrch);
+  vector<int> indices(nrch, 0);
+  for (unsigned int j=0; j<spids.size(); j++) {
+    perts = values;
+    for (int i=0; i<nrch; i++) {
+      int inx = results[i].dewr().isDefined (spids[j], indices[i]);
+      if (inx >= 0) {
+	perts[i] = &(results[i].dewr().getPerturbedValueRW(inx));
+      }
+    }
+    evaluate (result.setPerturbedValue(j,isReal,nx,ny), request, values);
+  }
   return flag;
 }
 
-Vells Function::evaluate (const Request&, const vector<Vells*>&)
+bool Function::resultTypeShape (int& nx, int& ny, const Request&,
+				const vector<Vells*>& values)
+{
+  Assert (values.size() > 0);
+  nx = values[0]->nx();
+  ny = values[0]->ny();
+  bool isReal = values[0]->isReal();
+  for (unsigned int i=0; i<values.size(); i++) {
+    nx = std::max(nx, values[i]->nx());
+    ny = std::max(ny, values[i]->ny());
+    isReal &= values[0]->isReal();
+  }
+  return isReal;
+}
+
+void Function::evaluate (Vells&, const Request&, const vector<Vells*>&)
 {
   AssertMsg (False, "evaluate or getResult not implemented in class "
 	     "derived from MeqFunction");

@@ -83,11 +83,6 @@ public:
   double getPerturbation (int i) const
     { return (itsPerturbations[i]); }
 
-  // Set the value.
-  // The current value is replaced by the new one.
-  void setValue (const Vells& value)
-    { itsValue = value; }
-
   // Allocate the value with a given type and shape.
   // It won't change if the current value type and shape match.
   LoMat_double& setReal (int nfreq, int ntime)
@@ -106,15 +101,23 @@ public:
       }
       return itsValue.getComplexArray();
     } 
+  Vells& setValue (bool isReal, int nfreq, int ntime)
+    { if (isReal) {
+        setReal (nfreq, ntime);
+      } else {
+        setComplex (nfreq, ntime);
+      }
+      return itsValue;
+    }
+
+  // Set the value to the given value.
+  void setValue (const Vells& value);
 
   // Remove all perturbed values.
   void clear();
 
   int nperturbed() const
     { return itsPerturbations.size(); }
-
-  // Set the i-th perturbed value.
-  void setPerturbedValue (int i, const Vells&);
 
   // Set the i-th parm value.
   void setParmValue (int i, const Vells&);
@@ -137,7 +140,18 @@ public:
       }
       return itsPerturbedValues[i]->getComplexArray();
     } 
-  
+  Vells& setPerturbedValue (int i, bool isReal, int nfreq, int ntime)
+    { if (isReal) {
+        setPerturbedReal (i, nfreq, ntime);
+      } else {
+        setPerturbedComplex (i, nfreq, ntime);
+      }
+      return *(itsPerturbedValues[i]);
+    }
+
+  // Set the i-th perturbed value.
+  void setPerturbedValue (int i, const Vells&);
+
   // Set the i-th perturbed parameter.
   void setPerturbation (int i, double value)
     { itsPerturbations[i] = value; }

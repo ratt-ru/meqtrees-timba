@@ -62,6 +62,17 @@ void Result::clear()
   }
 }
 
+void Result::setValue (const Vells& value)
+{
+  if (value.isReal()) {
+    LoMat_double& mat = setReal (value.nx(), value.ny());
+    mat = value.getRealArray();
+  } else {
+    LoMat_dcomplex& mat = setComplex (value.nx(), value.ny());
+    mat = value.getComplexArray();
+  }
+}
+
 void Result::setPerturbedValue (int i, const Vells& value)
 {
   if (itsPerturbedValues[i] == 0) {

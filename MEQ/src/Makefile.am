@@ -5,7 +5,7 @@ Domain.h					\
 Cells.h Polc.h \
 Node.h Function.h \
 Parm.h ParmPolc.h ParmPolcStored.h \
-Add.h \
+Add.h Cos.h \
 Vells.h VellsTmp.h VellsRep.h \
 VellsRealSca.h VellsRealArr.h \
 VellsComplexSca.h VellsComplexArr.h \
@@ -20,7 +20,7 @@ Domain.cc					\
 Cells.cc Polc.cc \
 Node.cc Function.cc \
 Parm.cc ParmPolc.cc ParmPolcStored.cc \
-Add.cc \
+Add.cc Cos.cc \
 Vells.cc VellsTmp.cc VellsRep.cc \
 VellsRealSca.cc VellsRealArr.cc \
 VellsComplexSca.cc VellsComplexArr.cc \

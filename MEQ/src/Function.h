@@ -42,9 +42,16 @@ public:
   // By default it calls evaluate.
   virtual int getResult (Result::Ref &resref, const Request&);
 
+  // Find the type and shape of the result for evaluate.
+  // It returns true if the result is real; otherwise false.
+  // It is used when evaluate is used.
+  // Usually the default implementation is sufficient.
+  virtual bool resultTypeShape (int& nx, int& ny, const Request&,
+				const vector<Vells*>& values);
+
   // Evaluate the value for the given request.
-  virtual Vells evaluate (const Request&,
-			  const vector<Vells*>& values);
+  virtual void evaluate (Vells& result, const Request&,
+			 const vector<Vells*>& values);
 
   // Find all spids for this node by merging the children's spids.
   vector<int> findSpids (const vector<Result::Ref>&) const;
