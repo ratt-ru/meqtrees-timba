@@ -126,10 +126,10 @@ NCRef DataRecord::removeField (const HIID &id,bool ignore_fail)
   Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("remove(%s)\n",id.toString().c_str());
   FailWhen( !id.size(),"null HIID" );
-  CFMI iter = fields.find(id);
+  FMI iter = fields.find(id);
   if( iter != fields.end() )
   {
-    NCRef ref(iter->second);
+    NCRef ref(iter->second.unlock());
     fields.erase(iter->first);
     dprintf(2)("  removing %s\n",ref->debug(1));
     return ref;

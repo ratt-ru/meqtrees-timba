@@ -155,7 +155,7 @@ NCRef DataList::remove (int n)
   dprintf(2)("remove(%d)\n",n);
   ItemList::iterator iter = applyIndexIter(n);
   FailWhen(iter == items.end(),"index out of range");
-  NCRef ref(*iter);
+  NCRef ref(iter->unlock());
   dprintf(2)("  removing %s\n",ref->debug(1));
   items.erase(iter);
   return ref;
@@ -297,10 +297,10 @@ void DataList::cloneOther (const DataList &other, int flags, int depth)
   ItemList::const_iterator iter = other.items.begin();
   for( ; iter != other.items.end(); iter++ )
   {
-    NCRef ref(*iter,DMI::COPYREF|(flags&~DMI::WRITE)|DMI::PRESERVE_RW|DMI::LOCK);
+    items.push_back(NCRef());
+    items.back().copy(*iter,(flags&~DMI::WRITE)|DMI::PRESERVE_RW|DMI::LOCK);
     if( flags&DMI::DEEP || depth>0 )
-      ref.privatize(flags|DMI::LOCK,depth-1);
-    items.push_back(ref);
+      items.back().privatize(flags|DMI::LOCK,depth-1);
   }
   validateContent();
 }
