@@ -60,6 +60,7 @@ doc:
 	  echo "RECURSIVE = YES" >> doxygen.cfg ; \
 	  echo "HTML_OUTPUT = $(DOCDIR)" >> doxygen.cfg ; \
 	  echo "EXCLUDE = $(srcdir)/build $(srcdir)/test $(srcdir)/demo" >> doxygen.cfg; \
+          echo "GENERATE_TAGFILE = `basename $$projnm`.tag" >> doxygen.cfg ; \
 	  $(DOXYGEN) doxygen.cfg ; \
 	else \
 	  if [ "$(lofar_doctool)" = "docpp" ] ; then \

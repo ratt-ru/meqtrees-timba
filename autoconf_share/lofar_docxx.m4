@@ -113,7 +113,6 @@ else
     echo "ENUM_VALUES_PER_LINE	= 1" >> .doxygenrc
     echo "GENERATE_TREEVIEW	= YES" >> .doxygenrc
     echo "GENERATE_LATEX	= NO" >> .doxygenrc
-    echo "GENERATE_TAGFILE	= base.tag" >> .doxygenrc
     echo "ALLEXTERNALS		= YES" >> .doxygenrc
     echo "" >> .doxygenrc
     echo "SEARCHENGINE		= NO" >> .doxygenrc
