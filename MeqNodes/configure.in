@@ -58,6 +58,7 @@ dnl lofar_MPI
 lofar_QATOOLS
 lofar_DOCXX
 lofar_BLITZ(1)
+lofar_FFTW(0)
 lofar_PACKAGE(LCS/Common)
 lofar_PACKAGE(DMI)
 lofar_PACKAGE(CEP/CPA/PSS4/MEQ)

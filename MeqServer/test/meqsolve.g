@@ -526,39 +526,3 @@ do_test(msname=msname,solve=T,subtract=F,run=T,
 
 print 'errors reported:',mqs.num_errors();
 
-# mqs.halt();
-
-# useful command-line arguments
-# (use, e.g., glish -l meqsolve.g <arguments>)
-#
-# verbose=lev   verbosity level for Glish (2 is useful)
-# debug=lev     restrict max debug level for C++ (use 0 to disable all debug 
-#               messages)
-# -d<Context>=level changes the debug message level for a specific context
-# -gui          starts a small gui (at this stage, only useful for tracking messages)
-# -nostart      does not automatically start a meqserver. Instead, prints the 
-#               following message:
-#               ===============================================
-#               === Waiting for server to be manually started
-#               === Please start it with the following command:
-#               === ./meqserver  -d0 -nogw -meq:M:M:MeqServer
-#               ===============================================
-#               and waits for a server connection. This allows you to start 
-#               a meqserver process manually under a debugger or valgrind.
-#
-
-
-#
-# other useful glish functions for when the script is finished:
-#
-# mqs.num_errors()    checks for accumulated errors (should be 0)
-# mqs.get_error_log() gets list of accumulated errors and clears the log
-# 
-# mqs.getnodelist()  get list of nodes
-# mqs.getnodestate('name') get a node's state record (see esp. the request field
-#   for the last request, and the cache_result field)
-# mqs.execute('nodename',req)  sends a request to the node, returns result
-#   see meqtest.g for examples of creating request objects
-#
-# recprint(rec) pretty-prints a record. Try e.g.:
-#   recprint(mqs.getnodestate('solver'))

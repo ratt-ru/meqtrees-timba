@@ -18,8 +18,7 @@
 //  received, it returns that data as the result (with one plane per
 //  correlation.) A MeqSpigot usually works in concert with a MeqSink,
 //  in that a sink is placed at the base of the tree, and generates 
-//  results matching the input data. Note that for this to work properly,
-//  a spigot must be created BEFORE its corresponding sink.
+//  results matching the input data. 
 //  A MeqSpigot can have no children.
 //field: station_1_index 0
 //  Index (1-based) of first station comprising the interferometer
@@ -72,9 +71,16 @@ class Spigot : public VisHandlerNode
     int row_flag_mask;
     
     //##ModelId=3F9FF6AA0221
-    Result::Ref next_res;
-    //##ModelId=3F9FF6AA0238
-    HIID next_rqid;
+    typedef struct
+    {
+      HIID rqid;
+      Result::Ref res;
+    } ResQueueItem;
+    
+    typedef std::list<ResQueueItem> ResQueue;
+        
+    ResQueue res_queue_;
+    
 };
 
 }

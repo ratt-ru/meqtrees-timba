@@ -19,7 +19,9 @@ app_defaults.debuglevels.update({
   'MeqSpigot'    :2,
   'MeqVisHandler':2,
   'MeqServer'    :2,
-  'meqserver'    :1
+  'meqserver'    :1,
+#  'gwclientwp'   :1,
+#  'gwserverwp'   :1,
 });
 
 #-------- update default arguments
@@ -29,18 +31,19 @@ app_defaults.args.update({'launch':None,'spawn':None,
 def meqbrowse (debug={},no_threads=False,**kwargs):
   app_defaults.parse_argv(sys.argv[1:]);
   args = app_defaults.args;
+  print app_defaults.debuglevels;
   
-  # start octopussy if needed
-  if not octopussy.is_initialized():
-    octopussy.init(gw=True);
-  if not octopussy.is_running():
-    octopussy.start(wait=True);
   if debug is None:
     pass;
   else:
     octopussy.set_debug(app_defaults.debuglevels);
     if isinstance(debug,dict):
       octopussy.set_debug(debug);
+  # start octopussy if needed
+  if not octopussy.is_initialized():
+    octopussy.init(gw=True);
+  if not octopussy.is_running():
+    octopussy.start(wait=True);
   # start meqserver
   print args;
   args['gui'] = True;

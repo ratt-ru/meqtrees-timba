@@ -6,7 +6,9 @@
 #include <MEQ/MeqVocabulary.h>
 
 namespace Meq {
-  
+
+InitDebugContext(Sink,"MeqSink");
+
 Sink::Sink()
   : VisHandlerNode(1),        // 1 child node expected
     output_col(-1),

@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
 # Original file name: /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/defrecs_MeqServer.g
-# Generated on Thu Sep  9 20:17:16 CEST 2004
+# Generated on Mon Oct 18 15:22:35 CEST 2004
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 
@@ -43,8 +43,7 @@ r::description := 'A MeqSpigot is attached to a VisAgent data source, and repres
                    received, it returns that data as the result (with one plane per \
                    correlation.) A MeqSpigot usually works in concert with a MeqSink, \
                    in that a sink is placed at the base of the tree, and generates  \
-                   results matching the input data. Note that for this to work properly, \
-                   a spigot must be created BEFORE its corresponding sink. \
+                   results matching the input data.  \
                    A MeqSpigot can have no children.';
 r.station_1_index := 0;
 r.station_1_index::description := 'Index (1-based) of first station comprising the interferometer';

@@ -52,6 +52,8 @@ class Sink : public VisHandlerNode
     virtual TypeId objectType() const
     { return TpMeqSink; }
     
+    LocalDebugContext;
+    
   protected:
     //##ModelId=3F98DAE60217
     virtual int getResult (Result::Ref &resref, 

@@ -68,6 +68,7 @@ int Spigot::deliverTile (const Request &req,VisTile::Ref::Copy &tileref,const Lo
     // pointers
     void *coldata = const_cast<void*>(tile.column(icolumn));
     int nplanes = colshape.size() == 3 ? colshape[0] : 1;
+    Result::Ref next_res;
     Result & result = next_res <<= new Result(nplanes,true);
     // get array 
     if( coltype == Tpdouble )
@@ -146,8 +147,17 @@ int Spigot::deliverTile (const Request &req,VisTile::Ref::Copy &tileref,const Lo
       }
     }
       
-    wstate()[FNext].replace() = next_rqid = rqid;
     result.setCells(req.cells());
+    
+    // add to queue
+    res_queue_.push_back(ResQueueItem());
+    res_queue_.back().rqid = rqid;
+    res_queue_.back().res = next_res;
+    cdebug(3)<<res_queue_.size()<<" results in queue"<<endl;
+    
+    // update state record
+    wstate()[FNext] = rqid;
+    
 // 02/04/04: commented out, since it screws up (somewhat) the RES_UPDATED flag
 // going back to old scheme
 //    // cache the result for this request. This will be picked up and 
@@ -164,21 +174,26 @@ int Spigot::getResult (Result::Ref &resref,
                        const Request &req,bool)
 {
   // have we got a cached result?
-  if( next_res.valid() )
+  if( !res_queue_.empty() )
   {
+    ResQueueItem &next = res_queue_.front();
     // return fail if unable to satisfy this request
-    if( req.id() != next_rqid )
+    if( req.id() != next.rqid )
     {
       resref <<= new Result(1,req);
       VellSet &vs = resref().setNewVellSet(0);
-      MakeFailVellSet(vs,"spigot: got request id "+
-                        req.id().toString()+", expecting "+next_rqid.toString());
+      MakeFailVellSet(vs,"spigot: request out of sequence: got rqid "+
+                        req.id().toString()+", expecting "+next.rqid.toString());
       return RES_FAIL;
     }
-    // return result and clear cache
-    resref.xfer(next_res);
-    next_rqid.clear();
-    wstate()[FNext].remove();
+    // return result and dequeue
+    resref.xfer(next.res);
+    res_queue_.pop_front();
+    // update state record
+    if( res_queue_.empty() )
+      wstate()[FNext].remove();
+    else
+      wstate()[FNext] = res_queue_.front().rqid;
     return 0;
   }
   else // no result at all, return WAIT
