@@ -109,6 +109,22 @@ void setAxisRecords (const DMI::Vec & vec)
   _default_mapping = false;
 }
 
+int addAxis (const HIID &name)
+{
+  // return axis if found
+  int n = axis(name,true);
+  if( n >= 0 )
+    return n;
+  // allocate new
+  for( int i=0; i<MaxAxis; i++ )
+    if( _name_map[i].empty() )
+    {
+      defineAxis(i,name);
+      return i;
+    }
+  // out of axes
+  Throw("too many axes defined");
+}
 
 // init default map of TIME/FREQ
 static int initDefaultMaps ()

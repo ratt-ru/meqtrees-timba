@@ -102,6 +102,11 @@ namespace Axis
   inline bool isDefaultMap ()
   { return _default_mapping; }
   
+  // allocate a new axis in the mapping, if not present. Nodes that use non-default 
+  // axes should call this method in the constructor, this will allow them
+  // to be used without setting an explicit axis map. Returns the axis number.
+  int addAxis (const HIID &name);
+  
   // specifies non-default axis mapping as a vector of HIIDs 
   void setAxisMap (const std::vector<HIID> &map);
   
