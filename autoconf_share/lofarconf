@@ -71,8 +71,8 @@ varopts=`echo $varopts | sed -e "s%.*\.variant\.conf: *%%"`
 
 # Now do the configure.
 echo "${lfr_cmp}_$lfr_var configure will be done on host $lfr_host for package $lfr_pkg"
-echo $lfr_confdir/configure $cmpopts $varopts $*
-$lfr_confdir/configure $cmpopts $varopts $*
+echo $lfr_confdir/configure $cmpopts $varopts "$*"
+$lfr_confdir/configure $cmpopts $varopts "$*"
 
 
 # Get the compiler make options.
