@@ -115,11 +115,11 @@ int main (int argc,const char* argv[])
       Domain domain(1,4, -2,3);
       Request::Ref reqref;
       Request &req = reqref <<= new Request(new Cells(domain, 4, 4));
-      if (i == 1) {
-	req.setNumSteps(0);
-      } else if (i == 2) {
-	req.setClearSolver(true);
-      }
+      ///      if (i == 1) {
+	///	req.setNumSteps(0);
+	///      } else if (i == 2) {
+	///	req.setClearSolver(true);
+	///      }
       Result::Ref refres;
       child1.execute(refres, req);
       cout << "p1 before " << refres().vellSet(0) << endl;

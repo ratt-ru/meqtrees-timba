@@ -132,11 +132,9 @@ namespace Meq
     // Solver staterec fields
     FSolvable        = AidSolvable,
     FParmGroup       = AidParm|AidGroup,
-    FNumSteps        = AidNum|AidSteps,
+    // Solver staterec fields and commands
     FEpsilon         = AidEpsilon,
     FUseSVD          = AidUseSVD,
-    
-    // Solver commands
     FClearMatrix     = AidClear|AidMatrix,
     FInvertMatrix    = AidInvert|AidMatrix,
     FNumIter         = AidNum|AidIter,
