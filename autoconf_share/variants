@@ -59,5 +59,5 @@ vbroker.var:		   --with-vbroker
 mtsupport.var:		   --with-threads
 nomtsupport.var: 	   --with-threads=no  
 bgl_mpi.var:		   --with-bglmpich
-bgl_cpp.var:               --with-cppflags='-qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/bgl/BlueLight/floor/bglsys/include/'
-bgl_ldd.var:               --with-ldflags='-L/bgl/BlueLight/floor/bglsys/lib -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts -lstandalone.440 -lcrypt -lnss_files -lnss_dns -lresolv -lc -lnss_files -lnss_dns -lresolv -lm'
+bgl_cpp.var:               --with-cppflags='-qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/bgl/BlueLight/ppcfloor/bglsys/include/'
+bgl_ldd.var:               --with-ldflags='-L/bgl/BlueLight/ppcfloor/bglsys/lib -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts -lstandalone.440 -lcrypt -lnss_files -lnss_dns -lresolv -lc -lnss_files -lnss_dns -lresolv -lm'
