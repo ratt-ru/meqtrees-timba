@@ -373,7 +373,7 @@ void GWClientWP::tryConnect (Connection &cx)
     lprintf(4,"creating client socket for %s:%d\n",
               cx.host.c_str(),cx.port);
     cx.sock = new Socket("cx.sock/"+wpname(),cx.host,num2str(cx.port),cx.type);
-	cx.sock->setBlocking(false);
+	  cx.sock->setBlocking(false);
     cx.state = CONNECTING;
     cx.fail = now  + FailConnectTimeout; 
     // fall thru to connection attempt, below

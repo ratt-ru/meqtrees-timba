@@ -15,7 +15,8 @@ def set_debug (context,level=0):
   if isinstance(context,str):
     octopython.set_debug(context,level);
   elif isinstance(context,dict):
-    for c,lev in context.iteritems():
+    for (c,lev) in context.iteritems():
+      print 'setdebug',c,lev;
       octopython.set_debug(c,lev);
   else:
     for c in context:

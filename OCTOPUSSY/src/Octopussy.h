@@ -4,6 +4,7 @@
 #include <Common/Thread.h>
     
 class Dispatcher;    
+using namespace LOFAR;
         
 namespace Octopussy
 {

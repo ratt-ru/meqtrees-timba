@@ -1,6 +1,7 @@
 #ifndef DMI_TypeId_h
 #define DMI_TypeId_h 1
 
+#include <Common/LofarTypedefs.h>
 #include <Common/Lorrays.h>
 #include <DMI/Common.h>
 #include <DMI/DMI.h>
@@ -19,25 +20,26 @@ using Loki::TypeTraits;
 //##ModelId=3BFBA88F001D
 typedef AtomicID TypeId;
 
+// these are now in LofarTypedefs.h
 // standard type definitions
-//##ModelId=3DB9343F00F1
-typedef unsigned char uchar;
-//##ModelId=3DB9343F01C4
-typedef unsigned short ushort;
-//##ModelId=3DB9343F012D
-typedef unsigned int uint;
-//##ModelId=3DB9343F015F
-typedef unsigned long ulong;
-//##ModelId=3DB9343F00B5
-typedef long long longlong;
-//##ModelId=3DB9343F0191
-typedef unsigned long long ulonglong;
-//##ModelId=3DB9343F0051
-typedef long double ldouble;
-//##ModelId=3DB9343F0015
-typedef complex<float> fcomplex;
-//##ModelId=3DB9343E03CB
-typedef complex<double> dcomplex;
+// //##ModelId=3DB9343F00F1
+// typedef unsigned char uchar;
+// //##ModelId=3DB9343F01C4
+// typedef unsigned short ushort;
+// //##ModelId=3DB9343F012D
+// typedef unsigned int uint;
+// //##ModelId=3DB9343F015F
+// typedef unsigned long ulong;
+// //##ModelId=3DB9343F00B5
+// typedef long long longlong;
+// //##ModelId=3DB9343F0191
+// typedef unsigned long long ulonglong;
+// //##ModelId=3DB9343F0051
+// typedef long double ldouble;
+// //##ModelId=3DB9343F0015
+// typedef complex<float> fcomplex;
+// //##ModelId=3DB9343E03CB
+// typedef complex<double> dcomplex;
 
 #ifndef DoForAllNumericTypes1
 // Defines alternative version of the <for all numeric types>

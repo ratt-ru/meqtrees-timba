@@ -18,7 +18,6 @@
 #include <DMI/NCIter.h>
 
 #include "AID-OCTOGlish.h"
-#include <Common/BlitzToAips.h>
 #include "GlishUtil.h"
 
 InitDebugContext(GlishUtil::GlishUtilDebugContext,"Glish");
@@ -133,8 +132,11 @@ GlishRecord GlishUtil::recToGlish (const DataRecord &rec)
 //    (if adjustIndex is true, int values will be incremented by 1.)
 // DataArrays, DataRecords and DataFields are converted to arrays & records
 // All other object types are converted to blocksets.
-GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjustIndex)
+GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj0,bool adjustIndex)
 {
+  ObjRef copyref(obj0);
+  copyref.privatize(DMI::READONLY|DMI::DEEP);
+  const BlockableObject &obj = *copyref;
   TypeId type = obj.objectType();
   string type_string = type.toString();
   string type_isattr = "dmi_is_" + strlowercase(type_string);

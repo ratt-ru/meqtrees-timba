@@ -65,6 +65,8 @@ class dmi_repr (object):
 
   def _arrToInline (self,value,prec=None):
     def list_to_str (arg,prec=None):
+      if not arg:
+        return '[]';
       if isinstance(arg[0],list):
         res = map(lambda x:list_to_str(x,prec=prec),arg);
         if res and res[0] is None:
@@ -79,6 +81,8 @@ class dmi_repr (object):
     if value.nelements() <= self.inline_arr:
       s = list_to_str(value.tolist(),prec=prec);
       if s:
+        if len(value.shape) > 1:
+          s = ' '.join(('x'.join(map(str,value.shape)),s));
         return (s,True);
     return (None,False);
   
