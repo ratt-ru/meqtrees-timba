@@ -240,6 +240,7 @@ if test $lfr_cv_hdr_package = yes  &&  test $lfr_cv_lib_package = yes; then
   $lofar_sharedir/makeext pkgext $lfr_libdir;
   $lofar_sharedir/makeext pkgextcppflags $lfr_libdir;
   $lofar_sharedir/makeext pkgextcxxflags $lfr_libdir;
+  $lofar_sharedir/makeext pkgextobjs $lfr_libdir;
   # Define which external packages are used by this package.
   lfr_pkgext=`cat pkgext_diff`
   lfr_pkgext=`echo $lfr_pkgext`
@@ -260,6 +261,12 @@ if test $lfr_cv_hdr_package = yes  &&  test $lfr_cv_lib_package = yes; then
   lfr_pkgext=`echo $lfr_pkgext`
   if [ "$lfr_pkgext" != "" ]; then
     CXXFLAGS="$CXXFLAGS $lfr_pkgext"
+  fi
+  # Add object files to libraries
+  lfr_pkgext=`cat pkgextobjs_diff`
+  lfr_pkgext=`echo $lfr_pkgext`
+  if [ "$lfr_pkgext" != "" ]; then
+    LIBS="$LIBS $lfr_pkgext"
   fi
 ]
 dnl

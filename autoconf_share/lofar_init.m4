@@ -232,7 +232,7 @@ AC_ARG_WITH(lofar-libdir,
   \rm -f pkgbldinc/$lfr_pkg;
   ln -s $lfr_curwd/src pkgbldinc/$lfr_pkg;
   \rm -f pkgext*
-  touch pkgext pkgextcppflags pkgextcxxflags
+  touch pkgext pkgextcppflags pkgextcxxflags pkgextobjs
 
   # Create the lofar_config.h file.
   # Define a line for the package being configured.
