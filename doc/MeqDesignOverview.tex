@@ -182,19 +182,21 @@ $ $Revision$ $\\$ $Date$ $}
   congruity}: all C++ objects used to {\em pass information} within a tree must
   be mappable without any loss of information to and from data structures on
   the scripting side. Fully {\em private} structures (e.g., private nested
-  classes) can be defined in C++ terms only.
+  classes) can exist on the C++ side only.
 
-  Congruity allows {\bf transparency}: most of the inner workings of a tree are
-  readily accessible from the scripting side. This allows for very elaborate
-  monitoring schemes, and is a great debugging aid when something goes wrong.
-  
+  Congruity facilitates {\bf transparency}: most of the inner workings of a
+  tree are readily accessible from the scripting side. This allows for very
+  elaborate monitoring schemes, and is a great debugging aid when something
+  goes wrong.
+
 \subsection{Data types}
   
   The choice of atomic data types is limited by the requirement of congruity.
   Currently, the only supported scripting language is Glish, but Python 
   support is expected in the near future. In any case, the kernel  restricts
   itself to common primitives that are supported by all mature scripting
-  languages. We'll define ``legal data objects'' as:
+  languages. Thus, kernel data structures are defined in terms of a restricted
+  set of ``legal data objects'', specifically:
 
   \begin{itemize}
   
@@ -225,11 +227,11 @@ $ $Revision$ $\\$ $Date$ $}
   
   A HIID is essentially a vector of integers called {\em atomic IDs}. Atomic
   IDs have a string representation: for IDs $>=$0 this is simply the integer
-  itself in string form, while for IDs $<$0, a global {\em vocabulary} (i.e. map
-  from strings to numbers) is maintained in the development tree. Another way
-  to look at it is that negative IDs represent {\em atomic concepts}, or words.
-  Thus, any HIID can be viewed as a mix of words (from a fixed though rather
-  large vocabulary!) and numbers.
+  itself in string form, while for IDs $<$0, a global {\em dictionary} (i.e.
+  map from strings to numbers) is maintained in the development tree. Another
+  way to look at this is that negative IDs represent {\em atomic concepts}, or
+  words. Thus, any HIID can be viewed as a mix of words (from a fixed though
+  rather large vocabulary!) and numbers.
 
   The string form of a HIID consists of atomic IDs, separated by periods. For
   example, \qq{"Request.ID.1"} is the string form of $(-1210,-1087,1)$. Note
@@ -242,7 +244,7 @@ $ $Revision$ $\\$ $Date$ $}
   C++ side -- many data storage classes engage in parsing or building up HIIDs,
   and vectors of integers are much easier to manipulate than strings. Note that
   the symbol-to-ID mapping is also available as C++ header files containing
-  const declarations for atomic IDs. For example,
+  \qq{const} declarations for atomic IDs. These may be used as, e.g.:
 
   \begin{verbatim}
   const HIID MyFieldName = AidRequest | AidId | 1;
@@ -307,12 +309,12 @@ $ $Revision$ $\\$ $Date$ $}
     ``\qq{MeqRequest}'' in the DMI type system, and  has a \qq{meq.request()}
     counterpart in Glish.
 
-  \item Even though the languages we use are case-sensitive, HIIDs aren't.
-    Another reason to not rely on character case to distinguish identifiers is
+  \item Even though the languages we use are case-sensitive, HIIDs aren't. A
+    good reason to avoid relying character case to distinguish identifiers is
     that different languages and contexts have different capitalization
     conventions -- compare, e.g., \qq{Meq::Request} in C++, as opposed to
-    \qq{meq.request} in Glish. Thus we should always avoid situations where
-    different entities have names that differ only in character case.
+    \qq{meq.request} in Glish. Thus we should always avoid assigning
+    case-sensitive names to different entities.
 
   \end{itemize}
 
@@ -360,7 +362,36 @@ $ $Revision$ $\\$ $Date$ $}
   understanding that there is a 1:1 mapping from that to C++ classes and data
   members.
 
+\subsection{Glish lists}
+
+  Glish does not have a native ``list'' (a.k.a. ``sequence'') construct.
+  Instead, lists are emulated in one of two ways:
+
+  \begin{itemize}
+
+  \item If all list elements are all of the same {\em scalar} type,
+  then the list is emulated by a vector.
+  
+  \item If the list elements are of a non-scalar type, or the type is not
+  homogenous, then the list is emulated by a record.\footnote{When mapping lists created
+  in the kernel to Glish records, the conversion layer assigns field names of
+  the form \qq{"\#1"}, \qq{"\#2"}, etc.}
+  \end{itemize}
+
+  Since Glish records support numeric subscripts, both types of lists can be
+  accessed via the same syntax -- \qq{len(list)} returns the number of
+  elements, \qq{list[$n$]} accesses element $n$. Note though that if a list
+  contains only one element, it should still be accessed as \qq{list[1]} rather
+  than \qq{list} (the latter syntax will actually do the right thing given a
+  vector, but not a record, hence it should be avoided for consistency's sake.)
+
+  We will use the term {\em list} from now on to refer to both types of Glish
+  structures, as it should usually be clear from context which type is actually
+  employed.
+
+
 \subsection{1-based and 0-based indexing}
+  \label{sec:indexconv}
 
   Glish array indices are 1-based, while C++ indices are 0-based. This,
   unfortunately, has always lead to all sorts of confusion, since indices pop
@@ -368,13 +399,13 @@ $ $Revision$ $\\$ $Date$ $}
   passed back and forth. As our experience with AIPS++ has shown, keeping track
   of index conversion on an individual basis is completely impractical.
 
-  {\bf The Glish/C++ conversion layer attempts to address this issue by providing
-  {\em automatic conversion} of indices. If a record field's name ends in
-  \qq{\_index} (on the C++ side this corresponds to a field HIID ending in
-  atomic ID \qq{"Index"}), and the field contains a single integer or a list of
-  integers, then the field is assumed to contain indices, and conversion between
-  0- and 1-base is automatically performed.}
-  
+  {\bf The Glish/C++ conversion layer attempts to address this issue by
+  providing {\em automatic conversion} of indices. If a record field's name
+  ends in \qq{\_index} (on the C++ side this corresponds to a field HIID ending
+  in the atomic ID \qq{"Index"}), and the field contains a single integer or a
+  list of integers, then the field is assumed to contain indices, and
+  conversion between 0- and 1-base is automatically performed.}
+
   Thus, the Glish record \qq{[foo=1,foo\_index=1,bar\_index=[2,3]]} will be
   converted to \qq{[Foo=1,Foo.Index=0,Bar.Index=[1,2]]} on the C++ side (and
   vice versa), while \qq{[foo\_index=1.0]} or \qq{[foo\_index=[a=1,b=2]]} will
@@ -382,7 +413,8 @@ $ $Revision$ $\\$ $Date$ $}
   \qq{double} value in one case, and a subrecord in the other case).
 
   Automatic conversion, of course, introduces its own potential for confusion
-  if forgotten about. This is why the paragraph above is higlighted in bold.
+  if forgotten about. This is why you simply shouldn't forget about it. As a
+  visual aid, the paragraph above is highlighted in bold.
 
 \section{MeqRequest and related data objects}
 
@@ -412,16 +444,19 @@ $ $Revision$ $\\$ $Date$ $}
   the following fields (of which only request\_id is obligatory).
   \vspace{1em}
 
-  \noindent\begin{tabular}{l|p{.8\textwidth}}
+  \noindent\begin{tabular}{l|l|p{.7\textwidth}}
   \hline
-  \qq{request\_id} & the request ID (a HIID)\\
-  \qq{cells}       & [optional] a \Cells\ object (see below)\\
-  \qq{calc\_deriv} & [optional] compute perturbed values (0, 1 or 2).
+  {\scriptsize\sf field name } & {\scriptsize\sf type} & {\scriptsize\sf description}\\
+  \hline
+  \qq{request\_id} & \qq{HIID} & the request ID\\
+  \qq{cells}       & \qq{Cells} & {\em [optional]}~~a \Cells\ object (see below)\\
+  \qq{calc\_deriv} & \qq{int} & {\em [optional]}~~compute perturbed values (0, 1 or 2).
                       Default is 0.\\
-  \qq{next\_request} & [optional] a hint of what the next request is going to be.
+  \qq{next\_request} & n/a & {\em [optional]}~~a hint of what the next request is going to be.
                       This influences caching decisions and speculative
-                      execution. See section~\ref{nextreq}. {\em (Not implemented yet)}.\\
-  \qq{rider}       & [optional] rider subrecord containing additional commands.
+                      execution (section~\ref{sec:nextreq}). {\em This is not
+                      currently implemented.}\\
+  \qq{rider}       & \qq{record} & {\em [optional]}~~rider subrecord containing additional commands.
   \\\hline
   \end{tabular}\vspace{1em}
   
@@ -435,7 +470,7 @@ $ $Revision$ $\\$ $Date$ $}
   \end{verbatim}
   
   You can subsequently add commands to the record using \qq{meq.add\_command()}
-  and \qq{meq.add\_state()}. This is also described in section\ref{CSR}.
+  and \qq{meq.add\_state()}. This is also described in section~\ref{sec:CSR}.
   
 \subsection{Domains and Cells}
 
@@ -453,7 +488,7 @@ $ $Revision$ $\\$ $Date$ $}
 
   Note that the specific concepts of {\em frequency} and {\em time} are
   meaningful to only a handful of nodes. The majority of nodes simply deal in
-  functions defined over abstract 2D space (to be precice, with 
+  functions defined over abstract 2D space (to be precise, with 
   $\mathcal{R}^2\rightarrow\mathcal{R}$ or
   $\mathcal{R}^2\rightarrow\mathcal{C}$ functions), without associating any
   semantics with the dimensions. For this reason, the bulk of kernel code is
@@ -483,13 +518,14 @@ $ $Revision$ $\\$ $Date$ $}
   
   The \qq{segments} sub-record contains information on the {\bf regular
   segments} of the grid.\footnote{Some calculations, such as the DFT, can be
-  significantly optimized over regular grids} A regular segment is a part of
+  significantly optimized over regular grids.} A regular segment is a part of
   the grid over which the stepping between cell centers, as well as the cell
   size, remains constant. The \qq{start\_index} and \qq{end\_index} vectors
-  contain the starting ($i',j'$) and ending ($i'',j''$) indices\footnote{1-based in
-  Glish, 0-based in C++} of each regular segment. By definition,
-  given $n$ segments and $N$ grid points, $i'_{k}= i''_k+1$, $i'_1=1$,
-  $i''_n=N.$
+  contain the starting ($i',j'$) and ending ($i'',j''$)
+  indices\footnote{1-based in Glish, 0-based in C++, see
+  section~\ref{sec:indexconv}.} of each regular segment.
+  By definition, given $n$ segments and $N$ grid points, $i'_{k}= i''_{k-1}+1$,
+  $i'_1=1$, $i''_n=N.$
 
   In the simplest case, the entire $N\times M$ grid is regular, in which case the
   \qq{segments} subrecord looks like this:
@@ -503,8 +539,8 @@ $ $Revision$ $\\$ $Date$ $}
   represented by \qq{segments} of the form:
 
   {\tt\begin{tabular}{ll}
-  [&freq=[start\_index=[$1,2,..,N$],end\_index=[$1,2,...,N$]],\\
-  &time=[start\_index=[$1,2,...,M$],end\_index=[$1,2,...,M$]]~~~~]
+  [&freq=[start\_index=[1,2,$...N$],end\_index=[1,2,$...N$]],\\
+  &time=[start\_index=[1,2,$...M$],end\_index=[1,2,$...M$]]~~~~]
   \end{tabular}}
   
   Note that \qq{segments} information is merely an optimization facility, and
@@ -523,9 +559,9 @@ $ $Revision$ $\\$ $Date$ $}
   information, while the constructor figures out everything else automatically.
 
   \item \Cells\ records should be treated as read-only. Directly manipulating 
-  any of the values inside can invalidate the relationships between the grid,
-  the domain, and the regular segments info, and lead to all sorts of confusion
-  down the line.
+  any of the values inside can break consistency between the
+  grid/domain/segments fields, and lead to all sorts of confusion down
+  the line.
 
   \end{itemize}
   
@@ -557,13 +593,13 @@ $ $Revision$ $\\$ $Date$ $}
   
   \qq{~~cells := meq.cells(freq\_grid=[0.25,0.75],time\_grid=[0.25,0.75]);}
   
-  letting the constructor figure out the domain \& cell size automatically. The
+  letting the constructor derive the domain \& cell size automatically. The
   two forms can even be mixed:
   
   \qq{~~cells := meq.cells(meq.domain(0,0,0,1),freq\_grid=[0.25,0.75],num\_time=2);}
   
-  produces the same \Cells\ yet again -- note that \qq{freq\_grid} given here
-  overrides the \qq{freq} component of the domain.
+  produces the same \Cells\ yet again -- note that the \qq{freq\_grid} 
+  values override the \qq{freq} component of the domain.
   
   If not supplied in the function call, the default cell sizes are computed to
   perfectly tile the specified domain. The \qq{freq\_} and
@@ -571,6 +607,42 @@ $ $Revision$ $\\$ $Date$ $}
   These may be scalars -- implying the same size for all cells along that axis
   -- or vectors. In the latter case, the size of the vector must match
   the corresponding \qq{$x$\_grid} or \qq{num\_$x$} argument.
+
+\section{Fail-records}
+
+  Run-time errors during execution are reported via special structures called
+  fail-records. Because fail-records can appear within different data
+  structures (see below), they deserve to be documented separately. A
+  fail-record has the following layout: \vspace{1em}
+
+  \noindent\begin{tabular}{l|l|p{.7\textwidth}}
+  \hline
+  {\scriptsize\sf field name } & {\scriptsize\sf type} & {\scriptsize\sf description}\\
+  \hline
+  \qq{message} & \qq{string} & a description of the error.\\
+  \qq{node\_name} & \qq{string} & {\em [optional]}~~name of originating node, if any.\\
+  \qq{node\_class} & \qq{string} & {\em [optional]}~~classname of originating node, if any.\\
+  \qq{origin} & \qq{string} & origin: usually just the source file name.\\
+  \qq{origin\_line} & \qq{int} & origin location: usually just the source line number.\\
+  \hline
+  \end{tabular}\vspace{1em}
+  
+  Because most errors tend to cascade from lower-level subsystems up to the
+  application level, accumulating more specific descriptions along the way,
+  fail-records usually come in a list. Lower-level errors then appear up at the
+  head of the list, and higher-level errors appear at the tail.
+  
+  Certain data classes described below (e.g., \qq{Result} and \qq{VellSet})
+  support a fail state -- i.e., a form of the data object describing a failure.
+  A fail state is represented by a record with a single field named \qq{fail},
+  containing a list of fail-records. In fact, all Glish code can follow the
+  simple policy that any record with a \qq{fail} field describes an object in
+  fail state, that \qq{fail} contains a list of fail records, and that no other
+  meaningful fields are to be found in the record.
+  
+  
+  
+  
   
 
 \section{MeqResult and related data objects}
@@ -585,12 +657,14 @@ $ $Revision$ $\\$ $Date$ $}
   successfully, then the returned \Result\ has a well-defined structure:
   \vspace{1em}
 
-  \noindent\begin{tabular}{l|p{.8\textwidth}}
+  \noindent\begin{tabular}{l|l|p{.7\textwidth}}
   \hline
-  \qq{cells}  & the \Cells\ of the result (not necessarily matching the request cells
+  {\scriptsize\sf field name } & {\scriptsize\sf type} & {\scriptsize\sf description}\\
+  \hline
+  \qq{cells}  & \Cells & the \Cells\ of the result (not necessarily matching the request cells
   -- see discussion below)\\
-  \qq{values} & the values of the result -- a list of \VellSet\ objects.\\
-  \qq{integrated} & boolean flag indicating if the values are integrations or
+  \qq{values} & \VellSet[] & list of result values\\
+  \qq{integrated} & \qq{bool} & flag indicating if the values are integrations or
                     samplings (default is false, implying samplings)\\
   \hline
   \end{tabular}\vspace{1em}
@@ -605,14 +679,35 @@ $ $Revision$ $\\$ $Date$ $}
   into account when performing resampling of results
   (section~\ref{sec:resampling}).
   
-  Note also that the \qq{values} field is defined as a {\em list} of
-  \VellSet{}s. 
+\subsection{Multiple values}
   
+  Note that the \qq{values} field is defined as a {\em list} of \VellSet{}s. In
+  Glish, a list is implemented as a record, using the \qq{rec[1]}, \qq{rec[2]},
+  etc. syntax to access fields by number. Even if there is only one \VellSet\
+  in the list, you still have to access it as \qq{result.values[1]}.
+
+  The point of defining a \Result\ as a set of \VellSet{} values (as opposed to
+  a single value) is to allow multiple return values for a single \Cells\
+  (a.k.a. ``multiple planes''). For example, a \qq{Spigot} may return four
+  values at a time (for the four correlations). Function nodes expect all child
+  \Result{}s to either have the same number of planes, and will apply the
+  function to each set of planes (cross-slice) independently; however, some
+  children may have only one plane, in which case it is re-used in each
+  cross-slice.
+
+  The \qq{Selector} and \qq{Composer} nodes can be used to decompose and
+  assemble \Result{}s.
+
+\subsection{Fail-results}
+
   Run-time errors arising during a \Request{}'s execution produce a special
   kind of \Result\ called the fail-result, which describes the error. A
-  fail-result record does not have a \qq{cells} field, and its \qq{values}
-  field contains one or more fail-\VellSet{}s (see below). 
+  fail-result record contains only one field called \qq{fail}, containing
+  a {\em list} of fail records.
   
+  record does not have a \qq{cells} field, and its \qq{values}
+  field contains one or more fail-\VellSet{}s (see below). 
+
 \subsection{VellSet}
 
   A \VellSet\ record describes a $\mathcal{R}^2\rightarrow\mathcal{R}$ or
@@ -623,13 +718,15 @@ $ $Revision$ $\\$ $Date$ $}
   solvable parameter IDs) -- which then can be used to estimate derivatives.
 
   On the C++ side, \VellSet\ is derived from \qq{DataRecord}. The \VellSet\
-  record has three forms:
+  record has three forms: regular, empty and fail.
   
-  \paragraph{The normal form} contains the following fields:
+  \subsubsection{Regular VellSets}
+  
+  The regular form of a VellSet contains the following fields:
 
   \vspace{1em}
   
-  \noindent\begin{tabular}{l|p{.8\textwidth}}
+  \noindent\begin{tabular}{l|l|p{.7\textwidth}}
   \hline
   \qq{value}  &  the \Vells\ corresponding to the function value.\\\hline
   \multicolumn{2}{l}{~~~~\em optional, only appears if \qq{calc\_deriv>0} was specified in
@@ -643,21 +740,25 @@ $ $Revision$ $\\$ $Date$ $}
   \multicolumn{2}{l}{~~~~\em optional, only appears if \qq{calc\_deriv>1} was specified 
   in the original \Request:}\\
   \qq{perturbations\_1}  & second set of parameter 
-                        perturbations\\
-  \qq{perturbed\_value\_1} & second set of perturbed values\\
+                        perturbations (same length as \qq{spids})\\
+  \qq{perturbed\_value\_1} & second set of perturbed values (same length as \qq{spids})\\
   \hline
   \end{tabular}\vspace{1em}
   
-  \paragraph{The empty form} of a \VellSet\ is just an empty record,
-  corresponding to a default-constructed (empty) object in C++. While empty
-  \VellSet{}s shouldn't be present in well-formed results, they can still
-  appear in node state records and other structures, thus Glish code should be
-  prepared to deal with them.
+  \subsubsection{Empty VellSets}
 
-  \paragraph{The fail VellSet} indicates a run-time error or other failure.
-  The corresponding record has only one field named \qq{fail}, containing a list
-  of fail-records.
+  An empty \VellSet\ is just an empty record, corresponding to a
+  default-constructed (empty) object in C++. While empty \VellSet{}s shouldn't
+  be present in well-formed results, they can still appear in node state
+  records and other structures, thus Glish code should be prepared to deal with
+  them.
   
+  \subsubsection{Fail-VellSets}
+
+  A fail-VellSets is used to indicate a run-time error or other failure. The
+  corresponding record has only one field named \qq{fail}, containing a list of
+  fail-records.
+
   \noindent\begin{tabular}{lp{.8\textwidth}}
   \end{tabular}
                     
