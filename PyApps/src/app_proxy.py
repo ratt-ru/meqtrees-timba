@@ -93,20 +93,9 @@ class app_proxy (verbosity):
       # gui argument can be a callable object (called to start the gui),
       # or simply True to use a standard GUI.
       if callable(gui):
-        self._gui = gui;
+        self._gui = gui(self,verbose=self.get_verbose());
       else:
-        self._gui = app_proxy_gui.app_proxy_gui;
-      # now for a bit of a Qtludge
-      # The Qt threading model requires that all Qt calls be made from a Qt 
-      # thread, which the current thread presumably isn't. Hence, we use 
-      # OCTOPUSSY to send a special message to ourselves, and set up a
-      # "whenever" for it, to call the StartGUI() function. The proxy_wp 
-      # event loop _is_ a Qt thread, so when the whenever fires, we're in 
-      # business.
-      gui_msg = hiid('m.a.k.e.g.u.i');
-      # schedule a one-shot whenever to be executed when the message is returned
-      self._pwp.whenever(gui_msg,self._start_gui,pass_msg=False,one_shot=True);
-      self._pwp.send(gui_msg,self._pwp.address());
+        self._gui = app_proxy_gui.app_proxy_gui(self,verbose=self.get_verbose());
     else:     
       self._gui = None;
     # start the wp messaging thread
