@@ -76,16 +76,16 @@ AC_PREREQ(2.13)dnl
 define(LOFAR_PKG_SYM,m4_patsubst([$1], [.*/]))
 define(LOFAR_PKG_LIB,m4_tolower(m4_patsubst([$1], [.*/])))
 ifelse($2, [], [lfr_option=0], [lfr_option=$2])
-AC_ARG_WITH([LOFAR_PKG_LIB],
-	[  --with-LOFAR_PKG_LIB[[=PFX]]        path to $1 directory],
+AC_ARG_WITH([[lofar-]][LOFAR_PKG_LIB],
+	[  --with-lofar-LOFAR_PKG_LIB[[=PFX]]        path to $1 directory],
 	[with_package=$withval
          if test "${with_package}" = yes; then
             with_package=
          fi],
 	[with_package=])
 
-AC_ARG_WITH([LOFAR_PKG_LIB][[-libdir]],
-  [  --with-LOFAR_PKG_LIB[-libdir]=PFX   specific library dir for $1 library],
+AC_ARG_WITH([[lofar-]][LOFAR_PKG_LIB][[-libdir]],
+  [  --with-lofar-LOFAR_PKG_LIB[-libdir]=PFX   specific library dir for $1 library],
   [lfr_package_libdir="$withval"],
   [lfr_package_libdir=])
 

@@ -85,9 +85,14 @@ AC_ARG_ENABLE(dbgassert,
 AC_DEFINE(LOFAR_DEBUG,dnl
 	1, [Define if we are compiling with debugging information])dnl
 [ fi
+  lfr_cppflags=
+  lfr_clags=
+  lfr_cxxflags=
+  lfr_ldflags=
   if test "$enable_debug" != "no"; then
-    lfr_cflags="-g";
-    lfr_cxxflags="-g $lofar_warnflags -DUSE_DEBUG";
+    lfr_cppflags="$lfr_cppflags -DUSE_DEBUG";
+    lfr_cflags="$lfr_cflags -g";
+    lfr_cxxflags="$lfr_cxxflags -g $lofar_warnflags";
     if test "$enable_dbgassert" = "default"; then
       enable_dbgassert="yes";
     fi
@@ -104,16 +109,16 @@ AC_DEFINE(LOFAR_DEBUG,dnl
   fi
 
   if test "$with_optimize" != "no"; then
-    lfr_cflags="$with_optimize";
-    lfr_cxxflags="$with_optimizecxx $lofar_warnflags";
+    lfr_cflags="$lfr_cflags $with_optimize";
+    lfr_cxxflags="$lfr_cxxflags $with_optimizecxx $lofar_warnflags";
     if test "$enable_dbgassert" = "default"; then
       enable_dbgassert="no";
     fi
   fi
 
   if test "$with_threads" != "no"; then
-    lfr_cppflags="-DUSE_THREADS -pthread";
-    lfr_ldflags="-pthread";
+    lfr_cppflags="$lfr_cppflags -DUSE_THREADS -pthread";
+    lfr_ldflags="$lfr_ldflags -pthread";
   fi
 
   CPPFLAGS="$CPPFLAGS $lfr_cppflags $with_cppflags"
