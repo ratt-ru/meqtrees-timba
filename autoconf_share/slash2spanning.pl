@@ -79,7 +79,7 @@ sub change_comment_style
     # slash-slash-hash is blanked if not at beginning of file..
     if ($keephash == 0  &&  $line =~ /^\s*\/\/\#/)
     {
-      $line = "//\n";
+      $line = "\n";
     }
     $comment = $line;
     # If this line contains only a slash-slash comment, then
