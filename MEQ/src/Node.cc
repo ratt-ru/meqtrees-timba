@@ -474,8 +474,8 @@ void Node::processChildSpec (NestableContainer &children,const HIID &chid,const 
     DataRecord::Ref child_initrec = children[id].remove();
     // check if named child already exists
     string name = child_initrec[FName].as<string>("");
-    int index = forest_->findIndex(name);
-    if( index >= 0 )
+    int index = -1;
+    if( !name.empty() && ( index = forest_->findIndex(name) ) >= 0 )
     {
       cdebug(4)<<"  child already exists as #"<<index<<endl;
       // If link_or_create=T, we allow this, otherwise, throw exception
