@@ -10,8 +10,8 @@
 
 #ifndef _defined_id_TpAtomicID
 #define _defined_id_TpAtomicID 1
-const TypeId TpAtomicID(-1007);                   // from /home/oms/LOFAR/DMI/src/TypeId.h:124
-const int TpAtomicID_int = -1007;
+const TypeId TpAtomicID(-1014);                   // from /home/oms/LOFAR/DMI/src/TypeId.h:124
+const int TpAtomicID_int = -1014;
 class AtomicID;
             template<>
             class DMIBaseTypeTraits<AtomicID> : public TypeTraits<AtomicID>
@@ -27,8 +27,8 @@ class AtomicID;
 #endif
 #ifndef _defined_id_TpDataArray
 #define _defined_id_TpDataArray 1
-const TypeId TpDataArray(-1022);                  // from /home/oms/LOFAR/DMI/src/DataArray.h:141
-const int TpDataArray_int = -1022;
+const TypeId TpDataArray(-1003);                  // from /home/oms/LOFAR/DMI/src/DataArray.h:145
+const int TpDataArray_int = -1003;
 class DataArray;
             template<>
             class DMIBaseTypeTraits<DataArray> : public TypeTraits<DataArray>
@@ -44,8 +44,8 @@ class DataArray;
 #endif
 #ifndef _defined_id_TpDataField
 #define _defined_id_TpDataField 1
-const TypeId TpDataField(-1031);                  // from /home/oms/LOFAR/DMI/src/DataField.h:28
-const int TpDataField_int = -1031;
+const TypeId TpDataField(-1009);                  // from /home/oms/LOFAR/DMI/src/DataField.h:28
+const int TpDataField_int = -1009;
 class DataField;
             template<>
             class DMIBaseTypeTraits<DataField> : public TypeTraits<DataField>
@@ -78,8 +78,8 @@ class DataRecord;
 #endif
 #ifndef _defined_id_TpHIID
 #define _defined_id_TpHIID 1
-const TypeId TpHIID(-1025);                       // from /home/oms/LOFAR/DMI/src/HIID.h:33
-const int TpHIID_int = -1025;
+const TypeId TpHIID(-1004);                       // from /home/oms/LOFAR/DMI/src/HIID.h:33
+const int TpHIID_int = -1004;
 class HIID;
             template<>
             class DMIBaseTypeTraits<HIID> : public TypeTraits<HIID>
@@ -95,13 +95,13 @@ class HIID;
 #endif
 #ifndef _defined_id_TpObjRef
 #define _defined_id_TpObjRef 1
-const TypeId TpObjRef(-1030);                     // from /home/oms/LOFAR/DMI/src/BlockableObject.h:33
-const int TpObjRef_int = -1030;
+const TypeId TpObjRef(-1001);                     // from /home/oms/LOFAR/DMI/src/BlockableObject.h:33
+const int TpObjRef_int = -1001;
 #endif
 #ifndef _defined_id_TpTimestamp
 #define _defined_id_TpTimestamp 1
-const TypeId TpTimestamp(-1032);                  // from /home/oms/LOFAR/DMI/src/Timestamp.h:11
-const int TpTimestamp_int = -1032;
+const TypeId TpTimestamp(-1002);                  // from /home/oms/LOFAR/DMI/src/Timestamp.h:11
+const int TpTimestamp_int = -1002;
 class Timestamp;
             template<>
             class DMIBaseTypeTraits<Timestamp> : public TypeTraits<Timestamp>

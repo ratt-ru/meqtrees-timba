@@ -573,7 +573,7 @@ ______END_OF_QUOTE
     $ID = lc $id;
     my $fqid = $id_qualified_typename{$ID};
     my $num = -$id_idmap{$ID};
-    print OUTFILE "        AtomicID::registerId($num,\"$name\")+\n";
+    print OUTFILE "        AtomicID::registerId($num,\"$ID\")+\n";
     # if it's a type, register its type info 
     for( $id_typequalifier{$ID} )
     {

@@ -29,6 +29,10 @@ namespace DMI
       UNLOCKED        =0x200,
       PERSIST         =0x400,
       
+  // when attaching a ref as ANON or EXTERN, and the target is already 
+  // referenced, use the established ref type even if it conflicts with the flags
+      NONSTRICT       =  0x80000,
+      
   // some common combinations
       ANONWRITE       = WRITE|ANON,
       ANONWR          = ANONWRITE,

@@ -381,10 +381,13 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   CountedRefBase *owner = targ->getOwner();
   if( owner )
   {
-    bool external = (flags&DMI::EXTERNAL);
     bool other_anon = targ->anon;
-    FailWhen( anon && !other_anon,"object already referenced as external, can't attach as anon" );
-    FailWhen( external && other_anon,"object already referenced as anon, can't attach as external" );
+    if( !(flags&DMI::NONSTRICT) )
+    {
+      bool external = (flags&DMI::EXTERNAL);
+      FailWhen( anon && !other_anon,"object already referenced as external, can't attach as anon" );
+      FailWhen( external && other_anon,"object already referenced as anon, can't attach as external" );
+    }
     anon = other_anon;
   }
   // setup properties
