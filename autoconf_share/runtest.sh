@@ -49,6 +49,7 @@ if test -f "$srcdir/$1.out"; then
     \cp $srcdir/$1.out .
 fi
 if test -f "$srcdir/$1.run"; then
+    \rm -f $1.run
     \cp $srcdir/$1.run .
 fi
 
