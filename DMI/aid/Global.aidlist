@@ -333,7 +333,7 @@ meqspigot                        1330       ; from /home/oms/LOFAR/CEP/CPA/AppAg
 #meqsqr                          1249       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Sqr.h:29
 #meqsqrt                         1251       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Sqrt.h:29
 #meqstatpointsourcedft           1468       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/StatPointSourceDFT.h:30
-meqstripper                      1547       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Stripper.h:29
+#meqstripper                     1547       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Stripper.h:29
 #meqsubtract                     1232       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Subtract.h:29
 meqsubtractsource                1347       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqSubtractSource.h:14
 meqsum                           1531       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Sum.h:29
@@ -343,7 +343,7 @@ meqsum                           1531       ; from /home/assendorp/LOFAR/CEP/CPA
 #meqtocomplex                    1217       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ToComplex.h:29
 #mequvw                          1239       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/UVW.h:29
 meqvellset                       1369       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/VellSet.h:34
-meqvistest                       1536       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/VisTest.h:29
+#meqvistest                      1536       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/VisTest.h:29
 meqwvl                           1353       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqWVL.h:14
 meqwvl2                          1348       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqWVL2.h:14
 meqzeroflagger                   1433       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:29
@@ -426,6 +426,7 @@ ra                               1380       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 rank                             1402       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 rasrc                            1466       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/LMN.h:30
 raw                              1169       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
+rawdata                          1558       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/DataCollect.h:30
 read                             1424       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/VisHandlerNode.h:10
 receive                          1311       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:13
 receptor                         1173       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
@@ -557,6 +558,7 @@ visdata                          1546       ; from /home/twillis/LOFAR/CEP/CPA/P
 vishandlernode                   1329       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/VisHandlerNode.h:7
 visrepeater                      1321       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/VisRepeater.h:9
 vistile                          1181       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisTile.h:47
+visu                             1559       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/DataCollect.h:30
 w                                1029       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 wait                             1271       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:17
 weight                           1189       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
