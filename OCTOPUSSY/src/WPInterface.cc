@@ -15,8 +15,10 @@
   #define stopwatch_reset  
 #endif
 
+#ifdef USE_DEBUG
 // using namespace LOFAR;
 using LOFAR::Stopwatch;
+#endif
 
 #if defined(USE_THREADS) && defined(ENABLE_LATENCY_STATS)
 //##ModelId=3DB937230313

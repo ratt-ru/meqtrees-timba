@@ -407,7 +407,7 @@ template <class T>
 inline CountedRef<T>::CountedRef (T* targ, int flags)
   : CountedRefBase()
 {
-  if( !flags&DMI::EXTERNAL )
+  if( !(flags&DMI::EXTERNAL) )
     flags |= DMI::ANON;
   attach(targ,flags);
 }
@@ -417,7 +417,7 @@ template <class T>
 inline CountedRef<T>::CountedRef (const T* targ, int flags)
   : CountedRefBase()
 {
-  if( !flags&DMI::EXTERNAL )
+  if( !(flags&DMI::EXTERNAL) )
     flags |= DMI::ANON;
   attach(targ,flags|DMI::READONLY);
 }
@@ -553,7 +553,7 @@ template <class T>
 inline CountedRef<T>::CountedRef (int flags)
   : CountedRefBase()
 {
-  FailWhen(!flags&DMI::ANON,"DMI::ANON must be specified in constructor");
+  FailWhen(!(flags&DMI::ANON),"DMI::ANON must be specified in constructor");
   attach(new T,flags);
 }
 
