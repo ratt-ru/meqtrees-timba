@@ -60,6 +60,13 @@ GlishArray GlishUtil::makeMissingValue ()
   return arr;
 }
 
+GlishArray GlishUtil::makeEmptyObject (TypeId tid)
+{
+  GlishArray arr(False);
+  arr.addAttribute("dmi_empty_object",GlishArray(tid.toString()));
+  return arr;
+}
+
 // helper function to convert a container into a Glish array
 bool GlishUtil::makeGlishArray (GlishArray &arr,const DMI::Container &nc,TypeId tid,bool isIndex )
 {
@@ -260,11 +267,16 @@ casa::GlishValue GlishUtil::objectToGlishValue (const DMI::BObj &obj,bool adjust
 #endif
     GlishArray arr;
     // convert to array and add (case 3.1)
-    if( makeGlishArray(arr,dataarray,dataarray.elementType(),adjustIndex) )
+    if( dataarray.valid() )
     {
-      arr.addAttribute("dmi_actual_type",GlishArray(type.toString()));
-      return arr;
+      if( makeGlishArray(arr,dataarray,dataarray.elementType(),adjustIndex) )
+      {
+        arr.addAttribute("dmi_actual_type",GlishArray(type.toString()));
+        return arr;
+      }
     }
+//    else
+//      return makeEmptyObject(obj.objectType());
   }
   // catch-all for (4) and all failed mappings: converts to a blockset
   return objectToBlockRec(obj);
@@ -313,6 +325,17 @@ void GlishUtil::initDMIVec (DMI::Vec &field,const GlishArray &arr,bool isScalar)
   array.freeStorage(data,del);
 }
 
+
+template<class T> 
+inline void initDMINumArray (ObjRef &ref,const casa::Array<T> &array,const GlishArray &val)
+{
+  DMI::NumArray & numarr = *GlishUtil::createSubclass<DMI::NumArray>(ref,val);
+  // init numarray with AIPS++ type and shape
+  numarr.init(array);
+  // validate content
+  numarr.validateContent(true);
+}
+
 // helper template to create a new DMI::NumArray from a GlishArray
 // of the template argument type
 template<class T> 
@@ -320,11 +343,7 @@ void GlishUtil::newDMINumArray (ObjRef &ref,const GlishArray &arr)
 {
   Array<T> array;
   arr.get(array);
-  DMI::NumArray & numarr = *GlishUtil::createSubclass<DMI::NumArray>(ref,arr);
-  // init numarray with AIPS++ type and shape
-  numarr.init(array);
-  // validate content
-  numarr.validateContent(true);
+  initDMINumArray(ref,array,arr);
 }
 
 // helper function creates a DMI::NumArray from a GlishArray
@@ -351,7 +370,7 @@ ObjRef GlishUtil::makeDMINumArray (const GlishArray &arr,bool isIndex)
         arr.get(array);
         if( isIndex )
           array -= 1;
-        ref <<= new DMI::NumArray(array);
+        initDMINumArray(ref,array,arr);
         return ref;
     }
     
@@ -378,7 +397,7 @@ ObjRef GlishUtil::makeDMINumArray (const GlishArray &arr,bool isIndex)
     
     default:
         dprintf(2)("warning: unknown Glish array type %d, ignoring\n",arr.elementType());
-        ref <<= new DMI::NumArray;
+        createSubclass<DMI::NumArray>(ref,arr);
         return ref;
   }
 }
@@ -541,7 +560,7 @@ ObjRef GlishUtil::glishValueToObject (const casa::GlishValue &val,bool adjustInd
       {
         try 
         {
-          (*field)[i] <<= glishValueToObject(glrec.get(i),adjustIndex);
+          field->put(i,glishValueToObject(glrec.get(i),adjustIndex));
         }
         catch( std::exception &exc )
         {
@@ -568,7 +587,7 @@ ObjRef GlishUtil::glishValueToObject (const casa::GlishValue &val,bool adjustInd
       {
         try 
         {
-          (*list)[i] <<= glishValueToObject(glrec.get(i),adjustIndex);
+          list->addBack(glishValueToObject(glrec.get(i),adjustIndex));
         }
         catch( std::exception &exc )
         {
@@ -631,7 +650,7 @@ ObjRef GlishUtil::glishValueToObject (const casa::GlishValue &val,bool adjustInd
             isIndex = isIndexString(field_name);
           }
           dprintf(4)("maps to HIID '%s'\n",id.toString('.').c_str());
-          (*rec)[id] <<= glishValueToObject(subval,isIndex);
+          rec->replace(id,glishValueToObject(subval,isIndex));
         }
         catch( std::exception &exc )
         {

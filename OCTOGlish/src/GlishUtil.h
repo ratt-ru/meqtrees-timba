@@ -23,6 +23,7 @@ namespace GlishUtil
   
   casa::GlishArray makeFailField ( const casa::String &msg );
   casa::GlishArray makeMissingValue ();
+  casa::GlishArray GlishUtil::makeEmptyObject (DMI::TypeId tid);
 
   bool makeGlishArray (casa::GlishArray &arr,const DMI::Container &nc,DMI::TypeId tid,bool adjustIndex);
     

@@ -7,6 +7,8 @@ DefineRegistry(DynamicTypeManager,0);
 
 ObjRef DynamicTypeManager::construct (TypeId tid, BlockSet& bset)
 {
+  if( bset.empty() )
+    return ObjRef(construct(tid));
   if( tid == 0 )
     tid = static_cast<const BObj::Header *>(bset.front()->data())->tid;
   BObj * pobj = construct(tid);
