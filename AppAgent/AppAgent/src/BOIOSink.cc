@@ -51,7 +51,7 @@ int BOIOSink::refillStream()
   for(;;)
   {
     ObjRef ref;
-    TypeId tid = boio.read(ref);
+    TypeId tid = boio.readAny(ref);
     if( tid == 0 )
     {
       cdebug(1)<<"EOF on BOIO file, closing"<<endl;
