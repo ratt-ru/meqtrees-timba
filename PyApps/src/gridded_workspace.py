@@ -251,12 +251,12 @@ class GridDataItem (object):
 # manages one cell of a gridded workspace
 #
 class GridCell (object):
-  # define top-level widget class. This accepts data drops, and 
-  # display context menus
-  DataDroppableQWidget = DataDroppableWidget(QWidget);
-  class TopLevelWidget (DataDroppableQWidget):
-    def __init__ (self,*args):
-      GridCell.DataDroppableQWidget.__init__(self,*args);
+  # define top-level cell widget class. This accepts data drops, 
+  # displays context menus, has toolbars, etc.
+  DataDroppableMainWindow = DataDroppableWidget(QMainWindow);
+  class TopLevelWidget (DataDroppableMainWindow):
+    def __init__ (self,parent,name=None):
+      GridCell.DataDroppableMainWindow.__init__(self,parent,name,0);
       self._menu = None;
     def set_context_menu (self,menu):
       self._menu = menu;
@@ -278,75 +278,76 @@ class GridCell (object):
     # init widgets
     wtop = self._wtop = self.TopLevelWidget(parent,'cell '+str(id(self))+' top');
     wtop.hide();
-    top_lo = self._top_lo = QVBoxLayout(self._wtop);
-    control_box = self._control_box = QWidget(self._wtop);
-    control_lo = QHBoxLayout(control_box);
-    # icon button
-    self._iconbutton = iconbutton = QToolButton(control_box);
-    iconbutton.setAutoRaise(True);
-    QToolTip.add(iconbutton,"menu");
-    QObject.connect(iconbutton,SIGNAL("clicked()"),self.show_popup_menu);
+    # --- build toolbar
+    self._toolbar = QToolBar("Panel tools",wtop,wtop);
+    # icon button and popup menu    
+    self._icon_act = QAction("Panel &menu",QKeySequence(),wtop);
+    self._icon_act.setToolTip("Displays panel menu");
+    self._icon_act.addTo(self._toolbar);
+    QObject.connect(self._icon_act,SIGNAL("activated()"),self.show_popup_menu);
     # pin button
     pin_is = pixmaps.pin_up.iconset();
     pin_is.setPixmap(pixmaps.pin_down.pm(),QIconSet.Automatic,QIconSet.Normal,QIconSet.On);
-    self._pin = pin = QToolButton(control_box);
-    pin.setAutoRaise(True);
-    pin.setToggleButton(True);
-    pin.setIconSet(pin_is);
-    QObject.connect(pin,SIGNAL("clicked()"),self._update_pin_menu);
-    QToolTip.add(pin,"pin (i.e. protect) or unpin this panel");
+    self._pin = pin = QAction(pin_is,"&Pin/unpin panel",QKeySequence(),wtop);
+    pin.setToolTip("pin (i.e. protect) or unpin this panel");
+    pin.setToggleAction(True);
+    pin.addTo(self._toolbar);
+    QObject.connect(pin,SIGNAL("activated()"),self._update_pin_menu);
     # float button
-    self._float_btn = flt = QToolButton(control_box);
-    flt.setAutoRaise(True);
-    flt.setToggleButton(True);
-    flt.setIconSet(pixmaps.float_window.iconset());
+    self._float_act = flt = QAction(pixmaps.float_window.iconset(),"&Float panel",QKeySequence(),wtop);
+    flt.setToolTip("float this cell in a separate window");
+    flt.setToggleAction(True);
+    flt.addTo(self._toolbar);
     QObject.connect(flt,SIGNAL("toggled(bool)"),self.float_cell);
-    QToolTip.add(flt,"float this cell in a separate window");
     # refresh button
-    self._refresh = refresh = QToolButton(control_box);
-    refresh.setIconSet(pixmaps.refresh.iconset());
-    refresh.setAutoRaise(True);
-    QObject.connect(refresh,SIGNAL("clicked()"),self._dorefresh);
-    QToolTip.add(self._refresh,"refresh contents of this panel");
-    # label
-    self._label = QLabel("(empty)",control_box);
+    self._refresh = refresh = QAction(pixmaps.refresh.iconset(),"&Refresh contents",QKeySequence(),wtop);
+    refresh.setToolTip("refresh contents of this panel");
+    refresh.addTo(self._toolbar);
+    QObject.connect(refresh,SIGNAL("activated()"),self._dorefresh);
+    self._toolbar.addSeparator();
+    # stretchable label
+    self._label = QLabel("  (empty)",self._toolbar);
     self._label.setFont(app_proxy_gui.defaultBoldFont());
-    self._label1 = QLabel("",control_box);
-    hsp = QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Fixed)
+    self._toolbar.addSeparator();
+    self._label1 = QLabel("",self._toolbar);
+    # hsp = QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Fixed)
     # self._label.setSizePolicy(hsp);
-    self._label1.setSizePolicy(hsp);
+    # self._label1.setSizePolicy(hsp);
+#    self._toolbar.boxLayout().addSpacing(10);
+#    self._toolbar.boxLayout().addWidget(self._label);
+#    self._toolbar.boxLayout().addSpacing(10);
+#    self._toolbar.boxLayout().addWidget(self._label1);
+#    self._toolbar.boxLayout().addStretch();
     # close button
-    self._close = close = QToolButton(control_box);
-    close.setIconSet(pixmaps.cancel.iconset());
-    close.setAutoRaise(True);
-    QToolTip.add(close,"close this panel");
-    QObject.connect(close,SIGNAL("clicked()"),self.close);
+    self._close = close = QAction(pixmaps.cancel.iconset(),"&Close panel",QKeySequence(),wtop);
+    close.setToolTip("close this panel");
+    close.addTo(self._toolbar);
+    QObject.connect(close,SIGNAL("activated()"),self.close);
+    
+    self._toolbar.setHorizontallyStretchable(True);
+    self._toolbar.setStretchableWidget(self._label1);
+    self._toolbar.setMovingEnabled(False);
+    
+    
     # create menu
     self._viewers_menu = QPopupMenu(wtop);
     self._menu = menu = QPopupMenu(wtop);
     
-    # add buttons and labels to the control bar layout
-    control_lo.addWidget(iconbutton);
-    control_lo.addWidget(pin);
-    control_lo.addWidget(flt);
-    control_lo.addWidget(refresh);
-    control_lo.addSpacing(10);
-    control_lo.addWidget(self._label);
-    control_lo.addSpacing(10);
-    control_lo.addWidget(self._label1);
-    control_lo.addStretch();
-    control_lo.addWidget(close);
+##     top_lo = self._top_lo = QVBoxLayout(self._wtop);
+## 
+##     # add a widget holder (for viewer) to the top-level layout
+##     top_lo.addWidget(control_box,0);
+##     top_lo.addStretch(1);
+## #    top_lo.addWidget(self._viewer_holder,1000);
+##     top_lo.setResizeMode(QLayout.Minimum);
+## 
+##     top_lo = self._top_lo = QVBoxLayout(self._wtop);
+## 
+##     # other init
+##     control_box.setSizePolicy(hsp);
+##     control_box.hide();
 
-    # add a widget holder (for viewer) to the top-level layout
-    top_lo.addWidget(control_box,0);
-    top_lo.addStretch(1);
-#    top_lo.addWidget(self._viewer_holder,1000);
-    top_lo.setResizeMode(QLayout.Minimum);
-   
-    # other init
-    control_box.setSizePolicy(hsp);
-    control_box.hide();
-    self._wtop.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding));
+    wtop.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding));
     
   # destructor
   def __del__ (self):
@@ -380,11 +381,11 @@ class GridCell (object):
       self._m_udi     = self._menu.insertItem(udi);
       self._menu.insertSeparator();
     self._m_viewers = self._menu.insertItem("View using",self._viewers_menu);
-    self._m_pin     = self._menu.insertItem(self._pin.iconSet(),(self.is_pinned() and "Unpin") or "Pin",self._toggle_pinned_state);
-    self._menu.setItemChecked(self._m_pin,self.is_pinned());
+    self._pin.addTo(self._menu);
+    self._pin.setOn(self.is_pinned());
     if self._dataitem.is_mutable():
-      self._menu.insertItem(self._refresh.iconSet(),"Refresh",self._dorefresh);
-    self._menu.insertItem(self._close.iconSet(),"Close panel",self.close);
+      self._refresh.addTo(self._menu);
+    self._close.addTo(self._menu);
     self.wtop().set_context_menu(self._menu);
     
   def udi (self):
@@ -404,14 +405,13 @@ class GridCell (object):
     except: return;
     if state is None:
       state = self.is_pinned();
-    self._menu.setItemChecked(pinid,state);
-    self._menu.changeItem(pinid,(state and "Unpin") or "Pin");
+    self._pin.setOn(state);
     
   # highlights a cell
   # pass in a QColor, or True for default color, or False value to disable highlights
   def highlight (self,color=True):
 #      wlist = [self._control_box] + self._control_box.children();
-    wlist = (self._control_box,self._label,self._label1);
+    wlist = (self._toolbar,self._label,self._label1);
     if color:
       color = self._highlight_colors;
       for w in wlist:
@@ -453,7 +453,7 @@ class GridCell (object):
     _dprint(5,'GridCell: clearing cell ',id(self));
     self.wipe();
     self._wtop.hide();
-    self._control_box.hide();
+    self._toolbar.hide();
     self._label.setText("(empty)");
     self._label1.setText("");
     self.wtop().emit(PYSIGNAL("closed()"),(self,));
@@ -474,7 +474,7 @@ class GridCell (object):
       self.wipe();
     dataitem.attach_cell(self);
     self._dataitem = dataitem;
-    self._label.setText(dataitem.name);
+    self._label.setText("  "+dataitem.name+"  ");
     desc = dataitem.desc;
     # trim desc to reasonable length
     if len(desc)>self.MaxDescLen:
@@ -487,18 +487,17 @@ class GridCell (object):
         desc = '/'.join(dd);
       else:          # fallback: terminate string
         desc = desc[:57]+'...';
-    self._label1.setText(desc);
+    self._label1.setText("  "+desc);
     # show the control box
-    self._control_box.show();
+    self._toolbar.show();
     # set up the viewer
     self.change_viewer(viewer or dataitem.default_viewer);
     # setup refresh function and button
+    self._refresh.setVisible(dataitem.is_mutable());
     if dataitem.is_mutable():
-      self._refresh.show();
       self._refresh_func = dataitem.refresh_func;    
       QWidget.connect(self._viewer.wtop(),PYSIGNAL("refresh()"),self._refresh_func);
     else:
-      self._refresh.hide();
       self._refresh_func = lambda:None;
     # setup pin button
     if pin is not None:
@@ -518,18 +517,20 @@ class GridCell (object):
     
   def float_cell (self,enable=True):
     if enable:
-      QToolTip.add(self._float_btn,"return view contents to cell");
+      self._float_act.setToolTip("return view contents to cell");
       try: float_window = self._float_window;
       except AttributeError:
         self._float_window = float_window = self.FloatingCell(self.wtop());
         QObject.connect(float_window,PYSIGNAL("hidden()"),self.__unfloat_cell);
-        self._float_label = QLabel("This viewer is now floating in a separate window.",self.wtop());
-        self._float_label.setAlignment(Qt.AlignTop|Qt.AlignLeft|Qt.WordBreak);
-        self._float_ret_btn = QPushButton(pixmaps.float_window.iconset(),"Return it here",self.wtop());
-        QObject.connect(self._float_ret_btn,SIGNAL("clicked()"),self.unfloat_cell);
-        self._top_lo.addWidget(self._float_label);
-        self._top_lo.addWidget(self._float_ret_btn);
-        self._top_lo.addStretch(1);
+        self._float_label = QWidget(self._wtop);
+        layout = QVBoxLayout(self._float_label);
+        lbl = QLabel("This viewer is now floating in a separate window.",self._float_label);
+        lbl.setAlignment(Qt.AlignTop|Qt.AlignLeft|Qt.WordBreak);
+        ret_btn = QPushButton(pixmaps.float_window.iconset(),"Return it here",self._float_label);
+        QObject.connect(ret_btn,SIGNAL("clicked()"),self.unfloat_cell);
+        layout.addWidget(lbl);
+        layout.addWidget(ret_btn);
+        layout.addStretch(1000);
       caption = str(self._label.text()) + " * " + str(self._label1.text());
       float_window.setCaption(str(self._label.text()) + " * " + str(self._label1.text()));
       self._viewer_widget.reparent(float_window,0,QPoint(0,0));
@@ -537,8 +538,8 @@ class GridCell (object):
       float_window.setCentralWidget(self._viewer_widget);
       float_window.resize(self.wtop().size());
       float_window.show();
-      self._float_label.show();
-      self._float_ret_btn.show();
+      self._float_label.show()
+      self.wtop().setCentralWidget(self._float_label);
     else:
       try: 
         if not self._float_window.isHidden():
@@ -547,14 +548,10 @@ class GridCell (object):
       
   def __unfloat_cell (self):
     _dprint(1,'unfloating cells');
-    QToolTip.add(self._float_btn,"float this view in a separate window");
+    self._float_act.setToolTip("float this view in a separate window");
     dum = QWidget();
     self._float_label.hide();
-    self._float_ret_btn.hide();
-    # self._float_label.reparent(dum,0,QPoint(0,0));
-    # self._float_ret_btn.reparent(dum,0,QPoint(0,0));
-    # self._float_label = self._float_ret_btn = None;
-    self._float_btn.setOn(False);
+    self._float_act.setOn(False);
     self._remove_viewer();
     self.change_viewer(self._viewer_class);
     
@@ -566,7 +563,6 @@ class GridCell (object):
         
   def unfloat_cell (self):
     _dprint(1,'unfloating cells');
-    QToolTip.add(self._float_btn,"return view contents to cell");
     self._remove_viewer();
     # self._viewer_widget.emit(PYSIGNAL("reparent()"),(self._wtop,));
     # self._top_lo.addWidget(self._viewer_widget,1000);
@@ -602,10 +598,11 @@ class GridCell (object):
       if not self._viewer:
         txt = "(Error creating %s)"%str(viewer_class);
         self._viewer_widget = self._viewer = QLabel(txt,self.wtop());
-        self._top_lo.addWidget(self._viewer_widget,1000);
-        self._float_btn.setEnabled(False);
+        # self._top_lo.addWidget(self._viewer_widget,1000);
+        self.wtop().setCentralWidget(self._viewer_widget);
+        self._float_act.setEnabled(False);
     else:
-      self._float_btn.setEnabled(True);
+      self._float_act.setEnabled(True);
       try: self._float_window.isHidden() or self._float_window.hide();
       except AttributeError: pass;
       self._remove_viewer();
@@ -613,7 +610,8 @@ class GridCell (object):
       self._viewer_class = viewer_class;
       self._viewer = viewer;
       self._viewer_widget = widget = viewer.wtop();
-      self._top_lo.addWidget(widget,1000);
+      self.wtop().setCentralWidget(widget);
+#      self._top_lo.addWidget(widget,1000);
       _dprint(5,'GridCell: widget',widget,'added');
       # connect displayDataItem() signal from viewer to be resent from top widget
       QWidget.connect(widget,PYSIGNAL("displayDataItem()"),
@@ -624,7 +622,7 @@ class GridCell (object):
       # create an icon set for the menu button
       try: icon = viewer_class.icon();
       except AttributeError: icon = pixmaps.magnify.iconset();
-      self._iconbutton.setIconSet(icon);
+      self._icon_act.setIconSet(icon);
       # rebuild the menu
       self.rebuild_menu();
       self._viewers_menu.clear();
@@ -653,12 +651,11 @@ class GridCell (object):
       self._refit_size();
     self.enable();
     if flash:
-      self._iconbutton.setPaletteBackgroundColor(self._highlight_colors[0]);
-      self._iconbutton.setPaletteForegroundColor(self._highlight_colors[1]);
+      self._refresh.setIconSet(pixmaps.refresh_highlight.iconset());
       QTimer.singleShot(500,self._unflash);
       
   def _unflash (self):
-      self._iconbutton.unsetPalette();
+    self._refresh.setIconSet(pixmaps.refresh.iconset());
       
   def _refit_size (self):
     """ugly kludge to get the layout system to do its stuff properly after
