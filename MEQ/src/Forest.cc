@@ -41,6 +41,10 @@ Forest::Forest ()
   nodes.reserve(RepositoryChunkSize);
   nodes.resize(1);
   num_valid_nodes = 0;
+  breakpoints = breakpoints_oneshot = 0;
+  node_status_callback = 0;
+  node_breakpoint_callback = 0;
+  verbosity_ = 0;
 }
 
 //##ModelId=400E53050193
@@ -225,8 +229,8 @@ int Forest::getNodeList (DataRecord &list,int content)
     list[AidClass] <<= lclass = new DataField(Tpstring,num);
   if( content&NL_CHILDREN )
     list[AidChildren] <<= lchildren = new DataList;
-  if( content&NL_CONTROL_STATE )
-    list[FControlState] <<= lstate = new DataField(Tpint,num);
+  if( content&NL_CONTROL_STATUS )
+    list[FControlStatus] <<= lstate = new DataField(Tpint,num);
   if( num )
   {
     // fill them up
@@ -243,7 +247,7 @@ int Forest::getNodeList (DataRecord &list,int content)
         if( lclass )
           (*lclass)[i0] = node.className();
         if( lstate )
-          (*lstate)[i0] = node.getControlState();
+          (*lstate)[i0] = node.getControlStatus();
         if( lchildren )
         {
           DataRecord::Hook hook(node.state(),FChildren);

@@ -408,6 +408,11 @@ const int AidName_int = -1188;
 const AtomicID AidNames(-1396);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:33
 const int AidNames_int = -1396;
 #endif
+#ifndef _defined_id_AidNew
+#define _defined_id_AidNew 1
+const AtomicID AidNew(-1538);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:40
+const int AidNew_int = -1538;
+#endif
 #ifndef _defined_id_AidNode
 #define _defined_id_AidNode 1
 const AtomicID AidNode(-1233);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:33
@@ -582,6 +587,11 @@ const int AidStart_int = -1105;
 #define _defined_id_AidState 1
 const AtomicID AidState(-1060);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:21
 const int AidState_int = -1060;
+#endif
+#ifndef _defined_id_AidStatus
+#define _defined_id_AidStatus 1
+const AtomicID AidStatus(-1269);                  // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:18
+const int AidStatus_int = -1269;
 #endif
 #ifndef _defined_id_AidStdDev
 #define _defined_id_AidStdDev 1

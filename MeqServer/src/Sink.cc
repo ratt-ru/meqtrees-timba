@@ -4,6 +4,7 @@
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/MeqVocabulary.h>
+#include <MEQ/Forest.h>
 
 namespace Meq {
 
@@ -112,16 +113,22 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
   // this will invalidate the pending refs
   tileref = pending.tile;
   Request::Ref reqref  = pending.request;
+  if( forest().verbosity()>1 )
+    wstate()[FNewRequest].replace() = reqref.copy();
+  setExecState(CS_ES_REQUEST);
   cdebug(3)<<"procPendingTile: processing tile "<<tileref->tileId()<<" of "
             <<tileref->ntime()<<" timeslots"<<endl;
   // get results from all child nodes 
   Result::Ref resref;
+  setExecState(CS_ES_POLLING);
   cdebug(5)<<"calling execute() on child "<<endl;
   int resflag = getChild(0).execute(resref,*reqref);
   FailWhen(resflag&RES_WAIT,"Meq::Sink can't cope with a WAIT result code yet");
   if( resflag == RES_FAIL )
   {
     cdebug(3)<<"child result is FAIL, ignoring"<<endl;
+    setExecState(CS_ES_IDLE,
+            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
     return RES_FAIL;
   }
   int nvs = resref->numVellSets();
@@ -129,8 +136,11 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
   if( output_col<0 )
   {
     cdebug(3)<<"output disabled, skipping"<<endl;
+    setExecState(CS_ES_IDLE,
+            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_EMPTY);
     return resflag;
   }
+  setExecState(CS_ES_EVALUATING);
   // store resulting Vells into the tile
   // loop over vellsets and get a tf-plane from each
   VisTile *ptile = 0;  // we will privatize the tile for writing as needed
@@ -191,6 +201,8 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
       resflag |= RES_UPDATED;
     }
   }
+  setExecState(CS_ES_IDLE,
+          (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_OK);
   return resflag;
 }
 

@@ -41,7 +41,7 @@ using Debug::ssprintf;
 Node::Node (int nchildren,const HIID *labels,int nmandatory)
     : check_nchildren_(nchildren),
       check_nmandatory_(nmandatory),
-      control_state_(CS_ACTIVE),
+      control_status_(CS_ACTIVE),
       depend_mask_(0),
       node_groups_(1,FAll),
       auto_resample_(RESAMPLE_NONE),
@@ -182,7 +182,7 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
   DataRecord &rec = staterec_.xfer(initrec).privatize(DMI::WRITE|DMI::DEEP);
 
   // set control state
-  control_state_ = rec[FControlState].as<int>();
+  control_status_ = rec[FControlStatus].as<int>();
   // set num children based on the FChildren field
   cdebug(2)<<"reinitializing node children"<<endl;
   // set node index, if specified
@@ -239,7 +239,7 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   node_resolve_id_ = -1;
   checkInitState(rec);
   // add state word
-  rec[FControlState] = control_state_;
+  rec[FControlStatus] = control_status_;
   
   // setup children
   cdebug(2)<<"initializing node (others)"<<endl;
@@ -325,10 +325,10 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
   }
   // apply changes to mutable bits of control state
   int cstate;
-  if( rec[FControlState].get(cstate) )
+  if( rec[FControlStatus].get(cstate) )
   {
-    rec[FControlState] = control_state_ = 
-        (control_state_&~CS_CONTROL_MASK)|(cstate&CS_CONTROL_MASK);
+    rec[FControlStatus] = control_status_ = 
+        (control_status_&~CS_CONTROL_MASK)|(cstate&CS_CONTROL_MASK);
   }
   // set/clear cached result
   //   the cache_result field must be either a Result object,
@@ -736,6 +736,11 @@ int Node::cacheResult (const Result::Ref &ref,int retcode)
     result_event_gen_.generateEvent(staterec_.copy());  
   // NB***: if we don't cache the result, we have to publish it regardless
   // this is to be implemented later, with caching policies
+  
+  // control status set directly (not via setControlStatus call) because
+  // caller (execute(), presumably) is going to update status anyway
+  control_status_ |= CS_CACHED;
+  
   return retcode;
 }
 
@@ -777,7 +782,7 @@ void Node::cacheRCR (int ich,const Result::Ref::Copy &res)
 void Node::addResultSubscriber (const EventSlot &slot)
 {
   result_event_gen_.addSlot(slot);
-  wstate()[FControlState] = control_state_ |= CS_PUBLISHING;
+  wstate()[FControlStatus] = control_status_ |= CS_PUBLISHING;
   cdebug(2)<<"added result subscription "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
 }
 
@@ -785,7 +790,7 @@ void Node::removeResultSubscriber (const EventRecepient *recepient)
 {
   result_event_gen_.removeSlot(recepient);
   if( !result_event_gen_.active() )
-    wstate()[FControlState] = control_state_ &= ~CS_PUBLISHING;
+    wstate()[FControlStatus] = control_status_ &= ~CS_PUBLISHING;
   cdebug(2)<<"removing all subscriptions for "<<recepient<<endl;
 }
 
@@ -793,7 +798,7 @@ void Node::removeResultSubscriber (const EventSlot &slot)
 {
   result_event_gen_.removeSlot(slot);
   if( !result_event_gen_.active() )
-    wstate()[FControlState] = control_state_ &= ~CS_PUBLISHING;
+    wstate()[FControlStatus] = control_status_ &= ~CS_PUBLISHING;
   cdebug(2)<<"removing result subscriber "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
 }
 
@@ -895,6 +900,11 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
                         Result::Ref &resref,
                         const Request &req)
 {
+//   // in verbose mode, child results will also be stuck into the state record
+//   DataField *chres = 0;
+//   if( forest().verbosity()>1 )
+//     wstate()[FChildResults] <<= chres = new DataField(TpMeqResult,numChildren());
+//   
   bool cache_result = False;
   int retcode = 0;
   cdebug(3)<<"  calling execute() on "<<numChildren()<<" child nodes"<<endl;
@@ -903,14 +913,21 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   int nfails = 0;
   for( int i=0; i<numChildren(); i++ )
   {
+      const Result *pchildres = child_results[i].deref_p();
     int childcode = getChild(i).execute(child_results[i],req);
     cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
     retcode |= childcode;
-    if( !(childcode&RES_WAIT) && childcode&RES_FAIL )
+    if( !(childcode&RES_WAIT) )
     {
       const Result *pchildres = child_results[i].deref_p();
-      child_fails.push_back(pchildres);
-      nfails += pchildres->numFails();
+//       // cache it in verbose mode
+//       if( chres )
+//         chres[i] <<= pchildres;
+      if( childcode&RES_FAIL )
+      {
+        child_fails.push_back(pchildres);
+        nfails += pchildres->numFails();
+      }
     }
     // if child is updated, clear resampled result cache
     if( childcode&RES_UPDATED )
@@ -1090,12 +1107,21 @@ int Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
 int Node::execute (Result::Ref &ref,const Request &req0)
 {
   DbgFailWhen(!req0.getOwner(),"Request object must have at least one ref attached");
+  if( getExecState() != CS_ES_IDLE )
+  {
+    Throw("can't re-enter Node::execute(). Are you trying to reexecute a node "
+          "that is stopped at a breakpoint, or its parent?");
+  }
+  
   cdebug(3)<<"execute, request ID "<<req0.id()<<": "<<req0.sdebug(DebugLevel-1,"    ")<<endl;
   FailWhen(node_resolve_id_<0,"execute() called before resolve()");
   // this indicates the current stage (for exception handler)
   string stage;
   try
   {
+    if( forest().verbosity()>1 )
+      wstate()[FNewRequest].replace() <<= req0;
+    setExecState(CS_ES_REQUEST);
     int retcode = 0;
     // check the cache, return on match (method will clear on mismatch)
     stage = "checking cache";
@@ -1103,6 +1129,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     {
         cdebug(3)<<"  cache hit, returning cached code "<<ssprintf("0x%x",retcode)<<" and result:"<<endl<<
                    "    "<<ref->sdebug(DebugLevel-1,"    ")<<endl;
+        setExecState(CS_ES_IDLE,control_status_|CS_RETCACHE);
         return retcode;
     }
     // do we have a new request? Empty request id treated as always new
@@ -1117,20 +1144,28 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       if( !readyForRequest(req0) )
       {
         cdebug(3)<<"  node not ready for new request, returning RES_WAIT"<<endl;
+        setExecState(CS_ES_IDLE,
+            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_WAIT);
         return RES_WAIT;
       }
       // set this request as current
       setCurrentRequest(req0);
       // check for request riders
       if( req0.hasRider() )
+      {
+        setExecState(CS_ES_COMMAND);
         retcode = processRequestRider(reqref);
+      }
     } // endif( newreq )
     // if node is deactivated, return an empty result at this point
-    if( !getControlState(CS_ACTIVE) )
+    if( !getControlStatus(CS_ACTIVE) )
     {
       ref <<= new Result(0);
       cdebug(3)<<"  node deactivated, empty result. Cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
-      return cacheResult(ref,retcode) | RES_UPDATED;
+      int ret = cacheResult(ref,retcode) | RES_UPDATED;
+      setExecState(CS_ES_IDLE,
+            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_EMPTY);
+      return ret;
     }
     // in case processRequestRider modified the request, work with the new
     // request object from now on
@@ -1145,6 +1180,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     Cells::Ref rescells;
     if( numChildren() )
     {
+      setExecState(CS_ES_POLLING);
       stage = "polling children";
       retcode |= pollChildren(child_results,ref,req);
       for( int i=0; i<numChildren(); i++ )
@@ -1152,16 +1188,26 @@ int Node::execute (Result::Ref &ref,const Request &req0)
           child_reslock[i].relock(child_results[i]->mutex());
       // a WAIT from any child is returned immediately w/o a result
       if( retcode&RES_WAIT )
+      {
+        setExecState(CS_ES_IDLE,
+            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_WAIT);
         return retcode;
+      }
       // if failed, then cache & return the fail
       if( retcode&RES_FAIL )
-        return cacheResult(ref,retcode) | RES_UPDATED;
+      {
+        int ret = cacheResult(ref,retcode) | RES_UPDATED;
+        setExecState(CS_ES_IDLE,
+              (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
+        return ret;
+      }
       // resample children (will do nothing if disabled)
       resampleChildren(rescells,child_results);
     }
     // does request have a Cells object? Compute our Result then
     if( req.hasCells() )
     {
+      setExecState(CS_ES_EVALUATING);
       stage = "getting result";
       cdebug(3)<<"  calling getResult(): cells are "<<req.cells();
       int code = getResult(ref,child_results,req,newreq);
@@ -1171,7 +1217,11 @@ int Node::execute (Result::Ref &ref,const Request &req0)
           ", cumulative "<<ssprintf("0x%x",retcode)<<endl;
       // a WAIT is returned immediately with no valid result expected
       if( code&RES_WAIT )
+      {
+        setExecState(CS_ES_IDLE,
+            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_WAIT);
         return retcode;
+      }
       // else we must have a valid Result object now, even if it's a fail.
       // (in case of RES_FAIL, getResult() should have put a fail in there)
       if( !ref.valid() )
@@ -1189,7 +1239,10 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     {
       ref <<= new Result(0);
       cdebug(3)<<"  empty result. Cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
-      return cacheResult(ref,retcode) | RES_UPDATED;
+      int ret = cacheResult(ref,retcode) | RES_UPDATED;
+      setExecState(CS_ES_IDLE,
+          (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_EMPTY);
+      return ret;
     }
     // OK, at this point we have a valid Result to return
     if( DebugLevel>=3 ) // print it out
@@ -1202,7 +1255,10 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       }
     }
     // cache & return accumulated return code
-    return cacheResult(ref,retcode) | RES_UPDATED;
+    int ret = cacheResult(ref,retcode) | RES_UPDATED;
+    setExecState(CS_ES_IDLE,
+        (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_OK);
+    return ret;
   }
   // catch any exceptions, return a single fail result
   catch( std::exception &exc )
@@ -1210,9 +1266,55 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     ref <<= new Result(1);
     VellSet & res = ref().setNewVellSet(0);
     MakeFailVellSet(res,string("exception in execute() while "+stage+": ")+exc.what());
-    return cacheResult(ref,RES_FAIL) | RES_UPDATED;
+    int ret = cacheResult(ref,RES_FAIL) | RES_UPDATED;
+    setExecState(CS_ES_IDLE,
+        (control_status_&~(CS_RETCACHE|CS_RES_MASK))|CS_RES_FAIL);
+    return ret;
   }
 }
+
+void Node::setBreakpoint (int bpmask,bool oneshot)
+{
+  setControlStatus(control_status_|bpmask,true);
+  if( oneshot )
+    breakpoints_oneshot_ |= bpmask;
+}
+
+void Node::clearBreakpoint (int bpmask)
+{
+  setControlStatus(control_status_&~bpmask,true);
+  breakpoints_oneshot_ &= ~bpmask;
+}
+
+void Node::setControlStatus (int newst,bool sync)
+{ 
+  int oldst = control_status_;
+  control_status_ = newst;
+  if( sync )
+    wstate()[FControlStatus] = newst;
+  forest_->newControlStatus(*this,oldst,newst); 
+}
+
+void Node::setExecState (int es,int newst,bool sync)
+{
+  int bp = breakpointMask(es);
+  // if we have hit a breakpoint of our own...
+  if( control_status_&bp )
+  {
+    // bp&breakpoints_oneshot_ clears the signle-shot breakppoints
+    // update control state word
+    setControlStatus((newst&~((bp&breakpoints_oneshot_)|CS_MASK_EXECSTATE))|es,sync);
+    // notify the Forest that a breakpoint has been reached
+    forest_->processBreakpoint(*this,bp);
+  }
+  else 
+  {
+    setControlStatus((newst&~CS_MASK_EXECSTATE)|es,sync);
+    // else check for a global breakpoint
+    forest_->checkGlobalBreakpoints(*this,bp);
+  }
+}
+
 
 //##ModelId=3F98D9D100B9
 int Node::getResult (Result::Ref &,const std::vector<Result::Ref> &,
@@ -1252,11 +1354,11 @@ string Node::sdebug (int detail, const string &prefix, const char *nm) const
   if( detail >= 0 ) // basic detail
   {
     string typestr = nm?nm:objectType().toString();
-    append(out,typestr + "(" + name() + ")");
+    append(out,typestr + ":" + name() );
   }
   if( detail >= 1 || detail == -1 )
   {
-    appendf(out,"children:%d",numChildren());
+    appendf(out,"cs:%x",getControlStatus());
   }
   if( abs(detail) >= 2 )
   {

@@ -37,13 +37,13 @@ class Forest
 {
   public:
     typedef enum {
-      NL_NODEINDEX     = 1,
-      NL_NAME          = 2,
-      NL_CLASS         = 4,
-      NL_CHILDREN      = 8,
-      NL_CONTROL_STATE = 16,
+      NL_NODEINDEX      = 1,
+      NL_NAME           = 2,
+      NL_CLASS          = 4,
+      NL_CHILDREN       = 8,
+      NL_CONTROL_STATUS = 16,
           
-      NL_DEFAULT   = NL_NODEINDEX|NL_NAME|NL_CLASS|NL_CONTROL_STATE,
+      NL_DEFAULT   = NL_NODEINDEX|NL_NAME|NL_CLASS|NL_CONTROL_STATUS,
     } NodeListContent;
     
     //##ModelId=3F60697A00ED
@@ -114,6 +114,60 @@ class Forest
     
     void removeSubscriber (const HIID &evtype,const EventRecepient *recpt)
     { getEventGenerator(evtype).removeSlot(recpt); }
+    
+    // these methods are used by nodes to notify of their control state, 
+    // trip breakpoints, etc.
+    void newControlStatus (Node &node,int oldst,int newst)
+    {
+      if( node_status_callback && verbosity_>0 )
+        (*node_status_callback)(node,oldst,newst);
+    }
+
+    // called by a node when its breakpoint is hit
+    void processBreakpoint (Node &node,int bpmask,bool global=false)
+    {
+      if( node_breakpoint_callback )
+        (*node_breakpoint_callback)(node,bpmask,global);
+    }
+
+    // called by a node at any runstate change to check for global
+    // breakpoints
+    void checkGlobalBreakpoints (Node &node,int bpmask)
+    {
+      if( breakpoints&bpmask )
+      {
+        breakpoints &= ~(bpmask&breakpoints_oneshot);
+        processBreakpoint(node,bpmask,true);
+      }
+    }
+    
+    // sets global breakpoint(s)
+    void setBreakpoint (int bpmask,bool oneshot=false)
+    {
+      breakpoints |= bpmask;
+      if( oneshot )
+        breakpoints_oneshot |= bpmask;
+    }
+    
+    // clears global breakpoint(s)
+    void clearBreakpoint (int bpmask)
+    {
+      breakpoints &= ~bpmask;
+      breakpoints_oneshot &= ~bpmask;
+    }
+    
+    void setVerbosity (int verb)
+    { verbosity_ = verb; }
+    
+    int verbosity () const
+    { return verbosity_; }
+    
+    // set debugging callbacks
+    void setDebuggingCallbacks (void (*stat)(Node&,int,int),void (*bp)(Node&,int,bool))
+    {
+      node_status_callback      = stat;
+      node_breakpoint_callback  = bp;
+    }
 
     //##ModelId=3F60697A0078
     LocalDebugContext;
@@ -122,6 +176,15 @@ class Forest
     string sdebug (int=0) const { return getDebugContext().name(); }
 
   private:
+    int breakpoints;
+    int breakpoints_oneshot;
+    
+    int verbosity_;
+    
+    void (*node_status_callback)(Node&,int,int);
+    void (*node_breakpoint_callback)(Node&,int,bool);
+  
+      
     //##ModelId=3F60697903A7
     typedef std::vector<Node::Ref> Repository;
     //##ModelId=3F5F439203E2
@@ -146,7 +209,6 @@ class Forest
     EventGenerator evgen_delete;
     
     EventGenerator & getEventGenerator (const HIID &evtype);
-    
 };
 
 } // namespace Meq

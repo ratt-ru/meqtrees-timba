@@ -37,7 +37,7 @@
 #pragma types #Meq::Node
 #pragma aid Add Clear Known Active Gen Dep Deps Symdep Symdeps Mask Masks
 #pragma aid Parm Value Resolution Domain Dataset Resolve Parent Init Id
-#pragma aid Link Or Create Control State
+#pragma aid Link Or Create Control Status New
     
 
 namespace Meq {
@@ -45,8 +45,10 @@ namespace Meq {
 class Forest;
 class Request;
 
-// ControlState word
-const HIID FControlState = AidControl|AidState;
+// ControlStatus word
+const HIID FControlStatus = AidControl|AidStatus;
+
+const HIID FNewRequest = AidNew|AidRequest;
 
 // flag for child init-records, specifying that child node may be directly
 // linked to if it already exists
@@ -127,24 +129,64 @@ class Node : public BlockableObject
     } AutoResampleModes; 
       
     //##Documentation
-    //## Control state bitmasks. These are set in control_state_
+    //## Control state bitmasks. These are set in the control_status_ field
     typedef enum 
     { 
+      // control bits which can be set from outside
       // node is active
-      CS_ACTIVE         = 0x01,
-      // node is publishing
-      CS_PUBLISHING     = 0x10,
-      // breakpoint on request
-      CS_BREAK_REQUEST  = 0x10000,
-      // breakpoint on result
-      CS_BREAK_RESULT   = 0x20000,
-      
-      // mask of all breakpoint-related bits
-      CS_MASK_BREAKPOINTS = 0xF0000,
+      CS_ACTIVE              = 0x0001,
           
+      // status bits (readonly)
+      // flag: node is publishing
+      CS_PUBLISHING          = 0x0100,
+      // flag: node has a cached result
+      CS_CACHED              = 0x0200,
+      // flag: most recent result was returned from cache 
+      CS_RETCACHE            = 0x0400,
+      // mask of bits representing type of most recent result
+      CS_RES_MASK            = 0x0030,
+      // most recent result was ok
+      CS_RES_OK              = 0x0000,
+      // most recent result was a wait code
+      CS_RES_WAIT            = 0x0010,
+      // most recent result was empty
+      CS_RES_EMPTY           = 0x0020,
+      // most recent result was a fail
+      CS_RES_FAIL            = 0x0030,
+      // mask of all read-only status bits
+      CS_MASK_STATUS         = 0x0FF0,
+          
+      // mask of bits represdenting execution states
+      CS_MASK_EXECSTATE      = 0xF000,
+      // exec states
+      CS_ES_IDLE             = 0x0000, // inactive
+      CS_ES_REQUEST          = 0x1000, // got request, checking cache
+      CS_ES_COMMAND          = 0x2000, // checking/executing rider commands
+      CS_ES_POLLING          = 0x3000, // polling children
+      CS_ES_POLLING_CHILDREN = CS_ES_POLLING,
+      CS_ES_EVALUATING       = 0x4000, // evaluating result
+
+      // mask of all breakpoint-related bits
+      // each exec state has a corresponding breakpoint
+      CS_MASK_BREAKPOINTS = 0xFF0000,
+      // macro to compute breakpoint bit corresponding to given exec state
+      // e.g. CS_BREAK(IDLE)
+      #define _CS_BREAK(es) (CS_BREAK_IDLE<<((es)>>12))
+      #define CS_BREAK(es)  _CS_BREAK(CS_ES_##es)
+      CS_BREAK_IDLE       = 0x010000,
+      CS_BREAK_REQUEST    = CS_BREAK(REQUEST),
+      CS_BREAK_COMMAND    = CS_BREAK(COMMAND),
+      CS_BREAK_POLLING    = CS_BREAK(POLLING),
+      CS_BREAK_POLLING_CHILDREN = CS_BREAK_POLLING,
+      CS_BREAK_EVALUATING = CS_BREAK(EVALUATING),
+      
       // mask of bits that may be set from outside (via setState)
-      CS_CONTROL_MASK   = 0xFFFFFF0F,
-    } ControlStates;
+      CS_CONTROL_MASK     = 0xFFFFFFFF & 
+                  ~(CS_MASK_EXECSTATE|CS_MASK_STATUS|CS_MASK_BREAKPOINTS)
+    } ControlStatuss;
+    
+    static inline int breakpointMask (int execstate)
+    { return _CS_BREAK(execstate); }
 
     //##ModelId=3F5F43E000A0
     //##Documentation
@@ -189,17 +231,26 @@ class Node : public BlockableObject
     { return objectType().toString(); }
     
     //##ModelId=3F5F441602D2
+    // returns state record
     const DataRecord & state() const
     { return *staterec_; }
+    
+    // syncs rapidly-updated object state (that may not be immediately
+    // put into the state record)
+    const DataRecord & syncState() 
+    { wstate()[FControlStatus] = control_status_; return *staterec_; }
     
     bool hasState () const
     { return staterec_.valid(); }
     
-    int getControlState () const
-    { return control_state_; }
+    int getControlStatus () const
+    { return control_status_; }
     
-    bool getControlState (int mask) const
-    { return control_state_&mask; }
+    bool getControlStatus (int mask) const
+    { return control_status_&mask; }
+    
+    int getExecState () const
+    { return control_status_&CS_MASK_EXECSTATE; } 
     
     //##ModelId=400E53120082
     void setNodeIndex (int nodeindex);
@@ -283,7 +334,12 @@ class Node : public BlockableObject
     
     static void setCheckingLevel (int level)
     { checking_level_ = level; }
-    
+
+    // sets breakpoint(s)
+    void setBreakpoint (int bpmask,bool oneshot=false);
+    // clears breakpoint(s)
+    void clearBreakpoint (int bpmask);
+        
     //##ModelId=3F5F4363030F
     //##Documentation
     //## Clones a node. 
@@ -382,6 +438,22 @@ class Node : public BlockableObject
     };
 
   protected:
+    // ----------------- control state management
+    // sets new control state and notifies the Forest object
+    // (the Forest may publish messages, etc.)
+    // if sync is true, the state record is immediately updated
+    void setControlStatus (int newst,bool sync=false);
+    
+    // changes execution state and control status in one call, checks
+    // if breakpoints have been hit
+    void setExecState (int es,int cs,bool sync=false);
+
+    // overloaded function to change exec state but not rest of control status
+    void setExecState (int es)
+    { setExecState(es,control_status_,false); }
+    
+  
+      
     // ----------------- virtual methods defining node behaviour --------------
     //##Documentation
     //## generally called from constructor, to indicate that a node class does   
@@ -638,8 +710,10 @@ class Node : public BlockableObject
     //## containers.
     HIID getChildLabel (int ich) const
     { return ich<int(child_labels_.size()) ? child_labels_[ich] : AtomicID(ich); }
-
-        
+    
+    //## control_status word
+    int control_status_;
+    
   private:
     //##ModelId=400E531F0085
     void initChildren (int nch);
@@ -677,9 +751,6 @@ class Node : public BlockableObject
     //## specified in constructor. If non-0, node must have no less than 
     //## that number of children
     int check_nmandatory_;
-    
-    //## control_state word
-    int control_state_;
     
     //##ModelId=3F5F4363030D
     DataRecord::Ref staterec_;
@@ -783,6 +854,8 @@ class Node : public BlockableObject
     //##Documentation
     //## event generator for result-is-available events
     EventGenerator result_event_gen_;
+    
+    int breakpoints_oneshot_;
     
     static int checking_level_;
 };

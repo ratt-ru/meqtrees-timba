@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
 # Original file name: /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/defrecs_MeqServer.g
-# Generated on Mon Oct 18 15:22:35 CEST 2004
+# Generated on Sun Nov 14 18:48:08 CET 2004
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 

@@ -35,11 +35,21 @@ const HIID FGetState = AidGet|AidState;
 
 // ...as field node_state
 const HIID FNodeState = AidNode|AidState;
+
+const HIID FBreakpoint = AidBreakpoint;
+const HIID FSingleShot = AidSingle|AidShot;
+
+MeqServer * MeqServer::mqs_ = 0;
+
   
 //##ModelId=3F5F195E0140
 MeqServer::MeqServer()
     : data_mux(forest)
 {
+  if( mqs_ )
+    Throw1("A singleton MeqServer has already been created");
+  mqs_ = this;
+  
   command_map["Create.Node"] = &MeqServer::createNode;
   command_map["Delete.Node"] = &MeqServer::deleteNode;
   command_map["Resolve"] = &MeqServer::resolve;
@@ -57,8 +67,15 @@ MeqServer::MeqServer()
   command_map["Node.Execute"] = &MeqServer::nodeExecute;
   command_map["Node.Clear.Cache"] = &MeqServer::nodeClearCache;
   command_map["Node.Publish.Results"] = &MeqServer::publishResults;
+  command_map["Node.Set.Breakpoint"] = &MeqServer::nodeSetBreakpoint;
+  command_map["Node.Clear.Breakpoint"] = &MeqServer::nodeClearBreakpoint;
   
+  command_map["Set.Verbosity"] = &MeqServer::setVerbosity;
+  command_map["Debug.Single.Step"] = &MeqServer::debugSingleStep;
+  command_map["Debug.Next.Node"] = &MeqServer::debugNextNode;
+  command_map["Debug.Continue"] = &MeqServer::debugContinue;
   
+  in_debugger = debug_nextnode = 0;
 }
 
 //##ModelId=3F6196800325
@@ -124,7 +141,7 @@ void MeqServer::nodeGetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   cdebug(3)<<"getState for node "<<node.name()<<" ";
   cdebug(4)<<in->sdebug(3);
   cdebug(3)<<endl;
-  out.attach(node.state(),DMI::READONLY|DMI::ANON);
+  out.attach(node.syncState(),DMI::READONLY|DMI::ANON);
   cdebug(5)<<"Returned state is: "<<out->sdebug(20)<<endl;
 }
 
@@ -143,7 +160,7 @@ void MeqServer::nodeSetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   rec.privatize(DMI::WRITE|DMI::DEEP);
   node.setState(rec[AidState].as_wr<DataRecord>());
   if( getstate )
-    out[FNodeState] <<= node.state();
+    out[FNodeState] <<= node.syncState();
 }
 
 //##ModelId=3F98D91A03B9
@@ -160,7 +177,7 @@ void MeqServer::resolve (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   out[AidMessage] = ssprintf("node %d (%s): resolve complete",
       node.nodeIndex(),node.name().c_str());
   if( getstate )
-    out[FNodeState] <<= node.state();
+    out[FNodeState] <<= node.syncState();
 }
 
 void MeqServer::getNodeList (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
@@ -172,7 +189,7 @@ void MeqServer::getNodeList (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     ( in[AidName].as<bool>(true) ? Forest::NL_NAME : 0 ) | 
     ( in[AidClass].as<bool>(true) ? Forest::NL_CLASS : 0 ) | 
     ( in[AidChildren].as<bool>(false) ? Forest::NL_CHILDREN : 0 ) |
-    ( in[FControlState].as<bool>(false) ? Forest::NL_CONTROL_STATE : 0 );
+    ( in[FControlStatus].as<bool>(false) ? Forest::NL_CONTROL_STATUS : 0 );
   int count = forest.getNodeList(list,content);
   cdebug(2)<<"getNodeList: got list of "<<count<<" nodes"<<endl;
 }
@@ -216,7 +233,7 @@ void MeqServer::nodeExecute (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   out[AidMessage] = ssprintf("node %d (%s): execute() returns %x",
       node.nodeIndex(),node.name().c_str(),flags);
   if( getstate )
-    out[FNodeState] <<= node.state();
+    out[FNodeState] <<= node.syncState();
 }
 
 
@@ -232,7 +249,7 @@ void MeqServer::nodeClearCache (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   out[AidMessage] = ssprintf("node %d (%s): cache cleared%s",
       node.nodeIndex(),node.name().c_str(),recursive?" recursively":"");
   if( getstate )
-    out[FNodeState] <<= node.state();
+    out[FNodeState] <<= node.syncState();
 }
 
 //##ModelId=400E5B6C0247
@@ -247,7 +264,7 @@ void MeqServer::saveForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     {
       Node &node = forest.get(i);
       cdebug(3)<<"saving node "<<node.name()<<endl;
-      boio << node.state();
+      boio << node.syncState();
       nsaved++;
     }
   cdebug(1)<<"saved "<<nsaved<<" nodes to file "<<filename<<endl;
@@ -318,7 +335,17 @@ void MeqServer::publishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
         node.nodeIndex(),node.name().c_str());
   }
   if( getstate )
-    out[FNodeState] <<= node.state();
+    out[FNodeState] <<= node.syncState();
+}
+
+void MeqServer::setVerbosity (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+{
+  cdebug(1)<<"setting verbosity level"<<endl;
+  int verb = in[AidVerbosity].as<int>();
+  verb = std::min(verb,2);
+  verb = std::max(verb,0);
+  forest.setVerbosity(verb);
+  out[AidMessage] = Debug::ssprintf("verbosity level %d set",verb);
 }
 
 void MeqServer::disablePublishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &)
@@ -330,11 +357,191 @@ void MeqServer::disablePublishResults (DataRecord::Ref &out,DataRecord::Ref::Xfe
   out[AidMessage] = "nodes no longer publishing results";
 }
 
+void MeqServer::nodeSetBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+{
+  DataRecord::Ref rec = in;
+  bool getstate;
+  Node & node = resolveNode(getstate,*rec);
+  int bpmask = rec[FBreakpoint].as<int>(Node::CS_BREAK_REQUEST);
+  bool oneshot = rec[FSingleShot].as<bool>(false);
+  cdebug(2)<<"nodeSetBreakpoint, node "<<node.name()<<", mask "<<bpmask<<", single-shot "<<oneshot<<endl;
+  node.setBreakpoint(bpmask,oneshot);
+  if( getstate )
+    out[FNodeState] <<= node.syncState();
+  out[AidMessage] = Debug::ssprintf("node %s: set %sbreakpoint %x; "
+        "new breakpoint mask is %x",
+        node.name().c_str(),oneshot?"one-shot":"",bpmask,
+        node.getControlStatus()&Node::CS_MASK_BREAKPOINTS);
+}
+
+void MeqServer::nodeClearBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+{
+  DataRecord::Ref rec = in;
+  bool getstate;
+  Node & node = resolveNode(getstate,*rec);
+  int bpmask = rec[FBreakpoint];
+  cdebug(2)<<"nodeClearBreakpoint, node "<<node.name()<<", mask "<<bpmask<<endl;
+  node.clearBreakpoint(bpmask);
+  if( getstate )
+    out[FNodeState] <<= node.syncState();
+  out[AidMessage] = Debug::ssprintf("node %s: clearing breakpoint %x; "
+        "new breakpoint mask is %x",
+        node.name().c_str(),bpmask,
+        node.getControlStatus()&Node::CS_MASK_BREAKPOINTS);
+}
+
+void MeqServer::debugContinue (DataRecord::Ref &,DataRecord::Ref::Xfer &)
+{
+  if( !in_debugger )
+    Throw1("can't execute a Continue command when not debugging");
+  forest.clearBreakpoint(Node::CS_MASK_BREAKPOINTS);
+  debug_continue = true;
+}
+
+void MeqServer::debugSingleStep (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+{
+  if( !in_debugger )
+    Throw1("can't execute a Single Step command when not debugging");
+  forest.setBreakpoint(Node::CS_MASK_BREAKPOINTS,true);
+  debug_nextnode = 0;
+  debug_continue = true;
+}
+
+void MeqServer::debugNextNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+{
+  if( !in_debugger )
+    Throw1("can't execute a Next Node command when not debugging");
+  forest.setBreakpoint(Node::CS_MASK_BREAKPOINTS,true);
+  debug_nextnode = in_debugger;
+  debug_continue = true;
+}
+
+
 int MeqServer::receiveEvent (const EventIdentifier &evid,const ObjRef::Xfer &evdata,void *) 
 {
   cdebug(4)<<"received event "<<evid.id()<<endl;
   control().postEvent(evid.id(),evdata);
   return 1;
+}
+
+void MeqServer::reportNodeStatus (Node &node,int oldstat,int newstat)
+{
+  if( forest.verbosity() <= 0 )
+    return;
+  // check what's changed
+  int changemask = oldstat^newstat;
+  // at verbosity level 1, only report changes to result type
+  // at level>1, report changes to anything
+  if( changemask&Node::CS_RES_MASK ||
+      ( forest.verbosity()>1 && changemask )  )
+  {
+    DataRecord::Ref ref;
+    DataRecord &rec = ref <<= new DataRecord;
+    rec[AidName] = node.name();
+    rec[AidNodeIndex] = node.nodeIndex();
+    rec[FControlStatus] = newstat;
+    if( forest.verbosity()>1 )
+      rec[FRequestId] = node.currentRequestId();
+    control().postEvent(EvNodeStatus,ref);
+  }
+}
+
+void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
+{
+  // return immediately if we hit a global breakpoint after a next-node
+  // command, and node hasn't changed yet
+  if( global && debug_nextnode == &node )
+    return;
+  in_debugger = &node;
+  debug_continue = false;
+  // post event indicating we're stopped in the debugger
+  DataRecord::Ref ref;
+  DataRecord &rec = ref <<= new DataRecord;
+  rec[AidName] = node.name();
+  rec[AidNodeIndex] = node.nodeIndex();
+  rec[FNodeState] <<= node.syncState();
+  rec[AidMessage] = "stopped at breakpoint in node " + node.name();
+  control().postEvent(EvDebugStop,ref);
+  // keep on processing commands until asked to continue
+  while( control().state() > 0 && !debug_continue )  // while in a running state
+    processCommands();
+  in_debugger = 0;
+}
+
+// static callbacks mapping to methods of the global MeqServer object
+void MeqServer::mqs_reportNodeStatus (Node &node,int oldstat,int newstat)
+{
+  mqs_->reportNodeStatus(node,oldstat,newstat);
+}
+
+void MeqServer::mqs_processBreakpoint (Node &node,int bpmask,bool global)
+{
+  mqs_->processBreakpoint(node,bpmask,global);
+}
+
+void MeqServer::processCommands ()
+{
+  // check for any commands from the control agent
+  HIID cmdid;
+  DataRecord::Ref cmddata;
+  if( control().getCommand(cmdid,cmddata,AppEvent::WAIT) == AppEvent::SUCCESS 
+      && cmdid.matches(AppCommandMask) )
+  {
+    // strip off the App.Control.Command prefix -- the -1 is not very
+    // nice because it assumes a wildcard is the last thing in the mask.
+    // Which it usually will be
+    cmdid = cmdid.subId(AppCommandMask.length()-1);
+    cdebug(3)<<"received app command "<<cmdid.toString()<<endl;
+    int request_id = 0;
+    bool silent = false;
+    DataRecord::Ref retval(DMI::ANONWR);
+    bool have_error = true;
+    string error_str;
+    try
+    {
+      request_id = cmddata[FRequestId].as<int>(0);
+      ObjRef ref = cmddata[FArgs].remove();
+      silent     = cmddata[FSilent].as<bool>(false);
+      DataRecord::Ref args;
+      if( ref.valid() )
+      {
+        FailWhen(!ref->objectType()==TpDataRecord,"invalid args field");
+        args = ref.ref_cast<DataRecord>();
+      }
+      CommandMap::const_iterator iter = command_map.find(cmdid);
+      if( iter != command_map.end() )
+      {
+        // execute the command, catching any errors
+        (this->*(iter->second))(retval,args);
+        // got here? success!
+        have_error = false;
+      }
+      else // command not found
+        error_str = "unknown command "+cmdid.toString();
+    }
+    catch( std::exception &exc )
+    {
+      have_error = true;
+      error_str = exc.what();
+    }
+    catch( ... )
+    {
+      have_error = true;
+      error_str = "unknown exception while processing command";
+    }
+    // send back reply if quiet flag has not been raised;
+    // errors are always sent back
+    if( !silent || have_error )
+    {
+      // in case of error, insert error message into return value
+      if( have_error )
+        retval[AidError] = error_str;
+      HIID reply_id = CommandResultPrefix|cmdid;
+      if( request_id )
+        reply_id |= request_id;
+      control().postEvent(reply_id,retval);
+    }
+  }
 }
 
 //##ModelId=3F608106021C
@@ -344,6 +551,7 @@ void MeqServer::run ()
   // i/o nodes)
   forest.addSubscriber(AidCreate,EventSlot(VisDataMux::EventCreate,&data_mux));
   forest.addSubscriber(AidDelete,EventSlot(VisDataMux::EventDelete,&data_mux));
+  forest.setDebuggingCallbacks(mqs_reportNodeStatus,mqs_processBreakpoint);
   
   verifySetup(True);
   DataRecord::Ref initrec;
@@ -496,68 +704,7 @@ void MeqServer::run ()
           control().postEvent(DataProcessingError,retval);
         }
       }
-      
-      // check for any commands from the control agent
-      HIID cmdid;
-      DataRecord::Ref cmddata;
-      if( control().getCommand(cmdid,cmddata,AppEvent::WAIT) == AppEvent::SUCCESS 
-          && cmdid.matches(AppCommandMask) )
-      {
-        // strip off the App.Control.Command prefix -- the -1 is not very
-        // nice because it assumes a wildcard is the last thing in the mask.
-        // Which it usually will be
-        cmdid = cmdid.subId(AppCommandMask.length()-1);
-        cdebug(3)<<"received app command "<<cmdid.toString()<<endl;
-        int request_id = 0;
-        bool silent = false;
-        DataRecord::Ref retval(DMI::ANONWR);
-        have_error = true;
-        try
-        {
-          request_id = cmddata[FRequestId].as<int>(0);
-          ObjRef ref = cmddata[FArgs].remove();
-          silent     = cmddata[FSilent].as<bool>(false);
-          DataRecord::Ref args;
-          if( ref.valid() )
-          {
-            FailWhen(!ref->objectType()==TpDataRecord,"invalid args field");
-            args = ref.ref_cast<DataRecord>();
-          }
-          CommandMap::const_iterator iter = command_map.find(cmdid);
-          if( iter != command_map.end() )
-          {
-            // execute the command, catching any errors
-            (this->*(iter->second))(retval,args);
-            // got here? success!
-            have_error = false;
-          }
-          else // command not found
-            error_str = "unknown command "+cmdid.toString();
-        }
-        catch( std::exception &exc )
-        {
-          have_error = true;
-          error_str = exc.what();
-        }
-        catch( ... )
-        {
-          have_error = true;
-          error_str = "unknown exception while processing command";
-        }
-        // send back reply if quiet flag has not been raised;
-        // errors are always sent back
-        if( !silent || have_error )
-        {
-          // in case of error, insert error message into return value
-          if( have_error )
-            retval[AidError] = error_str;
-          HIID reply_id = CommandResultPrefix|cmdid;
-          if( request_id )
-            reply_id |= request_id;
-          control().postEvent(reply_id,retval);
-        }
-      }
-      // .. but ignore them since we only watch for state changes anyway
+      processCommands();
     }
     // go back up for another start() call
   }

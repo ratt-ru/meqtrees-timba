@@ -347,6 +347,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
     mepuvw=F,                       # use UVW from MEP table (should be filled already)
     load='',                        # load forest from file 
     save='',                        # save forest to file
+    set_breakpoint=F,               # set breakpoint on solver
     publish=3)    # node publish: higher means more detail
 {
   # clear output column in MS
@@ -471,6 +472,10 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
 #    mqs.meq('Node.Publish.Results',[name=fq_name('dft.b',4,8)]);
 #    mqs.meq('Node.Publish.Results',[name=fq_name('U',8)]);
   }
+  
+  if( set_breakpoint )
+    mqs.meq('Node.Set.Breakpoint',[name='solver']);
+  mqs.meq('Set.Verbosity',[verbosity=100]);
 
   # run over MS
   if( run )
@@ -491,6 +496,7 @@ mepuvw := T;
 filluvw := any(argv=='-filluvw');
 solve_gains := any(argv=='-gains');
 solve_phases := any(argv=='-phases');
+set_breakpoint := any(argv=='-bp');
 
 src_dra  := ([0,142.5]+0) * pi/(180*60*60); # perturb positions by # seconds
 src_ddec := ([0,128]+0) * pi/(180*60*60);
@@ -521,6 +527,7 @@ do_test(msname=msname,solve=T,subtract=F,run=T,
   stset=1+[0:3]*4,
 #  st1set=1+[0:20]*4,st2set=1+[0:20]*4,
 #  st1set=1:100,st2set=1:100,
+  set_breakpoint=set_breakpoint,
   publish=1,mepuvw=mepuvw,msuvw=msuvw);
 #do_test(solve=T,run=T,publish=2,load='solve-100.forest');
 

@@ -13,6 +13,7 @@
 #pragma aid App Command Args Result Data Processing Error Message Code
 #pragma aid Execute Clear Cache Save Load Forest Recursive 
 #pragma aid Publish Results Enable Disable Event Id Silent
+#pragma aid Debug Breakpoint Single Shot Step Continue Stop Verbosity
 #pragma aid addstate
     
 namespace Meq
@@ -28,7 +29,11 @@ namespace Meq
     FEventId          = AidEvent|AidId,
     FEventData        = AidEvent|AidData,
       
-    EvNodeResult      = AidNode|AidResult;
+    EvNodeResult      = AidNode|AidResult,
+    
+    EvNodeStatus      = AidNode|AidStatus,
+    
+    EvDebugStop       = AidDebug|AidStop;
   
   
 
@@ -72,6 +77,15 @@ class MeqServer : public VisRepeater, public EventRecepient
     void publishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
     void disablePublishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
     
+    void nodeSetBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void nodeClearBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    
+    void debugSingleStep (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void debugNextNode   (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void debugContinue   (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+
+    void setVerbosity    (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    
     virtual int receiveEvent (const EventIdentifier &evid,const ObjRef::Xfer &,void *);
     
     //##ModelId=3F5F195E0156
@@ -83,6 +97,12 @@ class MeqServer : public VisRepeater, public EventRecepient
   private:
     //##ModelId=3F6196800325
     Node & resolveNode (bool &getstate,const DataRecord &rec);
+
+    void processCommands();
+    
+    void reportNodeStatus (Node &node,int oldstat,int newstat);
+
+    void processBreakpoint (Node &node,int bpmask,bool global);
       
     //##ModelId=3F5F218F02BD
     Forest forest;
@@ -95,8 +115,17 @@ class MeqServer : public VisRepeater, public EventRecepient
     CommandMap command_map;
     //##ModelId=3F9CE0D3027D
     VisDataMux data_mux;
+    
+    const Node * in_debugger;
+    const Node * debug_nextnode;
+    bool debug_continue;
+    
+    static MeqServer *mqs_;
+    
+    static void mqs_reportNodeStatus (Node &node,int oldstat,int newstat);
 
-
+    static void mqs_processBreakpoint (Node &node,int bpmask,bool global);
+    
 };
 
 }; // namespace Meq
