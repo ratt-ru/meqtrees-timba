@@ -287,8 +287,8 @@ int Solver::getResult (Result::Ref &resref,
       bool hasFlags = chresult.hasDataFlags();
       
       if(hasFlags){
-        AssertStr( chresult.dataFlags().nflags() == nrval,"Number of flags is not equal to number of data points");
-        isFlagged = chresult.dataFlags().beginFlags();
+        AssertStr( chresult.dataFlags().nelements() == nrval,"Number of flags is not equal to number of data points");
+        isFlagged = chresult.dataFlags().begin<VellsFlagType>();
       }
 
 
