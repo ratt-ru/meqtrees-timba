@@ -112,7 +112,7 @@ class NodeList (object):
       s[6] = CS_RES_map[status&CS_RES_MASK][0];
       s = ''.join(s);
       if rqid is not None:
-        s = ' '.join((s,str(rqid)));
+        s = ':'.join((s,str(rqid)));
       self.control_status_string = s;
       _dprint(5,"node",self.name,"update status",status);
       self.emit(PYSIGNAL("status()"),(status,rqid,s));
@@ -310,4 +310,4 @@ def get_node_snapshots (node):
 snapshots = {};
 nodelist = NodeList();
 
-mqs = None;
+_mqs = None;
