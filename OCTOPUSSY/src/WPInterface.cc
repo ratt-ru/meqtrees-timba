@@ -19,6 +19,7 @@
 
 //## begin module%3C8F26A30123.includes preserve=yes
 #include "OctopussyConfig.h"
+#include <stdarg.h>
 //## end module%3C8F26A30123.includes
 
 // Dispatcher
@@ -169,8 +170,8 @@ int WPInterface::getPollPriority (ulong tick)
     const QueueEntry * qe = topOfQueue();
     if( qe )
     {
-      return max(qe->priority,Message::PRI_LOWEST)
-             + static_cast<int>(tick - qe->tick);
+      int lowest = Message::PRI_LOWEST;
+      return max(qe->priority,lowest) + static_cast<int>(tick - qe->tick);
     }
   }
   return -1;
@@ -537,7 +538,7 @@ int WPInterface::send (const HIID &id, MsgAddress to, int priority)
 {
   //## begin WPInterface::send%3CBDAD020297.body preserve=yes
   MessageRef msg( new Message(id,priority),DMI::ANON|DMI::WRITE );
-  send(msg,to);
+  return send(msg,to);
   //## end WPInterface::send%3CBDAD020297.body
 }
 

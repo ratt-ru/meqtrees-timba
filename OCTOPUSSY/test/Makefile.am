@@ -1,4 +1,4 @@
-CXXFLAGS += -Wno-unknown-pragmas -pg -DDMI_THREADS
+CXXFLAGS += -Wno-unknown-pragmas -pg -DUSE_THREADS -pthread -Wno-deprecated
 
 INCLUDES = -I$(top_srcdir)/src
 

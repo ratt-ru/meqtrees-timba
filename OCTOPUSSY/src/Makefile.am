@@ -2,12 +2,12 @@ dmi_dir = $(lofar_sharedir)/../DMI
 
 SUBDIRS = . Glish
 
-CXXFLAGS += -Wall -Wno-unknown-pragmas -pg
+CXXFLAGS += -Wall -Wno-unknown-pragmas -pg -DUSE_THREADS -D_GNU_SOURCE -Wno-deprecated -pthread
 
 lib_LTLIBRARIES = liboctopussy.la
 
 liboctopussy_la_SOURCES = Dispatcher.cc  Message.cc  MsgAddress.cc  \
-	WPInterface.cc WorkProcess.cc Timestamp.cc OctopussyDebugContext.cc \
+	WPInterface.cc WorkProcess.cc OctopussyDebugContext.cc \
   GWClientWP.cc GWServerWP.cc GatewayWP.cc LoggerWP.cc \
   OctopussyConfig.cc \
   Net/Socket.cc Subscriptions.cc \

@@ -29,7 +29,7 @@
 #include <unistd.h>
 #include <stack>
 #include <map>
-#include "OCTOPUSSY/Timestamp.h"
+#include "DMI/Timestamp.h"
 #include "OCTOPUSSY/OctopussyConfig.h"
 //## end module%3C7B7F300041.includes
 

@@ -10,15 +10,9 @@
 
 #ifndef _defined_id_TpMessage
 #define _defined_id_TpMessage 1
-const TypeId TpMessage(-446);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:38
-const int TpMessage_int = -446;
+const TypeId TpMessage(-606);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:38
+const int TpMessage_int = -606;
 class Message;
-#endif
-#ifndef _defined_id_TpTimestamp
-#define _defined_id_TpTimestamp 1
-const TypeId TpTimestamp(-85);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:54
-const int TpTimestamp_int = -85;
-class Timestamp;
 #endif
 
 

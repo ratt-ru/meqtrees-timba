@@ -15,7 +15,7 @@
 // any connections that have dropped out. Quite a paranoid feature
 #define ADVERTISE_SERVERS 0
 
-#pragma aid ConnectionMgrWP GWServerWP GWClientWP GatewayWP 
+#pragma aid ConnectionMgrWP GWServerWP GWClientWP GatewayWP Timestamp
 #pragma aid GW Client Server Bind Error Fatal Bound Remote Up Down Network Type
 #pragma aid Duplicate Host Port Peers Connected Connection Add Network Local Open
     

@@ -219,7 +219,7 @@ inline const OctopussyConfig & OctopussyConfig::global()
   return global_;
 }
 
-inline string OctopussyConfig::sdebug (int=0) const
+inline string OctopussyConfig::sdebug (int) const
 {
   return "Config("+hostname_+","+appName_+")";
 }
