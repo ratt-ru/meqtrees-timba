@@ -1,5 +1,5 @@
 
-#include "DMI.h"
+#include "DMI/DMI.h"
     
 namespace DMI
 {

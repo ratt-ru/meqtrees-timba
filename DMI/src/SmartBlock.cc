@@ -22,7 +22,7 @@
 //## end module%3C10CC83016E.includes
 
 // SmartBlock
-#include "SmartBlock.h"
+#include "DMI/SmartBlock.h"
 //## begin module%3C10CC83016E.declarations preserve=no
 //## end module%3C10CC83016E.declarations
 

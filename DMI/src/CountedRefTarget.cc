@@ -22,9 +22,9 @@
 //## end module%3C10CC8103D8.includes
 
 // CountedRefBase
-#include "CountedRefBase.h"
+#include "DMI/CountedRefBase.h"
 // CountedRefTarget
-#include "CountedRefTarget.h"
+#include "DMI/CountedRefTarget.h"
 //## begin module%3C10CC8103D8.declarations preserve=no
 //## end module%3C10CC8103D8.declarations
 

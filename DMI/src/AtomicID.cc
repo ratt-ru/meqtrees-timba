@@ -20,11 +20,11 @@
 
 //## begin module%3C10CC81015F.includes preserve=yes
 #include <ctype.h>
-#include "DMI.h"
+#include "DMI/DMI.h"
 //## end module%3C10CC81015F.includes
 
 // AtomicID
-#include "AtomicID.h"
+#include "DMI/AtomicID.h"
 //## begin module%3C10CC81015F.declarations preserve=no
 //## end module%3C10CC81015F.declarations
 

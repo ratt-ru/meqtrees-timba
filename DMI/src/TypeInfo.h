@@ -1,7 +1,7 @@
 #ifndef TypeInfo_h
 #define TypeInfo_h 1
 
-#include "TID-DMI.h"
+#include "DMI/TID-DMI.h"
 
 // The TypeInfo class is basically a simple struct containing information
 // on various types. 

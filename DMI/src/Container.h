@@ -19,25 +19,25 @@
 #define NestableContainer_h 1
 
 //## begin module%3C10CC830067.additionalIncludes preserve=no
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 //## end module%3C10CC830067.additionalIncludes
 
 //## begin module%3C10CC830067.includes preserve=yes
-#include "TypeInfo.h"
+#include "DMI/TypeInfo.h"
 // pull in PSCF types
-#include "PSCF/TID-PSCF.h"
+//#include "PSCF/TID-PSCF.h"
 #include "PSCF/Timestamp.h"
 // for now:
 #include <aips/Arrays/Array.h>
 //## end module%3C10CC830067.includes
 
 // Registry
-#include "Registry.h"
+#include "DMI/Registry.h"
 // HIIDSet
-#include "HIIDSet.h"
+#include "DMI/HIIDSet.h"
 // BlockableObject
-#include "BlockableObject.h"
+#include "DMI/BlockableObject.h"
 //## begin module%3C10CC830067.declarations preserve=no
 //## end module%3C10CC830067.declarations
 
@@ -188,7 +188,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           { return (*this)[HIID(id1)]; }
       
           // pull in const accessdor methods
-          #include "DataAcc-Const.h"
+          #include "DMI/DataAcc-Const.h"
 
           // standard debug info
           string sdebug ( int detail = 1,const string &prefix = "",const char *name = "cHook" ) const;
@@ -395,7 +395,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           
           // pull non-in const accessdor methods
           #define ForceConstDefinitions 1
-          #include "DataAcc-NonConst.h"
+          #include "DMI/DataAcc-NonConst.h"
 
           string sdebug ( int detail = 1,const string &prefix = "",const char *name = "Hook" ) const
           { return ConstHook::sdebug(detail,prefix,name); }

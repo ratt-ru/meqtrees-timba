@@ -35,7 +35,6 @@ BlockableObject.cc		\
 ConfigMgr.cc \
 CountedRefBase.cc		\
 CountedRefTarget.cc		\
-Debug.cc			\
 DMI.cc				\
 DataArray.cc			\
 DataField.cc			\
@@ -57,8 +56,7 @@ EXTRA_DIST = build_aid_maps.pl build_type_iter.pl atomicid.list
 
 # Alas includes are needed for all possible Tp types.
 # Should be improved one time.
-INCLUDES = -I$(lofar_sharedir)/../CEP/CPA/PSCF/src \
-  -I$(lofar_sharedir)/../src-links
+INCLUDES = -I$(lofar_sharedir)/../CEP/CPA/PSCF/src
 
 # script used to generate AID maps
 MAPBUILDER = $(top_srcdir)/src/build_aid_maps.pl 

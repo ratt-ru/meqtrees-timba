@@ -19,8 +19,8 @@
 #define HIIDSet_h 1
 
 //## begin module%3C10CC8203CD.additionalIncludes preserve=no
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 //## end module%3C10CC8203CD.additionalIncludes
 
 //## begin module%3C10CC8203CD.includes preserve=yes
@@ -28,7 +28,7 @@
 //## end module%3C10CC8203CD.includes
 
 // HIID
-#include "HIID.h"
+#include "DMI/HIID.h"
 //## begin module%3C10CC8203CD.declarations preserve=no
 //## end module%3C10CC8203CD.declarations
 

@@ -19,8 +19,8 @@
 #define DataRecord_h 1
 
 //## begin module%3C10CC820052.additionalIncludes preserve=no
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 //## end module%3C10CC820052.additionalIncludes
 
 //## begin module%3C10CC820052.includes preserve=yes
@@ -28,11 +28,11 @@
 //## end module%3C10CC820052.includes
 
 // NestableContainer
-#include "NestableContainer.h"
+#include "DMI/NestableContainer.h"
 // HIID
-#include "HIID.h"
+#include "DMI/HIID.h"
 // DataField
-#include "DataField.h"
+#include "DMI/DataField.h"
 //## begin module%3C10CC820052.declarations preserve=no
 //## end module%3C10CC820052.declarations
 

@@ -1,5 +1,5 @@
-#include "TypeInfo.h"
-#include "TypeIterMacros.h"
+#include "DMI/TypeInfo.h"
+#include "DMI/TypeIterMacros.h"
 
 static AtomicID::Register reg1(TpNumeric,"Numeric"),
     reg2(TpIncomplete,"Incomplete"),

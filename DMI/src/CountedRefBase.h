@@ -19,17 +19,17 @@
 #define CountedRefBase_h 1
 
 //## begin module%3C10CC81037C.additionalIncludes preserve=no
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 //## end module%3C10CC81037C.additionalIncludes
 
 //## begin module%3C10CC81037C.includes preserve=yes
 //## end module%3C10CC81037C.includes
 
 // CountedRefTarget
-#include "CountedRefTarget.h"
+#include "DMI/CountedRefTarget.h"
 // Debug
-#include "Debug.h"
+#include "Common/Debug.h"
 //## begin module%3C10CC81037C.declarations preserve=no
 //## end module%3C10CC81037C.declarations
 
@@ -56,7 +56,7 @@ class CountedRefBase
 {
   //## begin CountedRefBase%3C0CDEE200FE.initialDeclarations preserve=yes
   public:
-      LocalDebugContext(public);
+      LocalDebugContext;
   //## end CountedRefBase%3C0CDEE200FE.initialDeclarations
 
   public:

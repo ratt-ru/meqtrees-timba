@@ -19,19 +19,19 @@
 #define SmartBlock_h 1
 
 //## begin module%3C10CC83016C.additionalIncludes preserve=no
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 //## end module%3C10CC83016C.additionalIncludes
 
 //## begin module%3C10CC83016C.includes preserve=yes
 //## end module%3C10CC83016C.includes
 
 // CountedRefTarget
-#include "CountedRefTarget.h"
+#include "DMI/CountedRefTarget.h"
 // Debug
-#include "Debug.h"
+#include "Common/Debug.h"
 // CountedRef
-#include "CountedRef.h"
+#include "DMI/CountedRef.h"
 //## begin module%3C10CC83016C.declarations preserve=no
 //## end module%3C10CC83016C.declarations
 

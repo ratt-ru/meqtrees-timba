@@ -22,7 +22,7 @@
 //## end module%3C10CC82005C.includes
 
 // DataRecord
-#include "DataRecord.h"
+#include "DMI/DataRecord.h"
 //## begin module%3C10CC82005C.declarations preserve=no
 //## end module%3C10CC82005C.declarations
 

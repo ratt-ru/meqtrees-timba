@@ -19,21 +19,21 @@
 #define BlockableObject_h 1
 
 //## begin module%3C10CC81019B.additionalIncludes preserve=no
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 //## end module%3C10CC81019B.additionalIncludes
 
 //## begin module%3C10CC81019B.includes preserve=yes
 //## end module%3C10CC81019B.includes
 
 // CountedRef
-#include "CountedRef.h"
+#include "DMI/CountedRef.h"
 // CountedRefTarget
-#include "CountedRefTarget.h"
+#include "DMI/CountedRefTarget.h"
 // TypeId
-#include "TypeId.h"
+#include "DMI/TypeId.h"
 // BlockSet
-#include "BlockSet.h"
+#include "DMI/BlockSet.h"
 //## begin module%3C10CC81019B.declarations preserve=no
 //## end module%3C10CC81019B.declarations
 

@@ -22,7 +22,7 @@
 //## end module%3C10CC8202B7.includes
 
 // DynamicTypeManager
-#include "DynamicTypeManager.h"
+#include "DMI/DynamicTypeManager.h"
 //## begin module%3C10CC8202B7.declarations preserve=no
 //## end module%3C10CC8202B7.declarations
 

@@ -19,7 +19,7 @@
 #define AtomicID_h 1
 
 //## begin module%3C10CC810157.additionalIncludes preserve=no
-#include "Common.h"
+#include "DMI/Common.h"
 #include <map>
 //## end module%3C10CC810157.additionalIncludes
 
@@ -27,7 +27,7 @@
 //## end module%3C10CC810157.includes
 
 // Registry
-#include "Registry.h"
+#include "DMI/Registry.h"
 //## begin module%3C10CC810157.declarations preserve=no
 //## end module%3C10CC810157.declarations
 

@@ -19,13 +19,13 @@
 //## end module%3C10CC820126.additionalIncludes
 
 //## begin module%3C10CC820126.includes preserve=yes
-#include "DynamicTypeManager.h"
-#include "DataRecord.h"
-#include "Packer.h"
+#include "DMI/DynamicTypeManager.h"
+#include "DMI/DataRecord.h"
+#include "DMI/Packer.h"
 //## end module%3C10CC820126.includes
 
 // DataField
-#include "DataField.h"
+#include "DMI/DataField.h"
 //## begin module%3C10CC820126.declarations preserve=no
 //## end module%3C10CC820126.declarations
 

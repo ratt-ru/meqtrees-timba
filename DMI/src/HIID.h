@@ -19,8 +19,8 @@
 #define HIID_h 1
 
 //## begin module%3C10CC820355.additionalIncludes preserve=no
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 //## end module%3C10CC820355.additionalIncludes
 
 //## begin module%3C10CC820355.includes preserve=yes
@@ -28,7 +28,7 @@
 //## end module%3C10CC820355.includes
 
 // AtomicID
-#include "AtomicID.h"
+#include "DMI/AtomicID.h"
 //## begin module%3C10CC820355.declarations preserve=no
 //## end module%3C10CC820355.declarations
 

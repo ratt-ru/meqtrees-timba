@@ -19,12 +19,12 @@
 #define ConfigMgr_h 1
 
 //## begin module%3CCFFF3301E8.additionalIncludes preserve=no
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 //## end module%3CCFFF3301E8.additionalIncludes
 
 //## begin module%3CCFFF3301E8.includes preserve=yes
-#include "Debug.h"
+#include "Common/Debug.h"
 //## end module%3CCFFF3301E8.includes
 
 //## begin module%3CCFFF3301E8.declarations preserve=no
@@ -48,7 +48,7 @@
 class ConfigMgr 
 {
   //## begin ConfigMgr%3CCFFDC300DA.initialDeclarations preserve=yes
-  LocalDebugSubContext(public);
+  LocalDebugSubContext;
   //## end ConfigMgr%3CCFFDC300DA.initialDeclarations
 
   public:

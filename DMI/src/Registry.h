@@ -19,8 +19,8 @@
 #define Registry_h 1
 
 //## begin module%3C5A7367022E.additionalIncludes preserve=no
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 //## end module%3C5A7367022E.additionalIncludes
 
 //## begin module%3C5A7367022E.includes preserve=yes

@@ -22,7 +22,7 @@
 //## end module%3C10CC81037E.includes
 
 // CountedRefBase
-#include "CountedRefBase.h"
+#include "DMI/CountedRefBase.h"
 //## begin module%3C10CC81037E.declarations preserve=no
 //## end module%3C10CC81037E.declarations
 

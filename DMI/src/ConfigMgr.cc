@@ -25,7 +25,7 @@
 //## end module%3CCFFF3301FC.includes
 
 // ConfigMgr
-#include "ConfigMgr.h"
+#include "DMI/ConfigMgr.h"
 //## begin module%3CCFFF3301FC.declarations preserve=no
 //## end module%3CCFFF3301FC.declarations
 

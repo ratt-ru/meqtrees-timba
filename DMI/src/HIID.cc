@@ -22,7 +22,7 @@
 //## end module%3C10CC820357.includes
 
 // HIID
-#include "HIID.h"
+#include "DMI/HIID.h"
 //## begin module%3C10CC820357.declarations preserve=no
 //## end module%3C10CC820357.declarations
 

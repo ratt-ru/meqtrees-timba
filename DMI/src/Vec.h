@@ -19,21 +19,21 @@
 #define DataField_h 1
 
 //## begin module%3C10CC820124.additionalIncludes preserve=no
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 //## end module%3C10CC820124.additionalIncludes
 
 //## begin module%3C10CC820124.includes preserve=yes
-#include "TypeInfo.h"
-#include "HIID.h"
+#include "DMI/TypeInfo.h"
+#include "DMI/HIID.h"
 //## end module%3C10CC820124.includes
 
 // NestableContainer
-#include "NestableContainer.h"
+#include "DMI/NestableContainer.h"
 // BlockSet
-#include "BlockSet.h"
+#include "DMI/BlockSet.h"
 // BlockableObject
-#include "BlockableObject.h"
+#include "DMI/BlockableObject.h"
 //## begin module%3C10CC820124.declarations preserve=no
 //## end module%3C10CC820124.declarations
 

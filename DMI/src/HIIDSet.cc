@@ -19,11 +19,11 @@
 //## end module%3C10CC8203CF.additionalIncludes
 
 //## begin module%3C10CC8203CF.includes preserve=yes
-#include "Packer.h"
+#include "DMI/Packer.h"
 //## end module%3C10CC8203CF.includes
 
 // HIIDSet
-#include "HIIDSet.h"
+#include "DMI/HIIDSet.h"
 //## begin module%3C10CC8203CF.declarations preserve=no
 //## end module%3C10CC8203CF.declarations
 

@@ -19,7 +19,7 @@
 #define DynamicTypeManager_h 1
 
 //## begin module%3C10CC8202B5.additionalIncludes preserve=no
-#include  "Common.h"
+#include  "DMI/Common.h"
 #include <map>
 //## end module%3C10CC8202B5.additionalIncludes
 
@@ -27,11 +27,11 @@
 //## end module%3C10CC8202B5.includes
 
 // Registry
-#include "Registry.h"
+#include "DMI/Registry.h"
 // BlockSet
-#include "BlockSet.h"
+#include "DMI/BlockSet.h"
 // BlockableObject
-#include "BlockableObject.h"
+#include "DMI/BlockableObject.h"
 //## begin module%3C10CC8202B5.declarations preserve=no
 //## end module%3C10CC8202B5.declarations
 

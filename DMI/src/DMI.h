@@ -1,8 +1,8 @@
 #ifndef DMI_h
 #define DMI_h 1
 
-#include "Common.h"
-#include "Debug.h"
+#include "DMI/Common.h"
+#include "Common/Debug.h"
 #include <stdio.h>
 
 namespace DMI

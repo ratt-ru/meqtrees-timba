@@ -22,7 +22,7 @@
 //## end module%3C10CC81023B.includes
 
 // BlockSet
-#include "BlockSet.h"
+#include "DMI/BlockSet.h"
 //## begin module%3C10CC81023B.declarations preserve=no
 //## end module%3C10CC81023B.declarations
 

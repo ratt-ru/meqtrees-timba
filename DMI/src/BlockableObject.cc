@@ -22,9 +22,9 @@
 //## end module%3C10CC81019D.includes
 
 // DynamicTypeManager
-#include "DynamicTypeManager.h"
+#include "DMI/DynamicTypeManager.h"
 // BlockableObject
-#include "BlockableObject.h"
+#include "DMI/BlockableObject.h"
 //## begin module%3C10CC81019D.declarations preserve=no
 //## end module%3C10CC81019D.declarations
 

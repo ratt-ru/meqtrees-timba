@@ -19,7 +19,7 @@
 #define BlockSet_h 1
 
 //## begin module%3C10CC810231.additionalIncludes preserve=no
-#include "Common.h"
+#include "DMI/Common.h"
 #include <deque>
 //## end module%3C10CC810231.additionalIncludes
 
@@ -27,7 +27,7 @@
 //## end module%3C10CC810231.includes
 
 // SmartBlock
-#include "SmartBlock.h"
+#include "DMI/SmartBlock.h"
 //## begin module%3C10CC810231.declarations preserve=no
 //## end module%3C10CC810231.declarations
 

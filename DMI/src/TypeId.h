@@ -19,17 +19,17 @@
 #define TypeId_h 1
 
 //## begin module%3C10CC8301F8.additionalIncludes preserve=no
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 //## end module%3C10CC8301F8.additionalIncludes
 
 //## begin module%3C10CC8301F8.includes preserve=yes
-#include "Registry.h"
+#include "DMI/Registry.h"
 #include <complex>
 //## end module%3C10CC8301F8.includes
 
 // AtomicID
-#include "AtomicID.h"
+#include "DMI/AtomicID.h"
 //## begin module%3C10CC8301F8.declarations preserve=no
 //## end module%3C10CC8301F8.declarations
 

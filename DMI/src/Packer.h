@@ -19,8 +19,8 @@
 #define Packer_h 1
 
 //## begin module%3CA2F0DC004E.additionalIncludes preserve=no
-#include "Common.h"
-#include "DMI.h"
+#include "DMI/Common.h"
+#include "DMI/DMI.h"
 //## end module%3CA2F0DC004E.additionalIncludes
 
 //## begin module%3CA2F0DC004E.includes preserve=yes
