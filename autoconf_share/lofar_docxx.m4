@@ -46,20 +46,20 @@ fi]
 #
 # Macro to check for and enable documentation generation with doxygen
 #
-# e.g. lofar_DOXYGEN(["/local/bin"])
+# e.g. lofar_DOXYGEN(["/usr/bin"])
 # -------------------------
 #
 AC_DEFUN(lofar_DOXYGEN,dnl
 [dnl
 AC_PREREQ(2.13)dnl
-ifelse($1, [], define(DEFAULT_DOXYGEN_PREFIX,[/local/bin]), define(DEFAULT_DOXYGEN_PREFIX,$1))
+ifelse($1, [], define(DEFAULT_DOXYGEN_PREFIX,[/usr/bin]), define(DEFAULT_DOXYGEN_PREFIX,$1))
 AC_ARG_WITH(doxygen,
-	[  --with-doxygen[=PFX]      directory of DOXYGEN tool (default=/local/bin)],
+	[  --with-doxygen[=PFX]      directory of DOXYGEN tool (default=/usr/bin)],
 	[force_doxygen=yes; with_doxygen="$withval"],
-	[force_doxygen=no; with_doxygen="/local/bin"])dnl
+	[force_doxygen=no; with_doxygen="/usr/bin"])dnl
 
 AC_ARG_WITH(doxygen-dot,
-        [  --with-doxygen-dot[=PFX]  directory of GraphViz dot tool (default=/local/bin)],
+        [  --with-doxygen-dot[=PFX]  directory of GraphViz dot tool (default=/usr/bin)],
         [with_doxygen_dot="$withval"],
 	[with_doxygen_dot="no"])dnl
 
@@ -89,30 +89,32 @@ else
 
     \rm -f .doxygenrc
     touch .doxygenrc
-    echo 'OUTPUT_DIRECTORY	= .' >> .doxygenrc
-    echo 'EXTRACT_ALL		= YES' >> .doxygenrc
-    echo 'EXTRACT_PRIVATE	= YES' >> .doxygenrc
-    echo 'EXTRACT_STATIC	= YES' >> .doxygenrc
-    echo 'ALWAYS_DETAILED_SEC	= YES' >> .doxygenrc
-    echo 'CASE_SENSE_NAMES	= YES' >> .doxygenrc
-    echo 'DISTRIBUTE_GROUP_DOC	= YES' >> .doxygenrc
-    echo 'ALIASES		= "template=\par Template requirements:\n"' >> .doxygenrc
-    echo 'MAX_INITIALIZER_LINES	= 0' >> .doxygenrc
-    echo 'WARNINGS		= YES' >> .doxygenrc
-    echo 'WARN_IF_UNDOCUMENTED	= NO' >> .doxygenrc
-    echo 'FILE_PATTERNS		= "*.h" "*.idl"' >> .doxygenrc
-    echo 'SOURCE_BROWSER	= YES' >> .doxygenrc
-    echo 'REFERENCED_BY_RELATION= YES' >> .doxygenrc
-    echo 'REFERENCES_RELATION	= YES' >> .doxygenrc
-    echo 'ALPHABETICAL_INDEX	= YES' >> .doxygenrc
-    echo 'HTML_OUTPUT		= "docxxhtml"' >> .doxygenrc
-    echo 'ENUM_VALUES_PER_LINE	= 1' >> .doxygenrc
-    echo 'GENERATE_TREEVIEW	= YES' >> .doxygenrc
-    echo 'GENERATE_LATEX	= NO' >> .doxygenrc
-    echo 'GENERATE_TAGFILE	= base.tag' >> .doxygenrc
-    echo 'ALLEXTERNALS		= YES' >> .doxygenrc
-    echo '' >> .doxygenrc
-    echo 'SEARCHENGINE		= NO' >> .doxygenrc
+    echo "OUTPUT_DIRECTORY	= ." >> .doxygenrc
+    echo "EXTRACT_ALL		= YES" >> .doxygenrc
+    echo "EXTRACT_PRIVATE	= YES" >> .doxygenrc
+    echo "EXTRACT_STATIC	= YES" >> .doxygenrc
+    echo "ALWAYS_DETAILED_SEC	= YES" >> .doxygenrc
+    echo "CASE_SENSE_NAMES	= YES" >> .doxygenrc
+    echo "DISTRIBUTE_GROUP_DOC	= YES" >> .doxygenrc
+    echo "ALIASES		= \"template=\par Template requirements:\n\"" >> .doxygenrc
+    echo "MAX_INITIALIZER_LINES	= 0" >> .doxygenrc
+    echo "WARNINGS		= YES" >> .doxygenrc
+    echo "WARN_IF_UNDOCUMENTED	= NO" >> .doxygenrc
+    echo "FILE_PATTERNS		= *.h *.idl" >> .doxygenrc
+    echo "FILTER_SOURCE_FILES   = YES" >> .doxygenrc
+    echo "INPUT_FILTER          = $lofar_sharedir/slash2spanning.pl" >> .doxygenrc
+    echo "SOURCE_BROWSER	= YES" >> .doxygenrc
+    echo "REFERENCED_BY_RELATION= YES" >> .doxygenrc
+    echo "REFERENCES_RELATION	= YES" >> .doxygenrc
+    echo "ALPHABETICAL_INDEX	= YES" >> .doxygenrc
+    echo "HTML_OUTPUT		= docxxhtml" >> .doxygenrc
+    echo "ENUM_VALUES_PER_LINE	= 1" >> .doxygenrc
+    echo "GENERATE_TREEVIEW	= YES" >> .doxygenrc
+    echo "GENERATE_LATEX	= NO" >> .doxygenrc
+    echo "GENERATE_TAGFILE	= base.tag" >> .doxygenrc
+    echo "ALLEXTERNALS		= YES" >> .doxygenrc
+    echo "" >> .doxygenrc
+    echo "SEARCHENGINE		= NO" >> .doxygenrc
     
     if test "$with_doxygen_dot" != "no"; then
       doxygen_dot=$with_doxygen_dot
@@ -159,18 +161,18 @@ AM_CONDITIONAL(HAVE_DOXYGEN, [test "$enable_doxygen" = "yes"])
 #
 # Macro to check for and enable documentation generation with doc++
 #
-# e.g. lofar_DOC++(["/local/bin"])
+# e.g. lofar_DOC++(["/usr/bin"])
 # -------------------------
 #
 AC_DEFUN(lofar_DOCPP,dnl
 [dnl
 AC_PREREQ(2.13)dnl
-ifelse($1, [], define(DEFAULT_DOCPP_PREFIX,[/local/bin]), define(DEFAULT_DOCPP_PREFIX,$1))
+ifelse($1, [], define(DEFAULT_DOCPP_PREFIX,[/usr/bin]), define(DEFAULT_DOCPP_PREFIX,$1))
 AC_PREREQ(2.13)dnl
 AC_ARG_WITH(docpp,
-	[  --with-docpp[=PFX]        directory of DOCPP tool (default=/local/bin)],
+	[  --with-docpp[=PFX]        directory of DOCPP tool (default=/usr/bin)],
 	[force_docpp=yes; with_docpp="$withval"],
-	[force_docpp=no; with_docpp="/local/bin"])dnl
+	[force_docpp=no; with_docpp="/usr/bin"])dnl
 
 AC_ARG_WITH(docpp-flags,
         [  --with-docpp-flags=FLAGS  specify DOCPP flags (default=--all --no-define --private --filenames --gifs --dir docxxhtml)],
