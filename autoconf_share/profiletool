@@ -45,7 +45,7 @@ shift;
 # all profiling output goes into profile directory
 # find new name for this run
 #
-alldirs=`ls -1 | grep "^$binname.profile.dir.[[:digit:]]\+$" | tail -1`;
+alldirs=`ls -1 | grep "^$binname.profile.dir.[[:digit:]]\+$" | cut -d. -f4 | sort -n | tail -1`;
 if test "$alldirs" = ""; then
     profdir="$binname.profile.dir.1";
 else
@@ -177,6 +177,9 @@ fi
 #
 if test -f $binname.clog; then
     cp $binname.clog $profdir/mpe.clog;
+
+    # convert to slog
+    (cd $profdir && $MPIBIN/clog2slog -f 128 mpe.clog);
 fi
 if test -f $binname.slog; then
     cp $binname.slog $profdir/mpe.slog;
