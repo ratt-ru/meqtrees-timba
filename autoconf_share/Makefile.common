@@ -20,13 +20,13 @@ clean-generic:
 
 # Only preprocess the file.
 %.i: %.cc
-	$(CC) -E $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< > $@
+	$(CXX) -E $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< > $@
 %.i: %.c
 	$(CC) -E $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< > $@
 
 # Only compile (but not assemble) the file.
 %.s: %.cc
-	$(CC) -S $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $<
+	$(CXX) -S $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $<
 %.s: %.c
 	$(CC) -S $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $<
 
