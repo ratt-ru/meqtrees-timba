@@ -19,12 +19,39 @@ check_PROGRAMS   		=
 
 pythondir = $(libexecdir)/python
 
-dist_python_SCRIPTS = \
-  app_defaults.py  app_proxy_gui.py  meqbrowser.py  meqserver_gui.py  \
-  pretty_print.py  app_pixmaps.py    app_proxy.py   gridded_workspace.py \
-  app_browsers.py  meq.py         meqserver.py meqds.py array_plotter.py \
-  treebrowser.py result_plotter.py  node_execute.py
+timbadir = $(pythondir)/Timba
 
+appdir = $(pythondir)/Timba/Apps
+griddir = $(pythondir)/Timba/Grid
+guidir = $(pythondir)/Timba/GUI
+meqdir = $(pythondir)/Timba/Meq
+plugindir = $(pythondir)/Timba/Plugins
+
+dist_python_SCRIPTS = meqbrowser.py 
+
+dist_timba_SCRIPTS = pretty_print.py  
+
+dist_app_SCRIPTS = Apps/__init__.py \
+  Apps/app_defaults.py Apps/app_proxy.py Apps/meqserver.py
+
+dist_gui_SCRIPTS = GUI/__init__.py \
+  GUI/app_proxy_gui.py  GUI/meqserver_gui.py  \
+  GUI/pixmaps.py        GUI/browsers.py       \
+  GUI/treebrowser.py 
+  
+dist_meq_SCRIPTS = Meq/__init__.py \
+  Meq/meq.py Meq/meqds.py 
+  
+dist_plugin_SCRIPTS = \
+  Plugins/ComplexColorMap.py   Plugins/__init__.py             Plugins/printfilter.py     \
+  Plugins/ComplexDisplay.py    Plugins/array_plotter.py        Plugins/pyfits.py          \
+  Plugins/ComplexScaleDraw.py  Plugins/display_image.py        Plugins/realvsimag.py      \
+  Plugins/ErrorBar.py          Plugins/hippo_array_plotter.py  Plugins/result_plotter.py
+  Plugins/UVPAxis.py           Plugins/node_execute.py
+  
+dist_grid_SCRIPTS = Grid/__init__.py \
+  Grid/Services.py Grid/Workspace.py Grid/Page.py \
+  Grid/CellBlock.py Grid/Cell.py Grid/Debug.py
 
 include $(lofar_sharedir)/Makefile.aids
 include $(lofar_sharedir)/Makefile.common

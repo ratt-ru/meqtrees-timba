@@ -1,10 +1,11 @@
 #!/usr/bin/python
 
 from qt import QPixmap,QIconSet
-import sys
-import dmitypes
+from Timba.utils import verbosity
 
-_dbg = dmitypes.verbosity(0,name='pixmaps');
+import sys
+
+_dbg = verbosity(0,name='pixmaps');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 

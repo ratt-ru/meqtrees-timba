@@ -6,8 +6,11 @@ import dl
 # shared across dynamically-loaded modules
 sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
 
-import octopython
-from dmitypes import *
+import Timba.octopython
+from Timba.dmi import *
+from Timba.utils import *
+
+
 import numarray
 import string
 import time

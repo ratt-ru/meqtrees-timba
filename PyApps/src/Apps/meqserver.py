@@ -5,9 +5,9 @@ import sys
 # first things first: setup app defaults from here and from
 # command line (this has to go first, as other modules being imported
 # may depend on app_defaults settings)
-import app_defaults
+from Timba.Apps import app_defaults
 if app_defaults.include_gui:
-  from meqserver_gui import *
+  from Timba.GUI.meqserver_gui import *
 
 #-------- update default debuglevels
 app_defaults.debuglevels.update({
@@ -31,11 +31,12 @@ if __name__ == '__main__':
 import os
 import string
 import time
-import octopussy
-from pretty_print import PrettyPrinter
-from app_proxy import app_proxy
-from dmitypes import *
-import meq
+from Timba import octopussy
+from Timba.pretty_print import PrettyPrinter
+from Timba.Apps.app_proxy import app_proxy
+from Timba.dmi import *
+from Timba.utils import *
+from Timba.Meq import meq
 
 
 # default launch arguments (for launch=True)

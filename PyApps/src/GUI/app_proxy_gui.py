@@ -3,16 +3,18 @@
 MainApp = None;
 MainAppThread = None;
 
+from Timba.dmi import *
+from Timba import qt_threading
+from Timba.GUI.pixmaps import pixmaps
+from Timba import dmi_repr
+from Timba import Grid
+from Timba.GUI.browsers import *
+from Timba.GUI.widgets import *
+
 import sys
 import time
 from qt import *
-from dmitypes import *
-import qt_threading
-from app_pixmaps import pixmaps
-import dmi_repr
 import traceback
-from gridded_workspace import *
-from app_browsers import *
 import weakref
 import re
 import imp
@@ -397,13 +399,14 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.statusbar.addWidget(self.status_label);
     
     #------ gridded workspace
-    self.gw = gw = GriddedWorkspace(splitter,max_nx=4,max_ny=4);
+    self.gw = gw = Grid.Workspace(splitter,max_nx=4,max_ny=4);
     splitter.setResizeMode(gw.wtop(),QSplitter.Stretch);
     self.gw_visible = {};
     gw.wtop().hide();
     gw.add_tool_button(Qt.TopRight,pixmaps.remove.pm(),
       tooltip="hide the value browser panel",click=self.hide_gridded_workspace);
     QWidget.connect(self.gw.wtop(),PYSIGNAL("addedCell()"),self.show_gridded_workspace);
+    Grid.Services.setDefaultWorkspace(self.gw);
     
     self.show_workspace_button = DataDroppableWidget(QToolButton)(maintab);
     self.show_workspace_button.setPixmap(pixmaps.view_split.pm());

@@ -1,14 +1,15 @@
 #!/usr/bin/python
 
-import app_defaults
+from Timba.Apps import app_defaults
 if app_defaults.include_gui:
-  import app_proxy_gui;
-  import qt_threading;
+  import Timba.GUI.app_proxy_gui;
+  import Timba.qt_threading;
+
+from Timba.dmi import *
+from Timba import octopussy
+from Timba import py_app_launcher
 
 import threading
-from dmitypes import *
-import octopussy
-import py_app_launcher
 import sys
 import os
 import string

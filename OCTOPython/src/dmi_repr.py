@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from dmitypes import *
+from dmi import *
 
 # this returns a string repr of a container
 def _contToRepr (value,prec=None):
@@ -19,19 +19,27 @@ def str_no_prec(x,prec=None):
 def str_float (x,prec=None):
   if prec is None:
     return str(x);
+  try: (n,f) = prec;
+  except: (n,f) = (prec,'g')
+  if n is None:
+    return ("%"+f) % (x,);
   else:
-    return "%.*g" % (prec,x);
+    return ("%.*"+f) % (n,x);
     
 def str_complex (x,prec=None):
   if prec is None:
     return "%f%+fi"%(x.real,x.imag);
+  try: (n,f) = prec;
+  except: (n,f) = (prec,'g')
+  if n is None:
+    return ("%"+f+"%+"+f+"i") % (x.real,x.imag);
   else:
-    return "%.*g%+.*gi" % (prec,x.real,prec,x.imag);
+    return ("%.*"+f+"%+.*"+f+"i") % (n,x.real,n,x.imag);
 
 # Map of inline conversion methods. Only available for those types for which
 # a complete & brief string form is available.
 # No methods are defined for containers
-TypeToInline = dict.fromkeys((bool,int,long),str_no_prec);
+TypeToInline = dict.fromkeys((bool,int,long),lambda x,prec=None:str(x));
 TypeToInline[float] = str_float;
 TypeToInline[complex] = str_complex;
 TypeToInline[hiid] = lambda x,prec=None:'`'+str(x)+'`';

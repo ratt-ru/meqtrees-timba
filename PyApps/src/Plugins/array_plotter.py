@@ -1,14 +1,20 @@
 #!/usr/bin/python
 
 # modules that are imported
-import gridded_workspace
-from app_browsers import *
-from qt import *
-from dmitypes import *
-from numarray import *
-from display_image import *
+from Timba.dmi import *
+from Timba import utils
+from Timba.GUI.pixmaps import pixmaps
+from Timba.GUI import widgets
+from Timba.GUI.browsers import *
+from Timba import Grid
 
-class ArrayPlotter(BrowserPlugin):
+from Timba.Plugins.display_image import *
+
+from qt import *
+from numarray import *
+
+
+class ArrayPlotter(GriddedPlugin):
   """ a class to plot raw arrays contained within a Meq tree """
 
   _icon = pixmaps.bars3d
@@ -17,13 +23,13 @@ class ArrayPlotter(BrowserPlugin):
     return len(data) > 0;
   is_viewable = staticmethod(is_viewable);
 
-  def __init__(self,parent,dataitem=None,**opts):
-    """ instantiate various HippoDraw objects that are needed to
-        control various aspects of plotting """
+  def __init__(self,gw,dataitem,cellspec={},**opts):
+    GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
 
 # create the plotter
-    self._plotter = QwtImagePlot('spectra', parent)
+    self._plotter = QwtImagePlot('spectra', self.wparent())
     self._plotter.show()
+    self.set_widgets(self._plotter,dataitem.caption,icon=self.icon());
 
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
@@ -39,5 +45,9 @@ class ArrayPlotter(BrowserPlugin):
         handles new incoming data """
 
     self._plotter.array_plot('data', dataitem.data)
+
+# enable & highlight the cell
+    self.enable();
+    self.flash_refresh();
     
-gridded_workspace.registerViewer(array_class,ArrayPlotter,priority=-10)
+Grid.Services.registerViewer(array_class,ArrayPlotter,priority=10)

@@ -2,7 +2,9 @@
 
 # MEQ Data Services
 
-from dmitypes import *
+from Timba.dmi import *
+from Timba.GUI.pixmaps import pixmaps
+
 import weakref
 import types
 import new
@@ -10,7 +12,6 @@ import sets
 import re
 import time
 from qt import *
-from app_pixmaps import pixmaps
 
 _dbg = verbosity(0,name='meqds');
 _dprint = _dbg.dprint;

@@ -19,8 +19,11 @@ octopython_la_DEPENDENCIES = \
 check_PROGRAMS   		= 
 
 pythondir = $(libexecdir)/python
-dist_python_SCRIPTS = \
-  dmitypes.py dmi_repr.py \
+
+timbadir = $(pythondir)/Timba
+
+dist_timba_SCRIPTS = __init__.py \
+  dmi.py dmi_repr.py utils.py \
   octopussy.py qt_threading.py
 
 include $(lofar_sharedir)/Makefile.aids

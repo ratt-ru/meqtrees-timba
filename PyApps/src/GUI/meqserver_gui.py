@@ -1,17 +1,17 @@
 #!/usr/bin/python
 
-import meqserver
-from app_proxy_gui import *
-from dmitypes import *
-from app_pixmaps import pixmaps
+from Timba.dmi import *
+from Timba.GUI.app_proxy_gui import *
+from Timba.GUI.pixmaps import pixmaps
+from Timba.Meq import meqds
+from Timba.GUI.browsers import *
+from Timba.GUI.treebrowser import *
+from Timba import Grid
+
 import weakref
 import math
 import sets
 import re
-import meqds
-import app_browsers 
-from app_browsers import *
-from treebrowser import *
 
 _dbg = verbosity(0,name='meqgui');
 _dprint = _dbg.dprint;
@@ -26,13 +26,15 @@ mqs = None;
 # http://lofar9.astron.nl/bugzilla/
 # ---------------------------------------------------------------------------
 
-class NodeBrowser(HierBrowser,BrowserPlugin):
+class NodeBrowser(HierBrowser,GriddedPlugin):
   _icon = pixmaps.treeviewoblique;
   viewer_name = "Node Browser";
   
-  def __init__(self,parent,dataitem=None,default_open=None,**opts):
-    HierBrowser.__init__(self,parent,"value","field",
+  def __init__(self,gw,dataitem,cellspec={},default_open=None,**opts):
+    GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
+    HierBrowser.__init__(self,self.wparent(),"value","field",
         udi_root=(dataitem and dataitem.udi));
+    self.set_cell_content(self.wtop(),dataitem.caption,icon=self.icon());
     # parse the udi
     (name,ni) = meqds.parse_node_udi(dataitem.udi);
     if ni is None:
@@ -272,12 +274,12 @@ class meqserver_gui (app_proxy_gui):
     meqds.reclassify_nodestate(node);
     meqds.add_node_snapshot(node,event);
     udi = meqds.node_udi(node);
-    self.gw.update_data_item(udi,node);
+    Grid.updateDataItem(udi,node);
     
   def _view_node (self,node,viewer=None,kws={}):
     _dprint(2,"node clicked, adding item");
     node = meqds.nodeobject(node);
-    self.gw.add_data_item(makeNodeDataItem(node,viewer),**kws);
+    Grid.addDataItem(makeNodeDataItem(node,viewer),**kws);
     self.show_gridded_workspace();
     
   def _reset_resultlog_label (self,tabwin):
@@ -291,9 +293,11 @@ class meqserver_gui (app_proxy_gui):
       self.ce_UpdateAppStatus(None,self.app.status);
     self.treebrowser.update_app_state(self.app.state);
 
-gridded_workspace.registerViewer(meqds.NodeClass(),NodeBrowser,priority=10);
+# register NodeBrowser at low priority for now (still experimental),
+# but eventually we'll make it the default viewer
+Grid.Services.registerViewer(meqds.NodeClass(),NodeBrowser,priority=30);
 
-_default_state_open =  ({'cache_result':({'vellsets':None},None), \
+_default_state_open =  ({'cache_result':({'vellsets':({'0':None},None)},None), \
                         'request':None },None);
 
 _defaultResultViewopts = { \
@@ -311,9 +315,13 @@ def makeNodeDataItem (node,viewer=None,viewopts={}):
   nodeclass = meqds.NodeClass(node);
   vo = viewopts.copy();
   vo.update(_defaultNodeViewopts);
+  namestr = node.name or '#'+str(node.nodeindex);
+  name = "%s (%s)" % (namestr,node.classname);
+  caption = "<b>%s</b> <small><i>(%s)</i></small>" % (namestr,node.classname);
+  desc = "State record of node %s#%d (class %s)" % (node.name,node.nodeindex,node.classname);
   # curry is used to create a call for refreshing its state
-  return GridDataItem(udi,(node.name or '#'+str(node.nodeindex)),
-            desc=nodeclass.__name__,data=None,datatype=nodeclass,
+  return Grid.DataItem(udi,name=name,caption=caption,desc=desc,
+            datatype=nodeclass,
             refresh=curry(meqds.request_node_state,node.nodeindex),
             viewer=viewer,viewopts=vo);
             

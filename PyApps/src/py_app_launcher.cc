@@ -167,17 +167,16 @@ PyMODINIT_FUNC initpy_app_launcher ()
 {
   Debug::Context::initialize();
   
-  cout<<"!!!!!!!!!!!!!!!!!1 importing app_launcher"<<endl; 
   // init the module
   PyObject *module = Py_InitModule3("py_app_launcher", AppMethods,
         "application launcher module");
   if( !module )
     return;
   
-  PyObject *octomod = PyImport_ImportModule("octopython");
+  PyObject *octomod = PyImport_ImportModule("Timba.octopython");
   if( !octomod )
   {
-    Py_FatalError("unable to import octopython");
+    Py_FatalError("unable to import Timba.octopython");
     return;
   }
   

@@ -5,11 +5,25 @@ import sys
 # first things first: setup app defaults from here and from
 # command line (this has to go first, as other modules being imported
 # may depend on app_defaults settings)
-import app_defaults
+from Timba.Apps import app_defaults
 
-import qt_threading
-import octopussy
-import meqserver
+from Timba import qt_threading
+from Timba import octopussy
+from Timba.Apps import meqserver
+
+def importPlugin (name):
+  name = 'Timba.Plugins.'+name;
+  try:
+    __import__(name,globals(),locals(),[]);
+  except ImportError,what:
+    print 'error importing',name,':',what;
+    print 'This plugin will not be available.';
+    
+### import plug-ins
+importPlugin('node_execute');
+importPlugin('array_browser');
+importPlugin('array_plotter');
+importPlugin('result_plotter');
 
 #-------- update default debuglevels
 app_defaults.debuglevels.update({

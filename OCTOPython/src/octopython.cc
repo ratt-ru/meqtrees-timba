@@ -236,23 +236,30 @@ PyMODINIT_FUNC initoctopython ()
   Py_INCREF(tc_type);
   PyModule_AddObject(module, "thread_condition", tc_type);
   
-  // get references to class objects from dmitypes
-  PyObject * dmimod = PyImport_ImportModule("dmitypes");
+  PyObject * timbamod = PyImport_ImportModule("Timba");
+  if( !timbamod )
+  {
+    PyErr_Print();
+    Py_FatalError("octopython init error: import of Timba module failed");
+    return;
+  }
+  PyObject * dmimod = PyImport_ImportModule("Timba.dmi");
   if( !dmimod )
   {
-    Py_FatalError("octopython init error: import dmitypes failed");
+    PyErr_Print();
+    Py_FatalError("octopython init error: import of dmi module failed");
     return;
   }
   PyObject * dmidict = PyModule_GetDict(dmimod);
   if( !dmidict )
   {
-    Py_FatalError("octopython init error: can't access dmitypes dict");
+    Py_FatalError("octopython init error: can't access dmi module dict");
     return;
   }
   
   #define GetConstructor(cls) \
     if( ! ( py_class.cls = PyDict_GetItemString(dmidict,#cls) ) ) \
-      { Py_FatalError("octopython: name dmitypes." #cls " not found"); return; } \
+      { Py_FatalError("octopython: name dmi." #cls " not found"); return; } \
     Py_INCREF(py_class.cls);
   
   GetConstructor(hiid);

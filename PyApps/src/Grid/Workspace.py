@@ -1,0 +1,172 @@
+#!/usr/bin/python
+
+import Timba
+from Timba.dmi import *
+from Timba.utils import *
+from Timba.GUI.pixmaps import pixmaps
+from Timba.Grid.Debug import *
+from Timba import *
+
+import weakref
+import sets
+import re
+import gc
+import types
+from qt import *
+
+# ====== Grid.Workspace ======================================================
+# implements a multi-page, multi-panel viewing grid
+#
+class Workspace (object):
+  # define a toolbutton that accepts data drops
+  DataDropButton = Timba.GUI.widgets.DataDroppableWidget(QToolButton);
+        
+  def __init__ (self,parent,max_nx=4,max_ny=4,use_hide=None):
+    # dictionary of UDIs -> list of GridDataItem objects 
+    self._dataitems = dict();
+    # highlighted item
+    self._highlight = None;
+    # highlight color
+    self._highlight_color = QApplication.palette().active().highlight();
+  
+    self._maintab = QTabWidget(parent);
+    self._maintab.setTabPosition(QTabWidget.Top);
+    QWidget.connect(self._maintab,SIGNAL("currentChanged(QWidget*)"),self._set_layout_button);
+    self.max_nx = max_nx;
+    self.max_ny = max_ny;
+    # set of parents for corners of the maintab (added on demand when GUI is built)
+    self._tb_corners = {};
+    #------ add page
+    newpage = self.add_tool_button(Qt.TopLeft,pixmaps.tab_new_raised.pm(),
+        tooltip="open new page. You can also drop data items here.",
+        class_=self.DataDropButton,
+        click=self.add_page);
+    newpage._dropitem = curry(Timba.Grid.Services.addDataItem,newpage=True);
+    QWidget.connect(newpage,PYSIGNAL("dataItemDropped()"),
+        newpage._dropitem);
+    #------ new panels button
+    self._new_panel = self.add_tool_button(Qt.TopLeft,pixmaps.view_right.pm(),
+        tooltip="add more panels to this page. You can also drop data items here.",
+        class_=self.DataDropButton,
+        click=self._add_more_panels);
+    self._new_panel._dropitem = curry(Timba.Grid.Services.addDataItem,newcell=True);
+    QWidget.connect(self._new_panel,PYSIGNAL("dataItemDropped()"),
+        self._new_panel._dropitem);
+    #------ align button
+    self.add_tool_button(Qt.TopLeft,pixmaps.view_split.pm(),
+        tooltip="align panels on this page",
+        click=self._align_grid);
+    #------ remove page
+    self.add_tool_button(Qt.TopRight,pixmaps.tab_remove.pm(),
+        tooltip="remove this page",
+        click=self.remove_current_page);
+    # init first page
+    self.add_page();
+  
+  # adds a tool button to one of the corners of the workspace viewer
+  def add_tool_button (self,corner,pixmap,tooltip=None,click=None,
+                        leftside=False,class_=QToolButton):
+    # create corner box on demand
+    layout = self._tb_corners.get(corner,None);
+    if not layout:
+      parent = QWidget(self._maintab);
+      self._tb_corners[corner] = layout = QHBoxLayout(parent);
+      layout.setMargin(2);
+      self._maintab.setCornerWidget(parent,corner);
+    # add button
+    button = class_(layout.mainWidget());
+    button._gw = weakref.proxy(self);
+    if leftside:
+      layout.insertWidget(0,button);
+    else:
+      layout.addWidget(button);
+    button.setPixmap(pixmap);
+    button.setAutoRaise(True);
+    if tooltip:
+      QToolTip.add(button,tooltip);
+    if callable(click):
+      QWidget.connect(button,SIGNAL("clicked()"),click);
+    return button;
+    
+  def wtop (self):
+    return self._maintab;
+    
+  def add_page (self,name=None):
+    page = Timba.Grid.Page(self,self._maintab,max_nx=self.max_nx,max_ny=self.max_ny);
+    wpage = page.wtop();
+    wpage._page = page;
+    # generate page name, if none is supplied
+    if name is None:
+      name = 'Page '+str(self._maintab.count()+1);
+      wpage._auto_name = True;
+    else:
+      wpage._auto_name = False;
+    # add page to tab
+    self._maintab.addTab(wpage,name);
+    self._maintab.setCurrentPage(self._maintab.count()-1);
+    QWidget.connect(page.wtop(),PYSIGNAL("layoutChanged()"),self._set_layout_button);
+    return page;
+    
+  def remove_current_page (self):
+    ipage = self._maintab.currentPageIndex();
+    page = self._maintab.currentPage();
+    page._page.clear();
+    # if more than one page, then remove (else clear only)
+    if self._maintab.count()>1:
+      self._maintab.removePage(page);
+    # renumber remaining pages
+    for i in range(ipage,self._maintab.count()):
+      wpage = self._maintab.page(i);
+      if wpage._auto_name:
+        self._maintab.setTabLabel(wpage,'Page '+str(i+1));
+      
+  def current_page (self):
+    return self._maintab.currentPage()._page;
+    
+  def _align_grid (self):
+    self.current_page().rearrange_cells();
+    self.current_page().align_layout();
+  def _add_more_panels (self):
+    _dprint(5,"adding more panels");
+    self.current_page().next_layout();
+  def _set_layout_button (self):
+    page = self.current_page();
+    (nlo,nx,ny) = page.current_layout();
+    self._new_panel.setDisabled(nlo >= page.num_layouts());
+  def clear (self):
+    _dprint(5,'GriddedWorkspace: clearing');
+    self._maintab.page(0)._page.clear();
+    for p in range(1,self._maintab.count()):
+      page = self._maintab.page(p);
+      page._page.clear();
+      self._maintab.removePage(page);
+  
+  # highlights specfic cells, removes highlights from previous cells (if any)
+  def highlight_cells (self,cells):
+    # ensure arg is sequence
+    if isinstance(cells,Grid.Cell):
+      cells = (cells,);
+    # remove highlights from previous cells, if any
+    if self._highlight:
+      map(lambda c:c.highlight(False),self._highlight);
+    map(lambda c:c.highlight(self._highlight_color),cells);
+    self._highlight = cells;
+    
+  def allocate_cells (self,nrow=1,ncol=1,position=None,avoid_pos=None,
+                           newcell=False,newpage=False,udi=''):
+    """allocates cell or block of cells""";
+    # is an explicit cell specified?
+    if position:
+      (page,x,y) = position;
+      return page.alloc_cells((x,y),nrow=nrow,ncol=ncol);
+    # no, do we need a new page?
+    if newpage:
+      self.add_page();
+    # find suitable cell(s) and return
+    if avoid_pos is not None:
+      if avoid_pos[0] is self.current_page():
+        avoid_pos = avoid_pos[1:];
+      else:
+        avoid_pos = None;
+    return self.current_page().find_cells(udi,avoid_pos=avoid_pos,new=newcell,nrow=nrow,ncol=ncol) \
+            or self.add_page().find_cells(udi,nrow=nrow,ncol=ncol);
