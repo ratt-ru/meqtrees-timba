@@ -27,6 +27,8 @@
 #include <set>
 #include <queue>
 #include "OctopussyConfig.h"
+#include "Common/Thread.h"
+#include "Common/Thread/Condition.h"
 //## end module%3C8F268F00DE.includes
 
 // CountedRefTarget
@@ -135,15 +137,6 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       //## Operation: do_stop%3C99B00F0254
       void do_stop ();
 
-      //## Operation: init%3C7F882B00E6
-      virtual void init ();
-
-      //## Operation: start%3C7E4A99016B
-      virtual bool start ();
-
-      //## Operation: stop%3C7E4A9C0133
-      virtual void stop ();
-
       //## Operation: getPollPriority%3CB55EEA032F
       //	Rreturns a polling priority for this WP. Normally, this is just the
       //	priority of the top message in the queue (plus the queue age), or <0
@@ -155,13 +148,11 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       //## Operation: do_poll%3C8F13B903E4
       bool do_poll (ulong tick);
 
-      //## Operation: poll%3CB55D0E01C2
-      virtual bool poll (ulong );
-
       //## Operation: enqueue%3C8F204A01EF
       //	Places ref into the receive queue. Note that the ref is transferred.
-      //	Returns True if WP needs to be repolled.
-      bool enqueue (const MessageRef &msg, ulong tick);
+      //  If placing at head and setrepoll is True, sets the repoll flag.
+      //  Returns value of repoll flag
+      bool enqueue (const MessageRef &msg,ulong tick,bool setrepoll=True);
 
       //## Operation: dequeue%3C8F204D0370
       //	Removes from queue messages matching the id. Returns True if WP
@@ -182,7 +173,7 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       int searchQueue (const HIID &id, int pos = 0, MessageRef *ref = 0);
 
       //## Operation: topOfQueue%3C8F206C0071
-      const WPInterface::QueueEntry * topOfQueue () const;
+//      const WPInterface::QueueEntry * topOfQueue () const;
 
       //## Operation: queueLocked%3C8F207902AB
       bool queueLocked () const;
@@ -199,18 +190,6 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
 
       //## Operation: unsubscribe%3C7CB9C50365
       bool unsubscribe (const HIID &id);
-
-      //## Operation: receive%3C7CC0950089
-      virtual int receive (MessageRef &mref);
-
-      //## Operation: timeout%3C7CC2AB02AD
-      virtual int timeout (const HIID &id);
-
-      //## Operation: input%3C7CC2C40386
-      virtual int input (int fd, int flags);
-
-      //## Operation: signal%3C7DFD240203
-      virtual int signal (int signum);
 
       //## Operation: send%3C7CB9E802CF
       //	Sends message to specified address. Note that the ref is taken over
@@ -281,11 +260,45 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       bool isLocal (const MessageRef &mref)
       { return isLocal(mref->from()); }
       
-
+      // returns True if head of queue is the same as pmsg
+      bool compareHeadOfQueue( const Message *pmsg );
+      
+#ifdef USE_THREADS
+      bool isThreaded () const;
+      Thread::Condition & queueCondition ();
+      
+      int numWorkers() const;
+      Thread::ThrID workerID (int n) const;
+#endif
+      
       Declare_sdebug(virtual);
       Declare_debug( );
       //## end WPInterface%3C7B6A3702E5.public
   protected:
+      //## Operation: init%3C7F882B00E6
+      virtual void init ();
+
+      //## Operation: start%3C7E4A99016B
+      virtual bool start ();
+
+      //## Operation: stop%3C7E4A9C0133
+      virtual void stop ();
+
+      //## Operation: poll%3CB55D0E01C2
+      virtual bool poll (ulong );
+      
+      //## Operation: receive%3C7CC0950089
+      virtual int receive (MessageRef &mref);
+
+      //## Operation: timeout%3C7CC2AB02AD
+      virtual int timeout (const HIID &id);
+
+      //## Operation: input%3C7CC2C40386
+      virtual int input (int fd, int flags);
+
+      //## Operation: signal%3C7DFD240203
+      virtual int signal (int signum);
+      
     //## Get and Set Operations for Class Attributes (generated)
 
       //## Attribute: autoCatch%3CBED3720012
@@ -306,6 +319,48 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       
       WPInterface::MessageQueue & queue ();
       
+      // condition variable & mutex for message queue
+      Thread::Condition queue_cond;
+      
+#ifdef USE_THREADS
+      // This creates a new worker thread for the WP
+      Thread::ThrID createWorker ();
+      // this wakes up one or all worker threads by signalling or broadcasting
+      // on the condition variable
+      int wakeWorker (bool everyone=False);
+      // this forces a repoll (sets the repoll flag), and wakes up a worker
+      // (or alll workers)
+      int repollWorker (bool everyone=False);
+      
+      // this is for the multithreaded version of poll. This takes one message
+      // from the queue and delivers it to timeout/input/signal/receive.
+      // The lock argument must be a valid lock on the queue_cond mutex.
+      int deliver (Thread::Mutex::Lock &lock);
+      
+      // this is called my the default implementation of worker
+      // whenever the WP is woken up on a queue event.
+      // Default version simply delivers all messages from the queue.
+      // The lock argument is a valid lock on the queue_cond mutex,
+      // it may be released inside wakeup, but must be reacquired
+      // before returning control.
+      // Return True if OK, or False to terminate the thread
+      virtual bool mtWakeup (Thread::Mutex::Lock &lock);
+      // This is called to initialize a worker thread. Return False to 
+      // terminate thread. Worker threads are initialized sequentially, and
+      // startup will not complete until all workers have completed the 
+      // initialization.
+      virtual bool mtInit (Thread::ThrID) { return True; };
+      // This is called for every worker thread once all threads have been
+      // started. Return False to terminate thread.
+      virtual bool mtStart (Thread::ThrID) { return True; };
+      // This is called by the default runWorker() before exiting a worker thread.
+      virtual void mtStop (Thread::ThrID) {};
+      // this is called in a multithreaded WP's stop sequence, before
+      // re-joining all the worker threads and calling stop()
+      virtual void stopWorkers () {};
+      
+      
+#endif
       
       // publishes a message containing all current subscriptions
       void publishSubscriptions ();
@@ -327,6 +382,28 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
 
     // Additional Private Declarations
       //## begin WPInterface%3C7B6A3702E5.private preserve=yes
+      // enqueues message _in front_ of all messages with lesser or equal priority
+      // This is used for the HOLD result code (i.e. to leave message at head of
+      // queue, unless something with higher priority has arrived while we were
+      // processing it)
+      bool enqueueFront (const MessageRef &msg,ulong tick,bool setrepoll=True);
+      
+#ifdef USE_THREADS      
+      // This is the entrypoint for every worker thread.
+      // Default version runs a simple loop, waiting on the queue
+      // condition variable, and exiting when stop_workerThreads is
+      // raised.
+      void runWorker ();
+      
+      // this is an mt-workprocess's worker thread
+      void * workerThread ();
+      static void * start_workerThread (void *pwp);
+      
+      // a number of worker threads may be run
+      static const int MaxWorkerThreads=16;
+      Thread::ThrID worker_threads[MaxWorkerThreads];
+      int num_worker_threads,num_initialized_workers;
+#endif
       //## end WPInterface%3C7B6A3702E5.private
 
   private: //## implementation
@@ -542,20 +619,32 @@ inline Subscriptions& WPInterface::getSubscriptions ()
 
 inline WPInterface::MessageQueue & WPInterface::queue () 
 { return queue_; }
+
+#ifdef USE_THREADS
+inline Thread::Condition & WPInterface::queueCondition ()
+{
+  return queue_cond;
+}
+
+inline bool WPInterface::isThreaded () const
+{ 
+  return num_worker_threads > 0; 
+}
+
+inline int WPInterface::numWorkers () const
+{
+  return num_worker_threads; 
+}
+
+inline Thread::ThrID WPInterface::workerID (int i) const
+{
+  return worker_threads[i];
+}
+
+
+#endif
 //## end module%3C8F268F00DE.epilog
 
 
 #endif
 
-
-// Detached code regions:
-#if 0
-//## begin WPInterface::isGateway%3C9083BD0328.body preserve=yes
-  return False;
-//## end WPInterface::isGateway%3C9083BD0328.body
-
-//## begin WPInterface::wpclass%3C905E8B000E.body preserve=yes
-  return 0;
-//## end WPInterface::wpclass%3C905E8B000E.body
-
-#endif

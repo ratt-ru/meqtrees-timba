@@ -415,7 +415,11 @@ void GWClientWP::tryConnect (Connection &cx)
                       cx.host.c_str(),cx.port);
     cx.state = CONNECTED;
     // spawn a new child gateway, subscribe to its Bye message
+#ifdef USE_THREADS
+    cx.gw   = attachWP( new MTGatewayWP(cx.sock),DMI::ANON );
+#else
     cx.gw   = attachWP( new GatewayWP(cx.sock),DMI::ANON );
+#endif
     cx.sock = 0; // socket is taken over by child
     cx.reported_failure = False;
   }

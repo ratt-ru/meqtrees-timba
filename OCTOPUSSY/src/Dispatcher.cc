@@ -39,16 +39,19 @@ Dispatcher * Dispatcher::dispatcher = 0;
 sigset_t Dispatcher::raisedSignals,Dispatcher::allSignals;
 struct sigaction * Dispatcher::orig_sigaction[_NSIG];
 bool Dispatcher::stop_polling = False;
+
+int Dispatcher::signal_counter[Dispatcher::max_signals];
+
       
 // static signal handler
+
 void Dispatcher::signalHandler (int signum,siginfo_t *,void *)
 {
+#ifdef USE_THREADS
+  printf("thread %d: received signal %d (%s)\n",(int)Thread::self(),signum,sys_siglist[signum]);
+#endif
   sigaddset(&raisedSignals,signum);
-  // if this signal is in the maps, increment its counters
-  pair<CSMI,CSMI> rng = dispatcher->signal_map.equal_range(signum);
-  for( CSMI iter = rng.first; iter != rng.second; iter++ )
-    if( iter->second.counter )
-      (*iter->second.counter)++;
+  signal_counter[signum]++;
   // interrupt any poll loops
   if( signum == SIGINT )
     stop_polling = True;
@@ -69,6 +72,7 @@ Dispatcher::Dispatcher (AtomicID process, AtomicID host, int hz)
 {
   //## begin Dispatcher::Dispatcher%3C7CD444039C.body preserve=yes
   address = MsgAddress(AidDispatcher,0,process,host);
+  memset(signal_counter,0,sizeof(signal_counter));
   // init everything
   init();
   //## end Dispatcher::Dispatcher%3C7CD444039C.body
@@ -135,6 +139,8 @@ void Dispatcher::init ()
 const MsgAddress & Dispatcher::attach (WPRef &wpref)
 {
   //## begin Dispatcher::attach%3C8CDDFD0361.body preserve=yes
+  // lock mutex on entry
+  Thread::Mutex::Lock lock(wpmutex);
   FailWhen( !wpref.isWritable(),"writable ref required" ); 
   WPInterface & wp = wpref;
   FailWhen( wp.isAttached() && wp.dsp() != this,"wp is already attached" );
@@ -151,7 +157,8 @@ const MsgAddress & Dispatcher::attach (WPRef &wpref)
     attached_wps.push(wpref); // let start handle it
   else // add to map and activate
   {
-    wps[wpid] = wpref;
+    (wps[wpid] = wpref).persist();
+    lock.release();
     if( running )
     {
       wp.do_init();
@@ -182,11 +189,12 @@ void Dispatcher::detach (WPInterface* wp, bool delay)
 void Dispatcher::detach (const WPID &id, bool delay)
 {
   //## begin Dispatcher::detach%3C8CDE320231.body preserve=yes
+  // lock mutex on entry
+  Thread::Mutex::Lock lock(wpmutex);
   WPI iter = wps.find(id); 
   FailWhen( iter == wps.end(),
       "wpid '"+id.toString()+"' is not attached to this dispatcher");
   WPInterface *pwp = iter->second;
-  pwp->do_stop();
   // remove all events associated with this WP
   for( TOILI iter = timeouts.begin(); iter != timeouts.end(); )
     if( iter->pwp == pwp )
@@ -196,9 +204,11 @@ void Dispatcher::detach (const WPID &id, bool delay)
   rebuildInputs(pwp);
   rebuildSignals(pwp);
   // if asked to delay, then move WP ref to delay stack, it will be
-  // detached later in poll()
+  // detached later in poll() (together with the do_stop() call)
   if( delay )   
     detached_wps.push(iter->second);
+  else
+    pwp->do_stop();
   wps.erase(iter);
   GWI iter2 = gateways.find(id);
   if( iter2 != gateways.end() )
@@ -208,7 +218,9 @@ void Dispatcher::detach (const WPID &id, bool delay)
 
 void Dispatcher::declareForwarder (WPInterface *wp)
 {
-  //## begin Dispatcher::declareForwarder%3C95C73F022A.body preserve=yes
+//## begin Dispatcher::declareForwarder%3C95C73F022A.body preserve=yes
+  // lock mutex on entry
+  Thread::Mutex::Lock lock(wpmutex);
   CWPI iter = wps.find(wp->wpid()); 
   FailWhen( iter == wps.end() || iter->second.deref_p() != wp,
       "WP not attached to this dispatcher");
@@ -228,35 +240,64 @@ void Dispatcher::start ()
   dprintf(2)("start: initializing WPs\n");
   for( WPI iter = wps.begin(); iter != wps.end(); iter++ )
     iter->second().do_init();
-  // setup signal handler for SIGALRM
-  sigemptyset(&raisedSignals);
-  rebuildSignals();
-  num_active_fds = 0;
-  rebuildInputs();
+
+#ifdef USE_THREADS
+  // main thread blocks all signals
+  main_thread = Thread::self();
+  Thread::signalMask(SIG_BLOCK,validSignals());
+  // launch event processing thread -- no timer required
+  event_thread = Thread::create(start_eventThread,this);
+#else
   // setup heartbeat timer
   long period_usec = 1000000/heartbeat_hz;
   // when stuck in a poll loop, do a select() at least this often:
   inputs_poll_period = Timestamp(0,period_usec/2);
   next_select = Timestamp::now();
-  //  start the timer
+// start heartbeat timer
   struct itimerval tval = { {0,period_usec},{0,period_usec} };
   setitimer(ITIMER_REAL,&tval,0);
-  // say start to all WPs
+#endif
+  
+  // init event processing
+  sigemptyset(&raisedSignals);
+  rebuildSignals();
+  num_active_fds = 0;
+  rebuildInputs();
+  
+  // say start to all WPs. Note that some WP's subthreads may already re-enter
+  // the dispatcher at this point, so we can't hold a mutex on the wp map.
+  // Hence, we make a copy and iterate over that copy.
   dprintf(2)("start: starting WPs\n");
-  for( WPI iter = wps.begin(); iter != wps.end(); iter++ )
+  map<WPID,WPRef> wps1 = wps;
+  for( WPI iter = wps1.begin(); iter != wps1.end(); iter++ )
     repoll |= iter->second().do_start();
+  
+#ifdef USE_THREADS
+// signal that start is complete so that the event thread can proceed
+  {
+    Thread::Mutex::Lock lock(repoll_cond);
+    in_start = False;
+    repoll_cond.signal();
+  }
+#else
   in_start = False;
+#endif
+  
   // if someone has launched any new WPs already, start them now
-  if( attached_wps.size() )
+  Thread::Mutex::Lock lock(wpmutex);
+  if( !attached_wps.empty() )
   {
     dprintf(2)("start: initializing %d dynamically-added WPs\n",attached_wps.size());
-    while( attached_wps.size() )
+    while( !attached_wps.empty() )
     {
-      WPRef &ref = attached_wps.top();
+      WPRef ref = attached_wps.top();
+      attached_wps.pop();
+      // release the wp map mutex before doing init or start on the wp
+      lock.release();
       ref().do_init();
       repoll |= ref().do_start();
-      wps[ref->wpid()] = ref;
-      attached_wps.pop();
+      lock.relock(wpmutex);
+      (wps[ref->wpid()] = ref).persist();
     }
   }
   dprintf(2)("start: complete\n");
@@ -266,14 +307,35 @@ void Dispatcher::start ()
 void Dispatcher::stop ()
 {
   //## begin Dispatcher::stop%3C7E0270027B.body preserve=yes
-  running = False;
   dprintf(1)("stopping\n");
+#ifdef USE_THREADS
+  running = False;
+  stop_polling = True;
+  // if stop() is being called from a different thread than start(),
+  // then assume we have a separate main thread, so kill it off
+  if( Thread::self() != main_thread )
+  {
+    // use repoll_cond to wake up and terminate the polling thread
+    Thread::Mutex::Lock lock(repoll_cond);
+    repoll_cond.signal();
+    lock.release();
+    Thread::join(main_thread);
+  }
+  // cancel the event thread
+  Thread::kill(event_thread,SIGUSR1);
+  Thread::join(event_thread);
+#else
+  running = False;
   // stop the heartbeat timer
   struct itimerval tval = { {0,0},{0,0} };
   setitimer(ITIMER_REAL,&tval,0);
-  // tell all WPs that we are stopping
-  for( WPI iter = wps.begin(); iter != wps.end(); iter++ )
+#endif
+  // tell all WPs that we are stopping. Do not hold a mutex since they
+  // may re-enter the dispatcher
+  map<WPID,WPRef> wps1 = wps;
+  for( WPI iter = wps1.begin(); iter != wps1.end(); iter++ )
     iter->second().do_stop();
+  Thread::Mutex::Lock lock(wpmutex);
   // clear all event lists
   timeouts.clear();
   inputs.clear();
@@ -291,6 +353,8 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
   dprintf(2)("send(%s,%s)\n",msg.sdebug().c_str(),to.toString().c_str());
   // set the message to-address
   msg.setTo(to);
+  // lock mutex on entry
+  Thread::Mutex::Lock lock(wpmutex);
   // local delivery: check that host/process spec matches ours
   if( to.host().matches(hostId()) && to.process().matches(processId()) )
   {
@@ -305,7 +369,7 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
         // for first delivery, privatize the whole message & payload as read-only
         if( !ndeliver )
           mref.privatize(DMI::READONLY|DMI::DEEP);
-        repoll |= iter->second().enqueue(mref.copy(),tick);
+        enqueue(iter->second,mref.copy());
         ndeliver++;
       }
     }
@@ -328,7 +392,7 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
         // for first delivery, privatize the whole message & payload as read-only
         if( !ndeliver )
           mref.privatize(DMI::READONLY|DMI::DEEP);
-        repoll |= iter->second().enqueue(mref.copy(),tick);
+        enqueue(iter->second,mref.copy());
         ndeliver++;
       }
     }
@@ -345,7 +409,7 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
         dprintf(2)("  forwarding via %s\n",iter->second->debug(1));
         if( !ndeliver )
           mref.privatize(DMI::READONLY|DMI::DEEP);
-        repoll |= iter->second->enqueue(mref.copy(),tick);
+        enqueue(iter->second,mref.copy());
         ndeliver++;
       }
   }
@@ -358,6 +422,7 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
 void Dispatcher::poll (int maxloops)
 {
   //## begin Dispatcher::poll%3C7B888E01CF.body preserve=yes
+#ifndef USE_THREADS
   if( Debug(11) )
   {
     static Timestamp last_poll;
@@ -367,14 +432,31 @@ void Dispatcher::poll (int maxloops)
                 elapsed.sec()*1000+elapsed.usec()/1000,elapsed.usec()%1000);
     last_poll = now;
   }
+#endif
   FailWhen(!running,"not running");
   // destroy all delay-detached WPs
   if( !++poll_depth )
-    while( detached_wps.size() )
+  {
+    Thread::Mutex::Lock lock(wpmutex);
+    while( !detached_wps.empty() )
+    {
+      WPRef ref = detached_wps.top();
       detached_wps.pop();
+      lock.release();
+      ref().do_stop();
+      ref.detach(); // this destroys the WP, if last ref
+      lock.relock(wpmutex);
+    }
+  }
   // main polling loop
   int nloop = 0;
+#ifdef USE_THREADS
+  // threaded version: just loop while repoll is raised
+  while( repoll && !stop_polling )
+#else
+  // non-threaded version: loop & check for events 
   while( !stop_polling && ( checkEvents() || repoll ) )
+#endif
   {
     // break out if max number of loops exceeded
     if( maxloops >= 0 && nloop++ > maxloops )
@@ -386,6 +468,7 @@ void Dispatcher::poll (int maxloops)
     int num_repoll = 0; // # of WPs needing a repoll
     // Find WP with maximum polling priority
     // Count the number of WPs that required polling, too
+    Thread::Mutex::Lock lock(wpmutex);
     for( WPI wpi = wps.begin(); wpi != wps.end(); wpi++ )
     {
       WPInterface *pwp = wpi->second;
@@ -400,6 +483,7 @@ void Dispatcher::poll (int maxloops)
         }
       }
     }
+    lock.release();
     // if more than 1 WP needs a repoll, force another loop
     repoll = ( num_repoll > 1 );
     // deliver message, if a queue was found
@@ -409,6 +493,8 @@ void Dispatcher::poll (int maxloops)
       repoll |= maxwp->do_poll(tick);
     }
   }
+  if( stop_polling )
+    dprintf(2)("poll: exiting on stop_polling condition\n");
   --poll_depth;
   //## end Dispatcher::poll%3C7B888E01CF.body
 }
@@ -421,8 +507,21 @@ void Dispatcher::pollLoop ()
   in_pollLoop = True;
   stop_polling = False;
   rebuildSignals();
-  // loop until a SIGINT
-  while( !sigismember(&raisedSignals,SIGINT) && !stop_polling )
+#ifdef USE_THREADS
+  // multithreaded version: loop until stop_polling is raised
+  // wait on the repoll_cond variable, and call poll when awoken
+  Thread::Mutex::Lock lock;
+  while( !stop_polling )
+  {
+    lock.relock(repoll_cond);
+    while( !repoll && !stop_polling )
+      repoll_cond.wait();
+    lock.release();
+    poll();
+  }
+#else
+  // non-threaded version: loop until stop_polling is raised, while watching active fds
+  while( !stop_polling )
   {
     poll();
     // pause until next heartbeat (SIGALRM), or until an fd is active
@@ -438,6 +537,7 @@ void Dispatcher::pollLoop ()
     else
       pause();       // use plain pause(2)
   }
+#endif
   in_pollLoop = False;
   //## end Dispatcher::pollLoop%3C8C87AF031F.body
 }
@@ -454,6 +554,10 @@ void Dispatcher::stopPolling ()
 {
   //## begin Dispatcher::stopPolling%3CA09EB503C1.body preserve=yes
   stop_polling = True;
+#ifdef USE_THREADS
+  Thread::Mutex::Lock lock(repoll_cond);
+  repoll_cond.signal();
+#endif
   //## end Dispatcher::stopPolling%3CA09EB503C1.body
 }
 
@@ -470,6 +574,7 @@ void Dispatcher::addTimeout (WPInterface* pwp, const Timestamp &period, const HI
   ti.flags = flags;
   ti.id = id;
   // add to list
+  Thread::Mutex::Lock lock(tomutex);
   timeouts.push_front(ti);
   //## end Dispatcher::addTimeout%3C7D28C30061.body
 }
@@ -481,6 +586,7 @@ void Dispatcher::addInput (WPInterface* pwp, int fd, int flags, int priority)
   FailWhen(!(flags&EV_FDALL),"addInput: no fd flags specified");
   // check if perhaps this fd is already being watched, then we only need to 
   // add to the flags
+  Thread::Mutex::Lock lock(inpmutex);
   for( IILI iter = inputs.begin(); iter != inputs.end(); iter++ )
   {
     if( iter->pwp == pwp && iter->fd == fd )
@@ -502,11 +608,12 @@ void Dispatcher::addInput (WPInterface* pwp, int fd, int flags, int priority)
   //## end Dispatcher::addInput%3C7D28E3032E.body
 }
 
-void Dispatcher::addSignal (WPInterface* pwp, int signum, int flags, volatile int* counter, int priority)
+void Dispatcher::addSignal (WPInterface* pwp, int signum, int flags, int priority)
 {
   //## begin Dispatcher::addSignal%3C7DFF4A0344.body preserve=yes
   FailWhen(signum<0,Debug::ssprintf("addSignal: invalid signal %d",signum));
-   // look at map for this signal to see if this WP is already registered
+  // look at map for this signal to see if this WP is already registered
+  Thread::Mutex::Lock lock(sigmutex);
   for( SMI iter = signal_map.lower_bound(signum); 
        iter->first == signum && iter != signal_map.end(); iter++ )
   {
@@ -520,7 +627,6 @@ void Dispatcher::addSignal (WPInterface* pwp, int signum, int flags, volatile in
   SignalInfo si(pwp,AtomicID(signum),priority);
   si.signum = signum;
   si.flags = flags;
-  si.counter = counter;
   si.msg().setState(0);
   signal_map.insert( SMPair(signum,si) );
   rebuildSignals();
@@ -530,6 +636,7 @@ void Dispatcher::addSignal (WPInterface* pwp, int signum, int flags, volatile in
 bool Dispatcher::removeTimeout (WPInterface* pwp, const HIID &id)
 {
   //## begin Dispatcher::removeTimeout%3C7D28F202F3.body preserve=yes
+  Thread::Mutex::Lock lock(tomutex);
   for( TOILI iter = timeouts.begin(); iter != timeouts.end(); )
   {
     if( iter->pwp == pwp && id.matches(iter->id) )
@@ -551,6 +658,7 @@ bool Dispatcher::removeInput (WPInterface* pwp, int fd, int flags)
   //## begin Dispatcher::removeInput%3C7D2947002F.body preserve=yes
   if( fd<0 )  // fd<0 means remove everything
     flags = ~0;
+  Thread::Mutex::Lock lock(inpmutex);
   for( IILI iter = inputs.begin(); iter != inputs.end(); iter++ )
   {
     // is an input message sitting intill undelivered?
@@ -578,6 +686,7 @@ bool Dispatcher::removeSignal (WPInterface* pwp, int signum)
   //## begin Dispatcher::removeSignal%3C7DFF57025C.body preserve=yes
   bool res = False;
   pair<SMI,SMI> rng;
+  Thread::Mutex::Lock lock(sigmutex);
   // if signum<0, removes all signal_map for this WP
   if( signum<0 )
     rng = pair<SMI,SMI>(signal_map.begin(),signal_map.end()); // range = all signal_map
@@ -610,18 +719,21 @@ bool Dispatcher::removeSignal (WPInterface* pwp, int signum)
 Dispatcher::WPIter Dispatcher::initWPIter ()
 {
   //## begin Dispatcher::initWPIter%3C98D4530076.body preserve=yes
-  return wps.begin();
+  return WPIter(wps.begin(),wpmutex);
   //## end Dispatcher::initWPIter%3C98D4530076.body
 }
 
 bool Dispatcher::getWPIter (Dispatcher::WPIter &iter, WPID &wpid, const WPInterface *&pwp)
 {
   //## begin Dispatcher::getWPIter%3C98D47B02B9.body preserve=yes
-  if( iter == wps.end() )
+  if( iter.iter == wps.end() )
+  {
+    iter.lock.release();
     return False;
-  wpid = iter->first;
-  pwp = iter->second.deref_p();
-  iter++;
+  }
+  wpid = iter.iter->first;
+  pwp = iter.iter->second.deref_p();
+  iter.iter++;
   return True;
   //## end Dispatcher::getWPIter%3C98D47B02B9.body
 }
@@ -662,6 +774,8 @@ bool Dispatcher::hasLocalData (const HIID &id)
   //## begin Dispatcher%3C7B6A3E00A0.declarations preserve=yes
 void Dispatcher::rebuildInputs (WPInterface *remove)
 {
+  Thread::Mutex::Lock lock(inpmutex);
+  Thread::Mutex::Lock lock2(fds_watched_mutex);
   FD_ZERO(&fds_watched.r);
   FD_ZERO(&fds_watched.w);
   FD_ZERO(&fds_watched.x);
@@ -685,17 +799,31 @@ void Dispatcher::rebuildInputs (WPInterface *remove)
   }
   if( max_fd >=0 )
     max_fd++; // this is the 'n' argument to select(2)
+#ifdef USE_THREADS
+  // send a signal to the event thread, to re-do a select() with the new fd sets
+  lock2.release();
+  Thread::kill(event_thread,SIGUSR1);
+#endif
 }
 
 void Dispatcher::rebuildSignals (WPInterface *remove)
 {
   // rebuild mask of handled signal_map
+  Thread::Mutex::Lock lock(sigmutex);
   sigset_t newmask;
   sigemptyset(&newmask);
+#ifdef USE_THREADS
+  // INT handled by event thread
+  sigaddset(&newmask,SIGINT);  
+  // USR1 handled by event thread
+  sigaddset(&newmask,SIGUSR1);  
+  // ALRM not handled since we use select() for pausing instead
+#else
   if( running )
     sigaddset(&newmask,SIGALRM); // ALRM handled when running
   if( in_pollLoop )
     sigaddset(&newmask,SIGINT);  // INT handled in pollLoop
+#endif
   int sig0 = -1;
   for( SMI iter = signal_map.begin(); iter != signal_map.end(); )
   {
@@ -740,6 +868,8 @@ bool Dispatcher::checkEvents()
 {
   // ------ check timeouts
   // next_to gives us the timestamp of the nearest timeout
+  Thread::Mutex::Lock wplock(wpmutex);
+  Thread::Mutex::Lock lock(tomutex);
   Timestamp now;
   if( next_to && next_to <= now )
   {
@@ -749,7 +879,7 @@ bool Dispatcher::checkEvents()
     {
       if( iter->next <= now ) // this timeout has fired?
       {
-        repoll |= iter->pwp->enqueue( iter->msg.copy(DMI::READONLY),tick );
+        enqueue(iter->pwp, iter->msg.copy(DMI::READONLY));
         if( iter->flags&EV_ONESHOT ) // not continouos? clear it now
         {
           timeouts.erase(iter++);
@@ -763,10 +893,23 @@ bool Dispatcher::checkEvents()
       iter++;
     }
   }
+#ifdef USE_THREADS
+  // compute a struct timeval corresponding to the next timeout
+  // this is used in evenThread(), below
+  if( next_to )
+  {
+    next_timeout_tv = next_to - now;
+    pnext_timeout_tv = &next_timeout_tv;
+  }
+  else
+    pnext_timeout_tv = NULL;
+#endif
+  lock.release();
+  lock.relock(inpmutex);
   // ------ check inputs
   // while in Dispatcher::pollLoop(), select() is already being done for
   // us. Check the fds otherwise
-  if( inputs.size() && now >= next_select )
+  if( !inputs.empty() && now >= next_select )
   {
     struct timeval to = {0,0}; // select will return immediately
     fds_active = fds_watched;
@@ -799,8 +942,7 @@ bool Dispatcher::checkEvents()
         {
           ref().setState(ref->state()|flags); // update state
           // is this same message at the head of the queue? repoll then
-          const WPInterface::QueueEntry *qe = iter->pwp->topOfQueue();
-          if( qe && qe->mref == ref )
+          if( iter->pwp->compareHeadOfQueue(ref) )
           {
             repoll = True;     
             iter->pwp->setNeedRepoll(True);
@@ -811,7 +953,7 @@ bool Dispatcher::checkEvents()
           // make a writable copy of the template message, because we set state
           ref = iter->msg.copy().privatize(DMI::WRITE);
           ref().setState(flags);
-          repoll |= iter->pwp->enqueue(ref.copy(DMI::WRITE),tick);  
+          enqueue(iter->pwp,ref.copy(DMI::WRITE));  
         }
         // if event is one-shot, clear it
         if( iter->flags&EV_ONESHOT )
@@ -826,6 +968,8 @@ bool Dispatcher::checkEvents()
     num_active_fds = 0;
   }
   // ------ check signal_map
+  lock.release();
+  lock.relock(sigmutex);
   // grab & flush the current raised-mask
   sigset_t mask = raisedSignals;
   sigemptyset(&raisedSignals);
@@ -843,7 +987,7 @@ bool Dispatcher::checkEvents()
           // discrete signal events requested, so always enqueue a message
           if( iter->second.flags&EV_DISCRETE )
           {
-            repoll |= iter->second.pwp->enqueue(iter->second.msg.copy(DMI::WRITE),tick);
+            enqueue(iter->second.pwp,iter->second.msg.copy(DMI::WRITE));
           }
           else // else see if event is already enqueued & not delivered
           {
@@ -852,14 +996,13 @@ bool Dispatcher::checkEvents()
             if( iter->second.msg->state() )
             {
               // simply ask for a repoll if the message is at top of queue
-              const WPInterface::QueueEntry *qe = iter->second.pwp->topOfQueue();
-              if( qe && qe->mref == iter->second.msg )
+              if( iter->second.pwp->compareHeadOfQueue(iter->second.msg) )
                 iter->second.pwp->setNeedRepoll(repoll=True);
             }
             else // not in queue anymore, so enqueue a message
             {
               iter->second.msg().setState(1); // state=1 means undelivered
-              repoll |= iter->second.pwp->enqueue(iter->second.msg.copy(DMI::WRITE),tick);
+              enqueue(iter->second.pwp,iter->second.msg.copy(DMI::WRITE));
             }
           }
         }
@@ -875,6 +1018,151 @@ bool Dispatcher::checkEvents()
   return repoll;
 }
 
+void Dispatcher::enqueue (WPInterface *pwp,const Message::Ref &ref)
+{
+// place the message into the WP's queue
+  bool res = pwp->enqueue(ref,tick);
+#ifdef USE_THREADS
+// if the WP is not in a separate thread, a repoll may be required
+  if( !pwp->isThreaded() && res )
+  {
+    repoll = True;
+    // wake up the dispatcher thread
+    if( Thread::self() != main_thread )
+    {
+      Thread::Mutex::Lock lock(repoll_cond);
+      repoll_cond.signal();
+    }
+  }
+#else
+// non-threaded version: simply raise the repoll flag if enqueue indicates
+// that the WP needs a repoll
+  repoll |= res;
+#endif
+}
+
+#ifdef USE_THREADS
+void * Dispatcher::start_eventThread (void *pdsp)
+{
+  return static_cast<Dispatcher*>(pdsp)->eventThread();
+}
+    
+void * Dispatcher::eventThread ()
+{
+  // no signals are blocked
+  try
+  {
+    dprintf(1)("Entering event thread\n");
+    // unblock all signals
+    Thread::signalMask(SIG_UNBLOCK,validSignals());
+    // wait for startup to complete
+    Thread::Mutex::Lock lock(repoll_cond);
+    while( in_start )
+      repoll_cond.wait();
+    lock.release();
+    dprintf(1)("Event thread startup complete\n");
+      
+    // loop while still running
+    while( running )
+    {
+      // call checkEvents() to distribute timeout/input/signal events
+      dprintf(5)("Checking events\n");
+      checkEvents();
+      if( stop_polling )
+        stopPolling();
+      // pause until next heartbeat (SIGALRM), or until an fd is active
+// NB: when the fds are rebuilt, we should deliver a signal to this thread
+      Thread::Mutex::Lock lock(fds_watched_mutex);
+      if( max_fd >= 0 ) // poll fds using select(2) 
+      {
+        fds_active = fds_watched;
+        lock.release();
+        dprintf(5)("select(%d,%ld:%ld)\n",max_fd,pnext_timeout_tv->tv_sec,pnext_timeout_tv->tv_usec);
+        num_active_fds = select(max_fd,&fds_active.r,&fds_active.w,&fds_active.x,pnext_timeout_tv);
+        // we don't expect any errors except perhaps EINTR (interrupted by signal)
+        dprintf(5)("select()=%d, errno=%d (%s), running=%d\n",num_active_fds,num_active_fds<0?errno:0,num_active_fds<0?strerror(errno):"",(int)running);
+        if( num_active_fds < 0 && errno != EINTR )
+          dprintf(0)("select(): unexpected error %d (%s)\n",errno,strerror(errno));
+      }
+      else  // else just use select(2) to sleep until next timeout
+      {
+        lock.release();
+        dprintf(5)("select(%ld:%ld)\n",pnext_timeout_tv->tv_sec,pnext_timeout_tv->tv_usec);
+        int res = select(0,NULL,NULL,NULL,pnext_timeout_tv);
+        dprintf(5)("select()=%d, errno=%d (%s), running=%d\n",res,res<0?errno:0,res<0?strerror(errno):"",(int)running);
+      }
+    }
+  }
+  catch( std::exception exc )
+  {
+    cerr<<"Dipatcher event thread terminated with exception "<<exc.what()<<endl;
+  }
+  return 0;
+}
+
+void * Dispatcher::start_pollThread (void *pdsp)
+{
+  return static_cast<Dispatcher*>(pdsp)->pollThread();
+}
+    
+void * Dispatcher::pollThread ()
+{
+  try
+  {
+    dprintf(1)("Starting poll thread\n");
+    start();
+    dprintf(1)("Entering poll loop in poll thread\n");
+    pollLoop();
+    // call stop() (unless it's already been called for us: running = False)
+    Thread::Mutex::Lock lock(repoll_cond);
+    if( running )
+    {
+      dprintf(1)("Poll loop exited, stopping and exiting\n");
+      lock.release();
+      stop();
+    }
+    else
+    {
+      dprintf(1)("stop() call detected, exiting\n");
+    }
+  }
+  catch( std::exception exc )
+  {
+    cerr<<"Dipatcher event thread terminated with exception "<<exc.what()<<endl;
+  }
+  return 0;
+}
+
+Thread::ThrID Dispatcher::startThread ()
+{
+  // block all dispatcher-handled signals
+  Thread::signalMask(SIG_BLOCK,validSignals());
+  // launch a polling thread
+  return Thread::create(start_pollThread,this);
+}
+#endif
+
+
+
+const sigset_t * Dispatcher::validSignals ()
+{
+  static bool init = False;
+  static sigset_t set;
+  
+  if( !init )
+  {
+    init = True;
+    sigemptyset(&set);
+    sigaddset(&set,SIGINT);
+    sigaddset(&set,SIGALRM);
+    sigaddset(&set,SIGPIPE);
+    sigaddset(&set,SIGUSR1);
+    sigaddset(&set,SIGUSR2);
+    sigaddset(&set,SIGURG);
+  }
+  
+  return &set;
+}
 
 
 string Dispatcher::sdebug ( int detail,const string &,const char *name ) const
@@ -887,6 +1175,9 @@ string Dispatcher::sdebug ( int detail,const string &,const char *name ) const
     out += address.toString();
     if( detail>3 )
       out += Debug::ssprintf("/%08x",this);
+#ifdef USE_THREADS
+    Debug::appendf(out,"T%d",(int)Thread::self());
+#endif    
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {

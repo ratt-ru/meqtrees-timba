@@ -18,4 +18,5 @@ static AtomicID::Register aid_reg_Timestamp(-85,"Timestamp");
 static AtomicID::Register aid_reg_Invert(-388,"Invert");
 static AtomicID::Register aid_reg_Data(-81,"Data");
 static AtomicID::Register aid_reg_Count(-389,"Count");
+static AtomicID::Register aid_reg_Process(-723,"Process");
 

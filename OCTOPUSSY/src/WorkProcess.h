@@ -69,7 +69,7 @@ class WorkProcess : public WPInterface  //## Inherits: <unnamed>%3C8F263A00E6
       void addInput (int fd, int flags, int priority = Message::PRI_EVENT);
 
       //## Operation: addSignal%3C7DFE520239
-      void addSignal (int signum, int flags = 0, volatile int* counter = 0, int priority = Message::PRI_EVENT);
+      void addSignal (int signum, int flags = 0, int priority = Message::PRI_EVENT);
 
       //## Operation: removeTimeout%3C7D287F02C6
       bool removeTimeout (const HIID &id);

@@ -20,6 +20,7 @@
 //## begin module%3C7E49E90399.includes preserve=yes
 #include <sys/time.h>
 #include "DMI/DataRecord.h"
+#include <DMI/NCIter.h>
 //## end module%3C7E49E90399.includes
 
 // EchoWP
@@ -44,8 +45,9 @@ EchoWP::EchoWP (int pingcount)
   //## begin EchoWP::EchoWP%3C7E49B60327.body preserve=yes
   blocksize = 64;
   pipeline = 1;
-  invert = 1;
-  fill = 0x07070707;
+  process = 1;
+  threads = 0;
+  fill = 1000;
   msgcount = bytecount = 0;
   timecount = 0;
   ts = Timestamp::now();
@@ -80,8 +82,11 @@ void EchoWP::init ()
   config.get("fill",fill);  
   lprintf(0,"fill = %d\n",fill);
   
-  config.get("invert",invert);
-  lprintf(0,"invert = %d\n",(int)invert);
+  config.get("process",process);
+  lprintf(0,"process = %d\n",(int)process);
+  
+  config.get("mt",threads);
+  lprintf(0,"mt = %d\n",threads);
 
   if( !pcount )
     subscribe("Ping");
@@ -99,6 +104,10 @@ bool EchoWP::start ()
   WorkProcess::start();
   if( pcount>0 )
     sendPing();
+#ifdef USE_THREADS
+  for( int i=0; i<threads; i++ )
+    createWorker();
+#endif  
   return False;
   //## end EchoWP::start%3C7E4AC70261.body
 }
@@ -113,15 +122,14 @@ int EchoWP::receive (MessageRef& mref)
     Message & msg = mref.privatize(DMI::WRITE,1);
     lprintf(3,"ping(%d) from %s\n",msg["Count"].as_int(),mref->from().toString().c_str());
     // timestamp the reply
-    int sz = msg["Data"].size();
     msg["Reply.Timestamp"] = Timestamp();
-    // invert the data block if it's there
-    if( msg["Invert"].as_bool() )
+    // process the data block if it's there
+    if( msg["Process"].as_bool() )
     {
-      int *data = &(msg.setBranch("Data",DMI::WRITE|DMI::PRIVATIZE));
-      lprintf(4,"inverting %d ints at %x\n",sz,(int)data);
-      for( int i=0; i<sz; i++,data++ )
-        *data = ~*data;
+      NCIter_double data(msg.setBranch("Data",DMI::WRITE|DMI::PRIVATIZE));
+      lprintf(4,"sqrting data block of %d doubles\n",data.size());
+      while( !data.end() )
+        data.next( sqrt(*data) );
     }
     msg.setId(MsgPong);
     lprintf(3,"replying with pong(%d)\n",msg["Count"].as_int());
@@ -136,7 +144,7 @@ int EchoWP::receive (MessageRef& mref)
     else
     {
       const Message &msg = mref.deref();
-      stepCounters(msg["Data"].size()*sizeof(int),msg["Timestamp"]);
+      stepCounters(msg["Data"].size()*sizeof(double),msg["Timestamp"]);
       sendPing();
     }
   }
@@ -194,16 +202,15 @@ void EchoWP::sendPing ()
   {
     Message &msg = *new Message(MsgPing,new DataRecord,DMI::ANON|DMI::WRITE);
     msg["Timestamp"] = Timestamp();
-    msg["Invert"] = invert;
-    msg["Data"] <<= new DataField(Tpint,blocksize);
+    msg["Process"] = process;
+    msg["Data"] <<= new DataField(Tpdouble,blocksize);
     msg["Count"] = pcount;
     if( fill )
     {
-      int sz = msg["Data"].size();
-      int *data = &msg["Data"];
-      lprintf(4,"filling %d ints at %x\n",sz,(int)data);
-      for( int i=0; i<sz; i++ )
-        data[i] = 0x07070707;
+      NCIter_double data(msg["Data"]);
+      lprintf(4,"filling %d doubles\n",data.size());
+      while( !data.end() )
+        data.next(fill);
     }
     lprintf(4,"ping %d, publishing %s\n",pcount,msg.debug(1));
     lprintf(3,"sending ping(%d)\n",msg["Count"].as_int());

@@ -189,7 +189,8 @@ void LoggerWP::logMessage (const string &source, const string &msg, int level, A
   
   // chop redundancy off the type string
   string ts = type.toString();
-  if( ts.compare("Log",0,3) )
+  if( ts._strcompare(0,3,"Log") )
+//  if( ts.compare("Log",0,3) )
     ts = ts.substr(3);
   
   // form full output record

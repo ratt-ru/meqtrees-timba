@@ -33,7 +33,7 @@
 //## begin module%3C7E49E90390.additionalDeclarations preserve=yes
 #pragma aidgroup Testing
 #pragma aid EchoWP Ping Pong
-#pragma aid Reply Timestamp Invert Data Count
+#pragma aid Reply Timestamp Invert Data Count Process
 #include "AID-Testing.h"
 //## end module%3C7E49E90390.additionalDeclarations
 
@@ -84,7 +84,7 @@ class EchoWP : public WorkProcess  //## Inherits: <unnamed>%3C8F26580162
     // Additional Protected Declarations
       //## begin EchoWP%3C7E498E00D1.protected preserve=yes
       int pcount,blocksize,pipeline,fill;
-      int invert;
+      int process,threads;
   
       long   bytecount,msgcount;
       double ts,timecount;

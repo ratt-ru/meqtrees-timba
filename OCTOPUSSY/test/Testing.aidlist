@@ -4,5 +4,6 @@ EchoWP                           386        ; from /home/oms/LOFAR/autoconf_shar
 Invert                           388        ; from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:4
 Ping                             391        ; from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:5
 Pong                             387        ; from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:6
-Reply                            390        ; from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:7
+Process                          723        ; from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:7
+Reply                            390        ; from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:8
 Timestamp                        85         ; from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:54

@@ -91,8 +91,8 @@ bool GatewayWP::start ()
   // handle & ignore SIGURG -- out-of-band data on socket. 
   // addInput() will catch an exception on the fd anyway
   addSignal(SIGURG,EV_IGNORE);
-  // ignore SIGPIPE, but maintain Socket's sigpipe counter
-  addSignal(SIGPIPE,EV_IGNORE,&sock->sigpipe_counter);
+  // ignore SIGPIPE, 
+  addSignal(SIGPIPE,EV_IGNORE);
   
   // collect local subscriptions data and send it to peer
   // iterate over all WPs to find total size of all subscriptions

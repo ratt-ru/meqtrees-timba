@@ -31,6 +31,8 @@
 #include <map>
 #include "DMI/Timestamp.h"
 #include "OCTOPUSSY/OctopussyConfig.h"
+#include "Common/Thread.h"
+#include "Common/Thread/Condition.h"
 //## end module%3C7B7F300041.includes
 
 // DataRecord
@@ -93,7 +95,18 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       ::Debug::Context & getDebugContext() { return DebugContext; };
       
       // iterator type (for iterate(), below)
-      typedef map<WPID,WPRef>::const_iterator WPIter;
+      class WPIter
+      {
+        public:
+          map<WPID,WPRef>::const_iterator iter;
+          Thread::Mutex::Lock lock;
+          
+          WPIter(const map<WPID,WPRef>::const_iterator &iter1,Thread::Mutex &mutex)
+              : iter(iter1),lock(mutex)
+          {}
+          
+          void release() { lock.release(); }
+      };
   //## end Dispatcher%3C7B6A3E00A0.initialDeclarations
 
   public:
@@ -162,7 +175,7 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       void addInput (WPInterface* pwp, int fd, int flags, int priority);
 
       //## Operation: addSignal%3C7DFF4A0344
-      void addSignal (WPInterface* pwp, int signum, int flags, volatile int* counter, int priority);
+      void addSignal (WPInterface* pwp, int signum, int flags, int priority);
 
       //## Operation: removeTimeout%3C7D28F202F3
       bool removeTimeout (WPInterface* pwp, const HIID &id);
@@ -220,6 +233,21 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       // pointer to static dispatcher object
       static Dispatcher * dispatcher;
 
+#ifdef USE_THREADS
+      // this starts the dispatcher running in its own thread (use instead
+      // of normal start()). You can use stop() later to stop the thread.
+      Thread::ThrID startThread ();
+#endif
+      
+      
+      // returns count of received signals (updated in signal handler)
+      static int signalCounter (int sig);
+      
+      // returns set of all signals for which handlers may be set up
+      // (in a multithreaded environment, all other threads should block these
+      // signals)
+      static const sigset_t * validSignals ();
+      
       // internal data structures
       // EventInfo is a base struct for all system events.
       // Contains pointer to WPI, plus a template for the event message
@@ -255,7 +283,6 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       class SignalInfo : public EventInfo
       {
         public: int       signum,flags;
-                volatile int *counter;
                 SignalInfo( WPInterface *pwp,const HIID &id,int priority )
                     : EventInfo(pwp,AidSignal|id,priority) {};
       };
@@ -274,7 +301,6 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       bool matchAddr( AtomicID id1,AtomicID id2 )
       { return wildcardAddr(id1) || id1 == id2; }
       
-      
       Declare_sdebug( );
       Declare_debug( );
       //## end Dispatcher%3C7B6A3E00A0.public
@@ -292,6 +318,27 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       // This is the current poll depth (i.e., depth of nested polls)
       // when <0, means no poll() calls should be made.
       int poll_depth;
+      
+#ifdef USE_THREADS
+      // ID of main dispatcher thread (poll thread)
+      Thread::ThrID main_thread;
+      // ID of event processing thread
+      Thread::ThrID event_thread;
+      
+      // repoll condition variable (poll thread sleeps on this)
+      Thread::Condition repoll_cond;
+      
+      // this the struct timeval corresponding to the next pending timeout
+      struct timeval next_to_tv,
+            // this either points to it, or is NULL
+            *pnext_to_tv;
+      
+      static void * start_eventThread (void *pdsp);
+      void * eventThread ();
+
+      static void * start_pollThread (void *pdsp);
+      void * pollThread ();
+#endif
         
       // set of raised signal_map/all handled signal_map
       static sigset_t raisedSignals,allSignals;
@@ -308,6 +355,9 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       typedef TOIL::iterator TOILI;
       typedef TOIL::const_iterator CTOILI;
       Timestamp next_to;  // next pending timeout
+#ifdef USE_THREADS
+      struct timeval next_timeout_tv,*pnext_timeout_tv;
+#endif
       
       // inputs list
       typedef list<InputInfo> IIL;
@@ -316,6 +366,7 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       typedef IIL::const_iterator CIILI;
       typedef struct fdsets { fd_set r,w,x; } FDSets;
       FDSets fds_watched,fds_active;
+      Thread::Mutex fds_watched_mutex;
       int max_fd,num_active_fds;
       Timestamp next_select,inputs_poll_period;
       // rebuilds watched fds according to inputs list
@@ -336,6 +387,10 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       
       // checks all signals, timeouts and inputs, sets & returns repoll flag
       bool checkEvents ();
+      
+      // enqueues a message for a particular WP (this is handled differently
+      // for single-threaded and multi-threaded versions, hence a separate method)
+      void enqueue (WPInterface *pwp,const Message::Ref &ref);
       
       //## end Dispatcher%3C7B6A3E00A0.protected
   private:
@@ -402,7 +457,15 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       // This is done to avoid upsetting the iterators.
       stack<WPRef> attached_wps;
       
+      // configuration
       const OctopussyConfig & config;
+      
+      // signal counters
+      static const int max_signals = 1024;
+      static int signal_counter[max_signals];
+      
+      // mutex to protect various data structures
+      Thread::Mutex wpmutex,tomutex,inpmutex,sigmutex;
       //## end Dispatcher%3C7B6A3E00A0.implementation
 };
 
@@ -453,6 +516,10 @@ inline const DataRecord& Dispatcher::localData () const
 }
 
 //## begin module%3C7B7F300041.epilog preserve=yes
+inline int Dispatcher::signalCounter (int sig)
+{
+  return sig < 0 || sig >= max_signals ? 0 : signal_counter[sig];
+}
 //## end module%3C7B7F300041.epilog
 
 

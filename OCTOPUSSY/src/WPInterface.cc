@@ -30,6 +30,263 @@
 //## end module%3C8F26A30123.declarations
 
 //## begin module%3C8F26A30123.additionalDeclarations preserve=yes
+#ifdef USE_DEBUG
+  #include "Common/Stopwatch.h"
+  #define stopwatch_init   Stopwatch _sw
+  #define stopwatch_dump   _sw.sdelta("%.9f",true,Stopwatch::REAL).c_str()
+  #define stopwatch_reset  _sw.reset()
+#else
+  #define stopwatch_init   
+  #define stopwatch_dump   ""
+  #define stopwatch_reset  
+#endif
+
+#ifdef USE_THREADS
+// This is the multithreaded poll version: it checks the message queue,
+// and distributes all messages into receive/input/timeout/signal methods.
+// Default version of wakeup() simply calls this method
+int WPInterface::deliver (Thread::Mutex::Lock &lock)
+{
+  // check if something is in the queue
+  if( !queue().empty() )
+  {
+    int res = Message::ACCEPT;
+    // remove message from queue and release mutex
+    QueueEntry qe = queue().front();
+    queue().pop_front();
+    setNeedRepoll(False);
+    lock.release();
+
+    const Message &msg = qe.mref.deref();
+    const HIID &id = msg.id();
+    FailWhen( id.empty(),"null message ID" );
+    dprintf1(3)("%s: receiving %s\n",sdebug(1).c_str(),msg.debug(1));
+
+    // is it a system event message?
+    if( id[0] == AidEvent ) 
+    {
+      // Once the event has been delivered, reset its state to 0.
+      // This helps the dispatcher keep track of when a new event message is
+      // required (as opposed to updating a previous message that's still
+      // undelivered). See Dispatcher::checkEvents() for details.
+      if( qe.mref.isWritable() )
+        qe.mref().setState(0);
+
+      if( id[1] == AidTimeout ) // deliver timeout message
+      {
+        FailWhen( id.size() < 2,"malformed "+id.toString()+" message" );
+        HIID to_id = id.subId(2);
+        res = timeout(to_id);
+        if( res == Message::CANCEL )
+          dsp()->removeTimeout(this,to_id);
+        res = Message::ACCEPT;
+      }
+      else if( id[1] == AidInput ) // deliver input message
+      {
+        FailWhen( id.size() != 3,"malformed "+id.toString()+" message" );
+        int fd=id[2],flags=msg.state();
+        if( flags )  // no flags? Means the input has been already removed. Ignore
+        {
+          res = input(fd,flags);
+          if( res == Message::CANCEL )
+            dsp()->removeInput(this,fd,flags);
+          res = Message::ACCEPT;
+        }
+      }
+      else if( id[1] == AidSignal ) // deliver input message
+      {
+        FailWhen( id.size() != 3,"malformed "+id.toString()+" message" );
+        int signum = id[2];
+        res = signal(signum);
+        if( res == Message::CANCEL )
+          dsp()->removeSignal(this,signum);
+        res = Message::ACCEPT;
+      }
+      else
+        Throw("unexpected event" + id.toString());
+    }
+    else // deliver regular message
+    {
+      res = receive(qe.mref);
+    }
+    // dispence of queue according to result code
+    const Message *old_msg = 0; // for comparison below
+    if( res == Message::ACCEPT )   // message accepted, remove from queue
+    {
+      dprintf(3)("result code: OK, de-queuing\n");
+      // in fact, already dequeued
+    }
+    else      // message not accepted, stays in queue
+    {
+      FailWhen( !qe.mref.valid(),"message was not accepted but its ref was detached or xferred" );
+      old_msg = qe.mref.deref_p();
+      if( res == Message::HOLD )
+      {
+        dprintf(3)("result code: HOLD\n");
+        // requeue - re-insert at head of queue
+        enqueueFront(qe.mref,dsp()->getTick(),False);  // this sets repoll if head of queue has changed
+      }
+      else if( res == Message::REQUEUE )
+      {
+        dprintf(3)("result code: REQUEUE\n");
+        // requeue - re-insert into queue() according to priority
+        enqueue(qe.mref,dsp()->getTick(),False);  // this sets repoll if head of queue has changed
+      }
+      else
+        Throw("invalid result code");
+    }
+    lock.relock(queue_cond);
+    if( !queue().empty() )
+    {
+      // this resets the age at the head of the queue. Effectively, this means
+      // we have a "queue age" rather than a message age.
+      queue().front().tick = dsp()->getTick();
+      // if we find ourselves with something different at the head of the queue,
+      // force a repoll. Otherwise (as a result of HOLD/REQUEUE), no repoll is
+      // done until something comes up
+      if( queue().front().mref.deref_p() != old_msg )
+      {
+        dprintf(3)("head of queue is different, forcing repoll\n");
+        setNeedRepoll(True);
+      }
+      else
+      {
+        dprintf(3)("head of queue is same, repoll=%d\n",(int)needRepoll());
+      }
+    }
+  }
+  else // else nothing is in the queue, so set needRepoll to false
+    setNeedRepoll(False);
+  return 0;
+}
+
+bool WPInterface::mtWakeup (Thread::Mutex::Lock &lock)
+{
+  while( needRepoll() && running ) 
+    deliver(lock);
+  return True;
+}
+
+void WPInterface::runWorker ()
+{
+  Thread::Mutex::Lock lock(queueCondition());
+  while( running )
+  {
+    stopwatch_init;
+    while( !needRepoll() && isRunning() )
+    {
+      stopwatch_reset;
+      dprintf(3)("waiting on queue condition variable\n");
+      queue_cond.wait();
+      dprintf(3)("wait time: %s\n",stopwatch_dump);
+    }
+    // check for stop condition
+    if( !isRunning() )
+    {
+      dprintf(3)("worker thread: WP is no longer running");
+      break;
+    }
+    // do a wakeup call
+    if( !mtWakeup(lock) )
+    {
+      dprintf(3)("worker thread: wakeup() signalled exit");
+      break;
+    }
+  }
+}
+
+void * WPInterface::workerThread ()
+{
+  Thread::signalMask(SIG_BLOCK,Dispatcher::validSignals());
+  try
+  {
+    stopwatch_init;
+    // do start in the worker thread and signal this to the main thread
+    dprintf(2)("initializing worker thread\n");
+    bool res = mtInit(Thread::self());
+    dprintf(2)("time: %s, signaling end of worker init\n",stopwatch_dump);
+    Thread::Mutex::Lock lock(queue_cond);
+    dprintf(3)("time spent waiting for mutex: %s\n",stopwatch_dump);
+    num_initialized_workers++;
+    queue_cond.signal();
+    // wait for main thread to complete startup
+    dprintf(2)("waiting for WP startup to complete\n");
+    stopwatch_reset;
+    while( !started )
+      queue_cond.wait();
+    dprintf(2)("WP startup complete, time: %s\n",stopwatch_dump);
+    // release queue mutex
+    lock.release();
+    // exit if init was false
+    if( !res )
+    {
+      dprintf(2)("mtinit()=False, exiting worker thread\n");
+      return 0;
+    }
+    // do startup, exit if false
+    dprintf(2)("starting worker thread\n");
+    stopwatch_reset;
+    res = mtStart(Thread::self());
+    dprintf(2)("mtStart() time: %s\n",stopwatch_dump);
+    if( !res )
+    {
+      dprintf(2)("mtstart()=False, exiting worker thread\n");
+      return 0;
+    }
+    // run the worker thread
+    dprintf(2)("running worker thread\n");
+    runWorker();
+    // once it exits, call mtStop() and exit
+    dprintf(2)("stopping worker thread\n");
+    mtStop(Thread::self());
+  }
+  catch( std::exception &exc )
+  {
+    lprintf(0,LogFatal,"worker thread %d terminated with exception: %s",(int)Thread::self(),exc.what());
+  }
+  return 0;
+}
+
+void * WPInterface::start_workerThread (void *pwp)
+{
+  return static_cast<WPInterface*>(pwp)->workerThread();
+}
+
+int WPInterface::wakeWorker (bool everybody)
+{
+  Thread::Mutex::Lock lock(queue_cond);
+  return everybody ? queue_cond.broadcast() : queue_cond.signal();
+}
+
+int WPInterface::repollWorker (bool everybody)
+{
+  Thread::Mutex::Lock lock(queue_cond);
+  setNeedRepoll(True);
+  return everybody ? queue_cond.broadcast() : queue_cond.signal();
+}
+
+Thread::ThrID WPInterface::createWorker ()
+{
+  dprintf(2)("launching worker thread\n");
+  FailWhen(num_worker_threads>=MaxWorkerThreads,"too many worker threads started");
+  stopwatch_init;
+  // launch into separate thread if specified
+  Thread::ThrID thr = Thread::create(start_workerThread,this);
+  dprintf(3)("time to create thread: %s\n",stopwatch_dump);
+  FailWhen(!thr,"Thread::create failed");
+  worker_threads[num_worker_threads++] = thr;
+  // wait for the worker thread to complete its startup
+  dprintf(2)("waiting for WT %d to complete initialization\n",(int)thr);
+  stopwatch_reset;
+  Thread::Mutex::Lock lock(queue_cond);
+  dprintf(3)("time to obtain mutex: %s\n",stopwatch_dump);
+  while( num_initialized_workers < num_worker_threads )
+    queue_cond.wait();
+  dprintf(2)("WT %d startup complete after %s\n",(int)thr,stopwatch_dump);
+  return thr;
+}
+#endif
+
 //## end module%3C8F26A30123.additionalDeclarations
 
 
@@ -51,6 +308,9 @@ WPInterface::WPInterface (AtomicID wpc)
 {
   //## begin WPInterface::WPInterface%3C7CBB10027A.body preserve=yes
   full_lock = receive_lock = started = False;
+#ifdef USE_THREADS
+  num_worker_threads = num_initialized_workers = 0;
+#endif
   //## end WPInterface::WPInterface%3C7CBB10027A.body
 }
 
@@ -98,6 +358,7 @@ bool WPInterface::do_start ()
   log("starting up",2);
   MessageRef ref(new Message(MsgHello|address()),DMI::ANON|DMI::WRITE);
   publish(ref);
+  
   if( autoCatch() )
   {
     try { 
@@ -106,13 +367,26 @@ bool WPInterface::do_start ()
     catch(std::exception &exc) {
       lprintf(0,LogFatal,"caught exception in start(): %s; shutting down",exc.what());
       dsp()->detach(this,True);
+      return False;
     }
   }
   else  
     raiseNeedRepoll( start() );
   // publish subscriptions (even if empty)
-  started = True;
   publishSubscriptions();
+  
+  // startup complete (need to advertise this to worker threads, if any)
+#ifdef USE_THREADS
+  dprintf(2)("broadcasting that start() is complete\n");
+  stopwatch_init;
+  Thread::Mutex::Lock lock(queue_cond);
+  dprintf(3)("time to obtain mutex: %s\n",stopwatch_dump);
+  started = True;
+  queue_cond.broadcast();
+  lock.release();
+#else
+  started = True;
+#endif
   return needRepoll();
   //## end WPInterface::do_start%3C99B00B00D1.body
 }
@@ -124,6 +398,21 @@ void WPInterface::do_stop ()
   MessageRef ref(new Message(MsgBye|address()),DMI::ANON|DMI::WRITE);
   publish(ref);
   running = False;
+#ifdef USE_THREADS
+  // if running worker threads, stop them now
+  if( num_worker_threads )
+  {
+    // wake them all up so that they all exit (they ought to check for isRunning()!)
+    repollWorker(True);
+    // join them
+    for( int i=0; i<num_worker_threads; i++ )
+    {
+      dprintf(2)("re-joining worker thread %d\n",(int)worker_threads[i]);
+      Thread::join(worker_threads[i]);
+    }
+  }
+#endif
+  // call the normal stop callback
   if( autoCatch() )
   {
     try { 
@@ -165,13 +454,22 @@ int WPInterface::getPollPriority (ulong tick)
   // priority. Thus, messages that have been sitting undelivered for a while
   // (perhaps because the system is saturated with higher-priority messages)
   // will eventually get bumped up and become favoured.
+  
+
+#ifdef USE_THREADS
+  // multithreaded WPs are not polled at all
+  if( isThreaded() )
+    return -1;
+#endif
+  
   if( needRepoll() && !queueLocked() )
   {
-    const QueueEntry * qe = topOfQueue();
-    if( qe )
+    Thread::Mutex::Lock lock(queue_cond);
+    if( !queue().empty() )
     {
+      const QueueEntry &qe = queue().front();
       int lowest = Message::PRI_LOWEST;
-      return max(qe->priority,lowest) + static_cast<int>(tick - qe->tick);
+      return max(qe.priority,lowest) + static_cast<int>(tick - qe.tick);
     }
   }
   return -1;
@@ -181,6 +479,9 @@ int WPInterface::getPollPriority (ulong tick)
 bool WPInterface::do_poll (ulong tick)
 {
   //## begin WPInterface::do_poll%3C8F13B903E4.body preserve=yes
+#ifdef USE_THREADS
+  FailWhen(num_worker_threads>0,"do_poll called on threaded WP");
+#endif
   // Call the virtual poll method, and set needRepoll according to what
   // it has returned.
   if( autoCatch() )
@@ -194,17 +495,22 @@ bool WPInterface::do_poll (ulong tick)
   }
   else  
     setNeedRepoll( poll(tick) );
+  
+  // lock queue because other threads may be running
+  Thread::Mutex::Lock lock(queue_cond);
   // return if queue is empty
-  if( !queue().size() )
+  if( queue().empty() )
     return needRepoll();  
   int res = Message::ACCEPT;
+  
   // remove message from queue
   QueueEntry qe = queue().front();
   queue().pop_front();
+  lock.release(); // release the queue lock
   
   const Message &msg = qe.mref.deref();
   const HIID &id = msg.id();
-  FailWhen( !id.size(),"null message ID" );
+  FailWhen( id.empty(),"null message ID" );
   dprintf1(3)("%s: receiving %s\n",sdebug(1).c_str(),msg.debug(1));
   // is it a system event message?
   if( id[0] == AidEvent ) 
@@ -325,7 +631,8 @@ bool WPInterface::do_poll (ulong tick)
     }
   }
   // ask for repoll if head of queue has changed
-  if( queue().size() )
+  lock.relock(queue_cond);
+  if( !queue().empty() )
   {
     // this resets the age at the head of the queue. Effectively, this means
     // we have a "queue age" rather than a message age.
@@ -345,24 +652,66 @@ bool WPInterface::poll (ulong )
   //## end WPInterface::poll%3CB55D0E01C2.body
 }
 
-bool WPInterface::enqueue (const MessageRef &msg, ulong tick)
+bool WPInterface::enqueue (const MessageRef &msg, ulong tick, bool setrepoll)
 {
   //## begin WPInterface::enqueue%3C8F204A01EF.body preserve=yes
+  Thread::Mutex::Lock lock(queue_cond);
   int pri = msg->priority();
-  // iterate from end of queue() as long as msg priority is higher
+  QueueEntry qe(msg,pri,tick);
+  // some optimizations here to optimize lookup time for very long queues
+  
+  // (a): empty queue
+  if( queue().empty() )
+  {
+    dprintf(3)("queueing [%s] into empty queue {case:A}\n",qe.mref->debug(1));
+    if( setrepoll )
+    {
+      setNeedRepoll(True);
+      queue_cond.signal();
+    }
+    queue().push_front(qe);
+    return needRepoll();
+  }
+  // (b): message belongs at back
+  int back_pri = queue().back().priority;
+  if( pri <= back_pri )
+  {
+    dprintf(3)("queueing [%s] at end of queue {case:B}\n",qe.mref->debug(1));
+    queue().push_back(qe);
+    return needRepoll();
+  }
+  // (c): message belongs at front
+  int front_pri = queue().front().priority;
+  if( pri > front_pri )
+  {
+    dprintf(3)("queueing [%s] at head of queue {case:C}\n",qe.mref->debug(1));
+    if( setrepoll )
+    {
+      setNeedRepoll(True);
+      queue_cond.signal();
+    }
+    queue().push_front(qe);
+    return setrepoll;
+  }
+  // (d): iterate to find the right spot
+  // iterate from head of queue() as long as msg priority is higher
   MQI iter = queue().begin();
   int count = 0;
   while( iter != queue().end() && iter->priority >= pri )
     iter++,count++;
-  // if inserting at head of queue (which is end), then raise the repoll flag
+  // if inserting at head of queue, then raise the repoll flag
   if( !count )
   {
-    dprintf(3)("queueing [%s] at head of queue\n",msg->debug(1));
-    setNeedRepoll(True);
+    dprintf(3)("queueing [%s] at head of queue {case:D}\n",qe.mref->debug(1));
+    if( setrepoll )
+    {
+      setNeedRepoll(True);
+      queue_cond.signal();
+    }
   }
   else
-    dprintf(3)("queueing [%s] at h+%d\n",msg->debug(1),count);
-  queue().insert(iter,QueueEntry(msg,pri,tick));
+    dprintf(3)("queueing [%s] at h+%d {case:D}\n",qe.mref->debug(1),count);
+  queue().insert(iter,qe);
   return needRepoll();
   //## end WPInterface::enqueue%3C8F204A01EF.body
 }
@@ -370,6 +719,7 @@ bool WPInterface::enqueue (const MessageRef &msg, ulong tick)
 bool WPInterface::dequeue (const HIID &id, MessageRef *ref)
 {
   //## begin WPInterface::dequeue%3C8F204D0370.body preserve=yes
+  Thread::Mutex::Lock lock(queue_cond);
   bool erased_head = True;
   for( MQI iter = queue().begin(); iter != queue().end(); )
   {
@@ -387,15 +737,26 @@ bool WPInterface::dequeue (const HIID &id, MessageRef *ref)
     else
       iter++;
   }
-  return raiseNeedRepoll( erased_head && queue().size() );
+  if( erased_head && !queue().empty() )
+  {
+    setNeedRepoll(True);
+    queue_cond.signal();
+  }
+  return needRepoll();
   //## end WPInterface::dequeue%3C8F204D0370.body
 }
 
 bool WPInterface::dequeue (int pos, MessageRef *ref)
 {
   //## begin WPInterface::dequeue%3C8F205103D0.body preserve=yes
-  FailWhen( (uint)pos >= queue().size(),"dequeue: illegal position" );
-  raiseNeedRepoll( !pos && queue().size()>1 );
+  Thread::Mutex::Lock lock(queue_cond);
+  int qsz = queue().size();
+  FailWhen( pos >= qsz,"dequeue: illegal position" );
+  if( !pos && qsz>1 )
+  {
+    setNeedRepoll(True);
+    queue_cond.signal();
+  }
   // iterate to the req. position
   MQI iter = queue().begin();
   while( pos-- )
@@ -410,6 +771,7 @@ bool WPInterface::dequeue (int pos, MessageRef *ref)
 int WPInterface::searchQueue (const HIID &id, int pos, MessageRef *ref)
 {
   //## begin WPInterface::searchQueue%3C8F205601EC.body preserve=yes
+  Thread::Mutex::Lock lock(queue_cond);
   FailWhen( (uint)pos >= queue().size(),"dequeue: illegal position" );
   // iterate to the req. position
   MQI iter = queue().begin();
@@ -428,15 +790,6 @@ int WPInterface::searchQueue (const HIID &id, int pos, MessageRef *ref)
   //## end WPInterface::searchQueue%3C8F205601EC.body
 }
 
-const WPInterface::QueueEntry * WPInterface::topOfQueue () const
-{
-  //## begin WPInterface::topOfQueue%3C8F206C0071.body preserve=yes
-  return queue().size() 
-    ? &queue().front() 
-    : 0;
-  //## end WPInterface::topOfQueue%3C8F206C0071.body
-}
-
 bool WPInterface::queueLocked () const
 {
   //## begin WPInterface::queueLocked%3C8F207902AB.body preserve=yes
@@ -444,9 +797,8 @@ bool WPInterface::queueLocked () const
     return True;
   if( receive_lock )
   {
-    const QueueEntry * qe = topOfQueue();
-    if( qe && qe->mref->id()[0] != AidEvent )
-      return True;
+    Thread::Mutex::Lock lock(queue_cond);
+    return !queue().empty() && queue().front().mref->id()[0] != AidEvent;
   }
   return False;
   //## end WPInterface::queueLocked%3C8F207902AB.body
@@ -653,6 +1005,48 @@ void WPInterface::lprintf (int level, const char *format, ... )
 
 // Additional Declarations
   //## begin WPInterface%3C7B6A3702E5.declarations preserve=yes
+bool WPInterface::compareHeadOfQueue( const Message *pmsg )
+{
+  Thread::Mutex::Lock lock(queue_cond);
+  if( queue().empty() )
+    return False;
+  return queue().front().mref.deref_p() == pmsg;
+}
+
+
+// enqueues message _in front_ of all messages with lesser or equal priority
+// This is used for the HOLD result code (i.e. to leave message at head of
+// queue, unless something with higher priority has arrived while we were
+// processing it)
+bool WPInterface::enqueueFront (const MessageRef &msg, ulong tick,bool setrepoll)
+{
+  //## begin WPInterface::enqueue%3C8F204A01EF.body preserve=yes
+  Thread::Mutex::Lock lock(queue_cond);
+  int pri = msg->priority();
+  // iterate from head of queue(), as long as msg priority is higher
+  MQI iter = queue().begin();
+  int count = 0;
+  while( iter != queue().end() && iter->priority > pri )
+    iter++,count++;
+  // if inserting at head of queue, then raise the repoll flag
+  if( !count )
+  {
+    dprintf(3)("queueing [%s] at head of queue\n",msg->debug(1));
+    if( setrepoll )
+    {
+      setNeedRepoll(True);
+      queue_cond.signal();
+    }
+  }
+  else
+    dprintf(3)("queueing [%s] at h+%d\n",msg->debug(1),count);
+  queue().insert(iter,QueueEntry(msg,pri,tick));
+  return needRepoll();
+  //## end WPInterface::enqueue%3C8F204A01EF.body
+}
+
+
+
 
 void WPInterface::publishSubscriptions ()
 {
@@ -677,6 +1071,11 @@ string WPInterface::sdebug ( int detail,const string &,const char *nm ) const
       out = string(nm) + "/";
     out += address().toString();
     out += Debug::ssprintf("/%08x",this);
+#ifdef USE_THREADS
+    if( num_worker_threads )
+      Debug::appendf(out,"T%d",(int)Thread::self());
+#endif
+    Thread::Mutex::Lock lock(queue_cond);
     Debug::appendf(out,"Q:%d",queue().size());
   }
   if( detail >= 1 || detail == -1 )   // normal detail
@@ -690,53 +1089,3 @@ string WPInterface::sdebug ( int detail,const string &,const char *nm ) const
 //## end module%3C8F26A30123.epilog
 
 
-// Detached code regions:
-#if 0
-//## begin WPInterface::subscribe%3C7CB9B70120.body preserve=yes
-  subscribe(id,MsgAddress(
-      AidAny,AidAny,
-      scope < Message::PROCESS ? address().process() : AidAny,
-      scope < Message::GLOBAL ?  address().host() : AidAny));
-//## end WPInterface::subscribe%3C7CB9B70120.body
-
-//## begin WPInterface::publish%3C99BFA502B0.body preserve=yes
-  FailWhen( !isAttached(),"unattached wp");
-  // if not writable, privatize for writing (but not deeply)
-  if( !msg.isWritable() )
-    msg.privatize(DMI::WRITE);
-  msg().setFrom(address());
-  msg().setState(state());
-  dprintf(2)("publish [%s] scope %d\n",msg->sdebug(1).c_str(),scope);
-  AtomicID host = (scope < Message::GLOBAL) ? dsp()->hostId() : AidAny;
-  AtomicID process = (scope < Message::HOST) ? dsp()->processId() : AidAny;
-  return dsp()->send(msg,MsgAddress(AidPublish,AidPublish,process,host));
-//## end WPInterface::publish%3C99BFA502B0.body
-
-//## begin WPInterface::subscribesTo%3C8F14310315.body preserve=yes
-  // determine minimum subscription scope
-  int minscope = Message::PROCESS;
-  if( msg.from().process() != address().process() )
-    minscope = Message::HOST;
-  if( msg.from().host() != address().host() )
-    minscope = Message::GLOBAL;
-  // look thru map
-  for( CSSI iter = subs.begin(); iter != subs.end(); iter++ )
-    if( iter->first.matches(msg.id()) && iter->second >= minscope )
-      return True;
-  return False;
-//## end WPInterface::subscribesTo%3C8F14310315.body
-
-//## begin WPInterface::initSubsIterator%3C98D8090048.body preserve=yes
-  return subs.begin();
-//## end WPInterface::initSubsIterator%3C98D8090048.body
-
-//## begin WPInterface::iterateSubs%3C98D81C0077.body preserve=yes
-  if( iter == 
-//## end WPInterface::iterateSubs%3C98D81C0077.body
-
-//## begin WPInterface::wpclass%3C905E8B000E.body preserve=yes
-  // default wp class is 0
-  return 0;
-//## end WPInterface::wpclass%3C905E8B000E.body
-
-#endif

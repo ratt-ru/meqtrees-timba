@@ -24,6 +24,7 @@
 
 //## begin module%3C95AADB016E.includes preserve=yes
 #include <list>
+#include "OCTOPUSSY/MTGatewayWP.h"
 //## end module%3C95AADB016E.includes
 
 // Socket

@@ -168,7 +168,11 @@ int GWServerWP::input (int , int )
   if( newsock ) // success? Launch a Gateway WP to manage it
   {
     lprintf(1,"accepted new connection, launching gateway\n");
+#ifdef USE_THREADS
+    attachWP(new MTGatewayWP(newsock),DMI::ANON);
+#else
     attachWP(new GatewayWP(newsock),DMI::ANON);
+#endif
     return Message::ACCEPT;
   }
   else

@@ -63,11 +63,11 @@ void WorkProcess::addInput (int fd, int flags, int priority)
   //## end WorkProcess::addInput%3C7D2874023E.body
 }
 
-void WorkProcess::addSignal (int signum, int flags, volatile int* counter, int priority)
+void WorkProcess::addSignal (int signum, int flags, int priority)
 {
   //## begin WorkProcess::addSignal%3C7DFE520239.body preserve=yes
   FailWhen( !isAttached(),"unattached wp");
-  return dsp()->addSignal(this,signum,flags,counter,priority);
+  return dsp()->addSignal(this,signum,flags,priority);
   //## end WorkProcess::addSignal%3C7DFE520239.body
 }
 

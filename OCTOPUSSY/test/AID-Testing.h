@@ -38,9 +38,14 @@ const int AidPing_int = -391;
 const AtomicID AidPong(-387);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:6
 const int AidPong_int = -387;
 #endif
+#ifndef _defined_id_AidProcess
+#define _defined_id_AidProcess 1
+const AtomicID AidProcess(-723);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:7
+const int AidProcess_int = -723;
+#endif
 #ifndef _defined_id_AidReply
 #define _defined_id_AidReply 1
-const AtomicID AidReply(-390);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:7
+const AtomicID AidReply(-390);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:8
 const int AidReply_int = -390;
 #endif
 #ifndef _defined_id_AidTimestamp

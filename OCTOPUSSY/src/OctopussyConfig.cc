@@ -145,7 +145,8 @@ bool OctopussyConfig::getOption (string name, string &value) const
   
   for( int i=1; i < argc(); i++ )
   {
-    if( !argv(i).compare(name,0,name.length()) )
+//    if( !argv(i).compare(name,0,name.length()) )
+    if( !argv(i)._strcompare(0,name.length(),name) )
     {
       // specified as "-ovalue"
       if( argv(i).length() > name.length() )

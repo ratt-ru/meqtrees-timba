@@ -10,33 +10,33 @@
 
 #ifndef _defined_id_LogDebug
 #define _defined_id_LogDebug 1
-const AtomicID LogDebug(-625);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:36
-const int LogDebug_int = -625;
+const AtomicID LogDebug(-724);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:36
+const int LogDebug_int = -724;
 #endif
 #ifndef _defined_id_LogError
 #define _defined_id_LogError 1
-const AtomicID LogError(-628);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:36
-const int LogError_int = -628;
+const AtomicID LogError(-727);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:36
+const int LogError_int = -727;
 #endif
 #ifndef _defined_id_LogFatal
 #define _defined_id_LogFatal 1
-const AtomicID LogFatal(-629);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:36
-const int LogFatal_int = -629;
+const AtomicID LogFatal(-728);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:36
+const int LogFatal_int = -728;
 #endif
 #ifndef _defined_id_LogNormal
 #define _defined_id_LogNormal 1
-const AtomicID LogNormal(-630);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:36
-const int LogNormal_int = -630;
+const AtomicID LogNormal(-729);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:36
+const int LogNormal_int = -729;
 #endif
 #ifndef _defined_id_LogWarning
 #define _defined_id_LogWarning 1
-const AtomicID LogWarning(-627);                  // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:36
-const int LogWarning_int = -627;
+const AtomicID LogWarning(-726);                  // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:36
+const int LogWarning_int = -726;
 #endif
 #ifndef _defined_id_MsgLog
 #define _defined_id_MsgLog 1
-const AtomicID MsgLog(-626);                      // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:36
-const int MsgLog_int = -626;
+const AtomicID MsgLog(-725);                      // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:36
+const int MsgLog_int = -725;
 #endif
 #ifndef _defined_id_AidAdd
 #define _defined_id_AidAdd 1
@@ -275,22 +275,22 @@ const int AidTimeout_int = -617;
 #endif
 #ifndef _defined_id_AidTimestamp
 #define _defined_id_AidTimestamp 1
-const AtomicID AidTimestamp(-85);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:8
+const AtomicID AidTimestamp(-85);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:54
 const int AidTimestamp_int = -85;
 #endif
 #ifndef _defined_id_AidType
 #define _defined_id_AidType 1
-const AtomicID AidType(-477);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:54
+const AtomicID AidType(-477);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:55
 const int AidType_int = -477;
 #endif
 #ifndef _defined_id_AidUp
 #define _defined_id_AidUp 1
-const AtomicID AidUp(-610);                       // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:55
+const AtomicID AidUp(-610);                       // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:56
 const int AidUp_int = -610;
 #endif
 #ifndef _defined_id_AidWP
 #define _defined_id_AidWP 1
-const AtomicID AidWP(-620);                       // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:56
+const AtomicID AidWP(-620);                       // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:57
 const int AidWP_int = -620;
 #endif
 
