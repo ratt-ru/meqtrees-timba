@@ -71,6 +71,9 @@ class Node : public BlockableObject
     //##ModelId=3F5F44820166
     const string & name() const;
     
+    string className() const
+    { return objectType().toString(); }
+    
     //##ModelId=3F5F441602D2
     const DataRecord & state() const;
     

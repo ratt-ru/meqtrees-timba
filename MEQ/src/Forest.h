@@ -72,6 +72,9 @@ class Forest
     //## found.
     Node & findNode(const string &name);
     
+    int maxNodeIndex () const
+    { return nodes.size()-1; }
+    
     //##Documentation
     //## Assigns ID to request object. WIll assign new ID if the cells
     //## differ from the previous request, otherwise will re-use IDs

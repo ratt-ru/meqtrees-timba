@@ -71,18 +71,21 @@ void Node::processChildSpec (NestableContainer &children,const HIID &id)
     if( spec_type == Tpstring )
     {
       const string & name = children[id].as<string>();
-      int index = forest_->findIndex(name);
-      if( index >= 0 )
+      if( name.length() ) // skip if empty string
       {
-        Node &child = forest_->get(index);
-        cdebug(2)<<"  child "<<id<<"="<<name<<" resolves to node "<<index<<endl;
-        addChild(id,&child);
-      }
-      else
-      { // defer until later if not found
-        cdebug(2)<<"  child "<<id<<"="<<name<<" currently unresolved"<<endl;
-        addChild(id,0);
-        unresolved_children_.push_back(name);
+        int index = forest_->findIndex(name);
+        if( index >= 0 )
+        {
+          Node &child = forest_->get(index);
+          cdebug(2)<<"  child "<<id<<"="<<name<<" resolves to node "<<index<<endl;
+          addChild(id,&child);
+        }
+        else
+        { // defer until later if not found
+          cdebug(2)<<"  child "<<id<<"="<<name<<" currently unresolved"<<endl;
+          addChild(id,0);
+          unresolved_children_.push_back(name);
+        }
       }
     }
     // child specified by index -- just get & attach it directly

@@ -79,10 +79,11 @@ void doIt()
 
 void doIt2 (uInt length, uInt nr)
 {
+  Double * ref;
   uInt i;
   {
     Double* d1 = new Double[length];
-    Double* r  = new Double[length];
+    Double* r  = ref = new Double[length];
     for (i=0; i<length; i++) {
       d1[i] = 1;
     }
@@ -90,21 +91,31 @@ void doIt2 (uInt length, uInt nr)
     Timer tim;
     for (i=0; i<nr; i++) {
       for(uInt j=0; j<length; j++) {
-	r[j] = d1[j] + d1[j] + d1[j] + v3 + d1[j] + v3 + d1[j] + v3
-	  + d1[j] + d1[j];
+	      r[j] = d1[j] + d1[j] + d1[j] + v3 + d1[j] + v3 + d1[j] + v3 + d1[j] + d1[j];
       }
     }
-    tim.show ("C    ");
+    tim.show ("C[]  ");
     delete [] d1;
-    delete [] r;
   }
   {
-    Double* d1 = new Double[length];
+    Double* d1 = new Double[length],*d1i;
+    Double* r  = new Double[length],*ri,*rend = r+length;
     for (i=0; i<length; i++) {
       d1[i] = 1;
     }
-    LoMat_double m1(d1, LoMatShape(length,1), blitz::neverDeleteData);
-    Vells v1 (m1);
+    double v3 = 10;
+    Timer tim;
+    for (i=0; i<nr; i++) {
+      for( d1i=d1, ri=r; ri < rend; d1i++,ri++ )
+	      *ri = *d1i + *d1i + *d1i + v3 + *d1i + v3 + *d1i + v3 + *d1i + *d1i;
+    }
+    tim.show ("C*   ");
+    delete [] d1;
+    Assert(memcmp(r,ref,sizeof(Double)*length)==0);
+    delete [] r;
+  }
+  {
+    Vells v1(1.0,length,1,true);
     Vells v3(double(10));
     Vells v2;
     Timer tim;
@@ -112,7 +123,22 @@ void doIt2 (uInt length, uInt nr)
       v2 = v1 + v1 + v1 + v3 + v1 + v3 + v1 + v3 + v1 + v1;
     }
     tim.show ("Meq  ");
-    delete [] d1;
+    Assert(memcmp(v2.getStorage<double>(),ref,sizeof(Double)*length)==0);
+  }
+  {
+    Vells v1(1.0,length,1,true);
+    Vells v3(double(10));
+    Vells v2(0.0,length,1,false);
+    Timer tim;
+    for (i=0; i<nr; i++) {
+      v2.as<LoMat_double>() = 
+         v1.as<LoMat_double>() + v1.as<LoMat_double>() + v1.as<LoMat_double>() +
+         v3.as<double>() + v1.as<LoMat_double>() + v3.as<double>() +
+         v1.as<LoMat_double>() + v3.as<double>() + v1.as<LoMat_double>() +
+         v1.as<LoMat_double>();
+    }
+    tim.show ("Meq/B");
+    Assert(memcmp(v2.getStorage<double>(),ref,sizeof(Double)*length)==0);
   }
   {
     Double* d1 = new Double[length];
@@ -127,6 +153,7 @@ void doIt2 (uInt length, uInt nr)
       v2 = v1 + v1 + v1 + v3 + v1 + v3 + v1 + v3 + v1 + v1;
     }
     tim.show ("Blitz");
+    Assert(memcmp(v2.data(),ref,sizeof(Double)*length)==0);
     delete [] d1;
   }
   {
@@ -139,6 +166,7 @@ void doIt2 (uInt length, uInt nr)
       v2 = v1 + v1 + v1 + v3 + v1 + v3 + v1 + v3 + v1 + v1;
     }
     tim.show ("Array");
+    Assert(memcmp(&v2(IPosition(1,0)),ref,sizeof(Double)*length)==0);
   }
 }
 
@@ -159,8 +187,8 @@ int main (int argc, char** argv)
       doIt2 (12800, nr/10);
       doIt2 (128000, nr/10);
     }
-  } catch (AipsError x) {
-    cout << "Caught an exception: " << x.getMesg() << endl;
+  } catch (std::exception &x) {
+    cout << "Caught an exception: " << x.what() << endl;
     return 1;
   }
 //   cout << "MeqMat " << Vells::nctor << ' ' << Vells::ndtor

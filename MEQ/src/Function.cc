@@ -150,7 +150,7 @@ int Function::getResultImpl (ResultSet::Ref &resref, const Request& request, boo
     // Find all spids from the children.
     vector<int> spids = findSpids(child_res);
     // allocate new result object with given number of spids, add to set
-    Result &result = resultset.setNewResult(spids.size());
+    Result &result = resultset.setNewResult(iplane,spids.size());
     // Evaluate the main value.
     Vells vells = evaluate (request, values);
     bool useVells;
