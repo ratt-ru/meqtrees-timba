@@ -50,6 +50,9 @@ namespace DMI
       XFER            =  0,        // XFER is the default, so 0
   // preserve r/w privilege for ref copy
       PRESERVE_RW     =  0x40000,  
+      
+  // container-specific flags for privatize (privatize-and-reset)
+      RESET           =  0x80000,
 
   // SmartBlock-specific flags
       SHARED          =0x1000000,  // constructor hint: block will be sent
@@ -61,7 +64,7 @@ namespace DMI
   // BlockSet-specific flags
       MAKE_READONLY   =0x4000000,   // for copyAll(): makes source set read-only      
 
-// NestableContainer::get flags
+  // NestableContainer::get flags
       NC_SCALAR       =0x1000000,  // container accessed as a scalar
       NC_POINTER      =0x2000000,  // container accessed as a pointer 
       
