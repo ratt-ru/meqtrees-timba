@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.3  2002/04/08 14:27:07  oms
+//  Added isScalar(tid) to DataArray.
+//  Fixed isContiguous() in DataField.
+//
 //  Revision 1.2  2002/04/08 13:53:48  oms
 //  Many fixes to hooks. Added NestableContainer::isContiguous() method.
 //
@@ -183,6 +187,17 @@ int DataArray::size () const
 bool DataArray::isContiguous() const
 {
   return true;
+}
+
+bool DataArray::isScalar (TypeId tid) const
+{
+  // for a single numeric type, scalar when size == 1
+  if( TypeInfo::isNumeric(tid) )
+    return itsShape.nelements() == 1 && itsShape(0) == 1;
+  // for Array_type, always scalar
+  // (should really check that tid == TpArray_<type>, but this is OK for now
+  // since get() will throw an exception anyway)
+  return True;
 }
 
 int DataArray::fromBlock (BlockSet& set)

@@ -841,6 +841,23 @@ bool DataField::removen (int n)
   //## end DataField::removen%3C877E260301.body
 }
 
+bool DataField::isContiguous () const
+{
+  //## begin DataField::isContiguous%3C7F9826016F.body preserve=yes
+  // non-dynamic objects are always contiguous
+  if( !dynamic_type )
+    return True;
+  // dynamic objects: non-contiguous,
+  // unless we have a single contiguous container
+  if( size() != 1 || !isNestable(type()) )
+    return False;
+  const NestableContainer *nc = 
+    dynamic_cast<const NestableContainer *>(resolveObject(0,False,0).deref_p());
+  FailWhen(!nc,"dynamic cast to expected container type failed");
+  return nc->isContiguous();
+  //## end DataField::isContiguous%3C7F9826016F.body
+}
+
 bool DataField::isScalar (TypeId tid) const
 {
   //## begin DataField::isScalar%3CB162BB0033.body preserve=yes

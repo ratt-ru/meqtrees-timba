@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.2  2002/04/08 14:27:07  oms
+//  Added isScalar(tid) to DataArray.
+//  Fixed isContiguous() in DataField.
+//
 //  Revision 1.1  2002/04/05 13:05:46  gvd
 //  First version
 //
@@ -77,10 +81,12 @@ public:
 
   virtual bool isContiguous() const;
 
+  virtual bool isScalar (TypeId tid) const;
+
   virtual int size() const;
 
   virtual TypeId type() const;
-
+  
   string sdebug (int detail = 1, const string& prefix = "",
 		 const char* name = 0) const;
       

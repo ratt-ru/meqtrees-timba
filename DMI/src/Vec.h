@@ -323,13 +323,6 @@ inline TypeId DataField::objectType () const
   //## end DataField::objectType%3C3EC27F0227.body
 }
 
-inline bool DataField::isContiguous () const
-{
-  //## begin DataField::isContiguous%3C7F9826016F.body preserve=yes
-  return !dynamic_type;
-  //## end DataField::isContiguous%3C7F9826016F.body
-}
-
 //## Get and Set Operations for Class Attributes (inline)
 
 inline TypeId DataField::type () const
@@ -369,6 +362,10 @@ inline bool DataField::isScalar () const
 
 // Detached code regions:
 #if 0
+//## begin DataField::isContiguous%3C7F9826016F.body preserve=yes
+  return !dynamic_type;
+//## end DataField::isContiguous%3C7F9826016F.body
+
 //## begin DataField::get%3C56B1DA0057.body preserve=yes
   TypeId dum1; bool dum2;
   return get(n,dum1,dum2,check,must_write);
