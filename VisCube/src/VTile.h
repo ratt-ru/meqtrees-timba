@@ -158,6 +158,10 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     typedef ConstIterator const_iterator;
     //##ModelId=3DF9FDC9024D
     typedef Iterator iterator;
+    
+    // flag value for "missing data"
+    // Missing rows are flagged by this value
+    static const int MissingData = 0xFFFFFFFF;
       
 
     //##ModelId=3DB964F900AF
@@ -293,7 +297,7 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //## Returns an STL-style "end" iterator  (actually just an invalid
     //## iterator), which gives "true" when compared with an iterator that has
     //## gone beyond the end of a tile.
-    const VisTile::ConstIterator &end() const;
+    const VisTile::ConstIterator & end() const;
 
       //##ModelId=3DB964F901E6
     //##Documentation
@@ -724,10 +728,9 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
           { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
 
       private:
-        //##ModelId=3DB964F80160
         //##Documentation
-        //## This hides ConsIterator's attach() methods
-          ConstIterator::attach;
+        //## This hides ConstIterator's attach() methods
+          void attach (const VisTile &tile);
 
     };
     
