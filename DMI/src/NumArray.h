@@ -21,6 +21,13 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.36  2005/02/03 12:54:53  smirnov
+//  %[ER: 16]%
+//  1. Added support for flag Vells and flagging. Not yet fully tested,
+//  but works with existsing test scripts.
+//  2. Fixed major bug in toBlock()ing of Vells (block had the wrong objectId in it)
+//  3. Revised GaussNoise and added support for blitz++ random generators
+//
 //  Revision 1.35  2005/01/24 14:47:43  smirnov
 //  %[ER: ]%
 //  Changed all BObj derivatives to have a standard BObj::Header at the start
@@ -209,38 +216,56 @@ namespace DMI
 class NumArray : public Container
 {
 public:
+  // Array<T,N> is a traits-type structure defining various types 
+  // and constants for a <T,N> array. This is meant to isolate us from
+  // blitz++ types.
+  template<class T,int N> 
+  struct Traits
+  {
+    public:
+        typedef blitz::Array<T,N> Array;
+        typedef T Element;
+        enum    { 
+                  Rank = N,
+                  ElementTypeId = DMITypeTraits<T>::typeId,
+                  ArrayTypeId = TpArray_int(ElementTypeId,N),
+                };
+  };
+    
   // Create the object without an array in it.
     //##ModelId=3DB949AE039F
   NumArray ();
 
   // Create the object with an array of the given shape.
   // flags: DMI::NOZERO to skip initialization of array with 0
+  // realtype is required for derived classes -- they should pass in their
+  // type id here, as the array block is filled in the constructor and
+  // the virtual objectType() when called from within does not return the
+  // correct type
     //##ModelId=3DB949AE03A4
-  NumArray (TypeId type,const LoShape & shape,int flags=0);
+  NumArray (TypeId type,const LoShape & shape,int flags=0,TypeId realtype=0);
   
   // Create the object, and initialize data from array. "other" should point 
   // to a Lorray<T,N> object (where T,N correspond to array_tid)
     //##ModelId=3DB949AE03AF
-  NumArray (TypeId array_tid,const void *other);
+  NumArray (TypeId array_tid,const void *other,TypeId realtype=0);
 
   // templated method to create a copy of the given Lorray.
-  // We make use of the fact that a Lorray(N,T) is actually a blitz::Array<T,N>.
-  // Hence this templated definition is equivalent to a bunch of non-templated
-  // ones, each with its own type and rank.
-  // For non-templated compilers, this can be redefined using the DoFor...()
-  // type iterator macros
   template<class T,int N>
-  explicit NumArray (const blitz::Array<T,N> & array);
+  explicit NumArray (const typename Traits<T,N>::Array & array,TypeId realtype=0);
+  // an extra version for explicit blitz naming, to keep the compiler happy
+  template<class T,int N>
+  explicit NumArray (const blitz::Array <T,N> & array,TypeId realtype=0);
 
 #ifdef HAVE_AIPSPP
   // templated method to create a copy of the given AIPS++ array
   template<class T>
-  explicit NumArray (const casa::Array<T> & array);
+  explicit NumArray (const casa::Array<T> & array,TypeId realtype=0);
 #endif
 
   // Copy (ref/cow semantics unless DMI::DEEP is specified).
     //##ModelId=3F5487DA034E
-  NumArray (const NumArray& other, int flags=0, int depth=0);
+  NumArray (const NumArray& other, int flags=0, int depth=0,TypeId realtype=0);
 
     //##ModelId=3DB949AE03B8
   ~NumArray();
@@ -252,7 +277,9 @@ public:
   // Initialize everything and create array.
   // This can be used to init an array that was created via the default constructor.
   // flags: DMI::NOZERO to skip init of array
-  void init (TypeId type,const LoShape & shape,int flags=0);
+  // realtype only needs to be supplied when calling from constructor
+  // (otherwise the virtual objectType() is used)
+  void init (TypeId type,const LoShape & shape,int flags=0,TypeId realtype=0);
  
   // True if the object contains an initialized array
   //##ModelId=3DB949AF0022
@@ -295,22 +322,22 @@ public:
   { Thread::Mutex::Lock lock(mutex()); makeWritable(); return const_cast<void*>(getConstArrayPtr(array_tid)); }
   
   template<class T,int N>
-  const blitz::Array<T,N> & getConstArray () const
-  { return *static_cast<const blitz::Array<T,N>*>(getConstArrayPtr(typeIdOf(T),N)); }
+  const typename Traits<T,N>::Array & getConstArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>()) const
+  { return *static_cast<const typename Traits<T,N>::Array *>(getConstArrayPtr(typeIdOf(T),N)); }
   
   template<class T,int N>
-  blitz::Array<T,N> & getArray () 
+  typename Traits<T,N>::Array & getArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>()) 
   { Thread::Mutex::Lock lock(mutex()); makeWritable(); 
-    return *static_cast<blitz::Array<T,N>*>(
+    return *static_cast<typename Traits<T,N>::Array*>(
             const_cast<void*>(getArrayPtr(typeIdOf(T),N))); }
   
   template<class T,int N>
-  void getConstArrayPtr (const blitz::Array<T,N> * &ptr) const
-  { ptr = static_cast<const blitz::Array<T,N>*>(getConstArrayPtr(typeIdOf(T),N)); }
+  void getConstArrayPtr (const typename Traits<T,N>::Array * &ptr) const
+  { ptr = static_cast<const typename Traits<T,N>::Array*>(getConstArrayPtr(typeIdOf(T),N)); }
 
   template<class T,int N>
-  void getArrayPtr (blitz::Array<T,N> * &ptr) 
-  { ptr = static_cast<blitz::Array<T,N>*>(getArrayPtr(typeIdOf(T),N)); }
+  void getArrayPtr (typename Traits<T,N>::Array * &ptr) 
+  { ptr = static_cast<typename Traits<T,N>::Array*>(getArrayPtr(typeIdOf(T),N)); }
   
     //##ModelId=400E4D680386
   const void * getConstDataPtr () const
@@ -377,8 +404,10 @@ protected:
 private:
   // Initialize internal shape and create array using the given shape.
   // flags: DMI::NOZERO to skip init of array
+  // realtype only needs to be supplied when calling from constructor
+  // (otherwise the virtual objectType() is used)
     //##ModelId=3DB949AF0024
-  void init (const LoShape & shape,int flags=0);
+  void init (const LoShape & shape,int flags=0,TypeId realtype=0);
 
   // Create the actual casa::Array object.
   // It is created from the array data part in the SmartBlock.
@@ -391,7 +420,7 @@ private:
 
   // Clone the object.
     //##ModelId=3DB949AF002E
-  void cloneOther (const NumArray& other, int flags, int depth, bool constructing);
+  void cloneOther (const NumArray& other, int flags, int depth, bool constructing,TypeId realtype);
 
     //##ModelId=3DB949AE036D
   LoShape    itsShape;          // actual shape
@@ -561,9 +590,9 @@ inline TypeId NumArray::elementType () const
   return itsScaType;
 }
 
-// templated constructor from a Blitz array
+// templated constructor from an array
 template<class T,int N>
-NumArray::NumArray (const blitz::Array<T,N>& array)
+NumArray::NumArray (const typename Traits<T,N>::Array & array,TypeId realtype)
 : Container(),
   itsArray    (0)
 {
@@ -571,7 +600,22 @@ NumArray::NumArray (const blitz::Array<T,N>& array)
   itsScaType  = typeIdOf(T);
   itsElemSize = sizeof(T);
   itsType     = typeIdOfArray(T,N);
-  init(array.shape(),DMI::NOZERO);
+  init(array.shape(),DMI::NOZERO,realtype);
+  // after an init, itsArray contains a valid array of the given shape,
+  // so we can assign the other array to it, to copy the data over
+  *static_cast<typename Traits<T,N>::Array*>(itsArray) = array;
+}
+
+template<class T,int N>
+NumArray::NumArray (const blitz::Array<T,N> &array,TypeId realtype)
+: Container(),
+  itsArray    (0)
+{
+  initSubArray();
+  itsScaType  = typeIdOf(T);
+  itsElemSize = sizeof(T);
+  itsType     = typeIdOfArray(T,N);
+  init(array.shape(),DMI::NOZERO,realtype);
   // after an init, itsArray contains a valid array of the given shape,
   // so we can assign the other array to it, to copy the data over
   *static_cast<blitz::Array<T,N>*>(itsArray) = array;
@@ -600,7 +644,7 @@ inline bool NumArray::verifyAipsType (const casa::String*) const
 
 // templated constructor from an AIPS++ array
 template<class T>
-NumArray::NumArray (const casa::Array<T> &array)
+NumArray::NumArray (const casa::Array<T> &array,TypeId realtype)
 : Container(),
   itsArray    (0)
 {
@@ -609,22 +653,22 @@ NumArray::NumArray (const casa::Array<T> &array)
   itsScaType  = isStringArray(array) ? Tpstring : typeIdOf(T);
   itsElemSize = isStringArray(array) ? sizeof(string) : sizeof(T);
   itsType     = TpArray(itsScaType,array.ndim());
-  init(array.ndim() ? LoShape(array.shape()) : LoShape(0),DMI::NOZERO);
+  init(array.ndim() ? LoShape(array.shape()) : LoShape(0),DMI::NOZERO,realtype);
   // after an init, itsArray contains a valid array of the given shape,
   // so we can copy the data over
   switch( array.ndim() )
   {
     case 0:   break;
-    case 1:   B2A::assignArray(*static_cast<blitz::Array<T,1>*>(itsArray),array); break;
-    case 2:   B2A::assignArray(*static_cast<blitz::Array<T,2>*>(itsArray),array); break;
-    case 3:   B2A::assignArray(*static_cast<blitz::Array<T,3>*>(itsArray),array); break;
-    case 4:   B2A::assignArray(*static_cast<blitz::Array<T,4>*>(itsArray),array); break;
-    case 5:   B2A::assignArray(*static_cast<blitz::Array<T,5>*>(itsArray),array); break;
-    case 6:   B2A::assignArray(*static_cast<blitz::Array<T,6>*>(itsArray),array); break;
-    case 7:   B2A::assignArray(*static_cast<blitz::Array<T,7>*>(itsArray),array); break;
-    case 8:   B2A::assignArray(*static_cast<blitz::Array<T,8>*>(itsArray),array); break;
-    case 9:   B2A::assignArray(*static_cast<blitz::Array<T,9>*>(itsArray),array); break;
-    case 10:  B2A::assignArray(*static_cast<blitz::Array<T,10>*>(itsArray),array); break;
+    case 1:   B2A::assignArray(*static_cast<typename Traits<T,1>::Array*>(itsArray),array); break;
+    case 2:   B2A::assignArray(*static_cast<typename Traits<T,2>::Array*>(itsArray),array); break;
+    case 3:   B2A::assignArray(*static_cast<typename Traits<T,3>::Array*>(itsArray),array); break;
+    case 4:   B2A::assignArray(*static_cast<typename Traits<T,4>::Array*>(itsArray),array); break;
+    case 5:   B2A::assignArray(*static_cast<typename Traits<T,5>::Array*>(itsArray),array); break;
+    case 6:   B2A::assignArray(*static_cast<typename Traits<T,6>::Array*>(itsArray),array); break;
+    case 7:   B2A::assignArray(*static_cast<typename Traits<T,7>::Array*>(itsArray),array); break;
+    case 8:   B2A::assignArray(*static_cast<typename Traits<T,8>::Array*>(itsArray),array); break;
+    case 9:   B2A::assignArray(*static_cast<typename Traits<T,9>::Array*>(itsArray),array); break;
+    case 10:  B2A::assignArray(*static_cast<typename Traits<T,10>::Array*>(itsArray),array); break;
   }
 }
 
@@ -637,16 +681,16 @@ casa::Array<T> NumArray::copyAipsArray (const T* dum) const
   switch( rank() )
   {
     case 0: return casa::Array<T>();
-    case 1: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,1>*>(itsArray));
-    case 2: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,2>*>(itsArray));
-    case 3: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,3>*>(itsArray));
-    case 4: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,4>*>(itsArray));
-    case 5: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,5>*>(itsArray));
-    case 6: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,6>*>(itsArray));
-    case 7: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,7>*>(itsArray));
-    case 8: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,8>*>(itsArray));
-    case 9: return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,9>*>(itsArray));
-    case 10:return B2A::copyBlitzToAips(*static_cast<const blitz::Array<T,10>*>(itsArray));
+    case 1: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,1>::Array*>(itsArray));
+    case 2: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,2>::Array*>(itsArray));
+    case 3: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,3>::Array*>(itsArray));
+    case 4: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,4>::Array*>(itsArray));
+    case 5: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,5>::Array*>(itsArray));
+    case 6: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,6>::Array*>(itsArray));
+    case 7: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,7>::Array*>(itsArray));
+    case 8: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,8>::Array*>(itsArray));
+    case 9: return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,9>::Array*>(itsArray));
+    case 10:return B2A::copyBlitzToAips(*static_cast<const typename Traits<T,10>::Array*>(itsArray));
     default: Throw("copyAipsArray(): array rank too high");
   }
 }

@@ -1,4 +1,5 @@
-//# Vells.h: Values for Meq expressions
+
+    //# Vells.h: Values for Meq expressions
 //#
 //# Copyright (C) 2002
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -29,14 +30,18 @@
 
 #pragma type #Meq::Vells
 
-// This provides a list of operators and functions defined by Vells
+// This provides a list of operators and functions defined over Vells objects
+// All of these will only work with double or dcomplex Vells, and throw
+// an exception on any other type.
 
 // Unary operators
 #define DoForAllUnaryOperators(Do,x) \
           Do(-,UNARY_MINUS,x)
+
 // Binary operators
 #define DoForAllBinaryOperators(Do,x) \
           Do(+,ADD,x) Do(-,SUB,x) Do(*,MUL,x) Do(/,DIV,x) 
+
 // In-place operators
 #define DoForAllInPlaceOperators(Do,x) \
           Do(+,ADD1,x) Do(-,SUB1,x) Do(*,MUL1,x) Do(/,DIV1,x) 
@@ -87,6 +92,19 @@
 #define DoForAllBinaryFuncs(Do,x) \
   Do(posdiff,x) Do(tocomplex,x) Do(polar,x) Do(pow,x) Do(atan2,x)
 
+// Finally, VellsFlagType Vells define bitwise logical operators:
+// unary  ~ (NOT)
+#define DoForAllUnaryFlagOperators(Do,x) \
+          Do(~,NOT,x) 
+// Binary and in-place | & and ^ (OR AND XOR). The second operand may be a 
+// Vells or a VellsFlagType scalar.
+#define DoForAllBinaryFlagOperators(Do,x) \
+          Do(|,OR,x) Do(&,AND,x) Do(^,XOR,x) 
+#define DoForAllInPlaceFlagOperators(Do,x) \
+          Do(|,OR1,x) Do(&,AND1,x) Do(^,XOR1,x)
+          
+
+
 namespace Meq 
 { 
   using namespace DMI;
@@ -119,49 +137,106 @@ namespace VellsMath
 // we provide two versions of each operation (real and complex)
 const int VELLS_LUT_SIZE = 2;
 
+typedef int  VellsFlagType;  
+const TypeId VellsFlagTypeId = typeIdOf(VellsFlagType);
+
+namespace VellsTraits
+{
+  // this is a traits-type structure that defines parameters and return types
+  template<typename T,int N>
+  class DataType
+  {
+    public:
+        typedef const typename NumArray::Traits<T,N>::Array & ParamType;
+        typedef const typename NumArray::Traits<T,N>::Array & ConstRetType;
+        typedef typename NumArray::Traits<T,N>::Array & RetType;
+  };
+  template<typename T>
+  class DataType<T,0>
+  {
+    public:
+        typedef T ParamType;
+        typedef T ConstRetType;
+        typedef T & RetType;
+  };
+  template<>
+  class DataType<dcomplex,0>
+  {
+    public:
+        typedef const dcomplex & ParamType;
+        typedef dcomplex ConstRetType;
+        typedef dcomplex & RetType;
+  };
+};
+
 //##ModelId=3F86886E0229
 //##Documentation
 // The Vells class contains a sampling (or integration) of a function over
 // an arbitrary N-dimensional grid. 
-// It is a specialization of DMI::NumArray with restricted typing (double 
-// or dcomplex for the moment)
+// It is essentially a specialization of DMI::NumArray.
 class Vells : public DMI::NumArray
 {
+private:
+  template<class T>
+  inline void init_scalar (T value)
+  { *static_cast<T*>(const_cast<void*>(getConstDataPtr())) = value; }
+
+  template<class T>
+  inline void init_array (T value)
+  { T *ptr = static_cast<T*>(const_cast<void*>(getConstDataPtr())),
+      *end = ptr + nelements();
+    for( ; ptr != end; ptr++ )
+     *ptr = value;
+  }
+  
 public:
-  template<typename T,int N>
-  struct DataType
-  {
-    typedef const blitz::Array<T,N> & ConstRetType;
-    typedef blitz::Array<T,N> & RetType;
-  };
-  template<typename T>
-  struct DataType<T,0>
-  {
-    typedef T ConstRetType;
-    typedef T & RetType;
-  };
-    
-    //##ModelId=400E530400F0
+  //##ModelId=400E530400F0
   typedef CountedRef<Vells> Ref;
   typedef Axis::Shape       Shape;
-  typedef uint              Flags;
     
   //##ModelId=3F86887001D4
   //##Documentation
   // A null Vells with no data
   Vells();
-
-  // Create a scalar Vells from a value. Default is temporary Vells.
-  //##ModelId=3F86887001D5
-  Vells (double value,bool temp=true);
-  //##ModelId=3F86887001DC
-  Vells (const dcomplex& value,bool temp=true);
-
+    
+  // Creates a (temp by default) scalar Vells
+  inline Vells(double value,bool temp=true)
+  : NumArray(Tpdouble,LoShape(1),DMI::NOZERO,TpMeqVells),is_temp_(temp)
+  { init_scalar(value); }
+  
+  inline Vells(const dcomplex &value,bool temp=true)
+  : NumArray(Tpdcomplex,LoShape(1),DMI::NOZERO,TpMeqVells),is_temp_(temp)
+  { init_scalar(value); }
+  
   // Create a Vells of given shape.
-  // If the init flag is true, the matrix is initialized to the given value.
-  // Otherwise the value only indicates the type of matrix to be created.
-  Vells (double, const Shape &shape, bool init=true);
-  Vells (const dcomplex&, const Shape &shape, bool init=true);
+  // If the init flag is true, the Vells is initialized to the given value.
+  // Otherwise value only determines type, and Vells is initialized with zeroes.
+  // NB: the argument type really ought to be VellsTraits::DataType<T,0>::ParamType
+  // and not just T, but stupid compiler won't recognize it for some reason...
+  inline Vells(double value,const Shape &shape,bool init=true)
+  : NumArray(Tpdouble,shape,DMI::NOZERO,TpMeqVells),is_temp_(false)
+  { 
+    if( init )
+      init_array(value);
+  }
+  inline Vells(const dcomplex &value,const Shape &shape,bool init=true)
+  : NumArray(Tpdcomplex,shape,DMI::NOZERO,TpMeqVells),is_temp_(false)
+  { 
+    if( init )
+      init_array(value);
+  }
+  
+  // Create a flag Vells of the given shape
+  // Note that order of constructor arguments is reversed here to avoid 
+  // confusion with other constructors: otherwise it's too easy to 
+  // unintentionally create a flag vells when a normal one was intended 
+  // simply by using Vells(0,shape).
+  inline Vells(const Shape &shape,VellsFlagType value,bool init=true)
+  : NumArray(VellsFlagTypeId,shape,DMI::NOZERO,TpMeqVells),is_temp_(false)
+  { 
+    if( init )
+      init_array(value);
+  }
 
   //##ModelId=3F868870022A
   // Copy constructor (reference semantics, unless DMI::DEEP or depth>0 is 
@@ -171,10 +246,9 @@ public:
   
   // Construct from array
   template<class T,int N>
-  Vells (const blitz::Array<T,N> &arr)
-  : DMI::NumArray(arr)
+  Vells (const typename Traits<T,N>::Array &arr)
+  : DMI::NumArray(arr,TpMeqVells)
   { validateContent(false); }
-      
 
     //##ModelId=3F8688700238
   ~Vells();
@@ -189,25 +263,37 @@ public:
   
   // implement standard clone method via copy constructor
     //##ModelId=400E530403C5
-  virtual CountedRefTarget* clone (int flags, int depth) const
+  virtual CountedRefTarget* clone (int flags=0,int depth=0) const
   { return new Vells(*this,flags,depth); }
   
   // validate array contents and setup shortcuts to them. This is called 
   // automatically whenever a Vells object is made from a DMI::NumArray
     //##ModelId=400E530403DB
   virtual void validateContent (bool recursive);
-//  // privatize function: assures of a private copy of the data
-//  // virtual void privatize ();
-  
-// Clones the Vells -- assures of a private copy of the data
-//    //##ModelId=3F8688700249
-//  Vells clone () const
-//  { return Vells(*this,DMI::DEEP); }
 
   // is it a null vells?
     //##ModelId=3F8688700280
   bool isNull() const
   { return ! NumArray::valid(); }
+  
+  // does this Vells have flags attached?
+  bool hasDataFlags () const
+  { return dataflags_.valid(); }
+  
+  // returns flags of this Vells
+  const Vells & dataFlags () const
+  { return *dataflags_; }
+  
+  // sets the dataflags of a Vells
+  void setDataFlags (const Vells::Ref &flags)
+  { dataflags_ = flags; }
+  void setDataFlags (const Vells &flags)
+  { dataflags_.attach(flags); }
+  void setDataFlags (const Vells *flags)
+  { dataflags_.attach(flags); }
+  
+  void clearDataFlags ()
+  { dataflags_.detach(); }
 
   // Is the Vells a temporary object? The constructors above always
   // produce a non-temp Vells. Vells math (below) uses the private
@@ -243,6 +329,9 @@ public:
     //##ModelId=400E535600B5
   bool isComplex() const
   { return elementType() == Tpdcomplex; }
+  
+  bool isFlags() const
+  { return elementType() == VellsFlagTypeId; }
   
   // Returns true if a sub-shape is compatible with the specified main shape.
   // A sub-shape is compatible if it does not have greater variability, i.e.:
@@ -296,21 +385,43 @@ public:
   // are provided below for double & dcomplex
   template<class T>
   const T* getStorage ( Type2Type<T> = Type2Type<T>() ) const
-  { STATIC_CHECK(0,illegal_Vells_getStorage_type); }
+  { 
+    const TypeId tid = typeIdOf(T);
+    FailWhen(elementType()!=tid,"can't access "+elementType().toString()+" Vells as "+tid.toString());
+    return static_cast<const T*>(NumArray::getConstDataPtr());
+  }
   template<class T>
   T* getStorage ( Type2Type<T> = Type2Type<T>() )
-  { STATIC_CHECK(0,illegal_Vells_getStorage_type); }
+  { 
+    const TypeId tid = typeIdOf(T);
+    FailWhen(elementType()!=tid,"can't access "+elementType().toString()+" Vells as "+tid.toString());
+    return static_cast<T*>(NumArray::getDataPtr());
+  }
   
-  // Define templated getArray<T>() function
-  template<class T,int N>
-  const blitz::Array<T,N> & getArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>()) const
-  { return *static_cast<const blitz::Array<T,N>*>(
-                NumArray::getConstArrayPtr(typeIdOf(T),N)); }
+  // begin<T> is same as getStorage()
+  // end<T> is begin<T> + nelements()
+  template<class T>
+  const T* begin ( Type2Type<T> = Type2Type<T>() ) const
+  { return getStorage(Type2Type<T>()); }
+  template<class T>
+  T* begin ( Type2Type<T> = Type2Type<T>() )
+  { return getStorage(Type2Type<T>()); }
+  template<class T>
+  const T* end ( Type2Type<T> = Type2Type<T>() ) const
+  { return getStorage(Type2Type<T>()) + nelements(); }
+  template<class T>
+  T* end ( Type2Type<T> = Type2Type<T>() )
+  { return getStorage(Type2Type<T>()) + nelements(); }
   
-  template<class T,int N>
-  blitz::Array<T,N> & getArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>())
-  { return *static_cast<blitz::Array<T,N>*>(
-                NumArray::getArrayPtr(typeIdOf(T),N)); }
+  
+// NumArray already defines templated getArray<T>() and getConstArray<T>() functions
+//   template<class T,int N>
+//   const typename Traits<T,N>::Array & getArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>()) const
+//   { return NumArray::getConstArray(Type2Type<T>(),Int2Type<N>()); }
+//   template<class T,int N>
+//   typename Traits<T,N> & getArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>())
+//   { return *static_cast<typename Traits<T,N>::Array*>(
+//                 NumArray::getArrayPtr(typeIdOf(T),N)); }
   
   template<class T>
   T getScalar (Type2Type<T> =Type2Type<T>()) const
@@ -329,11 +440,11 @@ public:
   // Define templated as<T,N>() functions, returning arrays or scalars (N=0)
   // Default version maps to getArray
   template<class T,int N>
-  typename DataType<T,N>::ConstRetType as (Type2Type<T> =Type2Type<T>(),Int2Type<N> = Int2Type<N>()) const
+  typename VellsTraits::DataType<T,N>::ConstRetType as (Type2Type<T> =Type2Type<T>(),Int2Type<N> = Int2Type<N>()) const
   { return getArray(Type2Type<T>(),Int2Type<N>()); }
   
   template<class T,int N>
-  typename DataType<T,N>::RetType as (Type2Type<T> =Type2Type<T>(),Int2Type<N> = Int2Type<N>()) 
+  typename VellsTraits::DataType<T,N>::RetType as (Type2Type<T> =Type2Type<T>(),Int2Type<N> = Int2Type<N>()) 
   { return getArray(Type2Type<T>(),Int2Type<N>()); }
   
   template<class T>
@@ -346,13 +457,17 @@ public:
 
   // Provides access to array storage
     //##ModelId=3F8688700295
-  const double* realStorage() const;
+  const double* realStorage() const
+  { return getStorage<double>(); }
     //##ModelId=3F8688700298
-  double* realStorage();
+  double* realStorage()
+  { return getStorage<double>(); }
     //##ModelId=3F8688700299
-  const dcomplex* complexStorage() const;
+  const dcomplex* complexStorage() const
+  { return getStorage<dcomplex>(); }
     //##ModelId=3F868870029B
-  dcomplex* complexStorage();
+  dcomplex* complexStorage()
+  { return getStorage<dcomplex>(); }
   
   // copies data from other Vells. Checks for matching shape/type
     //##ModelId=400E53560110
@@ -372,7 +487,7 @@ public:
 
 private:
     
-  DMI::NumArray::Ref  dataflags_;
+  Vells::Ref  dataflags_;
 
   //##ModelId=400E5356002F
   bool    is_temp_;
@@ -385,11 +500,12 @@ private:
   // The following flags may be supplied to the constructors below:
     //##ModelId=400E530400FC
   typedef enum { 
-    VF_REAL         = 1, 
-    VF_COMPLEX      = 2, 
-    VF_SCALAR       = 4,
-    VF_CHECKREAL    = 8,
-    VF_CHECKCOMPLEX = 16
+    VF_REAL         = 0x01, // result is forced real 
+    VF_COMPLEX      = 0x02, // result is forced complex 
+    VF_SCALAR       = 0x04, // result is forced scalar
+    VF_CHECKREAL    = 0x08, // operand(s) must be real
+    VF_CHECKCOMPLEX = 0x10, // operand(s) must be complex
+    VF_FLAGTYPE     = 0x20, // result and operand(s) are VellsFlagType
   } VellsFlags;
   // Special constructor for a result of a unary Vells operation.
   // If other is a temporary Vells, will re-use its storage if possible,
@@ -431,10 +547,16 @@ private:
                               const Vells &a,const Vells &b,
                               const string &opname);
   
-// returns LUT index for this Vells  
     //##ModelId=400E535601CB
   int getLutIndex () const
-  { return isComplex() ? 1 : 0; }
+  { 
+    if( isComplex() )
+      return 1;
+    else if( isReal() )
+      return 0;
+    else
+      Throw("can't apply math operation to Vells of type "+elementType().toString());
+  }
   
   
 public:
@@ -461,6 +583,10 @@ public:
           { Vells result(*this,0,"operator "#OPER); \
             (*unary_##OPERNAME##_lut[getLutIndex()])(result,*this);  \
             return result; }
+
+// unary flag operators implemented explicitly (no LUT needed)
+#define declareUnaryFlagOperator(OPER,OPERNAME,x) \
+  public: Vells operator OPER () const;
           
 // Declares binary operator OPER (internally named OPERNAME)
 // plus lookup table for implementations
@@ -476,6 +602,7 @@ public:
             Vells result(*this,right,0,sta,stb,"operator "#OPER); \
             (*binary_##OPERNAME##_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,sta,stb);  \
             return result; }
+
             
 // Declares in-place (i.e. += and such) operator OPER (internally named OPERNAME)
 // plus lookup table for implementations
@@ -493,6 +620,16 @@ public:
             return *this; \
           }
 
+// in-place flag operators implemented explicitly (no LUT needed)
+#define declareInPlaceFlagOperator(OPER,OPERNAME,x) \
+  public: Vells & operator OPER##= (const Vells &right); \
+          Vells & operator OPER##= (VellsFlagType right); 
+
+// binary flag operators implemented explicitly (no LUT needed)
+#define declareBinaryFlagOperator(OPER,OPERNAME,x) \
+  public: Vells operator OPER (const Vells &right) const; \
+          Vells operator OPER (VellsFlagType right) const;
+
 // Defines lookup tables for implementations of unary math functions
 #define declareUnaryFuncLut(FUNCNAME,x) \
   private: static UnaryOperPtr unifunc_##FUNCNAME##_lut[VELLS_LUT_SIZE];  
@@ -508,10 +645,13 @@ public:
 // insert all declarations using the macros above  
     //##ModelId=400E535601D0
   DoForAllUnaryOperators(declareUnaryOperator,);
+  DoForAllUnaryFlagOperators(declareUnaryFlagOperator,);
     //##ModelId=400E535601D9
   DoForAllInPlaceOperators(declareInPlaceOperator,);
+  DoForAllInPlaceFlagOperators(declareInPlaceFlagOperator,);
     //##ModelId=400E535601E3
   DoForAllBinaryOperators(declareBinaryOperator,);
+  DoForAllBinaryFlagOperators(declareBinaryFlagOperator,);
     //##ModelId=400E535601EC
   DoForAllUnaryFuncs(declareUnaryFuncLut,);
   DoForAllUnaryFuncsWithShape(declareUnaryFuncLutWithShape,);
@@ -519,8 +659,11 @@ public:
   DoForAllBinaryFuncs(declareBinaryFuncLut,);
 
 #undef declareUnaryOperator
+#undef declareUnaryFlagOperator
 #undef declareInPlaceOperator
+#undef declareInPlaceFlagOperator
 #undef declareBinaryOperator
+#undef declareBinaryFlagOperator
 #undef declareUnaryFuncLut
 #undef declareBinaryFuncLut
   
@@ -547,6 +690,15 @@ public:
   #undef declareBinaryFunc
 #endif
 };
+
+// Convenience function to create uninitialized flag Vells of given shape
+inline Vells FlagVells (const LoShape &shp)
+{ return Vells(shp,VellsFlagType(),false); }
+
+// Convenience function to create & initialize a flag Vells of given shape
+inline Vells FlagVells (VellsFlagType value,const LoShape &shp,bool init=true)
+{ return Vells(shp,value,init); }
+    
 
 // Conditionally include inline definitions of Vells math functions
 #ifndef MEQVELLS_SKIP_FUNCTIONS
@@ -602,49 +754,18 @@ defineBinaryFunc(atan2,Vells::VF_REAL|Vells::VF_CHECKREAL);
 DoForAllBinaryOperators(defineBinaryOper,);
 
 #undef defineBinaryOper
+
+// declare versions of binary flag operators where the first argument is
+// a scalar. All of them commute, so this is trivial
+#define defineBinaryFlagOper(OPER,OPERNAME,dum) \
+  inline Vells operator OPER (VellsFlagType left,const Vells &right) \
+  { return right OPER left; } \
+
+DoForAllBinaryFlagOperators(defineBinaryFlagOper,);
+
+#undef defineBinaryFlagOper
 #endif
 
-// provide inline specializations for the getStorage templates
-template<>
-inline const double * Vells::getStorage (Type2Type<double>) const
-{ 
-  FailWhen(elementType() != Tpdouble,"mismatch in Vells type");
-  return static_cast<const double *>(NumArray::getConstDataPtr());
-}
-
-template<>
-inline const dcomplex * Vells::getStorage (Type2Type<dcomplex>) const
-{ 
-  FailWhen(elementType() != Tpdcomplex,"mismatch in Vells type");
-  return static_cast<const dcomplex *>(NumArray::getConstDataPtr());
-}
-
-template<>
-inline double * Vells::getStorage (Type2Type<double>) 
-{ 
-  FailWhen(elementType() != Tpdouble,"mismatch in Vells type");
-  return static_cast<double *>(NumArray::getDataPtr());
-}
-
-template<>
-inline dcomplex * Vells::getStorage (Type2Type<dcomplex>) 
-{ 
-  FailWhen(elementType() != Tpdcomplex,"mismatch in Vells type");
-  return static_cast<dcomplex *>(NumArray::getDataPtr());
-}
-
-  //##ModelId=3F8688700295
-inline const double* Vells::realStorage() const
-{ return getStorage<double>(); }
-  //##ModelId=3F8688700298
-inline double* Vells::realStorage()
-{ return getStorage<double>(); }
-  //##ModelId=3F8688700299
-inline const dcomplex* Vells::complexStorage() const
-{ return getStorage<dcomplex>(); }
-  //##ModelId=3F868870029B
-inline dcomplex* Vells::complexStorage()
-{ return getStorage<dcomplex>(); }
 
 inline std::ostream& operator<< (std::ostream& os, const Vells& vec)
   { vec.show (os); return os; }

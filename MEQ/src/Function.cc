@@ -77,35 +77,15 @@ void Function::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   }
 }
 
-bool Function::combineChildFlags (VellSet &vellset,const std::vector<const VellSet*> &child_vs)
+void Function::evaluateFlags (Vells::Ref &out,const Request &,const LoShape &,const vector<const Vells*> &pchf)
 {
-  bool res = false;
-  if( enable_flags_ )
-  {
-    for( uint i=0; i<child_vs.size(); i++ )
-      if( child_vs[i]->hasOptCol(VellSet::FLAGS) )
-      {
-        res = true;
-        // if vellset has no flags and no mask is specified, just take 
-        // a r/o ref to the child flags
-        if( flagmask_.empty() && !vellset.hasOptCol(VellSet::FLAGS) )
-          vellset.setOptCol(VellSet::FLAGS,child_vs[i]->getOptColRef(VellSet::FLAGS));
-        // else |= the vellset flags. Note that this will automatically
-        // privatize a r/o ref upon first access
-        else
-        {
-          const VellSet::FlagArrayType &chflag = 
-                child_vs[i]->getOptCol<VellSet::FLAGS>();
-          if( flagmask_.empty() )
-            vellset.getOptColWr<VellSet::FLAGS>() |= chflag;
-          else
-            vellset.getOptColWr<VellSet::FLAGS>() |= chflag & flagmask_[i];
-        }
-      }
-  }
-  return res;
+  for( uint i=0; i<pchf.size(); i++ )
+    if( pchf[i] )
+      if( out.valid() )
+        out() |= *(pchf[i]);
+      else
+        out <<= pchf[i];
 }
-
 
 //##ModelId=3F86886E03DD
 int Function::getResult (Result::Ref &resref,
@@ -113,38 +93,60 @@ int Function::getResult (Result::Ref &resref,
                          const Request &request,bool)
 {
   int nrch = numChildren();
-  Assert(nrch>0);
   Assert(flagmask_.empty() || flagmask_.size() == childres.size());
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,childres);
-  std::vector<Thread::Mutex::Lock> childvs_lock(nrch);
-  std::vector<Thread::Mutex::Lock> childval_lock(nrch);
-  std::vector<Thread::Mutex::Lock> childpvv_lock[2];
-  childpvv_lock[0].resize(nrch);
-  childpvv_lock[1].resize(nrch);
+// 30/01/05 OMS: remove these locks for now: usage of COW refs everywhere 
+// makes them unnecessary. If our thread holds a ref to the object, it's 
+// guranteed to not change under us thanks to COW.
+//  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+//  lockMutexes(child_reslock,childres);
+//  std::vector<Thread::Mutex::Lock> childvs_lock(nrch);
+//  std::vector<Thread::Mutex::Lock> childval_lock(nrch);
+//  std::vector<Thread::Mutex::Lock> childpvv_lock[2];
+//  childpvv_lock[0].resize(nrch);
+//  childpvv_lock[1].resize(nrch);
+
   // check that resolution match. Also, figure out the max number of 
   // child planes, and figure out if result should be marked as integrated.
-  int nplanes = childres[0]->numVellSets();   // max # of planes in children
-  bool integr = childres[0]->isIntegrated();  // flag: is any child integrated
-  for( int i=1; i<nrch; i++ )
+  // If no children, assume one plane.
+  int nplanes = 1;
+  bool integr = false;
+  if( nrch )
   {
-    nplanes = std::max(nplanes,childres[i]->numVellSets());
-    integr |= childres[i]->isIntegrated();
+    childres[0]->numVellSets();   // max # of planes in children
+    bool integr = childres[0]->isIntegrated();  // flag: is any child integrated
+    for( int i=1; i<nrch; i++ )
+    {
+      nplanes = std::max(nplanes,childres[i]->numVellSets());
+      integr |= childres[i]->isIntegrated();
+    }
+    // override the integrated flag if the state record provides one
   }
-  // override the integrated flag if the state record provides one
   if( force_integrated_ )
     integr = integrated_;
   // Create result and attach to the ref that was passed in
   Result & result = resref <<= new Result(nplanes,integr);
   // Use cells of first child (they all must be the same anyway, we'll verify
-  // at least shapes later on)
-  FailWhen(!childres[0]->hasCells(),"child result 0 does not have a Cells object");
-  const Cells &res_cells = childres[0]->cells();
-  const LoShape &res_shape = res_cells.shape();
-  result.setCells(res_cells);
-  
+  // at least shapes later on). If no children, use request cells.
+  const Cells *pcells = 0;
+  LoShape res_shape;
+  // fill cells from children, else from request
+  for( int i=0; i<nrch; i++ )
+    if( childres[0]->hasCells() )
+    {
+      pcells = &( childres[0]->cells() );
+      break;
+    }
+  if( !pcells && request.hasCells() )
+    pcells = &( request.cells() );
+  // fill cells and shape accordingly
+  if( pcells )
+  {
+    result.setCells(pcells);
+    res_shape = pcells->shape();
+  }
   vector<const VellSet*> child_vs(nrch);
   vector<const Vells*>  values(nrch);
+  vector<const Vells*>  flags(nrch);
   int nfails = 0;
   for( int iplane = 0; iplane < nplanes; iplane++ )
   {
@@ -165,7 +167,7 @@ int Function::getResult (Result::Ref &resref,
       else 
       {
         child_vs[i] = &( childres[i]->vellSet(nvs==1?0:iplane) );
-        childvs_lock[i].relock(child_vs[i]->mutex());
+//        childvs_lock[i].relock(child_vs[i]->mutex());
         if( child_vs[i]->isFail() ) 
         { // collect fails from child vellset
           for( int j=0; j<child_vs[i]->numFails(); j++ )
@@ -173,8 +175,9 @@ int Function::getResult (Result::Ref &resref,
         }
         else
         {
+          flags[i] = child_vs[i]->hasDataFlags() ? &(child_vs[i]->dataFlags()) : 0;
           const Vells &val = child_vs[i]->getValue();
-          childval_lock[i].relock(val.mutex());
+//          childval_lock[i].relock(val.mutex());
           FailWhen(!val.isCompatible(res_shape),"mismatch in child result shapes");
           values[i] = &val;
         }
@@ -192,10 +195,16 @@ int Function::getResult (Result::Ref &resref,
         // allocate new vellset object with given number of spids, add to set
         vellset.setNumPertSets(npertsets);
         vellset.setSpids(spids);
+        // Evaluate flags
+        Vells::Ref flagref;
+        evaluateFlags(flagref,request,res_shape,flags);
+        if( flagref.valid() )
+        {
+          flagref().makeNonTemp();
+          vellset.setDataFlags(flagref);
+        }
         // Evaluate the main value.
         vellset.setValue(evaluate(request,res_shape,values).makeNonTemp());
-        // Evaluate flags
-        combineChildFlags(vellset,child_vs);
         // Evaluate all perturbed values.
         vector<vector<const Vells*> > pert_values(npertsets);
         vector<double> pert(npertsets);
@@ -221,7 +230,7 @@ int Function::getResult (Result::Ref &resref,
               for( int ipert=0; ipert<std::max(vs.numPertSets(),npertsets); ipert++ )
               {
                 const Vells &pvv = vs.getPerturbedValue(inx,ipert);
-                childpvv_lock[ipert][ich].relock(pvv.mutex());
+//                childpvv_lock[ipert][ich].relock(pvv.mutex());
                 FailWhen(!pvv.isCompatible(res_shape),"mismatch in child result shapes");
                 pert_values[ipert][ich] = &pvv;
                 if( found[ipert] >=0 )
@@ -267,21 +276,6 @@ int Function::getResult (Result::Ref &resref,
   // return 0 flag, since we don't add any dependencies of our own
   return 0;
 }
-
-// 11/07/04 OMS: phased out: no need, shape obtained from Cells and
-// all children must conform
-// //##ModelId=400E5306027C
-// LoShape Function::resultShape (const vector<const Vells*>& values)
-// {
-//   Assert (values.size() > 0);
-//   int nx = values[0]->nx();
-//   int ny = values[0]->ny();
-//   for (unsigned int i=0; i<values.size(); i++) {
-//     nx = std::max(nx, values[i]->nx());
-//     ny = std::max(ny, values[i]->ny());
-//   }
-//   return makeLoShape(nx,ny);
-// }
 
 //##ModelId=3F86886F0108
 vector<int> Function::findSpids (int &npertsets,const vector<const VellSet*> &results)
@@ -350,87 +344,3 @@ Vells Function::evaluate (const Request &,const LoShape &,const vector<const Vel
 } // namespace Meq
 
 
-/**** OMS 08/07/04: phased out, see above
-// //##ModelId=3F95060D0060
-// void Function::checkChildren()
-// {
-//   if (itsChildren.size() == 0) {
-//     int nch = numChildren();
-//     itsChildren.resize (nch);
-//     for (int i=0; i<nch; i++) {
-//       itsChildren[i] = &(getChild(i));
-//     }
-//   }
-// }
-// 
-// //##ModelId=400E530702E6
-// bool Function::convertChildren (int nchild)
-// {
-//   if (itsChildren.size() > 0) {
-//     return false;
-//   }
-//   testChildren(nchild);
-//   Function::checkChildren();
-//   return true;
-//  }
-// 
-// //##ModelId=400E5308008E
-// bool Function::convertChildren (const vector<HIID>& childNames, int nchild)
-// {
-//   if (itsChildren.size() > 0) {
-//     return false;
-//   }
-//   if (nchild == 0) {
-//     nchild = childNames.size();
-//   }
-//   testChildren(nchild);
-//   int nch = numChildren();
-//   itsChildren.resize (nch);
-//   int nhiid = childNames.size();
-//   // Do it in order of the HIIDs given.
-//   for (int i=0; i<nhiid; i++) {
-//     itsChildren[i] = &(getChild(childNames[i]));
-//   }
-//   // It is possible that there are more children than HIIDs.
-//   // In that case the remaining children are appended at the end.
-//   if (nch > nhiid) {
-//     int inx = nhiid;
-//     for (int i=0; i<nch; i++) {
-//       Node * ptr = &(getChild(childNames[i]));
-//       bool fnd = false;
-//       for (int j=0; j<nhiid; j++) {
-//         if (ptr == itsChildren[j]) {
-//           fnd = true;
-//         }
-//       }
-//       if (!fnd) {
-//         itsChildren[inx++] = ptr;
-//       }
-//     }
-//   }
-//   return true;
-// }
-// 
-// //##ModelId=400E53080325
-// void Function::testChildren (int nchild) const
-// {
-//   if (nchild > 0) {
-//     FailWhen(numChildren()!=nchild,
-//         Debug::ssprintf("node has %d children, requires %d",numChildren(),nchild));
-//   } else if (nchild < 0) {
-//     FailWhen(numChildren() <= -nchild,
-//         Debug::ssprintf("node has %d children, requires at least %d",numChildren(),-nchild+1));
-//   }
-// }
-// 
-// //##ModelId=400E530900C1
-// void Function::testChildren (const vector<TypeId>& types) const
-// {
-//   int nch = std::min (types.size(), itsChildren.size());
-//   for (int i=0; i<nch; i++) {
-//     AssertStr (itsChildren[i]->objectType() == types[i],
-//                "expected type " << types[i] << ", but found "
-//                << itsChildren[i]->objectType());
-//   }
-// }
-// *****/

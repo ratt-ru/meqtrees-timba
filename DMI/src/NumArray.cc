@@ -21,6 +21,13 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.40  2005/02/03 12:54:53  smirnov
+//  %[ER: 16]%
+//  1. Added support for flag Vells and flagging. Not yet fully tested,
+//  but works with existsing test scripts.
+//  2. Fixed major bug in toBlock()ing of Vells (block had the wrong objectId in it)
+//  3. Revised GaussNoise and added support for blitz++ random generators
+//
 //  Revision 1.39  2005/01/24 14:47:43  smirnov
 //  %[ER: ]%
 //  Changed all BObj derivatives to have a standard BObj::Header at the start
@@ -179,15 +186,15 @@ DMI::NumArray::NumArray ()
 }
 
 //##ModelId=3DB949AE03A4
-DMI::NumArray::NumArray (TypeId type, const LoShape & shape,int flags) 
+DMI::NumArray::NumArray (TypeId type, const LoShape & shape,int flags,TypeId realtype) 
 : Container (),
   itsArray  (0)
 {
   initSubArray();
-  init(type,shape,flags);
+  init(type,shape,flags,realtype);
 }
 
-void DMI::NumArray::init (TypeId type, const LoShape & shape,int flags) 
+void DMI::NumArray::init (TypeId type, const LoShape & shape,int flags,TypeId realtype) 
 {
   clear();
   // check arguments
@@ -208,11 +215,11 @@ void DMI::NumArray::init (TypeId type, const LoShape & shape,int flags)
         Debug::ssprintf("TypeId %s conflicts with shape of rank %d",type.toString().c_str(),shape.size()));
   }
   itsElemSize = type == Tpstring ? sizeof(string) : TypeInfo::find(itsScaType).size;
-  init(shape,flags);
+  init(shape,flags,realtype);
 }
 
 //##ModelId=3DB949AE03AF
-DMI::NumArray::NumArray (TypeId tid,const void *other) 
+DMI::NumArray::NumArray (TypeId tid,const void *other,TypeId realtype) 
 : Container (),
   itsArray  (0)
 {
@@ -232,25 +239,18 @@ DMI::NumArray::NumArray (TypeId tid,const void *other)
   FailWhen( shape.size() != rank,"shape of array does not match indicated type" );
   // init internal array
   itsElemSize = itsScaType == Tpstring ? sizeof(string) : TypeInfo::find(itsScaType).size;
-  init(shape);
+  init(shape,0,realtype);
   // copy data
   copyArray(itsScaType,rank,itsArray,other);
 }
 
-// instantiate this constructor template for all other types
-// #undef __instantiate
-// #define __instantiate(T,arg) template DMI::NumArray::DMI::NumArray (const Array<T>& array,int flags, int shm_flags);
-// DoForAllArrayTypes(__instantiate,);
-// __instantiate(string,);
-
-
 //##ModelId=3F5487DA034E
-DMI::NumArray::NumArray (const NumArray& other, int flags,int depth)
+DMI::NumArray::NumArray (const NumArray& other, int flags,int depth,TypeId realtype)
 : Container (),
   itsArray  (0)
 {
   initSubArray();
-  cloneOther(other,flags,depth,true);
+  cloneOther(other,flags,depth,true,realtype);
 }
 
 //##ModelId=3DB949AE03B8
@@ -266,13 +266,13 @@ DMI::NumArray& DMI::NumArray::operator = (const NumArray& other)
   if( this != &other ) 
   {
     clear();
-    cloneOther(other,0,0,false);
+    cloneOther(other,0,0,false,objectType());
   }
   return *this;
 }
 
 //##ModelId=3DB949AF002E
-void DMI::NumArray::cloneOther (const NumArray& other,int flags,int depth,bool constructing)
+void DMI::NumArray::cloneOther (const NumArray& other,int flags,int depth,bool constructing,TypeId realtype)
 {
   Thread::Mutex::Lock _nclock(mutex());
   Thread::Mutex::Lock _nclock1(other.mutex());
@@ -286,6 +286,14 @@ void DMI::NumArray::cloneOther (const NumArray& other,int flags,int depth,bool c
     itsElemSize = other.itsElemSize;
     itsDataOffset = other.itsDataOffset;
     itsData.copy(other.itsData,flags,depth).lock();
+    if( !realtype )
+      realtype = objectType();
+    if( realtype != other.objectType() )
+    {
+      Header *hdr = itsData().pdata<Header>();
+      BObj::fillHeader(hdr,1,realtype);
+    }
+    else
     itsArrayData = const_cast<char*>(itsData->cdata()) + itsDataOffset;
     // strings need to be initialized & copied over explicitly
     if( itsScaType == Tpstring )
@@ -354,7 +362,7 @@ void * DMI::NumArray::makeSubArray (void *data,const LoShape & shape,const LoSha
 }
 
 //##ModelId=3DB949AF0024
-void DMI::NumArray::init (const LoShape & shape,int flags)
+void DMI::NumArray::init (const LoShape & shape,int flags,TypeId realtype)
 {
 #ifdef HAVE_AIPSPP
   // sanity check -- can we treat string as an AIPS++ String?
@@ -371,8 +379,10 @@ void DMI::NumArray::init (const LoShape & shape,int flags)
   itsData.attach(new SmartBlock(sz,flags&DMI::NOZERO ? 0 : DMI::ZERO));
   void *dataptr = itsData().data();
   // fill block header
+  if( !realtype )
+    realtype = objectType();
   Header *phead = static_cast<Header*>(dataptr);
-  BObj::fillHeader(phead,1);
+  BObj::fillHeader(phead,1,realtype);
   phead->sca_tid = itsScaType;
   phead->rank    = shape.size();
   for( uint i=0; i<shape.size(); i++ )

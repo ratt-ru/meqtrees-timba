@@ -22,6 +22,8 @@ include spaste(root_path,'octopussy.g')
 include spaste(app_path,'/app_proxy.g')
 include spaste(meq_path,'/meqserver.g')
 include spaste(meq_path,'/meptable.g')
+
+set_breakpoint := any(argv == '-bp');
                       
 # inits a meqserver
 const mqsinit := function (verbose=default_verbosity,debug=[=],gui=use_gui)
@@ -44,7 +46,8 @@ const mqsinit := function (verbose=default_verbosity,debug=[=],gui=use_gui)
   }
 }
 
-const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_verbosity)
+const solver_test := function (stage=0,gui=use_gui,debug=[=],
+                            verbose=default_verbosity,bp=set_breakpoint)
 {
   global mqs;
   mqsinit(debug=debug,verbose=verbose,gui=gui)
@@ -137,9 +140,29 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
         ))
       ))
     );
-    
     mqs.meq('Create.Node',meq.node('MeqCondeq','eq1',children="lhs1 c1n"));
-    mqs.meq('Create.Node',meq.node('MeqCondeq','eq2',children="lhs2 c2n"));
+    mqs.meq('Create.Node',meq.node('MeqCondeq','eq2',children="lhs2 c2n",
+      step_children=meq.list(
+        meq.node('MeqAdd','sc_add',children=meq.list(
+          meq.node('MeqAdd','sc_add1',children=meq.list(
+            meq.node('MeqTime','sc_time'),
+            meq.node('MeqMultiply','sc_2freq',children=meq.list(
+              meq.node('MeqFreq','sc_freq'),
+              meq.node('MeqConstant','sc_2',[value=2])
+            )),
+            meq.node('MeqGaussNoise','g1'),
+            meq.node('MeqGaussNoise','g2',[stddev=3.0],children=meq.list(
+              'sc_freq'
+            )),
+            meq.node('MeqAdd','ga3',children=meq.list(
+              meq.node('MeqGaussNoise','g3',[stddev=3.0,axes_index=[0]]),
+              'sc_time'
+            ))
+          )),
+          meq.node('MeqFreq','sc_freq1')
+        ))
+      ))
+    );
     # create solver
     global rec;
     rec := meq.node('MeqSolver','solver',children="eq1 eq2");
@@ -180,10 +203,16 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
     print '======================= stage ',stage,': init failed';
     return F;
   }
+  # set breakpoint if requested
+  if( bp )
+  {
+    mqs.meq('Debug.Set.Level',[debug_level=100]);
+    mqs.meq('Node.Set.Breakpoint',[name='eq1']);
+  }
   
   # execute request on solver
   global cells,request,res;
-  cells := meq.cells(meq.domain(0,1,0,1),num_freq=40,num_time=40);
+  cells := meq.cells(meq.domain(0,1,0,1),num_freq=20,num_time=30);
   request := meq.request(cells,calc_deriv=1);
   res := mqs.meq('Node.Execute',[name='solver',request=request],T);
   print res;

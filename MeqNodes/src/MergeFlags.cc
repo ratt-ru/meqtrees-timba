@@ -49,7 +49,7 @@ int MergeFlags::getResult (Result::Ref &resref,
   }
   // copy first child result to output
   resref = childres[0];
-  Result & result = resref();
+  const Result & result = resref();
   // check # of input vellsets
   int nvs = result.numVellSets();
   for( int ich=1; ich<nch; ich++ )
@@ -62,22 +62,22 @@ int MergeFlags::getResult (Result::Ref &resref,
   // loop over vellsets
   for( int iplane = 0; iplane < nvs; iplane++ )
   {
-    VellSet &vs = result.vellSetWr(iplane);
-    bool had_flags = vs.hasOptCol(VellSet::FLAGS);
-    // get main values 
-    VellSet::FlagArrayType & flags = vs.getOptColWr<VellSet::FLAGS>();
-    // apply first mask, unless we didn't have any flags to begin with
-    if( had_flags )
-      flags &= flagmask_[0];
-    // loop over children to add their flags
-    for( int ich=1; ich<nch; ich++ )
+    Vells::Ref flags;
+    for( int ich=0; ich<nch; ich++ )
     {
       const Result &chres = *(childres[ich]);
       const VellSet &vs = chres.vellSet(std::max(chres.numVellSets()-1,iplane));
       // if child vellset has flags and mask !=0, merge with result
-      if( flagmask_[ich] && vs.hasOptCol(VellSet::FLAGS) )
-        flags |= vs.getOptCol<VellSet::FLAGS>() & flagmask_[ich];
+      if( flagmask_[ich] && vs.hasDataFlags() )
+        if( flags.valid() )
+          flags() |= vs.dataFlags() & flagmask_[ich];
+        else
+          flags.attach(vs.dataFlags());
     }
+    if( flags.valid() )
+      resref().vellSetWr(iplane).setDataFlags(flags);
+    else if( resref->vellSet(iplane).hasDataFlags() )
+      resref().vellSetWr(iplane).clearDataFlags();
   }
   // return 0 flag, since we don't add any dependencies of our own
   return 0;

@@ -221,7 +221,7 @@ void Result::integrate (bool reverse)
         Vells::Shape shape(shape0);
         int nc = cc.ncells(iaxis);
         shape[iaxis] = nc;
-        Vells sz(0.,shape,false);
+        Vells sz(double(0),shape,false);
         memcpy(sz.realStorage(),cc.cellSize(iaxis).data(),sizeof(double)*nc);
         // multiply accumulated size
         cellsize *= sz;

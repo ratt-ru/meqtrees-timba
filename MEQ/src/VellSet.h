@@ -39,73 +39,75 @@
 
 namespace Meq { using namespace DMI;
 
-class OptionalColumns
-{
-  public:
-    typedef enum
-    {
-        FLAGS   = 0,
-        WEIGHT  = 1,
-
-        NUM_OPTIONAL_COL = 2
-    }
-    OptionalColumnEnums;
-
-    template<int N> class Traits
-    {
-      public:
-          typedef void ElementType;
-          typedef void ArrayType;
-    };
-
-    static TypeId optColElementType (uint icol);
-
-    static TypeId optColArrayType (uint icol);
-
-    static const HIID & optColFieldId (uint icol);
-};
-
-template<> class OptionalColumns::Traits<OptionalColumns::FLAGS> 
-{
-  public:
-      typedef int ElementType;
-      typedef blitz::Array<ElementType,2> ArrayType;
-};
-
-template<> class OptionalColumns::Traits<OptionalColumns::WEIGHT> 
-{
-  public:
-      typedef float ElementType;
-      typedef blitz::Array<ElementType,2> ArrayType;
-};
-
-
-inline TypeId OptionalColumns::optColElementType (uint icol)
-{
-  const TypeId type[] = { typeIdOf(Traits<FLAGS>::ElementType),
-                          typeIdOf(Traits<WEIGHT>::ElementType) };
-  DbgAssert1(icol<NUM_OPTIONAL_COL);
-  return type[icol];  
-}
-
-inline TypeId OptionalColumns::optColArrayType (uint icol)
-{
-  const TypeId type[] = { typeIdOf(Traits<FLAGS>::ArrayType),
-                          typeIdOf(Traits<WEIGHT>::ArrayType) };
-  DbgAssert1(icol<NUM_OPTIONAL_COL);
-  return type[icol];  
-}
+// OMS 28/01/05: phasing this out, replace with explicit data flags
+// class OptionalColumns
+// {
+//   public:
+//     typedef enum
+//     {
+//         FLAGS   = 0,
+//         WEIGHT  = 1,
+// 
+//         NUM_OPTIONAL_COL = 2
+//     }
+//     OptionalColumnEnums;
+// 
+//     template<int N> class Traits
+//     {
+//       public:
+//           typedef void ElementType;
+//           typedef void ArrayType;
+//     };
+// 
+//     static TypeId optColElementType (uint icol);
+// 
+//     static TypeId optColArrayType (uint icol);
+// 
+//     static const HIID & optColFieldId (uint icol);
+// };
+// 
+// template<> class OptionalColumns::Traits<OptionalColumns::FLAGS> 
+// {
+//   public:
+//       typedef int ElementType;
+//       typedef blitz::Array<ElementType,2> ArrayType;
+// };
+// 
+// template<> class OptionalColumns::Traits<OptionalColumns::WEIGHT> 
+// {
+//   public:
+//       typedef float ElementType;
+//       typedef blitz::Array<ElementType,2> ArrayType;
+// };
+// 
+// 
+// inline TypeId OptionalColumns::optColElementType (uint icol)
+// {
+//   const TypeId type[] = { typeIdOf(Traits<FLAGS>::ElementType),
+//                           typeIdOf(Traits<WEIGHT>::ElementType) };
+//   DbgAssert1(icol<NUM_OPTIONAL_COL);
+//   return type[icol];  
+// }
+// 
+// inline TypeId OptionalColumns::optColArrayType (uint icol)
+// {
+//   const TypeId type[] = { typeIdOf(Traits<FLAGS>::ArrayType),
+//                           typeIdOf(Traits<WEIGHT>::ArrayType) };
+//   DbgAssert1(icol<NUM_OPTIONAL_COL);
+//   return type[icol];  
+// }
 
 
 //##ModelId=400E530400D3
-class VellSet : public DMI::Record , public OptionalColumns
+class VellSet : public DMI::Record // , public OptionalColumns
 {
 public:
   //##ModelId=400E530400D6
   typedef CountedRef<VellSet> Ref;
 
-  typedef Traits<FLAGS>::ElementType FlagType; 
-  typedef Traits<FLAGS>::ArrayType FlagArrayType; 
+// OMS 28/01/05: phasing this out, replace with explicit data flags
+//   typedef Traits<FLAGS>::ElementType FlagType; 
+//   typedef Traits<FLAGS>::ArrayType FlagArrayType; 
 
   // Create a time,frequency result for the given shape, number of spids,
   // number of pert sets
@@ -223,8 +225,12 @@ public:
     return pvalue_->dewr(); 
   }
 
-  // Attaches the given Vells to value
-  void setValue (const Vells::Ref &ref,int flags=0);
+  // Attaches the given Vells to value. Vells ref may be COWed if flags need
+  // to be attached
+  void setValue (Vells::Ref &ref,int flags=0);
+  
+  void setValue (const Vells::Ref &ref)
+  { Vells::Ref ref2(ref); setValue(ref2); }
   
     //##ModelId=400E53550360
   Vells & setValue (Vells *val,int flags=0)
@@ -252,7 +258,13 @@ public:
       return pset_[iset].pertval_vec->dewr().as<Vells>(i); }
 
   // Set the i-th perturbed value (ref semantics)
-  void setPerturbedValue (int i,const Vells::Ref &vref,int iset=0);
+  void setPerturbedValue (int i,Vells::Ref &ref,int iset=0,int flags=0);
+  
+  void setPerturbedValue (int i,const Vells::Ref &ref,int iset=0)
+  {
+    Vells::Ref ref2(ref);
+    setPerturbedValue(i,ref2,iset); 
+  }
   
     //##ModelId=400E53550387
   Vells & setPerturbedValue (int i,Vells *val,int iset=0)
@@ -272,58 +284,92 @@ public:
     return vells;
   }
       
-      
-  // ------------------------ OPTIONAL COLUMNS
-protected:
-  // ensures writability of optional column by privatizing for writing as needed;
-  // returns pointer to blitz array
-  void * writeOptCol (uint icol);
-      
-  void * initOptCol (uint icol,bool array);
-
-  void   doSetOptCol (uint icol,DMI::NumArray *parr,int dmiflags);
+  // ------------------------ DATA FLAGS
+  // does this VellSet have flags attached?
+  bool hasDataFlags () const
+  { return pflags_; }
   
-public:
-          
-  bool hasOptCol (uint icol) const
+  // returns flags of this Vells
+  const Vells & dataFlags () const
+  { return pflags_->deref(); }
+  
+  // sets the dataflags of a Vells
+  void setDataFlags (const Vells::Ref &flags);
+  
+  // aliases for passing flags by value or pointer
+  void setDataFlags (const Vells &flags)
   { 
-    DbgAssert1(icol<NUM_OPTIONAL_COL); 
-    return optcol_[icol].ptr != 0;
+    Vells::Ref ref(flags);
+    setDataFlags(ref);
   }
   
-  template<int N>
-  bool hasOptCol () const
-    { return hasOptCol(N); }
+  void setDataFlags (const Vells *flags)
+  { 
+    Vells::Ref ref(flags);
+    setDataFlags(ref);
+  }
   
-  template<int N>
-  const typename Traits<N>::ArrayType & getOptCol () const
-    { Assert(hasOptCol(N)); return *static_cast<const typename Traits<N>::ArrayType *>(optcol_[N].ptr); }
-  
-  template<int N>
-  typename Traits<N>::ArrayType & getOptColWr (bool init=true,bool array=true)
-    { return *static_cast<typename Traits<N>::ArrayType *>
-          ( (!init || hasOptCol(N)) ? writeOptCol(N) : initOptCol(N,array) ); }
-  
-  const DMI::NumArray::Ref & getOptColRef (int icol) const
-    { Assert(hasOptCol(icol)); return optcol_[icol].ref; }
+  void clearDataFlags ();
 
-  template<int N>
-  typename Traits<N>::ArrayType & initOptCol (bool array=true)
-    { return *static_cast<typename Traits<N>::ArrayType *>
-        ( initOptCol(N,array) ); }
+protected:  
+  // called after flags have been attached, to verify flag shapes
+  // and to propagate the flags to all child Vells
+  void setupFlags (const Vells::Ref flagref);  
+  
 
-  void setOptCol (uint icol,const DMI::NumArray *parr,int dmiflags=0)
-    { doSetOptCol(icol,const_cast<DMI::NumArray*>(parr),dmiflags|DMI::READONLY); }
-    
-  void setOptCol (uint icol,DMI::NumArray *parr,int dmiflags=0)
-    { doSetOptCol(icol,parr,dmiflags); }
-  
-  void setOptCol (uint icol,const DMI::NumArray::Ref::Xfer & ref);
-  
-  void clearOptCol (int icol);
-  
-  template<int N>
-  void clearOptCol () { clearOptCol(N); }
+
+// OMS 28/01/05: phasing this out, replace with explicit data flags
+//     // ------------------------ OPTIONAL COLUMNS
+// protected:
+//   // ensures writability of optional column by privatizing for writing as needed;
+//   // returns pointer to blitz array
+//   void * writeOptCol (uint icol);
+//       
+//   void * initOptCol (uint icol,bool array);
+// 
+//   void   doSetOptCol (uint icol,DMI::NumArray *parr,int dmiflags);
+//   
+// public:
+//           
+//   bool hasOptCol (uint icol) const
+//   { 
+//     DbgAssert1(icol<NUM_OPTIONAL_COL); 
+//     return optcol_[icol].ptr != 0;
+//   }
+//   
+//   template<int N>
+//   bool hasOptCol () const
+//     { return hasOptCol(N); }
+//   
+//   template<int N>
+//   const typename Traits<N>::ArrayType & getOptCol () const
+//     { Assert(hasOptCol(N)); return *static_cast<const typename Traits<N>::ArrayType *>(optcol_[N].ptr); }
+//   
+//   template<int N>
+//   typename Traits<N>::ArrayType & getOptColWr (bool init=true,bool array=true)
+//     { return *static_cast<typename Traits<N>::ArrayType *>
+//           ( (!init || hasOptCol(N)) ? writeOptCol(N) : initOptCol(N,array) ); }
+//   
+//   const DMI::NumArray::Ref & getOptColRef (int icol) const
+//     { Assert(hasOptCol(icol)); return optcol_[icol].ref; }
+// 
+//   template<int N>
+//   typename Traits<N>::ArrayType & initOptCol (bool array=true)
+//     { return *static_cast<typename Traits<N>::ArrayType *>
+//         ( initOptCol(N,array) ); }
+// 
+//   void setOptCol (uint icol,const DMI::NumArray *parr,int dmiflags=0)
+//     { doSetOptCol(icol,const_cast<DMI::NumArray*>(parr),dmiflags|DMI::READONLY); }
+//     
+//   void setOptCol (uint icol,DMI::NumArray *parr,int dmiflags=0)
+//     { doSetOptCol(icol,parr,dmiflags); }
+//   
+//   void setOptCol (uint icol,const DMI::NumArray::Ref::Xfer & ref);
+//   
+//   void clearOptCol (int icol);
+//   
+//   template<int N>
+//   void clearOptCol () { clearOptCol(N); }
   
   // ------------------------ FAIL RECORDS
   // A VellSet may be a Fail. A Fail will not contain any values or 
@@ -332,6 +378,7 @@ public:
   // This marks the Result as a FAIL, and adds a fail-record.
   // All values and perturbations are cleared, and a Fail field is 
   // created if necessary.
+public:  
     //##ModelId=400E53550393
   void addFail (const DMI::Record *rec,int flags=0);
     //##ModelId=400E53550399
@@ -399,6 +446,9 @@ private:
 // 
     //##ModelId=400E535502FC
   Vells::Ref * pvalue_;
+  
+  Vells::Ref * pflags_;
+  
     //##ModelId=400E53550302
   double default_pert_;
   
@@ -410,13 +460,14 @@ private:
   
   vector<PerturbationSet> pset_;
   
-  typedef struct 
-  {
-    DMI::NumArray::Ref ref;
-    void          *ptr;
-  } OptionalColumnData;
-  
-  OptionalColumnData optcol_[NUM_OPTIONAL_COL];
+// OMS 28/01/05: phasing this out, replace with explicit data flags
+//   typedef struct 
+//   {
+//     DMI::NumArray::Ref ref;
+//     void          *ptr;
+//   } OptionalColumnData;
+//   
+//   OptionalColumnData optcol_[NUM_OPTIONAL_COL];
   
   LoShape        shape_;
   

@@ -178,7 +178,7 @@ int DMI::Record::fromBlock (BlockSet& set)
     if( bc )
     {
       int nb0 = set.size();
-      FailWhen(!nb0,"List::fromBlock: unexpectedly ran out of blocks");
+      FailWhen(!nb0,"Record::fromBlock: unexpectedly ran out of blocks");
       // create object
       ref = DynamicTypeManager::construct(0,set);
       FailWhen(!ref.valid(),"item construct failed" );

@@ -41,55 +41,55 @@ Vells::Vells()
 : is_temp_      (false)
 {}
 
-//##ModelId=3F86887001D5
-Vells::Vells (double value,bool temp)
-: NumArray(Tpdouble,LoShape(1),DMI::NOZERO),
-  is_temp_(temp)
-{
-  // casting away const is kinda faster here because we know we
-  // don't need to make the array writable or worry about COW in constructor 
-  *static_cast<double*>(const_cast<void*>(getConstDataPtr())) = value;
-}
-
-//##ModelId=3F86887001DC
-Vells::Vells (const dcomplex& value,bool temp)
-: NumArray(Tpdcomplex,LoShape(1),DMI::NOZERO),
-  is_temp_      (temp)
-{
-  // casting away const is kinda faster here because we know we
-  // don't need to make the array writable or worry about COW in constructor 
-  *static_cast<dcomplex*>(const_cast<void*>(getConstDataPtr())) = value;
-}
-
-//##ModelId=3F86887001E3
-Vells::Vells (double value,const Vells::Shape &shape, bool init)
-: NumArray(Tpdouble,shape,DMI::NOZERO),
-  is_temp_ (false)
-{
-  if( init )
-  {
-    double *begin = static_cast<double*>(const_cast<void*>(getConstDataPtr())),
-           *end   = begin + nelements();
-    while( begin<end )
-      *(begin++) = value;
-  }
-}
-
-Vells::Vells (const dcomplex &value,const Vells::Shape &shape, bool init)
-: NumArray(Tpdcomplex,shape,DMI::NOZERO),
-  is_temp_ (false)
-{
-  if( init )
-  {
-    dcomplex *begin = static_cast<dcomplex*>(const_cast<void*>(getConstDataPtr())),
-             *end   = begin + nelements();
-    while( begin<end )
-      *(begin++) = value;
-  }
-}
+// //##ModelId=3F86887001D5
+// Vells::Vells (double value,bool temp)
+// : NumArray(Tpdouble,LoShape(1),DMI::NOZERO),
+//   is_temp_(temp)
+// {
+//   // casting away const is kinda faster here because we know we
+//   // don't need to make the array writable or worry about COW in constructor 
+//   *static_cast<double*>(const_cast<void*>(getConstDataPtr())) = value;
+// }
+// 
+// //##ModelId=3F86887001DC
+// Vells::Vells (const dcomplex& value,bool temp)
+// : NumArray(Tpdcomplex,LoShape(1),DMI::NOZERO),
+//   is_temp_      (temp)
+// {
+//   // casting away const is kinda faster here because we know we
+//   // don't need to make the array writable or worry about COW in constructor 
+//   *static_cast<dcomplex*>(const_cast<void*>(getConstDataPtr())) = value;
+// }
+// 
+// //##ModelId=3F86887001E3
+// Vells::Vells (double value,const Vells::Shape &shape, bool init)
+// : NumArray(Tpdouble,shape,DMI::NOZERO),
+//   is_temp_ (false)
+// {
+//   if( init )
+//   {
+//     double *begin = static_cast<double*>(const_cast<void*>(getConstDataPtr())),
+//            *end   = begin + nelements();
+//     while( begin<end )
+//       *(begin++) = value;
+//   }
+// }
+// 
+// Vells::Vells (const dcomplex &value,const Vells::Shape &shape, bool init)
+// : NumArray(Tpdcomplex,shape,DMI::NOZERO),
+//   is_temp_ (false)
+// {
+//   if( init )
+//   {
+//     dcomplex *begin = static_cast<dcomplex*>(const_cast<void*>(getConstDataPtr())),
+//              *end   = begin + nelements();
+//     while( begin<end )
+//       *(begin++) = value;
+//   }
+// }
 
 Vells::Vells (const NumArray &that,int flags,int depth)
-: NumArray(that,flags,depth),
+: NumArray(that,flags,depth,TpMeqVells),
   // Assigning or copying a temp vells always yields a non-temp vells.
   // This means that temp Vells can only occur as intermediate objects
   // in Vells math expressions (unless created/set as temp explicitly).
@@ -99,10 +99,10 @@ Vells::Vells (const NumArray &that,int flags,int depth)
 }
 
 Vells::Vells (const Vells &that,int flags,int depth)
-: NumArray(that,flags,depth),
+: NumArray(that,flags,depth,TpMeqVells),
   is_temp_(false)
 {
-  dataflags_.copy(that.dataflags_,flags,depth);
+  dataflags_.copy(that.dataflags_);
 }
 
 //##ModelId=3F868870023B
@@ -121,8 +121,8 @@ void Vells::validateContent (bool)
 {
   is_temp_ = false;
   FailWhen(rank()>Axis::MaxAxis,"can't init Meq::Vells from array: rank too high");
-  FailWhen(elementType()!=Tpdouble && elementType()!=Tpdcomplex,
-      "can't init Meq::Vells from array of type "+elementType().toString());
+//  FailWhen(elementType()!=Tpdouble && elementType()!=Tpdcomplex,
+//      "can't init Meq::Vells from array of type "+elementType().toString());
 }
 
 //##ModelId=3F8688700238
@@ -218,7 +218,9 @@ inline bool Vells::tryReference (const Vells &other)
 // helper function used to figure out type of result
 TypeId Vells::getResultType (int flags,bool arg_is_complex)
 {
-  if( flags&Vells::VF_COMPLEX || ( !(flags&Vells::VF_REAL) && arg_is_complex ) )
+  if( flags&VF_FLAGTYPE )
+    return VellsFlagTypeId;
+  else if( flags&Vells::VF_COMPLEX || ( !(flags&Vells::VF_REAL) && arg_is_complex ) )
     return Tpdcomplex;
   else
     return Tpdouble;
@@ -234,6 +236,8 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
       opname + "() can only be used with a real Meq::Vells");
   FailWhen(flags&VF_CHECKCOMPLEX && other.isReal(),
       opname + "() can only be used with a complex Meq::Vells");
+  FailWhen(flags&VF_FLAGTYPE && other.isFlags(),
+      opname + "() can only be used with a flags Meq::Vells");
   // determine shape
   if( !tryReference(other) )
     NumArray::init( getResultType(flags,other.isComplex()), 
@@ -313,6 +317,9 @@ inline int degenerateAxis (int total,bool &degenerate)
 }
 
 // computes shape of output, plus strides required
+// note that strides are placed in reverse order, since Vells are now
+// stored in row-major order. I.e. the last dimension has a stride of 1,
+// and previous dimensions have larger strides.
 void Vells::computeStrides (Vells::Shape &shape,
                             int strides_a[],int strides_b[],
                             const Vells &a,const Vells &b,
@@ -323,11 +330,12 @@ void Vells::computeStrides (Vells::Shape &shape,
   // Loop over all axes to determine output shape and input strides for iterators.
   int tota=1,totb=1;
   bool dega=true,degb=true;
-  for( int i=0; i<rnk; i++ ) 
+  int idim = rnk-1;
+  for( int i=0; i<rnk; i++,idim-- ) 
   {
     // get size along each axis -- if past the last rank, use 1
-    int sza = i < a.rank() ? a.shape()[i] : 1;
-    int szb = i < b.rank() ? b.shape()[i] : 1;
+    int sza = a.extent(idim);
+    int szb = b.extent(idim);
     bool a_big = sza>1;
     bool b_big = szb>1;
     if( a_big && b_big && sza != szb )
@@ -338,7 +346,7 @@ void Vells::computeStrides (Vells::Shape &shape,
     strides_a[i] = a_big ? normalAxis(tota,dega) : degenerateAxis(tota,dega);
     strides_b[i] = b_big ? normalAxis(totb,degb) : degenerateAxis(totb,degb);
     // set output shape
-    shape[i] = std::max(sza,szb); 
+    shape[idim] = std::max(sza,szb); 
     // increase element counts
     tota *= sza;
     totb *= szb;
@@ -354,6 +362,8 @@ Vells::Vells (const Vells &a,const Vells &b,int flags,
 : is_temp_ (true)
 {
   // check input if requested by flags
+  FailWhen(flags&VF_FLAGTYPE && (!a.isFlags() || !b.isFlags()),
+      opname + "() can only be applied to two flags Meq::Vells");
   FailWhen(flags&VF_CHECKREAL && (a.isComplex() || b.isComplex()),
       opname + "() can only be applied to two real Meq::Vells");
   FailWhen(flags&VF_CHECKCOMPLEX && (a.isReal() || b.isReal()),
@@ -380,12 +390,13 @@ bool Vells::canApplyInPlace (const Vells &other,int strides[],const std::string 
   // Loop over all axes to determine if shapes match. Our rank is higher thanks
   // to test above
   int  total=1;
+  int  idim=rank()-1;
   bool deg=true;
-  for( int i=0; i<rank(); i++ ) 
+  for( int i=0; i<rank(); i++,idim-- ) 
   {
     // get size along each axis -- if past the last rank, use 1
-    int sz_ours  = extent(i);
-    int sz_other = other.extent(i);
+    int sz_ours  = extent(idim);
+    int sz_other = other.extent(idim);
     if( sz_other == 1 ) // other is constant along this axis
       strides[i] = degenerateAxis(total,deg);
     else if( sz_ours == sz_other ) // shape of this axis >1 and matches
@@ -513,14 +524,23 @@ class ConstStridedIterator
 class DimCounter 
 {
   protected:
-    const Meq::Vells::Shape &shape;
-    int   maxdim;
+    int   rank;
+    int   shape[Meq::Axis::MaxAxis];
     int   counter[Meq::Axis::MaxAxis];
   
   public:
       DimCounter (const Meq::Vells &vells)
-        : shape(vells.shape()),maxdim(vells.rank())
-      { memset(counter,0,sizeof(int)*maxdim); }
+      // note that dimensions in 'shape' are reversed for convenicnece, 
+      // since the it's the last dimension of the Vells array that iterates
+      // fastest. The strides in computeStrides() above are also reversed in
+      // this manner
+        : rank(vells.rank())
+      { 
+        int j = rank-1; 
+        for( int i=0; i<rank; i++,j-- )
+          shape[i] = vells.shape()[j];
+        memset(counter,0,sizeof(int)*rank); 
+      }
   
       // increments counter. Returns number of dimensions incremented
       // (i.e. 1 most of the time, when only the first dimension is being
@@ -532,7 +552,7 @@ class DimCounter
         while( ++counter[idim] >= shape[idim] )
         {
           counter[idim] = 0;
-          if( ++idim >= maxdim )
+          if( ++idim >= rank )
             return 0;
         }
         return idim+1;
@@ -577,6 +597,23 @@ class DimCounter
     ExpandMethodList(OPERNAME);
 
 DoForAllUnaryOperators(implementUnaryOperator,);
+
+// -----------------------------------------------------------------------
+// definitions for unary flag operators
+// -----------------------------------------------------------------------
+typedef Meq::VellsFlagType FT; // to keep things compact
+
+#define implementUnaryFlagOperator(OPER,OPERNAME,x) \
+  Meq::Vells Meq::Vells::operator OPER () const \
+  { \
+    Vells result(*this,VF_FLAGTYPE,"operator "#OPER); \
+    for( FT *ptr = result.begin<FT>(); ptr != result.end<FT>(); ptr++ ) \
+       (*ptr) = OPER (*ptr); \
+    return result; \
+  }
+  
+DoForAllUnaryFlagOperators(implementUnaryFlagOperator,);
+
 
 // -----------------------------------------------------------------------
 // definitions for unary functions, Group 1
@@ -868,17 +905,52 @@ Meq::Vells::UnaryWithShapeOperPtr Meq::Vells::unifunc_nelements_lut[VELLS_LUT_SI
 DoForAllBinaryOperators(implementBinaryOperator,);
 
 // -----------------------------------------------------------------------
+// definitions for binary flag operators
+// -----------------------------------------------------------------------
+
+// provide implementation for flag ops: separate ones for a Vells rhs
+// and for a scalar rhs
+#define implementBinaryFlagOperator(OPER,OPERNAME,dum) \
+  Meq::Vells Meq::Vells::operator OPER (const Meq::Vells &right) const \
+  { int sta[Axis::MaxAxis],stb[Axis::MaxAxis]; \
+    Vells result(*this,right,VF_FLAGTYPE,sta,stb,"operator "#OPER); \
+    FT *py = result.begin<FT>(); \
+    const FT *pa = begin<FT>(); \
+    const FT *pb = right.begin<FT>(); \
+    if( isScalar() && right.isScalar() ) \
+      *py = (*pa) OPER (*pb); \
+    else { \
+      DimCounter counter(result);  \
+      ConstStridedIterator<FT> ia(pa,sta); \
+      ConstStridedIterator<FT> ib(pb,stb); \
+      for(;;) { \
+        *py = (*ia) OPER (*ib); \
+        int ndim = counter.incr(); \
+        if( ndim <= 0 ) \
+          break; \
+        py++; ia.incr(ndim); ib.incr(ndim); \
+      } \
+    } \
+    return result; \
+  } \
+  Meq::Vells Meq::Vells::operator OPER (FT right) const \
+  { \
+    Vells result(*this,VF_FLAGTYPE,"operator "#OPER); \
+    for( FT *ptr = result.begin<FT>(); ptr != result.end<FT>(); ptr++ ) \
+       (*ptr) OPER##= right; \
+    return result; \
+  }
+
+DoForAllBinaryFlagOperators(implementBinaryFlagOperator,);
+
+// -----------------------------------------------------------------------
 // definitions for in-place operators
 // -----------------------------------------------------------------------
 
-//****************** think how to do this properly
-// problem is, we may need to reformat Y if X has variability along an axis
-// that is constant in Y. In this case, perhaps explicitly remap y OP= X
-// to y = y OP x? 
-
 // defines a templated implementation of an in-place operator
 //    y OPER = x (i.e., +=, -=, etc.)
-// this version only called when the variability of y is not less than that of x
+// this version only called when the variability of y is >= that of x,
+// (otherwise remapped to y = y + x, see declarations in Vells.h)
 #define defineInPlaceOperTemplate(OPER,OPERNAME,dum) \
   template<class TOut,class TY,class TX> \
   static void implement_binary_##OPERNAME##_inplace (Meq::Vells &y,\
@@ -907,6 +979,42 @@ DoForAllBinaryOperators(implementBinaryOperator,);
     ExpandBinaryLUTMatrix(OPERNAME##_inplace);
 
 DoForAllInPlaceOperators(implementInPlaceOperator,);
+
+// -----------------------------------------------------------------------
+// definitions for in-place flag operators
+// -----------------------------------------------------------------------
+
+// defines a templated implementation of an in-place flag operator
+//    y OPER = x (i.e., +=, -=, etc.)
+#define implementInPlaceFlagOperator(OPER,OPERNAME,dum) \
+  Meq::Vells & Meq::Vells::operator OPER##= (const Meq::Vells &right) \
+  { FailWhen(!isFlags() || !right.isFlags(),"=" #OPER " can only be applied to flags"); \
+    int strides[Axis::MaxAxis]; \
+    if( canApplyInPlace(right,strides,#OPERNAME) ) \
+    { \
+      FT * py = this->begin<FT>(); \
+      DimCounter counter(*this);  \
+      ConstStridedIterator<FT> ix(right.begin<FT>(),strides); \
+      for(;;) { \
+        *py OPER##= *ix; \
+        int ndim = counter.incr(); \
+        if( ndim <= 0 ) \
+          break; \
+        py++; ix.incr(ndim); \
+      } \
+    } \
+    else \
+     (*this) = (*this) OPER right; \
+    return *this; \
+  } \
+  Meq::Vells & Meq::Vells::operator OPER##= (FT right) \
+  { FailWhen(!isFlags(),"=" #OPER " can only be applied to flags"); \
+    for( FT *ptr = begin<FT>(); ptr != end<FT>(); ptr++ ) \
+       (*ptr) OPER##= right; \
+    return *this; \
+  }
+    
+DoForAllInPlaceFlagOperators(implementInPlaceFlagOperator,);
 
 
 // -----------------------------------------------------------------------

@@ -38,6 +38,10 @@ namespace DMI
 class List : public Container
 {
   public:
+      // No need to supply realtype to List constructor: the header block
+      // is always re-generated within toBlock(), hence the right type is
+      // always stored.
+      
       List ();
 
       List (const List &other, int flags = 0, int depth = 0);

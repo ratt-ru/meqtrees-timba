@@ -20,49 +20,29 @@
 //#
 //# $Id$
 
-#ifndef MEQ_GAUSSNOISE_H
-#define MEQ_GAUSSNOISE_H
+#ifndef MEQ_NOISENODE_H
+#define MEQ_NOISENODE_H
 
 #include <MEQ/Function.h>
-#include <MeqNodes/BlitzRandom.h>
-#include <MeqNodes/NoiseNode.h>
-
-#include <MeqNodes/TID-MeqNodes.h>
-#pragma aidgroup MeqNodes
-#pragma types #Meq::GaussNoise
-#pragma aid StdDev
 
 namespace Meq {    
 
-// state field for stddev (optional, can also be supplied by child 2)
-const HIID FStdDev = AidStdDev;
+// state field to specify active axes
+const HIID FAxesIndex = AidAxes|AidIndex;
 
 //##ModelId=400E530400AB
-class GaussNoise : public NoiseNode
+// Abstract base class for noise generators
+// Basically, this provides handling of output shapes
+class NoiseNode : public Function
 {
-public:
-    //##ModelId=400E535502AC
-  GaussNoise();
-    //##ModelId=400E535502AD
-  virtual ~GaussNoise();
-  
-    //##ModelId=400E535502B3
-  virtual TypeId objectType() const
-  { return TpMeqGaussNoise; }
-
 protected:
-  // sets up state from state record
+  Vells::Shape getShape (const Request &req);
+    
+  // sets up axes from state record
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
-
-  // evaluate result
-  virtual Vells evaluate (const Request&,const LoShape &,
-			  const vector<const Vells*>& values);
   
-
-  // current standard deviation
-  double stddev_;
-  // random number generator
-  RndGen::Normal<double> generator_;
+  // active axes -- if empty, shape of input cells will be used
+  std::vector<int> axes_;
 
 };
 

@@ -218,7 +218,7 @@ int DMI::List::toBlock (BlockSet &set) const
     Assert(i<numitems);
     if( iter->valid() )
     {
-      nref += hdr->item_bc[i] = (*iter)->toBlock(set);
+      nref += hdr->item_bc[i] = iter->deref().toBlock(set);
       dprintf(3)("%d [%s] generated %d blocks\n",i,iter->sdebug(1).c_str(),hdr->item_bc[i]);
     }
     else

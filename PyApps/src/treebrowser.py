@@ -735,8 +735,6 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
       dialog.setCaption("Save forest");
-      if parent is not None:
-        parent._save_forest_dialog = dialog;
     if dialog.exec_loop() == QDialog.Accepted:
       fname = str(dialog.selectedFile());
       rec = srecord(file_name=fname,get_forest_status=True);
@@ -750,8 +748,6 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
       dialog.setCaption("Load forest");
-      if parent is not None:
-        parent._load_forest_dialog = dialog;
     if dialog.exec_loop() == QDialog.Accepted:
       fname = str(dialog.selectedFile());
       rec = srecord(file_name=fname,get_forest_status=True);

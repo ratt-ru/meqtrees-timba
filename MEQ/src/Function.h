@@ -44,28 +44,24 @@ public:
     //##ModelId=3F86886E03D1
   virtual ~Function();
 
-// 11/07/04 OMS: phased out: no need, shape obtained from Cells and
-// all children must conform
-//   // Find the shape of the result for evaluate. Usually the default 
-//   // implementation is sufficient which takes
-//   // the maximum of the values of the children.
-//     //##ModelId=400E5306027C
-//   virtual LoShape resultShape (const vector<const Vells*>& values);
-
-// phased out 22/03/04
-//   // Evaluate the value for the given request.
-//   // The default throws an exception.
-//   // NB: this will be phased out
-//     //##ModelId=3F95060C0321
-//   virtual void evaluateVells (Vells& result,const Request&,
-// 			      const vector<const Vells*>& values);
-
-    
   // Evaluate the value for the given request. The output shape is
   // passed in as the shape argument (usually taken from first child, rest
-  // mus conform)
+  // must conform).
+  // Must be reimplemented, as default version throws an exception.
     //##ModelId=3F86886F00B0
   virtual Vells evaluate (const Request &req,const LoShape &shape,const vector<const Vells*>&);
+  
+  // Evaluate the flags for the given request, and return them in 'out'.
+  // If out is not a valid ref, a new Vells should be created. (If it is,
+  // assume some initial flags are passed in, and do not reinitialize).
+  // The output shape is passed in as the shape argument. Note that some 
+  // children may be missing flags; in this case the corresponding Vells* 
+  // will be 0.
+  // If no flags were generated (e.g. due to all children pointers being 0),
+  // 'out' may be left uninitialized.
+  // Default version returns a bitwise-OR of all valid child flags.
+    //##ModelId=3F86886F00B0
+  virtual void evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const Vells*>&);
 
   // Find all spids for this node by merging the spids in all results.
     //##ModelId=3F86886F0108
@@ -74,48 +70,6 @@ public:
   // Returns the class TypeId
     //##ModelId=400E53070274
   virtual TypeId objectType() const;
-
-// /*** OMS 08/07/04:
-//      phasing this out. No need to test for number of children, since
-//      we can already do this by using nchildren in the constructor,
-//      and testing the child types violates the whole principle of
-//      "no knowledge of child types"
-//      
-//   // Check the children after they have been resolved in class Node.
-//   // The order of the children is the order as given when the Node object
-//   // was created.
-//     //##ModelId=3F95060D0060
-//   virtual void checkChildren();
-// 
-//   // Same as checkChildren, but it also tests if the number of children
-//   // is correct (using the function testChildren).
-//   // This is only done if not already done yet for this node object.
-//   // If already done, false is returned.
-//     //##ModelId=400E530702E6
-//   bool convertChildren (int nchild);
-// 
-//   // Same as convertChildren, but the order of the children is the order as
-//   // the HIIDs given in the vector. If the number of children exceeds
-//   // the vector size, the remaining ones are stored at the end in their
-//   // original order.
-//   // If nchild==0, it is set to the vector size.
-//   // This is only done if not already done yet for this node object.
-//   // If already done, false is returned.
-//     //##ModelId=400E5308008E
-//   bool convertChildren (const vector<HIID>& childNames, int nchild=0);
-// 
-//   // Test the number of children.
-//   // If the argument nchild is positive, it checks if the number
-//   // of children matches exactly. If negative, it checks if the
-//   // number of children is at least nchild. If zero, no test is done.
-//     //##ModelId=400E53080325
-//   void testChildren (int nchild) const;
-// 
-//   // Test if the types of the children match the given types.
-//   // It has to be done after check/convertChildren is done.
-//     //##ModelId=400E530900C1
-//   void testChildren (const vector<TypeId>& childTypes) const;
-// ***/
 
 protected:
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
@@ -136,17 +90,6 @@ protected:
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
-
-  // helper function: combines child flags into output vellset using the
-  // flag settings below. Returns true if a flag column is generated, false 
-  // if none
-  bool combineChildFlags (VellSet &vellset,const std::vector<const VellSet*> &child_vs);
-
-
-//*** OMS 08/07/04: phased out, see above
-//    //##ModelId=3F86886F01D9
-//  vector<Node*>& children()
-//    { return itsChildren; }
 
   vector<int> flagmask_;
   bool enable_flags_;

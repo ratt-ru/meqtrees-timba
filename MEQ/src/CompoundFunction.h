@@ -39,6 +39,10 @@ public:
 
 protected:
     
+  virtual void evalFlags (std::vector<Vells::Ref> &flagrefs,
+          const std::vector<const Vells*> &values,
+          const Cells &cells);
+    
   virtual void evalResult (std::vector<Vells> &res,
           const std::vector<const Vells*> &values,
           const Cells &cells) 

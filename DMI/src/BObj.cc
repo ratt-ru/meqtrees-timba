@@ -40,5 +40,3 @@ void DMI::BObj::print (std::ostream &str) const
   str << objectType(); 
 }
 
-
-

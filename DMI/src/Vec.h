@@ -40,13 +40,17 @@ class Vec : public Container
       //##ModelId=3C3D64DC016E
       Vec ();
 
-      //##ModelId=3C3EE3EA022A
-      Vec (const Vec &right, int flags = 0, int depth = 0);
-
       //##ModelId=3BFA54540099
       //##Documentation
       //## Constructs an empty data field
-      explicit Vec (TypeId tid, int num = -1, const void *data = 0);
+      // realtype is required for derived classes -- they should pass in their
+      // type id here, as the array block may be filled in the constructor and
+      // the virtual objectType() when called from within does not return the
+      // correct type
+      explicit Vec (TypeId tid, int num = -1, const void *data = 0,TypeId realtype=0);
+      
+      //##ModelId=3C3EE3EA022A
+      Vec (const Vec &right, int flags = 0, int depth = 0,TypeId realtype=0);
 
     //##ModelId=3DB9346F0095
       ~Vec();
@@ -56,7 +60,7 @@ class Vec : public Container
 
 
       //##ModelId=3C6161190193
-      Vec & init (TypeId tid, int num = -1, const void *data = 0);
+      Vec & init (TypeId tid, int num = -1, const void *data = 0,TypeId realtype=0);
 
       //##ModelId=3C627A64008E
       bool valid () const;
@@ -88,7 +92,7 @@ class Vec : public Container
         FailWhen(type() != typeIdOf(T),"DMI::Vec type mismatch");
         FailWhen(!dynamic_type,"DMI::Vec::as<> can only be applied to dynamic objects");
         const ObjRef &ref = resolveObject(n);
-        return dynamic_cast<const T&>(*resolveObject(n));
+        return ref.as<T>();
       }
       
       template<class T>
@@ -98,7 +102,7 @@ class Vec : public Container
         FailWhen(type() != typeIdOf(T),"DMI::Vec type mismatch");
         FailWhen(!dynamic_type,"DMI::Vec::as<> can only be applied to dynamic objects");
         ObjRef &ref = resolveObject(n);
-        return dynamic_cast<T&>(resolveObject(n)());
+        return ref.as<T>();
       }
       
       //##ModelId=3C3D5F2001DC
@@ -120,7 +124,7 @@ class Vec : public Container
       virtual CountedRefTarget* clone (int flags = 0, int depth = 0) const;
 
       //##ModelId=3C3EE42D0136
-      void cloneOther (const Vec &other, int flags, int depth, bool constructing);
+      void cloneOther (const Vec &other, int flags, int depth, bool constructing,TypeId realtype);
 
       //##ModelId=3D05E2F301D2
       //##Documentation

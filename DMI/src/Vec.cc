@@ -39,19 +39,19 @@ DMI::Vec::Vec ()
 }
 
 //##ModelId=3C3EE3EA022A
-DMI::Vec::Vec (const Vec &right, int flags, int depth)
+DMI::Vec::Vec (const Vec &right, int flags, int depth,TypeId realtype)
     :Container(),spvec(0),mytype(0)
 {
   dprintf(2)("copy constructor (%s,%x)\n",right.debug(),flags);
-  cloneOther(right,flags,depth,true);
+  cloneOther(right,flags,depth,true,realtype);
 }
 
 //##ModelId=3BFA54540099
-DMI::Vec::Vec (TypeId tid, int num, const void *data)
+DMI::Vec::Vec (TypeId tid, int num, const void *data,TypeId realtype)
     : spvec(0),mytype(0),mysize_(0)
 {
   dprintf(2)("constructor(%s,%d)\n",tid.toString().c_str(),num);
-  init(tid,num,data);
+  init(tid,num,data,realtype);
 }
 
 //##ModelId=3DB9346F0095
@@ -70,7 +70,7 @@ DMI::Vec & DMI::Vec::operator = (const DMI::Vec &right)
     dprintf(2)("assignment of %s\n",right.debug());
     clear();
     if( right.valid() )
-      cloneOther(right,0,0,false);
+      cloneOther(right,0,0,false,objectType());
   }
   return *this;
 }
@@ -82,7 +82,7 @@ void DMI::Vec::makeNewHeader (size_t extra_size) const
 }
 
 //##ModelId=3C6161190193
-DMI::Vec & DMI::Vec::init (TypeId tid, int num, const void *data)
+DMI::Vec & DMI::Vec::init (TypeId tid, int num, const void *data,TypeId realtype)
 {
   //
   // NB: shared memory flags ought to be passed into the SmartBlock
@@ -134,7 +134,7 @@ DMI::Vec & DMI::Vec::init (TypeId tid, int num, const void *data)
         // allocate header and copy data
         size_t datasize = typeinfo.size*mysize_;
         makeNewHeader(datasize);
-        BObj::fillHeader(phead_,1);
+        BObj::fillHeader(phead_,1,realtype?realtype:objectType());
         phead_->type = mytype;
         phead_->size = scalar ? -mysize_ : mysize_;
         if( data )
@@ -544,7 +544,7 @@ DMI::CountedRefTarget* DMI::Vec::clone (int flags, int depth) const
 }
 
 //##ModelId=3C3EE42D0136
-void DMI::Vec::cloneOther (const DMI::Vec &other,int flags,int depth,bool constructing)
+void DMI::Vec::cloneOther (const DMI::Vec &other,int flags,int depth,bool constructing,TypeId realtype)
 {
   Thread::Mutex::Lock _nclock(mutex());
   Thread::Mutex::Lock _nclock1(other.mutex());
@@ -562,8 +562,16 @@ void DMI::Vec::cloneOther (const DMI::Vec &other,int flags,int depth,bool constr
   // copy the header ref and reset pointer
   headref_.copy(other.headref_,flags,depth);
   phead_ = headref_.valid() 
-           ? static_cast<HeaderBlock*>(const_cast<void*>(headref_->data())) 
+           ? const_cast<HeaderBlock*>(headref_->pdata<HeaderBlock>())
            : 0;
+  // re-write type to headref if needed
+  if( !realtype )
+    realtype = objectType();
+  if( realtype != other.objectType() )
+  {
+    phead_ = headref_().pdata<HeaderBlock>();
+    BObj::fillHeader(phead_,phead_->blockcount,realtype);
+  }
   if( dynamic_type )   // handle dynamic types
   {
     objstate = other.objstate;

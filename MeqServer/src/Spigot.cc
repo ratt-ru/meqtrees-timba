@@ -129,20 +129,29 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
         const LoCube_int & flags   = tile.flags();
 //        cout<<"Tile flags: "<<flags<<endl;
         const LoVec_int  rowflag = tile.rowflag()(rowrange);
+        typedef Vells::Traits<VellsFlagType,2>::Array FlagMatrix; 
         for( int i=0; i<nplanes; i++ )
         {
-          VellSet::FlagArrayType & fl = result.vellSetWr(i).
-                  initOptCol<VellSet::FLAGS>();
-          // apply flags with mask
+          Vells::Ref flagref;
+          // applyall  flags with mask
           if( flag_mask )
           {
-            fl = cast<VellSet::FlagType>(
-                  flags(i,LoRange::all(),rowrange) & flag_mask );
+            flagref <<= new Vells(LoShape(colshape[1],nrows),VellsFlagType(),false);
+            FlagMatrix &fl = flagref().getArray<VellsFlagType,2>();
+            fl = flags(i,LoRange::all(),rowrange) & flag_mask;
+            if( row_flag_mask )
+              for( int j=0; j<nrows; j++ )
+                fl(LoRange::all(),j) |= rowflag(j) & row_flag_mask;
+            result.vellSetWr(i).setDataFlags(flagref);
           }
-          // apply row flags with mask
-          if( row_flag_mask )
-            for( int j=0; j<nrows; j++ )
-              fl(LoRange::all(),j) |= rowflag(j) & row_flag_mask;
+          else if( row_flag_mask ) // apply only row flags with a mask
+          {
+            // shape of flag array is 1D (time only)
+            flagref <<= new Vells(LoShape(1,nrows),VellsFlagType(),true);
+            FlagMatrix &fl = flagref().getArray<VellsFlagType,2>();
+            fl(0,LoRange::all()) |= rowflag & row_flag_mask;
+            result.vellSetWr(i).setDataFlags(flagref);
+          }
         }
       }
       else

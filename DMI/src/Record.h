@@ -64,6 +64,9 @@ class Record : public Container
         HONOR_PROTECT   =0x20000000,  
       } RecordFlags;
   
+      // No need to supply realtype to Record constructor: the header block
+      // is always re-generated within toBlock(), hence the right type is
+      // always stored.
       //##ModelId=3C5820AD00C6
       Record ();
 

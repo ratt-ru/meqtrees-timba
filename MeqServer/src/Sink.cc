@@ -192,13 +192,13 @@ int Sink::procPendingTile (VisCube::VTile::Ref &tileref)
       {
         FailWhen(coltype!=Tpdouble,"type mismatch: double Vells, "+coltype.toString()+" column");
         fillTileColumn(static_cast<double*>(coldata),colshape,pending.range,
-                        vells.getArray<double,2>(),icorr);
+                        vells.getConstArray<double,2>(),icorr);
       }
       else  // complex values
       {
         FailWhen(coltype!=Tpfcomplex,"type mismatch: complex Vells, "+coltype.toString()+" column");
         fillTileColumn(static_cast<fcomplex*>(coldata),colshape,pending.range,
-                      vells.getArray<dcomplex,2>(),icorr);
+                      vells.getConstArray<dcomplex,2>(),icorr);
       }
       resflag |= RES_UPDATED;
     }

@@ -113,9 +113,9 @@ namespace DMI_TL
 
 // TpArray(tpelem,ndim) returns the TypeId of array with element type tpelem,
 // and rank ndim,
-#define TpintArray(tpelem,ndim) (-(32*(ndim) - (tpelem)))
+#define TpArray_int(tpelem,ndim) (-(32*(ndim) - (tpelem)))
 inline TypeId TpArray (TypeId tpelem,int ndim)
-{ return TpintArray(tpelem.id(),ndim); }
+{ return TpArray_int(tpelem.id(),ndim); }
 // Alias for vector
 inline TypeId TpVec (TypeId tpelem)
 { return TpArray(tpelem,1); }
@@ -213,7 +213,7 @@ class DMIBaseTypeTraits< blitz::Array<T,N> > : public TypeTraits< blitz::Array<T
 {
   public:
   enum { isContainable = DMITypeTraits<T>::isLorrayable && N<10 };
-  enum { typeId = TpintArray(DMIBaseTypeTraits<T>::typeId,N) };
+  enum { typeId = TpArray_int(DMIBaseTypeTraits<T>::typeId,N) };
   enum { TypeCategory = TypeCategories::INTERMEDIATE };
   enum { isLorray     = true };
   enum { isArray      = true };

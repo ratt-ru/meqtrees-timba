@@ -134,11 +134,11 @@ private:
   //   in both dimensions 
   LoMat_double renorm;
   
-  // pointer to output flags, 0 if no flagging
-  VellSet::FlagArrayType *outflags;
+//  // pointer to output flags, 0 if no flagging
+//  VellSet::FlagArrayType *outflags;
   
-  // pointer to input flags, 0 if no flagging
-  const VellSet::FlagArrayType *inflags;
+//  // pointer to input flags, 0 if no flagging
+//  const VellSet::FlagArrayType *inflags;
 };  
 
 

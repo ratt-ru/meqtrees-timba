@@ -90,21 +90,43 @@ int CompoundFunction::checkChildResults (Result::Ref &resref,
   return 0;
 }
     
+void CompoundFunction::evalFlags (std::vector<Vells::Ref> &flagrefs,
+          const std::vector<const Vells*> &values,const Cells &) 
+{
+  Vells::Ref flags;
+  for( uint i=0; i<values.size(); i++ )
+    if( values[i]->hasDataFlags() )
+      if( flags.valid() )
+        flags() |= values[i]->dataFlags();
+      else
+        flags.attach(values[i]->dataFlags());
+  if( flags.valid() )
+    for( uint i=0; i<flagrefs.size(); i++ )
+      if( flagrefs[i].valid() )
+        flagrefs[i]() |= *flags;
+      else
+        flagrefs[i] = flags;
+}
+
+
 void CompoundFunction::computeValues ( Result &result,const std::vector<const VellSet *> &chvs )
 {
   // collect vector of pointers to main values
   int num_children = chvs.size();
-  std::vector<Thread::Mutex::Lock> childvs_lock(num_children);
-  std::vector<Thread::Mutex::Lock> childval_lock(num_children);
-  std::vector<Thread::Mutex::Lock> childpvv_lock[2];
-  childpvv_lock[0].resize(num_children);
-  childpvv_lock[1].resize(num_children);
+// 30/01/05 OMS: remove these locks for now: usage of COW refs everywhere 
+// makes them unnecessary. If our thread holds a ref to the object, it's 
+// guranteed to not change under us thanks to COW.
+//   std::vector<Thread::Mutex::Lock> childvs_lock(num_children);
+//   std::vector<Thread::Mutex::Lock> childval_lock(num_children);
+//   std::vector<Thread::Mutex::Lock> childpvv_lock[2];
+//   childpvv_lock[0].resize(num_children);
+//   childpvv_lock[1].resize(num_children);
   vector<const Vells *> mainvals(num_children);
   for( int i=0; i<num_children; i++ ) 
   {
-    childvs_lock[i].relock(chvs[i]->mutex());
+//    childvs_lock[i].relock(chvs[i]->mutex());
     mainvals[i] = &( chvs[i]->getValue() );
-    childval_lock[i].relock(mainvals[i]->mutex());
+//    childval_lock[i].relock(mainvals[i]->mutex());
   }
  
   // determine output spids and # of pert sets
@@ -124,18 +146,15 @@ void CompoundFunction::computeValues ( Result &result,const std::vector<const Ve
   const LoShape &res_shape = res_cells.shape();
   
   // evaluate main value
+  vector<Vells::Ref> out_flags(nout);
+  evalFlags(out_flags,mainvals,res_cells);
   vector<Vells> out_values(nout);
   evalResult(out_values,mainvals,res_cells);
   for( int i=0; i<nout; i++ )
-    out_vs[i]->setValue(out_values[i]);
-  
-  // combine flags from children
-  if( combineChildFlags(*(out_vs[0]),chvs) && nout>1 )
   {
-    // if more than one output vellset, duplicate flags column (by ref, of course)
-    DMI::NumArray::Ref flagcol = out_vs[0]->getOptColRef(VellSet::FLAGS);
-    for( int i=1; i<nout; i++ )
-      out_vs[i]->setOptCol(VellSet::FLAGS,flagcol.deref_p());
+    out_vs[i]->setValue(out_values[i]);
+    if( out_flags[i].valid() )
+      out_vs[i]->setDataFlags(out_flags[i]);
   }
   
   // Evaluate all perturbed values.
@@ -163,7 +182,7 @@ void CompoundFunction::computeValues ( Result &result,const std::vector<const Ve
         for( int ipert=0; ipert<std::max(vs.numPertSets(),npertsets); ipert++ )
         {
           const Vells &pvv = vs.getPerturbedValue(inx,ipert);
-          childpvv_lock[ipert][ich].relock(pvv.mutex());
+//          childpvv_lock[ipert][ich].relock(pvv.mutex());
           FailWhen(!pvv.isCompatible(res_shape),"mismatch in child result shapes");
           pert_values[ipert][ich] = &pvv;
           if( found[ipert] >=0 )

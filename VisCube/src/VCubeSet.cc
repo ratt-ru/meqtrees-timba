@@ -190,7 +190,7 @@ int VCubeSet::toBlock(BlockSet &set) const
   set.push(BlockRef(pb));
   // convert cubes
   for( CCI iter = cubes.begin(); iter != cubes.end(); iter++ )
-    bc += (*iter).deref().toBlock(set);
+    bc += iter->deref().toBlock(set);
   // fill header
   HeaderBlock *hdr = pb->pdata<HeaderBlock>();
   BObj::fillHeader(hdr,bc);

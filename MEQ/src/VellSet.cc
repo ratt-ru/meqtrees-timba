@@ -48,18 +48,19 @@ static inline HIID FiPerturbedValues (int iset)
   return FieldWithSuffix(FPerturbedValues,iset);
 }
 
-static const HIID optColFieldId_array[] = { FFlags, FWeight };
-
-
-const HIID & OptionalColumns::optColFieldId (uint icol)
-{
-  DbgAssert1(icol<NUM_OPTIONAL_COL);
-  return optColFieldId_array[icol];
-}
+// OMS 28/01/05: phasing this out, replace with explicit data flags
+// static const HIID optColFieldId_array[] = { FFlags, FWeight };
+// 
+// const HIID & OptionalColumns::optColFieldId (uint icol)
+// {
+//   DbgAssert1(icol<NUM_OPTIONAL_COL);
+//   return optColFieldId_array[icol];
+// }
 
 //##ModelId=400E5355031E
 VellSet::VellSet (const LoShape &shp,int nspid,int nset)
 : pvalue_       (0),
+  pflags_       (0),
   default_pert_ (0.),
   pset_         (nset),
   spids_        (0),
@@ -72,6 +73,7 @@ VellSet::VellSet (const LoShape &shp,int nspid,int nset)
 
 VellSet::VellSet (int nspid,int nset)
 : pvalue_       (0),
+  pflags_       (0),
   default_pert_ (0.),
   pset_         (nset),
   spids_        (0),
@@ -83,9 +85,9 @@ VellSet::VellSet (int nspid,int nset)
 
 void VellSet::init ()
 {
-  // clear optional columns
-  for( uint i=0; i<NUM_OPTIONAL_COL; i++ )
-    optcol_[i].ptr = 0;
+//  // clear optional columns
+//  for( uint i=0; i<NUM_OPTIONAL_COL; i++ )
+//    optcol_[i].ptr = 0;
   // create appropriate fields in the record: spids vector and perturbations vector
   if( numspids_ )
   {
@@ -108,9 +110,9 @@ VellSet::VellSet (const DMI::Record &other,int flags,int depth)
   numspids_     (0),
   is_fail_      (false)
 {
-  // clear optional columns
-  for( uint i=0; i<NUM_OPTIONAL_COL; i++ )
-    optcol_[i].ptr = 0;
+//  // clear optional columns
+//  for( uint i=0; i<NUM_OPTIONAL_COL; i++ )
+//    optcol_[i].ptr = 0;
   Record::cloneOther(other,flags,depth,true);
 }
 
@@ -141,10 +143,7 @@ void VellSet::setShape (const Vells::Shape &shp)
   Thread::Mutex::Lock lock(mutex());
   if( hasShape() )
   {
-    if( shape_ != shp)
-    {
-      Throw("different VellSet shape already set");
-    }
+    FailWhen(shape_ != shp,"different VellSet shape already set");
   }
   else
   {
@@ -153,6 +152,7 @@ void VellSet::setShape (const Vells::Shape &shp)
     Record::addField(FShape,ref,DMI::REPLACE|Record::PROTECT);
   }
 }
+
     
 //##ModelId=400E5355033A
 void VellSet::validateContent (bool)
@@ -181,34 +181,58 @@ void VellSet::validateContent (bool)
       }
       else
         shape_.clear();
+      // get flags, if they exist in the data record
+      fld = Record::findField(FFlags);
+      const Vells * flagvells = 0;
+      if( fld )
+      {
+        pflags_ = &( fld->ref.ref_cast<Vells>() );
+        flagvells = pflags_->deref_p();
+        // check for matching shape
+        FailWhen(!flagvells->isFlags(),"dataflags: invalid type "+flagvells->elementType().toString());
+        FailWhen(!flagvells->isCompatible(shape_),"dataflags: incompatible shape");
+        fld->protect = true;
+      }
+      else
+        pflags_ = 0;
       // get value, if it exists in the data record
       fld = Record::findField(FValue);
       if( fld )
       {
         pvalue_ = &( fld->ref.ref_cast<Vells>() );
         // check for matching shape
-        FailWhen(!pvalue_->deref().isCompatible(shape_),"main value: incompatible shape");
+        const Vells &val = pvalue_->deref();
+        FailWhen(!val.isCompatible(shape_),"main value: incompatible shape");
         fld->protect = true;
+        // init flags in this Vells
+        Vells::Ref &vr = *pvalue_;
+        if( flagvells )
+        {
+          if( !vr->hasDataFlags() || &(vr->dataFlags()) != flagvells )
+            vr().setDataFlags(flagvells);
+        }
+        else if( vr->hasDataFlags() ) // get rid of flags if we have none
+          vr().clearDataFlags();
       }
       else
         pvalue_ = 0;
-      // get optional columns, if they exist in the data record
-      for( int i=0; i<NUM_OPTIONAL_COL; i++ )
-      {
-        Hook hcol(*this,optColFieldId(i));
-        if( hcol.exists() )
-        {
-          FailWhen(!pvalue_,"missing main value");
-          const DMI::NumArray &darr = *(optcol_[i].ref = hcol.ref());
-          FailWhen(darr.size() != 1 && darr.shape() != shape_,
-                   "column "+optColFieldId(i).toString()+": bad shape");
-          // cast away const here: writability is checked separately
-          optcol_[i].ptr = const_cast<void*>(darr.getConstArrayPtr(optColArrayType(i)));
-        }
-        else
-          optcol_[i].ptr = 0;
-      }
-      // get spids and petturbations, if they exist
+//       // get optional columns, if they exist in the data record
+//       for( int i=0; i<NUM_OPTIONAL_COL; i++ )
+//       {
+//         Hook hcol(*this,optColFieldId(i));
+//         if( hcol.exists() )
+//         {
+//           FailWhen(!pvalue_,"missing main value");
+//           const DMI::NumArray &darr = *(optcol_[i].ref = hcol.ref());
+//           FailWhen(darr.size() != 1 && darr.shape() != shape_,
+//                    "column "+optColFieldId(i).toString()+": bad shape");
+//           // cast away const here: writability is checked separately
+//           optcol_[i].ptr = const_cast<void*>(darr.getConstArrayPtr(optColArrayType(i)));
+//         }
+//         else
+//           optcol_[i].ptr = 0;
+//       }
+      // get spids and perturbations, if they exist
       fld = Record::findField(FSpids);
       if( fld )
       {
@@ -232,11 +256,32 @@ void VellSet::validateContent (bool)
           fld = Record::findField(fld_id);
           if( fld )
           {
-            const DMI::Vec &vec = fld->ref.as<DMI::Vec>();
-            FailWhen(vec.type() != TpMeqVells,fld_id.toString()+": not MeqVells");
-            FailWhen(vec.size() != numspids_,"size mismatch between spids and "+fld_id.toString());
-            pset_[iset].pertval_vec = &( fld->ref.ref_cast<DMI::Vec>() );
+            DMI::Vec::Ref *pvr = &( fld->ref.ref_cast<DMI::Vec>() );
+            const DMI::Vec * pvec = pvr->deref_p();
+            FailWhen(pvec->type() != TpMeqVells,fld_id.toString()+": not MeqVells");
+            FailWhen(pvec->size() != numspids_,"size mismatch between spids and "+fld_id.toString());
+            pset_[iset].pertval_vec = pvr;
             fld->protect = true;
+            // init flags in perturbed Vells
+            for( int i=0; i<numspids_; i++ )
+            {
+              const Vells &val = pvec->as<Vells>(i);
+              if( flagvells )
+              {
+                if( !val.hasDataFlags() || &(val.dataFlags()) != flagvells )
+                {
+                  DMI::Vec & wvec = pvr->dewr(); // COW as needed
+                  wvec.as<Vells>(i).setDataFlags(flagvells);
+                  pvec = &wvec;
+                }
+              }
+              else if( val.hasDataFlags() ) // get rid of flags if we have none
+              {
+                DMI::Vec & wvec = pvr->dewr(); // COW as needed
+                wvec.as<Vells>(i).clearDataFlags();
+                pvec = &wvec;
+              }
+            }
           }
           else
           {            // add new perturbed values field
@@ -279,76 +324,78 @@ void VellSet::clear()
   spids_ = 0;
   pset_.resize(0);
   pvalue_ = 0;
+  pflags_ = 0;
   is_fail_ = false;
-  // clear optional columns
-  for( int i=0; i<NUM_OPTIONAL_COL; i++ )
-  {
-    optcol_[i].ptr = 0;
-    optcol_[i].ref.detach();
-  }
-}
-
-void * VellSet::writeOptCol (uint icol)
-{
-  Thread::Mutex::Lock lock(mutex());
-  Assert(hasOptCol(icol));
-//   // ensure COW
-//   DMI::NumArray *parr = optcol_[icol].ref.privatize(DMI::WRITE).dewr_p();
-//   if( !optcol_[icol].ref.isWritable() )
+//   // clear optional columns
+//   for( int i=0; i<NUM_OPTIONAL_COL; i++ )
 //   {
-//     // if not writable, privatize for writing
-//     DMI::NumArray *parr = optcol_[icol].ref.privatize(DMI::WRITE).dewr_p();
-//     DMI::Record::replace(optColFieldId(icol),parr,DMI::WRITE);
-//     optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
+//     optcol_[i].ptr = 0;
+//     optcol_[i].ref.detach();
 //   }
-  return optcol_[icol].ptr;
 }
 
-void * VellSet::initOptCol (uint icol,bool array)
-{
-  Thread::Mutex::Lock lock(mutex());
-  // attach & return
-  DMI::NumArray *parr = array ? new DMI::NumArray(optColArrayType(icol),shape())
-                          : new DMI::NumArray(optColArrayType(icol),LoShape(1));
-  optcol_[icol].ref <<= parr;
-  (*this)[optColFieldId(icol)].replace() <<= parr;
-  return optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
-}
-
-void VellSet::doSetOptCol (uint icol,DMI::NumArray *parr,int dmiflags)
-{
-  Thread::Mutex::Lock lock(mutex());
-  FailWhen(!hasShape(),"VellSet shape not set");
-  FailWhen(parr->size() != 1 && parr->shape() != shape(),
-           "column "+optColFieldId(icol).toString()+": bad shape");
-  // get pointer to blitz array (this also verifies type)
-  optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
-  // attach & return
-  optcol_[icol].ref.attach(parr,dmiflags);
-  (*this)[optColFieldId(icol)].replace().put(*parr,dmiflags);
-}
-
-void VellSet::setOptCol (uint icol,const DMI::NumArray::Ref &ref)
-{
-  Thread::Mutex::Lock lock(mutex());
-  FailWhen(!hasShape(),"VellSet shape not set");
-  FailWhen(ref->size() != 1 && ref->shape() != shape(),
-           "column "+optColFieldId(icol).toString()+": bad shape");
-  // get pointer to blitz array (this also verifies type)
-  optcol_[icol].ptr = const_cast<void*>(ref->getConstArrayPtr(optColArrayType(icol)));
-  // attach & return
-  optcol_[icol].ref <<= ref;
-  (*this)[optColFieldId(icol)].replace() <<= optcol_[icol].ref.copy();
-}
-
-void VellSet::clearOptCol (int icol)
-{
-  Thread::Mutex::Lock lock(mutex());
-  Record::removeField(optColFieldId(icol),true,0);
-  optcol_[icol].ref.detach();
-  optcol_[icol].ptr = 0;
-}
-
+// OMS 28/01/05: phasing this out, replace with explicit data flags
+// void * VellSet::writeOptCol (uint icol)
+// {
+//   Thread::Mutex::Lock lock(mutex());
+//   Assert(hasOptCol(icol));
+// //   // ensure COW
+// //   DMI::NumArray *parr = optcol_[icol].ref.privatize(DMI::WRITE).dewr_p();
+// //   if( !optcol_[icol].ref.isWritable() )
+// //   {
+// //     // if not writable, privatize for writing
+// //     DMI::NumArray *parr = optcol_[icol].ref.privatize(DMI::WRITE).dewr_p();
+// //     DMI::Record::replace(optColFieldId(icol),parr,DMI::WRITE);
+// //     optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
+// //   }
+//   return optcol_[icol].ptr;
+// }
+// 
+// void * VellSet::initOptCol (uint icol,bool array)
+// {
+//   Thread::Mutex::Lock lock(mutex());
+//   // attach & return
+//   DMI::NumArray *parr = array ? new DMI::NumArray(optColArrayType(icol),shape())
+//                           : new DMI::NumArray(optColArrayType(icol),LoShape(1));
+//   optcol_[icol].ref <<= parr;
+//   (*this)[optColFieldId(icol)].replace() <<= parr;
+//   return optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
+// }
+// 
+// void VellSet::doSetOptCol (uint icol,DMI::NumArray *parr,int dmiflags)
+// {
+//   Thread::Mutex::Lock lock(mutex());
+//   FailWhen(!hasShape(),"VellSet shape not set");
+//   FailWhen(parr->size() != 1 && parr->shape() != shape(),
+//            "column "+optColFieldId(icol).toString()+": bad shape");
+//   // get pointer to blitz array (this also verifies type)
+//   optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
+//   // attach & return
+//   optcol_[icol].ref.attach(parr,dmiflags);
+//   (*this)[optColFieldId(icol)].replace().put(*parr,dmiflags);
+// }
+// 
+// void VellSet::setOptCol (uint icol,const DMI::NumArray::Ref &ref)
+// {
+//   Thread::Mutex::Lock lock(mutex());
+//   FailWhen(!hasShape(),"VellSet shape not set");
+//   FailWhen(ref->size() != 1 && ref->shape() != shape(),
+//            "column "+optColFieldId(icol).toString()+": bad shape");
+//   // get pointer to blitz array (this also verifies type)
+//   optcol_[icol].ptr = const_cast<void*>(ref->getConstArrayPtr(optColArrayType(icol)));
+//   // attach & return
+//   optcol_[icol].ref <<= ref;
+//   (*this)[optColFieldId(icol)].replace() <<= optcol_[icol].ref.copy();
+// }
+// 
+// void VellSet::clearOptCol (int icol)
+// {
+//   Thread::Mutex::Lock lock(mutex());
+//   Record::removeField(optColFieldId(icol),true,0);
+//   optcol_[icol].ref.detach();
+//   optcol_[icol].ptr = 0;
+// }
+// 
 
 void VellSet::setNumPertSets (int nsets)
 {
@@ -450,32 +497,78 @@ void VellSet::copyPerturbations (const VellSet &other)
   }
 }
 
-void VellSet::setValue (const Vells::Ref &vref,int flags)
+void VellSet::setDataFlags (const Vells::Ref &flags)
+{
+  Thread::Mutex::Lock lock(mutex());
+  FailWhen(!flags->isFlags(),"dataflags: invalid type "+flags->elementType().toString());
+  FailWhen(!hasShape(),"can't attach flags to VellSet until shape has been specified");
+  FailWhen(!flags->isCompatible(shape()),"shape of flags Vells not compatible with VellSet");
+  Field & field = Record::addField(FFlags,flags.ref_cast<BObj>(),DMI::REPLACE|Record::PROTECT);
+  pflags_ = &( field.ref.ref_cast<Vells>() );
+  // set flags in all values
+  if( pvalue_ )
+    pvalue_->dewr().setDataFlags(flags);
+  for( int iset=0; iset<numPertSets(); iset++ )
+  {
+    DMI::Vec & pvec = pset_[iset].pertval_vec->dewr();
+    for( int i=0; i<numSpids(); i++ )
+      pvec.as<Vells>(i).setDataFlags(flags);
+  }
+}
+
+void VellSet::clearDataFlags ()
+{
+  Thread::Mutex::Lock lock(mutex());
+  if( !pflags_ )
+    return;
+  pflags_ = 0;
+  // clear flags in all values
+  if( pvalue_ && pvalue_->deref().hasDataFlags() )
+    pvalue_->dewr().clearDataFlags();
+  for( int iset=0; iset<numPertSets(); iset++ )
+  {
+    const DMI::Vec * pvec = pset_[iset].pertval_vec->deref_p();
+    for( int i=0; i<numSpids(); i++ )
+      if( pvec->as<Vells>(i).hasDataFlags() )
+      {
+        DMI::Vec *wvec = pset_[iset].pertval_vec->dewr_p();
+        pvec = wvec;
+        wvec->as<Vells>(i).clearDataFlags();
+      }
+  }
+}
+
+
+void VellSet::setValue (Vells::Ref &ref,int flags)
 {
   Thread::Mutex::Lock lock(mutex());
   if( !hasShape() )
-    setShape(vref->shape());
+    setShape(ref->shape());
   else {
-    FailWhen(!vref->isCompatible(shape()),"main value: incompatible shape");
+    FailWhen(!ref->isCompatible(shape()),"main value: incompatible shape");
   }
-  ObjRef ref(vref,flags);
-  Field & field = Record::addField(FValue,ref,DMI::REPLACE|Record::PROTECT);
+  // attach flags if we have them
+  if( hasDataFlags() )
+    ref().setDataFlags(dataFlags());
+  Field & field = Record::addField(FValue,ref.ref_cast<BObj>(),flags|DMI::REPLACE|Record::PROTECT);
   pvalue_ = &( field.ref.ref_cast<Vells>() );
 }
 
-void VellSet::setPerturbedValue (int i,const Vells::Ref &vref,int iset)
+void VellSet::setPerturbedValue (int i,Vells::Ref &ref,int iset,int flags)
 {
   Thread::Mutex::Lock lock(mutex());
   DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
   FailWhen(!hasShape(),"VellSet shape not set");
-  FailWhen(!vref->isCompatible(shape()),
+  FailWhen(!ref->isCompatible(shape()),
         Debug::ssprintf("perturbed value %d/%d: incompatible shape",i,iset));
   PerturbationSet &ps = pset_[iset];
   // allocate container for perturbed values
   FailWhen(!ps.pertval_vec,"perturbed values not initialized in this VellSet");
-  ps.pertval_vec->dewr().put(i,vref);
+  // attach flags if we have them
+  if( hasDataFlags() )
+    ref().setDataFlags(dataFlags());
+  ps.pertval_vec->dewr().put(i,ref,flags);
 }
-
 
 //##ModelId=400E53550393
 void VellSet::addFail (const DMI::Record *rec,int flags)

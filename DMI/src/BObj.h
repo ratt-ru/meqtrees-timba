@@ -101,6 +101,11 @@ class BObj : public CountedRefTarget
         ph->tid = objectType();
         ph->blockcount = bc;
       }
+      void fillHeader (Header *ph,int bc,TypeId realtype) const
+      {
+        ph->tid = realtype;
+        ph->blockcount = bc;
+      }
       
       // verifies that header has the right type in it, and returns blockcount
       int checkHeader (const Header *ph) const

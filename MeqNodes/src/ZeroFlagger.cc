@@ -77,58 +77,47 @@ int ZeroFlagger::getResult (Result::Ref &resref,
     VellSet &vs = result.vellSetWr(iplane);
     // get main values 
     const Vells &value = vs.getValue();
-    if( value.isComplex() )
+    if( !value.isReal() )
     {
-      NodeThrow1("complex values not allowed in comparison");
+      NodeThrow1("ZeroFlagger: real input vells expected");
     }
     // get pointer to flags -- init flags if needed
-    VellSet::FlagArrayType & flags = vs.getOptColWr<VellSet::FLAGS>();
+    Vells * pflags = new Vells(value.shape(),VellsFlagType(),false);
+    Vells::Ref flagref(pflags);
     // apply operation
-    if( !value.isScalar() )
+    const double * pval = value.begin<double>(),
+                 * pvalend  = pval + value.nelements();
+    VellsFlagType * pfl = pflags->begin<VellsFlagType>();
+    switch( oper_.id() )
     {
-      const LoMat_double &val = value.getArray<double,2>();
-      using blitz::where;
-      switch( oper_.id() )
-      {
-        case AidEQ_int: flags |= where(val == 0 , flagbit_ , 0);
-                        break;
-        case AidNE_int: flags |= where(val != 0 , flagbit_ , 0);
-                        break;
-        case AidLT_int: flags |= where(val <  0 , flagbit_ , 0);
-                        break;
-        case AidGT_int: flags |= where(val >  0 , flagbit_ , 0);
-                        break;
-        case AidLE_int: flags |= where(val <= 0 , flagbit_ , 0);
-                        break;
-        case AidGE_int: flags |= where(val >= 0 , flagbit_ , 0);
-                        break;
-        default:
-            NodeThrow1("illegal operation configured: "+oper_.toString());
-      }
+      case AidEQ_int: 
+          for( ; pval<pvalend; pval++,pfl++ )
+            *pfl = (*pval) == 0 ? flagbit_ : 0;
+          break;
+      case AidNE_int: 
+          for( ; pval<pvalend; pval++,pfl++ )
+            *pfl = (*pval) != 0 ? flagbit_ : 0;
+          break;
+      case AidLT_int: 
+          for( ; pval<pvalend; pval++,pfl++ )
+            *pfl = (*pval) <  0 ? flagbit_ : 0;
+          break;
+      case AidGT_int: 
+          for( ; pval<pvalend; pval++,pfl++ )
+            *pfl = (*pval) >  0 ? flagbit_ : 0;
+          break;
+      case AidLE_int: 
+          for( ; pval<pvalend; pval++,pfl++ )
+            *pfl = (*pval) <= 0 ? flagbit_ : 0;
+          break;
+      case AidGE_int: 
+          for( ; pval<pvalend; pval++,pfl++ )
+            *pfl = (*pval) >= 0 ? flagbit_ : 0;
+          break;
+      default:
+          NodeThrow1("illegal operation to ZeroFlagger: "+oper_.toString());
     }
-    else
-    {
-      // value is single scalar
-      double val = value.as<double>();
-      switch( oper_.id() )
-      {
-        case AidEQ_int: flags |= (val == 0 ? flagbit_ : 0);
-                        break;
-        case AidNE_int: flags |= (val != 0 ? flagbit_ : 0);
-                        break;
-        case AidLT_int: flags |= (val <  0 ? flagbit_ : 0);
-                        break;
-        case AidGT_int: flags |= (val >  0 ? flagbit_ : 0);
-                        break;
-        case AidLE_int: flags |= (val <= 0 ? flagbit_ : 0);
-                        break;
-        case AidGE_int: flags |= (val >= 0 ? flagbit_ : 0);
-                        break;
-        default:
-            NodeThrow1("illegal operation configured: "+oper_.toString());
-      }
-    }
-    
+    vs.setDataFlags(flagref);
   }
   // return 0 flag, since we don't add any dependencies of our own
   return 0;
