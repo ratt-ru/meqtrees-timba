@@ -29,7 +29,7 @@ class WPQueue;
 
 //##ModelId=3C7B6A2D01F0
 
-class Message : public BlockableObject, public OctopussyDebugContext
+class Message : public BlockableObject
 {
   public:
       // some predefined priority levels
@@ -262,6 +262,8 @@ class Message : public BlockableObject, public OctopussyDebugContext
     //##ModelId=3DB936C40273
       string sdebug ( int detail = 1,const string &prefix = "",
                 const char *name = 0 ) const;
+      
+      ImportDebugContext(OctopussyDebugContext);
 
   protected:
     // Additional Protected Declarations
