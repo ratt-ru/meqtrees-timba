@@ -61,9 +61,6 @@ TypeIterMacros.h
 
 CXXFLAGS += -D_GNU_SOURCE 
 
-glishdir = $(libexecdir)/glish
-dist_glish_SCRIPTS = dmitypes.g
-
 include $(lofar_sharedir)/Makefile.aids
 include $(lofar_sharedir)/Makefile.common
 
