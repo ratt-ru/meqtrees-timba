@@ -55,6 +55,7 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         AtomicID::registerId(-1263,"Mask")+
         AtomicID::registerId(-1319,"Resample")+
         AtomicID::registerId(-1181,"Integrated")+
+        AtomicID::registerId(-1513,"Dims")+
         AtomicID::registerId(-1291,"Cells")+
         AtomicID::registerId(-1256,"Domain")+
         AtomicID::registerId(-1177,"Freq")+

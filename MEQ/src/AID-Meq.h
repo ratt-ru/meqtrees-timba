@@ -193,6 +193,11 @@ const int AidDeps_int = -1327;
 const DMI::AtomicID AidDeriv(-1324);              // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
 const int AidDeriv_int = -1324;
 #endif
+#ifndef _defined_id_AidDims
+#define _defined_id_AidDims 1
+const DMI::AtomicID AidDims(-1513);               // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:32
+const int AidDims_int = -1513;
+#endif
 #ifndef _defined_id_AidDomain
 #define _defined_id_AidDomain 1
 const DMI::AtomicID AidDomain(-1256);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:37
