@@ -692,7 +692,6 @@ class QwtImagePlot(QwtPlot):
 # toggle flags display	
       if menuid == 200:
         if self.flag_toggle == False:
-	  print 'setting toggle flag to true'
           self.flag_toggle = True
         else:
           self.flag_toggle = False
@@ -702,14 +701,11 @@ class QwtImagePlot(QwtPlot):
 	return
 
       if menuid == 201:
-        print 'caught signal of 201'
         if self.flag_blink == False:
-	  print 'setting blink flag to true'
           self.flag_blink = True
 	  self.timer = QTimer(self)
           self.timer.connect(self.timer, SIGNAL('timeout()'), self.timerEvent_blink)
           self.timer.start(2000)
-	  print 'started timer'
         else:
           self.flag_blink = False
 	return
@@ -827,11 +823,12 @@ class QwtImagePlot(QwtPlot):
         result = ''
         xpos = self.invTransform(QwtPlot.xBottom, x)
         ypos = self.invTransform(QwtPlot.yLeft, y)
+	marker_index = None
         if self._vells_plot:
 	  xpos1 = xpos
 	  if not self.split_axis is None:
 	    if xpos1 >  self.split_axis:
-	      xpos1 = xpos1 - self.split_axis
+	      xpos1 = xpos1 % self.split_axis
           temp_str = result + "x =%+.2g" % xpos1
           result = temp_str
           temp_str = result + " y =%+.2g" % ypos
@@ -843,14 +840,25 @@ class QwtImagePlot(QwtPlot):
 	  xpos1 = xpos
 	  if not self.split_axis is None:
 	    if xpos1 >  self.split_axis:
-	      xpos1 = xpos1 - self.split_axis
+	      xpos1 = xpos1 % self.split_axis
           temp_str = result + "x =%+.2g" % xpos1
           result = temp_str
           ypos = int(ypos)
-          temp_str = result + " y =%+.2g" % ypos
+	  ypos1 = ypos
+	  if not self.y_marker_step is None:
+	    if ypos1 >  self.y_marker_step:
+	      marker_index = ypos1 / self.y_marker_step
+	      ypos1 = ypos1 % self.y_marker_step
+	    else:
+	      marker_index = 0
+          temp_str = result + " y =%+.2g" % ypos1
           result = temp_str
         value = self.raw_image[xpos,ypos]
-        message = result + ' value: ' +  str(value)
+	message = None
+	if not marker_index is None:
+          message = result + ' value: ' +  str(value) + '\nsource: ' + self.marker_labels[marker_index]
+	else:
+          message = result + ' value: ' +  str(value) 
 
 # alias
         fn = self.fontInfo().family()
@@ -889,10 +897,10 @@ class QwtImagePlot(QwtPlot):
         label = self.marker_labels[i]
         mY = self.insertLineMarker('', QwtPlot.yLeft)
         self.setMarkerLinePen(mY, QPen(Qt.white, 2, Qt.DashDotLine))
-        self.setMarkerLabelAlign(mY, Qt.AlignRight | Qt.AlignBottom)
-        self.setMarkerLabel(mY, '',  QFont(fn, 12, QFont.Bold),
-                Qt.white, QPen(Qt.NoPen), QBrush(Qt.black))
-        self.setMarkerLabelText(mY, label)
+#        self.setMarkerLabelAlign(mY, Qt.AlignRight | Qt.AlignBottom)
+#        self.setMarkerLabel(mY, '',  QFont(fn, 12, QFont.Bold),
+#                Qt.white, QPen(Qt.NoPen), QBrush(Qt.black))
+#        self.setMarkerLabelText(mY, label)
         y = y + self.y_marker_step
         self.setMarkerYPos(mY, y)
     
@@ -1005,6 +1013,9 @@ class QwtImagePlot(QwtPlot):
                 self.setCurveYAxis(self.yCrossSectionLoc, QwtPlot.yLeft)
                 self.setCurveXAxis(self.yCrossSectionLoc, QwtPlot.xBottom)
               self.setCurveData(self.yCrossSectionLoc, self.y_arrayloc, self.y_index)
+              if self.is_combined_image:
+                self.removeMarkers()
+	        self.insert_marker_lines()
               self.replot()
               _dprint(2, 'called replot in onMousePressed');
            
@@ -1189,10 +1200,12 @@ class QwtImagePlot(QwtPlot):
         if not self.active_image_index is None:
           self.array_plot(self._plot_label[self.active_image_index], self._plot_dict[self.active_image_index])
           if self.active_image_index == self._combined_image_id:
+	    self.is_combined_image = True
             self.removeMarkers()
 	    self.insert_marker_lines()
         elif not self._combined_image_id is None:
           self.array_plot(self._plot_label[ self._combined_image_id], self._plot_dict[ self._combined_image_id])
+	  self.is_combined_image = True
           self.removeMarkers()
           self.insert_marker_lines()
 	else:
