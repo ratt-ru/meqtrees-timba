@@ -39,6 +39,14 @@ AC_ARG_WITH(aipspp,
 	[  --with-aipspp[=PFX]         enable use of AIPS++ (via AIPSPATH or explicit path)],
 	[with_aipspp="$withval"],
 	[with_aipspp=""])
+AC_ARG_WITH(lapack,
+	[  --with-lapack[=PFX]         enable use of LAPACK if needed by AIPS++],
+	[with_lapack="$withval"],
+	[with_lapack=""])
+AC_ARG_WITH(pgplot,
+	[  --with-pgplot[=PFX]         enable use of PGPLOT if needed by AIPS++],
+	[with_pgplot="$withval"],
+	[with_pgplot=""])
 [
 if test "$with_aipspp" = ""; then
   if test $lfr_option = "0"; then
@@ -46,6 +54,12 @@ if test "$with_aipspp" = ""; then
   else
     with_aipspp=yes;
   fi
+fi
+if test "$with_lapack" = ""; then
+    with_lapack=no;
+fi
+if test "$with_pgplot" = ""; then
+    with_pgplot=no;
 fi
 
 if test "$with_aipspp" = "no"; then
@@ -93,6 +107,25 @@ else
     fi
     AIPSPP_LDFLAGS="-L$AIPSPP_PATH/$AIPSPP_ARCH/lib"
     AIPSPP_LIBS="-ltrial -laips -ltrial_f -laips_f"
+
+    if test "$with_lapack" != "no"; then
+      ]AC_CHECK_FILE([$with_lapack],
+	             [lfr_lp=yes], [lfr_lp=no])[
+      if test $lfr_lp = no; then
+        ]AC_MSG_ERROR([given LAPACK directory not found])[
+      fi
+      AIPSPP_LDFLAGS="$AIPSPP_LDFLAGS -L$with_lapack"
+      AIPSPP_LIBS="$AIPSPP_LIBS -llapack -lblas"
+    fi
+    if test "$with_pgplot" != "no"; then
+      ]AC_CHECK_FILE([$with_pgplot],
+	             [lfr_pg=yes], [lfr_pg=no])[
+      if test $lfr_pg = no; then
+        ]AC_MSG_ERROR([given PGPLOT directory not found])[
+      fi
+      AIPSPP_LDFLAGS="$AIPSPP_LDFLAGS -L$with_pgplot"
+      AIPSPP_LIBS="$AIPSPP_LIBS -lcpgplot -lpgplot"
+    fi
 
     CPPFLAGS="$CPPFLAGS $AIPSPP_CPPFLAGS"
     if test "$lofar_compiler" = "gnu"; then
