@@ -19,6 +19,7 @@
 //## end module%3C10CC830069.additionalIncludes
 
 //## begin module%3C10CC830069.includes preserve=yes
+#include <list>
 //## end module%3C10CC830069.includes
 
 // NestableContainer
@@ -79,11 +80,11 @@ const NestableContainer::Hook & NestableContainer::Hook::privatize (int flags) c
 {
   //## begin NestableContainer::Hook::privatize%3C8739B5017C.body preserve=yes
   FailWhen(addressed,"unexpected '&' operator");
-  FailWhen(!nc->isWritable(),"r/w access violation");
-  TypeId target_tid; bool dum;
-  void *target = const_cast<void*>(collapseIndex(target_tid,dum,TpObjRef,False));
-  FailWhen(!target,"uninitialized element");
-  static_cast<ObjRef*>(target)->privatize(flags);
+  bool dum; TypeId tid;
+  if( index<0 )
+    nc->get(id,tid,dum,0,False,flags);
+  else
+    nc->getn(index,tid,dum,0,False,flags);
   return *this;
   //## end NestableContainer::Hook::privatize%3C8739B5017C.body
 }
@@ -129,6 +130,82 @@ const NestableContainer::Hook & NestableContainer::Hook::detach (ObjRef* ref) co
 
 
 //## Other Operations (implementation)
+NestableContainer::Hook NestableContainer::setBranch (const HIID &id, int flags)
+{
+  //## begin NestableContainer::setBranch%3CB2B438020F.body preserve=yes
+  FailWhen(!isWritable(),"write access violation");
+  // auto-privatize everything for write -- let Hook do it
+  if( flags&DMI::PRIVATIZE && flags&DMI::WRITE )
+  {
+    dprintf(2)("privatizing branch %s\n",id.toString().c_str());
+    // auto-privatizing hook
+    Hook hook(*this,id,DMI::WRITE);
+    if( flags&DMI::DEEP )
+      hook.privatize(DMI::WRITE|DMI::DEEP);
+    return hook;
+  }
+  // else it's a privatize only as needed
+  FailWhen( !flags&DMI::WRITE,"invalid flags");
+  dprintf(2)("ensuring writability of branch %s\n",id.toString().c_str());
+  // During first pass, we go down the branch to figure out the writability
+  // of each container. To privatize the final element (if this is required), 
+  // we need to privatize everything starting from the _last_ writable container 
+  // in the chain.
+  list<BranchEntry> branch;
+  HIID id0,id1=id;    
+  NestableContainer *nc = this;
+  bool writable = isWritable();
+  // note that if entire branch is to be privatized read-only, we'll 
+  // auto-privatize it for writing during the first pass. This more or less 
+  // insures that a clone is made.
+  Hook hook(*this,-2); 
+  // form list of branch elements
+  int index=0,last_writable=-1,last_ref=-1;
+  while( id1.size() )
+  {
+    // split off next subscript
+    BranchEntry be;
+    be.id = id1.splitAtSlash();
+    if( id0.size() )
+      id0 |= AidSlash;
+    id0 |= be.id;
+    if( !be.id.size() ) // ignore if null
+      continue;
+    // cast away const but that's OK since we track writability
+    be.nc = const_cast<NestableContainer*>(hook.asNestable());  // container pointed to by current hook
+    // apply subscript to current hook 
+    if( be.nc && be.nc->isWritable() )
+      last_writable = index; // keeps track of last writable container in chain
+    hook[be.id];
+    writable = be.writable = hook.isWritable();
+    branch.push_back(be);
+    index++;
+  }
+  // is the last hook writable? Just return it
+  if( hook.isWritable() )
+  {
+    dprintf(2)("last branch element is writable already\n");
+    return hook;
+  }
+  // else restart at the last writable container
+  // Start with initial hook again, and apply subscripts until we
+  // reach the writable container
+  FailWhen( last_writable<0,"unable to privatize: complete branch is read-only");
+  dprintf(2)("privatizing starting from branch element %d\n",last_writable);
+  Hook hook1(*this,-2); 
+  list<BranchEntry>::const_iterator iter = branch.begin();
+  for( int i=0; i<last_writable; i++,iter++ )
+    hook1[iter->id];
+  Assert(iter != branch.end() && iter->nc->isWritable() );
+  hook1.autoprivatize = DMI::WRITE;  // enable auto-privatize
+  // apply remaining subscripts
+  for( ; iter != branch.end(); iter++ )
+    hook1[iter->id];
+  // return the hook
+  return hook1;
+  //## end NestableContainer::setBranch%3CB2B438020F.body
+}
+
 bool NestableContainer::select (const HIIDSet &)
 {
   //## begin NestableContainer::select%3BE982760231.body preserve=yes
@@ -156,6 +233,8 @@ int NestableContainer::selectionToBlock (BlockSet& )
 // dereferencing ObjRefs, etc.
 const NestableContainer * NestableContainer::ConstHook::asNestable (const void *targ=0,TypeId tid=0) const
 {
+  if( index<-1 ) // uninitialized -- just return nc
+    return nc;
   if( !targ )
   {
     bool dum;

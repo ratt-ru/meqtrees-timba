@@ -353,7 +353,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           //## Operation: privatize%3C8739B5017C
           //	If container is writable, and the element being pointed to is held
           //	in an ObjRef, then privatizes the ObjRef. Throws exception otherwise.
-          const NestableContainer::Hook & privatize (int flags = 0) const;
+          const NestableContainer::Hook & privatize (int flags) const;
 
           //## Operation: ref%3C8770A70215
           //	If the element  is held in an ObjRef, returns a copy of the ref with
@@ -399,10 +399,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       protected:
         //## Constructors (specified)
           //## Operation: Hook%3C8739B50153
-          Hook (NestableContainer &parent, const HIID &id1, int autopr);
+          Hook (NestableContainer &parent, const HIID &id1, int autopr = 0);
 
           //## Operation: Hook%3C8739B5015E
-          Hook (NestableContainer &parent, int n, int autopr);
+          Hook (NestableContainer &parent, int n, int autopr = 0);
 
         // Additional Protected Declarations
           //## begin NestableContainer::Hook%3C8739B50135.protected preserve=yes
@@ -481,7 +481,11 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       	// 0: no type checking. For dynamic types, returning an ObjRef is
       	// preferred.
       bool must_write = False, 	// If True and datum is read-only, throw an exception
-      int autoprivatize = 0) const = 0;
+      int autoprivatize = 0	// If set to DMI::WRITE, and the object is accessed via a ref,
+      	// automatically privatize the ref. DMI::DEEP may also be passed in to
+      	// force deep privatization. If the method calls get() on any
+      	// subcontainer, then this argument should be passed on.
+      ) const = 0;
 
       //## Operation: getn%3C7A13C90269
       //	getn(int): this is a version of get() with a numeric element
@@ -565,6 +569,9 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       //## Operation: operator []%3C874251027E
       NestableContainer::Hook operator [] (int index);
 
+      //## Operation: setBranch%3CB2B438020F
+      NestableContainer::Hook setBranch (const HIID &id, int flags = DMI::WRITE);
+
       //## Operation: select%3BE982760231
       //	Selects a subset of a container. Meant to be abstract, but we make
       //	it just virtual for now since this part is not implemented anywhere.
@@ -596,10 +603,6 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       //## begin NestableContainer%3BE97CE100AF.public preserve=yes
       friend ConstHook;
       friend Hook;
-      
-      NestableContainer & autoprivatize(int flags = DMI::WRITE) 
-      { FailWhen(!writable,"can't autoprivatize readonly container"); 
-        autoprivatize_=flags; return *this; }
       
       // explicit versions of [] for string IDs
       NestableContainer::ConstHook operator [] (const string &id1) const
@@ -636,7 +639,11 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
     // Additional Implementation Declarations
       //## begin NestableContainer%3BE97CE100AF.implementation preserve=yes
-      int autoprivatize_;
+      typedef struct {
+          HIID id; 
+          bool writable; 
+          NestableContainer *nc;
+      } BranchEntry;
       //## end NestableContainer%3BE97CE100AF.implementation
 };
 
@@ -930,7 +937,7 @@ inline NestableContainer::NestableContainer (bool write)
   //## begin NestableContainer::NestableContainer%3C7F928D00C0.hasinit preserve=no
   //## end NestableContainer::NestableContainer%3C7F928D00C0.hasinit
   //## begin NestableContainer::NestableContainer%3C7F928D00C0.initialization preserve=yes
-  : writable(write),autoprivatize_(False)
+  : writable(write)
   //## end NestableContainer::NestableContainer%3C7F928D00C0.initialization
 {
   //## begin NestableContainer::NestableContainer%3C7F928D00C0.body preserve=yes
@@ -1007,9 +1014,7 @@ inline NestableContainer::Hook NestableContainer::operator [] (const HIID &id)
 {
   //## begin NestableContainer::operator []%3C874267026C.body preserve=yes
   // autoprivatize passed to Hook and cleared
-  int autopr = autoprivatize_;
-  autoprivatize_ = 0;
-  return Hook(*this,id,autopr);
+  return Hook(*this,id);
   //## end NestableContainer::operator []%3C874267026C.body
 }
 
@@ -1017,9 +1022,7 @@ inline NestableContainer::Hook NestableContainer::operator [] (int index)
 {
   //## begin NestableContainer::operator []%3C874251027E.body preserve=yes
   // autoprivatize passed to Hook and cleared
-  int autopr = autoprivatize_;
-  autoprivatize_ = 0;
-  return Hook(*this,index,autopr);
+  return Hook(*this,index);
   //## end NestableContainer::operator []%3C874251027E.body
 }
 

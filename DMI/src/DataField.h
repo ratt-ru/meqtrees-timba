@@ -68,7 +68,7 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       explicit DataField (int flags = DMI::WRITE);
 
       //## Operation: DataField%3C3EE3EA022A
-      DataField (const DataField &right, int flags = 0, int depth = 0);
+      DataField (const DataField &right, int flags = DMI::PRESERVE_RW, int depth = 0);
 
       //## Operation: DataField%3BFA54540099
       //	Constructs an empty data field

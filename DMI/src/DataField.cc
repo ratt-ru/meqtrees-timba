@@ -483,8 +483,7 @@ ObjRef & DataField::resolveObject (int n, bool write, int autoprivatize) const
 {
   //## begin DataField::resolveObject%3C3D8C07027F.body preserve=yes
   FailWhen(autoprivatize && !isWritable(),"can't autoprivatize in readonly field");
-  FailWhen(write && autoprivatize&DMI::PRIVATIZE && autoprivatize&DMI::READONLY,
-        "write access and unconditional read-only privatize requested at the same time" )
+  FailWhen(autoprivatize&DMI::READONLY && write,"can't autoprivatize for read while writing");
   switch( objstate[n] )
   {
     // uninitialized object - create default
@@ -494,9 +493,7 @@ ObjRef & DataField::resolveObject (int n, bool write, int autoprivatize) const
                           (isWritable()?DMI::WRITE:DMI::READONLY)|
                           DMI::ANON|DMI::LOCK );
         objstate[n] = MODIFIED;
-        // unconditionally privatize if so requested
-        if( autoprivatize&DMI::PRIVATIZE )
-          objects[n].privatize(autoprivatize&~DMI::PRIVATIZE); 
+        // ignore autoprivatize since this is a new object
         return objects[n];
          
     // object hasn't been unblocked
@@ -531,9 +528,9 @@ ObjRef & DataField::resolveObject (int n, bool write, int autoprivatize) const
           // mark object as unblocked but not modified 
           objstate[n] = UNBLOCKED; 
         }
-        // unconditionally privatize if so requested
-        if( autoprivatize&DMI::PRIVATIZE )
-          objects[n].privatize(autoprivatize&~DMI::PRIVATIZE); 
+        // privatize if so requested
+        if( autoprivatize&DMI::WRITE )
+          objects[n].privatize(autoprivatize&(DMI::WRITE|DMI::DEEP)); 
         return objects[n];
 
     // object exists (unblocked and maybe modified)
@@ -541,9 +538,9 @@ ObjRef & DataField::resolveObject (int n, bool write, int autoprivatize) const
     case MODIFIED:
     {
         ObjRef &ref = objects[n];
-        // unconditionally privatize if requested
-        if( autoprivatize&DMI::PRIVATIZE )
-          ref.privatize((autoprivatize&~DMI::PRIVATIZE)|(write?DMI::WRITE:0)); 
+        // privatize if requested
+        if( autoprivatize&DMI::WRITE )
+          objects[n].privatize(autoprivatize&(DMI::WRITE|DMI::DEEP)); 
         // do we need to write to it?
         else if( write )
         {
@@ -589,6 +586,10 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
   if( dynamic_type )   // handle dynamic types
   {
     objstate = other.objstate;
+    objects.clear();
+    objects.resize(mysize);
+    blocks.clear();
+    blocks.resize(mysize);
     for( int i=0; i<mysize; i++ )
     {
       switch( objstate[i] )
@@ -675,20 +676,20 @@ void DataField::privatize (int flags, int depth)
 const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write, int autoprivatize) const
 {
   //## begin DataField::get%3C7A19790361.body preserve=yes
-  // null HIID implies scalar-mode access -- map to getn(-1)
+  // null HIID implies scalar-mode access -- map to getn(0)
   if( !id.size() )
-    return getn(0,tid,can_write,check_tid,must_write);
+    return getn(0,tid,can_write,check_tid,must_write,autoprivatize);
   // single-index HIID implies get[n]
   if( id.size() == 1 && id.front().index() >= 0 )
     return getn(id.front().index(),tid,can_write,check_tid,must_write,autoprivatize);
   FailWhen( !valid() || !size(),"field not initialized" );
   FailWhen( !isNestable(type()),"contents not a container" );
   FailWhen( !scalar,"non-scalar field, explicit numeric subscript expected" );
-  // resolve to pointer to container
+  // resolve to pointer to container -- autoprivatize done by resolveObject
   const NestableContainer *nc = dynamic_cast<const NestableContainer *>
       (&resolveObject(0,must_write,autoprivatize).deref());
   Assert(nc);
-  // defer to get[id] on container
+  // defer to get[id] on container (pass on autoprivatize)
   return nc->get(id,tid,can_write,check_tid,must_write,autoprivatize);
   //## end DataField::get%3C7A19790361.body
 }

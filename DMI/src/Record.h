@@ -68,7 +68,7 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       DataRecord (int flags = DMI::WRITE);
 
       //## Operation: DataRecord%3C5820C7031D
-      DataRecord (const DataRecord &other, int flags = 0, int depth = 0);
+      DataRecord (const DataRecord &other, int flags = DMI::PRESERVE_RW, int depth = 0);
 
     //## Destructor (generated)
       ~DataRecord();
@@ -188,7 +188,7 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
   private: //## implementation
     // Data Members for Associations
 
-      //## Association: PSCF::<unnamed>%3BE123050350
+      //## Association: OCTOPUSSY::<unnamed>%3BE123050350
       //## Role: DataRecord::fields%3BE123060149
       //## begin DataRecord::fields%3BE123060149.role preserve=no  private: DataField { -> 0..nVHgN}
       map<HIID,DataFieldRef> fields;

@@ -221,13 +221,18 @@ void TestDataRecord ()
   cerr<<"======================= getting reference from record\n";
   cerr<<rec["B/C/A"].ref().debug(3)<<endl;
 
-//  cerr<<"======================= autoprivatizing as read-only\n";
-//  Assert(rec.autoprivatize(DMI::PRIVATIZE|DMI::READONLY)["B/C/A"].exists());
-//  rec["B"].privatize(DMI::READONLY|DMI::DEEP);
-//  cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
-//  cerr<<"======================= autoprivatizing for write\n";
-//  rec.autoprivatize()["B/C/A/10"] = 2;
-//  cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
+  cerr<<"======================= deep-cloning record\n";
+  DataRecord rec3 = rec2;
+  cerr<<"Record 3 after cloning: "<<rec3.sdebug(10)<<endl;
+  rec3.setBranch("B",DMI::PRIVATIZE|DMI::WRITE|DMI::DEEP);
+  cerr<<"Record 3 after privatize of branch B: "<<rec3.sdebug(10)<<endl;
+  rec3.privatize(DMI::WRITE|DMI::DEEP);
+  cerr<<"Record 3 after full deep-privatize: "<<rec3.sdebug(10)<<endl;
+  rec3["B"].privatize(DMI::READONLY|DMI::DEEP);
+  cerr<<"Record 3 after branch B privatize as read-only: "<<rec3.sdebug(10)<<endl;
+  cerr<<"======================= autoprivatizing rec3[B/C/A] for write\n";
+  rec3.setBranch("B/C/A",DMI::WRITE)[10] = 2;
+  cerr<<"Record 3 is now: "<<rec3.sdebug(10)<<endl;
 
   cerr<<"======================= removing field B/C/A from record\n";
   cerr<<"Original record: "<<rec.sdebug(10)<<endl;

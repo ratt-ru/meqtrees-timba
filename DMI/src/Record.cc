@@ -51,7 +51,7 @@ DataRecord::DataRecord (const DataRecord &other, int flags, int depth)
   //## begin DataRecord::DataRecord%3C5820C7031D.hasinit preserve=no
   //## end DataRecord::DataRecord%3C5820C7031D.hasinit
   //## begin DataRecord::DataRecord%3C5820C7031D.initialization preserve=yes
-  : NestableContainer(flags&DMI::WRITE!=0)
+  : NestableContainer(flags&DMI::WRITE!=0 || (flags&DMI::PRESERVE_RW!=0 && other.isWritable()))
   //## end DataRecord::DataRecord%3C5820C7031D.initialization
 {
   //## begin DataRecord::DataRecord%3C5820C7031D.body preserve=yes
@@ -75,7 +75,7 @@ DataRecord & DataRecord::operator=(const DataRecord &right)
   if( &right != this )
   {
     dprintf(2)("assignment op, cloning from %s\n",right.debug(1));
-    cloneOther(right,0,0);
+    cloneOther(right,DMI::PRESERVE_RW,0);
   }
   return *this;
   //## end DataRecord::operator=%3BB3112B0027_assign.body
@@ -361,7 +361,7 @@ void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
 {
   //## begin DataRecord::cloneOther%3C58239503D1.body preserve=yes
   fields.clear();
-  setWritable( (flags&DMI::WRITE)!=0 );
+  setWritable( (flags&DMI::WRITE)!=0 || (flags&DMI::PRESERVE_RW && other.isWritable()) );
   // copy all field refs, then privatize them if depth>0.
   // For ref.copy(), clear the DMI::WRITE flag and use DMI::PRESERVE_RW instead.
   // (When depth>0, DMI::WRITE will take effect anyways via privatize().
@@ -372,6 +372,7 @@ void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
             (flags&~DMI::WRITE)|DMI::PRESERVE_RW|DMI::LOCK) );
     if( flags&DMI::DEEP || depth>0 )
       ref.privatize(flags|DMI::LOCK,depth-1);
+    
   }
   //## end DataRecord::cloneOther%3C58239503D1.body
 }
@@ -386,20 +387,15 @@ const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, Type
   // This condition checks that we're not auto-privatizing a readonly container
   // (so that we can cast away const, below)
   FailWhen(autoprivatize && !isWritable(),"can't autoprivatize in readonly record");
+  FailWhen(autoprivatize&DMI::READONLY && must_write,"can't autoprivatize for read while writing");
   // do unconditional privatize if required
-  if( autoprivatize&DMI::PRIVATIZE )
-    const_cast<DataFieldRef*>(&iter->second)->privatize(autoprivatize&~DMI::PRIVATIZE); 
+  if( autoprivatize )
+    const_cast<DataFieldRef*>(&iter->second)->privatize(autoprivatize&(DMI::WRITE|DMI::READONLY|DMI::DEEP)); 
   // writability is first determined by the field ref itself, plus the field
   // An invalid ref is considered writable (we'll check for our own writability
   // below)
   can_write = !iter->second.valid() || 
       ( iter->second.isWritable() && iter->second->isWritable() );
-  if( must_write && !can_write ) // write access violation?
-  { // see if we can auto-privatize it
-    FailWhen( !autoprivatize&DMI::WRITE,"write access violation" );
-    const_cast<DataFieldRef*>(&iter->second)->privatize(autoprivatize); 
-    can_write = True;
-  }
   // default is to return an objref to the field
   if( !check_tid || check_tid == TpObjRef )
   {
