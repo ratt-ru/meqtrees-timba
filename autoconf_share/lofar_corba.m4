@@ -7,6 +7,8 @@
 # Macro to check for suitable Corba implementation
 #
 AC_DEFUN(lofar_CORBA,dnl
+[dnl
+AC_PREREQ(2.13)dnl
 lofar_HEADER_VISIBROKER([])
 lofar_HEADER_TAO([])
 [
@@ -28,7 +30,7 @@ if test "$enable_tao" = "yes"; then
 fi
 ]
 AM_CONDITIONAL(HAVE_CORBA, test $have_corba = 1)
-)dnl
+])dnl
 dnl
 #
 # lofar_HEADER_VISIBROKER([DEFAULT-PREFIX])
