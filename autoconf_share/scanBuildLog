@@ -212,10 +212,10 @@ def main(argv):
       lofarServer = arg
 
   server=str.split(lofarServer,'@')[1]
-  if fileBase==None:
+  if fileBase=="None":
     print "No filebase specified"
     usage()
-  if lofarDir==None:
+  if lofarDir=="None":
     print "No LOFAR basedir specified"
     usage()
   if len(sys.argv) < 3:
