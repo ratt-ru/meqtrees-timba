@@ -36,7 +36,7 @@ StdDev::~StdDev()
 Vells StdDev::evaluate (const Request&,const LoShape &,
 		     const vector<const Vells*>& values)
 {
-  return sqrt(abs(mean( sqr(*(values[0]))) - sqr( mean( *(values[0])))));
+  return sqrt(mean( sqr(*(values[0]))) - sqr( mean( *(values[0]))));
 }
 
 } // namespace Meq
