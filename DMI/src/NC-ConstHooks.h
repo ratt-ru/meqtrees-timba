@@ -105,7 +105,8 @@ bool get_impl_intermediate (T &value,isArray) const
 template<class T> 
 bool get_impl_intermediate (T &value,Int2Type<true>) const
 {
-  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,false,pointer,false); 
+  ContentInfo info;
+  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,false,false,false); 
   return ptr ? value.reference(*static_cast<const T*>(ptr)),true : false;
 }
 
