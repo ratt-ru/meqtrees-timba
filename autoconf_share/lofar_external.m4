@@ -262,6 +262,7 @@ else
     fi
   done
 
+  lfr_depend=
   if test "$lfr_external_libdir" != ""; then
     lfr_ext_lib=
     for lib in $lfr_libs
@@ -274,6 +275,9 @@ else
           ]AC_CHECK_FILE([$lfr_external_libdir/lib$lib.a],
 			[lfr_ext_lib=$lfr_external_libdir],
 			[lfr_ext_lib=no])[
+          lfr_depend="$lfr_depend $lfr_external_libdir/lib$lib.a"
+        else
+          lfr_depend="$lfr_depend $lfr_external_libdir/lib$lib.so"
         fi
       fi
     done
@@ -309,6 +313,7 @@ else
     CXXFLAGS="$CXXFLAGS $EXTERNAL_CXXFLAGS"
     LDFLAGS="$LDFLAGS $EXTERNAL_LDFLAGS"
     LIBS="$LIBS $EXTERNAL_LIBS"
+    LOFAR_DEPEND="$LOFAR_DEPEND $lfr_depend"
 
     enable_external=yes
 ]
@@ -317,6 +322,7 @@ dnl
     AC_SUBST(CXXFLAGS)dnl
     AC_SUBST(LDFLAGS)dnl
     AC_SUBST(LIBS)dnl
+    AC_SUBST(LOFAR_DEPEND)dnl
 dnl
     AC_DEFINE([HAVE_]LOFAR_EXT_SYM, 1, [Define if ]LOFAR_EXT_SYM[ is installed])dnl
 [
