@@ -506,7 +506,7 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
           }
           else
           {
-            id = HIID(field_name,"_");
+            id = HIID(field_name,0,"_");
             isIndex = ( id[id.size()-1] == AidIndex );
           }
           dprintf(4)("maps to HIID '%s'\n",id.toString().c_str());

@@ -11,6 +11,11 @@ Dispatcher *pdsp = 0;
 Thread::ThrID thread = 0;
   
         
+bool isRunning ()
+{
+  return pdsp != 0;
+}
+
 Dispatcher &  init     (bool start_gateways=True)
 {
   FailWhen( pdsp,"OCTOPUSSY already initialized" );

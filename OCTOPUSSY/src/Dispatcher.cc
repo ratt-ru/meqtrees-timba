@@ -1148,6 +1148,7 @@ Thread::ThrID Dispatcher::startThread (bool wait_for_start)
   // block all dispatcher-handled signals
   Thread::signalMask(SIG_BLOCK,validSignals());
   // launch a polling thread
+  dprintf(1)("Dispatcher starting");
   Thread::ThrID id = Thread::create(start_pollThread,this);
   // wait for startup to complete, if asked to
   if( wait_for_start )
