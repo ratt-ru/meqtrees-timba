@@ -827,7 +827,7 @@ const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int fl
     FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
     FailWhen(flags&DMI::NC_SCALAR && !flags&DMI::NC_POINTER && mysize()>1,"non-scalar container");
     FailWhen(check_tid && check_tid != type(),
-        "type mismatch: expecting "+type().toString()+" got "+check_tid.toString() );
+        "type mismatch: expecting "+check_tid.toString()+" got "+type().toString() );
     info.tid = type();
     if( flags&DMI::WRITE )
       spvec_modified = True;
