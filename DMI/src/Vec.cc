@@ -733,21 +733,14 @@ int DataField::get (const HIID &id,ContentInfo &info,bool nonconst,int flags) co
     info.size = mysize();
   }
   // numeric (single-index) HIID implies item #n
-  else if( id.size() == 1 && id.front().index() >= 0 )
+  else if( id.size() == 1 )
   {
     n = id.front().index();
+    FailWhen(n<0,"illegal index "+id.toString());
+    FailWhen(n>mysize(),"index "+id.toString()+"is out of range" );
     info.size = 1;
   }
-  else
-  { // transparent lookup into field contents, maybe time to phase it out?
-  // disable this for now -- use [0][id] rathern than [id] to explicitly 
-  // index into contents. I can re-enable it later if it becomes a problem.
-  // see commented section above
-    Throw("transparent indexing into scalar DataFields is no longer supported. "
-          "See DataField::get()" );
-  }
-  FailWhen( n<0 || n>mysize(),"index "+id.toString()+"is out of range" );
-  if( n == mysize() ) // can insert at end
+  if( n == mysize() ) // can insert at end, return 0 to indicate
     return 0;
   info.writable = nonconst;
   bool nowrite = flags&DMI::WRITE && !nonconst; // write requested but not avail?
