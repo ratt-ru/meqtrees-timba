@@ -36,7 +36,7 @@
 #include <DMI/DataField.h>
 
 
-namespace MEQ {
+namespace Meq {
 
 
 class Domain : public DataField
@@ -98,6 +98,6 @@ private:
 };
 
 
-} // namespace MEQ
+} // namespace Meq
 
 #endif

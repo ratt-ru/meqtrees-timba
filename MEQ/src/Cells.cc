@@ -25,7 +25,7 @@
 #include <MEQ/Cells.h>
 #include <DMI/DataArray.h>
 
-namespace MEQ {
+namespace Meq {
 
 Cells::Cells (const DataRecord& rec)
 : DataRecord   (rec),
@@ -95,9 +95,9 @@ bool Cells::operator== (const Cells& that) const
   return true;
 }
 
-std::ostream& operator<< (std::ostream& os, const MEQ::Cells& cells)
+std::ostream& operator<< (std::ostream& os, const Meq::Cells& cells)
 {
-  os << "MEQ::Cells [" << cells.nfreq() << ','
+  os << "Meq::Cells [" << cells.nfreq() << ','
      << cells.itsTimes.size() << "]  "
      << cells.domain() << endl;
   return os;
@@ -113,4 +113,4 @@ void Cells::setDMI (const Domain& domain)
   this->operator[](AidTimeSteps) = itsTimeSteps;
 }
 
-} // namespace MEQ
+} // namespace Meq

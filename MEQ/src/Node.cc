@@ -27,7 +27,7 @@
 #include <DMI/DataField.h>
 #include <DMI/DataArray.h>
 
-namespace MEQ {
+namespace Meq {
 
 InitDebugContext(Node,"MeqNode");
 
@@ -281,26 +281,26 @@ void Node::processRequestRider (const DataRecord &rider)
 //##ModelId=3F98D9D100B9
 int Node::getResultImpl (Result::Ref &, const Request &,bool)
 {
-  Throw("MEQ::Node::getResultImpl not implemented");
+  Throw("Meq::Node::getResultImpl not implemented");
 }
 
 // throw exceptions for unimplemented DMI functions
 //##ModelId=3F5F4363030F
 CountedRefTarget* Node::clone(int,int) const
 {
-  Throw("MEQ::Node::clone not implemented");
+  Throw("Meq::Node::clone not implemented");
 }
 
 //##ModelId=3F5F43630315
 int Node::fromBlock(BlockSet&)
 {
-  Throw("MEQ::Node::fromBlock not implemented");
+  Throw("Meq::Node::fromBlock not implemented");
 }
 
 //##ModelId=3F5F43630318
 int Node::toBlock(BlockSet &) const
 {
-  Throw("MEQ::Node::toBlock not implemented");
+  Throw("Meq::Node::toBlock not implemented");
 }
 
 //##ModelId=3F5F48180303
@@ -334,4 +334,4 @@ string Node::sdebug (int detail, const string &prefix, const char *nm) const
   return out;
 }
 
-} // namespace MEQ
+} // namespace Meq

@@ -40,7 +40,7 @@ template<class T> class Matrix;
 // The coefficients are numbered 0..N with the time as the most rapidly
 // varying axis.
 
-namespace MEQ {
+namespace Meq {
 class Request;
 
 
@@ -177,6 +177,6 @@ private:
   static bool   theirPascalFilled;
 };
 
-} // namespace MEQ
+} // namespace Meq
 
 #endif

@@ -22,7 +22,7 @@
 
 #include <MEQ/Request.h>
 
-namespace MEQ {
+namespace Meq {
 
 Request::Request (const DataRecord& rec)
 : DataRecord   (rec),
@@ -42,4 +42,4 @@ Request::Request (const Cells& cells, bool calcDeriv, const HIID &id)
   this->operator[](AidCalcDeriv) = calcDeriv;
 }
 
-} // namespace MEQ
+} // namespace Meq

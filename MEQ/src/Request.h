@@ -27,14 +27,14 @@
 #include <MEQ/Cells.h>
 #include <DMI/DataRecord.h>
 
-#pragma aidgroup MEQ
+#pragma aidgroup Meq
 #pragma aid Cells ReqId CalcDeriv Rider
 
 // This class represents a request for which an expression has to be
 // evaluated. It contains the domain and cells to evaluate for.
 // A flag tells if derivatives (perturbed values) have to be calculated.
 
-namespace MEQ {
+namespace Meq {
 
 class Request : public DataRecord
 {
@@ -77,6 +77,6 @@ private:
 };
 
 
-} // namespace MEQ
+} // namespace Meq
 
 #endif

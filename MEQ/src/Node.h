@@ -19,21 +19,21 @@
 //#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 //#  $Id$
-#ifndef MEQSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413
-#define MEQSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413
+#ifndef MeqSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413
+#define MeqSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413
     
 #include <DMI/DataRecord.h>
 #include <MEQ/Result.h>
-#include <MEQ/AID-MEQ.h>
-#include <MEQ/TID-MEQ.h>
+#include <MEQ/AID-Meq.h>
+#include <MEQ/TID-Meq.h>
 #include <map>
 #include <vector>
     
-#pragma aidgroup MEQ
+#pragma aidgroup Meq
 #pragma aid Node Class Name State Child Children Request Result Rider Id
-#pragma types #MEQ::Node
+#pragma types #Meq::Node
 
-namespace MEQ {
+namespace Meq {
 
 class Forest;
 class Request;
@@ -107,7 +107,7 @@ class Node : public BlockableObject
     //##Documentation
     //## Returns the class TypeId
     virtual TypeId objectType() const
-    { return TpMEQNode; }
+    { return TpMeqNode; }
     //##ModelId=3F5F43630315
     //##Documentation
     //## Un-serialize.
@@ -203,6 +203,6 @@ inline Forest & Node::forest()
   return *forest_;
 }
 
-} // namespace MEQ
+} // namespace Meq
 
-#endif /* MEQSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413 */
+#endif /* MeqSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413 */

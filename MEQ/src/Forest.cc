@@ -21,13 +21,13 @@
 //#  $Id$
 
 #include "Forest.h"
-#include "AID-MEQ.h"
+#include "AID-Meq.h"
 #include <DMI/DynamicTypeManager.h>
     
 // pull in registry
-static int dum = aidRegistry_MEQ();
+static int dum = aidRegistry_Meq();
 
-namespace MEQ
+namespace Meq
 {
 
 InitDebugContext(Forest,"MeqForest");
@@ -54,11 +54,11 @@ const Node::Ref & Forest::create (int &node_index,DataRecord::Ref::Xfer &initrec
     FailWhen( !classname.length(),"missing or invalid Class field in init record"); 
     BlockableObject * pbp = DynamicTypeManager::construct(TypeId(classname));
     FailWhen(!pbp,"construct failed");
-    MEQ::Node * pnode = dynamic_cast<MEQ::Node*>(pbp);
+    Meq::Node * pnode = dynamic_cast<Meq::Node*>(pbp);
     if( !pnode )
     {
       delete pbp;
-      Throw(classname+" is not a MEQ::Node descendant");
+      Throw(classname+" is not a Meq::Node descendant");
     }
     noderef <<= pnode;
     pnode->init(initrec,this);
@@ -171,4 +171,4 @@ const HIID & Forest::assignRequestId (Request &req)
   return last_req_id;
 }
 
-} // namespace MEQ
+} // namespace Meq

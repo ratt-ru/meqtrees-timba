@@ -28,7 +28,7 @@
 #include <MEQ/VellsRep.h>
 #include <Common/Lorrays.h>
 
-namespace MEQ {
+namespace Meq {
 
 //# Forward Declarations
 class VellsTmp;
@@ -213,6 +213,6 @@ inline std::ostream& operator<< (std::ostream& os, const Vells& vec)
   { vec.show (os); return os; }
 
 
-} // namespace MEQ
+} // namespace Meq
 
 #endif

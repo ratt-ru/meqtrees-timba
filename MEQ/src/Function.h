@@ -26,10 +26,10 @@
 #include <MEQ/Node.h>
 #include <MEQ/Result.h>
 
-#pragma types #MEQ::Function
+#pragma types #Meq::Function
 
 
-namespace MEQ {    
+namespace Meq {    
 
 class Request;
 
@@ -128,6 +128,6 @@ private:
 };
 
 
-} // namespace MEQ
+} // namespace Meq
 
 #endif

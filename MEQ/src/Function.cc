@@ -23,7 +23,7 @@
 #include <MEQ/Function.h>
     
 
-namespace MEQ {
+namespace Meq {
 
 Function::Function()
 {}
@@ -33,7 +33,7 @@ Function::~Function()
 
 TypeId Function::objectType() const
 {
-  return TpMEQFunction;
+  return TpMeqFunction;
 }
 
 void Function::checkChildren()
@@ -245,4 +245,4 @@ vector<int> Function::findSpids (const vector<Result::Ref>& results) const
   return spids;
 }
 
-} // namespace MEQ
+} // namespace Meq

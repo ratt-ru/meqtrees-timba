@@ -28,17 +28,17 @@
 #include <Common/lofar_vector.h>
 #include <iostream>
 #include <DMI/DataRecord.h>
-#include <MEQ/AID-MEQ.h>
+#include <MEQ/AID-Meq.h>
 
 
-#pragma aidgroup MEQ
+#pragma aidgroup Meq
 #pragma aid Cells Values ParmValues Spids Perturbations
 
 
 // This class represents a result of a domain for which an expression
 // has been evaluated.
 
-namespace MEQ {
+namespace Meq {
 
 class Cells;
 
@@ -184,6 +184,6 @@ private:
 };
 
 
-} // namespace MEQ
+} // namespace Meq
 
 #endif

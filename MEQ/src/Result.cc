@@ -26,7 +26,7 @@
 #include <MEQ/VellsTmp.h>
 #include <DMI/DataArray.h>
 
-namespace MEQ {
+namespace Meq {
 
 int Result::nctor = 0;
 int Result::ndtor = 0;
@@ -125,4 +125,4 @@ void Result::allocatePertComplex (int i, int nfreq, int ntime)
   itsPerturbedValues[i] = new Vells(arr);
 }
 
-} // namespace MEQ
+} // namespace Meq

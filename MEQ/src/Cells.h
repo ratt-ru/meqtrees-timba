@@ -26,16 +26,16 @@
 
 //# Includes
 #include <MEQ/Domain.h>
-#include <MEQ/AID-MEQ.h>
+#include <MEQ/AID-Meq.h>
 #include <DMI/DataRecord.h>
 #include <Common/Lorrays.h>
 #include <ostream>
 
-#pragma aidgroup MEQ
+#pragma aidgroup Meq
 #pragma aid Domain Nfreq Times TimeSteps
 
 
-namespace MEQ {
+namespace Meq {
 
 class Cells : public DataRecord
 {
@@ -77,7 +77,7 @@ public:
   bool operator!= (const Cells& that) const
     { return !(*this == that); }
 
-  friend std::ostream& operator<< (std::ostream& os, const MEQ::Cells& cells);
+  friend std::ostream& operator<< (std::ostream& os, const Meq::Cells& cells);
 
 private:
   // Set the values in the DMI DataField.
@@ -90,6 +90,6 @@ private:
   LoVec_double itsTimeSteps;
 };
 
-} //namespace MEQ
+} //namespace Meq
 
 #endif

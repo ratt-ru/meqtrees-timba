@@ -30,7 +30,7 @@
 #include <aips/Arrays/Matrix.h>
 #include <Common/lofar_vector.h>
 
-namespace MEQ {
+namespace Meq {
 
 double Polc::theirPascal[10][10];
 bool   Polc::theirPascalFilled = false;
@@ -381,4 +381,4 @@ Vells Polc::normDouble (const Vells& coeff, double sx,
   return newc;
 }
 
-} // namespace MEQ
+} // namespace Meq

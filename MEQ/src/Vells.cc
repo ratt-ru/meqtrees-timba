@@ -29,7 +29,7 @@
 #include <MEQ/VellsComplexArr.h>
 #include <Common/Debug.h>
 
-namespace MEQ {
+namespace Meq {
 
 Vells::Vells()
 : itsRep         (0),
@@ -125,12 +125,12 @@ Vells::Vells (LoMat_double& array)
   itsIsScalar    (itsNx==1 && itsNy==1),
   itsIsOwner     (true)
 {
-  Assert (array.isStorageContiguous());
+  *itsRealArray = array;
   if (itsIsScalar) {
-    VellsRealSca* v = new VellsRealSca (array.data());
+    VellsRealSca* v = new VellsRealSca (itsRealArray->data());
     itsRep = v->link();
   } else {
-    VellsRealArr* v = new VellsRealArr (array.data(), itsNx, itsNy);
+    VellsRealArr* v = new VellsRealArr (itsRealArray->data(), itsNx, itsNy);
     itsRep = v->link();
   }
 }
@@ -143,12 +143,13 @@ Vells::Vells (LoMat_dcomplex& array)
   itsIsScalar    (itsNx==1 && itsNy==1),
   itsIsOwner     (true)
 {
-  Assert (array.isStorageContiguous());
+  *itsComplexArray = array;
   if (itsIsScalar) {
-    VellsComplexSca* v = new VellsComplexSca (array.data());
+    VellsComplexSca* v = new VellsComplexSca (itsComplexArray->data());
     itsRep = v->link();
   } else {
-    VellsComplexArr* v = new VellsComplexArr (array.data(), itsNx, itsNy);
+    VellsComplexArr* v = new VellsComplexArr (itsComplexArray->data(),
+					      itsNx, itsNy);
     itsRep = v->link();
   }
 }
@@ -491,4 +492,4 @@ VellsTmp sum(const Vells& arg)
     return arg.itsRep->sum();
 }
 
-} // namespace MEQ
+} // namespace Meq

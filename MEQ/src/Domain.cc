@@ -23,7 +23,7 @@
 #include <MEQ/Domain.h>
 #include <Common/Debug.h>
 
-namespace MEQ {
+namespace Meq {
 
 Domain::Domain()
 : itsOffsetFreq (0),
@@ -45,9 +45,9 @@ Domain::Domain (const DataField& fld)
 Domain::Domain (double startFreq, double endFreq,
 		double startTime, double endTime)
 {
-  AssertMsg (startFreq < endFreq, "MEQ::Domain: startFreq " << startFreq <<
+  AssertMsg (startFreq < endFreq, "Meq::Domain: startFreq " << startFreq <<
 	     " must be < endFreq " << endFreq);
-  AssertMsg (startTime < endTime, "MEQ::Domain: startTime " << startTime <<
+  AssertMsg (startTime < endTime, "Meq::Domain: startTime " << startTime <<
 	     " must be < endTime " << endTime);
   itsOffsetFreq = (endFreq + startFreq) * .5;
   itsScaleFreq  = (endFreq - startFreq) * .5;
@@ -67,4 +67,4 @@ void Domain::setDMI()
   this->operator[](3) = endTime();
 }
 
-} // namespace MEQ
+} // namespace Meq

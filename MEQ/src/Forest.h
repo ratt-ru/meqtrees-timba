@@ -19,15 +19,15 @@
 //#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 //#  $Id$
-#ifndef MEQSERVER_SRC_FOREST_H_HEADER_INCLUDED_C53FA569
-#define MEQSERVER_SRC_FOREST_H_HEADER_INCLUDED_C53FA569
+#ifndef MeqSERVER_SRC_FOREST_H_HEADER_INCLUDED_C53FA569
+#define MeqSERVER_SRC_FOREST_H_HEADER_INCLUDED_C53FA569
 
 #include <MEQ/Node.h>
 #include <MEQ/Request.h>
 #include <vector>
 #include <map>
     
-namespace MEQ {
+namespace Meq {
 
 //##ModelId=3F5F21740281
 class Forest
@@ -95,11 +95,11 @@ class Forest
     NameMap name_map;
     
     HIID last_req_id;
-    MEQ::Cells last_req_cells;
+    Meq::Cells last_req_cells;
 };
 
-} // namespace MEQ
+} // namespace Meq
 
 
 
-#endif /* MEQSERVER_SRC_NODEREPOSITORY_H_HEADER_INCLUDED_C53FA569 */
+#endif /* MeqSERVER_SRC_NODEREPOSITORY_H_HEADER_INCLUDED_C53FA569 */
