@@ -66,6 +66,7 @@ else
 
 sub change_comment_style
 {
+  $keephash = 1;
   $state = $NON_COMMENT_BLOCK;
   $newstate = $NON_COMMENT_BLOCK;
   @spanning_comment = ();
@@ -75,10 +76,10 @@ sub change_comment_style
   foreach $line (@_)
   {
     $newstate = $NON_COMMENT_BLOCK;
-    # slash-slash-hash is blanked.
-    if ($line =~ /^\s*\/\/\#/)
+    # slash-slash-hash is blanked if not at beginning of file..
+    if ($keephash == 0  &&  $line =~ /^\s*\/\/\#/)
     {
-      $line = "\n";
+      $line = "//\n";
     }
     $comment = $line;
     # If this line contains only a slash-slash comment, then
@@ -88,9 +89,10 @@ sub change_comment_style
       # Keep track of how far the comment block is indented.
       $indent = $1;
       $comment = $3;
-      # slash-slash-slash is kept as such (is doxygen already).
-      if ($comment !~ /^\//)
+      # slash-slash-slash/hash are kept as such (is doxygen already).
+      if ($comment !~ /^[\/#]/)
       {
+        $keephash = 0;
 	$newstate = $COMMENT_BLOCK;
 	# Replace <srcblock> by \code
 	$comment =~ s/<srcblock>/\\code/g;
