@@ -175,9 +175,8 @@ class app_proxy (verbosity):
   def _bye_handler (self,msg):
     _dprint(2,"got bye message:",msg);
     self.app_addr = None;
-    if self.state is None:
-      self.state = -1;
-      self.statestr = 'no connection';
+    self.state = None;
+    self.statestr = 'no connection';
     self._gui_event_handler(self.bye_event,getattr(msg,'from'));
     
   def _remote_down_handler (self,msg):

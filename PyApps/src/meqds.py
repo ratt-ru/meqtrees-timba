@@ -321,8 +321,9 @@ def add_node_snapshot (state,event):
   ni = state.nodeindex;
   _dprint(5,"adding snapshot for node ",state.name);
   # update state
-  if nodelist:
-    nodelist[ni].update_state(state,event);
+  try: node = nodelist[ni];
+  except KeyError: pass;
+  else: node.update_state(state,event);
   # get list of snapshots and filter it to eliminate dead refs
   sslist = filter(lambda s:s[0]() is not None,snapshots.get(ni,[]));
   if len(sslist) and sslist[-1][0]() == state:
