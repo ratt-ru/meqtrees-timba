@@ -256,7 +256,8 @@ class NestableContainer : public BlockableObject
 #ifdef AIPSPP_HOOKS
           // define accessors for some AIPS++ types
           template<class T> 
-          Matrix<T> as_AipsArray () const;
+          Array<T> as_AipsArray () const;
+          template<class T> 
           operator Array<T> () const 
           { return as_AipsArray<T>(); }
           
@@ -268,6 +269,7 @@ class NestableContainer : public BlockableObject
 
           template<class T> 
           Matrix<T> as_AipsMatrix () const;
+          template<class T> 
           operator Matrix<T> () const 
           { return as_AipsMatrix<T>(); }
           

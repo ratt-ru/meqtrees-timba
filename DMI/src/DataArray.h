@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.17  2002/12/06 15:29:02  smirnov
+//  %[BugId: 112]%
+//  Fixed some bugs in the AIPS++ hooks;
+//  fixed size returned from DataRecord iterator.
+//
 //  Revision 1.16  2002/12/05 10:15:22  smirnov
 //  %[BugId: 112]%
 //  Fixed Lorray support in DataArrays, etc.
@@ -196,11 +201,19 @@ public:
   TypeId elementType () const;
   
 #ifdef HAVE_AIPSPP
-  // returns contents as an AIPS++ array (by copy or reference)
+  // Returns contents as an AIPS++ array (by copy or reference)
+  // The dummy T* argument is to help in template instantiation
+  // (gcc has a problem resolving stuff like:
+  //
+  //    template<class T> T function_one ();
+  //    template<class T> T function_two ()
+  //    { return function_one<T>(); }
+  //  ... the <T> in the invocation is considered an error. The dummy
+  //  argument allows you to say "function_one((T*)0)" instead)
   template<class T>
-  Array<T> refAipsArray ();
+  Array<T> refAipsArray (const T*);
   template<class T>
-  Array<T> copyAipsArray () const;
+  Array<T> copyAipsArray (const T*) const;
 #endif
 
   // Return the object type (TpDataArray).
@@ -358,6 +371,7 @@ private:
   // specialization (which seems to cause redefined symbol trouble)
   template<class T>
   static bool isStringArray (const Array<T> &);
+  void copyStringArray (const void *source);
 #endif
 };
 
@@ -415,6 +429,14 @@ template<>
 inline bool DataArray::isStringArray (const Array<String> &)
 { return True; }
 
+inline void DataArray::copyStringArray (const void *source)
+{
+  const String *data = static_cast<const String*>(source);
+  string *dest = reinterpret_cast<string *>(itsArrayData),*end = dest + itsSize;
+  for( ; dest < end; dest++,data++ )
+    *dest = *data;
+}
+
 // templated constructor from an AIPS++ array
 template<class T>
 DataArray::DataArray (const Array<T> &array,int flags, int )  // shm_flags not yet used
@@ -432,43 +454,42 @@ DataArray::DataArray (const Array<T> &array,int flags, int )  // shm_flags not y
   bool del;
   const T *data = array.getStorage(del);
   if( isStringArray(array) )
-  {
-    string *dest = reinterpret_cast<string *>(itsArrayData),end = dest+itsSize;
-    for( ; dest < end; dest++,data++ )
-      *dest = *data;
-  }
+    copyStringArray(data);
   else
     memcpy(itsArrayData,data,itsSize*itsElemSize);
   array.freeStorage(data,del);
 }
 
+
 template<class T>
-Array<T> DataArray::copyAipsArray () const
+Array<T> DataArray::copyAipsArray (const T*) const
 {
   FailWhen( !valid(),"invalid DataArray" );
   if( isStringArray(Array<T>()) )
   {
     FailWhen( itsScaType != Tpstring,"array type mismatch" );
-    T *dest = new T[itsSize], *end = dest+itsSize;
+    String *dest = new String[itsSize], *end = dest+itsSize;
     const string *src = reinterpret_cast<const string *>(itsArrayData);
     for( ; dest < end; dest++,src++ )
       *dest = *src;
-    return Array<T>(static_cast<IPosition>(itsShape),dest,TAKE_OVER);
+    // The reinterpret_cast is necessary to prevent confusing the compiler.
+    // In reality this code gets executed only when T=String
+    return Array<T>(itsShape,reinterpret_cast<T*>(dest),TAKE_OVER);
   }
   else
   {
     FailWhen( itsScaType != typeIdOf(T),"array type mismatch" );
-    return Array<T>(itsShape,itsArrayData);
+    return Array<T>(itsShape,reinterpret_cast<const T*>(itsArrayData));
   }
 }
 
 template<class T>
-Array<T> DataArray::refAipsArray ()
+Array<T> DataArray::refAipsArray (const T*)
 {
   FailWhen( !valid(),"invalid DataArray" );
   FailWhen( !isWritable(),"r/w access violation" );
   if( isStringArray(Array<T>()) )
-    return copyAipsArray<T>();
+    return copyAipsArray((T*)0);
   FailWhen( itsScaType != typeIdOf(T),"array type mismatch" );
   return Array<T>(itsShape,itsArrayData,SHARE);
 }

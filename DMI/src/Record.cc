@@ -460,7 +460,7 @@ bool DataRecord::getFieldIter (DataRecord::Iterator& iter, HIID& id, TypeId& typ
   }
   id = iter.iter->first;
   type = iter.iter->second->type();
-  size = iter.iter->second->size();
+  size = iter.iter->second->size(type);
   iter.iter++;
   return True;
   //## end DataRecord::getFieldIter%3CA20AD703A4.body

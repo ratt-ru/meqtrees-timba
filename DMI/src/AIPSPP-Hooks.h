@@ -16,7 +16,7 @@ namespace AIPSPP_Hooks
   template<class T>
   Array<T> copyVector (int n,const void *data)
   { 
-    return Array<T>(IPosition(1,n),static_cast<const T*>(data)) 
+    return Array<T>(IPosition(1,n),static_cast<const T*>(data));
   };
 
   // specialization for String, with conversion from std::string
@@ -24,7 +24,7 @@ namespace AIPSPP_Hooks
   Array<String> copyVector (int n,const void *data)
   { 
     String *dest0 = new String[n], *dest = dest0;
-    string *src = static_cast<const string *>(data);
+    const string *src = static_cast<const string *>(data);
     for( int i=0; i<n; i++,dest++,src++ )
       *dest = *src;
     return Array<String>(IPosition(1,n),dest0,TAKE_OVER);
@@ -46,11 +46,7 @@ Array<T> NestableContainer::ConstHook::as_AipsArray () const
   if( index>=0 || id.size() )
   {
     target = collapseIndex(info,0,0);
-    if( !target )
-    {
-      FailWhen(!deflt,"uninitialized element");
-      return deflt;
-    }
+    FailWhen(!target,"uninitialized element");
   }
   else
   {
@@ -68,7 +64,7 @@ Array<T> NestableContainer::ConstHook::as_AipsArray () const
   }
   // Have we resolved to a DataArray? 
   if( info.tid == TpDataArray )
-    return static_cast<const DataArray *>(target)->copyAipsArray<T>();
+    return static_cast<const DataArray *>(target)->copyAipsArray((T*)0);
   // no, then try to treat target as a container in scalar mode
   TypeId tid = typeIdOf(T);
   FailWhen( !nextNC(asNestable(target,info.tid)),
