@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+import app_defaults
+if app_defaults.include_gui:
+  print '========================== Using gui';
+
 from dmitypes import *
 import octopussy
 import py_app_launcher
@@ -8,6 +12,8 @@ import os
 import string
 import time
 
+  
+
 # class app_proxy
 class app_proxy (verbosity):
   "app_proxy is an interface to a C++ ApplicationBase (see AppAgents)"
@@ -15,7 +21,7 @@ class app_proxy (verbosity):
   set_debug = staticmethod(octopussy.set_debug);
   setdebug = staticmethod(octopussy.set_debug);
   
-  def __init__(self,appid,launch=None,spawn=None,verbose=0,wp_verbose=0):
+  def __init__(self,appid,launch=None,spawn=None,verbose=0,wp_verbose=0,gui=False):
     verbosity.__init__(self,verbose,name=str(appid));
     self.appid = hiid(appid);
     self._rcv_prefix = self.appid + "Out";   # messages from app

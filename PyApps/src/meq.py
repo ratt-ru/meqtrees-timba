@@ -174,8 +174,6 @@ def cells(domain=None,num_freq=None,num_time=None,
   return rec;
   
   
-# }
-# 
 # #-- meq.reclist() -------------------------------------------------------------
 # # Creates a record list from its arguments.
 # # A record list is turned into a DataField of DataRecords on the C++ side.
@@ -263,27 +261,26 @@ def cells(domain=None,num_freq=None,num_time=None,
 #   return ref cmdlist;
 # }
 # 
-# #-- meq.request() -------------------------------------------------------------
-# # creates a request
-# 
-# const meq.request := function (cells=F,request_id=F,calc_deriv=0)
-# {
-#   global _meqdomain_id;
-#   # if no request ID supplied, generate one by incrementing the
-#   # global domain ID. 
-#   if( is_boolean(request_id) )
-#     request_id := meq.requestid(_meqdomain_id+:=1);
-#   else  # else, setup global domain ID from the one given in the request ID
-#     _meqdomain_id := as_integer(as_string(request_id) ~ s/\..*$//);
-#   req := [ request_id=hiid(request_id),
-#            calc_deriv=as_integer(calc_deriv) ];
-#   if( !is_boolean(cells) )
-#     req.cells := cells;
-#   req::dmi_actual_type := 'MeqRequest';
-#   
-#   return ref req;
-# }
-# 
+
+_meqdomain_id = 0;
+
+def requestid (domain_id,config_id=0,iter_id=0):
+  return hiid((domain_id,config_id,iter_id));
+
+def request (cells=None,rqid=None,calc_deriv=0):
+  # generate rqid if not supplied
+  if rqid is None:
+    global _meqdomain_id;
+    rqid = requestid(_meqdomain_id);
+    _meqdomain_id += 1;
+  else:
+    _meqdomain_id = rqid[0];
+  rec = srecord(request_id=make_hiid(request_id),calc_deriv=calc_deriv);
+  if cells is not None:
+    rec.cells = cells;
+  rec.__dmi_type = 'MeqRequest';
+  return rec;
+  
 # #-- meq.add_command() -------------------------------------------------------------
 # # adds a command to a request rider
 # # req:    request to add command to (passed in by ref)

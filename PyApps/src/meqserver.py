@@ -1,10 +1,35 @@
 #!/usr/bin/python
 
-import octopussy
 import sys
+
+# first things first: setup app defaults from here and from
+# command line (this has to go first, as other modules being imported
+# may depend on app_defaults settings)
+import app_defaults
+
+#-------- update default debuglevels
+app_defaults.debuglevels.update({
+  'MeqNode'      :2,
+  'MeqForest'    :2,
+  'MeqSink'      :2,
+  'MeqSpigot'    :2,
+  'MeqVisHandler':2,
+  'MeqServer'    :2,
+  'meqserver'    :1  
+});
+
+#-------- update default arguments
+app_defaults.args.update({'launch':True,'spawn':None,
+                         'verbose':2,'wp_verbose':0 });
+                         
+#-------- parse command line
+if __name__ == '__main__':
+  app_defaults.parse_argv(sys.argv[1:]);
+
 import os
 import string
 import time
+import octopussy
 from pretty_print import PrettyPrinter
 from app_proxy import app_proxy
 from dmitypes import *
@@ -116,37 +141,28 @@ class meqserver (app_proxy):
       if self._we_track_results:
         self._we_track_results.deactivate();
 
-default_debuglevels = {
-  'MeqNode'      :2,
-  'MeqForest'    :2,
-  'MeqSink'      :2,
-  'MeqSpigot'    :2,
-  'MeqVisHandler':2,
-  'MeqServer'    :2,
-  'meqserver'    :1  
-};
-  
 mqs = None;
 
+
 # inits a meqserver
-def default_mqs (debug={},launch=True,spawn=None,**kwargs):
+def default_mqs (debug={},**kwargs):
   global mqs;
   if not isinstance(mqs,meqserver):
+    # start octopussy if needed
     if not octopussy.is_initialized():
       octopussy.init(gw=True);
     if not octopussy.is_running():
       octopussy.start(wait=True);
-    print launch,spawn;
-    if spawn:
-      launch = None;
-    if launch: 
-      spawn = None;
-    mqs = meqserver(launch=launch,spawn=spawn,**kwargs);
+    # start meqserver, overriding default args with any kwargs
+    args = app_defaults.args;
+    args.update(kwargs);
+    print 'starting a meqserver with args:',args;
+    mqs = meqserver(**args);
     mqs.init(srecord(output_col='PREDICT'),wait=True);
     if debug is None:
       pass;
     else:
-      octopussy.set_debug(default_debuglevels);
+      octopussy.set_debug(app_defaults.debuglevels);
       if isinstance(debug,dict):
         octopussy.set_debug(debug);
   return mqs;
@@ -155,7 +171,9 @@ def default_mqs (debug={},launch=True,spawn=None,**kwargs):
 # self-test block
 #
 if __name__ == '__main__':
-  default_mqs(verbose=2);
+  app_defaults.parse_argv(sys.argv[1:]);
+  
+  default_mqs();
   rec = srecord({'class':'MeqConstant'},name='x',value=0);
   print 'rec: ',rec;
   print 'createnode:',mqs.createnode(rec,wait=True);
