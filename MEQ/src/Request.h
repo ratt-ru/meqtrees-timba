@@ -127,12 +127,18 @@ public:
   //## does this request have a rider field?
   bool hasRider () const
   { return hasRider_; }
+  
+  //## copies over rider from another request
+  void copyRider (const Request &other);
+  
+  //## clears rider
+  void clearRider ();
 
   //##Documentation
   //## re-checks elf_ for a rider record, sets the hasRider flag.
   //## should be called after an app has changed the rider
   void validateRider ();
-    
+  
 protected: 
     //##ModelId=400E5354039C
   //##Documentation

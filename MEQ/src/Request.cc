@@ -116,6 +116,23 @@ void Request::validateRider ()
   hasRider_ = DataRecord::hasField(FRider);
 }
 
+void Request::clearRider ()
+{
+  DataRecord::remove(FRider);
+  hasRider_ = False;
+}
+
+void Request::copyRider (const Request &other)
+{
+  if( other.hasRider() )
+  {
+    DataRecord::replace(FRider,other.field(FRider));
+    hasRider_ = True;
+  }
+  else
+    clearRider();
+}
+
 int Request::remove (const HIID &id)
 { 
   if( id == FCells || id == FRequestId || id==FCalcDeriv) {
