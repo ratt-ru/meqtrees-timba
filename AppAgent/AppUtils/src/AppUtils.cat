@@ -33,8 +33,12 @@
 |
 			    )))
 		    quid       	"3E3FE4020002"
+		    parameters 	(list Parameters
+			(object Parameter "ctrl"
+			    quid       	"3E43B9660006"
+			    type       	"AppControlAgent &"))
 		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
+		    opExportControl 	"Protected"
 		    uid        	0)
 		(object Operation "~ApplicationBase"
 		    quid       	"3E3FE7660131"
@@ -68,6 +72,17 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
+		(object Operation "control"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"cg_style"
+			    value      	"Inlined"))
+		    quid       	"3E43BA79039A"
+		    result     	"AppControlAgent &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
 		(object Operation "mutex"
 		    attributes 	(list Attribute_Set
 			(object Attribute
@@ -97,7 +112,11 @@
 		    parameters 	(list Parameters
 			(object Parameter "initrec"
 			    quid       	"3E3FE1BB0221"
-			    type       	"DataRecord::Ref &"))
+			    type       	"DataRecord::Ref &")
+			(object Parameter "del_on_exit"
+			    quid       	"3E43BBE3012C"
+			    type       	"bool"
+			    initv      	"True"))
 		    result     	"Thread::ThrID"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
@@ -173,7 +192,27 @@
 		    result     	"const char *"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
-		    uid        	0))
+		    uid        	0)
+		(object Operation "ApplicationBase"
+		    quid       	"3E43BBE301BA"
+		    parameters 	(list Parameters
+			(object Parameter "right"
+			    quid       	"3E43BBE30212"
+			    type       	"const ApplicationBase&"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "operator="
+		    quid       	"3E43BBE302A3"
+		    parameters 	(list Parameters
+			(object Parameter "right"
+			    quid       	"3E43BBE3030F"
+			    type       	"const ApplicationBase&"))
+		    result     	"ApplicationBase&"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0
+		    quidu      	"3E3FE1770336"))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "initrec_cache"
 		    quid       	"3E3FE1F40325"
@@ -185,6 +224,12 @@
 		    quid       	"3E3FE2A70351"
 		    stereotype 	"mutable"
 		    type       	"Thread::Mutex")
+		(object ClassAttribute "controlref_"
+		    quid       	"3E43B9080057"
+		    type       	"AppAgent::Ref")
+		(object ClassAttribute "delete_on_exit"
+		    quid       	"3E43BBE202DA"
+		    type       	"bool")
 		(object ClassAttribute "LocalDebugContext"
 		    quid       	"3E3FEDBE0291"
 		    exportControl 	"Public"))
@@ -235,11 +280,25 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "state"
-		    attributes 	(list Attribute_Set)
-		    quid       	"3E392EDF034C"
-		    stereotype 	"const,virtual"
-		    result     	"int"
+		(object Operation "input"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E43BC04002F"
+		    result     	"VisAgent::InputAgent &"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "output"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E43BC040043"
+		    result     	"VisAgent::OutputAgent &"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
@@ -312,6 +371,12 @@
 		    uid        	0
 		    quidu      	"3E39285A0273"))
 	    class_attributes 	(list class_attribute_list
+		(object ClassAttribute "inref"
+		    quid       	"3E43BC0303A0"
+		    type       	"AppAgent::Ref")
+		(object ClassAttribute "outref"
+		    quid       	"3E43BC0303DA"
+		    type       	"AppAgent::Ref")
 		(object ClassAttribute "LocalDebugSubContext"
 		    quid       	"3E3FEDB80357"
 		    exportControl 	"Public"))
@@ -321,11 +386,12 @@
 	(object Association "$UNNAMED$0"
 	    quid       	"3E43939D03CF"
 	    roles      	(list role_list
-		(object Role "input: VisAgent::InputAgent &"
+		(object Role "input_: VisAgent::InputAgent &"
 		    quid       	"3E43939D03D0"
-		    label      	"input: VisAgent::InputAgent &"
+		    label      	"input_: VisAgent::InputAgent &"
 		    supplier   	"Logical View::AppAgents::VisAgent::InputAgent"
 		    quidu      	"3DF9FECD0169"
+		    client_cardinality 	(value cardinality "1")
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
@@ -337,11 +403,12 @@
 	(object Association "$UNNAMED$2"
 	    quid       	"3E43939E0000"
 	    roles      	(list role_list
-		(object Role "output: VisAgent::OutputAgent &"
+		(object Role "output_: VisAgent::OutputAgent &"
 		    quid       	"3E43939E0001"
-		    label      	"output: VisAgent::OutputAgent &"
+		    label      	"output_: VisAgent::OutputAgent &"
 		    supplier   	"Logical View::AppAgents::VisAgent::OutputAgent"
 		    quidu      	"3E00AA5100F9"
+		    client_cardinality 	(value cardinality "1")
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
@@ -351,20 +418,21 @@
 		    quidu      	"3E39285A0273"
 		    is_aggregate 	TRUE)))
 	(object Association "$UNNAMED$4"
-	    quid       	"3E43939E001A"
+	    quid       	"3E43B898022D"
 	    roles      	(list role_list
-		(object Role "control: AppControlAgent &"
-		    quid       	"3E43939E001B"
-		    label      	"control: AppControlAgent &"
+		(object Role "control_: AppControlAgent &"
+		    quid       	"3E43B89C0135"
+		    label      	"control_: AppControlAgent &"
 		    supplier   	"Logical View::AppAgents::Base::AppControlAgent"
 		    quidu      	"3DFF2FC1009C"
+		    client_cardinality 	(value cardinality "1")
 		    Containment 	"By Value"
 		    exportControl 	"Private"
 		    is_navigable 	TRUE)
 		(object Role "$UNNAMED$5"
-		    quid       	"3E43939E001E"
-		    supplier   	"Logical View::AppAgents::AppUtils::VisRepeater"
-		    quidu      	"3E39285A0273"
+		    quid       	"3E43B89C015A"
+		    supplier   	"Logical View::AppAgents::AppUtils::ApplicationBase"
+		    quidu      	"3E3FE1770336"
 		    is_aggregate 	TRUE))))
     logical_presentations 	(list unit_reference_list
 	(object ClassDiagram "Main"
@@ -376,59 +444,12 @@
 	    origin_x   	0
 	    origin_y   	0
 	    items      	(list diagram_item_list
-		(object ClassView "Class" "Logical View::AppAgents::AppUtils::VisRepeater" @1
+		(object ClassView "Class" "Logical View::AppAgents::AppUtils::ApplicationBase" @1
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
 		    ShowOperationSignature 	TRUE
-		    location   	(832, 1680)
-		    font       	(object Font
-			size       	10
-			face       	"arial"
-			bold       	FALSE
-			italics    	FALSE
-			underline  	FALSE
-			strike     	FALSE
-			color      	0
-			default_color 	TRUE)
-		    label      	(object ItemLabel
-			Parent_View 	@1
-			location   	(119, 1264)
-			fill_color 	13434879
-			nlines     	1
-			max_width  	1426
-			justify    	0
-			label      	"VisRepeater")
-		    icon_style 	"Icon"
-		    line_color 	3342489
-		    fill_color 	13434879
-		    quidu      	"3E39285A0273"
-		    compartment 	(object Compartment
-			Parent_View 	@1
-			location   	(119, 1325)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	FALSE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	16777215
-			anchor     	2
-			nlines     	10
-			max_width  	1878)
-		    width      	1444
-		    height     	856
-		    annotation 	8)
-		(object ClassView "Class" "Logical View::AppAgents::AppUtils::ApplicationBase" @2
-		    ShowCompartmentStereotypes 	TRUE
-		    IncludeAttribute 	TRUE
-		    IncludeOperation 	TRUE
-		    ShowOperationSignature 	TRUE
-		    location   	(896, 496)
+		    location   	(896, 624)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -439,11 +460,11 @@
 			color      	0
 			default_color 	TRUE)
 		    label      	(object ItemLabel
-			Parent_View 	@2
-			location   	(130, 58)
+			Parent_View 	@1
+			location   	(105, 49)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	1533
+			max_width  	1583
 			justify    	0
 			label      	"ApplicationBase")
 		    icon_style 	"Icon"
@@ -451,8 +472,8 @@
 		    fill_color 	13434879
 		    quidu      	"3E3FE1770336"
 		    compartment 	(object Compartment
-			Parent_View 	@2
-			location   	(130, 119)
+			Parent_View 	@1
+			location   	(105, 110)
 			font       	(object Font
 			    size       	10
 			    face       	"arial"
@@ -465,17 +486,468 @@
 			icon_style 	"Icon"
 			fill_color 	16777215
 			anchor     	2
-			nlines     	16
-			max_width  	1884)
-		    width      	1551
-		    height     	900
+			nlines     	21
+			max_width  	1887)
+		    width      	1601
+		    height     	1175
 		    annotation 	8)
-		(object InheritView "" @3
+		(object ClassView "Class" "Logical View::AppAgents::Base::AppControlAgent" @2
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(2432, 896)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@2
+			location   	(2230, 846)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	404
+			justify    	0
+			label      	"AppControlAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DFF2FC1009C"
+		    width      	422
+		    height     	124
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object AssociationViewNew "$UNNAMED$4" @3
+		    location   	(1958, 894)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E43B898022D"
+		    roleview_list 	(list RoleViews
+			(object RoleView "control_: AppControlAgent &" @4
+			    Parent_View 	@3
+			    location   	(1062, 398)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @5
+				Parent_View 	@4
+				location   	(2114, 854)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	542
+				justify    	0
+				label      	"-control_"
+				pctDist    	0.594891
+				height     	41
+				orientation 	0)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E43B89C0135"
+			    client     	@3
+			    supplier   	@2
+			    line_style 	3
+			    origin_attachment 	(1958, 894)
+			    terminal_attachment 	(2221, 894)
+			    label      	(object SegLabel @6
+				Parent_View 	@4
+				location   	(2195, 948)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				anchor     	2
+				anchor_loc 	1
+				nlines     	1
+				max_width  	15
+				justify    	0
+				label      	"1"
+				pctDist    	0.900000
+				height     	54
+				orientation 	1))
+			(object RoleView "$UNNAMED$5" @7
+			    Parent_View 	@3
+			    location   	(1062, 398)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E43B89C015A"
+			    client     	@3
+			    supplier   	@1
+			    line_style 	3
+			    origin_attachment 	(1958, 894)
+			    terminal_attachment 	(1696, 894))))
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::InputAgent" @8
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(2368, 1632)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@8
+			location   	(2233, 1582)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	270
+			justify    	0
+			label      	"InputAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3DF9FECD0169"
+		    width      	288
+		    height     	124
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::VisAgent::OutputAgent" @9
+		    ShowCompartmentStereotypes 	TRUE
+		    SuppressAttribute 	TRUE
+		    SuppressOperation 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    location   	(2384, 1936)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@9
+			location   	(2230, 1886)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	308
+			justify    	0
+			label      	"OutputAgent")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3E00AA5100F9"
+		    width      	326
+		    height     	124
+		    annotation 	8
+		    autoResize 	TRUE)
+		(object ClassView "Class" "Logical View::AppAgents::AppUtils::VisRepeater" @10
+		    ShowCompartmentStereotypes 	TRUE
+		    IncludeAttribute 	TRUE
+		    IncludeOperation 	TRUE
+		    ShowOperationSignature 	TRUE
+		    location   	(816, 1952)
+		    font       	(object Font
+			size       	10
+			face       	"arial"
+			bold       	FALSE
+			italics    	FALSE
+			underline  	FALSE
+			strike     	FALSE
+			color      	0
+			default_color 	TRUE)
+		    label      	(object ItemLabel
+			Parent_View 	@10
+			location   	(112, 1536)
+			fill_color 	13434879
+			nlines     	1
+			max_width  	1408
+			justify    	0
+			label      	"VisRepeater")
+		    icon_style 	"Icon"
+		    line_color 	3342489
+		    fill_color 	13434879
+		    quidu      	"3E39285A0273"
+		    compartment 	(object Compartment
+			Parent_View 	@10
+			location   	(112, 1597)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	13
+			max_width  	1880)
+		    width      	1426
+		    height     	857
+		    annotation 	8)
+		(object InheritView "" @11
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3E3FE28B0117"
-		    client     	@1
-		    supplier   	@2
+		    client     	@10
+		    supplier   	@1
 		    line_style 	3
-		    origin_attachment 	(896, 1252)
-		    terminal_attachment 	(896, 946))))))
+		    origin_attachment 	(828, 1524)
+		    terminal_attachment 	(828, 1211))
+		(object AssociationViewNew "$UNNAMED$0" @12
+		    location   	(1876, 1632)
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E43939D03CF"
+		    roleview_list 	(list RoleViews
+			(object RoleView "$UNNAMED$1" @13
+			    Parent_View 	@12
+			    location   	(-492, 224)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @14
+				Parent_View 	@13
+				location   	(1598, 1591)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				hidden     	TRUE
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	450
+				justify    	0
+				label      	""
+				pctDist    	0.800000
+				height     	42
+				orientation 	1)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E43939D03D3"
+			    client     	@12
+			    supplier   	@10
+			    line_style 	3
+			    origin_attachment 	(1876, 1632)
+			    terminal_attachment 	(1529, 1632))
+			(object RoleView "input_: VisAgent::InputAgent &" @15
+			    Parent_View 	@12
+			    location   	(-492, 224)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @16
+				Parent_View 	@15
+				location   	(2154, 1591)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	659
+				justify    	0
+				label      	"-input_"
+				pctDist    	0.800000
+				height     	42
+				orientation 	0)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E43939D03D0"
+			    client     	@12
+			    supplier   	@8
+			    line_style 	3
+			    origin_attachment 	(1876, 1632)
+			    terminal_attachment 	(2224, 1632)
+			    label      	(object SegLabel @17
+				Parent_View 	@15
+				location   	(2188, 1686)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				anchor     	2
+				anchor_loc 	1
+				nlines     	1
+				max_width  	15
+				justify    	0
+				label      	"1"
+				pctDist    	0.900000
+				height     	54
+				orientation 	1))))
+		(object AssociationViewNew "$UNNAMED$2" @18
+		    location   	(1875, 1936)
+		    stereotype 	TRUE
+		    line_color 	3342489
+		    quidu      	"3E43939E0000"
+		    roleview_list 	(list RoleViews
+			(object RoleView "$UNNAMED$3" @19
+			    Parent_View 	@18
+			    location   	(-509, 96)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @20
+				Parent_View 	@19
+				location   	(1598, 1895)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				hidden     	TRUE
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	450
+				justify    	0
+				label      	""
+				pctDist    	0.800000
+				height     	42
+				orientation 	1)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E43939E0004"
+			    client     	@18
+			    supplier   	@10
+			    line_style 	3
+			    origin_attachment 	(1875, 1936)
+			    terminal_attachment 	(1529, 1936))
+			(object RoleView "output_: VisAgent::OutputAgent &" @21
+			    Parent_View 	@18
+			    location   	(-509, 96)
+			    font       	(object Font
+				size       	10
+				face       	"arial"
+				bold       	FALSE
+				italics    	FALSE
+				underline  	FALSE
+				strike     	FALSE
+				color      	0
+				default_color 	TRUE)
+			    label      	(object SegLabel @22
+				Parent_View 	@21
+				location   	(2152, 1895)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				anchor     	1
+				anchor_loc 	1
+				nlines     	1
+				max_width  	737
+				justify    	0
+				label      	"-output_"
+				pctDist    	0.800000
+				height     	42
+				orientation 	0)
+			    stereotype 	TRUE
+			    line_color 	3342489
+			    quidu      	"3E43939E0001"
+			    client     	@18
+			    supplier   	@9
+			    line_style 	3
+			    origin_attachment 	(1875, 1936)
+			    terminal_attachment 	(2221, 1936)
+			    label      	(object SegLabel @23
+				Parent_View 	@21
+				location   	(2186, 1990)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				anchor     	2
+				anchor_loc 	1
+				nlines     	1
+				max_width  	15
+				justify    	0
+				label      	"1"
+				pctDist    	0.900000
+				height     	54
+				orientation 	1))))))))

@@ -3,12 +3,20 @@
     
 #include <AppAgent/AppAgent.h>
 #include <AppAgent/AppEventSink.h>
+    
 class DataRecord;
+class AppEventFlag;
     
 //##ModelId=3E4147EF00D6
 class AppEventAgentBase : public AppAgent
 {
   public:
+    //##ModelId=3E47AA530111
+    void attachFlag (AppEventFlag& evflag, int dmiflags = DMI::WRITE);
+  
+    //##ModelId=3E47AF920205
+    virtual bool isAsynchronous() const;
+
     //##ModelId=3E41147B0049
     //##Documentation
     //## Agent initialization method. Called by the application to initialize

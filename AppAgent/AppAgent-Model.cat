@@ -10071,7 +10071,12 @@
 					(3576, 2705))
 				    line_style 	3
 				    origin_attachment 	(3269, 2912)
-				    terminal_attachment 	(3576, 2705)))))))))
+				    terminal_attachment 	(3576, 2705))))))))
+	(object Class_Category "AppUtils"
+	    is_unit    	TRUE
+	    is_loaded  	FALSE
+	    file_name  	"$LOFAR/CEP/CPA/AppAgent/AppUtils/src/AppUtils.cat"
+	    quid       	"3E4392AD0305"))
     logical_presentations 	(list unit_reference_list
 	(object ClassDiagram "Main"
 	    quid       	"3DFF2FE60300"

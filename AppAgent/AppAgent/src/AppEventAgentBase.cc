@@ -8,11 +8,24 @@ AppEventAgentBase::AppEventAgentBase (const HIID &initf)
   sink_ <<= new AppEventSink(HIID());
 }
 
+//##ModelId=3E47AA530111
+void AppEventAgentBase::attachFlag(AppEventFlag& evflag, int dmiflags)
+{
+  sink().attachFlag(evflag,dmiflags);
+}
+
+
 //##ModelId=3E4148870295
 AppEventAgentBase::AppEventAgentBase (AppEventSink &evsink, const HIID &initf)
     : AppAgent(initf)
 {
   sink_.attach(evsink,DMI::WRITE); // attach default ref (extern if first ref)
+}
+
+//##ModelId=3E47AF920205
+bool AppEventAgentBase::isAsynchronous() const
+{
+  return sink().isAsynchronous();
 }
 
 //##ModelId=3E41147B0049

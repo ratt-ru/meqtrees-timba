@@ -7,6 +7,7 @@ libappagent_la_SOURCES = \
   AppAgent.cc \
   AppEventSink.cc \
   AppEventAgentBase.cc \
+  AppEventFlag.cc \
   AppControlAgent.cc
   
 

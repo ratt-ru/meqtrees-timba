@@ -26,33 +26,48 @@
 using namespace AppEvent;
 
 //##ModelId=3E4100E40257
-AppEventSink::AppEventSink(const HIID &initf)
+AppEventSink::AppEventSink (const HIID &initf)
   : AppAgent(initf)
 {
 }
 
-//##ModelId=3E4143B200F2
-bool AppEventSink::init(const DataRecord &)
+//##ModelId=3E4784B1021A
+AppEventSink::AppEventSink(const HIID &initf, AppEventFlag &evflag)
+  : AppAgent(initf)
 {
-  return True;
+  attachFlag(evflag);
+}
+
+//##ModelId=3E4787070046
+void AppEventSink::attachFlag (AppEventFlag& evflag,int dmiflags)
+{
+  eventFlag.attach(evflag,dmiflags|DMI::WRITE);
+  sink_num = evflag.addSource(isAsynchronous());
 }
 
 
+//##ModelId=3E4143B200F2
+bool AppEventSink::init (const DataRecord &)
+{
+  return True;
+}
     
 //##ModelId=3E394D4C02BB
 int AppEventSink::getEvent (HIID &,ObjRef &,const HIID &,int wait)
 { 
-  if( wait == NOWAIT )
-    return WAIT; 
-  Throw("waiting for an event here would block indefinitely");
+  return waitOtherEvents(wait);
 }
 
 //##ModelId=3E394D4C02C1
 int AppEventSink::hasEvent (const HIID &) const
 { 
-  return WAIT; 
+  // if we have an event flag and it's raised, this means some other sink
+  // has an event pending. In this case return OUTOFSEQ
+  return eventFlag.valid() && eventFlag->isRaised() 
+         ? OUTOFSEQ 
+  // otherwise, since we don't generate any events here, simply return WAIT
+         : WAIT; 
 }
-
 
 //##ModelId=3E394D4C02C9
 void AppEventSink::postEvent (const HIID &, const ObjRef &)
@@ -74,7 +89,7 @@ int AppEventSink::getEvent (HIID &id, DataRecord::Ref &data, const HIID &mask, i
 }
 
 //##ModelId=3E3E747A0120
-void AppEventSink::postEvent(const HIID &id, const DataRecord::Ref & data)
+void AppEventSink::postEvent (const HIID &id, const DataRecord::Ref & data)
 {
   if( data.valid() )
   {
@@ -86,7 +101,7 @@ void AppEventSink::postEvent(const HIID &id, const DataRecord::Ref & data)
 }
 
 //##ModelId=3E3FD6180308
-void AppEventSink::postEvent(const HIID &id, const string &text)
+void AppEventSink::postEvent (const HIID &id, const string &text)
 {
   DataRecord::Ref ref;
   ref <<= new DataRecord;
@@ -94,3 +109,38 @@ void AppEventSink::postEvent(const HIID &id, const string &text)
   postEvent(id,ref);
 }
 
+//##ModelId=3E47843B0350
+void AppEventSink::raiseEventFlag()
+{
+  if( eventFlag.valid() )
+    eventFlag().raise(sink_num);
+}
+
+//##ModelId=3E47844701DE
+void AppEventSink::clearEventFlag()
+{
+  if( eventFlag.valid() )
+    eventFlag().clear(sink_num);
+}
+
+//##ModelId=3E4790150278
+int AppEventSink::waitOtherEvents (int wait) const
+{
+  if( wait == WAIT )
+  {
+    // if we have an event flag, then we can wait on it and return an 
+    // out-of-sequence error when an event arrives for another sink.
+    // If there are no sinks around capable of generating asyncronous events,
+    // AppEventFlag::wait() will return False
+    FailWhen(!eventFlag.valid() || !eventFlag->wait(),
+        "waiting for an event here would block indefinitely");
+    return OUTOFSEQ;
+  }
+  else if( wait == BLOCK )
+  {
+    // bo-bo, can't block here since we never get an event to unblock us...
+    Throw("blocking for an event here would block indefinitely");
+  }
+  else
+    return WAIT;
+}

@@ -24,6 +24,7 @@
 #define _APPAGENT_APPEVENTSINK_H 1
 
 #include <AppAgent/AppAgent.h>
+#include <AppAgent/AppEventFlag.h>
   
 #pragma aidgroup AppAgent
 #pragma aid AppAgent Event Text
@@ -70,6 +71,12 @@ class AppEventSink : public AppAgent
   
     //##ModelId=3E4100E40257
     explicit AppEventSink (const HIID &initf);
+    
+    //##ModelId=3E4784B1021A
+    AppEventSink (const HIID &initf, AppEventFlag &evflag);
+    
+    //##ModelId=3E4787070046
+    void attachFlag (AppEventFlag& evflag,int dmiflags = DMI::WRITE);
     
     //##ModelId=3E4143B200F2
     //##Documentation
@@ -126,6 +133,18 @@ class AppEventSink : public AppAgent
     //## or whatever)
       virtual void flush ();
       
+      //##ModelId=3E47843B0350
+      void raiseEventFlag  ();
+      //##ModelId=3E47844701DE
+      void clearEventFlag ();
+      
+      //##ModelId=3E47852A012C
+      virtual bool isAsynchronous() const
+      { return False; }
+      
+    //##ModelId=3E4790150278
+      int waitOtherEvents (int wait) const;
+          
     //##ModelId=3E3E744E0258
       int getEvent (HIID &id, DataRecord::Ref &data, const HIID &mask, int wait = AppEvent::WAIT);
 
@@ -150,6 +169,14 @@ class AppEventSink : public AppAgent
       virtual string sdebug ( int detail = 1,const string &prefix = "",
                               const char *name = 0 ) const
       { return "NullEventSink"; }
+
+
+  private:
+    //##ModelId=3E43E3B30155
+    AppEventFlag::Ref eventFlag;
+    //##ModelId=3E47837F02C2
+    int sink_num;
+
 
 };
     
