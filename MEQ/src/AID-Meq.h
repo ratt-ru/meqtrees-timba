@@ -138,11 +138,6 @@ const int AidDbId_int = -1411;
 const AtomicID AidDec(-1379);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/UVW.h:30
 const int AidDec_int = -1379;
 #endif
-#ifndef _defined_id_AidDecSrc
-#define _defined_id_AidDecSrc 1
-const AtomicID AidDecSrc(-1465);                  // from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/LMN.h:30
-const int AidDecSrc_int = -1465;
-#endif
 #ifndef _defined_id_AidDefault
 #define _defined_id_AidDefault 1
 const AtomicID AidDefault(-1231);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Parm.h:34
@@ -332,6 +327,11 @@ const int AidLMN_int = -1476;
 #define _defined_id_AidLT 1
 const AtomicID AidLT(-1436);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
 const int AidLT_int = -1436;
+#endif
+#ifndef _defined_id_AidLast
+#define _defined_id_AidLast 1
+const AtomicID AidLast(-1484);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:40
+const int AidLast_int = -1484;
 #endif
 #ifndef _defined_id_AidLine
 #define _defined_id_AidLine 1
@@ -662,11 +662,6 @@ const int AidPolcs_int = -1383;
 #define _defined_id_AidRA 1
 const AtomicID AidRA(-1380);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/UVW.h:30
 const int AidRA_int = -1380;
-#endif
-#ifndef _defined_id_AidRASrc
-#define _defined_id_AidRASrc 1
-const AtomicID AidRASrc(-1466);                   // from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/LMN.h:30
-const int AidRASrc_int = -1466;
 #endif
 #ifndef _defined_id_AidRank
 #define _defined_id_AidRank 1
