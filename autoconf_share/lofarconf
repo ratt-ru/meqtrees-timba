@@ -73,7 +73,8 @@ lfr_confdir=$lfr_base/$lfr_pkg;
 
 # Get the configure and make options from the variants file.
 # Look first for a host specific one; if not found, for a general one.
-lfr_host=`uname -n`
+# Remove possible domain part from host name.
+lfr_host=`uname -n | sed -e "s%\..*%%"`
 cmpopts=
 varopts=
 cmpmakes=
