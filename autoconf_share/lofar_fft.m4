@@ -35,7 +35,7 @@ AC_DEFUN([lofar_FFTW2],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], [lfr_option=0], [lfr_option=$1])
-lofar_EXTERNAL(FFTW2,[$lfr_option],fftw.h,"fftw rfftw")
+lofar_EXTERNAL(FFTW2,[$lfr_option],fftw.h,"rfftw fftw")
 ])
 
 # lofar_FFTW3
