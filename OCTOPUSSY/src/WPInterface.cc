@@ -44,8 +44,8 @@ WPInterface::WPInterface (AtomicID wpc)
   //## begin WPInterface::WPInterface%3C7CBB10027A.initialization preserve=yes
   : DebugContext(wpc.toString(),&OctopussyDebugContext::getDebugContext()),
     config(OctopussyConfig::global()),
-    address_(wpc),autoCatch_(False),dsp_(0),
-    queue_(0),wpid_(wpc)
+    address_(wpc),running(False),autoCatch_(False),
+    dsp_(0),queue_(0),wpid_(wpc)
   //## end WPInterface::WPInterface%3C7CBB10027A.initialization
 {
   //## begin WPInterface::WPInterface%3C7CBB10027A.body preserve=yes
@@ -75,6 +75,7 @@ void WPInterface::do_init ()
   //## begin WPInterface::do_init%3C99B0070017.body preserve=yes
   setNeedRepoll(False);
   full_lock = receive_lock = started = False;
+  running = True;
   if( autoCatch() )
   {
     try { 
@@ -121,6 +122,7 @@ void WPInterface::do_stop ()
   log("stopping",2);
   MessageRef ref(new Message(MsgBye|address()),DMI::ANON|DMI::WRITE);
   publish(ref);
+  running = False;
   if( autoCatch() )
   {
     try { 

@@ -245,6 +245,9 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       //## Attribute: state%3C8F256E024B
       int state () const;
 
+      //## Attribute: running%3CE0C01601F8
+      bool isRunning () const;
+
       //## Attribute: logLevel%3CA07E5F00D8
       static int logLevel ();
       static void setLogLevel (int value);
@@ -330,6 +333,10 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       //## begin WPInterface::state%3C8F256E024B.attr preserve=no  public: int {U} 
       int state_;
       //## end WPInterface::state%3C8F256E024B.attr
+
+      //## begin WPInterface::running%3CE0C01601F8.attr preserve=no  public: bool {U} 
+      bool running;
+      //## end WPInterface::running%3CE0C01601F8.attr
 
       //## begin WPInterface::autoCatch%3CBED3720012.attr preserve=no  protected: bool {U} 
       bool autoCatch_;
@@ -459,6 +466,13 @@ inline int WPInterface::state () const
   //## begin WPInterface::state%3C8F256E024B.get preserve=no
   return state_;
   //## end WPInterface::state%3C8F256E024B.get
+}
+
+inline bool WPInterface::isRunning () const
+{
+  //## begin WPInterface::isRunning%3CE0C01601F8.get preserve=no
+  return running;
+  //## end WPInterface::isRunning%3CE0C01601F8.get
 }
 
 inline bool WPInterface::autoCatch () const

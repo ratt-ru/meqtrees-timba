@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stack>
+#include <map>
 #include "OCTOPUSSY/Timestamp.h"
 #include "OCTOPUSSY/OctopussyConfig.h"
 //## end module%3C7B7F300041.includes
@@ -147,6 +148,9 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       //	system. Returns when a SIGINT is received, or after someone has
       //	called stopPolling().
       void pollLoop ();
+
+      //## Operation: yield%3CE0BD3F0026
+      bool yield ();
 
       //## Operation: stopPolling%3CA09EB503C1
       void stopPolling ();
@@ -289,9 +293,9 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       // when <0, means no poll() calls should be made.
       int poll_depth;
         
-      // set of raised signals/all handled signals
+      // set of raised signal_map/all handled signal_map
       static sigset_t raisedSignals,allSignals;
-      // original sigactions for all signals
+      // original sigactions for all signal_map
       static struct sigaction *orig_sigaction[_NSIG];
       // static signal handler
       static void signalHandler (int signum,siginfo_t *siginfo,void *);
@@ -319,13 +323,13 @@ class Dispatcher : public OctopussyDebugContext  //## Inherits: <unnamed>%3C7FA3
       // list (remove & rebuild).
       void rebuildInputs ( WPInterface *remove = 0 );
       
-      // signals map
+      // signal_map map
       typedef multimap<int,SignalInfo> SigMap;
-      SigMap signals;
+      SigMap signal_map;
       typedef SigMap::iterator SMI;
       typedef SigMap::const_iterator CSMI;
       typedef SigMap::value_type     SMPair;
-      // rebuilds sigsets and sets up sigactions according to signals map
+      // rebuilds sigsets and sets up sigactions according to signal_map map
       // If remove is specified, all entries for the WP are removed from the
       // list (remove & rebuild)..
       void rebuildSignals (WPInterface *remove = 0);

@@ -45,7 +45,7 @@ void Dispatcher::signalHandler (int signum,siginfo_t *,void *)
 {
   sigaddset(&raisedSignals,signum);
   // if this signal is in the maps, increment its counters
-  pair<CSMI,CSMI> rng = dispatcher->signals.equal_range(signum);
+  pair<CSMI,CSMI> rng = dispatcher->signal_map.equal_range(signum);
   for( CSMI iter = rng.first; iter != rng.second; iter++ )
     if( iter->second.counter )
       (*iter->second.counter)++;
@@ -277,7 +277,7 @@ void Dispatcher::stop ()
   // clear all event lists
   timeouts.clear();
   inputs.clear();
-  signals.clear();
+  signal_map.clear();
   // this will effectively remove all signal handlers
   rebuildSignals();
   //## end Dispatcher::stop%3C7E0270027B.body
@@ -438,6 +438,14 @@ void Dispatcher::pollLoop ()
   //## end Dispatcher::pollLoop%3C8C87AF031F.body
 }
 
+bool Dispatcher::yield ()
+{
+  //## begin Dispatcher::yield%3CE0BD3F0026.body preserve=yes
+  poll();
+  return !sigismember(&raisedSignals,SIGINT) && !stop_polling;
+  //## end Dispatcher::yield%3CE0BD3F0026.body
+}
+
 void Dispatcher::stopPolling ()
 {
   //## begin Dispatcher::stopPolling%3CA09EB503C1.body preserve=yes
@@ -495,8 +503,8 @@ void Dispatcher::addSignal (WPInterface* pwp, int signum, int flags, volatile in
   //## begin Dispatcher::addSignal%3C7DFF4A0344.body preserve=yes
   FailWhen(signum<0,Debug::ssprintf("addSignal: invalid signal %d",signum));
    // look at map for this signal to see if this WP is already registered
-  for( SMI iter = signals.lower_bound(signum); 
-       iter->first == signum && iter != signals.end(); iter++ )
+  for( SMI iter = signal_map.lower_bound(signum); 
+       iter->first == signum && iter != signal_map.end(); iter++ )
   {
     if( iter->second.pwp == pwp )  // found it? change priority & return
     {
@@ -510,7 +518,7 @@ void Dispatcher::addSignal (WPInterface* pwp, int signum, int flags, volatile in
   si.flags = flags;
   si.counter = counter;
   si.msg().setState(0);
-  signals.insert( SMPair(signum,si) );
+  signal_map.insert( SMPair(signum,si) );
   rebuildSignals();
   //## end Dispatcher::addSignal%3C7DFF4A0344.body
 }
@@ -566,17 +574,17 @@ bool Dispatcher::removeSignal (WPInterface* pwp, int signum)
   //## begin Dispatcher::removeSignal%3C7DFF57025C.body preserve=yes
   bool res = False;
   pair<SMI,SMI> rng;
-  // if signum<0, removes all signals for this WP
+  // if signum<0, removes all signal_map for this WP
   if( signum<0 )
-    rng = pair<SMI,SMI>(signals.begin(),signals.end()); // range = all signals
+    rng = pair<SMI,SMI>(signal_map.begin(),signal_map.end()); // range = all signal_map
   else 
-    rng = signals.equal_range(signum);  // range = this signal's entries
+    rng = signal_map.equal_range(signum);  // range = this signal's entries
   // iterate over the range
   for( SMI iter = rng.first; iter != rng.second; )
   {
     if( iter->second.pwp == pwp )
     {
-      signals.erase(iter++);
+      signal_map.erase(iter++);
       res = True;
     }
     else
@@ -677,7 +685,7 @@ void Dispatcher::rebuildInputs (WPInterface *remove)
 
 void Dispatcher::rebuildSignals (WPInterface *remove)
 {
-  // rebuild mask of handled signals
+  // rebuild mask of handled signal_map
   sigset_t newmask;
   sigemptyset(&newmask);
   if( running )
@@ -685,10 +693,10 @@ void Dispatcher::rebuildSignals (WPInterface *remove)
   if( in_pollLoop )
     sigaddset(&newmask,SIGINT);  // INT handled in pollLoop
   int sig0 = -1;
-  for( SMI iter = signals.begin(); iter != signals.end(); )
+  for( SMI iter = signal_map.begin(); iter != signal_map.end(); )
   {
     if( remove && iter->second.pwp == remove )
-      signals.erase(iter++);
+      signal_map.erase(iter++);
     else
     {
       if( iter->first != sig0 )
@@ -702,7 +710,7 @@ void Dispatcher::rebuildSignals (WPInterface *remove)
   sa.sa_sigaction = Dispatcher::signalHandler;
   sa.sa_mask = newmask;
   sa.sa_flags = SA_SIGINFO;
-  // go thru all signals
+  // go thru all signal_map
   for( int sig = 0; sig < _NSIG; sig++ )
   {
     bool newsig = sigismember(&newmask,sig),
@@ -813,16 +821,16 @@ bool Dispatcher::checkEvents()
     // clear active fds 
     num_active_fds = 0;
   }
-  // ------ check signals
+  // ------ check signal_map
   // grab & flush the current raised-mask
   sigset_t mask = raisedSignals;
   sigemptyset(&raisedSignals);
-  // go through all raised signals
+  // go through all raised signal_map
   for( int sig = 0; sig < _NSIG; sig++ )
   {
     if( sigismember(&mask,sig) ) // signal raised? See who wants it
     {
-      pair<SMI,SMI> rng = signals.equal_range(sig);
+      pair<SMI,SMI> rng = signal_map.equal_range(sig);
       for( SMI iter = rng.first; iter != rng.second; )
       {
         // no message generated for EV_IGNORE
@@ -853,7 +861,7 @@ bool Dispatcher::checkEvents()
         }
         // remove signal if one-shot
         if( iter->second.flags&EV_ONESHOT )
-          signals.erase(iter++);
+          signal_map.erase(iter++);
         else
           iter++;
       }
