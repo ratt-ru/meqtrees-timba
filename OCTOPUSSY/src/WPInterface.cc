@@ -361,8 +361,7 @@ bool WPInterface::enqueue (const MessageRef &msg, ulong tick)
   }
   else
     dprintf(3)("queueing [%s] at h+%d\n",msg->debug(1),count);
-  QueueEntry qe = { msg,pri,tick };
-  queue().insert(iter,qe);
+  queue().insert(iter,QueueEntry(msg,pri,tick));
   return needRepoll();
   //## end WPInterface::enqueue%3C8F204A01EF.body
 }

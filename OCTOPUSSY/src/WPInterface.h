@@ -83,10 +83,20 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       ::Debug::Context & getDebugContext() { return DebugContext; };
       const ::Debug::Context & getDebugContext() const { return DebugContext; };
       
-      typedef struct {  MessageRef mref; 
-                        int priority; 
-                        ulong tick; 
-                     }  QueueEntry;
+      class QueueEntry 
+      {
+        public:
+          MessageRef mref; 
+          int priority; 
+          ulong tick; 
+          
+          QueueEntry()
+              : priority(0),tick(0)
+              {}
+          QueueEntry(const MessageRef &mref_,int pri,ulong tick_)
+              : mref(mref_),priority(pri),tick(tick_)
+              {}
+      };
                      
       typedef list<QueueEntry> MessageQueue;
   //## end WPInterface%3C7B6A3702E5.initialDeclarations
