@@ -305,17 +305,19 @@ class app_proxy_gui(verbosity,QMainWindow):
     
     #------ create a message log
     self.msglog = MessageLogger(self,"message log",use_enable=False,limit=1000,
-          click=self._process_logger_item_click,udi_root='message');
+          udi_root='message');
     self.msglog.add('start of log',category=Logger.Normal);
     self.msglog.wtop()._default_label = "Messages";
     self.msglog.wtop()._default_iconset = QIconSet();
     self.msglog.wtop()._error_label = "%d errors";
     self.msglog.wtop()._error_iconset = QIconSet(pixmaps.exclaim.pm());
-    self.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
+    QWidget.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
+    QWidget.connect(self.msglog.wtop(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     
     #------ create an event log
     self.eventlog = EventLogger(self,"event log",limit=1000,evmask="*",
-          click=self._process_logger_item_click,udi_root='event');
+          udi_root='event');
+    QWidget.connect(self.eventlog.wtop(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     
     self.maintab.addTab(self.msglog.wtop(),self.msglog.wtop()._default_label);
     
@@ -408,17 +410,6 @@ class app_proxy_gui(verbosity,QMainWindow):
     else:
       self.gw.wtop().hide();
       self.show_workspace_button.show();
-      
-##### slot: called when one of the logger items is clicked
-  def _process_logger_item_click (self,button,item,point,col):
-    self.dprint(3,'logger item clicked:',self,button,item,col);
-    # process left-clicks on column 1 only
-    if button != 1 or col != 1:
-      return;
-    # call Logger to create a dataitem object from this list item
-    dataitem = Logger.make_data_item(item);
-    if dataitem:
-      self.display_data_item(dataitem);
       
 ##### displays data item in gridded workspace
   def display_data_item (self,item,*args,**kwargs):

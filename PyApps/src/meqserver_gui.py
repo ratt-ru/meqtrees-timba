@@ -280,14 +280,15 @@ class meqserver_gui (app_proxy_gui):
     
     # add Result Log panel
     self.resultlog = Logger(self,"node result log",limit=1000,
-          click=self._process_logger_item_click,udi_root='noderes');
+          udi_root='noderes');
     self.maintab.insertTab(self.resultlog.wtop(),"Results",2);
     self.resultlog.wtop()._default_iconset = QIconSet();
     self.resultlog.wtop()._default_label   = "Results";
     self.resultlog.wtop()._newres_iconset  = QIconSet(pixmaps.check.pm());
     self.resultlog.wtop()._newres_label    = "Results";
     self.resultlog.wtop()._newresults      = False;
-    self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
+    QWidget.connect(self.resultlog.wtop(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    QWidget.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
     
   def ce_mqs_Hello (self,ev,value):
     self.treebrowser.clear();
