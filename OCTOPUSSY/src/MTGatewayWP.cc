@@ -552,7 +552,10 @@ void MTGatewayWP::stopWorkers ()
   dprintf(1)("stopWorkers: interrupting and rejoining reader threads\n");
   for( int i=0; i < NumReaderThreads; i++ )
     if( reader_threads[i] != Thread::self() )
+    {
       reader_threads[i].kill(SIGPIPE);
+      reader_threads[i].cancel();
+    }
   for( int i=0; i < NumReaderThreads; i++ )
     if( reader_threads[i] != Thread::self() )
       reader_threads[i].join();
@@ -561,7 +564,10 @@ void MTGatewayWP::stopWorkers ()
   dprintf(1)("stopWorkers: interrupting worker threads\n");
   for( int i=0; i < numWorkers(); i++ )
     if( workerID(i) != Thread::self() )
+    {
       workerID(i).kill(SIGPIPE);
+      workerID(i).cancel();
+    }
 }
 
 void * MTGatewayWP::start_readerThread (void *pwp)

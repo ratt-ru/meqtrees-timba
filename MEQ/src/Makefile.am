@@ -18,7 +18,7 @@ DOCHDRS		= $(LOCALHDRS) \
 lib_LTLIBRARIES 	= libmeq.la
 
 libmeq_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) \
-  Node_Riders.cc AID-Meq-Registry.cc
+  Node_Riders.cc Node_init.cc AID-Meq-Registry.cc
 
 check_PROGRAMS = 
 

@@ -5,16 +5,7 @@
 
 
 
-#define DoForAllOtherTypes_Meq(Do,arg,separator) \
-        
-
 #define DoForAllBinaryTypes_Meq(Do,arg,separator) \
-        
-
-#define DoForAllSpecialTypes_Meq(Do,arg,separator) \
-        
-
-#define DoForAllIntermediateTypes_Meq(Do,arg,separator) \
         
 
 #define DoForAllDynamicTypes_Meq(Do,arg,separator) \
@@ -30,5 +21,14 @@
         Do(Meq::Function,arg)
 
 #define DoForAllNumericTypes_Meq(Do,arg,separator) \
+        
+
+#define DoForAllIntermediateTypes_Meq(Do,arg,separator) \
+        
+
+#define DoForAllOtherTypes_Meq(Do,arg,separator) \
+        
+
+#define DoForAllSpecialTypes_Meq(Do,arg,separator) \
         
 #endif

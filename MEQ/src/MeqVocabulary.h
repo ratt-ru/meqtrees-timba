@@ -60,15 +60,6 @@ namespace Meq
     FState           = AidState,
     FCacheOverride   = AidCache|AidOverride,
     
-    // Node staterec
-    FChildren           = AidChildren,
-    FChildrenNames      = AidChildren|AidName,
-    FName               = AidName,
-    FNodeIndex          = AidNodeIndex,
-    FNodeGroups         = AidNode|AidGroups,
-//    FDependMask         = AidDepend|AidMask,
-    FAutoResample       = AidAuto|AidResample, 
-    
     // Request rider fields (for commands)
 //    FAll                = AidAll,
     FCommandAll         = AidCommand|AidAll,

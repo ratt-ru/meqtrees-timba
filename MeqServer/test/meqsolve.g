@@ -212,7 +212,12 @@ const make_solve_tree := function (st1,st2,src=[''],subtract=F)
               station_2_index=st2,
               input_column='DATA'])
       ))
-    ))
+    ),step_children=meq.list(
+        meq.node('MeqAdd',fq_name('stch',st1,st2),
+          children=meq.list(fq_name('GA',st1),fq_name('GA',st2))),
+        fq_name('GP',st1),
+        fq_name('GP',st2)
+   ))
   );
   # create subtract sub-tree
   if( subtract )

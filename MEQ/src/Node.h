@@ -37,7 +37,7 @@
 #pragma types #Meq::Node
 #pragma aid Add Clear Known Active Gen Dep Deps Symdep Symdeps Mask Masks
 #pragma aid Parm Value Resolution Domain Dataset Resolve Parent Init Id
-#pragma aid Link Or Create Control Status New Breakpoint Single Shot
+#pragma aid Link Or Create Control Status New Breakpoint Single Shot Step
     
 
 namespace Meq 
@@ -47,12 +47,18 @@ using namespace DMI;
 class Forest;
 class Request;
 
-// ControlStatus word
+//== Node state fields
+const HIID FChildren      = AidChildren;
+const HIID FChildrenNames = AidChildren|AidName;
+const HIID FStepChildren  = AidStep|AidChildren;
+const HIID FStepChildrenNames = AidStep|AidChildren|AidName;
+const HIID FName          = AidName;
+const HIID FNodeIndex     = AidNodeIndex;
+const HIID FNodeGroups    = AidNode|AidGroups;
+const HIID FAutoResample  = AidAuto|AidResample; 
 const HIID FControlStatus = AidControl|AidStatus;
-
-const HIID FNewRequest = AidNew|AidRequest;
-
-const HIID FBreakpoint = AidBreakpoint;
+const HIID FNewRequest    = AidNew|AidRequest;
+const HIID FBreakpoint    = AidBreakpoint;
 const HIID FBreakpointSingleShot = AidBreakpoint|AidSingle|AidShot;
 
 // flag for child init-records, specifying that child node may be directly
@@ -69,13 +75,13 @@ const HIID FGenSymDepGroup  = AidGen|AidSymdep|AidGroup;
 
 const HIID FResolveParentId = AidResolve|AidParent|AidId;
 
-// Node commands
+//== Node commands
 const HIID FResolveChildren = AidResolve|AidChildren;
 const HIID FInitDepMask = AidInit|AidDep|AidMask;
 const HIID FClearDepMask = AidClear|AidDep|AidMask;
 const HIID FAddDepMask = AidAdd|AidDep|AidMask;
 
-// some standard symbolic deps
+//=== Some standard symbolic deps
 const HIID FParmValue  = AidParm|AidValue;
 const HIID FResolution = AidResolution;
 // const HIID FDomain     = AidDomain;
@@ -227,6 +233,7 @@ class Node : public DMI::BObj
     void resolveChildren (bool recursive=true);
     
     //##ModelId=400E531101C8
+    // relinks children after a node has been reinitialized from its state record
     void relinkChildren ();
         
     //##ModelId=3F5F44820166
@@ -311,10 +318,15 @@ class Node : public DMI::BObj
     int numChildren () const
     { return children_.size(); }
     
+    int numStepChildren () const
+    { return stepchildren_.size(); }
+    
     //##ModelId=3F85710E011F
     Node & getChild (int i);
-    
     const Node & getChild (int i) const;
+    
+    Node & getStepChild (int i);
+    const Node & getStepChild (int i) const;
     
     //##ModelId=3F85710E028E
     Node & getChild (const HIID &id);
@@ -493,6 +505,12 @@ class Node : public DMI::BObj
     //## result code)
     void disableFailPropagation ()
     { propagate_child_fails_ = false; }
+    
+    
+    //##Documentation
+    //## Helper function to poll a node's set of stepchildren. 
+    //## Stepchildren's results are normally discarded.
+    int pollStepChildren (const Request &req);
       
     // ----------------- virtual methods defining node behaviour --------------
       
@@ -550,10 +568,12 @@ class Node : public DMI::BObj
     //## collect their results in the vector, and return the accumulated
     //## result code. If RES_FAIL is returned, then resref should point
     //## to a Result with the fails in it; this result will be returned by
-    //## execute() immediately with the RES_FAIl code.
+    //## execute() immediately with the RES_FAIL code.
     //## Default version does just that. If any child returns RES_FAIL,
     //## collects all fails into resref and returns RES_FAIL. If no children
     //## fail, resref is left untouched.
+    //## Stepchildren are also polled, after all children have been polled
+    //## (even if children return fails).
     //## Nodes should only reimplement this if they prefer to poll children 
     //## themselves (i.e. the Solver). 
     virtual int pollChildren (std::vector<Result::Ref> &child_results,
@@ -751,24 +771,41 @@ class Node : public DMI::BObj
     int control_status_;
     
   private:
-    //##ModelId=400E531F0085
-    void initChildren (int nch);
-    //##ModelId=3F9505E50010
-    // processes a child specification. 'child' specifies the child 
-    // (this can be a true HIID only if child_labels_ are specified;
-    // otherwise it's an single-element index) . 'id' is the actual field
-    // in 'children' that contains the child specification.
-    void processChildSpec (DMI::Container &children,const HIID &chid,const HIID &id);
-    
-    //##ModelId=3F8433C20193
-    void addChild (const HIID &id,Node *childnode);
-    
     //##Documentation
     //## processes the request rider, and calls processCommand() as appropriate.
     //## The request object may be modified; a ref is passed in to facilitate
     //## copy-on-write
     int processRequestRider (Request::Ref &reqref);
+  
+    //------------------------- helper methods to manage children
+    //##ModelId=400E531F0085
+    void initChildren (int nch);
+    void initStepChildren (int nch);
+    //##ModelId=3F8433C20193
+    // adds a child or stepchild. A child may be specified by index or label
+    // (if labels are defined); stepchildren always use indices.
+    // Ref is transferred.
+    void addChild (const HIID &id,Node::Ref &childnode);
+    void addStepChild (int n,Node::Ref &childnode);
+    //##ModelId=3F9505E50010
+    // processes a single [step]child specification. 'child' specifies the child.
+    // (this can be a true HIID only if not a stepchild, and child_labels_ are specified;
+    // otherwise it's an single-element index) . 'id' is the actual field
+    // in 'children' that contains the child specification.
+    void processChildSpec (DMI::Container &children,const HIID &chid,const HIID &id,bool stepchild);
     
+    // Looks into record, gets out the FChildren or FStepChildren field, and 
+    // processes it as a list of [step]children
+    void setupChildren (DMI::Record &init,bool stepchildren);
+    
+    //##ModelId=3F8433ED0337
+    //##Documentation
+    //## vector of refs to children
+    std::vector<Node::Ref> children_;
+    //## vector of refs to stepchildren
+    std::vector<Node::Ref> stepchildren_;
+    // flag: children & stepchildren have been resolved
+    bool children_resolved_;
     //##ModelId=400E530A0143
     //##Documentation
     //## child labels specified in constructor. Labelled children may
@@ -776,8 +813,12 @@ class Node : public DMI::BObj
     //## If no labels specified, this is initialized with trivial HIIDs:
     //## '0', '1', etc.
     vector<HIID> child_labels_;
-    
-    
+    //##ModelId=3F8433C10295
+    typedef std::map<HIID,int> ChildrenMap;
+    //##ModelId=400E530B03D6
+    //##Documentation
+    //## map from child labels to numbers (i.e. indices into the children_ vector)
+    ChildrenMap child_map_;
     //##ModelId=400E530A016A
     //##Documentation
     //## specified in constructor. If non-0, node must have that fixed number
@@ -849,21 +890,6 @@ class Node : public DMI::BObj
     //## Group(s) that a node belongs to. Node groups determine 
     std::vector<HIID> node_groups_;
     
-    //##ModelId=3F8433ED0337
-    //##Documentation
-    //## vector of refs to children
-    std::vector<Node::Ref> children_;
-    
-    //##ModelId=3F8433C10295
-    typedef std::map<HIID,int> ChildrenMap;
-
-    //##ModelId=400E530B03D6
-    //##Documentation
-    //## map from child labels to numbers (i.e. indices into the children_ vector)
-    ChildrenMap child_map_;
-    
-    // flag: children have been resolved
-    bool children_resolved_;
     
     //##Documentation
     //## auto-resample mode for child results

@@ -85,6 +85,7 @@ int ReqSeq::pollChildren (std::vector<Result::Ref> &chres,
       result_code_ = code;
     }
   }
+  pollStepChildren(req);
   return 0;
 }
 

@@ -132,181 +132,6 @@ void Node::resetDependMasks ()
   setDependMask(computeDependMask(active_symdeps_)); 
 }
 
-// this initializes the children-related fields
-//##ModelId=400E531F0085
-void Node::initChildren (int nch)
-{
-  // check against expected number
-  if( check_nchildren_ >= 0 && !check_nmandatory_ )
-  {
-    FailWhen( nch != check_nchildren_,
-              ssprintf("%d children specified, %d expected",nch,check_nchildren_) );
-  }
-  FailWhen( nch < check_nmandatory_,
-            ssprintf("%d children specified, at least %d expected",
-            nch,check_nmandatory_) );
-  children_.resize(nch);
-  // form the children name/index fields
-  if( nch )
-  {
-    DMI::Container *p1,*p2;
-    if( !child_labels_.empty() ) // children are labelled: use records
-    {
-      wstate()[FChildren] <<= new DMI::Record;
-      wstate()[FChildrenNames] <<= new DMI::Record;
-    }
-    else // children are unlabelled: use fields
-    {
-      wstate()[FChildren] <<= new DMI::Vec(Tpint,nch);
-      wstate()[FChildrenNames] <<= new DMI::Vec(Tpstring,nch);
-    }
-    // set up map from label to child number 
-    // (if no labels are defined, trivial "0", "1", etc. are used)
-    for( int i=0; i<nch; i++ )
-      child_map_[getChildLabel(i)] = i;
-  }
-  else
-  {
-    wstate()[FChildren].remove();
-    wstate()[FChildrenNames].remove();
-  }
-}
-
-//##ModelId=400E530F0090
-void Node::reinit (DMI::Record::Ref &initrec, Forest* frst)
-{
-  cdebug(1)<<"reinitializing node"<<endl;
-  forest_ = frst;
-      
-  // xfer & COW the state record -- we don't want anyone
-  // changing it under us
-  DMI::Record &rec = staterec_.xfer(initrec).dewr();
-
-  // set control state
-  control_status_ = rec[FControlStatus].as<int>();
-  // set num children based on the FChildren field
-  cdebug(2)<<"reinitializing node children"<<endl;
-  // set node index, if specified
-  if( rec[FNodeIndex].exists() )
-    node_index_ = rec[FNodeIndex].as<int>();
-  // set resolve ID, if any
-  node_resolve_id_ = rec[FResolveParentId].as<int>(-1);
-  
-  // setup children directly from relevant fields
-  int nch = rec[FChildrenNames].size();
-  if( nch )
-  {
-    children_.resize(nch);
-    for( int i=0; i<nch; i++ )
-      child_map_[getChildLabel(i)] = i;
-    rcr_cache_.resize(nch);
-    cdebug(2)<<"reinitialized with "<<nch<<" children"<<endl;
-  }
-  else
-  {
-    cdebug(2)<<"no children to reintialize"<<endl;
-  }
-  // finally, call setStateImpl to set up reconfigurable node state
-  cdebug(2)<<"reinitializing node (setStateImpl)"<<endl;
-  cdebug(3)<<"state is "<<staterec_().sdebug(10,"    ")<<endl;
-  setStateImpl(staterec_,true);
-}  
-
-//##ModelId=3F5F45D202D5
-void Node::init (DMI::Record::Ref &initrec, Forest* frst)
-{
-  cdebug(1)<<"initializing node"<<endl;
-  forest_ = frst;
-  
-  // xfer & COW the state record
-  DMI::Record &rec = staterec_.xfer(initrec).dewr();
-  
-  // set defaults and check for missing fields
-  cdebug(2)<<"initializing node (checkInitState)"<<endl;
-  // add node class if needed, else check for consistency
-  if( rec[FClass].exists() )
-  {
-    FailWhen(strlowercase(rec[FClass].as<string>()) != strlowercase(objectType().toString()),
-      "node class does not match initrec.class. This is not supposed to happen!");
-  }
-  else
-    rec[FClass] = objectType().toString();
-  // do other checks
-  FailWhen(rec[FResolveParentId].exists(),"can't specify "+FResolveParentId.toString()+" in init record");
-  node_resolve_id_ = -1;
-  checkInitState(staterec_);
-  // add state word
-  rec[FControlStatus] = control_status_;
-  
-  // setup children
-  cdebug(2)<<"initializing node (others)"<<endl;
-  // set node index, if specified
-  if( rec[FNodeIndex].exists() )
-    node_index_ = rec[FNodeIndex].as<int>();
-  
-  // get children spec. If this is a single boolean false, then ignore
-  DMI::Record::Hook hchildren(rec,FChildren);
-  if( hchildren.type() == Tpbool && hchildren.size() == 1 &&
-      !hchildren.as<bool>() )
-  {
-    cdebug(2)<<"Children=[false], skipping child creation"<<endl;
-  }
-  // Not [F}, so go on to process children
-  else if( hchildren.exists() )
-  {
-    ObjRef ref = hchildren.remove();
-    // children specified via a record
-    if( ref->objectType() == TpDMIRecord )
-    {
-      DMI::Record &childrec = ref.ref_cast<DMI::Record>();
-      initChildren(childrec.size());
-      // iterate through children record and create the child nodes
-      int ifield = 0;
-      for( DMI::Record::Iterator iter = childrec.begin(); iter != childrec.end(); iter++ )
-      {
-        const HIID &id = iter.id();
-        processChildSpec(childrec,child_labels_.empty() ? AtomicID(ifield) : id,id );
-        ifield++;
-      }
-    }
-    else if( ref->objectType() == TpDMIVec || ref->objectType() == TpDMIList )
-    {
-      DMI::Container &childrec = ref.ref_cast<DMI::Container>();
-      initChildren(childrec.size());
-      for( int i=0; i<childrec.size(); i++ )
-        processChildSpec(childrec,AtomicID(i),AtomicID(i));
-    }
-    else if( ref->objectType() == TpDMINumArray )
-    {
-      DMI::NumArray &childarr = ref.ref_cast<DMI::NumArray>();
-      FailWhen(childarr.rank()!=1,"illegal child array");
-      int nch = childarr.shape()[0];
-      initChildren(nch);
-      for( int i=0; i<nch; i++ )
-        processChildSpec(childarr,AtomicID(i),AtomicID(i));
-    }
-    // if a mandatory number of children (NM) is requested, make sure
-    // that the first NM children are set
-    if( check_nmandatory_ )
-    {
-      FailWhen(children_.size()<uint(check_nmandatory_),"too few children specified");
-      for( int i=0; i<check_nmandatory_; i++ )
-        if( !children_[i].valid() && 
-            initrec[FChildrenNames][child_map_[getChildLabel(i)]].as<string>().empty() )
-        {
-          Throw("mandatory child "+getChildLabel(i).toString()+" not specified" );
-        }
-    }
-    rcr_cache_.resize(children_.size());
-    cdebug(2)<<numChildren()<<" children"<<endl;
-  }
-  
-  // finally, call setStateImpl to set up reconfigurable node state
-  cdebug(2)<<"initializing node (setStateImpl)"<<endl;
-  cdebug(3)<<"initial state is "<<staterec_().sdebug(10,"    ")<<endl;
-  setStateImpl(staterec_,true);
-}
-
 //##ModelId=400E531402D1
 void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
@@ -503,162 +328,10 @@ void Node::setState (DMI::Record::Ref &rec)
   }
 }
 
-//##ModelId=3F9505E50010
-void Node::processChildSpec (DMI::Container &children,const HIID &chid,const HIID &id)
-{
-  // child specified by init-record: create recursively
-  TypeId spec_type = children[id].type();
-  if( spec_type == TpDMIRecord )
-  {
-    cdebug(4)<<"  child "<<id<<" specified by init record"<<endl;
-    DMI::Record::Ref child_initrec = children[id].ref();
-    // check if named child already exists
-    string name = child_initrec[FName].as<string>("");
-    int index = -1;
-    if( !name.empty() && ( index = forest_->findIndex(name) ) >= 0 )
-    {
-      cdebug(4)<<"  child already exists as #"<<index<<endl;
-      // If link_or_create=T, we allow this, otherwise, throw exception
-      if( !child_initrec[FLinkOrCreate].as<bool>(false) )
-      {
-        Throw("Failed to create child node "+id.toString()+": a node named '"
-              +name+"' already exists");
-      }
-      Node &child = forest_->get(index);
-      cdebug(2)<<"  child "<<id<<"="<<name<<" relinked as #"<<index<<endl;
-      addChild(chid,&child);
-    }
-    else
-    {
-      try
-      {
-        cdebug(2)<<"  creating child "<<id<<endl;
-        Node & child = forest_->create(index,child_initrec.ref_cast<DMI::Record>());
-        addChild(chid,&child);
-      }
-      catch( std::exception &exc )
-      {
-        Throw("Failed to create child node "+id.toString()+": "+exc.what());
-      }
-    }
-  }
-  else // not an init record
-  {
-    if( TypeInfo::isArray(spec_type) )
-      spec_type = TypeInfo::typeOfArrayElem(spec_type);
-    cdebug(4)<<"  child "<<id<<" entry of type "<<spec_type<<endl;
-    // child specified by name -- look it up in the forest
-    if( spec_type == Tpstring )
-    {
-      const string & name = children[id].as<string>();
-      if( name.length() ) // skip if empty string
-      {
-        int index = forest_->findIndex(name);
-        if( index >= 0 )
-        {
-          Node &child = forest_->get(index);
-          cdebug(2)<<"  child "<<id<<"="<<name<<" resolves to node "<<index<<endl;
-          addChild(chid,&child);
-        }
-        else
-        { // defer until later if not found
-          cdebug(2)<<"  child "<<id<<"="<<name<<" currently unresolved"<<endl;
-          addChild(chid,0);
-          // add to child names so that we remember the name at least 
-          wstate()[FChildrenNames][chid] = name;
-        }
-      }
-    }
-    // child specified by index -- just get & attach it directly
-    else if( spec_type == Tpint )
-    {
-      int index = children[id];
-      Node &child = forest_->get(index);
-      cdebug(2)<<"  child "<<id<<"="<<index<<endl;
-      addChild(chid,&child);
-    }
-    else
-      Throw("illegal specification for child "+id.toString()+" (type "+
-            spec_type.toString()+")");
-  }
-}
-
 //##ModelId=400E53120082
 void Node::setNodeIndex (int nodeindex)
 {
   wstate()[FNodeIndex] = node_index_ = nodeindex;
-}
-
-//##ModelId=3F8433C20193
-void Node::addChild (const HIID &id,Node *childnode)
-{
-  int ich;
-  // numeric id is simply child number
-  if( id.length() == 1 && id[0].id() >= 0 )
-  {
-    ich = id[0].id();
-    FailWhen(ich<0 || ich>numChildren(),"child number "+id.toString()+" is out of range");
-  }
-  else // non-numeric: look in in child labels
-  {
-    // look for id within child labels
-    vector<HIID>::const_iterator lbl;
-    lbl = std::find(child_labels_.begin(),child_labels_.end(),id);
-    FailWhen(lbl == child_labels_.end(),id.toString() + ": unknown child label");
-    ich = lbl - child_labels_.begin();
-  }
-  // attach ref to child if specified (will stay unresolved otherwise)
-  if( childnode )
-  {
-    children_[ich].attach(childnode,DMI::SHARED);
-    wstate()[FChildrenNames][getChildLabel(ich)] = childnode->name();
-    wstate()[FChildren][getChildLabel(ich)] = childnode->nodeIndex();
-  }
-  cdebug(3)<<"added child "<<ich<<": "<<id<<endl;
-}
-
-// relink children -- resets pointers to all children. This is called
-// after restoring a node from a file. 
-//##ModelId=400E531101C8
-void Node::relinkChildren ()
-{
-  for( int i=0; i<numChildren(); i++ )
-  {
-    children_[i].attach(forest().get(state()[FChildren][getChildLabel(i)]),DMI::SHARED);
-  }
-  checkChildren();
-}
-
-//##ModelId=3F83FAC80375
-void Node::resolveChildren (bool recursive)
-{
-  cdebug(2)<<"resolving children\n";
-  for( int i=0; i<numChildren(); i++ )
-  {
-    if( !children_[i].valid() )
-    {
-      HIID label = getChildLabel(i);
-      string name = state()[FChildrenNames][label].as<string>();
-      cdebug(3)<<"resolving child "<<i<<":"<<name<<endl;
-      // findNode() will throw an exception if the node is not found,
-      // which is exactly what we want
-      try
-      {
-        Node &childnode = forest_->findNode(name);
-        children_[i].attach(childnode,DMI::SHARED);
-        wstate()[FChildren][label] = childnode.nodeIndex();
-      }
-      catch( ... )
-      {
-        Throw(Debug::ssprintf("failed to resolve child %d:%s",i,name.c_str()));
-      }
-    }
-    // recursively call resolve on the children
-    if( recursive )
-      children_[i]().resolveChildren();
-  }
-  // check children for consistency
-  checkChildren();
 }
 
 //##ModelId=3F85710E011F
@@ -672,6 +345,19 @@ const Node & Node::getChild (int i) const
 {
   FailWhen(!children_[i].valid(),"unresolved child");
   return children_[i].deref();
+}
+
+//##ModelId=3F85710E011F
+Node & Node::getStepChild (int i)
+{
+  FailWhen(!stepchildren_[i].valid(),"unresolved child");
+  return stepchildren_[i].dewr();
+}
+
+const Node & Node::getStepChild (int i) const
+{
+  FailWhen(!stepchildren_[i].valid(),"unresolved child");
+  return stepchildren_[i].deref();
 }
 
 //##ModelId=3F85710E028E
@@ -922,6 +608,19 @@ void Node::resampleChildren (Cells::Ref rescells,std::vector<Result::Ref> &child
     clearRCRCache();
 }
 
+int Node::pollStepChildren (const Request &req)
+{
+  int retcode = 0;
+  for( int i=0; i<numStepChildren(); i++ )
+  {
+    Result::Ref dum;
+    int childcode = getStepChild(i).execute(dum,req);
+    cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
+    retcode |= childcode;
+  }
+  return retcode;
+}
+
 //##ModelId=400E531702FD
 int Node::pollChildren (std::vector<Result::Ref> &child_results,
                         Result::Ref &resref,
@@ -960,6 +659,8 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
     if( childcode&RES_UPDATED )
       clearRCRCache(i);
   }
+  // now poll stepchildren (their results are always ignored)
+  pollStepChildren(req);
   // if any child has completely failed, return a Result containing all of the fails 
   if( !child_fails.empty() )
   {
@@ -1060,6 +761,8 @@ int Node::resolve (DMI::Record::Ref &depmasks,int rpid)
   // pass recursively onto children
   for( int i=0; i<numChildren(); i++ )
     children_[i]().resolve(depmasks,rpid);
+  for( int i=0; i<numStepChildren(); i++ )
+    stepchildren_[i]().resolve(depmasks,rpid);
   return 0;
 }
 

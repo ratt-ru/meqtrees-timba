@@ -103,11 +103,13 @@ const meq.axis_id := function (ids)
 #-- meq.node() -------------------------------------------------------------
 # Creates a basic defrec for a node
 
-const meq.node := function (class,name,extra=[=],children=F,default=[=],groups="")
+const meq.node := function (class,name,extra=[=],children=F,step_children=F,default=[=],groups="")
 {
   defrec := [ class=class,name=name ];
   if( !is_boolean(children) )
     defrec.children := children;
+  if( !is_boolean(step_children) )
+    defrec.step_children := step_children;
   # group field: convert to hiid implicitly
   if( len(groups) )
     defrec.node_groups := dmi.hiid_list(groups);

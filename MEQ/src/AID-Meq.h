@@ -643,6 +643,11 @@ const int AidStatus_int = -1209;
 const DMI::AtomicID AidStdDev(-1350);             // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 const int AidStdDev_int = -1350;
 #endif
+#ifndef _defined_id_AidStep
+#define _defined_id_AidStep 1
+const DMI::AtomicID AidStep(-1473);               // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:16
+const int AidStep_int = -1473;
+#endif
 #ifndef _defined_id_AidSteps
 #define _defined_id_AidSteps 1
 const DMI::AtomicID AidSteps(-1284);              // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:34
