@@ -1,8 +1,8 @@
-#include "Dispatcher.h"
 #include "EchoWP.h"
-#include "Gateways.h"
-#include "GWClientWP.h"
-#include "LoggerWP.h"
+#include "OCTOPUSSY/Dispatcher.h"
+#include "OCTOPUSSY/Gateways.h"
+#include "OCTOPUSSY/GWClientWP.h"
+#include "OCTOPUSSY/LoggerWP.h"
 #include <sys/types.h>
 #include <unistd.h>    
 

@@ -1,6 +1,6 @@
-#include "Dispatcher.h"
-#include "Gateways.h"
-#include "LoggerWP.h"
+#include "OCTOPUSSY/Dispatcher.h"
+#include "OCTOPUSSY/Gateways.h"
+#include "OCTOPUSSY/LoggerWP.h"
 #include <sys/types.h>
 #include <unistd.h>    
 
