@@ -14,7 +14,7 @@ lam-opt.variant.conf:	  $(lam) $(optimize) $(aipspp)
 corba.variant.conf:	  $(vbroker) $(aipspp)
 mpich-corba.variant.conf: $(mpich) $(vbroker) $(aipspp)
 lam-corba.variant.conf:   $(lam) $(vbroker) $(aipspp)
-insure.variant.conf:	  --with-insure $(aipspp)
+insure.variant.conf:	  --with-insuretools $(aipspp)
 insure.variant.make:	  QA=insure
 scampi.variant.conf:	  $(scampi) 
 scampi-opt.variant.conf:  $(scampi) $(optimize) 
