@@ -79,7 +79,7 @@ void EchoWP::init ()
   
   config.get("bs",blocksize);
   lprintf(0,"blocksize = %d KB\n",blocksize);
-  blocksize *= 1024/sizeof(int);
+  blocksize *= 1024/sizeof(double);
  
   config.get("pc",pcount); 
   lprintf(0,"pingcount = %d\n",pcount);
@@ -216,7 +216,7 @@ int EchoWP::timeout (const HIID &)
 void EchoWP::stepCounters ( size_t sz,const Timestamp &stamp )
 {
   msgcount++;
-  bytecount += sz/1024*2;
+  bytecount += (sz/1024)*2;
   double ts1 = Timestamp::now();
   timecount += ts1 - (double)stamp;
   if( ts1 - ts > 10 )

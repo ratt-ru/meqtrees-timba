@@ -305,6 +305,8 @@ void MTGatewayWP::transmitMessage (MessageRef &mref)
   Thread::Mutex::Lock lock(writer_mutex);
   int nwr = 0;
   
+//  int nnonzero = 0; // for valgrind trap below
+  
   // send the blocks off one by one
   int msgsize = bset.size();
   while( !bset.empty() && isRunning() )
@@ -326,6 +328,13 @@ void MTGatewayWP::transmitMessage (MessageRef &mref)
       // write data block
       const char *data = static_cast<const char *>(ref->data());
       int sz = ref->size();
+      
+      // valgrind trap for catching uninitialized values in the block
+//      for( int i=0; i<sz; i++ )
+//        if( data[i] )
+//          nnonzero++;
+      // end of valgrind trap
+      
       Timestamp::now(&write_timestamp);
       n = sock->writeblock(data,sz);
       if( !isRunning() )
@@ -340,6 +349,8 @@ void MTGatewayWP::transmitMessage (MessageRef &mref)
         wr_trailer.checksum = 0;
         while( sz-- )
           wr_trailer.checksum += *data++;
+        #else
+        wr_trailer.checksum = 0;
         #endif
         wr_trailer.seq = write_seq++;
         if( !bset.empty() )  // something left in queue?

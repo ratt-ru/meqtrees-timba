@@ -1,33 +1,9 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3C95AADB0170.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C95AADB0170.cm
-
-//## begin module%3C95AADB0170.cp preserve=no
-//## end module%3C95AADB0170.cp
-
-//## Module: GWClientWP%3C95AADB0170; Package body
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Source file: F:\lofar8\oms\LOFAR\src-links\OCTOPUSSY\GWClientWP.cc
-
-//## begin module%3C95AADB0170.additionalIncludes preserve=no
-//## end module%3C95AADB0170.additionalIncludes
-
-//## begin module%3C95AADB0170.includes preserve=yes
 #include "Gateways.h"
 #include "GWServerWP.h"
-//## end module%3C95AADB0170.includes
 
 // GWClientWP
 #include "OCTOPUSSY/GWClientWP.h"
-//## begin module%3C95AADB0170.declarations preserve=no
-//## end module%3C95AADB0170.declarations
 
-//## begin module%3C95AADB0170.additionalDeclarations preserve=yes
 const Timeval ReconnectTimeout(.2),
               ReopenTimeout(2.0),
 // how long to try connect() (if operation in progress is returned)
@@ -37,21 +13,15 @@ const Timeval ReconnectTimeout(.2),
               
 //##ModelId=3CD0167B021B
 //##ModelId=3DB9367D00C2
-//## end module%3C95AADB0170.additionalDeclarations
 
 
 // Class GWClientWP 
 
 GWClientWP::GWClientWP (const string &host, int port, int type)
-  //## begin GWClientWP::GWClientWP%3CD0167B021B.hasinit preserve=no
-  //## end GWClientWP::GWClientWP%3CD0167B021B.hasinit
-  //## begin GWClientWP::GWClientWP%3CD0167B021B.initialization preserve=yes
   : WorkProcess(AidGWClientWP),
     peerref(new DataRecord,DMI::ANONWR),
     peerlist(dynamic_cast<DataRecord&>(peerref.dewr()))
-  //## end GWClientWP::GWClientWP%3CD0167B021B.initialization
 {
-  //## begin GWClientWP::GWClientWP%3CD0167B021B.body preserve=yes
   // add default connection, if specified
   if( host.length() )
   {
@@ -91,28 +61,26 @@ GWClientWP::GWClientWP (const string &host, int port, int type)
   char hname[1024];
   FailWhen(gethostname(hname,sizeof(hname))<0,"gethostname(): "+string(strerror(errno)));
   hostname = hname;
+  
   setState(STOPPED);
-  //## end GWClientWP::GWClientWP%3CD0167B021B.body
+  
+  reconnect_timeout_set = False;
 }
 
 
 //##ModelId=3DB9367B00EA
 GWClientWP::~GWClientWP()
 {
-  //## begin GWClientWP::~GWClientWP%3C95A941002E_dest.body preserve=yes
   for( CCLI iter = conns.begin(); iter != conns.end(); iter++ )
     if( iter->sock )
       delete iter->sock;
-  //## end GWClientWP::~GWClientWP%3C95A941002E_dest.body
 }
 
 
 
 //##ModelId=3CA1C0C300FA
-//## Other Operations (implementation)
 void GWClientWP::init ()
 {
-  //## begin GWClientWP::init%3CA1C0C300FA.body preserve=yes
   // add our peerlist to local data
   dsp()->addLocalData(GWPeerList,peerref.copy(DMI::WRITE));
   if( !dsp()->hasLocalData(GWNetworkServer) )
@@ -131,22 +99,18 @@ void GWClientWP::init ()
   // Remote messages for remote node management
   subscribe(MsgGWRemote|AidWildcard,Message::LOCAL);
   subscribe(MsgGWRemoteUp|AidWildcard,Message::GLOBAL);
-  //## end GWClientWP::init%3CA1C0C300FA.body
 }
 
 //##ModelId=3C95A941008B
 bool GWClientWP::start ()
 {
-  //## begin GWClientWP::start%3C95A941008B.body preserve=yes
   activate();
   return WorkProcess::start();
-  //## end GWClientWP::start%3C95A941008B.body
 }
 
 //##ModelId=3C95A9410092
 void GWClientWP::stop ()
 {
-  //## begin GWClientWP::stop%3C95A9410092.body preserve=yes
   setState(STOPPED);
   for( CLI iter = conns.begin(); iter != conns.end(); iter++ )
   {
@@ -155,13 +119,11 @@ void GWClientWP::stop ()
     iter->sock = 0;
     iter->state = STOPPED;
   }
-  //## end GWClientWP::stop%3C95A9410092.body
 }
 
 //##ModelId=3C95A9410093
 int GWClientWP::timeout (const HIID &id)
 {
-  //## begin GWClientWP::timeout%3C95A9410093.body preserve=yes
   bool connecting = False;
   Timestamp::now(&now);
   // go thru connection list and figure out what to do
@@ -209,13 +171,11 @@ int GWClientWP::timeout (const HIID &id)
   }
   
   return Message::ACCEPT;
-  //## end GWClientWP::timeout%3C95A9410093.body
 }
 
 //##ModelId=3C95A9410095
 int GWClientWP::receive (MessageRef& mref)
 {
-  //## begin GWClientWP::receive%3C95A9410095.body preserve=yes
   const Message &msg = mref.deref();
   const HIID &id = msg.id();
   if( id == MsgGWServerBindError )
@@ -329,12 +289,10 @@ int GWClientWP::receive (MessageRef& mref)
     }
   }
   return Message::ACCEPT;
-  //## end GWClientWP::receive%3C95A9410095.body
 }
 
 // Additional Declarations
 //##ModelId=3DB9367B0126
-  //## begin GWClientWP%3C95A941002E.declarations preserve=yes
 GWClientWP::Connection & GWClientWP::addConnection (const string &host,int port,int type)
 {
   for( CLI iter = conns.begin(); iter != conns.end(); iter++ )
@@ -466,8 +424,8 @@ void GWClientWP::tryConnect (Connection &cx)
     }
   }
 }
-  //## end GWClientWP%3C95A941002E.declarations
-//## begin module%3C95AADB0170.epilog preserve=yes
+
+
 void initGateways (Dispatcher &dsp)
 {
   dsp.attach(new GWServerWP(-1),DMI::ANON);
@@ -475,18 +433,14 @@ void initGateways (Dispatcher &dsp)
   dsp.attach(new GWClientWP,DMI::ANON);
 }
 
-//## end module%3C95AADB0170.epilog
 
 
 // Detached code regions:
 #if 0
-//## begin GWClientWP::GWClientWP%3C95A9410081.initialization preserve=yes
   : WorkProcess(AidGWClientWP),
     peerref(new DataRecord,DMI::ANONWR),
     peerlist(dynamic_cast<DataRecord&>(peerref.dewr()))
-//## end GWClientWP::GWClientWP%3C95A9410081.initialization
 
-//## begin GWClientWP::GWClientWP%3C95A9410081.body preserve=yes
   // add default connection, if specified
   if( host.length() )
   {
@@ -527,6 +481,5 @@ void initGateways (Dispatcher &dsp)
   FailWhen(gethostname(hname,sizeof(hname))<0,"gethostname(): "+string(strerror(errno)));
   hostname = hname;
   setState(STOPPED);
-//## end GWClientWP::GWClientWP%3C95A9410081.body
 
 #endif

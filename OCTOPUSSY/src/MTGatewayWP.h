@@ -1,28 +1,9 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3C90BFDD0236.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C90BFDD0236.cm
-
-//## begin module%3C90BFDD0236.cp preserve=no
-//## end module%3C90BFDD0236.cp
-
-//## Module: MTGatewayWP%3C90BFDD0236; Package specification
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Source file: F:\lofar8\oms\LOFAR\src-links\OCTOPUSSY\MTGatewayWP.h
-
 #ifndef MTGatewayWP_h
 #define MTGatewayWP_h 1
 
-//## begin module%3C90BFDD0236.additionalIncludes preserve=no
 #include "DMI/Common.h"
 #include "DMI/DMI.h"
-//## end module%3C90BFDD0236.additionalIncludes
 
-//## begin module%3C90BFDD0236.includes preserve=yes
 #ifdef USE_THREADS
 
 #include "Common/Thread.h"
@@ -30,7 +11,6 @@
 #include <deque>
 using std::deque;
 //##ModelId=3DB958F10261
-//## end module%3C90BFDD0236.includes
 
 // Socket
 #include "OCTOPUSSY/Net/Socket.h"
@@ -38,75 +18,45 @@ using std::deque;
 #include "OCTOPUSSY/Subscriptions.h"
 // WorkProcess
 #include "OCTOPUSSY/WorkProcess.h"
-//## begin module%3C90BFDD0236.declarations preserve=no
-//## end module%3C90BFDD0236.declarations
 
-//## begin module%3C90BFDD0236.additionalDeclarations preserve=yes
 #pragma aid Subscriptions Init Heartbeat
-//## end module%3C90BFDD0236.additionalDeclarations
-
-
-//## begin MTGatewayWP%3C90BEF001E5.preface preserve=yes
-//## end MTGatewayWP%3C90BEF001E5.preface
-
-//## Class: MTGatewayWP%3C90BEF001E5
-//## Category: OCTOPUSSY%3BCEC935032A
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Persistence: Transient
-//## Cardinality/Multiplicity: n
-
 
 
 class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
 {
-  //## begin MTGatewayWP%3C90BEF001E5.initialDeclarations preserve=yes
-  //## end MTGatewayWP%3C90BEF001E5.initialDeclarations
 
   public:
     //##ModelId=3DB958F403D0
-    //## Constructors (specified)
-      //## Operation: MTGatewayWP%3C95C53D00AE
       MTGatewayWP (Socket* sk);
 
     //##ModelId=3DB958F5004C
-    //## Destructor (generated)
       ~MTGatewayWP();
 
 
     //##ModelId=3DB958F5004D
-    //## Other Operations (specified)
-      //## Operation: init%3CC9500602CC
       virtual void init ();
 
     //##ModelId=3DB958F5004F
-      //## Operation: start%3C90BF460080
       virtual bool start ();
 
     //##ModelId=3DB958F50051
-      //## Operation: stop%3C90BF4A039D
       virtual void stop ();
 
     //##ModelId=3DB958F50053
-      //## Operation: willForward%3C90BF5C001E
       //	Returns True if this WP will forward this non-local message
       virtual bool willForward (const Message &msg) const;
 
     //##ModelId=3DB958F500B8
-      //## Operation: receive%3C90BF63005A
       virtual int receive (MessageRef& mref);
 
     //##ModelId=3DB958F5011C
-      //## Operation: timeout%3C90BF6702C3
       virtual int timeout (const HIID &id);
 
     // Additional Public Declarations
-      //## begin MTGatewayWP%3C90BEF001E5.public preserve=yes
-      //## end MTGatewayWP%3C90BEF001E5.public
 
   protected:
     // Additional Protected Declarations
     //##ModelId=3DB958F10268
-      //## begin MTGatewayWP%3C90BEF001E5.protected preserve=yes
       // packet header structure
       typedef struct { char  signature[3];
                        uchar type;
@@ -208,22 +158,18 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
       bool mtStart     (Thread::ThrID);
     //##ModelId=3DB958F6017B
       void stopWorkers ();
-      //## end MTGatewayWP%3C90BEF001E5.protected
   private:
     //##ModelId=3DB958F6017C
-    //## Constructors (generated)
       MTGatewayWP();
 
     //##ModelId=3DB958F6017E
       MTGatewayWP(const MTGatewayWP &right);
 
     //##ModelId=3DB958F601E2
-    //## Assignment Operation (generated)
       MTGatewayWP & operator=(const MTGatewayWP &right);
 
     // Additional Private Declarations
     //##ModelId=3DB958F301EA
-      //## begin MTGatewayWP%3C90BEF001E5.private preserve=yes
       // list of peers
       DataRecord *peerlist;
 
@@ -293,45 +239,29 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
     //##ModelId=3DB958F402A7
       static const char * PacketSignature;
       
-      //## end MTGatewayWP%3C90BEF001E5.private
   private:
     //##ModelId=3DB958F40301
-    //## implementation
     // Data Members for Associations
 
-      //## Association: OCTOPUSSY::<unnamed>%3C9225740182
-      //## Role: MTGatewayWP::sock%3C9225740345
-      //## begin MTGatewayWP::sock%3C9225740345.role preserve=no  private: Socket { -> 0..1RHgN}
       Socket *sock;
     //##ModelId=3DB958F40337
-      //## end MTGatewayWP::sock%3C9225740345.role
 
-      //## Association: OCTOPUSSY::<unnamed>%3C9B06A30088
-      //## Role: MTGatewayWP::remote_subs%3C9B06A303D1
-      //## begin MTGatewayWP::remote_subs%3C9B06A303D1.role preserve=no  private: Subscriptions { -> 0..*VHgN}
       map<MsgAddress,Subscriptions> remote_subs;
     //##ModelId=3DB958F40396
-      //## end MTGatewayWP::remote_subs%3C9B06A303D1.role
 
     // Additional Implementation Declarations
-      //## begin MTGatewayWP%3C90BEF001E5.implementation preserve=yes
       Thread::Mutex remote_subs_mutex;
     //##ModelId=3DB958F10288
       typedef map<MsgAddress,Subscriptions>::iterator RSI;
     //##ModelId=3DB958F1028D
       typedef map<MsgAddress,Subscriptions>::const_iterator CRSI;
       
-      //## end MTGatewayWP%3C90BEF001E5.implementation
 };
 
-//## begin MTGatewayWP%3C90BEF001E5.postscript preserve=yes
-//## end MTGatewayWP%3C90BEF001E5.postscript
 
 // Class MTGatewayWP 
 
-//## begin module%3C90BFDD0236.epilog preserve=yes
 #endif // USE_THREADS
-//## end module%3C90BFDD0236.epilog
 
 
 #endif

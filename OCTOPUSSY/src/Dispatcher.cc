@@ -1,37 +1,13 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3C7B7F30004B.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C7B7F30004B.cm
-
-//## begin module%3C7B7F30004B.cp preserve=no
-//## end module%3C7B7F30004B.cp
-
-//## Module: Dispatcher%3C7B7F30004B; Package body
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Source file: F:\lofar8\oms\LOFAR\src-links\OCTOPUSSY\Dispatcher.cc
-
-//## begin module%3C7B7F30004B.additionalIncludes preserve=no
-//## end module%3C7B7F30004B.additionalIncludes
-
-//## begin module%3C7B7F30004B.includes preserve=yes
 #include <sys/time.h>
 #include <errno.h>
 #include <string.h>
 #include "OCTOPUSSY/OctopussyConfig.h"
-//## end module%3C7B7F30004B.includes
 
 // WPInterface
 #include "OCTOPUSSY/WPInterface.h"
 // Dispatcher
 #include "OCTOPUSSY/Dispatcher.h"
-//## begin module%3C7B7F30004B.declarations preserve=no
-//## end module%3C7B7F30004B.declarations
 
-//## begin module%3C7B7F30004B.additionalDeclarations preserve=yes
 // pulls in registry definitions
 static int dum = aidRegistry_OCTOPUSSY();
 
@@ -63,39 +39,27 @@ void Dispatcher::signalHandler (int signum,siginfo_t *,void *)
     stop_polling = True;
 }
 //##ModelId=3C7CD444039C
-//## end module%3C7B7F30004B.additionalDeclarations
 
 
 // Class Dispatcher 
 
 Dispatcher::Dispatcher (AtomicID process, AtomicID host, int hz)
-  //## begin Dispatcher::Dispatcher%3C7CD444039C.hasinit preserve=no
-  //## end Dispatcher::Dispatcher%3C7CD444039C.hasinit
-  //## begin Dispatcher::Dispatcher%3C7CD444039C.initialization preserve=yes
     : DebugContext("Dsp",&OctopussyDebugContext::getDebugContext()),
       heartbeat_hz(hz),
       config(OctopussyConfig::global())
-  //## end Dispatcher::Dispatcher%3C7CD444039C.initialization
 {
-  //## begin Dispatcher::Dispatcher%3C7CD444039C.body preserve=yes
   address = MsgAddress(AidDispatcher,0,process,host);
   memset(signal_counter,0,sizeof(signal_counter));
   // init everything
   init();
-  //## end Dispatcher::Dispatcher%3C7CD444039C.body
 }
 
 //##ModelId=3CD012B70209
 Dispatcher::Dispatcher (int hz)
-  //## begin Dispatcher::Dispatcher%3CD012B70209.hasinit preserve=no
-  //## end Dispatcher::Dispatcher%3CD012B70209.hasinit
-  //## begin Dispatcher::Dispatcher%3CD012B70209.initialization preserve=yes
     : DebugContext("Dsp",&OctopussyDebugContext::getDebugContext()),
       heartbeat_hz(hz),
       config(OctopussyConfig::global())
-  //## end Dispatcher::Dispatcher%3CD012B70209.initialization
 {
-  //## begin Dispatcher::Dispatcher%3CD012B70209.body preserve=yes
   // check that required config items have been found
   int hostid = 0;
   if( !config.get("hostid",hostid) )
@@ -103,28 +67,23 @@ Dispatcher::Dispatcher (int hz)
   // setup address
   address = MsgAddress(AidDispatcher,0,getpid(),hostid);
   init();
-  //## end Dispatcher::Dispatcher%3CD012B70209.body
 }
 
 
 //##ModelId=3DB9366301DE
 Dispatcher::~Dispatcher()
 {
-  //## begin Dispatcher::~Dispatcher%3C7B6A3E00A0_dest.body preserve=yes
   if( running )
     stop();
   wps.clear();
   dispatcher = 0;
-  //## end Dispatcher::~Dispatcher%3C7B6A3E00A0_dest.body
 }
 
 
 
 //##ModelId=3CD014D00180
-//## Other Operations (implementation)
 void Dispatcher::init ()
 {
-  //## begin Dispatcher::init%3CD014D00180.body preserve=yes
   if( dispatcher )
     Throw("multiple Dispatchers initialized");
   dispatcher = this;
@@ -143,13 +102,11 @@ void Dispatcher::init ()
   running = in_start = False;
   poll_depth = -1;
   dprintf(1)("created\n");
-  //## end Dispatcher::init%3CD014D00180.body
 }
 
 //##ModelId=3C8CDDFD0361
 const MsgAddress & Dispatcher::attach (WPRef &wpref)
 {
-  //## begin Dispatcher::attach%3C8CDDFD0361.body preserve=yes
   // lock mutex on entry
   Thread::Mutex::Lock lock(wpmutex);
   FailWhen( !wpref.isWritable(),"writable ref required" ); 
@@ -178,32 +135,26 @@ const MsgAddress & Dispatcher::attach (WPRef &wpref)
     }
   }
   return wp.address();
-  //## end Dispatcher::attach%3C8CDDFD0361.body
 }
 
 //##ModelId=3C7B885A027F
 const MsgAddress & Dispatcher::attach (WPInterface* wp, int flags)
 {
-  //## begin Dispatcher::attach%3C7B885A027F.body preserve=yes
   WPRef ref(wp,flags|DMI::WRITE);
   return attach(ref);
-  //## end Dispatcher::attach%3C7B885A027F.body
 }
 
 //##ModelId=3C8CA2BD01B0
 void Dispatcher::detach (WPInterface* wp, bool delay)
 {
-  //## begin Dispatcher::detach%3C8CA2BD01B0.body preserve=yes
   FailWhen( wp->dsp() != this,
       "wp '"+wp->sdebug(1)+"' is not attached to this dispatcher");
   detach(wp->address().wpid(),delay);
-  //## end Dispatcher::detach%3C8CA2BD01B0.body
 }
 
 //##ModelId=3C8CDE320231
 void Dispatcher::detach (const WPID &id, bool delay)
 {
-  //## begin Dispatcher::detach%3C8CDE320231.body preserve=yes
   // lock mutex on entry
   Thread::Mutex::Lock lock(wpmutex);
   WPI iter = wps.find(id); 
@@ -228,26 +179,22 @@ void Dispatcher::detach (const WPID &id, bool delay)
   GWI iter2 = gateways.find(id);
   if( iter2 != gateways.end() )
     gateways.erase(iter2);
-  //## end Dispatcher::detach%3C8CDE320231.body
 }
 
 //##ModelId=3C95C73F022A
 void Dispatcher::declareForwarder (WPInterface *wp)
 {
-//## begin Dispatcher::declareForwarder%3C95C73F022A.body preserve=yes
   // lock mutex on entry
   Thread::Mutex::Lock lock(wpmutex);
   CWPI iter = wps.find(wp->wpid()); 
   FailWhen( iter == wps.end() || iter->second.deref_p() != wp,
       "WP not attached to this dispatcher");
   gateways[wp->wpid()] = wp;
-  //## end Dispatcher::declareForwarder%3C95C73F022A.body
 }
 
 //##ModelId=3C7DFF770140
 void Dispatcher::start ()
 {
-  //## begin Dispatcher::start%3C7DFF770140.body preserve=yes
   running = in_start = True;
   in_pollLoop = False;
   stop_polling = False;
@@ -320,13 +267,11 @@ void Dispatcher::start ()
     }
   }
   dprintf(2)("start: complete\n");
-  //## end Dispatcher::start%3C7DFF770140.body
 }
 
 //##ModelId=3C7E0270027B
 void Dispatcher::stop ()
 {
-  //## begin Dispatcher::stop%3C7E0270027B.body preserve=yes
   dprintf(1)("stopping\n");
 #ifdef USE_THREADS
   running = False;
@@ -362,13 +307,11 @@ void Dispatcher::stop ()
   signal_map.clear();
   // this will effectively remove all signal handlers
   rebuildSignals();
-  //## end Dispatcher::stop%3C7E0270027B.body
 }
 
 //##ModelId=3C7B8867015B
 int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
 {
-  //## begin Dispatcher::send%3C7B8867015B.body preserve=yes
   int ndeliver = 0;
   Message &msg = mref;
   dprintf(2)("send(%s,%s)\n",msg.sdebug().c_str(),to.toString().c_str());
@@ -442,13 +385,11 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
     { dprintf(3)("send done, ndeliver=%d, repoll=%d\n",ndeliver,(int)repoll); }
 //  msg.latency.measure("SND>");
   return ndeliver;
-  //## end Dispatcher::send%3C7B8867015B.body
 }
 
 //##ModelId=3C7B888E01CF
 void Dispatcher::poll (int maxloops)
 {
-  //## begin Dispatcher::poll%3C7B888E01CF.body preserve=yes
 #ifndef USE_THREADS
   if( Debug(11) )
   {
@@ -527,13 +468,11 @@ void Dispatcher::poll (int maxloops)
   if( stop_polling )
     dprintf(2)("poll: exiting on stop_polling condition\n");
   --poll_depth;
-  //## end Dispatcher::poll%3C7B888E01CF.body
 }
 
 //##ModelId=3C8C87AF031F
 void Dispatcher::pollLoop ()
 {
-  //## begin Dispatcher::pollLoop%3C8C87AF031F.body preserve=yes
   FailWhen(!running,"not running");
   FailWhen(in_pollLoop,"already in pollLoop()");
   in_pollLoop = True;
@@ -571,34 +510,28 @@ void Dispatcher::pollLoop ()
   }
 #endif
   in_pollLoop = False;
-  //## end Dispatcher::pollLoop%3C8C87AF031F.body
 }
 
 //##ModelId=3CE0BD3F0026
 bool Dispatcher::yield ()
 {
-  //## begin Dispatcher::yield%3CE0BD3F0026.body preserve=yes
   poll();
   return !sigismember(&raisedSignals,SIGINT) && !stop_polling;
-  //## end Dispatcher::yield%3CE0BD3F0026.body
 }
 
 //##ModelId=3CA09EB503C1
 void Dispatcher::stopPolling ()
 {
-  //## begin Dispatcher::stopPolling%3CA09EB503C1.body preserve=yes
   stop_polling = True;
 #ifdef USE_THREADS
   Thread::Mutex::Lock lock(repoll_cond);
   repoll_cond.signal();
 #endif
-  //## end Dispatcher::stopPolling%3CA09EB503C1.body
 }
 
 //##ModelId=3C7D28C30061
 void Dispatcher::addTimeout (WPInterface* pwp, const Timestamp &period, const HIID &id, int flags, int priority)
 {
-  //## begin Dispatcher::addTimeout%3C7D28C30061.body preserve=yes
   FailWhen(!period,"addTimeout: null period");
   // setup a new timeout structure
   TimeoutInfo ti(pwp,id,priority);
@@ -619,13 +552,11 @@ void Dispatcher::addTimeout (WPInterface* pwp, const Timestamp &period, const HI
     Thread::kill(event_thread,SIGUSR1);
 #endif
   }
-  //## end Dispatcher::addTimeout%3C7D28C30061.body
 }
 
 //##ModelId=3C7D28E3032E
 void Dispatcher::addInput (WPInterface* pwp, int fd, int flags, int priority)
 {
-  //## begin Dispatcher::addInput%3C7D28E3032E.body preserve=yes
   FailWhen(fd<0,Debug::ssprintf("addInput: invalid fd %d",fd));
   FailWhen(!(flags&EV_FDALL),"addInput: no fd flags specified");
   // check if perhaps this fd is already being watched, then we only need to 
@@ -649,18 +580,16 @@ void Dispatcher::addInput (WPInterface* pwp, int fd, int flags, int priority)
   inputs.push_front(ii);
   // rebuild input sets
   rebuildInputs();
-  //## end Dispatcher::addInput%3C7D28E3032E.body
 }
 
 //##ModelId=3C7DFF4A0344
 void Dispatcher::addSignal (WPInterface* pwp, int signum, int flags, int priority)
 {
-  //## begin Dispatcher::addSignal%3C7DFF4A0344.body preserve=yes
   FailWhen(signum<0,Debug::ssprintf("addSignal: invalid signal %d",signum));
   // look at map for this signal to see if this WP is already registered
   Thread::Mutex::Lock lock(sigmutex);
   for( SMI iter = signal_map.lower_bound(signum); 
-       iter->first == signum && iter != signal_map.end(); iter++ )
+       iter != signal_map.end() && iter->first == signum; iter++ )
   {
     if( iter->second.pwp == pwp )  // found it? change priority & return
     {
@@ -675,13 +604,11 @@ void Dispatcher::addSignal (WPInterface* pwp, int signum, int flags, int priorit
   si.msg().setState(0);
   signal_map.insert( SMPair(signum,si) );
   rebuildSignals();
-  //## end Dispatcher::addSignal%3C7DFF4A0344.body
 }
 
 //##ModelId=3C7D28F202F3
 bool Dispatcher::removeTimeout (WPInterface* pwp, const HIID &id)
 {
-  //## begin Dispatcher::removeTimeout%3C7D28F202F3.body preserve=yes
   Thread::Mutex::Lock lock(tomutex);
   for( TOILI iter = timeouts.begin(); iter != timeouts.end(); )
   {
@@ -697,13 +624,11 @@ bool Dispatcher::removeTimeout (WPInterface* pwp, const HIID &id)
       iter++;
   }
   return False;
-  //## end Dispatcher::removeTimeout%3C7D28F202F3.body
 }
 
 //##ModelId=3C7D2947002F
 bool Dispatcher::removeInput (WPInterface* pwp, int fd, int flags)
 {
-  //## begin Dispatcher::removeInput%3C7D2947002F.body preserve=yes
   if( fd<0 )  // fd<0 means remove everything
     flags = ~0;
   Thread::Mutex::Lock lock(inpmutex);
@@ -726,13 +651,11 @@ bool Dispatcher::removeInput (WPInterface* pwp, int fd, int flags)
     }
   }
   return False;
-  //## end Dispatcher::removeInput%3C7D2947002F.body
 }
 
 //##ModelId=3C7DFF57025C
 bool Dispatcher::removeSignal (WPInterface* pwp, int signum)
 {
-  //## begin Dispatcher::removeSignal%3C7DFF57025C.body preserve=yes
   bool res = False;
   pair<SMI,SMI> rng;
   Thread::Mutex::Lock lock(sigmutex);
@@ -763,21 +686,17 @@ bool Dispatcher::removeSignal (WPInterface* pwp, int signum)
     rebuildSignals();
   
   return res;
-  //## end Dispatcher::removeSignal%3C7DFF57025C.body
 }
 
 //##ModelId=3C98D4530076
 Dispatcher::WPIter Dispatcher::initWPIter ()
 {
-  //## begin Dispatcher::initWPIter%3C98D4530076.body preserve=yes
   return WPIter(wps.begin(),wpmutex);
-  //## end Dispatcher::initWPIter%3C98D4530076.body
 }
 
 //##ModelId=3C98D47B02B9
 bool Dispatcher::getWPIter (Dispatcher::WPIter &iter, WPID &wpid, const WPInterface *&pwp)
 {
-  //## begin Dispatcher::getWPIter%3C98D47B02B9.body preserve=yes
   if( iter.iter == wps.end() )
   {
     iter.lock.release();
@@ -787,48 +706,38 @@ bool Dispatcher::getWPIter (Dispatcher::WPIter &iter, WPID &wpid, const WPInterf
   pwp = iter.iter->second.deref_p();
   iter.iter++;
   return True;
-  //## end Dispatcher::getWPIter%3C98D47B02B9.body
 }
 
 //##ModelId=3CBEDDD8001A
 void Dispatcher::addLocalData (const HIID &id, ObjRef ref)
 {
-  //## begin Dispatcher::addLocalData%3CBEDDD8001A.body preserve=yes
   FailWhen( localData_[id].exists(),id.toString()+" is already defined in local data");
   localData_[id] <<= ref;
-  //## end Dispatcher::addLocalData%3CBEDDD8001A.body
 }
 
 //##ModelId=3CBEE41702F4
 DataField & Dispatcher::addLocalData (const HIID &id)
 {
-  //## begin Dispatcher::addLocalData%3CBEE41702F4.body preserve=yes
   FailWhen( localData_[id].exists(),id.toString()+" is already defined in local data");
   DataField *field = new DataField;
   localData_[id] <<= field;
   return *field;
-  //## end Dispatcher::addLocalData%3CBEE41702F4.body
 }
 
 //##ModelId=3CC405480057
 NestableContainer::Hook Dispatcher::localData (const HIID &id)
 {
-  //## begin Dispatcher::localData%3CC405480057.body preserve=yes
   return localData_[id];
-  //## end Dispatcher::localData%3CC405480057.body
 }
 
 //##ModelId=3CC00549020D
 bool Dispatcher::hasLocalData (const HIID &id)
 {
-  //## begin Dispatcher::hasLocalData%3CC00549020D.body preserve=yes
   return localData_[id].exists();
-  //## end Dispatcher::hasLocalData%3CC00549020D.body
 }
 
 // Additional Declarations
 //##ModelId=3DB9367001CA
-  //## begin Dispatcher%3C7B6A3E00A0.declarations preserve=yes
 void Dispatcher::rebuildInputs (WPInterface *remove)
 {
   Thread::Mutex::Lock lock(inpmutex);
@@ -1262,6 +1171,3 @@ string Dispatcher::sdebug ( int detail,const string &,const char *name ) const
   }
   return out;
 }
-  //## end Dispatcher%3C7B6A3E00A0.declarations
-//## begin module%3C7B7F30004B.epilog preserve=yes
-//## end module%3C7B7F30004B.epilog
