@@ -403,7 +403,7 @@ class GridCell (object):
     
   MaxDescLen = 40;
 
-  def set_data_item (self,dataitem,pin=None,viewopts={}):
+  def set_data_item (self,dataitem,pin=None,viewopts={},viewer=None):
     if not self.is_empty():
       self.wipe();
     dataitem.attach_cell(self);
@@ -428,7 +428,7 @@ class GridCell (object):
     # show the control box
     self._control_box.show();
     # set up the viewer
-    self.change_viewer(dataitem.default_viewer);
+    self.change_viewer(viewer or dataitem.default_viewer);
     # setup refresh function and button
     self._menu.setItemEnabled(self._m_refresh,dataitem.is_mutable());
     if dataitem.is_mutable():
@@ -524,6 +524,7 @@ class GriddedPage (object):
       return self._cells;
       
   def __init__ (self,gw,parent_widget,max_nx=4,max_ny=4):
+    self._gw = gw;
     self._topgrid = QSplitter(QSplitter.Vertical,parent_widget);
     self.max_nx     = max_nx;
     self.max_ny     = max_ny;
@@ -545,11 +546,14 @@ class GriddedPage (object):
         cell._drop_slot = curry(gw.add_data_item,cell=weakref.ref(cell));
         QWidget.connect(cell.wtop(),PYSIGNAL("dataItemDropped()"),
                         cell._drop_slot);
-        cell._display_slot = curry(gw.add_data_item,parent=weakref.ref(cell));
+        cell._display_slot = curry(self._display_data_item,parent=weakref.ref(cell));
         QWidget.connect(cell.wtop(),PYSIGNAL("displayDataItem()"),
                         cell._display_slot);
     # prepare layout
     self.set_layout(0);
+    
+  def _display_data_item (self,item,args,kwargs,parent=None):
+    self._gw.add_data_item(item,parent=parent,*args,**kwargs);
     
   def num_layouts (self):
     return len(self._layouts);
@@ -816,6 +820,7 @@ class GriddedWorkspace (object):
           if arg and not isinstance(arg,tp):
             raise TypeError,'argument not of type '+str(tp);
       return arg;
+    print item,item.viewer,item.default_viewer;
     # add page if requested
     if newpage:
       self.add_page();
@@ -828,25 +833,25 @@ class GriddedWorkspace (object):
     item0 = self._dataitems.setdefault(item.udi,item);
     # compile list of cells which display this item (and use the same viewer
     # if one is explicitly specified)
+    viewer = item.viewer;
     if item0 is not item:
-      print 'item already displayed';
-      print map(lambda c:type(c.viewer()),item0.cells);
-      print item.viewer;
       if item.viewer is None:
         disp_cells = list(item0.cells);
       else:
-        disp_cells = filter(lambda c:type(c.viewer()) is item.viewer,item0.cells);
+        disp_cells = filter(lambda c:type(c.viewer()) is viewer,item0.cells);
     else:
       disp_cells = [];
-    # We 
-    # * cell/newcell/newpage is not specified
-    # * the cell is on the same page (i.e. visible) and uses the same viewer 
-    # Otherwise, set item=item0, so that further operations below are done
-    # on the original dataitem object
+    # If the item is already displayed somewhere, we may still choose to
+    # assign a new cell to it in one of two cases:
+    # * cell/newcell/newpage is specified
+    # * all cells displaying the item are not visible (i.e. are on different
+    #   pages)
     if cell or newcell or newpage \
        or not filter(lambda c:c.wtop().isVisible(),disp_cells):
+      # set item=item0, so that further operations below are done
+      # on the original dataitem object
       item = item0;
-    # 
+    # finally, decide whether to highlight old cells, or display a new one
     if item0 is not item:
       if item.data is None:  
         item0.refresh();
@@ -858,7 +863,7 @@ class GriddedWorkspace (object):
       if not cell: 
         cell = self.current_page().find_cell(item.udi,new=newcell,parent_udi=parent_udi) \
                or self.add_page().find_cell(item.udi,parent_udi=parent_udi);
-      cell.set_data_item(item);
+      cell.set_data_item(item,viewer=viewer);
       # ask for a refresh
       item.refresh();
       cell.wtop().updateGeometry();

@@ -112,7 +112,7 @@ class HierBrowser (object):
   def get_data_item (self,udi):
     return self.make_data_item(self._content_map.get(udi,None));
     
-  def make_data_item (self,item):
+  def make_data_item (self,item,viewer=None):
     # extract relevant item attributes, return if not present
     try:
       content  = getattr(item,'_content');
@@ -128,7 +128,7 @@ class HierBrowser (object):
         desc = udi;
       # make item and return
       return gridded_workspace.GridDataItem(udi,name,desc,
-                data=content,viewopts=viewopts,
+                data=content,viewer=viewer,viewopts=viewopts,
                 refresh=getattr(self,'_refresh_func',None));
     return None;
 
@@ -241,13 +241,13 @@ class HierBrowser (object):
         self._lv.takeItem(i);
       del self.items[:len(self.items)-limit];
 
-  # if current item is disaplayable, creates a dataitem from it and
+  # if current item is displayable, creates a dataitem from it and
   # emits a displayDataItem(dataitem) signal
   # dum is used to allow this func to be used as a callback for context menus
-  def display_item (self,item,dum=None,viewer=None):
-    dataitem = self.make_data_item(item);
+  def display_item (self,item,dum=None,viewer=None,**kwargs):
+    dataitem = self.make_data_item(item,viewer=viewer);
     if dataitem:
-      self.wtop().emit(PYSIGNAL("displayDataItem()"),(dataitem,));
+      self.wtop().emit(PYSIGNAL("displayDataItem()"),(dataitem,(),kwargs));
       
   # called when an item is expanded                    
   def _expand_item_content (self,item):
@@ -285,15 +285,23 @@ class HierBrowser (object):
         menu = item._context_menu = QPopupMenu(self._lv);
         menu.insertItem(label);
         menu.insertSeparator();
+        menu1 = QPopupMenu(self._lv);
+        menu2 = QPopupMenu(self._lv);
+        menu.insertItem(pixmaps.view_split.iconset(),"Display with",menu1);
+        menu.insertItem(pixmaps.view_right.iconset(),"New display with",menu2);
         menu._callbacks = [];
         for v in vlist:
           # create entry for viewer
           name = getattr(v,'viewer_name',v.__name__);
           try: icon = v.icon();
           except AttributeError: icon = QIconSet();
+          # add entry to both menus ("Display with" and "New display with")
           func = curry(self.display_item,item,viewer=v);
           menu._callbacks.append(func);
-          menu.insertItem(icon,'display in '+name,func);
+          menu1.insertItem(icon,name,func);
+          func = curry(self.display_item,item,viewer=v,newcell=True);
+          menu._callbacks.append(func);
+          menu2.insertItem(icon,name,func);
       else:
         menu = item._context_menu = None;
     # a None menu object indicates no context for this item 

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from qt import QPixmap
+from qt import QPixmap,QIconSet
 
 # A QPixMap wrapper defers initialization of a pixmap until the pixmap
 # is actually retrieved with the pm() method for the first time.
@@ -8,10 +8,15 @@ class QPixmapWrapper(object):
   def __init__(self,xpmstr):
     self._xpmstr = xpmstr;
     self._pm = None;
+    self._iconset = None;
   def pm (self):
     if self._pm is None:
       self._pm = QPixmap(self._xpmstr);
     return self._pm;
+  def iconset (self):
+    if self._iconset is None:
+      self._iconset = QIconSet(self.pm());
+    return self._iconset;
 
 exclaim = QPixmapWrapper([ "14 14 3 1",
           "       c None",
