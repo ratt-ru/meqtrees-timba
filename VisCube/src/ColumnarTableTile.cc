@@ -197,7 +197,7 @@ void ColumnarTableTile::changeFormat (const FormatRef &form)
     initBlock(datablock().data(),totsize);
   }
   // remember new format
-  format_.copy(form,DMI::READONLY).lock();
+  format_.unlock().copy(form,DMI::READONLY).lock();
   ncol_ = format().maxcol();
 }
 
