@@ -218,7 +218,10 @@ public:
   // Get the value.
     //##ModelId=400E5355035C
   const Vells & getValue() const
-    { return value_.deref(); }
+  { 
+    FailWhen( !value_.valid(),"no main value in this VellSet" );
+    return value_.deref(); 
+  }
     //##ModelId=400E5355035E
   
   Vells & getValueWr ();

@@ -51,6 +51,7 @@ DataCollect::DataCollect()
     item_label_(AidData)
 {
   attrib_ <<= new DataRecord;
+  disableFailPropagation();
 }
 
 DataCollect::~DataCollect()
@@ -109,7 +110,8 @@ int DataCollect::getResult (Result::Ref &resref,
   {
     const Result &chres = *child_result[i];
     for( int j=0; j<chres.numVellSets(); j++ )
-  		list[nlist++] <<= chres.vellSet(j).getValue().getDataArray();
+      if( !chres.vellSet(j).isFail() )
+  		  list[nlist++] <<= chres.vellSet(j).getValue().getDataArray();
 	}
  	return 0;
 }

@@ -313,7 +313,7 @@ void VellSet::clear()
 Vells & VellSet::getValueWr ()
 {
   Thread::Mutex::Lock lock(mutex());
-  FailWhen( !value_.valid(),"no main value" );
+  FailWhen( !value_.valid(),"no main value in this VellSet" );
   // if not writable, privatize for writing
   if( !value_.isWritable() || !value_->isWritable() )
   {

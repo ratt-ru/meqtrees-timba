@@ -111,6 +111,8 @@ BlockableObject * __construct_MeqMin (int n) { return n>0 ? new Meq::Min [n] : n
 BlockableObject * __construct_MeqMax (int n) { return n>0 ? new Meq::Max [n] : new Meq::Max; }
 #include "Mean.h"
 BlockableObject * __construct_MeqMean (int n) { return n>0 ? new Meq::Mean [n] : new Meq::Mean; }
+#include "Stripper.h"
+BlockableObject * __construct_MeqStripper (int n) { return n>0 ? new Meq::Stripper [n] : new Meq::Stripper; }
 #include "DataCollect.h"
 BlockableObject * __construct_MeqDataCollect (int n) { return n>0 ? new Meq::DataCollect [n] : new Meq::DataCollect; }
 #include "DataConcat.h"
@@ -293,15 +295,28 @@ BlockableObject * __construct_MeqDataConcat (int n) { return n>0 ? new Meq::Data
         AtomicID::registerId(-1528,"meqmean")+
         TypeInfoReg::addToRegistry(-1528,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1528,__construct_MeqMean)+
+        AtomicID::registerId(-1547,"meqstripper")+
+        TypeInfoReg::addToRegistry(-1547,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1547,__construct_MeqStripper)+
         AtomicID::registerId(-1550,"meqdatacollect")+
         TypeInfoReg::addToRegistry(-1550,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1550,__construct_MeqDataCollect)+
         AtomicID::registerId(-1548,"top")+
-        AtomicID::registerId(-1549,"sub")+
+        AtomicID::registerId(-1122,"group")+
+        AtomicID::registerId(-1560,"item")+
         AtomicID::registerId(-1545,"label")+
         AtomicID::registerId(-1551,"attrib")+
         AtomicID::registerId(-1552,"plot")+
         AtomicID::registerId(-1116,"data")+
+        AtomicID::registerId(-1555,"color")+
+        AtomicID::registerId(-1554,"style")+
+        AtomicID::registerId(-1292,"size")+
+        AtomicID::registerId(-1561,"profile")+
+        AtomicID::registerId(-1559,"visu")+
+        AtomicID::registerId(-1161,"xx")+
+        AtomicID::registerId(-1162,"xy")+
+        AtomicID::registerId(-1182,"yx")+
+        AtomicID::registerId(-1183,"yy")+
         AtomicID::registerId(-1553,"meqdataconcat")+
         TypeInfoReg::addToRegistry(-1553,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1553,__construct_MeqDataConcat)+

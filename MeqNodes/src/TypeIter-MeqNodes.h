@@ -62,6 +62,7 @@
         Do(Meq::Min,arg) separator \
         Do(Meq::Max,arg) separator \
         Do(Meq::Mean,arg) separator \
+        Do(Meq::Stripper,arg) separator \
         Do(Meq::DataCollect,arg) separator \
         Do(Meq::DataConcat,arg)
 

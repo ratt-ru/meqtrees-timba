@@ -342,7 +342,7 @@ inline bool Vells::tryReference (const Vells &other)
 
 void Vells::setSizeType (int flags,bool arg_is_complex)
 {
-  if( flags&VF_COMPLEX || (!flags&VF_REAL && arg_is_complex) )
+  if( flags&VF_COMPLEX || ( !(flags&VF_REAL) && arg_is_complex ) )
   {
     element_type_ = Tpdcomplex;
     element_size_ = sizeof(dcomplex);

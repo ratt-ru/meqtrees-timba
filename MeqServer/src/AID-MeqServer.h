@@ -168,6 +168,11 @@ const int AidIndex_int = -1051;
 const AtomicID AidInput(-1092);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:19
 const int AidInput_int = -1092;
 #endif
+#ifndef _defined_id_AidLevel
+#define _defined_id_AidLevel 1
+const AtomicID AidLevel(-1104);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
+const int AidLevel_int = -1104;
+#endif
 #ifndef _defined_id_AidList
 #define _defined_id_AidList 1
 const AtomicID AidList(-1046);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWClientWP.h:17
@@ -357,11 +362,6 @@ const int AidUVW_int = -1158;
 #define _defined_id_AidUntil 1
 const AtomicID AidUntil(-1556);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/MeqServer.h:16
 const int AidUntil_int = -1556;
-#endif
-#ifndef _defined_id_AidVerbosity
-#define _defined_id_AidVerbosity 1
-const AtomicID AidVerbosity(-1541);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/MeqServer.h:16
-const int AidVerbosity_int = -1541;
 #endif
 #ifndef _defined_id_AidVisHandlerNode
 #define _defined_id_AidVisHandlerNode 1

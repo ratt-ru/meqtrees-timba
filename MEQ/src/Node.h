@@ -143,15 +143,19 @@ class Node : public BlockableObject
           
       // status bits (readonly)
       // mask of bits representing type of most recent result
-      CS_RES_MASK            = 0x0030,
+      CS_RES_MASK            = 0x0070,
+      // no result yet (node never executed)
+      CS_RES_NONE            = 0x0000,
       // most recent result was ok
-      CS_RES_OK              = 0x0000,
+      CS_RES_OK              = 0x0010,
       // most recent result was a wait code
-      CS_RES_WAIT            = 0x0010,
+      CS_RES_WAIT            = 0x0020,
       // most recent result was empty
-      CS_RES_EMPTY           = 0x0020,
+      CS_RES_EMPTY           = 0x0030,
+      // most recent result was missing data
+      CS_RES_MISSING         = 0x0040,
       // most recent result was a fail
-      CS_RES_FAIL            = 0x0030,
+      CS_RES_FAIL            = 0x0050,
       // flag: node is publishing
       CS_PUBLISHING          = 0x0100,
       // flag: node has a cached result
@@ -464,13 +468,21 @@ class Node : public BlockableObject
     { setExecState(es,control_status_,false); }
     
   
-      
-    // ----------------- virtual methods defining node behaviour --------------
     //##Documentation
     //## generally called from constructor, to indicate that a node class does   
     //## not support auto-resampling of child results            
     void disableAutoResample ()
     { disable_auto_resample_ = True; auto_resample_ = RESAMPLE_NONE; }
+    
+    //##Documentation
+    //## generally called from constructor, to indicate that a node class does   
+    //## not want to automatically fail if one of the children returns a RES_FAIL.
+    //## RES_FAIL from children is then ignored (and masked out of the cumulative
+    //## result code)
+    void disableFailPropagation ()
+    { propagate_child_fails_ = false; }
+      
+    // ----------------- virtual methods defining node behaviour --------------
       
     //##ModelId=3F83FADF011D
     //##Documentation
@@ -857,6 +869,9 @@ class Node : public BlockableObject
     //##Documentation
     //## flag: auto-resampling for child results is not available
     bool disable_auto_resample_;
+    
+    //## flag: child fails automatically propagated
+    bool propagate_child_fails_;
     
     //##Documentation
     //## cache of resampled child results

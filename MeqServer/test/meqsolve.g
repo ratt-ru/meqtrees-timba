@@ -475,7 +475,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
   
   if( set_breakpoint )
     mqs.meq('Node.Set.Breakpoint',[name='solver']);
-  mqs.meq('Set.Verbosity',[verbosity=100]);
+  mqs.meq('Debug.Set.Level',[debug_level=100]);
 
   # run over MS
   if( run )

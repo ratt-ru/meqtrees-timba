@@ -13,7 +13,7 @@
 #pragma aid App Command Args Result Data Processing Error Message Code
 #pragma aid Execute Clear Cache Save Load Forest Recursive 
 #pragma aid Publish Results Enable Disable Event Id Silent
-#pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Verbosity
+#pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Level
 #pragma aid addstate
     
 namespace Meq
@@ -80,12 +80,11 @@ class MeqServer : public VisRepeater, public EventRecepient
     void nodeSetBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
     void nodeClearBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
     
-    void debugSingleStep (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
-    void debugNextNode   (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
-    void debugContinue   (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
-    void debugUntilNode  (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
-
-    void setVerbosity    (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void debugSetLevel      (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void debugSingleStep    (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void debugNextNode      (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void debugContinue      (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void debugUntilNode     (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
     
     virtual int receiveEvent (const EventIdentifier &evid,const ObjRef::Xfer &,void *);
     
@@ -117,7 +116,7 @@ class MeqServer : public VisRepeater, public EventRecepient
     //##ModelId=3F9CE0D3027D
     VisDataMux data_mux;
     
-    const Node * in_debugger;
+    Node * in_debugger;
     const Node * debug_nextnode;
     bool debug_continue;
     

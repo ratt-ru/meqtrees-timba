@@ -45,7 +45,8 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
       depend_mask_(0),
       node_groups_(1,FAll),
       auto_resample_(RESAMPLE_NONE),
-      disable_auto_resample_(false)
+      disable_auto_resample_(false),
+      propagate_child_fails_(true)
 {
   Assert(nchildren>=0 || !labels);
   Assert(nchildren<0 || nchildren>=nmandatory);
@@ -956,18 +957,26 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   // if any child has completely failed, return a Result containing all of the fails 
   if( !child_fails.empty() )
   {
-    cdebug(3)<<"  got RES_FAIL from children ("<<nfails<<"), returning"<<endl;
-    Result &result = resref <<= new Result(nfails,req);
-    int ires = 0;
-    for( uint i=0; i<child_fails.size(); i++ )
+    if( propagate_child_fails_ )
     {
-      const Result &childres = *(child_fails[i]);
-      for( int j=0; j<childres.numVellSets(); j++ )
+      cdebug(3)<<"  got RES_FAIL from children ("<<nfails<<"), returning fail-result"<<endl;
+      Result &result = resref <<= new Result(nfails,req);
+      int ires = 0;
+      for( uint i=0; i<child_fails.size(); i++ )
       {
-        const VellSet &vs = childres.vellSet(j);
-        if( vs.isFail() )
-          result.setVellSet(ires++,&vs);
+        const Result &childres = *(child_fails[i]);
+        for( int j=0; j<childres.numVellSets(); j++ )
+        {
+          const VellSet &vs = childres.vellSet(j);
+          if( vs.isFail() )
+            result.setVellSet(ires++,&vs);
+        }
       }
+    }
+    else
+    {
+      cdebug(3)<<"  ignoring RES_FAIL from children since fail propagation is off"<<endl;
+      retcode &= ~RES_FAIL;
     }
   }
   cdebug(3)<<"  cumulative result code is "<<ssprintf("0x%x",retcode)<<endl;
@@ -1174,6 +1183,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       if( req0.hasRider() )
       {
         setExecState(CS_ES_COMMAND);
+        stage = "processing rider";
         retcode = processRequestRider(reqref);
       }
     } // endif( newreq )
@@ -1248,7 +1258,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
         NodeThrow1("must return a valid Result or else RES_WAIT");
       }
       // Make sure the Cells are in the Result object
-      if( !(code&RES_FAIL) && !ref->hasCells() )
+      if( !(code&RES_FAIL) && ref->numVellSets() && !ref->hasCells() )
         ref().setCells(req.cells());
       // privatize the result for readonly -- this ensures that copy-on-write
       // is performed down the line
@@ -1275,8 +1285,9 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     }
     // cache & return accumulated return code
     int ret = cacheResult(ref,retcode) | RES_UPDATED;
+    int st = ret&RES_FAIL ? CS_RES_FAIL : CS_RES_OK;
     setExecState(CS_ES_IDLE,
-        (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_OK);
+        (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|st);
     return ret;
   }
   // catch any exceptions, return a single fail result

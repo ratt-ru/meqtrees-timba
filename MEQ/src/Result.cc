@@ -151,7 +151,7 @@ void Result::setCells (const Cells *cells,int flags)
 {
   Thread::Mutex::Lock lock(mutex());
   // if we have no idea how to attach object, make a copy
-  if( !flags&(DMI::ANON|DMI::EXTERNAL) && !cells->refCount() )
+  if( !(flags&(DMI::ANON|DMI::EXTERNAL)) && !cells->refCount() )
   {
     itsCells = new Cells(*cells);
     flags = (flags&~DMI::EXTERNAL) | DMI::ANON;

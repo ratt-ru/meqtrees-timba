@@ -54,6 +54,7 @@ int Selector::getResult (Result::Ref &resref,
   const Result &childres = *childref[0];
   int nvs = childres.numVellSets();
   // select results from child set
+  bool valid = false;
   for( uint i=0; i<selection.size(); i++ )
   {
     int isel = selection[i];
@@ -61,17 +62,17 @@ int Selector::getResult (Result::Ref &resref,
     {
       VellSet &vs = result.setNewVellSet(i);
       MakeFailVellSet(vs,
-          Debug::ssprintf("selection index %d is out of range (%d results in set)",
+          Debug::ssprintf("invalid selector index for Result of %d VellSet(s)",
                         isel,nvs));
     }
     else
     {
       VellSet::Ref ref = childres.vellSetRef(isel);
       result.setVellSet(i,ref);
+      valid = true;
     }
   }
-  // no additional dependencies
-  return 0;
+  return valid ? 0 : RES_FAIL;
 }
 
 } // namespace Meq

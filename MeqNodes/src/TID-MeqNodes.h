@@ -841,6 +841,23 @@ namespace Meq { class StatPointSourceDFT; };
               typedef const Meq::StatPointSourceDFT & ContainerParamType;
             };
 #endif
+#ifndef _defined_id_TpMeqStripper
+#define _defined_id_TpMeqStripper 1
+const TypeId TpMeqStripper(-1547);                // from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Stripper.h:29
+const int TpMeqStripper_int = -1547;
+namespace Meq { class Stripper; };
+            template<>
+            class DMIBaseTypeTraits<Meq::Stripper> : public TypeTraits<Meq::Stripper>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqStripper_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::Stripper & ContainerReturnType;
+              typedef const Meq::Stripper & ContainerParamType;
+            };
+#endif
 #ifndef _defined_id_TpMeqSubtract
 #define _defined_id_TpMeqSubtract 1
 const TypeId TpMeqSubtract(-1232);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Subtract.h:29

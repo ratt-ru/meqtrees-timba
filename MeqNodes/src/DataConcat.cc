@@ -45,6 +45,7 @@ DataConcat::DataConcat()
     top_label_("Plot.Data")
 {
   skel_ <<= new DataRecord;
+  disableFailPropagation();
 }
 
 DataConcat::~DataConcat()

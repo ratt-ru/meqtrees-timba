@@ -70,13 +70,14 @@ MeqServer::MeqServer()
   command_map["Node.Set.Breakpoint"] = &MeqServer::nodeSetBreakpoint;
   command_map["Node.Clear.Breakpoint"] = &MeqServer::nodeClearBreakpoint;
   
-  command_map["Set.Verbosity"] = &MeqServer::setVerbosity;
+  command_map["Debug.Set.Level"] = &MeqServer::debugSetLevel;
   command_map["Debug.Single.Step"] = &MeqServer::debugSingleStep;
   command_map["Debug.Next.Node"] = &MeqServer::debugNextNode;
   command_map["Debug.Until.Node"] = &MeqServer::debugUntilNode;
   command_map["Debug.Continue"] = &MeqServer::debugContinue;
   
-  in_debugger = debug_nextnode = 0;
+  in_debugger = 0;
+  debug_nextnode = 0;
 }
 
 //##ModelId=3F6196800325
@@ -339,16 +340,6 @@ void MeqServer::publishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     out[FNodeState] <<= node.syncState();
 }
 
-void MeqServer::setVerbosity (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
-{
-  cdebug(1)<<"setting verbosity level"<<endl;
-  int verb = in[AidVerbosity].as<int>();
-  verb = std::min(verb,2);
-  verb = std::max(verb,0);
-  forest.setVerbosity(verb);
-  out[AidMessage] = Debug::ssprintf("verbosity level %d set",verb);
-}
-
 void MeqServer::disablePublishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &)
 {
   cdebug(2)<<"disablePublishResults: disabling for all nodes"<<endl;
@@ -390,17 +381,53 @@ void MeqServer::nodeClearBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer 
         "new bp mask is %X",node.name().c_str(),bpmask,node.getBreakpoints(oneshot));
 }
 
+void MeqServer::debugSetLevel (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+{
+  cdebug(1)<<"setting debugging level"<<endl;
+  int verb = in[AidDebug|AidLevel].as<int>();
+  verb = std::min(verb,2);
+  verb = std::max(verb,0);
+  forest.setVerbosity(verb);
+  std::string msg = Debug::ssprintf("debug level %d set",verb);
+  if( !verb )
+    msg += " (disabled)";
+  if( in_debugger ) // already in debugger at this point
+  {
+    if( verb > 0 ) // re-enabling (or change of level): report back status
+    {
+      // create debug_status record if we're stopped in the debugger
+      DataRecord &rec = out[AidDebug|AidStatus] <<= new DataRecord;
+      rec[AidName] = in_debugger->name();
+      rec[AidNodeIndex] = in_debugger->nodeIndex();
+      rec[AidControl|AidStatus] = in_debugger->getControlStatus();
+      // and also add the node state at top level
+      out[FNodeState] <<= in_debugger->syncState();
+    }
+    else // setting level 0 (disabled) while in debugger implies continuation
+    {
+      debug_continue = true;
+      out[AidDebug|AidStatus] = false;
+      msg += "; continuing";
+    }
+  }
+  else
+    out[AidDebug|AidStatus] = false;
+  out[AidMessage] = msg;
+}
+
+
 void MeqServer::debugContinue (DataRecord::Ref &,DataRecord::Ref::Xfer &)
 {
-  if( !in_debugger )
-    Throw1("can't execute a Continue command when not debugging");
+// continue always allowed, since it doesn't hurt anything
+//  if( in_debugger )
+//    Throw1("can't execute a Continue command when not debugging");
   // clear all global breakpoints and continue
   forest.clearBreakpoint(Node::CS_ALL,false);
   forest.clearBreakpoint(Node::CS_ALL,true);
   debug_continue = true;
 }
 
-void MeqServer::debugSingleStep (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::debugSingleStep (DataRecord::Ref &,DataRecord::Ref::Xfer &in)
 {
   if( !in_debugger )
     Throw1("can't execute Debug.Single.Step command when not debugging");
@@ -410,7 +437,7 @@ void MeqServer::debugSingleStep (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   debug_continue = true;
 }
 
-void MeqServer::debugNextNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::debugNextNode (DataRecord::Ref &,DataRecord::Ref::Xfer &in)
 {
   if( !in_debugger )
     Throw1("can't execute Debug.Next.Node command when not debugging");
@@ -466,6 +493,9 @@ void MeqServer::reportNodeStatus (Node &node,int oldstat,int newstat)
 
 void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
 {
+  // if forest verbosity is 0, debugging has been disabled -- ignore the breakpoint
+  if( forest.verbosity() <= 0 )
+    return;
   // return immediately if we hit a global breakpoint after a next-node
   // command, and node hasn't changed yet
   if( global && debug_nextnode == &node )

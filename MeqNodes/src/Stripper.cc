@@ -38,18 +38,30 @@ Stripper::~Stripper()
 {}
 
 int Stripper::getResult (Result::Ref &resref, 
-                     const std::vector<Result::Ref> &child_result, 
-		     const Request &request,bool newreq) {
+                         const std::vector<Result::Ref> &child_results, 
+		                     const Request &request,bool newreq)
+{
   // Create result object and attach to the ref that was passed in.
-  Result & result = resref <<= new Result(1);
+  // use same # of vellsets and integration flag as input result
+  const Result & child_res = *child_results[0];
+  int nvs = child_res.numVellSets();
+  Result & result = resref <<= new Result(nvs,child_res.isIntegrated());
   // carry Cells along
-  const Cells &cells = child_result[0]->cells();
-  result.setCells(cells);
-  // we want to strip off and return just the first Vells from the
-  // single child
-  const Vells &val = child_result[0]->vellSet(0).getValue();
-  // attach this value to the result that will be returned
-  result.setNewVellSet(0).setValue(val);
+  result.setCells(child_res.cells());
+  for( int i=0; i<nvs; i++ )
+  {
+    const VellSet &child_vs = child_res.vellSet(i);
+    if( child_vs.isFail() )
+    {
+      // a fail-vellset is passed along as-is
+      result.setVellSet(0,&child_vs);
+    }
+    else
+    {
+      // a normal vellset: strip off and return just the main Vells from VellSet
+      result.setNewVellSet(0).setValue(child_vs.getValue());
+    }
+  }
   return 0;
 }
 
