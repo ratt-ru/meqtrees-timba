@@ -24,6 +24,8 @@
 #include "Forest.h"
 #include <DMI/BlockSet.h>
 #include <DMI/DataRecord.h>
+#include <DMI/DataField.h>
+#include <DMI/DataArray.h>
 
 namespace MEQ {
 
@@ -37,6 +39,63 @@ Node::Node()
 //##ModelId=3F5F44A401BC
 Node::~Node()
 {
+}
+
+void Node::processChildSpec (NestableContainer &children,const HIID &id)
+{
+  // child specified by init-record: create recursively
+  TypeId spec_type = children[id].type();
+  if( spec_type == TpDataRecord )
+  {
+    cdebug(4)<<"  child "<<id<<" specified by init record"<<endl;
+    int index;
+    ObjRef child_initrec = children[id].remove();
+    try
+    {
+      cdebug(2)<<"  creating child "<<id<<endl;
+      Node &child = forest_->create(index,child_initrec.ref_cast<DataRecord>());
+      addChild(id,child);
+    }
+    catch( std::exception &exc )
+    {
+      Throw("Failed to create child node "+id.toString()+": "+exc.what());
+    }
+  }
+  else // not an init record
+  {
+    if( TypeInfo::isArray(spec_type) )
+      spec_type = TypeInfo::typeOfArrayElem(spec_type);
+    cdebug(4)<<"  child "<<id<<" entry of type "<<spec_type<<endl;
+    // child specified by name -- look it up in the forest
+    if( spec_type == Tpstring )
+    {
+      const string & name = children[id].as<string>();
+      int index = forest_->findIndex(name);
+      if( index >= 0 )
+      {
+        Node &child = forest_->get(index);
+        cdebug(2)<<"  child "<<id<<"="<<name<<" resolves to node "<<index<<endl;
+        addChild(id,child);
+      }
+      else
+      { // defer until later if not found
+        cdebug(2)<<"  child "<<id<<"="<<name<<" currently unresolved"<<endl;
+        unresolved_children_.push_back(
+            UnresolvedChild(id,name));
+      }
+    }
+    // child specified by index -- just get & attach it directly
+    else if( spec_type == Tpint )
+    {
+      int index = children[id];
+      Node &child = forest_->get(index);
+      cdebug(2)<<"  child "<<id<<"="<<index<<endl;
+      addChild(id,child);
+    }
+    else
+      Throw("illegal specification for child "+id.toString()+" (type "+
+            spec_type.toString()+")");
+  }
 }
 
 //##ModelId=3F5F45D202D5
@@ -53,64 +112,29 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // setup child nodes, if specified
   if( state()[AidChildren].exists() )
   {
-    DataRecord &childrec = wstate()[AidChildren].as_wr<DataRecord>();
-    // iterate thorugh children record and create the child nodes
-    DataRecord::Iterator iter = childrec.initFieldIter();
-    HIID id;
-    NestableContainer::Ref child_ref;
-    while( childrec.getFieldIter(iter,id,child_ref) )
+    // children specified via a record
+    if( state()[AidChildren].containerType() == TpDataRecord )
     {
-      // child specified by init-record: create recursively
-      if( childrec[id].containerType() == TpDataRecord )
-      {
-        cdebug(4)<<"  child "<<id<<" specified by init record"<<endl;
-        int index;
-        ObjRef child_initrec = childrec[id].remove();
-        try
-        {
-          cdebug(2)<<"  creating child "<<id<<endl;
-          Node &child = forest_->create(index,child_initrec.ref_cast<DataRecord>());
-          addChild(id,child);
-        }
-        catch( std::exception &exc )
-        {
-          Throw("Failed to create child node "+id.toString()+": "+exc.what());
-        }
-      }
-      else // not an init record
-      {
-        TypeId type = childrec[id].type();
-        cdebug(4)<<"  child "<<id<<" entry of type "<<type<<endl;
-        // child specified by name -- look it up in the forest_
-        if( type == Tpstring )
-        {
-          const string & name = childrec[id].as<string>();
-          int index = forest_->findIndex(name);
-          if( index >= 0 )
-          {
-            Node &child = forest_->get(index);
-            cdebug(2)<<"  child "<<id<<"="<<name<<" resolves to node "<<index<<endl;
-            addChild(id,child);
-          }
-          else
-          { // defer until later if not found
-            cdebug(2)<<"  child "<<id<<"="<<name<<" currently unresolved"<<endl;
-            unresolved_children_.push_back(
-                UnresolvedChild(id,name));
-          }
-        }
-        // child specified by index -- just get & attach it directly
-        else if( type == Tpint )
-        {
-          int index = childrec[id];
-          Node &child = forest_->get(index);
-          cdebug(2)<<"  child "<<id<<"="<<index<<endl;
-          addChild(id,child);
-        }
-        else
-          Throw("illegal specification for child "+id.toString()+" (type "+
-                type.toString()+")");
-      }
+      DataRecord &childrec = wstate()[AidChildren].as_wr<DataRecord>();
+      // iterate through children record and create the child nodes
+      DataRecord::Iterator iter = childrec.initFieldIter();
+      HIID id;
+      NestableContainer::Ref child_ref;
+      while( childrec.getFieldIter(iter,id,child_ref) )
+        processChildSpec(childrec,id);
+    }
+    else if( state()[AidChildren].containerType() == TpDataField )
+    {
+      DataField &childrec = wstate()[AidChildren].as_wr<DataField>();
+      for( int i=0; i<childrec.size(); i++ )
+        processChildSpec(childrec,AtomicID(i));
+    }
+    else if( state()[AidChildren].containerType() == TpDataArray )
+    {
+      DataArray &childarr = wstate()[AidChildren].as_wr<DataArray>();
+      FailWhen(childarr.rank()!=1,"illegal child array");
+      for( int i=0; i<childarr.shape()[0]; i++ )
+        processChildSpec(childarr,AtomicID(i));
     }
     cdebug(2)<<numChildren()<<" children attached, "
              <<unresolved_children_.size()<<" deferred"<<endl;

@@ -122,6 +122,7 @@ class Node : public BlockableObject
     DataRecord & wstate();
     
   private:
+    void processChildSpec (NestableContainer &children,const HIID &id);
     //##ModelId=3F8433C20193
     void addChild (const HIID &id,Node &childnode );
       
