@@ -118,6 +118,9 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // set num children based on the FChildren field
   cdebug(2)<<"reinitializing node children"<<endl;
   // set node index, if specified
+  if( rec[FNodeIndex].exists() )
+    node_index_ = rec[FNodeIndex].as<int>();
+  // setup children
   if( rec[FChildren].exists() )
   {
     child_indices_ = rec[FChildren].ref(DMI::WRITE);

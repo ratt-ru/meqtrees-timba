@@ -59,6 +59,7 @@ const Node::Ref & Forest::create (int &node_index,
   try
   {
     classname = (*initrec)[FClass].as<string>("");
+    node_index = (*initrec)[FNodeIndex].as<int>(-1);
     FailWhen( !classname.length(),"missing or invalid Class field in init record"); 
     BlockableObject * pbp = DynamicTypeManager::construct(TypeId(classname));
     FailWhen(!pbp,"construct failed");
@@ -86,15 +87,24 @@ const Node::Ref & Forest::create (int &node_index,
   string name = noderef->name();
   if( name.length() && name_map.find(name) != name_map.end() )
     Throw("node '"+name+"' already exists");
-  // allocate entry in repository, extend when needed
-  node_index = nodes.size();
+  // check if node index is already set (i.e. via init record),
+  if( node_index > 0 ) // node index already set (i.e. when reloading)
+  {
+    FailWhen(node_index<nodes.size() && nodes[node_index].valid(),
+        Debug::ssprintf("node %d already created",node_index));
+  }
+  else  // not set, allocate new node index
+    node_index = nodes.size();
+  // resize repository as needed, and put node into it
   if( node_index >= int(nodes.capacity()) )
-    nodes.reserve(nodes.size()+RepositoryChunkSize);
+    nodes.reserve(node_index + RepositoryChunkSize);
+  if( node_index >= nodes.size() )
+    nodes.resize(node_index+1);
+  nodes[node_index] = noderef;
   pnode->setNodeIndex(node_index);
   // add to repository and name map
-  nodes.push_back(noderef);
   name_map[name] = node_index;
-  return nodes.back();
+  return nodes[node_index];
 }
 
 //##ModelId=3F5F5CA300E0
