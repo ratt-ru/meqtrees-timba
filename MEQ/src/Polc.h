@@ -135,26 +135,6 @@ public:
     //##ModelId=3F86886F03BE
   uint update (const double* values, uint nrval);
 
-  // Set the original simulation coefficients.
-    //##ModelId=3F86886F03C4
-  void setSimCoeff (const Vells& coeff)
-    { itsSimCoeff = coeff; }
-
-  // Set the perturbation of the simulation coefficients.
-    //##ModelId=3F86886F03CB
-  void setPertSimCoeff (const Vells& coeff)
-    { itsPertSimCoeff = coeff; }
-
-  // Get the original simulation coefficients.
-    //##ModelId=3F86886F03D2
-  const Vells& getSimCoeff() const
-    { return itsSimCoeff; }
-
-  // Get the perturbation of the simulation coefficients.
-    //##ModelId=3F86886F03D4
-  const Vells& getPertSimCoeff() const
-    { return itsPertSimCoeff; }
-
   // Set the zero-points of the function.
     //##ModelId=3F86886F03D6
   void setFreq0 (double freq0)
@@ -206,10 +186,6 @@ private:
 
     //##ModelId=3F86BFF80221
   Vells        itsCoeff;
-    //##ModelId=3F86BFF8022A
-  Vells        itsSimCoeff;
-    //##ModelId=3F86BFF80235
-  Vells        itsPertSimCoeff;
     //##ModelId=3F86BFF8023F
   Vells        itsPerturbation;
     //##ModelId=3F86BFF8024A
