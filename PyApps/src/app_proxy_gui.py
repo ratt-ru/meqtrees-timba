@@ -303,7 +303,7 @@ class MessageLogger (Logger):
 #--- app_proxy_gui() class
 #--------------------------------------------------------------
 class app_proxy_gui(verbosity,QMainWindow):
-  def __init__(self,app,verbose=0,size=(500,500),start=True,*args):
+  def __init__(self,app,verbose=0,size=(500,500),*args,**kwargs):
     """create and populate the main application window""";
     #------ starts the main app object and event thread, if not already started
     self._qapp = mainapp();
@@ -312,6 +312,27 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.dprint(1,"initializing");
     QMainWindow.__init__(self,*args);
     self.app = app;
+    
+    #------ populate the GUI
+    self.populate(size=size,*args,**kwargs);
+    
+    #------ set size & central widget
+    if self.centralWidget() is None:
+      self.setCentralWidget(self.maintab);
+    sz = self.size().expandedTo(QSize(size[0],size[1]));
+    self.resize(sz);
+    
+    #------ populate the custom event map
+    self._ce_handler_map = { 
+      hiid("hello"):            [self.ce_Hello,self.ce_UpdateState],
+      hiid("bye"):              [self.ce_Bye,self.ce_UpdateState],
+      hiid("app.notify.state"): [self.ce_UpdateState]                };
+      
+    self.dprint(2,"init complete");
+
+  def populate (self,main_parent=None,*args,**kwargs):
+    #------ create top-level tab bar
+    self.maintab = maintab = QTabWidget(main_parent or self);
     
     #------ create a message log
     self.msglog = MessageLogger(self,"message log",use_enable=False,limit=1000);
@@ -329,7 +350,7 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.maintab = QTabWidget(self);
     self.maintab.addTab(self.msglog.wtop(),self.msglog.wtop()._default_label);
     
-    self.eventtab = QTabWidget(self);
+    self.eventtab = QTabWidget(self.maintab);
     self.maintab.addTab(self.eventtab,"Events");
     
     #------ event window tab bar
@@ -339,6 +360,8 @@ class app_proxy_gui(verbosity,QMainWindow):
     
     #------ status bar
     self.statusbar = QStatusBar(self);
+    self.pause_button = QToolButton(self.statusbar);
+#    self.pause_button = QToolButton(self.statusbar);
     self.status_label = QLabel(self.statusbar);
     self.status_icon  = QLabel(self.statusbar);
     self.status_icon.setFrameStyle(QFrame.NoFrame);
@@ -346,6 +369,7 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.status_icon.setMaximumWidth(20);
     self.status_icon.setAlignment(QLabel.AlignVCenter|QLabel.AlignHCenter);
     # self.status_icon.setFrameStyle(QFrame.NoFrame);
+    self.statusbar.addWidget(self.pause_button,0,True);
     self.statusbar.addWidget(self.status_icon);
     self.statusbar.addWidget(self.status_label);
     # clears message from status bar whenever a tab changes
@@ -353,10 +377,10 @@ class app_proxy_gui(verbosity,QMainWindow):
                  self.statusbar,SLOT("clear()"));
                  
     #------ pause button
-    self.pause_button = QToolButton(self.maintab);
+#    self.pause_button = QToolButton(self.maintab);
     self.pause_button.setIconSet(QIconSet(pixmaps.pause_normal.pm()));
     QToolTip.add(self.pause_button,"pause the application");
-    self.pause_button.setAutoRaise(True);
+#    self.pause_button.setAutoRaise(True);
 #    self.pause_button.setMinimumWidth(35);
 #    self.pause_button.setMaximumWidth(35);
     self.pause_button.setDisabled(True);
@@ -364,20 +388,8 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.connect(self.pause_button,SIGNAL("clicked()"),self._press_pause);
     self.pause_requested = None;
     
-    self.maintab.setCornerWidget(self.pause_button,Qt.TopRight);
+#    self.maintab.setCornerWidget(self.pause_button,Qt.TopRight);
     
-    #------ main window layout
-    sz = self.size().expandedTo(QSize(size[0],size[1]));
-    self.resize(sz);
-    self.setCentralWidget(self.maintab)
-    self.dprint(2,"init complete");
-    
-    #------ populate the custom event map
-    self._ce_handler_map = { 
-      hiid("hello"):            [self.ce_Hello,self.ce_UpdateState],
-      hiid("bye"):              [self.ce_Bye,self.ce_UpdateState],
-      hiid("app.notify.state"): [self.ce_UpdateState]                };
-      
   def _add_ce_handler (self,event,handler):
     self._ce_handler_map.setdefault(make_hiid(event),[]).append(handler);
 
@@ -386,11 +398,6 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.dprint(2,"showing GUI"); 
     self._update_app_state();
     QMainWindow.show(self);
-    
-  #  # starts main app thread     
-  #  def start (self):
-  #    start_mainapp();          # start main event thread, if not yet running
-  #    self.app_thread.start();  # start application thread
     
 ##### event relay: reposts message as a Qt custom event for ourselves
   MessageEventType = QEvent.User+1;

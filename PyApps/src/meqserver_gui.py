@@ -62,7 +62,8 @@ class GridCell (object):
     self._wstack = QWidgetStack(self._wtop);
     top_lo.addWidget(control_box,0);
 #    top_lo.setStretchFactor(control_lo,0);
-    top_lo.addWidget(self._wstack,1);
+    top_lo.addStretch(1);
+    top_lo.addWidget(self._wstack,1000);
     top_lo.setResizeMode(QLayout.Minimum);
    
     control_box.setSizePolicy(hsp);
@@ -373,8 +374,8 @@ def is_valid_nodelist (nodelist):
     
 
 class TreeBrowser (object):
-  def __init__ (self,parent,mqs):
-    self._mqs = mqs;
+  def __init__ (self,parent):
+    self._mqs = parent.mqs;
     # construct GUI
     splitter = self._splitter = QSplitter(QSplitter.Horizontal,parent);
     nl_vbox = QVBox(splitter);
@@ -501,15 +502,29 @@ class TreeBrowser (object):
         item._expanded = True;
 
 class meqserver_gui (app_proxy_gui):
-
   def __init__(self,app,*args,**kwargs):
+    self.mqs = app;
     # init standard proxy GUI
     app_proxy_gui.__init__(self,app,*args,**kwargs);
+    # add handlers for result log
+    self._add_ce_handler("node.result",self.ce_NodeResult);
+    self._add_ce_handler("app.result.node.get.state",self.ce_NodeState);
+    self._add_ce_handler("app.result.get.node.list",self.ce_LoadNodeList);
+    self._add_ce_handler("hello",self.ce_Hello);
+    self._add_ce_handler("bye",self.ce_Bye);
+    
+  def populate (self,main_parent=None,*args,**kwargs):
+    self._splitter = QSplitter(QSplitter.Horizontal,main_parent or self);
+    app_proxy_gui.populate(self,main_parent=self._splitter,*args,**kwargs);
     dbg.set_verbose(self.get_verbose());
     self.dprint(2,"meqserver-specifc init"); 
+    # add workspace
+#    self._gw = GriddedWorkspace(splitter,max_nx=4,max_ny=4);
+#    self._gw.wtop().hide();
+#    self._splitter.setSizes([100,200]);
     
     # add Tree browser panel
-    self.treebrowser = TreeBrowser(self,app);
+    self.treebrowser = TreeBrowser(self);
     self.maintab.insertTab(self.treebrowser.wtop(),"Trees",1);
     
     # add Result Log panel
@@ -520,12 +535,6 @@ class meqserver_gui (app_proxy_gui):
     self.resultlog.wtop()._newres_iconset  = QIconSet(pixmaps.check.pm());
     self.resultlog.wtop()._newres_label    = "Results";
     self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
-    # add handler for result log
-    self._add_ce_handler("node.result",self.ce_NodeResult);
-    self._add_ce_handler("app.result.node.get.state",self.ce_NodeState);
-    self._add_ce_handler("app.result.get.node.list",self.ce_LoadNodeList);
-    self._add_ce_handler("hello",self.ce_Hello);
-    self._add_ce_handler("bye",self.ce_Bye);
     
   def ce_Hello (self,ev,value):
     self.treebrowser.clear();
