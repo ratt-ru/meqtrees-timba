@@ -1,6 +1,7 @@
 #include <DMI/Global-Registry.h>
 #include <OCTOPUSSY/Octopussy.h>
 #include <OCTOPUSSY/OctopussyConfig.h>
+#include <OCTOPUSSY/ReflectorWP.h>
 #include "OctoPython.h"
 
 InitDebugContext(OctoPython,"OctoPython");
@@ -112,6 +113,30 @@ static PyObject * stop_octopussy (PyObject *, PyObject *args)
   returnNone;
 };  
 
+// -----------------------------------------------------------------------
+// start_reflector ()
+// -----------------------------------------------------------------------
+static PyObject * start_reflector (PyObject *, PyObject *args)
+{
+  char *wpid = 0;
+  if( !PyArg_ParseTuple(args,"|s",wpid) )
+    return NULL;
+  // catch all exceptions below
+  try 
+  {
+    if( !Octopussy::isRunning() )
+      returnError(NULL,OctoPython,"OCTOPUSSY not initialized");
+    AtomicID wpc = wpid ? AtomicID(wpid) : AidReflectorWP;
+    WPRef wpref;
+    wpref <<= new ReflectorWP(wpc);
+    MsgAddress addr = Octopussy::dispatcher().attach(wpref);
+    // Get and return address
+    cdebug(2)<<"started ReflectorWP: "<<addr<<endl;
+    return pyFromHIID(addr);
+  }
+  catchStandardErrors(NULL);
+};  
+
 
 // -----------------------------------------------------------------------
 // Module initialization
@@ -127,6 +152,8 @@ static PyMethodDef OctoMethods[] = {
                     "converts string to hiid-compatible tuple" },
     { "hiid_to_str", hiid_to_string, METH_VARARGS, 
                     "converts hiid-type sequence to string" },
+    { "start_reflector",start_reflector,METH_VARARGS,
+                    "starts a RelectorWP (usually for testing)" },
         
     { NULL, NULL, 0, NULL}        /* Sentinel */
 };

@@ -6,7 +6,7 @@ from dmitypes import *
 import numarray
 
 # pulls in various things from the C module directly
-from octopython_c import set_debug,aid_map,aid_rmap
+from octopython_c import set_debug,aid_map,aid_rmap,start_reflector
 
 def start (gw=False,wait=True):
   "Starts OCTOPUSSY thread. If gw=True (default False), also starts gateways"
@@ -50,11 +50,15 @@ if __name__ == "__main__":
   set_debug("OctoPython",2);
   set_debug("Dsp",1);
   set_debug("loggerwp",0);
+  set_debug("reflectorwp",2);
   set_debug("python",2);
   # start/stop thread
   print "start()";
   thread = start();
   print "Thread ID is:",thread;
+  addr_refl = start_reflector();
+  print "Reflector address is:",addr_refl;
+  
   wp1 = proxy_wp("Python");
   print "WP address is:",wp1.address();
   wp2 = proxy_wp("Python");
@@ -72,23 +76,36 @@ if __name__ == "__main__":
   subseq = ([1,2,3],['x','y','z'],[hiid('a'),hiid('b')]);
   subrec = srecord({'x':0,'y':arr});
   payload = srecord({'a':0,'b':arr,'c_d':2,'e':subseq,'f':subrec,'z':(hiid('a'),hiid('b')),'nonhiid':4},verbose=2);
+  
   msg2 = message('1.2.3',priority=10,payload=payload);
+  
   print "message2",msg2;
-  set_debug("OctoPython",5);
+#  set_debug("OctoPython",5);
   wp2.publish(msg2);
-  set_debug("OctoPython",2);
+#  set_debug("OctoPython",2);
+
+  msg2.msgid = hiid('Reflect.1');
+  wp2.publish(msg2);
+  wp1.send(msg1,addr_refl);
+  time.sleep(1);
+  
   print 'wp1 queue: ',wp1.num_pending();
   print 'wp2 queue: ',wp2.num_pending();
-  set_debug("OctoPython",5);
-  msg1a = wp1.receive();
-  set_debug("OctoPython",2);
-  print "wp1.receive(): ",msg1a;
-  print "payload: ",msg1a.payload;
-  set_debug("OctoPython",5);
-  msg2a = wp2.receive();
-  set_debug("OctoPython",2);
-  print "wp2.receive(): ",msg2a;
-  print "payload: ",msg2a.payload;
+  
+  while wp1.num_pending():
+#    set_debug("OctoPython",5);
+    msg1a = wp1.receive();
+#    set_debug("OctoPython",2);
+    print "wp1.receive(): ",msg1a;
+    print "payload: ",msg1a.payload;
+    
+  while wp2.num_pending():
+#    set_debug("OctoPython",5);
+    msg2a = wp2.receive();
+#    set_debug("OctoPython",2);
+    print "wp2.receive(): ",msg2a;
+    print "payload: ",msg2a.payload;
+    
   print 'wp1 queue: ',wp1.num_pending();
   print 'wp2 queue: ',wp2.num_pending();
   time.sleep(1);

@@ -56,6 +56,8 @@ PyProxyWP_init(PyProxyWP *self, PyObject *args, PyObject *kwds)
       return -1; 
   try
   {
+    if( !Octopussy::isRunning() )
+      returnError(-1,OctoPython,"OCTOPUSSY not initialized");
     AtomicID wpc = wpid ? AtomicID(wpid) : AidPython;
     // Is OCTOPUSSY running? attach new proxy WP to it
     if( !Octopussy::isRunning() )
