@@ -31,6 +31,7 @@
 #include <casa/Arrays/Matrix.h>
 #include <casa/Arrays/Vector.h>
     
+using namespace casa;
 
 namespace Meq {
 

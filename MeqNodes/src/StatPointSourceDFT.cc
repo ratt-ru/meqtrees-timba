@@ -73,7 +73,7 @@ void StatPointSourceDFT::evalResult (std::vector<Vells> &res,
     // Calculate it for the frequency step if needed.
     double f0 = cells.center(Axis::FREQ)(seg0);
     double df = cells.cellSize(Axis::FREQ)(seg0);
-    double wavel0 = C::_2pi * f0 / C::c;
+    double wavel0 = casa::C::_2pi * f0 / casa::C::c;
     double dwavel = df / f0;
     Vells r1 = (vu*vl + vv*vm + vw*vn) * wavel0;
     res[iout++] = polar(1,r1);

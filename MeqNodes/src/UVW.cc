@@ -33,6 +33,8 @@
 #include <measures/Measures/MeasTable.h>
 #include <casa/Quanta/MVuvw.h>
 
+using namespace casa;
+
 namespace Meq {
 
 const HIID child_labels[] = { AidRA,AidDec,AidX,AidY,AidZ,AidX|0,AidY|0,AidZ|0  };

@@ -112,7 +112,7 @@ private:
   //## tables are updated too.
   //## <br> If it is not the last iteration, the solution is put in the
   //## given request, so a next iteration can first update the parms.
-  void solve (Vector<double>& solution, Request::Ref &reqref,
+  void solve (casa::Vector<double>& solution, Request::Ref &reqref,
 	      DataRecord& solRec, Result::Ref& resref,
 	      std::vector<Result::Ref>& child_results,
 	      bool saveFunklets, bool lastIter);
@@ -128,14 +128,14 @@ private:
   //##Documentation
   //## Fill the solution (per parmid) in the DataRecord.
   void fillSolution (DataRecord& rec, const vector<int>& spids,
-		     const Vector<double>& solution,bool save_polc);
+		     const casa::Vector<double>& solution,bool save_polc);
 
     //##ModelId=400E53550257
   int             itsNumCondeqs;
   std::vector<bool> itsIsCondeq;
   
     //##ModelId=400E5355025A
-  LSQaips         itsSolver;
+  casa::LSQaips   itsSolver;
   int             itsNrEquations;
     //##ModelId=400E5355025C
   int             itsDefNumIter;
