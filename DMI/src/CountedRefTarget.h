@@ -118,12 +118,14 @@ class CountedRefTarget
     //##ModelId=3DB9346602A2
       Thread::Mutex & crefMutex();
       
+    //##ModelId=3E01B0CE01E8
       virtual void print (std::ostream &str) const
       { str << "CountedRefTarget"; }
       
       // prints to cout, with endline. Not inlined, so that it can
       // be called from a debugger. This uses the virtual print, above,
       // hence it need not be redefined by child classes.
+    //##ModelId=3E01BE070204
       void print () const;
       
       // This is a typical debug() method setup. The sdebug()
@@ -158,7 +160,7 @@ class CountedRefTarget
     //##ModelId=3DB934650322
       mutable bool anon;
   
-    //##ModelId=3DB93465039B
+    //##ModelId=3E9BD917024B
       Thread::Mutex cref_mutex;
 
     friend class CountedRefBase;

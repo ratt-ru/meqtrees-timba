@@ -39,7 +39,7 @@ using Loki::Int2Type;
 template <class T>
 class CountedRef : private CountedRefBase
 {
-  private:
+  public:
       // Helper template determines if ref can be converted to a
       // CountedRef<U> ref. Incompatible types will generate a compile- or
       // run-time error.
@@ -69,7 +69,9 @@ class CountedRef : private CountedRefBase
       }
       
   public:
+    //##ModelId=3E9BD91401F0
       typedef CountedRef<T> Xfer;
+    //##ModelId=3E9BD9140239
       typedef CountedRef<T> Copy;
       
       //##ModelId=3BF9396D01A7
@@ -94,13 +96,13 @@ class CountedRef : private CountedRefBase
       {
       }
 
-      //##ModelId=3BF93F8D0054
+      //##ModelId=3BF93C020247
       explicit CountedRef (T& targ, int flags = 0);
-      //##ModelId=3BF93F9702C5
+      //##ModelId=3BF93D620128
       explicit CountedRef (const T& targ, int flags = 0);
-      //##ModelId=3DB934560267
+      //##ModelId=3BF93F8D0054
       explicit CountedRef (T* targ, int flags = 0);
-      //##ModelId=3DB934570236
+      //##ModelId=3BF93F9702C5
       explicit CountedRef (const T* targ, int flags = 0);
 
     //##ModelId=3DB934580238
@@ -179,6 +181,7 @@ class CountedRef : private CountedRefBase
         return CountedRef<U>(*this,flags|DMI::COPYREF,depth);
       }
       
+    //##ModelId=3BF93A170291
       CountedRef<T> copy (int flags = 0,int depth = -1) const
       { 
         return CountedRef<T>(*this,flags|DMI::COPYREF,depth);
@@ -291,7 +294,7 @@ class CountedRef : private CountedRefBase
       // Flags must contain DMI::ANON, else exception is thrown.
       // T must have a default constructor.
       // Use, e.g.: CountedRef<T> ref(DMI::ANONWR);
-    //##ModelId=3DB9345A02BD
+    //##ModelId=3DB934560267
       explicit CountedRef (int flags); 
       
       // make public some methods of CountedRefBase which would otherwise
@@ -351,7 +354,7 @@ class CountedRef : private CountedRefBase
   
 };
 
-//##ModelId=3BF93F8D0054
+//##ModelId=3BF93C020247
 template <class T>
 inline CountedRef<T>::CountedRef (T& targ, int flags)
   : CountedRefBase()
@@ -359,7 +362,7 @@ inline CountedRef<T>::CountedRef (T& targ, int flags)
   attach(&targ,flags);
 }
 
-//##ModelId=3BF93F9702C5
+//##ModelId=3BF93D620128
 template <class T>
 inline CountedRef<T>::CountedRef (const T& targ, int flags)
   : CountedRefBase()
@@ -367,7 +370,7 @@ inline CountedRef<T>::CountedRef (const T& targ, int flags)
   attach(&targ,flags|DMI::READONLY);
 }
 
-//##ModelId=3DB934560267
+//##ModelId=3BF93F8D0054
 template <class T>
 inline CountedRef<T>::CountedRef (T* targ, int flags)
   : CountedRefBase()
@@ -377,7 +380,7 @@ inline CountedRef<T>::CountedRef (T* targ, int flags)
   attach(targ,flags);
 }
 
-//##ModelId=3DB934570236
+//##ModelId=3BF93F9702C5
 template <class T>
 inline CountedRef<T>::CountedRef (const T* targ, int flags)
   : CountedRefBase()
@@ -521,7 +524,7 @@ inline CountedRef<T>& CountedRef<T>::setExclusiveWrite ()
   return *this;
 }
 
-//##ModelId=3DB9345A02BD
+//##ModelId=3DB934560267
 template <class T>
 inline CountedRef<T>::CountedRef (int flags)
   : CountedRefBase()

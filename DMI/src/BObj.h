@@ -107,6 +107,7 @@ class BlockableObject : public CountedRefTarget
       
       // Provide a default print for the BO hierarchy
       // Default version simply prints objectType()
+    //##ModelId=3E9BD915025A
       virtual void print (std::ostream &str) const;
 };
 

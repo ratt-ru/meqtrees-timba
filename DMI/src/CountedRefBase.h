@@ -217,10 +217,12 @@ class CountedRefBase
       CountedRefBase * getPrev ();
 
       // prints to stream
+    //##ModelId=3E01B0C403E3
       void print (std::ostream &str) const;
       
       // prints to cout, with endline. Not inlined, so that it can
       // be called from a debugger
+    //##ModelId=3E01BE0603A1
       void print () const;
       
       // This is a typical debug() method setup. The sdebug()

@@ -26,13 +26,15 @@
 #include <DMI/Common.h>
 #include <DMI/DMI.h>
 #include <DMI/Registry.h>
+#include <Common/lofar_iostream.h>
 
 #include <map>
-#include <Common/lofar_iostream.h>
     
 #pragma aidgroup DMI
 #pragma aid A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
 
+// define the strlowercase function, for want of a better place
+string strlowercase (const string &);
 
 //##ModelId=3BE970170297
 //##Documentation
@@ -126,6 +128,7 @@ class AtomicID
       
       // prints to cout, with endline. Not inlined, so that it can
       // be called from a debugger
+    //##ModelId=3E01BE06024F
       void print () const;
       
   private:

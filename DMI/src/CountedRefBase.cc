@@ -544,6 +544,7 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
   return out;
 }
 
+//##ModelId=3E01B0C403E3
 void CountedRefBase::print (std::ostream &str) const
 {
   if( valid() )
@@ -555,6 +556,7 @@ void CountedRefBase::print (std::ostream &str) const
     str<<"CRef->0";
 }
 
+//##ModelId=3E01BE0603A1
 void CountedRefBase::print () const
 { 
   print(std::cout); 

@@ -24,6 +24,7 @@
 
 // Class HIID 
 
+//##ModelId=3DB934880197
 HIID::HIID (const void* block, int sz)
   : Vector_AtomicID(sz/sizeof(int))
 {
@@ -169,6 +170,7 @@ string HIID::toString (char separator) const
   return s;
 }
 
+//##ModelId=3E01BA7A02AF
 void HIID::print () const
 { 
   print(std::cout); 

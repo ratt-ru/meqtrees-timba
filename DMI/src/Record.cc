@@ -6,6 +6,7 @@
     // register as a nestable container
 static NestableContainer::Register reg(TpDataRecord,True);
 
+//##ModelId=3E9BD9150075
 typedef NestableContainer::Ref NCRef;    
 const NCRef NullNCRef;
 
@@ -275,32 +276,42 @@ const void * DataRecord::get (const HIID &id, ContentInfo &info, TypeId check_ti
     iter = fields.find(id);
   if( iter == fields.end() )
     return 0;
+  NCRef &fref = const_cast<NCRef&>(iter->second);
   // This condition checks that we're not auto-privatizing a readonly container
   // (so that we can cast away const, below)
   // do unconditional privatize if required
   if( flags&DMI::PRIVATIZE )
   {
     FailWhen(!isWritable(),"can't autoprivatize in readonly record");
-    const_cast<NCRef*>(&iter->second)->privatize(flags&(DMI::READONLY|DMI::WRITE|DMI::DEEP)); 
+    fref.privatize(flags&(DMI::READONLY|DMI::WRITE|DMI::DEEP)); 
   }
-  // writability is first determined by the field ref itself, plus the field
-  // An invalid ref is considered writable (we'll check for our own writability
-  // below)
-  info.writable = !iter->second.valid() || 
-      ( iter->second.isWritable() && iter->second->isWritable() );
+  /*
+  Commented out since this is plain wrong. Writability is checked for 
+  separately in the if-else below.
+  Removed code:
+      // writability is first determined by the field ref itself, plus the field
+      // An invalid ref is considered writable (we'll check for our own writability
+      // below)
+      info.writable = !iter->second.valid() || 
+          ( iter->second.isWritable() && iter->second->isWritable() );
+  */
   // default is to return an objref to the field
   if( !check_tid || check_tid == TpObjRef )
   {
-    // since we're returning an objref, writability to the ref is limited
-    // by our own writability too
-    info.writable &= isWritable();
+    // since we're returning an objref, writability to the ref is only limited
+    // by our own writability
+    info.writable = isWritable();
     FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
     info.tid = TpObjRef;
     return &iter->second;
   }
-  else // else an object type itself (or TpObject) must have been explicitly requested
+  else // else an object type itself (or TpObject) must have been explicitly 
+       // requested. 
   {
-    const NestableContainer *pnc = iter->second.deref_p();
+    // since we're returning a pointer to the object, writability is 
+    // determined by the writability of the ref
+    info.writable = !fref.valid() || fref.isWritable();
+    const NestableContainer *pnc = fref.deref_p();
     info.tid = pnc->objectType();
     FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
     FailWhen(check_tid != info.tid && check_tid != TpObject,
@@ -373,7 +384,7 @@ int DataRecord::size (TypeId tid) const
 }
 
 //##ModelId=3CA20AD703A4
-bool DataRecord::getFieldIter (DataRecord::Iterator& iter, HIID& id, TypeId& type,int &size) const
+bool DataRecord::getFieldIter (DataRecord::Iterator& iter, HIID& id, NCRef &ref) const
 {
   if( iter.iter == fields.end() )
   {
@@ -383,17 +394,7 @@ bool DataRecord::getFieldIter (DataRecord::Iterator& iter, HIID& id, TypeId& typ
     return False;
   }
   id = iter.iter->first;
-  type = iter.iter->second->objectType();
-  // for DataFields, return contents type & size
-  if( type == TpDataField )
-  {
-    const DataField *df = dynamic_cast<const DataField*>(iter.iter->second.deref_p());
-    FailWhen(!df,"dynamic_cast unexpectedly failed");
-    type = df->type();
-    size = df->size();
-  }
-  else
-    size = 1;
+  ref.copy(iter.iter->second,DMI::PRESERVE_RW);
   iter.iter++;
   return True;
 }

@@ -925,7 +925,7 @@ void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
       return &objects[n];
     }
     // else return pointer to object
-    resolveObject(n,True).dewr_p();
+    return resolveObject(n,True).dewr_p();
   }
   else // special type
   {

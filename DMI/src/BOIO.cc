@@ -134,6 +134,7 @@ size_t BOIO::write (const BlockableObject &obj)
 }
 
 
+//##ModelId=3E54BDE70228
 string BOIO::stateString () const
 {
   if( !fp )

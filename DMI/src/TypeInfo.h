@@ -11,7 +11,7 @@
 class TypeInfo : public TypeCategories {
   public:
       // ...stored here:
-    //##ModelId=3DB949B0004C
+    //##ModelId=3E9BD91A023C
       Category category;
     //##ModelId=3DB949B00054
       size_t   size;
@@ -81,6 +81,7 @@ class TypeInfo : public TypeCategories {
       
     //##ModelId=3DB949B0010B
       static TypeId typeOfArrayElem (TypeId arr);
+    //##ModelId=3E9BD91A0261
       static uint   rankOfArray     (TypeId arr);
 };
  
@@ -105,6 +106,7 @@ inline TypeId TypeInfo::typeOfArrayElem (TypeId arr)
   return - ((-arr.id())%32) - 32;
 }
 
+//##ModelId=3E9BD91A0261
 inline uint TypeInfo::rankOfArray (TypeId arr)
 {
   return (-arr.id())/32 - 1;

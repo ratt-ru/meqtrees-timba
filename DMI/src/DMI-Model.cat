@@ -832,6 +832,17 @@
 			    quidu      	"3DB9343B00B9"))
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "print"
+		    quid       	"3E9BD915025A"
+		    stereotype 	"const,virtual"
+		    parameters 	(list Parameters
+			(object Parameter "str"
+			    quid       	"3E9BD9160065"
+			    type       	"std::ostream &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
 		    uid        	0))
 	    module     	"Component View::DMI"
 	    quidu      	"3DB9342D017D"
@@ -1337,6 +1348,7 @@
 	    operations 	(list Operations
 		(object Operation "DataRecord"
 		    quid       	"3C5820AD00C6"
+		    stereotype 	"explicit"
 		    parameters 	(list Parameters
 			(object Parameter "flags"
 			    quid       	"3C5820C5037E"
@@ -1397,7 +1409,7 @@
 			    type       	"const HIID &")
 			(object Parameter "ref"
 			    quid       	"3C14C9FA038C"
-			    type       	"const DataFieldRef &")
+			    type       	"const NCRef &")
 			(object Parameter "flags"
 			    quid       	"3C5FC0E703D0"
 			    type       	"int"
@@ -1423,8 +1435,8 @@
 			    type       	"const HIID &")
 			(object Parameter "pfld"
 			    quid       	"3C5FF0F902C9"
-			    type       	"DataField *"
-			    quidu      	"3BB317D8010B")
+			    type       	"NestableContainer *"
+			    quidu      	"3BE97CE100AF")
 			(object Parameter "flags"
 			    quid       	"3C5FF0FA016C"
 			    type       	"int"
@@ -1440,11 +1452,10 @@
 			(object Parameter "id"
 			    quid       	"3C14C9FF0339"
 			    type       	"const HIID &"))
-		    result     	"DataFieldRef"
+		    result     	"NCRef"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
-		    uid        	1005913992
-		    quidu      	"3DB9343B0254")
+		    uid        	1005913992)
 		(object Operation "replace"
 		    attributes 	(list Attribute_Set)
 		    quid       	"3BFCD4BB036F"
@@ -1454,7 +1465,7 @@
 			    type       	"const HIID &")
 			(object Parameter "ref"
 			    quid       	"3C14CA0703D1"
-			    type       	"const DataFieldRef &")
+			    type       	"const NCRef &")
 			(object Parameter "flags"
 			    quid       	"3C5FC0FD011E"
 			    type       	"int"
@@ -1480,8 +1491,8 @@
 			    type       	"const HIID &")
 			(object Parameter "pfld"
 			    quid       	"3C5FF11D005D"
-			    type       	"DataField *"
-			    quidu      	"3BB317D8010B")
+			    type       	"NestableContainer *"
+			    quidu      	"3BE97CE100AF")
 			(object Parameter "flags"
 			    quid       	"3C5FF11D02DE"
 			    type       	"int"
@@ -1502,11 +1513,10 @@
 			(object Parameter "id"
 			    quid       	"3C57D00501BB"
 			    type       	"const HIID &"))
-		    result     	"DataFieldRef"
+		    result     	"NCRef"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
-		    uid        	1011882628
-		    quidu      	"3DB9343B0254")
+		    uid        	1011882628)
 		(object Operation "isDataField"
 		    attributes 	(list Attribute_Set
 			(object Attribute
@@ -1534,11 +1544,10 @@
 			    quid       	"3C57D4ED0355"
 			    type       	"int"
 			    initv      	"DMI::PRESERVE_RW"))
-		    result     	"DataFieldRef"
+		    result     	"NCRef"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
-		    uid        	1006178834
-		    quidu      	"3DB9343B0254")
+		    uid        	1006178834)
 		(object Operation "resolveField"
 		    attributes 	(list Attribute_Set
 			(object Attribute
@@ -1546,7 +1555,12 @@
 			    name       	"OperationIsConst"
 			    value      	TRUE))
 		    quid       	"3C552E2D009D"
-		    documentation 	"Resolves HIID to a field using longest-match, returns remaining atoms in rest, and sets can_write to True if field is writable. If must_write is True, throws an exception if something along the way is not writable."
+		    documentation 	
+|Resolves HIID to a field. Sets can_write to True if field is writable. If
+|must_write is True, throws an exception if something along the way
+|is not writable.
+|
+		    
 		    stereotype 	"const"
 		    parameters 	(list Parameters
 			(object Parameter "id"
@@ -1554,7 +1568,7 @@
 			    type       	"const HIID &")
 			(object Parameter "rest"
 			    quid       	"3C56BEB40155"
-			    type       	"HIID&"
+			    type       	"HIID &"
 			    quidu      	"3BE96FE601C5")
 			(object Parameter "can_write"
 			    quid       	"3C5687B802DA"
@@ -1563,7 +1577,7 @@
 			    quid       	"3C57BE0101E1"
 			    type       	"bool"
 			    initv      	"False"))
-		    result     	"const DataFieldRef &"
+		    result     	"const NCRef &"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Protected"
 		    uid        	1011882601)
@@ -1810,13 +1824,9 @@
 			    quid       	"3CA20B5F02D8"
 			    type       	"HIID&"
 			    quidu      	"3BE96FE601C5")
-			(object Parameter "type"
-			    quid       	"3CA20B60021B"
-			    type       	"TypeId&"
-			    quidu      	"3BFBA88F001D")
-			(object Parameter "size"
-			    quid       	"3CA20B6100FA"
-			    type       	"int&"))
+			(object Parameter "ref"
+			    quid       	"3E9BD86300B1"
+			    type       	"NCRef &"))
 		    result     	"bool"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
@@ -1872,7 +1882,27 @@
 		    result     	"string"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "isDataArray"
+		    quid       	"3E9BD86203AC"
+		    documentation 	
+|Returns true if id refers to a valid DataArray (i.e., that can be
+|fetched with field()). Throws no exceptions.
+|
+		    
+		    stereotype 	"const"
+		    parameters 	(list Parameters
+			(object Parameter "id"
+			    quid       	"3E9BD8630003"
+			    type       	"const HIID &"))
+		    result     	"bool"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
 		    uid        	0))
+	    class_attributes 	(list class_attribute_list
+		(object ClassAttribute "fields"
+		    quid       	"3E9BD86202A0"
+		    type       	"map<HIID,NCRef>"))
 	    module     	"Component View::DMI"
 	    quidu      	"3DB9342D017D"
 	    language   	"ANSI C++"
@@ -1908,10 +1938,7 @@
 		    class_attributes 	(list class_attribute_list
 			(object ClassAttribute "iter"
 			    quid       	"3DB934810397"
-			    type       	"map<HIID,DataFieldRef>::const_iterator")
-			(object ClassAttribute "lock"
-			    quid       	"3DB934810398"
-			    type       	"Thread::Mutex::Lock"))
+			    type       	"map<HIID,NCRef>::const_iterator"))
 		    module     	"Component View::DMI"
 		    quidu      	"3DB9342D017D")
 		(object Class "FMI"
@@ -1923,7 +1950,7 @@
 			(object Attribute
 			    tool       	"Cplusplus"
 			    name       	"ImplementationType"
-			    value      	"map<HIID,DataFieldRef>::iterator"))
+			    value      	"map<HIID,NCRef>::iterator"))
 		    quid       	"3DB9343B02FE"
 		    stereotype 	"typedef"
 		    exportControl 	"Private"
@@ -1938,7 +1965,7 @@
 			(object Attribute
 			    tool       	"Cplusplus"
 			    name       	"ImplementationType"
-			    value      	"map<HIID,DataFieldRef>::const_iterator"))
+			    value      	"map<HIID,NCRef>::const_iterator"))
 		    quid       	"3DB9343B03D1"
 		    stereotype 	"typedef"
 		    exportControl 	"Private"
@@ -1953,8 +1980,23 @@
 			(object Attribute
 			    tool       	"Cplusplus"
 			    name       	"ImplementationType"
-			    value      	"map<HIID,DataFieldRef>::value_type"))
+			    value      	"map<HIID,NCRef>::value_type"))
 		    quid       	"3DB9343C00B1"
+		    stereotype 	"typedef"
+		    exportControl 	"Private"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D")
+		(object Class "BlockFieldInfo"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"DataRecord.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"struct { int idsize; int ftype; }"))
+		    quid       	"3E9BD8620215"
 		    stereotype 	"typedef"
 		    exportControl 	"Private"
 		    module     	"Component View::DMI"
@@ -4539,6 +4581,19 @@
 			    type       	"bool"))
 		    concurrency 	"Sequential"
 		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "DefineRefTypes"
+		    quid       	"3E9BD919036A"
+		    parameters 	(list Parameters
+			(object Parameter ""
+			    quid       	"3E9BD91903C7"
+			    type       	"NestableContainer"
+			    quidu      	"3BE97CE100AF")
+			(object Parameter ""
+			    quid       	"3E9BD91A00B8"
+			    type       	"Ref"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
 		    uid        	0))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "writable"
@@ -5008,24 +5063,6 @@
 				    type       	"AtomicID"
 				    quidu      	"3BE970170297"))
 			    result     	"const NestableContainer::ConstHook &"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	0)
-			(object Operation "as_String"
-			    quid       	"3DB93499028E"
-			    stereotype 	"const"
-			    result     	"String"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	0)
-			(object Operation "operator String"
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"Inline"
-				    value      	TRUE))
-			    quid       	"3DB934990393"
-			    stereotype 	"const"
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
@@ -5548,87 +5585,6 @@
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	1015497465)
-			(object Operation "operator ="
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"cg"
-				    name       	"cg_style"
-				    value      	"Const inline")
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"Inline"
-				    value      	TRUE))
-			    quid       	"3C873A8F035F"
-			    stereotype 	"const"
-			    parameters 	(list Parameters
-				(object Parameter "ref"
-				    quid       	"3C873AB80137"
-				    type       	"const ObjRef &"))
-			    result     	"void"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	1015497467)
-			(object Operation "operator <<="
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"cg"
-				    name       	"cg_style"
-				    value      	"Const inline")
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"Inline"
-				    value      	TRUE))
-			    quid       	"3C873AB8008D"
-			    stereotype 	"const"
-			    parameters 	(list Parameters
-				(object Parameter "ref"
-				    quid       	"3C873AC701E3"
-				    type       	"const ObjRef &"))
-			    result     	"void"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	1015497468)
-			(object Operation "operator <<="
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"cg"
-				    name       	"cg_style"
-				    value      	"Const inline")
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"Inline"
-				    value      	TRUE))
-			    quid       	"3C87864D031A"
-			    stereotype 	"const"
-			    parameters 	(list Parameters
-				(object Parameter "obj"
-				    quid       	"3C87866702D1"
-				    type       	"BlockableObject *"
-				    quidu      	"3BB1F71F03C9"))
-			    result     	"void"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	1015498883)
-			(object Operation "operator <<="
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"cg"
-				    name       	"cg_style"
-				    value      	"Const inline")
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"Inline"
-				    value      	TRUE))
-			    quid       	"3C8786A30223"
-			    stereotype 	"const"
-			    parameters 	(list Parameters
-				(object Parameter "obj"
-				    quid       	"3C8786A9025E"
-				    type       	"const BlockableObject *"))
-			    result     	"void"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	1015498884)
 			(object Operation "put"
 			    attributes 	(list Attribute_Set
 				(object Attribute
@@ -5925,30 +5881,6 @@
 			    concurrency 	"Sequential"
 			    opExportControl 	"Public"
 			    uid        	0)
-			(object Operation "operator ="
-			    attributes 	(list Attribute_Set)
-			    quid       	"3DB934BA03A3"
-			    stereotype 	"const"
-			    parameters 	(list Parameters
-				(object Parameter "other"
-				    quid       	"3DB934BB00FB"
-				    type       	"const String &"))
-			    result     	"const String &"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	0)
-			(object Operation "operator ="
-			    attributes 	(list Attribute_Set)
-			    quid       	"3DB934BB02A0"
-			    stereotype 	"const"
-			    parameters 	(list Parameters
-				(object Parameter ""
-				    quid       	"3E7081A6012B"
-				    type       	"const BlockableObject *"))
-			    result     	"void"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Private"
-			    uid        	0)
 			(object Operation "sdebug"
 			    attributes 	(list Attribute_Set
 				(object Attribute
@@ -6129,18 +6061,6 @@
 			    opExportControl 	"Private"
 			    uid        	0
 			    quidu      	"3C8739B50135")
-			(object Operation "operator ="
-			    attributes 	(list Attribute_Set)
-			    quid       	"3DB934CD0377"
-			    stereotype 	"const"
-			    parameters 	(list Parameters
-				(object Parameter ""
-				    quid       	"3DB934CE0308"
-				    type       	"const BlockableObject &"))
-			    result     	"void"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Private"
-			    uid        	0)
 			(object Operation "prepare_assign_array"
 			    quid       	"3E7081A50350"
 			    stereotype 	"const"
@@ -6201,6 +6121,20 @@
 		    quid       	"3DB9343D03AB"
 		    stereotype 	"typedef"
 		    exportControl 	"Private"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D")
+		(object Class "NCRef"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"NestableContainer.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"NestableContainer::Ref"))
+		    quid       	"3E9BD91500B8"
+		    stereotype 	"typedef"
 		    module     	"Component View::DMI"
 		    quidu      	"3DB9342D017D")))
 	(object Class "SmartBlock"
@@ -8285,10 +8219,7 @@
 		(object ClassAttribute "anon"
 		    quid       	"3DB934650322"
 		    stereotype 	"mutable"
-		    type       	"bool")
-		(object ClassAttribute "cref_mutex"
-		    quid       	"3DB93465039B"
-		    type       	"Thread::Mutex"))
+		    type       	"bool"))
 	    module     	"Component View::DMI"
 	    quidu      	"3DB9342D017D"
 	    language   	"ANSI C++"
@@ -8415,10 +8346,15 @@
 			    name       	"Inline"
 			    value      	TRUE))
 		    quid       	"3BF93C020247"
+		    stereotype 	"explicit"
 		    parameters 	(list Parameters
-			(object Parameter "right"
-			    quid       	"3DB9345403DE"
-			    type       	"const CountedRef<T> &"))
+			(object Parameter "targ"
+			    quid       	"3E9BD91602C6"
+			    type       	"T&")
+			(object Parameter "flags"
+			    quid       	"3E9BD916033A"
+			    type       	"int"
+			    initv      	"0"))
 		    protocol   	"C++"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
@@ -8454,21 +8390,15 @@
 			    name       	"Inline"
 			    value      	TRUE))
 		    quid       	"3BF93D620128"
-		    documentation 	
-|Generic copy constructor -- see same method in CountedRefBase.
-|
-		    
+		    stereotype 	"explicit"
 		    parameters 	(list Parameters
-			(object Parameter "other"
-			    quid       	"3DB93455021D"
-			    type       	"const CountedRef<T>&")
+			(object Parameter "targ"
+			    quid       	"3E9BD9170026"
+			    type       	"const T&")
 			(object Parameter "flags"
 			    quid       	"3C19B78A0382"
-			    type       	"int")
-			(object Parameter "depth"
-			    quid       	"3DB9345503B8"
 			    type       	"int"
-			    initv      	"-1"))
+			    initv      	"0"))
 		    protocol   	"C++"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
@@ -8508,7 +8438,7 @@
 		    parameters 	(list Parameters
 			(object Parameter "targ"
 			    quid       	"3C19B78A0388"
-			    type       	"T&")
+			    type       	"T*")
 			(object Parameter "flags"
 			    quid       	"3C19B78A0389"
 			    type       	"int"
@@ -8552,7 +8482,7 @@
 		    parameters 	(list Parameters
 			(object Parameter "targ"
 			    quid       	"3C19B78A038B"
-			    type       	"const T&")
+			    type       	"const T*")
 			(object Parameter "flags"
 			    quid       	"3C19B78A038C"
 			    type       	"int"
@@ -8570,46 +8500,8 @@
 		    quid       	"3DB934560267"
 		    stereotype 	"explicit"
 		    parameters 	(list Parameters
-			(object Parameter "targ"
-			    quid       	"3DB93456034D"
-			    type       	"T*")
 			(object Parameter "flags"
 			    quid       	"3DB9345700B0"
-			    type       	"int"
-			    initv      	"0"))
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "CountedRef"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB934570236"
-		    stereotype 	"explicit"
-		    parameters 	(list Parameters
-			(object Parameter "targ"
-			    quid       	"3DB93457033B"
-			    type       	"const T*")
-			(object Parameter "flags"
-			    quid       	"3DB9345800B1"
-			    type       	"int"
-			    initv      	"0"))
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "CountedRef"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB9345A02BD"
-		    stereotype 	"explicit"
-		    parameters 	(list Parameters
-			(object Parameter "flags"
-			    quid       	"3DB9345A03D5"
 			    type       	"int"))
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
@@ -8882,7 +8774,6 @@
 			    name       	"Inline"
 			    value      	TRUE))
 		    quid       	"3BF93A170291"
-		    documentation 	"Copies ref -- see CountedRefBase::copy()."
 		    stereotype 	"const"
 		    parameters 	(list Parameters
 			(object Parameter "flags"
@@ -8898,52 +8789,6 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "copy"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"cg"
-			    name       	"cg_style"
-			    value      	"Inlined")
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3C1F2DB802D2"
-		    parameters 	(list Parameters
-			(object Parameter "other"
-			    quid       	"3C1F2DD40033"
-			    type       	"const CountedRef<T>&")
-			(object Parameter "flags"
-			    quid       	"3C1F2DD401C4"
-			    type       	"int"
-			    initv      	"0")
-			(object Parameter "depth"
-			    quid       	"3E01B0F702A8"
-			    type       	"int"
-			    initv      	"-1"))
-		    result     	"CountedRef<T> &"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	1008319520)
-		(object Operation "xfer"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"cg"
-			    name       	"cg_style"
-			    value      	"Inlined")
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3C1F2DD30353"
-		    parameters 	(list Parameters
-			(object Parameter "other"
-			    quid       	"3C1F2DEA00CB"
-			    type       	"const CountedRef<T>&"))
-		    result     	"CountedRef<T> &"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	1008319521)
 		(object Operation "privatize"
 		    attributes 	(list Attribute_Set
 			(object Attribute
@@ -9357,63 +9202,7 @@
 		    result     	"T&"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
-		    uid        	1019056487)
-		(object Operation "operator <<="
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3E01B1AB0345"
-		    documentation 	
-|<<= on other ref is alias for xfer
-|
-		    
-		    parameters 	(list Parameters
-			(object Parameter "other"
-			    quid       	"3E01B1AB0396"
-			    type       	"const CountedRef<T> &"))
-		    result     	"CountedRef<T> &"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "operator="
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB934580238"
-		    parameters 	(list Parameters
-			(object Parameter "right"
-			    quid       	"3DB9345802E2"
-			    type       	"const CountedRef<T> &"))
-		    result     	"CountedRef<T> &"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "operator =="
-		    quid       	"3E316E8A013C"
-		    stereotype 	"const"
-		    parameters 	(list Parameters
-			(object Parameter "right"
-			    quid       	"3E316E8A01A2"
-			    type       	"const CountedRef<T> &"))
-		    result     	"bool"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "operator !="
-		    quid       	"3E316E8A021E"
-		    stereotype 	"const"
-		    parameters 	(list Parameters
-			(object Parameter "right"
-			    quid       	"3E316E8A0280"
-			    type       	"const CountedRef<T> &"))
-		    result     	"bool"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0))
+		    uid        	1019056487))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "CountedRefBase::valid"
 		    quid       	"3DB934500207"
@@ -9469,7 +9258,36 @@
 	    parameters 	(list Parameters
 		(object Parameter "T"
 		    quid       	"3C19B78A0157"
-		    type       	"class")))
+		    type       	"class"))
+	    nestedClasses 	(list nestedClasses
+		(object Class "Xfer"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"CountedRef.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"CountedRef<T>"))
+		    quid       	"3E9BD91401F0"
+		    stereotype 	"typedef"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D")
+		(object Class "Copy"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"CountedRef.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"CountedRef<T>"))
+		    quid       	"3E9BD9140239"
+		    stereotype 	"typedef"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D")))
 	(object Class "AidIndex"
 	    attributes 	(list Attribute_Set
 		(object Attribute
@@ -9661,15 +9479,6 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Private"
 		    uid        	0))
-	    class_attributes 	(list class_attribute_list
-		(object ClassAttribute "default_value"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"cg"
-			    name       	"cg_style"
-			    value      	"No get/set operations"))
-		    quid       	"3C5EA19F005A"
-		    type       	"Val"))
 	    module     	"Component View::DMI"
 	    quidu      	"3DB9342D017D"
 	    language   	"ANSI C++"
@@ -9759,9 +9568,9 @@
 	    quid       	"3C5E8CAC035D"
 	    superclasses 	(list inheritance_relationship_list
 		(object Inheritance_Relationship
-		    quid       	"3DB9344600FD"
+		    quid       	"3E9BDC300159"
 		    supplier   	"$UNNAMED$0"
-		    quidu      	"3DB9344600B7"))
+		    quidu      	"3E9BDC300145"))
 	    operations 	(list Operations
 		(object Operation "BiRegistry"
 		    quid       	"3C5E985C02A0"
@@ -9828,17 +9637,24 @@
 		    result     	"BiRegistry< Key,Val,HostClass > &"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "add"
+		    quid       	"3E9D78D20196"
+		    parameters 	(list Parameters
+			(object Parameter "key"
+			    quid       	"3E9D78D201A8"
+			    type       	"const Key&")
+			(object Parameter "val"
+			    quid       	"3E9D78D201BB"
+			    type       	"const Val &")
+			(object Parameter "revval"
+			    quid       	"3E9D78D201CF"
+			    type       	"const Val &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
 		    uid        	0))
 	    class_attributes 	(list class_attribute_list
-		(object ClassAttribute "default_key"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"cg"
-			    name       	"cg_style"
-			    value      	"No get/set operations"))
-		    quid       	"3C5EA181038C"
-		    type       	"Key"
-		    quidu      	"3DB9343D01DF")
 		(object ClassAttribute "riter"
 		    quid       	"3DB934460125"
 		    type       	"typename RevMap::const_iterator"))
@@ -11689,7 +11505,7 @@
 			    quidu      	"3BFBA88F001D")
 			(object Parameter "shape"
 			    quid       	"3DB949AE03A8"
-			    type       	"const IPosition&")
+			    type       	"const LoShape &")
 			(object Parameter "flags"
 			    quid       	"3DB949AE03AB"
 			    type       	"int"
@@ -11872,17 +11688,17 @@
 			    type       	"const HIID&")
 			(object Parameter "st"
 			    quid       	"3DB949AF0014"
-			    type       	"IPosition&")
+			    type       	"LoPos&")
 			(object Parameter "end"
 			    quid       	"3DB949AF0016"
-			    type       	"IPosition&")
+			    type       	"LoPos&")
 			(object Parameter "incr"
 			    quid       	"3DB949AF0018"
-			    type       	"IPosition&")
+			    type       	"LoPos&")
 			(object Parameter "keepAxes"
 			    quid       	"3DB949AF001A"
-			    type       	"IPosition&"))
-		    result     	"bool"
+			    type       	"vector<bool> &"))
+		    result     	"int"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
@@ -11910,20 +11726,17 @@
 		    stereotype 	"const"
 		    result     	"bool"
 		    concurrency 	"Sequential"
-		    opExportControl 	"Private"
+		    opExportControl 	"Public"
 		    uid        	0)
 		(object Operation "init"
 		    quid       	"3DB949AF0024"
 		    parameters 	(list Parameters
 			(object Parameter "shape"
 			    quid       	"3DB949AF0026"
-			    type       	"const IPosition&"))
-		    result     	"void"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Private"
-		    uid        	0)
-		(object Operation "reinit"
-		    quid       	"3DB949AF0029"
+			    type       	"const LoShape &")
+			(object Parameter "flags"
+			    quid       	"3E9BD91800FA"
+			    type       	"int"))
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Private"
@@ -11958,56 +11771,195 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Private"
 		    uid        	0)
-		(object Operation "headerType"
+		(object Operation "rank"
 		    attributes 	(list Attribute_Set
 			(object Attribute
 			    tool       	"Cplusplus"
 			    name       	"Inline"
 			    value      	TRUE))
-		    quid       	"3DB949AF0037"
+		    quid       	"3E9BD91800B4"
 		    stereotype 	"const"
 		    result     	"int"
 		    concurrency 	"Sequential"
-		    opExportControl 	"Private"
+		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "headerSize"
+		(object Operation "shape"
 		    attributes 	(list Attribute_Set
 			(object Attribute
 			    tool       	"Cplusplus"
 			    name       	"Inline"
 			    value      	TRUE))
-		    quid       	"3DB949AF003A"
+		    quid       	"3E9BD91800B7"
 		    stereotype 	"const"
-		    result     	"int"
+		    result     	"const LoShape &"
 		    concurrency 	"Sequential"
-		    opExportControl 	"Private"
+		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "setHeaderType"
+		(object Operation "elementType"
 		    attributes 	(list Attribute_Set
 			(object Attribute
 			    tool       	"Cplusplus"
 			    name       	"Inline"
 			    value      	TRUE))
-		    quid       	"3DB949AF003C"
+		    quid       	"3E9BD91800B9"
+		    stereotype 	"const"
+		    result     	"TypeId"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0
+		    quidu      	"3BFBA88F001D")
+		(object Operation "typeIndex"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E9BD9180129"
+		    stereotype 	"static"
 		    parameters 	(list Parameters
-			(object Parameter "type"
-			    quid       	"3DB949AF003E"
-			    type       	"int"))
+			(object Parameter "tid"
+			    quid       	"3E9BD918012B"
+			    type       	"TypeId"
+			    quidu      	"3BFBA88F001D"))
+		    result     	"int"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "allocateArrayWithData"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E9BD918015A"
+		    stereotype 	"static"
+		    parameters 	(list Parameters
+			(object Parameter "tid"
+			    quid       	"3E9BD918015D"
+			    type       	"TypeId"
+			    quidu      	"3BFBA88F001D")
+			(object Parameter "data"
+			    quid       	"3E9BD918018C"
+			    type       	"void *")
+			(object Parameter "shape"
+			    quid       	"3E9BD91801BB"
+			    type       	"const LoShape &"))
+		    result     	"void *"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "assignWithStride"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E9BD91801EA"
+		    stereotype 	"static"
+		    parameters 	(list Parameters
+			(object Parameter "tid"
+			    quid       	"3E9BD91801ED"
+			    type       	"TypeId"
+			    quidu      	"3BFBA88F001D")
+			(object Parameter "ptr"
+			    quid       	"3E9BD918021C"
+			    type       	"void *")
+			(object Parameter "data"
+			    quid       	"3E9BD918024B"
+			    type       	"void *")
+			(object Parameter "shape"
+			    quid       	"3E9BD918027A"
+			    type       	"const LoShape &")
+			(object Parameter "stride"
+			    quid       	"3E9BD91802A9"
+			    type       	"const LoShape &"))
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Private"
 		    uid        	0)
-		(object Operation "setHeaderSize"
+		(object Operation "allocateArrayDefault"
 		    attributes 	(list Attribute_Set
 			(object Attribute
 			    tool       	"Cplusplus"
 			    name       	"Inline"
 			    value      	TRUE))
-		    quid       	"3DB949AF0041"
+		    quid       	"3E9BD91802D8"
+		    stereotype 	"static"
 		    parameters 	(list Parameters
-			(object Parameter "size"
-			    quid       	"3DB949AF0043"
+			(object Parameter "tid"
+			    quid       	"3E9BD91802DB"
+			    type       	"TypeId"
+			    quidu      	"3BFBA88F001D")
+			(object Parameter "rank"
+			    quid       	"3E9BD918030A"
 			    type       	"int"))
+		    result     	"void *"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "destroyArray"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E9BD9180339"
+		    stereotype 	"static"
+		    parameters 	(list Parameters
+			(object Parameter "tid"
+			    quid       	"3E9BD918033C"
+			    type       	"TypeId"
+			    quidu      	"3BFBA88F001D")
+			(object Parameter "rank"
+			    quid       	"3E9BD918036A"
+			    type       	"int")
+			(object Parameter "ptr"
+			    quid       	"3E9BD9180399"
+			    type       	"void *"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "initSubArray"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E9BD91803C9"
+		    stereotype 	"const"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "makeSubArray"
+		    quid       	"3E9BD91803CC"
+		    stereotype 	"const"
+		    parameters 	(list Parameters
+			(object Parameter "data"
+			    quid       	"3E9BD91803CE"
+			    type       	"void *")
+			(object Parameter "shape"
+			    quid       	"3E9BD9190015"
+			    type       	"const LoShape &")
+			(object Parameter "stride"
+			    quid       	"3E9BD9190044"
+			    type       	"const LoShape &"))
+		    result     	"void *"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "copyStringArray"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E9BD9190074"
+		    parameters 	(list Parameters
+			(object Parameter "source"
+			    quid       	"3E9BD9190076"
+			    type       	"const void *"))
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Private"
@@ -12015,11 +11967,11 @@
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "itsShape"
 		    quid       	"3DB949AE036D"
-		    type       	"IPosition")
+		    type       	"LoShape")
 		(object ClassAttribute "itsElemSize"
 		    quid       	"3DB949AE0383"
 		    type       	"int")
-		(object ClassAttribute "itsDataOffset"
+		(object ClassAttribute "itsSize"
 		    quid       	"3DB949AE0389"
 		    type       	"int")
 		(object ClassAttribute "itsArrayData"
@@ -12027,13 +11979,110 @@
 		    type       	"char*")
 		(object ClassAttribute "itsArray"
 		    quid       	"3DB949AE0394"
-		    type       	"void*")
-		(object ClassAttribute "itsSubArray"
-		    quid       	"3DB949AE039A"
-		    type       	"void*"))
+		    type       	"void *")
+		(object ClassAttribute "NumTypes"
+		    quid       	"3E9BD91703A8"
+		    type       	"const int"
+		    initv      	"Tpbool_int - Tpstring_int + 1"
+		    exportControl 	"Public"
+		    static     	TRUE)
+		(object ClassAttribute "itsDataOffset"
+		    quid       	"3E9BD91703CC"
+		    type       	"int"))
 	    module     	"Component View::DMI"
 	    quidu      	"3DB9342D017D"
-	    language   	"ANSI C++")
+	    language   	"ANSI C++"
+	    nestedClasses 	(list nestedClasses
+		(object Class "AllocatorWithData"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"DataArray.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"void * (* )(void*,const LoShape &)"))
+		    quid       	"3E9BD9140364"
+		    stereotype 	"typedef"
+		    exportControl 	"Private"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D")
+		(object Class "AllocatorDefault"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"DataArray.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"void * (* )()"))
+		    quid       	"3E9BD9140377"
+		    stereotype 	"typedef"
+		    exportControl 	"Private"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D")
+		(object Class "AssignWithStride"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"DataArray.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"void (* )(void*,void *,const LoShape &,const LoShape &)"))
+		    quid       	"3E9BD914038B"
+		    stereotype 	"typedef"
+		    exportControl 	"Private"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D")
+		(object Class "Destructor"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"DataArray.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"void (* )(void*)"))
+		    quid       	"3E9BD91403A0"
+		    stereotype 	"typedef"
+		    exportControl 	"Private"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D")
+		(object Class "SubArray"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"DataArray.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"struct { void *ptr; int rank; }"))
+		    quid       	"3E9BD91403B3"
+		    stereotype 	"typedef"
+		    exportControl 	"Private"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D")
+		(object Class "SubArrayMap"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"DataArray.h")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"std::map<Thread::ThrID,SubArray>"))
+		    quid       	"3E9BD91403C7"
+		    stereotype 	"typedef"
+		    exportControl 	"Private"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D")))
 	(object Class "TypeInfo"
 	    attributes 	(list Attribute_Set
 		(object Attribute
@@ -12041,6 +12090,11 @@
 		    name       	"HeaderSourceFile"
 		    value      	"TypeInfo.h"))
 	    quid       	"3DB949AE01B8"
+	    superclasses 	(list inheritance_relationship_list
+		(object Inheritance_Relationship
+		    quid       	"3E9BD91A021B"
+		    supplier   	"Logical View::DOMIN0::Types and typedefs::TypeCategories"
+		    quidu      	"3E9BD9150133"))
 	    operations 	(list Operations
 		(object Operation "TypeInfo"
 		    attributes 	(list Attribute_Set
@@ -12053,7 +12107,6 @@
 			(object Parameter "cat"
 			    quid       	"3DB949B00098"
 			    type       	"Category"
-			    quidu      	"3DB949AE01BE"
 			    initv      	"NONE")
 			(object Parameter "sz"
 			    quid       	"3DB949B0009E"
@@ -12072,8 +12125,7 @@
 		    parameters 	(list Parameters
 			(object Parameter "cat"
 			    quid       	"3DB949B000A4"
-			    type       	"Category"
-			    quidu      	"3DB949AE01BE")
+			    type       	"Category")
 			(object Parameter "sz"
 			    quid       	"3DB949B000AA"
 			    type       	"size_t")
@@ -12221,25 +12273,7 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "elemToArr"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB949B00103"
-		    stereotype 	"static"
-		    parameters 	(list Parameters
-			(object Parameter "elem"
-			    quid       	"3DB949B00105"
-			    type       	"TypeId"
-			    quidu      	"3BFBA88F001D"))
-		    result     	"TypeId"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0
-		    quidu      	"3BFBA88F001D")
-		(object Operation "arrToElem"
+		(object Operation "typeOfArrayElem"
 		    attributes 	(list Attribute_Set
 			(object Attribute
 			    tool       	"Cplusplus"
@@ -12256,7 +12290,25 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0
-		    quidu      	"3BFBA88F001D"))
+		    quidu      	"3BFBA88F001D")
+		(object Operation "rankOfArray"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E9BD91A0261"
+		    stereotype 	"static"
+		    parameters 	(list Parameters
+			(object Parameter "arr"
+			    quid       	"3E9BD91A0264"
+			    type       	"TypeId"
+			    quidu      	"3BFBA88F001D"))
+		    result     	"uint"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0
+		    quidu      	"3DB9343F012D"))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "size"
 		    quid       	"3DB949B00054"
@@ -12266,20 +12318,6 @@
 	    quidu      	"3DB9342D017D"
 	    language   	"ANSI C++"
 	    nestedClasses 	(list nestedClasses
-		(object Class "Category"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"HeaderSourceFile"
-			    value      	"TypeInfo.h")
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"ImplementationType"
-			    value      	"enum { NONE=0,NUMERIC=1,BINARY=2,DYNAMIC=3,SPECIAL=4,INTERMEDIATE=5,OTHER=6 }"))
-		    quid       	"3DB949AE01BE"
-		    stereotype 	"typedef"
-		    module     	"Component View::DMI"
-		    quidu      	"3DB9342D017D")
 		(object Class "NewMethod"
 		    attributes 	(list Attribute_Set
 			(object Attribute
@@ -13221,6 +13259,205 @@
 		    supplier   	"Logical View::DOMIN0::NestableContainer"
 		    quidu      	"3BE97CE100AF"
 		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$32"
+	    quid       	"3E9BD8620292"
+	    roles      	(list role_list
+		(object Role "lock"
+		    quid       	"3E9BD8620293"
+		    label      	"lock"
+		    supplier   	"Logical View::Common::Thread::Mutex::Lock"
+		    quidu      	"3D1049B40396"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$33"
+		    quid       	"3E9BD8620295"
+		    supplier   	"Logical View::DOMIN0::DataRecord::Iterator"
+		    quidu      	"3DB9343B029A"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$34"
+	    quid       	"3E9BD91501F3"
+	    roles      	(list role_list
+		(object Role "default_key: Key"
+		    quid       	"3E9BD91501F4"
+		    label      	"default_key: Key"
+		    supplier   	"Logical View::Common::Thread::Key"
+		    quidu      	"3D1049B402A5"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$35"
+		    quid       	"3E9BD91501F7"
+		    supplier   	"Logical View::DOMIN0::BiRegistry"
+		    quidu      	"3C5E8CAC035D"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$36"
+	    quid       	"3E9BD917024A"
+	    roles      	(list role_list
+		(object Role "cref_mutex"
+		    quid       	"3E9BD917024B"
+		    label      	"cref_mutex"
+		    supplier   	"Logical View::Common::Thread::Mutex"
+		    quidu      	"3D1049B40332"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$37"
+		    quid       	"3E9BD917024E"
+		    supplier   	"Logical View::DOMIN0::CountedRefTarget"
+		    quidu      	"3C0CDF41029F"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$38"
+	    quid       	"3E9BD91703B6"
+	    roles      	(list role_list
+		(object Role "itsType"
+		    quid       	"3E9BD91703B7"
+		    label      	"itsType"
+		    supplier   	"Logical View::DOMIN0::Types and typedefs::TypeId"
+		    quidu      	"3BFBA88F001D"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$39"
+		    quid       	"3E9BD91703B9"
+		    supplier   	"Logical View::DOMIN0::DataArray"
+		    quidu      	"3DB949AE00C5"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$40"
+	    quid       	"3E9BD91703E0"
+	    roles      	(list role_list
+		(object Role "allocatorWithData: AllocatorWithData [NumTypes][MaxLorrayRank]"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"InitialValue"
+			    value      	"{ DoForAllArrayTypes1(OneLine,) }"))
+		    quid       	"3E9BD91703E1"
+		    label      	"allocatorWithData: AllocatorWithData [NumTypes][MaxLorrayRank]"
+		    supplier   	"Logical View::DOMIN0::DataArray::AllocatorWithData"
+		    quidu      	"3E9BD9140364"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE
+		    static     	TRUE)
+		(object Role "$UNNAMED$41"
+		    quid       	"3E9BD91703E4"
+		    supplier   	"Logical View::DOMIN0::DataArray"
+		    quidu      	"3DB949AE00C5"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$42"
+	    quid       	"3E9BD9180013"
+	    roles      	(list role_list
+		(object Role "allocatorDefault: AllocatorDefault [NumTypes][MaxLorrayRank]"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"InitialValue"
+			    value      	"{ DoForAllArrayTypes1(OneLine,) }"))
+		    quid       	"3E9BD9180014"
+		    label      	"allocatorDefault: AllocatorDefault [NumTypes][MaxLorrayRank]"
+		    supplier   	"Logical View::DOMIN0::DataArray::AllocatorDefault"
+		    quidu      	"3E9BD9140377"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE
+		    static     	TRUE)
+		(object Role "$UNNAMED$43"
+		    quid       	"3E9BD9180016"
+		    supplier   	"Logical View::DOMIN0::DataArray"
+		    quidu      	"3DB949AE00C5"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$44"
+	    quid       	"3E9BD9180031"
+	    roles      	(list role_list
+		(object Role "assignerWithStride: AssignWithStride [NumTypes][MaxLorrayRank]"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"InitialValue"
+			    value      	"{ DoForAllArrayTypes1(OneLine,) }"))
+		    quid       	"3E9BD9180032"
+		    label      	"assignerWithStride: AssignWithStride [NumTypes][MaxLorrayRank]"
+		    supplier   	"Logical View::DOMIN0::DataArray::AssignWithStride"
+		    quidu      	"3E9BD914038B"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE
+		    static     	TRUE)
+		(object Role "$UNNAMED$45"
+		    quid       	"3E9BD9180035"
+		    supplier   	"Logical View::DOMIN0::DataArray"
+		    quidu      	"3DB949AE00C5"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$46"
+	    quid       	"3E9BD9180051"
+	    roles      	(list role_list
+		(object Role "destructor: Destructor [NumTypes][MaxLorrayRank]"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"InitialValue"
+			    value      	"{ DoForAllArrayTypes1(OneLine,) }"))
+		    quid       	"3E9BD9180052"
+		    label      	"destructor: Destructor [NumTypes][MaxLorrayRank]"
+		    supplier   	"Logical View::DOMIN0::DataArray::Destructor"
+		    quidu      	"3E9BD91403A0"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE
+		    static     	TRUE)
+		(object Role "$UNNAMED$47"
+		    quid       	"3E9BD9180055"
+		    supplier   	"Logical View::DOMIN0::DataArray"
+		    quidu      	"3DB949AE00C5"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$48"
+	    quid       	"3E9BD9180074"
+	    roles      	(list role_list
+		(object Role "itsSubArrayMap"
+		    quid       	"3E9BD9180075"
+		    label      	"itsSubArrayMap"
+		    supplier   	"Logical View::DOMIN0::DataArray::SubArrayMap"
+		    quidu      	"3E9BD91403C7"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$49"
+		    quid       	"3E9BD9180078"
+		    supplier   	"Logical View::DOMIN0::DataArray"
+		    quidu      	"3DB949AE00C5"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$50"
+	    quid       	"3E9BD91A023B"
+	    roles      	(list role_list
+		(object Role "category: Category"
+		    quid       	"3E9BD91A023C"
+		    label      	"category: Category"
+		    supplier   	"Logical View::DOMIN0::Types and typedefs::TypeCategories::Category"
+		    quidu      	"3E9BD915013C"
+		    Containment 	"By Value"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$51"
+		    quid       	"3E9BD91A023F"
+		    supplier   	"Logical View::DOMIN0::TypeInfo"
+		    quidu      	"3DB949AE01B8"
+		    is_aggregate 	TRUE)))
+	(object Association "$UNNAMED$52"
+	    quid       	"3E9BD91A02BB"
+	    roles      	(list role_list
+		(object Role "default_value: Val"
+		    quid       	"3E9BD91A02BC"
+		    label      	"default_value: Val"
+		    supplier   	"Logical View::DOMIN0::Packer utility classes::MapPacker::Val"
+		    quidu      	"3DB9343D01FD"
+		    Containment 	"By Value"
+		    exportControl 	"Private"
+		    is_navigable 	TRUE)
+		(object Role "$UNNAMED$53"
+		    quid       	"3E9BD91A02BE"
+		    supplier   	"Logical View::DOMIN0::UniRegistry"
+		    quidu      	"3C5A6FD40213"
+		    is_aggregate 	TRUE)))
 	(object Class_Category "DMI"
 	    attributes 	(list Attribute_Set
 		(object Attribute
@@ -13278,7 +13515,7 @@
 |      FORCE_CLONE     =  0x04000,
 |      
 |  // these are used in ref copy constructor calls to force copy() or privatize() 
-|      PRIVATIZE       =  0x10000,  
+|      PRIVATIZE       =  0x10000,
 |      COPYREF         =  0x20000,
 |      XFER            =  0,        // XFER is the default, so 0
 |  // preserve r/w privilege for ref copy
@@ -13291,11 +13528,11 @@
 |      SHARED          =0x1000000,  // constructor hint: block will be sent
 |                                   //     to other processes, so consider shmem
 |      SHMEM           =0x2000000,  // constructor: forces use of shmem
-|      CLONE           =PRIVATIZE,  // copy constructor: clones block
+|      CLONE           =COPYREF,    // copy constructor: clones block
 |      ZERO            =DEEP,       // constructor: zeroes allocated block
 |      
 |  // _BlockSet_-specific flags
-|      MAKE_READONLY   =0x4000000,   // for copyAll(): makes source set read-only      
+|      MAKE_READONLY   =0x4000000,   // for copyAll(): makes source set read-only
 |
 |  // NestableContainer::get flags
 |      NC_SCALAR       =0x1000000,  // container accessed as a scalar
@@ -13577,7 +13814,7 @@
 			(object Attribute
 			    tool       	"Cplusplus"
 			    name       	"ImplementationType"
-			    value      	"deque<AtomicID>")
+			    value      	"std::deque<AtomicID>")
 			(object Attribute
 			    tool       	"Cplusplus"
 			    name       	"HeaderSourceFile"
@@ -13626,27 +13863,296 @@
 		    module     	"Component View::DMI"
 		    quidu      	"3DB9342D017D"
 		    language   	"ANSI C++")
+		(object Parameterized_Class "DMIBaseTypeTraits"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"TypeId.h"))
+		    quid       	"3E9BD914029D"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D"
+		    language   	"ANSI C++"
+		    parameters 	(list Parameters
+			(object Parameter "T"
+			    quid       	"3E9BD91402E1"
+			    type       	"class"))
+		    nestedClasses 	(list nestedClasses
+			(object Class "T"
+			    quid       	"3E9BD91402A7"
+			    stereotype 	"template_param"
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "ContainerReturnType"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h")
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"ImplementationType"
+				    value      	"typename TypeTraits<T>::ParameterType"))
+			    quid       	"3E9BD91402C3"
+			    stereotype 	"typedef"
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "ContainerParamType"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h")
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"ImplementationType"
+				    value      	"typename TypeTraits<T>::ParameterType"))
+			    quid       	"3E9BD91402CD"
+			    stereotype 	"typedef"
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "$UNNAMED$54"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h"))
+			    quid       	"3E9BD91702B5"
+			    stereotype 	"enum"
+			    class_attributes 	(list class_attribute_list
+				(object ClassAttribute "isContainable"
+				    quid       	"3E9BD91702C0"
+				    initv      	"False"
+				    exportControl 	"Public"))
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "$UNNAMED$55"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h"))
+			    quid       	"3E9BD91702C2"
+			    stereotype 	"enum"
+			    class_attributes 	(list class_attribute_list
+				(object ClassAttribute "typeId"
+				    quid       	"3E9BD91702CC"
+				    initv      	"0"
+				    exportControl 	"Public"))
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "$UNNAMED$56"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h"))
+			    quid       	"3E9BD91702CF"
+			    stereotype 	"enum"
+			    class_attributes 	(list class_attribute_list
+				(object ClassAttribute "TypeCategory"
+				    quid       	"3E9BD91702D9"
+				    initv      	"TypeCategories::OTHER"
+				    exportControl 	"Public"))
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")))
+		(object Parameterized_Class "DMITypeTraits"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"TypeId.h"))
+		    quid       	"3E9BD91402E7"
+		    superclasses 	(list inheritance_relationship_list
+			(object Inheritance_Relationship
+			    quid       	"3E9BDC30026A"
+			    supplier   	"$UNNAMED$57"
+			    quidu      	"3E9BDC300256"))
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D"
+		    language   	"ANSI C++"
+		    parameters 	(list Parameters
+			(object Parameter "T"
+			    quid       	"3E9BD9140348"
+			    type       	"class"))
+		    nestedClasses 	(list nestedClasses
+			(object Class "T"
+			    quid       	"3E9BD91402F0"
+			    stereotype 	"template_param"
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "$UNNAMED$58"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h"))
+			    quid       	"3E9BD91702EB"
+			    stereotype 	"enum"
+			    class_attributes 	(list class_attribute_list
+				(object ClassAttribute "isNumeric"
+				    quid       	"3E9BD91702F5"
+				    initv      	"int(TypeCategory) == int(TypeCategories::NUMERIC)"
+				    exportControl 	"Public"))
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "$UNNAMED$59"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h"))
+			    quid       	"3E9BD91702F7"
+			    stereotype 	"enum"
+			    class_attributes 	(list class_attribute_list
+				(object ClassAttribute "isBinary"
+				    quid       	"3E9BD9170302"
+				    initv      	"int(TypeCategory) == int(TypeCategories::BINARY)"
+				    exportControl 	"Public"))
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "$UNNAMED$60"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h"))
+			    quid       	"3E9BD9170304"
+			    stereotype 	"enum"
+			    class_attributes 	(list class_attribute_list
+				(object ClassAttribute "isDynamic"
+				    quid       	"3E9BD917030F"
+				    initv      	"int(TypeCategory) == int(TypeCategories::DYNAMIC)"
+				    exportControl 	"Public"))
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "$UNNAMED$61"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h"))
+			    quid       	"3E9BD9170311"
+			    stereotype 	"enum"
+			    class_attributes 	(list class_attribute_list
+				(object ClassAttribute "isSpecial"
+				    quid       	"3E9BD917031B"
+				    initv      	"int(TypeCategory) == int(TypeCategories::SPECIAL)"
+				    exportControl 	"Public"))
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "$UNNAMED$62"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h"))
+			    quid       	"3E9BD917031D"
+			    stereotype 	"enum"
+			    class_attributes 	(list class_attribute_list
+				(object ClassAttribute "isIntermediate"
+				    quid       	"3E9BD9170328"
+				    initv      	"int(TypeCategory) == int(TypeCategories::INTERMEDIATE)"
+				    exportControl 	"Public"))
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "$UNNAMED$63"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h"))
+			    quid       	"3E9BD917032A"
+			    stereotype 	"enum"
+			    class_attributes 	(list class_attribute_list
+				(object ClassAttribute "isOther"
+				    quid       	"3E9BD9170335"
+				    initv      	"int(TypeCategory) == int(TypeCategories::OTHER)"
+				    exportControl 	"Public"))
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "$UNNAMED$64"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h"))
+			    quid       	"3E9BD9170337"
+			    stereotype 	"enum"
+			    class_attributes 	(list class_attribute_list
+				(object ClassAttribute "isLorrayable"
+				    quid       	"3E9BD9170342"
+				    initv      	"DMI_TL::IndexOf<DMI_TL::Arrayables"
+				    exportControl 	"Public")
+				(object ClassAttribute "T"
+				    quid       	"3E9BD9170343"
+				    exportControl 	"Public"))
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")
+			(object Class "$UNNAMED$65"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h"))
+			    quid       	"3E9BD9170345"
+			    stereotype 	"enum"
+			    class_attributes 	(list class_attribute_list
+				(object ClassAttribute "isArrayable"
+				    quid       	"3E9BD9170350"
+				    initv      	"isLorrayable"
+				    exportControl 	"Public"))
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")))
+		(object Class "TypeCategories"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"TypeId.h"))
+		    quid       	"3E9BD9150133"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D"
+		    language   	"ANSI C++"
+		    nestedClasses 	(list nestedClasses
+			(object Class "Category"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	"TypeId.h")
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"ImplementationType"
+				    value      	
+|enum 
+|    { 
+|      NONE=0,NUMERIC=1,BINARY=2,DYNAMIC=3,SPECIAL=4,INTERMEDIATE=5,OTHER=6 
+|    }
+				    ))
+			    quid       	"3E9BD915013C"
+			    stereotype 	"typedef"
+			    module     	"Component View::DMI"
+			    quidu      	"3DB9342D017D")))
+		(object Class "NCRef"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"HeaderSourceFile"
+			    value      	"DataRecord.cc")
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"ImplementationType"
+			    value      	"NestableContainer::Ref"))
+		    quid       	"3E9BD9150075"
+		    stereotype 	"typedef"
+		    module     	"Component View::DMI"
+		    quidu      	"3DB9342D017D"
+		    language   	"ANSI C++")
 		(object Class_Category "Instantiations"
 		    quid       	"3DB95284002B"
 		    exportControl 	"Public"
 		    logical_models 	(list unit_reference_list
-			(object Instantiated_Class "$UNNAMED$0"
-			    quid       	"3DB9344600B7"
-			    stereotype 	"anonymous_type"
-			    instantiation_relationship 	(object Instantiation_Relationship
-				quid       	"3DB9344600EC"
-				supplier   	"Logical View::DOMIN0::UniRegistry"
-				quidu      	"3C5A6FD40213")
-			    module     	"Component View::DMI"
-			    quidu      	"3DB9342D017D"
-			    language   	"ANSI C++"
-			    parameters 	(list Parameters
-				(object Parameter "Key"
-				    quid       	"3DB9344600E9")
-				(object Parameter "Val"
-				    quid       	"3DB9344600EA")
-				(object Parameter "HostClass"
-				    quid       	"3DB9344600EB")))
 			(object Instantiated_Class "$UNNAMED$1"
 			    quid       	"3DB951DE010F"
 			    stereotype 	"anonymous_type"
@@ -14676,7 +15182,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BF1004B02AE"
-				    supplier   	"$UNNAMED$32"
+				    supplier   	"$UNNAMED$66"
 				    quidu      	"3BF0FB5601E8"
 				    messages   	(list Messages
 					(object Message ""
@@ -14772,7 +15278,7 @@
 			    persistence 	"Transient"
 			    creationObj 	FALSE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$32"
+			(object Object "$UNNAMED$66"
 			    quid       	"3BF0FB5601E8"
 			    collaborators 	(list link_list
 				(object Link
@@ -15038,7 +15544,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3BFB847700C1"
-				    supplier   	"$UNNAMED$33"
+				    supplier   	"$UNNAMED$67"
 				    quidu      	"3BFB844F039F"
 				    messages   	(list Messages
 					(object Message "toBlock(BlockSet &)"
@@ -15061,7 +15567,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3BFB8B030212"
-				    supplier   	"$UNNAMED$34"
+				    supplier   	"$UNNAMED$68"
 				    quidu      	"3BFB8A9F00CD"
 				    messages   	(list Messages
 					(object Message "BlockRef()"
@@ -15076,7 +15582,7 @@
 					    creation   	TRUE)))
 				(object Link
 				    quid       	"3BFB8B0D031A"
-				    supplier   	"$UNNAMED$35"
+				    supplier   	"$UNNAMED$69"
 				    quidu      	"3BFB8ADA02A9"
 				    messages   	(list Messages
 					(object Message "SmartBlock(size_t, int)"
@@ -15122,7 +15628,7 @@
 			    persistence 	"Transient"
 			    creationObj 	FALSE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$33"
+			(object Object "$UNNAMED$67"
 			    quid       	"3BFB844F039F"
 			    collaborators 	(list link_list
 				(object Link
@@ -15162,7 +15668,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BFB8F9C0029"
-				    supplier   	"$UNNAMED$34"
+				    supplier   	"$UNNAMED$68"
 				    quidu      	"3BFB8A9F00CD"
 				    messages   	(list Messages
 					(object Message ""
@@ -15176,7 +15682,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3BFB8FCB00BD"
-				    supplier   	"$UNNAMED$36"
+				    supplier   	"$UNNAMED$70"
 				    quidu      	"3BFB87E7030B"
 				    messages   	(list Messages
 					(object Message ""
@@ -15347,7 +15853,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BFB87F70142"
-				    supplier   	"$UNNAMED$36"
+				    supplier   	"$UNNAMED$70"
 				    quidu      	"3BFB87E7030B"
 				    messages   	(list Messages
 					(object Message "BlockRef()"
@@ -15412,7 +15918,7 @@
 			    persistence 	"Transient"
 			    creationObj 	TRUE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$36"
+			(object Object "$UNNAMED$70"
 			    quid       	"3BFB87E7030B"
 			    collaborators 	(list link_list
 				(object Link
@@ -15434,12 +15940,12 @@
 			    persistence 	"Transient"
 			    creationObj 	TRUE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$34"
+			(object Object "$UNNAMED$68"
 			    quid       	"3BFB8A9F00CD"
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BFB8FA40035"
-				    supplier   	"$UNNAMED$35"
+				    supplier   	"$UNNAMED$69"
 				    quidu      	"3BFB8ADA02A9"
 				    messages   	(list Messages
 					(object Message ""
@@ -15456,7 +15962,7 @@
 			    persistence 	"Transient"
 			    creationObj 	TRUE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$35"
+			(object Object "$UNNAMED$69"
 			    quid       	"3BFB8ADA02A9"
 			    class      	"Logical View::DOMIN0::SmartBlock"
 			    quidu      	"3BEAACAB0041"
@@ -15747,7 +16253,7 @@
 			    collaborators 	(list link_list
 				(object Link
 				    quid       	"3BFA52EB0249"
-				    supplier   	"$UNNAMED$37"
+				    supplier   	"$UNNAMED$71"
 				    quidu      	"3BFA52C9029A"
 				    messages   	(list Messages
 					(object Message "DataBlock( )"
@@ -15783,7 +16289,7 @@
 			    persistence 	"Static"
 			    creationObj 	FALSE
 			    multi      	FALSE)
-			(object Object "$UNNAMED$37"
+			(object Object "$UNNAMED$71"
 			    quid       	"3BFA52C9029A"
 			    collaborators 	(list link_list
 				(object Link
@@ -15802,7 +16308,7 @@
 					    creation   	FALSE)))
 				(object Link
 				    quid       	"3BFA53AE018B"
-				    supplier   	"$UNNAMED$37"
+				    supplier   	"$UNNAMED$71"
 				    quidu      	"3BFA52C9029A"
 				    messages   	(list Messages
 					(object Message "init( )"
@@ -16066,7 +16572,7 @@
 			    quidu      	"3BEFECFF0287"
 			    compartment 	(object Compartment
 				Parent_View 	@16
-				location   	(6721, 6084)
+				location   	(6721, 6077)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -16079,7 +16585,7 @@
 				icon_style 	"Icon"
 				fill_color 	13434879
 				anchor     	2
-				nlines     	10
+				nlines     	31
 				max_width  	1465
 				compartmentItems 	(list Compartment
 				    "+ attach(targ : T*, flags : int = 0) : CountedRef<T> &"
@@ -16124,6 +16630,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3C0CDF41029F"
+			    compartment 	(object Compartment
+				Parent_View 	@17
+				location   	(3742, 4397)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	TRUE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	17
+				max_width  	0)
 			    width      	2344
 			    height     	1030
 			    annotation 	8
@@ -16465,23 +16988,6 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BE96FE601C5"
-			    compartment 	(object Compartment
-				Parent_View 	@33
-				location   	(7390, 2417)
-				font       	(object Font
-				    size       	10
-				    face       	"arial"
-				    bold       	FALSE
-				    italics    	FALSE
-				    underline  	FALSE
-				    strike     	FALSE
-				    color      	0
-				    default_color 	TRUE)
-				icon_style 	"Icon"
-				fill_color 	16777215
-				anchor     	2
-				nlines     	33
-				max_width  	0)
 			    width      	1018
 			    height     	1258
 			    annotation 	8
@@ -16877,6 +17383,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3C5A6FD40213"
+			    compartment 	(object Compartment
+				Parent_View 	@51
+				location   	(99, 6662)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	7
+				max_width  	0)
 			    width      	2370
 			    height     	576
 			    annotation 	8
@@ -16908,6 +17431,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3C5E8CAC035D"
+			    compartment 	(object Compartment
+				Parent_View 	@52
+				location   	(1707, 7007)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	10
+				max_width  	0)
 			    width      	2304
 			    height     	690
 			    annotation 	8
@@ -17013,6 +17553,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BB3112B0027"
+			    compartment 	(object Compartment
+				Parent_View 	@55
+				location   	(224, 1082)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	28
+				max_width  	0)
 			    width      	2450
 			    height     	1436
 			    annotation 	8
@@ -17045,6 +17602,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BB1F71F03C9"
+			    compartment 	(object Compartment
+				Parent_View 	@56
+				location   	(3546, 3542)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	TRUE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	10
+				max_width  	0)
 			    width      	1806
 			    height     	652
 			    annotation 	8
@@ -17646,6 +18220,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BE97CE100AF"
+			    compartment 	(object Compartment
+				Parent_View 	@86
+				location   	(129, 2897)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	TRUE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	40
+				max_width  	0)
 			    width      	2850
 			    height     	2606
 			    annotation 	8
@@ -17696,6 +18287,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3C614FDE0039"
+			    compartment 	(object Compartment
+				Parent_View 	@89
+				location   	(6, 4382)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	34
+				max_width  	0)
 			    width      	3906
 			    height     	2178
 			    annotation 	8
@@ -17807,6 +18415,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3C8739B50135"
+			    compartment 	(object Compartment
+				Parent_View 	@95
+				location   	(1438, 4517)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	34
+				max_width  	0)
 			    width      	2782
 			    height     	2462
 			    annotation 	8
@@ -18383,7 +19008,7 @@
 				height     	60
 				y_coord    	0
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$32" @131
+			(object InterObjView "$UNNAMED$66" @131
 			    location   	(735, 225)
 			    font       	(object Font
 				size       	10
@@ -19669,7 +20294,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB842A01C5"
 			    width      	446
-			    height     	5671
+			    height     	5701
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -19706,7 +20331,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB843101CF"
 			    width      	446
-			    height     	5671
+			    height     	5701
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -19739,7 +20364,7 @@
 				height     	570
 				y_coord    	510
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$33" @209
+			(object InterObjView "$UNNAMED$67" @209
 			    location   	(720, 225)
 			    font       	(object Font
 				size       	10
@@ -19764,7 +20389,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB844F039F"
 			    width      	456
-			    height     	5670
+			    height     	5700
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -19783,7 +20408,7 @@
 				height     	60
 				y_coord    	0
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$34" @212
+			(object InterObjView "$UNNAMED$68" @212
 			    location   	(1050, 1950)
 			    font       	(object Font
 				size       	10
@@ -19808,7 +20433,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8A9F00CD"
 			    width      	525
-			    height     	3800
+			    height     	3830
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -19858,7 +20483,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8456031D"
 			    width      	300
-			    height     	5535
+			    height     	5565
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -19957,7 +20582,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB849102B3"
 			    width      	364
-			    height     	5670
+			    height     	5700
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20001,7 +20626,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84A50013"
 			    width      	406
-			    height     	5670
+			    height     	5700
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20038,7 +20663,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8674014F"
 			    width      	300
-			    height     	5670
+			    height     	5700
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20075,7 +20700,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84C802F8"
 			    width      	508
-			    height     	5670
+			    height     	5700
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20119,7 +20744,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84E50123"
 			    width      	536
-			    height     	5670
+			    height     	5700
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20156,7 +20781,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84EE0112"
 			    width      	396
-			    height     	5670
+			    height     	5700
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20168,7 +20793,7 @@
 				height     	540
 				y_coord    	480
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$36" @241
+			(object InterObjView "$UNNAMED$70" @241
 			    location   	(4440, 1170)
 			    font       	(object Font
 				size       	10
@@ -20193,7 +20818,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87E7030B"
 			    width      	480
-			    height     	4625
+			    height     	4655
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20243,7 +20868,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87DE0222"
 			    width      	330
-			    height     	4355
+			    height     	4385
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -20268,7 +20893,7 @@
 				height     	60
 				y_coord    	0
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$35" @249
+			(object InterObjView "$UNNAMED$69" @249
 			    location   	(1320, 2130)
 			    font       	(object Font
 				size       	10
@@ -20293,7 +20918,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8ADA02A9"
 			    width      	330
-			    height     	3560
+			    height     	3590
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21440,12 +22065,12 @@
 			    ordinal    	27)
 			(object Destruction_Marker @309
 			    Parent_View 	@249
-			    location   	(1320, 5790)
+			    location   	(1320, 5820)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @310
 			    Parent_View 	@212
-			    location   	(990, 5850)
+			    location   	(990, 5880)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @311
@@ -21490,12 +22115,12 @@
 			    ordinal    	28)
 			(object Destruction_Marker @313
 			    Parent_View 	@241
-			    location   	(4440, 5895)
+			    location   	(4440, 5925)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @314
 			    Parent_View 	@245
-			    location   	(4725, 5835)
+			    location   	(4725, 5865)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @315
@@ -21573,7 +22198,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B150030"
 			    width      	446
-			    height     	6481
+			    height     	6511
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -21638,7 +22263,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B210330"
 			    width      	446
-			    height     	6481
+			    height     	6511
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -21682,7 +22307,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4D3A0258"
 			    width      	300
-			    height     	5805
+			    height     	5835
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21739,7 +22364,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4F6A02C1"
 			    width      	300
-			    height     	5235
+			    height     	5265
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21796,7 +22421,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CB80070"
 			    width      	300
-			    height     	6180
+			    height     	6210
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21846,7 +22471,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CF102DF"
 			    width      	300
-			    height     	6090
+			    height     	6120
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21896,7 +22521,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B51032F"
 			    width      	398
-			    height     	6230
+			    height     	6260
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21974,7 +22599,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5403038C"
 			    width      	300
-			    height     	4215
+			    height     	4245
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22031,7 +22656,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5582004D"
 			    width      	350
-			    height     	4200
+			    height     	4230
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22056,7 +22681,7 @@
 				height     	120
 				y_coord    	60
 				Nested     	FALSE))
-			(object InterObjView "$UNNAMED$37" @361
+			(object InterObjView "$UNNAMED$71" @361
 			    location   	(3660, 2055)
 			    font       	(object Font
 				size       	10
@@ -22081,7 +22706,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA52C9029A"
 			    width      	582
-			    height     	4650
+			    height     	4680
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22152,7 +22777,7 @@
 			    fill_color 	8454016
 			    quidu      	"3BFA527601FA"
 			    width      	528
-			    height     	6480
+			    height     	6510
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22203,7 +22828,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA55CB01C5"
 			    width      	300
-			    height     	3780
+			    height     	3810
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -23390,7 +24015,7 @@
 			    ordinal    	28)
 			(object Destruction_Marker @434
 			    Parent_View 	@344
-			    location   	(1890, 6705)
+			    location   	(1890, 6735)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object NoteView @435
@@ -23621,7 +24246,7 @@
 				location   	(314, 278)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	959
+				max_width  	964
 				justify    	0
 				label      	"Data Transport")
 			    icon       	"control"
@@ -23651,7 +24276,7 @@
 				location   	(374, 1328)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	962
+				max_width  	967
 				justify    	0
 				label      	"P/S/M Layer")
 			    icon       	"control"
@@ -23844,7 +24469,7 @@
 			    subobjects 	0
 			    x_offset   	0.000000
 			    y_offset   	0.000000)
-			(object ObjectView "$UNNAMED$37" @458
+			(object ObjectView "$UNNAMED$71" @458
 			    location   	(1365, 1965)
 			    font       	(object Font
 				size       	10
@@ -25108,6 +25733,23 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3BEFECFF0287"
+		    compartment 	(object Compartment
+			Parent_View 	@528
+			location   	(2726, 159)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	44
+			max_width  	0)
 		    width      	1062
 		    height     	2720
 		    annotation 	8

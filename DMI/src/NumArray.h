@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.19  2003/04/29 07:19:31  smirnov
+//  %[BugId: 26]%
+//  Various updates to hooks
+//
 //  Revision 1.18  2002/12/09 08:22:31  smirnov
 //  %[BugId: 112]%
 //  Simplified string support in DataAarray
@@ -146,6 +150,11 @@ public:
     //##ModelId=3DB949AE03A4
   DataArray (TypeId type, const LoShape & shape, int flags = DMI::WRITE,
 	     int shm_flags = 0);
+  
+  // Create the object, and initialize data from array. "other" should point 
+  // to a Lorray<T,N> object (where T,N correspond to array_tid)
+  DataArray (TypeId array_tid, const void *other, int flags = DMI::WRITE,
+	     int shm_flags = 0);
 
   // Create the object with an array of the given shape.
 //   explicit DataArray (const Array<bool>& array, int flags = DMI::WRITE,
@@ -194,14 +203,17 @@ public:
   bool valid() const;
       
   // returns rank of array
+    //##ModelId=3E9BD91800B4
   int rank () const;
   
   // returns shape of array
+    //##ModelId=3E9BD91800B7
   const LoShape & shape () const;
   
   // returns type of array element
   // (the virtual type() method, below, overriding the abstract one in 
   // NestableContainer, will return the array type)
+    //##ModelId=3E9BD91800B9
   TypeId elementType () const;
   
 #ifdef HAVE_AIPSPP
@@ -269,6 +281,7 @@ public:
     //##ModelId=3DB949AF001C
   DefineRefTypes(DataArray,Ref);
 
+    //##ModelId=3E9BD91703A8
   static const int NumTypes = Tpbool_int - Tpstring_int + 1;
   
 private:
@@ -299,6 +312,7 @@ private:
   int        itsElemSize;       // #bytes of an array element
     //##ModelId=3DB949AE0389
   int        itsSize;           // total size of array (in elements)
+    //##ModelId=3E9BD91703CC
   int        itsDataOffset;     // array data offset in SmartBlock
     //##ModelId=3DB949AE038E
   char*      itsArrayData;      // pointer to array data in SmartBlock
@@ -318,45 +332,74 @@ private:
   // templates. Refer to DataArray.cc.
   
   // These are the actual method tables
+    //##ModelId=3E9BD9140364
   typedef void * (*AllocatorWithData)(void*,const LoShape &);
+    //##ModelId=3E9BD9140377
   typedef void * (*AllocatorDefault)();
+    //##ModelId=3E9BD914038B
   typedef void (*AssignWithStride)(void*,void *,const LoShape &,const LoShape &);
+    //##ModelId=3E9BD91403A0
   typedef void (*Destructor)(void*);
+  
+  typedef void (*ArrayCopier)(void*,const void*);
+  
+  typedef void (*ShapeOfArray)(LoShape &,const void*);
   
   static AllocatorWithData    allocatorWithData   [NumTypes][MaxLorrayRank];
   static AllocatorDefault     allocatorDefault    [NumTypes][MaxLorrayRank];
   static AssignWithStride     assignerWithStride  [NumTypes][MaxLorrayRank];
   static Destructor           destructor          [NumTypes][MaxLorrayRank];
+  static ArrayCopier          copier              [NumTypes][MaxLorrayRank];
+  static ShapeOfArray         shapeOfArray        [NumTypes][MaxLorrayRank];
   
   // converts a type id into a numeric offset into the table above
+    //##ModelId=3E9BD9180129
   static int typeIndex (TypeId tid)
   { return Tpbool_int - tid.id(); }
   // These methods do a lookup & call into each method table
+    //##ModelId=3E9BD918015A
   static void * allocateArrayWithData (TypeId tid,void *data,const LoShape &shape )
   {
     return (*allocatorWithData[typeIndex(tid)][shape.size()-1])(data,shape);
   }
+    //##ModelId=3E9BD91801EA
   static void assignWithStride (TypeId tid,void *ptr,void *data,const LoShape &shape,const LoShape &stride )
   {
     (*assignerWithStride[typeIndex(tid)][shape.size()-1])(ptr,data,shape,stride);
   }
+    //##ModelId=3E9BD91802D8
   static void * allocateArrayDefault (TypeId tid,int rank)
   {
     return (*allocatorDefault[typeIndex(tid)][rank-1])();
   }
+    //##ModelId=3E9BD9180339
   static void destroyArray (TypeId tid,int rank,void *ptr)
   {
     (*destructor[typeIndex(tid)][rank-1])(ptr);
   }
+  
+  static void copyArray (TypeId tid,int rank,void *target,const void *source)
+  {
+    (*copier[typeIndex(tid)][rank-1])(target,source);
+  }
+  
+  static void getShapeOfArray (TypeId tid,int rank,LoShape &shape,const void *ptr)
+  {
+    (*shapeOfArray[typeIndex(tid)][rank-1])(shape,ptr);
+  }
+  
 
   // Define the subarray object (for slicing into an array)
+    //##ModelId=3E9BD91403B3
   typedef struct { void *ptr; int rank; }  SubArray;
 #ifdef USE_THREADS
   // Each thread must have its own subarray pointer. Use a map to accomplish
   // this -- I would use thread keys, but the number is way too limited.
+    //##ModelId=3E9BD91403C7
   typedef std::map<Thread::ThrID,SubArray> SubArrayMap;
   mutable SubArrayMap itsSubArrayMap;
   
+    //##ModelId=3E9BD91803C9
   void initSubArray () const
   {}
 #else
@@ -368,6 +411,7 @@ private:
 #endif
   // this helper function creates the subarray object with the given data,
   // shape & stride. 
+    //##ModelId=3E9BD91803CC
   void * makeSubArray (void *data,const LoShape & shape,const LoShape &stride) const;
   
 #ifdef HAVE_AIPSPP
@@ -380,6 +424,7 @@ private:
   template<class T>
   bool verifyAipsType (const T*) const;
   // helper function copies strings from source array
+    //##ModelId=3E9BD9190074
   void copyStringArray (const void *source);
 #endif
 };
@@ -393,12 +438,14 @@ inline bool DataArray::valid () const
 
     
 // returns rank of array
+//##ModelId=3E9BD91800B4
 inline int DataArray::rank () const
 {
   return itsShape.size();
 }
   
 // returns shape of array
+//##ModelId=3E9BD91800B7
 inline const LoShape & DataArray::shape () const
 {
   return itsShape;
@@ -407,6 +454,7 @@ inline const LoShape & DataArray::shape () const
 // returns type of array element
 // (the virtual type() method, below, overriding the abstract one in 
 // NestableContainer, will return the array type)
+//##ModelId=3E9BD91800B9
 inline TypeId DataArray::elementType () const
 {
   return itsScaType;
@@ -450,6 +498,7 @@ inline bool DataArray::verifyAipsType (const String*) const
   return itsScaType == Tpstring;
 }
 
+//##ModelId=3E9BD9190074
 inline void DataArray::copyStringArray (const void *source)
 {
   const String *data = static_cast<const String*>(source);

@@ -24,6 +24,7 @@
 #include "BlockableObject.h"
 
 
+//##ModelId=3BFE5FE103C5
 CountedRefTarget * BlockableObject::clone (int flags, int depth) const
 {
   BlockSet bset;
@@ -43,6 +44,7 @@ void BlockableObject::privatize (int flags, int depth)
   fromBlock(bset);
 }
 
+//##ModelId=3E9BD915025A
 void BlockableObject::print (std::ostream &str) const
 {
   str << objectType(); 

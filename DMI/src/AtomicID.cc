@@ -23,12 +23,20 @@
 #include "AtomicID.h"
 #include <ctype.h>
 
-
 DefineBiRegistry(AtomicID,0,"");
 
 // pull in all auto-generated registry definitions
 int aidRegistry_DMI();
 static int dum = aidRegistry_DMI();
+
+// define the strlwr function for strings
+string strlowercase (const string &in)
+{
+  string out = in;
+  for( string::iterator iter = out.begin(); iter != out.end(); iter++ )
+    *iter = tolower(*iter);
+  return out;
+}
 
 //##ModelId=3BE9709700A7
 string AtomicID::toString () const
@@ -50,7 +58,7 @@ string AtomicID::toString () const
   return s;
 }
 
-//##ModelId=3E01B4A900A8
+//##ModelId=3E01BE06024F
 void AtomicID::print () const
 {
   print(std::cout); 
@@ -67,7 +75,7 @@ int AtomicID::findName (const string &str)
     if( !isdigit( str[i] ) )
 #endif
     {
-      int ret = registry.rfind(str);
+      int ret = registry.rfind(strlowercase(str));
 #ifdef ATOMICID_VERBOSE_REGISTER
       cerr<<"AtomicID::findName("<<str<<")="<<ret<<endl;
 #endif
@@ -83,7 +91,13 @@ template <>
 Registrar<int,string,AtomicID>::Registrar (const int &key, const string &val)
 {
   cerr<<"Registering key "<<key<<"="<<val<<endl;
-  AtomicID::registry.add(key,val);
+  AtomicID::registry.add(key,val,strlowercase(val));
+}
+#else
+template <>
+Registrar<int,string,AtomicID>::Registrar (const int &key, const string &val)
+{
+  AtomicID::registry.add(key,val,strlowercase(val));
 }
 #endif
 

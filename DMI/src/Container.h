@@ -257,12 +257,12 @@ class NestableContainer : public BlockableObject
         //##ModelId=3DB9349300DE
           mutable int  index;         // numeric subscript being applied to target 
           // if index==-1, then subscript is a HIID
-          // if index==-2, then evrything's uniinitialized
+          // if index==-2, then everything's uninitialized
           
           // flag: privatize all read-only refs as we go along
-          // (this is only set for Hook. Always False for ConstHook.)
         //##ModelId=3DB93493016B
           mutable int autoprivatize;
+
           
           // Each hook maintains a mutex on the nestable container
         //##ModelId=3DB934930201
@@ -395,6 +395,15 @@ class NestableContainer : public BlockableObject
           //## If there is no such element (or if not held in an ObjRef), it
           //## returns an invalid ref.
           ObjRef remove () const;
+          
+          //##Documentation
+          //## Marks the hook for "replacing". The next assignment operation
+          //## will attempt to replace the element being pointed to. The 
+          //## difference is apparent if you consider, e.g., a record:
+          //##    record[Field] = 0;      // assigns integer field to record
+          //##    record[Field] = "xxx";  // fails: type mismatch
+          //##    record[Field].replace() = "xxx";  // OK, replaces with string field
+          const NestableContainer::Hook & replace () const;
 
           //##ModelId=3C876E140018
           //##Documentation
@@ -439,6 +448,9 @@ class NestableContainer : public BlockableObject
           #include <DMI/NC-Hooks.h>
           #endif          
           
+          // assign hook to hook
+//          void operator = (const ConstHook &hook);
+          
         //##ModelId=3DB934BC01D9
           string sdebug ( int detail = 1,const string &prefix = "",const char *name = "Hook" ) const
           { return ConstHook::sdebug(detail,prefix,name); }
@@ -479,18 +491,23 @@ class NestableContainer : public BlockableObject
           void * prepare_vector (TypeId tid,int size) const;
           
           // helper function prepares for array assignment
+        //##ModelId=3E7081A50350
           void * prepare_assign_array (bool &haveArray,TypeId tid,const LoShape &shape) const;
           
           // Templated function implements operator = (vector<T>) for arrayable types
-          template<class T> 
-          void assign_arrayable (const std::vector<T> &other) const;
-
+          template<class T,class Iter> 
+          void assign_arrayable (int size,Iter begin,Iter end,Type2Type<T> = Type2Type<T>()) const;
+          
+          // flag: next assignment to replace current target element. This
+          // is raised by the replace() method above
+          mutable bool replacing;
+          
       private:
         //##ModelId=3DB934CC00F5
           Hook();
 
         //##ModelId=3DB934CC02E9
-          Hook & operator=(const Hook &right);
+          Hook & operator= (const Hook &right);
 
     };
 
@@ -665,8 +682,10 @@ class NestableContainer : public BlockableObject
     //##ModelId=3DB934D201C2
       bool isWritable () const;
       
+    //##ModelId=3E9BD919036A
       DefineRefTypes(NestableContainer,Ref);
       
+    //##ModelId=3E9BD91500B8
       typedef NestableContainer::Ref NCRef;
 
   public:
@@ -866,7 +885,7 @@ inline ObjRef NestableContainer::ConstHook::ref () const
 
 //##ModelId=3C8739B50153
 inline NestableContainer::Hook::Hook (NestableContainer &parent, const HIID &id1, int autopr)
-    : ConstHook(parent,-2)
+    : ConstHook(parent,-2),replacing(False)
 {
   autoprivatize = autopr;
   (*this)[id1];
@@ -874,16 +893,15 @@ inline NestableContainer::Hook::Hook (NestableContainer &parent, const HIID &id1
 
 //##ModelId=3C8739B5015E
 inline NestableContainer::Hook::Hook (NestableContainer &parent, int n, int autopr)
-    : ConstHook(parent,n)
+    : ConstHook(parent,n),replacing(False)
 {
   autoprivatize = autopr;
 }
 
-
-
 //##ModelId=3C8739B50167
 inline const NestableContainer::Hook & NestableContainer::Hook::operator [] (const HIID &id1) const
 {
+  FailWhen( replacing,"can't apply subscript after replace()");
   ConstHook::operator [](id1);
   return *this;
 }
@@ -891,6 +909,7 @@ inline const NestableContainer::Hook & NestableContainer::Hook::operator [] (con
 //##ModelId=3C8739B50174
 inline const NestableContainer::Hook & NestableContainer::Hook::operator [] (int n) const
 {
+  FailWhen( replacing,"can't apply subscript after replace()");
   ConstHook::operator [](n);
   return *this;
 }
@@ -899,6 +918,12 @@ inline const NestableContainer::Hook & NestableContainer::Hook::operator [] (int
 inline const NestableContainer::Hook & NestableContainer::Hook::operator & () const
 {
   ConstHook::operator &();
+  return *this;
+}
+
+inline const NestableContainer::Hook & NestableContainer::Hook::replace () const
+{
+  replacing = True;
   return *this;
 }
 
@@ -949,8 +974,6 @@ inline NestableContainer::NestableContainer (bool write)
   : writable(write)
 {
 }
-
-
 
 //##ModelId=3C7A13C90269
 inline const void * NestableContainer::getn (int n, ContentInfo &info, TypeId check_tid, int flags) const

@@ -75,6 +75,7 @@ class DataRecord : public NestableContainer
       //## Returns true if id refers to a valid DataField (i.e., that can be
       //## fetched with field()). Throws no exceptions.
       bool isDataField (const HIID &id) const;
+    //##ModelId=3E9BD86203AC
       //##Documentation
       //## Returns true if id refers to a valid DataArray (i.e., that can be
       //## fetched with field()). Throws no exceptions.
@@ -139,7 +140,7 @@ class DataRecord : public NestableContainer
       DataRecord::Iterator initFieldIter () const;
 
       //##ModelId=3CA20AD703A4
-      bool getFieldIter (DataRecord::Iterator& iter, HIID& id, TypeId& type, int& size) const;
+      bool getFieldIter (DataRecord::Iterator& iter, HIID& id, NCRef &ref) const;
 
     // Additional Public Declarations
     //##ModelId=3DB9348401EB
@@ -162,7 +163,7 @@ class DataRecord : public NestableContainer
   private:
     // Data Members for Associations
 
-      //##ModelId=3BE123060149
+      //##ModelId=3E9BD86202A0
       map<HIID,NCRef> fields;
 
     // Additional Implementation Declarations
@@ -173,6 +174,7 @@ class DataRecord : public NestableContainer
     //##ModelId=3DB9343C00B1
       typedef map<HIID,NCRef>::value_type FMV;
       
+    //##ModelId=3E9BD8620215
       typedef struct { int idsize; int ftype; } BlockFieldInfo;
 };
 

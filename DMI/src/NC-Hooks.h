@@ -156,15 +156,15 @@ protected:
 //  template<class T> 
 //  void assign_arrayable (const std::vector<T> &other) const;
 // Templated function implements operator = (vector<T>) for other types
-template<class T> 
-void assign_vector (const std::vector<T> &other) const;
+template<class T,class Iter> 
+void assign_sequence (Iter begin,Iter end,Type2Type<T>) const;
 // helper template to select which vector assignment operation to use
 template<class T>
 void assign_vector_select (const std::vector<T> &other,Int2Type<false>) const
-{ assign_vector(other); }
+{ assign_sequence(other.begin(),other.end(),Type2Type<T>()); }
 template<class T>
 void assign_vector_select (const std::vector<T> &other,Int2Type<true>) const
-{ assign_arrayable(other); }
+{ assign_arrayable(other.size(),other.begin(),other.end(),Type2Type<T>()); }
 
 public:    
 // Assigning an STL vector of some type will assign to the underlying 
@@ -177,7 +177,6 @@ void operator = (const std::vector<T> &other) const
                Vector_cannot_be_assigned_to_container);
   assign_vector_select(other,Int2Type<TT::isLorrayable>());
 }
-
 
 // -----------------------------------------------------------------------
 // <<= and =: xfer or copy CountedRefs

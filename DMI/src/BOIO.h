@@ -64,8 +64,10 @@ class BOIO
     //##ModelId=3E53C7990224
       int fileMode () const;
       
+    //##ModelId=3E54BDE70210
       const string & fileName () const;
       
+    //##ModelId=3E54BDE70228
       string stateString () const;
   
   private:
@@ -77,6 +79,7 @@ class BOIO
       
     //##ModelId=3DB949AE023F
       FILE *fp;
+    //##ModelId=3E54BDE701DB
       string fname;
     //##ModelId=3DB949AE0241
       int  fmode;
@@ -92,6 +95,7 @@ inline int BOIO::fileMode () const
   return fmode;
 }
 
+//##ModelId=3E54BDE70210
 inline const string & BOIO::fileName () const
 {
   return fname;

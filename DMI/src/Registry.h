@@ -105,6 +105,8 @@ class BiRegistry : public UniRegistry<Key, Val, HostClass>
 
       //##ModelId=3C5E8D9402F3
       void add (const Key& key, const Val &val);
+    //##ModelId=3E9D78D20196
+      void add (const Key& key, const Val &val,const Val &revval);
 
       //##ModelId=3C5E8E2D01C6
       const Key & rfind (const Val& val);
@@ -246,6 +248,17 @@ void BiRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val)
   if( !RevMapPtr )
     RevMapPtr = new RevMap;
   RevMapPtr->insert(make_pair(val,key));
+}
+
+//##ModelId=3E9D78D20196
+template <class Key, class Val, class HostClass>
+void BiRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val,const Val &revval)
+{
+  lockMutex;
+  UniRegistry<Key,Val,HostClass>::add(key,val);
+  if( !RevMapPtr )
+    RevMapPtr = new RevMap;
+  RevMapPtr->insert(make_pair(revval,key));
 }
 
 //##ModelId=3C5E8E2D01C6

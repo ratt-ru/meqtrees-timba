@@ -1,4 +1,3 @@
-
 #define NC_SKIP_HOOKS 1
 #define NC_INCLUDE_VECTOR_HOOKS 1
 #include "DMI/NestableContainer.h"
@@ -8,6 +7,7 @@
 
 DefineRegistry(NestableContainer,False);
 
+//##ModelId=3DB934920303
 int NestableContainer::ConstHook::_dum_int;
 NestableContainer::ContentInfo NestableContainer::ConstHook::_dum_info;
 
@@ -63,6 +63,7 @@ TypeId NestableContainer::ConstHook::actualType () const
 }
 
 
+//##ModelId=3C87380503BE
 int NestableContainer::ConstHook::size (TypeId tid) const
 {
   ContentInfo info;
@@ -499,45 +500,142 @@ const void * NestableContainer::ConstHook::get_address (ContentInfo &info,
 void * NestableContainer::Hook::prepare_put( ContentInfo &info,TypeId tid ) const
 {
   FailWhen(addressed,"unexpected '&' operator");
+  void *target;
   TypeId real_tid = info.tid; // save value since it may be modified by collapseIndex
-  void *target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
-  // non-existing object: try to a insert new one
+  // are we replacing the element? Start by removing existing target
+  if( replacing )
+  {
+    index >= 0 ? nc->removen(index) 
+               : nc->remove(id);
+    target = 0;
+  }
+  else // assigning to element: try to resolve to it first
+  {
+    // no DMI::WRITE is passed to collapseIndex(), since we check for writability
+    // ourselves, below
+    target = const_cast<void*>( collapseIndex(info,0,0) );
+  }
+  // non-existing object (or we're replacing it): try to a insert new one
   if( !target  )
   {
-//    #ifdef USE_THREADS
-//    lock.relock(True);
-//    #endif
-    // The resulting target_tid may be different from the requested tid
-    // in the case of scalars (where conversion is allowed)
-    target = index>=0 ? nc->insertn(index,tid,info.tid=real_tid)
-                      : nc->insert(id,tid,info.tid=real_tid);
-//    if( TypeInfo::isDynamic(info.tid) )
-//      info.tid = TpObjRef;
+    return index>=0 ? nc->insertn(index,tid,info.tid=real_tid)
+                    : nc->insert(id,tid,info.tid=real_tid);
   }
-  else
+  // Resolved to existing object. Check if this is a writable subcontainer
+  NestableContainer *nc1;
+  bool writable = True;
+  try         { nc1 = asNestableWr(target,info.tid); }
+  catch(...)  { nc1 = 0; }
+  
+  if( !nc1 )
   {
-    // have we resolved to an existing sub-container, and we're not explicitly
-    // trying to assign the same type of sub-container? Try to either init the 
-    // container with whatever is being assigned, or assign to it as a scalar
-    NestableContainer *nc1 = nextNC(asNestableWr(target,info.tid));
-    if( nc1 && nc1->objectType() != tid )
-    {
-      info.tid = real_tid; 
-      if( nc1->size() )
-      {
-        target = const_cast<void*>(
-            nc1->get(HIID(),info,tid,DMI::WRITE|DMI::NC_SCALAR));
-      }
-      else
-      {
-        target = nc1->insert(HIID(),tid,info.tid);
-//        if( TypeInfo::isDynamic(info.tid) )
-//          info.tid = TpObjRef;
-      }
-    }
+    // It's a non-container, or it's not a writable one. 
+    // We can then assign to the element if the types match, and if the current 
+    // container itself is writable.
+    FailWhen( !nc->isWritable(),"r/w access violation" );
+    FailWhen( tid != info.tid && 
+              !(TypeInfo::isNumeric(tid) && TypeInfo::isNumeric(info.tid)),
+              "can't assign "+tid.toString()+" to "+info.tid.toString() );
+    return target;
   }
+  // Else it's a writable sub-container -- assign to it
+  nc1 = nextNC(nc1);
+  info.tid = real_tid; 
+  if( nc1->size() )   // not empty? Try to assign to it in scalar mode
+  {
+    target = const_cast<void*>(
+        nc1->get(HIID(),info,tid,DMI::WRITE|DMI::NC_SCALAR));
+  }
+  else // empty? Try to insert a new element in scalar mode
+  {
+    target = nc1->insert(HIID(),tid,info.tid);
+  }
+  FailWhen( !target,"can't assign to this sub-container" );
   return target;
 }
+
+// Assigns hook to hook
+// void NestableContainer::Hook::operator = (const NestableContainer::ConstHook &hook )
+// {
+//   ContentInfo info;
+//   const void *source;
+//   // resolve hook to target element
+//   if( hook.index >=0 || hook.id.size() )
+//   {
+//     source = hook.collapseIndex(info,0,0);
+//     FailWhen( !source,"uninitialized element");
+//   }
+//   else
+//   {
+//     // assign container as object
+//     // BUG: must check for writability here!
+//     assign_object(const_cast<BlockableObject*>(hook.nc),hook.nc->objectType(),
+//                   DMI::READONLY);
+//     return;
+//   }
+//   // is it an objref? Assign a copy
+//   if( info.tid == TpObjRef )
+//   {
+//     assign_objref(*static_cast<const ObjRef *>(source),DMI::COPYREF|DMI::PRESERVE_RW);
+//   }
+//   else 
+//   {
+//     // lookup type info
+//     const TypeInfo & ti = TypeInfo::find(info.tid);
+//     switch( ti.category )
+//     {
+//       case TypeInfo::NUMERIC:
+//       case TypeInfo::BINARY:  // numeric or binary -- assign scalar or vector
+//           if( info.size == 1 )
+//             put_scalar(source,info.tid,ti.size);
+//           else
+//           {
+//             void *target = prepare_vector(info.tid,info.size);
+//             memcpy(target,source,info.size*ti.size);
+//           }
+//           break;
+//           
+//       case TypeInfo::SPECIAL: // special type -- use TypeInfo's copy method
+//           if( info.size == 1 )
+//           {
+//             ContentInfo putinfo;
+//             void *target = prepare_put(putinfo,info.tid);
+//             (*ti.CopyMethod)(target,source);
+//           }
+//           else
+//           {
+//             char *target = static_cast<char*>(prepare_vector(info.tid,info.size));
+//             const char *src = static_cast<const char*>(source);
+//             for( int i=0; i<info.size; i++ )
+//             {
+//               (*ti.CopyMethod)(target,src);
+//               target += ti.size;
+//               src += ti.size;
+//             }
+//           }
+//           break;
+//           
+//       case TypeInfo::DYNAMIC: // dynamic object -- attach ref
+//           // cast away const is OK since we enforce the right set of flags
+//           assign_object(static_cast<BlockableObject*>(const_cast<void*>(source)),
+//                         info.tid,info.writable?DMI::WRITE:DMI::READONLY);
+//           break;
+//           
+//       case TypeInfo::INTERMEDIATE:
+//           Throw("assignment of Arrays not supported yet");
+//           // special case for handling arrays
+// //           if( TypeInfo::isArray(info.tid) )
+// //           {
+// //             bool haveArray;
+// //             void *target = prepare_assign_array(haveArray,info.tid,
+// //             
+// //           }
+//           // else fall through to throw below
+//       default:
+//           Throw("don't know how to assign RHS of this expression");
+//     }
+//   }
+// }
 
 // This is called to assign a value, for scalar & binary types
 //##ModelId=3DB934C102D5
@@ -547,8 +645,10 @@ const void * NestableContainer::Hook::put_scalar( const void *data,TypeId tid,si
   void *target = prepare_put(info,tid);
   // if types don't match, assume standard conversion
   if( tid != info.tid )
+  {
     FailWhen( !convertScalar(data,tid,target,info.tid),
-          "can't assign "+tid.toString()+" to "+info.tid.toString() )
+          "can't assign "+tid.toString()+" to "+info.tid.toString() );
+  }
   else // else a binary type
     memcpy(const_cast<void*>(target),data,sz);
   return target;
@@ -581,6 +681,7 @@ ObjRef & NestableContainer::Hook::assign_objref ( const ObjRef &ref,int flags ) 
 
 // This does most of the work of assigning an Array
 // This either assigns to the underlying object, or inits a new DataArray
+//##ModelId=3E7081A50350
 void * NestableContainer::Hook::prepare_assign_array (bool &haveArray,TypeId tid,const LoShape &shape) const
 {
   FailWhen(addressed,"unexpected '&' operator");
@@ -629,22 +730,21 @@ void * NestableContainer::Hook::prepare_assign_array (bool &haveArray,TypeId tid
 // types. The difference is that a DataArray is initialized rather
 // than a DataField, and that vector<T> may be assigned to an Array(T,1), 
 // if the hook returns that.
-template<class T> 
-void NestableContainer::Hook::assign_arrayable (const std::vector<T> &other) const
+template<class T,class Iter> 
+void NestableContainer::Hook::assign_arrayable (int size,Iter begin,Iter end,Type2Type<T>) const
 {
   FailWhen(addressed,"unexpected '&' operator");
   ContentInfo info;
   void *target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
+  T * ptr; // pointer to destination array data 
   // non-existing object: try to a initialize a new DataArray
   if( !target  )
   {
-    DataArray *darr = new DataArray(typeIdOf(T),LoShape(other.size()),DMI::WRITE);
+    DataArray *darr = new DataArray(typeIdOf(T),LoShape(size),DMI::WRITE);
     ObjRef ref(darr,DMI::ANONWR);
-    T * ptr = static_cast<T*>( const_cast<void*>(
-        darr->get(HIID(),info,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER) 
-        ));
-    for( typename vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ )
-      *ptr++ = *iter;
+    ptr = static_cast<T*>( const_cast<void*>(
+            darr->get(HIID(),info,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER) 
+          ));
     assign_objref(ref,0);
   }
   // else maybe hook has resolved to a 1D array? check shapes, etc.
@@ -655,11 +755,11 @@ void NestableContainer::Hook::assign_arrayable (const std::vector<T> &other) con
     // NB: typeinfo should incorporate mapping between array types and
     // numeric types
     blitz::Array<T,1> *arr = static_cast<blitz::Array<T,1>*>(target);
-    FailWhen( arr->shape()[0] != (int)other.size(),"can't assign vector to array field: shape mismatch" );
+    FailWhen( arr->shape()[0] != size,"can't assign vector to array field: shape mismatch" );
     typename blitz::Array<T,1>::iterator iarr = arr->begin();
-    typename vector<T>::const_iterator ivec = other.begin();
-    for( ; ivec != other.end(); ++ivec,++iarr )
-      *iarr = *ivec;
+    for( ; begin != end; ++begin,++iarr )
+      *iarr = *begin;
+    return;
   }
   // else we should have resolved to an existing sub-container
   else
@@ -669,15 +769,18 @@ void NestableContainer::Hook::assign_arrayable (const std::vector<T> &other) con
     target = const_cast<void*>(
         nc->get(HIID(),info,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER|autoprivatize));
     FailWhen(!target,"can't assign vector");
-    FailWhen(info.size != (int)other.size(),"can't assign vector: shape mismatch" );
-    T * ptr = static_cast<T*>(target);
-    for( typename vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ )
-      *ptr++ = *iter;
+    FailWhen(info.size != size,"can't assign vector: shape mismatch" );
+    ptr = static_cast<T*>(target);
   }
+  // copy over array data
+  for( ; begin != end; ++begin,++ptr )
+    *ptr = *begin;
 }
 
-// provide instantiations of assign_arrayable for all arrayable types
-#define __inst(T,arg) template void NestableContainer::Hook::assign_arrayable (const std::vector<T> &other) const;
+// provide instantiations of assign_arrayable for vectors of all arrayable types
+#define __inst(T,arg) template void NestableContainer::Hook::assign_arrayable \
+  (int, std::vector<T>::const_iterator, \
+        std::vector<T>::const_iterator, Type2Type<T>) const;
 DoForAllArrayTypes(__inst,);
 #undef __inst
 

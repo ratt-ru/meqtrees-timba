@@ -138,15 +138,18 @@ const TypeId TpIncomplete(-8);
 // Dereferenced type (see NestableContainer::get())
 const TypeId TpObject(-7);
 
+//##ModelId=3E9BD9150133
 class TypeCategories
 {
   public:
+    //##ModelId=3E9BD915013C
     typedef enum 
     { 
       NONE=0,NUMERIC=1,BINARY=2,DYNAMIC=3,SPECIAL=4,INTERMEDIATE=5,OTHER=6 
     } Category;
 };
 
+//##ModelId=3E9BD914029D
 template<class T>
 class DMIBaseTypeTraits : public TypeTraits<T>
 {
@@ -155,31 +158,45 @@ class DMIBaseTypeTraits : public TypeTraits<T>
   // This is the default definition; all DMI-supported types
   // will provide a specialization.
   // can type go into a NestableContainer?
-  enum { isContainable = False };
+    //##ModelId=3E9BD91702B5
+  enum { isContainable = false };
   // TypeId
+    //##ModelId=3E9BD91702C2
   enum { typeId = 0 };
   // how is this type passed to/returned from a NestableContainer? 
   // Default is to use TypeTraits::ParameterType
+    //##ModelId=3E9BD91402C3
   typedef typename TypeTraits<T>::ParameterType ContainerReturnType;
+    //##ModelId=3E9BD91402CD
   typedef typename TypeTraits<T>::ParameterType ContainerParamType;
   // what is this type's DMI category? Default is other
+    //##ModelId=3E9BD91702CF
   enum { TypeCategory = TypeCategories::OTHER };
 };
 
 // this uses the base DMI traits to compute some derived ones
+//##ModelId=3E9BD91402E7
 template<class T>
 class DMITypeTraits : public DMIBaseTypeTraits<T>
 {
   public:
   //    some simple bools derived from the type category
+    //##ModelId=3E9BD91702EB
   enum { isNumeric      = int(TypeCategory) == int(TypeCategories::NUMERIC) };
+    //##ModelId=3E9BD91702F7
   enum { isBinary       = int(TypeCategory) == int(TypeCategories::BINARY) };
+    //##ModelId=3E9BD9170304
   enum { isDynamic      = int(TypeCategory) == int(TypeCategories::DYNAMIC) };
+    //##ModelId=3E9BD9170311
   enum { isSpecial      = int(TypeCategory) == int(TypeCategories::SPECIAL) };
+    //##ModelId=3E9BD917031D
   enum { isIntermediate = int(TypeCategory) == int(TypeCategories::INTERMEDIATE) };
+    //##ModelId=3E9BD917032A
   enum { isOther        = int(TypeCategory) == int(TypeCategories::OTHER) };
   // does this type support Lorrays?
+    //##ModelId=3E9BD9170337
   enum { isLorrayable = DMI_TL::IndexOf<DMI_TL::Arrayables,T>::value >= 0 };
+    //##ModelId=3E9BD9170345
   enum { isArrayable  = isLorrayable };
 };
 

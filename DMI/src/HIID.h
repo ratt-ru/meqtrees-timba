@@ -165,11 +165,13 @@ class HIID : public Vector_AtomicID
       static size_t HIIDSize (int n)  { return n*sizeof(int); }
       
     // prints to stream
+    //##ModelId=3E01AD45000B
       void print (std::ostream &str) const
       { str << toString(); }
       
       // prints to cout, with endline. Not inlined, so that it can
       // be called from a debugger
+    //##ModelId=3E01BA7A02AF
       void print () const;
       
   private:

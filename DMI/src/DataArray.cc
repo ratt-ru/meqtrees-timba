@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.23  2003/04/29 07:19:31  smirnov
+//  %[BugId: 26]%
+//  Various updates to hooks
+//
 //  Revision 1.22  2003/04/09 09:50:13  smirnov
 //  %[BugId: 26]%
 //  Revised DataRecord to hold any NC (not just a DataField). This makes for
@@ -157,6 +161,21 @@ static void deleteArray (void *parr)
   delete static_cast<blitz::Array<T,N>*>(parr); 
 }
 
+// templated method to copy one Lorray to another
+template<class T,int N>
+static void copyArrayImpl (void *target,const void *source)
+{ 
+  *static_cast<blitz::Array<T,N>*>(target) = 
+    *static_cast<const blitz::Array<T,N>*>(source); 
+}
+
+// templated method to copy return the shape of a Lorray
+template<class T,int N>
+static void returnShapeOfArray (LoShape &shape,const void *ptr)
+{ 
+  shape = static_cast<const blitz::Array<T,N>*>(ptr)->shape(); 
+}
+
 
 // populate the method tables via the DoForAll macros
 #define OneLine(T,arg) { DoForAllArrayRanks1(OneElement,T) }
@@ -185,6 +204,20 @@ DataArray::AllocatorDefault DataArray::allocatorDefault[NumTypes][MaxLorrayRank]
 DataArray::Destructor DataArray::destructor[NumTypes][MaxLorrayRank] =
 {
 #define OneElement(N,T) &deleteArray<T,N>
+  DoForAllArrayTypes1(OneLine,)
+#undef OneElement
+};
+
+DataArray::ArrayCopier DataArray::copier[NumTypes][MaxLorrayRank] =
+{
+#define OneElement(N,T) &copyArrayImpl<T,N>
+  DoForAllArrayTypes1(OneLine,)
+#undef OneElement
+};
+
+DataArray::ShapeOfArray DataArray::shapeOfArray[NumTypes][MaxLorrayRank] =
+{
+#define OneElement(N,T) &returnShapeOfArray<T,N>
   DoForAllArrayTypes1(OneLine,)
 #undef OneElement
 };
@@ -243,6 +276,32 @@ DataArray::DataArray (TypeId type, const LoShape & shape,
   }
   itsElemSize = type == Tpstring ? sizeof(string) : TypeInfo::find(itsScaType).size;
   init(shape,flags);
+}
+
+DataArray::DataArray (TypeId tid,const void *other,int flags,int shm_flags)
+  // WRITE is always set unless READONLY is specified
+: NestableContainer(flags |= (flags&DMI::READONLY ? 0 : DMI::WRITE)),
+  itsArray    (0)
+{
+  initSubArray();
+  // check arguments
+  FailWhen( !TypeInfo::isArray(tid),
+      Debug::ssprintf("TypeId %s is not an array",tid.toString().c_str()));
+  // get rank, element types/sizes
+  itsType = tid;
+  itsScaType = TypeInfo::typeOfArrayElem(tid);
+  uint rank = TypeInfo::rankOfArray(tid);
+  FailWhen( rank<1 || rank>MaxLorrayRank,
+      Debug::ssprintf("Unsupported array rank %d",rank));
+  // get shape from other array
+  LoShape shape;
+  getShapeOfArray(itsScaType,rank,shape,other);
+  FailWhen( shape.size() != rank,"shape of array does not match indicated type" );
+  // init internal array
+  itsElemSize = itsScaType == Tpstring ? sizeof(string) : TypeInfo::find(itsScaType).size;
+  init(shape,flags);
+  // copy data
+  copyArray(itsScaType,rank,itsArray,other);
 }
 
 // instantiate this constructor template for all other types
@@ -316,6 +375,7 @@ void DataArray::makeArray ()
   itsArray = allocateArrayWithData(itsScaType,itsArrayData,itsShape);
 }
 
+//##ModelId=3E9BD91803CC
 void * DataArray::makeSubArray (void *data,const LoShape & shape,const LoShape &stride) const
 {
   // first, figure out which subarray object to assign to the data.
@@ -612,20 +672,27 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
   int nid = id.length();
   int ndim = itsShape.size();
   // If a full HIID is given, we might need to return a single element
-  // which is a scalar.
-  if( nid == ndim )     // full HIID?
+  // which is a scalar. 
+  // If the array itself is scalar (itsSize==1), then it's considered 0-dimensional
+  if( nid == ndim || (!nid && itsSize == 1) )     // full HIID?
   {
     bool single = true;
     LoShape which(LoShape::SETRANK|ndim);
-    for( int i=0; i<nid; i++ ) 
+    if( nid ) // non-null HIID => see if it refers to a single array element
     {
-      which[i] = id[i];
-      if( which[i] < 0 ) // all elements for this axis?
+      for( int i=0; i<nid; i++ ) 
       {
-	      single = false;
-	      break;
+        which[i] = id[i];
+        if( which[i] < 0 ) // all elements for this axis?
+        {
+	        single = false;
+	        break;
+        }
       }
     }
+    else // this is the case of a single-element array, and a null HIID
+      which[0] = 0;
+    // have we resolved to a single element?
     if( single )
     {
       info.tid = itsScaType;
