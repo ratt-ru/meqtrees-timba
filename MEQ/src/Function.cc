@@ -31,9 +31,14 @@ Function::Function()
 Function::~Function()
 {}
 
+TypeId Function::objectType() const
+{
+  return TpMEQFunction;
+}
+
 void Function::checkChildren()
 {
-  // Transform a Node* to a Function* if not done.
+  // Transform the Node* to Function* if not done yet.
   if (itsChildren.size() == 0) {
     int nch = numChildren();
     itsChildren.resize (nch);
@@ -42,6 +47,78 @@ void Function::checkChildren()
       AssertStr (itsChildren[i], "child " << i << " of function node "
 		 << name() << " is not a Meq::Function");
     }
+  }
+}
+
+bool Function::convertChildren (int nchild)
+{
+  if (itsChildren.size() > 0) {
+    return false;
+  }
+  testChildren(nchild);
+  Function::checkChildren();
+  return true;
+ }
+
+bool Function::convertChildren (const vector<HIID>& childNames, int nchild)
+{
+  // Transform the Node* to Function* if not done yet.
+  if (itsChildren.size() > 0) {
+    return false;
+  }
+  if (nchild == 0) {
+    nchild = childNames.size();
+  }
+  testChildren(nchild);
+  int nch = numChildren();
+  itsChildren.resize (nch);
+  int nhiid = childNames.size();
+  // Di it in order of the HIIDs given.
+  for (int i=0; i<nhiid; i++) {
+    itsChildren[i] = dynamic_cast<Function*>(&(getChild(childNames[i])));
+    AssertStr (itsChildren[i], "child " << childNames[i]
+	       << " of function node "
+	       << name() << " is not a Meq::Function");
+  }
+  // It is possible that there are more children than HIIDs.
+  // In that case the remaining children are appended at the end.
+  if (nch > nhiid) {
+    int inx = nhiid;
+    for (int i=0; i<nch; i++) {
+      Function* ptr = dynamic_cast<Function*>(&(getChild(childNames[i])));
+      AssertStr (ptr, "child " << childNames[i]
+		 << " of function node "
+		 << name() << " is not a Meq::Function");
+      bool fnd = false;
+      for (int j=0; j<nhiid; j++) {
+	if (ptr == itsChildren[j]) {
+	  fnd = true;
+	}
+      }
+      if (!fnd) {
+	itsChildren[inx++] = ptr;
+      }
+    }
+  }
+  return true;
+}
+
+void Function::testChildren (int nchild) const
+{
+  if (nchild > 0) {
+    Assert (numChildren() == nchild);
+  } else if (nchild < 0) {
+    Assert (numChildren() > -nchild);
+  }
+}
+
+void Function::testChildren (const vector<TypeId>& types) const
+{
+  int nch = std::min (types.size(), itsChildren.size());
+  for (int i=0; i<nch; i++) {
+    AssertStr (itsChildren[i]->objectType() == types[i],
+	       "expected type " << types[i] << ", but found "
+	       << itsChildren[i]->objectType());
   }
 }
 

@@ -3,7 +3,7 @@ SUBDIRS	= .
 DOCHDRS		 	= 			\
 Domain.h					\
 Cells.h Polc.h \
-Node.h Function.h \
+Node.h Function.h Function1.h Function2.h \
 Parm.h ParmPolc.h ParmPolcStored.h \
 Add.h Subtract.h Multiply.h Divide.h \
 Sin.h Cos.h Exp.h Sqr.h Sqrt.h Conj.h ToComplex.h \
@@ -19,7 +19,7 @@ lib_LTLIBRARIES 	= libmeq.la
 libmeq_la_SOURCES 	= $(DOCHDRS)		\
 Domain.cc					\
 Cells.cc Polc.cc \
-Node.cc Function.cc \
+Node.cc Function.cc Function1.cc Function2.cc \
 Parm.cc ParmPolc.cc ParmPolcStored.cc \
 Add.cc Subtract.cc Multiply.cc Divide.cc \
 Sin.cc Cos.cc Exp.cc Sqr.cc Sqrt.cc Conj.cc ToComplex.cc \

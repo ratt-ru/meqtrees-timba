@@ -24,8 +24,10 @@
 #include <Common/Debug.h>
 #include <MEQ/Forest.h>
 #include <MEQ/Node.h>
+#include <MEQ/Function.h>
 #include <MEQ/Request.h>
 #include <MEQ/Result.h>
+#include <MEQ/TID-MEQ.h>
 #include <DMI/DataArray.h>
 #include <exception>
 
@@ -83,6 +85,8 @@ int main (int argc,const char* argv[])
     
     cout << "============ resolving children on add =========\n";
     chadd.resolveChildren();
+    vector<TypeId> types(2, TpMEQFunction);
+    dynamic_cast<Function&>(chadd).testChildren (types);
 
     cout << "============ getting result =========\n";
     Domain domain(1,4, -2,3);

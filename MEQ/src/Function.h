@@ -26,6 +26,9 @@
 #include <MEQ/Node.h>
 #include <MEQ/Result.h>
 
+#pragma types #MEQ::Function
+
+
 namespace MEQ {    
 
 class Request;
@@ -83,9 +86,39 @@ public:
   // Find all spids for this node by merging the children's spids.
   vector<int> findSpids (const vector<Result::Ref>&) const;
 
-  // Check the children after they have been resolve in class Node.
+  // Returns the class TypeId
+  virtual TypeId objectType() const;
+
+  // Check the children after they have been resolved in class Node.
   // It does a checked cast of Node* to Function*.
+  // The order of the children is the order as given when the Node object
+  // was created.
   virtual void checkChildren();
+
+  // Same as checkChildren, but it also tests if the number of children
+  // is correct (using the function testChildren).
+  // This is only done if not already done yet for this node object.
+  // If already done, false is returned.
+  bool convertChildren (int nchild);
+
+  // Same as convertChildren, but the order of the children is the order as
+  // the HIIDs given in the vector. If the number of children exceeds
+  // the vector size, the remaining ones are stored at the end in their
+  // original order.
+  // If nchild==0, it is set to the vector size.
+  // This is only done if not already done yet for this node object.
+  // If already done, false is returned.
+  bool convertChildren (const vector<HIID>& childNames, int nchild=0);
+
+  // Test the number of children.
+  // If the argument nchild is positive, it checks if the number
+  // of children matches exactly. If negative, it checks if the
+  // number of children is at least nchild. If zero, no test is done.
+  void testChildren (int nchild) const;
+
+  // Test if the types of the children match the given types.
+  // It has to be done after check/convertChildren is done.
+  void testChildren (const vector<TypeId>& childTypes) const;
 
 protected:
   vector<Function*>& children()
