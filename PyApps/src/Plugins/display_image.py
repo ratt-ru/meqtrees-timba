@@ -21,16 +21,21 @@ _dprintf = _dbg.dprintf;
 # compute standard deviation of a complex or real array
 # the std_dev given here was computed according to the
 # formula given by Oleg (It should work for real or complex array)
-def standard_deviation(incoming_array):
-  incoming_mean = incoming_array.mean()
-  temp_array = incoming_array - incoming_mean
-  abs_array = abs(temp_array)
+def standard_deviation(incoming_array,complex_type):
+#  return incoming_array.stddev()
+  if complex_type:
+    incoming_mean = incoming_array.mean()
+    temp_array = incoming_array - incoming_mean
+    abs_array = abs(temp_array)
 # get the conjugate of temp_array ...
-  temp_array_conj = (abs_array * abs_array) / temp_array
-  temp_array = temp_array * temp_array_conj
-  mean = temp_array.mean()
-  std_dev = sqrt(mean)
-  return std_dev
+    temp_array_conj = (abs_array * abs_array) / temp_array
+    temp_array = temp_array * temp_array_conj
+    mean = temp_array.mean()
+    std_dev = sqrt(mean)
+    std_dev = abs(std_dev)
+    return std_dev
+  else:
+    return incoming_array.stddev()
 
 # from scipy.pilutil
 def bytescale(data, cmin=None, cmax=None, high=255, low=0):
@@ -474,6 +479,7 @@ class QwtImagePlot(QwtPlot):
         self.y_marker_step = None
         self.imag_flag_vector = None
         self.real_flag_vector = None
+        self.array_parms = None
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -923,10 +929,14 @@ class QwtImagePlot(QwtPlot):
           result = temp_str
         value = self.raw_image[xpos,ypos]
 	message = None
+        temp_str = " value: %-.3g" % value
 	if not marker_index is None:
-          message = result + ' value: ' +  str(value) + '\nsource: ' + self.marker_labels[marker_index]
+          message = result + temp_str + '\nsource: ' + self.marker_labels[marker_index]
 	else:
-          message = result + ' value: ' +  str(value) 
+          message = result + temp_str
+    
+        if not self.array_parms is None:
+          message = message + "\n" + self.array_parms
 
 # alias
         fn = self.fontInfo().family()
@@ -940,6 +950,9 @@ class QwtImagePlot(QwtPlot):
         self.setMarkerLabel( self.marker, message,
           QFont(fn, 9, QFont.Bold, False),
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+
+# insert array info if available
+#        self.insert_array_info()
         self.replot()
         _dprint(3, 'called replot in formatCoordinates ')
 #        timer = QTimer(self)
@@ -990,7 +1003,21 @@ class QwtImagePlot(QwtPlot):
         if self._plot_type == 'histogram':
             return
         if Qt.LeftButton == e.button():
+            if self.is_vector:
             # Python semantics: self.pos = e.pos() does not work; force a copy
+              xPos = e.pos().x()
+              yPos = e.pos().y()
+              _dprint(2,'xPos yPos ', xPos, ' ', yPos);
+# We get information about the qwt plot curve that is
+# closest to the location of this mouse pressed event.
+# We are interested in the nearest curve_number and the index, or
+# sequence number of the nearest point in that curve.
+              curve_number, distance, xVal, yVal, index = self.closestCurve(xPos, yPos)
+              _dprint(2,' curve_number, distance, xVal, yVal, index ', curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', index);
+#              print ' curve_number, distance, xVal, yVal, index ', curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', index;
+#              print ' data value is ', self.x_array[index]
+              return
+
             self.formatCoordinates(e.pos().x(), e.pos().y())
             self.xpos = e.pos().x()
             self.ypos = e.pos().y()
@@ -1103,6 +1130,8 @@ class QwtImagePlot(QwtPlot):
     def onMouseReleased(self, e):
         if self._plot_type == 'histogram':
             return
+        if self.is_vector:
+            return
         if Qt.LeftButton == e.button():
             self.timerEvent_marker()
             xmin = min(self.xpos, e.pos().x())
@@ -1149,8 +1178,6 @@ class QwtImagePlot(QwtPlot):
 
     def display_image(self, image):
       if self._vells_plot:
-#        print ' vells ranges ', self.vells_freq, ' ', self.vells_time
-#        print ' corresponding image shape ', image.shape
         self.plotImage.setData(image, self.vells_freq, self.vells_time)
       else:
         self.plotImage.setData(image)
@@ -1164,9 +1191,28 @@ class QwtImagePlot(QwtPlot):
          _dprint(2, 'display_image inserting markers')
          self.removeMarkers()
 	 self.insert_marker_lines()
+#      self.insert_array_info()
       self.replot()
       _dprint(2, 'called replot in display_image');
     # display_image()
+
+    def insert_array_info(self):
+# insert mean and standard deviation
+      if not self.array_parms is None:
+        print 'displaying ', self.array_parms
+# alias
+        fn = self.fontInfo().family()
+
+# text marker giving mean and std deviation of array
+        self.info_marker = self.insertMarker()
+        ylb = self.axisScale(QwtPlot.yLeft).hBound()
+        xlb = self.axisScale(QwtPlot.xBottom).hBound()
+        self.setMarkerPos(self.info_marker, xlb, ylb)
+        self.setMarkerLabelAlign(self.info_marker, Qt.AlignLeft | Qt.AlignBottom)
+        self.setMarkerLabel( self.info_marker, self.array_parms,
+          QFont(fn, 9, QFont.Bold, False),
+          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+    # insert_array_info()
 
     def plot_data(self, visu_record, attribute_list=None):
       """ process incoming data and attributes into the
@@ -1450,6 +1496,7 @@ class QwtImagePlot(QwtPlot):
       self.myXScale = None
       self.myYScale = None
       self.split_axis = None
+      self.array_parms = None
 
 # set title
       if self._title is None:
@@ -1500,6 +1547,19 @@ class QwtImagePlot(QwtPlot):
 #        self.colorBar.setFocusPolicy(QWidget.TabFocus)
 
 #        self.setAxisAutoScale(QwtPlot.xBottom)
+
+# get mean and standard deviation of array
+        temp_str = ""
+        if complex_type:
+          if plot_array.mean().imag < 0:
+            temp_str = "m: %-.3g %-.3gj" % (plot_array.mean().real,plot_array.mean().imag)
+          else:
+            temp_str = "m: %-.3g+ %-.3gj" % (plot_array.mean().real,plot_array.mean().imag)
+        else:
+          temp_str = "m: %-.3g" % plot_array.mean()
+        temp_str1 = "sd: %-.3g" % standard_deviation(plot_array,complex_type )
+        self.array_parms = temp_str + " " + temp_str1
+
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if complex_type and self._display_type != "brentjens":
           if self._vells_plot:
@@ -1729,7 +1789,7 @@ class QwtImagePlot(QwtPlot):
 
     # setFlagData()
 
-    def histogram_plot (self, data_label, input_array):
+    def histogram_plot (self, data_label, input_array, num_bins=10):
       """ figure out shape, rank etc of a spectrum array and
           plot it  """
 
@@ -1747,7 +1807,6 @@ class QwtImagePlot(QwtPlot):
       if input_array.type() == Complex64:
             complex_type = True;
       histogram_in = None
-      num_bins = 10
       if complex_type:
 #        histogram_in = abs(input_array)
         histogram_in = input_array.getreal()
