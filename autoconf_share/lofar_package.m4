@@ -256,9 +256,6 @@ else
       echo "# define HAVE_$pkgnm 1" >> lofar_config.h;
       echo "#endif" >> lofar_config.h;
     done
-    lfr_fullpkg=`echo $1 | sed -e "s%/%.%g"`
-    echo "" >> lofar_config.h;
-    echo "#define LOFARLOGGER_PACKAGE \"$lfr_fullpkg\"" >> lofar_config.h;
   # Add possible CPPFLAGS and CXXFLAGS.
     lfr_pkgext=`cat pkgextcppflags_diff`
     lfr_pkgext=`echo $lfr_pkgext`
