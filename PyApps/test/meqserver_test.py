@@ -2,7 +2,7 @@
 
 import meq
 import meqserver
-
+import time
 
 def stress_test (n=10000,verbose=0,gui=False):
   mqs = meqserver.default_mqs(verbose=verbose,gui=gui);
@@ -39,15 +39,12 @@ def stress_test (n=10000,verbose=0,gui=False):
     mqs.createnode(rec,silent=True);
     
   print 'getting node list';
+  t1 = time.time();
   nodelist = mqs.getnodelist();
-  print 'got it'
+  t1 = time.time() - t1;
   print nodelist;
+  print 'got it in',t1,'seconds';
+ 
 
 if __name__ == '__main__':
   stress_test(1000,verbose=1);
-
-
-
-
-
-
