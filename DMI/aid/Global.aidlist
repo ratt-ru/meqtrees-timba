@@ -92,6 +92,7 @@ g                                1012       ; from /home/oms/LOFAR/DMI/src/Atomi
 gateway                          1094       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWServerWP.h:15
 gatewaywp                        1044       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:18
 glishclientwp                    1117       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:17
+global                           1306       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:14
 group                            1122       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
 gw                               1056       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 gwclientwp                       1053       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:18
@@ -103,6 +104,8 @@ header                           1175       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 heartbeat                        1076       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MTGatewayWP.h:22
 hello                            1103       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:21
 helloworld                       1119       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
+high                             1301       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:15
+higher                           1310       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:15
 hiid                             1004       ; from /home/oms/LOFAR/DMI/src/HIID.h:33
 host                             1079       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 hosts                            1098       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWClientWP.h:17
@@ -112,6 +115,7 @@ if                               1154       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 ifr                              1185       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
 ignore                           1199       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:36
 imtestwp                         1118       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
+in                               1302       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:13
 index                            1051       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:26
 indexing                         1136       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:29
 init                             1091       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MTGatewayWP.h:22
@@ -140,7 +144,11 @@ lognormal                        1043       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 logwarning                       1075       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:32
 long                             39         ; from /home/oms/LOFAR/DMI/src/TypeId.h:101
 longlong                         41         ; from /home/oms/LOFAR/DMI/src/TypeId.h:101
+low                              1308       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:15
+lower                            1300       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:15
+lowest                           1312       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:15
 m                                1019       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
+map                              1309       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:13
 mask                             1287       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:35
 max                              1039       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
 meas                             1201       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
@@ -187,6 +195,7 @@ network                          1102       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 nfreq                            1253       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cells.h:35
 node                             1233       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:33
 non                              1296       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:39
+normal                           1304       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:15
 notify                           1272       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:17
 num                              1177       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
 o                                1021       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
@@ -195,6 +204,7 @@ offset                           1190       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 open                             1061       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 origin                           1132       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
 original                         1288       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:37
+out                              1307       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:13
 output                           1282       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/VisAgent/src/VisAgentVocabulary.h:10
 p                                1022       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 parameters                       1090       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:10
@@ -216,7 +226,10 @@ pong                             1115       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 port                             1078       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 ports                            1058       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWClientWP.h:17
 pos                              1176       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
+post                             1303       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:13
 predict                          1286       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:36
+prefix                           1305       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:14
+priority                         1314       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:15
 process                          1111       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
 product                          1203       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
 proper                           1184       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
@@ -224,6 +237,7 @@ publish                          1055       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 q                                1023       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 r                                1024       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 raw                              1169       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
+receive                          1311       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:13
 receptor                         1173       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
 reconnect                        1049       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWClientWP.h:17
 ref                              1206       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
@@ -287,6 +301,7 @@ uchar                            34         ; from /home/oms/LOFAR/DMI/src/TypeI
 uint                             38         ; from /home/oms/LOFAR/DMI/src/TypeId.h:100
 ulong                            40         ; from /home/oms/LOFAR/DMI/src/TypeId.h:101
 ulonglong                        42         ; from /home/oms/LOFAR/DMI/src/TypeId.h:101
+unmapped                         1313       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:14
 unsorted                         1137       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
 up                               1034       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 update                           1265       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:18
