@@ -52,7 +52,7 @@ int CompoundFunction::checkChildResults (Result::Ref &resref,
   {
     const Result &chres = *(childres[ichild]);
     int nvs = chres.numVellSets();
-    if( nvs != expect_nvs[ichild] )
+    if( expect_nvs[ichild] >= 0 && nvs != expect_nvs[ichild] )
     {
       MakeFailVellSet(vsfail(),ssprintf("child %s: expecting %d VellSets, got %d",
           getChildLabel(ichild).toString().c_str(),expect_nvs[ichild],nvs));
