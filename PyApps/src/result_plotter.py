@@ -58,6 +58,7 @@ class ResultPlotter(BrowserPlugin):
     array_dim = len(plot_array.shape)
     array_rank = plot_array.rank
     is_vector = False;
+    is_one_point_image = False;
     n_rows = plot_array.shape[0]
     if n_rows == 1:
       is_vector = True
@@ -65,7 +66,11 @@ class ResultPlotter(BrowserPlugin):
     if array_rank == 2:
       n_cols = plot_array.shape[1]
       if n_cols == 1:
-        is_vector = True
+        if n_rows == 1:
+          is_vector = False
+          is_one_point_image = True;
+        else:
+          is_vector = True
     self._add_time_freq = False;
 
     if is_vector == False:
@@ -95,7 +100,10 @@ class ResultPlotter(BrowserPlugin):
           x_step = time_range / n_rows
           start_time = self._rec.cells.domain.time[0] 
           for j in range(0, n_rows ) :
-            current_time = start_time + j * x_step
+            if n_rows == 1:
+              current_time = start_time + 0.5 * x_step
+            else:
+              current_time = start_time + j * x_step
             for i in range(0, n_cols) :
               image.append(current_time)
           self._image_ntuple.addColumn (xyz_x_label, image)
@@ -108,55 +116,59 @@ class ResultPlotter(BrowserPlugin):
           start_freq = self._rec.cells.domain.freq[0] 
           for j in range(0, n_rows ) :
             for i in range(0, n_cols) :
-              current_freq = start_freq + i * y_step
+              if n_cols == 1:
+                current_freq = start_freq + 0.5 * y_step
+              else:
+                current_freq = start_freq + i * y_step
               image.append(current_freq)
           self._image_ntuple.addColumn (xyz_y_label, image)
 #          print "result_plotter added freq column"
           self._add_time_freq = False
 
 # do image plot
-        image_plot = self._display_controller.createDisplay( 'Z Plot', self._image_ntuple,[self._label,])
+        if is_one_point_image == False:
+          image_plot = self._display_controller.createDisplay( 'Z Plot', self._image_ntuple,[self._label,])
 #        print "created image_plot object"
-        freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
-        time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
-        x_step = time_range / n_rows
-        y_step = freq_range / n_cols
-        start_time = self._rec.cells.domain.time[0] 
-        start_freq = self._rec.cells.domain.freq[0] 
-        image_plot.setBinWidth ( 'x', x_step )
-        image_plot.setBinWidth ( 'y', y_step )
-        image_plot.setRange ( 'x', start_time, start_time + n_rows * x_step)
-        image_plot.setRange ( 'y', start_freq, start_freq + n_cols * y_step)
-#        print "called image_plot.setRange stuff"
-        real_array = self._label.find("real")
+          freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
+          time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
+          x_step = time_range / n_rows
+          y_step = freq_range / n_cols
+          start_time = self._rec.cells.domain.time[0] 
+          start_freq = self._rec.cells.domain.freq[0] 
+          image_plot.setBinWidth ( 'x', x_step )
+          image_plot.setBinWidth ( 'y', y_step )
+          image_plot.setRange ( 'x', start_time, start_time + n_rows * x_step)
+          image_plot.setRange ( 'y', start_freq, start_freq + n_cols * y_step)
+ #        print "called image_plot.setRange stuff"
+          real_array = self._label.find("real")
 #        if real_array>=0:
 #          image_plot.setRange ( 'z', self._z_real_min, self._z_real_max)
 #        else:
 #          image_plot.setRange ( 'z', self._z_imag_min, self._z_imag_max)
-        image_plot.setOffset ( 'x', start_time )
-        image_plot.setOffset ( 'y', start_freq )
+          image_plot.setOffset ( 'x', start_time )
+          image_plot.setOffset ( 'y', start_freq )
 #        print "called image_plot.setOffset stuff"
 #        image_plot.setLabel ( 'x', 'Time' )
 #        image_plot.setLabel ( 'y', 'Freq' )
-        image_plot.setLabel ( 'x', 'Freq' )
-        image_plot.setLabel ( 'y', 'Time' )
-        image_plot.setNumberOfBins ( 'x', n_rows )
-        image_plot.setNumberOfBins ( 'y', n_cols )
+          image_plot.setLabel ( 'x', 'Freq' )
+          image_plot.setLabel ( 'y', 'Time' )
+          image_plot.setNumberOfBins ( 'x', n_rows )
+          image_plot.setNumberOfBins ( 'y', n_cols )
 #        print "called image_plot.setNumberOfBins stuff"
-        if self._canvas == None:
-          self._canvas = self._window_controller.currentCanvas()
+          if self._canvas == None:
+            self._canvas = self._window_controller.currentCanvas()
 #          print "created self._canvas object"
-        self._canvas.addDisplay ( image_plot ) 
+          self._canvas.addDisplay ( image_plot ) 
 #        print "result_plotter passed addDisplay ( image_plot )"
 
-# now do an XYZ plot
+# now do an XYZ plot 
         bindings = ["time", "freq",  self._label ]
         xyz_plot = self._display_controller.createDisplay ( 'XYZ Plot', self._image_ntuple, bindings )
         xyz_plot.setLabel ( 'x', 'Time' )
         xyz_plot.setLabel ( 'y', 'Freq' )
         if self._canvas == None:
           self._canvas = self._window_controller.currentCanvas()
-#        self._canvas.addDisplay ( xyz_plot )
+        self._canvas.addDisplay ( xyz_plot )
                                                                                 
     if is_vector == True:
       if self._simple_ntuple == None:
