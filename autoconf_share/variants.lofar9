@@ -1,5 +1,5 @@
 gnu3.compiler.conf: CXX=ccache\ /usr/local0/gcc-3.4.3/bin/g++ --with-cppflags="-m32 -msse -m3dnow -Wno-deprecated -Wa,--32" --with-threads --with-ldflags="--enable-new-dtags"
-gnu3.compiler.aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu34
+gnu3.compiler.aipspp.var: --with-aipspp=/aips++/stable/linux_gnu34
 
 aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu3 --with-threads
 
