@@ -85,6 +85,12 @@ public:
   
   void setCalcDeriv (int calc);
 
+  // Clear the solver?
+  bool clearSolver() const
+  { return itsClearSolver; }
+
+  void setClearSolver (bool clearSolver);
+
   // Attaches cells object (default as anon). Can also specify DMI::CLONE
   // to copy
     //##ModelId=3F868870006E
@@ -139,6 +145,7 @@ private:
   HIID   itsId;
     //##ModelId=3F868870003C
   int    itsCalcDeriv;
+  bool   itsClearSolver;
     //##ModelId=3F86BFF80269
   const  Cells* itsCells;
   

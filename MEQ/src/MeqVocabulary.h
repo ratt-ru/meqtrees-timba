@@ -28,7 +28,7 @@
 
 #pragma aidgroup Meq
 #pragma aid Node Class Name State Child Children Request Result VellSet 
-#pragma aid Rider Command Id Group Add Update Value Values Solve
+#pragma aid Rider Command Id Group Add Update Value Values Solve Solver
 #pragma aid Cells Domain Freq Time Times Step Steps Calc Deriv Vells VellSets
 #pragma aid NodeIndex Table Name Default Index Num Cache Code 
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
@@ -45,6 +45,7 @@ namespace Meq
     FRequestId       = AidRequest|AidId,
     FCells           = AidCells,
     FCalcDeriv       = AidCalc|AidDeriv,
+    FClearSolver     = AidClear|AidSolver,
     FRider           = AidRider,
     FNodeName        = AidNode|AidName,
     FNodeState       = AidNode|AidState,
