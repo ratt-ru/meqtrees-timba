@@ -63,7 +63,8 @@ VellSet::VellSet (int nspid,int nset)
     DataRecord::add(FSpids,pdf,DMI::ANONWR);
     spids_ = (*pdf)[HIID()].as_wp<int>();
     // setups perturbations structures
-    setupPertData();
+    for( uint iset=0; iset<pset_.size(); iset++ )
+      setupPertData(iset);
   }
 }
 
@@ -83,19 +84,16 @@ VellSet::~VellSet()
 }
 
 // helper function to initialize perturbations structures
-void VellSet::setupPertData ()
+void VellSet::setupPertData (int iset)
 {
-  for( uint iset=0; iset<pset_.size(); iset++ )
-  {
-    // add perturbations field
-    DataField *pdf = new DataField(Tpdouble,numspids_);
-    DataRecord::add(FiPerturbations(iset),pdf,DMI::ANONWR);
-    pset_[iset].pert = (*pdf)[HIID()].as_p<double>();
-    // add perturbed values field
-    pset_[iset].pertval.resize(numspids_); 
-    pset_[iset].pertval_field <<= pdf = new DataField(TpDataArray,numspids_);
-    DataRecord::add(FiPerturbedValues(iset),pdf,DMI::ANONWR);
-  }
+  // add perturbations field
+  DataField *pdf = new DataField(Tpdouble,numspids_);
+  DataRecord::add(FiPerturbations(iset),pdf,DMI::ANONWR);
+  pset_[iset].pert = (*pdf)[HIID()].as_p<double>();
+  // add perturbed values field
+  pset_[iset].pertval.resize(numspids_); 
+  pset_[iset].pertval_field <<= pdf = new DataField(TpDataArray,numspids_);
+  DataRecord::add(FiPerturbedValues(iset),pdf,DMI::ANONWR);
 }
     
 //##ModelId=400E53550333
@@ -194,6 +192,20 @@ void VellSet::clear()
   is_fail_ = false;
 }
 
+void VellSet::setNumPertSets (int nsets)
+{
+  // can only change from 0 to smth
+  FailWhen(pset_.size() && nsets != int(pset_.size()),
+      "can't change the number of perturbation sets in a VellSet");
+  pset_.resize(nsets);
+  if( numspids_ )
+  {
+    // setups perturbations structures
+    for( int iset=0; iset<nsets; iset++ )
+      setupPertData(iset);
+  }
+}
+
 //##ModelId=400E53550344
 void VellSet::setSpids (const vector<int>& spids)
 {
@@ -208,14 +220,15 @@ void VellSet::setSpids (const vector<int>& spids)
     DataField *pdf = new DataField(Tpint,spids.size(),DMI::WRITE,&spids[0]);
     DataRecord::add(FSpids,pdf,DMI::ANONWR);
     spids_ = (*pdf)[HIID()].as_wp<int>();
-    setupPertData();
+    for( uint iset=0; iset<pset_.size(); iset++ )
+      setupPertData(iset);
   }
 }
 
 //##ModelId=400E53550353
 void VellSet::setPerturbation (int i, double value,int iset)
 { 
-  DbgAssert(i>=0 && i<numspids_);
+  DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
   (*this)[FiPerturbations(iset)][i] = value;
 //  pset_[iset].pert[i] = value;
 }
@@ -224,6 +237,7 @@ void VellSet::setPerturbation (int i, double value,int iset)
 //##ModelId=400E53550359
 void VellSet::setPerturbations (const vector<double>& perts,int iset)
 {
+  DbgAssert(iset>=0 && iset<int(pset_.size())); 
   FailWhen(perts.size() != uint(numspids_),"setPerturbations: vector size mismatch" );
   if( numspids_ )
   {
@@ -243,7 +257,7 @@ Vells & VellSet::setValue (Vells *pvells)
 //##ModelId=400E53550387
 Vells & VellSet::setPerturbedValue (int i,Vells *pvells,int iset)
 {
-  DbgAssert(i>=0 && i<numspids_);
+  DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
   PerturbationSet &ps = pset_[iset];
   // allocate container for perturbed values
   if( !ps.pertval_field.valid() )
@@ -319,23 +333,23 @@ void VellSet::show (std::ostream& os) const
     os << "FAIL" << endl;
   else
   {
-    os << "Value: " << *value_ << endl;
-    os << "  " << numspids_ << " spids; " << pset_.size() << " diff set(s)\n";
+    os << "Value" << *value_;
+    os << "  " << numspids_ << " spids; " << pset_.size() << " pert set(s)\n";
     for( int i=0; i<numspids_; i++) 
     {
-      os << "Spid " << spids_[i] << " ";
+      os << "  spid " << spids_[i] << " ";
       for( uint iset=0; iset<pset_.size(); iset++ )
       {
         if( iset )
           os << "          ";
-        os << " pert=" << pset_[iset].pert[i] << ":" << endl;
+        os << " pert " <<iset<<": "<<pset_[iset].pert[i];
         if( pset_[iset].pertval[i].valid() )
         {
-          os << "            " << (*(pset_[iset].pertval[i]) - *value_) << endl;
+          os << (*(pset_[iset].pertval[i]) - *value_);
         }
         else
         {
-          os << "            perturbed vells "<<i<<" is missing"<<endl;
+          os << ": perturbed vells "<<i<<" missing"<<endl;
         }
       }
     }

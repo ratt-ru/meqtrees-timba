@@ -44,23 +44,25 @@ bool   Polc::theirPascalFilled = false;
 //##ModelId=3F86886F0366
 Polc::Polc()
 : itsNrSpid     (0),
-  itsPertValue  (1e-6),
   itsFreq0      (0),
   itsTime0      (0),
   itsFreqScale  (1),
   itsTimeScale  (1)
-{}
+{
+  // default pert values
+  itsPertValue = 1e-6;
+}
 
 //##ModelId=400E5354033A
 Polc::Polc (DataRecord &rec)
 : itsCoeff(rec[FVellSets].as_wp<DataArray>())
 {
-  itsDomain    = rec[FDomain].as<Domain>();
-  itsPertValue = rec[FPerturbedValues];
-  itsFreq0     = rec[FFreq0];
-  itsTime0     = rec[FTime0];
-  itsFreqScale = rec[FFreqScale];
-  itsTimeScale = rec[FTimeScale];
+  itsDomain       = rec[FDomain].as<Domain>();
+  itsPertValue    = rec[FPerturbedValues];
+  itsFreq0        = rec[FFreq0];
+  itsTime0        = rec[FTime0];
+  itsFreqScale    = rec[FFreqScale];
+  itsTimeScale    = rec[FTimeScale];
 }
 
 //##ModelId=400E53540345
@@ -89,7 +91,7 @@ void Polc::setCoeff (const Vells& values)
 
 //##ModelId=3F86886F037A
 void Polc::setCoeff (const Vells& values,
-		     const Matrix<bool>& mask)
+                     const Matrix<bool>& mask)
 {
   Assert (values.nx()==mask.shape()(0) && values.ny()==mask.shape()(1));
   itsCoeff = values.clone();
@@ -115,10 +117,11 @@ void Polc::evaluate (VellSet &result, const Request& request)
 {
   PERFPROFILE(__PRETTY_FUNCTION__);
   // Find if perturbed values are to be calculated.
-  bool makeDiff = itsNrSpid > 0  &&  request.calcDeriv();
-  if (makeDiff) {
-    result.setSpids (itsSpids);
-  }
+  int makeDiff = request.calcDeriv();
+  if( itsNrSpid <= 0 ) // no active solvable spids? No perturbations then
+    makeDiff = 0;
+  if( makeDiff ) 
+    result.setSpids(itsSpids);
   // It is not checked if the domain is valid.
   // In that way any value can be used for the default domain [-1,1].
   // Because the values are calculated for the center of each cell,
@@ -134,18 +137,19 @@ void Polc::evaluate (VellSet &result, const Request& request)
   // of x and y.
   // So set the value to the coefficient and possibly set the perturbed value.
   // Make sure it is turned into a scalar value.
-  if (itsCoeff.nelements() == 1) {
-    LoMat_double& matv = result.setReal (1, 1);
-    matv(0,0) = itsCoeff.realStorage()[0];
-    if (makeDiff) {
-      result.setPerturbedValue (0,
-				Vells(*itsCoeff.realStorage() + itsPertValue));
-      result.setPerturbation (0, itsPertValue);
-// 	cout << "polc " << itsSpidInx[0] << ' ' << result.getValue()
-// 	     << result.getPerturbedValue(itsSpidInx[0]) << itsPerturbation
-// 	     << ' ' << itsCoeff << endl;
+  if( itsCoeff.nelements() == 1 ) 
+  {
+    double c00 = itsCoeff.realStorage()[0];
+    result.setValue(new Vells(c00,false));
+    double d = itsPertValue;
+    for( int ipert=0; ipert<makeDiff; ipert++,d=-d )
+    {
+      result.setPerturbedValue(0,new Vells(c00+d,false),ipert);
+      result.setPerturbation(0,d,ipert);
     }
-  } else {
+  } 
+  else 
+  {
     // The polynomial has multiple coefficients.
     // Get the step and start values in the normalized domain.
     double stepx = cells.stepFreq() / itsFreqScale;
@@ -157,97 +161,104 @@ void Polc::evaluate (VellSet &result, const Request& request)
     int ncy = itsCoeff.ny();
     // Evaluate the expression (as double).
     const double* coeffData = itsCoeff.realStorage();
-    const double* pertData = 0;
-    double* pertValPtr[100];
-    if (makeDiff) {
-      pertData = itsPerturbation.realStorage();
+    double* pertValPtr[MaxNumPerts][100];
+    for( int ipert=0; ipert<makeDiff; ipert++ )
+    {
       // Create the matrix for each perturbed value.
       // Keep a pointer to the internal matrix data.
-      for (unsigned int i=0; i<itsSpidInx.size(); i++) {
-	if (itsSpidInx[i] >= 0) {
-	  Vells vells(0., ndx, ndy, true);
-	  result.setPerturbedValue (itsSpidInx[i], vells);
-	  pertValPtr[i] = vells.realStorage();
-	}
-      }
+      for( uint i=0; i<itsSpidInx.size(); i++) 
+        if( itsSpidInx[i] >= 0 )
+          pertValPtr[ipert][i] = 
+              result.setPerturbedValue(itsSpidInx[i],new Vells(0.,ndx,ndy,true),ipert)
+                    .realStorage();
+        else
+          pertValPtr[ipert][i] = 0;
     }
     // Create matrix for the value itself and keep a pointer to its data.
     LoMat_double& matv = result.setReal (ndx, ndy);
     matv = 0;
     double* value = matv.data();
     // Iterate over all cells in the domain.
-    for (int j=0; j<ndy; j++) {
+    for (int j=0; j<ndy; j++) 
+    {
       double valy = (cells.time(j) - itsTime0) / itsTimeScale;
       double valx = stx;
-      for (int i=0; i<ndx; i++) {
-	const double* coeff = coeffData;
-	const double* pert  = pertData;
-	double total = 0;
-	if (ncx == 1) {
-	  // Only 1 coefficient in X, it is independent of x.
-	  // So only calculate for the Y values in the most efficient way.
-	  total = coeff[ncy-1];
-	  for (int iy=ncy-2; iy>=0; iy--) {
-	    total *= valy;
-	    total += coeff[iy];
-	  }
-	  if (makeDiff) {
-	    double powy = 1;
-	    for (int iy=0; iy<ncy; iy++) {
-	      if (pertValPtr[iy]) {
-		*(pertValPtr[iy]) = total + pert[iy] * powy;
-		pertValPtr[iy]++;
-	      }
-	      powy *= valy;
-	    }
-	  }
-	} else {
-	  double powy = 1;
-	  for (int iy=0; iy<ncy; iy++) {
-	    double tmp = coeff[ncx-1];
-	    for (int ix=ncx-2; ix>=0; ix--) {
-	      tmp *= valx;
-	      tmp += coeff[ix];
-	    }
-	    total += tmp * powy;
-	    powy *= valy;
-	    coeff += ncx;
-	  }
-	  if (makeDiff) {
-	    double powersx[10];
-	    double powx = 1;
-	    for (int ix=0; ix<ncx; ix++) {
-	      powersx[ix] = powx;
-	      powx *= valx;
-	    }
-	    double powy = 1;
-	    int ik = 0;
-	    for (int iy=0; iy<ncy; iy++) {
-	      for (int ix=0; ix<ncx; ix++) {
-		if (pertValPtr[ik]) {
-		  *(pertValPtr[ik]) = total + pert[ik] * powersx[ix] * powy;
-		  pertValPtr[ik]++;
-		}
-		ik++;
-	      }
-	      powy *= valy;
-	    }
-	  }
-	}
-	*value++ = total;
-	valx += stepx;
-      }
-    }
+      for (int i=0; i<ndx; i++) 
+      {
+        const double* coeff = coeffData;
+        double total = 0;
+        if (ncx == 1) {
+          // Only 1 coefficient in X, it is independent of x.
+          // So only calculate for the Y values in the most efficient way.
+          total = coeff[ncy-1];
+          for (int iy=ncy-2; iy>=0; iy--) {
+            total *= valy;
+            total += coeff[iy];
+          }
+          if( makeDiff ) {
+            double powy = 1;
+            for (int iy=0; iy<ncy; iy++) {
+              double d = itsPerturbation[iy] * powy;
+              for( int ipert=0; ipert<makeDiff; ipert++,d=-d ) {
+                if (pertValPtr[ipert][iy]) {
+                  *(pertValPtr[ipert][iy]) = total + d;
+                  pertValPtr[ipert][iy]++;
+                }
+              }
+              powy *= valy;
+            }
+          }
+        } else {
+          double powy = 1;
+          for (int iy=0; iy<ncy; iy++) {
+            double tmp = coeff[ncx-1];
+            for (int ix=ncx-2; ix>=0; ix--) {
+              tmp *= valx;
+              tmp += coeff[ix];
+            }
+            total += tmp * powy;
+            powy *= valy;
+            coeff += ncx;
+          }
+          if( makeDiff ) 
+          {
+            double powersx[10];
+            double powx = 1;
+            for (int ix=0; ix<ncx; ix++) {
+              powersx[ix] = powx;
+              powx *= valx;
+            }
+            double powy = 1;
+            int ik = 0;
+            for (int iy=0; iy<ncy; iy++) {
+              for (int ix=0; ix<ncx; ix++) {
+                double d = itsPerturbation[ik] * powersx[ix] * powy;
+                for( int ipert=0; ipert<makeDiff; ipert++,d=-d ) {
+                  if( pertValPtr[ipert][ik] ) {
+                    *(pertValPtr[ipert][ik]) = total + d;
+                    pertValPtr[ipert][ik]++;
+                  }
+                }
+                ik++;
+              }
+              powy *= valy;
+            }
+          }
+        }
+        *value++ = total;
+        valx += stepx;
+      } // endfor(i) over cells
+    } // endfor(j) over cells
     // Set the perturbations.
-    if (makeDiff) {
-      const double* pert  = itsPerturbation.realStorage();
-      for (unsigned int i=0; i<itsSpidInx.size(); i++) {
-	if (itsSpidInx[i] >= 0) {
-	  result.setPerturbation (itsSpidInx[i], pert[i]);
-	}
-      }
-    }
-  }
+    if( makeDiff )
+      for (unsigned int i=0; i<itsSpidInx.size(); i++)
+        if (itsSpidInx[i] >= 0) 
+        {
+          result.setPerturbation(itsSpidInx[i],itsPerturbation[i],0);
+          if( makeDiff>1 )
+            result.setPerturbation(itsSpidInx[i],-itsPerturbation[i],1);
+        }
+  } // end else (multiple polcs)
 }
 
 //##ModelId=3F86886F03A6
@@ -265,31 +276,32 @@ int Polc::makeSolvable (int spidIndex)
       itsSpidInx[i] = -1;
     }
   }
-  // Precalculate the perturbed coefficients.
-  // The perturbation is absolute.
-  // If the coefficient is too small, take absolute.
-  if (itsNrSpid > 0) {
-    itsPerturbation = itsCoeff.clone();
-    const double* coeff = itsCoeff.realStorage();
-    double* pert  = itsPerturbation.realStorage();
-    int i=0;
-    for (int ix=0; ix<itsCoeff.nx(); ix++) {
-      for (int iy=0; iy<itsCoeff.ny(); iy++) {
-	double perturbation = itsPertValue;
-	pert[i++] = perturbation;
-      }
-    }
+//   // Precalculate the perturbed coefficients.
+//   // The perturbation is absolute.
+//   // If the coefficient is too small, take absolute.
+  
+// for now, go with the trivial and use the same pert value for
+// all coefficients. In the future we will be a lot smarter...
+  if(itsNrSpid > 0) 
+  {
+    itsPerturbation.resize(itsCoeff.nelements());
+    itsPerturbation.assign(itsCoeff.nelements(),itsPertValue);
   }
+//     const double* coeff = itsCoeff.realStorage();
+//     int i=0;
+//     for (int ix=0; ix<itsCoeff.nx(); ix++) 
+//       for (int iy=0; iy<itsCoeff.ny(); iy++) 
+//         itsPerturbation[i++] = itsPertValue;
   return itsNrSpid;
 }
 
 //##ModelId=3F86886F03A4
 void Polc::clearSolvable()
 {
-  itsSpidInx.resize (0);
-  itsSpids.resize (0);
-  itsNrSpid       = 0;
-  itsPerturbation = Vells();
+  itsNrSpid = 0;
+  itsSpidInx.clear();
+  itsSpids.clear();
+  itsPerturbation.clear();
 }
 
 //##ModelId=3F86886F03AC
@@ -330,18 +342,18 @@ uint Polc::update (const double* values, uint nrval)
 Vells Polc::normalize (const Vells& coeff, const Domain& domain)
 {
   return normDouble (coeff,
-		     domain.scaleFreq(), domain.scaleTime(),
-		     domain.offsetFreq()-itsFreq0,
-		     domain.offsetTime()-itsTime0);
+                     domain.scaleFreq(), domain.scaleTime(),
+                     domain.offsetFreq()-itsFreq0,
+                     domain.offsetTime()-itsTime0);
 }
   
 //##ModelId=3F8688700011
 Vells Polc::denormalize (const Vells& coeff) const
 {
   return normDouble (coeff,
-		     1/itsDomain.scaleFreq(), 1/itsDomain.scaleTime(),
-		     (itsFreq0-itsDomain.offsetFreq())/itsDomain.scaleFreq(),
-		     (itsTime0-itsDomain.offsetTime())/itsDomain.scaleTime());
+                     1/itsDomain.scaleFreq(), 1/itsDomain.scaleTime(),
+                     (itsFreq0-itsDomain.offsetFreq())/itsDomain.scaleFreq(),
+                     (itsTime0-itsDomain.offsetTime())/itsDomain.scaleTime());
 }
   
 //##ModelId=3F868870002F
@@ -358,7 +370,7 @@ void Polc::fillPascal()
 
 //##ModelId=3F8688700019
 Vells Polc::normDouble (const Vells& coeff, double sx,
-			double sy, double ox, double oy)
+                        double sy, double ox, double oy)
 {
   // Fill Pascal's triangle if not done yet.
   if (!theirPascalFilled) {
@@ -401,12 +413,12 @@ Vells Polc::normDouble (const Vells& coeff, double sx,
       double f = *pcold++;
       // Calculate all terms of (sx+ox)^i
       for (int k1=0; k1<=i; k1++) {
-	double c = oxp[i-k1] * sxp[k1] * theirPascal[i][k1] * f;
-	// Multiply each term with the precalculated terms of (sy+oy)^j
-	// and add the result to the appropriate new coefficient.
-	for (int k2=0; k2<=j; k2++) {
-	  pcnew[k1 + k2*nx] += c * psyp[k2];
-	}
+        double c = oxp[i-k1] * sxp[k1] * theirPascal[i][k1] * f;
+        // Multiply each term with the precalculated terms of (sy+oy)^j
+        // and add the result to the appropriate new coefficient.
+        for (int k2=0; k2<=j; k2++) {
+          pcnew[k1 + k2*nx] += c * psyp[k2];
+        }
       }
     }
   }

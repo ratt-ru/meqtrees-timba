@@ -91,6 +91,12 @@ public:
   int getSpid (int i) const
   { return spids_[i]; }
   
+  // number of perturbation sets (0
+  int numPertSets () const
+  { return pset_.size(); }
+  
+  void setNumPertSets (int nsets);
+  
   // nperturbed() is an alias for getNumSpids
     //##ModelId=400E53550342
   int nperturbed() const
@@ -119,7 +125,7 @@ public:
   void setPerturbation (int i, double value, int iset=0);
   // set all perturbations of set iset 
     //##ModelId=400E53550359
-  void setPerturbations (const vector<double>& spids,int iset=0);
+  void setPerturbations (const vector<double>& perts,int iset=0);
 
   // ------------------------ MAIN RESULT VALUE
   // Get the value.
@@ -167,10 +173,12 @@ public:
   // Get the i-th perturbed value from set iset
     //##ModelId=400E5355037E
   const Vells& getPerturbedValue (int i,int iset=0) const
-  { DbgAssert(i>=0 && i<numspids_); return pset_[iset].pertval[i].deref(); }
+    { DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
+      return pset_[iset].pertval[i].deref(); }
     //##ModelId=400E53550383
   Vells& getPerturbedValueRW (int i,int iset=0)
-  {  DbgAssert(i>=0 && i<numspids_); return pset_[iset].pertval[i].dewr(); }
+    { DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
+      return pset_[iset].pertval[i].dewr(); }
 
   // Attaches the given Vells to i-th perturbed value of set nset (as an anon object)
     //##ModelId=400E53550387
@@ -241,7 +249,7 @@ private:
     //##ModelId=400E535503B5
   void clear();
 
-  void setupPertData ();
+  void setupPertData (int iset);
 
   // Allocate the main value with given type and shape.
     //##ModelId=400E535503B7
@@ -250,13 +258,6 @@ private:
     //##ModelId=400E535503BD
   Vells & allocateComplex (int nfreq, int ntime)
     { return setValue(new Vells(dcomplex(0),nfreq,ntime,false)); }
-//   // Allocate the i-th perturbed value with given type and shape.
-//     //##ModelId=400E535503C3
-//   Vells & allocatePertReal (int i, int nfreq, int ntime)
-//     { return setPerturbedValue(i,new Vells(double(0),nfreq,ntime,false)); }
-//     //##ModelId=400E535503CC
-//   Vells & allocatePertComplex (int i, int nfreq, int ntime)
-//     { return setPerturbedValue(i,new Vells(dcomplex(0),nfreq,ntime,false)); }
 
     //##ModelId=400E535502FC
   Vells::Ref value_;

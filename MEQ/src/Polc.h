@@ -99,8 +99,8 @@ public:
 
   // Get the perturbation.
     //##ModelId=3F86886F0396
-  double getPerturbation() const
-    { return itsPertValue; }
+  double getPerturbation(int ipert=0) const
+    { DbgAssert(ipert==0 || ipert==1); return ipert ? -itsPertValue : itsPertValue ; }
 
     //##ModelId=3F86886F039A
   void setPerturbation (double perturbation = 1e-6)
@@ -182,10 +182,13 @@ private:
     //##ModelId=3F868870002F
   static void fillPascal();
 
+  static const int MaxNumPerts = 2;
+
     //##ModelId=3F86BFF80221
   Vells        itsCoeff;
     //##ModelId=3F86BFF8023F
-  Vells        itsPerturbation;
+  // perturbation values
+  std::vector<double> itsPerturbation;
     //##ModelId=3F86BFF8024A
   Domain       itsDomain;
     //##ModelId=3F86886F031C

@@ -57,8 +57,21 @@ void doIt (Polc& polc)
   // Check if final coefficients match original.
   Assert (compare(polc.getCoeff(), backc));
   // Evaluate both polynomials for some values.
-  Request req(new Cells(domain, 4, 4));
-  VellSet res1;
+  polc.makeSolvable(1);
+  Request req(new Cells(domain, 4, 4),0);
+  VellSet res1(0);
+  VellSet::Ref refres1(res1, DMI::WRITE || DMI::EXTERNAL);
+  polc.evaluate(refres1, req);
+  cout << res1;
+}
+
+void doIt2 (Polc& polc,int calcDeriv)
+{
+  Domain domain(0,1,0,1);
+  // Evaluate both polynomials for some values.
+  polc.makeSolvable(1);
+  Request req(new Cells(domain, 4, 4),calcDeriv);
+  VellSet res1(0,calcDeriv);
   VellSet::Ref refres1(res1, DMI::WRITE || DMI::EXTERNAL);
   polc.evaluate(refres1, req);
   cout << res1;
@@ -68,6 +81,7 @@ int main()
 {
   try
   {
+    
     for (int i=0; i<2; i++) {
       Polc polc;
       polc.setFreq0 (i*0.5);
@@ -114,6 +128,29 @@ int main()
       polc.setCoeff(Vells(mat4));
       doIt(polc);
     }
+    
+    Polc polc;
+    polc.setFreq0(0);
+    polc.setTime0(0);
+    polc.setFreqScale(1);
+    polc.setTimeScale(1);
+    double c0[4] = {3, 2, 2, 1};
+    cout<<"calculating polc [3,2,2,1] (4x1):\n";
+    LoMat_double mat0a(c0, LoMatShape(4,1), blitz::duplicateData);
+    polc.setCoeff(Vells(mat0a));
+    doIt2(polc,1);
+    polc.setCoeff(Vells(mat0a));
+    doIt2(polc,2);
+    
+    cout<<"calculating polc [3,2,2,1] (1x4):\n";
+    LoMat_double mat0b(c0, LoMatShape(1,4), blitz::duplicateData);
+    polc.setCoeff(Vells(mat0b));
+    doIt2(polc,2);
+    
+    cout<<"calculating polc [[3,2],[2,1]] (2x2):\n";
+    LoMat_double mat0c(c0, LoMatShape(2,2), blitz::duplicateData);
+    polc.setCoeff(Vells(mat0c));
+    doIt2(polc,2);
   }
   catch( std::exception &err )
   {

@@ -130,7 +130,8 @@ int Function::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &childres,
                          const Request &request,bool)
 {
-  // figure out the max number of child planes
+  // figure out the max number of child planes, and check for consistency
+  // w.r.t. number of perturbation sets
   int nrch = numChildren();
   Assert(nrch>0);
   int nplanes = childres[0]->numVellSets();
@@ -143,6 +144,7 @@ int Function::getResult (Result::Ref &resref,
   int nfails = 0;
   for( int iplane = 0; iplane < nplanes; iplane++ )
   {
+    int npertsets = 0;
     // create a vellset for this plane
     VellSet &vellset = result.setNewVellSet(iplane);
     // collect vector of pointers to child vellsets #iplane, and a vector of 
@@ -168,6 +170,7 @@ int Function::getResult (Result::Ref &resref,
         else
           values[i] = &(child_vs[i]->getValueRW());
       }
+      npertsets = std::max(npertsets,child_vs[i]->numPertSets());
     }
     // continue evaluation only if no fails popped up
     if( !vellset.isFail() )
@@ -178,6 +181,7 @@ int Function::getResult (Result::Ref &resref,
         // Find all spids from the children.
         vector<int> spids = findSpids(child_vs);
         // allocate new vellset object with given number of spids, add to set
+        vellset.setNumPertSets(npertsets);
         vellset.setSpids(spids);
         // Evaluate the main value.
         LoShape shape = resultShape(values);
@@ -185,20 +189,23 @@ int Function::getResult (Result::Ref &resref,
         // Evaluate all perturbed values.
         vector<Vells*> perts(nrch);
         vector<int> indices(nrch, 0);
-        for (unsigned int j=0; j<spids.size(); j++) 
+        for( int ipert=0; ipert<npertsets; ipert++ )
         {
-          double perturbation;
-          perts = values;
-          for (int i=0; i<nrch; i++) 
+          for( uint j=0; j<spids.size(); j++) 
           {
-            int inx = child_vs[i]->isDefined(spids[j], indices[i]);
-            if (inx >= 0) {
-	            perts[i] = &(child_vs[i]->getPerturbedValueRW(inx));
-              perturbation = child_vs[i]->getPerturbation(inx);
+            double perturbation;
+            perts = values;
+            for (int i=0; i<nrch; i++) 
+            {
+              int inx = child_vs[i]->isDefined(spids[j],indices[i]);
+              if( ipert < child_vs[i]->numPertSets() && inx >= 0 ) {
+	              perts[i] = &(child_vs[i]->getPerturbedValueRW(inx,ipert));
+                perturbation = child_vs[i]->getPerturbation(inx,ipert);
+              }
             }
+            vellset.setPerturbedValue(j,evaluate(request,shape,perts).makeNonTemp(),ipert);
+            vellset.setPerturbation(j,perturbation,ipert);
           }
-          vellset.setPerturbedValue(j,evaluate(request,shape,perts).makeNonTemp());
-          vellset.setPerturbation(j,perturbation);
         }
       }
       catch( std::exception &x )

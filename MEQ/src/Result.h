@@ -130,9 +130,9 @@ public:
   
   // creates new vellset at plane i with the given # of spids
     //##ModelId=400E535501BF
-  VellSet & setNewVellSet (int i,int nspids=0)
+  VellSet & setNewVellSet (int i,int nspids=0,int nset=1)
   { 
-    VellSet::Ref resref(new VellSet(nspids),DMI::ANONWR); 
+    VellSet::Ref resref(new VellSet(nspids,nset),DMI::ANONWR); 
     return setVellSet(i,resref); 
   }
 

@@ -53,10 +53,10 @@ public:
   // Create the request from the cells for which the expression has
   // to be calculated. Optionally no derivatives are calculated.
     //##ModelId=400E535403DD
-  explicit Request (const Cells&, bool calcDeriv=true, const HIID &id=HIID(),int cellflags=DMI::EXTERNAL|DMI::NONSTRICT);
+  explicit Request (const Cells&, int calcDeriv=1, const HIID &id=HIID(),int cellflags=DMI::EXTERNAL|DMI::NONSTRICT);
   
     //##ModelId=400E53550016
-  explicit Request (const Cells *, bool calcDeriv=true, const HIID &id=HIID(),int cellflags=DMI::ANON|DMI::NONSTRICT);
+  explicit Request (const Cells *, int calcDeriv=1, const HIID &id=HIID(),int cellflags=DMI::ANON|DMI::NONSTRICT);
 
     //##ModelId=400E53550034
   virtual TypeId objectType () const
@@ -76,12 +76,12 @@ public:
     //##ModelId=400E5355004C
   virtual int remove (const HIID &);
   
-  // Calculate derivatives if parameters are solvable?
+  // Calculate derivatives? 0 for none, 1 for standard, 2 for double-deriv
     //##ModelId=3F868870006C
-  bool calcDeriv() const
+  int calcDeriv() const
   { return itsCalcDeriv; }
   
-  void setCalcDeriv (bool calc=True);
+  void setCalcDeriv (int calc);
 
   // Attaches cells object (default as anon). Can also specify DMI::CLONE
   // to copy
@@ -124,7 +124,7 @@ private:
     //##ModelId=400E535403B3
   HIID   itsId;
     //##ModelId=3F868870003C
-  bool   itsCalcDeriv;
+  int    itsCalcDeriv;
     //##ModelId=3F86BFF80269
   const  Cells* itsCells;
 };

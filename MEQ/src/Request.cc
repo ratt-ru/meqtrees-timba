@@ -29,36 +29,34 @@ static NestableContainer::Register reg(TpMeqRequest,True);
 
 //##ModelId=3F8688700056
 Request::Request()
-    : itsCalcDeriv(False),itsCells(0)
+    : itsCalcDeriv(0),itsCells(0)
 {
 }
 
 //##ModelId=3F8688700061
 Request::Request (const DataRecord &other,int flags,int depth)
 : DataRecord   (other,flags,depth),
-  itsCalcDeriv (False),itsCells(0)
+  itsCalcDeriv (0),itsCells(0)
 {
   validateContent();
 }
 
 //##ModelId=400E535403DD
-Request::Request (const Cells& cells, bool calcDeriv, const HIID &id,int cellflags)
-: itsCalcDeriv (calcDeriv),
-  itsCells     (0)
+Request::Request (const Cells& cells, int calcDeriv, const HIID &id,int cellflags)
+: itsCells     (0)
 {
   setCells(cells,cellflags);
   setId(id);
-  (*this)[FCalcDeriv] = calcDeriv;
+  setCalcDeriv(calcDeriv);
 }
 
 //##ModelId=400E53550016
-Request::Request (const Cells * cells, bool calcDeriv, const HIID &id,int cellflags)
-: itsCalcDeriv (calcDeriv),
-  itsCells     (0)
+Request::Request (const Cells * cells, int calcDeriv, const HIID &id,int cellflags)
+: itsCells     (0)
 {
   setCells(cells,cellflags);
   setId(id);
-  (*this)[FCalcDeriv] = calcDeriv;
+  setCalcDeriv(calcDeriv);
 }
 
 // Set the request id.
@@ -68,11 +66,10 @@ void Request::setId (const HIID &id)
   (*this)[FRequestId] = itsId = id;
 }
 
-void Request::setCalcDeriv (bool calc)
+void Request::setCalcDeriv (int calc)
 { 
   (*this)[FCalcDeriv] = itsCalcDeriv = calc; 
 }
-
 
 //##ModelId=3F868870006E
 void Request::setCells (const Cells * cells,int flags)
@@ -97,7 +94,7 @@ void Request::validateContent ()
     // request ID
     itsId = (*this)[FRequestId].as<HIID>(HIID());
     // calc-driv flag
-    itsCalcDeriv = (*this)[FCalcDeriv].as<bool>(False);
+    itsCalcDeriv = (*this)[FCalcDeriv].as<int>(0);
   }
   catch( std::exception &err )
   {
