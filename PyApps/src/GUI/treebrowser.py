@@ -186,15 +186,18 @@ class TreeBrowser (QObject):
             menu.insertSeparator();
             separator = False;
           action.addTo(menu);
-        elif callable(action):            # assume NodeAction
-          # instantiate action, add to menu if successful
-          try:
-            na = action(self,menu,separator=separator);
-          except:
-            _dprint(1,'error adding action to node menu:',sys.exc_info());
-          else:
-            self._menu_actions.append(na);
-            separator = False;
+        elif issubclass(action,NodeAction):            # assume NodeAction
+          if action.applies_to_node(self.node):
+            # instantiate action, add to menu if successful
+            try:
+              na = action(self,menu,separator=separator);
+            except:
+              _dprint(1,'error adding action to node menu:',sys.exc_info());
+            else:
+              self._menu_actions.append(na);
+              separator = False;
+        else:
+          raise TypeError,'unknown action type '+type(action);
     
     def debug_menu (self):
       try: menu = self._debug_menu;
@@ -914,12 +917,16 @@ class NodeAction (object):
   nodeclass = None;  # None means all nodes; else assign meqds.NodeClass('class');
   # static methods describing properties of this action
   def applies_to_node (self,node):
+    _dprint(3,'nodeclass',self.nodeclass,'applies to',node,'?');
     if self.nodeclass is None:
       return True;
     if isinstance(self.nodeclass,str):
       self.nodeclass = meqds.NodeClass(self.nodeclass);
-    try: return issubclass(meqds.NodeClass(node.nodeclass),self.nodeclass);
-    except: return False;
+    _dprint(3,self.nodeclass,meqds.NodeClass(node.classname));
+    try: applies = issubclass(meqds.NodeClass(node.classname),self.nodeclass);
+    except: applies = False;
+    _dprint(3,'applies:',applies);
+    return applies;
   applies_to_node = classmethod(applies_to_node);
   
   def __init__ (self,item,menu,callback=None,separator=False):

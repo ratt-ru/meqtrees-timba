@@ -99,7 +99,7 @@ class Logger(HierBrowser):
   _LogCatNames = { Normal:"message",Event:"event",Error:"error" };
   def __init__(self,parent,name,
                click=None,udi_root=None,
-               enable=True,use_clear=True,auto_clear=True,
+               enable=True,scroll=False,use_clear=True,auto_clear=True,
                limit=-100):
     """Initializes a Logger panel. Arguments are:
           parent:     parent widget
@@ -107,6 +107,7 @@ class Logger(HierBrowser):
           limit:      initial log size. If <0, then the log size control starts
                       out disabled. If None, size is always unlimited.
           enable:     initial state of enable control (None for no control)
+          scroll:     initial state of scroll control (None for no control)
           use_clear:  if True, logger has a clear button
           auto_clear: initial state of auto-clear toggle (None for no toggle)
           click:      callback, called when a log item is clicked
@@ -130,11 +131,17 @@ class Logger(HierBrowser):
     if enable is not None:
       self._enable = QCheckBox("log",self._controlgrid);
       self._enable.setChecked(enable);
-      self._enable_dum = QVBox(self._controlgrid);
       QObject.connect(self._enable,SIGNAL('toggled(bool)'),self._toggle_enable);
       self._controlgrid_lo.addWidget(self._enable,0,2);
     else:
       self._enable = None;
+    # scroll control
+    if scroll is not None:
+      self._scroll = QCheckBox("scroll",self._controlgrid);
+      self._scroll.setChecked(scroll);
+      self._controlgrid_lo.addWidget(self._scroll,1,2);
+    else:
+      self._scroll = None;
     # limit control
     if limit is not None:
       self._limit_enable = QCheckBox("limit",self._controlgrid);
@@ -225,6 +232,9 @@ class Logger(HierBrowser):
     # disabled? return immediately
     if not force and not self.enabled:
       return;
+    # # is scrolling enabled?
+    # preserve_top_item = self._scroll is not None and not self._scroll.isOn() and \
+    #                    self.wlistview().itemAt(QPoint(0,0));
     # if label not specified, use a timestamp 
     if label is None:
       label = time.strftime("%H:%M:%S");
@@ -254,8 +264,9 @@ class Logger(HierBrowser):
     # apply a log limit
     if self._limit is not None:
       self.apply_limit(self._limit);
-    # ensure item is visible
-    self.wlistview().ensureItemVisible(item);
+    # if scroll is enabled, ensure item is visible
+    if self._scroll is None or self._scroll.isOn():
+      self.wlistview().ensureItemVisible(item);
     return item;
     
   def _toggle_enable (self,en):
@@ -265,11 +276,11 @@ class Logger(HierBrowser):
     
 class EventLogger (Logger):
   def __init__(self,parent,name,evmask="*",*args,**kwargs):
-    Logger.__init__(self,parent,name,*args,**kwargs);
+    Logger.__init__(self,parent,name,scroll=True,*args,**kwargs);
     label = QLabel('Event mask:',self._controlgrid);
     self._controlgrid_lo.addWidget(label,0,0);
     self._evmask_field  = QLineEdit(str(evmask),self._controlgrid);
-    self._controlgrid_lo.addMultiCellWidget(self._evmask_field,1,1,0,2);
+    self._controlgrid_lo.addMultiCellWidget(self._evmask_field,1,1,0,0);
     self.wtop().connect(self._evmask_field,SIGNAL('returnPressed()'),
                         self._enter_mask);
     self.set_mask('*');
@@ -322,7 +333,7 @@ class EventLogger (Logger):
 
 class MessageLogger (Logger):
   def __init__(self,*args,**kwargs):
-    Logger.__init__(self,*args,**kwargs);
+    Logger.__init__(self,scroll=True,*args,**kwargs);
     self._num_err = 0;
     self.wtop().connect(self._lv,SIGNAL('clicked(QListViewItem*)'),
                         self._clear_error_count);

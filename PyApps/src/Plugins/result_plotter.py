@@ -496,5 +496,5 @@ class ResultPlotter(GriddedPlugin):
 Grid.Services.registerViewer(dmi_type('MeqResult',record),ResultPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass('MeqDataCollect'),ResultPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass('MeqDataConcat'),ResultPlotter,priority=10)
-Grid.Services.registerViewer(meqds.NodeClass(),ResultPlotter,priority=20)
+Grid.Services.registerViewer(meqds.NodeClass(),ResultPlotter,priority=22)
 

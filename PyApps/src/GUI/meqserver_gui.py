@@ -171,7 +171,7 @@ class meqserver_gui (app_proxy_gui):
     self.connect(self.treebrowser.wtop(),PYSIGNAL("view_forest_state()"),self._view_forest_state);
     
     # add Result Log panel
-    self.resultlog = Logger(self,"node snapshot log",limit=1000,
+    self.resultlog = Logger(self,"node snapshot log",limit=1000,scroll=False,
           udi_root='snapshot');
     self.maintab.insertTab(self.resultlog.wtop(),"Snapshots",2);
     self.resultlog.wtop()._default_iconset = QIconSet();

@@ -9,7 +9,6 @@ import Timba.Grid.Cell
 from Timba import *
 
 import weakref
-import sets
 import re
 import gc
 import types
@@ -111,19 +110,19 @@ def getViewerList (arg):
     datatype = arg;
   else:
     datatype = type(arg);
-  viewer_list = sets.Set();
+  viewer_pri = {};
   # resolve data type (argument may be object or type)
   for (tp,vlist) in _reg_viewers.iteritems():
     # find viewers for this class
     if issubclass(datatype,tp):
-      if type(arg) is type:  # if specified as type, add all
-        viewer_list.update(vlist);
-      else: # if specified as object, check to see which are compatible
-        viewer_list.update([(pri,v) for (pri,v) in vlist if isViewableWith(arg,v)]);
-  # sort by priority
-  viewer_list = list(viewer_list);
-  viewer_list.sort();
-  return [ v for (pri,v) in viewer_list ];
+      for (pri,v) in vlist:
+        if type(arg) is type or isViewableWith(arg,v): # if specified as object, check viewability
+          _dprint(3,arg,'viewer',v,'priority',pri);
+          viewer_pri[v] = min(pri,viewer_pri.get(v,999999));
+  # return list sorted by priority
+  vlist = viewer_pri.keys();
+  vlist.sort(lambda a,b,dd=viewer_pri:cmp(dd[a],dd[b]));
+  return vlist;
 
 class Floater (QMainWindow):
   """implements a floating window""";
