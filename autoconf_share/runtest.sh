@@ -43,15 +43,25 @@ fi
 # Copy expected files to current directory
 #
 if test -f "$srcdir/$1.in"; then
+    \rm -f $1.in
     \cp $srcdir/$1.in  .
 fi
 \cp $srcdir/$1.in_* . > /dev/null 2>&1
 if test -f "$srcdir/$1.out"; then
+    \rm -f $1.out
     \cp $srcdir/$1.out .
 fi
 if test -f "$srcdir/$1.run"; then
     \rm -f $1.run
     \cp $srcdir/$1.run .
+fi
+if test -f "$srcdir/$1.log_prop"; then
+    \rm -f $1.log_prop
+    \cp $srcdir/$1.log_prop .
+else
+    if test ! -f "$1.log_prop"; then
+        sed $lfr_share_dir/default.log_prop -e "s/<LOGFILENAME>/$1_tmp.log/" > $1.log_prop
+    fi
 fi
 
 #
