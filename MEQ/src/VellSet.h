@@ -161,13 +161,13 @@ public:
   void addFail (const DataRecord *rec,int flags=DMI::ANON|DMI::NONSTRICT);
   void addFail (const string &nodename,const string &classname,
                 const string &origin,int origin_line,const string &msg);
-#if defined(HAVE_PRETTY_FUNCTION)
-# define MeqResult_FailLocation __PRETTY_FUNCTION__ "() " __FILE__ 
-#elif defined(HAVE_FUNCTION)
-# define MeqResult_FailLocation __FUNCTION__ "() " __FILE__ 
-#else
+//#if defined(HAVE_PRETTY_FUNCTION)
+//# define MeqResult_FailLocation __PRETTY_FUNCTION__ "() " __FILE__ 
+//#elif defined(HAVE_FUNCTION)
+//# define MeqResult_FailLocation __FUNCTION__ "() " __FILE__ 
+//#else
 # define MeqResult_FailLocation __FILE__ 
-#endif
+//#endif
   
   // macro for automatically generating the correct fail location and adding
   // a fail to the resultset

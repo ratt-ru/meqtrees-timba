@@ -389,6 +389,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
                         Result::Ref &resref,
                         const Request &req)
 {
+  bool cache_result = False;
   int retcode = 0;
   cdebug(3)<<"  calling execute() on "<<numChildren()<<" child nodes"<<endl;
   std::vector<Result *> child_fails; // RES_FAILs from children are kept track of separately
@@ -563,6 +564,8 @@ int Node::execute (Result::Ref &ref, const Request &req)
     else // no cells, ensure an empty result
     {
       ref <<= new Result(0);
+      cdebug(3)<<"  empty result; cumulative result code is "<<retcode<<endl;
+      return retcode; // no caching of empty results
     }
     // OK, at this point we have a valid Result to return
     if( DebugLevel>=3 ) // print it out
