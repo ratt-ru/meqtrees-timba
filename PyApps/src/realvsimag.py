@@ -20,6 +20,9 @@ from math import cos
 from math import pow
 from math import sqrt
 
+# local python Error Bar class
+from ErrorBar import *
+
 from dmitypes import verbosity
 _dbg = verbosity(0,name='realvsimag');
 _dprint = _dbg.dprint;
@@ -88,10 +91,7 @@ class realvsimag_plotter(object):
         self.plot_key = plot_key
 
         # Initialize a QwPlot central widget
-        self.plot = QwtPlot('Real vs Imaginary Plot'
-                            ' -- '
-                            'use the ?-pointer for help',
-                            parent)
+        self.plot = QwtPlot('', parent)
         self.plot.plotLayout().setCanvasMargin(0)
         self.plot.plotLayout().setAlignCanvasToScales(True)
         
@@ -110,9 +110,9 @@ class realvsimag_plotter(object):
         self._circle_dict = {}
         self._line_dict = {}
         self._xy_plot_dict = {}
-        self.plot_circles = True
+        self.plot_circles = False
         self._angle = 0.0
-        self._radius = 7.0
+        self._radius = 20.0
         self._x_min = 0.0;
         self._x_max = 0.0;
         self._y_min = 0.0;
@@ -122,6 +122,18 @@ class realvsimag_plotter(object):
         self.plot.setAxisTitle(QwtPlot.yLeft, 'Imaginary Axis')
         self._plot_title = None
         self.index = -1
+
+# used for plotting MeqParm solutions
+        self.x_list = []
+        self.y_list = []
+        self.x_data = None
+        self.y_data = None
+        self.value = 100
+
+# used for errors plotting 
+        self.errors_plot = False
+# used for errors plot testing 
+        self.gain = 1.0
 
     # __init__()
 
@@ -354,6 +366,7 @@ class realvsimag_plotter(object):
       if visu_record.has_key('attrib'):
         self._attrib_parms = visu_record['attrib']
         _dprint(2,'self._attrib_parms ', self._attrib_parms);
+        self.data_type = self._attrib_parms.get('data_type','')
         plot_types = self._attrib_parms.get('plot_type')
 
 # convert to a tuple if necessary
@@ -371,17 +384,21 @@ class realvsimag_plotter(object):
         self._plot_type = plot_types[j]
      # now generate  particular plot type
         if  self._plot_type == 'realvsimag':
-          self.real_vs_imag_plot(item_label)
+          self.plot_circles = True
+          self.x_vs_y_plot(item_label)
+        if  self._plot_type == 'errors':
+          self.errors_plot = True
+          self.x_vs_y_plot(item_label)
   
-    def real_vs_imag_plot (self,item_label):
-      """ plot real va imaginary values together with circles
+    def x_vs_y_plot (self,item_label):
+      """ plot real vs imaginary values together with circles
           indicating average values """
  
 # get and combine all plot array data together into one array
       num_plot_arrays = len(self._data_values)
       _dprint(2,' num_plot_arrays ', num_plot_arrays);
-      image_r = []
-      image_i = []
+      data_r = []
+      data_i = []
       sum_r = 0.0
       sum_i = 0.0
       for i in range(0, num_plot_arrays):
@@ -403,25 +420,41 @@ class realvsimag_plotter(object):
         self._x_max = max(self._x_max, flattened_array_r.max())
        
         for j in range(0, num_elements): 
-          image_r.append(flattened_array_r[j])
+# note - remove following test in final production system and get rid of
+# abs stuff
+          if self.data_type.find('err') >= 0:
+            data_r.append(abs(flattened_array_r[j]))
+          else:
+            data_r.append(flattened_array_r[j])
           sum_r = sum_r + flattened_array_r[j]
         if xx_i != None:
           flattened_array_i = reshape(xx_i,(num_elements,))
           self._y_min = min(self._y_min, flattened_array_i.min())
           self._y_max = max(self._y_max, flattened_array_i.max())
           for j in range(0, num_elements): 
-            image_i.append(flattened_array_i[j])
+            if self.data_type.find('err') >= 0:
+              data_i.append(abs(flattened_array_i[j]))
+              self.imag_error = True
+            else:
+              data_i.append(flattened_array_i[j])
+              self.imag_error = False
             sum_i = sum_i + flattened_array_i[j]
         else:
           for j in range(0, num_elements): 
-            image_i.append(0.0)
+            data_i.append(0.0)
           sum_i = 0.0
 
 # add data to set of curves
-      num_rows = len(image_r)
+      num_rows = len(data_r)
       if num_rows == 0:
         print 'nothing to update!'
         return
+      if self.errors_plot:
+# if we have actual data, need to save it
+        if self.data_type.find('err') < 0:
+          self.x_data = data_r
+          self.y_data = data_i
+        
       # if this is a new item_label, add a new plot,
       # otherwise, replace old one
       plot_key = self._attrib_parms.get('label','') + '_plot'
@@ -435,26 +468,64 @@ class realvsimag_plotter(object):
         self._plot_title = self._plot_title + ' ' + string_color
         self.plot.setTitle(self._plot_title)
 
-        key_plot = self.plot.insertCurve(plot_key)
-        self._xy_plot_dict[plot_key] = key_plot
-        self.plot.setCurvePen(key_plot, QPen(self._plot_color))
-        self.plot.setCurveData(key_plot, image_r, image_i)
-        self.plot.setCurveStyle(key_plot, QwtCurve.Dots)
-        plot_curve = self.plot.curve(key_plot)
-        plot_symbol = self.symbol_table["circle"]
-        plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
+# if we have x, y data
+        if self.data_type.find('err') < 0:
+          key_plot = self.plot.insertCurve(plot_key)
+          self._xy_plot_dict[plot_key] = key_plot
+          self.plot.setCurvePen(key_plot, QPen(self._plot_color))
+          self.plot.setCurveData(key_plot, data_r, data_i)
+          self.plot.setCurveStyle(key_plot, QwtCurve.Dots)
+          plot_curve = self.plot.curve(key_plot)
+          plot_symbol = self.symbol_table["circle"]
+          plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
                      QPen(self._plot_color), QSize(10, 10)))
-      else:
-        key_plot = self._xy_plot_dict[plot_key] 
-        self.plot.setCurveData(key_plot, image_r, image_i)
 
-      avg_r = sum_r / num_rows
-      avg_i = sum_i / num_rows
+# do we have error data
+        if self.data_type.find('err') >= 0:
+          self.x_errors = QwtErrorPlotCurve(self.plot,self._plot_color,2);
+# add in positions of data to the error curve
+          if not self.x_data is None:
+            self.x_errors.setData(self.x_data,self.y_data);
+          else:
+            print 'no data to accompany errors so nothing to plot!'
+            return
+# add in x errors to the error curve
+          self.x_errors.setXErrors(True)
+          self.x_errors.setErrors(data_r);
+          key_plot = self.plot.insertCurve(self.x_errors);
+          self._xy_plot_dict[plot_key] = key_plot
+          if self.imag_error:
+# add in y errors to the error curve
+            self.y_errors = QwtErrorPlotCurve(self.plot,self._plot_color,2);
+            if not self.x_data is None:
+              self.y_errors.setData(self.x_data,self.y_data);
+            else:
+              print 'no data to accompany errors so nothing to plot!'
+              return
+            self.y_errors.setErrors(data_i);
+            key_plot = self.plot.insertCurve(self.y_errors);
+            self._xy_plot_dict[plot_key] = key_plot
+      else:
+        if self.data_type.find('err') < 0:
+          key_plot = self._xy_plot_dict[plot_key] 
+          self.plot.setCurveData(key_plot, data_r, data_i)
+        if self.data_type.find('err') >= 0:
+          self.x_errors.setData(self.x_data,self.y_data);
+          self.x_errors.setErrors(data_r);
+          if self.imag_error:
+            self.y_errors.setData(self.x_data,self.y_data);
+            self.y_errors.setErrors(data_i);
+
       if self.plot_circles:
+        avg_i = sum_i / num_rows
+        avg_r = sum_r / num_rows
         self.compute_circles (plot_key, avg_r, avg_i)
 
-# now update plot
-      self.plot.replot()
+# at end of x_vs_y_plot function, plot data for a particular node in 
+# plot tree has been updated. Replot will be done in calling routine 
+# after all nodes in plot tree have been traversed
+
+    # end of x_vs_y_plot 
 
     def go(self, counter):
       """Create and plot some garbage data
@@ -485,6 +556,7 @@ class realvsimag_plotter(object):
         self.plot.setCurvePen(key_plot, QPen(self._plot_color))
         self.plot.setCurveData(key_plot, x_pos, y_pos)
         self.plot.setCurveStyle(key_plot, QwtCurve.Dots)
+        self.plot.setTitle("Real vs Imaginary Demo")
         plot_curve = self.plot.curve(key_plot)
         plot_symbol = self.symbol_table["circle"]
         plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
@@ -504,6 +576,75 @@ class realvsimag_plotter(object):
 
     # go()
 
+    def go_errors(self, counter):
+      """Create and plot some garbage error data
+      """
+      item_label = 'test'
+      self._radius = 0.9 * self._radius
+
+      self.gain = 0.95 * self.gain
+      num_points = 10
+      x_pos = zeros((num_points,),Float64)
+      y_pos = zeros((num_points,),Float64)
+      x_err = zeros((num_points,),Float64)
+      y_err = zeros((num_points,),Float64)
+      for j in range(0,num_points) :
+        x_pos[j] = self._radius + 3 * random.random()
+        y_pos[j] = self._radius + 2 * random.random()
+        x_err[j] = self.gain * 3 * random.random()
+        y_err[j] = self.gain * 2 * random.random()
+
+# keep track of maxima and minima if we want to zoom
+      self._x_min = min(self._x_min, x_pos.min())
+      self._x_max = max(self._x_max, x_pos.max())
+      self._y_min = min(self._y_min, y_pos.min())
+      self._y_max = max(self._y_max, y_pos.max())
+
+      # if this is a new item_label, add a new plot,
+      # otherwise, replace old one
+      plot_key = item_label + '_plot'
+      self._plot_color = self.color_table["red"]
+      if self._xy_plot_dict.has_key(plot_key) == False: 
+        key_plot = self.plot.insertCurve(plot_key)
+        self._xy_plot_dict[plot_key] = key_plot
+        self.plot.setCurvePen(key_plot, QPen(self._plot_color))
+        self.plot.setCurveData(key_plot, x_pos, y_pos)
+        self.plot.setCurveStyle(key_plot, QwtCurve.Dots)
+        self.plot.setTitle("Errors Demo")
+        plot_curve = self.plot.curve(key_plot)
+        plot_symbol = self.symbol_table["circle"]
+#        plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
+#                     QPen(self._plot_color), QSize(10, 10)))
+        plot_curve.setSymbol(QwtSymbol(
+            QwtSymbol.Cross, QBrush(), QPen(Qt.yellow, 2), QSize(7, 7)))
+
+
+        self.x_errors = QwtErrorPlotCurve(self.plot,Qt.blue,2);
+# add in positions of data to the error curve
+        self.x_errors.setData(x_pos,y_pos);
+# add in errors to the error curve
+        self.x_errors.setXErrors(True)
+        self.x_errors.setErrors(x_err);
+        self.plot.insertCurve(self.x_errors);
+        self.y_errors = QwtErrorPlotCurve(self.plot,Qt.blue,2);
+        self.y_errors.setData(x_pos,y_pos);
+        self.y_errors.setErrors(y_err);
+        self.plot.insertCurve(self.y_errors);
+      else:
+        key_plot = self._xy_plot_dict[plot_key] 
+        self.plot.setCurveData(key_plot, x_pos, y_pos)
+
+        self.x_errors.setData(x_pos,y_pos);
+        self.x_errors.setErrors(x_err);
+        self.y_errors.setData(x_pos,y_pos);
+        self.y_errors.setErrors(y_err);
+
+      if counter == 0:
+        self.clearZoomStack()
+      else:
+        self.plot.replot()
+    # go_errors()
+
     def clearZoomStack(self):
         """Auto scale and clear the zoom stack
         """
@@ -522,7 +663,9 @@ class realvsimag_plotter(object):
       self._angle = self._angle + 5;
       self._radius = 5.0 + 2.0 * random.random()
       self.index = self.index + 1
-      self.go(self.index)
+#      self.go(self.index)
+# for testing error plotting
+      self.go_errors(self.index)
     # timerEvent()
 
     def zoom(self,on):
@@ -591,7 +734,8 @@ def main(args):
 
 def make():
     demo = realvsimag_plotter('plot_key')
-#    demo.set_compute_circles(False)
+# for real vs imaginary plot with circles
+#    demo.set_compute_circles(True)
     demo.start_timer(1000)
     demo.plot.show()
     return demo
