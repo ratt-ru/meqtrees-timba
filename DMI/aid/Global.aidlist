@@ -257,6 +257,7 @@ MeqFunklet                       1321       ; from /home/oms/LOFAR/Timba/MEQ/src
 #MeqInvert                       1507       ; from /home/assendorp/LOFAR/Timba/MeqNodes/src/Invert.h:29
 #MeqLMN                          1410       ; from /home/oms/LOFAR/Timba/MeqNodes/src/LMN.h:30
 #MeqLog                          1397       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Log.h:29
+#MeqMatrixMultiply               1516       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixMultiply.h:30
 #MeqMax                          1452       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Max.h:29
 #MeqMean                         1416       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Mean.h:29
 #MeqMergeFlags                   1441       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MergeFlags.h:31
