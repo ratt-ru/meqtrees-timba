@@ -258,19 +258,43 @@ int Solver::getResult (Result::Ref &resref,
         itsNrEquations = 0;
       }
     }
+
+
+
+
+
     // Now feed the solver with equations from the results.
     // Define the vector with derivatives (for real and imaginary part).
     vector<double> derivReal(nspid);
     vector<double> derivImag(nspid);
+
+    // To be used as an index array for quickly feeding the equations
+    // to the solver.
+    vector<int>    derivIndex(nspid);
+    
     // Loop through all results and fill the deriv vectors.
     for (uint i=0; i<chvellsets.size(); i++) {
       const VellSet& chresult = *chvellsets[i];
       bool isReal = chresult.getValue().isReal();
+
       // Get nr of elements in the values.
       int nrval = chresult.getValue().nelements();
+
       // Get pointer to all perturbed values.
       int index=0;
+      
+      const VellsFlagType* isFlagged=0;
+      bool hasFlags = chresult.hasDataFlags();
+      
+      if(hasFlags){
+        AssertStr( chresult.dataFlags().nflags() == nrval,"Number of flags is not equal to number of data points");
+        isFlagged = chresult.dataFlags().beginFlags();
+      }
+
+
       if (isReal) {
+        //------------ If Real -----------
+
         const double* values = chresult.getValue().realStorage();
         vector<const double*> perts(nspid, 0);
         for (uint j=0; j<nspid; j++) {
@@ -279,21 +303,34 @@ int Solver::getResult (Result::Ref &resref,
             Assert(chresult.getPerturbedValue(inx).nelements() == nrval);
             perts[j] = chresult.getPerturbedValue(inx).realStorage();
           }
-        }
+        }// for j...
+       
+        
         // Generate an equation for each value element.
         // An equation contains the value and all derivatives.
         for (int j=0; j<nrval; j++) {
-          for (uint spid=0; spid<perts.size(); spid++) {
-            if (perts[spid]) {
-              derivReal[spid] = perts[spid][j];
-            } else {
-              derivReal[spid] = 0;
-            }
-          }
-          itsSolver.makeNorm (&derivReal[0], 1., values[j]);
-          itsNrEquations++;
-        }
+          if(!hasFlags || (hasFlags && !isFlagged[j])){
+            int numDerivatives=0;
+            for (uint spid=0; spid<perts.size(); spid++) {
+              if (perts[spid]) {
+                derivReal[numDerivatives] = perts[spid][j];
+                derivIndex[numDerivatives] = spid;
+                numDerivatives++;
+              }
+            }// for spid...
+
+            
+            //====  THE EQUATION  ===
+            itsSolver.makeNorm (numDerivatives, &derivIndex[0], &derivReal[0], 1., values[j]);
+            itsNrEquations++;
+
+
+          }// if not flagged
+        } // for j...
+        
       } else {
+      //------------ If Complex ------------
+
         const dcomplex* values = chresult.getValue().complexStorage();
         vector<const dcomplex*> perts(nspid, 0);
         for (uint j=0; j<nspid; j++) {
@@ -307,24 +344,37 @@ int Solver::getResult (Result::Ref &resref,
         // An equation contains the value and all derivatives.
         double val;
         for (int j=0; j<nrval; j++) {
-          for (uint spid=0; spid<perts.size(); spid++) {
-            if (perts[spid]) {
-              derivReal[spid] = perts[spid][j].real();
-              derivImag[spid] = perts[spid][j].imag();
-            } else {
-              derivReal[spid] = 0;
-              derivImag[spid] = 0;
-            }
-          }
-          val = values[j].real();
-          itsSolver.makeNorm (&derivReal[0], 1., val);
-          itsNrEquations++;
-          val = values[j].imag();
-          itsSolver.makeNorm (&derivImag[0], 1., val);
-          itsNrEquations++;
-        }
-      }
-    }
+          if(!hasFlags || (hasFlags && !isFlagged[j])){
+            int numDerivatives=0;
+            for (uint spid=0; spid<perts.size(); spid++) {
+              if (perts[spid]) {
+                derivReal[numDerivatives] = perts[spid][j].real();
+                derivImag[numDerivatives] = perts[spid][j].imag();
+                derivIndex[numDerivatives] = spid;
+                numDerivatives++;
+              }
+            }// for spid...
+
+            //====  THE EQUATIONS  ====
+            val = values[j].real();
+            itsSolver.makeNorm (numDerivatives, &derivIndex[0],
+                                &derivReal[0], 1., val);
+            itsNrEquations++;
+
+            val = values[j].imag();
+            itsSolver.makeNorm (numDerivatives, &derivIndex[0],
+                                &derivImag[0], 1., val);
+            itsNrEquations++;
+
+
+          } // if not Flagged
+        } // For j...
+
+      }// If isReal / else
+
+    }// Loop over VellSets
+
+
     // Size the solutions vector.
     // Fill it with zeroes and stop if no invert will be done.
     if (step == itsCurNumIter-1  &&  !itsCurInvertMatrix) {
@@ -334,7 +384,7 @@ int Solver::getResult (Result::Ref &resref,
       }
       break;
     }
-    // Keep all solutions in a singlevector.
+    // Keep all solutions in a single vector.
     allSolutions.resize ((step+1)*nspid, true);
     // The last part is the current solution.
     Vector<double> vec(allSolutions(Slice(step*nspid, nspid)));
@@ -519,5 +569,10 @@ void Solver::setCurState()
   wstate()[FUseSVD]       = itsCurUseSVD;
 }
 
-
 } // namespace Meq
+
+//# Instantiate the makeNorm template.
+#include <scimath/Fitting/LSQFit2.cc>
+template void casa::LSQFit::makeNorm<double, double*, int*>(unsigned,
+int* const&, double* const&, double const&, double const&, bool, bool);
+
