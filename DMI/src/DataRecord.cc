@@ -249,8 +249,9 @@ void DataRecord::privatize (int flags, int depth)
   {
     for( FMI iter = fields.begin(); iter != fields.end(); iter++ )
       iter->second.privatize(flags|DMI::LOCK,depth-1);
+    // since things may have changed around, revalidate content
+    validateContent();
   }
-  validateContent();
 }
 
 //##ModelId=3C58239503D1
@@ -451,7 +452,18 @@ string DataRecord::sdebug ( int detail,const string &prefix,const char *name ) c
       if( out.length() )
         out += "\n"+prefix+"  ";
       out += iter->first.toString()+": ";
-      out += iter->second->sdebug(abs(detail)-1,prefix+"          ");
+      string out1;
+      try
+      {
+        out1 = iter->second.valid() 
+            ? iter->second->sdebug(abs(detail)-1,prefix+"          ")
+            : "(invalid ref)";
+      }
+      catch( std::exception &x )
+      {
+        out = string("sdebug_exc: ")+x.what();
+      }
+      out += out1;
     }
   }
   nesting--;

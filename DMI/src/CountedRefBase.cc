@@ -140,6 +140,8 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
       // if so, then do a simple readonly copy, and pass all other
       // flags to privatize below
       privatize_flags = flags & ~DMI::PRIVATIZE;
+      if( flags&DMI::PRESERVE_RW )
+        privatize_flags |= (other.writable ? DMI::WRITE : DMI::READONLY);
       flags = DMI::READONLY;
     }
     threadLock(other.target);
