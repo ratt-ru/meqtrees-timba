@@ -910,8 +910,8 @@ bool Dispatcher::checkEvents()
           dprintf(1)("enqueueing new input message\n");
           Message::Ref ref = iter->msg;
           ref().setState(flags); // cow here, so only copy
+          iter->last_msg = ref.dewr_p(); // also save pointer to this message
           iter->last_mref = ref;
-          iter->last_msg = ref.dewr_p();
           enqueue(iter->pwp,ref);
         }
         // if event is one-shot, clear it

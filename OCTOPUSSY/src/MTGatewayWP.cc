@@ -565,7 +565,9 @@ void MTGatewayWP::stopWorkers ()
   for( int i=0; i < numWorkers(); i++ )
     if( workerID(i) != Thread::self() )
     {
-      workerID(i).cancel();
+// WPInterface::do_stop() takes care of cleanly exiting the worker thread,
+// so don't cancel them -- just make sure the signal is sent to interrupt them
+//      workerID(i).cancel();
       workerID(i).kill(SIGPIPE);
     }
 }
