@@ -123,8 +123,9 @@ LOFARDIR = $(shell pwd)
 #
 # build: Target to compile in a bootstrapped and configured tree
 #
-all: build
 build: start_build $(VARIANTNAMES:.variant=.variant_build) stop_build
+all: buildall
+buildall: start_build $(VARIANTNAMES:.variant=.variant_buildall) stop_build
 start_build:
 	@echo && echo ":::::: BUILD START" && echo
 stop_build:
@@ -140,11 +141,11 @@ EOFXXXXX
 if test $lfr_dirform = 0; then
   cat <<'EOFXXXXX' >> Makefile
 #
-# Rule to build variant recursively
+# Rule to build variant recursively which continues in case of compile errors
 #
-%.variant_build:
+%.variant_buildall:
 	@date; \
-	variant=`basename $@ .variant_build`; \
+	variant=`basename $@ .variant_buildall`; \
         cd ../..; \
 	for pkg in $(PACKAGES); do \
 	    if test -d $$pkg; then \
@@ -153,11 +154,33 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& date \
 		&& (( cd $$pkg/build/$$variant \
-		&& make -k $(MAKE_OPTIONS) `cat makeoptions` ) \
-			|| echo ":::::: ERROR" ) \
+		&& make -k $(MAKE_OPTIONS) `cat makeoptions` buildall ) \
+                || echo ":::::: ERROR" ) \
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
 		&& echo ; ) \
+	    fi\
+	done; \
+	date
+#
+# Rule to build variant recursively which stops in case of compile errors
+#
+%.variant_build:
+	@date; \
+	variant=`basename $@ .variant_build`; \
+        cd ../..; \
+	for pkg in $(PACKAGES); do \
+	    if test -d $$pkg; then \
+		echo \
+		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg/build/$$variant \
+		&& make $(MAKE_OPTIONS) `cat makeoptions` build \
+                || echo ":::::: ERROR" \
+		&& echo \
+		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
 	    fi\
 	done; \
 	date
@@ -298,7 +321,28 @@ EOFXXXXX
 else
   cat <<'EOFXXXXX' >> Makefile
 #
-# Rule to build variant recursively
+# Rule to build variant recursively which continues in case of compile errors
+#
+%.variant_buildall:
+	@date; \
+	variant=`basename $@ .variant_buildall`; \
+	for pkg in $(PACKAGES); do \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& (( cd $$pkg \
+		&& make -k $(MAKE_OPTIONS) `cat makeoptions` buildall ) \
+			|| echo ":::::: ERROR" ) \
+		&& echo \
+		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; ) \
+	    fi\
+	done; \
+	date
+#
+# Rule to build variant recursively which stops in case of compile errors
 #
 %.variant_build:
 	@date; \
@@ -310,7 +354,7 @@ else
 		&& echo \
 		&& date \
 		&& (( cd $$pkg \
-		&& make -k $(MAKE_OPTIONS) `cat makeoptions` ) \
+		&& make -k $(MAKE_OPTIONS) `cat makeoptions` build ) \
 			|| echo ":::::: ERROR" ) \
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -465,8 +509,9 @@ help:
 	@echo "Targets in $(LOFARDIR) Makefile"
 	@echo "-------------------------------"
 	@echo ""
-	@echo "all:       default target; same as build"
-	@echo "build:     build packages for variants"
+	@echo "build:     build packages for variants; stop if error"
+	@echo "all:       same as buildall"
+	@echo "buildall:  build packages for variants; continue if error"
 	@echo "check:     build and run all test programs for variants"
 	@echo "install:   install variants"
 	@echo "uninstall: uninstall variants"
@@ -474,7 +519,8 @@ help:
 	@echo "distclean: distclean variants"
 	@echo "dist:      making dist of variants"
 	@echo ""
-	@echo "%.variant_build:     build all packages for given variant"
+	@echo "%.variant_build:     build all packages for given variant; stop if error"
+	@echo "%.variant_buildall:  build all packages for given variant; continue if error"
 	@echo "%.variant:           same as %.variant_build"
 	@echo "%.variant_check:     build and run all test programs for given variant"
 	@echo "%.variant_install:   install given variant"
