@@ -126,6 +126,8 @@ BlockableObject * __construct_MeqU (int n) { return n>0 ? new Meq::U [n] : new M
         AtomicID::registerId(-1352,"ParmValues")+
         AtomicID::registerId(-1364,"Spids")+
         AtomicID::registerId(-1349,"Perturbations")+
+        AtomicID::registerId(-1389,"ReqId")+
+        AtomicID::registerId(-1388,"CalcDeriv")+
     0;
     return res;
   }

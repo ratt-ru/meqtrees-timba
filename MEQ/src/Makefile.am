@@ -11,7 +11,7 @@ UVW.h \
 Vells.h VellsTmp.h VellsRep.h \
 VellsRealSca.h VellsRealArr.h \
 VellsComplexSca.h VellsComplexArr.h \
-Result.h \
+Result.h Request.h \
 Forest.h \
 ParmTable.h
 

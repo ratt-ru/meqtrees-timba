@@ -21,6 +21,7 @@
 //# $Id$
 
 #include <MEQ/Request.h>
+#include <MEQ/AID-Meq.h>
 
 namespace Meq {
 

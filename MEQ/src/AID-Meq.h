@@ -8,6 +8,11 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_Meq ();
 
+#ifndef _defined_id_AidCalcDeriv
+#define _defined_id_AidCalcDeriv 1
+const AtomicID AidCalcDeriv(-1388);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:31
+const int AidCalcDeriv_int = -1388;
+#endif
 #ifndef _defined_id_AidCells
 #define _defined_id_AidCells 1
 const AtomicID AidCells(-1351);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:35
@@ -162,6 +167,11 @@ const int AidParmValues_int = -1352;
 #define _defined_id_AidPerturbations 1
 const AtomicID AidPerturbations(-1349);           // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:35
 const int AidPerturbations_int = -1349;
+#endif
+#ifndef _defined_id_AidReqId
+#define _defined_id_AidReqId 1
+const AtomicID AidReqId(-1389);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:31
+const int AidReqId_int = -1389;
 #endif
 #ifndef _defined_id_AidRequest
 #define _defined_id_AidRequest 1
