@@ -6,7 +6,8 @@
 #include "DMI/NCIter.h"
     
 #define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
-    
+
+        
 void TestFunc( const BlockRef &ref )
 {
   cout<<"======================= Copying ref in function\n";
@@ -88,7 +89,7 @@ void TestDataField ()
   f2[15] = 2;
   cout<<f2.sdebug(2)<<endl;
   for( int i=0; i<32; i++ )
-    cout<<f2[i].as_double()<<" ";
+    cout<<f2[i].as<double>()<<" ";
   cout<<endl;
 
   cout<<"======================= converting to block: \n";
@@ -103,7 +104,7 @@ void TestDataField ()
   cout<<"remaining set: "<<set.sdebug(1)<<endl;
   cout<<"resulting field is: "<<f2a.sdebug(2)<<endl;
   for( int i=0; i<32; i++ )
-    cout<<f2a[i].as_float()<<" ";
+    cout<<f2a[i].as<float>()<<" ";
   cout<<endl;
   cout<<"======================= exiting and destroying:\n";
 }
@@ -143,8 +144,8 @@ void TestDataRecord ()
   Assert( rec["A.B.C.D"].isWritable() );
   Assert( rec["A.B.C.D/20"].isWritable() );
   cout<<"Values: {{{"<<(int)(rec["A.B.C.D"][20])<<" "<<(int*)&(rec["A.B.C.D"][20])
-      <<"  "<<rec["A.B.C.D"].as_int_p()<<" }}}\n";
-  Assert( rec["A.B.C.D/20"].as_int() == 5 );
+      <<"  "<<rec["A.B.C.D"].as_p<int>()<<" }}}\n";
+  Assert( rec["A.B.C.D/20"].as<int>() == 5 );
   
   int *ptr = &rec["A.B.C.D"];
   Assert(ptr != 0 );
@@ -158,7 +159,7 @@ void TestDataRecord ()
   Assert( rec["A.B.C.E"].containerType() == TpDataField );
   Assert( rec["A.B.C.E"].isWritable() );
   Assert( rec["A.B.C.E/0"].isWritable() );
-  Assert( rec["A.B.C.E/0"].as_HIID() == HIID("A.B.C.D") );
+  Assert( rec["A.B.C.E/0"].as<HIID>() == HIID("A.B.C.D") );
 
   rec["A.B.C.F"] = "test string";
   rec["A.B.C.F"][1] = "another test string";
@@ -170,7 +171,7 @@ void TestDataRecord ()
   Assert( rec["A.B.C.F"].containerType() == TpDataField );
   Assert( rec["A.B.C.F"].isWritable() );
   Assert( rec["A.B.C.F/1"].isWritable() );
-  Assert( rec["A.B.C.F/1"].as_string() == "another test string" );
+  Assert( rec["A.B.C.F/1"].as<string>() == "another test string" );
   
   cout<<"======================= record debug info:\n";
   cout<<rec.sdebug(3)<<endl;
@@ -192,7 +193,7 @@ void TestDataRecord ()
   cout<<"===== added subrecord B.C\n"<<rec.sdebug(10)<<endl;
   rec["B"]["C"]["A"] <<= new DataField(Tpint,32);
   rec["B/C/A/10"] = 5;
-  Assert( rec["B/C/A"][10].as_int() == 5 );
+  Assert( rec["B/C/A"][10].as<int>() == 5 );
   cout<<"Record is "<<rec.sdebug(10)<<endl;
 
   cout<<"======================= converting record to blockset\n";
@@ -207,19 +208,19 @@ void TestDataRecord ()
   cout<<"Blockset now "<<set.sdebug(2)<<endl;
 
   cout<<"======================= accessing cached field\n";
-  cout<<"Value: "<<rec2["B/C/A/10"].as_double()<<endl;
-  Assert( rec2["B/C"]["A"]["10"].as_float() == 5 );
-//  cout<<"Value: "<<rec["A.B.C.E/0"].as_HIID().toString()<<endl;
-  cout<<"Value: "<<rec["A.B.C.F/0"].as_string()<<endl;
-  cout<<"Value: "<<rec["A.B.C.F/1"].as_string()<<endl;
-  Assert( rec["A.B.C.E/0"].as_HIID() == HIID("A.B.C.D") );
-  Assert( rec["A.B.C.F/1"].as_string() == "another test string" );
+  cout<<"Value: "<<rec2["B/C/A/10"].as<double>()<<endl;
+  Assert( rec2["B/C"]["A"]["10"].as<float>() == 5 );
+//  cout<<"Value: "<<rec["A.B.C.E/0"].as<HIID>().toString()<<endl;
+  cout<<"Value: "<<rec["A.B.C.F/0"].as<string>()<<endl;
+  cout<<"Value: "<<rec["A.B.C.F/1"].as<string>()<<endl;
+  Assert( rec["A.B.C.E/0"].as<HIID>() == HIID("A.B.C.D") );
+  Assert( rec["A.B.C.F/1"].as<string>() == "another test string" );
   
   cout<<"======================= changing field in original record\n";
   rec["B/C/A/10"] = 10;
-  cout<<"Values: "<<rec["B/C/A/10"].as_double()<<", "<<rec2["B/C/A/10"].as_double()<<endl;
-  Assert( rec["B/C"]["A"]["10"].as_float() == 10 );
-  Assert( rec2["B/C"]["A"]["10"].as_float() == 5 );
+  cout<<"Values: "<<rec["B/C/A/10"].as<double>()<<", "<<rec2["B/C/A/10"].as<double>()<<endl;
+  Assert( rec["B/C"]["A"]["10"].as<float>() == 10 );
+  Assert( rec2["B/C"]["A"]["10"].as<float>() == 5 );
   
   cout<<"======================= getting reference from record\n";
   cout<<rec["B/C/A"].ref().debug(3)<<endl;
@@ -291,7 +292,7 @@ void TestDataRecord ()
   
   cout<<"Checking transparent array indexing\n";
   rec["X.Y.Z"] <<= new DataArray(Tpdouble,makeLoShape(10),DMI::ZERO);
-  Assert(rec["X.Y.Z/0"][0].as_double() == 0);
+  Assert(rec["X.Y.Z/0"][0].as<double>() == 0);
   
   {
     cout<<"Checking NCIters\n";
@@ -319,13 +320,13 @@ void TestDataRecord ()
   for(int i=0; i<10; i++)
     for(int j=0; j<10; j++)
     {
-      Assert( strarr2[HIID(i)|j].as_string() == Debug::ssprintf("%d-%d",i,j));
+      Assert( strarr2[HIID(i)|j].as<string>() == Debug::ssprintf("%d-%d",i,j));
     }
   
   cout<<"======================= testing BOIO\n";
   cout<<"======================= writing\n";
   BOIO boio("test.boio",BOIO::WRITE);
-  boio << rec << rec["X"].as_DataField();
+  boio << rec << rec["X"].as<DataField>();
   boio.close();
   
   cout<<"======================= reading\n";

@@ -149,7 +149,7 @@ HIID HIID::splitAtSlash ()
 }
 
 //##ModelId=3C0F8BD5004F
-string HIID::toString () const
+string HIID::toString (char separator) const
 {
   string s("(null)");
   if( size()>0 )
@@ -161,7 +161,7 @@ string HIID::toString () const
     {
       bool newsep = ( *iter == AidSlash || *iter == AidRange );
       if( !sep && !newsep )
-        s += ".";
+        s += separator;
       s += (*iter).toString();
       sep = newsep;
     }
@@ -234,15 +234,16 @@ bool HIID::operator < (const HIID &right) const
 
 
 //##ModelId=3DB9348C0305
-void HIID::addString (const string &str)
+void HIID::addString (const string &str,const string &sepset)
 {
   size_t totlen = str.length();
   if( !str.length() )
     return;
   size_t p0=0,p1;
-  // split string into fields separated by '.', and create an 
+  // split string into fields separated by separator char, and create an 
   // AtomicID for each field. "/" and ":" also serve as separators,
   // but they also correspond to their own AtomicIDs
+  string sep_set = sepset + "/:";
   while( p0 != string::npos )
   {
     if( p0 == totlen )
@@ -252,7 +253,7 @@ void HIID::addString (const string &str)
     }
     else
     {
-      p1 = str.find_first_of("./:",p0);
+      p1 = str.find_first_of(sep_set,p0);
       if( p1 != string::npos )
       {
         push_back( p1 != p0 ? AtomicID(str.substr(p0,p1-p0)) : AidEmpty);

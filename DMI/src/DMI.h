@@ -2,14 +2,12 @@
 #define DMI_h 1
 
 #include "config.h"
-#include "DMI/Common.h"
-#include "Common/Debug.h"
+#include <DMI/Common.h>
+#include <Common/Debug.h>
 #include <stdio.h>
-
 
 namespace DMI
 {
-//## begin DMI%3C14BA2803C4.initialDeclarations preserve=yes
   extern ::Debug::Context DebugContext; 
   inline ::Debug::Context & getDebugContext() { return DebugContext; };
   
@@ -75,8 +73,18 @@ namespace DMI
   }
   DMIFlags;
 
+  // compile-time error reporting. This is borrowed from Alexandrescu
+  template<int> struct CompileTimeError;
+  template<> struct CompileTimeError<true> {};
+
 };
 
 using DMI::DebugContext;
+
+#define STATIC_CHECK(expr,msg) \
+  { DMI::CompileTimeError<((expr) != 0)> ERROR_##msg; (void)ERROR_##msg; }
+// typedef DMI::CompileTimeChecker<(expr)!=0> Checker; 
+//  (void)sizeof( Checker( ERROR_##msg() ) ); }
+
 
 #endif

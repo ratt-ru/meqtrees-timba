@@ -17,14 +17,19 @@
 // pulls in DataField.h and DataArray.h, which in turn include 
 // NestableContainer.h. 
       
-#include "Common/Thread/Mutex.h"
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-#include "DMI/TypeInfo.h"
-#include "DMI/Timestamp.h"
-#include "DMI/BlockableObject.h"
-#include "DMI/Registry.h"
-#include "DMI/HIIDSet.h"
+#include <Common/Thread/Mutex.h>
+#include <DMI/Common.h>
+#include <DMI/DMI.h>
+#include <DMI/TypeInfo.h>
+#include <DMI/Timestamp.h>
+#include <DMI/BlockableObject.h>
+#include <DMI/Registry.h>
+#include <DMI/HIIDSet.h>
+#include <DMI/Loki/TypeManip.h>
+#ifndef NC_SKIP_HOOKS
+  #include <DMI/TID-DMI.h>
+  #include <DMI/TypeIterMacros.h>
+#endif
 
 // pull in type definitions from configured packages    
 #ifdef HAVE_LOFAR_OCTOPUSSY
@@ -47,6 +52,8 @@
 #endif
 
 using Debug::ssprintf;
+using Loki::Int2Type;
+using Loki::Type2Type;
 
 class NestableContainer;
 class NCBaseIter;
@@ -216,68 +223,10 @@ class NestableContainer : public BlockableObject
           const NestableContainer::ConstHook & operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
           { return (*this)[id1|id2|id3|id4]; }
           
-#ifndef NC_SKIP_HOOKS
-          // Define as_Array templates. This makes use of the blitz::Array type
-          // as_Lorray(): returns array by value
-          template<class T,int N>
-          blitz::Array<T,N> as_Lorray () const
-          { return *static_cast<const blitz::Array<T,N>*>(
-                get_pointer(_dum_int,typeIdOfArray(T,N),False,False)); } 
-          // as_Lorray(deflt): return array by value, or default if not defined
-          template<class T,int N>
-          blitz::Array<T,N> as_Lorray (const blitz::Array<T,N> &deflt) const 
-          { return *static_cast<const blitz::Array<T,N>*>(
-                get_pointer(_dum_int,typeIdOfArray(T,N),False,False,&deflt)); } 
-          // implicit conversion operator
-          template<class T,int N>
-          operator blitz::Array<T,N> () const
-          { return as_Lorray<T,N>(); }
-          // DataAcc-Const will define as_LoVec_type, as_LoMat_type, etc.
+          #ifndef NC_SKIP_HOOKS
+          #include <DMI/NC-ConstHooks.h>
+          #endif
           
-          // pull in const accessor methods
-          #include "DMI/DataAcc-Const.h"
-          
-#endif
-          
-#if !defined(NC_SKIP_HOOKS) || defined(NC_INCLUDE_VECTOR_HOOKS)
-          // Define an as_vector<> template. This should work for all
-          // contiguous containers.
-          template<class T>
-          vector<T> as_vector () const;
-          template<class T>
-          operator vector<T> () const 
-          { return as_vector<T>(); }
-#endif
-          
-#ifdef AIPSPP_HOOKS
-          // define accessors for some AIPS++ types
-          template<class T> 
-          Array<T> as_AipsArray () const;
-          template<class T> 
-          operator Array<T> () const 
-          { return as_AipsArray<T>(); }
-          
-          template<class T> 
-          Vector<T> as_AipsVector () const;
-          template<class T>
-          operator Vector<T> () const 
-          { return as_AipsVector<T>(); }
-
-          template<class T> 
-          Matrix<T> as_AipsMatrix () const;
-          template<class T> 
-          operator Matrix<T> () const 
-          { return as_AipsMatrix<T>(); }
-          
-        //##ModelId=3DB93499028E
-          String as_String () const;
-        //##ModelId=3DB934990393
-          operator String () const
-          { return as_String(); }
-          // template<class MVal> MVal as_MV ();
-          // template<class Meas> Meas as_M (const Meas::Types &type = Meas::DEFAULT);
-#endif
-
           // standard debug info
         //##ModelId=3DB9349A0087
           string sdebug ( int detail = 1,const string &prefix = "",const char *name = "cHook" ) const;
@@ -416,24 +365,6 @@ class NestableContainer : public BlockableObject
           //## nothing.
           const NestableContainer::Hook & init (TypeId tid = 0) const;
 
-          //##ModelId=3C873A8F035F
-          void operator = (const ObjRef &ref) const;
-          
-          //##ModelId=3C873AB8008D
-          void operator <<= (const ObjRef &ref) const;
-          
-          template<class T>
-          void operator = (const CountedRef<T> &ref) const;
-          
-          template<class T>
-          void operator <<= (const CountedRef<T> &ref) const;
-
-          //##ModelId=3C87864D031A
-          void operator <<= (BlockableObject *obj) const;
-
-          //##ModelId=3C8786A30223
-          void operator <<= (const BlockableObject *obj) const;
-
           //##ModelId=3C873AE302FC
           const NestableContainer::Hook & put (BlockableObject &obj, int flags) const;
 
@@ -504,57 +435,10 @@ class NestableContainer : public BlockableObject
           const NestableContainer::Hook & operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
           { return (*this)[id1|id2|id3|id4]; }
           
-          // allow assignment of all objrefs
-          // disabled since that confuses the compiler w.r.t. implicit conversions and stuff
-//          void operator = ( const ObjRef &ref );
+          #ifndef NC_SKIP_HOOKS
+          #include <DMI/NC-Hooks.h>
+          #endif          
           
-#ifndef NC_SKIP_HOOKS
-          // Define as_Lorray_w templates. This makes use of the blitz::Array type
-          // as_Lorray_w(): returns writable array by value
-          template<class T,int N>
-          blitz::Array<T,N> as_Lorray_w () const
-          { return *static_cast<blitz::Array<T,N>*>(const_cast<void*>(
-              get_pointer(_dum_int,typeIdOfArray(T,N),True,False))); } 
-          // as_Lorray_w(deflt): return array by value, or default if not defined
-          template<class T,int N>
-          blitz::Array<T,N> as_Lorray_w (blitz::Array<T,N> &deflt) const 
-          { return *static_cast<blitz::Array<T,N>*>(const_cast<void*>(
-              get_pointer(_dum_int,typeIdOfArray(T,N),True,False,&deflt))); } 
-          
-          // DataAcc-Const will define as_LoVec_type_w, as_LoMat_type_w, etc.
-          
-          // pull non-in const accessor methods
-          #define ForceConstDefinitions 1
-          #include "DMI/DataAcc-NonConst.h"
-          
-          // Assigning an Array either assigns to the underlying container,
-          // or inits a new DataArray object
-          // Since all arrays are actually typedef'd to blitz::Array<T,N>,
-          // we can declare this as a template.
-          template<class T,int N> 
-          const blitz::Array<T,N> & operator = (const blitz::Array<T,N> &other) const;
-#endif          
-          
-#if !defined(NC_SKIP_HOOKS) || defined(NC_INCLUDE_VECTOR_HOOKS)
-          // Assigning an STL vector of some type will assign to the underlying 
-          // container (provided the shape/size matches), or inits a new DataField
-          template<class T> 
-          const vector<T> & operator = (const vector<T> &other) const;
-#endif
-          // define accessors for AIPS++ types
-#ifdef AIPSPP_HOOKS
-          // assigning an AIPS++ array will init a DataArray object. This
-          // will also work for Vectors, Matrices and Cubes
-          template<class T>
-          const Array<T> & operator = (const Array<T> &other) const;
-          // note that assigning a vector of strings will init a DataField object
-        //##ModelId=3DB934BA03A3
-//          const Vector<String> & operator = (const Vector<String> &other) const;
-          // assigning an AIPS++ String assigns an STL string.
-        //##ModelId=3DB934BB02A0
-          const String & operator = (const String &other) const;
-#endif
-
         //##ModelId=3DB934BC01D9
           string sdebug ( int detail = 1,const string &prefix = "",const char *name = "Hook" ) const
           { return ConstHook::sdebug(detail,prefix,name); }
@@ -590,19 +474,16 @@ class NestableContainer : public BlockableObject
         //##ModelId=3DB934C801DF
           ObjRef & assign_objref ( const ObjRef &ref,int flags ) const;
 
-          // Templated function implements operator = (vector<T>) for arrayable types
-          template<class T> 
-          const vector<T> & assign_arrayable (const vector<T> &other) const;
-
           // Helper functions for assignment of vectors
         //##ModelId=3DB934CA0142
           void * prepare_vector (TypeId tid,int size) const;
           
-          template<class T> 
-          const vector<T> & assign_vector (const vector<T> &other,TypeId tid) const;
-
           // helper function prepares for array assignment
           void * prepare_assign_array (bool &haveArray,TypeId tid,const LoShape &shape) const;
+          
+          // Templated function implements operator = (vector<T>) for arrayable types
+          template<class T> 
+          void assign_arrayable (const std::vector<T> &other) const;
 
       private:
         //##ModelId=3DB934CC00F5
@@ -611,11 +492,6 @@ class NestableContainer : public BlockableObject
         //##ModelId=3DB934CC02E9
           Hook & operator=(const Hook &right);
 
-        // Additional Private Declarations
-        //##ModelId=3DB934CD0377
-          void operator = (const BlockableObject *) const;
-        //##ModelId=3DB934CF0101
-          void operator = (const BlockableObject &) const;
     };
 
       //##ModelId=3C7F928D00C0
@@ -933,40 +809,6 @@ inline NestableContainer::ConstHook::ConstHook (const NestableContainer &parent,
 {
 }
 
-
-
-//##ModelId=3C87377803A8
-inline const NestableContainer::ConstHook & NestableContainer::ConstHook::operator [] (const HIID &id1) const
-{
-  FailWhen(addressed,"unexpected '&' operator");
-  if( id1.size() )
-  {
-    int sep = id1.findFirstSlash();
-    if( !sep )
-      return (*this)[id1.subId(1)];
-    else if( sep == (int)(id1.size()-1) )
-      return (*this)[id1.subId(0,id1.size()-1)];
-    else if( sep > 0 )
-      return (*this)[id1.subId(0,sep-1)][id1.subId(sep+1)];
-  }
-  // apply any previous subscripts
-  // (if index==-2, we've been called from constructor, so don't do it)
-  if( index >= -1 ) 
-    nextIndex();
-  // set the new subscript
-  id=id1; index=-1;
-  return *this;
-}
-
-//##ModelId=3C8737C80081
-inline const NestableContainer::ConstHook & NestableContainer::ConstHook::operator [] (int n) const
-{
-  FailWhen(addressed,"unexpected '&' operator");
-  nextIndex();
-  id.clear(); index=n;
-  return *this;
-}
-
 //##ModelId=3C87364902B3
 inline const NestableContainer::ConstHook & NestableContainer::ConstHook::operator & () const
 {
@@ -980,25 +822,6 @@ inline bool NestableContainer::ConstHook::exists () const
 {
   ContentInfo info;
   return collapseIndex(info,0,0) != 0;
-}
-
-//##ModelId=3C8737E002A3
-inline TypeId NestableContainer::ConstHook::type () const
-{
-  ContentInfo info;
-  const void *targ = collapseIndex(info,0,0);
-  if( !targ )
-    return 0;
-  const NestableContainer *nc1 = asNestable(targ,info.tid);
-  return nc1 ? nc1->type() : info.tid;
-}
-
-//##ModelId=3C8737F702D8
-inline TypeId NestableContainer::ConstHook::actualType () const
-{
-  ContentInfo info;
-  const void *targ = collapseIndex(info,0,0);
-  return targ ? info.tid : NullType;
 }
 
 //##ModelId=3C876AFC0254
@@ -1086,38 +909,6 @@ inline const NestableContainer::Hook & NestableContainer::Hook::size (int &sz, T
 {
   sz = ConstHook::size(tid);
   return *this;
-}
-
-//template<class T>
-//##ModelId=3DB934CF0101
-//##ModelId=3DB9257A01AA
-//##ModelId=3DB9259B0218
-//##ModelId=3DB9259D031C
-inline void NestableContainer::Hook::operator = (const ObjRef &ref) const
-{
-  assign_objref(ref,DMI::PRESERVE_RW|DMI::COPYREF);
-}
-          
-//template<class T>
-//void NestableContainer::Hook::operator = ( const CountedRef<T*> &ref)
-//{ (*this) = ref.asRef<BlockableObject*>(); }
-
-//##ModelId=3C873AB8008D
-inline void NestableContainer::Hook::operator <<= (const ObjRef &ref) const
-{
-  assign_objref(ref,DMI::PRESERVE_RW);
-}
-
-//##ModelId=3C87864D031A
-inline void NestableContainer::Hook::operator <<= (BlockableObject *obj) const
-{
-  assign_object(obj,obj->objectType(),DMI::ANON|DMI::WRITE);
-}
-
-//##ModelId=3C8786A30223
-inline void NestableContainer::Hook::operator <<= (const BlockableObject *obj) const
-{
-  assign_object(obj,obj->objectType(),DMI::ANON|DMI::READONLY);
 }
 
 //##ModelId=3C873AE302FC
@@ -1246,92 +1037,6 @@ inline const Thread::Mutex & NestableContainer::mutex() const
 }
 #endif
 
-// This is called to treat the hook target as an ObjRef (exception otherwise)
-//##ModelId=3DB9349E0198
-inline const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
-{
-  FailWhen(addressed,"unexpected '&' operator");
-  ContentInfo info;
-  const void *target = collapseIndex(info,0,write?DMI::WRITE:0);
-  FailWhen(!target,"element does not exist");
-  FailWhen(info.tid != TpObjRef,"element is not held in an ObjRef");
-  return static_cast<const ObjRef*>(target);
-}
-
-// This is called to access by pointer, for all types
-// Defers to get_address(pointer=True)
-//##ModelId=3DB934AC03C2
-inline const void * NestableContainer::ConstHook::get_pointer (int &sz,
-    TypeId tid,bool must_write,bool implicit,
-    const void *deflt,Thread::Mutex::Lock *keeplock) const
-{
-  FailWhen(!addressed && implicit,"missing '&' operator");
-  // Defers to get_address(pointer=True)
-  ContentInfo info;
-  const void *ret = get_address(info,tid,must_write,True,deflt,keeplock);
-  sz = info.size;
-  return ret;
-}
-
-// This applies the current subscript to the hook, updating the target
-//##ModelId=3DB934A30258
-inline const void * NestableContainer::ConstHook::collapseIndex (
-    ContentInfo &info,TypeId check_tid,int flags) const
-{
-#ifdef USE_THREADS
-// relock as writable, if write access is required
-//  if( flags&DMI::WRITE || autoprivatize )
-// no need anymore since it's only a mutex
-//    lock.relock(True);
-#endif
-  const void *ret = index<0 
-      ? nc->get(id,info,check_tid,flags|autoprivatize)
-      : nc->getn(index,info,check_tid,flags|autoprivatize);
-  return ret;
-}
-
-// helper function applies current subscript to hook in preparation
-// for setting a new one. Insures that current target is a container.
-//##ModelId=3DB934A50226
-inline void NestableContainer::ConstHook::nextIndex () const
-{
-  // subscript into container for new target
-  const NestableContainer *newnc = asNestable();
-  FailWhen(!newnc,"indexing into non-existing or non-container element");
-  nc = const_cast<NestableContainer*>(newnc);
-#ifdef USE_THREADS
-  lock.relock(nc->mutex());
-#endif
-}
-
-// helper function repoints hook at new container and sets null subscript
-//##ModelId=3DB934A60032
-inline NestableContainer * NestableContainer::ConstHook::nextNC (const NestableContainer *nc1) const
-{
-  if( !nc1 )
-    return 0;
-  nc = const_cast<NestableContainer *>(nc1);
-  index = -1;
-  id.clear();
-#ifdef USE_THREADS
-  lock.relock(nc->mutex());
-#endif
-  return nc;
-}
-
-#ifndef NC_SKIP_HOOKS
-// Define an as_vector<> template. This should work for all
-// contiguous containers.
-// This copies data so is not very efficient, but is quite
-// convenient where sizes are small.
-template<class T>
-inline vector<T> NestableContainer::ConstHook::as_vector () const
-{
-  int n;
-  const T *data = static_cast<const T*>(get_pointer(n,typeIdOf(T),False,False));
-  return vector<T>(data,data+n);
-}
-#endif
 
 // const version of assign_object forces a read-only ref to be attached
 //##ModelId=3DB934C600BA
@@ -1342,66 +1047,18 @@ inline void NestableContainer::Hook::assign_object( const BlockableObject *obj,T
   return assign_object(const_cast<BlockableObject*>(obj),tid,(flags&~DMI::WRITE)|DMI::READONLY);
 }
 
-template<class T>
-void NestableContainer::Hook::operator = (const CountedRef<T> &ref) const
-{ 
-  // method for assigning a copy of a generic CountedRef.
-  // This will create an intermediate ObjRef (instantiation will fail if
-  // T is not derived from BlockableObject), attach it to the ref target
-  // with the default flags (thus retaining the anon/externm property),
-  // then transfer that ref to the container.
-  ObjRef objref; 
-  if( ref.isWritable() )
-    objref.attach(ref.dewr());
-  else
-    objref.attach(ref.deref());
-  operator <<= (objref); 
+// This applies the current subscript to the hook, updating the target
+//##ModelId=3DB934A30258
+inline const void * NestableContainer::ConstHook::collapseIndex (ContentInfo &info,TypeId check_tid,int flags) const
+{
+  const void *ret = index<0 
+      ? nc->get(id,info,check_tid,flags|autoprivatize)
+      : nc->getn(index,info,check_tid,flags|autoprivatize);
+  return ret;
 }
-
-template<class T>
-void NestableContainer::Hook::operator <<= (const CountedRef<T> &ref) const
-{ 
-  // method for transferring generic CountedRef.
-  // This will create an intermediate ObjRef (instantiation will fail if
-  // T is not derived from BlockableObject), attach it to the ref target
-  // with the default flags (thus retaining the anon/externm property),
-  // then transfer that ref to the container. Then the original ref is detached.
-  ObjRef objref; 
-  if( ref.isWritable() )
-    objref.attach(ref.dewr());
-  else
-    objref.attach(ref.deref());
-  operator <<= (objref); 
-  // const violation since we "emulate" ref xfer in here
-  const_cast<CountedRef<T>& >(ref).detach();
-}
-
-
 
 #ifndef NC_SKIP_HOOKS
-template<class T,int N> 
-const blitz::Array<T,N> & NestableContainer::Hook::operator = (const blitz::Array<T,N> &other) const
-{
-  bool haveArray;
-  void * target = prepare_assign_array(haveArray,typeIdOf(T),other.shape());
-  if( !target )             // no object - create new field
-  {
-    ObjRef ref(new DataArray(other,DMI::WRITE),DMI::ANONWR);
-    assign_objref(ref,0);
-  }
-  else if( haveArray )       // got array object - use assignment
-  {
-    blitz::Array<T,N> *pdest = static_cast<blitz::Array<T,N>*>(target);
-    FailWhen(pdest->shape() != other.shape(),"can't assign array: shape mismatch");
-    (*pdest) = other;
-  }
-  else                      // got pointer to data - use flat copy
-  {
-    blitz::Array<T,N> dest(static_cast<T*>(target),other.shape(),blitz::neverDeleteData);
-    dest = other;
-  }
-  return other;
-}
+  #include <DMI/NC-Hooks-Templ.h>
 #endif
 
 #endif

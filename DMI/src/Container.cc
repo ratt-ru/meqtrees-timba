@@ -11,11 +11,60 @@ DefineRegistry(NestableContainer,False);
 int NestableContainer::ConstHook::_dum_int;
 NestableContainer::ContentInfo NestableContainer::ConstHook::_dum_info;
 
+//##ModelId=3C87377803A8
+const NestableContainer::ConstHook & NestableContainer::ConstHook::operator [] (const HIID &id1) const
+{
+  FailWhen(addressed,"unexpected '&' operator");
+  if( id1.size() )
+  {
+    int sep = id1.findFirstSlash();
+    if( !sep )
+      return (*this)[id1.subId(1)];
+    else if( sep == (int)(id1.size()-1) )
+      return (*this)[id1.subId(0,id1.size()-1)];
+    else if( sep > 0 )
+      return (*this)[id1.subId(0,sep-1)][id1.subId(sep+1)];
+  }
+  // apply any previous subscripts
+  // (if index==-2, we've been called from constructor, so don't do it)
+  if( index >= -1 ) 
+    nextIndex();
+  // set the new subscript
+  id=id1; index=-1;
+  return *this;
+}
+
+//##ModelId=3C8737C80081
+const NestableContainer::ConstHook & NestableContainer::ConstHook::operator [] (int n) const
+{
+  FailWhen(addressed,"unexpected '&' operator");
+  nextIndex();
+  id.clear(); index=n;
+  return *this;
+}
+
+//##ModelId=3C8737E002A3
+TypeId NestableContainer::ConstHook::type () const
+{
+  ContentInfo info;
+  const void *targ = collapseIndex(info,0,0);
+  if( !targ )
+    return 0;
+  const NestableContainer *nc1 = asNestable(targ,info.tid);
+  return nc1 ? nc1->type() : info.tid;
+}
+
+//##ModelId=3C8737F702D8
+TypeId NestableContainer::ConstHook::actualType () const
+{
+  ContentInfo info;
+  const void *targ = collapseIndex(info,0,0);
+  return targ ? info.tid : NullType;
+}
 
 
 int NestableContainer::ConstHook::size (TypeId tid) const
 {
-  //## begin NestableContainer::ConstHook::size%3C87380503BE.body preserve=yes
   ContentInfo info;
   const void *targ = collapseIndex(info,0,0);
   if( !targ )
@@ -24,18 +73,66 @@ int NestableContainer::ConstHook::size (TypeId tid) const
   if( nc1 )
     return nc1->size(tid);
   return info.size;
-  //## end NestableContainer::ConstHook::size%3C87380503BE.body
 }
 
-// Additional Declarations
+// This is called to treat the hook target as an ObjRef (exception otherwise)
+//##ModelId=3DB9349E0198
+const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
+{
+  FailWhen(addressed,"unexpected '&' operator");
+  ContentInfo info;
+  const void *target = collapseIndex(info,TpObjRef,write?DMI::WRITE:0);
+  FailWhen(!target,"element does not exist");
+  return static_cast<const ObjRef*>(target);
+}
+
+// This is called to access by pointer, for all types
+// Defers to get_address(pointer=True)
+//##ModelId=3DB934AC03C2
+const void * NestableContainer::ConstHook::get_pointer (int &sz,
+    TypeId tid,bool must_write,bool implicit,
+    const void *deflt,Thread::Mutex::Lock *keeplock) const
+{
+  FailWhen(!addressed && implicit,"missing '&' operator");
+  // Defers to get_address(pointer=True)
+  ContentInfo info;
+  const void *ret = get_address(info,tid,must_write,True,deflt,keeplock);
+  sz = info.size;
+  return ret;
+}
+
+// helper function applies current subscript to hook in preparation
+// for setting a new one. Insures that current target is a container.
+//##ModelId=3DB934A50226
+void NestableContainer::ConstHook::nextIndex () const
+{
+  // subscript into container for new target
+  const NestableContainer *newnc = asNestable();
+  FailWhen(!newnc,"indexing into non-existing or non-container element");
+  nc = const_cast<NestableContainer*>(newnc);
+#ifdef USE_THREADS
+  lock.relock(nc->mutex());
+#endif
+}
+
+// helper function repoints hook at new container and sets null subscript
+//##ModelId=3DB934A60032
+NestableContainer * NestableContainer::ConstHook::nextNC (const NestableContainer *nc1) const
+{
+  if( !nc1 )
+    return 0;
+  nc = const_cast<NestableContainer *>(nc1);
+  index = -1;
+  id.clear();
+#ifdef USE_THREADS
+  lock.relock(nc->mutex());
+#endif
+  return nc;
+}
+
+
+
 //##ModelId=3C87665E0178
-  //## begin NestableContainer::ConstHook%3C614FDE0039.declarations preserve=yes
-  //## end NestableContainer::ConstHook%3C614FDE0039.declarations
-
-// Class NestableContainer::Hook 
-
-
-//## Other Operations (implementation)
 bool NestableContainer::Hook::isWritable () const
 {
   //## begin NestableContainer::Hook::isWritable%3C87665E0178.body preserve=yes
@@ -253,7 +350,7 @@ const NestableContainer * NestableContainer::ConstHook::asNestable (const void *
   info.tid = tid;
   if( !targ )
   {
-    targ = collapseIndex(info,0,0);
+    targ = collapseIndex(info,TpObject,0);
     if( !targ )
       return 0;
   }
@@ -279,7 +376,7 @@ NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ,TypeI
   info.tid = tid;
   if( !targ )
   {
-    targ = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
+    targ = const_cast<void*>( collapseIndex(info,TpObject,DMI::WRITE) );
     if( !targ )
       return 0;
   }
@@ -402,6 +499,7 @@ const void * NestableContainer::ConstHook::get_address (ContentInfo &info,
 void * NestableContainer::Hook::prepare_put( ContentInfo &info,TypeId tid ) const
 {
   FailWhen(addressed,"unexpected '&' operator");
+  TypeId real_tid = info.tid; // save value since it may be modified by collapseIndex
   void *target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
   // non-existing object: try to a insert new one
   if( !target  )
@@ -411,8 +509,8 @@ void * NestableContainer::Hook::prepare_put( ContentInfo &info,TypeId tid ) cons
 //    #endif
     // The resulting target_tid may be different from the requested tid
     // in the case of scalars (where conversion is allowed)
-    target = index>=0 ? nc->insertn(index,tid,info.tid)
-                      : nc->insert(id,tid,info.tid);
+    target = index>=0 ? nc->insertn(index,tid,info.tid=real_tid)
+                      : nc->insert(id,tid,info.tid=real_tid);
 //    if( TypeInfo::isDynamic(info.tid) )
 //      info.tid = TpObjRef;
   }
@@ -424,6 +522,7 @@ void * NestableContainer::Hook::prepare_put( ContentInfo &info,TypeId tid ) cons
     NestableContainer *nc1 = nextNC(asNestableWr(target,info.tid));
     if( nc1 && nc1->objectType() != tid )
     {
+      info.tid = real_tid; 
       if( nc1->size() )
       {
         target = const_cast<void*>(
@@ -531,7 +630,7 @@ void * NestableContainer::Hook::prepare_assign_array (bool &haveArray,TypeId tid
 // than a DataField, and that vector<T> may be assigned to an Array(T,1), 
 // if the hook returns that.
 template<class T> 
-const vector<T> & NestableContainer::Hook::assign_arrayable (const vector<T> &other) const
+void NestableContainer::Hook::assign_arrayable (const std::vector<T> &other) const
 {
   FailWhen(addressed,"unexpected '&' operator");
   ContentInfo info;
@@ -575,8 +674,13 @@ const vector<T> & NestableContainer::Hook::assign_arrayable (const vector<T> &ot
     for( typename vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ )
       *ptr++ = *iter;
   }
-  return other;
 }
+
+// provide instantiations of assign_arrayable for all arrayable types
+#define __inst(T,arg) template void NestableContainer::Hook::assign_arrayable (const std::vector<T> &other) const;
+DoForAllArrayTypes(__inst,);
+#undef __inst
+
 
 // This helper method does all the work of preparing a hook for assignment of
 // vector. This minimizes template size.
@@ -609,48 +713,6 @@ void * NestableContainer::Hook::prepare_vector (TypeId tid,int size) const
   return target;
 }
 
-
-template<class T> 
-inline const vector<T> & NestableContainer::Hook::assign_vector (const vector<T> &other,TypeId tid) const
-{ 
-  T * ptr = static_cast<T*>( prepare_vector(tid,other.size()) ); 
-  for( typename vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ ) 
-    *ptr++ = *iter; 
-  return other; 
-}
-
-// Assignment of an STL vector either assigns to the underlying object,
-// or inits a new DataField.
-// instantiate =(vector<T>) for all non-arrayable types
-// We define a macro to provide a template specialization, so that we
-// can use the TpType constants
-#define __assign_vector(T,arg) template<> const vector<T> & NestableContainer::Hook::operator = (const vector<T> &other) const { return assign_vector(other,Tp##T); }
-DoForAllNonArrayTypes(__assign_vector,);
-DoForAllBinaryTypes(__assign_vector,);
-
-// Ugly Kludge(TM)
-// this temporarily masks the string type, so that it is skipped by the
-// DoForAllSpecialTypes() invocation. string is handled by DoForAllArrayTypes,
-// below.
-typedef struct { int dum; } Dummy;
-#define string Dummy
-#define TpDummy 0 
-DoForAllSpecialTypes(__assign_vector,);
-#undef string
-
-#undef __assign_vector
-// provide specializations of =(vector<T>) for all arrayable types
-#define __specialize(T,arg) template<> const vector<T> & NestableContainer::Hook::operator = (const vector<T> &other) const { return assign_arrayable(other); }
-DoForAllArrayTypes(__specialize,);
-#undef __specialize
-
-//// instantiate =(Array<T>) for all arrayable types
-//#define __instantiate(T,arg) template const blitz::Array<T> & NestableContainer::Hook::operator = (const Array<T> &other) const;
-//DoForAllArrayTypes(__instantiate,);
-//#undef __instantiate
-
-
-
 //##ModelId=3DB9349A0087
 string NestableContainer::ConstHook::sdebug ( int detail,const string &prefix,const char *name ) const
 {
@@ -663,6 +725,3 @@ string NestableContainer::ConstHook::sdebug ( int detail,const string &prefix,co
       : "["+id.toString()+"]"; 
   return out;  
 }
-  //## end NestableContainer%3BE97CE100AF.declarations
-//## begin module%3C10CC830069.epilog preserve=yes
-//## end module%3C10CC830069.epilog

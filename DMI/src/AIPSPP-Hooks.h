@@ -16,14 +16,14 @@ namespace AIPSPP_Hooks
 {
   // templated helper method to create a 1D array using a copy of data
   template<class T>
-  Array<T> copyVector (int n,const void *data)
+  inline Array<T> copyVector (int n,const void *data)
   { 
     return Array<T>(IPosition(1,n),static_cast<const T*>(data));
   };
 
   // specialization for String, with conversion from std::string
   template<>
-  Array<String> copyVector (int n,const void *data)
+  inline Array<String> copyVector (int n,const void *data)
   { 
     String *dest0 = new String[n], *dest = dest0;
     const string *src = static_cast<const string *>(data);
@@ -37,11 +37,11 @@ namespace AIPSPP_Hooks
 
 inline String NestableContainer::ConstHook::as_String () const
 {
-  return String((*this).as_string());
+  return String(as<string>());
 }
 
 template<class T>
-Array<T> NestableContainer::ConstHook::as_AipsArray () const
+Array<T> NestableContainer::ConstHook::as_AipsArray (Type2Type<T>) const
 {
   ContentInfo info;
   const void *target;
@@ -80,7 +80,7 @@ Array<T> NestableContainer::ConstHook::as_AipsArray () const
 }
 
 template<class T>
-Vector<T> NestableContainer::ConstHook::as_AipsVector () const
+Vector<T> NestableContainer::ConstHook::as_AipsVector (Type2Type<T>) const
 {
   Array<T> arr = as_AipsArray();
   FailWhen( arr.ndim() != 1,"can't access array as Vector" );
@@ -88,7 +88,7 @@ Vector<T> NestableContainer::ConstHook::as_AipsVector () const
 }
 
 template<class T>
-Matrix<T> NestableContainer::ConstHook::as_AipsMatrix () const
+Matrix<T> NestableContainer::ConstHook::as_AipsMatrix (Type2Type<T>) const
 {
   Array<T> arr = as_AipsArray();
   FailWhen( arr.ndim() != 2,"can't access array as Matrix" );
@@ -96,17 +96,15 @@ Matrix<T> NestableContainer::ConstHook::as_AipsMatrix () const
 }
 
 template<class T>
-const Array<T> & NestableContainer::Hook::operator = (const Array<T> &other) const
+void NestableContainer::Hook::operator = (const Array<T> &other) const
 {
   (*this) <<= new DataArray(other,DMI::WRITE);
-  return other;
 }
 
 // assigning a String simply assigns a string
-inline const String & NestableContainer::Hook::operator = (const String &other) const
+inline string & NestableContainer::Hook::operator = (const String &other) const
 {
-  (*this) = static_cast<const string &>(other);
-  return other;
+  return operator = ( static_cast<const string &>(other) );
 }
 
 #endif

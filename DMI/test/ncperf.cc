@@ -127,7 +127,7 @@ int main ( int argc,const char *argv[] )
     }
     cout<<watch.dump("R3RFIX",nloops)<<endl;
 
-    DataRecord &rec1 = rec["A/B"];
+    DataRecord &rec1 = rec["A/B"].as_wr<DataRecord>();
     ndone = 0;
     watch.reset();
     for( nloops=0; !watch.fired(); nloops+=1000 )
@@ -166,7 +166,7 @@ int main ( int argc,const char *argv[] )
     int size = 1000;
     DataArray arr(Tpdouble,makeLoShape(size,size),DMI::ZERO|DMI::WRITE);
     ndone = size*size;
-    LoMat_double mat(arr[HIID()].as_LoMat_double());
+    LoMat_double mat = arr[HIID()].as<LoMat_double>();
       
     for( nloops=0; !watch.fired(); nloops+=10 )
     {
@@ -198,7 +198,7 @@ int main ( int argc,const char *argv[] )
 //    cout<<"=== Accessing array with iterators\n";
     ndone = size*size;
     watch.reset();
-    double *tmp = &arr(10,10);
+    double *tmp = arr(10,10).as_wp<double>();
     NCConstIter_double iter(arr[HIID()]);
     for( nloops=0; !watch.fired(); nloops+=10 )
     {
@@ -219,7 +219,7 @@ int main ( int argc,const char *argv[] )
     for( int i=0; i<sz1; i++ )
       for( int j=0; j<sz1; j++ )
       {
-        dum += arr(i,j).as_double();
+        dum += arr(i,j).as<double>();
       }
     cout<<watch.dump("ADSH1M",ndone)<<endl;
     cerr<<dum<<endl;
@@ -229,9 +229,9 @@ int main ( int argc,const char *argv[] )
     
     {
       ndone = size*size;
-      LoMat_double   mat(arr[HIID()].as_LoMat_double()),
-                     mat2(arr2[HIID()].as_LoMat_double()),
-                     mat3(arr3[HIID()].as_LoMat_double_w());
+      LoMat_double   mat(arr[HIID()].as<LoMat_double>()),
+                     mat2(arr2[HIID()].as<LoMat_double>()),
+                     mat3(arr3[HIID()].as<LoMat_double>());
       watch.reset();
       for( nloops=0; !watch.fired(); nloops+=10 )
       {
@@ -250,8 +250,8 @@ int main ( int argc,const char *argv[] )
     }
     
     {
-      LoMat_double mat(arr[HIID()].as_LoMat_double()),
-                   mat2(arr2[HIID()].as_LoMat_double());
+      LoMat_double mat(arr[HIID()].as<LoMat_double>()),
+                   mat2(arr2[HIID()].as<LoMat_double>());
       watch.reset();
       for( nloops=0; !watch.fired(); nloops+=10 )
       {
@@ -268,7 +268,7 @@ int main ( int argc,const char *argv[] )
     {
       ndone = size*size;
       watch.reset();
-      double *tmp = &arr(10,10);
+      double *tmp = arr(10,10).as_wp<double>();
       NCConstIter_double iter(arr[HIID()]);
       NCConstIter_double iter2(arr2[HIID()]);
       NCIter_double iter3(arr3[HIID()]);
@@ -281,7 +281,7 @@ int main ( int argc,const char *argv[] )
             { iter3.next( iter2.next()+iter.next() ); }
         }
       cout<<watch.dump("ADAI1M",ndone*nloops)<<endl;
-      cerr<<sum(arr3[HIID()].as_LoMat_double())<<endl;
+      cerr<<sum(arr3[HIID()].as<LoMat_double>())<<endl;
     }
     
     {
@@ -291,10 +291,10 @@ int main ( int argc,const char *argv[] )
       for( int i=0; i<sz1; i++ )
         for( int j=0; j<sz1; j++ )
         {
-          arr3(i,j) = arr2(i,j).as_double() + arr(i,j).as_double();
+          arr3(i,j) = arr2(i,j).as<double>() + arr(i,j).as<double>();
         }
       cout<<watch.dump("ADAH1M",ndone)<<endl;
-      cerr<<sum(arr3[HIID()].as_LoMat_double())<<endl;
+      cerr<<sum(arr3[HIID()].as<LoMat_double>())<<endl;
     }
   
     {  
@@ -313,12 +313,12 @@ int main ( int argc,const char *argv[] )
         iter3.next( iter2.next()+iter.next() ); 
       }
       cout<<watch.dump("ADAI25M",size*size)<<endl;
-      cerr<<sum(arr3[HIID()].as_LoMat_double())<<endl;
+      cerr<<sum(arr3[HIID()].as<LoMat_double>())<<endl;
       }
       
       {
-      LoMat_double mat(arr[HIID()].as_LoMat_double()),
-                   mat2(arr2[HIID()].as_LoMat_double());
+      LoMat_double mat(arr[HIID()].as<LoMat_double>()),
+                   mat2(arr2[HIID()].as<LoMat_double>());
       watch.reset();
       LoMat_double mat3(mat + mat2);
       cout<<watch.dump("ADAA25M",size*size)<<endl;

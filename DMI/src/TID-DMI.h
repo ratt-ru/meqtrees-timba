@@ -10,128 +10,382 @@
 
 #ifndef _defined_id_TpAtomicID
 #define _defined_id_TpAtomicID 1
-const TypeId TpAtomicID(-1007);                   // from /home/oms/LOFAR/DMI/src/TypeId.h:117
+const TypeId TpAtomicID(-1007);                   // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:2
 const int TpAtomicID_int = -1007;
 class AtomicID;
+            template<>
+            class DMIBaseTypeTraits<AtomicID> : public TypeTraits<AtomicID>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpAtomicID_int };
+              enum { TypeCategory = TypeCategories::BINARY };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const AtomicID & ContainerReturnType;
+              typedef const AtomicID & ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_TpDataArray
 #define _defined_id_TpDataArray 1
-const TypeId TpDataArray(-1022);                  // from /home/oms/LOFAR/DMI/src/DataArray.h:107
+const TypeId TpDataArray(-1022);                  // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:6
 const int TpDataArray_int = -1022;
 class DataArray;
+            template<>
+            class DMIBaseTypeTraits<DataArray> : public TypeTraits<DataArray>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpDataArray_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const DataArray & ContainerReturnType;
+              typedef const DataArray & ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_TpDataField
 #define _defined_id_TpDataField 1
-const TypeId TpDataField(-1031);                  // from /home/oms/LOFAR/DMI/src/DataField.h:19
+const TypeId TpDataField(-1031);                  // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:7
 const int TpDataField_int = -1031;
 class DataField;
+            template<>
+            class DMIBaseTypeTraits<DataField> : public TypeTraits<DataField>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpDataField_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const DataField & ContainerReturnType;
+              typedef const DataField & ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_TpDataRecord
 #define _defined_id_TpDataRecord 1
-const TypeId TpDataRecord(-1033);                 // from /home/oms/LOFAR/DMI/src/DataRecord.h:9
+const TypeId TpDataRecord(-1033);                 // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:8
 const int TpDataRecord_int = -1033;
 class DataRecord;
+            template<>
+            class DMIBaseTypeTraits<DataRecord> : public TypeTraits<DataRecord>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpDataRecord_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const DataRecord & ContainerReturnType;
+              typedef const DataRecord & ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_TpHIID
 #define _defined_id_TpHIID 1
-const TypeId TpHIID(-1025);                       // from /home/oms/LOFAR/DMI/src/HIID.h:13
+const TypeId TpHIID(-1025);                       // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:13
 const int TpHIID_int = -1025;
+class HIID;
+            template<>
+            class DMIBaseTypeTraits<HIID> : public TypeTraits<HIID>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpHIID_int };
+              enum { TypeCategory = TypeCategories::SPECIAL };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const HIID & ContainerReturnType;
+              typedef const HIID & ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_TpObjRef
 #define _defined_id_TpObjRef 1
-const TypeId TpObjRef(-1030);                     // from /home/oms/LOFAR/DMI/src/BlockableObject.h:17
+const TypeId TpObjRef(-1030);                     // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:21
 const int TpObjRef_int = -1030;
 #endif
 #ifndef _defined_id_TpTimestamp
 #define _defined_id_TpTimestamp 1
-const TypeId TpTimestamp(-1032);                  // from /home/oms/LOFAR/DMI/src/Timestamp.h:11
+const TypeId TpTimestamp(-1032);                  // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:27
 const int TpTimestamp_int = -1032;
 class Timestamp;
+            template<>
+            class DMIBaseTypeTraits<Timestamp> : public TypeTraits<Timestamp>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpTimestamp_int };
+              enum { TypeCategory = TypeCategories::BINARY };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Timestamp & ContainerReturnType;
+              typedef const Timestamp & ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpbool
 #define _defined_id_Tpbool 1
-const TypeId Tpbool(-32);                         // from /home/oms/LOFAR/DMI/src/TypeId.h:93
+const TypeId Tpbool(-32);                         // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:34
 const int Tpbool_int = -32;
+            template<>
+            class DMIBaseTypeTraits<bool> : public TypeTraits<bool>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpbool_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef bool ContainerReturnType;
+              typedef bool ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpchar
 #define _defined_id_Tpchar 1
-const TypeId Tpchar(-33);                         // from /home/oms/LOFAR/DMI/src/TypeId.h:94
+const TypeId Tpchar(-33);                         // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:35
 const int Tpchar_int = -33;
+            template<>
+            class DMIBaseTypeTraits<char> : public TypeTraits<char>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpchar_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef char ContainerReturnType;
+              typedef char ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpdcomplex
 #define _defined_id_Tpdcomplex 1
-const TypeId Tpdcomplex(-47);                     // from /home/oms/LOFAR/DMI/src/TypeId.h:97
+const TypeId Tpdcomplex(-47);                     // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:36
 const int Tpdcomplex_int = -47;
+            template<>
+            class DMIBaseTypeTraits<dcomplex> : public TypeTraits<dcomplex>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpdcomplex_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef dcomplex ContainerReturnType;
+              typedef dcomplex ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpdouble
 #define _defined_id_Tpdouble 1
-const TypeId Tpdouble(-44);                       // from /home/oms/LOFAR/DMI/src/TypeId.h:96
+const TypeId Tpdouble(-44);                       // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:37
 const int Tpdouble_int = -44;
+            template<>
+            class DMIBaseTypeTraits<double> : public TypeTraits<double>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpdouble_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef double ContainerReturnType;
+              typedef double ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpfcomplex
 #define _defined_id_Tpfcomplex 1
-const TypeId Tpfcomplex(-46);                     // from /home/oms/LOFAR/DMI/src/TypeId.h:97
+const TypeId Tpfcomplex(-46);                     // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:38
 const int Tpfcomplex_int = -46;
+            template<>
+            class DMIBaseTypeTraits<fcomplex> : public TypeTraits<fcomplex>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpfcomplex_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef fcomplex ContainerReturnType;
+              typedef fcomplex ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpfloat
 #define _defined_id_Tpfloat 1
-const TypeId Tpfloat(-43);                        // from /home/oms/LOFAR/DMI/src/TypeId.h:96
+const TypeId Tpfloat(-43);                        // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:39
 const int Tpfloat_int = -43;
+            template<>
+            class DMIBaseTypeTraits<float> : public TypeTraits<float>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpfloat_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef float ContainerReturnType;
+              typedef float ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpint
 #define _defined_id_Tpint 1
-const TypeId Tpint(-37);                          // from /home/oms/LOFAR/DMI/src/TypeId.h:94
+const TypeId Tpint(-37);                          // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:40
 const int Tpint_int = -37;
+            template<>
+            class DMIBaseTypeTraits<int> : public TypeTraits<int>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpint_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef int ContainerReturnType;
+              typedef int ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpldouble
 #define _defined_id_Tpldouble 1
-const TypeId Tpldouble(-45);                      // from /home/oms/LOFAR/DMI/src/TypeId.h:96
+const TypeId Tpldouble(-45);                      // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:41
 const int Tpldouble_int = -45;
+            template<>
+            class DMIBaseTypeTraits<ldouble> : public TypeTraits<ldouble>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpldouble_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef ldouble ContainerReturnType;
+              typedef ldouble ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tplong
 #define _defined_id_Tplong 1
-const TypeId Tplong(-39);                         // from /home/oms/LOFAR/DMI/src/TypeId.h:95
+const TypeId Tplong(-39);                         // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:42
 const int Tplong_int = -39;
+            template<>
+            class DMIBaseTypeTraits<long> : public TypeTraits<long>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tplong_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef long ContainerReturnType;
+              typedef long ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tplonglong
 #define _defined_id_Tplonglong 1
-const TypeId Tplonglong(-41);                     // from /home/oms/LOFAR/DMI/src/TypeId.h:95
+const TypeId Tplonglong(-41);                     // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:43
 const int Tplonglong_int = -41;
+            template<>
+            class DMIBaseTypeTraits<longlong> : public TypeTraits<longlong>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tplonglong_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef longlong ContainerReturnType;
+              typedef longlong ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpshort
 #define _defined_id_Tpshort 1
-const TypeId Tpshort(-35);                        // from /home/oms/LOFAR/DMI/src/TypeId.h:94
+const TypeId Tpshort(-35);                        // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:44
 const int Tpshort_int = -35;
+            template<>
+            class DMIBaseTypeTraits<short> : public TypeTraits<short>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpshort_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef short ContainerReturnType;
+              typedef short ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpstring
 #define _defined_id_Tpstring 1
-const TypeId Tpstring(-48);                       // from /home/oms/LOFAR/DMI/src/TypeId.h:98
+const TypeId Tpstring(-48);                       // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:45
 const int Tpstring_int = -48;
+            template<>
+            class DMIBaseTypeTraits<string> : public TypeTraits<string>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpstring_int };
+              enum { TypeCategory = TypeCategories::SPECIAL };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const string & ContainerReturnType;
+              typedef const string & ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpuchar
 #define _defined_id_Tpuchar 1
-const TypeId Tpuchar(-34);                        // from /home/oms/LOFAR/DMI/src/TypeId.h:94
+const TypeId Tpuchar(-34);                        // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:46
 const int Tpuchar_int = -34;
+            template<>
+            class DMIBaseTypeTraits<uchar> : public TypeTraits<uchar>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpuchar_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef uchar ContainerReturnType;
+              typedef uchar ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpuint
 #define _defined_id_Tpuint 1
-const TypeId Tpuint(-38);                         // from /home/oms/LOFAR/DMI/src/TypeId.h:94
+const TypeId Tpuint(-38);                         // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:47
 const int Tpuint_int = -38;
+            template<>
+            class DMIBaseTypeTraits<uint> : public TypeTraits<uint>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpuint_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef uint ContainerReturnType;
+              typedef uint ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpulong
 #define _defined_id_Tpulong 1
-const TypeId Tpulong(-40);                        // from /home/oms/LOFAR/DMI/src/TypeId.h:95
+const TypeId Tpulong(-40);                        // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:48
 const int Tpulong_int = -40;
+            template<>
+            class DMIBaseTypeTraits<ulong> : public TypeTraits<ulong>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpulong_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef ulong ContainerReturnType;
+              typedef ulong ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpulonglong
 #define _defined_id_Tpulonglong 1
-const TypeId Tpulonglong(-42);                    // from /home/oms/LOFAR/DMI/src/TypeId.h:95
+const TypeId Tpulonglong(-42);                    // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:49
 const int Tpulonglong_int = -42;
+            template<>
+            class DMIBaseTypeTraits<ulonglong> : public TypeTraits<ulonglong>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpulonglong_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef ulonglong ContainerReturnType;
+              typedef ulonglong ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_Tpushort
 #define _defined_id_Tpushort 1
-const TypeId Tpushort(-36);                       // from /home/oms/LOFAR/DMI/src/TypeId.h:94
+const TypeId Tpushort(-36);                       // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:50
 const int Tpushort_int = -36;
+            template<>
+            class DMIBaseTypeTraits<ushort> : public TypeTraits<ushort>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = Tpushort_int };
+              enum { TypeCategory = TypeCategories::NUMERIC };
+              enum { ParamByRef = false, ReturnByRef = false };
+              typedef ushort ContainerReturnType;
+              typedef ushort ContainerParamType;
+            };
 #endif
 
 

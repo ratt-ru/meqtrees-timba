@@ -66,7 +66,7 @@ void * rec_thread1 (void*)
       {
         for( char f2 = 'A'; f2<'G'; f2++ )
         {
-          (*rec)[string(1,f1)][string(1,f2)] = tid;
+          (*rec)[string(1,f1)][string(1,f2)] = int(tid);
         }
 //        cout<<tid<<": filled "<<f1<<endl;
       }
@@ -92,7 +92,7 @@ void * rec_thread2 (void*)
       {
         for( char f2 = 'F'; f2>='A'; f2-- )
         {
-          (*rec)[string(1,f1)][string(1,f2)] = tid;
+          (*rec)[string(1,f1)][string(1,f2)] = int(tid);
         }
 //        cout<<tid<<": filled "<<f1<<endl;
       }

@@ -26,6 +26,10 @@
 #include <DMI/Common.h>
 #include <DMI/DMI.h>
 #include <DMI/CountedRefBase.h>
+#include <DMI/Loki/TypeManip.h>
+
+using Loki::Type2Type;
+using Loki::Int2Type;
 
 //##ModelId=3BEFECFF0287
 //##Documentation
@@ -35,19 +39,60 @@
 template <class T>
 class CountedRef : private CountedRefBase
 {
+  private:
+      // Helper template determines if ref can be converted to a
+      // CountedRef<U> ref. Incompatible types will generate a compile- or
+      // run-time error.
+      template <class U,class UisSuperclass>
+      const CountedRef<T> & compatible (Type2Type<U>,UisSuperclass) const
+      {
+        // a ref to a subclass can always be converted to 
+        // a superclass ref (this also covers the case of From==To) 
+        return *this;
+      }
+      // Partial specialization: a ref to a superclass can only be converted to a 
+      // subclass ref if it currently points to an object of that subclass
+      template <class U>
+      const CountedRef<T> & compatible (Type2Type<U>,Int2Type<false>) const
+      {
+        STATIC_CHECK( SUPERSUBCLASS(T,U),Incompatible_CountedRef_types );
+        FailWhen(target && !dynamic_cast<const U*>(target),
+                  "incompatible CountedRef types");
+        return *this;
+      }
+      
+      // finally, implement the real compatible() func
+      template <class U>
+      const CountedRef<T> & compatible (Type2Type<U>) const
+      { 
+        return compatible(Type2Type<U>(),Int2Type<SUPERSUBCLASS(U,T)>());
+      }
+      
   public:
       typedef CountedRef<T> Xfer;
       typedef CountedRef<T> Copy;
       
       //##ModelId=3BF9396D01A7
-      CountedRef();
+      CountedRef()
+      {}
 
       //##ModelId=3BF93C020247
-      CountedRef(const CountedRef<T> &right);
+      //## copy constructor is templated to allow conversion between
+      //## refs to sub/superclasses
+      template<class U>
+      CountedRef(const CountedRef<U> &right)
+        : CountedRefBase(right.compatible(Type2Type<T>()))
+      {}      
       //##ModelId=3BF93D620128
       //##Documentation
       //## Generic copy constructor -- see same method in CountedRefBase.
-      CountedRef (const CountedRef<T>& other, int flags, int depth = -1);
+      //## Copy constructor is templated to allow conversion between
+      //## refs to sub/superclasses
+      template<class U>
+      CountedRef (const CountedRef<U>& other, int flags, int depth = -1)
+        : CountedRefBase(other.compatible(Type2Type<T>()),flags,depth)
+      {
+      }
 
       //##ModelId=3BF93F8D0054
       explicit CountedRef (T& targ, int flags = 0);
@@ -59,13 +104,23 @@ class CountedRef : private CountedRefBase
       explicit CountedRef (const T* targ, int flags = 0);
 
     //##ModelId=3DB934580238
-      CountedRef<T> & operator=(const CountedRef<T> &right);
-
+      //## Assignment is templated to allow conversion between
+      //## refs to sub/superclasses
+      template<class U>
+      CountedRef<T> & operator= (const CountedRef<U> &right)
+      {
+        CountedRefBase::operator = (right.compatible(Type2Type<T>()));
+        return *this;
+      }
     //##ModelId=3DB934590080
-      bool operator == (const CountedRef<T> &right) const;
+      template<class U>
+      bool operator == (const CountedRef<U> &right) const
+      { return target != 0 && target == right.target; }
 
     //##ModelId=3DB934590329
-      bool operator != (const CountedRef<T> &right) const;
+      template<class U>
+      bool operator != (const CountedRef<U> &right) const
+      { return !(*this == right); }
 
 
       //##ModelId=3C8F61C80241
@@ -116,13 +171,44 @@ class CountedRef : private CountedRefBase
       //##ModelId=3BF93A170291
       //##Documentation
       //## Copies ref -- see CountedRefBase::copy().
-      CountedRef<T> copy (int flags = 0,int depth = -1) const;
+      //## Templated, so as to allow conversion between
+      //## refs to sub/superclasses
+      template<class U>
+      CountedRef<U> copy (int flags,int depth,U*) const
+      {
+        return CountedRef<U>(*this,flags|DMI::COPYREF,depth);
+      }
+      
+      CountedRef<T> copy (int flags = 0,int depth = -1) const
+      { 
+        return CountedRef<T>(*this,flags|DMI::COPYREF,depth);
+      }
+      
+      template<class U>
+      CountedRef<U> copy (U*) const
+      {
+        return CountedRef<U>(*this,DMI::COPYREF,-1);
+      }
 
       //##ModelId=3C1F2DB802D2
-      CountedRef<T> & copy (const CountedRef<T>& other, int flags = 0, int depth = -1);
+      //## Templated, so as to allow conversion between
+      //## refs to sub/superclasses
+      template<class U>
+      CountedRef<T> & copy (const CountedRef<U>& other, int flags = 0, int depth = -1)
+      {
+        CountedRefBase::copy(other.compatible(Type2Type<T>()),flags,depth);
+        return *this;
+      }
 
       //##ModelId=3C1F2DD30353
-      CountedRef<T> & xfer (const CountedRef<T>& other);
+      //## Templated, so as to allow conversion between
+      //## refs to sub/superclasses
+      template<class U>
+      CountedRef<T> & xfer (const CountedRef<U>& other)
+      {
+        CountedRefBase::xfer(other.compatible(Type2Type<T>()));
+        return *this;
+      }
 
       //##ModelId=3C17A06901DC
       //##Documentation
@@ -194,7 +280,8 @@ class CountedRef : private CountedRefBase
       //##ModelId=3E01B1AB0345
       //##Documentation
       //## <<= on other ref is alias for xfer
-      CountedRef<T> & operator <<= (const CountedRef<T> &other)
+      template<class U>
+      CountedRef<T> & operator <<= (const CountedRef<U> &other)
       {
         return xfer(other);
       }
@@ -232,51 +319,37 @@ class CountedRef : private CountedRefBase
     //##ModelId=3DB93453025B
       CountedRefBase::sdebug;
       
-      // add upcast/downcast methods for conversion between ref types
-      // upcast() 
+      // Add methods for in-place conversion between ref types.
+      // Use with care! Since it returns itself by reference, calling this 
+      // method on a temporary object can leave you with an invalid reference.
       // The dummy U* argument is there to help template matching
       template<class U>
-      CountedRef<U> & ref_cast (U* = 0)
+      CountedRef<U> & ref_cast (Type2Type<U>)
       { 
-        FailWhen( target && !dynamic_cast<U*>(target),"illegal ref conversion"); 
-        return *reinterpret_cast<CountedRef<U> *>(this); 
+        compatible(Type2Type<U>());
+        return *reinterpret_cast<CountedRef<U>*>(this); 
       }
       
       template<class U>
-      const CountedRef<U> & ref_cast (U* = 0) const
+      const CountedRef<U> & ref_cast (Type2Type<U>) const
       {
-        FailWhen( target && !dynamic_cast<const U*>(target),"illegal ref conversion"); 
-        return *reinterpret_cast<const CountedRef<U> *>(this); 
+        compatible(Type2Type<U>());
+        return *reinterpret_cast<const CountedRef<U>*>(this); 
       }
+      // versions using a dummy U* argument
+      template<class U>
+      CountedRef<U> & ref_cast (U* =0) 
+      { return ref_cast(Type2Type<U>()); }
+      template<class U>
+      const CountedRef<U> & ref_cast (U* =0) const
+      { return ref_cast(Type2Type<U>()); }
       
   protected:
     // Additional Protected Declarations
     //##ModelId=3DB934540014
       CountedRefBase::target;
+  
 };
-
-// Parameterized Class CountedRef 
-
-//##ModelId=3BF9396D01A7
-template <class T>
-inline CountedRef<T>::CountedRef()
-  : CountedRefBase()
-{
-}
-
-//##ModelId=3BF93C020247
-template <class T>
-inline CountedRef<T>::CountedRef(const CountedRef<T> &right)
-  : CountedRefBase(right)
-{
-}
-
-//##ModelId=3BF93D620128
-template <class T>
-inline CountedRef<T>::CountedRef (const CountedRef<T>& other, int flags, int depth)
-  : CountedRefBase(other,flags,depth)
-{
-}
 
 //##ModelId=3BF93F8D0054
 template <class T>
@@ -313,19 +386,6 @@ inline CountedRef<T>::CountedRef (const T* targ, int flags)
     flags |= DMI::ANON;
   attach(targ,flags|DMI::READONLY);
 }
-
-
-//##ModelId=3DB934580238
-template <class T>
-inline CountedRef<T> & CountedRef<T>::operator=(const CountedRef<T> &right)
-{
-  (*(CountedRefBase*)this) = *(CountedRefBase*)&right;
-  return *this;
-//  dprintf(5)("      CountedRefBase/%08x assignment: %08x\n",(int)this,(int)&right);
-//  return xfer((CountedRef<T>&)right);
-}
-
-
 
 //##ModelId=3C8F61C80241
 template <class T>
@@ -403,29 +463,6 @@ inline CountedRef<T>::operator T* () const
   return dewr_p();
 }
 
-//##ModelId=3BF93A170291
-template <class T>
-inline CountedRef<T> CountedRef<T>::copy (int flags,int depth) const
-{
-  return CountedRef<T>(*this,flags|DMI::COPYREF,depth);
-}
-
-//##ModelId=3C1F2DB802D2
-template <class T>
-inline CountedRef<T> & CountedRef<T>::copy (const CountedRef<T>& other, int flags,int depth)
-{
-  CountedRefBase::copy(other,flags,depth);
-  return *this;
-}
-
-//##ModelId=3C1F2DD30353
-template <class T>
-inline CountedRef<T> & CountedRef<T>::xfer (const CountedRef<T>& other)
-{
-  CountedRefBase::xfer(other);
-  return *this;
-}
-
 //##ModelId=3C17A06901DC
 template <class T>
 inline CountedRef<T>& CountedRef<T>::privatize (int flags, int depth)
@@ -482,20 +519,6 @@ inline CountedRef<T>& CountedRef<T>::setExclusiveWrite ()
 {
   CountedRefBase::setExclusiveWrite();
   return *this;
-}
-
-//##ModelId=3DB934590080
-template <class T>
-bool CountedRef<T>::operator==(const CountedRef<T> &right) const
-{
-  return target != 0 && target == right.target;
-}
-
-//##ModelId=3DB934590329
-template <class T>
-bool CountedRef<T>::operator!=(const CountedRef<T> &right) const
-{
-  return !(*this == right);
 }
 
 //##ModelId=3DB9345A02BD

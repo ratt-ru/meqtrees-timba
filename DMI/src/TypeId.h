@@ -1,25 +1,23 @@
-#ifndef TypeId_h
-#define TypeId_h 1
+#ifndef DMI_TypeId_h
+#define DMI_TypeId_h 1
 
-#include "Common/Lorrays.h"
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-#include "DMI/TypeIterMacros.h"
-#include "DMI/Registry.h"
-#include "DMI/AtomicID.h"
+#include <Common/Lorrays.h>
+#include <DMI/Common.h>
+#include <DMI/DMI.h>
+#include <DMI/TypeIterMacros.h>
+#include <DMI/Registry.h>
+#include <DMI/AtomicID.h>
+#include <DMI/Loki/TypeTraits.h>
 #include <complex>
     
 #ifndef LORRAYS_USE_BLITZ
   #error AIPS++ array support disabled for now
 #endif
 
-// AtomicID
-#include "DMI/AtomicID.h"
+using Loki::TypeTraits;
 
 //##ModelId=3BFBA88F001D
-
 typedef AtomicID TypeId;
-
 
 // standard type definitions
 //##ModelId=3DB9343F00F1
@@ -42,7 +40,7 @@ typedef complex<float> fcomplex;
 typedef complex<double> dcomplex;
 
 #ifndef DoForAllNumericTypes1
-// Defines alternative version of the "for all numeric types"
+// Defines alternative version of the <for all numeric types>
 // macro, with comma as separator
 #define DoForAllNumericTypes1(Do,arg) \
         Do(char,arg) , \
@@ -81,6 +79,14 @@ typedef complex<double> dcomplex;
 #define DoForAllNonArrayTypes(Do,arg) DoForAllNonArrayTypes_Sep(Do,arg,;)
 #endif
 
+// define typelist of arrayable types. A limited subset is supported for now,
+// for compatibility with Glish
+namespace DMI_TL
+{
+  using namespace Loki::TL;
+  typedef TYPELIST_8(bool,uchar,short,int,float,double,dcomplex,fcomplex)
+            Arrayables;
+}
 
 // Declare the standard types.
 // Numbers will be explicitly assigned; note that TypeIds are negative
@@ -102,8 +108,9 @@ typedef complex<double> dcomplex;
 
 // TpArray(tpelem,ndim) returns the TypeId of array with element type tpelem,
 // and rank ndim,
+#define TpintArray(tpelem,ndim) (-(32*(ndim) - (tpelem)))
 inline TypeId TpArray (TypeId tpelem,int ndim)
-{ return - (32*ndim - tpelem.id()); }
+{ return TpintArray(tpelem.id(),ndim); }
 // Alias for vector
 inline TypeId TpVec (TypeId tpelem)
 { return TpArray(tpelem,1); }
@@ -131,5 +138,64 @@ const TypeId TpIncomplete(-8);
 // Dereferenced type (see NestableContainer::get())
 const TypeId TpObject(-7);
 
+class TypeCategories
+{
+  public:
+    typedef enum 
+    { 
+      NONE=0,NUMERIC=1,BINARY=2,DYNAMIC=3,SPECIAL=4,INTERMEDIATE=5,OTHER=6 
+    } Category;
+};
+
+template<class T>
+class DMIBaseTypeTraits : public TypeTraits<T>
+{
+  public:
+  // define DMI-specific type traits.
+  // This is the default definition; all DMI-supported types
+  // will provide a specialization.
+  // can type go into a NestableContainer?
+  enum { isContainable = False };
+  // TypeId
+  enum { typeId = 0 };
+  // how is this type passed to/returned from a NestableContainer? 
+  // Default is to use TypeTraits::ParameterType
+  typedef typename TypeTraits<T>::ParameterType ContainerReturnType;
+  typedef typename TypeTraits<T>::ParameterType ContainerParamType;
+  // what is this type's DMI category? Default is other
+  enum { TypeCategory = TypeCategories::OTHER };
+};
+
+// this uses the base DMI traits to compute some derived ones
+template<class T>
+class DMITypeTraits : public DMIBaseTypeTraits<T>
+{
+  public:
+  //    some simple bools derived from the type category
+  enum { isNumeric      = int(TypeCategory) == int(TypeCategories::NUMERIC) };
+  enum { isBinary       = int(TypeCategory) == int(TypeCategories::BINARY) };
+  enum { isDynamic      = int(TypeCategory) == int(TypeCategories::DYNAMIC) };
+  enum { isSpecial      = int(TypeCategory) == int(TypeCategories::SPECIAL) };
+  enum { isIntermediate = int(TypeCategory) == int(TypeCategories::INTERMEDIATE) };
+  enum { isOther        = int(TypeCategory) == int(TypeCategories::OTHER) };
+  // does this type support Lorrays?
+  enum { isLorrayable = DMI_TL::IndexOf<DMI_TL::Arrayables,T>::value >= 0 };
+  enum { isArrayable  = isLorrayable };
+};
+
+// a partial specialization of the traits for Lorrays
+template<class T,int N>
+class DMIBaseTypeTraits< blitz::Array<T,N> > : public TypeTraits< blitz::Array<T,N> >
+{
+  public:
+  enum { isContainable = DMITypeTraits<T>::isLorrayable && N<10 };
+  enum { typeId = TpintArray(DMIBaseTypeTraits<T>::typeId,N) };
+  enum { TypeCategory = TypeCategories::INTERMEDIATE };
+  enum { isLorray     = True };
+  typedef T ArrayElemType; 
+  typedef blitz::Array<T,N> ContainerReturnType;
+  typedef const blitz::Array<T,N> & ContainerParamType;
+  enum { ParamByRef = true, ReturnByRef = false };
+};
 
 #endif

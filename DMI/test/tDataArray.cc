@@ -20,7 +20,7 @@ int main()
     DataRecord rec;
     rec["A"] <<= new DataArray(Tpfloat,makeLoShape(10,12));
     DataArray* dtarr = &rec["A"];
-    DataArray* dtarr1 = rec["A"].as_DataArray_wp();
+    DataArray* dtarr1 = rec["A"].as_wp<DataArray>();
     Assert (dtarr == dtarr1);
     Assert (dtarr->objectType() == TpDataArray);
     Assert (dtarr->type() == TpArray(Tpfloat,2));
@@ -30,7 +30,7 @@ int main()
     farr = blitz::tensor::i + blitz::tensor::j*10;
     
     const float* ptr = &rec["A/0.0"];
-    const float* ptr1= rec["A/0.0"].as_float_p();
+    const float* ptr1= rec["A/0.0"].as_p<float>();
     Assert (ptr == ptr1);
     const float* ptr2 = &rec["A"];
     Assert (ptr == ptr2);
@@ -44,7 +44,7 @@ int main()
     try {
       cout << endl << "Expect type mismatch exception ..." << endl;
       cout << ">>>" << endl;
-      rec["A"].as_LoMat_double();
+      rec["A"].as<LoMat_double>();
     } catch (Debug::Error& x) {
       cout << x.what() << endl;
       cout << "<<<" << endl;
@@ -52,7 +52,7 @@ int main()
     try {
       cout << endl << "Expect type mismatch exception ..." << endl;
       cout << ">>>" << endl;
-      rec["A"].as_double_wp();
+      rec["A"].as_wp<double>();
     } catch (Debug::Error& x) {
       cout << x.what() << endl;
       cout << "<<<" << endl;

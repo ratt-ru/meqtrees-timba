@@ -50,10 +50,10 @@ class HIID : public Vector_AtomicID
       //##Documentation
       //## Constructs HIID from string form
       //## ("A.B.C.D", etc.)
-      HIID (const string &str);
+      HIID (const string &str,const string &sep_set = ".");
 
       //##ModelId=3C556A470346
-      HIID (const char *str);
+      HIID (const char *str,const string &sep_set = ".");
 
       //##ModelId=3DB934880197
       //##Documentation
@@ -128,7 +128,7 @@ class HIID : public Vector_AtomicID
       HIID splitAtSlash ();
 
       //##ModelId=3C0F8BD5004F
-      string toString () const;
+      string toString (char separator = '.') const;
 
       //##ModelId=3C5912FE0134
       //##Documentation
@@ -186,7 +186,7 @@ class HIID : public Vector_AtomicID
       
       // creates from string
     //##ModelId=3DB9348C0305
-      void addString ( const string & );
+      void addString ( const string &,const string &sep_set = ".");
 };
 
 // stream operator
@@ -269,16 +269,16 @@ inline HIID::HIID (AtomicID aid)
 }
 
 //##ModelId=3C6141BA03B4
-inline HIID::HIID (const string &str)
+inline HIID::HIID (const string &str,const string &sepset)
 {
-  addString(str);
+  addString(str,sepset);
 }
 
 //##ModelId=3C556A470346
-inline HIID::HIID (const char *str)
+inline HIID::HIID (const char *str,const string &sepset)
 {
   if( str )
-    addString(str);
+    addString(str,sepset);
 }
 
 

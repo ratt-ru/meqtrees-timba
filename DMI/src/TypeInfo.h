@@ -1,18 +1,15 @@
 #ifndef TypeInfo_h
 #define TypeInfo_h 1
 
-#include "DMI/TID-DMI.h"
-#include "DMI/TypeId.h"
-#include "DMI/TypeIterMacros.h"
+#include <DMI/TID-DMI.h>
+#include <DMI/TypeId.h>
+#include <DMI/TypeIterMacros.h>
 
 // The TypeInfo class is basically a simple struct containing information
 // on various types. 
 //##ModelId=3DB949AE01B8
-class TypeInfo {
+class TypeInfo : public TypeCategories {
   public:
-      // enum of type categories
-    //##ModelId=3DB949AE01BE
-      typedef enum { NONE=0,NUMERIC=1,BINARY=2,DYNAMIC=3,SPECIAL=4,INTERMEDIATE=5,OTHER=6 } Category;
       // ...stored here:
     //##ModelId=3DB949B0004C
       Category category;
@@ -178,29 +175,18 @@ inline bool convertScalar ( const void *from,TypeId frid,void *to,TypeId toid )
 
 // define the typeIdOfPtr() helper function, returning a TypeId for a given type
 // (passed in as a T*).
-// This is used in various places where we want to convert a type to a TypeId
-// at compile-time
-#define __typeIdOfPtr(T,arg) inline TypeId TpOfPtr (const T *) { return Tp##T; };
-DoForAllArrayTypes(__typeIdOfPtr,);
-
-// Similar function, but returns Tptype for an array pointer argument
-#define __typeIdOfArrayElem(T,arg) template<int N> inline TypeId TpOfArrayElem (const blitz::Array<T,N> *) { return Tp##T; };
-DoForAllArrayTypes(__typeIdOfArrayElem,);
-#if !defined(LORRAYS_DEFINE_STRING)
-__typeIdOfArrayElem(string,);
-#endif
-
-// Similar function, but returns TpArray_type for a type * argument
-#define __typeIdOfArray(T,arg) inline TypeId TpOfArrayPtr (const T *,int N) { return TpArray(Tp##T,N); };
-DoForAllArrayTypes(__typeIdOfArray,);
-#if !defined(LORRAYS_DEFINE_STRING)
-__typeIdOfArray(string,);
-#endif
-
+template<class T>
+inline TypeId TpOfPtr (const T*)
+{ return DMITypeTraits<T>::typeId; }
+   
+// Similar function, but returns typeid of elements for an array pointer argument
+template<class T,int N> 
+inline TypeId TpOfArrayElem (const blitz::Array<T,N> *) 
+{ return DMITypeTraits<T>::typeId; };
 
 // These are more convenient macros (only need a type as an argument)
 #define typeIdOf(type) TpOfPtr((type*)0)
-#define typeIdOfArray(type,N) TpOfArrayPtr((type*)0,N)
+#define typeIdOfArray(type,N) TpArray(typeIdOf(type),N)
 #define typeIdOfArrayElem(type) TpOfArrayElem((type*))
 
 #endif

@@ -1,3 +1,4 @@
+# BUILT_SOURCES = Global-Registry.cc
 
 DOCHDRS		 	=	\
 AtomicID.h			\
@@ -29,6 +30,7 @@ lib_LTLIBRARIES = libdmi.la
 
 libdmi_la_SOURCES = $(DOCHDRS)	\
 AID-DMI-Registry.cc		\
+Global-Registry.cc \
 AtomicID.cc			\
 BlockSet.cc			\
 BlockableObject.cc		\
@@ -59,6 +61,27 @@ CXXFLAGS += -D_GNU_SOURCE
 
 EXTRA_DIST = build_aid_maps.pl build_type_iter.pl atomicid.list
 
+# rules for generating the global AID registry
+# this is a list of all the packages that contain any registries
+REGISTRY_PACKAGES = \
+  DMI    \
+  CEP/CPA/OCTOPUSSY   \
+  CEP/CPA/OCTOGlish   \
+  CEP/CPA/VisCube   \
+  CEP/CPA/AppAgent/VisAgent   \
+  CEP/CPA/AppAgent/AppAgent   \
+  CEP/CPA/AppAgent/OctoAgent   \
+  CEP/CPA/AppAgent/MSVisAgent   \
+  CEP/CPA/AppAgent/Solver   \
+  CEP/CPA/AppAgent/AppUtils   \
+  CEP/CPA/uvplot   
+
+REGISTRY_FILES = $(foreach pkg,$(REGISTRY_PACKAGES),$(wildcard $(lofar_sharedir)/../$(pkg)/src/AID-*-Registry.cc))
+
+$(top_srcdir)/src/Global-Registry.cc: $(top_srcdir)/src/Global-Registry.header $(REGISTRY_FILES)
+	cp $< $@
+	(for f in $(REGISTRY_FILES); do grep "AtomicID::Register" $$f; done)|sort|uniq >>$@
+
 # script used to generate AID maps
 MAPBUILDER = $(top_srcdir)/src/build_aid_maps.pl 
 
@@ -70,7 +93,6 @@ BASELISTDIR = $(lofar_sharedir)/..
 
 # Your package's subdirectory
 AID_DIR = $(top_srcdir)/src
-
 
 aidlists := $(shell find $(BASELISTDIR) -name \*.aidlist)
 
@@ -86,6 +108,9 @@ clean_aids:
 	rm -f $(aidlists)
 	@echo "Removed all aidlist files"
 
+globreg: Global-Registry.cc
+
+.PHONY: globreg aids all_aids clean_aids
 
 include $(lofar_sharedir)/Makefile.common
 
