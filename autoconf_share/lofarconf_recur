@@ -73,7 +73,6 @@ do
     echo " Error: source subdirectory $subdir not found"
     exit 2
   fi
-  curwd=`pwd`
   if test "$lfr_dirform" = 0; then
     # Build is part of the package directory.
     # Make package, build, and variant directory if needed.
@@ -100,7 +99,7 @@ do
   fi
   echo && echo ":::::: CONFIGURE $lfr_pkg/$subdir"
   $lfr_base/lofarconf "$@" || exit 2
-  cd $curwd > /dev/null
+  cd $lfr_curdir > /dev/null
 done
 
 # Make sure there is an makeoptions.

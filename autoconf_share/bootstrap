@@ -55,6 +55,7 @@ if [ $lfr_lofarconf = 1 ]; then
   if [ -r configure.in ]; then
     echo " Error: configure.in or a lofarconf.in may exist, not both"
   fi
+  lfr_curdir=`pwd`
   for subdir in $subdirs
   do
     if [ ! -d $subdir ]; then
@@ -69,7 +70,7 @@ if [ $lfr_lofarconf = 1 ]; then
       chmod +x bootstrap
     fi
     ./bootstrap || exit 2
-    cd .. > /dev/null
+    cd $lfr_curdir > /dev/null
   done
 fi
 
