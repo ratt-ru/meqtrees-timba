@@ -1,5 +1,7 @@
 \documentclass[10pt,twoside]{book}
 
+\usepackage{graphicx}
+
 \oddsidemargin=-5mm
 \evensidemargin=-5mm
 \topmargin=-5mm
@@ -478,6 +480,13 @@ $ $Revision$ $\\$ $Date$ $}
   space. The \qq{Cells} class represents a gridding of that domain. This is
   illustrated by Figure~\ref{fig:cells}.
   
+  \begin{figure}
+  \begin{centering}
+  \includegraphics[width=.5\textwidth]{Figures/Cells.eps}\\
+  \end{centering}
+  \caption{\label{fig:cells}Layout of a Cells object and the envelope Domain}
+  \end{figure}
+  
   On the C++ side, both classes are derived from \qq{DataRecord}. A \Domain\ 
   record corresponding to $[f_{st},f_{end}]\times[t_{st},t_{end}]$ has the following structure:
   
@@ -541,6 +550,15 @@ $ $Revision$ $\\$ $Date$ $}
   {\tt\begin{tabular}{ll}
   [&freq=[start\_index=[1,2,$...N$],end\_index=[1,2,$...N$]],\\
   &time=[start\_index=[1,2,$...M$],end\_index=[1,2,$...M$]]~~~~]
+  \end{tabular}}
+  
+  Figure~\ref{fig:cells} shows an $8\times7$ grid with three regular segments
+  along each axis. This would correspond to the following \qq{segments}
+  sub-record:
+
+  {\tt\begin{tabular}{ll}
+  [&freq=[start\_index=[1,5,6],end\_index=[4,6,8]],\\
+   &time=[start\_index=[1,4,5],end\_index=[3,5,7]] ]
   \end{tabular}}
   
   Note that \qq{segments} information is merely an optimization facility, and
