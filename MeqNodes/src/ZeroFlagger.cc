@@ -44,7 +44,7 @@ void ZeroFlagger::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   if( oper.exists() )
   {
     HIID op;
-    if( oper.type() == TpHIID )
+    if( oper.type() == TpDMIHIID )
       op = oper.as<HIID>();
     else if( oper.type() == Tpstring )
       op = HIID(oper.as<string>());
@@ -84,9 +84,9 @@ int ZeroFlagger::getResult (Result::Ref &resref,
     // get pointer to flags -- init flags if needed
     VellSet::FlagArrayType & flags = vs.getOptColWr<VellSet::FLAGS>();
     // apply operation
-    if( value.isArray() )
+    if( !value.isScalar() )
     {
-      const LoMat_double &val = value.getRealArray();
+      const LoMat_double &val = value.getArray<double,2>();
       using blitz::where;
       switch( oper_.id() )
       {
@@ -109,7 +109,7 @@ int ZeroFlagger::getResult (Result::Ref &resref,
     else
     {
       // value is single scalar
-      double val = *(value.realStorage());
+      double val = value.as<double>();
       switch( oper_.id() )
       {
         case AidEQ_int: flags |= (val == 0 ? flagbit_ : 0);

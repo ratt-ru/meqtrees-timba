@@ -1110,6 +1110,25 @@ namespace Meq { class UVW; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqZeroFlagger
+#define _defined_id_TpMeqZeroFlagger 1
+const DMI::TypeId TpMeqZeroFlagger(-1489);        // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:32
+const int TpMeqZeroFlagger_int = -1489;
+namespace Meq { class ZeroFlagger; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::ZeroFlagger> : public TypeTraits<Meq::ZeroFlagger>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqZeroFlagger_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::ZeroFlagger & ContainerReturnType;
+                typedef const Meq::ZeroFlagger & ContainerParamType;
+              };
+            };
+#endif
 
 
 #endif

@@ -66,7 +66,8 @@
         Do(Meq::DataCollect,arg) separator \
         Do(Meq::DataConcat,arg) separator \
         Do(Meq::RandomNoise,arg) separator \
-        Do(Meq::GaussNoise,arg)
+        Do(Meq::GaussNoise,arg) separator \
+        Do(Meq::ZeroFlagger,arg)
 
 #define DoForAllNumericTypes_MeqNodes(Do,arg,separator) \
         

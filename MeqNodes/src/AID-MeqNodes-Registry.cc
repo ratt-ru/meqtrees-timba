@@ -120,6 +120,8 @@ DMI::BObj * __construct_MeqDataConcat (int n) { return n>0 ? new Meq::DataConcat
 DMI::BObj * __construct_MeqRandomNoise (int n) { return n>0 ? new Meq::RandomNoise [n] : new Meq::RandomNoise; }
 #include "GaussNoise.h"
 DMI::BObj * __construct_MeqGaussNoise (int n) { return n>0 ? new Meq::GaussNoise [n] : new Meq::GaussNoise; }
+#include "ZeroFlagger.h"
+DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagger [n] : new Meq::ZeroFlagger; }
     using namespace DMI;
   
     int aidRegistry_MeqNodes ()
@@ -329,6 +331,17 @@ DMI::BObj * __construct_MeqGaussNoise (int n) { return n>0 ? new Meq::GaussNoise
         AtomicID::registerId(-1481,"meqgaussnoise")+
         TypeInfoReg::addToRegistry(-1481,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1481,__construct_MeqGaussNoise)+
+        AtomicID::registerId(-1489,"meqzeroflagger")+
+        TypeInfoReg::addToRegistry(-1489,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1489,__construct_MeqZeroFlagger)+
+        AtomicID::registerId(-1485,"oper")+
+        AtomicID::registerId(-1075,"bit")+
+        AtomicID::registerId(-1490,"eq")+
+        AtomicID::registerId(-1488,"ne")+
+        AtomicID::registerId(-1487,"lt")+
+        AtomicID::registerId(-1484,"gt")+
+        AtomicID::registerId(-1486,"le")+
+        AtomicID::registerId(-1483,"ge")+
     0;
     return res;
   }

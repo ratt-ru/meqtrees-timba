@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
 # Original file name: /home/oms/LOFAR/Timba/MeqNodes/src/defrecs_MeqNodes.g
-# Generated on Tue Jan 18 15:56:45 CET 2005
+# Generated on Wed Jan 19 15:14:18 CET 2005
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 
@@ -55,6 +55,19 @@ r.solvable::description := 'Command record which is sent up in the rider of the 
                             It is also possible to create more elaborate command records from scratch, \
                             if more sophisticated manipulation of state is required.';
 _meqdefrec_map.MeqSolver := r;
+#
+# ---------- class MeqZeroFlagger
+# generated from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h
+#
+r := _meqdefrec_map.MeqNode;
+r::description := 'Sets flags in a VellSet based on a comparison of the main value with 0.';
+r.oper := hiid('ne');
+r.oper::description := 'logical operator to use (HIID or string). One of: EQ NE GE LE GT LT, \
+                        for == != >= <= < >. ';
+r.flag_bit := 1;
+r.flag_bit::description := 'this value is ORed with the flags at all points where the  \
+                            main value OPER 0 is true.';
+_meqdefrec_map.MeqZeroFlagger := r;
 #
 # ---------- class MeqReqSeq
 # generated from /home/oms/LOFAR/Timba/MeqNodes/src/ReqSeq.h
