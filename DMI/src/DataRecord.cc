@@ -154,7 +154,7 @@ NCRef DataRecord::fieldWr (const HIID &id, int flags)
 {
   Thread::Mutex::Lock _nclock(mutex());
   HIID rest; bool dum;
-  const NCRef &ref( resolveField(id,rest,dum,True) );
+  const NCRef &ref( resolveField(id,rest,dum,flags&DMI::WRITE) );
   FailWhen( !ref.valid(),"field "+id.toString()+" not found" );
   FailWhen( rest.size(),id.toString()+" does not resolve to a complete field" );
   return ref.copy(flags);
