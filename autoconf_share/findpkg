@@ -45,7 +45,9 @@
 lfr_curdir=`pwd`
 # Get the source directory and strip up to LOFAR from it.
 lfr_srcdir="$1"
-shift
+if [ "$lfr_srcdir" != "-l" ]; then
+  shift
+fi
 lfr_srcpkg=`echo $lfr_srcdir | sed -e "s%.*/LOFAR%LOFAR%"`
 # Get the LOFAR base from the full path of this script.
 lfr_sdir=`dirname $0`
