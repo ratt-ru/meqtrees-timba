@@ -51,7 +51,7 @@ class app_proxy (verbosity):
     
     if isinstance(launch,str): # run external process
       self.dprint(1,"launching",launch);
-      
+      spawnv
       
     
     if isinstance(launch,tuple): # use py_app_launcher to run a local app thread
