@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# Find the packages used by other packages.
+# Packages taken into account are all LOFAR packages and external packages.
+#
+# The output is put in a file where each line contains a pair of package
+# names (pkg1 pkg2).
+# The file finddep.uses tells that pkg1 uses pkg2.
+# The file finddep.used tells that pkg1 is used by pkg2.
+#
+# Both files can be processed by pkgdep (in LCS/Common) to display the
+# packages dependencies in a tree-like format.
+
+egrep '^lofar_' `find ~lofar/weekly/LOFAR/ -name configure.in` | \
+sed -e 's%.*/LOFAR/%LOFAR/%' -e 's/,.*//' -e 's/).*//' -e 's%/configure.in:lofar_% %' | \
+egrep -v ' (INIT|DEBUG|QATOOLS|DOCXX|CHECK_PRETTY|CHECK_LONG_LONG)' | \
+sed -e 's% PACKAGE(% LOFAR/%' -e 's% INTERNAL(% LOFAR/%' -e 's% EXTERNAL(% %' -e s'%(.*%%' | \
+sort > finddep.uses
+awk '{ print $2, $1 }' finddep.uses | sort > finddep.used
