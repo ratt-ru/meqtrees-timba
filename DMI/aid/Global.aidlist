@@ -221,6 +221,7 @@ meqlsm_q                         1350       ; from /home/noordam/LOFAR/CEP/CPA/P
 meqlsm_u                         1351       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqLSM_U.h:14
 meqlsm_v                         1352       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqLSM_V.h:14
 meqm2uvw                         1360       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqM2uvw.h:14
+#meqmergeflags                   1437       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MergeFlags.h:30
 #meqmultiply                     1227       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Multiply.h:29
 #meqnode                         1242       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:34
 #meqparm                         1244       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Parm.h:35
