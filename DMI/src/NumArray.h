@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.26  2004/03/17 07:51:20  smirnov
+//  %[ER: 16]%
+//  Extended access by pointer in DataArray
+//
 //  Revision 1.25  2004/01/28 16:23:34  smirnov
 //  %[ER: 16]%
 //  Revised the hook infrastructure, got rid of NC::writable flag.
@@ -261,25 +265,33 @@ public:
 #endif
   
     //##ModelId=400E4D68035F
-  const void * getArrayPtr (TypeId tid,uint nrank,bool write) const;
+  // return pointer to underlying array object, checking element type and rank
+  const void * getConstArrayPtr (TypeId element_tid,uint nrank) const;
+  // return pointer to underlying array object, checking array type and rank
+  const void * getConstArrayPtr (TypeId array_tid) const;
+  
+  void * getArrayPtr (TypeId element_tid,uint nrank)
+  { return const_cast<void*>(getConstArrayPtr(element_tid,nrank)); }
+  void * getArrayPtr (TypeId array_tid)
+  { return const_cast<void*>(getConstArrayPtr(array_tid)); }
   
   template<class T,int N>
   const blitz::Array<T,N> & getConstArray () const
-  { return *static_cast<const blitz::Array<T,N>*>(getArrayPtr(typeIdOf(T),N,False)); }
+  { return *static_cast<const blitz::Array<T,N>*>(getConstArrayPtr(typeIdOf(T),N)); }
   
   template<class T,int N>
   blitz::Array<T,N> & getArray () 
   { return *static_cast<blitz::Array<T,N>*>(
-            const_cast<void*>(getArrayPtr(typeIdOf(T),N,True))); }
+            const_cast<void*>(getArrayPtr(typeIdOf(T),N))); }
   
   template<class T,int N>
   void getConstArrayPtr (const blitz::Array<T,N> * &ptr) const
-  { ptr = static_cast<const blitz::Array<T,N>*>(getArrayPtr(typeIdOf(T),N,False)); }
+  { ptr = static_cast<const blitz::Array<T,N>*>(getConstArrayPtr(typeIdOf(T),N)); }
 
   template<class T,int N>
   void getArrayPtr (blitz::Array<T,N> * &ptr) 
   { ptr = static_cast<blitz::Array<T,N>*>(
-          const_cast<void*>(getArrayPtr(typeIdOf(T),N,True))); }
+          const_cast<void*>(getArrayPtr(typeIdOf(T),N))); }
   
     //##ModelId=400E4D680386
   const void * getConstDataPtr () const

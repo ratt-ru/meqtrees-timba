@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.32  2004/03/17 07:51:20  smirnov
+//  %[ER: 16]%
+//  Extended access by pointer in DataArray
+//
 //  Revision 1.31  2004/01/28 16:23:34  smirnov
 //  %[ER: 16]%
 //  Revised the hook infrastructure, got rid of NC::writable flag.
@@ -697,12 +701,18 @@ void DataArray::privatize (int flags, int)
 }
 
 //##ModelId=400E4D68035F
-const void * DataArray::getArrayPtr (TypeId tid,uint nrank,bool write) const
+const void * DataArray::getConstArrayPtr (TypeId element_tid,uint nrank) const
 {
-  FailWhen( itsScaType!=tid || nrank != itsShape.size(),
-      Debug::ssprintf("can't access <%s,%d> arrray as <%s,%d>",
-            itsScaType.toString().c_str(),itsShape.size(),
-            tid.toString().c_str(),nrank));
+  FailWhen( itsScaType!=element_tid || nrank != itsShape.size(),
+            "can't access "+itsType.toString()+" as "+
+            TpArray(element_tid,nrank).toString() );
+  return itsArray;
+}
+
+const void * DataArray::getConstArrayPtr (TypeId array_tid) const
+{
+  FailWhen( itsType!=array_tid,
+            "can't access "+itsType.toString()+" as "+array_tid.toString() );
   return itsArray;
 }
 
