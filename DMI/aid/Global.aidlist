@@ -267,6 +267,7 @@ meqsink                          1326       ; from /home/oms/LOFAR/CEP/CPA/AppAg
 meqspigot                        1330       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/Spigot.h:9
 #meqsqr                          1249       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Sqr.h:29
 #meqsqrt                         1251       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Sqrt.h:29
+#meqstatpointsourcedft           1468       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/StatPointSourceDFT.h:30
 #meqsubtract                     1232       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Subtract.h:29
 meqsubtractsource                1347       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqSubtractSource.h:14
 #meqtime                         1225       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Time.h:29
