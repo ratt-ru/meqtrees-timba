@@ -42,9 +42,9 @@ class CountedRef : private CountedRefBase
   public:
       // Helper template determines if ref can be converted to a
       // CountedRef<U> ref. Incompatible types will generate a compile- or
-      // run-time error.
+      // run-time error. Compatible types return a CountedRefBase &.
       template <class U,class UisSuperclass>
-      const CountedRef<T> & compatible (Type2Type<U>,UisSuperclass) const
+      const CountedRefBase & compatible (Type2Type<U>,UisSuperclass) const
       {
         // a ref to a subclass can always be converted to 
         // a superclass ref (this also covers the case of From==To) 
@@ -53,7 +53,7 @@ class CountedRef : private CountedRefBase
       // Partial specialization: a ref to a superclass can only be converted to a 
       // subclass ref if it currently points to an object of that subclass
       template <class U>
-      const CountedRef<T> & compatible (Type2Type<U>,Int2Type<false>) const
+      const CountedRefBase & compatible (Type2Type<U>,Int2Type<false>) const
       {
         STATIC_CHECK( SUPERSUBCLASS(T,U),Incompatible_CountedRef_types );
         FailWhen(target && !dynamic_cast<const U*>(target),
@@ -63,7 +63,7 @@ class CountedRef : private CountedRefBase
       
       // finally, implement the real compatible() func
       template <class U>
-      const CountedRef<T> & compatible (Type2Type<U>) const
+      const CountedRefBase & compatible (Type2Type<U>) const
       { 
         return compatible(Type2Type<U>(),Int2Type<SUPERSUBCLASS(U,T)>());
       }
@@ -84,7 +84,7 @@ class CountedRef : private CountedRefBase
       template<class U>
       CountedRef(const CountedRef<U> &right)
         : CountedRefBase(right.compatible(Type2Type<T>()))
-      {}      
+      {}
       //##ModelId=3BF93D620128
       //##Documentation
       //## Generic copy constructor -- see same method in CountedRefBase.
