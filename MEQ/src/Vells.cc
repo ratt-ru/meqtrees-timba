@@ -240,6 +240,16 @@ void Vells::privatize (int flags,int depth)
   }
 }
 
+// void Vells::makeWritable () 
+// { 
+//   if( array_.valid() && !array_.isWritable() )
+//   {
+//     array_.privatize(DMI::WRITE);
+//     storage_ = array_().getDataPtr();
+//   }
+// }
+// 
+// 
 //##ModelId=3F8688700282
 void Vells::show (std::ostream& os) const
 {
@@ -264,6 +274,46 @@ void Vells::zeroData ()
   makeWritable();
   memcpy(storage_,0,nelements()*elementSize());
 }
+
+
+// // a HyperPlane iterator iterates over hyperplanes defined by a set of axes
+// Vells::ConstHPIterator::ConstHPIterator (const Vells &vells,const std::vector<int> &axes)
+//   : vells_(vells),hpaxes_(vells.size(),false);
+// {
+//   for( uint i=0; i<axes.size(); i++ )
+//   {
+//     FailWhen(axes[i]<0 || axes[i]>=int(vells.size()),"illegal axis number");
+//     hpaxes_[axes[i]] = true;
+//   }
+//   init();
+// }
+// 
+// Vells::ConstHPIterator::ConstHPIterator (const Vells &vells,const std::vector<bool> &axes)
+//   : vells_(vells),hpaxes_(axes)
+// {
+//   FailWhen(hpaxes_.size()!=vells.size(),"axes array size mismatch");
+//   init();
+// }
+// 
+// Vells::ConstHPIterator::ConstHPIterator (const Vells &vells,int axis)
+//   : vells_(vells),hpaxes_(vells.size(),false);
+// {
+//   FailWhen(axis<0 || axis>=int(vells.size()),"illegal axis number");
+//   hpaxes_[axis] = true;
+//   init();
+// }
+// 
+// void Vells::ConstHPIterator::operator bool ()
+// {
+// }
+// 
+// void Vells::ConstHPIterator::init ()
+// {
+//   
+// }
+// 
+// 
+// 
 
 //##ModelId=400E5356019D
 inline bool Vells::tryReference (const Vells &other)
@@ -338,7 +388,50 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
   }
 }
 
-
+// // constructor for a temp vells in a unary reduction expression
+// // (i.e. result is collapsed along one axis)
+// //##ModelId=3F8688700231
+// Vells::Vells (const Vells &other,int axis,int flags,const std::string &opname)
+// : is_temp_ (true)
+// {
+//   // check input if requested by flags
+//   FailWhen(flags&VF_CHECKREAL && other.isComplex(),
+//       opname + "() can only be used with a real Meq::Vells");
+//   FailWhen(flags&VF_CHECKCOMPLEX && other.isReal(),
+//       opname + "() can only be used with a complex Meq::Vells");
+//   FailWhen(axis<0,"illegal axis<0 specified");
+//   int nred;
+//   if( axis >= other.rank() || (nred = other.shape()[axis]) == 1)
+//   {
+//     // no reduction needed, clone and return
+//     clone(other);
+//     nstr = 0;
+//   }
+//   else // reduction required
+//   {
+//     shape_ = other.shape();
+//     shape_[axis] = 1;
+//     num_elements_ = other.num_elements_/nred;
+//     setSizeType(flags,other.isComplex());
+//     // setup output array
+//     DataArray *parr;
+//     array_ <<= parr = new DataArray(element_type_,shape_);
+//     storage_ = parr->getDataPtr();
+//     // setup strides for reduction iterator. The output iterates over
+//     // every contiguous point. The input has to iterate over the starting point
+//     // of 
+//     int ired = 0;
+//     int tot = 1;
+//     bool degen = true;
+//     for( int i=0; i<rank(); i++)
+//     {
+//       // compute stride -- treat axis being reduced as a degenerate axis
+//       stride[i] = i!=axis && shape_[i]>1 ? normalAxis(tot,degen) : degenerateAxis(tot,degen);
+//       
+//     }
+//   }
+// }
+// 
 // Helper functions for setting up strides below
 // Marks axis i as normally strided
 inline int normalAxis (int total,bool &degenerate)
@@ -364,7 +457,7 @@ inline int degenerateAxis (int total,bool &degenerate)
   if( degenerate )
     return 0;
   degenerate = true;
-  return total;
+  return -total;
 }
 
 // computes shape of output, plus strides required
@@ -383,28 +476,18 @@ void Vells::computeStrides (Vells::Shape &shape,
     // get size along each axis -- if past the last rank, use 1
     int sza = i < a.rank() ? a.shape_[i] : 1;
     int szb = i < b.rank() ? b.shape_[i] : 1;
-    if( sza == szb ) // shape of this axis matches
-    {
-      shape[i] = sza;
-      strides_a[i] = normalAxis(tota,dega);
-      strides_b[i] = normalAxis(totb,degb);
-    }
-    else if( sza == 1 ) // a is constant along this axis
-    {
-      shape[i] = szb; // b determines shape
-      strides_a[i] = degenerateAxis(tota,dega);
-      strides_b[i] = normalAxis(totb,degb);
-    }
-    else if( szb == 1 ) // b is constant along this axis
-    {
-      shape[i] = sza; // a determines shape
-      strides_a[i] = normalAxis(tota,dega);
-      strides_b[i] = degenerateAxis(totb,degb);
-    }
-    else // both non-constant, but incompatible
+    bool a_big = sza>1;
+    bool b_big = szb>1;
+    if( a_big && b_big && sza != szb )
     {
       Throw1("arguments to "+opname+" have incompatible shapes");
     }
+    // set strides
+    strides_a[i] = a_big ? normalAxis(tota,dega) : degenerateAxis(tota,dega);
+    strides_b[i] = b_big ? normalAxis(totb,degb) : degenerateAxis(totb,degb);
+    // set output shape
+    shape[i] = std::max(sza,szb); 
+    // increase element counts
     tota *= sza;
     totb *= szb;
   }
@@ -453,7 +536,7 @@ bool Vells::canApplyInPlace (const Vells &other,int strides[],const std::string 
   // try the simple tests first
   if( (isReal() && other.isComplex()) || (rank() < other.rank()) )
     return false;
-  // Loop over all axes to determine if shapes match. Our ndim is bigger thanks
+  // Loop over all axes to determine if shapes match. Our rank is higher thanks
   // to test above
   int  total=1;
   bool deg=true;
@@ -462,12 +545,12 @@ bool Vells::canApplyInPlace (const Vells &other,int strides[],const std::string 
     // get size along each axis -- if past the last rank, use 1
     int sz_ours  = shape_[i];
     int sz_other = i < other.rank() ? other.shape_[i] : 1;
-    if( sz_ours == sz_other ) // shape of this axis matches
+    if( sz_other == 1 ) // other is constant along this axis
+      strides[i] = degenerateAxis(total,deg);
+    else if( sz_ours == sz_other ) // shape of this axis >1 and matches
       strides[i] = normalAxis(total,deg);
     else if( sz_ours == 1 ) // we are constant along this axis but other isn't -- bug out
       return false;
-    else if( sz_other == 1 ) // other is constant along this axis
-      strides[i] = degenerateAxis(total,deg);
     else // both non-constant, but incompatible
       Throw("argument to "+opname+" has an incompatible shape");
     total *= sz_other;
@@ -589,9 +672,12 @@ class ConstStridedIterator
     const int *strides;
   
   public:
+    ConstStridedIterator (const T * p,const int str[])
+    : ptr(p),strides(str)
+    {}
+  
     ConstStridedIterator (const Meq::Vells &vells,const int str[])
-    : ptr(vells.getStorage(Type2Type<T>())),
-      strides(str)
+    : ptr(vells.getStorage(Type2Type<T>())),strides(str)
     {}
     
     const T & operator * () const
@@ -604,20 +690,6 @@ class ConstStridedIterator
       for( int i=0; i<ndim; i++ )
         ptr += strides[i];
     }
-};
-
-// Non-const version of the above
-template<class T>
-class StridedIterator : public ConstStridedIterator<T>
-{
-  public:
-    StridedIterator (Meq::Vells &vells)
-      : ConstStridedIterator<T>(vells)
-    {}
-  
-    T & operator * () const
-    { return *const_cast<T*>(ptr); }
-  
 };
 
 // Helper class implementing iteration over an N-dimensional shape
@@ -795,6 +867,22 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_conj_lut[VELLS_LUT_SIZE] =
       y0 = FUNC(y0,*px); \
     return y0; \
   }
+  
+// Defines a templated implementation of an unary reduction function 
+// which computes: y=x(0), then y=FUNC(y,x(i)) for all i, and returns y
+// This is a helper template for all reduction functions, since it returns
+// y by value rather than storing it in a Vells.
+#define defineAxisReductionFuncImpl(FUNC,FUNCNAME,dum) \
+  template<class TY,class TX> \
+  static void implement_##FUNCNAME##_impl (Meq::Vells &y,const Meq::Vells &x,int axis) \
+    Type2Type<TY> = Type2Type<TY>(),Type2Type<TX> = Type2Type<TX>() )  \
+  { const TX *px = x.getStorage(Type2Type<TX>()), \
+             *px_end = px + x.nelements(); \
+    TY y0 = *px++; \
+    for(; px < px_end; px++) \
+      y0 = FUNC(y0,*px); \
+    return y0; \
+  }
 
 // defines a templated implementation of an unary reduction function such
 // as min() or max(), which works by applying y=FUNC(y,x) to all elements
@@ -878,16 +966,22 @@ Meq::Vells::UnaryWithShapeOperPtr Meq::Vells::unifunc_nelements_lut[VELLS_LUT_SI
   static void implement_binary_##FUNCNAME (Meq::Vells &y,\
                   const Meq::Vells &a,const Meq::Vells &b,\
                   const int strides_a[],const int strides_b[]) \
-  { DimCounter counter(y);  \
-    TY *py = y.getStorage(Type2Type<TY>()); \
-    ConstStridedIterator<TA> ia(a,strides_a); \
-    ConstStridedIterator<TB> ib(b,strides_b); \
-    for(;;) { \
-      *py = FUNC(*ia,*ib); \
-      int ndim = counter.incr(); \
-      if( ndim <= 0 ) \
-        break; \
-      py++; ia.incr(ndim); ib.incr(ndim); \
+  { TY *py = y.getStorage(Type2Type<TY>()); \
+    const TA *pa = a.getStorage(Type2Type<TA>()); \
+    const TB *pb = b.getStorage(Type2Type<TB>()); \
+    if( a.isScalar() && b.isScalar() ) \
+      *py = FUNC(*pa,*pb); \
+    else { \
+      DimCounter counter(y);  \
+      ConstStridedIterator<TA> ia(pa,strides_a); \
+      ConstStridedIterator<TB> ib(pb,strides_b); \
+       for(;;) { \
+        *py = FUNC(*ia,*ib); \
+        int ndim = counter.incr(); \
+        if( ndim <= 0 ) \
+          break; \
+        py++; ia.incr(ndim); ib.incr(ndim); \
+      } \
     } \
   } 
 
@@ -973,15 +1067,20 @@ DoForAllBinaryOperators(implementBinaryOperator,);
   static void implement_binary_##OPERNAME##_inplace (Meq::Vells &y,\
                   const Meq::Vells &x,\
                   const int strides_x[]) \
-  { DimCounter counter(y);  \
-    TOut *py = y.getStorage(Type2Type<TOut>()); \
-    ConstStridedIterator<TX> ix(x,strides_x); \
-    for(;;) { \
-      *py OPER##= *ix; \
-      int ndim = counter.incr(); \
-      if( ndim <= 0 ) \
-        break; \
-      py++; ix.incr(ndim); \
+  { TOut *py = y.getStorage(Type2Type<TOut>()); \
+    const TX *px = x.getStorage(Type2Type<TX>()); \
+    if( y.isScalar() && x.isScalar() ) \
+      *py OPER##= *px; \
+    else { \
+      DimCounter counter(y);  \
+      ConstStridedIterator<TX> ix(px,strides_x); \
+      for(;;) { \
+        *py OPER##= *ix; \
+        int ndim = counter.incr(); \
+        if( ndim <= 0 ) \
+          break; \
+        py++; ix.incr(ndim); \
+      } \
     } \
   } 
   
