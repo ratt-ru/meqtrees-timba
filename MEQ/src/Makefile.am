@@ -3,9 +3,14 @@ SUBDIRS	= .
 LOCALHDRS = MeqVocabulary.h RequestId.h 
 
 LOCALSRCS = \
-  Domain.cc	Cells.cc Vells.cc VellSet.cc Result.cc \
-  ResampleMachine.cc Request.cc RequestId.cc EventGenerator.cc \
-  Node.cc Function.cc CompoundFunction.cc Polc.cc Forest.cc 
+  Axis.cc Domain.cc	Cells.cc Request.cc RequestId.cc \
+  Vells.cc VellSet.cc Result.cc \
+  Node.cc Function.cc CompoundFunction.cc \
+  Polc.cc EventGenerator.cc Forest.cc 
+
+## removed for now, as it needs to be re-worked for the new Vells
+## structure
+# ResampleMachine.cc 
 
 DOCHDRS		= $(LOCALHDRS) \
             $(addsuffix .h,$(basename $(LOCALSRCS))) 
@@ -16,12 +21,6 @@ libmeq_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) \
   Node_Riders.cc AID-Meq-Registry.cc
 
 check_PROGRAMS = 
-
-# uvwparm
-
-# uvwparm_SOURCES	 	= uvwparm.cc 
-# uvwparm_LDADD		= libmeq.la 
-# uvwparm_DEPENDENCIES	= libmeq.la $(LOFAR_DEPEND)
 
 # --- begin generate defrec maps (copy this into local Makefiles)
 #     (shouldn't require any changes)

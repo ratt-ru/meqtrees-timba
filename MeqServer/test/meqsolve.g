@@ -91,7 +91,7 @@ const sta_dft_tree := function (st,src='')
   dft := meq.node('MeqStatPointSourceDFT',fq_name('dft0',src,st),[link_or_create=T],children=[
               lmn = fq_name('lmn',src),uvw=uvw ]);
   # add antenna gains/phases
-  gain := meq.node('MeqPolRepToComplex',fq_name('G',st),[link_or_create=T],children=meq.list(
+  gain := meq.node('MeqPolar',fq_name('G',st),[link_or_create=T],children=meq.list(
               meq.parm(fq_name('GA',st),1.0,groups="a"),
               meq.parm(fq_name('GP',st),0.0,groups="a") ) );
               
@@ -492,8 +492,8 @@ filluvw := any(argv=='-filluvw');
 solve_gains := any(argv=='-gains');
 solve_phases := any(argv=='-phases');
 
-src_dra  := ([0,128]+5) * pi/(180*60*60); # perturb positions by # seconds
-src_ddec := ([0,128]+5) * pi/(180*60*60);
+src_dra  := ([0,142.5]+0) * pi/(180*60*60); # perturb positions by # seconds
+src_ddec := ([0,128]+0) * pi/(180*60*60);
 src_sti  := [1,1]   + 0.1;
 src_names := "a b";
 
@@ -518,7 +518,7 @@ outputrec := [ write_flags=F,predict_column=outcol ];
 do_test(msname=msname,solve=T,subtract=F,run=T,
 #  st1set=[1:5]*4,st2set=[1:5]*4,
 #  st1set=[1:21]*4,st2set=[1:21]*4,
-  stset=1+[0:20]*4,
+  stset=1+[0:3]*4,
 #  st1set=1+[0:20]*4,st2set=1+[0:20]*4,
 #  st1set=1:100,st2set=1:100,
   publish=1,mepuvw=mepuvw,msuvw=msuvw);

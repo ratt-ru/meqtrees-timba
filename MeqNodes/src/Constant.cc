@@ -71,8 +71,9 @@ int Constant::getResult (Result::Ref& resref,
   // Create result object and attach to the ref that was passed in
   Result& result = resref <<= new Result(1,request); // result has one vellset
   VellSet& vs = result.setNewVellSet(0);
-  const Cells &cells = request.cells();
-  vs.setShape(cells.shape());
+// no need anymore, result will set the cells shape for each new vellset anyway
+//  const Cells &cells = request.cells();
+//  vs.setShape(cells.shape());
   vs.setValue(itsValue());
   if( itsIntegrated )
     result.integrate();

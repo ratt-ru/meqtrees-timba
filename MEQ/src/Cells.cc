@@ -31,12 +31,11 @@ namespace Meq {
 
 static NestableContainer::Register reg(TpMeqCells,True);
 
-const HIID Cells::axis_id_[] = { FFreq , FTime };
-
 //##ModelId=3F86886E02C1
 Cells::Cells ()
-: shape_(0,0)
 {
+  shape_.reserve(Axis::MaxAxis);
+  defined_.reserve(Axis::MaxAxis);
 }
 
 //##ModelId=3F86886E02D1
@@ -47,197 +46,206 @@ Cells::~Cells()
 
 //##ModelId=3F86886E02C8
 Cells::Cells (const DataRecord &other,int flags,int depth)
-: DataRecord(other,flags,depth),shape_(0,0)
+: DataRecord(other,flags,depth)
 {
+  shape_.reserve(Axis::MaxAxis);
+  defined_.reserve(Axis::MaxAxis);
   validateContent();
 }
 
-//##ModelId=3F95060B01D3
-Cells::Cells (const Domain& domain,int nfreq,int ntime)
-  : shape_(nfreq,ntime)
+Cells::Cells (const Domain& domain)
 {
-  // setup datarecord
-  // domain
+  init(domain);
+}
+
+    //##ModelId=3F95060B01D3
+Cells::Cells (const Domain& domain,int nx,int ny)
+{
+  init(domain);
+  FailWhen(!domain.isDefined(0),"axis 0 not defined in Cells domain");
+  FailWhen(!domain.isDefined(1),"axis 1 not defined in Cells domain");
+  setCells(0,domain.start(0),domain.end(0),nx);
+  setCells(1,domain.start(1),domain.end(1),ny);
+}
+
+void Cells::setDomain (const Domain &domain)
+{
+  shape_.reserve(Axis::MaxAxis);
+  defined_.reserve(Axis::MaxAxis);
+  shape_.clear();
+  defined_.clear();
   if( domain.refCount() )
     domain_.attach(domain,DMI::READONLY);
   else
     domain_.attach(new Domain(domain),DMI::ANON|DMI::READONLY);
   (*this)[FDomain] <<= domain_.copy();
-  // grid subrecord
-  DataRecord &grid = (*this)[FGrid] <<= new DataRecord;
-  setRecVector(grid_[0],grid[axisId(FREQ)],nfreq);
-  setRecVector(grid_[1],grid[axisId(TIME)],ntime);
-  // cell size subrecord
-  DataRecord &cellsize = (*this)[FCellSize] <<= new DataRecord;
-  setRecVector(cell_size_[0],cellsize[axisId(FREQ)],nfreq);
-  setRecVector(cell_size_[1],cellsize[axisId(TIME)],ntime);
-  // segments subrecord
-  DataRecord &segments = (*this)[FSegments] <<= new DataRecord;
-  DataRecord &segfreq = segments[axisId(FREQ)] <<= new DataRecord;
-  DataRecord &segtime = segments[axisId(TIME)] <<= new DataRecord;
-  setRecVector(seg_start_[0],segfreq[FStartIndex],1);
-  setRecVector(seg_start_[1],segtime[FStartIndex],1);
-  setRecVector(seg_end_[0],segfreq[FEndIndex],1);
-  setRecVector(seg_end_[1],segtime[FEndIndex],1);
-  
-  // setup regular grid
-  for( int iaxis=0; iaxis<DOMAIN_NAXES; iaxis++ )
-  {
-    int nx = ncells(iaxis);
-    double x0 = domain.start(iaxis);
-    double step = (domain.end(iaxis) - x0) / nx;
-    // vectors have been pre-sized by setDataRecord, so the expressions
-    // in these assignments will be evaluated in array context
-    grid_[iaxis] = x0 + step/2 + step*blitz::tensor::i;
-    cell_size_[iaxis] = step;
-    // use 1 uniform segment
-    seg_start_[iaxis](0) = 0;
-    seg_end_[iaxis](0)   = nx-1;
-  }
 }
+
+void Cells::init (const Domain& domain)
+{
+  setDomain(domain);
+  // grid subrecord
+  (*this)[FGrid] <<= new DataRecord;
+  (*this)[FCellSize] <<= new DataRecord;
+  (*this)[FSegments] <<= new DataRecord;
+}
+
 
 // creates a combination of the two grids, depending on resample>0
 // (uses higher-sampled grid) or <0 (uses lower-sampled grid)
 Cells::Cells (const Cells &a,const Cells &b,int resample)
-: shape_(0,0)
 {
   // setup datarecord
-  // domain
-  DbgAssert(*(a.domain_) == *(b.domain_));
-  domain_.copy(a.domain_,DMI::READONLY);
-  (*this)[FDomain] <<= domain_.copy();
-  // subrecords
-  DataRecord &grid = (*this)[FGrid] <<= new DataRecord;
-  DataRecord &cellsize = (*this)[FCellSize] <<= new DataRecord;
-  DataRecord &segments = (*this)[FSegments] <<= new DataRecord;
+  Assert(a.domain() == b.domain());
+  init(a.domain());
+  shape_.resize(std::max(a.shape_.size(),b.shape_.size()));
+  defined_.resize(shape_.size());
   // ***BUG*** here, we simply assume everything (cell positions, sizes)
   // match up, and treat one cells as an integration or upsampling of
   // the other
-  for( int i=0; i<DOMAIN_NAXES; i++ )
+  for( int iaxis=0; iaxis<Axis::MaxAxis; iaxis++ )
   {
-    const Cells &c = (a.ncells(i) > b.ncells(i)) ^ (resample>0) ? b : a;
-    int nc = shape_[i] = c.ncells(i);
-    setRecVector(grid_[i],grid[axisId(i)],nc);
-    grid_[i] = c.grid_[i];
-    // cell size subrecord
-    setRecVector(cell_size_[i],cellsize[axisId(i)],nc);
-    cell_size_[i] = c.cell_size_[i];
-    // segments subrecord
-    DataRecord &seg = segments[axisId(i)] <<= new DataRecord;
-    int nseg = c.numSegments(i);
-    setRecVector(seg_start_[i],seg[FStartIndex],nseg);
-    setRecVector(seg_end_[i],seg[FEndIndex],nseg);
-    seg_start_[i] = c.seg_start_[i];
-    seg_end_[i]  = c.seg_end_[i];
+    const Cells &c = (a.ncells(iaxis) > b.ncells(iaxis)) ^ (resample>0) ? b : a;
+    int np = c.ncells(iaxis);
+    setNumCells(iaxis,np);
+    if( np )
+    {
+      grid_[iaxis] = c.grid_[iaxis];
+      cell_size_[iaxis] = c.cell_size_[iaxis];
+      // segments subrecord
+      setNumSegments(iaxis,c.numSegments(iaxis));
+      seg_start_[iaxis] = c.seg_start_[iaxis];
+      seg_end_[iaxis]   = c.seg_end_[iaxis];
+    }
   }
 }
 
-Cells::Cells (const Cells &other,const int ops[DOMAIN_NAXES],const int args[DOMAIN_NAXES])
-: shape_(0,0)
+Cells::Cells (const Cells &other,const int ops[Axis::MaxAxis],const int args[Axis::MaxAxis])
 {
   // setup datarecord
-  // domain
-  domain_.copy(other.domain_,DMI::READONLY);
-  (*this)[FDomain] <<= domain_.copy();
-  // subrecords
-  DataRecord &grid = (*this)[FGrid] <<= new DataRecord;
-  DataRecord &cellsize = (*this)[FCellSize] <<= new DataRecord;
-  DataRecord &segments = (*this)[FSegments] <<= new DataRecord;
-  for( int iaxis=0; iaxis<DOMAIN_NAXES; iaxis++ )
+  init(other.domain());
+  shape_.resize(other.shape_.size());
+  defined_ = other.defined_;
+  for( int iaxis=0; iaxis<Axis::MaxAxis; iaxis++ )
   {
     int op=ops[iaxis],arg=args[iaxis];
-    int nc0 = other.ncells(iaxis);
-    // ***BUG*** we only handle integartion/upsampling by integer factors,
-    // SET_NCELLS is thus mapped to one of these operations
-    if( op == SET_NCELLS )
+    int np = other.ncells(iaxis);
+    if( np )
     {
-      if( arg == nc0 ) // same # of cells: no op
-        op = NONE;
-      else if( arg>nc0 ) // more cells: assume upsampling
+      // ***BUG*** we only handle integartion/upsampling by integer factors,
+      // SET_NCELLS is thus mapped to one of these operations
+      if( op == SET_NCELLS )
       {
-        FailWhen(arg%nc0,"must upsample by an integer factor");
-        arg = arg/nc0;
-        op  = UPSAMPLE;
-      }
-      else // less cells: assume integrating
-      {
-        FailWhen(nc0%arg,"must upsample by an integer factor");
-        arg = nc0/arg;
-        op  = INTEGRATE;
-      }
-    }
-    // now, do the real operation
-    const LoVec_double &grid0 = other.grid_[iaxis],
-                       &csz0 = other.cell_size_[iaxis];
-    if( op == NONE ) // no op: simply copy the grid
-    {
-      shape_[iaxis] = nc0;
-      setRecVector(grid_[iaxis],grid[axisId(iaxis)],nc0);
-      setRecVector(cell_size_[iaxis],cellsize[axisId(iaxis)],nc0);
-      grid_[iaxis] = grid0;
-      cell_size_[iaxis] = csz0;
-      // copy over segments info
-      DataRecord &seg = segments[axisId(iaxis)] <<= new DataRecord;
-      int nseg = other.numSegments(iaxis);
-      setRecVector(seg_start_[iaxis],seg[FStartIndex],nseg);
-      setRecVector(seg_end_[iaxis],seg[FEndIndex],nseg);
-      seg_start_[iaxis] = other.seg_start_[iaxis];
-      seg_end_[iaxis]  = other.seg_end_[iaxis];
-    } 
-    else if( op == INTEGRATE )
-    {
-      int nc1 = shape_[iaxis] = nc0/arg;
-      setRecVector(grid_[iaxis],grid[axisId(iaxis)],nc1);
-      setRecVector(cell_size_[iaxis],cellsize[axisId(iaxis)],nc1);
-      int i00=0,i01=arg-1; // original cells [i00:i01] become single cell [iaxis]
-      for( int i1=0; i1<nc1; i1++,i00+=arg,i01+=arg )
-      {
-        double a = grid0(i00)-csz0(i00)/2,
-               b = grid0(i01)+csz0(i01)/2;
-        grid_[iaxis](i1) = (a+b)/2;
-        cell_size_[iaxis](i1) = b-a;
-      }
-    }
-    else if( op == UPSAMPLE )
-    {
-      int nc1 = shape_[iaxis] = nc0*arg;
-      setRecVector(grid_[iaxis],grid[axisId(iaxis)],nc1);
-      setRecVector(cell_size_[iaxis],cellsize[axisId(iaxis)],nc1);
-      int i1=0;
-      for( int i0=0; i0<nc0; i0++ )
-      {
-        double a = grid0(i0)-csz0(i0)/2,
-               b = grid0(i0)+csz0(i0)/2; // original cell is [a,b]
-        double sz = (b-a)/arg,           // size of upsampled cell
-               x1 = a + sz/2;            // centrel of first subcell
-        for( int j=0; j<arg; j++,i1++ )
+        if( arg == np ) // same # of cells: no op
+          op = NONE;
+        else if( arg>np ) // more cells: assume upsampling
         {
-          grid_[iaxis](i1) = x1;  x1 += sz;
-          cell_size_[iaxis](i1) = sz;
+          FailWhen(arg%np,"must upsample by an integer factor");
+          arg = arg/np;
+          op  = UPSAMPLE;
+        }
+        else // less cells: assume integrating
+        {
+          FailWhen(np%arg,"must upsample by an integer factor");
+          arg = np/arg;
+          op  = INTEGRATE;
         }
       }
-    }
-    // after all this, recompute segments in the new grid
-    recomputeSegments(iaxis);
+      // now, do the real operation
+      const LoVec_double &grid0 = other.grid_[iaxis],
+                         &csz0 = other.cell_size_[iaxis];
+      if( op == NONE ) // no op: simply copy the grid
+      {
+        setNumCells(iaxis,np);
+        grid_[iaxis] = grid0;
+        cell_size_[iaxis] = csz0;
+        // copy over segments info
+        setNumSegments(iaxis,other.numSegments(iaxis));
+        seg_start_[iaxis] = other.seg_start_[iaxis];
+        seg_end_[iaxis]   = other.seg_end_[iaxis];
+      } 
+      else if( op == INTEGRATE )
+      {
+        int np1 = np/arg;
+        setNumCells(iaxis,np1);
+        int i00=0,i01=arg-1; // original cells [i00:i01] become single cell [iaxis]
+        for( int i1=0; i1<np1; i1++,i00+=arg,i01+=arg )
+        {
+          double a = grid0(i00)-csz0(i00)/2,
+                 b = grid0(i01)+csz0(i01)/2;
+          grid_[iaxis](i1) = (a+b)/2;
+          cell_size_[iaxis](i1) = b-a;
+        }
+        recomputeSegments(iaxis);
+      }
+      else if( op == UPSAMPLE )
+      {
+        int np1 = np*arg;
+        setNumCells(iaxis,np1);
+        int i1=0;
+        for( int i0=0; i0<np; i0++ )
+        {
+          double a = grid0(i0)-csz0(i0)/2,
+                 b = grid0(i0)+csz0(i0)/2; // original cell is [a,b]
+          double sz = (b-a)/arg,           // size of upsampled cell
+                 x1 = a + sz/2;            // centrel of first subcell
+          for( int j=0; j<arg; j++,i1++ )
+          {
+            grid_[iaxis](i1) = x1;  x1 += sz;
+            cell_size_[iaxis](i1) = sz;
+          }
+        }
+        recomputeSegments(iaxis);
+      }
+    } // endif( np )
+    else // else no cells along this axis 
+      setNumCells(iaxis,0);
   }
+}
+
+void Cells::setAxisShape (int iaxis,int num)
+{
+  int sz = shape_.size();
+  if( iaxis >= sz )
+  {
+    shape_.resize(iaxis+1);
+    defined_.resize(iaxis+1);
+    for( ; sz<iaxis; sz++ )
+    {
+      shape_[sz]   = 1;
+      defined_[sz] = false;
+    }
+  }
+  // assign num -- 0 is assigned as '1' in shape, and defined is set to false
+  shape_[iaxis]  = num ? num : 1;
+  defined_[iaxis]   = num;
 }
 
 void Cells::setNumCells (int iaxis,int num)
 {
   Thread::Mutex::Lock lock(mutex());
-  Assert(iaxis>=0 && iaxis<DOMAIN_NAXES);
-  shape_[iaxis] = num;
-  DataRecord &grid = getSubrecord((*this)[FGrid]);
-  setRecVector(grid_[iaxis],grid[axisId(iaxis)],num);
-  DataRecord &cellsize = getSubrecord((*this)[FCellSize]);
-  setRecVector(cell_size_[iaxis],cellsize[axisId(iaxis)],num);
-}   
+  Assert(iaxis>=0 && iaxis<Axis::MaxAxis);
+  setAxisShape(iaxis,num);
+  if( num )
+  {
+    DataRecord &grid = getSubrecord((*this)[FGrid]);
+    setRecVector(grid_[iaxis],grid[Axis::name(iaxis)],num);
+    DataRecord &cellsize = getSubrecord((*this)[FCellSize]);
+    setRecVector(cell_size_[iaxis],cellsize[Axis::name(iaxis)],num);
+  }
+  else
+  {
+    grid_[iaxis].free();
+    cell_size_[iaxis].free();
+    seg_start_[iaxis].free();
+    seg_end_[iaxis].free();
+  }
+}
 
 void Cells::setCells (int iaxis,const LoVec_double &cen,const LoVec_double &size)
 {
   Thread::Mutex::Lock lock(mutex());
   int num = cen.size();
-  shape_[iaxis] = num;
   Assert(size.size() == num);
   setNumCells(iaxis,num);
   grid_[iaxis] = cen;
@@ -250,7 +258,6 @@ void Cells::setCells (int iaxis,const LoVec_double &cen,double size)
 {
   Thread::Mutex::Lock lock(mutex());
   int num = cen.size();
-  shape_[iaxis] = num;
   setNumCells(iaxis,num);
   grid_[iaxis] = cen;
   cell_size_[iaxis] = size;
@@ -272,10 +279,22 @@ void Cells::setCells (int iaxis,double x0,double x1,int num,double size)
   seg_end_[iaxis]  (0) = num-1;
 }
 
+void Cells::setEnumCells (int iaxis,int num)
+{
+  Thread::Mutex::Lock lock(mutex());
+  setNumCells(iaxis,num);
+  grid_[iaxis] = blitz::tensor::i;
+  cell_size_[iaxis] = 0;
+  // assign single segment
+  setNumSegments(iaxis,1);
+  seg_start_[iaxis](0) = 0;
+  seg_end_[iaxis]  (0) = num-1;
+}
+
 void Cells::setNumSegments (int iaxis,int nseg)
 {
   Thread::Mutex::Lock lock(mutex());
-  DataRecord &seg = getSubrecord(getSubrecord((*this)[FSegments])[axisId(iaxis)]);
+  DataRecord &seg = getSubrecord(getSubrecord((*this)[FSegments])[Axis::name(iaxis)]);
   setRecVector(seg_start_[iaxis],seg[FStartIndex],nseg);
   setRecVector(seg_end_  [iaxis],seg[FEndIndex],nseg);
 }
@@ -284,7 +303,7 @@ void Cells::recomputeSegments (int iaxis)
 {
   Thread::Mutex::Lock lock(mutex());
   using std::fabs;
-  Assert(iaxis>=0 && iaxis<DOMAIN_NAXES);
+  Assert(iaxis>=0 && iaxis<Axis::MaxAxis);
   int num = grid_[iaxis].size();
   // 1 point: always regular, assign single segment
   if( num<2 )
@@ -338,14 +357,19 @@ void Cells::recomputeSegments (int iaxis)
 void Cells::recomputeDomain ()
 {
   Thread::Mutex::Lock lock(mutex());
-  int nx = grid_[0].size();
-  int ny = grid_[1].size();
-  double x0 = grid_[0](0) - cell_size_[0](0)/2;
-  double x1 = grid_[0](nx-1) + cell_size_[0](nx-1)/2;
-  double y0 = grid_[1](0) - cell_size_[1](0)/2;
-  double y1 = grid_[1](ny-1) + cell_size_[1](ny-1)/2;
-  
-  domain_.attach(new Domain(x0,x1,y0,y1),DMI::ANON|DMI::READONLY);
+  Domain *newdom = new Domain;
+  domain_ <<= newdom;
+  for( int i=0; i<Axis::MaxAxis; i++ )
+  {
+    int np = ncells(i);
+    if( np )
+    {
+      double a0 = grid_[i](0)    - cell_size_[i](0)/2;
+      double a1 = grid_[i](np-1) + cell_size_[i](np-1)/2;
+      newdom->defineAxis(i,a0,a1);
+    }
+  }
+  domain_.change(DMI::READONLY);
   (*this)[FDomain].replace() <<= domain_.copy();
 }
 
@@ -354,6 +378,10 @@ void Cells::recomputeDomain ()
 void Cells::validateContent ()
 {
   Thread::Mutex::Lock lock(mutex());
+  shape_.reserve(Axis::MaxAxis);
+  defined_.reserve(Axis::MaxAxis);
+  shape_.clear();
+  defined_.clear();
   try
   {
     Hook hdom = (*this)[FDomain],
@@ -364,24 +392,35 @@ void Cells::validateContent ()
     {
       domain_.attach(hdom.as_p<Domain>());
       DataRecord &rgrid = hgrid.as_wr<DataRecord>();
-      DataRecord &rcs = hcs.as_wr<DataRecord>();
-      DataRecord &rseg = hseg.as_wr<DataRecord>();
-      DataRecord &rsegf = rseg[axisId(FREQ)].as_wr<DataRecord>();
-      DataRecord &rsegt = rseg[axisId(TIME)].as_wr<DataRecord>();
-      grid_[0].reference(rgrid[axisId(FREQ)].as<LoVec_double>());
-      cell_size_[0].reference(rcs[axisId(FREQ)].as<LoVec_double>());
-      Assert(grid_[0].size()==cell_size_[0].size());
-      grid_[1].reference(rgrid[axisId(TIME)].as<LoVec_double>());
-      cell_size_[1].reference(rcs[axisId(TIME)].as<LoVec_double>());
-      Assert(grid_[1].size()==cell_size_[1].size());
-      seg_start_[0].reference(rsegf[FStartIndex].as<LoVec_int>());
-      seg_end_[0].reference(rsegf[FEndIndex].as<LoVec_int>());
-      Assert(seg_start_[0].size()==seg_end_[0].size());
-      seg_start_[1].reference(rsegt[FStartIndex].as<LoVec_int>());
-      seg_end_[1].reference(rsegt[FEndIndex].as<LoVec_int>());
-      Assert(seg_start_[1].size()==seg_end_[1].size());
-      shape_[0] = grid_[0].size();
-      shape_[1] = grid_[1].size();
+      DataRecord &rcs   = hcs.as_wr<DataRecord>();
+      DataRecord &rseg  = hseg.as_wr<DataRecord>();
+      // now loop over the grid record to determine which axes are
+      // defined
+      HIID id;
+      NCRef ncref;
+      Iterator iter = rgrid.initFieldIter();
+      while( rgrid.getFieldIter(iter,id,ncref) )
+      { 
+        FailWhen(id.size()!=1,"illegal axis ID "+id.toString());
+        int iaxis = id[0].index();
+        if( iaxis<0 )
+        {
+          iaxis = Axis::number(id[0]);
+          FailWhen(iaxis<0,"unknown axis ID "+id.toString());
+        }
+        // check that this axis is defined in the domain
+        FailWhen(!domain_->isDefined(iaxis),"axis "+id.toString()+" not defined in domain");
+        // set grid centers and axis shape
+        grid_[iaxis].reference(rgrid[id].as<LoVec_double>());
+        int np = grid_[iaxis].size();
+        setAxisShape(iaxis,np);
+        // now, the axis must be present in all other records, and shapes must match
+        cell_size_[iaxis].reference(rcs[id].as<LoVec_double>());
+        Assert(cell_size_[iaxis].size() == np);
+        seg_start_[iaxis].reference(rseg[id][FStartIndex].as<LoVec_int>());
+        seg_end_[iaxis].reference(rseg[id][FEndIndex].as<LoVec_int>());
+        Assert(seg_start_[iaxis].size()==seg_end_[iaxis].size());
+      }
     }
     else
     {
@@ -390,13 +429,8 @@ void Cells::validateContent ()
                "domain not defined");
       // make empty cells
       domain_.detach();
-      for( int i=0; i<DOMAIN_NAXES; i++ )
-      {
-        grid_[i].free();
-        cell_size_[i].free();
-        seg_start_[i].free();
-        seg_end_[i].free();
-      }
+      for( int i=0; i<Axis::MaxAxis; i++ )
+        setNumCells(i,0);
     }
   }
   catch( std::exception &err )
@@ -448,7 +482,7 @@ bool Cells::operator== (const Cells& that) const
   if( compare(that) )
     return false;
   // check axes one by one
-  for( int i=0; i<DOMAIN_NAXES; i++ )
+  for( int i=0; i<Axis::MaxAxis; i++ )
     if( any( center(i) != that.center(i) ) ||
         any( cellSize(i) != that.cellSize(i) ) )
       return false;
@@ -460,9 +494,7 @@ bool Cells::operator== (const Cells& that) const
 void Cells::show (std::ostream& os) const
 {
   Thread::Mutex::Lock lock(mutex());
-  os << "Meq::Cells [" << ncells(FREQ) << ','
-     << ncells(TIME) << "]  "
-     << domain() << endl;
+  os << "Meq::Cells [" << shape_ << "]\n";
 }
 
 DataRecord & Cells::getSubrecord (const Hook &hook)

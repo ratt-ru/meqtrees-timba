@@ -120,9 +120,8 @@ int Function::getResult (Result::Ref &resref,
   std::vector<Thread::Mutex::Lock> childpvv_lock[2];
   childpvv_lock[0].resize(nrch);
   childpvv_lock[1].resize(nrch);
-  // check that resolution match, or if they should be upsampled or
-  // downsampled, figure out the max number of child planes, figure out 
-  // if result should be marked as integrated
+  // check that resolution match. Also, figure out the max number of 
+  // child planes, and figure out if result should be marked as integrated.
   int nplanes = childres[0]->numVellSets();   // max # of planes in children
   bool integr = childres[0]->isIntegrated();  // flag: is any child integrated
   for( int i=1; i<nrch; i++ )
@@ -174,7 +173,7 @@ int Function::getResult (Result::Ref &resref,
         {
           const Vells &val = child_vs[i]->getValue();
           childval_lock[i].relock(val.mutex());
-          FailWhen(val.isArray() && val.shape() != res_shape,"mismatch in child result shapes");
+          FailWhen(!val.isCompatible(res_shape),"mismatch in child result shapes");
           values[i] = &val;
         }
       }
@@ -221,7 +220,7 @@ int Function::getResult (Result::Ref &resref,
               {
                 const Vells &pvv = vs.getPerturbedValue(inx,ipert);
                 childpvv_lock[ipert][ich].relock(pvv.mutex());
-                FailWhen(pvv.isArray() && pvv.shape() != res_shape,"mismatch in child result shapes");
+                FailWhen(!pvv.isCompatible(res_shape),"mismatch in child result shapes");
                 pert_values[ipert][ich] = &pvv;
                 if( found[ipert] >=0 )
                 {

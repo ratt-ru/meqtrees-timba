@@ -57,27 +57,27 @@ void StatPointSourceDFT::evalResult (std::vector<Vells> &res,
   #define vv (*(values[4]))
   #define vw (*(values[5]))
   
-  // For the time being we only support scalars for LMN
-  Assert (vl.isScalar() && vm.isScalar() && vn.isScalar());
-  
+  // Some important assumptions
+  // For the time being we only support scalars for LMN, 
+  Assert(vl.isScalar() && vm.isScalar() && vn.isScalar() );
+  // and only time-variable UVW
+  Assert(vu.shape(Axis::TIME) == vu.nelements());
+  Assert(vv.shape(Axis::TIME) == vv.nelements());
+  Assert(vw.shape(Axis::TIME) == vw.nelements());
   // Loop over all frequency segments, and generate an F0/DF pair for each
   int iout = 0;
-  for( int iseg = 0; iseg < cells.numSegments(FREQ); iseg++ )
+  for( int iseg = 0; iseg < cells.numSegments(Axis::FREQ); iseg++ )
   {
-    int seg0 = cells.segmentStart(FREQ)(iseg);
+    int seg0 = cells.segmentStart(Axis::FREQ)(iseg);
     // Calculate 2pi/wavelength, where wavelength=c/freq.
     // Calculate it for the frequency step if needed.
-    double f0 = cells.center(FREQ)(seg0);
-    double df = cells.cellSize(FREQ)(seg0);
+    double f0 = cells.center(Axis::FREQ)(seg0);
+    double df = cells.cellSize(Axis::FREQ)(seg0);
     double wavel0 = C::_2pi * f0 / C::c;
     double dwavel = df / f0;
     Vells r1 = (vu*vl + vv*vm + vw*vn) * wavel0;
-    r1.makeNonTemp();
-    res[iout]  = tocomplex(cos(r1), sin(r1));
-    res[iout++].makeNonTemp();
-    r1 *= dwavel;
-    res[iout]  = tocomplex(cos(r1), sin(r1));
-    res[iout++].makeNonTemp();
+    res[iout++] = polar(1,r1);
+    res[iout++] = polar(1,r1*dwavel);
   }
 }
 
@@ -99,7 +99,8 @@ int StatPointSourceDFT::getResult (Result::Ref &resref,
   // allocate proper output result (integrated=false??)
   FailWhen(!childres[0]->hasCells(),"child result 0 does not have a Cells object");
   const Cells &cells = childres[0]->cells();
-  Result &result = resref <<= new Result(cells.numSegments(FREQ)*2,false);
+  FailWhen(!cells.isDefined(Axis::FREQ),"Cells must define a frequency axis");
+  Result &result = resref <<= new Result(cells.numSegments(Axis::FREQ)*2,false);
   result.setCells(cells);
   // fill it
   computeValues(result,child_vs);

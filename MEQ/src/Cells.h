@@ -56,24 +56,27 @@ public:
     //##ModelId=3F86886E02C8
   Cells (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
   
+  // creates an empty cells with a domain
+  Cells (const Domain& domain);
+  
     //##ModelId=3F95060B01D3
     //##Documentation
-    //## constructs uniformly-spaced cells with the given number of frequencies
-    //## and times
-  Cells (const Domain& domain,int nfreq,int ntimes);
-
+    //## constructs uniformly-spaced cells with the given number of x and y
+    //## points. Domain  must define axes 0 and 1 (and no others)
+  Cells (const Domain& domain,int nx,int ny);
+  
   // creates a resampling combining cells a and b. If resample>0, upsamples
   // the lower resolution. If resample<0, integrates the higher resolution.
   Cells (const Cells &a,const Cells &b,int resample);
   
   // creates a resampling of a Cells. op[] is an array of operations on each
   // axis (see the CellsOperations enums above), arg[] is an array of arguments
-  Cells (const Cells &other,const int op[DOMAIN_NAXES],const int arg[DOMAIN_NAXES]);
+  Cells (const Cells &other,const int op[Axis::MaxAxis],const int arg[Axis::MaxAxis]);
   
     //##ModelId=3F86886E02D1
   ~Cells();
   
-    //##ModelId=400E530403C1
+      //##ModelId=400E530403C1
   virtual TypeId objectType () const
   { return TpMeqCells; }
   
@@ -91,11 +94,18 @@ public:
   // (or when the underlying DataRecord is privatized, etc.)
     //##ModelId=400E530403DB
   virtual void validateContent ();
+
+  // returns true if some cells are defined over the given axis
+  bool isDefined (int iaxis) const
+  { 
+    DbgAssert(iaxis>=0 && iaxis<Axis::MaxAxis);
+    return iaxis < int(defined_.size()) ? defined_[iaxis] : false; 
+  }
   
-  // returns HIID used to identify an axis 
-  static const HIID & axisId (int iaxis)
-  { return axis_id_[iaxis]; }
-    
+  // returns number of cells along axis
+  int ncells (int iaxis) const
+  { return isDefined(iaxis) ? shape_[iaxis] : 0; }
+  
   // Get domain.
     //##ModelId=3F86886E02D2
   const Domain& domain() const
@@ -103,21 +113,20 @@ public:
 
   // returns vector of cell centers along specified axis 
   const LoVec_double & center (int iaxis) const
-    { DbgAssert(iaxis>=0 && iaxis<DOMAIN_NAXES);
+    { DbgAssert(iaxis>=0 && iaxis<Axis::MaxAxis);
       return grid_[iaxis]; }
       
   // returns vector of cell sizes along specified axis 
   const LoVec_double & cellSize (int iaxis) const
-    { DbgAssert(iaxis>=0 && iaxis<DOMAIN_NAXES);
+    { DbgAssert(iaxis>=0 && iaxis<Axis::MaxAxis);
       return cell_size_[iaxis]; }
 
   const LoShape & shape () const
     { return shape_; }    
-        
-  // returns number of cells along axis
-  int ncells (int iaxis) const
-    { return center(iaxis).size(); }
   
+  int rank () const
+    { return shape_.size(); }
+        
   // returns vector of cell lower boundaries (this is computed)
   LoVec_double cellStart (int iaxis) const
   {
@@ -138,21 +147,21 @@ public:
   // returns the number of uniformly-gridded segments along axis
   int numSegments (int iaxis) const
   {
-    DbgAssert(iaxis>=0 && iaxis<DOMAIN_NAXES);
+    DbgAssert(iaxis>=0 && iaxis<Axis::MaxAxis);
     return seg_start_[iaxis].size();
   }
   
   // returns the starting indices of each segment
   const LoVec_int & segmentStart (int iaxis) const
   {
-    DbgAssert(iaxis>=0 && iaxis<DOMAIN_NAXES);
+    DbgAssert(iaxis>=0 && iaxis<Axis::MaxAxis);
     return seg_start_[iaxis];
   }
       
   // returns the ending indices of each segment
   const LoVec_int & segmentEnd   (int iaxis) const
   {
-    DbgAssert(iaxis>=0 && iaxis<DOMAIN_NAXES);
+    DbgAssert(iaxis>=0 && iaxis<Axis::MaxAxis);
     return seg_end_[iaxis];
   }
   
@@ -165,11 +174,14 @@ public:
   // regular grid of num points covering the interval [x0,x1]. If size>0 is
   // specified, use that, else use default (x1-x0)/num
   void setCells (int iaxis,double x0,double x1,int num,double size=-1);
+  // "enumeration" grid (centers at 0,1,2,...; sizes of 0)
+  void setEnumCells (int iaxis,int num);
 
   // refreshes segment info for an axis
   void recomputeSegments (int iaxis);
   
-  // refreshes envelope domain. Should be always be called after setCells
+  // refreshes envelope domain. Should be always be called after a series
+  // of setCells(), otherwise the Cells object is left in an inconsistent state.
   void recomputeDomain ();
 
   // method used to compare cells & resolutions
@@ -207,11 +219,22 @@ private:
   DataRecord::initFieldIter;
   DataRecord::getFieldIter;
     
-  // helper function: sets up subrecords for an axis
+  // helper function: sets domain of cells
+  void setDomain (const Domain &domain);
+
+  // helper function: inits basic record structure
+  void init (const Domain& domain);
+  
+  // helper function: inits regularly-spaced axis
+  // which must already be present in the domain
+  void setRegularAxis (int iaxis,int np);
+    
+  // helper function: defines shape of axis (shape_ vector)
+  void setAxisShape (int axis,int num);
+  // helper function: sets up data fields of given shape for an axis
   void setNumCells (int iaxis,int num);
   // helper function: sets up a segment subrecord
   void setNumSegments (int iaxis,int nseg);
-    
     
   // helper function to assign new vector to datarecord & to vec
   template<class T>
@@ -223,12 +246,11 @@ private:
   CountedRef<Domain>  domain_;
     //##ModelId=3F86886E02AC
   LoShape       shape_;    
-  LoVec_double  grid_     [DOMAIN_NAXES];
-  LoVec_double  cell_size_[DOMAIN_NAXES];
-  LoVec_int     seg_start_[DOMAIN_NAXES];
-  LoVec_int     seg_end_  [DOMAIN_NAXES];
-  
-  static const HIID axis_id_[DOMAIN_NAXES];
+  std::vector<bool> defined_;
+  LoVec_double  grid_     [Axis::MaxAxis];
+  LoVec_double  cell_size_[Axis::MaxAxis];
+  LoVec_int     seg_start_[Axis::MaxAxis];
+  LoVec_int     seg_end_  [Axis::MaxAxis];
 };
 
 } //namespace Meq

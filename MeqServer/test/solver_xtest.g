@@ -62,7 +62,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
   else if( stage == 1 )
   {
     # use table for parms
-    tablename := 'test.mep';
+    tablename := 'solver_test.mep';
     pt := meq.meptable(tablename,create=T);
     pt.putdef('x',0);
     pt.putdef('y',0);
@@ -78,19 +78,65 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
   # stages 0 and 1: create forest
   if( stage != 2 )
   {
-    cc := [ a1=1,b1=1,a2=1,b2=-1 ];
+    cc := [ a1=1,b1=1,a2=1,b2=-1,noisefreq=10,noiselevel=.1 ];
     cc.c1 := cc.a1*x0 + cc.b1*y0;
     cc.c2 := cc.a2*x0 + cc.b2*y0;
     for( f in field_names(cc) )
-      mqs.meq('Create.Node',meq.parm(f,array(as_double(cc[f]),1,1)));
+      mqs.meq('Create.Node',meq.parm(f,meq.polc(cc[f])));
     mqs.meq('Create.Node',meq.node('MeqMultiply','a1x',children="a1 x"));
     mqs.meq('Create.Node',meq.node('MeqMultiply','a2x',children="a2 x"));
     mqs.meq('Create.Node',meq.node('MeqMultiply','b1y',children="b1 y"));
     mqs.meq('Create.Node',meq.node('MeqMultiply','b2y',children="b2 y"));
     mqs.meq('Create.Node',meq.node('MeqAdd','lhs1',children="a1x b1y"));
     mqs.meq('Create.Node',meq.node('MeqAdd','lhs2',children="a2x b2y"));
-    mqs.meq('Create.Node',meq.node('MeqCondeq','eq1',children="lhs1 c1"));
-    mqs.meq('Create.Node',meq.node('MeqCondeq','eq2',children="lhs2 c2"));
+    
+    mqs.createnode(
+      meq.node('MeqAdd','c1n',children=meq.list(
+        'c1',
+        meq.node('MeqMultiply','c1n1',children=meq.list(
+          'noiselevel',
+          meq.node('MeqSin','c1n1a',children=meq.list(
+            meq.node('MeqMultiply','c1n1aa',children=meq.list(
+              meq.node('MeqFreq','c1n1aaa'),'noisefreq'
+            ))
+          ))
+        )),
+        meq.node('MeqMultiply','c1n2',children=meq.list(
+          'noiselevel',
+          meq.node('MeqCos','c1n2a',children=meq.list(
+            meq.node('MeqMultiply','c1n2aa',children=meq.list(
+              meq.node('MeqTime','c1n2aaa'),'noisefreq'
+            ))
+          ))
+        ))
+      ))
+    );
+    mqs.createnode(
+      meq.node('MeqAdd','c2n',children=meq.list(
+        'c2',
+        meq.node('MeqMultiply','c2n1',children=meq.list(
+          'noiselevel',
+          meq.node('MeqCos','c2n1a',children=meq.list(
+            meq.node('MeqMultiply','c2n1aa',children=meq.list(
+              meq.node('MeqFreq','c2n1aaa'),
+              'noisefreq'
+            ))
+          ))
+        )),
+        meq.node('MeqMultiply','c2n2',children=meq.list(
+          'noiselevel',
+          meq.node('MeqSin','c2n2a',children=meq.list(
+            meq.node('MeqMultiply','c2n2aa',children=meq.list(
+              meq.node('MeqTime','c2n2aaa'),
+              'noisefreq'
+            ))
+          ))
+        ))
+      ))
+    );
+    
+    mqs.meq('Create.Node',meq.node('MeqCondeq','eq1',children="lhs1 c1n"));
+    mqs.meq('Create.Node',meq.node('MeqCondeq','eq2',children="lhs2 c2n"));
     # create solver
     global rec;
     rec := meq.node('MeqSolver','solver',children="eq1 eq2");
@@ -108,7 +154,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
 
     # execute request on x and y parms to load polcs and get original values
     global cells,request,res;
-    cells := meq.cells(meq.domain(0,1,0,1),num_freq=4,num_time=4);
+    cells := meq.cells(meq.domain(0,1,0,1),num_freq=20,num_time=20);
     request := meq.request(cells,rqid=meq.rqid(),calc_deriv=0);
     res := mqs.meq('Node.Execute',[name='x',request=request],T);
     res := mqs.meq('Node.Execute',[name='y',request=request],T);

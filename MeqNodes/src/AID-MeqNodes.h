@@ -8,11 +8,6 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_MeqNodes ();
 
-#ifndef _defined_id_AidBit
-#define _defined_id_AidBit 1
-const AtomicID AidBit(-1428);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/FlagCompare.h:30
-const int AidBit_int = -1428;
-#endif
 #ifndef _defined_id_AidCells
 #define _defined_id_AidCells 1
 const AtomicID AidCells(-1247);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:35
@@ -28,55 +23,15 @@ const int AidDFT_int = -1475;
 const AtomicID AidDec(-1379);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/UVW.h:30
 const int AidDec_int = -1379;
 #endif
-#ifndef _defined_id_AidDensity
-#define _defined_id_AidDensity 1
-const AtomicID AidDensity(-1440);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Resampler.h:31
-const int AidDensity_int = -1440;
-#endif
-#ifndef _defined_id_AidEQ
-#define _defined_id_AidEQ 1
-const AtomicID AidEQ(-1434);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
-const int AidEQ_int = -1434;
-#endif
-#ifndef _defined_id_AidFactor
-#define _defined_id_AidFactor 1
-const AtomicID AidFactor(-1448);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ModRes.h:32
-const int AidFactor_int = -1448;
-#endif
 #ifndef _defined_id_AidFlag
 #define _defined_id_AidFlag 1
 const AtomicID AidFlag(-1135);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
 const int AidFlag_int = -1135;
 #endif
-#ifndef _defined_id_AidGE
-#define _defined_id_AidGE 1
-const AtomicID AidGE(-1431);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
-const int AidGE_int = -1431;
-#endif
-#ifndef _defined_id_AidGT
-#define _defined_id_AidGT 1
-const AtomicID AidGT(-1432);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
-const int AidGT_int = -1432;
-#endif
-#ifndef _defined_id_AidIntegrate
-#define _defined_id_AidIntegrate 1
-const AtomicID AidIntegrate(-1172);               // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
-const int AidIntegrate_int = -1172;
-#endif
-#ifndef _defined_id_AidLE
-#define _defined_id_AidLE 1
-const AtomicID AidLE(-1430);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
-const int AidLE_int = -1430;
-#endif
 #ifndef _defined_id_AidLMN
 #define _defined_id_AidLMN 1
 const AtomicID AidLMN(-1476);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/StatPointSourceDFT.h:31
 const int AidLMN_int = -1476;
-#endif
-#ifndef _defined_id_AidLT
-#define _defined_id_AidLT 1
-const AtomicID AidLT(-1436);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
-const int AidLT_int = -1436;
 #endif
 #ifndef _defined_id_AidMask
 #define _defined_id_AidMask 1
@@ -138,11 +93,6 @@ const int AidMeqLMN_int = -1467;
 const AtomicID AidMeqMergeFlags(-1437);           // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MergeFlags.h:30
 const int AidMeqMergeFlags_int = -1437;
 #endif
-#ifndef _defined_id_AidMeqModRes
-#define _defined_id_AidMeqModRes 1
-const AtomicID AidMeqModRes(-1447);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ModRes.h:31
-const int AidMeqModRes_int = -1447;
-#endif
 #ifndef _defined_id_AidMeqMultiply
 #define _defined_id_AidMeqMultiply 1
 const AtomicID AidMeqMultiply(-1227);             // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Multiply.h:29
@@ -158,10 +108,10 @@ const int AidMeqParm_int = -1244;
 const AtomicID AidMeqPointSourceDFT(-1469);       // from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/PointSourceDFT.h:30
 const int AidMeqPointSourceDFT_int = -1469;
 #endif
-#ifndef _defined_id_AidMeqPolRepToComplex
-#define _defined_id_AidMeqPolRepToComplex 1
-const AtomicID AidMeqPolRepToComplex(-1501);      // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqNodes/src/PolRepToComplex.h:30
-const int AidMeqPolRepToComplex_int = -1501;
+#ifndef _defined_id_AidMeqPolar
+#define _defined_id_AidMeqPolar 1
+const AtomicID AidMeqPolar(-1503);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Polar.h:30
+const int AidMeqPolar_int = -1503;
 #endif
 #ifndef _defined_id_AidMeqPow
 #define _defined_id_AidMeqPow 1
@@ -172,11 +122,6 @@ const int AidMeqPow_int = -1214;
 #define _defined_id_AidMeqReqSeq 1
 const AtomicID AidMeqReqSeq(-1478);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqSeq.h:30
 const int AidMeqReqSeq_int = -1478;
-#endif
-#ifndef _defined_id_AidMeqResampler
-#define _defined_id_AidMeqResampler 1
-const AtomicID AidMeqResampler(-1439);            // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Resampler.h:30
-const int AidMeqResampler_int = -1439;
 #endif
 #ifndef _defined_id_AidMeqSelector
 #define _defined_id_AidMeqSelector 1
@@ -228,35 +173,15 @@ const int AidMeqToComplex_int = -1217;
 const AtomicID AidMeqUVW(-1239);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/UVW.h:29
 const int AidMeqUVW_int = -1239;
 #endif
-#ifndef _defined_id_AidMeqZeroFlagger
-#define _defined_id_AidMeqZeroFlagger 1
-const AtomicID AidMeqZeroFlagger(-1433);          // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:29
-const int AidMeqZeroFlagger_int = -1433;
-#endif
 #ifndef _defined_id_AidN
 #define _defined_id_AidN 1
 const AtomicID AidN(-1020);                       // from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 const int AidN_int = -1020;
 #endif
-#ifndef _defined_id_AidNE
-#define _defined_id_AidNE 1
-const AtomicID AidNE(-1429);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
-const int AidNE_int = -1429;
-#endif
-#ifndef _defined_id_AidNum
-#define _defined_id_AidNum 1
-const AtomicID AidNum(-1177);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
-const int AidNum_int = -1177;
-#endif
 #ifndef _defined_id_AidOnly
 #define _defined_id_AidOnly 1
 const AtomicID AidOnly(-1477);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ReqSeq.h:31
 const int AidOnly_int = -1477;
-#endif
-#ifndef _defined_id_AidOper
-#define _defined_id_AidOper 1
-const AtomicID AidOper(-1435);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
-const int AidOper_int = -1435;
 #endif
 #ifndef _defined_id_AidRA
 #define _defined_id_AidRA 1

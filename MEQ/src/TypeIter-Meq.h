@@ -5,28 +5,28 @@
 
 
 
+#define DoForAllOtherTypes_Meq(Do,arg,separator) \
+        
+
 #define DoForAllBinaryTypes_Meq(Do,arg,separator) \
         
 
-#define DoForAllDynamicTypes_Meq(Do,arg,separator) \
-        Do(Meq::Domain,arg) separator \
-        Do(Meq::Cells,arg) separator \
-        Do(Meq::VellSet,arg) separator \
-        Do(Meq::Result,arg) separator \
-        Do(Meq::Request,arg) separator \
-        Do(Meq::Node,arg) separator \
-        Do(Meq::Function,arg) separator \
-        Do(Meq::Polc,arg)
-
-#define DoForAllNumericTypes_Meq(Do,arg,separator) \
+#define DoForAllSpecialTypes_Meq(Do,arg,separator) \
         
 
 #define DoForAllIntermediateTypes_Meq(Do,arg,separator) \
         
 
-#define DoForAllOtherTypes_Meq(Do,arg,separator) \
-        
+#define DoForAllDynamicTypes_Meq(Do,arg,separator) \
+        Do(Meq::Domain,arg) separator \
+        Do(Meq::Cells,arg) separator \
+        Do(Meq::Request,arg) separator \
+        Do(Meq::VellSet,arg) separator \
+        Do(Meq::Result,arg) separator \
+        Do(Meq::Node,arg) separator \
+        Do(Meq::Function,arg) separator \
+        Do(Meq::Polc,arg)
 
-#define DoForAllSpecialTypes_Meq(Do,arg,separator) \
+#define DoForAllNumericTypes_Meq(Do,arg,separator) \
         
 #endif

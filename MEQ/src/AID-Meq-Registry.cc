@@ -9,12 +9,12 @@
 BlockableObject * __construct_MeqDomain (int n) { return n>0 ? new Meq::Domain [n] : new Meq::Domain; }
 #include "Cells.h"
 BlockableObject * __construct_MeqCells (int n) { return n>0 ? new Meq::Cells [n] : new Meq::Cells; }
+#include "Request.h"
+BlockableObject * __construct_MeqRequest (int n) { return n>0 ? new Meq::Request [n] : new Meq::Request; }
 #include "VellSet.h"
 BlockableObject * __construct_MeqVellSet (int n) { return n>0 ? new Meq::VellSet [n] : new Meq::VellSet; }
 #include "Result.h"
 BlockableObject * __construct_MeqResult (int n) { return n>0 ? new Meq::Result [n] : new Meq::Result; }
-#include "Request.h"
-BlockableObject * __construct_MeqRequest (int n) { return n>0 ? new Meq::Request [n] : new Meq::Request; }
 #include "Node.h"
 BlockableObject * __construct_MeqNode (int n) { return n>0 ? new Meq::Node [n] : new Meq::Node; }
 #include "Function.h"
@@ -69,6 +69,9 @@ BlockableObject * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] :
         AtomicID::registerId(-1105,"start")+
         AtomicID::registerId(-1283,"end")+
         AtomicID::registerId(-1363,"steps")+
+        AtomicID::registerId(-1504,"axis")+
+        AtomicID::registerId(-1415,"axes")+
+        AtomicID::registerId(-1190,"offset")+
         AtomicID::registerId(-1324,"nodeindex")+
         AtomicID::registerId(-1361,"table")+
         AtomicID::registerId(-1231,"default")+
@@ -124,6 +127,13 @@ BlockableObject * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] :
         AtomicID::registerId(-1398,"chi")+
         AtomicID::registerId(-1421,"iter")+
         AtomicID::registerId(-1484,"last")+
+        AtomicID::registerId(-1018,"l")+
+        AtomicID::registerId(-1019,"m")+
+        AtomicID::registerId(-1020,"n")+
+        AtomicID::registerId(-1030,"x")+
+        AtomicID::registerId(-1031,"y")+
+        AtomicID::registerId(-1032,"z")+
+        AtomicID::registerId(-1502,"lag")+
         AtomicID::registerId(-1235,"meqdomain")+
         TypeInfoReg::addToRegistry(-1235,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1235,__construct_MeqDomain)+
@@ -132,15 +142,15 @@ BlockableObject * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] :
         AtomicID::registerId(-1237,"meqcells")+
         TypeInfoReg::addToRegistry(-1237,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1237,__construct_MeqCells)+
+        AtomicID::registerId(-1222,"meqrequest")+
+        TypeInfoReg::addToRegistry(-1222,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1222,__construct_MeqRequest)+
         AtomicID::registerId(-1369,"meqvellset")+
         TypeInfoReg::addToRegistry(-1369,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1369,__construct_MeqVellSet)+
         AtomicID::registerId(-1246,"meqresult")+
         TypeInfoReg::addToRegistry(-1246,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1246,__construct_MeqResult)+
-        AtomicID::registerId(-1222,"meqrequest")+
-        TypeInfoReg::addToRegistry(-1222,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1222,__construct_MeqRequest)+
         AtomicID::registerId(-1242,"meqnode")+
         TypeInfoReg::addToRegistry(-1242,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1242,__construct_MeqNode)+

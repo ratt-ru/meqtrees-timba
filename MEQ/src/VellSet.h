@@ -110,7 +110,7 @@ public:
   // Create a time,frequency result for the given shape, number of spids,
   // number of pert sets
     //##ModelId=400E5355031E
-  VellSet (const LoShape2 &shp,int nspid=0,int nset=1);
+  VellSet (const LoShape &shp,int nspid=0,int nset=1);
   
   // Create a time,frequency result for the given number of spids, number 
   // of pert sets. Shape has to be supplied later.
@@ -151,15 +151,15 @@ public:
   
   // ------------------------ SHAPE
   const bool hasShape () const
-  { return shape_[0] || shape_[1]; }
+  { return shape_.size()>0; }
 
-  const LoShape2 & shape () const
+  const LoShape & shape () const
   { return shape_; }
   
-  void setShape (const LoShape2 &shp);
+  void setShape (const Vells::Shape &shp);
   
   void setShape (int nx,int ny)
-  { setShape(LoShape2(nx,ny)); }
+  { setShape(Vells::Shape(nx,ny)); }
   
   // ------------------------ SPIDS AND ASSOCIATED ATTRIBUTES
   // Get the spids.
@@ -231,34 +231,38 @@ public:
   
   // set the value to a copy of the given Vells object (Vells copy uses ref semantics!)
     //##ModelId=400E53550363
-  Vells & setValue (const Vells & value) { return setValue(new Vells(value)); }
+  Vells & setValue   (const Vells & value) { return setValue(new Vells(value)); }
+  Vells & setReal    (const Vells::Shape &shp) { return setValue(new Vells(0.,shp,false)); }
+  Vells & setComplex (const Vells::Shape &shp) { return setValue(new Vells(dcomplex(0),shp,false)); }
+  Vells & setReal    () { return setReal(shape()); }
+  Vells & setComplex () { return setComplex(shape()); }
 
-  // Allocate the value with a given type and shape.
-  // It won't change if the current value type and shape match.
-    //##ModelId=400E53550367
-  LoMat_double& setReal (int nfreq, int ntime)
-    { if( value_.valid() && value_->isCongruent(true,nfreq,ntime) )
-        return value_().getRealArray();
-      else
-        return allocateReal(nfreq, ntime).getRealArray();
-    } 
-    //##ModelId=400E5355036D
-  LoMat_dcomplex& setComplex (int nfreq, int ntime)
-    { if( value_.valid() && value_->isCongruent(false,nfreq,ntime) )
-        return value_().getComplexArray();
-      else
-        return allocateComplex(nfreq, ntime).getComplexArray();
-    } 
-    //##ModelId=400E53550375
-  Vells& setValue (bool isReal, int nfreq, int ntime)
-    { if( value_.valid() && value_->isCongruent(isReal,nfreq,ntime) )
-        return value_();
-      else if( isReal )
-        return allocateReal(nfreq, ntime);
-      else 
-        return allocateComplex(nfreq, ntime);
-    }
-    
+//   // Allocate the value with a given type and shape.
+//   // It won't change if the current value type and shape match.
+//     //##ModelId=400E53550367
+//   LoMat_double& setReal (const Vells::Shape &shp)
+//   { if( value_.valid() && value_->isCongruent(true,nfreq,ntime) )
+//         return value_().getRealArray();
+//       else
+//         return allocateReal(nfreq, ntime).getRealArray();
+//   }
+//     //##ModelId=400E5355036D
+//   LoMat_dcomplex& setComplex (const Vells::Shape &shp)
+//     { if( value_.valid() && value_->isCongruent(false,nfreq,ntime) )
+//         return value_().getComplexArray();
+//       else
+//         return allocateComplex(nfreq, ntime).getComplexArray();
+//     } 
+//     //##ModelId=400E53550375
+//   Vells& setValue (bool isReal, int nfreq, int ntime)
+//     { if( value_.valid() && value_->isCongruent(isReal,nfreq,ntime) )
+//         return value_();
+//       else if( isReal )
+//         return allocateReal(nfreq, ntime);
+//       else 
+//         return allocateComplex(nfreq, ntime);
+//     }
+//     
   // ------------------------ OPTIONAL COLUMNS
 protected:
   // ensures writability of optional column by privatizing for writing as needed;
@@ -396,16 +400,16 @@ private:
 
   void setupPertData (int iset);
 
-  // Allocate the main value with given type and shape.
-    //##ModelId=400E535503B7
-  Vells & allocateReal (int nfreq, int  ntime)
-    { setShape(nfreq,ntime);
-      return setValue(new Vells(double(0),nfreq,ntime,false)); }
-    //##ModelId=400E535503BD
-  Vells & allocateComplex (int nfreq, int ntime)
-    { setShape(nfreq,ntime); 
-      return setValue(new Vells(dcomplex(0),nfreq,ntime,false)); }
-
+//   // Allocate the main value with given type and shape.
+//     //##ModelId=400E535503B7
+//   Vells & allocateReal (int nfreq, int  ntime)
+//     { setShape(nfreq,ntime);
+//       return setValue(new Vells(double(0),nfreq,ntime,false)); }
+//     //##ModelId=400E535503BD
+//   Vells & allocateComplex (int nfreq, int ntime)
+//     { setShape(nfreq,ntime); 
+//       return setValue(new Vells(dcomplex(0),nfreq,ntime,false)); }
+// 
     //##ModelId=400E535502FC
   Vells::Ref value_;
     //##ModelId=400E53550302
@@ -428,7 +432,7 @@ private:
   
   OptionalColumnData optcol_[NUM_OPTIONAL_COL];
   
-  LoShape2       shape_;
+  LoShape        shape_;
   
     //##ModelId=400E53550314
   const int *    spids_;

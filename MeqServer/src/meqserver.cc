@@ -114,7 +114,6 @@ bool setupApp (ApplicationBase::Ref &app,const string &str)
     
 int main (int argc,const char *argv[])
 {
-  
   try 
   {
     // collect command-line arguments into vector

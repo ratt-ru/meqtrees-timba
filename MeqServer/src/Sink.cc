@@ -178,13 +178,13 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
       {
         FailWhen(coltype!=Tpdouble,"type mismatch: double Vells, "+coltype.toString()+" column");
         fillTileColumn(static_cast<double*>(coldata),colshape,pending.range,
-                      vells.getRealArray(),icorr);
+                      vells.getArray<double,2>(),icorr);
       }
       else  // complex values
       {
         FailWhen(coltype!=Tpfcomplex,"type mismatch: complex Vells, "+coltype.toString()+" column");
         fillTileColumn(static_cast<fcomplex*>(coldata),colshape,pending.range,
-                      vells.getComplexArray(),icorr);
+                      vells.getArray<dcomplex,2>(),icorr);
       }
       resflag |= RES_UPDATED;
     }

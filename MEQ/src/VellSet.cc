@@ -59,10 +59,9 @@ const HIID & OptionalColumns::optColFieldId (uint icol)
 
 
 //##ModelId=400E5355031E
-VellSet::VellSet (const LoShape2 &shp,int nspid,int nset)
+VellSet::VellSet (const LoShape &shp,int nspid,int nset)
 : default_pert_ (0.),
   pset_         (nset),
-  shape_        (0,0),
   spids_        (0),
   numspids_     (nspid),
   is_fail_      (false)
@@ -74,7 +73,6 @@ VellSet::VellSet (const LoShape2 &shp,int nspid,int nset)
 VellSet::VellSet (int nspid,int nset)
 : default_pert_ (0.),
   pset_         (nset),
-  shape_        (0,0),
   spids_        (0),
   numspids_     (nspid),
   is_fail_      (false)
@@ -104,7 +102,6 @@ VellSet::VellSet (const DataRecord &other,int flags,int depth)
 : DataRecord(other,flags,depth),
   default_pert_ (0.),
   pset_         (0),
-  shape_        (0,0),
   spids_        (0),
   numspids_     (0),
   is_fail_      (false)
@@ -136,17 +133,21 @@ void VellSet::setupPertData (int iset)
   DataRecord::add(FiPerturbedValues(iset),pdf,DMI::ANONWR);
 }
 
-void VellSet::setShape (const LoShape2 &shp)
+void VellSet::setShape (const Vells::Shape &shp)
 {
   Thread::Mutex::Lock lock(mutex());
   if( hasShape() )
   {
-    FailWhen(shape_ != shp,"different VellSet shape already set");
-    return;
+    if( shape_ != shp)
+    {
+      Throw("different VellSet shape already set");
+    }
   }
-  shape_ = shp;
-  int vec[2] = { shape_[0] , shape_[1] };
-  DataRecord::replace(FShape,new DataField(Tpint,2,vec),DMI::ANONWR);
+  else
+  {
+    shape_ = shp;
+    DataRecord::replace(FShape,new DataField(Tpint,shp.size(),&(shp[0])),DMI::ANONWR);
+  }
 }
     
 //##ModelId=400E53550333
@@ -180,9 +181,8 @@ void VellSet::validateContent ()
       if( hshp.exists() )
       {
         vector<int> shp = (*this)[FShape].as_vector<int>();
-        FailWhen(shp.size()!=2,"illegal "+FShape.toString()+" field");
-        shape_[0] = shp[0];
-        shape_[1] = shp[1];
+        FailWhen(int(shp.size())>Axis::MaxAxis,"illegal "+FShape.toString()+" field");
+        shape_ = shp;
       }
       // get value, if it exists in the data record
       Hook hval(*this,FValue);
@@ -190,8 +190,8 @@ void VellSet::validateContent ()
       if( has_value )
       {
         value_ <<= new Vells(hval.ref());
-        FailWhen(value_->isArray() && value_->shape() != shape_,
-                 "main value: bad shape");
+        // check for matching shape
+        FailWhen(!value_->isCompatible(shape_),"main value: incompatible shape");
       }
       else
         value_ <<= new Vells;
@@ -246,8 +246,8 @@ void VellSet::validateContent ()
                 {
                   Vells *pvells = new Vells(pset_[iset].pertval_field[i].ref());
                   pset_[iset].pertval[i] <<= pvells;
-                  FailWhen(pvells->isArray() && pvells->shape() != shape_,
-                      Debug::ssprintf("perturbed value %d/%d: bad shape",i,iset));
+                  FailWhen(!pvells->isCompatible(shape_),
+                      Debug::ssprintf("perturbed value %d/%d: incompatible shape",i,iset));
                 }
 // removed this: rather than attach a null Vells, keep the ref unattached
 //                else
@@ -277,7 +277,7 @@ void VellSet::validateContent ()
 void VellSet::clear()
 {
   Thread::Mutex::Lock lock(mutex());
-  shape_ = LoShape2(0,0);
+  shape_.clear();
   numspids_ = 0;
   spids_ = 0;
   pset_.resize(0);
@@ -482,9 +482,11 @@ void VellSet::copyPerturbations (const VellSet &other)
 Vells & VellSet::setValue (Vells *pvells)
 {
   Thread::Mutex::Lock lock(mutex());
-  FailWhen(!hasShape(),"VellSet shape not set");
-  FailWhen(pvells->isArray() && pvells->shape() != shape(),
-            "main value: bad shape");
+  if( !hasShape() )
+    setShape(pvells->shape());
+  else {
+    FailWhen(!pvells->isCompatible(shape()),"main value: incompatible shape");
+  }
   value_ <<= pvells;
   DataRecord::replace(FValue,&(pvells->getDataArray()),DMI::ANONWR);
   return *pvells;
@@ -493,9 +495,11 @@ Vells & VellSet::setValue (Vells *pvells)
 void VellSet::setValue (const Vells::Ref::Xfer &vref)
 {
   Thread::Mutex::Lock lock(mutex());
-  FailWhen(!hasShape(),"VellSet shape not set");
-  FailWhen(vref->isArray() && vref->shape() != shape(),
-            "main value: bad shape");
+  if( !hasShape() )
+    setShape(vref->shape());
+  else {
+    FailWhen(!vref->isCompatible(shape()),"main value: incompatible shape");
+  }
   value_ = vref;
   if( value_.isWritable() )
     DataRecord::replace(FValue,&( value_().getDataArrayWr() ),DMI::WRITE);
@@ -509,8 +513,8 @@ Vells & VellSet::setPerturbedValue (int i,Vells *pvells,int iset)
   Thread::Mutex::Lock lock(mutex());
   DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
   FailWhen(!hasShape(),"VellSet shape not set");
-  FailWhen(pvells->isArray() && pvells->shape() != shape(),
-        Debug::ssprintf("perturbed value %d/%d: bad shape",i,iset));
+  FailWhen(!pvells->isCompatible(shape()),
+        Debug::ssprintf("perturbed value %d/%d: incompatible shape",i,iset));
   PerturbationSet &ps = pset_[iset];
   // allocate container for perturbed values
   if( !ps.pertval_field.valid() )
@@ -529,8 +533,8 @@ void VellSet::setPerturbedValue (int i,const Vells::Ref::Xfer &vref,int iset)
   Thread::Mutex::Lock lock(mutex());
   DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
   FailWhen(!hasShape(),"VellSet shape not set");
-  FailWhen(vref->isArray() && vref->shape() != shape(),
-        Debug::ssprintf("perturbed value %d/%d: bad shape",i,iset));
+  FailWhen(!vref->isCompatible(shape()),
+        Debug::ssprintf("perturbed value %d/%d: incompatible shape",i,iset));
   PerturbationSet &ps = pset_[iset];
   // allocate container for perturbed values
   if( !ps.pertval_field.valid() )

@@ -96,8 +96,8 @@ private:
 
   // the operations are then re-mapped into Cells constructor
   // arguments, which are stored here
-  int cells_op[DOMAIN_NAXES];
-  int cells_arg[DOMAIN_NAXES];
+  int cells_op[Axis::MaxAxis];
+  int cells_arg[Axis::MaxAxis];
   bool has_ops;
 
   Cells::Ref cache_cells_;

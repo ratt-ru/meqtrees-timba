@@ -829,44 +829,45 @@ void Node::resampleChildren (Cells::Ref rescells,std::vector<Result::Ref> &child
   // resample child results if required
   if( need_resampling )
   {
-    cdebug(3)<<"resampling child results to "<<*pcells<<endl;
-    ResampleMachine resample(*pcells);
-    for( uint ich=0; ich<childres.size(); ich++ )
-    {
-      if( childres[ich]->hasCells() )
-      {
-        resample.setInputRes(childres[ich]->cells());
-        if( resample.isIdentical() ) // child at correct resolution already
-        {
-          cdebug(3)<<"child "<<ich<<": already at this resolution\n";
-          // clear resample cache for this child
-          clearRCRCache(ich);
-        }
-        else
-        {
-          // check if resampled-child cache already contains the resampled result
-          if( !checkRCRCache(childres[ich],ich,*pcells) )
-          {
-            cdebug(3)<<"child "<<ich<<": resampling\n";
-            // privatize child result for writing
-            Result &chres = childres[ich].privatize(DMI::WRITE)(); 
-            chres.setCells(pcells);
-            // resample and cache the child result 
-            for( int ivs=0; ivs<chres.numVellSets(); ivs++ )
-            {
-              VellSet::Ref ref;
-              resample.apply(ref,chres.vellSetRef(ivs),chres.isIntegrated());
-              chres.setVellSet(ivs,ref);
-            }
-            cacheRCR(ich,childres[ich]);
-          }
-          else
-          {
-            cdebug(3)<<"child "<<ich<<": already cached at this resolution, reusing\n";
-          }
-        }
-      }
-    }
+    Throw("resampling currently disabled");
+//     cdebug(3)<<"resampling child results to "<<*pcells<<endl;
+//     ResampleMachine resample(*pcells);
+//     for( uint ich=0; ich<childres.size(); ich++ )
+//     {
+//       if( childres[ich]->hasCells() )
+//       {
+//         resample.setInputRes(childres[ich]->cells());
+//         if( resample.isIdentical() ) // child at correct resolution already
+//         {
+//           cdebug(3)<<"child "<<ich<<": already at this resolution\n";
+//           // clear resample cache for this child
+//           clearRCRCache(ich);
+//         }
+//         else
+//         {
+//           // check if resampled-child cache already contains the resampled result
+//           if( !checkRCRCache(childres[ich],ich,*pcells) )
+//           {
+//             cdebug(3)<<"child "<<ich<<": resampling\n";
+//             // privatize child result for writing
+//             Result &chres = childres[ich].privatize(DMI::WRITE)(); 
+//             chres.setCells(pcells);
+//             // resample and cache the child result 
+//             for( int ivs=0; ivs<chres.numVellSets(); ivs++ )
+//             {
+//               VellSet::Ref ref;
+//               resample.apply(ref,chres.vellSetRef(ivs),chres.isIntegrated());
+//               chres.setVellSet(ivs,ref);
+//             }
+//             cacheRCR(ich,childres[ich]);
+//           }
+//           else
+//           {
+//             cdebug(3)<<"child "<<ich<<": already cached at this resolution, reusing\n";
+//           }
+//         }
+//       }
+//     }
   }
   else // no resampling needed, clear cache of all resampled children
     clearRCRCache();

@@ -31,7 +31,7 @@
 #pragma aid Rider Command Id Group Add Update Value Values Solve Solver
 #pragma aid Dependency Resolution Depend Mask Resample Integrated
 #pragma aid Cells Domain Freq Time Calc Deriv Vells VellSets Flags Weights
-#pragma aid Shape Grid Cell Size Segments Start End Steps
+#pragma aid Shape Grid Cell Size Segments Start End Steps Axis Axes Offset
 #pragma aid NodeIndex Table Name Default Index Num Cache Code 
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cell Results Fail Origin Line Message Contagious  Normalized
@@ -107,15 +107,14 @@ namespace Meq
     FSavePolcs       = AidSave|AidPolcs,
     FClearPolcs      = AidClear|AidPolcs,
     
-    // Polc fields
+    // Parm/Polc fields
     FCoeff           = AidCoeff,
+    FAxisIndex       = AidAxis|AidIndex,
+    FOffset          = AidOffset,
+    FScale           = AidScale,
     FPerturbation    = AidPert,
     FWeight          = AidWeight,
     FPertRelative    = AidPert|AidRelative,
-    FFreq0           = AidFreq|0,
-    FTime0           = AidTime|0,
-    FFreqScale       = AidFreq|AidScale,
-    FTimeScale       = AidTime|AidScale,
     FGrowDomain      = AidGrow|AidDomain,
     FInfDomain       = AidInf|AidDomain,
     FDbId            = AidDbId|AidIndex,

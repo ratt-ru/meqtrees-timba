@@ -53,6 +53,10 @@ protected:
   virtual void evalResult (std::vector<Vells> &res,
           const std::vector<const Vells*> &values,
           const Cells &);
+
+  int nfreq;
+  int ntime;
+  Vells::Shape res_shape;
 };
 
 } // namespace Meq

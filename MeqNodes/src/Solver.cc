@@ -346,7 +346,8 @@ int Solver::getResult (Result::Ref &resref,
   vellset.setSpids(spids);
   // Distribute the last solution (if there is one).
   // result depends on domain, and has -- most likely -- been updated
-  double* sol = vellset.setReal(nspid, step).data();
+  LoShape shape(nspid,step);
+  double* sol = vellset.setReal(shape).realStorage();
   memcpy (sol, allSolutions.data(), nspid*step*sizeof(double));
   return 0;
 }

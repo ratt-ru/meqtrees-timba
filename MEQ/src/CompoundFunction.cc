@@ -164,7 +164,7 @@ void CompoundFunction::computeValues ( Result &result,const std::vector<const Ve
         {
           const Vells &pvv = vs.getPerturbedValue(inx,ipert);
           childpvv_lock[ipert][ich].relock(pvv.mutex());
-          FailWhen(pvv.isArray() && pvv.shape() != res_shape,"mismatch in child result shapes");
+          FailWhen(!pvv.isCompatible(res_shape),"mismatch in child result shapes");
           pert_values[ipert][ich] = &pvv;
           if( found[ipert] >=0 )
           {

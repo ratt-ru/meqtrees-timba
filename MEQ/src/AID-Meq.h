@@ -28,6 +28,16 @@ const int AidAll_int = -1381;
 const AtomicID AidAuto(-1273);                    // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:17
 const int AidAuto_int = -1273;
 #endif
+#ifndef _defined_id_AidAxes
+#define _defined_id_AidAxes 1
+const AtomicID AidAxes(-1415);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Domain.h:37
+const int AidAxes_int = -1415;
+#endif
+#ifndef _defined_id_AidAxis
+#define _defined_id_AidAxis 1
+const AtomicID AidAxis(-1504);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:34
+const int AidAxis_int = -1504;
+#endif
 #ifndef _defined_id_AidBit
 #define _defined_id_AidBit 1
 const AtomicID AidBit(-1428);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/FlagCompare.h:30
@@ -273,6 +283,16 @@ const int AidIter_int = -1421;
 const AtomicID AidKnown(-1451);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:38
 const int AidKnown_int = -1451;
 #endif
+#ifndef _defined_id_AidL
+#define _defined_id_AidL 1
+const AtomicID AidL(-1018);                       // from /home/oms/LOFAR/DMI/src/AtomicID.h:34
+const int AidL_int = -1018;
+#endif
+#ifndef _defined_id_AidLag
+#define _defined_id_AidLag 1
+const AtomicID AidLag(-1502);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Axis.h:30
+const int AidLag_int = -1502;
+#endif
 #ifndef _defined_id_AidLast
 #define _defined_id_AidLast 1
 const AtomicID AidLast(-1484);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:40
@@ -292,6 +312,11 @@ const int AidLink_int = -1460;
 #define _defined_id_AidList 1
 const AtomicID AidList(-1046);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWClientWP.h:17
 const int AidList_int = -1046;
+#endif
+#ifndef _defined_id_AidM
+#define _defined_id_AidM 1
+const AtomicID AidM(-1019);                       // from /home/oms/LOFAR/DMI/src/AtomicID.h:34
+const int AidM_int = -1019;
 #endif
 #ifndef _defined_id_AidMask
 #define _defined_id_AidMask 1
@@ -363,6 +388,11 @@ const int AidMetrics_int = -1404;
 const AtomicID AidMu(-1400);                      // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 const int AidMu_int = -1400;
 #endif
+#ifndef _defined_id_AidN
+#define _defined_id_AidN 1
+const AtomicID AidN(-1020);                       // from /home/oms/LOFAR/DMI/src/AtomicID.h:34
+const int AidN_int = -1020;
+#endif
 #ifndef _defined_id_AidName
 #define _defined_id_AidName 1
 const AtomicID AidName(-1188);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
@@ -392,6 +422,11 @@ const int AidNormalized_int = -1395;
 #define _defined_id_AidNum 1
 const AtomicID AidNum(-1177);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
 const int AidNum_int = -1177;
+#endif
+#ifndef _defined_id_AidOffset
+#define _defined_id_AidOffset 1
+const AtomicID AidOffset(-1190);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
+const int AidOffset_int = -1190;
 #endif
 #ifndef _defined_id_AidOr
 #define _defined_id_AidOr 1
@@ -617,6 +652,21 @@ const int AidWeight_int = -1189;
 #define _defined_id_AidWeights 1
 const AtomicID AidWeights(-1423);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:32
 const int AidWeights_int = -1423;
+#endif
+#ifndef _defined_id_AidX
+#define _defined_id_AidX 1
+const AtomicID AidX(-1030);                       // from /home/oms/LOFAR/DMI/src/AtomicID.h:34
+const int AidX_int = -1030;
+#endif
+#ifndef _defined_id_AidY
+#define _defined_id_AidY 1
+const AtomicID AidY(-1031);                       // from /home/oms/LOFAR/DMI/src/AtomicID.h:34
+const int AidY_int = -1031;
+#endif
+#ifndef _defined_id_AidZ
+#define _defined_id_AidZ 1
+const AtomicID AidZ(-1032);                       // from /home/oms/LOFAR/DMI/src/AtomicID.h:34
+const int AidZ_int = -1032;
 #endif
 #ifndef _defined_id_Aidaxes
 #define _defined_id_Aidaxes 1

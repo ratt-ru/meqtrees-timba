@@ -113,8 +113,8 @@ int Condeq::getResult (Result::Ref &resref,
       child_res[i] = &(child_result[i]->vellSet(iplane));
       childvs_lock[i].relock(child_res[i]->mutex());
       const Vells &val = child_res[i]->getValue();
-      childval_lock[i].relock(val.getDataArray().mutex());
-      FailWhen(val.isArray() && val.shape() != res_shape,"mismatch in child result shapes");
+      childval_lock[i].relock(val.mutex());
+      FailWhen(!val.isCompatible(res_shape),"mismatch in child result shapes");
       values[i] = &val;
     }
     // Find all spids from the children.

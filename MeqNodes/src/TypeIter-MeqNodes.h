@@ -5,7 +5,16 @@
 
 
 
+#define DoForAllOtherTypes_MeqNodes(Do,arg,separator) \
+        
+
 #define DoForAllBinaryTypes_MeqNodes(Do,arg,separator) \
+        
+
+#define DoForAllSpecialTypes_MeqNodes(Do,arg,separator) \
+        
+
+#define DoForAllIntermediateTypes_MeqNodes(Do,arg,separator) \
         
 
 #define DoForAllDynamicTypes_MeqNodes(Do,arg,separator) \
@@ -27,28 +36,16 @@
         Do(Meq::Sqrt,arg) separator \
         Do(Meq::Conj,arg) separator \
         Do(Meq::ToComplex,arg) separator \
-        Do(Meq::PolRepToComplex,arg) separator \
+        Do(Meq::Polar,arg) separator \
         Do(Meq::UVW,arg) separator \
         Do(Meq::LMN,arg) separator \
         Do(Meq::StatPointSourceDFT,arg) separator \
         Do(Meq::PointSourceDFT,arg) separator \
-        Do(Meq::ModRes,arg) separator \
         Do(Meq::Condeq,arg) separator \
         Do(Meq::Solver,arg) separator \
-        Do(Meq::ZeroFlagger,arg) separator \
         Do(Meq::MergeFlags,arg) separator \
-        Do(Meq::Resampler,arg) separator \
         Do(Meq::ReqSeq,arg)
 
 #define DoForAllNumericTypes_MeqNodes(Do,arg,separator) \
-        
-
-#define DoForAllIntermediateTypes_MeqNodes(Do,arg,separator) \
-        
-
-#define DoForAllOtherTypes_MeqNodes(Do,arg,separator) \
-        
-
-#define DoForAllSpecialTypes_MeqNodes(Do,arg,separator) \
         
 #endif

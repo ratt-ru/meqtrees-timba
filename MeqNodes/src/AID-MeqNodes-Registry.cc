@@ -41,8 +41,8 @@ BlockableObject * __construct_MeqSqrt (int n) { return n>0 ? new Meq::Sqrt [n] :
 BlockableObject * __construct_MeqConj (int n) { return n>0 ? new Meq::Conj [n] : new Meq::Conj; }
 #include "ToComplex.h"
 BlockableObject * __construct_MeqToComplex (int n) { return n>0 ? new Meq::ToComplex [n] : new Meq::ToComplex; }
-#include "PolRepToComplex.h"
-BlockableObject * __construct_MeqPolRepToComplex (int n) { return n>0 ? new Meq::PolRepToComplex [n] : new Meq::PolRepToComplex; }
+#include "Polar.h"
+BlockableObject * __construct_MeqPolar (int n) { return n>0 ? new Meq::Polar [n] : new Meq::Polar; }
 #include "UVW.h"
 BlockableObject * __construct_MeqUVW (int n) { return n>0 ? new Meq::UVW [n] : new Meq::UVW; }
 #include "LMN.h"
@@ -51,18 +51,12 @@ BlockableObject * __construct_MeqLMN (int n) { return n>0 ? new Meq::LMN [n] : n
 BlockableObject * __construct_MeqStatPointSourceDFT (int n) { return n>0 ? new Meq::StatPointSourceDFT [n] : new Meq::StatPointSourceDFT; }
 #include "PointSourceDFT.h"
 BlockableObject * __construct_MeqPointSourceDFT (int n) { return n>0 ? new Meq::PointSourceDFT [n] : new Meq::PointSourceDFT; }
-#include "ModRes.h"
-BlockableObject * __construct_MeqModRes (int n) { return n>0 ? new Meq::ModRes [n] : new Meq::ModRes; }
 #include "Condeq.h"
 BlockableObject * __construct_MeqCondeq (int n) { return n>0 ? new Meq::Condeq [n] : new Meq::Condeq; }
 #include "Solver.h"
 BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [n] : new Meq::Solver; }
-#include "ZeroFlagger.h"
-BlockableObject * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagger [n] : new Meq::ZeroFlagger; }
 #include "MergeFlags.h"
 BlockableObject * __construct_MeqMergeFlags (int n) { return n>0 ? new Meq::MergeFlags [n] : new Meq::MergeFlags; }
-#include "Resampler.h"
-BlockableObject * __construct_MeqResampler (int n) { return n>0 ? new Meq::Resampler [n] : new Meq::Resampler; }
 #include "ReqSeq.h"
 BlockableObject * __construct_MeqReqSeq (int n) { return n>0 ? new Meq::ReqSeq [n] : new Meq::ReqSeq; }
   
@@ -124,9 +118,9 @@ BlockableObject * __construct_MeqReqSeq (int n) { return n>0 ? new Meq::ReqSeq [
         AtomicID::registerId(-1217,"meqtocomplex")+
         TypeInfoReg::addToRegistry(-1217,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1217,__construct_MeqToComplex)+
-        AtomicID::registerId(-1501,"meqpolreptocomplex")+
-        TypeInfoReg::addToRegistry(-1501,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1501,__construct_MeqPolRepToComplex)+
+        AtomicID::registerId(-1503,"meqpolar")+
+        TypeInfoReg::addToRegistry(-1503,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1503,__construct_MeqPolar)+
         AtomicID::registerId(-1239,"mequvw")+
         TypeInfoReg::addToRegistry(-1239,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1239,__construct_MeqUVW)+
@@ -149,42 +143,21 @@ BlockableObject * __construct_MeqReqSeq (int n) { return n>0 ? new Meq::ReqSeq [
         AtomicID::registerId(-1474,"st")+
         AtomicID::registerId(-1475,"dft")+
         AtomicID::registerId(-1020,"n")+
-        AtomicID::registerId(-1447,"meqmodres")+
-        TypeInfoReg::addToRegistry(-1447,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1447,__construct_MeqModRes)+
-        AtomicID::registerId(-1448,"factor")+
-        AtomicID::registerId(-1177,"num")+
-        AtomicID::registerId(-1247,"cells")+
         AtomicID::registerId(-1365,"meqcondeq")+
         TypeInfoReg::addToRegistry(-1365,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1365,__construct_MeqCondeq)+
         AtomicID::registerId(-1367,"meqsolver")+
         TypeInfoReg::addToRegistry(-1367,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1367,__construct_MeqSolver)+
-        AtomicID::registerId(-1433,"meqzeroflagger")+
-        TypeInfoReg::addToRegistry(-1433,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1433,__construct_MeqZeroFlagger)+
-        AtomicID::registerId(-1435,"oper")+
-        AtomicID::registerId(-1135,"flag")+
-        AtomicID::registerId(-1428,"bit")+
-        AtomicID::registerId(-1434,"eq")+
-        AtomicID::registerId(-1429,"ne")+
-        AtomicID::registerId(-1436,"lt")+
-        AtomicID::registerId(-1432,"gt")+
-        AtomicID::registerId(-1430,"le")+
-        AtomicID::registerId(-1431,"ge")+
         AtomicID::registerId(-1437,"meqmergeflags")+
         TypeInfoReg::addToRegistry(-1437,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1437,__construct_MeqMergeFlags)+
+        AtomicID::registerId(-1135,"flag")+
         AtomicID::registerId(-1287,"mask")+
-        AtomicID::registerId(-1439,"meqresampler")+
-        TypeInfoReg::addToRegistry(-1439,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1439,__construct_MeqResampler)+
-        AtomicID::registerId(-1172,"integrate")+
-        AtomicID::registerId(-1440,"density")+
         AtomicID::registerId(-1478,"meqreqseq")+
         TypeInfoReg::addToRegistry(-1478,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1478,__construct_MeqReqSeq)+
+        AtomicID::registerId(-1247,"cells")+
         AtomicID::registerId(-1477,"only")+
     0;
     return res;

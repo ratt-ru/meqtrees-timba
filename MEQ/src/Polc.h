@@ -46,8 +46,13 @@ template<class T> class Matrix;
 namespace Meq {
 class Request;
 
+
+const int    maxPolcRank = 2;
 const double defaultPolcPerturbation = 1e-6;
 const double defaultPolcWeight = 1;
+extern const int    defaultPolcAxes[maxPolcRank];
+extern const double defaultPolcOffset[maxPolcRank];
+extern const double defaultPolcScale[maxPolcRank];
 
 
 //##ModelId=3F86886E01F6
@@ -60,99 +65,122 @@ public:
   Polc ();
     
     //##ModelId=3F86886F0366
-  explicit Polc(double c00,double freq0=0,double freqsc=1,
-                double time0=0,double timesc=1,
+  explicit Polc(double c00,
                 double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
                 DbId id=-1);
   
-  explicit Polc(LoMat_double coeff,double freq0=0,double freqsc=1,
-                double time0=0,double timesc=1,
+  explicit Polc(const LoVec_double &coeff,
+                int iaxis=0,double x0=0,double xsc=1,
                 double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
                 DbId id=-1);
   
-  explicit Polc(DataArray *parr,double freq0=0,double freqsc=1,
-                double time0=0,double timesc=1,
+  explicit Polc(const LoMat_double &coeff,
+                const int    iaxis[]     = defaultPolcAxes,
+                const double offset[] = defaultPolcOffset,
+                const double scale[]     = defaultPolcScale,
                 double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
                 DbId id=-1);
   
-  explicit Polc(const Vells &coeff,double freq0=0,double freqsc=1,
-                double time0=0,double timesc=1,
+  explicit Polc(DataArray *pcoeff,
+                const int    iaxis[]     = defaultPolcAxes,
+                const double offset[] = defaultPolcOffset,
+                const double scale[]     = defaultPolcScale,
                 double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
                 DbId id=-1);
-  
-  // sets all of a polc's attributes in one go
-  void setEverything (double freq0,double freqsc,double time0,double timesc,
-                      double pert,double weight,DbId id);
   
     //##ModelId=400E5354033A
   Polc (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
   
-  virtual TypeId objectType () const
-  { return TpMeqPolc; }
+//   explicit Polc(const Vells &coeff,double freq0=0,double freqsc=1,
+//                 double time0=0,double timesc=1,
+//                 double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
+//                 DbId id=-1);
   
-  // implement standard clone method via copy constructor
-    //##ModelId=400E53550131
-  virtual CountedRefTarget* clone (int flags, int depth) const
-  { return new Polc(*this,flags,depth); }
+  // sets all of a polc's axes and attributes in one go
+  void init (int rank,
+             const int iaxis[] = defaultPolcAxes,
+             const double offset[] = defaultPolcOffset,
+             const double scale[] = defaultPolcScale,
+             double pert = defaultPolcPerturbation,
+             double weight = defaultPolcWeight,
+             DbId id=-1);
   
   
-  virtual void privatize (int flags=0,int depth=0);
-  
-  // validate record contents and setup shortcuts to them. This is called 
-  // automatically whenever a Polc is made from a DataRecord
-  // (or when the underlying DataRecord is privatized, etc.)
-    //##ModelId=400E53550156
-  virtual void validateContent ();
-
-
-  // Calculate the value and possible perturbations (deriv>0)
-  // for the given grid
-  void evaluate (VellSet &,const LoVec_double &xgrid,
-                 const LoVec_double &ygrid,int deriv=0) const;
-  
-  // shortcut for using the grid in the request
-    //##ModelId=400E53540350
-  void evaluate (VellSet &,const Request&) const;
-
-  // Get number of coefficients.
-    //##ModelId=3F86886F036F
-  int ncoeff() const
-    { return itsCoeff.nelements(); }
-
-  // Get the coefficients.
-    //##ModelId=3F86886F0371
-  const Vells& getCoeff() const
-    { return itsCoeff; }
-
-  // Set the coefficients. The mask is set to all true.
-    //##ModelId=3F86886F0373
-  void setCoeff (const Vells& coeff);
-
+  // Set the domain to which this polc applies.
+  void setDomain (const Domain* domain,int flags);
+    //##ModelId=3F86886F038C
+  void setDomain (const Domain& domain)
+  { setDomain(&domain,0); }
   // Get the domain.
     //##ModelId=3F86886F038A
   const Domain & domain() const
-    { return *itsDomain; }
+  { return domain_.valid() ? *domain_ : default_domain; }
 
-  // Set the domain.
-    //##ModelId=3F86886F038C
-  void setDomain (const Domain& domain);
+  // sets up an axis of variability
+  void setAxis (int i,int iaxis,double offset=0,double scale=1);
+
+  // returns axis of variability
+  int    getAxis (int i) const {
+    FailWhen(i<0 || i>=rank(),"illegal Meq::Polc axis");
+    return axes_[i]; 
+  }
+  
+  double getOffset (int i) const {
+    FailWhen(i<0 || i>=rank(),"illegal Meq::Polc axis");
+    return offsets_[i]; 
+  }
+  
+  double getScale (int i) const {
+    FailWhen(i<0 || i>=rank(),"illegal Meq::Polc axis");
+    return scales_[i]; 
+  }
+
+  // Set the coefficients. The mask is set to all true.
+    //##ModelId=3F86886F0373
+  void setCoeff (double c00);
+  void setCoeff (const LoVec_double & coeff);
+  void setCoeff (const LoMat_double & coeff);
+  
+  // Get number of coefficients.
+    //##ModelId=3F86886F036F
+  int ncoeff() const
+  { return coeff_->size(); }
+  // Get rank of polynomical
+  int rank () const
+  { return rank_; }
+  // Get shape of coefficients
+  const LoShape & getCoeffShape () const
+  { return coeff_->shape(); };
+  
+  // Get c00 coefficient
+  double getCoeff0 () const
+  { return *static_cast<const double*>(coeff_->getConstDataPtr()); }
+  
+  // Get vector or matrix of coeffs (exception if this does not match shape)
+  const LoVec_double & getCoeff1 () const
+  { return coeff_->getConstArray<double,1>(); }
+  
+  const LoMat_double & getCoeff2 () const
+  { return coeff_->getConstArray<double,2>(); }
+  
+  // shortcut for using the grid in the request
+    //##ModelId=400E53540350
+  void evaluate (VellSet &,const Request &) const;
+  void evaluate (VellSet &,const Cells &,int deriv=0) const;
 
   // Get the perturbation.
     //##ModelId=3F86886F0396
   double getPerturbation(int ipert=0) const
-    { DbgAssert(ipert==0 || ipert==1); return ipert ? -itsPertValue : itsPertValue ; }
-  
+  { DbgAssert(ipert==0 || ipert==1); return ipert ? -pertValue_ : pertValue_ ; }
     //##ModelId=3F86886F039A
   void setPerturbation (double perturbation = defaultPolcPerturbation);
   
   Polc::DbId getDbId () const
-  { return itsId; }
-  
+  { return id_; }
   void setDbId (DbId id);
   
   double getWeight() const
-    { return itsWeight; }
-  
+  { return weight_; }
   void setWeight (double weight);
 
   // Make the polynomial non-solvable.
@@ -165,62 +193,47 @@ public:
     //##ModelId=3F86886F03A6
   int makeSolvable (int spidIndex);
 
-  // Get the current values of the solvable parameter and store them
-  // in the argument.
-    //##ModelId=3F86886F03AC
-  void getInitial (Vells& values) const;
-
-  // Get the current value of the solvable parameter and store it
-  // in the argument.
-    //##ModelId=3F86886F03B3
-  void getCurrentValue (Vells& value, bool denormalize) const;
+//   // Get the current values of the solvable parameter and store them
+//   // in the argument.
+//     //##ModelId=3F86886F03AC
+//   void getInitial (Vells& values) const;
+// 
+//   // Get the current value of the solvable parameter and store it
+//   // in the argument.
+//     //##ModelId=3F86886F03B3
+//   void getCurrentValue (Vells& value, bool denormalize) const;
 
   // Update the solvable parameters with the new values.
   // It returns the number of values used.
     //##ModelId=3F86886F03BE
   uint update (const double* values, uint nrval);
 
-  // Set the zero-points and scales of the function.
-  // <group>
-    //##ModelId=3F86886F03D6
-  void setFreq0 (double freq0);
-    //##ModelId=3F86886F03DD
-  void setTime0 (double time0);
-  void setFreqScale (double freqScale);
-  void setTimeScale (double timeScale);
-  // </group>
-
-  // Get the zero-points and scales of the function.
-  // <group>
-    //##ModelId=3F86886F03E3
-  double getFreq0() const
-    { return itsFreq0; }
-    //##ModelId=3F86886F03E5
-  double getTime0() const
-    { return itsTime0; }
-  double getFreqScale() const
-    { return itsFreqScale; }
-  double getTimeScale() const
-    { return itsTimeScale; }
-  // </group>
-
-  // Change scale and renormalize the coefficients 
-    //##ModelId=3F8688700008
-  void renormalize (double freq0,double freqscale,double time0,double timescale);
-
-//   // Denormalize the coefficients.
-//     //##ModelId=3F8688700011
-//   Vells denormalize (const Vells& coeff) const;
-// 
-  // (De)normalize real coefficients.
-    //##ModelId=3F8688700019
-  static Vells normDouble (const Vells& coeff, double sx,
-			   double sy, double ox, double oy);
-
   // Get the spids.
-    //##ModelId=400E53540373
+  //##ModelId=400E53540373
   const vector<int> getSpids() const
-    { return itsSpids; }
+    { return spids_; }
+  
+  
+  
+
+
+  // standard methods follow  
+  virtual TypeId objectType () const
+  { return TpMeqPolc; }
+  
+  // implement standard clone method via copy constructor
+    //##ModelId=400E53550131
+  virtual CountedRefTarget* clone (int flags, int depth) const
+  { return new Polc(*this,flags,depth); }
+  
+  virtual void privatize (int flags=0,int depth=0);
+  
+  // validate record contents and setup shortcuts to them. This is called 
+  // automatically whenever a Polc is made from a DataRecord
+  // (or when the underlying DataRecord is privatized, etc.)
+    //##ModelId=400E53550156
+  virtual void validateContent ();
+
 
 protected:
   // disable public access to some DataRecord methods that would violate the
@@ -233,45 +246,58 @@ protected:
   DataRecord::removeField;
   
 private:
-  // Fill Pascal's triangle.
-    //##ModelId=3F868870002F
-  static void fillPascal();
+  // Calculate the value and possible perturbations (deriv>0)
+  // for the given grid. The grid is already normalized.
+  void evaluate (VellSet &,const Vells::Shape &vshape,
+                 const LoVec_double grid[],int deriv=0) const;
+  
+//  // Fill Pascal's triangle.
+//    //##ModelId=3F868870002F
+//  static void fillPascal();
 
   static const int MaxNumPerts = 2;
 
     //##ModelId=3F86BFF80221
-  Vells        itsCoeff;
+  int                 rank_;
+  DataArray::Ref      coeff_;
+  LoShape             shape_;
+  // axes of variability
+  std::vector<int>    axes_;
+  // offsets
+  std::vector<double> offsets_;
+  std::vector<double> scales_;
+  
     //##ModelId=3F86BFF8023F
   // perturbation values
-  std::vector<double> itsPerturbation;
+  std::vector<double> perturbation_;
     //##ModelId=3F86BFF8024A
-  const Domain * itsDomain;
+  // domain over which this polc is valid
+  // Any missing axes in the domain imply that polc is valid for that entire dimension
+  CountedRef<Domain>  domain_;
   
-//  std::vector<bool> itsMask;
+  
+//  std::vector<bool> mask_;
     //##ModelId=3F86886F0324
-  std::vector<int>  itsSpidInx;     //# -1 is not solvable
+  std::vector<int>  spidInx_;     //# -1 is not solvable
     //##ModelId=400E53540331
-  std::vector<int>  itsSpids;
+  std::vector<int>  spids_;
     //##ModelId=3F86886F032B
-  int          itsNrSpid;
+  int          nrSpid_;
     //##ModelId=3F86886F0333
-  double       itsPertValue;
+  double       pertValue_;
     //##ModelId=3F86886F0341
-  double       itsFreq0;
-    //##ModelId=3F86886F0348
-  double       itsTime0;
-  double       itsFreqScale;
-  double       itsTimeScale;
   
-  double       itsWeight;
+  double       weight_;
   
-  int          itsId;
+  int          id_;
+  
+  static Domain default_domain;
 
-  //# Pascal's triangle for the binomial coefficients needed when normalizing.
-    //##ModelId=3F86886F0357
-  static double theirPascal[10][10];
-    //##ModelId=3F86886F035E
-  static bool   theirPascalFilled;
+//   //# Pascal's triangle for the binomial coefficients needed when normalizing.
+//     //##ModelId=3F86886F0357
+//   static double theirPascal[10][10];
+//     //##ModelId=3F86886F035E
+//   static bool   theirPascalFilled;
 };
 
 } // namespace Meq

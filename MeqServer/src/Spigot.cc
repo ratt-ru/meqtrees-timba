@@ -75,14 +75,16 @@ int Spigot::deliverTile (const Request &req,VisTile::Ref::Copy &tileref,const Lo
       if( colshape.size() == 3 )
       {
         LoCube_double cube(static_cast<double*>(coldata),colshape,blitz::neverDeleteData);
+        LoShape shape = Axis::freqTimeMatrix(colshape[1],nrows);
         for( int i=0; i<nplanes; i++ )
-          result.setNewVellSet(i).setReal(colshape[1],nrows) = 
+          result.setNewVellSet(i).setReal(shape).getArray<double,2>() = 
               cube(i,LoRange::all(),rowrange);
       }
       else if( colshape.size() == 2 )
       {
         LoMat_double mat(static_cast<double*>(coldata),colshape,blitz::neverDeleteData);
-        result.setNewVellSet(0).setReal(colshape[0],nrows) = 
+        LoShape shape = Axis::freqTimeMatrix(colshape[0],nrows);
+        result.setNewVellSet(0).setReal(shape).getArray<double,2>() = 
               mat(LoRange::all(),rowrange);
       }
       else
@@ -93,14 +95,16 @@ int Spigot::deliverTile (const Request &req,VisTile::Ref::Copy &tileref,const Lo
       if( colshape.size() == 3 )
       {
         LoCube_fcomplex cube(static_cast<fcomplex*>(coldata),colshape,blitz::neverDeleteData);
+        LoShape shape = Axis::freqTimeMatrix(colshape[1],nrows);
         for( int i=0; i<nplanes; i++ )
-          result.setNewVellSet(i).setComplex(colshape[1],nrows) = 
+          result.setNewVellSet(i).setComplex(shape).getArray<dcomplex,2>() = 
               blitz::cast<dcomplex>(cube(i,LoRange::all(),rowrange));
       }
       else if( colshape.size() == 2 )
       {
         LoMat_fcomplex mat(static_cast<fcomplex*>(coldata),colshape,blitz::neverDeleteData);
-        result.setNewVellSet(0).setComplex(colshape[0],nrows) = 
+        LoShape shape = Axis::freqTimeMatrix(colshape[0],nrows);
+        result.setNewVellSet(0).setComplex(shape).getArray<dcomplex,2>() = 
             blitz::cast<dcomplex>(mat(LoRange::all(),rowrange));
       }
       else

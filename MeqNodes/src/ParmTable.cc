@@ -65,20 +65,20 @@ std::map<string, ParmTable*> ParmTable::theirTables;
 Thread::Mutex ParmTable::theirMutex;
 
 
-Matrix<double> toParmMatrix (const Vells& values)
+Matrix<double> toParmMatrix (const LoMat_double &values)
 {
-  return Matrix<double> (IPosition(2, values.nx(), values.ny()),
-                         const_cast<double*>(values.realStorage()),
+  return Matrix<double> (IPosition(2,values.extent(0),values.extent(1)),
+                         const_cast<double*>(values.data()),
                          SHARE);
 }
 
-Vells fromParmMatrix (const Array<double>& values)
+LoMat_double fromParmMatrix (const Array<double>& values)
 {
   Assert (values.ndim() == 2);
   LoMat_double mat(values.data(),
                    LoMatShape(values.shape()[0], values.shape()[1]),
                    blitz::duplicateData);
-  return Vells(mat);
+  return mat;
 }
 
 //##ModelId=3F86886F02B7
@@ -130,8 +130,11 @@ int ParmTable::getPolcs (vector<Polc::Ref> &polcs,
     Vector<uInt> rowNums = sel.rowNumbers(itsTable);
     for( uint i=0; i<sel.nrow(); i++ )
     {
+      int axis[] = { Axis::FREQ,Axis::TIME };
+      double offset[] = { f0Col(i),t0Col(i) };
+      double scale[]  = { fsCol(i),tsCol(i) };
       Polc &polc = polcs[i] <<= new Polc(fromParmMatrix(valCol(i)),
-          f0Col(i),fsCol(i),t0Col(i),tsCol(i),diffCol(i),weightCol(i),rowNums(i));
+          axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
       polc.setDomain(Domain(sfCol(i), efCol(i), stCol(i), etCol(i)));
     }
   }
@@ -167,8 +170,11 @@ int ParmTable::getInitCoeff (Polc::Ref &polcref,const string& parmName)
         ROScalarColumn<double> fsCol (itsInitTable, ColFreqScale);
         ROScalarColumn<double> tsCol (itsInitTable, ColTimeScale);
         ROScalarColumn<double> diffCol (itsInitTable, ColPerturbation);
+        int axis[] = { Axis::FREQ,Axis::TIME };
+        double offset[] = { f0Col(row),t0Col(row) };
+        double scale[]  = { fsCol(row),tsCol(row) };
         polcref <<= new Polc(fromParmMatrix(valCol(row)),
-                f0Col(row),fsCol(row),t0Col(row),tsCol(row),diffCol(row));
+                axis,offset,scale,diffCol(row));
         return polcref->ncoeff();
       }
       string::size_type idx = name.rfind ('.');
@@ -209,7 +215,10 @@ Polc::DbId ParmTable::putCoeff (const string & parmName,const Polc & polc,
   ScalarColumn<double> diffCol (itsTable, ColPerturbation);
   ScalarColumn<double> weightCol (itsTable, ColWeight);
   const Domain& domain = polc.domain();
-  const Vells& values = polc.getCoeff();
+  Assert(polc.rank()==2);
+  Assert(polc.getAxis(0)==Axis::FREQ);
+  Assert(polc.getAxis(1)==Axis::TIME);
+  const LoMat_double & values = polc.getCoeff2();
   int rownr = polc.getDbId();
   // have a row number? check name, etc.
   if( rownr >= 0 )
@@ -228,19 +237,19 @@ Polc::DbId ParmTable::putCoeff (const string & parmName,const Polc & polc,
       {
         AssertMsg(sel.nrow()==1, "Parameter " << parmName <<
                      " has multiple entries for freq "
-                     << domain.start(FREQ) << ':' << domain.end(FREQ)
+                     << domain.start(Axis::FREQ) << ':' << domain.end(Axis::FREQ)
                      << " and time "
-                     << domain.start(TIME) << ':' << domain.end(TIME));
+                     << domain.start(Axis::TIME) << ':' << domain.end(Axis::TIME));
         rownr = sel.rowNumbers(itsTable)(0);
-        AssertMsg (near(domain.start(FREQ), sfCol(rownr)) &&
-                   near(domain.end(FREQ), efCol(rownr)) &&
-                   near(domain.start(TIME), stCol(rownr)) &&
-                   near(domain.end(TIME), etCol(rownr)),
+        AssertMsg (near(domain.start(Axis::FREQ), sfCol(rownr)) &&
+                   near(domain.end(Axis::FREQ), efCol(rownr)) &&
+                   near(domain.start(Axis::TIME), stCol(rownr)) &&
+                   near(domain.end(Axis::TIME), etCol(rownr)),
                    "Parameter " << parmName <<
                    " has a partially instead of fully matching entry for freq "
-                     << domain.start(FREQ) << ':' << domain.end(FREQ)
+                     << domain.start(Axis::FREQ) << ':' << domain.end(Axis::FREQ)
                      << " and time "
-                     << domain.start(TIME) << ':' << domain.end(TIME));
+                     << domain.start(Axis::TIME) << ':' << domain.end(Axis::TIME));
         ArrayColumn<double> valCol (sel, ColValues);
         valCol.put (0, toParmMatrix(values));
       }
@@ -256,14 +265,14 @@ Polc::DbId ParmTable::putCoeff (const string & parmName,const Polc & polc,
   // At this point, rownr corresponds to a valid row. Write the polc to 
   // that row
   valCol.put  (rownr, toParmMatrix(values));
-  sfCol.put   (rownr, domain.start(FREQ));
-  efCol.put   (rownr, domain.end(FREQ));
-  stCol.put   (rownr, domain.start(TIME));
-  etCol.put   (rownr, domain.end(TIME));
-  f0Col.put   (rownr, polc.getFreq0());
-  t0Col.put   (rownr, polc.getTime0());
-  fsCol.put   (rownr, polc.getFreqScale());
-  tsCol.put   (rownr, polc.getTimeScale());
+  sfCol.put   (rownr, domain.start(Axis::FREQ));
+  efCol.put   (rownr, domain.end(Axis::FREQ));
+  stCol.put   (rownr, domain.start(Axis::TIME));
+  etCol.put   (rownr, domain.end(Axis::TIME));
+  f0Col.put   (rownr, polc.getOffset(Axis::FREQ));
+  t0Col.put   (rownr, polc.getOffset(Axis::TIME));
+  fsCol.put   (rownr, polc.getScale(Axis::FREQ));
+  tsCol.put   (rownr, polc.getScale(Axis::TIME));
   diffCol.put (rownr, polc.getPerturbation());
   weightCol.put(rownr, polc.getWeight());
   return rownr;
@@ -280,10 +289,10 @@ Table ParmTable::find (const string& parmName,
   if (rownrs.nelements() > 0) {
     Table sel = itsTable(rownrs);
     // Find all rows overlapping the requested domain.
-    Table sel3 = sel(domain.start(FREQ) < sel.col(ColEndFreq)   &&
-                     domain.end(FREQ)   > sel.col(ColStartFreq) &&
-                     domain.start(TIME) < sel.col(ColEndTime)   &&
-                     domain.end(TIME)   > sel.col(ColStartTime));
+    Table sel3 = sel(domain.start(Axis::FREQ) < sel.col(ColEndFreq)   &&
+                     domain.end(Axis::FREQ)   > sel.col(ColStartFreq) &&
+                     domain.start(Axis::TIME) < sel.col(ColEndTime)   &&
+                     domain.end(Axis::TIME)   > sel.col(ColStartTime));
     result = sel3;
   }
   return result;

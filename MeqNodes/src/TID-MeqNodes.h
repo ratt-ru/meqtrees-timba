@@ -195,23 +195,6 @@ namespace Meq { class MergeFlags; };
               typedef const Meq::MergeFlags & ContainerParamType;
             };
 #endif
-#ifndef _defined_id_TpMeqModRes
-#define _defined_id_TpMeqModRes 1
-const TypeId TpMeqModRes(-1447);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ModRes.h:31
-const int TpMeqModRes_int = -1447;
-namespace Meq { class ModRes; };
-            template<>
-            class DMIBaseTypeTraits<Meq::ModRes> : public TypeTraits<Meq::ModRes>
-            {
-              public:
-              enum { isContainable = true };
-              enum { typeId = TpMeqModRes_int };
-              enum { TypeCategory = TypeCategories::DYNAMIC };
-              enum { ParamByRef = true, ReturnByRef = true };
-              typedef const Meq::ModRes & ContainerReturnType;
-              typedef const Meq::ModRes & ContainerParamType;
-            };
-#endif
 #ifndef _defined_id_TpMeqMultiply
 #define _defined_id_TpMeqMultiply 1
 const TypeId TpMeqMultiply(-1227);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Multiply.h:29
@@ -263,21 +246,21 @@ namespace Meq { class PointSourceDFT; };
               typedef const Meq::PointSourceDFT & ContainerParamType;
             };
 #endif
-#ifndef _defined_id_TpMeqPolRepToComplex
-#define _defined_id_TpMeqPolRepToComplex 1
-const TypeId TpMeqPolRepToComplex(-1501);         // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqNodes/src/PolRepToComplex.h:30
-const int TpMeqPolRepToComplex_int = -1501;
-namespace Meq { class PolRepToComplex; };
+#ifndef _defined_id_TpMeqPolar
+#define _defined_id_TpMeqPolar 1
+const TypeId TpMeqPolar(-1503);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Polar.h:30
+const int TpMeqPolar_int = -1503;
+namespace Meq { class Polar; };
             template<>
-            class DMIBaseTypeTraits<Meq::PolRepToComplex> : public TypeTraits<Meq::PolRepToComplex>
+            class DMIBaseTypeTraits<Meq::Polar> : public TypeTraits<Meq::Polar>
             {
               public:
               enum { isContainable = true };
-              enum { typeId = TpMeqPolRepToComplex_int };
+              enum { typeId = TpMeqPolar_int };
               enum { TypeCategory = TypeCategories::DYNAMIC };
               enum { ParamByRef = true, ReturnByRef = true };
-              typedef const Meq::PolRepToComplex & ContainerReturnType;
-              typedef const Meq::PolRepToComplex & ContainerParamType;
+              typedef const Meq::Polar & ContainerReturnType;
+              typedef const Meq::Polar & ContainerParamType;
             };
 #endif
 #ifndef _defined_id_TpMeqPow
@@ -312,23 +295,6 @@ namespace Meq { class ReqSeq; };
               enum { ParamByRef = true, ReturnByRef = true };
               typedef const Meq::ReqSeq & ContainerReturnType;
               typedef const Meq::ReqSeq & ContainerParamType;
-            };
-#endif
-#ifndef _defined_id_TpMeqResampler
-#define _defined_id_TpMeqResampler 1
-const TypeId TpMeqResampler(-1439);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Resampler.h:30
-const int TpMeqResampler_int = -1439;
-namespace Meq { class Resampler; };
-            template<>
-            class DMIBaseTypeTraits<Meq::Resampler> : public TypeTraits<Meq::Resampler>
-            {
-              public:
-              enum { isContainable = true };
-              enum { typeId = TpMeqResampler_int };
-              enum { TypeCategory = TypeCategories::DYNAMIC };
-              enum { ParamByRef = true, ReturnByRef = true };
-              typedef const Meq::Resampler & ContainerReturnType;
-              typedef const Meq::Resampler & ContainerParamType;
             };
 #endif
 #ifndef _defined_id_TpMeqSelector
@@ -499,23 +465,6 @@ namespace Meq { class UVW; };
               enum { ParamByRef = true, ReturnByRef = true };
               typedef const Meq::UVW & ContainerReturnType;
               typedef const Meq::UVW & ContainerParamType;
-            };
-#endif
-#ifndef _defined_id_TpMeqZeroFlagger
-#define _defined_id_TpMeqZeroFlagger 1
-const TypeId TpMeqZeroFlagger(-1433);             // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:29
-const int TpMeqZeroFlagger_int = -1433;
-namespace Meq { class ZeroFlagger; };
-            template<>
-            class DMIBaseTypeTraits<Meq::ZeroFlagger> : public TypeTraits<Meq::ZeroFlagger>
-            {
-              public:
-              enum { isContainable = true };
-              enum { typeId = TpMeqZeroFlagger_int };
-              enum { TypeCategory = TypeCategories::DYNAMIC };
-              enum { ParamByRef = true, ReturnByRef = true };
-              typedef const Meq::ZeroFlagger & ContainerReturnType;
-              typedef const Meq::ZeroFlagger & ContainerParamType;
             };
 #endif
 

@@ -34,8 +34,8 @@ static NestableContainer::Register reg(TpMeqDomain,True);
 //##ModelId=3F86886E030D
 Domain::Domain()
 {
-  range_[FREQ][0] = range_[TIME][0] = 0;
-  range_[FREQ][1] = range_[TIME][1] = 1;
+  memset(range_,0,sizeof(range_));
+  memset(defined_,0,sizeof(defined_));
 }
 
 //##ModelId=3F86886E030E
@@ -46,45 +46,52 @@ Domain::Domain (const DataRecord & rec,int flags)
 }
 
 //##ModelId=3F95060C00A7
-Domain::Domain (double startFreq, double endFreq,
-		            double startTime, double endTime)
+Domain::Domain (double x1,double x2,double y1,double y2)
 {
-  AssertMsg (startFreq < endFreq, "Meq::Domain: startFreq " << startFreq <<
-	     " must be < endFreq " << endFreq);
-  AssertMsg (startTime < endTime, "Meq::Domain: startTime " << startTime <<
-	     " must be < endTime " << endTime);
-  range_[FREQ][0] = startFreq;
-  range_[FREQ][1] = endFreq;
-  range_[TIME][0] = startTime;
-  range_[TIME][1] = endTime;
-  (*this)[FFreq] <<= new DataField(Tpdouble,2,range_[FREQ]);
-  (*this)[FTime] <<= new DataField(Tpdouble,2,range_[TIME]);
+  memset(range_,0,sizeof(range_));
+  memset(defined_,0,sizeof(defined_));
+  defineAxis(0,x1,x2);
+  defineAxis(1,y1,y2);
 }
 
+void Domain::defineAxis (int iaxis,double a1,double a2)
+{
+  FailWhen(iaxis<0 || iaxis>=Axis::MaxAxis,"illegal axis argument");
+  FailWhen(a1>=a2,"segment start must be < end");
+  range_[iaxis][0] = a1;
+  range_[iaxis][1] = a2;
+  defined_[iaxis]  = true;
+  // add to record
+  (*this)[Axis::name(iaxis)] <<= new DataField(Tpdouble,2,range_[iaxis]);
+}
 
 //##ModelId=400E5305010B
 void Domain::validateContent ()
 {
   Thread::Mutex::Lock lock(mutex());
+  memset(range_,0,sizeof(range_));
+  memset(defined_,0,sizeof(defined_));
   try
   {
-    Hook fhook(*this,FFreq);
-    Hook thook(*this,FTime);
-    // if neither is specified, use default
-    if( !fhook.exists() && !thook.exists() )
-    {
-      range_[FREQ][0] = range_[TIME][0] = 0;
-      range_[FREQ][1] = range_[TIME][1] = 1;
-    }
-    else
-    {
-      int size1,size2;
-      const double *fq = fhook.as_p<double>(size1);
-      const double *tm = thook.as_p<double>(size2);
-      FailWhen(size1!=2,"bad Freq field");
-      FailWhen(size2!=2,"bad Time field");
-      range_[FREQ][0] = fq[0]; range_[FREQ][1] = fq[1];
-      range_[TIME][0] = tm[0]; range_[TIME][1] = tm[1];
+    HIID id;
+    NCRef ncref;
+    Iterator iter = initFieldIter();
+    while( getFieldIter(iter,id,ncref) )
+    { 
+      FailWhen(id.size()!=1,"illegal axis ID "+id.toString());
+      int iaxis = id[0].index();
+      if( iaxis<0 )
+      {
+        iaxis = Axis::number(id[0]);
+        FailWhen(iaxis<0,"unknown axis ID "+id.toString());
+      }
+      int size;
+      const double *a = (*ncref)[HIID()].as_p<double>(size);
+      FailWhen(size!=2,"bad axis specification for "+id.toString());
+      FailWhen(a[0]>=a[1],"segment start must be < end");
+      range_[iaxis][0] = a[0];
+      range_[iaxis][1] = a[1];
+      defined_[iaxis]  = true;
     }
   }
   catch( std::exception &err )
@@ -97,19 +104,43 @@ void Domain::validateContent ()
   }  
 }
 
+bool Domain::supersetOfProj (const Domain &other) const
+{
+  for( int i=0; i<Axis::MaxAxis; i++ )
+    if( isDefined(i) &&
+        ( !other.isDefined(i) || start(i) > other.start(i) || end(i) < other.end(i) ) )
+      return false;
+  return true;
+}
+
 Domain Domain::envelope (const Domain &a,const Domain &b)
 {
+  Domain out;
   using std::min;
   using std::max;
-  return Domain(min(a.range_[FREQ][0],b.range_[FREQ][0]),max(a.range_[FREQ][1],b.range_[FREQ][1]),
-                min(a.range_[TIME][0],b.range_[TIME][0]),max(a.range_[TIME][1],b.range_[TIME][1]));
+  for( int i=0; i<Axis::MaxAxis; i++ )
+  {
+    if( a.isDefined(i) )
+    {
+      if( b.isDefined(i) )
+        out.defineAxis(i,min(a.start(i),b.start(i)),max(a.end(i),b.end(i)));
+      else
+        out.defineAxis(i,a.start(i),a.end(i));
+    }
+    else if( b.isDefined(i) )
+      out.defineAxis(i,b.start(i),b.end(i));
+  }
+  return out;
 }
 
 //##ModelId=400E53050125
 void Domain::show (std::ostream& os) const
 {
-  os << "Meq::Domain [" << start(FREQ) << ":" << end(FREQ) << ','
-                        << start(TIME) << ":" << end(TIME) << "]";
+  os << "Meq::Domain [";
+  for( int i=0; i<Axis::MaxAxis; i++ )
+    if( defined_[i] )
+       os << Axis::name(i) << " " << start(i) << ":" << end(i) << ',';
+  os << "]\n";
 }
 
 

@@ -180,16 +180,15 @@ void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisTile &tile
       time1(j) = time1(j-1) + ( interval1(j) = interval1(j-1) );
   cdebug1(5)<<"time:     "<<time1<<endl;
   cdebug1(5)<<"interval: "<<interval1<<endl;
-  cells.setCells(FREQ,channel_freqs,channel_widths);
-  cells.setCells(TIME,time1,interval1);
-  cells.recomputeDomain();
-  cells.recomputeSegments(FREQ);
-  cells.recomputeSegments(TIME);
+  cells.setCells(Axis::FREQ,channel_freqs,channel_widths);
+  cells.setCells(Axis::TIME,time1,interval1);
+  cells.recomputeSegments(Axis::FREQ);
+  cells.recomputeSegments(Axis::TIME);
   cells.recomputeDomain();
   cdebug1(5)<<"cells: "<<cells;
   if( force_regular_grid )
   {
-    FailWhen(cells.numSegments(TIME)>1 || cells.numSegments(FREQ)>1,
+    FailWhen(cells.numSegments(Axis::TIME)>1 || cells.numSegments(Axis::FREQ)>1,
         "tile has irregular grid, we're configured for regular grids only" );
   }
 }

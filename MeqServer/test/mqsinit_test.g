@@ -17,7 +17,7 @@ const mqsinit := function (verbose=default_verbosity,debug=[=])
     mqs := meq.server(verbose=verbose,options="-d0 -meq:M:M:MeqServer");
     if( is_fail(mqs) )
       fail;
-    mqs.init([output_col="PREDICT",mandate_regular_grid=T],wait=T);
+    mqs.init([output_col="PREDICT",mandate_regular_grid=T],wait=F);
     if( is_record(debug) )
     {
       for( lev in field_names(default_debuglevels) )

@@ -99,6 +99,7 @@ const meq.server := function (appid='MeqServer',
   self.results_log := [=];
   
   # define meqserver-specific methods
+  # meq() is a general command interface
   const public.meq := function (cmd_name,args=[=],wait_reply=F,silent=F)
   {
     wider self,public;
@@ -152,17 +153,24 @@ const meq.server := function (appid='MeqServer',
   }
 
   # define shortcuts for common methods
+  # 
   # ------ createnode()
+  const public.setaxismap := function (map,wait_reply=F,silent=F)
+  {
+    wider public;
+    global meq;
+    rec := [axis_map = meq.set_axes(map)];
+    return public.meq('Set.Axis.Map',wait_reply=wait_reply,silent=silent);
+  }
   
+  # ------ createnode()
   const public.createnode := function (initrec,wait_reply=F,silent=F)
   {
     wider public;
     return public.meq('Create.Node',initrec,wait_reply=wait_reply,silent=silent);
   }
 
-  # define shortcuts for common methods
-  # ------ createnode()
-  
+  # ------ resolve()
   const public.resolve := function (node,wait_reply=F,silent=F)
   {
     wider public;
@@ -171,7 +179,6 @@ const meq.server := function (appid='MeqServer',
   }
 
   # ------ getnodestate()
-  
   const public.getnodestate := function (node)
   {
     wider self,public;
@@ -179,8 +186,16 @@ const meq.server := function (appid='MeqServer',
     return public.meq('Node.Get.State',rec,wait_reply=T);
   }
   
-  # ------ getnodeindex()
+  # ------ setnodestate()
+  const public.setnodestate := function (node,state)
+  {
+    wider self,public;
+    rec := self.makenodespec(node);
+    rec.state := state;
+    return public.meq('Node.Set.State',rec,wait_reply=T);
+  }
   
+  # ------ getnodeindex()
   const public.getnodeindex := function (name)
   {
     wider self,public;

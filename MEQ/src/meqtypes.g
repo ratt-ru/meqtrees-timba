@@ -49,11 +49,56 @@ const meq.field := dmi.field;
 #-- meq.domain_ndim(), domain_axes()---------------------------------------------
 # Basic constants specifying layout of domain and cells
 
-const meq.domain_ndim := function ()
-{ return 2; }
+const meq._axis_ids  := [ hiid('freq'),hiid('time') ];
+const meq._axis_nums := [ freq=0,time=1 ];
 
-const meq.domain_axes := function ()
-{ return "freq time"; }
+#-- meq.set_axes() -------------------------------------------------------------
+# Sets list of active axes
+const meq.set_axes := function (axes="freq time")
+{
+  meq._axis_ids   := "";
+  meq._axis_nums  := [=];
+  for( a in axes ) 
+  {
+    meq._axis_ids := [ meq._axis_ids,hiid(a) ];
+    meq._axis_nums[a] := len(meq._axis_ids);
+  }
+  return meq._axis_ids;
+}
+
+#-- meq.axis_num() -------------------------------------------------------------
+# Resolves its arguments (axis id or numbers) to axis numbers
+const meq.axis_num := function (ids)
+{
+  out := [];
+  for( id in ids )
+  {
+    if( is_string(id) )
+      out[len(out)] := meq._axis_nums[id];
+    else if( is_integer(id) )
+      out[len(out)] := id;
+    else
+      fail 'unknown type for axis id';
+  }
+  return out;
+}
+
+#-- meq.axis_id() -------------------------------------------------------------
+# Resolves its arguments (axis id or numbers) to axis id
+const meq.axis_id := function (ids)
+{
+  out := [];
+  for( id in ids )
+  {
+    if( is_string(id) )
+      out[len(out)] := id;
+    else if( is_integer(id) )
+      out[len(out)] := meq._axis_ids[id];
+    else
+      fail 'unknown type for axis id';
+  }
+  return out;
+}
 
 #-- meq.node() -------------------------------------------------------------
 # Creates a basic defrec for a node
@@ -75,22 +120,36 @@ const meq.node := function (class,name,extra=[=],children=F,default=[=],groups="
 
 #-- meq.polc() -------------------------------------------------------------
 # Creates a Polc object
+# Axes may be specified by name or index
 
-const meq.polc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
-                            scale=F,weight=1,domain=F,dbid=-1)
+const meq.polc := function (coeff,axis=[],offset=[],scale=[],
+                            domain=F,pert=F,weight=F,dbid=F)
 {
-  if( is_boolean(scale) )
-    scale := [freq0,freqsc,time0,timesc];
-  rec := [ freq_0=scale[1],freq_scale=scale[2],
-           time_0=scale[3],time_scale=scale[4],
-           pert=pert,weight=weight,dbid_index=dbid ];
-  # set coeff  
-  if( len(coeff) == 1 )
-    rec.coeff := array(as_double(coeff),1,1);
-  else if( !has_field(coeff::,'shape') || len(coeff::shape) != 2 )
-    fail 'meq.polc: coeff must be either scalar or a 2D array';
-  else
-    rec.coeff := as_double(coeff);
+  rank := len(shape(coeff));
+  if( rank>2 )
+    fail 'polc rank too high';
+  # single coeff is rank 0
+  if( rank == 1 && len(coeff) == 1 )
+    rank := 0;
+  # setup basic record 
+  rec := [ coeff=as_double(coeff) ];
+  # optional attributes
+  if( !is_boolean(pert) )
+    rec.pert := pert;
+  if( !is_boolean(weight) )
+    rec.weight := weight;
+  if( !is_boolean(dbid) )
+    rec.dbid := dbid;
+  # add optional fields for rank>0
+  if( rank>0 )
+  {
+    if( len(axis) )
+      rec.axis_index := meq.axis_num(axis[1:rank]);
+    if( len(offset) )
+      rec.offset := offset[1:rank];
+    if( len(scale) )
+      rec.scale := scale[1:rank];
+  }    
   # set domain if specified
   if( !is_boolean(domain) )
   {
@@ -140,18 +199,33 @@ const meq.parm := function (name,default=F,polc=F,groups="")
 
 
 #-- meq.domain() -------------------------------------------------------------
-# creates a Meq::Domain from starting/ending freq and time
+# creates a Meq::Domain 
+# Two ways of calling it are:
+# 1. (Backwards compatible with old freq/time domains);
+#    supply four arguments: freq1 freq2 time1 time2 for a freq/time domain
+# 2. Supply arrays axis,start,end (all of same size) to create a general
+#    domain. Axes may be specified by name or index.
 
-const meq.domain := function (startfreq,endfreq,starttime,endtime)
+const meq.domain := function (startfreq=[],endfreq=[],starttime=[],endtime=[],
+            axis=[],start=[],end=[])
 {
-  rec := [ freq=as_double([startfreq,endfreq]),
-           time=as_double([starttime,endtime]) ];
+  # old calling convention:
+  if( !len(axis) )
+  {
+    rec := [ freq=as_double([startfreq,endfreq]),
+             time=as_double([starttime,endtime]) ];
+  }
+  # new style
+  else
+  {
+    rec := [=];
+    for( i in 1:len(axis) )
+      rec[meq.axis_id(axis[i])] := as_double([start[i],end[i]]);
+  }
   # setup various attributes
   const rec::dmi_actual_type := 'MeqDomain';
-  const rec::meq_axes := "freq time";
   return rec;
 }
-
 
 #-- meq_private.resolve_grid() -----------------------------------------------
 # helper function to resolve a meq.cells grid for one axis
@@ -229,22 +303,55 @@ const meq_private.resolve_grid := function (type,dom,num,
 
 #-- meq.cells() -------------------------------------------------------------
 # Creates a Meq::Cells
-# Two forms of constructor are available:
-#   meq.cells(domain,num_freq,num_time) creates regularly-spaced cells over
-#         the given domain
-#   meq.cells(freq_grid=[...],time_grid=[...]) creates cells with an explicitly
-#         specified grid
-# The forms may be combined, e.g.:
-#   meq.cells(domain,num_freq,time_grid=[...]) creates cells with regular freq
-#         sampling, and an explicitly specified time grid
-# The optional freq_cell_size and time_cell_size arguments may be given to 
-# specify cell sizes (default is full tiling). Use either a scalar for 
-# uniform cell size, or a vector of the same length as the grid.
-
-const meq.cells := function (domain=F,num_freq=F,num_time=F,
+# As in the case of domain, there's two styles of calling it: the old style
+# for freq/time cells, and the new style for generalized cells/domains:
+# I. Old style calls take two forms:
+#     meq.cells(domain,num_freq,num_time) 
+#           creates regularly-spaced cells over
+#           the given domain (domain must define freq/time)
+#     meq.cells(freq_grid=[...],time_grid=[...]) 
+#           creates cells with an explicitly specified grid
+#   The two forms may be combined, e.g.:
+#     meq.cells(domain,num_freq,time_grid=[...]) creates cells with regular freq
+#           sampling, and an explicitly specified time grid
+#   The optional freq_cell_size and time_cell_size arguments may be given to 
+#   specify cell sizes (default is full tiling). Use either a scalar for 
+#   uniform cell size, or a vector of the same length as the grid.
+# II. New-style calls for generalized cells/domains:
+#   meq.cells(domain,num=[...])
+#           creates regularly-spaced cells over the given domain. Domain
+#           must have the sume number of axes as there are elements in num.
+#   meq.cells(axis=[...],grid=[...])
+#           explicitly specified axes (as numbers or ids) and grid points.
+#           grid is a record of vectors, must have the same number of vectors
+#           in it as there are elements in axis. Domain is computed 
+#           automatically as the envelope domain.
+#   For both forms, an optional cellsize argument may specify cell size
+#   (default is full tiling). Use either a vector of scalars (for uniform size),
+#   or a record of vectors to specify the size at each grid point.
+# Note that the old style may also be called directly as meq.cells_ft(),
+# and the new style as meq.cellsx(). In fact, this function simply calls
+# one or the other depending on which arguments are specified.
+const meq.cells := function (domain=F,
+                                # arguments for old-style calls
+                             num_freq=F,num_time=F,
                              freq_grid=[],time_grid=[],
-                             freq_cell_size=[],time_cell_size=[])
+                             freq_cell_size=[],time_cell_size=[],
+                                # arguments for new-style calls
+                             axis=[],num=[],grid=[=],cell_size=[])
 {
+  if( !len(axis) && !len(num) )
+    return meq.cells_ft(domain,num_freq,num_time,freq_grid,time_grid,
+                        freq_cell_size,time_cell_size);
+  else  
+    return meq.cellsx(domain,axis,ncells,grid,cellsize);
+}
+
+const meq.cells_ft := function (domain=F,
+                                num_freq=F,num_time=F,
+                                freq_grid=[],time_grid=[],
+                                freq_cell_size=[],time_cell_size=[])
+{  
   if( is_dmi_type(domain,'MeqDomain') )
   {
     df := domain.freq;
@@ -272,6 +379,71 @@ const meq.cells := function (domain=F,num_freq=F,num_time=F,
   # setup various attributes
   const rec::dmi_actual_type := 'MeqCells';
   const rec::meq_axes := "freq time";
+  return rec;
+}
+
+const meq.cellsx := function (domain=F,axis=[],num=[],grid=[=],cell_size=[])
+{  
+  # build up list of ranges, and vector of axes
+  rng := [=];
+  axis_id := [];
+  # either from domain...
+  if( is_dmi_type(domain,'MeqDomain') )
+  {
+    if( len(axis) )
+      fail 'meq.cells() must specify either domain or axis array, not both';
+    # build up list of ranges, and vector of axes
+    for( a in field_names(domain) )
+    {
+      rng[len(rng)] := domain[a];
+      axis_id[len(axis_id)] := meq.axis_id(a);
+    }
+  } # or from axis argument...
+  else
+  {
+    if( !len(axis) )
+      fail 'meq.cells() must specify either domain or axis array';
+    # build up empty list of ranges
+    for( i in 1:len(axis) )
+    {
+      axis_id[i] := meq.axis_id(axis[i]);
+      rng[i] := F;
+    }
+  }
+  rec := [ grid=[=],cell_size=[=],segments=[=] ];
+  domstart := [];
+  domend := [];
+  # now, figure out each grid/range based on other arguments
+  for( i in 1:len(axis_id) )
+  {
+    a := axis_id[i];
+    # convert everything to double
+    if( i <= len(num) )
+      np := num[i];
+    else
+      np := F;
+    if( i <= len(grid) )
+      gr := as_double(grid[i]);
+    else
+      gr := [];
+    if( i <= len(cell_size) )
+      csz := as_double(csz[i]);
+    else
+      csz := [];
+    # resolve grids
+    np := meq_private.resolve_grid(a,rng[i],np,gr,csz,segs);
+    if( is_fail(np) )
+      fail;
+    # create record
+    rec.grid[a] := gr;
+    rec.cell_size[a] := csz;
+    rec.segments[a] := segs;
+    # remember domain start/end
+    domstart[i] := rng[i][1];
+    domend[i] := rng[i][2];
+  }
+  rec.domain := meq.domain(axis=axis_id,start=domstart,end=domend);
+  const rec::dmi_actual_type := 'MeqCells';
   return rec;
 }
 

@@ -7,6 +7,8 @@ const fill_uvw := function (msname,mepname,ddid=0,name="%s.%d",create=T)
 {
   ms := table(msname);
   mep := meq.meptable(mepname,create=create);
+  if( is_fail(mep) )
+    fail;
   # everything is relative to ant1, so select entries relative to it
   mss := ms.query(paste('DATA_DESC_ID==',ddid,'&& ANTENNA1==0'));
 

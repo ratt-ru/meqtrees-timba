@@ -30,6 +30,7 @@
 
 #include <DMI/DataRecord.h>
 #include <MEQ/TID-Meq.h>
+#include <MEQ/Axis.h>
 
 #pragma types #Meq::Domain
 
@@ -38,15 +39,6 @@
 
 namespace Meq {
 
-typedef enum 
-{
-  FREQ = 0,
-  TIME = 1,
-      
-  DOMAIN_NAXES = 2
-} StandardDomainAxes;
-
-  
 //##ModelId=3F86886E0183
 class Domain : public DataRecord
 {
@@ -59,9 +51,12 @@ public:
     //##ModelId=3F86886E030E
   Domain (const DataRecord &,int flags=DMI::PRESERVE_RW);
 
-  // Create a time,frequency domain.
+  // Shortcut to create a 2D domain (along axis 0 and 1)
     //##ModelId=3F95060C00A7
   Domain (double x1,double x2,double y1,double y2);
+  
+  // adds an axis to the Domain definition
+  void defineAxis (int iaxis,double a1,double a2);
 
     //##ModelId=400E530500F5
   virtual TypeId objectType () const
@@ -80,40 +75,45 @@ public:
 
   double start (int iaxis) const
   {
-    DbgFailWhen(iaxis<0 || iaxis>=DOMAIN_NAXES,"illegal axis argument");
+    DbgFailWhen(iaxis<0 || iaxis>=Axis::MaxAxis,"illegal axis argument");
     return range_[iaxis][0];
   }
   
   double end   (int iaxis) const
   {
-    DbgFailWhen(iaxis<0 || iaxis>=DOMAIN_NAXES,"illegal axis argument");
+    DbgFailWhen(iaxis<0 || iaxis>=Axis::MaxAxis,"illegal axis argument");
     return range_[iaxis][1];
+  }
+  
+  bool isDefined (int iaxis) const
+  {
+    DbgFailWhen(iaxis<0 || iaxis>=Axis::MaxAxis,"illegal axis argument");
+    return defined_[iaxis];
   }
 
     //##ModelId=400E5305010E
-  bool operator== (const Domain& that) const
-  { return range_[FREQ][0] == that.range_[FREQ][0]
-       &&  range_[FREQ][1] == that.range_[FREQ][1]
-       &&  range_[TIME][0] == that.range_[TIME][0]
-       &&  range_[TIME][1] == that.range_[TIME][1]; }
+  bool operator == (const Domain& other) const
+    { return memcmp(range_,other.range_,sizeof(range_)) == 0; }
   
     //##ModelId=400E5305011A
-  bool operator!= (const Domain& that) const
-    { return !(*this == that); }
+  bool operator!= (const Domain& other) const
+    { return !(*this == other); }
 
-  // returns true if this domain is a subset of other
-  bool subsetOf (const Domain &other) const
-  { return 
-      start(FREQ) >= other.start(FREQ) && end(FREQ) <= other.end(FREQ) &&
-      start(TIME) >= other.start(TIME) && end(TIME) <= other.end(TIME); }
+//   // returns true if this domain is a subset of other
+//   bool subsetOf (const Domain &other) const
+//   { return 
+//       start(FREQ) >= other.start(FREQ) && end(FREQ) <= other.end(FREQ) &&
+//       start(TIME) >= other.start(TIME) && end(TIME) <= other.end(TIME); }
   
-  // returns true if this domain is a superset of other
-  bool supersetOf (const Domain &other) const
-  { return other.subsetOf(*this); }
+  // returns true if this domain is a superset of the _projection_ of the other
+  // domain onto the axes defined by this domain. I.e.:
+  // 1. All axes defined by this domain must be defined by other;
+  // 2. The extend of each axis in this must be a superset of the other's extent
+  bool supersetOfProj (const Domain &other) const;
   
   // returns the envelope of two domains
   static Domain envelope (const Domain &a,const Domain &b);
-  
+   
   // returns the envelope of this and the other domain
   Domain envelope (const Domain &other) const
   { return envelope(*this,other); }
@@ -124,7 +124,8 @@ public:
 
 private:
     //##ModelId=3F86886E02F8
-  double range_[2][2];
+  double range_[Axis::MaxAxis][2];
+  bool   defined_[Axis::MaxAxis];
 };
 
 } // namespace Meq

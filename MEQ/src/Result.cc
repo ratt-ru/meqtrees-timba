@@ -233,23 +233,48 @@ void Result::integrate (bool reverse)
     return;
   // compute cellsize, as scalar or matrix, depending on properties of cells
   Vells cellsize;
-  // irregular cell size -- compute & use matrix 
-  if( cc.numSegments(0)>1 || cc.numSegments(1)>1 )
+  // is the cell size regular?
+  bool is_regular = true;
+  double csz = 1;
+  for( int i=0; i<Axis::MaxAxis; i++ )
+    if( cc.isDefined(i) )
+    {
+      if( cc.numSegments(i)>1 )
+      {
+        is_regular = false;
+        break;
+      }
+      else
+        csz *= double(cc.cellSize(i)(0));
+    }
+  // regular cell sizes -- have been accumulated in csz
+  if( is_regular )
   {
-    // compute matrix of cell sizes, multiply by value
-    LoMat_double csz(cc.shape());
-    using namespace blitz;
-    csz = cc.cellSize(0)(tensor::i) * cc.cellSize(1)(tensor::j);
     if( reverse )
       csz = 1/csz;
     cellsize = Vells(csz);
   }
-  else // this is a regular grid -- use scalar cell size
+  else // irregular sizes -- compute a Vells of cell sizes
   {
-    double csz = cc.cellSize(0)(0)*cc.cellSize(1)(0);
+    cellsize = Vells(1.);
+    Vells::Shape shape0(cc.rank());
+    for( int i=0; i<cc.rank(); i++ )
+      shape0[i] = 1;
+    // multiply repeatedly by each cell size
+    for( int iaxis=0; iaxis<cc.rank(); iaxis++ )
+      if( cc.isDefined(iaxis) )
+      {
+        // create Vells variable only along this axis, containing cell sizes
+        Vells::Shape shape(shape0);
+        int nc = cc.ncells(iaxis);
+        shape[iaxis] = nc;
+        Vells sz(0.,shape,false);
+        memcpy(sz.realStorage(),cc.cellSize(iaxis).data(),sizeof(double)*nc);
+        // multiply accumulated size
+        cellsize *= sz;
+      }
     if( reverse )
-      csz = 1/csz;
-    cellsize = Vells(csz);
+      cellsize = 1/cellsize;
   }
   // loop over vellsets, applying cellsize
   for( int ivs=0; ivs<numVellSets(); ivs++ )

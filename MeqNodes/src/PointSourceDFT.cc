@@ -44,7 +44,7 @@ void PointSourceDFT::evalResult (std::vector<Vells> &res,
 				 const Cells &cells)
 {
   // Assume that frequency is the first axis.
-  Assert(FREQ==0);
+  Assert(Axis::FREQ==0);
   // for now, only work with 1 frequency segment (2 values from each station's DFT)
   int nval = values.size();
   Assert(nval == 5);
@@ -95,19 +95,16 @@ void PointSourceDFT::evalResult (std::vector<Vells> &res,
   const complex<double>* deltar = vs2df.complexStorage();
   const double* tmpnk = vn.realStorage();
 
-  // Set the type and shape of the result value.
-  int ntime = cells.ncells(TIME);
-  int nfreq = cells.ncells(FREQ);
-  vres = Vells(dcomplex(0),nfreq,ntime,false);
+  vres = Vells(dcomplex(0),res_shape,false);
   dcomplex* resdata = vres.complexStorage();
 
   // vn can be a scalar or an array (in time axis), so set its step to 0
   // if it is a scalar.
-  int stepnk = (vn.ny() > 1  ?  1 : 0);
-  int stepv  = (vs1f0.ny() > 1  ?  1 : 0);
-  Assert(vs1f0.ny() == vs2f0.ny()  &&
-	 vs1f0.ny() == vs1df.ny()  &&
-	 vs1f0.ny() == vs2df.ny());
+  int stepnk = (vn.shape(Axis::TIME) > 1  ?  1 : 0);
+  int stepv  = (vs1f0.shape(Axis::TIME) > 1  ?  1 : 0);
+  Assert(vs1f0.shape(Axis::TIME) == vs2f0.shape(Axis::TIME)  &&
+	 vs1f0.shape(Axis::TIME) == vs1df.shape(Axis::TIME)  &&
+	 vs1f0.shape(Axis::TIME) == vs2df.shape(Axis::TIME) );
   for (int i=0; i<ntime; i++) {
     dcomplex val0 = *tmpr * conj(*tmpl) / *tmpnk;
     *resdata++ = val0;
@@ -142,11 +139,17 @@ int PointSourceDFT::getResult (Result::Ref &resref,
   
   // allocate proper output result (integrated=false??)
   const Cells &cells = childres[0]->cells();
-  Result &result = resref <<= new Result(1,false);
+  Assert(cells.isDefined(Axis::FREQ) && cells.isDefined(Axis::TIME));
+  Result &result = resref <<= new Result(1);
   result.setCells(cells);
+
+  // result is variable in time and frequency
+  nfreq = cells.ncells(Axis::FREQ);
+  ntime = cells.ncells(Axis::TIME);
+  res_shape = Axis::freqTimeMatrix(nfreq,ntime);
   
   // fill it
-  computeValues(result,child_vs);
+  computeValues(resref(),child_vs);
   
   return 0;
 }

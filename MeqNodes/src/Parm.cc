@@ -116,9 +116,13 @@ void Parm::findRelevantPolcs (vector<Polc::Ref> &polcs,const Domain &domain)
       cdebug(3)<<"no polcs found, using default value from state record"<<endl;
       defpolc.copy(default_polc_).privatize(DMI::WRITE|DMI::DEEP);
     }
-    FailWhen(defpolc->getCoeff().isNull(),"no polcs found");
     defpolc().setDomain(domain);
     polcs.push_back(defpolc);
+  }
+  else if( polcs.size()>0 )
+  {
+    polcs.resize(1);
+    cdebug(3)<<"discarding mutliple polcs as only one is currently suported"<<endl;
   }
 }
 
@@ -164,7 +168,7 @@ int Parm::initSolvable (const Domain &domain)
       polc.setDomain(domain.envelope(polc.domain())); // extend the domain
       return initSpids();
     }
-    else if( polc.domain().supersetOf(domain) )
+    else if( polc.domain().supersetOfProj(domain) )
     {
       cdebug(2)<<"solve-polc defined over superset of requested domain, re-using"<<endl;
       return initSpids();
@@ -241,7 +245,7 @@ int Parm::initDomain (const Domain& domain)
         return 1;
       }
       // (b) is a superset of the requested domain
-      else if( polc.domain().supersetOf(domain) )
+      else if( polc.domain().supersetOfProj(domain) )
       {
         cdebug(2)<<"current polc defined for superset of requested domain, re-using"<<endl;
         return 1;
@@ -318,7 +322,8 @@ int Parm::getResult (Result::Ref &resref,
   // Create result object and attach to the ref that was passed in
   Result &result = resref <<= new Result(1,request); // result has one vellset
   VellSet & vs = result.setNewVellSet(0,0,request.calcDeriv());
-  vs.setShape(request.cells().shape());
+// no need, result.setNewVellSet will do it for us
+//  vs.setShape(request.cells().shape());
   
   // add dependency on domain, unless we're not integrated and have a 
   // single c00 polc
@@ -334,101 +339,102 @@ int Parm::getResult (Result::Ref &resref,
       result.integrate();
     return depend;
   }
+  Throw("Meq::Parm: multiple polc support currently disabled");
   
-  // Get the domain, etc.
-  const Cells &cells = request.cells();
-  double* datar = 0;
-  const LoVec_double & midFreq = cells.center(FREQ),
-                       midTime = cells.center(TIME);
-  int ndFreq = midFreq.extent(0);
-  int ndTime = midTime.extent(0);
-                       
-  double firstMidFreq = midFreq(0);
-  double lastMidFreq  = midFreq(ndFreq-1);
-  double firstMidTime = midTime(0);
-  double lastMidTime  = midTime(ndTime-1);
-  vs.setReal(ndFreq,ndTime);
-  // Iterate over all polynomials.
-  // Evaluate one if its domain overlaps the request domain.
-  cdebug(3)<<"midfreqs: "<<firstMidFreq<<":"<<lastMidFreq<<endl;
-  cdebug(3)<<"midtimes: "<<firstMidTime<<":"<<lastMidTime<<endl;
-  cdebug(3)<<"evaluating for "<<ppolcs->size()<<" polcs"<<endl;
-  for( uint i=0; i<ppolcs->size(); i++ )
-  {
-    const Polc& polc = *((*ppolcs)[i]);
-    cdebug(3)<<"polc "<<i<<" domain is "<<polc.domain()<<endl;
-    double pfreq0 = polc.domain().start(FREQ), 
-           pfreq1 = polc.domain().end(FREQ),
-           ptime0 = polc.domain().start(TIME), 
-           ptime1 = polc.domain().end(TIME);
-    if( firstMidFreq < pfreq1 && lastMidFreq > pfreq0 &&
-        firstMidTime < ptime1 && lastMidTime > ptime0 )
-    {
-      // Determine which subset of the request Cells is covered by the poly
-      int ifreq0 = 0, ifreq1 = ndFreq-1;
-      while( midFreq(ifreq0) < pfreq0 ) 
-        ifreq0++;
-      while( midFreq(ifreq1) > pfreq1 )
-        ifreq1--;
-      int itime0 = 0, itime1 = ndTime-1;
-      while( midTime(itime0) < ptime0 ) 
-        itime0++;
-      while( midTime(itime1) > ptime1 )
-        itime1--;
-      int nrFreq = ifreq1 - ifreq0 + 1;
-      int nrTime = itime1 - itime0 + 1;
-      cdebug(3)<<"polc "<<i<<" overlap: "<<ifreq0<<":"<<ifreq1
-                <<","<<itime0<<":"<<itime1<<endl;
-      // If the overlap is full, only this polynomial needs to be evaluated.
-      if( ifreq0 == 0 && ifreq1 == ndFreq-1 &&
-          itime0 == 0 && itime1 == ndTime-1 )
-      {
-        polc.evaluate(vs,request);
-        if( integrated_ )
-          result.integrate();
-        return depend;
-      }
-      // Evaluate polc over overlapping part of grid
-      VellSet partRes;
-      partRes.setShape(nrFreq,nrTime);
-      polc.evaluate(partRes,
-                    midFreq(blitz::Range(ifreq0,ifreq1)),
-                    midTime(blitz::Range(itime0,itime1)),
-                    request.calcDeriv());
-      // Create the result matrix if it is the first Time.
-      // Now it is initialized with zeroes (to see possible errors).
-      // In the future the outcommnented statement can be used
-      // which saves the initialization Time. It requires that the
-      // request domain is entirely covered by the polcs.
-      if (datar == 0) {
-        LoMat_double& mat = vs.setReal (ndFreq, ndTime);
-        datar = mat.data();
-      }
-      // Move the values to the correct place in the output result.
-      // Note that in principle a polynomial could be a single coefficient
-      // in which case it returns a single value.
-      const double* from = partRes.getValue().realStorage();
-      double* to = datar + ifreq0 + itime0*ndFreq;
-      if (partRes.getValue().nelements() == 1) {
-        for (int iTime=0; iTime<nrTime; iTime++) {
-          for (int iFreq=0; iFreq<nrFreq; iFreq++) {
-            to[iFreq] = *from;
-          }
-          to += ndFreq;
-        }
-      } else {
-        for (int iTime=0; iTime<nrTime; iTime++) {
-          for (int iFreq=0; iFreq<nrFreq; iFreq++) {
-            to[iFreq] = *from++;
-          }
-          to += ndFreq;
-        }
-      }
-    }
-  }
-  if( integrated_ )
-    result.integrate();
-  return depend;
+//   // Get the domain, etc.
+//   const Cells &cells = request.cells();
+//   double* datar = 0;
+//   const LoVec_double & midFreq = cells.center(FREQ),
+//                        midTime = cells.center(TIME);
+//   int ndFreq = midFreq.extent(0);
+//   int ndTime = midTime.extent(0);
+//                        
+//   double firstMidFreq = midFreq(0);
+//   double lastMidFreq  = midFreq(ndFreq-1);
+//   double firstMidTime = midTime(0);
+//   double lastMidTime  = midTime(ndTime-1);
+//   vs.setReal(ndFreq,ndTime);
+//   // Iterate over all polynomials.
+//   // Evaluate one if its domain overlaps the request domain.
+//   cdebug(3)<<"midfreqs: "<<firstMidFreq<<":"<<lastMidFreq<<endl;
+//   cdebug(3)<<"midtimes: "<<firstMidTime<<":"<<lastMidTime<<endl;
+//   cdebug(3)<<"evaluating for "<<ppolcs->size()<<" polcs"<<endl;
+//   for( uint i=0; i<ppolcs->size(); i++ )
+//   {
+//     const Polc& polc = *((*ppolcs)[i]);
+//     cdebug(3)<<"polc "<<i<<" domain is "<<polc.domain()<<endl;
+//     double pfreq0 = polc.domain().start(FREQ), 
+//            pfreq1 = polc.domain().end(FREQ),
+//            ptime0 = polc.domain().start(TIME), 
+//            ptime1 = polc.domain().end(TIME);
+//     if( firstMidFreq < pfreq1 && lastMidFreq > pfreq0 &&
+//         firstMidTime < ptime1 && lastMidTime > ptime0 )
+//     {
+//       // Determine which subset of the request Cells is covered by the poly
+//       int ifreq0 = 0, ifreq1 = ndFreq-1;
+//       while( midFreq(ifreq0) < pfreq0 ) 
+//         ifreq0++;
+//       while( midFreq(ifreq1) > pfreq1 )
+//         ifreq1--;
+//       int itime0 = 0, itime1 = ndTime-1;
+//       while( midTime(itime0) < ptime0 ) 
+//         itime0++;
+//       while( midTime(itime1) > ptime1 )
+//         itime1--;
+//       int nrFreq = ifreq1 - ifreq0 + 1;
+//       int nrTime = itime1 - itime0 + 1;
+//       cdebug(3)<<"polc "<<i<<" overlap: "<<ifreq0<<":"<<ifreq1
+//                 <<","<<itime0<<":"<<itime1<<endl;
+//       // If the overlap is full, only this polynomial needs to be evaluated.
+//       if( ifreq0 == 0 && ifreq1 == ndFreq-1 &&
+//           itime0 == 0 && itime1 == ndTime-1 )
+//       {
+//         polc.evaluate(vs,request);
+//         if( integrated_ )
+//           result.integrate();
+//         return depend;
+//       }
+//       // Evaluate polc over overlapping part of grid
+//       VellSet partRes;
+//       partRes.setShape(nrFreq,nrTime);
+//       polc.evaluate(partRes,
+//                     midFreq(blitz::Range(ifreq0,ifreq1)),
+//                     midTime(blitz::Range(itime0,itime1)),
+//                     request.calcDeriv());
+//       // Create the result matrix if it is the first Time.
+//       // Now it is initialized with zeroes (to see possible errors).
+//       // In the future the outcommnented statement can be used
+//       // which saves the initialization Time. It requires that the
+//       // request domain is entirely covered by the polcs.
+//       if (datar == 0) {
+//         LoMat_double& mat = vs.setReal (ndFreq, ndTime);
+//         datar = mat.data();
+//       }
+//       // Move the values to the correct place in the output result.
+//       // Note that in principle a polynomial could be a single coefficient
+//       // in which case it returns a single value.
+//       const double* from = partRes.getValue().realStorage();
+//       double* to = datar + ifreq0 + itime0*ndFreq;
+//       if (partRes.getValue().nelements() == 1) {
+//         for (int iTime=0; iTime<nrTime; iTime++) {
+//           for (int iFreq=0; iFreq<nrFreq; iFreq++) {
+//             to[iFreq] = *from;
+//           }
+//           to += ndFreq;
+//         }
+//       } else {
+//         for (int iTime=0; iTime<nrTime; iTime++) {
+//           for (int iFreq=0; iFreq<nrFreq; iFreq++) {
+//             to[iFreq] = *from++;
+//           }
+//           to += ndFreq;
+//         }
+//       }
+//     }
+//   }
+//   if( integrated_ )
+//     result.integrate();
+//   return depend;
 }
 
 //##ModelId=3F86886F023C
