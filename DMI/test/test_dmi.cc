@@ -458,15 +458,15 @@ int main ( int argc,const char *argv[] )
   
   try 
   {
-    TestCountedRefs();
-    TestDataField();
-    TestDataRecord();
-    
+    cout<<"HIID('a_b_c'): "<<HIID("a.b.c",0,".")<<endl;
     HIID test("1.");
     cout<<test.toString()<<endl;
     test = test|5;
     cout<<test.toString()<<endl;
     cout<<HIID("_._.:6").toString()<<endl;
+    TestCountedRefs();
+    TestDataField();
+    TestDataRecord();
   }
   catch( std::exception &err )
   {

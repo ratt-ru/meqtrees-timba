@@ -20,6 +20,7 @@
   public: typedef UniRegistry<Key,Value,Class> Registry;    \
           typedef Registrar<Key,Value,Class> Register;    \
           static int addToRegistry(const Key&,const Value&); \
+          static const Registry::Map & getRegistryMap () { return *_registry_map; } \
   private: static Registry registry;    \
            static Registry::Map *_registry_map;    \
            friend class Registry;    \
@@ -40,6 +41,8 @@
   public: typedef BiRegistry<Key,Value,Class> Registry;    \
           typedef Registrar<Key,Value,Class> Register;    \
           static int addToRegistry(const Key&,const Value&); \
+          static const Registry::Map & getRegistryMap () { return *_registry_map; } \
+          static const Registry::RevMap & getRegistryRevMap () { return *_registry_rmap; } \
   private:  static Registry registry;    \
             static Registry::Map *_registry_map;    \
             static Registry::RevMap *_registry_rmap;    \

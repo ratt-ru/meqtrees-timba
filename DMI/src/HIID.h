@@ -48,13 +48,18 @@ class HIID : public Vector_AtomicID
 
       //##ModelId=3C6141BA03B4
       //##Documentation
-      //## Constructs HIID from string form
+      //## Constructs HIID from string form, using '.' separator
       //## ("A.B.C.D", etc.)
-      HIID (const string &str,const string &sep_set = ".");
+      HIID (const string &str);
+      HIID (const char *str);
+      
+      //## Constructs HIID from string form, using custom separator.
+      //## ("A_B_C_D", etc.)
+      //## The dummy int argument is needed to distinguish from other
+      //## constructors
+      HIID (const string &str,int,const string &sep_set);
 
-      //##ModelId=3C556A470346
-      HIID (const char *str,const string &sep_set = ".");
-
+      
       //##ModelId=3DB934880197
       //##Documentation
       //## Creates a HIID from a block of raw bytes
@@ -271,16 +276,21 @@ inline HIID::HIID (AtomicID aid)
 }
 
 //##ModelId=3C6141BA03B4
-inline HIID::HIID (const string &str,const string &sepset)
+inline HIID::HIID (const string &str)
 {
-  addString(str,sepset);
+  addString(str);
+}
+
+inline HIID::HIID (const char *str)
+{
+  if( str )
+    addString(str);
 }
 
 //##ModelId=3C556A470346
-inline HIID::HIID (const char *str,const string &sepset)
+inline HIID::HIID (const string &str,int,const string &sepset)
 {
-  if( str )
-    addString(str,sepset);
+  addString(str,sepset);
 }
 
 
