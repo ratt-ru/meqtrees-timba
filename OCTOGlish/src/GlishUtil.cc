@@ -364,13 +364,17 @@ Base * GlishUtil::createSubclass (ObjRef &ref,const GlishValue &val)
   {
     String typestr;
     GlishArray tmp = val.getAttribute("dmi_actual_type"); tmp.get(typestr);
+    dprintf(4)("real object type is %s\n",typestr.c_str());
     BlockableObject * bo = DynamicTypeManager::construct(TypeId(typestr));
     ref <<= bo;
     pbase = dynamic_cast<Base *>(bo);
     FailWhen(!pbase,string(typestr)+"is not a subclass of "+TpOfPtr(pbase).toString());
   }
   else
+  {
     ref <<= pbase = new Base;
+  }
+  dprintf(5)("%s created at address %x\n",pbase->objectType().toString().c_str(),(int)pbase);
   return pbase;
 }
 
@@ -390,7 +394,8 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
             val.attributeExists("dmi_is_hiid") ) )
         || arr.elementType() == GlishArray::STRING )
     {
-      dprintf(4)("converting GlishArray to DataField\n");
+      dprintf(4)("converting GlishArray of %d elements to to DataField\n",
+                  shape.product());
       DataField *field = GlishUtil::createSubclass<DataField>(ref,val);
       makeDataField(*field,arr,adjustIndex);
       // validate the field (no-op for DataField itself, but may be meaningful for subclasses)
@@ -399,7 +404,8 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
     }
     else // all other arrays map to DataArrays
     {
-      dprintf(4)("converting GlishArray to DataArray\n");
+      dprintf(4)("converting GlishArray of %d elements to DataArray\n",
+                  shape.product());
       return makeDataArray(arr,adjustIndex);
     }
   }
@@ -409,7 +415,8 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
     // is it a non-Glish object passed as a block record?
     if( glrec.attributeExists("dmi_blocktype")  )
     {
-      dprintf(4)("interpreting glish record as a blockset\n");
+      dprintf(4)("interpreting glish record (%d fields) as a blockset\n",
+                  glrec.nelements());
       return ObjRef( blockRecToObject(glrec),DMI::ANONWR );
     }
     // is it a DataField (that was passed in as a record of values)
@@ -418,7 +425,8 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
       // the attribute should be a string indicating the object type
       String typestr;
       GlishArray tmp = glrec.getAttribute("dmi_datafield_content_type"); tmp.get(typestr);
-      dprintf(4)("converting glish record to DataField(%s)\n",typestr.c_str());
+      dprintf(4)("converting glish record (%d fields) to DataField(%s)\n",
+                  glrec.nelements(),typestr.c_str()); 
       TypeId fieldtype(typestr);
       // create a field and populate it with the objects recursively
       DataField *field = GlishUtil::createSubclass<DataField>(ref,val);
