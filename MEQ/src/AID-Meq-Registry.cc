@@ -67,6 +67,8 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
 BlockableObject * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagger [n] : new Meq::ZeroFlagger; }
 #include "MergeFlags.h"
 BlockableObject * __construct_MeqMergeFlags (int n) { return n>0 ? new Meq::MergeFlags [n] : new Meq::MergeFlags; }
+#include "Resampler.h"
+BlockableObject * __construct_MeqResampler (int n) { return n>0 ? new Meq::Resampler [n] : new Meq::Resampler; }
   
     int aidRegistry_Meq ()
     {
@@ -271,6 +273,11 @@ BlockableObject * __construct_MeqMergeFlags (int n) { return n>0 ? new Meq::Merg
         AtomicID::registerId(-1437,"meqmergeflags")+
         TypeInfoReg::addToRegistry(-1437,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1437,__construct_MeqMergeFlags)+
+        AtomicID::registerId(-1439,"meqresampler")+
+        TypeInfoReg::addToRegistry(-1439,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1439,__construct_MeqResampler)+
+        AtomicID::registerId(-1172,"integrate")+
+        AtomicID::registerId(-1440,"density")+
     0;
     return res;
   }

@@ -22,7 +22,7 @@
 
 #include "Function.h"
 #include "Request.h"
-    
+#include "MeqVocabulary.h"
 
 namespace Meq {
 
@@ -333,7 +333,7 @@ vector<int> Function::findSpids (const vector<const VellSet*> &results)
   int nrspid = 0;
   int nrch = results.size();
   for (int i=0; i<nrch; i++) {
-    nrspid += results[i]->getNumSpids();
+    nrspid += results[i]->numSpids();
   }
   // Allocate a vector of that size.
   // Exit immediately if nothing to be done.
@@ -349,7 +349,7 @@ vector<int> Function::findSpids (const vector<const VellSet*> &results)
   // Loop through all children.
   for (int ch=0; ch<nrch; ch++) {
     const VellSet &resch = *results[ch];
-    int nrchsp = resch.getNumSpids();
+    int nrchsp = resch.numSpids();
     if (nrchsp > 0) {
       // Only handle a child with spids.
       // Get a direct pointer to its spids (is faster).

@@ -278,7 +278,7 @@ ObjRef DataField::objwr (int n, int flags)
 }
 
 //##ModelId=3C7A305F0071
-DataField & DataField::put (int n, ObjRef &ref, int flags)
+DataField & DataField::put (int n,const ObjRef &ref, int flags)
 {
   Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("putting @%d: %s\n",n,ref.debug(2));

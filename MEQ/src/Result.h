@@ -103,7 +103,7 @@ public:
     
     //##ModelId=400E53550178
   const Cells& cells() const
-  { DbgFailWhen(!itsCells,"no cells in Meq::VellSet");
+  { DbgFailWhen(!itsCells,"no cells in Meq::Result");
     return *itsCells; }
 
   // ------------------------ VELLSETS
@@ -118,22 +118,31 @@ public:
   const VellSet & vellSet (int i) const
     { return (*itsVellSets)[i].as<VellSet>(); }
   
+  VellSet::Ref vellSetRef (int i) const
+    { return (*itsVellSets)[i].ref(); }
+  
     //##ModelId=400E53550193
   VellSet & vellSetWr (int i)
     { return wrVellSets()[i].as_wr<VellSet>(); }
   
     //##ModelId=400E5355019D
-  VellSet & setVellSet (int i,VellSet *vellset);
+  const VellSet & setVellSet (int i,const VellSet *pvs,int flags=DMI::ANON)
+  { wrVellSets().put(i,pvs,(flags&~DMI::WRITE)|DMI::READONLY); return *pvs; }
+  
+  VellSet & setVellSet (int i,VellSet *pvs,int flags=DMI::ANON)
+  { wrVellSets().put(i,pvs,(flags&~DMI::READONLY)|DMI::WRITE); return *pvs; }
   
     //##ModelId=400E535501AD
-  VellSet & setVellSet (int i,VellSet::Ref::Xfer &vellset);
+  const VellSet & setVellSet (int i,VellSet::Ref::Xfer &vellset);
   
   // creates new vellset at plane i with the given # of spids
     //##ModelId=400E535501BF
   VellSet & setNewVellSet (int i,int nspids=0,int nset=1)
   { 
-    VellSet::Ref resref(new VellSet(nspids,nset),DMI::ANONWR); 
-    return setVellSet(i,resref); 
+    VellSet *pvs = new VellSet(nspids,nset);
+    VellSet::Ref resref(pvs,DMI::ANONWR); 
+    setVellSet(i,resref); 
+    return *pvs;
   }
 
   // ------------------------ FAIL RESULTS

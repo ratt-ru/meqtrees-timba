@@ -32,8 +32,6 @@
 
 namespace Meq {    
 
-const HIID FFlagMask = AidFlag|AidMask;
-
 class Request;
 
 //##ModelId=3F86886E01A8

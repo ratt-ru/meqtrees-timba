@@ -8,7 +8,7 @@ Add.h Subtract.h Multiply.h Divide.h \
 Sin.h Cos.h Exp.h Pow.h Sqr.h Sqrt.h Conj.h ToComplex.h \
 UVW.h Request.h \
 Condeq.h Solver.h \
-ZeroFlagger.h MergeFlags.h \
+ZeroFlagger.h MergeFlags.h Resampler.h \
 Forest.h ParmTable.h
 
 lib_LTLIBRARIES 	= libmeq.la
@@ -21,7 +21,7 @@ Add.cc Subtract.cc Multiply.cc Divide.cc \
 Sin.cc Cos.cc Exp.cc Pow.cc Sqr.cc Sqrt.cc Conj.cc ToComplex.cc \
 UVW.cc Request.cc \
 Condeq.cc Solver.cc \
-ZeroFlagger.cc MergeFlags.cc \
+ZeroFlagger.cc MergeFlags.cc Resampler.cc \
 Forest.cc ParmTable.cc \
 AID-Meq-Registry.cc
 

@@ -331,6 +331,23 @@ namespace Meq { class Request; };
               typedef const Meq::Request & ContainerParamType;
             };
 #endif
+#ifndef _defined_id_TpMeqResampler
+#define _defined_id_TpMeqResampler 1
+const TypeId TpMeqResampler(-1439);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Resampler.h:30
+const int TpMeqResampler_int = -1439;
+namespace Meq { class Resampler; };
+            template<>
+            class DMIBaseTypeTraits<Meq::Resampler> : public TypeTraits<Meq::Resampler>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqResampler_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::Resampler & ContainerReturnType;
+              typedef const Meq::Resampler & ContainerParamType;
+            };
+#endif
 #ifndef _defined_id_TpMeqResult
 #define _defined_id_TpMeqResult 1
 const TypeId TpMeqResult(-1246);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:36

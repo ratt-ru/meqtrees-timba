@@ -159,22 +159,14 @@ DataField & Result::wrVellSets ()
 }
 
 
-//##ModelId=400E5355019D
-VellSet & Result::setVellSet (int i,VellSet *vellset)
-{
-//  DbgFailWhen(isFail(),"Result marked as a fail, can't set vellset");
-  wrVellSets().put(i,vellset,DMI::ANONWR);
-  return *vellset;
-}
-  
 //##ModelId=400E535501AD
-VellSet & Result::setVellSet (int i,VellSet::Ref::Xfer &vellset)
+const VellSet & Result::setVellSet (int i,VellSet::Ref::Xfer &vellset)
 {
 //  DbgFailWhen(isFail(),"Result marked as a fail, can't set vellset");
-  VellSet *pvs;
-  wrVellSets().put(i,pvs=vellset.dewr_p(),DMI::ANONWR);
-  vellset.detach();
-  return *pvs;
+  const VellSet & vs = *vellset;
+  ObjRef ref = vellset;
+  wrVellSets().put(i,ref);
+  return vs;
 }
 
 //##ModelId=400E535501D1

@@ -123,6 +123,11 @@ const int AidDec_int = -1379;
 const AtomicID AidDefault(-1231);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Parm.h:34
 const int AidDefault_int = -1231;
 #endif
+#ifndef _defined_id_AidDensity
+#define _defined_id_AidDensity 1
+const AtomicID AidDensity(-1440);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Resampler.h:31
+const int AidDensity_int = -1440;
+#endif
 #ifndef _defined_id_AidDeriv
 #define _defined_id_AidDeriv 1
 const AtomicID AidDeriv(-1230);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:31
@@ -222,6 +227,11 @@ const int AidIndex_int = -1051;
 #define _defined_id_AidInf 1
 const AtomicID AidInf(-1410);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
 const int AidInf_int = -1410;
+#endif
+#ifndef _defined_id_AidIntegrate
+#define _defined_id_AidIntegrate 1
+const AtomicID AidIntegrate(-1172);               // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
+const int AidIntegrate_int = -1172;
 #endif
 #ifndef _defined_id_AidInvert
 #define _defined_id_AidInvert 1
@@ -357,6 +367,11 @@ const int AidMeqPow_int = -1214;
 #define _defined_id_AidMeqRequest 1
 const AtomicID AidMeqRequest(-1222);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:32
 const int AidMeqRequest_int = -1222;
+#endif
+#ifndef _defined_id_AidMeqResampler
+#define _defined_id_AidMeqResampler 1
+const AtomicID AidMeqResampler(-1439);            // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Resampler.h:30
+const int AidMeqResampler_int = -1439;
 #endif
 #ifndef _defined_id_AidMeqResult
 #define _defined_id_AidMeqResult 1

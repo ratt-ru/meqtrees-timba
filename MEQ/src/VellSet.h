@@ -164,8 +164,9 @@ public:
   // ------------------------ SPIDS AND ASSOCIATED ATTRIBUTES
   // Get the spids.
     //##ModelId=400E5355033C
-  int getNumSpids() const
+  int numSpids() const
   { return numspids_; }
+  
     //##ModelId=400E5355033E
   int getSpid (int i) const
   { return spids_[i]; }
@@ -179,13 +180,18 @@ public:
   // nperturbed() is an alias for getNumSpids
     //##ModelId=400E53550342
   int nperturbed() const
-  { return getNumSpids(); }
+  { return numSpids(); }
 
   // Set the spids. If VellSet was created with a >0 nspids,
   // then the size of the vector must match. If VellSet was created
-  // with 0 spids, this can be used to initialize the number
+  // with 0 spids, this can be used to initialize spids & perturbations.
     //##ModelId=400E53550344
   void setSpids (const vector<int>& spids);
+
+  // Copies spids from other VellSet. If VellSet was created with >0 nspids,
+  // then the number in other must match. If VellSet was created with 0 
+  // spids, this can be used to initialize spids & perturbations.
+  void copySpids (const VellSet &other);
 
   // is spid defined at this position? increments index if true
   // It returns the index (-1 if not found).
@@ -205,6 +211,8 @@ public:
   // set all perturbations of set iset 
     //##ModelId=400E53550359
   void setPerturbations (const vector<double>& perts,int iset=0);
+  
+  void copyPerturbations (const VellSet &other);
 
   // ------------------------ MAIN RESULT VALUE
   // Get the value.
@@ -218,6 +226,9 @@ public:
   // Attaches the given Vells to value (as an anon object)
     //##ModelId=400E53550360
   Vells & setValue (Vells *);
+  
+  void setValue (const Vells::Ref::Xfer &ref);
+  
   // set the value to a copy of the given Vells object (Vells copy uses ref semantics!)
     //##ModelId=400E53550363
   Vells & setValue (const Vells & value) { return setValue(new Vells(value)); }
@@ -318,6 +329,8 @@ public:
     //##ModelId=400E5355038C
   Vells & setPerturbedValue (int i,const Vells & value,int iset=0)
     { return setPerturbedValue(i,new Vells(value),iset); }
+  
+  void setPerturbedValue (int i,const Vells::Ref::Xfer & vref,int iset=0);
 
   // ------------------------ FAIL RECORDS
   // A VellSet may be a Fail. A Fail will not contain any values or 

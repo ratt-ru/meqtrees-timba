@@ -73,7 +73,7 @@ class DataField : public NestableContainer
       ObjRef objwr (int n = 0, int flags = DMI::PRESERVE_RW);
 
       //##ModelId=3C7A305F0071
-      DataField & put (int n, ObjRef &ref, int flags = DMI::XFER);
+      DataField & put (int n, const ObjRef &ref, int flags = DMI::XFER);
     //##ModelId=400E4D6803D9
       DataField & put (int n, BlockableObject* obj, int flags = DMI::ANONWR);
       

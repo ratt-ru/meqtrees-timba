@@ -140,6 +140,10 @@ namespace Meq
     FInvertMatrix    = AidInvert|AidMatrix,
     FNumIter         = AidNum|AidIter,
     // FSavePolcs already defined above
+    
+    // Flag handling fields
+    FFlagMask        = AidFlag|AidMask,
+    FFlagBit         = AidFlag|AidBit,
 
     // Solver result rider
     FMetrics         = AidMetrics,

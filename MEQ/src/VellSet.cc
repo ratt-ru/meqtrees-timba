@@ -101,7 +101,12 @@ void VellSet::init ()
 //##ModelId=400E53550322
 VellSet::VellSet (const DataRecord &other,int flags,int depth)
 : DataRecord(other,flags,depth),
-  default_pert_ (0.)
+  default_pert_ (0.),
+  pset_         (0),
+  shape_        (0,0),
+  spids_        (0),
+  numspids_     (0),
+  is_fail_      (false)
 {
   // clear optional columns
   for( uint i=0; i<NUM_OPTIONAL_COL; i++ )
@@ -402,6 +407,25 @@ void VellSet::setSpids (const vector<int>& spids)
   }
 }
 
+void VellSet::copySpids (const VellSet &other)
+{
+  if( numspids_ ) // assigning to existing vector -- check sizes
+  {
+    FailWhen(other.numSpids() != numspids_,"copySpids: size mismatch" );
+  }
+  if( !other.numSpids() )
+    return;
+  DataRecord::replace(FSpids,other[FSpids].ref());
+  spids_ = (*this)[FSpids].as_p<int>();
+  // if newly allocated spids, setup other data
+  if( !numspids_ )
+  {
+    numspids_ = other.numSpids(); 
+    for( uint iset=0; iset<pset_.size(); iset++ )
+      setupPertData(iset);
+  }
+}
+
 //##ModelId=400E53550353
 void VellSet::setPerturbation (int i, double value,int iset)
 { 
@@ -419,7 +443,20 @@ void VellSet::setPerturbations (const vector<double>& perts,int iset)
   if( numspids_ )
   {
     (*this)[FiPerturbations(iset)] = perts;
-    pset_[iset].pert = (*this)[FPerturbations].as_p<double>();
+    pset_[iset].pert = (*this)[FiPerturbations(iset)].as_p<double>();
+  }
+}
+
+void VellSet::copyPerturbations (const VellSet &other)
+{
+  FailWhen(numSpids() != other.numSpids(),"setPerturbations: number of spids does not match" );
+  FailWhen(numPertSets() != other.numPertSets(),"setPerturbations: number of pert sets does not match" );
+  if( !other.numSpids() )
+    return;
+  for( int iset=0; iset<numPertSets(); iset++ )
+  {
+    (*this)[FiPerturbations(iset)] = other[FiPerturbations(iset)].as_vector<double>();
+    pset_[iset].pert = (*this)[FiPerturbations(iset)].as_p<double>();
   }
 }
 
@@ -432,6 +469,18 @@ Vells & VellSet::setValue (Vells *pvells)
   value_ <<= pvells;
   DataRecord::replace(FValue,&(pvells->getDataArray()),DMI::ANONWR);
   return *pvells;
+}
+
+void VellSet::setValue (const Vells::Ref::Xfer &vref)
+{
+  FailWhen(!hasShape(),"VellSet shape not set");
+  FailWhen(vref->isArray() && vref->shape() != shape(),
+            "main value: bad shape");
+  value_ = vref;
+  if( value_.isWritable() )
+    DataRecord::replace(FValue,&( value_().getDataArrayWr() ),DMI::WRITE);
+  else
+    DataRecord::replace(FValue,&( value_->getDataArray() ),DMI::READONLY);
 }
 
 //##ModelId=400E53550387
@@ -449,9 +498,31 @@ Vells & VellSet::setPerturbedValue (int i,Vells *pvells,int iset)
     ps.pertval_field <<= df;
     DataRecord::add(FiPerturbedValues(iset),df,DMI::ANONWR);
   }
-  ps.pertval_field().put(i,&(pvells->getDataArray()),DMI::ANONWR);
+  ps.pertval_field().put(i,&( pvells->getDataArray() ),DMI::ANONWR);
   ps.pertval[i] <<= pvells;
   return *pvells;
+}
+
+void VellSet::setPerturbedValue (int i,const Vells::Ref::Xfer &vref,int iset)
+{
+  DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
+  FailWhen(!hasShape(),"VellSet shape not set");
+  FailWhen(vref->isArray() && vref->shape() != shape(),
+        Debug::ssprintf("perturbed value %d/%d: bad shape",i,iset));
+  PerturbationSet &ps = pset_[iset];
+  // allocate container for perturbed values
+  if( !ps.pertval_field.valid() )
+  {
+    DataField *df = new DataField(TpDataArray,numspids_);
+    ps.pertval_field <<= df;
+    DataRecord::add(FiPerturbedValues(iset),df,DMI::ANONWR);
+  }
+  Vells::Ref &ref = ps.pertval[i];
+  ref = vref;
+  if( ref.isWritable() )
+    ps.pertval_field().put(i,&( ref().getDataArrayWr() ),DMI::WRITE);
+  else
+    ps.pertval_field().put(i,&( ref->getDataArray() ),DMI::READONLY);
 }
 
 //##ModelId=400E53550393

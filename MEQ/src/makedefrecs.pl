@@ -74,6 +74,7 @@ for( @ARGV )
     else  # else free-form comment to be added to last field
     {
       next unless $nodeclass; # ignore outside of begin/end block
+      $line =~ s/(['"])/\\\1/g;
       if( defined $field ) { # add to description of previous field
         push @{$field_desc{$nodeclass}->{$field}},$line;
         $verbose and printf STDERR "    # $line\n";

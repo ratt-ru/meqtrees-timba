@@ -48,7 +48,8 @@
         Do(Meq::Condeq,arg) separator \
         Do(Meq::Solver,arg) separator \
         Do(Meq::ZeroFlagger,arg) separator \
-        Do(Meq::MergeFlags,arg)
+        Do(Meq::MergeFlags,arg) separator \
+        Do(Meq::Resampler,arg)
 
 #define DoForAllNumericTypes_Meq(Do,arg,separator) \
         
