@@ -16,30 +16,34 @@ class GridCell (object):
     wtop.hide();
     top_lo = QVBoxLayout(self._wtop);
 #    control_box = QWidget(self._wtop,"controlbox");
-    control_lo = QHBoxLayout(top_lo);
-#    control_lo.setResizeMode(QLayout.Fixed);
+    control_box = self._control_box = QWidget(self._wtop);
+    control_lo = QHBoxLayout(control_box);
+    # control_lo.setResizeMode(QLayout.Fixed);
     # pin button
     pin_is = QIconSet(pixmaps.pin_up.pm());
     pin_is.setPixmap(pixmaps.pin_down.pm(),QIconSet.Automatic,QIconSet.Normal,QIconSet.On);
-    self._pin = pin = QToolButton(wtop);
+    self._pin = pin = QToolButton(control_box);
     pin.setAutoRaise(True);
     pin.setToggleButton(True);
     pin.setIconSet(pin_is);
 #    pin.hide();
     QToolTip.add(pin,"pin (i.e. protect) or unpin this panel");
     # refresh button
-    self._refresh = refresh = QToolButton(wtop);
+    self._refresh = refresh = QToolButton(control_box);
     refresh.setIconSet(QIconSet(pixmaps.refresh.pm()));
     refresh.setAutoRaise(True);
 #    refresh.hide();
     QObject.connect(refresh,SIGNAL("clicked()"),self._dorefresh);
     QToolTip.add(self._refresh,"refresh contents of this panel");
     # label
-    self._label = QLabel("(empty)",wtop);
+    self._label = QLabel("(empty)",control_box);
     self._label.setFont(defaultBoldFont());
-    self._label1 = QLabel("",wtop);
+    self._label1 = QLabel("",control_box);
+    hsp = QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Fixed)
+    # self._label.setSizePolicy(hsp);
+    self._label1.setSizePolicy(hsp);
     # close button
-    self._close = close = QToolButton(wtop);
+    self._close = close = QToolButton(control_box);
     close.setIconSet(QIconSet(pixmaps.cancel.pm()));
     close.setAutoRaise(True);
 #    close.setDisabled(True);
@@ -56,16 +60,15 @@ class GridCell (object):
     control_lo.addWidget(close);
 
     self._wstack = QWidgetStack(self._wtop);
-#    top_lo.addWidget(control_box);
+    top_lo.addWidget(control_box,0);
 #    top_lo.setStretchFactor(control_lo,0);
     top_lo.addWidget(self._wstack,1);
+    top_lo.setResizeMode(QLayout.Minimum);
    
-#    control_box.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Fixed));
+    control_box.setSizePolicy(hsp);
+    control_box.hide();
 #    self._wstack.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding));
-#    self._wtop.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding));
-    
-    self._wstack.updateGeometry();
-
+    self._wtop.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding));
     self._id     = None;
     self._widget = None;
 
@@ -102,6 +105,7 @@ class GridCell (object):
     old_id = self._id;
     self.wipe();
     self._wtop.hide();
+    self._control_box.hide();
 #    self._pin.hide();
 #    self._close.setDisabled(True);
 #    self._refresh.hide();
@@ -121,6 +125,7 @@ class GridCell (object):
     print self,'set_content',widget;
     self._label.setText(name);
     self._label1.setText(subname);
+    self._control_box.show();
 #    self._pin.show();
 #    self._close.show();
     if refresh: self._refresh.show();
@@ -133,12 +138,14 @@ class GridCell (object):
     if self._widget:
       self._wstack.removeWidget(self._widget);
     self._widget = widget;
+    self._wtop.updateGeometry();
     self._wstack.show();
     self.disable(disable);
     self._wtop.show();
     
   def wcontent (self):
     return self._widget;
+    
 
 class GriddedPage (object):
   class GridRow (QSplitter):
@@ -177,8 +184,8 @@ class GriddedPage (object):
     (nrow,ncol) = self._cur_layout = self._layouts[nlo];
     for row in self._rows[:nrow]:
       for cell in row.cells()[:ncol]: 
-        if not cell.is_empty(): 
-          cell.show();
+        # if not cell.is_empty(): 
+        cell.show();
       for cell in row.cells()[ncol:]: cell.hide();
       row.show();
     for row in self._rows[nrow:]:
@@ -283,6 +290,7 @@ class GriddedWorkspace (object):
     
   def wtop(self):
     return self._maintab;
+    
   def add_page(self,name=None):
     page = GriddedPage(self._maintab,max_nx=self.max_nx,max_ny=self.max_ny);
     page.wtop()._page = page;
@@ -469,6 +477,7 @@ class TreeBrowser (object):
         cell.set_content(rb.wtop(),item._node.name,cell_id,
             subname='node state',refresh=True,disable=True);
         cell.wtop().connect(rb.wtop(),PYSIGNAL("refresh()"),self._refresh_state_cell);
+        self._gw.wtop().updateGeometry();
       cell._node = item._node;
       self._refresh_state_cell(cell);
   
