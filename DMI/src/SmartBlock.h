@@ -13,7 +13,7 @@
 //## Module: SmartBlock%3C10CC83016C; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\SmartBlock.h
+//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\SmartBlock.h
 
 #ifndef SmartBlock_h
 #define SmartBlock_h 1
@@ -45,7 +45,7 @@
 //## Class: SmartBlock%3BEAACAB0041
 //	SmartBlock is a block of bytes with a reference count. Optionally,
 //	it can be located in shared memory
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -122,7 +122,7 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
     //## Get and Set Operations for Class Attributes (generated)
 
       //## Attribute: block%3BEAACB9029A
-      char* data () const;
+      const char* data () const;
 
       //## Attribute: datasize%3BEAACBD0318
       size_t size () const;
@@ -132,7 +132,7 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
 
     // Additional Public Declarations
       //## begin SmartBlock%3BEAACAB0041.public preserve=yes
-      void* data ();
+      char * data ();
       
       DefineRefTypes(SmartBlock,Ref);
       
@@ -188,7 +188,7 @@ class SmartBlock;
 
 //## Class: BlockRef%3BEA7FF50154
 //	This is a reference to a SmartBlock.
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -230,7 +230,7 @@ inline const void * SmartBlock::operator * () const
 
 //## Get and Set Operations for Class Attributes (inline)
 
-inline char* SmartBlock::data () const
+inline const char* SmartBlock::data () const
 {
   //## begin SmartBlock::data%3BEAACB9029A.get preserve=no
   return block;
@@ -252,7 +252,7 @@ inline int SmartBlock::getShmid () const
 }
 
 //## begin module%3C10CC83016C.epilog preserve=yes
-inline void* SmartBlock::data ()
+inline char * SmartBlock::data ()
 {
   return block;
 }
