@@ -504,18 +504,19 @@ void MTGatewayWP::shutdown ()
   if( shutdown_done )
     return;
   shutdown_done = true;
-  
-  dprintf(4)("shutdown\n");
   if( peerState() == CONNECTED )     // publish a Remote.Down message
   {
     HIID peerid = rprocess|rhost;
-    lprintf(1,"shutting down connection to %s",(rprocess|rhost).toString().c_str());
     Message::Ref mref(new Message(MsgGWRemoteDown|peerid),DMI::ANON);
     gatewayPeerList[peerid].remove();
     publish(mref,0,Message::LOCAL);
+    lprintf(1,"shutting down connection to %s",(rprocess|rhost).toString().c_str());
   }
   else
     lprintf(1,"shutting down");
+  dprintf(4)("shutdown: stopping worker threads\n");
+  stopWorkers();
+  dprintf(4)("shutdown: worker threads stopped\n");
   
   setPeerState(CLOSING); 
   detachMyself();
@@ -550,14 +551,17 @@ void MTGatewayWP::stopWorkers ()
   // send interruption signals and rejoin the reader threads
   dprintf(1)("stopWorkers: interrupting and rejoining reader threads\n");
   for( int i=0; i < NumReaderThreads; i++ )
-    reader_threads[i].kill(SIGPIPE);
+    if( reader_threads[i] != Thread::self() )
+      reader_threads[i].kill(SIGPIPE);
   for( int i=0; i < NumReaderThreads; i++ )
-    reader_threads[i].join();
+    if( reader_threads[i] != Thread::self() )
+      reader_threads[i].join();
   // send termination signals to interrupt the worker threads
   // (in case they're busy in a write() call)
   dprintf(1)("stopWorkers: interrupting worker threads\n");
   for( int i=0; i < numWorkers(); i++ )
-    workerID(i).kill(SIGPIPE);
+    if( workerID(i) != Thread::self() )
+      workerID(i).kill(SIGPIPE);
 }
 
 void * MTGatewayWP::start_readerThread (void *pwp)

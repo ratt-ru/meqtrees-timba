@@ -408,8 +408,9 @@ int DMI::Vec::toBlock (BlockSet &set) const
   {
     dprintf1(2)("%s: toBlock=1 (field empty)\n",debug());
     // for empty fields, use null block 
-    static SmartBlock nullBlock(sizeof(HeaderBlock),DMI::ZERO);
-    set.push(BlockRef(&nullBlock,DMI::EXTERNAL|DMI::READONLY));
+    BlockRef ref(new SmartBlock(sizeof(HeaderBlock),DMI::ZERO));
+    BObj::fillHeader(ref().pdata<HeaderBlock>(),1);
+    set.push(ref);
     return 1;
   }
   dprintf1(2)("%s: toBlock\n",debug());
