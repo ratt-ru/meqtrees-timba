@@ -39,11 +39,13 @@ def NodeClass (nodeclass=None):
 # this is copied verbatim from the ControlStates definition in MEQ/Node.h
 CS_ACTIVE              = 0x0001;
 CS_MASK_CONTROL        = 0x000F;
-CS_RES_MASK            = 0x0030;
-CS_RES_OK              = 0x0000;
-CS_RES_WAIT            = 0x0010;
-CS_RES_EMPTY           = 0x0020;
-CS_RES_FAIL            = 0x0030;
+CS_RES_MASK            = 0x0070;
+CS_RES_NONE            = 0x0000;
+CS_RES_OK              = 0x0010;
+CS_RES_WAIT            = 0x0020;
+CS_RES_EMPTY           = 0x0030;
+CS_RES_MISSING         = 0x0040;
+CS_RES_FAIL            = 0x0050;
 CS_PUBLISHING          = 0x0100;
 CS_CACHED              = 0x0200;
 CS_RETCACHE            = 0x0400;
@@ -81,10 +83,11 @@ def breakpoint_mask (es=-1):
     return 1<<(es>>CS_LSB_EXECSTATE);
                      
 # map of result types                 
-CS_RES_map = { CS_RES_OK:       ('-','valid result'),
-               CS_RES_WAIT:     ('w','WAIT code returned'),
-               CS_RES_EMPTY:    ('e','empty result returned'),
-               CS_RES_FAIL:     ('!','fail result returned')   };
+CS_RES_map = {  CS_RES_NONE:     ('-','valid result'),
+                CS_RES_OK:       ('o','valid result'),
+                CS_RES_WAIT:     ('w','WAIT code returned'),
+                CS_RES_EMPTY:    ('e','empty result returned'),
+                CS_RES_FAIL:     ('!','fail result returned')   };
  
 # this class defines and manages a node list
 class NodeList (object):
@@ -109,7 +112,8 @@ class NodeList (object):
       return bool(self.control_status&CS_PUBLISHING);
     def has_breakpoints (self):
       return bool(self.control_status&CS_BREAKPOINT);
-    def update_status (self,status,rqid=None):
+    def update_status (self,status,rqid=False):
+      old_status = self.control_status;
       self.control_status = status;
       s = ['-'] * 8;
       s[0] = CS_ES_state(status)[2];
@@ -122,17 +126,17 @@ class NodeList (object):
       if status&CS_RETCACHE:          s[5] = "c";
       s[6] = CS_RES_map[status&CS_RES_MASK][0];
       s = ''.join(s);
-      if rqid is not None:
-        s = ':'.join((s,str(rqid)));
+      if not isinstance(rqid,bool):
+        self.request_id = rqid;
       self.control_status_string = s;
-      _dprint(5,"node",self.name,"update status",status);
-      self.emit(PYSIGNAL("status()"),(status,rqid,s));
+      _dprint(6,"node",self.name,"update status %X"%(status,));
+      self.emit(PYSIGNAL("status()"),(self,old_status));
     def update_state (self,state,event=None):
       try: self.breakpoint = state.breakpoint;
       except AttributeError: pass;
-      self.update_status(state.control_status,getattr(state,'request_id',None));
-      _dprint(5,"node",self.name,"update state",state,event);
-      self.emit(PYSIGNAL("state()"),(state,event));
+      self.update_status(state.control_status,state.get('request_id',None));
+      _dprint(5,"node",self.name,"update state (event ",event,")");
+      self.emit(PYSIGNAL("state()"),(self,state,event));
     # Adds a subscriber to node status changes
     def subscribe_status (self,callback):
       _dprint(4,"connecting status of node ",self.name," to ",callback);
@@ -292,13 +296,13 @@ def set_node_state (node,**kwargs):
   
 def update_node_state (state,event):
   ni = state.nodeindex;
-  _dprint(5,"updating state of node ",ni);
+  _dprint(5,"updating state of node ",state.name);
   if nodelist:
     nodelist[ni].update_state(state,event);
 
 def add_node_snapshot (state,event):
   ni = state.nodeindex;
-  _dprint(5,"adding snapshot for node ",ni);
+  _dprint(5,"adding snapshot for node ",state.name);
   # get list of snapshots and filter it to eliminate dead refs
   sslist = filter(lambda s:s[0]() is not None,snapshots.get(ni,[]));
   if len(sslist) and sslist[-1][0]() == state:

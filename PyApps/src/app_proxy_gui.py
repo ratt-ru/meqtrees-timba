@@ -331,8 +331,7 @@ class app_proxy_gui(verbosity,QMainWindow):
   
     #------ create top-level tab bar
     self.maintab = maintab = QTabWidget(splitter);
-    self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),
-                 self._change_current_page);
+    self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._change_current_page);
     maintab.setTabPosition(QTabWidget.Bottom);
     splitter.setResizeMode(maintab,QSplitter.KeepSize);
     
@@ -346,6 +345,8 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.msglog.wtop()._error_iconset = pixmaps.exclaim.iconset();
     QWidget.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
     QWidget.connect(self.msglog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    # set current page to message log
+    self._current_page = self.msglog.wtop();
     
     #------ create an event log
     self.eventlog = EventLogger(self,"event log",limit=1000,evmask="*",
@@ -438,15 +439,20 @@ class app_proxy_gui(verbosity,QMainWindow):
     
 ##### slot: called when change-of-page occurs
   def _change_current_page (self,page):
-    # clears message from status bar whenever a tab changes
-    self.statusbar.clear();
-    # show or hide the workspace
-    if self.gw_visible.get(page,False):
-      self.gw.wtop().show();
-      self.show_workspace_button.hide();
-    else:
-      self.gw.wtop().hide();
-      self.show_workspace_button.show();
+    if page is not self._current_page:
+      # clears message from status bar whenever a tab changes
+      self.statusbar.clear();
+      # emit signals
+      self._current_page.emit(PYSIGNAL("leaving()"),());
+      page.emit(PYSIGNAL("entering()"),());
+      self._current_page = page;
+      # show or hide the workspace
+      if self.gw_visible.get(page,False):
+        self.gw.wtop().show();
+        self.show_workspace_button.hide();
+      else:
+        self.gw.wtop().hide();
+        self.show_workspace_button.show();
       
 ##### displays data item in gridded workspace
   def display_data_item (self,item,args=(),kwargs={}):
