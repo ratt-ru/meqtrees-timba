@@ -281,7 +281,8 @@ int pyToArray (DMI::NumArray::Ref &arref,PyObject *pyobj)
   ulong nb = ulong(pyarr->itemsize)*shape.product();
   // init DMI::NumArray
   cdebug(3)<<"pyToArray("<<ObjStr(pyobj)<<": type "<<tid<<", shape "<<shape<<", "<<nb<<" bytes\n";
-  arr.init(tid,shape);
+  arr.init(tid,shape,DMI::NOZERO);
+  
   memcpy(arr.getDataPtr(),NA_OFFSETDATA(pyarr),nb);
   arr.validateContent(true);
 

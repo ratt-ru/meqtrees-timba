@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from dmi import *
+import re
 
 # this returns a string repr of a container
 def _contToRepr (value,prec=None):
@@ -43,7 +44,7 @@ TypeToInline = dict.fromkeys((bool,int,long),lambda x,prec=None:str(x));
 TypeToInline[float] = str_float;
 TypeToInline[complex] = str_complex;
 TypeToInline[hiid] = lambda x,prec=None:'`'+str(x)+'`';
-TypeToInline[str]  = lambda x,prec=None:'"'+x+'"';
+TypeToInline[str]  = lambda x,prec=None:'"'+re.sub('\n','\\\\n',x)+'"';
 
 def _nonefunc (*args,**kwargs):
   return None;
