@@ -14,14 +14,70 @@ MainAppThread = None;
 dmirepr = dmi_repr.dmi_repr();
 
 class HierBrowser (object):
+  # seqs/dicts with <= items than this are treated as "short"
+  ShortSeq       = 5;
+  # maximum number of sequence items to show in expanded view
+  MaxExpSeq      = 20;
+  # max number of dictionary items to show in expanded view
+  MaxExpDict     = 100;
+
+  def subitem (parent,*args):
+    return HierBrowser.BrowserItem(parent,parent._content_list[-1],*map(str,args));
+  subitem = staticmethod(subitem);
+    
+  # helper static method to expand content into BrowserItems record 
+  def expand_content(item,content):
+    if hasattr(item,'_content_list'):
+      return;
+    item._content_list = [item];
+    # Setup content_iter as an iterator that returns (label,value)
+    # pairs, depending on content type.
+    # Apply limits here
+    if isinstance(content,dict):
+      n = len(content) - HierBrowser.MaxExpDict;
+      if n > 0:
+        keys = content.keys()[:HierBrowser.MaxExpDict];
+        content_iter = map(lambda k:(k,content[k]),keys);
+        content_iter.append(('...','...(%d items skipped)...'%n));
+      else:
+        content_iter = content.iteritems();
+    elif isinstance(content,(list,tuple,array_class)):
+      n = len(content) - HierBrowser.MaxExpSeq;
+      if n > 0:
+        content_iter = list(enumerate(content[:HierBrowser.MaxExpSeq-2]));
+        content_iter.append(('...','...(%d items skipped)...'%(n+1)));
+        content_iter.append((len(content)-1,content[-1]));
+      else:
+        content_iter = enumerate(content);
+    else:
+      content_iter = (("",content),);
+    for (key,value) in content_iter:
+      # simplest case: do we have an inlined to-string converter?
+      # then the value is represented by a single item
+      (itemstr,inlined) = dmirepr.inline_str(value);
+      if itemstr is not None:
+        item._content_list.append( HierBrowser.subitem(item,key,itemstr) );
+        continue;
+      # else get string representation, insert item with it
+      (itemstr,inlined) = dmirepr.expanded_repr_str(value);
+      i0 = HierBrowser.subitem(item,key,itemstr);
+      item._content_list.append(i0);
+      # cache value for expansion, if not inlined
+      if isinstance(value,(list,tuple,dict,array_class)):
+        if not inlined:
+          i0.cache_content(value);
+      elif isinstance(value,message):
+        i0.cache_content(value);
+      item._content_list.append(i0);
+  expand_content = staticmethod(expand_content);
   
   class BrowserItem (QListViewItem):
     def __init__(self,*args):
       QListViewItem.__init__(self,*args);
 
-    def subitem (self,*args):
-      return self.__class__(self,self._content_list[-1],*map(str,args));
-
+    def _subitem (self,*args):
+      return HierBrowser.subitem(self,*args);
+      
     # caches content in an item: marks as expandable, ensures content is a dict
     def cache_content(self,content):
       self.setExpandable(True);
@@ -35,61 +91,13 @@ class HierBrowser (object):
             self._content[k] = attr;
       else:
         self._content = {"":content};
-
-    # seqs/dicts with <= items than this are treated as "short"
-    ShortSeq       = 5;
-    # maximum number of sequence items to show in expanded view
-    MaxExpSeq      = 20;
-    # max number of dictionary items to show in expanded view
-    MaxExpDict     = 100;
-    
-    # actually expands item content into subitems
-    def expand_content(self):
-      if hasattr(self,'_content_list'):
-        return;
-      self._content_list = [self];
-      # Setup content_iter as an iterator that returns (label,value)
-      # pairs, depending on content type.
-      # Apply limits here
-      if isinstance(self._content,dict):
-        n = len(self._content) - self.MaxExpDict;
-        if n > 0:
-          keys = self._content.keys()[:self.MaxExpDict];
-          content_iter = map(lambda k:(k,self._content[k]),keys);
-          content_iter.append(('...','...(%d items skipped)...'%n));
-        else:
-          content_iter = self._content.iteritems();
-      elif isinstance(self._content,(list,tuple,array_class)):
-        n = len(self._content) - self.MaxExpSeq;
-        if n > 0:
-          content_iter = list(enumerate(self._content[:self.MaxExpSeq-2]));
-          content_iter.append(('...','...(%d items skipped)...'%(n+1)));
-          content_iter.append((len(self._content)-1,self._content[-1]));
-        else:
-          content_iter = enumerate(self._content);
-      else:
-        content_iter = (("",self._content),);
-      for (key,value) in content_iter:
-        # simplest case: do we have an inlined to-string converter?
-        # then the value is represented by a single item
-        (itemstr,inlined) = dmirepr.inline_str(value);
-        if itemstr is not None:
-          self._content_list.append( self.subitem(key,itemstr) );
-          continue;
-        # else get string representation, insert item with it
-        (itemstr,inlined) = dmirepr.expanded_repr_str(value);
-        i0 = self.subitem(key,itemstr);
-        self._content_list.append(i0);
-        # cache value for expansion, if not inlined
-        if isinstance(value,(list,tuple,dict,array_class)):
-          if not inlined:
-            i0.cache_content(value);
-        elif isinstance(value,message):
-          i0.cache_content(value);
-        self._content_list.append(i0);
         
+    # expands item content into subitems
+    def expand_self (self):
+      HierBrowser.expand_content(self,self._content);
+  
   # init for HierBrowser
-  def __init__(self,parent,name):
+  def __init__(self,parent,name,name1=''):
     self._lv = QListView(parent);
     self._lv.addColumn('');
     self._lv.addColumn(name);
@@ -121,7 +129,18 @@ class HierBrowser (object):
       del self.items[:len(self.items)-limit];
   # called when an item is expanded                    
   def _expand_item_content (self,item):
-    item.expand_content();
+    item.expand_self();
+    
+class RecordBrowser(HierBrowser):
+  def __init__(self,parent,rec=None):
+    HierBrowser.__init__(self,parent,"value","field");
+    if rec is not None:
+      self.set_record(rec);
+  def set_record (self,rec):
+    self._rec = rec;
+    self._lv.clear();
+    # expand first level of record
+    self.expand_content(self._lv,self_rec);
     
 class Logger(HierBrowser):
   Normal = 0;
@@ -306,10 +325,11 @@ class app_proxy_gui(verbosity,QMainWindow):
                  self.statusbar,SLOT("clear()"));
                  
     #------ pause button
-    self.pause_button = QPushButton(self.maintab);
+    self.pause_button = QToolButton(self.maintab);
     self.pause_button.setPixmap(pixmaps.pause_normal.pm());
-    self.pause_button.setMinimumWidth(35);
-    self.pause_button.setMaximumWidth(35);
+    self.pause_button.setAutoRaise(True);
+#    self.pause_button.setMinimumWidth(35);
+#    self.pause_button.setMaximumWidth(35);
     self.pause_button.setDisabled(True);
     # self.pause_button.setToggleButton(True);
     self.connect(self.pause_button,SIGNAL("clicked()"),self._press_pause);
@@ -455,6 +475,10 @@ class MainAppClass (QApplication):
     if self._started:
       raise "Only one MainApp may be started";
     QApplication.__init__(self,args);
+    self.setDesktopSettingsAware(True);
+    font = QFont("Helvetica",10);
+    font.setStyleHint(QFont.SansSerif);
+    self.setFont(font);
     self.connect(self,SIGNAL("lastWindowClosed()"),self,SLOT("quit()"));
     # notify all waiters
     self._waitcond.acquire();
@@ -508,10 +532,4 @@ def mainapp_threaded():
   return MainApp;
   
 if __name__=="__main__":
-  class dummyapp(object):
-    def name (self):
-      return "test_app"
-      
-  app = dummyapp();
-  gui = app_gui(app,verbose=2);
-  start();
+  pass;
