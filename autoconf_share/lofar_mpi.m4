@@ -55,10 +55,7 @@ AC_DEFINE(HAVE_MPI,dnl
 [if test "$mpi_profiler" = "yes"; then]
   [if test $enable_mpi = 0; then]
     AC_MSG_ERROR([Cannot enable MPI profiler without enabling MPI])
-  [fi
-   LIBS="$LIBS /opt/scali/contrib/mpe/lib/liblmpe.a /opt/scali/contrib/mpe/lib/libmpe.a";
-   ]
-   AC_SUBST(LIBS)
+  [fi]
    AC_DEFINE(HAVE_MPI_PROFILER,dnl
 	     1, [Define if MPI profiler should be enabled])
 [fi]
@@ -95,12 +92,19 @@ AC_CHECK_FILE([$mpich_prefix/include/mpi.h],
 [
 	if test $lofar_cv_header_mpich = yes ; then
 
-		MPICH_CC="$mpich_prefix/bin/mpicc"
-		MPICH_CXX="$mpich_prefix/bin/mpiCC"
+		MPIBIN="$mpich_prefix/bin"
+		MPICH_CC="$MPIBIN/mpicc"
+		MPICH_CXX="$MPIBIN/mpiCC"
+
+		if test "$mpi_profiler" = "yes"; then
+		  MPICH_CC="$MPICH_CC -mpilog";
+		  MPICH_CXX="$MPICH_CXX -mpilog";
+		fi
 
 		CC="$MPICH_CC"
 		CXX="$MPICH_CXX"
 ]
+AC_SUBST(MPIBIN)dnl
 AC_SUBST(CC)dnl
 AC_SUBST(CXX)dnl
 AC_DEFINE(HAVE_MPICH,dnl
@@ -144,12 +148,18 @@ AC_CHECK_FILE([$lam_prefix/include/mpi.h],
 [
 	if test $lofar_cv_header_lam = yes ; then
 
-		LAM_CC="$lam_prefix/bin/mpicc"
-		LAM_CXX="$lam_prefix/bin/mpiCC"
+		MPIBIN="$lam_prefix/bin"
+		LAM_CC="$MPIBIN/mpicc"
+		LAM_CXX="$MPIBIN/mpiCC"
+
+		if test "$mpi_profiler" = "yes"; then]
+AC_MSG_ERROR([LAM MPI does not support the MPE profiler])
+[               fi
 
 		CC="$LAM_CC"
 		CXX="$LAM_CXX"
 ]
+AC_SUBST(MPIBIN)dnl
 AC_SUBST(CC)dnl
 AC_SUBST(CXX)dnl
 AC_DEFINE(HAVE_LAM,dnl
@@ -193,14 +203,21 @@ AC_CHECK_FILE([$scampi_prefix/include/mpi.h],
 [
 	if test $lofar_cv_header_scampi = yes ; then
 
+		MPIBIN="$scampi_prefix/bin"
 		SCAMPI_CPPFLAGS="-I$scampi_prefix/include"
 		SCAMPI_LDFLAGS="-L$scampi_prefix/lib"
 		SCAMPI_LIBS="-lmpi"
+		SCAMPI_PLIBS="-llmpe -lmpe"
 
 		CPPFLAGS="$CPPFLAGS $SCAMPI_CPPFLAGS"
 		LDFLAGS="$LDFLAGS $SCAMPI_LDFLAGS"
 		LIBS="$LIBS $SCAMPI_LIBS"
+
+		if test "$mpi_profiler" = "yes"; then
+		  LIBS="$LIBS $SCAMPI_PLIBS"
+		fi
 ]
+AC_SUBST(MPIBIN)
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(LIBS)
