@@ -1,0 +1,7 @@
+Splitting string ",aa,bb,,dd," using ',' as seperator ...
+vs[0] = ""
+vs[1] = "aa"
+vs[2] = "bb"
+vs[3] = ""
+vs[4] = "dd"
+vs[5] = ""
