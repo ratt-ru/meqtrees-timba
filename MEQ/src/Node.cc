@@ -53,7 +53,7 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // setup child nodes, if specified
   if( state()[AidChildren].exists() )
   {
-    DataRecord &childrec = state()[AidChildren].as_wr<DataRecord>();
+    DataRecord &childrec = wstate()[AidChildren].as_wr<DataRecord>();
     // iterate thorugh children record and create the child nodes
     DataRecord::Iterator iter = childrec.initFieldIter();
     HIID id;
