@@ -39,3 +39,4 @@ AID-Meq-Registry.cc
 #Simulate.out
 
 include $(lofar_sharedir)/Makefile.common
+include $(lofar_sharedir)/Makefile.aids
