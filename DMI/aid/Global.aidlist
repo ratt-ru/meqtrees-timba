@@ -195,6 +195,7 @@ j                                1016       ; from /home/oms/LOFAR/DMI/src/Atomi
 #jen_sinfarot                    1485       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/jen_sinFarot.h:21
 jen_sum                          1483       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/jen_Sum.h:18
 #jen_vis_1                       1489       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/jen_vis_1.h:21
+#jen_wvl                         1500       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/jen_wvl.h:21
 #jen_wvl_squared                 1497       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/jen_wvl_squared.h:21
 k                                1017       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 known                            1451       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:38
