@@ -395,7 +395,7 @@ int DataField::fromBlock (BlockSet& set)
       break;
         
     default:
-        Throw("unsupported data type "+mytype.toString());  
+        Throw("unsupported data type "+mytype.toString());
   }
   validateContent();
   return npopped;

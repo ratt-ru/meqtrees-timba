@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.28  2004/09/13 15:40:52  smirnov
+//  %[ER: 16]%
+//  Added elementSize() convenience function
+//
 //  Revision 1.27  2004/08/31 07:48:56  diepen
 //  %[ER: 70]%
 //  Changed for new AIPS++ structure
@@ -251,6 +255,10 @@ public:
   // NestableContainer, will return the array type)
     //##ModelId=3E9BD91800B9
   TypeId elementType () const;
+  
+  // returns size of array element
+  int elementSize () const
+  { return itsElemSize; }
   
 #ifdef HAVE_AIPSPP
   // Returns contents as an AIPS++ array (by copy or reference)
