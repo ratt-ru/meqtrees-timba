@@ -22,44 +22,8 @@ _dprintf = _dbg.dprintf;
 mqs = None;
 
 # ---------------- TODO -----------------------------------------------------
-# Bugs:
-#   Tree browser not always enabled! (Hello message lost??)
-#   + In dmi_repr, array stats do not always use the right func
-#   + Numarray indexing order is different! fixed converter
-#   + Refresh of tree view with an empty forest list throws exception
-#
-# Minor fixes:
-#   Create viewers as children of some widget (maybe a stack, again?) that
-#     can be thrown out on exception together with any unclean children.
-#   Do not compare result records, only state updates (and only if too recent)
-#   Improve result labels, name them snapshots
-#   Disorderly thread error or SEGV on exit
-#   Why can't we exit with CTRL+C?
-#   + Disallow drag-and-drop from a viewer onto the same cell
-#   + Fix comparison of records and snapshots in Node Browser
-#   + Enable drop on "show viewer" button
-#
-# Enhancements:
-#   If all nodes are de-published, notify the browser somehow   
-#   Option to specify udi directly in HierBrowser
-#   Drop of a dataitem can create a cell with multiple items (think,
-#       e.g., several 1D plots), if the viewer object supports it.
-#   User-defined node groups in tree viewer
-#   + Context menu for Tree Browser
-#   + When first switching to the Trees panel, and have connection, and no 
-#     nodelist is loaded, request one
-#   + When getting node list, include debug status if we have one. Perhaps 
-#     expand
-#     the get node list into a full status call?
-#   + Enhanced 'verbosity' interface (look for option parsing modules?)
-#   + Right-button actions
-#   + Enable views/drags/drops of sub-items (i.e. "nodestate:name/cache_result")
-#   + Viewer plugin interface
-#   + Update contents of HierBrowser on-the-fly, without closing expanded
-#     sub-items (good for, e.g., node state updates)
-#   + When looking at node state, open something useful by default (i.e.,
-#     cache_result/vellsets/0 or smth)
-#   + drag-and-drop
+# As of 14/12/2004, this list has been moved into the Bugzilla database
+# http://lofar9.astron.nl/bugzilla/
 # ---------------------------------------------------------------------------
 
 class NodeBrowser(HierBrowser,BrowserPlugin):
