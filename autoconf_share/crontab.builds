@@ -1,0 +1,21 @@
+#
+# crontab for daily and weekly builds
+#
+SHELL=/bin/sh
+MAILTO=wierenga@astron.nl
+
+# FORMAT
+#              field          allowed values
+#              -----          --------------
+#              minute         0-59
+#              hour           0-23
+#              day of month   1-31
+#              month          1-12 (or names, see below)
+#              day of week    0-7 (0 or 7 is Sun, or use names)
+
+# Run daily compile at 5 minutes past midnight
+5 0 * * *	( cd $HOME/cvs/LOFAR && make > build_daily.log 2>&1 )
+
+# Run weekly compile at 30 minutes past midnight on Saturday
+30 0 * * Sat	(cd $HOME/cvs/LOFAR && make > build_weekly.log 2>&1 )
+
