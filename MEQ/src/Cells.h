@@ -54,6 +54,10 @@ public:
   virtual TypeId objectType () const
   { return TpMeqCells; }
   
+  // implement standard clone method via copy constructor
+  virtual CountedRefTarget* clone (int flags, int depth) const
+  { return new Cells(*this,flags|(depth>0?DMI::DEEP:0)); }
+  
 //   // implement standard clone method via copy constructor
 //   virtual CountedRefTarget* clone (int flags, int depth) const
 //   { return new Cells(*this,flags,depth); }
