@@ -105,6 +105,14 @@ class SmartBlock : public CountedRefTarget
       char * cdata ()
       { return static_cast<char*>(data()); }
       
+      template<class T>
+      T * ptr_cast () 
+      { return static_cast<T*>(data()); }
+      
+      template<class T>
+      const T * const_ptr_cast () const
+      { return static_cast<const T*>(data()); }
+      
     //##ModelId=3DB934E70057
       DefineRefTypes(SmartBlock,Ref);
       
