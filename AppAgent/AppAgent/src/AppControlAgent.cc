@@ -10,26 +10,106 @@ InitDebugContext(AppControlAgent,"AppControl");
 
 using namespace std;
 
-//##ModelId=3E40F90F02BA
-bool AppControlAgent::init (bool waitstart, const DataRecord &data)
+//##ModelId=3E40EDC3036F
+AppControlAgent::AppControlAgent (const HIID &initf)
+    : AppEventAgentBase(initf),state_(AppState::STOPPED)
 {
-  bool rethrow = data[FThrowError].as_bool(False);
-  cdebug(1)<<"initializing\n";
+  status_ref_ <<= pstatus_ = new DataRecord;
+}
+
+//##ModelId=3E394E4F02D2
+AppControlAgent::AppControlAgent (AppEventSink & sink, const HIID & initf)
+    : AppEventAgentBase(sink,initf),state_(AppState::STOPPED)
+{
+  status_ref_ <<= pstatus_ = new DataRecord;
+}
+
+//##ModelId=3E50FA3702B9
+AppControlAgent::AppControlAgent (AppEventSink *sink, int dmiflags, const HIID &initf)
+    : AppEventAgentBase(sink,dmiflags,initf),state_(AppState::STOPPED)
+{
+  status_ref_ <<= pstatus_ = new DataRecord;
+}
+
+bool AppControlAgent::preinit (DataRecord::Ref::Xfer &initrec)
+{
+  // set the INIT state
+  cdebug(1)<<"pre-initializing control agent\n";
+  // cache the init record
+  initrec_ref_ <<= initrec;  
+  initrec_used_ = False;
+  // try an init
+  bool res = init(*initrec_ref_);
+  FailWhen( !res,"control agent init failed" ); 
+  return res;
+}
+  
+bool AppControlAgent::init (const DataRecord &data)
+{  
+  rethrow_ = data[FThrowError].as<bool>(False);
+  cdebug(1)<<"initializing control agent\n";
   try 
   {
+    // no init sub-record? Do nothing then
+    if( !data[initfield()].exists() )
+      return True;
+    const DataRecord &rec = data[initfield()];
+    initrec_used_ = True;
+    // if init record specifies delayed initialization, then we don't
+    // transit to INIT state here. This will cause start() below to wait
+    // for another init event
+    if( !rec[FDelayInit].as<bool>(False) )
+      setState(INIT); 
+    // init event base (and event sink)
     if( !AppEventAgentBase::init(data) )
-    {
       Throw("event base init failed");
-    }
-    // check the auto-exit parameter
-    if( data[initfield()].exists() )
-      auto_exit_ = data[initfield()][FAutoExit].as_bool(False);
-    else
-      auto_exit_ = False;
-    // do we need to wait for a start event here?
-    if( waitstart )
+    // setup the auto_exit parameter
+    auto_exit_ = rec[FAutoExit].as<bool>(False);
+    // setup the waitstart_ parameter
+    waitstart_ = rec[FWaitStart].as<bool>(False);
+    postEvent(InitNotifyEvent);
+    return True;
+  }
+  catch( std::exception &exc )
+  {
+    cdebug(1)<<"init() failed\n";
+    if( rethrow_ )
+      throw(exc);
+    setErrorState(exc.what());
+    return False;
+  }
+}
+
+int AppControlAgent::start (DataRecord::Ref &initrec)
+{
+  try
+  {
+    paused_ = False;
+    // if called while not in an INIT state, wait for transition
+    while( state() != INIT )
     {
-      cdebug(1)<<"waiting for INIT->RUNNING transition\n";
+      // break out if HALTED
+      if( state() == HALTED )
+        return HALTED;
+      HIID id;
+      DataRecord::Ref dum;
+      int res = getCommand(id,dum,AppEvent::BLOCK);
+      FailWhen( res != SUCCESS,"getCommand() failed while waiting for INIT event");
+      cdebug(2)<<"got command "<<id<<", state is now "<<stateString()<<endl;
+    }
+    // once in INIT state, we must have a cached init record, else we're borked
+    FailWhen( !initrec_ref_.valid(),"INIT state reached but no init record cached" ); 
+    initrec.xfer(initrec_ref_);
+    // if we haven't used the init record yet, use it now to reinit ourselves
+    if( !initrec_used_ )
+    {
+      bool res = init(*initrec_ref_);
+      FailWhen(!res,"control agent init failed" ); 
+    }
+    // do we need to wait for an explicit transition to RUNNING state?
+    if( waitstart_ )
+    {
+      cdebug(1)<<"waiting for transition out of INIT state\n";
       HIID id;
       DataRecord::Ref dum;
       while( state() == INIT )
@@ -39,39 +119,20 @@ bool AppControlAgent::init (bool waitstart, const DataRecord &data)
         cdebug(2)<<"got command "<<id<<", state is now "<<stateString()<<endl;
       }
     }
-    postEvent(InitNotifyEvent);
-    return True;
+    else // else go into RUNNING directly
+      setState(RUNNING);
   }
   catch( std::exception &exc )
   {
-    cdebug(1)<<"init failed\n";
-    if( rethrow )
+    cdebug(1)<<"start() failed\n";
+    if( rethrow_ )
       throw(exc);
     setErrorState(exc.what());
-    return False;
   }
+  
+  return state();
 }
 
-//##ModelId=3E3FF3FA00C0
-bool AppControlAgent::init (const DataRecord &data)
-{
-  cdebug(1)<<"initializing\n";
-  try 
-  {
-    bool waitstart = False;
-    // get the waitstart parameter from init record
-    if( data[initfield()].exists() )
-      waitstart = data[initfield()][FWaitStart].as_bool(False);
-    
-    return init(waitstart,data);
-  }
-  catch( std::exception &exc )
-  {
-    cdebug(1)<<"init failed\n";
-    setErrorState(exc.what());
-    return False;
-  }
-}
 
 //##ModelId=3E510A600340
 void AppControlAgent::close ()
@@ -81,7 +142,7 @@ void AppControlAgent::close ()
 }
 
 //##ModelId=3E3A9E520156
-int AppControlAgent::checkStateEvent (const HIID &id)
+int AppControlAgent::checkStateEvent (const HIID &id,const DataRecord::Ref::Copy &data)
 {
   if( id == PauseEvent )
   {
@@ -96,6 +157,8 @@ int AppControlAgent::checkStateEvent (const HIID &id)
   else if( id == InitEvent )
   {
     paused_ = False;
+    initrec_ref_.copy(data,DMI::PRESERVE_RW);
+    initrec_used_ = False;
     setState(INIT);
     return NEWSTATE;
   }
@@ -133,7 +196,7 @@ int AppControlAgent::getCommand (HIID &id,DataRecord::Ref &data, int wait)
     cdebug(3)<<"got control event "<<id<<endl;
     // change state according to event
     Thread::Mutex::Lock lock(state_condition_);
-    if( checkStateEvent(id) == NEWSTATE )
+    if( checkStateEvent(id,data) == NEWSTATE )
     {
       cdebug(2)<<"state is now "<<stateString()<<endl;
       return NEWSTATE;

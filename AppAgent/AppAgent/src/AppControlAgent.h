@@ -12,7 +12,7 @@ class AppEventSink;
 class DataRecord;
 
 #pragma aid App Control Parameters Event Init Start Stop Pause Resume Halt
-#pragma aid Always Wait Start Throw Error Notify Auto Exit
+#pragma aid Always Wait Start Throw Error Notify Auto Exit Delay
 
 namespace AppEvent 
 {
@@ -27,23 +27,6 @@ namespace AppEvent
   } AppControl_EventCodes;
 };
     
-namespace AppState
-{
-  //##ModelId=3E40FDEA018D
-  typedef enum 
-  {
-    // standard states
-    // subclasses may extend this with their own states. The convention is that
-    // operational states are >0, and error/stopped states are <0
-    INIT    =     0,   // initializing (on startup/after Init/Reinit event)
-    RUNNING =     1,   // application is running
-    STOPPED =     -1,  // stopped 
-    HALTED  =     -2,  // halted
-    ERROR   =     AppEvent::ERROR
-        
-  } States;
-};
-
 namespace AppControlAgentVocabulary
 {
   using namespace AppEventSinkVocabulary;
@@ -52,6 +35,7 @@ namespace AppControlAgentVocabulary
       FControlParams   = AidControl|AidParameters,
       
       FWaitStart       = AidWait|AidStart,
+      FDelayInit       = AidDelay|AidInit,
       FAutoExit        = AidAuto|AidExit,
       
       // standard prefix for app control events
@@ -84,18 +68,20 @@ class AppControlAgent : public AppEventAgentBase
     
     //##ModelId=3E3FF3FA00C0
     //##Documentation
-    //## Agent initialization method. Called by the application to initialize
-    //## or reinitialize an agent. Agent parameters are supplied via a
-    //## DataRecord.
-    virtual bool init (const DataRecord &data);
-    
-    //##ModelId=3E40F90F02BA
-    virtual bool init (bool waitstart = False, const DataRecord &data = DataRecord() );
+    //## Agent initialization method. This should be called by whoever
+    //## has instantiated the agent & application. The initrec will be
+    //## cached, and returned to the application once it calls start()
+    virtual bool preinit (DataRecord::Ref::Xfer &initrec);
     
     //##ModelId=3E510A600340
     //##Documentation
     //## Applications call close() when they're done speaking to an agent.
     virtual void close ();
+    
+    //##Documentation
+    //## Waits for a start event if one has been configured; sets state
+    //## to RUNNING and returns an init record   
+    virtual int start (DataRecord::Ref &initrec);
 
     //##ModelId=3E3957E10329
     virtual int getCommand (HIID &id,DataRecord::Ref &data,int wait = AppEvent::WAIT);
@@ -176,8 +162,13 @@ class AppControlAgent : public AppEventAgentBase
     LocalDebugContext;
     
   protected:
+    //##Documentation
+    //## hide init method from applications. Must use preinit() and start()
+    //## instead
+    bool init (const DataRecord &data);
+  
     //##ModelId=3E3A9E520156
-    int checkStateEvent (const HIID &id);
+    int checkStateEvent (const HIID &id,const DataRecord::Ref::Copy &data);
   
   private:
     //##ModelId=3E394E1E0267
@@ -188,8 +179,16 @@ class AppControlAgent : public AppEventAgentBase
     bool paused_;
     //##ModelId=3E5505A9039F
     bool auto_exit_;
+    bool waitstart_;
+    bool rethrow_;
     //##ModelId=3E5650D900AE
-    DataRecord::Ref status_;
+    DataRecord * pstatus_;
+    
+    //##ModelId=3E6F6B8E013C
+    DataRecord::Ref status_ref_;
+
+    DataRecord::Ref initrec_ref_;
+    bool initrec_used_;
     
     //##ModelId=3E3A9E510382
     mutable Thread::Condition state_condition_;
@@ -202,31 +201,16 @@ class AppControlAgent : public AppEventAgentBase
     std::vector<AppEventAgentBase::Ref> inputs;
 };
 
-//##ModelId=3E40EDC3036F
-inline AppControlAgent::AppControlAgent (const HIID &initf)
-    : AppEventAgentBase(initf),state_(AppState::INIT)
-{}
-
-//##ModelId=3E394E4F02D2
-inline AppControlAgent::AppControlAgent (AppEventSink & sink, const HIID & initf)
-    : AppEventAgentBase(sink,initf),state_(AppState::INIT)
-{}
-
-//##ModelId=3E50FA3702B9
-inline AppControlAgent::AppControlAgent (AppEventSink *sink, int dmiflags, const HIID &initf)
-    : AppEventAgentBase(sink,dmiflags,initf),state_(AppState::INIT)
-{}
-
 //##ModelId=3E5650EE0209
 inline const DataRecord & AppControlAgent::status () const
 {
-  return status_.deref();
+  return *pstatus_;
 }
 
 //##ModelId=3E5650FE024A
 inline DataRecord & AppControlAgent::status ()
 {
-  return status_.dewr();
+  return *pstatus_;
 }
     
 //##ModelId=3E3A74D40114

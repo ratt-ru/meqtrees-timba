@@ -27,6 +27,7 @@ static AtomicID::Register aid_reg_Wait(-1303,"Wait");
 static AtomicID::Register aid_reg_Notify(-1311,"Notify");
 static AtomicID::Register aid_reg_Auto(-1331,"Auto");
 static AtomicID::Register aid_reg_Exit(-1332,"Exit");
+static AtomicID::Register aid_reg_Delay(-1217,"Delay");
 static AtomicID::Register aid_reg_AppAgent(-1112,"AppAgent");
 static AtomicID::Register aid_reg_Text(-1269,"Text");
 static AtomicID::Register aid_reg_BOIO(-1329,"BOIO");

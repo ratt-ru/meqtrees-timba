@@ -11,6 +11,24 @@
 #pragma aid Throw Error
     
 const HIID FThrowError = AidThrow|AidError;
+
+namespace AppState
+{
+  //##ModelId=3E40FDEA018D
+  typedef enum 
+  {
+    // standard states
+    // subclasses may extend this with their own states. The convention is that
+    // operational states are >0, and error/stopped states are <0
+    INIT    =     0,   // initializing (on startup/after Init/Reinit event)
+    RUNNING =     1,   // application is running
+    STOPPED =     -1,  // stopped 
+    HALTED  =     -2,  // halted
+    ERROR   =     -999
+        
+  } States;
+};
+
     
 //##ModelId=3E40EACD0054
 class AppAgent : public SingularRefTarget

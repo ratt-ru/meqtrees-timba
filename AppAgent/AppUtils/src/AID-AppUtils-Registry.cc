@@ -10,13 +10,13 @@
       return 1;
     }
 
-static AtomicID::Register aid_reg_VisRepeater(-1310,"VisRepeater");
-static AtomicID::Register aid_reg_Repeater(-1306,"Repeater");
 static AtomicID::Register aid_reg_Input(-1075,"Input");
 static AtomicID::Register aid_reg_Output(-1130,"Output");
 static AtomicID::Register aid_reg_Seq(-1308,"Seq");
 static AtomicID::Register aid_reg_Error(-1071,"Error");
 static AtomicID::Register aid_reg_Closed(-1307,"Closed");
 static AtomicID::Register aid_reg_Init(-1092,"Init");
-static AtomicID::Register aid_reg_Done(-1309,"Done");
+static AtomicID::Register aid_reg_Fail(-1266,"Fail");
+static AtomicID::Register aid_reg_VisRepeater(-1310,"VisRepeater");
+static AtomicID::Register aid_reg_Repeater(-1306,"Repeater");
 

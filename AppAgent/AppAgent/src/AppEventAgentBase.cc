@@ -39,7 +39,8 @@ bool AppEventAgentBase::isAsynchronous() const
 //##ModelId=3E41147B0049
 bool AppEventAgentBase::init (const DataRecord &data)
 {
-  return sink().init(data[initfield()].as_DataRecord());
+  const DataRecord dum;
+  return sink().init(data[initfield()].as<DataRecord>(dum));
 }
 
 //##ModelId=3E41147E0126

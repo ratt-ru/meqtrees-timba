@@ -79,11 +79,13 @@ int main (int argc,const char *argv[])
     controlagent.attach(eventflag);
     
     cout<<"=================== creating repeater ==========================\n";
-    VisRepeater repeater(inagent,outagent,controlagent);
+    VisRepeater repeater;
+    repeater<<inagent<<outagent<<controlagent;
 
     cout<<"=================== running repeater ===========================\n";
     DataRecord::Ref ref(params);
-    repeater.run(ref);
+    controlagent.preinit(ref);
+    repeater.run();
     
     cout<<"=================== end of run ================================\n";
   } 

@@ -9,9 +9,9 @@ using namespace AppEvent;
 //##ModelId=3E53C59D00EB
 bool BOIOSink::init (const DataRecord &data)
 {
-  string file = data[FBOIOFile].as_string("");  
+  string file = data[FBOIOFile].as<string>("");  
   FailWhen(!file.length(),FBOIOFile.toString()+" not specified");
-  char mode = toupper( data[FBOIOMode].as_string("R")[0] );  
+  char mode = toupper( data[FBOIOMode].as<string>("R")[0] );  
   if( mode == 'R' )
   {
     boio.open(file,BOIO::READ);
@@ -86,7 +86,7 @@ int BOIOSink::hasEvent (const HIID &mask) const
     try
     {
       DataRecord &rec = ref.ref_cast<DataRecord>().dewr();
-      cached_id    = rec[AidEvent].as_HIID();
+      cached_id    = rec[AidEvent].as<HIID>();
       if( rec[AidData].exists() )
         rec[AidData].detach(&cached_data);
       else

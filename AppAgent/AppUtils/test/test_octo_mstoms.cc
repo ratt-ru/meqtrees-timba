@@ -92,10 +92,10 @@ int main (int argc,const char *argv[])
     AppControlAgent controlagent1(mux1.newSink(),AidControl);
     inagent1.attach(mux1.eventFlag());
     controlagent1.attach(mux1.eventFlag());
-    
     Octopussy::dispatcher().attach(&mux1,DMI::WRITE);
     
-    VisRepeater repeater1(inagent1,outagent1,controlagent1);
+    VisRepeater repeater1;
+    repeater1<<inagent1<<outagent1<<controlagent1;
     
     cout<<"=================== creating output repeater ===================\n";
       // initialize parameter record
@@ -116,6 +116,7 @@ int main (int argc,const char *argv[])
 //        outargs[FDataColumn]      = "MODEL_DATA";
 
       DataRecord &ctrlargs = params2[AidControl] <<= new DataRecord;
+        ctrlargs[FAutoExit] = True;
         ctrlargs[FEventMapIn] <<= new DataRecord;
           ctrlargs[FEventMapIn][HaltEvent] = HIID("Input.VisRepeater.Stop");
         ctrlargs[FEventMapOut] <<= new DataRecord;
@@ -132,20 +133,24 @@ int main (int argc,const char *argv[])
     
     Octopussy::dispatcher().attach(&mux2,DMI::WRITE);
     
-    VisRepeater repeater2(inagent2,outagent2,controlagent2);
+    VisRepeater repeater2;
+    repeater2<<inagent2<<outagent2<<controlagent2;
     
     cout<<"=================== launching output thread ================\n";
     DataRecord::Ref ref1(params1),ref2(params2);
+    controlagent1.preinit(ref1);
+    controlagent2.preinit(ref2);
+    
     Thread::ThrID id1,id2;
     
-    id2 = repeater2.runThread(ref2,False);
+    id2 = repeater2.runThread(False);
     // wait for it to start
     cout<<"=================== waiting for output thread to start =====\n";
     repeater2.control().waitUntilLeavesState(AppState::INIT);
     
     cout<<"=================== launching input thread =================\n";
     // now run the input repeater
-    id1 = repeater1.runThread(ref1,False),
+    id1 = repeater1.runThread(False),
     
     cout<<"=================== rejoining threads =========================\n";
     id1.join();

@@ -5,33 +5,30 @@ using namespace VisRepeaterVocabulary;
 using namespace AppState;
 
 InitDebugSubContext(VisRepeater,ApplicationBase,"VisRepeater");
-    
-//##ModelId=3E392B78035E
-VisRepeater::VisRepeater(VisAgent::InputAgent& in, VisAgent::OutputAgent& out, AppControlAgent& ctrl)
-    : ApplicationBase(ctrl),input_(in),output_(out)
-{
-  inref.attach(input_,DMI::WRITE);  
-  outref.attach(output_,DMI::WRITE);  
-}
 
 //##ModelId=3E392C570286
-void VisRepeater::run (DataRecord::Ref &initrec)
+void VisRepeater::run ()
 {
-  for(;;)
+  verifySetup(True);
+  DataRecord::Ref initrec;
+  // keep running as long as start() on the control agent succeeds
+  while( control().start(initrec) == RUNNING )
   {
-    // initialize all agents
-    cdebug(1)<<"initializing\n";
-    if( !input().init(*initrec) ||
-        !output().init(*initrec) ||
-        !control().init(*initrec) )
+    // [re]initialize i/o agents with record returned by control
+    cdebug(1)<<"initializing I/O agents\n";
+    if( !input().init(*initrec) )
     {
-      cdebug(1)<<"init failed\n";
-      break;
+      control().postEvent(InputInitFailed);
+      control().setState(STOPPED);
+      continue;
     }
-    // default is 1 min domains
-    double domain_size = initrec[FDomainSize].as_double(60);
-    double domain_start = 0;
-    double domain_end;
+    if( !output().init(*initrec) )
+    {
+      control().postEvent(OutputInitFailed);
+      control().setState(STOPPED);
+      continue;
+    }
+    bool output_open = True;
     // run main loop
     while( control().state() > 0 )  // while in a running state
     {
@@ -118,36 +115,10 @@ void VisRepeater::run (DataRecord::Ref &initrec)
     // broke out of main loop -- close i/o agents
     input().close();
     output().close();
-    // if control is non-asynchronous, we can exit now since it's not going
-    // to change is state
-    if( !control().isAsynchronous() )
-    {
-      cdebug(1)<<"control non-asynchronous, halting"<<endl;
-      control().close();
-      return;
-    }
-    // otherwise, wait for INIT state to do another run. Block in the control
-    // agent until the state changes. If it changes to HALTED, return
-    while( control().state() != INIT )
-    {
-      cdebug(1)<<"state is now "<<state()<<endl;
-      // break out if control is halted
-      if( control().state() == HALTED )
-      {
-        cdebug(1)<<"halting"<<endl;
-        control().close();
-        return;
-      }
-      HIID id;
-      int res = control().getCommand(id,initrec,AppEvent::BLOCK);
-      if( res != AppEvent::SUCCESS )
-      {
-        cdebug(1)<<"control returns "<<res<<", exiting\n";
-        control().close();
-        return;
-      }
-    }
+    // go back up for another start() call
   }
+  cdebug(1)<<"exiting with control state "<<control().stateString()<<endl;
+  control().close();
 }
 
 //##ModelId=3E392EE403C8

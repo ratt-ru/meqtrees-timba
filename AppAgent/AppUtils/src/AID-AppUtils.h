@@ -13,15 +13,15 @@
 const AtomicID AidClosed(-1307);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:1
 const int AidClosed_int = -1307;
 #endif
-#ifndef _defined_id_AidDone
-#define _defined_id_AidDone 1
-const AtomicID AidDone(-1309);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppUtils/src/AppUtils.aidlist:2
-const int AidDone_int = -1309;
-#endif
 #ifndef _defined_id_AidError
 #define _defined_id_AidError 1
 const AtomicID AidError(-1071);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:23
 const int AidError_int = -1071;
+#endif
+#ifndef _defined_id_AidFail
+#define _defined_id_AidFail 1
+const AtomicID AidFail(-1266);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:25
+const int AidFail_int = -1266;
 #endif
 #ifndef _defined_id_AidInit
 #define _defined_id_AidInit 1
