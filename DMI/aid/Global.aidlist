@@ -458,6 +458,7 @@ results                          1245       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 resume                           1270       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:16
 rider                            1250       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:33
 row                              1150       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
+running                          1567       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/MeqServer.h:17
 s                                1025       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 s1df                             1470       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/PointSourceDFT.h:31
 s1f0                             1472       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/PointSourceDFT.h:31
