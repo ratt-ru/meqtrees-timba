@@ -21,6 +21,9 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.9  2002/05/14 09:48:10  gvd
+//  Fix a few problems in cloneOther and reinit
+//
 //  Revision 1.8  2002/05/14 09:31:28  oms
 //  Fixed bug with itsElemSize not initialized in clone
 //
@@ -126,13 +129,10 @@ void DataArray::cloneOther (const DataArray& other, int flags, int)
   Assert (!valid());
   setWritable ((flags&DMI::WRITE) != 0);
   if (other.itsArray) {
-    // clear the read-only flag and always privatize as writable because
-    // writability is checked explicitly.
-    flags &= ~DMI::READONLY;
-    itsData.copy (other.itsData).privatize(flags|DMI::WRITE|DMI::LOCK);
+    itsData.copy (other.itsData).privatize(flags|DMI::LOCK);
     itsDataOffset = other.itsDataOffset;
-    itsElemSize = other.itsElemSize;
-    init (other.itsShape);
+    itsShape      = other.itsShape;
+    makeArray();
   }
 }
 
@@ -160,43 +160,52 @@ void DataArray::reinit()
   for (int i=0; i<nrel; i++) {
     itsShape(i) = hdrPtr[i+3];
   }
+  int sz = sizeof(int) * (3+nrel);
+  // Data is aligned on 8 bytes.
+  itsDataOffset = (sz+7) / 8 * 8;
   makeArray();
 }
 
 void DataArray::makeArray()
 {
-  char* ptr = static_cast<char*>(itsData.dewr().data());
+  char* ptr = const_cast<char*>(static_cast<char*>(itsData->data()));
   Assert (ptr);
   itsArrayData = ptr + itsDataOffset;
   void* dataPtr = itsArrayData;
   int type = headerType();
   if (type == TpArray_bool) {
-    itsScaType = Tpbool;
+    itsScaType  = Tpbool;
+    itsElemSize = sizeof(bool);
     itsArray = new Array_bool (itsShape,
 			       static_cast<bool*>(dataPtr), SHARE);
     itsSubArray = new Array_bool();
   } else if (type == TpArray_int) {
-    itsScaType = Tpint;
+    itsScaType  = Tpint;
+    itsElemSize = sizeof(int);
     itsArray = new Array_int (itsShape,
 			      static_cast<int*>(dataPtr), SHARE);
     itsSubArray = new Array_int();
   } else if (type == TpArray_float) {
-    itsScaType = Tpfloat;
+    itsScaType  = Tpfloat;
+    itsElemSize = sizeof(float);
     itsArray = new Array_float (itsShape,
 				static_cast<float*>(dataPtr), SHARE);
     itsSubArray = new Array_float();
   } else if (type == TpArray_double) {
-    itsScaType = Tpdouble;
+    itsScaType  = Tpdouble;
+    itsElemSize = sizeof(double);
     itsArray = new Array_double (itsShape,
 				 static_cast<double*>(dataPtr), SHARE);
     itsSubArray = new Array_double();
   } else if (type == TpArray_fcomplex) {
-    itsScaType = Tpfcomplex;
+    itsScaType  = Tpfcomplex;
+    itsElemSize = sizeof(fcomplex);
     itsArray = new Array_fcomplex (itsShape,
 				   static_cast<fcomplex*>(dataPtr), SHARE);
     itsSubArray = new Array_fcomplex();
   } else if (type == TpArray_dcomplex) {
-    itsScaType = Tpdcomplex;
+    itsScaType  = Tpdcomplex;
+    itsElemSize = sizeof(dcomplex);
     itsArray = new Array_dcomplex (itsShape,
 				   static_cast<dcomplex*>(dataPtr), SHARE);
     itsSubArray = new Array_dcomplex();
@@ -233,6 +242,7 @@ void DataArray::clear()
   }
   itsSubArray = 0;
   itsArray    = 0;
+  itsShape.resize (0);
   itsData.unlock().detach();
 }
 
@@ -290,7 +300,7 @@ void DataArray::privatize (int flags, int)
     return;
   }
   // Privatize the data.
-  itsData.privatize (DMI::WRITE|DMI::LOCK);
+  itsData.privatize (flags|DMI::LOCK);
 }
 
 // full HIID -> type can be Tpfloat
