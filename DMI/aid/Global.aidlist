@@ -22,6 +22,7 @@ bandwidth                        1186       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 baseline                         1426       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/FlagCompare.h:30
 beam                             1163       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
 bind                             1059       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
+bit                              1428       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/FlagCompare.h:30
 boio                             1266       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/BOIOSink.h:9
 bool                             32         ; from /home/oms/LOFAR/DMI/src/TypeId.h:99
 bound                            1063       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
