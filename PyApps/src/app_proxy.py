@@ -8,7 +8,7 @@ if app_defaults.include_gui:
 import threading
 from dmitypes import *
 import octopussy
-import py_app_launcher
+## import py_app_launcher
 import sys
 import os
 import string
@@ -86,13 +86,14 @@ class app_proxy (verbosity):
       self.dprint(2,"waiting for Hello message from app");
       self._req_state = False;
     elif launch: # use py_app_launcher to run a local app thread
-      self.dprint(1,"launching",launch);
-      (appname,inagent,outagent) = launch;
-      if not appname in py_app_launcher.application_names:
-        raise NameError,appname+' is not a recognized app name';
-      self.initrec_prev.control.delay_init = True;
-      py_app_launcher.launch_app(appname,inagent,outagent,self.initrec_prev);
-      self._req_state = False;
+      raise RuntimeError,"py_app_launcher option temporarily disabled";
+##       self.dprint(1,"launching",launch);
+##       (appname,inagent,outagent) = launch;
+##       if not appname in py_app_launcher.application_names:
+##         raise NameError,appname+' is not a recognized app name';
+##       self.initrec_prev.control.delay_init = True;
+##       py_app_launcher.launch_app(appname,inagent,outagent,self.initrec_prev);
+##       self._req_state = False;
     else: # no launch spec, simply wait for a connection, and request state when it's there
       self._req_state = True;
       pass;

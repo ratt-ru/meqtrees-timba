@@ -55,15 +55,15 @@ lofar_AIPSPP(1)
 lofar_QATOOLS
 lofar_DOCXX
 lofar_PACKAGE(CEP/CPA/OCTOPython)
-lofar_PACKAGE(CEP/CPA/VisCube)
-lofar_PACKAGE(CEP/CPA/PSS4/MEQ)
-lofar_PACKAGE(CEP/CPA/PSS4/MeqGen)
+dnl lofar_PACKAGE(CEP/CPA/VisCube)
+dnl lofar_PACKAGE(CEP/CPA/PSS4/MEQ)
+dnl lofar_PACKAGE(CEP/CPA/PSS4/MeqGen)
 dnl lofar_PACKAGE(CEP/CPA/AppAgent/AppAgent)
-lofar_PACKAGE(CEP/CPA/AppAgent/VisAgent)
-lofar_PACKAGE(CEP/CPA/AppAgent/OctoAgent)
-lofar_PACKAGE(CEP/CPA/AppAgent/MSVisAgent)
-lofar_PACKAGE(CEP/CPA/AppAgent/AppUtils)
-lofar_PACKAGE(CEP/CPA/AppAgent/MeqServer)
+dnl lofar_PACKAGE(CEP/CPA/AppAgent/VisAgent)
+dnl lofar_PACKAGE(CEP/CPA/AppAgent/OctoAgent)
+dnl lofar_PACKAGE(CEP/CPA/AppAgent/MSVisAgent)
+dnl lofar_PACKAGE(CEP/CPA/AppAgent/AppUtils)
+dnl lofar_PACKAGE(CEP/CPA/AppAgent/MeqServer)
 dnl
 dnl Output Makefiles
 dnl

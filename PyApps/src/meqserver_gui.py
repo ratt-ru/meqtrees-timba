@@ -12,6 +12,7 @@ import re
 # ---------------- TODO -----------------------------------------------------
 # Bugs:
 #   Tree browser not always enabled! (Hello message lost??)
+#   Click on result log does not display a data item
 #
 # Minor fixes:
 #   Disorderly thread error or SEGV on exit
