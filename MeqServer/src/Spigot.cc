@@ -76,13 +76,14 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
     int nplanes = colshape.size() == 3 ? colshape[0] : 1;
     Result::Ref next_res;
     Result & result = next_res <<= new Result(nplanes,true);
+    int nfreq = 0;
     // get array 
     if( coltype == Tpdouble )
     {
       if( colshape.size() == 3 )
       {
         LoCube_double cube(static_cast<double*>(coldata),colshape,blitz::neverDeleteData);
-        LoShape shape = Axis::freqTimeMatrix(colshape[1],nrows);
+        LoShape shape = Axis::freqTimeMatrix(nfreq = colshape[1],nrows);
         for( int i=0; i<nplanes; i++ )
           result.setNewVellSet(i).setReal(shape).getArray<double,2>() = 
               cube(i,LoRange::all(),rowrange);
@@ -90,7 +91,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
       else if( colshape.size() == 2 )
       {
         LoMat_double mat(static_cast<double*>(coldata),colshape,blitz::neverDeleteData);
-        LoShape shape = Axis::freqTimeMatrix(colshape[0],nrows);
+        LoShape shape = Axis::freqTimeMatrix(nfreq = colshape[0],nrows);
         result.setNewVellSet(0).setReal(shape).getArray<double,2>() = 
               mat(LoRange::all(),rowrange);
       }
@@ -102,7 +103,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
       if( colshape.size() == 3 )
       {
         LoCube_fcomplex cube(static_cast<fcomplex*>(coldata),colshape,blitz::neverDeleteData);
-        LoShape shape = Axis::freqTimeMatrix(colshape[1],nrows);
+        LoShape shape = Axis::freqTimeMatrix(nfreq = colshape[1],nrows);
         for( int i=0; i<nplanes; i++ )
           result.setNewVellSet(i).setComplex(shape).getArray<dcomplex,2>() = 
               blitz::cast<dcomplex>(cube(i,LoRange::all(),rowrange));
@@ -110,7 +111,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
       else if( colshape.size() == 2 )
       {
         LoMat_fcomplex mat(static_cast<fcomplex*>(coldata),colshape,blitz::neverDeleteData);
-        LoShape shape = Axis::freqTimeMatrix(colshape[0],nrows);
+        LoShape shape = Axis::freqTimeMatrix(nfreq = colshape[0],nrows);
         result.setNewVellSet(0).setComplex(shape).getArray<dcomplex,2>() = 
             blitz::cast<dcomplex>(mat(LoRange::all(),rowrange));
       }
@@ -139,7 +140,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
           // get flags
           if( flag_mask )
           {
-            flagref <<= new Vells(LoShape(colshape[1],nrows),VellsFlagType(),false);
+            flagref <<= new Vells(Axis::freqTimeMatrix(nfreq,nrows),VellsFlagType(),false);
             pfl = &( flagref().getArray<VellsFlagType,2>() );
             *pfl = flags(i,LoRange::all(),rowrange) & flag_mask;
             if( row_flag_mask )
@@ -149,7 +150,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
           else if( row_flag_mask ) // apply only row flags with a mask
           {
           // shape of flag array is 1D (time only)
-            flagref <<= new Vells(LoShape(1,nrows),VellsFlagType(),true);
+            flagref <<= new Vells(Axis::freqTimeMatrix(1,nrows),VellsFlagType(),true);
             pfl = &( flagref().getArray<VellsFlagType,2>() );
             (*pfl)(0,LoRange::all()) |= rowflag & row_flag_mask;
           }

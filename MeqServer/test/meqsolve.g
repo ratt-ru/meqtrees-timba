@@ -557,7 +557,7 @@ outputrec := [ write_flags=T,predict_column=outcol ];
 res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=0.17,
 #  st1set=[1:5]*4,st2set=[1:5]*4,
 #  st1set=[1:21]*4,st2set=[1:21]*4,
-  stset=1+[0:50],load='meqsolve50.forest',
+  stset=1+[0:10], #load='meqsolve50.forest',
 #  st1set=1+[0:20]*4,st2set=1+[0:20]*4,
 #  st1set=1:100,st2set=1:100,
   set_breakpoint=set_breakpoint,
