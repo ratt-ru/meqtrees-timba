@@ -14,7 +14,7 @@ _dbg = verbosity(3,name='tb');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-class TreeBrowser (object):
+class TreeBrowser (QObject):
   class NodeItem (QListViewItem):
     def __init__(self,tb,node,name,parent,after):
       QListViewItem.__init__(self,parent,after,name);
@@ -223,24 +223,10 @@ class TreeBrowser (object):
     clear_children = staticmethod(clear_children);
       
   def __init__ (self,parent):
+    QObject.__init__(self);
     self._parent = weakref.proxy(parent);
     # ---------------------- construct GUI
     nl_vbox = self._wtop = QVBox(parent);
-##     nl_control = QWidget(nl_vbox);
-##     nl_control_lo = QHBoxLayout(nl_control);
-##     # add refresh button
-##     self._nl_update = nl_update = QToolButton(nl_control);
-##     nl_update.setIconSet(pixmaps.refresh.iconset());
-##     nl_update.setAutoRaise(True);
-##     nl_update.setDisabled(True);
-##     QToolTip.add(nl_update,"refresh the node list");
-##     #    nl_update.setMinimumWidth(30);
-##     #    nl_update.setMaximumWidth(30);
-##     nl_control_lo.addWidget(nl_update);
-##     nl_label = QLabel("Tree Browser",nl_control);
-##     nl_control_lo.addWidget(nl_label);
-##     nl_control_lo.addStretch();
-##     QObject.connect(nl_update,SIGNAL("clicked()"),self._request_nodelist);
     #---------------------- node list view
     self._nlv = nlv = DataDraggableListView(nl_vbox);
     nlv.setShowSortIndicator(True);
@@ -279,6 +265,7 @@ class TreeBrowser (object):
     self._qa_refresh.addTo(self._toolbar);
     self._qa_refresh.setEnabled(False);
     self._toolbar.addSeparator();
+    # 
     # the "Enable debugger" action
     self._qa_dbg_enable = QAction("Enable debugger",pixmaps.eject.iconset(),"Enable &Debugger",Qt.Key_F5,parent,"",True);
     self._qa_dbg_enable.addTo(self._toolbar);
@@ -425,14 +412,16 @@ class TreeBrowser (object):
     # also compiles a set of nodes in the debug-stack
     self._debug_level = fst.debug_level;
     if fst.debug_level:
+      self.emit(PYSIGNAL("debug_enabled()"),(True,));
       _dprint(2,"debugging enabled");
       try: 
         self._nlv.setColumnWidthMode(self._icol_execstate,QListView.Maximum);
         self._nlv.setColumnWidthMode(self._icol_status,QListView.Maximum);
       except AttributeError: pass;
       self._set_debug_control(True);
-      self._qa_dbgpause.setEnabled(fst.running);
+      # self._qa_dbgpause.setEnabled(fst.running);
       if meqds.nodelist and fst.debug_stack:
+        self.emit(PYSIGNAL("stopped_in_debugger()"),(True,));
         self._ag_debug.setEnabled(True);
         self._qa_dbgpause.setEnabled(False);
         for (n,frame) in enumerate(fst.debug_stack):
@@ -448,10 +437,12 @@ class TreeBrowser (object):
           else:
             node.update_status(frame.control_status);
       else:
+        self.emit(PYSIGNAL("stopped_in_debugger()"),(False,));
         self._qa_dbgpause.setEnabled(True);
         self._ag_debug.setEnabled(False);
     else:
       _dprint(2,"debugging disabled");
+      self.emit(PYSIGNAL("debug_enabled()"),(False,));
       self._set_debug_control(False);
       self._qa_dbgpause.setEnabled(False);
       self._ag_debug.setEnabled(False);

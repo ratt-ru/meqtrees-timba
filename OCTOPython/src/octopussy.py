@@ -11,6 +11,11 @@ import threading
 # pulls in various things from the C module directly
 from octopython import aid_map,aid_rmap,start_reflector,OctoPythonError
 
+_dbg = verbosity(0,name='octopussy');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
+
 def set_debug (context,level=0):
   if isinstance(context,str):
     octopython.set_debug(context,level);
@@ -91,7 +96,7 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     # init base classes
     octopython.proxy_wp.__init__(self,wpid);
     verbosity.__init__(self,verbose,name=verb_name or str(self.address()));
-    self.dprint(1,"initializing");
+    _dprint(1,"initializing");
     # registered whenevers
     self._we_ids   = {};  # dict of whenevers (for exact matches)
     self._we_masks = {};  # list of whenevers (for mask lookups)
@@ -99,25 +104,25 @@ class proxy_wp(octopython.proxy_wp,verbosity):
   def send (self,msg,to,payload=None,priority=0):
     "sends message to recepient";
     msg = make_message(msg,payload,priority);
-    self.dprintf(3,"sending %s to %s\n",msg.msgid,to);
+    _dprintf(3,"sending %s to %s\n",msg.msgid,to);
     return octopython.proxy_wp.send(self,
       make_message(msg,payload,priority),make_hiid(to));
     
   def publish (self,msg,payload=None,priority=0,scope='global'):
     "publishes message";
     msg = make_message(msg,payload,priority);
-    self.dprintf(3,"publishing %s scope %s\n",msg.msgid,scope);
+    _dprintf(3,"publishing %s scope %s\n",msg.msgid,scope);
     return octopython.proxy_wp.publish(self,
               make_message(msg,payload,priority),make_scope(scope));
     
   def subscribe (self,mask,scope='global'):
     "subscribes WP to message id mask";
-    self.dprintf(2,"subscribing to %s scope %s\n",mask,scope);
+    _dprintf(2,"subscribing to %s scope %s\n",mask,scope);
     return octopython.proxy_wp.subscribe(self,make_hiid(mask),make_scope(scope));
     
   def unsubscribe (self,mask):
     "unsubscribes WP from mask";
-    self.dprintf(2,"unsubscribing from %s\n",mask);
+    _dprintf(2,"unsubscribing from %s\n",mask);
     return octopython.proxy_wp.unsubscribe(self,make_hiid(mask));
   
   # this is meant to pause and resume event processing -- no implementation
@@ -148,10 +153,10 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     self.pause_events();
     try:
       if is_mask:
-        self.dprint(2,"adding masked whenever:",str(msgid),str(target));
+        _dprint(2,"adding masked whenever:",str(msgid),str(target));
         self._we_masks.setdefault(msgid,[]).append(we);
       else:
-        self.dprint(2,"adding matched whenever:",str(msgid),str(target));
+        _dprint(2,"adding matched whenever:",str(msgid),str(target));
         self._we_ids.setdefault(msgid,[]).append(we);
     finally:
       self.resume_events();
@@ -169,12 +174,12 @@ class proxy_wp(octopython.proxy_wp,verbosity):
         seq = dicts.get(msgid,[]);
         for i in range(len(seq)):
           if we is seq[i]:
-            self.dprint(2,"cancelling whenever:",str(msgid));
+            _dprint(2,"cancelling whenever:",str(msgid));
             del seq[i];
             return;
     finally:
       self.resume_events();
-    self.dprintf(2,"whenever for %s not found",str(msgid));
+    _dprintf(2,"whenever for %s not found",str(msgid));
     
   def _clear_oneshots (welist):
     i = 0;
@@ -189,10 +194,10 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     pending_list = [];
     self.pause_events();
     try:
-      self.dprint(3,"processing message",msg.msgid);
+      _dprint(3,"processing message",msg.msgid);
       # check the matched dictionary
       welist = self._we_ids.get(msg.msgid,[]);
-      self.dprintf(3,"found %d matched whenevers for %s\n",len(welist),msg.msgid);
+      _dprintf(3,"found %d matched whenevers for %s\n",len(welist),msg.msgid);
       pending_list += welist;
       # clear one-shots, and remove list if it becomes empty
       if welist and not self._clear_oneshots(welist):
@@ -200,13 +205,13 @@ class proxy_wp(octopython.proxy_wp,verbosity):
       # check the masks list
       for mask,welist in self._we_masks.iteritems():
         if msg.msgid.matches(mask):
-          self.dprintf(3,"found %d mask whenevers for %s\n",len(welist),mask);
+          _dprintf(3,"found %d mask whenevers for %s\n",len(welist),mask);
           pending_list += welist;
           if welist and not self._clear_oneshots(welist):
             del self._we_masks[mask];
     finally:
       self.resume_events();
-    self.dprintf(3,"firing %d matched whenevers\n",len(pending_list));
+    _dprintf(3,"firing %d matched whenevers\n",len(pending_list));
     for we in pending_list:
       we.fire(msg);
       
@@ -215,10 +220,10 @@ class proxy_wp(octopython.proxy_wp,verbosity):
   # their whenever handlers.
   def poll_pending_events (self):
       try:  
-        self.dprint(3,"going into receive_all()");
+        _dprint(3,"going into receive_all()");
         msgs = self.receive_all();
       except octopython.OctoPythonError,value:
-        self.dprint(1,"exiting on receive error:",value);
+        _dprint(1,"exiting on receive error:",value);
         return None;
       # dispatch all messages
       if msgs:
@@ -242,21 +247,21 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     """;
     # convert await argument to list of hiids
     await = make_hiid_list(await);
-    self.dprint(1,"running event loop, timeout",timeout,"await",await);
+    _dprint(1,"running event loop, timeout",timeout,"await",await);
     if timeout is None: 
       endtime = 1e+40; # quite long enough...
     else:
       endtime = time.time() + timeout;
     while self.num_pending() or time.time() <= endtime:
       try:  
-        self.dprint(3,"going into receive()");
+        _dprint(3,"going into receive()");
         if timeout is None:
           to = -1;
         else:
           to = max(0,endtime - time.time());
         msg = self.receive(to);
       except octopython.OctoPythonError,value:
-        self.dprint(1,"exiting on receive error:",value);
+        _dprint(1,"exiting on receive error:",value);
         return None;
       # msg=None probably indicates timeout, go back up to check
       if msg is None:
@@ -266,7 +271,7 @@ class proxy_wp(octopython.proxy_wp,verbosity):
       # check for a match in the await-list
       for aw in await:
         if aw.matches(msg.msgid):
-          self.dprintf(3,"matches await %s, returning\n",aw);
+          _dprintf(3,"matches await %s, returning\n",aw);
           return msg;
     # end of while-loop, if we dropped out, it's a timeout, return None
     return None
@@ -324,16 +329,16 @@ class proxy_wp_thread(proxy_wp):
     return self.name;
 
   def start (self):
-    self.dprint(1,"starting WP thread");
+    _dprint(1,"starting WP thread");
     self._thread.start();
-    self.dprint(1,"thread started");
+    _dprint(1,"thread started");
     
   def stop (self):
     if self._thread:
-      self.dprint(1,"stopping & joining WP event thread");
+      _dprint(1,"stopping & joining WP event thread");
       self.send(self.ExitMessage,self.address());
       self._thread.join();
-      self.dprint(1,"thread joined");
+      _dprint(1,"thread joined");
       self._thread = None;
     
   def lock (self):
@@ -350,7 +355,7 @@ class proxy_wp_thread(proxy_wp):
     """;
     self._lock.acquire();
     self._paused += 1;
-    self.dprintf(3,"pausing event loop (count %d)\n",self._paused);
+    _dprintf(3,"pausing event loop (count %d)\n",self._paused);
     
   # pauses the event loop for this wp (if any); this will halt the processing
   #   of any whenevers
@@ -359,7 +364,7 @@ class proxy_wp_thread(proxy_wp):
     if self._paused > 0:
       self._lock.release();
       self._paused = max(self._paused-1,0);
-    self.dprintf(3,"resuming event loop (count %d)\n",self._paused);
+    _dprintf(3,"resuming event loop (count %d)\n",self._paused);
     
   # await blocks until the specified message has been received
   # (with optional timeout)
@@ -368,8 +373,8 @@ class proxy_wp_thread(proxy_wp):
     if cur_thread is self._thread:
       raise AssertionError,"can't call await() from event handler thread";
     thread_name = cur_thread.getName();
-    self.dprint(2,"await: thread",thread_name);
-    self.dprint(2,"await: waiting for",what,"timeout ",timeout);
+    _dprint(2,"await: thread",thread_name);
+    _dprint(2,"await: waiting for",what,"timeout ",timeout);
     what = make_hiid_list(what);
     await_pair = [make_hiid_list(what),None];  # result will be returned as second item
     # start by setting a lock on the wait condition
@@ -378,13 +383,13 @@ class proxy_wp_thread(proxy_wp):
     try:
       if resume:
         self.resume_events();
-      self.dprint(3,"calling wait on awaitcond");
+      _dprint(3,"calling wait on awaitcond");
       endtime = timeout and time.time() + timeout;
       while await_pair[1] is None:
         if endtime and time.time() >= endtime: # timeout
           return None;
         self._await_cond.wait(timeout);
-        self.dprint(2,"await: wait returns ",await_pair[1]);
+        _dprint(2,"await: wait returns ",await_pair[1]);
     finally:
       del self._awaiting[thread_name];
       self._await_cond.release();
@@ -396,20 +401,20 @@ class proxy_wp_thread(proxy_wp):
   # the run-loop: calls receive() in a continuous loop, processes events
   def run (self):
     running = 1;
-    self.dprint(1,"running thread");
+    _dprint(1,"running thread");
     while True:
       try:  
-        self.dprint(3,"going into receive()");
+        _dprint(3,"going into receive()");
         msg = self.receive_threaded();
       except octopython.OctoPythonError, value:
-        self.dprint(1,"exiting on receive error:",value);
+        _dprint(1,"exiting on receive error:",value);
         break;
       # msg=None probably indicates timeout, go back up to check
       if msg is None:
         continue;
       # check for predefined exit message
       if msg.msgid == self.ExitMessage and msg.is_from(self.address()):
-        self.dprint(1,"got exit message",msg);
+        _dprint(1,"got exit message",msg);
         break;
       # process messages
       self._dispatch_whenevers(msg);
@@ -420,7 +425,7 @@ class proxy_wp_thread(proxy_wp):
         for awp in self._awaiting.itervalues():
           for msgid in awp[0]:
             if msg.msgid.matches(msgid):
-              self.dprintf(3,"matches await %s, notifying\n",msgid);
+              _dprintf(3,"matches await %s, notifying\n",msgid);
               awp[1] = msg;
               self._await_cond.notifyAll();
               break; # break out to next awaiting pair
@@ -428,7 +433,7 @@ class proxy_wp_thread(proxy_wp):
         self._await_cond.release();
         self._lock.release();
     # end of while-loop (exit is inside) 
-    self.dprint(1,"finishing thread");
+    _dprint(1,"finishing thread");
  
 #
 # self-test code
