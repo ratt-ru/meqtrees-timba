@@ -86,11 +86,10 @@ class proxy_wp(octopython.proxy_wp,verbosity):
         return self.target(*self.args,**self.kwargs);
       return None;
   
-  def __init__(self,wpid=None,verbose=0,vobj_name=None):
+  def __init__(self,wpid=None,verbose=0,verb_name=None):
     # init base classes
     octopython.proxy_wp.__init__(self,wpid);
-    verbosity.__init__(self,verbose);
-    self.set_vobj_name(vobj_name or str(self.address()));
+    verbosity.__init__(self,verbose,name=verb_name or str(self.address()));
     self.dprint(1,"initializing");
     # registered whenevers
     self._we_ids   = {};  # dict of whenevers (for exact matches)
@@ -298,7 +297,7 @@ class proxy_wp_thread(proxy_wp):
   ExitMessage = hiid("e.x.i.t");
   
   def __init__ (self,wpid='python',verbose=0,thread_api=threading):
-    self.name = str(wpid)+'-init';  # because parent calls self.object_name()
+    self.name = str(wpid)+'-init';  # because parent calls self.get_verbosity_name()
     proxy_wp.__init__(self,wpid,verbose=verbose);
     self.name = str(self.address());
     # lock for event queue
@@ -314,7 +313,7 @@ class proxy_wp_thread(proxy_wp):
 #    if self._api is not threading:
 #      self.receive_threaded = self.receive;
 
-  def object_name (self):
+  def get_verbosity_name (self):
     if hasattr(self,'_thread'):
       thr = self._api.currentThread();
       if thr is self._thread:

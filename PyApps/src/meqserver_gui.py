@@ -12,19 +12,26 @@ import meqds
 import app_browsers 
 from app_browsers import *
 
+_dbg = verbosity(3,name='meqgui');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
+
 # ---------------- TODO -----------------------------------------------------
 # Bugs:
-#   In dmi_repr, array stats do not always use the right func
 #   Tree browser not always enabled! (Hello message lost??)
+#   + In dmi_repr, array stats do not always use the right func
 #   + Numarray indexing order is different! fixed converter
 #   + Refresh of tree view with an empty forest list throws exception
 #
 # Minor fixes:
-#   Disallow drag-and-drop from a viewer onto the same cell
+#   Create viewers as children of some widget (maybe a stack, again?) that
+#     can be thrown out on exception together with any unclean children.
 #   Do not compare result records, only state updates (and only if too recent)
 #   Improve result labels, name them snapshots
 #   Disorderly thread error or SEGV on exit
 #   Why can't we exit with CTRL+C?
+#   + Disallow drag-and-drop from a viewer onto the same cell
 #   + Fix comparison of records and snapshots in Node Browser
 #   + Enable drop on "show viewer" button
 #
@@ -122,11 +129,8 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
       
   # this callback is registered for all child node state updates
   def set_child_state (self,node,event):
-    print 'Got state for child',node.name,node.field_names();
-    for f in node.field_names():
-       if f == "cache_result":
-         print node.cache_result
-    print 'Event is',event;
+    _dprint(3,'Got state for child',node.name,node.field_names());
+    _dprint(3,'Event is',event);
     if not self._child_items:
       raise RuntimeError,'no children expected for this node';
     item = self._child_items.get(node.nodeindex,None);
@@ -148,6 +152,7 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
       # if something is already open, use that
       openitems = self.get_open_items() or openitems;
     # at this point, dataitem.data is a valid node state record
+    _dprint(3,'Got state for node',dataitem.data.name,dataitem.data.field_names());
     self.change_item_content(self._item_state,dataitem.data,viewable=False);
     # apply saved open tree
     self.set_open_items(openitems);
@@ -291,8 +296,8 @@ class meqserver_gui (app_proxy_gui):
     
   def populate (self,main_parent=None,*args,**kwargs):
     app_proxy_gui.populate(self,main_parent=main_parent,*args,**kwargs);
-    dbg.set_verbose(self.get_verbose());
-    self.dprint(2,"meqserver-specifc init"); 
+    self.set_verbose(self.get_verbose());
+    _dprint(2,"meqserver-specifc init"); 
     # add workspace
     
     # add Tree browser panel
@@ -325,7 +330,7 @@ class meqserver_gui (app_proxy_gui):
     
   def ce_NodeState (self,ev,value):
     if hasattr(value,'name'):
-      self.dprint(5,'got state for node ',value.name);
+      _dprint(5,'got state for node ',value.name);
       self.update_node_state(value,ev);
   
   def ce_NodeResult (self,ev,value):
@@ -351,9 +356,9 @@ class meqserver_gui (app_proxy_gui):
     try:
       meqds.nodelist.load(meqnl);
     except ValueError:
-      self.dprint(2,"got nodelist but it is not valid, ignoring");
+      _dprint(2,"got nodelist but it is not valid, ignoring");
       return;
-    self.dprintf(2,"loaded %d nodes into nodelist\n",len(meqds.nodelist));
+    _dprintf(2,"loaded %d nodes into nodelist\n",len(meqds.nodelist));
     self.treebrowser.update_nodelist();
       
   def update_node_state (self,node,event=None):
@@ -363,7 +368,7 @@ class meqserver_gui (app_proxy_gui):
     self.gw.update_data_item(udi,node);
     
   def _node_clicked (self,node):
-    self.dprint(2,"node clicked, adding item");
+    _dprint(2,"node clicked, adding item");
     self.gw.add_data_item(makeNodeDataItem(node));
     self.show_gridded_workspace();
     

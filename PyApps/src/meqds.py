@@ -10,6 +10,11 @@ import sets
 import re
 import time
 
+_dbg = verbosity(3,name='meqds');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
+
 class _meqnode_nodeclass(record):
   pass;
 
@@ -167,7 +172,7 @@ def nodeindex (node):
 def subscribe_node_state (node,callback,weak=False):
   ni = nodeindex(node);
   if type(callback) == types.MethodType:
-    print "registering weak method callback";
+    _dprint(2,"registering weak method callback");
     callback = WeakInstanceMethod(callback);
   elif not callable(callback):
     raise TypeError,"callback argument is not a callable";

@@ -223,6 +223,8 @@ class Logger(HierBrowser):
       item.setPixmap(2,pm.pm());
     # apply a log limit
     self.apply_limit(self._limit);
+    # ensure item is visible
+    self.wlistview().ensureItemVisible(item);
     return item;
     
   def _toggle_enable (self,en):
@@ -445,11 +447,9 @@ class app_proxy_gui(verbosity,QMainWindow):
 ##### event relay: reposts message as a Qt custom event for ourselves
   MessageEventType = QEvent.User+1;
   def _relay_event (self,event,value):
-    # print 'eventRelay: ',msg;
     self.dprint(5,'_relay_event:',event,value);
     QApplication.postEvent(self,QCustomEvent(self.MessageEventType,(event,value)));
     self.dprint(5,'_relay_event: event posted');
-    # print 'eventRelay returning';
     
 ##### event handler for timer messages
   def timerEvent (self,event):
@@ -465,7 +465,6 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.dprint(5,'appEvent:',ev,value);
     try:
       report = False;
-  #    print value;
       msgtext = None; 
       if isinstance(value,record):
         for (field,cat) in MessageCategories.items():
@@ -478,19 +477,13 @@ class app_proxy_gui(verbosity,QMainWindow):
       ev0 = ev;
       if int(ev0[-1]) >= 0:
         ev0 = ev0[:-1];
-#      print "ev0:",ev0;
-#      print "ev0 handlers: ",self._ce_handler_map.get(ev0,());
       # execute procedures from the custom map
       for handler in self._ce_handler_map.get(ev0,()):
         handler(ev,value);
-      # print 'customEvent returning';
     except:
       (exctype,excvalue,tb) = sys.exc_info();
       self.dprint(0,'exception',str(exctype),'while handling event ',ev);
       traceback.print_exc();
-      #self.dprint(0,'exception value is',excvalue);
-      #self.dprint(2,'event value was',value);
-      #print_tb();
       
 ##### custom event handlers for various messages
   def ce_Hello (self,ev,value):
@@ -521,10 +514,9 @@ class app_proxy_gui(verbosity,QMainWindow):
       else:                 
         self.pause_button.setIconSet(pixmaps.pause_normal.iconset());
         QToolTip.add(self.pause_button,"pause the application");
-      # print self.app.paused,self.pause_requested;
       # if requested pause/resume state is reached, get button up and clear
       if self.pause_requested == self.app.paused:
-        print 'Pause state reached!'
+        self.dprint(3,'Pause state reached!');
         self.pause_button.setDown(False);
         self.pause_requested = None;
     # update window title        
@@ -590,10 +582,10 @@ class MainAppClass (QApplication):
       raise "Only one MainApp may be started";
     QApplication.__init__(self,args);
     self.setDesktopSettingsAware(True);
-    # set 10pt font as default
-    font = self.font();
-    font.setPointSize(10);
-    self.setFont(font);
+#    # set 10pt font as default
+#    font = self.font();
+#    font.setPointSize(12);
+#    self.setFont(font);
 #    font = QFont("Georgia",10);
 #    font.setStyleHint(QFont.System);
 #    self.setFont(font);

@@ -10,7 +10,10 @@ import re
 import gc
 import types
 
-dbg = verbosity(3,name='gw');
+_dbg = verbosity(3,name='gw');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
 
 _reg_viewers = {};
 
@@ -426,8 +429,7 @@ class GridCell (object):
 
   # wipe: deletes contents in preperation for inserting other content
   def wipe (self):
-    print 'wiping ',id(self);
-    dbg.dprint(5,'GridCell: wiping cell ',self.udi());
+    _dprint(5,'GridCell: wiping cell ',id(self));
     self.set_pinned(False);
     self._remove_viewer();
     if self._dataitem:
@@ -440,7 +442,7 @@ class GridCell (object):
 
   # close(): wipe, hide everything, and emit a closed signal
   def close (self):
-    dbg.dprint(5,'GridCell: clearing cell ',self.udi());
+    _dprint(5,'GridCell: clearing cell ',id(self));
     self.wipe();
     self._wtop.hide();
     self._control_box.hide();
@@ -459,9 +461,8 @@ class GridCell (object):
   MaxDescLen = 40;
 
   def set_data_item (self,dataitem,pin=None,viewer=None):
-    print 'content:',self._dataitem;
+    _dprint(5,'GridCell.set_data_item(): content is',self._dataitem);
     if not self.is_empty():
-      print 'wiping';
       self.wipe();
     dataitem.attach_cell(self);
     self._dataitem = dataitem;
@@ -505,7 +506,7 @@ class GridCell (object):
     vopts = viewopts.copy();
     vopts.update(self._dataitem.viewopts.get(None,{}));
     for (vclass,vo) in self._dataitem.viewopts.iteritems():
-      print vclass,viewer_class;
+      _dprint(5,'GridCell.change_viewer:',vclass,viewer_class);
       if vclass and issubclass(viewer_class,vclass):
         vopts.update(vo);
     # create a viewer
@@ -515,7 +516,7 @@ class GridCell (object):
     # catch failures
     except:
       ei = sys.exc_info();
-      print 'Error creating a plug-in viewer of class',viewer,'for item',self._dataitem.udi;
+      print 'Error creating a plug-in viewer of class',viewer_class,'for item',self._dataitem.udi;
       print 'Exception is:',ei;
       traceback.print_tb(ei[2]);
       if not self._viewer:
@@ -529,7 +530,7 @@ class GridCell (object):
       self._viewer = viewer;
       self._viewer_widget = widget = viewer.wtop();
       self._top_lo.addWidget(widget,1000);
-      print 'widget added';
+      _dprint(5,'GridCell: widget added');
       # connect displayDataItem() signal from viewer to be resent from top widget
       QWidget.connect(widget,PYSIGNAL("displayDataItem()"),
                       self.wtop(),PYSIGNAL("displayDataItem()"));
@@ -561,7 +562,7 @@ class GridCell (object):
     self._refit_size();
     
   def update_data (self,dataitem,flash=True):
-    print 'update data',dataitem;
+    _dprint(5,'GridCell: update data',dataitem);
     if self._viewer:
       self._dataitem = dataitem;
       self._viewer.set_data(dataitem);
@@ -636,7 +637,7 @@ class GriddedPage (object):
   def set_layout (self,nlo):
     (nrow,ncol) = self._cur_layout = self._layouts[nlo];
     self._cur_layout_num = nlo;
-#    print "setting layout:",self._cur_layout;
+    _dprint(5,"setting layout:",self._cur_layout);
     for row in self._rows[:nrow]:
       for cell in row.cells()[:ncol]: 
         # if not cell.is_empty(): 
@@ -666,10 +667,10 @@ class GriddedPage (object):
     return self._topgrid;
     
   def clear (self):
-    dbg.dprint(2,'GriddedPage: clearing');
+    _dprint(2,'GriddedPage: clearing');
     self.set_layout(0);
     for row in self._rows:
-      dbg.dprint(2,'GriddedPage: clearing row',row);
+      _dprint(2,'GriddedPage: clearing row',row);
       map(lambda cell:cell.close(),row.cells());
     
   # Finds a free cell if one is available, switches to the next layout
@@ -846,14 +847,14 @@ class GriddedWorkspace (object):
     self.current_page().rearrange_cells();
     self.current_page().align_layout();
   def _add_more_panels (self):
-#    print "adding more panels";
+    _dprint(5,"adding more panels");
     self.current_page().next_layout();
   def _set_layout_button (self):
     page = self.current_page();
     (nlo,nx,ny) = page.current_layout();
     self._new_panel.setDisabled(nlo >= page.num_layouts());
   def clear (self):
-    dbg.dprint(5,'GriddedWorkspace: clearing');
+    _dprint(5,'GriddedWorkspace: clearing');
     self._maintab.page(0)._page.clear();
     for p in range(1,self._maintab.count()):
       page = self._maintab.page(p);
@@ -892,7 +893,7 @@ class GriddedWorkspace (object):
           if arg and not isinstance(arg,tp):
             raise TypeError,'argument not of type '+str(tp);
       return arg;
-    print item,item.viewer,item.default_viewer;
+    _dprint(5,'add_data_item:',item,item.viewer,item.default_viewer);
     # add page if requested
     if newpage:
       self.add_page();

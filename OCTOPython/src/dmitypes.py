@@ -6,8 +6,8 @@ import sys
 import traceback
 import types
 import weakref
-
-from numarray import array;
+import re
+from numarray import array
 
 # 
 # === class hiid ===
@@ -361,13 +361,44 @@ def make_scope (scope):
 # Verbosity includes methods for verbosity levels and conditional printing
 #
 class verbosity:
-  def __init__(self,verbose=0,stream=sys.stderr,name=None):
-    self.verbose = verbose;
-    self.stream = stream;
-    self.vobj_name = name or self.__class__.__name__;
+  _verbosities = {};
+  def __init__(self,verbose=0,stream=sys.stderr,name=None,tb=2):
+    if not __debug__:
+      verbose=0;
+    (self.verbose,self.stream,self._tb) = (verbose,stream,tb);
+    # setup name
+    if name:
+      self.verbosity_name = name;
+    else:
+      if self.__class__ is verbosity:
+        raise RuntimeError,"""When creating a verbosity object directly,
+          a name must be specified.""";
+      self.verbosity_name = name = self.__class__.__name__;
+    # look for argv to override debug levels
+    patt = re.compile('-d'+name+'=(.*)$');
+    for arg in sys.argv[1:]:
+      try: 
+        self.verbose = int(patt.match(arg).group(1));
+      except: pass;
+    # add name to map
+    self._verbosities[name] = self;
+    print "Registered verbose context:",name,"=",self.verbose;
+  def __del__ (self):
+    del self._verbosities[self.verbosity_name];
+  def dheader (self,tblevel=-2):
+    if self._tb:
+      tb = traceback.extract_stack();
+      (filename,line,funcname,text) = tb[tblevel];
+      filename = filename.split('/')[-1];
+      if self._tb > 1:
+        return "%s(%s:%d:%s): "%(self.get_verbosity_name(),filename,line,funcname);
+      else:
+        return "%s(%s): "%(self.get_verbosity_name(),funcname);
+    else:
+      return self.get_verbosity_name()+': ';
   def dprint(self,level,*args):
     if level <= self.verbose:
-      self.stream.write(self.object_name()+': ');
+      self.stream.write(self.dheader(-3));
       self.stream.write(string.join(map(str,args),' ')+'\n'); 
   def dprintf(self,level,format,*args):
 #    print format,args;
@@ -376,7 +407,7 @@ class verbosity:
       except: 
         self.stream.write('dprintf format exception: ' + str(format) + '\n');
       else:
-        self.stream.write(self.object_name()+': ');
+        self.stream.write(self.dheader(-3));
         self.stream.write(s);
   def get_verbose(self):
     return self.verbose;
@@ -384,10 +415,10 @@ class verbosity:
     self.verbose = verbose;
   def set_stream(self,stream):
     self.stream = stream;
-  def set_vobj_name(self,name):
-    self.vobj_name = name;
-  def object_name (self):
-    return self.vobj_name;
+  def set_verbosity_name(self,name):
+    self.verbosity_name = name;
+  def get_verbosity_name (self):
+    return self.verbosity_name;
   
   
   

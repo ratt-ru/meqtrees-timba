@@ -19,7 +19,7 @@ app_defaults.debuglevels.update({
   'MeqSpigot'    :2,
   'MeqVisHandler':2,
   'MeqServer'    :2,
-  'meqserver'    :1  
+  'meqserver'    :1
 });
 
 #-------- update default arguments
