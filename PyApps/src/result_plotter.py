@@ -36,9 +36,6 @@ class ResultPlotter(BrowserPlugin):
     """
     self._rec = None;
     self._hippo = None
-# this QLabel is needed so that Oleg's browser is
-# happy that a child is present
-#    self._wtop = QLabel("",parent);
     self._visu_plotter = None
     self._parent = parent;
     self._window_controller = None
@@ -100,34 +97,76 @@ class ResultPlotter(BrowserPlugin):
       return False
 
   def do_leafwork(self, leaf):
-    self._visu_plotter.plot_data('item_label',leaf)
+    self._visu_plotter.plot_data(leaf)
 
-  def tree_traversal (self, node):
+  def tree_traversal (self, node, label=None):
+    _dprint(3,' ');
     _dprint(3,' ******* ');
     _dprint(3,'in tree traversal with node having length ', len(node));
     _dprint(3,' ******* ');
+    if label is None:
+      label = 'root'
+    _dprint(3, 'node has incoming label ', label)
     if isinstance(node, dict):
+      _dprint(3, 'node is a dict')
       self.do_prework(node)
       if not self.is_leaf(node):
+        if node.has_key('label'):
+          _dprint(3, 'tree: dict node has label(s) ', node['label'])
+          if not node['label'] == label:
+            if isinstance(node['label'], tuple):
+              _dprint(3, 'tree: dict node label(s) is tuple')
+              temp = list(node['label'])
+              for j in range(0, len(temp)):
+                tmp = label + ' > ' + temp[j] 
+                temp[j] = tmp
+              node['label'] = tuple(temp)
+            else:
+              temp = label + ' > ' + node['label']
+              node['label'] = temp
         if node.has_key('value'):
-          self.tree_traversal(node['value'])
+          self.tree_traversal(node['value'], node['label'])
       else:
+        _dprint(3, 'tree: leaf node has label(s) ', node['label'])
+        _dprint(3, 'tree: leaf node has incoming label ', label)
         self.do_leafwork(node)
 #      self.do_postwork(node)
     if isinstance(node, list):
+      _dprint(3, 'node is a list')
       for i in range(len(node)):
+        temp_label = None
+        if isinstance(label, tuple):
+          temp_label = label[i]
+        else:
+          temp_label = label
+          
         if isinstance(node[i], dict):
-          self.tree_traversal(node[i])
+          if node[i].has_key('label'):
+            _dprint(3, 'tree: list node number has label(s) ', i, ' ',node[i]['label'])
+            if isinstance(node[i]['label'], tuple):
+              _dprint(3, 'tree: list node label(s) is tuple')
+              temp = list(node[i]['label'])
+              for j in range(0, len(temp)):
+                tmp = temp_label + ' > ' + temp[j]
+                temp[j] = tmp
+              node[i]['label'] = tuple(temp)
+            else:
+              temp = label + ' > ' + node[i]['label']
+              node[i]['label'] = temp
+          self.tree_traversal(node[i], node[i]['label'])
 
   def display_visu_data (self):
     """ extract group_label key from incoming visu data record and
       create a visu_plotter object to plot the data 
     """
 # traverse the plot record tree and retrieve data
+    _dprint(3, ' ')
+    _dprint(3, 'calling tree_traversal from display_visu_data')
     self.tree_traversal( self._rec.visu)
 # now update the plot for 'realvsimag' or 'errors' plot
     if not self._visu_plotter is None and not self._plot_type == 'spectra':
-      self._wtop.replot()
+      self._visu_plotter.update_plot()
+      self._visu_plotter.reset_data_collectors()
 
   def display_vells_data (self, plot_array):
     """ extract parameters and data from an array that is
@@ -155,7 +194,6 @@ class ResultPlotter(BrowserPlugin):
 # figure out type and rank of incoming array
     array_dim = len(plot_array.shape)
     array_rank = plot_array.rank
-#    print "array rank is ", array_rank
     is_vector = False;
     is_one_point_image = False;
     n_rows = plot_array.shape[0]
@@ -182,17 +220,15 @@ class ResultPlotter(BrowserPlugin):
       image = []
       for j in range(0, n_rows ) :
         for i in range(0, n_cols) :
-#          print self._label, 'image appending ', plot_array[j][i]
           image.append(plot_array[j][i])
       if self._image_ntuple.isValidLabel(self._label):
         if len(image) != self._image_ntuple.rows():
-          print "Number of rows has changed! Clearing tuple!"
+          _dprint(3, "Number of rows has changed! Clearing tuple!")
           self._image_ntuple.clear()
         self._image_ntuple.replaceColumn (self._label,image)
       else:
 # add columns for new image data
         self._image_ntuple.addColumn (self._label,image)
-#        print "result_plotter added image column"
 # add time and frequency columns for xyz plots
 # first add frequency column
         if self._add_time_freq:
@@ -201,7 +237,6 @@ class ResultPlotter(BrowserPlugin):
           freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
           x_step = freq_range / n_rows
           start_freq = self._rec.cells.domain.freq[0] + 0.5 * x_step 
-#          print self._label, 'image appending ', plot_array[j][i]
           for j in range(0, n_rows ) :
             for i in range(0, n_cols) :
               if n_rows == 1:
@@ -274,7 +309,7 @@ class ResultPlotter(BrowserPlugin):
         image.append(flattened_array[j])
       if self._simple_ntuple.isValidLabel(self._label):
         if len(image) != self._simple_ntuple.rows():
-          print "Number of rows has changed! Clearing tuple!"
+          _dprint(3, "Number of rows has changed! Clearing tuple!")
           self._simple_ntuple.clear()
         self._simple_ntuple.replaceColumn (self._label,image)
       else:
@@ -369,7 +404,6 @@ class ResultPlotter(BrowserPlugin):
           number_of_perturbations = len(self._rec.vellsets[i].perturbations)
           for j in range(number_of_perturbations):
             perturb = self._rec.vellsets[i].perturbations[j]
-#            print "self._perturbations[j] ",  perturb
 
 # handle "perturbed_value"
         if self._rec.vellsets[i].has_key("perturbed_value"):
