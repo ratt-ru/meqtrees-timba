@@ -252,6 +252,5 @@ do
   echo "Building packages in build/$variant ..."
   echo "" >> build.log
   echo "***** Building packages in build/$variant ..." >> build.log
-  echo "(mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake)"
   eval "(mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake)" >> build.log 2>&1
 done
