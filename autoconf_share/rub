@@ -122,6 +122,12 @@ do
   # Do we have to build after the checkout/update?
   elif [ "$1" = -build ]; then
     shift
+    case "$1" in
+    -*)
+      echo "-build argument must be a variant; option '$1' was given"
+      exit 1
+      ;;
+    esac
     variants="$1"
     shift
   elif [ "$1" = -nobuild ]; then
@@ -174,6 +180,14 @@ if [ $distclean = 1 ]; then
   conf=1
 fi
 
+# Check if -build is given if other options needing build are given.
+if [ $install != 0  -o  $clean != 0  -o  $check != 0  -o  $conf != 0 ]; then
+  if [ "$variants" = "" ]; then
+    echo "Error, -build option is required with -conf, -(dist)clean, -check and -install"
+    exit 1
+  fi
+fi
+
 # Check if in correct directory.
 curwd=`pwd`
 curwdl=`basename $curwd`
@@ -189,7 +203,13 @@ fi
 touch allpkg.tmp rub.log
 
 # First update bootstrap and autoconf_share.
-$cvscomm update bootstrap
+if [ -f bootstrap ]; then
+  echo "Update of LOFAR/bootstrap"
+  $cvscomm update bootstrap >> rub.log 2>&1
+else
+  echo "Checkout of LOFAR/bootstrap"
+  (cd .. && $cvscomm checkout LOFAR/bootstrap) >> rub.log 2>&1
+fi
 ${pgmpath}rub1 autoconf_share "" 1 "$cvscomm" "$updq" || exit 1
 \rm -f allpkg.tmp
 touch allpkg.tmp
@@ -219,6 +239,7 @@ do
 done
 \rm -f allpkg.tmp
 echo "Created lofarconf.in.private containing all these packages"
+pkgs=`cat lofarconf.in.private`
 
 echo "See rub.log for the cvs update/checkout details"
 egrep "^C " rub.log > greplog.tmp 2>&1
@@ -243,25 +264,26 @@ bootcmd=
 confcmd=
 premake=
 postmake=
+# Make sure bootstrap is executable; Eclipse does not set x bit.
 if [ $conf = 1 ]; then
-  bootcmd="./bootstrap; "
+  bootcmd="chmod +x bootstrap; ./bootstrap"
   confcmd="../../lofarconf; "
-  echo "Packages will be bootstrapped and configured first"
+  echo "Packages will be bootstrapped and configured"
 fi
 if [ $clean = 1 ]; then
   premake="make clean; "
-  echo "Packages will be cleaned first"
+  echo "Packages will be cleaned"
 elif [ $clean = 2 ]; then
   premake="make distclean; ../../lofarconf; "
-  echo "Packages will be distcleaned first"
+  echo "Packages will be distcleaned"
 fi
 if [ $check = 1 ]; then
   postmake="make check; "
-  echo "Packages will be checked at the end"
+  echo "Packages will be checked"
 fi
 if [ $install = 1 ]; then
   postmake="$postmake make install; "
-  echo "Packages will be installed at the end"
+  echo "Packages will be installed"
 fi
 
 # Build all variants.
@@ -272,5 +294,12 @@ do
   echo "Building packages in build/$variant ..."
   echo "" >> build.log
   echo "***** Building packages in build/$variant ..." >> build.log
-  eval "(mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake)" >> build.log 2>&1
+  for pkg in $pkgs
+  do
+    echo "  building package $pkg ..."
+    echo "" >> build.log
+    echo " *** Building package $pkg ***" >> build.log
+    echo "(cd $pkg; mkdir -p build/$variant; $bootcmd; cd build/$variant; $confcmd $premake make; $postmake)" >> build.log
+    eval "(cd $pkg; mkdir -p build/$variant; $bootcmd; cd build/$variant; $confcmd $premake make; $postmake)" >> build.log 2>&1
+  done
 done
