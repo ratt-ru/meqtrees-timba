@@ -26,3 +26,5 @@ liboctopussy_la_SOURCES = Dispatcher.cc Octopussy.cc Message.cc  MsgAddress.cc \
 include $(lofar_sharedir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
+
+AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL

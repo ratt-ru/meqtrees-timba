@@ -11,7 +11,7 @@
 #include <DMI/Global-Registry.h>
 
 #include "GlishClientWP.h"
-#include "BlitzToAips.h"
+#include <Common/BlitzToAips.h>
 #include "GlishUtil.h"
 
 static int dum = aidRegistry_OCTOGlish();

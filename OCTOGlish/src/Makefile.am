@@ -27,3 +27,5 @@ dist_glish_SCRIPTS = dmitypes.g octopussy.g
   
 include $(lofar_sharedir)/Makefile.aids
 include $(lofar_sharedir)/Makefile.common
+
+AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL

@@ -4,6 +4,8 @@
 // GWClientWP
 #include "OCTOPUSSY/GWClientWP.h"
 
+using LOFAR::num2str;  // defined in <Common/Debug.h>
+
 const Timeval ReconnectTimeout(.2),
               ReopenTimeout(2.0),
 // how long to try connect() (if operation in progress is returned)

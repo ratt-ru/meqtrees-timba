@@ -9,7 +9,7 @@ LOCALSRCS = \
 
 DOCHDRS		= $(LOCALHDRS) \
             $(addsuffix .h,$(basename $(LOCALSRCS))) 
-  
+
 lib_LTLIBRARIES 	= libmeq.la
 
 libmeq_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) \
@@ -34,7 +34,7 @@ MAKEDEFREC = $(lofar_sharedir)/../CEP/CPA/PSS4/MEQ/src/makedefrecs.pl
 $(DEFREC_MAP): $(DOCHDRS) $(MAKEDEFREC)
 	$(MAKEDEFREC) $@ $(addprefix $(srcdir)/,$(DOCHDRS))
 # ---------
-  
+
 # place scripts into libexec/glish/meq
 glishdir = $(libexecdir)/glish/meq
 dist_glish_SCRIPTS = $(DEFREC_MAP) meqtypes.g
@@ -49,3 +49,5 @@ all install: defrecs
 
 include $(lofar_sharedir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
+
+AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL

@@ -18,7 +18,7 @@
 #include <DMI/NCIter.h>
 
 #include "AID-OCTOGlish.h"
-#include "BlitzToAips.h"
+#include <Common/BlitzToAips.h>
 #include "GlishUtil.h"
 
 InitDebugContext(GlishUtil::GlishUtilDebugContext,"Glish");

@@ -11,3 +11,5 @@ dist_glish_SCRIPTS = app_proxy.g app_defaults.g
 include $(lofar_sharedir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
+
+AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL

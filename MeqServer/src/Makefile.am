@@ -46,3 +46,5 @@ dist_glish_SCRIPTS = $(DEFREC_MAP) meqserver.g defrecs.g \
 include $(lofar_sharedir)/Makefile.common
 include $(lofar_sharedir)/Makefile.aids
 
+
+AM_CPPFLAGS = -DMAKE_LOFAR_SYMBOLS_GLOBAL
