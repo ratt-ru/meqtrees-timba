@@ -99,7 +99,7 @@ public:
   // Get domain.
     //##ModelId=3F86886E02D2
   const Domain& domain() const
-    { FailWhen(!domain_,"no domain"); return *domain_; }
+    { FailWhen(!domain_.valid(),"no domain"); return *domain_; }
 
   // returns vector of cell centers along specified axis 
   const LoVec_double & center (int iaxis) const
@@ -204,7 +204,7 @@ private:
   DataRecord & getSubrecord (const Hook &hook);
   
     //##ModelId=3F86BFF80150
-  const Domain* domain_;
+  CountedRef<Domain>  domain_;
     //##ModelId=3F86886E02AC
   LoShape       shape_;    
   LoVec_double  grid_     [DOMAIN_NAXES];

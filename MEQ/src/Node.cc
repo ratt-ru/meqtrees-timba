@@ -693,7 +693,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   // (2) A cached RES_VOLATILE code requires an exact ID match
   //     (i.e. volatile results recomputed for any different request)
   // (3) Otherwise, do a masked compare using the cached result code
-  if( !req.id().empty() &&
+  if( !req.id().empty() && !current_reqid_.empty() && 
       (cache_retcode_&RES_VOLATILE 
         ? req.id() == current_reqid_
         : maskedCompare(req.id(),current_reqid_,cache_retcode_) ) )

@@ -35,7 +35,7 @@ const HIID Cells::axis_id_[] = { FFreq , FTime };
 
 //##ModelId=3F86886E02C1
 Cells::Cells ()
-: domain_(0),shape_(0,0)
+: shape_(0,0)
 {
 }
 
@@ -58,7 +58,11 @@ Cells::Cells (const Domain& domain,int nfreq,int ntime)
 {
   // setup datarecord
   // domain
-  (*this)[FDomain] <<= domain_ = (domain.refCount() ? &domain : new Domain(domain));
+  if( domain.refCount() )
+    domain_.attach(domain,DMI::READONLY);
+  else
+    domain_.attach(new Domain(domain),DMI::ANON|DMI::READONLY);
+  (*this)[FDomain] <<= domain_.copy();
   // grid subrecord
   DataRecord &grid = (*this)[FGrid] <<= new DataRecord;
   setRecVector(grid_[0],grid[axisId(FREQ)],nfreq);
@@ -100,7 +104,8 @@ Cells::Cells (const Cells &a,const Cells &b,int resample)
   // setup datarecord
   // domain
   DbgAssert(*(a.domain_) == *(b.domain_));
-  (*this)[FDomain] <<= domain_ = a.domain_;
+  domain_.copy(a.domain_,DMI::READONLY);
+  (*this)[FDomain] <<= domain_.copy();
   // subrecords
   DataRecord &grid = (*this)[FGrid] <<= new DataRecord;
   DataRecord &cellsize = (*this)[FCellSize] <<= new DataRecord;
@@ -132,7 +137,8 @@ Cells::Cells (const Cells &other,const int ops[DOMAIN_NAXES],const int args[DOMA
 {
   // setup datarecord
   // domain
-  (*this)[FDomain] <<= domain_ = other.domain_;
+  domain_.copy(other.domain_,DMI::READONLY);
+  (*this)[FDomain] <<= domain_.copy();
   // subrecords
   DataRecord &grid = (*this)[FGrid] <<= new DataRecord;
   DataRecord &cellsize = (*this)[FCellSize] <<= new DataRecord;
@@ -332,7 +338,8 @@ void Cells::recomputeDomain ()
   double y0 = grid_[1](0) - cell_size_[1](0)/2;
   double y1 = grid_[1](ny-1) + cell_size_[1](ny-1)/2;
   
-  (*this)[FDomain].replace() <<= domain_ = new Domain(x0,x1,y0,y1);
+  domain_.attach(new Domain(x0,x1,y0,y1),DMI::ANON|DMI::READONLY);
+  (*this)[FDomain].replace() <<= domain_.copy();
 }
 
 
@@ -348,7 +355,7 @@ void Cells::validateContent ()
          hseg = (*this)[FSegments];
     if( hdom.exists() )
     {
-      domain_ = hdom.as_p<Domain>();
+      domain_.attach(hdom.as_p<Domain>());
       DataRecord &rgrid = hgrid.as_wr<DataRecord>();
       DataRecord &rcs = hcs.as_wr<DataRecord>();
       DataRecord &rseg = hseg.as_wr<DataRecord>();
@@ -375,7 +382,7 @@ void Cells::validateContent ()
       FailWhen(hgrid.exists() || hcs.exists() || hseg.exists(),
                "domain not defined");
       // make empty cells
-      domain_ = 0;
+      domain_.detach();
       for( int i=0; i<DOMAIN_NAXES; i++ )
       {
         grid_[i].free();
@@ -409,10 +416,10 @@ void Cells::getCellStartEnd (LoVec_double &start,LoVec_double &end,int iaxis) co
 
 int Cells::compare (const Cells &that) const
 {
-  if( domain_ == 0 ) // are we empty?
-    return that.domain_ == 0 ? 0 : -1; // equal if that is empty too, else not
+  if( !domain_.valid() ) // are we empty?
+    return !that.domain_.valid(); // equal if that is empty too, else not
   // check for equality of domains & shapes
-  if( that.domain_ == 0 || 
+  if( !that.domain_.valid() || 
       domain() != that.domain() )
     return -1; 
   if( shape() != that.shape() )
@@ -426,12 +433,7 @@ int Cells::compare (const Cells &that) const
 //##ModelId=400E530403DE
 bool Cells::operator== (const Cells& that) const
 {
-  if( domain_ == 0 ) // are we empty?
-    return that.domain_ == 0; // equal if that is empty too, else not
-  // check for equality of domains & shapes
-  if( that.domain_ == 0 || 
-      domain() != that.domain() || 
-      shape() != that.shape() )
+  if( compare(that) )
     return false;
   // check axes one by one
   for( int i=0; i<DOMAIN_NAXES; i++ )
