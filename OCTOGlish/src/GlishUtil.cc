@@ -16,6 +16,7 @@
 #include <DMI/AIPSPP-Hooks.h>
 #include <DMI/Global-Registry.h>
 #include <DMI/ContainerIter.h>
+#include <Common/BlitzToAips.h>
 
 #include "AID-OCTOGlish.h"
 #include "GlishUtil.h"
@@ -269,6 +270,36 @@ casa::GlishValue GlishUtil::objectToGlishValue (const DMI::BObj &obj,bool adjust
   return objectToBlockRec(obj);
 }
 
+// createSubclass:
+// Helper templated function. If val::dmi_actual_type exists, it is interpreted
+// as a type string, and an object of that type is created and returned 
+// (must be a subclass of Base). Otherwise, a Base is created & returned. 
+// If val::dmi_actual_type is not a legal type string, or not a subclass of Base,
+// an exception is thrown.
+// The ref is attached to the newly created object.
+template<class Base>
+Base * GlishUtil::createSubclass (ObjRef &ref,const casa::GlishValue &val)
+{
+  Base *pbase;
+  // the dmi_actual_type attribute specifies a subclass 
+  if( val.attributeExists("dmi_actual_type" ) )
+  {
+    String typestr;
+    GlishArray tmp = val.getAttribute("dmi_actual_type"); tmp.get(typestr);
+    dprintf(4)("real object type is %s\n",typestr.c_str());
+    DMI::BObj * bo = DynamicTypeManager::construct(TypeId(typestr));
+    ref <<= bo;
+    pbase = dynamic_cast<Base *>(bo);
+    FailWhen(!pbase,string(typestr)+"is not a subclass of "+TpOfPtr(pbase).toString());
+  }
+  else
+  {
+    ref <<= pbase = new Base;
+  }
+  dprintf(5)("%s created at address %x\n",pbase->objectType().toString().c_str(),(int)pbase);
+  return pbase;
+}
+
 // helper function to create a DMI::Vec from a GlishArray
 template<class T> 
 void GlishUtil::initDMIVec (DMI::Vec &field,const GlishArray &arr,bool isScalar)
@@ -289,8 +320,18 @@ void GlishUtil::newDMINumArray (ObjRef &ref,const GlishArray &arr)
 {
   Array<T> array;
   arr.get(array);
-  ref <<= new DMI::NumArray(array);
+  DMI::NumArray & numarr = *GlishUtil::createSubclass<DMI::NumArray>(ref,arr);
+  // init numarray with AIPS++ type and shape
+  numarr.init(typeIdOf(T),array.shape(),DMI::NOZERO);
+  // get array atorage and copy over to NumArray
+  Bool delstor;
+  const T * storage = array.getStorage(delstor);
+  memcpy(numarr.getDataPtr(),storage,numarr.size()*numarr.elementSize());
+  array.freeStorage(storage,delstor);
+  // validate content
+  numarr.validateContent(true);
 }
+
 
 // helper function creates a DMI::NumArray from a GlishArray
 ObjRef GlishUtil::makeDMINumArray (const GlishArray &arr,bool isIndex)
@@ -419,36 +460,6 @@ void GlishUtil::makeDMIVec (DMI::Vec &field,const GlishArray &arr,bool isIndex,b
     default:
         dprintf(2)("warning: unsupported Glish array type %d, ignoring\n",arr.elementType());
   }
-}
-
-// createSubclass:
-// Helper templated function. If val::dmi_actual_type exists, it is interpreted
-// as a type string, and an object of that type is created and returned 
-// (must be a subclass of Base). Otherwise, a Base is created & returned. 
-// If val::dmi_actual_type is not a legal type string, or not a subclass of Base,
-// an exception is thrown.
-// The ref is attached to the newly created object.
-template<class Base>
-Base * GlishUtil::createSubclass (ObjRef &ref,const casa::GlishValue &val)
-{
-  Base *pbase;
-  // the dmi_actual_type attribute specifies a subclass 
-  if( val.attributeExists("dmi_actual_type" ) )
-  {
-    String typestr;
-    GlishArray tmp = val.getAttribute("dmi_actual_type"); tmp.get(typestr);
-    dprintf(4)("real object type is %s\n",typestr.c_str());
-    DMI::BObj * bo = DynamicTypeManager::construct(TypeId(typestr));
-    ref <<= bo;
-    pbase = dynamic_cast<Base *>(bo);
-    FailWhen(!pbase,string(typestr)+"is not a subclass of "+TpOfPtr(pbase).toString());
-  }
-  else
-  {
-    ref <<= pbase = new Base;
-  }
-  dprintf(5)("%s created at address %x\n",pbase->objectType().toString().c_str(),(int)pbase);
-  return pbase;
 }
 
 // Converts any glish value to an object
