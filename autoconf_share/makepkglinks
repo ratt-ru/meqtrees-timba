@@ -34,9 +34,9 @@ fi
 
 # Remove the full package name from the include and library path to be able
 # to derive the library path of subpackages from it.
-incdir1=`echo $incdir | sed -e "s%/$fullnm/.*%/%" -e "s%$fullnm$%%"`
+incdir1=`echo $incdir | sed -e "s%/$fullnm/.*%%" -e "s%/$fullnm$%%"`
 incdir2=`echo $incdir | sed -e "s%.*/$fullnm%%"`
-libdir1=`echo $libdir | sed -e "s%/$fullnm/.*%/%" -e "s%$fullnm$%%"`
+libdir1=`echo $libdir | sed -e "s%/$fullnm/.*%%" -e "s%/$fullnm$%%"`
 libdir2=`echo $libdir | sed -e "s%.*/$fullnm%%"`
 
 # Create symlink to the include directory and to the build directory
@@ -56,13 +56,13 @@ if [ "$option" = "0" ]; then
       # Only keep package name possibly followed by ,option.
       nm=`echo $pkg | sed -e "s/.*lofar_PACKAGE//" -e "s/ //g" -e "s/.*(//" -e "s/).*//"`
       # Check if the package has to be examined recursively.
-      opt=`echo $nm | sed -e "/.*,//"`
+      opt=`echo $nm | sed -e "s/.*,//"`
       if [ "$opt" = ""  -o  "$opt" = "$nm" ]; then
         opt=$option;
       fi
-      nm=`echo $nm | sed -e "/,.*//"`
+      nm=`echo $nm | sed -e "s/,.*//"`
       cnt=`expr $count + 1`
-      $0 $nm $incdir1/$nm/$incdir2 $libdir1/$nm/$libdir2 $inclin $liblin $opt $cnt  ||  exit 1
+      $0 $nm $incdir1/$nm$incdir2 $libdir1/$nm$libdir2 $inclin $liblin $opt $cnt  ||  exit 1
     done
   done
 fi
