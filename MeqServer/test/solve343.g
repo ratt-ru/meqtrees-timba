@@ -142,8 +142,8 @@ const sta_dft_tree := function (st,src='')
               lmn = fq_name('lmn',src),uvw=uvw ]);
   # add antenna gains/phases
   gain := meq.node('MeqPolar',fq_name('G',st),[link_or_create=T],children=meq.list(
-              meq.parm(fq_name('GA',st),1.0,groups="a"),
-              meq.parm(fq_name('GP',st),0.0,groups="a") ) );
+              meq.parm(fq_name('GA',st),1.0,[table_name='3C343.mep'],groups="a"),
+              meq.parm(fq_name('GP',st),0.0,[table_name='3C343.mep'],groups="a") ) );
               
   return meq.node('MeqMultiply',fq_name('dft',src,st),[link_or_create=T],
                     children=meq.list(dft,gain));
