@@ -1,0 +1,85 @@
+#!/bin/sh
+
+# Find the package name from the current build area
+# which should be something like build/gnu_opt.
+# The result is echoed to stdout.
+# If the package name cannot be found, it echoes an error message
+# and returns an error status.
+#
+# Use as
+#    findpkg [-l]
+#
+# The -l option causes a few more variables to be echoed.
+# In that case it echoes:
+#  package name      (e.g. BaseSim)
+#  compiler type     (e.g. gnu)
+#  build variant     (e.g. opt)
+
+
+# Get the current directory.
+lfr_curdir=`pwd`
+# Get the LOFAR base from the full path of this script.
+lfr_sdir=`dirname $0`
+lfr_base=`(cd $lfr_sdir && pwd) | sed -e "s%/LOFAR/.*%/LOFAR%"`
+
+# Try to determine the build area and the package name.
+# Either the build area is a subdirectory of the package or the
+# package is a subdirectory of the build area.
+# So strip until 'build' from the path. If a single name
+# is left, we know that the build is a directory of the package.
+lfr_rest=`echo $lfr_curdir/ | sed -e "s%.*/build/%%"`;
+if [ "$lfr_rest" = "$lfr_curdir/" ]; then
+  lfr_error=1;
+elif [ "$lfr_rest" = "" ]; then
+  lfr_error=1;
+fi
+
+if [ "$lfr_error" = "" ]; then
+  lfr_rest=`echo $lfr_rest | sed -e "s%/\$%%"`;
+  lfr_cvdir=`echo $lfr_rest | sed -e "s%/.*%%"`;
+  if [ "$lfr_cvdir" = "$lfr_rest" ]; then
+    # We have to find the package name.
+    # Although the build area is a subdirectory of the package,
+    # it still does not mean it is in the LOFAR tree.
+    # So try to match the path before 'build' with the tree below LOFAR.
+    lfr_pkg=`echo $lfr_curdir | sed -e "s%/build/.*%%"`;
+    while [ ! -d ${lfr_base}/${lfr_pkg} ]
+    do
+      lfr_tdir=`echo $lfr_pkg | sed -e "s%[^/]*/%%"`;
+      if [ "$lfr_tdir" = "$lfr_pkg" ]; then
+        lfr_error=1;
+	break;
+      fi
+      lfr_pkg=$lfr_tdir;
+    done
+  else
+    # Package is subdirectory of build area.
+    # Error if it does not exist.
+    lfr_pkg=`echo $lfr_rest | sed -e "s%$lfr_cvdir/%%"`;
+    if [ ! -d ${lfr_base}/${lfr_pkg} ]; then
+      lfr_error=1;
+    fi
+  fi
+fi
+
+if [ "$lfr_error" != "" ]; then
+  echo "Could not derive package from current build directory";
+  echo "The build directory should be in the source tree like"
+  echo "      LOFAR/'package'/build/'variant'"
+  echo "or in another tree like"
+  echo "      something/build/'variant'/'package'"
+  echo "or    something/'package'/build/'variant'"
+  echo "where variant is, for example, gnu_opt."
+  exit 2;
+fi
+
+# Derive compiler and variant from build area.
+lfr_cmp=`echo $lfr_cvdir | sed -e "s/_.*//"`
+lfr_var=`echo $lfr_cvdir | sed -e "s/.*_//"`
+
+if [ "$1" = "-l" ]; then
+  echo $lfr_pkg $lfr_cmp $lfr_var
+else
+  echo $lfr_pkg;
+fi
+exit 0;

@@ -12,47 +12,10 @@ lfr_curdir=`pwd`
 lfr_sdir=`dirname $0`
 lfr_base=`(cd $lfr_sdir && pwd) | sed -e "s%/LOFAR/.*%/LOFAR%"`
 
-# Try to determine the build area and the package name.
-# Either the build area is a subdirectory of the package or the
-# package is a subdirectory of the build area.
-# So strip until 'build' from the path. If a single name
-# is left, we know that the build is a directory of the package.
-lfr_rest=`echo $lfr_curdir/ | sed -e "s%.*/build/%%"`;
-if [ "$lfr_rest" = "$lfr_curdir/" ]; then
-  lfr_error=1;
-elif [ "$lfr_rest" = "" ]; then
-  lfr_error=1;
-fi
-
-if [ "$lfr_error" = "" ]; then
-  lfr_rest=`echo $lfr_rest | sed -e "s%/\$%%"`;
-  lfr_cvdir=`echo $lfr_rest | sed -e "s%/.*%%"`;
-  if [ "$lfr_cvdir" = "$lfr_rest" ]; then
-    # We have to find the package name.
-    # Although the build area is a subdirectory of the package,
-    # it still does not mean it is in the LOFAR tree.
-    # So try to match the path before 'build' with the tree below LOFAR.
-    lfr_pkg=`echo $lfr_curdir | sed -e "s%/build/.*%%"`;
-    while [ ! -d ${lfr_base}/${lfr_pkg} ]
-    do
-      lfr_tdir=`echo $lfr_pkg | sed -e "s%[^/]*/%%"`;
-      if [ "$lfr_tdir" = "$lfr_pkg" ]; then
-        lfr_error=1;
-	break;
-      fi
-      lfr_pkg=$lfr_tdir;
-    done
-  else
-    # Package is subdirectory of build area.
-    # Error if it does not exist.
-    lfr_pkg=`echo $lfr_rest | sed -e "s%$lfr_cvdir/%%"`;
-    if [ ! -d ${lfr_base}/${lfr_pkg} ]; then
-      lfr_error=1;
-    fi
-  fi
-fi
-
-if [ "$lfr_error" != "" ]; then
+# Find package, lofar root, compiler, variant.
+# Exit if not found.
+lfr_result=`$lfr_base/autoconf_share/findpkg -l`
+if [ $? != 0 ]; then
   echo "Could not derive package from current build directory";
   echo "The build directory should be in the source tree like"
   echo "      LOFAR/'package'/build/'variant'"
@@ -60,12 +23,11 @@ if [ "$lfr_error" != "" ]; then
   echo "      something/build/'variant'/'package'"
   echo "or    something/'package'/build/'variant'"
   echo "where variant is, for example, gnu_opt."
-  exit 1;
+  exit 2
 fi
-
-# Derive compiler and variant from build area.
-lfr_cmp=`echo $lfr_cvdir | sed -e "s/_.*//"`
-lfr_var=`echo $lfr_cvdir | sed -e "s/.*_//"`
+lfr_pkg=`echo $lfr_result | awk '{print $1}'`
+lfr_cmp=`echo $lfr_result | awk '{print $2}'`
+lfr_var=`echo $lfr_result | awk '{print $3}'`
 
 # The configure script for the package is in the same tree as
 # this script is in.
