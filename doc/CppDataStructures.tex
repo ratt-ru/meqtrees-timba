@@ -27,6 +27,8 @@
 \newcommand{\Vells}{{\tt Vells}}
 \newcommand{\Domain}{{\tt Domain}}
 \newcommand{\Node}{{\tt Node}}
+\newcommand{\Parm}{{\tt Parm}}
+\newcommand{\Polc}{{\tt Polc}}
 \newcommand{\RES}[1]{{\tt RES\_#1}}
 
 
@@ -37,9 +39,9 @@ handbook. I will try to keep it updated with design decisions we make in our
 meetings. The document is available via CVS at
 \qq{LOFAR/doc/MEQ/CppDataStructures.tex}.
 
-\section{General principles}
+\section{Data structures} 
 
-\subsection{Choice of data structures}
+\subsection{Basic principles}
 
   All data structures used in the Meq {\em interface} must be mappable to data
   structures of the scripting language of choice. Currently, this is Glish, in
@@ -49,42 +51,95 @@ meetings. The document is available via CVS at
 
   \begin{itemize}
   
-  \item scalars (integer, double, double complex)
+  \item scalars (bool, integer, float, double, float or double complex);
   
-  \item strings
+  \item strings;
   
-  \item multidimensional arrays of scalars
+  \item multidimensional arrays of scalars;
   
   \item lists of legal objects (in Glish this is represented either  via a
-    vector of scalars or strings, or via a record with fields indexed by
-    number)
+  vector of scalars or strings, or via a record with fields indexed by number);
 
-  \item records of legal objects (a.k.a. dictionaries/maps/hashes with a string key
-    and a legal object value)
-    
+  \item records of legal objects (a.k.a. dictionaries/maps/hashes with a string
+  key and a legal object value).
+
   \end{itemize}
 
-  On the C++ side, data objects are based on the DMI \qq{DataRecord}, \qq{DataField} and
-  \qq{DataArray} classes. Most data classes are in fact derived from \qq{DataRecord}, and
-  are essentially a record with some predefined structure, and some extra
-  ``shortcut'' methods. 
+  On the C++ side, data objects are based on the DMI \qq{DataRecord},
+  \qq{DataField} and \qq{DataArray} classes. Most data classes are in fact
+  derived from \qq{DataRecord}, and are essentially a record with some
+  predefined structure, and some extra ``shortcut'' methods. 
 
 \subsection{Naming conventions}
 
   \begin{itemize}
 
-  \item Names are case-insensitive
-  
-  \item Standard nodes \& data structures reside in the Meq namespace. On the 
-    Glish side, the ``\qq{::}'' is omitted, thus \qq{Meq::\Request} is known as a
-    `\qq{MeqRequest}'.
+  \item In C++, standard data structures \& nodes reside in \qq{namespace Meq}.
+    In Glish, corresponding object constructors are placed into the {\tt meq}
+    ``namespace'' (actually just a record), and names are all-lowercase. The DMI dynamic type system
+    uses a {\tt Meq} prefix. Thus, the \qq{Meq::\Request} class in C++ is
+    registered as a ``\qq{MeqRequest}'' in the DMI type system, and  has a 
+    \qq{meq.request()} counterpart in Glish.
+
+  \item The C++ side uses DMI HIIDs (hierarchical IDs) extensively. When seen
+    as a string, HIIDs take the form ``\qq{Request.ID}''. When used as record
+    field names on the Glish side, the same HIID takes the form
+    \qq{request\_id}. We will use both forms interchangably here. Note that
+    HIIDs are not case-sensitive.
     
-  \item The C++ side uses DMI HIIDs (hierarchical IDs) extensively, which map
-    to strings of the form ``\qq{Request.ID}''. When used as record field
-    names on the Glish side, the same HIID takes the form \qq{request\_id}. We
-    will use both forms interchangably here. Note the case insensitivity.
+  \item Even though the languages we use are case-sensitive, we should not rely
+    on character case to distinguish identifiers. Note that C++ and Glish have
+    different capitalization conventions -- e.g., \qq{Meq::Request} as opposed
+    to \qq{meq.request}. In general, we should avoid situations where different
+    entities have names that differ only in character case.
 
   \end{itemize}
+
+\subsection{Glish \qq{meq} objects: meqtypes.g}
+
+  With a couple of exceptions, Meq objects are represented by Glish records of
+  a specific layout. The Glish/C++ conversion layer uses a few ``magic''
+  attributes to distinguish these records, and map them to specialized Meq
+  classes rather than generic \qq{DataRecord}s. Specifically, the
+  \qq{::dmi\_actual\_type} attribute is set to a string which gives the DMI
+  object type. 
+
+  Thus, it is possible to construct a record in Glish, tag it with
+  \qq{::dmi\_actual\_type}, pass it to C++, and have it auto-magically
+  converted to an C++ object of the appropriate class. The only requirement is
+  that the record contain the appropriate fields, which are mapped to class
+  attributes (data members) in C++. The file \qq{meq/meqtypes.g} defines  some
+  Glish ``constructor'' functions which create properly formed records:
+
+  \begin{description}
+  
+  \item[\qq{meq.domain()}] creates a Domain object. This is actually a vector
+    of four doubles: $f_1,f_2,t_1,t_2$. 
+
+  \item[\qq{meq.cells()}] creates a Cells object (record).
+
+  \item[\qq{meq.requestid()}] creates a request ID from individual components
+  (domain ID, config ID, iteration ID). A request ID is a \qq{HIID}.
+  
+  \item[\qq{meq.request()}] creates a Request object (record).
+  
+  \item[\qq{meq.polc()}] creates a Polc object (record).
+  
+  \end{description}
+  
+  Some Meq classes have Glish counterparts but no constructor functions (at
+  least yet), since these objects tend to be constructed on the C++ side only.
+  These currently include \Vells, \VellSet{}s, and \Result{}s.
+  
+  Thus, there is a duality between data objects on the C++ side, and
+  properly-formed records on the Glish side. Within this document, we will
+  usually talk in terms of Glish records and record fields. 
+
+  Several other functions in \qq{meqtypes.g} help to construct defrecs for
+  nodes (see below). \qq{meq.node()} puts together a basic node defrec -- class
+  name, node name, optional children specification, optional configuration group
+  list. \qq{meq.parm()} is a specialization for constructing \Parm\ defrecs.
+
     
 \section{MeqNode}
 
@@ -263,14 +318,14 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
     [re]initialized. (Note that if the supplied record happens to be the node
     state record itself, \qq{true} will be passed in instead.)
 
-  \item Catches \qq{Node::FailWithoutCleanup} exceptions and rethrows them at the
-    caller with no additional action.
-    
+  \item Catches \qq{Node::FailWithoutCleanup} exceptions and rethrows them at
+    the caller with no additional action.
+
   \item Catches all other execeptions, and does a cleanup before rethrowing
     them. The cleanup consists of calling \qq{setStateImpl(staterec,true)}, so
     as to reset internal state from the current state record. This is meant to
     roll back from situations where an error midway through \qq{setStateImpl()}
-    could cause internal state to decohere from the state record.
+    could cause internal object state to decohere from the state record.
 
   \item On success, merges the supplied record into the current state record.
 
@@ -554,16 +609,18 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   \begin{enumerate}
   
+  \item Compares the request id to the id of the previous request, if any. If
+    there's a cached \Result, and the request id matches the cached request id,
+    then does nothing, immediately returning the cached \Result.  If IDs do not
+    match, clears the cache. (Note that the match is somewhat less strict than
+    literal equality. See caching issues, below, for a discussion of ID
+    matching.)
+
   \item For new requests only: if a \qq{node\_state} record is present in the request, interprets that
     (see below) and calls the virtual \qq{setState()} method as required. 
 
   \item For new requests only: if a rider record is present, calls the virtual
     \qq{processRider()} method (default implementation does nothing).
-    
-  \item If there's a cached \Result, and the request id ``matches'' the cached
-    request id, then does nothing, immediately returning the cached \Result. 
-    If ids do not ``match'', clears the cache. See caching issues, below,
-    for a definition of ``match''.
 
   \item If node has children, calls the virtual \qq{pollChildren()} method to
     collect results from its children. The default implementation of this
@@ -577,7 +634,8 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
     \qq{execute()} returns immediately with that result code. 
     
     Note that the default implementation is appropriate for most node classes,
-    with the exception of ``control'' nodes such as \qq{Sink} and \qq{Solver}.
+    with the exception of specialized ``control'' nodes such as \qq{Sink} and
+    \qq{Solver}.
 
   \item If a \Cells\ object is present, calls the virtual \qq{getResult()}
     method, passing in the vector of child \Result{}s returned by
@@ -607,7 +665,8 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   code via a simple bitwise-OR. In other words, only a few classes (Parm, Time,
   Freq, Spigot, and perhaps some special nodes) have any specific logic for
   determining result codes. For all other classes, the correct result code is
-  simply the bitwise-OR of their children's codes.
+  simply the bitwise-OR of their children's codes. The following bits are
+  defined:
   
   \begin{description}
   
@@ -661,11 +720,11 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \end{description}
   
   The return value of a node's \qq{getResult()} method should describe any {\bf
-  additional} properties introduced by \qq{getResult()}. Most function nodes
-  will return zero here, indicating that a node does not introduce any
-  additional dependencies into the result. But, for example, the \qq{UVW} node
-  (which gets the RA/Dec and ITRF station positions from its children) will
-  return \qq{RES\_DEP\_DOMAIN}, since $UVW$ coordinates also depend on time.
+  additional} properties introduced by that node. Most function nodes will
+  return zero, indicating that a node does not introduce any additional
+  dependencies into the result. As a counter-example, the \qq{UVW} node (which
+  gets the RA/Dec and ITRF station positions from its children) will return
+  \qq{RES\_DEP\_DOMAIN}, since $UVW$ coordinates also depend on time.
 
 \subsection{Caching issues}
 
@@ -728,9 +787,9 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 \subsection{Using node\_state}
 
   The optional \qq{node\_state} sub-record of a \Request\ may be used to
-  reconfigure specific nodes. This is expected to be used by the Solver to set
-  solvable parameters, update their polcs, etc. 
-  
+  reconfigure specific nodes. This is used by the Solver to set solvable
+  parameters, update their polcs, etc. 
+
   In a very large tree, it's not practical for every single node to check the
   record for possible changes. For this reason, we introduce the concept of
   {\em configuration groups}. 
@@ -782,6 +841,148 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   Wilcards are only useful at the end of the list, to catch nodes not already
   matched by previous entries.
   
+\section{Description of specialized nodes}
+
+\subsection{MeqParm}
+
+  The \Parm\ node implements a possibly solvable Measurement Equation
+  parameter. The basis of a \Parm\ is the \Polc\ class.
+
+\subsubsection{MeqPolc}
+
+  The \Polc\ class implements a 2D polynomial in time and frequency. The Glish
+  equivalent is a \qq{meq.polc} record. This record will contain the following
+  fields:
+  
+  \noindent\begin{tabular}{lp{.8\textwidth}}
+  \qq{.coeff}  &  a 2D array of polynomial coefficients.\\
+  \qq{.freq\_0}  &  \\
+  \qq{.freq\_scale}  &  \\
+  \qq{.time\_0}  &  \\
+  \qq{.time\_scale}  & the scale of the polc (see below)\\
+  \qq{.domain}  & (optional) the polc \Domain.\\
+  \qq{.weight}  & weight\\
+  \qq{.pert}  & perturbation to use for computing derivatives\\
+  \qq{.dbid\_index}  & database ID (see below)\\
+  \qq{inf_domain} &  optional flag: infinite domain (see below)\\
+  \qq{grow_domain} &  optional flag: growing domain (see below)\\
+  \end{tabular}
+  
+  The value of a polc for frequency $f$ and time $t$ is computed as follows:
+
+  \begin{equation}
+  p(f,t) = \sum_{i=0}^N\sum_{j=0}^M c_{ij}(\frac{f-f_0}{s_f})^i(\frac{t-t_0}{s_t})^j
+  \end{equation}
+  
+  Here, $c_{ij}$ is the 2D array of coefficients, and $f_0,s_f,t_0,s_t$ is the
+  scale of the polc. The scale is only necessary to keep numbers small so as to
+  avoid round-off errors.
+  
+\subsubsection{MeqParm state}
+
+  Here's the layout for a \Parm\ state record. All of these attributes are
+  dynamic state, that is, they may be changed at any time via \qq{setState()}:
+  
+  \begin{description}
+
+  \item[\qq{solvable}] (bool, optional) is this \Parm\ solvable or not?
+    Default is non-solvable.
+
+  \item[\qq{polcs}] (list of \Polc{}s, optional) the parm's polc list (see below).
+
+  \item[\qq{table\_name}] (string, optional) the name of a MEP table. Default is none.
+    If no table is provided, then polcs must be specified via either the
+    \qq{polcs} or the \qq{default} field.
+
+  \item[\qq{parm\_name}] (string, optional) the name to use when working with a MEP
+    table. Default is to use the node name itself.
+
+  \item[\qq{default}] (\Polc, optional) a default \Polc, to be used as a last
+    resort (i.e. if no polcs found in the MEP table).
+
+  \item[\qq{auto_save}] (bool, optional) If true, any updates to the parm's 
+    polcs are immediately saved to the MEP table. If false, updates need to be
+    explicitly saved (more on this below). Default is false.
+
+  \end{description}
+  
+\subsubsection{Selecting polcs}
+
+  The \qq{Parm::getResult()} method is responsible for evaluating a parm over a
+  \Cells\ (specifically, over the domain of the \Cells). To evaluate itself,
+  the parm needs one or more \Polc{}s. Most of the tricky logic of the \Parm\
+  class is dedicated to choosing the right set of polcs for a given domain. 
+  Currently, a \Parm\ will select polc(s) as follows:
+
+  \begin{enumerate}
+  
+  \item If no MEP table and no default polc has been set in the state record,
+    then the parm will blindly re-use the current polc list (i.e. the
+    \qq{polcs} field of the state record), or fail if the list is empty. 
+
+  \item Otherwise, the parm will first check if the current polc list contains
+    a single polc. (If there is more than one polc, it immediately proceeds to
+    the next step.) The polc is then checked for re-usability:
+    
+    \begin{enumerate}
+    
+    \item If the \qq{inf_domain} flag is set, the polc has an infinite domain, 
+      and will be re-used directly.
+      
+    \item If the \qq{grow_domain} flag is set, the polc allows for ``growing
+      domains''. If the requested domain is a superset of the polc's current
+      domain, then this domain is assigned to the polc, and the polc is
+      re-used. 
+
+    \item If the requested domain is a subset of the polc's current domain, the
+      polc is re-used.
+
+    \end{enumerate}
+
+  \item If no polcs are available for re-use, the current polc list is cleared.
+    The parm will then query its MEP table for polcs whose domain overlaps
+    the requested domain. These polcs are loaded into the polc list.
+
+  \item If no polcs are found in the MEP table, the table is checked for a
+    default polc. Note that default polcs have no domain (generally, they will
+    only have a $c_{00}$ coefficient). If a default polc is found, it is placed
+    in the list, and its domain is set to the requested domain.
+
+  \item If no default polc is found in the table, or if no table is available,
+    then default polc from the state record is copied into the list, and its
+    domain is set to the requested domain. Note that the case of no table and
+    no default polc is covered by (1), above.
+
+  \end{enumerate}
+  
+  Once the selection is complete, the parm will have at its disposal a list of
+  applicable polcs. If the parm is set to solvable, the list is then culled to
+  a single polc (NB: future versions may support solving for multiple polcs).
+  This polc is selected according to the following criteria (in descending
+  order of importance):
+
+  \begin{itemize}
+  
+  \item an exact match of the requested domain to the polc domain;
+  
+  \item weight (higher is better);
+  
+  \item database ID (higher, i.e. more recent, is better).
+  
+  \end{itemize}
+  
+  Once a single solvable polc is selected, its domain is set equal to the
+  requested domain.
+  
+\subsubsection{Evaluating polcs}
+
+  
+
+\subsubsection{}    
+  
+  
+  
+
 \section{MeqServer interface}
 
 Coming soon.
