@@ -1,9 +1,10 @@
 #include "Gateways.h"
 #include "GWServerWP.h"
+#include "GWClientWP.h"
 
-// GWClientWP
-#include "OCTOPUSSY/GWClientWP.h"
-
+namespace Octopussy
+{
+    
 const Timeval ReconnectTimeout(.2),
               ReopenTimeout(2.0),
 // how long to try connect() (if operation in progress is returned)
@@ -11,16 +12,9 @@ const Timeval ReconnectTimeout(.2),
 // how long to try connects() before giving up on a transient connection
               GiveUpTimeout(30.0);
               
-//##ModelId=3CD0167B021B
-//##ModelId=3DB9367D00C2
-
-
-// Class GWClientWP 
 
 GWClientWP::GWClientWP (const string &host, int port, int type)
-  : WorkProcess(AidGWClientWP),
-    peerref(new DataRecord,DMI::ANONWR),
-    peerlist(dynamic_cast<DataRecord&>(peerref.dewr()))
+  : WorkProcess(AidGWClientWP)
 {
   // add default connection, if specified
   if( host.length() )
@@ -64,7 +58,7 @@ GWClientWP::GWClientWP (const string &host, int port, int type)
   
   setState(STOPPED);
   
-  reconnect_timeout_set = False;
+  reconnect_timeout_set = false;
 }
 
 
@@ -81,12 +75,12 @@ GWClientWP::~GWClientWP()
 //##ModelId=3CA1C0C300FA
 void GWClientWP::init ()
 {
-  // add our peerlist to local data
-  dsp()->addLocalData(GWPeerList,peerref.copy(DMI::WRITE));
-  if( !dsp()->hasLocalData(GWNetworkServer) )
-    dsp()->localData(GWNetworkServer) = -1;
-  if( !dsp()->hasLocalData(GWLocalServer) )
-    dsp()->localData(GWLocalServer) = "";
+  // add ourselves to local data
+  DMI::Record &ld = dsp()->localData();
+  int netserv = -1;
+  ld[GWNetworkServer].get(netserv,true);
+  string locserv;
+  ld[GWLocalServer].get(locserv,true);
   // messages from server gateway tell us when it fails to bind
   // to a port/when it binds/when it gives up
   subscribe(MsgGWServer|AidWildcard,Message::LOCAL);
@@ -124,7 +118,7 @@ void GWClientWP::stop ()
 //##ModelId=3C95A9410093
 int GWClientWP::timeout (const HIID &id)
 {
-  bool connecting = False;
+  bool connecting = false;
   Timestamp::now(&now);
   // go thru connection list and figure out what to do
   for( CLI iter = conns.begin(); iter != conns.end(); iter++ )
@@ -155,26 +149,26 @@ int GWClientWP::timeout (const HIID &id)
             iter->host.c_str(),iter->port);
     }
     if( iter->state == CONNECTING )
-      connecting = True;
+      connecting = true;
   }
   // if reconnecting timeout (i.e. short one) is set, and no-one
   // seems to be connecting, then cancel it
   if( id == AidReconnect && !connecting )
   {
-    reconnect_timeout_set = False;
+    reconnect_timeout_set = false;
     return Message::CANCEL;
   }
   if( connecting && !reconnect_timeout_set )
   {
     addTimeout(ReconnectTimeout,AidReconnect);
-    reconnect_timeout_set = True;
+    reconnect_timeout_set = true;
   }
   
   return Message::ACCEPT;
 }
 
 //##ModelId=3C95A9410095
-int GWClientWP::receive (MessageRef& mref)
+int GWClientWP::receive (Message::Ref& mref)
 {
   const Message &msg = mref.deref();
   const HIID &id = msg.id();
@@ -204,13 +198,13 @@ int GWClientWP::receive (MessageRef& mref)
     if( id == MsgGWServerOpenNetwork && msg.from().host() == address().host() )
       return Message::ACCEPT;
     HIID peerid = msg.from().peerid();
-    if( peerlist[peerid].exists() )
+    if( gatewayPeerList[peerid].exists() )
     {
       lprintf(3,"peer-adv %s: already connected (%s:%d %s), ignoring",
           peerid.toString().c_str(),
-          peerlist[peerid][AidHost].as<string>().c_str(),
-          peerlist[peerid][AidPort].as<int>(),
-          peerlist[peerid][AidTimestamp].as<Timestamp>().toString("%T").c_str());
+          gatewayPeerList[peerid][AidHost].as<string>().c_str(),
+          gatewayPeerList[peerid][AidPort].as<int>(),
+          gatewayPeerList[peerid][AidTimestamp].as<Timestamp>().toString("%T").c_str());
     }
     else
     {
@@ -224,7 +218,7 @@ int GWClientWP::receive (MessageRef& mref)
       // advertisement for a local connection?
       if( type == Socket::UNIX )
       {
-        if( !dsp()->localData(GWLocalServer).as<string>().length() )
+        if( dsp()->localData()[GWLocalServer].as<string>("").empty() )
           lprintf(2,"peer-adv %s@%s:%d: no unix server here, initiating connection",peerid.toString().c_str(),host.c_str(),port); 
         else if( address().peerid() < peerid )
           lprintf(2,"peer-adv %s@%s:%d: higher rank, initiating connection",peerid.toString().c_str(),host.c_str(),port);
@@ -236,7 +230,7 @@ int GWClientWP::receive (MessageRef& mref)
       }
       else // network connection
       {
-        if( !dsp()->localData(GWNetworkServer).as<int>() < 0 )
+        if( dsp()->localData()[GWNetworkServer].as<int>(-1) < 0 )
           lprintf(2,"peer-adv %s@%s:%d: no network server here, initiating connection",peerid.toString().c_str(),host.c_str(),port); 
         else if( address().peerid() < peerid )
           lprintf(2,"peer-adv %s@%s:%d: higher rank, initiating connection",peerid.toString().c_str(),host.c_str(),port);
@@ -305,7 +299,7 @@ GWClientWP::Connection & GWClientWP::addConnection (const string &host,int port,
   cx.sock = 0;
   cx.state = STOPPED;
   cx.give_up = Timestamp(0,0);
-  cx.reported_failure = False;
+  cx.reported_failure = false;
   conns.push_back(cx);
   return conns.back();
 }
@@ -314,13 +308,13 @@ GWClientWP::Connection & GWClientWP::addConnection (const string &host,int port,
 bool GWClientWP::removeConnection (const string &host,int port)
 {
   bool localhost = (host == "localhost");
-  bool res = False;
+  bool res = false;
   for( CLI iter = conns.begin(); iter != conns.end(); )
     if( iter->port == port &&
         ( iter->host == host || ( localhost && iter->host == "localhost" ) ) )
     {
       conns.erase(iter++);
-      res = True;
+      res = true;
     }
     else
       iter++;
@@ -394,7 +388,7 @@ void GWClientWP::tryConnect (Connection &cx)
     cx.gw   = attachWP( new GatewayWP(cx.sock),DMI::ANON );
 #endif
     cx.sock = 0; // socket is taken over by child
-    cx.reported_failure = False;
+    cx.reported_failure = false;
   }
   else if( res == Socket::INPROGRESS )  // in progress
   {
@@ -402,7 +396,7 @@ void GWClientWP::tryConnect (Connection &cx)
     if( !reconnect_timeout_set )
     {
       addTimeout(ReconnectTimeout,AidReconnect);
-      reconnect_timeout_set = True;
+      reconnect_timeout_set = true;
     }
   }
   else // else it is a fatal error, close and retry
@@ -418,7 +412,7 @@ void GWClientWP::tryConnect (Connection &cx)
     {
       lprintf(cx.reported_failure?4:2,"connect(%s:%d) error: %s; will keep trying",
           cx.host.c_str(),cx.port,cx.sock->errstr().c_str());
-      cx.reported_failure = True;
+      cx.reported_failure = true;
       delete cx.sock; cx.sock = 0;
       cx.state = WAITING;
       cx.retry = now + ReopenTimeout;
@@ -436,51 +430,4 @@ void initGateways (Dispatcher &dsp)
 
 
 
-// Detached code regions:
-#if 0
-  : WorkProcess(AidGWClientWP),
-    peerref(new DataRecord,DMI::ANONWR),
-    peerlist(dynamic_cast<DataRecord&>(peerref.dewr()))
-
-  // add default connection, if specified
-  if( host.length() )
-  {
-    FailWhen(!port,"both host and port must be specified");
-    addConnection(host,port,type);
-  }
-  // add connections from config
-  string peers;
-  if( config.get("gwpeer",peers) )
-  {
-    while( peers.length() )
-    {
-      // split into "host1:port1,host2:port2,", etc.
-      string peer;
-      size_t pos = peers.find_first_of(',');
-      if( pos != string::npos )
-      {
-        peer = peers.substr(0,pos);
-        peers = peers.substr(pos+1);
-      }
-      else
-      {
-        peer = peers;
-        peers = "";
-      }
-      pos = peer.find_first_of(':');
-      FailWhen(pos == string::npos || !pos,"malformed 'gwpeer' specification");
-      string host = peer.substr(0,pos);
-      int port = atoi(peer.substr(pos+1).c_str());
-      int type = ( host[0] == '=' || host.find_first_of('/') != string::npos )
-                 ? Socket::UNIX : Socket::TCP;
-      addConnection(host,port,type);
-    }
-  }
-  
-  // get the local hostname
-  char hname[1024];
-  FailWhen(gethostname(hname,sizeof(hname))<0,"gethostname(): "+string(strerror(errno)));
-  hostname = hname;
-  setState(STOPPED);
-
-#endif
+};

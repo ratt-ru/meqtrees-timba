@@ -1,8 +1,9 @@
-
 #ifdef USE_THREADS
 
 #include "MTGatewayWP.h"
 
+namespace Octopussy
+{
     
 // all packet headers must start with this signature
 static const char PacketSignature[] = "oMs";
@@ -93,7 +94,7 @@ void * MTGatewayWP::readerThread ()
         Thread::Mutex::Lock lock(statmon.read_mutex);
         if( first_message_read )
           statmon.time_not_reading += Timestamp::now() - ts_stopread;
-        reading_socket = True;
+        reading_socket = true;
       }
       // read up to full buffer
       while( nread < read_buf_size )
@@ -215,8 +216,8 @@ void * MTGatewayWP::readerThread ()
             Timestamp start_read = start_message_read; // cache before releasing mutex
             // maintain timings of when reading has stopped
             Timestamp::now(&ts_stopread);
-            reading_socket = False;
-            first_message_read = True;
+            reading_socket = false;
+            first_message_read = true;
             
             if( bset.size() != tmsgsize )
             { // major oops
@@ -227,7 +228,7 @@ void * MTGatewayWP::readerThread ()
             {
               // convert & process the incoming message
               Message *msg = new Message;
-              MessageRef ref(msg,DMI::ANONWR);
+              Message::Ref ref(msg,DMI::ANONWR);
               msg->fromBlock(bset);
 #ifdef ENABLE_LATENCY_STATS
               msg->latency.add(start_read,"<RCV");
@@ -235,15 +236,22 @@ void * MTGatewayWP::readerThread ()
 #endif
               if( !bset.empty() )
                 lprintf(2,"warning: %d unclaimed incoming blocks will be discarded\n",bset.size());
-               // release the reader mutex so that other threads may go into their
-              // own read state while we fuck around with the received message.
-              // If still initializing the connection, then also acquire the gwmutex,
-              // to ensure that no incoming messages are processed until
-              // parsing of the init-message is complete.
-              if( peerState() == INITIALIZING )
-                reader_lock.relock(gwmutex);
-              else
-                reader_lock.release();
+// OMS 04/01/2005: commented this out...
+//               // release the reader mutex so that other threads may go into their
+//               // own read state while we fuck around with the received message.
+//               // If still initializing the connection, then also acquire the gwmutex,
+//               // to ensure that no incoming messages are processed until
+//               // parsing of the init-message is complete.
+//               if( peerState() == INITIALIZING )
+//                 reader_lock.relock(gwmutex);
+//               else
+//                 reader_lock.release();
+// OMS 04/01/2005: ...because not holding a lock while the incoming message
+// is being processed can possibly lead to the incoming message sequence being 
+// violated (if another reader thread preempts this one inside processIncoming()).
+// Thus, we'll always acquire gwmutex here and then release the reader mutex.
+              Thread::Mutex::Lock lock1(gwmutex);
+              reader_lock.release();
               // process the message
               processIncoming(ref);
             }
@@ -287,22 +295,25 @@ void MTGatewayWP::reportWriteError ()
 
     
 //##ModelId=3DB958F600CB
-void MTGatewayWP::transmitMessage (MessageRef &mref)
+void MTGatewayWP::transmitMessage (Message::Ref &mref)
 {
   dprintf(4)("transmitMessage [%s]\n",mref->sdebug(1).c_str());
+// OMS 04/01/2005: same thing, if toBlock() is preempted, another thread
+// can get in and write its message out ahead of time. Do a two-stage sync
+// a-la readerThread();
+  Thread::Mutex::Lock lock0(pre_writer_mutex);
 #ifdef ENABLE_LATENCY_STATS
-  mref.privatize(DMI::WRITE,0);
   mref().latency.measure("XMIT");
 #endif
   // convert the message to blocks, placing them into the write queue
   BlockSet bset;
   mref->toBlock(bset);
-  // release ref, so as to minimize the blocks' ref counts
   mref.detach();
-  // privatize the blocks
-  bset.privatizeAll(DMI::READONLY);
   
+// OMS 04/01/2005: release pre-write mutex and acquire write
   Thread::Mutex::Lock lock(writer_mutex);
+  lock0.release();
+  
   int nwr = 0;
   
 //  int nnonzero = 0; // for valgrind trap below
@@ -317,7 +328,7 @@ void MTGatewayWP::transmitMessage (MessageRef &mref)
     wr_header.content = ref->size();
     // write the header
     Timestamp::now(&write_timestamp);
-    writing = True;
+    writing = true;
     int n = sock->writeBlocking(&wr_header,sizeof(wr_header));
     if( !isRunning() )
       break;
@@ -379,9 +390,10 @@ void MTGatewayWP::transmitMessage (MessageRef &mref)
     stlock.release();
     nwr = 0;
   } // end  while( !bset.empty()) 
-  writing = False;
+  writing = false;
   // this releases the writer mutex
 }
 
 
 #endif // USE_THREADS
+};

@@ -1,7 +1,13 @@
 #include "Octoproxy.h"
 #include "OctoproxyWP.h"
 #include "Dispatcher.h"
+#include "OctopussyDebugContext.h"
+
+using namespace DebugOctopussy;
     
+namespace Octopussy
+{
+
 namespace Octoproxy 
 {
   
@@ -10,14 +16,13 @@ Identity::Identity (AtomicID wpid)
   FailWhen(!Dispatcher::dispatcher,"OCTOPUSSY dispatcher not initialized");
   // instantiate proxy and attach to Dispatcher
   proxy <<= new ProxyWP(wpid);
-  WPRef ref(proxy,DMI::COPYREF|DMI::WRITE);
-  Dispatcher::dispatcher->attach(ref);
+  Dispatcher::dispatcher->attach(proxy);
 }
 
 
 //##ModelId=3E08ECB30275
 Identity::Identity (const Identity& right)
-    : proxy(right.proxy,DMI::COPYREF|DMI::PRESERVE_RW)
+    : proxy(right.proxy)
 {
 }
 
@@ -34,7 +39,7 @@ Identity & Identity::operator= (const Identity& right)
 {
   if( this != & right )
   {
-    proxy.copy(right.proxy,DMI::PRESERVE_RW);
+    proxy = right.proxy;
   }
   return *this;
 }
@@ -62,3 +67,5 @@ bool Identity::receive(Message::Ref &mref,bool wait)
 }
 
 } // namespace Octoproxy
+
+};

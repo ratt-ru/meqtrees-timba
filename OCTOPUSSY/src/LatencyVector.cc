@@ -1,12 +1,15 @@
-#include "Common/Debug.h"
-#include "OCTOPUSSY/LatencyVector.h"
 #include "DMI/Packer.h"    
+#include "LatencyVector.h"
+#include "OctopussyDebugContext.h"
 #include <unistd.h>
 #include <math.h>
    
+using namespace DebugOctopussy;
+using namespace DMI;
+    
 // returns sum of all values
 //##ModelId=3DB958F300F8
-Timestamp LatencyVector::total () const
+Timestamp Octopussy::LatencyVector::total () const
 { 
   Timestamp tot(0,0);
   for( CVEI iter = tms.begin(); iter != tms.end(); iter++ )
@@ -16,7 +19,7 @@ Timestamp LatencyVector::total () const
 
 // adds two latency vectors together
 //##ModelId=3DB958F300FA
-LatencyVector & LatencyVector::operator += ( const LatencyVector & other )
+Octopussy::LatencyVector & Octopussy::LatencyVector::operator += ( const LatencyVector & other )
 {
   if( tms.size() )
   {
@@ -42,7 +45,7 @@ LatencyVector & LatencyVector::operator += ( const LatencyVector & other )
     
 // divides latency vector by some value
 //##ModelId=3DB958F3010D
-LatencyVector & LatencyVector::operator /= ( double x )
+Octopussy::LatencyVector & Octopussy::LatencyVector::operator /= ( double x )
 {
   for( VEI iter = tms.begin(); iter != tms.end(); iter++ )
     iter->first /= x;
@@ -51,7 +54,7 @@ LatencyVector & LatencyVector::operator /= ( double x )
 
 // converts latency vector to strings
 //##ModelId=3DB958F30120
-string LatencyVector::toString() const
+string Octopussy::LatencyVector::toString() const
 {
   string out;
   for( CVEI iter = tms.begin(); iter != tms.end(); iter++ )
@@ -59,6 +62,10 @@ string LatencyVector::toString() const
   out += "(us)";
   return out;
 }
+
+namespace DMI
+{
+using Octopussy::LatencyVector;
 
 // implement the Packer template for a LatencyVector::Entry
 template <>
@@ -85,9 +92,10 @@ inline size_t Packer<LatencyVector::Entry>::packSize (const LatencyVector::Entry
 {
   return sizeof(obj.first) + obj.second.length();
 }
+}
 
 //##ModelId=3DB958F30122
-size_t LatencyVector::pack (void *block,size_t &nleft) const
+size_t Octopussy::LatencyVector::pack (void *block,size_t &nleft) const
 {
   Timestamp *bl = static_cast<Timestamp*>(block);
   *bl++ = tms0;
@@ -96,7 +104,7 @@ size_t LatencyVector::pack (void *block,size_t &nleft) const
 }
 
 //##ModelId=3DB958F30148
-void LatencyVector::unpack (const void *block,size_t sz)
+void Octopussy::LatencyVector::unpack (const void *block,size_t sz)
 {
   FailWhen(sz < sizeof(tms0),"block too small");
   const Timestamp *bl = static_cast<const Timestamp*>(block);
@@ -105,7 +113,7 @@ void LatencyVector::unpack (const void *block,size_t sz)
 }
 
 //##ModelId=3DB958F3016C
-size_t LatencyVector::packSize () const
+size_t Octopussy::LatencyVector::packSize () const
 {
   return sizeof(tms0) + SeqPacker<vector<Entry> >::packSize(tms);
 }

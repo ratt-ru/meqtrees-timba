@@ -1,18 +1,18 @@
-#ifndef EchoWP_h
-#define EchoWP_h 1
+#ifndef OCTOPUSSY_EchoWP_h
+#define OCTOPUSSY_EchoWP_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
+#include <DMI/DMI.h>
+#include <OCTOPUSSY/LatencyVector.h>
+#include <OCTOPUSSY/WorkProcess.h>
+#include "AID-Testing.h"
 
-#include "OCTOPUSSY/LatencyVector.h"
-
-// WorkProcess
-#include "OCTOPUSSY/WorkProcess.h"
 #pragma aidgroup Testing
 #pragma aid EchoWP Ping Pong
 #pragma aid Reply Timestamp Invert Data Count Process
-#include "AID-Testing.h"
 
+namespace Octopussy
+{
+using namespace DMI;
 
 //##ModelId=3C7E498E00D1
 class EchoWP : public WorkProcess
@@ -32,7 +32,7 @@ class EchoWP : public WorkProcess
       virtual bool start ();
 
       //##ModelId=3C7E49AC014C
-      virtual int receive (MessageRef& mref);
+      virtual int receive (Message::Ref& mref);
 
       //##ModelId=3C98CB600343
       virtual int timeout (const HIID &);
@@ -73,5 +73,5 @@ class EchoWP : public WorkProcess
 
 // Class EchoWP 
 
-
+};
 #endif

@@ -1,17 +1,15 @@
-#ifndef Subscriptions_h
-#define Subscriptions_h 1
+#ifndef OCTOPUSSY_Subscriptions_h
+#define OCTOPUSSY_Subscriptions_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-
+#include <DMI/DMI.h>
+#include <DMI/HIID.h>
+#include <OCTOPUSSY/MsgAddress.h>
+#include <OCTOPUSSY/Message.h>
 #include <list>
 
-// HIID
-#include "DMI/HIID.h"
-// MsgAddress
-#include "OCTOPUSSY/MsgAddress.h"
-// Message
-#include "OCTOPUSSY/Message.h"
+namespace Octopussy
+{
+using namespace DMI;
 
 //##ModelId=3C999C8400AF
 
@@ -58,7 +56,7 @@ class Subscriptions
     //##ModelId=3DB936520168
       typedef struct { HIID mask; MsgAddress scope; } SubElement;
     //##ModelId=3DB9365201A4
-      typedef list<SubElement> SubSet;
+      typedef std::list<SubElement> SubSet;
     //##ModelId=3DB936DB021F
       SubSet subs;
     //##ModelId=3DB9365201E0
@@ -88,4 +86,5 @@ inline size_t Subscriptions::packSize () const
 }
 
 
+};
 #endif

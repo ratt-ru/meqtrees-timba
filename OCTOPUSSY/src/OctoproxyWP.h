@@ -1,9 +1,15 @@
 #ifndef OCTOPROXYWP_H_HEADER_INCLUDED_C75F583E
 #define OCTOPROXYWP_H_HEADER_INCLUDED_C75F583E
-#include "WorkProcess.h"
-#include "Message.h"
 
-namespace Octoproxy {
+#include <OCTOPUSSY/WorkProcess.h>
+#include <OCTOPUSSY/Message.h>
+
+namespace Octopussy
+{
+using namespace DMI;
+
+namespace Octoproxy 
+{
 
 //##ModelId=3E08FF0D035E
 class ProxyWP : public WorkProcess
@@ -32,4 +38,5 @@ class ProxyWP : public WorkProcess
 
 
 
+};
 #endif /* OCTOPROXYWP_H_HEADER_INCLUDED_C75F583E */

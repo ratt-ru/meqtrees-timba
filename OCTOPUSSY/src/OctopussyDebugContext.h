@@ -1,20 +1,27 @@
-#ifndef OctopussyDebugContext_h
-#define OctopussyDebugContext_h 1
+#ifndef OCTOPUSSY_OctopussyDebugContext_h
+#define OCTOPUSSY_OctopussyDebugContext_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
+#include <Common/Debug.h>
 
+namespace DebugOctopussy
+{
+  extern ::Debug::Context DebugContext;
+  inline ::Debug::Context & getDebugContext() { return DebugContext; };
+}
+    
+namespace Octopussy
+{
 
 //##ModelId=3C7FA3020068
 class OctopussyDebugContext 
 {
   public:
     //##ModelId=3DB936CC02B0
-    LocalDebugContext;
-
+    ImportDebugContext(DebugOctopussy);
 };
 
 // Class OctopussyDebugContext 
 
+};
 
 #endif

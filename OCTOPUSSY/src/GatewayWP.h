@@ -1,18 +1,17 @@
-#ifndef GatewayWP_h
-#define GatewayWP_h 1
+#ifndef OCTOPUSSY_GatewayWP_h
+#define OCTOPUSSY_GatewayWP_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
+#include <DMI/DMI.h>
+#include <Common/Net/Socket.h>
+#include <OCTOPUSSY/Subscriptions.h>
+#include <OCTOPUSSY/WorkProcess.h>
 
-// Socket
-#include "Common/Net/Socket.h"
-using LOFAR::Socket;
-// Subscriptions
-#include "OCTOPUSSY/Subscriptions.h"
-// WorkProcess
-#include "OCTOPUSSY/WorkProcess.h"
 #pragma aid Subscriptions Init Heartbeat
 
+namespace Octopussy
+{
+        
+using LOFAR::Socket;
 
 //##ModelId=3C90BEF001E5
 class GatewayWP : public WorkProcess
@@ -36,11 +35,11 @@ class GatewayWP : public WorkProcess
 
       //##ModelId=3C90BF5C001E
       //##Documentation
-      //## Returns True if this WP will forward this non-local message.
+      //## Returns true if this WP will forward this non-local message.
       virtual bool willForward (const Message &msg) const;
 
       //##ModelId=3C90BF63005A
-      virtual int receive (MessageRef& mref);
+      virtual int receive (Message::Ref& mref);
 
       //##ModelId=3C90BF6702C3
       virtual int timeout (const HIID &id);
@@ -93,9 +92,9 @@ class GatewayWP : public WorkProcess
       int peerState () const     { return (state()&0xFF0000)>>16; };
       
     //##ModelId=3DB936850169
-      void setReadState  (int st)  { setState((state()&~0xFF)|st,True); };
+      void setReadState  (int st)  { setState((state()&~0xFF)|st,true); };
     //##ModelId=3DB93685030E
-      void setWriteState (int st)  { setState((state()&~0xFF00)|(st<<8),True); };
+      void setWriteState (int st)  { setState((state()&~0xFF00)|(st<<8),true); };
     //##ModelId=3DB9368700BB
       void setPeerState  (int st)  { setState((state()&~0xFF0000)|(st<<16)); };
       
@@ -119,7 +118,7 @@ class GatewayWP : public WorkProcess
     
       // Helper functions for writing to socket
     //##ModelId=3DB9368B0224
-      void prepareMessage (MessageRef &mref);
+      void prepareMessage (Message::Ref &mref);
     //##ModelId=3DB9368D008D
       void prepareHeader  ();
     //##ModelId=3DB9368D01A5
@@ -173,7 +172,7 @@ class GatewayWP : public WorkProcess
     //##ModelId=3DB93682022E
       int   write_msgsize;
     //##ModelId=3DB9368202F7
-      MessageRef pending_msg;          // one pending write-slot
+      Message::Ref pending_msg;          // one pending write-slot
       
       // timestamps for pings
     //##ModelId=3DB936820365
@@ -198,12 +197,6 @@ class GatewayWP : public WorkProcess
     //##ModelId=3DB936900094
       GatewayWP & operator=(const GatewayWP &right);
 
-    // Additional Private Declarations
-    //##ModelId=3DB9368300F0
-      DataRecord *peerlist;
-  private:
-    // Data Members for Associations
-
       //##ModelId=3C9225740345
       LOFAR::Socket *sock;
 
@@ -220,4 +213,5 @@ class GatewayWP : public WorkProcess
 // Class GatewayWP 
 
 
+};
 #endif

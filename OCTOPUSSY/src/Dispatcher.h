@@ -1,5 +1,5 @@
-#ifndef Dispatcher_h
-#define Dispatcher_h 1
+#ifndef OCTOPUSSY_Dispatcher_h
+#define OCTOPUSSY_Dispatcher_h 1
 
 #include <signal.h>
 #include <sys/time.h>
@@ -11,14 +11,18 @@
 #include <Common/Thread/Condition.h>
 #include <DMI/DMI.h>
 #include <DMI/Timestamp.h>
-#include <DMI/DataRecord.h>
+#include <DMI/Record.h>
 #include <OCTOPUSSY/MsgAddress.h>
 #include <OCTOPUSSY/WPInterface.h>
 #include <OCTOPUSSY/Message.h>
 #include <OCTOPUSSY/OctopussyDebugContext.h>
 
-
 #pragma aid Argv
+
+namespace Octopussy
+{
+using namespace DMI;
+
 
 // Event flags
 const int EV_CONT = 0,      // continuous event (keeps firing until removed)
@@ -85,13 +89,13 @@ class Dispatcher : public OctopussyDebugContext
       const MsgAddress & attach (WPRef &wpref);
 
       //##ModelId=3C7B885A027F
-      const MsgAddress & attach (WPInterface* wp, int flags);
+      const MsgAddress & attach (WPInterface* wp,int flags=0);
 
       //##ModelId=3C8CA2BD01B0
-      void detach (WPInterface* wp, bool delay = False);
+      void detach (WPInterface* wp, bool delay = false);
 
       //##ModelId=3C8CDE320231
-      void detach (const WPID &id, bool delay = False);
+      void detach (const WPID &id, bool delay = false);
 
       //##ModelId=3C95C73F022A
       //##Documentation
@@ -109,7 +113,7 @@ class Dispatcher : public OctopussyDebugContext
       //##Documentation
       //## Sends message to specified address. The ref must be writable.
       //## Read-only copies will be placed into the appropriate queue(s).
-      int send (MessageRef &mref, const MsgAddress &to);
+      int send (Message::Ref &mref, const MsgAddress &to);
 
       //##ModelId=3C7B888E01CF
       //##Documentation
@@ -161,17 +165,8 @@ class Dispatcher : public OctopussyDebugContext
       //##ModelId=3C98D47B02B9
       //##Documentation
       //## Gets info for WP pointed to by iterator and  increments the
-      //## iterator. Returns False when iterator becomes invalid.
+      //## iterator. Returns false when iterator becomes invalid.
       bool getWPIter (Dispatcher::WPIter &iter, WPID &wpid, const WPInterface *&pwp);
-
-      //##ModelId=3CBEDDD8001A
-      void addLocalData (const HIID &id, ObjRef ref);
-
-      //##ModelId=3CC405480057
-      NestableContainer::Hook localData (const HIID &id);
-
-      //##ModelId=3CC00549020D
-      bool hasLocalData (const HIID &id);
 
     //##ModelId=3DB9366302D9
       const MsgAddress& getAddress () const;
@@ -183,7 +178,17 @@ class Dispatcher : public OctopussyDebugContext
       ulong getTick () const;
 
     //##ModelId=3DB936640302
-      const DataRecord& localData () const;
+      const DMI::Record& localData () const
+      { return localData_; } 
+      
+      DMI::Record& localData ()
+      { return localData_; } 
+      
+      DMI::Record::Hook localData (const HIID &id) const
+      { return localData_[id]; }
+      
+      DMI::Record::Hook localData (const HIID &id)
+      { return localData_[id]; }
 
     // Additional Public Declarations
       // pointer to static dispatcher object -- only one can be
@@ -195,7 +200,7 @@ class Dispatcher : public OctopussyDebugContext
       // this starts the dispatcher running in its own thread (use instead
       // of normal start()). You can use stop() later to stop the thread.
     //##ModelId=3DB93665008D
-      Thread::ThrID startThread (bool wait_for_start = False);
+      Thread::ThrID startThread (bool wait_for_start = false);
 #endif
       
       
@@ -216,56 +221,51 @@ class Dispatcher : public OctopussyDebugContext
       class EventInfo
       {
         public:
-        //##ModelId=3DB9365403CC
-        WPInterface *  pwp;
-        //##ModelId=3DB9365403DE
-                MessageRef msg;
-                
-        //##ModelId=3DB936550009
-                EventInfo( WPInterface *pwpi,const HIID &id,int priority )
-                           : pwp(pwpi),
-                             msg( new Message(AidEvent|id,priority),
-                                  DMI::ANON|DMI::WRITE ) 
-                           { 
-                             msg().setFrom(pwp->dsp()->getAddress());
-                             msg().setTo(pwp->address());
-                           };
+          WPInterface *  pwp;
+          Message::Ref msg;
+          EventInfo( WPInterface *pwpi,const HIID &id,int priority )
+                     : pwp(pwpi),
+                       msg( new Message(AidEvent|id,priority) )
+                     { 
+                       msg().setFrom(pwp->dsp()->getAddress());
+                       msg().setTo(pwp->address());
+                     };
       };
     //##ModelId=3DB9364D02AD
       class TimeoutInfo : public EventInfo
       {
         public:
-        //##ModelId=3DB936550029
-        Timestamp period,next;
-        //##ModelId=3DB936550045
-                int       flags;
-        //##ModelId=3DB936550050
-                HIID      id;
-        //##ModelId=3DB936550064
-                TimeoutInfo( WPInterface *pwp,const HIID &id,int priority )
-                    : EventInfo(pwp,AidTimeout|id,priority) {};
+          Timestamp period;
+          Timestamp next;
+          int       flags;
+          HIID      id;
+          TimeoutInfo( WPInterface *pwp,const HIID &id,int priority )
+              : EventInfo(pwp,AidTimeout|id,priority) {};
       };
     //##ModelId=3DB9364D02F3
       class InputInfo : public EventInfo
       {
         public:
         //##ModelId=3DB93655008C
-        int         fd,flags;
-        //##ModelId=3DB936550098
-                MessageRef  last_msg;
-        //##ModelId=3DB9365500AA
-                InputInfo( WPInterface *pwp,const HIID &id,int priority )
-                    : EventInfo(pwp,AidInput|id,priority) {};
+          int fd;
+          int flags;
+          Message * last_msg;
+          Message::Ref last_mref;
+          InputInfo( WPInterface *pwp,const HIID &id,int priority )
+              : EventInfo(pwp,AidInput|id,priority),last_msg(0) {};
       };
     //##ModelId=3DB9364D0343
       class SignalInfo : public EventInfo
       {
         public:
         //##ModelId=3DB9365500B6
-        int       signum,flags;
+          int signum;
+          int flags;
+          Message * last_msg;
+          Message::Ref last_mref;
         //##ModelId=3DB9365500BF
-                SignalInfo( WPInterface *pwp,const HIID &id,int priority )
-                    : EventInfo(pwp,AidSignal|id,priority) {};
+          SignalInfo( WPInterface *pwp,const HIID &id,int priority )
+              : EventInfo(pwp,AidSignal|id,priority) {};
       };
       
       // hostId and processId
@@ -351,7 +351,7 @@ class Dispatcher : public OctopussyDebugContext
       
       // timeout list
     //##ModelId=3DB9364D0389
-      typedef list<TimeoutInfo> TOIL;
+      typedef std::list<TimeoutInfo> TOIL;
     //##ModelId=3DB9365B01AE
       TOIL timeouts;
     //##ModelId=3DB9364E004C
@@ -367,7 +367,7 @@ class Dispatcher : public OctopussyDebugContext
       
       // inputs list
     //##ModelId=3DB9364E0178
-      typedef list<InputInfo> IIL;
+      typedef std::list<InputInfo> IIL;
     //##ModelId=3DB9365C035E
       IIL inputs;
     //##ModelId=3DB9364E020E
@@ -392,7 +392,7 @@ class Dispatcher : public OctopussyDebugContext
       
       // signal_map map
     //##ModelId=3DB9364E03DB
-      typedef multimap<int,SignalInfo> SigMap;
+      typedef std::multimap<int,SignalInfo> SigMap;
     //##ModelId=3DB9365F00D5
       SigMap signal_map;
     //##ModelId=3DB9364F007F
@@ -448,7 +448,7 @@ class Dispatcher : public OctopussyDebugContext
       map<WPID,WPInterface*> gateways;
 
       //##ModelId=3CBEDD61016D
-      DataRecord localData_;
+      DMI::Record localData_;
 
     // Additional Implementation Declarations
     //##ModelId=3DB9364F0260
@@ -460,14 +460,14 @@ class Dispatcher : public OctopussyDebugContext
     //##ModelId=3DB93650004F
       typedef map<WPID,WPInterface*>::const_iterator CGWI;
       
-      // WPs detached with delay=True are placed into this stack,
+      // WPs detached with delay=true are placed into this stack,
       // which is flushed only at a level-0 repoll 
     //##ModelId=3DB9365F0355
-      stack<WPRef> detached_wps;
+      std::stack<WPRef> detached_wps;
       // WPs attached during Dispatcher::start() temporarily go here.
       // This is done to avoid upsetting the iterators.
     //##ModelId=3DB9366001B2
-      stack<WPRef> attached_wps;
+      std::stack<WPRef> attached_wps;
       
       // configuration
     //##ModelId=3DB936610006
@@ -518,12 +518,6 @@ inline ulong Dispatcher::getTick () const
   return tick;
 }
 
-//##ModelId=3DB936640302
-inline const DataRecord& Dispatcher::localData () const
-{
-  return localData_;
-}
-
 //##ModelId=3DB93665017D
 inline int Dispatcher::signalCounter (int sig)
 {
@@ -531,4 +525,5 @@ inline int Dispatcher::signalCounter (int sig)
 }
 
 
+};
 #endif

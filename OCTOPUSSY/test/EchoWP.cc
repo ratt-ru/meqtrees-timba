@@ -1,10 +1,15 @@
-#include "DMI/DataRecord.h"
-#include "DMI/DataField.h"
-#include "DMI/NCIter.h"
+#include <DMI/Record.h>
+#include <DMI/Vec.h>
+#include <DMI/ContainerIter.h>
 
 #include "EchoWP.h"
     
 #include <sys/time.h>
+    
+namespace Octopussy 
+{
+  
+using namespace DMI;
 
 const HIID MsgPing("Ping"),MsgPong("Pong"),MsgHelloEchoWP(MsgHello|"EchoWP.*");
 
@@ -73,11 +78,11 @@ bool EchoWP::start ()
   for( int i=0; i<threads; i++ )
     createWorker();
 #endif  
-  return False;
+  return false;
 }
 
 //##ModelId=3C7E49AC014C
-int EchoWP::receive (MessageRef& mref)
+int EchoWP::receive (Message::Ref& mref)
 {
   Timestamp now;
   lprintf(4,"received %s\n",mref.debug(10));
@@ -89,8 +94,7 @@ int EchoWP::receive (MessageRef& mref)
     LatencyVector lat = mref->latency;
     lat.measure("<PROC");
 #endif
-    // privatize message & payload
-    Message & msg = mref.privatize(DMI::WRITE,2);
+    Message & msg = mref;
     lprintf(3,"ping(%d) from %s\n",msg["Count"].as<int>(),mref->from().toString().c_str());
     // timestamp the reply
     Timestamp ts = msg["Timestamp"].as<Timestamp>();
@@ -99,7 +103,7 @@ int EchoWP::receive (MessageRef& mref)
     // process the data block if it's there
     if( msg["Process"].as<bool>() )
     {
-      NCIter_double data(msg["Data"]);
+      ContainerIter<double> data(msg["Data"]);
       lprintf(4,"sqrting data block of %d doubles\n",data.size());
       while( !data.end() )
         data.next( sqrt(*data) );
@@ -191,21 +195,23 @@ void EchoWP::stepCounters ( size_t sz,const Timestamp &stamp )
 //##ModelId=3DB9367903B8
 void EchoWP::sendPing (int pc)
 {
-  Message &msg = *new Message(MsgPing|pc,new DataRecord,DMI::ANON|DMI::WRITE);
+  Message::Ref ref;
+  Message &msg = ref <<= new Message(MsgPing|pc,new DMI::Record);
   msg["Timestamp"] = Timestamp();
   msg["Reply.Timestamp"] = Timestamp();
   msg["Process"] = process;
-  msg["Data"] <<= new DataField(Tpdouble,blocksize);
+  msg["Data"] <<= new DMI::Vec(Tpdouble,blocksize);
   msg["Count"] = pcount;
   if( fill )
   {
-    NCIter_double data(msg["Data"]);
+    ContainerIter<double> data(msg["Data"]);
     lprintf(4,"filling %d doubles\n",data.size());
     while( !data.end() )
       data.next(fill);
   }
   lprintf(4,"ping %d, publishing %s\n",pcount,msg.debug(1));
   lprintf(3,"sending ping(%d)\n",msg["Count"].as<int>());
-  MessageRef ref(msg,DMI::ANON|DMI::WRITE);
   publish(ref);
 }
+
+};

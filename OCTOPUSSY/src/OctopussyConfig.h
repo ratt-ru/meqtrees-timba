@@ -1,15 +1,16 @@
-#ifndef OctopussyConfig_h
-#define OctopussyConfig_h 1
+#ifndef OCTOPUSSY_OctopussyConfig_h
+#define OCTOPUSSY_OctopussyConfig_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-
+#include <DMI/DMI.h>
+#include <DMI/ConfigMgr.h>
 #include <vector>
 #include <string>
 
-// ConfigMgr
-#include "DMI/ConfigMgr.h"
-
+namespace Octopussy
+{
+using namespace DMI;
+    
+    
 //##ModelId=3CD00368038B
 class OctopussyConfig : public ConfigMgr
 {
@@ -152,4 +153,5 @@ inline string OctopussyConfig::sdebug (int) const
 }
 
 
+};
 #endif

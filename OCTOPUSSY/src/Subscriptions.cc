@@ -1,61 +1,26 @@
-//##ModelId=3DB936DB02BE
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
+#include "Subscriptions.h"
+#include "OctopussyDebugContext.h"
 
-//## begin module%3C999E14021C.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C999E14021C.cm
+using namespace DebugOctopussy;
 
-//## begin module%3C999E14021C.cp preserve=no
-//## end module%3C999E14021C.cp
-
-//## Module: Subscriptions%3C999E14021C; Package body
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Source file: F:\lofar8\oms\LOFAR\src-links\OCTOPUSSY\Subscriptions.cc
-
-//## begin module%3C999E14021C.additionalIncludes preserve=no
-//## end module%3C999E14021C.additionalIncludes
-
-//## begin module%3C999E14021C.includes preserve=yes
-//## end module%3C999E14021C.includes
-
-// Subscriptions
-#include "OCTOPUSSY/Subscriptions.h"
-//## begin module%3C999E14021C.declarations preserve=no
-//## end module%3C999E14021C.declarations
-
-//## begin module%3C999E14021C.additionalDeclarations preserve=yes
-//## end module%3C999E14021C.additionalDeclarations
-
-
-// Class Subscriptions 
+namespace Octopussy
+{
 
 Subscriptions::Subscriptions()
-  //## begin Subscriptions::Subscriptions%3C999C8400AF_const.hasinit preserve=no
-  //## end Subscriptions::Subscriptions%3C999C8400AF_const.hasinit
-  //## begin Subscriptions::Subscriptions%3C999C8400AF_const.initialization preserve=yes
   : pksize( sizeof(size_t) )
-  //## end Subscriptions::Subscriptions%3C999C8400AF_const.initialization
 {
-  //## begin Subscriptions::Subscriptions%3C999C8400AF_const.body preserve=yes
-  //## end Subscriptions::Subscriptions%3C999C8400AF_const.body
 }
 
 
 
-//##ModelId=3C999D010361
-//## Other Operations (implementation)
 bool Subscriptions::add (const HIID& id, const MsgAddress &scope)
 {
-  //## begin Subscriptions::add%3C999D010361.body preserve=yes
   // check if it matches an existing subscription
   for( SSI iter = subs.begin(); iter != subs.end(); iter++ )
   {
     // new sub is a strict subset of existing one? no change then
     if( id.subsetOf(iter->mask) && scope.subsetOf(iter->scope) )
-      return False;
+      return false;
     // new sub extends existing one? Update
     if( iter->mask.subsetOf(id) && iter->scope.subsetOf(scope) )
     {
@@ -63,7 +28,7 @@ bool Subscriptions::add (const HIID& id, const MsgAddress &scope)
                 scope.packSize() - iter->scope.packSize();
       iter->mask = id;
       iter->scope = scope;
-      return True;
+      return true;
     }
     // else keep on looking
   }
@@ -71,15 +36,12 @@ bool Subscriptions::add (const HIID& id, const MsgAddress &scope)
   SubElement newelem = { id,scope };
   subs.push_back(newelem);
   pksize += id.packSize() + scope.packSize() + 2*sizeof(size_t);
-  return True;
-  //## end Subscriptions::add%3C999D010361.body
+  return true;
 }
 
-//##ModelId=3C999D40033A
 bool Subscriptions::remove (const HIID &id)
 {
-  //## begin Subscriptions::remove%3C999D40033A.body preserve=yes
-  bool ret = False;
+  bool ret = false;
   for( SSI iter = subs.begin(); iter != subs.end(); )
   {
     // remove all subsets of specified ID
@@ -87,50 +49,38 @@ bool Subscriptions::remove (const HIID &id)
     {
       pksize -= iter->mask.packSize() + iter->scope.packSize() + 2*sizeof(size_t);
       subs.erase(iter++);
-      ret = True;
+      ret = true;
     }
     else
       iter++;
   }
   return ret;
-  //## end Subscriptions::remove%3C999D40033A.body
 }
 
-//##ModelId=3C999E0B0223
 void Subscriptions::clear ()
 {
-  //## begin Subscriptions::clear%3C999E0B0223.body preserve=yes
   subs.clear();
   pksize = sizeof(size_t);
-  //## end Subscriptions::clear%3C999E0B0223.body
 }
 
-//##ModelId=3C999D64004D
 bool Subscriptions::merge (const Subscriptions &other)
 {
-  //## begin Subscriptions::merge%3C999D64004D.body preserve=yes
-  bool ret = False;
+  bool ret = false;
   for( CSSI iter = other.subs.begin(); iter != other.subs.end(); iter++ )
     ret |= add(iter->mask,iter->scope);
   return ret;
-  //## end Subscriptions::merge%3C999D64004D.body
 }
 
-//##ModelId=3C999D780005
 bool Subscriptions::matches (const Message &msg) const
 {
-  //## begin Subscriptions::matches%3C999D780005.body preserve=yes
   for( CSSI iter = subs.begin(); iter != subs.end(); iter++ )
     if( msg.id().matches(iter->mask) && msg.from().matches(iter->scope) )
-      return True;
-  return False;
-  //## end Subscriptions::matches%3C999D780005.body
+      return true;
+  return false;
 }
 
-//##ModelId=3C99AC2F01DF
 size_t Subscriptions::pack (void* block, size_t &nleft) const
 {
-  //## begin Subscriptions::pack%3C99AC2F01DF.body preserve=yes
   size_t hdrsize = sizeof(size_t)*(1+2*subs.size());
   Assert(hdrsize <= pksize ); // make sure our accounting is right
   FailWhen(nleft<hdrsize,"block too small");
@@ -150,13 +100,10 @@ size_t Subscriptions::pack (void* block, size_t &nleft) const
   }
   Assert( hdrsize==pksize ); 
   return hdrsize;
-  //## end Subscriptions::pack%3C99AC2F01DF.body
 }
 
-//##ModelId=3C99AC2F022F
 void Subscriptions::unpack (const void* block, size_t sz)
 {
-  //## begin Subscriptions::unpack%3C99AC2F022F.body preserve=yes
   FailWhen(sz<sizeof(size_t),"corrupt block");
   subs.clear();
   pksize = sz;
@@ -176,12 +123,8 @@ void Subscriptions::unpack (const void* block, size_t sz)
     subs.push_back(newelem);
   }
   FailWhen(sz!=chksize,"corrupt block");
-  //## end Subscriptions::unpack%3C99AC2F022F.body
 }
 
 // Additional Declarations
-  //## begin Subscriptions%3C999C8400AF.declarations preserve=yes
-  //## end Subscriptions%3C999C8400AF.declarations
 
-//## begin module%3C999E14021C.epilog preserve=yes
-//## end module%3C999E14021C.epilog
+};

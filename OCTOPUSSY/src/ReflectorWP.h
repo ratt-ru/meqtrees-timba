@@ -1,10 +1,15 @@
 #ifndef _OCTOPUSSY_ReflectorWP_h
 #define _OCTOPUSSY_ReflectorWP_h 1
 
-#include "OCTOPUSSY/WorkProcess.h"
-#include "AID-OCTOPUSSY.h"
+#include <OCTOPUSSY/WorkProcess.h>
+#include <OCTOPUSSY/AID-OCTOPUSSY.h>
     
 #pragma aid ReflectorWP Reflect
+
+namespace Octopussy
+{
+using namespace DMI;
+
 
 class ReflectorWP : public WorkProcess
 {
@@ -17,7 +22,7 @@ class ReflectorWP : public WorkProcess
 
       virtual bool start ();
 
-      virtual int receive (MessageRef& mref);
+      virtual int receive (Message::Ref& mref);
 
   private:
       ReflectorWP(const ReflectorWP &right);
@@ -28,4 +33,5 @@ class ReflectorWP : public WorkProcess
 // Class ReflectorWP 
 
 
+};
 #endif

@@ -1,10 +1,15 @@
-#ifndef Gateways_h
-#define Gateways_h 1
+#ifndef OCTOPUSSY_Gateways_h
+#define OCTOPUSSY_Gateways_h 1
     
-#include "DMI/HIID.h"
-#include "OCTOPUSSY/AID-OCTOPUSSY.h"
+#include <DMI/HIID.h>
+#include <DMI/Record.h>
+#include <OCTOPUSSY/AID-OCTOPUSSY.h>
+
+namespace Octopussy
+{
 
 // this includes declarations common to all gateways
+class Dispatcher;
     
 // Use checksum in gateway transmissions? This increases CPU usage
 // during local transfers by a factor of 2
@@ -20,7 +25,7 @@
 #pragma aid Duplicate Host Port Peers Connected Connection Add Network Local Open
     
 // gateway-related messages
-const HIID 
+const DMI::HIID 
   // Messages published by server
   // common prefix
   MsgGWServer(AidGW|AidServer),      
@@ -61,8 +66,10 @@ const HIID
 // dummy const  
   GWNull();
   
+extern DMI::Record gatewayPeerList;  
+
 // opens standard set of client/server gateways
-class Dispatcher;
 void initGateways (Dispatcher &dsp);
   
+};
 #endif

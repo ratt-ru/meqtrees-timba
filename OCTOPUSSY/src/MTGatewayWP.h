@@ -1,27 +1,24 @@
-#ifndef MTGatewayWP_h
-#define MTGatewayWP_h 1
-
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
+#ifndef OCTOPUSSY_MTGatewayWP_h
+#define OCTOPUSSY_MTGatewayWP_h 1
 
 #ifdef USE_THREADS
 
-#include "Common/Thread.h"
-#include "Common/Thread/Condition.h"
+#include <DMI/DMI.h>
+#include <Common/Thread.h>
+#include <Common/Thread/Condition.h>
 #include <deque>
-using std::deque;
 //##ModelId=3DB958F10261
 
-// Socket
-#include "Common/Net/Socket.h"
-
-// Subscriptions
-#include "OCTOPUSSY/Subscriptions.h"
-// WorkProcess
-#include "OCTOPUSSY/WorkProcess.h"
+#include <Common/Net/Socket.h>
+#include <OCTOPUSSY/Subscriptions.h>
+#include <OCTOPUSSY/WorkProcess.h>
 
 #pragma aid Subscriptions Init Heartbeat
 
+namespace Octopussy
+{
+using namespace DMI;
+using std::deque;
 using LOFAR::Socket;
 
 class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
@@ -45,11 +42,11 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
       virtual void stop ();
 
     //##ModelId=3DB958F50053
-      //	Returns True if this WP will forward this non-local message
+      //	Returns true if this WP will forward this non-local message
       virtual bool willForward (const Message &msg) const;
 
     //##ModelId=3DB958F500B8
-      virtual int receive (MessageRef& mref);
+      virtual int receive (Message::Ref& mref);
 
     //##ModelId=3DB958F5011C
       virtual int timeout (const HIID &id);
@@ -101,9 +98,9 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
       int peerState () const     { return (state()&0xFF0000)>>16; };
       
     //##ModelId=3DB958F5018A
-      void setReadState  (int st)  { setState((state()&~0xFF)|st,True); };
+      void setReadState  (int st)  { setState((state()&~0xFF)|st,true); };
     //##ModelId=3DB958F501EF
-      void setWriteState (int st)  { setState((state()&~0xFF00)|(st<<8),True); };
+      void setWriteState (int st)  { setState((state()&~0xFF00)|(st<<8),true); };
     //##ModelId=3DB958F50253
       void setPeerState  (int st)  { setState((state()&~0xFF0000)|(st<<16)); };
       
@@ -120,7 +117,7 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
       int readyForData    (const PacketHeader &hdr,BlockSet &bset); // prepare to receive data block
       
     //##ModelId=3DB958F50385
-      void processIncoming(MessageRef &mref);   // sends off incoming message
+      void processIncoming(Message::Ref &mref);   // sends off incoming message
       
       // reports write error and terminates writer thread
     //##ModelId=3DB958F60001
@@ -132,7 +129,7 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
     
       // Helper functions for writing to socket
     //##ModelId=3DB958F600CB
-      void transmitMessage (MessageRef &mref);
+      void transmitMessage (Message::Ref &mref);
       
       // remote info
     //##ModelId=3DB958F301AD
@@ -172,9 +169,6 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
 
     // Additional Private Declarations
     //##ModelId=3DB958F301EA
-      // list of peers
-      DataRecord *peerlist;
-
       // separate reader threads are run
     //##ModelId=3DB958F60246
       static void * start_readerThread (void *pwp);
@@ -193,6 +187,7 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
       // write state
     //##ModelId=3DB958F30264
       Thread::Mutex writer_mutex;
+      Thread::Mutex pre_writer_mutex;
     //##ModelId=3DB958F30280
       bool writing;
     //##ModelId=3DB958F302AA
@@ -231,7 +226,7 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
       
       // this is the initialization message, prepared in start()
     //##ModelId=3DB958F401C1
-      MessageRef initmsg;
+      Message::Ref initmsg;
     //##ModelId=3DB958F401F6
       bool initmsg_sent;
       
@@ -266,4 +261,5 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
 #endif // USE_THREADS
 
 
+};
 #endif

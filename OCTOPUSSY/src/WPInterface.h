@@ -13,6 +13,10 @@
 #include <set>
 #include <queue>
 
+namespace Octopussy
+{
+using namespace DMI;
+
 class Dispatcher;
 
 // standard event messages
@@ -47,7 +51,7 @@ class WPInterface : public OctopussyDebugContext,
       {
         public:
         //##ModelId=3DB936DC005D
-          MessageRef mref; 
+          Message::Ref mref; 
         //##ModelId=3DB936DC0067
           int priority; 
         //##ModelId=3E08EC000211
@@ -69,7 +73,7 @@ class WPInterface : public OctopussyDebugContext,
 #endif
               {}
         //##ModelId=3DB936DC00CC
-          QueueEntry(const MessageRef &mref_,int pri,ulong tick_)
+          QueueEntry(const Message::Ref &mref_,int pri,ulong tick_)
               : mref(mref_),priority(pri),tick(tick_)
 #if defined(ENABLE_LATENCY_STATS) && defined(USE_THREADS)
               ,thrid(Thread::self())
@@ -78,7 +82,7 @@ class WPInterface : public OctopussyDebugContext,
       };
                      
     //##ModelId=3DB936520303
-      typedef list<QueueEntry> MessageQueue;
+      typedef std::list<QueueEntry> MessageQueue;
       
     //##ModelId=3DB9365203CB
       typedef enum { ENQ_NOREPOLL = 1, ENQ_NOSIGNAL = 2 } EnqueueFlags;
@@ -138,33 +142,33 @@ class WPInterface : public OctopussyDebugContext,
 
       //##ModelId=3C8F204A01EF
       //##Documentation
-      //## Places ref into the receive queue. Note that the ref is transferred.
+      //## Places ref into the receive queue. 
       //## If placing at head and ENQ_NOREPOLL flag is not set, sets the repoll flag.
       //## With USE_THREADS, also signals on the queue condition variable, unless
       //## the ENQ_NOSIGNAL flag is set.
       //## Returns <0 if no repoll is required, else the queue priority if it is.
-      int  enqueue (const MessageRef &msg,ulong tick,int flags = 0);
+      int  enqueue (const Message::Ref &msg,ulong tick,int flags = 0);
 
       //##ModelId=3C8F204D0370
       //##Documentation
-      //## Removes from queue messages matching the id. Returns True if WP
+      //## Removes from queue messages matching the id. Returns true if WP
       //## needs to be repolled.
       //## If ref is non-0, then removes the first matching message, and
       //## attaches ref to it. If ref is 0, removes all matching messages.
-      bool dequeue (const HIID &id, MessageRef *ref = 0);
+      bool dequeue (const HIID &id, Message::Ref *ref = 0);
 
       //##ModelId=3C8F205103D0
       //##Documentation
       //## Dequeues the message at the given position.  If ref is non-0, then
-      //## attaches ref to the message. Returns True if WP needs to be repolled.
-      bool dequeue (int pos, MessageRef *ref = 0);
+      //## attaches ref to the message. Returns true if WP needs to be repolled.
+      bool dequeue (int pos, Message::Ref *ref = 0);
 
       //##ModelId=3C8F205601EC
       //##Documentation
       //## Finds first message in queue, starting at pos (0=top),  with
       //## matching id. Returns position of message, or -1 if not found. If ref
       //## is specified, then attaches it to the message.
-      int searchQueue (const HIID &id, int pos = 0, MessageRef *ref = 0);
+      int searchQueue (const HIID &id, int pos = 0, Message::Ref *ref = 0);
 
       //##ModelId=3C8F206C0071
       //##Documentation
@@ -175,7 +179,7 @@ class WPInterface : public OctopussyDebugContext,
 
       //##ModelId=3C9079A00325
       //##Documentation
-      //## Returns True if this WP will forward this non-local message.
+      //## Returns true if this WP will forward this non-local message.
       virtual bool willForward (const Message &) const;
 
       //##ModelId=3C7CB9B70120
@@ -189,10 +193,9 @@ class WPInterface : public OctopussyDebugContext,
 
       //##ModelId=3C7CB9E802CF
       //##Documentation
-      //## Sends message to specified address. Note that the ref is taken over
-      //## by this call, then privatized for writing. See Dispatcher::send()
-      //## for more details.
-      int send (MessageRef msg, MsgAddress to, int flags = 0 );
+      //## Sends message to specified address. Note that the ref can be taken 
+      //## over by this call.
+      int send (Message::Ref &msg, MsgAddress to, int flags = 0 );
 
       //##ModelId=3CBDAD020297
       int send (const HIID &id, MsgAddress to, int flags = 0, int priority = Message::PRI_NORMAL);
@@ -203,13 +206,13 @@ class WPInterface : public OctopussyDebugContext,
       //## taken over by this call, then privatized for writing. This method is
       //## just a shorthand for send(), with "Publish" in some parts of the
       //## address, as determined by scope).
-      int publish (MessageRef msg, int flags = 0, int scope = Message::GLOBAL);
+      int publish (Message::Ref &msg, int flags = 0, int scope = Message::GLOBAL);
 
       //##ModelId=3CBDACCC028F
       int publish (const HIID &id, int flags = 0, int scope = Message::GLOBAL, int priority = Message::PRI_NORMAL);
 
       //##ModelId=3CBED9EF0197
-      void setState (int newstate, bool delay_publish = False);
+      void setState (int newstate, bool delay_publish = false);
 
       //##ModelId=3CA0457F01BD
       void log (string str, int level = 0, AtomicID type = AidLogNormal);
@@ -248,10 +251,10 @@ class WPInterface : public OctopussyDebugContext,
       bool isLocal (const Message &msg)
       { return isLocal(msg.from()); }
     //##ModelId=3DB936F30167
-      bool isLocal (const MessageRef &mref)
+      bool isLocal (const Message::Ref &mref)
       { return isLocal(mref->from()); }
       
-      // returns True if head of queue is the same as pmsg
+      // returns true if head of queue is the same as pmsg
     //##ModelId=3DB936F40172
       bool compareHeadOfQueue( const Message *pmsg );
       
@@ -301,7 +304,7 @@ class WPInterface : public OctopussyDebugContext,
       virtual void notify ();
       
       //##ModelId=3C7CC0950089
-      virtual int receive (MessageRef &mref);
+      virtual int receive (Message::Ref &mref);
 
       //##ModelId=3C7CC2AB02AD
       virtual int timeout (const HIID &id);
@@ -334,11 +337,11 @@ class WPInterface : public OctopussyDebugContext,
       // this wakes up one or all worker threads by signalling or broadcasting
       // on the condition variable
     //##ModelId=3DB9370203A9
-      int wakeWorker (bool everyone=False);
+      int wakeWorker (bool everyone=false);
       // this forces a repoll (sets the repoll flag), and wakes up a worker
       // (or alll workers)
     //##ModelId=3DB937050309
-      int repollWorker (bool everyone=False);
+      int repollWorker (bool everyone=false);
       
       // this is for the multithreaded version of poll. This takes one message
       // from the queue and delivers it to timeout/input/signal/receive.
@@ -352,19 +355,19 @@ class WPInterface : public OctopussyDebugContext,
       // The lock argument is a valid lock on the queue_cond mutex,
       // it may be released inside wakeup, but must be reacquired
       // before returning control.
-      // Return True if OK, or False to terminate the thread
+      // Return true if OK, or false to terminate the thread
     //##ModelId=3DB9370803D5
       virtual bool mtWakeup (Thread::Mutex::Lock &lock);
-      // This is called to initialize a worker thread. Return False to 
+      // This is called to initialize a worker thread. Return false to 
       // terminate thread. Worker threads are initialized sequentially, and
       // startup will not complete until all workers have completed the 
       // initialization.
     //##ModelId=3DB9370B0099
-      virtual bool mtInit (Thread::ThrID) { return True; };
+      virtual bool mtInit (Thread::ThrID) { return true; };
       // This is called for every worker thread once all threads have been
-      // started. Return False to terminate thread.
+      // started. Return false to terminate thread.
     //##ModelId=3DB9370E00C4
-      virtual bool mtStart (Thread::ThrID) { return True; };
+      virtual bool mtStart (Thread::ThrID) { return true; };
       // This is called by the default runWorker() before exiting a worker thread.
     //##ModelId=3DB937100008
       virtual void mtStop (Thread::ThrID) {};
@@ -403,7 +406,7 @@ class WPInterface : public OctopussyDebugContext,
       // queue, unless something with higher priority has arrived while we were
       // processing it)
     //##ModelId=3DB937190389
-      bool enqueueFront (const MessageRef &msg,ulong tick,bool setrepoll=True);
+      bool enqueueFront (const Message::Ref &msg,ulong tick,bool setrepoll=true);
       
       // helper function used by enqueue() to raise a repoll condition
       void notifyOfRepoll (bool do_signal);
@@ -560,7 +563,7 @@ inline bool WPInterface::isAttached () const
 //##ModelId=3C9079A00325
 inline bool WPInterface::willForward (const Message &) const
 {
-  return False;
+  return false;
 }
 
 //##ModelId=3C7CB9B70120
@@ -684,12 +687,12 @@ inline Thread::ThrID WPInterface::workerID (int i) const
 
 inline void WPInterface::enablePolling  ()
 {
-  polling_enabled = True;
+  polling_enabled = true;
 }
 
 inline void WPInterface::disablePolling ()
 {
-  polling_enabled = False;
+  polling_enabled = false;
 }
 
 inline bool WPInterface::pollingEnabled () const
@@ -698,6 +701,5 @@ inline bool WPInterface::pollingEnabled () const
 }
 
 
-
+};
 #endif
-

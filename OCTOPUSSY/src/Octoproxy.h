@@ -1,7 +1,13 @@
+#ifndef OCTOPUSSY_Octoproxy_h
+#define OCTOPUSSY_Octoproxy_h 1
 
-#include "OCTOPUSSY/WPInterface.h"
-#include "Message.h"
-#include "WPInterface.h"
+#include <OCTOPUSSY/WPInterface.h>
+#include <OCTOPUSSY/Message.h>
+#include <OCTOPUSSY/WPInterface.h>
+
+namespace Octopussy
+{
+using namespace DMI;
 
 namespace Octoproxy 
 {
@@ -54,7 +60,7 @@ namespace Octoproxy
       void wait ();
       
       //##ModelId=3E09032400F1
-      bool receive (Message::Ref &mref,bool wait=True);
+      bool receive (Message::Ref &mref,bool wait=true);
 
       bool isRunning ();
       
@@ -82,3 +88,6 @@ namespace Octoproxy
   
 } // namespace Octoproxy
 
+};
+
+#endif

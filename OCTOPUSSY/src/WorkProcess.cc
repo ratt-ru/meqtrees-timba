@@ -20,9 +20,12 @@
 //
 //  $Id$
 
-#include <OCTOPUSSY/Dispatcher.h>
-#include <OCTOPUSSY/AID-OCTOPUSSY.h>
-#include <OCTOPUSSY/WorkProcess.h>
+#include "Dispatcher.h"
+#include "AID-OCTOPUSSY.h"
+#include "WorkProcess.h"
+
+namespace Octopussy
+{
 
 WorkProcess::WorkProcess (AtomicID wpc)
   : WPInterface(wpc),detaching_(false)
@@ -75,7 +78,7 @@ bool WorkProcess::removeSignal (int signum)
 void WorkProcess::detachMyself ()
 {
   if( !detaching_ )
-    dsp()->detach(this,True);
+    dsp()->detach(this,true);
   detaching_ = true;
 }
 
@@ -95,3 +98,4 @@ const MsgAddress & WorkProcess::attachWP (WPInterface* wp, int flags)
 
 
 
+};

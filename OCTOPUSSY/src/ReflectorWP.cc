@@ -1,5 +1,7 @@
-#include "OCTOPUSSY/ReflectorWP.h"
+#include "ReflectorWP.h"
 
+namespace Octopussy
+{
 
 ReflectorWP::ReflectorWP (AtomicID wpid)
  : WorkProcess(wpid)
@@ -20,11 +22,11 @@ void ReflectorWP::init ()
 bool ReflectorWP::start ()
 {
   WorkProcess::start();
-  return False;
+  return false;
 }
 
 //##ModelId=3C7E49AC014C
-int ReflectorWP::receive (MessageRef& mref)
+int ReflectorWP::receive (Message::Ref& mref)
 {
   // ignore messages from ourselves
   if( mref->from() == address() )
@@ -35,8 +37,6 @@ int ReflectorWP::receive (MessageRef& mref)
     int level = getDebugContext().level() - 1;
     dprintf(2)("received: %s\n",mref->sdebug(level).c_str());
   }
-  // privatize the message
-  mref.privatize(DMI::WRITE,2);
   // prepend "Reflect" to the message ID
   mref().setId( AidReflect | mref->id() );
   // return to sender
@@ -46,3 +46,4 @@ int ReflectorWP::receive (MessageRef& mref)
   return Message::ACCEPT;
 }
 
+};

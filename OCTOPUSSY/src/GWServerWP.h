@@ -1,19 +1,16 @@
-#ifndef GWServerWP_h
-#define GWServerWP_h 1
+#ifndef OCTOPUSSY_GWServerWP_h
+#define OCTOPUSSY_GWServerWP_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
+#include <Common/Net/Socket.h>
+#include <DMI/DMI.h>
+#include <OCTOPUSSY/MTGatewayWP.h>
+#include <OCTOPUSSY/GatewayWP.h>
+#include <OCTOPUSSY/WorkProcess.h>
 
-#include "OCTOPUSSY/MTGatewayWP.h"
-
-// Socket
-#include "Common/Net/Socket.h"
-// GatewayWP
-#include "OCTOPUSSY/GatewayWP.h"
-// WorkProcess
-#include "OCTOPUSSY/WorkProcess.h"
 #pragma aid Gateway GWServerWP GWClientWP GatewayWP
 
+namespace Octopussy
+{
 
 //##ModelId=3C8F942502BA
 
@@ -46,7 +43,7 @@ class GWServerWP : public WorkProcess
       virtual int input (int , int );
 
       //##ModelId=3CC951890246
-      virtual int receive (MessageRef &mref);
+      virtual int receive (Message::Ref &mref);
 
     // Additional Public Declarations
     //##ModelId=3DB9367E033E
@@ -82,7 +79,7 @@ class GWServerWP : public WorkProcess
     //##ModelId=3DB9367E0051
       int type;  // Socket::TCP or Socket::UNIX
     //##ModelId=3DB9367E00D5
-      MessageRef advertisement;
+      Message::Ref advertisement;
     //##ModelId=3DB9367E0110
       int open_retries;
 };
@@ -90,4 +87,5 @@ class GWServerWP : public WorkProcess
 // Class GWServerWP 
 
 
+};
 #endif

@@ -1,18 +1,18 @@
-#ifndef GWClientWP_h
-#define GWClientWP_h 1
+#ifndef OCTOPUSSY_GWClientWP_h
+#define OCTOPUSSY_GWClientWP_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-
+#include <Common/Net/Socket.h>
+#include <DMI/DMI.h>
+#include <OCTOPUSSY/MTGatewayWP.h>
+#include <OCTOPUSSY/GatewayWP.h>
+#include <OCTOPUSSY/WorkProcess.h>
 #include <list>
-#include "OCTOPUSSY/MTGatewayWP.h"
-
-#include "Common/Net/Socket.h"
-#include "OCTOPUSSY/GatewayWP.h"
-#include "OCTOPUSSY/WorkProcess.h"
 
 #pragma aid Reconnect FailConnect Reopen Server List Hosts Ports
 
+namespace Octopussy
+{
+using namespace DMI;
 
 //##ModelId=3C95A941002E
 
@@ -53,7 +53,7 @@ class GWClientWP : public WorkProcess
       int timeout (const HIID &id);
 
       //##ModelId=3C95A9410095
-      int receive (MessageRef& mref);
+      int receive (Message::Ref& mref);
 
     // Additional Public Declarations
     //##ModelId=3DB93650012B
@@ -82,10 +82,6 @@ class GWClientWP : public WorkProcess
     //##ModelId=3DB9367A03A5
       bool reconnect_timeout_set;
       
-    //##ModelId=3DB9367B0021
-      ObjRef peerref;
-    //##ModelId=3DB9367B009A
-      DataRecord & peerlist;
   private:
     //##ModelId=3DB9367D00C2
       GWClientWP(const GWClientWP &right);
@@ -102,16 +98,17 @@ class GWClientWP : public WorkProcess
     // Data Members for Associations
 
       //##ModelId=3DB958F20327
-      list<Connection> conns;
+      std::list<Connection> conns;
 
     // Additional Implementation Declarations
     //##ModelId=3DB936500167
-      typedef list<Connection>::iterator CLI;
+      typedef std::list<Connection>::iterator CLI;
     //##ModelId=3DB936500199
-      typedef list<Connection>::const_iterator CCLI;
+      typedef std::list<Connection>::const_iterator CCLI;
 };
 
 // Class GWClientWP 
 
 
+};
 #endif

@@ -1,12 +1,14 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <string.h>
-#include "OCTOPUSSY/OctopussyConfig.h"
+    
+#include "OctopussyConfig.h"
+#include "WPInterface.h"
+#include "Dispatcher.h"
 
-// WPInterface
-#include "OCTOPUSSY/WPInterface.h"
-// Dispatcher
-#include "OCTOPUSSY/Dispatcher.h"
+namespace Octopussy
+{
+
 
 // pulls in registry definitions
 static int dum = aidRegistry_OCTOPUSSY();
@@ -18,7 +20,7 @@ sigset_t Dispatcher::raisedSignals,Dispatcher::allSignals;
 //##ModelId=3DB9365A0179
 struct sigaction * Dispatcher::orig_sigaction[_NSIG];
 //##ModelId=3DB9365603B8
-bool Dispatcher::stop_polling = False;
+bool Dispatcher::stop_polling = false;
 
 //##ModelId=3DB936610326
 int Dispatcher::signal_counter[Dispatcher::max_signals];
@@ -36,7 +38,7 @@ void Dispatcher::signalHandler (int signum,siginfo_t *,void *)
   signal_counter[signum]++;
   // interrupt any poll loops
   if( signum == SIGINT )
-    stop_polling = True;
+    stop_polling = true;
 }
 //##ModelId=3C7CD444039C
 
@@ -101,7 +103,7 @@ void Dispatcher::init ()
   memset(orig_sigaction,0,sizeof(orig_sigaction));
   sigemptyset(&raisedSignals);
   sigemptyset(&allSignals);
-  running = in_start = False;
+  running = in_start = false;
   poll_depth = -1;
   dprintf(1)("created\n");
 }
@@ -127,13 +129,13 @@ const MsgAddress & Dispatcher::attach (WPRef &wpref)
     attached_wps.push(wpref); // let start handle it
   else // add to map and activate
   {
-    (wps[wpid] = wpref).persist();
+    wps[wpid] = wpref;
     lock.release();
     if( running )
     {
       wp.do_init();
       if( wp.do_start() )
-        repoll = True;
+        repoll = true;
     }
   }
   return wp.address();
@@ -200,10 +202,10 @@ void Dispatcher::declareForwarder (WPInterface *wp)
 //##ModelId=3C7DFF770140
 void Dispatcher::start ()
 {
-  dprintf(2)("start: running=in_start=True\n");
-  running = in_start = True;
-  in_pollLoop = False;
-  stop_polling = False;
+  dprintf(2)("start: running=in_start=true\n");
+  running = in_start = true;
+  in_pollLoop = false;
+  stop_polling = false;
   tick = 0;
   // say init to all WPs
   dprintf(1)("starting\n");
@@ -238,18 +240,18 @@ void Dispatcher::start ()
   map<WPID,WPRef> wps1 = wps;
   for( WPI iter = wps1.begin(); iter != wps1.end(); iter++ )
     if( iter->second().do_start() )
-      repoll = True;
+      repoll = true;
   
 #ifdef USE_THREADS
 // signal that start is complete so that the event thread can proceed
   {
     Thread::Mutex::Lock lock(startup_cond);
-    in_start = False;
-    dprintf(2)("start: in_start=False, broadcasting on condition variable\n");
+    in_start = false;
+    dprintf(2)("start: in_start=false, broadcasting on condition variable\n");
     startup_cond.broadcast();
   }
 #else
-  in_start = False;
+  in_start = false;
 #endif
   
   // if someone has launched any new WPs already, start them now
@@ -265,9 +267,9 @@ void Dispatcher::start ()
       lock.release();
       ref().do_init();
       if( ref().do_start() )
-        repoll = True;
+        repoll = true;
       lock.relock(wpmutex);
-      (wps[ref->wpid()] = ref).persist();
+      wps[ref->wpid()] = ref;
     }
   }
   // startup event thread
@@ -286,8 +288,8 @@ void Dispatcher::stop ()
 {
   dprintf(1)("stopping\n");
 #ifdef USE_THREADS
-  running = False;
-  stop_polling = True;
+  running = false;
+  stop_polling = true;
   // if stop() is being called from a different thread than start(),
   // then assume we have a separate main thread, so kill it off
   if( Thread::self() != main_thread )
@@ -302,7 +304,7 @@ void Dispatcher::stop ()
   event_thread.kill(SIGUSR1);
   event_thread.join();
 #else
-  running = False;
+  running = false;
   // stop the heartbeat timer
   struct itimerval tval = { {0,0},{0,0} };
   setitimer(ITIMER_REAL,&tval,0);
@@ -325,7 +327,7 @@ void Dispatcher::stop ()
 }
 
 //##ModelId=3C7B8867015B
-int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
+int Dispatcher::send (Message::Ref &mref, const MsgAddress &to)
 {
   int ndeliver = 0;
   Message &msg = mref;
@@ -347,10 +349,7 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
       if( iter != wps.end() )
       {
         dprintf(2)("  queing for: %s\n",iter->second->debug(1));
-        // for first delivery, privatize the whole message & payload as read-only
-        if( !ndeliver )
-          mref.privatize(DMI::READONLY|DMI::DEEP);
-        enqueue(iter->second,mref.copy());
+        enqueue(iter->second,mref);
         ndeliver++;
       }
     }
@@ -370,10 +369,7 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
         }
         else // else continue, so as to skip the deligvery below
           continue;
-        // for first delivery, privatize the whole message & payload as read-only
-        if( !ndeliver )
-          mref.privatize(DMI::READONLY|DMI::DEEP);
-        enqueue(iter->second,mref.copy());
+        enqueue(iter->second,mref);
         ndeliver++;
       }
     }
@@ -388,9 +384,7 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
       if( iter->second->willForward(msg) )
       {
         dprintf(2)("  forwarding via %s\n",iter->second->debug(1));
-        if( !ndeliver )
-          mref.privatize(DMI::READONLY|DMI::DEEP);
-        enqueue(iter->second,mref.copy());
+        enqueue(iter->second,mref);
         ndeliver++;
       }
   }
@@ -450,7 +444,7 @@ void Dispatcher::poll (int maxloops)
     int maxpri = -1;
     WPInterface *maxwp = 0;
     int num_repoll = 0; // # of WPs needing a repoll
-    repoll = False;
+    repoll = false;
     // Find WP with maximum polling priority
     // Count the number of WPs that required polling, too
     Thread::Mutex::Lock lock(wpmutex);
@@ -471,13 +465,13 @@ void Dispatcher::poll (int maxloops)
     lock.release();
     // if more than 1 WP needs a repoll, force another loop
     if( num_repoll > 1 )
-      repoll = True;
+      repoll = true;
     // deliver message, if a queue was found
     if( maxwp )
     {
       dprintf(3)("poll: max priority %d in %s, repoll=%d\n",maxpri,maxwp->debug(1),(int)repoll);
       if( maxwp->do_poll(tick) )
-        repoll = True;
+        repoll = true;
       dprintf(3)("poll done: repoll=%d\n",(int)repoll);
     }
   }
@@ -491,8 +485,8 @@ void Dispatcher::pollLoop ()
 {
   FailWhen(!running,"not running");
   FailWhen(in_pollLoop,"already in pollLoop()");
-  in_pollLoop = True;
-  stop_polling = False;
+  in_pollLoop = true;
+  stop_polling = false;
   rebuildSignals();
 #ifdef USE_THREADS
   // multithreaded version: loop until stop_polling is raised
@@ -525,7 +519,7 @@ void Dispatcher::pollLoop ()
       pause();       // use plain pause(2)
   }
 #endif
-  in_pollLoop = False;
+  in_pollLoop = false;
 }
 
 //##ModelId=3CE0BD3F0026
@@ -538,7 +532,7 @@ bool Dispatcher::yield ()
 //##ModelId=3CA09EB503C1
 void Dispatcher::stopPolling ()
 {
-  stop_polling = True;
+  stop_polling = true;
 #ifdef USE_THREADS
   Thread::Mutex::Lock lock(repoll_cond);
   repoll_cond.broadcast();
@@ -632,14 +626,14 @@ bool Dispatcher::removeTimeout (WPInterface* pwp, const HIID &id)
     {
       // remove any remaining timeout messages from this queue
       if( pwp->dequeue(iter->msg->id()) )
-        repoll = True;
+        repoll = true;
       timeouts.erase(iter++);
-      return True;
+      return true;
     }
     else
       iter++;
   }
-  return False;
+  return false;
 }
 
 //##ModelId=3C7D2947002F
@@ -650,29 +644,32 @@ bool Dispatcher::removeInput (WPInterface* pwp, int fd, int flags)
   Thread::Mutex::Lock lock(inpmutex);
   for( IILI iter = inputs.begin(); iter != inputs.end(); iter++ )
   {
-    // is an input message sitting intill undelivered?
+    // is an input message sitting enqueued and still undelivered?
     // (WPInterface::poll() will reset its state to 0 when delivered)
     // input messages are dequeued/modified inside WorkProcess::removeInput.
     if( iter->pwp == pwp && (fd<0 || iter->fd == fd) ) 
     {   
        // is an input message sitting in the queue, undelivered? Clear its flags
-      MessageRef & ref = iter->last_msg;
-      if( ref.valid() && ref.isWritable() && ref->state() )
-        ref().setState(ref->state()&~flags);
+      if( iter->last_mref.valid() && !iter->last_mref.isOnlyRef() )
+      {
+        Message *pmsg = iter->last_msg;
+        Assert(iter->last_mref.deref_p() == pmsg);
+        pmsg->setState(pmsg->state()&~flags);
+      }
       // clear flags of input
       if( ( iter->flags &= ~flags ) == 0 ) // removed all modes? 
         inputs.erase(iter);
       rebuildInputs();
-      return True;
+      return true;
     }
   }
-  return False;
+  return false;
 }
 
 //##ModelId=3C7DFF57025C
 bool Dispatcher::removeSignal (WPInterface* pwp, int signum)
 {
-  bool res = False;
+  bool res = false;
   pair<SMI,SMI> rng;
   Thread::Mutex::Lock lock(sigmutex);
   // if signum<0, removes all signal_map for this WP
@@ -686,7 +683,7 @@ bool Dispatcher::removeSignal (WPInterface* pwp, int signum)
     if( iter->second.pwp == pwp )
     {
       signal_map.erase(iter++);
-      res = True;
+      res = true;
     }
     else
       iter++;
@@ -696,7 +693,7 @@ bool Dispatcher::removeSignal (WPInterface* pwp, int signum)
   if( signum<0 )
     id[2] = AidWildcard;
   if( pwp->dequeue(id) )
-    repoll = True;
+    repoll = true;
   
   if( res )
     rebuildSignals();
@@ -716,31 +713,12 @@ bool Dispatcher::getWPIter (Dispatcher::WPIter &iter, WPID &wpid, const WPInterf
   if( iter.iter == wps.end() )
   {
     iter.lock.release();
-    return False;
+    return false;
   }
   wpid = iter.iter->first;
   pwp = iter.iter->second.deref_p();
   iter.iter++;
-  return True;
-}
-
-//##ModelId=3CBEDDD8001A
-void Dispatcher::addLocalData (const HIID &id, ObjRef ref)
-{
-  FailWhen( localData_[id].exists(),id.toString()+" is already defined in local data");
-  localData_[id] <<= ref;
-}
-
-//##ModelId=3CC405480057
-NestableContainer::Hook Dispatcher::localData (const HIID &id)
-{
-  return localData_[id];
-}
-
-//##ModelId=3CC00549020D
-bool Dispatcher::hasLocalData (const HIID &id)
-{
-  return localData_[id].exists();
+  return true;
 }
 
 // Additional Declarations
@@ -856,7 +834,7 @@ bool Dispatcher::checkEvents()
     {
       if( iter->next <= now ) // this timeout has fired?
       {
-        enqueue(iter->pwp, iter->msg.copy(DMI::READONLY));
+        enqueue(iter->pwp,iter->msg);
         if( iter->flags&EV_ONESHOT ) // not continouos? clear it now
         {
           timeouts.erase(iter++);
@@ -904,28 +882,32 @@ bool Dispatcher::checkEvents()
       if( flags )
       {
         dprintf(1)("adding input message for %s\n",iter->pwp->debug(2));
-        MessageRef & ref = iter->last_msg;
         // is a previous message still undelivered?
-        // (WPInterface::poll() will reset its state to 0 when delivered)
-        if( ref.valid() && ref->state() != 0 )
+        // (WPInterface::poll() will set its state to 0, thus causing COW,
+        // and making our cached ref here the only ref)
+        if( iter->last_mref.valid() && !iter->last_mref.isOnlyRef() )
         {
+          Message *pmsg = iter->last_msg;
+          // the below has to be true, but a little sanity checking won't hurt 
+          Assert(iter->last_mref.deref_p() == pmsg);
           dprintf(1)("input message already found in queue\n");
-          ref().setState(ref->state()|flags); // update state
+          pmsg->setState(pmsg->state()|flags); // update state
           // is this same message at the head of the queue? repoll then
-          if( iter->pwp->compareHeadOfQueue(ref) )
+          if( iter->pwp->compareHeadOfQueue(pmsg) )
           {
             dprintf(1)("head of queue changed, repoll required\n");
-            repoll = wakeup = True;     
-            iter->pwp->setNeedRepoll(True);
+            repoll = wakeup = true;     
+            iter->pwp->setNeedRepoll(true);
           }
         }
         else // not found, so enqueue a message
         {
           dprintf(1)("enqueueing new input message\n");
-          // make a writable copy of the template message, because we set state
-          ref = iter->msg.copy().privatize(DMI::WRITE);
-          ref().setState(flags);
-          enqueue(iter->pwp,ref.copy(DMI::WRITE));  
+          Message::Ref ref = iter->msg;
+          ref().setState(flags); // cow here, so only copy
+          iter->last_mref = ref;
+          iter->last_msg = ref.dewr_p();
+          enqueue(iter->pwp,ref);
         }
         // if event is one-shot, clear it
         if( iter->flags&EV_ONESHOT )
@@ -959,22 +941,27 @@ bool Dispatcher::checkEvents()
           // discrete signal events requested, so always enqueue a message
           if( iter->second.flags&EV_DISCRETE )
           {
-            enqueue(iter->second.pwp,iter->second.msg.copy(DMI::WRITE));
+            enqueue(iter->second.pwp,iter->second.msg);
           }
           else // else see if event is already enqueued & not delivered
           {
             // is a previous message still undelivered?
-            // (WPInterface::poll() will reset its state to 0 when delivered)
-            if( iter->second.msg->state() )
+            // (WPInterface::poll() will set its state to 0, thus causing COW,
+            // and making our cached ref here the only ref)
+            if( iter->second.last_mref.valid() && !iter->second.last_mref.isOnlyRef() )
             {
+              Message *pmsg = iter->second.last_msg;
               // simply ask for a repoll if the message is at top of queue
-              if( iter->second.pwp->compareHeadOfQueue(iter->second.msg) )
-                iter->second.pwp->setNeedRepoll(repoll=wakeup=True);
+              if( iter->second.pwp->compareHeadOfQueue(pmsg) )
+                iter->second.pwp->setNeedRepoll(repoll=wakeup=true);
             }
             else // not in queue anymore, so enqueue a message
             {
-              iter->second.msg().setState(1); // state=1 means undelivered
-              enqueue(iter->second.pwp,iter->second.msg.copy(DMI::WRITE));
+              // state=1 means undelivered; this will cause COW
+              iter->second.last_mref = iter->second.msg;
+              iter->second.last_msg = iter->second.last_mref.dewr_p();
+              iter->second.last_msg->setState(1);
+              enqueue(iter->second.pwp,iter->second.last_mref);
             }
           }
         }
@@ -987,7 +974,7 @@ bool Dispatcher::checkEvents()
     }
   }
 #ifdef USE_THREADS
-  // if wakeup is True, wake up polling thread (otherwise, enqueue() would 
+  // if wakeup is true, wake up polling thread (otherwise, enqueue() would 
   // have done it for us)
   if( wakeup )
   {
@@ -1008,11 +995,12 @@ void Dispatcher::enqueue (WPInterface *pwp,const Message::Ref &ref)
 // if the WP is not in a separate thread, a repoll may be required
   if( !pwp->isThreaded() && res )
   {
-    repoll = True;
+    repoll = true;
     // wake up the dispatcher thread
     if( Thread::self() != main_thread )
     {
       Thread::Mutex::Lock lock(repoll_cond);
+      repoll = true;
       repoll_cond.signal();
     }
   }
@@ -1021,7 +1009,7 @@ void Dispatcher::enqueue (WPInterface *pwp,const Message::Ref &ref)
 // non-threaded version: simply raise the repoll flag if enqueue indicates
 // that the WP needs a repoll
   if( res )
-    repoll = True;
+    repoll = true;
 #endif
 }
 
@@ -1125,7 +1113,7 @@ void * Dispatcher::pollThread ()
     start();
     dprintf(1)("Entering poll loop in poll thread\n");
     pollLoop();
-    // call stop() (unless it's already been called for us: running = False)
+    // call stop() (unless it's already been called for us: running = false)
     Thread::Mutex::Lock lock(repoll_cond);
     if( running )
     {
@@ -1171,12 +1159,12 @@ Thread::ThrID Dispatcher::startThread (bool wait_for_start)
 //##ModelId=3DB936660106
 const sigset_t * Dispatcher::validSignals ()
 {
-  static bool init = False;
+  static bool init = false;
   static sigset_t set;
   
   if( !init )
   {
-    init = True;
+    init = true;
     sigemptyset(&set);
     sigaddset(&set,SIGINT);
     sigaddset(&set,SIGALRM);
@@ -1212,3 +1200,5 @@ string Dispatcher::sdebug ( int detail,const string &,const char *name ) const
   }
   return out;
 }
+
+};

@@ -6,23 +6,19 @@
 #include <string.h>
 
 #include "LoggerWP.h"
-#include "AppRegistry.h"
 
-  static int dum = LoggerWP::registerApp();
-        
-int LoggerWP::registerApp ()
+namespace Octopussy
 {
-  AppRegistry::registerApp(AidLoggerWP,constructor);
-  return 0;
-}
-
-WPRef LoggerWP::constructor (DataRecord::Ref &initrecord)
+  
+using namespace DMI;
+    
+WPRef LoggerWP::constructor (DMI::Record::Ref &initrecord)
 {
   int maxlev = 9999;
   int scope = Message::GLOBAL;
   if( initrecord.valid() )
   {
-    const DataRecord &rec = *initrecord;
+    const DMI::Record &rec = *initrecord;
     maxlev = rec[AidMax|AidLevel].as<int>(maxlev);
     if( rec[AidScope].exists() )
       if( rec[AidScope].type() == Tpstring )
@@ -72,7 +68,7 @@ void LoggerWP::init ()
   config.get("loglev",level_);
   config.get("logcon",consoleLevel_);
   config.getOption("lc",consoleLevel_);
-  level_ = max(level_,consoleLevel_);
+  level_ = std::max(level_,consoleLevel_);
   
   config.getOption("logscope",scope_);
   
@@ -128,7 +124,7 @@ void LoggerWP::init ()
 void LoggerWP::stop ()
 {
   logMessage(address().toString(),"processing remaining messages",0,AidLogNormal);
-  MessageRef mref;
+  Message::Ref mref;
   for(;;)
   {
     dequeue(AidMsgLog|AidWildcard,&mref);
@@ -147,12 +143,12 @@ void LoggerWP::stop ()
 }
 
 //##ModelId=3CA0450C0103
-int LoggerWP::receive (MessageRef &mref)
+int LoggerWP::receive (Message::Ref &mref)
 {
   const Message &msg = mref.deref();
   // process Log messages, but ignore from myself
   if( msg.id()[0] == AidMsgLog && msg.from() != address() && 
-      msg.payloadType() == TpDataRecord )
+      msg.payloadType() == TpDMIRecord )
   {
     AtomicID type = msg[AidType].as<AtomicID>(AidLogNormal);
     int lev = msg[AidLevel].as<int>(0);
@@ -183,7 +179,7 @@ void LoggerWP::logMessage (const string &source, const string &msg, int level, A
   
   // chop redundancy off the type string
   string ts = type.toString();
-  if( ts._strcompare(0,3,"Log") )
+  if( ts.compare(0,3,"Log") )
 //  if( ts.compare("Log",0,3) )
     ts = ts.substr(3);
   
@@ -210,3 +206,4 @@ void LoggerWP::logMessage (const string &source, const string &msg, int level, A
   }
 }
     
+};

@@ -1,22 +1,30 @@
 #include <Common/Debug.h>
+#include "Octopussy.h"
 #include "Dispatcher.h"
 #include "Gateways.h"
 #include "LoggerWP.h"
+#include "OctopussyDebugContext.h"
 
+using namespace DebugOctopussy;
+    
 namespace Octopussy
 {
-
+  
 Dispatcher *pdsp = 0;
 
 Thread::ThrID thread = 0;
   
+DMI::Record gatewayPeerList;
+
+// attach external ref so that other refs are attached automatically as EXTERNAL
+DMI::Record::Ref gatewayPeerListRef(gatewayPeerList,DMI::EXTERNAL);
         
 bool isRunning ()
 {
   return pdsp != 0;
 }
 
-Dispatcher &  init     (bool start_gateways=True)
+Dispatcher &  init     (bool start_gateways)
 {
   FailWhen( pdsp,"OCTOPUSSY already initialized" );
   pdsp = new Dispatcher;

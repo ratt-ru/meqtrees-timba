@@ -23,14 +23,15 @@
 #ifndef OCTOPUSSY_WorkProcess_h
 #define OCTOPUSSY_WorkProcess_h 1
 
-#include <DMI/Common.h>
 #include <DMI/DMI.h>
-
 #include <OCTOPUSSY/WPInterface.h>
 #include <OCTOPUSSY/Dispatcher.h>
     
 #pragma aid MsgLog LogNormal LogWarning LogError LogFatal LogDebug
 
+namespace Octopussy
+{
+using namespace DMI;
 
 //##ModelId=3C8F25430087
 
@@ -66,7 +67,7 @@ class WorkProcess : public WPInterface
       const MsgAddress & attachWP (WPRef &wpref);
 
       //##ModelId=3C95BA1A02D5
-      const MsgAddress & attachWP (WPInterface* wp, int flags);
+      const MsgAddress & attachWP (WPInterface* wp, int flags=0);
       
       bool isDetaching () const
       { return detaching_; }
@@ -88,5 +89,6 @@ class WorkProcess : public WPInterface
 
 // Class WorkProcess 
 
-
+};
 #endif
+

@@ -3,6 +3,9 @@
 
 #include <OCTOPUSSY/WorkProcess.h>
     
+namespace Octopussy
+{
+
 #pragma aid LoggerWP Max Level Scope
 
 //##ModelId=3CA044DE02AB
@@ -10,7 +13,7 @@ class LoggerWP : public WorkProcess
 {
   public:
       static int registerApp ();
-      static WPRef constructor (DataRecord::Ref &initrecord);
+      static WPRef constructor (DMI::Record::Ref &initrecord);
       
       //##ModelId=3CA0451401B9
       LoggerWP (int maxlev = 9999, int scope = Message::GLOBAL);
@@ -26,7 +29,7 @@ class LoggerWP : public WorkProcess
       virtual void stop ();
 
       //##ModelId=3CA0450C0103
-      virtual int receive (MessageRef &mref);
+      virtual int receive (Message::Ref &mref);
 
       //##ModelId=3CA04AF50212
       void setScope (int scope);
@@ -97,4 +100,5 @@ inline void LoggerWP::setConsoleLevel (int value)
 }
 
 
+};
 #endif

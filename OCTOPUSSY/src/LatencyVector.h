@@ -1,22 +1,22 @@
-#ifndef LatencyVector_h
-#define LatencyVector_h 1
+#ifndef OCTOPUSSY_LatencyVector_h
+#define OCTOPUSSY_LatencyVector_h 1
 
+#include <DMI/Timestamp.h>
 #include <vector>
 #include <utility>
 #include <string>
-#include "DMI/Timestamp.h"
     
-using std::vector;
-using std::pair;
-using std::make_pair;    
-using std::string;
+namespace Octopussy
+{
+using namespace DMI;
+
 
 //##ModelId=3DB958F10229
 class LatencyVector
 {
   public:
     //##ModelId=3DB958F10230
-    typedef pair<Timestamp,string> Entry;
+    typedef std::pair<Timestamp,string> Entry;
   
   private:
     //##ModelId=3DB958F3006B
@@ -25,9 +25,9 @@ class LatencyVector
     vector<Entry> tms;
     
     //##ModelId=3DB958F10235
-    typedef vector<Entry>::iterator VEI;
+    typedef std::vector<Entry>::iterator VEI;
     //##ModelId=3DB958F1023A
-    typedef vector<Entry>::const_iterator CVEI;
+    typedef std::vector<Entry>::const_iterator CVEI;
     
   public:
     //##ModelId=3DB958F30090
@@ -47,7 +47,7 @@ class LatencyVector
     // adds an explicit measurement to the vector
     //##ModelId=3DB958F30094
     void add (const Timestamp &value,const string &desc = "")
-    { tms.push_back( make_pair(value-tms0,desc) ); tms0 = value; }
+    { tms.push_back( std::make_pair(value-tms0,desc) ); tms0 = value; }
     
     // measures & adds a value since the last measurement
     //##ModelId=3DB958F300B9
@@ -153,4 +153,5 @@ class DummyLatencyVector
     string toString() const { return ""; }
 };
 
+};
 #endif

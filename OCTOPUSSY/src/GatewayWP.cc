@@ -1,34 +1,9 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3C90BFDD0240.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C90BFDD0240.cm
-
-//## begin module%3C90BFDD0240.cp preserve=no
-//## end module%3C90BFDD0240.cp
-
-//## Module: GatewayWP%3C90BFDD0240; Package body
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Source file: F:\lofar8\oms\LOFAR\src-links\OCTOPUSSY\GatewayWP.cc
-
-//## begin module%3C90BFDD0240.additionalIncludes preserve=no
-//## end module%3C90BFDD0240.additionalIncludes
-
-//## begin module%3C90BFDD0240.includes preserve=yes
 #include "Gateways.h"
-//## end module%3C90BFDD0240.includes
+#include "GatewayWP.h"
 
-// GatewayWP
-#include "OCTOPUSSY/GatewayWP.h"
-//## begin module%3C90BFDD0240.declarations preserve=no
-//## end module%3C90BFDD0240.declarations
-
-//## begin module%3C90BFDD0240.additionalDeclarations preserve=yes
-
-// all packet headers must start with this signature
+namespace Octopussy
+{
+    
 static const char PacketSignature[] = "oMs";
 
 // use large timeouts because we're not multithreaded anymore
@@ -36,64 +11,36 @@ const Timeval to_init(30.0),
               to_write(30.0),
               to_heartbeat(5.0);
     
-//##ModelId=3C95C53D00AE
-//##ModelId=3DB9368D03D6
-//##ModelId=3DB9368E00DE
-//## end module%3C90BFDD0240.additionalDeclarations
-
-
-// Class GatewayWP 
 
 GatewayWP::GatewayWP (Socket* sk)
-  //## begin GatewayWP::GatewayWP%3C95C53D00AE.hasinit preserve=no
-  //## end GatewayWP::GatewayWP%3C95C53D00AE.hasinit
-  //## begin GatewayWP::GatewayWP%3C95C53D00AE.initialization preserve=yes
   : WorkProcess(AidGatewayWP),sock(sk)
-  //## end GatewayWP::GatewayWP%3C95C53D00AE.initialization
 {
-  //## begin GatewayWP::GatewayWP%3C95C53D00AE.body preserve=yes
   memcpy(wr_header.signature,PacketSignature,sizeof(wr_header.signature));
   setState(0);
   setPeerState(INITIALIZING);
-  peerlist = 0;
   rprocess = rhost = 0;
-  //## end GatewayWP::GatewayWP%3C95C53D00AE.body
 }
 
 
-//##ModelId=3DB93683017B
 GatewayWP::~GatewayWP()
 {
-  //## begin GatewayWP::~GatewayWP%3C90BEF001E5_dest.body preserve=yes
   if( sock )
     delete sock;
-  //## end GatewayWP::~GatewayWP%3C90BEF001E5_dest.body
 }
 
 
 
-//##ModelId=3CC9500602CC
-//## Other Operations (implementation)
 void GatewayWP::init ()
 {
-  //## begin GatewayWP::init%3CC9500602CC.body preserve=yes
    // subscribe to local subscribe notifications and Bye messages
   // (they will be forwarded to peer as-is)
   subscribe(MsgSubscribe|AidWildcard,Message::LOCAL);
   subscribe(MsgBye|AidWildcard,Message::LOCAL);
-  //## end GatewayWP::init%3CC9500602CC.body
 }
 
-//##ModelId=3C90BF460080
 bool GatewayWP::start ()
 {
-  //## begin GatewayWP::start%3C90BF460080.body preserve=yes
   WorkProcess::start();
-  // this must exist by now (client GWs are always started!)
-  ObjRef plref = dsp()->localData(GWPeerList).ref(DMI::WRITE);
-  peerlist = dynamic_cast<DataRecord*>(plref.dewr_p());
-  FailWhen(!peerlist,"Local peer-list does not seem to be a DataRecord");
-  
   // handle & ignore SIGURG -- out-of-band data on socket. 
   // addInput() will catch an exception on the fd anyway
   addSignal(SIGURG,EV_IGNORE);
@@ -133,9 +80,9 @@ bool GatewayWP::start ()
   dprintf(1)("generating init message for %d subscriptions, block size %d\n",
       nwp,hdrsize+datasize);
   // put this block into a message and send it to peer
-  MessageRef msg(new Message(AidSubscriptions,blockref),DMI::ANON|DMI::WRITE);
+  Message::Ref msg(new Message(AidSubscriptions,blockref),DMI::ANON|DMI::WRITE);
   msg().setFrom(address());
-  msg()[AidPeers] = plref.copy(DMI::READONLY);
+  msg()[AidPeers] = gatewayPeerList;
   prepareMessage(msg);
   
   // init timeouts
@@ -152,28 +99,22 @@ bool GatewayWP::start ()
   statmon.counter = 0;
   statmon.read = statmon.written = 0;
   statmon.ts = Timestamp::now();
-  return False;
-  //## end GatewayWP::start%3C90BF460080.body
+  return false;
 }
 
-//##ModelId=3C90BF4A039D
 void GatewayWP::stop ()
 {
-  //## begin GatewayWP::stop%3C90BF4A039D.body preserve=yes
   if( sock )
     delete sock;
   sock = 0;
   read_bset.clear();
   write_queue.clear();
-  //## end GatewayWP::stop%3C90BF4A039D.body
 }
 
-//##ModelId=3C90BF5C001E
 bool GatewayWP::willForward (const Message &msg) const
 {
-  //## begin GatewayWP::willForward%3C90BF5C001E.body preserve=yes
   if( peerState() != CONNECTED )
-    return False;
+    return false;
   // We're doing a simple everybody-connects-to-everybody topology.
   // This determines the logic below:
   dprintf(3)("willForward(%s)",msg.sdebug(1).c_str());
@@ -190,18 +131,18 @@ bool GatewayWP::willForward (const Message &msg) const
     if( msg.forwarder() == address() )
     {
       dprintf(3)("no, we were the forwarder\n");
-      return False;
+      return false;
     }
     if( msg.hops() > 3 )
     {
       dprintf(3)("no, hopcount = %d\n",msg.hops() );
-      return False;
+      return false;
     }
   }
   else if( msg.hops() > 0 )
   {
     dprintf(3)("no, non-local origin, hopcount = %d\n",msg.hops() );
-    return False;
+    return false;
   }
   // Check that to-scope of message matches remote 
   if( !rprocess.matches( msg.to().process() ) ||
@@ -209,7 +150,7 @@ bool GatewayWP::willForward (const Message &msg) const
   {
     dprintf(3)("no, `to' does not match remote %s.%s\n",
                rprocess.toString().c_str(),rhost.toString().c_str());
-    return False;
+    return false;
   }
   // if message is published, search thru remote subscriptions
   if( msg.to().wpclass() == AidPublish )
@@ -218,7 +159,7 @@ bool GatewayWP::willForward (const Message &msg) const
       if( iter->second.matches(msg) )
       {
         dprintf(3)("yes, subscribed to by remote %s\n",iter->first.toString().c_str());
-        return True;
+        return true;
       }
     dprintf(3)("no, no remote subscribers\n");
   }
@@ -229,18 +170,15 @@ bool GatewayWP::willForward (const Message &msg) const
       {
         dprintf(3)("yes, `to' address matches remote %s\n",
             iter->first.toString().c_str());
-        return True;
+        return true;
       }
     dprintf(3)("no, no matching remote WPs\n");
   }
-  return False;
-  //## end GatewayWP::willForward%3C90BF5C001E.body
+  return false;
 }
 
-//##ModelId=3C90BF63005A
-int GatewayWP::receive (MessageRef& mref)
+int GatewayWP::receive (Message::Ref& mref)
 {
-  //## begin GatewayWP::receive%3C90BF63005A.body preserve=yes
   // ignore any messages out of the remote's scope
   if( !rprocess.matches(mref->to().process()) ||
       !rhost.matches(mref->to().host()) )
@@ -277,13 +215,10 @@ int GatewayWP::receive (MessageRef& mref)
     Timestamp::now(&last_write_to);
   }
   return Message::ACCEPT;
-  //## end GatewayWP::receive%3C90BF63005A.body
 }
 
-//##ModelId=3C90BF6702C3
 int GatewayWP::timeout (const HIID &id)
 {
-  //## begin GatewayWP::timeout%3C90BF6702C3.body preserve=yes
   if( id == AidInit )  // connection timeout
   { 
     if( peerState() == INITIALIZING )
@@ -315,13 +250,10 @@ int GatewayWP::timeout (const HIID &id)
     }
   }
   return Message::ACCEPT;
-  //## end GatewayWP::timeout%3C90BF6702C3.body
 }
 
-//##ModelId=3C90BF6F00ED
 int GatewayWP::input (int fd, int flags)
 {
-  //## begin GatewayWP::input%3C90BF6F00ED.body preserve=yes
   // in case we're shutting down, ignore the whole shebang
   if( !sock )
     return Message::CANCEL;
@@ -541,7 +473,7 @@ int GatewayWP::input (int fd, int flags)
       {
         dprintf(4)("received block #%d of size %d, checksum OK\n",
             trailer.seq,read_bset.back()->size());
-//        acknowledge(True);    // reply with acknowledgment
+//        acknowledge(true);    // reply with acknowledgment
         if( trailer.msgsize ) // accumulated a complete message?
         {
           if( read_bset.size() != trailer.msgsize )
@@ -574,12 +506,9 @@ int GatewayWP::input (int fd, int flags)
       Throw("unexpected read state");
   }
   return Message::ACCEPT;
-  //## end GatewayWP::input%3C90BF6F00ED.body
 }
 
 // Additional Declarations
-//##ModelId=3DB9368702B9
-  //## begin GatewayWP%3C90BEF001E5.declarations preserve=yes
 int GatewayWP::requestResync ()
 {
   // Should eventually send an OOB message for a resync.
@@ -587,7 +516,6 @@ int GatewayWP::requestResync ()
   return readyForHeader();
 }
 
-//##ModelId=3DB936870382
 int GatewayWP::requestRetry ()
 {
   // Should eventually send an OOB message for a retransmit.
@@ -596,7 +524,6 @@ int GatewayWP::requestRetry ()
   return readyForHeader();
 }
 
-//##ModelId=3DB936880062
 int GatewayWP::readyForHeader ()
 {
   read_buf_size = sizeof(header);
@@ -607,7 +534,6 @@ int GatewayWP::readyForHeader ()
   return 0;
 }
 
-//##ModelId=3DB9368801BC
 int GatewayWP::readyForTrailer ()
 {
   read_buf_size = sizeof(trailer);
@@ -618,7 +544,6 @@ int GatewayWP::readyForTrailer ()
   return 0;
 }
 
-//##ModelId=3DB93688028E
 int GatewayWP::readyForData ( const PacketHeader &hdr )
 {
   read_buf_size = hdr.content;
@@ -637,8 +562,7 @@ int GatewayWP::readyForData ( const PacketHeader &hdr )
   return 0;
 }
 
-//##ModelId=3DB9368B0224
-void GatewayWP::prepareMessage (MessageRef &mref)
+void GatewayWP::prepareMessage (Message::Ref &mref)
 {
   FailWhen(write_queue.size(),"write queue is not empty??");
   dprintf(5)("write-queueing [%s]\n",mref->sdebug(1).c_str());
@@ -646,14 +570,11 @@ void GatewayWP::prepareMessage (MessageRef &mref)
   write_msgsize = mref->toBlock(write_queue);
   // release ref, so as to minimize the blocks' ref counts
   mref.detach();
-  // privatize the queue
-  write_queue.privatizeAll(DMI::READONLY);
   // start sending
   prepareHeader();
 }
 
 
-//##ModelId=3DB9368D008D
 void GatewayWP::prepareHeader ()
 {
   if( !write_queue.size() )
@@ -674,7 +595,6 @@ void GatewayWP::prepareHeader ()
   dprintf(5)("write state is now HEADER\n");
 }
 
-//##ModelId=3DB9368D01A5
 void GatewayWP::prepareData ()
 {
   const BlockRef & ref = write_queue.front();
@@ -687,7 +607,6 @@ void GatewayWP::prepareData ()
   dprintf(5)("write state is now BLOCK\n");
 }
 
-//##ModelId=3DB9368D02C7
 void GatewayWP::prepareTrailer ()
 {
   write_queue.pop();
@@ -705,10 +624,9 @@ void GatewayWP::prepareTrailer ()
   dprintf(5)("write state is now TRAILER\n");
 }
 
-//##ModelId=3DB9368900C3
 void GatewayWP::processIncoming()
 {
-  MessageRef ref = MessageRef(new Message,DMI::ANON|DMI::WRITE);
+  Message::Ref ref = Message::Ref(new Message,DMI::ANON|DMI::WRITE);
   ref().fromBlock(read_bset);
   Message &msg = ref;
   msg.setForwarder(address());
@@ -739,12 +657,12 @@ void GatewayWP::processIncoming()
     {
       // unpack subscriptions block, catching any exceptions
       Subscriptions subs;
-      bool success = False;
+      bool success = false;
       if( msg.data() )
       {
         try {
           subs.unpack(msg.data(),msg.datasize());
-          success = True;
+          success = true;
         } catch( std::exception &exc ) {
           lprintf(2,"warning: failed to unpack Subscribe message: %s\n",exc.what());
         }
@@ -795,15 +713,15 @@ void GatewayWP::processIncoming()
       HIID peerid(rprocess|rhost);
       // paranoid case: if we already have a connection to the peer, shutdown
       // (this really ought not to happen)
-      if( (*peerlist)[peerid].exists() )
+      if( gatewayPeerList[peerid].exists() )
       {
         lprintf(1,AidLogError,"already connected to %s (%s:%d %s), closing gateway",
               peerid.toString().c_str(),
-             (*peerlist)[peerid][AidHost].as<string>().c_str(),
-             (*peerlist)[peerid][AidPort].as<int>(),
-             (*peerlist)[peerid][AidTimestamp].as<Timestamp>().toString("%T").c_str());
+             gatewayPeerList[peerid][AidHost].as<string>().c_str(),
+             gatewayPeerList[peerid][AidPort].as<int>(),
+             gatewayPeerList[peerid][AidTimestamp].as<Timestamp>().toString("%T").c_str());
         Message *msg1 = new Message(MsgGWRemoteDuplicate|peerid);
-        MessageRef mref1; mref1 <<= msg1;
+        Message::Ref mref1; mref1 <<= msg1;
         (*msg1)[AidHost] = sock->host();
         (*msg1)[AidPort] = atoi(sock->port().c_str());
         publish(mref1,0,Message::LOCAL);
@@ -823,11 +741,10 @@ void GatewayWP::processIncoming()
         return;
       }
       // add this connection to the local peerlist
-      DataRecord *rec = new DataRecord;
-      (*peerlist)[peerid] <<= rec;
-      (*rec)[AidTimestamp] = Timestamp::now();
-      (*rec)[AidHost] = sock->host();
-      (*rec)[AidPort] = atoi(sock->port().c_str());
+      DMI::Record & rec = gatewayPeerList[peerid] <<= new DMI::Record;
+      rec[AidTimestamp] = Timestamp::now();
+      rec[AidHost] = sock->host();
+      rec[AidPort] = atoi(sock->port().c_str());
       // process remote subscriptions data
       processInitMessage(msg.data(),msg.datasize());
       // set states
@@ -850,7 +767,7 @@ void GatewayWP::processIncoming()
     // publish (locally only) fake Hello messages on behalf of remote WPs
     for( CRSI iter = remote_subs.begin(); iter != remote_subs.end(); iter++ )
     {
-      MessageRef mref;
+      Message::Ref mref;
       mref.attach(new Message(MsgHello|iter->first),DMI::ANON|DMI::WRITE );
       mref().setFrom(iter->first);
       dsp()->send(mref,MsgAddress(AidPublish,AidPublish,
@@ -870,7 +787,6 @@ void GatewayWP::processIncoming()
 
 // processes subscriptions contained in peer's init-message
 // (the message block is formed in start(), above)
-//##ModelId=3DB9368901C7
 void GatewayWP::processInitMessage( const void *block,size_t blocksize )
 {
   FailWhen( !block,"no block" );
@@ -900,15 +816,14 @@ void GatewayWP::processInitMessage( const void *block,size_t blocksize )
   FailWhen(data != enddata,"corrupt block");
 }
 
-//##ModelId=3DB93684000A
 void GatewayWP::shutdown () 
 {
   if( peerState() == CONNECTED )     // publish a Remote.Down message
   {
     HIID peerid = rprocess|rhost;
     lprintf(1,"shutting down connection to %s",(rprocess|rhost).toString().c_str());
-    MessageRef mref(new Message(MsgGWRemoteDown|peerid),DMI::ANON);
-    (*peerlist)[peerid].remove();
+    Message::Ref mref(new Message(MsgGWRemoteDown|peerid),DMI::ANON);
+    gatewayPeerList[peerid].remove();
     publish(mref,0,Message::LOCAL);
   }
   else
@@ -917,6 +832,4 @@ void GatewayWP::shutdown ()
   detachMyself();
 }
 
-  //## end GatewayWP%3C90BEF001E5.declarations
-//## begin module%3C90BFDD0240.epilog preserve=yes
-//## end module%3C90BFDD0240.epilog
+};

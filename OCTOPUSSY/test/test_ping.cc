@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <unistd.h>    
 
+using namespace Octopussy;
+
 static int dum = aidRegistry_Testing();
     
 int main (int argc,const char *argv[])

@@ -4,7 +4,7 @@
 #include <Common/CheckConfig.h>
 #include <DMI/SmartBlock.h>
 #include <DMI/HIID.h>
-#include <DMI/DataRecord.h>
+#include <DMI/Record.h>
 #include <OCTOPUSSY/OctopussyDebugContext.h>
 #include <OCTOPUSSY/MsgAddress.h>
 #include <OCTOPUSSY/TID-OCTOPUSSY.h>
@@ -16,20 +16,24 @@
 #define ENABLE_LATENCY_STATS 1
 #endif
 
+namespace Octopussy
+{
+using namespace DMI;
+
 #ifdef ENABLE_LATENCY_STATS
   CHECK_CONFIG(Message,LatencyStats,yes);
 #else
   CHECK_CONFIG(Message,LatencyStats,no);
 #endif
 
-#pragma types #Message
+#pragma types #Octopussy::Message
 #pragma aid Index Text
 
 class WPQueue;
 
 //##ModelId=3C7B6A2D01F0
 
-class Message : public BlockableObject
+class Message : public DMI::BObj
 {
   public:
       // some predefined priority levels
@@ -63,21 +67,20 @@ class Message : public BlockableObject
            
     //##ModelId=3DB9365101AF
       typedef CountedRef<Message> Ref;
-      
 
     //##ModelId=3C8CB2CE00DC
       Message();
 
     //##ModelId=3C7B9C490384
-      Message(const Message &right);
+      Message(const Message &right,int flags=0,int depth=0);
 
       //##ModelId=3C7B9D0A01FB
       explicit Message (const HIID &id1, int pri = PRI_NORMAL);
 
       // constructors with various payloads
       //##ModelId=3C7B9D3B02C3
-      Message (const HIID &id1, BlockableObject *pload, int flags = 0, int pri = PRI_NORMAL);
-      Message (const HIID &id1, const BlockableObject *pload, int flags = 0, int pri = PRI_NORMAL);
+      Message (const HIID &id1, DMI::BObj *pload, int flags = 0, int pri = PRI_NORMAL);
+      Message (const HIID &id1, const DMI::BObj *pload, int flags = 0, int pri = PRI_NORMAL);
       //##ModelId=3C7B9D59014A
       Message (const HIID &id1, const ObjRef &pload, int flags = 0, int pri = PRI_NORMAL);
       //##ModelId=3C7BB3BD0266
@@ -95,11 +98,11 @@ class Message : public BlockableObject
       Message & operator=(const Message &right);
 
       //##ModelId=3C7B9DDE0137
-      BlockableObject & operator <<= (BlockableObject *pload);
+      DMI::BObj & operator <<= (DMI::BObj *pload);
       
-      DataRecord & operator <<= (DataRecord *pload)
+      DMI::Record & operator <<= (DMI::Record *pload)
       {
-        operator <<= ( static_cast<BlockableObject*>(pload) );
+        operator <<= ( static_cast<DMI::BObj*>(pload) );
         return *pload;
       }
 
@@ -121,20 +124,16 @@ class Message : public BlockableObject
 
       //##ModelId=3C7E32C1022B
       //##Documentation
-      //## Virtual method for privatization of an object. If the object
-      //## contains other refs, they should be privatized by this method. The
-      //## DMI::DEEP flag should be passed on to child refs, for deep
-      //## privatization.
-      virtual void privatize (int flags = 0, int depth = 0);
+      void cloneOther (const Message &other,int flags=0, int depth=0);
 
       // Define the subscript operator on messages
       // This will subscript directly into the payload
-      NestableContainer::Hook operator [] (const HIID &id) const;
-      // If no payload, initializes new DataRecord
-      NestableContainer::Hook operator [] (const HIID &id);
+      DMI::Container::Hook operator [] (const HIID &id) const;
+      // If no payload, initializes new DMI::Record
+      DMI::Container::Hook operator [] (const HIID &id);
       
-      declareSubscriptAliases(NestableContainer::Hook,const);
-      declareSubscriptAliases(NestableContainer::Hook,);
+      declareSubscriptAliases(DMI::Container::Hook,const);
+      declareSubscriptAliases(DMI::Container::Hook,);
 
       //##ModelId=3C7E443A016A
       void * data ();
@@ -202,11 +201,11 @@ class Message : public BlockableObject
       
       // returns type of payload object, or 0 for none
       TypeId payloadType () const;
-     // This accesses the payload as a DataRecord, or throws an exception if it isn't one
+     // This accesses the payload as a DMI::Record, or throws an exception if it isn't one
     //##ModelId=3DB936BC02B4
-      const DataRecord & record () const;
+      const DMI::Record & record () const;
     //##ModelId=3DB936BD00A3
-      DataRecord & wrecord ();
+      DMI::Record & wrecord ();
       
 
     //##ModelId=3DB936B20112
@@ -219,12 +218,12 @@ class Message : public BlockableObject
     //##ModelId=3DB936B300D8
       void setForwarder (const MsgAddress& value);
 
-    // utility functions for constructing a message with a DataRecord payload
+    // utility functions for constructing a message with a DMI::Record payload
     //##ModelId=3E301BB10085
-      static DataRecord & withDataRecord (Message::Ref &ref,const HIID &id);
+      static DMI::Record & withRecord (Message::Ref &ref,const HIID &id);
     // second form initializes record with a Text field
     //##ModelId=3E301BB10140
-      static DataRecord & withDataRecord (Message::Ref &ref,const HIID &id,const string &text);
+      static DMI::Record & withRecord (Message::Ref &ref,const HIID &id,const string &text);
 
     //##ModelId=3DB936A10054
       int flags_; // user-defined flag field
@@ -295,9 +294,6 @@ class Message : public BlockableObject
 
 //##ModelId=3C7B722600DE
 
-typedef Message::Ref MessageRef;
-// Class Message 
-
 //##ModelId=3C7B9D0A01FB
 inline Message::Message (const HIID &id1, int pri)
    : priority_(pri),state_(0),hops_(0),id_(id1)
@@ -305,23 +301,27 @@ inline Message::Message (const HIID &id1, int pri)
 }
 
 
-inline NestableContainer::Hook Message::operator [] (const HIID &id) const
+inline DMI::Container::Hook Message::operator [] (const HIID &id) const
 {
   FailWhen(!payload_.valid() || !payload_->isNestable(),"message payload is not a container" ); 
-  const NestableContainer::Ref &ref = payload_.ref_cast<NestableContainer>();
-  return ref[id];
+  const DMI::Container *pcont = payload_.ref_cast<DMI::Container>().deref_p();
+  return (*pcont)[id];
 }
 
-inline NestableContainer::Hook Message::operator [] (const HIID &id) 
+inline DMI::Container::Hook Message::operator [] (const HIID &id) 
 {
   if( payload_.valid() )
   { 
     FailWhen( !payload_->isNestable(),"message payload is not a container" ); 
+    DMI::Container::Ref *pref = &( payload_.ref_cast<DMI::Container>() );
+    return (*pref)[id];
   }
-  else
-    payload_.attach(new DataRecord,DMI::ANONWR|DMI::PERSIST);
-  const NestableContainer::Ref &ref = payload_.ref_cast<NestableContainer>();
-  return ref[id];
+  else // init new Record as payload
+  {
+    DMI::Record *rec = new DMI::Record;
+    payload_ <<= rec;
+    return (*rec)[id];
+  }
 }
 
 //##ModelId=3C7E443A016A
@@ -345,7 +345,7 @@ inline size_t Message::datasize () const
 //##ModelId=3C960F16009B
 inline TypeId Message::objectType () const
 {
-  return TpMessage;
+  return TpOctopussyMessage;
 }
 
 //##ModelId=3DB936AA02FD
@@ -471,21 +471,21 @@ inline TypeId Message::payloadType () const
 }
 
 //##ModelId=3DB936BC02B4
-inline const DataRecord & Message::record () const
+inline const DMI::Record & Message::record () const
 {
-  const DataRecord *rec = dynamic_cast<const DataRecord *>(payload_.deref_p());
-  FailWhen(!rec,"payload is not a DataRecord");
+  const DMI::Record *rec = dynamic_cast<const DMI::Record *>(payload_.deref_p());
+  FailWhen(!rec,"payload is not a DMI::Record");
   return *rec;
 }
 
 //##ModelId=3DB936BD00A3
-inline DataRecord & Message::wrecord ()
+inline DMI::Record & Message::wrecord ()
 {
-  DataRecord *rec = dynamic_cast<DataRecord *>(payload_.dewr_p());
-  FailWhen(!rec,"payload is not a DataRecord");
+  DMI::Record *rec = dynamic_cast<DMI::Record *>(payload_.dewr_p());
+  FailWhen(!rec,"payload is not a DMI::Record");
   return *rec;
 }
 
 
-
+};
 #endif

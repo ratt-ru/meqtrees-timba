@@ -1,8 +1,9 @@
 #include "DMI/DynamicTypeManager.h"
 #include "DMI/Packer.h"
+#include "Message.h"
 
-// Message
-#include "OCTOPUSSY/Message.h"
+namespace Octopussy
+{
 
 #ifdef ENABLE_LATENCY_STATS
   CHECK_CONFIG_CC(LatencyStats,yes);
@@ -13,6 +14,7 @@
 //##ModelId=3C8CB2CE00DC
 
 
+
 // Class Message 
 
 Message::Message()
@@ -21,49 +23,36 @@ Message::Message()
 }
 
 //##ModelId=3C7B9C490384
-Message::Message(const Message &right)
-    : BlockableObject()
-#ifdef ENABLE_LATENCY_STATS
-    ,latency(right.latency)
-#endif
+Message::Message(const Message &right,int flags,int depth)
+    : DMI::BObj()
 {
-  (*this) = right;
+  cloneOther(right,flags,depth);
 }
 
 //##ModelId=3C7B9D3B02C3
-Message::Message (const HIID &id1, BlockableObject *pload, int flags, int pri)
-   : flags_(0),priority_(pri),state_(0),hops_(0),id_(id1)
+Message::Message (const HIID &id1, DMI::BObj *pload, int flags, int pri)
+   : flags_(0),priority_(pri),state_(0),hops_(0),id_(id1),payload_(pload,flags)
 {
-  payload_.attach(pload,flags|DMI::PERSIST|DMI::WRITE);
 }
 
 
 
 //##ModelId=3C7B9D59014A
 Message::Message (const HIID &id1, const ObjRef &pload, int flags, int pri)
-   : flags_(0),priority_(pri),state_(0),hops_(0),id_(id1)
+   : flags_(0),priority_(pri),state_(0),hops_(0),id_(id1),payload_(pload,flags)
 {
-  if( flags&DMI::COPYREF )
-    payload_.copy(pload,flags|DMI::PERSIST|DMI::WRITE);
-  else
-    payload_.xfer(pload).persist();
 }
 
 //##ModelId=3C7BB3BD0266
 Message::Message (const HIID &id1, SmartBlock *bl, int flags, int pri)
-   : flags_(0),priority_(pri),state_(0),hops_(0),id_(id1)
+   : flags_(0),priority_(pri),state_(0),hops_(0),id_(id1),block_(bl,flags)
 {
-  block_.attach(bl,flags|DMI::PERSIST|DMI::WRITE);
 }
 
 //##ModelId=3DB936A5029F
 Message::Message (const HIID &id1, const BlockRef &bl, int flags, int pri)
-   : flags_(0),priority_(pri),state_(0),hops_(0),id_(id1)
+   : flags_(0),priority_(pri),state_(0),hops_(0),id_(id1),block_(bl,flags)
 {
-  if( flags&DMI::COPYREF )
-    block_.copy(bl,flags|DMI::PERSIST|DMI::WRITE);
-  else
-    block_.xfer(bl).persist();
 }
 
 //##ModelId=3DB936A7019E
@@ -71,22 +60,20 @@ Message::Message (const HIID &id1, const char *data, size_t sz, int pri)
    : flags_(0),priority_(pri),state_(0),hops_(0),id_(id1)
 {
   SmartBlock *bl = new SmartBlock(sz);
-  block_.attach( bl,DMI::ANON|DMI::WRITE|DMI::PERSIST);
+  block_ <<= bl;
   memcpy(bl->data(),data,sz);
 }
 
 //##ModelId=3DB936B40140
-Message::Message (const HIID &id1, const BlockableObject *pload, int flags, int pri)
-   : priority_(pri),state_(0),hops_(0),id_(id1)
+Message::Message (const HIID &id1, const DMI::BObj *pload, int flags, int pri)
+   : priority_(pri),state_(0),hops_(0),id_(id1),payload_(pload,flags)
 {
-  payload_.attach(pload,flags|DMI::PERSIST|DMI::READONLY);
 }
 
 //##ModelId=3DB936B80024
 Message::Message (const HIID &id1, const SmartBlock *bl, int flags, int pri)
-   : priority_(pri),state_(0),hops_(0),id_(id1)
+   : priority_(pri),state_(0),hops_(0),id_(id1),block_(bl,flags)
 {
-  block_.attach(bl,flags|DMI::PERSIST|DMI::READONLY);
 }
 
 //##ModelId=3DB936A90143
@@ -96,70 +83,63 @@ Message::~Message()
 
 
 //##ModelId=3DB936A901E3
-Message & Message::operator=(const Message &right)
+Message & Message::operator= (const Message &right)
 {
   if( &right != this )
-  {
-    id_ = right.id_;
-    flags_ = right.flags_;
-    priority_ = right.priority_;
-    from_ = right.from_;
-    to_ = right.to_;
-    state_ = right.state_;
-    hops_ = right.hops_;
-  //  timestamp_ = right.timestamp_;
-    payload_.copy(right.payload_,DMI::PRESERVE_RW|DMI::PERSIST);
-    block_.copy(right.block_,DMI::PRESERVE_RW|DMI::PERSIST);
-  }
+    cloneOther(right);
   return *this;
 }
 
 //##ModelId=3C7B9DDE0137
-BlockableObject & Message::operator <<= (BlockableObject *pload)
+DMI::BObj & Message::operator <<= (DMI::BObj *pload)
 {
-  payload_.attach(pload,DMI::ANON|DMI::WRITE|DMI::PERSIST);
+  payload_ <<= pload;
   return *pload;
 }
 
 //##ModelId=3C7B9DF20014
 Message & Message::operator <<= (ObjRef &pload)
 {
-  payload_.xfer(pload).persist();
+  payload_ <<= pload;
   return *this;
 }
 
 //##ModelId=3C7B9E0A02AD
 SmartBlock & Message::operator <<= (SmartBlock *bl)
 {
-  block_.attach(bl,DMI::ANON|DMI::WRITE|DMI::PERSIST);
+  block_ <<= bl;
   return *bl;
 }
 
 //##ModelId=3C7B9E1601CE
 Message & Message::operator <<= (BlockRef &bl)
 {
-  block_.xfer(bl).persist();
+  block_ <<= bl;
   return *this;
 }
 
 //##ModelId=3C7E32BE01E0
 CountedRefTarget* Message::clone (int flags, int depth) const
 {
-  Message *newmsg = new Message(*this);
-  newmsg->privatize(flags,depth);
-  return newmsg;
+  return new Message(*this,flags,depth);
 }
 
 //##ModelId=3C7E32C1022B
-void Message::privatize (int flags, int depth)
+void Message::cloneOther (const Message &other,int flags, int depth)
 {
-  if( flags&DMI::DEEP || depth>0 )
-  {
-    if( payload_.valid() )
-      payload_.privatize(flags,depth-1);
-    if( block_.valid() )
-      block_.privatize(flags,depth-1);
-  }
+  id_ = other.id_;
+  flags_ = other.flags_;
+  priority_ = other.priority_;
+  from_ = other.from_;
+  to_ = other.to_;
+  state_ = other.state_;
+  hops_ = other.hops_;
+  //  timestamp_ = other.timestamp_;
+#ifdef ENABLE_LATENCY_STATS
+  latency = other.latency;
+#endif
+  payload_.copy(other.payload_,flags,depth);
+  block_.copy(other.block_,flags,depth);
 }
 
 //##ModelId=3C960F1B0373
@@ -201,7 +181,7 @@ int Message::fromBlock (BlockSet& set)
   // got a payload?
   if( hdr.payload_type )
   {
-    BlockableObject *obj = DynamicTypeManager::construct(hdr.payload_type);
+    DMI::BObj *obj = DynamicTypeManager::construct(hdr.payload_type);
     blockcount += obj->fromBlock(set);
     payload_.attach(obj,DMI::ANON|DMI::WRITE);
   }
@@ -251,7 +231,7 @@ int Message::toBlock (BlockSet &set) const
   int blockcount = 1;
   if( block_.valid() )
   {
-    set.pushNew().copy(block_,DMI::PRESERVE_RW);
+    set.push(block_);
     blockcount++;
   } 
   if( payload_.valid() )
@@ -261,18 +241,18 @@ int Message::toBlock (BlockSet &set) const
 
 
 //##ModelId=3E301BB10085
-DataRecord & Message::withDataRecord (Message::Ref &ref,const HIID &id)
+DMI::Record & Message::withRecord (Message::Ref &ref,const HIID &id)
 {
   Message *pmsg = new Message(id);
   ref <<= pmsg;
-  return (*pmsg) <<= new DataRecord;
+  return (*pmsg) <<= new DMI::Record;
 }
 
 // second form initializes record with a Text field
 //##ModelId=3E301BB10140
-DataRecord & Message::withDataRecord (Message::Ref &ref,const HIID &id,const string &text)
+DMI::Record & Message::withRecord (Message::Ref &ref,const HIID &id,const string &text)
 {
-  DataRecord &rec = withDataRecord(ref,id);
+  DMI::Record &rec = withRecord(ref,id);
   rec[AidText] = text;
   return rec;
 }
@@ -315,3 +295,5 @@ string Message::sdebug ( int detail,const string &prefix,const char *name ) cons
   }
   return out;
 }
+
+};

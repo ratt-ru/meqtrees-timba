@@ -1,16 +1,16 @@
-#ifndef MsgAddress_h
-#define MsgAddress_h 1
+#ifndef OCTOPUSSY_MsgAddress_h
+#define OCTOPUSSY_MsgAddress_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
+#include <DMI/DMI.h>
+#include <DMI/HIID.h>
+#include <OCTOPUSSY/AID-OCTOPUSSY.h>
 
-#include "OCTOPUSSY/AID-OCTOPUSSY.h"
-
-// HIID
-#include "DMI/HIID.h"
 #pragma aidgroup OCTOPUSSY
 #pragma aid Dispatcher Local Publish
 
+namespace Octopussy
+{
+using namespace DMI;
 
 //##ModelId=3C8F9A340206
 class WPID : public HIID
@@ -165,4 +165,5 @@ inline const AtomicID & MsgAddress::host () const
 }
 
 
+};
 #endif

@@ -1,5 +1,8 @@
 #include "OctoproxyWP.h"
 
+namespace Octopussy
+{
+
     
 //##ModelId=3E08FFD30196
 Octoproxy::ProxyWP::ProxyWP(AtomicID wpid)
@@ -13,3 +16,4 @@ Octoproxy::ProxyWP::ProxyWP(AtomicID wpid)
     
 
 
+};

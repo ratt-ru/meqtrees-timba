@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <unistd.h>    
 
+using namespace Octopussy;
+
 int aidRegistry_Testing();
 static int dum = aidRegistry_Testing();
     
@@ -15,7 +17,7 @@ int main (int argc,const char *argv[])
   try 
   {
     Dispatcher dsp;
-    dsp.attach(new LoggerWP(10,Message::LOCAL),DMI::ANON);
+    dsp.attach(new LoggerWP(10,Message::LOCAL));
     initGateways(dsp);
     dsp.start();
     dsp.pollLoop();

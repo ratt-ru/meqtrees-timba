@@ -8,6 +8,8 @@
 
 static int dum = aidRegistry_Testing();
     
+using namespace Octopussy;
+
 int main (int argc,const char *argv[])
 {
   Debug::initLevels(argc,argv);
@@ -16,8 +18,8 @@ int main (int argc,const char *argv[])
   try 
   {
     Dispatcher dsp;
-    dsp.attach(new LoggerWP(10,Message::LOCAL),DMI::ANON);
-    dsp.attach(new EchoWP(-1),DMI::ANON);
+    dsp.attach(new LoggerWP(10,Message::LOCAL));
+    dsp.attach(new EchoWP(-1));
     initGateways(dsp);
     dsp.start();
     dsp.pollLoop();

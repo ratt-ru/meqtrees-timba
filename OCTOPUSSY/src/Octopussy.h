@@ -5,10 +5,10 @@
 
 #include <Common/Thread.h>
     
-class Dispatcher;    
-
 namespace Octopussy
 {
+  class Dispatcher;    
+
 //  using namespace LOFAR;
   
   Dispatcher &  init     (bool start_gateways=true);
@@ -26,6 +26,6 @@ namespace Octopussy
   Dispatcher &   dispatcher  ();
   
   bool           isRunning ();
+
 };
-    
 #endif
