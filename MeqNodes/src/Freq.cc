@@ -68,6 +68,7 @@ int Freq::getResult (Result::Ref &resref,
   }
   else
     vs.setValue(new Vells(0.));
+  resref().setCells(cells);
   // result depends on domain; is updated if request is new.
   return 0;
 }
