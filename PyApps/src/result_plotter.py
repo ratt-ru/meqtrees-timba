@@ -89,8 +89,9 @@ class visu_plotter:
       that are generated in data collection and data concatenation
       nodes """
 
-  def __init__(self,ntuple_controller, display_controller, window_controller, canvas):
+  def __init__(self, group_label, ntuple_controller, display_controller, window_controller, canvas):
     """ set initial default settings for plots """
+    self._group_label = group_label
     self._display_controller = display_controller
     self._ntuple_controller = ntuple_controller 
     self._window_controller = window_controller
@@ -198,21 +199,28 @@ class visu_plotter:
           image_i.append(0.0)
 
 # add columns to tuple
+    num_rows = len(image_r)
+    if num_rows == 0:
+      print 'nothing to update!'
+      return
     if self._realvsimag_ntuple is None:
       self._realvsimag_ntuple = self._ntuple_controller.createNTuple()
     self._plot_exists = False
     if self._realvsimag_ntuple.isValidLabel(self._label_r):
+      if num_rows != self._realvsimag_ntuple.rows():
+        print "Number of rows has changed! Clearing tuple!"
+        self._realvsimag_ntuple.clear()
       self._realvsimag_ntuple.replaceColumn (self._label_r,image_r)
       self._plot_exists = True
     else:
       self._realvsimag_ntuple.addColumn (self._label_r,image_r)
-      print 'added real column'
+#      print 'added real column'
 
     if self._realvsimag_ntuple.isValidLabel(self._label_i):
       self._realvsimag_ntuple.replaceColumn (self._label_i,image_i)
     else:
       self._realvsimag_ntuple.addColumn (self._label_i,image_i)
-      print 'added imag column'
+#      print 'added imag column'
 
 # create / update plot title
     if self._plot_exists == False:
@@ -227,15 +235,15 @@ class visu_plotter:
     if self._plot_type == 'realvsimag':
       sum_r = self._realvsimag_ntuple.sum(self._label_r)
       sum_i = self._realvsimag_ntuple.sum(self._label_i)
-      rows = self._realvsimag_ntuple.rows()
-      avg_r = sum_r / rows
-      avg_i = sum_i / rows
+# following can fail if we had to execute a 'clear' operation above
+#      rows = self._realvsimag_ntuple.rows()
+      avg_r = sum_r / num_rows
+      avg_i = sum_i / num_rows
       self.compute_circles(item_label, avg_r, avg_i)
 
 # here we create a display if one previously doesn't exist
     if self._data_plot == None:
       tuple_labels = [self._label_r, self._label_i]
-      print "creating a new display"
       self._data_plot = self._display_controller.createDisplay ('XY Plot',self._realvsimag_ntuple, tuple_labels )
       if self._plot_title is None:
         self._plot_title = 'This is the title!'
@@ -318,6 +326,9 @@ class visu_plotter:
         for i in range(0, n_cols) :
           image.append(plot_array[j][i])
       if self._image_ntuple.isValidLabel(data_label):
+        if len(image) != self._image_ntuple.rows():
+          print "Number of rows has changed! Clearing tuple!"
+          self._realvsimag_ntuple.clear()
         self._image_ntuple.replaceColumn (data_label,image)
       else:
 # add columns for new image data
@@ -370,6 +381,9 @@ class visu_plotter:
          else:
            image.append(plot_array[j])
       if self._simple_ntuple.isValidLabel(data_label):
+        if len(image) != self._simple_ntuple.rows():
+          print "Number of rows has changed! Clearing tuple!"
+          self._simple_ntuple.clear()
         self._simple_ntuple.replaceColumn (data_label,image)
       else:
 # add columns for new image data
@@ -385,9 +399,14 @@ class visu_plotter:
         appropriate type of plot """
 
 # first find out what kind of plot we are making
+    plot_types = None
     if visu_record.has_key('attrib'):
       self._attrib_parms = visu_record['attrib']
-      self._plot_type = self._attrib_parms.get('plot_type',self._plot_type)
+      plot_types = self._attrib_parms.get('plot_type',self._plot_type)
+
+# convert to a tuple if necessary
+      if isinstance(plot_types, str):
+        plot_types = (plot_types,)
 
     if visu_record.has_key('value'):
       self._data_values = visu_record['value']
@@ -396,32 +415,34 @@ class visu_plotter:
     self._label_r = item_label + "_r"
     self._label_i = item_label + "_i"
 
+    for j in range(len(plot_types)):
+      self._plot_type = plot_types[j]
 # now generate  particular plot type
-    if  self._plot_type == 'realvsimag':
-      self.real_vs_imag_plot(item_label)
+      if  self._plot_type == 'realvsimag':
+        self.real_vs_imag_plot(item_label)
 
 # if request is for spectra iterate through each data set
 # and display the spectra
-    if  self._plot_type == 'spectra':
-      plot_label = self._attrib_parms.get('label','')
-      num_plot_arrays = len(self._data_values)
-      for i in range(0, num_plot_arrays):
-        complex_type = False;
-        if self._data_values[i].type() == Complex64:   
-          complex_type = True;
-        if complex_type:
-          real_array =  self._data_values[i].getreal()
-          self._data_type = " real"
-          data_label = plot_label + "_" + str(i) +  "_" + self._data_type
-          self.spectrum_plot(data_label, real_array)
-          imag_array =  self._data_values[i].getimag()
-          self._data_type = " imag"
-          data_label = plot_label +  "_" +str(i) +  "_" +self._data_type
-          self.spectrum_plot(data_label, imag_array)
-        else:
-          self._data_type = " real"
-          data_label = plot_label +  "_" +str(i) +  "_" +self._data_type
-          self.spectrum_plot(data_label, self._data_values[i])
+      if  self._plot_type == 'spectra':
+        plot_label = self._attrib_parms.get('label','')
+        num_plot_arrays = len(self._data_values)
+        for i in range(0, num_plot_arrays):
+          complex_type = False;
+          if self._data_values[i].type() == Complex64:   
+            complex_type = True;
+          if complex_type:
+            real_array =  self._data_values[i].getreal()
+            self._data_type = " real"
+            data_label = plot_label + "_" + str(i) +  "_" + self._data_type
+            self.spectrum_plot(data_label, real_array)
+            imag_array =  self._data_values[i].getimag()
+            self._data_type = " imag"
+            data_label = plot_label +  "_" +str(i) +  "_" +self._data_type
+            self.spectrum_plot(data_label, imag_array)
+          else:
+            self._data_type = " real"
+            data_label = plot_label +  "_" +str(i) +  "_" +self._data_type
+            self.spectrum_plot(data_label, self._data_values[i])
 
 class ResultPlotter(BrowserPlugin):
   """ a class to visualize data, VellSets or visu data, that is 
@@ -489,7 +510,7 @@ class ResultPlotter(BrowserPlugin):
       group_label =  group_label_keys[j]
       if self._plotter_dict.has_key(group_label) == False:
 #create a new visu plotter
-        visual_plotter = visu_plotter(self._ntuple_controller,self._display_controller,self._window_controller, self._canvas) 
+        visual_plotter = visu_plotter(group_label, self._ntuple_controller,self._display_controller,self._window_controller, self._canvas) 
 #add the new plotter to a 'dict' of visualization plotters
         self._plotter_dict[group_label] = visual_plotter
 
@@ -537,6 +558,9 @@ class ResultPlotter(BrowserPlugin):
 #          print self._label, 'image appending ', plot_array[j][i]
           image.append(plot_array[j][i])
       if self._image_ntuple.isValidLabel(self._label):
+        if len(image) != self._image_ntuple.rows():
+          print "Number of rows has changed! Clearing tuple!"
+          self._image_ntuple.clear()
         self._image_ntuple.replaceColumn (self._label,image)
       else:
 # add columns for new image data
@@ -622,6 +646,9 @@ class ResultPlotter(BrowserPlugin):
       for j in range(0, num_elements) :
         image.append(flattened_array[j])
       if self._simple_ntuple.isValidLabel(self._label):
+        if len(image) != self._simple_ntuple.rows():
+          print "Number of rows has changed! Clearing tuple!"
+          self._simple_ntuple.clear()
         self._simple_ntuple.replaceColumn (self._label,image)
       else:
 # add columns for new image data
@@ -675,7 +702,7 @@ class ResultPlotter(BrowserPlugin):
         self._shape = self._rec.vellsets[i]["shape"]
 # handle "value" first
         if self._rec.vellsets[i].has_key("value"):
-          key = "value"
+          key = " value "
           complex_type = False;
           if self._rec.vellsets[i].value.type() == Complex32:
             complex_type = True;
@@ -687,21 +714,21 @@ class ResultPlotter(BrowserPlugin):
 #extract real component
             self._value_real_array = self._rec.vellsets[i].value.getreal()
             self._data_type = " real"
-            self._label = key + self._data_type 
+            self._label = "plane " + str(i) + key + self._data_type 
             self._z_real_min = self._value_real_array.min()
             self._z_real_max = self._value_real_array.max()
             self.display_vells_data(self._value_real_array)
 #extract imaginary component
             self._value_imag_array = self._rec.vellsets[i].value.getimag()
             self._data_type = " imag"
-            self._label = key + self._data_type 
+            self._label = "plane " + str(i) + key + self._data_type 
             self._z_imag_min = self._value_imag_array.min()
             self._z_imag_max = self._value_imag_array.max()
             self.display_vells_data(self._value_imag_array)
           else:
 #we have a real array
             self._data_type = " real"
-            self._label = key + self._data_type 
+            self._label = "plane " + str(i) + key + self._data_type 
             self._z_real_min = self._value_array.min()
             self._z_real_max = self._value_array.max()
             self.display_vells_data(self._value_array)
@@ -724,19 +751,19 @@ class ResultPlotter(BrowserPlugin):
               complex_type = True;
 
             perturbed_array_diff = self._rec.vellsets[i].perturbed_value[j]
-            key = "perturbed_value"
+            key = " perturbed_value "
             if complex_type:
               real_array = perturbed_array_diff.getreal()
               self._data_type = " real"
-              self._label = key + " " + str(j) + self._data_type 
+              self._label =  "plane " + str(i) + key + str(j) + self._data_type 
               self.display_vells_data(real_array)
               imag_array = perturbed_array_diff.getimag()
               self._data_type = " imag"
-              self._label = key + " " + str(j) + self._data_type 
+              self._label =  "plane " + str(i) + key + str(j) + self._data_type 
               self.display_vells_data(imag_array)
             else:
               self._data_type = " real"
-              self._label = key + " " + str(j) + self._data_type 
+              self._label =  "plane " + str(i) + key + str(j) + self._data_type 
               self.display_vells_data(perturbed_array_diff)
     
 # otherwise we are dealing with a set of visualization data
