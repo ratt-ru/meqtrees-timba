@@ -114,7 +114,7 @@ const val2string := function (x,maxlen=60,skip_braces=F)
 #   '      y=another really long value ],
 #   'c = value'
 # i.e. with no indents or surrounding braces
-const rec2lines := function (rec,maxlen)
+const rec2lines := function (rec,maxlen=78)
 {
   # handle empty record
   fields := field_names(rec);
@@ -154,6 +154,28 @@ const string2val := function(str)
     str := spaste('[',str,']');
   return eval(str);
 }
+
+
+# ------ margin_print()
+# Prints its arguments formatted between left and right margin
+# sep is the separator to use between arguments, default is space
+#
+const margin_print := function (...,left=2,right=78,sep=' ')
+{
+  width := right-left;
+  prefix := spaste(rep(' ',left));
+  strs := split(paste(...,sep=sep) ~ s/\n/ /g,'');
+  length := len(strs);
+  i:=0;
+  while( i<length )
+  {
+    i1 := min(i+width,length);
+    print spaste(prefix,spaste(strs[(i+1):i1]));
+    i := i1;
+  }
+}
+
+
 
 ## # some tests -- commented out
 ##
