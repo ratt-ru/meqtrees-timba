@@ -27,7 +27,8 @@
 # The current directory is used as the variant name.
 #
 # Use as
-#    lofarconf configure-directory [configure-options]
+#    lofarconf configure-directory [-norecursive] [configure-options]
+
 
 # Get the current directory.
 lfr_curdir=`pwd`
@@ -37,6 +38,13 @@ lfr_sdir=`dirname $0`
 lfr_srcdir=`cd $lfr_sdir && pwd`
 lfr_root=`echo $lfr_srcdir | sed -e "s%/LOFAR/.*%/LOFAR%"`
 lfr_base=$lfr_root/autoconf_share
+
+lfr_recur=1
+if [ "$1" != "-norecursive" ]; then
+  lfr_recur=0
+else
+  shift
+fi
 
 # Find package, lofar root, compiler, variant.
 # Exit if not found.
@@ -62,11 +70,11 @@ lfr_confdir=$lfr_root/$lfr_pkg;
 
 # If there is a file lofarconf.in, we have to configure recursively.
 if [ -r $lfr_confdir/lofarconf.in.private ]; then
-  $lfr_base/lofarconf_recur "$lfr_confdir/lofarconf.in.private" "$lfr_srcdir" "$@" || exit 2
+  $lfr_base/lofarconf_recur "$lfr_confdir/lofarconf.in.private" "$lfr_srcdir" "$lfr_recur" "$@" || exit 2
   exit 0
 fi
 if [ -r $lfr_confdir/lofarconf.in ]; then
-  $lfr_base/lofarconf_recur "$lfr_confdir/lofarconf.in" "$lfr_srcdir" "$@" || exit 2
+  $lfr_base/lofarconf_recur "$lfr_confdir/lofarconf.in" "$lfr_srcdir" "$lfr_recur" "$@" || exit 2
   exit 0
 fi
 

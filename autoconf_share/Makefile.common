@@ -83,3 +83,14 @@ docthis:
 	    echo "Error: No documentation tool configured" ; \
 	  fi \
 	fi
+
+#
+#
+#
+WITH_INSTALL=0
+build_system:
+	@$(MAKE); \
+	$(MAKE) check; \
+        if test 1 -eq $(WITH_INSTALL); then \
+	  $(MAKE) install ; \
+	fi;

@@ -29,11 +29,14 @@
 # Use as
 #    lofarconf_recur infile srcdir [configure-options]
 
-# Strip infile and srcdir from arguments
+# Strip infile, srcdir and recur flag from arguments
 lfr_infile="$1"
 shift
 lfr_srcdir="$1"
 shift
+lfr_recur="$1"
+shift
+
 # Get the current directory.
 lfr_curdir=`pwd`
 # Get the LOFAR base from the full path of this script.
@@ -97,8 +100,10 @@ do
     fi
     cd $subdir > /dev/null
   fi
-  echo && echo ":::::: CONFIGURE $lfr_pkg/$subdir"
-  $lfr_base/lofarconf "$@" || exit 2
+  if test 1 -eq $lfr_recur; then
+    echo && echo ":::::: CONFIGURE $lfr_pkg/$subdir"
+    $lfr_base/lofarconf "$@" || exit 2
+  fi
   cd $lfr_curdir > /dev/null
 done
 
@@ -136,6 +141,36 @@ uninstall: $(VARIANTNAMES:.variant=.variant_uninstall)
 clean: $(VARIANTNAMES:.variant=.variant_clean)
 distclean: $(VARIANTNAMES:.variant=.variant_distclean)
 dist: $(VARIANTNAMES:.variant=.variant_dist)
+
+WITH_INSTALL=0
+
+build_system:
+     @case $$var in gnu3*)  inst_var=gcc3;; \
+                     gnu*)  inst_var=gcc2;; \
+	             icc*)  inst_var=icc;; \
+     esac; \
+     && (cd ../.. \
+     && echo \
+     && echo ":::::: CONFIGURING VARIANT $$variant FOR PACKAGE $$pkg" \
+     && echo \
+     && date \
+     && ((cd $$pkg/build/$$variant \
+     && $(LOFARDIR)/autoconf_share/lofarconf -norecursive --prefix=$(PREFIX)/$$inst_var ) \
+	|| echo ":::::: ERROR" ) \
+     && echo \
+     && echo ":::::: FINISHED CONFIGURING VARIANT $$variant FOR PACKAGE $$pkg" \
+     && echo ; ); \
+     (echo \
+     && echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+     && echo \
+     && date \
+     && (( cd $$pkg/build/$$variant \
+     && $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` build_system WITH_INSTALL=$(WITH_INSTALL) PREFIX=$(PREFIX)) \
+     	|| echo ":::::: ERROR" ) \
+     && echo \
+     && echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+     && echo ;)
+
 EOFXXXXX
 
 if test $lfr_dirform = 0; then
@@ -155,7 +190,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& date \
 		&& (( cd $$pkg/build/$$variant \
-		&& make -k $(MAKE_OPTIONS) `cat makeoptions` ) \
+		&& $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` ) \
                 || echo ":::::: ERROR" ) \
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -166,7 +201,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& date \
 		&& (( cd $$pkg/build/$$variant \
-		&& make -k $(MAKE_OPTIONS) `cat makeoptions` buildall ) \
+		&& $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` buildall ) \
                 || echo ":::::: ERROR" ) \
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -189,7 +224,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& date \
 		&& ( cd $$pkg/build/$$variant \
-		&& make $(MAKE_OPTIONS) `cat makeoptions` \
+		&& $(MAKE) $(MAKE_OPTIONS) `cat makeoptions` \
                 || exit 2 ) || exit 2 \
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -211,7 +246,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& date \
 		&& cd $$pkg/build/$$variant \
-		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` check \
+		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` check \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -233,7 +268,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& date \
 		&& cd $$pkg/build/$$variant \
-		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` install \
+		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` install \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -255,7 +290,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& date \
 		&& cd $$pkg/build/$$variant \
-		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` uninstall \
+		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` uninstall \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -277,7 +312,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& date \
 		&& cd $$pkg/build/$$variant \
-		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` clean \
+		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` clean \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -299,7 +334,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& date \
 		&& cd $$pkg/build/$$variant \
-		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` distclean \
+		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` distclean \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -321,7 +356,7 @@ if test $lfr_dirform = 0; then
 		&& echo \
 		&& date \
 		&& cd $$pkg/build/$$variant \
-		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` dist \
+		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` dist \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -346,7 +381,7 @@ else
 		&& echo \
 		&& date \
 		&& (( cd $$pkg \
-		&& make -k $(MAKE_OPTIONS) `cat makeoptions` buildall ) \
+		&& $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` buildall ) \
 			|| echo ":::::: ERROR" ) \
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -367,7 +402,7 @@ else
 		&& echo \
 		&& date \
 		&& (( cd $$pkg \
-		&& make -k $(MAKE_OPTIONS) `cat makeoptions` build ) \
+		&& $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` build ) \
 			|| echo ":::::: ERROR" ) \
 		&& echo \
 		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -388,7 +423,7 @@ else
 		&& echo \
 		&& date \
 		&& cd $$pkg \
-		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` check \
+		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` check \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -409,7 +444,7 @@ else
 		&& echo \
 		&& date \
 		&& cd $$pkg \
-		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` install \
+		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` install \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -430,7 +465,7 @@ else
 		&& echo \
 		&& date \
 		&& cd $$pkg \
-		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` uninstall \
+		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` uninstall \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -451,7 +486,7 @@ else
 		&& echo \
 		&& date \
 		&& cd $$pkg \
-		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` clean \
+		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` clean \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -472,7 +507,7 @@ else
 		&& echo \
 		&& date \
 		&& cd $$pkg \
-		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` distclean \
+		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` distclean \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -493,7 +528,7 @@ else
 		&& echo \
 		&& date \
 		&& cd $$pkg \
-		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` dist \
+		&& ($(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` dist \
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
