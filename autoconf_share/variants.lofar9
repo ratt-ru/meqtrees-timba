@@ -1,5 +1,5 @@
 gnu3.compiler.conf: CXX=/usr/local/gcc-3.2.1/bin/g++ --with-cppflags="-Wno-deprecated"
-gnu3.compiler.aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu3 --with-threads --with-qt=/home/brentjens/usr/lib/qt-3.1.1
+gnu3.compiler.aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu3
 
 gnu2.compiler.conf: CXX=/usr/local/gcc-2.95.3/bin/g++ 
 gnu2.compiler.aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu2
@@ -12,9 +12,4 @@ icc.compiler.aipspp.var: --with-aipspp=/aips++/weekly/linux_icc
 
 debugnt.variant.conf:	  $(aipspp)	
 
-aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu
-
-profile.var:		   --with-optimize='-pg -O2' --with-compiletools --with-ldflags='-lc_p'
-debugopt.var:		   --with-optimize='-g -O2'
-profopt.var:		   --with-optimize='-pg -O2' --with-ldflags='-lc_p'
-optimize.var:		   --with-optimize='-O2'
+aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu --with-threads

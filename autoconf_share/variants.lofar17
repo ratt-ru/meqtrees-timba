@@ -3,7 +3,3 @@ gnu3.compiler.aipspp.var: --with-aipspp=/usr/local/aips++/linux_gnu3
 
 icc.compiler.conf: CXX=/usr/local/intel/compiler70/ia32/bin/icc
 icc.compiler.aipspp.var: --with-aipspp=/usr/local/aips++/linux_icc
-
-debugnt.variant.conf:	  $(aipspp)	
-
-aipspp.var: --with-aipspp=/usr/local/aips++/linux_gnu3

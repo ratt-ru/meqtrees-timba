@@ -19,6 +19,8 @@ insure.variant.make:	  QA=insure
 scampi.variant.conf:	  $(scampi) 
 scampi-opt.variant.conf:  $(scampi) $(optimize) 
 mpich-prof.variant.conf:  $(mpich) --enable-mpi-profiler $(aipspp)
+mtdebug.variant.conf:	  $(debug) $(aipspp) --with-threads
+mtopt.variant.conf:	  $(optimize) $(aipspp) --with-threads
 
 profile.var:		   --with-optimize='-pg -O2' --with-compiletools --with-ldflags='-lc_p'
 mpe.var:		   --with-mpich=/usr/local/mpich-1.2.5/ch_p4 --enable-mpi-profiler
