@@ -41,6 +41,19 @@
 class AppAgent
 {
   public:
+    //##ModelId=3E2584D80342
+    //##Documentation
+    //## This defines the return codes for the getEvent/hasEvent methods,
+    //## as well as states
+      typedef enum {
+          SUCCESS   = 1,
+          WAIT      = 0,    // must wait for data
+          OUTOFSEQ  = -1,   // request is out of sequence (see below)
+          CLOSED    = -2,   // input stream is closed or disconnected
+          ERROR     = -999,
+      } ReturnCodes;
+      
+      
     //##ModelId=3DF9FEEC0066
       virtual ~AppAgent ()
       {}
@@ -62,21 +75,28 @@ class AppAgent
     //##ModelId=3DF9FEEC0073
     //##Documentation
     //## Requests the next event from an agent. The event's id and DataRecord
-    //## are returned via the first two parameters. If no event is currently
-    //## pending, the agent should either block & wait for an event (for
-    //## wait=True), or return False (for wait=False). On success, True is
-    //## returned.
-      virtual bool getEvent   (HIID &,DataRecord::Ref &,bool wait = False)
-      { return False; }
+    //## are returned via the first two parameters. 
+    //## If mask is non-empty, then only events matching that mask are
+    //## returned. 
+    //## If no event is currently pending, the agent should either block & wait
+    //## for an event (for wait=True), or return WAIT (for wait=False).
+    //## Defined return codes:
+    //## SUCCESS (=1): successfully returned an event
+    //## WAIT (=0): no event pending, must wait
+    //## OUTOFSEQ (=-1): mask specified, and pending event does not match it
+    //## CLOSED (=-2): event stream has been closed
+      virtual int getEvent   (HIID &,DataRecord::Ref &,const HIID &mask, bool wait = False)
+      { return WAIT; }
 
     //##ModelId=3DF9FEEC0078
     //##Documentation
     //## Returns True if there is an event pending that matches the specified
     //## mask (default - no mask - matches any event). If the agent maintains
-    //## an ordered event queue, then outOfSeq=True can be specified to look
-    //## ahead into the queue.
-      virtual bool hasEvent   (const HIID &mask = HIID(),bool outOfSeq = False)
-      { return False; };
+    //## an ordered event queue, then outOfSeq=True can be specified to allow
+    //## look-ahead into the queue (though the agent is not obliged to
+    //## implement this).
+      virtual int hasEvent   (const HIID &mask = HIID(),bool outOfSeq = False)
+      { return WAIT; };
 
     //##ModelId=3DF9FEEC006F
     //##Documentation
@@ -91,6 +111,12 @@ class AppAgent
       virtual void flush ()
       {}
       
+    //##ModelId=3E25825D021B
+    //##Documentation
+    //## Alias for getEvent() with an empty mask, which retrieves the next
+    //## pending event whatever it is.
+      int getEvent(HIID &id, DataRecord::Ref &ref, bool wait = False)
+      { return getEvent(id,ref,HIID(),wait); }
       
     //##ModelId=3E00AFAE01D7
       virtual string sdebug ( int detail = 1,const string &prefix = "",
@@ -101,6 +127,14 @@ class AppAgent
       const char * debug ( int detail = 1,const string &prefix = "",
                            const char *name = 0 ) const
       { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
+      
+      //##ModelId=3E2C286E0344
+      virtual int state() const
+      { return SUCCESS; }
+
+      //##ModelId=3E2C28930098
+      virtual string stateString() const
+      { return "OK"; }
 };
     
     

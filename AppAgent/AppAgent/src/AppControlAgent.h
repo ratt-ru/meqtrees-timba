@@ -7,9 +7,11 @@
 namespace AppControlAgentVocabulary
 {
   const HIID 
-      InitEvent       = AidApp|AidStop|AidEvent,
+      InitEvent       = AidApp|AidInit|AidEvent,
       StopEvent       = AidApp|AidStop|AidEvent,
-      ReinitEvent     = AidApp|AidStop|AidEvent,
+      ReinitEvent     = AidApp|AidReinit|AidEvent,
+      PauseEvent      = AidApp|AidPause|AidEvent,
+      ResumeEvent     = AidApp|AidResume|AidEvent,
       TerminateEvent  = AidApp|AidTerminate|AidEvent,
       
       __last_declaration = 0;
