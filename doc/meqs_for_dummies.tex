@@ -992,6 +992,18 @@ it. This regenerates a few source files, most notably
 AID-MeqNodes.h, TID-MeqNodes.h, and AID-MeqNodes-Registry.cc 
 in ~/LOFAR/CEP/CPA/PSS4/MeqNodes/src. 
 
+Sometimes `make aids' may not complete properly. In that case you
+should do:
+
+cd ~/LOFAR/DMI
+rm aid/Global.aidlist
+cvs up aid
+
+Then go back to the build directory and repeat the `make aids' command
+
+cd ~/LOFAR/CEP/CPA/PSS4/MeqNodes/build/gnu3_debug
+make aids
+
 Now, make sure that your code is up to date with regard to everyone 
 else's check-ins.  A `cvs up' in CEP/CPA/PSS4/MeqNodes should be sufficient.
                                                                                 
