@@ -1,0 +1,34 @@
+#!/bin/sh
+
+echo "  shadowing $2"
+cd $3
+for INFIL in $2/*
+do
+  if [ -d $INFIL ]
+  then
+    if [ -f $INFIL/Makefile.am ]
+    then
+      dirname=`basename $INFIL`
+      if test $1 = 0  -o  ! -d $dirname
+      then
+        mkdir $dirname
+      fi
+      $0 $1 $INFIL $dirname
+    fi
+  else
+    case $INFIL in
+    */CVS)
+      ;;
+    *~)
+      ;;
+    */Makefile.in)
+      ;;
+    *)
+      nm=`basename $INFIL`
+      if test ! -f $nm
+      then
+       ln -s $INFIL $nm
+      fi
+    esac
+  fi
+done

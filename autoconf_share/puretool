@@ -27,7 +27,7 @@ top_builddir=$1
 shift
 
 #
-# Determine wether running purify, quantify or purecov
+# Determine whether running purify, quantify or purecov
 #
 puretools_prefix=$1
 shift

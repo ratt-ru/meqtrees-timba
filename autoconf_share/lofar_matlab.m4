@@ -65,5 +65,5 @@ AC_MSG_ERROR([Could not find Matlab in $matlab_prefix])
     enable_matlab=no
   fi
 fi]
-AM_CONDITIONAL(HAVE_MATLAB, test "$enable_matlab" = "yes")
+AM_CONDITIONAL(HAVE_MATLAB, [test "$enable_matlab" = "yes"])
 ])

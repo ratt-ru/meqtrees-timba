@@ -1,0 +1,85 @@
+# Some common rules.
+
+
+# CLEANFILES cannot delete directories, therefore use target clean-generic.
+clean-generic:
+	-rm -f tca.*
+	-rm -f .inslog*
+	-rm -f *.log
+	-rm -f *.i
+	-rm -f docxx_hdrs.names
+	-rm -rf $(top_builddir)/pure_cache
+	-rm -rf docxxhtml
+#CLEANFILES += tca.* .inslog* *.cc *.h $(top_builddir)/pure_cache docxxhtml/* *.log docxx_hdrs.names
+
+
+# Only preprocess the file.
+%.i: %.cc
+	$(CC) -E $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< > $@
+
+
+
+# Rules for compiling Corba IDL files (if CORBA is available).
+# Note that SUFFIXES cannot be inside if command.
+SUFFIXES = .idl
+
+if HAVE_CORBA
+
+%_c.hh %_s.hh: %.idl
+	$(IDLCXX) $(IDLFLAGS) $(AM_IDLFLAGS) $<
+
+.idl.o:
+	$(IDLCXX) $(IDLFLAGS) $(AM_IDLFLAGS) $<
+	echo '#include "$*_c.cc"' >  $*_cs.cc
+	echo '#include "$*_s.cc"' >> $*_cs.cc
+	$(LTCXXCOMPILE) -c $*_cs.cc
+	mv $*_cs.o  $*.o
+	mv $*_cs.lo $*.lo
+
+.idl.lo:
+	$(IDLCXX) $(IDLFLAGS) $(AM_IDLFLAGS) $<
+	echo '#include "$*_c.cc"' >  $*_cs.cc
+	echo '#include "$*_s.cc"' >> $*_cs.cc
+	$(LTCXXCOMPILE) -c $*_cs.cc
+	mv $*_cs.o  $*.o
+	mv $*_cs.lo $*.lo
+
+endif
+
+
+
+# Rules for building documentation (only if available).
+if HAVE_DOCXX
+
+docall: docfile
+	$(DOCXX) $(DOCXXFLAGS) `cat docxx_hdrs.names`
+
+docfile:
+	rm -f docxx_hdrs.names
+	touch docxx_hdrs.names
+	$(MAKE) doc_builddir=`pwd` docfileappend
+
+docfileappend:
+	@absdir=`cd $(srcdir) && pwd`; \
+	list='$(DOCHDRS)'; for namedoc in $$list; do \
+	  echo $$absdir/$$namedoc >> $(doc_builddir)/docxx_hdrs.names ; \
+	done
+	@list='$(DOC_SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    if test -d $$subdir; then \
+	      (cd $$subdir && \
+                       $(MAKE) doc_builddir=$(doc_builddir) docfileappend) ; \
+	    fi; \
+	  fi; \
+	done
+
+doc:
+	@fullnames=""; \
+	list='$(DOCHDRS)'; for namedoc in $$list; do \
+	  fullnames="$$fullnames $(srcdir)/$$namedoc" ; \
+	done; \
+	echo "$(DOCXX) $(DOCXXFLAGS) $$fullnames"; \
+	$(DOCXX) $(DOCXXFLAGS) $$fullnames
+
+endif
+

@@ -6,6 +6,18 @@
 #
 # Macro to check for BASESIM installation
 #
+#  It adds the BaseSim include directory to CXXFLAGS and CFLAGS
+#  and the BaseSim library directory to LIBS.
+#
+#  --with-basesim  tries to find the paths automatically.
+#                  include path is derived from $srcdir
+#                  library path is derived from `pwd`
+#  --with-basesim=PFX  specifies basic BaseSim path explicitly.
+#                      derived include path gets PFX/src
+#                      derived library path gets PFX/build
+#  --with-basesim-include=PFX  overrides BaseSim derived include path.
+#  --with-basesim-libdir=PFX   overrides BaseSim derived library path.
+#
 # lofar_BASESIM
 #
 # e.g. lofar_BASESIM
@@ -13,66 +25,86 @@
 #
 AC_DEFUN(lofar_BASESIM,dnl
 [dnl
-[MODULEBASE=]$1
 AC_PREREQ(2.13)dnl
 AC_ARG_WITH(basesim,
-	[  --with-basesim[=PFX]    path to BaseSim build directory],
-	[with_basesim=$withval],
-	[with_basesim="yes"])
+	[  --with-basesim[=PFX]    path to BaseSim directory],
+	[with_basesim=$withval
+         if test "${with_basesim}" != yes; then
+            lofar_basesim_include="$withval/src"
+            lofar_basesim_libdir="$withval/build"
+         fi])
+
+AC_ARG_WITH(basesim-include,
+[  --with-basesim-include=PFX  specify include dir for BaseSim headers],
+[lofar_basesim_include="$withval"])
+
+AC_ARG_WITH(basesim-libdir,
+[  --with-basesim-libdir=PFX   specify library dir for BaseSim library],
+[lofar_basesim_libdir="$withval"])
+
+
 [
 enable_basesim=yes
 if test "$with_basesim" = "no"; then]
 AC_MSG_ERROR([Cannot configure without BaseSim])
 [fi
-if test "$with_basesim" = "yes"; then
 
-  #
-  # Try to guess where the BaseSim directory is located
-  # Construct lofar_basesim_top_builddir
-  #
-  rel_top_builddir=`echo $PWD | sed -e "s%.*/$MODULEBASE/%%"`
-  lofar_base=`echo $PWD | sed -e "s%/LOFAR/.*%/LOFAR%"`
-  lofar_basesim_top_builddir=$lofar_base/BaseSim/$rel_top_builddir
-  lofar_basesim_top_srcdir=$lofar_base/BaseSim/src
-
-  # debugging echo statements
-  # echo rel_top_builddir = $rel_top_builddir
-  # echo lofar_base       = $lofar_base
-  # echo lofar_basesim_top_builddir = $lofar_basesim_top_builddir
-  # echo lofar_basesim_top_srcdir   = $lofar_basesim_top_srcdir
-
-  # Strip everything upto LOFAR component from start of pwd
-  # set BaseSim path to 
-
-else
-
-  lofar_basesim_top_builddir=$withval
-
-  lofar_basesim_top_srcdir=`echo $withval | sed -e "s%/BaseSim/.*%/BaseSim%"`
-  lofar_basesim_top_srcdir=$lofar_basesim_top_srcdir/src
-
-  # debugging echo statements
-  # echo lofar_basesim_top_builddir = $lofar_basesim_top_builddir
-  # echo lofar_basesim_top_srcdir   = $lofar_basesim_top_srcdir
-  
+# Try to guess where the BaseSim include directory is located.
+# srcdir gives the current source directory; BaseSim is assumed to
+# be in something/LOFAR/BaseSim/src.
+#
+lofar_curwd=`pwd`
+if test "$lofar_basesim_include" = ""; then
+  lofar_srcdir=`cd $srcdir && pwd`
+  lofar_base=`echo $lofar_srcdir | sed -e "s%/LOFAR/.*%/LOFAR%"`
+  lofar_basesim_include=$lofar_base/BaseSim/src
 fi
+
+# Try to guess where the BaseSim library directory is located.
+# pwd gives the current build directory, which can be something
+# like   something/LOFAR/package/build*  (if built in source tree)
+# or     something/build*/package        (if built in separate tree)
+#
+if test "$lofar_basesim_libdir" = ""; then
+  lofar_lastdir=`basename $lofar_curwd`
+  lofar_buildname=`echo $lofar_lastdir | sed -e "s%build.*%build%"`
+  if test "$lofar_buildname" = "build"; then
+    lofar_base=`echo $lofar_curwd | sed -e "s%/LOFAR/.*%/LOFAR%"`
+    lofar_basesim_libdir=$lofar_base/BaseSim/$lofar_lastdir
+  else
+    lofar_base=`echo $lofar_curwd | sed -e "s%/build.*%%"`
+    lofar_last=`echo $lofar_curwd | sed -e "s%$lofar_base/%%"`
+    lofar_builddir=`echo $lofar_last | sed -e "s%/.*%%"`
+    lofar_basesim_libdir=$lofar_base/$lofar_builddir/BaseSim
+  fi
+fi
+
+## Check if the build directory is valid.
+## The library might not be there yet, but it must have been configured,
+## so a libtool should be there.
+##
+## Check for BaseSim.h header file in src dir.
+##
 ]
-##
-## Check for BaseSim.h header file in src dir
-##
-AC_CHECK_FILE([$lofar_basesim_top_srcdir/BaseSim.h],
-			[lofar_cv_header_basesim=yes],
-			[lofar_cv_header_basesim=no])dnl
+AC_CHECK_FILE([$lofar_basesim_libdir/libtool],
+			[lofar_cv_lib_basesim=yes],
+			[lofar_cv_lib_basesim=no])
+AC_CHECK_FILE([$lofar_basesim_include/BaseSim.h],
+			[lofar_cv_hdr_basesim=yes],
+			[lofar_cv_hdr_basesim=no])dnl
 [
-  if test $lofar_cv_header_basesim = yes ; then
+if test $lofar_cv_hdr_basesim = yes  &&  test $lofar_cv_lib_basesim = yes; then
+  # Turn possible relative paths into absolute paths, because
+  # relative paths can miss some .. parts.
+  lofar_basesim_include=`cd $lofar_basesim_include && pwd`
+  lofar_basesim_libdir=`cd $lofar_basesim_libdir && pwd`
+  CFLAGS="$CFLAGS -I$lofar_basesim_include"
+  CXXFLAGS="$CXXFLAGS -I$lofar_basesim_include"
+  LIBS="$LIBS $lofar_basesim_libdir/src/libbasesim.la"
 
-	CFLAGS="$CFLAGS -I$lofar_basesim_top_srcdir"
-	CXXFLAGS="$CXXFLAGS -I$lofar_basesim_top_srcdir"
-	LIBS="$LIBS $lofar_basesim_top_builddir/src/libbasesim.la"
-
-	# Two new variable for use in Makefile.am's
-	basesim_top_srcdir="$lofar_basesim_top_srcdir"
-	basesim_top_builddir="$lofar_basesim_top_builddir"
+  # Two new variables for use in Makefile.am's
+  basesim_top_srcdir="$lofar_basesim_include"
+  basesim_top_builddir="$lofar_basesim_libdir"
 ]
 dnl
 AC_SUBST(CFLAGS)dnl
@@ -81,13 +113,18 @@ AC_SUBST(LIBS)dnl
 AC_SUBST(basesim_top_srcdir)dnl
 AC_SUBST(basesim_top_builddir)dnl
 dnl
-dnl NOT NEEDED: AC_DEFINE(HAVE_BASESIM, 1, [Define if Matlab is installed])dnl
+dnl NOT NEEDED: AC_DEFINE(HAVE_BASESIM, 1, [Define if BaseSim is installed])dnl
 [
-  else]
-AC_MSG_ERROR([Could not find BaseSim installation in $lofar_basesim_top_srcdir])
+else
+  if test $lofar_cv_hdr_basesim = no; then]
+AC_MSG_ERROR([Could not find BaseSim.h in $lofar_basesim_include])
 [
     enable_basesim=no
+  else]
+AC_MSG_ERROR([Could not find libtool in $lofar_basesim_libdir])
+[
   fi
+fi
 ]
-dnl NOT NEEDED: AM_CONDITIONAL(HAVE_BASESIM, test "$enable_matlab" = "yes")
+dnl NOT NEEDED: AM_CONDITIONAL(HAVE_BASESIM, test "$enable_basesim" = "yes")
 ])

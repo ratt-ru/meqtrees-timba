@@ -4,11 +4,11 @@
 #
 # lofar_CORBA
 #
-# Macro to check for suitable Corba implmentation
+# Macro to check for suitable Corba implementation
 #
 AC_DEFUN(lofar_CORBA,dnl
 lofar_HEADER_VISIBROKER([])
-AM_CONDITIONAL(HAVE_CORBA, test "$enable_vbroker" = "yes")
+[AM_CONDITIONAL(HAVE_CORBA, [test "$enable_vbroker" = "yes"])]
 )dnl
 dnl
 #
@@ -59,18 +59,18 @@ AC_CHECK_FILE([$vbroker_prefix/include/corba.h],
   fi
   if test $lofar_cv_header_vbroker = yes ; then
 
-	VBROKER_PATH="$vbroker_prefix"
+    VBROKER_PATH="$vbroker_prefix"
 
-	VBROKER_CFLAGS="-I$VBROKER_PATH/include"
-	VBROKER_LDFLAGS="-L$VBROKER_PATH/lib"
-	VBROKER_LIBS="-lcosev_r -lcosnm_r -lvport_r -lorb_r -lpthread"
+    VBROKER_CFLAGS="-I$VBROKER_PATH/include"
+    VBROKER_LDFLAGS="-L$VBROKER_PATH/lib"
+    VBROKER_LIBS="-lcosev_r -lcosnm_r -lvport_r -lorb_r -lpthread"
 
-	CFLAGS="$CFLAGS $VBROKER_CFLAGS"
-	CXXFLAGS="$CXXFLAGS $VBROKER_CFLAGS"
-	LDFLAGS="$LDFLAGS $VBROKER_LDFLAGS"
-	LIBS="$LIBS $VBROKER_LIBS"
-	IDLCXX="$vbroker_prefix/bin/idl2cpp"
-	IDLFLAGS=""
+    CFLAGS="$CFLAGS $VBROKER_CFLAGS"
+    CXXFLAGS="$CXXFLAGS $VBROKER_CFLAGS -Wno-reorder -Wno-switch -Wno-unused"
+    LDFLAGS="$LDFLAGS $VBROKER_LDFLAGS"
+    LIBS="$LIBS $VBROKER_LIBS"
+    IDLCXX="$vbroker_prefix/bin/idl2cpp"
+    IDLFLAGS=""
 ]
 dnl
 AC_SUBST(CFLAGS)dnl

@@ -43,7 +43,7 @@ AC_MSG_RESULT([yes])
 		AIPSPP_LIBS="-laips"
 
 		CFLAGS="$CFLAGS $AIPSPP_CFLAGS"
-		CXXFLAGS="$CXXFLAGS $AIPSPP_CFLAGS"
+		CXXFLAGS="$CXXFLAGS $AIPSPP_CFLAGS -Wno-template-friend"
 		LDFLAGS="$LDFLAGS $AIPSPP_LDFLAGS"
 		LIBS="$LIBS $AIPSPP_LIBS"
 ]
@@ -58,6 +58,6 @@ AC_DEFINE(HAVE_AIPSPP, 1, [Define if AIPS++ is installed])dnl
 	fi
 fi
 ]
-AM_CONDITIONAL(HAVE_AIPSPP, test "$with_aipspp" = "yes")
+AM_CONDITIONAL(HAVE_AIPSPP, [test "$with_aipspp" = "yes"])
 ]
 )
