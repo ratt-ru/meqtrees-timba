@@ -57,8 +57,8 @@ class ArrayPlotter(BrowserPlugin):
         for j in range(shape[1]):
           temp_array[k,j] = real_array[k,j]
           temp_array[k+shape[0],j] = imag_array[k,j]
-      self._plotter.array_plot('complex data value', temp_array)
+      self._plotter.array_plot('complex_data', temp_array)
     else:
-      self._plotter.array_plot('real data value', dataitem.data)
+      self._plotter.array_plot('real_data', dataitem.data)
     
 gridded_workspace.registerViewer(array_class,ArrayPlotter,priority=-10)
