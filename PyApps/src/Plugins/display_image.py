@@ -4,6 +4,7 @@ import sys
 from qt import *
 from qwt import *
 from numarray import *
+import numarray.nd_image
 from UVPAxis import *
 from printfilter import *
 from ComplexColorMap import *
@@ -922,6 +923,8 @@ class QwtImagePlot(QwtPlot):
         self.setMarkerYPos(mY, y)
     
     def onMouseMoved(self, e):
+       if self._plot_type == 'histogram':
+          return
 #       pass
 
 #      self.statusBar().message(
@@ -931,6 +934,8 @@ class QwtImagePlot(QwtPlot):
     # onMouseMoved()
 
     def onMousePressed(self, e):
+        if self._plot_type == 'histogram':
+            return
         if Qt.LeftButton == e.button():
             # Python semantics: self.pos = e.pos() does not work; force a copy
             self.xpos = e.pos().x()
@@ -1042,6 +1047,8 @@ class QwtImagePlot(QwtPlot):
     # onMousePressed()
 
     def onMouseReleased(self, e):
+        if self._plot_type == 'histogram':
+            return
         if Qt.LeftButton == e.button():
             xmin = min(self.xpos, e.pos().x())
             xmax = max(self.xpos, e.pos().x())
@@ -1545,6 +1552,88 @@ class QwtImagePlot(QwtPlot):
         self.replot()
         _dprint(2, 'called replot in array_plot');
     # array_plot()
+
+    def histogram_plot (self, data_label, input_array):
+      """ figure out shape, rank etc of a spectrum array and
+          plot it  """
+
+      self._plot_type = 'histogram'
+# set title
+      if self._title is None:
+        self.setTitle(data_label)
+
+# figure out type and rank of incoming array
+      complex_type = False
+      if input_array.type() == Complex32:
+            complex_type = True;
+      if input_array.type() == Complex64:
+            complex_type = True;
+      histogram_in = None
+      num_bins = 10
+      if complex_type:
+#        histogram_in = abs(input_array)
+        histogram_in = input_array.getreal()
+      else:
+        histogram_in = input_array
+      array_min = histogram_in.min()
+      array_max = histogram_in.max()
+      histogram_array = numarray.nd_image.histogram(histogram_in, array_min, array_max, num_bins)
+
+# we have created bins, now generate a Qwt curve for each bin
+      histogram_curve_x = zeros(4 * num_bins, Float32) 
+      histogram_curve_y = zeros(4 * num_bins, Float32) 
+      bin_incr = (array_max - array_min) / num_bins
+      curve_index = 0
+      for i in range(num_bins):
+        bin_start = array_min + i * bin_incr
+        bin_end = bin_start + bin_incr
+        histogram_curve_x[curve_index] = bin_start
+        histogram_curve_y[curve_index] = 0
+        histogram_curve_x[curve_index+1] = bin_start
+        histogram_curve_y[curve_index+1] = histogram_array[i]
+        histogram_curve_x[curve_index+2] = bin_end
+        histogram_curve_y[curve_index+2] = histogram_array[i]
+        histogram_curve_x[curve_index+3] = bin_end
+        histogram_curve_y[curve_index+3] = 0
+        curve_index = curve_index + 4
+      curve_key = 'histogram_curve'
+      curve_index = self.insertCurve(curve_key)
+      self.setCurvePen(curve_index, QPen(Qt.black, 2))
+      self.setCurveData(curve_index, histogram_curve_x, histogram_curve_y)
+      self.setTitle('Histogram')
+      self.setAxisTitle(QwtPlot.yLeft, 'number in bin')
+      self.setAxisTitle(QwtPlot.xBottom, 'array value ')
+
+# add in histogram for imaginary stuff if we have a complex array
+      if complex_type:
+        histogram_in = input_array.getimag()
+        array_min = histogram_in.min()
+        array_max = histogram_in.max()
+        histogram_array = numarray.nd_image.histogram(histogram_in, array_min, array_max, num_bins)
+        histogram_curve_x_im = zeros(4 * num_bins, Float32) 
+        histogram_curve_y_im = zeros(4 * num_bins, Float32) 
+        bin_incr = (array_max - array_min) / num_bins
+        curve_index = 0
+        for i in range(num_bins):
+          bin_start = array_min + i * bin_incr
+          bin_end = bin_start + bin_incr
+          histogram_curve_x_im[curve_index] = bin_start
+          histogram_curve_y_im[curve_index] = 0
+          histogram_curve_x_im[curve_index+1] = bin_start
+          histogram_curve_y_im[curve_index+1] = histogram_array[i]
+          histogram_curve_x_im[curve_index+2] = bin_end
+          histogram_curve_y_im[curve_index+2] = histogram_array[i]
+          histogram_curve_x_im[curve_index+3] = bin_end
+          histogram_curve_y[curve_index+3] = 0
+          curve_index = curve_index + 4
+        curve_key = 'histogram_curve_imag'
+        curve_index_imag = self.insertCurve(curve_key)
+        self.setCurvePen(curve_index_imag, QPen(Qt.red, 2))
+        self.setCurveData(curve_index_imag, histogram_curve_x_im, histogram_curve_y_im)
+        self.setAxisTitle(QwtPlot.xBottom, 'array value (real=black, red=imag) ')
+      self.replot()
+     
+    # histogram_plot()
 
     def start_test_timer(self, time, test_complex, display_type):
       self.test_complex = test_complex
