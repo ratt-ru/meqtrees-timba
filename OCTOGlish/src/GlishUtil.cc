@@ -433,7 +433,14 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
     {
       dprintf(4)("converting GlishArray of %d elements to DataField\n",
                   shape.product());
-      DataField *field = GlishUtil::createSubclass<DataField>(ref,val);
+      // if dmi_is_datafield is set, then it may be in fact a subclass of
+      // DataField. If not set, then this is some value that's going
+      // to be encapsulated in a DataField, so create one directly.
+      DataField *field;
+      if( val.attributeExists("dmi_is_datafield") )
+        field = GlishUtil::createSubclass<DataField>(ref,val);
+      else
+        ref <<= field = new DataField;
       makeDataField(*field,arr,adjustIndex);
       // validate the field (no-op for DataField itself, but may be meaningful for subclasses)
       field->validateContent(); 
