@@ -675,6 +675,7 @@ inline Thread::ThrID WPInterface::workerID (int i) const
 {
   return worker_threads[i];
 }
+#endif
 
 inline void WPInterface::enablePolling  ()
 {
@@ -691,7 +692,6 @@ inline bool WPInterface::pollingEnabled () const
   return polling_enabled;
 }
 
-#endif
 
 
 #endif
