@@ -442,6 +442,14 @@ VellsTmp tocomplex (const Vells& left, const VellsTmp& right)
 {
     return left.itsRep->tocomplex(*right.rep());
 }
+VellsTmp pow (const Vells& value, const Vells& exponent)
+{
+    return pow(VellsTmp(value), exponent);
+}
+VellsTmp pow (const Vells& value, const VellsTmp& exponent)
+{
+    return pow(VellsTmp(value), exponent);
+}
 VellsTmp sin (const Vells& arg)
 {
     return sin(VellsTmp(arg));

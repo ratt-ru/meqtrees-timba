@@ -116,6 +116,9 @@ public:
   bool isNull() const
     { return (itsRep == 0); }
 
+  bool isScalar() const
+    { return itsIsScalar; }
+
   void show (std::ostream& os) const
     { itsRep->show (os); }
 
@@ -130,6 +133,11 @@ public:
     { return *itsRealArray; }
   LoMat_dcomplex& getComplexArray()
     { return *itsComplexArray; }
+
+  double getRealScalar() const
+    { return itsRealArray->data()[0]; }
+  const dcomplex& getComplexScalar() const
+    { return itsComplexArray->data()[0]; }
 
   void init (double val)
     { if (isReal()) getRealArray()=val; else getComplexArray()=dcomplex(val); }
@@ -176,6 +184,8 @@ public:
   friend VellsTmp posdiff (const Vells&, const VellsTmp&);
   friend VellsTmp tocomplex (const Vells&, const Vells&);
   friend VellsTmp tocomplex (const Vells&, const VellsTmp&);
+  friend VellsTmp pow (const Vells&, const Vells& exponent);
+  friend VellsTmp pow (const Vells&, const VellsTmp& exponent);
   friend VellsTmp sin (const Vells&);
   friend VellsTmp cos (const Vells&);
   friend VellsTmp exp (const Vells&);
