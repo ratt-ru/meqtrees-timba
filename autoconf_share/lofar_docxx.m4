@@ -95,6 +95,7 @@ else
     echo "EXTRACT_STATIC	= YES" >> .doxygenrc
     echo "ALWAYS_DETAILED_SEC	= YES" >> .doxygenrc
     echo "CASE_SENSE_NAMES	= YES" >> .doxygenrc
+    echo "DETAILS_AT_TOP        = YES" >> .doxygenrc
     echo "DISTRIBUTE_GROUP_DOC	= YES" >> .doxygenrc
     echo "ALIASES		= \"template=\par Template requirements:\n\"" >> .doxygenrc
     echo "MAX_INITIALIZER_LINES	= 0" >> .doxygenrc
@@ -107,6 +108,7 @@ else
     echo "REFERENCED_BY_RELATION= YES" >> .doxygenrc
     echo "REFERENCES_RELATION	= YES" >> .doxygenrc
     echo "ALPHABETICAL_INDEX	= YES" >> .doxygenrc
+    echo "COLS_IN_ALPHA_INDEX   = 3" >> .doxygenrc
     echo "HTML_OUTPUT		= docxxhtml" >> .doxygenrc
     echo "ENUM_VALUES_PER_LINE	= 1" >> .doxygenrc
     echo "GENERATE_TREEVIEW	= YES" >> .doxygenrc
