@@ -3,6 +3,8 @@
 # modules that are imported
 from math import sin
 from math import cos
+from math import pow
+from math import sqrt
 import gridded_workspace
 from app_browsers import *
 from qt import *
@@ -64,25 +66,368 @@ def setPointRepresentation(style_string):
   to a Hippo number """
   representation = None;
 # define representation style as a number
-  if style_string == "rectangle":
+  if style_string == "square":
     representation = 0
-  if style_string == "filled rectangle":
+  if style_string == "filled_rectangle":
     representation = 1
-  if style_string == "+":
+  if style_string == "plus":
     representation = 2
-  if style_string == "x":
+  if style_string == "times":
     representation = 3
   if style_string == "triangle":
     representation = 4
-  if style_string == "filled triangle":
+  if style_string == "filled_triangle":
     representation = 5
   if style_string == "circle":
     representation = 6
-  if style_string == "filled circle":
+  if style_string == "filled_circle":
     representation = 7
   return style
 
+class visu_plotter:
+  """ A class to plot visualzation data - XY vs YX solutions, spectra, etc
+      that are generated in data collection and data concatenation
+      nodes """
+
+  def __init__(self,ntuple_controller, display_controller, window_controller, canvas):
+    """ set initial default settings for plots """
+    self._display_controller = display_controller
+    self._ntuple_controller = ntuple_controller 
+    self._window_controller = window_controller
+    self._canvas = canvas
+    self._realvsimag_ntuple = None
+    self._radius_ntuple = None
+    self._line_ntuple = None
+    self._image_ntuple = None
+    self._simple_ntuple = None
+    self._data_plot = None
+    self._x_label = 'real'
+    self._y_label = 'imaginary'
+    self._label_r = self._x_label
+    self._label_i = self._y_label
+    self._plot_title = None
+    self._data_color = setColorStyle("blue")
+    self._plot_type = 'realvsimag'
+#    self.compute_circles(10,12)
+
+# compute points for two circles
+  def compute_circles (self, item_label ,avg_r, avg_i):
+    """ compute values for circle running through specified
+        point and a line pointing to the point """
+
+    x_sq = pow(avg_r, 2)
+    y_sq = pow(avg_i, 2)
+    radius = sqrt(x_sq + y_sq)
+    x_pos = []
+    y_pos = []
+    angle = -5.0
+    for j in range(0, 73 ) :
+       angle = angle + 5.0
+       x = radius * cos(angle/57.2957795)
+       y = radius * sin(angle/57.2957795)
+       x_pos.append(x)
+       y_pos.append(y)
+    if self._radius_ntuple == None:
+       self._radius_ntuple = self._ntuple_controller.createNTuple()
+       self._radius_ntuple.setTitle ("circle data")
+    if self._line_ntuple == None:
+       self._line_ntuple = self._ntuple_controller.createNTuple()
+       self._line_ntuple.setTitle ("line data")
+
+# store radius data
+    label = item_label + '_xx_circle'
+    if self._radius_ntuple.isValidLabel(label):
+      self._radius_ntuple.replaceColumn (label,x_pos)
+    else:
+      self._radius_ntuple.addColumn (label,x_pos)
+    label = item_label + '_yy_circle'
+    if self._radius_ntuple.isValidLabel(label):
+      self._radius_ntuple.replaceColumn (label,y_pos)
+    else:
+      self._radius_ntuple.addColumn (label,y_pos)
+
+# store line data
+    x1_pos = []
+    y1_pos = []
+    x1_pos.append(0)
+    y1_pos.append(0)
+    x1_pos.append(avg_r)
+    y1_pos.append(avg_i)
+    label = item_label + '_xx_line'
+    if self._line_ntuple.isValidLabel(label):
+      self._line_ntuple.replaceColumn (label,x1_pos)
+    else:
+      self._line_ntuple.addColumn (label,x1_pos)
+    label = item_label + '_yy_line'
+    if self._line_ntuple.isValidLabel(label):
+      self._line_ntuple.replaceColumn (label,y1_pos)
+    else:
+      self._line_ntuple.addColumn (label,y1_pos)
+
+
+  def real_vs_imag_plot (self,item_label):
+    """ plot real va imaginary values together with circles
+        indicating average values """
+ 
+# get and combine all plot array data together into one Tuple
+    num_plot_arrays = len(self._data_values)
+    image_r = []
+    image_i = []
+    for i in range(0, num_plot_arrays):
+      xx_r = None
+      xx_i = None
+      if self._data_values[i].type() == Complex64:
+          xx_r = self._data_values[i].getreal()
+          xx_i = self._data_values[i].getimag()
+      else:
+        xx_r = self._data_values[i]
+      array_dim = len(xx_r.shape)
+      num_elements = 1
+      for j in range(0, array_dim):
+        num_elements = num_elements * xx_r.shape[j]
+      flattened_array_r = numarray.reshape(xx_r,(num_elements,))
+       
+      for j in range(0, num_elements): 
+        image_r.append(flattened_array_r[j])
+      if xx_i != None:
+        flattened_array_i = numarray.reshape(xx_i,(num_elements,))
+        for j in range(0, num_elements): 
+          image_i.append(flattened_array_i[j])
+      else:
+        for j in range(0, num_elements): 
+          image_i.append(0.0)
+
+# add columns to tuple
+    if self._realvsimag_ntuple is None:
+      self._realvsimag_ntuple = self._ntuple_controller.createNTuple()
+    self._plot_exists = False
+    if self._realvsimag_ntuple.isValidLabel(self._label_r):
+      self._realvsimag_ntuple.replaceColumn (self._label_r,image_r)
+      self._plot_exists = True
+    else:
+      self._realvsimag_ntuple.addColumn (self._label_r,image_r)
+      print 'added real column'
+
+    if self._realvsimag_ntuple.isValidLabel(self._label_i):
+      self._realvsimag_ntuple.replaceColumn (self._label_i,image_i)
+    else:
+      self._realvsimag_ntuple.addColumn (self._label_i,image_i)
+      print 'added imag column'
+
+# create / update plot title
+    if self._plot_exists == False:
+        string_color = self._attrib_parms.get('color', 'blue')
+        self._data_color = setColorStyle(string_color)
+        if self._plot_title is None:
+          self._plot_title = self._plot_type +':'
+        self._plot_title = self._plot_title + ' ' + self._attrib_parms.get('label','')
+        self._plot_title = self._plot_title + ' ' + string_color
+
+# obtain / calculate parameters for circles
+    if self._plot_type == 'realvsimag':
+      sum_r = self._realvsimag_ntuple.sum(self._label_r)
+      sum_i = self._realvsimag_ntuple.sum(self._label_i)
+      rows = self._realvsimag_ntuple.rows()
+      avg_r = sum_r / rows
+      avg_i = sum_i / rows
+      self.compute_circles(item_label, avg_r, avg_i)
+
+# here we create a display if one previously doesn't exist
+    if self._data_plot == None:
+      tuple_labels = [self._label_r, self._label_i]
+      print "creating a new display"
+      self._data_plot = self._display_controller.createDisplay ('XY Plot',self._realvsimag_ntuple, tuple_labels )
+      if self._plot_title is None:
+        self._plot_title = 'This is the title!'
+      self._data_plot.setTitle(self._plot_title)
+      self._data_plot.setLabel('x', 'real')
+      self._data_plot.setLabel('y', 'imaginary')
+      index = self._display_controller.activeDataRepIndex(self._data_plot)
+      data_rep0 = self._data_plot.getDataRep(index)
+      data_rep0.setRepColor(self._data_color)
+# we should be able to do the following but things seem to be ignored!!
+      data_rep0.setRepStyle(4)
+      data_rep0.setRepSize(5)
+
+# add circles if they have been computed
+      if (self._radius_ntuple != None):
+        label_xx_yy = [item_label+'_xx_circle', item_label +'_yy_circle']
+        data_rep = self._display_controller.addDataRep(self._data_plot, 'Strip Chart', self._radius_ntuple, label_xx_yy)
+        data_rep.setRepColor(self._data_color)
+        line_style = setLineStyle("dashdot")
+        data_rep.setRepStyle(line_style)
+
+        label_xx_yy = [item_label+'_xx_line', item_label +'_yy_line']
+        data_rep = self._display_controller.addDataRep(self._data_plot, 'Strip Chart', self._line_ntuple, label_xx_yy)
+        data_rep.setRepColor(self._data_color)
+        line_style = setLineStyle("solid")
+        data_rep.setRepStyle(line_style)
+      if self._canvas == None:
+        self._canvas = self._window_controller.currentCanvas()
+      self._canvas.addDisplay (self._data_plot)
+
+# here we add a new data rep to an existing plot
+    if self._plot_exists == False:
+# update title
+      self._data_plot.setTitle(self._plot_title)
+      tuple_labels = [self._label_r, self._label_i]
+# add the new data rep
+      data_rep = self._display_controller.addDataRep(self._data_plot, 'XY Plot', self._realvsimag_ntuple, tuple_labels)
+      data_rep.setRepColor(self._data_color)
+# add circles for new data rep
+      if (self._radius_ntuple != None):
+        label_xx_yy = [item_label+'_xx_circle', item_label +'_yy_circle']
+        data_rep = self._display_controller.addDataRep(self._data_plot, 'Strip Chart', self._radius_ntuple, label_xx_yy)
+        data_rep.setRepColor(self._data_color)
+        line_style = setLineStyle("dashdot")
+        data_rep.setRepStyle(line_style)
+
+        label_xx_yy = [item_label+'_xx_line', item_label +'_yy_line']
+        data_rep = self._display_controller.addDataRep(self._data_plot, 'Strip Chart', self._line_ntuple, label_xx_yy)
+        data_rep.setRepColor(self._data_color)
+        line_style = setLineStyle("solid")
+        data_rep.setRepStyle(line_style)
+
+  def spectrum_plot (self, data_label, plot_array):
+    """ figure out shape, rank etc of a spectrum array and
+        plot it with an appropriate HippoDraw plot type """
+# figure out type and rank of incoming array
+    is_vector = False;
+    array_dim = len(plot_array.shape)
+    array_rank = plot_array.rank
+    if array_rank == 1:
+      is_vector = True;
+    n_rows = plot_array.shape[0]
+    if n_rows == 1:
+      is_vector = True
+    n_cols = 1
+    if array_rank == 2:
+      n_cols = plot_array.shape[1]
+      if n_cols == 1:
+        is_vector = True
+
+# test if we have a 2-D array
+    if is_vector == False:
+# display an image 
+      if self._image_ntuple == None:
+        self._image_ntuple = self._ntuple_controller.createNTuple()
+        self._image_ntuple.setTitle ("Spectral Data")
+      image_size = n_rows * n_cols
+      image = []
+      for j in range(0, n_rows ) :
+        for i in range(0, n_cols) :
+          image.append(plot_array[j][i])
+      if self._image_ntuple.isValidLabel(data_label):
+        self._image_ntuple.replaceColumn (data_label,image)
+      else:
+# add columns for new image data
+        self._image_ntuple.addColumn (data_label,image)
+# do image plot
+        image_plot = self._display_controller.createDisplay( 'Z Plot', self._image_ntuple,[data_label,])
+        image_plot.setLabel ( 'x', 'channels' )
+        image_plot.setLabel ( 'y', 'time sequence' )
+        image_plot.setNumberOfBins ( 'x', n_rows )
+        image_plot.setNumberOfBins ( 'y', n_cols )
+        if self._canvas == None:
+          self._canvas = self._window_controller.currentCanvas()
+        self._canvas.addDisplay ( image_plot ) 
+                                                                                
+    if is_vector == True:
+      if self._simple_ntuple == None:
+# do X-Y plot
+        self._simple_ntuple = self._ntuple_controller.createNTuple()
+        self._simple_ntuple.setTitle ( "Spectral Data" )
+# add stuff for channels
+        image = []
+        if n_cols > 1:
+          for j in range(0, n_cols ) :
+            image.append(j)
+        if n_rows > 1:
+          for j in range(0, n_rows ) :
+            image.append(j)
+        if n_cols == 1 & n_rows == 1:
+            image.append(0)
+        self._simple_ntuple.addColumn ("channel", image)
+
+# add actual data
+      image = []
+      if n_rows > 1:
+        for j in range(0, n_rows) :
+         if array_rank == 2:
+           image.append(plot_array[j][0])
+         else:
+           image.append(plot_array[j])
+      if n_cols > 1:
+        for j in range(0, n_cols) :
+         if array_rank == 2:
+           image.append(plot_array[0][j])
+         else:
+           image.append(plot_array[j])
+      if n_cols == 1 & n_rows == 1:
+        for j in range(0, n_cols) :
+         if array_rank == 2:
+           image.append(plot_array[0][j])
+         else:
+           image.append(plot_array[j])
+      if self._simple_ntuple.isValidLabel(data_label):
+        self._simple_ntuple.replaceColumn (data_label,image)
+      else:
+# add columns for new image data
+        self._simple_ntuple.addColumn (data_label,image)
+# Now create a new plot for this data label
+        plot = self._display_controller.createDisplay ( 'XY Plot', self._simple_ntuple, ["channel",data_label] )
+        if self._canvas == None:
+          self._canvas = self._window_controller.currentCanvas()
+        self._canvas.addDisplay ( plot )
+
+  def plot_data(self, item_label, visu_record):
+    """ process incoming data and attributes into the
+        appropriate type of plot """
+
+# first find out what kind of plot we are making
+    if visu_record.has_key('attrib'):
+      self._attrib_parms = visu_record['attrib']
+      self._plot_type = self._attrib_parms.get('plot_type',self._plot_type)
+
+    if visu_record.has_key('value'):
+      self._data_values = visu_record['value']
+
+# extract and define the tuple labels for this data item
+    self._label_r = item_label + "_r"
+    self._label_i = item_label + "_i"
+
+# now generate  particular plot type
+    if  self._plot_type == 'realvsimag':
+      self.real_vs_imag_plot(item_label)
+
+# if request is for spectra iterate through each data set
+# and display the spectra
+    if  self._plot_type == 'spectra':
+      plot_label = self._attrib_parms.get('label','')
+      num_plot_arrays = len(self._data_values)
+      for i in range(0, num_plot_arrays):
+        complex_type = False;
+        if self._data_values[i].type() == Complex64:   
+          complex_type = True;
+        if complex_type:
+          real_array =  self._data_values[i].getreal()
+          self._data_type = " real"
+          data_label = plot_label + "_" + str(i) +  "_" + self._data_type
+          self.spectrum_plot(data_label, real_array)
+          imag_array =  self._data_values[i].getimag()
+          self._data_type = " imag"
+          data_label = plot_label +  "_" +str(i) +  "_" +self._data_type
+          self.spectrum_plot(data_label, imag_array)
+        else:
+          self._data_type = " real"
+          data_label = plot_label +  "_" +str(i) +  "_" +self._data_type
+          self.spectrum_plot(data_label, self._data_values[i])
+
 class ResultPlotter(BrowserPlugin):
+  """ a class to visualize data, VellSets or visu data, that is 
+      contained within a node's cache_result record. Objects of 
+      this class are launched from the meqbrowser GUI """
+
   _icon = pixmaps.bars3d
   viewer_name = "Result Plotter";
   def is_viewable (data):
@@ -90,7 +435,10 @@ class ResultPlotter(BrowserPlugin):
   is_viewable = staticmethod(is_viewable);
 
   def __init__(self,parent,dataitem=None,default_open=None,**opts):
-#    print "in RecordPlotter constructor"
+    """ Instantiate HippoDraw objects that are used to control
+        various aspects of plotting
+    """
+
     self._rec = None;
     self._ntuple_controller = NTupleController.instance()
     self._window_controller = WindowController.instance()
@@ -101,23 +449,25 @@ class ResultPlotter(BrowserPlugin):
 
 # used for 'standalone display'
     self._window = CanvasWindow(None, "MeqDisplay",0)
+# this QLabel is needed so that Oleg's browser is
+# happy that a child is present
     self._Qlabel = QLabel("",parent);
 
 # have Hippo window close without asking permission to discard etc
     self._window.setAllowClose()
+
     self._window.show()
     self._display_controller = DisplayController.instance()
     self._canvas = None
     self._image_ntuple = None
     self._simple_ntuple = None
-    self._data_ntuple = None
-    self._circles_computed = False
+    self._realvsimag_ntuple = None
+    self._plotter_dict = {}
 
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
 
   def __del__(self):
-#    print "in destructor"
     self._window_controller.closeAllWindows()
                                                                                            
   def wtop (self):
@@ -127,130 +477,33 @@ class ResultPlotter(BrowserPlugin):
 # used for 'standalone display'
     return self._Qlabel
 
-# compute points for two circles
-  def compute_circles (self):
-    self._radius_ntuple = None
-    self._xy_plot = None
-    x_pos = []
-    y_pos = []
-    x1_pos = []
-    y1_pos = []
-    angle = -5.0
-    for j in range(0, 73 ) :
-       angle = angle + 5.0
-       x = 10.0 * cos(angle/57.2957795)
-       y = 10.0 * sin(angle/57.2957795)
-       x1 = 12.0 * cos(angle/57.2957795)
-       y1 = 12.0 * sin(angle/57.2957795)
-       x_pos.append(x)
-       y_pos.append(y)
-       x1_pos.append(x1)
-       y1_pos.append(y1)
-    if self._radius_ntuple == None:
-       self._radius_ntuple = self._ntuple_controller.createNTuple()
-       self._radius_ntuple.setTitle ("circle data")
+  def display_visu_data (self):
+    """ extract group_label key from incoming visu data record and
+      create a visu_plotter object to plot the data 
+    """
 
-    label = 'xx_0'
-    self._radius_ntuple.addColumn (label,x_pos)
-    label = 'yy_0'
-    self._radius_ntuple.addColumn (label,y_pos)
-    label = 'xx_1'
-    self._radius_ntuple.addColumn (label,x1_pos)
-    label = 'yy_1'
-    self._radius_ntuple.addColumn (label,y1_pos)
+# get group label from incoming record
+# we have one group label key so get first group key
+    group_label_keys = self._rec.visu.keys()
+    for j in range(0, len(group_label_keys)):
+      group_label =  group_label_keys[j]
+      if self._plotter_dict.has_key(group_label) == False:
+#create a new visu plotter
+        visual_plotter = visu_plotter(self._ntuple_controller,self._display_controller,self._window_controller, self._canvas) 
+#add the new plotter to a 'dict' of visualization plotters
+        self._plotter_dict[group_label] = visual_plotter
 
-    self._circles_computed = True
-
-  def display_solution_data (self):
-     if self._data_ntuple == None:
-       self._data_ntuple = self._ntuple_controller.createNTuple()
-       self._data_ntuple.setTitle ("WSRT Meq Solution")
-       labels = ['xx_r','xx_i','xy_r','xy_i','yx_r','yx_i','yy_r','yy_i']
-       self._data_ntuple.setLabels(labels)
-
-# xx - extract real component
-     if self._data_xx != None:
-       complex_type = False
-       label_r = 'xx_r'
-       label_i = 'xx_i'
-       num_plot_arrays = len(self._data_xx)
-#       print "num_plot_arrays ", num_plot_arrays
-       if self._data_xx[0].type() == Complex64:
-         complex_type = True
-       xx_r = None
-       xx_i = None
-       if complex_type:
-         xx_r = self._data_xx.getreal()
-         xx_i = self._data_xx.getimage()
-       else:
-         xx_r = self._data_xx
-#         print "xx_r ", xx_r
-#         print "rank xx_r[0]", xx_r[0].rank 
-#         print "xx_r[0] contains ", xx_r[0]
-       image_r = []
-       image_i = []
-       for i in range(0, num_plot_arrays):
-          array_dim = len(xx_r[i].shape)
-          num_elements = 1
-          for j in range(0, array_dim):
-            num_elements = num_elements * xx_r[i].shape[j]
-          flattened_array_r = numarray.reshape(xx_r[i],(num_elements,))
-          for j in range(0, num_elements): 
-            image_r.append(flattened_array_r[j])
-          if xx_i != None:
-            flattened_array_i = numarray.reshape(xx_i[i],(num_elements,))
-            for j in range(0, num_elements): 
-              image_i.append(flattened_array_i[j])
-          else:
-            for j in range(0, num_elements): 
-              image_i.append(0.0)
-#       print "image_r ", image_r
-#       print "image_i ", image_i
-       if self._data_ntuple.isValidLabel(label_r):
-         self._data_ntuple.replaceColumn (label_r,image_r)
-       else:
-         self._data_ntuple.addColumn (label_r,image_r)
-
-       if self._data_ntuple.isValidLabel(label_i):
-         self._data_ntuple.replaceColumn (label_i,image_i)
-       else:
-         self._data_ntuple.addColumn (label_i,image_i)
-
-     if self._xy_plot == None:
-       label_xy = ['xx_r','xx_i']
-       self._xy_plot = self._display_controller.createDisplay ('XY Plot',self._data_ntuple, label_xy )
-       index = self._display_controller.activeDataRepIndex(self._xy_plot)
-       data_rep0 = self._xy_plot.getDataRep(index)
-       data_rep0.setRepColor(self._data_color)
-#       data_rep0.setRepSize(5.0)
-       print "created xx_r xx_i plot"
-
-       label_xx_yy = ['xx_0','yy_0']
-       data_rep = self._display_controller.addDataRep(self._xy_plot, 'Strip Chart', self._radius_ntuple, label_xx_yy)
-       plot_color = setColorStyle("red")
-       data_rep.setRepColor(plot_color)
-       line_style = setLineStyle("dashdot")
-       data_rep.setRepStyle(line_style)
-       print "created xx_0 yy_0 plot"
-
-       label_xx_yy = ['xx_1','yy_1']
-       data_rep = self._display_controller.addDataRep(self._xy_plot, 'Strip Chart', self._radius_ntuple, label_xx_yy)
-       plot_color = setColorStyle("blue")
-       data_rep.setRepColor(plot_color)
-       line_style = setLineStyle("dashdot")
-       data_rep.setRepStyle(line_style)
-       print "created xx_1 yy_1 plot"
-
-       if self._canvas == None:
-         self._canvas = self._window_controller.currentCanvas()
-       self._xy_plot.setTitle('xy = blue, yx = red')
-       self._xy_plot.setLabel('x', 'real');
-       self._xy_plot.setLabel('y', 'imaginary');
-       self._canvas.addDisplay (self._xy_plot)
-       print "created display"
-
+# get item labels keys - can be 1 or more
+      item_label_keys = self._rec.visu[group_label].keys()
+      for i in range(0, len(item_label_keys)):
+        item_label =  item_label_keys[i]
+#insert the data into the plotter
+        self._plotter_dict[group_label].plot_data(item_label,self._rec.visu[group_label][item_label])
 
   def display_vells_data (self, plot_array):
+    """ extract parameters and data from an array that is
+        part of a VellSet and plot the array """ 
+
 # figure out type and rank of incoming array
     array_dim = len(plot_array.shape)
     array_rank = plot_array.rank
@@ -270,8 +523,6 @@ class ResultPlotter(BrowserPlugin):
         else:
           is_vector = True
     self._add_time_freq = False;
-#    print "n_rows n_cols is_vector ", n_rows, " ",  n_cols, " ", is_vector
-#    print "is_one_point_image ", is_one_point_image
 
     if is_vector == False:
 # first display an image 
@@ -308,7 +559,7 @@ class ResultPlotter(BrowserPlugin):
                 current_freq = start_freq + j * x_step
               image.append(current_freq)
           self._image_ntuple.addColumn (xyz_x_label, image)
-#          print "result_plotter added freq column"
+
 # now add time column
         if self._add_time_freq:
           xyz_y_label = "time"
@@ -325,12 +576,10 @@ class ResultPlotter(BrowserPlugin):
               image.append(current_time)
           self._image_ntuple.addColumn (xyz_y_label, image)
           self._add_time_freq = False
-#          print "result_plotter added time column"
 
 # do image plot
         if is_one_point_image == False:
           image_plot = self._display_controller.createDisplay( 'Z Plot', self._image_ntuple,[self._label,])
-#        print "created image_plot object"
           freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
           time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
           y_step = time_range / n_cols
@@ -341,27 +590,16 @@ class ResultPlotter(BrowserPlugin):
           image_plot.setBinWidth ( 'y', y_step )
           image_plot.setRange ( 'x', start_freq, start_freq + n_rows * x_step)
           image_plot.setRange ( 'y', start_time, start_time + n_cols * y_step)
- #        print "called image_plot.setRange stuff"
           real_array = self._label.find("real")
-#        if real_array>=0:
-#          image_plot.setRange ( 'z', self._z_real_min, self._z_real_max)
-#        else:
-#          image_plot.setRange ( 'z', self._z_imag_min, self._z_imag_max)
           image_plot.setOffset ( 'x', start_freq )
           image_plot.setOffset ( 'y', start_time )
-#        print "called image_plot.setOffset stuff"
-#        image_plot.setLabel ( 'x', 'Time' )
-#        image_plot.setLabel ( 'y', 'Freq' )
           image_plot.setLabel ( 'x', 'Freq' )
           image_plot.setLabel ( 'y', 'Time' )
           image_plot.setNumberOfBins ( 'x', n_rows )
           image_plot.setNumberOfBins ( 'y', n_cols )
-#        print "called image_plot.setNumberOfBins stuff"
           if self._canvas == None:
             self._canvas = self._window_controller.currentCanvas()
-#          print "created self._canvas object"
           self._canvas.addDisplay ( image_plot ) 
-#        print "result_plotter passed addDisplay ( image_plot )"
 
 # now do an XYZ plot 
         bindings = ["freq", "time",  self._label ]
@@ -419,93 +657,28 @@ class ResultPlotter(BrowserPlugin):
         self._canvas.addDisplay ( plot )
 
   def set_data (self,dataitem,default_open=None,**opts):
+    """ this callback receives data from the meqbrowser, when the
+        user has requested a plot. It decides whether the data is
+        from a VellSet or visu data record, and  after any
+        necessary preprocssing forwards the data to one of
+        the functions which does the actual plotting """
+
     self._rec = dataitem.data;
-#    try: print self._rec.a;
-#    except: print 'No such field rec.a';
-#    print "cache result contains ", self._rec.cache_result
-#    if self._rec.has_key('cache_result'):
-#      print "cache result contains cells ", self._rec.cache_result.cells
-#      print "cache result contains cell segments ", self._rec.cache_result.cells.segments
-#    print self._rec.field_names();
-#    for f in self._rec.field_names():
-#        print "field name: ", f
-#        print "has sub fields ", self._rec[f].field_names()
-#        if isinstance(self._rec[f],(array_class,)):
-#           print "this is an array: ", self._rec[f];
-#        if isinstance(self._rec[f],(dict,)):
-#           print "this is a dict: ", self._rec[f];
-#           print " "
-#           print "the dict has sequential contents"
-#           for value in self._rec[f].keys():
-#             print value, '\t',self._rec[f][value]
-#           print "   "
-#	   if self._rec[f].has_key('cells'):
-#             print 'now printing out contents for cells key'
-#             print '  ', self._rec[f]['cells']
-#	     sub_rec = self._rec[f]['cells']
-#             if isinstance(sub_rec,(dict,)):
-#               print ' '
-#               print 'printing out dict cells contents sequentially'
-#               for val in sub_rec.keys():
-#                 print '     ' , val, '\t',sub_rec[val]
-#	   if self._rec[f].has_key('vellsets'):
-#             print 'now printing out contents for vellsets key'
-#             print '  ', self._rec[f]['vellsets']
-#	     sub_rec = self._rec[f]['vellsets']
-#             if isinstance(sub_rec,(tuple,)):
-#               print "vellsets is a tuple: ", sub_rec;
-#               for x in sub_rec:
-#                   print 'velset component ', x
-#                   if isinstance(x,(dict,)):
-#                       print ' '
-#                       print 'printing out vellsets cells contents sequentially'
-#                       for y in x.keys():
-#                             print '     ' , y, '\t',x[y]
-#        if isinstance(self._rec[f],(tuple,)):
-#           print "this is a tuple: ", self._rec[f];
-#        if isinstance(self._rec[f],(list,)):
-#           print "this is a list: ", self._rec[f];
-#    self._dummy = self._rec.a
-
-#    print self._rec.field_names();
-
-#    for fld in self._rec.field_names():
-# handle "cells" field first as they define frequency range etc
-#      if fld == "cells":
-#        print "self._rec.cells.cell_size.freq", self._rec.cells.cell_size.freq
-#        print "self._rec.cells.cell_size.time", self._rec.cells.cell_size.time
-#        print "self._rec.cells.domain.freq", self._rec.cells.domain.freq
-#        print "self._rec.cells.domain.start freq", self._rec.cells.domain.freq[0]
-#        print "self._rec.cells.domain.end freq", self._rec.cells.domain.freq[1]
-#        print "self._rec.cells.domain.time", self._rec.cells.domain.time
-#        print "self._rec.cells.domain.start time", self._rec.cells.domain.time[0]
-#        print "self._rec.cells.domain.end time", self._rec.cells.domain.time[1]
-
-# process the data record
 
 # are we dealing with Vellsets?
     if self._rec.has_key("vellsets"):
-#      if fld == "vellsets":
-# vellsets appear to be stored in a 'tuple' format
-# first get number of vellsets in the tuple
-#        print "vellsets tuple length ", len(self._rec.vellsets)
-
 # how many VellSet planes (e.g. I, Q, U, V would each be a plane) are there?
         number_of_planes = len(self._rec["vellsets"])
-#        print "number of VellSet planes ", number_of_planes
         for i in range(number_of_planes):
 # get the shape tuple - useful if the Vells have been compressed down to
 # a constant
           self._shape = self._rec.vellsets[i]["shape"]
-#          print "shape is ", self._shape
-#          print "vellset has fields ", i," ", self._rec.vellsets[i].field_names()
           fields = self._rec.vellsets[i].field_names()
 #          print "vellset fields ", fields
 # first get the 'value' field
           for f in self._rec.vellsets[i].field_names():
 # handle "value" first
             if f == "value":
-#              print "velset value for vellset ", i, " ", self._rec.vellsets[i].value
                complex_type = False;
                if self._rec.vellsets[i].value.type() == Complex32:
                  complex_type = True;
@@ -515,13 +688,11 @@ class ResultPlotter(BrowserPlugin):
                self._value_array = self._rec.vellsets[i].value
                if complex_type:
 #extract real component
-#                 print "self._value_array ", self._value_array
                  self._value_real_array = self._rec.vellsets[i].value.getreal()
                  self._data_type = " real"
                  self._label = f + self._data_type 
                  self._z_real_min = self._value_real_array.min()
                  self._z_real_max = self._value_real_array.max()
-#                 print "value real max and min ", self._z_real_max, " ",self._z_real_min
                  self.display_vells_data(self._value_real_array)
 #extract imaginary component
                  self._value_imag_array = self._rec.vellsets[i].value.getimag()
@@ -531,7 +702,7 @@ class ResultPlotter(BrowserPlugin):
                  self._z_imag_max = self._value_imag_array.max()
                  self.display_vells_data(self._value_imag_array)
                else:
-#                 print "self._value_array ", self._value_array
+#we have a real array
                  self._data_type = " real"
                  self._label = f + self._data_type 
                  self._z_real_min = self._value_array.min()
@@ -569,32 +740,9 @@ class ResultPlotter(BrowserPlugin):
                   self._label = f + " " + str(j) + self._data_type 
                   self.display_vells_data(perturbed_array_diff)
     
-# otherwise we are dealing with a set of solutions data
-    else:
-      if self._circles_computed == False:
-        self.compute_circles()
-#      print "keys are ", self._rec.keys()
-#      print self._rec.top.xx.value
-#      print "xx keys are ", self._rec.top.xx.keys()
-      default_color = "red"
-      color = None
-      if self._rec.top.xx.has_key('attrib'):
-        attrib = self._rec.top.xx['attrib']
-        print 'contents of attrib ', attrib
-        string_color = attrib.get('color', default_color) 
-        self._data_color = setColorStyle(string_color)
-	
-#      print len(self._rec.top.xx.value)
-#      print self._rec.top.xx.value[0]
-#      print self._rec.top.xx.value[1]
-#      print self._rec.field_names();
-        
-      self._data_xx = None
-      self._data_yx = None
-      self._data_xy = None
-      self._data_yy = None
-      self._data_xx =  self._rec.top.xx.value
-# now do plotting
-      self.display_solution_data()
+# otherwise we are dealing with a set of visualization data
+    if self._rec.has_key("visu"):
+# do plotting of visualization data
+      self.display_visu_data()
 
 gridded_workspace.registerViewer(dict,ResultPlotter,dmitype='meqresult',priority=-10)
