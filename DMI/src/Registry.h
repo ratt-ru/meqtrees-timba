@@ -239,10 +239,10 @@ const Val & UniRegistry<Key,Val,HostClass>::find (const Key& key)
   lockMutex;
   if( !MapPtr )
     return default_value;
-  
   typename Map::const_iterator iter = MapPtr->find(key);
-  
-  return iter == MapPtr->end() ? default_value : iter->second;
+  if( iter == MapPtr->end() )
+    return default_value;
+  return iter->second;
 }
 
 // Parameterized Class BiRegistry 
@@ -297,10 +297,11 @@ const Key & BiRegistry<Key,Val,HostClass>::rfind (const Val& val)
   lockMutex;
   if( !RevMapPtr )
     return default_key;
-  
   riter = RevMapPtr->find(val);
-  
-  return ( riter == RevMapPtr->end() ) ? default_key : riter->second;
+  if( riter == RevMapPtr->end() )
+    return default_key;
+  else
+    return riter->second;
 }
 
 //##ModelId=3C5E8DA00097

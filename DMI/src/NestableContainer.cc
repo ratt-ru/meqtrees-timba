@@ -33,6 +33,22 @@ int NestableContainer::Hook::_dum_int;
 //##ModelId=4017F623014A
 NestableContainer::ContentInfo NestableContainer::Hook::_dum_info;
 
+// common init code for constructors
+void NestableContainer::Hook::initialize (const NestableContainer *pnc,const HIID &id1,bool nonconst)
+{
+  nc = const_cast<NestableContainer *>(pnc);
+  nclock0.relock(nc->mutex());
+  nc_writable = nonconst;
+  pid = 0;  // pid==0 implies initializing 
+  ncptr0 = nc_writable ? nc : 0; 
+  addressed = replacing = False;
+  target.ptr = 0;
+  // initialize via operator []. We don't initialize directly because
+  // id may contain multiple subscripts (separated by slashes); hence let
+  // operator [] comlete the initialization
+  operator [] (id1);
+}
+
 //##ModelId=3C8739B50167
 const NestableContainer::Hook & NestableContainer::Hook::operator [] (const HIID &id1) const
 {

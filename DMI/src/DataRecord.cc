@@ -271,7 +271,11 @@ void DataRecord::privatize (int flags, int depth)
   if( flags&DMI::DEEP || depth>0 )
   {
     for( FMI iter = fields.begin(); iter != fields.end(); iter++ )
+    {
+      const HIID &id = iter->first;
+      dprintf(4)("  privatizing field %s\n",id.toString().c_str());
       iter->second.privatize(flags|DMI::LOCK,depth-1);
+    }
     // since things may have changed around, revalidate content
     validateContent();
   }

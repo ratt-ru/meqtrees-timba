@@ -782,22 +782,6 @@ class NestableContainer : public BlockableObject
       Thread::Mutex mutex_;
 };
 
-// common init code for constructors
-inline void NestableContainer::Hook::initialize (const NestableContainer *pnc,const HIID &id1,bool nonconst)
-{
-  nc = const_cast<NestableContainer *>(pnc);
-  nclock0.relock(nc->crefMutex());
-  nc_writable = nonconst;
-  pid = 0;  // pid==0 implies initializing 
-  ncptr0 = nc_writable ? nc : 0; 
-  addressed = replacing = False;
-  target.ptr = 0;
-  // initialize via operator []. We don't initialize directly because
-  // id may contain multiple subscripts (separated by slashes); hence let
-  // operator [] comlete the initialization
-  operator [] (id1);
-}
-
 // construct from container [HIID]
 // The ncwrite argument is True if the container is non-const
 //##ModelId=3C8739B50153
@@ -841,7 +825,7 @@ inline NestableContainer::Hook::Hook (const CountedRef<T> &ref,const HIID &id1)
   : nc(const_cast<NestableContainer *>(ref.ref_cast(Type2Type<NestableContainer>()).deref_p())),
     link0(*nc,HIID()),
     ncref0(0)
-{ 
+{
   initialize(nc,id1,False);
 }
 
