@@ -114,6 +114,7 @@ void * MTGatewayWP::readerThread ()
           // on read error, just commit harakiri. GWClient/ServerWP will
           // take care of reopening a connection, eventually
           lprintf(1,AidLogError,"error on socket read(): %s. Aborting.\n",sock->errstr().c_str());
+          reader_lock.release();
           shutdown();
           return 0; 
         }

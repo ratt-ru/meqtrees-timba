@@ -553,8 +553,8 @@ void MTGatewayWP::stopWorkers ()
   for( int i=0; i < NumReaderThreads; i++ )
     if( reader_threads[i] != Thread::self() )
     {
+//      reader_threads[i].cancel();
       reader_threads[i].kill(SIGPIPE);
-      reader_threads[i].cancel();
     }
   for( int i=0; i < NumReaderThreads; i++ )
     if( reader_threads[i] != Thread::self() )
@@ -565,8 +565,8 @@ void MTGatewayWP::stopWorkers ()
   for( int i=0; i < numWorkers(); i++ )
     if( workerID(i) != Thread::self() )
     {
-      workerID(i).kill(SIGPIPE);
       workerID(i).cancel();
+      workerID(i).kill(SIGPIPE);
     }
 }
 
