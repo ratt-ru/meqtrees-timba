@@ -51,7 +51,8 @@ if [ -r lofarconf.in ]; then
     cd $subdir > /dev/null   # suppress possible cd output
     if [ ! -r bootstrap ]; then
       # Add an extra ../ to the autoconf_share paths.
-      sed ../bootstrap -e s%\.\./auto%\.\./\.\./auto%g > bootstrap
+      lfr_back=`echo $subdir | sed -e "s%/[^/]\+%/..%g" -e "s%^[^/]\+%..%"`
+      sed $lfr_back/bootstrap -e s%autoconf%$lfr_back/autoconf%g > bootstrap
       chmod +x bootstrap
     fi
     ./bootstrap || exit 2
