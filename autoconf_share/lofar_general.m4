@@ -113,6 +113,7 @@ AC_DEFINE(LOFAR_DEBUG,dnl
     fi
   fi
 
+  # KAI CC uses other optimization flags.
   with_optimizecxx="$with_optimize";
   if test "$with_optimize" = "yes"; then
     with_optimize="-O3"
@@ -121,6 +122,11 @@ AC_DEFINE(LOFAR_DEBUG,dnl
     else
       with_optimizecxx="-O3"
     fi
+  fi
+
+  # Intel CC does not include /usr/local/include, while GCC does.
+  if test "$lofar_compiler" = "icc"; then
+    lfr_cppflags="$lfr_cppflags -I/usr/local/include"
   fi
 
   if test "$with_optimize" != "no"; then
