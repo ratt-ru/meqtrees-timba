@@ -1,4 +1,4 @@
-//# tMeqVells.cc: Test program for MEQ::Vells classes
+//# tMeqVells.cc: Test program for Meq::Vells classes
 //# Copyright (C) 2002
 //# Associated Universities, Inc. Washington DC, USA.
 //#
@@ -36,7 +36,7 @@
 #include <aips/iostream.h>
 #include <aips/strstream.h>
 
-using namespace MEQ;
+using namespace Meq;
 
 
 void showDouble (const VellsTmp& v)

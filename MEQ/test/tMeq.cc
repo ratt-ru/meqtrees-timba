@@ -1,4 +1,4 @@
-//# tMeq.cc: test program for the MEQ classes
+//# tMeq.cc: test program for the Meq classes
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -27,11 +27,11 @@
 #include <MEQ/Function.h>
 #include <MEQ/Request.h>
 #include <MEQ/Result.h>
-#include <MEQ/TID-MEQ.h>
+#include <MEQ/TID-Meq.h>
 #include <DMI/DataArray.h>
 #include <exception>
 
-using namespace MEQ;
+using namespace Meq;
 
 int main (int argc,const char* argv[])
 {
@@ -48,7 +48,7 @@ int main (int argc,const char* argv[])
 
     cout << "============ creating parm1 node ==================\n";
     DataRecord::Ref rec_child1(DMI::ANONWR);
-    rec_child1()["Class"] = "MEQParmPolcStored";
+    rec_child1()["Class"] = "MeqParmPolcStored";
     rec_child1()["Name"] = "p1";
     //    rec_child1()["Tablename"] = "meqadd.MEP";
     rec_child1()["Default"] = defVal1;
@@ -57,7 +57,7 @@ int main (int argc,const char* argv[])
     
     cout << "============ creating child2 node ==================\n";
     DataRecord::Ref rec_child2(DMI::ANONWR);
-    rec_child2()["Class"] = "MEQParmPolcStored";
+    rec_child2()["Class"] = "MeqParmPolcStored";
     rec_child2()["Name"] = "p2";
     //    rec_child2()["Tablename"] = "meqadd.MEP";
     rec_child2()["Default"] = defVal2;
@@ -66,7 +66,7 @@ int main (int argc,const char* argv[])
     
     cout << "============ creating cos node ===\n";
     DataRecord::Ref recc(DMI::ANONWR);
-    recc()["Class"] = "MEQCos";
+    recc()["Class"] = "MeqCos";
     recc()["Name"] = "cosp1";
     recc()["Children"] <<= new DataRecord;
       recc()["Children"]["A"] = "p1";
@@ -75,7 +75,7 @@ int main (int argc,const char* argv[])
 
     cout << "============ creating add node ===\n";
     DataRecord::Ref rec(DMI::ANONWR);
-    rec()["Class"] = "MEQAdd";
+    rec()["Class"] = "MeqAdd";
     rec()["Name"] = "add1_2";
     rec()["Children"] <<= new DataRecord;
       rec()["Children"]["A"] = "cosp1";
@@ -85,7 +85,7 @@ int main (int argc,const char* argv[])
     
     cout << "============ resolving children on add =========\n";
     chadd.resolveChildren();
-    vector<TypeId> types(2, TpMEQFunction);
+    vector<TypeId> types(2, TpMeqFunction);
     dynamic_cast<Function&>(chadd).testChildren (types);
 
     cout << "============ getting result =========\n";

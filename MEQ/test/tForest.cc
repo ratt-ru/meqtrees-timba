@@ -1,4 +1,4 @@
-//# tForest.cc: test program for MEQ::Forest and MEQ::Node class
+//# tForest.cc: test program for Meq::Forest and Meq::Node class
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -26,7 +26,7 @@
 #include <MEQ/Node.h>
 #include <exception>
 
-using namespace MEQ;
+using namespace Meq;
 
 int main (int argc,const char *argv[])
 {
@@ -38,7 +38,7 @@ int main (int argc,const char *argv[])
     Forest forest;
     cout << "============ creating child1 node ==================\n";
     DataRecord::Ref rec_child1(DMI::ANONWR);
-    rec_child1()["Class"] = "MEQNode";
+    rec_child1()["Class"] = "MeqNode";
     rec_child1()["Name"] = "child1";
     int index_child1;
     Node &child1 = forest.create(index_child1,rec_child1);
@@ -46,7 +46,7 @@ int main (int argc,const char *argv[])
     
     cout << "============ creating child2 node ==================\n";
     DataRecord::Ref rec_child2(DMI::ANONWR);
-    rec_child2()["Class"] = "MEQNode";
+    rec_child2()["Class"] = "MeqNode";
     rec_child2()["Name"] = "child2";
     int index_child2;
     Node &child2 = forest.create(index_child2,rec_child2);
@@ -54,16 +54,16 @@ int main (int argc,const char *argv[])
     
     cout << "============ creating parent1 node ===\n";
     DataRecord::Ref rec(DMI::ANONWR);
-    rec()["Class"] = "MEQNode";
+    rec()["Class"] = "MeqNode";
     rec()["Name"] = "parent1";
     rec()["Children"] <<= new DataRecord;
       rec()["Children"]["A"] = "child1"; 
       rec()["Children"]["B"] = index_child2; 
       rec()["Children"]["C"] <<= new DataRecord;
-        rec()["Children/C/Class"] = "MEQNode";
+        rec()["Children/C/Class"] = "MeqNode";
         rec()["Children/C/Name"] = "child3";
       rec()["Children"]["D"] <<= new DataRecord;
-        rec()["Children/D/Class"] = "MEQNode";
+        rec()["Children/D/Class"] = "MeqNode";
         rec()["Children/D/Name"] = "child4";
       rec()["Children"]["E"] = "child5";
     int index_parent1;
@@ -72,7 +72,7 @@ int main (int argc,const char *argv[])
     
     cout << "============ creating child5 node ==================\n";
     DataRecord::Ref rec_child5(DMI::ANONWR);
-    rec_child5()["Class"] = "MEQNode";
+    rec_child5()["Class"] = "MeqNode";
     rec_child5()["Name"] = "child5";
     int index_child5;
     Node &child5 = forest.create(index_child5,rec_child5);

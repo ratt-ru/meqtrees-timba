@@ -1,4 +1,4 @@
-//# tMeqPolc.cc: test program for class MEQ::Polc
+//# tMeqPolc.cc: test program for class Meq::Polc
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -27,7 +27,7 @@
 #include <MEQ/VellsTmp.h>
 #include <Common/Debug.h>
 
-using namespace MEQ;
+using namespace Meq;
 
 
 bool compare(const Vells& m1, const Vells& m2)
