@@ -115,7 +115,7 @@ int Condeq::getResult (Result::Ref &resref,
     // are collapsed into a single pert)
     VellSet &vellset = result.setNewVellSet(iplane,spids.size(),1);
     // The main value is measured-predicted.
-    vellset.setValue(*values[0] - *values[1]);
+    vellset.setValue(*values[1] - *values[0]);
     // Evaluate all perturbed values.
     vector<Vells*> perts(nrch);
     vector<int> indices(nrch, 0);
@@ -127,16 +127,16 @@ int Condeq::getResult (Result::Ref &resref,
       double pert = 0;
       if (inx1 >= 0) 
       {
-        pert = calcDerivative(deriv,*child_res[1],inx1);
+        pert = calcDerivative(deriv,*child_res[1],inx1,true);
         if (inx0 >= 0) 
         {
           Vells d1;
-          calcDerivative(d1,*child_res[0],inx0);
+          calcDerivative(d1,*child_res[0],inx0,true);
           deriv -= d1;
         }
       }
       else if (inx0 >= 0) 
-        pert = calcDerivative(deriv,*child_res[0],inx0,true);
+        pert = calcDerivative(deriv,*child_res[0],inx0);
       else 
         deriv = Vells(0.);
       vellset.setPerturbedValue(j,deriv);

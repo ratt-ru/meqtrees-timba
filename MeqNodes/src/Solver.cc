@@ -242,7 +242,7 @@ int Solver::getResult (Result::Ref &resref,
       AssertStr (itsSpids == spids,
                  "Different spids while solver is not restarted");
       if (step > 0) {
-        itsSolver.set (nspid, 1u, 0u);
+	//        itsSolver.set (nspid, 1u, 0u);
         itsNrEquations = 0;
       }
     }
@@ -385,9 +385,9 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   }
   // Make a copy of the solver for the actual solve.
   // This is needed because the solver does in-place transformations.
-  FitLSQ solver = itsSolver;
-  bool solFlag = solver.solveLoop (fit, rank, solution,
-                                   stddev, mu, itsCurUseSVD);
+  ////  FitLSQ solver = itsSolver;
+  bool solFlag = itsSolver.solveLoop (fit, rank, solution,
+				      stddev, mu, itsCurUseSVD);
   cdebug(4) << "Solution after:  " << solution << endl;
   // Put the statistics in a record the result.
   solRec[FRank] = int(rank);
