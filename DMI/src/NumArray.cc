@@ -21,6 +21,9 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.35  2005/01/17 12:47:34  cvs
+//  Moved with cvsmv from LOFAR/DMI/src, creating new revision
+//
 //  Revision 1.34  2005/01/07 07:56:28  diepen
 //  %[ER: 222]%
 //  Use AIPS++ casa namespace
