@@ -24,6 +24,7 @@ importPlugin('node_execute');
 importPlugin('array_browser');
 importPlugin('array_plotter');
 importPlugin('result_plotter');
+importPlugin('parmfiddler');
 
 #-------- update default debuglevels
 app_defaults.debuglevels.update({

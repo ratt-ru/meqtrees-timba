@@ -46,8 +46,8 @@ dist_plugin_SCRIPTS = \
   Plugins/ComplexColorMap.py   Plugins/__init__.py             Plugins/printfilter.py     \
   Plugins/ComplexDisplay.py    Plugins/array_plotter.py        Plugins/pyfits.py          \
   Plugins/ComplexScaleDraw.py  Plugins/display_image.py        Plugins/realvsimag.py      \
-  Plugins/ErrorBar.py          Plugins/hippo_array_plotter.py  Plugins/result_plotter.py
-  Plugins/UVPAxis.py           Plugins/node_execute.py
+  Plugins/ErrorBar.py          Plugins/hippo_array_plotter.py  Plugins/result_plotter.py \
+  Plugins/UVPAxis.py           Plugins/node_execute.py         Plugins/parmfiddler.py
   
 dist_grid_SCRIPTS = Grid/__init__.py \
   Grid/Services.py Grid/Workspace.py Grid/Page.py \
