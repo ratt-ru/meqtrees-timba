@@ -94,7 +94,8 @@ class Forest
     //##ModelId=3F60697A00D5
     NameMap name_map;
     
-    Request prev_request;
+    HIID last_req_id;
+    MEQ::Cells last_req_cells;
 };
 
 } // namespace MEQ

@@ -228,7 +228,7 @@ void Node::setState (const DataRecord &rec)
 
 void Node::setCurrentRequest (const Request &req)
 {
-  current_req_id_ = req.getId();
+  wstate()[AidRequest|AidId] = current_req_id_ = req.getId();
 }
 
 //##ModelId=3F6726C4039D
@@ -236,21 +236,40 @@ int Node::getResult (Result::Ref &ref, const Request &req)
 {
   // do we have a new request?
   bool newreq = req.getId() != currentRequestId();
-  setCurrentRequest(req);
-  // do we have a rider record?
-  if( newreq && req[AidRider].exists() )
+  if( newreq )
   {
-    const DataRecord &rider = req[AidRider];
-    processRequestRider(rider);
-    // process rider stuff common to all nodes (setState, etc.)
-    // ...
-    // none for now
+    // clear cache
+    wstate()[AidResult].remove(); 
+    res_cache_.detach();
+    // change to the current request
+    setCurrentRequest(req);
+    // do we have a rider record? process it
+    if( req[AidRider].exists() )
+    {
+      const DataRecord &rider = req[AidRider];
+      processRequestRider(rider);
+      // process rider stuff common to all nodes (setState, etc.)
+      // ...
+      // none for now
+    }
   }
-  // ...
-  // cache handling code ought to go here, but for now, let's simply
-  // call getResultImpl()
-  //
-  return getResultImpl(ref,req,newreq);
+  else // old request -- check the cache and return if it's valid
+  {
+    if( res_cache_.valid() )
+    {
+      ref.copy(res_cache_,DMI::PRESERVE_RW);
+      return 0;
+    }
+  }
+  // new request and/or no cache -- recompute the result
+  int flags = getResultImpl(ref,req,newreq);
+  //  cache result in the state record
+  if( flags != RES_FAIL && !(flags&RES_WAIT) )
+  {
+    res_cache_.copy(ref,DMI::PRESERVE_RW);
+    wstate()[AidResult] <<= static_cast<const DataRecord*>(ref.deref_p()); 
+  }
+  return flags;
 }
 
 // default version does nothing
@@ -294,7 +313,8 @@ string Node::sdebug (int detail, const string &prefix, const char *nm) const
   string out;
   if( detail >= 0 ) // basic detail
   {
-    appendf(out,"%s(%s)",nm?nm:"MEQ::Node",name().c_str());
+    string typestr = nm?nm:objectType().toString();
+    append(out,typestr + "(" + name() + ")");
   }
   if( detail >= 1 || detail == -1 )
   {

@@ -38,14 +38,11 @@ TypeId Function::objectType() const
 
 void Function::checkChildren()
 {
-  // Transform the Node* to Function* if not done yet.
   if (itsChildren.size() == 0) {
     int nch = numChildren();
     itsChildren.resize (nch);
     for (int i=0; i<nch; i++) {
-      itsChildren[i] = dynamic_cast<Function*>(&(getChild(i)));
-      AssertStr (itsChildren[i], "child " << i << " of function node "
-		 << name() << " is not a Meq::Function");
+      itsChildren[i] = &(getChild(i));
     }
   }
 }
@@ -62,7 +59,6 @@ bool Function::convertChildren (int nchild)
 
 bool Function::convertChildren (const vector<HIID>& childNames, int nchild)
 {
-  // Transform the Node* to Function* if not done yet.
   if (itsChildren.size() > 0) {
     return false;
   }
@@ -75,20 +71,14 @@ bool Function::convertChildren (const vector<HIID>& childNames, int nchild)
   int nhiid = childNames.size();
   // Di it in order of the HIIDs given.
   for (int i=0; i<nhiid; i++) {
-    itsChildren[i] = dynamic_cast<Function*>(&(getChild(childNames[i])));
-    AssertStr (itsChildren[i], "child " << childNames[i]
-	       << " of function node "
-	       << name() << " is not a Meq::Function");
+    itsChildren[i] = &(getChild(childNames[i]));
   }
   // It is possible that there are more children than HIIDs.
   // In that case the remaining children are appended at the end.
   if (nch > nhiid) {
     int inx = nhiid;
     for (int i=0; i<nch; i++) {
-      Function* ptr = dynamic_cast<Function*>(&(getChild(childNames[i])));
-      AssertStr (ptr, "child " << childNames[i]
-		 << " of function node "
-		 << name() << " is not a Meq::Function");
+      Node * ptr = &(getChild(childNames[i]));
       bool fnd = false;
       for (int j=0; j<nhiid; j++) {
 	if (ptr == itsChildren[j]) {
@@ -136,12 +126,9 @@ int Function::getResultImpl (Result::Ref &resref, const Request& request, bool)
   if (flag & Node::RES_WAIT) {
     return flag;
   }
-  // Create result object and attach to datarecord in the Node object.
-  Result* res = new Result();
-  resref <<= res;
-  wstate()[AidResult] <<= static_cast<DataRecord*>(res);
+  // Create result object and attach to the ref that was passed in
+  Result& result = resref <<= new Result();
   // Evaluate the main value.
-  Result& result = *res;
   Vells vells = evaluate (request, values);
   bool useVells;
   int nx,ny;

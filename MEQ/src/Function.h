@@ -90,7 +90,6 @@ public:
   virtual TypeId objectType() const;
 
   // Check the children after they have been resolved in class Node.
-  // It does a checked cast of Node* to Function*.
   // The order of the children is the order as given when the Node object
   // was created.
   virtual void checkChildren();
@@ -121,11 +120,11 @@ public:
   void testChildren (const vector<TypeId>& childTypes) const;
 
 protected:
-  vector<Function*>& children()
+  vector<Node*>& children()
     { return itsChildren; }
 
 private:
-  vector<Function*> itsChildren;
+  vector<Node*> itsChildren;
 };
 
 

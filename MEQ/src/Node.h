@@ -30,7 +30,7 @@
 #include <vector>
     
 #pragma aidgroup MEQ
-#pragma aid Node Class Name State Child Children Result Rider
+#pragma aid Node Class Name State Child Children Request Result Rider Id
 #pragma types #MEQ::Node
 
 namespace MEQ {
@@ -153,6 +153,7 @@ class Node : public BlockableObject
     Forest *forest_;
     
     HIID current_req_id_;
+    Result::Ref res_cache_;
     
     //##ModelId=3F8433C10295
     typedef std::map<HIID,int> ChildrenMap;
