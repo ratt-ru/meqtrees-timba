@@ -327,14 +327,28 @@ const void * NestableContainer::ConstHook::get_address(TypeId tid,bool must_writ
     target = nc;
     target_tid = nc->type();
   }
-  // If types don't match, then try to treat target as a container in scalar mode
+  // If types don't match, then 
+  // (b) else try to treat target as a container in scalar mode
   if( tid != target_tid )
   {
-    const NestableContainer *nc = asNestable(target,target_tid);
-    FailWhen(!nc,"can't convert "+target_tid.toString()+" to "+tid.toString()+"*");
-    int flags = (must_write?DMI::WRITE:0)|autoprivatize|
-                DMI::NC_SCALAR|(pointer?DMI::NC_POINTER:0);
-    return nc->get(HIID(),target_tid,write,tid,flags);
+    // (a) if target is an ObjRef, try to resolve to ref target
+    if( target_tid == TpObjRef )
+    {
+      FailWhen( !static_cast<const ObjRef*>(target)->valid(),
+                "can't convert "+target_tid.toString()+" to "+tid.toString()+"*");
+      write = static_cast<const ObjRef*>(target)->isWritable();
+      target = static_cast<const ObjRef*>(target)->deref_p();
+      target_tid = static_cast<const BlockableObject *>(target)->objectType();
+    }
+    // still no match? Try to treat target as a container in scalar mode
+    if( tid != target_tid )
+    {
+      const NestableContainer *nc = asNestable(target,target_tid);
+      FailWhen(!nc,"can't convert "+target_tid.toString()+" to "+tid.toString()+"*");
+      int flags = (must_write?DMI::WRITE:0)|autoprivatize|
+                  DMI::NC_SCALAR|(pointer?DMI::NC_POINTER:0);
+      return nc->get(HIID(),target_tid,write,tid,flags);
+    }
   }
   FailWhen(!write && must_write,"write access violation");
   return target;
