@@ -53,11 +53,12 @@ dnl
 lofar_DEBUG_OPTIMIZE
 lofar_CORBA
 dnl lofar_MATLAB
-lofar_AIPSPP
+lofar_AIPSPP(1)
 dnl lofar_MPI
 lofar_QATOOLS
 lofar_DOCXX
-dnl lofar_BASESIM
+lofar_PACKAGE(Common)
+lofar_PACKAGE(CEP/CPA/PSCF,2)
 
 dnl
 dnl Output Makefiles
