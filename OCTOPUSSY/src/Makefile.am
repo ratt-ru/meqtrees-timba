@@ -4,7 +4,7 @@ CXXFLAGS += -D_GNU_SOURCE
 
 lib_LTLIBRARIES = liboctopussy.la
 
-liboctopussy_la_SOURCES = Dispatcher.cc  Message.cc  MsgAddress.cc  \
+liboctopussy_la_SOURCES = Dispatcher.cc Octopussy.cc Message.cc  MsgAddress.cc \
 	WPInterface.cc WorkProcess.cc OctopussyDebugContext.cc \
   GWClientWP.cc GWServerWP.cc GatewayWP.cc MTGatewayWP.cc MTGatewayWP2.cc \
   LoggerWP.cc LatencyVector.cc OctopussyConfig.cc \

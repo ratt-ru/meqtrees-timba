@@ -1,13 +1,11 @@
 #include "OctopussyConfig.h"
+#include "Dispatcher.h"
+#include "WPInterface.h"
+    
 #include <stdarg.h>
 
-// Dispatcher
-#include "OCTOPUSSY/Dispatcher.h"
-// WPInterface
-#include "OCTOPUSSY/WPInterface.h"
-
 #ifdef USE_DEBUG
-  #include "Common/Stopwatch.h"
+  #include <Common/Stopwatch.h>
   #define stopwatch_init   Stopwatch _sw
   #define stopwatch_dump   _sw.sdelta("%.9f",true,Stopwatch::REAL).c_str()
   #define stopwatch_reset  _sw.reset()
@@ -374,6 +372,8 @@ int WPInterface::repollWorker (bool everybody)
 //##ModelId=3DB9370200EC
 Thread::ThrID WPInterface::createWorker ()
 {
+  // threaded WPs are not polled
+  disablePolling();
   dprintf(2)("launching worker thread\n");
   FailWhen(num_worker_threads>=MaxWorkerThreads,"too many worker threads started");
   stopwatch_init;
@@ -411,6 +411,7 @@ WPInterface::WPInterface (AtomicID wpc)
     dsp_(0),queue_(0),wpid_(wpc)
 {
   full_lock = receive_lock = started = False;
+  enablePolling();
 #ifdef USE_THREADS
   num_worker_threads = num_initialized_workers = 0;
 #endif
@@ -555,21 +556,20 @@ void WPInterface::stop ()
 {
 }
 
+void WPInterface::notify ()
+{
+}
+
 //##ModelId=3CB55EEA032F
 int WPInterface::getPollPriority (ulong tick)
 {
+  if( !pollingEnabled() )
+    return -1;
   // return queue priority, provided a repoll is required
   // note that we add the message age (tick - QueueEntry.tick) to its
   // priority. Thus, messages that have been sitting undelivered for a while
   // (perhaps because the system is saturated with higher-priority messages)
   // will eventually get bumped up and become favoured.
-  
-
-#ifdef USE_THREADS
-  // multithreaded WPs are not polled at all
-  if( isThreaded() )
-    return -1;
-#endif
   
   if( needRepoll() && !queueLocked() )
   {
@@ -587,9 +587,7 @@ int WPInterface::getPollPriority (ulong tick)
 //##ModelId=3C8F13B903E4
 bool WPInterface::do_poll (ulong tick)
 {
-#ifdef USE_THREADS
-  FailWhen(num_worker_threads>0,"do_poll called on threaded WP");
-#endif
+  FailWhen( !pollingEnabled(),"do_poll called on non-polled WP");
   // Call the virtual poll method, and set needRepoll according to what
   // it has returned.
   if( autoCatch() )
@@ -611,9 +609,9 @@ bool WPInterface::do_poll (ulong tick)
     return needRepoll();  
   int res = Message::ACCEPT;
   
-  // remove message from queue
-  QueueEntry qe = queue().front();
-  queue().pop_front();
+  // get ref to first queue entry
+  QueueEntry & qe = queue().front();
+// we no longer pop: see below. queue().pop_front();
   lock.release(); // release the queue lock
   
 #ifdef ENABLE_LATENCY_STATS
@@ -734,36 +732,62 @@ bool WPInterface::do_poll (ulong tick)
       res = receive(qe.mref);
     receive_lock = False;
   }
-  // dispence of queue() accordingly
-  if( res == Message::ACCEPT )   // message accepted, remove from queue
+  lock.relock(queue_cond);
+  // dispence of queue accordingly
+  Message::Ref mref;
+  if( res == Message::REQUEUE )
+    mref = qe.mref;   // save a ref to the message, since it will need requeuing
+  
+  // if message was accepted or requeued, we have to remove the queue entry
+  if( res == Message::ACCEPT || res == Message::REQUEUE )
   {
-    dprintf(3)("result code: OK, de-queuing\n");
+    // something else may be at the head of the queue
+    // by now. So, scan through the queue until we locate the entry
+    MQI iter = queue().begin();
+    for( ; iter != queue().end(); iter++ )
+      if( &qe == &(*iter) )
+      {
+        queue().erase(iter);
+        break;
+      }
   }
-  else      // message not accepted, stays in queue
+  // dispense with message depending on result code
+  if( res == Message::ACCEPT )   
+  {
+    dprintf(3)("result code: OK, message dequeued\n");
+    // if queue is not empty, we need a repoll
+    if( !queue().empty() )
+    {
+      // this resets the age at the head of the queue. Effectively, this means
+      // we have a "queue age" rather than a message age.
+      queue().front().tick = tick;
+      return setNeedRepoll(True);
+    }
+  }
+  else if( res == Message::HOLD ) // not accepted
   {
     FailWhen( !qe.mref.valid(),"message was not accepted but its ref was detached or xferred" );
-    if( res == Message::HOLD )
-    {
-      dprintf(3)("result code: HOLD, leaving at head of queue\n");
-      queue().push_front(qe);
-      return needRepoll();
-    }
-    else if( res == Message::REQUEUE )
-    {
-      dprintf(3)("result code: REQUEUE\n");
-      // requeue - re-insert into queue() according to priority
-      enqueue(qe.mref,tick,ENQ_NOREPOLL);  // this sets repoll if head of queue has changed
-    }
+    dprintf(3)("result code: HOLD, leaving in place\n");
+    // needRepoll will have been raised if something else was placed at the head 
+    // of the queue
+    return needRepoll();
   }
-  // ask for repoll if head of queue has changed
-  lock.relock(queue_cond);
-  if( !queue().empty() )
+  else if( res == Message::REQUEUE )
   {
-    // this resets the age at the head of the queue. Effectively, this means
-    // we have a "queue age" rather than a message age.
-    queue().front().tick = tick;
-    if( queue().front().mref != qe.mref )
-      return setNeedRepoll(True);
+    FailWhen( !mref.valid(),"message was not accepted but its ref was detached or xferred" );
+    dprintf(3)("result code: REQUEUE, requeueing\n");
+    // re-insert into queue according to priority. Ask enqueue() to not
+    // raise the repoll flag, since we do that explicitly just below
+    enqueue(mref,tick,ENQ_NOREPOLL);  
+    if( !queue().empty() )
+    {
+      // this resets the age at the head of the queue. Effectively, this means
+      // we have a "queue age" rather than a message age.
+      queue().front().tick = tick;
+      // if head of queue has changed, we need a repoll
+      if( queue().front().mref != mref )
+        return setNeedRepoll(True);
+    }
   }
 
   return needRepoll();
@@ -773,6 +797,14 @@ bool WPInterface::do_poll (ulong tick)
 bool WPInterface::poll (ulong )
 {
   return False;
+}
+
+void WPInterface::notifyOfRepoll (bool do_signal)
+{
+  setNeedRepoll(True);
+  if( do_signal )
+    queue_cond.signal();
+  notify();
 }
 
 //##ModelId=3C8F204A01EF
@@ -791,11 +823,7 @@ int WPInterface::enqueue (const MessageRef &msg, ulong tick, int flags)
   {
     dprintf(3)("queueing [%s] into empty queue {case:A}\n",qe.mref->debug(1));
     if( setrepoll )
-    {
-      setNeedRepoll(True);
-      if( do_signal )
-        queue_cond.signal();
-    }
+      notifyOfRepoll(do_signal);
     queue().push_front(qe);
     return pri;
   }
@@ -813,11 +841,7 @@ int WPInterface::enqueue (const MessageRef &msg, ulong tick, int flags)
   {
     dprintf(3)("queueing [%s] at head of queue {case:C}\n",qe.mref->debug(1));
     if( setrepoll )
-    {
-      setNeedRepoll(True);
-      if( do_signal )
-        queue_cond.signal();
-    }
+      notifyOfRepoll(do_signal);
     queue().push_front(qe);
     return pri;
   }
@@ -832,11 +856,7 @@ int WPInterface::enqueue (const MessageRef &msg, ulong tick, int flags)
   {
     dprintf(3)("queueing [%s] at head of queue {case:D}\n",qe.mref->debug(1));
     if( setrepoll )
-    {
-      setNeedRepoll(True);
-      if( do_signal )
-        queue_cond.signal();
-    }
+      notifyOfRepoll(do_signal);
     return pri;
   }
   dprintf(3)("queueing [%s] at h+%d {case:D}\n",qe.mref->debug(1),count);

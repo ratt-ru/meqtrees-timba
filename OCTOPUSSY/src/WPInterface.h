@@ -85,7 +85,7 @@ class WPInterface : public OctopussyDebugContext,
       
     //##ModelId=3DB9365300A1
       typedef enum { FLUSH = 1, YIELD = 2 } SendFlags;
-
+      
   public:
       //##ModelId=3C7CBB10027A
       WPInterface (AtomicID wpc);
@@ -109,7 +109,9 @@ class WPInterface : public OctopussyDebugContext,
       //##ModelId=3C7CBBD101E1
       bool isAttached () const;
 
+      void enablePolling  ();
       void disablePolling ();
+      bool pollingEnabled () const;
       
       //##ModelId=3C99B0070017
       void do_init ();
@@ -290,6 +292,9 @@ class WPInterface : public OctopussyDebugContext,
       //##ModelId=3CB55D0E01C2
       virtual bool poll (ulong );
       
+      //##ModelId=3CB55D0E01C2
+      virtual void notify ();
+      
       //##ModelId=3C7CC0950089
       virtual int receive (MessageRef &mref);
 
@@ -313,8 +318,6 @@ class WPInterface : public OctopussyDebugContext,
     // Additional Protected Declarations
     //##ModelId=3DB937000170
       Subscriptions& getSubscriptions ();
-      
-      
       // condition variable & mutex for message queue
     //##ModelId=3E08EC00025E
       Thread::Condition queue_cond;
@@ -396,6 +399,9 @@ class WPInterface : public OctopussyDebugContext,
       // processing it)
     //##ModelId=3DB937190389
       bool enqueueFront (const MessageRef &msg,ulong tick,bool setrepoll=True);
+      
+      // helper function used by enqueue() to raise a repoll condition
+      void notifyOfRepoll (bool do_signal);
       
 #ifdef USE_THREADS      
       // This is the entrypoint for every worker thread.
@@ -501,6 +507,8 @@ class WPInterface : public OctopussyDebugContext,
       
     //##ModelId=3DB936E6012A
       WPID wpid_;
+      
+      bool polling_enabled;
 
     //##ModelId=3DB936530174
       typedef MessageQueue::iterator MQI;
@@ -668,6 +676,20 @@ inline Thread::ThrID WPInterface::workerID (int i) const
   return worker_threads[i];
 }
 
+inline void WPInterface::enablePolling  ()
+{
+  polling_enabled = True;
+}
+
+inline void WPInterface::disablePolling ()
+{
+  polling_enabled = False;
+}
+
+inline bool WPInterface::pollingEnabled () const
+{
+  return polling_enabled;
+}
 
 #endif
 

@@ -277,7 +277,7 @@ int Message::toBlock (BlockSet &set) const
 //##ModelId=3E301BB10085
 DataRecord & Message::withDataRecord (Message::Ref &ref,const HIID &id)
 {
-  Message *pmsg = new Message;
+  Message *pmsg = new Message(id);
   ref <<= pmsg;
   return (*pmsg) <<= new DataRecord;
 }

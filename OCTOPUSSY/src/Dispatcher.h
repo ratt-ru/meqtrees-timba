@@ -23,6 +23,8 @@
 #include "OCTOPUSSY/OctopussyDebugContext.h"
 // Message
 #include "OCTOPUSSY/Message.h"
+#include "MsgAddress.h"
+#include "WPInterface.h"
 
 
 #pragma aid Argv
@@ -205,7 +207,7 @@ class Dispatcher : public OctopussyDebugContext
       // this starts the dispatcher running in its own thread (use instead
       // of normal start()). You can use stop() later to stop the thread.
     //##ModelId=3DB93665008D
-      Thread::ThrID startThread ();
+      Thread::ThrID startThread (bool wait_for_start = False);
 #endif
       
       
@@ -448,7 +450,7 @@ class Dispatcher : public OctopussyDebugContext
 
     // Data Members for Associations
 
-      //##ModelId=3DB958F2005D
+      //##ModelId=3C7E1416010E
       map<WPID,WPRef> wps;
 
       //##ModelId=3DB958F200E5
@@ -488,7 +490,14 @@ class Dispatcher : public OctopussyDebugContext
       
       // mutex to protect various data structures
     //##ModelId=3DB936620198
-      Thread::Mutex wpmutex,tomutex,inpmutex,sigmutex;
+      Thread::Mutex wpmutex;
+    //##ModelId=3DB936620274
+      Thread::Mutex tomutex;
+    //##ModelId=3DB936620350
+      Thread::Mutex inpmutex;
+    //##ModelId=3DB936630045
+      Thread::Mutex sigmutex;
+
 };
 
 // Class Dispatcher 

@@ -242,7 +242,7 @@ void Dispatcher::start ()
   {
     Thread::Mutex::Lock lock(repoll_cond);
     in_start = False;
-    repoll_cond.signal();
+    repoll_cond.broadcast();
   }
 #else
   in_start = False;
@@ -282,7 +282,7 @@ void Dispatcher::stop ()
   {
     // use repoll_cond to wake up and terminate the polling thread
     Thread::Mutex::Lock lock(repoll_cond);
-    repoll_cond.signal();
+    repoll_cond.broadcast();
     lock.release();
     main_thread.join();
   }
@@ -482,13 +482,13 @@ void Dispatcher::pollLoop ()
   // multithreaded version: loop until stop_polling is raised
   // wait on the repoll_cond variable, and call poll when awoken
   Thread::Mutex::Lock lock;
-  while( !stop_polling )
+  while( running && !stop_polling )
   {
+    poll();
     lock.relock(repoll_cond);
     while( !repoll && !stop_polling )
       repoll_cond.wait();
     lock.release();
-    poll();
   }
 #else
   // non-threaded version: loop until stop_polling is raised, while watching active fds
@@ -525,7 +525,7 @@ void Dispatcher::stopPolling ()
   stop_polling = True;
 #ifdef USE_THREADS
   Thread::Mutex::Lock lock(repoll_cond);
-  repoll_cond.signal();
+  repoll_cond.broadcast();
 #endif
 }
 
@@ -1116,12 +1116,22 @@ void * Dispatcher::pollThread ()
 }
 
 //##ModelId=3DB93665008D
-Thread::ThrID Dispatcher::startThread ()
+Thread::ThrID Dispatcher::startThread (bool wait_for_start)
 {
   // block all dispatcher-handled signals
   Thread::signalMask(SIG_BLOCK,validSignals());
   // launch a polling thread
-  return Thread::create(start_pollThread,this);
+  Thread::ThrID id = Thread::create(start_pollThread,this);
+  // wait for startup to complete, if asked to
+  if( wait_for_start )
+  {
+    dprintf(1)("waiting for dispatcher thread to complete startup\n");
+    Thread::Mutex::Lock lock(repoll_cond);
+    while( !running || in_start )
+      repoll_cond.wait();
+    dprintf(1)("dispatcher thread has completed startup\n");
+  }
+  return id;
 }
 #endif
 
