@@ -252,6 +252,11 @@ class Node : public BlockableObject
     int getExecState () const
     { return control_status_&CS_MASK_EXECSTATE; } 
     
+    std::string getStrExecState () const
+    { return getStrExecState(getExecState()); }
+    
+    static std::string getStrExecState (int state);
+    
     //##ModelId=400E53120082
     void setNodeIndex (int nodeindex);
     

@@ -39,9 +39,9 @@ using Debug::ssprintf;
 
 //##ModelId=3F5F43E000A0
 Node::Node (int nchildren,const HIID *labels,int nmandatory)
-    : check_nchildren_(nchildren),
+    : control_status_(CS_ACTIVE),
+      check_nchildren_(nchildren),
       check_nmandatory_(nmandatory),
-      control_status_(CS_ACTIVE),
       depend_mask_(0),
       node_groups_(1,FAll),
       auto_resample_(RESAMPLE_NONE),
@@ -913,7 +913,6 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
   int nfails = 0;
   for( int i=0; i<numChildren(); i++ )
   {
-      const Result *pchildres = child_results[i].deref_p();
     int childcode = getChild(i).execute(child_results[i],req);
     cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
     retcode |= childcode;
@@ -1315,6 +1314,18 @@ void Node::setExecState (int es,int newst,bool sync)
   }
 }
 
+std::string Node::getStrExecState (int state)
+{
+  switch( state )
+  {
+    case CS_ES_IDLE:        return "IDLE";
+    case CS_ES_REQUEST:     return "REQUEST";         
+    case CS_ES_COMMAND:     return "COMMAND";         
+    case CS_ES_POLLING:     return "POLLING";         
+    case CS_ES_EVALUATING:  return "EVALUATING";
+    default:                return "(unknown exec state)";
+  }
+}
 
 //##ModelId=3F98D9D100B9
 int Node::getResult (Result::Ref &,const std::vector<Result::Ref> &,
