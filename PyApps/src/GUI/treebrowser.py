@@ -160,7 +160,7 @@ class TreeBrowser (QObject):
         if isinstance(key,int):
           name = chform % (key,node.name);
         else:
-          name = ': '.join(key,node.name);
+          name = ': '.join((key,node.name));
         i1 = self.__class__(self.tb,node,name,self,i1);
       for ni in self.node.step_children:
         node = meqds.nodelist[ni];

@@ -135,7 +135,7 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
     Vector<uInt> rowNums = sel.rowNumbers(itsTable);
     for( uint i=0; i<sel.nrow(); i++ )
     {
-      int axis[] = { Axis::FREQ,Axis::TIME };
+      int axis[] = { Axis::TIME,Axis::FREQ };
       double offset[] = { f0Col(i),t0Col(i) };
       double scale[]  = { fsCol(i),tsCol(i) };
       // for now, only Polcs are supported
@@ -176,7 +176,7 @@ int ParmTable::getInitCoeff (Funklet::Ref &funkletref,const string& parmName)
         ROScalarColumn<double> fsCol (itsInitTable, ColFreqScale);
         ROScalarColumn<double> tsCol (itsInitTable, ColTimeScale);
         ROScalarColumn<double> diffCol (itsInitTable, ColPerturbation);
-        int axis[] = { Axis::FREQ,Axis::TIME };
+        int axis[] = { Axis::TIME,Axis::FREQ };
         double offset[] = { f0Col(row),t0Col(row) };
         double scale[]  = { fsCol(row),tsCol(row) };
         // for now, only Polcs are supported
