@@ -23,14 +23,16 @@ def registerViewer (tp,viewer):
     registerViewer(datatype,viewer);
   The 'viewer' argument must be a class (or callable) providing the following 
   interface:
-    viewer.viewer_name(); 
-      # (optional static method) returns "official name" of this viewer class, 
-      # for use in menus and such. If not defined, the classname 
+    viewer.viewer_name 
+      # (optional static attribute) returns "official name" of this 
+      # viewer class, for use in menus and such. If not defined, the classname 
       # (viewer.__name__) will be used instead. 
     viewer.is_viewable(data); 
       # (optional static method) checks if a specific data item (of the 
       # registered type) is viewable in this viewer or not. If not defined, 
       # True is assumed.
+    viewer.icon(); 
+      # (optional static method) returns a QIconSet for this viewer
     vo = viewer(parent_widget,dataitem=None,**opts); 
       # construct a viewer object. A dataitem (GridDataItem class) object 
       # may be supplied at this time, or set via set_data() below. See
@@ -146,23 +148,23 @@ class GridDataItem (object):
       viewopts = {};
     self.viewopts = viewopts;
     self.refresh_func = refresh;
-    # look for suitable viewer if not specified
-    if viewer is not None:
-      if not callable(viewer):
-        raise TypeError,'viewer argument must be a callable';
-    else:
-      if data is None:
-        if datatype is None:
-          raise TypeError,"no datatype and no viewer specified";
-      else:
-        datatype = type(data);
-      # find suitable viewer
+    # build list of compatible viewers
+    self.viewer_list = [];
+    if data is not None: 
+      datatype = type(data);
+    if datatype is not None:
       for (tp,vlist) in _reg_viewers.iteritems():
         if issubclass(datatype,tp):
-          viewer = vlist[0];
-          break;
-      else:
-        raise TypeError,"no suitable viewer found for "+str(datatype);
+          self.viewer_list.extend(vlist);
+    # is a viewer also explicitly specifed?
+    if viewer is None:
+      viewer = self.viewer_list[0]; # no, pick first one from list
+    else:
+      if not callable(viewer):
+        raise TypeError,'viewer argument must be a callable';
+      # prepend to list
+      if viewer not in self.viewer_list:
+        self.viewer_list.insert(0,viewer);
     self.viewer = viewer;
     self.cells = sets.Set();
   def refresh (self):
@@ -197,12 +199,19 @@ class GridCell (object):
     top_lo = QVBoxLayout(self._wtop);
     control_box = self._control_box = QWidget(self._wtop);
     control_lo = QHBoxLayout(control_box);
+    # icon button
+    self._iconbutton = iconbutton = QToolButton(control_box);
+    iconbutton.setAutoRaise(True);
+    QToolTip.add(iconbutton,"menu");
+    QObject.connect(iconbutton,SIGNAL("clicked()"),self.show_popup_menu);
+    # pin button
     pin_is = QIconSet(pixmaps.pin_up.pm());
     pin_is.setPixmap(pixmaps.pin_down.pm(),QIconSet.Automatic,QIconSet.Normal,QIconSet.On);
     self._pin = pin = QToolButton(control_box);
     pin.setAutoRaise(True);
     pin.setToggleButton(True);
     pin.setIconSet(pin_is);
+    QObject.connect(pin,SIGNAL("clicked()"),self._update_pin_menu);
     QToolTip.add(pin,"pin (i.e. protect) or unpin this panel");
     # refresh button
     self._refresh = refresh = QToolButton(control_box);
@@ -223,7 +232,20 @@ class GridCell (object):
     close.setAutoRaise(True);
     QToolTip.add(close,"close this panel");
     QObject.connect(close,SIGNAL("clicked()"),self.close);
+    # create menu
+    self._viewers_menu = QPopupMenu(wtop);
+    self._menu = menu = QPopupMenu(wtop);
     
+    # self._m_viewer = menu.insertItem("Viewer");
+    self._m_udi    = menu.insertItem("UDI");
+    menu.insertSeparator();
+    self._m_viewers = menu.insertItem("View using",self._viewers_menu);
+    self._m_pin     = menu.insertItem(pin.iconSet(),"Pin",self._toggle_pinned_state);
+    self._m_refresh = menu.insertItem(refresh.iconSet(),"Refresh",self._dorefresh);
+    menu.insertItem(close.iconSet(),"Close panel",self.close);
+    
+    # add buttons and labels to the control bar layout
+    control_lo.addWidget(iconbutton);
     control_lo.addWidget(pin);
     control_lo.addWidget(refresh);
     control_lo.addSpacing(10);
@@ -233,12 +255,14 @@ class GridCell (object):
     control_lo.addStretch();
     control_lo.addWidget(close);
 
+    # add a widget stack to the top-level layout
     self._wstack = QWidgetStack(self._wtop);
     top_lo.addWidget(control_box,0);
     top_lo.addStretch(1);
     top_lo.addWidget(self._wstack,1000);
     top_lo.setResizeMode(QLayout.Minimum);
    
+    # other init
     control_box.setSizePolicy(hsp);
     control_box.hide();
     self._wtop.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding));
@@ -271,24 +295,40 @@ class GridCell (object):
     return self._pin.isOn();
   def set_pinned (self,state=True):
     self._pin.setOn(state);
+    self._update_pin_menu(state);
+    
   def udi (self):
     return self._dataitem and self._dataitem.udi;
   def is_parent_of (self,udi):
     my_udi = self.udi();
     return my_udi and re.match(my_udi+'/?',udi);
+
+  def show_popup_menu (self,point=None):
+    self._menu.exec_loop(point or QCursor.pos());
+
+  def _toggle_pinned_state (self):
+    self.set_pinned(not self.is_pinned());
+    
+  def _update_pin_menu (self,state=None):
+    if state is None:
+      state = self.is_pinned();
+    self._menu.setItemChecked(self._m_pin,state);
+    self._menu.changeItem(self._m_pin,(state and "Unpin") or "Pin");
     
   # highlights a cell
   # pass in a QColor, or True for default color, or False value to disable highlights
   def highlight (self,color=True):
+#      wlist = [self._control_box] + self._control_box.children();
+    wlist = (self._control_box,self._label,self._label1);
     if color:
       color = self._highlight_colors;
-      for w in [self._control_box] + self._control_box.children():
+      for w in wlist:
         if isinstance(w,QWidget):
           w.setPaletteBackgroundColor(color[0]);
           w.setPaletteForegroundColor(color[1]);
       self._highlight = True;
     else:
-      for w in [self._control_box] + self._control_box.children():
+      for w in wlist:
         if isinstance(w,QWidget):
           w.unsetPalette();
       self._highlight = False;
@@ -348,34 +388,69 @@ class GridCell (object):
       else:          # fallback: terminate string
         desc = desc[:57]+'...';
     self._label1.setText(desc);
+    self._menu.changeItem(self._m_udi,dataitem.udi);
+    # show the control box
     self._control_box.show();
-    # create a viewer, add data if specified
-    viewer = dataitem.viewer(self.wtop(),dataitem=dataitem,**self._viewopts);
-    widget = viewer.wtop();
-    # connect displayDataItem() signal from viewer to be resent from top widget
-    QWidget.connect(widget,PYSIGNAL("displayDataItem()"),
-                    self._wtop,PYSIGNAL("displayDataItem()"));
+    # set up the viewer
+    self.change_viewer(dataitem.viewer);
     # setup refresh function and button
+    self._menu.setItemEnabled(self._m_refresh,dataitem.is_mutable());
     if dataitem.is_mutable():
       self._refresh.show();
       self._refresh_func = dataitem.refresh_func;    
-      QWidget.connect(widget,PYSIGNAL("refresh()"),self._refresh_func);
+      QWidget.connect(self._viewer.wtop(),PYSIGNAL("refresh()"),self._refresh_func);
     else:
       self._refresh.hide();
       self._refresh_func = lambda:None;
     # setup pin button
     if pin is not None:
       self._pin.setOn(pin);
-    # add viewer widget to cell
-    self._wstack.addWidget(widget);
-    self._wstack.raiseWidget(widget);
-    self._viewer = viewer;
     # disable cell if no data yet
     self.disable(dataitem.data is None);
     # display everything
     self._wtop.updateGeometry();
     self._wstack.show();
     self._wtop.show();
+    
+  def change_viewer (self,viewer_class,dum=None):
+             # note: dum argument is needed to make this function callable
+             # from popupMenu(), since that passes an extra arg 
+    # remove old viewer
+    if self._viewer:
+      self._wstack.removeWidget(self._viewer.wtop());
+      self._viewer = None;
+    # create a viewer, add data if specified
+    self._viewer = viewer = viewer_class(self.wtop(),dataitem=self._dataitem,**self._viewopts);
+    widget = viewer.wtop();
+    # connect displayDataItem() signal from viewer to be resent from top widget
+    QWidget.connect(widget,PYSIGNAL("displayDataItem()"),
+                    self.wtop(),PYSIGNAL("displayDataItem()"));
+    # add viewer widget to cell
+    self._wstack.addWidget(widget);
+    self._wstack.raiseWidget(widget);
+    
+    # create an icon set for the menu button
+    try: icon = viewer_class.icon();
+    except AttributeError: icon = QIconSet(pixmaps.magnify.pm());
+    self._iconbutton.setIconSet(icon);
+    
+    # rebuild the "view using" menu
+    self._viewers_menu.clear();
+    self._viewers_proc = [];
+    if len(self._dataitem.viewer_list) > 1:
+      for v in self._dataitem.viewer_list:
+        # create entry for viewer
+        name = getattr(v,'viewer_name',v.__name__);
+        try: icon = v.icon();
+        except AttributeError: icon = QIconSet();
+        func = curry(self.change_viewer,v);
+        self._viewers_proc.append(func);
+        mid = self._viewers_menu.insertItem(icon,name,func);
+        self._viewers_menu.setItemChecked(mid,v is viewer_class);
+      self._menu.setItemEnabled(self._m_viewers,True);
+    else:
+      self._menu.setItemEnabled(self._m_viewers,False);
+  
     
   def update_data (self,dataitem,viewopts={},flash=True):
     if self._viewer:
@@ -386,19 +461,19 @@ class GridCell (object):
     self.enable();
     # flash the refresh button, if it's visible
     if flash:
-      if self._highlight:
-        self._pin.unsetPalette();
-      else:
-        self._pin.setPaletteBackgroundColor(self._highlight_colors[0]);
-        self._pin.setPaletteForegroundColor(self._highlight_colors[1]);
-      QTimer.singleShot(500,self._pin_unflash);
+#      if self._highlight:
+#        self._iconbutton.unsetPalette();
+#      else:
+      self._iconbutton.setPaletteBackgroundColor(self._highlight_colors[0]);
+      self._iconbutton.setPaletteForegroundColor(self._highlight_colors[1]);
+      QTimer.singleShot(500,self._unflash);
       
-  def _pin_unflash (self):
-    if self._highlight:
-      self._pin.setPaletteBackgroundColor(self._highlight_colors[0]);
-      self._pin.setPaletteForegroundColor(self._highlight_colors[1]);
-    else:
-      self._pin.unsetPalette();
+  def _unflash (self):
+#    if self._highlight:
+#      self._iconbutton.setPaletteBackgroundColor(self._highlight_colors[0]);
+#      self._iconbutton.setPaletteForegroundColor(self._highlight_colors[1]);
+#    else:
+      self._iconbutton.unsetPalette();
     
 # ====== GriddedPage ===========================================================
 # manages one page of a gridded workspace

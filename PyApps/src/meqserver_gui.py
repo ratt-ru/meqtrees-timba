@@ -198,7 +198,7 @@ class TreeBrowser (object):
     self._parent.mqs.meq('Get.Node.List',rec,wait=False);
     
   def make_node_item (self,node,name,parent,after):
-    item = QListViewItem(parent,after,name,' '+str(node.classname),' '+str(node.nodeindex));
+    item = QListViewItem(parent,after,name,str(node.classname),str(node.nodeindex));
     item.setDragEnabled(True);
     item._node = weakref.proxy(node);
     item._expanded = False;
@@ -222,9 +222,12 @@ class TreeBrowser (object):
       classes = nodelist.classes();
       cls_item  = item = QListViewItem(self._nlv,rootitem,"By Class (%d)"%len(classes));
       for (cls,nodes) in classes.iteritems():
-        item = QListViewItem(cls_item,item,"(%d)"%len(nodes),cls,"");
-        item.setExpandable(True);
-        item._iter_nodes = iter(nodes);
+        if len(nodes) == 1:
+          item = self.make_node_item(nodes[0],nodes[0].name,cls_item,item);
+        else:
+          item = QListViewItem(cls_item,item,"(%d)"%len(nodes),cls,"");
+          item.setExpandable(True);
+          item._iter_nodes = iter(nodes);
       self.nodelist = nodelist;
       
   def _node_clicked (self,item):

@@ -241,7 +241,7 @@ class HierBrowser (object):
   def _expand_item_content (self,item):
     try: cont = item._content;
     except AttributeError: return;
-    if cont:
+    if cont is not None:
       self.expand_content(item,cont);
       
   # slot: called when one of the items is clicked
@@ -299,8 +299,34 @@ class HierBrowser (object):
         item = item.nextSibling();
     # call recursive helper on listview
     _set_open_items_impl(self._lv,openspec);
-
-class RecordBrowser(HierBrowser):
+    
+class BrowserPlugin (object):
+  _iconset = None;
+  _icon = pixmaps.magnify;  # default icon
+  def icon (_class):
+    if _class._iconset is None:
+      # get class _icon member, or use the "magnify" icon by default
+      pm = _class._icon;
+      # resolve to pixmap
+      if not isinstance(pm,QIconSet):
+        if not isinstance(pm,QPixmap):
+          if isinstance(pm,pixmaps.QPixmapWrapper):
+            pm = pm.pm();
+          elif callable(pm):
+            pm = pm();
+          else:
+            raise TypeError,"invalid _icon member in "+_class.__name__;
+      _class._iconset = QIconSet(pm);
+    return _class._iconset;
+  icon = classmethod(icon);
+  
+  def viewer_name (_class):
+    return getattr(_class,'_name',_class.__name__);
+  viewer_name = classmethod(viewer_name);
+    
+class RecordBrowser(HierBrowser,BrowserPlugin):
+  _icon = pixmaps.view_tree;
+  viewer_name = "Record Browser";
   def is_viewable (data):
     return len(data) > 0;
   is_viewable = staticmethod(is_viewable);
@@ -310,7 +336,7 @@ class RecordBrowser(HierBrowser):
         udi_root=(dataitem and dataitem.udi));
     self._rec = None;
     self._default_open = default_open;
-    if dataitem and dataitem.data:
+    if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
   
   def set_data (self,dataitem,default_open=None,**opts):
@@ -329,7 +355,9 @@ class RecordBrowser(HierBrowser):
     # apply saved open tree
     self.set_open_items(openitems);
     
-class ArrayBrowser(object):
+class ArrayBrowser(BrowserPlugin):
+  _icon = pixmaps.matrix;
+  viewer_name = "Array Browser";
   def is_viewable (data):
     try: return 1 <= data.rank <=2;
     except: return False;
@@ -368,7 +396,7 @@ class ArrayBrowser(object):
       else:
         painter.fillRect(rect,QBrush(cg.base()));
         painter.setPen(cg.text());
-      painter.drawText(0,0,cr.width(),cr.height(),Qt.AlignRight,txt);
+      painter.drawText(0,0,cr.width(),cr.height(),Qt.AlignLeft,txt);
     def resizeData(self,len):
       pass;
     
