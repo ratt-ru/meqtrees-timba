@@ -1,0 +1,182 @@
+
+1. OCTOPUSSY configuration
+
+1.1. Command line
+
+  -d<level>    set overall debug level
+  
+  -dContext=level  set sepcific level of some context
+
+  -l <level>    WorkProcess log level. Logged messages with a higher level will 
+                be supressed completely.
+
+  -lc <level>   Console log level. Logged messages below or equal to this level
+                will be echoed to stderr. Messages above this level but still
+                within the WP level will be written to log files only.
+                
+                Specifiying -lc <level> without -l sets the WP log level equal
+                to the console log level.
+
+1.2. Log files
+
+If the Logger WorkProcess (LoggerWP) is created in your app, it will append all
+messages logged by other WPs to the log file {full-path-to-running-binary}.log.
+If multiple instances of the same binary are running, it will use .log.0,
+.log.1, etc.
+
+The verbosity of logged messages is determined by the -l option above. If -lc
+is used, some messages will be echoed to the console as well.
+
+
+1.3. Configuration files.
+
+The OctopusssyConfig class reads in a number of config files at startup.
+Configuration files contain lines of the format
+
+key value
+
+(separated by space.) Keys are case-sensitive. Additional entries may be
+specified on the command line as "key=value"; command line keys 
+will override keys from the config files.
+
+Upon startup, configuration is read from the following sources:
+
+  ~/.octopussy/octopussy.conf
+  ~/.octopussy/{hostname}.conf
+  ~/.octopussy/{appname}.conf
+  ./octopussy.conf
+  ./{hostname}.conf
+  ./{appname}.conf
+  {custom configuration file}
+  
+({hostname} is the short hostname, and {appname} is the name of the running
+binary, without a path). The files are read in the given order, and any of them
+may be missing. Entires in subsequent files override entires in previous files.
+
+An extra custom config file may be specified from the command line by giving an
+argument that ends with ".conf". 
+
+After all files have been read, the command line is scanned in (arguments of
+the form "key=value" are interpreted) and added to the configuration,
+overriding the values for any previously set keys.
+
+2. List of current configuration keys
+
+2.1. Globals
+
+hostid        int       (default: 0)
+
+    The OCTOPUSSY hostid of the given node. When running OCTOPUSSY across
+    multiple nodes, each is required to have a unique ID. I use "9" for lofar9,
+    "10" for lofar10, etc. The logical place to set this is in
+    ~/.octopussy/{hostname}.conf.
+    
+wploglevel    int       (default: 1)
+
+    The verbosity level of log messages from WorkProcesses. Log messages above
+    this level will be suppressed. Can also be overridden via the -l and -lc
+    command-line options (see above)
+    
+hz            int       (default: 10)
+
+    The "heartbeat" frequency. Only matters in non-threaded implementations.
+    Best left alone.
+    
+2.2. Networking setup (read by GWServer/GWClientWP)
+
+gwport        int       (default: 4808)
+
+    The base TCP port to listen on for remote connections (from OCTOPUSSIES on 
+    other nodes). Note that if multiple processes are started on the same node,
+    they will use the next available port (i.e. 4809 for the second process,
+    etc.). We must set this to different base values to keep  our Octopussies 
+    from spuriously connecting to each other. 
+    The logical place to set this is ~/.octopussy/octopussy.conf.
+    Suggested port assignments: Oleg: 5808, Ger: 6808, KJ: 7808, etc.
+    
+gwpath        string    (default: =octopussy-%U)
+
+    The Unix socket created to listen for local connections (from  other
+    processes on the same node). The default setting uses /tmp/octopussy-{your
+    uid}; all processes launched by you on the same node will find each other &
+    connect. You will only need to override this if you're running independent
+    OCTOPUSSY clouds.
+
+gwpeer        string    (default: none)
+
+    A comma-separated list of host:port specifications (e.g.
+    lofar9:5808,lofar10:5808). It will attempt to open a gateway to an
+    OCTOPUSSY peer on each specified host:port. The logical place to set this
+    is ~/.octopussy/{hostname}.conf. Note that gateways automaticaly exchange
+    peer lists and open new connections, hence, to successfully connect to a
+    multi-node OCTOPUSSY cloud, it is sufficient to find just one node.
+    
+2.3. Logging setup (read by LoggerWP)
+
+LoggerWP is a utility WorkProcess that subscribes to Log.* messages and 
+writes their contents to a log file. WPs publish Log messages by calling
+the log() method (or the lprintf) macro. 
+
+All Log messages have an associated log level and type. Note that the "-l" and
+"-lc" command-line options (see above) control posting of these messages on the
+source side -- that is, messages above the specified level do not get published
+at all, and messages below or at the console log level are echoed to stderr at
+time of publishing.
+
+Additional logging configuration allows for similar control on the Logger side:
+
+logfile       string  (default: {full path to binary}.log)
+
+    The path to the logfile. The file is opened for appending and locked. If a
+    lock cannot be obtained (most likely because another process has already
+    locked it), the files "{logfile}.0", "{logfile}.1", etc. are tried.
+
+loglev        int     (default: 9999)
+
+    The maximum log level. Messages higher than that are ignored.
+    
+logscope      int     (default: 2)
+
+    The subscription scope for log messages. 0 = process scope (subscribe to
+    messages from WPs in the same process only), 1 = host scope (subscribe to
+    messages from WPs on the same node only), 2 = global scope (subscribe
+    to log messages from the whole world).
+    
+logcon        int     (default: -1)
+
+    The console log level. Messages below or at this level are echoed to the
+    console.    
+
+This allows for a lot of flexibility in logging setup. You can have a single
+logger for the whole cloud, or one logger per host, or even per process.
+
+2.4. EchoWP setup
+
+EchoWP is a test WP used for running throughput benchmarks. It uses the
+following options:
+
+pc        int     (default: from constructor)
+
+     Ping count. If >0, sends out the specified number of pings, then exits.
+     If <0, sends pings indefinitely. If =0, does not send pings (only replies).
+
+bs        int     (default: 64)
+
+     Size of ping payload block, in KB.
+     
+pipe      int     (default: 1)
+
+      Number of pings to send initially
+      
+fill      int     (default: 1000)
+
+      Fill payload with a numeric value (0: no fill)
+      
+process   int     (default: 1)
+
+      Process payload before replying? (0: no processing)
+      
+mt        int     (default: 0)
+
+      Number of worker threads to start. 0: run in non-threaded (cooperative) mode.
+
