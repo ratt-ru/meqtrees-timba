@@ -133,6 +133,7 @@ ge                               1431       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 gen                              1458       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:38
 get                              1338       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:11
 glishclientwp                    1117       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:17
+glishconnserverwp                1463       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishConnServerWP.h:8
 glishthreadedclientwp            1462       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishThreadWP.h:7
 global                           1306       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/OctoAgent/src/EventSink.h:14
 grid                             1417       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:33
