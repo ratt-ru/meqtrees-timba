@@ -405,7 +405,7 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
   {
     node_groups_.resize(ngr.size()+1);
     node_groups_.front() = FAll;
-    for( int i=0; i<ngr.size(); i++ )
+    for( uint i=0; i<ngr.size(); i++ )
       node_groups_[i+1] = ngr[i];
   }
   
@@ -446,11 +446,11 @@ void Node::setState (DataRecord &rec)
   {
     setStateImpl(rec,initializing);
   }
-  catch( FailWithoutCleanup exc )
+  catch( FailWithoutCleanup &exc )
   {
     throw exc; // No cleanup required, just re-throw
   }
-  catch( std::exception exc )
+  catch( std::exception &exc )
   {
     fail = string("setState() failed: ") + exc.what();
   }
@@ -511,7 +511,7 @@ void Node::processChildSpec (NestableContainer &children,const HIID &chid,const 
         Node &child = forest_->create(index,child_initrec.ref_cast<DataRecord>());
         addChild(chid,&child);
       }
-      catch( std::exception exc )
+      catch( std::exception &exc )
       {
         Throw("Failed to create child node "+id.toString()+": "+exc.what());
       }
@@ -1197,7 +1197,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     return cacheResult(ref,retcode) | RES_UPDATED;
   }
   // catch any exceptions, return a single fail result
-  catch( std::exception exc )
+  catch( std::exception &exc )
   {
     ref <<= new Result(1);
     VellSet & res = ref().setNewVellSet(0);

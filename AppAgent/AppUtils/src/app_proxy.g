@@ -228,6 +228,7 @@ const app_proxy := function (appid,
     self.initrec_prev := initrec;
     self.dprint(3,'init: initrec is ',initrec);
     self.waiting_init := T;
+    self.dprint(2,'init: will await init completion');
     res := public.command("Init",initrec);
     if( is_fail(res) )
       fail;
@@ -235,7 +236,6 @@ const app_proxy := function (appid,
     {
       while( self.waiting_init )
       {
-        self.dprint(2,'init: awaiting app_notify_init event)');
         await self.relay->*;
         self.dprint(2,'init: got event ',$name);
       }

@@ -30,26 +30,36 @@ for( f0 in field_names(environ) )
 }
 # find debug levels of form -dContext=level in the command-line args
 # also scan for other options
-for( arg in argv )
+for( x in argv )
 {
-  if( arg == '-nostart' )
+  if( x == '-nostart' ) 
     use_nostart := T;
-  else if( arg == '-suspend' )
+  else if( x == '-suspend' )
     use_suspend := T;
-  else if( arg == '-valgrind' )
+  else if( x == '-valgrind' )
     use_valgrind := T;
-  else if( arg == '-gui' )
+  else if( x == '-gui' )
     use_gui := T;
-  else if( arg =~ s/^-verbose=(.*)$/$1/ )
-    default_verbosity := arg;
-  else if( arg =~ s/^-d(.*)=(.*)$/$1$$$2/ )
+  else if( x =~ s/^-verbose=(.*)$/$1/ )
+    default_verbosity := x;
+  else if( x =~ s/^-d(.*)=(.*)$/$1$$$2/ )
   {
-    default_debuglevels[arg[1]] := lev := as_integer(arg[2]);
-    print '=======  Overriding debug level: ',arg[1],'=',lev;
+    default_debuglevels[x[1]] := lev := as_integer(x[2]);
+    print '=======  Overriding debug level: ',x[1],'=',lev;
   }
 }
-
-print '======= Default verbosity level: ',default_verbosity;
-print '=======         Max debug level: ',max_debug;
+options := [];
+if( use_nostart )
+  options := [options,"nostart"];
+if( use_suspend )
+  options := [options,"suspend"];
+if( use_valgrind )
+  options := [options,"valgrind"];
+if( use_gui )
+  options := [options,"gui"];
+if( len(options) )
+  print '=======        Run-time options:',options;
+print '======= Default verbosity level:',default_verbosity;
+print '=======         Max debug level:',max_debug;
 
   

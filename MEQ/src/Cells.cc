@@ -330,7 +330,7 @@ void Cells::recomputeDomain ()
   double x0 = grid_[0](0) - cell_size_[0](0)/2;
   double x1 = grid_[0](nx-1) + cell_size_[0](nx-1)/2;
   double y0 = grid_[1](0) - cell_size_[1](0)/2;
-  double y1 = grid_[1](ny-1) - cell_size_[1](ny-1)/2;
+  double y1 = grid_[1](ny-1) + cell_size_[1](ny-1)/2;
   
   (*this)[FDomain].replace() <<= domain_ = new Domain(x0,x1,y0,y1);
 }
