@@ -176,16 +176,20 @@ class TreeBrowser (object):
       self._node = weakref.proxy(node);
       self._expanded = False;
       self._udi  = meqds.node_udi(node);
+      self._callbacks = [];
       if node.children:
         self.setExpandable(True);
-      node.subscribe_state(self.update);
+      # node.subscribe_state(self.update);
+      node.subscribe_status(self.update);
       self.update();
       
-    def update (self,state=None,event=None):
-      """updates node item based on node state. The two arguments are
+    def update (self,status=None,rqid=None,status_string=None):
+      """updates node item based on node status. The arguments are
       actually ignored (we have them for compatibility with the 
-      subscribe_state callback).""";
+      subscribe_status callback).""";
       self._stat_anim_cbs = {};
+      # update status column
+      self.setText(self._tb()._icol_status,self._node.control_status_string);
       # update status pixmaps
       for act in self._tb().get_node_actions():
         # if action has a column assigned to it, and a state callback...
@@ -225,13 +229,44 @@ class TreeBrowser (object):
         i1 = self.__class__(self._tb(),node,name,self,i1);
       self._expanded = True;
       
+    def xcurry (self,*args,**kwargs):
+      cb = xcurry(*args,**kwargs);
+      self._callbacks.append(cb);
+      return cb;
+    
+    def debug_menu (self):
+      try: menu = self._debug_menu;
+      except AttributeError:
+        node = self._node;
+        menu = self._debug_menu = QPopupMenu();
+        menu1 = self._debug_bp_menu = QPopupMenu();
+        menu1.insertItem("at request",self.xcurry(\
+            meqds.set_node_breakpoint,node,meqds.CS_BREAK_REQUEST));
+        menu1.insertItem("at rider command",self.xcurry(\
+            meqds.set_node_breakpoint,node,meqds.CS_BREAK_COMMAND));
+        menu1.insertItem("at children poll",self.xcurry(\
+            meqds.set_node_breakpoint,node,meqds.CS_BREAK_POLLING));
+        menu1.insertItem("at evaluation",self.xcurry(\
+            meqds.set_node_breakpoint,node,meqds.CS_BREAK_EVALUATING));
+        menu1.insertItem("at idle",self.xcurry(\
+            meqds.set_node_breakpoint,node,meqds.CS_BREAK_IDLE));
+        menu1.insertItem("at any",self.xcurry(\
+            meqds.set_node_breakpoint,node,meqds.CS_MASK_BREAKPOINTS));
+        menu.insertItem("Set breakpoint",menu1);
+        menu.insertItem("Clear breakpoints",self.xcurry(\
+            meqds.clear_node_breakpoint,node));
+        menu.insertSeparator();
+        menu.insertItem("Single step",self._tb().debug_single_step());
+        menu.insertItem("Continue to next node",self._tb().debug_next_node());
+        menu.insertItem("Continue to next breakpoint",self._tb().debug_continue());
+      return menu;
+      
     def context_menu (self):
       try: menu = self._context_menu;
       except AttributeError:
         # create menu on the fly when first called for this item
         node = self._node;
         menu = self._context_menu = QPopupMenu();
-        menu._callbacks = [];
         # insert title
         menu.insertItem("%s: %s"%(node.name,node.classname));
         # insert viewer list submenus
@@ -241,29 +276,29 @@ class TreeBrowser (object):
           # create display submenus
           menu1 = self._display_menu1 = QPopupMenu();
           menu2 = self._display_menu2 = QPopupMenu();
-          menu.insertItem(pixmaps.view_split.iconset(),"Display with",menu1);
-          menu.insertItem(pixmaps.view_right.iconset(),"New display with",menu2);
+          menu.insertItem(pixmaps.view_split.iconset(),"State display with",menu1);
+          menu.insertItem(pixmaps.view_right.iconset(),"New state display with",menu2);
           for v in viewer_list:
             # create entry for viewer
             name = getattr(v,'viewer_name',v.__name__);
             try: icon = v.icon();
             except AttributeError: icon = QIconSet();
             # add entry to both menus ("Display with" and "New display with")
-            cb1 = xcurry(self._tb().wtop().emit,(PYSIGNAL("view_node()"),(node,v)),_argslice=slice(0));
-            cb2 = xcurry(self._tb().wtop().emit,(PYSIGNAL("view_node()"),(node,v,dict(newcell=True))),_argslice=slice(0));
-            menu1.insertItem(icon,name,cb1);
-            menu2.insertItem(icon,name,cb2);
-            menu._callbacks.append(cb1);
-            menu._callbacks.append(cb2);
+            menu1.insertItem(icon,name,
+              self.xcurry(self._tb().wtop().emit,(PYSIGNAL("view_node()"),(node,v)),_argslice=slice(0)));
+            menu2.insertItem(icon,name,
+              self.xcurry(self._tb().wtop().emit,(PYSIGNAL("view_node()"),(node,v,dict(newcell=True))),_argslice=slice(0)));
         # add node actions
         if self._tb().get_node_actions():
           menu._actions = {};
           menu.insertSeparator();
           for act in self._tb().get_node_actions():
             if act.applies_to(node):
-              act_id = act.add_to_menu(menu,node);
+              act_id = act.add_to_menu(self,menu);
               # add to action map
               menu._actions[act_id] = act;
+        # add debugging
+        menu.insertItem("Debug",self.debug_menu());
       # display menu if defined
       return menu;
       
@@ -353,7 +388,9 @@ class TreeBrowser (object):
           act._icol = num;
           if num:
             self._nlv.addColumn('');
-      # add class and index columns
+      # add status, class and index columns
+      self._icol_status = self._nlv.columns();
+      self._nlv.addColumn('status');
       self._icol_class = self._nlv.columns();
       self._nlv.addColumn('class');
       self._icol_index = self._nlv.columns();
@@ -381,10 +418,32 @@ class TreeBrowser (object):
         item.setExpandable(True);
         item._iter_nodes = iter(nodes);
   
+        
+  def debug_single_step (self):
+    self.debug_clear_active_node();
+    mqs.meq('Debug.Single.Step',srecord(),wait=False);
+  
+  def debug_next_node (self):
+    self.debug_clear_active_node();
+    mqs.meq('Debug.Next.Node',srecord(),wait=False);
+  
+  def debug_continue (self):
+    self.debug_clear_active_node();
+    mqs.meq('Debug.Continue',srecord(),wait=False);
+    
+  def debug_set_active_node (self,nodeindex,state):
+    pass;
+  
+  def debug_clear_active_node (self):
+    pass;
+  
   # slot: called to show a context menu for a browser item
   def _show_context_menu (self,item,point,col):
     if isinstance(item,self.NodeItem):
-      menu = item.context_menu();
+      if col == self._icol_status:
+        menu = item.debug_menu();
+      else:
+        menu = item.context_menu();
       if menu is not None:
         menu.exec_loop(point);
       
@@ -417,12 +476,8 @@ class NodeAction (object):
     return self.nodeclass is None;
   def applies_to (self,node):
     return self.applies_to_all() or issubclass(meqds.NodeClass(node.nodeclass),self.nodeclass);
-  def add_to_menu (self,menu,node):
-    try: _callbacks = menu._callbacks;
-    except AttributeError:
-      _callbacks = menu._callbacks = [];
-    cb = xcurry(self.activate,(node,),_argslice=slice(0));
-    menu._callbacks.append(cb);
+  def add_to_menu (self,item,menu):
+    cb = item.xcurry(self.activate,(item._node,),_argslice=slice(0));
     if self.iconset:
       return menu.insertItem(self.iconset(),self.text,cb);
     else:
@@ -433,9 +488,9 @@ class NodeAction (object):
 class NodeToggleAction (NodeAction):
   # if true, toggle state is included in the TreeBrowser view
   display = True;
-  def add_to_menu (self,menu,node):
-    act_id = NodeAction.add_to_menu(self,menu,node);
-    menu.setItemChecked(act_id,self.state(node));
+  def add_to_menu (self,item,menu):
+    act_id = NodeAction.add_to_menu(self,item,menu);
+    menu.setItemChecked(act_id,self.state(item._node));
     return act_id;
   def state (self,node):
     raise "state() not defined in NodeToggleAction "+str(type(self));
@@ -445,8 +500,8 @@ class NTA_NodeDisable (NodeToggleAction):
   iconset = pixmaps.cancel.iconset;
   state = lambda self,node:not node.is_active();
   def activate (self,node):
-    cs = node.control_state ^ meqds.CS_ACTIVE;
-    meqds.set_node_state(node,control_state=cs);
+    cs = node.control_status ^ meqds.CS_ACTIVE;
+    meqds.set_node_state(node,control_status=cs);
 
 class NTA_NodePublish (NodeToggleAction):
   text = "Publish";
@@ -496,18 +551,35 @@ class meqserver_gui (app_proxy_gui):
     QWidget.connect(self.resultlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     QWidget.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
 
+
+  def _checkStateUpdate (self,ev,value):
+    try: 
+      state = value.node_state;
+      name  = state.name;
+    except AttributeError: 
+      return None;
+    _dprint(5,'got state for node ',name);
+    self.update_node_state(state,ev);
+    return True;
+    
+  def _checkStatusUpdate (self,ev,value):
+    try: 
+      status = value.control_status;
+      ni     = value.nodeindex;
+    except AttributeError: return None;
+    if not isinstance(status,int) or not isinstance(ni,int):
+      return False;
+    _dprint(5,'got control status for node ',ni);
+    meqds.nodelist[ni].update_status(status,getattr(value,'rquest_id',None));
+    return True;
+    
   # override handleAppEvent to catch node state updates, whichever event they
   # may be in
   def handleAppEvent (self,ev,value):
-    # update node state
+    # update node state or status
+    # note that a state update implies a status update, hence the or
     if isinstance(value,record):
-      try: 
-        state = value.node_state;
-        name  = state.name;
-      except AttributeError: pass;
-      else: 
-        _dprint(5,'got state for node ',name);
-        self.update_node_state(state,ev);
+      self._checkStateUpdate(ev,value) or self._checkStatusUpdate(ev,value);
     # call top-level handler
     app_proxy_gui.handleAppEvent(self,ev,value);
     
@@ -517,6 +589,9 @@ class meqserver_gui (app_proxy_gui):
     self.resultlog.clear();
     wtop = self.resultlog.wtop();
     self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
+    ## enable max verbosity right off
+    ## NB: make this controllable!
+    self.mqs.meq('Set.Verbosity',srecord(verbosity=2),wait=False);
     
   def ce_mqs_Bye (self,ev,value):
     app_proxy_gui.ce_Hello(self,ev,value);
@@ -526,6 +601,9 @@ class meqserver_gui (app_proxy_gui):
     if hasattr(value,'name'):
       _dprint(5,'got state for node ',value.name);
       self.update_node_state(value,ev);
+      
+  def ce_DebugStop (self,ev,value):
+    self.treebrowser.set_active_node(value.nodeindex,value.node_state);
   
   def ce_NodeResult (self,ev,value):
     # no need to update anymore: handleAppEvent() does it for us automagically

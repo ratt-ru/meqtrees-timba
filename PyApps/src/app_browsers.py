@@ -19,7 +19,6 @@ dmirepr = dmi_repr.dmi_repr();
 class PrecisionPopupMenu (QPopupMenu):
   def_range = range(0,16);
   def_prec  = 99;
-
   def __init__ (self,parent=None,precrange=None,prec=None):
     QPopupMenu.__init__(self,parent);
     self._precrange = precrange or self.def_range;
@@ -29,7 +28,6 @@ class PrecisionPopupMenu (QPopupMenu):
     self._prec = prec;
     self.setItemChecked((prec is None and self.def_prec) or prec,True);
     QWidget.connect(self,SIGNAL("activated(int)"),self.set);
-    
   def set (self,prec):
     if prec == self.def_prec:
       prec = None;
@@ -38,7 +36,6 @@ class PrecisionPopupMenu (QPopupMenu):
     for p in self._precrange:
       self.setItemChecked(p,p==prec);
     self.emit(PYSIGNAL("setPrecision()"),(prec,));
-
   def get (self):
     return self._prec;    
   
