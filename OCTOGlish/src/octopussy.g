@@ -1,6 +1,33 @@
 pragma include once
+include 'note.g'
 
-include "note.g";
+# defines a set of standard debug methods inside an object
+const define_debug_methods := function (ref self,ref public,initverbose=1)
+{
+  self.verbose := initverbose;
+  # prints debug message if level is <= current verbosity level
+  const public.dprint := function (level,...)
+  {
+    wider self;
+    if( level <= self.verbose )
+     print spaste('[== ',self.appid,' ==] ',...);
+  }
+  # private version for convenience
+  const self.dprint := function (level,...)
+  {
+    wider public;
+    public.dprint(level,...);
+  }
+  # sets the verbosity level for the dprint methods
+  const public.setverbose := function (level)
+  {
+    wider self;
+    self.verbose := level;
+    return level;
+  }
+  return T;
+}
+
 
 octopussy := function (wpclass="",server="./octoglish",
           options="",autoexit=T,suspend=F,verbose=1) 
@@ -12,23 +39,8 @@ octopussy := function (wpclass="",server="./octoglish",
   self.opClient::Died := T;
   self.state := 0;
   self.started := F;
-  self.verbose := verbose;
-
-# Private functions
-#------------------------------------------------------------------------------
-  const self.dprint := function (level,...)
-  {
-    wider self;
-    if( level <= self.verbose )
-     print spaste(...);
-  }
   
-  const public.setverbose := function (level)
-  {
-    wider self;
-    self.verbose := level;
-    return level;
-  }
+  define_debug_methods(self,public,verbose);
 
   const self.makeclient := function (server,wpclass="",options="",suspend=F) 
   {
@@ -222,6 +234,18 @@ octopussy := function (wpclass="",server="./octoglish",
     return $name;
   }
   
+  const public.setdebug := function(context,level)
+  {
+    wider self;
+    # check that we're started
+    if( !self.started )
+      fail 'octopussy not started';
+    if( self.opClient->debug([context=context,level=level]) )
+      return T;
+    else
+      fail 'setdebug failed'; 
+  }
+  
   const public.state := function ()
   {
     wider self;
@@ -287,6 +311,7 @@ test_octopussy := function (server="./test_glish",options="")
     rec.Timestamp := 0;
     rec.Invert := T;
     rec.Data := random(10);
+    rec.Data_B := [];
     rec.Count := count;
     count +:= 1;
     res := oct.publish("Ping",rec);

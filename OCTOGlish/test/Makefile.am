@@ -4,9 +4,9 @@ dmi_dir = $(lofar_sharedir)/../DMI
 
 CXXFLAGS += -D_GNU_SOURCE 
 
-check_PROGRAMS		= 
+check_PROGRAMS		= IMTest glish_reflector
 
-bin_PROGRAMS   		= IMTest glish_reflector
+bin_PROGRAMS   		= 
 
 # test_glish_SOURCES 	= test_glish.cc EchoWP.cc AID-Testing-Registry.cc
 #

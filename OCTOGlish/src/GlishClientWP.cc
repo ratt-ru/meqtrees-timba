@@ -131,6 +131,15 @@ void GlishClientWP::handleEvent (GlishSysEvent &event)
         AtomicID type(typestr);
         log(msg,level,type);
       }
+      else if( event.type() == "debug" )
+      {
+        GlishRecord rec = val;
+        FailWhen( rec.nelements() != 2,"illegal event value" );
+        String context; int level;
+        tmp = rec.get(0); tmp.get(context);
+        tmp = rec.get(1); tmp.get(level);
+        Debug::setLevel(context,level);
+      }
       else
         Throw("unknown event");
     } // end try 
