@@ -12,8 +12,6 @@ class ComplexScaleDraw (QwtScaleDraw):
         self.divisor = divisor
 
     def label(self,v):
-#       if v > self.divisor:
-#         v = v - self.divisor
 	v = v % self.divisor
         return QwtScaleDraw.label(self,v)
 
