@@ -677,15 +677,18 @@ inline const NestableContainer::ConstHook & NestableContainer::ConstHook::operat
 {
   //## begin NestableContainer::ConstHook::operator []%3C87377803A8.body preserve=yes
   FailWhen(addressed,"unexpected '&' operator");
-  int sep = id1.findFirstSlash();
-  if( !sep )
-    return (*this)[id1.subId(1)];
-  else if( sep == (int)(id1.size()-1) )
-    return (*this)[id1.subId(0,id1.size()-1)];
-  else if( sep > 0 )
-    return (*this)[id1.subId(0,sep-1)][id1.subId(sep+1)];
-  // if index==-2, we've been called from constructor, so don't
-  // apply any existing subscripts
+  if( id1.size() )
+  {
+    int sep = id1.findFirstSlash();
+    if( !sep )
+      return (*this)[id1.subId(1)];
+    else if( sep == (int)(id1.size()-1) )
+      return (*this)[id1.subId(0,id1.size()-1)];
+    else if( sep > 0 )
+      return (*this)[id1.subId(0,sep-1)][id1.subId(sep+1)];
+  }
+  // apply any previous subscripts
+  // (if index==-2, we've been called from constructor, so don't do it)
   if( index >= -1 ) 
     nextIndex();
   // set the new subscript

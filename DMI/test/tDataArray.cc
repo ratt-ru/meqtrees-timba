@@ -7,9 +7,11 @@ int main()
 {
   try {
     DataRecord rec;
-    rec["A"] <<= new DataArray(TpArray_float, IPosition(2,10,12));
+    DataArray *arr = new DataArray(TpArray_float, IPosition(2,10,12));
+    rec["A"] <<= arr;
     float* ptr1 = rec["A/5.5"].as_float_wp();
     Array_float* farr = &rec["A"];
+//    Array_float* farr2 = &(*arr)[HIID()];
     Assert (farr->nelements() == 20*12);
     indgen (*farr);
     float* ptr = &rec["A"];
