@@ -511,16 +511,19 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
     calling \qq{setStateImpl()} to set up dynamic state.
 
   \item Set up static state defined at the child class level.
+  
+  \item Perform any specific initialization.
 
   \item Throw exceptions on any error. 
 
   \end{enumerate}
   
-  Note that static state is easier handled in \qq{setStateImpl()} (when
-  \qq{initializing} is \qq{true}), so there's little point in redefining
-  \qq{init()} specifically for that purpose. In fact, most node classes find it
-  sufficient to only redefine \qq{setStateImpl()}, and not bother with any of
-  the other methods. 
+  Note that if only static state needs to be implmeneted, then it is easier to
+  handled it in \qq{setStateImpl()} (when \qq{initializing} is \qq{true});
+  there's little point in redefining \qq{init()} specifically for that purpose
+  only. (Most node classes do find it sufficient to only redefine
+  \qq{setStateImpl()}, and not bother with any of the other state-related
+  methods.) 
 
 \subsection{checkInitState()}
   
@@ -543,8 +546,8 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 \subsection{setStateImpl()}
 
   The virtual \qq{setStateImpl()} method is responsible for setting up and/or
-  modifying dynamic node state. Note that this method is protected -- the rest
-  of the world must call it via through \qq{init()} or \qq{setState()}.
+  modifying node state. Note that this method is protected -- the rest of the
+  world must call it via through \qq{init()} or \qq{setState()}.
 
   \begin{verbatim}
   void Node::setStateImpl (DataRecord &rec,bool initializing);
@@ -564,65 +567,63 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   \item If the \qq{initializing} is \qq{false}, check the record for protected
     fields (i.e. for attempts to modify static state). Throw a
-    \qq{FailWithoutCleanup} exception if any are present. The
+    \qq{FailWithoutCleanup} exception (see below) if any are present. The
     \qq{protectStateField(record,field)} macro defined in \qq{Node.h} is a
     convenient way to do this.
+    
+  \item If \qq{initializing} is \qq{true}, check for mandatory state fields --
+    throw \qq{FailWithoutCleanup} is any are missing -- and/or fill in defaults
+    (unless \qq{checkInitState()} has been already been redefined to do the
+    same). Setup static state (unless handled by \qq{init()}).
 
-  \item Call the parent class's \qq{setStateImpl()} to set up inherited state.
-  
-  \item If
-    \qq{initializing} is \qq{true}, check for missing mandatory state fields,
-    and/or fill in defaults (unless \qq{checkInitState()} has been already been
-    redefined to
-    do the same). 
-    
-    
+  \item Call the parent class's \qq{setStateImpl()}, which presumably sets up
+    inherited state.
 
-  \item Parse the record and modify internal state relevant to the child class.
-    Note that the standard DMI hook method \qq{get()} is very handy for doing
-    this operation, combined with the previous one:
-    
+  \item Parse the record and modify dynamic state relevant to the child class.
+    Note that the standard DMI hook methods \qq{get()} and \qq{get\_vector()} 
+    are very handy for doing this operation:
+
     \begin{verbatim}
-    if( newst[StateField].get(var,initializing) )
+    if( rec[StateField].get(var,initializing) )
       // field is present, react if needed
     else
       // field is missing, react if needed
     \end{verbatim}
     
     The \qq{get()} method employed here does the following: if \qq{StateField}
-    is present in the \qq{newst} record, assigns its value to \qq{var}
-    (throwing an exception is the types are incompatible) and returns
-    \qq{true}. If the field is missing, optionally (only if \qq{initializing}
-    is \qq{true}) inits it from the value in \qq{var}, and returns \qq{false}.
-    The standard \qq{setStateImpl()} methods make extended use of this
-    mechanism.
-
+    is present in \qq{rec}, assigns its value to \qq{var} (throwing an
+    exception is the types are incompatible) and returns \qq{true}. If the
+    field is missing, optionally (only if \qq{initializing} is \qq{true}) inits
+    it from the value in \qq{var}, and returns \qq{false}. The standard
+    \qq{setStateImpl()} methods make extended use of this mechanism.
+    
   \item Throw exceptions on error. A \qq{Node::FailWithoutCleanup} should be
     thrown if and only if no internal state was modified. All other exceptions
-    will invoke the ``rollback'' mechanism above. You can rely on
+    will invoke the ``rollback'' mechanism described below. You can rely on
     \qq{DataRecord} (and other DMI classes) to throw an exception when
     datatypes mismatch or something else goes wrong; throw a
-    \qq{Node::FailWithCleanup} if you want to indicate some other kind of
+    \qq{FailWithCleanup} exception if you want to indicate some other kind of
     failure.
 
-\end{enumerate}
-  
+  \end{enumerate}
+
+  The base \qq{Node::setStateImpl()} method handles all of the dynamic
+  state listed in Table~\ref{table:nodestate}.
 
 \subsection{setState()}
-
 
   The non-virtual \qq{setState()} method defined in \qq{Node} provides the
   public interface for setting state. Basically, it defers parsing the record
   to \qq{setStateImpl()}, while providing a transaction mechanism of sorts:
 
-\begin{enumerate}
+  \begin{enumerate}
 
   \item Calls \qq{setStateImpl(rec,false)} to process the record. The
     \qq{false} value indicates that state is being modified rather than
     [re]initialized. (Note that if the supplied record happens to be the node
     state record itself, \qq{true} will be passed in instead.)
 
-  \item Catches \qq{Node::FailWithoutCleanup} exceptions and rethrows them at
+  \item Catches \qq{FailWithoutCleanup} exceptions and rethrows them at
     the caller with no additional action.
 
   \item Catches all other execeptions, and does a cleanup before rethrowing
@@ -635,95 +636,29 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   \end{enumerate}
 
-  This design ensures that if a \qq{setState()} call fails (i.e., with an
+  This design ensures that if a \qq{setStateImpl()} call fails (i.e., with an
   exception), both the state record and the internal state of the object are
   rolled back to their values prior to the call. (Assuming they were mutually
   consistent to begin with.) In other words, the node object is guaranteed to
   remain usable.
 
-  The virtual \qq{setNodeState()} method is responsible for changing dynamic
-  state. It receives two arguments: a \qq{newst} record, and a boolean called
-  \qq{initializing}. The latter is \qq{true}, the node is being initialized --
-  in this case \qq{newst} is the complete initial state record. If it is
-  \qq{false}, \qq{newst} contains only those state fields that are being
-  changed. Normally, the method should do the following:
+  Note that implementations \qq{setStateImpl()} should ignore any unrecognized
+  fields in the init and state record. This allows the outside world to assign
+  arbitrary informational attributes to node state.
 
-\begin{enumerate}
-
-  \item If the \qq{initializing} is \qq{false}, check the record for
-    ``forbidden'' fields, i.e., attempts to modify static state. Throw a
-    \qq{FailWithoutCleanup} if any are present. The
-    \qq{protectStateField(record,field)}  macro/inline is a convenient way to
-    do this.
-    
-  \item Call the parent \qq{setStateImpl()}.
-
-  \item As an alternative to overriding \qq{checkInitState()}, if
-    \qq{initializing} is \qq{true}, check for missing fields and/or fill in
-    defaults.
-
-  \item Parse the record and modify internal state relevant to the child class.
-    Note that the standard DMI hook method \qq{get()} is very handy for doing
-    this operation, combined with the previous one:
-    
-    \begin{verbatim}
-    if( newst[StateField].get(var,initializing) )
-      // field is present, react if needed
-    else
-      // field is missing, react if needed
-    \end{verbatim}
-    
-    The \qq{get()} method employed here does the following: if \qq{StateField}
-    is present in the \qq{newst} record, assigns its value to \qq{var}
-    (throwing an exception is the types are incompatible) and returns
-    \qq{true}. If the field is missing, optionally (only if \qq{initializing}
-    is \qq{true}) inits it from the value in \qq{var}, and returns \qq{false}.
-    The standard \qq{setStateImpl()} methods make extended use of this
-    mechanism.
-
-  \item Throw exceptions on error. A \qq{Node::FailWithoutCleanup} should be
-    thrown if and only if no internal state was modified. All other exceptions
-    will invoke the ``rollback'' mechanism above. You can rely on
-    \qq{DataRecord} (and other DMI classes) to throw an exception when
-    datatypes mismatch or something else goes wrong; throw a
-    \qq{Node::FailWithCleanup} if you want to indicate some other kind of
-    failure.
-
-\end{enumerate}
-
-  The base \qq{Node::setStateImpl()} method is described in detail in a later
-  section on basic node state.
-
-\subsection{Unrecognized state fields}
-
-  Note that these implementations of \qq{init()} and \qq{setState()} will
-  ignore any unrecognized fields in the init and state record, all the while 
-  diligently maintaining and changing them as requested. This allows for a few
-  interesting possibilities:
-
-  \begin{itemize}
-  
-  \item Nodes may be assigned arbitary additional attributes and data,
-    meaningless to the node itself, but perhaps useful to the control layer.
-
-  \item Things like the result cache (see below) -- which is stored directly in
-    the state record -- may be accessed and changed externally (i.e. from the
-    scripting level). This may be useful for debugging and testing.
-
-  \end{itemize}
-
-\subsection{Serialization \& persistency}
+\subsection{Serialization \& persistency issues}
 
   The \qq{meqserver} already supports persistent nodes (i.e. being able to
   save/load nodes and trees to a file). Further down the road, we plan for the
-  possibly the capability to move a node across a network. Both functions hinge
-  on being able to serialize a node.
+  the capability to move a node across a network. Both functions hinge on being
+  able to serialize a node -- i.e., to turn it into a stream of bytes, and to
+  unpack it from a stream of bytes.
 
   Serialization is implemented through DMI mechanisms. A \qq{DataRecord} is
   inherently serializable. To serialize a node, the control code will simply
-  serialize its state record. To unserialize a node, it will recover the
+  serialize its state record. To unserialize a node, it will recreate the state
   record, create a node object (as specified by the \qq{class} field), and call
-  \qq{init()} on it. 
+  \qq{init()} on it with the record. 
 
   Thus, subclasses of \Node\ should take care to maintain their state record
   appropriately. Each node class should ensure that it is completely
@@ -733,7 +668,71 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   this are internal caches; if these are not maintained in the state record,
   then the worst than can happen from re-creating a node is a cleared cache.
   
-\chapter{Symdeps \& Depmasks}
+\chapter{The Node Cache, Symdeps \& Depmasks}
+
+\section{Caching issues}
+
+  To avoid unnecessary recalculations, a node's result can be retained in a
+  cache. Obviously, this trades off performance against memory footprint. Three
+  broad caching policies have been identified so far:
+
+  \begin{description}
+  
+  \item[Never:] no caching at all, values are always recalculated anew. 
+   
+  \item[Always:] result is always cached, until a different request comes in.
+    (This is the policy implemented currently). While expensive in terms of
+    memory, is very useful for debugging, since it allows one to pause the
+    system and examine the most recent result of every node.
+
+  \item[Smart:] result is cached according to memory availability, expected
+    request sequence, etc.
+
+  \end{description}
+  
+  Caching policy is settable on a per-node basis, via the \qq{cache\_policy}
+  field of the state record. The cache itself is also part of the node's state
+  record (and thus can even be changed manually if needed.)
+
+  The ``Smart'' policy is the really interesting one. As will be discussed
+  in this chapter, the kernel provides a number of mechanisms that allows a node
+  to get pretty smart about its cache.
+  
+\subsection{Result/Request dependencies}
+
+  
+
+  Let's call the individual components of a request ID {\em dependencies} --
+  because the \RES{DEP} flags in the result code describe what the result
+  depends on. Note that a parent result inherits dependencies from all its
+  child results, thus the parent dependencies are always a superset of any
+  child dependencies (i.e. equal to or larger.) The following simple rules seem
+  reasonable:
+
+  \begin{enumerate}
+  
+  \item If a dependency will change in the next request, then node can clear
+    cache (since the next request will invalidate it anyway).
+
+  \item If the parent dependencies are exactly equal to those of a child, then
+    the parent does not need the child's cache (because any request requiring a
+    recalculation of the parent result will also require a recalculation of the
+    child result.)
+
+  \item If the parent dependencies are larger than those of a child, then the 
+    child should retain cache (unless [1] holds for the child.) 
+
+  \item A child must retain cache unless [1] is true, or {\bf all} its parents
+    have told it to release cache.
+
+  \end{enumerate}
+  
+  Note also that when a node retains the result in a cache, it also retains the
+  dependency mask and the request ID. When deciding whether to return the
+  cached result or recalculate the request (see step [1] of \qq{execute()}),
+  the request IDs are matched according to the dependency mask.
+
+
 
   As discussed in the section on requests above, a {\em depmask} is a bitwise
   mask that describes a result's dependencies on particular properties of the
@@ -742,53 +741,6 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   these bits and indices in a consistent way -- which is, by necessity,
   application-dependent. Several fields of the node state provide a mechanism
   for setting up these semantics and propagating them throughout trees. 
-
-\section{The local depmask}
-  
-  The \qq{depend\_mask} field of the state record is the local depmask of the
-  node. The local depmask indicates which dependencies a node introduces into
-  its result. For most \qq{Function}-derived nodes, this mask is null,
-  indicating that the result dependencies are fully determined by child
-  dependencies. Leaf nodes, on the other hand, will have a non-null mask.
-
-  The local depmask is automatically ORed into the result code by
-  \qq{Node::execute()} (see below). Some nodes will set up the mask at init
-  time and never worry about it again. For other nodes, it may change depending
-  on node state.
-
-  The depmask is just a set of $N$ bits with no specific semantics associated
-  with them. The association between individual bits and specific result
-  properties is set up via the mechanism of {\em symbolic dependencies}, or
-  {\em symdeps} for short.
-  
-\section{Symdeps in a nutshell}
-  
-  A {\em symdep} is a \qq{HIID} (thus, symbolic -- since \qq{HIID}s have a
-  symbolic representation) that identifies some application-specific dependency
-  of the result. Node classes will typically define some standard symdeps, such
-  as these -- used in the standard nodes:
-
-  \begin{description}
-  
-  \item[``Domain'':] result depends on the requested domain (i.e., the envelope
-    domain of the \Cells). Most non-trivial leaf nodes have this symdep.
-
-  \item[``Resolution'':] result depends on the resolution of the \Cells. Most
-    nodes with a time and/or frequency dependence have this symdep.
-   
-  \item[``Parm.Value'':] result depends on parameter values passed up from the
-    solver. Solvable \Parm{}s have this symdep.
-  
-  \end{description}
-  
-  A node's set of symdeps is generally known to the node class at construction
-  time. Then, when a tree is initialized, different symdeps are dynamically
-  associated with different bits of the depmask, as described below.
-  Essentially, this maps the abstract concepts (the symdeps) onto specific bits
-  of the depmasks. In other words, this mechanism is what determines the
-  bitmask semantics.
-
-
 
 **************************************************************    
   Rqids play a pivotal role in caching behaviour. 
@@ -876,6 +828,124 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   Note also that the general scheme implemented at the \qq{Node} level does not
   assume any application-specific semantics at all. The depmask is a treated as
   set of $N$ bits, and the rqid as a corresponding set of $N$ indices.
+
+\section{Result codes}
+
+  The return value of \qq{execute()} is meant to be a result code describing
+  certain properties  of the returned \Result. It is a bitmask composed of a
+  number of flags listed below. Each flag describes a certain property of the
+  \Result. The property semantics are defined in such a way that, in most
+  practical cases, a flagged property in any child result is inherited by the
+  parent's result. This allows \qq{execute()} to accumulate the correct result
+  code via a simple bitwise-OR. In other words, only a few classes (Parm, Time,
+  Freq, Spigot, and perhaps some special nodes) have any specific logic for
+  determining result codes. For all other classes, the correct result code is
+  simply the bitwise-OR of their children's codes. The following bits are
+  defined:
+  
+  \begin{description}
+  
+  \item[\RES{UPDATED}:] result has changed from that of previous \Request. This
+    bit is usually automatically cleared when the node returns a result 
+    from the cache, and set otherwise.
+     
+  \item[\RES{DEP(0)}, \RES{DEP(1)}, etc.:] result will change if the $i$-th
+    index of the request ID changes. This is simply the {\em depmask\/} discussed
+    in the section on Requests above.
+
+  \item[\RES{DEP\_VOLATILE}:] result may change in response to external events,
+    even without new requests. (This is not implemented for now, and only meant
+    as a placeholder for future developments, such as dynamically growing
+    domains, partial integration, etc.)
+
+  \item[\RES{FAIL}:] result is a ``complete'' fail. Note that this is not the
+    same thing as a result containing some mix of valid and failed VellSets;
+    rather, this indicates a failure for the whole result overall. \RES{FAIL}s
+    are usually generated when a node runs into some unrecoverable error.
+    
+    When this flag is returned, a \Result\ object is expected; it should
+    contain one or more fails describing the error. Note that dependency flags
+    can be meaningfully combined with \RES{FAIL}.
+
+  \item[\RES{WAIT}:] no result available, wait for notification or try later.
+    If this flag is raised, then no \Result\ should be returned. Note that
+    dependency flags can and should be meaningfully combined with \RES{WAIT},
+    since it usually possible to indicate the dependencies of a node in
+    advance.
+
+  \end{description}
+  
+  The return value of a node's \qq{getResult()} method should describe any {\bf
+  additional} properties introduced by the \qq{getResult()} calculation.
+  Most function nodes will
+  return zero, indicating that a node does not introduce any additional
+  dependencies into the result. 
+
+  \subsection{Cache and the state record}
+  
+  \subsection{\qq{request\_id}, \qq{cache\_result}, \qq{cache\_result\_code}}
+  
+  These three fields compose the node result cache. The first field -- a
+  \qq{HIID} -- is the ID of the most recent request. The second field is the
+  cached \qq{Result} of that request, if any (stored by reference). The third
+  field -- an integer -- is the cumulative result code (mainly its the depmask,
+  with a few additional flags, described in \qq{execute()} later on) of the
+  cached result.
+
+  The node cache may be cleared by assigning a boolean \qq{false} to the
+  \qq{cache\_result} field. It is also possible to modify the cache on the fly
+  (for example, substituting in another result). This may be a useful feature
+  for debugging and experimentation, though if used improperly, it can probably
+  confuse the caching and dependency tracking mechanism.  
+
+
+  
+\section{The local depmask}
+  
+  The \qq{depend\_mask} field of the state record is the local depmask of the
+  node. The local depmask indicates which dependencies a node introduces into
+  its result. For most \qq{Function}-derived nodes, this mask is null,
+  indicating that the result dependencies are fully determined by child
+  dependencies. Leaf nodes, on the other hand, will have a non-null mask.
+
+  The local depmask is automatically ORed into the result code by
+  \qq{Node::execute()} (see below). Some nodes will set up the mask at init
+  time and never worry about it again. For other nodes, it may change depending
+  on node state.
+
+  The depmask is just a set of $N$ bits with no specific semantics associated
+  with them. The association between individual bits and specific result
+  properties is set up via the mechanism of {\em symbolic dependencies}, or
+  {\em symdeps} for short.
+  
+\section{Symdeps in a nutshell}
+  
+  A {\em symdep} is a \qq{HIID} (thus, symbolic -- since \qq{HIID}s have a
+  symbolic representation) that identifies some application-specific dependency
+  of the result. Node classes will typically define some standard symdeps, such
+  as these -- used in the standard nodes:
+
+  \begin{description}
+  
+  \item[``Domain'':] result depends on the requested domain (i.e., the envelope
+    domain of the \Cells). Most non-trivial leaf nodes have this symdep.
+
+  \item[``Resolution'':] result depends on the resolution of the \Cells. Most
+    nodes with a time and/or frequency dependence have this symdep.
+   
+  \item[``Parm.Value'':] result depends on parameter values passed up from the
+    solver. Solvable \Parm{}s have this symdep.
+  
+  \end{description}
+  
+  A node's set of symdeps is generally known to the node class at construction
+  time. Then, when a tree is initialized, different symdeps are dynamically
+  associated with different bits of the depmask, as described below.
+  Essentially, this maps the abstract concepts (the symdeps) onto specific bits
+  of the depmasks. In other words, this mechanism is what determines the
+  bitmask semantics.
+
+
 
 \subsection{Next\_request and request sequences}
 

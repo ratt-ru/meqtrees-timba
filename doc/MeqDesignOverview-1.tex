@@ -438,6 +438,7 @@
   visual aid, the paragraph above is highlighted in bold.
 
 \section{MeqRequest and related data objects}
+  \label{sec:request}
 
   A \Request\ is a {\em job description} containing a number of commands that a
   node executes in order to produce a \Result. A \Request\ is implemented as a
@@ -603,13 +604,12 @@
 
   \end{itemize}
 
-\subsubsection{Empty \Cells{}}
+\subsubsection{Empty \Cells}
 
   An empty record corresponds to an uninitialized \Cells\ object in C++. Empty
   \Cells\ may appear in situations where the cell information is not defined,
   so Glish code should be prepared to deal with it. See
   section~\ref{sec:result-empty-cells} for an example.
-  
   
 \subsubsection{Constructing \Domain{}s and \Cells{}}
 
