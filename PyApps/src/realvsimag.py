@@ -166,10 +166,13 @@ class realvsimag_plotter(object):
         self._plotterlabels_start = {}
         self._x_errors_dict = {}
         self._y_errors_dict = {}
+        self._flags_i_dict = {}
+        self._flags_r_dict = {}
 
         self.plot_mean_circles = False
         self.plot_stddev_circles = False
         self.plot_mean_arrows = False
+        self._plot_flags = False
         self.plot_symbol = None
         self.plot_symbol_size = None
         self.plot_line_style = None
@@ -361,12 +364,12 @@ class realvsimag_plotter(object):
         _dprint(2,'xPos yPos ', xPos, ' ', yPos);
 # We get information about the qwt plot curve that is
 # closest to the location of this mouse pressed event.
-# We are interesed in the nearest curve_number and the index, or
+# We are interested in the nearest curve_number and the index, or
 # sequence number of the nearest point in that curve.
         curve_number, distance, xVal, yVal, index = self.plot.closestCurve(xPos, yPos)
         _dprint(2,' curve_number, distance, xVal, yVal, index ', curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', index);
 # To determine the data source for the given curve or point
-# qwt curves each curve has a number which can be associated
+# each qwt curve has a number which can be associated
 # with an individual 'string' key. We stored these keys and 
 # associated curve numbers in the xy_plot_dict, the
 # x_errors_plot_dict, and the y_errors_plot_dict objects
@@ -867,6 +870,9 @@ class realvsimag_plotter(object):
       if visu_record.has_key('flags'):
         self._data_flags = visu_record['flags']
 
+# eventually indent the next line?
+#     self._plot_flags = True
+
 # note: the self._data_labels field that we now extract
 # was generated in the result_plotter.py script as it
 # traversed the 'Visu' tree. It is a string concatination
@@ -895,7 +901,8 @@ class realvsimag_plotter(object):
 # we have separate lists for real, imaginary and flag data
       data_r = []
       data_i = []
-      data_f = []
+      data_r_f = []
+      data_i_f = []
 # start_pos gives the first position of a member of an individual
 # numarray in the larger combined list
       start_pos = []
@@ -922,12 +929,38 @@ class realvsimag_plotter(object):
         for j in range(0, array_dim):
           num_elements = num_elements * xx_r.shape[j]
         flattened_array_r = reshape(xx_r,(num_elements,))
+
+# handle flags if present
+        flattened_array_f = None
+#       if not self._data_flags is None:
+#         xx_f = asarray(self._data_flags[i])
+        if self._plot_flags:
+          xx_f = zeros( (num_elements,), type='Float32' )
+          for k in range(0, num_elements):
+            if k % 2 == 0:
+              xx_f[k] = 1
+#          print xx_f
+          flag_array_dim = len(xx_f.shape)
+          num_flag_elements = 1
+          for j in range(0, flag_array_dim):
+            num_flag_elements = num_flag_elements * xx_f.shape[j]
+          flattened_array_f = reshape(xx_f,(num_elements,))
+          if i == 0:
+            start_flags_pos.append(0)
+          else:
+            start_flags_pos.append(len(data_r_f))
         for j in range(0, num_elements): 
           data_r.append(flattened_array_r[j])
+          if not flattened_array_f is None:
+            if flattened_array_f[j] > 0:                      
+              data_r_f.append(flattened_array_r[j])
         if xx_i != None:
           flattened_array_i = reshape(xx_i,(num_elements,))
           for j in range(0, num_elements): 
             data_i.append(flattened_array_i[j])
+            if not flattened_array_f is None:
+              if flattened_array_f[j] > 0:                      
+                data_i_f.append(flattened_array_i[j])
         else:
 # since we are plotting real vs imaginary data, we must add
 # imaginary values of zero, if we just receive an incoming
@@ -935,24 +968,17 @@ class realvsimag_plotter(object):
           if not self.errors_plot:
             for j in range(0, num_elements): 
               data_i.append(0.0)
+            if not flattened_array_f is None:
+              for j in range(0, num_elements): 
+               if flattened_array_f[j] > 0:                      
+                 data_i_f.append(0.0)
           if self.errors_plot and self._string_tag.find(self.error_tag)<0:
             for j in range(0, num_elements): 
               data_i.append(0.0)
-	      
-# handle data flags, if any	
-        if not self._data_flags is None:
-          xx_r = asarray(self._data_flags[i])
-          if i == 0:
-            start_flags_pos.append(0)
-          else:
-            start_flags_pos.append(len(data_f))
-          array_dim = len(xx_r.shape)
-          num_elements = 1
-          for j in range(0, array_dim):
-            num_elements = num_elements * xx_r.shape[j]
-          flattened_array_r = reshape(xx_r,(num_elements,))
-          for j in range(0, num_elements): 
-            data_f.append(flattened_array_r[j])
+            if not flattened_array_f is None:
+              for j in range(0, num_elements): 
+               if flattened_array_f[j] > 0:                      
+                 data_i_f.append(0.0)
 
 # add data to set of curves
 # obviously if we didn't get any actual data for some reason
@@ -977,8 +1003,14 @@ class realvsimag_plotter(object):
 # store the starting position list for the numarrays that were in the
 # incoming data in a plotterlabels_start dict
         self._plotterlabels_start[self._label_r] = start_pos
-        if len(data_f) > 0:
-          self._flags_dict[self._label_r] = data_f
+
+# if we have flag data
+        if len(data_r_f) > 0:
+          if self.errors_plot: 
+            if self._label_r.find(self.error_tag) < 0:
+              self._flags_r_dict[self._label_r] = data_r_f
+          else:
+             self._flags_r_dict[self._label_r] = data_r_f
 
 # otherwise we have previously stored data with this particular index
       else:
@@ -995,8 +1027,13 @@ class realvsimag_plotter(object):
 # this list of starting positions is then appended to the list already
 # stored in the plotterlabels_start dict
         self._plotterlabels_start[self._label_r] = self._plotterlabels_start[self._label_r] + start_pos
-        if len(data_f) > 0:
-          self._flags_dict[self._label_r] = self._flags_dict[self._label_r] + data_f
+
+        if len(data_r_f) > 0:
+          if self.errors_plot: 
+            if self._label_r.find(self.error_tag) < 0:
+              self._flags_r_dict[self._label_r] = self._flags_r_dict[self._label_r] + data_r_f
+          else:
+            self._flags_r_dict[self._label_r] = self._flags_r_dict[self._label_r] + data_r_f
 
 # if we are doing an 'errors' plot and the tag we are working
 # with contains the 'error_tag' field then we know that the
@@ -1009,8 +1046,12 @@ class realvsimag_plotter(object):
         if self._plotter_dict.has_key(self._label_i) == False:
 #add the new data to a 'dict' of visualization lists
           self._plotter_dict[self._label_i] = data_i
+          if len(data_i_f) > 0:
+            self._flags_i_dict[self._label_i] =  data_i_f
         else:
           self._plotter_dict[self._label_i] = self._plotter_dict[self._label_i] + data_i
+          if len(data_i_f) > 0:
+            self._flags_i_dict[self._label_i] =  self._flags_i_dict[self._label_i] + data_i_f
 
 # we have now stored data and some associated 'meta data' - labels
 # and starting positions, in various python dictionaries.
@@ -1180,11 +1221,10 @@ class realvsimag_plotter(object):
 
 # Otherwise we should have retrieved a set of real and imaginary
 # data elements to be plotted against each other, and, if this
-# is an errors plot, to give the data points corresponding 
-# to the errors.
+# is an errors plot, we need to tell the errors plot about
+# the data points associated with the errors
         else:
           _dprint(3, 'setting data values')
-
 # get the number of the curve corresponding to this current_item_tag
 # key
           key_plot = self._xy_plot_dict[current_item_tag] 
@@ -1246,8 +1286,9 @@ class realvsimag_plotter(object):
           radius = sqrt(x_sq + y_sq)
 # get the color to plot this circle
           self._plot_color = self._xy_plot_color[current_item_tag] 
-#	  print 'plotting mean circles with line style ', self._mean_circle_style
+# plot the mean circle
           self.compute_circles (current_item_tag, radius, 0.0, 0.0, self._mean_circle_style)
+# plot an 'arrow' if requested
           if self.plot_mean_arrows:
             self.compute_arrow (current_item_tag, mean_r, mean_i)
 
@@ -1269,10 +1310,17 @@ class realvsimag_plotter(object):
           temp_array = temp_array * temp_array_conj
           mean = temp_array.mean()
           std_dev = sqrt(mean)
+# the std_dev given above was computed according to the
+# formula given by Oleg
           radius = std_dev
 # get the color to plot this circle
           self._plot_color = self._xy_plot_color[current_item_tag] 
+# plot the stddev circle
           self.compute_circles (current_item_tag + 'stddev', radius, mean_r, mean_i, self._stddev_circle_style)
+
+# add in flag data to plots if requested
+      if self._plot_flags:
+        self.plot_flags()
 
 # we have inserted all data into curves etc, so as the last step
 # actually update the displayed plot
@@ -1280,6 +1328,28 @@ class realvsimag_plotter(object):
 
     # end of update_plot 
 
+  def plot_flags(self):
+
+# set up and plot flags in their entirety
+    self.flag_plot_dict={}
+    if len(self._flags_r_dict) > 0:
+      plot_flag_r_keys = self._flags_r_dict.keys()
+      plot_flag_i_keys = self._flags_i_dict.keys()
+      for i in range(0, len(plot_flag_r_keys)):
+         flag_data_r = self._flags_r_dict[plot_flag_r_keys[i]]
+         end_location = len(plot_flag_r_keys[i])
+         flag_data_i_string = plot_flag_r_keys[i][:end_location-2] + '_i'
+         flag_data_i = self._flags_i_dict[flag_data_i_string]
+
+         key_flag_plot = self.plot.insertCurve(plot_flag_r_keys[i])
+         self.flag_plot_dict[plot_flag_r_keys[i]] = key_flag_plot
+
+         self.plot.setCurvePen(key_flag_plot, QPen(Qt.black))
+         self.plot.setCurveStyle(key_flag_plot, QwtCurve.Dots)
+         plot_flag_curve = self.plot.curve(key_flag_plot)
+         plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
+                     QPen(Qt.black), QSize(15, 15)))
+         self.plot.setCurveData(key_flag_plot, flag_data_r, flag_data_i)
 
   def go(self, counter):
       """Create and plot some garbage data
