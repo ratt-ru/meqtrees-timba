@@ -36,13 +36,16 @@
 # The command has to be run from the LOFAR directory in the user's tree.
 #
 # Run as:
-#   rub [-cvs cvs-command] [-build variants] -[dist]clean -check -install package1 [...]
+#   rub [-cvs cvs-command] [-updq string] [-r<cvstag>] 
+#       [-build variants [-[dist]clean] [-check] [-install]]
+#       package1 [...]
 #
 #     -cvs cvs-command  is an optional cvs command making it possible to
 #                       specify (for example) the root.
 #                       It defaults to cvs.
 #     -updq string      is a string containing qualifiers for the cvs update
 #                       command (default is empty)
+#     -r<cvstag>        cvs tag of the package(s) to be updated/checked out
 #     -build variants   gives the variants to build (e.g. gnu3_debug)
 #                       Separate multiple variants by whitespace, thus they
 #                       have to be enclosed in quotes then.
@@ -83,6 +86,7 @@ fi
 cvsdefault=cvs
 cvscomm=$cvsdefault
 updq=
+cvstag=
 variants=
 conf=0
 clean=0
@@ -107,6 +111,14 @@ do
   elif [ "$1" = -noupdq ]; then
     shift
     updq=
+  # cvs tag?
+  elif [ "$1" = -r ]; then
+    shift
+    cvstag="$1"
+    shift
+  elif [ "$1" = -nor ]; then
+    shift
+    cvstag=
   # Do we have to build after the checkout/update?
   elif [ "$1" = -build ]; then
     shift
@@ -146,7 +158,15 @@ do
     shift
     install=0
   else
-    break;
+    case "$1" in
+    -r*)
+      cvstag=`echo $1 | sed -e 's/-r//'`
+      shift
+      ;;
+    *)
+      break
+      ;;
+    esac
   fi
 done
 if [ $distclean = 1 ]; then
@@ -170,14 +190,14 @@ touch allpkg.tmp rub.log
 
 # First update bootstrap and autoconf_share.
 $cvscomm update bootstrap
-${pgmpath}rub1 autoconf_share 1 "$cvscomm" "$updq"
+${pgmpath}rub1 autoconf_share "" 1 "$cvscomm" "$updq" || exit 1
 \rm -f allpkg.tmp
 touch allpkg.tmp
 
 # Update the packages and all packages they need.
 for PKG in $*
 do
-  ${pgmpath}rub1 $PKG 1 "$cvscomm" "$updq"
+  ${pgmpath}rub1 $PKG "$cvstag" 1 "$cvscomm" "$updq" || exit 1
 done
 
 # Convert allpkg.tmp to lofarconf.in.private
@@ -189,11 +209,11 @@ fi
 touch lofarconf.in.private
 while [ 1 = 1 ]
 do
-  pkg=`tail -1 allpkg.tmp`
+  pkg=`tail -1 allpkg.tmp | awk '{ print $1 }'`
   if [ "$pkg" = "" ]; then
     break;
   fi
-  grep -v "^$pkg$" allpkg.tmp > allpkg.tmp1
+  grep -v "^$pkg " allpkg.tmp > allpkg.tmp1
   mv allpkg.tmp1 allpkg.tmp
   echo "$pkg" >> lofarconf.in.private
 done

@@ -27,9 +27,10 @@
 # See rub for more details.
 #
 # Use as:
-#   rub1 package checkout cvscomm updq
+#   rub1 package cvstag checkout cvscomm updq
 #
 #     package     name of package to checkout/update
+#     cvstag      tag of package to checkout/update (blank = no tag)
 #     checkout    1 = do actual checkout/update if not done yet
 #                 0 = do not checkout/update, but only write used
 #                     packages in allpkg.tmp. This is needed for rub
@@ -38,32 +39,55 @@
 #     updq        cvs update qualifiers (e.g. -dAP)
 
 
-# Get package name.
+# Get package name and tag.
 pkgname="$1"
+pkgtag="$2"
 # Does an actual checkout/update need to be done.
-checkout="$2"
+checkout="$3"
 # Get cvs command (defaults to cvs).
-cvscomm="$3"
+cvscomm="$4"
 if [ "$cvscomm" = "" ]; then
   cvscomm="cvs"
 fi
-updq="$4"
+# Get cvs update flags.
+updq="$5"
+
 # See if this package was already updated.
-grep "^$pkgname$" allpkg.tmp > /dev/null 2>&1
-status=$?
+grep "^$pkgname " allpkg.tmp > /dev/null 2>&1
+notfound=$?
+# If found, check if tag matches.
+if [ $notfound = 0  -a  "$pkgtag" != "" ]; then
+  tmptag=`grep "^$pkgname [^ ]" allpkg.tmp | head -1 | sed -e 's/.* //'`
+  if [ "$tmptag" != "$pkgtag" ]; then
+    echo "Error: package $pkgname is used with different tags ($pkgtag and $tmptag)"
+    exit 1
+  fi
+fi
 # Add it to the file to get correct build order.
-echo "$pkgname" >> allpkg.tmp
+echo "$pkgname $pkgtag" >> allpkg.tmp
+rtag=
+if [ "$pkgtag" != "" ]; then
+  rtag="-r$pkgtag"
+  tagstr=", cvstag $pkgtag"
+fi
 
 # Checkout/update if needed.
-if [ $status != 0  -a  $checkout = 1 ]; then
+if [ $notfound != 0  -a  $checkout = 1 ]; then
   if [ -d $pkgname ]; then
-    echo "Update of package $pkgname"
-    echo "(cd $pkgname  &&  $cvscomm update $updq)" >> rub.log 2>&1
-    (cd $pkgname  &&  $cvscomm update "$updq") >> rub.log 2>&1
+    echo "Update of package $pkgname$tagstr"
+    echo "(cd $pkgname  &&  $cvscomm update $rtag $updq)" >> rub.log 2>&1
+    (cd $pkgname  &&  $cvscomm update $rtag $updq) >> rub.log 2>&1
+    status=$?
   else
-    echo "Checkout of package $pkgname"
-    echo "(cd ..  &&  $cvscomm checkout LOFAR/$pkgname)" >> rub.log 2>&1
-    (cd ..  &&  $cvscomm checkout LOFAR/$pkgname) >> rub.log 2>&1
+    echo "Checkout of package $pkgname$tagstr"
+    echo "(cd ..  &&  $cvscomm checkout $rtag LOFAR/$pkgname)" >> rub.log 2>&1
+    (cd ..  &&  $cvscomm checkout $rtag LOFAR/$pkgname) >> rub.log 2>&1
+    status=$?
+  fi
+  if [ $status != 0 ]; then
+    echo "Exiting; update/checkout returned with an error status ..."
+    tail -2 rub.log
+    exit 1
   fi
 fi
 
@@ -74,10 +98,13 @@ if [ -f $pkgname/configure.in ]; then
   pkgs=`grep "^[ \t]*lofar_\(PACKAGE\)\|\(INTERNAL\)[ \t]*(.*)" $pkgname/configure.in`
   for pkg in $pkgs
   do
-    # Extract package name.
-    nm=`echo $pkg | sed -e "s/.*lofar_\(PACKAGE\)\|\(INTERNAL\)//" -e "s/ //g" -e "s/.*(//" -e "s/).*//"`
-    nm=`echo $nm | sed -e "s/,.*//"`
-    # Check out the package
-    $0 $nm $checkout "$cvscomm" "$updq"  ||  exit 1
+    # Extract package name and tag.
+    nma=`echo $pkg | sed -e "s/.*lofar_\(PACKAGE\)\|\(INTERNAL\)//" -e "s/ //g" -e "s/.*(//" -e "s/).*//"`
+    # First name is the package.
+    nm=`echo $nma | sed -e "s/,.*//"`
+    # Possible third name is the tag.
+    tag=`echo $nma | awk -F, '{ print $3 }'`
+    # Check out the package.
+    $0 $nm "$tag" $checkout "$cvscomm" "$updq"  ||  exit 1
   done
 fi

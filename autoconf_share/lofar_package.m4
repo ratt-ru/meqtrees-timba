@@ -61,11 +61,13 @@
 #                      derived library path gets PFX/build
 #  --with-package-libdir=PFX   overrides package derived library path.
 #
-# lofar_PACKAGE(package_path, recoption, option)
+# lofar_PACKAGE(package_path, recoption, cvs-versiontag, option)
 #     where recoption=0 means that makepkglinks descends recursively into
 #                       all packages used by this package (default).
 #           recoption=1 means not recursively
 #           recoption=2 means not recursively and no library in LIBS
+#           cvs-versiontag is an optional cvstag telling the package version
+#             It is used by rub.
 #           option = 0 means that the package is optional
 #           option = 1 means that the package is mandatory 
 #
@@ -78,7 +80,7 @@ AC_PREREQ(2.13)dnl
 define(LOFAR_PKG_SYM,patsubst([$1], [.*/]))
 define(LOFAR_PKG_LIB,m4_tolower(patsubst([$1], [.*/])))
 ifelse($2, [], [lfr_recoption=0], [lfr_recoption=$2])
-ifelse($3, [], [lfr_option=1], [lfr_option=$3])
+ifelse($4, [], [lfr_option=1], [lfr_option=$4])
 AC_ARG_WITH([[lofar-]][LOFAR_PKG_LIB],
 	[  --with-lofar-LOFAR_PKG_LIB[[=PFX]]        path to $1 directory],
 	[with_package=$withval
