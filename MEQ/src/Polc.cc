@@ -246,13 +246,13 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
       for( uint i=0; i<spidIndex.size(); i++) 
         if( spidIndex[i] >= 0 )
           pertValPtr[ipert][i] = 
-              vs.setPerturbedValue(spidIndex[i],new Vells(0.,res_shape,true),ipert)
+              vs.setPerturbedValue(spidIndex[i],new Vells(double(0),res_shape,true),ipert)
                     .realStorage();
         else
           pertValPtr[ipert][i] = 0;
     }
     // Create matrix for the main value and keep a pointer to its storage
-    double* value = vs.setValue(new Vells(0,res_shape,true)).realStorage();
+    double* value = vs.setValue(new Vells(double(0),res_shape,true)).realStorage();
     for( int i=0; i<ndx; i++ )
     {
       double valx = grid(i);
@@ -299,48 +299,49 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     for( uint i=0; i<spidIndex.size(); i++) 
       if( spidIndex[i] >= 0 )
         pertValPtr[ipert][i] = 
-            vs.setPerturbedValue(spidIndex[i],new Vells(0.,res_shape,true),ipert)
+            vs.setPerturbedValue(spidIndex[i],new Vells(double(0),res_shape,true),ipert)
                   .realStorage();
       else
         pertValPtr[ipert][i] = 0;
   }
   // Create matrix for the main value and keep a pointer to its storage
-  double* value = vs.setValue(new Vells(0,res_shape,true)).realStorage();
+  double* value = vs.setValue(new Vells(double(0),res_shape,true)).realStorage();
   // Iterate over all cells in the domain.
-  for (int j=0; j<ndy; j++) 
+  // The Y index iterates faster, hence the outer loop is over j over X values
+  for (int j=0; j<ndx; j++) 
   {
-    double valy = grid[1](j);
-    for (int i=0; i<ndx; i++) 
+    double valx = grid[0](j);
+    for (int i=0; i<ndy; i++)  // inner loop: i over Y values
     {
-      double valx = grid[0](i);
+      double valy = grid[1](i);
       const double* coeff = coeffData;
       double total = 0;
-      double powy = 1;
-      for (int iy=0; iy<ncy; iy++) 
+      double powx = 1;
+      for (int ix=0; ix<ncx; ix++) 
       {
-        double tmp = coeff[ncx-1];
-        for (int ix=ncx-2; ix>=0; ix--) 
+        double tmp = coeff[ncy-1];
+        for (int iy=ncy-2; iy>=0; iy--) 
         {
-          tmp *= valx;
-          tmp += coeff[ix];
+          tmp *= valy;
+          tmp += coeff[iy];
         }
-        total += tmp * powy;
-        powy *= valy;
-        coeff += ncx;
+        total += tmp * powx;
+        powx *= valx;
+        coeff += ncy;
       }
       if( makePerturbed ) 
       {
-        double powersx[10];
-        double powx = 1;
-        for (int ix=0; ix<ncx; ix++) {
-          powersx[ix] = powx;
-          powx *= valx;
-        }
+        double powersy[10];
         double powy = 1;
-        int ik = 0;
         for (int iy=0; iy<ncy; iy++) {
-          for (int ix=0; ix<ncx; ix++) {
-            double d = perts[ik] * powersx[ix] * powy;
+          powersy[iy] = powy;
+          powy *= valy;
+        }
+        double powx = 1;
+        int ik = 0;
+        for (int ix=0; ix<ncx; ix++) {
+          for (int iy=0; iy<ncy; iy++) {
+            double d = perts[ik] * powersy[iy] * powx;
             for( int ipert=0; ipert<makePerturbed; ipert++,d=-d ) {
               if( pertValPtr[ipert][ik] ) {
                 *(pertValPtr[ipert][ik]) = total + d;
@@ -349,7 +350,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
             }
             ik++;
           }
-          powy *= valy;
+          powx *= valx;
         }
       }
       *value++ = total;
