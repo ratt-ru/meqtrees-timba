@@ -12,6 +12,7 @@ Client                           1097       ; from /home/oms/LOFAR/Timba/OCTOPUS
 Connected                        1094       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
 Connection                       1087       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
 ConnectionMgrWP                  1068       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:23
+Content                          1111       ; from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishClientWP.h:21
 Count                            1099       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
 D                                1003       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Data                             1103       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
@@ -40,15 +41,20 @@ float                            43         ; from /home/oms/LOFAR/Timba/DMI/src
 G                                1009       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Gateway                          1089       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWServerWP.h:10
 GatewayWP                        1071       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:23
+GlishClientWP                    1109       ; from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishClientWP.h:20
+GlishConnServerWP                1108       ; from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishConnServerWP.h:7
+GlishThreadedClientWP            1107       ; from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishThreadWP.h:7
 GW                               1069       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 GWClientWP                       1035       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:23
 GWServerWP                       1066       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:23
 H                                1025       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Heartbeat                        1063       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MTGatewayWP.h:16
 Hello                            1048       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:25
+HelloWorld                       1112       ; from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishClientWP.h:21
 Host                             1096       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
 Hosts                            1065       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
 I                                1027       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+IMTestWP                         1110       ; from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishClientWP.h:21
 Index                            1061       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:30
 Init                             1038       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MTGatewayWP.h:16
 Input                            1036       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
@@ -98,6 +104,7 @@ Scope                            1041       ; from /home/oms/LOFAR/Timba/OCTOPUS
 Server                           1078       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 short                            35         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:105
 Signal                           1059       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
+start                            1106       ; from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishClientWP.h:21
 State                            1072       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:25
 string                           48         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:109
 Subscribe                        1042       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
