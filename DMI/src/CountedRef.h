@@ -517,13 +517,13 @@ inline CountedRef<T>::CountedRef (int flags)
 // to ref.copy(). For this implementation to work, destination
 // container must support the explicit resize operation.
 template<class SrcCont,class DestCont>
-void copyRefContainer (DestCont &dest,const SrcCont &src,int flags=DMI::PRESERVE_RW)
+void copyRefContainer (DestCont &dest,const SrcCont &src,int flags=DMI::PRESERVE_RW,int depth=-1)
 {
   dest.resize(src.size());
   typename SrcCont::const_iterator si = src.begin();
   typename DestCont::iterator di = dest.begin();
   for( ; si != src.end(); si++,di++ )
-    di->copy(*si,flags);
+    di->copy(*si,flags,depth);
 }
 
 // The DefineRefTypes macro generates typedefs for refs to specific types.
