@@ -76,8 +76,12 @@ do
   curwd=`pwd`
   if test "$lfr_dirform" = 0; then
     # Build is part of the package directory.
-    # Make build and variant directory if needed.
-    cd ../../$subdir > /dev/null   # suppress possible cd output
+    # Make package, build, and variant directory if needed.
+    cd ../.. > /dev/null   # suppress possible cd output
+    if [ ! -d "$subdir" ]; then
+      mkdir $subdir
+    fi
+    cd $subdir > /dev/null
     if [ ! -d build ]; then
       mkdir build
     fi
@@ -99,6 +103,8 @@ do
   cd $curwd > /dev/null
 done
 
+# Make sure there is an makeoptions.
+touch makeoptions
 # Remove Makefile and create a new one.
 # Note that the quotes around EOF are needed to avoid substitution.
 # The structure of the Makefile is similar to the top LOFAR Makefile
@@ -124,17 +130,18 @@ start_build:
 	@echo && echo ":::::: BUILD START" && echo
 stop_build:
 	@echo && echo ":::::: BUILD COMPLETE" && echo
-#
-# check target: check all variants that have been specified in the
-#               VARIANTNAMES variable
-#
 check: $(VARIANTNAMES:.variant=.variant_check)
+install: $(VARIANTNAMES:.variant=.variant_install)
+uninstall: $(VARIANTNAMES:.variant=.variant_uninstall)
+clean: $(VARIANTNAMES:.variant=.variant_clean)
+distclean: $(VARIANTNAMES:.variant=.variant_distclean)
+dist: $(VARIANTNAMES:.variant=.variant_dist)
 EOFXXXXX
 
 if test $lfr_dirform = 0; then
   cat <<'EOFXXXXX' >> Makefile
 #
-# Rule to build variant 
+# Rule to build variant recursively
 #
 %.variant_build:
 	@date; \
@@ -156,8 +163,7 @@ if test $lfr_dirform = 0; then
 	done; \
 	date
 #
-# Rule to check variant
-#	- Run make check for each variant
+# Rule to check variant recursively
 #
 %.variant_check:
 	@date; \
@@ -178,12 +184,122 @@ if test $lfr_dirform = 0; then
 	    fi\
 	done; \
 	date
+#
+# Rule to install variant recursively
+#
+%.variant_install:
+	@date; \
+	variant=`basename $@ .variant_install`; \
+	for pkg in $(PACKAGES); do \
+            cd ../..; \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg/build/$$variant \
+		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` install \
+			|| echo ":::::: ERROR" )) \
+		&& echo \
+		&& echo ":::::: FINISHED INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
+	    fi\
+	done; \
+	date
+#
+# Rule to uninstall variant recursively
+#
+%.variant_uninstall:
+	@date; \
+	variant=`basename $@ .variant_uninstall`; \
+	for pkg in $(PACKAGES); do \
+            cd ../..; \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg/build/$$variant \
+		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` uninstall \
+			|| echo ":::::: ERROR" )) \
+		&& echo \
+		&& echo ":::::: FINISHED UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
+	    fi\
+	done; \
+	date
+#
+# Rule to clean variant recursively
+#
+%.variant_clean:
+	@date; \
+	variant=`basename $@ .variant_clean`; \
+	for pkg in $(PACKAGES); do \
+            cd ../..; \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg/build/$$variant \
+		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` clean \
+			|| echo ":::::: ERROR" )) \
+		&& echo \
+		&& echo ":::::: FINISHED CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
+	    fi\
+	done; \
+	date
+#
+# Rule to distclean variant recursively
+#
+%.variant_distclean:
+	@date; \
+	variant=`basename $@ .variant_distclean`; \
+	for pkg in $(PACKAGES); do \
+            cd ../..; \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg/build/$$variant \
+		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` distclean \
+			|| echo ":::::: ERROR" )) \
+		&& echo \
+		&& echo ":::::: FINISHED DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
+	    fi\
+	done; \
+	date
+#
+# Rule to distclean variant recursively
+#
+%.variant_dist:
+	@date; \
+	variant=`basename $@ .variant_dist`; \
+	for pkg in $(PACKAGES); do \
+            cd ../..; \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg/build/$$variant \
+		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` dist \
+			|| echo ":::::: ERROR" )) \
+		&& echo \
+		&& echo ":::::: FINISHED MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
+	    fi\
+	done; \
+	date
 EOFXXXXX
 
 else
   cat <<'EOFXXXXX' >> Makefile
 #
-# Rule to build variant 
+# Rule to build variant recursively
 #
 %.variant_build:
 	@date; \
@@ -204,8 +320,7 @@ else
 	done; \
 	date
 #
-# Rule to check variant
-#	- Run make check for each variant
+# Rule to check variant recursively
 #
 %.variant_check:
 	@date; \
@@ -221,6 +336,111 @@ else
 			|| echo ":::::: ERROR" )) \
 		&& echo \
 		&& echo ":::::: FINISHED CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
+	    fi\
+	done; \
+	date
+#
+# Rule to install variant recursively
+#
+%.variant_install:
+	@date; \
+	variant=`basename $@ .variant_install`; \
+	for pkg in $(PACKAGES); do \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg \
+		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` install \
+			|| echo ":::::: ERROR" )) \
+		&& echo \
+		&& echo ":::::: FINISHED INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
+	    fi\
+	done; \
+	date
+#
+# Rule to uninstall variant recursively
+#
+%.variant_uninstall:
+	@date; \
+	variant=`basename $@ .variant_uninstall`; \
+	for pkg in $(PACKAGES); do \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg \
+		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` uninstall \
+			|| echo ":::::: ERROR" )) \
+		&& echo \
+		&& echo ":::::: FINISHED UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
+	    fi\
+	done; \
+	date
+#
+# Rule to clean variant recursively
+#
+%.variant_clean:
+	@date; \
+	variant=`basename $@ .variant_clean`; \
+	for pkg in $(PACKAGES); do \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg \
+		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` clean \
+			|| echo ":::::: ERROR" )) \
+		&& echo \
+		&& echo ":::::: FINISHED CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
+	    fi\
+	done; \
+	date
+#
+# Rule to distclean variant recursively
+#
+%.variant_distclean:
+	@date; \
+	variant=`basename $@ .variant_distclean`; \
+	for pkg in $(PACKAGES); do \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg \
+		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` distclean \
+			|| echo ":::::: ERROR" )) \
+		&& echo \
+		&& echo ":::::: FINISHED DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
+	    fi\
+	done; \
+	date
+#
+# Rule to dist variant recursively
+#
+%.variant_dist:
+	@date; \
+	variant=`basename $@ .variant_dist`; \
+	for pkg in $(PACKAGES); do \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg \
+		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` dist \
+			|| echo ":::::: ERROR" )) \
+		&& echo \
+		&& echo ":::::: FINISHED MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
 		&& echo ; \
 	    fi\
 	done; \
@@ -247,12 +467,22 @@ help:
 	@echo "-------------------------------"
 	@echo ""
 	@echo "all:       default target; same as build"
-	@echo "build:     build all packages for all variants"
-	@echo "check:     build and run all test programs for all variants"
+	@echo "build:     build packages for variants"
+	@echo "check:     build and run all test programs for variants"
+	@echo "install:   install variants"
+	@echo "uninstall: uninstall variants"
+	@echo "clean:     clean variants"
+	@echo "distclean: distclean variants"
+	@echo "dist:      making dist of variants"
 	@echo ""
 	@echo "%.variant_build:     build all packages for given variant"
 	@echo "%.variant:           same as %.variant_build"
 	@echo "%.variant_check:     build and run all test programs for given variant"
+	@echo "%.variant_install:   install given variant"
+	@echo "%.variant_uninstall: uninstall given variant"
+	@echo "%.variant_clean:     clean given variant"
+	@echo "%.variant_distclean: distclean given variant"
+	@echo "%.variant_dist:      making dist of  given variant"
 	@echo ""
 	@echo "show:      show the important variables"
 	@echo ""

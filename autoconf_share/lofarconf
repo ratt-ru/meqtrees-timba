@@ -52,6 +52,8 @@ fi
 lfr_pkg=`echo $lfr_result | awk '{print $1}'`
 lfr_cmp=`echo $lfr_result | awk '{print $2}'`
 lfr_var=`echo $lfr_result | awk '{print $3}'`
+lfr_cvdir=`echo $lfr_result | awk '{print $4}'`
+lfr_dirform=`echo $lfr_result | awk '{print $5}'`
 
 # Get the directory of the configure files for the package.
 lfr_confdir=$lfr_root/$lfr_pkg;
@@ -61,6 +63,12 @@ if [ -r $lfr_confdir/lofarconf.in ]; then
   $lfr_base/lofarconf_recur "$@" || exit 2
   exit 0
 fi
+
+# Get the default install directory.
+# It is the root of the build tree followed by installed/variant.
+lfr_back=`echo $lfr_pkg | sed -e "s%/[^/]\+%/..%g" -e "s%^[^/]\+%..%"`
+lfr_install=`cd ../../$lfr_back && pwd`
+lfr_install=$lfr_install/installed/$lfr_cvdir
 
 # Get the configure and make options from the variants file.
 # Look first for a host specific one; if not found, for a general one.
@@ -103,6 +111,8 @@ if [ $? != 0 ]; then
   echo "$opts"
   exit 2
 fi
+# Add default install path to options.
+opts="--prefix=$lfr_install $opts"
 
 # Now do the configure.
 echo "${lfr_cmp}_$lfr_var configure will be done on host $lfr_host for package $lfr_pkg"
