@@ -54,29 +54,34 @@ class Polc : public DataRecord
 {
 public:
   typedef CountedRef<Polc> Ref;
+  typedef int DbId;
 
   Polc ();
     
     //##ModelId=3F86886F0366
   explicit Polc(double c00,double freq0=0,double freqsc=1,
                 double time0=0,double timesc=1,
-                double pert=defaultPolcPerturbation,double weight=defaultPolcWeight);
+                double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
+                DbId id=-1);
   
   explicit Polc(LoMat_double coeff,double freq0=0,double freqsc=1,
                 double time0=0,double timesc=1,
-                double pert=defaultPolcPerturbation,double weight=defaultPolcWeight);
+                double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
+                DbId id=-1);
   
   explicit Polc(DataArray *parr,double freq0=0,double freqsc=1,
                 double time0=0,double timesc=1,
-                double pert=defaultPolcPerturbation,double weight=defaultPolcWeight);
+                double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
+                DbId id=-1);
   
   explicit Polc(const Vells &coeff,double freq0=0,double freqsc=1,
                 double time0=0,double timesc=1,
-                double pert=defaultPolcPerturbation,double weight=defaultPolcWeight);
+                double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,
+                DbId id=-1);
   
   // sets all of a polc's attributes in one go
   void setEverything (double freq0,double freqsc,double time0,double timesc,
-                      double pert,double weight);
+                      double pert,double weight,DbId id);
   
     //##ModelId=400E5354033A
   Polc (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
@@ -115,7 +120,7 @@ public:
 
   // Get the domain.
     //##ModelId=3F86886F038A
-  const Domain& domain() const
+  const Domain & domain() const
     { return *itsDomain; }
 
   // Set the domain.
@@ -129,6 +134,11 @@ public:
   
     //##ModelId=3F86886F039A
   void setPerturbation (double perturbation = defaultPolcPerturbation);
+  
+  Polc::DbId getDbId () const
+  { return itsId; }
+  
+  void setDbId (DbId id);
   
   double getWeight() const
     { return itsWeight; }
@@ -244,6 +254,8 @@ private:
   double       itsTimeScale;
   
   double       itsWeight;
+  
+  int          itsId;
 
   //# Pascal's triangle for the binomial coefficients needed when normalizing.
     //##ModelId=3F86886F0357

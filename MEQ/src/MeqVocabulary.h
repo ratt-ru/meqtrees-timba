@@ -32,8 +32,8 @@
 #pragma aid NodeIndex Table Name Default Value Index Num Cache Code
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cells Results Fail Origin Line Message Contagious  Normalized
-#pragma aid Solvable Config Groups All By List Polcs Scale
-#pragma aid Grow Inf Weight Epsilon UseSVD 
+#pragma aid Solvable Config Groups All By List Polc Polcs Scale
+#pragma aid DbId Grow Inf Weight Epsilon UseSVD  Auto Save
 #pragma aid Metrics Rank Fit Errors CoVar Flag Mu StdDev Chi
 
 
@@ -76,6 +76,8 @@ namespace Meq
     FTableName       = AidTable|AidName,
     FParmName        = AidParm|AidName,
     FDomainId        = AidDomain|AidId,
+    FAutoSave        = AidAuto|AidSave,
+    FSavePolc        = AidSave|AidPolc,
     
     // Polc-specific fields
     FCoeff           = AidCoeff,
@@ -88,6 +90,7 @@ namespace Meq
     FTimeScale       = AidTime|AidScale,
     FGrowDomain      = AidGrow|AidDomain,
     FInfDomain       = AidInf|AidDomain,
+    FDbId            = AidDbId,
     
     FSpids           = AidSpid|AidIndex,
     FPerturbedValues = AidPerturbed|AidValue,

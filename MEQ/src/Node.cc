@@ -711,9 +711,6 @@ int Node::execute (Result::Ref &ref, const Request &req)
         cdebug(3)<<"  processing request rider"<<endl;
         const DataRecord &rider = req[FRider];
         processRider(rider);
-        // process rider stuff common to all nodes (setState, etc.)
-        // ...
-        // none for now
       }
     } // endif( newreq )
     

@@ -50,44 +50,45 @@ Polc::Polc()
 { 
   itsPertValue = defaultPolcPerturbation; 
   itsWeight = defaultPolcWeight;
+  itsId = -1;
 }
 
 //##ModelId=3F86886F0366
 Polc::Polc(double c00,double freq0,double freqsc,double time0,double timesc,
-            double pert,double weight)
+            double pert,double weight,DbId id)
   : itsCoeff(c00),itsDomain(&nullDomain),itsNrSpid(0)
 {
   (*this)[FCoeff] <<= itsCoeff.getDataArray();
-  setEverything(freq0,freqsc,time0,timesc,pert,weight);
+  setEverything(freq0,freqsc,time0,timesc,pert,weight,id);
 }
 
 Polc::Polc(LoMat_double arr,double freq0,double freqsc,double time0,double timesc,
-            double pert,double weight)
+            double pert,double weight,DbId id)
   : itsCoeff(arr),itsDomain(&nullDomain),itsNrSpid(0)
 {
   (*this)[FCoeff] <<= itsCoeff.getDataArray();
-  setEverything(freq0,freqsc,time0,timesc,pert,weight);
+  setEverything(freq0,freqsc,time0,timesc,pert,weight,id);
 }
 
 Polc::Polc(DataArray *parr,double freq0,double freqsc,double time0,double timesc,
-            double pert,double weight)
+            double pert,double weight,DbId id)
   : itsCoeff(parr),itsDomain(&nullDomain),itsNrSpid(0)
 {
   (*this)[FCoeff] <<= itsCoeff.getDataArray();
-  setEverything(freq0,freqsc,time0,timesc,pert,weight);
+  setEverything(freq0,freqsc,time0,timesc,pert,weight,id);
 }
 
 Polc::Polc(const Vells &coeff,double freq0,double freqsc,double time0,double timesc,
-            double pert,double weight)
+            double pert,double weight,DbId id)
   : itsDomain(&nullDomain),itsNrSpid(0)
 {
   itsCoeff = coeff.clone();
   (*this)[FCoeff] <<= itsCoeff.getDataArray();
-  setEverything(freq0,freqsc,time0,timesc,pert,weight);
+  setEverything(freq0,freqsc,time0,timesc,pert,weight,id);
 }
 
 void Polc::setEverything (double freq0,double freqsc,double time0,double timesc,
-                          double pert,double weight)
+                          double pert,double weight,DbId id)
 {
   (*this)[FCoeff] <<= itsCoeff.getDataArray();
   (*this)[FPerturbation] = itsPertValue = pert;
@@ -96,6 +97,7 @@ void Polc::setEverything (double freq0,double freqsc,double time0,double timesc,
   (*this)[FFreqScale] = itsFreqScale = freqsc;
   (*this)[FTimeScale] = itsTimeScale = timesc;
   (*this)[FWeight] = itsWeight = weight;
+  (*this)[FDbId] = itsId = id;
 }
 
 
@@ -129,6 +131,7 @@ void Polc::validateContent ()
     itsFreqScale = (*this)[FFreqScale].as<double>(1);
     itsTimeScale = (*this)[FTimeScale].as<double>(1);
     itsWeight    = (*this)[FWeight].as<double>(defaultPolcWeight);
+    itsId        = (*this)[FDbId].as<int>(-1);
   }
   catch( std::exception &err )
   {
@@ -151,6 +154,9 @@ void Polc::setPerturbation (double perturbation)
 
 void Polc::setWeight (double weight)
 { (*this)[FWeight] = itsWeight = weight; }
+
+void Polc::setDbId (Polc::DbId id)
+{ (*this)[FDbId] = itsId = id; }
 
 void Polc::setFreq0 (double freq0)
 { (*this)[FFreq0] = itsFreq0 = freq0; }

@@ -13,6 +13,11 @@
 const AtomicID AidAll(-1381);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
 const int AidAll_int = -1381;
 #endif
+#ifndef _defined_id_AidAuto
+#define _defined_id_AidAuto 1
+const AtomicID AidAuto(-1273);                    // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:17
+const int AidAuto_int = -1273;
+#endif
 #ifndef _defined_id_AidBy
 #define _defined_id_AidBy 1
 const AtomicID AidBy(-1382);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
@@ -77,6 +82,11 @@ const int AidConfig_int = -1373;
 #define _defined_id_AidContagious 1
 const AtomicID AidContagious(-1364);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:34
 const int AidContagious_int = -1364;
+#endif
+#ifndef _defined_id_AidDbId
+#define _defined_id_AidDbId 1
+const AtomicID AidDbId(-1411);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
+const int AidDbId_int = -1411;
 #endif
 #ifndef _defined_id_AidDec
 #define _defined_id_AidDec 1
@@ -383,6 +393,11 @@ const int AidPerturbations_int = -1218;
 const AtomicID AidPerturbed(-1229);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:35
 const int AidPerturbed_int = -1229;
 #endif
+#ifndef _defined_id_AidPolc
+#define _defined_id_AidPolc 1
+const AtomicID AidPolc(-1412);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
+const int AidPolc_int = -1412;
+#endif
 #ifndef _defined_id_AidPolcs
 #define _defined_id_AidPolcs 1
 const AtomicID AidPolcs(-1383);                   // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
@@ -422,6 +437,11 @@ const int AidResults_int = -1245;
 #define _defined_id_AidRider 1
 const AtomicID AidRider(-1250);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:33
 const int AidRider_int = -1250;
+#endif
+#ifndef _defined_id_AidSave
+#define _defined_id_AidSave 1
+const AtomicID AidSave(-1391);                    // from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:13
+const int AidSave_int = -1391;
 #endif
 #ifndef _defined_id_AidScale
 #define _defined_id_AidScale 1

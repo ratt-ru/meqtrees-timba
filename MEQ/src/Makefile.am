@@ -45,7 +45,7 @@ $(DEFREC_MAP): $(DOCHDRS) $(MAKEDEFREC)
   
 # place scripts into libexec/glish/meq
 glishdir = $(libexecdir)/glish/meq
-dist_glish_SCRIPTS = $(DEFREC_MAP) meptable.g
+dist_glish_SCRIPTS = $(DEFREC_MAP) meptable.g meqtypes.g
 
 defrecs: $(DEFREC_MAP)
 
