@@ -17321,12 +17321,9 @@
 				(object Operation "init"
 				    quid       	"3F71705201BD"
 				    parameters 	(list Parameters
-					(object Parameter "max_stations"
-					    quid       	"3F71705B01FC"
-					    type       	"int")
-					(object Parameter "max_corr"
-					    quid       	"3F71706C0365"
-					    type       	"int"))
+					(object Parameter "header"
+					    quid       	"3F9515A803CB"
+					    type       	"const DataRecord &"))
 				    result     	"void"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
@@ -17348,6 +17345,16 @@
 					    quid       	"3F716EC5025D"
 					    type       	"const Node::Ref &"))
 				    result     	"void"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
+				    uid        	0)
+				(object Operation "deliver"
+				    quid       	"3F950ACA0160"
+				    parameters 	(list Parameters
+					(object Parameter "tile"
+					    quid       	"3F95159D014B"
+					    type       	"const VisTile &"))
+				    result     	"int"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
 				    uid        	0))
@@ -17404,15 +17411,15 @@
 				    opExportControl 	"Public"
 				    uid        	0)
 				(object Operation "getResult"
-				    quid       	"3F7045BE00FB"
+				    quid       	"3F9509770277"
 				    stereotype 	"virtual"
 				    parameters 	(list Parameters
 					(object Parameter "resref"
-					    quid       	"3F7045BE00FC"
+					    quid       	"3F9509770278"
 					    type       	"Result::Ref &")
-					(object Parameter "rqid"
-					    quid       	"3F7045BE00FD"
-					    type       	"RequestId"))
+					(object Parameter ""
+					    quid       	"3F9509770279"
+					    type       	"const Request&"))
 				    result     	"int"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
@@ -17450,6 +17457,19 @@
 				    result     	"void"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
+				    uid        	0)
+				(object Operation "deliver"
+				    quid       	"3F95157202AD"
+				    parameters 	(list Parameters
+					(object Parameter "tile"
+					    quid       	"3F95158B0349"
+					    type       	"const VisTile &")
+					(object Parameter "icorr"
+					    quid       	"3F95243E004E"
+					    type       	"int"))
+				    result     	"int"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
 				    uid        	0))
 			    class_attributes 	(list class_attribute_list
 				(object ClassAttribute "spigot_id"
@@ -17457,7 +17477,160 @@
 				    type       	"int"))
 			    module     	"Component View::AppAgent"
 			    quidu      	"3DF9FDED0011"
-			    language   	"ANSI C++"))
+			    language   	"ANSI C++")
+			(object Class "MeqServer"
+			    attributes 	(list Attribute_Set
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"HeaderSourceFile"
+				    value      	(value Text "MeqServer/src/MeqServer.h"))
+				(object Attribute
+				    tool       	"Cplusplus"
+				    name       	"BodySourceFile"
+				    value      	(value Text "MeqServer/src/MeqServer.cc")))
+			    quid       	"3F5F195E013B"
+			    documentation 	"Returns True if a valid node exists for the given index"
+			    superclasses 	(list inheritance_relationship_list
+				(object Inheritance_Relationship
+				    quid       	"3F5F195E015B"
+				    supplier   	"Logical View::AppAgents::AppUtils::VisPipe"
+				    quidu      	"3E7727920352"))
+			    operations 	(list Operations
+				(object Operation "MeqServer"
+				    quid       	"3F5F195E0140"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
+				    uid        	0)
+				(object Operation "run"
+				    quid       	"3F608106021C"
+				    stereotype 	"virtual"
+				    result     	"void"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
+				    uid        	0)
+				(object Operation "createNode"
+				    quid       	"3F61920F01A8"
+				    parameters 	(list Parameters
+					(object Parameter "out"
+					    quid       	"3F61920F01BA"
+					    type       	"DataRecord::Ref &")
+					(object Parameter "initrec"
+					    quid       	"3F61920F01DA"
+					    type       	"DataRecord::Ref::Xfer &"))
+				    result     	"void"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
+				    uid        	0)
+				(object Operation "deleteNode"
+				    quid       	"3F61920F01FA"
+				    parameters 	(list Parameters
+					(object Parameter "out"
+					    quid       	"3F61920F020C"
+					    type       	"DataRecord::Ref &")
+					(object Parameter "in"
+					    quid       	"3F61920F022D"
+					    type       	"DataRecord::Ref::Xfer &"))
+				    result     	"void"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
+				    uid        	0)
+				(object Operation "getNodeState"
+				    quid       	"3F61920F024E"
+				    parameters 	(list Parameters
+					(object Parameter "out"
+					    quid       	"3F61920F025F"
+					    type       	"DataRecord::Ref &")
+					(object Parameter "in"
+					    quid       	"3F61920F0283"
+					    type       	"DataRecord::Ref::Xfer &"))
+				    result     	"void"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
+				    uid        	0)
+				(object Operation "setNodeState"
+				    quid       	"3F61920F02A4"
+				    parameters 	(list Parameters
+					(object Parameter "out"
+					    quid       	"3F61920F02B6"
+					    type       	"DataRecord::Ref &")
+					(object Parameter "in"
+					    quid       	"3F61920F02D7"
+					    type       	"DataRecord::Ref::Xfer &"))
+				    result     	"void"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
+				    uid        	0)
+				(object Operation "resolveNode"
+				    quid       	"3F6196800325"
+				    parameters 	(list Parameters
+					(object Parameter "rec"
+					    quid       	"3F6196800348"
+					    type       	"const DataRecord &"))
+				    result     	"Node &"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Private"
+				    uid        	0
+				    quidu      	"3F5F436202FE")
+				(object Operation "sdebug"
+				    quid       	"3F5F195E0156"
+				    stereotype 	"const,virtual"
+				    parameters 	(list Parameters
+					(object Parameter "detail"
+					    quid       	"3F5F195E0157"
+					    type       	"int"
+					    initv      	"1")
+					(object Parameter "prefix"
+					    quid       	"3F5F195E0158"
+					    type       	"const string &"
+					    initv      	
+|""
+					    )
+					(object Parameter "name"
+					    quid       	"3F5F195E0159"
+					    type       	"const char *"
+					    initv      	"0"))
+				    result     	"string"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
+				    uid        	0))
+			    class_attributes 	(list class_attribute_list
+				(object ClassAttribute "LocalDebugContext"
+				    quid       	"3F5F195E013F"
+				    exportControl 	"Public"))
+			    module     	"Component View::AppAgent"
+			    quidu      	"3DF9FDED0011"
+			    language   	"ANSI C++"
+			    nestedClasses 	(list nestedClasses
+				(object Class "PtrCommandMethod"
+				    attributes 	(list Attribute_Set
+					(object Attribute
+					    tool       	"Cplusplus"
+					    name       	"HeaderSourceFile"
+					    value      	"MeqServer/src/MeqServer.h")
+					(object Attribute
+					    tool       	"Cplusplus"
+					    name       	"ImplementationType"
+					    value      	"void (MeqServer::* )(DataRecord::Ref &out,DataRecord::Ref::Xfer &in)"))
+				    quid       	"3F61920F0158"
+				    stereotype 	"typedef"
+				    exportControl 	"Private"
+				    module     	"Component View::AppAgent"
+				    quidu      	"3DF9FDED0011")
+				(object Class "CommandMap"
+				    attributes 	(list Attribute_Set
+					(object Attribute
+					    tool       	"Cplusplus"
+					    name       	"HeaderSourceFile"
+					    value      	"MeqServer/src/MeqServer.h")
+					(object Attribute
+					    tool       	"Cplusplus"
+					    name       	"ImplementationType"
+					    value      	"std::map<HIID,PtrCommandMethod>"))
+				    quid       	"3F61920F016E"
+				    stereotype 	"typedef"
+				    exportControl 	"Private"
+				    module     	"Component View::AppAgent"
+				    quidu      	"3DF9FDED0011"))))
 		    logical_presentations 	(list unit_reference_list
 			(object ClassDiagram "Main"
 			    quid       	"3F5F0B4901EE"
@@ -17733,7 +17906,7 @@
 						pctDist    	0.807229
 						height     	29
 						orientation 	0))))
-				(object ClassView "Class" "Logical View::AppAgents::MEQ::MeqServer" @486
+				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::MeqServer" @486
 				    ShowCompartmentStereotypes 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
@@ -17760,6 +17933,23 @@
 				    line_color 	3342489
 				    fill_color 	13434879
 				    quidu      	"3F5F195E013B"
+				    compartment 	(object Compartment
+					Parent_View 	@486
+					location   	(122, 771)
+					font       	(object Font
+					    size       	10
+					    face       	"arial"
+					    bold       	FALSE
+					    italics    	FALSE
+					    underline  	FALSE
+					    strike     	FALSE
+					    color      	0
+					    default_color 	TRUE)
+					icon_style 	"Icon"
+					fill_color 	16777215
+					anchor     	2
+					nlines     	10
+					max_width  	1878)
 				    width      	1150
 				    height     	876
 				    annotation 	8)
@@ -17860,13 +18050,13 @@
 				    line_style 	3
 				    origin_attachment 	(240, 698)
 				    terminal_attachment 	(240, 413))
-				(object ClassView "Class" "Logical View::AppAgents::MEQ::MeqServer::CommandMap" @493
+				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::MeqServer::CommandMap" @493
 				    ShowCompartmentStereotypes 	TRUE
 				    SuppressAttribute 	TRUE
 				    SuppressOperation 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
-				    location   	(192, 2080)
+				    location   	(192, 1984)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -17878,7 +18068,7 @@
 					default_color 	TRUE)
 				    label      	(object ItemLabel
 					Parent_View 	@493
-					location   	(41, 2028)
+					location   	(41, 1932)
 					fill_color 	13434879
 					nlines     	1
 					max_width  	302
@@ -17886,7 +18076,7 @@
 					label      	"CommandMap")
 				    stereotype 	(object ItemLabel
 					Parent_View 	@493
-					location   	(41, 1978)
+					location   	(41, 1882)
 					fill_color 	13434879
 					anchor     	10
 					nlines     	1
@@ -17901,14 +18091,14 @@
 				    height     	228
 				    annotation 	8)
 				(object AssociationViewNew "" @494
-				    location   	(232, 1770)
+				    location   	(232, 1722)
 				    stereotype 	TRUE
 				    line_color 	3342489
 				    quidu      	"3F61920F0192"
 				    roleview_list 	(list RoleViews
 					(object RoleView "" @495
 					    Parent_View 	@494
-					    location   	(-408, -694)
+					    location   	(-408, -742)
 					    font       	(object Font
 						size       	10
 						face       	"arial"
@@ -17920,7 +18110,7 @@
 						default_color 	TRUE)
 					    label      	(object SegLabel @496
 						Parent_View 	@495
-						location   	(191, 1614)
+						location   	(191, 1604)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -17946,11 +18136,11 @@
 					    client     	@494
 					    supplier   	@486
 					    line_style 	3
-					    origin_attachment 	(232, 1770)
+					    origin_attachment 	(232, 1722)
 					    terminal_attachment 	(232, 1574))
 					(object RoleView "command_map" @497
 					    Parent_View 	@494
-					    location   	(-408, -694)
+					    location   	(-408, -742)
 					    font       	(object Font
 						size       	10
 						face       	"arial"
@@ -17962,7 +18152,7 @@
 						default_color 	TRUE)
 					    label      	(object SegLabel @498
 						Parent_View 	@497
-						location   	(215, 1878)
+						location   	(181, 1800)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -17978,8 +18168,8 @@
 						max_width  	301
 						justify    	0
 						label      	"-command_map"
-						pctDist    	0.554878
-						height     	18
+						pctDist    	0.527027
+						height     	51
 						orientation 	1)
 					    stereotype 	TRUE
 					    line_color 	3342489
@@ -17987,14 +18177,14 @@
 					    client     	@494
 					    supplier   	@493
 					    line_style 	3
-					    origin_attachment 	(232, 1770)
-					    terminal_attachment 	(232, 1966))))
+					    origin_attachment 	(232, 1722)
+					    terminal_attachment 	(232, 1870))))
 				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::Spigot" @499
 				    ShowCompartmentStereotypes 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
 				    ShowOperationSignature 	TRUE
-				    location   	(2416, 1104)
+				    location   	(2400, 1008)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -18006,7 +18196,7 @@
 					default_color 	TRUE)
 				    label      	(object ItemLabel
 					Parent_View 	@499
-					location   	(1710, 801)
+					location   	(1694, 705)
 					fill_color 	13434879
 					nlines     	1
 					max_width  	1413
@@ -18016,6 +18206,23 @@
 				    line_color 	3342489
 				    fill_color 	13434879
 				    quidu      	"3F671A55028F"
+				    compartment 	(object Compartment
+					Parent_View 	@499
+					location   	(1694, 766)
+					font       	(object Font
+					    size       	10
+					    face       	"arial"
+					    bold       	FALSE
+					    italics    	FALSE
+					    underline  	FALSE
+					    strike     	FALSE
+					    color      	0
+					    default_color 	TRUE)
+					icon_style 	"Icon"
+					fill_color 	16777215
+					anchor     	2
+					nlines     	9
+					max_width  	1296)
 				    width      	1431
 				    height     	631
 				    annotation 	8)
@@ -18026,14 +18233,14 @@
 				    client     	@499
 				    supplier   	@477
 				    line_style 	3
-				    origin_attachment 	(1856, 789)
-				    terminal_attachment 	(1856, 494))
+				    origin_attachment 	(1862, 693)
+				    terminal_attachment 	(1862, 494))
 				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::SpigotMux" @501
 				    ShowCompartmentStereotypes 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
 				    ShowOperationSignature 	TRUE
-				    location   	(2400, 2112)
+				    location   	(2128, 1888)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -18045,7 +18252,7 @@
 					default_color 	TRUE)
 				    label      	(object ItemLabel
 					Parent_View 	@501
-					location   	(1953, 1908)
+					location   	(1681, 1684)
 					fill_color 	13434879
 					nlines     	1
 					max_width  	894
@@ -18055,11 +18262,28 @@
 				    line_color 	3342489
 				    fill_color 	13434879
 				    quidu      	"3F6EDADF01C2"
+				    compartment 	(object Compartment
+					Parent_View 	@501
+					location   	(1681, 1745)
+					font       	(object Font
+					    size       	10
+					    face       	"arial"
+					    bold       	FALSE
+					    italics    	FALSE
+					    underline  	FALSE
+					    strike     	FALSE
+					    color      	0
+					    default_color 	TRUE)
+					icon_style 	"Icon"
+					fill_color 	16777215
+					anchor     	2
+					nlines     	6
+					max_width  	1393)
 				    width      	912
 				    height     	432
 				    annotation 	8)
 				(object AssociationViewNew "" @502
-				    location   	(2377, 1657)
+				    location   	(2134, 1497)
 				    font       	(object Font
 					size       	10
 					face       	"arial"
@@ -18075,7 +18299,7 @@
 				    roleview_list 	(list RoleViews
 					(object RoleView "spigots_:std::vector<Node::Ref *>" @503
 					    Parent_View 	@502
-					    location   	(1145, -967)
+					    location   	(902, -1127)
 					    font       	(object Font
 						size       	10
 						face       	"arial"
@@ -18087,7 +18311,7 @@
 						default_color 	TRUE)
 					    label      	(object SegLabel @504
 						Parent_View 	@503
-						location   	(2251, 1437)
+						location   	(2023, 1350)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18103,8 +18327,8 @@
 						max_width  	626
 						justify    	0
 						label      	"-spigots_"
-						pctDist    	0.926471
-						height     	127
+						pctDist    	0.844828
+						height     	112
 						orientation 	0)
 					    stereotype 	TRUE
 					    line_color 	3342489
@@ -18112,11 +18336,11 @@
 					    client     	@502
 					    supplier   	@499
 					    line_style 	3
-					    origin_attachment 	(2377, 1657)
-					    terminal_attachment 	(2377, 1419)
+					    origin_attachment 	(2134, 1497)
+					    terminal_attachment 	(2134, 1323)
 					    label      	(object SegLabel @505
 						Parent_View 	@503
-						location   	(2433, 1439)
+						location   	(2201, 1350)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18132,20 +18356,20 @@
 						max_width  	15
 						justify    	0
 						label      	"0..*"
-						pctDist    	0.914706
-						height     	56
+						pctDist    	0.844828
+						height     	67
 						orientation 	1))
 					(object RoleView "" @506
 					    Parent_View 	@502
-					    location   	(1145, -967)
+					    location   	(902, -1127)
 					    stereotype 	TRUE
 					    line_color 	3342489
 					    quidu      	"3F704066031C"
 					    client     	@502
 					    supplier   	@501
 					    line_style 	3
-					    origin_attachment 	(2377, 1657)
-					    terminal_attachment 	(2377, 1896))))
+					    origin_attachment 	(2134, 1497)
+					    terminal_attachment 	(2134, 1672))))
 				(object InheritView "" @507
 				    stereotype 	TRUE
 				    line_color 	3342489
@@ -18164,160 +18388,7 @@
 		    value      	TRUE))
 	    quid       	"3F85556101F2"
 	    exportControl 	"Public"
-	    logical_models 	(list unit_reference_list
-		(object Class "MeqServer"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"HeaderSourceFile"
-			    value      	(value Text "MeqServer/src/MeqServer.h"))
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"BodySourceFile"
-			    value      	(value Text "MeqServer/src/MeqServer.cc")))
-		    quid       	"3F5F195E013B"
-		    documentation 	"Returns True if a valid node exists for the given index"
-		    superclasses 	(list inheritance_relationship_list
-			(object Inheritance_Relationship
-			    quid       	"3F5F195E015B"
-			    supplier   	"Logical View::AppAgents::AppUtils::VisPipe"
-			    quidu      	"3E7727920352"))
-		    operations 	(list Operations
-			(object Operation "MeqServer"
-			    quid       	"3F5F195E0140"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	0)
-			(object Operation "run"
-			    quid       	"3F608106021C"
-			    stereotype 	"virtual"
-			    result     	"void"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	0)
-			(object Operation "createNode"
-			    quid       	"3F61920F01A8"
-			    parameters 	(list Parameters
-				(object Parameter "out"
-				    quid       	"3F61920F01BA"
-				    type       	"DataRecord::Ref &")
-				(object Parameter "initrec"
-				    quid       	"3F61920F01DA"
-				    type       	"DataRecord::Ref::Xfer &"))
-			    result     	"void"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	0)
-			(object Operation "deleteNode"
-			    quid       	"3F61920F01FA"
-			    parameters 	(list Parameters
-				(object Parameter "out"
-				    quid       	"3F61920F020C"
-				    type       	"DataRecord::Ref &")
-				(object Parameter "in"
-				    quid       	"3F61920F022D"
-				    type       	"DataRecord::Ref::Xfer &"))
-			    result     	"void"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	0)
-			(object Operation "getNodeState"
-			    quid       	"3F61920F024E"
-			    parameters 	(list Parameters
-				(object Parameter "out"
-				    quid       	"3F61920F025F"
-				    type       	"DataRecord::Ref &")
-				(object Parameter "in"
-				    quid       	"3F61920F0283"
-				    type       	"DataRecord::Ref::Xfer &"))
-			    result     	"void"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	0)
-			(object Operation "setNodeState"
-			    quid       	"3F61920F02A4"
-			    parameters 	(list Parameters
-				(object Parameter "out"
-				    quid       	"3F61920F02B6"
-				    type       	"DataRecord::Ref &")
-				(object Parameter "in"
-				    quid       	"3F61920F02D7"
-				    type       	"DataRecord::Ref::Xfer &"))
-			    result     	"void"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	0)
-			(object Operation "resolveNode"
-			    quid       	"3F6196800325"
-			    parameters 	(list Parameters
-				(object Parameter "rec"
-				    quid       	"3F6196800348"
-				    type       	"const DataRecord &"))
-			    result     	"Node &"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Private"
-			    uid        	0
-			    quidu      	"3F5F436202FE")
-			(object Operation "sdebug"
-			    quid       	"3F5F195E0156"
-			    stereotype 	"const,virtual"
-			    parameters 	(list Parameters
-				(object Parameter "detail"
-				    quid       	"3F5F195E0157"
-				    type       	"int"
-				    initv      	"1")
-				(object Parameter "prefix"
-				    quid       	"3F5F195E0158"
-				    type       	"const string &"
-				    initv      	
-|""
-				    )
-				(object Parameter "name"
-				    quid       	"3F5F195E0159"
-				    type       	"const char *"
-				    initv      	"0"))
-			    result     	"string"
-			    concurrency 	"Sequential"
-			    opExportControl 	"Public"
-			    uid        	0))
-		    class_attributes 	(list class_attribute_list
-			(object ClassAttribute "LocalDebugContext"
-			    quid       	"3F5F195E013F"
-			    exportControl 	"Public"))
-		    module     	"Component View::AppAgent"
-		    quidu      	"3DF9FDED0011"
-		    language   	"ANSI C++"
-		    nestedClasses 	(list nestedClasses
-			(object Class "PtrCommandMethod"
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"HeaderSourceFile"
-				    value      	"MeqServer/src/MeqServer.h")
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"ImplementationType"
-				    value      	"void (MeqServer::* )(DataRecord::Ref &out,DataRecord::Ref::Xfer &in)"))
-			    quid       	"3F61920F0158"
-			    stereotype 	"typedef"
-			    exportControl 	"Private"
-			    module     	"Component View::AppAgent"
-			    quidu      	"3DF9FDED0011")
-			(object Class "CommandMap"
-			    attributes 	(list Attribute_Set
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"HeaderSourceFile"
-				    value      	"MeqServer/src/MeqServer.h")
-				(object Attribute
-				    tool       	"Cplusplus"
-				    name       	"ImplementationType"
-				    value      	"std::map<HIID,PtrCommandMethod>"))
-			    quid       	"3F61920F016E"
-			    stereotype 	"typedef"
-			    exportControl 	"Private"
-			    module     	"Component View::AppAgent"
-			    quidu      	"3DF9FDED0011"))))
+	    logical_models 	(list unit_reference_list)
 	    logical_presentations 	(list unit_reference_list)))
     logical_presentations 	(list unit_reference_list
 	(object ClassDiagram "Main"
