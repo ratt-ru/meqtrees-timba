@@ -71,7 +71,7 @@ if test "$with_casa" = ""; then
   if test "${casapath}set" != "set"; then
     ]AC_MSG_RESULT([yes])[
     AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${casapath}"
-    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${casapath}"
+    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${casapath}/include/casa"
   else
     ]AC_MSG_RESULT([no])[
   fi
@@ -84,7 +84,7 @@ elif test "$with_casa" = "yes"; then
   if test "${casapath}set" != "set"; then
     ]AC_MSG_RESULT([yes])[
     AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${casapath}"
-    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${casapath}"
+    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${casapath}/include/casa"
   else
     echo
     ]AC_MSG_RESULT([no])[
@@ -93,7 +93,7 @@ elif test "$with_casa" = "yes"; then
 else
   # the casa path was given manually so look there
   AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${AIPSPP_LIB_PATH} ${with_casa}"
-  AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${AIPSPP_INC_PATH} ${with_casa}"
+  AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${AIPSPP_INC_PATH} ${with_casa}/include/casa"
 fi
 
 # check the --with-aipspp option
@@ -103,7 +103,7 @@ if test "$with_aipspp" = ""; then
   if test "${AIPSPATH}set" != "set"; then
     ]AC_MSG_RESULT([yes])[
     AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/`expr "$AIPSPATH" : ".* \(.*\) .* .*"`"
-    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/code"
+    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/code/include"
   else
     ]AC_MSG_RESULT([no])[
   fi
@@ -116,7 +116,7 @@ elif test "$with_aipspp" = "yes"; then
   if test "${AIPSPATH}set" != "set"; then
     ]AC_MSG_RESULT([yes])[
     AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/`expr "$AIPSPATH" : ".* \(.*\) .* .*"`"
-    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/code"
+    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/code/include"
   else
     echo
     ]AC_MSG_RESULT([no])[
@@ -125,7 +125,7 @@ elif test "$with_aipspp" = "yes"; then
 else
   # the aips path was given manually so look there
   AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${with_aipspp}";
-  AIPSPP_INC_PATH="${AIPSPP_INC_PATH} `dirname $with_aipspp`/code";
+  AIPSPP_INC_PATH="${AIPSPP_INC_PATH} `dirname $with_aipspp`/code/include";
 fi
 
 # Do we have enough info?
@@ -144,7 +144,7 @@ else
     ALP=`echo $AIPSPP_LIB_PATH | awk '{print $'$INDEX'}'`
 
     ALL_FOUND="yes"
-    ]AC_CHECK_FILE([$AIP/include],, [ALL_FOUND="no"])[
+    ]AC_CHECK_FILE([$AIP],, [ALL_FOUND="no"])[
     ]AC_CHECK_FILE([$ALP/lib],, [ALL_FOUND="no"])[
     if test "$ALL_FOUND" = "yes"; then
       # we have a winner
@@ -166,7 +166,7 @@ else
       *)      arch=UNKNOWN;;
     esac
 
-    AIPSPP_CPPFLAGS="-I$AIP/include -DAIPS_$arch"
+    AIPSPP_CPPFLAGS="-I$AIP -DAIPS_$arch"
     if test "$lofar_compiler" = "kcc"; then
       AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_KAICC"
     fi
