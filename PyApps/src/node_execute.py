@@ -7,15 +7,13 @@ import weakref
 import meqds
 import copy
 import app_browsers
+import meq
 from meqds import mqs
 from treebrowser import NodeAction
-
-_dbg = verbosity(0,name='node_exec');
-_dprint = _dbg.dprint;
-_dprintf = _dbg.dprintf;
+from numarray import *
 
 
-class NA_NodeExecute (NodeAction):
+class NA_RBtest (NodeAction):
   text = "Reexecute";
   iconset = pixmaps.reexecute.iconset;
   def activate (self):
@@ -62,6 +60,10 @@ class NodeExecuteDialog (QDialog):
     Horizontal_Spacing2 = QSpacerItem(20,20,QSizePolicy.Expanding,QSizePolicy.Minimum)
     Layout1.addItem(Horizontal_Spacing2)
 
+    self.buttonDef = QPushButton(self)
+    self.buttonDef.setText('DefRequest')
+    Layout1.addWidget(self.buttonDef)
+
     self.buttonOk = QPushButton(self,"buttonOk")
     self.buttonOk.setAutoDefault(1)
     self.buttonOk.setDefault(1)
@@ -79,6 +81,7 @@ class NodeExecuteDialog (QDialog):
 
     self.connect(self.buttonOk,SIGNAL("clicked()"),self.accept)
     self.connect(self.buttonCancel,SIGNAL("clicked()"),self.reject)
+    self.connect(self.buttonDef,SIGNAL("clicked()"),self.defaultreq)
     
     ### custom settings 
     self.buttonOk.setIconSet(pixmaps.reexecute.iconset());
@@ -118,6 +121,7 @@ class NodeExecuteDialog (QDialog):
     except AttributeError: 
       self.reqView.wlistview().setRootIsDecorated(False);
       QListViewItem(self.reqView.wlistview(),'','','(no request found in node)');
+#      self.buttonOk.setEnabled(True);
     else:  # got request in state
       self.reqView.wlistview().setRootIsDecorated(True);
 #      self._request = copy.deepcopy(request);
@@ -135,13 +139,19 @@ class NodeExecuteDialog (QDialog):
   def accept (self):
     if not self._request:
       return;
-    _dprint(1,'accepted: ',self._request);
     cmd = srecord(nodeindex=self._node.nodeindex,request=self._request,get_state=True);
     mqs().meq('Node.Execute',cmd,wait=False);
     self.hide();
 
+  def defaultreq(self):
+    newd = meq.domain(0, 1, 0, 1);
+    newc = meq.cells(domain=newd, num_freq=10, num_time=10);
+    self._request = meq.request(cells=newc);
+    self._request.request_id = hiid();
+    cmd = srecord(nodeindex=self._node.nodeindex,request=self._request,get_state=True);
+    mqs().meq('Node.Execute',cmd,wait=False);
+    self.hide();
 
 def define_treebrowser_actions (tb):
-  _dprint(1,'defining node-execute treebrowser actions');
-  tb.add_action(NA_NodeExecute,30,where="node");
+  tb.add_action(NA_RBtest,30,where="node");
 
