@@ -249,6 +249,7 @@ inline HIID::HIID (const char *str)
   //## end HIID::HIID%3C6141BA03B4.initialization
 {
   //## begin HIID::HIID%3C6141BA03B4.body preserve=yes
+  FailWhen(!str,"can't create HIID from (null) string");
   addString(str);
   //## end HIID::HIID%3C6141BA03B4.body
 }

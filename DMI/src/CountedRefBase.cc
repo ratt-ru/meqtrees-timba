@@ -163,7 +163,7 @@ CountedRefBase& CountedRefBase::privatize (int flags)
   //   (1) we are the only ref, or
   //   (2) cloning is read-only, and all other refs are read-only.
   // but the FORCE_CLONE flag can force a clone anyway
-  Bool do_clone=False;
+  bool do_clone=False;
   if( !(flags&DMI::FORCE_CLONE) && isAnonObject() )
   {
     if( prev || next )  // other refs exist? Scan for writable ones

@@ -61,6 +61,7 @@ class DataRecord;
 class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02EF
 {
   //## begin DataField%3BB317D8010B.initialDeclarations preserve=yes
+  friend DataRecord;
   //## end DataField%3BB317D8010B.initialDeclarations
 
   public:
@@ -101,12 +102,6 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
 
       //## Operation: isValid%3C3EB9B902DF
       bool isValid (int n = 0);
-
-      //## Operation: get%3C56B1DA0057
-      const void * get (int n = 0, TypeId check = 0, bool must_write = False) const;
-
-      //## Operation: getWr%3BFCFA2902FB
-      void* getWr (int n = 0, TypeId check = 0);
 
       //## Operation: objwr%3C0E4619019A
       ObjRef objwr (int n = 0, int flags = DMI::PRESERVE_RW);
@@ -156,26 +151,17 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       //	range).
       virtual const void * get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const;
 
-      //## Operation: get%3C7A1983024D
-      virtual const void * get (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const;
+      //## Operation: getn%3C7A1983024D
+      virtual const void * getn (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const;
 
       //## Operation: insert%3C7A198A0347
       virtual void * insert (const HIID &id, TypeId tid, TypeId &real_tid);
 
-      //## Operation: insert%3C7A19930250
-      virtual void * insert (int n, TypeId tid, TypeId &real_tid);
+      //## Operation: insertn%3C7A19930250
+      virtual void * insertn (int n, TypeId tid, TypeId &real_tid);
 
       //## Operation: isContiguous%3C7F9826016F
       virtual bool isContiguous () const;
-
-      //## Operation: select%3C7A199F012B
-      virtual bool select (const HIIDSet &id);
-
-      //## Operation: clearSelection%3C7A19A5038C
-      virtual void clearSelection ();
-
-      //## Operation: selectionToBlock%3C7A19AC0147
-      virtual int selectionToBlock (BlockSet& set);
 
     //## Get and Set Operations for Class Attributes (generated)
 
@@ -324,21 +310,6 @@ inline TypeId DataField::objectType () const
   //## end DataField::objectType%3C3EC27F0227.body
 }
 
-inline const void * DataField::get (int n, TypeId check, bool must_write) const
-{
-  //## begin DataField::get%3C56B1DA0057.body preserve=yes
-  TypeId dum1; bool dum2;
-  return get(n,dum1,dum2,check,must_write);
-  //## end DataField::get%3C56B1DA0057.body
-}
-
-inline void* DataField::getWr (int n, TypeId check)
-{
-  //## begin DataField::getWr%3BFCFA2902FB.body preserve=yes
-  return (void*)get(n,check,True);
-  //## end DataField::getWr%3BFCFA2902FB.body
-}
-
 inline bool DataField::isContiguous () const
 {
   //## begin DataField::isContiguous%3C7F9826016F.body preserve=yes
@@ -379,5 +350,19 @@ inline bool DataField::isScalar () const
 //## begin module%3C10CC820124.epilog preserve=yes
 //## end module%3C10CC820124.epilog
 
+
+#endif
+
+
+// Detached code regions:
+#if 0
+//## begin DataField::get%3C56B1DA0057.body preserve=yes
+  TypeId dum1; bool dum2;
+  return get(n,dum1,dum2,check,must_write);
+//## end DataField::get%3C56B1DA0057.body
+
+//## begin DataField::getWr%3BFCFA2902FB.body preserve=yes
+  return (void*)get(n,check,True);
+//## end DataField::getWr%3BFCFA2902FB.body
 
 #endif

@@ -120,8 +120,11 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           // privatizes target, if it is a dynamic object
           Hook privatize (int flags = 0) const;
           
-          // type of data being referred to (if referring to a container,
-          // returns type of contents)
+          // Returns True if element being referred to exists, False otherwise
+          bool exists () const;
+          
+          // Type of data being referred to (if referring to a container,
+          // returns type of contents). Returns 0 (NullType) if element doesn't exist.
           TypeId type () const;
 
           // returns True if referring to a container
@@ -301,13 +304,13 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
     //## Other Operations (specified)
       //## Operation: get%3C56A6C50088
-      //	get(HIID): Abstract virtual function for dereferencing a container
-      //	element indicated by id. Must be implemented by all child classes.
-      //	This is the method called by the hook operator [](const HIID &). See
-      //	DataRecord and DataField for example implementations.
+      //	get(HIID): Abstract method for dereferencing a container element
+      //	indicated by id. Must be implemented by all child classes. This is
+      //	the method called by the hook operator [](const HIID &). See Data
+      //	Record and DataField for example implementations.
       //	The return value is a pointer to the data element (or to an ObjRef
       //	to the data, see below). A return value of 0 indicates that the
-      //	element doesn't exist but can be inserted (e.g. no such field in
+      //	element doesn't exist but can be insert()ed (e.g. no such field in
       //	record). An exception may be thrown otherwise (e.g. array inndex out
       //	of range).
       virtual const void * get (const HIID &id, 	// Specifies an element
@@ -328,81 +331,68 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       bool must_write = False	// If True and datum is read-only, throw an exception
       ) const = 0;
 
-      //## Operation: get%3C7A13C90269
-      //	get(int): this is a version of get() with a numeric element
+      //## Operation: getn%3C7A13C90269
+      //	getn(int): this is a version of get() with a numeric element
       //	specification. This is the method called by the hook operator
       //	[](int). The default implementation simply converts the index into a
       //	single-index HIID, and calls get(HIID).
-      virtual const void * get (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const;
+      virtual const void * getn (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const;
 
       //## Operation: insert%3C7A13D703AA
-      //	Abstract virtual method for allocating a new field in a container.
-      //	Must be implemented by all child classes.
-      //	Tid is the type of object to allocate (can throw exception if this
-      //	is not legal, e.g., if the container expects homogenous types or
-      //	something).
-      //	The actual type allocated is returned in real_tid, this may be !=
-      //	tid if both types are built-in numerics.
-      //	Returns pointer to new data, or pointer to an unattached ObjRef, in
-      //	the case of dynamic types.
-      virtual void * insert (const HIID &id, TypeId tid, TypeId &real_tid) = 0;
+      //	insert(HIID). This is an abstract ethod for allocating a new element
+      //	in a container. Must be implemented by all child classes.
+      //	Inserts element and returns a pointer to it. If the data type is
+      //	dynamic, then must insert a new (unattached) ObjRef, and return a
+      //	pointer to that.
+      virtual void * insert (const HIID &id, 	// ID of element to be allocated.
+      	// Throw an exception if an element with such an ID can't be inserted
+      	// (e.g. arrays can allow insert() only at end of array).
+      TypeId tid, 	// Type of element to be inserted.  An exception should be thrown if
+      	// this is not compatible with the container (i.e., if the container
+      	// is of a fixed type.) Since hooks support implicit conversion
+      	// between standard types, no exception should be thrown if both tid
+      	// and the container types are standard.
+      	// If tid is 0, and the container is of a fixed type and has been
+      	// initialized, then a new element should be inserted. Otherwise an
+      	// exception should be thrown.
+      	// The actual type of the element must always be returned via real_tid.
+      TypeId &real_tid	// The actual type inserted into the container is returned here.
+      ) = 0;
 
-      //## Operation: insert%3C7A140A003C
-      //	Version of insert() for a numeric index. Default implementation
-      //	simply maps to the standard insert() with a single-index HIID.
-      virtual void * insert (int n, TypeId tid, TypeId &real_tid);
+      //## Operation: insertn%3C7A140A003C
+      //	insert(int): this is a version of insert() with a numeric element
+      //	specification. The default implementation simply converts the index
+      //	into a single-index HIID, and calls insert(HIID).
+      virtual void * insertn (int n, TypeId tid, TypeId &real_tid);
 
       //## Operation: size%3C7A154E01AB
-      //	Abstract virtual function. Returns the number of elements in the
+      //	Abstract method. Must returns the number of elements in the
       //	container.
       virtual int size () const = 0;
 
       //## Operation: type%3C7A1552012E
-      //	Abstract virtual function. Should return the type of the contents.
-      //	If contents are not of a homogenous type (e.g. a record), just
-      //	return NullType.
+      //	Abstract method. Should return the type of the contents. If
+      //	container is not of a fixed type (e.g. a record), or hasn't been
+      //	initialized yet, then just return NullType (0).
       virtual TypeId type () const = 0;
 
       //## Operation: isContiguous%3C7F97CB00F6
-      //	ReturnsTrue if storage of container is contiguous (i.e., if data[n]
+      //	Returns True if storage of container is contiguous (i.e., if data[n]
       //	is located at (&data[0])+n). Default implementation returns False.
       virtual bool isContiguous () const;
 
-      //## Operation: get%3C5FA32402A9
-      //	Version of get() with type and access check only. Used by the get
-      //	Field() and getFieldWr() macros.
-      const void * get (const HIID &id, TypeId check_tid) const;
-
-      //## Operation: getWr%3C5FB39A027F
-      void * getWr (const HIID &id, TypeId check_tid);
-
-      //## Operation: getFieldInfo%3BE9828D0266
-      //	Universal function to request all  info about a field. Returns False
-      //	if no such field. By default, implemented in terms of get(), but
-      //	child classes can overload it for efficiency.
-      //	Set no_throw to True to disable all exceptions (and return False
-      //	instead).
-      //	fieldType() and hasField() are implemented in terms of this method.
-      virtual bool getFieldInfo (const HIID &id, TypeId &tid, bool& can_write, bool no_throw = False) const;
-
-      //## Operation: hasField%3C56AC2902A1
-      //	Returns true if field exists, false if not. Does not throw
-      //	exceptions.
-      virtual bool hasField (const HIID &id) const;
-
-      //## Operation: fieldType%3C5958C203A0
-      //	Returns type of field, or 0 if no such field. Does not throw
-      //	exceptions (returns 0 instead).
-      virtual TypeId fieldType (const HIID &id) const;
-
       //## Operation: select%3BE982760231
-      virtual bool select (const HIIDSet &id) = 0;
+      //	Selects a subset of a container. Meant to be abstract, but we make
+      //	it just virtual for now since this part is not implemented anywhere.
+      virtual bool select (const HIIDSet &id);
 
       //## Operation: clearSelection%3BFBDC0D025A
-      virtual void clearSelection () = 0;
+      //	Clears the subset selection.
+      virtual void clearSelection ();
 
       //## Operation: selectionToBlock%3BFBDC1D028F
-      virtual int selectionToBlock (BlockSet& set) = 0;
+      //	Converts the selected subset to a BlockSet.
+      virtual int selectionToBlock (BlockSet& set);
 
       //## Operation: isNestable%3BFCD8180044
       bool isNestable () const;
@@ -420,6 +410,9 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
   public:
     // Additional Public Declarations
       //## begin NestableContainer%3BE97CE100AF.public preserve=yes
+      friend ConstHook;
+      friend Hook;
+      
       ConstHook operator [] (const HIID &id) const  { return ConstHook(*this,id); }
       ConstHook operator [] (int index) const       { return ConstHook(*this,index); }
       Hook operator [] (const HIID &id)             { return Hook(*this,id); }
@@ -471,18 +464,18 @@ inline NestableContainer::NestableContainer (bool write)
 
 
 //## Other Operations (inline)
-inline const void * NestableContainer::get (int n, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
+inline const void * NestableContainer::getn (int n, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
 {
-  //## begin NestableContainer::get%3C7A13C90269.body preserve=yes
+  //## begin NestableContainer::getn%3C7A13C90269.body preserve=yes
   return get(HIID(n),tid,can_write,check_tid,must_write);
-  //## end NestableContainer::get%3C7A13C90269.body
+  //## end NestableContainer::getn%3C7A13C90269.body
 }
 
-inline void * NestableContainer::insert (int n, TypeId tid, TypeId &real_tid)
+inline void * NestableContainer::insertn (int n, TypeId tid, TypeId &real_tid)
 {
-  //## begin NestableContainer::insert%3C7A140A003C.body preserve=yes
+  //## begin NestableContainer::insertn%3C7A140A003C.body preserve=yes
   return insert(HIID(n),tid,real_tid);
-  //## end NestableContainer::insert%3C7A140A003C.body
+  //## end NestableContainer::insertn%3C7A140A003C.body
 }
 
 inline bool NestableContainer::isContiguous () const
@@ -490,22 +483,6 @@ inline bool NestableContainer::isContiguous () const
   //## begin NestableContainer::isContiguous%3C7F97CB00F6.body preserve=yes
   return False;
   //## end NestableContainer::isContiguous%3C7F97CB00F6.body
-}
-
-inline const void * NestableContainer::get (const HIID &id, TypeId check_tid) const
-{
-  //## begin NestableContainer::get%3C5FA32402A9.body preserve=yes
-  TypeId dum1; bool dum2;
-  return get(id,dum1,dum2,check_tid,False);
-  //## end NestableContainer::get%3C5FA32402A9.body
-}
-
-inline void * NestableContainer::getWr (const HIID &id, TypeId check_tid)
-{
-  //## begin NestableContainer::getWr%3C5FB39A027F.body preserve=yes
-  TypeId dum1; bool dum2;
-  return (void*)get(id,dum1,dum2,check_tid,True);
-  //## end NestableContainer::getWr%3C5FB39A027F.body
 }
 
 inline bool NestableContainer::isNestable () const
@@ -603,7 +580,7 @@ inline const void * NestableContainer::ConstHook::applyIndex (int n) const
   const NestableContainer *nc = asNestable();
   FailWhen(!nc,"can't index into "+target_tid.toString()+": not a container");
   // index into container for new target
-  return nc->get(n,target_tid,writable,0,False);
+  return nc->getn(n,target_tid,writable,0,False);
 }
 
 // address-of operator   
@@ -643,6 +620,11 @@ inline TypeId NestableContainer::ConstHook::actualType () const
   return target_tid;
 }
 
+inline bool NestableContainer::ConstHook::exists () const
+{
+  return !resid.size() && resindex<0;
+}
+
 inline bool NestableContainer::ConstHook::isContainer () const
 {
   return asNestable() != 0;
@@ -650,6 +632,8 @@ inline bool NestableContainer::ConstHook::isContainer () const
 
 inline TypeId NestableContainer::ConstHook::type () const
 {
+  if( !exists() )
+    return 0;
   const NestableContainer *nc = asNestable();
   return nc ? nc->type() : target_tid;
 }
@@ -762,5 +746,20 @@ inline bool NestableContainer::Hook::exists () const
 
 //## end module%3C10CC830067.epilog
 
+
+#endif
+
+
+// Detached code regions:
+#if 0
+//## begin NestableContainer::get%3C5FA32402A9.body preserve=yes
+  TypeId dum1; bool dum2;
+  return get(id,dum1,dum2,check_tid,False);
+//## end NestableContainer::get%3C5FA32402A9.body
+
+//## begin NestableContainer::getWr%3C5FB39A027F.body preserve=yes
+  TypeId dum1; bool dum2;
+  return (void*)get(id,dum1,dum2,check_tid,True);
+//## end NestableContainer::getWr%3C5FB39A027F.body
 
 #endif

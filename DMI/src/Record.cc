@@ -118,23 +118,8 @@ DataFieldRef DataRecord::remove (const HIID &id)
     dprintf(2)("  removing %s\n",ref->debug(1));
     return ref;
   }
-  // otherwise, treat it as subrecord.field
-  for( int i=0; i<id.length(); i++ )
-  {
-    HIID subid = id.subId(0,i);
-    FMI iter = fields.find( subid );
-    if( iter != fields.end() )
-    {
-      FailWhen( iter->second->type() != TpDataRecord,
-                "remove(id): "+subid.toString()+" is not a sub-record" );
-      FailWhen( !iter->second->isWritable(),"r/w access violation" ); 
-      // if first item is an index, pop it off and use it
-      int index = subid.popLeadIndex();
-      // call remove on the sub-record
-      return ((DataRecord*)iter->second->get(index))->remove(subid);
-    }
-  }
   Throw("field "+id.toString()+" not found");
+  return DataFieldRef();
   //## end DataRecord::remove%3BB311C903BE.body
 }
 
@@ -153,22 +138,6 @@ void DataRecord::replace (const HIID &id, const DataFieldRef &ref, int flags)
     else
       fields[id] = ref;
     return;
-  }
-  // otherwise, treat it as subrecord.field
-  for( int i=0; i<id.length(); i++ )
-  {
-    HIID subid = id.subId(0,i);
-    FMI iter = fields.find( subid );
-    if( iter != fields.end() )
-    {
-      FailWhen( iter->second->type() != TpDataRecord,
-                "remove(id): "+subid.toString()+" is not a sub-record" );
-      FailWhen( !iter->second->isWritable(),"r/w access violation" ); 
-      // if first item is an index, pop it off and use it
-      int index = subid.popLeadIndex();
-      // call replace on the sub-record
-      ((DataRecord*)iter->second->get(index))->replace(subid,ref,flags);
-    }
   }
   //## end DataRecord::replace%3BFCD4BB036F.body
 }
@@ -207,26 +176,6 @@ DataFieldRef DataRecord::fieldWr (const HIID &id, int flags)
   FailWhen( rest.size(),id.toString()+" does not resolve to a complete field" );
   return ref.copy(flags);
   //## end DataRecord::fieldWr%3BFBF49D00A1.body
-}
-
-bool DataRecord::select (const HIIDSet &id)
-{
-  //## begin DataRecord::select%3C55761002CD.body preserve=yes
-  return True;
-  //## end DataRecord::select%3C55761002CD.body
-}
-
-void DataRecord::clearSelection ()
-{
-  //## begin DataRecord::clearSelection%3C5576100331.body preserve=yes
-  //## end DataRecord::clearSelection%3C5576100331.body
-}
-
-int DataRecord::selectionToBlock (BlockSet& set)
-{
-  //## begin DataRecord::selectionToBlock%3C557610038B.body preserve=yes
-  return 0;
-  //## end DataRecord::selectionToBlock%3C557610038B.body
 }
 
 const DataFieldRef & DataRecord::resolveField (const HIID &id, HIID& rest, bool &can_write, bool must_write) const
@@ -312,43 +261,6 @@ const DataFieldRef & DataRecord::resolveField (const HIID &id, HIID& rest, bool 
 //   // nothing was found -- return invalid ref
 //   return NullDataFieldRef;
   //## end DataRecord::resolveField%3C552E2D009D.body
-}
-
-bool DataRecord::getFieldInfo (const HIID &id, TypeId &tid, bool& can_write, bool no_throw) const
-{
-  //## begin DataRecord::getFieldInfo%3C57C63F03E4.body preserve=yes
-  try {
-    HIID rest; 
-    const DataFieldRef & ref( resolveField(id,rest,can_write,False) );
-    // nothing found... return 0
-    if( !ref.valid() )
-      return False;
-    // if remainder contains an index into the field, get it out
-    int index = rest.popLeadIndex();
-    // remove any delimiters
-    rest.popLeadSlashes();
-    // nothing remains, so field completely resolved -- return its type
-    if( !rest.size() )
-    {
-      tid = ref->type();
-      return True;
-    }
-    // else not completely resolved -- then field has to be a container
-    else
-    {
-      // check that it is a sub-container
-      if( !isNestable(ref->type()) )
-        Throw( id.toString() + ": sub-field is not a valid container" );
-      // recurse inside for rest of id sequence
-      return ((NestableContainer*)(ref->get(index)))->getFieldInfo(rest,tid,can_write,no_throw);
-    }
-  } catch( Debug::Error &x ) {
-    if( no_throw )
-      return False;
-    throw(x);
-  }
-  return False;
-  //## end DataRecord::getFieldInfo%3C57C63F03E4.body
 }
 
 int DataRecord::fromBlock (BlockSet& set)
@@ -502,7 +414,7 @@ void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
     DataField *pf = new DataField(tid,-1);
     fields[id].attach(pf,DMI::ANON|DMI::WRITE|DMI::LOCK);
     TypeId dum1; bool dum2;
-    return const_cast<void*>( pf->get(0,dum1,dum2,0,True) );
+    return const_cast<void*>( pf->getn(0,dum1,dum2,0,True) );
   }
 //  else // inserting a new DataField
 //  {
@@ -556,3 +468,5 @@ string DataRecord::sdebug ( int detail,const string &prefix,const char *name ) c
   return out;
 }
 //## end module%3C10CC82005C.epilog
+
+

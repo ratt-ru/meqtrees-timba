@@ -635,10 +635,10 @@ const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeI
   //## begin DataField::get%3C7A19790361.body preserve=yes
   // null HIID implies access to first element
   if( !id.size() )
-    return get(0,tid,can_write,check_tid,must_write);
+    return getn(0,tid,can_write,check_tid,must_write);
   // single-index HIID implies get[n]
   if( id.size()==1 && id.front().index()>=0 )
-    return get(id.front().index(),tid,can_write,check_tid,must_write);
+    return getn(id.front().index(),tid,can_write,check_tid,must_write);
   FailWhen( !valid(),"field not initialized" );
   FailWhen( !size(),"uninitialized DataField" );
   FailWhen( !scalar,"non-scalar field, explicit index expected" );
@@ -652,9 +652,9 @@ const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeI
   //## end DataField::get%3C7A19790361.body
 }
 
-const void * DataField::get (int n, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
+const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
 {
-  //## begin DataField::get%3C7A1983024D.body preserve=yes
+  //## begin DataField::getn%3C7A1983024D.body preserve=yes
   FailWhen( !valid(),"field not initialized" );
   FailWhen( n<0 || n>size(),"n out of range" );
   if( n == size() )
@@ -694,7 +694,7 @@ const void * DataField::get (int n, TypeId& tid, bool& can_write, TypeId check_t
       return &resolveObject(n,must_write).deref();
     }
   }
-  //## end DataField::get%3C7A1983024D.body
+  //## end DataField::getn%3C7A1983024D.body
 }
 
 void * DataField::insert (const HIID &id, TypeId tid, TypeId &real_tid)
@@ -713,9 +713,9 @@ void * DataField::insert (const HIID &id, TypeId tid, TypeId &real_tid)
   //## end DataField::insert%3C7A198A0347.body
 }
 
-void * DataField::insert (int n, TypeId tid, TypeId &real_tid)
+void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
 {
-  //## begin DataField::insert%3C7A19930250.body preserve=yes
+  //## begin DataField::insertn%3C7A19930250.body preserve=yes
   // empty field? init with one element
   if( !valid() )
   {
@@ -748,25 +748,7 @@ void * DataField::insert (int n, TypeId tid, TypeId &real_tid)
     FailWhen(tid && tid!=type(),"can't insert "+tid.toString());
     return &resolveObject(n,True);
   }
-  //## end DataField::insert%3C7A19930250.body
-}
-
-bool DataField::select (const HIIDSet &id)
-{
-  //## begin DataField::select%3C7A199F012B.body preserve=yes
-  //## end DataField::select%3C7A199F012B.body
-}
-
-void DataField::clearSelection ()
-{
-  //## begin DataField::clearSelection%3C7A19A5038C.body preserve=yes
-  //## end DataField::clearSelection%3C7A19A5038C.body
-}
-
-int DataField::selectionToBlock (BlockSet& set)
-{
-  //## begin DataField::selectionToBlock%3C7A19AC0147.body preserve=yes
-  //## end DataField::selectionToBlock%3C7A19AC0147.body
+  //## end DataField::insertn%3C7A19930250.body
 }
 
 // Additional Declarations

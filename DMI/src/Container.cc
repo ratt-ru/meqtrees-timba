@@ -47,36 +47,22 @@ DefineRegistry(NestableContainer,False);
 
 
 //## Other Operations (implementation)
-bool NestableContainer::getFieldInfo (const HIID &id, TypeId &tid, bool& can_write, bool no_throw) const
+bool NestableContainer::select (const HIIDSet &id)
 {
-  //## begin NestableContainer::getFieldInfo%3BE9828D0266.body preserve=yes
-  if( no_throw )
-  {
-    try {
-      return get(id,tid,can_write) ? True : False;
-    } catch( Debug::Error &x ) {
-      return False;
-    }
-  }
-  else
-    return get(id,tid,can_write) ? True : False;
-  //## end NestableContainer::getFieldInfo%3BE9828D0266.body
+  //## begin NestableContainer::select%3BE982760231.body preserve=yes
+  //## end NestableContainer::select%3BE982760231.body
 }
 
-bool NestableContainer::hasField (const HIID &id) const
+void NestableContainer::clearSelection ()
 {
-  //## begin NestableContainer::hasField%3C56AC2902A1.body preserve=yes
-  TypeId dum1; bool dum2;
-  return getFieldInfo(id,dum1,dum2,True);
-  //## end NestableContainer::hasField%3C56AC2902A1.body
+  //## begin NestableContainer::clearSelection%3BFBDC0D025A.body preserve=yes
+  //## end NestableContainer::clearSelection%3BFBDC0D025A.body
 }
 
-TypeId NestableContainer::fieldType (const HIID &id) const
+int NestableContainer::selectionToBlock (BlockSet& set)
 {
-  //## begin NestableContainer::fieldType%3C5958C203A0.body preserve=yes
-  TypeId tid; bool dum2;
-  return getFieldInfo(id,tid,dum2,True) ? tid : NullType;
-  //## end NestableContainer::fieldType%3C5958C203A0.body
+  //## begin NestableContainer::selectionToBlock%3BFBDC1D028F.body preserve=yes
+  //## end NestableContainer::selectionToBlock%3BFBDC1D028F.body
 }
 
 // Additional Declarations
@@ -164,7 +150,7 @@ const void * NestableContainer::Hook::put_scalar( const void *data,TypeId tid,si
     // This will allocate space in the container for the object.
     // The resulting target_tid may be different from the requested tid
     // in the case of scalars (where conversion is allowed)
-    target = resindex>=0 ? nc->insert(resindex,tid,target_tid)
+    target = resindex>=0 ? nc->insertn(resindex,tid,target_tid)
                          : nc->insert(resid,tid,target_tid);
   }
   if( tid != target_tid )
@@ -187,7 +173,7 @@ ObjRef * NestableContainer::Hook::alloc_objref (TypeId tid) const
   // return a pointer to the ObjRef
   TypeId dum;
   return static_cast<ObjRef*>
-    ( resindex>=0 ? nc->insert(resindex,tid,dum) : nc->insert(resid,tid,dum) );
+    ( resindex>=0 ? nc->insertn(resindex,tid,dum) : nc->insert(resid,tid,dum) );
 }
 
 // Helper function to assign an object.  
@@ -235,7 +221,7 @@ const NestableContainer::Hook & NestableContainer::Hook::init () const
     // This will allocate space in the container for the object
     TypeId dum;
     if( resindex>=0 )
-      nc->insert(resindex,0,dum);
+      nc->insertn(resindex,0,dum);
     else
       nc->insert(resid,0,dum);
   }
@@ -283,3 +269,31 @@ string NestableContainer::ConstHook::sdebug ( int detail,const string &prefix,co
   //## end NestableContainer%3BE97CE100AF.declarations
 //## begin module%3C10CC830069.epilog preserve=yes
 //## end module%3C10CC830069.epilog
+
+
+// Detached code regions:
+#if 0
+//## begin NestableContainer::getFieldInfo%3BE9828D0266.body preserve=yes
+  if( no_throw )
+  {
+    try {
+      return get(id,tid,can_write) ? True : False;
+    } catch( Debug::Error &x ) {
+      return False;
+    }
+  }
+  else
+    return get(id,tid,can_write) ? True : False;
+//## end NestableContainer::getFieldInfo%3BE9828D0266.body
+
+//## begin NestableContainer::hasField%3C56AC2902A1.body preserve=yes
+  TypeId dum1; bool dum2;
+  return getFieldInfo(id,dum1,dum2,True);
+//## end NestableContainer::hasField%3C56AC2902A1.body
+
+//## begin NestableContainer::fieldType%3C5958C203A0.body preserve=yes
+  TypeId tid; bool dum2;
+  return getFieldInfo(id,tid,dum2,True) ? tid : NullType;
+//## end NestableContainer::fieldType%3C5958C203A0.body
+
+#endif

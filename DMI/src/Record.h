@@ -58,8 +58,7 @@
 class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E039E
 {
   //## begin DataRecord%3BB3112B0027.initialDeclarations preserve=yes
-  public:
-      static bool __dummy_bool;
+  friend DataField;
   //## end DataRecord%3BB3112B0027.initialDeclarations
 
   public:
@@ -107,20 +106,6 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
 
       //## Operation: fieldWr%3BFBF49D00A1
       DataFieldRef fieldWr (const HIID &id, int flags = DMI::PRESERVE_RW);
-
-      //## Operation: select%3C55761002CD
-      virtual bool select (const HIIDSet &id);
-
-      //## Operation: clearSelection%3C5576100331
-      virtual void clearSelection ();
-
-      //## Operation: selectionToBlock%3C557610038B
-      virtual int selectionToBlock (BlockSet& set);
-
-      //## Operation: getFieldInfo%3C57C63F03E4
-      //	Returns type of field -- reimplemented for efficiency, so as not to
-      //	unblock the field.
-      bool getFieldInfo (const HIID &id, TypeId &tid, bool& can_write, bool no_throw = False) const;
 
       //## Operation: fromBlock%3C58216302F9
       //	Creates object from a set of block references. Appropriate number of
