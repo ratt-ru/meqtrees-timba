@@ -367,7 +367,7 @@ using namespace blitz;
 //    Convert<T>::to_scalar       // preserves type
 //    Convert<T>::to_matrix       // preserves type
 template<class T> struct Convert;
-#define defineConversions(from,todbl,tocompl,toscal,iscompl,isarray,byref) \
+#define defineConversions(from,todbl,tocompl,toscal,iscompl,isarray) \
   template<> struct Convert<from> \
   { \
     typedef todbl to_double; \
@@ -375,7 +375,7 @@ template<class T> struct Convert;
     typedef toscal  to_scalar; \
     typedef LoMat_##toscal to_matrix; \
     typedef enum { isReal=!iscompl,isComplex=iscompl, \
-          isScalar=!isarray,isArray=isArray } Traits; \
+          isScalar=!isarray,isArray=isarray } Traits; \
   };
 defineConversions(double,double,dcomplex,double,false,false);
 defineConversions(dcomplex,double,dcomplex,dcomplex,true,false);
@@ -403,17 +403,27 @@ definePromotion2(LoMat_double,dcomplex,LoMat_dcomplex);
 definePromotion2(LoMat_double,LoMat_dcomplex,LoMat_dcomplex);
 
 // repeats macro invocation Do(type,x,y) in order of increasing LUT types
-#define RepeatForLUTs(Do) \
-  Do(double), Do(LoMat_double), \
+#define RepeatForRealLUTs(Do) \
+  Do(double), Do(LoMat_double)
+#define RepeatForComplexLUTs(Do) \
   Do(dcomplex), Do(LoMat_dcomplex)  
+#define RepeatForLUTs(Do) \
+  RepeatForRealLUTs(Do), RepeatForComplexLUTs(Do)
 
-#define RepeatForLUTs1(Do,x) \
-  Do(double,x), Do(LoMat_double,x), \
+#define RepeatForRealLUTs1(Do,x) \
+  Do(double,x), Do(LoMat_double,x) 
+#define RepeatForComplexLUTs1(Do,x) \
   Do(dcomplex,x), Do(LoMat_dcomplex,x)  
+#define RepeatForLUTs1(Do,x) \
+  RepeatForRealLUTs1(Do,x), RepeatForComplexLUTs1(Do,x)
   
-#define RepeatForLUTs2(Do,x,y) \
-  Do(double,x,y), Do(LoMat_double,x,y), \
+#define RepeatForRealLUTs2(Do,x,y) \
+  Do(double,x,y), Do(LoMat_double,x,y) 
+#define RepeatForComplexLUTs2(Do,x,y) \
   Do(dcomplex,x,y), Do(LoMat_dcomplex,x,y)  
+#define RepeatForLUTs2(Do,x,y) \
+  RepeatForRealLUTs2(Do,x,y), RepeatForComplexLUTs2(Do,x,y)
+  
 
 // expands to list of pointers to templated functions
 // in order of increasing LUT types, with different funcs for real and scalar
@@ -429,6 +439,10 @@ definePromotion2(LoMat_double,LoMat_dcomplex,LoMat_dcomplex);
 #define defineErrorFunc(errname,message) \
   static void errname (Meq::Vells &,const Meq::Vells &) \
   { Throw(message); }
+// defines a standard error function (for illegal binary ops)
+#define defineErrorFunc2(errname,message) \
+  static void errname (Meq::Vells &,const Meq::Vells &,const Meq::Vells &) \
+  { Throw(message); }
   
 // defines a standard error function template (for illegal unary ops)
 #define defineErrorFuncTemplate(FUNCNAME,message) \
@@ -442,18 +456,45 @@ template<class T>
 static void implement_zero (Meq::Vells &out,const Meq::Vells &)
 { out.zeroData(); }
 
-template<class T> VellsIter;
+// Local helper classes implementing iterators over Vells
+// InputIter<T> 
+//    const iterator, default version does not iterate at all (intended for
+//    scalars)
+template<class T> class InputIter
 {
-  VellsValueIter  (Vells &)
-  { Throw("VellsIter instantiated for unknown type"); }
-}
-
-template<> VellsIter<Array<T,N> >
+  protected:  const T * ptr;
+  public:     InputIter  (const Meq::Vells &vells)
+                { STATIC_CHECK(Convert<T>::isScalar,InputIter_instantiated_for_array); 
+                  ptr = vells.getStorage(Type2Type<T>()); } 
+              const T & operator * ()
+                { return *ptr; }
+              InputIter & operator ++ ()
+                { return *this; }   // default version does nothing -- we use this for scalars
+};
+// InputIter<T> for array types -- this actually iterates
+template<class T,int N> class InputIter <blitz::Array<T,N> > : public InputIter<T>
 {
-  VellsValueIter  (Vells &)
-  { Throw("VellsIter instantiated for unknown type"); }
-  Convert<T>::to_scalar & operator [] (int i);
-}
+  public:   InputIter (const Meq::Vells &vells) : InputIter<T>(vells) {};
+            InputIter & operator ++ ()
+              { ptr++; return *this; }  
+};
+// OutputIter<T> 
+//  This is a non-const, output iterator. This has an end-pointer, and a valid()
+//  method
+template<class T> class OutputIter
+{
+  protected:  typedef typename Convert<T>::to_scalar ST;
+              ST * ptr,*endptr;
+  public:     OutputIter (Meq::Vells &vells)
+                { ptr = vells.getStorage(Type2Type<ST>()); 
+                  endptr = ptr + vells.nelements(); };
+              ST & operator * ()
+                { return *ptr; }
+              OutputIter & operator ++ ()
+                { ptr++; return *this; }  // default version does nothing -- we use this for scalars
+              bool valid ()
+                { return ptr < endptr; }
+};
 
 // -----------------------------------------------------------------------
 // definitions for unary operators
@@ -461,7 +502,8 @@ template<> VellsIter<Array<T,N> >
 #define implementUnaryOperator(OPER,OPERNAME,x) \
   template<class T> \
   static void implement_##OPERNAME (Meq::Vells &out,const Meq::Vells &in) \
-  { out.as(Type2Type<T>()) = OPER in.as(Type2Type<T>()); } \
+  { OutputIter<T> oi(out); InputIter<T> ii(in); \
+    for( ; oi.valid(); ++oi,++ii ) *oi = OPER *ii; } \
   \
   Meq::Vells::UnaryOperPtr Meq::Vells::unary_##OPERNAME##_lut[VELLS_LUT_SIZE] = \
     ExpandMethodList(OPERNAME);
@@ -475,7 +517,8 @@ DoForAllUnaryOperators(implementUnaryOperator,);
 #define implementInPlaceOperator(OPER,OPERNAME,x) \
   template<class T> \
   static void implement_##OPERNAME (Meq::Vells &out,const Meq::Vells &in) \
-  { out.as(Type2Type<T>()) OPER in.as(Type2Type<T>()); } \
+  { OutputIter<T> oi(out); InputIter<T> ii(in); \
+    for( ; oi.valid(); ++oi,++ii ) *oi OPER *ii; } \
   \
   Meq::Vells::UnaryOperPtr Meq::Vells::inplace_##OPERNAME##_lut[VELLS_LUT_SIZE] = \
     ExpandMethodList(OPERNAME);
@@ -494,7 +537,8 @@ inline dcomplex sqr (const dcomplex &x)
 #define defineUnaryFuncTemplate(FUNCNAME,x) \
   template<class T> \
   static void implement_##FUNCNAME (Meq::Vells &out,const Meq::Vells &in) \
-  { out.as(Type2Type<T>()) = FUNCNAME(in.as(Type2Type<T>())); } \
+  { OutputIter<T> oi(out); InputIter<T> ii(in); \
+    for( ; oi.valid(); ++oi,++ii ) *oi = FUNCNAME(*ii); } \
     
 #define implementUnaryFunc1(FUNCNAME,x) \
   defineUnaryFuncTemplate(FUNCNAME,x) \
@@ -526,10 +570,11 @@ DoForAllUnaryFuncs2(implementUnaryFunc2,);
 #define defineUnaryRealFuncTemplate(FUNCNAME,x) \
   template<class T> \
   static void implement_##FUNCNAME (Meq::Vells &out,const Meq::Vells &in) \
-    { out.as(Type2Type<typename Convert<T>::to_double>()) = FUNCNAME(in.as(Type2Type<T>())); } \
+  { OutputIter<typename Convert<T>::to_double> oi(out); InputIter<T> ii(in); \
+    for( ; oi.valid(); ++oi,++ii ) *oi = FUNCNAME(*ii); } 
     
 DoForAllUnaryFuncs3(defineUnaryRealFuncTemplate,);
-    
+
 // fabs():     use abs for complex and fabs for real
   Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_fabs_lut[VELLS_LUT_SIZE] = \
     ExpandMethodList2(fabs,abs);
@@ -553,17 +598,20 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_imag_lut[VELLS_LUT_SIZE] =
 Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_norm_lut[VELLS_LUT_SIZE] = 
     ExpandMethodList2(sqr,norm);
 
+static inline double arg (double x) 
+{ return x>=0 ? 0 : -M_PI; }
 // arg()
 // Provide specialization for doubles, and use template
-template<>
-static void implement_arg<double> (Meq::Vells &out,const Meq::Vells &in)
-{ double x = in.as<double>(); 
-  out.as<double>() = x>=0 ? 0 : -M_PI; }
-template<>
-static void implement_arg<LoMat_double> (Meq::Vells &out,const Meq::Vells &in)
-{ const LoMat_double &x = in.as<LoMat_double>(); 
-  out.as<LoMat_double>() = where(x>=0, 0 , -M_PI); }
-  
+// static inline double arg_double (double x) 
+// { return x>=0 ? 0 : -M_PI; }
+// template<>
+// static void implement_arg<double> (Meq::Vells &out,const Meq::Vells &in)
+// { out.as<double>() = arg_double(x>=0 ? 0 : -M_PI); }
+// template<>
+// static void implement_arg<LoMat_double> (Meq::Vells &out,const Meq::Vells &in)
+// { const LoMat_double &x = in.as<LoMat_double>(); 
+//   out.as<LoMat_double>() = where(x>=0, 0 , -M_PI); }
+//   
 Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_arg_lut[VELLS_LUT_SIZE] = 
     ExpandMethodList(arg);
 
@@ -625,41 +673,43 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_product_lut[VELLS_LUT_SIZE] =
 #define defineBinaryOperTemplate(OPER,OPERNAME) \
   template<class TLeft,class TRight> \
   void implement_binary_##OPERNAME (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
-  { out.as(Type2Type<typename Promote<TRight,TLeft>::type>()) \
-      = left.as(Type2Type<TLeft>()) OPER right.as(Type2Type<TRight>()); }  \
-//   template<> \
-//   void implement_binary_##OPERNAME<LoMat_double,LoMat_double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
-//   { double *po = out.getStorage<double>(); \
-//     const double *p1=left.getStorage<double>(),*p2=right.getStorage<double>(); \
-//     int n = left.nelements(); for( int i=0; i<n; i++ ) po[i] = p1[i] OPER p2[i]; \
-//   }  \
-//   template<> \
-//   void implement_binary_##OPERNAME<double,LoMat_double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
-//   { double *po = out.getStorage<double>(); \
-//     double p1=left.as<double>(); const double *p2=right.getStorage<double>(); \
-//     int n = left.nelements(); for( int i=0; i<n; i++ ) po[i] = p1 OPER p2[i]; \
-//   }  \
-//   template<> \
-//   void implement_binary_##OPERNAME<LoMat_double,double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
-//   { double *po = out.getStorage<double>(); \
-//     const double *p1=left.getStorage<double>(); double p2=right.as<double>(); \
-//     int n = left.nelements(); for( int i=0; i<n; i++ ) po[i] = p1[i] OPER p2; \
-//   }  \
+  { OutputIter<typename Promote<TRight,TLeft>::type> iout(out); \
+    InputIter<TLeft> i1(left); InputIter<TRight> i2(right); \
+    for( ; iout.valid(); ++i1,++i2,++iout ) *iout = *i1 OPER *i2; \
+  }
     
 // Expands to address of a binary function defined above
 #define AddrBinaryFunction(TRight,TLeft,FUNC) \
   &implement_binary_##FUNC<TLeft,TRight>
+// Expands to address of an error function 
+#define AddrErrorFunction(TRight,TLeft,FUNC) \
+  &error_binary_##FUNC
 
-// Expands to one row of binary LUT table, TLeft is constant, TRight
+// Expands to one row of binary LUT table. TLeft is constant, TRight
 // goes through all LUT indices
 #define BinaryLUTRow(TLeft,FUNC) \
   { RepeatForLUTs2(AddrBinaryFunction,TLeft,FUNC) } 
+  
+// Expands to one row of binary LUT table. TLeft is constant, TRight
+// goes through all LUT indices. For complex TRight arguments, maps
+// to error function.
+#define BinaryRealLUTRow(TLeft,FUNC) \
+  { RepeatForRealLUTs2(AddrBinaryFunction,TLeft,FUNC), \
+    RepeatForComplexLUTs2(AddrErrorFunction,TLeft,FUNC) } 
+// Expands to one row of binary LUT table, composed of references to the
+// error function.
+#define BinaryErrorLUTRow(TLeft,FUNC) \
+  { RepeatForLUTs2(AddrErrorFunction,TLeft,FUNC) }
 
 // Expands to full binary LUT table. 
 //    minor (second) index corresponds to LUT index of right argument
 //    major (first) index corresponds to LUT index of left argument
 #define ExpandBinaryLUTMatrix(FUNC) \
   { RepeatForLUTs1(BinaryLUTRow,FUNC) }
+// Expands to real-only binary LUT table (complex arguments mapped to error funcs)
+#define ExpandRealBinaryLUTMatrix(FUNC) \
+  { RepeatForRealLUTs1(BinaryRealLUTRow,FUNC), \
+    RepeatForComplexLUTs1(BinaryErrorLUTRow,FUNC) }
 
 // Implements all binary operators via the template above  
 #define implementBinaryOperator(OPER,OPERNAME,dum) \
@@ -675,16 +725,18 @@ DoForAllBinaryOperators(implementBinaryOperator,);
 
 #define defineBinaryFuncTemplate(FUNCTION) \
   template<class TLeft,class TRight> \
-  void implement_binary_##OPERNAME (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
-  { out.as(Type2Type<typename Promote<TRight,TLeft>::type>()) \
-      = FUNCTION(left.as(Type2Type<TLeft>()),right.as(Type2Type<TRight>())); } 
+  void implement_binary_##FUNCTION (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
+  { OutputIter<typename Promote<TRight,TLeft>::type> iout(out); \
+    InputIter<TLeft> i1(left); InputIter<TRight> i2(right); \
+    for( ; iout.valid(); ++i1,++i2,++iout ) *iout = FUNCTION(*i1,*i2); }
 
 // pow() maps directly to the pow call (std or blitz)
-template<class TLeft,class TRight> 
-void implement_binary_pow (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) 
-{ out.as(Type2Type<typename Promote<TRight,TLeft>::type>()) 
-    = pow(left.as(Type2Type<TLeft>()),right.as(Type2Type<TRight>())); } 
+// template<class TLeft,class TRight> 
+// void implement_binary_pow (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) 
+// { out.as(Type2Type<typename Promote<TRight,TLeft>::type>()) 
+//    = pow(left.as(Type2Type<TLeft>()),right.as(Type2Type<TRight>())); } 
 
+defineBinaryFuncTemplate(pow);
 Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_pow_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
     ExpandBinaryLUTMatrix(pow);
 
@@ -710,39 +762,20 @@ Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_tocomplex_lut[VELLS_LUT_SIZE][VELL
     ExpandBinaryLUTMatrix(tocomplex);
 
 // posdiff() is defined for two real arguments
-// default throws exception
-template<class TLeft,class TRight> 
-inline void implement_binary_posdiff (Meq::Vells &,const Meq::Vells &,const Meq::Vells &)
-{ Throw("posdiff() can only be used with two real Meq::Vells"); }
-
-// define inlined helper template for array posdiff
-template<class TLeft,class TRight> 
-inline void implement_array_posdiff (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right)
-{ 
-  LoMat_double & diff = out.as(Type2Type<LoMat_double>());  
-  diff = left.as(Type2Type<TLeft>()) - right.as(Type2Type<TRight>());
-  diff = where( diff < -M_PI , diff + M_2_PI , 
-                 where(diff > M_PI , diff - M_2_PI , diff ) );
+//
+static inline double posdiff (double x,double y)
+{
+  double diff = x-y;
+  return diff < -M_PI ? diff + M_2_PI : ( diff > M_PI ? diff - M_2_PI : diff );
 }
-// specialization for two double scalars
-template<> 
-void implement_binary_posdiff<double,double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right)
-{ 
-   double diff = left.as<double>() - right.as<double>();
-   out.as<double>() = diff < -M_PI ? diff + M_2_PI :
-                            ( diff > M_PI ? diff - M_2_PI : diff );
-}
-// specializations for arrays
-template<>
-inline void implement_binary_posdiff<double,LoMat_double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right)
-{ implement_array_posdiff<double,LoMat_double>(out,left,right); }
-template<>
-inline void implement_binary_posdiff<LoMat_double,double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right)
-{ implement_array_posdiff<LoMat_double,double>(out,left,right); }
-template<>
-inline void implement_binary_posdiff<LoMat_double,LoMat_double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right)
-{ implement_array_posdiff<LoMat_double,LoMat_double>(out,left,right); }
 
+defineErrorFunc2(error_binary_posdiff,"posdiff() can only be used with real Meq::Vells "); \
+defineBinaryFuncTemplate(posdiff);
 Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_posdiff_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
-    ExpandBinaryLUTMatrix(posdiff);
-    
+    ExpandRealBinaryLUTMatrix(posdiff);
+
+// atan2() is defined for two real arguments    
+defineErrorFunc2(error_binary_atan2,"atan2() can only be used with real Meq::Vells "); \
+defineBinaryFuncTemplate(atan2);
+Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_atan2_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
+    ExpandRealBinaryLUTMatrix(atan2);
