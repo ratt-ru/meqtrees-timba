@@ -10,457 +10,457 @@
 
 #ifndef _defined_id_AidAIPSPP
 #define _defined_id_AidAIPSPP 1
-const AtomicID AidAIPSPP(-1191);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:36
+const AtomicID AidAIPSPP(-1191);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:1
 const int AidAIPSPP_int = -1191;
 #endif
 #ifndef _defined_id_AidAngle
 #define _defined_id_AidAngle 1
-const AtomicID AidAngle(-1182);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
+const AtomicID AidAngle(-1182);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:2
 const int AidAngle_int = -1182;
 #endif
 #ifndef _defined_id_AidAntenna
 #define _defined_id_AidAntenna 1
-const AtomicID AidAntenna(-1194);                 // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
+const AtomicID AidAntenna(-1194);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:3
 const int AidAntenna_int = -1194;
 #endif
 #ifndef _defined_id_AidBandwidth
 #define _defined_id_AidBandwidth 1
-const AtomicID AidBandwidth(-1199);               // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:32
+const AtomicID AidBandwidth(-1199);               // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:4
 const int AidBandwidth_int = -1199;
 #endif
 #ifndef _defined_id_AidBeam
 #define _defined_id_AidBeam 1
-const AtomicID AidBeam(-1221);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
+const AtomicID AidBeam(-1221);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:5
 const int AidBeam_int = -1221;
 #endif
 #ifndef _defined_id_AidCalibration
 #define _defined_id_AidCalibration 1
-const AtomicID AidCalibration(-1208);             // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
+const AtomicID AidCalibration(-1208);             // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:6
 const int AidCalibration_int = -1208;
 #endif
 #ifndef _defined_id_AidCentroid
 #define _defined_id_AidCentroid 1
-const AtomicID AidCentroid(-1171);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
+const AtomicID AidCentroid(-1171);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:7
 const int AidCentroid_int = -1171;
 #endif
 #ifndef _defined_id_AidChain
 #define _defined_id_AidChain 1
-const AtomicID AidChain(-1203);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
+const AtomicID AidChain(-1203);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:8
 const int AidChain_int = -1203;
 #endif
 #ifndef _defined_id_AidChannel
 #define _defined_id_AidChannel 1
-const AtomicID AidChannel(-1225);                 // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
+const AtomicID AidChannel(-1225);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:9
 const int AidChannel_int = -1225;
 #endif
 #ifndef _defined_id_AidChunk
 #define _defined_id_AidChunk 1
-const AtomicID AidChunk(-1152);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:29
+const AtomicID AidChunk(-1152);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:10
 const int AidChunk_int = -1152;
 #endif
 #ifndef _defined_id_AidCode
 #define _defined_id_AidCode 1
-const AtomicID AidCode(-1222);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
+const AtomicID AidCode(-1222);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:11
 const int AidCode_int = -1222;
 #endif
 #ifndef _defined_id_AidColumnarTableTile
 #define _defined_id_AidColumnarTableTile 1
-const AtomicID AidColumnarTableTile(-1037);       // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:1
+const AtomicID AidColumnarTableTile(-1037);       // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:12
 const int AidColumnarTableTile_int = -1037;
 #endif
 #ifndef _defined_id_AidControl
 #define _defined_id_AidControl 1
-const AtomicID AidControl(-1141);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/SolverControl/src/SolverControl.aidlist:3
+const AtomicID AidControl(-1141);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:6
 const int AidControl_int = -1141;
 #endif
 #ifndef _defined_id_AidConv
 #define _defined_id_AidConv 1
-const AtomicID AidConv(-1181);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
+const AtomicID AidConv(-1181);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:14
 const int AidConv_int = -1181;
 #endif
 #ifndef _defined_id_AidCorr
 #define _defined_id_AidCorr 1
-const AtomicID AidCorr(-1111);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:2
+const AtomicID AidCorr(-1111);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:15
 const int AidCorr_int = -1111;
 #endif
 #ifndef _defined_id_AidData
 #define _defined_id_AidData 1
-const AtomicID AidData(-1107);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:2
+const AtomicID AidData(-1107);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:7
 const int AidData_int = -1107;
 #endif
 #ifndef _defined_id_AidDelay
 #define _defined_id_AidDelay 1
-const AtomicID AidDelay(-1217);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
+const AtomicID AidDelay(-1217);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:17
 const int AidDelay_int = -1217;
 #endif
 #ifndef _defined_id_AidDesc
 #define _defined_id_AidDesc 1
-const AtomicID AidDesc(-1214);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
+const AtomicID AidDesc(-1214);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:18
 const int AidDesc_int = -1214;
 #endif
 #ifndef _defined_id_AidDiameter
 #define _defined_id_AidDiameter 1
-const AtomicID AidDiameter(-1176);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
+const AtomicID AidDiameter(-1176);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:19
 const int AidDiameter_int = -1176;
 #endif
 #ifndef _defined_id_AidDir
 #define _defined_id_AidDir 1
-const AtomicID AidDir(-1209);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
+const AtomicID AidDir(-1209);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:20
 const int AidDir_int = -1209;
 #endif
 #ifndef _defined_id_AidDish
 #define _defined_id_AidDish 1
-const AtomicID AidDish(-1189);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
+const AtomicID AidDish(-1189);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:21
 const int AidDish_int = -1189;
 #endif
 #ifndef _defined_id_AidEffective
 #define _defined_id_AidEffective 1
-const AtomicID AidEffective(-1206);               // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:32
+const AtomicID AidEffective(-1206);               // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:22
 const int AidEffective_int = -1206;
 #endif
 #ifndef _defined_id_AidExposure
 #define _defined_id_AidExposure 1
-const AtomicID AidExposure(-1190);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
+const AtomicID AidExposure(-1190);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:23
 const int AidExposure_int = -1190;
 #endif
 #ifndef _defined_id_AidFeed
 #define _defined_id_AidFeed 1
-const AtomicID AidFeed(-1196);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
+const AtomicID AidFeed(-1196);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:24
 const int AidFeed_int = -1196;
 #endif
 #ifndef _defined_id_AidField
 #define _defined_id_AidField 1
-const AtomicID AidField(-1162);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
+const AtomicID AidField(-1162);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:25
 const int AidField_int = -1162;
 #endif
 #ifndef _defined_id_AidFlag
 #define _defined_id_AidFlag 1
-const AtomicID AidFlag(-1207);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
+const AtomicID AidFlag(-1207);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgent.aidlist:6
 const int AidFlag_int = -1207;
 #endif
 #ifndef _defined_id_AidFooter
 #define _defined_id_AidFooter 1
-const AtomicID AidFooter(-1202);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:29
+const AtomicID AidFooter(-1202);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:27
 const int AidFooter_int = -1202;
 #endif
 #ifndef _defined_id_AidFreq
 #define _defined_id_AidFreq 1
-const AtomicID AidFreq(-1110);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:3
+const AtomicID AidFreq(-1110);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:28
 const int AidFreq_int = -1110;
 #endif
 #ifndef _defined_id_AidGroup
 #define _defined_id_AidGroup 1
-const AtomicID AidGroup(-1184);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
+const AtomicID AidGroup(-1184);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:29
 const int AidGroup_int = -1184;
 #endif
 #ifndef _defined_id_AidHeader
 #define _defined_id_AidHeader 1
-const AtomicID AidHeader(-1133);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/VisAgent/src/VisAgent.aidlist:6
+const AtomicID AidHeader(-1133);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/VisAgent/src/VisAgent.aidlist:7
 const int AidHeader_int = -1133;
 #endif
 #ifndef _defined_id_AidIF
 #define _defined_id_AidIF 1
-const AtomicID AidIF(-1228);                      // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
+const AtomicID AidIF(-1228);                      // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:31
 const int AidIF_int = -1228;
 #endif
 #ifndef _defined_id_AidIFR
 #define _defined_id_AidIFR 1
-const AtomicID AidIFR(-1220);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
+const AtomicID AidIFR(-1220);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:32
 const int AidIFR_int = -1220;
 #endif
 #ifndef _defined_id_AidIgnore
 #define _defined_id_AidIgnore 1
-const AtomicID AidIgnore(-1160);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:36
+const AtomicID AidIgnore(-1160);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:33
 const int AidIgnore_int = -1160;
 #endif
 #ifndef _defined_id_AidIndex
 #define _defined_id_AidIndex 1
-const AtomicID AidIndex(-1045);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:32
+const AtomicID AidIndex(-1045);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/Solver/src/Solver.aidlist:12
 const int AidIndex_int = -1045;
 #endif
 #ifndef _defined_id_AidIndexing
 #define _defined_id_AidIndexing 1
-const AtomicID AidIndexing(-1169);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:29
+const AtomicID AidIndexing(-1169);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:35
 const int AidIndexing_int = -1169;
 #endif
 #ifndef _defined_id_AidIntegrate
 #define _defined_id_AidIntegrate 1
-const AtomicID AidIntegrate(-1187);               // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
+const AtomicID AidIntegrate(-1187);               // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:36
 const int AidIntegrate_int = -1187;
 #endif
 #ifndef _defined_id_AidIntegrated
 #define _defined_id_AidIntegrated 1
-const AtomicID AidIntegrated(-1165);              // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
+const AtomicID AidIntegrated(-1165);              // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:37
 const int AidIntegrated_int = -1165;
 #endif
 #ifndef _defined_id_AidInterval
 #define _defined_id_AidInterval 1
-const AtomicID AidInterval(-1177);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
+const AtomicID AidInterval(-1177);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:38
 const int AidInterval_int = -1177;
 #endif
 #ifndef _defined_id_AidLines
 #define _defined_id_AidLines 1
-const AtomicID AidLines(-1180);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
+const AtomicID AidLines(-1180);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:39
 const int AidLines_int = -1180;
 #endif
 #ifndef _defined_id_AidMS
 #define _defined_id_AidMS 1
-const AtomicID AidMS(-1120);                      // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgent.aidlist:6
+const AtomicID AidMS(-1120);                      // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgent.aidlist:10
 const int AidMS_int = -1120;
 #endif
 #ifndef _defined_id_AidMeas
 #define _defined_id_AidMeas 1
-const AtomicID AidMeas(-1188);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
+const AtomicID AidMeas(-1188);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:41
 const int AidMeas_int = -1188;
 #endif
 #ifndef _defined_id_AidMotion
 #define _defined_id_AidMotion 1
-const AtomicID AidMotion(-1211);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
+const AtomicID AidMotion(-1211);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:42
 const int AidMotion_int = -1211;
 #endif
 #ifndef _defined_id_AidMount
 #define _defined_id_AidMount 1
-const AtomicID AidMount(-1161);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
+const AtomicID AidMount(-1161);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:43
 const int AidMount_int = -1161;
 #endif
 #ifndef _defined_id_AidName
 #define _defined_id_AidName 1
-const AtomicID AidName(-1163);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
+const AtomicID AidName(-1163);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:15
 const int AidName_int = -1163;
 #endif
 #ifndef _defined_id_AidNet
 #define _defined_id_AidNet 1
-const AtomicID AidNet(-1157);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:32
+const AtomicID AidNet(-1157);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:45
 const int AidNet_int = -1157;
 #endif
 #ifndef _defined_id_AidNum
 #define _defined_id_AidNum 1
-const AtomicID AidNum(-1140);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/SolverControl/src/SolverControl.aidlist:11
+const AtomicID AidNum(-1140);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/Solver/src/Solver.aidlist:20
 const int AidNum_int = -1140;
 #endif
 #ifndef _defined_id_AidOffset
 #define _defined_id_AidOffset 1
-const AtomicID AidOffset(-1227);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
+const AtomicID AidOffset(-1227);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:47
 const int AidOffset_int = -1227;
 #endif
 #ifndef _defined_id_AidOrigin
 #define _defined_id_AidOrigin 1
-const AtomicID AidOrigin(-1183);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
+const AtomicID AidOrigin(-1183);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:48
 const int AidOrigin_int = -1183;
 #endif
 #ifndef _defined_id_AidPatch
 #define _defined_id_AidPatch 1
-const AtomicID AidPatch(-1178);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:29
+const AtomicID AidPatch(-1178);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:49
 const int AidPatch_int = -1178;
 #endif
 #ifndef _defined_id_AidPhase
 #define _defined_id_AidPhase 1
-const AtomicID AidPhase(-1193);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
+const AtomicID AidPhase(-1193);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:50
 const int AidPhase_int = -1193;
 #endif
 #ifndef _defined_id_AidPoint
 #define _defined_id_AidPoint 1
-const AtomicID AidPoint(-1173);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
+const AtomicID AidPoint(-1173);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:51
 const int AidPoint_int = -1173;
 #endif
 #ifndef _defined_id_AidPointing
 #define _defined_id_AidPointing 1
-const AtomicID AidPointing(-1192);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
+const AtomicID AidPointing(-1192);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:52
 const int AidPointing_int = -1192;
 #endif
 #ifndef _defined_id_AidPolarization
 #define _defined_id_AidPolarization 1
-const AtomicID AidPolarization(-1215);            // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
+const AtomicID AidPolarization(-1215);            // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:53
 const int AidPolarization_int = -1215;
 #endif
 #ifndef _defined_id_AidPoly
 #define _defined_id_AidPoly 1
-const AtomicID AidPoly(-1154);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
+const AtomicID AidPoly(-1154);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:54
 const int AidPoly_int = -1154;
 #endif
 #ifndef _defined_id_AidPos
 #define _defined_id_AidPos 1
-const AtomicID AidPos(-1164);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
+const AtomicID AidPos(-1164);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:55
 const int AidPos_int = -1164;
 #endif
 #ifndef _defined_id_AidProduct
 #define _defined_id_AidProduct 1
-const AtomicID AidProduct(-1153);                 // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
+const AtomicID AidProduct(-1153);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:56
 const int AidProduct_int = -1153;
 #endif
 #ifndef _defined_id_AidProper
 #define _defined_id_AidProper 1
-const AtomicID AidProper(-1216);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
+const AtomicID AidProper(-1216);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:57
 const int AidProper_int = -1216;
 #endif
 #ifndef _defined_id_AidRaw
 #define _defined_id_AidRaw 1
-const AtomicID AidRaw(-1159);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
+const AtomicID AidRaw(-1159);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:58
 const int AidRaw_int = -1159;
 #endif
 #ifndef _defined_id_AidReceptor
 #define _defined_id_AidReceptor 1
-const AtomicID AidReceptor(-1200);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
+const AtomicID AidReceptor(-1200);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:59
 const int AidReceptor_int = -1200;
 #endif
 #ifndef _defined_id_AidRef
 #define _defined_id_AidRef 1
-const AtomicID AidRef(-1201);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
+const AtomicID AidRef(-1201);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:60
 const int AidRef_int = -1201;
 #endif
 #ifndef _defined_id_AidResolution
 #define _defined_id_AidResolution 1
-const AtomicID AidResolution(-1175);              // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:32
+const AtomicID AidResolution(-1175);              // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:61
 const int AidResolution_int = -1175;
 #endif
 #ifndef _defined_id_AidResponse
 #define _defined_id_AidResponse 1
-const AtomicID AidResponse(-1172);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
+const AtomicID AidResponse(-1172);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:62
 const int AidResponse_int = -1172;
 #endif
 #ifndef _defined_id_AidRow
 #define _defined_id_AidRow 1
-const AtomicID AidRow(-1224);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
+const AtomicID AidRow(-1224);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:63
 const int AidRow_int = -1224;
 #endif
 #ifndef _defined_id_AidSPW
 #define _defined_id_AidSPW 1
-const AtomicID AidSPW(-1158);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
+const AtomicID AidSPW(-1158);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:64
 const int AidSPW_int = -1158;
 #endif
 #ifndef _defined_id_AidSegment
 #define _defined_id_AidSegment 1
-const AtomicID AidSegment(-1179);                 // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
+const AtomicID AidSegment(-1179);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:65
 const int AidSegment_int = -1179;
 #endif
 #ifndef _defined_id_AidSideband
 #define _defined_id_AidSideband 1
-const AtomicID AidSideband(-1174);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:32
+const AtomicID AidSideband(-1174);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:66
 const int AidSideband_int = -1174;
 #endif
 #ifndef _defined_id_AidSigma
 #define _defined_id_AidSigma 1
-const AtomicID AidSigma(-1197);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
+const AtomicID AidSigma(-1197);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:67
 const int AidSigma_int = -1197;
 #endif
 #ifndef _defined_id_AidSorted
 #define _defined_id_AidSorted 1
-const AtomicID AidSorted(-1198);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
+const AtomicID AidSorted(-1198);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:68
 const int AidSorted_int = -1198;
 #endif
 #ifndef _defined_id_AidSource
 #define _defined_id_AidSource 1
-const AtomicID AidSource(-1212);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
+const AtomicID AidSource(-1212);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:69
 const int AidSource_int = -1212;
 #endif
 #ifndef _defined_id_AidStation
 #define _defined_id_AidStation 1
-const AtomicID AidStation(-1167);                 // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
+const AtomicID AidStation(-1167);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:70
 const int AidStation_int = -1167;
 #endif
 #ifndef _defined_id_AidSubtable
 #define _defined_id_AidSubtable 1
-const AtomicID AidSubtable(-1210);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
+const AtomicID AidSubtable(-1210);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:71
 const int AidSubtable_int = -1210;
 #endif
 #ifndef _defined_id_AidTableFormat
 #define _defined_id_AidTableFormat 1
-const AtomicID AidTableFormat(-1036);             // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:4
+const AtomicID AidTableFormat(-1036);             // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:72
 const int AidTableFormat_int = -1036;
 #endif
 #ifndef _defined_id_AidTarget
 #define _defined_id_AidTarget 1
-const AtomicID AidTarget(-1205);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
+const AtomicID AidTarget(-1205);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:73
 const int AidTarget_int = -1205;
 #endif
 #ifndef _defined_id_AidTime
 #define _defined_id_AidTime 1
-const AtomicID AidTime(-1218);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
+const AtomicID AidTime(-1218);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:74
 const int AidTime_int = -1218;
 #endif
 #ifndef _defined_id_AidTimeslot
 #define _defined_id_AidTimeslot 1
-const AtomicID AidTimeslot(-1185);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
+const AtomicID AidTimeslot(-1185);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:75
 const int AidTimeslot_int = -1185;
 #endif
 #ifndef _defined_id_AidTotal
 #define _defined_id_AidTotal 1
-const AtomicID AidTotal(-1219);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:32
+const AtomicID AidTotal(-1219);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:76
 const int AidTotal_int = -1219;
 #endif
 #ifndef _defined_id_AidTracking
 #define _defined_id_AidTracking 1
-const AtomicID AidTracking(-1195);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
+const AtomicID AidTracking(-1195);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:77
 const int AidTracking_int = -1195;
 #endif
 #ifndef _defined_id_AidType
 #define _defined_id_AidType 1
-const AtomicID AidType(-1098);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:57
+const AtomicID AidType(-1098);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:74
 const int AidType_int = -1098;
 #endif
 #ifndef _defined_id_AidUVData
 #define _defined_id_AidUVData 1
-const AtomicID AidUVData(-1226);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
+const AtomicID AidUVData(-1226);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:79
 const int AidUVData_int = -1226;
 #endif
 #ifndef _defined_id_AidUVSet
 #define _defined_id_AidUVSet 1
-const AtomicID AidUVSet(-1213);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
+const AtomicID AidUVSet(-1213);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:80
 const int AidUVSet_int = -1213;
 #endif
 #ifndef _defined_id_AidUVW
 #define _defined_id_AidUVW 1
-const AtomicID AidUVW(-1204);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
+const AtomicID AidUVW(-1204);                     // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:81
 const int AidUVW_int = -1204;
 #endif
 #ifndef _defined_id_AidUnsorted
 #define _defined_id_AidUnsorted 1
-const AtomicID AidUnsorted(-1170);                // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
+const AtomicID AidUnsorted(-1170);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:82
 const int AidUnsorted_int = -1170;
 #endif
 #ifndef _defined_id_AidVisCube
 #define _defined_id_AidVisCube 1
-const AtomicID AidVisCube(-1038);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:5
+const AtomicID AidVisCube(-1038);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:83
 const int AidVisCube_int = -1038;
 #endif
 #ifndef _defined_id_AidVisCubeSet
 #define _defined_id_AidVisCubeSet 1
-const AtomicID AidVisCubeSet(-1034);              // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:6
+const AtomicID AidVisCubeSet(-1034);              // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:84
 const int AidVisCubeSet_int = -1034;
 #endif
 #ifndef _defined_id_AidVisTile
 #define _defined_id_AidVisTile 1
-const AtomicID AidVisTile(-1035);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:7
+const AtomicID AidVisTile(-1035);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:85
 const int AidVisTile_int = -1035;
 #endif
 #ifndef _defined_id_AidWeight
 #define _defined_id_AidWeight 1
-const AtomicID AidWeight(-1223);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
+const AtomicID AidWeight(-1223);                  // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:86
 const int AidWeight_int = -1223;
 #endif
 #ifndef _defined_id_AidWidth
 #define _defined_id_AidWidth 1
-const AtomicID AidWidth(-1186);                   // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
+const AtomicID AidWidth(-1186);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:87
 const int AidWidth_int = -1186;
 #endif
 #ifndef _defined_id_AidXX
 #define _defined_id_AidXX 1
-const AtomicID AidXX(-1155);                      // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:29
+const AtomicID AidXX(-1155);                      // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:88
 const int AidXX_int = -1155;
 #endif
 #ifndef _defined_id_AidXY
 #define _defined_id_AidXY 1
-const AtomicID AidXY(-1156);                      // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:29
+const AtomicID AidXY(-1156);                      // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:89
 const int AidXY_int = -1156;
 #endif
 #ifndef _defined_id_AidYX
 #define _defined_id_AidYX 1
-const AtomicID AidYX(-1166);                      // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:29
+const AtomicID AidYX(-1166);                      // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:90
 const int AidYX_int = -1166;
 #endif
 #ifndef _defined_id_AidYY
 #define _defined_id_AidYY 1
-const AtomicID AidYY(-1168);                      // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:29
+const AtomicID AidYY(-1168);                      // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:91
 const int AidYY_int = -1168;
 #endif
 

@@ -10,33 +10,88 @@
 
 #ifndef _defined_id_TpColumnarTableTile
 #define _defined_id_TpColumnarTableTile 1
-const TypeId TpColumnarTableTile(-1037);          // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:1
+const TypeId TpColumnarTableTile(-1037);          // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:12
 const int TpColumnarTableTile_int = -1037;
 class ColumnarTableTile;
+            template<>
+            class DMIBaseTypeTraits<ColumnarTableTile> : public TypeTraits<ColumnarTableTile>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpColumnarTableTile_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const ColumnarTableTile & ContainerReturnType;
+              typedef const ColumnarTableTile & ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_TpTableFormat
 #define _defined_id_TpTableFormat 1
-const TypeId TpTableFormat(-1036);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:4
+const TypeId TpTableFormat(-1036);                // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:72
 const int TpTableFormat_int = -1036;
 class TableFormat;
+            template<>
+            class DMIBaseTypeTraits<TableFormat> : public TypeTraits<TableFormat>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpTableFormat_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const TableFormat & ContainerReturnType;
+              typedef const TableFormat & ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_TpVisCube
 #define _defined_id_TpVisCube 1
-const TypeId TpVisCube(-1038);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:5
+const TypeId TpVisCube(-1038);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:83
 const int TpVisCube_int = -1038;
 class VisCube;
+            template<>
+            class DMIBaseTypeTraits<VisCube> : public TypeTraits<VisCube>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpVisCube_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const VisCube & ContainerReturnType;
+              typedef const VisCube & ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_TpVisCubeSet
 #define _defined_id_TpVisCubeSet 1
-const TypeId TpVisCubeSet(-1034);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:6
+const TypeId TpVisCubeSet(-1034);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:84
 const int TpVisCubeSet_int = -1034;
 class VisCubeSet;
+            template<>
+            class DMIBaseTypeTraits<VisCubeSet> : public TypeTraits<VisCubeSet>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpVisCubeSet_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const VisCubeSet & ContainerReturnType;
+              typedef const VisCubeSet & ContainerParamType;
+            };
 #endif
 #ifndef _defined_id_TpVisTile
 #define _defined_id_TpVisTile 1
-const TypeId TpVisTile(-1035);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:7
+const TypeId TpVisTile(-1035);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/VisCube/src/VisCube.aidlist:85
 const int TpVisTile_int = -1035;
 class VisTile;
+            template<>
+            class DMIBaseTypeTraits<VisTile> : public TypeTraits<VisTile>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpVisTile_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const VisTile & ContainerReturnType;
+              typedef const VisTile & ContainerParamType;
+            };
 #endif
 
 
