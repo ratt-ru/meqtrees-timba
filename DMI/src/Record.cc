@@ -463,7 +463,7 @@ string DataRecord::sdebug ( int detail,const string &prefix,const char *name ) c
   string out;
   if( detail>=0 ) // basic detail
   {
-    Debug::appendf(out,"%s/%08x",name?name:"DataRecord",(int)this);
+    Debug::appendf(out,"%s/%08x",name?name:objectType().toString().c_str(),(int)this);
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
