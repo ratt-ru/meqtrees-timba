@@ -166,7 +166,7 @@ AC_ARG_WITH(lofar-libdir,
 
   # Get the possible version:variant given.
   # Empty variant means the current variant.
-  # Remove trailing / and /LOFAR if user has given that (reduntdantly).
+  # Remove trailing / and /LOFAR if user has given that (redundantly).
   lofar_root=
   lofar_variant=
   if test "x$with_lofar" != "x"; then
