@@ -158,7 +158,12 @@ void VellSet::validateContent ()
               // setup shortcuts to perturbation vells
               // use different versions for writable/non-writable
               for( int i=0; i<numspids_; i++ )
-                pset_[iset].pertval[i] <<= new Vells(pset_[iset].pertval_field[i].ref(DMI::PRESERVE_RW));
+              {
+                if( pset_[iset].pertval_field[i].exists() )
+                  pset_[iset].pertval[i] <<= new Vells(pset_[iset].pertval_field[i].ref(DMI::PRESERVE_RW));
+                else
+                  pset_[iset].pertval[i] <<= new Vells;
+              }
             }
           }
         }
@@ -167,11 +172,13 @@ void VellSet::validateContent ()
   }
   catch( std::exception &err )
   {
+//    cerr<<"Failed VellSet: "<<sdebug(10)<<endl;
     clear();
     Throw(string("Validate of Meq::VellSet record failed: ") + err.what());
   }
   catch( ... )
   {
+//    cerr<<"Failed VellSet: "<<sdebug(10)<<endl;
     clear();
     Throw("Validate of Meq::VellSet record failed with unknown exception");
   }  
@@ -313,7 +320,7 @@ void VellSet::show (std::ostream& os) const
   else
   {
     os << "Value: " << *value_ << endl;
-    os << "  " << numspids_ << " spids; " << pset_.size() << "diff set(s)\n";
+    os << "  " << numspids_ << " spids; " << pset_.size() << " diff set(s)\n";
     for( int i=0; i<numspids_; i++) 
     {
       os << "Spid " << spids_[i] << " ";

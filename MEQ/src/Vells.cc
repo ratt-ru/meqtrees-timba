@@ -150,13 +150,26 @@ void Vells::initArrayPointers (const DataArray *parr,int flags)
 //##ModelId=400E5356013E
 void Vells::initFromDataArray (const DataArray *parr,int flags)
 {
-  Assert( parr->rank() == 2 );
-  initArrayPointers(parr,flags);
-  // set attributes from data array
-  itsNx       = parr->shape()[0];
-  itsNy       = parr->shape()[1];
-  itsIsTemp   = false;
-  itsIsScalar = (itsNx==1 && itsNy==1);
+  if( parr->rank() == 2 )
+  {
+    initArrayPointers(parr,flags);
+    // set attributes from data array
+    itsNx       = parr->shape()[0];
+    itsNy       = parr->shape()[1];
+    itsIsTemp   = false;
+    itsIsScalar = (itsNx==1 && itsNy==1);
+  }
+  else if( parr->rank() == 0 )
+  {
+    itsNx = itsNy = 0;
+    itsIsTemp = false;
+    itsIsScalar = true;
+    itsArray.detach();
+  }
+  else
+  {
+    Throw("illegal array rank in Meq::Vells constructor");
+  }
 }
   
 //##ModelId=3F8688700216
