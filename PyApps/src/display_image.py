@@ -31,7 +31,6 @@ def bytescale(data, cmin=None, cmax=None, high=255, low=0):
     return bytedata 
 
 def flagbytescale(data, flags_array,cmin=None, cmax=None, high=255, low=0):
-    print 'starting flagbytescale'
     if data.type() == UInt8:
         return data
     high = high - low
@@ -192,14 +191,15 @@ class QwtPlotImage(QwtPlotMappedItem):
     def setImage(self, image):
 # turm image into a QImage	
         byte_image = bytescale(image)
-	
 	flags_image = None
 	byte_flags_min = 0
 	byte_flags_max = 0
 	byte_flags_range = 0
 	if not self._flags_array is None:
 	  temp_image = image.copy()
-          flags_image = flagbytescale(temp_image, self._flags_array)
+# call the flagbytesscale function with low = 1, so that we avoid having
+# any actual data points with a byte value of 0.
+          flags_image = flagbytescale(temp_image, self._flags_array, None, None, 255, 1)
           n_rows = self._flags_array.shape[0]
           n_cols = self._flags_array.shape[1]
 	  for j in range(0, n_rows ) :
@@ -210,9 +210,7 @@ class QwtPlotImage(QwtPlotMappedItem):
 	  byte_flags_range = byte_flags_max - byte_flags_min
 
         byte_range = 1.0 * (byte_image.max() - byte_image.min())
-#	print 'byte_flags_range byte_range ', byte_flags_range, ' ', byte_range
         byte_min = 1.0 * (byte_image.min())
-#	print 'byte_flags_min byte_min ', byte_flags_min, ' ', byte_min
         self.image = toQImage(byte_image).mirror(0, 1)
 	if not flags_image is None:
           self.byte_flags_image = toQImage(flags_image).mirror(0, 1)
@@ -432,12 +430,16 @@ class QwtImagePlot(QwtPlot):
         self._vells_plot = False
 	self._flags_array = None
 	self.flag_toggle = False
+	self.flag_blink = False
 
 # save raw data
         self.plot_key = plot_key
         self.x_array = None
         self.y_array = None
         self.x_index = None
+	self._x_axis = None
+	self._y_axis = None
+	self._title = None
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -565,6 +567,9 @@ class QwtImagePlot(QwtPlot):
             self._label = "toggle flagged data for plane " + str(i) 
 	    toggle_id = 200
             self._menu.insertItem(self._label,toggle_id)
+            self._label = "toggle blink of flagged data for plane " + str(i) 
+            toggle_id = 201
+            self._menu.insertItem(self._label,toggle_id)
 
         zoom = QAction(self);
         zoom.setIconSet(pixmaps.viewmag.iconset());
@@ -587,19 +592,48 @@ class QwtImagePlot(QwtPlot):
         else:
           return
 
-    def update_vells_display(self, menuid):
-      if menuid < 0:
-        self.unzoom()
-        return
-
-# toggle flags display	
-      if menuid == 200:
+    def timerEvent_blink(self):
+# stop blinking     
+      if not self.flag_blink:
+        self.timer.stop()
+        self.flag_toggle = False
+        self.plotImage.setDisplayFlag(self.flag_toggle)
+        self.replot()
+      else:
         if self.flag_toggle == False:
           self.flag_toggle = True
         else:
           self.flag_toggle = False
         self.plotImage.setDisplayFlag(self.flag_toggle)
         self.replot()
+
+    def update_vells_display(self, menuid):
+      if menuid < 0:
+        self.unzoom()
+        return
+	
+# toggle flags display	
+      if menuid == 200:
+        if self.flag_toggle == False:
+	  print 'setting toggle flag to true'
+          self.flag_toggle = True
+        else:
+          self.flag_toggle = False
+        self.plotImage.setDisplayFlag(self.flag_toggle)
+        self.replot()
+	return
+
+      if menuid == 201:
+        print 'caught signal of 201'
+        if self.flag_blink == False:
+	  print 'setting blink flag to true'
+          self.flag_blink = True
+	  self.timer = QTimer(self)
+          self.timer.connect(self.timer, SIGNAL('timeout()'), self.timerEvent_blink)
+          self.timer.start(2000)
+	  print 'started timer'
+        else:
+          self.flag_blink = False
 	return
 
       id_string = self._next_plot[menuid]
@@ -716,17 +750,25 @@ class QwtImagePlot(QwtPlot):
         xpos = self.invTransform(QwtPlot.xBottom, x)
         ypos = self.invTransform(QwtPlot.yLeft, y)
         if self._vells_plot:
-          temp_str = result + "x =%+.2g" % xpos
+	  xpos1 = xpos
+	  if not self.split_axis is None:
+	    if xpos1 >  self.split_axis:
+	      xpos1 = xpos1 - self.split_axis
+          temp_str = result + "x =%+.2g" % xpos1
           result = temp_str
           temp_str = result + " y =%+.2g" % ypos
           result = temp_str
           xpos = self.plotImage.xMap.limTransform(xpos)
           ypos = self.plotImage.yMap.limTransform(ypos)
         else:
-          xpos = int(xpos1)
-          temp_str = result + "x =%+.2g" % xpos
+          xpos = int(xpos)
+	  xpos1 = xpos
+	  if not self.split_axis is None:
+	    if xpos1 >  self.split_axis:
+	      xpos1 = xpos1 - self.split_axis
+          temp_str = result + "x =%+.2g" % xpos1
           result = temp_str
-          ypos = int(ypos1)
+          ypos = int(ypos)
           temp_str = result + " y =%+.2g" % ypos
           result = temp_str
         value = self.raw_image[xpos,ypos]
@@ -840,7 +882,7 @@ class QwtImagePlot(QwtPlot):
               self.setAxisTitle(QwtPlot.xTop, 'y cross-section value')
               self.setCurveYAxis(self.yCrossSection, QwtPlot.yLeft)
               self.setCurveXAxis(self.yCrossSection, QwtPlot.xTop)
-              self.setAxisOptions(QwtPlot.xTop,QwtAutoScale.Inverted)
+#              self.setAxisOptions(QwtPlot.xTop,QwtAutoScale.Inverted)
               if self._vells_plot:
                 delta_vells = self.vells_end_freq - self.vells_start_freq
                 x_step = delta_vells / shape[0] 
@@ -944,6 +986,9 @@ class QwtImagePlot(QwtPlot):
 
 # first find out what kind of plot we are making
       self._plot_type = None
+      self._title = None
+      self._x_axis = None
+      self._y_axis = None
       self._display_type = None
       self._string_tag = None
       self._data_labels = None
@@ -984,6 +1029,13 @@ class QwtImagePlot(QwtPlot):
               plot_parms = temp_parms
             if self._plot_type is None and plot_parms.has_key('plot_type'):
               self._plot_type = plot_parms.get('plot_type')
+            if self._title is None and plot_parms.has_key('title'):
+              self._title = plot_parms.get('title')
+              self.setTitle(self._title)
+            if self._x_axis is None and plot_parms.has_key('x_axis'):
+              self._x_axis = plot_parms.get('x_axis')
+            if self._y_axis is None and plot_parms.has_key('y_axis'):
+              self._y_axis = plot_parms.get('y_axis')
             if self._display_type is None and plot_parms.has_key('spectrum_color'):
               self._display_type = plot_parms.get('spectrum_color')
           if self._attrib_parms.has_key('tag'):
@@ -1169,9 +1221,11 @@ class QwtImagePlot(QwtPlot):
       self.yCrossSectionLoc = None
       self.dummy_xCrossSection = None
       self.myXScale = None
+      self.split_axis = None
 
 # set title
-      self.setTitle(data_label)
+      if self._title is None:
+        self.setTitle(data_label)
 
 # figure out type and rank of incoming array
       is_time = False
@@ -1214,13 +1268,32 @@ class QwtImagePlot(QwtPlot):
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if complex_type and self._display_type != "brentjens":
           if self._vells_plot:
-            self.setAxisTitle(QwtPlot.xBottom, 'Frequency (real followed by imaginary)')
-            self.setAxisTitle(QwtPlot.yLeft, 'Time')
-
+	    if self._x_axis is None:
+              self.setAxisTitle(QwtPlot.xBottom, 'Frequency (real followed by imaginary)')
+	    else:  
+              self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
+	    if self._y_axis is None:
+              self.setAxisTitle(QwtPlot.yLeft, 'Time')
+	    else:
+              self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
+	    self.vells_end_freq = 2 * self.vells_end_freq
+	    self.vells_freq = (self.vells_start_freq,self.vells_end_freq)
+            delta_vells = self.vells_end_freq - self.vells_start_freq
+            self.split_axis = self.vells_start_freq  + 0.5 * delta_vells
+            self.myXScale = ComplexScaleDraw(self.split_axis)
+            self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
           else:
-            self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
-          myXScale = ComplexScaleDraw(plot_array.shape[0])
-          self.setAxisScaleDraw(QwtPlot.xBottom, myXScale)
+	    if self._x_axis is None:
+              self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
+	    else:  
+              self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
+	    if self._y_axis is None:
+              self.setAxisTitle(QwtPlot.yLeft, 'sequence')
+	    else:
+              self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
+            self.myXScale = ComplexScaleDraw(plot_array.shape[0])
+            self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
+	    self.split_axis = plot_array.shape[0]
 
 # create array of reals followed by imaginaries
           real_array =  plot_array.getreal()
@@ -1235,11 +1308,23 @@ class QwtImagePlot(QwtPlot):
           self.display_image(temp_array)
         else:
           if self._vells_plot:
-            self.setAxisTitle(QwtPlot.xBottom, 'Frequency')
-            self.setAxisTitle(QwtPlot.yLeft, 'Time')
+	    if self._x_axis is None:
+              self.setAxisTitle(QwtPlot.xBottom, 'Frequency')
+	    else:  
+              self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
+	    if self._y_axis is None:
+              self.setAxisTitle(QwtPlot.yLeft, 'Time')
+	    else:
+              self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
           else:
-            self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
-
+	    if self._x_axis is None:
+              self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
+	    else:  
+              self.setAxisTitle(QwtPlot.xBottom, self._x_axis)
+	    if self._y_axis is None:
+              self.setAxisTitle(QwtPlot.yLeft, 'sequence')
+	    else:
+              self.setAxisTitle(QwtPlot.yLeft, self._y_axis)
           self.display_image(plot_array)
 
       if self.is_vector == True:
