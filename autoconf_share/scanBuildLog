@@ -371,7 +371,7 @@ def main(argv):
       #
       # Find Failed test
       #
-      if str.find(aLine[0:4],'FAIL:')>-1:
+      if str.find(aLine[0:5],'FAIL:')>-1:
         failedProg=re.sub('FAIL:','',re.sub('\n','',aLine))
         testResultsArray.append([failedProg,keepLastFoundBuildArray[3],
                                  keepLastFoundBuildArray[6],nfile])
@@ -411,7 +411,7 @@ def main(argv):
       #
       if str.find(aLine,' *** ') > -1:
         if str.find(aLine,' Error ') > -1:
-          aFile=str.split(str.replace(str.replace(aLine,'[',''),']',''))[2]
+          aFile=str.split(str.replace(str.replace(aLine[str.find(aLine,'make'):],'[',''),']',''))[2]
           aFile=re.sub('check-TESTS','',
                        re.sub('check-am','',
                               re.sub('check-recursive','',
