@@ -43,8 +43,9 @@ void PointSourceDFT::evalResult (std::vector<Vells> &res,
 				 const std::vector<const Vells*> &values,
 				 const Cells &cells)
 {
-  // Assume that frequency is the first axis.
-  Assert(Axis::FREQ==0);
+  // Assume that time is first axis, freq is second
+  Assert(Axis::TIME==0);
+  Assert(Axis::FREQ==1);
   // for now, only work with 1 frequency segment (2 values from each station's DFT)
   int nval = values.size();
   Assert(nval == 5);

@@ -173,7 +173,7 @@ int Solver::getResult (Result::Ref &resref,
   VellSet& vellset = result.setNewVellSet(0);
   DMI::Record& metricsRec = result[FMetrics] <<= new DMI::Record;
   // Allocate variables needed for the solution.
-  uint nspid;
+  uint nspid = 0;
   vector<int> spids;
   Vector<double> solution;
   Vector<double> allSolutions;
