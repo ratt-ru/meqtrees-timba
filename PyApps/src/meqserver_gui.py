@@ -11,34 +11,35 @@ dbg = verbosity(0,name='mqs');
 
 class GridCell (object):
   def __init__ (self,parent):
-    self._wtop = QWidget(parent);
-    self._wtop.hide();
+    wtop = self._wtop = QWidget(parent);
+#    self._wtop = QVBox(parent,"gridcell.wtop");
+    wtop.hide();
     top_lo = QVBoxLayout(self._wtop);
-    control_box = QWidget(self._wtop);
-    control_lo = QHBoxLayout(control_box);
-    # control_lo.setResizeMode(QLayout.Fixed);
+#    control_box = QWidget(self._wtop,"controlbox");
+    control_lo = QHBoxLayout(top_lo);
+#    control_lo.setResizeMode(QLayout.Fixed);
     # pin button
     pin_is = QIconSet(pixmaps.pin_up.pm());
     pin_is.setPixmap(pixmaps.pin_down.pm(),QIconSet.Automatic,QIconSet.Normal,QIconSet.On);
-    self._pin = pin = QToolButton(self._wtop);
+    self._pin = pin = QToolButton(wtop);
     pin.setAutoRaise(True);
     pin.setToggleButton(True);
     pin.setIconSet(pin_is);
 #    pin.hide();
     QToolTip.add(pin,"pin (i.e. protect) or unpin this panel");
     # refresh button
-    self._refresh = refresh = QToolButton(self._wtop);
+    self._refresh = refresh = QToolButton(wtop);
     refresh.setIconSet(QIconSet(pixmaps.refresh.pm()));
     refresh.setAutoRaise(True);
 #    refresh.hide();
     QObject.connect(refresh,SIGNAL("clicked()"),self._dorefresh);
     QToolTip.add(self._refresh,"refresh contents of this panel");
     # label
-    self._label = QLabel("(empty)",self._wtop);
+    self._label = QLabel("(empty)",wtop);
     self._label.setFont(defaultBoldFont());
-    self._label1 = QLabel("",self._wtop);
+    self._label1 = QLabel("",wtop);
     # close button
-    self._close = close = QToolButton(self._wtop);
+    self._close = close = QToolButton(wtop);
     close.setIconSet(QIconSet(pixmaps.cancel.pm()));
     close.setAutoRaise(True);
 #    close.setDisabled(True);
@@ -55,11 +56,15 @@ class GridCell (object):
     control_lo.addWidget(close);
 
     self._wstack = QWidgetStack(self._wtop);
-    top_lo.addWidget(control_box);
+#    top_lo.addWidget(control_box);
+#    top_lo.setStretchFactor(control_lo,0);
     top_lo.addWidget(self._wstack,1);
+   
+#    control_box.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Fixed));
+#    self._wstack.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding));
+#    self._wtop.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding));
     
-    control_box.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Fixed));
-    self._wstack.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding));
+    self._wstack.updateGeometry();
 
     self._id     = None;
     self._widget = None;
