@@ -197,7 +197,7 @@ class GridDataItem (object):
     map(lambda cell:cell.update_data(self),self.cells);
   def highlight (self,enable=True):
     map(lambda cell:cell.highlight(enable),self.cells);
-  # returns True if the specified viewer is already siaplaying this item
+  # returns True if the specified viewer is already displaying this item
   def is_viewed_by (self,viewer):
     for c in self.cells:
       if c._viewer_class == viewer:
@@ -820,12 +820,11 @@ class GriddedWorkspace (object):
     # is requested, then pretend we're not
     if cell or newcell or newpage:
       item = item0;
-    else: # now check if the specified viewer is being used
-      print 'item viewer is',item.viewer;
-      print 'item0 viewers are',map(lambda c:c._viewer_class,item0.cells);
-      if item0.is_viewed_by(item0
-      
-     or item0.viewer is not item.viewer:
+#    else: # now check if the specified viewer is being used
+#      print 'item viewer is',item.viewer;
+#      print 'item0 viewers are',map(lambda c:c._viewer_class,item0.cells);
+#      if item0.is_viewed_by(item0
+#     or item0.viewer is not item.viewer:
     # a dataitem for this udi already exists, and specific cell is not specified:
     # simply refresh the item and highlight the cell it is in
     if item0 is not item:
