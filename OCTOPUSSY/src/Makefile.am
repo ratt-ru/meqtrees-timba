@@ -2,7 +2,7 @@ dmi_dir = $(lofar_sharedir)/../DMI
 
 SUBDIRS = . Glish
 
-CXXFLAGS += -Wall -Wno-unknown-pragmas -D_GNU_SOURCE -Wno-deprecated 
+CXXFLAGS += -D_GNU_SOURCE 
 # -pthread -DUSE_THREADS
 
 lib_LTLIBRARIES = liboctopussy.la
