@@ -31,8 +31,12 @@ int Dispatcher::signal_counter[Dispatcher::max_signals];
 //##ModelId=3DB9366D02BD
 void Dispatcher::signalHandler (int signum,siginfo_t *,void *)
 {
+  using namespace DebugOctopussy;
 #ifdef USE_THREADS
-  printf("thread %d: received signal %d (%s)\n",(int)Thread::self(),signum,sys_siglist[signum]);
+  if( DebugOctopussy::getDebugContext().check(2) )
+  {
+    printf("thread %d: received signal %d (%s)\n",(int)Thread::self(),signum,sys_siglist[signum]);
+  }
 #endif
   sigaddset(&raisedSignals,signum);
   signal_counter[signum]++;
