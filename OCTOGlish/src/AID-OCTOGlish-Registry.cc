@@ -16,6 +16,8 @@
         AtomicID::registerId(-1118,"imtestwp")+
         AtomicID::registerId(-1119,"helloworld")+
         AtomicID::registerId(-1120,"content")+
+        AtomicID::registerId(-1462,"glishthreadedclientwp")+
+        AtomicID::registerId(-1463,"glishconnserverwp")+
     0;
     return res;
   }

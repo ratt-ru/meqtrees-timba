@@ -18,6 +18,16 @@ const int AidContent_int = -1120;
 const AtomicID AidGlishClientWP(-1117);           // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:17
 const int AidGlishClientWP_int = -1117;
 #endif
+#ifndef _defined_id_AidGlishConnServerWP
+#define _defined_id_AidGlishConnServerWP 1
+const AtomicID AidGlishConnServerWP(-1463);       // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishConnServerWP.h:8
+const int AidGlishConnServerWP_int = -1463;
+#endif
+#ifndef _defined_id_AidGlishThreadedClientWP
+#define _defined_id_AidGlishThreadedClientWP 1
+const AtomicID AidGlishThreadedClientWP(-1462);   // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishThreadWP.h:7
+const int AidGlishThreadedClientWP_int = -1462;
+#endif
 #ifndef _defined_id_AidHelloWorld
 #define _defined_id_AidHelloWorld 1
 const AtomicID AidHelloWorld(-1119);              // from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18

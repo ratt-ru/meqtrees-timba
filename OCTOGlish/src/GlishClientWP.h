@@ -45,6 +45,9 @@ class GlishClientWP : public WorkProcess
 
       //##ModelId=3CB5622B01ED
       virtual int receive (MessageRef &mref);
+      
+      
+      bool isConnected () const     { return connected; }
 
     // Additional Public Declarations
       // max number of glish events processed per one polling loop
@@ -57,30 +60,30 @@ class GlishClientWP : public WorkProcess
     //##ModelId=3E9BD6E900D9
       MessageRef glishValueToMessage (const GlishValue &value);
   
-  private:
-    //##ModelId=3DB9369503DE
-      GlishClientWP();
-
-    //##ModelId=3DB9369600AA
-      GlishClientWP(const GlishClientWP &right);
-
-    //##ModelId=3DB9369801DA
-      GlishClientWP & operator=(const GlishClientWP &right);
-
     //##ModelId=3DB9369803A7
-      bool autostop () const;
+      bool autostop () const
+      { return autostop_; }
+      
+      void setConnected (bool x)     { connected = x; }
 
     // Additional Private Declarations
       // shuts down the link
     //##ModelId=3DB9369900E1
       void shutdown ();
       
-      
     //##ModelId=3E9BD6E900DD
       void handleEvent (GlishSysEvent &event);
       
+      GlishSysEventSource & eventSource ()
+      { return *evsrc; }
+      
   private:
-    // Data Members for Class Attributes
+    //##ModelId=3DB9369503DE
+      GlishClientWP();
+    //##ModelId=3DB9369600AA
+      GlishClientWP(const GlishClientWP &right);
+    //##ModelId=3DB9369801DA
+      GlishClientWP & operator=(const GlishClientWP &right);
 
       //##ModelId=3CB561E2013E
       GlishSysEventSource *evsrc;
@@ -98,12 +101,6 @@ class GlishClientWP : public WorkProcess
 };
 
 // Class GlishClientWP 
-
-//##ModelId=3DB9369803A7
-inline bool GlishClientWP::autostop () const
-{
-  return autostop_;
-}
 
 GlishClientWP * makeGlishClientWP (int argv,const char *argv[],bool autstop=False );
 
