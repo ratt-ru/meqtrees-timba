@@ -58,11 +58,11 @@ public:
   //   usually sufficient.
   // <li> For the calculation of all perturbed values the same function as
   //   for the main value is used.
-  // <li> Usually the fastest way to go is to overload function getResult
+  // <li> Usually the fastest way to go is to overload function getResultImpl
   //   in the derived class, because in that way some values can be
   //   calculated once for main value and perturbed values.
   // </ul>
-  virtual int getResult (Result::Ref &resref, const Request&);
+  virtual int getResultImpl (Result::Ref &resref, const Request&, bool newReq);
 
   // Find the type and shape of the result for evaluate.
   // It returns true if the result is real; otherwise false.

@@ -122,7 +122,7 @@ void Function::testChildren (const vector<TypeId>& types) const
   }
 }
 
-int Function::getResult (Result::Ref &resref, const Request& request)
+int Function::getResultImpl (Result::Ref &resref, const Request& request, bool)
 {
   int nrch = itsChildren.size();
   vector<Result::Ref> results(nrch);
@@ -198,7 +198,7 @@ Vells Function::evaluate (const Request&, const vector<Vells*>&)
 
 void Function::evaluateVells (Vells&, const Request&, const vector<Vells*>&)
 {
-  AssertMsg (false, "evaluate or getResult not implemented in class "
+  AssertMsg (false, "evaluate or getResultImpl not implemented in class "
 	     "derived from MeqFunction");
 }
 
