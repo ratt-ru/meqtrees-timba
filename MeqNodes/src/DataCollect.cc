@@ -63,7 +63,7 @@ void DataCollect::setStateImpl (DataRecord &rec,bool initializing)
     labels_ = rec[FLabel].ref();
   else if( initializing ) // initialize labels with child names
   {
-    DataField &lbl = rec[FLabel] <<= &lbl;
+    DataField &lbl = rec[FLabel] <<= new DataField(Tpstring,numChildren());
     labels_ <<= &lbl;
     for( int i=0; i<numChildren(); i++ )
       lbl[i] = childName(i);
