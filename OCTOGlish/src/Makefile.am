@@ -23,7 +23,7 @@ octoglishserver_LDADD		= liboctoglish.la
 octoglishserver_DEPENDENCIES	= liboctoglish.la $(LOFAR_DEPEND)
 
 glishdir = $(libexecdir)/glish
-dist_glish_SCRIPTS = octopussy.g
+dist_glish_SCRIPTS = dmitypes.g octopussy.g
   
 include $(lofar_sharedir)/Makefile.aids
 include $(lofar_sharedir)/Makefile.common
