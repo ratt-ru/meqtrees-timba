@@ -5,6 +5,7 @@ from qt import *
 from qwt import *
 from numarray import *
 from UVPAxis import *
+from printfilter import *
 from ComplexColorMap import *
 from ComplexScaleDraw import *
 import random
@@ -314,7 +315,7 @@ class QwtImagePlot(QwtPlot):
         QwtPlot.__init__(self, plot_key, parent)
 
 # set default display type to 'hippo'
-        self.display_type = "hippo"
+        self._display_type = "hippo"
 
 # save raw data
         self.plot_key = plot_key
@@ -379,6 +380,23 @@ class QwtImagePlot(QwtPlot):
         self.is_vector = False
         self.x_dim = 0
         self.y_dim = 0
+
+    def printPlot(self):
+        try:
+            printer = QPrinter(QPrinter.HighResolution)
+        except AttributeError:
+            printer = QPrinter()
+        printer.setOrientation(QPrinter.Landscape)
+        printer.setColorMode(QPrinter.Color)
+        printer.setOutputToFile(True)
+        printer.setOutputFileName('plot-%s.ps' % qVersion())
+        if printer.setup():
+            filter = PrintFilter()
+            if (QPrinter.GrayScale == printer.colorMode()):
+                filter.setOptions(QwtPlotPrintFilter.PrintAll
+                                  & ~QwtPlotPrintFilter.PrintCanvasBackground)
+            self.printPlot(printer, filter)
+    # printPlot()
 
     def drawCanvasItems(self, painter, rectangle, maps, filter):
         if self.is_vector == False:
@@ -475,7 +493,7 @@ class QwtImagePlot(QwtPlot):
     # toggleCurve()
 
     def setDisplayType(self, display_type):
-      self.display_type = display_type
+      self._display_type = display_type
       self.plotImage.setDisplayType(display_type)
     # setDisplayType
 
@@ -484,7 +502,7 @@ class QwtImagePlot(QwtPlot):
         self.plotImage.setData(image)
         self.set_data_called = True
       self.raw_image = image
-      if self.display_type == "brentjens":
+      if self._display_type == "brentjens":
         self.plotImage.setBrentjensImage(image)
       else:
         self.plotImage.setImage(image)
@@ -492,58 +510,92 @@ class QwtImagePlot(QwtPlot):
       _dprint(2, 'called replot in display_image');
     # display_image()
 
-    def plot_data(self, item_label, visu_record):
+    def plot_data(self, visu_record, attribute_list=None):
       """ process incoming data and attributes into the
           appropriate type of plot """
       _dprint(2, 'in plot data');
+#      _dprint(2, 'visu_record ', visu_record)
 
 # first find out what kind of plot we are making
-      plot_types = None
-      if visu_record.has_key('attrib'):
-        self._attrib_parms = visu_record['attrib']
-        plot_types = self._attrib_parms.get('plot_type')
+      self._plot_type = None
+      self._display_type = None
+      self._tag_plot_attrib={}
+      tag = None
+      if attribute_list is None: 
+        if visu_record.has_key('attrib'):
+          self._attrib_parms = visu_record['attrib']
+          _dprint(2,'self._attrib_parms ', self._attrib_parms);
+          plot_parms = self._attrib_parms.get('plot')
+          if plot_parms.has_key('tag_attrib'):
+            temp_parms = plot_parms.get('tag_attrib')
+            tag = temp_parms.get('tag')
+            self._tag_plot_attrib[tag] = temp_parms
+          if plot_parms.has_key('attrib'):
+            temp_parms = plot_parms.get('attrib')
+            plot_parms = temp_parms
+          if self._plot_type is None and plot_parms.has_key('plot_type'):
+            self._plot_type = plot_parms.get('plot_type')
+          if self._display_type is None and plot_parms.has_key('spectrum_color'):
+            self._display_type = plot_parms.get('spectrum_color')
+          if self._attrib_parms.has_key('tag'):
+            tag = self._attrib_parms.get('tag')
+        else:
+          self._plot_type = self.plot_key
+      else:
+# first get plot_type at first possible point in list - nearest root
+        list_length = len(attribute_list)
+        for i in range(list_length):
+          self._attrib_parms = attribute_list[i]
+          if self._attrib_parms.has_key('plot'):
+            plot_parms = self._attrib_parms.get('plot')
+            if plot_parms.has_key('tag_attrib'):
+              temp_parms = plot_parms.get('tag_attrib')
+              tag = temp_parms.get('tag')
+              self._tag_plot_attrib[tag] = temp_parms
+            if plot_parms.has_key('attrib'):
+              temp_parms = plot_parms.get('attrib')
+              plot_parms = temp_parms
+            if self._plot_type is None and plot_parms.has_key('plot_type'):
+              self._plot_type = plot_parms.get('plot_type')
+            if self._display_type is None and plot_parms.has_key('spectrum_color'):
+              self._display_type = plot_parms.get('spectrum_color')
+          if tag is None and self._attrib_parms.has_key('tag'):
+            tag = self._attrib_parms.get('tag')
 
-# convert to a tuple if necessary
-        if isinstance(plot_types, str):
-          plot_types = (plot_types,)
+# set defaults for anything that is not specified
+      if tag is None:
+        tag = ''
+      if self._display_type is None:
+        self._display_type = 'hippo'
+      if self._plot_type is None:
+        self._plot_type = 'spectra'
+
+# set the display color type in the low level QwtPlotImage class
+      self.setDisplayType(self._display_type)
+
 
       if visu_record.has_key('value'):
         self._data_values = visu_record['value']
 
+      if len(self._tag_plot_attrib) > 0:
+        _dprint(3, 'self._tag_plot_attrib has keys ', self._tag_plot_attrib.keys())
+
 # extract and define labels for this data item
-      self._label_r = item_label + "_r"
-      self._label_i = item_label + "_i"
-      for j in range(len(plot_types)):
-        self._plot_type = plot_types[j]
      # now generate  particular plot type
       if  self._plot_type == 'spectra':
-        plot_label = self._attrib_parms.get('label','')
+        plot_label = 'spectra:'
+        if isinstance(tag, tuple):
+          for i in range(0, len(tag)):
+            temp_key =  plot_label + tag[i]
+            plot_label = temp_key
+        else:
+          plot_label = 'spectra: ' + tag
         num_plot_arrays = len(self._data_values)
+        _dprint(2,' number of arrays to plot ', num_plot_arrays)
         for i in range(0, num_plot_arrays):
-          complex_type = False;
-          if self._data_values[i].type() == Complex64:
-            complex_type = True;
-          _dprint(2, 'complex type is ', complex_type);
-          if complex_type:
-            data_label = plot_label +  "_" +str(i) +  "_complex" 
-            if self.display_type != "brentjens":
-# create array of reals followed bu imaginaries
-              real_array =  self._data_values[i].getreal()
-              imag_array =  self._data_values[i].getimag()
-              shape = real_array.shape
-              temp_array = zeros((2*shape[0],shape[1]), Float32)
-              for k in range(shape[0]):
-                for j in range(shape[1]):
-                  temp_array[k,j] = real_array[k,j]
-                  temp_array[k+shape[0],j] = imag_array[k,j]
-              self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
-              self.array_plot(data_label, temp_array)
-            else:
-              _dprint(2, "calling array_plot with complex array");
-              self.array_plot(data_label, self._data_values[i])
-          else:
-            data_label = plot_label +  "_" +str(i) +  "_real" 
-            self.array_plot(data_label, self._data_values[i])
+          data_label = plot_label +  "_" +str(i) 
+          self.array_plot(data_label, self._data_values[i])
+    # plot_data()
 
     def array_plot (self, data_label, plot_array):
       """ figure out shape, rank etc of a spectrum array and
@@ -570,25 +622,39 @@ class QwtImagePlot(QwtPlot):
         complex_type = True;
       if plot_array.type() == Complex64:
         complex_type = True;
-      if data_label.find('complex') >= 0:
-        complex_type = True;
 
 # test if we have a 2-D array
       if self.is_vector == False:
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
-        if complex_type and self.display_type != "brentjens":
-          myXScale = ComplexScaleDraw(plot_array.shape[0] / 2)
-          self.setAxisScaleDraw(QwtPlot.xBottom, myXScale)
+        if complex_type and self._display_type != "brentjens":
           self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
+          myXScale = ComplexScaleDraw(plot_array.shape[0])
+          self.setAxisScaleDraw(QwtPlot.xBottom, myXScale)
+# create array of reals followed bu imaginaries
+          real_array =  plot_array.getreal()
+          imag_array =  plot_array.getimag()
+          shape = real_array.shape
+          temp_array = zeros((2*shape[0],shape[1]), Float32)
+          for k in range(shape[0]):
+            for j in range(shape[1]):
+              temp_array[k,j] = real_array[k,j]
+              temp_array[k+shape[0],j] = imag_array[k,j]
+          if self.x_dim != plot_array.shape[0]: 
+            self.x_dim = 2 * plot_array.shape[0]
+            self.set_data_called = False
+          if self.y_dim != plot_array.shape[1]: 
+            self.y_dim = plot_array.shape[1]
+            self.set_data_called = False
+          self.display_image(temp_array)
         else:
           self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
-        if self.x_dim != plot_array.shape[0]: 
-          self.x_dim = plot_array.shape[0]
-          self.set_data_called = False
-        if self.y_dim != plot_array.shape[1]: 
-          self.y_dim = plot_array.shape[1]
-          self.set_data_called = False
-        self.display_image(plot_array)
+          if self.x_dim != plot_array.shape[0]: 
+            self.x_dim = plot_array.shape[0]
+            self.set_data_called = False
+          if self.y_dim != plot_array.shape[1]: 
+            self.y_dim = plot_array.shape[1]
+            self.set_data_called = False
+          self.display_image(plot_array)
 
       if self.is_vector == True:
         flattened_array = None
@@ -607,22 +673,11 @@ class QwtImagePlot(QwtPlot):
           self.setAxisTitle(QwtPlot.yRight, 'Signal: imaginary (red)')
           self.setCurveYAxis(self.xCrossSection, QwtPlot.yLeft)
           self.setCurveYAxis(self.yCrossSection, QwtPlot.yRight)
-          if self.display_type == "brentjens":
-            self.x_array =  flattened_array.getreal()
-            self.y_array =  flattened_array.getimag()
-            if self.x_index is None:
-              self.x_index = arange(num_elements)
-              self.x_index = self.x_index + 0.5
-          else:
-            num_elements = num_elements / 2
-            if self.x_array is None:
-              self.x_array = zeros(num_elements, Float32)
-              self.y_array = zeros(num_elements, Float32)
-              self.x_index = arange(num_elements)
-              self.x_index = self.x_index + 0.5
-            for i in range(num_elements):
-              self.x_array[i] =  flattened_array[i]
-              self.y_array[i] =  flattened_array[i+num_elements]
+          self.x_array =  flattened_array.getreal()
+          self.y_array =  flattened_array.getimag()
+          if self.x_index is None:
+            self.x_index = arange(num_elements)
+            self.x_index = self.x_index + 0.5
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
           self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
         else:
@@ -636,6 +691,7 @@ class QwtImagePlot(QwtPlot):
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
         self.replot()
         _dprint(2, 'called replot in array_plot');
+    # array_plot()
 
     def start_timer(self, time, test_complex, display_type):
       self.test_complex = test_complex
@@ -660,31 +716,10 @@ class QwtImagePlot(QwtPlot):
           vector_array[i,0] = a[i,0]
         if self.index % 2 == 0:
           _dprint(2, 'plotting vector');
-          if self.display_type != "brentjens":
-            real_array =  vector_array.getreal()
-            imag_array =  vector_array.getimag()
-            shape = real_array.shape
-            temp_array = zeros((2*shape[0],shape[1]), Float32)
-            for k in range(shape[0]):
-              for j in range(shape[1]):
-                temp_array[k,j] = real_array[k,j]
-                temp_array[k+shape[0],j] = imag_array[k,j]
-            self.array_plot('test_vector_complex',temp_array)
-          else:
-            self.array_plot('test_vector_complex', vector_array)
+          self.array_plot('test_vector_complex', vector_array)
         else:
-          if self.display_type != "brentjens":
-            real_array =  m
-            imag_array =  n
-            shape = real_array.shape
-            temp_array = zeros((2*shape[0],shape[1]), Float32)
-            for k in range(shape[0]):
-              for j in range(shape[1]):
-                temp_array[k,j] = real_array[k,j]
-                temp_array[k+shape[0],j] = imag_array[k,j]
-            self.array_plot('test_image_complex',temp_array)
-          else:
-            self.array_plot('test_image_complex',a)
+          _dprint(2, 'plotting array');
+          self.array_plot('test_image_complex',a)
       else:
         vector_array = zeros((30,1), Float32)
         m = fromfunction(dist, (30,20))
