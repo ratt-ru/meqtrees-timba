@@ -46,6 +46,10 @@ AC_ARG_ENABLE(dbgassert,
       enable_debug="yes";
     fi
   fi
+  if test "$enable_debug" = "yes"; then]
+AC_DEFINE(DEBUG,dnl
+	1, [Define if we are compiling with debugging information])dnl
+[ fi
   if test "$enable_debug" != "no"; then
     CFLAGS="-g";
     CXXFLAGS="-g $lofar_warnflags";
