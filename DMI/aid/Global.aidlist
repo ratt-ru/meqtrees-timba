@@ -1,9 +1,3 @@
-/LogDebug                        1109       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-/LogError                        1110       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-/LogFatal                        1113       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-/LogNormal                       1114       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-/LogWarning                      1112       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-/MsgLog                          1111       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
 A                                1001       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Add                              1087       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 Address                          1090       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:10
@@ -62,6 +56,11 @@ Launched                         1086       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 Level                            1088       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
 List                             1044       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWClientWP.h:17
 Local                            1051       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MsgAddress.h:12
+LogDebug                         1113       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:32
+LogError                         1109       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:32
+LogFatal                         1112       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:32
+LogNormal                        1111       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:32
+LogWarning                       1110       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:32
 LoggerWP                         1103       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
 M                                1014       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Max                              1059       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
