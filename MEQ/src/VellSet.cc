@@ -308,8 +308,8 @@ void VellSet::show (std::ostream& os) const
       if( itsPerturbedValues[i].valid() )
       {
         os << "   " << (*(itsPerturbedValues[i]) - *itsValue) << endl;
-        os << "   " << (*(itsPerturbedValues[i]) - *itsValue) /
-          Vells(itsPerturbations[i]) << endl;
+//        os << "   " << (*(itsPerturbedValues[i]) - *itsValue) /
+//          Vells(itsPerturbations[i]) << endl;
       }
       else
       {
