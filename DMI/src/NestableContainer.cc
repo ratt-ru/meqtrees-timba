@@ -28,12 +28,12 @@
 
 DefineRegistry(NestableContainer,False);
 
-//##ModelId=3DB934920303
+//##ModelId=4017F62300EF
 int NestableContainer::Hook::_dum_int;
-//##ModelId=3DB9349203A5
+//##ModelId=4017F623014A
 NestableContainer::ContentInfo NestableContainer::Hook::_dum_info;
 
-//##ModelId=3C87377803A8
+//##ModelId=3C8739B50167
 const NestableContainer::Hook & NestableContainer::Hook::operator [] (const HIID &id1) const
 {
   DbgFailWhen(replacing,"can't apply subscript after replace()");
@@ -77,7 +77,7 @@ const NestableContainer::Hook & NestableContainer::Hook::operator [] (const HIID
 //    by privatizing as necessary, or throwing a ReadOnly exception if that 
 //    is impossible. 
 // All flags are passed to the get() method.
-//##ModelId=3DB934A30258
+//##ModelId=4017F62501D7
 inline const void * NestableContainer::Hook::resolveTarget (int flags,TypeId hint) const
 {
   // A maximum of three passes:
@@ -141,7 +141,7 @@ inline const void * NestableContainer::Hook::resolveTarget (int flags,TypeId hin
 
 // helper function applies current subscript to hook in preparation
 // for setting a new one. Insures that current target is a container.
-//##ModelId=3DB934A50226
+//##ModelId=4017F6250392
 bool NestableContainer::Hook::nextContainer (const HIID &next_id,bool nothrow) const
 {
   resolveTarget();
@@ -226,6 +226,7 @@ bool NestableContainer::Hook::nextContainer (const HIID &next_id,bool nothrow) c
 // as necessary. See comments in NestableContainer.h, next to the Hook::chain
 // declaration. Those comments outline scenarios (a) to (d) which we refer
 // to here
+//##ModelId=4017F62600FF
 void NestableContainer::Hook::resolveToWritableContainer() const
 {
   if( nc_writable ) // (a): current nc is already writable, do nothing
@@ -281,7 +282,7 @@ void NestableContainer::Hook::resolveToWritableContainer() const
   // once we get here, we're all set
 }
 
-//##ModelId=3C8737E002A3
+//##ModelId=4017F62400B7
 TypeId NestableContainer::Hook::type () const
 {
   const void *targ = resolveTarget(DMI::NC_DEREFERENCE);
@@ -297,7 +298,7 @@ TypeId NestableContainer::Hook::type () const
   return type ? type : target.obj_tid;
 }
 
-//##ModelId=3C87380503BE
+//##ModelId=3CAB0A3500AC
 int NestableContainer::Hook::size (TypeId tid) const
 {
   const void *targ = resolveTarget(DMI::NC_DEREFERENCE,tid);
@@ -313,7 +314,7 @@ int NestableContainer::Hook::size (TypeId tid) const
 // This is called to treat the hook target as an ObjRef (exception otherwise)
 // If write is true, assures writability to the ref (i.e. container
 // writability)
-//##ModelId=3DB9349E0198
+//##ModelId=4017F62500F7
 const ObjRef * NestableContainer::Hook::asRef (bool write) const
 {
   DbgFailWhen(addressed,"unexpected '&' operator");
@@ -325,7 +326,7 @@ const ObjRef * NestableContainer::Hook::asRef (bool write) const
 
 // This is called to access by pointer, for all types
 // Defers to get_address(pointer=True)
-//##ModelId=3DB934AC03C2
+//##ModelId=4017F62702A0
 const void * NestableContainer::Hook::get_pointer (int &sz,
     TypeId tid,bool must_write,bool implicit,
     const void *deflt,Thread::Mutex::Lock *keeplock) const
@@ -357,6 +358,7 @@ const NestableContainer::Hook & NestableContainer::Hook::privatize (int flags) c
   return *this;
 }
 
+//##ModelId=4017F624023A
 const NestableContainer::Hook & NestableContainer::Hook::attachObjRef (ObjRef &out,int flags) const
 {
   DbgFailWhen(addressed,"unexpected '&' operator");
@@ -375,6 +377,7 @@ const NestableContainer::Hook & NestableContainer::Hook::attachObjRef (ObjRef &o
   return *this;
 }
 
+//##ModelId=4017F625031C
 void * NestableContainer::Hook::removeTarget () const
 {
   resolveToWritableContainer();
@@ -423,7 +426,7 @@ const NestableContainer::Hook & NestableContainer::Hook::detach (ObjRef* ref) co
 // Returns True on success. If no such element and nothrow=True, returns False,
 // else throws an Uninitialized execption.
 // Always throws ConvError on type mismatch.
-//##ModelId=3DB934A603C2
+//##ModelId=4017F626017A
 bool NestableContainer::Hook::get_scalar( void *data,TypeId tid,bool nothrow ) const
 {
   DbgFailWhen(addressed,"unexpected '&' operator");
@@ -469,7 +472,7 @@ bool NestableContainer::Hook::get_scalar( void *data,TypeId tid,bool nothrow ) c
 
 // This is called to access by reference, for all types
 // If pointer is True, then a pointer is being taken
-//##ModelId=3DB934A90100
+//##ModelId=4017F6260346
 const void * NestableContainer::Hook::get_address (ContentInfo &info,
     TypeId tid,bool must_write,bool pointer,
     const void *deflt,Thread::Mutex::Lock *keeplock) const
@@ -758,6 +761,7 @@ void NestableContainer::Hook::assign_arrayable (int size,Iter begin,Iter end,Typ
 DoForAllArrayTypes(__inst,);
 #undef __inst
 
+//##ModelId=4017F6280225
 void * NestableContainer::Hook::prepare_assign_vector (TypeId tid,int size) const
 {
   DbgFailWhen(addressed,"unexpected '&' operator");
@@ -806,7 +810,7 @@ void * NestableContainer::Hook::prepare_assign_vector (TypeId tid,int size) cons
 
 // This provides a specialization of operator = (vector<T>) for non-arrayable
 // types.
-//##ModelId=3DB934CA0142
+//##ModelId=4017F62803A9
 void * NestableContainer::Hook::assign_vector (TypeId tid,int size) const
 {
   // call method above to prepare for assignment
@@ -824,7 +828,7 @@ void * NestableContainer::Hook::assign_vector (TypeId tid,int size) const
   return const_cast<void*>(info.ptr);
 }
 
-//##ModelId=3DB9349A0087
+//##ModelId=3DB934BC01D9
 string NestableContainer::Hook::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   if( !name )

@@ -262,6 +262,7 @@
 			    name       	"Inline"
 			    value      	TRUE))
 		    quid       	"3C7F56ED007D"
+		    stereotype 	"const"
 		    parameters 	(list Parameters
 			(object Parameter "id"
 			    quid       	"3C7F56F60149"
@@ -282,75 +283,13 @@
 			    value      	TRUE))
 		    quid       	"3C7E4C310348"
 		    parameters 	(list Parameters
-			(object Parameter "n"
-			    quid       	"3C7F56D40366"
-			    type       	"int"))
+			(object Parameter "id"
+			    quid       	"4017F65502CA"
+			    type       	"const HIID &"))
 		    result     	"NestableContainer::Hook"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	1014805172)
-		(object Operation "operator []"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"cg"
-			    name       	"cg_style"
-			    value      	"Inlined")
-			(object Attribute
-			    tool       	"cg"
-			    name       	"OperationIsConst"
-			    value      	TRUE)
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3C7E4C3E003A"
-		    stereotype 	"const"
-		    parameters 	(list Parameters
-			(object Parameter "id"
-			    quid       	"3C7F56CD0294"
-			    type       	"const HIID &"))
-		    result     	"NestableContainer::ConstHook"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	1014805173)
-		(object Operation "operator []"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"cg"
-			    name       	"cg_style"
-			    value      	"Inlined")
-			(object Attribute
-			    tool       	"cg"
-			    name       	"OperationIsConst"
-			    value      	TRUE)
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3C7F56D90197"
-		    stereotype 	"const"
-		    parameters 	(list Parameters
-			(object Parameter "n"
-			    quid       	"3C7F56E703A0"
-			    type       	"int"))
-		    result     	"NestableContainer::ConstHook"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	1014805182)
-		(object Operation "setBranch"
-		    quid       	"3CB42D0201B4"
-		    parameters 	(list Parameters
-			(object Parameter "id"
-			    quid       	"3CB42D1B026E"
-			    type       	"const HIID &")
-			(object Parameter "flags"
-			    quid       	"3CB42D1C0189"
-			    type       	"int"
-			    initv      	"DMI::WRITE"))
-		    result     	"NestableContainer::Hook"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	1018275644)
 		(object Operation "data"
 		    attributes 	(list Attribute_Set
 			(object Attribute
@@ -798,101 +737,6 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
-		(object Operation "operator []"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB936BD0306"
-		    stereotype 	"const"
-		    parameters 	(list Parameters
-			(object Parameter "id1"
-			    quid       	"3DB936BE0131"
-			    type       	"AtomicID"
-			    quidu      	"3BE970170297"))
-		    result     	"NestableContainer::ConstHook"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "operator []"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB936BF005B"
-		    stereotype 	"const"
-		    parameters 	(list Parameters
-			(object Parameter "id1"
-			    quid       	"3DB936BF0278"
-			    type       	"const string &"))
-		    result     	"NestableContainer::ConstHook"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "operator []"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB936C00125"
-		    stereotype 	"const"
-		    parameters 	(list Parameters
-			(object Parameter "id1"
-			    quid       	"3DB936C0032E"
-			    type       	"const char *"))
-		    result     	"NestableContainer::ConstHook"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "operator []"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB936C101D1"
-		    parameters 	(list Parameters
-			(object Parameter "id1"
-			    quid       	"3DB936C10307"
-			    type       	"AtomicID"
-			    quidu      	"3BE970170297"))
-		    result     	"NestableContainer::Hook"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "operator []"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB936C201D2"
-		    parameters 	(list Parameters
-			(object Parameter "id1"
-			    quid       	"3DB936C20312"
-			    type       	"const string &"))
-		    result     	"NestableContainer::Hook"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "operator []"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB936C301E7"
-		    parameters 	(list Parameters
-			(object Parameter "id1"
-			    quid       	"3DB936C30328"
-			    type       	"const char *"))
-		    result     	"NestableContainer::Hook"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
 		(object Operation "sdebug"
 		    quid       	"3DB936C40273"
 		    stereotype 	"const"
@@ -1006,6 +850,27 @@
 			    quid       	"3E9BD71C03BB"
 			    type       	"int"
 			    initv      	"PRI_NORMAL"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "declareSubscriptAliases"
+		    quid       	"4017F65502D8"
+		    parameters 	(list Parameters
+			(object Parameter ""
+			    quid       	"4017F65502DB"
+			    type       	"NestableContainer::Hook")
+			(object Parameter ""
+			    quid       	"4017F65502E6"
+			    type       	"const"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "declareSubscriptAliases"
+		    quid       	"4017F65502F1"
+		    parameters 	(list Parameters
+			(object Parameter ""
+			    quid       	"4017F65502F3"
+			    type       	"NestableContainer::Hook"))
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0))
@@ -12313,23 +12178,6 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3C7B6A3702E5"
-		    compartment 	(object Compartment
-			Parent_View 	@104
-			location   	(2667, 223)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	TRUE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	16777215
-			anchor     	2
-			nlines     	110
-			max_width  	0)
 		    width      	1308
 		    height     	5492
 		    annotation 	8)

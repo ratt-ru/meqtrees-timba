@@ -351,9 +351,11 @@ class CountedRef : private CountedRefBase
       
       // Add operator [] for implicit indexing into contents.
       // So far, this is only implemented in NestableContainer
+    //##ModelId=4017F61F039E
       typename T::OpSubscriptReturnType operator [] (const HIID &id) const
       { return T::apply_subscript(ref_cast<typename T::OpSubscriptRefType>(),id); }
       
+    //##ModelId=4017F6200027
       typename T::OpSubscriptReturnType operator [] (const HIID &id)
       { return T::apply_subscript(ref_cast<typename T::OpSubscriptRefType>(),id); }
       
@@ -377,7 +379,9 @@ class CountedRef : private CountedRefBase
       RetType operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) constness \
       { return (*this)[id1|id2|id3|id4]; }  
           
+    //##ModelId=4017F6200081
       declareSubscriptAliases(typename T::OpSubscriptReturnType,const);
+    //##ModelId=4017F6200104
       declareSubscriptAliases(typename T::OpSubscriptReturnType,);
       
   protected:

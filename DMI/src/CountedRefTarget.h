@@ -97,7 +97,7 @@ class CountedRefTarget
       //## Returns a count of writable refs.
       virtual int refCountWrite () const;
 
-      //##ModelId=3C63BA8800B9
+      //##ModelId=4017F6210026
       bool isAnon () const
       { return anon; }
 
@@ -143,7 +143,9 @@ class CountedRefTarget
     //##ModelId=400E4D68027F
       ImportDebugContext(DMI);
       
+    //##ModelId=4017F61D0145
       typedef void OpSubscriptReturnType;
+    //##ModelId=4017F61D0306
       typedef CountedRefTarget OpSubscriptRefType;
       
   private:

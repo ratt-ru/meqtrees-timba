@@ -86,10 +86,12 @@ class TypeInfo : public TypeCategories {
       
       // can one type be converted to another?
       // only defined for numerics, for now
+    //##ModelId=4017F63303AC
       static bool isConvertible (TypeId from,TypeId to)
       { return from == to || ( isNumeric(from) && isNumeric(to) ); }
       
       // do the conversion, return True on success, False if not convertible
+    //##ModelId=4017F63303BF
       static bool convert (const void *from,TypeId from,void *to,TypeId to);
 };
  
@@ -175,6 +177,7 @@ typedef void (*TypeConverter)(const void *from,void *to);
 extern TypeConverter _typeconverters[16][16];
 
 // Inline function to convert scalars  
+//##ModelId=4017F63303BF
 inline bool TypeInfo::convert ( const void *from,TypeId frid,void *to,TypeId toid )
 {
   if( !TypeInfo::isNumeric(frid) || !TypeInfo::isNumeric(toid) )
