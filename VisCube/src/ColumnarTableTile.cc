@@ -159,6 +159,8 @@ void ColumnarTableTile::applyFormat (const FormatRef &form)
     }
     format_.copy(form,DMI::READONLY).lock();
     ncol_ = format().maxcol();
+    if( datablock.isWritable() )
+      static_cast<BlockHeader*>(datablock().data())->has_format = True;
   }
 }
 
@@ -196,6 +198,7 @@ void ColumnarTableTile::changeFormat (const FormatRef &form)
     pdata = newptr;
     datablock.unlock().xfer(newblock).lock();
     initBlock(datablock().data(),totsize);
+    static_cast<BlockHeader*>(datablock().data())->has_format = True;
   }
   // remember new format
   format_.unlock().copy(form,DMI::READONLY).lock();
@@ -352,8 +355,17 @@ int ColumnarTableTile::toBlock (BlockSet &set) const
   // if we have data, push it out
   if( nrow() )
   {
-    static_cast<BlockHeader*>(datablock().data())->has_format = format_.valid();
-    set.push(datablock.copy(DMI::READONLY));
+    BlockRef ref = datablock.copy(DMI::PRESERVE_RW);
+    // make sure the has_format flag is set correctly
+    if( format_.valid() != static_cast<const BlockHeader*>(ref->data())->has_format )
+    {
+      void *hdr;
+      if( !ref.isWritable() )
+        ref.privatize(DMI::WRITE);
+      static_cast<BlockHeader*>(ref().data())->has_format = format_.valid();
+    }
+    ref.change(DMI::READONLY);
+    set.push(ref);
   }
   // else push out the nil representation
   else
