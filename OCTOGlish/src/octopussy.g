@@ -91,7 +91,7 @@ const octopussy := function (server=default_octoserver,options="",
         regex := s/.*\///g;
         binfile := server.binary ~ regex;
         self.dprint(2,'checking for running ',binfile);
-        out := shell(paste('ps axww | grep',binfile,'| grep -v grep')); 
+        out := shell(paste('ps xww | grep',binfile,'| grep -v grep')); 
         if( len(out)>0 )
           self.dprint(2,out[1]);
         else
