@@ -441,6 +441,7 @@ class QwtImagePlot(QwtPlot):
 	self._flags_array = None
 	self.flag_toggle = False
 	self.flag_blink = False
+        self._solver_flag = False
 
 # save raw data
         self.plot_key = plot_key
@@ -655,14 +656,16 @@ class QwtImagePlot(QwtPlot):
                 self._next_plot[id] = self._label 
                 self._menu.insertItem(self._label,id)
             except:
-              Message =  'It would appear that there is a problem with perturbed values.\nThey cannot be displayed.'
-              mb_msg = QMessageBox("display_image.py",
-                               Message,
-                               QMessageBox.Warning,
-                               QMessageBox.Ok | QMessageBox.Default,
-                               QMessageBox.NoButton,
-                               QMessageBox.NoButton)
-              mb_msg.exec_loop()
+              _dprint(3, 'The perturbed values cannot be displayed.')
+# don't display message for the time being
+#              Message =  'It would appear that there is a problem with perturbed values.\nThey cannot be displayed.'
+#              mb_msg = QMessageBox("display_image.py",
+#                               Message,
+#                               QMessageBox.Warning,
+#                               QMessageBox.Ok | QMessageBox.Default,
+#                               QMessageBox.NoButton,
+#                               QMessageBox.NoButton)
+#              mb_msg.exec_loop()
           if self._vells_rec.vellsets[i].has_key("flags"):
             self._label = "toggle flagged data for plane " + str(i) 
 	    toggle_id = 200
@@ -785,14 +788,20 @@ class QwtImagePlot(QwtPlot):
           self._z_imag_min = self._value_imag_array.min()
           self._z_imag_max = self._value_imag_array.max()
           self._label = "plane " + str(plane) + key 
-          self.array_plot(self._label, self._value_array)
+          if self._solver_flag:
+            self.array_plot(self._label, self._value_array, False)
+          else:
+            self.array_plot(self._label, self._value_array)
         else:
 #we have a real array
           _dprint(3,'handling real array')
           self._label = "plane " + str(plane) + key 
           self._z_real_min = self._value_array.min()
           self._z_real_max = self._value_array.max()
-          self.array_plot(self._label, self._value_array)
+          if self._solver_flag:
+            self.array_plot(self._label, self._value_array, False)
+          else:
+            self.array_plot(self._label, self._value_array)
 
       else:
 # handle "perturbed_value"
@@ -816,7 +825,10 @@ class QwtImagePlot(QwtPlot):
 
           key = " perturbed_value "
           self._label =  "plane " + str(plane) + key + str(perturb)
-          self.array_plot(self._label, perturbed_array_diff)
+          if self._solver_flag:
+            self.array_plot(self._label, perturbed_array_diff, False)
+          else:
+            self.array_plot(self._label, perturbed_array_diff)
         
     def printplot(self):
         try:
@@ -1268,11 +1280,12 @@ class QwtImagePlot(QwtPlot):
       self.vells_time = (self.vells_start_time,self.vells_end_time)
 
                                                                                 
-    def plot_vells_data (self, vells_record):
+    def plot_vells_data (self, vells_record, metrics=False):
       """ process incoming vells data and attributes into the
           appropriate type of plot """
 
       _dprint(2, 'in plot_vells_data');
+      self._solver_flag = metrics
       self._vells_rec = vells_record;
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
@@ -1281,10 +1294,20 @@ class QwtImagePlot(QwtPlot):
 
 # are we dealing with Vellsets?
       if self._vells_rec.has_key("vellsets"):
-        self._vells_plot = True
-        self.calc_vells_ranges()
+
+# are we dealing with 'solver' results?
+        if self._solver_flag and self._vells_rec.vellsets[0].has_key("spid_index"):
+          self._solver_flag = True
+          self._x_axis = 'Solvable Unknowns'
+          self._y_axis = 'Iteration'
+        else:
+          self._solver_flag = False
+          self._vells_plot = True
+          self.calc_vells_ranges()
         self. initVellsContextMenu()
         _dprint(3, 'handling vellsets')
+
+
 # how many VellSet planes (e.g. I, Q, U, V would each be a plane) are there?
         number_of_planes = len(self._vells_rec["vellsets"])
         _dprint(3, 'number of planes ', number_of_planes)
@@ -1355,14 +1378,20 @@ class QwtImagePlot(QwtPlot):
             self._z_imag_min = self._value_imag_array.min()
             self._z_imag_max = self._value_imag_array.max()
             self._label = "plane " + str(0) + key 
-            self.array_plot(self._label, self._value_array)
+            if self._solver_flag:
+              self.array_plot(self._label, self._value_array, False)
+            else:
+              self.array_plot(self._label, self._value_array)
           else:
 #we have a real array
             _dprint(3,'handling real array')
             self._label = "plane " + str(0) + key 
             self._z_real_min = self._value_array.min()
             self._z_real_max = self._value_array.max()
-            self.array_plot(self._label, self._value_array)
+            if self._solver_flag:
+              self.array_plot(self._label, self._value_array, False)
+            else:
+              self.array_plot(self._label, self._value_array)
 
     # end plot_vells_data()
 

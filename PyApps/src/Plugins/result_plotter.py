@@ -473,11 +473,14 @@ class ResultPlotter(GriddedPlugin):
 
 # are we dealing with Vellsets?
     if self._rec.has_key("vellsets"):
+      metrics = False
+      if self._rec.has_key("metrics"):
+        metrics = True
       if self._visu_plotter is None:
         self._visu_plotter = QwtImagePlot('spectra',parent=self.wparent())
         self.set_widgets(self._visu_plotter,self.dataitem.caption,icon=self.icon())
         self._wtop = self._visu_plotter;       # QwtImagePlot inherits from QwtPlot
-      self._visu_plotter.plot_vells_data(self._rec)
+      self._visu_plotter.plot_vells_data(self._rec, metrics)
 # otherwise we are dealing with a set of visualization data
     else:
       if self._rec.has_key("visu"):
