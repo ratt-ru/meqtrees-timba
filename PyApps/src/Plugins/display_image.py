@@ -524,6 +524,17 @@ class QwtImagePlot(QwtPlot):
             combined_display_label = self._string_tag  +  " " + self._data_labels
             plot_label = 'spectra:' + combined_display_label
 	  plot_label_not_found = True
+
+
+# use hack below instead
+#          plot_array = self._data_values[i].copy()
+
+# hack to get array display correct until forest.state
+# record is available
+          axes = arange(self._data_values[i].rank)[::-1]
+          plot_array = transpose(self._data_values[i], axes)
+
+
 	  for j in range(len(self._plot_label)):
 	    if self._plot_label[j] == plot_label:
 	      plot_label_not_found =False
@@ -532,7 +543,7 @@ class QwtImagePlot(QwtPlot):
 # the maximum size of the plot_dict
               self._plot_dict_size = len(self._plot_dict)
               _dprint(2,' plot_dict_size: ', self._plot_dict_size)
-	      self._plot_dict[j] = self._data_values[i].copy()
+	      self._plot_dict[j] = plot_array
 	      break
 
 # if no plot label found, then add array into plot_dict and
@@ -540,7 +551,7 @@ class QwtImagePlot(QwtPlot):
           if plot_label_not_found:
             self._signal_id = self._signal_id + 1
             self._menu.insertItem(data_label,self._signal_id)
-	    self._plot_dict[self._signal_id] = self._data_values[i].copy()
+	    self._plot_dict[self._signal_id] = plot_array
             self._plot_dict_size = len(self._plot_dict)
 	    self._plot_label[self._signal_id] = plot_label
             self._combined_label_dict[self._signal_id] = combined_display_label
@@ -602,7 +613,7 @@ class QwtImagePlot(QwtPlot):
       if not self._combined_image_id is None:
         if self._combined_image_id == menuid:
 	  self.is_combined_image = True
-      self.array_plot(self._plot_label[menuid], self._plot_dict[menuid])
+      self.array_plot(self._plot_label[menuid], self._plot_dict[menuid], False)
 
     def initVellsContextMenu (self):
         # skip if no main window
@@ -1204,13 +1215,13 @@ class QwtImagePlot(QwtPlot):
         self.initSpectrumContextMenu()
 # plot first instance of array
         if not self.active_image_index is None:
-          self.array_plot(self._plot_label[self.active_image_index], self._plot_dict[self.active_image_index])
+          self.array_plot(self._plot_label[self.active_image_index], self._plot_dict[self.active_image_index],False)
           if self.active_image_index == self._combined_image_id:
 	    self.is_combined_image = True
             self.removeMarkers()
 	    self.insert_marker_lines()
         elif not self._combined_image_id is None:
-          self.array_plot(self._plot_label[ self._combined_image_id], self._plot_dict[ self._combined_image_id])
+          self.array_plot(self._plot_label[ self._combined_image_id], self._plot_dict[ self._combined_image_id],False)
 	  self.is_combined_image = True
           self.removeMarkers()
           self.insert_marker_lines()
@@ -1331,7 +1342,7 @@ class QwtImagePlot(QwtPlot):
     def handle_finished (self):
       print 'in handle_finished'
 
-    def array_plot (self, data_label, plot_array):
+    def array_plot (self, data_label, incoming_plot_array, flip_axes=True):
       """ figure out shape, rank etc of a spectrum array and
           plot it  """
 
@@ -1349,6 +1360,13 @@ class QwtImagePlot(QwtPlot):
 # set title
       if self._title is None:
         self.setTitle(data_label)
+
+# hack to get array display correct until forest.state
+# record is available
+      plot_array = incoming_plot_array
+      if flip_axes:
+        axes = arange(incoming_plot_array.rank)[::-1]
+        plot_array = transpose(incoming_plot_array, axes)
 
 # figure out type and rank of incoming array
       is_time = False
