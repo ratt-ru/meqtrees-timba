@@ -532,11 +532,10 @@ class meqserver_gui (app_proxy_gui):
         wtop._newresults = True;
         
   def ce_LoadNodeList (self,ev,meqnl):
-    try:
-      meqds.nodelist.load(meqnl);
-    except ValueError:
+    if not meqds.nodelist.is_valid_meqnodelist(meqnl):
       _dprint(2,"got nodelist but it is not valid, ignoring");
       return;
+    meqds.nodelist.load(meqnl);
     _dprintf(2,"loaded %d nodes into nodelist\n",len(meqds.nodelist));
     self.treebrowser.update_nodelist();
       

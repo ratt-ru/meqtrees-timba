@@ -49,6 +49,7 @@ class NodeList (object):
   
   class Node (QObject):
     def __init__ (self,ni):
+      QObject.__init__(self);
       self.nodeindex = ni;
       self.name = None;
       self.classname = None;
@@ -63,8 +64,8 @@ class NodeList (object):
       return bool(self.control_state&CS_MASK_BREAKPOINTS);
     def update_state (self,state,event=None):
       self.control_state = state.control_state;
-      print state,event;
-      self.emit(PYSIGNAL("state()"),(state,event));
+      _dprint(5,"node update state",state,event);
+      self.emit(PYSIGNAL("newNodeState()"),(state,event));
 
   # init node list
   def __init__ (self,meqnl=None):
@@ -189,7 +190,8 @@ def nodeindex (node):
 
 # Adds a subscriber to node state changes
 def subscribe_node_state (node,callback):
-  QObject.connect(nodelist[nodeindex(node)],PYSIGNAL("state()"),callback);
+  _dprint(4,"connecting state of node ",node," to ",callback);
+  QObject.connect(nodelist[nodeindex(node)],PYSIGNAL("newNodeState()"),callback);
 
 def request_node_state (node):
   ni = nodeindex(node);
@@ -208,11 +210,13 @@ def set_node_state (node,**kwargs):
   
 def update_node_state (state,event):
   ni = state.nodeindex;
+  _dprint(5,"updating state of node ",ni);
   if nodelist:
     nodelist[ni].update_state(state,event);
 
 def add_node_snapshot (state,event):
   ni = state.nodeindex;
+  _dprint(5,"adding snapshot for node ",ni);
   # get list of snapshots and filter it to eliminate dead refs
   sslist = filter(lambda s:s[0]() is not None,snapshots.get(ni,[]));
   if len(sslist) and sslist[-1][0]() == state:
@@ -220,7 +224,8 @@ def add_node_snapshot (state,event):
     return;
   sslist.append((weakref.ref(state),event,time.time()));
   snapshots[ni] = sslist;
-  update_node_state(state,event);
+  if nodelist:
+    nodelist[ni].update_state(state,event);
   
 def get_node_snapshots (node):
   ni = nodeindex(node);
