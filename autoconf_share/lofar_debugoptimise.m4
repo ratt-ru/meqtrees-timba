@@ -118,6 +118,9 @@ AC_DEFINE(LOFAR_DEBUG,dnl
 
   if test "$with_threads" != "no"; then
     lfr_cppflags="$lfr_cppflags -DUSE_THREADS -pthread";
+    if test "$lofar_compiler" = "gnu"; then
+      lfr_cppflags="$lfr_cppflags -DGNU_SOURCE";
+    fi
     lfr_ldflags="$lfr_ldflags -pthread";
   fi
 
