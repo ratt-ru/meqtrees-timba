@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.24  2003/05/14 10:28:11  smirnov
+//  %[BugId: 26]%
+//  Fixed bug when constructing from a 0-dim AIPS++ array
+//
 //  Revision 1.23  2003/04/29 07:19:31  smirnov
 //  %[BugId: 26]%
 //  Various updates to hooks
@@ -873,5 +877,36 @@ int DataArray::parseHIID (const HIID& id, LoPos & st, LoPos & end,LoPos & incr,
 void* DataArray::insert (const HIID&, TypeId, TypeId&)
 {
   Throw("insert() not supported for DataArray");
+}
+
+string DataArray::sdebug ( int detail,const string &prefix,const char *name ) const
+{
+  nc_readlock;
+  string out;
+  if( detail>=0 ) // basic detail
+  {
+    Debug::appendf(out,"%s/%08x",name?name:"DataArray",(int)this);
+  }
+  if( detail >= 1 || detail == -1 )   // normal detail
+  {
+    Debug::append(out,isWritable()?"RW ":"RO ");
+    if( !itsArray )
+      out += "empty";
+    else
+    {
+      out += itsType.toString() + " ";
+      for( int i=0; i<itsShape.size(); i++ )
+        out += Debug::ssprintf("%c%d",(i?'x':' '),itsShape[i]);
+    }
+  }
+  if( detail >= 2 || detail <= -2 )   // high detail
+  {
+    if( itsArray )
+    {
+      // append debug info from block
+      string str = itsData.sdebug(2,prefix,"data");
+    }
+  }
+  return out;
 }
 

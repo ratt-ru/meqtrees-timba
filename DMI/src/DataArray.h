@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.20  2003/05/14 10:28:11  smirnov
+//  %[BugId: 26]%
+//  Fixed bug when constructing from a 0-dim AIPS++ array
+//
 //  Revision 1.19  2003/04/29 07:19:31  smirnov
 //  %[BugId: 26]%
 //  Various updates to hooks
@@ -252,7 +256,6 @@ public:
     //##ModelId=3DB949AE03D2
   virtual void privatize (int flags = 0, int depth = 0);
 
-  // Get the 
     //##ModelId=3DB949AE03DA
   virtual const void* get (const HIID& id, ContentInfo &info,
 			   TypeId check_tid = 0, int flags = 0) const;
@@ -277,6 +280,9 @@ public:
     //##ModelId=3DB949AF000E
   int parseHIID (const HIID& id, LoPos& st, LoPos& end,LoPos& incr, 
                  vector<bool> &keepAxes) const;
+  
+  string sdebug ( int detail = 1,const string &prefix = "",
+                  const char *name = 0 ) const;
   
     //##ModelId=3DB949AF001C
   DefineRefTypes(DataArray,Ref);
@@ -517,7 +523,7 @@ DataArray::DataArray (const Array<T> &array,int flags, int )  // shm_flags not y
   itsScaType  = isStringArray(array) ? Tpstring : typeIdOf(T);
   itsElemSize = isStringArray(array) ? sizeof(string) : sizeof(T);
   itsType     = TpArray(itsScaType,array.ndim());
-  init(LoShape(array.shape()),flags);
+  init(array.ndim() ? LoShape(array.shape()) : LoShape(0),flags);
   // after an init, itsArray contains a valid array of the given shape,
   // so we can copy the data over
   // BUG here! use a more efficient AIPS++ array iterator
