@@ -41,7 +41,7 @@ Forest::Forest ()
   nodes.reserve(RepositoryChunkSize);
   nodes.resize(1);
   num_valid_nodes = 0;
-  breakpoints = breakpoints_oneshot = 0;
+  breakpoints = breakpoints_ss = 0;
   node_status_callback = 0;
   node_breakpoint_callback = 0;
   verbosity_ = 0;

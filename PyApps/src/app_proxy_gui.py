@@ -241,6 +241,7 @@ class EventLogger (Logger):
     self._controlgrid_lo.insertWidget(1,self._evmask_field);
     self.wtop().connect(self._evmask_field,SIGNAL('returnPressed()'),
                     self._enter_mask);
+    self._exclusions = [];
   def _enter_mask(self):
     self.set_mask(str(self._evmask_field.text()));
   def set_mask (self,mask):
@@ -249,8 +250,15 @@ class EventLogger (Logger):
     except: pass;
     self._evmask_field.setText(str(self.mask));
     self.wtop().emit(PYSIGNAL('maskChanged()'),(self.wtop(),self.mask));
+  # adds an exclusion
+  def add_exclusion (self,excl_str):
+    self._exclusions.append(re.compile(excl_str));
   # for event viewers, use the event name as name, and 'event' as description
   def add (self,msg,*args,**kwargs):
+    # omit messages listed in exclusions
+    for ex in self._exclusions:
+      if ex.match(msg):
+        return None;
     label = time.strftime("%H:%M:%S");
     kw = kwargs.copy();
     kw['label'] = label;

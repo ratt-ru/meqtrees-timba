@@ -482,7 +482,7 @@ def curry (func,*args,**kwds):
 # The _argslice argument is applied to the *args of the
 # curry when it is subsequently called; this allows only a subset of the
 # *args to be passed to the curried function.
-def xcurry (func,_args=(),_argslice=slice(None),_kwds={},**kwds):
+def xcurry (func,_args=(),_argslice=slice(0),_kwds={},**kwds):
   kwds0 = _kwds.copy();
   kwds0.update(kwds);
   def callit(*args1,**kwds1):

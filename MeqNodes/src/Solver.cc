@@ -210,6 +210,7 @@ int Solver::getResult (Result::Ref &resref,
     for( int i=0; i<numChildren(); i++ )
       child_reslock[i].release();
     int retcode = Node::pollChildren (child_results, resref, *reqref);
+    setExecState(CS_ES_EVALUATING);
     for( int i=0; i<numChildren(); i++ )
       if( child_results[i].valid() )
         child_reslock[i].relock(child_results[i]->mutex());
@@ -383,8 +384,10 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   Vector<double> errors;
   {
     LSQaips tmpSolver = itsSolver;
-    ///    tmpSolver.getCovariance (covar);
-    // tmpSolver.getErrors (errors);
+    // both of these calls produce SEGV in certain situations; commented out until
+    // Wim or Ger fixes it
+    ///     tmpSolver.getCovariance (covar);
+    ///     tmpSolver.getErrors (errors);
   }
   // Make a copy of the solver for the actual solve.
   // This is needed because the solver does in-place transformations.

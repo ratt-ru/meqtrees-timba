@@ -353,6 +353,11 @@ const int AidTile_int = -1280;
 const AtomicID AidUVW(-1158);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:28
 const int AidUVW_int = -1158;
 #endif
+#ifndef _defined_id_AidUntil
+#define _defined_id_AidUntil 1
+const AtomicID AidUntil(-1556);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/MeqServer.h:16
+const int AidUntil_int = -1556;
+#endif
 #ifndef _defined_id_AidVerbosity
 #define _defined_id_AidVerbosity 1
 const AtomicID AidVerbosity(-1541);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/MeqServer.h:16

@@ -36,7 +36,7 @@ const HIID FGetState = AidGet|AidState;
 // ...as field node_state
 const HIID FNodeState = AidNode|AidState;
 
-const HIID FBreakpoint = AidBreakpoint;
+//const HIID FBreakpoint = AidBreakpoint;
 const HIID FSingleShot = AidSingle|AidShot;
 
 MeqServer * MeqServer::mqs_ = 0;
@@ -73,6 +73,7 @@ MeqServer::MeqServer()
   command_map["Set.Verbosity"] = &MeqServer::setVerbosity;
   command_map["Debug.Single.Step"] = &MeqServer::debugSingleStep;
   command_map["Debug.Next.Node"] = &MeqServer::debugNextNode;
+  command_map["Debug.Until.Node"] = &MeqServer::debugUntilNode;
   command_map["Debug.Continue"] = &MeqServer::debugContinue;
   
   in_debugger = debug_nextnode = 0;
@@ -362,16 +363,16 @@ void MeqServer::nodeSetBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &i
   DataRecord::Ref rec = in;
   bool getstate;
   Node & node = resolveNode(getstate,*rec);
-  int bpmask = rec[FBreakpoint].as<int>(Node::CS_BREAK_REQUEST);
+  int bpmask = rec[FBreakpoint].as<int>(Node::breakpointMask(Node::CS_ES_REQUEST));
   bool oneshot = rec[FSingleShot].as<bool>(false);
-  cdebug(2)<<"nodeSetBreakpoint, node "<<node.name()<<", mask "<<bpmask<<", single-shot "<<oneshot<<endl;
+  cdebug(2)<<"nodeSetBreakpoint: node "<<node.name()<<" mask "<<bpmask<<(oneshot?" single-shot\n":"\n");
   node.setBreakpoint(bpmask,oneshot);
   if( getstate )
     out[FNodeState] <<= node.syncState();
-  out[AidMessage] = Debug::ssprintf("node %s: set %sbreakpoint %x; "
-        "new breakpoint mask is %x",
-        node.name().c_str(),oneshot?"one-shot":"",bpmask,
-        node.getControlStatus()&Node::CS_MASK_BREAKPOINTS);
+  out[AidMessage] = Debug::ssprintf("node %s: set %sbreakpoint %X; "
+        "new bp mask is %X",
+        node.name().c_str(),oneshot?"one-shot":"",
+        bpmask,node.getBreakpoints(oneshot));
 }
 
 void MeqServer::nodeClearBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
@@ -379,30 +380,32 @@ void MeqServer::nodeClearBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer 
   DataRecord::Ref rec = in;
   bool getstate;
   Node & node = resolveNode(getstate,*rec);
-  int bpmask = rec[FBreakpoint];
-  cdebug(2)<<"nodeClearBreakpoint, node "<<node.name()<<", mask "<<bpmask<<endl;
-  node.clearBreakpoint(bpmask);
+  int bpmask = rec[FBreakpoint].as<int>(Node::CS_BP_ALL);
+  bool oneshot = rec[FSingleShot].as<bool>(false);
+  cdebug(2)<<"nodeClearBreakpoint: node "<<node.name()<<" mask "<<bpmask<<(oneshot?" single-shot\n":"\n");
+  node.clearBreakpoint(bpmask,oneshot);
   if( getstate )
     out[FNodeState] <<= node.syncState();
-  out[AidMessage] = Debug::ssprintf("node %s: clearing breakpoint %x; "
-        "new breakpoint mask is %x",
-        node.name().c_str(),bpmask,
-        node.getControlStatus()&Node::CS_MASK_BREAKPOINTS);
+  out[AidMessage] = Debug::ssprintf("node %s: clearing breakpoint %X; "
+        "new bp mask is %X",node.name().c_str(),bpmask,node.getBreakpoints(oneshot));
 }
 
 void MeqServer::debugContinue (DataRecord::Ref &,DataRecord::Ref::Xfer &)
 {
   if( !in_debugger )
     Throw1("can't execute a Continue command when not debugging");
-  forest.clearBreakpoint(Node::CS_MASK_BREAKPOINTS);
+  // clear all global breakpoints and continue
+  forest.clearBreakpoint(Node::CS_ALL,false);
+  forest.clearBreakpoint(Node::CS_ALL,true);
   debug_continue = true;
 }
 
 void MeqServer::debugSingleStep (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
   if( !in_debugger )
-    Throw1("can't execute a Single Step command when not debugging");
-  forest.setBreakpoint(Node::CS_MASK_BREAKPOINTS,true);
+    Throw1("can't execute Debug.Single.Step command when not debugging");
+  // set a global one-shot breakpoint on everything
+  forest.setBreakpoint(Node::CS_ALL,true);
   debug_nextnode = 0;
   debug_continue = true;
 }
@@ -410,12 +413,27 @@ void MeqServer::debugSingleStep (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 void MeqServer::debugNextNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
   if( !in_debugger )
-    Throw1("can't execute a Next Node command when not debugging");
-  forest.setBreakpoint(Node::CS_MASK_BREAKPOINTS,true);
+    Throw1("can't execute Debug.Next.Node command when not debugging");
+  // set a global breakpoint on everything, will keep firing until a different
+  // node is reached (or until a local node breakpoint occurs)
+  forest.setBreakpoint(Node::CS_ALL);
   debug_nextnode = in_debugger;
   debug_continue = true;
 }
 
+void MeqServer::debugUntilNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+{
+  if( !in_debugger )
+    Throw1("can't execute Debug.Until.Node command when not debugging");
+  bool getstate;
+  Node & node = resolveNode(getstate,*in);
+  // set one-shot breakpoint on anything in this node
+  node.setBreakpoint(Node::CS_ALL,true);
+  // clear all global breakpoints and continue
+  forest.clearBreakpoint(Node::CS_ALL,false);
+  forest.clearBreakpoint(Node::CS_ALL,true);
+  debug_continue = true;
+}
 
 int MeqServer::receiveEvent (const EventIdentifier &evid,const ObjRef::Xfer &evdata,void *) 
 {
@@ -460,7 +478,7 @@ void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
   rec[AidName] = node.name();
   rec[AidNodeIndex] = node.nodeIndex();
   rec[FNodeState] <<= node.syncState();
-  rec[AidMessage] = "stopped at breakpoint in node " + node.name();
+  rec[AidMessage] = "stopped at breakpoint " + node.name() + ":" + node.getStrExecState();
   control().postEvent(EvDebugStop,ref);
   // keep on processing commands until asked to continue
   while( control().state() > 0 && !debug_continue )  // while in a running state

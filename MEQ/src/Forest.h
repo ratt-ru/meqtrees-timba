@@ -124,7 +124,7 @@ class Forest
     }
 
     // called by a node when its breakpoint is hit
-    void processBreakpoint (Node &node,int bpmask,bool global=false)
+    void processBreakpoint (Node &node,int bpmask,bool global)
     {
       if( node_breakpoint_callback )
         (*node_breakpoint_callback)(node,bpmask,global);
@@ -132,28 +132,32 @@ class Forest
 
     // called by a node at any runstate change to check for global
     // breakpoints
-    void checkGlobalBreakpoints (Node &node,int bpmask)
+    bool checkGlobalBreakpoints (int bpmask)
     {
-      if( breakpoints&bpmask )
+      if( breakpoints_ss&bpmask )
       {
-        breakpoints &= ~(bpmask&breakpoints_oneshot);
-        processBreakpoint(node,bpmask,true);
+        breakpoints_ss = 0;
+        return true;
       }
+      return (breakpoints&bpmask) != 0;
     }
     
     // sets global breakpoint(s)
-    void setBreakpoint (int bpmask,bool oneshot=false)
+    void setBreakpoint (int bpmask,bool single_shot=false)
     {
-      breakpoints |= bpmask;
-      if( oneshot )
-        breakpoints_oneshot |= bpmask;
+      if( single_shot )
+        breakpoints_ss |= bpmask;
+      else
+        breakpoints |= bpmask;
     }
     
     // clears global breakpoint(s)
-    void clearBreakpoint (int bpmask)
+    void clearBreakpoint (int bpmask,bool single_shot=false)
     {
-      breakpoints &= ~bpmask;
-      breakpoints_oneshot &= ~bpmask;
+      if( single_shot )
+        breakpoints_ss &= ~bpmask;
+      else
+        breakpoints &= ~bpmask;
     }
     
     void setVerbosity (int verb)
@@ -177,7 +181,7 @@ class Forest
 
   private:
     int breakpoints;
-    int breakpoints_oneshot;
+    int breakpoints_ss;
     
     int verbosity_;
     

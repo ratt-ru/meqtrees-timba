@@ -179,8 +179,9 @@ class TreeBrowser (object):
       self._callbacks = [];
       if node.children:
         self.setExpandable(True);
-      # node.subscribe_state(self.update);
       node.subscribe_status(self.update);
+      node.subscribe_state(self.update);
+      QObject.connect(node,PYSIGNAL("active()"),self.update);
       self.update();
       
     def update (self,status=None,rqid=None,status_string=None):
@@ -213,12 +214,19 @@ class TreeBrowser (object):
             self.setPixmap(icol,QPixmap());
       # update context menu
       try: menu = self._context_menu;
-      except AttributeError:
-        return;
-      for (act_id,act) in menu._actions.iteritems():
-        if hasattr(act,'state'):
-          menu.setItemChecked(act_id,act.state(self._node));
-      
+      except AttributeError: pass;
+      else:
+        for (act_id,act) in menu._actions.iteritems():
+          if hasattr(act,'state'):
+            menu.setItemChecked(act_id,act.state(self._node));
+      # update breakpoints menu
+      try: menu = self._debug_bp_menu;
+      except AttributeError: pass;
+      else:
+        _dprint(3,'node',self._node.name,'breakpoint mask is',self._node.breakpoint);
+        for (item,bp) in self._debug_bp_items:
+          menu.setItemChecked(item,(self._node.breakpoint&bp)!=0);
+   
     def expand (self):
       if self._expanded:
         return;
@@ -240,25 +248,25 @@ class TreeBrowser (object):
         node = self._node;
         menu = self._debug_menu = QPopupMenu();
         menu1 = self._debug_bp_menu = QPopupMenu();
-        menu1.insertItem("at request",self.xcurry(\
-            meqds.set_node_breakpoint,node,meqds.CS_BREAK_REQUEST));
-        menu1.insertItem("at rider command",self.xcurry(\
-            meqds.set_node_breakpoint,node,meqds.CS_BREAK_COMMAND));
-        menu1.insertItem("at children poll",self.xcurry(\
-            meqds.set_node_breakpoint,node,meqds.CS_BREAK_POLLING));
-        menu1.insertItem("at evaluation",self.xcurry(\
-            meqds.set_node_breakpoint,node,meqds.CS_BREAK_EVALUATING));
-        menu1.insertItem("at idle",self.xcurry(\
-            meqds.set_node_breakpoint,node,meqds.CS_BREAK_IDLE));
-        menu1.insertItem("at any",self.xcurry(\
-            meqds.set_node_breakpoint,node,meqds.CS_MASK_BREAKPOINTS));
-        menu.insertItem("Set breakpoint",menu1);
-        menu.insertItem("Clear breakpoints",self.xcurry(\
-            meqds.clear_node_breakpoint,node));
+        self._debug_bp_items = [];
+        _dprint(3,'node',node.name,'breakpoint mask is',node.breakpoint);
+        for st in meqds.CS_ES_statelist:
+          title = ''.join(('at ',node.name,':',st[1]));
+          bpmask = meqds.breakpoint_mask(st[0]);
+          cb = self.xcurry(meqds.set_node_breakpoint,(node,bpmask),_argslice=slice(0));
+          item = menu1.insertItem(title,cb);
+          menu1.setItemChecked(item,(node.breakpoint&bpmask)!=0);
+          self._debug_bp_items.append((item,bpmask));
+        menu1.insertItem(''.join(("at ",node.name,':*')),self.xcurry(\
+              meqds.set_node_breakpoint,(node,meqds.BP_ALL),_argslice=slice(0)));
+        menu1.insertItem("Clear all",self.xcurry(\
+              meqds.clear_node_breakpoint,(node,meqds.BP_ALL),_argslice=slice(0)));
+        menu.insertItem("Breakpoints",menu1);
         menu.insertSeparator();
-        menu.insertItem("Single step",self._tb().debug_single_step());
-        menu.insertItem("Continue to next node",self._tb().debug_next_node());
-        menu.insertItem("Continue to next breakpoint",self._tb().debug_continue());
+        menu.insertItem("Continue until this node",self.xcurry(self._tb().debug_until_node,(node,),_argslice=slice(0)));
+        menu.insertItem("Single step",self._tb().debug_single_step);
+        menu.insertItem("Continue to next node",self._tb().debug_next_node);
+        menu.insertItem("Continue to next breakpoint",self._tb().debug_continue);
       return menu;
       
     def context_menu (self):
@@ -336,6 +344,9 @@ class TreeBrowser (object):
                      self._show_context_menu);
     # map the get_data_item method
     nlv.get_data_item = self.get_data_item;
+    
+    # init various state
+    self.active_node = None;
     
   # init empty set of node actions
   _node_actions = [];
@@ -426,6 +437,10 @@ class TreeBrowser (object):
   def debug_next_node (self):
     self.debug_clear_active_node();
     mqs.meq('Debug.Next.Node',srecord(),wait=False);
+    
+  def debug_until_node (self,node):
+    self.debug_clear_active_node();
+    mqs.meq('Debug.Until.Node',srecord(nodeindex=node.nodeindex),wait=False);
   
   def debug_continue (self):
     self.debug_clear_active_node();
@@ -433,9 +448,23 @@ class TreeBrowser (object):
     
   def debug_set_active_node (self,nodeindex,state):
     pass;
+#    self.active_node = nodeindex;
+#    if meqds.nodelist:
+#      try: node = meqds.nodelist[nodeindex];
+#      except KeyError: return;
+#      node.active = True;
+#      node.emit(PYSIGNAL("active()"),(True,));
   
   def debug_clear_active_node (self):
     pass;
+#    if self.active_node is not None:
+#      nodeindex = self.active_node;
+#      self.active_node = None;
+#      if meqds.nodelist:
+#        try: node = meqds.nodelist[self.active_node];
+#        except KeyError: return;
+#        node.active = False;
+#        node.emit(PYSIGNAL("active()"),(False,));
   
   # slot: called to show a context menu for a browser item
   def _show_context_menu (self,item,point,col):
@@ -550,6 +579,9 @@ class meqserver_gui (app_proxy_gui):
     self.resultlog.wtop()._newresults      = False;
     QWidget.connect(self.resultlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     QWidget.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
+    
+    # excluse ubiquotous events from the event logger
+    self.eventlog.add_exclusion('node.status');
 
 
   def _checkStateUpdate (self,ev,value):
@@ -563,6 +595,8 @@ class meqserver_gui (app_proxy_gui):
     return True;
     
   def _checkStatusUpdate (self,ev,value):
+    if not meqds.nodelist:   # ignore if no nodelist yet
+      return False;
     try: 
       status = value.control_status;
       ni     = value.nodeindex;
@@ -570,7 +604,7 @@ class meqserver_gui (app_proxy_gui):
     if not isinstance(status,int) or not isinstance(ni,int):
       return False;
     _dprint(5,'got control status for node ',ni);
-    meqds.nodelist[ni].update_status(status,getattr(value,'rquest_id',None));
+    meqds.nodelist[ni].update_status(status,getattr(value,'request_id',None));
     return True;
     
   # override handleAppEvent to catch node state updates, whichever event they

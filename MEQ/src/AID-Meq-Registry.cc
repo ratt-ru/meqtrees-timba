@@ -172,6 +172,9 @@ BlockableObject * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] :
         AtomicID::registerId(-1131,"control")+
         AtomicID::registerId(-1269,"status")+
         AtomicID::registerId(-1538,"new")+
+        AtomicID::registerId(-1544,"breakpoint")+
+        AtomicID::registerId(-1542,"single")+
+        AtomicID::registerId(-1540,"shot")+
         AtomicID::registerId(-1216,"meqfunction")+
         TypeInfoReg::addToRegistry(-1216,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1216,__construct_MeqFunction)+

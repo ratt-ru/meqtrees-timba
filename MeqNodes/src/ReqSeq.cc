@@ -62,6 +62,7 @@ int ReqSeq::pollChildren (std::vector<Result::Ref> &chres,
                           Result::Ref &resref,
                           const Request &req)
 {
+  setExecState(CS_ES_POLLING);
   // in cells-only mode, process cell-less requests just like a regular Node
   if( cells_only_ && !req.hasCells() )
     return Node::pollChildren(chres,resref,req);

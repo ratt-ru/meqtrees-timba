@@ -5,16 +5,7 @@
 
 
 
-#define DoForAllOtherTypes_MeqServer(Do,arg,separator) \
-        
-
 #define DoForAllBinaryTypes_MeqServer(Do,arg,separator) \
-        
-
-#define DoForAllSpecialTypes_MeqServer(Do,arg,separator) \
-        
-
-#define DoForAllIntermediateTypes_MeqServer(Do,arg,separator) \
         
 
 #define DoForAllDynamicTypes_MeqServer(Do,arg,separator) \
@@ -22,5 +13,14 @@
         Do(Meq::Spigot,arg)
 
 #define DoForAllNumericTypes_MeqServer(Do,arg,separator) \
+        
+
+#define DoForAllIntermediateTypes_MeqServer(Do,arg,separator) \
+        
+
+#define DoForAllOtherTypes_MeqServer(Do,arg,separator) \
+        
+
+#define DoForAllSpecialTypes_MeqServer(Do,arg,separator) \
         
 #endif

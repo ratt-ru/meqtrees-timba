@@ -54,7 +54,9 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
     child_labels_.resize(nchildren);
     for( int i=0; i<nchildren; i++ )
       child_labels_[i] = labels[i];
+    check_nmandatory_ = 0;
   }
+  breakpoints_ = breakpoints_ss_ = 0;
   // else child_labels_ stays empty to indicate no labels -- this is checked below
 }
 
@@ -297,7 +299,8 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
     {
       FailWhen(children_.size()<uint(check_nmandatory_),"too few children specified");
       for( int i=0; i<check_nmandatory_; i++ )
-        if( !children_[i].valid() )
+        if( !children_[i].valid() && 
+            child_names_[child_map_[getChildLabel(i)]].as<string>().empty() )
         {
           Throw("mandatory child "+getChildLabel(i).toString()+" not specified" );
         }
@@ -324,25 +327,42 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
     protectStateField(rec,FResolveParentId);
   }
   // apply changes to mutable bits of control state
-  int cstate;
-  if( rec[FControlStatus].get(cstate) )
-  {
-    rec[FControlStatus] = control_status_ = 
-        (control_status_&~CS_CONTROL_MASK)|(cstate&CS_CONTROL_MASK);
-  }
+  int cs0 = control_status_;
+  int new_cs;
+  if( rec[FControlStatus].get(new_cs) )
+    control_status_ = (control_status_&~CS_WRITABLE_MASK)|(new_cs&CS_WRITABLE_MASK);
+  // set breakpoints
+  if( rec[FBreakpoint].get(breakpoints_) )
+    control_status_ = breakpoints_ ? control_status_|CS_BREAKPOINT : control_status_&~CS_BREAKPOINT;
+  if( rec[FBreakpointSingleShot].get(breakpoints_ss_) )
+    control_status_ = breakpoints_ss_ ? control_status_|CS_BREAKPOINT_SS : control_status_&~CS_BREAKPOINT_SS;
   // set/clear cached result
   //   the cache_result field must be either a Result object,
   //   or a boolean false to clear the cache. Else throw exception.
   DataRecord::Hook hcache(rec,FCacheResult);
   TypeId type = hcache.type();
   if( type == TpMeqResult ) // a result
+  {
     cache_result_ <<= hcache.as_wp<Result>();
+    control_status_ |= CS_CACHED;
+  }
   else if( type == Tpbool && !hcache.as<bool>() ) // a bool False
+  {
     cache_result_.detach();
+    control_status_ &= ~CS_CACHED;
+  }
   else if( type != 0 ) // anything else (if type=0, then field is missing)
   {
     NodeThrow(FailWithCleanup,"illegal state."+FCacheResult.toString()+" field");
   }
+  
+  // apply any changes to control status
+  if( cs0 != control_status_ )
+  {
+    rec[FControlStatus] = control_status_;
+    forest_->newControlStatus(*this,cs0,control_status_); 
+  }
+  
   // set the name
   rec[FName].get(myname_,initializing);
   // set the caching policy
@@ -905,6 +925,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
 //   if( forest().verbosity()>1 )
 //     wstate()[FChildResults] <<= chres = new DataField(TpMeqResult,numChildren());
 //   
+  setExecState(CS_ES_POLLING);
   bool cache_result = False;
   int retcode = 0;
   cdebug(3)<<"  calling execute() on "<<numChildren()<<" child nodes"<<endl;
@@ -1106,7 +1127,7 @@ int Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
 int Node::execute (Result::Ref &ref,const Request &req0)
 {
   DbgFailWhen(!req0.getOwner(),"Request object must have at least one ref attached");
-  if( getExecState() != CS_ES_IDLE )
+  if( control_status_&CS_STOP_BREAKPOINT || getExecState() != CS_ES_IDLE )
   {
     Throw("can't re-enter Node::execute(). Are you trying to reexecute a node "
           "that is stopped at a breakpoint, or its parent?");
@@ -1179,7 +1200,6 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     Cells::Ref rescells;
     if( numChildren() )
     {
-      setExecState(CS_ES_POLLING);
       stage = "polling children";
       retcode |= pollChildren(child_results,ref,req);
       for( int i=0; i<numChildren(); i++ )
@@ -1274,44 +1294,76 @@ int Node::execute (Result::Ref &ref,const Request &req0)
 
 void Node::setBreakpoint (int bpmask,bool oneshot)
 {
-  setControlStatus(control_status_|bpmask,true);
   if( oneshot )
-    breakpoints_oneshot_ |= bpmask;
+  {
+    wstate()[FBreakpointSingleShot] = breakpoints_ss_ |= bpmask;
+    setControlStatus(breakpoints_ss_ ? control_status_|CS_BREAKPOINT_SS : control_status_&~CS_BREAKPOINT_SS);
+  }
+  else
+  {
+    wstate()[FBreakpoint] = breakpoints_ |= bpmask;
+    setControlStatus(breakpoints_ ? control_status_|CS_BREAKPOINT : control_status_&~CS_BREAKPOINT);
+  }
 }
 
-void Node::clearBreakpoint (int bpmask)
+void Node::clearBreakpoint (int bpmask,bool oneshot)
 {
-  setControlStatus(control_status_&~bpmask,true);
-  breakpoints_oneshot_ &= ~bpmask;
+  if( oneshot )
+  {
+    wstate()[FBreakpointSingleShot] = breakpoints_ss_ &= ~bpmask;
+    setControlStatus(breakpoints_ss_ ? control_status_|CS_BREAKPOINT_SS : control_status_&~CS_BREAKPOINT_SS); 
+  }
+  else
+  {
+    wstate()[FBreakpoint] = breakpoints_ &= ~bpmask;
+    setControlStatus(breakpoints_ ? control_status_|CS_BREAKPOINT : control_status_&~CS_BREAKPOINT);
+  }
 }
 
 void Node::setControlStatus (int newst,bool sync)
 { 
-  int oldst = control_status_;
-  control_status_ = newst;
   if( sync )
     wstate()[FControlStatus] = newst;
-  forest_->newControlStatus(*this,oldst,newst); 
+  if( control_status_ != newst )
+  {
+    int oldst = control_status_;
+    control_status_ = newst;
+    forest_->newControlStatus(*this,oldst,newst); 
+  }
 }
 
 void Node::setExecState (int es,int newst,bool sync)
 {
+  // update exec state in new control status 
+  newst = (newst&~CS_MASK_EXECSTATE) | es;
+  // check breakpoints
   int bp = breakpointMask(es);
-  // if we have hit a breakpoint of our own...
-  if( control_status_&bp )
+  // always check global breakpoints first (to make sure single-shots are cleared)
+  bool breakpoint = forest_->checkGlobalBreakpoints(bp);
+  // the local flag is true if a local breakpoint (also) occurs
+  bool local = false;
+  // always check and flush local single-shot breakpoints
+  if( breakpoints_ss_&bp )
   {
-    // bp&breakpoints_oneshot_ clears the signle-shot breakppoints
-    // update control state word
-    setControlStatus((newst&~((bp&breakpoints_oneshot_)|CS_MASK_EXECSTATE))|es,sync);
+    breakpoint = local = true;
+    breakpoints_ss_ = 0;
+    newst &= ~CS_BREAKPOINT_SS;
+  }
+  else if( breakpoints_&bp ) // finally check for persistent local breakpoints
+    breakpoint = local = true;
+  // finally, check persistent local breakpoints too
+  if( breakpoint )
+  {
+    // update control status
+    setControlStatus(newst|CS_STOP_BREAKPOINT,sync);
     // notify the Forest that a breakpoint has been reached
-    forest_->processBreakpoint(*this,bp);
+    forest_->processBreakpoint(*this,es,!local);
+    // clear stop bit from control status
+    setControlStatus(newst&~CS_STOP_BREAKPOINT,sync);
   }
-  else 
-  {
-    setControlStatus((newst&~CS_MASK_EXECSTATE)|es,sync);
-    // else check for a global breakpoint
-    forest_->checkGlobalBreakpoints(*this,bp);
-  }
+  else  // no breakpoints, simply update control status
+    setControlStatus(newst,sync);
+  
 }
 
 std::string Node::getStrExecState (int state)

@@ -43,6 +43,11 @@ const int AidAxis_int = -1504;
 const AtomicID AidBit(-1428);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/FlagCompare.h:30
 const int AidBit_int = -1428;
 #endif
+#ifndef _defined_id_AidBreakpoint
+#define _defined_id_AidBreakpoint 1
+const AtomicID AidBreakpoint(-1544);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/MeqServer.h:16
+const int AidBreakpoint_int = -1544;
+#endif
 #ifndef _defined_id_AidBy
 #define _defined_id_AidBy 1
 const AtomicID AidBy(-1382);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
@@ -552,6 +557,16 @@ const int AidSet_int = -1316;
 #define _defined_id_AidShape 1
 const AtomicID AidShape(-1285);                   // from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:37
 const int AidShape_int = -1285;
+#endif
+#ifndef _defined_id_AidShot
+#define _defined_id_AidShot 1
+const AtomicID AidShot(-1540);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/MeqServer.h:16
+const int AidShot_int = -1540;
+#endif
+#ifndef _defined_id_AidSingle
+#define _defined_id_AidSingle 1
+const AtomicID AidSingle(-1542);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/MeqServer.h:16
+const int AidSingle_int = -1542;
 #endif
 #ifndef _defined_id_AidSize
 #define _defined_id_AidSize 1

@@ -13,7 +13,7 @@
 #pragma aid App Command Args Result Data Processing Error Message Code
 #pragma aid Execute Clear Cache Save Load Forest Recursive 
 #pragma aid Publish Results Enable Disable Event Id Silent
-#pragma aid Debug Breakpoint Single Shot Step Continue Stop Verbosity
+#pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Verbosity
 #pragma aid addstate
     
 namespace Meq
@@ -83,6 +83,7 @@ class MeqServer : public VisRepeater, public EventRecepient
     void debugSingleStep (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
     void debugNextNode   (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
     void debugContinue   (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void debugUntilNode  (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
 
     void setVerbosity    (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
     

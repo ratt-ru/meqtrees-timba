@@ -37,46 +37,53 @@ def NodeClass (nodeclass=None):
 
 # this is copied verbatim from the ControlStates definition in MEQ/Node.h
 CS_ACTIVE              = 0x0001;
-
-CS_PUBLISHING          = 0x0100;
-CS_CACHED              = 0x0200;
-CS_RETCACHE            = 0x0400;
+CS_MASK_CONTROL        = 0x000F;
 CS_RES_MASK            = 0x0030;
 CS_RES_OK              = 0x0000;
 CS_RES_WAIT            = 0x0010;
 CS_RES_EMPTY           = 0x0020;
 CS_RES_FAIL            = 0x0030;
-CS_MASK_STATUS         = 0x0FF0;
-CS_MASK_EXECSTATE      = 0xF000;
-CS_ES_IDLE             = 0x0000; 
-CS_ES_REQUEST          = 0x1000; 
-CS_ES_COMMAND          = 0x2000; 
-CS_ES_POLLING          = 0x3000; 
-CS_ES_POLLING_CHILDREN = CS_ES_POLLING;
-CS_ES_EVALUATING       = 0x4000; 
-CS_MASK_BREAKPOINTS    = 0xFF0000;
-CS_BREAK_IDLE          = 0x010000;
-CS_BREAK_REQUEST       = CS_BREAK_IDLE<<1;
-CS_BREAK_COMMAND       = CS_BREAK_IDLE<<2;
-CS_BREAK_POLLING       = CS_BREAK_IDLE<<3;
-CS_BREAK_EVALUATING    = CS_BREAK_IDLE<<4;
+CS_PUBLISHING          = 0x0100;
+CS_CACHED              = 0x0200;
+CS_RETCACHE            = 0x0400;
+CS_BREAKPOINT          = 0x0800;
+CS_BREAKPOINT_SS       = 0x1000;
+CS_STOP_BREAKPOINT     = 0x2000;
 
-CS_ES_states = { 'IDLE':        CS_ES_IDLE,
-                 'REQUEST':     CS_ES_REQUEST,
-                 'COMMAND':     CS_ES_COMMAND,
-                 'POLLING':     CS_ES_POLLING,
-                 'EVALUATING':  CS_ES_EVALUATING  };
-                 
-CS_ES_map = { CS_ES_IDLE:       ('-','idle'),
-              CS_ES_REQUEST:    ('R','got request'),
-              CS_ES_COMMAND:    ('C','processing command rider'),
-              CS_ES_POLLING:    ('P','polling children'),
-              CS_ES_EVALUATING: ('E','evaluating result')  };
+CS_LSB_EXECSTATE       = 16;  # first bit of exec-state segment
+CS_MASK_EXECSTATE      = 0xF<<CS_LSB_EXECSTATE;
+
+CS_ES_statelist = [ (0<<CS_LSB_EXECSTATE,'IDLE' ,'-','idle'),
+                    (1<<CS_LSB_EXECSTATE,'REQ'  ,'R','received request'),
+                    (2<<CS_LSB_EXECSTATE,'CMD'  ,'C','processing command rider'),
+                    (3<<CS_LSB_EXECSTATE,'POLL' ,'P','polling children'),
+                    (4<<CS_LSB_EXECSTATE,'EVAL' ,'E','evaluating result') ];
+                    
+# define CS_ES_XXX constants for the listed states, and
+# BP_XXX constants to represent breakpoint masks
+for st in CS_ES_statelist:
+  globals()['CS_ES_'+st[1]] = st[0];
+  globals()['BP_'+st[1]] = 1<<st[0];
+
+# mask of all breakpoints
+BP_ALL = 0xFF;
+                    
+def CS_ES_state (statusword):
+  "returns tuple describing exec-state based on the given status word";
+  return CS_ES_statelist[(statusword&CS_MASK_EXECSTATE)>>CS_LSB_EXECSTATE];
+
+def breakpoint_mask (es=-1):
+  """for a given exec-state, returns corresponding breakpoint mask, or ALL if argument is <0""";
+  if es<0:
+    return BP_ALL;
+  else:
+    return 1<<(es>>CS_LSB_EXECSTATE);
+                     
+# map of result types                 
 CS_RES_map = { CS_RES_OK:       ('-','valid result'),
                CS_RES_WAIT:     ('w','WAIT code returned'),
                CS_RES_EMPTY:    ('e','empty result returned'),
                CS_RES_FAIL:     ('!','fail result returned')   };
-
  
 # this class defines and manages a node list
 class NodeList (object):
@@ -91,20 +98,23 @@ class NodeList (object):
       self.classname = None;
       self.children = [];
       self.parents  = [];
-      self.control_status = 0;
       self.request_id = None;
+      self.breakpoint = 0;
+      self.control_status = 0;
       self.control_status_string = '';
     def is_active (self):
       return bool(self.control_status&CS_ACTIVE);
     def is_publishing (self):
       return bool(self.control_status&CS_PUBLISHING);
     def has_breakpoints (self):
-      return bool(self.control_status&CS_MASK_BREAKPOINTS);
+      return bool(self.control_status&CS_BREAKPOINT);
     def update_status (self,status,rqid=None):
       self.control_status = status;
       s = ['-'] * 8;
-      s[0] = CS_ES_map[status&CS_MASK_EXECSTATE][0];
-      if status&CS_MASK_BREAKPOINTS:  s[1] = "B";
+      s[0] = CS_ES_state(status)[2];
+      if status&CS_STOP_BREAKPOINT:   s[0] = ">"+s[0];
+      if status&CS_BREAKPOINT_SS:     s[1] = "b";
+      if status&CS_BREAKPOINT:        s[1] = "B";
       if status&CS_ACTIVE:            s[2] = "A";
       if status&CS_PUBLISHING:        s[3] = "P";
       if status&CS_CACHED:            s[4] = "C";
@@ -117,6 +127,8 @@ class NodeList (object):
       _dprint(5,"node",self.name,"update status",status);
       self.emit(PYSIGNAL("status()"),(status,rqid,s));
     def update_state (self,state,event=None):
+      try: self.breakpoint = state.breakpoint;
+      except AttributeError: pass;
       self.update_status(state.control_status,getattr(state,'request_id',None));
       _dprint(5,"node",self.name,"update state",state,event);
       self.emit(PYSIGNAL("state()"),(state,event));
@@ -264,13 +276,13 @@ def request_node_state (node):
   ni = nodeindex(node);
   mqs().meq('Node.Get.State',srecord(nodeindex=ni),wait=False);
   
-def set_node_breakpoint (node,bp=CS_MASK_BREAKPOINTS,oneshot=False):
-  ni = nodeindex(node);
-  mqs().meq('Node.Set.Breakpoint',srecord(nodeindex=ni,breakpoint=bp,single_shot=oneshot),wait=False);
+def set_node_breakpoint (node,bp=BP_ALL,oneshot=False):
+  mqs().meq('Node.Set.Breakpoint',\
+    srecord(nodeindex=nodeindex(node),breakpoint=bp,single_shot=oneshot,get_state=True),wait=False);
 
-def clear_node_breakpoint (node,bp=CS_MASK_BREAKPOINTS):
-  ni = nodeindex(node);
-  mqs().meq('Node.Clear.Breakpoint',srecord(nodeindex=ni,breakpoint=bp),wait=False);
+def clear_node_breakpoint (node,bp=BP_ALL,oneshot=False):
+  mqs().meq('Node.Clear.Breakpoint',\
+    srecord(nodeindex=nodeindex(node),breakpoint=bp,single_shot=oneshot,get_state=True),wait=False);
 
 def set_node_state (node,**kwargs):
   ni = nodeindex(node);
