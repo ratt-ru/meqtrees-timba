@@ -475,12 +475,13 @@ void WPInterface::do_init ()
 bool WPInterface::do_start ()
 {
   //## begin WPInterface::do_start%3C99B00B00D1.body preserve=yes
+#ifdef ENABLE_LATENCY_STATS
   Timestamp now;
   last_lat_report = now;
   tot_qlat.reset();
   tot_qlat_mt.reset();
   nlat = nlat_mt = 0;
-#if defined(USE_THREADS) && defined(ENABLE_LATENCY_STATS)
+#ifdef USE_THREADS
   tsw.none.total.reset();
   tsw.some.total.reset();
   tsw.multi.total.reset();
@@ -488,6 +489,7 @@ bool WPInterface::do_start ()
   tsw.none.start = now;
   tsw.last_report = now;
   num_waiting_workers = 0;
+#endif
 #endif
   log("starting up",2);
   MessageRef ref(new Message(MsgHello|address()),DMI::ANON|DMI::WRITE);
