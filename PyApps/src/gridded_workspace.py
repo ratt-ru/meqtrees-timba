@@ -18,7 +18,7 @@ _reg_viewers = {};
 #
 #
 
-def registerViewer (tp,viewer,dmitype=None):
+def registerViewer (tp,viewer,dmitype=None,priority=0):
   """Registers a viewer for the specified type:
     registerViewer(datatype,viewer);
   The 'viewer' argument must be a class (or callable) providing the following 
@@ -56,7 +56,7 @@ def registerViewer (tp,viewer,dmitype=None):
   already provides a refresh button, so this signal is normally not needed.
   """;
   global _reg_viewers;
-  _reg_viewers.setdefault((tp,dmitype),[]).append(viewer);
+  _reg_viewers.setdefault((tp,dmitype),[]).append((priority,viewer));
 
 def isViewableWith (arg,viewer):
   if type(arg) is type:
@@ -80,7 +80,7 @@ def isViewable (arg,dmitype=None):
     # registered type must be a superclass of the supplied type;
     # registered dmi type must be either None or match the argument dmi type
     if issubclass(datatype,tp) and (dmitp is None or dmitp == dmitype):
-      for viewer in vlist:
+      for (pri,viewer) in vlist:
         if isViewableWith(arg,viewer):
           return True;
   return False;
@@ -104,8 +104,10 @@ def getViewerList (arg,dmitype=None):
       if type(arg) is type:  # if specified as type, add all
         viewer_list.extend(vlist);
       else: # if specified as object, check to see which are compatible
-        viewer_list.extend([v for v in vlist if isViewableWith(arg,v)]);
-  return viewer_list;
+        viewer_list.extend([(pri,v) for (pri,v) in vlist if isViewableWith(arg,v)]);
+  # sort by priority
+  viewer_list.sort();
+  return [ v for (pri,v) in viewer_list ];
 
 # ====== DataDroppableWidget ===================================================
 # A metaclass implementing a data-droppable widget.
@@ -151,7 +153,6 @@ class DataDraggableListView (QListView):
       return None;
     return udi and QTextDrag(udi,self);
 
-
 # ====== GridDataItem ==========================================================
 # represents a per-cell data item 
 #
@@ -185,7 +186,7 @@ class GridDataItem (object):
     self.viewopts = viewopts;
     self.refresh_func = refresh;
     # build list of compatible viewers
-    self.viewer_list = getViewerList((data is None and datatype) or data);
+    self.viewer_list = getViewerList(datatype or data);
     # is a viewer also explicitly specifed?
     self.viewer = viewer;
     if viewer is None:

@@ -8,11 +8,14 @@ import weakref
 import math
 import sets
 import re
+import meqds
+import app_browsers 
+from app_browsers import *
 
 # ---------------- TODO -----------------------------------------------------
 # Bugs:
 #   Tree browser not always enabled! (Hello message lost??)
-#   Numarray indexing order is different!
+#   + Numarray indexing order is different! fixed converter
 #
 # Minor fixes:
 #   Disorderly thread error or SEGV on exit
@@ -20,6 +23,7 @@ import re
 #   + Enable drop on "show viewer" button
 #
 # Enhancements:
+#   Option to specify udi directly in HierBrowser
 #   Drop of a dataitem can create a cell with multiple items (think,
 #       e.g., several 1D plots), if the viewer object supports it.
 #   Enhanced 'verbosity' interface (look for option parsing modules?)
@@ -34,94 +38,69 @@ import re
 #   + drag-and-drop
 # ---------------------------------------------------------------------------
 
-class NodeList (object):
-  NodeAttrs = ('name','class','children');
-  class Node (object):
-    def __init__ (self,ni):
-      self.nodeindex = ni;
-      self.name = None;
-      self.classname = None;
-      self.children = [];
-      self.parents  = [];
-  # initialize from a MEQ-produced nodelist
-  def __init__ (self,meqnl):
-    # check that all list fields are correct
-    num = len(meqnl.nodeindex);
-    for f in self.NodeAttrs:
-      if f not in meqnl:
-        raise ValueError,"bad nodelist record: missing "+f+" field";
-      if len(meqnl[f]) != num:
-        raise ValueError,"malformed nodelist record: len(%s)=%d, expected %d"%(f,len(meqnl[f]),num);
-    # form sequence of iterators
-    iter_name     = iter(meqnl.name);
-    iter_class    = iter(meqnl['class']);
-    iter_children = iter(meqnl.children);
-    self._nimap = {};
-    self._namemap = {};
-    self._classmap = {};
-    # iterate over all nodes in list
-    for ni in meqnl.nodeindex:
-      # insert node into list (or use old one: may have been inserted below)
-      node = self._nimap.setdefault(ni,self.Node(ni));
-      node.name      = iter_name.next();
-      node.classname = iter_class.next();
-      children  = iter_children.next();
-      if isinstance(children,dict):
-        node.children = tuple(children.iteritems());
-      else:
-        node.children = tuple(enumerate(children));
-      # for all children, init node entry in list (if necessary), and
-      # add to parent list
-      for (i,ch_ni) in node.children:
-        self._nimap.setdefault(ch_ni,self.Node(ch_ni)).parents.append(ni);
-      # add to name map
-      self._namemap[node.name] = node;
-      # add to class map
-      self._classmap.setdefault(node.classname,[]).append(node);
-    # compose list of root (i.e. parentless) nodes
-    self._rootnodes = [ node for node in self._nimap.itervalues() if not node.parents ];
-  __init__ = busyCursorMethod(__init__);
-  # return list of root nodes
-  def rootnodes (self):
-    return self._rootnodes;
-  # return map of classes
-  def classes (self):
-    return self._classmap;
-  def iteritems (self):
-    return self._nimap.iteritems();
-  def iternodes (self):
-    return self._nimap.itervalues();
-  # mapping methods
-  def __len__ (self):
-    return len(self._nimap);
-  # helper method: selects name or nodeindex map depending on key type
-  def _map_ (self,key):
-    if isinstance(key,str):  return self._namemap;
-    elif isinstance(key,int):   return self._nimap;
-    else:                       raise TypeError,"invalid node key "+key;
-  def __getitem__ (self,key):
-    return self._map_(key).__getitem__(key);
-  def __contains__ (self,key):
-    return self._map_(key).__contains__(key);
-  def __setitem__ (self,key,node):
-    if __debug__:
-      if isinstance(key,string):  assert value.name == key;
-      elif isinstance(key,int):   assert value.nodeindex == key;
-      else:                       raise TypeError,"invalid node key "+key;
-    self._nimap[node.nodeindex] = self._namemap[node.name] = node;
-  def __iter__(self):
-    return iter(self._nimap);
-   
-
-# return True if this is a valid meqNodeList (i.e. node list object from meq kernel)
-def is_valid_meqnodelist (nodelist):
-  for f in ('nodeindex',) + NodeList.NodeAttrs:
-    if f not in nodelist:
-      return False;
-  return True;
- 
-def makeNodeUdi (node):
-  return "/nodestate/%s#%d"%(node.name,node.nodeindex);
+class NodeBrowser(HierBrowser,BrowserPlugin):
+  _icon = pixmaps.view_tree;
+  viewer_name = "Node Browser";
+  
+  def __init__(self,parent,dataitem=None,default_open=None,**opts):
+    HierBrowser.__init__(self,parent,"value","field",
+        udi_root=(dataitem and dataitem.udi));
+    self._node = dataitem.data;
+    # at this point, _node is a very basic node record: all it has is a list
+    # of children nodeindices, to which we'll dispatch update requests
+    # construct basic view items
+    lv = self.wlistview();
+    self.set_udi_root(dataitem.udi);
+    # Node state
+    self._item_state = HierBrowser.Item(lv,'State record','('+self._node.name+')',udi=dataitem.udi);
+    # Node children
+    # note that dataitem.data may be a node state or a node stub record,
+    # depending on whether it is already available to us, so just to make sure
+    # we always go back to meqds for the children list
+    children = meqds.nodelist[self._node.nodeindex].children;
+    if len(children):
+      childroot = HierBrowser.Item(lv,'Children','('+str(len(self._node.children))+')');
+      self._child_items = {};
+      for (cid,child) in children: 
+        # this registers out callback for whenever a child's state is sent over
+        meqds.subscribe_node_state(child,self.set_child_state);
+        # this initiates a state request for the child
+        meqds.request_node_state(child);
+        # create a listview item for that child
+        self._child_items[child] = HierBrowser.Item(childroot,str(cid),'#'+str(child));
+    else:
+      self._child_items = None;
+    # State snapshots
+    self._item_snapshots = HierBrowser.Item(lv,'Snapshots','(0)');
+    # If we already have a full state record, go use it
+    # Note that this will not always be the case; in the general case,
+    # the node state will arrive later (perhaps even in between child
+    # states)
+    if isinstance(self._node,meqds.NodeClass()):
+      self.set_data(dataitem);
+      
+  # this callback is registered for all child node state updates
+  def set_child_state (self,node,event):
+    print 'Got state for child',node.name,node.field_names();
+    print 'Event is',event;
+    if not self._child_items:
+      raise RuntimeError,'no children expected for this node';
+    item = self._child_items.get(node.nodeindex,None);
+    if not item:
+      raise ValueError,'this is not our child';
+    # update state in here
+    
+  def set_data (self,dataitem,default_open=None,**opts):
+          # save currenty open tree
+          #    if self._rec is not None:
+          #      openitems = self.get_open_items();
+          #    else: # no data, use default open tree if specified
+          #      openitems = default_open or self._default_open;
+    # at this point, dataitem.data is a valid node state record
+    print 'Got state for node',self._node.name,dataitem.data.field_names();
+    self._item_state.cache_content(dataitem.data);
+          # apply previously saved open tree
+          # self.set_open_items(openitems);
     
 class TreeBrowser (object):
   def __init__ (self,parent):
@@ -192,18 +171,14 @@ class TreeBrowser (object):
     self._nl_update.setDisabled(not conn);
 
   def _request_nodelist (self):
-#    self._nl_update.setDisabled(True);
-    self.nodelist = None;
-    rec = srecord(dict.fromkeys(NodeList.NodeAttrs,True));
-    rec.nodeindex = True;
-    self._parent.mqs.meq('Get.Node.List',rec,wait=False);
+    self._parent.mqs.meq('Get.Node.List',meqds.NodeList.RequestRecord,wait=False);
     
   def make_node_item (self,node,name,parent,after):
     item = QListViewItem(parent,after,name,str(node.classname),str(node.nodeindex));
     item.setDragEnabled(True);
     item._node = weakref.proxy(node);
     item._expanded = False;
-    item._udi  = makeNodeUdi(node);
+    item._udi  = meqds.node_udi(node);
     if node.children:
       item.setExpandable(True);
     return item;
@@ -258,6 +233,7 @@ class TreeBrowser (object):
 
 class meqserver_gui (app_proxy_gui):
   def __init__(self,app,*args,**kwargs):
+    meqds.set_meqserver(app);
     self.mqs = app;
     self.mqs.track_results(False);
     # init standard proxy GUI
@@ -308,13 +284,13 @@ class meqserver_gui (app_proxy_gui):
   def ce_NodeState (self,ev,value):
     if hasattr(value,'name'):
       self.dprint(5,'got state for node ',value.name);
-      self.update_node_state(value);
+      self.update_node_state(value,ev);
   
   defaultResultViewopts = { \
     'default_open': ({'cache_result':({'vellsets':None},None)},None)  \
   };
   def ce_NodeResult (self,ev,value):
-    self.update_node_state(value);
+    self.update_node_state(value,ev);
     if self.resultlog.enabled:
       txt = '';
       name = ('name' in value and value.name) or '<unnamed>';
@@ -332,17 +308,19 @@ class meqserver_gui (app_proxy_gui):
         self.maintab.changeTab(wtop,wtop._newres_iconset,wtop._newres_label);
         wtop._newresults = True;
         
-  def ce_LoadNodeList (self,ev,nodelist):
+  def ce_LoadNodeList (self,ev,meqnl):
     try:
-      self.nodelist = NodeList(nodelist);
+      meqds.nodelist.load(meqnl);
     except ValueError:
       self.dprint(2,"got nodelist but it is not valid, ignoring");
       return;
-    self.dprintf(2,"loaded %d nodes into nodelist\n",len(self.nodelist));
-    self.treebrowser.update_nodelist(self.nodelist);
+    self.dprintf(2,"loaded %d nodes into nodelist\n",len(meqds.nodelist));
+    self.treebrowser.update_nodelist(meqds.nodelist);
       
-  def update_node_state (self,node):
-    udi = makeNodeUdi(node);
+  def update_node_state (self,node,event=None):
+    meqds.reclassify_nodestate(node);
+    meqds.update_node_state(node,event);
+    udi = meqds.node_udi(node);
     self.gw.update_data_item(udi,node);
     
   defaultNodeViewopts = { \
@@ -354,13 +332,12 @@ class meqserver_gui (app_proxy_gui):
     """creates a GridDataItem for a node""";
     # create and return dataitem object
     reqrec = srecord(nodeindex=node.nodeindex);  # record used to request state
-    udi = makeNodeUdi(node);
+    udi = meqds.node_udi(node);
     # curry is used to create a Node.Get.State call for refreshing its state
     return GridDataItem(udi,(node.name or '#'+str(node.nodeindex)),
-              desc='node state',datatype=srecord,
+              desc='node state',data=node,datatype=meqds.NodeClass(node),
               refresh=curry(self.mqs.meq,'Node.Get.State',reqrec,wait=False),
               viewopts=self.defaultNodeViewopts);
-    
 
   def _node_clicked (self,node):
     self.dprint(2,"node clicked, adding item");
@@ -371,3 +348,6 @@ class meqserver_gui (app_proxy_gui):
     if tabwin is self.resultlog.wtop() and tabwin._newresults:
       self._reset_maintab_label(tabwin);
     tabwin._newresults = False;
+
+gridded_workspace.registerViewer(meqds.NodeClass(),NodeBrowser,priority=10);
+

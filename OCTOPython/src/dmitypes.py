@@ -184,14 +184,16 @@ class record (dict):
     except KeyError: raise KeyError,"no such field: "+str(key);
   # __setattr__: sets entry in dict
   def __setattr__(self,name,value):
-    if name.startswith('__dmi'):
-      return object.__setattr__(self,name,value);
+    if name.startswith('__'):
+      return dict.__setattr__(self,name,value);
     value = dmize_object(value);
     try:   key = self.make_key(name);
     except ValueError,info: raise AttributeError,info;
     return dict.__setitem__(self,key,value);
   # __delattr__: deletes key
   def __delattr__(self,name):
+    if name.startswith('__'):
+      return dict.__delattr__(self,name,value);
     try:   key = self.make_key(name);
     except ValueError,info: raise AttributeError,info;
     return dict.__delitem__(self,key);

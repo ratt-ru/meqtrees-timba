@@ -49,8 +49,8 @@ class HierBrowser (object):
   # max number of dictionary items to show in expanded view
   MaxExpDict     = 100;
   
-  class BrowserItem (QListViewItem):
-    def __init__(self,parent,key,value,udi_key=None,strfunc=None,prec=None,
+  class Item (QListViewItem):
+    def __init__(self,parent,key,value,udi_key=None,udi=None,strfunc=None,prec=None,
                  name=None,desc=''):
 #      print args;
       # insert item at end of parent's content list (if any)
@@ -68,17 +68,26 @@ class HierBrowser (object):
       self._strfunc   = strfunc;
       self._prec      = prec;
       self._prec_menu = None;
-      # generate udi key if none is specified
-      self._udi_key = udi_key = str(udi_key or key);
-      # setup udi of self, if parent self has a udi of its own
-      # add ourselves to content map and propagate the map
-      if parent._udi:
-        self._udi = parent._udi + '/' + udi_key;
-        parent._content_map[self._udi] = self;
-        self._content_map = parent._content_map;
+      # is udi directly specified?
+      if udi:
+        self._udi = self._udi_key = udi;
       else:
-        self._udi = None;
-      # name and/or description
+        # else generate udi key if none is specified
+        if udi_key is id:
+          udi_key = str(id(self));
+        elif udi_key is None:
+          udi_key = key;
+        self._udi_key = udi_key;
+        # setup udi of self, if parent self has a udi of its own
+        # add ourselves to content map and propagate the map
+        if parent._udi:
+          self._udi = '/'.join((parent._udi,udi_key));
+        else:
+          self._udi = None;
+      # add to content map, if we have a UDI
+      if self._udi:
+        self.listView()._content_map[self._udi] = self;
+      # set name and/or description
       self._name     = name or self._udi or str(key);
       self._desc     = desc;
       # other state
@@ -111,7 +120,7 @@ class HierBrowser (object):
         self.setPixmap(1,pixmaps.magnify.pm());
         self.setDragEnabled(True);
         
-    # helper static method to expand content into BrowserItems record 
+    # helper static method to expand content into Items record 
     # note that we make this a static method because 'item' may in fact be
     # a parent QListView
     def expand_content(item,content):
@@ -146,13 +155,13 @@ class HierBrowser (object):
         # use curry() to create a refresh-function
         (itemstr,inlined) = dmirepr.inline_str(value);
         if itemstr is not None:
-          i0 = HierBrowser.BrowserItem(item,key,itemstr,strfunc=\
+          i0 = HierBrowser.Item(item,key,itemstr,strfunc=\
                   curry(dmirepr.inline_str,value));
           item._content_list.append(i0);
           continue;
         # else get string representation, insert item with it
         (itemstr,inlined) = dmirepr.expanded_repr_str(value,False);
-        i0 = HierBrowser.BrowserItem(item,str(key),itemstr,strfunc=\
+        i0 = HierBrowser.Item(item,str(key),itemstr,strfunc=\
                   curry(dmirepr.expanded_repr_str,value,False));
         item._content_list.append(i0);
         # cache value for expansion, if not inlined
@@ -290,7 +299,7 @@ class HierBrowser (object):
     # connect the get_data_item method for drag-and-drop
     self._lv.get_data_item = self.get_data_item;
     # this serves as a list of active items.
-    # Populated in BrowserItem constructor, and also used by apply_limit, etc.
+    # Populated in Item constructor, and also used by apply_limit, etc.
     self._lv._content_list = [];
     # enable UDIs, if udi root is not none
     self.set_udi_root(udi_root);
@@ -307,7 +316,7 @@ class HierBrowser (object):
         udi_root = "/" + udi_root;
       self._lv._udi = udi_root;
       # map of UDIs to items
-      self._content_map = self._lv._content_map = weakref.WeakValueDictionary();
+      self._lv._content_map = weakref.WeakValueDictionary();
     else:
       self._lv._udi = None;
     
@@ -318,12 +327,12 @@ class HierBrowser (object):
         if hasattr(item,attr):
           print ' ',attr+':',getattr(item,attr);
       try: 
-        lencont = len(item._content_map);
+        lencont = len(item.listView()._content_map);
         print '  _content_map: ',lencont,' items';
       except AttributeError: pass;
     
   def get_data_item (self,udi):
-    item = self._content_map.get(udi,None);
+    item = self._lv._content_map.get(udi,None);
     return item and item.make_data_item();
     
   def wlistview (self):
@@ -443,7 +452,7 @@ class RecordBrowser(HierBrowser,BrowserPlugin):
     self._rec = dataitem.data;
     self.set_refresh_func(dataitem.refresh_func);
     # expand first level of record
-    self.BrowserItem.expand_content(self._lv,self._rec);
+    HierBrowser.Item.expand_content(self._lv,self._rec);
     # apply saved open tree
     self.set_open_items(openitems);
     
@@ -537,23 +546,15 @@ class ArrayBrowser(BrowserPlugin):
 #    self.set_open_items(openitems);
     
 
-
-class ArrayPlotter(ArrayBrowser,BrowserPlugin):
-  _icon = pixmaps.bars3d;
-  viewer_name = "Array Plotter";
-
-
-
-
-
-
 class ResultBrowser(RecordBrowser,BrowserPlugin):
   _icon = pixmaps.areas3d;
   viewer_name = "Result Browser";
-gridded_workspace.registerViewer(dict,ResultBrowser,dmitype='meqresult');
-  
-gridded_workspace.registerViewer(array_class,ArrayBrowser);
-gridded_workspace.registerViewer(array_class,ArrayPlotter);
+
 # register the RecordBrowser as a viewer for the appropriate types
 for tp in (dict,list,tuple,array_class):
   gridded_workspace.registerViewer(tp,RecordBrowser);
+gridded_workspace.registerViewer(dict,ResultBrowser,dmitype='meqresult',priority=-10);
+gridded_workspace.registerViewer(array_class,ArrayBrowser,priority=-5);
+
+# import the array plotter plug-in
+import array_plotter

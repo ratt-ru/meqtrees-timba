@@ -180,7 +180,7 @@ class Logger(HierBrowser):
     if udi_key is None:
       udi_key = id;
     # create listview item
-    item = self.BrowserItem(self.wlistview(),label,msg,udi_key=udi_key, \
+    item = self.Item(self.wlistview(),label,msg,udi_key=udi_key, \
       name=name or self._LogCatNames.get(category,self._udi_root),\
       desc=desc or label);
     item._category = category;
