@@ -46,8 +46,7 @@ Result::Result (int nspid)
   itsPerturbedValues (nspid),
   itsPerturbations   (0),
   itsSpids           (0),
-  itsNumSpids        (nspid),
-  pnc_perturbed      (0)
+  itsNumSpids        (nspid)
 {
   nctor++;
   // create appropriate fields in the record:
@@ -70,7 +69,7 @@ Result::Result (const DataRecord &other,int flags,int depth)
   itsDefPert         (0.),
   itsPerturbedValues (0),
   itsPerturbations   (0),
-  pnc_perturbed      (0)
+  itsSpids           (0)
 {
   nctor++;
   validateContent();
@@ -83,52 +82,75 @@ Result::~Result()
   ndtor--;
 }
 
+// helper function makes a Vells from a container field; 
+// or empty Vells if field does not exist
 static Vells * makeVells (NestableContainer &nc,const HIID &field)
 {
-  if( !nc[field].exists() )
-    return new Vells();
+  // writability of Vells dertermined by writability of array in container
+  if( nc[field].exists() )
+    return new Vells(nc[field].ref(DMI::PRESERVE_RW));
   else
-    return new Vells(nc[field].privatize(DMI::WRITE).as_wp<DataArray>());
+    return new Vells();
+}
+
+static Vells * makeVells (const NestableContainer &nc,const HIID &field)
+{
+  // writability of Vells dertermined by writability of array in container
+  if( nc[field].exists() )
+    return new Vells(nc[field].ref());
+  else
+    return new Vells();
+}
+
+void Result::privatize (int flags, int depth)
+{
+  // if deep-privatizing, clear all shortcuts. We can rely on
+  // DataRecord's privatize to call validateContent() afterwards 
+  // to reset them.
+  if( flags&DMI::DEEP || depth>0 )
+    clear();
+  DataRecord::privatize(flags,depth);
 }
 
 void Result::validateContent ()
 {
-  // clear out pointers to perturbed values
-  clear();
+  Thread::Mutex::Lock lock(mutex());
   // ensure that our record contains all the right fields, and that they're
   // indeed writable. Setup shortcuts to their contents
   try
   {
+    // get value, if it exists in the data record
+    itsValue <<= makeVells(*this,FValue);
     // get pointer to spids vector and its size
     if( (*this)[FSpids].exists() )
     {
-      itsSpids = (*this)[FSpids].privatize(DMI::WRITE).as_wp<int>(itsNumSpids);
+      itsSpids = (*this)[FSpids].as_p<int>(itsNumSpids);
       int size;
       // get pointer to perturbations vector, verify size
-      itsPerturbations = (*this)[FPerturbations].privatize(DMI::WRITE).as_wp<double>(size);
+      itsPerturbations = (*this)[FPerturbations].as_p<double>(size);
       FailWhen(size!=itsNumSpids,"size mismatch between spids and perturbations");
-      // get value, if it exists in the data record
-      itsValue <<= makeVells(*this,FValue);
       // get perturbations, if they exist
       itsPerturbedValues.resize(itsNumSpids);
       if( (*this)[FPerturbedValues].exists() )
       {
-        pnc_perturbed = (*this)[FPerturbedValues].privatize(DMI::WRITE).as_wp<DataField>();
-        FailWhen( pnc_perturbed->size(TpDataArray) != itsNumSpids,
+        perturbed_ref = (*this)[FPerturbedValues].ref(DMI::PRESERVE_RW);
+        FailWhen(perturbed_ref->size(TpDataArray) != itsNumSpids,
               "size mismatch between spids and perturbed values");
         // setup shortcuts to perturbation vells
-        for( int i=0; i<itsNumSpids; i++ )
-          itsPerturbedValues[i] <<=
-              makeVells(*pnc_perturbed,AtomicID(i));
+        // use different versions for writable/non-writable
+        if( perturbed_ref.isWritable() )
+        {
+          for( int i=0; i<itsNumSpids; i++ )
+            itsPerturbedValues[i] <<=
+                makeVells(perturbed_ref(),AtomicID(i));
+        }
+        else
+        {
+          for( int i=0; i<itsNumSpids; i++ )
+            itsPerturbedValues[i] <<=
+                makeVells(*perturbed_ref,AtomicID(i));
+        }
       }
-    }
-    else
-    {
-      itsNumSpids = 0;
-      itsSpids = 0;
-      itsPerturbations = 0;
-      itsPerturbedValues.resize(0);
-      pnc_perturbed = 0;
     }
   }
   catch( std::exception &err )
@@ -143,21 +165,44 @@ void Result::validateContent ()
   }  
 }
 
+void Result::clear()
+{
+  itsNumSpids = 0;
+  itsSpids = 0;
+  itsPerturbations = 0;
+  itsPerturbedValues.resize(0);
+  perturbed_ref.detach();
+  itsValue.detach();
+}
+
 void Result::setSpids (const vector<int>& spids)
 {
-  FailWhen( spids.size() != uint(itsNumSpids),"setSpids: vector size mismatch" );
+  FailWhen(spids.size() != uint(itsNumSpids),"setSpids: vector size mismatch" );
+  FailWhen(!isWritable(),"r/w access violation");
   if( itsNumSpids )
     (*this)[FSpids] = spids;
 }
 
-void Result::clear()
+void Result::setPerturbation (int i, double value)
+{ 
+  (*this)[FPerturbations][i] = value;
+}
+
+// set all perturbations at once
+void Result::setPerturbations (const vector<double>& perts)
 {
-  for (unsigned int i=0; i<itsPerturbedValues.size(); i++) 
-    itsPerturbedValues[i].detach();
+  FailWhen(perts.size() != uint(itsNumSpids),"setPerturbations: vector size mismatch" );
+  FailWhen(!isWritable(),"r/w access violation");
+  if( itsNumSpids )
+  {
+    (*this)[FPerturbations] = perts;
+    itsPerturbations = (*this)[FPerturbations].as_p<double>();
+  }
 }
 
 Vells & Result::setValue (Vells *pvells)
 {
+  FailWhen(!isWritable(),"r/w access violation");
   itsValue <<= pvells;
   DataRecord::replace(FValue,&(pvells->getDataArray()),DMI::ANONWR);
   return *pvells;
@@ -165,20 +210,15 @@ Vells & Result::setValue (Vells *pvells)
 
 Vells & Result::setPerturbedValue (int i,Vells *pvells)
 {
-  itsPerturbedValues[i] <<= pvells;
-  nc_perturbed()[i].replace() <<= &(pvells->getDataArray());
-  return *pvells;
-}
-
-DataField & Result::nc_perturbed ()
-{
-  // allocate one if not already done so
-  if( !pnc_perturbed )
+  // allocate container for perturbed values
+  if( !perturbed_ref.valid() )
   {
-    pnc_perturbed = new DataField(itsNumSpids,TpDataArray);
-    DataRecord::replace(FPerturbedValues,pnc_perturbed,DMI::ANONWR);
+    FailWhen(!isWritable(),"r/w access violation");
+    perturbed_ref <<= new DataField(TpDataArray,itsNumSpids);
   }
-  return *pnc_perturbed;
+  perturbed_ref()[i].replace() <<= &(pvells->getDataArray());
+  itsPerturbedValues[i] <<= pvells;
+  return *pvells;
 }
 
 void Result::show (std::ostream& os) const

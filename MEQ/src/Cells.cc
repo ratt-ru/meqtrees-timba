@@ -32,12 +32,14 @@ static NestableContainer::Register reg(TpMeqCells,True);
 Cells::Cells ()
 : itsDomain(0),itsNfreq(0)
 {
+  DataRecord::setWritable(False);
 }
 
 Cells::Cells (const DataRecord &other,int flags,int depth)
 : DataRecord(other,flags,depth)
 {
   validateContent();
+  DataRecord::setWritable(False);
 }
 
 Cells::Cells (const Domain& domain, int nfreq, int ntimes)
@@ -54,6 +56,7 @@ Cells::Cells (const Domain& domain, int nfreq, int ntimes)
     itsTimeSteps(i) = step;
     time += step;
   }
+  DataRecord::setWritable(False);
 }
 
 Cells::Cells (const Domain& domain, int nfreq,
@@ -73,6 +76,7 @@ Cells::Cells (const Domain& domain, int nfreq,
     itsTimeSteps(i) = endTimes(i) - startTimes(i);
     itsTimes(i) = startTimes(i) + itsTimeSteps(i) / 2;
   }
+  DataRecord::setWritable(False);
 }
 
 void Cells::validateContent ()

@@ -57,9 +57,9 @@ public:
   virtual TypeId objectType () const
   { return TpMeqDomain; }
   
-//   // implement standard clone method via copy constructor
-//   virtual CountedRefTarget* clone (int flags, int depth) const
-//   { return new Domain(*this,flags|(depth>0?DMI::DEEP:0)); }
+  // implement standard clone method via copy constructor
+  virtual CountedRefTarget* clone (int flags, int depth) const
+  { return new Domain(*this,flags|(depth>0?DMI::DEEP:0)); }
   
   // validate record contents and setup shortcuts to them. This is called 
   // automatically whenever a Domain is made from a DataField

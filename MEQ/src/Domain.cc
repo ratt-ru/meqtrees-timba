@@ -30,7 +30,8 @@ static int _dum = aidRegistry_Meq();
 static NestableContainer::Register reg(TpMeqDomain,True);
 
 Domain::Domain()
-: itsOffsetFreq (0),
+: DataField(Tpdouble,4),
+  itsOffsetFreq (0),
   itsScaleFreq  (1),
   itsOffsetTime (0),
   itsScaleTime  (1)
@@ -39,13 +40,14 @@ Domain::Domain()
 }
 
 Domain::Domain (const DataField& fld,int flags)
-: DataField(fld,flags|DMI::DEEP)
+: DataField(fld,(flags&~DMI::WRITE)|DMI::DEEP|DMI::READONLY)
 {
   validateContent();
 }
 
 Domain::Domain (double startFreq, double endFreq,
 		double startTime, double endTime)
+: DataField(Tpdouble,4)
 {
   AssertMsg (startFreq < endFreq, "Meq::Domain: startFreq " << startFreq <<
 	     " must be < endFreq " << endFreq);
@@ -83,11 +85,11 @@ void Domain::validateContent ()
 void Domain::setDMI()
 {
   // Set array in DataField of 4 doubles.
-  init (Tpdouble, 4);
   this->operator[](0) = startFreq();
   this->operator[](1) = endFreq();
   this->operator[](2) = startTime();
   this->operator[](3) = endTime();
+  DataField::setWritable(False);
 }
 
 } // namespace Meq

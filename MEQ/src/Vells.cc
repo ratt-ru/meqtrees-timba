@@ -34,6 +34,7 @@ Vells::Vells()
   itsNx          (0),
   itsNy          (0),
   itsIsTemp      (false),
+  itsIsWritable  (true),
   itsIsScalar    (true)
 {}
 
@@ -43,12 +44,13 @@ Vells::Vells (double value,bool temp)
   itsNx          (1),
   itsNy          (1),
   itsIsTemp      (temp),
+  itsIsWritable  (true),
   itsIsScalar    (true)
 {
   DataArray *parr;
   itsArray <<= parr = new DataArray(Tpdouble,makeLoShape(1,1));
-  parr->getArrayPtr(itsRealArray);
-  itsRealArray->data()[0] = value;
+  parr->getConstArrayPtr(itsRealArray);
+  realStorage()[0] = value;
 }
 
 Vells::Vells (const dcomplex& value,bool temp)
@@ -57,12 +59,13 @@ Vells::Vells (const dcomplex& value,bool temp)
   itsNx          (1),
   itsNy          (1),
   itsIsTemp      (temp),
+  itsIsWritable  (true),
   itsIsScalar    (true)
 {
   DataArray *parr;
   itsArray <<= parr = new DataArray(Tpdcomplex,makeLoShape(1,1));
-  parr->getArrayPtr(itsComplexArray);
-  itsComplexArray->data()[0] = value;
+  parr->getConstArrayPtr(itsComplexArray);
+  complexStorage()[0] = value;
 }
 
 Vells::Vells (double value, int nx, int ny, bool init)
@@ -71,13 +74,14 @@ Vells::Vells (double value, int nx, int ny, bool init)
   itsNx          (nx),
   itsNy          (ny),
   itsIsTemp      (false),
+  itsIsWritable  (true),
   itsIsScalar    (nx==1 && ny==1)
 {
   DataArray *parr;
   itsArray <<= parr = new DataArray(Tpdouble,makeLoShape(nx,ny));
-  parr->getArrayPtr(itsRealArray);
+  parr->getConstArrayPtr(itsRealArray);
   if( init )
-    *(itsRealArray) = value;
+    getRealArray() = value;
 }
 
 Vells::Vells (const dcomplex& value, int nx, int ny, bool init)
@@ -86,13 +90,14 @@ Vells::Vells (const dcomplex& value, int nx, int ny, bool init)
   itsNx          (nx),
   itsNy          (ny),
   itsIsTemp      (false),
+  itsIsWritable  (true),
   itsIsScalar    (nx==1 && ny==1)
 {
   DataArray *parr;
   itsArray <<= parr = new DataArray(Tpdcomplex,makeLoShape(nx,ny));
-  parr->getArrayPtr(itsComplexArray);
+  parr->getConstArrayPtr(itsComplexArray);
   if( init )
-    *(itsComplexArray) = value;
+    getComplexArray() = value;
 }
 
 Vells::Vells (LoMat_double& array)
@@ -101,11 +106,12 @@ Vells::Vells (LoMat_double& array)
   itsNx          (array.extent(blitz::firstDim)),
   itsNy          (array.extent(blitz::secondDim)),
   itsIsTemp      (false),
+  itsIsWritable  (true),
   itsIsScalar    (itsNx==1 && itsNy==1)
 {
   DataArray *parr;
   itsArray <<= parr = new DataArray(array);
-  parr->getArrayPtr(itsRealArray);
+  parr->getConstArrayPtr(itsRealArray);
 }
 
 Vells::Vells (LoMat_dcomplex& array)
@@ -114,55 +120,81 @@ Vells::Vells (LoMat_dcomplex& array)
   itsNx          (array.extent(blitz::firstDim)),
   itsNy          (array.extent(blitz::secondDim)),
   itsIsTemp      (false),
+  itsIsWritable  (true),
   itsIsScalar    (itsNx==1 && itsNy==1)
 {
   DataArray *parr;
   itsArray <<= parr = new DataArray(array);
-  parr->getArrayPtr(itsComplexArray);
+  parr->getConstArrayPtr(itsComplexArray);
 }
 
-Vells::Vells (DataArray *parr,int flags)
-: itsRealArray   (0),
-  itsComplexArray(0),
-  itsNx          (parr->shape()[0]),
-  itsNy          (parr->shape()[1]),
-  itsIsTemp      (false),
-  itsIsScalar    (itsNx==1 && itsNy==1)
+
+void Vells::initFromDataArray (const DataArray *parr,int flags)
 {
-  itsArray.attach(parr,flags|DMI::WRITE);
   Assert( parr->rank() == 2 );
   // privatize if so asked
   if( flags&DMI::PRIVATIZE )
-    parr = itsArray.privatize(DMI::WRITE|DMI::DEEP).dewr_p();
+    parr = itsArray.privatize(flags|DMI::DEEP).dewr_p();
   // check type
   TypeId tid = parr->elementType();
   if( tid == Tpdouble )
-    parr->getArrayPtr(itsRealArray);
+    parr->getConstArrayPtr(itsRealArray);
   else if( tid == Tpdcomplex )
-    parr->getArrayPtr(itsComplexArray);
+    parr->getConstArrayPtr(itsComplexArray);
   else
   {
     Throw("Meq::Vells does not support arrays of type "+tid.toString());
   }
+  // set attributes from data array
+  itsNx       = parr->shape()[0];
+  itsNy       = parr->shape()[1];
+  itsIsTemp   = false;
+  itsIsScalar = (itsNx==1 && itsNy==1);
+  // set writable flag
+  itsIsWritable = itsArray.isWritable() && parr->isWritable();
+}
+  
+Vells::Vells (DataArray *parr,int flags)
+: itsRealArray   (0),
+  itsComplexArray(0)
+{
+  itsArray.attach(parr,(flags&~DMI::READONLY)|DMI::WRITE);
+  initFromDataArray(parr,flags);
+}
+
+Vells::Vells (const DataArray *parr,int flags)
+: itsRealArray   (0),
+  itsComplexArray(0)
+{
+  itsArray.attach(parr,(flags&~DMI::WRITE)|DMI::READONLY);
+  initFromDataArray(parr,flags);
+}
+
+Vells::Vells (const DataArray::Ref::Xfer &ref)
+{
+  itsArray = ref;
+  initFromDataArray(itsArray.deref_p(),0);
 }
 
 Vells::Vells (const Vells& that,int flags)
 : SingularRefTarget(),
-  itsArray        (that.itsArray,flags|DMI::COPYREF|DMI::WRITE),
+  itsArray        (that.itsArray,flags|DMI::COPYREF|DMI::PRESERVE_RW),
   itsRealArray    (0),
   itsComplexArray (0),
   itsNx           (that.itsNx),
   itsNy           (that.itsNy),
   itsIsTemp       (false),
+  itsIsWritable   (that.itsIsWritable),
   itsIsScalar     (that.itsIsScalar)
 {
   // since array may have been privatized, re-obtain flags
   if( itsArray.valid() )
   {
     if( that.isReal() )
-      itsArray().getArrayPtr(itsRealArray);
+      itsArray->getConstArrayPtr(itsRealArray);
     else 
-      itsArray().getArrayPtr(itsComplexArray);
+      itsArray->getConstArrayPtr(itsComplexArray);
+    itsIsWritable = itsArray.isWritable() && itsArray->isWritable();
   }
 }
 
@@ -175,12 +207,13 @@ Vells& Vells::operator= (const Vells& that)
 {
   if (this != &that) 
   {
-    itsArray.copy(that.itsArray,DMI::WRITE);
+    itsArray.copy(that.itsArray,DMI::PRESERVE_RW);
     itsRealArray    = that.itsRealArray;
     itsComplexArray = that.itsComplexArray;
     itsNx           = that.itsNx;
     itsNy           = that.itsNy;
     itsIsTemp       = that.itsIsTemp;
+    itsIsWritable   = that.itsIsWritable;
     itsIsScalar     = that.itsIsScalar;
   }
   return *this;
@@ -190,15 +223,16 @@ Vells::~Vells()
 {
 }
 
-Vells & Vells::privatize() 
+Vells & Vells::privatize()
 {
   if( itsArray.valid() )
   {
     DataArray *parr = itsArray.privatize(DMI::WRITE|DMI::DEEP).dewr_p();
     if( isReal() )
-      parr->getArrayPtr(itsRealArray);
+      parr->getConstArrayPtr(itsRealArray);
     else 
-      parr->getArrayPtr(itsComplexArray);
+      parr->getConstArrayPtr(itsComplexArray);
+    itsIsWritable = true;
   }
   return *this;
 }
@@ -218,6 +252,7 @@ void Vells::show (std::ostream& os) const
 
 void Vells::copyData (const Vells &other)
 {
+  ensureWritable();
   if( this != &other && itsArray != other.itsArray )
   {
     FailWhen( nx() != other.nx() || ny() != other.ny() || isReal() != other.isReal(),
@@ -231,6 +266,7 @@ void Vells::copyData (const Vells &other)
   
 void Vells::zeroData ()
 {
+  ensureWritable();
   if( isReal() )
     memset(realStorage(),0,sizeof(double)*nelements());
   else if( isComplex() )
@@ -239,11 +275,12 @@ void Vells::zeroData ()
 
 inline bool Vells::tryReference (bool real,const Vells &other)
 {
-  if( other.isTemp() && other.isCongruent(real,itsNx,itsNy) )
+  if( other.isTemp() && other.isWritable() && other.isCongruent(real,itsNx,itsNy) )
   {
     itsArray.copy(other.itsArray,DMI::PRESERVE_RW);
     itsRealArray = other.itsRealArray;
     itsComplexArray = other.itsComplexArray;
+    itsIsWritable = true;
     return True;
   }
   return False;
@@ -251,7 +288,8 @@ inline bool Vells::tryReference (bool real,const Vells &other)
 
 // constructor for a temp vells in unary expression
 Vells::Vells (const Vells &other,int flags,const std::string &opname)
-: itsIsTemp       (true)
+: itsIsTemp       (true),
+  itsIsWritable   (true)
 {
   // check input if requested by flags
   FailWhen(flags&VF_CHECKREAL && other.isComplex(),
@@ -279,15 +317,16 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
     DataArray *parr;
     itsArray <<= parr = new DataArray(real?Tpdouble:Tpdcomplex,makeLoShape(itsNx,itsNy));
     if( real )
-      { parr->getArrayPtr(itsRealArray); itsComplexArray = 0; }
+      { parr->getConstArrayPtr(itsRealArray); itsComplexArray = 0; }
     else
-      { parr->getArrayPtr(itsComplexArray); itsRealArray = 0; }
+      { parr->getConstArrayPtr(itsComplexArray); itsRealArray = 0; }
   }
 }
 
 // constructor for a temp vells in binary expression
 Vells::Vells (const Vells &a,const Vells &b,int flags,const std::string &opname)
-: itsIsTemp       (true)
+: itsIsTemp       (true),
+  itsIsWritable   (true)
 {
   // check input if requested by flags
   FailWhen(flags&VF_CHECKREAL && (a.isComplex() || b.isComplex()),
@@ -317,9 +356,9 @@ Vells::Vells (const Vells &a,const Vells &b,int flags,const std::string &opname)
     DataArray *parr;
     itsArray <<= parr = new DataArray(real?Tpdouble:Tpdcomplex,makeLoShape(itsNx,itsNy));
     if( real )
-      { parr->getArrayPtr(itsRealArray); itsComplexArray = 0; }
+      { parr->getConstArrayPtr(itsRealArray); itsComplexArray = 0; }
     else
-      { parr->getArrayPtr(itsComplexArray); itsRealArray = 0; }
+      { parr->getConstArrayPtr(itsComplexArray); itsRealArray = 0; }
   }
 }
 
@@ -331,14 +370,19 @@ string Vells::sdebug (int detail,const string &,const char *nm) const
   string out;
   if( detail >= 0 ) // basic detail
   {
-    out = ssprintf("%s/%08x",nm?nm:"MeqVells",(void*)this);
+    out = ssprintf("%s/%08x %s",nm?nm:"MeqVells",(void*)this,
+                    isWritable()?"RW":"RO");
+    if( isTemp() )
+      out += "t";
   }
   else if( detail >= 1 || detail == -1 ) // basic detail
   {
     if( isNull() )
       append(out,"(null)");
     else
-      appendf(out,"%dx%d%s%s",nx(),ny(),isReal()?"R":"C",isTemp()?"t":"");
+      appendf(out,"%dx%d%s%s",nx(),ny(),isReal()?"R":"C");
+    if( !isWritable() )
+      appendf(out,"readonly");
   }
   else if( detail >= 2 || detail == -2 ) // basic detail
   {

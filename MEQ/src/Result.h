@@ -24,9 +24,9 @@
 #define MEQ_RESULT_H
 
 //# Includes
+#include <iostream>
 #include <MEQ/Vells.h>
 #include <Common/lofar_vector.h>
-#include <iostream>
 #include <DMI/DataRecord.h>
 #include <MEQ/AID-Meq.h>
 #include <MEQ/TID-Meq.h>
@@ -59,24 +59,21 @@ public:
   virtual TypeId objectType () const
   { return TpMeqResult; }
   
-//   // implement standard clone method via copy constructor
-//   virtual CountedRefTarget* clone (int flags, int depth) const
-//   { return new Result(*this,flags,depth); }
+  // implement standard clone method via copy constructor
+  virtual CountedRefTarget* clone (int flags, int depth) const
+  { return new Result(*this,flags,depth); }
+
+  //  override privatize so that shortcut refs are detached automatically
+  virtual void privatize (int flags = 0, int depth = 0);
   
   // validate record contents and setup shortcuts to them. This is called 
   // automatically whenever a Result is made from a DataRecord
   // (or when the underlying DataRecord is privatized, etc.)
   virtual void validateContent ();
   
-  // this disables removal of fields via hooks
+  // this disables removal of DataRecord fields via hooks
   virtual bool remove (const HIID &)
   { Throw("remove() from a Meq::Result not allowed"); }
-
-  // Get the value.
-  const Vells& getValue() const
-    { return itsValue.deref(); }
-  Vells& getValueRW()
-    { return itsValue.dewr(); }
 
   // Get the spids.
   int getNumSpids() const
@@ -84,15 +81,27 @@ public:
   int getSpid (int i) const
   { return itsSpids[i]; }
   
-//  // get all spids as a vector
-//  vector<int> getSpids() const;
   // Set the spids.
   void setSpids (const vector<int>& spids);
 
-  //
+  // is spid defined at this position? increments index if true
   bool isDefined (int spid, int& index) const
   { return (index>=itsNumSpids  ?  false :
 	    spid==itsSpids[index]  ?  index++,true : false); }
+
+  // Get the i-th perturbed parameter.
+  double getPerturbation (int i) const
+  { return itsPerturbations[i]; }
+  // Set the i-th perturbed parameter.
+  void setPerturbation (int i, double value);
+  // set all perturbations at once
+  void setPerturbations (const vector<double>& spids);
+
+  // Get the value.
+  const Vells& getValue() const
+    { return itsValue.deref(); }
+  Vells& getValueRW()
+    { return itsValue.dewr(); }
 
   // Get the i-th perturbed value.
   const Vells& getPerturbedValue (int i) const
@@ -101,9 +110,6 @@ public:
   Vells& getPerturbedValueRW (int i)
   { return itsPerturbedValues[i].dewr(); }
 
-  // Get the i-th perturbed parameter.
-  double getPerturbation (int i) const
-  { return itsPerturbations[i]; }
 
   // Allocate the value with a given type and shape.
   // It won't change if the current value type and shape match.
@@ -140,9 +146,6 @@ public:
   Vells & setPerturbedValue (int i, const Vells & value)
     { return setPerturbedValue(i,new Vells(value)); }
 
-  // Remove all perturbed values.
-  void clear();
-
   int nperturbed() const
   { return itsNumSpids; }
 
@@ -167,14 +170,10 @@ public:
           itsPerturbedValues[i]->isCongruent(isReal,nfreq,ntime) )
         return itsPerturbedValues[i]();
       else if( isReal )
-        return allocateReal(nfreq, ntime);
+        return allocatePertReal(i,nfreq, ntime);
       else 
-        return allocateComplex(nfreq, ntime);
+        return allocatePertComplex(i,nfreq, ntime);
     }
-
-  // Set the i-th perturbed parameter.
-  void setPerturbation (int i, double value)
-    { itsPerturbations[i] = value; }
 
   void show (std::ostream&) const;
 
@@ -189,6 +188,9 @@ protected:
   DataRecord::removeField;
   
 private:
+  // Remove all perturbed values.
+  void clear();
+
   // Allocate the main value with given type and shape.
   Vells & allocateReal (int nfreq, int  ntime)
     { return setValue(new Vells(double(0),nfreq,ntime,false)); }
@@ -200,22 +202,17 @@ private:
   Vells & allocatePertComplex (int i, int nfreq, int ntime)
     { return setPerturbedValue(i,new Vells(dcomplex(0),nfreq,ntime,false)); }
 
-   // Allocate a sub-container for perturbations (if not already present),
-  // return ref to it
-  DataField & nc_perturbed ();
-
   int    itsCount;
   Vells::Ref itsValue;
-//  Cells* itsCells;
   double itsDefPert;
   
   vector<Vells::Ref> itsPerturbedValues;
-  double * itsPerturbations;
-//  vector<double> itsParmValues;
-  int * itsSpids;
-  int   itsNumSpids;
   
-  DataField *pnc_perturbed;
+  const double * itsPerturbations;
+  const int * itsSpids;
+  int         itsNumSpids;
+  
+  NestableContainer::Ref perturbed_ref;
 };
 
 

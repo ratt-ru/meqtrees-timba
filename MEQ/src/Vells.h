@@ -125,9 +125,13 @@ public:
   // </group>
   
   // Create a Vells from a DataArray pointer
-  // Default is reference semantics, unless DMI::PRIVATIZE is specified
+  // Default is reference semantics (attaches ref to array), unless 
+  // DMI::PRIVATIZE is specified, in which case the array is privatized.
   // <group>
   explicit Vells (DataArray *,int flags = 0);
+  explicit Vells (const DataArray *,int flags = 0);
+  // creates from array ref. Ref is transferred
+  explicit Vells (const DataArray::Ref::Xfer &ref);
   // </group>
 
   // Copy constructor (reference semantics, unless DMI::PRIVATIZE is specified)
@@ -155,6 +159,12 @@ public:
   // re-use of storage.
   bool isTemp () const
     { return itsIsTemp; }
+  
+  bool isWritable () const
+    { return itsIsWritable; }
+  
+  void ensureWritable () const
+    { FailWhen(!itsIsWritable,"r/w access violation"); }
 
   // changes the temp property
   void makeTemp (bool temp) 
@@ -200,9 +210,11 @@ public:
   const LoMat_dcomplex& getComplexArray() const
   { DbgAssert(itsComplexArray!=0); return *itsComplexArray; }
   LoMat_double& getRealArray()
-  { DbgAssert(itsRealArray!=0); return *itsRealArray; }
+  { DbgAssert(itsRealArray!=0); ensureWritable(); 
+    return *const_cast<LoMat_double*>(itsRealArray); }
   LoMat_dcomplex& getComplexArray()
-  { DbgAssert(itsComplexArray!=0); return *itsComplexArray; }
+  { DbgAssert(itsComplexArray!=0); ensureWritable(); 
+    return *const_cast<LoMat_dcomplex*>(itsComplexArray); }
   
   // initializes with value
   void init (double val)
@@ -247,8 +259,22 @@ public:
 
   string sdebug (int detail=1,const string &prefix="",const char *nm=0) const;
   
-// OK, now it gets hairy. Implement math on Vells
+
 private:
+  // helper function for constructors
+  void initFromDataArray (const DataArray *parr,int flags);
+    
+  DataArray::Ref  itsArray;
+
+  const LoMat_double*   itsRealArray;
+  const LoMat_dcomplex* itsComplexArray;
+  int             itsNx;
+  int             itsNy;
+  bool            itsIsTemp;
+  bool            itsIsWritable;
+  bool            itsIsScalar;
+  
+  // OK, now it gets hairy. Implement math on Vells
   // The following flags may be supplied to the constructors below:
   typedef enum { 
     VF_REAL         = 1, 
@@ -375,17 +401,6 @@ public:
   #undef declareUnaryFunc
   #undef declareBinaryFunc
 #endif
-
-private:
-  DataArray::Ref  itsArray;
-
-  LoMat_double*   itsRealArray;
-  LoMat_dcomplex* itsComplexArray;
-  int             itsNx;
-  int             itsNy;
-  bool            itsIsTemp;
-  bool            itsIsScalar;
-  
 };
 
 // Conditionally include inline definitions of Vells math functions

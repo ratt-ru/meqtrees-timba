@@ -57,8 +57,8 @@ public:
   { return TpMeqRequest; }
   
 //   // implement standard clone method via copy constructor
-//   virtual CountedRefTarget* clone (int flags, int depth) const
-//   { return new Request(*this,flags,depth); }
+  virtual CountedRefTarget* clone (int flags, int depth) const
+  { return new Request(*this,flags,depth); }
   
   // validate record contents and setup shortcuts to them. This is called 
   // automatically whenever a Request is made from a DataRecord
