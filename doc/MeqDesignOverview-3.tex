@@ -573,6 +573,9 @@
   parent deal with it.
 
   \end{itemize}
+
+
+\subsection{Treatment of resolution}
   
   To satisfy these requirements, the following behaviour w.r.t. resolution
   is implemented:
@@ -586,34 +589,77 @@
   honor the grid of the \Cells. It must, however, honor the envelope domain.
   The gridding of the result is indicated by the \Cells\ returned in the
   \Result\ object.
+  
+  \item Some leaf nodes (e.g. \qq{Const} and \qq{Parm} with no time-frequency
+  dependence, when configured to return samplings and not integrations) return
+  resolution-free \Result{}s. This is indicated by a missing \Cells\ in the
+  \Result. 
 
-    \begin{itemize} 
+  \item Other leaf nodes (e.g. \qq{Parm}, \qq{Freq}, \qq{Time} -- generally,
+  nodes meant to evaluate some analytic function over the domain) are easily
+  able to evaluate themselves over any given grid. These nodes will always
+  return a \Result\ at the requested resolution; the tree designer may rely on
+  this behaviour as it is part of the contract for those nodes.
 
-    \item Some nodes (e.g. \qq{Parm}, \qq{Freq}, \qq{Time} -- generally, nodes
-    meant to evaluate some analytic function over the domain) are easily able
-    to evaluate themselves over any given grid. These nodes will always return
-    a \Result\ at the requested resolution; the tree designer may rely on this
-    behaviour as it is part of the contract for those nodes.
+  \item Data-driven leaf nodes (e.g. \qq{Spigot}) completely ignore the
+  requested resolution. The gridding of their \Result\ is fully determined by
+  the layout of incoming data.
 
-    \item Data-driven nodes (e.g. \qq{Spigot}) completely ignore the requested
-    resolution. The gridding of their \Result\ is fully determined by the
-    layout of incoming data.
+  \item Most non-leaf nodes with multiple children (e.g., most of the
+  \qq{Function}-derived nodes) can only operate on child results of the same
+  resolution. In the event that different resolutions are returned, any node
+  can be configured to {\bf auto-resample} child results to the same
+  resolution. This is done by \qq{Node::execute()} prior to calling
+  \qq{getResult()}.
 
-    \end{itemize}
+  \item Some special nodes (such as \qq{ModRes}) can modify the resolution in
+  the request before passing it up.
+  
+  \end{enumerate}
+  
+  Note each node's treatment of the requested resolution (i.e.
+  honor/ignore/modify) is part of the node class contract, and should be
+  clearly documented in the Node Reference. Thus, while parent nodes have no
+  control over (or knowledge of) what resoltion their children are going to use
+  for their results, the tree designer can always see the global picture, and
+  determine which resolution is used where in the tree. By enabling
+  auto-resampling at key points in the tree, and possibly adding some
+  \qq{ModRes} nodes, the designer can always ensure predictable results.
+
+\subsection{Auto-resampling modes}
+
+  Auto-resampling is enabled via the node state record. The actual resampling
+  is done by \qq{Node::execute()}, and it can follow one of several 
+  strategies:
+  
+  \begin{description}
+  
+  \item[Upsample:] Find the highest resolution among child results, upsample all other
+    results to it.
+
+  \item[Downsample:] Find the lowest resolution among child results,  integrate all other
+    results to it.
     
-  \item A lot of node classes (e.g., all the \qq{Function}-derived nodes)
-  require child results to have the same resolution. In the event that this is
-  not the case, a node can be configured to deal with it in one of four ways,
-  as determined by the \qq{auto\_resample} and \qq{resample_child_index} fields
-  of the state record.
+  \item[Use Child:] Resample everything to the resolution of a specific child
+    (this child is called the {\em resolution driver}\/).
 
-  If the \qq{resample_child_index} field is set to a child number ($\ge 1$ in
-  Glish, $\ge 0$ in C++ -- note the \qq{index} suffix and remember automatic
-  0-1-base conversion discussed in section \ref{sec:01base}), then that child
-  is the {\em resolution driver}. All other child results will be resampled to
-  that child's resolution. If the child returns a resolution-free result (see
-  \ref{sec:missingcells}), then \qq{Node} falls back on whatever behaviour is 
-  defined by \qq{auto_resample}:
+  \item[Use Request:] Resample everything to the resolution of the \Request.
+
+  \item[Fail:] Fail outright (return a fail-result, that is) if resolutions differ.
+    This option is mainly useful for debugging.
+
+  \end{description}
+  
+  The auto-resampling strategy is determined by two fields in the node state
+  record (this is dynamic state).
+  
+  The \qq{resample\_child\_index} enables the ``Use Child'' strategy, if set
+  to an ordinal child number ($\ge 1$ in Glish, $\ge 0$ in C++ -- note the \qq{index} suffix and remember automatic
+  0-1-base conversion discussed in section \ref{sec:01base}) or a child label
+  (see \ref{sec:childlabels}). The specified child becomes the resolution
+  driver. If the child returns a resolution-free result (see
+  \ref{sec:missingcells}), then a fail is reported.
+  
 
   \begin{description}
 
