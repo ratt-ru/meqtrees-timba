@@ -27,8 +27,9 @@
 # If AIPS++ functions are used that use LAPACK, lofar_LAPACK should
 # also be made part of the configure.in (after lofar_AIPSPP).
 #
-# lofar_AIPSPP(option)
+# lofar_AIPSPP(option,libraries)
 #     option 0 means that AIPS++ is optional, otherwise mandatory.
+#     the libraries are optional and can be given as e.g. "-ltables -lcasa"
 #
 # e.g. lofar_AIPSPP
 # -------------------------
@@ -37,6 +38,7 @@ AC_DEFUN([lofar_AIPSPP],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], [lfr_option=0], [lfr_option=$1])
+ifelse($2, [], [lfr_aipslibs="-ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa -lglish -lsos -lnpd"], [lfr_aipslibs=$2])
 AC_ARG_WITH(aipspp,
 	[  --with-aipspp[=PFX]         enable use of AIPS++ (via AIPSPATH or explicit path)],
 	[with_aipspp="$withval"],
@@ -100,7 +102,7 @@ else
     AIPSPP_LDFLAGS="-L$AIPSPP_PATH/$AIPSPP_ARCH/lib -Wl,-rpath,$AIPSPP_PATH/$AIPSPP_ARCH/lib"
     # For one reason or another -ltrial -laips links in a lot of rubbish
     # (like MiriadImage). Therefore do -laips first.
-    AIPSPP_LIBS="$AIPSPP_PATH/$AIPSPP_ARCH/lib/version.o -ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa -lglish -lsos -lnpd"
+    AIPSPP_LIBS="$AIPSPP_PATH/$AIPSPP_ARCH/lib/version.o $lfr_aipslibs"
 
     if test "$with_pgplot" != "no"; then
       ]AC_CHECK_FILE([$with_pgplot],
