@@ -21,6 +21,8 @@
 edir=`dirname $0`
 if [ "$edir" = "" -o "$edir" = "." ]; then
   edir=`pwd`
+else
+  edir=`cd $edir > /dev/null; pwd`
 fi
 
 # Test if only totals have to be given.
