@@ -32,6 +32,7 @@ import sys
 import os
 import fnmatch
 import re
+import getopt
 
 def remoteFileMove():
   # move the html Files that reside in the "thisWeek" directory
@@ -51,7 +52,7 @@ def runServerSideScript():
   #
   # run the serverSideScript to generate the new index files
   #
-  return os.system('ssh -1 lofar@lofar0.nfra.nl "cd /usr/local/httpd/htdocs/BuildResults;createNewIndex"')
+  return os.system('ssh -1 lofar@lofar0.nfra.nl "cd /usr/local/httpd/htdocs/BuildResults;./createNewIndex"')
 
 def copyFiles2Server(copyDir):
   #
@@ -172,317 +173,363 @@ def extendPackageArray(packageArray,allBuildablePackages):
         newPackageArray.append(line)
   return newPackageArray
 
-#
-# read commandline
-#
-if len(sys.argv) > 1:
-  print sys.argv[1]
-else:
-  print "Usage: "+sys.argv[0]+" [FILENAME]"
-  sys.exit(1)
-
-#
-# print machine
-#
-print "This build took place on: " + machineName() + "\n\n"
+def usage():
+  print "usage: scanBuildLog [-h] [-l arg] [-f arg]"
+  print "args:  -h,--help       - print usage"
+  print "       -d,-- directory - LOFAR base directory"
+  print "       -f,--filebase   - basename from logfiles. E.g. week441"
+  sys.exit(2)
 
 
-#
-# make an array that contains the VARIANTS PACKAGES
-# for each log file looked for.
-#
-variantPackageArray=[]
-testResultsArray=[]
-buildResultsArray=[]
-allBuildablePackages=[]
-
-packageObj = re.compile('(PACKAGES *= *".*?")|(PACKAGES *= *[^ ]*)',re.IGNORECASE)
-variantObj = re.compile('(VARIANTS *= *".*?")|(VARIANTS *= *[^ ]*)',re.IGNORECASE)
-
-
-
-#
-# find configure.in in Lofar tree
-# each directory that contains it can be build in the LOFAR builds
-# So could potentially be in the PACKAGES line used for the build
-#
-pattern='configure.in'
-startdir='../LOFAR'
-
-for name in find(pattern, startdir):
-  #
-  # first drop the filename
-  #
-  head, tail = os.path.split(name)
-  package=str.replace(head,startdir+'/','')
-  allBuildablePackages.append(package)
-
-for file in find(sys.argv[1]+'*.log',os.curdir):
-
-  #
-  # keep last found build start
-  #
-  keepLastFoundBuildArray=[]
-
+def main(argv):
+  lofarDir = "None"
+  fileBase = "None"
   try:
-    readFile=open(file, 'r')
-  except IOError, message:
-    sys.exit( "Error opening file: %s" % message )
-    
-  aLine=readFile.readline()
-  print "File: "+file
+    opts, args = getopt.getopt(argv, "d:f:h",["directory=","help","filebase="])
+    print "opts: "
+    for o in opts:
+      print o
+    print "arg: "
+    for a in args:
+      print a
+  except getopt.GetoptError:
+    usage()
+  for opt, arg in opts:
+    if opt in ("-h", "--help"):
+      usage()
+    elif opt in ("-f", "--filebase"):
+      fileBase = arg
+    elif opt in ("-d", "--directory"):
+      lofarDir = arg
 
-  while aLine != "":
-    #
-    #search for PACKAGES keyword
-    #
-    if str.find(aLine,"PACKAGES")>-1:
-      #
-      # If PACKAGES found then lift out the different PACKAGES
-      #
-      matchPackageObj = packageObj.search(aLine)
-      
-      if matchPackageObj:
-        start,end=matchPackageObj.span()
-        pckArray = re.split(' *',re.sub('(PACKAGES *= *)|(packages *= *)'
-                         ,'',re.sub('"','',aLine[start:end],2)))
-
-
-      #
-      # because a PACKAGE in the PACAKAGES line can also say that
-      # ALL the Subdirectories UNDER this PACKAGE can be build we must
-      # extend this array with those packages before we can continue
-      #
-      pckArray=extendPackageArray(pckArray,allBuildablePackages)
-
-
-      #
-      # search for VARIANTS in same line
-      #
-      matchVariantObj = variantObj.search(aLine)
-      if matchVariantObj:
-        start,end=matchVariantObj.span()
-        for variant in re.split(' *',re.sub('(VARIANTS *= *)|(variants *= *)'
-                                ,'',re.sub('"','',aLine[start:end],2))):
-          variantPackageArray.append([variant,pckArray])
-    #
-    # Find CONFIGURING start
-    #
-    elif str.find(aLine,":::::: CONFIGURING VARIANT")>-1:
-      keepLastFoundBuildArray=re.split(' *',re.sub('\n','',aLine))
-      
-    #
-    # Find BUILDING start
-    #
-    elif str.find(aLine,":::::: BUILDING VARIANT")>-1:
-      keepLastFoundBuildArray=re.split(' *',re.sub('\n','',aLine))
-      
-    #
-    # Find Failed test
-    #
-    elif str.find(aLine,'FAIL:')>-1:
-      failedProg=re.sub('FAIL:','',re.sub('\n','',aLine))
-      testResultsArray.append([failedProg,keepLastFoundBuildArray[3],
-                               keepLastFoundBuildArray[6]])
-
-
-    #
-    # Find Configure errors
-    #
-    elif str.find(aLine,'configure: error: ') > -1:
-      aFile=str.split(aLine,' ')
-      aPack=aFile[4]+" not configured"
-      buildResultsArray.append([aPack,keepLastFoundBuildArray[3],
-                                keepLastFoundBuildArray[6]])
-
-    #
-    # Find Compile && Link errors
-    # Search for strings like:
-    #      make[5]: *** [PO_DH_PL.lo] Error 1
-    #
-    elif str.find(aLine,' *** ') > -1:
-      if str.find(aLine,' Error ') > -1:
-        aFile=str.split(str.replace(str.replace(aLine,'[',''),']',''))[2]
-        aFile=re.sub('check-TESTS','',
-              re.sub('check-am','',
-              re.sub('check-recursive','',
-              re.sub('all','',
-              re.sub('all-recursive','',aFile)))))
-        if aFile:
-          buildResultsArray.append([aFile,keepLastFoundBuildArray[3],
-                                    keepLastFoundBuildArray[6]])
-      
-    aLine=readFile.readline()
-  readFile.close()
-
-
-#
-# delete 'old' html files
-#
-for fileName in find('*_Failed_'+machineName()+'.html'):
-  os.remove(fileName)
-
-#
-# Open html pages for all packages/Variants that have
-# failed something during the build
-#
-usedFiles=[]
-for row in testResultsArray:
-  rawName=row[1]+'_'+row[2]+'_Failed_'+machineName()+'.html'
-  fileName=str.replace(rawName,'/','_')
-  if os.path.isfile(fileName):
-    try:
-      file=open(fileName,'a')
-    except IOError, message:
-      sys.exit( "Error opening file: %s" % message )
-
-  else:
-    try:
-      file=open(fileName,'w')
-    except IOError, message:
-      sys.exit( "Error opening file: %s" % message )
-
-    openHTMLPage(file,"Failed builds on "+machineName(),"yes")
-    file.write("<center><h3>Package: "+row[2]+
-               '&nbsp &nbsp &nbsp &nbsp &nbsp '+
-               "Variant: "+row[1]+"</h3></center>\n")
-    file.write('<ul>\n')
-    usedFiles.append(fileName)
-  file.write('<li>'+row[0]+'</li>\n')
-  file.close()
-
-for row in buildResultsArray:
-  rawName=row[1]+'_'+row[2]+'_Failed_'+machineName()+'.html'
-  fileName=str.replace(rawName,'/','_')
-  if os.path.isfile(fileName):
-    try:
-      file=open(fileName,'a')
-    except IOError, message:
-      sys.exit( "Error opening file: %s" % message )
-  else:
-    try:
-      file=open(fileName,'w')
-    except IOError, message:
-      sys.exit( "Error opening file: %s" % message )
-    openHTMLPage(file,"Failed builds on "+machineName(),"yes")
-    file.write("<center><h3>Package: "+row[2]+
-               '&nbsp &nbsp &nbsp &nbsp &nbsp '+
-               "Variant: "+row[1]+"</h3></center>\n")
-    file.write('<ul>\n')
-    usedFiles.append(fileName)
-  file.write('<li>'+row[0]+'</li>\n')
-  file.close()
-
-#
-# loop over all opened files and close everything
-#
-for fileName in usedFiles:
+  print "dir: "+lofarDir
   
-  try:
-    file=open(fileName,'a')
-  except IOError, message:
-    sys.exit( "Error opening file: %s" % message )
+  if fileBase==None:
+    print "No filebase specified"
+    usage()
+  if lofarDir==None:
+    print "No LOFAR basedir specified"
+    usage()
+  if len(sys.argv) < 3:
+    usage()
+  if os.path.isdir(lofarDir) < 1:
+    print lofarDir+" Not found, or not a directory"
+    usage()
 
-  file.write('</ul>\n')
-  closeHTMLPage(file)
-  file.close()
-
-
-#
-# open main HTML file for writing
-#
-writeFile=open("BuildPage_"+machineName()+".html",'w')
-
-#
-# Open html page
-#
-openHTMLPage(writeFile,"BuildReport on "+machineName(),"yes")
-
-
-#
-# Start the table
-#
-writeFile.write("<table border cellspacing=2 cellpadding=5>\n")
-
-#
-# add all different variants to the collumns
-writeFile.write("<tr>\n<th> </th>\n")
-for entry in variantPackageArray:
-  writeFile.write("<th>"+entry[0]+"</th>\n")
-writeFile.write("</tr>\n")
-
-
-
-for package in allBuildablePackages:
-  writeFile.write("<tr>\n<th>\n"+package+"</th>\n")
 
   #
-  # Look if this Package was also build in one of the variants
+  # print machine
   #
-  for entry in variantPackageArray:
-    print "package:"+package
-    found=0
-    for pck in entry[1]:
-      if package == pck:
-        found=1
-    if found:
-      print "done"
-      if (findFailedTests(entry[0],package,testResultsArray) or
-          findFailedBuilds(entry[0],package,buildResultsArray)):
-        rawName=entry[0]+'_'+package+'_Failed_'+machineName()+'.html'
-        linkName=str.replace(rawName,'/','_')
-        writeFile.write('<td bgcolor="RED">'
-                        '<a href="'+linkName+'">')
-        writeFile.write('<font color="red">')
-        for i in entry[0][1:len(entry[0])]:
-          writeFile.write('x')
-          
-        writeFile.write('</font></a></td>\n')
-      else:
-        writeFile.write('<td bgcolor="GREEN"> &nbsp</td>\n')
+  print "This build took place on: " + machineName() + "\n\n"
+
+
+  #
+  # make an array that contains the VARIANTS PACKAGES
+  # for each log file looked for.
+  #
+  variantPackageArray=[]
+  testResultsArray=[]
+  buildResultsArray=[]
+  allBuildablePackages=[]
+
+  packageObj = re.compile('(PACKAGES *= *".*?")|(PACKAGES *= *[^ ]*)',re.IGNORECASE)
+  variantObj = re.compile('(VARIANTS *= *".*?")|(VARIANTS *= *[^ ]*)',re.IGNORECASE)
+
+
+
+  #
+  # find configure.in in Lofar tree
+  # each directory that contains it can be build in the LOFAR builds
+  # So could potentially be in the PACKAGES line used for the build
+  #
+  pattern='configure.in'
+
+  for name in find(pattern, lofarDir):
+    #
+    # first drop the filename
+    #
+    head, tail = os.path.split(name)
+    package=str.replace(head,lofarDir+'/','')
+    allBuildablePackages.append(package)
+
+  files=find(fileBase+'*.log',os.curdir)
+  if len(files)<1:
+    print "Sorry, can't find any files starting with "+fileBase
+    usage()
+    
+  for file in files:
+
+
+    #
+    # keep last found build start
+    #
+    keepLastFoundBuildArray=[]
+
+    try:
+      readFile=open(file, 'r')
+    except IOError, message:
+      sys.exit( "Error opening file: %s" % message )
+        
+    aLine=readFile.readline()
+    print "File: "+file
+
+    while aLine != "":
+      #
+      # search for PACKAGES keyword
+      #
+      if str.find(aLine,"PACKAGES")>-1:
+        #
+        # If PACKAGES found then lift out the different PACKAGES
+        #
+        matchPackageObj = packageObj.search(aLine)
+      
+        if matchPackageObj:
+          start,end=matchPackageObj.span()
+          pckArray = re.split(' *',re.sub('(PACKAGES *= *)|(packages *= *)'
+                                          ,'',re.sub('"','',aLine[start:end],2)))
+
+
+        #
+        # because a PACKAGE in the PACAKAGES line can also say that
+        # ALL the Subdirectories UNDER this PACKAGE can be build we must
+        # extend this array with those packages before we can continue
+        #
+        pckArray=extendPackageArray(pckArray,allBuildablePackages)
+
+
+        #
+        # search for VARIANTS in same line
+        #
+        matchVariantObj = variantObj.search(aLine)
+        if matchVariantObj:
+          start,end=matchVariantObj.span()
+          for variant in re.split(' *',re.sub('(VARIANTS *= *)|(variants *= *)',
+                                              '',re.sub('"','',aLine[start:end],2))):
+            variantPackageArray.append([variant,pckArray])
+      #
+      # Find CONFIGURING start
+      #
+      
+      elif str.find(aLine,":::::: CONFIGURING VARIANT")>-1:
+        keepLastFoundBuildArray=re.split(' *',re.sub('\n','',aLine))
+      
+      #
+      #  Find BUILDING start
+      #
+      elif str.find(aLine,":::::: BUILDING VARIANT")>-1:
+        keepLastFoundBuildArray=re.split(' *',re.sub('\n','',aLine))
+      
+      #
+      # Find Failed test
+      #
+      elif str.find(aLine,'FAIL:')>-1:
+        failedProg=re.sub('FAIL:','',re.sub('\n','',aLine))
+        testResultsArray.append([failedProg,keepLastFoundBuildArray[3],
+                                 keepLastFoundBuildArray[6]])
+
+
+      #
+      # Find Configure errors
+      #
+      elif str.find(aLine,'configure: error: ') > -1:
+        aFile=str.split(aLine,' ')
+        aPack=aFile[4]+" not configured"
+        buildResultsArray.append([aPack,keepLastFoundBuildArray[3],
+                                  keepLastFoundBuildArray[6]])
+
+      #
+      # Find Compile && Link errors
+      # Search for strings like:
+      #      make[5]: *** [PO_DH_PL.lo] Error 1
+      #
+      elif str.find(aLine,' *** ') > -1:
+        if str.find(aLine,' Error ') > -1:
+          aFile=str.split(str.replace(str.replace(aLine,'[',''),']',''))[2]
+          aFile=re.sub('check-TESTS','',
+                       re.sub('check-am','',
+                       re.sub('check-recursive','',
+                       re.sub('all','',
+                       re.sub('all-recursive','',aFile)))))
+          if aFile:
+            buildResultsArray.append([aFile,keepLastFoundBuildArray[3],
+                                      keepLastFoundBuildArray[6]])
+      
+      aLine=readFile.readline()
+    readFile.close()
+
+
+  #
+  # delete 'old' html files
+  #
+  for fileName in find('*_Failed_'+machineName()+'.html'):
+    os.remove(fileName)
+
+  #
+  # Open html pages for all packages/Variants that have
+  # failed something during the build
+  #
+  usedFiles=[]
+  for row in testResultsArray:
+    rawName=row[1]+'_'+row[2]+'_Failed_'+machineName()+'.html'
+    fileName=str.replace(rawName,'/','_')
+    if os.path.isfile(fileName):
+      try:
+        file=open(fileName,'a')
+      except IOError, message:
+        sys.exit( "Error opening file: %s" % message )
+
     else:
-      print "done"
-      writeFile.write('<td bgcolor="GRAY"> &nbsp</td>\n')    
-  writeFile.write("</tr>")
-writeFile.write("</table>\n")
+      try:
+        file=open(fileName,'w')
+      except IOError, message:
+        sys.exit( "Error opening file: %s" % message )
+
+      openHTMLPage(file,"Failed builds on "+machineName(),"yes")
+      file.write("<center><h3>Package: "+row[2]+
+                 '&nbsp &nbsp &nbsp &nbsp &nbsp '+
+                 "Variant: "+row[1]+"</h3></center>\n")
+      file.write('<ul>\n')
+      usedFiles.append(fileName)
+    file.write('<li>'+row[0]+'</li>\n')
+    file.close()
+
+  for row in buildResultsArray:
+    rawName=row[1]+'_'+row[2]+'_Failed_'+machineName()+'.html'
+    fileName=str.replace(rawName,'/','_')
+    if os.path.isfile(fileName):
+      try:
+        file=open(fileName,'a')
+      except IOError, message:
+        sys.exit( "Error opening file: %s" % message )
+    else:
+      try:
+        file=open(fileName,'w')
+      except IOError, message:
+        sys.exit( "Error opening file: %s" % message )
+      openHTMLPage(file,"Failed builds on "+machineName(),"yes")
+      file.write("<center><h3>Package: "+row[2]+
+                 '&nbsp &nbsp &nbsp &nbsp &nbsp '+
+                 "Variant: "+row[1]+"</h3></center>\n")
+      file.write('<ul>\n')
+      usedFiles.append(fileName)
+    file.write('<li>'+row[0]+'</li>\n')
+    file.close()
+
+  #
+  # loop over all opened files and close everything
+  #
+  for fileName in usedFiles:
+  
+    try:
+      file=open(fileName,'a')
+    except IOError, message:
+      sys.exit( "Error opening file: %s" % message )
+
+    file.write('</ul>\n')
+    closeHTMLPage(file)
+    file.close()
+
+
+  #
+  # open main HTML file for writing
+  #
+  writeFile=open("BuildPage_"+machineName()+".html",'w')
+
+  #
+  # Open html page
+  #
+  openHTMLPage(writeFile,"BuildReport on "+machineName(),"yes")
+
+
+  #
+  # Start the table
+  #
+  writeFile.write("<table border cellspacing=2 cellpadding=5>\n")
+
+  #
+  # add all different variants to the collumns
+  #
+  writeFile.write("<tr>\n<th> </th>\n")
+  for entry in variantPackageArray:
+    writeFile.write("<th>"+entry[0]+"</th>\n")
+  writeFile.write("</tr>\n")
+
+
+
+  for package in allBuildablePackages:
+    writeFile.write("<tr>\n<th>\n"+package+"</th>\n")
+
+    #
+    # Look if this Package was also build in one of the variants
+    #
+    for entry in variantPackageArray:
+      found=0
+      for pck in entry[1]:
+        if package == pck:
+          found=1
+      if found:
+        if (findFailedTests(entry[0],package,testResultsArray) or
+            findFailedBuilds(entry[0],package,buildResultsArray)):
+          rawName=entry[0]+'_'+package+'_Failed_'+machineName()+'.html'
+          linkName=str.replace(rawName,'/','_')
+          writeFile.write('<td bgcolor="RED">'
+                          '<a href="'+linkName+'">')
+          writeFile.write('<font color="red">')
+          for i in entry[0][1:len(entry[0])]:
+            writeFile.write('x')
+          
+          writeFile.write('</font></a></td>\n')
+        else:
+          writeFile.write('<td bgcolor="GREEN"> &nbsp</td>\n')
+      else:
+        writeFile.write('<td bgcolor="GRAY"> &nbsp</td>\n')    
+    writeFile.write("</tr>")
+  writeFile.write("</table>\n")
+
+  #
+  # close html page
+  #
+  closeHTMLPage(writeFile)
+
+
+  #
+  # Copy the "old" files from this machine in thisWeek to lastWeek
+  #
+  if remoteFileMove() > 0:
+    print "Move new to old on server not done because of errors"
+  else:
+    print "Move new to old on server done"
+
+  #
+  # Copy createNewIndex.py to the server
+  #
+  if copyServerSideScript() > 0:
+    print "Move script to server not done because of errors"
+  else:
+    print "Move script to server done"
+
+  #
+  # Copy the new generated html files to the Server
+  #
+  if copyFiles2Server("/usr/local/httpd/htdocs/BuildResults/thisWeek") > 0:
+    print "Copy html files not done because of errors"
+  else:
+    print "Copy html files to server done"
+
+
+  #
+  # run server side script to generate new index files there
+  #
+  if runServerSideScript() > 0:
+    print "Run script on server failed"
+  else:
+    print "Run script on server done"
+
+  sys.exit(0)
+
 
 #
-# close html page
+# this is the main entry
 #
-closeHTMLPage(writeFile)
-
-
-#
-# Copy the "old" files from this machine in thisWeek to lastWeek
-#
-if remoteFileMove() > 0:
-  print "Move new to old on server not done because of errors"
-else:
-  print "Move new to old on server done"
-
-#
-# Copy createNewIndex.py to the server
-#
-if copyServerSideScript() > 0:
-  print "Move script to server not done because of errors"
-else:
-  print "Move script to server done"
-
-#
-# Copy the new generated html files to the Server
-#
-if copyFiles2Server("/usr/local/httpd/htdocs/BuildResults/thisWeek") > 0:
-  print "Copy html files not done because of errors"
-else:
-  print "Copy html files to server done"
-
-
-#
-# run server side script to generate new index files there
-#
-if runServerSideScript() > 0:
-  print "Run script on server failed"
-else:
-  print "Run script on server done"
-
-
+if __name__ == "__main__":
+  main(sys.argv[1:])
