@@ -19,7 +19,7 @@ take stuff from it.
 
 Sharing means the the WH contains public stuff, public stuff means
 that any customer to the waterhole must be able to use it. This puts a
-burden on the supplier. All supplies must be documented. It also oputs
+burden on the supplier. All supplies must be documented. It also puts
 a burden on the WH-manger: all supplies must be listed such that
 supplier and customers know what is present and where it is present.
 
@@ -59,8 +59,6 @@ The directory structure of the main repository is as follows:
  |
  |- build
  |
- |- contrib
- |
  |- data
  |
  |- readme
@@ -74,10 +72,6 @@ The purpose of the directories is:
 build: part of the internal section.
        Results of build of tools necessary to maintain and use the
        WH. Both suppliers and customers mus tbe able to use them
-contrib: the contrib section
-       Each supplier has its own subdirectory inside the contrib where
-       he can put new stuff.
-       Note that this is NOT a development area.
 readme: part of the internal section.
        Documents needed for maintaining the WH.
 data: the data section.
@@ -107,10 +101,7 @@ Procedures
 Become a supplier
 -----------------
 
-The steps to take to become a WH supplier are;
- - (ask the WH-manager to) create a new directory in the contrib section
- - add it to CVS
-
+Read this document and stick to the rules.
 (easy, isn't it)
 
 Adding new stuff
@@ -119,8 +110,9 @@ Adding new stuff
 The steps for adding new stuff to the WH are:
 
 For the supplier:
- - copy the item and the required documentation to your section of 'contrib',
- - notify the WH-manager,
+ - put the item and the required documentation in a place where the
+   WH-manager can reach it,
+ - notify the WH-manager.
 
 For the WH-manager:
  - check if all required documentation is present,
@@ -134,9 +126,6 @@ For the WH-manager:
  - if reported FAIL
    - notify supplier,
  - if reported OK
-   - notidy supplier
+   - notify supplier
    - put in data section
    - add to CVS
-
-For the supplier:
- - clean-up contrib section - also in case of FAIL!
