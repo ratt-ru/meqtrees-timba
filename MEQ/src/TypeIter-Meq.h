@@ -5,16 +5,7 @@
 
 
 
-#define DoForAllOtherTypes_Meq(Do,arg,separator) \
-        
-
 #define DoForAllBinaryTypes_Meq(Do,arg,separator) \
-        
-
-#define DoForAllSpecialTypes_Meq(Do,arg,separator) \
-        
-
-#define DoForAllIntermediateTypes_Meq(Do,arg,separator) \
         
 
 #define DoForAllDynamicTypes_Meq(Do,arg,separator) \
@@ -45,6 +36,7 @@
         Do(Meq::ToComplex,arg) separator \
         Do(Meq::UVW,arg) separator \
         Do(Meq::Request,arg) separator \
+        Do(Meq::ModRes,arg) separator \
         Do(Meq::Condeq,arg) separator \
         Do(Meq::Solver,arg) separator \
         Do(Meq::ZeroFlagger,arg) separator \
@@ -53,5 +45,14 @@
         Do(Meq::ReqMux,arg)
 
 #define DoForAllNumericTypes_Meq(Do,arg,separator) \
+        
+
+#define DoForAllIntermediateTypes_Meq(Do,arg,separator) \
+        
+
+#define DoForAllOtherTypes_Meq(Do,arg,separator) \
+        
+
+#define DoForAllSpecialTypes_Meq(Do,arg,separator) \
         
 #endif

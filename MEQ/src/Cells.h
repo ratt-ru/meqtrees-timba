@@ -40,6 +40,13 @@ namespace Meq {
 class Cells : public DataRecord
 {
 public:
+  typedef enum {
+    NONE        = 0,
+    SET_NCELLS  = 1,
+    INTEGRATE   = 2,
+    UPSAMPLE    = 3
+  } CellsOperations;
+    
     //##ModelId=400E53030256
   typedef CountedRef<Cells> Ref;
     
@@ -54,6 +61,14 @@ public:
     //## constructs uniformly-spaced cells with the given number of frequencies
     //## and times
   Cells (const Domain& domain,int nfreq,int ntimes);
+
+  // creates a resampling combining cells a and b. If resample>0, upsamples
+  // the lower resolution. If resample<0, integrates the higher resolution.
+  Cells (const Cells &a,const Cells &b,int resample);
+  
+  // creates a resampling of a Cells. op[] is an array of operations on each
+  // axis (see the CellsOperations enums above), arg[] is an array of arguments
+  Cells (const Cells &other,const int op[DOMAIN_NAXES],const int arg[DOMAIN_NAXES]);
   
     //##ModelId=3F86886E02D1
   ~Cells();
@@ -157,6 +172,12 @@ public:
   // refreshes envelope domain. Should be always be called after setCells
   void recomputeDomain ();
 
+  // method used to compare cells & resolutions
+  // returns:  0 if cells are the same
+  //          >0 if domains match but resolutions are different
+  //          <0 if domains do not match
+  int compare (const Cells &that) const;
+  
     //##ModelId=400E530403DE
   bool operator== (const Cells& that) const;
 

@@ -30,8 +30,10 @@ using Debug::ssprintf;
 
 //##ModelId=3F86886E03C5
 Function::Function()
-  : enable_flags_(true)
-{}
+  : enable_flags_(true),force_integrated_(false)
+{
+  setAutoResample(RESAMPLE_FAIL);
+}
 
 //##ModelId=3F86886E03D1
 Function::~Function()
@@ -130,7 +132,9 @@ void Function::testChildren (const vector<TypeId>& types) const
 void Function::setStateImpl (DataRecord &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
-  // get [vector of] flag mask
+  // check if we have an explicit integrated property for result
+  force_integrated_ = rec[FIntegrated].get(integrated_);
+  // get [vector of] flag masks
   vector<int> fm;
   if( rec[FFlagMask].get_vector(fm) )
   {
@@ -162,16 +166,26 @@ int Function::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &childres,
                          const Request &request,bool)
 {
-  // figure out the max number of child planes, and check for consistency
-  // w.r.t. number of perturbation sets
   int nrch = numChildren();
   Assert(nrch>0);
   Assert(flagmask_.empty() || flagmask_.size() == childres.size());
-  int nplanes = childres[0]->numVellSets();
+  // check that resolution match, or if they should be upsampled or
+  // downsampled, figure out the max number of child planes, figure out 
+  // if result should be marked as integrated
+  int nplanes = childres[0]->numVellSets();   // max # of planes in children
+  bool integr = childres[0]->isIntegrated();  // flag: is any child integrated
   for( int i=1; i<nrch; i++ )
+  {
     nplanes = std::max(nplanes,childres[i]->numVellSets());
+    integr |= childres[i]->isIntegrated();
+  }
+  // override the integrated flag if the state record provides one
+  if( force_integrated_ )
+    integr = integrated_;
   // Create result and attach to the ref that was passed in
-  Result & result = resref <<= new Result(request,nplanes);
+  Result & result = resref <<= new Result(request,nplanes,integr);
+  // Use cells of first child (they all must be the same anyway)
+  result.setCells(childres[0]->cells());
   vector<const VellSet*> child_vs(nrch);
   vector<const Vells*>  values(nrch);
   int nfails = 0;

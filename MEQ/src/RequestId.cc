@@ -43,6 +43,9 @@ bool Meq::maskedCompare (const RequestId &id1,const RequestId &id2,int mask)
   // null mask: comparison always succeeds
   if( !mask )
     return true;
+  // null id always fails comparison
+  if( id1.empty() || id2.empty() )
+    return false;
   // start comparing from end of each ID
   HIID::const_reverse_iterator iter1 = id1.rbegin();
   HIID::const_reverse_iterator iter2 = id2.rbegin();

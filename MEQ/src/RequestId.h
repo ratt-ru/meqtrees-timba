@@ -2,33 +2,32 @@
 #define MeqSERVER_SRC_REQUESTID_H_HEADER_INCLUDED
     
 #include <DMI/HIID.h>
-
-namespace Meq {   
-
+    
+namespace Meq {
+  
 // -----------------------------------------------------------------------
-// dependency flags
+// dependency flags and symbolic dependencies
 // -----------------------------------------------------------------------
 
+//##Documentation
+//## define a default set of dependency masks for nodes that generate
+//## requests. These may be overridden via node state
 typedef enum
 {
   RQIDM_VALUE       = 0x0001,
-  RQIDM_CONFIG      = 0x0002,
-  RQIDM_RESOLUTION  = 0x0004,
-  RQIDM_DOMAIN_0    = 0x0008,
-  RQIDM_DOMAIN_FULL = 0xFFF8,
+  RQIDM_RESOLUTION  = 0x0002,
+  RQIDM_DOMAIN      = 0x0010,
+  RQIDM_DATASET     = 0x0020,
   
-  // cells mask is alias for domain + resolution
-  RQIDM_CELLS       = RQIDM_DOMAIN_FULL|RQIDM_RESOLUTION,
-      
   RQIDM_NBITS       = 16
 } RequestIdMasks;
   
-// RequestId
+//##Documentation
+//## The request ID is basically a HIID of length up to RQIDM_NBITS. Each 
+//## index of an rqid maps onto one bit of the rqid mask, starting with 
+//## the _last_ index. 
 typedef HIID RequestId;
 
-// The request ID is basically a HIID of length up to RQIDM_NBITS. Each 
-// index of an rqid maps onto one bit of the rqid mask, starting with 
-// the _last_ index. 
 
 // -----------------------------------------------------------------------
 // maskSubId()
@@ -52,7 +51,7 @@ inline RequestId incrSubId (const RequestId &rqid,int mask)
 // -----------------------------------------------------------------------
 // maskedCompare()
 // Compares two IDs using a mask -- i.e., only indices with a 1 maskbit
-// are compared
+// are compared. Returns true if the IDs match
 // -----------------------------------------------------------------------
 bool maskedCompare (const RequestId &a,const RequestId &b,int mask);
 

@@ -61,8 +61,7 @@ public:
 
   // Create a time,frequency domain.
     //##ModelId=3F95060C00A7
-  Domain (double startFreq, double endFreq,
-	        double startTime, double endTime);
+  Domain (double x1,double x2,double y1,double y2);
 
     //##ModelId=400E530500F5
   virtual TypeId objectType () const
@@ -74,32 +73,10 @@ public:
   { return new Domain(*this,flags|(depth>0?DMI::DEEP:0)); }
   
   // validate record contents and setup shortcuts to them. This is called 
-  // automatically whenever a Domain is made from a DataField
-  // (or when the underlying DataField is privatized, etc.)
+  // automatically whenever a Domain is made from a DataRecord
+  // (or when the underlying DataRecord is privatized, etc.)
     //##ModelId=400E5305010B
   virtual void validateContent ();
-  
-//   // Get offset and scale value.
-//     //##ModelId=3F86886E0316
-//   double offsetFreq() const
-//     { return itsOffsetFreq; }
-//     //##ModelId=3F86886E0318
-//   double scaleFreq() const
-//     { return itsScaleFreq; }
-//     //##ModelId=3F86886E031A
-//   double offsetTime() const
-//     { return itsOffsetTime; }
-//     //##ModelId=3F86886E031C
-//   double scaleTime() const
-//     { return itsScaleTime; }
-// 
-//   // Transform a value to its normalized value.
-//     //##ModelId=3F86886E031F
-//   double normalizeFreq (double value) const
-//     { return (value - itsOffsetFreq) / itsScaleFreq; }
-//     //##ModelId=3F86886E0324
-//   double normalizeTime (double value) const
-//     { return (value - itsOffsetTime) / itsScaleTime; }
 
   double start (int iaxis) const
   {
@@ -112,20 +89,6 @@ public:
     DbgFailWhen(iaxis<0 || iaxis>=DOMAIN_NAXES,"illegal axis argument");
     return range_[iaxis][1];
   }
-
-//   // Get the start, end, and step of the domain.
-//     //##ModelId=3F86886E032C
-//   double startFreq() const
-//     { return range_[FREQ][0]; }
-//     //##ModelId=3F86886E032E
-//   double endFreq() const
-//     { return range_[FREQ][1]; }
-//     //##ModelId=3F86886E0330
-//   double startTime() const
-//     { return range_[TIME][0]; }
-//     //##ModelId=3F86886E0332
-//   double endTime() const
-//     { return range_[TIME][1]; }
 
     //##ModelId=400E5305010E
   bool operator== (const Domain& that) const

@@ -62,6 +62,7 @@ const HIID & OptionalColumns::optColFieldId (uint icol)
 VellSet::VellSet (const LoShape2 &shp,int nspid,int nset)
 : default_pert_ (0.),
   pset_         (nset),
+  shape_        (0,0),
   spids_        (0),
   numspids_     (nspid),
   is_fail_      (false)
@@ -524,6 +525,7 @@ void VellSet::setPerturbedValue (int i,const Vells::Ref::Xfer &vref,int iset)
   else
     ps.pertval_field().put(i,&( ref->getDataArray() ),DMI::READONLY);
 }
+
 
 //##ModelId=400E53550393
 void VellSet::addFail (const DataRecord *rec,int flags)

@@ -49,16 +49,18 @@ public:
   // ------------------------ CONSTRUCTORS
   // Create a Result with the given number of vellsets.
   // If <0, then the set is marked as a fail
+  // The integrated flag specifies whether the result is an integration
+  // over the specified cells, or a sampling at the cell center.  
     //##ModelId=3F86887000CE
-  explicit Result (int nresults=1);
+  explicit Result (int nresults=1,bool integrated=false);
   
     //##ModelId=3F8688700151
-  explicit Result (const Request &req);
+  explicit Result (const Request &req,bool integrated=false);
   
     //##ModelId=400E535500F5
-  Result (int nresults,const Request &req);
+  Result (int nresults,const Request &req,bool integrated=false);
     //##ModelId=400E53550105
-  Result (const Request &req,int nresults);
+  Result (const Request &req,int nresults,bool integrated=false);
   
   // Construct from DataRecord. 
     //##ModelId=400E53550116
@@ -105,6 +107,20 @@ public:
   const Cells& cells() const
   { DbgFailWhen(!itsCells,"no cells in Meq::Result");
     return *itsCells; }
+    
+  // ------------------------ INTEGRATED property
+  // this is set at construction time
+  bool isIntegrated () const
+  { return itsIsIntegrated; }
+  
+  // integrates all VellSets (multiplies values by cell size)
+  // if integrate=true, does nothing
+  void integrate (bool reverse=false);
+  
+  // differentiates all VellSets (divides values by cell size)
+  // if integrate=false, does nothing
+  void differentiate ()
+  { integrate(true); }
 
   // ------------------------ VELLSETS
     //##ModelId=400E5355017B
@@ -176,6 +192,9 @@ protected:
   DataRecord::removeField;
   
 private:
+  // sets the integrated property, including underlying record
+  void setIsIntegrated (bool integrated);
+    
   // helper function: privatizes the itsVellSets field for writing if 
   // needed, dereferences
   DataField &     wrVellSets ();
@@ -184,6 +203,8 @@ private:
   DataField::Ref  itsVellSets;
     //##ModelId=3F86BFF802B0
   const Cells    *itsCells;
+  
+  bool            itsIsIntegrated;
 };
 
 

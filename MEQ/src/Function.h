@@ -138,6 +138,11 @@ private:
     //##ModelId=3F86886E03A4
   vector<Node*> itsChildren;
 
+  bool force_integrated_;
+  
+  bool integrated_;
+  
+  int auto_resampling_;
 };
 
 

@@ -99,8 +99,13 @@ my $cmd = "(cd $global_listdir && cvs update $global_listfile)";
 print STDERR "    Running: $cmd\n";
 system "$cmd";
 $exit_value = $?>>8;
-$exit_value == 0 or die "The cvs update command failed with exit code $exit_value";
-print STDERR "    Looks like the cvs update succeeded\n";
+if( $exit_value ) {
+  $update_failed = "(cvs update: $exit_value)";
+  print STDERR "    Update failed ($exit_value), proceeding anyway\n";
+  # $exit_value == 0 or die "The cvs update command failed with exit code $exit_value";
+} else {
+  print STDERR "    Looks like the cvs update succeeded\n";
+}
 
 #
 # Define various handy functions for file processing
@@ -389,8 +394,13 @@ if( @newids )
     print STDERR "    Running: $cmd\n";
     system "$cmd";
     $exit_value = $?>>8;
-    $exit_value == 0 or die "The cvs commit command failed with exit code $exit_value";
-    print STDERR "    Looks like the cvs commit succeeded\n";
+    if( $exit_value ) {
+      $update_failed .= "(cvs commit: $exit_value)";
+      print STDERR "    Commit failed ($exit_value), proceeding anyway\n";
+#    $exit_value == 0 or die "The cvs commit command failed with exit code $exit_value";
+    } else {
+      print STDERR "    Looks like the cvs commit succeeded\n";
+    }
   }
 }
   
@@ -636,3 +646,12 @@ ______END_OF_QUOTE
   ReplaceIfDiff($path,"$path.new");
 }
 
+if( $update_failed )
+{
+   print STDERR "====== WARNING ============================================\n";
+   print STDERR "=== It looks like a cvs update or commit has failed:\n";
+   print STDERR "=== $update_failed\n";
+   print STDERR "=== You will need to re-run this command when the cvs server\n";
+   print STDERR "=== is on-line in order to finalize the ID assignments.\n";
+   print STDERR "============================================================\n";
+}

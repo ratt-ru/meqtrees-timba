@@ -59,6 +59,8 @@ BlockableObject * __construct_MeqToComplex (int n) { return n>0 ? new Meq::ToCom
 BlockableObject * __construct_MeqUVW (int n) { return n>0 ? new Meq::UVW [n] : new Meq::UVW; }
 #include "Request.h"
 BlockableObject * __construct_MeqRequest (int n) { return n>0 ? new Meq::Request [n] : new Meq::Request; }
+#include "ModRes.h"
+BlockableObject * __construct_MeqModRes (int n) { return n>0 ? new Meq::ModRes [n] : new Meq::ModRes; }
 #include "Condeq.h"
 BlockableObject * __construct_MeqCondeq (int n) { return n>0 ? new Meq::Condeq [n] : new Meq::Condeq; }
 #include "Solver.h"
@@ -99,6 +101,8 @@ BlockableObject * __construct_MeqReqMux (int n) { return n>0 ? new Meq::ReqMux [
         AtomicID::registerId(-1179,"resolution")+
         AtomicID::registerId(-1445,"depend")+
         AtomicID::registerId(-1287,"mask")+
+        AtomicID::registerId(-1446,"resample")+
+        AtomicID::registerId(-1160,"integrated")+
         AtomicID::registerId(-1247,"cells")+
         AtomicID::registerId(-1213,"domain")+
         AtomicID::registerId(-1128,"freq")+
@@ -190,6 +194,17 @@ BlockableObject * __construct_MeqReqMux (int n) { return n>0 ? new Meq::ReqMux [
         AtomicID::registerId(-1242,"meqnode")+
         TypeInfoReg::addToRegistry(-1242,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1242,__construct_MeqNode)+
+        AtomicID::registerId(-1451,"known")+
+        AtomicID::registerId(-1453,"active")+
+        AtomicID::registerId(-1458,"gen")+
+        AtomicID::registerId(-1456,"dep")+
+        AtomicID::registerId(-1457,"deps")+
+        AtomicID::registerId(-1455,"symdep")+
+        AtomicID::registerId(-1450,"symdeps")+
+        AtomicID::registerId(-1454,"masks")+
+        AtomicID::registerId(-1452,"dataset")+
+        AtomicID::registerId(-1331,"resolve")+
+        AtomicID::registerId(-1091,"init")+
         AtomicID::registerId(-1216,"meqfunction")+
         TypeInfoReg::addToRegistry(-1216,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1216,__construct_MeqFunction)+
@@ -258,6 +273,10 @@ BlockableObject * __construct_MeqReqMux (int n) { return n>0 ? new Meq::ReqMux [
         AtomicID::registerId(-1222,"meqrequest")+
         TypeInfoReg::addToRegistry(-1222,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1222,__construct_MeqRequest)+
+        AtomicID::registerId(-1447,"meqmodres")+
+        TypeInfoReg::addToRegistry(-1447,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1447,__construct_MeqModRes)+
+        AtomicID::registerId(-1448,"factor")+
         AtomicID::registerId(-1365,"meqcondeq")+
         TypeInfoReg::addToRegistry(-1365,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1365,__construct_MeqCondeq)+

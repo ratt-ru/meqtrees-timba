@@ -48,13 +48,15 @@ public:
     //##ModelId=3F8688700056
   Request ();
     
-  // Construct from DataRecord 
     //##ModelId=3F8688700061
+  //##Documentation
+  //## Construct from DataRecord 
   Request (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
   
-  // Create the request from the cells for which the expression has
-  // to be calculated. Optionally no derivatives are calculated.
     //##ModelId=400E535403DD
+  //##Documentation
+  //## Create the request from the cells for which the expression has
+  //## to be calculated. Optionally no derivatives are calculated.
   explicit Request (const Cells&, int calcDeriv=1, const HIID &id=HIID(),int cellflags=DMI::EXTERNAL|DMI::NONSTRICT);
   
     //##ModelId=400E53550016
@@ -64,70 +66,78 @@ public:
   virtual TypeId objectType () const
   { return TpMeqRequest; }
   
-//   // implement standard clone method via copy constructor
     //##ModelId=400E53550038
+   //##Documentation
+   //## implement standard clone method via copy constructor
   virtual CountedRefTarget* clone (int flags, int depth) const
   { return new Request(*this,flags,depth); }
   
-  // validate record contents and setup shortcuts to them. This is called 
-  // automatically whenever a Request is made from a DataRecord
-  // (or when the underlying DataRecord is privatized, etc.)
     //##ModelId=400E53550049
+  //##Documentation
+  //## validate record contents and setup shortcuts to them. This is called 
+  //## automatically whenever a Request is made from a DataRecord
+  //## (or when the underlying DataRecord is privatized, etc.)
   virtual void validateContent ();
   
     //##ModelId=400E5355004C
   virtual int remove (const HIID &);
   
-  // Calculate derivatives? 0 for none, 1 for standard, 2 for double-deriv
     //##ModelId=3F868870006C
+  //##Documentation
+  //## Calculate derivatives? 0 for none, 1 for standard, 2 for double-deriv
   int calcDeriv() const
-  { return itsCalcDeriv; }
+  { return calcDeriv_; }
   
   void setCalcDeriv (int calc);
 
+    //##ModelId=3F868870006E
+  //##Documentation
   // Attaches cells object (default as anon). Can also specify DMI::CLONE
   // to copy
-    //##ModelId=3F868870006E
   void setCells (const Cells *,int flags = DMI::ANON|DMI::NONSTRICT);
-  // Attaches cells object (default is external). 
     //##ModelId=400E53550065
+  //##Documentation
+  //## Attaches cells object (default is external). 
   void setCells (const Cells &cells,int flags = DMI::EXTERNAL|DMI::NONSTRICT)
   { setCells(&cells,flags); }
-  // True if a cells object is attached
     //##ModelId=400E53550076
+  //##Documentation
+  //## True if a cells object is attached
   bool hasCells () const
-  { return itsCells; }
-  // Returns cells
+  { return cells_; }
     //##ModelId=3F8688700073
+  //##Documentation
+  //## Returns cells
   const Cells& cells() const
-  { DbgFailWhen(!itsCells,"no cells in Meq::Request");
-    return *itsCells; }
+  { DbgFailWhen(!cells_,"no cells in Meq::Request");
+    return *cells_; }
   
-  // Set the request id.
     //##ModelId=3F8688700075
+  //##Documentation
+  //## Set the request id.
   void setId (const HIID &id);
 
-  // Get the request id.
-    //##ModelId=400E5355007E
+  //##ModelId=400E5355007E
+  //##Documentation
+  //## Get the request id.
   const HIID & id() const
-  { return itsId; }
+  { return id_; }
   
-  // does this request have a rider field?
+  //##Documentation
+  //## does this request have a rider field?
   bool hasRider () const
   { return hasRider_; }
 
-  // re-checks itself for a rider record, sets the hasRider flag.
-  // should be called after an app has changed the rider
+  //##Documentation
+  //## re-checks elf_ for a rider record, sets the hasRider flag.
+  //## should be called after an app has changed the rider
   void validateRider ();
     
-  // processes rider and calls node.setState() and node.processCommand()
-  // as appropriate
-  void processRider (Node &node) const;
-
 protected: 
-  // disable public access to some DataRecord methods that would violate the
-  // structure of the container
     //##ModelId=400E5354039C
+  //##Documentation
+  //## disable public access to some DataRecord methods that would violate the
+  //## structure of the container
   DataRecord::remove;
     //##ModelId=400E535403A4
   DataRecord::replace;
@@ -136,11 +146,11 @@ protected:
   
 private:
     //##ModelId=400E535403B3
-  HIID   itsId;
+  HIID   id_;
     //##ModelId=3F868870003C
-  int    itsCalcDeriv;
+  int    calcDeriv_;
     //##ModelId=3F86BFF80269
-  const  Cells* itsCells;
+  const  Cells* cells_;
   
   bool   hasRider_;
 };

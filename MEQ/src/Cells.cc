@@ -58,7 +58,7 @@ Cells::Cells (const Domain& domain,int nfreq,int ntime)
 {
   // setup datarecord
   // domain
-  (*this)[FDomain] <<= domain_ = new Domain(domain);
+  (*this)[FDomain] <<= domain_ = (domain.refCount() ? &domain : new Domain(domain));
   // grid subrecord
   DataRecord &grid = (*this)[FGrid] <<= new DataRecord;
   setRecVector(grid_[0],grid[axisId(FREQ)],nfreq);
@@ -89,6 +89,127 @@ Cells::Cells (const Domain& domain,int nfreq,int ntime)
     // use 1 uniform segment
     seg_start_[iaxis](0) = 0;
     seg_end_[iaxis](0)   = nx-1;
+  }
+}
+
+// creates a combination of the two grids, depending on resample>0
+// (uses higher-sampled grid) or <0 (uses lower-sampled grid)
+Cells::Cells (const Cells &a,const Cells &b,int resample)
+{
+  // setup datarecord
+  // domain
+  DbgAssert(*(a.domain_) != *(b.domain_));
+  (*this)[FDomain] <<= domain_ = a.domain_;
+  // subrecords
+  DataRecord &grid = (*this)[FGrid] <<= new DataRecord;
+  DataRecord &cellsize = (*this)[FCellSize] <<= new DataRecord;
+  DataRecord &segments = (*this)[FSegments] <<= new DataRecord;
+  // ***BUG*** here, we simply assume everything (cell positions, sizes)
+  // match up, and treat one cells as an integration or upsampling of
+  // the other
+  for( int i=0; i<DOMAIN_NAXES; i++ )
+  {
+    const Cells &c = (a.ncells(i) > b.ncells(i)) ^ (resample>0) ? b : a;
+    int nc = c.ncells(i);
+    setRecVector(grid_[i],grid[axisId(i)],nc);
+    grid_[i] = c.grid_[i];
+    // cell size subrecord
+    setRecVector(cell_size_[i],cellsize[axisId(i)],nc);
+    cell_size_[i] = c.cell_size_[i];
+    // segments subrecord
+    DataRecord &seg = segments[axisId(i)] <<= new DataRecord;
+    int nseg = c.numSegments(i);
+    setRecVector(seg_start_[i],seg[FStartIndex],nseg);
+    setRecVector(seg_end_[i],seg[FEndIndex],nseg);
+    seg_start_[i] = c.seg_start_[i];
+    seg_end_[i]  = c.seg_end_[i];
+  }
+}
+
+Cells::Cells (const Cells &other,const int ops[DOMAIN_NAXES],const int args[DOMAIN_NAXES])
+{
+  // setup datarecord
+  // domain
+  (*this)[FDomain] <<= domain_ = other.domain_;
+  // subrecords
+  DataRecord &grid = (*this)[FGrid] <<= new DataRecord;
+  DataRecord &cellsize = (*this)[FCellSize] <<= new DataRecord;
+  DataRecord &segments = (*this)[FSegments] <<= new DataRecord;
+  for( int iaxis=0; iaxis<DOMAIN_NAXES; iaxis++ )
+  {
+    int op=ops[iaxis],arg=args[iaxis];
+    int nc0 = other.ncells(iaxis);
+    // ***BUG*** we only handle integartion/upsampling by integer factors,
+    // SET_NCELLS is thus mapped to one of these operations
+    if( op == SET_NCELLS )
+    {
+      if( arg == nc0 ) // same # of cells: no op
+        op = NONE;
+      else if( arg>nc0 ) // more cells: assume upsampling
+      {
+        FailWhen(arg%nc0,"must upsample by an integer factor");
+        arg = arg/nc0;
+        op  = UPSAMPLE;
+      }
+      else // less cells: assume integrating
+      {
+        FailWhen(nc0%arg,"must upsample by an integer factor");
+        arg = nc0/arg;
+        op  = INTEGRATE;
+      }
+    }
+    // now, do the real operation
+    const LoVec_double &grid0 = other.grid_[iaxis],
+                       &csz0 = other.cell_size_[iaxis];
+    if( op == NONE ) // no op: simply copy the grid
+    {
+      setRecVector(grid_[iaxis],grid[axisId(iaxis)],nc0);
+      setRecVector(cell_size_[iaxis],grid[axisId(iaxis)],nc0);
+      grid_[iaxis] = grid0;
+      cell_size_[iaxis] = csz0;
+      // copy over segments info
+      DataRecord &seg = segments[axisId(iaxis)] <<= new DataRecord;
+      int nseg = other.numSegments(iaxis);
+      setRecVector(seg_start_[iaxis],seg[FStartIndex],nseg);
+      setRecVector(seg_end_[iaxis],seg[FEndIndex],nseg);
+      seg_start_[iaxis] = other.seg_start_[iaxis];
+      seg_end_[iaxis]  = other.seg_end_[iaxis];
+    } 
+    else if( op == INTEGRATE )
+    {
+      int nc1 = nc0/arg;
+      setRecVector(grid_[iaxis],grid[axisId(iaxis)],nc1);
+      setRecVector(cell_size_[iaxis],grid[axisId(iaxis)],nc1);
+      int i00=0,i01=arg-1; // original cells [i00:i01] become single cell [iaxis]
+      for( int i1=0; i1<nc1; i1++,i00+=arg,i01+=arg )
+      {
+        double a = grid0(i00)-csz0(i00)/2,
+               b = grid0(i01)+csz0(i01)/2;
+        grid_[iaxis](i1) = (a+b)/2;
+        cell_size_[iaxis](i1) = b-a;
+      }
+    }
+    else if( op == UPSAMPLE )
+    {
+      int nc1 = nc0*arg;
+      setRecVector(grid_[iaxis],grid[axisId(iaxis)],nc1);
+      setRecVector(cell_size_[iaxis],grid[axisId(iaxis)],nc1);
+      int i1=0;
+      for( int i0=0; i0<nc0; i0++ )
+      {
+        double a = grid0(i0)-csz0(i0)/2,
+               b = grid0(i0)+csz0(i0)/2; // original cell is [a,b]
+        double sz = (b-a)/arg,           // size of upsampled cell
+               x1 = a + sz/2;            // centrel of first subcell
+        for( int j=0; j<arg; j++,i1++ )
+        {
+          grid_[iaxis](i1) = x1;  x1 += sz;
+          cell_size_[iaxis](i1) = sz;
+        }
+      }
+    }
+    // after all this, recompute segments in the new grid
+    recomputeSegments(iaxis);
   }
 }
 
@@ -150,37 +271,45 @@ void Cells::recomputeSegments (int iaxis)
   using std::fabs;
   Assert(iaxis>=0 && iaxis<DOMAIN_NAXES);
   int num = grid_[iaxis].size();
-  // less than 3 points: always regular, assign single segment
-  if( num<3 )
+  // 1 point: always regular, assign single segment
+  if( num<2 )
   {
     setNumSegments(iaxis,1);
     seg_start_[iaxis](0) = 0;
     seg_end_[iaxis]  (0) = num-1;
   }
-  // 3 points or more: work out segments
+  // 2 points or more: work out segments
   else
   {
     const LoVec_double &x = grid_[iaxis];
-    // epsilon value used to compare steps for near-equality
-    double epsilon = fabs(x(0) - x(num-1))*1e-6;
+    const LoVec_double &h = cell_size_[iaxis];
+    // epsilon value used to compare for near-equality
+    double epsilon = fabs(x(0) - x(num-1))*1e-10;
     
     LoVec_int start(num),end(num);
-    start(0)=0; end(0)=1;
-    int   iseg = 0;
-    double dx0 = x(1)-x(0);
-    for( int i=2; i<num; i++ )
+    start(0)=0; end(0)=0;
+    int iseg = 0;
+    double dx0;
+    double h0  = h(0);
+    bool in_segment = false;
+    for( int i=1; i<num; i++ )
     {
       double dx = x(i) - x(i-1);
-      // if in the middle of segment and step changes, start anew
-      if( end(iseg) != start(iseg) && fabs(dx-dx0)>epsilon )
+      double h1 = h(i);
+      // if step or size changes, start anew
+      if( ( in_segment && fabs(dx-dx0)>epsilon )
+          || fabs(h1-h0)>epsilon )
       {
         iseg++;
         start(iseg) = end(iseg) = i;
+        in_segment = false;
+        h0 = h1;
       }
       else // else extend current segment
       {
         dx0 = dx;
         end(iseg) = i;
+        in_segment = true;
       }
     }
     // store the segment indices
@@ -275,26 +404,39 @@ void Cells::getCellStartEnd (LoVec_double &start,LoVec_double &end,int iaxis) co
   end   = cen + hw;
 }
 
+int Cells::compare (const Cells &that) const
+{
+  if( domain_ == 0 ) // are we empty?
+    return that.domain_ == 0 ? 0 : -1; // equal if that is empty too, else not
+  // check for equality of domains & shapes
+  if( that.domain_ == 0 || 
+      domain() != that.domain() )
+    return -1; 
+  if( shape() != that.shape() )
+    return 1;
+  // ***BUG***
+  // assume if shapes match, then we have the same grid
+  // in the future we must be more intelligent, and compare grids and such
+  return 0;
+}
+
 //##ModelId=400E530403DE
 bool Cells::operator== (const Cells& that) const
 {
   if( domain_ == 0 ) // are we empty?
     return that.domain_ == 0; // equal if that is empty too, else not
-  else // not empty
-  {
-    // check for equality of domains & shapes
-    if( that.domain_ == 0 || 
-        domain() != that.domain() || 
-        shape() != that.shape() )
+  // check for equality of domains & shapes
+  if( that.domain_ == 0 || 
+      domain() != that.domain() || 
+      shape() != that.shape() )
+    return false;
+  // check axes one by one
+  for( int i=0; i<DOMAIN_NAXES; i++ )
+    if( any( center(i) != that.center(i) ) ||
+        any( cellSize(i) != that.cellSize(i) ) )
       return false;
-    // check axes one by one
-    for( int i=0; i<DOMAIN_NAXES; i++ )
-      if( any( center(i) != that.center(i) ) ||
-          any( cellSize(i) != that.cellSize(i) ) )
-        return false;
-    // everything compared successfully
-    return true;
-  }
+  // everything compared successfully
+  return true;
 }
 
 //##ModelId=400E5305000E

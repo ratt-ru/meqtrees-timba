@@ -29,7 +29,7 @@
 #pragma aidgroup Meq
 #pragma aid Node Class Name State Child Children Request Result VellSet 
 #pragma aid Rider Command Id Group Add Update Value Values Solve Solver
-#pragma aid Dependency Resolution Depend Mask
+#pragma aid Dependency Resolution Depend Mask Resample Integrated
 #pragma aid Cells Domain Freq Time Calc Deriv Vells VellSets Flags Weights
 #pragma aid Shape Grid Cell Size Segments Start End Steps
 #pragma aid NodeIndex Table Name Default Index Num Cache Code 
@@ -64,10 +64,11 @@ namespace Meq
     FName               = AidName,
     FNodeIndex          = AidNodeIndex,
     FNodeGroups         = AidNode|AidGroups,
-    FDependMask         = AidDepend|AidMask,
+//    FDependMask         = AidDepend|AidMask,
+    FAutoResample       = AidAuto|AidResample, 
     
     // Request rider fields (for commands)
-    FAll                = AidAll,
+//    FAll                = AidAll,
     FCommandAll         = AidCommand|AidAll,
     FCommandByNodeIndex = AidCommand|AidBy|AidNodeIndex,
     FCommandByList      = AidCommand|AidBy|AidList,
@@ -95,8 +96,6 @@ namespace Meq
     FDomainId        = AidDomain|AidId,
     FSolveDomainId   = AidSolve|AidDomain|AidId,
     
-    FSolveDependMask  = AidSolve|AidDepend|AidMask,
-    FDomainDependMask = AidDomain|AidDepend|AidMask,
     
     // FDomain      defined previously
     FSolveDomain     = AidSolve|AidDomain,
@@ -123,6 +122,7 @@ namespace Meq
     
     // VellSet fields
     FShape           = AidShape,
+    FIntegrated      = AidIntegrated, 
     FValue           = AidValue,
     FFlags           = AidFlags,
     FWeights         = AidWeights,
@@ -146,6 +146,12 @@ namespace Meq
     FInvertMatrix    = AidInvert|AidMatrix,
     FNumIter         = AidNum|AidIter,
     // FSavePolcs already defined above
+
+    FSolveDependMask   = AidSolve|AidDepend|AidMask,
+    FDomainDependMask  = AidDomain|AidDepend|AidMask,
+    FSolveSymDeps      = AidSolve|AidSymdeps,
+    FDomainSymDeps     = AidDomain|AidSymdeps,
+
     
     // Flag handling fields
     FFlagMask        = AidFlag|AidMask,

@@ -114,8 +114,7 @@ meetings. The document is available via CVS at
 
   \begin{description}
   
-  \item[\qq{meq.domain()}] creates a Domain object (actually a vector
-    of four doubles: $f_1,f_2,t_1,t_2$.)
+   \item[\qq{meq.domain()}] creates a Domain object (record).
 
   \item[\qq{meq.cells()}] creates a Cells object (record).
 
@@ -289,23 +288,19 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   
   Note the virtual \qq{checkInitState()} method is called from
   \qq{Node::init()}. This is meant to check the init record for required
-  fields, and fill in any missing defaults. The following two macros/inlines
-  (defined in \qq{Node}) are handy for this:
-
-  \begin{itemize}
-  
-  \item \qq{requiresInitField(record,field)} will throw an exception if the
-    field is missing.
-
-  \item \qq{defaultInitField(record,field,deflt)} will insert a default value
-    for a field if it is missing.
-
-  \end{itemize}
+  fields. The \qq{requiresInitField(record,field)} macro/inline (defined in
+  \qq{Node}) is handy for this; it will throw a standard exception if the
+  specified field is missing. 
   
   The base \qq{Node::checkInitState()} only fills in a default for \qq{.name}
   (empty). A derived \qq{checkInitState()} should call the parent version, then
   check for additional defaults and required fields as defined by the child
   class.
+  
+  Note that child classes can also ignore \qq{checkInitState()}, and instead use
+  the \qq{initializing} parameter of \qq{setStateImpl()} to determine when
+  the node is being initialized, and check for missing fields and/or fill in
+  defaults as apporpriate.
 
 \subsubsection{setState() and setStateImpl()}
 
@@ -340,46 +335,57 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   remain usable.
 
   The virtual \qq{setNodeState()} method is responsible for changing dynamic
-  state. It should do the following:
+  state. It receives two arguments: a \qq{newst} record, and a boolean called
+  \qq{initializing}. The latter is \qq{true}, the node is being initialized --
+  in this case \qq{newst} is the complete initial state record. If it is
+  \qq{false}, \qq{newst} contains only those state fields that are being
+  changed. Normally, the method should do the following:
 
 \begin{enumerate}
 
-  \item If the \qq{initializing} flag is not set, check the record for
+  \item If the \qq{initializing} is \qq{false}, check the record for
     ``forbidden'' fields, i.e., attempts to modify static state. Throw a
     \qq{FailWithoutCleanup} if any are present. The
     \qq{protectStateField(record,field)}  macro/inline is a convenient way to
     do this.
+    
+  \item Call the parent \qq{setStateImpl()}.
 
-  \item Call the parent \qq{setStateImpl()}, which will check for forbidden fields and 
-    change dynamic state defined at the parent class level.
+  \item As an alternative to overriding \qq{checkInitState()}, if
+    \qq{initializing} is \qq{true}, check for missing fields and/or fill in
+    defaults.
+
+  \item Parse the record and modify internal state relevant to the child class.
+    Note that the standard DMI hook method \qq{get()} is very handy for doing
+    this operation, combined with the previous one:
     
-  \item Parse the record and modify state defined at the child class level.
+    \begin{verbatim}
+    if( newst[StateField].get(var,initializing) )
+      // field is present, react if needed
+    else
+      // field is missing, react if needed
+    \end{verbatim}
     
+    The \qq{get()} method employed here does the following: if \qq{StateField}
+    is present in the \qq{newst} record, assigns its value to \qq{var}
+    (throwing an exception is the types are incompatible) and returns
+    \qq{true}. If the field is missing, optionally (only if \qq{initializing}
+    is \qq{true}) inits it from the value in \qq{var}, and returns \qq{false}.
+    The standard \qq{setStateImpl()} methods make extended use of this
+    mechanism.
+
   \item Throw exceptions on error. A \qq{Node::FailWithoutCleanup} should be
-    thrown if and only if no state was modified. All other exceptions will
-    invoke the ``rollback'' mechanism above. You can rely on \qq{DataRecord}
-    (and other DMI classes) to throw an exception when datatypes mismatch or
-    something else goes wrong; throw a \qq{Node::FailWithCleanup} if you want
-    to indicate some other kind of failure.
+    thrown if and only if no internal state was modified. All other exceptions
+    will invoke the ``rollback'' mechanism above. You can rely on
+    \qq{DataRecord} (and other DMI classes) to throw an exception when
+    datatypes mismatch or something else goes wrong; throw a
+    \qq{Node::FailWithCleanup} if you want to indicate some other kind of
+    failure.
 
 \end{enumerate}
 
-  For reference, the base \qq{Node::setStateImpl()} does the following:  
-
-\begin{enumerate}
-
-  \item Unless initializing, fails if static state: \qq{.class}, \qq{.children}
-    or \qq{.nodeindex} is specified.
-
-  \item Gets node name (\qq{.name}) from the state record.
-
-  \item Gets the node group list from the state record  (\qq{.node\_groups},
-    see below).
-
-  \item Sets up caching policy according to what is specified in the init
-    record (\qq{.cache\_policy}, details TBD).
-
-\end{enumerate}
+  The base \qq{Node::setStateImpl()} method is described in detail in a later
+  section on basic node state.
 
 \subsubsection{Unrecognized state fields}
 
@@ -413,33 +419,24 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \qq{init()} on it. 
 
   Thus, subclasses of \Node\ should take care to maintain their state record
-  appropriately. Basically, each node class should ensure that it is completely
+  appropriately. Each node class should ensure that it is completely
   re-creatable (via \qq{init()}) from a snapshot of its state record at any
-  point in time.
+  point in time. Basically, this means that a 1-1 mapping should be maintained
+  between the state record and internal object state. One possible exception to
+  this are internal caches; if these are not maintained in the state record,
+  then the worst than can happen from re-creating a node is a cleared cache.
 
 \section{MeqRequest}
 
-  A \Request\ is an {\em atomic job description,} because generally speaking,
-  it contains everything a node needs to know in order to produce a \Result. A
-  \Request\ contains one or more of the following components:
+  A \Request\ is a {\em job description} containing a number of commands
+  that a node executes to produce a \Result. A \Request\ is a record with a
+  semi-fixed structure; commands are identified by the presence of specific 
+  fields in this record. Additional fields can contain optional command
+  arguments.
 
-  \begin{description}
-  \item[Node state,] specifying change of state for specific nodes up the tree.
-    E.g., make some parameters solvable or non-solvable, or change wsum
-    settings. 
-
-  \item[Cells,] specifying a domain \& grid over which a node is to be
-    evaluated. This is discussed separately, in Section \ref{resolution} below.
-
-  \item[optional flags] \& other attributes (if needed for \Cells\ or change of
-    state. E.g. the calc\_deriv flag).
-
-  \item[optional rider] record, containing {\em commands} and state changes.
-  
-  \end{description}
-      
   A \Request\ always has a unique \RequestId\ (see below). Whenever a different
-  request is generated, it must be assigned a different id (see below).
+  request is generated, it must be assigned a different id (see discussion on
+  caching and dependencies below).
 
   \Request\ is derived from \qq{DataRecord}. It has the following fields (of
   which only request\_id is obligatory).
@@ -447,39 +444,109 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \noindent\begin{tabular}{lp{.8\textwidth}}
   \qq{.request\_id} & the request ID (a HIID)\\
   \qq{.cells}       & [opt] a \Cells\ object (see below)\\
-  \qq{.calc\_deriv} & [opt] boolean: compute derivatives over cells? 
-                      Default is false.\\
+  \qq{.calc\_deriv} & [opt] compute perturbed values (0, 1 or 2).
+                      Default is 0.\\
   \qq{.next\_request} & [opt] a hint of what the next request is going to be.
                       This matters for caching decisions, and for ``rippling''
                       trees.\\
-  \qq{.rider}       & [opt] rider record, used for additional commands, 
-                      etc. (see below)
+  \qq{.rider}       & [opt] rider record used for additional commands.
   \end{tabular}
   
-\subsection{Request IDs}
+  Note that only the \qq{cells} command (the \qq{cells} field can be considered
+  a command to evaluate the node over the given \Cells) is present at the top
+  level of the record. This is done for reasons of efficiency, as this command
+  represents the bulk of the system's workload. All other commands are placed
+  into the rider record, which will be described in detail below.
 
-  In our discussions, it's become apparent that to make optimal use of the node
-  cache during solving, what we really need is a {\em hierarchical} request ID.
-  For example, the request ID could be represented by a HIID composed of three
-  indices:
+\subsection{Request IDs and the node cache}
 
+  Request IDs (RqIDs) are first of all used to distinguish different \Request\
+  objects. The originator (creator) of the request is responsible for assigning
+  a unique request ID to each new, different request.
+
+  RqIDs play a pivotal role in caching behaviour. When a node caches a result,
+  it also caches the request ID. In the trivial case, if the next request has
+  the same ID, the node can immediately return the cached result. In fact the
+  cache is somewhat more intelligent. Each cached result has  a {\em dependency
+  mask} (or {\em depmask} for short) that describes what properties of a
+  request the result depends on. Typical dependencies include:
+
+  \begin{itemize} 
+  
+  \item The request's \Cells\ (envelope domain and grid), obviously enough.
+  Example nodes with this dependency: \qq{MeqParm} (with a non-zero degree
+  polynomial), \qq{MeqTime}, \qq{MeqFrequency}. 
+
+  \item The envelope domain of the \Cells. Example: the \qq{MeqSpigot},
+  since it always returns data at the native resolution of the dataset, ignoring
+  the resolution specified in the \Cells.
+  
+  \item Updated \qq{MeqParm} values sent up by a solver.
+  
+  \item The configuration of a \qq{MeqWSum} node.
+
+  \item Any combination of the above. 
+
+  \end{itemize}
+  
+  If a node has children, then its result's dependencies are almost always the
+  union of the children dependencies, plus (in some cases) additional
+  dependencies introduced by the node itself (e.g. the \qq{MeqUVW} node always
+  adds a dependency on \Cells). In other words, the depmask of the result is 
+  a bitwise-OR of the depmasks of the children's results, OR the node's own
+  local depmask. Obviously, the set of dependencies grows as results propagate
+  down the tree.
+
+  Given a cached result and its depmask, a node can be somewhat more
+  discriminating in choosing when to return a cached result. For example, if
+  the depmask indicates that the result depends on \Cells\ only, then all
+  further requests with the same \Cells\ can be served from the cache. The same
+  applies to other dependencies. In global optimization terms, this means that
+  when a tree is re-evaluated for a slightly different request, it recalculates
+  only those sub-trees that need it. The problem is how to determine if a
+  different request has the same \Cells, without doing a brute-force comparison
+  (which can be quite expensive if done at every node). This is where the {\em
+  hierarchical} part of request IDs come in.
+
+  The RqID is a \qq{HIID} -- essentially, a string of integer indices. Each
+  index corresponds to one bit in the depmask. For example, if the depmask is
+  structured as follows:
+  
+  \begin{tabular}{l|l}
+  \hline
+  bit 0 & \qq{MeqParm} values from solver \\
+  bit 1 & \qq{MeqWSum} configuration \\
+  bit 2 & resolution of \Cells \\ 
+  bit 3 & envelope domain of \Cells \\
+  \hline\end{tabular}
+  
+  then the RqID is composed of four indices:
+  
   {\tt\em  
-  $<$cells\_index$>$.$<$config\_index$>$.$<$value\_index$>$
+  $<$domain index$>$.$<$resolution index$>$.$<$config\_index$>$.$<$value\_index$>$
   }
   
-  The components of the request ID describe how this \Request\ is different
-  from the previous one. The domain index changes whenever a new \Cells\ is
-  used. The config index changes whenever a tree is reconfigured (via, e.g.,
-  changing the weights of a MeqWSum node, etc.) The value index changes
-  whenever MeqParms are assigned new values (i.e., with every solve iteration).
-  It is up to the generator of the \Request\ to make sure that the indices
-  follow these rules. The reasoning behind this will be expounded below, in the
-  discussion on caching behaviour.
+  The decision whether a new request can be served from the cache becomes quite
+  simple: just compare all indices of the RqIDs for which the corresponding
+  depmask bit is set, and use the cache only if none of them differ.
 
-  Note that this interpretation of the request ID is highly
-  application-specific. As will become apparent below, it is worthwhile to
-  think of the ID in more general terms, that is, as a sequence of $N$ indices,
-  each one referring to a particular property of the request. 
+  In other words, the components of the RqID describe how a request is
+  different from previous requests. The domain index must change whenever a new
+  domain is requested, the config index must change whenever a \qq{MeqWSum} is
+  reconfigured, the value index must change at each solve iteration, etc.
+
+  Of course, this scheme only works if the depmasks returned by the nodes
+  (generally, somewhere up the tree), and the request IDs generated by request
+  originators (generally, down the tree) have the same semantics. The
+  depmask/RqID correspondence represents an {\em agreement} between request
+  generators and dependency generators to apply these semantics consistently.
+  The \qq{Node} class provides a number of mechanisms for automatically setting
+  up consistent semantics throughout the tree, see the discussion on {\em
+  symdeps} below.
+
+  Note also that the general scheme implemented at the \qq{Node} level does not
+  assume any application-specific semantics at all. The depmask is a treated as
+  set of $N$ bits, and the RqID as a corresponding set of $N$ indices.
 
 \subsection{Next\_request and request sequences}
 
@@ -502,7 +569,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
     next request?} Obviously, the originator of the \Request\ can have some
     idea.  For example, a Solver node would probably know if more iterations
     over the same domain/source are required, or if we're going to the next
-    domain. A Sink node may know what the next domain is going to be. Etc. It
+    domain. A \qq{Sink} node may know what the next domain is going to be. Etc. It
     seems reasonable to place this information into the \Request\ record
     itself, hence the \qq{next\_request} field.
 
@@ -526,16 +593,27 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
 \subsection{MeqResult}
 
-  A \Result\ contains the result of a \Request's execution. It is derived from a
-  \qq{DataRecord}, and may contain the following fields:
+  A \Result\ contains the result of a \Request's execution. It is derived from
+  a \qq{DataRecord}, and may contain the following fields:
 
   \noindent\begin{tabular}{lp{.8\textwidth}}
-  \qq{.cells} & [optional] the originating request's \Cells, if any.\\
+  \qq{.cells}  & [optional] the \Cells of the result, if any.\\
   \qq{.values} & [optional] a list of \VellSet\ objects for these \Cells.\\
-  etc. & any optional flags \& attributes (e.g. solver may use these to
-                return the solution).
+  \qq.{.integrated} & flag indicating the result is integrated (default is false).\\
+  etc.         & any optional flags \& attributes (e.g. solver may use these to
+                  return the solution).
   \end{tabular}
-    
+  
+  A \Result\ can represent both a sampling of some function at the cell
+  centers, or an integration over each cell. The \qq{integrated} flag is used
+  to indicate this, if missing, \qq{false} (i.e. a sampling) is assumed. Leaf
+  nodes set this flag according to the type of value they return (for example,
+  a \qq{Spigot} reading visibilities from a data set returns integrations; a
+  \qq{Parm} representing gain returns samplings). Non-leaf nodes should take
+  care to pass this flag from child to parent properly, this is dicsussed in
+  more detail in the section on individual node classes below. This flag is
+  also taken into account when performing resampling of results, see below.
+
 \subsection{MeqVellSet}
 
   A \VellSet\ contains a value plus optional perturbed values for a \Cells. It
@@ -576,14 +654,16 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 \subsection{Multiple values}
 
   The point of defining a \Result\ as a set of \VellSet{}s is to allow multiple
-  return values for a single \Cells\ (a.k.a. "multiple planes"). E.g., a
+  return values for a single \Cells\ (a.k.a. "multiple planes"). For example, a
   \qq{Spigot} may return four values at a time (for the four correlations).
-  Function nodes expect all child \Result{}s to have the same shape (i.e., same
-  number of values), and will apply the function to each "plane" independently.
+  Function nodes expect all child \Result{}s to either have the same number of
+  planes, and will apply the function to each set of planes (cross-slice)
+  independently; however, some children may have only one plane, in which case
+  it is re-used in each cross-slice.
 
-  The Selector and Composer nodes can be used to decompose and assemble
-  \Result{}s.
-  
+  The \qq{Selector} and \qq{Composer} nodes can be used to decompose and
+  assemble \Result{}s.
+
 \subsection{Fail propagation}
 
   Note that a set may contain a mix of failed and normal \VellSet{}s. Failed
@@ -598,6 +678,332 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \qq{Sink} node, which can handle them benignly (by not writing XY/YX data,
   for example).
 
+\section{Base Node state}
+
+  The base \qq{Node} class maintains a number of state fields via its
+  \qq{setStateImpl()} method. This section describes the state in detail.
+  Unless explicitly specified, each state field can be changed dynamically at
+  any time. Note that an end user will hardly ever need to change (or even see)
+  node state directly; a tree developer, however, will be working with this
+  stuff constantly. As will become apparent in this section, a node's internals
+  are completely exposed to tweaking and experimentation. The C++ side imposes
+  no policy and does very few sanity checks, so it is perfectly possible  to
+  thoroughly confuse a node (or an entire tree) through misguided  manipulation
+  of its state record from the outside. We assume that it is up to the
+  scripting-side tools to shield the end users from ``dangerous'' capabilities.
+
+\subsection{\qq{class}, \qq{nodeindex}, \qq{children}} 
+  
+  These fields represent static properties of the node. \qq{setStateImpl()}
+  will throw an exception if an attempt is made to change them. \qq{class} is a
+  string classname, \qq{nodeindex} is an integer node index, and \qq{children}
+  is a list of child node indices (if any).
+
+\subsection{\qq{name}}
+  
+  This is just the node name (a string). 
+ 
+\subsection{\qq{node\_groups}}
+  
+  A node may be assigned to one or more node groups. The purpose of this is
+  described in detail below (see the section on command processing). The
+  \qq{node\_groups} field is a list of \qq{HIID} group names. Note that all
+  nodes are implicitly members of the \qq{All} group; thus \qq{"All"} is not
+  explicitly present in the list.
+
+\subsection{\qq{auto\_resample}}
+  
+  This flag specifies if auto-resampling of child results is enabled. See
+  detailed discussion later on.
+
+\subsection{\qq{request\_id}, \qq{cache\_result}, \qq{cache\_result\_code}}
+  
+  These three fields compose the node result cache. The first field -- a
+  \qq{HIID} -- is the ID of the most recent request. The second field is the
+  cached \qq{Result} of that request, if any (stored by reference). The third
+  field -- an integer -- is the cumulative result code (mainly its the depmask,
+  with a few additional flags, described in \qq{execute()} later on) of the
+  cached result.
+
+  The node cache may be cleared by assigning a boolean \qq{false} to the
+  \qq{cache\_result} field. It is also possible to modify the cache on the fly
+  (for example, substituting in another result). This may be a useful feature
+  for debugging and experimentation, though if used improperly, it can probably
+  confuse the caching and dependency tracking mechanism.  
+  
+\subsection{\qq{request}}
+
+  This is a (read-only) reference to the most recently processed \qq{Request}
+  object. This field is maintained for information purposes only, \qq{Node}
+  fills it whenever it executes a request, but does not use it for anything
+  else (so modifying this field will have no effect).
+
+\subsection{\qq{cache\_policy}}
+
+  This is a placeholder for the caching policy (see discussion below). This is
+  not yet implemented -- all current nodes always cache results.
+
+\subsection{\qq{depend\_mask}, \qq{known\_symdeps}, \qq{active\_symdeps}, 
+            \qq{symdep\_masks}, \qq{gen\_symdeps}, \qq{gen\_symdeps\_group}}
+              
+  These fields are responsible for maintenance of dependency masks. This is a
+  somewhat complicated subject covered in a separate section below. Note that
+  the default settings for these fields are practically always good enough, but
+  they are exposed for purposes of experimentation and debugging.
+
+\section{Symdeps and depmasks}
+
+  As discussed in the section on requests above, a {\em depmask} is a bitwise
+  mask that describes a result's dependencies on particular properties of the
+  request, which are in turn indicated by individual indices of the request ID.
+  To enable proper use of the cache, all nodes in the tree should interpret
+  these bits and indices in a consistent way -- which is, by necessity,
+  application-dependent. Several fields of the node state provide a mechanism
+  for setting up these semantics and propagating them throughout trees. 
+
+\subsection{The local depmask}
+  
+  The \qq{depend\_mask} field of the state record is the local depmask of the
+  node. The local depmask indicates which dependencies a node introduces into
+  its result. For most \qq{Function}-derived nodes, this mask is null,
+  indicating that the result dependencies are fully determined by child
+  dependencies. Leaf nodes, on the other hand, will have a non-null mask.
+
+  The local depmask is automatically ORed into the result code by
+  \qq{Node::execute()} (see below). Some nodes will set up the mask at init
+  time and never worry about it again. For other nodes, it may change depending
+  on node state.
+
+  The depmask is just a set of $N$ bits with no specific semantics associated
+  with them. The association between individual bits and specific result
+  properties is set up via the mechanism of {\em symbolic dependencies}, or
+  {\em symdeps} for short.
+  
+\subsection{Symdeps in a nutshell}
+  
+  A {\em symdep} is a \qq{HIID} (thus, symbolic -- since \qq{HIID}s have a
+  symbolic representation) that identifies some application-specific dependency
+  of the result. Node classes will typically define some standard symdeps, such
+  as these -- used in the standard nodes:
+
+  \begin{description}
+  
+  \item[``Domain'':] result depends on the requested domain (i.e., the envelope
+    domain of the \Cells). Most non-trivial leaf nodes have this symdep.
+
+  \item[``Resolution'':] result depends on the resolution of the \Cells. Most
+    nodes with a time and/or frequency dependence have this symdep.
+   
+  \item[``Parm.Value'':] result depends on parameter values passed up from the
+    solver. Solvable \Parm{}s have this symdep.
+  
+  \end{description}
+  
+  A node's set of symdeps is generally known to the node class at construction
+  time. Then, when a tree is initialized, different symdeps are dynamically
+  associated with different bits of the depmask, as described below.
+  Essentially, this maps the abstract concepts (the symdeps) onto specific bits
+  of the depmasks. In other words, this mechanism is what determines the
+  bitmask semantics.
+
+\subsubsection{Symdep masks}
+
+  Note that certain nodes can be viewed as symdep {\em generators}. These are
+  nodes that generate new requests. For example, the \qq{Sink} node generates
+  requests with different domains and resolutions, thus we say that \qq{Sink}
+  generates the \qq{"Domain"} and \qq{"Resolution"} symdep. The \qq{ModRes} node
+  changes the resolution of requests, thus it generates the \qq{"Resolution"}
+  symdep. The \qq{Solver} node generates the \qq{"Parm.Value"} symdep.
+  
+  These nodes are responsible for associating a particular bit of the depmask
+  with each symdep that they generate. Typically, they will do this once when a
+  tree is initialized. These associations (known as {\em symdep masks}) are
+  then recursively sent up the tree, thus becoming known to all child nodes.
+  Nodes up the tree can then compute their local depmasks by combining the
+  symdep masks of their specific symdeps.
+
+\subsection{Symdeps: the hairy details}
+
+  This section describes the details of how symdeps and depmasks are set up and
+  maintained. Note that all this is maintained in the node state record.
+
+\subsubsection{Known and active symdeps} 
+  
+  The {\em known symdeps} of a node are just that, all the symdeps that a node
+  class knows about. Typically, this is specified once and for all in the
+  node class's constructor, by calling the \qq{setKnownSymDeps()} method.
+  
+  A subset of the known symdeps -- the {\em active symdeps} set -- determines
+  what symdeps currently apply to the node's result. For some node classes,
+  this is always the entire known set. Some classes, however, may change their
+  active set depending on state. For example, if a \qq{Constant} node is
+  configured to provide a constant value as a sampling, then it has no active
+  symdeps at all, as the value will be the same for any domain or resolution.
+  However, if it is (re)configured to provide the constant as an integration,
+  then it begins to depend on resolution -- since the integrated value is the
+  product of the sample value and cell size.
+
+  The active symdeps set may be changed by calling the \qq{setActiveSymDeps()}
+  method, or by changing the \qq{active\_symdeps} field (a list of \qq{HIID}s)
+  of the state record. Whenever this is done, the local depmask is
+  automatically recalculated using the known symdep masks, by calling the
+  virtual \qq{resetDependMasks()} method.
+
+  The known symdeps may also be changed at any time (though I can hardly see
+  why anyone would want to do this), by calling the \qq{setKnownSymDeps()}
+  method, or by changing the \qq{known\_symdeps}  field of the state record. 
+  
+\subsubsection{Propagating symdep masks}
+
+  A node will automatically keep track of the symdep masks associated with its
+  known symdep set. This is done via the rider command facility (see below),
+  and implemented via \qq{Node::processCommands()}:
+
+  \begin{itemize}
+  
+  \item The \qq{Add.Dep.Mask} command contains a map of symdeps to symdep
+    masks. (This command usually originates at the symdep generator nodes, see
+    ``Generated symdeps'' below). In response to this command, \qq{Node} adds
+    all the masks it finds for its known symdeps to its internal map of symdep
+    masks. After this, it calls \qq{resetDependMasks()} to recalculate its
+    local depmask. 
+
+  \item The \qq{Clear.Dep.Mask} command clears all known symdep masks.
+  
+  \end{itemize}
+  
+  One consequence of this design is that each node maintains its own local
+  mapping of symdeps to depmasks. While at first glance this may seem redundant
+  and even wasteful -- since the mapping would appear to be the same throughout
+  a tree -- consider the following points:
+
+  \begin{itemize}
+  
+  \item When a tree is distributed throughout a cluster, maintaining a single
+    ``global'' map becomes difficult (and actually violates the principle of
+    locality!) Keeping a copy of the map at each node avoids this problem.
+
+  \item The map is not really global anyway. For example, consider a rippled
+    tree with multiple solvers. The solvable parm set of solver 1 and the
+    solvable parm set of solver 2 need to be represented by different bits in
+    the depmask. Thus, the \qq{"Parm.Value"} symdep of different groups of
+    parms will actually be mapped to different depmasks!
+    
+    Note that node group facility (see processing of rider commands, below)
+    provides an elegant mechanism for distributing different symdep masks to
+    different node groups.
+    
+  \item The map is small, and changes very infrequently (if at all -- usually,
+    it will be set up only once when a tree is initialized). Thus there is no
+    performance cost associated with keeping local copies.
+
+  \end{itemize}
+  
+  The map of known symdep masks is maintained in the \qq{symdep\_masks} field of
+  the node state record. It is possible to change this field on the fly, an
+  automatic call to \qq{resetDependMasks()} always results.
+
+\subsubsection{Generating symdep masks}
+
+  Nodes that generate new requests also need to generate \qq{Add.Dep.Mask}
+  commands containing their symdep masks assignments. \qq{Node} provides a
+  simple facility for doing this automatically.
+  
+  A node class can specify its mapping of {\em generated symdeps} to masks
+  by calling the \qq{setGenSymDeps()} method at construction time. The standard
+  node classes specify some pre-assigned masks by default: bit 0 for
+  \qq{"Parm.Value"}, bit 1 for \qq{"Resolution"}, bit 4 for \qq{"Domain"}. This
+  allows for simple trees to be put together using just the defaults.
+  
+  For more elaborate trees -- e.g., rippled trees with multiple solvers --
+  different \qq{Solver} nodes need to be assigned different masks for the same
+  symdep. This can be done via the \qq{gen\_symdeps} field of the state record.
+  This field has to contain a map (e.g. record) of symdeps to depmasks; if
+  specified, it overrides any previously set mappings. 
+  
+  Additionally, a node may be configured to generate symdeps for a particular
+  node group only. This useful for, e.g., multiple solvers. By default, the
+  \qq{All} group is used, but this can be overridden via the
+  \qq{gen\_symdeps\_group} field of the state record.
+
+  Once the generated symdeps are configured, a node needs to be told to send
+  them up to its children. This is done by passing it the \qq{Init.Dep.Masks}
+  command via a request rider. In responce to this command,
+  \qq{Node::processCommands} inserts the appropriate \qq{Add.Dep.Mask} commands
+  into the request rider based on the current setting of \qq{gen\_symdeps} and
+  \qq{gen\_symdeps\_group}.
+  
+  Operationally, all this is typically done only once at init time:
+  
+  \begin{itemize}
+  
+  \item Request generator nodes are created with an initial state record
+    containing their generated symdep assignments (if the default assignments
+    need to be overridden).
+    
+  \item Once all the nodes and trees have been created, a request containing
+    two following two commands is given to all the root nodes:
+    \qq{Resolve.Children} and \qq{Init.Dep.Masks}. (The first command is
+    required to resolve named children).
+    
+  \item This initial request is propagated up the tree, acquiring symdep masks
+    from generator nodes along the way. 
+    
+  \item All trees are now ready for use.
+  
+  \end{itemize}
+
+\subsubsection{Order of state updates}
+
+  Because it is possible to change everything about a node's symdeps and masks
+  by modifying the state record, and a state update may contain multiple
+  fields, the order in which it is updated becomes important.
+  \qq{Node::setStateImpl()} employs the following order:
+
+  \begin{enumerate}
+  
+  \item Updates the known symdep set from \qq{known\_symdeps}, if specified.
+  
+  \item If specified, reloads the symdep masks from \qq{symdep\_masks}, and
+    calls \qq{resetDependMasks()}.
+    
+  \item If specified, sets the active symdeps from \qq{active\_symdeps}, and
+    calls \qq{resetDependMasks()}.
+    
+  \item If specified, sets the local depmask from \qq{depend\_mask}.
+  
+  \end{enumerate}
+  
+  Basically, this order implies that if the local depmask is explicitly changed
+  via \qq{depend\_mask}, the specified value overrides any implict value
+  calculated from, e.g., an \qq{active\_symdeps}.
+  
+\subsubsection{Specialized node behaviour}  
+  
+  Note that all these facilities are provided at the basic \qq{Node} level, but
+  special node classes are free to ignore them, or make use of only some
+  subset. For example, the \qq{Parm} class\footnote{And currently, this is the
+  only example.} needs to maintain separate predict symdeps and solve symdep
+  sets. It deals with this in the following way:
+
+  \begin{itemize}
+  
+  \item It ignores the \qq{Node}-level active symdeps, initially specifying an
+    empty set of active symdeps. This implies that its \qq{Node}-level local
+    depmask stays at zero.
+
+  \item It maintains two of its own symdep sets: predict symdeps and solve
+    symdeps, and two corresponding depmasks: the predict depmask and the solve
+    depmask.
+    
+  \item It overrides the \qq{resetDependMasks()} method, to recompute the two
+    depmasks whenever known symdep masks change.
+    
+  \item It returns either one or the other mask from \qq{getResult()}, depending
+    on what sort of request is being serviced.
+
+  \end{itemize}
+  
 \section{The details of Node::execute()}
 
   The virtual \qq{Node::execute()} method is responsible for processing a
@@ -610,15 +1016,18 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \begin{enumerate}
   
   \item Compares the request id to the id of the previous request, if any. If
-    there's a cached \Result, and the request id matches the cached request id,
-    then does nothing, immediately returning the cached \Result.  If IDs do not
-    match, clears the cache. (Note that the match is somewhat less strict than
-    literal equality. See caching issues, below, for a discussion of ID
-    matching.)
+    there's a cached \Result, and the request id ``matches'' the cached request
+    id, then does nothing, immediately returning the cached \Result.  If IDs do
+    not match, clears the cache. (Note that the matching is not a literal
+    comparison -- instead, the depmask is taken into account. See the discussion
+    on depmasks above).
+
+  \item For new requests only: calls the virtual \qq{readyForRequest()} method,
+    and if the return value is false, immediately returns \qq{RES\_WAIT}.
 
   \item For new requests only: if a rider record is present, parses it and 
-    calls the \qq{processCommands()} method if a command set for the node
-    is found.
+    calls the virtual \qq{processCommands()} method if a command set for the
+    node is found (see details below).
 
   \item If node has children, calls the virtual \qq{pollChildren()} method to
     collect results from its children. The default implementation of this
@@ -626,11 +1035,13 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
     collecting their \Result{}s into a vector of \qq{Result::Ref}s, and
     computing the {\em cumulative result code} as a bitwise-OR of the child
     return values. If any child returns a \RES{FAIL}, it creates an output
-    \Result\ containing a merge of all the fail-results.
+    \Result\ containing a merge of all the fail-results. Otherwise, if
+    auto-resampling is enabled (see below), it will compare the child results'
+    resolutions, and resample them as appropriate.
 
-    If the cumulative result code contains \RES{WAIT} or \RES{FAIL},
-    \qq{execute()} returns immediately with that result code. 
-    
+    If the cumulative result code from \qq{pollChildren()} contains \RES{WAIT}
+    or \RES{FAIL}, \qq{execute()} returns immediately with that result code.  
+
     Note that the default implementation of \qq{pollChildren()} is appropriate
     for most node classes, with the exception of specialized ``control'' nodes
     such as \qq{Sink} and \qq{Solver}.
@@ -638,13 +1049,14 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \item If a \Cells\ object is present, calls the virtual \qq{getResult()}
     method, passing in the vector of child \Result{}s returned by
     \qq{pollChildren()}. Bitwise-ORs the return value with the cumulative
-    result code.
+    result code from the children, OR the local node depmask.
 
   \item If an exception is thrown at any stage of the process, \qq{execute()}
     will catch it, create an output \Result\ with a fail-result describing the
-    exception, and return \RES{FAIL}. Thus, an exception is the normal way for
-    \qq{setState()} or \qq{processRider()} to indicate failure.
-    
+    exception, and return \RES{FAIL}. Thus, throwing an exception is a normal
+    way for \qq{setState()} or \qq{processCommands()} or \qq{getResult()} to
+    indicate failure.
+
   \item Upon exit, optionally stores the output \Result\ and result code in the
     cache (see caching issues, below).
 
@@ -669,37 +1081,17 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   \begin{description}
   
   \item[\RES{UPDATED}:] result has changed from that of previous \Request. This
-     is meant as a caching hint; if you're not sure, raise the flag.
-
+    bit is usually automatically cleared when the node returns a result 
+    from the cache, and set otherwise.
+     
   \item[\RES{DEP(0)}, \RES{DEP(1)}, etc.:] result will change if the $i$-th
-    index of the request ID changes. For calibration \& solving applications,
-    request ID has a specific form (see above), and the following aliases may
-    be defined:
+    index of the request ID changes. This is simply the {\em depmask\/} discussed
+    in the section on Requests above.
 
-    \begin{description}
-    
-    \item[\RES{DEP\_DOMAIN = RES\_DEP(1)}:] result will change if domain/cells
-      change. True for all Spigots and all Parms having a time/freq dependence,
-      false for constant Parms.
-
-    \item[\RES{DEP\_CONFIG = RES\_DEP(2)}:] result will change if configuration
-      changes. True for nodes like WSum.
-
-    \item[\RES{DEP\_VALUE = RES\_DEP(3)}:] result will change if parameter values
-      change. True for solvable Parms, false for all others.
-
-    \end{description}
-    
-    Note that it is only the leaf nodes (which tend to be application-specific)
-    and the \Request\ originator (ditto) that care about specific meanings of
-    the request ID sub-indices and specific \RES{DEP} flags. All other nodes
-    can ``think'' of it in abstract terms, i.e., with $N$ sub-indices of the
-    request ID mapping to flags (see discussion on caching, below).
-
-  \item[\RES{DEP\_VOLATILE} = RES\_DEP(0):] result may change in response to
-    external events, even without new requests. (This is not implemented for
-    now, and only meant as a placeholder for future developments, such as
-    growing domains, partial integration, etc.)
+  \item[\RES{DEP\_VOLATILE}:] result may change in response to external events,
+    even without new requests. (This is not implemented for now, and only meant
+    as a placeholder for future developments, such as dynamically growing
+    domains, partial integration, etc.)
 
   \item[\RES{FAIL}:] result is a ``complete'' fail. Note that this is not the
     same thing as a result containing some mix of valid and failed VellSets;
@@ -712,18 +1104,18 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   \item[\RES{WAIT}:] no result available, wait for notification or try later.
     If this flag is raised, then no \Result\ should be returned. Note that
-    other flags can and should be meaningfully combined with \RES{WAIT}, since
-    it usually possible to indicate the behaviour of a node in advance.
-    
+    dependency flags can and should be meaningfully combined with \RES{WAIT},
+    since it usually possible to indicate the dependencies of a node in
+    advance.
+
   \end{description}
   
   The return value of a node's \qq{getResult()} method should describe any {\bf
-  additional} properties introduced by that node. Most function nodes will
+  additional} properties introduced by the \qq{getResult()} calculation.
+  Most function nodes will
   return zero, indicating that a node does not introduce any additional
-  dependencies into the result. As a counter-example, the \qq{UVW} node (which
-  gets the RA/Dec and ITRF station positions from its children) will return
-  \qq{RES\_DEP\_DOMAIN}, since $UVW$ coordinates also depend on time.
-
+  dependencies into the result. 
+  
 \subsection{Caching issues}
 
   To avoid unnecessary recalculations, a node's result can be retained in a
@@ -929,7 +1321,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
     \begin{itemize} 
 
     \item Some nodes (e.g. \qq{Parm}, \qq{Freq}, \qq{Time} -- generally, nodes
-    meant to evaluate some analytic function of time and frequency) -- are able
+    meant to evaluate some analytic function of time and frequency -- are able
     to evaluate themselves over any given grid. These nodes will always return
     a \Result\ with the same \Cells\ as the \Request; the tree designer may
     rely on this behaviour.
@@ -940,26 +1332,36 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
     \end{itemize}
     
-  \item \qq{Function}-derived (and similar) nodes operate on child results at
-  the same resolution. In the event that the children return results at
-  different resolutions, the node will do one of three things, as determined by
-  a three-way \qq{resampling} flag in its state record:
+  \item A lot of node classes (e.g., all the \qq{Function}-derived ones)
+  require child results to have the same resolution. In the event that this is
+  not the case, a node can be configured to deal with it in one of four ways,
+  as determined by the \qq{auto\_resample} field of the state record:
 
     \begin{description}
     
-    \item[FAIL:] fail execution. This is the default behaviour. 
-    
-    \item[UPSAMPLE:] evaluate and return a \Result\ at the higher resolution, by
-    upsampling lower-resolved child results.
+    \item[NONE $(=0)$:] do nothing, do not even check the child resolutions. This
+    is the default setting initialized by the \qq{Node} class constructor.
 
-    \item[INTEGRATE:] evaluate and return a \Result\ at the lower resolution,
-    by integrating higher-resolved child results.
+    \item[FAIL $(=-2)$:] check resolutions and return a \qq{RES\_FAIL} if they do
+    not match. This is the default setting  initialized by the \qq{Function}
+    class constructor. Since this is somewhat slower that the NONE setting, 
+    perhaps it should only be the default in debug mode?
     
+    \item[INTEGRATE $(=-1)$:] evaluate and return a \Result\ at the lower
+    resolution, by integrating higher-resolved child results.
+
+    \item[UPSAMPLE $(=1)$:] evaluate and return a \Result\ at the higher
+    resolution, by upsampling lower-resolved child results.
+
     \end{description}
+    
+  Auto-resampling is handled at the base \qq{Node} level (in
+  \qq{Node::processChildren()}, and thus may be enabled for any individual node
+  (although node classes that do their own polling of children -- e.g.,
+  \qq{Solver} -- may ignore the flag.) In the rippled solvers tree (Fig. ??),
+  nodes which enable auto-resampling are indicated by an "UPS" or "INT" label
+  in the node box. 
 
-  In the rippled solvers tree (Fig. ??), this flag is indicated by an "UPS" or
-  "INT" label in the node box. No label implies the default behaviour (FAIL).
-  
   \item A few utility nodes may be used to change resolution mid-tree.
   Initially, two such nodes will be provided:
 
@@ -996,12 +1398,12 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   \end{enumerate}
   
-  It is, of course, up to the tree designer to ensure that resolution is changed
-  up and down appropriately within the tree, by strategically positioning
-  \qq{Resampler} and \qq{ModRes} nodes, and enabling resampling within
-  specific \qq{Function} nodes. The tree in Fig. ?? provides a good example of
-  this.
-  
+  It is, of course, up to the tree designer to ensure that resolution is
+  changed up and down appropriately within the tree, by strategically
+  positioning \qq{Resampler} and \qq{ModRes} nodes, and enabling
+  auto-resampling at a few specific nodes. The tree in Fig. ?? provides a good
+  example of this.
+
 
 \section{Description of specialized nodes}
 
@@ -1220,10 +1622,10 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
 
   In the course of a solution, the Solver node updates the values of solvable
   polcs by sending up new values in the request rider. This is done by
-  including the \qq{set\_value} command in the rider. The value of the command
-  is expected to be a vector of new coefficients, in the same order in which
-  spids were assigned. More specifically:
-  
+  including the \qq{Update.Values} command in the rider. The value of the
+  command is expected to be a vector of new coefficients, in the same order in
+  which spids were assigned. More specifically:
+
   \begin{itemize}
   
   \item When a \Parm\ that has been set solvable initializes a new polc for a
@@ -1240,7 +1642,11 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   knows nothing of \Polc{}s or \Parm{}s; instead, it only deals with abstract
   ``atomic parameters'' identified by spid.
 
-  \item 
+  \item The solver inserts the updates into the rider of the next request, as
+  a set of \qq{Update.Values} commands. This request is then used to recalculate
+  the trees for the next iteration. If this is the last iteration, then a
+  request without a \Cells\ is sent up -- this updates the values without
+  recalculating anything.
   
   \end{itemize}
   
@@ -1254,7 +1660,7 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   MEP table.
 
   \item[With explicit command:] whenever the \Parm\ receives a request with a
-  \qq{save\_polc=T} command in the rider, it commits all its polcs to the MEP
+  \qq{Save.Polcs} command in the rider, it commits all its polcs to the MEP
   table.
 
   \end{description}
@@ -1263,13 +1669,14 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   location in the MEP table. When a polc is loaded from the table (whether on
   the C++ side, or via the Glish \qq{meptable()} object), \qq{dbid\_index} is
   set to its DB identifier.\footnote{As long as we use AIPS++ tables, this is
-  simply the row number. If and when we employ other storage schemes, dbid 
-  may become something more complex.}  When a polc is subsequently saved, its
-  dbid is used to locate the correct entry in the table. New polcs are created
-  with a dbid of -1; when they are subsequently saved, a new entry is allocated
-  in the MEP table, and the polc object is updated with the dbid. During normal
-  operation, the user need not worry about this since everything happens
-  automatically; some advanced scripting may require knowledge of the dbid.
+  simply the row number. If and when we employ other storage schemes, dbid  may
+  become something different, but is in any case a key into the database.} 
+  When a polc is subsequently saved, its dbid is used to locate the correct
+  entry in the table. New polcs are created with a dbid of -1; when they are
+  subsequently saved, a new entry is allocated in the MEP table, and the polc
+  object is updated with the dbid. During normal operation, the user need not
+  worry about this since everything happens automatically; some advanced
+  scripting may require knowledge of the dbid.
 
 \section{MeqServer interface}
 

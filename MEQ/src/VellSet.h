@@ -160,7 +160,7 @@ public:
   
   void setShape (int nx,int ny)
   { setShape(LoShape2(nx,ny)); }
-    
+  
   // ------------------------ SPIDS AND ASSOCIATED ATTRIBUTES
   // Get the spids.
     //##ModelId=400E5355033C

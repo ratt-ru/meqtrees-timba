@@ -836,8 +836,10 @@ template<class T>
 inline NestableContainer::Hook::Hook (CountedRef<T> &ref,const HIID &id1)
   : nc(const_cast<NestableContainer *>(ref.ref_cast(Type2Type<NestableContainer>()).deref_p())),
     link0(*nc,HIID()),
-    ncref0(ref.isWritable() 
-             ? reinterpret_cast<NestableContainer::Ref *>(&ref) : 0)
+    // see comments at ncref0 declaration. We only need to rememeber the ref 
+    // if the first container is not writable
+    ncref0(ref.isWritable() ? 0 :  
+             reinterpret_cast<NestableContainer::Ref *>(&ref))
 { 
   initialize(nc,id1,True);
 }

@@ -37,36 +37,40 @@ int Result::ndtor = 0;
 static NestableContainer::Register reg(TpMeqResult,True);
 
 //##ModelId=3F86887000CE
-Result::Result (int nvellsets)
+Result::Result (int nvellsets,bool integrated)
 : itsCells(0)
 {
   nctor++;
+  setIsIntegrated(integrated);
   if( nvellsets>0 )
     allocateVellSets(nvellsets);
 }
 
 //##ModelId=400E535500F5
-Result::Result (int nvellsets,const Request &req)
+Result::Result (int nvellsets,const Request &req,bool integrated)
 {
   nctor++;
+  setIsIntegrated(integrated);
   if( nvellsets>0 )
     allocateVellSets(nvellsets);
   setCells(&req.cells());
 }
 
 //##ModelId=400E53550105
-Result::Result (const Request &req,int nvellsets)
+Result::Result (const Request &req,int nvellsets,bool integrated)
 {
   nctor++;
+  setIsIntegrated(integrated);
   if( nvellsets>0 )
     allocateVellSets(nvellsets);
   setCells(&req.cells());
 }
   
 //##ModelId=3F8688700151
-Result::Result (const Request &req)
+Result::Result (const Request &req,bool integrated)
 {
   nctor++;
+  setIsIntegrated(integrated);
   setCells(&req.cells());
 }
 
@@ -110,6 +114,7 @@ void Result::validateContent ()
   // indeed writable. Setup shortcuts to their contents
   try
   {
+    itsIsIntegrated = (*this)[FIntegrated].as<bool>(false);
     if( hasField(FCells) ) // verify cells field
       itsCells = (*this)[FCells].as_p<Cells>();
     else
@@ -146,6 +151,11 @@ void Result::setCells (const Cells *cells,int flags)
   DataRecord::replace(FCells,itsCells,flags|DMI::READONLY);
 }
 
+void Result::setIsIntegrated (bool integrated)
+{
+  itsIsIntegrated = integrated;
+  DataRecord::replace(FIntegrated,new DataField(Tpbool,-1,&itsIsIntegrated),DMI::ANONWR);
+}
 
 DataField & Result::wrVellSets ()
 {
@@ -186,6 +196,49 @@ int Result::numFails () const
     if( vellSet(i).isFail() )
       count++;
   return count;
+}
+
+void Result::integrate (bool reverse)
+{
+  const Cells &cc = cells();
+  if( reverse && isIntegrated() )
+    return;
+  if( !reverse && !isIntegrated() )
+    return;
+  // compute cellsize, as scalar or matrix, depending on properties of cells
+  Vells cellsize;
+  // irregular cell size -- compute & use matrix 
+  if( cc.numSegments(0)>1 || cc.numSegments(1)>1 )
+  {
+    // compute matrix of cell sizes, multiply by value
+    LoMat_double csz(cc.shape());
+    using namespace blitz;
+    csz = cc.cellSize(0)(tensor::i) * cc.cellSize(1)(tensor::j);
+    if( reverse )
+      csz = 1/csz;
+    cellsize = Vells(csz);
+  }
+  else // this is a regular grid -- use scalar cell size
+  {
+    double csz = cc.cellSize(0)(0)*cc.cellSize(1)(0);
+    if( reverse )
+      csz = 1/csz;
+    cellsize = Vells(csz);
+  }
+  // loop over vellsets, applying cellsize
+  for( int ivs=0; ivs<numVellSets(); ivs++ )
+  {
+    VellSet &vs = vellSetWr(ivs);
+    if( !vs.isFail() )
+    {
+      vs.setValue(vs.getValue()*cellsize);
+      for( int iset=0; iset<vs.numPertSets(); iset++ )
+        for( int i=0; i<vs.numSpids(); i++ )
+          vs.setPerturbedValue(i,vs.getPerturbedValue(i,iset)*cellsize,iset);
+    }
+  }
+  // if all succeeds, set flag
+  setIsIntegrated(!reverse);
 }
 
 //##ModelId=3F868870014C

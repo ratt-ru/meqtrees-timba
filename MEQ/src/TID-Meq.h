@@ -229,6 +229,23 @@ namespace Meq { class MergeFlags; };
               typedef const Meq::MergeFlags & ContainerParamType;
             };
 #endif
+#ifndef _defined_id_TpMeqModRes
+#define _defined_id_TpMeqModRes 1
+const TypeId TpMeqModRes(-1447);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ModRes.h:31
+const int TpMeqModRes_int = -1447;
+namespace Meq { class ModRes; };
+            template<>
+            class DMIBaseTypeTraits<Meq::ModRes> : public TypeTraits<Meq::ModRes>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqModRes_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::ModRes & ContainerReturnType;
+              typedef const Meq::ModRes & ContainerParamType;
+            };
+#endif
 #ifndef _defined_id_TpMeqMultiply
 #define _defined_id_TpMeqMultiply 1
 const TypeId TpMeqMultiply(-1227);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Multiply.h:29
