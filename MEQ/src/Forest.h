@@ -98,7 +98,7 @@ class Forest
     NameMap name_map;
     
     HIID last_req_id;
-    Meq::Cells last_req_cells;
+    Meq::Cells::Ref last_req_cells;
 };
 
 } // namespace Meq

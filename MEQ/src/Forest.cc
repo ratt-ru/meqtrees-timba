@@ -35,7 +35,6 @@ InitDebugContext(Forest,"MeqForest");
   
 //##ModelId=3F60697A00ED
 Forest::Forest ()
-    : last_req_cells(Domain(),1,1)
 {
   // resize repository to 1 initially, so that index #0 is never used
   nodes.reserve(RepositoryChunkSize);
@@ -153,17 +152,17 @@ const Node::Ref & Forest::getRef (int node_index)
 
 const HIID & Forest::assignRequestId (Request &req)
 {
-  if( last_req_id.empty() ) // no lastious request?
+  if( !last_req_cells.valid() ) // first request ever request?
   {
+    last_req_cells.attach(req.cells()).privatize(DMI::READONLY|DMI::DEEP);
     last_req_id = HIID(1);
-    last_req_cells = req.cells();
   }
   else
   {
     // cells do not match lastious request? Update the ID
-    if( req.cells() != last_req_cells )
+    if( req.cells() != *last_req_cells )
     {
-      last_req_cells = req.cells();
+      last_req_cells.attach(req.cells()).privatize(DMI::READONLY|DMI::DEEP);
       last_req_id[0] = last_req_id[0]+1;
     }
   }

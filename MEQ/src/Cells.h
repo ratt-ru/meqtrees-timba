@@ -40,6 +40,8 @@ namespace Meq {
 class Cells : public DataRecord
 {
 public:
+  typedef CountedRef<Cells> Ref;
+    
   Cells ();
   // Construct from DataRecord. 
   Cells (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
