@@ -30,6 +30,12 @@
 //## end module%3C10CC810157.declarations
 
 //## begin module%3C10CC810157.additionalDeclarations preserve=yes
+// This macros registers Atomic IDs. A script will scan your code
+// for invocations, and create include/.cc files defining the AIDs.
+#define RegisterAid(aid)
+// By default, everything is placed into AID.h, but by invoking:
+#define RegisterAidGroup(group)
+// you can place subsequent AIDs into AID-group.h.
 //## end module%3C10CC810157.additionalDeclarations
 
 
@@ -338,10 +344,3 @@ inline Bool AtomicID::matches (const AtomicID &other) const
 #endif
 
 
-// Detached code regions:
-#if 0
-//## begin AtomicID::toString%3BE9709700A7.body preserve=yes
-  return names.count(id) ? "!" : names[id];
-//## end AtomicID::toString%3BE9709700A7.body
-
-#endif

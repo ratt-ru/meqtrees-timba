@@ -36,6 +36,7 @@ DataField::DataField()
   //## begin DataField::DataField%3BB317D8010B_const.hasinit preserve=no
   //## end DataField::DataField%3BB317D8010B_const.hasinit
   //## begin DataField::DataField%3BB317D8010B_const.initialization preserve=yes
+  : mytype(0),selected(False),writable(False)
   //## end DataField::DataField%3BB317D8010B_const.initialization
 {
   //## begin DataField::DataField%3BB317D8010B_const.body preserve=yes
@@ -49,6 +50,7 @@ DataField::DataField(const DataField &right)
   //## end DataField::DataField%3BB317D8010B_copy.initialization
 {
   //## begin DataField::DataField%3BB317D8010B_copy.body preserve=yes
+  
   //## end DataField::DataField%3BB317D8010B_copy.body
 }
 

@@ -74,7 +74,7 @@ class DynamicTypeManager
 
 
 
-    typedef BlockableObject * (*PtrConstructor)(void);
+    typedef BlockableObject * (*PtrConstructor)(int n=0);
 
     //## begin DynamicTypeManager::PtrConstructor%3BF559FF0375.postscript preserve=yes
     //## end DynamicTypeManager::PtrConstructor%3BF559FF0375.postscript
@@ -85,16 +85,16 @@ class DynamicTypeManager
       //	Reconstructs an object from a data block, by calling the
       //	"constructor function" for that type to create an empty object, and
       //	then filling it via BlockableObject::fromBlock().
-      static BlockableObject * construct (TypeId tid, BlockSet& bset);
+      static BlockableObject * construct (TypeId tid, BlockSet& bset, int n = 0);
 
       //## Operation: construct%3BE96C7402D5
       //	Constructs a default object of the given type (simply calls the
       //	"constructor" function from the constructor map).
-      static BlockableObject * construct (TypeId tid);
+      static BlockableObject * construct (TypeId tid, int n = 0);
 
       //## Operation: registerType%3BE96C6D0090
       //	Adds a type and its constructor function to the type map
-      static void registerType (TypeId tid, PtrConstructor constructor);
+      static void registerType (TypeId tid, DynamicTypeManager::PtrConstructor constructor);
 
       //## Operation: isRegistered%3BF905EE020E
       //	Checks if a type is registered
@@ -103,8 +103,22 @@ class DynamicTypeManager
   public:
     // Additional Public Declarations
       //## begin DynamicTypeManager%3BE96C040003.public preserve=yes
-      //## end DynamicTypeManager%3BE96C040003.public
 
+      // This is a helper class -- declare an object of this
+      // class to register a type constructor.
+      class Register 
+      {
+        public:
+            Register (int tid, PtrConstructor constructor);
+
+        private: // hide other constructors
+            Register();
+            Register(const Register &right);
+      };
+      
+
+      
+      //## end DynamicTypeManager%3BE96C040003.public
   protected:
     // Additional Protected Declarations
       //## begin DynamicTypeManager%3BE96C040003.protected preserve=yes
@@ -133,6 +147,10 @@ class DynamicTypeManager
 };
 
 //## begin DynamicTypeManager%3BE96C040003.postscript preserve=yes
+inline DynamicTypeManager::Register::Register (int tid, PtrConstructor constructor)
+{
+  DynamicTypeManager::registerType(tid,constructor);
+}
 //## end DynamicTypeManager%3BE96C040003.postscript
 
 // Class Utility DynamicTypeManager 

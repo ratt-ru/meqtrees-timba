@@ -21,6 +21,7 @@
 //## begin module%3C10CC820124.additionalIncludes preserve=no
 #include "Common.h"
 #include "DMI.h"
+#include "TID-base.h"
 //## end module%3C10CC820124.additionalIncludes
 
 //## begin module%3C10CC820124.includes preserve=yes
@@ -34,6 +35,15 @@
 //## end module%3C10CC820124.declarations
 
 //## begin module%3C10CC820124.additionalDeclarations preserve=yes
+// declare the standard types
+#pragma typegroup Global
+#pragma types char=10 uchar=11 short=12 ushort=13 int=14 uint=15 
+#pragma types long=16 ulong=17 float=18 double=19 ldouble=20 string=21
+
+#pragma types mytype
+
+// these constants are used to tell them apart 
+const int StdTypeFirst=10,StdTypeLast=21;
 //## end module%3C10CC820124.additionalDeclarations
 
 

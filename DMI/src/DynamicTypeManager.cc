@@ -38,27 +38,31 @@ map<int,DynamicTypeManager::PtrConstructor> DynamicTypeManager::constructor_map;
 
 
 //## Other Operations (implementation)
-BlockableObject * DynamicTypeManager::construct (TypeId tid, BlockSet& bset)
+BlockableObject * DynamicTypeManager::construct (TypeId tid, BlockSet& bset, int n)
 {
   //## begin DynamicTypeManager::construct%3BE96C5F03A7.body preserve=yes
-  BlockableObject *obj = construct(tid);
-  obj->fromBlock(bset);
+  BlockableObject *obj = construct(tid,n);
+  for( int i=0; i<(n?n:1); i++ )
+    obj[i].fromBlock(bset);
   return obj;
   //## end DynamicTypeManager::construct%3BE96C5F03A7.body
 }
 
-BlockableObject * DynamicTypeManager::construct (TypeId tid)
+BlockableObject * DynamicTypeManager::construct (TypeId tid, int n)
 {
   //## begin DynamicTypeManager::construct%3BE96C7402D5.body preserve=yes
-  cdebug(2)<<"DynTypeMgr: constructing "<<tid.toString()<<": ";
+  cdebug(2)<<"DynTypeMgr: constructing "<<tid.toString();
+  if( n ) 
+    cdebug(2)<<"["<<n<<"]";
+  cdebug(2)<<": ";
   FailWhen1( !isRegistered(tid),"Unregistered type "+tid.toString() );
-  BlockableObject *obj = (*(constructor_map[tid]))();
+  BlockableObject *obj = (*(constructor_map[tid]))(n);
   dprintf(2)(" @%p\n",obj);
   return obj;
   //## end DynamicTypeManager::construct%3BE96C7402D5.body
 }
 
-void DynamicTypeManager::registerType (TypeId tid, PtrConstructor constructor)
+void DynamicTypeManager::registerType (TypeId tid, DynamicTypeManager::PtrConstructor constructor)
 {
   //## begin DynamicTypeManager::registerType%3BE96C6D0090.body preserve=yes
   cdebug(2)<<"DynTypeMgr: registering type "<<tid.toString()<<endl;
