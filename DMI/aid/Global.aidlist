@@ -331,6 +331,7 @@ meqresampler                     1439       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 meqrescoupler                    1438       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ResCoupler.h:30
 meqresult                        1246       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:36
 meqresultset                     1215       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ResultSet.h:34
+#meqrfi                          1578       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/RFI.h:31
 #meqrms                          1571       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Rms.h:29
 meqrmsrms                        1572       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Rmsrms.h:29
 #meqselector                     1255       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Selector.h:29
