@@ -249,6 +249,11 @@ class HierBrowser (object):
       c = xcurry(*args,**kw);
       self._curries.append(c);
       return c;  
+      
+    # dum argument needed to use as callback from popup menu
+    def copy_to_clipboard (self,dum=None):
+      text = str(self.text(0))+": "+str(self.text(2));
+      QApplication.clipboard().setText(text);
 
     def get_context_menu (self):
       try: menu = self._context_menu;
@@ -256,15 +261,14 @@ class HierBrowser (object):
         # create menu on the fly when first called for this item
         viewer_list = self._content is not None and self._viewable and \
                    gridded_workspace.getViewerList(self._content);
-        # no menu for this item if not viewable or refreshable
-        if not ( self._strfunc or viewer_list ):
-          self._context_menu = None;
-          return None;
         # create menu
-        menu = self._context_menu = QPopupMenu();
+        menu = self._context_menu = QPopupMenu(self.listView());
         menu._callbacks = [];
         menu.insertItem(' '.join((self._name,self._desc)));
         menu.insertSeparator();
+        copy_item = menu.insertItem('&Copy to clipboard',self.copy_to_clipboard);
+#        menu.setAccel(Qt.Key_F7,copy_item);
+#        menu.setAccel(Qt.CTRL+Qt.Key_Insert,copy_item);
         # create "Precision" submenu
         if self._strfunc:
           self._prec_menu = PrecisionPopupMenu(prec=self._prec);
