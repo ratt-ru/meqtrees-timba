@@ -45,6 +45,10 @@ template<class T> class Matrix;
 namespace Meq {
 class Request;
 
+const double defaultPolcPerturbation = 1e-6;
+const double defaultPolcWeight = 1;
+
+
 //##ModelId=3F86886E01F6
 class Polc : public DataRecord
 {
@@ -55,13 +59,24 @@ public:
     
     //##ModelId=3F86886F0366
   explicit Polc(double c00,double freq0=0,double freqsc=1,
-                double time0=0,double timesc=1,double pert=1e-6);
+                double time0=0,double timesc=1,
+                double pert=defaultPolcPerturbation,double weight=defaultPolcWeight);
   
   explicit Polc(LoMat_double coeff,double freq0=0,double freqsc=1,
-                double time0=0,double timesc=1,double pert=1e-6);
+                double time0=0,double timesc=1,
+                double pert=defaultPolcPerturbation,double weight=defaultPolcWeight);
   
   explicit Polc(DataArray *parr,double freq0=0,double freqsc=1,
-                double time0=0,double timesc=1,double pert=1e-6);
+                double time0=0,double timesc=1,
+                double pert=defaultPolcPerturbation,double weight=defaultPolcWeight);
+  
+  explicit Polc(const Vells &coeff,double freq0=0,double freqsc=1,
+                double time0=0,double timesc=1,
+                double pert=defaultPolcPerturbation,double weight=defaultPolcWeight);
+  
+  // sets all of a polc's attributes in one go
+  void setEverything (double freq0,double freqsc,double time0,double timesc,
+                      double pert,double weight);
   
     //##ModelId=400E5354033A
   Polc (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
@@ -111,9 +126,14 @@ public:
     //##ModelId=3F86886F0396
   double getPerturbation(int ipert=0) const
     { DbgAssert(ipert==0 || ipert==1); return ipert ? -itsPertValue : itsPertValue ; }
-
+  
     //##ModelId=3F86886F039A
-  void setPerturbation (double perturbation = 1e-6);
+  void setPerturbation (double perturbation = defaultPolcPerturbation);
+  
+  double getWeight() const
+    { return itsWeight; }
+  
+  void setWeight (double weight);
 
   // Make the polynomial non-solvable.
     //##ModelId=3F86886F03A4
@@ -222,6 +242,8 @@ private:
   double       itsTime0;
   double       itsFreqScale;
   double       itsTimeScale;
+  
+  double       itsWeight;
 
   //# Pascal's triangle for the binomial coefficients needed when normalizing.
     //##ModelId=3F86886F0357

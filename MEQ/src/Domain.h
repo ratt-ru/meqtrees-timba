@@ -115,6 +115,15 @@ public:
        &&  itsScaleFreq  == that.itsScaleFreq
        &&  itsOffsetTime == that.itsOffsetTime
        &&  itsScaleTime  == that.itsScaleTime; }
+  
+  bool subsetOf (const Domain &other) const
+  { return 
+      startFreq() >= other.startFreq() && endFreq() <= other.endFreq() &&
+      startTime() >= other.startTime() && endTime() <= other.endTime(); }
+  
+  bool supersetOf (const Domain &other) const
+  { return other.subsetOf(*this); }
+  
 
     //##ModelId=400E5305011A
   bool operator!= (const Domain& that) const

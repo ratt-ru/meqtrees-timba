@@ -33,7 +33,7 @@
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cells Results Fail Origin Line Message Contagious  Normalized
 #pragma aid Solvable Config Groups All By List Polcs Scale
-#pragma aid Epsilon UseSVD
+#pragma aid Grow Inf Weight Epsilon UseSVD 
 #pragma aid Metrics Rank Fit Errors CoVar Flag Mu StdDev Chi
 
 
@@ -77,13 +77,17 @@ namespace Meq
     FParmName        = AidParm|AidName,
     FDomainId        = AidDomain|AidId,
     
+    // Polc-specific fields
     FCoeff           = AidCoeff,
     FPerturbation    = AidPert,
+    FWeight          = AidWeight,
     FPertRelative    = AidPert|AidRelative,
     FFreq0           = AidFreq|0,
     FTime0           = AidTime|0,
     FFreqScale       = AidFreq|AidScale,
     FTimeScale       = AidTime|AidScale,
+    FGrowDomain      = AidGrow|AidDomain,
+    FInfDomain       = AidInf|AidDomain,
     
     FSpids           = AidSpid|AidIndex,
     FPerturbedValues = AidPerturbed|AidValue,

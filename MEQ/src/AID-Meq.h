@@ -133,6 +133,11 @@ const int AidFreq_int = -1128;
 const AtomicID AidGroups(-1374);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
 const int AidGroups_int = -1374;
 #endif
+#ifndef _defined_id_AidGrow
+#define _defined_id_AidGrow 1
+const AtomicID AidGrow(-1409);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
+const int AidGrow_int = -1409;
+#endif
 #ifndef _defined_id_AidId
 #define _defined_id_AidId 1
 const AtomicID AidId(-1087);                      // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:10
@@ -142,6 +147,11 @@ const int AidId_int = -1087;
 #define _defined_id_AidIndex 1
 const AtomicID AidIndex(-1051);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:26
 const int AidIndex_int = -1051;
+#endif
+#ifndef _defined_id_AidInf
+#define _defined_id_AidInf 1
+const AtomicID AidInf(-1410);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
+const int AidInf_int = -1410;
 #endif
 #ifndef _defined_id_AidLine
 #define _defined_id_AidLine 1
@@ -502,6 +512,11 @@ const int AidVellSets_int = -1371;
 #define _defined_id_AidVells 1
 const AtomicID AidVells(-1370);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:31
 const int AidVells_int = -1370;
+#endif
+#ifndef _defined_id_AidWeight
+#define _defined_id_AidWeight 1
+const AtomicID AidWeight(-1189);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
+const int AidWeight_int = -1189;
 #endif
 
 

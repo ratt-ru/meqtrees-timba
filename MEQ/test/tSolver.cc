@@ -115,18 +115,19 @@ int main (int argc,const char* argv[])
     Request &req = reqref <<= new Request(new Cells(domain, 4, 4));
     Result::Ref refres;
     child1.execute(refres, req);
-    cout << "p1 before " << refres().vellSet(0).getValue() << endl;
+    cout << "p1 before " << refres().vellSet(0) << endl;
     child2.execute(refres, req);
-    cout << "p2 before " << refres().vellSet(0).getValue() << endl;
+    cout << "p2 before " << refres().vellSet(0) << endl;
 
     int flag = chsolv.execute(refres, req);
     cout << flag << endl;
-    cout << "solver " << refres().vellSet(0).getValue() << endl;
-
+    cout << "solver " << refres().vellSet(0) << endl;
+    if( refres->hasFails() )
+      return 1;
     child1.execute(refres, req);
-    cout << "p1 after  " << refres().vellSet(0).getValue() << endl;
+    cout << "p1 after  " << refres().vellSet(0) << endl;
     child2.execute(refres, req);
-    cout << "p2 after  " << refres().vellSet(0).getValue() << endl;
+    cout << "p2 after  " << refres().vellSet(0) << endl;
   } 
   catch (std::exception& x) 
   {

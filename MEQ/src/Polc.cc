@@ -47,36 +47,47 @@ static Domain nullDomain;
 
 Polc::Polc()
     : itsDomain(&nullDomain)
-{
-  
+{ 
+  itsPertValue = defaultPolcPerturbation; 
+  itsWeight = defaultPolcWeight;
 }
-    
 
 //##ModelId=3F86886F0366
-Polc::Polc(double c00,double freq0,double freqsc,double time0,double timesc,double pert)
+Polc::Polc(double c00,double freq0,double freqsc,double time0,double timesc,
+            double pert,double weight)
   : itsCoeff(c00),itsDomain(&nullDomain),itsNrSpid(0)
 {
   (*this)[FCoeff] <<= itsCoeff.getDataArray();
-  (*this)[FPerturbation] = itsPertValue = pert;
-  (*this)[FFreq0] = itsFreq0 = freq0;
-  (*this)[FTime0] = itsTime0 = time0;
-  (*this)[FFreqScale] = itsFreqScale = freqsc;
-  (*this)[FTimeScale] = itsTimeScale = timesc;
+  setEverything(freq0,freqsc,time0,timesc,pert,weight);
 }
 
-Polc::Polc(LoMat_double arr,double freq0,double freqsc,double time0,double timesc,double pert)
+Polc::Polc(LoMat_double arr,double freq0,double freqsc,double time0,double timesc,
+            double pert,double weight)
   : itsCoeff(arr),itsDomain(&nullDomain),itsNrSpid(0)
 {
   (*this)[FCoeff] <<= itsCoeff.getDataArray();
-  (*this)[FPerturbation] = itsPertValue = pert;
-  (*this)[FFreq0] = itsFreq0 = freq0;
-  (*this)[FTime0] = itsTime0 = time0;
-  (*this)[FFreqScale] = itsFreqScale = freqsc;
-  (*this)[FTimeScale] = itsTimeScale = timesc;
+  setEverything(freq0,freqsc,time0,timesc,pert,weight);
 }
 
-Polc::Polc(DataArray *parr,double freq0,double freqsc,double time0,double timesc,double pert)
+Polc::Polc(DataArray *parr,double freq0,double freqsc,double time0,double timesc,
+            double pert,double weight)
   : itsCoeff(parr),itsDomain(&nullDomain),itsNrSpid(0)
+{
+  (*this)[FCoeff] <<= itsCoeff.getDataArray();
+  setEverything(freq0,freqsc,time0,timesc,pert,weight);
+}
+
+Polc::Polc(const Vells &coeff,double freq0,double freqsc,double time0,double timesc,
+            double pert,double weight)
+  : itsDomain(&nullDomain),itsNrSpid(0)
+{
+  itsCoeff = coeff.clone();
+  (*this)[FCoeff] <<= itsCoeff.getDataArray();
+  setEverything(freq0,freqsc,time0,timesc,pert,weight);
+}
+
+void Polc::setEverything (double freq0,double freqsc,double time0,double timesc,
+                          double pert,double weight)
 {
   (*this)[FCoeff] <<= itsCoeff.getDataArray();
   (*this)[FPerturbation] = itsPertValue = pert;
@@ -84,7 +95,9 @@ Polc::Polc(DataArray *parr,double freq0,double freqsc,double time0,double timesc
   (*this)[FTime0] = itsTime0 = time0;
   (*this)[FFreqScale] = itsFreqScale = freqsc;
   (*this)[FTimeScale] = itsTimeScale = timesc;
+  (*this)[FWeight] = itsWeight = weight;
 }
+
 
 //##ModelId=400E5354033A
 Polc::Polc (const DataRecord &other,int flags,int depth)
@@ -110,11 +123,12 @@ void Polc::validateContent ()
     else
       itsCoeff = Vells();
     // get various others
-    itsPertValue = (*this)[FPerturbation].as<double>(1e-6);
+    itsPertValue = (*this)[FPerturbation].as<double>(defaultPolcPerturbation);
     itsFreq0     = (*this)[FFreq0].as<double>(0);
     itsTime0     = (*this)[FTime0].as<double>(0);
     itsFreqScale = (*this)[FFreqScale].as<double>(1);
     itsTimeScale = (*this)[FTimeScale].as<double>(1);
+    itsWeight    = (*this)[FWeight].as<double>(defaultPolcWeight);
   }
   catch( std::exception &err )
   {
@@ -134,6 +148,9 @@ void Polc::setDomain (const Domain& domain)
 
 void Polc::setPerturbation (double perturbation)
 { (*this)[FPerturbation] = itsPertValue = perturbation; }
+
+void Polc::setWeight (double weight)
+{ (*this)[FWeight] = itsWeight = weight; }
 
 void Polc::setFreq0 (double freq0)
 { (*this)[FFreq0] = itsFreq0 = freq0; }

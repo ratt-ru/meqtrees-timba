@@ -122,6 +122,9 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1046,"list")+
         AtomicID::registerId(-1383,"polcs")+
         AtomicID::registerId(-1405,"scale")+
+        AtomicID::registerId(-1409,"grow")+
+        AtomicID::registerId(-1410,"inf")+
+        AtomicID::registerId(-1189,"weight")+
         AtomicID::registerId(-1385,"epsilon")+
         AtomicID::registerId(-1384,"usesvd")+
         AtomicID::registerId(-1404,"metrics")+
