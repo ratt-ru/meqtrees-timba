@@ -1,31 +1,35 @@
 #!/usr/bin/python
 
 # modules that are imported
-import gridded_workspace
-from app_browsers import *
+from Timba.dmi import *
+from Timba import utils
+from Timba.GUI.pixmaps import pixmaps
+from Timba.GUI import widgets
+from Timba.GUI.browsers import *
+from Timba import Grid
+
 from qt import *
-from dmitypes import *
 import sihippo
 print "HippoDraw version " + sihippo.__version__
 from sihippo import *
 from numarray import *
 
-from dmitypes import verbosity
+from Timba.utils import verbosity
 _dbg = verbosity(0,name='hippo_array_plotter');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-
-class HippoArrayPlotter(BrowserPlugin):
+class HippoArrayPlotter(GriddedPlugin):
   """ a class to plot raw arrays contained within a Meq tree """
 
   _icon = pixmaps.bars3d
-  viewer_name = "Hippo Plotter";
+  viewer_name = "Hippo Array Plotter";
   def is_viewable (data):
     return len(data) > 0;
   is_viewable = staticmethod(is_viewable);
 
-  def __init__(self,parent=None,dataitem=None,**opts):
+  def __init__(self,gw,dataitem,cellspec={},**opts):
+    GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
     """ instantiate various HippoDraw objects that are needed to
         control various aspects of plotting """
 
@@ -34,12 +38,13 @@ class HippoArrayPlotter(BrowserPlugin):
     self._window_controller.createInspector ()
 
 # used for 'standalone display'
-    self._window = CanvasWindow(parent, "MeqDisplay",0)
+    self._window = CanvasWindow(self.wparent(), "MeqDisplay",0)
+    self.set_widgets(self._window,dataitem.caption,icon=self.icon())
     self._wtop = self._window
 
 # have Hippo window close without asking permission to discard etc
     self._window.setAllowClose()
-    self._window.show()
+#    self._window.show()
     self._display_controller = DisplayController.instance()
     self._canvas = None
     self._image_ntuple = None
@@ -77,7 +82,9 @@ class HippoArrayPlotter(BrowserPlugin):
     if is_vector == False:
 # first display an image 
       if self._image_ntuple == None:
+        print 'should bomb here'
         self._image_ntuple = self._ntuple_controller.createNTuple()
+        print 'did not bomb'
         self._image_ntuple.setTitle ("Array Data")
         self._add_x_y = True;
       image_size = n_rows * n_cols
@@ -191,5 +198,10 @@ class HippoArrayPlotter(BrowserPlugin):
     else:
       self._label = "real data value"
       self.display_data(dataitem.data)
-    
-gridded_workspace.registerViewer(array_class,HippoArrayPlotter,priority=11)
+
+# enable & highlight the cell
+    self.enable();
+    self.flash_refresh();
+
+Grid.Services.registerViewer(array_class,HippoArrayPlotter,priority=11)
+
