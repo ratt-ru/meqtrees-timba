@@ -37,9 +37,12 @@
 #         default is package name in lowercase
 #     searchpath is the path to look for header files and libraries
 #         the path must be separated by blanks
+#         +prefix is a special name; it is replaced by the --prefix value
+#           which can be used to find a package in the install directory.
 #         +pkg is a special name; it is replaced by the package name.
 #         +comp is a special name; it is replaced by the compiler name.
-#         default is "/usr/local/+pkg/+comp /usr/local/+pkg /usr/local /usr"
+#         default is
+#          "+prefix /usr/local/+pkg/+comp /usr/local/+pkg /usr/local /usr"
 #         The header and libraries are looked up in each directory of the
 #         search path and in include/lib subdirectories of them.
 #         The first match is taken.
@@ -70,7 +73,7 @@ define(LOFAR_EXT_LIB,m4_tolower(patsubst([$1], [.*/])))
 ifelse($2, [], [lfr_option=0], [lfr_option=$2])
 ifelse($3, [], [lfr_hdr=""], [lfr_hdr=$3])
 ifelse($4, [], [lfr_libs=LOFAR_EXT_LIB], [lfr_libs=$4])
-ifelse($5, [], [lfr_search="/usr/local/+pkg/+comp /usr/local/+pkg /usr/local /usr"], [lfr_search=$5])
+ifelse($5, [], [lfr_search="+prefix /usr/local/+pkg/+comp /usr/local/+pkg /usr/local /usr"], [lfr_search=$5])
 AC_ARG_WITH([LOFAR_EXT_LIB],
 	[  --with-LOFAR_EXT_LIB[[=PFX]]        path to $1 directory],
 	[with_external=$withval
@@ -209,7 +212,7 @@ else
   done
 
 ##
-## Replace +pkg and +comp in search list.
+## Replace +prefix, +pkg, and +comp in search list.
 ##
   external_slist=$external_search;
   if test "$external_slist" = ""; then
@@ -221,7 +224,8 @@ else
   lfr_slist=
   for bdir in $external_slist
   do
-    lfr_a=`echo $bdir | sed -e "s%/+pkg%/$lfr_ext_name%g"`
+    lfr_a0=`echo $bdir | sed -e "s%+prefix%$prefix%g"`
+    lfr_a=`echo $lfr_a0 | sed -e "s%/+pkg%/$lfr_ext_name%g"`
     lfr_b=`echo $lfr_a | sed -e "s%/+comp%/$lfr_buildcomp%"`
     lfr_slist="$lfr_slist $lfr_b"
     if test "$lfr_a" != "$lfr_b"; then
