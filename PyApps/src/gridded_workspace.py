@@ -950,13 +950,10 @@ class GriddedWorkspace (object):
     
   # updates a data item, if it is known
   def update_data_item (self,udi,data):
-    # compile pattern to match children of this udi
-    udipatt = re.compile("^"+udi+"(/.*)?$");
     # scan current data items to see which need updating
     for (u,item) in self._dataitems.iteritems():
-      match = udipatt.match(u);
-      if match:
-        subudi = match.group(1);
+      if u.startswith(udi):
+        subudi = u[len(udi):];
         if subudi:   # a sub-udi, so we must process it by indexing into the data
           # split into keys and process one by one (first one is empty string)
           data1 = data;

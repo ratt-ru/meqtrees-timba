@@ -163,8 +163,110 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
     # apply saved open tree
     self.set_open_items(openitems);
     self._state = dataitem.data;
-    
+
+
 class TreeBrowser (object):
+  class NodeItem (QListViewItem):
+    def __init__(self,tb,node,name,parent,after):
+      QListViewItem.__init__(self,parent,after,name);
+      self.setText(tb._icol_class,str(node.classname));
+      self.setText(tb._icol_index,str(node.nodeindex));
+      self.setDragEnabled(True);
+      self._tb = weakref.ref(tb);
+      self._node = weakref.proxy(node);
+      self._expanded = False;
+      self._udi  = meqds.node_udi(node);
+      if node.children:
+        self.setExpandable(True);
+      node.subscribe_state(self.update);
+      self.update();
+      
+    def update (self,state=None,event=None):
+      """updates node item based on node state. The two arguments are
+      actually ignored (we have them for compatibility with the 
+      subscribe_state callback).""";
+      self._stat_anim_cbs = {};
+      # update status pixmaps
+      for act in self._tb().get_node_actions():
+        # if action has a column assigned to it, and a state callback...
+        try: (icol,state) = (act._icol,act.state);
+        except AttributeError: pass;
+        else:
+          # call it to set the pixmap in the column
+          if state(self._node):
+            if hasattr(act,'iconset_anim'):
+              # else set animation sequence: curry a set of callbacks,
+              # one per each iconset in sequence, and set timer event for each
+              iconseq = act.iconset_anim;
+              self.setPixmap(icol,iconseq[0]().pixmap());
+              self._stat_anim_cbs[icol] = [ \
+                curry(self.setPixmap,icol,iset().pixmap()) for iset in iconseq[1:] ];
+              for (n,cb) in enumerate(self._stat_anim_cbs[icol]):
+                QTimer.singleShot((n+1)*500,cb);
+            else: # single icon
+              self.setPixmap(icol,act.iconset().pixmap());
+          else:
+            self.setPixmap(icol,QPixmap());
+      # update context menu
+      try: menu = self._context_menu;
+      except AttributeError:
+        return;
+      for (act_id,act) in menu._actions.iteritems():
+        if hasattr(act,'state'):
+          menu.setItemChecked(act_id,act.state(self._node));
+      
+    def expand (self):
+      if self._expanded:
+        return;
+      i1 = self;
+      for (key,ni) in self._node.children:
+        node = meqds.nodelist[ni];
+        name = str(key) + ": " + node.name;
+        i1 = self.__class__(self._tb(),node,name,self,i1);
+      self._expanded = True;
+      
+    def context_menu (self):
+      try: menu = self._context_menu;
+      except AttributeError:
+        # create menu on the fly when first called for this item
+        node = self._node;
+        menu = self._context_menu = QPopupMenu();
+        menu._callbacks = [];
+        # insert title
+        menu.insertItem("%s: %s"%(node.name,node.classname));
+        # insert viewer list submenus
+        viewer_list = gridded_workspace.getViewerList(meqds.NodeClass(node.classname));
+        if viewer_list: 
+          menu.insertSeparator();
+          # create display submenus
+          menu1 = self._display_menu1 = QPopupMenu();
+          menu2 = self._display_menu2 = QPopupMenu();
+          menu.insertItem(pixmaps.view_split.iconset(),"Display with",menu1);
+          menu.insertItem(pixmaps.view_right.iconset(),"New display with",menu2);
+          for v in viewer_list:
+            # create entry for viewer
+            name = getattr(v,'viewer_name',v.__name__);
+            try: icon = v.icon();
+            except AttributeError: icon = QIconSet();
+            # add entry to both menus ("Display with" and "New display with")
+            cb1 = xcurry(self._tb().wtop().emit,(PYSIGNAL("view_node()"),(node,v)),_argslice=slice(0));
+            cb2 = xcurry(self._tb().wtop().emit,(PYSIGNAL("view_node()"),(node,v,dict(newcell=True))),_argslice=slice(0));
+            menu1.insertItem(icon,name,cb1);
+            menu2.insertItem(icon,name,cb2);
+            menu._callbacks.append(cb1);
+            menu._callbacks.append(cb2);
+        # add node actions
+        if self._tb().get_node_actions():
+          menu._actions = {};
+          menu.insertSeparator();
+          for act in self._tb().get_node_actions():
+            if act.applies_to(node):
+              act_id = act.add_to_menu(menu,node);
+              # add to action map
+              menu._actions[act_id] = act;
+      # display menu if defined
+      return menu;
+      
   def __init__ (self,parent):
     self._parent = weakref.proxy(parent);
     # construct GUI
@@ -186,6 +288,7 @@ class TreeBrowser (object):
     QObject.connect(nl_update,SIGNAL("clicked()"),self._request_nodelist);
     # node list
     self._nlv = nlv = DataDraggableListView(nl_vbox);
+    nlv.setShowSortIndicator(True);
     nlv.setRootIsDecorated(True);
     nlv.setTreeStepSize(12);
     # nlv.setSorting(-1);
@@ -201,12 +304,14 @@ class TreeBrowser (object):
     
   # init empty set of node actions
   _node_actions = [];
-  
   def add_node_action (action):
     """Registers a node action for the tree browser context menu.""";
     TreeBrowser._node_actions.append(action);
   add_node_action = staticmethod(add_node_action);
-    
+  
+  def get_node_actions (self):
+    return self._node_actions;
+
   def get_data_item (self,udi):
     (name,ni) = meqds.parse_node_udi(udi);
     if ni is None:
@@ -235,26 +340,12 @@ class TreeBrowser (object):
   def _request_nodelist (self):
     self._parent.mqs.meq('Get.Node.List',meqds.NodeList.RequestRecord,wait=False);
     
-  def make_node_item (self,node,name,parent,after):
-    item = QListViewItem(parent,after,name);
-    item.setText(self._icol_class,str(node.classname));
-    item.setText(self._icol_index,str(node.nodeindex));
-    item.setDragEnabled(True);
-    item._node = weakref.proxy(node);
-    item._expanded = False;
-    item._udi  = meqds.node_udi(node);
-    if node.children:
-      item.setExpandable(True);
-    self._node_items.setdefault(node.nodeindex,[]).append(item);
-    self.update_node_item(item);
-    return item;
-
   def update_nodelist (self):
     # init columns if calling for the first time
     # (we don't do it in the constructor because the number of columns
     # depends on the available node actions)
     # init one column per registered action; first one is always node name
-    if not hasattr(self,'_node_items'): 
+    if not self._nlv.columns(): 
       self._node_actions = TreeBrowser._node_actions;
       self._nlv.addColumn('node');
       for (num,act) in enumerate(self._node_actions):
@@ -271,7 +362,6 @@ class TreeBrowser (object):
         self._nlv.setColumnWidthMode(icol,QListView.Maximum);
     # reset the nodelist view
     nodelist = meqds.nodelist;
-    self._node_items = {};
     self._nlv.clear();
     all_item  = QListViewItem(self._nlv,"All Nodes (%d)"%len(nodelist));
     all_item._iter_nodes = nodelist.iternodes();
@@ -284,111 +374,36 @@ class TreeBrowser (object):
     cls_item  = item = QListViewItem(self._nlv,rootitem,"By Class (%d)"%len(classes));
     for (cls,nodes) in classes.iteritems():
       if len(nodes) == 1:
-        item = self.make_node_item(nodes[0],nodes[0].name,cls_item,item);
+        item = self.NodeItem(self,nodes[0],nodes[0].name,cls_item,item);
       else:
         item = QListViewItem(cls_item,item,"(%d)"%len(nodes));
         item.setText(self._icol_class,cls);
         item.setExpandable(True);
         item._iter_nodes = iter(nodes);
-
-  def update_node_state (self,nodestate):
-    if hasattr(self,'_node_items'): 
-      items = self._node_items.get(nodestate.nodeindex,[]);
-      for item in items:
-        self.update_node_item(item);
-      
-  def update_node_item (self,item):
-    node = item._node;
-    # update status pixmaps
-    for act in self._node_actions:
-      # if action has a column assigned to it, and a state callback...
-      try: (icol,state) = (act._icol,act.state);
-      except AttributeError: pass;
-      else:
-        # cll it to set the pixmap in the column
-        if state(node):
-          item.setPixmap(icol,act.iconset().pixmap());
-        else:
-          item.setPixmap(icol,QPixmap());
-    # update context menu
-    try: menu = item._context_menu;
-    except AttributeError:
-      return;
-    for (act_id,act) in menu._actions.iteritems():
-      if hasattr(act,'state'):
-        menu.setItemChecked(act_id,act.state(node));
   
   # slot: called to show a context menu for a browser item
   def _show_context_menu (self,item,point,col):
-    try: menu = item._context_menu;
-    except AttributeError:
-      # if item does not have a _node attribute, exit without a menu
-      try: node = item._node;
-      except AttributeError:
-        item._context_menu = None;
-        return;
-      # create menu on the fly when first called for this item
-      menu = item._context_menu = QPopupMenu();
-      menu._callbacks = [];
-      # insert title
-      menu.insertItem("%s: %s"%(node.name,node.classname));
-      # insert viewer list submenus
-      viewer_list = gridded_workspace.getViewerList(meqds.NodeClass(node.classname));
-      if viewer_list: 
-        menu.insertSeparator();
-        # create display submenus
-        menu1 = item._display_menu1 = QPopupMenu();
-        menu2 = item._display_menu2 = QPopupMenu();
-        menu.insertItem(pixmaps.view_split.iconset(),"Display with",menu1);
-        menu.insertItem(pixmaps.view_right.iconset(),"New display with",menu2);
-        for v in viewer_list:
-          # create entry for viewer
-          name = getattr(v,'viewer_name',v.__name__);
-          try: icon = v.icon();
-          except AttributeError: icon = QIconSet();
-          # add entry to both menus ("Display with" and "New display with")
-          cb1 = xcurry(self.wtop().emit,(PYSIGNAL("view_node()"),(node,v)),_argslice=slice(0));
-          cb2 = xcurry(self.wtop().emit,(PYSIGNAL("view_node()"),(node,v,dict(newcell=True))),_argslice=slice(0));
-          menu1.insertItem(icon,name,cb1);
-          menu2.insertItem(icon,name,cb2);
-          menu._callbacks.append(cb1);
-          menu._callbacks.append(cb2);
-      # add node actions
-      if self._node_actions:
-        menu._actions = {};
-        menu.insertSeparator();
-        for act in self._node_actions:
-          if act.applies_to(node):
-            act_id = act.add_to_menu(menu,node);
-            # add to action map
-            menu._actions[act_id] = act;
-    # display menu if defined
-    if menu is not None:
-      menu.exec_loop(point);
+    if isinstance(item,self.NodeItem):
+      menu = item.context_menu();
+      if menu is not None:
+        menu.exec_loop(point);
       
   def _node_clicked (self,button,item,point,col):
-    if button == 1 and hasattr(item,'_node'):
+    if button == 1 and isinstance(item,self.NodeItem):
       self.wtop().emit(PYSIGNAL("view_node()"),(item._node,None));
   
   def _expand_node (self,item):
-    i1 = item;
-    # populate list when first opened, if an iterator is present as an attribute
-    try: iter_nodes = item._iter_nodes;
-    except: pass;
+    if isinstance(item,self.NodeItem):
+      item.expand();
     else:
-      for node in iter_nodes:
-        i1 = self.make_node_item(node,node.name,item,i1);
-      delattr(item,'_iter_nodes');
-    # populate node children when first opened
-    try: node = item._node;
-    except: pass;
-    else:
-      if not item._expanded:
-        for (key,ni) in item._node.children:
-          node = meqds.nodelist[ni];
-          name = str(key) + ": " + node.name;
-          i1 = self.make_node_item(node,name,item,i1);
-        item._expanded = True;
+      # populate list when first opened, if an iterator is present as an attribute
+      try: iter_nodes = item._iter_nodes;
+      except: pass;
+      else:
+        i1 = item;
+        for node in iter_nodes:
+          i1 = self.NodeItem(self,node,node.name,item,i1);
+        delattr(item,'_iter_nodes');
   _expand_node = busyCursorMethod(_expand_node);
   
 class NodeAction (object):
@@ -436,6 +451,7 @@ class NTA_NodeDisable (NodeToggleAction):
 class NTA_NodePublish (NodeToggleAction):
   text = "Publish";
   iconset = pixmaps.publish.iconset;
+  iconset_anim = (pixmaps.publish_active.iconset,pixmaps.publish.iconset);
   state = lambda self,node:node.is_publishing();
   def activate (self,node):
     cmd = srecord(nodeindex=node.nodeindex,get_state=True,enable=not node.is_publishing());
@@ -544,7 +560,6 @@ class meqserver_gui (app_proxy_gui):
     meqds.add_node_snapshot(node,event);
     udi = meqds.node_udi(node);
     self.gw.update_data_item(udi,node);
-    self.treebrowser.update_node_state(node);
     
   def _view_node (self,node,viewer=None,kws={}):
     _dprint(2,"node clicked, adding item");

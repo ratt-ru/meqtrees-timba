@@ -65,7 +65,11 @@ class NodeList (object):
     def update_state (self,state,event=None):
       self.control_state = state.control_state;
       _dprint(5,"node update state",state,event);
-      self.emit(PYSIGNAL("newNodeState()"),(state,event));
+      self.emit(PYSIGNAL("state()"),(state,event));
+    # Adds a subscriber to node state changes
+    def subscribe_state (self,callback):
+      _dprint(4,"connecting state of node ",self.name," to ",callback);
+      QObject.connect(self,PYSIGNAL("state()"),callback);
 
   # init node list
   def __init__ (self,meqnl=None):
@@ -190,8 +194,7 @@ def nodeindex (node):
 
 # Adds a subscriber to node state changes
 def subscribe_node_state (node,callback):
-  _dprint(4,"connecting state of node ",node," to ",callback);
-  QObject.connect(nodelist[nodeindex(node)],PYSIGNAL("newNodeState()"),callback);
+  nodelist[nodeindex(node)].subscribe_state(callback);
 
 def request_node_state (node):
   ni = nodeindex(node);
