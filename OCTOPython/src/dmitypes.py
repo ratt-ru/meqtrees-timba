@@ -262,7 +262,7 @@ class message (object):
     self.payload = payload;
     self.priority = priority;
   def __repr__ (self):
-    return "message(%s)" % self.msgid;
+    return "message("+str(self.msgid)+")";
   def __str__ (self):
     s = "message(" + str(self.msgid);
     attrs = dir(self);
@@ -301,7 +301,7 @@ class verbosity:
     self.vobj_name = name or self.__class__.__name__;
   def dprint(self,level,*args):
     if level <= self.verbose:
-      self.stream.write(self.vobj_name+': ');
+      self.stream.write(self.object_name()+': ');
       self.stream.write(string.join(map(str,args),' ')+'\n'); 
   def dprintf(self,level,format,*args):
 #    print format,args;
@@ -310,7 +310,7 @@ class verbosity:
       except: 
         self.stream.write('dprintf format exception: ' + str(format) + '\n');
       else:
-        self.stream.write(self.vobj_name+': ');
+        self.stream.write(self.object_name()+': ');
         self.stream.write(s);
   def get_verbose(self):
     return self.verbose;
@@ -320,6 +320,10 @@ class verbosity:
     self.stream = stream;
   def set_vobj_name(self,name):
     self.vobj_name = name;
+  def object_name (self):
+    return self.vobj_name;
+  
+  
   
 # Other classes  
 

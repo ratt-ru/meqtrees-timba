@@ -173,13 +173,28 @@ def default_mqs (debug={},**kwargs):
 #
 if __name__ == '__main__':
   app_defaults.parse_argv(sys.argv[1:]);
-  default_mqs();
-  for i in range(1,10):
-    print 'createnode:',mqs.createnode(meq.node('MeqConstant','x'+str(i),value=0),wait=True);
+  args = app_defaults.args;
+  gui = args['gui'];
   
-  if not app_defaults.args['gui']:
+  def testfunc (gui):
+    default_mqs();
+    for i in range(1,10):
+      print 'createnode:',mqs.createnode(meq.node('MeqConstant','x'+str(i),value=0),wait=True);
+    if gui:
+      mqs.run_gui(); 
+      mqs.halt();
+      
+  if gui:  
+    import qt_threading;
+    thread = qt_threading.QThreadWrapper(testfunc,args=(gui,));
+    thread.start();
+    thread.join();                                        
+    
+  else:
+    testfunc(gui);
     print "===== calling mqs.halt() =====";
     mqs.halt();
-    print "===== calling octopussy.stop() =====";
-    octopussy.stop();
+    
+  print "===== calling octopussy.stop() =====";
+  octopussy.stop();
 

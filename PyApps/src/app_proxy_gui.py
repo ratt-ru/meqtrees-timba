@@ -1,58 +1,55 @@
 #!/usr/bin/python
 
 import sys
-import threading
 import time
 from qt import *
 from dmitypes import *
+import qt_threading
 
-MainApp = QApplication(sys.argv);
+MainApp = None;
 
-pixmap_exclaim = QPixmap([ "14 14 3 1",
-        "       c None",
-        ".      c red",
-        "X      c yellow",
-        "              ",
-        "     ....     ",
-        "    ......    ",
-        "    ......    ",
-        "    ......    ",
-        "    ......    ",
-        "    ......    ",
-        "     ....     ",
-        "     ....     ",
-        "      ..      ",
-        "              ",
-        "      ..      ",
-        "     ....     ",
-        "      ..      " ]);
-        
-pixmap_check = QPixmap([ "11 11 2 1",
-        "@ c #00FF40",
-        "_ s none m none c none",
-        "__________@",
-        "_________@@",
-        "________@@@",
-        "_______@@@_",
-        "_@@___@@@__",
-        "@@@__@@@___",
-        "@@@_@@@____",
-        "@@@@@@_____",
-        "@@@@@______",
-        "@@@@_______",
-        "_@@________"
-        ]);
+def initPixmaps ():
+  global _pixmaps;
+  _pixmaps = {};
+  _pixmaps['exclaim'] = QPixmap([ "14 14 3 1",
+          "       c None",
+          ".      c red",
+          "X      c yellow",
+          "              ",
+          "     ....     ",
+          "    ......    ",
+          "    ......    ",
+          "    ......    ",
+          "    ......    ",
+          "    ......    ",
+          "     ....     ",
+          "     ....     ",
+          "      ..      ",
+          "              ",
+          "      ..      ",
+          "     ....     ",
+          "      ..      " ]);
 
+  _pixmaps['check'] = QPixmap([ "11 11 2 1",
+          "@ c #00FF40",
+          "_ s none m none c none",
+          "__________@",
+          "_________@@",
+          "________@@@",
+          "_______@@@_",
+          "_@@___@@@__",
+          "@@@__@@@___",
+          "@@@_@@@____",
+          "@@@@@@_____",
+          "@@@@@______",
+          "@@@@_______",
+          "_@@________"
+          ]);
 
-class app_thread(threading.Thread):
-  def __init__(self,app,*args,**kwargs):
-    self.app = app;
-    threading.Thread.__init__(self,*args,**kwargs);
-    app.connect(app, SIGNAL("lastWindowClosed()"),
-                         app, SLOT("quit()"))
-  def run (self):
-    self.app.exec_loop();
-    
+def getPixmap (name):
+  global _pixmaps;
+  return _pixmaps[name];
+
 class RecordBrowser (object):
   TypeToStr = {};
   for t in (bool,int,long,float,complex):
@@ -104,7 +101,7 @@ class Logger(RecordBrowser):
   Normal = 0;
   Event  = 1;
   Error  = 2;
-  _LogPixmaps = { Normal:pixmap_check, Error:pixmap_exclaim };
+  _LogPixmaps = { Normal:'check', Error:'exclaim' };
   def __init__(self,parent,name,limit=-100,enable=True,use_enable=True,use_limit=True):
     self.items = [];
     self._vbox = QVBox(parent);
@@ -135,9 +132,6 @@ class Logger(RecordBrowser):
       self._limit_enable = None;
     
     self.set_log_limit(limit);
-#      MainApp.connect(self._limit_enable,SIGNAL('toggle(int)'),
-#                      lambda x:self._limit_value.setDisabled(x));
-                      
     
     self._lv = QListView(self._vbox);
     self._lv.addColumn("");
@@ -148,6 +142,7 @@ class Logger(RecordBrowser):
     self._lv.setResizeMode(QListView.LastColumn);
     self._lv.setColumnWidthMode(0,QListView.Maximum);
     self._lv.setColumnWidthMode(1,QListView.Maximum);
+    self._lv.setFocus();
     MainApp.connect(self._lv,SIGNAL('expanded(QListViewItem*)'),
                     self.insert_item_content);
     
@@ -195,7 +190,7 @@ class Logger(RecordBrowser):
       self.add_item_content(item,content);
     # add pixmap according to category
     if category in self._LogPixmaps:
-      item.setPixmap(1,self._LogPixmaps[category]);
+      item.setPixmap(1,getPixmap(self._LogPixmaps[category]));
     # add to list and show
     self.items.append(item);
     self.apply_log_limit();
@@ -224,15 +219,21 @@ class MessageLogger (Logger):
     except: pass;
     self._evmask_field.setText(str(self.mask));
     self.wtop().emit(PYSIGNAL('maskChanged()'),(self.wtop(),self.mask));
-    
-    
-class app_gui(verbosity,QMainWindow):
-  def __init__(self,app,verbose=0,size=(500,500),*args):
-    self.app = app;
-    verbosity.__init__(self,verbose,name=app.name());
+
+
+#--------------------------------------------------------------
+#--- app_proxy_gui() class
+#--------------------------------------------------------------
+class app_proxy_gui(verbosity,QMainWindow):
+  def __init__(self,app,verbose=0,size=(500,500),start=True,*args):
+    """create and populate the main application window""";
+    #------ starts the main app object and event thread, if not already started
+    self._qapp = _start_mainapp();
+    #------ init base classes
+    verbosity.__init__(self,verbose,name=app.name()+"/gui");
     self.dprint(1,"initializing");
     QMainWindow.__init__(self,*args);
-    self.setCaption(app.name());
+    self.app = app;
     
     #------ create a message log
     self.msglog = Logger(self,"message log",use_enable=False,limit=1000);
@@ -241,9 +242,10 @@ class app_gui(verbosity,QMainWindow):
     #------ create an event log
     self.eventlog = MessageLogger(self,"event log",limit=1000,evmask="*");
     
-    #------ add whenever to maintain message logs
-    if hasattr(app,'whenever'):
-      app.whenever('*',self.message_handler);
+    #------ add whenevers to maintain app state
+    if hasattr(app,'_pwp'):
+      app._pwp.whenever(app._rcv_prefix+"*",self._event_relay,subscribe=True);
+      app._pwp.whenever('wp.hello'+app.appid+'*',self._event_relay,subscribe=True);
 
     #------ toplevel tab bar       
     self.toptab = QTabWidget(self);
@@ -257,23 +259,35 @@ class app_gui(verbosity,QMainWindow):
     self.eventtab.addTab(self.eventlog.wtop(),"*");
     MainApp.connect(self.eventlog.wtop(),PYSIGNAL("maskChanged()"),self._change_eventlog_mask);
     
+    #------ status bar
+    self.statusbar = QStatusBar(self);
+    
     #------ main window layout
     sz = self.size().expandedTo(QSize(size[0],size[1]));
     self.resize(sz);
     self.setCentralWidget(self.toptab)
+    self.setCaption(app.name());
+    
+    #------ show the main window
     self.show();
     
-    #------ apply main window size
-
-  _MessageFields = (('error',   Logger.Error),
-                    ('message', Logger.Normal),
-                    ('text',    Logger.Normal));
-                    
-  def _change_eventlog_mask (self,logger,mask):
-    self.eventtab.setTabLabel(logger,str(mask));
+  # starts main app thread     
+  def start (self):
+    start_mainapp();          # start main event thread, if not yet running
+    self.app_thread.start();  # start application thread
     
-  def message_handler (self,msg):
+  # whenever handler -- reposts everything as a Qt custom event for ourselves
+  CustomEventType = QEvent.User+1;
+  def _event_relay (self,msg):
+#    print 'eventRelay: ',msg;
+    MainApp.postEvent(self,QCustomEvent(self.CustomEventType,msg));
+#    print 'eventRelay returning';
+    
+  # event handlers for octopussy messages
+  def customEvent (self,ev):
+#    print 'customEvent: ',ev;
     report = False;
+    msg = ev.data();
     print msg;
     msgtext = None; 
     if isinstance(msg.payload,record):
@@ -285,19 +299,55 @@ class app_gui(verbosity,QMainWindow):
     if msgtext is not None:
       self.msglog.add(msgtext,msg.payload,category);
     self.eventlog.add(str(self.app.trim_msgid(msg.msgid)),msg,Logger.Event);
+#    print 'customEvent returning';
+    
+  # signal handler for the Event tab bar
+  def _change_eventlog_mask (self,logger,mask):
+    self.eventtab.setTabLabel(logger,str(mask));
+    
+  _MessageFields = (('error',   Logger.Error),
+                    ('message', Logger.Normal),
+                    ('text',    Logger.Normal));
     
   def log_message(self,msg,rec=None,category=Logger.Normal):
     self.msglog.add(msg,rec,category);
 
-MainAppThread = app_thread(MainApp);
-thread_started = False;
+  def await_exit ():
+    global MainAppThread;
+    MainAppThread.join();
+  await_exit = staticmethod(await_exit);  
 
-def start():
-  global MainApp,MainAppThread,thread_started;
-  if not thread_started:
-    thread_started = True;
-    MainAppThread.start();
+_mainapp_started = False;
+_mainapp_waitcond = qt_threading.Condition();
 
+def _run_mainapp_thread ():
+  global MainApp,_mainapp_started,_mainapp_waitcond;
+  # start the app 
+  MainApp = QApplication(sys.argv);
+  MainApp.connect(MainApp,SIGNAL("lastWindowClosed()"),MainApp,SLOT("quit()"));
+  initPixmaps();
+  # notify all waiters
+  _mainapp_waitcond.acquire();
+  _mainapp_started = True;
+  _mainapp_waitcond.notifyAll();
+  _mainapp_waitcond.release();
+  # start the event loop thread
+  MainApp.exec_loop();
+
+def _start_mainapp():
+  global MainApp,_mainapp_started,_mainapp_waitcond,MainAppThread;
+  if _mainapp_started:
+    return MainApp;
+  # start the main app in a separate thread
+  MainAppThread = qt_threading.QThreadWrapper(_run_mainapp_thread);
+  MainAppThread.start();
+  # wait for start to complete
+  _mainapp_waitcond.acquire();
+  while not _mainapp_started:
+    _mainapp_waitcond.wait();
+  _mainapp_waitcond.release();
+  return MainApp;
+  
 if __name__=="__main__":
   class dummyapp(object):
     def name (self):

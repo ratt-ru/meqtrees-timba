@@ -5,9 +5,8 @@ from dmitypes import *
 import numarray
 import string
 import sys
-import threading
-import types
 import time
+import threading
 
 # pulls in various things from the C module directly
 from octopython import aid_map,aid_rmap,start_reflector,OctoPythonError
@@ -65,13 +64,14 @@ class proxy_wp(octopython.proxy_wp,verbosity):
   class whenever_handler(object):
     """wrapper for a message handler to be registered vith the whenever
     function""";
-    def __init__(self,weid,target,pass_msg=False,args=(),kwargs={}):
+    def __init__(self,weid,target,pass_msg=False,one_shot=False,args=(),kwargs={}):
       self.weid = weid;
       self.target = target;
       self.args = args;
-      self.kwargs = kwargs;
+      self.kwargs = kwargs.copy();
       self.pass_msg = pass_msg;
       self.active = True;
+      self.one_shot = one_shot;
     def get_id(self):
       return self.weid;
     def activate(self):
@@ -82,7 +82,9 @@ class proxy_wp(octopython.proxy_wp,verbosity):
       if self.active: 
         if self.pass_msg:
           self.kwargs['msg'] = msg;
-        self.target(*self.args,**self.kwargs);
+        self.active = not self.one_shot;
+        return self.target(*self.args,**self.kwargs);
+      return None;
   
   def __init__(self,wpid=None,verbose=0,vobj_name=None):
     # init base classes
@@ -133,7 +135,7 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     """resumes the event loop for this wp""";
     pass;
     
-  def whenever (self,msgid,target,args=(),kwargs={},subscribe=False,pass_msg=True):
+  def whenever (self,msgid,target,args=(),kwargs={},subscribe=False,pass_msg=True,one_shot=False):
     """adds an event handler. 'target' (must be a callable object) will be 
     called whenever a message matching 'msgid' (may be a mask with wildcards)
     is received. 'args' and 'kwargs' are passed to the target (the message
@@ -142,7 +144,7 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     """;
     msgid = make_hiid(msgid);
     is_mask = '?' in str(msgid) or '*' in str(msgid);
-    we = self.whenever_handler(msgid,target,pass_msg,args,kwargs);
+    we = self.whenever_handler(msgid,target,pass_msg,one_shot,args,kwargs);
     self.pause_events();
     try:
       if is_mask:
@@ -173,6 +175,40 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     finally:
       self.resume_events();
     self.dprintf(2,"whenever for %s not found",str(msgid));
+    
+  def _clear_oneshots (welist):
+    i = 0;
+    while i<len(welist):
+      if welist[i].one_shot: del welist[i];
+      else:                  i+=1;
+    return len(welist);
+  _clear_oneshots = staticmethod(_clear_oneshots);
+    
+  def _dispatch_whenevers (self,msg):
+    # got message, process it
+    pending_list = [];
+    self.pause_events();
+    try:
+      self.dprint(3,"processing message",msg.msgid);
+      # check the matched dictionary
+      welist = self._we_ids.get(msg.msgid,[]);
+      self.dprintf(3,"found %d matched whenevers for %s\n",len(welist),msg.msgid);
+      pending_list += welist;
+      # clear one-shots, and remove list if it becomes empty
+      if welist and not self._clear_oneshots(welist):
+        del self._we_ids[msg.msgid];
+      # check the masks list
+      for mask,welist in self._we_masks.iteritems():
+        if msg.msgid.matches(mask):
+          self.dprintf(3,"found %d mask whenevers for %s\n",len(welist),mask);
+          pending_list += welist;
+          if welist and not self._clear_oneshots(welist):
+            del self._we_masks[mask];
+    finally:
+      self.resume_events();
+    self.dprintf(3,"firing %d matched whenevers\n",len(pending_list));
+    for we in pending_list:
+      we.fire(msg);
     
   # event_loop()
   # Calls receive() in a continuous loop, processes events by invoking
@@ -211,20 +247,7 @@ class proxy_wp(octopython.proxy_wp,verbosity):
       if msg is None:
         continue;
       # got message, process it
-      pending_list = [];
-      self.dprint(3,"processing message",msg.msgid);
-      # check the matched dictionary
-      welist = self._we_ids.get(msg.msgid,[]);
-      self.dprintf(3,"found %d matched whenevers for %s\n",len(welist),msg.msgid);
-      pending_list += welist;
-      # check the masks list
-      for mask,welist in self._we_masks.iteritems():
-        if msg.msgid.matches(mask):
-          self.dprintf(3,"found %d mask whenevers for %s\n",len(welist),mask);
-          pending_list += welist;
-      self.dprintf(3,"firing %d matched whenevers\n",len(pending_list));
-      for we in pending_list:
-        we.fire(msg);
+      self._dispatch_whenevers(msg);
       # check for a match in the await-list
       for aw in await:
         if aw.matches(msg.msgid):
@@ -233,7 +256,7 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     # end of while-loop, if we dropped out, it's a timeout, return None
     return None
 
-  def await(self,what,timeout=None,resume=False):
+  def await (self,what,timeout=None,resume=False):
     """alias for event_loop() with an await argument.
     if resume is true, resumes the event loop before commencing await. This
     is meant for child classes only.
@@ -242,27 +265,51 @@ class proxy_wp(octopython.proxy_wp,verbosity):
   
   # flush_events(): dispatches all queued events
   #   this is actually an alias for event_loop with a 0 timeout
-  def flush_events(self):
+  def flush_events (self):
     """alias for event_loop() with timeout=0""";
     return self.event_loop(timeout=0);
 
+
 #
 # proxy_wp_thread
-#    
-class proxy_wp_thread(proxy_wp,threading.Thread):
+#   Threaded interface to a WorkProcess
+#   This has a start() method which will start the event loop in a separate
+#   thread. All whenevers are then executed in that thread.
+#   The thread_api argument allows another threading layer (i.e. Qt) to
+#   be used in place of the standard threading module.
+# 
+class proxy_wp_thread(proxy_wp):
   "represents an OCTOPUSSY connection endpoint (i.e. WorkProcess)"
-  def __init__ (self,wpid='python',verbose=0):
+  def __init__ (self,wpid='python',verbose=0,thread_api=threading):
+    self.name = str(wpid)+'-init';  # because parent calls self.object_name()
     proxy_wp.__init__(self,wpid,verbose=verbose);
-    self.name = 'pwpt:'+str(self.address());
-    threading.Thread.__init__(self,name=self.name);
-    self.set_vobj_name(self.name);
+    self.name = str(self.address());
     # lock for event queue
-    self._lock = threading.RLock(); 
+    self._lock = thread_api.RLock(); 
     self._paused = 0;
     # await-related stuff 
     self._awaiting = {};
-    self._await_cond = threading.Condition();
-    
+    self._await_cond = thread_api.Condition();
+    # event thread
+    self._api = thread_api;
+    self._thread = thread_api.Thread(target=self.run,name=self.name);
+#    # klduge for non-Python APIs: use regular receive
+#    if self._api is not threading:
+#      self.receive_threaded = self.receive;
+
+  def object_name (self):
+    if hasattr(self,'_thread'):
+      thr = self._api.currentThread();
+      if thr is self._thread:
+        return self.name + "(EvT)";
+      else:
+        return self.name + "(" + thr.getName() + ")";
+    return self.name;
+
+  def start (self):
+    self.dprint(1,"starting WP thread");
+    self._thread.start();
+    self.dprint(1,"thread started");
     
   def lock (self):
     return self._lock;
@@ -292,14 +339,14 @@ class proxy_wp_thread(proxy_wp,threading.Thread):
   # await blocks until the specified message has been received
   # (with optional timeout)
   def await (self,what,timeout=None,resume=False):
-    thread_name = threading.currentThread().getName();
-    if thread_name == threading.Thread.getName(self):
+    cur_thread = self._api.currentThread();
+    if cur_thread is self._thread:
       raise AssertionError,"can't call await() from event handler thread";
+    thread_name = cur_thread.getName();
     self.dprint(2,"await: thread",thread_name);
     self.dprint(2,"await: waiting for",what,"timeout ",timeout);
     what = make_hiid_list(what);
     await_pair = [make_hiid_list(what),None];  # result will be returned as second item
-    thread_name = threading.currentThread().getName();
     # start by setting a lock on the wait condition
     self._await_cond.acquire();
     self._awaiting[thread_name] = await_pair;
@@ -317,6 +364,9 @@ class proxy_wp_thread(proxy_wp,threading.Thread):
       del self._awaiting[thread_name];
       self._await_cond.release();
     return await_pair[1];
+
+  def event_loop (self,*args,**kwargs):
+    raise RuntimeError,"can't call event_loop on " + self.__class__.__name__;
     
   # the run-loop: calls receive() in a continuous loop, processes events
   def run (self):
@@ -329,25 +379,11 @@ class proxy_wp_thread(proxy_wp,threading.Thread):
       except octopython.OctoPythonError, value:
         self.dprint(1,"exiting on receive error:",value);
         return;
-      # got message, process it
-      pending_list = [];
-      self._lock.acquire();
-      try:
-        self.dprint(3,"processing message",msg.msgid);
-        # check the matched dictionary
-        welist = self._we_ids.get(msg.msgid,[]);
-        self.dprintf(3,"found %d matched whenevers for %s\n",len(welist),msg.msgid);
-        pending_list += welist;
-        # check the masks list
-        for mask,welist in self._we_masks.iteritems():
-          if msg.msgid.matches(mask):
-            self.dprintf(3,"found %d mask whenevers for %s\n",len(welist),mask);
-            pending_list += welist;
-      finally:
-        self._lock.release();
-      self.dprintf(3,"firing %d matched whenevers\n",len(pending_list));
-      for we in pending_list:
-        we.fire(msg);
+      # msg=None probably indicates timeout, go back up to check
+      if msg is None:
+        continue;
+      # process messages
+      self._dispatch_whenevers(msg);
       # now, check for matching awaits
       self._lock.acquire();
       self._await_cond.acquire();
@@ -364,9 +400,21 @@ class proxy_wp_thread(proxy_wp,threading.Thread):
         self._lock.release();
     # end of while-loop (exit is inside) 
  
-# self-test code 
+#
+# self-test code
+#
+
 if __name__ == "__main__":
   import time
+  import numarray
+  if '-qt' in sys.argv:
+    import qt_threading
+    thread_api = qt_threading; 
+    print "================== Using Qt thread API ===================";
+  else:
+    thread_api = threading; 
+    print "================== Using standard thread API ===================";
+    
   # do some basic checking
   print "set_debug()";
   set_debug("Octopussy",1);
@@ -389,11 +437,10 @@ if __name__ == "__main__":
   wp3.subscribe("1.2.*");
   wp3.subscribe("Reflect.*");
   
-  wp4 = proxy_wp_thread("Python",verbose=3);
+  wp4 = proxy_wp_thread("Python",verbose=3,thread_api=thread_api);
   print "WP4 address is:",wp2.address();
   wp4.subscribe("1.2.*");
   wp4.subscribe("Reflect.*");
-  wp4.start();
   
 #  wp3.start();
   we3 = wp3.whenever("*",lambda msg,header: sys.stderr.write(header+str(msg)+'\n'),(),{'header':'[3]======'});
@@ -407,8 +454,11 @@ if __name__ == "__main__":
   
   # start
   print "start()";
-  thread = start();
-  print "Thread ID is:",thread;
+  thread = start(wait=True);
+  print "OCTOPUSSY thread ID is:",thread;
+  
+  # start threaded WP
+  wp4.start();
   
   print "wp1.receive(), no wait: ",wp1.receive(False);
   print "wp2.receive(), no wait: ",wp2.receive(False);
