@@ -82,10 +82,13 @@ class dmi_repr (object):
         return (s,True);
     return (None,False);
   
+  def _arrReprString (self,value):
+    return ("[array %s: %s]" % (str(value.type()),"x".join(map(str,value.shape))),False);
+  
   def _arrToRepr (self,value,prec=None):
     res = self._arrToInline(value,prec=prec);
     if res[0] is None:
-      return ("<array:%s:%s>" % (str(value.type()),",".join(map(str,value.shape))),False);
+      return self._arrReprString(value);
     return res;
     
   _contToRepr = staticmethod(_contToRepr);
@@ -125,13 +128,12 @@ class dmi_repr (object):
     if isinstance(value,array_class):
       (str0,inlined) = self._arrToRepr(value,prec=prec);
       if inlined:  # if this is true, str0 already contains complete array
-        return (str0+"   <array:%s:%s>" % (str(value.type()),",".join(map(str,value.shape))),False);
+        return (str0+self._arrReprString(value),True);
       # array size + array stats
-      func = str_float;
-      str1 = map(lambda attr:':'.join((attr,func(getattr(value,attr)(),prec=prec))), \
-                  ("mean","min","max"));
-      str1 = ' '.join(str1);
-      return (''.join((str0,'   ',str1)),False);
+      str1 = [ ': '.join((attr,self.inline_str(getattr(value,attr)(),prec=prec)[0])) \
+                  for attr in ("mean","min","max") ];
+      str1 = ', '.join(str1);
+      return (''.join((str0,' ',str1)),False);
       
     ### now try to inline value as a whole
     (res,inlined) = self.inline_str(value,prec=prec);
