@@ -158,7 +158,7 @@ void Node::setState (DataRecord &rec)
   Thread::Mutex::Lock lock(rec.mutex()),lock2(state().mutex());
   // when initializing, we're called with our own state record, which
   // makes the rules somewhat different:
-  bool initializing = ( &rec != &(wstate()) );
+  bool initializing = ( &rec == &(wstate()) );
   string fail;
   // setStateImpl() is allowed to throw exceptions if something goes wrong.
   // This may leave the node with an inconsistency between the state record
