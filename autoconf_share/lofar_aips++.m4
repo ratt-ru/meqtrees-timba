@@ -97,7 +97,7 @@ else
     if test "$lofar_compiler" = "kcc"; then
       AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_KAICC"
     fi
-    AIPSPP_LDFLAGS="-L$AIPSPP_PATH/$AIPSPP_ARCH/lib"
+    AIPSPP_LDFLAGS="-L$AIPSPP_PATH/$AIPSPP_ARCH/lib -Wl,-rpath,$AIPSPP_PATH/$AIPSPP_ARCH/lib"
     # For one reason or another -ltrial -laips links in a lot of rubbish
     # (like MiriadImage). Therefore do -laips first.
     AIPSPP_LIBS="$AIPSPP_PATH/$AIPSPP_ARCH/lib/version.o -ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa -lglish -lsos -lnpd"
