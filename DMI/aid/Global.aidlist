@@ -79,6 +79,7 @@ delay                            1167       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 delete                           1335       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:11
 delta                            1425       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/FlagCompare.h:30
 density                          1440       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Resampler.h:31
+depend                           1445       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:32
 dependency                       1444       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:32
 deriv                            1230       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:31
 desc                             1148       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:33
