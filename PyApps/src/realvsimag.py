@@ -111,8 +111,6 @@ class realvsimag_plotter(object):
   line_style_table = {
         'none': QwtCurve.NoCurve,
         'lines' : QwtCurve.Lines,
-        'steps' : QwtCurve.Steps,
-        'stick' : QwtCurve.Sticks,
         'dots' : QwtCurve.Dots,
 #        'none': Qt.NoPen,
         'SolidLine' : Qt.SolidLine,
@@ -379,8 +377,8 @@ class realvsimag_plotter(object):
                 if label_index is None:
                   label_index = len(start_pos) - 1
                 _dprint(2, 'label ', label)
-                message = 'this point comes from ' + label[label_index] 
-                message1 = 'this point comes from \n ' + label[label_index] 
+                message = 'this data point comes from ' + label[label_index] 
+                message1 = 'this data point comes from \n ' + label[label_index] 
                 _dprint(2,message)
                 break
 
@@ -424,7 +422,7 @@ class realvsimag_plotter(object):
     # timerEvent_marker()
 
 # compute points for two circles
-  def compute_circles (self, item_tag, radius, x_cen=0.0, y_cen=0.0):
+  def compute_circles (self, item_tag, radius, x_cen=0.0, y_cen=0.0, line_style='lines'):
       """ compute values for circle running through specified
           point and a line pointing to the point """
 
@@ -441,16 +439,31 @@ class realvsimag_plotter(object):
       # otherwise, replace old one
       circle_key = item_tag + '_circle'
       if self._circle_dict.has_key(circle_key) == False: 
+        plot_color = None
+        if item_tag.find('stddev') >= 0:
+          plot_color = self._stddev_circle_color
+        else:
+          plot_color = self._mean_circle_color
         key_circle = self.plot.insertCurve(circle_key)
         self._circle_dict[circle_key] = key_circle
         line_thickness = 2
-        self.plot.setCurvePen(key_circle, QPen(self._plot_color,line_thickness))
+        circle_line_style = None
+        if self.line_style_table.has_key(line_style):
+          circle_line_style = self.line_style_table[line_style]
+        else:
+          line_style = 'lines'
+          circle_line_style = self.line_style_table[line_style]
+        if line_style == 'lines' or line_style == 'dots' or line_style == 'none':
+          self.plot.setCurveStyle(key_circle, circle_line_style)
+          self.plot.setCurvePen(key_circle, QPen(plot_color,line_thickness))
+        else:
+          self.plot.setCurvePen(key_circle, QPen(plot_color,line_thickness,circle_line_style))
         self.plot.setCurveData(key_circle, x_pos, y_pos)
       else:
         key_circle = self._circle_dict[circle_key] 
         self.plot.setCurveData(key_circle, x_pos, y_pos)
 
-  def compute_arrow (self, item_tag,avg_r, avg_i, x_cen=0.0, y_cen=0.0):
+  def compute_arrow (self, item_tag,avg_r, avg_i, x_cen=0.0, y_cen=0.0, line_style='lines'):
       """ compute values for circle running through specified
           point and a line pointing to the point """
 
@@ -469,7 +482,18 @@ class realvsimag_plotter(object):
       if self._line_dict.has_key(line_key) == False: 
         key_line = self.plot.insertCurve(line_key)
         self._line_dict[line_key] = key_line
-        self.plot.setCurvePen(key_line, QPen(self._plot_color))
+        line_thickness = 2
+        arrow_line_style = None
+        if self.line_style_table.has_key(line_style):
+          arrow_line_style = self.line_style_table[line_style]
+        else:
+          line_style = 'lines'
+          arrow_line_style = self.line_style_table[line_style]
+        if line_style == 'lines' or line_style == 'dots' or line_style == 'none':
+          self.plot.setCurveStyle(key_line, arrow_line_style)
+          self.plot.setCurvePen(key_line, QPen(self._mean_circle_color,line_thickness))
+        else:
+          self.plot.setCurvePen(key_line, QPen(self._mean_circle_color,line_thickness,arrow_line_style))
         self.plot.setCurveData(key_line, x1_pos, y1_pos)
       else:
         key_line = self._line_dict[line_key]
@@ -495,6 +519,10 @@ class realvsimag_plotter(object):
 #      self._legend_plot = None
 #      self._legend_popup = None
       self._plot_color = None
+      self._mean_circle_color = None
+      self._mean_circle_style = None
+      self._stddev_circle_color = None
+      self._stddev_circle_style = None
       self._string_tag = None
       self._x_y_data = True
       self._tag_plot_attrib={}
@@ -526,6 +554,17 @@ class realvsimag_plotter(object):
         self.plot_symbol_size = self._plot_parms.get('symbol_size', 10)
         self.plot_symbol = self._plot_parms.get('symbol', 'circle')
         self.plot_line_style = self._plot_parms.get('line_style', 'dots')
+        self._plot_color = self._plot_parms.get('color', 'blue')
+        if self.color_table.has_key(self._plot_color):
+          self._plot_color = self.color_table[self._plot_color]
+        self._mean_circle_style = self._plot_parms.get('mean_circle_style', 'lines')
+        self._mean_circle_color = self._plot_parms.get('mean_circle_color', 'blue')
+        if self.color_table.has_key(self._mean_circle_color):
+          self._mean_circle_color = self.color_table[self._mean_circle_color]
+        self._stddev_circle_style = self._plot_parms.get('stddev_circle_style', 'DotLine')
+        self._stddev_circle_color = self._plot_parms.get('stddev_circle_color', 'blue')
+        if self.color_table.has_key(self._stddev_circle_color):
+          self._stddev_circle_color = self.color_table[self._stddev_circle_color]
         self.value_tag = self._plot_parms.get('value_tag', False)
         self.error_tag = self._plot_parms.get('error_tag', False)
         if self._plot_parms.has_key('legend'):
@@ -628,6 +667,38 @@ class realvsimag_plotter(object):
                            QMessageBox.NoButton,
                            QMessageBox.NoButton)
                 mb_color.exec_loop()
+            if self._mean_circle_color is None and self._plot_parms.has_key('mean_circle_color'):
+              self._mean_circle_color = self._plot_parms.get('mean_circle_color')
+              _dprint(3, 'plot mean_circle_color set to ', self._mean_circle_color)
+              if self.color_table.has_key(self._mean_circle_color):
+                self._mean_circle_color = self.color_table[self._mean_circle_color]
+              else:
+                Message = self._plot_mean_circle_color + " is not a valid color.\n Using blue by default"
+                self._mean_circle_color = "blue"
+                self._mean_circle_color = self.color_table[self._mean_circle_color]
+                mb_color = QMessageBox("realvsimag.py",
+                           Message,
+                           QMessageBox.Warning,
+                           QMessageBox.Ok | QMessageBox.Default,
+                           QMessageBox.NoButton,
+                           QMessageBox.NoButton)
+                mb_color.exec_loop()
+            if self._stddev_circle_color is None and self._plot_parms.has_key('stddev_circle_color'):
+              self._stddev_circle_color = self._plot_parms.get('stddev_circle_color')
+              _dprint(3, 'plot stddev_circle_color set to ', self._stddev_circle_color)
+              if self.color_table.has_key(self._stddev_circle_color):
+                self._stddev_circle_color = self.color_table[self._stddev_circle_color]
+              else:
+                Message = self._stddev_circle_color + " is not a valid color.\n Using blue by default"
+                self._stddev_circle_color = "blue"
+                self._stddev_circle_color = self.color_table[self._stddev_circle_color]
+                mb_color = QMessageBox("realvsimag.py",
+                           Message,
+                           QMessageBox.Warning,
+                           QMessageBox.Ok | QMessageBox.Default,
+                           QMessageBox.NoButton,
+                           QMessageBox.NoButton)
+                mb_color.exec_loop()
             if self._plot_parms.has_key('legend'):
               legend = self._plot_parms.get('legend')
               _dprint(3, 'legend found is ', legend)
@@ -674,7 +745,12 @@ class realvsimag_plotter(object):
       if self._plot_color is None:
         self._plot_color = 'blue'
         self._plot_color = self.color_table[self._plot_color]
-
+      if self._mean_circle_color is None:
+        self._mean_circle_color = 'blue'
+        self._mean_circle_color = self.color_table[self._mean_circle_color]
+      if self._stddev_circle_color is None:
+        self._stddev_circle_color = 'blue'
+        self._stddev_circle_color = self.color_table[self._stddev_circle_color]
 
 # extract and define labels for this data item
       self._label_i = item_tag + "_i"
@@ -964,7 +1040,7 @@ class realvsimag_plotter(object):
           std_dev = sqrt(mean)
           radius = std_dev
           self._plot_color = self._xy_plot_color[current_plot_key] 
-          self.compute_circles (current_plot_key + 'stddev', radius, avg_r, avg_i )
+          self.compute_circles (current_plot_key + 'stddev', radius, avg_r, avg_i, 'DotLine')
       self.plot.replot()
     # end of update_plot 
 
@@ -986,6 +1062,8 @@ class realvsimag_plotter(object):
       # otherwise, replace old one
       plot_key = item_tag + '_plot'
       self._plot_color = self.color_table["red"]
+      self._mean_circle_color = self.color_table["blue"]
+      self._stddev_circle_color = self.color_table["green"]
       if self._xy_plot_dict.has_key(plot_key) == False: 
         key_plot = self.plot.insertCurve(plot_key)
         self._xy_plot_dict[plot_key] = key_plot
@@ -1022,7 +1100,7 @@ class realvsimag_plotter(object):
         mean = temp_array.mean()
         std_dev = sqrt(mean)
         radius = std_dev
-        self.compute_circles (item_tag + 'stddev', radius, avg_r, avg_i )
+        self.compute_circles (item_tag + 'stddev', radius, avg_r, avg_i, 'dotline' )
       if counter == 0:
         self.clearZoomStack()
       else:
@@ -1112,7 +1190,7 @@ class realvsimag_plotter(object):
       self.index = self.index + 1
       self.go(self.index)
 # for testing error plotting
-#      self.go_errors(self.index)
+#     self.go_errors(self.index)
     # timerEvent()
 
   def zoom(self,on):
