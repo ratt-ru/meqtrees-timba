@@ -251,11 +251,10 @@ def nodeindex (node):
     return node.nodeindex;
 
 def mqs ():
-  mqs1 = _mqs or _mqs();
+  mqs1 = _mqs or (callable(_mqs) and _mqs());
   if mqs1 is None:
     raise RuntimeError,"meqserver not initialized or not running";
   return mqs1;
-  
 
 # Adds a subscriber to node state changes
 def subscribe_node_state (node,callback):
