@@ -58,14 +58,17 @@ typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef unsigned long ulong;
+typedef long long longlong;
+typedef unsigned long long ulonglong;
 typedef long double ldouble;
 
 // Declare the standard types (':' prefix means do not generate constructors)
 // Numbers will be explicitly assigned; note that TypeIDs are negative
 // so Tpchar will be -10, Tpuchar -11, etc.
 #pragma type +char=10 +uchar=11 +short=12 +ushort=13 +int=14 +uint=15 
-#pragma type +long=16 +ulong=17 +float=18 +double=19 +ldouble=20 +bool=21
-#pragma type -string=30
+#pragma type +long=16 +ulong=17 +longlong=18 +ulonglong=19 
+#pragma type +float=20 +double=21 +ldouble=22 +bool=23
+#pragma type noinclude =string=30
 #pragma type :AtomicID
 
 // Some special type constants

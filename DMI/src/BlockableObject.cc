@@ -13,7 +13,7 @@
 //## Module: BlockableObject%3C10CC81019D; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\BlockableObject.cc
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\BlockableObject.cc
 
 //## begin module%3C10CC81019D.additionalIncludes preserve=no
 //## end module%3C10CC81019D.additionalIncludes
@@ -41,11 +41,21 @@ CountedRefTarget * BlockableObject::clone (int flags, int depth) const
   //## begin BlockableObject::clone%3BFE5FE103C5.body preserve=yes
   BlockSet bset;
   toBlock(bset);
-  BlockableObject *obj = DynamicTypeManager::construct(objectType(),bset);
-  if( depth>0 || flags&DMI::DEEP )
-    obj->privatize(flags,depth-1);
-  return obj;
+  if( flags&DMI::DEEP || depth>0 )
+    bset.privatizeAll(flags);
+  return DynamicTypeManager::construct(objectType(),bset);
   //## end BlockableObject::clone%3BFE5FE103C5.body
+}
+
+void BlockableObject::privatize (int flags, int depth)
+{
+  //## begin BlockableObject::privatize%3CAB088100C3.body preserve=yes
+  BlockSet bset;
+  toBlock(bset);
+  if( flags&DMI::DEEP || depth>0 )
+    bset.privatizeAll(flags);
+  fromBlock(bset);
+  //## end BlockableObject::privatize%3CAB088100C3.body
 }
 
 // Additional Declarations

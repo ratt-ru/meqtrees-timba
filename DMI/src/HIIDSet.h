@@ -13,7 +13,7 @@
 //## Module: HIIDSet%3C10CC8203CD; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\HIIDSet.h
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\HIIDSet.h
 
 #ifndef HIIDSet_h
 #define HIIDSet_h 1
@@ -65,7 +65,7 @@ class HIIDSet
       HIIDSet (const HIID& id);
 
       //## Operation: HIIDSet%3C98D01B036C
-      HIIDSet (const char* block, int sz);
+      HIIDSet (const void* block, int sz);
 
     //## Destructor (generated)
       ~HIIDSet();
@@ -107,7 +107,7 @@ class HIIDSet
 
       //## Operation: pack%3C98CFEF00B6
       //	Stores HIID into raw data block
-      size_t pack (void* block) const;
+      size_t pack (void *block, size_t &nleft) const;
 
       //## Operation: unpack%3C98CFEF0110
       void unpack (const void* block, size_t sz);
@@ -152,7 +152,7 @@ class HIIDSet
 
 // Class HIIDSet 
 
-inline HIIDSet::HIIDSet (const char* block, int sz)
+inline HIIDSet::HIIDSet (const void* block, int sz)
   //## begin HIIDSet::HIIDSet%3C98D01B036C.hasinit preserve=no
   //## end HIIDSet::HIIDSet%3C98D01B036C.hasinit
   //## begin HIIDSet::HIIDSet%3C98D01B036C.initialization preserve=yes

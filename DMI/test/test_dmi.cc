@@ -138,23 +138,51 @@ void TestDataRecord ()
   Assert( rec["A.B.C.D"].containerType() == TpDataField );
   Assert( rec["A.B.C.D"].isWritable() );
   Assert( rec["A.B.C.D/20"].isWritable() );
-  cerr<<(int)(rec["A.B.C.D"][20])<<" "<<(int*)&(rec["A.B.C.D"][20])
-      <<"  "<<rec["A.B.C.D"].as_int_p();
+  cerr<<"Values: {{{"<<(int)(rec["A.B.C.D"][20])<<" "<<(int*)&(rec["A.B.C.D"][20])
+      <<"  "<<rec["A.B.C.D"].as_int_p()<<" }}}\n";
   Assert( rec["A.B.C.D/20"].as_int() == 5 );
+  
+//  int *ptr = rec["A.B.C.D"];
+//  Assert(ptr != 0 );
+  
+  rec["A.B.C.E"] = HIID("A.B.C.D");
+  Assert( rec["A.B.C.E"].exists() );
+  Assert( rec["A.B.C.E"].size() == 1 );
+  Assert( rec["A.B.C.E"].type() == TpHIID );
+  Assert( rec["A.B.C.E"].isContainer() );
+  Assert( rec["A.B.C.E"].actualType() == TpObjRef );
+  Assert( rec["A.B.C.E"].containerType() == TpDataField );
+  Assert( rec["A.B.C.E"].isWritable() );
+  Assert( rec["A.B.C.E/0"].isWritable() );
+  Assert( rec["A.B.C.E/0"].as_HIID() == HIID("A.B.C.D") );
+
+  rec["A.B.C.F"] = "test string";
+  rec["A.B.C.F"][1] = "another test string";
+  Assert( rec["A.B.C.F"].exists() );
+  Assert( rec["A.B.C.F"].size() == 2 );
+  Assert( rec["A.B.C.F"].type() == Tpstring );
+  Assert( rec["A.B.C.F"].isContainer() );
+  Assert( rec["A.B.C.F"].actualType() == TpObjRef );
+  Assert( rec["A.B.C.F"].containerType() == TpDataField );
+  Assert( rec["A.B.C.F"].isWritable() );
+  Assert( rec["A.B.C.F/1"].isWritable() );
+  Assert( rec["A.B.C.F/1"].as_string() == "another test string" );
+  
   cerr<<"======================= record debug info:\n";
   cerr<<rec.sdebug(3)<<endl;
   cerr<<"======================= old field debug info:\n";
   cerr<<f2->sdebug(3)<<endl;
   cerr<<"======================= removing from field:\n";
-  Assert( rec["A.B.C.D"][31].remove() );
+  rec["A.B.C.D"][31].remove();
   Assert( rec["A.B.C.D"].size() == 31 );
   cerr<<"======================= re-inserting into field:\n";
   rec["A.B.C.D/31"] = 5;
   Assert( rec["A.B.C.D"].size() == 32 );
   cerr<<"======================= making compound record\n";
-  rec.add(AidB,new DataField(TpDataRecord,-1));
-  rec.add(AidC,f2,DMI::COPYREF);
-  rec.add(AidD,f2,DMI::COPYREF);
+  rec["B"] <<= new DataField(TpDataRecord,-1);
+  rec["C"] = f2.copy();
+  rec["D"] = f2.copy();
+//  Assert( rec["B"].as_DataRecord_wp() != 0 );
   cerr<<"===== added subrecord B\n"<<rec.sdebug(3)<<endl;
   rec["B"]["C"] <<= new DataRecord;
   cerr<<"===== added subrecord B.C\n"<<rec.sdebug(10)<<endl;
@@ -162,7 +190,7 @@ void TestDataRecord ()
   rec["B/C/A/10"] = 5;
   Assert( rec["B/C/A"][10].as_int() == 5 );
   cerr<<"Record is "<<rec.sdebug(10)<<endl;
-  
+
   cerr<<"======================= converting record to blockset\n";
   BlockSet set;
   rec.toBlock(set);
@@ -177,6 +205,11 @@ void TestDataRecord ()
   cerr<<"======================= accessing cached field\n";
   cerr<<"Value: "<<rec2["B/C/A/10"].as_double()<<endl;
   Assert( rec2["B/C"]["A"]["10"].as_float() == 5 );
+//  cerr<<"Value: "<<rec["A.B.C.E/0"].as_HIID().toString()<<endl;
+  cerr<<"Value: "<<rec["A.B.C.F/0"].as_string()<<endl;
+  cerr<<"Value: "<<rec["A.B.C.F/1"].as_string()<<endl;
+  Assert( rec["A.B.C.E/0"].as_HIID() == HIID("A.B.C.D") );
+  Assert( rec["A.B.C.F/1"].as_string() == "another test string" );
   
   cerr<<"======================= changing field in original record\n";
   rec["B/C/A/10"] = 10;
@@ -187,10 +220,19 @@ void TestDataRecord ()
   cerr<<"======================= getting reference from record\n";
   cerr<<rec["B/C/A"].ref().debug(3)<<endl;
 
+//  cerr<<"======================= autoprivatizing as read-only\n";
+//  Assert(rec.autoprivatize(DMI::PRIVATIZE|DMI::READONLY)["B/C/A"].exists());
+//  rec["B"].privatize(DMI::READONLY|DMI::DEEP);
+//  cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
+//  cerr<<"======================= autoprivatizing for write\n";
+//  rec.autoprivatize()["B/C/A/10"] = 2;
+//  cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
+
   cerr<<"======================= removing field B/C/A from record\n";
   cerr<<"Original record: "<<rec.sdebug(10)<<endl;
   ObjRef fref;  
-  Assert( rec["B/C/A"].remove(&fref) );
+  fref = rec["B/C/A"].remove();
+  Assert(fref.valid());
   cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
   cerr<<"Removed field is: "<<fref.sdebug(10)<<endl;
 
@@ -199,8 +241,12 @@ void TestDataRecord ()
   rec["B"]["C"].detach(&fref2) = fref;
   cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
   cerr<<"Removed field is: "<<fref2.sdebug(10)<<endl;
-  cerr<<"======================= inserting as B/E\n";
-  rec["B/E"] <<= fref2;
+  cerr<<"======================= copying as B/E\n";
+  rec["B/E"] = fref2;
+  cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
+  cerr<<"Source field is: "<<fref2.sdebug(10)<<endl;
+  cerr<<"======================= inserting as B/F\n";
+  rec["B/F"] <<= fref2;
   cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
   cerr<<"Source field is: "<<fref2.sdebug(10)<<endl;
   cerr<<"======================= exiting\n";

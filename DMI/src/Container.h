@@ -30,12 +30,12 @@
 #include "Timestamp.h"
 //## end module%3C10CC830067.includes
 
+// Registry
+#include "Registry.h"
 // HIIDSet
 #include "HIIDSet.h"
 // BlockableObject
 #include "BlockableObject.h"
-// Registry
-#include "Registry.h"
 //## begin module%3C10CC830067.declarations preserve=no
 //## end module%3C10CC830067.declarations
 
@@ -64,7 +64,7 @@ class NestableContainer;
 //	be implemented. Finally, if your container stores data in a
 //	contiguous block of memory, isContiguous() should be redefined to
 //	return True.
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -100,7 +100,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
     //	const T * as_T_p(); // for all types
     //	operator const T *(); // for all types -- but only allowed after the
     //	& operator has been applied.
-    //## Category: DMI%3BEAB1F2006B; Global
+    //## Category: DOMIN0%3BEAB1F2006B; Global
     //## Subsystem: DMI%3C10CC810155
     //## Persistence: Transient
     //## Cardinality/Multiplicity: n
@@ -112,14 +112,14 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       //## begin NestableContainer::ConstHook%3C614FDE0039.initialDeclarations preserve=yes
       // Note that since Hooks are almost always treated as const 
       // (since they only appear as temporary objects), all their methods have to
-      // be declared as const. Ugly, ain't it...
+      // be declared as const. Ugly, but that's C++ for you...
       //## end NestableContainer::ConstHook%3C614FDE0039.initialDeclarations
 
       public:
 
         //## Other Operations (specified)
           //## Operation: operator []%3C87377803A8
-          //	If the hook points to a container, indexes into the container
+          //	If the hook points to a container, subscripts into the container
           const NestableContainer::ConstHook & operator [] (const HIID &id1) const;
 
           //## Operation: operator []%3C8737C80081
@@ -164,6 +164,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           //	element doesn't exist.
           int size () const;
 
+          //## Operation: size%3CAAE98D037C
+          //	Second version, stores size in sz and returns *this
+          const NestableContainer::ConstHook & size (int &sz) const;
+
           //## Operation: ref%3C87703E03D6
           //	If the element  is held in an ObjRef, returns a read-only copy of
           //	the ref. Throws exception otherwise.
@@ -200,7 +204,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
         // Data Members for Associations
 
-          //## Association: DMI::<unnamed>%3C87362A007E
+          //## Association: DOMIN0::<unnamed>%3C87362A007E
           //## Role: ConstHook::nc%3C87362B00E3
           //## begin NestableContainer::ConstHook::nc%3C87362B00E3.role preserve=no  protected: NestableContainer { -> 1RHNM}
           mutable NestableContainer *nc;
@@ -211,6 +215,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           mutable bool addressed;     // flag: & operator has been applied
           mutable HIID id;            // id being applied to target
           mutable int  index;         // index being applied to target (-1 for not set)
+          
+          // flag: privatize all read-only refs as we go along
+          // (this is only set for Hook. Always False for ConstHook.)
+          mutable int autoprivatize;
           
           // if target is an ObjRef, returns it, checking for writability
           // else throws an exception
@@ -280,7 +288,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
     //	T* as_T_wp(); // for all types
     //	operator T*(); // for all types - but only allowed after the &
     //	operator has been applied.
-    //## Category: DMI%3BEAB1F2006B; Global
+    //## Category: DOMIN0%3BEAB1F2006B; Global
     //## Subsystem: DMI%3C10CC810155
     //## Persistence: Transient
     //## Cardinality/Multiplicity: n
@@ -308,22 +316,28 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           //	Returns True if the hook refers to a writable element.
           bool isWritable () const;
 
+          //## Operation: size%3CAB0A3500AC
+          int size () const;
+
+          //## Operation: size%3CAAE9BB0332
+          const NestableContainer::Hook & size (int &sz) const;
+
           //## Operation: init%3C8739B5017B
           //	Initializes element being pointed to. If element exists, does
           //	nothing.
           const NestableContainer::Hook & init (TypeId tid = 0) const;
 
           //## Operation: operator =%3C873A8F035F
-          const NestableContainer::Hook & operator = (const ObjRef &ref) const;
+          void operator = (const ObjRef &ref) const;
 
           //## Operation: operator <<=%3C873AB8008D
-          const NestableContainer::Hook & operator <<= (ObjRef &ref) const;
+          void operator <<= (const ObjRef &ref) const;
 
           //## Operation: operator <<=%3C87864D031A
-          const NestableContainer::Hook & operator <<= (BlockableObject *obj) const;
+          void operator <<= (BlockableObject *obj) const;
 
           //## Operation: operator <<=%3C8786A30223
-          const NestableContainer::Hook & operator <<= (const BlockableObject *obj) const;
+          void operator <<= (const BlockableObject *obj) const;
 
           //## Operation: put%3C873AE302FC
           const NestableContainer::Hook & put (BlockableObject &obj, int flags) const;
@@ -345,18 +359,19 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           ObjRef ref (int flags = DMI::PRESERVE_RW) const;
 
           //## Operation: remove%3C876DCE0266
-          //	Removes the element being pointed to from the container. Returns
-          //	True if removed, False if no such element.
-          bool remove (ObjRef* ref = 0	// If specified, then
-          	// the removed element will be re-attached to this ref. An exception
-          	// will be thrown if the element is not held in an ObjRef.
-          ) const;
+          //	Removes the element being pointed to from the container.  If the
+          //	element is held in an ObjRef, returns a ref to it, so you can
+          //	do stuff like ref = rec["field"].remove() to remove it from the
+          //	container and place it in a local ref.
+          //	If there is no such element (or if not held in an ObjRef), it
+          //	returns an invalid ref.
+          ObjRef remove () const;
 
           //## Operation: detach%3C876E140018
           //	Can only be called for elements held in an ObjRef. Detaches element
-          //	but leaves the ObjRef in the container. Returnsref to self, so it's
+          //	but leaves the ObjRef in the container. Returns ref to self, so it's
           //	possible to do things like rec[field].detach(&old_ref) <<= new
-          //	object;
+          //	Object;
           const NestableContainer::Hook & detach (ObjRef* ref = 0	// If specified, then the element will be re-attached to this ref.
           ) const;
 
@@ -382,15 +397,15 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       protected:
         //## Constructors (specified)
           //## Operation: Hook%3C8739B50153
-          Hook (NestableContainer &parent, const HIID &id1);
+          Hook (NestableContainer &parent, const HIID &id1, int autopr);
 
           //## Operation: Hook%3C8739B5015E
-          Hook (NestableContainer &parent, int n);
+          Hook (NestableContainer &parent, int n, int autopr);
 
         // Additional Protected Declarations
           //## begin NestableContainer::Hook%3C8739B50135.protected preserve=yes
           // Helper function resolves current index to target *
-          void * resolveTarget( TypeId &target_tid,TypeId tid ) const;
+          void * prepare_put( TypeId &target_tid,TypeId tid ) const;
               
           // This is called to assign a value, for scalar & binary types
           const void * put_scalar( const void *data,TypeId tid,size_t sz ) const;
@@ -414,8 +429,11 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
         // Additional Private Declarations
           //## begin NestableContainer::Hook%3C8739B50135.private preserve=yes
+          void operator = (BlockableObject *);
+          void operator = (const BlockableObject *);
+          void operator = (BlockableObject &);
+          void operator = (const BlockableObject &);
           //## end NestableContainer::Hook%3C8739B50135.private
-
       private: //## implementation
         // Additional Implementation Declarations
           //## begin NestableContainer::Hook%3C8739B50135.implementation preserve=yes
@@ -460,15 +478,15 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       	// object rather than the ref.
       	// 0: no type checking. For dynamic types, returning an ObjRef is
       	// preferred.
-      bool must_write = False	// If True and datum is read-only, throw an exception
-      ) const = 0;
+      bool must_write = False, 	// If True and datum is read-only, throw an exception
+      int autoprivatize = 0) const = 0;
 
       //## Operation: getn%3C7A13C90269
       //	getn(int): this is a version of get() with a numeric element
       //	specification. This is the method called by the hook operator
       //	[](int). The default implementation simply converts the index into a
       //	single-index HIID, and calls get(HIID).
-      virtual const void * getn (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const;
+      virtual const void * getn (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False, int autoprivatize = 0) const;
 
       //## Operation: insert%3C7A13D703AA
       //	insert(HIID). This is an abstract ethod for allocating a new element
@@ -571,6 +589,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       friend ConstHook;
       friend Hook;
       
+      NestableContainer & autoprivatize(int flags = DMI::WRITE) 
+      { FailWhen(!writable,"can't autoprivatize readonly container"); 
+        autoprivatize_=flags; return *this; }
+      
       // explicit versions of [] for string IDs
       NestableContainer::ConstHook operator [] (const string &id1) const
       { return (*this)[HIID(id1)]; }
@@ -606,8 +628,8 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
     // Additional Implementation Declarations
       //## begin NestableContainer%3BE97CE100AF.implementation preserve=yes
+      int autoprivatize_;
       //## end NestableContainer%3BE97CE100AF.implementation
-
 };
 
 //## begin NestableContainer%3BE97CE100AF.postscript preserve=yes
@@ -619,22 +641,12 @@ inline NestableContainer::ConstHook::ConstHook (const NestableContainer &parent,
   //## begin NestableContainer::ConstHook::ConstHook%3C87374503C2.hasinit preserve=no
   //## end NestableContainer::ConstHook::ConstHook%3C87374503C2.hasinit
   //## begin NestableContainer::ConstHook::ConstHook%3C87374503C2.initialization preserve=yes
-  :  nc(const_cast<NestableContainer *>(&parent)),addressed(False),id(),index(-1)
+  :  nc(const_cast<NestableContainer *>(&parent)),addressed(False),
+     index(-1),autoprivatize(0)
   //## end NestableContainer::ConstHook::ConstHook%3C87374503C2.initialization
 {
   //## begin NestableContainer::ConstHook::ConstHook%3C87374503C2.body preserve=yes
-  int sep = id1.findFirstSlash();
-  if( sep<0 ) // no slashes - just init id
-    id = id1;
-  else if( !sep ) // leading slash - strip
-    id = id1.subId(1);
-  else if( sep == (int)(id.size()-1) ) // trailing slash - strip
-    id = id1.subId(0,id1.size()-1);
-  else  // embedded slash - split id into two and apply sequentially
-  {
-    id = id1.subId(0,sep-1);
-    (*this)[id1.subId(sep+1)];
-  }
+  (*this)[id1];
   //## end NestableContainer::ConstHook::ConstHook%3C87374503C2.body
 }
 
@@ -642,7 +654,8 @@ inline NestableContainer::ConstHook::ConstHook (const NestableContainer &parent,
   //## begin NestableContainer::ConstHook::ConstHook%3C87375E01CA.hasinit preserve=no
   //## end NestableContainer::ConstHook::ConstHook%3C87375E01CA.hasinit
   //## begin NestableContainer::ConstHook::ConstHook%3C87375E01CA.initialization preserve=yes
-   : nc(const_cast<NestableContainer *>(&parent)),addressed(False),id(),index(n)
+   : nc(const_cast<NestableContainer *>(&parent)),addressed(False),
+     index(n),autoprivatize(0)
   //## end NestableContainer::ConstHook::ConstHook%3C87375E01CA.initialization
 {
   //## begin NestableContainer::ConstHook::ConstHook%3C87375E01CA.body preserve=yes
@@ -659,11 +672,14 @@ inline const NestableContainer::ConstHook & NestableContainer::ConstHook::operat
   int sep = id1.findFirstSlash();
   if( !sep )
     return (*this)[id1.subId(1)];
-  else if( sep == (int)(id.size()-1) )
+  else if( sep == (int)(id1.size()-1) )
     return (*this)[id1.subId(0,id1.size()-1)];
   else if( sep > 0 )
     return (*this)[id1.subId(0,sep-1)][id1.subId(sep+1)];
-  nextIndex();
+  // if no subscript (as in, being called from constructor), then don't apply
+  // anything, just set it
+  if( index >= 0 || id.size() )
+    nextIndex();
   id=id1; index=-1;
   return *this;
   //## end NestableContainer::ConstHook::operator []%3C87377803A8.body
@@ -753,6 +769,14 @@ inline int NestableContainer::ConstHook::size () const
   //## end NestableContainer::ConstHook::size%3C87380503BE.body
 }
 
+inline const NestableContainer::ConstHook & NestableContainer::ConstHook::size (int &sz) const
+{
+  //## begin NestableContainer::ConstHook::size%3CAAE98D037C.body preserve=yes
+  sz = size();
+  return *this;
+  //## end NestableContainer::ConstHook::size%3CAAE98D037C.body
+}
+
 inline ObjRef NestableContainer::ConstHook::ref () const
 {
   //## begin NestableContainer::ConstHook::ref%3C87703E03D6.body preserve=yes
@@ -762,18 +786,20 @@ inline ObjRef NestableContainer::ConstHook::ref () const
 
 // Class NestableContainer::Hook 
 
-inline NestableContainer::Hook::Hook (NestableContainer &parent, const HIID &id1)
+inline NestableContainer::Hook::Hook (NestableContainer &parent, const HIID &id1, int autopr)
   //## begin NestableContainer::Hook::Hook%3C8739B50153.hasinit preserve=no
   //## end NestableContainer::Hook::Hook%3C8739B50153.hasinit
   //## begin NestableContainer::Hook::Hook%3C8739B50153.initialization preserve=yes
-    : ConstHook(parent,id1)
+    : ConstHook(parent,-1)
   //## end NestableContainer::Hook::Hook%3C8739B50153.initialization
 {
   //## begin NestableContainer::Hook::Hook%3C8739B50153.body preserve=yes
+  autoprivatize = autopr;
+  (*this)[id1];
   //## end NestableContainer::Hook::Hook%3C8739B50153.body
 }
 
-inline NestableContainer::Hook::Hook (NestableContainer &parent, int n)
+inline NestableContainer::Hook::Hook (NestableContainer &parent, int n, int autopr)
   //## begin NestableContainer::Hook::Hook%3C8739B5015E.hasinit preserve=no
   //## end NestableContainer::Hook::Hook%3C8739B5015E.hasinit
   //## begin NestableContainer::Hook::Hook%3C8739B5015E.initialization preserve=yes
@@ -781,6 +807,7 @@ inline NestableContainer::Hook::Hook (NestableContainer &parent, int n)
   //## end NestableContainer::Hook::Hook%3C8739B5015E.initialization
 {
   //## begin NestableContainer::Hook::Hook%3C8739B5015E.body preserve=yes
+  autoprivatize = autopr;
   //## end NestableContainer::Hook::Hook%3C8739B5015E.body
 }
 
@@ -811,35 +838,46 @@ inline const NestableContainer::Hook & NestableContainer::Hook::operator & () co
   //## end NestableContainer::Hook::operator &%3C8739B50176.body
 }
 
-inline const NestableContainer::Hook & NestableContainer::Hook::operator = (const ObjRef &ref) const
+inline int NestableContainer::Hook::size () const
+{
+  //## begin NestableContainer::Hook::size%3CAB0A3500AC.body preserve=yes
+  return ConstHook::size();
+  //## end NestableContainer::Hook::size%3CAB0A3500AC.body
+}
+
+inline const NestableContainer::Hook & NestableContainer::Hook::size (int &sz) const
+{
+  //## begin NestableContainer::Hook::size%3CAAE9BB0332.body preserve=yes
+  sz = ConstHook::size();
+  return *this;
+  //## end NestableContainer::Hook::size%3CAAE9BB0332.body
+}
+
+inline void NestableContainer::Hook::operator = (const ObjRef &ref) const
 {
   //## begin NestableContainer::Hook::operator =%3C873A8F035F.body preserve=yes
   assign_objref(ref,DMI::PRESERVE_RW|DMI::COPYREF);
-  return *this;
   //## end NestableContainer::Hook::operator =%3C873A8F035F.body
 }
 
-inline const NestableContainer::Hook & NestableContainer::Hook::operator <<= (ObjRef &ref) const
+inline void NestableContainer::Hook::operator <<= (const ObjRef &ref) const
 {
   //## begin NestableContainer::Hook::operator <<=%3C873AB8008D.body preserve=yes
   assign_objref(ref,DMI::PRESERVE_RW);
-  return *this;
   //## end NestableContainer::Hook::operator <<=%3C873AB8008D.body
 }
 
-inline const NestableContainer::Hook & NestableContainer::Hook::operator <<= (BlockableObject *obj) const
+inline void NestableContainer::Hook::operator <<= (BlockableObject *obj) const
 {
   //## begin NestableContainer::Hook::operator <<=%3C87864D031A.body preserve=yes
   assign_object(obj,obj->objectType(),DMI::ANON|DMI::WRITE);
-  return *this;
   //## end NestableContainer::Hook::operator <<=%3C87864D031A.body
 }
 
-inline const NestableContainer::Hook & NestableContainer::Hook::operator <<= (const BlockableObject *obj) const
+inline void NestableContainer::Hook::operator <<= (const BlockableObject *obj) const
 {
   //## begin NestableContainer::Hook::operator <<=%3C8786A30223.body preserve=yes
   assign_object(obj,obj->objectType(),DMI::ANON|DMI::READONLY);
-  return *this;
   //## end NestableContainer::Hook::operator <<=%3C8786A30223.body
 }
 
@@ -880,7 +918,7 @@ inline NestableContainer::NestableContainer (bool write)
   //## begin NestableContainer::NestableContainer%3C7F928D00C0.hasinit preserve=no
   //## end NestableContainer::NestableContainer%3C7F928D00C0.hasinit
   //## begin NestableContainer::NestableContainer%3C7F928D00C0.initialization preserve=yes
-  : writable(write)
+  : writable(write),autoprivatize_(False)
   //## end NestableContainer::NestableContainer%3C7F928D00C0.initialization
 {
   //## begin NestableContainer::NestableContainer%3C7F928D00C0.body preserve=yes
@@ -890,10 +928,10 @@ inline NestableContainer::NestableContainer (bool write)
 
 
 //## Other Operations (inline)
-inline const void * NestableContainer::getn (int n, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
+inline const void * NestableContainer::getn (int n, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write, int autoprivatize) const
 {
   //## begin NestableContainer::getn%3C7A13C90269.body preserve=yes
-  return get(HIID(n),tid,can_write,check_tid,must_write);
+  return get(HIID(n),tid,can_write,check_tid,must_write,autoprivatize);
   //## end NestableContainer::getn%3C7A13C90269.body
 }
 
@@ -942,14 +980,20 @@ inline NestableContainer::ConstHook NestableContainer::operator [] (int index) c
 inline NestableContainer::Hook NestableContainer::operator [] (const HIID &id)
 {
   //## begin NestableContainer::operator []%3C874267026C.body preserve=yes
-  return Hook(*this,id);
+  // autoprivatize passed to Hook and cleared
+  int autopr = autoprivatize_;
+  autoprivatize_ = 0;
+  return Hook(*this,id,autopr);
   //## end NestableContainer::operator []%3C874267026C.body
 }
 
 inline NestableContainer::Hook NestableContainer::operator [] (int index)
 {
   //## begin NestableContainer::operator []%3C874251027E.body preserve=yes
-  return Hook(*this,index);
+  // autoprivatize passed to Hook and cleared
+  int autopr = autoprivatize_;
+  autoprivatize_ = 0;
+  return Hook(*this,index,autopr);
   //## end NestableContainer::operator []%3C874251027E.body
 }
 
@@ -987,6 +1031,7 @@ inline bool NestableContainer::isWritable () const
 
 //## begin module%3C10CC830067.epilog preserve=yes
 
+// This is called to treat the hook target as an ObjRef (exception otherwise)
 inline const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
 {
   FailWhen(addressed,"unexpected '&' operator");
@@ -998,31 +1043,34 @@ inline const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
 }
 
 // This is called to access by pointer, for all types
+// Defers to get_address(pointer=True)
 inline const void * NestableContainer::ConstHook::get_pointer(TypeId tid,bool must_write,bool implicit ) const
 {
   FailWhen(!addressed && implicit,"missing '&' operator");
+  // Defers to get_address(pointer=True)
   return get_address(tid,must_write,implicit,True);
 }
 
+// This applies the current subscript to the hook, updating the target
 inline const void * NestableContainer::ConstHook::collapseIndex (TypeId &tid,
     bool &can_write,TypeId check_tid,bool must_write) const
 {
   return index<0 
-      ? nc->get(id,tid,can_write,check_tid,must_write)
-      : nc->getn(index,tid,can_write,check_tid,must_write);
+      ? nc->get(id,tid,can_write,check_tid,must_write,autoprivatize)
+      : nc->getn(index,tid,can_write,check_tid,must_write,autoprivatize);
 }
 
-// helper function applies exiasting id or index to hook in preparation
-// for setting a new one
+// helper function applies current subscript to hook in preparation
+// for setting a new one. Insures that current target is a container.
 inline void NestableContainer::ConstHook::nextIndex () const
 {
-  // index into container for new target
+  // subscript into container for new target
   const NestableContainer *newnc = asNestable();
   FailWhen(!newnc,"indexing into non-existing or non-container element");
   nc = const_cast<NestableContainer*>(newnc);
 }
 
-// const version forces a read-only ref
+// const version of assign_object forces a read-only ref to be attached
 inline void NestableContainer::Hook::assign_object( const BlockableObject *obj,TypeId tid,int flags ) const
 {
   // cast away const but that's OK since we force r/o ref  

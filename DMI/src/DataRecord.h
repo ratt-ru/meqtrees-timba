@@ -45,7 +45,7 @@
 
 //## Class: DataRecord%3BB3112B0027
 //	DataRecord is the main container class of DMI.
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -141,7 +141,7 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       //	Implemetation of standard function for deep-dereferencing of
       //	contents.
       //	See NestableContainer for semantics.
-      virtual const void * get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const;
+      virtual const void * get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False, int autoprivatize = 0) const;
 
       //## Operation: insert%3C7A16BB01D7
       virtual void * insert (const HIID &id, TypeId tid, TypeId &real_tid);

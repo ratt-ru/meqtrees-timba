@@ -1,6 +1,11 @@
 #include "TypeInfo.h"
 #include "TypeIterMacros.h"
 
+static AtomicID::Register reg1(TpNumeric,"Numeric"),
+    reg2(TpIncomplete,"Incomplete"),
+    reg3(TpObject,"Object");
+
+    
 // Defines the TypeInfo registry    
 DefineRegistry(TypeInfoReg,TypeInfo::NONE);
 
@@ -16,7 +21,7 @@ void _convertScalar( const void * from,void * to )
 // This defines the conversion matrix
 #undef From
 #define From(type,arg) _convertScalar<arg,type>
-TypeConverter _typeconverters[12][12] = {
+TypeConverter _typeconverters[14][14] = {
   { DoForAllNumericTypes1(From,char) },
   { DoForAllNumericTypes1(From,uchar) },
   { DoForAllNumericTypes1(From,short) },
@@ -25,6 +30,8 @@ TypeConverter _typeconverters[12][12] = {
   { DoForAllNumericTypes1(From,uint) },
   { DoForAllNumericTypes1(From,long) },
   { DoForAllNumericTypes1(From,ulong) },
+  { DoForAllNumericTypes1(From,longlong) },
+  { DoForAllNumericTypes1(From,ulonglong) },
   { DoForAllNumericTypes1(From,float) },
   { DoForAllNumericTypes1(From,double) },
   { DoForAllNumericTypes1(From,ldouble) },

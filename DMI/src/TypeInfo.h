@@ -8,17 +8,40 @@
 class TypeInfo {
   public:
       // enum of type categories
-      typedef enum { NONE=0,NUMERIC=1,BINARY=2,DYNAMIC=3,OTHER=4 } Category;
+      typedef enum { NONE=0,NUMERIC=1,BINARY=2,DYNAMIC=3,SPECIAL=4,OTHER=5 } Category;
       // ...stored here:
       Category category;
       size_t   size;
+      // function pointer types (new method, delete method, copy method,
+      // pack method, unpack method, packSize method: see Packer.h)
+      typedef void * (*NewMethod)(int);
+      typedef void (*DeleteMethod)(void*);
+      typedef void (*CopyMethod)(void*,const void*);
+      typedef size_t (*PackMethod)(const void *,int,void *,size_t &);
+      typedef void * (*UnpackMethod)(const void *,size_t,int &);
+      typedef size_t (*PackSizeMethod)(const void *,int n);
+
+      NewMethod fnew;
+      DeleteMethod fdelete;
+      CopyMethod fcopy;
+      PackMethod fpack;
+      UnpackMethod funpack;
+      PackSizeMethod fpacksize;
       
-      // default constructor
-      TypeInfo( Category cat = NONE,size_t sz=0 ) : category(cat),size(sz) {};
+      // default constructor / constructor with no methods
+      TypeInfo( Category cat = NONE,size_t sz=0 )
+        : category(cat),size(sz),fnew(0),fdelete(0),fcopy(0),
+          fpack(0),funpack(0),fpacksize(0) {};
+      // constructor with full methods
+      TypeInfo( Category cat,size_t sz,
+                NewMethod nm,DeleteMethod dm,CopyMethod cm, 
+                PackMethod pm,UnpackMethod um,PackSizeMethod sm ) 
+        : category(cat),size(sz),fnew(nm),fdelete(dm),fcopy(cm),
+          fpack(pm),funpack(um),fpacksize(sm) {};
       
       // operator == required for registry
       bool operator == ( const TypeInfo &other ) const
-      { return category == other.category && size == other.size; }
+      { return !memcmp(this,&other,sizeof(*this)); }
       
       //  Looks up type info in the registry
       static const TypeInfo & find ( TypeId tid );
@@ -81,7 +104,7 @@ inline bool TypeInfo::isDynamic (TypeId tid)
 typedef void (*TypeConverter)(const void *from,void *to);
 
 // This is a matrix of converters for the built-in scalar types.
-extern TypeConverter _typeconverters[12][12];
+extern TypeConverter _typeconverters[14][14];
 
 // Inline function to convert scalars  
 inline bool convertScalar ( const void *from,TypeId frid,void *to,TypeId toid )

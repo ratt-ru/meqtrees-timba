@@ -13,7 +13,7 @@
 //## Module: DataField%3C10CC820126; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataField.cc
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\DataField.cc
 
 //## begin module%3C10CC820126.additionalIncludes preserve=no
 //## end module%3C10CC820126.additionalIncludes
@@ -21,6 +21,7 @@
 //## begin module%3C10CC820126.includes preserve=yes
 #include "DynamicTypeManager.h"
 #include "DataRecord.h"
+#include "Packer.h"
 //## end module%3C10CC820126.includes
 
 // DataField
@@ -44,11 +45,12 @@ DataField::DataField (int flags)
   //## end DataField::DataField%3C3D64DC016E.hasinit
   //## begin DataField::DataField%3C3D64DC016E.initialization preserve=yes
   : NestableContainer(flags&DMI::WRITE!=0),
-    mytype(0),mysize(0),selected(False)
+    spvec(0),mytype(0),mysize(0),selected(False)
   //## end DataField::DataField%3C3D64DC016E.initialization
 {
   //## begin DataField::DataField%3C3D64DC016E.body preserve=yes
   dprintf(2)("default constructor\n");
+  spvec = 0;
   //## end DataField::DataField%3C3D64DC016E.body
 }
 
@@ -56,7 +58,8 @@ DataField::DataField (const DataField &right, int flags, int depth)
   //## begin DataField::DataField%3C3EE3EA022A.hasinit preserve=no
   //## end DataField::DataField%3C3EE3EA022A.hasinit
   //## begin DataField::DataField%3C3EE3EA022A.initialization preserve=yes
-    : NestableContainer(flags&DMI::WRITE!=0),mytype(0)
+    : NestableContainer(flags&DMI::WRITE!=0),
+    spvec(0),mytype(0)
   //## end DataField::DataField%3C3EE3EA022A.initialization
 {
   //## begin DataField::DataField%3C3EE3EA022A.body preserve=yes
@@ -70,7 +73,7 @@ DataField::DataField (TypeId tid, int num, int flags)
   //## end DataField::DataField%3BFA54540099.hasinit
   //## begin DataField::DataField%3BFA54540099.initialization preserve=yes
     : NestableContainer(flags&DMI::WRITE!=0),
-      mytype(0),mysize(0),selected(False)
+      spvec(0),mytype(0),mysize(0),selected(False)
   //## end DataField::DataField%3BFA54540099.initialization
 {
   //## begin DataField::DataField%3BFA54540099.body preserve=yes
@@ -117,14 +120,13 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
   // if null type, then reset the field to uninit state
   if( !tid )
   {
-    mytype = 0;
-    mysize = 0;
+    clear();
     scalar = True;
     setWritable(True);
     return *this;
   }
   FailWhen( valid(),"field is already initialized" );
-  if( num==-1 )
+  if( num == -1 )
   {
     num = 1;
     scalar = True;
@@ -133,51 +135,66 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
     scalar = False;
   FailWhen( num<0,"illegal field size" );
   // obtain type information, check that type is supported
-  const TypeInfo & typeinfo( TypeInfo::find(tid) );
+  typeinfo = TypeInfo::find(tid);
   FailWhen( !typeinfo.category,"unknown data type "+tid.toString() );
-  FailWhen( typeinfo.category == TypeInfo::OTHER && tid != Tpstring,
-            "unsupported data type "+tid.toString() );
+  binary_type = dynamic_type = False;
   mytype = tid;
   mysize = max(num,1);
+  typeinfo.size = typeinfo.size;
+  switch( typeinfo.category )
+  {
   // NUMERIC & BINARY type categories are treated as binary objects
   // of a fixed type, which can be bitwise-copied
-  binary_type = typeinfo.category==TypeInfo::NUMERIC || 
-                typeinfo.category==TypeInfo::BINARY;
-  dynamic_type = !binary_type && mytype != Tpstring;
+    case TypeInfo::NUMERIC:
+    case TypeInfo::BINARY:
+    {  
+        binary_type = True;
+        // allocate header and copy data
+        SmartBlock *header = new SmartBlock( sizeof(int)*2 + typeinfo.size*mysize);
+        headref.attach(header,DMI::WRITE|DMI::ANON|DMI::LOCK);
+        if( data )
+          memcpy(sizeof(int)*2 + static_cast<char*>(header->data()),data,typeinfo.size*mysize);
+        else
+          memset(sizeof(int)*2 + static_cast<char*>(header->data()),0,typeinfo.size*mysize);
+        break;
+    }
+    case TypeInfo::DYNAMIC: 
+    {
+        dynamic_type = True;
+        FailWhen(data,Debug::ssprintf("can't init field of type %s with data",tid.toString().c_str(),num) );
+        headref.attach( new SmartBlock( sizeof(int)*(2+mysize),DMI::ZERO ),
+                        DMI::WRITE|DMI::ANON|DMI::LOCK );
+        objects.resize(mysize);
+        blocks.resize(mysize);
+        objstate.resize(mysize);
+        objstate.assign(mysize,UNINITIALIZED);
+        break;
+    }    
+    case TypeInfo::SPECIAL: 
+    {
+        FailWhen(!typeinfo.fnew || !typeinfo.fdelete || !typeinfo.fcopy ||
+            !typeinfo.fpack || !typeinfo.funpack || !typeinfo.fpacksize,
+            "incomplete registry information for"+tid.toString() ); 
+        headref.attach( new SmartBlock( sizeof(int)*(2+mysize) ),
+                        DMI::WRITE|DMI::ANON|DMI::LOCK );
+        // use the new function to allocate vector of objects
+        spvec = (*typeinfo.fnew)(mysize);
+        spdelete = typeinfo.fdelete;
+        // if init data is supplied, use the copy function to init the vector
+        if( data )
+        {
+          const char *from = static_cast<const char *>(data);
+          char *to = static_cast<char *>(spvec);
+          for( int i=0; i<mysize; i++,from+=typeinfo.size,to+=typeinfo.size )
+            (*typeinfo.fcopy)(to,from);
+        }
+        spvec_modified = False;
+        break;
+    }
+    default:
+        Throw("unsupported data type "+tid.toString());  
+  }
 
-  if( mytype == Tpstring )  // init string field
-  {
-    FailWhen(data && num>1,Debug::ssprintf("can't init field string[%d] with data",num));
-    headref.attach( new SmartBlock( sizeof(int)*(2+mysize) ),
-                    DMI::WRITE|DMI::ANON|DMI::LOCK );
-    strvec.resize(mysize);
-    strvec_modified = False;
-    if( data && mysize>0 )
-      strvec[0] = string( static_cast<const char *>(data) );
-  }
-  else if( binary_type )    // init binary field
-  {
-    typesize = typeinfo.size;
-    // allocate header and copy data
-    SmartBlock *header = new SmartBlock( sizeof(int)*2 + typesize*mysize);
-    headref.attach( header,DMI::WRITE|DMI::ANON|DMI::LOCK);
-    if( data )
-      memcpy(sizeof(int)*2 + (char*)header->data(),data,typesize*mysize);
-    else
-      memset(sizeof(int)*2 + (char*)header->data(),0,typesize*mysize);
-  }
-  else  // init dynamic object
-  {
-    Assert(dynamic_type);
-    FailWhen(data,Debug::ssprintf("can't init field %s[%d] with data",tid.toString().c_str(),num) );
-    
-    headref.attach( new SmartBlock( sizeof(int)*(2+mysize),DMI::ZERO ),
-                    DMI::WRITE|DMI::ANON|DMI::LOCK );
-    objects.resize(mysize);
-    blocks.resize(mysize);
-    objstate.resize(mysize);
-    objstate.assign(mysize,UNINITIALIZED);
-  }
   headerType() = mytype;
   headerSize() = mysize;
   // make header block non-writable
@@ -193,26 +210,33 @@ void DataField::resize (int newsize)
   FailWhen( newsize<=0,"can't resize to <=0" );
   FailWhen( !valid(),"uninitialized DataField" );
   FailWhen( !isWritable(),"field is read-only" );
-  FailWhen( !isWritable(),"field is read-only" );
+  int minsize = min(mysize,newsize);
   mysize = newsize;
   if( newsize > 1 )
     scalar = False;
-  if( mytype == Tpstring )
+  if( binary_type )
+    headref().resize( sizeof(int)*2 + typeinfo.size*newsize );
+  else if( dynamic_type )
   {
-    headref().resize( sizeof(int)*(2+newsize) );
-    strvec.resize(newsize);
-    strvec_modified = True;
-  }
-  else if( binary_type )
-    headref().resize( sizeof(int)*2 + typesize*newsize );
-  else
-  {
-    Assert( dynamic_type );
     objects.resize(newsize);
     blocks.resize(newsize);
     objstate.resize(newsize);
     // note that when resizing upwards, this implicitly fills the empty
     // objstates with 0 = UNINITIALIZED
+  }
+  else  // special type -- resize & copy
+  {
+    void *newvec = (*typeinfo.fnew)(newsize);
+    if( minsize )
+    {
+      const char *from = static_cast<char *>(spvec);
+      char *to = static_cast<char *>(newvec);
+      for( int i=0; i<minsize; i++,from+=typeinfo.size,to+=typeinfo.size )
+        (*typeinfo.fcopy)(to,from);
+    }
+    (*typeinfo.fdelete)(spvec);
+    spvec = newvec;
+    spvec_modified = True;
   }
   mysize = newsize;
   //## end DataField::resize%3C62961D021B.body
@@ -221,12 +245,17 @@ void DataField::resize (int newsize)
 void DataField::clear (int flags)
 {
   //## begin DataField::clear%3C3EAB99018D.body preserve=yes
+  if( spvec )
+  {
+    Assert(spdelete);
+    (*spdelete)(spvec);
+    spvec = 0;
+  }
   if( valid() )
   {
     dprintf(2)("clearing\n");
     if( headref.valid() )
       headref.unlock().detach();
-    strvec.resize(0);
     if( objects.size() ) objects.resize(0);
     if( blocks.size() ) blocks.resize(0);
     objstate.resize(0);
@@ -292,11 +321,12 @@ int DataField::fromBlock (BlockSet& set)
 {
   //## begin DataField::fromBlock%3C3D5F2001DC.body preserve=yes
   dprintf1(2)("%s: fromBlock\n",debug());
-  clear(isWritable()?DMI::WRITE:DMI::READONLY);
+  clear(isWritable() ? DMI::WRITE : DMI::READONLY);
   int npopped = 1;
   // get header block, privatize & cache it as headref
-  set.pop(headref);  
+  set.pop(headref.unlock());  
   size_t hsize = headref->size();
+  // first two ints in header block are type and size
   FailWhen( hsize < sizeof(int)*2,"malformed header block" );
   headref.privatize((isWritable()?DMI::WRITE:0)|DMI::LOCK);
   // get type and size from header
@@ -312,68 +342,64 @@ int DataField::fromBlock (BlockSet& set)
   if( !mytype )  // uninitialized field
     return 1;
   // obtain type information, check that type is supported
-  const TypeInfo & typeinfo( TypeInfo::find(mytype) );
-  FailWhen( !typeinfo.category,"unknown data type "+mytype.toString() );
-  FailWhen( typeinfo.category == TypeInfo::OTHER && mytype != Tpstring,
-            "unsupported data type "+mytype.toString() );
-  // NUMERIC & BINARY type categories are treated as binary objects
-  // of a fixed type, which can be bitwise-copied
-  binary_type = typeinfo.category==TypeInfo::NUMERIC || 
-                typeinfo.category==TypeInfo::BINARY;
-  dynamic_type = !binary_type && mytype != Tpstring;
-
-  // For strings, the header will contain N string lengths 
-  // (as ints), followed by the strings themselves
-  if( mytype == Tpstring )
+  typeinfo = TypeInfo::find(mytype);
+  binary_type = dynamic_type = False;
+  switch( typeinfo.category )
   {
-    FailWhen( hsize < sizeof(int)*(2+mysize),"incorrect block size" );
-    strvec.resize(mysize);
-    // assign the strings
-    char *hdata = (char*)headref->data();        // start of header
-    size_t istr0 = sizeof(int)*(2+mysize);   // char position of start of first string
-    int i=0;
-    for( VSI iter = strvec.begin(); iter != strvec.end(); iter++ )
-    {
-      size_t len = ((int*)hdata)[2+i];
-      FailWhen( istr0+len > hsize,"incorrect block size");
-      iter->assign(hdata+istr0,len);
-      istr0 += len;
-    }
-    strvec_modified = False; 
-  }
-  // for built-in types, the header block simply contains the data. 
-  else if( binary_type )
-  {
-    typesize = typeinfo.size;
-    dprintf(2)("fromBlock: built-in type %s[%d]\n",mytype.toString().c_str(),mysize);
-    FailWhen( hsize != sizeof(int)*2 + typesize*mysize,
-                "incorrect block size" );
-  }
-  else  // else dynamic type: the header contains info on # of blocks to follow
-  {
-    Assert( dynamic_type );
-    dprintf(2)("fromBlock: dynamic type %s[%d]\n",mytype.toString().c_str(),mysize);
-    FailWhen( hsize != sizeof(int)*(2 + mysize),"incorrect block size" );
-    objects.resize(mysize);
-    blocks.resize(mysize);
-    objstate.resize(mysize);
-    objstate.assign(mysize,INBLOCK);
-  // get blocks from set and privatize them as appropriate
-  // do not unblock objects, as that is done at dereference time
-    for( int i=0; i<mysize; i++ ) 
-    {
-      npopped += headerBlockSize(i);
-      if( headerBlockSize(i) )
+    case TypeInfo::NUMERIC:
+    case TypeInfo::BINARY:  // numeric/binary types are stored directly in the header
+      binary_type = True;
+      dprintf(2)("fromBlock: built-in type %s[%d]\n",mytype.toString().c_str(),mysize);
+      FailWhen( hsize != sizeof(int)*2 + typeinfo.size*mysize,
+                  "incorrect block size" );
+      break;
+    
+    case TypeInfo::SPECIAL: // special types need to be unpacked from header
+      FailWhen(!typeinfo.fnew || !typeinfo.fdelete || !typeinfo.fcopy ||
+          !typeinfo.fpack || !typeinfo.funpack || !typeinfo.fpacksize,
+          "incomplete registry information for"+mytype.toString() ); 
+      int n;
+      // use the unpack method to unpack the objects. Note that old spvec
+      // has already been deleted by call to clear(), above.
+      // funpack will allocate an array for us with new[n].
+      spvec = (*typeinfo.funpack)(
+                static_cast<const char*>(headref->data()) + sizeof(int)*2,
+                hsize - sizeof(int)*2,n);
+      spdelete = typeinfo.fdelete;
+      FailWhen( n != mysize,"size mismatch after unpacking" );
+      spvec_modified = False; 
+      break;
+        
+    case TypeInfo::DYNAMIC: // dynamic type: header contains info on # of blocks to follow
+      dynamic_type = True;
+      dprintf(2)("fromBlock: dynamic type %s[%d]\n",mytype.toString().c_str(),mysize);
+      FailWhen( hsize != sizeof(int)*(2 + mysize),"incorrect block size" );
+      objects.resize(mysize);
+      blocks.resize(mysize);
+      objstate.resize(mysize);
+      objstate.assign(mysize,INBLOCK);
+      // Get blocks from set
+      // Do not unblock objects, as that is done at dereference time
+      // Note that we don't privatize the blocks, so field contents may
+      // be shared and/or read-only
+      for( int i=0; i<mysize; i++ ) 
       {
-        dprintf(3)("fromBlock: [%d] taking over %d blocks\n",i,headerBlockSize(i));
-        set.popMove(blocks[i],headerBlockSize(i));
-        dprintf(3)("fromBlock: [%d] will privatize %d blocks\n",i,blocks[i].size());
-        blocks[i].privatizeAll(isWritable()?DMI::WRITE:0);
+        npopped += headerBlockSize(i);
+        if( headerBlockSize(i) )
+        {
+          dprintf(3)("fromBlock: [%d] taking over %d blocks\n",i,headerBlockSize(i));
+          set.popMove(blocks[i],headerBlockSize(i));
+          // dprintf(3)("fromBlock: [%d] will privatize %d blocks\n",i,blocks[i].size());
+          //          blocks[i].privatizeAll(isWritable()?DMI::WRITE:0,True);
+        }
+        else // no blocks assigned to this object => is uninitialized
+          objstate[i] = UNINITIALIZED;
       }
-      else // no blocks assigned to this object => is uninitialized
-        objstate[i] = UNINITIALIZED;
-    }
-    dprintf(2)("fromBlock: %d blocks were popped\n",npopped);
+      dprintf(2)("fromBlock: %d blocks were popped\n",npopped);
+      break;
+        
+    default:
+        Throw("unsupported data type "+mytype.toString());  
   }
   return npopped;
   //## end DataField::fromBlock%3C3D5F2001DC.body
@@ -389,30 +415,23 @@ int DataField::toBlock (BlockSet &set) const
   }
   dprintf1(2)("%s: toBlock\n",debug());
   int npushed = 1,tmp; // 1 header block as a minimum
-  // if dealing with strings, and they have been modified, the 
+  // if dealing with special types, and they have been modified, the 
   // header block needs to be rebuilt
-  if( mytype == Tpstring && strvec_modified )
+  if( !dynamic_type && !binary_type && spvec_modified )
   {
     // allocate and attach header block
-    int hsize = sizeof(int)*(2+mysize);
-    for( CVSI iter = strvec.begin(); iter != strvec.end(); iter++ )
-      hsize += iter->length();
-    headref.attach( new SmartBlock(hsize),
+    size_t hsize = sizeof(int)*2 + 
+            (*typeinfo.fpacksize)(spvec,mysize);
+    headref.unlock().attach( new SmartBlock(hsize),
                     DMI::WRITE|DMI::ANON|DMI::LOCK );
     // write basic fields
     headerType() = mytype;
     headerSize() = scalar ? -mysize : mysize;
-    // write out lengths and string data into header block
-    int *plen = &headerBlockSize(0);
-    char *pdata = (char*)(plen + mysize);
-    for( CVSI iter = strvec.begin(); iter != strvec.end(); iter++ )
-    {
-      int len = *plen = iter->length();
-      iter->copy(pdata,len); 
-      pdata += len;
-      plen++;
-    }
-    strvec_modified = False;
+    hsize -= sizeof(int)*2;
+    // pack object data into header block
+    (*typeinfo.fpack)(spvec,mysize,
+        static_cast<char*>(headref().data()) + sizeof(int)*2,hsize);
+    spvec_modified = False;
     // if read-only, downgrade block reference
     if( !isWritable() )
       headref.change(DMI::READONLY);
@@ -460,73 +479,89 @@ int DataField::toBlock (BlockSet &set) const
   //## end DataField::toBlock%3C3D5F2403CC.body
 }
 
-ObjRef & DataField::resolveObject (int n, bool write) const
+ObjRef & DataField::resolveObject (int n, bool write, int autoprivatize) const
 {
   //## begin DataField::resolveObject%3C3D8C07027F.body preserve=yes
+  FailWhen(autoprivatize && !isWritable(),"can't autoprivatize in readonly field");
+  FailWhen(write && autoprivatize&DMI::PRIVATIZE && autoprivatize&DMI::READONLY,
+        "write access and unconditional read-only privatize requested at the same time" )
   switch( objstate[n] )
   {
     // uninitialized object - create default
     case UNINITIALIZED:
-         dprintf(3)("resolveObject(%d): creating new %s\n",n,mytype.toString().c_str());
-         objects[n].attach( DynamicTypeManager::construct(mytype),
-                           (isWritable()?DMI::WRITE:DMI::READONLY)|
-                           DMI::ANON|DMI::LOCK );
-         objstate[n] = MODIFIED;
-         return objects[n];
+        dprintf(3)("resolveObject(%d): creating new %s\n",n,mytype.toString().c_str());
+        objects[n].attach( DynamicTypeManager::construct(mytype),
+                          (isWritable()?DMI::WRITE:DMI::READONLY)|
+                          DMI::ANON|DMI::LOCK );
+        objstate[n] = MODIFIED;
+        // unconditionally privatize if so requested
+        if( autoprivatize&DMI::PRIVATIZE )
+          objects[n].privatize(autoprivatize&~DMI::PRIVATIZE); 
+        return objects[n];
          
     // object hasn't been unblocked
     case INBLOCK:
-         // if write access requested, simply unblock it
-         if( write )
-         {
-           dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
-           objects[n].attach( DynamicTypeManager::construct(mytype,blocks[n]),
-                             (isWritable()?DMI::WRITE:DMI::READONLY)|
-                             DMI::ANON|DMI::LOCK );
-           // verify that no blocks were left over
-           FailWhen( blocks[n].size()>0,"block count mismatch" );
-           objstate[n] = MODIFIED;
-         }
-         // For r/o access, we want to cache a copy of the blockset.
-         // This is in case the object doesn't get modified down the road, 
-         // so we can just re-use the blockset in a future toBlock()
-         else
-         {
-           // make copy, retaining r/w privileges, and marking the 
-           // source as r/o
-           dprintf(3)("resolveObject(%d): read access, preserving old blocks\n",n);
-           BlockSet set( blocks[n],DMI::PRESERVE_RW|DMI::MAKE_READONLY ); 
-           // create object and attach a reference
-           dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
-           objects[n].attach( DynamicTypeManager::construct(mytype,set),
-                             (isWritable()?DMI::WRITE:DMI::READONLY)|
-                             DMI::ANON|DMI::LOCK );
-           // verify that no blocks were left over
-           FailWhen( set.size()>0,"block count mismatch" );
-           // mark object as unblocked but not modified 
-           objstate[n] = UNBLOCKED; 
-         }
-         return objects[n];
+        // if write access requested, simply unblock it
+        if( write )
+        {
+          dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
+          objects[n].attach( DynamicTypeManager::construct(mytype,blocks[n]),
+                            (isWritable()?DMI::WRITE:DMI::READONLY)|
+                            DMI::ANON|DMI::LOCK );
+          // verify that no blocks were left over
+          FailWhen( blocks[n].size()>0,"block count mismatch" );
+          objstate[n] = MODIFIED;
+        }
+        // For r/o access, we want to cache a copy of the blockset.
+        // This is in case the object doesn't get modified down the road, 
+        // so we can just re-use the blockset in a future toBlock()
+        else
+        {
+          // make copy, retaining r/w privileges, and marking the 
+          // source as r/o
+          dprintf(3)("resolveObject(%d): read access, preserving old blocks\n",n);
+          BlockSet set( blocks[n],DMI::PRESERVE_RW|DMI::MAKE_READONLY ); 
+          // create object and attach a reference
+          dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
+          objects[n].attach( DynamicTypeManager::construct(mytype,set),
+                            (isWritable()?DMI::WRITE:DMI::READONLY)|
+                            DMI::ANON|DMI::LOCK );
+          // verify that no blocks were left over
+          FailWhen( set.size()>0,"block count mismatch" );
+          // mark object as unblocked but not modified 
+          objstate[n] = UNBLOCKED; 
+        }
+        // unconditionally privatize if so requested
+        if( autoprivatize&DMI::PRIVATIZE )
+          objects[n].privatize(autoprivatize&~DMI::PRIVATIZE); 
+        return objects[n];
 
-    // object exists, hasn't been modified
+    // object exists (unblocked and maybe modified)
     case UNBLOCKED:
-         if( write )
-         {
-           // requesting write access to a previously unmodified object:
-           // flush cached blocks and mark as modified
-           blocks[n].clear();
-           objstate[n] = MODIFIED;
-         }
-         return objects[n];
-    
-    // object exists and has been modified - simply return the ref
     case MODIFIED:
-         return objects[n];
+    {
+        ObjRef &ref = objects[n];
+        // unconditionally privatize if requested
+        if( autoprivatize&DMI::PRIVATIZE )
+          ref.privatize((autoprivatize&~DMI::PRIVATIZE)|(write?DMI::WRITE:0)); 
+        // do we need to write to it?
+        else if( write )
+        {
+          if( !ref.isWritable() ) // auto-privatize if required
+          {
+            FailWhen( !autoprivatize&DMI::WRITE,"write access violation" );
+            ref.privatize(autoprivatize);
+          }
+          // flush cached blocks if any
+          blocks[n].clear();
+          objstate[n] = MODIFIED;
+        }
+        return ref;
+    }
     
     default:
-         Throw("illegal object state");
+        Throw("unexpected object state");
   }
-  return objects[n];
   //## end DataField::resolveObject%3C3D8C07027F.body
 }
 
@@ -546,18 +581,12 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
   mysize = other.size();
   binary_type = other.binary_type;
   dynamic_type = other.dynamic_type;
-  typesize = other.typesize;
+  typeinfo = other.typeinfo;
   setWritable( (flags&DMI::WRITE)!=0 );
   selected = False;
   // copy & privatize the header ref
   headref.copy(other.headref).privatize(flags|DMI::LOCK);
-  // handle built-in types -- only strings need to be copied
-  if( mytype == Tpstring ) 
-  {
-    strvec = other.strvec;
-    strvec_modified = other.strvec_modified;
-  }
-  else if( dynamic_type )   // handle dynamic types
+  if( dynamic_type )   // handle dynamic types
   {
     objstate = other.objstate;
     for( int i=0; i<mysize; i++ )
@@ -588,6 +617,23 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
       }
     }
   }
+  // handle special types -- need to be copied
+  else if( !binary_type )
+  {
+    if( spvec )
+      (*spdelete)(spvec);
+    spvec = (*typeinfo.fnew)(mysize);
+    spdelete = typeinfo.fdelete;
+    if( mysize )
+    {
+      const char *from = static_cast<char *>(other.spvec);
+      char *to = static_cast<char *>(spvec);
+      for( int i=0; i<mysize; i++,from+=typeinfo.size,to+=typeinfo.size )
+        (*typeinfo.fcopy)(to,from);
+    }
+    spvec_modified = other.spvec_modified;
+  }
+  // for binary types, do nothing since they're already in the header block
   //## end DataField::cloneOther%3C3EE42D0136.body
 }
 
@@ -626,7 +672,7 @@ void DataField::privatize (int flags, int depth)
   //## end DataField::privatize%3C3EDEBC0255.body
 }
 
-const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
+const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write, int autoprivatize) const
 {
   //## begin DataField::get%3C7A19790361.body preserve=yes
   // null HIID implies access to first element
@@ -634,21 +680,21 @@ const void * DataField::get (const HIID &id, TypeId& tid, bool& can_write, TypeI
     return getn(0,tid,can_write,check_tid,must_write);
   // single-index HIID implies get[n]
   if( id.size()==1 && id.front().index()>=0 )
-    return getn(id.front().index(),tid,can_write,check_tid,must_write);
+    return getn(id.front().index(),tid,can_write,check_tid,must_write,autoprivatize);
   FailWhen( !valid(),"field not initialized" );
   FailWhen( !size(),"uninitialized DataField" );
-  FailWhen( !scalar,"non-scalar field, explicit index expected" );
   FailWhen( !isNestable(type()),"contents not a container" );
+  FailWhen( !scalar,"non-scalar field, explicit index expected" );
   // resolve to pointer to container
   const NestableContainer *nc = dynamic_cast<const NestableContainer *>
-      (&resolveObject(0,must_write).deref());
+      (&resolveObject(0,must_write,autoprivatize).deref());
   Assert(nc);
   // defer to get[id] on container
-  return nc->get(id,tid,can_write,check_tid,must_write);
+  return nc->get(id,tid,can_write,check_tid,must_write,autoprivatize);
   //## end DataField::get%3C7A19790361.body
 }
 
-const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
+const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write, int autoprivatize) const
 {
   //## begin DataField::getn%3C7A1983024D.body preserve=yes
   FailWhen( !valid(),"field not initialized" );
@@ -657,38 +703,38 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
     return 0;
   can_write = isWritable();
   FailWhen(must_write && !can_write,"write access violation"); 
-  if( type() == Tpstring ) // string type -- types must match
-  {
-    FailWhen( check_tid && check_tid != Tpstring,
-        "type mismatch: expecting "+check_tid.toString()+", got "+type().toString());
-    tid = Tpstring;
-    if( must_write )
-      strvec_modified = True;
-    return &strvec[n];
-  }
-  else if( binary_type ) // binary type
+  if( binary_type ) // binary type
   {
     // types must match, or TpNumeric can match any numeric type
     FailWhen( check_tid && check_tid != type() &&
               (check_tid != TpNumeric || !TypeInfo::isNumeric(type())),
         "type mismatch: expecting "+check_tid.toString()+", got "+type().toString());
     tid = type();
-    return n*typesize + (char*)headerData();
+    return n*typeinfo.size + (char*)headerData();
   }
-  else // dynamic type
+  else if( dynamic_type )
   {
     if( !check_tid || check_tid == TpObjRef ) // default is to return a reference
     {
       tid = TpObjRef;
-      return &resolveObject(n,must_write);
+      return &resolveObject(n,must_write,autoprivatize);
     }
     else // else types must match, or TpObject can be specified as 
     {    //    a special case that forces dereferencing
       FailWhen( check_tid != type() && check_tid != TpObject,
           "type mismatch: expecting "+check_tid.toString()+", got "+type().toString());
       tid = type();
-      return &resolveObject(n,must_write).deref();
+      return &resolveObject(n,must_write,autoprivatize).deref();
     }
+  }
+  else   // special type -- types must match
+  {
+    FailWhen( check_tid && check_tid != type(),
+        "type mismatch: expecting "+type().toString()+" got "+check_tid.toString());
+    tid = type();
+    if( must_write )
+      spvec_modified = True;
+    return static_cast<char*const>(spvec) + n*typeinfo.size;
   }
   //## end DataField::getn%3C7A1983024D.body
 }
@@ -731,24 +777,23 @@ void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
     resize( size()+1 );
     real_tid = type();
   }
-  // now return pointer to datum
-  if( type() == Tpstring )
-  {
-    FailWhen( tid && tid != type(),"can't insert "+tid.toString());
-    strvec_modified = True;
-    return &strvec[n];
-  }
-  else if( binary_type )
+  if( binary_type )
   {
     FailWhen( tid && tid!=type() && 
               (!TypeInfo::isNumeric(tid) || !TypeInfo::isNumeric(type())),
         "can't insert "+tid.toString());
-    return n*typesize + (char*)headerData();
+    return n*typeinfo.size + (char*)headerData();
   }
-  else // dynamic type
+  else if( dynamic_type )
   {
     FailWhen(tid && tid!=type(),"can't insert "+tid.toString());
     return &resolveObject(n,True);
+  }
+  else // special type
+  {
+    FailWhen( tid && tid != type(),"can't insert "+tid.toString()+" into field of type "+type().toString());
+    spvec_modified = True;
+    return static_cast<char*>(spvec) + n*typeinfo.size;
   }
   //## end DataField::insertn%3C7A19930250.body
 }
@@ -794,7 +839,7 @@ ObjRef & DataField::prepareForPut (TypeId tid,int n,int flags)
   FailWhen( !isWritable(),"field is read-only" );
   if( !valid() ) // invalid field?
   {
-    if( flags&DMI::AUTOEXTEND && !n )
+    if( !n )
       init(tid,1);   // empty field auto-extended to 1
     else
       Throw("uninitialized DataField");
@@ -802,7 +847,7 @@ ObjRef & DataField::prepareForPut (TypeId tid,int n,int flags)
   else
   {
     FailWhen( tid != mytype, "type mismatch in put("+tid.toString()+")" );
-    if( n == size() && flags&DMI::AUTOEXTEND )
+    if( n == size() )
       resize(n+1);  // auto-resize if inserting at last+1
     else
       checkIndex(n);
@@ -920,13 +965,13 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
 //   checkIndex(n);
 //   if( mytype == Tpstring ) // string? return the string
 //   {
-//     strvec_modified |= can_write; // mark as modified
+//     vec_modified |= can_write; // mark as modified
 //     return &strvec[n];
 //   }
 //   else if( binary_type )
 //   {
 //     // else return pointer to item
-//     return n*typesize + (char*)headerData();
+//     return n*typeinfo.size + (char*)headerData();
 //   }
 //   else
 //   {

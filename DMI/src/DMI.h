@@ -52,9 +52,6 @@ namespace DMI
       CLONE           =PRIVATIZE,  // copy constructor: clones block
       ZERO            =DEEP,       // constructor: zeroes allocated block
       
-  // DataField-specific flags
-      AUTOEXTEND      =SHARED,     // auto-extend field contents
-
   // BlockSet-specific flags
       MAKE_READONLY   =0x4000000   // for copyAll(): makes source set read-only      
   }

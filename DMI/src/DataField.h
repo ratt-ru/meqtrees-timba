@@ -13,7 +13,7 @@
 //## Module: DataField%3C10CC820124; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\DataField.h
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\DataField.h
 
 #ifndef DataField_h
 #define DataField_h 1
@@ -47,7 +47,7 @@ class DataRecord;
 //## end DataField%3BB317D8010B.preface
 
 //## Class: DataField%3BB317D8010B
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -143,10 +143,10 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       //	write is True, throws exception if data is read-only. Can throw
       //	exceptions if id is malformed (i.e. contains indices that are out of
       //	range).
-      virtual const void * get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const;
+      virtual const void * get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False, int autoprivatize = 0) const;
 
       //## Operation: getn%3C7A1983024D
-      virtual const void * getn (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False) const;
+      virtual const void * getn (int n, TypeId& tid, bool& can_write, TypeId check_tid = 0, bool must_write = False, int autoprivatize = 0) const;
 
       //## Operation: insert%3C7A198A0347
       virtual void * insert (const HIID &id, TypeId tid, TypeId &real_tid);
@@ -199,7 +199,7 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
 
     //## Other Operations (specified)
       //## Operation: resolveObject%3C3D8C07027F
-      ObjRef & resolveObject (int n, bool write) const;
+      ObjRef & resolveObject (int n, bool write, int autoprivatize = 0) const;
 
     // Additional Protected Declarations
       //## begin DataField%3BB317D8010B.protected preserve=yes
@@ -227,17 +227,20 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       typedef enum { UNINITIALIZED=0,INBLOCK=1,UNBLOCKED=2,MODIFIED=3 } ObjectState;
       mutable vector<int> objstate;
 
-      // vector of strings, for the special case of a Tpstring field
-      vector<string> strvec;
-      mutable bool strvec_modified; // flag: has been modified
-      typedef vector<string>::iterator VSI;
-      typedef vector<string>::const_iterator CVSI;
+      TypeInfo typeinfo;  // type info for current field
+
+      // for SPECIAL category types (string, HIID), this holds a vector of objects
+      void *spvec;
+      // this is the address of the delete method, called to delete spvec
+      TypeInfo::DeleteMethod spdelete;
+      mutable bool spvec_modified; // flag: vector has been modified
       
       // flag: field contains a simple type handled by binary copying
       // (TypeInfo category NUMERIC or BINARY)
-      bool    binary_type,dynamic_type;
-      // size of binary representation for this type
-      size_t  typesize;
+      bool    binary_type,
+      // flag: field contains a dynamic type
+      // (if both are clear, then it's a SPECIAL type
+              dynamic_type;
       
       // inlines for accessing the header block
       int & headerType () const { return ((int*)headref->data())[0]; }
@@ -267,13 +270,13 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
 
     // Data Members for Associations
 
-      //## Association: PSCF::DMI::<unnamed>%3BEBD9640021
+      //## Association: DOMIN0::<unnamed>%3BEBD9640021
       //## Role: DataField::blocks%3BEBD96601BE
       //## begin DataField::blocks%3BEBD96601BE.role preserve=no  private: BlockSet {0..* -> 0..*VHgN}
       mutable vector<BlockSet> blocks;
       //## end DataField::blocks%3BEBD96601BE.role
 
-      //## Association: PSCF::DMI::<unnamed>%3BEBD97703D5
+      //## Association: DOMIN0::<unnamed>%3BEBD97703D5
       //## Role: DataField::objects%3BEBD9780228
       //## begin DataField::objects%3BEBD9780228.role preserve=no  private: BlockableObject {0..* -> 0..*RHN}
       mutable vector<ObjRef> objects;
@@ -317,7 +320,7 @@ inline TypeId DataField::objectType () const
 inline bool DataField::isContiguous () const
 {
   //## begin DataField::isContiguous%3C7F9826016F.body preserve=yes
-  return !dynamic_type && mytype != Tpstring;
+  return !dynamic_type;
   //## end DataField::isContiguous%3C7F9826016F.body
 }
 

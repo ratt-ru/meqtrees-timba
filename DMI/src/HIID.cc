@@ -13,7 +13,7 @@
 //## Module: HIID%3C10CC820357; Package body
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\HIID.cc
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\HIID.cc
 
 //## begin module%3C10CC820357.additionalIncludes preserve=no
 //## end module%3C10CC820357.additionalIncludes
@@ -32,7 +32,7 @@
 
 // Class HIID 
 
-HIID::HIID (const char* block, int sz)
+HIID::HIID (const void* block, int sz)
   //## begin HIID::HIID%3C556A470346.hasinit preserve=no
   //## end HIID::HIID%3C556A470346.hasinit
   //## begin HIID::HIID%3C556A470346.initialization preserve=yes
@@ -145,6 +145,24 @@ int HIID::findFirstSlash () const
   //## end HIID::findFirstSlash%3C7A1B6500C9.body
 }
 
+HIID HIID::splitAtSlash ()
+{
+  //## begin HIID::splitAtSlash%3CAD7B2901CA.body preserve=yes
+  HIID subid;
+  while( size() )
+  {
+    if( front() == AidSlash )
+    {
+      pop_front();
+      return subid;
+    }
+    subid.push_back(front());
+    pop_front();
+  }
+  return subid;
+  //## end HIID::splitAtSlash%3CAD7B2901CA.body
+}
+
 string HIID::toString () const
 {
   //## begin HIID::toString%3C0F8BD5004F.body preserve=yes
@@ -166,13 +184,16 @@ string HIID::toString () const
   //## end HIID::toString%3C0F8BD5004F.body
 }
 
-size_t HIID::pack (void *block) const
+size_t HIID::pack (void *block, size_t &nleft) const
 {
   //## begin HIID::pack%3C5912FE0134.body preserve=yes
-  int *data = reinterpret_cast<int*>(block);
+  size_t sz = size()*sizeof(int);
+  FailWhen(nleft<sz,"block too small");
+  int *data = static_cast<int*>(block);
   for( CVI iter = begin(); iter != end(); iter++ )
     *(data++) = *(iter);
-  return size()*sizeof(int);
+  nleft -= sz;
+  return sz;
   //## end HIID::pack%3C5912FE0134.body
 }
 

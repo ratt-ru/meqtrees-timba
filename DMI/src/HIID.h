@@ -13,7 +13,7 @@
 //## Module: HIID%3C10CC820355; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\CEP\CPA\PSCF\src\HIID.h
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\HIID.h
 
 #ifndef HIID_h
 #define HIID_h 1
@@ -33,6 +33,7 @@
 //## end module%3C10CC820355.declarations
 
 //## begin module%3C10CC820355.additionalDeclarations preserve=yes
+#pragma type =HIID
 //## end module%3C10CC820355.additionalDeclarations
 
 
@@ -40,7 +41,7 @@
 //## end Vector_AtomicID%3C55652D01B8.preface
 
 //## Class: Vector_AtomicID%3C55652D01B8
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -57,7 +58,7 @@ typedef deque<AtomicID> Vector_AtomicID;
 //## end HIID%3BE96FE601C5.preface
 
 //## Class: HIID%3BE96FE601C5
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -92,7 +93,12 @@ class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
 
       //## Operation: HIID%3C556A470346
       //	Creates a HIID from a block of raw bytes
-      HIID (const char* block, int sz);
+      HIID (const void* block, int sz);
+
+    //## Equality Operations (generated)
+      bool operator==(const HIID &right) const;
+
+      bool operator!=(const HIID &right) const;
 
 
     //## Other Operations (specified)
@@ -140,12 +146,17 @@ class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
       //	returns position of first slash in HIID, or -1 if none
       int findFirstSlash () const;
 
+      //## Operation: splitAtSlash%3CAD7B2901CA
+      //	Finds first "/" separator, splits off the sub-id. Removes up to and
+      //	including the slash, but returns sub-id w/o the slash.
+      HIID splitAtSlash ();
+
       //## Operation: toString%3C0F8BD5004F
       string toString () const;
 
       //## Operation: pack%3C5912FE0134
       //	Stores HIID into raw data block
-      size_t pack (void *block) const;
+      size_t pack (void *block, size_t &nleft) const;
 
       //## Operation: unpack%3C970F91006F
       void unpack (const void* block, size_t sz);
@@ -278,6 +289,26 @@ inline HIID::HIID (const char *str)
   if( str )
     addString(str);
   //## end HIID::HIID%3C6141BA03B4.body
+}
+
+
+inline bool HIID::operator==(const HIID &right) const
+{
+  //## begin HIID::operator==%3BE96FE601C5_eq.body preserve=yes
+  if( size() != right.size() )
+    return False;
+  for( CVI iter = begin(),oiter = right.begin(); iter != end(); iter++,oiter++ )
+    if( *iter != *iter )
+      return False;
+  return True;
+  //## end HIID::operator==%3BE96FE601C5_eq.body
+}
+
+inline bool HIID::operator!=(const HIID &right) const
+{
+  //## begin HIID::operator!=%3BE96FE601C5_neq.body preserve=yes
+  return ! ( (*this) == right );
+  //## end HIID::operator!=%3BE96FE601C5_neq.body
 }
 
 

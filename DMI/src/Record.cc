@@ -32,6 +32,7 @@ static NestableContainer::Register reg(TpDataRecord,True);
 const DataFieldRef NullDataFieldRef;
 //## end module%3C10CC82005C.additionalDeclarations
 
+
 // Class DataRecord 
 
 DataRecord::DataRecord (int flags)
@@ -310,24 +311,21 @@ int DataRecord::toBlock (BlockSet &set) const
   dprintf(2)("toBlock\n");
   int nref = 1;
   // compute header size
-  size_t hsize = sizeof(int)*(1+fields.size());
+  size_t hdrsize = sizeof(size_t)*(1+fields.size()), datasize = 0;
   for( CFMI iter = fields.begin(); iter != fields.end(); iter++ )
-    hsize += iter->first.packSize();
+    datasize += iter->first.packSize();
   // allocate new header block
-  SmartBlock *header = new SmartBlock(hsize);
+  SmartBlock *header = new SmartBlock(hdrsize+datasize);
   // store header info
-  int *hdata = (int *)(header->data());
-  char *hids = sizeof(int)*(1+fields.size()) + (char*)hdata;
-  *hdata++ = fields.size();
+  size_t *hdr   = static_cast<size_t *>(header->data());
+  char   *data  = static_cast<char *>(header->data()) + hdrsize;
+  *hdr++ = fields.size();
   set.push( BlockRef(header,DMI::WRITE|DMI::ANON) );
-  dprintf(2)("toBlock: %d header bytes, %d fields\n",hsize,fields.size());
+  dprintf(2)("toBlock: %d header bytes, %d fields\n",hdrsize+datasize,fields.size());
   // store IDs and convert everything
   for( CFMI iter = fields.begin(); iter != fields.end(); iter++ )
   {
-    *hdata = iter->first.packSize();
-    iter->first.pack(hids);
-    hids += *hdata;
-    hdata++;
+    data += *(hdr++) = iter->first.pack(data,datasize);
     int nr1 = iter->second->toBlock(set);
     nref += nr1;
     dprintf(3)("%s [%s] generated %d blocks\n",
@@ -378,28 +376,43 @@ void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
   //## end DataRecord::cloneOther%3C58239503D1.body
 }
 
-const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write) const
+const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, TypeId check_tid, bool must_write, int autoprivatize) const
 {
   //## begin DataRecord::get%3C56B00E0182.body preserve=yes
   FailWhen( !id.size(),"null HIID/can't access a DataRecord as scalar" );
   CFMI iter = fields.find(id);
   if( iter == fields.end() )
     return 0;
+  // This condition checks that we're not auto-privatizing a readonly container
+  // (so that we can cast away const, below)
+  FailWhen(autoprivatize && !isWritable(),"can't autoprivatize in readonly record");
+  // do unconditional privatize if required
+  if( autoprivatize&DMI::PRIVATIZE )
+    const_cast<DataFieldRef*>(&iter->second)->privatize(autoprivatize&~DMI::PRIVATIZE); 
+  // writability is first determined by the field ref itself, plus the field
+  // An invalid ref is considered writable (we'll check for our own writability
+  // below)
+  can_write = !iter->second.valid() || 
+      ( iter->second.isWritable() && iter->second->isWritable() );
+  if( must_write && !can_write ) // write access violation?
+  { // see if we can auto-privatize it
+    FailWhen( !autoprivatize&DMI::WRITE,"write access violation" );
+    const_cast<DataFieldRef*>(&iter->second)->privatize(autoprivatize); 
+    can_write = True;
+  }
   // default is to return an objref to the field
   if( !check_tid || check_tid == TpObjRef )
   {
-    // since we're returning an objref, writability to the ref is determined
-    // by our own writability
-    can_write = isWritable();
+    // since we're returning an objref, writability to the ref is limited
+    // by our own writability too
+    can_write &= isWritable();
     FailWhen(must_write && !can_write,"write access violation"); 
     tid = TpObjRef;
     return &iter->second;
   }
   else // else a DataField (or Object) must have been explicitly requested
   {
-    // check writability of the ref itself
-    can_write = iter->second->isWritable();
-    FailWhen(must_write && !can_write,"write access violation"); 
+    // writability of ref already checked above
     FailWhen(check_tid != TpDataField && check_tid != TpObject,
         "type mismatch: expecting "+check_tid.toString()+", got DataField" );
     tid = TpDataField;

@@ -13,7 +13,7 @@
 //## Module: BlockableObject%3C10CC81019B; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\BlockableObject.h
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\BlockableObject.h
 
 #ifndef BlockableObject_h
 #define BlockableObject_h 1
@@ -52,7 +52,7 @@
 //
 //	This class also contains static functions for run-time maintenance
 //	of maps of "virtual constructors".
-//## Category: DMI%3BEAB1F2006B; Global
+//## Category: DOMIN0%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -104,6 +104,20 @@ class BlockableObject : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB
       //	Block() - fromBlock() -privatize() sequence, so if your to/fromBlock
       //	is efficient enough, you don't need to provide your own clone().
       virtual CountedRefTarget * clone (int flags = 0, int depth = 0) const;
+
+      //## Operation: privatize%3CAB088100C3
+      //	Virtual method for privatization of an object.
+      //	The depth argument determines the depth of privatization and/or
+      //	cloning (see CountedRefBase::privatize()). If depth>0, then any
+      //	nested refs should be privatize()d as well, with depth=depth-1.
+      //	The DMI::DEEP flag  corresponds to infinitely deep privatization. If
+      //	this is set, then depth should be ignored, and nested refs should be
+      //	privatize()d with DMI::DEEP.
+      //	If depth=0 (and DMI::DEEP is not set), then privatize() is
+      //	effectively a no-op. However, if your class has a 'writable'
+      //	property, it should be changed in accordance with the DMI::WRITE
+      //	and/or DMI::READONLY flags.
+      virtual void privatize (int flags = 0, int depth = 0);
 
     // Additional Public Declarations
       //## begin BlockableObject%3BB1F71F03C9.public preserve=yes

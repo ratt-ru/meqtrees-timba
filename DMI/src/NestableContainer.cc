@@ -70,7 +70,7 @@ const NestableContainer::Hook & NestableContainer::Hook::init (TypeId tid) const
   //## begin NestableContainer::Hook::init%3C8739B5017B.body preserve=yes
   FailWhen(addressed,"unexpected '&' operator");
   TypeId target_tid;
-  resolveTarget(target_tid,tid);
+  prepare_put(target_tid,tid);
   return *this;
   //## end NestableContainer::Hook::init%3C8739B5017B.body
 }
@@ -88,18 +88,20 @@ const NestableContainer::Hook & NestableContainer::Hook::privatize (int flags) c
   //## end NestableContainer::Hook::privatize%3C8739B5017C.body
 }
 
-bool NestableContainer::Hook::remove (ObjRef* ref) const
+ObjRef NestableContainer::Hook::remove () const
 {
   //## begin NestableContainer::Hook::remove%3C876DCE0266.body preserve=yes
   FailWhen(!nc->isWritable(),"r/w access violation");
-  if( ref )
+  ObjRef ret;
+  if( isRef() )
   {
     // cast away const here: even though ref may be read-only, as long as the 
-    // container is writable, we can detach it
+    // container is writable, we're allowed to detach it
     ObjRef *ref0 = const_cast<ObjRef*>( asRef(False) );
-    ref->xfer(ref0->unlock());
+    ret.xfer(ref0->unlock());
   }
-  return index >= 0 ? nc->removen(index) : nc->remove(id);
+  index >= 0 ? nc->removen(index) : nc->remove(id);
+  return ret;
   //## end NestableContainer::Hook::remove%3C876DCE0266.body
 }
 
@@ -150,13 +152,8 @@ int NestableContainer::selectionToBlock (BlockSet& )
 // Additional Declarations
   //## begin NestableContainer%3BE97CE100AF.declarations preserve=yes
 
-// NB: think about being able to accumulate a HIID for, e.g., accessing
-// arrays and tables. E.g. arr[n][m] should be treated as a slice, so,
-// applying the [n] and [m] ops sequentially should retain the same target
-// but somehow update something (residual ID?) so that later, at point of access,
-// it can be resolved.  
-
-
+// Attempts to treat the hook target as an NC, by collapsing subscripts,
+// dereferencing ObjRefs, etc.
 const NestableContainer * NestableContainer::ConstHook::asNestable (const void *targ=0,TypeId tid=0) const
 {
   if( !targ )
@@ -178,6 +175,7 @@ const NestableContainer * NestableContainer::ConstHook::asNestable (const void *
     : 0;
 }
 
+// Same thing, but insures writability
 NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ=0,TypeId tid=0) const
 {
   if( !targ )
@@ -222,7 +220,7 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) cons
   const NestableContainer *nc = asNestable(target,target_tid);
   FailWhen(!nc,"can't convert "+target_tid.toString()+" to "+tid.toString());
   // access in scalar mode, checking that type is built-in
-  target = nc->get(HIID(),target_tid,dum,TpNumeric,False);
+  target = nc->get(HIID(),target_tid,dum,TpNumeric,False,autoprivatize);
   FailWhen( !convertScalar(target,target_tid,data,tid),
             "can't convert "+target_tid.toString()+" to "+tid.toString());
 }
@@ -233,7 +231,7 @@ const void * NestableContainer::ConstHook::get_address(TypeId tid,bool must_writ
   TypeId target_tid; bool dum; 
   const void *target = collapseIndex(target_tid,dum,0,False);
   FailWhen(!target,"uninitialized element");
-  // If types don't match, then try to treat it as a container, 
+  // If types don't match, then try to treat target as a container, 
   // and return pointer to first element (if this is allowed)
   if( tid != target_tid )
   {
@@ -245,17 +243,23 @@ const void * NestableContainer::ConstHook::get_address(TypeId tid,bool must_writ
     {
       FailWhen(!pointer,"can't access multiple-element container as scalar");
       FailWhen(!nc->isContiguous() && nc->size()>1,
-                "can't take pointer to this container's storage");
+                "can't take pointer: container is not contiguous");
     }
     // access first element, verifying type & writability
-    return nc->get(HIID(),target_tid,dum,tid,must_write);
+    return nc->get(HIID(),target_tid,dum,tid,must_write,autoprivatize);
   }
   return target;
 }
 
-// this resolves to the target pointed at by index or id, by doing get(),
-// followed by insert(), if get fails
-void * NestableContainer::Hook::resolveTarget( TypeId &target_tid,TypeId tid ) const
+// This prepares the hook for assignment, by resolving to the target element,
+// and failing that, trying to insert() a new element.
+// The actual type of the target element is returned via target_tid. 
+// Normally, this will be ==tid (or an exception will be thrown by the
+// container), unless:
+// (a) tid & container type are both dynamic (then target must be an ObjRef)
+// (b) tid & container type are both numeric (Hook will do conversion)
+// For other type categories, a strict match should be enforced by the container.
+void * NestableContainer::Hook::prepare_put( TypeId &target_tid,TypeId tid ) const
 {
   FailWhen(addressed,"unexpected '&' operator");
   bool dum; 
@@ -273,7 +277,8 @@ void * NestableContainer::Hook::resolveTarget( TypeId &target_tid,TypeId tid ) c
   else
   {
     // have we resolved to an existing sub-container, and we're not explicitly
-    // trying to assign the same type of sub-container? Try to init it
+    // trying to assign the same type of sub-container? Try to init the container
+    // with whatever is being assigned
     NestableContainer *nc1 = asNestableWr(target,target_tid);
     if( nc1 && nc1->objectType() != tid )
     {
@@ -289,13 +294,11 @@ void * NestableContainer::Hook::resolveTarget( TypeId &target_tid,TypeId tid ) c
 const void * NestableContainer::Hook::put_scalar( const void *data,TypeId tid,size_t sz ) const
 {
   TypeId target_tid;
-  void *target = resolveTarget(target_tid,tid);
+  void *target = prepare_put(target_tid,tid);
   // if types don't match, assume standard conversion
   if( tid != target_tid )
     FailWhen( !convertScalar(data,tid,target,target_tid),
           "can't assign "+tid.toString()+" to "+target_tid.toString() )
-  else if( tid == Tpstring ) // else special string case
-    *static_cast<string*>(target) = *static_cast<const string*>(data);
   else // else a binary type
     memcpy(const_cast<void*>(target),data,sz);
   return target;
@@ -305,7 +308,7 @@ const void * NestableContainer::Hook::put_scalar( const void *data,TypeId tid,si
 void NestableContainer::Hook::assign_object( BlockableObject *obj,TypeId tid,int flags ) const
 {
   TypeId target_tid;
-  void *target = resolveTarget(target_tid,tid);
+  void *target = prepare_put(target_tid,tid);
   FailWhen(target_tid!=TpObjRef,"can't attach "+tid.toString()+" to "+target_tid.toString());
   static_cast<ObjRef*>(target)->unlock().attach(obj,flags).lock();
 }
@@ -315,7 +318,7 @@ ObjRef & NestableContainer::Hook::assign_objref ( const ObjRef &ref,int flags ) 
 {
   FailWhen(addressed,"unexpected '&' operator");
   TypeId target_tid;
-  void *target = resolveTarget(target_tid,ref->objectType());
+  void *target = prepare_put(target_tid,ref->objectType());
   FailWhen(target_tid!=TpObjRef,"can't assign ObjRef to "+target_tid.toString());
   if( flags&DMI::COPYREF )
     return static_cast<ObjRef*>(target)->unlock().copy(ref,flags).lock();
