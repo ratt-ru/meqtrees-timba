@@ -367,18 +367,20 @@ using namespace blitz;
 //    Convert<T>::to_scalar       // preserves type
 //    Convert<T>::to_matrix       // preserves type
 template<class T> struct Convert;
-#define defineConversions(from,todbl,tocompl,toscal) \
+#define defineConversions(from,todbl,tocompl,toscal,iscompl,isarray,byref) \
   template<> struct Convert<from> \
   { \
     typedef todbl to_double; \
     typedef tocompl to_dcomplex; \
     typedef toscal  to_scalar; \
     typedef LoMat_##toscal to_matrix; \
+    typedef enum { isReal=!iscompl,isComplex=iscompl, \
+          isScalar=!isarray,isArray=isArray } Traits; \
   };
-defineConversions(double,double,dcomplex,double);
-defineConversions(dcomplex,double,dcomplex,dcomplex);
-defineConversions(LoMat_double,LoMat_double,LoMat_dcomplex,double);
-defineConversions(LoMat_dcomplex,LoMat_double,LoMat_dcomplex,dcomplex);
+defineConversions(double,double,dcomplex,double,false,false);
+defineConversions(dcomplex,double,dcomplex,dcomplex,true,false);
+defineConversions(LoMat_double,LoMat_double,LoMat_dcomplex,double,false,true);
+defineConversions(LoMat_dcomplex,LoMat_double,LoMat_dcomplex,dcomplex,true,true);
 
 // define a traits-like structure for type promotions:
 //    Promote<T1,T2>::type returns biggest type
@@ -439,6 +441,19 @@ static void implement_copy (Meq::Vells &out,const Meq::Vells &in)
 template<class T>
 static void implement_zero (Meq::Vells &out,const Meq::Vells &)
 { out.zeroData(); }
+
+template<class T> VellsIter;
+{
+  VellsValueIter  (Vells &)
+  { Throw("VellsIter instantiated for unknown type"); }
+}
+
+template<> VellsIter<Array<T,N> >
+{
+  VellsValueIter  (Vells &)
+  { Throw("VellsIter instantiated for unknown type"); }
+  Convert<T>::to_scalar & operator [] (int i);
+}
 
 // -----------------------------------------------------------------------
 // definitions for unary operators
@@ -612,24 +627,24 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_product_lut[VELLS_LUT_SIZE] =
   void implement_binary_##OPERNAME (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
   { out.as(Type2Type<typename Promote<TRight,TLeft>::type>()) \
       = left.as(Type2Type<TLeft>()) OPER right.as(Type2Type<TRight>()); }  \
-  template<> \
-  void implement_binary_##OPERNAME<LoMat_double,LoMat_double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
-  { double *po = out.getStorage<double>(); \
-    const double *p1=left.getStorage<double>(),*p2=right.getStorage<double>(); \
-    int n = left.nelements(); for( int i=0; i<n; i++ ) po[i] = p1[i] OPER p2[i]; \
-  }  \
-  template<> \
-  void implement_binary_##OPERNAME<double,LoMat_double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
-  { double *po = out.getStorage<double>(); \
-    double p1=left.as<double>(); const double *p2=right.getStorage<double>(); \
-    int n = left.nelements(); for( int i=0; i<n; i++ ) po[i] = p1 OPER p2[i]; \
-  }  \
-  template<> \
-  void implement_binary_##OPERNAME<LoMat_double,double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
-  { double *po = out.getStorage<double>(); \
-    const double *p1=left.getStorage<double>(); double p2=right.as<double>(); \
-    int n = left.nelements(); for( int i=0; i<n; i++ ) po[i] = p1[i] OPER p2; \
-  }  \
+//   template<> \
+//   void implement_binary_##OPERNAME<LoMat_double,LoMat_double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
+//   { double *po = out.getStorage<double>(); \
+//     const double *p1=left.getStorage<double>(),*p2=right.getStorage<double>(); \
+//     int n = left.nelements(); for( int i=0; i<n; i++ ) po[i] = p1[i] OPER p2[i]; \
+//   }  \
+//   template<> \
+//   void implement_binary_##OPERNAME<double,LoMat_double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
+//   { double *po = out.getStorage<double>(); \
+//     double p1=left.as<double>(); const double *p2=right.getStorage<double>(); \
+//     int n = left.nelements(); for( int i=0; i<n; i++ ) po[i] = p1 OPER p2[i]; \
+//   }  \
+//   template<> \
+//   void implement_binary_##OPERNAME<LoMat_double,double> (Meq::Vells &out,const Meq::Vells &left,const Meq::Vells &right) \
+//   { double *po = out.getStorage<double>(); \
+//     const double *p1=left.getStorage<double>(); double p2=right.as<double>(); \
+//     int n = left.nelements(); for( int i=0; i<n; i++ ) po[i] = p1[i] OPER p2; \
+//   }  \
     
 // Expands to address of a binary function defined above
 #define AddrBinaryFunction(TRight,TLeft,FUNC) \
