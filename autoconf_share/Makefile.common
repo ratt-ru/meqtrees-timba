@@ -21,6 +21,8 @@ clean-generic:
 # Only preprocess the file.
 %.i: %.cc
 	$(CC) -E $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< > $@
+%.i: %.c
+	$(CC) -E $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< > $@
 
 
 # Rules for preprocessing idl files.

@@ -202,7 +202,7 @@ AC_ARG_WITH(lofar-libdir,
   \rm -f pkgbldinc/$lfr_pkg;
   ln -s $lfr_curwd/src pkgbldinc/$lfr_pkg;
 
-  CPPFLAGS="$CPPFLAGS -I$lfr_curwd/pkginc -I$lfr_curwd/pkgbldinc"
+  CPPFLAGS="$CPPFLAGS -I$lfr_curwd/pkginc -I$lfr_curwd/pkgbldinc -I$lfr_curwd"
   LOFAR_DEPEND=
 ]
 AC_CHECK_FILE([$lofar_root/LOFAR],
