@@ -285,9 +285,9 @@ DataField & DataField::put (int n,const ObjRef &ref, int flags)
   ObjRef &ref2 = prepareForPut( ref->objectType(),n );
   // grab the ref, and mark object as modified
   if( flags&DMI::COPYREF )
-    ref2.copy(ref,flags);
+    ref2.unlock().copy(ref,flags).lock();
   else
-    ref2 = ref;
+    ref2.unlock().xfer(ref).lock();
   return *this;
 }
 
