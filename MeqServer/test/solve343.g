@@ -680,6 +680,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
   # enable publishing of solver results
   if( solve && publish>0 ) {
     mqs.meq('Node.Publish.Results',[name='solver']);
+#    mqs.meq('Node.Publish.Results',[name='solver']);
 #    mqs.meq('Node.Publish.Messages',[name='uvw.1']);
 #    mqs.meq('Node.Publish.Messages',[name='x.1']);
 #    mqs.meq('Node.Publish.Messages',[name='dft0.3D343_1.1']);
@@ -824,13 +825,13 @@ phase_solution_with_given_fluxes := function()
         mepuvw := F;
     
     outcol := 'PREDICTED_DATA';
-    solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
+    solver_defaults := [ num_iter=2,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
                  tile_size=2,# clear_flags=T,
                  selection = [ channel_start_index=5,
-                              channel_end_index=60 ,
-                              selection_string='TIME < 4472025945 '] ];
+                              channel_end_index=60 ] ];
+#                              selection_string='TIME < 4472025945 '] ];
     
     outputrec := [ write_flags=T,predict_column=outcol ]; 
     

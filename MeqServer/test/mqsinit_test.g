@@ -1,9 +1,9 @@
-default_debuglevels := [  MeqNode       =3,
-                          MeqForest     =3,
-                          MeqSink       =3,
-                          MeqSpigot     =3,
-                          MeqVisHandler =3,
-                          MeqServer     =3,
+default_debuglevels := [  MeqNode       =1,
+                          MeqForest     =1,
+                          MeqSink       =1,
+                          MeqSpigot     =1,
+                          MeqVisHandler =1,
+                          MeqServer     =1,
                           meqserver     =1      ];
 
 include 'meq/meqserver.g'

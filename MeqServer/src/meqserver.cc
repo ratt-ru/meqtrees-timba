@@ -122,7 +122,7 @@ int main (int argc,const char *argv[])
     // use defaults if none
     if( args.empty() )
     {
-      args.push_back(string("-meq:M:M:MeqServer"));
+      args.push_back(string("-meq:M:O:MeqServer"));
     }
     else // else fill from command line
     {

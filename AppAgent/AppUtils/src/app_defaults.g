@@ -1,7 +1,7 @@
 pragma include once
 
 default_verbosity := 1;
-max_debug := 1;
+max_debug := F;
 
 if( has_field(environ,'verbose') )
   default_verbosity := as_integer(environ.verbose);
@@ -42,8 +42,9 @@ for( x in argv )
 }
 
 # apply max_debug level
-for( f in 1:len(default_debuglevels) )
-  default_debuglevels[f] := min(max_debug,default_debuglevels[f]);
+if( is_integer(max_debug) )
+  for( f in 1:len(default_debuglevels) )
+    default_debuglevels[f] := min(max_debug,default_debuglevels[f]);
 
 # find debug levels of form -dContext=level in the environment strings
 for( f0 in field_names(environ) )

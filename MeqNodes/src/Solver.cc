@@ -56,7 +56,7 @@ Solver::Solver()
   setGenSymDeps(FParmValue,RQIDM_VALUE,itsParmGroup);
   // set Solver dependencies
   const HIID symdeps[] = { FDomain,FResolution,FDataset };
-  setActiveSymDeps(symdeps,2);
+  setActiveSymDeps(symdeps,3);
 }
 
 //##ModelId=400E53550261
