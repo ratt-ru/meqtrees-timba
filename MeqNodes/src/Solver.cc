@@ -38,7 +38,7 @@ InitDebugContext(Solver,"MeqSolver");
 
 //##ModelId=400E53550260
 Solver::Solver()
-: itsSolver          (1, LSQBase::REAL),
+: itsSolver          (1),
   itsNrEquations     (0),
   itsDefNumIter      (1),
   itsDefEpsilon      (1e-8),
@@ -240,14 +240,13 @@ int Solver::getResult (Result::Ref &resref,
     if (itsSpids.empty()) {
       AssertStr( nspid > 0,
                  "No solvable parameters found in solver " << name() );
-      itsSolver.set (nspid, 1u, 0u);
+      itsSolver.set (nspid);
       itsNrEquations = 0;
       itsSpids = spids;
     } else {
       AssertStr( itsSpids == spids,
                  "Different spids while solver is not restarted" );
       if (step > 0) {
-	//        itsSolver.set (nspid, 1u, 0u);
         itsNrEquations = 0;
       }
     }
@@ -283,7 +282,7 @@ int Solver::getResult (Result::Ref &resref,
               derivReal[spid] = 0;
             }
           }
-          itsSolver.makeNorm (&derivReal[0], 1., values+j);
+          itsSolver.makeNorm (&derivReal[0], 1., values[j]);
           itsNrEquations++;
         }
       } else {
@@ -310,10 +309,10 @@ int Solver::getResult (Result::Ref &resref,
             }
           }
           val = values[j].real();
-          itsSolver.makeNorm (&derivReal[0], 1., &val);
+          itsSolver.makeNorm (&derivReal[0], 1., val);
           itsNrEquations++;
           val = values[j].imag();
-          itsSolver.makeNorm (&derivImag[0], 1., &val);
+          itsSolver.makeNorm (&derivImag[0], 1., val);
           itsNrEquations++;
         }
       }
@@ -380,20 +379,17 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   // So make a copy to separate them.
   uint rank;
   double fit;
-  double stddev;
-  double mu;
   Matrix<double> covar;
   Vector<double> errors;
   {
-    FitLSQ tmpSolver = itsSolver;
+    LSQaips tmpSolver = itsSolver;
     tmpSolver.getCovariance (covar);
     tmpSolver.getErrors (errors);
   }
   // Make a copy of the solver for the actual solve.
   // This is needed because the solver does in-place transformations.
   ////  FitLSQ solver = itsSolver;
-  bool solFlag = itsSolver.solveLoop (fit, rank, solution,
-				      stddev, mu, itsCurUseSVD);
+  bool solFlag = itsSolver.solveLoop (fit, rank, solution, itsCurUseSVD);
   cdebug(4) << "Solution after:  " << solution << endl;
   // Put the statistics in a record the result.
   solRec[FRank] = int(rank);
@@ -401,8 +397,8 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   //  solRec[FErrors] = errors;
   //  solRec[FCoVar ] = covar; 
   solRec[FFlag] = solFlag; 
-  solRec[FMu] = mu;
-  solRec[FStdDev] = stddev;
+  solRec[FMu] = itsSolver.getWeightedSD();
+  solRec[FStdDev] = itsSolver.getSD();
   //  solRec[FChi   ] = itsSolver.getChi());
   
   // Put the solution in the rider:

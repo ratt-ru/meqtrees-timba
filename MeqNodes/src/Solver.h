@@ -25,7 +25,7 @@
     
 #include <MEQ/Node.h>
 #include <MEQ/VellSet.h>
-#include <scimath/Fitting/FitLSQ.h>
+#include <scimath/Fitting/LSQaips.h>
 
 #pragma types #Meq::Solver
 
@@ -135,7 +135,7 @@ private:
   std::vector<bool> itsIsCondeq;
   
     //##ModelId=400E5355025A
-  FitLSQ          itsSolver;
+  LSQaips         itsSolver;
   int             itsNrEquations;
     //##ModelId=400E5355025C
   int             itsDefNumIter;
