@@ -115,6 +115,8 @@ sub change_comment_style
       {
 	$newstate = $state;
       }
+    } else {
+      $keephash = 0;
     }
 
     # Act depending on new and old state.
