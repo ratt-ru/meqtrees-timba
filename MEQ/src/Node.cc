@@ -727,6 +727,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   //     (i.e. volatile results recomputed for any different request)
   // (3) Otherwise, do a masked compare using the cached result code
   if( !req.id().empty() && !current_reqid_.empty() && 
+      !req.hasCacheOverride() &&
       (cache_retcode_&RES_VOLATILE 
         ? req.id() == current_reqid_
         : maskedCompare(req.id(),current_reqid_,cache_retcode_) ) )
@@ -866,7 +867,7 @@ void Node::resampleChildren (Cells::Ref rescells,std::vector<Result::Ref> &child
         }
       }
     }
-    else
+    else if( chres.numVellSets() ) // result not empty
       NodeThrow1(Debug::ssprintf("result of child %d does not have a Cells attached",ich));
   }
   // resample child results if required
@@ -912,7 +913,7 @@ void Node::resampleChildren (Cells::Ref rescells,std::vector<Result::Ref> &child
 //       }
 //     }
   }
-  else // no resampling needed, clear cache of all resampled children
+  else if( rescells.valid() ) // no resampling needed and cells were present, clear cache of all resampled children
     clearRCRCache();
 }
 

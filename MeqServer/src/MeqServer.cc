@@ -41,6 +41,11 @@ const HIID FSingleShot = AidSingle|AidShot;
 
 MeqServer * MeqServer::mqs_ = 0;
 
+// application run-states
+const int AppState_Idle    = -( AidIdle.id() );
+const int AppState_Stream  = -( AidStream.id() );
+const int AppState_Execute = -( AidExecute.id() );
+const int AppState_Breakpoint = -( AidBreakpoint.id() );
   
 //##ModelId=3F5F195E0140
 MeqServer::MeqServer()
@@ -199,43 +204,56 @@ void MeqServer::getNodeList (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 //##ModelId=400E5B6C015E
 void MeqServer::nodeExecute (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
-  DataRecord::Ref rec = in;
-  bool getstate;
-  Node & node = resolveNode(getstate,*rec);
-  cdebug(2)<<"nodeExecute for node "<<node.name()<<endl;
-  // take request object out of record
-  Request &req = rec[AidRequest].as_wr<Request>();
-  if( Debug(0) )
+  int old_control_state = control().state();
+  control().setState(AppState_Execute,true);
+  try
   {
-    cdebug(3)<<"    request is "<<req.sdebug(DebugLevel-1,"    ")<<endl;
-    if( req.hasCells() )
+    DataRecord::Ref rec = in;
+    bool getstate;
+    Node & node = resolveNode(getstate,*rec);
+    cdebug(2)<<"nodeExecute for node "<<node.name()<<endl;
+    // take request object out of record
+    Request &req = rec[AidRequest].as_wr<Request>();
+    if( Debug(0) )
     {
-      cdebug(3)<<"    request cells are: "<<req.cells();
-    }
-  }
-  Result::Ref resref;
-  int flags = node.execute(resref,req);
-  cdebug(2)<<"  execute() returns flags "<<ssprintf("0x%x",flags)<<endl;
-  cdebug(3)<<"    result is "<<resref.sdebug(DebugLevel-1,"    ")<<endl;
-  if( DebugLevel>3 && resref.valid() )
-  {
-    for( int i=0; i<resref->numVellSets(); i++ ) 
-    {
-      const VellSet &vs = resref->vellSet(i);
-      if( vs.isFail() ) {
-        cdebug(4)<<"  vellset "<<i<<": FAIL"<<endl;
-      } else {
-        cdebug(4)<<"  vellset "<<i<<": "<<vs.getValue()<<endl;
+      cdebug(3)<<"    request is "<<req.sdebug(DebugLevel-1,"    ")<<endl;
+      if( req.hasCells() )
+      {
+        cdebug(3)<<"    request cells are: "<<req.cells();
       }
     }
+    Result::Ref resref;
+    int flags = node.execute(resref,req);
+    cdebug(2)<<"  execute() returns flags "<<ssprintf("0x%x",flags)<<endl;
+    cdebug(3)<<"    result is "<<resref.sdebug(DebugLevel-1,"    ")<<endl;
+    if( DebugLevel>3 && resref.valid() )
+    {
+      for( int i=0; i<resref->numVellSets(); i++ ) 
+      {
+        const VellSet &vs = resref->vellSet(i);
+        if( vs.isFail() ) {
+          cdebug(4)<<"  vellset "<<i<<": FAIL"<<endl;
+        } else {
+          cdebug(4)<<"  vellset "<<i<<": "<<vs.getValue()<<endl;
+        }
+      }
+    }
+    out[AidResult|AidCode] = flags;
+    if( resref.valid() )
+      out[AidResult] <<= resref;
+    out[AidMessage] = ssprintf("node %d (%s): execute() returns %x",
+        node.nodeIndex(),node.name().c_str(),flags);
+    if( getstate )
+      out[FNodeState] <<= node.syncState();
   }
-  out[AidResult|AidCode] = flags;
-  if( resref.valid() )
-    out[AidResult] <<= resref;
-  out[AidMessage] = ssprintf("node %d (%s): execute() returns %x",
-      node.nodeIndex(),node.name().c_str(),flags);
-  if( getstate )
-    out[FNodeState] <<= node.syncState();
+  catch( std::exception &exc )
+  {
+    control().setState(old_control_state);
+//    old_paused ? control().pause() : control().resume();
+    throw exc;
+  }
+  control().setState(old_control_state);
+//  old_paused ? control().pause() : control().resume();
 }
 
 
@@ -510,9 +528,16 @@ void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
   rec[FNodeState] <<= node.syncState();
   rec[AidMessage] = "stopped at breakpoint " + node.name() + ":" + node.getStrExecState();
   control().postEvent(EvDebugStop,ref);
+  int old_state = control().state();
+  control().setState(AppState_Breakpoint);
+  input().suspend();
   // keep on processing commands until asked to continue
   while( control().state() > 0 && !debug_continue )  // while in a running state
+  {
     processCommands();
+  }
+  input().resume();
+  control().setState(old_state);
   in_debugger = 0;
 }
 
@@ -657,6 +682,7 @@ void MeqServer::run ()
     control().setStatus(StNumTiles,0);
     control().setStatus(StVDSID,vdsid);
     
+    control().setState(AppState_Idle);
     // run main loop
     while( control().state() > 0 )  // while in a running state
     {
@@ -682,6 +708,7 @@ void MeqServer::run ()
             cdebug(4)<<"received tile "<<tileref->tileId()<<endl;
             if( !reading_data )
             {
+              control().setState(AppState_Stream);
               control().setStatus(StStreamState,"DATA");
               reading_data = True;
             }
@@ -707,6 +734,7 @@ void MeqServer::run ()
                 id.toString().c_str(),ntiles);
             control().setStatus(StStreamState,"END");
             control().setStatus(StNumTiles,ntiles);
+            control().setState(AppState_Idle);
             // post to output only if writing some data
           }
           else if( instat == HEADER )
@@ -726,6 +754,7 @@ void MeqServer::run ()
             control().setStatus(StNumTiles,ntiles=0);
             control().setStatus(StVDSID,vdsid = id);
             control().setStatus(FDataType,datatype);
+            control().setState(AppState_Stream);
           }
           // generate output event if one was queued up
           if( !output_event.empty() )

@@ -38,6 +38,7 @@
 #pragma aid Solvable Config Groups All By List Polc Polcs Scale Matrix
 #pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear Invert
 #pragma aid Metrics Rank Fit Errors CoVar Flag Bit Mu StdDev Chi Iter Last Update
+#pragma aid Override
 
 
 namespace Meq
@@ -57,6 +58,7 @@ namespace Meq
     FResult          = AidResult,
     FRequest         = AidRequest,
     FState           = AidState,
+    FCacheOverride   = AidCache|AidOverride,
     
     // Node staterec
     FChildren           = AidChildren,

@@ -12,7 +12,7 @@
 #pragma aid Create Delete Get Set State Request Resolve Child Children List
 #pragma aid App Command Args Result Data Processing Error Message Code
 #pragma aid Execute Clear Cache Save Load Forest Recursive 
-#pragma aid Publish Results Enable Disable Event Id Silent
+#pragma aid Publish Results Enable Disable Event Id Silent Idle Stream 
 #pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Level
 #pragma aid addstate
     

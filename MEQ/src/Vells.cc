@@ -272,7 +272,7 @@ void Vells::copyData (const Vells &other)
 void Vells::zeroData ()
 {
   makeWritable();
-  memcpy(storage_,0,nelements()*elementSize());
+  memset(storage_,0,nelements()*elementSize());
 }
 
 

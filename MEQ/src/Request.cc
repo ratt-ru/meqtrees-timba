@@ -30,21 +30,21 @@ static NestableContainer::Register reg(TpMeqRequest,True);
 
 //##ModelId=3F8688700056
 Request::Request()
-: calcDeriv_(0),cells_(0),hasRider_(false)
+: calcDeriv_(0),cells_(0),hasRider_(false),cache_override_(false)
 {
 }
 
 //##ModelId=3F8688700061
 Request::Request (const DataRecord &other,int flags,int depth)
 : DataRecord  (other,flags,depth),
-  calcDeriv_(0),cells_(0),hasRider_(false)
+  calcDeriv_(0),cells_(0),hasRider_(false),cache_override_(false)
 {
   validateContent();
 }
 
 //##ModelId=400E535403DD
 Request::Request (const Cells& cells,int calcDeriv,const HIID &id,int cellflags)
-: cells_(0),hasRider_(false)
+: cells_(0),hasRider_(false),cache_override_(false)
 {
   setCells(cells,cellflags);
   setId(id);
@@ -53,7 +53,7 @@ Request::Request (const Cells& cells,int calcDeriv,const HIID &id,int cellflags)
 
 //##ModelId=400E53550016
 Request::Request (const Cells * cells, int calcDeriv, const HIID &id,int cellflags)
-: cells_(0),hasRider_(false)
+: cells_(0),hasRider_(false),cache_override_(false)
 {
   setCells(cells,cellflags);
   setId(id);
@@ -70,6 +70,11 @@ void Request::setId (const HIID &id)
 void Request::setCalcDeriv (int calc)
 { 
   (*this)[FCalcDeriv] = calcDeriv_ = calc; 
+}
+
+void Request::setCacheOverride (bool flag)
+{ 
+  (*this)[FCacheOverride] = cache_override_ = flag; 
 }
 
 //##ModelId=3F868870006E
@@ -97,6 +102,7 @@ void Request::validateContent ()
     id_ = (*this)[FRequestId].as<HIID>(HIID());
     // calc-deriv flag
     calcDeriv_ = (*this)[FCalcDeriv].as<int>(0);
+    cache_override_ = (*this)[FCacheOverride].as<bool>(false);
    // rider
     validateRider();
   }
@@ -138,7 +144,7 @@ void Request::copyRider (const Request &other)
 int Request::remove (const HIID &id)
 { 
   Thread::Mutex::Lock lock(mutex());
-  if( id == FCells || id == FRequestId || id==FCalcDeriv) {
+  if( id == FCells || id == FRequestId || id==FCalcDeriv || id == FCacheOverride ) {
     Throw("remove(" + id.toString() +" from a Meq::Request not allowed"); 
   }
   return DataRecord::remove(id);

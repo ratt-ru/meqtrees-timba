@@ -364,15 +364,16 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   ///             << " equations for "
   ///             << nspid << " solvable parameters in solver " << name());
   solution = 0;
-  if (lastIter) {
+  if (lastIter) 
+  {
     RequestId rqid = incrSubId(reqref->id(),getGenSymDepMask());
     // generate a command-only (no cells) request for the last update
     Request & lastReq = reqref <<= new Request;
     lastReq.setId(rqid);
     lastReq[FRider] <<= new DataRecord;
-  } // else make a private writable copy of request, since we're going to modify it
-  else if( !reqref.isWritable() )
-    reqref.privatize(DMI::WRITE);
+  }
+  else // else privatize the request, since we're going to modify it
+    reqref.privatize(DMI::WRITE|DMI::DEEP);
   Request &req = reqref();
   req.clearRider();
   // It looks as if in LSQ solveLoop and getCovariance
@@ -467,6 +468,8 @@ void Solver::setStateImpl (DataRecord& newst,bool initializing)
   // if no default record at init time, create a new one
   if( !pdef && initializing )
     newst[FDefault] <<= pdef = new DataRecord; 
+  else
+    itsResetCur = true;
   if( pdef )
   {
     DataRecord &def = *pdef;

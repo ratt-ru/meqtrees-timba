@@ -453,6 +453,11 @@ const int AidOr_int = -1461;
 const AtomicID AidOrigin(-1132);                  // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
 const int AidOrigin_int = -1132;
 #endif
+#ifndef _defined_id_AidOverride
+#define _defined_id_AidOverride 1
+const AtomicID AidOverride(-1564);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:41
+const int AidOverride_int = -1564;
+#endif
 #ifndef _defined_id_AidParent
 #define _defined_id_AidParent 1
 const AtomicID AidParent(-1480);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:39
@@ -492,6 +497,11 @@ const int AidPolcs_int = -1383;
 #define _defined_id_AidRank 1
 const AtomicID AidRank(-1402);                    // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 const int AidRank_int = -1402;
+#endif
+#ifndef _defined_id_AidReexecute
+#define _defined_id_AidReexecute 1
+const AtomicID AidReexecute(-1563);               // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Request.h:32
+const int AidReexecute_int = -1563;
 #endif
 #ifndef _defined_id_AidRelative
 #define _defined_id_AidRelative 1

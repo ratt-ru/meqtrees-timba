@@ -478,7 +478,7 @@ string AppControlAgent::stateString () const
   // non-standard states (>0): interpret as AtomicIDs (note that AIDs are 
   // negative, hence the unary minus)
   else
-    out = AtomicID(-state()).toString();
+    out = struppercase(AtomicID(-state()).toString());
   // paused?
   if( isPaused() )
     out += "[PAUSED]";

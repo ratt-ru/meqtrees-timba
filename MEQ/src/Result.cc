@@ -53,7 +53,8 @@ Result::Result (int nvellsets,const Request &req,bool integrated)
   setIsIntegrated(integrated);
   if( nvellsets>0 )
     allocateVellSets(nvellsets);
-  setCells(&req.cells());
+  if( req.hasCells() )
+    setCells(&req.cells());
 }
 
 //##ModelId=400E53550105
@@ -63,7 +64,8 @@ Result::Result (const Request &req,int nvellsets,bool integrated)
   setIsIntegrated(integrated);
   if( nvellsets>0 )
     allocateVellSets(nvellsets);
-  setCells(&req.cells());
+  if( req.hasCells() )
+    setCells(&req.cells());
 }
   
 //##ModelId=3F8688700151
@@ -71,7 +73,8 @@ Result::Result (const Request &req,bool integrated)
 {
   nctor++;
   setIsIntegrated(integrated);
-  setCells(&req.cells());
+  if( req.hasCells() )
+    setCells(&req.cells());
 }
 
 //##ModelId=400E53550116

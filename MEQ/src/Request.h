@@ -29,6 +29,7 @@
 
 #pragma aidgroup Meq
 #pragma types #Meq::Request
+#pragma aid Reexecute
 
 // This class represents a request for which an expression has to be
 // evaluated. It contains the domain and cells to evaluate for.
@@ -89,7 +90,12 @@ public:
   { return calcDeriv_; }
   
   void setCalcDeriv (int calc);
+  
+  bool hasCacheOverride () const
+  { return cache_override_; }
 
+  void setCacheOverride (bool flag=true);
+  
     //##ModelId=3F868870006E
   //##Documentation
   // Attaches cells object (default as anon). Can also specify DMI::CLONE
@@ -159,6 +165,8 @@ private:
   const  Cells* cells_;
   
   bool   hasRider_;
+  
+  bool   cache_override_;
 };
 
 

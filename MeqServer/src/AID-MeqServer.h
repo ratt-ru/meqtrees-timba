@@ -158,6 +158,11 @@ const int AidGroup_int = -1122;
 const AtomicID AidId(-1087);                      // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:10
 const int AidId_int = -1087;
 #endif
+#ifndef _defined_id_AidIdle
+#define _defined_id_AidIdle 1
+const AtomicID AidIdle(-1562);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/MeqServer.h:15
+const int AidIdle_int = -1562;
+#endif
 #ifndef _defined_id_AidIndex
 #define _defined_id_AidIndex 1
 const AtomicID AidIndex(-1051);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:26
@@ -347,6 +352,11 @@ const int AidStep_int = -1362;
 #define _defined_id_AidStop 1
 const AtomicID AidStop(-1054);                    // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:9
 const int AidStop_int = -1054;
+#endif
+#ifndef _defined_id_AidStream
+#define _defined_id_AidStream 1
+const AtomicID AidStream(-1322);                  // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/VisRepeater.h:12
+const int AidStream_int = -1322;
 #endif
 #ifndef _defined_id_AidTile
 #define _defined_id_AidTile 1

@@ -127,6 +127,7 @@ BlockableObject * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] :
         AtomicID::registerId(-1398,"chi")+
         AtomicID::registerId(-1421,"iter")+
         AtomicID::registerId(-1484,"last")+
+        AtomicID::registerId(-1564,"override")+
         AtomicID::registerId(-1018,"l")+
         AtomicID::registerId(-1019,"m")+
         AtomicID::registerId(-1020,"n")+
@@ -145,6 +146,7 @@ BlockableObject * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] :
         AtomicID::registerId(-1222,"meqrequest")+
         TypeInfoReg::addToRegistry(-1222,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1222,__construct_MeqRequest)+
+        AtomicID::registerId(-1563,"reexecute")+
         AtomicID::registerId(-1369,"meqvellset")+
         TypeInfoReg::addToRegistry(-1369,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1369,__construct_MeqVellSet)+
