@@ -202,7 +202,6 @@ AC_ARG_WITH(lofar-libdir,
   ln -s $lfr_curwd/src pkgbldinc/$lfr_pkg;
 
   CPPFLAGS="$CPPFLAGS -I$lfr_curwd/pkginc -I$lfr_curwd/pkgbldinc"
-
 ]
 AC_CHECK_FILE([$lofar_root/LOFAR],
 			[lfr_root=yes],
@@ -239,4 +238,9 @@ AC_CHECK_FILE([$lfr_find], [lfr_var=yes], [lfr_var=no])
   AC_SUBST(lofar_sharedir)
   AC_SUBST(CPPFLAGS)
   AC_SUBST(LDFLAGS)
+  [if test "$lofar_compiler" = "gnu"; then
+    CXXFLAGS="$CXXFLAGS -Wno-unknown-pragmas";]
+    AC_SUBST(CXXFLAGS)
+  [fi]
+
 ])
