@@ -709,9 +709,61 @@ class QwtImagePlot(QwtPlot):
         QwtPlot.drawCanvasItems(self, painter, rectangle, maps, filter)
 
 
-    def onMouseMoved(self, e):
-        pass
+    def formatCoordinates(self, x, y):
+        """Format mouse coordinates as real world plot coordinates.
+        """
+        result = ''
+        xpos = self.invTransform(QwtPlot.xBottom, x)
+        ypos = self.invTransform(QwtPlot.yLeft, y)
+        if self._vells_plot:
+          temp_str = result + "x =%+.2g" % xpos
+          result = temp_str
+          temp_str = result + " y =%+.2g" % ypos
+          result = temp_str
+          xpos = self.plotImage.xMap.limTransform(xpos)
+          ypos = self.plotImage.yMap.limTransform(ypos)
+        else:
+          xpos = int(xpos1)
+          temp_str = result + "x =%+.2g" % xpos
+          result = temp_str
+          ypos = int(ypos1)
+          temp_str = result + " y =%+.2g" % ypos
+          result = temp_str
+        value = self.raw_image[xpos,ypos]
+        message = result + ' value: ' +  str(value)
 
+# alias
+        fn = self.fontInfo().family()
+
+# text marker giving source of point that was clicked
+        self.marker = self.insertMarker()
+        ylb = self.axisScale(QwtPlot.yLeft).lBound()
+        xlb = self.axisScale(QwtPlot.xBottom).lBound()
+        self.setMarkerPos(self.marker, xlb, ylb)
+        self.setMarkerLabelAlign(self.marker, Qt.AlignRight | Qt.AlignTop)
+        self.setMarkerLabel( self.marker, message,
+          QFont(fn, 9, QFont.Bold, False),
+          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+        self.replot()
+        timer = QTimer(self)
+        timer.connect(timer, SIGNAL('timeout()'), self.timerEvent_marker)
+        timer.start(2000, True)
+            
+    # formatCoordinates()
+
+    def timerEvent_marker(self):
+      self.removeMarkers()
+      self.replot()
+    # timerEvent_marker()
+                                                                                
+
+
+    def onMouseMoved(self, e):
+#       pass
+
+#      self.statusBar().message(
+#            ' -- '.join(self.formatCoordinates(e.pos().x(), e.pos().y())))
+       self.formatCoordinates(e.pos().x(), e.pos().y())
 
     # onMouseMoved()
 
@@ -776,6 +828,8 @@ class QwtImagePlot(QwtPlot):
               self.enableAxis(QwtPlot.yRight)
               self.setAxisTitle(QwtPlot.yRight, 'x cross-section value')
               self.setCurveYAxis(self.xCrossSection, QwtPlot.yRight)
+# nope!
+#              self.setCurveStyle(self.xCrossSection, QwtCurve.Steps)
               if self.yCrossSection is None:
                 self.yCrossSection = self.insertCurve('yCrossSection')
                 self.setCurvePen(self.yCrossSection, QPen(Qt.white, 2))
@@ -816,7 +870,7 @@ class QwtImagePlot(QwtPlot):
               self.replot()
               _dprint(2, 'called replot in onMousePressed');
            
-        # fake a mouse move to show the cursor position
+# fake a mouse move to show the cursor position
         self.onMouseMoved(e)
 
     # onMousePressed()
