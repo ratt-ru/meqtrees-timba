@@ -36,7 +36,7 @@
 # The command has to be run from the LOFAR directory in the user's tree.
 #
 # Run as:
-#   rub [-cvs cvs-command] [-build variant] -[dist]clean -check package1 [...]
+#   rub [-cvs cvs-command] [-build variant] -[dist]clean -check -install package1 [...]
 #
 #     -cvs cvs-command  is an optional cvs command making it possible to
 #                       specify (for example) the root.
@@ -56,6 +56,8 @@
 #                       It only takes effect if -build is also given.
 #                       It forces -conf.
 #     -check            indicates that a make check should be done.
+#                       It only takes effect if -build is also given.
+#     -install          indicates that a make install should be done.
 #                       It only takes effect if -build is also given.
 #     package           is the name of the package to update/checkout and
 #                       optionally build.
@@ -84,6 +86,7 @@ conf=0
 clean=0
 distclean=0
 check=0
+install=0
 while [ 1 = 1 ]
 do
   # Special cvs command?
@@ -134,6 +137,12 @@ do
   elif [ "$1" = -nocheck ]; then
     shift
     check=0
+  elif [ "$1" = -install ]; then
+    shift
+    install=1
+  elif [ "$1" = -noinstall ]; then
+    shift
+    install=0
   else
     break;
   fi
@@ -223,6 +232,10 @@ if [ "$variant" != "" ]; then
   if [ $check = 1 ]; then
     postmake="make check; "
     echo "Packages will be checked at the end"
+  fi
+  if [ $install = 1 ]; then
+    postmake="$postmake make install; "
+    echo "Packages will be installed at the end"
   fi
   eval "mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake" > build.log 2>&1
 fi
