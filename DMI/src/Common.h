@@ -25,9 +25,7 @@
 #include <string>
 #include <vector>
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include <lofar_config.h>
 
 //## end module%3C14B70800A2.includes
 
