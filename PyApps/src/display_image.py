@@ -440,6 +440,12 @@ class QwtImagePlot(QwtPlot):
 	self._y_axis = None
 	self._title = None
 	self._menu = None
+	self._plot_dict_size = None
+	self.created_combined_image = False
+	self._combined_image_id = None
+	self.is_combined_image = False
+        self.active_image_index = None
+        self.y_marker_step = None
         # make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
@@ -452,6 +458,7 @@ class QwtImagePlot(QwtPlot):
         self.xCrossSection = None
         self.yCrossSection = None
         self.myXScale = None
+        self.myYScale = None
         self.active_image = False
 
         self.plotImage = QwtPlotImage(self)
@@ -495,38 +502,98 @@ class QwtImagePlot(QwtPlot):
           self._signal_id = -1
           self._plot_dict = {}
           self._plot_label = {}
+          self._combined_label_dict = {}
 
-        plot_label = 'spectra:' + self._string_tag
         num_plot_arrays = len(self._data_values)
         _dprint(2,' number of arrays to plot ', num_plot_arrays)
-        data_label = ''
         for i in range(num_plot_arrays):
           data_label = ''
 	  plot_label = ''
+          combined_display_label = ''
           if isinstance(self._data_labels, tuple):
             data_label = 'go to ' + self._string_tag  +  " " +self._data_labels[i] + ' ?'
-            plot_label = 'spectra:' + self._string_tag  +  " " +self._data_labels[i]
+            combined_display_label = self._string_tag  +  " " + self._data_labels[i]
+            plot_label = 'spectra:' + combined_display_label
           else:
             data_label = 'go to ' + self._string_tag  +  " " +self._data_labels +' ?'
-            plot_label = 'spectra:' + self._string_tag  +  " " +self._data_labels
+            combined_display_label = self._string_tag  +  " " + self._data_labels
+            plot_label = 'spectra:' + combined_display_label
 	  plot_label_not_found = True
 	  for j in range(len(self._plot_label)):
 	    if self._plot_label[j] == plot_label:
 	      plot_label_not_found =False
+# if we are finding repeat plot labels, then we have cycled
+# through the plot tree at least once, and we have
+# the maximum size of the plot_dict
+              self._plot_dict_size = len(self._plot_dict)
+              _dprint(2,' plot_dict_size: ', self._plot_dict_size)
+	      self._plot_dict[j] = self._data_values[i].copy()
 	      break
+
+# if no plot label found, then add array into plot_dict and
+# update selection menu
           if plot_label_not_found:
             self._signal_id = self._signal_id + 1
             self._menu.insertItem(data_label,self._signal_id)
-	    self._plot_dict[self._signal_id] = self._data_values[i]
+	    self._plot_dict[self._signal_id] = self._data_values[i].copy()
 	    self._plot_label[self._signal_id] = plot_label
+            self._combined_label_dict[self._signal_id] = combined_display_label
+# otherwise create or update the combined image
+	  else:
+	    if self._plot_dict_size > 1 and not self.created_combined_image:
+	      self.create_combined_array()
+	    else: 
+	      if self.created_combined_image:
+	        self.update_combined_array()
 
+    def create_combined_array(self):
+# create combined array from contents of plot_dict
+      shape = self._plot_dict[0].shape
+      self.y_marker_step = shape[1]
+      self.num_y_markers = self._plot_dict_size 
+      self.marker_labels = []
+      temp_array = zeros((shape[0],self._plot_dict_size* shape[1]), self._plot_dict[0].type())
+      for l in range(self._plot_dict_size ):
+#        dummy_array =  self._plot_dict[l].copy()
+        dummy_array =  self._plot_dict[l]
+        for k in range(shape[0]):
+          for j in range(shape[1]):
+            j_index = l * shape[1] + j
+            temp_array[k,j_index] = dummy_array[k,j]
+        self.marker_labels.append(self._combined_label_dict[l])
+      self.created_combined_image = True
+      self._signal_id = self._signal_id + 1
+      self._combined_image_id = self._signal_id
+      self._menu.insertItem('go to combined image',self._signal_id)
+      self._plot_dict[self._signal_id] = temp_array
+      self._plot_label[self._signal_id] = 'spectra: combined image'
+
+    def update_combined_array(self):
+# remember that the size of the plot_dict includes the combined array    
+      data_dict_size = self._plot_dict_size - 1
+# create combined array from contents of plot_dict
+      shape = self._plot_dict[0].shape
+      temp_array = zeros((shape[0], data_dict_size* shape[1]), self._plot_dict[0].type())
+      self.marker_labels = []
+      for l in range(data_dict_size ):
+        dummy_array =  self._plot_dict[l]
+        for k in range(shape[0]):
+          for j in range(shape[1]):
+            j_index = l * shape[1] + j
+            temp_array[k,j_index] = dummy_array[k,j]
+        self.marker_labels.append(self._combined_label_dict[l])
+      self._plot_dict[self._combined_image_id] = temp_array
 
     def update_spectrum_display(self, menuid):
       if menuid < 0:
         self.unzoom()
         return
+      self.active_image_index = menuid
+      self.is_combined_image = False
+      if not self._combined_image_id is None:
+        if self._combined_image_id == menuid:
+	  self.is_combined_image = True
       self.array_plot(self._plot_label[menuid], self._plot_dict[menuid])
-
 
     def initVellsContextMenu (self):
         # skip if no main window
@@ -593,6 +660,7 @@ class QwtImagePlot(QwtPlot):
           self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
           self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
           self.replot()
+          _dprint(3, 'called replot in unzoom')
         else:
           return
 
@@ -603,6 +671,7 @@ class QwtImagePlot(QwtPlot):
         self.flag_toggle = False
         self.plotImage.setDisplayFlag(self.flag_toggle)
         self.replot()
+        _dprint(3, 'called replot in timerEvent_blink')
       else:
         if self.flag_toggle == False:
           self.flag_toggle = True
@@ -610,6 +679,7 @@ class QwtImagePlot(QwtPlot):
           self.flag_toggle = False
         self.plotImage.setDisplayFlag(self.flag_toggle)
         self.replot()
+        _dprint(3, 'called replot in timerEvent_blink')
 
     def update_vells_display(self, menuid):
       if menuid < 0:
@@ -625,6 +695,7 @@ class QwtImagePlot(QwtPlot):
           self.flag_toggle = False
         self.plotImage.setDisplayFlag(self.flag_toggle)
         self.replot()
+        _dprint(3, 'called replot in update_vells_display')
 	return
 
       if menuid == 201:
@@ -791,6 +862,7 @@ class QwtImagePlot(QwtPlot):
           QFont(fn, 9, QFont.Bold, False),
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
         self.replot()
+        _dprint(3, 'called replot in formatCoordinates ')
         timer = QTimer(self)
         timer.connect(timer, SIGNAL('timeout()'), self.timerEvent_marker)
         timer.start(2000, True)
@@ -799,11 +871,28 @@ class QwtImagePlot(QwtPlot):
 
     def timerEvent_marker(self):
       self.removeMarkers()
+      if self.is_combined_image:
+        self.insert_marker_lines()
       self.replot()
+      _dprint(3, 'called replot in timerEvent_marker ')
     # timerEvent_marker()
-                                                                                
 
-
+    def insert_marker_lines(self):
+      _dprint(2, 'timerEvent_marker inserting markers')
+# alias
+      fn = self.fontInfo().family()
+      y = 0
+      for i in range(self.num_y_markers):
+        label = self.marker_labels[i]
+        mY = self.insertLineMarker('', QwtPlot.yLeft)
+        self.setMarkerLinePen(mY, QPen(Qt.white, 2, Qt.DashDotLine))
+        self.setMarkerLabelAlign(mY, Qt.AlignRight | Qt.AlignBottom)
+        self.setMarkerLabel(mY, '',  QFont(fn, 12, QFont.Bold),
+                Qt.white, QPen(Qt.NoPen), QBrush(Qt.black))
+        self.setMarkerLabelText(mY, label)
+        y = y + self.y_marker_step
+        self.setMarkerYPos(mY, y)
+    
     def onMouseMoved(self, e):
 #       pass
 
@@ -914,6 +1003,7 @@ class QwtImagePlot(QwtPlot):
                 self.setCurveXAxis(self.yCrossSectionLoc, QwtPlot.xBottom)
               self.setCurveData(self.yCrossSectionLoc, self.y_arrayloc, self.y_index)
               self.replot()
+              _dprint(2, 'called replot in onMousePressed');
            
 # fake a mouse move to show the cursor position
         self.onMouseMoved(e)
@@ -947,6 +1037,7 @@ class QwtImagePlot(QwtPlot):
         self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
         self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
         self.replot()
+        _dprint(2, 'called replot in onMouseReleased');
 
     # onMouseReleased()
 
@@ -955,6 +1046,7 @@ class QwtImagePlot(QwtPlot):
         if curve:
             curve.setEnabled(not curve.enabled())
             self.replot()
+            _dprint(2, 'called replot in toggleCurve');
     # toggleCurve()
 
     def setDisplayType(self, display_type):
@@ -975,7 +1067,11 @@ class QwtImagePlot(QwtPlot):
         self.plotImage.setBrentjensImage(image)
       else:
         self.plotImage.setImage(image)
+      if self.is_combined_image:
+         _dprint(2, 'display_image inserting markers')
+	 self.insert_marker_lines()
       self.replot()
+      _dprint(2, 'called replot in display_image');
     # display_image()
 
     def plot_data(self, visu_record, attribute_list=None):
@@ -1083,18 +1179,31 @@ class QwtImagePlot(QwtPlot):
 # extract and define labels for this data item
      # now generate  particular plot type
       if  self._plot_type == 'spectra':
+# ensure that menu for display is updated if required
         self.initSpectrumContextMenu()
-        self.data_label = ''
-        if isinstance(self._data_labels, tuple):
-          self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels[0]
-        else:
-          self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels
 # plot first instance of array
-        self.array_plot(self.data_label, self._data_values[0])
+        if not self.active_image_index is None:
+          self.array_plot(self._plot_label[self.active_image_index], self._plot_dict[self.active_image_index])
+          if self.active_image_index == self._combined_image_id:
+	    self.insert_marker_lines()
+        elif not self._combined_image_id is None:
+          self.array_plot(self._plot_label[ self._combined_image_id], self._plot_dict[ self._combined_image_id])
+          self.insert_marker_lines()
+	else:
+          if not self._plot_dict_size is None:
+            data_label = ''
+            if isinstance(self._data_labels, tuple):
+              data_label = 'spectra:' + self._string_tag +  " " +self._data_labels[0]
+            else:
+              data_label = 'spectra:' + self._string_tag +  " " +self._data_labels
+            _dprint(3, 'plotting array with label ', data_label)
+            self.array_plot(data_label, self._data_values[0])
 
     # end plot_data()
 
     def calc_vells_ranges(self):
+      """ get vells frequency and time ranges for use 
+          with other functions """
                                                                                 
       self.vells_start_freq = self._vells_rec.cells.domain.freq[0] 
       self.vells_end_freq  =  self._vells_rec.cells.domain.freq[1]
@@ -1106,8 +1215,9 @@ class QwtImagePlot(QwtPlot):
 
                                                                                 
     def plot_vells_data (self, vells_record):
-      """ process incoming data and attributes into the
+      """ process incoming vells data and attributes into the
           appropriate type of plot """
+
       _dprint(2, 'in plot_vells_data');
       self._vells_rec = vells_record;
 # if we are single stepping through requests, Oleg may reset the
@@ -1207,6 +1317,7 @@ class QwtImagePlot(QwtPlot):
       self.yCrossSectionLoc = None
       self.dummy_xCrossSection = None
       self.myXScale = None
+      self.myYScale = None
       self.split_axis = None
 
 # set title
@@ -1280,6 +1391,9 @@ class QwtImagePlot(QwtPlot):
             self.myXScale = ComplexScaleDraw(plot_array.shape[0])
             self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
 	    self.split_axis = plot_array.shape[0]
+	    if not self.y_marker_step is None:
+              self.myYScale = ComplexScaleDraw(self.y_marker_step)
+              self.setAxisScaleDraw(QwtPlot.yLeft, self.myYScale)
 
 # create array of reals followed by imaginaries
           real_array =  plot_array.getreal()
@@ -1385,6 +1499,7 @@ class QwtImagePlot(QwtPlot):
             self.removeCurve(self.dummy_xCrossSection)
             self.dummy_xCrossSection = None
         self.replot()
+        _dprint(2, 'called replot in array_plot');
     # array_plot()
 
     def start_test_timer(self, time, test_complex, display_type):
