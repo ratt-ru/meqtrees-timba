@@ -2,17 +2,16 @@
 #define MEQSERVER_SRC_VISDATAMUX_H_HEADER_INCLUDED_82375EEB
 
 #include <AppAgent/AppControlAgent.h>
-#include <VisAgent/InputAgent.h>
-#include <VisAgent/OutputAgent.h>
+#include <AppAgent/InputAgent.h>
+#include <AppAgent/OutputAgent.h>
 #include <MeqServer/VisHandlerNode.h>
 #include <DMI/Events.h>
 #include <vector>
     
 #pragma aid Station Index Tile Format Create Delete
 
-class AppControlAgent;
-        
-namespace Meq {
+namespace Meq 
+{
   
 const HIID VisDataMux_EventCreate = AidCreate;
 const HIID VisDataMux_EventDelete = AidDelete;
@@ -31,13 +30,13 @@ class VisDataMux : public EventRecepient
     {}
       
     //##ModelId=3FA1016000B0
-    void init (const DataRecord &rec,
-                VisAgent::InputAgent  & inp,
-                VisAgent::OutputAgent & outp,
-                AppControlAgent       & ctrl);
+    void init (const DMI::Record &rec,
+                AppAgent::VisAgent::InputAgent  & inp,
+                AppAgent::VisAgent::OutputAgent & outp,
+                AppAgent::AppControlAgent       & ctrl);
     
     // this receives node create/delete events
-    virtual int receiveEvent (const EventIdentifier &evid,const ObjRef::Xfer &evdata,void *);
+    virtual int receiveEvent (const EventIdentifier &evid,const ObjRef &evdata,void *);
     
     //##ModelId=3F98DAE6024C
     void addNode (Node &node);
@@ -48,27 +47,27 @@ class VisDataMux : public EventRecepient
     //##ModelId=3F98DAE6024A
     //##Documentation
     //## delivers visdata header to data mux
-    int deliverHeader (const DataRecord &header);
+    int deliverHeader (const DMI::Record &header);
       
     //##ModelId=3F98DAE60251
     //##Documentation
     //## delivers tile to data mux
     //## rowrange specifies range of valid rows in tile
-    int deliverTile (VisTile::Ref::Copy &tileref);
+    int deliverTile (VisCube::VTile::Ref &tileref);
 
     //##Documentation
     //## delivers visdata footer to data mux
-    int deliverFooter (const DataRecord &footer);
+    int deliverFooter (const DMI::Record &footer);
     
     // helper func:
-    // returns Meq::Cells object corresponding to a VisTile, plus range
+    // returns Meq::Cells object corresponding to a VisCube::VTile, plus range
     // of valid rows
     //##ModelId=3F9FF6970269
-    void fillCells (Cells &cells,LoRange &range,const VisTile &tile);
+    void fillCells (Cells &cells,LoRange &range,const VisCube::VTile &tile);
 
-    AppControlAgent &       control()   { return *control_; }
-    VisAgent::InputAgent &  input()     { return *input_;   }
-    VisAgent::OutputAgent & output()    { return *output_; }
+    AppAgent::AppControlAgent &       control()   { return *control_; }
+    AppAgent::VisAgent::InputAgent &  input()     { return *input_;   }
+    AppAgent::VisAgent::OutputAgent & output()    { return *output_; }
         
     //##ModelId=3F98DAE60246
     ImportDebugContext(VisHandlerNode);
@@ -96,11 +95,11 @@ class VisDataMux : public EventRecepient
     //##ModelId=3FAA52A6014F
     std::vector<string>  out_colnames_;
     //##ModelId=3FAA52A6018C
-    VisTile::Format::Ref out_format_;
+    VisCube::VTile::Format::Ref out_format_;
     
     // header is cached; it is dumped to output only if some tiles are being
     // written
-    DataRecord::Ref cached_header_;
+    DMI::Record::Ref cached_header_;
     // flag: tiles are being written
     bool writing_data_;
 
@@ -113,9 +112,9 @@ class VisDataMux : public EventRecepient
     //##ModelId=400E5B6D0177
 //    double maxfreq;
     
-    AppControlAgent       * control_;
-    VisAgent::InputAgent  * input_;
-    VisAgent::OutputAgent * output_;
+    AppAgent::AppControlAgent       * control_;
+    AppAgent::VisAgent::InputAgent  * input_;
+    AppAgent::VisAgent::OutputAgent * output_;
 };
 
 } // namespace Meq

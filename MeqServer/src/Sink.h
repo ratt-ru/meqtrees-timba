@@ -13,7 +13,7 @@
 
 //defrec begin MeqSink
 //  A MeqSink is attached to a VisAgent data source. A MeqSink represents
-//  one interferometer. For every matching VisTile at the input of the 
+//  one interferometer. For every matching VisCube::VTile at the input of the 
 //  source, it generates a MeqRequest corresponding to the domain/cells 
 //  of the tile, and optionally stores the result back in the tile.
 //  A MeqSink must have exactly one child. The child may return a 
@@ -42,11 +42,11 @@ class Sink : public VisHandlerNode
   public:
     Sink ();  
 
-    virtual int deliverHeader (const VisTile::Format &outformat);
+    virtual int deliverHeader (const VisCube::VTile::Format &outformat);
     //##ModelId=3F98DAE6021E
-    virtual int deliverTile   (const Request &req,VisTile::Ref &tileref,const LoRange &);
+    virtual int deliverTile   (const Request &req,VisCube::VTile::Ref &tileref,const LoRange &);
     
-    virtual int deliverFooter (VisTile::Ref &tileref);
+    virtual int deliverFooter (VisCube::VTile::Ref &tileref);
     
     //##ModelId=3F98DAE60222
     virtual TypeId objectType() const
@@ -61,20 +61,20 @@ class Sink : public VisHandlerNode
                            const Request &req,bool newreq);
   
     //##ModelId=3F9918390169
-    virtual void setStateImpl (DataRecord &rec,bool initializing);
+    virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
   private:
     // pending tile stored here
     struct {
       Request::Ref  request;
-      VisTile::Ref  tile;
+      VisCube::VTile::Ref  tile;
       LoRange       range;
     } pending;
     
-    VisTile::Format::Ref output_format;
+    VisCube::VTile::Format::Ref output_format;
       
     // processes pending tile, if any
-    int procPendingTile (VisTile::Ref &tileref);
+    int procPendingTile (VisCube::VTile::Ref &tileref);
   
     // maps plane to output correlation
     //##ModelId=400E5B6D0048

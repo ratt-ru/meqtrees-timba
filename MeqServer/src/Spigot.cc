@@ -17,7 +17,7 @@ InitDebugContext(Spigot,"MeqSpigot");
 
 Spigot::Spigot ()
     : VisHandlerNode(0),        // no children allowed
-      icolumn(VisTile::DATA),
+      icolumn(VisCube::VTile::DATA),
       colname("DATA"),
       flag_mask(-1),
       row_flag_mask(-1)
@@ -26,15 +26,15 @@ Spigot::Spigot ()
 }
   
 //##ModelId=3F9FF6AA03D2
-void Spigot::setStateImpl (DataRecord &rec,bool initializing)
+void Spigot::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   VisHandlerNode::setStateImpl(rec,initializing);
   // ensure column name is processed first time through
   if( rec[FInputColumn].get(colname,initializing) )
   {
     colname = struppercase(colname);
-    const VisTile::NameToIndexMap &colmap = VisTile::getNameToIndexMap();
-    VisTile::NameToIndexMap::const_iterator iter = colmap.find(colname);
+    const VisCube::VTile::NameToIndexMap &colmap = VisCube::VTile::getNameToIndexMap();
+    VisCube::VTile::NameToIndexMap::const_iterator iter = colmap.find(colname);
     if( iter == colmap.end() ) {
       NodeThrow(FailWithoutCleanup,"unknown input column "+colname);
     }
@@ -45,9 +45,9 @@ void Spigot::setStateImpl (DataRecord &rec,bool initializing)
 }
 
 //##ModelId=3F98DAE6023B
-int Spigot::deliverTile (const Request &req,VisTile::Ref::Copy &tileref,const LoRange &rowrange)
+int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const LoRange &rowrange)
 {
-  const VisTile &tile = *tileref;
+  const VisCube::VTile &tile = *tileref;
   const HIID &rqid = req.id();
   cdebug(3)<<"deliver: tile "<<tile.tileId()<<", rqid "<<rqid<<",row rowrange "<<rowrange<<endl;
   // already waiting for such a request? Do nothing for now
@@ -61,7 +61,7 @@ int Spigot::deliverTile (const Request &req,VisTile::Ref::Copy &tileref,const Lo
   }
   else
   {
-    const VisTile::Format &tileformat = tile.format();
+    const VisCube::VTile::Format &tileformat = tile.format();
     TypeId coltype = tileformat.type(icolumn);
     LoShape colshape = tileformat.shape(icolumn);
     // # output rows -- tile.nrow() if rowrange is all, or rowrange length otherwise
@@ -181,8 +181,8 @@ void Spigot::fillDebugState ()
   }
   else
   {
-    DataField &qvec = wstate()[FQueue].replace() <<= new DataField(TpMeqResult,res_queue_.size());
-    DataField &idvec = wstate()[FQueueRequestId].replace() <<= new DataField(TpHIID,res_queue_.size());
+    DMI::Vec &qvec = wstate()[FQueue].replace() <<= new DMI::Vec(TpMeqResult,res_queue_.size());
+    DMI::Vec &idvec = wstate()[FQueueRequestId].replace() <<= new DMI::Vec(TpDMIHIID,res_queue_.size());
     int n=0;
     for( ResQueue::const_iterator qiter = res_queue_.begin(); qiter != res_queue_.end(); qiter++,n++ )
     {

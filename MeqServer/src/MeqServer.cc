@@ -8,10 +8,11 @@
 #include <MEQ/Result.h>
 #include <MeqNodes/ParmTable.h>
 #include <DMI/BOIO.h>
-#include <DMI/DataList.h>
+#include <DMI/List.h>
 
     
 using Debug::ssprintf;
+using namespace AppAgent;
 using namespace AppControlAgentVocabulary;
 using namespace VisRepeaterVocabulary;
 using namespace VisVocabulary;
@@ -92,7 +93,7 @@ MeqServer::MeqServer()
 }
 
 //##ModelId=3F6196800325
-Node & MeqServer::resolveNode (bool &getstate,const DataRecord &rec)
+Node & MeqServer::resolveNode (bool &getstate,const DMI::Record &rec)
 {
   int nodeindex = rec[AidNodeIndex].as<int>(-1);
   string name = rec[AidName].as<string>("");
@@ -110,16 +111,16 @@ Node & MeqServer::resolveNode (bool &getstate,const DataRecord &rec)
 }
 
 
-void MeqServer::createNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &initrec)
+void MeqServer::createNode (DMI::Record::Ref &out,DMI::Record::Ref &initrec)
 {
   cdebug(2)<<"creating node ";
   cdebug(3)<<initrec->sdebug(3);
   cdebug(2)<<endl;
   int nodeindex;
-  const Node::Ref &ref = forest.create(nodeindex,initrec);
+  Node & node = forest.create(nodeindex,initrec);
   // form a response message
-  const string & name = ref->name();
-  string classname = ref->className();
+  const string & name = node.name();
+  string classname = node.className();
   
   out[AidNodeIndex] = nodeindex;
   out[AidName] = name;
@@ -128,7 +129,7 @@ void MeqServer::createNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &initrec)
                         nodeindex,name.c_str(),classname.c_str());
 }
 
-void MeqServer::deleteNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::deleteNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   int nodeindex = (*in)[AidNodeIndex].as<int>(-1);
   if( nodeindex<0 )
@@ -149,18 +150,18 @@ void MeqServer::deleteNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     fillForestStatus(out());
 }
 
-void MeqServer::nodeGetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::nodeGetState (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   bool getstate;
   Node & node = resolveNode(getstate,*in);
   cdebug(3)<<"getState for node "<<node.name()<<" ";
   cdebug(4)<<in->sdebug(3);
   cdebug(3)<<endl;
-  out.attach(node.syncState(),DMI::READONLY|DMI::ANON);
+  out.attach(node.syncState());
   cdebug(5)<<"Returned state is: "<<out->sdebug(20)<<endl;
 }
 
-void MeqServer::getNodeIndex (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::getNodeIndex (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   string name = in[AidName].as<string>();
   out[AidNodeIndex] = forest.findIndex(name);
@@ -168,14 +169,14 @@ void MeqServer::getNodeIndex (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     fillForestStatus(out());
 }
 
-void MeqServer::nodeSetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::nodeSetState (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
-  DataRecord::Ref rec = in;
+  DMI::Record::Ref rec = in;
   bool getstate;
   Node & node = resolveNode(getstate,*rec);
   cdebug(3)<<"setState for node "<<node.name()<<endl;
-  rec.privatize(DMI::WRITE|DMI::DEEP);
-  node.setState(rec[AidState].as_wr<DataRecord>());
+  DMI::Record::Ref ref = rec[AidState].ref();
+  node.setState(ref);
   if( getstate )
     out[FNodeState] <<= node.syncState();
   if( rec[FGetForestStatus].as<bool>(false) )
@@ -183,9 +184,9 @@ void MeqServer::nodeSetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 }
 
 //##ModelId=3F98D91A03B9
-void MeqServer::resolve (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::resolve (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
-  DataRecord::Ref rec = in;
+  DMI::Record::Ref rec = in;
   bool getstate;
   Node & node = resolveNode(getstate,*rec);
   cdebug(2)<<"resolve for node "<<node.name()<<endl;
@@ -201,10 +202,10 @@ void MeqServer::resolve (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     fillForestStatus(out());
 }
 
-void MeqServer::getNodeList (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::getNodeList (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   cdebug(2)<<"getNodeList: building list"<<endl;
-  DataRecord &list = out <<= new DataRecord;
+  DMI::Record &list = out <<= new DMI::Record;
   int content = 
     ( in[AidNodeIndex].as<bool>(true) ? Forest::NL_NODEINDEX : 0 ) | 
     ( in[AidName].as<bool>(true) ? Forest::NL_NAME : 0 ) | 
@@ -217,19 +218,19 @@ void MeqServer::getNodeList (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     fillForestStatus(out());
 }
 
-void MeqServer::getForestStatus (DataRecord::Ref &out,DataRecord::Ref::Xfer &)
+void MeqServer::getForestStatus (DMI::Record::Ref &out,DMI::Record::Ref &)
 {
   fillForestStatus(out());
 }
 
 //##ModelId=400E5B6C015E
-void MeqServer::nodeExecute (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   int old_control_state = control().state();
   control().setState(AppState_Execute,true);
   try
   {
-    DataRecord::Ref rec = in;
+    DMI::Record::Ref rec = in;
     bool getstate;
     Node & node = resolveNode(getstate,*rec);
     cdebug(2)<<"nodeExecute for node "<<node.name()<<endl;
@@ -281,9 +282,9 @@ void MeqServer::nodeExecute (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 
 
 //##ModelId=400E5B6C01DD
-void MeqServer::nodeClearCache (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::nodeClearCache (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
-  DataRecord::Ref rec = in;
+  DMI::Record::Ref rec = in;
   bool getstate;
   Node & node = resolveNode(getstate,*rec);
   bool recursive = (*rec)[FRecursive].as<bool>(false);
@@ -298,7 +299,7 @@ void MeqServer::nodeClearCache (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 }
 
 //##ModelId=400E5B6C0247
-void MeqServer::saveForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   if( !debug_stack.empty() )
     Throw1("can't execute Save.Forest while debugging");
@@ -322,7 +323,7 @@ void MeqServer::saveForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 }
 
 //##ModelId=400E5B6C02B3
-void MeqServer::loadForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   if( !debug_stack.empty() )
     Throw1("can't execute Load.Forest while debugging");
@@ -331,12 +332,12 @@ void MeqServer::loadForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   BOIO boio(filename,BOIO::READ);
   forest.clear();
   int nloaded = 0;
-  DataRecord::Ref ref;
+  DMI::Record::Ref ref;
   while( boio >> ref )
   {
     int nodeindex;
     // create the node, while
-    const Node & node = *forest.create(nodeindex,ref,true);
+    Node & node = forest.create(nodeindex,ref,true);
     cdebug(3)<<"loaded node "<<node.name()<<endl;
     nloaded++;
   }
@@ -355,7 +356,7 @@ void MeqServer::loadForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 }
 
 //##ModelId=400E5B6C0324
-void MeqServer::clearForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::clearForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   if( !debug_stack.empty() )
     Throw1("can't execute Clear.Forest while debugging");
@@ -370,9 +371,9 @@ void MeqServer::clearForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     fillForestStatus(out());
 }
 
-void MeqServer::publishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::publishResults (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
-  DataRecord::Ref rec = in;
+  DMI::Record::Ref rec = in;
   bool getstate;
   Node & node = resolveNode(getstate,*rec);
   bool enable = rec[FEnable].as<bool>(true);
@@ -397,7 +398,7 @@ void MeqServer::publishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     fillForestStatus(out());
 }
 
-void MeqServer::disablePublishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::disablePublishResults (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   cdebug(2)<<"disablePublishResults: disabling for all nodes"<<endl;
   for( int i=0; i<=forest.maxNodeIndex(); i++ )
@@ -408,9 +409,9 @@ void MeqServer::disablePublishResults (DataRecord::Ref &out,DataRecord::Ref::Xfe
     fillForestStatus(out());
 }
 
-void MeqServer::nodeSetBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::nodeSetBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
-  DataRecord::Ref rec = in;
+  DMI::Record::Ref rec = in;
   bool getstate;
   Node & node = resolveNode(getstate,*rec);
   int bpmask = rec[FBreakpoint].as<int>(Node::breakpointMask(Node::CS_ES_REQUEST));
@@ -427,9 +428,9 @@ void MeqServer::nodeSetBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &i
     fillForestStatus(out());
 }
 
-void MeqServer::nodeClearBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::nodeClearBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
-  DataRecord::Ref rec = in;
+  DMI::Record::Ref rec = in;
   bool getstate;
   Node & node = resolveNode(getstate,*rec);
   int bpmask = rec[FBreakpoint].as<int>(Node::CS_BP_ALL);
@@ -444,7 +445,7 @@ void MeqServer::nodeClearBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer 
     fillForestStatus(out());
 }
 
-void MeqServer::debugSetLevel (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::debugSetLevel (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   cdebug(1)<<"setting debugging level"<<endl;
   int verb = in[AidDebug|AidLevel].as<int>();
@@ -459,7 +460,7 @@ void MeqServer::debugSetLevel (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 }
 
 
-void MeqServer::debugContinue (DataRecord::Ref &,DataRecord::Ref::Xfer &)
+void MeqServer::debugContinue (DMI::Record::Ref &,DMI::Record::Ref &)
 {
 // continue always allowed, since it doesn't hurt anything
 //  if( in_debugger )
@@ -470,7 +471,7 @@ void MeqServer::debugContinue (DataRecord::Ref &,DataRecord::Ref::Xfer &)
   debug_continue = true;
 }
 
-void MeqServer::debugSingleStep (DataRecord::Ref &,DataRecord::Ref::Xfer &in)
+void MeqServer::debugSingleStep (DMI::Record::Ref &,DMI::Record::Ref &in)
 {
   if( debug_stack.empty() )
     Throw1("can't execute Debug.Single.Step command when not debugging");
@@ -480,7 +481,7 @@ void MeqServer::debugSingleStep (DataRecord::Ref &,DataRecord::Ref::Xfer &in)
   debug_continue = true;
 }
 
-void MeqServer::debugNextNode (DataRecord::Ref &,DataRecord::Ref::Xfer &in)
+void MeqServer::debugNextNode (DMI::Record::Ref &,DMI::Record::Ref &in)
 {
   if( debug_stack.empty() )
     Throw1("can't execute Debug.Next.Node command when not debugging");
@@ -491,7 +492,7 @@ void MeqServer::debugNextNode (DataRecord::Ref &,DataRecord::Ref::Xfer &in)
   debug_continue = true;
 }
 
-void MeqServer::debugUntilNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
+void MeqServer::debugUntilNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   if( debug_stack.empty() )
     Throw1("can't execute Debug.Until.Node command when not debugging");
@@ -505,7 +506,7 @@ void MeqServer::debugUntilNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   debug_continue = true;
 }
 
-int MeqServer::receiveEvent (const EventIdentifier &evid,const ObjRef::Xfer &evdata,void *) 
+int MeqServer::receiveEvent (const EventIdentifier &evid,const ObjRef &evdata,void *) 
 {
   cdebug(4)<<"received event "<<evid.id()<<endl;
   control().postEvent(evid.id(),evdata);
@@ -531,9 +532,9 @@ void MeqServer::reportNodeStatus (Node &node,int oldstat,int newstat)
   }
 }
 
-void MeqServer::fillForestStatus  (DataRecord &rec)
+void MeqServer::fillForestStatus  (DMI::Record &rec)
 {
-  DataRecord &fst = rec[AidForest|AidStatus] <<= new DataRecord;
+  DMI::Record &fst = rec[AidForest|AidStatus] <<= new DMI::Record;
   fst[AidState] = control().state();
   fst[AidState|AidString] = control().stateString();
   fst[AidRunning] = control().state() == AppState_Stream || 
@@ -542,12 +543,12 @@ void MeqServer::fillForestStatus  (DataRecord &rec)
   fst[AidDebug|AidLevel] = forest.verbosity();
   if( forest.verbosity() )
   {
-    DataList &stack = fst[AidDebug|AidStack] <<= new DataList;
+    DMI::List &stack = fst[AidDebug|AidStack] <<= new DMI::List;
     int i=0;
     for( DebugStack::const_iterator iter = debug_stack.begin(); 
          iter != debug_stack.end(); iter++,i++ )
     {
-      DataRecord &entry = stack[i] <<= new DataRecord;
+      DMI::Record &entry = stack[i] <<= new DMI::Record;
       entry[AidName] = iter->node->name();
       entry[AidNodeIndex] = iter->node->nodeIndex();
       entry[AidControl|AidStatus] = iter->node->getControlStatus();
@@ -576,8 +577,8 @@ void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
   frame.node = &node;
   debug_continue = false;
   // post event indicating we're stopped in the debugger
-  DataRecord::Ref ref;
-  DataRecord &rec = ref <<= new DataRecord;
+  DMI::Record::Ref ref;
+  DMI::Record &rec = ref <<= new DMI::Record;
   fillForestStatus(rec);
   rec[AidMessage] = "stopped at " + node.name() + ":" + node.getStrExecState();
   control().postEvent(EvDebugStop,ref);
@@ -611,7 +612,7 @@ void MeqServer::processCommands ()
 {
   // check for any commands from the control agent
   HIID cmdid;
-  DataRecord::Ref cmddata;
+  DMI::Record::Ref cmddata;
   if( control().getCommand(cmdid,cmddata,AppEvent::WAIT) == AppEvent::SUCCESS 
       && cmdid.matches(AppCommandMask) )
   {
@@ -622,7 +623,7 @@ void MeqServer::processCommands ()
     cdebug(3)<<"received app command "<<cmdid.toString('.')<<endl;
     int request_id = 0;
     bool silent = false;
-    DataRecord::Ref retval(DMI::ANONWR);
+    DMI::Record::Ref retval(DMI::ANONWR);
     bool have_error = true;
     string error_str;
     int oldstate = control().state();
@@ -631,11 +632,11 @@ void MeqServer::processCommands ()
       request_id = cmddata[FRequestId].as<int>(0);
       ObjRef ref = cmddata[FArgs].remove();
       silent     = cmddata[FSilent].as<bool>(false);
-      DataRecord::Ref args;
+      DMI::Record::Ref args;
       if( ref.valid() )
       {
-        FailWhen(!ref->objectType()==TpDataRecord,"invalid args field");
-        args = ref.ref_cast<DataRecord>();
+        FailWhen(!ref->objectType()==TpDMIRecord,"invalid args field");
+        args = ref.ref_cast<DMI::Record>();
       }
       CommandMap::const_iterator iter = command_map.find(cmdid);
       if( iter != command_map.end() )
@@ -683,8 +684,8 @@ void MeqServer::run ()
   forest.addSubscriber(AidDelete,EventSlot(VisDataMux::EventDelete,&data_mux));
   forest.setDebuggingCallbacks(mqs_reportNodeStatus,mqs_processBreakpoint);
   
-  verifySetup(True);
-  DataRecord::Ref initrec;
+  verifySetup(true);
+  DMI::Record::Ref initrec;
   HIID output_event;
   string doing_what,error_str;
   bool have_error;
@@ -721,7 +722,7 @@ void MeqServer::run ()
     {
       error_str = "error " + doing_what + ": " + error_str;
       cdebug(1)<<error_str<<", waiting for reinitialization"<<endl;
-      DataRecord::Ref retval(DMI::ANONWR);
+      DMI::Record::Ref retval(DMI::ANONWR);
       retval[AidError] = error_str;
       control().postEvent(output_event,retval);
       continue;
@@ -731,8 +732,8 @@ void MeqServer::run ()
     data_mux.init(*initrec,input(),output(),control());
     // get params from control record
     int ntiles = 0;
-    DataRecord::Ref header;
-    bool reading_data=False;
+    DMI::Record::Ref header;
+    bool reading_data=false;
     HIID vdsid,datatype;
     
     control().setStatus(StStreamState,"none");
@@ -744,7 +745,7 @@ void MeqServer::run ()
     while( control().state() > 0 )  // while in a running state
     {
       // check for any incoming data
-      DataRecord::Ref eventrec;
+      DMI::Record::Ref eventrec;
       eventrec.detach();
       cdebug(4)<<"checking input\n";
       HIID id;
@@ -763,13 +764,13 @@ void MeqServer::run ()
           if( instat == DATA )
           {
             doing_what = "processing input DATA event";
-            VisTile::Ref tileref = ref.ref_cast<VisTile>().copy(DMI::WRITE);
+            VisCube::VTile::Ref tileref = ref.ref_cast<VisCube::VTile>();
             cdebug(4)<<"received tile "<<tileref->tileId()<<endl;
             if( !reading_data )
             {
               control().setState(AppState_Stream);
               control().setStatus(StStreamState,"DATA");
-              reading_data = True;
+              reading_data = true;
             }
             ntiles++;
             if( !(ntiles%100) )
@@ -781,13 +782,13 @@ void MeqServer::run ()
           {
             doing_what = "processing input FOOTER event";
             cdebug(2)<<"received footer"<<endl;
-            reading_data = False;
-            eventrec <<= new DataRecord;
+            reading_data = false;
+            eventrec <<= new DMI::Record;
             if( header.valid() )
               eventrec[AidHeader] <<= header.copy();
             if( ref.valid() )
               eventrec[AidFooter] <<= ref.copy();
-            retcode = data_mux.deliverFooter(*(ref.ref_cast<DataRecord>()));
+            retcode = data_mux.deliverFooter(*(ref.ref_cast<DMI::Record>()));
             output_event = DataSetFooter;
             output_message = ssprintf("received footer for dataset %s, %d tiles written",
                 id.toString('.').c_str(),ntiles);
@@ -800,9 +801,9 @@ void MeqServer::run ()
           {
             doing_what = "processing input HEADER event";
             cdebug(2)<<"received header"<<endl;
-            reading_data = False;
+            reading_data = false;
             header = ref;
-            eventrec <<= new DataRecord;
+            eventrec <<= new DMI::Record;
             eventrec[AidHeader] <<= header.copy();
             retcode = data_mux.deliverHeader(*header);
             output_event = DataSetHeader;
@@ -839,7 +840,7 @@ void MeqServer::run ()
         // in case of error, generate event
         if( have_error )
         {
-          DataRecord::Ref retval(DMI::ANONWR);
+          DMI::Record::Ref retval(DMI::ANONWR);
           retval[AidError] = error_str;
           retval[AidData|AidId] = id;
           control().postEvent(DataProcessingError,retval);

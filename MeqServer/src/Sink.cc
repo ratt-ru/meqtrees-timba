@@ -1,5 +1,5 @@
 #include "Sink.h"
-#include <DMI/DataField.h>
+#include <DMI/Vec.h>
 #include <VisCube/VisVocabulary.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
@@ -32,7 +32,7 @@ int Sink::mapOutputCorr (int iplane)
 }
 
 //##ModelId=3F9918390169
-void Sink::setStateImpl (DataRecord &rec,bool initializing)
+void Sink::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   VisHandlerNode::setStateImpl(rec,initializing);
   // check if output column is specified
@@ -41,8 +41,8 @@ void Sink::setStateImpl (DataRecord &rec,bool initializing)
     if( output_colname.length() )
     {
       output_colname = struppercase(output_colname);
-      const VisTile::NameToIndexMap &colmap = VisTile::getNameToIndexMap();
-      VisTile::NameToIndexMap::const_iterator iter = colmap.find(output_colname);
+      const VisCube::VTile::NameToIndexMap &colmap = VisCube::VTile::getNameToIndexMap();
+      VisCube::VTile::NameToIndexMap::const_iterator iter = colmap.find(output_colname);
       if( iter == colmap.end() ) {
         NodeThrow(FailWithoutCleanup,"unknown output column "+output_colname);
       }
@@ -66,7 +66,7 @@ int Sink::getResult (Result::Ref &ref,
                      const std::vector<Result::Ref> &childres,
                      const Request &,bool)
 {
-  ref.copy(childres[0],DMI::PRESERVE_RW);
+  ref = childres[0];
   return 0;
 }
 
@@ -97,7 +97,7 @@ void Sink::fillTileColumn (T *coldata,const LoShape &colshape,
   colarr = blitz::cast<T>(arr);
 }
 
-int Sink::deliverHeader (const VisTile::Format &outformat)
+int Sink::deliverHeader (const VisCube::VTile::Format &outformat)
 {
   output_format.attach(outformat);
   cdebug(3)<<"deliverHeader: got format "<<outformat.sdebug(2)<<endl;
@@ -108,7 +108,7 @@ int Sink::deliverHeader (const VisTile::Format &outformat)
 }
 
 
-int Sink::procPendingTile (VisTile::Ref &tileref)
+int Sink::procPendingTile (VisCube::VTile::Ref &tileref)
 {
   if( !pending.tile.valid() ) // no tile pending?
     return 0;
@@ -148,8 +148,8 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
   cdebug(3)<<"child returns "<<nvs<<" vellsets, resflag "<<resflag<<endl;
   // store resulting Vells into the tile
   // loop over vellsets and get a tf-plane from each
-  VisTile *ptile = 0;  // we will privatize the tile for writing as needed
-  const VisTile::Format *pformat = 0;
+  VisCube::VTile *ptile = 0; 
+  const VisCube::VTile::Format *pformat = 0;
   void *coldata; 
   TypeId coltype;
   LoShape colshape; 
@@ -167,13 +167,9 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
     }
     else // OK, write it
     {
-      // make tile writable if so required
-      // this is done the first time we actually try to write to it
       if( !ptile )
       {
-        if( !tileref.isWritable() )
-          tileref.privatize(DMI::WRITE|DMI::DEEP);
-        ptile = tileref.dewr_p();
+        ptile = tileref.dewr_p(); // COW here
         pformat = &(ptile->format());
         // add output column to tile as needed
         if( !pformat->defined(output_col) )
@@ -209,15 +205,15 @@ int Sink::procPendingTile (VisTile::Ref &tileref)
   }
   lock.release();
   setExecState(CS_ES_IDLE,
-            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_EMPTY);
+            (control_status_&~(CS_CACHED|CS_RETCACHE|CS_RES_MASK))|CS_RES_OK);
   return resflag;
 }
 
 //##ModelId=3F98DAE6021E
-int Sink::deliverTile (const Request &req,VisTile::Ref &tileref,const LoRange &range)
+int Sink::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const LoRange &range)
 {
   // grab a copy of the ref (since procPendingTile may overwrite tileref)
-  VisTile::Ref ref(tileref,DMI::COPYREF);
+  VisCube::VTile::Ref ref(tileref,DMI::COPYREF);
   // process any pending tiles from previous deliver() call
   std::string errstr;
   int resflag = 0;
@@ -247,7 +243,7 @@ int Sink::deliverTile (const Request &req,VisTile::Ref &tileref,const LoRange &r
     pending.range = range;
   }
   // set execution state
-  int st = CS_RES_OK;
+  int st = CS_RES_NONE;
   if( resflag&RES_FAIL )
   {
     st = CS_RES_FAIL;
@@ -263,7 +259,7 @@ int Sink::deliverTile (const Request &req,VisTile::Ref &tileref,const LoRange &r
   return resflag;
 }
 
-int Sink::deliverFooter (VisTile::Ref &tileref)
+int Sink::deliverFooter (VisCube::VTile::Ref &tileref)
 {
   // process any pending tiles from previous deliver() call
   return procPendingTile(tileref);  

@@ -4,7 +4,7 @@
 #include <MEQ/Node.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
-#include <VisCube/VisTile.h>
+#include <VisCube/VTile.h>
 #include <MeqServer/AID-MeqServer.h>
 
 #pragma aid VisHandlerNode 
@@ -12,7 +12,8 @@
 #pragma aid Output Col Corr Next Read Flag Flags Mask Row Mandate Regular Grid
 #pragma aid UVW Node Name Group
     
-namespace Meq {
+namespace Meq 
+{
   
 const HIID  FStation1Index = AidStation|1|AidIndex,
             FStation2Index = AidStation|2|AidIndex,
@@ -29,7 +30,7 @@ const HIID  FStation1Index = AidStation|1|AidIndex,
             FUVWNodeName  = AidUVW|AidNode|AidName,
             FUVWNodeGroup = AidUVW|AidNode|AidGroup,
             
-// this is a MeqServer config flag, default True
+// this is a MeqServer config flag, default true
             FMandateRegularGrid = AidMandate|AidRegular|AidGrid;
     
 
@@ -52,12 +53,12 @@ class VisHandlerNode : public Node
     //## Alerts node that a vistile stream is starting.
     //## The desired output format (with any extra columns added in) is
     //## is passed in here.
-    virtual int deliverHeader (const VisTile::Format &) { return 0; };
+    virtual int deliverHeader (const VisCube::VTile::Format &) { return 0; };
 
     //##ModelId=3F98DAE60344
     //##Documentation
-    //## Delivers a VisTile to the node.
-    //## req is the request generated using this VisTile
+    //## Delivers a VisCube::VTile to the node.
+    //## req is the request generated using this VisCube::VTile
     //## tileref is a ref to the tile (will be detached)
     //## range is the range of valid rows to use
     //## Returns result state (see Node::RES_xxx constants), which can be
@@ -66,7 +67,7 @@ class VisHandlerNode : public Node
     //##    RES_WAIT    result not yet available, must wait
     //##    RES_UPDATED result available and tile was updated, output tile is
     //##                attached to tileref
-    virtual int deliverTile   (const Request &,VisTile::Ref &,const LoRange &) { return 0; }
+    virtual int deliverTile   (const Request &,VisCube::VTile::Ref &,const LoRange &) { return 0; }
                          
     //##Documentation
     //## Alerts node that a visdata stream is finished.
@@ -75,17 +76,14 @@ class VisHandlerNode : public Node
     //## bit flags:
     //##    RES_WAIT    must wait (please call again)
     //##    RES_UPDATED last tile was updated, output tile is attached to tileref
-    virtual int deliverFooter (VisTile::Ref &) { return 0; };
+    virtual int deliverFooter (VisCube::VTile::Ref &) { return 0; };
     
     //##ModelId=3F98DAE602DA
     LocalDebugContext;
     
   protected:
-    //##ModelId=400E5B6E00CD
-    virtual void checkInitState (DataRecord &rec);
-    
     //##ModelId=400E5B6E01FA
-    virtual void setStateImpl (DataRecord &rec,bool initializing);
+    virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
         
   private:

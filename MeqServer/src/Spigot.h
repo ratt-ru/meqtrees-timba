@@ -13,7 +13,7 @@
 
 //defrec begin MeqSpigot
 //  A MeqSpigot is attached to a VisAgent data source, and represents
-//  one interferometer. For every matching VisTile at the input of the 
+//  one interferometer. For every matching VisCube::VTile at the input of the 
 //  source, it caches the visibility data. If a matching request is then
 //  received, it returns that data as the result (with one plane per
 //  correlation.) A MeqSpigot usually works in concert with a MeqSink,
@@ -45,7 +45,7 @@ class Spigot : public VisHandlerNode
     Spigot ();
   
     //##ModelId=3F98DAE6023B
-    virtual int deliverTile (const Request &req,VisTile::Ref::Copy &tileref,const LoRange &);
+    virtual int deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const LoRange &);
     
     //##ModelId=3F98DAE6023E
     virtual TypeId objectType() const
@@ -61,7 +61,7 @@ class Spigot : public VisHandlerNode
                            const Request &req,bool newreq);
   
     //##ModelId=3F9FF6AA03D2
-    virtual void setStateImpl (DataRecord &rec,bool initializing);
+    virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
   private:
     void fillDebugState ();

@@ -28,6 +28,7 @@
 #include <MEQ/Request.h>
 #include <AppAgent/AppControlAgent.h>
 
+using namespace AppAgent;
 using namespace AppControlAgentVocabulary;
 using namespace VisVocabulary;
 using namespace VisAgent;
@@ -44,10 +45,10 @@ Meq::VisDataMux::VisDataMux (Meq::Forest &frst)
 }
 
 //##ModelId=3FA1016000B0
-void Meq::VisDataMux::init (const DataRecord &rec,
+void Meq::VisDataMux::init (const DMI::Record &rec,
                 VisAgent::InputAgent  & inp,
                 VisAgent::OutputAgent & outp,
-                AppControlAgent       & ctrl)
+                AppControlAgent & ctrl)
 {
   input_ = &inp;
   output_ = &outp;
@@ -60,10 +61,10 @@ void Meq::VisDataMux::init (const DataRecord &rec,
   {
     out_colnames_ = rec[FOutputColumn];
     out_columns_.resize(out_colnames_.size());
-    const VisTile::NameToIndexMap &colmap = VisTile::getNameToIndexMap();
+    const VisCube::VTile::NameToIndexMap &colmap = VisCube::VTile::getNameToIndexMap();
     for( uint i=0; i<out_colnames_.size(); i++ )
     {
-      VisTile::NameToIndexMap::const_iterator iter = 
+      VisCube::VTile::NameToIndexMap::const_iterator iter = 
           colmap.find(out_colnames_[i] = struppercase(out_colnames_[i]));
       FailWhen(iter==colmap.end(),"unknown output column "+out_colnames_[i]);
       out_columns_[i] = iter->second;
@@ -73,7 +74,7 @@ void Meq::VisDataMux::init (const DataRecord &rec,
   force_regular_grid = rec[FMandateRegularGrid].as<bool>(false);
 }
 
-int Meq::VisDataMux::receiveEvent (const EventIdentifier &evid,const ObjRef::Xfer &,void *ptr)
+int Meq::VisDataMux::receiveEvent (const EventIdentifier &evid,const ObjRef &,void *ptr)
 {
   if( evid.id() == EventCreate )
     addNode( *static_cast<Node*>(ptr) );
@@ -97,7 +98,7 @@ void Meq::VisDataMux::addNode (Node &check_node)
     return;
   cdebug(2)<<"node is a visdata handler, adding to data mux\n";
   // form data ID from state record
-  const DataRecord &state = node->state();
+  const DMI::Record &state = node->state();
   int did;
   try
   {
@@ -155,10 +156,10 @@ int Meq::VisDataMux::formDataId (int sta1,int sta2)
   return VisVocabulary::ifrNumber(sta1,sta2);
 }
 
-void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisTile &tile)
+void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTile &tile)
 {    
   // figure out range of valid rows
-  LoVec_bool valid( tile.rowflag() != int(VisTile::MissingData) );
+  LoVec_bool valid( tile.rowflag() != int(VisCube::VTile::MissingData) );
   cdebug1(6)<<"valid rows: "<<valid<<endl;
   // find first valid row, error if none
   int i0,i1;
@@ -194,7 +195,7 @@ void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisTile &tile
 }
 
 //##ModelId=3F98DAE6024A
-int Meq::VisDataMux::deliverHeader (const DataRecord &header)
+int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
 {
   // check header for number of stations, use a reasonable default
   cdebug(3)<<"got header: "<<header.sdebug(DebugLevel)<<endl;
@@ -220,7 +221,7 @@ int Meq::VisDataMux::deliverHeader (const DataRecord &header)
 //  minfreq = min(channel_freqs) - channels_widths(0)/2;
 //  maxfreq = max(channel_freqs) + channels_widths(0)/2;
   // init output tile format
-  out_format_.attach(header[FTileFormat].as_p<VisTile::Format>(),DMI::READONLY);
+  out_format_ <<= header[FTileFormat].as_p<VisCube::VTile::Format>();
   for( uint i=0; i<out_columns_.size(); i++ )
   {
     if( out_format_->defined(out_columns_[i]) )
@@ -230,9 +231,8 @@ int Meq::VisDataMux::deliverHeader (const DataRecord &header)
     else
     {
       cdebug(2)<<"adding output column "<<out_colnames_[i]<<" to tile format\n";
-      out_format_.privatize(DMI::WRITE);
-      out_format_().add(out_columns_[i],out_format_->type(VisTile::DATA),
-                        out_format_->shape(VisTile::DATA));
+      out_format_().add(out_columns_[i],out_format_->type(VisCube::VTile::DATA),
+                        out_format_->shape(VisCube::VTile::DATA));
     }
   }
   // notify all handlers of header
@@ -245,13 +245,13 @@ int Meq::VisDataMux::deliverHeader (const DataRecord &header)
       result_flag |= (*iter)->deliverHeader(*out_format_);
   }
   // cache the header
-  cached_header_.attach(header,DMI::READONLY);
+  cached_header_.attach(header);
   writing_data_ = false;
   return result_flag;
 }
 
 //##ModelId=3F950ACA0160
-int Meq::VisDataMux::deliverTile (VisTile::Ref::Copy &tileref)
+int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
 {
   int result_flag = 0;
   int did = formDataId(tileref->antenna1(),tileref->antenna2());
@@ -281,7 +281,7 @@ int Meq::VisDataMux::deliverTile (VisTile::Ref::Copy &tileref)
     VisHandlerList::iterator iter = hlist.begin();
     for( ; iter != hlist.end(); iter++ )
     {
-      VisTile::Ref ref(tileref,DMI::COPYREF);
+      VisCube::VTile::Ref ref(tileref,DMI::COPYREF);
       int code = (*iter)->deliverTile(req,ref,range);
       result_flag |= code;
       // if an output tile is returned, dump it out
@@ -301,7 +301,7 @@ int Meq::VisDataMux::deliverTile (VisTile::Ref::Copy &tileref)
   return result_flag;
 }
 
-int Meq::VisDataMux::deliverFooter (const DataRecord &footer)
+int Meq::VisDataMux::deliverFooter (const DMI::Record &footer)
 {
   cdebug(2)<<"delivering footer to all handlers"<<endl;
   int result_flag = 0;
@@ -311,7 +311,7 @@ int Meq::VisDataMux::deliverFooter (const DataRecord &footer)
     VisHandlerList::iterator iter = hlist.begin();
     for( ; iter != hlist.end(); iter++ )
     {
-      VisTile::Ref tileref;
+      VisCube::VTile::Ref tileref;
       int code = (*iter)->deliverFooter(tileref);
       if( code&Node::RES_UPDATED )
       {
@@ -328,6 +328,6 @@ int Meq::VisDataMux::deliverFooter (const DataRecord &footer)
     }
   }
   if( writing_data_ )
-    output().put(FOOTER,ObjRef(footer,DMI::READONLY));
+    output().put(FOOTER,ObjRef(footer));
   return result_flag;
 }

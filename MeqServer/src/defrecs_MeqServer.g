@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
-# Original file name: /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/defrecs_MeqServer.g
-# Generated on Mon Nov 29 21:33:04 CET 2004
+# Original file name: /home/oms/LOFAR/TIMBA/MeqServer/src/defrecs_MeqServer.g
+# Generated on Thu Jan 13 12:24:40 CET 2005
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 
@@ -8,11 +8,11 @@
 # 
 #
 # ---------- class MeqSink
-# generated from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/Sink.h
+# generated from /home/oms/LOFAR/TIMBA/MeqServer/src/Sink.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'A MeqSink is attached to a VisAgent data source. A MeqSink represents \
-                   one interferometer. For every matching VisTile at the input of the  \
+                   one interferometer. For every matching VisCube::VTile at the input of the  \
                    source, it generates a MeqRequest corresponding to the domain/cells  \
                    of the tile, and optionally stores the result back in the tile. \
                    A MeqSink must have exactly one child. The child may return a  \
@@ -34,11 +34,11 @@ r.uwv_node_group := '';
 _meqdefrec_map.MeqSink := r;
 #
 # ---------- class MeqSpigot
-# generated from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/Spigot.h
+# generated from /home/oms/LOFAR/TIMBA/MeqServer/src/Spigot.h
 #
 r := _meqdefrec_map.MeqNode;
 r::description := 'A MeqSpigot is attached to a VisAgent data source, and represents \
-                   one interferometer. For every matching VisTile at the input of the  \
+                   one interferometer. For every matching VisCube::VTile at the input of the  \
                    source, it caches the visibility data. If a matching request is then \
                    received, it returns that data as the result (with one plane per \
                    correlation.) A MeqSpigot usually works in concert with a MeqSink, \

@@ -18,18 +18,15 @@ void VisHandlerNode::setDataId (int id)
   wstate()[FDataId] = data_id = id;
 }
 
-//##ModelId=400E5B6E00CD
-void VisHandlerNode::checkInitState (DataRecord &rec)
-{
-  requiresInitField(rec,FStation1Index);
-  requiresInitField(rec,FStation2Index);
-  Node::checkInitState(rec);
-}
-
 //##ModelId=400E5B6E01FA
-void VisHandlerNode::setStateImpl (DataRecord &rec,bool initializing)
+void VisHandlerNode::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
-  if( !initializing )
+  if( initializing )
+  {
+    requiresInitField(rec,FStation1Index);
+    requiresInitField(rec,FStation2Index);
+  }
+  else
   {
     protectStateField(rec,FStation1Index);
     protectStateField(rec,FStation2Index);

@@ -1,11 +1,9 @@
 #include <AppAgent/BOIOSink.h>
-#include <MSVisAgent/MSInputSink.h>
-#include <MSVisAgent/MSOutputSink.h>
+#include <AppUtils/MSInputSink.h>
+#include <AppUtils/MSOutputSink.h>
 #include <OCTOPUSSY/Octopussy.h>
 #include <OCTOGlish/GlishConnServerWP.h>
-#include <OctoAgent/EventMultiplexer.h>
-// #include <casa/Exceptions/Error.h>
-
+#include <AppAgent/OctoEventMultiplexer.h>
 #include <AppUtils/VisRepeater.h>
 #include <MeqServer/MeqServer.h>
 #include <MeqServer/AID-MeqServer.h>
@@ -14,14 +12,17 @@ typedef std::vector<string> StrVec;
 typedef StrVec::iterator SVI;
 typedef StrVec::const_iterator SVCI;
 
-using namespace MSVisAgent;
+using namespace DebugMeq;
+using namespace DMI;
+using namespace AppAgent;
+using namespace VisAgent;
 using namespace OctoAgent;
 using namespace AppControlAgentVocabulary;
 
 bool setupApp (ApplicationBase::Ref &app,const string &str)
 {
   if( str.length() < 6 )
-    return False;
+    return false;
   string name = str.substr(0,5);
   string spec = str.substr(5);
   // select application based on spec string
@@ -39,7 +40,7 @@ bool setupApp (ApplicationBase::Ref &app,const string &str)
     wpclass = AidRepeater;
   }
   else 
-    return False;
+    return false;
   
   // split spec string at ":" character
   StrVec specs;
@@ -60,16 +61,16 @@ bool setupApp (ApplicationBase::Ref &app,const string &str)
   FailWhen(specs.size() != 3,"invalid app spec: "+spec);
   
   // initialize parameter record
-  DataRecord::Ref recref;
-  DataRecord &rec = recref <<= new DataRecord;
+  DMI::Record::Ref recref;
+  DMI::Record &rec = recref <<= new DMI::Record;
   // init errors will be thrown as exceptions
-  rec[FThrowError] = True;
+  rec[FThrowError] = true;
   // setup control agent for delayed initialization
-  rec[AidControl] <<= new DataRecord;
-  rec[AidControl][FDelayInit] = True;
-  rec[AidControl][FEventMapIn] <<= new DataRecord;
+  rec[AidControl] <<= new DMI::Record;
+  rec[AidControl][FDelayInit] = true;
+  rec[AidControl][FEventMapIn] <<= new DMI::Record;
   rec[AidControl][FEventMapIn][FDefaultPrefix] = HIID(specs[2])|AidIn;
-  rec[AidControl][FEventMapOut] <<= new DataRecord;
+  rec[AidControl][FEventMapOut] <<= new DMI::Record;
   rec[AidControl][FEventMapOut][FDefaultPrefix] = HIID(specs[2])|AidOut;
 
   // create agents
@@ -78,9 +79,9 @@ bool setupApp (ApplicationBase::Ref &app,const string &str)
   // input agent
   VisAgent::InputAgent::Ref in;
   if( specs[0] == "M" )
-    in <<= new VisAgent::InputAgent(new MSVisAgent::MSInputSink,DMI::ANONWR);
+    in <<= new VisAgent::InputAgent(new MSVisAgent::MSInputSink);
   else if( specs[0] == "B" )
-    in <<= new VisAgent::InputAgent(new BOIOSink,DMI::ANONWR);
+    in <<= new VisAgent::InputAgent(new BOIOSink);
   else if( specs[0] == "O" )
     in <<= new VisAgent::InputAgent(mux().newSink());
   else
@@ -88,9 +89,9 @@ bool setupApp (ApplicationBase::Ref &app,const string &str)
   // output agent
   VisAgent::OutputAgent::Ref out;
   if( specs[1] == "M" )
-    out <<= new VisAgent::OutputAgent(new MSVisAgent::MSOutputSink,DMI::ANONWR);
+    out <<= new VisAgent::OutputAgent(new MSVisAgent::MSOutputSink);
   else if( specs[1] == "B" )
-    out <<= new VisAgent::OutputAgent(new BOIOSink,DMI::ANONWR);
+    out <<= new VisAgent::OutputAgent(new BOIOSink);
   else if( specs[1] == "O" )
     out <<= new VisAgent::OutputAgent(mux().newSink());
   else
@@ -105,11 +106,11 @@ bool setupApp (ApplicationBase::Ref &app,const string &str)
     out().attach(mux().eventFlag());
   // attach agents to app and mux to OCTOPUSSY
   app()<<in<<out<<control;
-  Octopussy::dispatcher().attach(mux,DMI::WRITE);
+  Octopussy::dispatcher().attach(mux);
   // preinitialize control
   control().preinit(recref);
   
-  return True;
+  return true;
 }
     
 int main (int argc,const char *argv[])
@@ -152,12 +153,11 @@ int main (int argc,const char *argv[])
     if( glish )
     {
       cout<<"=================== initializing Glish gateway =================\n";
-      Octopussy::dispatcher().attach(
-          new GlishConnServerWP,DMI::ANON);
+      Octopussy::dispatcher().attach(new OctoGlish::GlishConnServerWP);
     }
     
     cout<<"=================== starting OCTOPUSSY thread =================\n";
-    Octopussy::initThread(True);
+    Octopussy::initThread(true);
     
     cout<<"=================== creating apps =============================\n";
     std::vector<ApplicationBase::Ref> apps;
@@ -179,7 +179,7 @@ int main (int argc,const char *argv[])
     std::vector<Thread::ThrID> appthreads(apps.size());
     for( uint i=0; i<apps.size(); i++)
     {
-      appthreads[i] = apps[i]().runThread(True);
+      appthreads[i] = apps[i]().runThread(true);
       cout<<"  thread: "<<appthreads[i]<<endl;
     }
     

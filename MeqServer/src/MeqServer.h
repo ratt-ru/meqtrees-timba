@@ -41,7 +41,7 @@ namespace Meq
 
 //##ModelId=3F5F195E013B
 //##Documentation
-class MeqServer : public VisRepeater, public EventRecepient
+class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
 {
   public:
     //##ModelId=3F5F195E0140
@@ -51,45 +51,45 @@ class MeqServer : public VisRepeater, public EventRecepient
     virtual void run();
 
     //##ModelId=3F61920F01A8
-    void createNode   (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void createNode   (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F61920F01FA
-    void deleteNode   (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void deleteNode   (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F61920F024E
-    void nodeGetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void nodeGetState (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F61920F02A4
-    void nodeSetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void nodeSetState (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F98D91A03B9
-    void resolve      (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void resolve      (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F98D91B0064
-    void getNodeList  (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
-    void getForestStatus (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void getNodeList  (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void getForestStatus (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
-    void getNodeIndex (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void getNodeIndex (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
     //##ModelId=400E5B6C015E
-    void nodeExecute  (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void nodeExecute  (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=400E5B6C01DD
-    void nodeClearCache (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void nodeClearCache (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=400E5B6C0247
-    void saveForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=400E5B6C02B3
-    void loadForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=400E5B6C0324
-    void clearForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void clearForest (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
-    void publishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
-    void disablePublishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void publishResults (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void disablePublishResults (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
-    void nodeSetBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
-    void nodeClearBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void nodeSetBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void nodeClearBreakpoint (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
-    void debugSetLevel      (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
-    void debugSingleStep    (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
-    void debugNextNode      (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
-    void debugContinue      (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
-    void debugUntilNode     (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void debugSetLevel      (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void debugSingleStep    (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void debugNextNode      (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void debugContinue      (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void debugUntilNode     (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
-    virtual int receiveEvent (const EventIdentifier &evid,const ObjRef::Xfer &,void *);
+    virtual int receiveEvent (const EventIdentifier &evid,const ObjRef &,void *);
     
     //##ModelId=3F5F195E0156
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
@@ -99,7 +99,7 @@ class MeqServer : public VisRepeater, public EventRecepient
 
   private:
     //##ModelId=3F6196800325
-    Node & resolveNode (bool &getstate,const DataRecord &rec);
+    Node & resolveNode (bool &getstate,const DMI::Record &rec);
 
     void processCommands();
     
@@ -107,13 +107,13 @@ class MeqServer : public VisRepeater, public EventRecepient
 
     void processBreakpoint (Node &node,int bpmask,bool global);
     
-    void fillForestStatus  (DataRecord &rec);
+    void fillForestStatus  (DMI::Record &rec);
       
     //##ModelId=3F5F218F02BD
     Forest forest;
   
     //##ModelId=3F61920F0158
-    typedef void (MeqServer::*PtrCommandMethod)(DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    typedef void (MeqServer::*PtrCommandMethod)(DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F61920F016E
     typedef std::map<HIID,PtrCommandMethod> CommandMap;
     //##ModelId=3F61920F0193
