@@ -64,6 +64,22 @@ int main (int argc,const char* argv[])
     int index_child2;
     Node& child2 = forest.create(index_child2,rec_child2);
     
+    cout << "============ creating child3 node ==================\n";
+    DataRecord::Ref rec_child3(DMI::ANONWR);
+    rec_child3()["Class"] = "MeqConstant";
+    rec_child3()["Name"] = "c3";
+    rec_child3()["Value"] = double(3);
+    int index_child3;
+    Node& child3 = forest.create(index_child3,rec_child3);
+    
+    cout << "============ creating child4 node ==================\n";
+    DataRecord::Ref rec_child4(DMI::ANONWR);
+    rec_child4()["Class"] = "MeqConstant";
+    rec_child4()["Name"] = "c4";
+    rec_child4()["Value"] = dcomplex(2, 1.1);
+    int index_child4;
+    Node& child4 = forest.create(index_child4,rec_child4);
+    
     cout << "============ creating cos node ===\n";
     DataRecord::Ref recc(DMI::ANONWR);
     recc()["Class"] = "MeqCos";
@@ -80,6 +96,8 @@ int main (int argc,const char* argv[])
     rec()["Children"] <<= new DataRecord;
       rec()["Children"]["A"] = "cosp1";
       rec()["Children"]["B"] = index_child2; 
+      rec()["Children"]["C"] = "c3";
+      rec()["Children"]["D"] = "c4";
     int index_add;
     Node& chadd = forest.create(index_add,rec);
     
