@@ -54,7 +54,7 @@ class BOIO
       
       // Stream form of the write operation
     //##ModelId=3DB949AE026A
-      BOIO & operator << (ObjRef &ref)
+      BOIO & operator << (const ObjRef &ref)
       { write(ref.deref()); return *this; } 
       
     //##ModelId=3DB949AE026F
