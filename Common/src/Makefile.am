@@ -30,6 +30,7 @@ INSTHDRS = \
         Thread.h \
         TypeNames.h \
         Net/Socket.h \
+        Profiling/PerfProfile.h \
         Thread/Condition.h \
         Thread/Key.h \
         Thread/Mutex.h \
@@ -57,6 +58,7 @@ libcommon_la_SOURCES 	= \
         LofarLogger.cc \
         LofarLogCout.cc \
         Net/Socket.cc \
+        Profiling/PerfProfile.cc \
         Thread/SmartLock.cc \
         Thread/Thread.cc \
 	      Timer.cc
