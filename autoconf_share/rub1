@@ -27,7 +27,7 @@
 # See rub for more details.
 #
 # Use as:
-#   rub1 package checkout cvscomm
+#   rub1 package checkout cvscomm updq
 #
 #     package     name of package to checkout/update
 #     checkout    1 = do actual checkout/update if not done yet
@@ -35,6 +35,7 @@
 #                     packages in allpkg.tmp. This is needed for rub
 #                     to get the correct build order.
 #     cvscomm     cvs command to be used
+#     updq        cvs update qualifiers (e.g. -dAP)
 
 
 # Get package name.
@@ -46,6 +47,7 @@ cvscomm="$3"
 if [ "$cvscomm" = "" ]; then
   cvscomm="cvs"
 fi
+updq="$4"
 # See if this package was already updated.
 fgrep "$pkgname" allpkg.tmp > /dev/null 2>&1
 status=$?
@@ -56,9 +58,11 @@ echo "$pkgname" >> allpkg.tmp
 if [ $status != 0  -a  $checkout = 1 ]; then
   if [ -d $pkgname ]; then
     echo "Update of package $pkgname"
-    (cd $pkgname  &&  $cvscomm update -dAP) >> rub.log 2>&1
+    echo "(cd $pkgname  &&  $cvscomm update $updq)" >> rub.log 2>&1
+    (cd $pkgname  &&  $cvscomm update "$updq") >> rub.log 2>&1
   else
     echo "Checkout of package $pkgname"
+    echo "(cd ..  &&  $cvscomm checkout LOFAR/$pkgname)" >> rub.log 2>&1
     (cd ..  &&  $cvscomm checkout LOFAR/$pkgname) >> rub.log 2>&1
   fi
 fi
@@ -74,6 +78,6 @@ if [ -f $pkgname/configure.in ]; then
     nm=`echo $pkg | sed -e "s/.*lofar_PACKAGE//" -e "s/ //g" -e "s/.*(//" -e "s/).*//"`
     nm=`echo $nm | sed -e "s/,.*//"`
     # Check out the package
-    $0 $nm $checkout "$cvscomm"  ||  exit 1
+    $0 $nm $checkout "$cvscomm" "$updq"  ||  exit 1
   done
 fi

@@ -41,7 +41,11 @@
 #     -cvs cvs-command  is an optional cvs command making it possible to
 #                       specify (for example) the root.
 #                       It defaults to cvs.
+#     -updq string      is a string containing qualifiers for the cvs update
+#                       command (default is empty)
 #     -build variant    gives the variant to build (e.g. gnu3_debug)
+#     -conf             do bootstrap and configure before build
+#                       It only takes effect if -build is also given.
 #     -clean            indicates that all build/<variant> directories
 #                       will be cleaned in order to start a clean build.
 #                       It only takes effect if -build is also given.
@@ -50,12 +54,16 @@
 #                       The difference with -clean is that the appropriate
 #                       makefiles and .la files will also be removed.
 #                       It only takes effect if -build is also given.
+#                       It forces -conf.
 #     -check            indicates that a make check should be done.
 #                       It only takes effect if -build is also given.
 #     package           is the name of the package to update/checkout and
 #                       optionally build.
 #                       Multiple packages can be given separated by whitespace.
 #
+# All options can be undone by preceeding them with no (e.g. -nobuild).
+# If an option is given multiple times, only the last value takes effect.
+
 # For example:
 #   rub -cvs "cvs -d :pserver:user@astron28:/cvs/cvsroot" CEP/CPA/PSS3/BBS
 
@@ -68,9 +76,13 @@ if [ $pgmbase != $0 ]; then
 fi
 
 # Handle possible options.
-cvscomm=cvs
+cvsdefault=cvs
+cvscomm=$cvsdefault
+updq=
 variant=
+conf=0
 clean=0
+distclean=0
 check=0
 while [ 1 = 1 ]
 do
@@ -79,27 +91,57 @@ do
     shift
     cvscomm="$1"
     shift
+  elif [ "$1" = "-nocvs" ]; then
+    shift
+    cvscomm=$cvsdefault
+  # cvs update qualifiers?
+  elif [ "$1" = -updq ]; then
+    shift
+    updq="$1"
+    shift
+  elif [ "$1" = -noupdq ]; then
+    shift
+    updq=
   # Do we have to build after the checkout/update?
   elif [ "$1" = -build ]; then
     shift
     variant="$1"
     shift
-  # Do we have to remove all build directories?
+  elif [ "$1" = -nobuild ]; then
+    shift
+    variant=
+  elif [ "$1" = -conf ]; then
+    shift
+    conf=1
+  elif [ "$1" = -noconf ]; then
+    shift
+    conf=0
   elif [ "$1" = -clean ]; then
     shift
-    if [ $clean = 0 ]; then
-      clean=1
-    fi
+    clean=1
+  elif [ "$1" = -noclean ]; then
+    shift
+    clean=0
   elif [ "$1" = -distclean ]; then
     shift
-    clean=2
+    distclean=1
+  elif [ "$1" = -distclean ]; then
+    shift
+    distclean=0
   elif [ "$1" = -check ]; then
     shift
     check=1
+  elif [ "$1" = -nocheck ]; then
+    shift
+    check=0
   else
     break;
   fi
 done
+if [ $distclean = 1 ]; then
+  clean=2
+  conf=1
+fi
 
 # Check if in correct directory.
 curwd=`pwd`
@@ -117,14 +159,14 @@ touch allpkg.tmp rub.log
 
 # First update bootstrap and autoconf_share.
 $cvscomm update bootstrap
-${pgmpath}rub1 autoconf_share 1 "$cvscomm"
+${pgmpath}rub1 autoconf_share 1 "$cvscomm" "$updq"
 \rm -f allpkg.tmp
 touch allpkg.tmp
 
 # Update the packages and all packages they need.
 for PKG in $*
 do
-  ${pgmpath}rub1 $PKG 1 "$cvscomm"
+  ${pgmpath}rub1 $PKG 1 "$cvscomm" "$updq"
 done
 
 # Convert allpkg.tmp to lofarconf.in.private
@@ -150,7 +192,7 @@ echo "Created lofarconf.in.private containing all these packages"
 echo "See rub.log for the cvs update/checkout details"
 egrep "^C " rub.log > greplog.tmp 2>&1
 if [ $? = 0 ]; then
-  echo "Error: there are update conflicts"
+  echo "Error: there are UPDATE CONFLICTS"
   cat greplog.tmp
   \rm -f greplog.tmp
   exit 1
@@ -162,8 +204,15 @@ fi
 if [ "$variant" != "" ]; then
   echo "Building packages in build/$variant ..."
   echo "See build.log for build details"
+  bootcmd=
+  confcmd=
   premake=
   postmake=
+  if [ $conf = 1 ]; then
+    bootcmd="./bootstrap; "
+    confcmd="../../lofarconf; "
+    echo "Packages will be bootstrapped and configured first"
+  fi
   if [ $clean = 1 ]; then
     premake="make clean; "
     echo "Packages will be cleaned first"
@@ -175,5 +224,5 @@ if [ "$variant" != "" ]; then
     postmake="make check; "
     echo "Packages will be checked at the end"
   fi
-  eval "mkdir -p build/$variant; ./bootstrap; cd build/$variant; ../../lofarconf; $premake make; $postmake" > build.log 2>&1
+  eval "mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake" > build.log 2>&1
 fi
