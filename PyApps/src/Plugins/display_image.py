@@ -1306,11 +1306,7 @@ class QwtImagePlot(QwtPlot):
             temp_array = asarray(self._vells_rec.vellsets[0].flags)
             self._flags_array = resize(temp_array,self._shape)
 
-# hack to make flags array layout agree with transposed
-# image layout until forest.state record available
-          axes = arange(self._flags_array.rank)[::-1]
-          flags_array_transpose = transpose(self._flags_array, axes)
-          self.plotImage.setFlagsArray(flags_array_transpose)
+          self.setFlagsData(self._flags_array)
 
 # plot the first plane member
         if self._vells_rec.vellsets[0].has_key("value"):
@@ -1337,6 +1333,15 @@ class QwtImagePlot(QwtPlot):
               complex_type = True;
             if self._value_array.type() == Complex64:
               complex_type = True;
+
+# for test purposes only
+#         self._flags_array = self._value_array.getreal().copy()
+#         for k in range(64):
+#           self._flags_array[0,k] = 0.0
+#         self._flags_array[0,11] = 1.0
+#         self._flags_array[0,21] = 1.0
+#         self._flags_array[0,31] = 1.0
+#         self.setFlagsData(self._flags_array)
 
           key = " value "
           if complex_type:
@@ -1499,6 +1504,10 @@ class QwtImagePlot(QwtPlot):
         self.setAxisAutoScale(QwtPlot.yLeft)
         self.setAxisAutoScale(QwtPlot.yRight)
 
+        if not self._flags_array is None:
+          self.flags_x_index = []
+          self.flags_r_values = []
+          self.flags_i_values = []
         self.active_image = False
         num_elements = n_rows*n_cols
         if self._vells_plot:
@@ -1523,6 +1532,20 @@ class QwtImagePlot(QwtPlot):
           self.x_index = arange(num_elements)
           self.x_index = self.x_index + 0.5
         flattened_array = reshape(plot_array,(num_elements,))
+        if not self._flags_array is None:
+          if complex_type:
+            x_array =  flattened_array.getreal()
+            y_array =  flattened_array.getimag()
+            for j in range(num_elements):
+              if self._flags_array[j] > 0:
+                self.flags_x_index.append(self.x_index[j])
+                self.flags_r_values.append(x_array[j])
+                self.flags_i_values.append(y_array[j])
+          else:
+            for j in range(num_elements):
+              if self._flags_array[j] > 0:
+                self.flags_x_index.append(self.x_index[j])
+                self.flags_r_values.append(flattened_array[j])
 # we have a complex vector
         if complex_type:
           self.enableAxis(QwtPlot.yRight)
@@ -1547,6 +1570,26 @@ class QwtImagePlot(QwtPlot):
           if not self.dummy_xCrossSection is None:
             self.removeCurve(self.dummy_xCrossSection)
             self.dummy_xCrossSection = None
+
+# stuff for flags
+          if not self._flags_array is None:
+            real_flag_plot = self.insertCurve('real_flags')
+            self.setCurvePen(real_flag_plot, QPen(Qt.black))
+            self.setCurveStyle(real_flag_plot, QwtCurve.Dots)
+            self.setCurveYAxis(real_flag_plot, QwtPlot.yLeft)
+            plot_flag_curve = self.curve(real_flag_plot)
+            plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
+                     QPen(Qt.black), QSize(20, 20)))
+            self.setCurveData(real_flag_plot, self.flags_x_index, self.flags_r_values)
+            imag_flag_plot = self.insertCurve('imag_flags')
+            self.setCurvePen(imag_flag_plot, QPen(Qt.black))
+            self.setCurveStyle(imag_flag_plot, QwtCurve.Dots)
+            self.setCurveYAxis(imag_flag_plot, QwtPlot.yRight)
+            plot_flag_curve = self.curve(imag_flag_plot)
+            plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
+                     QPen(Qt.black), QSize(20, 20)))
+            self.setCurveData(imag_flag_plot, self.flags_x_index, self.flags_i_values)
+
         else:
           self.setAxisTitle(QwtPlot.yLeft, 'Value')
           self.enableAxis(QwtPlot.yRight, False)
@@ -1564,9 +1607,55 @@ class QwtImagePlot(QwtPlot):
           if not self.dummy_xCrossSection is None:
             self.removeCurve(self.dummy_xCrossSection)
             self.dummy_xCrossSection = None
+# stuff for flags
+          if not self._flags_array is None:
+            real_flag_plot = self.insertCurve('real_flags')
+            self.setCurvePen(real_flag_plot, QPen(Qt.black))
+            self.setCurveStyle(real_flag_plot, QwtCurve.Dots)
+            self.setCurveYAxis(real_flag_plot, QwtPlot.yLeft)
+            plot_flag_curve = self.curve(real_flag_plot)
+            plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
+                     QPen(Qt.black), QSize(20, 20)))
+            self.setCurveData(real_flag_plot, self.flags_x_index, self.flags_r_values)
+
+# do the replot
         self.replot()
         _dprint(2, 'called replot in array_plot');
     # array_plot()
+
+    def setFlagsData (self, incoming_flag_array, flip_axes=True):
+      """ figure out shape, rank etc of a flag array and
+          plot it  """
+
+# hack to get array display correct until forest.state
+# record is available
+      flag_array = incoming_flag_array
+      if flip_axes:
+        axes = arange(incoming_flag_array.rank)[::-1]
+        flag_array = transpose(incoming_flag_array, axes)
+
+# figure out type and rank of incoming array
+      flag_is_vector = False;
+      array_dim = len(flag_array.shape)
+      array_rank = flag_array.rank
+      if array_rank == 1:
+        flag_is_vector = True;
+      n_rows = flag_array.shape[0]
+      if n_rows == 1:
+        flag_is_vector = True
+      n_cols = 1
+      if array_rank == 2:
+        n_cols = flag_array.shape[1]
+        if n_cols == 1:
+          flag_is_vector = True
+
+      if flag_is_vector == False:
+        self.plotImage.setFlagsArray(flag_array)
+      else:
+        num_elements = n_rows*n_cols
+        self._flags_array = reshape(flag_array,(num_elements,))
+
+    # setFlagData()
 
     def histogram_plot (self, data_label, input_array):
       """ figure out shape, rank etc of a spectrum array and
