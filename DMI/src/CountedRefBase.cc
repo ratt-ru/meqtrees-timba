@@ -447,9 +447,12 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
   }
   if( detail >= 2 || detail <= -2 ) // high detail - include target info
   {
-    if( out.length() )
-      out += "\n"+prefix+"  ";
-    out += "->" + target->sdebug(abs(detail)-1,prefix+"  ");
+    if( valid() )
+    {
+      if( out.length() )
+        out += "\n"+prefix+"  ";
+      out += "->" + target->sdebug(abs(detail)-1,prefix+"  ");
+    }
   }
   nesting--;
   return out;

@@ -112,10 +112,6 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
       //## Operation: objref%3C3C8D7F03D8
       ObjRef objref (int n = 0) const;
 
-      //## Operation: remove%3C3EC3470153
-      //	Removes object from field at position n, and returns ref to it.
-      ObjRef remove (int n = 0);
-
       //## Operation: fromBlock%3C3D5F2001DC
       //	Creates object from a set of block references. Appropriate number of
       //	references are removed from the head of the BlockSet. Returns # of
@@ -159,6 +155,16 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
 
       //## Operation: insertn%3C7A19930250
       virtual void * insertn (int n, TypeId tid, TypeId &real_tid);
+
+      //## Operation: remove%3C877E1E03BE
+      //	If given a single-index HIID, maps to removen(n). Otherwise, if
+      //	field contains a single container, calls remove(id) on that.
+      virtual bool remove (const HIID &id);
+
+      //## Operation: removen%3C877E260301
+      //	Removes object at specified index. Can only remove from the end of
+      //	the array.
+      virtual bool removen (int n);
 
       //## Operation: isContiguous%3C7F9826016F
       virtual bool isContiguous () const;

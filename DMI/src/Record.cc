@@ -103,9 +103,9 @@ void DataRecord::add (const HIID &id, const DataFieldRef &ref, int flags)
   //## end DataRecord::add%3BFBF5B600EB.body
 }
 
-DataFieldRef DataRecord::remove (const HIID &id)
+DataFieldRef DataRecord::removeField (const HIID &id)
 {
-  //## begin DataRecord::remove%3BB311C903BE.body preserve=yes
+  //## begin DataRecord::removeField%3BB311C903BE.body preserve=yes
   dprintf(2)("remove(%s)\n",id.toString().c_str());
   FailWhen( !id.size(),"null HIID" );
   FailWhen( !isWritable(),"r/w access violation" );
@@ -120,7 +120,7 @@ DataFieldRef DataRecord::remove (const HIID &id)
   }
   Throw("field "+id.toString()+" not found");
   return DataFieldRef();
-  //## end DataRecord::remove%3BB311C903BE.body
+  //## end DataRecord::removeField%3BB311C903BE.body
 }
 
 void DataRecord::replace (const HIID &id, const DataFieldRef &ref, int flags)
@@ -379,17 +379,21 @@ const void * DataRecord::get (const HIID &id, TypeId& tid, bool& can_write, Type
   CFMI iter = fields.find(id);
   if( iter == fields.end() )
     return 0;
-  // check writability
-  can_write = iter->second->isWritable();
-  FailWhen(must_write && !can_write,"write access violation"); 
   // default is to return an objref to the field
   if( !check_tid || check_tid == TpObjRef )
   {
+    // since we're returning an objref, writability to the ref is determined
+    // by our own writability
+    can_write = isWritable();
+    FailWhen(must_write && !can_write,"write access violation"); 
     tid = TpObjRef;
     return &iter->second;
   }
-  else // else a DataField (or Object) must be explicitly requested
+  else // else a DataField (or Object) must have been explicitly requested
   {
+    // check writability of the ref itself
+    can_write = iter->second->isWritable();
+    FailWhen(must_write && !can_write,"write access violation"); 
     FailWhen(check_tid != TpDataField && check_tid != TpObject,
         "type mismatch: expecting "+check_tid.toString()+", got DataField" );
     tid = TpDataField;
@@ -417,6 +421,24 @@ void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
     return const_cast<void*>( pf->getn(0,dum1,dum2,0,True) );
   }
   //## end DataRecord::insert%3C7A16BB01D7.body
+}
+
+bool DataRecord::remove (const HIID &id)
+{
+  //## begin DataRecord::remove%3C877D140036.body preserve=yes
+  dprintf(2)("remove(%s)\n",id.toString().c_str());
+  FailWhen( !id.size(),"null HIID" );
+  FailWhen( !isWritable(),"r/w access violation" );
+  // is it our field -- just remove it
+  CFMI iter = fields.find(id);
+  if( iter != fields.end() )
+  {
+    dprintf(2)("  removing %s\n",iter->second.debug(1));
+    fields.erase(iter->first);
+    return True;
+  }
+  return False;
+  //## end DataRecord::remove%3C877D140036.body
 }
 
 // Additional Declarations
@@ -461,5 +483,3 @@ string DataRecord::sdebug ( int detail,const string &prefix,const char *name ) c
   return out;
 }
 //## end module%3C10CC82005C.epilog
-
-

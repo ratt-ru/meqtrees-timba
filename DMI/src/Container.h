@@ -107,6 +107,9 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
     class ConstHook 
     {
       //## begin NestableContainer::ConstHook%3C614FDE0039.initialDeclarations preserve=yes
+      // Note that since Hooks are almost always treated as const 
+      // (since they only appear as temporary objects), all their methods have to
+      // be declared as const. Ugly, ain't it...
       //## end NestableContainer::ConstHook%3C614FDE0039.initialDeclarations
 
       public:
@@ -148,11 +151,20 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           //	Returns True if pointing to a container element.
           bool isContainer () const;
 
+          //## Operation: isRef%3C876FF50114
+          //	Returns true if the element being pointed to is held in an ObjRef.
+          bool isRef () const;
+
           //## Operation: size%3C87380503BE
           //	Size of element being pointed to. Always 1 for non-container element
           //	For containers, returns the size of the container. Returns 0 if the
           //	element doesn't exist.
           int size () const;
+
+          //## Operation: ref%3C87703E03D6
+          //	If the element  is held in an ObjRef, returns a read-only copy of
+          //	the ref. Throws exception otherwise.
+          ObjRef ref () const;
 
         // Additional Public Declarations
           //## begin NestableContainer::ConstHook%3C614FDE0039.public preserve=yes
@@ -196,6 +208,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           mutable bool addressed;     // flag: & operator has been applied
           mutable HIID id;            // id being applied to target
           mutable int  index;         // index being applied to target (-1 for not set)
+          
+          // if target is an ObjRef, returns it, checking for writability
+          // else throws an exception
+          inline const ObjRef * asRef (bool write=False) const;
 
           // if target is an NC, returns pointer to it, else 0.
           // if target is not specified, uses the current index
@@ -290,25 +306,56 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           bool isWritable () const;
 
           //## Operation: init%3C8739B5017B
+          //	Initializes element being pointed to. If element exists, does
+          //	nothing.
           const NestableContainer::Hook & init (TypeId tid = 0) const;
 
-          //## Operation: privatize%3C8739B5017C
-          const NestableContainer::Hook & privatize (int flags = 0) const;
-
           //## Operation: operator =%3C873A8F035F
-          ObjRef & operator = (const ObjRef &ref) const;
+          const NestableContainer::Hook & operator = (const ObjRef &ref) const;
 
           //## Operation: operator <<=%3C873AB8008D
-          ObjRef & operator <<= (ObjRef &ref) const;
+          const NestableContainer::Hook & operator <<= (ObjRef &ref) const;
+
+          //## Operation: operator <<=%3C87864D031A
+          const NestableContainer::Hook & operator <<= (BlockableObject *obj) const;
+
+          //## Operation: operator <<=%3C8786A30223
+          const NestableContainer::Hook & operator <<= (const BlockableObject *obj) const;
 
           //## Operation: put%3C873AE302FC
-          BlockableObject & put (BlockableObject &obj, int flags) const;
+          const NestableContainer::Hook & put (BlockableObject &obj, int flags) const;
 
           //## Operation: put%3C873B8F01C2
-          const BlockableObject & put (const BlockableObject &obj, int flags) const;
+          const NestableContainer::Hook & put (const BlockableObject &obj, int flags) const;
 
           //## Operation: put%3C873B980248
-          ObjRef & put (const ObjRef &ref, int flags) const;
+          const NestableContainer::Hook & put (const ObjRef &ref, int flags) const;
+
+          //## Operation: privatize%3C8739B5017C
+          //	If container is writable, and the element being pointed to is held
+          //	in an ObjRef, then privatizes the ObjRef. Throws exception otherwise.
+          const NestableContainer::Hook & privatize (int flags = 0) const;
+
+          //## Operation: ref%3C8770A70215
+          //	If the element  is held in an ObjRef, returns a copy of the ref with
+          //	the specified flags. Throws exception otherwise.
+          ObjRef ref (int flags = DMI::PRESERVE_RW) const;
+
+          //## Operation: remove%3C876DCE0266
+          //	Removes the element being pointed to from the container. Returns
+          //	True if removed, False if no such element.
+          bool remove (ObjRef* ref = 0	// If specified, then
+          	// the removed element will be re-attached to this ref. An exception
+          	// will be thrown if the element is not held in an ObjRef.
+          ) const;
+
+          //## Operation: detach%3C876E140018
+          //	Can only be called for elements held in an ObjRef. Detaches element
+          //	but leaves the ObjRef in the container. Returnsref to self, so it's
+          //	possible to do things like rec[field].detach(&old_ref) <<= new
+          //	object;
+          const NestableContainer::Hook & detach (ObjRef* ref = 0	// If specified, then the element will be re-attached to this ref.
+          ) const;
 
         // Additional Public Declarations
           //## begin NestableContainer::Hook%3C8739B50135.public preserve=yes
@@ -446,6 +493,20 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       //	specification. The default implementation simply converts the index
       //	into a single-index HIID, and calls insert(HIID).
       virtual void * insertn (int n, TypeId tid, TypeId &real_tid);
+
+      //## Operation: remove%3C87752F031F
+      //	Virtual method for removing the element indicated by id.
+      //	Should return True if element was removed, False for no such
+      //	element, or throw an exception on logic error.
+      //	Default implementation throws a "container does not support remove"
+      //	exception.
+      virtual bool remove (const HIID &id);
+
+      //## Operation: removen%3C87753803B8
+      //	remove(int): this is a version of remove() with a numeric element
+      //	specification. The default implementation simply converts the index
+      //	into a single-index HIID, and calls remove(HIID).
+      virtual bool removen (int n);
 
       //## Operation: size%3C7A154E01AB
       //	Abstract method. Must returns the number of elements in the
@@ -663,6 +724,15 @@ inline bool NestableContainer::ConstHook::isContainer () const
   //## end NestableContainer::ConstHook::isContainer%3C873800017C.body
 }
 
+inline bool NestableContainer::ConstHook::isRef () const
+{
+  //## begin NestableContainer::ConstHook::isRef%3C876FF50114.body preserve=yes
+  TypeId tid; bool dum;
+  const void *target = collapseIndex(tid,dum,0,False);
+  return target && tid == TpObjRef;
+  //## end NestableContainer::ConstHook::isRef%3C876FF50114.body
+}
+
 inline int NestableContainer::ConstHook::size () const
 {
   //## begin NestableContainer::ConstHook::size%3C87380503BE.body preserve=yes
@@ -673,6 +743,13 @@ inline int NestableContainer::ConstHook::size () const
   const NestableContainer *nc1 = asNestable();
   return nc1 ? nc1->size() : 1;
   //## end NestableContainer::ConstHook::size%3C87380503BE.body
+}
+
+inline ObjRef NestableContainer::ConstHook::ref () const
+{
+  //## begin NestableContainer::ConstHook::ref%3C87703E03D6.body preserve=yes
+  return ObjRef(*asRef(),DMI::READONLY|DMI::COPYREF);
+  //## end NestableContainer::ConstHook::ref%3C87703E03D6.body
 }
 
 // Class NestableContainer::Hook 
@@ -726,41 +803,67 @@ inline const NestableContainer::Hook & NestableContainer::Hook::operator & () co
   //## end NestableContainer::Hook::operator &%3C8739B50176.body
 }
 
-inline ObjRef & NestableContainer::Hook::operator = (const ObjRef &ref) const
+inline const NestableContainer::Hook & NestableContainer::Hook::operator = (const ObjRef &ref) const
 {
   //## begin NestableContainer::Hook::operator =%3C873A8F035F.body preserve=yes
-  return assign_objref(ref,DMI::PRESERVE_RW|DMI::COPYREF);
+  assign_objref(ref,DMI::PRESERVE_RW|DMI::COPYREF);
+  return *this;
   //## end NestableContainer::Hook::operator =%3C873A8F035F.body
 }
 
-inline ObjRef & NestableContainer::Hook::operator <<= (ObjRef &ref) const
+inline const NestableContainer::Hook & NestableContainer::Hook::operator <<= (ObjRef &ref) const
 {
   //## begin NestableContainer::Hook::operator <<=%3C873AB8008D.body preserve=yes
-  return assign_objref(ref,DMI::PRESERVE_RW);
+  assign_objref(ref,DMI::PRESERVE_RW);
+  return *this;
   //## end NestableContainer::Hook::operator <<=%3C873AB8008D.body
 }
 
-inline BlockableObject & NestableContainer::Hook::put (BlockableObject &obj, int flags) const
+inline const NestableContainer::Hook & NestableContainer::Hook::operator <<= (BlockableObject *obj) const
+{
+  //## begin NestableContainer::Hook::operator <<=%3C87864D031A.body preserve=yes
+  assign_object(obj,obj->objectType(),DMI::ANON|DMI::WRITE);
+  return *this;
+  //## end NestableContainer::Hook::operator <<=%3C87864D031A.body
+}
+
+inline const NestableContainer::Hook & NestableContainer::Hook::operator <<= (const BlockableObject *obj) const
+{
+  //## begin NestableContainer::Hook::operator <<=%3C8786A30223.body preserve=yes
+  assign_object(obj,obj->objectType(),DMI::ANON|DMI::READONLY);
+  return *this;
+  //## end NestableContainer::Hook::operator <<=%3C8786A30223.body
+}
+
+inline const NestableContainer::Hook & NestableContainer::Hook::put (BlockableObject &obj, int flags) const
 {
   //## begin NestableContainer::Hook::put%3C873AE302FC.body preserve=yes
   assign_object(&obj,obj.objectType(),flags);
-  return obj;
+  return *this;
   //## end NestableContainer::Hook::put%3C873AE302FC.body
 }
 
-inline const BlockableObject & NestableContainer::Hook::put (const BlockableObject &obj, int flags) const
+inline const NestableContainer::Hook & NestableContainer::Hook::put (const BlockableObject &obj, int flags) const
 {
   //## begin NestableContainer::Hook::put%3C873B8F01C2.body preserve=yes
   assign_object(&obj,obj.objectType(),flags);
-  return obj;
+  return *this;
   //## end NestableContainer::Hook::put%3C873B8F01C2.body
 }
 
-inline ObjRef & NestableContainer::Hook::put (const ObjRef &ref, int flags) const
+inline const NestableContainer::Hook & NestableContainer::Hook::put (const ObjRef &ref, int flags) const
 {
   //## begin NestableContainer::Hook::put%3C873B980248.body preserve=yes
-  return assign_objref(ref,flags);
+  assign_objref(ref,flags);
+  return *this;
   //## end NestableContainer::Hook::put%3C873B980248.body
+}
+
+inline ObjRef NestableContainer::Hook::ref (int flags) const
+{
+  //## begin NestableContainer::Hook::ref%3C8770A70215.body preserve=yes
+  return ObjRef(*asRef(),flags|DMI::COPYREF);
+  //## end NestableContainer::Hook::ref%3C8770A70215.body
 }
 
 // Class NestableContainer 
@@ -791,6 +894,20 @@ inline void * NestableContainer::insertn (int n, TypeId tid, TypeId &real_tid)
   //## begin NestableContainer::insertn%3C7A140A003C.body preserve=yes
   return insert(HIID(n),tid,real_tid);
   //## end NestableContainer::insertn%3C7A140A003C.body
+}
+
+inline bool NestableContainer::remove (const HIID &id)
+{
+  //## begin NestableContainer::remove%3C87752F031F.body preserve=yes
+  Throw("container does not support remove("+id.toString()+")");
+  //## end NestableContainer::remove%3C87752F031F.body
+}
+
+inline bool NestableContainer::removen (int n)
+{
+  //## begin NestableContainer::removen%3C87753803B8.body preserve=yes
+  return remove(HIID(n));
+  //## end NestableContainer::removen%3C87753803B8.body
 }
 
 inline bool NestableContainer::isContiguous () const
@@ -854,44 +971,15 @@ inline bool NestableContainer::isWritable () const
 }
 
 //## begin module%3C10CC830067.epilog preserve=yes
-inline const NestableContainer * NestableContainer::ConstHook::asNestable (const void *targ=0,TypeId tid=0) const
-{
-  if( !targ )
-  {
-    bool dum;
-    targ = collapseIndex(tid,dum,0,False);
-    if( !targ )
-      return 0;
-  }
-  if( tid == TpObjRef )
-  {
-    targ = &static_cast<const ObjRef*>(targ)->deref();
-    tid = static_cast<const BlockableObject*>(targ)->objectType();
-  }
-  return NestableContainer::isNestable(tid) 
-    ? static_cast<const NestableContainer*>(targ) 
-    : 0;
-}
 
-inline NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ=0,TypeId tid=0) const
+inline const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
 {
-  if( !targ )
-  {
-    bool dum;
-    targ = const_cast<void*>( collapseIndex(tid,dum,0,True) );
-    if( !targ )
-      return 0;
-  }
-  if( !targ )
-    return 0;
-  if( tid == TpObjRef )
-  {
-    targ = &static_cast<ObjRef*>(targ)->dewr();
-    tid = static_cast<BlockableObject*>(targ)->objectType();
-  }
-  return NestableContainer::isNestable(tid) 
-    ? static_cast<NestableContainer*>(targ) 
-    : 0;
+  FailWhen(addressed,"unexpected '&' operator");
+  TypeId tid; bool dum;
+  const void *target = collapseIndex(tid,dum,0,write);
+  FailWhen(!target,"element does not exist");
+  FailWhen(tid!=TpObjRef,"element is not held in an ObjRef");
+  return static_cast<const ObjRef*>(target);
 }
 
 // This is called to access by pointer, for all types
@@ -928,5 +1016,20 @@ inline void NestableContainer::Hook::assign_object( const BlockableObject *obj,T
 
 //## end module%3C10CC830067.epilog
 
+
+#endif
+
+
+// Detached code regions:
+#if 0
+//## begin NestableContainer::Hook::detach%3C876E140018.body preserve=yes
+  ObjRef *ref0 = const_cast<ObjRef*>( asRef(True) );
+  ref0->unlock();
+  if( ref )
+    ref->xfer(ref0);
+  else
+    ref0->detach();
+  return *ref0;
+//## end NestableContainer::Hook::detach%3C876E140018.body
 
 #endif

@@ -280,22 +280,6 @@ ObjRef DataField::objref (int n) const
   //## end DataField::objref%3C3C8D7F03D8.body
 }
 
-ObjRef DataField::remove (int n)
-{
-  //## begin DataField::remove%3C3EC3470153.body preserve=yes
-  FailWhen( !valid(),"uninitialized DataField");
-  FailWhen( !isWritable(),"field is read-only" );
-  checkIndex(n);
-  if( !dynamic_type )
-    return NullRef;
-  // transfer object reference
-  ObjRef ret = resolveObject(n,True);
-  objstate[n] = UNINITIALIZED;
-  dprintf(2)("removing @%d: %s\n",n,ret.debug(2));
-  return ret;
-  //## end DataField::remove%3C3EC3470153.body
-}
-
 int DataField::fromBlock (BlockSet& set)
 {
   //## begin DataField::fromBlock%3C3D5F2001DC.body preserve=yes
@@ -700,11 +684,15 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
 void * DataField::insert (const HIID &id, TypeId tid, TypeId &real_tid)
 {
   //## begin DataField::insert%3C7A198A0347.body preserve=yes
+  dprintf(2)("insert(%s,%s)\n",id.toString().c_str(),tid.toString().c_str());
   FailWhen( !id.size(),"null HIID" );
-  FailWhen( !valid() || !size(),"field not initialized" );
+  if( id.size()==1 && id.front().index()>=0 )
+    return insertn(id.front().index(),tid,real_tid);
+  FailWhen( !valid() || !size(),"field not initialized or empty" );
   FailWhen( !scalar,"non-scalar field, explicit index expected" );
   FailWhen( !isNestable(type()),"contents not a container" );
   // resolve to pointer to container
+  dprintf(2)("insert: deferring to child %s\n",type().toString().c_str());
   NestableContainer *nc = dynamic_cast<NestableContainer *>
       (&resolveObject(0,True).dewr());
   Assert(nc);
@@ -717,6 +705,7 @@ void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
 {
   //## begin DataField::insertn%3C7A19930250.body preserve=yes
   // empty field? init with one element
+  dprintf(2)("insertn(%d,%s)\n",n,tid.toString().c_str());
   if( !valid() )
   {
     FailWhen( n,Debug::ssprintf("can't insert at [%d]",n) );
@@ -749,6 +738,39 @@ void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
     return &resolveObject(n,True);
   }
   //## end DataField::insertn%3C7A19930250.body
+}
+
+bool DataField::remove (const HIID &id)
+{
+  //## begin DataField::remove%3C877E1E03BE.body preserve=yes
+  dprintf(2)("remove(%s)\n",id.toString().c_str());
+  FailWhen( !id.size(),"null HIID" );
+  if( id.size()==1 && id.front().index()>=0 )
+    return removen(id.front().index());
+  FailWhen( !valid() || !size(),"field not initialized or empty" );
+  FailWhen( !scalar,"non-scalar field, explicit index expected" );
+  FailWhen( !isNestable(type()),"contents not a container" );
+  // resolve to pointer to container
+  dprintf(2)("remove: deferring to child %s\n",type().toString().c_str());
+  NestableContainer *nc = dynamic_cast<NestableContainer *>
+      (&resolveObject(0,True).dewr());
+  Assert(nc);
+  // defer to remove(id) on container
+  return nc->remove(id);
+  //## end DataField::remove%3C877E1E03BE.body
+}
+
+bool DataField::removen (int n)
+{
+  //## begin DataField::removen%3C877E260301.body preserve=yes
+  // empty field? init with one element
+  dprintf(2)("removen(%d)\n",n);
+  FailWhen( !valid() || !size(),"field not initialized or empty" );
+  FailWhen( n!=size()-1,"can only remove from end of field" );
+  dprintf(2)("removen: resizing to %d elements\n",n);
+  resize(n);
+  return True;
+  //## end DataField::removen%3C877E260301.body
 }
 
 // Additional Declarations
@@ -851,6 +873,19 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
 
 // Detached code regions:
 #if 0
+//## begin DataField::remove%3C3EC3470153.body preserve=yes
+  FailWhen( !valid(),"uninitialized DataField");
+  FailWhen( !isWritable(),"field is read-only" );
+  checkIndex(n);
+  if( !dynamic_type )
+    return NullRef;
+  // transfer object reference
+  ObjRef ret = resolveObject(n,True);
+  objstate[n] = UNINITIALIZED;
+  dprintf(2)("removing @%d: %s\n",n,ret.debug(2));
+  return ret;
+//## end DataField::remove%3C3EC3470153.body
+
 //## begin DataField::put%3C3C84A40176.body preserve=yes
   dprintf(2)("putting @%d: %s\n",n,obj.debug(2));
   ObjRef &ref = prepareForPut( obj->objectType(),n,flags );

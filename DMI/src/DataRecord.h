@@ -87,8 +87,10 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       //## Operation: add%3C5FF0D60106
       void add (const HIID &id, DataField *pfld, int flags = DMI::WRITE|DMI::ANON);
 
-      //## Operation: remove%3BB311C903BE
-      DataFieldRef remove (const HIID &id);
+      //## Operation: removeField%3BB311C903BE
+      //	Removes data field from container and returns a ref to the removed
+      //	field
+      DataFieldRef removeField (const HIID &id);
 
       //## Operation: replace%3BFCD4BB036F
       void replace (const HIID &id, const DataFieldRef &ref, int flags = DMI::XFER);
@@ -142,6 +144,10 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
 
       //## Operation: insert%3C7A16BB01D7
       virtual void * insert (const HIID &id, TypeId tid, TypeId &real_tid);
+
+      //## Operation: remove%3C877D140036
+      //	Implementation of remove() for Hooks (see NestableContainer).
+      virtual bool remove (const HIID &id);
 
       //## Operation: size%3C7A16C4023F
       virtual int size () const;

@@ -13,7 +13,7 @@
 //## Module: CountedRef%3C10CC810321; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\LOFAR\dvl\LOFAR\cep\cpa\pscf\src\CountedRef.h
+//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\CountedRef.h
 
 #ifndef CountedRef_h
 #define CountedRef_h 1
@@ -99,7 +99,7 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       //	Dereferences to non-const object.
       T& dewr ();
 
-      //## Operation: operator %3C0F806901C1; C++
+      //## Operation: operator%3C0F806901C1; C++
       //	Dereferences to non-const object. Use e.g. ref().method() to call
       //	target's non-const methods.
       T& operator () ();
@@ -156,16 +156,16 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       //## Operation: attach%3BFA4DF4027D; C++
       //	Various methods to attach to target object. See CountedRef
       //	Base::attach(). Const target forces READONLY ref.
-      void attach (T& targ, int flags = 0);
+      CountedRef<T> & attach (T& targ, int flags = 0);
 
       //## Operation: attach%3BFA4E070216; C++
-      void attach (const T& targ, int flags = 0);
+      CountedRef<T> & attach (const T& targ, int flags = 0);
 
       //## Operation: attach%3C179D9E027E; C++
-      void attach (T* targ, int flags = 0);
+      CountedRef<T> & attach (T* targ, int flags = 0);
 
       //## Operation: attach%3C179DA9016B; C++
-      void attach (const T* targ, int flags = 0);
+      CountedRef<T> & attach (const T* targ, int flags = 0);
 
     // Additional Public Declarations
       //## begin CountedRef%3BEFECFF0287.public preserve=yes
@@ -412,9 +412,9 @@ inline T& CountedRef<T>::dewr ()
 template <class T>
 inline T& CountedRef<T>::operator () ()
 {
-  //## begin CountedRef::operator %3C0F806901C1.body preserve=yes
+  //## begin CountedRef::operator%3C0F806901C1.body preserve=yes
   return dewr();
-  //## end CountedRef::operator %3C0F806901C1.body
+  //## end CountedRef::operator%3C0F806901C1.body
 }
 
 template <class T>
@@ -541,34 +541,36 @@ inline CountedRef<T>& CountedRef<T>::setExclusiveWrite ()
 }
 
 template <class T>
-inline void CountedRef<T>::attach (T& targ, int flags)
+inline CountedRef<T> & CountedRef<T>::attach (T& targ, int flags)
 {
   //## begin CountedRef::attach%3BFA4DF4027D.body preserve=yes
-  attach(&targ,flags);
+  return attach(&targ,flags);
   //## end CountedRef::attach%3BFA4DF4027D.body
 }
 
 template <class T>
-inline void CountedRef<T>::attach (const T& targ, int flags)
+inline CountedRef<T> & CountedRef<T>::attach (const T& targ, int flags)
 {
   //## begin CountedRef::attach%3BFA4E070216.body preserve=yes
-  attach(&targ,flags);
+  return attach(&targ,flags);
   //## end CountedRef::attach%3BFA4E070216.body
 }
 
 template <class T>
-inline void CountedRef<T>::attach (T* targ, int flags)
+inline CountedRef<T> & CountedRef<T>::attach (T* targ, int flags)
 {
   //## begin CountedRef::attach%3C179D9E027E.body preserve=yes
   CountedRefBase::attach(targ,flags);
+  return *this;
   //## end CountedRef::attach%3C179D9E027E.body
 }
 
 template <class T>
-inline void CountedRef<T>::attach (const T* targ, int flags)
+inline CountedRef<T> & CountedRef<T>::attach (const T* targ, int flags)
 {
   //## begin CountedRef::attach%3C179DA9016B.body preserve=yes
   CountedRefBase::attach(targ,flags);
+  return *this;
   //## end CountedRef::attach%3C179DA9016B.body
 }
 

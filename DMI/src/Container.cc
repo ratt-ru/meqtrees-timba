@@ -88,6 +88,37 @@ const NestableContainer::Hook & NestableContainer::Hook::privatize (int flags) c
   //## end NestableContainer::Hook::privatize%3C8739B5017C.body
 }
 
+bool NestableContainer::Hook::remove (ObjRef* ref) const
+{
+  //## begin NestableContainer::Hook::remove%3C876DCE0266.body preserve=yes
+  FailWhen(!nc->isWritable(),"r/w access violation");
+  if( ref )
+  {
+    // cast away const here: even though ref may be read-only, as long as the 
+    // container is writable, we can detach it
+    ObjRef *ref0 = const_cast<ObjRef*>( asRef(False) );
+    ref->xfer(ref0->unlock());
+  }
+  return index >= 0 ? nc->removen(index) : nc->remove(id);
+  //## end NestableContainer::Hook::remove%3C876DCE0266.body
+}
+
+const NestableContainer::Hook & NestableContainer::Hook::detach (ObjRef* ref) const
+{
+  //## begin NestableContainer::Hook::detach%3C876E140018.body preserve=yes
+  FailWhen(!nc->isWritable(),"r/w access violation");
+  // cast away const here: even though ref may be read-only, as long as the 
+  // container is writable, we can still detach it
+  ObjRef *ref0 = const_cast<ObjRef*>( asRef(False) );
+  ref0->unlock();
+  if( ref )
+    ref->xfer(*ref0);
+  else
+    ref0->detach();
+  return *this;
+  //## end NestableContainer::Hook::detach%3C876E140018.body
+}
+
 // Additional Declarations
   //## begin NestableContainer::Hook%3C8739B50135.declarations preserve=yes
   //## end NestableContainer::Hook%3C8739B50135.declarations
@@ -123,6 +154,50 @@ int NestableContainer::selectionToBlock (BlockSet& set)
 // but somehow update something (residual ID?) so that later, at point of access,
 // it can be resolved.  
 
+
+const NestableContainer * NestableContainer::ConstHook::asNestable (const void *targ=0,TypeId tid=0) const
+{
+  if( !targ )
+  {
+    bool dum;
+    targ = collapseIndex(tid,dum,0,False);
+    if( !targ )
+      return 0;
+  }
+  if( tid == TpObjRef )
+  {
+    if( !static_cast<const ObjRef*>(targ)->valid() )
+      return 0;
+    targ = &static_cast<const ObjRef*>(targ)->deref();
+    tid = static_cast<const BlockableObject*>(targ)->objectType();
+  }
+  return NestableContainer::isNestable(tid) 
+    ? static_cast<const NestableContainer*>(targ) 
+    : 0;
+}
+
+NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ=0,TypeId tid=0) const
+{
+  if( !targ )
+  {
+    bool dum;
+    targ = const_cast<void*>( collapseIndex(tid,dum,0,True) );
+    if( !targ )
+      return 0;
+  }
+  if( !targ )
+    return 0;
+  if( tid == TpObjRef )
+  {
+    if( !static_cast<ObjRef*>(targ)->valid() )
+      return 0;
+    targ = &static_cast<ObjRef*>(targ)->dewr();
+    tid = static_cast<BlockableObject*>(targ)->objectType();
+  }
+  return NestableContainer::isNestable(tid) 
+    ? static_cast<NestableContainer*>(targ) 
+    : 0;
+}
 
 // This is called to get a value, for built-in scalar types only
 void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) const
@@ -230,7 +305,7 @@ void NestableContainer::Hook::assign_object( BlockableObject *obj,TypeId tid,int
   TypeId target_tid;
   void *target = resolveTarget(target_tid,tid);
   FailWhen(target_tid!=TpObjRef,"can't attach "+tid.toString()+" to "+target_tid.toString());
-  static_cast<ObjRef*>(target)->unlock().attach(obj,flags);
+  static_cast<ObjRef*>(target)->unlock().attach(obj,flags).lock();
 }
 
 // Helper function assigns an objref     
@@ -241,9 +316,9 @@ ObjRef & NestableContainer::Hook::assign_objref ( const ObjRef &ref,int flags ) 
   void *target = resolveTarget(target_tid,ref->objectType());
   FailWhen(target_tid!=TpObjRef,"can't assign ObjRef to "+target_tid.toString());
   if( flags&DMI::COPYREF )
-    return static_cast<ObjRef*>(target)->unlock().copy(ref,flags);
+    return static_cast<ObjRef*>(target)->unlock().copy(ref,flags).lock();
   else
-    return static_cast<ObjRef*>(target)->unlock().xfer(const_cast<ObjRef&>(ref));
+    return static_cast<ObjRef*>(target)->unlock().xfer(const_cast<ObjRef&>(ref)).lock();
 }
 
 string NestableContainer::ConstHook::sdebug ( int detail,const string &prefix,const char *name ) const
