@@ -141,23 +141,31 @@
   \item[Locality:] all functionality is defined in terms of local parent--child
   request--result interactions. There is no centralized ``control'' as such.
 
-  \item[KISS the nodes and rely on emergent behaviour:] complex behaviour of the
-  tree as a whole emerges from primitive request--result interactions at the
-  local level. Most node classes are designed to be simple (K.I.S.S.!), with a
-  single well-defined purpose. If some sort of specific functionality is
-  required, it is almost always preferrable to implement it by building the right
-  tree, rather than developing specialized nodes.
+  \item[KISS and rely on emergent behaviour:] complex behaviour of the tree as
+  a whole emerges from primitive request--result interactions at the local
+  level. Most node classes are designed to be simple (K.I.S.S.!), with a single
+  well-defined purpose. If some sort of specific functionality is required, it
+  is almost always preferrable to implement it by building the right tree,
+  rather than developing specialized nodes.
 
   \item[Policy-free:] kernel node classes are largely policy-free. By policy we
   mean any sort of application-specific behaviour or concepts. Policy may only
-  emerge at the tree level (by connecting the nodes in a specific way), and/or at
-  the scripting level.
+  emerge at the tree level (by connecting the nodes in a specific way), and/or
+  at the scripting level.
 
-  \item[There is more than one way to do it:] (with a nod to Larry Wall and Perl)
-  in a lot of cases, the kernel provides several ways of accomplishing the same 
-  result. There is not necessarily a single ``right'' way, it all depends on the
-  particular application context. This redundancy is by design, as it increases
-  the overall adapatability of the system.
+  \item[Prohibition is for policy-makers:] this is a corollary to the
+  previous principle. Apart from minimal and obvious sanity checks, the kernel
+  imposes very few restrictions on its interface calls. This, of course, is a
+  double-edged sword -- it provides great power, but also great opportunities
+  to do something wrong. It is left to the higher-level (i.e.
+  application-level) scripting code to shackle the user and protect him from
+  mistakes.
+
+  \item[There is more than one way to do it:] (with a nod to Larry Wall and
+  Perl) in a lot of cases, the kernel provides several ways of accomplishing
+  the same  result. There is not necessarily a single ``right'' way, it all
+  depends on the particular application context. This redundancy is by design,
+  as it increases the overall adapatability of the system.
 
   \end{description}
 
