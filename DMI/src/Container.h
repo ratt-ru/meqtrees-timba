@@ -185,11 +185,11 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           //	Size of element being pointed to. Always 1 for non-container element
           //	For containers, returns the size of the container. Returns 0 if the
           //	element doesn't exist.
-          int size () const;
+          int size (TypeId tid = 0) const;
 
           //## Operation: size%3CAAE98D037C
           //	Second version, stores size in sz and returns *this
-          const NestableContainer::ConstHook & size (int &sz) const;
+          const NestableContainer::ConstHook & size (int &sz, TypeId tid = 0) const;
 
           //## Operation: ref%3C87703E03D6
           //	If the element  is held in an ObjRef, returns a read-only copy of
@@ -224,14 +224,25 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           // contiguous containers.
           template<class T>
           vector<T> as_vector () const;
+          template<class T>
+          operator vector<T> () const 
+          { return as_vector<T>(); }
           
           // define AIPS++ accessors
           #ifdef AIPSPP_HOOKS
           template<class T> 
           Vector<T> as_Vector () const;
+          
+          template<class T>
+          operator Vector<T> () const 
+          { return as_Vector<T>(); }
+
           template<class T> 
           Matrix<T> as_Matrix (int n1,int n2) const;
+          
           String as_String () const;
+          operator String () const
+          { return as_String(); }
           // template<class MVal> MVal as_MV ();
           // template<class Meas> Meas as_M (const Meas::Types &type = Meas::DEFAULT);
           #endif
@@ -369,10 +380,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           bool isWritable () const;
 
           //## Operation: size%3CAB0A3500AC
-          int size () const;
+          int size (TypeId tid = 0) const;
 
           //## Operation: size%3CAAE9BB0332
-          const NestableContainer::Hook & size (int &sz) const;
+          const NestableContainer::Hook & size (int &sz, TypeId tid = 0) const;
 
           //## Operation: init%3C8739B5017B
           //	Initializes element being pointed to. If element exists, does
@@ -855,22 +866,10 @@ inline bool NestableContainer::ConstHook::isRef () const
   //## end NestableContainer::ConstHook::isRef%3C876FF50114.body
 }
 
-inline int NestableContainer::ConstHook::size () const
-{
-  //## begin NestableContainer::ConstHook::size%3C87380503BE.body preserve=yes
-  ContentInfo info;
-  const void *targ = collapseIndex(info,0,0);
-  if( !targ )
-    return 0;
-  const NestableContainer *nc1 = asNestable();
-  return nc1 ? nc1->size() : 1;
-  //## end NestableContainer::ConstHook::size%3C87380503BE.body
-}
-
-inline const NestableContainer::ConstHook & NestableContainer::ConstHook::size (int &sz) const
+inline const NestableContainer::ConstHook & NestableContainer::ConstHook::size (int &sz, TypeId tid) const
 {
   //## begin NestableContainer::ConstHook::size%3CAAE98D037C.body preserve=yes
-  sz = size();
+  sz = size(tid);
   return *this;
   //## end NestableContainer::ConstHook::size%3CAAE98D037C.body
 }
@@ -936,17 +935,17 @@ inline const NestableContainer::Hook & NestableContainer::Hook::operator & () co
   //## end NestableContainer::Hook::operator &%3C8739B50176.body
 }
 
-inline int NestableContainer::Hook::size () const
+inline int NestableContainer::Hook::size (TypeId tid) const
 {
   //## begin NestableContainer::Hook::size%3CAB0A3500AC.body preserve=yes
-  return ConstHook::size();
+  return ConstHook::size(tid);
   //## end NestableContainer::Hook::size%3CAB0A3500AC.body
 }
 
-inline const NestableContainer::Hook & NestableContainer::Hook::size (int &sz) const
+inline const NestableContainer::Hook & NestableContainer::Hook::size (int &sz, TypeId tid) const
 {
   //## begin NestableContainer::Hook::size%3CAAE9BB0332.body preserve=yes
-  sz = ConstHook::size();
+  sz = ConstHook::size(tid);
   return *this;
   //## end NestableContainer::Hook::size%3CAAE9BB0332.body
 }

@@ -573,10 +573,11 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
   // setup misc fields
   FailWhen( valid(),"field is already initialized" );
   mytype = other.type();
-  mysize_ = other.size();
+  mysize_ = other.mysize();
   scalar = other.scalar;
   binary_type = other.binary_type;
   dynamic_type = other.dynamic_type;
+  container_type = other.container_type;
   typeinfo = other.typeinfo;
   setWritable( (flags&DMI::WRITE)!=0 );
   selected = False;

@@ -286,7 +286,11 @@ void TestDataRecord ()
   cerr<<"Assigning a vector to an existing field\n";
   rec["Z"] = vec;
   cerr<<"Record is now: "<<rec.sdebug(10)<<endl;
-
+  
+  cerr<<"Checking transparent array indexing\n";
+  rec["X.Y.Z"] <<= new DataArray(Tpdouble,IPosition(1,10),DMI::ZERO);
+  Assert(rec["X.Y.Z/0"][0].as_double() == 0);
+  
   cerr<<"======================= exiting\n";
 }
 

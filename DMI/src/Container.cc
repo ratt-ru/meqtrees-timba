@@ -39,6 +39,22 @@ NestableContainer::ContentInfo NestableContainer::ConstHook::_dum_info;
 
 // Class NestableContainer::ConstHook 
 
+
+//## Other Operations (implementation)
+int NestableContainer::ConstHook::size (TypeId tid) const
+{
+  //## begin NestableContainer::ConstHook::size%3C87380503BE.body preserve=yes
+  ContentInfo info;
+  const void *targ = collapseIndex(info,0,0);
+  if( !targ )
+    return 0;
+  const NestableContainer *nc1 = asNestable(targ,info.tid);
+  if( nc1 )
+    return nc1->size(tid);
+  return info.size;
+  //## end NestableContainer::ConstHook::size%3C87380503BE.body
+}
+
 // Additional Declarations
   //## begin NestableContainer::ConstHook%3C614FDE0039.declarations preserve=yes
   //## end NestableContainer::ConstHook%3C614FDE0039.declarations
@@ -232,7 +248,6 @@ int NestableContainer::selectionToBlock (BlockSet& )
 
 // Additional Declarations
   //## begin NestableContainer%3BE97CE100AF.declarations preserve=yes
-
 // Attempts to treat the hook target as an NC, by collapsing subscripts,
 // dereferencing ObjRefs, etc.
 const NestableContainer * NestableContainer::ConstHook::asNestable (const void *targ,TypeId tid) const
@@ -633,8 +648,6 @@ string NestableContainer::ConstHook::sdebug ( int detail,const string &prefix,co
       : "["+id.toString()+"]"; 
   return out;  
 }
-
-    
   //## end NestableContainer%3BE97CE100AF.declarations
 //## begin module%3C10CC830069.epilog preserve=yes
 //## end module%3C10CC830069.epilog
