@@ -123,7 +123,8 @@ class Logger(RecordBrowser):
       self._limit_enable = QCheckBox("limit:",self._controlgrid);
       self._limit_field  = QLineEdit("",self._controlgrid);
       self._limit_field.setFixedWidth(60);
-      self._limit_field.setInputMask('00000');
+      try: self._limit_field.setInputMask('00000');
+      except: pass; # older Qt versions do not support this
       MainApp.connect(self._limit_enable,SIGNAL('toggled(bool)'),
                       self._limit_field,SLOT('setEnabled(bool)'));
       MainApp.connect(self._limit_field,SIGNAL('returnPressed()'),
@@ -160,8 +161,10 @@ class Logger(RecordBrowser):
     self._enable.setChecked(not val);
     
   def _enter_log_limit (self):
-    self._limit = int(str(self._limit_field.text()));
-    print 'new limit is',self._limit;
+    try: self._limit = int(str(self._limit_field.text()));
+    except: pass; # catch conversion errors
+    self._limit = max(10,self._limit);
+    self._limit_field.setText(str(self._limit));
     self.apply_log_limit();
     
   def set_log_limit (self,limit):
