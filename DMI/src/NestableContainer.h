@@ -253,7 +253,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           void nextIndex () const;
 
           // This is called to get a value, for built-in scalar types only
-          void get_scalar( void *data,TypeId tid,bool implicit=False ) const;
+          bool get_scalar( void *data,TypeId tid,bool nothrow=False ) const;
 
           // This is called to access by reference, for all types
           const void *get_address(TypeId tid,bool must_write,bool implicit=False,bool pointer=False ) const;

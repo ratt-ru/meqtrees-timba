@@ -321,14 +321,15 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   // If anon/external specified explicitly, check for consistency with
   // other refs to same object. Otherwise, inherit property from other refs.
   // If no other refs and nothing specified, assume external.
-  bool anon = (flags&DMI::ANON)!=0;
+  bool anon = (flags&DMI::ANON);
   CountedRefBase *owner = targ->getOwner();
   if( owner )
   {
-    bool other = owner->isAnonObject();
-    FailWhen( flags&DMI::ANON && !other,"object already referenced as external, can't attach as anon" );
-    FailWhen( !(flags&DMI::ANON) && other,"object already referenced as anon, can't attach as external" );
-    anon = other;
+    bool external = (flags&DMI::EXTERNAL);
+    bool other_anon = owner->isAnonObject();
+    FailWhen( anon && !other_anon,"object already referenced as external, can't attach as anon" );
+    FailWhen( external && other_anon,"object already referenced as anon, can't attach as external" );
+    anon = other_anon;
   }
   // setup properties
   if( flags&DMI::WRITE && !(flags&DMI::READONLY) ) // writable attach?

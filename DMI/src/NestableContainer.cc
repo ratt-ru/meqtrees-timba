@@ -279,7 +279,7 @@ NestableContainer * NestableContainer::ConstHook::asNestableWr (void *targ=0,Typ
 }
 
 // This is called to get a value, for built-in scalar types only
-void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) const
+bool NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool nothrow ) const
 {
   // check for residual index
   FailWhen(addressed,"unexpected '&' operator");
@@ -288,7 +288,11 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) cons
   if( index>=0 || id.size() )
   {
     target = collapseIndex(target_tid,dum,0,0);
-    FailWhen(!target,"uninitialized element");
+    if( !target )
+    {
+      FailWhen(!nothrow,"uninitialized element");
+      return False;
+    }
   }
   else
   {
@@ -300,7 +304,7 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) cons
   {
     FailWhen(!convertScalar(target,target_tid,data,tid),
              "can't convert "+target_tid.toString()+" to "+tid.toString());
-    return;
+    return True;
   }
   // if target is a container, then try to access it in scalar mode
   const NestableContainer *nc = asNestable(target,target_tid);
@@ -309,6 +313,8 @@ void NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool ) cons
   target = nc->get(HIID(),target_tid,dum,TpNumeric,DMI::NC_SCALAR|autoprivatize);
   FailWhen( !convertScalar(target,target_tid,data,tid),
             "can't convert "+target_tid.toString()+" to "+tid.toString());
+  
+  return True;
 }
 
 // This is called to access by reference, for all types
