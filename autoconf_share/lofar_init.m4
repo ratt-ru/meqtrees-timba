@@ -80,21 +80,39 @@ AC_ARG_WITH(lofar,
 
 AC_ARG_WITH(lofar-default,
 	[  --with-lofar-default[=version:variant]    root version:variant to use (default=user tree)],
-	[with_lofar=$withval;
-         lofar_use_root="${lofar_use_root}0"])
+	[with_lofar_def=$withval;
+         lfr_use_root_def=1])
 
 AC_ARG_WITH(lofar-libdir,
   [  --with-lofar-libdir=PFX   specific tree for lofar libraries],
   [lofar_root_libdir="$withval"])
 
 [
+  if test "$with_lofar" = no; then
+    with_lofar=
+    lofar_use_root=0
+  fi
+  if test "$with_lofar_def" = no; then
+    with_lofar=
+    lfr_use_root_def=0
+  fi
+  if test "$lfr_use_root_def" = "1"; then
+    if test "$lofar_use_root" = "1"; then
+      ]AC_MSG_ERROR([--with-lofar and --with-lofar-default should not be used together])[
+    fi
+    with_lofar="$with_lofar_def"
+    lofar_use_root=2
+  fi
   if test "$with_lofar" = yes; then
     with_lofar=
   fi
-  if test "$lofar_use_root" = "10"; then
-    ]AC_MSG_ERROR([--with-lofar and --with-lofar-default should not be used together])[
-  fi
   if test "x$lofar_use_root" = "x"; then
+    lofar_use_root=0;
+  fi
+  if test "$lofar_use_root" != 0  -a  "$with_lofar" = ""; then
+    with_lofar=stable
+  fi
+  if test "$lofar_use_root" = "2"; then
     lofar_use_root=0;
   fi
   # Find root of user LOFAR directory tree.
