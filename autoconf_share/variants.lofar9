@@ -7,6 +7,9 @@ gnu2.compiler.aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu2
 kcc.compiler.conf: CXX=/home/gvd/sim/import/kcc/KCC_BASE/bin/KCC
 kcc.compiler.aipspp.var: --with-aipspp=/aips++/weekly/linux_kcc
 
+icc.compiler.conf: CXX=/usr/local/intel/compiler70/ia32/bin/icc
+icc.compiler.aipspp.var: --with-aipspp=/aips++/weekly/linux_icc
+
 debugnt.variant.conf:	  $(aipspp)	
 
 aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu
