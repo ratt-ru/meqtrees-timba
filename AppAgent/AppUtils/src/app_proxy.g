@@ -1,8 +1,8 @@
 pragma include once
+include 'widgetserver.g'
 include 'octopussy.g'
 include 'recutil.g'
-include 'widgetserver.g'
-include 'text_frame.g'
+include 'gui/text_frame.g'
 
 default_octopussy := F;
 

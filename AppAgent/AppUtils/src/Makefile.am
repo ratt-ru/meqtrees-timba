@@ -5,6 +5,9 @@ lib_LTLIBRARIES = libapputils.la
 libapputils_la_SOURCES = \
   ApplicationBase.cc VisPipe.cc VisRepeater.cc AID-AppUtils-Registry.cc
 
+glishdir = $(libexecdir)/glish/appagent
+dist_glish_SCRIPTS = app_proxy.g
+
 # script used to generate AID maps
 MAPBUILDER = $(dmi_dir)/src/build_aid_maps.pl 
 
