@@ -7,8 +7,8 @@ IMPORTANT NOTE:
 !!    that the requestor got the data.
 
 File: Header
-      Header information for the MSlist-<year> files
-File: MSlist-<year>
-      Info on the MSses that are created in the given year.
+      Header information for the MSlist-<arch> files
+File: MSlist-<arch>
+      Info on the MSses that are stored in a certain archive
 File: MSrepository
       List of MSses that are available on /usr/local/PSS4/WH/WSRT
