@@ -337,6 +337,7 @@ class app_proxy_gui(verbosity,QMainWindow):
   def populate (self,main_parent=None,*args,**kwargs):
     #------ create top-level tab bar
     self.maintab = maintab = QTabWidget(main_parent or self);
+    maintab.setTabPosition(QTabWidget.Bottom);
     
     #------ create a message log
     self.msglog = MessageLogger(self,"message log",use_enable=False,limit=1000);
@@ -449,11 +450,12 @@ class app_proxy_gui(verbosity,QMainWindow):
       self.dprint(0,'exception',str(exctype),'while handling event ',ev);
       self.dprint(0,'exception value is',excvalue);
       self.dprint(2,'event value was',value);
-      
     
   def ce_Hello (self,ev,value):
+    self.wtop().emit(PYSIGNAL("connected()"),(value,));
     self.msglog.add("connected to "+str(value),None,Logger.Normal);
   def ce_Bye (self,ev,value):
+    self.wtop().emit(PYSIGNAL("disconnected()"),(value,));
     self.msglog.add("lost connection to "+str(value),None,Logger.Error);
   def ce_UpdateState (self,ev,value):
     self._update_app_state();
@@ -522,6 +524,7 @@ class app_proxy_gui(verbosity,QMainWindow):
     if MainAppThread:
       MainAppThread.join();
     else:
+      print 'exec_loop';
       MainApp.exec_loop(); 
   await_gui_exit = staticmethod(await_gui_exit);  
 
