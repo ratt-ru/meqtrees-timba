@@ -79,8 +79,6 @@ namespace DMI
 
 };
 
-using DMI::DebugContext;
-
 #define STATIC_CHECK(expr,msg) \
   { DMI::CompileTimeError<((expr) != 0)> ERROR_##msg; (void)ERROR_##msg; }
 // typedef DMI::CompileTimeChecker<(expr)!=0> Checker; 

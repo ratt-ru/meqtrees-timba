@@ -147,6 +147,8 @@ class CountedRefTarget
                            const char *name = 0 ) const
       { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
       
+      ImportDebugContext(DMI);
+      
   private:
     // Data Members for Associations
 
