@@ -74,7 +74,7 @@ class PrintFilter(QwtPlotPrintFilter):
 
 class realvsimag_plotter(object):
 
-    color_table = {
+  color_table = {
         'none': None,
         'black': Qt.black,
         'blue': Qt.blue,
@@ -95,7 +95,7 @@ class realvsimag_plotter(object):
         'lightGray' : Qt.lightGray,
         }
 
-    symbol_table = {
+  symbol_table = {
         'none': QwtSymbol.None,
         'rectangle': QwtSymbol.Rect,
         'ellipse': QwtSymbol.Ellipse,
@@ -107,7 +107,7 @@ class realvsimag_plotter(object):
 	'diamond': QwtSymbol.Diamond,
         }
 
-    line_style_table = {
+  line_style_table = {
         'none': QwtCurve.NoCurve,
         'lines' : QwtCurve.Lines,
         'steps' : QwtCurve.Steps,
@@ -125,9 +125,8 @@ class realvsimag_plotter(object):
         'dashdotline' : Qt.DashDotLine,
         'dashdotdotline' : Qt.DashDotDotLine,
         }
-
     
-    def __init__(self, plot_key=None, parent=None):
+  def __init__(self, plot_key=None, parent=None):
         # QWidget.__init__(self, parent)
 
         self.plot_key = plot_key
@@ -190,17 +189,17 @@ class realvsimag_plotter(object):
 # used for errors plot testing 
         self.gain = 1.0
 
-    def reset_data_collectors(self):
+  def reset_data_collectors(self):
         self._plotter_dict = {}
 
     # __init__()
 
-    def set_compute_circles (self, do_compute_circles=True):
+  def set_compute_circles (self, do_compute_circles=True):
         self.plot_mean_circles = do_compute_circles
 
 
 
-    def __initTracking(self):
+  def __initTracking(self):
         """Initialize tracking
         """        
         QObject.connect(self.plot,
@@ -216,7 +215,7 @@ class realvsimag_plotter(object):
 
     # __initTracking()
 
-    def onMouseMoved(self, e):
+  def onMouseMoved(self, e):
         if self._statusbar:
           self._statusbar.message(
             'x = %+.6g, y = %.6g'
@@ -225,7 +224,7 @@ class realvsimag_plotter(object):
 
     # onMouseMoved()
     
-    def __initZooming(self):
+  def __initZooming(self):
         """Initialize zooming
         """
         self.zoomer = QwtPlotZoomer(QwtPlot.xBottom,
@@ -250,7 +249,7 @@ class realvsimag_plotter(object):
 
     # __initZooming()
        
-    def setZoomerMousePattern(self, index):
+  def setZoomerMousePattern(self, index):
         """Set the mouse zoomer pattern.
         """
         if index == 0:
@@ -269,7 +268,7 @@ class realvsimag_plotter(object):
             raise ValueError, 'index must be in (0, 1, 2, 3)'
 
     # setZoomerMousePattern()
-    def __initContextMenu(self):
+  def __initContextMenu(self):
         """Initialize the toolbar
         """
         # skip if no main window
@@ -339,7 +338,7 @@ class realvsimag_plotter(object):
 
     # __initToolBar()
 
-    def slotMousePressed(self, e):
+  def slotMousePressed(self, e):
         "Mouse press processing instructions go here"
         _dprint(2,' in slotMousePressed');
         _dprint(3,' slotMousePressed event:',e);
@@ -385,13 +384,13 @@ class realvsimag_plotter(object):
             fn = self.plot.fontInfo().family()
 
 # text marker giving source of point that was clicked
-            m = self.plot.insertMarker()
+            self.marker = self.plot.insertMarker()
             ylb = self.plot.axisScale(QwtPlot.yLeft).lBound()
             xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
-            self.plot.setMarkerPos(m, xlb, ylb)
-            self.plot.setMarkerLabelAlign(m, Qt.AlignRight | Qt.AlignTop)
-            self.plot.setMarkerLabel( m, message1,
-              QFont(fn, 12, QFont.Bold, False),
+            self.plot.setMarkerPos(self.marker, xlb, ylb)
+            self.plot.setMarkerLabelAlign(self.marker, Qt.AlignRight | Qt.AlignTop)
+            self.plot.setMarkerLabel( self.marker, message1,
+              QFont(fn, 9, QFont.Bold, False),
               Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
             self.plot.replot()
             timer = QTimer(self.plot)
@@ -405,13 +404,23 @@ class realvsimag_plotter(object):
             
     # slotMousePressed
 
-    def timerEvent_marker(self):
+  def timerEvent_marker(self):
       self.plot.removeMarkers()
+      if not self._legend_plot is None:
+        self.legend_marker = self.plot.insertMarker()
+        ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
+        xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+        self.plot.setMarkerPos(self.legend_marker, xlb, ylb)
+        self.plot.setMarkerLabelAlign(self.legend_marker, Qt.AlignRight | Qt.AlignBottom)
+        fn = self.plot.fontInfo().family()
+        self.plot.setMarkerLabel( self.legend_marker, self._legend_plot,
+          QFont(fn, 9, QFont.Bold, False),
+          Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
       self.plot.replot()
     # timerEvent_marker()
 
 # compute points for two circles
-    def compute_circles (self, item_tag, radius, x_cen=0.0, y_cen=0.0):
+  def compute_circles (self, item_tag, radius, x_cen=0.0, y_cen=0.0):
       """ compute values for circle running through specified
           point and a line pointing to the point """
 
@@ -436,7 +445,7 @@ class realvsimag_plotter(object):
         key_circle = self._circle_dict[circle_key] 
         self.plot.setCurveData(key_circle, x_pos, y_pos)
 
-    def compute_arrow (self, item_tag,avg_r, avg_i, x_cen=0.0, y_cen=0.0):
+  def compute_arrow (self, item_tag,avg_r, avg_i, x_cen=0.0, y_cen=0.0):
       """ compute values for circle running through specified
           point and a line pointing to the point """
 
@@ -461,7 +470,7 @@ class realvsimag_plotter(object):
         key_line = self._line_dict[line_key]
         self.plot.setCurveData(key_line, x1_pos, y1_pos)
 
-    def plot_data(self, visu_record, attribute_list=None):
+  def plot_data(self, visu_record, attribute_list=None):
       """ process incoming data and attributes into the
           appropriate type of plot """
       _dprint(2,'****** in plot_data');
@@ -473,12 +482,13 @@ class realvsimag_plotter(object):
       self.plot_symbol_size = None
       self.plot_line_style = None
       self._plot_title = None
-      self._legend_plot = None
-      self._legend_popup = None
+      self._plot_type = None
       self.value_tag = None
       self.error_tag = None
       self._plot_x_axis_label = None
       self._plot_y_axis_label = None
+#      self._legend_plot = None
+#      self._legend_popup = None
       self._plot_color = None
       self._string_tag = None
       self._tag = None
@@ -486,7 +496,8 @@ class realvsimag_plotter(object):
 
 
 # first find out what kind of plot we are making
-      self._plot_type = None
+      if not self.plot_key is None:
+        self._plot_type = self.plot_key
       item_tag = ''
       if attribute_list is None and visu_record.has_key('attrib'):
         self._attrib_parms = visu_record['attrib']
@@ -499,10 +510,11 @@ class realvsimag_plotter(object):
         if self._plot_parms.has_key('attrib'):
           temp_parms = self._plot_parms.get('attrib')
           self._plot_parms = temp_parms
-        if self._plot_parms.has_key('plot_type'):
-          self._plot_type = self._plot_parms.get('plot_type', 'realvsimag')
-        if self._plot_parms.has_key('type'):
-          self._plot_type = self._plot_parms.get('type', 'realvsimag')
+        if self._plot_type is None:
+          if self._plot_parms.has_key('plot_type'):
+            self._plot_type = self._plot_parms.get('plot_type', 'realvsimag')
+          if self._plot_parms.has_key('type'):
+            self._plot_type = self._plot_parms.get('type', 'realvsimag')
         self.plot_mean_circles = self._plot_parms.get('mean_circle', False)
         self.plot_stddev_circles = self._plot_parms.get('stddev_circle', False)
         self.plot_mean_arrows = self._plot_parms.get('mean_arrow', False)
@@ -511,6 +523,12 @@ class realvsimag_plotter(object):
         self.plot_line_style = self._plot_parms.get('line_style', 'dots')
         self.value_tag = self._plot_parms.get('value_tag', False)
         self.error_tag = self._plot_parms.get('error_tag', False)
+        if self._plot_parms.has_key('legend'):
+          legend = self._plot_parms.get('legend')
+          if legend.has_key('plot'):
+            self._legend_plot = legend.get('plot')
+          if legend.has_key('popup'):
+            self._legend_popup = legend.get('popup')
         self._tag = self._attrib_parms.get('tag','') 
         if isinstance(self._tag, tuple):
           for i in range(0, len(self._tag)):
@@ -524,15 +542,6 @@ class realvsimag_plotter(object):
           item_tag = self._tag + '_plot'
       else:
         list_length = len(attribute_list)
-
-# first, get tag at point closest to leaf
-#        self._attrib_parms = attribute_list[list_length-1]
-#        _dprint(2,'self._attrib_parms ', self._attrib_parms);
-#        self._tag = self._attrib_parms.get('tag','') 
-#        item_tag = self._tag + '_plot'
-
-# propagate down from root to leaves filling in attributes as soon
-# as they are detected
         for i in range(list_length):
           self._attrib_parms = attribute_list[i]
           _dprint(2,'self._attrib_parms ', self._attrib_parms);
@@ -592,7 +601,36 @@ class realvsimag_plotter(object):
             if self._plot_color is None and self._plot_parms.has_key('color'):
               self._plot_color = self._plot_parms.get('color')
               _dprint(3, 'plot color set to ', self._plot_color)
-              self._plot_color = self.color_table[self._plot_color]
+              if self.color_table.has_key(self._plot_color):
+                self._plot_color = self.color_table[self._plot_color]
+              else:
+                Message = self._plot_color + " is not a valid color.\n Using blue by default"
+                self._plot_color = "blue"
+                self._plot_color = self.color_table[self._plot_color]
+                mb_color = QMessageBox("realvsimag.py",
+                           Message,
+                           QMessageBox.Warning,
+                           QMessageBox.Ok | QMessageBox.Default,
+                           QMessageBox.NoButton,
+                           QMessageBox.NoButton)
+                mb_color.exec_loop()
+            if self._plot_parms.has_key('legend'):
+              legend = self._plot_parms.get('legend')
+              _dprint(3, 'legend found is ', legend)
+              if legend.has_key('plot'):
+                if self._legend_plot is None:
+                  self._legend_plot = ''
+                legend_str = legend.get('plot')
+                if self._legend_plot.find(legend_str) < 0:
+                  temp_str = self._legend_plot + ' ' + legend_str
+                  self._legend_plot = temp_str
+              if legend.has_key('popup'):
+                if self._legend_popup is None:
+                  self._legend_popup = ''
+                popup_str = legend.get('popup')
+                if self._legend_popup.find(popup_str) < 0:
+                  temp_str = self._legend_popup + ' ' + popup_str
+                  self._legend_popup = temp_str
 
       if len(self._tag_plot_attrib) > 0:
         _dprint(3, 'self._tag_plot_attrib has keys ', self._tag_plot_attrib.keys())
@@ -638,7 +676,7 @@ class realvsimag_plotter(object):
      # now generate plot 
       self.x_vs_y_plot(item_tag)
   
-    def x_vs_y_plot (self,item_tag):
+  def x_vs_y_plot (self,item_tag):
       """ plot real vs imaginary values together with circles
           indicating average values """
  
@@ -732,11 +770,6 @@ class realvsimag_plotter(object):
       plot_key = self._string_tag + '_plot'
       _dprint(3, 'plot key is ', plot_key)
       if self._xy_plot_dict.has_key(plot_key) == False: 
-#        if self._plot_title is None:
-#          self._plot_title = self._plot_type +':'
-#        self._plot_title = self._plot_title + ' ' + self._tag
-#        self._plot_title = self._plot_title + ' ' + string_color
-#        self.plot.setTitle(self._plot_title)
         if not self._plot_title is None:
           self.plot.setTitle(self._plot_title)
         if not self._plot_y_axis_label is None:
@@ -750,10 +783,30 @@ class realvsimag_plotter(object):
           self._xy_plot_dict[plot_key] = key_plot
           self._xy_plot_color[plot_key] = self._plot_color
           self.plot.setCurvePen(key_plot, QPen(self._plot_color))
+          if not self.line_style_table.has_key(self.plot_line_style):
+            Message = self.plot_line_style + " is not a valid line style.\n Using dots by default"
+            self.plot_line_style = "dots"
+            mb_style = QMessageBox("realvsimag.py",
+                       Message,
+                       QMessageBox.Warning,
+                       QMessageBox.Ok | QMessageBox.Default,
+                       QMessageBox.NoButton,
+                       QMessageBox.NoButton)
+            mb_style.exec_loop()
           line_style = self.line_style_table[self.plot_line_style]
           self.plot.setCurveStyle(key_plot, line_style)
           plot_curve = self.plot.curve(key_plot)
           _dprint(3, 'self.plot_symbol ', self.plot_symbol)
+          if not self.symbol_table.has_key(self.plot_symbol):
+            Message = self.plot_symbol + " is not a valid symbol.\n Using circle by default"
+            self.plot_symbol = "circle"
+            mb_symbol = QMessageBox("realvsimag.py",
+                        Message,
+                        QMessageBox.Warning,
+                        QMessageBox.Ok | QMessageBox.Default,
+                        QMessageBox.NoButton,
+                        QMessageBox.NoButton)
+            mb_symbol.exec_loop()
           plot_symbol = self.symbol_table[self.plot_symbol]
           _dprint(3, 'self.plot_symbol_size ', self.plot_symbol_size)
           plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
@@ -777,7 +830,7 @@ class realvsimag_plotter(object):
 
 # data for plot has been gathered together after tree traversal
 # now update plot curves, etc
-    def update_plot(self):
+  def update_plot(self):
       plot_keys = self._xy_plot_dict.keys()
       _dprint(3, 'in update_plot xy_plot_dict plot_keys ', plot_keys)
       temp_keys = self._plotter_dict.keys()
@@ -848,6 +901,16 @@ class realvsimag_plotter(object):
               self.y_errors.setData(data_r,data_i)
               _dprint(3, 'set data values for y errors')
 
+        if not self._legend_plot is None:
+           self.legend_marker = self.plot.insertMarker()
+           ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
+           xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+           self.plot.setMarkerPos(self.legend_marker, xlb, ylb)
+           self.plot.setMarkerLabelAlign(self.legend_marker, Qt.AlignRight | Qt.AlignBottom)
+           fn = self.plot.fontInfo().family()
+           self.plot.setMarkerLabel( self.legend_marker, self._legend_plot,
+             QFont(fn, 9, QFont.Bold, False),
+             Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
 
 # plot circles in real vs imaginary plot?
         if not self.errors_plot and self.plot_mean_circles:
@@ -869,7 +932,7 @@ class realvsimag_plotter(object):
     # end of update_plot 
 
 
-    def go(self, counter):
+  def go(self, counter):
       """Create and plot some garbage data
       """
       item_tag = 'test'
@@ -916,7 +979,7 @@ class realvsimag_plotter(object):
 
     # go()
 
-    def go_errors(self, counter):
+  def go_errors(self, counter):
       """Create and plot some garbage error data
       """
       item_tag = 'test'
@@ -978,21 +1041,21 @@ class realvsimag_plotter(object):
         self.plot.replot()
     # go_errors()
 
-    def clearZoomStack(self):
+  def clearZoomStack(self):
         """Auto scale and clear the zoom stack
         """
         self.plot.replot()
         self.zoomer.setZoomBase()
     # clearZoomStack()
 
-    def start_timer(self, time):
+  def start_timer(self, time):
         timer = QTimer(self.plot)
         timer.connect(timer, SIGNAL('timeout()'), self.timerEvent)
         timer.start(time)
 
     # start_timer()
 
-    def timerEvent(self):
+  def timerEvent(self):
       self._angle = self._angle + 5;
       self._radius = 5.0 + 2.0 * random.random()
       self.index = self.index + 1
@@ -1001,7 +1064,7 @@ class realvsimag_plotter(object):
 #      self.go_errors(self.index)
     # timerEvent()
 
-    def zoom(self,on):
+  def zoom(self,on):
         self.zoomer.setEnabled(on)
 # set fixed scales for realvsimag plot - zooming doesn't work well 
 # with autoscaling!!
@@ -1023,7 +1086,7 @@ class realvsimag_plotter(object):
     # zoom()
 
 
-    def printPlot(self):
+  def printPlot(self):
         try:
             printer = QPrinter(QPrinter.HighResolution)
         except AttributeError:
@@ -1040,7 +1103,7 @@ class realvsimag_plotter(object):
             self.plot.printPlot(printer, filter)
     # printPlot()
 
-    def selected(self, points):
+  def selected(self, points):
         point = points.point(0)
 # this gives the position in pixels!!
         xPos = point[0]

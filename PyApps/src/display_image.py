@@ -336,7 +336,7 @@ class QwtImagePlot(QwtPlot):
         self.xCrossSection = self.insertCurve('xCrossSection')
         self.yCrossSection = self.insertCurve('yCrossSection')
         self.enableAxis(QwtPlot.yRight)
-        self.setAxisTitle(QwtPlot.yRight, 'signal')
+        self.setAxisTitle(QwtPlot.yRight, 'cross-section value')
         # set curve styles
         self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
         self.setCurvePen(self.yCrossSection, QPen(Qt.red, 2))
@@ -625,6 +625,9 @@ class QwtImagePlot(QwtPlot):
 
 # test if we have a 2-D array
       if self.is_vector == False:
+        self.enableAxis(QwtPlot.yRight)
+        self.setAxisTitle(QwtPlot.yRight, 'cross-section value')
+        self.setAxisAutoScale(QwtPlot.yRight)
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if complex_type and self._display_type != "brentjens":
           self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
@@ -669,8 +672,9 @@ class QwtImagePlot(QwtPlot):
         flattened_array = reshape(plot_array,(num_elements,))
 # we have a complex vector
         if complex_type:
-          self.setAxisTitle(QwtPlot.yLeft, 'Signal: real (black)')
-          self.setAxisTitle(QwtPlot.yRight, 'Signal: imaginary (red)')
+          self.enableAxis(QwtPlot.yRight)
+          self.setAxisTitle(QwtPlot.yLeft, 'Value: real (black)')
+          self.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (red)')
           self.setCurveYAxis(self.xCrossSection, QwtPlot.yLeft)
           self.setCurveYAxis(self.yCrossSection, QwtPlot.yRight)
           self.x_array =  flattened_array.getreal()
@@ -681,13 +685,19 @@ class QwtImagePlot(QwtPlot):
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
           self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
         else:
-          self.setAxisTitle(QwtPlot.yLeft, 'Signal')
+          self.setAxisTitle(QwtPlot.yLeft, 'Value')
+          self.enableAxis(QwtPlot.yRight, False)
+          self.setCurveYAxis(self.xCrossSection, QwtPlot.yLeft)
           if self.x_array is None:
             self.x_array = zeros(num_elements, Float32)
             self.y_array = zeros(num_elements, Float32)
             self.x_index = arange(num_elements)
             self.x_index = self.x_index + 0.5
           self.x_array =  flattened_array
+          self.setCurveStyle(self.xCrossSection,Qt.SolidLine)
+          plot_curve=self.curve(self.xCrossSection)
+          plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
+                     QPen(Qt.red), QSize(5,5)))
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
         self.replot()
         _dprint(2, 'called replot in array_plot');
@@ -745,13 +755,13 @@ def make():
     demo.resize(500, 300)
     demo.show()
 # uncomment the following
-    demo.start_timer(1000, True, "grayscale")
+#    demo.start_timer(1000, True, "grayscale")
 
 # or
 # uncomment the following three lines
-#    import pyfits
-#    m51 = pyfits.open('./m51.fits')
-#    demo.array_plot('m51', m51[0].data)
+    import pyfits
+    m51 = pyfits.open('./m51.fits')
+    demo.array_plot('m51', m51[0].data)
 
     return demo
 

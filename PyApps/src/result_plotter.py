@@ -30,6 +30,59 @@ class ResultPlotter(BrowserPlugin):
     return len(data) > 0;
   is_viewable = staticmethod(is_viewable);
 
+  color_table = {
+        'none': None,
+        'black': Qt.black,
+        'blue': Qt.blue,
+        'cyan': Qt.cyan,
+        'gray': Qt.gray,
+        'green': Qt.green,
+        'magenta': Qt.magenta,
+        'red': Qt.red,
+        'white': Qt.white,
+        'yellow': Qt.yellow,
+        'darkBlue' : Qt.darkBlue,
+        'darkCyan' : Qt.darkCyan,
+        'darkGray' : Qt.darkGray,
+        'darkGreen' : Qt.darkGreen,
+        'darkMagenta' : Qt.darkMagenta,
+        'darkRed' : Qt.darkRed,
+        'darkYellow' : Qt.darkYellow,
+        'lightGray' : Qt.lightGray,
+        }
+
+  symbol_table = {
+        'none': QwtSymbol.None,
+        'rectangle': QwtSymbol.Rect,
+        'ellipse': QwtSymbol.Ellipse,
+        'dot': QwtSymbol.Ellipse,
+        'circle': QwtSymbol.Ellipse,
+	'xcross': QwtSymbol.XCross,
+	'cross': QwtSymbol.Cross,
+	'triangle': QwtSymbol.Triangle,
+	'diamond': QwtSymbol.Diamond,
+        }
+
+  line_style_table = {
+        'none': QwtCurve.NoCurve,
+        'lines' : QwtCurve.Lines,
+        'steps' : QwtCurve.Steps,
+        'stick' : QwtCurve.Sticks,
+        'dots' : QwtCurve.Dots,
+#        'none': Qt.NoPen,
+        'SolidLine' : Qt.SolidLine,
+        'DashLine' : Qt.DashLine,
+        'DotLine' : Qt.DotLine,
+        'DashDotLine' : Qt.DashDotLine,
+        'DashDotDotLine' : Qt.DashDotDotLine,
+        'solidline' : Qt.SolidLine,
+        'dashline' : Qt.DashLine,
+        'dotline' : Qt.DotLine,
+        'dashdotline' : Qt.DashDotLine,
+        'dashdotdotline' : Qt.DashDotDotLine,
+        }
+
+
   def __init__(self,parent=None,dataitem=None,default_open=None,**opts):
     """ Instantiate HippoDraw objects that are used to control
         various aspects of plotting
@@ -41,6 +94,7 @@ class ResultPlotter(BrowserPlugin):
     self._window_controller = None
     self._plot_type = None
     self._wtop = None;
+    self._attributes_checked = False
 
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
@@ -52,11 +106,50 @@ class ResultPlotter(BrowserPlugin):
   def wtop (self):
     return self._wtop;
     
-# used for 'embedded display'
-#    return self._window
 
-# used for 'standalone display'
-#    return self._Qlabel
+  def check_attributes(self, attributes):
+     plot_parms = None
+     if attributes.has_key('plot'):
+       plot_parms = attributes.get('plot')
+       if plot_parms.has_key('attrib'):
+         temp_parms = plot_parms.get('attrib')
+         plot_parms = temp_parms
+       if plot_parms.has_key('color'):
+         plot_color = plot_parms.get('color')
+         if not self.color_table.has_key(plot_color):
+           Message = plot_color + " is not a valid color.\n Using blue by default"
+           plot_parms['color'] = "blue"
+           mb_color = QMessageBox("realvsimag.py",
+                      Message,
+                      QMessageBox.Warning,
+                      QMessageBox.Ok | QMessageBox.Default,
+                      QMessageBox.NoButton,
+                      QMessageBox.NoButton)
+           mb_color.exec_loop()
+       if plot_parms.has_key('line_style'):
+         plot_line_style = plot_parms.get('line_style')
+         if not self.line_style_table.has_key(plot_line_style):
+           Message = plot_line_style + " is not a valid line style.\n Using dots by default"
+           plot_parms['line_style'] = "dots"
+           mb_style = QMessageBox("realvsimag.py",
+                      Message,
+                      QMessageBox.Warning,
+                      QMessageBox.Ok | QMessageBox.Default,
+                      QMessageBox.NoButton,
+                      QMessageBox.NoButton)
+           mb_style.exec_loop()
+       if plot_parms.has_key('symbol'):
+         plot_symbol = plot_parms.get('symbol')
+         if not self.symbol_table.has_key(plot_symbol):
+           Message = plot_symbol + " is not a valid symbol.\n Using circle by default"
+           plot_parms['symbol'] = "circle"
+           mb_symbol = QMessageBox("realvsimag.py",
+                      Message,
+                      QMessageBox.Warning,
+                      QMessageBox.Ok | QMessageBox.Default,
+                      QMessageBox.NoButton,
+                      QMessageBox.NoButton)
+           mb_symbol.exec_loop()
 
 #
 # tree traversal code adapted from the pasteur institute python 
@@ -123,6 +216,27 @@ class ResultPlotter(BrowserPlugin):
 
   def do_leafwork(self, leaf, attrib_list):
     _dprint(3,'at leaf attribute list is ', attrib_list)
+# If we arrive here without having gotten a plot type
+# it is because the user specified an invalid type somehow.
+# Post a message and select the default. 
+    if self._visu_plotter is None:
+      message = None
+      if not self._plot_type is None:
+        Message = self._plot_type + " is not a valid plot type.\n Using realvsimag by dafault." 
+      else:
+        Message = "Failure to find a valid plot type.\n Using realvsimag by default."
+      mb = QMessageBox("result_plotter.py",
+                     Message,
+                     QMessageBox.Warning,
+                     QMessageBox.Ok | QMessageBox.Default,
+                     QMessageBox.NoButton,
+                     QMessageBox.NoButton)
+      mb.exec_loop()
+      self._plot_type = "realvsimag"
+      self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self._parent)
+      self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
+
+# now do the plotting
     self._visu_plotter.plot_data(leaf, attrib_list)
 
   def tree_traversal (self, node, label=None, attribute_list=None):
@@ -153,14 +267,16 @@ class ResultPlotter(BrowserPlugin):
               _dprint(3, 'tree: dict node label(s) is tuple')
               temp = list(node['label'])
               for j in range(0, len(temp)):
-                tmp = label + ' > ' + temp[j] 
+                tmp = label + '\n' + temp[j] 
                 temp[j] = tmp
               node['label'] = tuple(temp)
             else:
-              temp = label + ' > ' + node['label']
+              temp = label + '\n' + node['label']
               node['label'] = temp
         if node.has_key('attrib') and len(node['attrib']) > 0:
           _dprint(3, 'tree: dict node has attrib ', node['attrib'])
+          if not self._attributes_checked:
+            self.check_attributes(node['attrib'])
           attribute_list.append(node['attrib'])
         else:
           _dprint(3, 'tree: dict node has no valid attrib ')
@@ -179,6 +295,8 @@ class ResultPlotter(BrowserPlugin):
         _dprint(3, 'tree: leaf node has label(s) ', node['label'])
         _dprint(3, 'tree: leaf node has incoming label ', label)
         if is_root and node.has_key('attrib') and len(node['attrib']) > 0:
+          if not self._attributes_checked:
+            self.check_attributes(node['attrib'])
           attribute_list.append(node['attrib'])
           self.do_prework(node, attribute_list)
         self.do_leafwork(node,attribute_list)
@@ -201,15 +319,17 @@ class ResultPlotter(BrowserPlugin):
               _dprint(3, 'tree: list node label(s) is tuple')
               temp = list(node[i]['label'])
               for j in range(0, len(temp)):
-                tmp = temp_label + ' > ' + temp[j]
+                tmp = temp_label + '\n' + temp[j]
                 temp[j] = tmp
               node[i]['label'] = tuple(temp)
             else:
-              temp = label + ' > ' + node[i]['label']
+              temp = label + '\n' + node[i]['label']
               node[i]['label'] = temp
           if node[i].has_key('attrib'):
             _dprint(3, 'list: dict node has attrib ', i, ' ', node[i]['attrib'])
             if len(node[i]['attrib']) > 0:
+              if not self._attributes_checked:
+                self.check_attributes(node[i]['attrib'])
               temp_list.append(node[i]['attrib'])
           self.tree_traversal(node[i], node[i]['label'], temp_list)
 
@@ -412,7 +532,6 @@ class ResultPlotter(BrowserPlugin):
         the functions which does the actual plotting """
 
     self._rec = dataitem.data;
-    _dprint(3, 'set data received record ', self._rec)
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
     if isinstance(self._rec, bool):
@@ -430,22 +549,31 @@ class ResultPlotter(BrowserPlugin):
         if self._rec.vellsets[i].has_key("value"):
           key = " value "
           complex_type = False;
-          if self._rec.vellsets[i].value.type() == Complex32:
-            complex_type = True;
-          if self._rec.vellsets[i].value.type() == Complex64:
-            complex_type = True;
+# test if we have a numarray
+          try:
+            if self._rec.vellsets[i].value.type() == Complex32:
+              complex_type = True;
+            if self._rec.vellsets[i].value.type() == Complex64:
+              complex_type = True;
+            self._value_array = self._rec.vellsets[i].value
+          except:
+            temp_array = numarray.asarray(self._rec.vellsets[i].value)
+            self._value_array = numarray.resize(temp_array,self._shape)
+            if self._value_array.type() == Complex32:
+              complex_type = True;
+            if self._value_array.type() == Complex64:
+              complex_type = True;
 
-          self._value_array = self._rec.vellsets[i].value
           if complex_type:
 #extract real component
-            self._value_real_array = self._rec.vellsets[i].value.getreal()
+            self._value_real_array = self._value_array.getreal()
             self._data_type = " real"
             self._label = "plane " + str(i) + key + self._data_type 
             self._z_real_min = self._value_real_array.min()
             self._z_real_max = self._value_real_array.max()
             self.display_vells_data(self._value_real_array)
 #extract imaginary component
-            self._value_imag_array = self._rec.vellsets[i].value.getimag()
+            self._value_imag_array = self._value_array.getimag()
             self._data_type = " imag"
             self._label = "plane " + str(i) + key + self._data_type 
             self._z_imag_min = self._value_imag_array.min()
@@ -469,13 +597,23 @@ class ResultPlotter(BrowserPlugin):
         if self._rec.vellsets[i].has_key("perturbed_value"):
           number_of_perturbed_arrays = len(self._rec.vellsets[i].perturbed_value)
           for j in range(number_of_perturbed_arrays):
+# test if we have a numarray
             complex_type = False;
-            if self._rec.vellsets[i].perturbed_value[j].type() == Complex32:
-              complex_type = True;
-            if self._rec.vellsets[i].perturbed_value[j].type() == Complex64:
-              complex_type = True;
+            perturbed_array_diff = None
+            try:
+              if self._rec.vellsets[i].perturbed_value[j].type() == Complex32:
+                complex_type = True;
+              if self._rec.vellsets[i].perturbed_value[j].type() == Complex64:
+                complex_type = True;
+              perturbed_array_diff = self._rec.vellsets[i].perturbed_value[j]
+            except:
+              temp_array = numarray.asarray(self._rec.vellsets[i].perturbed_value[j])
+              perturbed_array_diff = numarray.resize(temp_array,self._shape)
+              if perturbed_array_diff.type() == Complex32:
+                complex_type = True;
+              if perturbed_array_diff.type() == Complex64:
+                complex_type = True;
 
-            perturbed_array_diff = self._rec.vellsets[i].perturbed_value[j]
             key = " perturbed_value "
             if complex_type:
               real_array = perturbed_array_diff.getreal()
