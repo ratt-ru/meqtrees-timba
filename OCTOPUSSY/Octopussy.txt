@@ -191,6 +191,8 @@ The OCTOPUSSY recognizes the following debugging contexts:
   
   Dsp             for dispatcher (delivery of messages, etc.), inherits from 
                   the Octopussy context
+                  
+  Socket          for socket-level communication
   
   {wpname}        local contexts for each WP, also inherit from Octopussy context
   
@@ -201,3 +203,11 @@ Thus, something like
 Will use level 0 for dispatcher, level 2 for logger, and level 1 for everyone
 else.
 
+Note that when any app starts up, you will see a list of messages similar to:
+
+  Debug: registered context Thread=0
+  Debug: registered context Global=0
+  Debug: registered context DMI=0
+  Debug: registered context CRef=0
+  
+This lists all the contexts registered in the app.
