@@ -25,10 +25,10 @@
 #
 # Macro to check for BLITZ installation
 #
-# lofar_BLITZ(option, [DEFAULT-PREFIX])
+# lofar_BLITZ(option)
 #     option 0 means that Blitz++ is optional, otherwise mandatory.
 #
-# e.g. lofar_BLITZ(["/usr/local/blitz"])
+# e.g. lofar_BLITZ(1)
 # -------------------------
 #
 AC_DEFUN(lofar_BLITZ,dnl
@@ -36,7 +36,7 @@ AC_DEFUN(lofar_BLITZ,dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], [lfr_option=0], [lfr_option=$1])
 AC_ARG_WITH(blitz,
-	[  --with-blitz[=PFX]     prefix where Blitz is installed (default=]DEFAULT_BLITZ_PREFIX[)],
+	[  --with-blitz[=PFX]     prefix where Blitz is installed (default=/usr/local)],
 	[with_blitz=$withval],
 	[with_blitz=""])
 AC_ARG_WITH(blitz-libdir,
