@@ -27,7 +27,7 @@
   to deal directly with trees.}
 
   
-\section{Base Node::execute() steps}
+\section{Node::execute() steps}
    \label{sec:execute}
   
   
@@ -751,6 +751,7 @@
   the requested resolution.
   
 \subsection{How this applies to getResult()}
+  \label{sec:getResult}
 
   Note that the \qq{getResult()} handler discussed above receives two crucial
   pieces of information: a vector of child results, and a \Cells\ (passed by
@@ -794,6 +795,249 @@
   coarser grid background. The \qq{CondEq} node integrates its child results to
   the lower of the two resolutions: this is apporpriate for solving. The
   \qq{Subtract} node uses original data resolution as the driver.
+  
+\section{Function nodes}
+\label{sec:Function}
+
+  \qq{Function} is an important subclass of \qq{Node}, representing some
+  function of its children's results. The main feature of \qq{Function} is an
+  abstract \qq{evaluate()} method, which takes a vector of \Vells\ objects,
+  computes some function of them, and returns a \Vells\ result.
+
+  Remember that a \Vells\ is a an $N\times M$ matrix ($\bar{f}=\{f_{ij}\}$) of
+  $\RR$ or $\CC$ values, representing a set of sampling or integrations of the
+  function $f:\RR^2\rightarrow\RR$ or $f:\RR^2\rightarrow\CC$ over some cells.
+  \Vells\ are organized into \VellSet{}s, containing the main value $\{f_{ij}\}$,
+  plus an optional set of $K\times S (S=1,2)$ perturbed values $\bar{f}_sk =
+  \{f^{(sk)}_{ij}\}$, which correspond to $S$ sets of the perturbed values of $f$
+  w.r.t. $K$ solvable parameters. A \VellSet\ will also contain $S$ vectors of
+  perturbations ${\delta^{(s)}_k}$.
+
+  The \Result\ of child $l$ will contain $Q_l$ \VellSet{}s. Most of the time,
+  $Q_l=1$; when $Q_l>1$, the result represents a multidimensional function
+  $f:\RR^2\rightarrow\{\RR \mbox{or} \CC\}^{Q_l}$. Note that each plane of such
+  a function may have its own set of solvable parameters and perturbed values.
+  We will use the notation $\bar{f}_{lq}$ to designate the main value for child
+  $l$, plane $q$, and $\bar{f}^{(sk)}_{lq}$ to designate the perturbed value of
+  parameter $k$ from set $s$.
+  
+  The \qq{evaluate()} method of a \qq{Function}-derived node represents some
+  compound function of $L$ child vells {\bf defined over the same \Cells:}
+  $F(\bar{f}_1,...,\bar{f}_L)$. The value of this function is a \Vells\ itself,
+  $\bar{F} = \{F_{ij}\}$, also defined over the same \Cells. 
+  
+  The \qq{Function} class implements a \qq{getResult()} that iterates over the
+  \Vells\ in its child results, calls \qq{evaluate()} to compute $F$, and
+  collect the resulting \Vells\ into an output \Result. The same operation is
+  done for all perturbed values. Thus, the \qq{Function} class implements a
+  basis for all nodes that perform some mathematical operation over its
+  children. PSS4 includes an automatic code generator (documented elsewhere)
+  that will generate a full C++ implementation of a \qq{Function}-derived node
+  class, given a symbolic expression for the $F$ function. The kernel also
+  provides a toolkit of \qq{Function}s that implement most primitive
+  mathematical functions.
+
+\subsection{Dealing with multiple planes}
+
+  Note that an implementation of \qq{evaluate()} defines $F$ for a single set of
+  \Vells. When child results contain multiple planes, \qq{Function} deals with
+  it as follows:
+  
+  \begin{itemize}
+  
+  \item If all child results contain the same number of planes $Q$
+  $(Q=Q_1=...=Q_L)$, the function $F$ is applied separately to each plane from
+  1 to $Q$.
+
+  \item Child results with a different number of planes are supported in only
+  one scenario: some results may have 1 plane, and some may have $Q>1$ planes,
+  but $Q$ must be the same for all multi-planar results (a fail is generated if
+  this condition is not met). Results with 1 plane are then artificially
+  expanded to $Q$ planes by reusing the same \VellSet\ for all planes from 1 to
+  $Q$. (This is roughly similar to scalar-vector operations in Glish.)
+
+  \end{itemize}
+  
+\subsection{Dealing with perturbed values}
+
+  Each plane (aka \VellSet) $q$ of result $l$ may contain a number of perturbed
+  values. These are also evaluated. Note that the set of parameters (identified
+  by spids) with respect to which the values are perturbed is not necessarily
+  the same for each child result or plane, in fact, some planes or results may
+  contain no perturbed values at all.
+  
+  To simplify the description here, let's remember that \qq{Function} deals
+  with multiple result planes independently, on a plane-by-plane basis (see
+  above), and talk about one plane only (and $l$ child results for that plane).
+  We'll also forget about multiple perturbation sets, since those are all dealt
+  with in the same way. 
+
+  \qq{Function} starts by figuring out all the spids present in the \VellSet{}s
+  of the children. Thus, it ends up with a list of spids,
+  $(\kappa_1,...,\kappa_n)$, which is simply the union of the spid sets from
+  each child's \VellSet. For each spid $\kappa_i$, it then needs to compute the
+  perturbed value of $F$ with respect to parameter $\kappa_i$
+  $(\bar{F}^{(kappa_i)})$, based on the perturbed \Vells\
+  $(\bar{f}^{(k)})$ found in the child \VellSet{}s.
+
+  This is done by calling \qq{evaluate()} $n$ times to compute
+  $\bar{F}^{(\kappa_i)}$, while selecting the input \Vells\ from each child's
+  result as follows. If spid $\kappa_i$ is present in the list of spids for 
+  the \VellSet\ of child $l$, the perturbed value $\bar{f}^{(lk)}$ is used
+  (where $k$ corresponds to spid $\kappa_i$). Otherwise, the main value
+  $\bar{f}_l$ is used.
+  
+  While this all may seem horribly complicated at first glance, remember that
+  the end result is quite simple. A \qq{Function} node computes some function
+  over its children's results. If the subtrees above the node contain solvable
+  parameters, then perturbed values of that same function {\bf w.r.t. all} the
+  solvable parameters must be computed as well, based on perturbed values
+  returned by the children. Everything else follows from this simple
+  requirement.
+
+\subsection{Restrictions on child results}
+   
+  A \qq{Function} node imposes certain restrictions on the structure of its child
+  results, which the tree designer should be aware of. If the results do not
+  have the right layout, a fail is always generated.
+  
+  \begin{itemize}
+  
+  \item The first restriction has already been covered above -- all results must have
+  the same number of planes, or must be a mix of $Q$ planes and single planes.
+  \qq{Composer} and \qq{Selector} nodes should be placed appropriately to ensure
+  this.
+  
+  \item The second restriction has also been mentioned -- all results must have
+  the same \Cells. Auto-resampling may need to be enabled to ensure this. This
+  implies that all \Vells\ in the results will have either the same $M\times N$
+  shape, or will be scalars (i.e. no time-frequency dependence).
+
+  \item The third restriction involves the values of the perturbations
+  themselves. When $F$ is evaluated over perturbed values for parameter
+  $\kappa$, the result is sensible only when the perturbation $\delta_\kappa$
+  is the same for all perturbed values. 
+
+  \item Finally, if more than one perturbed value set is used (think
+  double-differencing), \qq{Function} requires that all child results have the
+  same number of sets, though any child may always return zero sets (no
+  perturbed values at all).
+
+  \end{itemize}
+  
+  Note that the last two restrictions are almost always met automatically,
+  since the perturbations $\delta_\kappa$ are usually determined by the
+  parameters (i.e. \qq{Parm} nodes) themselves. Single- or double-differencing
+  is enabled determined by the value of \qq{calc\_deriv} in the \Request, which
+  is also the same for all children. You'd be hard-pressed to construct a tree
+  that didn't meet these two restrictions. Nevertheless, it's something to keep
+  in mind in case you see \qq{Function} nodes failing unexpectedly.
+
+\subsection{Implementing evaluate(): Vells arithmetic}
+
+  The \qq{evaluate()} method is defined as follows:
+  
+  \begin{verbatim}  
+  virtual Vells evaluate (const Request &req,
+                          const LoShape &shape,
+                          const std::vector<const Vells*> &args);
+  \end{verbatim}
+  
+  The \qq{req} argument is simply the original \Request. \qq{shape} defines the
+  shape of the resulting \Vells, which may be needed to initialize a return
+  value. It is taken from the shape of the result \Cells (see
+  \ref{sec:getResult)}. The last parameter is a vector of pointers to argument
+  \Vells, \qq{Function} sets it up for each call so that the correct combination
+  of main values and perturbed values is used. Note that the resulting \Vells\
+  is returned by value, this is a cheap operation since \Vells\ copy is normally
+  by-reference.
+  
+  \begin{table}[th]
+  \begin{center}\begin{tabular}{|p{.25\textwidth}p{.7\textwidth}|}
+  \tablesubheading{2}{basic arithmetic:}\\
+  \qq{-} & unary negation\\
+  \qq{+ - * /} & standard binary arithmetic operators\\
+  \tablesubheading{2}{in-place arithmetic:}\\
+  \qq{+= -= *= /=} & arithmetic, modifies the left-hand \Vells\ in-place\\
+  \tablesubheading{2}{unary functions,$\RR\rightarrow\RR$ and
+                      $\CC\rightarrow\CC$:}\\
+  \qq{exp() log() log10()} & $e^x$, $\ln{x}$, $\log{x}$\\
+  \qq{sqr() sqrt()} & $x^2$, $\sqrt{x}$ \\
+  \qq{pow2()}...\qq{pow8()} & $x^2...x^8$\\
+  \qq{sin() cos() tan()} & sine, cosine, tangent \\
+  \qq{sinh() cosh() tanh()} & hyperbolic sine, cosine, tangent \\
+  \qq{conj()} & complex conjugate \\
+  
+  \tablesubheading{2}{unary functions, $\RR\rightarrow\RR$ only:}\\
+  \qq{ceil()} & nearest integer $\ge x$\\
+  \qq{floor()} & nearest integer $\le x$\\
+  \qq{acos() asin() atan()} & arccosine, arcsine, arctangent \\
+  
+  \tablesubheading{2}{unary functions, $\RR\rightarrow\RR$ or 
+                      $\CC\rightarrow\RR$:}\\
+  \qq{abs() fabs()} & absolute value $|x|$ (both names are equivalent)\\
+  \qq{norm()} & norm: $|x|^2$\\
+  \qq{arg()} & argument of a complex number (the $\phi$ in $x=|x|e^{i\phi}$)\\
+  \qq{real() imag()} & real and imaginary parts\\
+
+  \tablesubheading{2}{array reductions:}\\
+  \qq{min() max() mean() sum() product()} & these compute a scalar result 
+  \Vells\ by evaluating every element of the argument \Vells.
+  Note that \qq{min()} and \qq{max()} are only defined for real \Vells.\\
+
+  \tablesubheading{2}{binary functions:}\\
+  \qq{tocomplex()} & $x+iy$\\
+  \qq{pow()} & $x^y$ \\
+  \qq{atan2()} & $\tan^{-1}(y/x)$, also defined for $x=0$\\
+  \qq{posdiff()} & angular difference: for two angles $x,y$ in the range
+  $[-\pi,\pi]$, returns $x-y$ renormalized into $[-\pi,\pi]$ by adding $\pm2\pi$ as
+  necessary.\\
+  
+  \hline
+  \end{tabular}\end{center}
+  \caption{\label{table:vellsmath}Available \qq{Vells} operations}
+  \end{table}
+
+  Implementations can take advantage of {\em \Vells\ arithmetic}. \Vells\ is an
+  intelligent wrapper for real or complex 2D arrays or scalars, with overloaded
+  operators and functions for all basic arithmetic. It provides automatic type
+  promotion, and can also implictly ``expand'' a scalar to an array. For
+  example, two \Vells\ \qq{a} and \qq{b} may be multiplied simply by stating
+  \qq{c=a*b}. This simple notation conveniently hides a lot of messy
+  processing: real \Vells\ are automatically promoted to complex if the other
+  argument is complex, scalars are expanded to arrays if the other argument is
+  an array, and the operation is performed on an element-by-element
+  basis.\footnote{An exception is thrown if two array \Vells\ have a different 
+  shape. Note that having the same \Cells\ in all child results ensures the
+  same shape for all \Vells.}  As another example, here's an actual
+  implementation of \qq{evaluate()} for the \qq{Cos} node (computes cosine of
+  child result):
+  
+  \begin{verbatim}
+  Vells Cos::evaluate (const Request&,const LoShape &,
+                       const vector<const Vells*>& args)
+  {
+    return cos(*(args[0]));
+  }
+  \end{verbatim}
+  
+  Table~\ref{table:vellsmath} lists all the primitive operators and functions 
+  available with the \qq{Vells} class. Most of these operate on \qq{const}
+  arguments and return a new \Vells\ object by value. The exception are 
+  in-place operators (\qq{"+="} and friends), which modify a \qq{Vells} in
+  place and return it as \qq{"Vells\&"} (these obviously require a
+  non-\qq{const} argument). The C++ syntax allows one to freely combine
+  primitive operations into complicated expressions, while the compiler takes
+  care of creating and destroying intermediate \Vells\ objects as appropriate.
+  
+  Since \Vells\ are copied by-reference, using \Vells\ math for complicated
+  expressions incurs very little overhead in comparison to an ``optimized''
+  implementation with explicit looping over array elements. The amount of
+  messy coding saved, on the other hand, is huge.
+  
+  Note that some \Vells\ functions are defined for real arguments only. Applying
+  them to a complex \Vells\ will result in a fail.
+
 
 \chapter{The MeqServer Interface}
 \label{chap:meqserver}
@@ -803,9 +1047,6 @@
   Coming soon.
 
 \chapter{Description of specialized nodes}
-
-\section{Function nodes}
-\label{sec:Function}
 
 \section{ReqSeq}
 

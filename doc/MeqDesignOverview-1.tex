@@ -77,12 +77,12 @@
   $N\times M$ {\bf cells}. Each cell ${\mathbf c}_{ij}$ is a $\Delta
   x_i\times\Delta y_j$ rectangle, centered on point $(x_i,y_j)$. The function
   itself is represented by an object called the {\bf vells}, which is
-  essentially a set of $N\times M$ {\em samplings}\/ $\{f_{ij}\}$: 
+  essentially a set of $N\times M$ {\em samplings}\/ $\bar{f}=\{f_{ij}\}$: 
   $$f_{ij}=f(x_i,y_j),$$ or $N\times M$ {\em integrations}\/
-  $\{\tilde{f}_{ij}\}$: $$ \tilde{f}_{ij}=\mathop{\int\!\!\!\int}_{{\mathbf
-  c}_{ij}}f(x,y)\,dx\,dy.$$
+  $\bar{f}=\{\tilde{f}_{ij}\}$: $$
+  \tilde{f}_{ij}=\mathop{\int\!\!\!\int}_{{\mathbf c}_{ij}}f(x,y)\,dx\,dy.$$
 
-  A vells $\{f_{ij}\}$ can also represent a set of {\em measured data}, such as
+  A vells $\bar{f}=\{f_{ij}\}$ can also represent a set of {\em measured data}, such as
   observed complex visibilities. 
   
   A function may also depend on $K$ real parameters. If we designate the {\em
@@ -107,9 +107,14 @@
   {\bf perturbed value} for parameter $k$: $f^{(k)}_{ij} =
   f(x_i,y_j;p_1,...,p_{k-1},p_k+\delta_k,p_{k+1},...,p_{K})$. In fact, the
   kernel is designed to automatically compute perturbed values when needed.
+  More precise estimates may be obtained by using two sets of perturbed values
+  (``double-differencing''), with different perturbations $\delta^{(1)}_k$ and
+  $\delta^{(2)}_k$ (generally, $\delta^{(2)}_k = - \delta^{(1)}_k$). The
+  different sets of perturbed values are designated as $f^{(sk)}_{ij} (s=1,2)$.
   These are passed around as a {\bf vellset}, which is composed of the {\em
-  value vells} $\{f_{ij}\}$, and $K$ {\em perturbed value vells}
-  $\{f^{(k)}_{ij}\}$.
+  value vells} $\{f_{ij}\}$, $K\times S (S=1,2)$ {\em perturbed value vells}
+  $\{f^{(sk)}_{ij}\}$, and $S$ vectors of  the perturbation themselves
+  ${\delta^{(s)}_k}$.
 
 
 \section{Nodes}
@@ -802,9 +807,9 @@
   \tablesubheading{3}{optional, only appear if \qq{calc\_deriv>1} was specified in
   the original \Request:}\\
   \recordtableentry{perturbations\_1}{double[]}{second set of $K$ perturbations
-    $\{\delta^\prime_{k}\}$}
+    $\{\delta^{(2)}_{k}\}$}
   \recordtableentry{perturbed\_value\_1}{Vells[]}{second set of $K$ perturbed values
-    $\{f^{(k)\prime}_{ij}\}$}
+    $\{f^{(2k)}_{ij}\}$}
   \hline
   \end{tabular}\end{center}\vspace{1em}
 
@@ -812,9 +817,9 @@
   \qq{calc\_deriv} is specified in the original \Request, and the tree above
   the node contains solvable parameters. A setting of \qq{calc\_deriv=2} causes
   two sets of perturbations and perturbed values to be computed (usually with
-  $\delta^\prime_k=-\delta_k$), used to estimate the second-order derivatives
-  of $f$, which can potentially achieve a better fit, at the expense of almost
-  doubling the computing time.
+  $\delta^{(2)}_k=-\delta^{(1)}_k$), used to estimate the second-order
+  derivatives of $f$, which can potentially achieve a better fit, at the
+  expense of almost doubling the computing time.
 
   \subsubsection{Empty VellSets}
 
