@@ -77,15 +77,13 @@ if test "$with_package" = "no"; then]
 AC_MSG_ERROR([Cannot configure without package $1])
 [fi
 
-# Try to guess where the package include directory is located.
-# srcdir gives the current source directory; package is assumed to
-# be in $lofar_top_srcdir/package/src.
+# Get full path of build and source directory.
 #
 lfr_curwd=`pwd`;
 lfr_curdir=`basename $lfr_curwd`;
 lfr_srcdir=`cd $srcdir && pwd`;
 lfr_variant=;
-lfr_root=;
+lfr_libdir=;
 
 # Handle a version and/or variant in a similar way as done in lofar_init.m4.
 lfr_root="$with_package"
@@ -95,14 +93,21 @@ case "$with_package" in
   lfr_variant=`echo ${with_package} | sed -e "s/.*://"`
   ;;
 esac
+# Remove possible trailing /LOFAR/package/.
+lfr_root=`echo $lfr_root | sed -e 's%/$%%' -e 's%/$1$%%' -e 's%/LOFAR$%%'`;
 
-# If no version is given, use local one if available. Otherwise root.
+# If no version is given, use root if mandatory or if package is not
+# available locally.
 if test "$lfr_root" = ""; then
-  lfr_root=$lofar_top_srcdir;
-  ]AC_CHECK_FILE([$lfr_root/$1/configure],
-	         [lfr_var=yes],	[lfr_var=no])[
-  if test $lfr_var = no; then
+  if test "$lofar_use_root" = "1"; then
     lfr_root=$lofar_root;
+  else
+    lfr_root=$lofar_top_srcdir;
+    ]AC_CHECK_FILE([$lfr_root/$1/configure],
+	           [lfr_var=yes], [lfr_var=no])[
+    if test $lfr_var = no; then
+      lfr_root=$lofar_root;
+    fi
   fi
 else
   # Take version as given. Expand a possible tilde.
@@ -112,17 +117,21 @@ else
     lfr_root=$lofar_root;
     ;;
   ~*)
-    lfr_root=`echo $lfr_root | sed -e "s%~%$HOME%"`;
+    lfr_root=`echo $lfr_root | sed -e "s%~%$HOME%"`/LOFAR;
+    lfr_libdir=$lfr_root/$1/build/$lofar_variant;
     ;;
   */*)
+    lfr_root=$lfr_root/LOFAR;
     ;;
   *)
-    lfr_root=/home/lofar/$lfr_root;
+    # something like daily
+    lfr_root=/home/lofar/$lfr_root/LOFAR;
+    lfr_libdir=$lfr_root/$1/build/$lofar_variant;
     ;;
   esac
 fi
 # Form the include directory (is src directory of package).
-lfr_package_include=$lfr_root/$1;
+lfr_include=$lfr_root/$1;
 
 # Add compiler type to variant if needed.
 if test "$lfr_variant" != ""; then
@@ -137,24 +146,30 @@ fi
 
 # Now get the library.
 # If explicitly given, there is no problem at all.
-if test "$lfr_package_libdir" = ""; then
-  # If root used is the default one, also take variant from there.
-  if test $lfr_root = $lofar_root; then
-    lfr_package_libdir=$lfr_root/$1/build/$lofar_variant;
-  else
-    lfr_lib=$lfr_curwd;
+if test "$lfr_package_libdir" != ""; then
+  lfr_libdir=$lfr_package_libdir;
+fi
+if test "$lfr_libdir" = ""; then
+  # Use root directory if used and if library is given.
+  if test "$lfr_root" = "$lofar_root"; then
+    if test "$lofar_root_libdir" != ""; then
+      lfr_libdir=`echo "$lofar_root_libdir" | sed -e 's%<package>%$1%'`;
+    fi
+  fi
+  if test "$lfr_libdir" = ""; then
     # The sources are from the user's tree, so find build area there as well.
     # Try to guess where the package library directory is located.
     # pwd gives the current build directory, which can be something
     # like   something/build/variant/package
     # or     something/package/build/variant
     # It simply replaces package by the actual package name in S1.
+    lfr_lib=$lfr_curwd;
     if test "$lfr_variant" != ""; then
       lfr_curvar=`pwd | sed -e "s%.*/build/%%" | sed -e "s%/.*%%g"`;
       lfr_lib=`echo $lfr_lib | sed -e "s%/$lfr_curvar%/lfr_variant%"`
     fi
     lfr_pkg=`echo $lfr_srcdir | sed -e "s%.*/LOFAR/%%"`
-    lfr_package_libdir=`echo $lfr_lib | sed -e "s%/$lfr_pkg%/$1%"`
+    lfr_libdir=`echo $lfr_lib | sed -e "s%/$lfr_pkg%/$1%"`
   fi
 fi
 
@@ -165,28 +180,28 @@ fi
 ## Check for Makefile.am header file in src dir.
 ##
   if test $lfr_option != 2; then
-    ]AC_CHECK_FILE([$lfr_package_libdir/libtool],
+    ]AC_CHECK_FILE([$lfr_libdir/libtool],
 			[lfr_cv_lib_package=yes],
 			[lfr_cv_lib_package=no])
   [else
     lfr_cv_lib_package=yes;
   fi
-]AC_CHECK_FILE([$lfr_package_include/src/Makefile.am],
+]AC_CHECK_FILE([$lfr_include/src/Makefile.am],
 			[lfr_cv_hdr_package=yes],
 			[lfr_cv_hdr_package=no])dnl
 [
 if test $lfr_cv_hdr_package = yes  &&  test $lfr_cv_lib_package = yes; then
   # Turn possible relative paths into absolute paths, because
   # relative paths can miss some .. parts.
-  lfr_package_include=`cd $lfr_package_include && pwd`
+  lfr_include=`cd $lfr_include && pwd`
 
   # Two new variables for use in Makefile.am's
-  ]LOFAR_PKG_LIB[_top_srcdir="$lfr_package_include"
+  ]LOFAR_PKG_LIB[_top_srcdir="$lfr_include"
 
   if test $lfr_option != 2; then
-    lfr_package_libdir=`cd $lfr_package_libdir && pwd`
-    ]LOFAR_PKG_LIB[_top_builddir="$lfr_package_libdir"
-    LDFLAGS="$LDFLAGS -L$lfr_package_libdir/src"
+    lfr_libdir=`cd $lfr_libdir && pwd`
+    ]LOFAR_PKG_LIB[_top_builddir="$lfr_libdir"
+    LDFLAGS="$LDFLAGS -L$lfr_libdir/src"
     LIBS="$LIBS -l"]LOFAR_PKG_LIB[
   fi
 
@@ -194,7 +209,7 @@ if test $lfr_cv_hdr_package = yes  &&  test $lfr_cv_lib_package = yes; then
   # Do the same (if needed recursively) for all packages used by this package.
   rm -f libnames_depend
   touch libnames_depend
-  $lofar_sharedir/makepkglinks $1 $lfr_package_include $lfr_package_libdir pkginc pkgbldinc libnames_depend $lfr_option 0
+  $lofar_sharedir/makepkglinks $1 $lfr_include $lfr_libdir pkginc pkgbldinc libnames_depend $lfr_option 0
   # Get the libraries this package is dependent on.
   # Use echo to remove the possible newlines.
   lfr_depend=`cat libnames_depend`
@@ -212,11 +227,11 @@ dnl NOT NEEDED: AC_DEFINE(HAVE_LOFAR_PKG, 1, [Define if Package is installed])dn
 [
 else
   if test $lfr_cv_hdr_package = no; then]
-AC_MSG_ERROR([Could not find Makefile.am in $lfr_package_include])
+AC_MSG_ERROR([Could not find Makefile.am in $lfr_include])
 [
     enable_package=no
   else]
-AC_MSG_WARN([Could not find libtool in $lfr_package_libdir])
+AC_MSG_WARN([Could not find libtool in $lfr_libdir])
 AC_MSG_ERROR([Probably package $1 has not been configured yet])
 [
   fi

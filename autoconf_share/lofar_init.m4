@@ -14,12 +14,10 @@
 #  lofar_root        LOFAR root which is default tree for package sources
 #                    (e.g. /lofar/stable/LOFAR)
 #  lofar_root_libdir LOFAR root which is default tree for package libraries
-#                    Note that usually the build is a subdirectory of package.
-#                    In that case it looks like: $HOME/sim/LOFAR
-#                    However, packages can also be a subdirectory of variant
-#                    in which case it looks like: $HOME/sim/build/gnu_opt
-#                    So the presence of the string '/build/' tells the
-#                    difference.
+#                    It contains the string <package> which should be replaced
+#                    by the actual package name.
+#  lofar_use_root    0 = root is only a fallback
+#                    1 = always use root (except for package to build)
 #  lofar_variant     variant being built (e.g. gnu_opt or xxx)
 #  lofar_compiler    compiler type used (gnu, kcc, or icc) derived from CXX
 #                    Other compilers are not recognized and result in
@@ -48,16 +46,28 @@ AC_DEFUN(lofar_INIT,dnl
 AC_PREREQ(2.13)dnl
 AC_ARG_WITH(lofar,
 	[  --with-lofar[=version:variant]    root version:variant to use (default=user tree)],
-	[with_lofar=$withval
-         if test "${with_lofar}" = yes; then
-           with_lofar=
-         fi])
+	[with_lofar=$withval;
+         lofar_use_root=1])
+
+AC_ARG_WITH(lofar-default,
+	[  --with-lofar-default[=version:variant]    root version:variant to use (default=user tree)],
+	[with_lofar=$withval;
+         lofar_use_root="${lofar_use_root}0"])
 
 AC_ARG_WITH(lofar-libdir,
   [  --with-lofar-libdir=PFX   specific tree for lofar libraries],
   [lofar_root_libdir="$withval"])
 
 [
+  if test "$with_lofar" = yes; then
+    with_lofar=
+  fi
+  if test "$lofar_use_root" = "10"; then
+    ]AC_MSG_ERROR([--with-lofar and --with-lofar-default should not be used together])[
+  fi
+  if test "x$lofar_use_root" = "x"; then
+    lofar_use_root=0;
+  fi
   # Find root of user LOFAR directory tree.
   lfr_top=`(cd $srcdir && pwd) | sed -e "s%/LOFAR/.*%%"`
   lofar_top_srcdir=$lfr_top/LOFAR;
@@ -93,7 +103,7 @@ AC_ARG_WITH(lofar-libdir,
     ;;
   esac
 
-  # If the C++ compiler is given, set it to the C compiler (if given).
+  # If the C++ compiler is not given, set it to the C compiler (if given).
   if test "x$CXX" = "x"; then
     if test "x$CC" != "x"; then
       lfr_cxx=`basename $CC`;
@@ -108,7 +118,7 @@ AC_ARG_WITH(lofar-libdir,
     fi
   fi
 
-  # Find the compiler type. Note that default compiler is gnu g++.
+  # Find the compiler type. Note that the default compiler is gnu g++.
   # Set the special AR needed for the KAI C++ compiler.
   lofar_compiler="gnu";
   if test "x$CXX" != "x"; then
@@ -137,6 +147,7 @@ AC_ARG_WITH(lofar-libdir,
 
   # Get the possible version:variant given.
   # Empty variant means the current variant.
+  # Remove trailing / and /LOFAR if user has given that (reduntdantly).
   lofar_root=
   lofar_variant=
   if test "x$with_lofar" != "x"; then
@@ -147,8 +158,8 @@ AC_ARG_WITH(lofar-libdir,
       lofar_variant=`echo ${with_lofar} | sed -e "s/.*://"`
       ;;
     esac
+    lofar_root=`echo $lofar_root | sed -e 's%/$%%' -e 's%/LOFAR$%%'`;
   fi
-
   # If root has no / or ~, add /home/lofar/ to it.
   # Replace ~ by home directory.
   # If variant has no _, add compiler_ to it.
@@ -169,7 +180,7 @@ AC_ARG_WITH(lofar-libdir,
     esac
   fi
   if test "x$lfr_libdir" = "x"; then
-    $lfr_libdir=$lofar_root;
+    lfr_libdir=$lofar_root/LOFAR;
   fi
   if test "x$lofar_root_libdir" = "x"; then
     lofar_root_libdir=$lfr_libdir;
@@ -216,9 +227,11 @@ AC_CHECK_FILE([$lofar_root/LOFAR],
   case $lofar_root_libdir in
   */build/*)
     lfr_find=$lofar_root_libdir/Common;
+    lofar_root_libdir="$lofar_root_libdir/<package>";
     ;;
   *)
     lfr_find=$lofar_root_libdir/Common/build/$lofar_variant;
+    lofar_root_libdir="$lofar_root_libdir/<package>/build/$lofar_variant";
     ;;
   esac
 
@@ -227,13 +240,15 @@ AC_CHECK_FILE([$lfr_find], [lfr_var=yes], [lfr_var=no])
   [if test $lfr_var = no; then]
     AC_MSG_WARN([Could not find libdir $lfr_find]);
     [
-    lofar_root_libdir=/home/lofar/stable/LOFAR/${lofar_compiler}_opt;
+    lofar_root_libdir="/home/lofar/stable/LOFAR/<package>/build/${lofar_compiler}_opt";
     ]
-    AC_MSG_WARN([   set to $lofar_root_libdir])
+    AC_MSG_WARN([   set to /home/lofar/stable/LOFAR/${lofar_compiler}_opt])
   [fi]
 
 
   AC_SUBST(lofar_root)
+  AC_SUBST(lofar_root_libdir)
+  AC_SUBST(lofar_use_root)
   AC_SUBST(lofar_compiler)
   AC_SUBST(lofar_variant)
   AC_SUBST(lofar_top_srcdir)

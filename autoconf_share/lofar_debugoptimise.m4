@@ -17,6 +17,18 @@ AC_ARG_WITH(optimize,
 	[  --with-optimize[=CFLAGS]  enable optimization CFLAGS (default=-O3 or +K3)],
 	[with_optimize="$withval"],
 	[with_optimize=no])dnl
+AC_ARG_WITH(cppflags,
+	[  --with-cppflags=CPPFLAGS  enable extra CPPFLAGS],
+	[with_cppflags="$withval"])dnl
+AC_ARG_WITH(cflags,
+	[  --with-cflags=CFLAGS      enable extra CFLAGS],
+	[with_cflags="$withval"])dnl
+AC_ARG_WITH(cxxflags,
+	[  --with-cxxflags=CXXFLAGS  enable extra CXXFLAGS],
+	[with_cxxflags="$withval"])dnl
+AC_ARG_WITH(ldflags,
+	[  --with-ldflags=LDFLAGS    enable extra LDFLAGS],
+	[with_ldflags="$withval"])dnl
 AC_ARG_ENABLE(tracer,
 	[  --disable-tracer        disable TRACER macros],
 	[enable_tracer="$enableval"],
@@ -51,8 +63,8 @@ AC_DEFINE(LOFAR_DEBUG,dnl
 	1, [Define if we are compiling with debugging information])dnl
 [ fi
   if test "$enable_debug" != "no"; then
-    CFLAGS="-g";
-    CXXFLAGS="-g $lofar_warnflags";
+    lfr_cflags="-g";
+    lfr_cxxflags="-g $lofar_warnflags";
     if test "$enable_dbgassert" = "default"; then
       enable_dbgassert="yes";
     fi
@@ -67,15 +79,22 @@ AC_DEFINE(LOFAR_DEBUG,dnl
   fi
 
   if test "$with_optimize" != "no"; then
-    CFLAGS="$with_optimize";
-    CXXFLAGS="$with_optimize $lofar_warnflags";
+    lfr_cflags="$with_optimize";
+    lfr_cxxflags="$with_optimize $lofar_warnflags";
     if test "$enable_dbgassert" = "default"; then
       enable_dbgassert="no";
     fi
   fi
+
+  CPPFLAGS="$CPPFLAGS $with_cppflags"
+  CFLAGS="$lfr_cflags $with_cflags"
+  CXXFLAGS="$lfr_cxxflags $with_cxxflags"
+  LDFLAGS="$LDFLAGS $with_ldflags"
 ]
 AC_SUBST(CFLAGS)dnl
 AC_SUBST(CXXFLAGS)dnl
+AC_SUBST(CPPFLAGS)dnl
+AC_SUBST(LDFLAGS)dnl
 [
   if test "$enable_tracer" != "no"; then]
     AC_DEFINE(ENABLE_TRACER,dnl
