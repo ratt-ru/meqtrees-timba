@@ -1,0 +1,77 @@
+#!/bin/sh
+
+# makeext: handle all flags and so used for external packages
+#
+#  Copyright (C) 2003
+#  ASTRON (Netherlands Foundation for Research in Astronomy)
+#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#  $Id$
+
+
+# This script is used by makepkglinks to handle flags for external packages.
+# Each external package (usually included by lofar_external) of a lofar
+# package writes its name and flags in pkgext files.
+# This script reads that info and appends it to the pkgext files
+# of the package being configured.
+# It does it in such a way that only the new entries are added. The
+# new entries are also written in a file pgkext_diff, so lofar_package.m4
+# can add them to CPPFLAGS, etc.
+#
+# usage:
+#  makepkglinks filnm libdir pkglib
+
+filnm=$1
+libdir=$2
+
+\rm -f lfr_tmp1
+# Only execute the script if the other package has the file defined.
+touch ${filnm}_diff
+if [ -f $libdir/$filnm ]; then
+  touch lfr_tmp1
+  nms=`cat $libdir/$filnm $filnm`
+  # Use echo to remove the possible newlines.
+  nms=`echo $nms`
+  # Make sure that each entry is on a single line.
+  for nme in $nms
+  do
+    echo "$nme" >> lfr_tmp1
+  done
+  # Remove duplicate entries.
+  sort lfr_tmp1 | uniq > lfr_tmp2
+  # Determine the new entries.
+  # Use diff and remove lines like 2a3 and remove the leading > .
+  # Diff is considered to be too platform dependent, so explicit loop is used.
+  ##  diff $filnm lfr_tmp2 | egrep -v '^[0-9]+a[0-9]+$' | sed "s/^> //" > ${filnm}_diff
+  for newl in `cat lfr_tmp2`
+  do
+    for oldl in `cat $filnm`
+    do
+      fnd=0;
+      if [ "$newl" = "$oldl" ]; then
+        fnd=1;
+        break;
+      fi
+    done
+    if [ $fnd = 0 ]; then
+      echo "$newl" >> ${filnm}_diff;
+    fi
+  done
+  # Make it the new file.
+  mv lfr_tmp2 $filnm
+  \rm -f lfr_tmp1
+fi
