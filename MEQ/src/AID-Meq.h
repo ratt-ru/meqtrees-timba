@@ -148,6 +148,11 @@ const int AidDecSrc_int = -1465;
 const AtomicID AidDefault(-1231);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Parm.h:34
 const int AidDefault_int = -1231;
 #endif
+#ifndef _defined_id_AidDelete
+#define _defined_id_AidDelete 1
+const AtomicID AidDelete(-1335);                  // from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:11
+const int AidDelete_int = -1335;
+#endif
 #ifndef _defined_id_AidDensity
 #define _defined_id_AidDensity 1
 const AtomicID AidDensity(-1440);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Resampler.h:31

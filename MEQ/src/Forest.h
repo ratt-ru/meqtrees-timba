@@ -24,9 +24,12 @@
 
 #include <MEQ/Node.h>
 #include <MEQ/Request.h>
+#include <MEQ/EventGenerator.h>
 #include <vector>
 #include <map>
-    
+
+#pragma aid Create Delete
+
 namespace Meq {
 
 //##ModelId=3F5F21740281
@@ -99,6 +102,17 @@ class Forest
     //## Assigns ID to request object. WIll assign new ID if the cells
     //## differ from the previous request, otherwise will re-use IDs
     const HIID & assignRequestId (Request &req);
+    
+    // manage subscriptions to various events
+    // "Create" and "Delete" are the only ones known for now
+    void addSubscriber    (const HIID &evtype,const EventSlot &slot)
+    { getEventGenerator(evtype).addSlot(slot); }
+    
+    void removeSubscriber (const HIID &evtype,const EventSlot &slot)
+    { getEventGenerator(evtype).removeSlot(slot); }
+    
+    void removeSubscriber (const HIID &evtype,const EventRecepient *recpt)
+    { getEventGenerator(evtype).removeSlot(recpt); }
 
     //##ModelId=3F60697A0078
     LocalDebugContext;
@@ -126,6 +140,12 @@ class Forest
     HIID last_req_id;
     //##ModelId=400E53050170
     Meq::Cells::Ref last_req_cells;
+    
+    EventGenerator evgen_create;
+    EventGenerator evgen_delete;
+    
+    EventGenerator & getEventGenerator (const HIID &evtype);
+    
 };
 
 } // namespace Meq

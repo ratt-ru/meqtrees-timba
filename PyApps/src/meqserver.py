@@ -6,6 +6,8 @@ import sys
 # command line (this has to go first, as other modules being imported
 # may depend on app_defaults settings)
 import app_defaults
+if app_defaults.include_gui:
+  from meqserver_gui import *
 
 #-------- update default debuglevels
 app_defaults.debuglevels.update({
@@ -53,6 +55,9 @@ class meqserver (app_proxy):
         launch = ('meqserver',) + launch;
     if spawn and isinstance(spawn,bool):
       spawn = default_spawn;
+    # set gui arg
+    if 'gui' in kwargs and kwargs['gui'] and not callable(kwargs['gui']):
+      kwargs['gui'] = meqserver_gui;
     # init base class  
     app_proxy.__init__(self,appid,launch=launch,spawn=spawn,**kwargs);
     
@@ -174,7 +179,7 @@ def default_mqs (debug={},**kwargs):
 if __name__ == '__main__':
   app_defaults.parse_argv(sys.argv[1:]);
   gui = app_defaults.args['gui'];
-  
+
   default_mqs(verbose=2,wp_verbose=2);
   for i in range(1,10):
     print 'createnode:',mqs.createnode(meq.node('MeqConstant','x'+str(i),value=0),wait=False);
@@ -187,7 +192,7 @@ if __name__ == '__main__':
   print '================= stopping mqs';
   mqs.halt();
   mqs.disconnect();
-    
+
   print "===== calling octopussy.stop() =====";
   octopussy.stop();
 

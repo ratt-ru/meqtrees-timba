@@ -64,6 +64,7 @@ namespace OctoPython
   // Build Python objects from specific DMI objects, return _NEW REFERENCE_.
   // These function follow a EP_THROW error policy.
   PyObject * pyFromRecord   (const DataRecord &);
+  PyObject * pyFromList     (const DataList &);
   PyObject * pyFromField    (const DataField &);
   PyObject * pyFromArray    (const DataArray &);
   PyObject * pyFromMessage  (const Message &);

@@ -124,6 +124,8 @@ class dmi_repr (object):
       braces = '{}';
       iterator = value.iteritems();
       conv = lambda x: (str(x[0])+':',x[1]);
+    elif isinstance(value,conv_error):
+      return (value.details(),True);
     else:  # else some other type: simply return its repr
       return (str0,inlined);
     # now convert sequence

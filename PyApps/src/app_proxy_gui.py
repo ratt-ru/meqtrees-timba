@@ -19,8 +19,8 @@ class HierBrowser (object):
     def __init__(self,*args):
       QListViewItem.__init__(self,*args);
 
-    def subitem (self,key,value):
-      return self.__class__(self,self._content_list[-1],str(key),"",str(value));
+    def subitem (self,*args):
+      return self.__class__(self,self._content_list[-1],*map(str,args));
 
     # caches content in an item: marks as expandable, ensures content is a dict
     def cache_content(self,content):
@@ -91,14 +91,12 @@ class HierBrowser (object):
   # init for HierBrowser
   def __init__(self,parent,name):
     self._lv = QListView(parent);
-    self._lv.addColumn("");
-    self._lv.addColumn("");
+    self._lv.addColumn('');
     self._lv.addColumn(name);
     self._lv.setRootIsDecorated(True);
     self._lv.setSorting(-1);
     self._lv.setResizeMode(QListView.NoColumn);
     self._lv.setColumnWidthMode(0,QListView.Maximum);
-    self._lv.setColumnWidthMode(1,QListView.Maximum);
     self._lv.setColumnWidthMode(2,QListView.Maximum);
     self._lv.setFocus();
     self._lv.connect(self._lv,SIGNAL('expanded(QListViewItem*)'),
@@ -109,9 +107,9 @@ class HierBrowser (object):
   # inserts a new item into the browser
   def new_item (self,*args):
     if self.items:
-      item = self.BrowserItem(self._lv,self.items[-1],*args);
+      item = self.BrowserItem(self._lv,self.items[-1],*map(str,args));
     else:
-      item = self.BrowserItem(self._lv,*args);
+      item = self.BrowserItem(self._lv,*map(str,args));
     self.items.append(item);
     self._lv.ensureItemVisible(item);
     return item;
@@ -135,6 +133,7 @@ class Logger(HierBrowser):
     self._controlgrid = QWidget(self._vbox);
     self._controlgrid_lo = QHBoxLayout(self._controlgrid);
     self._controlgrid_lo.addStretch();
+    self.enabled = enable;
     if use_enable:
       self._enable = QCheckBox("logging enabled",self._controlgrid);
       self._enable.setChecked(enable);
@@ -186,13 +185,15 @@ class Logger(HierBrowser):
       self._limit_field.setEnabled(limit>0);
     self.apply_limit(self._limit);
 
-  def add (self,msg,content=None,category=Normal,force=False):
+  def add (self,msg,content=None,category=Normal,force=False,label=None):
     # disabled? return immediately
-    if not force and self._enable and not self._enable.isChecked():
+    if not force and not self.enabled:
       return;
-    # create timestamp and listview item
-    timestr = time.strftime("%H:%M:%S");
-    item = self.new_item(timestr,"",msg);
+    # if label not specified, use a timestamp 
+    if label is None:
+      label = time.strftime("%H:%M:%S ");
+    # create listview item
+    item = self.new_item(label,msg);
     item._category = category;
     if content is not None:
       item.cache_content(content);
@@ -204,6 +205,7 @@ class Logger(HierBrowser):
     self.apply_limit(self._limit);
     
   def _toggle_enable (self,en):
+    self.enabled = en;
     if en: self.add("logging enabled",category=self.Normal);
     else:  self.add("logging disabled",category=self.Error,force=True);
     
@@ -319,11 +321,22 @@ class app_proxy_gui(verbosity,QMainWindow):
     sz = self.size().expandedTo(QSize(size[0],size[1]));
     self.resize(sz);
     self.setCentralWidget(self.maintab)
-    self.setCaption(app.name());
+    self.dprint(2,"init complete");
     
+    #------ populate the custom event map
+    self._ce_handler_map = { 
+      hiid("hello"):            [self.ce_Hello,self.ce_UpdateState],
+      hiid("bye"):              [self.ce_Bye,self.ce_UpdateState],
+      hiid("app.notify.state"): [self.ce_UpdateState]                };
+      
+  def _add_ce_handler (self,event,handler):
+    self._ce_handler_map.setdefault(make_hiid(event),[]).append(handler);
+
+  def show(self):
     #------ show the main window
+    self.dprint(2,"showing GUI"); 
     self._update_app_state();
-    self.show();
+    QMainWindow.show(self);
     
   #  # starts main app thread     
   #  def start (self):
@@ -334,29 +347,28 @@ class app_proxy_gui(verbosity,QMainWindow):
   MessageEventType = QEvent.User+1;
   def _relay_event (self,event,value):
     # print 'eventRelay: ',msg;
-    MainApp.postEvent(self,QCustomEvent(self.MessageEventType,(event,value)));
+    self.dprint(5,'_relay_event:',event,value);
+    QThread.postEvent(self,QCustomEvent(self.MessageEventType,(event,value)));
+    self.dprint(5,'_relay_event: event posted');
     # print 'eventRelay returning';
 
 ##### event handlers for octopussy messages
   def customEvent (self,event):
     (ev,value) = event.data();
-    # print 'customEvent: ',ev;
+    self.dprint(5,'customEvent:',event,value);
     report = False;
     print value;
     msgtext = None; 
     if isinstance(value,record):
       for (field,cat) in self._MessageFields:
-        if value.has_field(field):
-          (msgtext,category) = (value[field],cat);
+        if field in value:
+          self.msglog.add(value[field],value,cat);
           break;
-    # messages added to message log, everything else to event log
-    if msgtext is not None:
-      self.msglog.add(msgtext,value,category);
-      self.statusbar.message(msgtext,2000);  # display for 2 secs
+    # add to event log (if enabled)
     self.eventlog.add(str(ev),value,Logger.Event);
     # execute procedures from the custom map
-    for proc in self.customEventMap.get(ev,()):
-      proc(self,ev,value);
+    for handler in self._ce_handler_map.get(ev,()):
+      handler(ev,value);
     # print 'customEvent returning';
     
   def ce_Hello (self,ev,value):
@@ -375,7 +387,8 @@ class app_proxy_gui(verbosity,QMainWindow):
   StatePixmaps = { None: pixmaps.cancel };
   StatePixmap_Default = pixmaps.check;
   def _update_app_state (self):
-    self.status_label.setText(' '+self.app.statestr.lower()+' '); 
+    state = self.app.statestr.lower();
+    self.status_label.setText(' '+state+' '); 
     pm = self.StatePixmaps.get(self.app.state,self.StatePixmap_Default);
     self.status_icon.setPixmap(pm.pm());
     self.pause_button.setDisabled(not self.app.state>0);
@@ -388,6 +401,13 @@ class app_proxy_gui(verbosity,QMainWindow):
         print 'Pause state reached!'
         self.pause_button.setDown(False);
         self.pause_requested = None;
+    # update window title        
+    if self.app.app_addr is None:
+      self.setCaption(self.app.name()+" - "+state);
+    else:
+      self.setCaption(str(self.app.app_addr)+" - "+state);
+      
+    
 ##### slot: pause button pressed
   def _press_pause (self):
     if self.pause_requested is None:
@@ -401,13 +421,16 @@ class app_proxy_gui(verbosity,QMainWindow):
 ##### slot for the Event tab bar -- changes the label of a particular event logger
   def _change_eventlog_mask (self,logger,mask):
     self.eventtab.setTabLabel(logger,str(mask));
-  # adds error count to label of message logger
+##### slot: adds error count to label of message logger
   def _indicate_msglog_errors (self,logger,numerr):
     if numerr:
       self.maintab.changeTab(logger,logger._error_iconset,logger._error_label % numerr);
     else:
-      self.maintab.changeTab(logger,logger._default_iconset,logger._default_label);
-
+      self._reset_maintab_label(logger);
+##### slot: resets label of tabbed window to its default value
+  def _reset_maintab_label (self,tabwin):
+    self.maintab.changeTab(tabwin,tabwin._default_iconset,tabwin._default_label);
+  
   _MessageFields = (('error',   Logger.Error),
                     ('message', Logger.Normal),
                     ('text',    Logger.Normal));

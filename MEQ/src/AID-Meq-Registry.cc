@@ -332,6 +332,7 @@ BlockableObject * __construct_MeqReqSeq (int n) { return n>0 ? new Meq::ReqSeq [
         TypeInfoReg::addToRegistry(-1478,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1478,__construct_MeqReqSeq)+
         AtomicID::registerId(-1477,"only")+
+        AtomicID::registerId(-1335,"delete")+
     0;
     return res;
   }

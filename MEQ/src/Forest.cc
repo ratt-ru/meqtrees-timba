@@ -23,6 +23,7 @@
 #include "Forest.h"
 #include "MeqVocabulary.h"
 #include <DMI/DynamicTypeManager.h>
+#include <DMI/DataList.h>
     
 // pull in registry
 static int dum = aidRegistry_Meq();
@@ -48,6 +49,8 @@ void Forest::clear ()
   nodes.resize(1);
   name_map.clear();
   num_valid_nodes = 0;
+  if( evgen_delete.active() )
+    evgen_delete.generateEvent(ObjRef(),0); // null ptr means all nodes deleted
 }
 
 //##ModelId=3F5F572601B2
@@ -108,6 +111,9 @@ const Node::Ref & Forest::create (int &node_index,
   num_valid_nodes++;
   if( !name.empty() )
     name_map[name] = node_index;
+  // post event
+  if( evgen_create.active() )
+    evgen_create.generateEvent(ObjRef(pnode->state()),pnode);
   return nodes[node_index];
 }
 
@@ -119,6 +125,9 @@ int Forest::remove (int node_index)
   Node::Ref &ref = nodes[node_index];
   FailWhen(!ref.valid(),"invalid node index");
   string name = ref->name();
+  // generate delete event
+  if( evgen_delete.active() )
+    evgen_delete.generateEvent(ObjRef(),ref.dewr_p());
   // detach the node & shrink repository if needed
   ref.detach();
   if( node_index == int(nodes.size())-1 )
@@ -206,7 +215,8 @@ int Forest::getNodeList (DataRecord &list,int content)
 {
   int num = num_valid_nodes;
   // create lists (arrays) for all known content
-  DataField *lni=0,*lname=0,*lclass=0,*lchildren=0;
+  DataField *lni=0,*lname=0,*lclass=0;
+  DataList *lchildren=0;
   if( content&NL_NODEINDEX )
     list[AidNodeIndex] <<= lni = new DataField(Tpint,num);
   if( content&NL_NAME )
@@ -214,7 +224,7 @@ int Forest::getNodeList (DataRecord &list,int content)
   if( content&NL_CLASS )
     list[AidClass] <<= lclass = new DataField(Tpstring,num);
   if( content&NL_CHILDREN )
-    list[AidChildren] <<= lchildren = new DataField(TpDataField,num);
+    list[AidChildren] <<= lchildren = new DataList;
   if( num )
   {
     // fill them up
@@ -233,16 +243,31 @@ int Forest::getNodeList (DataRecord &list,int content)
         if( lchildren )
         {
           DataRecord::Hook hook(node.state(),FChildren);
-          if( hook.exists() )
-            (*lchildren)[i0] <<= hook.as_p<DataField>();
+          if( hook.type() == TpDataField )
+            lchildren->addBack(hook.as_p<DataField>());
+          else if( hook.type() == TpDataRecord )
+            lchildren->addBack(hook.as_p<DataRecord>());
           else
-            (*lchildren)[i0] <<= new DataField;
+            lchildren->addBack(new DataField,DMI::ANONWR);
         }
         i0++;
       }
     FailWhen(i0<num,"forest inconsistency: too few valid nodes found");
   }
   return num;
+}
+
+
+EventGenerator & Forest::getEventGenerator (const HIID &evtype)
+{
+  if( evtype == AidCreate )
+    return evgen_create;
+  else if( evtype == AidDelete )
+    return evgen_delete;
+  else
+  {
+    Throw("unknown event type: "+evtype.toString());
+  }
 }
 
 } // namespace Meq

@@ -51,6 +51,9 @@ def meqbrowse (debug={},**kwargs):
   octopussy.stop();
   
 if __name__ == '__main__':
-  meqbrowse();
-  
+  thread = qt_threading.QThreadWrapper(meqbrowse);
+  print 'starting main thread:';
+  thread.start();
+  thread.join();
+  print 'main thread rejoined, exiting';
 

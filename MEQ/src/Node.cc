@@ -717,7 +717,7 @@ int Node::cacheResult (const Result::Ref &ref,int retcode)
   wstate()[FCacheResultCode].replace() = cache_retcode_ = retcode;
   cdebug(3)<<"  caching result with code "<<ssprintf("0x%x",retcode)<<endl;
   // publish current state to all result subscribers
-  if( result_event_gen_.hasSlots() )
+  if( result_event_gen_.active() )
     result_event_gen_.generateEvent(staterec_.copy());  
   // NB***: if we don't cache the result, we have to publish it regardless
   // this is to be implemented later, with caching policies

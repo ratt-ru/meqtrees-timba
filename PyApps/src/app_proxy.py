@@ -2,7 +2,6 @@
 
 import app_defaults
 if app_defaults.include_gui:
-  print '========================== Using gui';
   import app_proxy_gui;
   import qt_threading;
 
@@ -122,8 +121,10 @@ class app_proxy (verbosity):
     
   # message handler to actually construct an application's GUI
   def _construct_gui (self):
-    self.dprint(2,"_construct_gui called, starting the GUI");
+    self.dprint(2,"_construct_gui: creating GUI");
     self._gui = self._gui(self,verbose=self.get_verbose());
+    self.dprint(2,"_construct_gui: showing GUI");
+    self._gui.show();
     
   def name(self):
     return str(self.appid);
@@ -132,6 +133,7 @@ class app_proxy (verbosity):
   bye_event = hiid("Bye");
   def _hello_handler (self,msg):
     self.dprint(2,"got hello message:",msg);
+    self.app_addr = getattr(msg,'from');
     if self.state is None:
       self.state = -1;
       self.statestr = 'connected';
@@ -144,6 +146,7 @@ class app_proxy (verbosity):
       
   def _bye_handler (self,msg):
     self.dprint(2,"got bye message:",msg);
+    self.app_addr = None;
     if self.state is None:
       self.state = -1;
       self.statestr = 'no connection';

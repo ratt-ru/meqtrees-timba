@@ -39,11 +39,11 @@ class EventGenerator
   public:
     //##Documentation
     //## sends event to all event slots
-    int generateEvent (const ObjRef::Copy &data = ObjRef()) const
+    int generateEvent (const ObjRef::Copy &data = ObjRef(),void *ptr=0) const
     {
       SlotList::const_iterator iter = slots_.begin();
       for( ; iter != slots_.end(); iter++ )
-        iter->receive(data.copy(DMI::READONLY));
+        iter->receive(data.copy(DMI::READONLY),ptr);
       return 0;  
     }
      
@@ -61,7 +61,7 @@ class EventGenerator
     
     //##Documentation
     //## checks if any event slots are subscribed
-    bool hasSlots () const
+    bool active () const
     { return !slots_.empty(); }
 
 };

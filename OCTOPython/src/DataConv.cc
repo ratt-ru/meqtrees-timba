@@ -3,6 +3,7 @@
 #include <DMI/DataRecord.h>
 #include <DMI/DataField.h>
 #include <DMI/DataArray.h>
+#include <DMI/DataList.h>
 #include <DMI/DynamicTypeManager.h>
 #define Bool NumarrayBool
 #include <numarray/libnumarray.h>
@@ -509,7 +510,9 @@ PyObject * pyFromField (const DataField &df)
   // now proceed depending on object type
   if( typeinfo.category == TypeCategories::NUMERIC )
   {
-    if( type <= Tpbool && type >= Tplong )
+    if( type == Tpbool )
+      extractField(PyBool_FromLong,as<long>)
+    else if( type < Tpbool && type >= Tplong )
       extractField(PyInt_FromLong,as<long>)
     else if( type <= Tpulong && type >= Tplonglong )
       extractField(PyLong_FromLongLong,as<longlong>)
@@ -534,6 +537,25 @@ PyObject * pyFromField (const DataField &df)
   // (scalars should have been returned directly from the if-else blocks above)
   Assert(tuple);
   return ~tuple; // return new ref, stealing from ours
+}
+
+// -----------------------------------------------------------------------
+// pyFromList
+// converts a DataList to a Python list
+// -----------------------------------------------------------------------
+PyObject * pyFromList (const DataList &dl)
+{
+  int len = dl.size();
+  cdebug(3)<<"pyFromList: converting DataList of "<<len<<" items\n";
+  PyObjectRef pylist = PyList_New(len);
+  for( int i=0; i<len; i++ )
+  {
+    NestableContainer::Ref content = dl.getItem(i);
+    cdebug(4)<<"pyFromList: #"<<i<<" is a "<<content->objectType()<<endl;
+    PyList_SET_ITEM(*pylist,i,pyFromDMI(*content,EP_CONV_ERROR));
+  }
+  cdebug(3)<<"pyFromList: converted "<<len<<" items\n";
+  return ~pylist; // return new ref, stealing from ours
 }
 
 // -----------------------------------------------------------------------
@@ -575,7 +597,7 @@ PyObject * pyFromRecord (const DataRecord &dr)
     }
   }
   cdebug(3)<<"pyFromRecord: converted "<<PyDict_Size(*pyrec)<<" fields\n";
-  return ~pyrec;
+  return ~pyrec; // return new ref, stealing from ours
 }
 
 // -----------------------------------------------------------------------
@@ -654,6 +676,8 @@ PyObject * pyFromDMI (const BlockableObject &obj,int err_policy)
       return pyFromField(dynamic_cast<const DataField &>(obj));
     else if( type == TpDataArray )
       return pyFromArray(dynamic_cast<const DataArray &>(obj));
+    else if( type == TpDataList )
+      return pyFromList(dynamic_cast<const DataList &>(obj));
     else if( type == TpMessage )
       return pyFromMessage(dynamic_cast<const Message &>(obj));
     else
