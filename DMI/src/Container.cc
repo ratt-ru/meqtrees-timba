@@ -19,6 +19,7 @@
 //## end module%3C10CC830069.additionalIncludes
 
 //## begin module%3C10CC830069.includes preserve=yes
+#define NC_SKIP_HOOKS 1
 #include <list>
 #include "DMI/DataArray.h"
 #include "DMI/DataField.h"
@@ -113,6 +114,9 @@ const NestableContainer::Hook & NestableContainer::Hook::privatize (int flags) c
 ObjRef NestableContainer::Hook::remove () const
 {
   //## begin NestableContainer::Hook::remove%3C876DCE0266.body preserve=yes
+//#ifdef USE_THREADS
+//  lock.relock(True);
+//#endif
   FailWhen(!nc->isWritable(),"r/w access violation");
   ObjRef ret;
   if( isRef() )
@@ -130,6 +134,9 @@ ObjRef NestableContainer::Hook::remove () const
 const NestableContainer::Hook & NestableContainer::Hook::detach (ObjRef* ref) const
 {
   //## begin NestableContainer::Hook::detach%3C876E140018.body preserve=yes
+//#ifdef USE_THREADS
+//  lock.relock(True);
+//#endif
   FailWhen(!nc->isWritable(),"r/w access violation");
   // cast away const here: even though ref may be read-only, as long as the 
   // container is writable, we can still detach it
@@ -154,6 +161,7 @@ const NestableContainer::Hook & NestableContainer::Hook::detach (ObjRef* ref) co
 NestableContainer::Hook NestableContainer::setBranch (const HIID &id, int flags)
 {
   //## begin NestableContainer::setBranch%3CB2B438020F.body preserve=yes
+  nc_writelock;
   FailWhen(!isWritable(),"write access violation");
   // auto-privatize everything for write -- let Hook do it
   if( flags&DMI::PRIVATIZE && flags&DMI::WRITE )
@@ -194,8 +202,14 @@ NestableContainer::Hook NestableContainer::setBranch (const HIID &id, int flags)
     // cast away const but that's OK since we track writability
     be.nc = const_cast<NestableContainer*>(hook.asNestable());  // container pointed to by current hook
     // apply subscript to current hook 
-    if( be.nc && be.nc->isWritable() )
-      last_writable = index; // keeps track of last writable container in chain
+    if( be.nc )
+    {
+#ifdef USE_THREADS
+      be.lock.relock(be.nc->mutex());
+#endif
+      if( be.nc->isWritable() )
+        last_writable = index; // keeps track of last writable container in chain
+    }
     hook[be.id];
     writable = be.writable = hook.isWritable();
     branch.push_back(be);
@@ -328,8 +342,8 @@ bool NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool nothro
     return True;
   }
   // if target is a container, then try to access it in scalar mode
-  const NestableContainer *nc = asNestable(target,info.tid);
-  FailWhen(!nc,"can't convert "+info.tid.toString()+" to "+tid.toString());
+  FailWhen( !nextNC(asNestable(target,info.tid)),
+            "can't convert "+info.tid.toString()+" to "+tid.toString());
   // access in scalar mode, checking that type is numeric
   target = nc->get(HIID(),info,TpNumeric,DMI::NC_SCALAR|autoprivatize);
   FailWhen( !convertScalar(target,info.tid,data,tid),
@@ -340,7 +354,9 @@ bool NestableContainer::ConstHook::get_scalar( void *data,TypeId tid,bool nothro
 
 // This is called to access by reference, for all types
 // If pointer is True, then a pointer type is being taken
-const void * NestableContainer::ConstHook::get_address (ContentInfo &info,TypeId tid,bool must_write,bool pointer,const void *deflt) const
+const void * NestableContainer::ConstHook::get_address (ContentInfo &info,
+    TypeId tid,bool must_write,bool pointer,
+    const void *deflt,Thread::Mutex::Lock *keeplock) const
 {
   const void *target;
   if( index>=0 || id.size() )
@@ -375,14 +391,18 @@ const void * NestableContainer::ConstHook::get_address (ContentInfo &info,TypeId
     // still no match? Try to treat target as a container in scalar mode
     if( tid != info.tid )
     {
-      const NestableContainer *nc = asNestable(target,info.tid);
-      FailWhen(!nc,"can't convert "+info.tid.toString()+" to "+tid.toString()+"*");
+      FailWhen( !nextNC(asNestable(target,info.tid)),
+                  "can't convert "+info.tid.toString()+" to "+tid.toString()+"*");
       int flags = (must_write?DMI::WRITE:0)|autoprivatize|
                   DMI::NC_SCALAR|(pointer?DMI::NC_POINTER:0);
+      if( keeplock )
+        *keeplock = lock;
       return nc->get(HIID(),info,tid,flags);
     }
   }
   FailWhen(!info.writable && must_write,"write access violation");
+  if( keeplock )
+    *keeplock = lock;
   return target;
 }
 
@@ -401,6 +421,9 @@ void * NestableContainer::Hook::prepare_put( ContentInfo &info,TypeId tid ) cons
   // non-existing object: try to a insert new one
   if( !target  )
   {
+//    #ifdef USE_THREADS
+//    lock.relock(True);
+//    #endif
     // The resulting target_tid may be different from the requested tid
     // in the case of scalars (where conversion is allowed)
     target = index>=0 ? nc->insertn(index,tid,info.tid)
@@ -413,7 +436,7 @@ void * NestableContainer::Hook::prepare_put( ContentInfo &info,TypeId tid ) cons
     // have we resolved to an existing sub-container, and we're not explicitly
     // trying to assign the same type of sub-container? Try to either init the 
     // container with whatever is being assigned, or assign to it as a scalar
-    NestableContainer *nc1 = asNestableWr(target,info.tid);
+    NestableContainer *nc1 = nextNC(asNestableWr(target,info.tid));
     if( nc1 && nc1->objectType() != tid )
     {
       if( nc1->size() )
@@ -493,18 +516,18 @@ const Array<T> & NestableContainer::Hook::operator = (const Array<T> &other) con
   // else we should have resolved to an existing sub-container
   else
   {
-    NestableContainer *nc1 = asNestableWr(target,info.tid);
-    FailWhen(!nc1,"can't assign array: type mismatch");
+    FailWhen( !nextNC(asNestableWr(target,info.tid)),
+              "can't assign array: type mismatch");
     // for 1D arrays, use linear addressing, so all contiguous containers
     // are supported
     if( other.shape().nelements() == 1 )
     {
       // check that size matches
-      FailWhen( nc1->size() != other.shape()(0),"can't assign array: shape mismatch" );
+      FailWhen( nc->size() != other.shape()(0),"can't assign array: shape mismatch" );
       // get pointer to first element (use pointer mode to ensure contiguity,
       // and pass in T as the check_tid.
       target = const_cast<void*>(
-          nc1->get(HIID(),info,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER));
+          nc->get(HIID(),info,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER|autoprivatize));
       FailWhen(!target,"uninitialized element");
       Array<T> arr(other.shape(),static_cast<T*>(target),SHARE);
       arr = other;
@@ -515,7 +538,7 @@ const Array<T> & NestableContainer::Hook::operator = (const Array<T> &other) con
       FailWhen( TpOfArrayElem(&other) == Tpstring,
           "multidimensional arrays of strings not supported" );
       target = const_cast<void*>(
-          nc1->get(HIID(),info,typeIdOfArray(T),DMI::WRITE));
+          nc->get(HIID(),info,typeIdOfArray(T),DMI::WRITE));
       FailWhen(!target,"uninitialized element");
       Array<T> *arr = static_cast<Array<T>*>(target);
       FailWhen(arr->shape() != other.shape(),"can't assign array: shape mismatch" );
@@ -543,7 +566,7 @@ const vector<T> & NestableContainer::Hook::assign_arrayable (const vector<T> &ot
     T * ptr = static_cast<T*>( const_cast<void*>(
         darr->get(HIID(),info,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER) 
         ));
-    for( vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ )
+    for( typename vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ )
       *ptr++ = *iter;
     assign_objref(ref,0);
   }
@@ -562,13 +585,14 @@ const vector<T> & NestableContainer::Hook::assign_arrayable (const vector<T> &ot
   // else we should have resolved to an existing sub-container
   else
   {
-    NestableContainer *nc1 = asNestableWr(target,info.tid);
+    FailWhen( !nextNC(asNestableWr(target,info.tid)),
+              "can't assign vector: type mismatch" );
     target = const_cast<void*>(
-        nc1->get(HIID(),info,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER));
+        nc->get(HIID(),info,typeIdOf(T),DMI::WRITE|DMI::NC_POINTER|autoprivatize));
     FailWhen(!target,"can't assign vector");
     FailWhen(info.size != (int)other.size(),"can't assign vector: shape mismatch" );
     T * ptr = static_cast<T*>(target);
-    for( vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ )
+    for( typename vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ )
       *ptr++ = *iter;
   }
   return other;
@@ -580,26 +604,25 @@ void * NestableContainer::Hook::prepare_vector (TypeId tid,int size) const
 {
   FailWhen(addressed,"unexpected '&' operator");
   ContentInfo info;
-  NestableContainer *nc1;
   void *target = const_cast<void*>( collapseIndex(info,0,DMI::WRITE) );
   // non-existing object: try to a initialize a new DataField
   if( !target  )
   {
-    ObjRef ref(nc1 = new DataField(tid,size,DMI::WRITE),DMI::ANONWR);
+    DataField *df = new DataField(tid,size,DMI::WRITE);
+    ObjRef ref(df,DMI::ANONWR);
     assign_objref(ref,0);
+    nextNC(df);
   }
   // else we should have resolved to an existing sub-container
   else
   {
-    NestableContainer *nc1 = asNestableWr(target,info.tid);
-    FailWhen(!nc1,"can't assign vector: type mismatch");
-    // get pointer to first element (use pointer mode to ensure contiguity,
-    // and pass in T as the check_tid.
+    FailWhen( !nextNC(asNestableWr(target,info.tid)),
+              "can't assign vector: type mismatch");
   }
   // get pointer to first element (use pointer mode to ensure contiguity)
   // cast away const since we set DMI::WRITE
   target = const_cast<void*>(
-      nc1->get(HIID(),info,tid,DMI::WRITE|DMI::NC_POINTER));
+      nc->get(HIID(),info,tid,DMI::WRITE|DMI::NC_POINTER|autoprivatize));
   FailWhen(info.size != size,"can't assign vector: shape mismatch");
   FailWhen(!target,"can't assign vector");
   return target;
@@ -610,7 +633,7 @@ template<class T>
 inline const vector<T> & NestableContainer::Hook::assign_vector (const vector<T> &other,TypeId tid) const
 { 
   T * ptr = static_cast<T*>( prepare_vector(tid,other.size()) ); 
-  for( vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ ) 
+  for( typename vector<T>::const_iterator iter = other.begin(); iter != other.end(); iter++ ) 
     *ptr++ = *iter; 
   return other; 
 }

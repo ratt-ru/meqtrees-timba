@@ -66,7 +66,11 @@ int AtomicID::findName (const string &str)
 {
   //## begin AtomicID::findName%3C68D5ED01F8.body preserve=yes
   for( size_t i=0; i<str.length(); i++ )
+#ifdef __GLIBCPP__
+    if( !std::isdigit( str[i] ) )
+#else
     if( !isdigit( str[i] ) )
+#endif
     {
       int ret = registry.rfind(str);
 #ifdef ATOMICID_VERBOSE_REGISTER

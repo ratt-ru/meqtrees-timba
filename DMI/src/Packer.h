@@ -395,7 +395,7 @@ void SeqPacker<Seq>::unpack (Seq &seq, const void *block, size_t sz)
 {
   //## begin SeqPacker::unpack%3CA2F2C3006C.body preserve=yes
   FailWhen(sz<sizeof(size_t),"corrupt block");
-  const size_t *hdr = static_cast<size_t*>(block);
+  const size_t *hdr = static_cast<const size_t*>(block);
   size_t n   = *(hdr++),
          sz0 = (1+n)*sizeof(size_t);
   FailWhen(sz<sz0,"corrupt block");
@@ -531,7 +531,7 @@ T * ArrayPacker<T>::unpack (const void *block, size_t sz, int& n)
 {
   //## begin ArrayPacker::unpack%3CAB35D2023F.body preserve=yes
   FailWhen(sz<sizeof(size_t),"corrupt block");
-  const size_t *hdr = static_cast<size_t*>(block);
+  const size_t *hdr = static_cast<const size_t*>(block);
   n   = (int) *(hdr++);
   size_t  sz0 = (1+n)*sizeof(size_t);
   T *arr0 = new T[n], *arr=arr0;

@@ -67,7 +67,7 @@ class TypeInfoReg
   public:
       // this declares a registry (see Registry.h)
       DeclareRegistry(TypeInfoReg,TypeId,TypeInfo);
-      friend TypeInfo;
+      friend class TypeInfo;
 };
     
 inline const TypeInfo & TypeInfo::find ( TypeId tid )

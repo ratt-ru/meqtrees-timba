@@ -34,31 +34,52 @@
   #define VERIFY 
 #endif
 
+// The threadLock(target) macro sets a lock on the target's mutex, by instantiating
+// a Mutex::Lock object. The lock will be released when the object goes
+// out of scope.
+// If compiled w/o thread support, this is defined as nothing.
+#ifdef USE_THREADS
+  #define threadLock(t) Thread::Mutex::Lock _thread_lock(t->cref_mutex)
+#else
+  #define threadLock(t) 
+#endif
+
+// Note that CRefs themselves are not thread-safe, but targets are.
+// I.e. different threads should never access the same CRef, but both
+// can hold different refs to the same target.
+// The only exception is ref.copy(): this is thread-safe.
+// This means that containers need only set a read-lock when accessing
+// their contents via ref.copy().
+
+
 InitDebugContext(CountedRefBase,"CRef");
 
 void CountedRefBase::cloneTarget () const
 {
-  VERIFY;
+  threadLock(target);
   if( !valid() )
     return;
+  VERIFY;
   dprintf1(2)("  %s: cloning target\n",debug(0));
   // clone the target
   CountedRefTarget *newtarget = target->clone(delayed_clone_flags,delayed_clone_depth);
   // detach from old list
-  if( prev ) 
-    prev->next = next;
-  else // no previous ref, so update ptr from target
-    target->owner_ref = next;
-  if( next )
-    next->prev = prev;
-  #if COUNTEDREF_VERIFY
-  verify(target->owner_ref);
-  #endif
+  {
+    if( prev ) 
+      prev->next = next;
+    else // no previous ref, so update ptr from target
+      target->owner_ref = next;
+    if( next )
+      next->prev = prev;
+    #if COUNTEDREF_VERIFY
+    verify(target->owner_ref);
+    #endif
+  }
   // attach ourselves to new reflist
   prev = next = 0;
   target = newtarget;
   target->owner_ref = const_cast<CountedRefBase*>(this);
-  anonObject = True;
+  target->anon = True;
   // clear delayed-clone flag
   delayed_clone = False;
   VERIFY;
@@ -71,6 +92,7 @@ void CountedRefBase::verify (const CountedRefBase *start)
   const CountedRefTarget *target = start->target;
   if( !target )
     return;
+  threadLock(target);
   // run through & verify ref chain
   const CountedRefBase *ref = target->owner_ref;
   Assert1(ref);
@@ -104,6 +126,7 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags)
     empty();
   else
   {
+    threadLock(other.target);
 #if COUNTEDREF_VERIFY
     other.verify();
 #endif
@@ -128,7 +151,6 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags)
     VERIFY;
     // setup properties
     locked = (flags&DMI::LOCKED) != 0;
-    anonObject = other.isAnonObject();
     // writable property is inherited unless exclusive, or READONLY is specified
     // (guard condition above already checks for access violations)
     writable = (flags&DMI::WRITE) != 0 ||
@@ -149,6 +171,7 @@ void CountedRefBase::xfer (const CountedRefBase& other)
     empty();
   else
   {
+    threadLock(other.target);
 #if COUNTEDREF_VERIFY
     other.verify();
 #endif
@@ -167,7 +190,6 @@ void CountedRefBase::xfer (const CountedRefBase& other)
     // copy all fields
     target = other.target;
     locked = False;
-    anonObject = other.isAnonObject();
     writable = other.isWritable();
     exclusiveWrite = other.isExclusiveWrite();
     delayed_clone = False;
@@ -184,6 +206,7 @@ CountedRefBase& CountedRefBase::privatize (int flags, int depth)
   //## begin CountedRefBase::privatize%3C0CDEE20164.body preserve=yes
   dprintf1(2)("%s: privatizing to depth %d, target:\n",debug(),flags&DMI::DEEP?-1:depth);
   FailWhen( !valid(),"can't privatize an invalid ref" );
+  threadLock(target);
   dprintf1(2)("  %s\n",target->debug(2,"  "));
   // readonly overrides writable and disables delayed cloning
   if( flags&DMI::READONLY )
@@ -232,7 +255,7 @@ CountedRefBase& CountedRefBase::privatize (int flags, int depth)
   }
   else
   {
-    // we are sole reference to target, privatize it
+    // we are sole reference to target, so privatize it
     target->privatize(flags,depth);
     delayed_clone = False;
   }
@@ -302,6 +325,7 @@ CountedRefBase& CountedRefBase::setExclusiveWrite ()
   {
     FailWhen( !valid(),"ref is invalid");
     FailWhen( !isWritable(),"ref is read-only, can't make it exclusive-write");
+    threadLock(target);
     FailWhen( hasOtherWriters(),"can't make exclusive because other writable refs exist");
     writable = exclusiveWrite = True;
   }
@@ -322,11 +346,12 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   // other refs to same object. Otherwise, inherit property from other refs.
   // If no other refs and nothing specified, assume external.
   bool anon = (flags&DMI::ANON);
+  threadLock(targ);
   CountedRefBase *owner = targ->getOwner();
   if( owner )
   {
     bool external = (flags&DMI::EXTERNAL);
-    bool other_anon = owner->isAnonObject();
+    bool other_anon = targ->anon;
     FailWhen( anon && !other_anon,"object already referenced as external, can't attach as anon" );
     FailWhen( external && other_anon,"object already referenced as anon, can't attach as external" );
     anon = other_anon;
@@ -340,7 +365,7 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   else
     writable = False;
   locked = (flags&DMI::LOCKED)!=0;
-  anonObject = anon;
+  targ->anon = anon;
   if( flags&DMI::EXCL_WRITE )
     setExclusiveWrite();
   // persistent flag may be raised explicitly
@@ -369,6 +394,7 @@ void CountedRefBase::detach ()
   // locked refs can't be detached (only destroyed)
   FailWhen( isLocked(),"can't detach a locked ref");
   // delete object if anon, and we are last ref to it
+  threadLock(target);
   VERIFY;
   if( !prev && !next ) 
   {
@@ -378,6 +404,10 @@ void CountedRefBase::detach ()
 //      anonObject = False; // so that the target doesn't complain
       target->owner_ref = 0;
       delete target;
+#ifdef USE_THREADS
+      // explicitly release lock since mutex is already gone
+      _thread_lock.release_without_unlock();
+#endif      
     }
   }
   else  // else just detach ourselves from list
@@ -402,6 +432,7 @@ bool CountedRefBase::hasOtherWriters ()
   //## begin CountedRefBase::hasOtherWriters%3C583B9F03B8.body preserve=yes
   if( !valid() )
     return False;
+  threadLock(target);
   for( const CountedRefBase *ref = target->getOwner(); ref != 0; ref = ref->next )
     if( ref != this && ref->isWritable() )
       return True;

@@ -24,10 +24,11 @@
 //## end module%3C10CC830067.additionalIncludes
 
 //## begin module%3C10CC830067.includes preserve=yes
+#include "Common/Thread/Mutex.h"
 #include "DMI/TypeInfo.h"
+#include "DMI/Timestamp.h"
 // pull in OCTOPUSSY types
 #include "OCTOPUSSY/TID-OCTOPUSSY.h"
-#include "OCTOPUSSY/Timestamp.h"
 // for now:
 #include <aips/Arrays/Array.h>
 
@@ -55,6 +56,7 @@ using Debug::ssprintf;
 
 //## begin NestableContainer%3BE97CE100AF.preface preserve=yes
 class NestableContainer;
+class NCBaseIter;
 //## end NestableContainer%3BE97CE100AF.preface
 
 //## Class: NestableContainer%3BE97CE100AF; Abstract
@@ -93,8 +95,8 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
     class ConstHook;
     class Hook;
     
-    // the ContentInfo struct is used to return information on
-    //
+    // the ContentInfo struct is used by get() to return information on a 
+    // container element
     class ContentInfo
     {
       public:
@@ -132,6 +134,8 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       // Note that since Hooks are almost always treated as const 
       // (since they only appear as temporary objects), all their methods have to
       // be declared as const. Ugly, but that's C++ for you...
+      
+      friend class NCBaseIter;
       
       protected:
           static int _dum_int; // dummy by-ref argument
@@ -198,7 +202,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
         // Additional Public Declarations
           //## begin NestableContainer::ConstHook%3C614FDE0039.public preserve=yes
-          friend NestableContainer;
+          friend class NestableContainer;
           
           // explicit versions of [] for other HIID forms
           const NestableContainer::ConstHook & operator [] (AtomicID id1) const
@@ -218,7 +222,9 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           { return (*this)[id1|id2|id3|id4]; }
           
           // pull in const accessor methods
+          #ifndef NC_SKIP_HOOKS
           #include "DMI/DataAcc-Const.h"
+          #endif
           
           // Define an as_vector<> template. This should work for all
           // contiguous containers.
@@ -283,6 +289,9 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           // (this is only set for Hook. Always False for ConstHook.)
           mutable int autoprivatize;
           
+          // Each hook maintains a mutex on the nestable container
+          mutable Thread::Mutex::Lock lock;
+          
           // if target is an ObjRef, returns it, checking for writability
           // else throws an exception
           inline const ObjRef * asRef (bool write=False) const;
@@ -295,18 +304,23 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           // helper func: collapses the current index and returns new target
           const void * collapseIndex (ContentInfo &info,TypeId check_tid,int flags) const;
           
-          // helper func: applies exiasting id or index to hook in preparation
-           // for setting a new one
+          // helper func: applies existing id or index to hook in preparation
+          // for setting a new one
           void nextIndex () const;
+          
+          // helper func: repoints hook at next NC, clears id & index
+          NestableContainer * nextNC (const NestableContainer *nc1) const;
 
           // This is called to get a value, for built-in scalar types only
           bool get_scalar( void *data,TypeId tid,bool nothrow=False ) const;
 
           // This is called to access by reference, for all types
-          const void *get_address(ContentInfo &info,TypeId tid,bool must_write,bool pointer=False,const void *deflt=0) const;
+          const void *get_address(ContentInfo &info,TypeId tid,bool must_write,
+              bool pointer=False,const void *deflt=0,Thread::Mutex::Lock *keeplock=0) const;
 
           // This is called to access by pointer, for all types
-          const void *get_pointer(int &sz,TypeId tid,bool must_write,bool implicit=False,const void *deflt=0) const;
+          const void *get_pointer(int &sz,TypeId tid,bool must_write,bool implicit=False,
+              const void *deflt=0,Thread::Mutex::Lock *keeplock=0) const;
 
           //## end NestableContainer::ConstHook%3C614FDE0039.protected
       private:
@@ -440,7 +454,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
         // Additional Public Declarations
           //## begin NestableContainer::Hook%3C8739B50135.public preserve=yes
-          friend NestableContainer;
+          friend class NestableContainer;
           
           // explicit versions of [] for string IDs
           const NestableContainer::Hook & operator [] (AtomicID id1) const 
@@ -460,8 +474,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           { return (*this)[id1|id2|id3|id4]; }
           
           // pull non-in const accessdor methods
+          #ifndef NC_SKIP_HOOKS
           #define ForceConstDefinitions 1
           #include "DMI/DataAcc-NonConst.h"
+          #endif
           
           // Assigning an Array either assigns to the underlying container,
           // or inits a new DataArray object (or a DataField, for 1 dimension)
@@ -532,10 +548,8 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
         // Additional Private Declarations
           //## begin NestableContainer::Hook%3C8739B50135.private preserve=yes
-          void operator = (BlockableObject *);
-          void operator = (const BlockableObject *);
-          void operator = (BlockableObject &);
-          void operator = (const BlockableObject &);
+          void operator = (const BlockableObject *) const;
+          void operator = (const BlockableObject &) const;
           //## end NestableContainer::Hook%3C8739B50135.private
       private: //## implementation
         // Additional Implementation Declarations
@@ -687,8 +701,8 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
   public:
     // Additional Public Declarations
       //## begin NestableContainer%3BE97CE100AF.public preserve=yes
-      friend ConstHook;
-      friend Hook;
+      friend class ConstHook;
+      friend class Hook;
       
       // explicit versions of [] for string IDs
       NestableContainer::ConstHook operator [] (AtomicID id1) const
@@ -703,6 +717,61 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       { return (*this)[HIID(id1)]; }
       NestableContainer::Hook operator [] (const char *id1) 
       { return (*this)[HIID(id1)]; }
+      // The () operator is an alternative version for concatenating IDs
+      const NestableContainer::ConstHook operator () (AtomicID id1) const 
+      { return (*this)[id1]; }
+      const NestableContainer::ConstHook operator () (AtomicID id1,AtomicID id2) const 
+      { return (*this)[id1|id2]; }
+      const NestableContainer::ConstHook operator () (AtomicID id1,AtomicID id2,AtomicID id3) const 
+      { return (*this)[id1|id2|id3]; }
+      const NestableContainer::ConstHook operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
+      { return (*this)[id1|id2|id3|id4]; }
+      const NestableContainer::Hook operator () (AtomicID id1)  
+      { return (*this)[id1]; }
+      const NestableContainer::Hook operator () (AtomicID id1,AtomicID id2)  
+      { return (*this)[id1|id2]; }
+      const NestableContainer::Hook operator () (AtomicID id1,AtomicID id2,AtomicID id3)  
+      { return (*this)[id1|id2|id3]; }
+      const NestableContainer::Hook operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4)  
+      { return (*this)[id1|id2|id3|id4]; }
+
+#ifdef USE_THREADS
+      const Thread::Mutex & mutex() const;
+// read/write locks are too complicated for n/c's, so use a mutex
+// instead. Hence, all these macros are defined identically      
+      #define nc_readlock Thread::Mutex::Lock _read_lock(mutex())
+      #define nc_writelock nc_readlock
+      #define nc_writelock_up nc_readlock
+      #define nc_lock(write) nc_readlock
+      #define nc_lock_up(write) nc_readlock
+      #define nc_readlock1(nc) Thread::Mutex::Lock _read_lock1(nc.mutex())
+      #define nc_writelock1(nc) nc_readlock1(nc)
+      #define nc_writelock1_up(nc) nc_readlock1(nc)
+      #define nc_lock1(nc,write) nc_readlock1(nc)
+      #define nc_lock1_up(nc,write) nc_readlock1(nc)
+      
+//       #define nc_readlock Thread::RWLock::Read _read_lock(rwlock())
+//       #define nc_writelock Thread::RWLock::Write _write_lock(rwlock())
+//       #define nc_writelock_up Thread::RWLock::WriteUpgrade _write_lock(rwlock())
+//       #define nc_lock(write) Thread::RWLock::Lock _rw_lock(rwlock(),write)
+//       #define nc_lock_up(write) Thread::RWLock::LockUpgrade _rw_lock(rwlock(),write)
+//       #define nc_readlock1(nc) Thread::RWLock::Read _read_lock(rwlock())
+//       #define nc_writelock1(nc) Thread::RWLock::Write _write_lock(rwlock())
+//       #define nc_writelock1_up(nc) Thread::RWLock::WriteUpgrade _write_lock(rwlock())
+//       #define nc_lock1(nc,write) Thread::RWLock::Lock _rw_lock(rwlock(),write)
+//       #define nc_lock1_up(nc,write) Thread::RWLock::LockUpgrade _rw_lock(rwlock(),write)
+#else
+      #define nc_readlock
+      #define nc_writelock
+      #define nc_writelock_up
+      #define nc_lock(dum)
+      #define nc_lock_up(dum)
+      #define nc_readlock1(dum)
+      #define nc_writelock1(dum)
+      #define nc_writelock1_up(dum)
+      #define nc_lock1(dum,dum2)
+      #define nc_lock1_up(dum,dum2)
+#endif
 
       //## end NestableContainer%3BE97CE100AF.public
   protected:
@@ -733,7 +802,14 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           HIID id; 
           bool writable; 
           NestableContainer *nc;
+        #ifdef USE_THREADS
+          Thread::Mutex::Lock lock;
+        #endif
       } BranchEntry;
+      
+#ifdef USE_THREADS
+      Thread::Mutex mutex_;
+#endif      
       //## end NestableContainer%3BE97CE100AF.implementation
 };
 
@@ -748,6 +824,9 @@ inline NestableContainer::ConstHook::ConstHook (const NestableContainer &parent,
   //## begin NestableContainer::ConstHook::ConstHook%3C87374503C2.initialization preserve=yes
   :  nc(const_cast<NestableContainer *>(&parent)),addressed(False),
      index(-2),autoprivatize(0)
+#ifdef USE_THREADS
+      , lock(parent.mutex())
+#endif
   //## end NestableContainer::ConstHook::ConstHook%3C87374503C2.initialization
 {
   //## begin NestableContainer::ConstHook::ConstHook%3C87374503C2.body preserve=yes
@@ -761,6 +840,9 @@ inline NestableContainer::ConstHook::ConstHook (const NestableContainer &parent,
   //## begin NestableContainer::ConstHook::ConstHook%3C87375E01CA.initialization preserve=yes
    : nc(const_cast<NestableContainer *>(&parent)),addressed(False),
      index(n),autoprivatize(0)
+#ifdef USE_THREADS
+      , lock(parent.mutex())
+#endif
   //## end NestableContainer::ConstHook::ConstHook%3C87375E01CA.initialization
 {
   //## begin NestableContainer::ConstHook::ConstHook%3C87375E01CA.body preserve=yes
@@ -1123,6 +1205,13 @@ inline bool NestableContainer::isWritable () const
 }
 
 //## begin module%3C10CC830067.epilog preserve=yes
+#ifdef USE_THREADS
+inline const Thread::Mutex & NestableContainer::mutex() const
+{
+  return mutex_;
+}
+#endif
+
 
 // This is called to treat the hook target as an ObjRef (exception otherwise)
 inline const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
@@ -1137,12 +1226,14 @@ inline const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
 
 // This is called to access by pointer, for all types
 // Defers to get_address(pointer=True)
-inline const void * NestableContainer::ConstHook::get_pointer (int &sz,TypeId tid,bool must_write,bool implicit,const void *deflt) const
+inline const void * NestableContainer::ConstHook::get_pointer (int &sz,
+    TypeId tid,bool must_write,bool implicit,
+    const void *deflt,Thread::Mutex::Lock *keeplock) const
 {
   FailWhen(!addressed && implicit,"missing '&' operator");
   // Defers to get_address(pointer=True)
   ContentInfo info;
-  const void *ret = get_address(info,tid,must_write,True,deflt);
+  const void *ret = get_address(info,tid,must_write,True,deflt,keeplock);
   sz = info.size;
   return ret;
 }
@@ -1151,6 +1242,12 @@ inline const void * NestableContainer::ConstHook::get_pointer (int &sz,TypeId ti
 inline const void * NestableContainer::ConstHook::collapseIndex (
     ContentInfo &info,TypeId check_tid,int flags) const
 {
+#ifdef USE_THREADS
+// relock as writable, if write access is required
+//  if( flags&DMI::WRITE || autoprivatize )
+// no need anymore since it's only a mutex
+//    lock.relock(True);
+#endif
   const void *ret = index<0 
       ? nc->get(id,info,check_tid,flags|autoprivatize)
       : nc->getn(index,info,check_tid,flags|autoprivatize);
@@ -1165,7 +1262,25 @@ inline void NestableContainer::ConstHook::nextIndex () const
   const NestableContainer *newnc = asNestable();
   FailWhen(!newnc,"indexing into non-existing or non-container element");
   nc = const_cast<NestableContainer*>(newnc);
+#ifdef USE_THREADS
+  lock.relock(nc->mutex());
+#endif
 }
+
+// helper function repoints hook at new container and sets null subscript
+inline NestableContainer * NestableContainer::ConstHook::nextNC (const NestableContainer *nc1) const
+{
+  if( !nc1 )
+    return 0;
+  nc = const_cast<NestableContainer *>(nc1);
+  index = -1;
+  id.clear();
+#ifdef USE_THREADS
+  lock.relock(nc->mutex());
+#endif
+  return nc;
+}
+
 
 // Define an as_vector<> template. This should work for all
 // contiguous containers.

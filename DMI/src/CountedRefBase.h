@@ -36,6 +36,12 @@
 //## begin module%3C10CC81037C.additionalDeclarations preserve=yes
 // Uncomment this to enable verification calls during countedref operations
 // #define COUNTEDREF_VERIFY 1
+
+#ifdef USE_THREADS
+  #define threadLock(t) Thread::Mutex::Lock t##_lock(t->cref_mutex)
+#else
+  #define threadLock(t) 
+#endif
 //## end module%3C10CC81037C.additionalDeclarations
 
 
@@ -304,9 +310,6 @@ class CountedRefBase
       bool exclusiveWrite;
       //## end CountedRefBase::exclusiveWrite%3C0CDEE20127.attr
 
-      //## begin CountedRefBase::anonObject%3C0CDEE20130.attr preserve=no  public: bool {UM} 
-      mutable bool anonObject;
-      //## end CountedRefBase::anonObject%3C0CDEE20130.attr
 
       //## begin CountedRefBase::persistent%3C5018D1011A.attr preserve=no  public: bool {U} 
       bool persistent;
@@ -349,7 +352,7 @@ inline CountedRefBase::CountedRefBase (const CountedRefBase& other, int flags, i
   dprintf(5)("copy constructor(%s,%x)\n",other.debug(1),flags);
   if( !other.valid() ) // construct empty ref
     return;
-  else if( flags&DMI::PRIVATIZE ) // constructing ref to privatized target
+  if( flags&DMI::PRIVATIZE ) // constructing ref to privatized target
     privatizeOther(other,flags,depth);
   else if( flags&DMI::COPYREF || other.isPersistent() ) // constructing true copy of reference
     copy(other,flags);
@@ -489,7 +492,7 @@ inline void CountedRefBase::empty ()
 {
   //## begin CountedRefBase::empty%3C161C330291.body preserve=yes
   target=0; next=prev=0;
-  locked=writable=exclusiveWrite=anonObject=persistent=delayed_clone=False;
+  locked=writable=exclusiveWrite=persistent=delayed_clone=False;
   //## end CountedRefBase::empty%3C161C330291.body
 }
 
@@ -519,7 +522,7 @@ inline bool CountedRefBase::isExclusiveWrite () const
 inline bool CountedRefBase::isAnonObject () const
 {
   //## begin CountedRefBase::isAnonObject%3C0CDEE20130.get preserve=no
-  return anonObject;
+  return target && target->anon;
   //## end CountedRefBase::isAnonObject%3C0CDEE20130.get
 }
 
@@ -556,20 +559,11 @@ inline CountedRefBase * CountedRefBase::getNext ()
   return next;
 }
 
+#undef threadLock
+
 //## end module%3C10CC81037C.epilog
 
 
 #endif
 
 
-// Detached code regions:
-#if 0
-//## begin CountedRefBase::operator==%3C0CDEE200FE_eq.body preserve=yes
-  return valid() && target == right.target;
-//## end CountedRefBase::operator==%3C0CDEE200FE_eq.body
-
-//## begin CountedRefBase::operator!=%3C0CDEE200FE_neq.body preserve=yes
-  return !( (*this) == right );
-//## end CountedRefBase::operator!=%3C0CDEE200FE_neq.body
-
-#endif

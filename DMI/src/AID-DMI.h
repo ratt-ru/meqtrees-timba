@@ -168,6 +168,11 @@ const int AidS_int = -414;
 const AtomicID AidT(-415);                        // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:32
 const int AidT_int = -415;
 #endif
+#ifndef _defined_id_AidTimestamp
+#define _defined_id_AidTimestamp 1
+const AtomicID AidTimestamp(-85);                 // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:54
+const int AidTimestamp_int = -85;
+#endif
 #ifndef _defined_id_AidU
 #define _defined_id_AidU 1
 const AtomicID AidU(-416);                        // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:33

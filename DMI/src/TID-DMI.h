@@ -72,6 +72,12 @@ const int TpHIID_int = -419;
 const TypeId TpObjRef(-394);                      // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:27
 const int TpObjRef_int = -394;
 #endif
+#ifndef _defined_id_TpTimestamp
+#define _defined_id_TpTimestamp 1
+const TypeId TpTimestamp(-85);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:54
+const int TpTimestamp_int = -85;
+class Timestamp;
+#endif
 #ifndef _defined_id_Tpbool
 #define _defined_id_Tpbool 1
 const TypeId Tpbool(-25);                         // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:39

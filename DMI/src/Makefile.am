@@ -17,9 +17,11 @@ DynamicTypeManager.h		\
 HIID.h				\
 HIIDSet.h			\
 NestableContainer.h		\
+NCIter.h \
 Packer.h			\
 Registry.h			\
 SmartBlock.h			\
+Timestamp.h \
 TypeId.h			\
 TypeInfo.h
 
@@ -42,7 +44,9 @@ DynamicTypeManager.cc		\
 HIID.cc				\
 HIIDSet.cc			\
 NestableContainer.cc		\
+NCIter.cc \
 SmartBlock.cc			\
+Timestamp.cc \
 TypeInfo.cc			\
 AID-DMI.h			\
 DataAcc-Const.h			\
@@ -50,6 +54,8 @@ DataAcc-NonConst.h		\
 TID-DMI.h			\
 TypeIterMacros.h
 
+CXXFLAGS += -D_GNU_SOURCE -Wno-deprecated 
+# CXXFLAGS += -D_GNU_SOURCE -Wno-deprecated -DUSE_THREADS -pthread
 
 EXTRA_DIST = build_aid_maps.pl build_type_iter.pl atomicid.list
 

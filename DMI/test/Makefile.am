@@ -1,11 +1,23 @@
-check_PROGRAMS		= test_dmi tDataArray
+CXXFLAGS += -D_GNU_SOURCE -Wno-deprecated 
+# CXXFLAGS += -D_GNU_SOURCE -Wno-deprecated -DUSE_THREADS -pthread
+
+check_PROGRAMS		= test_dmi test_thread tDataArray
+bin_PROGRAMS      = ncperf
 
 test_dmi_SOURCES 	= test_dmi.cc
-test_dmi_LDADD		= ../src/libdmi.la
+test_dmi_LDADD		= ../src/libdmi.la 
 test_dmi_DEPENDENCIES	= ../src/libdmi.la $(LOFAR_DEPEND)
 
+ncperf_SOURCES 	= ncperf.cc
+ncperf_LDADD		= ../src/libdmi.la 
+ncperf_DEPENDENCIES	= ../src/libdmi.la $(LOFAR_DEPEND)
+
+test_thread_SOURCES = test_thread.cc
+test_thread_LDADD		= ../src/libdmi.la 
+test_thread_DEPENDENCIES	= ../src/libdmi.la $(LOFAR_DEPEND)
+
 tDataArray_SOURCES 	= tDataArray.cc
-tDataArray_LDADD	= ../src/libdmi.la
+tDataArray_LDADD	= ../src/libdmi.la 
 tDataArray_DEPENDENCIES	= ../src/libdmi.la $(LOFAR_DEPEND)
 
 TESTS	=					\

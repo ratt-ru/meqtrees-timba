@@ -59,7 +59,7 @@ class DataRecord;
 class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02EF
 {
   //## begin DataField%3BB317D8010B.initialDeclarations preserve=yes
-  friend DataRecord;
+  friend class DataRecord;
   //## end DataField%3BB317D8010B.initialDeclarations
 
   public:

@@ -24,6 +24,9 @@
 //## end module%3C10CC8103D6.additionalIncludes
 
 //## begin module%3C10CC8103D6.includes preserve=yes
+#ifdef USE_THREADS
+#include "Common/Thread.h"
+#endif
 //## end module%3C10CC8103D6.includes
 
 
@@ -165,6 +168,11 @@ class CountedRefTarget
   private: //## implementation
     // Additional Implementation Declarations
       //## begin CountedRefTarget%3C0CDF41029F.implementation preserve=yes
+      mutable bool anon;
+  
+      #ifdef USE_THREADS
+      Thread::Mutex cref_mutex;
+      #endif
       //## end CountedRefTarget%3C0CDF41029F.implementation
 
   //## begin CountedRefTarget%3C0CDF41029F.friends preserve=no

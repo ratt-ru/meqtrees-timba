@@ -21,6 +21,12 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.15  2002/07/03 14:13:16  smirnov
+//  %[BugId: 26]%
+//  Major overhaul to enable multithreading (use "-pthread -DUSE_THREADS" flags
+//  to g++ to enable).
+//  Added NCIter classes.
+//
 //  Revision 1.14  2002/06/11 12:15:08  smirnov
 //  %[BugId: 26]%
 //  Further fixes to array-mode hook addressing.
@@ -75,6 +81,7 @@
 //
 
 
+#define NC_SKIP_HOOKS 1
 #include "DMI/DataArray.h"
 
 static NestableContainer::Register reg(TpDataArray,true);
@@ -163,6 +170,7 @@ DataArray::~DataArray()
 
 DataArray& DataArray::operator= (const DataArray& other)
 {
+  nc_writelock;
   if (this != &other) {
     clear();
     cloneOther (other);
@@ -172,6 +180,7 @@ DataArray& DataArray::operator= (const DataArray& other)
 
 void DataArray::cloneOther (const DataArray& other, int flags, int)
 {
+  nc_readlock1(other);
   Assert (!valid());
   setWritable ((flags&DMI::WRITE) != 0);
   if (other.itsArray) {
@@ -262,6 +271,7 @@ void DataArray::makeArray()
 
 void DataArray::clear()
 {
+  nc_writelock;
   if (itsArray) {
     int type = headerType();
     if (type == TpArray_bool) {
@@ -316,6 +326,7 @@ int DataArray::size (TypeId tid) const
 
 int DataArray::fromBlock (BlockSet& set)
 {
+  nc_writelock;
   dprintf1(2)("%s: fromBlock\n",debug());
   clear();
   // Get data block and privatize.
@@ -331,6 +342,7 @@ int DataArray::fromBlock (BlockSet& set)
 
 int DataArray::toBlock (BlockSet& set) const
 {
+  nc_readlock;
   if (!valid()) {
     dprintf1(2)("%s: toBlock=0 (field empty)\n",debug());
     return 0;
@@ -348,6 +360,7 @@ CountedRefTarget* DataArray::clone (int flags, int depth) const
 
 void DataArray::privatize (int flags, int)
 {
+  nc_writelock;
   setWritable ((flags&DMI::WRITE) != 0);
   if (!valid()) {
     return;
@@ -363,6 +376,7 @@ void DataArray::privatize (int flags, int)
 const void* DataArray::get (const HIID& id, ContentInfo &info,
 			    TypeId check_tid, int flags) const
 {
+  nc_lock(flags&DMI::WRITE);
   info.writable = isWritable();
   info.tid = headerType();
   info.size = 1;

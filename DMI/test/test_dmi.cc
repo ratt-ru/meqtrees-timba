@@ -319,6 +319,12 @@ void TestDataRecord ()
 
 int main ( int argc,const char *argv[] )
 {
+#ifdef _GLIBCPP_VERSION
+  cout<<"Using libstdc++ version "<<_GLIBCPP_VERSION<<endl;
+#else
+  cout<<"Using libstdc++ version 2\n";
+#endif
+  
   Debug::getDebugContext().setLevel(10);
   CountedRefBase::getDebugContext().setLevel(10);
   

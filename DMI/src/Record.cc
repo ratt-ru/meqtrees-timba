@@ -19,6 +19,7 @@
 //## end module%3C10CC82005C.additionalIncludes
 
 //## begin module%3C10CC82005C.includes preserve=yes
+#define NC_SKIP_HOOKS 1
 //## end module%3C10CC82005C.includes
 
 // DataRecord
@@ -87,6 +88,7 @@ DataRecord & DataRecord::operator=(const DataRecord &right)
 void DataRecord::add (const HIID &id, const DataFieldRef &ref, int flags)
 {
   //## begin DataRecord::add%3BFBF5B600EB.body preserve=yes
+  nc_writelock;
   dprintf(2)("add(%s,[%s],%x)\n",id.toString().c_str(),ref->debug(1),flags);
   FailWhen( !id.size(),"null HIID" );
   FailWhen( id.back().index()>=0,"unexpected trailing index in "+id.toString());
@@ -109,6 +111,7 @@ void DataRecord::add (const HIID &id, const DataFieldRef &ref, int flags)
 DataFieldRef DataRecord::removeField (const HIID &id)
 {
   //## begin DataRecord::removeField%3BB311C903BE.body preserve=yes
+  nc_writelock;
   dprintf(2)("remove(%s)\n",id.toString().c_str());
   FailWhen( !id.size(),"null HIID" );
   FailWhen( !isWritable(),"r/w access violation" );
@@ -129,6 +132,7 @@ DataFieldRef DataRecord::removeField (const HIID &id)
 void DataRecord::replace (const HIID &id, const DataFieldRef &ref, int flags)
 {
   //## begin DataRecord::replace%3BFCD4BB036F.body preserve=yes
+  nc_writelock;
   dprintf(2)("replace(%s,[%s],%x)\n",id.toString().c_str(),ref->debug(1),flags);
   FailWhen( !id.size(),"null HIID" );
   FailWhen( !isWritable(),"r/w access violation" );
@@ -148,6 +152,7 @@ void DataRecord::replace (const HIID &id, const DataFieldRef &ref, int flags)
 DataFieldRef DataRecord::field (const HIID &id) const
 {
   //## begin DataRecord::field%3C57CFFF005E.body preserve=yes
+  nc_readlock;
   HIID rest; bool dum;
   const DataFieldRef &ref( resolveField(id,rest,dum,False) );
   FailWhen( !ref.valid(),"field "+id.toString()+" not found" );
@@ -159,6 +164,7 @@ DataFieldRef DataRecord::field (const HIID &id) const
 bool DataRecord::isDataField (const HIID &id) const
 {
   //## begin DataRecord::isDataField%3C57D02B0148.body preserve=yes
+  nc_readlock;
   HIID rest; bool dum;
   try { 
     const DataFieldRef &ref( resolveField(id,rest,dum,False) );
@@ -172,6 +178,7 @@ bool DataRecord::isDataField (const HIID &id) const
 DataFieldRef DataRecord::fieldWr (const HIID &id, int flags)
 {
   //## begin DataRecord::fieldWr%3BFBF49D00A1.body preserve=yes
+  nc_readlock;
   FailWhen( !isWritable(),"r/w access violation" );
   HIID rest; bool dum;
   const DataFieldRef &ref( resolveField(id,rest,dum,True) );
@@ -196,79 +203,13 @@ const DataFieldRef & DataRecord::resolveField (const HIID &id, HIID& rest, bool 
   rest.clear();
   return iter->second;
   
-//   // This macro checks must_write against a writable property, and
-//   // updates the can_write variable. 
-//   #define CanWrite(x) { FailWhen(must_write && !x,"r/w access violation"); if( !x ) can_write = False; }
-//   can_write = True;
-//   CanWrite( isWritable() );
-//   rest = id;
-//   const DataRecord *subrec = this; // current level in hierarchy
-//   const DataFieldRef *curref = 0;
-//   // examine the slash-separated sub-ids one by one
-//   while( rest.size() )
-//   {
-//     // strip off leading sub-id and look in record
-//     HIID id1 = rest.popLeadSubId();
-//     if( !id1.size() ) // nothing popped -- try again (rest is probably empty now, too)
-//       continue;
-//     //
-//     if( curref )
-//     {
-//       FailWhen( (*curref)->type() != TpDataRecord,id.toString()+" refers to an invalid subrecord" );
-//     }
-//     // try to find the sub-id
-//     CFMI iter = subrec->fields.find(id1);
-//     if( iter != subrec->fields.end() ) // found it? 
-//     {
-//       CanWrite( iter->second->isWritable() );
-//       curref = &iter->second;
-//       continue;
-//     }
-//   }
-//   // if last atom is an index ("a.b.c.1"), assume it's an index into the field,
-//   // so strip it off and try again
-//   int idlen = id.size(),index = id.back().index();
-//   if( idlen > 1 && index >= 0 )
-//   {
-//     CFMI iter = fields.find( id.subId(0,-2) );
-//     if( iter != fields.end() ) 
-//     {
-//       rest.push_back( id.back() );
-//       CanWrite( iter->second->isWritable() );
-//       return iter->second;
-//     }
-//   }
-//   // otherwise, try to recurse into sub-records, by trying all sub-ids
-//   // ("a", then "a.b", etc.) one by one
-//   // the idlast iterator points at one past the end of the current sub-id
-//   for( int iatom=0; iatom<idlen; iatom++ )
-//   {
-//     // look for a field corresponding to the sub-id
-//     iter = fields.find( id.subId(0,iatom) );
-//     if( iter != fields.end() ) // found field?
-//     {
-//       CanWrite( iter->second->isWritable() );
-//       // if next atom of remainder is an index, use that as an index into the field
-//       HIID subid = id.subId(iatom+1,-1);
-//       // is it a sub-record? Recurse into it
-//       if( iter->second->type() == TpDataRecord ) 
-//       {
-//         int index = subid.popLeadIndex();
-//         return ((DataRecord*)iter->second->get(index))->resolveField(subid,rest,must_write);
-//       }
-//       // else it's the final field, so return it
-//       rest = subid;
-//       return iter->second;
-//     }
-//   }
-//   // nothing was found -- return invalid ref
-//   return NullDataFieldRef;
   //## end DataRecord::resolveField%3C552E2D009D.body
 }
 
 int DataRecord::fromBlock (BlockSet& set)
 {
   //## begin DataRecord::fromBlock%3C58216302F9.body preserve=yes
+  nc_writelock;
   dprintf(2)("fromBlock(%s)\n",set.debug(2));
   int nref = 1;
   fields.clear();
@@ -308,6 +249,7 @@ int DataRecord::fromBlock (BlockSet& set)
 int DataRecord::toBlock (BlockSet &set) const
 {
   //## begin DataRecord::toBlock%3C5821630371.body preserve=yes
+  nc_readlock;
   dprintf(2)("toBlock\n");
   int nref = 1;
   // compute header size
@@ -347,6 +289,7 @@ CountedRefTarget* DataRecord::clone (int flags, int depth) const
 void DataRecord::privatize (int flags, int depth)
 {
   //## begin DataRecord::privatize%3C582189019F.body preserve=yes
+  nc_writelock;
   dprintf(2)("privatizing DataRecord\n");
   setWritable( (flags&DMI::WRITE)!=0 );
   if( flags&DMI::DEEP || depth>0 )
@@ -360,6 +303,8 @@ void DataRecord::privatize (int flags, int depth)
 void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
 {
   //## begin DataRecord::cloneOther%3C58239503D1.body preserve=yes
+  nc_writelock;
+  nc_readlock1(other);
   fields.clear();
   setWritable( (flags&DMI::WRITE)!=0 || (flags&DMI::PRESERVE_RW && other.isWritable()) );
   // copy all field refs, then privatize them if depth>0.
@@ -380,6 +325,7 @@ void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
 const void * DataRecord::get (const HIID &id, ContentInfo &info, TypeId check_tid, int flags) const
 {
   //## begin DataRecord::get%3C56B00E0182.body preserve=yes
+  nc_lock(flags&DMI::WRITE);
   FailWhen(flags&DMI::NC_SCALAR,"can't access DataRecord in scalar mode");
   FailWhen( !id.size(),"null field id" );
   CFMI iter;
@@ -434,6 +380,7 @@ const void * DataRecord::get (const HIID &id, ContentInfo &info, TypeId check_ti
 void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
 {
   //## begin DataRecord::insert%3C7A16BB01D7.body preserve=yes
+  nc_writelock;
   FailWhen( !id.size(),"null HIID" );
   FailWhen( fields.find(id) != fields.end(),"field "+id.toString()+" already exists" );
   if( tid == TpDataField || !tid ) // inserting a new DataField?
@@ -455,6 +402,7 @@ void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
 bool DataRecord::remove (const HIID &id)
 {
   //## begin DataRecord::remove%3C877D140036.body preserve=yes
+  nc_writelock;
   dprintf(2)("remove(%s)\n",id.toString().c_str());
   FailWhen( !id.size(),"null HIID" );
   FailWhen( !isWritable(),"r/w access violation" );
@@ -482,12 +430,17 @@ int DataRecord::size (TypeId tid) const
 bool DataRecord::getFieldIter (DataRecord::Iterator& iter, HIID& id, TypeId& type, int& size) const
 {
   //## begin DataRecord::getFieldIter%3CA20AD703A4.body preserve=yes
-  if( iter == fields.end() )
+  if( iter.iter == fields.end() )
+  {
+#ifdef USE_THREADS
+    iter.lock.release();
+#endif
     return False;
-  id = iter->first;
-  type = iter->second->type();
-  size = iter->second->size();
-  iter++;
+  }
+  id = iter.iter->first;
+  type = iter.iter->second->type();
+  size = iter.iter->second->size();
+  iter.iter++;
   return True;
   //## end DataRecord::getFieldIter%3CA20AD703A4.body
 }
@@ -500,6 +453,7 @@ bool DataRecord::getFieldIter (DataRecord::Iterator& iter, HIID& id, TypeId& typ
 string DataRecord::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   static int nesting=0;
+  nc_readlock;
   if( nesting++>1000 )
   {
     cerr<<"Too many nested DataRecord::sdebug() calls";

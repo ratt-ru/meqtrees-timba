@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 //## end module%3CCFFF3301FC.includes
 
 // ConfigMgr

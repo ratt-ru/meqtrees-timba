@@ -24,6 +24,16 @@
 //## end module%3C5A7367022E.additionalIncludes
 
 //## begin module%3C5A7367022E.includes preserve=yes
+#ifdef USE_THREADS
+#include "Common/Thread.h"
+#define lockMutex Thread::Mutex::Lock _lock(HostClass::_registry_mutex)
+#define declareMutex static pthread_mutex_t _registry_mutex
+#define defineMutex(Class) pthread_mutex_t Class::_registry_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
+#else
+#define lockMutex
+#define declareMutex
+#define defineMutex(Class) 
+#endif
 //## end module%3C5A7367022E.includes
 
 //## begin module%3C5A7367022E.declarations preserve=no
@@ -35,15 +45,15 @@
 
 //## begin UniRegistry%3C5A6FD40213.preface preserve=yes
 // macro: inserts a registry into a class declaration
-#define DeclareRegistry(Class,Key,Value) public: typedef UniRegistry<Key,Value,Class> Registry; typedef Registrar<Key,Value,Class> Register; private: static Registry registry; static Registry::Map *_registry_map; friend Registry; friend Register;
+#define DeclareRegistry(Class,Key,Value) public: typedef UniRegistry<Key,Value,Class> Registry; typedef Registrar<Key,Value,Class> Register; private: static Registry registry; static Registry::Map *_registry_map; friend class Registry; friend class Register; declareMutex;
 
 // macro: inserts registry definitions into .cc file
-#define DefineRegistry(Class,defval) Class##::Registry Class##::registry(defval); Class##::Registry::Map * Class##::_registry_map = 0;
+#define DefineRegistry(Class,defval) Class::Registry Class::registry(defval); Class::Registry::Map * Class::_registry_map = 0; defineMutex(Class);
 
 // macro: inserts a registry into a class declaration
-#define DeclareBiRegistry(Class,Key,Value) public: typedef BiRegistry<Key,Value,Class> Registry; typedef Registrar<Key,Value,Class> Register; private: static Registry registry; static Registry::Map *_registry_map; static Registry::RevMap *_registry_rmap; friend Registry; friend UniRegistry<Key,Value,Class>; friend Register;
+#define DeclareBiRegistry(Class,Key,Value) public: typedef BiRegistry<Key,Value,Class> Registry; typedef Registrar<Key,Value,Class> Register; private: static Registry registry; static Registry::Map *_registry_map; static Registry::RevMap *_registry_rmap; friend class Registry; friend class UniRegistry<Key,Value,Class>; friend class Register; declareMutex;
 // macro: inserts registry definitions into .cc file
-#define DefineBiRegistry(Class,defkey,defval) Class##::Registry Class##::registry(defkey,defval); Class##::Registry::Map * Class##::_registry_map = 0; Class##::Registry::RevMap * Class##::_registry_rmap = 0;
+#define DefineBiRegistry(Class,defkey,defval) Class::Registry Class::registry(defkey,defval); Class::Registry::Map * Class::_registry_map = 0; Class::Registry::RevMap * Class::_registry_rmap = 0; defineMutex(Class);
 
 //## end UniRegistry%3C5A6FD40213.preface
 
@@ -188,7 +198,7 @@ class BiRegistry : public UniRegistry<Key, Val, HostClass>  //## Inherits: <unna
 
     // Additional Private Declarations
       //## begin BiRegistry%3C5E8CAC035D.private preserve=yes
-      RevMap::const_iterator riter;
+      typename RevMap::const_iterator riter;
       //## end BiRegistry%3C5E8CAC035D.private
   private: //## implementation
     // Data Members for Class Attributes
@@ -280,6 +290,7 @@ UniRegistry<Key,Val,HostClass>::UniRegistry (const Val& defval)
   //## end UniRegistry::UniRegistry%3C5E983901C3.initialization
 {
   //## begin UniRegistry::UniRegistry%3C5E983901C3.body preserve=yes
+  lockMutex;
   #define MapPtr HostClass::_registry_map
   if( !MapPtr )
     MapPtr = new Map;
@@ -301,10 +312,11 @@ template <class Key, class Val, class HostClass>
 void UniRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val)
 {
   //## begin UniRegistry::add%3C5A72C7006A.body preserve=yes
+  lockMutex;
   if( !MapPtr )
     MapPtr = new Map;
 
-  Map::const_iterator iter = MapPtr->find(key);
+  typename Map::const_iterator iter = MapPtr->find(key);
   
   if( iter != MapPtr->end() && iter->second != val )
   {
@@ -320,10 +332,11 @@ template <class Key, class Val, class HostClass>
 const Val & UniRegistry<Key,Val,HostClass>::find (const Key& key)
 {
   //## begin UniRegistry::find%3C5A7307013F.body preserve=yes
+  lockMutex;
   if( !MapPtr )
     return default_value;
   
-  Map::const_iterator iter = MapPtr->find(key);
+  typename Map::const_iterator iter = MapPtr->find(key);
   
   return iter == MapPtr->end() ? default_value : iter->second;
   //## end UniRegistry::find%3C5A7307013F.body
@@ -345,6 +358,7 @@ BiRegistry<Key,Val,HostClass>::BiRegistry (const Key& defkey, const Val& defval)
 {
   //## begin BiRegistry::BiRegistry%3C5E985C02A0.body preserve=yes
   #define RevMapPtr HostClass::_registry_rmap
+  lockMutex;
   if( !RevMapPtr )
     RevMapPtr = new RevMap;
   riter = RevMapPtr->end();
@@ -366,6 +380,7 @@ template <class Key, class Val, class HostClass>
 void BiRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val)
 {
   //## begin BiRegistry::add%3C5E8D9402F3.body preserve=yes
+  lockMutex;
   UniRegistry<Key,Val,HostClass>::add(key,val);
   if( !RevMapPtr )
     RevMapPtr = new RevMap;
@@ -377,6 +392,7 @@ template <class Key, class Val, class HostClass>
 const Key & BiRegistry<Key,Val,HostClass>::rfind (const Val& val)
 {
   //## begin BiRegistry::rfind%3C5E8E2D01C6.body preserve=yes
+  lockMutex;
   if( !RevMapPtr )
     return default_key;
   
@@ -390,6 +406,10 @@ template <class Key, class Val, class HostClass>
 const Key & BiRegistry<Key,Val,HostClass>::rfind_more ()
 {
   //## begin BiRegistry::rfind_more%3C5E8DA00097.body preserve=yes
+#ifdef USE_THREADS
+  Throw("rfind_more not supported in MT environment");
+#endif
+  lockMutex;
   if( !RevMapPtr )
     return default_key;
   if( riter == RevMapPtr->end() || ++riter == RevMapPtr->end() )

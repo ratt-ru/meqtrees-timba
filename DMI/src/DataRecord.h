@@ -58,8 +58,20 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
 {
   //## begin DataRecord%3BB3112B0027.initialDeclarations preserve=yes
   public:
-      friend DataField;
-      typedef map<HIID,DataFieldRef>::const_iterator Iterator;
+      friend class DataField;
+      class Iterator
+      {
+        private:
+          map<HIID,DataFieldRef>::const_iterator iter;
+#ifdef USE_THREADS
+          Thread::Mutex::Lock lock;
+#endif
+          Iterator( const DataRecord &record );
+          
+          friend class DataRecord;
+      };
+      
+      friend class Iterator;
   //## end DataRecord%3BB3112B0027.initialDeclarations
 
   public:
@@ -235,29 +247,22 @@ inline void DataRecord::replace (const HIID &id, DataField *pfld, int flags)
 inline DataRecord::Iterator DataRecord::initFieldIter () const
 {
   //## begin DataRecord::initFieldIter%3CA20ACE00F8.body preserve=yes
-  return fields.begin();
+  
+  return Iterator(*this);
   //## end DataRecord::initFieldIter%3CA20ACE00F8.body
 }
 
 //## begin module%3C10CC820052.epilog preserve=yes
+inline DataRecord::Iterator::Iterator (const DataRecord &rec)
+#ifdef USE_THREADS
+    : lock(rec.mutex())
+#endif
+{
+  iter = rec.fields.begin();
+}
 //## end module%3C10CC820052.epilog
 
 
 #endif
 
 
-// Detached code regions:
-#if 0
-//## begin DataRecord::size%3C7A16C4023F.body preserve=yes
-  return fields.size();
-//## end DataRecord::size%3C7A16C4023F.body
-
-//## begin DataRecord::type%3C7A16CB023F.body preserve=yes
-  return NullType;
-//## end DataRecord::type%3C7A16CB023F.body
-
-//## begin DataRecord::isScalar%3CB1628C037E.body preserve=yes
-  return False;
-//## end DataRecord::isScalar%3CB1628C037E.body
-
-#endif

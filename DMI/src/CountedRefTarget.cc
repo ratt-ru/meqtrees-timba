@@ -30,6 +30,13 @@
 
 //## begin module%3C10CC8103D8.additionalDeclarations preserve=yes
 #define DebugContext (CountedRefBase::getDebugContext())
+
+#ifdef USE_THREADS
+  #define threadLock Thread::Mutex::Lock t##_lock(cref_mutex)
+#else
+  #define threadLock 
+#endif
+
 //## end module%3C10CC8103D8.additionalDeclarations
 
 
@@ -45,7 +52,7 @@ CountedRefTarget::CountedRefTarget()
   //## begin CountedRefTarget::CountedRefTarget%3C0CDF41029F_const.hasinit preserve=no
   //## end CountedRefTarget::CountedRefTarget%3C0CDF41029F_const.hasinit
   //## begin CountedRefTarget::CountedRefTarget%3C0CDF41029F_const.initialization preserve=yes
-  : owner_ref(0)
+  : owner_ref(0),anon(False)
   //## end CountedRefTarget::CountedRefTarget%3C0CDF41029F_const.initialization
 {
   //## begin CountedRefTarget::CountedRefTarget%3C0CDF41029F_const.body preserve=yes
@@ -56,7 +63,7 @@ CountedRefTarget::CountedRefTarget(const CountedRefTarget &right)
   //## begin CountedRefTarget::CountedRefTarget%3C0CDF41029F_copy.hasinit preserve=no
   //## end CountedRefTarget::CountedRefTarget%3C0CDF41029F_copy.hasinit
   //## begin CountedRefTarget::CountedRefTarget%3C0CDF41029F_copy.initialization preserve=yes
-  : owner_ref(0)
+  : owner_ref(0),anon(False)
   //## end CountedRefTarget::CountedRefTarget%3C0CDF41029F_copy.initialization
 {
   //## begin CountedRefTarget::CountedRefTarget%3C0CDF41029F_copy.body preserve=yes
@@ -67,12 +74,12 @@ CountedRefTarget::CountedRefTarget(const CountedRefTarget &right)
 CountedRefTarget::~CountedRefTarget()
 {
   //## begin CountedRefTarget::~CountedRefTarget%3C0CDF41029F_dest.body preserve=yes
+  threadLock;
   if( owner_ref )
   {
     dprintf(2)("%s destructor:\n  %s\n",debug(),debug(-2,"  "));
     // anon object can only be deleted by releasing its refs
-    FailWhen( owner_ref->isAnonObject(),
-        "can't delete anon object: refs attached");
+    FailWhen( anon,"can't delete anon object: refs attached");
     // check for locked refs
     for( const CountedRefBase *ref = owner_ref; ref!=0; ref = ref->getNext() )
       FailWhen( ref->isLocked(),"can't delete object: locked refs attached" );
@@ -102,6 +109,7 @@ int CountedRefTarget::refCount () const
 {
   //## begin CountedRefTarget::refCount%3C18899002BB.body preserve=yes
   int count = 0;
+  threadLock;
   for( const CountedRefBase *ref = getOwner(); ref != 0; ref = ref->getNext() )
     count++;
   return count;
@@ -112,6 +120,7 @@ int CountedRefTarget::refCountWrite () const
 {
   //## begin CountedRefTarget::refCountWrite%3C18C69A0120.body preserve=yes
   int count = 0;
+  threadLock;
   for( const CountedRefBase *ref = getOwner(); ref != 0; ref = ref->getNext() )
     if( ref->isWritable() )
       count++;
@@ -122,6 +131,7 @@ int CountedRefTarget::refCountWrite () const
 bool CountedRefTarget::refWriteExclusions () const
 {
   //## begin CountedRefTarget::refWriteExclusions%3C18C6A603DA.body preserve=yes
+  threadLock;
   for( const CountedRefBase *ref = getOwner(); ref != 0; ref = ref->getNext() )
     if( ref->isExclusiveWrite() )
       return True;
@@ -132,14 +142,14 @@ bool CountedRefTarget::refWriteExclusions () const
 bool CountedRefTarget::hasExternalRefs () const
 {
   //## begin CountedRefTarget::hasExternalRefs%3C63B97601B9.body preserve=yes
-  return owner_ref && !owner_ref->isAnonObject();
+  return owner_ref && !anon;
   //## end CountedRefTarget::hasExternalRefs%3C63B97601B9.body
 }
 
 bool CountedRefTarget::hasAnonRefs () const
 {
   //## begin CountedRefTarget::hasAnonRefs%3C63BA8800B9.body preserve=yes
-  return owner_ref && owner_ref->isAnonObject();
+  return owner_ref && anon;
   //## end CountedRefTarget::hasAnonRefs%3C63BA8800B9.body
 }
 
@@ -148,6 +158,7 @@ bool CountedRefTarget::hasAnonRefs () const
 string CountedRefTarget::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   string out;
+  threadLock;
   if( detail >= 0 )
     Debug::appendf(out,"%s/%08x",name?name:"CRefTarg",(int)this);
   // normal detail 

@@ -14,14 +14,14 @@ BOIO::~BOIO ()
 }
 
 
-BOIO::BOIO (const string &filename,int mode = READ)
+BOIO::BOIO (const string &filename,int mode)
     : fp(0)
 {
   open(filename,mode);
 }
 
 // attaches to a file
-int BOIO::open (const string &filename,int mode = READ)
+int BOIO::open (const string &filename,int mode)
 {
   close();
   const char *mstr;
