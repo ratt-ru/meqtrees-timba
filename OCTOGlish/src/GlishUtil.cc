@@ -100,7 +100,7 @@ GlishRecord GlishUtil::recToGlish (const DataRecord &rec)
     // map HIID to record field name
     string name = strlowercase( id.toString('_') );
     // is it an index field (i.e. base needs to be adjusted?)
-    bool adjustIndex = ( id[id.size()-1] == AidIndex );
+    bool adjustIndex = ( id.back() == AidIndex );
     try
     {
       glrec.add(name,objectToGlishValue(*ncref,adjustIndex));
