@@ -463,10 +463,6 @@ class ArrayBrowser(BrowserPlugin):
 #    self.set_open_items(openitems);
 
 
-class ResultBrowser(RecordBrowser,BrowserPlugin):
-  _icon = pixmaps.areas3d;
-  viewer_name = "Result Browser";
-
 class ArrayPlotter(ArrayBrowser,BrowserPlugin):
   _icon = pixmaps.bars3d;
   viewer_name = "Array Plotter";
@@ -474,6 +470,11 @@ class ArrayPlotter(ArrayBrowser,BrowserPlugin):
 
 
 
+
+
+class ResultBrowser(RecordBrowser,BrowserPlugin):
+  _icon = pixmaps.areas3d;
+  viewer_name = "Result Browser";
 gridded_workspace.registerViewer(dict,ResultBrowser,dmitype='meqresult');
   
 gridded_workspace.registerViewer(array_class,ArrayBrowser);
