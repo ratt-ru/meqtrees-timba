@@ -119,7 +119,8 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
   {
     mytype = 0;
     mysize = 0;
-    writable = scalar = True;
+    scalar = True;
+    setWritable(True);
     return *this;
   }
   FailWhen( valid(),"field is already initialized" );
@@ -231,7 +232,7 @@ void DataField::clear (int flags)
     objstate.resize(0);
     mytype = 0;
     selected = False;
-    writable = (flags&DMI::WRITE)!=0;
+    setWritable( (flags&DMI::WRITE)!=0 );
   }
   //## end DataField::clear%3C3EAB99018D.body
 }
@@ -546,7 +547,7 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
   binary_type = other.binary_type;
   dynamic_type = other.dynamic_type;
   typesize = other.typesize;
-  writable = (flags&DMI::WRITE)!=0;
+  setWritable( (flags&DMI::WRITE)!=0 );
   selected = False;
   // copy & privatize the header ref
   headref.copy(other.headref).privatize(flags|DMI::LOCK);
@@ -589,7 +590,7 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
 void DataField::privatize (int flags, int depth)
 {
   //## begin DataField::privatize%3C3EDEBC0255.body preserve=yes
-  writable = (flags&DMI::WRITE) != 0;
+  setWritable( (flags&DMI::WRITE)!=0 );
   if( !valid() )
     return;
   // privatize the header reference

@@ -351,7 +351,7 @@ void DataRecord::privatize (int flags, int depth)
 {
   //## begin DataRecord::privatize%3C582189019F.body preserve=yes
   dprintf(2)("privatizing DataRecord\n");
-  writable = (flags&DMI::WRITE)!=0;
+  setWritable( (flags&DMI::WRITE)!=0 );
   if( flags&DMI::DEEP || depth>0 )
   {
     for( FMI iter = fields.begin(); iter != fields.end(); iter++ )
@@ -364,7 +364,7 @@ void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
 {
   //## begin DataRecord::cloneOther%3C58239503D1.body preserve=yes
   fields.clear();
-  writable = (flags&DMI::WRITE)!=0;
+  setWritable( (flags&DMI::WRITE)!=0 );
   // copy all field refs
   for( CFMI iter = other.fields.begin(); iter != other.fields.end(); iter++ )
   {

@@ -13,7 +13,7 @@
 //## Module: AtomicID%3C10CC810157; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: f:\lofar8\oms\LOFAR\cep\cpa\pscf\src\AtomicID.h
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\AtomicID.h
 
 #ifndef AtomicID_h
 #define AtomicID_h 1
@@ -43,7 +43,7 @@
 //## Class: AtomicID%3BE970170297
 //	Atomic identifier (numeric, but with a mapping mechanism to symbolic
 //	IDs)
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n
@@ -164,7 +164,7 @@ const AtomicID AidNull(0),
 //## Class: AidIndex%3C553F440092
 //	AidIndex is a helper class which may be used to create an AtomicID
 //	corresponding to an array index
-//## Category: PSCF::DMI%3BEAB1F2006B; Global
+//## Category: DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
 //## Cardinality/Multiplicity: n

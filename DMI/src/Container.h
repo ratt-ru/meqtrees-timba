@@ -13,7 +13,7 @@
 //## Module: NestableContainer%3C10CC830067; Package specification
 //## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\cep\cpa\pscf\src\NestableContainer.h
+//## Source file: F:\lofar8\oms\LOFAR\DMI\src\NestableContainer.h
 
 #ifndef NestableContainer_h
 #define NestableContainer_h 1
@@ -25,17 +25,17 @@
 
 //## begin module%3C10CC830067.includes preserve=yes
 #include "TypeInfo.h"
-// for now:
-//#include "pscf/TID-PSCF.h"
-//#include "pscf/Timestamp.h"
+// pull in PSCF types
+#include "TID-PSCF.h"
+#include "Timestamp.h"
 //## end module%3C10CC830067.includes
 
-// Registry
-#include "Registry.h"
 // HIIDSet
 #include "HIIDSet.h"
 // BlockableObject
 #include "BlockableObject.h"
+// Registry
+#include "Registry.h"
 //## begin module%3C10CC830067.declarations preserve=no
 //## end module%3C10CC830067.declarations
 
@@ -583,11 +583,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
       //## end NestableContainer%3BE97CE100AF.public
   protected:
-    // Data Members for Class Attributes
 
-      //## begin NestableContainer::writable%3C7F924300A6.attr preserve=no  public: bool {U} 
-      bool writable;
-      //## end NestableContainer::writable%3C7F924300A6.attr
+    //## Other Operations (specified)
+      //## Operation: setWritable%3C9AEE7C01BD
+      bool setWritable (bool wr);
 
     // Additional Protected Declarations
       //## begin NestableContainer%3BE97CE100AF.protected preserve=yes
@@ -599,6 +598,12 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       DeclareRegistry(NestableContainer,int,bool);
       //## end NestableContainer%3BE97CE100AF.private
   private: //## implementation
+    // Data Members for Class Attributes
+
+      //## begin NestableContainer::writable%3C7F924300A6.attr preserve=no  public: bool {U} 
+      bool writable;
+      //## end NestableContainer::writable%3C7F924300A6.attr
+
     // Additional Implementation Declarations
       //## begin NestableContainer%3BE97CE100AF.implementation preserve=yes
       //## end NestableContainer%3BE97CE100AF.implementation
@@ -962,6 +967,13 @@ inline bool NestableContainer::isNestable (TypeId tid)
   //## begin NestableContainer::isNestable%3C5551E201AE.body preserve=yes
   return registry.find(tid);
   //## end NestableContainer::isNestable%3C5551E201AE.body
+}
+
+inline bool NestableContainer::setWritable (bool wr)
+{
+  //## begin NestableContainer::setWritable%3C9AEE7C01BD.body preserve=yes
+  return writable = wr;
+  //## end NestableContainer::setWritable%3C9AEE7C01BD.body
 }
 
 //## Get and Set Operations for Class Attributes (inline)
