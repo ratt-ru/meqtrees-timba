@@ -115,12 +115,17 @@ else
       AIPSPP_LIBS="$AIPSPP_LIBS -lcpgplot -lpgplot"
     fi
 
+    echo AIPSPP >> pkgext
+    echo "$AIPSPP_CPPFLAGS" >> pkgextcppflags
+
     CPPFLAGS="$CPPFLAGS $AIPSPP_CPPFLAGS"
     if test "$lofar_compiler" = "gnu"; then
       CXXFLAGS="$CXXFLAGS -Wno-non-template-friend"
+      echo "-Wno-non-template-friend" >> pkgextcxxflags
     fi
     LDFLAGS="$LDFLAGS $AIPSPP_LDFLAGS"
     LIBS="$LIBS $AIPSPP_LIBS"
+
   ]
 dnl
     AC_SUBST(CPPFLAGS)dnl

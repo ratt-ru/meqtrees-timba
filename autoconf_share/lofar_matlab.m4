@@ -65,6 +65,9 @@ AC_CHECK_FILE([$matlab_prefix/extern/include/matlab.h],
 	MATLAB_LDFLAGS="-L$MATLAB_PATH/extern/lib/glnx86"
 	MATLAB_LIBS="-lmx -leng"
 
+	echo MATLAB >> pkgext
+	echo "$MATLAB_CPPFLAGS" >> pkgextcppflags
+
 	CPPFLAGS="$CPPFLAGS $MATLAB_CPPFLAGS"
 	LDFLAGS="$LDFLAGS $MATLAB_LDFLAGS"
 	LIBS="$LIBS $MATLAB_LIBS"

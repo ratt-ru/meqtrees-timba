@@ -41,11 +41,15 @@ if test "$enable_vbroker" = "yes"; then
   have_corba=1;
   ]AC_DEFINE(HAVE_CORBA, 1, [Defined if Corba is used])[
   ]AC_DEFINE(HAVE_VBROKER, 1, [Defined if Visibroker is used])[
+  echo CORBA >> pkgext
+  echo VBROKER >> pkgext
 fi
 if test "$enable_tao" = "yes"; then
   have_corba=1;
   ]AC_DEFINE(HAVE_CORBA, 1, [Defined if Corba is used])[
   ]AC_DEFINE(HAVE_TAO, 1, [Defined if TAO is used])[
+  echo CORBA >> pkgext
+  echo TAO >> pkgext
 fi
 ]
 AM_CONDITIONAL(HAVE_CORBA, test $have_corba = 1)
@@ -102,11 +106,15 @@ AC_CHECK_FILE([$vbroker_prefix/include/corba.h],
     VBROKER_PATH="$vbroker_prefix"
 
     VBROKER_CPPFLAGS="-I$VBROKER_PATH/include"
+    VBROKER_CXXFLAGS="-Wno-reorder -Wno-switch -Wno-unused"
     VBROKER_LDFLAGS="-L$VBROKER_PATH/lib"
     VBROKER_LIBS="-lcosev_r -lcosnm_r -lvport_r -lorb_r -lpthread"
 
+    echo "$VBROKER_CPPFLAGS" >> pkgextcppflags
+    echo "$VBROKER_CXXFLAGS" >> pkgextcxxflags
+
     CPPFLAGS="$CPPFLAGS $VBROKER_CPPFLAGS"
-    CXXFLAGS="$CXXFLAGS -Wno-reorder -Wno-switch -Wno-unused"
+    CXXFLAGS="$CXXFLAGS $VBROKER_CXXFLAGS"
     LDFLAGS="$LDFLAGS $VBROKER_LDFLAGS"
     LIBS="$LIBS $VBROKER_LIBS"
     IDLCXX="$vbroker_prefix/bin/idl2cpp"
@@ -178,12 +186,13 @@ AC_CHECK_FILE([$tao_prefix/TAO/tao/corba.h],
 
     TAO_PATH="$tao_prefix"
 
-    TAO_CFLAGS="-I$TAO_PATH -I$TAO_PATH/TAO -I$TAO_PATH/TAO/tao"
+    TAO_CPPFLAGS="-I$TAO_PATH -I$TAO_PATH/TAO -I$TAO_PATH/TAO/tao"
     TAO_LDFLAGS="-L$TAO_PATH/lib"
     TAO_LIBS=""
 
-    CFLAGS="$CFLAGS $TAO_CFLAGS"
-    CXXFLAGS="$CXXFLAGS $TAO_CFLAGS"
+    echo "$TAO_CPPFLAGS" >> pkgextcppflags
+
+    CPPFLAGS="$CPPFLAGS $TAO_CFLAGS"
     LDFLAGS="$LDFLAGS $TAO_LDFLAGS"
     LIBS="$LIBS $TAO_LIBS"
     IDLCXX="$tao_prefix/TAO/TAO_IDL/tao_idl"
@@ -191,7 +200,7 @@ AC_CHECK_FILE([$tao_prefix/TAO/tao/corba.h],
 ]
 dnl
 AC_SUBST(CFLAGS)dnl
-AC_SUBST(CXXFLAGS)dnl
+AC_SUBST(CPPFLAGS)dnl
 AC_SUBST(LDFLAGS)dnl
 AC_SUBST(LIBS)dnl
 AC_SUBST(IDLCXX)dnl
