@@ -115,6 +115,11 @@ int Function::getResult (Result::Ref &resref,
   int nrch = numChildren();
   Assert(nrch>0);
   Assert(flagmask_.empty() || flagmask_.size() == childres.size());
+  std::vector<Thread::Mutex::Lock> childvs_lock(nrch);
+  std::vector<Thread::Mutex::Lock> childval_lock(nrch);
+  std::vector<Thread::Mutex::Lock> childpvv_lock[2];
+  childpvv_lock[0].resize(nrch);
+  childpvv_lock[1].resize(nrch);
   // check that resolution match, or if they should be upsampled or
   // downsampled, figure out the max number of child planes, figure out 
   // if result should be marked as integrated
@@ -132,6 +137,7 @@ int Function::getResult (Result::Ref &resref,
   Result & result = resref <<= new Result(nplanes,integr);
   // Use cells of first child (they all must be the same anyway, we'll verify
   // at least shapes later on)
+  FailWhen(!childres[0]->hasCells(),"child result 0 does not have a Cells object");
   const Cells &res_cells = childres[0]->cells();
   const LoShape &res_shape = res_cells.shape();
   result.setCells(res_cells);
@@ -158,6 +164,7 @@ int Function::getResult (Result::Ref &resref,
       else 
       {
         child_vs[i] = &( childres[i]->vellSet(nvs==1?0:iplane) );
+        childvs_lock[i].relock(child_vs[i]->mutex());
         if( child_vs[i]->isFail() ) 
         { // collect fails from child vellset
           for( int j=0; j<child_vs[i]->numFails(); j++ )
@@ -166,6 +173,7 @@ int Function::getResult (Result::Ref &resref,
         else
         {
           const Vells &val = child_vs[i]->getValue();
+          childval_lock[i].relock(val.mutex());
           FailWhen(val.isArray() && val.shape() != res_shape,"mismatch in child result shapes");
           values[i] = &val;
         }
@@ -212,6 +220,7 @@ int Function::getResult (Result::Ref &resref,
               for( int ipert=0; ipert<std::max(vs.numPertSets(),npertsets); ipert++ )
               {
                 const Vells &pvv = vs.getPerturbedValue(inx,ipert);
+                childpvv_lock[ipert][ich].relock(pvv.mutex());
                 FailWhen(pvv.isArray() && pvv.shape() != res_shape,"mismatch in child result shapes");
                 pert_values[ipert][ich] = &pvv;
                 if( found[ipert] >=0 )

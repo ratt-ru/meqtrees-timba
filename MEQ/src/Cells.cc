@@ -224,6 +224,7 @@ Cells::Cells (const Cells &other,const int ops[DOMAIN_NAXES],const int args[DOMA
 
 void Cells::setNumCells (int iaxis,int num)
 {
+  Thread::Mutex::Lock lock(mutex());
   Assert(iaxis>=0 && iaxis<DOMAIN_NAXES);
   shape_[iaxis] = num;
   DataRecord &grid = getSubrecord((*this)[FGrid]);
@@ -234,6 +235,7 @@ void Cells::setNumCells (int iaxis,int num)
 
 void Cells::setCells (int iaxis,const LoVec_double &cen,const LoVec_double &size)
 {
+  Thread::Mutex::Lock lock(mutex());
   int num = cen.size();
   shape_[iaxis] = num;
   Assert(size.size() == num);
@@ -246,6 +248,7 @@ void Cells::setCells (int iaxis,const LoVec_double &cen,const LoVec_double &size
   
 void Cells::setCells (int iaxis,const LoVec_double &cen,double size)
 {
+  Thread::Mutex::Lock lock(mutex());
   int num = cen.size();
   shape_[iaxis] = num;
   setNumCells(iaxis,num);
@@ -257,6 +260,7 @@ void Cells::setCells (int iaxis,const LoVec_double &cen,double size)
 
 void Cells::setCells (int iaxis,double x0,double x1,int num,double size)
 {
+  Thread::Mutex::Lock lock(mutex());
   setNumCells(iaxis,num);
   // assign uniform spacing
   double step = (x1 - x0) / num;
@@ -270,6 +274,7 @@ void Cells::setCells (int iaxis,double x0,double x1,int num,double size)
 
 void Cells::setNumSegments (int iaxis,int nseg)
 {
+  Thread::Mutex::Lock lock(mutex());
   DataRecord &seg = getSubrecord(getSubrecord((*this)[FSegments])[axisId(iaxis)]);
   setRecVector(seg_start_[iaxis],seg[FStartIndex],nseg);
   setRecVector(seg_end_  [iaxis],seg[FEndIndex],nseg);
@@ -277,6 +282,7 @@ void Cells::setNumSegments (int iaxis,int nseg)
 
 void Cells::recomputeSegments (int iaxis)
 {
+  Thread::Mutex::Lock lock(mutex());
   using std::fabs;
   Assert(iaxis>=0 && iaxis<DOMAIN_NAXES);
   int num = grid_[iaxis].size();
@@ -331,6 +337,7 @@ void Cells::recomputeSegments (int iaxis)
 // refreshes envelope domain. Should be always be called after setCells
 void Cells::recomputeDomain ()
 {
+  Thread::Mutex::Lock lock(mutex());
   int nx = grid_[0].size();
   int ny = grid_[1].size();
   double x0 = grid_[0](0) - cell_size_[0](0)/2;
@@ -404,6 +411,7 @@ void Cells::validateContent ()
  
 void Cells::getCellStartEnd (LoVec_double &start,LoVec_double &end,int iaxis) const
 {
+  Thread::Mutex::Lock lock(mutex());
   int num = ncells(iaxis);
   LoVec_double hw(num);
   start.resize(num);
@@ -416,6 +424,8 @@ void Cells::getCellStartEnd (LoVec_double &start,LoVec_double &end,int iaxis) co
 
 int Cells::compare (const Cells &that) const
 {
+  Thread::Mutex::Lock lock(mutex());
+  Thread::Mutex::Lock lock2(that.mutex());
   if( !domain_.valid() ) // are we empty?
     return !that.domain_.valid(); // equal if that is empty too, else not
   // check for equality of domains & shapes
@@ -433,6 +443,8 @@ int Cells::compare (const Cells &that) const
 //##ModelId=400E530403DE
 bool Cells::operator== (const Cells& that) const
 {
+  Thread::Mutex::Lock lock(mutex());
+  Thread::Mutex::Lock lock2(that.mutex());
   if( compare(that) )
     return false;
   // check axes one by one
@@ -447,6 +459,7 @@ bool Cells::operator== (const Cells& that) const
 //##ModelId=400E5305000E
 void Cells::show (std::ostream& os) const
 {
+  Thread::Mutex::Lock lock(mutex());
   os << "Meq::Cells [" << ncells(FREQ) << ','
      << ncells(TIME) << "]  "
      << domain() << endl;

@@ -244,7 +244,10 @@ public:
   
   bool isCongruent (bool is_Real,int nx,int ny) const
     { return isCongruent(is_Real,LoShape2(nx,ny)); }
-  
+
+  const Thread::Mutex & mutex () const
+  { return itsArray->mutex(); }
+    
     //##ModelId=400E53560109
   const DataArray & getDataArray () const
     { return *itsArray; }

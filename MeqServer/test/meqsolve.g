@@ -77,19 +77,19 @@ const sta_dft_tree := function (st,src='')
   }
   # finally, this node computes UVWs directly
   dmi.add_list(uvwlist,
-    meq.node('MeqUVW',fq_name('uvw',st),children=[
+            meq.node('MeqUVW',fq_name('uvw',st),children=[
                          x = meq.parm(fq_name('x',st),pos.x),
                          y = meq.parm(fq_name('y',st),pos.y),
                          z = meq.parm(fq_name('z',st),pos.z),
                          ra = 'ra0',dec = 'dec0',
-                         x_0='x0',y_0='y0',z_0='z0' ]) );
-                         
+                         x_0='x0',y_0='y0',z_0='z0' ]));
+                        
   uvw := meq.node('MeqReqSeq',fq_name('uvw.seq',st),[result_index=1,link_or_create=T],children=uvwlist);
     
   # builds an init-rec for a node called 'dft.N' with two children: 
   # lmn and uvw.N
   return meq.node('MeqStatPointSourceDFT',fq_name('dft',src,st),[link_or_create=T],children=[
-              lmn = fq_name('lmn',src),uvw = uvw ]);
+              lmn = fq_name('lmn',src),uvw=uvw ]);
 }
 
 # builds an init-record for a "dft" tree for source 'src' and two stations (st1,st2)
@@ -320,6 +320,8 @@ const reexec := function (node='dft.a.4',nfreq=10,ntime=10)
   req := meq.request(cells,hiid());
   mqs.execute(node,req);
   print 'you should be looking at node ',node;
+  print 'cells are: ',cells;
+  print 'domain was: ',cells;
 }
 
 use_initcol := T;       # initialize output column with zeroes
@@ -374,6 +376,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
     print mqs;
     fail;
   }
+  mqs.track_results(F);
 
   mqs.meq('Clear.Forest',[=]);
   # load forest if asked
@@ -447,25 +450,32 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
   # print 'Nodes: ',nodelist.name;
   
   # enable publishing of solver results
-  if( solve && publish>0 )
+  if( solve && publish>0 ) {
     mqs.meq('Node.Publish.Results',[name='solver']);
+#    mqs.meq('Node.Publish.Results',[name=fq_name('dft.b',4,8)]);
+#    mqs.meq('Node.Publish.Results',[name=fq_name('U',8)]);
+  }
 
   # run over MS
   if( run )
-  {
-    # activate input and watch the fur fly  
-    global inputrec,outputrec;
-    mqs.init([mandate_regular_grid=T,output_col='PREDICT'],input=inputrec,output=outputrec); 
-  }
+    do_run();
 }
+
+const do_run := function ()
+{
+  # activate input and watch the fur fly  
+  global inputrec,outputrec;
+  mqs.init([mandate_regular_grid=T,output_col='PREDICT'],input=inputrec,output=outputrec); 
+}
+
 
 msname := 'test.ms';
 # msname := 'test-wsrt.ms';
 mepuvw := T;
 filluvw := any(argv=='-filluvw');
 
-src_dra  := ([0,128] + 0) * pi/(180*60*60); # perturb positions by # seconds
-src_ddec := ([0,128] + 0) * pi/(180*60*60);
+src_dra  := ([0,128]+10) * pi/(180*60*60); # perturb positions by # seconds
+src_ddec := ([0,128]+10) * pi/(180*60*60);
 src_sti  := [1,1]   + 0.1;
 src_names := "a b";
 
@@ -481,7 +491,7 @@ if( mepuvw )
 else
   mepuvw := F;
 
-solver_defaults := [ num_iter=1,save_polcs=F,last_update=F ];
+solver_defaults := [ num_iter=10,save_polcs=F,last_update=F ];
 
 inputrec := [ ms_name = msname,data_column_name = 'DATA',tile_size=5,
               selection = [ channel_start_index=1,channel_end_index=1 ] ];
@@ -491,8 +501,10 @@ outputrec := [ write_flags=F,predict_column=outcol ];
 # do_test(solve=T,run=T,st1set=1,st2set=1,publish=2);
 
 do_test(msname=msname,solve=T,subtract=F,run=T,
-  st1set=[1:5]*4,st2set=[1:5]*4,
+#  st1set=[1:5]*4,st2set=[1:5]*4,
 #  st1set=[1:21]*4,st2set=[1:21]*4,
+  st1set=1+[0:3]*4,st2set=1+[0:3]*4,
+#  st1set=1+[0:20]*4,st2set=1+[0:20]*4,
 #  st1set=1:100,st2set=1:100,
   publish=1,mepuvw=mepuvw,msuvw=msuvw);
 #do_test(solve=T,run=T,publish=2,load='solve-100.forest');
@@ -535,9 +547,3 @@ print 'errors reported:',mqs.num_errors();
 #
 # recprint(rec) pretty-prints a record. Try e.g.:
 #   recprint(mqs.getnodestate('solver'))
-
-
-
-
-
-

@@ -97,6 +97,7 @@ int StatPointSourceDFT::getResult (Result::Ref &resref,
     return RES_FAIL;
   
   // allocate proper output result (integrated=false??)
+  FailWhen(!childres[0]->hasCells(),"child result 0 does not have a Cells object");
   const Cells &cells = childres[0]->cells();
   Result &result = resref <<= new Result(cells.numSegments(FREQ)*2,false);
   result.setCells(cells);

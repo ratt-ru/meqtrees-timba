@@ -823,6 +823,8 @@ void Node::resampleChildren (Cells::Ref rescells,std::vector<Result::Ref> &child
         }
       }
     }
+    else
+      NodeThrow1(Debug::ssprintf("result of child %d does not have a Cells attached",ich));
   }
   // resample child results if required
   if( need_resampling )
@@ -1114,11 +1116,15 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       retcode = 0;
     // Pass request on to children and accumulate their results
     std::vector<Result::Ref> child_results(numChildren());
+    std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
     Cells::Ref rescells;
     if( numChildren() )
     {
       stage = "polling children";
       retcode |= pollChildren(child_results,ref,req);
+      for( int i=0; i<numChildren(); i++ )
+        if( child_results[i].valid() )
+          child_reslock[i].relock(child_results[i]->mutex());
       // a WAIT from any child is returned immediately w/o a result
       if( retcode&RES_WAIT )
         return retcode;

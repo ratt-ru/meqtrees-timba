@@ -29,7 +29,9 @@ namespace Meq {
 
 //##ModelId=400E5305005F
 Condeq::Condeq()
-{}
+{
+  setAutoResample(RESAMPLE_FAIL);
+}
 
 //##ModelId=400E53050060
 Condeq::~Condeq()
@@ -81,6 +83,11 @@ int Condeq::getResult (Result::Ref &resref,
                        const Request &request,bool)
 {
   int nrch = child_result.size();
+  std::vector<Thread::Mutex::Lock> childvs_lock(nrch);
+  std::vector<Thread::Mutex::Lock> childval_lock(nrch);
+  std::vector<Thread::Mutex::Lock> childpvv_lock[2];
+  childpvv_lock[0].resize(nrch);
+  childpvv_lock[1].resize(nrch);
   Assert(nrch==2);
   // Check that number of child planes is the same
   int nplanes = child_result[0]->numVellSets();
@@ -104,9 +111,11 @@ int Condeq::getResult (Result::Ref &resref,
     for( int i=0; i<nrch; i++ )
     {
       child_res[i] = &(child_result[i]->vellSet(iplane));
+      childvs_lock[i].relock(child_res[i]->mutex());
       const Vells &val = child_res[i]->getValue();
+      childval_lock[i].relock(val.getDataArray().mutex());
       FailWhen(val.isArray() && val.shape() != res_shape,"mismatch in child result shapes");
-      values[i] = &(child_res[i]->getValue());
+      values[i] = &val;
     }
     // Find all spids from the children.
     vector<int> spids = Function::findSpids(npertsets,child_res);

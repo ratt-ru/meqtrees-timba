@@ -29,10 +29,10 @@ const mqsinit := function (verbose=default_verbosity,debug=[=],gui=use_gui)
   global mqs;
   if( !is_record(mqs) )
   {
-    mqs := meq.server(verbose=verbose,options="-d0 -nogw -meq:M:O:MeqServer",gui=gui);
+    mqs := meq.server(verbose=verbose,options="-d0 -meq:M:O:MeqServer",gui=gui);
     if( is_fail(mqs) )
       fail;
-    mqs.init([output_col="PREDICT"],wait=T);
+    mqs.init([output_col="PREDICT"],wait=F);
     if( !( is_boolean(debug) && !debug ) )
     {
       for( lev in field_names(default_debuglevels) )

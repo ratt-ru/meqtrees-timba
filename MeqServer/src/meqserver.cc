@@ -119,8 +119,16 @@ int main (int argc,const char *argv[])
   {
     // collect command-line arguments into vector
     StrVec args(argc-1);
-    for( int i=1; i<argc; i++ )
-      args[i-1] = argv[i];
+    // use defaults if none
+    if( args.empty() )
+    {
+      args.push_back(string("-meq:M:M:MeqServer"));
+    }
+    else // else fill from command line
+    {
+      for( int i=1; i<argc; i++ )
+        args[i-1] = argv[i];
+    }
     // parse various options
     bool glish = 
         std::find(args.begin(),args.end(),string("-noglish")) == args.end();

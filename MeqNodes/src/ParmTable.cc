@@ -132,7 +132,7 @@ int ParmTable::getPolcs (vector<Polc::Ref> &polcs,
     {
       Polc &polc = polcs[i] <<= new Polc(fromParmMatrix(valCol(i)),
           f0Col(i),fsCol(i),t0Col(i),tsCol(i),diffCol(i),weightCol(i),rowNums(i));
-      polc.setDomain(Domain(stCol(i), etCol(i), sfCol(i), efCol(i)));
+      polc.setDomain(Domain(sfCol(i), efCol(i), stCol(i), etCol(i)));
     }
   }
   return polcs.size();

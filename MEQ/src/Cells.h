@@ -188,8 +188,24 @@ public:
   // print to stream
     //##ModelId=400E5305000E
   void show (std::ostream&) const;
+
+  // override privatize() to not be deep
+  // (since contents of record are not accessible directly anyway)
+  virtual void privatize (int flags = 0, int depth = 0)
+  {};
   
 private:
+  DataRecord::merge;
+  DataRecord::add;
+  DataRecord::removeField;
+  DataRecord::replace;
+  DataRecord::field;
+  DataRecord::fieldWr;
+  DataRecord::get;
+  DataRecord::insert;
+  DataRecord::remove;
+  DataRecord::initFieldIter;
+  DataRecord::getFieldIter;
     
   // helper function: sets up subrecords for an axis
   void setNumCells (int iaxis,int num);

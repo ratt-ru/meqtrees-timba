@@ -168,7 +168,14 @@ void MeqServer::nodeExecute (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   cdebug(2)<<"nodeExecute for node "<<node.name()<<endl;
   // take request object out of record
   Request &req = rec[AidRequest].as_wr<Request>();
-  cdebug(3)<<"    request is "<<req.sdebug(DebugLevel-1,"    ")<<endl;
+  if( Debug(0) )
+  {
+    cdebug(3)<<"    request is "<<req.sdebug(DebugLevel-1,"    ")<<endl;
+    if( req.hasCells() )
+    {
+      cdebug(3)<<"    request cells are: "<<req.cells();
+    }
+  }
   Result::Ref resref;
   int flags = node.execute(resref,req);
   cdebug(2)<<"  execute() returns flags "<<ssprintf("0x%x",flags)<<endl;

@@ -118,12 +118,14 @@ void Request::validateRider ()
 
 void Request::clearRider ()
 {
+  Thread::Mutex::Lock lock(mutex());
   DataRecord::remove(FRider);
   hasRider_ = False;
 }
 
 void Request::copyRider (const Request &other)
 {
+  Thread::Mutex::Lock lock(mutex());
   if( other.hasRider() )
   {
     DataRecord::replace(FRider,other.field(FRider));
@@ -135,6 +137,7 @@ void Request::copyRider (const Request &other)
 
 int Request::remove (const HIID &id)
 { 
+  Thread::Mutex::Lock lock(mutex());
   if( id == FCells || id == FRequestId || id==FCalcDeriv) {
     Throw("remove(" + id.toString() +" from a Meq::Request not allowed"); 
   }

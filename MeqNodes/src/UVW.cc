@@ -64,6 +64,8 @@ int UVW::getResult (Result::Ref &resref,
 {
   // Check that child results are all OK (no fails, 1 vellset per child)
   string fails;
+  std::vector<Thread::Mutex::Lock> childvs_lock(num_children);
+  std::vector<Thread::Mutex::Lock> childval_lock(num_children);
   for( int i=0; i<num_children; i++ )
   {
     int nvs = childres[i]->numVellSets();
@@ -72,6 +74,8 @@ int UVW::getResult (Result::Ref &resref,
           child_labels[i].toString().c_str(),nvs);
     if( childres[i]->hasFails() )
       Debug::appendf(fails,"child %s: has fails",child_labels[i].toString().c_str());
+    childvs_lock[i].relock(childres[i]->vellSet(0).mutex());
+    childval_lock[i].relock(childres[i]->vellSet(0).getValue().getDataArray().mutex());
   }
   if( !fails.empty() )
     NodeThrow1(fails);

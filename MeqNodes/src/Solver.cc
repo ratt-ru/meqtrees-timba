@@ -177,6 +177,7 @@ int Solver::getResult (Result::Ref &resref,
   Vector<double> solution;
   Vector<double> allSolutions;
   std::vector<Result::Ref> child_results(numChildren());
+  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
   // get the request ID -- we're going to be incrementing the part of it 
   // corresponding to our generated symdep
   HIID rqid = request.id();
@@ -206,8 +207,12 @@ int Solver::getResult (Result::Ref &resref,
   int step;
   for (step=0; step<itsCurNumIter; step++) 
   {
-    // collect child results, using Node's standard method
+    for( int i=0; i<numChildren(); i++ )
+      child_reslock[i].release();
     int retcode = Node::pollChildren (child_results, resref, *reqref);
+    for( int i=0; i<numChildren(); i++ )
+      if( child_results[i].valid() )
+        child_reslock[i].relock(child_results[i]->mutex());
     // a fail or a wait is returned immediately
     if( retcode&(RES_FAIL|RES_WAIT) )
       return retcode;

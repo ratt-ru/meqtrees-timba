@@ -125,6 +125,7 @@ VellSet::~VellSet()
 // helper function to initialize perturbations structures
 void VellSet::setupPertData (int iset)
 {
+  Thread::Mutex::Lock lock(mutex());
   // add perturbations field
   DataField *pdf = new DataField(Tpdouble,numspids_);
   DataRecord::add(FiPerturbations(iset),pdf,DMI::ANONWR);
@@ -137,6 +138,7 @@ void VellSet::setupPertData (int iset)
 
 void VellSet::setShape (const LoShape2 &shp)
 {
+  Thread::Mutex::Lock lock(mutex());
   if( hasShape() )
   {
     FailWhen(shape_ != shp,"different VellSet shape already set");
@@ -150,6 +152,7 @@ void VellSet::setShape (const LoShape2 &shp)
 //##ModelId=400E53550333
 void VellSet::privatize (int flags, int depth)
 {
+  Thread::Mutex::Lock lock(mutex());
   // if deep-privatizing, then detach shortcuts -- they will be reattached 
   // by validateContent()
   if( flags&DMI::DEEP || depth>0 )
@@ -273,6 +276,7 @@ void VellSet::validateContent ()
 //##ModelId=400E535503B5
 void VellSet::clear()
 {
+  Thread::Mutex::Lock lock(mutex());
   shape_ = LoShape2(0,0);
   numspids_ = 0;
   spids_ = 0;
@@ -335,6 +339,7 @@ void * VellSet::writeOptCol (uint icol)
 
 void * VellSet::initOptCol (uint icol,bool array)
 {
+  Thread::Mutex::Lock lock(mutex());
   // attach & return
   DataArray *parr = array ? new DataArray(optColArrayType(icol),shape(),DMI::ZERO)
                           : new DataArray(optColArrayType(icol),LoShape(1),DMI::ZERO);
@@ -345,6 +350,7 @@ void * VellSet::initOptCol (uint icol,bool array)
 
 void VellSet::doSetOptCol (uint icol,DataArray *parr,int dmiflags)
 {
+  Thread::Mutex::Lock lock(mutex());
   FailWhen(!hasShape(),"VellSet shape not set");
   FailWhen(parr->size() != 1 && parr->shape() != shape(),
            "column "+optColFieldId(icol).toString()+": bad shape");
@@ -357,6 +363,7 @@ void VellSet::doSetOptCol (uint icol,DataArray *parr,int dmiflags)
 
 void VellSet::setOptCol (uint icol,const DataArray::Ref::Xfer &ref)
 {
+  Thread::Mutex::Lock lock(mutex());
   FailWhen(!hasShape(),"VellSet shape not set");
   FailWhen(ref->size() != 1 && ref->shape() != shape(),
            "column "+optColFieldId(icol).toString()+": bad shape");
@@ -369,6 +376,7 @@ void VellSet::setOptCol (uint icol,const DataArray::Ref::Xfer &ref)
 
 void VellSet::clearOptCol (int icol)
 {
+  Thread::Mutex::Lock lock(mutex());
   DataRecord::removeField(optColFieldId(icol),true);
   optcol_[icol].ref.detach();
   optcol_[icol].ptr = 0;
@@ -377,6 +385,7 @@ void VellSet::clearOptCol (int icol)
 
 void VellSet::setNumPertSets (int nsets)
 {
+  Thread::Mutex::Lock lock(mutex());
   // can only change from 0 to smth
   FailWhen(pset_.size() && nsets != int(pset_.size()),
       "can't change the number of perturbation sets in a VellSet");
@@ -392,6 +401,7 @@ void VellSet::setNumPertSets (int nsets)
 //##ModelId=400E53550344
 void VellSet::setSpids (const vector<int>& spids)
 {
+  Thread::Mutex::Lock lock(mutex());
   if( numspids_ ) // assigning to existing vector
   {
     FailWhen(spids.size() != uint(numspids_),"setSpids: vector size mismatch" );
@@ -413,6 +423,7 @@ void VellSet::setSpids (const vector<int>& spids)
 
 void VellSet::copySpids (const VellSet &other)
 {
+  Thread::Mutex::Lock lock(mutex());
   if( numspids_ ) // assigning to existing vector -- check sizes
   {
     FailWhen(other.numSpids() != numspids_,"copySpids: size mismatch" );
@@ -433,6 +444,7 @@ void VellSet::copySpids (const VellSet &other)
 //##ModelId=400E53550353
 void VellSet::setPerturbation (int i, double value,int iset)
 { 
+  Thread::Mutex::Lock lock(mutex());
   DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
   (*this)[FiPerturbations(iset)][i] = value;
 //  pset_[iset].pert[i] = value;
@@ -442,6 +454,7 @@ void VellSet::setPerturbation (int i, double value,int iset)
 //##ModelId=400E53550359
 void VellSet::setPerturbations (const vector<double>& perts,int iset)
 {
+  Thread::Mutex::Lock lock(mutex());
   DbgAssert(iset>=0 && iset<int(pset_.size())); 
   FailWhen(perts.size() != uint(numspids_),"setPerturbations: vector size mismatch" );
   if( numspids_ )
@@ -453,6 +466,7 @@ void VellSet::setPerturbations (const vector<double>& perts,int iset)
 
 void VellSet::copyPerturbations (const VellSet &other)
 {
+  Thread::Mutex::Lock lock(mutex());
   FailWhen(numSpids() != other.numSpids(),"setPerturbations: number of spids does not match" );
   FailWhen(numPertSets() != other.numPertSets(),"setPerturbations: number of pert sets does not match" );
   if( !other.numSpids() )
@@ -467,6 +481,7 @@ void VellSet::copyPerturbations (const VellSet &other)
 //##ModelId=400E53550360
 Vells & VellSet::setValue (Vells *pvells)
 {
+  Thread::Mutex::Lock lock(mutex());
   FailWhen(!hasShape(),"VellSet shape not set");
   FailWhen(pvells->isArray() && pvells->shape() != shape(),
             "main value: bad shape");
@@ -477,6 +492,7 @@ Vells & VellSet::setValue (Vells *pvells)
 
 void VellSet::setValue (const Vells::Ref::Xfer &vref)
 {
+  Thread::Mutex::Lock lock(mutex());
   FailWhen(!hasShape(),"VellSet shape not set");
   FailWhen(vref->isArray() && vref->shape() != shape(),
             "main value: bad shape");
@@ -490,6 +506,7 @@ void VellSet::setValue (const Vells::Ref::Xfer &vref)
 //##ModelId=400E53550387
 Vells & VellSet::setPerturbedValue (int i,Vells *pvells,int iset)
 {
+  Thread::Mutex::Lock lock(mutex());
   DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
   FailWhen(!hasShape(),"VellSet shape not set");
   FailWhen(pvells->isArray() && pvells->shape() != shape(),
@@ -509,6 +526,7 @@ Vells & VellSet::setPerturbedValue (int i,Vells *pvells,int iset)
 
 void VellSet::setPerturbedValue (int i,const Vells::Ref::Xfer &vref,int iset)
 {
+  Thread::Mutex::Lock lock(mutex());
   DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
   FailWhen(!hasShape(),"VellSet shape not set");
   FailWhen(vref->isArray() && vref->shape() != shape(),
@@ -533,6 +551,7 @@ void VellSet::setPerturbedValue (int i,const Vells::Ref::Xfer &vref,int iset)
 //##ModelId=400E53550393
 void VellSet::addFail (const DataRecord *rec,int flags)
 {
+  Thread::Mutex::Lock lock(mutex());
   clear();
   is_fail_ = true;
   // clear out the DR
@@ -560,6 +579,7 @@ void VellSet::addFail (const DataRecord *rec,int flags)
 void VellSet::addFail (const string &nodename,const string &classname,
                       const string &origin,int origin_line,const string &msg)
 {
+  Thread::Mutex::Lock lock(mutex());
   DataRecord::Ref ref;
   DataRecord & rec = ref <<= new DataRecord;
   // populate the fail record
@@ -588,6 +608,7 @@ const DataRecord & VellSet::getFail (int i) const
 //##ModelId=400E535503AE
 void VellSet::show (std::ostream& os) const
 {
+  Thread::Mutex::Lock lock(mutex());
   if( isFail() )
   {
     const DataField & fails = (*this)[FFail];

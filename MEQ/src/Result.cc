@@ -91,6 +91,7 @@ Result::~Result()
 //##ModelId=400E5355017B
 void Result::allocateVellSets (int nvellsets)
 {
+  Thread::Mutex::Lock lock(mutex());
   itsVellSets <<= new DataField(TpMeqVellSet,nvellsets);
   DataRecord::replace(FVellSets,itsVellSets.dewr_p(),DMI::ANONWR);
 }
@@ -99,6 +100,7 @@ void Result::allocateVellSets (int nvellsets)
 //##ModelId=400E53550142
 void Result::privatize (int flags, int depth)
 {
+  Thread::Mutex::Lock lock(mutex());
   // if deep-privatizing, then detach shortcuts -- they will be reattached 
   // by validateContent()
   if( flags&DMI::DEEP || depth>0 )
@@ -147,12 +149,21 @@ int Result::remove (const HIID &id)
 //##ModelId=3F86887000D4
 void Result::setCells (const Cells *cells,int flags)
 {
-  itsCells = flags&DMI::CLONE ? new Cells(*cells) : cells;
+  Thread::Mutex::Lock lock(mutex());
+  // if we have no idea how to attach object, make a copy
+  if( !flags&(DMI::ANON|DMI::EXTERNAL) && !cells->refCount() )
+  {
+    itsCells = new Cells(*cells);
+    flags = (flags&~DMI::EXTERNAL) | DMI::ANON;
+  }
+  else
+    itsCells = cells;
   DataRecord::replace(FCells,itsCells,flags|DMI::READONLY);
 }
 
 void Result::setIsIntegrated (bool integrated)
 {
+  Thread::Mutex::Lock lock(mutex());
   itsIsIntegrated = integrated;
   DataRecord::replace(FIntegrated,new DataField(Tpbool,-1,&itsIsIntegrated),DMI::ANONWR);
 }
@@ -170,6 +181,7 @@ DataField & Result::wrVellSets ()
 
 VellSet & Result::setNewVellSet (int i,int nspids,int nset)
 { 
+  Thread::Mutex::Lock lock(mutex());
   VellSet *pvs = new VellSet(nspids,nset);
   VellSet::Ref resref(pvs,DMI::ANONWR); 
   setVellSet(i,resref);
@@ -182,6 +194,7 @@ VellSet & Result::setNewVellSet (int i,int nspids,int nset)
 //##ModelId=400E535501AD
 const VellSet & Result::setVellSet (int i,VellSet::Ref::Xfer &vellset)
 {
+  Thread::Mutex::Lock lock(mutex());
 //  DbgFailWhen(isFail(),"Result marked as a fail, can't set vellset");
   const VellSet & vs = *vellset;
   ObjRef ref = vellset;
@@ -192,6 +205,7 @@ const VellSet & Result::setVellSet (int i,VellSet::Ref::Xfer &vellset)
 //##ModelId=400E535501D1
 bool Result::hasFails () const
 {
+  Thread::Mutex::Lock lock(mutex());
   for( int i=0; i<numVellSets(); i++ )
     if( vellSet(i).isFail() )
       return true;
@@ -201,6 +215,7 @@ bool Result::hasFails () const
 //##ModelId=400E535501D4
 int Result::numFails () const
 {
+  Thread::Mutex::Lock lock(mutex());
   int count=0;
   for( int i=0; i<numVellSets(); i++ )
     if( vellSet(i).isFail() )
@@ -210,6 +225,7 @@ int Result::numFails () const
 
 void Result::integrate (bool reverse)
 {
+  Thread::Mutex::Lock lock(mutex());
   const Cells &cc = cells();
   if( reverse && isIntegrated() )
     return;
@@ -254,6 +270,7 @@ void Result::integrate (bool reverse)
 //##ModelId=3F868870014C
 void Result::show (std::ostream& os) const
 {
+  Thread::Mutex::Lock lock(mutex());
   for( int i=0; i<numVellSets(); i++ )
   {
     const VellSet &vs = vellSet(i);

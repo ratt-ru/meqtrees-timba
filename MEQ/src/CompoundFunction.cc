@@ -94,9 +94,18 @@ void CompoundFunction::computeValues ( Result &result,const std::vector<const Ve
 {
   // collect vector of pointers to main values
   int num_children = chvs.size();
+  std::vector<Thread::Mutex::Lock> childvs_lock(num_children);
+  std::vector<Thread::Mutex::Lock> childval_lock(num_children);
+  std::vector<Thread::Mutex::Lock> childpvv_lock[2];
+  childpvv_lock[0].resize(num_children);
+  childpvv_lock[1].resize(num_children);
   vector<const Vells *> mainvals(num_children);
-  for( int i=0; i<num_children; i++ )
+  for( int i=0; i<num_children; i++ ) 
+  {
+    childvs_lock[i].relock(chvs[i]->mutex());
     mainvals[i] = &( chvs[i]->getValue() );
+    childval_lock[i].relock(mainvals[i]->mutex());
+  }
  
   // determine output spids and # of pert sets
   int npertsets;
@@ -154,6 +163,7 @@ void CompoundFunction::computeValues ( Result &result,const std::vector<const Ve
         for( int ipert=0; ipert<std::max(vs.numPertSets(),npertsets); ipert++ )
         {
           const Vells &pvv = vs.getPerturbedValue(inx,ipert);
+          childpvv_lock[ipert][ich].relock(pvv.mutex());
           FailWhen(pvv.isArray() && pvv.shape() != res_shape,"mismatch in child result shapes");
           pert_values[ipert][ich] = &pvv;
           if( found[ipert] >=0 )
