@@ -42,8 +42,10 @@ Identity & Identity::operator= (const Identity& right)
 void Identity::wait ()
 {
   FailWhen( !wp().isRunning(),"OCTOPUSSY not started" );
+#ifdef USE_THREADS
   Thread::Mutex::Lock lock(wp().queueCondition());
   wp().queueCondition().wait();
+#endif
 }
 
 //##ModelId=3E09032400F1
@@ -51,8 +53,10 @@ bool Identity::receive(Message::Ref &mref,bool wait)
 {
   FailWhen( !wp().isRunning(),"OCTOPUSSY not started" );
   mref.detach();
+#ifdef USE_THREADS
   Thread::Mutex::Lock lock(wp().queueCondition());
   wp().queueCondition().wait();
+#endif
   // bug, finish this
 }
 

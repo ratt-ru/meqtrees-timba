@@ -539,7 +539,9 @@ void WPInterface::do_stop ()
   else  
     stop();
   // wake up anyone who may be waiting on the queue condition variable
+#ifdef USE_THREADS
   queueCondition().broadcast();
+#endif
 }
 
 //##ModelId=3C7F882B00E6
