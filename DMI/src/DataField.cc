@@ -78,7 +78,7 @@ DataField::DataField (TypeId tid, int num, int flags, const void *data)
 {
   //## begin DataField::DataField%3BFA54540099.body preserve=yes
   dprintf(2)("constructor(%s,%d,%x)\n",tid.toString().c_str(),num,flags);
-  init(tid,num);
+  init(tid,num,data);
   //## end DataField::DataField%3BFA54540099.body
 }
 
@@ -764,7 +764,11 @@ void * DataField::insert (const HIID &id, TypeId tid, TypeId &real_tid)
 {
   //## begin DataField::insert%3C7A198A0347.body preserve=yes
   dprintf(2)("insert(%s,%s)\n",id.toString().c_str(),tid.toString().c_str());
-  FailWhen( !id.size(),"null HIID" );
+  if( !id.size() )
+  {
+    FailWhen( valid(),"null HIID" );
+    return insertn(0,tid,real_tid);
+  }
   if( id.size()==1 && id.front().index()>=0 )
     return insertn(id.front().index(),tid,real_tid);
   FailWhen( !valid() || !size(),"field not initialized or empty" );

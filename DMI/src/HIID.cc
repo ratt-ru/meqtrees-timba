@@ -211,6 +211,24 @@ void HIID::unpack (const void* block, size_t sz)
 
 // Additional Declarations
   //## begin HIID%3BE96FE601C5.declarations preserve=yes
+bool HIID::operator < (const HIID &right) const
+{
+  CVI iter = begin(),
+      oiter = right.begin();
+  // go up to end of this or other, and return result if a strict != was found
+  for( ; iter != end() && oiter != right.end(); iter++,oiter++ )
+  {
+    if( (*iter) < (*oiter) )
+      return True;
+    else if( (*iter) > (*oiter) )
+      return False;
+  }
+  // got to end of one or the other and everything is equal -- if there's
+  // something left in the other, then we are <
+  return oiter != right.end();
+}
+
+
 void HIID::addString (const string &str)
 {
   size_t totlen = str.length();

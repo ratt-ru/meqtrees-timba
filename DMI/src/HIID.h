@@ -68,11 +68,6 @@ typedef deque<AtomicID> Vector_AtomicID;
 class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
 {
   //## begin HIID%3BE96FE601C5.initialDeclarations preserve=yes
-  // define concatenation operations
-  public:
-      HIID & operator |= (const HIID &other);
-      HIID & operator |= (AtomicID aid);
-      HIID & operator |= (int aid);
   //## end HIID%3BE96FE601C5.initialDeclarations
 
   public:
@@ -171,6 +166,15 @@ class HIID : public Vector_AtomicID  //## Inherits: <unnamed>%3C5566050230
 
     // Additional Public Declarations
       //## begin HIID%3BE96FE601C5.public preserve=yes
+      // define some concatenation operations
+      HIID & operator |= (const HIID &other);
+      HIID & operator |= (AtomicID aid);
+      HIID & operator |= (int aid);
+      HIID & operator |= (const char *str);
+      
+      // a less-than operator
+      bool operator < (const HIID &right) const;
+      
       // templated constructor (constructs from input iterator)
       template<class In> HIID( In first,In last );
       
@@ -216,6 +220,9 @@ inline bool operator != (AtomicID id1,const HIID &id2)
 inline HIID & HIID::operator |= (const HIID &other)
   { return add(other); }
 
+inline HIID & HIID::operator |= (const char *other)
+  { return add(HIID(other)); }
+
 inline HIID & HIID::operator |= (AtomicID id2)
   { return add(id2); }
 
@@ -225,6 +232,9 @@ inline HIID & HIID::operator |= (int id2)
 inline HIID operator | (const HIID &id1,const HIID &id2)
 { HIID ret(id1); return ret|=id2; }
 
+inline HIID operator | (const HIID &id1,const char *id2)
+{ HIID ret(id1); return ret|=id2; }
+
 inline HIID operator | (const HIID &id1,AtomicID id2)
 { HIID ret(id1); return ret|=id2; }
 
@@ -232,6 +242,9 @@ inline HIID operator | (const HIID &id1,int id2)
 { HIID ret(id1); return ret|=AtomicID(id2); }
 
 inline HIID operator | (AtomicID id1,const HIID &id2)
+{ HIID ret(id1); return ret|=id2; }
+
+inline HIID operator | (AtomicID id1,const char *id2)
 { HIID ret(id1); return ret|=id2; }
 
 inline HIID operator | (AtomicID id1,AtomicID id2)
