@@ -37,6 +37,16 @@
 # and compare it with a corresponding .out file (if there) using diff.
 # Parts of the output can be skipped using special markers (>>> and <<<).
 #
+# example:
+#
+# >>>
+# This total line will be skipped
+# <<<
+#
+# Only >>>this<<< will be skipped 
+#
+#
+#
 # A .run file is necessary in the following cases:
 # 1. There are other input files. In that case the .run file should
 #    copy those files to the working directory. If needed, it should
@@ -103,6 +113,10 @@
 # $Id$
 #
 # $Log$
+# Revision 1.4  2004/03/10 09:06:51  coolen
+# %[ER:70 ]%
+# added possibility to skip parts in the output rather then only total lines
+#
 # Revision 1.3  2003/08/27 12:31:53  smirnov
 # added './' to front of .run file, in case '.' is not in PATH
 #
@@ -172,11 +186,13 @@
   fi
 
 # Strip out demarked text.
+# lines enclosed by >>> && <<<
   sed -e '/^>>>/,/^<<</d' ${1}_tmp.out > ${1}_tmp.out2
-  mv -f ${1}_tmp.out2 ${1}_tmp.out
+# inline parts enclosed by >>> && <<<
+  sed -e 's/>>>.*<<<//' ${1}_tmp.out2 > ${1}_tmp.out
 
 # Compare with the expected output.
-  if $CAT $1.out | sed -e '/^>>>/,/^<<</d' | diff ${1}_tmp.out -
+  if $CAT $1.out | sed -e '/^>>>/,/^<<</d' |  sed -e 's/>>>.*<<<//' | diff ${1}_tmp.out -
   then
      echo "PASS (output verified): $*"
      STATUS=0
