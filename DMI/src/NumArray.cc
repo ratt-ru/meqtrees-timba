@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.21  2003/01/08 10:32:41  diepen
+//  %[BugId: 76]%
+//  <ostream> was not found for gcc2.95.3
+//  Fixed typo in DataArray line 412
+//
 //  Revision 1.20  2002/12/09 08:22:31  smirnov
 //  %[BugId: 112]%
 //  Simplified string support in DataAarray
@@ -409,7 +414,7 @@ void DataArray::clear()
   if( itsSubArray.ptr )
   {
     destroyArray(elementType(),itsSubArray.rank,itsSubArray.ptr);
-    itsSubArrayPtr = 0;
+    itsSubArray.ptr = 0;
   }
 #endif
   itsArray    = 0;

@@ -28,7 +28,7 @@
 #include <Common/Thread.h>
 #include <Common/CheckConfig.h>
 
-#include <ostream>
+#include <Common/lofar_iostream.h>
 
 class CountedRefBase;
 

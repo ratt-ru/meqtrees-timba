@@ -28,7 +28,7 @@
 #include <DMI/AtomicID.h>
 
 #include <deque>
-#include <ostream>
+#include <Common/lofar_iostream.h>
     
 #pragma type =HIID
 

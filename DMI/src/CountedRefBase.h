@@ -28,7 +28,7 @@
 #include <DMI/DMI.h>
 #include <DMI/CountedRefTarget.h>
     
-#include <ostream>
+#include <Common/lofar_iostream.h>
 // Uncomment this to enable verification calls during countedref operations
 // #define COUNTEDREF_VERIFY 1
 
