@@ -61,15 +61,36 @@ def registerViewer (tp,viewer):
 def isViewable (data):
   global _reg_viewers;
   datatype = type(data);
+  if datatype is type:   # argument specifies type
+    datatype = data;
   for (tp,vlist) in _reg_viewers.iteritems():
     if issubclass(datatype,tp):
       for viewer in vlist:
         try: 
-          if viewer.is_viewable(data):
+          if type(data) is type or viewer.is_viewable(data):
             return True;
         except AttributeError,TypeError:
           return True; 
   return False;
+
+def getViewerList (arg):
+  viewer_list = [];
+  if arg is None:
+    return [];
+  # resolve data type (argument may be object or type)
+  datatype = type(arg);
+  if datatype is type:   # argument specifies type
+    datatype = arg;
+  for (tp,vlist) in _reg_viewers.iteritems():
+    # find viewers for this class
+    if issubclass(datatype,tp):
+      if arg is datatype:    # if specified as type, add all
+        viewer_list.extend(vlist);
+      else: # if specified as object, check to see which are compatible
+        for v in vlist:
+          if getattr(v,'is_viewable',lambda x:True)(arg):
+            viewer_list.append(v);
+  return viewer_list;
 
 # ====== DataDroppableWidget ===================================================
 # A metaclass implementing a data-droppable widget.
@@ -149,15 +170,11 @@ class GridDataItem (object):
     self.viewopts = viewopts;
     self.refresh_func = refresh;
     # build list of compatible viewers
-    self.viewer_list = [];
-    if data is not None: 
-      datatype = type(data);
-    if datatype is not None:
-      for (tp,vlist) in _reg_viewers.iteritems():
-        if issubclass(datatype,tp):
-          self.viewer_list.extend(vlist);
+    self.viewer_list = getViewerList((data is None and datatype) or data);
     # is a viewer also explicitly specifed?
     if viewer is None:
+      if not self.viewer_list:
+        raise TypeError,"no viewers registered and none specified";
       viewer = self.viewer_list[0]; # no, pick first one from list
     else:
       if not callable(viewer):
@@ -180,6 +197,12 @@ class GridDataItem (object):
     map(lambda cell:cell.update_data(self),self.cells);
   def highlight (self,enable=True):
     map(lambda cell:cell.highlight(enable),self.cells);
+  # returns True if the specified viewer is already siaplaying this item
+  def is_viewed_by (self,viewer):
+    for c in self.cells:
+      if c._viewer_class == viewer:
+        return True;
+    return False;
   # removes all cells from item
   def remove (self):
     # shallow-copy cells set, because cell.close() calls detach_cell, 
@@ -190,8 +213,14 @@ class GridDataItem (object):
 # manages one cell of a gridded workspace
 #
 class GridCell (object):
-  # define top-level widget class to accept data drops
-  TopLevelWidget = DataDroppableWidget(QWidget);
+  # define top-level widget class. This accepts data drops, and 
+  # display context menus
+  class TopLevelWidget (DataDroppableWidget(QWidget)):
+    def set_context_menu (self,menu):
+      self._menu = menu;
+    def contextMenuEvent (self,ev):
+      ev.accept();
+      self._menu.exec_loop(ev.globalPos());
       
   def __init__ (self,parent):
     wtop = self._wtop = self.TopLevelWidget(parent);
@@ -243,6 +272,7 @@ class GridCell (object):
     self._m_pin     = menu.insertItem(pin.iconSet(),"Pin",self._toggle_pinned_state);
     self._m_refresh = menu.insertItem(refresh.iconSet(),"Refresh",self._dorefresh);
     menu.insertItem(close.iconSet(),"Close panel",self.close);
+    wtop.set_context_menu(menu);
     
     # add buttons and labels to the control bar layout
     control_lo.addWidget(iconbutton);
@@ -420,6 +450,7 @@ class GridCell (object):
       self._wstack.removeWidget(self._viewer.wtop());
       self._viewer = None;
     # create a viewer, add data if specified
+    self._viewer_class = viewer_class;
     self._viewer = viewer = viewer_class(self.wtop(),dataitem=self._dataitem,**self._viewopts);
     widget = viewer.wtop();
     # connect displayDataItem() signal from viewer to be resent from top widget
@@ -782,11 +813,19 @@ class GriddedWorkspace (object):
     cell = resolve_arg(cell,GridCell);
     parent = resolve_arg(parent,GridCell);
     parent_udi = parent and parent.udi();
-    # Are we already displaying this UDI? If a specific cell/new cell/new page
-    # is requested, then pretend we're not
+    # Are we already displaying this UDI? 
+    # Then item0 is not item
     item0 = self._dataitems.setdefault(item.udi,item);
+    # If a specific cell, or a new cell, or a new page, or a different viewer
+    # is requested, then pretend we're not
     if cell or newcell or newpage:
       item = item0;
+    else: # now check if the specified viewer is being used
+      print 'item viewer is',item.viewer;
+      print 'item0 viewers are',map(lambda c:c._viewer_class,item0.cells);
+      if item0.is_viewed_by(item0
+      
+     or item0.viewer is not item.viewer:
     # a dataitem for this udi already exists, and specific cell is not specified:
     # simply refresh the item and highlight the cell it is in
     if item0 is not item:

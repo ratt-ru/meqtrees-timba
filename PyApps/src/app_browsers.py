@@ -75,6 +75,10 @@ class HierBrowser (object):
                      self._expand_item_content);
     self._lv.connect(self._lv,SIGNAL('mouseButtonClicked(int,QListViewItem*,const QPoint &,int)'),
                      self._process_item_click);
+    self._lv.connect(self._lv,SIGNAL('contextMenuRequested(QListViewItem*,const QPoint &,int)'),
+                     self._show_context_menu);
+#    self._lv.connect(self._lv,SIGNAL('doubleClicked(QListViewItem*)'),
+#                     self.display_item);
     # connect the get_data_item method for drag-and-drop
     self._lv.get_data_item = self.get_data_item;
     self.items = [];
@@ -236,6 +240,14 @@ class HierBrowser (object):
       for i in self.items[:len(self.items)-limit]:
         self._lv.takeItem(i);
       del self.items[:len(self.items)-limit];
+
+  # if current item is disaplayable, creates a dataitem from it and
+  # emits a displayDataItem(dataitem) signal
+  # dum is used to allow this func to be used as a callback for context menus
+  def display_item (self,item,dum=None,viewer=None):
+    dataitem = self.make_data_item(item);
+    if dataitem:
+      self.wtop().emit(PYSIGNAL("displayDataItem()"),(dataitem,));
       
   # called when an item is expanded                    
   def _expand_item_content (self,item):
@@ -243,17 +255,50 @@ class HierBrowser (object):
     except AttributeError: return;
     if cont is not None:
       self.expand_content(item,cont);
-      
+
   # slot: called when one of the items is clicked
   def _process_item_click (self,button,item,point,col):
-    print 'item clicked:',self,button,item,col;
-    # process left-clicks on column 1 only
-    if button != 1 or col != 1:
-      return;
-    # call Logger to create a dataitem object from this list item
-    dataitem = self.make_data_item(item);
-    if dataitem:
-      self.wtop().emit(PYSIGNAL("displayDataItem()"),(dataitem,));
+    if button == 1 and col == 1:
+      self.display_item(item);
+  
+  # slot: called to show a context menu for an item
+  def _show_context_menu (self,item,point,col):
+    try:
+      menu = item._context_menu;
+    except AttributeError:
+      # get item content and description
+      content  = getattr(item,'_content',None);
+      label    = getattr(item,'_udi',None);
+      viewable = getattr(item,'_viewable',False);
+      if content is not None and label and viewable: 
+        # get viewer list
+        vlist = gridded_workspace.getViewerList(content);
+        if not vlist:
+          item._context_menu = None;
+          return;
+        # create item descrition
+        name = getattr(item,'_name','');
+        desc = getattr(item,'_desc','');
+        if name or desc:
+          label = ' '.join((name,desc));
+        # create menu
+        menu = item._context_menu = QPopupMenu(self._lv);
+        menu.insertItem(label);
+        menu.insertSeparator();
+        menu._callbacks = [];
+        for v in vlist:
+          # create entry for viewer
+          name = getattr(v,'viewer_name',v.__name__);
+          try: icon = v.icon();
+          except AttributeError: icon = QIconSet();
+          func = curry(self.display_item,item,viewer=v);
+          menu._callbacks.append(func);
+          menu.insertItem(icon,'display in '+name,func);
+      else:
+        menu = item._context_menu = None;
+    # a None menu object indicates no context for this item 
+    if menu is not None:
+      menu.exec_loop(point);
 
   def get_open_items (self):
     """gets tree of currently open and selected items. Returns tuple of
@@ -341,7 +386,7 @@ class RecordBrowser(HierBrowser,BrowserPlugin):
   
   def set_data (self,dataitem,default_open=None,**opts):
     # save currenty open tree
-    if self._rec:
+    if self._rec is not None:
       openitems = self.get_open_items();
     else: # no data, use default open tree if specified
       openitems = default_open or self._default_open;

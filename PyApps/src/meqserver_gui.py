@@ -156,7 +156,8 @@ class TreeBrowser (object):
       nlv.setColumnWidthMode(icol,QListView.Maximum);
     nlv.setFocus();
     nlv.connect(nlv,SIGNAL('expanded(QListViewItem*)'),self._expand_node);
-    nlv.connect(nlv,SIGNAL('clicked(QListViewItem*)'),self._node_clicked);
+    nlv.connect(nlv,SIGNAL('mouseButtonClicked(int,QListViewItem*,const QPoint &,int)'),
+                     self._node_clicked);
     # map the get_data_item method
     nlv.get_data_item = self.get_data_item;
     
@@ -230,8 +231,8 @@ class TreeBrowser (object):
           item._iter_nodes = iter(nodes);
       self.nodelist = nodelist;
       
-  def _node_clicked (self,item):
-    if hasattr(item,'_node'):
+  def _node_clicked (self,button,item,point,col):
+    if button == 1 and hasattr(item,'_node'):
       self.wtop().emit(PYSIGNAL("node_clicked()"),(item._node,));
   
   def _expand_node (self,item):
