@@ -36,6 +36,7 @@ const create_source_subtrees := function (sti,ra,dec,src='')
   # meq.parm(), meq.node() return init-records
   # mqs.createnode() actually creates a node from an init-record.
   
+    
   mqs.createnode(meq.parm(fq_name('stokes_i',src),sti,groups="a"));
   # note the nested-record syntax here, to create child nodes implicitly
   mqs.createnode(meq.node('MeqLMN',fq_name('lmn',src),children=[
@@ -155,7 +156,7 @@ const make_predict_tree := function (st1,st2,src=[''])
   }
   # create a sink
   mqs.createnode(meq.node('MeqSink',sinkname,
-                         [ output_col      = 'PREDICT',   # init-rec for sink
+                         [ output_col      = '',   # init-rec for sink
                            station_1_index = st1,
                            station_2_index = st2,
                            corr_index      = [1],
@@ -206,24 +207,38 @@ const make_solve_tree := function (st1,st2,src=[''],subtract=F,flag=F)
   predname := predtree.name;
   mqs.createnode(predtree);
   
+  spigot_node:=meq.node('MeqSpigot',fq_name('spigot',st1,st2),
+                        [station_1_index=st1,
+                         station_2_index=st2,
+                         flag_bit=4,
+                         input_column='DATA']);
+  
+  xx_node := meq.node('MeqSelector',fq_name('xx',st1,st2),
+                      [index=1],
+                      children=meq.list(spigot_node));
+  
+  yy_node := meq.node('MeqSelector',fq_name('yy',st1,st2),
+                      [index=4],
+                      children=meq.list(spigot_node));
+
+  observed_i_node :=meq.node('MeqAdd', fqname('observed_i', st1, st2),
+                             children=meq.list(xx_node,yy_node));
+                                    
+  #print spigot_node;
+  #print xx_node;
+  #print yy_node;
+  #print observed_i_node;
+  #exit
   # create condeq tree (solver will plug into this)
-  mqs.createnode(
-    meq.node('MeqCondeq',fq_name('ce',st1,st2),children=meq.list(
-      predname,
-      meq.node('MeqSelector',fq_name('xx',st1,st2),[index=1],children=meq.list(
-        meq.node('MeqSpigot',fq_name('spigot',st1,st2),[ 
-              station_1_index=st1,
-              station_2_index=st2,
-              flag_bit=4,
-              input_column='DATA'])
-      ))
-    ),step_children=meq.list(
-        meq.node('MeqAdd',fq_name('stch',st1,st2),
-          children=meq.list(fq_name('GA',st1),fq_name('GA',st2))),
-        fq_name('GP',st1),
-        fq_name('GP',st2)
-   ))
-  );
+  mqs.createnode(meq.node('MeqCondeq',fq_name('ce',st1,st2),
+                          children=meq.list(predname, xx_node),
+                          step_children=meq.list(meq.node('MeqAdd',fq_name('stch',st1,st2),
+                                                          children=meq.list(fq_name('GA',st1),
+                                                                            fq_name('GA',st2)) ),
+                                                 fq_name('GP',st1),
+                                                 fq_name('GP',st2)
+                                                 ))
+                 );
   # create subtract sub-tree
   if( subtract )
   {
@@ -508,9 +523,10 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
 #    mqs.meq('Node.Publish.Results',[name=fq_name('U',8)]);
   }
   
-  if( set_breakpoint )
-    mqs.meq('Node.Set.Breakpoint',[name='solver']);
-  mqs.meq('Debug.Set.Level',[debug_level=100]);
+  if( set_breakpoint ){
+      mqs.meq('Node.Set.Breakpoint',[name='solver']);
+      mqs.meq('Debug.Set.Level',[debug_level=100]);
+  }
 
   # run over MS
   if( run )
@@ -534,7 +550,7 @@ solve_phases := any(argv=='-phases');
 set_breakpoint := any(argv=='-bp');
 
 src_ra  := ([4.3566472455969452, 4.3396011965691343]);
-src_dec := ([1.1096609458707503, 1.0953686385516412]);
+src_dec := ([1.0922076533508072, 1.0953686385516412]);
 src_sti  := [1,1];
 src_names := "3C343_1 3C343";
 
@@ -551,16 +567,16 @@ else
   mepuvw := F;
 
 outcol := 'PREDICTED_DATA';
-solver_defaults := [ num_iter=10,save_funklets=F,last_update=F ];
+solver_defaults := [ num_iter=6,save_funklets=F,last_update=F ];
 
 inputrec := [ ms_name = msname,data_column_name = 'DATA',
-              tile_size=1,# clear_flags=T,
-              selection = [ channel_start_index=20, channel_end_index=20 ,selection_string='TIME < 4.472033050e+9 && TIME >4.472033020e+9'] ];
+              tile_size=1500,# clear_flags=T,
+              selection = [ channel_start_index=5, channel_end_index=60 ,selection_string=''] ];
 
 outputrec := [ write_flags=T,predict_column=outcol ]; 
 
 res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
-               stset=[1,10,14],
+               stset=1:14,
                set_breakpoint=set_breakpoint,
                publish=1,mepuvw=mepuvw,msuvw=msuvw);
 
