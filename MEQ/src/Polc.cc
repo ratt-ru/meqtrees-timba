@@ -26,6 +26,7 @@
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Vells.h>
+#include <MEQ/MeqVocabulary.h>
 #include <Common/Debug.h>
 #include <aips/Arrays/Matrix.h>
 #include <Common/lofar_vector.h>
@@ -46,6 +47,30 @@ Polc::Polc()
   itsTime0      (0),
   itsNormalized (false)
 {}
+
+Polc::Polc (DataRecord &rec)
+: itsCoeff(rec[FVellSets].as_wp<DataArray>())
+{
+  itsDomain = rec[FDomain].as<Domain>();
+  itsPertValue = rec[FPerturbedValues];
+  itsIsRelPert = rec[FPertRelative];
+  itsMask = rec[FMask];
+  itsFreq0 = rec[FFreq0];
+  itsTime0 = rec[FTime0];
+  itsNormalized = rec[FNormalized];
+}
+
+void Polc::fillRecord (DataRecord &rec) 
+{
+  rec[FDomain] <<= new Domain(domain());
+  rec[FVellSets] <<= &(itsCoeff.getDataArray());
+  rec[FPerturbedValues] = itsPertValue;
+  rec[FPertRelative] = itsIsRelPert;
+  rec[FMask] = itsMask;
+  rec[FFreq0] = itsFreq0;
+  rec[FTime0] = itsTime0;
+  rec[FNormalized] = itsNormalized;
+}
 
 void Polc::setCoeff (const Vells& values)
 {

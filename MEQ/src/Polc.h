@@ -51,6 +51,12 @@ public:
   // By default a relative perturbation of 10^-6 is used.
   Polc();
 
+  //  Create from a DataRecord
+  Polc (DataRecord &rec);
+  
+  //  Export to a DataRecord
+  void fillRecord (DataRecord &rec);
+
   // Calculate the value and possible perturbations.
   void evaluate (VellSet &, const Request&);
 

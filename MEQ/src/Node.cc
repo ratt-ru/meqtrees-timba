@@ -409,6 +409,7 @@ void Node::relinkChildren ()
     else
       children_[i].attach(forest().get((*child_indices_)[i]),DMI::WRITE);
   }
+  checkChildren();
 }
 
 //##ModelId=3F83FAC80375

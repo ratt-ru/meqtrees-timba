@@ -171,6 +171,8 @@ Vells::Vells (const DataArray *parr,int flags)
 }
 
 Vells::Vells (const DataArray::Ref::Xfer &ref)
+: itsRealArray   (0),
+  itsComplexArray(0)
 {
   itsArray = ref;
   initFromDataArray(itsArray.deref_p(),0);
