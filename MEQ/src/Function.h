@@ -47,10 +47,10 @@ public:
   // <li> It evaluates the function for the main value and all perturbed values
   //   by calling the evaluate or evaluateVells function.
   // <li> First it calls evaluate for the main value. It that returns an
-  //   empty value, it knows that evaluateSpec should be called.
+  //   empty value, it knows that evaluateVells should be called.
   // <li> Function evaluate is meant for returning the result by value.
   //   Usually this is the best way to go.
-  // <li> Function evaluateSpec is slightly faster to use because the
+  // <li> Function evaluateVells is slightly faster to use because the
   //   result is passed in by reference, so one can, say, use
   //   result+=value. See class Add for an example of that.
   //   It requires that the result type and shape are known. They are
