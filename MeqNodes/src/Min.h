@@ -22,7 +22,7 @@
 #ifndef MEQNODES_MIN_H
 #define MEQNODES_MIN_H
     
-#include <MEQ/Function.h>
+#include <MeqNodes/ReductionFunction.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -31,13 +31,9 @@
 namespace Meq {    
 
 
-class Min : public Function
+class Min : public ReductionFunction
 {
 public:
-  Min();
-
-  virtual ~Min();
-
   virtual TypeId objectType() const
   { return TpMeqMin; }
 
@@ -45,7 +41,7 @@ public:
   
   // Evaluate the value for the given request.
   virtual Vells evaluate (const Request&,const LoShape &,
-			  const vector<const Vells*>& values);
+			                    const vector<const Vells*>& values);
 };
 
 

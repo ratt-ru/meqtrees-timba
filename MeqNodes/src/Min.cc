@@ -27,26 +27,17 @@ using namespace Meq::VellsMath;
 
 namespace Meq {    
 
-//##ModelId=400E53550241
-Min::Min()
-: Function(-1,0,1) // at least one child expected
-{}
-
-//##ModelId=400E53550242
-Min::~Min()
-{}
-
 //##ModelId=400E53550246
 Vells Min::evaluate (const Request&,const LoShape &,
 		     const vector<const Vells*>& values)
 {
   if( values.size() == 1 )
-    return min(*(values[0]));
+    return min(*(values[0]),flagmask_);
   else
   {
     Vells res = *(values[0]);
     for( uint i=1; i<values.size(); i++ )
-      res = min(res,*(values[i]));
+      res = min(res,*(values[i]),flagmask_);
     return res;
   }
 }

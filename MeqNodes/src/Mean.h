@@ -22,7 +22,7 @@
 #ifndef MEQNODES_MEAN_H
 #define MEQNODES_MEAN_H
     
-#include <MEQ/Function.h>
+#include <MeqNodes/ReductionFunction.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -31,12 +31,9 @@
 namespace Meq {    
 
 
-class Mean : public Function1
+class Mean : public ReductionFunction
 {
 public:
-  Mean();
-
-  virtual ~Mean();
 
   virtual TypeId objectType() const
   { return TpMeqMean; }
@@ -45,9 +42,6 @@ public:
   virtual Vells evaluate (const Request&,const LoShape &,
 			  const vector<const Vells*>& values);
 
-  // all flags swallowed up
-  virtual void evaluateFlags (Vells::Ref &,const Request &,const LoShape &,const vector<const Vells*>&)
-  {}
 };
 
 

@@ -27,22 +27,14 @@ using namespace Meq::VellsMath;
 
 namespace Meq {    
 
-//##ModelId=400E53550241
-Sum::Sum()
-: Function(-1,0,1) // must have at least one child
-{}
-
-//##ModelId=400E53550242
-Sum::~Sum()
-{}
 
 //##ModelId=400E53550246
 Vells Sum::evaluate (const Request&,const LoShape &shape,
 		     const vector<const Vells*>& values)
 {
-  Vells res = sum(*(values[0]),shape);
+  Vells res = sum(*(values[0]),shape,flagmask_);
   for( uint i=1; i<values.size(); i++ )
-    res += sum(*(values[i]),shape);
+    res += sum(*(values[i]),shape,flagmask_);
   return res;
 }
 

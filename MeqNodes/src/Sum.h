@@ -22,7 +22,7 @@
 #ifndef MEQNODES_SUM_H
 #define MEQNODES_SUM_H
     
-#include <MEQ/Function.h>
+#include <MeqNodes/ReductionFunction.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -31,22 +31,17 @@
 namespace Meq {    
 
 
-class Sum : public Function
+class Sum : public ReductionFunction
 {
 public:
-  Sum();
 
-  virtual ~Sum();
-
-    virtual TypeId objectType() const
-    { return TpMeqSum; }
+  virtual TypeId objectType() const
+  { return TpMeqSum; }
 
   // Evaluate the value for the given request.
   virtual Vells evaluate (const Request&,const LoShape &,
-			  const vector<const Vells*>& values);
-  // all flags swallowed up
-  virtual void evaluateFlags (Vells::Ref &,const Request &,const LoShape &,const vector<const Vells*>&)
-  {}
+	                  		  const vector<const Vells*>& values);
+  
 };
 
 

@@ -27,22 +27,13 @@ using namespace Meq::VellsMath;
 
 namespace Meq {    
 
-//##ModelId=400E53550241
-NElements::NElements()
-: Function(-1,0,1) // must have at least one child
-{}
-
-//##ModelId=400E53550242
-NElements::~NElements()
-{}
-
 //##ModelId=400E53550246
 Vells NElements::evaluate (const Request&,const LoShape &shape,
 		     const vector<const Vells*>& values)
 {
-  Vells res = nelements(*(values[0]),shape);
+  Vells res = nelements(*(values[0]),shape,flagmask_);
   for( uint i=1; i<values.size(); i++ )
-    res += nelements(*(values[i]),shape);
+    res += nelements(*(values[i]),shape,flagmask_);
   return res;
 }
 

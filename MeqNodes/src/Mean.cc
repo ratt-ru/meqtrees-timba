@@ -27,19 +27,25 @@ using namespace Meq::VellsMath;
 
 namespace Meq {    
 
-//##ModelId=400E53550241
-Mean::Mean()
-{}
-
-//##ModelId=400E53550242
-Mean::~Mean()
-{}
 
 //##ModelId=400E53550246
-Vells Mean::evaluate (const Request&,const LoShape &,
+Vells Mean::evaluate (const Request&,const LoShape &shape,
 		     const vector<const Vells*>& values)
 {
-  return mean(*(values[0]));
+  if( values.size() == 1 )
+    return mean(*(values[0]),flagmask_);
+  else
+  {
+    int sum_nel=0;
+    Vells res(0.);
+    for( uint i=0; i<values.size(); i++ )
+    {
+      int nel = int( nelements(*(values[i]),shape,flagmask_).as<double>() );
+      res += mean(*(values[i]),flagmask_) * nel;
+      sum_nel += nel; 
+    }
+    return sum_nel ? res/sum_nel : Vells(0.);
+  }
 }
 
 } // namespace Meq

@@ -1,4 +1,4 @@
-//# Product.cc: Take mean of a node
+//# ReductionFunction.h: abstract base for reduction funcs (min/max/mean/etc.)
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -19,23 +19,35 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#include <MeqNodes/Product.h>
+#ifndef MEQNODES_REDUCTIONFUNCTION_H
+#define MEQNODES_REDUCTIONFUNCTION_H
+    
+#include <MEQ/Function.h>
 
-#include <MEQ/Vells.h>
-
-using namespace Meq::VellsMath;
+#include <MeqNodes/TID-MeqNodes.h>
+#pragma aidgroup MeqNodes
+#pragma types #Meq::Sum
 
 namespace Meq {    
 
 
-//##ModelId=400E53550246
-Vells Product::evaluate (const Request&,const LoShape &shape,
-		     const vector<const Vells*>& values)
+class ReductionFunction : public Function
 {
-  Vells res = product(*(values[0]),shape,flagmask_);
-  for( uint i=1; i<values.size(); i++ )
-    res *= product(*(values[i]),shape,flagmask_);
-  return res;
-}
+public:
+  ReductionFunction (int nchildren=-1,int nmandatory=1);
+
+  // child flags normally swallowed up
+  virtual void evaluateFlags (Vells::Ref &,const Request &,const LoShape &,const vector<const Vells*>&)
+  {}
+  
+protected:
+  // get flagmask from state
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+
+  VellsFlagType flagmask_;
+};
+
 
 } // namespace Meq
+
+#endif

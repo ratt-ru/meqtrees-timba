@@ -22,7 +22,7 @@
 #ifndef MEQNODES_MAX_H
 #define MEQNODES_MAX_H
     
-#include <MEQ/Function.h>
+#include <MeqNodes/ReductionFunction.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -31,12 +31,9 @@
 namespace Meq {    
 
 
-class Max : public Function
+class Max : public ReductionFunction
 {
 public:
-  Max();
-
-  virtual ~Max();
 
   virtual TypeId objectType() const
   { return TpMeqMax; }
@@ -45,7 +42,7 @@ public:
 
   // Evaluate the value for the given request.
   virtual Vells evaluate (const Request&,const LoShape &,
-			  const vector<const Vells*>& values);
+			                    const vector<const Vells*>& values);
 };
 
 

@@ -27,26 +27,17 @@ using namespace Meq::VellsMath;
 
 namespace Meq {    
 
-//##ModelId=400E53550241
-Max::Max()
-: Function(-1,0,1) // at least one child expected
-{}
-
-//##ModelId=400E53550242
-Max::~Max()
-{}
-
 //##ModelId=400E53550246
 Vells Max::evaluate (const Request&,const LoShape &,
 		     const vector<const Vells*>& values)
 {
   if( values.size() == 1 )
-    return max(*(values[0]));
+    return max(*(values[0]),flagmask_);
   else
   {
     Vells res = *(values[0]);
     for( uint i=1; i<values.size(); i++ )
-      res = max(res,*(values[i]));
+      res = max(res,*(values[i]),flagmask_);
     return res;
   }
 }

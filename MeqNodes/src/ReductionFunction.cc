@@ -1,4 +1,4 @@
-//# Product.cc: Take mean of a node
+//# ReductionFunction.cc: Take mean of a node
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -19,23 +19,27 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 
-#include <MeqNodes/Product.h>
+#include <MeqNodes/ReductionFunction.h>
 
 #include <MEQ/Vells.h>
-
-using namespace Meq::VellsMath;
+#include <MEQ/MeqVocabulary.h>
 
 namespace Meq {    
 
+//##ModelId=400E53550241
+ReductionFunction::ReductionFunction (int nchildren,int nmandatory)
+: Function(nchildren,0,nmandatory),
+  flagmask_(VellsFullFlagMask)
+{}
 
-//##ModelId=400E53550246
-Vells Product::evaluate (const Request&,const LoShape &shape,
-		     const vector<const Vells*>& values)
+void ReductionFunction::setStateImpl (DMI::Record::Ref& rec, bool initializing)
 {
-  Vells res = product(*(values[0]),shape,flagmask_);
-  for( uint i=1; i<values.size(); i++ )
-    res *= product(*(values[i]),shape,flagmask_);
-  return res;
-}
+  Function::setStateImpl(rec,initializing);
+  rec[FFlagMask].get(flagmask_,initializing);
+} 
+
+
+
+
 
 } // namespace Meq

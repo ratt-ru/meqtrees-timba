@@ -22,7 +22,7 @@
 #ifndef MEQNODES_NELEMENTS_H
 #define MEQNODES_NELEMENTS_H
     
-#include <MEQ/Function.h>
+#include <MeqNodes/ReductionFunction.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -31,22 +31,17 @@
 namespace Meq {    
 
 
-class NElements : public Function
+class NElements : public ReductionFunction
 {
 public:
-  NElements();
 
-  virtual ~NElements();
-
-    virtual TypeId objectType() const
-    { return TpMeqNElements; }
-
+  virtual TypeId objectType() const
+  { return TpMeqNElements; }
+    
   // Evaluate the value for the given request.
   virtual Vells evaluate (const Request&,const LoShape &,
-			  const vector<const Vells*>& values);
-  // all flags swallowed up
-  virtual void evaluateFlags (Vells::Ref &,const Request &,const LoShape &,const vector<const Vells*>&)
-  {}
+			                    const vector<const Vells*>& values);
+  
 };
 
 
