@@ -34,6 +34,7 @@ class CountedRefBase;
 //## end module%3C10CC8103D6.declarations
 
 //## begin module%3C10CC8103D6.additionalDeclarations preserve=yes
+CHECK_CONFIG_THREADS(DMI);
 //## end module%3C10CC8103D6.additionalDeclarations
 
 
