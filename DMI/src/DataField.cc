@@ -1,106 +1,68 @@
-//## begin module%1.4%.codegen_version preserve=yes
 //   Read the documentation to learn more about C++ code generator
 //   versioning.
-//## end module%1.4%.codegen_version
 
-//## begin module%3C10CC820126.cm preserve=no
 //	  %X% %Q% %Z% %W%
-//## end module%3C10CC820126.cm
 
-//## begin module%3C10CC820126.cp preserve=no
-//## end module%3C10CC820126.cp
 
-//## Module: DataField%3C10CC820126; Package body
-//## Subsystem: DMI%3C10CC810155
 //	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\DataField.cc
 
-//## begin module%3C10CC820126.additionalIncludes preserve=no
-//## end module%3C10CC820126.additionalIncludes
 
-//## begin module%3C10CC820126.includes preserve=yes
 #define NC_SKIP_HOOKS 1
 #include "DMI/DynamicTypeManager.h"
 #include "DMI/DataRecord.h"
 #include "DMI/Packer.h"
-//## end module%3C10CC820126.includes
 
 // DataField
 #include "DMI/DataField.h"
-//## begin module%3C10CC820126.declarations preserve=no
-//## end module%3C10CC820126.declarations
 
-//## begin module%3C10CC820126.additionalDeclarations preserve=yes
 static int nullheader_data[] = {0,0};
 static SmartBlock nullheader_block( nullheader_data,sizeof(nullheader_data),DMI::NO_DELETE );
 static BlockRef nullheader(nullheader_block,DMI::EXTERNAL|DMI::LOCK|DMI::READONLY);
 static ObjRef NullRef;
 static NestableContainer::Register reg(TpDataField,True);
 //##ModelId=3C3D64DC016E
-//## end module%3C10CC820126.additionalDeclarations
 
 
 // Class DataField 
 
 DataField::DataField (int flags)
-  //## begin DataField::DataField%3C3D64DC016E.hasinit preserve=no
-  //## end DataField::DataField%3C3D64DC016E.hasinit
-  //## begin DataField::DataField%3C3D64DC016E.initialization preserve=yes
   : NestableContainer(flags&DMI::WRITE!=0),
     spvec(0),mytype(0),mysize_(0),selected(False)
-  //## end DataField::DataField%3C3D64DC016E.initialization
 {
-  //## begin DataField::DataField%3C3D64DC016E.body preserve=yes
   dprintf(2)("default constructor\n");
   spvec = 0;
-  //## end DataField::DataField%3C3D64DC016E.body
 }
 
 //##ModelId=3C3EE3EA022A
 DataField::DataField (const DataField &right, int flags, int depth)
-  //## begin DataField::DataField%3C3EE3EA022A.hasinit preserve=no
-  //## end DataField::DataField%3C3EE3EA022A.hasinit
-  //## begin DataField::DataField%3C3EE3EA022A.initialization preserve=yes
     : NestableContainer(flags&DMI::WRITE!=0),
     spvec(0),mytype(0)
-  //## end DataField::DataField%3C3EE3EA022A.initialization
 {
-  //## begin DataField::DataField%3C3EE3EA022A.body preserve=yes
   dprintf(2)("copy constructor (%s,%x)\n",right.debug(),flags);
   cloneOther(right,flags,depth);
-  //## end DataField::DataField%3C3EE3EA022A.body
 }
 
 //##ModelId=3BFA54540099
 DataField::DataField (TypeId tid, int num, int flags, const void *data)
-  //## begin DataField::DataField%3BFA54540099.hasinit preserve=no
-  //## end DataField::DataField%3BFA54540099.hasinit
-  //## begin DataField::DataField%3BFA54540099.initialization preserve=yes
     : NestableContainer(flags&DMI::WRITE!=0),
       spvec(0),mytype(0),mysize_(0),selected(False)
-  //## end DataField::DataField%3BFA54540099.initialization
 {
-  //## begin DataField::DataField%3BFA54540099.body preserve=yes
   dprintf(2)("constructor(%s,%d,%x)\n",tid.toString().c_str(),num,flags);
   init(tid,num,data);
-  //## end DataField::DataField%3BFA54540099.body
 }
 
 
 //##ModelId=3DB9346F0095
 DataField::~DataField()
 {
-  //## begin DataField::~DataField%3BB317D8010B_dest.body preserve=yes
   dprintf(2)("destructor\n");
   clear();
-  //## end DataField::~DataField%3BB317D8010B_dest.body
 }
 
 
 //##ModelId=3DB9346F017B
 DataField & DataField::operator=(const DataField &right)
 {
-  //## begin DataField::operator=%3BB317D8010B_assign.body preserve=yes
   if( &right != this )
   {
     nc_writelock;
@@ -110,16 +72,13 @@ DataField & DataField::operator=(const DataField &right)
     cloneOther(right,0,0);
   }
   return *this;
-  //## end DataField::operator=%3BB317D8010B_assign.body
 }
 
 
 
 //##ModelId=3C6161190193
-//## Other Operations (implementation)
 DataField & DataField::init (TypeId tid, int num, const void *data)
 {
-  //## begin DataField::init%3C6161190193.body preserve=yes
   //
   // NB: shared memory flags ought to be passed into the SmartBlock
   //
@@ -197,7 +156,7 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
           for( int i=0; i<mysize_; i++,from+=typeinfo.size,to+=typeinfo.size )
             (*typeinfo.fcopy)(to,from);
         }
-        spvec_modified = False;
+        spvec_modified = True;
         break;
     }
     default:
@@ -210,13 +169,11 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
   if( !isWritable() )
     headref.change(DMI::READONLY);
   return *this;
-  //## end DataField::init%3C6161190193.body
 }
 
 //##ModelId=3C62961D021B
 void DataField::resize (int newsize)
 {
-  //## begin DataField::resize%3C62961D021B.body preserve=yes
   nc_writelock;
   FailWhen( newsize<=0,"can't resize to <=0" );
   FailWhen( !valid(),"uninitialized DataField" );
@@ -250,13 +207,11 @@ void DataField::resize (int newsize)
     spvec_modified = True;
   }
   mysize_ = newsize;
-  //## end DataField::resize%3C62961D021B.body
 }
 
 //##ModelId=3C3EAB99018D
 void DataField::clear (int flags)
 {
-  //## begin DataField::clear%3C3EAB99018D.body preserve=yes
   nc_writelock;
   if( spvec )
   {
@@ -276,13 +231,11 @@ void DataField::clear (int flags)
     selected = False;
     setWritable( (flags&DMI::WRITE)!=0 );
   }
-  //## end DataField::clear%3C3EAB99018D.body
 }
 
 //##ModelId=3C3EB9B902DF
 bool DataField::isValid (int n)
 {
-  //## begin DataField::isValid%3C3EB9B902DF.body preserve=yes
   nc_readlock;
   if( !valid() )
     return False;
@@ -291,13 +244,11 @@ bool DataField::isValid (int n)
     return objstate[n] != UNINITIALIZED;
   else
     return True; // built-ins always valid
-  //## end DataField::isValid%3C3EB9B902DF.body
 }
 
 //##ModelId=3C0E4619019A
 ObjRef DataField::objwr (int n, int flags)
 {
-  //## begin DataField::objwr%3C0E4619019A.body preserve=yes
   // set a write-lock regardless because we're going to be manipulating
   // counte
   nc_readlock;
@@ -307,13 +258,11 @@ ObjRef DataField::objwr (int n, int flags)
   if( !dynamic_type )
     return NullRef;
   return resolveObject(n,DMI::WRITE).copy(flags);
-  //## end DataField::objwr%3C0E4619019A.body
 }
 
 //##ModelId=3C7A305F0071
 DataField & DataField::put (int n, ObjRef &ref, int flags)
 {
-  //## begin DataField::put%3C7A305F0071.body preserve=yes
   nc_writelock;
   dprintf(2)("putting @%d: %s\n",n,ref.debug(2));
   ObjRef &ref2 = prepareForPut( ref->objectType(),n );
@@ -323,13 +272,11 @@ DataField & DataField::put (int n, ObjRef &ref, int flags)
   else
     ref2 = ref;
   return *this;
-  //## end DataField::put%3C7A305F0071.body
 }
 
 //##ModelId=3C3C8D7F03D8
 ObjRef DataField::objref (int n) const
 {
-  //## begin DataField::objref%3C3C8D7F03D8.body preserve=yes
   nc_readlock;
   FailWhen( !valid(),"uninitialized DataField");
   checkIndex(n);
@@ -337,13 +284,11 @@ ObjRef DataField::objref (int n) const
     return NullRef;
   // return a copy as a read-only ref
   return resolveObject(n,DMI::READONLY).copy(DMI::READONLY);
-  //## end DataField::objref%3C3C8D7F03D8.body
 }
 
 //##ModelId=3C3D5F2001DC
 int DataField::fromBlock (BlockSet& set)
 {
-  //## begin DataField::fromBlock%3C3D5F2001DC.body preserve=yes
   nc_writelock;
   dprintf1(2)("%s: fromBlock\n",debug());
   clear(isWritable() ? DMI::WRITE : DMI::READONLY);
@@ -428,13 +373,11 @@ int DataField::fromBlock (BlockSet& set)
         Throw("unsupported data type "+mytype.toString());  
   }
   return npopped;
-  //## end DataField::fromBlock%3C3D5F2001DC.body
 }
 
 //##ModelId=3C3D5F2403CC
 int DataField::toBlock (BlockSet &set) const
 {
-  //## begin DataField::toBlock%3C3D5F2403CC.body preserve=yes
   // write-lock, since we modify internal fields
   nc_writelock;
   if( !valid() )
@@ -508,13 +451,11 @@ int DataField::toBlock (BlockSet &set) const
   } 
   dprintf(2)("toBlock: %d blocks pushed\n",npushed);
   return npushed;
-  //## end DataField::toBlock%3C3D5F2403CC.body
 }
 
 //##ModelId=3C3D8C07027F
 ObjRef & DataField::resolveObject (int n, int flags) const
 {
-  //## begin DataField::resolveObject%3C3D8C07027F.body preserve=yes
   FailWhen(flags&DMI::PRIVATIZE && !isWritable(),"can't autoprivatize in readonly field");
   switch( objstate[n] )
   {
@@ -597,21 +538,17 @@ ObjRef & DataField::resolveObject (int n, int flags) const
     default:
         Throw("unexpected object state");
   }
-  //## end DataField::resolveObject%3C3D8C07027F.body
 }
 
 //##ModelId=3C3EC77D02B1
 CountedRefTarget* DataField::clone (int flags, int depth) const
 {
-  //## begin DataField::clone%3C3EC77D02B1.body preserve=yes
   return new DataField(*this,flags,depth);
-  //## end DataField::clone%3C3EC77D02B1.body
 }
 
 //##ModelId=3C3EE42D0136
 void DataField::cloneOther (const DataField &other, int flags, int depth)
 {
-  //## begin DataField::cloneOther%3C3EE42D0136.body preserve=yes
   nc_writelock;
   nc_readlock1(other);
   // setup misc fields
@@ -679,13 +616,11 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
     spvec_modified = other.spvec_modified;
   }
   // for binary types, do nothing since they're already in the header block
-  //## end DataField::cloneOther%3C3EE42D0136.body
 }
 
 //##ModelId=3C3EDEBC0255
 void DataField::privatize (int flags, int depth)
 {
-  //## begin DataField::privatize%3C3EDEBC0255.body preserve=yes
   nc_writelock;
   setWritable( (flags&DMI::WRITE)!=0 );
   if( !valid() )
@@ -716,13 +651,11 @@ void DataField::privatize (int flags, int depth)
       }
     }
   }
-  //## end DataField::privatize%3C3EDEBC0255.body
 }
 
 //##ModelId=3D05E2F301D2
 int DataField::size (TypeId tid) const
 {
-  //## begin DataField::size%3D05E2F301D2.body preserve=yes
   nc_readlock;
   // if types do not match (or tid=0), and we're scalar, and have
   // a subcontainer, then defer to its size()
@@ -739,13 +672,11 @@ int DataField::size (TypeId tid) const
       ( TypeInfo::isNumeric(tid) && TypeInfo::isNumeric(mytype) ) )
     return mysize();
   return -1;
-  //## end DataField::size%3D05E2F301D2.body
 }
 
 //##ModelId=3C7A19790361
 const void * DataField::get (const HIID &id, ContentInfo &info, TypeId check_tid, int flags) const
 {
-  //## begin DataField::get%3C7A19790361.body preserve=yes
   // null HIID implies scalar-mode access -- map to getn(0)
   if( !id.size() )
     return getn(0,info,check_tid,flags);
@@ -766,13 +697,11 @@ const void * DataField::get (const HIID &id, ContentInfo &info, TypeId check_tid
   Assert(nc);
   // defer to get[id] on container 
   return nc->get(id,info,check_tid,flags);
-  //## end DataField::get%3C7A19790361.body
 }
 
 //##ModelId=3C7A1983024D
 const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int flags) const
 {
-  //## begin DataField::getn%3C7A1983024D.body preserve=yes
   nc_lock(flags&DMI::WRITE);
   
   FailWhen( !valid(),"field not initialized" );
@@ -853,13 +782,11 @@ const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int fl
       spvec_modified = True;
     return static_cast<char*const>(spvec) + n*typeinfo.size;
   }
-  //## end DataField::getn%3C7A1983024D.body
 }
 
 //##ModelId=3C7A198A0347
 void * DataField::insert (const HIID &id, TypeId tid, TypeId &real_tid)
 {
-  //## begin DataField::insert%3C7A198A0347.body preserve=yes
   nc_writelock;
   dprintf(2)("insert(%s,%s)\n",id.toString().c_str(),tid.toString().c_str());
   if( !id.size() )
@@ -879,13 +806,11 @@ void * DataField::insert (const HIID &id, TypeId tid, TypeId &real_tid)
   Assert(nc);
   // defer to insert[id] on container
   return nc->insert(id,tid,real_tid);
-  //## end DataField::insert%3C7A198A0347.body
 }
 
 //##ModelId=3C7A19930250
 void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
 {
-  //## begin DataField::insertn%3C7A19930250.body preserve=yes
   nc_writelock;
   // empty field? init with one element
   dprintf(2)("insertn(%d,%s)\n",n,
@@ -933,13 +858,11 @@ void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
     spvec_modified = True;
     return static_cast<char*>(spvec) + n*typeinfo.size;
   }
-  //## end DataField::insertn%3C7A19930250.body
 }
 
 //##ModelId=3C877E1E03BE
 bool DataField::remove (const HIID &id)
 {
-  //## begin DataField::remove%3C877E1E03BE.body preserve=yes
   nc_writelock;
   dprintf(2)("remove(%s)\n",id.toString().c_str());
   FailWhen( !id.size(),"null HIID" );
@@ -955,13 +878,11 @@ bool DataField::remove (const HIID &id)
   Assert(nc);
   // defer to remove(id) on container
   return nc->remove(id);
-  //## end DataField::remove%3C877E1E03BE.body
 }
 
 //##ModelId=3C877E260301
 bool DataField::removen (int n)
 {
-  //## begin DataField::removen%3C877E260301.body preserve=yes
   nc_writelock;
   dprintf(2)("removen(%d)\n",n);
   FailWhen( !valid() || !mysize(),"field not initialized or empty" );
@@ -969,12 +890,10 @@ bool DataField::removen (int n)
   dprintf(2)("removen: resizing to %d elements\n",n);
   resize(n);
   return True;
-  //## end DataField::removen%3C877E260301.body
 }
 
 // Additional Declarations
 //##ModelId=3DB9347800CF
-  //## begin DataField%3BB317D8010B.declarations preserve=yes
 
 ObjRef & DataField::prepareForPut (TypeId tid,int n ) 
 {
@@ -1066,87 +985,4 @@ string DataField::sdebug ( int detail,const string &prefix,const char *name ) co
   return out;
 }
 
-  //## end DataField%3BB317D8010B.declarations
-//## begin module%3C10CC820126.epilog preserve=yes
-// Data
 
-//## end module%3C10CC820126.epilog
-
-
-// Detached code regions:
-#if 0
-//## begin DataField::isContiguous%3C7F9826016F.body preserve=yes
-  // non-dynamic objects are always contiguous
-  if( !dynamic_type )
-    return True;
-  // dynamic objects: non-contiguous,
-  // unless we have a single contiguous container
-  if( mysize() != 1 || !isNestable(type()) )
-    return False;
-  const NestableContainer *nc = 
-    dynamic_cast<const NestableContainer *>(resolveObject(0,False,0).deref_p());
-  FailWhen(!nc,"dynamic cast to expected container type failed");
-  return nc->isContiguous();
-//## end DataField::isContiguous%3C7F9826016F.body
-
-//## begin DataField::isScalar%3CB162BB0033.body preserve=yes
-  // field can be treated as scalar when size = 0,1, and type
-  // is either uninitialized or compatible
-  return mysize()<2 && 
-      ( !type() || !tid || type() == tid || 
-        ( TypeInfo::isNumeric(type()) && TypeInfo::isNumeric(tid) ) 
-      );
-//## end DataField::isScalar%3CB162BB0033.body
-
-//## begin DataField::remove%3C3EC3470153.body preserve=yes
-  FailWhen( !valid(),"uninitialized DataField");
-  FailWhen( !isWritable(),"field is read-only" );
-  checkIndex(n);
-  if( !dynamic_type )
-    return NullRef;
-  // transfer object reference
-  ObjRef ret = resolveObject(n,True);
-  objstate[n] = UNINITIALIZED;
-  dprintf(2)("removing @%d: %s\n",n,ret.debug(2));
-  return ret;
-//## end DataField::remove%3C3EC3470153.body
-
-//## begin DataField::put%3C3C84A40176.body preserve=yes
-  dprintf(2)("putting @%d: %s\n",n,obj.debug(2));
-  ObjRef &ref = prepareForPut( obj->objectType(),n );
-  // grab the ref, and mark object as modified
-  if( flags&DMI::COPYREF )
-    ref.copy(obj,flags);
-  else
-    ref = obj;
-  return *this;
-//## end DataField::put%3C3C84A40176.body
-
-//## begin DataField::get%3C5FB272037E.body preserve=yes
-//   FailWhen( !valid(),"uninitialized DataField");
-//   tid = mytype;
-//   FailWhen( check_tid && check_tid != tid,"type mismatch (expected "+check_tid.toString()+")" ); 
-//   can_write = isWritable();
-//   FailWhen( must_write && !can_write,"r/w access violation" );
-//   
-//   checkIndex(n);
-//   if( mytype == Tpstring ) // string? return the string
-//   {
-//     vec_modified |= can_write; // mark as modified
-//     return &strvec[n];
-//   }
-//   else if( binary_type )
-//   {
-//     // else return pointer to item
-//     return n*typeinfo.size + (char*)headerData();
-//   }
-//   else
-//   {
-//     if( must_write )
-//       return &resolveObject(n,True).dewr();
-//     else
-//       return &resolveObject(n,False).deref();
-//   }
-//## end DataField::get%3C5FB272037E.body
-
-#endif

@@ -193,6 +193,7 @@ void TestDataRecord ()
   cout<<"===== added subrecord B.C\n"<<rec.sdebug(10)<<endl;
   rec["B"]["C"]["A"] <<= new DataField(Tpint,32);
   rec["B/C/A/10"] = 5;
+  rec["B/C/B"] = "a string";
   Assert( rec["B/C/A"][10].as<int>() == 5 );
   cout<<"Record is "<<rec.sdebug(10)<<endl;
 
@@ -206,6 +207,8 @@ void TestDataRecord ()
   rec2.fromBlock(set);
   cout<<"New record is "<<rec2.sdebug(10)<<endl;
   cout<<"Blockset now "<<set.sdebug(2)<<endl;
+  cout<<"String field is: "<< rec2["B/C/B"].as<string>()<<endl;
+  Assert( rec2["B/C/B"].as<string>() == "a string" );
 
   cout<<"======================= accessing cached field\n";
   cout<<"Value: "<<rec2["B/C/A/10"].as<double>()<<endl;

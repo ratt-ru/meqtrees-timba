@@ -51,7 +51,10 @@ HIID HIID::subId (int first, int last) const
 {
   const_iterator iter1 = first >= 0 ? begin()+first : end()-first;
   const_iterator iter2 = last >= 0 ? begin()+(last+1) : end()-(last+1);
-  return HIID(iter1,iter2);
+  if( iter1 >= iter2 )
+    return HIID();
+  else
+    return HIID(iter1,iter2);
 }
 
 //##ModelId=3BE9792B0135
@@ -273,37 +276,3 @@ void HIID::addString (const string &str,const string &sepset)
     }
   }
 }
-
-
-// Detached code regions:
-#if 0
-// 
-//   // advance an iter past first sequence of leading slashes (if any)
-//   CVI iter0 = begin();
-//   while( iter0 != end() && *iter0 == AidSlash )
-//     iter0++;
-//   // now, look for next slash
-//   CVI iter = iter0;
-//   while( iter != end() && *iter != AidSlash )
-//     iter++;
-//   // got to end? Return copy of ourselves.
-//   if( iter == end() )
-//   {
-// //   HIID ret(iter0,end());
-//     clear();
-//     return ret;
-//   }
-//   // else return subsequence
-// //  HIID ret(iter0,iter);
-// //  erase(begin(),++iter);
-//   return ret;
-
-  if( !size() )
-    return 0;
-  AtomicID ret = front();
-  if( ret != AidSlash ) 
-    return 0;
-  pop_front();
-  return ret;
-
-#endif
