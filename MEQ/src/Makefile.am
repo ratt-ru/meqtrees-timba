@@ -34,7 +34,7 @@ uvwparm_DEPENDENCIES	= libmeq.la $(LOFAR_DEPEND)
 #     (shouldn't require any changes)
 
 # this defines the name of the local defrec script
-DEFREC_MAP = $(srcdir)/defrecs_$(PACKAGE).g
+DEFREC_MAP = $(srcdir)/defrecs_$(PACKAGE).g parmtable.g
 
 # this rule shouldn't require any changes
 MAKEDEFREC = $(lofar_sharedir)/../CEP/CPA/PSS4/MEQ/src/makedefrecs.pl
