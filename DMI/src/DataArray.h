@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.27  2004/08/31 07:48:56  diepen
+//  %[ER: 70]%
+//  Changed for new AIPS++ structure
+//
 //  Revision 1.26  2004/03/17 07:51:20  smirnov
 //  %[ER: 16]%
 //  Extended access by pointer in DataArray
@@ -162,7 +166,7 @@
 #include "DMI/NestableContainer.h"
 
 #ifdef HAVE_AIPSPP
-#include <aips/Arrays.h>
+#include <casa/Arrays.h>
 #endif
 
 #pragma types #DataArray

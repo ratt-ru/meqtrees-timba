@@ -49,7 +49,7 @@ using namespace std;
 // Define capitalized Bool types.
 // If available, use AIPS++ to do that.
 #if defined(HAVE_AIPSPP) 
-  #include <aips/aipstype.h>
+  #include <casa/aipstype.h>
 #else
   typedef bool Bool;
   const Bool True = true;

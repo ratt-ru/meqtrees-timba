@@ -1,8 +1,8 @@
 #include "DMI/DataArray.h"
 #include "DMI/DataRecord.h"
 #include "Common/Debug.h"
-//#include <aips/Arrays/ArrayMath.h>
-//#include <aips/Arrays/ArrayLogical.h>
+//#include <casa/Arrays/ArrayMath.h>
+//#include <casa/Arrays/ArrayLogical.h>
     
 template<class T>
 inline ostream & operator << (ostream &str,const vector<T> &vec )

@@ -3,10 +3,10 @@
     
 #ifdef AIPSPP_HOOKS
     
-#include <aips/Arrays/Array.h>
-#include <aips/Arrays/Vector.h>
-#include <aips/Arrays/Matrix.h>
-#include <aips/Utilities/String.h>
+#include <casa/Arrays/Array.h>
+#include <casa/Arrays/Vector.h>
+#include <casa/Arrays/Matrix.h>
+#include <casa/BasicSL/String.h>
     
 #include <DMI/DataArray.h>
 #include <Common/BlitzToAips.h>

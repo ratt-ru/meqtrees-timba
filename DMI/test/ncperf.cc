@@ -4,8 +4,8 @@
 #include "DMI/DataArray.h"
 #include "DMI/NCIter.h"
 #include "Common/Stopwatch.h"
-//#include "aips/Arrays/Matrix.h"
-//#include "aips/Arrays/ArrayMath.h"
+//#include "casa/Arrays/Matrix.h"
+//#include "casa/Arrays/ArrayMath.h"
     
 #define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
     
