@@ -173,6 +173,10 @@ class editParm(QDialog):
     def updateCoeff(self,row,col):
         self._coeff[row][col]= float(str(self.funkgrid.text(row,col)));
 
+    def updateCoeff_fromparent(self):
+        funklet=self.parent._funklet;
+        self._coeff=funklet.coeff;
+        self.updategrid();
 
 class NA_ParmFiddler(NodeAction):
   text = "ParmFiddler";
@@ -196,7 +200,7 @@ class ParmFiddlerDialog (QDialog):
     if not name:
         self.setName("ParmFiddlerDialog")
     ParmFiddlerDialogLayout = QVBoxLayout(self,11,6,"ParmFiddlerDialogLayout")
-
+    self.edit=None;
     reqFrame = QVBox(self);
     reqFrame.setFrameShape(QFrame.Panel+QFrame.Sunken);
     reqFrame.setMargin(10);
@@ -256,7 +260,6 @@ class ParmFiddlerDialog (QDialog):
     meqds.request_node_state(self._node);
 
 
-
   def _update_state(self,node,state,event=None):
 #    print "updating "
     try: funklet = state.funklet;
@@ -271,8 +274,10 @@ class ParmFiddlerDialog (QDialog):
       self._funklet = state.funklet;
       self.reqView.wlistview().setRootIsDecorated(True);
       self.reqView.set_content(self._funklet);
-#      self.reqView.set_open_items(self.defaultOpenItems);
-
+      #      self.reqView.set_open_items(self.defaultOpenItems);
+      if self.edit:
+          self.edit.updateCoeff_fromparent();
+        
 
 
 
@@ -283,19 +288,17 @@ class ParmFiddlerDialog (QDialog):
 
 
   def change (self):
-    if not self._funklet:
-      return;
-    editParm(self);
-
+      if not self._funklet:
+          return;
+      self.edit=editParm(self);
+      
   def updatechange (self):
-
-    if not self._funklet:
-      return;
-    
-    meqds.set_node_state(self._node,funklet=self._funklet);
-    meqds.set_node_state(self._node,CacheResult=False);
-
-
+      if not self._funklet:
+          return;
+      meqds.set_node_state(self._node,funklet=self._funklet);
+      meqds.set_node_state(self._node,CacheResult=False);
+      
+      
 def define_treebrowser_actions (tb):
   _dprint(1,'defining parm fiddling treebrowser actions');
   tb.add_action(NA_ParmFiddler,30,where="node");
