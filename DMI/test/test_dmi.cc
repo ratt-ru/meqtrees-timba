@@ -181,7 +181,7 @@ void TestDataRecord ()
   rec["B"]["C"]["A"] <<= new DataField(Tpint,32);
   rec["B/C/A/10"] = 5;
   rec["B/C/B"] = "a string";
-  rec["B/C/C"] = "yeat another string";
+  rec["B/C/C"] = "yet another string";
   Assert( rec["B/C/A"][10].as<int>() == 5 );
   cout<<"Record is "<<rec.sdebug(10)<<endl;
 
@@ -296,10 +296,16 @@ void TestDataRecord ()
   cout<<"======================= testing arrays\n";
   cout<<"Creating 10x10 double array\n";
   rec["X"] <<= new DataArray(Tpdouble,makeLoShape(10,10));
+  rec["X.X"] <<= new DataArray(Tpdouble,makeLoShape(1));
   cout<<"Record is now: "<<rec.sdebug(10)<<endl;
   
   cout<<"Accessing the array\n";
   LoMat_double arr = rec["X"];
+  rec["X.X"] = 2;
+  LoVec_double arr2 = rec["X.X"];
+  int int3 = rec["X.X"].as<int>();
+  Assert(int3 == 2);
+  Assert(arr2(0) == 2);
   
   cout<<"Assigning array to another field\n";
   rec["Y"] = arr;

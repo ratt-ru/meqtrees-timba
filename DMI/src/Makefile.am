@@ -58,9 +58,9 @@ TID-DMI.h			\
 TypeIterMacros.h
 
 CXXFLAGS += -D_GNU_SOURCE 
-# CXXFLAGS += -D_GNU_SOURCE -DUSE_THREADS -pthread
 
-# EXTRA_DIST = build_aid_maps.pl build_type_iter.pl atomicid.list
+glishdir = $(libexecdir)/glish
+dist_glish_SCRIPTS = dmitypes.g
 
 include $(lofar_sharedir)/Makefile.aids
 include $(lofar_sharedir)/Makefile.common
