@@ -1,7 +1,7 @@
 gnu.compiler.conf:
 kcc.compiler.conf:
 icc.compiler.conf:
-xlc.compiler.conf: CXX=blrts_xlC
+xlc.compiler.conf: CXX=blrts_xlC CC=blrts_xlc
 
 profile.variant.conf:	  $(profile_root) $(aipspp) $(profile) $(mpe)
 debug.variant.conf:	  $(debug_root) $(debug) $(aipspp) $(mtsupport)
@@ -55,5 +55,5 @@ scampi.var:		   --with-scampi
 vbroker.var:		   --with-vbroker
 mtsupport.var:		   --with-threads
 nomtsupport.var: 	   --with-threads=no  
-bgl_cpp.var: --with-cppflags='-D__BLRTS__ -qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/BlueLight/floor/bglsys/include/'
-bgl_ldd.var: --with-ldflags='-L/BlueLight/floor/bglsys/lib -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts -lstandalone.440 -lm'
+bgl_cpp.var: --with-cppflags='-D__BLRTS__ -qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/bgl/BlueLight/floor/bglsys/include/'
+bgl_ldd.var: --with-ldflags='-L/bgl/BlueLight/floor/bglsys/lib -lmsglayer.rts -lmpich.rts -lrts.rts -ldevices.rts -lstandalone.440 -lm'
