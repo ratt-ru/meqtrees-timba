@@ -23,8 +23,7 @@ typename DMITypeTraits<T>::ContainerReturnType
 {
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   ContentInfo info;
-  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,False,
-                                pointer,false); 
+  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,False,False,False); 
   return ptr ? *static_cast<const T*>(ptr) : deflt;
 }
 // This is a version for non-scalar types; pass in by value; return ref/value
@@ -206,7 +205,7 @@ operator const T * () const
 // Define a get_vector<> template. This should work for all contiguous 
 // containers.
 template<class T>
-bool get_vector (std::vector<T> &value,bool must_exist=false);
+bool get_vector (std::vector<T> &value,bool must_exist=false) const;
 
 // Define an as_vector<> template. This should work for all
 // contiguous containers.
