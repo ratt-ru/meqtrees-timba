@@ -21,7 +21,7 @@
 //## begin module%3C10CC820124.additionalIncludes preserve=no
 #include "Common.h"
 #include "DMI.h"
-#include "TID-base.h"
+#include "TID.h"
 //## end module%3C10CC820124.additionalIncludes
 
 //## begin module%3C10CC820124.includes preserve=yes
