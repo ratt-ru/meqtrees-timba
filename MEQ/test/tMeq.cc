@@ -27,6 +27,7 @@
 #include <MEQ/Function.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
+#include <MEQ/Polc.h>
 #include <MEQ/TID-Meq.h>
 #include <DMI/DataArray.h>
 #include <exception>
@@ -56,7 +57,7 @@ int main (int argc,const char* argv[])
     rec_child1["Class"] = "MeqParm";
     rec_child1["Name"] = "p1";
     //    rec_child1["Table.Name"] = "meqadd.MEP";
-    rec_child1["Default"] = defVal1;
+    rec_child1["Default"] <<= new Polc(defVal1);
     int index_child1;
     Node& child1 = forest.create(index_child1,rec_child1);
     
@@ -65,7 +66,7 @@ int main (int argc,const char* argv[])
     rec_child2["Class"] = "MeqParm";
     rec_child2["Name"] = "p2";
     //    rec_child2["Table.Name"] = "meqadd.MEP";
-    rec_child2["Default"] = defVal2;
+    rec_child2["Default"] <<= new Polc(defVal2);
     int index_child2;
     Node& child2 = forest.create(index_child2,rec_child2);
     

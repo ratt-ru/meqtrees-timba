@@ -22,6 +22,7 @@
 
 #include <Common/Profiling/PerfProfile.h>
 
+#include <DMI/DataRecord.h>
 #include <MEQ/Polc.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
@@ -40,80 +41,118 @@ double Polc::theirPascal[10][10];
 //##ModelId=3F86886F035E
 bool   Polc::theirPascalFilled = false;
 
+static NestableContainer::Register reg(TpMeqPolc,True);
+
+static Domain nullDomain;
 
 //##ModelId=3F86886F0366
-Polc::Polc()
-: itsNrSpid     (0),
-  itsFreq0      (0),
-  itsTime0      (0),
-  itsFreqScale  (1),
-  itsTimeScale  (1)
+Polc::Polc(double c00,double freq0,double freqsc,double time0,double timesc,double pert)
+  : itsCoeff(c00),itsNrSpid     (0)
 {
-  // default pert values
-  itsPertValue = 1e-6;
+  (*this)[FCoeff] <<= itsCoeff.getDataArray();
+  (*this)[FPerturbation] = itsPertValue = pert;
+  (*this)[FFreq0] = itsFreq0 = freq0;
+  (*this)[FTime0] = itsTime0 = time0;
+  (*this)[FFreqScale] = itsFreqScale = freqsc;
+  (*this)[FTimeScale] = itsTimeScale = timesc;
 }
+
+Polc::Polc(LoMat_double arr,double freq0,double freqsc,double time0,double timesc,double pert)
+  : itsCoeff(arr),itsNrSpid     (0)
+{
+  (*this)[FCoeff] <<= itsCoeff.getDataArray();
+  (*this)[FPerturbation] = itsPertValue = pert;
+  (*this)[FFreq0] = itsFreq0 = freq0;
+  (*this)[FTime0] = itsTime0 = time0;
+  (*this)[FFreqScale] = itsFreqScale = freqsc;
+  (*this)[FTimeScale] = itsTimeScale = timesc;
+}
+
+Polc::Polc(DataArray *parr,double freq0,double freqsc,double time0,double timesc,double pert)
+  : itsCoeff(parr),itsNrSpid     (0)
+{
+  (*this)[FCoeff] <<= itsCoeff.getDataArray();
+  (*this)[FPerturbation] = itsPertValue = pert;
+  (*this)[FFreq0] = itsFreq0 = freq0;
+  (*this)[FTime0] = itsTime0 = time0;
+  (*this)[FFreqScale] = itsFreqScale = freqsc;
+  (*this)[FTimeScale] = itsTimeScale = timesc;
+}
+
 
 //##ModelId=400E5354033A
-Polc::Polc (DataRecord &rec)
-: itsCoeff(rec[FVellSets].as_wp<DataArray>())
+Polc::Polc (const DataRecord &other,int flags,int depth)
+  : DataRecord(other,flags,depth)
 {
-  itsDomain       = rec[FDomain].as<Domain>();
-  itsPertValue    = rec[FPerturbedValues];
-  itsFreq0        = rec[FFreq0];
-  itsTime0        = rec[FTime0];
-  itsFreqScale    = rec[FFreqScale];
-  itsTimeScale    = rec[FTimeScale];
+  validateContent();
+}
+  
+void Polc::validateContent ()    
+{
+  Thread::Mutex::Lock lock(mutex());
+  // ensure that our record contains all the right fields; setup shortcuts
+  // to their contents
+  try
+  {
+    if( DataRecord::hasField(FDomain) ) // verify cells field
+      itsDomain = (*this)[FDomain].as_p<Domain>();
+    else
+      itsDomain = &nullDomain;
+    // get vellsets field
+    if( DataRecord::hasField(FCoeff) )
+      itsCoeff = Vells((*this)[FCoeff].ref(DMI::PRESERVE_RW));
+    else
+      itsCoeff = Vells();
+    // get various others
+    itsPertValue = (*this)[FPerturbation].as<double>(1e-6);
+    itsFreq0     = (*this)[FFreq0].as<double>(0);
+    itsTime0     = (*this)[FTime0].as<double>(0);
+    itsFreqScale = (*this)[FFreqScale].as<double>(1);
+    itsTimeScale = (*this)[FTimeScale].as<double>(1);
+  }
+  catch( std::exception &err )
+  {
+    Throw(string("validate of Polc record failed: ") + err.what());
+  }
+  catch( ... )
+  {
+    Throw("validate of Polc record failed with unknown exception");
+  }
 }
 
-//##ModelId=400E53540345
-void Polc::fillRecord (DataRecord &rec) 
+void Polc::setDomain (const Domain& domain)
 {
-  rec[FDomain] <<= new Domain(domain());
-  rec[FVellSets] <<= &(itsCoeff.getDataArray());
-  rec[FPerturbedValues] = itsPertValue;
-  rec[FMask] = itsMask;
-  rec[FFreq0] = itsFreq0;
-  rec[FTime0] = itsTime0;
-  rec[FFreqScale] = itsFreqScale;
-  rec[FTimeScale] = itsTimeScale;
+  (*this)[FDomain].replace() <<= new Domain(domain);
+  itsDomain = (*this)[FDomain].as_p<Domain>();
 }
+
+void Polc::setPerturbation (double perturbation)
+{ (*this)[FPerturbation] = itsPertValue = perturbation; }
+
+void Polc::setFreq0 (double freq0)
+{ (*this)[FFreq0] = itsFreq0 = freq0; }
+
+void Polc::setTime0 (double time0)
+{ (*this)[FTime0] = itsTime0 = time0; }
+
+void Polc::setFreqScale (double freqScale)
+{ (*this)[FFreqScale] = itsFreqScale = freqScale; }
+
+void Polc::setTimeScale (double timeScale)
+{ (*this)[FTimeScale] = itsTimeScale = timeScale; }
 
 //##ModelId=3F86886F0373
 void Polc::setCoeff (const Vells& values)
 {
+  // note that record contains a separate Vells object, but internally
+  // they will reference the same DataArray
   itsCoeff = values.clone();
-  itsMask.resize (values.nelements());
-  for (int i=0; i<values.nelements(); i++) {
-    itsMask[i] = true;
-  }
-  clearSolvable();
-}
-
-//##ModelId=3F86886F037A
-void Polc::setCoeff (const Vells& values,
-                     const Matrix<bool>& mask)
-{
-  Assert (values.nx()==mask.shape()(0) && values.ny()==mask.shape()(1));
-  itsCoeff = values.clone();
-  itsMask.resize (values.nelements());
-  bool deleteM;
-  const bool* mdata = mask.getStorage(deleteM);
-  for (unsigned int i=0; i<mask.nelements(); i++) {
-    itsMask[i] = mdata[i];
-  }
-  mask.freeStorage (mdata, deleteM);
-  clearSolvable();
-}
-
-//##ModelId=3F86886F0384
-void Polc::setCoeffOnly (const Vells& values)
-{
-  itsCoeff = values.clone();
+  (*this)[FCoeff].replace() <<= itsCoeff.getDataArray();
   clearSolvable();
 }
 
 //##ModelId=400E53540350
-void Polc::evaluate (VellSet &result, const Request& request)
+void Polc::evaluate (VellSet &result, const Request& request) const
 {
   PERFPROFILE(__PRETTY_FUNCTION__);
   // Find if perturbed values are to be calculated.
@@ -268,13 +307,10 @@ int Polc::makeSolvable (int spidIndex)
   itsSpidInx.resize (itsCoeff.nelements());
   itsSpids.reserve (itsCoeff.nelements());
   itsNrSpid = 0;
-  for (int i=0; i<itsCoeff.nelements(); i++) {
-    if (itsMask[i]) {
-      itsSpidInx[i] = itsNrSpid++;
-      itsSpids.push_back (spidIndex++);
-    } else {
-      itsSpidInx[i] = -1;
-    }
+  for (int i=0; i<itsCoeff.nelements(); i++) 
+  {
+    itsSpidInx[i] = itsNrSpid++;
+    itsSpids.push_back (spidIndex++);
   }
 //   // Precalculate the perturbed coefficients.
 //   // The perturbation is absolute.
@@ -338,24 +374,24 @@ uint Polc::update (const double* values, uint nrval)
 }
 
 
-//##ModelId=3F8688700008
-Vells Polc::normalize (const Vells& coeff, const Domain& domain)
-{
-  return normDouble (coeff,
-                     domain.scaleFreq(), domain.scaleTime(),
-                     domain.offsetFreq()-itsFreq0,
-                     domain.offsetTime()-itsTime0);
-}
-  
-//##ModelId=3F8688700011
-Vells Polc::denormalize (const Vells& coeff) const
-{
-  return normDouble (coeff,
-                     1/itsDomain.scaleFreq(), 1/itsDomain.scaleTime(),
-                     (itsFreq0-itsDomain.offsetFreq())/itsDomain.scaleFreq(),
-                     (itsTime0-itsDomain.offsetTime())/itsDomain.scaleTime());
-}
-  
+// //##ModelId=3F8688700008
+// Vells Polc::normalize (const Vells& coeff, const Domain& domain)
+// {
+//   return normDouble (coeff,
+//                      domain.scaleFreq(), domain.scaleTime(),
+//                      domain.offsetFreq()-itsFreq0,
+//                      domain.offsetTime()-itsTime0);
+// }
+//   
+// //##ModelId=3F8688700011
+// Vells Polc::denormalize (const Vells& coeff) const
+// {
+//   return normDouble (coeff,
+//                      1/itsDomain.scaleFreq(), 1/itsDomain.scaleTime(),
+//                      (itsFreq0-itsDomain.offsetFreq())/itsDomain.scaleFreq(),
+//                      (itsTime0-itsDomain.offsetTime())/itsDomain.scaleTime());
+// }
+//   
 //##ModelId=3F868870002F
 void Polc::fillPascal()
 {

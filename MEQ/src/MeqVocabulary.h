@@ -30,7 +30,7 @@
 #pragma aid Node Class Name State Child Children Request Result VellSet Rider Id
 #pragma aid Cells Domain Freq Time Times Step Steps Calc Deriv Vells VellSets
 #pragma aid NodeIndex Table Name Default Value Index Num Cache Code
-#pragma aid Parm Spid Perturbed Perturbations Names Pert Relative Mask
+#pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cells Results Fail Origin Line Message Contagious  Normalized
 #pragma aid Solvable Config Groups All By List Polcs Scale
 #pragma aid Epsilon UseSVD
@@ -77,13 +77,13 @@ namespace Meq
     FParmName        = AidParm|AidName,
     FDomainId        = AidDomain|AidId,
     
+    FCoeff           = AidCoeff,
+    FPerturbation    = AidPert,
     FPertRelative    = AidPert|AidRelative,
     FFreq0           = AidFreq|0,
     FTime0           = AidTime|0,
     FFreqScale       = AidFreq|AidScale,
     FTimeScale       = AidTime|AidScale,
-    FMask            = AidMask,
-    FNormalized      = AidNormalized,
     
     FSpids           = AidSpid|AidIndex,
     FPerturbedValues = AidPerturbed|AidValue,

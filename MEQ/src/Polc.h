@@ -28,9 +28,11 @@
 #include <MEQ/Vells.h>
 #include <MEQ/VellSet.h>
 
+#pragma aidgroup Meq
+#pragma type #Meq::Polc
+
 //# Forward declarations
 template<class T> class Matrix;
-
 
 // This class contains an ordinary 2-dim with real coefficients.
 // It is valid for the given domain only.
@@ -43,27 +45,42 @@ template<class T> class Matrix;
 namespace Meq {
 class Request;
 
-
 //##ModelId=3F86886E01F6
-class Polc
+class Polc : public DataRecord
 {
 public:
-  // Create an empty 2-dim polynomial.
-  // By default a relative perturbation of 10^-6 is used.
+  typedef CountedRef<Polc> Ref;
+    
     //##ModelId=3F86886F0366
-  Polc();
-
-  //  Create from a DataRecord
-    //##ModelId=400E5354033A
-  Polc (DataRecord &rec);
+  explicit Polc(double c00=0,double freq0=0,double freqsc=1,
+                double time0=0,double timesc=1,double pert=1e-6);
   
-  //  Export to a DataRecord
-    //##ModelId=400E53540345
-  void fillRecord (DataRecord &rec);
+  explicit Polc(LoMat_double coeff,double freq0=0,double freqsc=1,
+                double time0=0,double timesc=1,double pert=1e-6);
+  
+  explicit Polc(DataArray *parr,double freq0=0,double freqsc=1,
+                double time0=0,double timesc=1,double pert=1e-6);
+  
+    //##ModelId=400E5354033A
+  Polc (const DataRecord &other,int flags=DMI::PRESERVE_RW,int depth=0);
+  
+  virtual TypeId objectType () const
+  { return TpMeqPolc; }
+  
+  // implement standard clone method via copy constructor
+    //##ModelId=400E53550131
+  virtual CountedRefTarget* clone (int flags, int depth) const
+  { return new Polc(*this,flags,depth); }
+  
+  // validate record contents and setup shortcuts to them. This is called 
+  // automatically whenever a Polc is made from a DataRecord
+  // (or when the underlying DataRecord is privatized, etc.)
+    //##ModelId=400E53550156
+  virtual void validateContent ();
 
   // Calculate the value and possible perturbations.
     //##ModelId=400E53540350
-  void evaluate (VellSet &, const Request&);
+  void evaluate (VellSet &, const Request&) const;
 
   // Get number of coefficients.
     //##ModelId=3F86886F036F
@@ -79,23 +96,14 @@ public:
     //##ModelId=3F86886F0373
   void setCoeff (const Vells& coeff);
 
-  // Set the coefficients and mask.
-    //##ModelId=3F86886F037A
-  void setCoeff (const Vells& coeff, const Matrix<bool>& mask);
-
-  // Set the coefficients only. The mask is left alone.
-    //##ModelId=3F86886F0384
-  void setCoeffOnly (const Vells& coeff);
-
   // Get the domain.
     //##ModelId=3F86886F038A
   const Domain& domain() const
-    { return itsDomain; }
+    { return *itsDomain; }
 
   // Set the domain.
     //##ModelId=3F86886F038C
-  void setDomain (const Domain& domain)
-    { itsDomain = domain; }
+  void setDomain (const Domain& domain);
 
   // Get the perturbation.
     //##ModelId=3F86886F0396
@@ -103,8 +111,7 @@ public:
     { DbgAssert(ipert==0 || ipert==1); return ipert ? -itsPertValue : itsPertValue ; }
 
     //##ModelId=3F86886F039A
-  void setPerturbation (double perturbation = 1e-6)
-    { itsPertValue = perturbation; }
+  void setPerturbation (double perturbation = 1e-6);
 
   // Make the polynomial non-solvable.
     //##ModelId=3F86886F03A4
@@ -134,15 +141,11 @@ public:
   // Set the zero-points and scales of the function.
   // <group>
     //##ModelId=3F86886F03D6
-  void setFreq0 (double freq0)
-    { itsFreq0 = freq0; }
+  void setFreq0 (double freq0);
     //##ModelId=3F86886F03DD
-  void setTime0 (double time0)
-    { itsTime0 = time0; }
-  void setFreqScale (double freqScale)
-    { itsFreqScale = freqScale; }
-  void setTimeScale (double timeScale)
-    { itsTimeScale = timeScale; }
+  void setTime0 (double time0);
+  void setFreqScale (double freqScale);
+  void setTimeScale (double timeScale);
   // </group>
 
   // Get the zero-points and scales of the function.
@@ -159,14 +162,14 @@ public:
     { return itsTimeScale; }
   // </group>
 
-  // Normalize the coefficients for the given domain.
+  // Change scale and renormalize the coefficients 
     //##ModelId=3F8688700008
-  Vells normalize (const Vells& coeff, const Domain&);
+  void renormalize (double freq0,double freqscale,double time0,double timescale);
 
-  // Denormalize the coefficients.
-    //##ModelId=3F8688700011
-  Vells denormalize (const Vells& coeff) const;
-
+//   // Denormalize the coefficients.
+//     //##ModelId=3F8688700011
+//   Vells denormalize (const Vells& coeff) const;
+// 
   // (De)normalize real coefficients.
     //##ModelId=3F8688700019
   static Vells normDouble (const Vells& coeff, double sx,
@@ -177,6 +180,16 @@ public:
   const vector<int> getSpids() const
     { return itsSpids; }
 
+protected:
+  // disable public access to some DataRecord methods that would violate the
+  // structure of the container
+    //##ModelId=400E535500A0
+  DataRecord::remove;
+    //##ModelId=400E535500A8
+  DataRecord::replace;
+    //##ModelId=400E535500AF
+  DataRecord::removeField;
+  
 private:
   // Fill Pascal's triangle.
     //##ModelId=3F868870002F
@@ -190,9 +203,9 @@ private:
   // perturbation values
   std::vector<double> itsPerturbation;
     //##ModelId=3F86BFF8024A
-  Domain       itsDomain;
-    //##ModelId=3F86886F031C
-  std::vector<bool> itsMask;
+  const Domain * itsDomain;
+  
+//  std::vector<bool> itsMask;
     //##ModelId=3F86886F0324
   std::vector<int>  itsSpidInx;     //# -1 is not solvable
     //##ModelId=400E53540331

@@ -47,15 +47,15 @@ bool compare(const Vells& m1, const Vells& m2)
 void doIt (Polc& polc)
 {
   Domain domain(0.5,4.5, -2.5,1.5);
-  Vells newc = polc.normalize (polc.getCoeff(), domain);
-  Polc newpolc;
-  newpolc.setCoeff (newc);
-  newpolc.setDomain (domain);
-  newpolc.setFreq0 (polc.getFreq0());
-  newpolc.setTime0 (polc.getTime0());
-  Vells backc = newpolc.denormalize (newpolc.getCoeff());
-  // Check if final coefficients match original.
-  Assert (compare(polc.getCoeff(), backc));
+//   Vells newc = polc.normalize (polc.getCoeff(), domain);
+//   Polc newpolc;
+//   newpolc.setCoeff (newc);
+//   newpolc.setDomain (domain);
+//   newpolc.setFreq0 (polc.getFreq0());
+//   newpolc.setTime0 (polc.getTime0());
+//   Vells backc = newpolc.denormalize (newpolc.getCoeff());
+//   // Check if final coefficients match original.
+//   Assert (compare(polc.getCoeff(), backc));
   // Evaluate both polynomials for some values.
   polc.makeSolvable(1);
   Request req(new Cells(domain, 4, 4),0);
