@@ -20,7 +20,8 @@
 //#
 //# $Id$
 
-#include <MEQ/Function.h>
+#include "Function.h"
+#include "Request.h"
     
 
 namespace Meq {
@@ -116,17 +117,15 @@ int Function::getResultImpl (ResultSet::Ref &resref, const Request& request, boo
 {
   int nrch = itsChildren.size();
   FailWhen( nrch<=0,"no children" );
-  vector<ResultSet::Ref> child_results(nrch);
+  vector<ResultSet::Ref> child_results;
   // collect child_results from children
-  int flag = 0;
-  for (int i=0; i<nrch; i++) {
-    flag |= itsChildren[i]->getResult (child_results[i], request);
-    child_results[i].persist();
-  }
+  int flag = getChildResults(child_results,resref,request);
+  // return a fail immediately
+  if( flag == Node::RES_FAIL )
+    return RES_FAIL;
   // return flag is at least one child wants to wait
-  if (flag & Node::RES_WAIT) {
+  if (flag & Node::RES_WAIT) 
     return flag;
-  }
   // Check that number of child planes is the same
   int nplanes = child_results[0]->numResults();
   for( int i=1; i<nrch; i++ )
@@ -136,6 +135,7 @@ int Function::getResultImpl (ResultSet::Ref &resref, const Request& request, boo
   }
   // Create result object and attach to the ref that was passed in
   ResultSet & resultset = resref <<= new ResultSet(nplanes);
+  resultset.setCells(request.cells());
   vector<Result*> child_res(nrch);
   for( int iplane=0; iplane<nplanes; iplane++ )
   {
@@ -152,18 +152,8 @@ int Function::getResultImpl (ResultSet::Ref &resref, const Request& request, boo
     // allocate new result object with given number of spids, add to set
     Result &result = resultset.setNewResult(iplane,spids.size());
     // Evaluate the main value.
-    Vells vells = evaluate (request, values);
-    bool useVells;
-    int nx,ny;
-    bool isReal;
-    if (vells.nelements() > 0) {
-      useVells = false;
-      result.setValue (vells);
-    } else {
-      useVells = true;
-      isReal = resultTypeShape (nx, ny, request, values);
-      evaluateVells(result.setValue(isReal,nx,ny), request, values);
-    }
+    LoShape shape = resultShape(values);
+    result.setValue(evaluate(request,shape,values));
     // Evaluate all perturbed values.
     vector<Vells*> perts(nrch);
     vector<int> indices(nrch, 0);
@@ -177,35 +167,23 @@ int Function::getResultImpl (ResultSet::Ref &resref, const Request& request, boo
 	        perts[i] = &(child_res[i]->getPerturbedValueRW(inx));
         }
       }
-      if (useVells) {
-        evaluateVells (result.setPerturbedValue(j,isReal,nx,ny),request,values);
-      } else {
-        result.setPerturbedValue(j,evaluate(request,values));
-      }
+      result.setPerturbedValue(j,evaluate(request,shape,values));
     }
     result.setSpids (spids);
   }
   return flag;
 }
 
-bool Function::resultTypeShape (int& nx, int& ny, const Request&,
-				const vector<Vells*>& values)
+LoShape Function::resultShape (const vector<Vells*>& values)
 {
   Assert (values.size() > 0);
-  nx = values[0]->nx();
-  ny = values[0]->ny();
-  bool isReal = values[0]->isReal();
+  int nx = values[0]->nx();
+  int ny = values[0]->ny();
   for (unsigned int i=0; i<values.size(); i++) {
     nx = std::max(nx, values[i]->nx());
     ny = std::max(ny, values[i]->ny());
-    isReal &= values[0]->isReal();
   }
-  return isReal;
-}
-
-Vells Function::evaluate (const Request&, const vector<Vells*>&)
-{
-  return Vells();
+  return makeLoShape(nx,ny);
 }
 
 void Function::evaluateVells (Vells&, const Request&, const vector<Vells*>&)

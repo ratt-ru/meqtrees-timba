@@ -318,6 +318,42 @@ int Node::getResultImpl (ResultSet::Ref &, const Request &,bool)
   Throw("Meq::Node::getResultImpl not implemented");
 }
 
+
+int Node::getChildResults (std::vector<ResultSet::Ref> &childref,
+                           ResultSet::Ref &resref,
+                           const Request& request)
+{
+  childref.resize(numChildren());
+  int resflag=0;
+  int have_fail=False;
+  // collect results from children
+  for( int i=0; i<numChildren(); i++ )
+  {
+    int flag = getChild(i).getResult(childref[i],request);
+    if( flag == RES_FAIL )
+      have_fail = True;
+    else
+      resflag |= flag;
+  }
+  // have a fail? Collect fails from children into output ResultSet
+  if( have_fail )
+  {
+    ResultSet &result = resref <<= new ResultSet(-1); // -1 means a fail-set
+    // collect fails from failed children
+    for( uint i=0; i<childref.size(); i++ )
+    {
+      const ResultSet &childres = *childref[i];
+      if( childres.isFail() )
+      {
+        for( int j=0; j<childres.numFails(); j++ )
+          result.addFail(&childres.getFail(j),DMI::READONLY);
+      }
+    }
+    return RES_FAIL;
+  }
+  return resflag;
+}
+
 // throw exceptions for unimplemented DMI functions
 //##ModelId=3F5F4363030F
 CountedRefTarget* Node::clone(int,int) const

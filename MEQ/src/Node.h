@@ -139,7 +139,17 @@ class Node : public BlockableObject
     virtual void processRequestRider (const DataRecord &rider);
     //##ModelId=3F98D9D100B9
     virtual int getResultImpl (ResultSet::Ref &resref, const Request &req,bool newreq);
-    
+
+    // helper function for nodes with multiple children:
+    //  1. allocates vector for child ResultSets
+    //  2. calls getResult() on all children
+    //  3. if none have failed, returns the bitwise OR of all flags
+    //  4. if one has failed, produces a fail-ResultSet and copies over all
+    //     fail records from all failed children, and returns RES_FAIL
+    int getChildResults (std::vector<ResultSet::Ref> &childref,
+                         ResultSet::Ref &resref,
+                         const Request& request);
+        
   private:
     //##ModelId=3F9505E50010
     void processChildSpec (NestableContainer &children,const HIID &id);

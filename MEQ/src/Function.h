@@ -64,24 +64,22 @@ public:
   // </ul>
   virtual int getResultImpl (ResultSet::Ref &resref, const Request&, bool newReq);
 
-  // Find the type and shape of the result for evaluate.
-  // It returns true if the result is real; otherwise false.
-  // It is used when evaluateVells is used.
-  // Usually the default implementation is sufficient which takes
+  // Find the shape of the result for evaluate. Usually the default 
+  // implementation is sufficient which takes
   // the maximum of the values of the children.
-  virtual bool resultTypeShape (int& nx, int& ny, const Request&,
-				const vector<Vells*>& values);
-
-  // Evaluate the value for the given request.
-  // The default returns an empty Vells telling that evaluate is not
-  // implemented.
-  virtual Vells evaluate (const Request&,
-			  const vector<Vells*>& values);
+  virtual LoShape resultShape (const vector<Vells*>& values);
 
   // Evaluate the value for the given request.
   // The default throws an exception.
-  virtual void evaluateVells (Vells& result, const Request&,
+  // NB: this will be phased out
+  virtual void evaluateVells (Vells& result,const Request&,
 			      const vector<Vells*>& values);
+
+    
+  // Evaluate the value for the given request. The output shape is
+  // precomputed with resultShape() and passed in as the shape argument.
+  virtual Vells evaluate (const Request &req,const LoShape &,const vector<Vells*>& values)
+  { Vells res; evaluateVells(res,req,values); return res; }
 
   // Find all spids for this node by merging the children's spids.
   vector<int> findSpids (const vector<Result*>&) const;
