@@ -1,0 +1,7 @@
+#icc.compiler.conf: CXX=icc -with-cppflags="-g -xW -Qoption,c,-ip_ninl_max_stats=5000" --with-ldflags="-g -Kc++ -xW"
+ia64.compiler.conf: CC=icc CXX=icc --with-cppflags="-g -Kc++ -wd1572" --with-ldflags="-g -Kc++"
+#standard.var:		  $(lofar_root) $(aipspp) $(shmem)
+
+profile.variant.conf:     $(standard) $(profile)
+profile.var:              --with-optimize='-pg -O2' --with-ldflags="-g -xW -Kc++"
+profopt.var:              --with-optimize='-pg -O2' --with-ldflags="-g -xW -Kc++"
