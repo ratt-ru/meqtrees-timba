@@ -21,10 +21,11 @@ class ArrayPlotter(BrowserPlugin):
     self._ntuple_controller = NTupleController.instance()
     self._window_controller = WindowController.instance()
     self._window_controller.createInspector ()
-# needed for destructor
-    self._window = CanvasWindow(parent, "MeqDisplay",0)
-# uncommenting the following line causes all sorts of problems!!
-#    self._window.closeNoPrompt()
+
+# used for 'standalone display'
+    self._window = CanvasWindow(None, "MeqDisplay",0)
+    self._Qlabel = QLabel("",parent);
+
     self._window.show()
     self._display_controller = DisplayController.instance()
     self._canvas = None
@@ -39,7 +40,7 @@ class ArrayPlotter(BrowserPlugin):
     self._window_controller.closeAllWindows()
                                                                                            
   def wtop (self):
-    return self._window
+    return self._Qlabel
 
   def display_data (self, plot_array):
 # figure out type and rank of incoming array
