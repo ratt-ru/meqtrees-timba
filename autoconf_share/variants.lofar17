@@ -10,3 +10,5 @@ icc.compiler.aipspp.var: --with-aipspp=/data/aips++/weekly/linux_gnu
 insure.variant.conf:     --with-insuretools=/usr/local/insure/bin.linux2 $(aipspp)
 
 mpich.var:		 --with-mpich=/usr/local/mpich
+
+lofar_root.var:		 --with-lofar-default=weekly
