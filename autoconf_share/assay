@@ -30,8 +30,7 @@
 #
 # assay invokes a LofarSim test program. If the test program has an associated
 # .run file then it simply invokes it. Otherwise assay invokes the test
-# executable directly and, if there is a corresponding .in file,
-# redirect stdin from it.
+# executable directly
 #
 # assay redirects the output of program or .run file to a temporary file
 # and compare it with a corresponding .out file (if there) using diff.
@@ -70,7 +69,6 @@
 #  # Copy input files (actually, guard is not needed in this case).
 #  if [ "$wdir" != "$sdir/BASELINE" ]
 #  then
-#    cp $sdir/BASELINE/*.in* .
 #    cp $sdir/BASELINE/*.coef .
 #  fi
 #  # Execute the program.
@@ -85,7 +83,7 @@
 #  # Remove the files created.
 #  if [ "$wdir" != "$sdir/BASELINE" ]
 #  then
-#    \rm -f *.in* *.coef
+#    \rm -f  *.coef
 #  fi
 #  # Remove .out files only if succesfully ended.
 #  if [ $STATUS ]
@@ -114,8 +112,28 @@
 #
 #=============================================================================
 
+# CHECKTOOL is a Make option that contains the checktoolcommand. To be able to 
+# insert the programname into the options (for logfile nameing for example)
+# a [PROGNAME] can be inserted into the call, this will be substituted by the
+# program name that stands in $1.
+#
+# For example:
+#  make check CHECKTOOL='valgrind --tool=memcheck \
+#                                 --num-callers=50 \
+#                                 --workaround-gcc296-bugs=yes \
+#                                 --leak-check=yes \
+#                                 --track-fds=yes \
+#                                 --logfile=[PROGNAME]_valgrind'
+  
+  if [ "x$CHECKTOOL" != "x" ]
+  then
+    CHKTOOL=`echo "$CHECKTOOL" | sed -e 's/\[PROGNAME\]/'$1'/g'`
+  fi
+
 # Initialize the command to be executed.
   COMMAND="./$@"
+  CHECKTOOLCOMMAND="$CHKTOOL ./$@"
+
 
 # Define exit and interrupt handler.
   trap 'rm -rf $CLEANUP core ${1}_tmp* ; \
@@ -126,12 +144,22 @@
   if [ -f "$1.run" ]
   then
      COMMAND="./$1.run"
+     CHECKTOOLCOMMAND="./$1.run '$CHKTOOL'"
   fi
 
-# If there is a .in file then use it as input.
-  if [ -f "$1.in" ]
+# Determine if this program also needs another checktool check.
+# (like valgrind for example)
+# Check for the Variable name CHECKTOOLPROGS in Makefile
+# that Variable should contain the programs that need to be run through 
+# an extra checktool that has been supplied via the CHECKTOOL line in Make
+  match=`cat Makefile |awk '/CHECKTOOLPROGS/,/ENDCHECKTOOLPROGS/ {print $0}'|grep -v '#'| grep -w $1`
+
+  if [ "x$CHECKTOOL" != "x" ]
   then
-     COMMAND="$COMMAND < $1.in"
+  if [ "x$match" != "x" ] 
+  then
+    eval "$CHECKTOOLCOMMAND" > /dev/null
+  fi
   fi
 
 # Execute the command.
