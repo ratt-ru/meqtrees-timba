@@ -110,25 +110,30 @@ int main (int argc,const char* argv[])
     cout << "============ resolving children on add =========\n";
     chsolv.resolveChildren();
     
-    cout << "============ getting result =========\n";
-    Domain domain(1,4, -2,3);
-    Request::Ref reqref;
-    Request &req = reqref <<= new Request(new Cells(domain, 4, 4));
-    Result::Ref refres;
-    child1.execute(refres, req);
-    cout << "p1 before " << refres().vellSet(0) << endl;
-    child2.execute(refres, req);
-    cout << "p2 before " << refres().vellSet(0) << endl;
+    for (int i=0; i<3; i++) {
+      cout << "============ getting result " << i << " =========\n";
+      Domain domain(1,4, -2,3);
+      Request::Ref reqref;
+      Request &req = reqref <<= new Request(new Cells(domain, 4, 4));
+      if (i == 2) {
+	req.setClearSolver(true);
+      }
+      Result::Ref refres;
+      child1.execute(refres, req);
+      cout << "p1 before " << refres().vellSet(0) << endl;
+      child2.execute(refres, req);
+      cout << "p2 before " << refres().vellSet(0) << endl;
 
-    int flag = chsolv.execute(refres, req);
-    cout << flag << endl;
-    cout << "solver " << refres().vellSet(0) << endl;
-    if( refres->hasFails() )
-      return 1;
-    child1.execute(refres, req);
-    cout << "p1 after  " << refres().vellSet(0) << endl;
-    child2.execute(refres, req);
-    cout << "p2 after  " << refres().vellSet(0) << endl;
+      int flag = chsolv.execute(refres, req);
+      cout << flag << endl;
+      cout << "solver " << refres().vellSet(0) << endl;
+      if( refres->hasFails() )
+	return 1;
+      child1.execute(refres, req);
+      cout << "p1 after  " << refres().vellSet(0) << endl;
+      child2.execute(refres, req);
+      cout << "p2 after  " << refres().vellSet(0) << endl;
+    }
   } 
   catch (std::exception& x) 
   {
