@@ -109,12 +109,12 @@ touch makeoptions
 # The structure of the Makefile is similar to the top LOFAR Makefile
 rm -rf Makefile
 touch Makefile
-echo "PACKAGE = $sdir" >> Makefile
-echo "VARIANT = $lfr_cvdir" >> Makefile
+echo "RECUR_PACKAGE = $sdir" >> Makefile
+echo "RECUR_VARIANT = $lfr_cvdir" >> Makefile
 cat <<'EOFXXXXX' >> Makefile
-PACKAGES = $(PACKAGE)
-VARIANTS = $(VARIANT)
-VARIANTNAMES = $(addsuffix .variant, $(VARIANTS))
+RECUR_PACKAGES = $(RECUR_PACKAGE)
+RECUR_VARIANTS = $(RECUR_VARIANT)
+VARIANTNAMES = $(addsuffix .variant, $(RECUR_VARIANTS))
 #
 # Keep the make directory (which is LOFAR).
 #
@@ -147,7 +147,7 @@ if test $lfr_dirform = 0; then
 	@date; \
 	variant=`basename $@ .variant_buildall`; \
         cd ../..; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 	      if test -d $$pkg/src; then \
 		( echo \
@@ -182,7 +182,7 @@ if test $lfr_dirform = 0; then
 	@date; \
 	variant=`basename $@ .variant_build`; \
         cd ../..; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		echo \
 		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -204,7 +204,7 @@ if test $lfr_dirform = 0; then
 	@date; \
 	variant=`basename $@ .variant_check`; \
         cd ../..; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -226,7 +226,7 @@ if test $lfr_dirform = 0; then
 	@date; \
 	variant=`basename $@ .variant_install`; \
         cd ../..; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -248,7 +248,7 @@ if test $lfr_dirform = 0; then
 	@date; \
 	variant=`basename $@ .variant_uninstall`; \
         cd ../..; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -270,7 +270,7 @@ if test $lfr_dirform = 0; then
 	@date; \
 	variant=`basename $@ .variant_clean`; \
         cd ../..; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -292,7 +292,7 @@ if test $lfr_dirform = 0; then
 	@date; \
 	variant=`basename $@ .variant_distclean`; \
         cd ../..; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -314,7 +314,7 @@ if test $lfr_dirform = 0; then
 	@date; \
 	variant=`basename $@ .variant_dist`; \
         cd ../..; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -339,7 +339,7 @@ else
 %.variant_buildall:
 	@date; \
 	variant=`basename $@ .variant_buildall`; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -360,7 +360,7 @@ else
 %.variant_build:
 	@date; \
 	variant=`basename $@ .variant_build`; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -381,7 +381,7 @@ else
 %.variant_check:
 	@date; \
 	variant=`basename $@ .variant_check`; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -402,7 +402,7 @@ else
 %.variant_install:
 	@date; \
 	variant=`basename $@ .variant_install`; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: INSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -423,7 +423,7 @@ else
 %.variant_uninstall:
 	@date; \
 	variant=`basename $@ .variant_uninstall`; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: UNINSTALLING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -444,7 +444,7 @@ else
 %.variant_clean:
 	@date; \
 	variant=`basename $@ .variant_clean`; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: CLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -465,7 +465,7 @@ else
 %.variant_distclean:
 	@date; \
 	variant=`basename $@ .variant_distclean`; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: DISTCLEANING VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -486,7 +486,7 @@ else
 %.variant_dist:
 	@date; \
 	variant=`basename $@ .variant_dist`; \
-	for pkg in $(PACKAGES); do \
+	for pkg in $(RECUR_PACKAGES); do \
 	    if test -d $$pkg; then \
 		( echo \
 		&& echo ":::::: MAKING DIST OF VARIANT $$variant FOR PACKAGE $$pkg" \
@@ -507,12 +507,24 @@ fi
 
 cat <<'EOFXXXXX' >> Makefile
 #
+# Build the documentation
+#
+doc:
+	@cp $(top_builddir)/.doxygenrc doxygen.cfg ; \
+	@projnm=`(cd $(srcdir) && pwd) | sed -e "s%.*/LOFAR/%%"` ; \
+	@echo "PROJECT_NAME = $$projnm" >> doxygen.cfg ; \
+	@echo "INPUT = $(srcdir)" >> doxygen.cfg ; \
+	@echo "RECURSIVE = YES" >> doxygen.cfg ; \
+	@echo "HTML_OUTPUT = $(DOCDIR)" >> doxygen.cfg ; \
+	@echo "EXCLUDE = $(srcdir)/build $(srcdir)/test" >> doxygen.cfg; \
+	@$(DOXYGEN) doxygen.cfg ; \
+#
 # Show the variables
 #
 show:
 	@echo ""
-	@echo "PACKAGES = $(PACKAGES)"
-	@echo "VARIANTS = $(VARIANTS)"
+	@echo "PACKAGES = $(RECUR_PACKAGES)"
+	@echo "VARIANTS = $(RECUR_VARIANTS)"
 	@echo "LOFARDIR = $(LOFARDIR)"
 	@echo ""
 #
@@ -530,7 +542,8 @@ help:
 	@echo "uninstall: uninstall variants"
 	@echo "clean:     clean variants"
 	@echo "distclean: distclean variants"
-	@echo "dist:      making dist of variants"
+	@echo "dist:      make dist of variants"
+	@echo "doc:       build documentation using doxygen"
 	@echo ""
 	@echo "%.variant_build:     build all packages for given variant; stop if error"
 	@echo "%.variant_buildall:  build all packages for given variant; continue if error"
