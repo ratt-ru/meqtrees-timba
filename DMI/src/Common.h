@@ -54,11 +54,9 @@ using namespace std;
   using casa::True;
   using casa::False;
 #else
- namespace casa {
   typedef bool Bool;
   const Bool True = true;
   const Bool False = false;
- }
 #endif
 //## end module%3C14B70800A2.epilog
 
