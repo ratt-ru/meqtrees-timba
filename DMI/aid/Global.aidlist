@@ -1,9 +1,9 @@
-/LogDebug                        1045       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-/LogError                        1068       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-/LogFatal                        1093       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-/LogNormal                       1098       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-/LogWarning                      1083       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-/MsgLog                          1077       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+/LogDebug                        1109       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+/LogError                        1112       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+/LogFatal                        1113       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+/LogNormal                       1114       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+/LogWarning                      1111       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+/MsgLog                          1110       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
 A                                1001       ; from ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Add                              1087       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 Address                          1090       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:10
@@ -62,10 +62,16 @@ Launched                         1086       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 Level                            1088       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
 List                             1044       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWClientWP.h:17
 Local                            1051       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MsgAddress.h:12
+LogDebug                         1045       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+LogError                         1068       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+LogFatal                         1093       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+LogNormal                        1098       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+LogWarning                       1083       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
 LoggerWP                         1103       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
 M                                1014       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Max                              1059       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
 #Message                         1064       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:25
+MsgLog                           1077       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
 N                                1015       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Network                          1046       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 O                                1016       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
