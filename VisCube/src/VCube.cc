@@ -40,8 +40,10 @@ VisCube::ConstIterator & VisCube::ConstIterator::operator = (const VisCube::Cons
     cubelock.release();
     VisTile::ConstIterator::operator =(right);
     pcube = right.pcube;
+#ifdef USE_THREADS
     if( pcube )
       cubelock.lock(pcube->mutex());
+#endif
     if( right.cuberef.valid() )
       cuberef.copy(right.cuberef,DMI::READONLY);
     itile = right.itile;
@@ -96,7 +98,9 @@ bool VisCube::ConstIterator::attachTile (int it)
 //##ModelId=3DB964F5025C
 void VisCube::ConstIterator::attachCube (VisCube *cube)
 {
+#ifdef USE_THREADS
   cubelock.lock(cube->mutex());
+#endif
   pcube = cube;
   itile = 0;
   // attach base tile iterator to first tile 
@@ -612,7 +616,7 @@ int VisCube::toBlock (BlockSet& set) const
     ret += format_->toBlock(set);
   // convert tiles
   for( CTI iter = tiles.begin(); iter != tiles.end(); iter++ )
-    ret += iter->deref().toBlock(set);
+    ret += (*iter).deref().toBlock(set);
   // convert header record, if any
   if( header_.valid() )
     ret += header_->toBlock(set);
@@ -784,7 +788,7 @@ const blitz::Array<T,N> & VisCube::getTiledArray( bool on_the_fly,
       // copy over tiles one by one
       for( CTI iter = tiles.begin(); iter != tiles.end(); iter++ )
       {
-        const Array<T,N> &atile = (iter->deref().*accessor)();
+        const Array<T,N> &atile = ((*iter).deref().*accessor)();
         int nt = atile.extent(N-1);
         cache(RectDomain<N>(lbound,ubound)) = atile;
         lbound[N-1] += nt;

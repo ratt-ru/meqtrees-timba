@@ -56,8 +56,10 @@ VisTile::ConstIterator & VisTile::ConstIterator::operator=(const VisTile::ConstI
   {
     tilelock.release();
     ptile = right.ptile;
+#ifdef USE_THREADS
     if( ptile )
       tilelock.lock(ptile->mutex());
+#endif
     if( right.tileref.valid() )
       tileref.copy(right.tileref,DMI::COPYREF|DMI::READONLY);
     ntime = right.ntime;
@@ -78,7 +80,9 @@ void VisTile::ConstIterator::attach (const VisTile &tile)
 {
   tileref.detach();
   ptile = const_cast<VisTile*>(&tile);
+#ifdef USE_THREADS
   tilelock.lock(ptile->mutex());
+#endif
   ntime = ptile->ntime();
   itime = 0;
 }
@@ -88,7 +92,9 @@ void VisTile::ConstIterator::attach (const VisTileRef &ref)
 {
   tileref.copy(ref,DMI::READONLY);
   ptile = const_cast<VisTile*>(tileref.deref_p()); 
+#ifdef USE_THREADS
   tilelock.lock(ptile->mutex());
+#endif
   ntime = ptile->ntime();
   itime = 0;
 }

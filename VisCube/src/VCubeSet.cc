@@ -219,7 +219,7 @@ int VisCubeSet::toBlock(BlockSet &set) const
   
   // convert cubes
   for( CCI iter = cubes.begin(); iter != cubes.end(); iter++ )
-    ret += iter->deref().toBlock(set);
+    ret += (*iter).deref().toBlock(set);
   
   return ret;
 }
@@ -249,7 +249,7 @@ string VisCubeSet::sdebug ( int detail,const string &prefix,
     for( CCI iter = cubes.begin(); iter != cubes.end(); iter++ )
     {
        out += "\n" + prefix + "    ";
-       out += iter->sdebug(detail-1,prefix);
+       out += (*iter).sdebug(detail-1,prefix);
     }
   }
   return out;

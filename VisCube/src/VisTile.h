@@ -1,3 +1,25 @@
+//  VisTile.h: a visibility data tile
+//
+//  Copyright (C) 2002
+//  ASTRON (Netherlands Foundation for Research in Astronomy)
+//  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//  $Id$
+
 #ifndef VisCube_VisTile_h
 #define VisCube_VisTile_h 1
 
@@ -9,8 +31,6 @@
 #include "Common/Lorrays.h"
 #include "Common/Thread/Mutex.h"
 #include "DMI/TypeInfo.h"
-
-
 
 // check for sanity
 #if !LORRAYS_USE_BLITZ && !LORRAYS_USE_AIPSPP
@@ -42,6 +62,7 @@ class VisCube;
   Do(double,1,uvw,UVW); \
   Do(fcomplex,2,data,DATA); \
   Do(fcomplex,2,predict,PREDICT); \
+  Do(fcomplex,2,residuals,RESIDUALS); \
   Do(int,2,flags,FLAGS);
 
 
@@ -125,6 +146,7 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
         WEIGHT,
         SEQNR,
         PREDICT,
+        RESIDUALS,
         MAXCOL
       } Columns;
         
