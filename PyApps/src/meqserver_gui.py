@@ -14,15 +14,21 @@ from app_browsers import *
 
 # ---------------- TODO -----------------------------------------------------
 # Bugs:
+#   In dmi_repr, array stats do not always use the right func
 #   Tree browser not always enabled! (Hello message lost??)
 #   + Numarray indexing order is different! fixed converter
+#   + Refresh of tree view with an empty forest list throws exception
 #
 # Minor fixes:
+#   Do not compare result records, only state updates (and only if too recent)
+#   Improve result labels, name them snapshots
 #   Disorderly thread error or SEGV on exit
 #   Why can't we exit with CTRL+C?
+#   + Fix comparison of records and snapshots in Node Browser
 #   + Enable drop on "show viewer" button
 #
 # Enhancements:
+#   Context menu for Tree Browser
 #   Option to specify udi directly in HierBrowser
 #   Drop of a dataitem can create a cell with multiple items (think,
 #       e.g., several 1D plots), if the viewer object supports it.
@@ -48,7 +54,7 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
     # parse the udi
     (name,ni) = meqds.parse_node_udi(dataitem.udi);
     if ni is None:
-      node = meqds.nodelist[name];
+      node = meqds.nodelist[name or dataitem.data.name];
     else:
       node = meqds.nodelist[ni];
     self._default_open = default_open;
@@ -326,7 +332,7 @@ class meqserver_gui (app_proxy_gui):
       name = ('name' in value and value.name) or '<unnamed>';
       cls  = ('class' in value and value['class']) or '?';
       rqid = 'request_id' in value and str(value.request_id);
-      txt = ''.join((name,' <',cls,'>'));
+      txt = ''.join((name,' <',cls.lower(),'>'));
       desc = 'result';
       if rqid:
         txt = ''.join((txt,' rqid:',rqid));

@@ -7,6 +7,8 @@ import app_proxy_gui
 import weakref
 import sets
 import re
+import gc
+import types
 
 dbg = verbosity(3,name='gw');
 
@@ -248,9 +250,8 @@ class GridCell (object):
       
   def __init__ (self,parent):
     # init state
-    self._viewer = None;
+    self._viewer = self._viewer_widget = self._dataitem = None;
     self._refresh_func = lambda:None;
-    self._dataitem = None;
     
     self._highlight_colors = \
       (QApplication.palette().active().highlight(),\
@@ -260,7 +261,7 @@ class GridCell (object):
     # init widgets
     wtop = self._wtop = self.TopLevelWidget(parent);
     wtop.hide();
-    top_lo = QVBoxLayout(self._wtop);
+    top_lo = self._top_lo = QVBoxLayout(self._wtop);
     control_box = self._control_box = QWidget(self._wtop);
     control_lo = QHBoxLayout(control_box);
     # icon button
@@ -311,11 +312,10 @@ class GridCell (object):
     control_lo.addStretch();
     control_lo.addWidget(close);
 
-    # add a widget stack to the top-level layout
-    self._wstack = QWidgetStack(self._wtop);
+    # add a widget holder (for viewer) to the top-level layout
     top_lo.addWidget(control_box,0);
     top_lo.addStretch(1);
-    top_lo.addWidget(self._wstack,1000);
+#    top_lo.addWidget(self._viewer_holder,1000);
     top_lo.setResizeMode(QLayout.Minimum);
    
     # other init
@@ -402,18 +402,25 @@ class GridCell (object):
 
   def _dorefresh (self):
     self._refresh_func();
+    
+  def _remove_viewer (self):
+    self._viewer = None;
+    if self._viewer_widget:
+      dum = QWidget();
+      self._viewer_widget.reparent(dum, 0, QPoint())
+      self._viewer_widget = None;
 
   # wipe: deletes contents in preperation for inserting other content
   def wipe (self):
+    print 'wiping ',id(self);
     dbg.dprint(5,'GridCell: wiping cell ',self.udi());
     self.set_pinned(False);
-    if self._viewer:
-      self._wstack.removeWidget(self._viewer.wtop());
+    self._remove_viewer();
     if self._dataitem:
       self._dataitem.detach_cell(self);
-    self._dataitem = self._viewer = None;
+    self._dataitem = None;
     self._refresh_func = lambda:None;
-    self._wstack.hide();
+#    self._viewer_holder.hide();
     self.wtop().emit(PYSIGNAL("wiped()"),(self,));
     self.wtop().set_context_menu(None);
 
@@ -438,7 +445,9 @@ class GridCell (object):
   MaxDescLen = 40;
 
   def set_data_item (self,dataitem,pin=None,viewer=None):
+    print 'content:',self._dataitem;
     if not self.is_empty():
+      print 'wiping';
       self.wipe();
     dataitem.attach_cell(self);
     self._dataitem = dataitem;
@@ -473,35 +482,11 @@ class GridCell (object):
       self._pin.setOn(pin);
     # disable cell if no data yet
     self.disable(dataitem.data is None);
-    # display everything
-    self._wtop.updateGeometry();
-    self._wstack.show();
-    self._wtop.show();
     
   def change_viewer (self,viewer_class,dum=None,viewopts={}):
              # note: dum argument is needed to make this function callable
              # from popupMenu(), since that passes an extra arg 
-    # remove old viewer
-    if self._viewer:
-      self._wstack.removeWidget(self._viewer.wtop());
-      self._viewer = None;
-    # rebuild the menu
-    self.rebuild_menu();
-    self._viewers_menu.clear();
-    self._viewers_proc = [];
-    if len(self._dataitem.viewer_list) > 1:
-      for v in self._dataitem.viewer_list:
-        # create entry for viewer
-        name = getattr(v,'viewer_name',v.__name__);
-        try: icon = v.icon();
-        except AttributeError: icon = QIconSet();
-        func = curry(self.change_viewer,v);
-        self._viewers_proc.append(func);
-        mid = self._viewers_menu.insertItem(icon,name,func);
-        self._viewers_menu.setItemChecked(mid,v is viewer_class);
-      self._menu.setItemEnabled(self._m_viewers,True);
-    else:
-      self._menu.setItemEnabled(self._m_viewers,False);
+    self._wtop.hide();
     # build dict of extra viewer options
     vopts = viewopts.copy();
     vopts.update(self._dataitem.viewopts.get(None,{}));
@@ -509,43 +494,81 @@ class GridCell (object):
       print vclass,viewer_class;
       if vclass and issubclass(viewer_class,vclass):
         vopts.update(vo);
-    # create a viewer, add data if specified
-    self._viewer_class = viewer_class;
-    self._viewer = viewer = viewer_class(self.wtop(),dataitem=self._dataitem,
-          context_menu=self._menu,**vopts);
-    widget = viewer.wtop();
-    # connect displayDataItem() signal from viewer to be resent from top widget
-    QWidget.connect(widget,PYSIGNAL("displayDataItem()"),
-                    self.wtop(),PYSIGNAL("displayDataItem()"));
-    # add viewer widget to cell
-    self._wstack.addWidget(widget);
-    self._wstack.raiseWidget(widget);
-    
-    # create an icon set for the menu button
-    try: icon = viewer_class.icon();
-    except AttributeError: icon = pixmaps.magnify.iconset();
-    self._iconbutton.setIconSet(icon);
+    # create a viewer
+    try:
+      viewer = viewer_class(self.wtop(),dataitem=self._dataitem,
+                            context_menu=self._menu,**vopts);
+    # catch failures
+    except:
+      ei = sys.exc_info();
+      print 'Error creating a plug-in viewer of class',viewer,'for item',self._dataitem.udi;
+      print 'Exception is:',ei;
+      traceback.print_tb(ei[2]);
+      if not self._viewer:
+        txt = "(Error creating %s)"%str(viewer_class);
+        self._viewer_widget = self._viewer = QLabel(txt,self.wtop());
+        self._top_lo.addWidget(self._viewer_widget,1000);
+    else:
+      self._remove_viewer();
+      # insert new
+      self._viewer_class = viewer_class;
+      self._viewer = viewer;
+      self._viewer_widget = widget = viewer.wtop();
+      self._top_lo.addWidget(widget,1000);
+      print 'widget added';
+      # connect displayDataItem() signal from viewer to be resent from top widget
+      QWidget.connect(widget,PYSIGNAL("displayDataItem()"),
+                      self.wtop(),PYSIGNAL("displayDataItem()"));
+#      # add viewer widget to cell
+#      self._wstack.addWidget(widget);
+#      self._wstack.raiseWidget(widget);
+      # create an icon set for the menu button
+      try: icon = viewer_class.icon();
+      except AttributeError: icon = pixmaps.magnify.iconset();
+      self._iconbutton.setIconSet(icon);
+      # rebuild the menu
+      self.rebuild_menu();
+      self._viewers_menu.clear();
+      self._viewers_proc = [];
+      if len(self._dataitem.viewer_list) > 1:
+        for v in self._dataitem.viewer_list:
+          # create entry for viewer
+          name = getattr(v,'viewer_name',v.__name__);
+          try: icon = v.icon();
+          except AttributeError: icon = QIconSet();
+          func = curry(self.change_viewer,v);
+          self._viewers_proc.append(func);
+          mid = self._viewers_menu.insertItem(icon,name,func);
+          self._viewers_menu.setItemChecked(mid,v is viewer_class);
+        self._menu.setItemEnabled(self._m_viewers,True);
+      else:
+        self._menu.setItemEnabled(self._m_viewers,False);
+    self._wtop.show();
+    self._refit_size();
     
   def update_data (self,dataitem,flash=True):
+    print 'update data',dataitem;
     if self._viewer:
       self._dataitem = dataitem;
       self._viewer.set_data(dataitem);
+      self._refit_size();
     self.enable();
-    # flash the refresh button, if it's visible
     if flash:
-#      if self._highlight:
-#        self._iconbutton.unsetPalette();
-#      else:
       self._iconbutton.setPaletteBackgroundColor(self._highlight_colors[0]);
       self._iconbutton.setPaletteForegroundColor(self._highlight_colors[1]);
       QTimer.singleShot(500,self._unflash);
       
   def _unflash (self):
-#    if self._highlight:
-#      self._iconbutton.setPaletteBackgroundColor(self._highlight_colors[0]);
-#      self._iconbutton.setPaletteForegroundColor(self._highlight_colors[1]);
-#    else:
       self._iconbutton.unsetPalette();
+      
+  def _refit_size (self):
+    """ugly kludge to get the layout system to do its stuff properly after
+    viewer widget has been inserted.""";
+    topwidget = self.wtop().topLevelWidget();
+    sz = topwidget.size();
+    topwidget.resize(sz.width(),sz.height()+1);
+    topwidget.resize(sz);
+  
     
 # ====== GriddedPage ===========================================================
 # manages one page of a gridded workspace
@@ -901,9 +924,11 @@ class GriddedWorkspace (object):
       cell.set_data_item(item,viewer=viewer);
       # ask for a refresh
       item.refresh();
-      cell.wtop().updateGeometry();
-      # self.wtop().updateGeometry();
       disp_cells.append(cell); # will highlight below
+      # ugly kludge to make cell size itself properly
+#      topwidget = self.wtop().topLevelWidget();
+#      sz = topwidget.size();
+#      topwidget.resize(sz.width(),sz.height()+10);
     # highlight all cells displaying this item
     self.highlight_cells(disp_cells);
     self.wtop().emit(PYSIGNAL("addedDataItem()"),(item,));

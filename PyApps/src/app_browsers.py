@@ -321,7 +321,7 @@ class HierBrowser (object):
 #    self._lv.connect(self._lv,SIGNAL('doubleClicked(QListViewItem*)'),
 #                     self.display_item);
     # connect the get_data_item method for drag-and-drop
-    self._lv.get_data_item = self.get_data_item;
+    self._lv.get_data_item = WeakInstanceMethod(self.get_data_item);
     # this serves as a list of active items.
     # Populated in Item constructor, and also used by apply_limit, etc.
     self._lv._content_list = [];

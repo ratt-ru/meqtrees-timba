@@ -61,25 +61,27 @@ class NodeList (object):
     self._namemap = {};
     self._classmap = {};
     # iterate over all nodes in list
-    for ni in meqnl.nodeindex:
-      # insert node into list (or use old one: may have been inserted below)
-      node = self._nimap.setdefault(ni,self.Node(ni));
-      node.name      = iter_name.next();
-      node.classname = iter_class.next();
-      children  = iter_children.next();
-      if isinstance(children,dict):
-        node.children = tuple(children.iteritems());
-      else:
-        node.children = tuple(enumerate(children));
-      # for all children, init node entry in list (if necessary), and
-      # add to parent list
-      for (i,ch_ni) in node.children:
-        self._nimap.setdefault(ch_ni,self.Node(ch_ni)).parents.append(ni);
-      # add to name map
-      self._namemap[node.name] = node;
-      # add to class map
-      self._classmap.setdefault(node.classname,[]).append(node);
-    # compose list of root (i.e. parentless) nodes
+    # (0,) is a special case of an empty list (see bug in DMI/DataField.cc)
+    if meqnl.nodeindex != (0,):
+      for ni in meqnl.nodeindex:
+        # insert node into list (or use old one: may have been inserted below)
+        node = self._nimap.setdefault(ni,self.Node(ni));
+        node.name      = iter_name.next();
+        node.classname = iter_class.next();
+        children  = iter_children.next();
+        if isinstance(children,dict):
+          node.children = tuple(children.iteritems());
+        else:
+          node.children = tuple(enumerate(children));
+        # for all children, init node entry in list (if necessary), and
+        # add to parent list
+        for (i,ch_ni) in node.children:
+          self._nimap.setdefault(ch_ni,self.Node(ch_ni)).parents.append(ni);
+        # add to name map
+        self._namemap[node.name] = node;
+        # add to class map
+        self._classmap.setdefault(node.classname,[]).append(node);
+      # compose list of root (i.e. parentless) nodes
     self._rootnodes = [ node for node in self._nimap.itervalues() if not node.parents ];
     
 #  __init__ = busyCursorMethod(__init__);
@@ -146,22 +148,6 @@ def parse_node_udi (udi):
 def set_meqserver (mqs1):
   global mqs;
   mqs = weakref.proxy(mqs1);
-
-class WeakInstanceMethod (object):
-  # return value indicating call of a weakinstancemethod whose object
-  # has gone
-  DeadRef = object();
-  def __init__ (self,method):
-    if type(method) != types.MethodType:
-      raise TypeError,"weakinstancemethod must be constructed from an instancemethod";
-    (self.im_func,self.im_self) = (method.im_func,weakref.ref(method.im_self));
-  def __nonzero__ (self):
-    return self.im_self() is not None;
-  def __call__ (self,*args,**kwargs):
-    obj = self.im_self();
-    if obj is None:
-      return self.DeadRef;
-    return self.im_func(obj,*args,**kwargs);
 
 def reclassify_nodestate (nodestate):
   nodestate.__class__ = NodeClass(nodestate['class']);
