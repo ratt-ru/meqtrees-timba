@@ -44,6 +44,10 @@ SUFFIXES = .idl
 	mv $*_cs.lo $*.lo
 
 
+# Rules for preprocessing Qt sources.
+%.moc.cc: %.h
+	$(QT_DIR)/bin/moc $< -o $@
+
 
 # Rules for building documentation using doxygen or doc++.
 # Default output directory is docxxhtml.
