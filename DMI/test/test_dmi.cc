@@ -2,6 +2,7 @@
 #include "DMI/TID-DMI.h"
 #include "DMI/DataRecord.h"
 #include "DMI/DataArray.h"
+#include "DMI/BOIO.h"
     
 #define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
     
@@ -290,6 +291,28 @@ void TestDataRecord ()
   cerr<<"Checking transparent array indexing\n";
   rec["X.Y.Z"] <<= new DataArray(Tpdouble,IPosition(1,10),DMI::ZERO);
   Assert(rec["X.Y.Z/0"][0].as_double() == 0);
+  
+  cerr<<"======================= testing BOIO\n";
+  cerr<<"======================= writing\n";
+  BOIO boio("test.boio",BOIO::WRITE);
+  boio << rec << rec["X"].as_DataField();
+  boio.close();
+  
+  cerr<<"======================= reading\n";
+  boio.open("test.boio",BOIO::READ);
+  ObjRef ref;
+  while( boio>>ref )
+  {
+    cerr<<"Read object of type "<<ref->objectType().toString()<<endl;
+    cerr<<ref->sdebug(10)<<endl;
+  }
+  boio.close();
+  
+  cerr<<"======================= finished reading\n";
+  
+  boio.close();
+  
+  
   
   cerr<<"======================= exiting\n";
 }

@@ -3,6 +3,7 @@ DOCHDRS		 	=	\
 AtomicID.h			\
 BlockSet.h			\
 BlockableObject.h		\
+BOIO.h \
 Common.h			\
 ConfigMgr.h \
 CountedRef.h			\
@@ -29,6 +30,7 @@ AID-DMI-Registry.cc		\
 AtomicID.cc			\
 BlockSet.cc			\
 BlockableObject.cc		\
+BOIO.cc \
 ConfigMgr.cc \
 CountedRefBase.cc		\
 CountedRefTarget.cc		\

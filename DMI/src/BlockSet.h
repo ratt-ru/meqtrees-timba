@@ -146,6 +146,9 @@ class BlockSet
 
     // Additional Public Declarations
       //## begin BlockSet%3BEA80A703A9.public preserve=yes
+      BlockRef & operator [] (int i);
+      const BlockRef & operator [] (int i) const;
+      
       // This is a typical debug() method setup. The sdebug()
       // method creates a debug info string at the given level of detail.
       // If detail<0, then partial info is returned: e.g., for detail==-2,
@@ -224,6 +227,15 @@ inline const BlockRef & BlockSet::back () const
 }
 
 //## begin module%3C10CC810231.epilog preserve=yes
+inline BlockRef & BlockSet::operator [] (int i)
+{
+  return refs[i];
+}
+
+inline const BlockRef & BlockSet::operator [] (int i) const
+{
+  return refs[i];
+}
 //## end module%3C10CC810231.epilog
 
 
