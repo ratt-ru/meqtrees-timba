@@ -80,7 +80,8 @@ namespace OctoPython
   // Returns 1 on success, or throws an exception on 
   // error (if a Python exception is also raised, this will be a 
   // PythonException, otherwise another std::exception)
-  int pyToDMI     (ObjRef &objref,PyObject *obj,int sepos=0,int seqlen=0);
+  int pyToDMI     (ObjRef &objref,PyObject *obj,
+                   TypeId objtype=TypeId(0),DMI::Vec *pvec0=0,int pvec_pos=0);
   int pyToRecord  (DMI::Record::Ref &rec,PyObject *pyobj);
   int pyToArray   (DMI::NumArray::Ref &arr,PyObject *pyobj);
   int pyToMessage (Message::Ref &msg,PyObject *pyobj);

@@ -225,7 +225,7 @@ int Forest::getNodeList (DMI::Record &list,int content)
   int num = num_valid_nodes;
   // create lists (arrays) for all known content
   DMI::Vec *lni=0,*lname=0,*lclass=0,*lstate=0;
-  DMI::List *lchildren=0;
+  DMI::List *lchildren=0,*lstepchildren=0;
   if( content&NL_NODEINDEX )
     list[AidNodeIndex] <<= lni = new DMI::Vec(Tpint,num);
   if( content&NL_NAME )
@@ -233,7 +233,10 @@ int Forest::getNodeList (DMI::Record &list,int content)
   if( content&NL_CLASS )
     list[AidClass] <<= lclass = new DMI::Vec(Tpstring,num);
   if( content&NL_CHILDREN )
+  {
     list[AidChildren] <<= lchildren = new DMI::List;
+    list[AidStep|AidChildren] <<= lstepchildren = new DMI::List;
+  }
   if( content&NL_CONTROL_STATUS )
     list[FControlStatus] <<= lstate = new DMI::Vec(Tpint,num);
   if( num )
@@ -255,11 +258,8 @@ int Forest::getNodeList (DMI::Record &list,int content)
           (*lstate)[i0] = node.getControlStatus();
         if( lchildren )
         {
-          ObjRef ref = node.state()[FChildren].ref(true);
-          if( ref.valid() )
-            lchildren->addBack(ref);
-          else
-            lchildren->addBack(new DMI::Vec); // empty vec if no children
+          lchildren->addBack(node.state()[FChildren].ref(true));
+          lstepchildren->addBack(node.state()[FStepChildren].ref(true));
         }
         i0++;
       }

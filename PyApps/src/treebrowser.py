@@ -25,7 +25,7 @@ class AppState (object):
 class TreeBrowser (QObject):
 
   class NodeItem (QListViewItem):
-    def __init__(self,tb,node,name,parent,after):
+    def __init__(self,tb,node,name,parent,after,stepchild=False):
       QListViewItem.__init__(self,parent,after,name);
       # fill basic listview stuff
       self.setText(tb.icolumn("class"),str(node.classname));
@@ -41,6 +41,7 @@ class TreeBrowser (QObject):
       self._udi  = meqds.node_udi(node);
       self._callbacks = [];
       self._menu_actions = [];
+      self._stepchild = stepchild;
       self._cg_name = self._color_group = None;
       # add ourselves to the item list for this node
       if not hasattr(node,'_tb_items'):
@@ -80,6 +81,8 @@ class TreeBrowser (QObject):
       elif not control_status&meqds.CS_ACTIVE or \
            result_status in (meqds.CS_RES_WAIT,meqds.CS_RES_MISSING): 
         self._cg_name = "disabled";
+      elif self._stepchild:
+        self._cg_name = "stepchild";
       else:
         self._cg_name = None;
       # call update_debug to complete setting of color group (debug state
@@ -151,6 +154,10 @@ class TreeBrowser (QObject):
         node = meqds.nodelist[ni];
         name = str(key) + ": " + node.name;
         i1 = self.__class__(self.tb,node,name,self,i1);
+      for ni in self.node.step_children:
+        node = meqds.nodelist[ni];
+        name = "(" + node.name +")";
+        i1 = self.__class__(self.tb,node,name,self,i1,stepchild=True);
       self._expanded = True;
       
     def xcurry (self,*args,**kwargs):
@@ -287,6 +294,9 @@ class TreeBrowser (QObject):
     for stopped in stopcolor.keys():
       # color group for normal nodes
       self._cg[(None,stopped)] = self._new_colorgroup(stopcolor[stopped]);
+      # color groups for stepchildren
+      self._cg[("stepchild",stopped)] = \
+        self._new_colorgroup(stopcolor[stopped],QColor("grey40"));
       # color groups for nodes with missing data
       self._cg[("disabled",stopped)] = \
         self._new_colorgroup(stopcolor[stopped],QColor("grey50"));

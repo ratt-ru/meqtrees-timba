@@ -91,7 +91,7 @@ CS_RES_map = {  CS_RES_NONE:     ('-','valid result'),
  
 # this class defines and manages a node list
 class NodeList (object):
-  NodeAttrs = ('name','class','children','control_status');
+  NodeAttrs = ('name','class','children','step_children','control_status');
   RequestRecord = srecord(**dict.fromkeys(NodeAttrs,True));
   RequestRecord.nodeindex=True;
   RequestRecord.get_forest_status=True;
@@ -103,6 +103,7 @@ class NodeList (object):
       self.name = None;
       self.classname = None;
       self.children = [];
+      self.step_children = [];
       self.parents  = [];
       self.request_id = None;
       self.breakpoint = 0;
@@ -176,6 +177,7 @@ class NodeList (object):
     iter_name     = iter(meqnl.name);
     iter_class    = iter(meqnl['class']);
     iter_children = iter(meqnl.children);
+    iter_step_children = iter(meqnl.step_children);
     iter_cstate   = iter(meqnl.control_status);
     self._nimap = {};
     self._namemap = {};
@@ -190,13 +192,24 @@ class NodeList (object):
         node.classname = iter_class.next();
         node.update_status(iter_cstate.next());
         children  = iter_children.next();
-        if isinstance(children,dict):
+        step_children  = iter_step_children.next();
+        # set children
+        if children is None:
+          node.children = ();
+        elif isinstance(children,dict):
           node.children = tuple(children.iteritems());
         else:
           node.children = tuple(enumerate(children));
+        # set step_children
+        if step_children is None:
+          node.step_children = ();
+        else:
+          node.step_children = step_children;
         # for all children, init node entry in list (if necessary), and
         # add to parent list
         for (i,ch_ni) in node.children:
+          self._nimap.setdefault(ch_ni,self.Node(ch_ni)).parents.append(ni);
+        for ch_ni in node.step_children:
           self._nimap.setdefault(ch_ni,self.Node(ch_ni)).parents.append(ni);
         # add to name map
         self._namemap[node.name] = node;

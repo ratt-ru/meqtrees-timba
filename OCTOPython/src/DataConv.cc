@@ -16,7 +16,7 @@ namespace OctoPython {
     
 PyClassObjects py_class = {0,0,0,0,0,0};
 
-const char dmi_type_tag[] = "__dmi_type";
+char * DMI_TYPE_TAG = const_cast<char*>("__dmi_type");
 
 // -----------------------------------------------------------------------
 // convertSeqToHIID
@@ -124,7 +124,7 @@ inline string ObjStr (const PyObject *obj)
 }
 
 // createSubclass:
-// Helper templated function. If the dmi_type_tag attribute exists, it is 
+// Helper templated function. If the DMI_TYPE_TAG attribute exists, it is 
 // interpreted as a type string, and an object of that type is created and 
 // returned  (must be a subclass of Base). Otherwise, a Base is created. 
 // If val::dmi_actual_type is not a legal type string, or not a subclass of Base,
@@ -133,13 +133,13 @@ template<class Base>
 static Base * createSubclass (PyObject *pyobj)
 {
   Base *pbase;
-  // the dmi_type_tag attribute specifies a subclass 
-  PyObjectRef dmitype = PyObject_GetAttrString(pyobj,const_cast<char*>(dmi_type_tag));
+  // the DMI_TYPE_TAG attribute specifies a subclass 
+  PyObjectRef dmitype = PyObject_GetAttrString(pyobj,DMI_TYPE_TAG);
   if( dmitype )
   {
     char *typestr = PyString_AsString(*dmitype);
     if( !typestr )
-      throwError(Value,string(dmi_type_tag)+" attribute is not a string");
+      throwError(Value,string(DMI_TYPE_TAG)+" attribute is not a string");
     dprintf(4)("real object type is %s\n",typestr);
     DMI::BObj * bo = DynamicTypeManager::construct(TypeId(typestr));
     pbase = dynamic_cast<Base *>(bo);
@@ -294,193 +294,221 @@ int pyToArray (DMI::NumArray::Ref &arref,PyObject *pyobj)
   return 1;
 }
 
-// -----------------------------------------------------------------------
-// makeField
-// helper function to init/reuse a DMI::Vec, depending on the seqpos/seqlen 
-// arguments.
-// If seqlen>0, will check that objref contains a DF. If seqpos=0, will init
-// that field with 'type', else check for type mismatch. 
-// If seqlen=0, will simply init a scalar DF of the given type.
-// Returns DF &, or throws/raises a TypeError on type mismatch.
-// Can also throw something on other failure.
-// -----------------------------------------------------------------------
-static DMI::Vec & makeField (ObjRef &objref,int seqpos,int seqlen,TypeId type)
+// returns DMI TypeId corresponding to python object
+// TpDMIObjRef for None objects
+// TpDMIList for sequence objects
+// 0 if unmappable type
+TypeId pyToDMI_Type (PyObject *obj)
 {
-  string objstr = 
-      Debug(4) ? ssprintf("PyToDMI-mf(%s,%d,%d): ",type.toString().c_str(),seqpos,seqlen) : string();
-  DMI::Vec *pdf; 
-  if( seqlen )
-  {
-    pdf = dynamic_cast<DMI::Vec *>(objref.dewr_p());
-    FailWhen(!pdf,"seqlen>0 but objref is not a DMI::Vec");
-    if( !seqpos )
-    {
-      cdebug(4)<<objstr<<"initializing new df("<<type<<","<<seqlen<<")\n";
-      pdf->init(type,seqlen);
-    }
-    else if( pdf->type() != type )
-    {
-      cdebug(4)<<objstr<<"error assigning "<<type<<" to df("<<pdf->type()<<")\n";
-      throwError(Type,"pyToDMI: mixed-type sequences not supported");
-    }
-  }
-  else
-  {
-    cdebug(4)<<objstr<<"creating scalar df("<<type<<")\n";
-    objref <<= pdf = new DMI::Vec(type);
-  }
-  return *pdf;
+  if( obj == Py_None ) 
+    return TpDMIObjRef;
+  else if( PyInt_Check(obj) )
+    return Tpint;
+  else if( PyLong_Check(obj) )
+    return Tplong;
+  else if( PyFloat_Check(obj) )
+    return Tpdouble;
+  else if( PyComplex_Check(obj) )
+    return Tpdcomplex;
+  else if( PyString_Check(obj) )
+    return Tpstring;
+  else if( PyObject_IsInstance(obj,py_class.hiid) )
+    return TpDMIHIID;
+  else if( PyObject_IsInstance(obj,py_class.record) ) 
+    return TpDMIRecord;
+  else if( PyObject_IsInstance(obj,py_class.array_class) )
+    return TpDMINumArray;
+  else if( PyObject_IsInstance(obj,py_class.message) )
+    return TpOctopussyMessage;
+  else if( PySequence_Check(obj) )  // process a sequence
+    return TpDMIList;
+  else // non-supported type
+    return 0;
 }
 
 // -----------------------------------------------------------------------
 // pyToDMI
-// converts a Python object to a DMI object
+// converts a Python object to a DMI object reference
 // May be called in two modes, depending on whether the object is
-// part of a sequence or not:
-// (a) seqlen=0: create new container to hold object, return via objref.
-//     This is for objects not part of a sequence.
-// (b) seqlen>0: object is part of a sequence; objref must already contain
-//     a DMI::Vec.
-//     If seqpos=0, init the DMI::Vec with the object type and store at #0
-//     If seqpos>0, check for type consistency, and store at #seqpos.
+// part of a DMI::Vec or not:
+// (a) pvec0=0: create new container to hold object if needed. 
+//     Return via objref.
+// (b) pvec0!=0: object is part of a vec. Insert into pvec0 at position
+//     pvec_pos, and ignore objref. Throw exception on type mismatch.
 // -----------------------------------------------------------------------
-int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
+int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pvec_pos)
 {
   string objstr = 
       Debug(3) ? "PyToDMI("+ObjStr(obj)+"): " : string();
-  cdebug(3)<<objstr<<"called for seq "<<seqpos<<"/"<<seqlen<<endl;
+  cdebug(3)<<objstr<<"called for "<<bool(pvec0)<<"/"<<pvec_pos<<endl;
   // dmi_supported_types =
   // (int,long,float,complex,str,hiid,array_class,record,message);
-  Assert(!seqpos || seqpos<seqlen);
   // this is really a switch calling different kinds of object builders
   DMI::NumArray *parr;
-  if( PyInt_Check(obj) )
+  if( !objtype ) // determine type if not set
+    objtype = pyToDMI_Type(obj);
+  switch( objtype.id() )
   {
-    if( seqlen )
-      makeField(objref,seqpos,seqlen,Tpint)[seqpos] = int( PyInt_AS_LONG(obj) );
-    else
-    {
-      objref <<= parr = new DMI::NumArray(Tpint,LoShape(1));
-      *static_cast<int*>(parr->getDataPtr()) = int( PyInt_AS_LONG(obj) );
-    }
+    case Tpint_int:
+          if( pvec0 )
+            (*pvec0)[pvec_pos] = int( PyInt_AS_LONG(obj) );
+          else
+          {
+            objref <<= parr = new DMI::NumArray(Tpint,LoShape(1));
+            *static_cast<int*>(parr->getDataPtr()) = int( PyInt_AS_LONG(obj) );
+          }
+          break;
+    case Tplong_int:
+          if( pvec0 )
+            (*pvec0)[pvec_pos] = PyLong_AsLong(obj);
+          else // single numeric scalar -- convert to DatArray
+          {
+            objref <<= parr = new DMI::NumArray(Tplong,LoShape(1));
+            *static_cast<long*>(parr->getDataPtr()) = PyLong_AsLong(obj);
+          }
+          if( PyErr_Occurred() )
+          {
+            if( PyErr_ExceptionMatches(PyExc_OverflowError) )
+              throwErrorOpt(Overflow,"overflow in long type");
+            throwErrorOpt(Type,"unexpected error: "+string(PyErr_Occurred()->ob_type->tp_name));
+          }
+          break;
+    case Tpdouble_int:
+          if( pvec0 )
+            (*pvec0)[pvec_pos] = PyFloat_AS_DOUBLE(obj);
+          else
+          {
+            objref <<= parr = new DMI::NumArray(Tpdouble,LoShape(1));
+            *static_cast<double*>(parr->getDataPtr()) = PyFloat_AS_DOUBLE(obj);
+          }
+          break;
+    case Tpdcomplex_int:
+          Py_complex pc = PyComplex_AsCComplex(obj);
+          if( pvec0 )
+            (*pvec0)[pvec_pos] = dcomplex(pc.real,pc.imag);
+          else
+          {
+            objref <<= parr = new DMI::NumArray(Tpdcomplex,LoShape(1));
+            *static_cast<dcomplex*>(parr->getDataPtr()) = dcomplex(pc.real,pc.imag);
+          }
+          break;
+    case Tpstring_int:
+          if( !pvec0 )
+            objref <<= pvec0 = new DMI::Vec(Tpstring);
+          (*pvec0)[pvec_pos] = PyString_AS_STRING(obj);
+          break;
+    case TpDMIHIID_int:
+          { HIID id;
+          pyToHIID(id,obj);
+          if( !pvec0 )
+            objref <<= pvec0 = new DMI::Vec(TpDMIHIID,-1,&id);
+          else
+            (*pvec0)[pvec_pos] = id;
+          } break;
+    case TpDMIObjRef_int:
+          if( pvec0 )
+            pvec0->put(pvec_pos,ObjRef());
+          else
+            objref.detach();
+          break;
+    case TpDMIRecord_int:
+          { DMI::Record::Ref rec;
+          pyToRecord(rec,obj);
+          if( pvec0 )
+            pvec0->put(pvec_pos,rec);
+          else
+            objref <<= rec;
+          } break;
+    case TpDMINumArray_int:
+          { DMI::NumArray::Ref arr;
+          pyToArray(arr,obj);
+          if( pvec0 )
+            pvec0->put(pvec_pos,arr);
+          else
+            objref <<= arr;
+          } break;
+    case TpOctopussyMessage_int:
+          { Message::Ref msg;
+          pyToMessage(msg,obj);
+          if( pvec0 )
+            pvec0->put(pvec_pos,msg);
+          else
+            objref <<= msg;
+          } break;
+    case TpDMIList_int:
+        { int len = PySequence_Size(obj);
+          // for sequences of the same non-dynamic type, use a DMI::Vec
+          // for all other sequences use a DMI::List
+          // scan through list to determine item type
+          TypeId seqtype = 0;
+          bool use_list = false;
+          for( int i=0; i<len; i++ )
+          {
+            PyObjectRef item = PySequence_ITEM(obj,i);
+            TypeId type = pyToDMI_Type(*item);
+            // unsupported
+            if( !type )
+            {
+              string type = item->ob_type->tp_name;
+              cdebug(3)<<objstr<<"type "<<type<<" not supported"<<endl;
+              throwError(Type,"dmi: type "+type+" not supported");
+            }
+            // set sequence type if not set
+            if( !seqtype )
+              seqtype = type;
+            // dynamic types, or null objects (ObjRef), or mismatching types:
+            // use a list instead
+            if( TypeInfo::isDynamic(type) || type == TpDMIObjRef || type != seqtype )
+            {
+              use_list = true;
+              break;
+            }
+          }
+          // now, use list or vector as appropriate
+          ObjRef seqref;
+          if( use_list )
+          {
+            DMI::List *plist = new DMI::List;
+            seqref <<= plist;
+            for( int i=0; i<len; i++ )
+            {
+              cdebug(4)<<objstr<<"converting seq element "<<i<<endl;
+              PyObjectRef item = PySequence_ITEM(obj,i);
+              ObjRef itemref; 
+              pyToDMI(itemref,*item);
+              plist->addBack(itemref);
+            }
+          }
+          else // else using vector
+          {
+            // type will have been set if we have at least one element
+            if( len )
+              Assert(seqtype);
+            // else we'll just init an empty vector
+            DMI::Vec *pvec = seqtype ? new DMI::Vec(seqtype,len) : new DMI::Vec;
+            objref <<= pvec;
+            for( int i=0; i<len; i++ )
+            {
+              cdebug(4)<<objstr<<"converting seq element "<<i<<endl;
+              PyObjectRef item = PySequence_ITEM(obj,i);
+              ObjRef dum;
+              pyToDMI(dum,*item,seqtype,pvec,i);  // this mode causes an insert into vector
+            }
+          }
+          // check if we're actually an item in a DMI::Vec
+          if( pvec0 )
+            pvec0->put(pvec_pos,seqref);
+          else
+            objref <<= seqref;
+          cdebug(3)<<objstr<<"successfully converted seq of "<<len<<" objects\n";
+        }
+        break;
+    default:
+        string type = obj->ob_type->tp_name;
+        cdebug(3)<<objstr<<"type "<<type<<" not supported"<<endl;
+        throwError(Type,"dmi: type "+type+" not supported");
   }
-  else if( PyLong_Check(obj) )
-  {
-    if( seqlen )
-      makeField(objref,seqpos,seqlen,Tplong)[seqpos] = PyLong_AsLong(obj);
-    else // single numeric scalar -- convert to DatArray
-    {
-      objref <<= parr = new DMI::NumArray(Tplong,LoShape(1));
-      *static_cast<long*>(parr->getDataPtr()) = PyLong_AsLong(obj);
-    }
-    // check for overflow
-    if( PyErr_Occurred() )
-    {
-      if( PyErr_ExceptionMatches(PyExc_OverflowError) )
-        throwErrorOpt(Overflow,"overflow in long type");
-      throwErrorOpt(Type,"unexpected error: "+string(PyErr_Occurred()->ob_type->tp_name));
-    }
-  }
-  else if( PyFloat_Check(obj) )
-  {
-    if( seqlen )
-      makeField(objref,seqpos,seqlen,Tpdouble)[seqpos] = PyFloat_AS_DOUBLE(obj);
-    else
-    {
-      objref <<= parr = new DMI::NumArray(Tpdouble,LoShape(1));
-      *static_cast<double*>(parr->getDataPtr()) = PyFloat_AS_DOUBLE(obj);
-    }
-  }
-  else if( PyComplex_Check(obj) )
-  {
-    Py_complex pc = PyComplex_AsCComplex(obj);
-    if( seqlen )
-      makeField(objref,seqpos,seqlen,Tpdcomplex)[seqpos] = dcomplex(pc.real,pc.imag);
-    else
-    {
-      objref <<= parr = new DMI::NumArray(Tpdcomplex,LoShape(1));
-      *static_cast<dcomplex*>(parr->getDataPtr()) = dcomplex(pc.real,pc.imag);
-    }
-  }
-  else if( PyString_Check(obj) )
-  {
-    makeField(objref,seqpos,seqlen,Tpstring)[seqpos] = PyString_AS_STRING(obj);
-  }
-  else if( PyObject_IsInstance(obj,py_class.record) ) // try to convert mappings to DMI::Records
-  {
-    DMI::Record::Ref rec;
-    pyToRecord(rec,obj);
-    if( seqlen )
-      makeField(objref,seqpos,seqlen,TpDMIRecord)[seqpos] <<= rec;
-    else
-      objref <<= rec;
-  }
-  else if( PyObject_IsInstance(obj,py_class.hiid) )
-  {
-    HIID id;
-    pyToHIID(id,obj);
-    makeField(objref,seqpos,seqlen,TpDMIHIID)[seqpos] = id;
-  }
-  else if( PyObject_IsInstance(obj,py_class.array_class) )
-  {
-    DMI::NumArray::Ref arr;
-    pyToArray(arr,obj);
-    if( seqlen )
-      makeField(objref,seqpos,seqlen,TpDMINumArray)[seqpos] <<= arr;
-    else
-      objref <<= arr;
-  }
-  else if( PyObject_IsInstance(obj,py_class.message) )
-  {
-    Message::Ref msg;
-    pyToMessage(msg,obj);
-    if( seqlen )
-      makeField(objref,seqpos,seqlen,TpDMINumArray)[seqpos] <<= msg;
-    else
-      objref <<= msg;
-  }
-  else if( PySequence_Check(obj) )  // process a sequence
-  {
-    // check if we're actually an item in another sequence
-    DMI::Vec *pdf,*pdf0=0; 
-    ObjRef dfref; // this is where the sequence is stored
-    if( seqlen )
-    {
-      pdf0 = &( makeField(objref,seqpos,seqlen,TpDMIVec) );
-      dfref <<= pdf = new DMI::Vec;
-    }
-    else
-    {
-      objref <<= pdf = new DMI::Vec;
-      dfref <<= pdf;
-    }
-    // pdf now points to a new DMI::Vec for our sequence.
-    int len = PySequence_Size(obj);
-    cdebug(3)<<objstr<<"converting seq of "<<len<<" objects\n";
-    // if len=0, we'll be left with an uninitialized DF, which is exactly
-    // what we use to represent an empty sequence
-    for( int i=0; i<len; i++ )
-    {
-      cdebug(4)<<objstr<<"converting seq element "<<i<<endl;
-      PyObjectRef item = PySequence_GetItem(obj,i);
-      pyToDMI(dfref,*item,i,len);
-      // We do not trap any exceptions here:
-      // Failure to convert any item in the sequence (=exception) will be
-      // passed up to caller (i.e. entire sequence will fail).
-    }
-    // success, sequence converted: insert into parent sequence, if required
-    if( pdf0 )
-      (*pdf0)[seqpos] <<= pdf;
-    cdebug(3)<<objstr<<"successfully converted seq of "<<len<<" objects\n";
-  }
-  else // non-supported type
-  {
-    string type = obj->ob_type->tp_name;
-    cdebug(3)<<objstr<<"type "<<type<<" not supported"<<endl;
-    throwError(Type,"dmi: type "+type+" not supported");
-  }
-  // success, objref should be filled
-  Assert(objref.valid());
+  // success
   return 1;
 }
 
@@ -493,7 +521,10 @@ inline PyObject * PyComplex_FromDComplex (const dcomplex &x)
 
 inline PyObject * pyFromObjRef (const ObjRef &ref)
 {
-  return pyFromDMI(*ref);
+  if( ref.valid() )
+    return pyFromDMI(*ref);
+  else
+    return *PyObjectRef(Py_None,true);
 }
 
 // -----------------------------------------------------------------------
@@ -523,6 +554,7 @@ PyObject * pyFromVec (const DMI::Vec &dv)
     if( !tuple )
       throwErrorOpt(Runtime,"failed to create a tuple");
     cdebug(3)<<"pyFromDF: creating tuple of "<<num<<" "<<type<<"s\n";
+    PyObjectRef vectype(PyInt_FromLong(dv.type()));
   }
   // Define macro to extract field contents and assign to tuple, or else
   // return immediately.
@@ -531,36 +563,36 @@ PyObject * pyFromVec (const DMI::Vec &dv)
   // with ref counts.
   #define extractField(pyfunc,hookfunc) \
     { if( tuple ) { \
-        cdebug(4)<<"using "<<num<<" " #pyfunc "(dv[i]." #hookfunc "())\n"; \
+        cdebug(4)<<"using "<<num<<" " #pyfunc "(vec[i]." #hookfunc ")\n"; \
         for( int i=0; i<num; i++ ) \
-          PyTuple_SET_ITEM(*tuple,i,pyfunc(dv[i].hookfunc())); \
+          PyTuple_SET_ITEM(*tuple,i,pyfunc(dv[i].hookfunc)); \
       } else { \
-        cdebug(4)<<"using scalar " #pyfunc "(dv." #hookfunc "())\n"; \
-        return pyfunc(dv[HIID()].hookfunc()); } }
+        cdebug(4)<<"using scalar " #pyfunc "(vec." #hookfunc ")\n"; \
+        return pyfunc(dv[HIID()].hookfunc); } }
   // now proceed depending on object type
   if( typeinfo.category == TypeCategories::NUMERIC )
   {
     if( type == Tpbool )
-      extractField(PyBool_FromLong,as<long>)
+      extractField(PyBool_FromLong,as<long>())
     else if( type < Tpbool && type >= Tplong )
-      extractField(PyInt_FromLong,as<long>)
+      extractField(PyInt_FromLong,as<long>())
     else if( type <= Tpulong && type >= Tplonglong )
-      extractField(PyLong_FromLongLong,as<longlong>)
+      extractField(PyLong_FromLongLong,as<longlong>())
     else if( type == Tpulonglong )
-      extractField(PyLong_FromLongLong,as<ulonglong>)
+      extractField(PyLong_FromLongLong,as<ulonglong>())
     else if( type <= Tpfloat && type >= Tpldouble )
-      extractField(PyFloat_FromDouble,as<double>)
+      extractField(PyFloat_FromDouble,as<double>())
     else if( type <= Tpfcomplex && type >= Tpdcomplex )
-      extractField(PyComplex_FromDComplex,as<dcomplex>)
+      extractField(PyComplex_FromDComplex,as<dcomplex>())
     else
       throwError(Runtime,"unexpected numeric DMI type "+type.toString());
   }
   else if( type == Tpstring )
-    extractField(pyFromString,as<string>)
+    extractField(pyFromString,as<string>())
   else if( type == TpDMIHIID )
-    extractField(pyFromHIID,as<HIID>)
+    extractField(pyFromHIID,as<HIID>())
   else if( typeinfo.category == TypeCategories::DYNAMIC )
-    extractField(pyFromObjRef,ref)
+    extractField(pyFromObjRef,ref(true))
   else
     throwError(Type,"DMI type "+type.toString()+" not supported by Python");
   // if we got here, we've formed a tuple
@@ -582,8 +614,16 @@ PyObject * pyFromList (const DMI::List &dl)
   for( int i=0; i<len; i++ )
   {
     ObjRef content = dl.get(i);
-    cdebug(4)<<"pyFromList: #"<<i<<" is a "<<content->objectType()<<endl;
-    PyList_SET_ITEM(*pylist,i,pyFromDMI(*content,EP_CONV_ERROR));
+    if( content.valid() )
+    {
+      cdebug(4)<<"pyFromList: #"<<i<<" is a "<<content->objectType()<<endl;
+      PyList_SET_ITEM(*pylist,i,pyFromDMI(*content,EP_CONV_ERROR));
+    }
+    else
+    {
+      cdebug(4)<<"pyFromList: #"<<i<<" is a None"<<endl;
+      PyList_SET_ITEM(*pylist,i,*PyObjectRef(Py_None,true));
+    }
   }
   cdebug(3)<<"pyFromList: converted "<<len<<" items\n";
   return ~pylist; // return new ref, stealing from ours
@@ -602,20 +642,28 @@ PyObject * pyFromRecord (const DMI::Record &dr)
     throwErrorOpt(Runtime,"failed to create a record instance");
   for( DMI::Record::const_iterator iter = dr.begin(); iter != dr.end(); iter++ )
   {
-    const ObjRef & content = iter.ref(); 
-    cdebug(4)<<"pyFromRecord: "<<iter.id()<<" contains "<<content->objectType()<<endl;
     string idstr = strlowercase(iter.id().toString('_',false)); // false = do not mark literals with $
-    PyObjectRef value = pyFromDMI(*content,EP_CONV_ERROR);
-    if( value )
+    const ObjRef & content = iter.ref(); 
+    if( content.valid() )
     {
-      cdebug(4)<<"pyFromRecord: setting field "<<idstr<<" from "<<content->objectType()<<endl;
-      // this does not steal our ref
-      PyDict_SetItemString(*pyrec,const_cast<char*>(idstr.c_str()),*value);
+      cdebug(4)<<"pyFromRecord: "<<iter.id()<<" contains "<<content->objectType()<<endl;
+      PyObjectRef value = pyFromDMI(*content,EP_CONV_ERROR);
+      if( value )
+      {
+        cdebug(4)<<"pyFromRecord: setting field "<<idstr<<" from "<<content->objectType()<<endl;
+        // this does not steal our ref
+        PyDict_SetItemString(*pyrec,const_cast<char*>(idstr.c_str()),*value);
+      }
+      else
+      {
+        cdebug(4)<<"pyFromRecord: conversion from "<<content->objectType()<<" failed, skipping field "<<idstr<<endl;
+        // set error value?
+      }
     }
     else
     {
-      cdebug(4)<<"pyFromRecord: conversion from "<<content->objectType()<<" failed, skipping field "<<idstr<<endl;
-      // set error value?
+      cdebug(4)<<"pyFromRecord: "<<iter.id()<<" contains a None"<<endl;
+      PyDict_SetItemString(*pyrec,const_cast<char*>(idstr.c_str()),*PyObjectRef(Py_None,true));    
     }
   }
   cdebug(3)<<"pyFromRecord: converted "<<PyDict_Size(*pyrec)<<" fields\n";
@@ -772,7 +820,7 @@ PyObject * pyFromDMI (const DMI::BObj &obj,int err_policy)
     {
       cdebug(3)<<"pyFromDMI: "<<objtype<<" is a subclass of "<<base_objtype<<endl;
       PyObjectRef type = PyString_FromString(const_cast<char*>(objtype.toString().c_str()));
-      if( PyObject_SetAttrString(*pyobj,const_cast<char*>(dmi_type_tag),*type) < 0 )
+      if( PyObject_SetAttrString(*pyobj,DMI_TYPE_TAG,*type) < 0 )
         throwErrorOpt(Runtime,"failed to set attribute");
     }
     return ~pyobj;

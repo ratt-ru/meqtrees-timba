@@ -22,6 +22,7 @@ namespace GlishUtil
   ImportDebugContext(GlishUtilDebugContext);
   
   casa::GlishArray makeFailField ( const casa::String &msg );
+  casa::GlishArray makeMissingValue ();
 
   bool makeGlishArray (casa::GlishArray &arr,const DMI::Container &nc,DMI::TypeId tid,bool adjustIndex);
     

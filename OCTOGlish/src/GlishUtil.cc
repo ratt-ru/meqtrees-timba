@@ -47,6 +47,13 @@ GlishArray GlishUtil::makeFailField ( const String &msg )
   return arr;
 }
 
+GlishArray GlishUtil::makeMissingValue ()
+{
+  GlishArray arr(False);
+  arr.addAttribute("dmi_none_value",GlishArray(true));
+  return arr;
+}
+
 // helper function to convert a container into a Glish array
 bool GlishUtil::makeGlishArray (GlishArray &arr,const DMI::Container &nc,TypeId tid,bool isIndex )
 {
@@ -123,7 +130,10 @@ GlishRecord GlishUtil::recToGlish (const DMI::Record &rec)
     bool adjustIndex = isIndexString(name);
     try
     {
-      glrec.add(name,objectToGlishValue(*content,adjustIndex));
+      if( content.valid() )
+        glrec.add(name,objectToGlishValue(*content,adjustIndex));
+      else
+        glrec.add(name,makeMissingValue());
     }
     // catch all exceptions and convert them to "fail" fields
     catch( std::exception &exc )
@@ -151,7 +161,7 @@ casa::GlishValue GlishUtil::objectToGlishValue (const DMI::BObj &obj,bool adjust
   // 1. DMI::Record or descendant: map to a record
   // 2. DMI::Vec or descendant:
   //    2.1. Glish type: maps field to 1D array or scalar
-  //    2.2. Container type: recursively map to record of records 
+  //    2.2. Object type: recursively map to record of stuff
   //    2.3. Other type: map to blockset (see 4)
   //    2.4. Invalid (empty) field: maps to [] array
   // 3. DMI::NumArray
@@ -197,14 +207,17 @@ casa::GlishValue GlishUtil::objectToGlishValue (const DMI::BObj &obj,bool adjust
         return arr;
       }
     }
-    else if( DMI::Container::isNestable(fieldtype) ) // case (2.2)
+    else if( TypeInfo::isDynamic(fieldtype) ) // case (2.2)
     {
       // map to record of records, with fields "#1", "#2", etc.
       GlishRecord subrec;
       for( int i=0; i<vec.mysize(); i++ )
       {
         ObjRef ref = vec.getObj(i);
-        subrec.add(ssprintf("#%d",i+1),objectToGlishValue(*ref,adjustIndex));
+        if( ref.valid() )
+          subrec.add(ssprintf("#%d",i+1),objectToGlishValue(*ref,adjustIndex));
+        else
+          subrec.add(ssprintf("#%d",i+1),makeMissingValue());
       }
       subrec.addAttribute("dmi_actual_type",GlishArray(type_string));
       subrec.addAttribute("dmi_vec_content_type",GlishArray(vec.type().toString()));
@@ -224,7 +237,10 @@ casa::GlishValue GlishUtil::objectToGlishValue (const DMI::BObj &obj,bool adjust
     for( int i=0; i<list.numItems(); i++ )
     {
       DMI::ObjRef ref = list.get(i);
-      rec.add(ssprintf("#%d",i+1),objectToGlishValue(*ref,adjustIndex));
+      if( ref.valid() )
+        rec.add(ssprintf("#%d",i+1),objectToGlishValue(*ref,adjustIndex));
+      else
+        rec.add(ssprintf("#%d",i+1),makeMissingValue());
     }
     rec.addAttribute("dmi_actual_type",GlishArray(type_string));
     rec.addAttribute("dmi_is_dmilist",GlishArray(true));
@@ -449,7 +465,14 @@ ObjRef GlishUtil::glishValueToObject (const casa::GlishValue &val,bool adjustInd
     if( shape.nelements() == 1 && shape[0] == 0 )
     {
       dprintf(4)("converting empty GlishArray to empty DMI::Vec\n");
-      return ObjRef(new DMI::Vec,DMI::ANONWR);
+      return ObjRef(new DMI::Vec);
+    }
+    // missing (NONE) values map to null ObjRefs
+    else if( shape.nelements() == 1 && shape[0] == 1 &&  
+             arr.elementType() == GlishArray::BOOL && 
+             val.attributeExists("dmi_none_value") )
+    {
+      return ObjRef();
     }
     // string arrays, or 1D arrays marked as a vec (or as with the
     // "dmi_is_hiid" attribute) always map to a DMI::Vec
