@@ -98,6 +98,7 @@ bool ConfigMgr::save (string fname, bool nothrow)
     fprintf(f,"%s %s\n",iter->first.c_str(),iter->second.c_str());
   fclose(f);
   dprintf(2)("%d config_ entries saved to %s\n",config_.size(),fname.c_str());
+  return True;
   //## end ConfigMgr::save%80D7E19EFEED.body
 }
 
