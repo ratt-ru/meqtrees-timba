@@ -131,8 +131,8 @@ public:
   LoMat_dcomplex& getComplexArray()
     { return *itsComplexArray; }
 
-  void init()
-    { if (isReal()) getRealArray()=0.; else getComplexArray()=0.; }
+  void init (double val)
+    { if (isReal()) getRealArray()=val; else getComplexArray()=dcomplex(val); }
 
   const double* realStorage() const
     { return getRealArray().data(); }
