@@ -531,6 +531,29 @@
 			    type       	"string"))
 		    concurrency 	"Sequential"
 		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "print"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E01B4A900A8"
+		    stereotype 	"const"
+		    parameters 	(list Parameters
+			(object Parameter "str"
+			    quid       	"3E01B4AA0092"
+			    type       	"std::ostream &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "print"
+		    quid       	"3E01BE06024F"
+		    stereotype 	"const"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
 		    uid        	0))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "aid"
@@ -3463,6 +3486,22 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
+		(object Operation "print"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E01AD45000B"
+		    stereotype 	"const"
+		    parameters 	(list Parameters
+			(object Parameter "str"
+			    quid       	"3E01AD450044"
+			    type       	"std::ostream &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
 		(object Operation "HIIDSize"
 		    attributes 	(list Attribute_Set
 			(object Attribute
@@ -3499,6 +3538,13 @@
 		    result     	"void"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Private"
+		    uid        	0)
+		(object Operation "print"
+		    quid       	"3E01BA7A02AF"
+		    stereotype 	"const"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
 		    uid        	0))
 	    module     	"Component View::DMI"
 	    quidu      	"3DB9342D017D"
@@ -7789,6 +7835,24 @@
 		    protocol   	"C++"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Protected"
+		    uid        	0)
+		(object Operation "print"
+		    quid       	"3E01B0C403E3"
+		    stereotype 	"const"
+		    parameters 	(list Parameters
+			(object Parameter "str"
+			    quid       	"3E01B0C50282"
+			    type       	"std::ostream &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "print"
+		    quid       	"3E01BE0603A1"
+		    stereotype 	"const"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
 		    uid        	0))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "locked"
@@ -8176,6 +8240,29 @@
 		    result     	"const char *"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "print"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3E01B0CE01E8"
+		    stereotype 	"const,virtual"
+		    parameters 	(list Parameters
+			(object Parameter "str"
+			    quid       	"3E01B0CE02BF"
+			    type       	"std::ostream &"))
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "print"
+		    quid       	"3E01BE070204"
+		    stereotype 	"const"
+		    result     	"void"
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
 		    uid        	0))
 	    class_attributes 	(list class_attribute_list
 		(object ClassAttribute "anon"
@@ -8364,7 +8451,7 @@
 			(object Parameter "depth"
 			    quid       	"3DB9345503B8"
 			    type       	"int"
-			    initv      	"1"))
+			    initv      	"-1"))
 		    protocol   	"C++"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
@@ -8457,6 +8544,59 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	1008319503)
+		(object Operation "CountedRef"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DB934560267"
+		    stereotype 	"explicit"
+		    parameters 	(list Parameters
+			(object Parameter "targ"
+			    quid       	"3DB93456034D"
+			    type       	"T*")
+			(object Parameter "flags"
+			    quid       	"3DB9345700B0"
+			    type       	"int"
+			    initv      	"0"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "CountedRef"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DB934570236"
+		    stereotype 	"explicit"
+		    parameters 	(list Parameters
+			(object Parameter "targ"
+			    quid       	"3DB93457033B"
+			    type       	"const T*")
+			(object Parameter "flags"
+			    quid       	"3DB9345800B1"
+			    type       	"int"
+			    initv      	"0"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
+		(object Operation "CountedRef"
+		    attributes 	(list Attribute_Set
+			(object Attribute
+			    tool       	"Cplusplus"
+			    name       	"Inline"
+			    value      	TRUE))
+		    quid       	"3DB9345A02BD"
+		    stereotype 	"explicit"
+		    parameters 	(list Parameters
+			(object Parameter "flags"
+			    quid       	"3DB9345A03D5"
+			    type       	"int"))
+		    concurrency 	"Sequential"
+		    opExportControl 	"Public"
+		    uid        	0)
 		(object Operation "deref_p"
 		    attributes 	(list Attribute_Set
 			(object Attribute
@@ -8731,7 +8871,11 @@
 			(object Parameter "flags"
 			    quid       	"3C19B78A03B2"
 			    type       	"int"
-			    initv      	"0"))
+			    initv      	"0")
+			(object Parameter "depth"
+			    quid       	"3E01B0F701EA"
+			    type       	"int"
+			    initv      	"-1"))
 		    result     	"CountedRef<T>"
 		    protocol   	"C++"
 		    concurrency 	"Sequential"
@@ -8755,7 +8899,11 @@
 			(object Parameter "flags"
 			    quid       	"3C1F2DD401C4"
 			    type       	"int"
-			    initv      	"0"))
+			    initv      	"0")
+			(object Parameter "depth"
+			    quid       	"3E01B0F702A8"
+			    type       	"int"
+			    initv      	"-1"))
 		    result     	"CountedRef<T> &"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
@@ -9017,11 +9165,15 @@
 			    name       	"Inline"
 			    value      	TRUE))
 		    quid       	"3BFA4DF4027D"
-		    documentation 	"Various methods to attach to target object. See CountedRefBase::attach(). Const target forces READONLY ref."
+		    documentation 	
+|Various methods to attach to target object. See CountedRefBase::
+|attach(). Const target forces readonly ref.
+|
+		    
 		    parameters 	(list Parameters
 			(object Parameter "targ"
 			    quid       	"3C19B78A03D1"
-			    type       	"T&")
+			    type       	"T*")
 			(object Parameter "flags"
 			    quid       	"3C19B78A03D2"
 			    type       	"int"
@@ -9061,7 +9213,7 @@
 		    parameters 	(list Parameters
 			(object Parameter "targ"
 			    quid       	"3C19B78A03D8"
-			    type       	"const T&")
+			    type       	"const T*")
 			(object Parameter "flags"
 			    quid       	"3C19B78A03D9"
 			    type       	"int"
@@ -9101,7 +9253,7 @@
 		    parameters 	(list Parameters
 			(object Parameter "targ"
 			    quid       	"3C19B78A03DB"
-			    type       	"T*")
+			    type       	"T&")
 			(object Parameter "flags"
 			    quid       	"3C19B78A03DC"
 			    type       	"int"
@@ -9141,7 +9293,7 @@
 		    parameters 	(list Parameters
 			(object Parameter "targ"
 			    quid       	"3C19B78A03E2"
-			    type       	"const T*")
+			    type       	"const T&")
 			(object Parameter "flags"
 			    quid       	"3C19B78A03E3"
 			    type       	"int"
@@ -9158,6 +9310,10 @@
 			    name       	"Inline"
 			    value      	TRUE))
 		    quid       	"3CBEE39B0011"
+		    documentation 	
+|<<= on const target ptr is alias for attach as readonly, anonymous
+|
+		    
 		    parameters 	(list Parameters
 			(object Parameter "targ"
 			    quid       	"3CBEE3AC026E"
@@ -9173,6 +9329,10 @@
 			    name       	"Inline"
 			    value      	TRUE))
 		    quid       	"3CBEE3AC0105"
+		    documentation 	
+|<<= on target ptr is alias for attach as r/w, anonymous
+|
+		    
 		    parameters 	(list Parameters
 			(object Parameter "targ"
 			    quid       	"3CBEE3B4026F"
@@ -9181,41 +9341,22 @@
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	1019056487)
-		(object Operation "CountedRef"
+		(object Operation "operator <<="
 		    attributes 	(list Attribute_Set
 			(object Attribute
 			    tool       	"Cplusplus"
 			    name       	"Inline"
 			    value      	TRUE))
-		    quid       	"3DB934560267"
-		    stereotype 	"explicit"
+		    quid       	"3E01B1AB0345"
+		    documentation 	
+|<<= on other ref is alias for xfer
+|
+		    
 		    parameters 	(list Parameters
-			(object Parameter "targ"
-			    quid       	"3DB93456034D"
-			    type       	"T*")
-			(object Parameter "flags"
-			    quid       	"3DB9345700B0"
-			    type       	"int"
-			    initv      	"0"))
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "CountedRef"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB934570236"
-		    stereotype 	"explicit"
-		    parameters 	(list Parameters
-			(object Parameter "targ"
-			    quid       	"3DB93457033B"
-			    type       	"const T*")
-			(object Parameter "flags"
-			    quid       	"3DB9345800B1"
-			    type       	"int"
-			    initv      	"0"))
+			(object Parameter "other"
+			    quid       	"3E01B1AB0396"
+			    type       	"const CountedRef<T> &"))
+		    result     	"CountedRef<T> &"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
@@ -9253,21 +9394,6 @@
 			    quid       	"3DB9345A006E"
 			    type       	"const CountedRef<T> &"))
 		    result     	"bool"
-		    concurrency 	"Sequential"
-		    opExportControl 	"Public"
-		    uid        	0)
-		(object Operation "CountedRef"
-		    attributes 	(list Attribute_Set
-			(object Attribute
-			    tool       	"Cplusplus"
-			    name       	"Inline"
-			    value      	TRUE))
-		    quid       	"3DB9345A02BD"
-		    stereotype 	"explicit"
-		    parameters 	(list Parameters
-			(object Parameter "flags"
-			    quid       	"3DB9345A03D5"
-			    type       	"int"))
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0))
@@ -9315,7 +9441,11 @@
 		(object ClassAttribute "CountedRefBase::target"
 		    quid       	"3DB934540014"
 		    stereotype 	"using"
-		    exportControl 	"Protected"))
+		    exportControl 	"Protected")
+		(object ClassAttribute "CountedRefBase::print"
+		    quid       	"3E01B0F70100"
+		    stereotype 	"using"
+		    exportControl 	"Public"))
 	    module     	"Component View::DMI"
 	    quidu      	"3DB9342D017D"
 	    language   	"ANSI C++"
@@ -9690,8 +9820,7 @@
 			    name       	"cg_style"
 			    value      	"No get/set operations"))
 		    quid       	"3C5EA181038C"
-		    type       	"Key"
-		    quidu      	"3D1049B402A5")
+		    type       	"Key")
 		(object ClassAttribute "riter"
 		    quid       	"3DB934460125"
 		    type       	"typename RevMap::const_iterator"))
@@ -11714,7 +11843,8 @@
 			    quidu      	"3DB949AE00C5")
 			(object Parameter ""
 			    quid       	"3DB949AF0020"
-			    type       	"Ref"))
+			    type       	"Ref"
+			    quidu      	"3DB9343B00B9"))
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
 		    uid        	0)
@@ -12236,11 +12366,13 @@
 		    parameters 	(list Parameters
 			(object Parameter "value"
 			    quid       	"3DB951DE012C"
-			    type       	"T"))
+			    type       	"T"
+			    quidu      	"3DB951DC03C9"))
 		    result     	"T"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
-		    uid        	0)
+		    uid        	0
+		    quidu      	"3DB951DC03C9")
 		(object Operation "next"
 		    attributes 	(list Attribute_Set
 			(object Attribute
@@ -12251,11 +12383,13 @@
 		    parameters 	(list Parameters
 			(object Parameter "value"
 			    quid       	"3DB951DE012E"
-			    type       	"T"))
+			    type       	"T"
+			    quidu      	"3DB951DC03C9"))
 		    result     	"T"
 		    concurrency 	"Sequential"
 		    opExportControl 	"Public"
-		    uid        	0)
+		    uid        	0
+		    quidu      	"3DB951DC03C9")
 		(object Operation "NCIter"
 		    quid       	"3DB951DE012F"
 		    concurrency 	"Sequential"
@@ -15035,6 +15169,7 @@
 					    dir        	"FromClientToSupplier"
 					    sequence   	"2.1.1.1"
 					    ordinal    	4
+					    Operation  	"copy(int, int)"
 					    quidu      	"3BF93A170291"
 					    creation   	FALSE)))
 				(object Link
@@ -15071,6 +15206,7 @@
 					    dir        	"FromClientToSupplier"
 					    sequence   	"2.1.2.1"
 					    ordinal    	7
+					    Operation  	"copy(int, int)"
 					    quidu      	"3BF93A170291"
 					    creation   	FALSE)))
 				(object Link
@@ -15491,6 +15627,7 @@
 					    dir        	"FromClientToSupplier"
 					    sequence   	"7"
 					    ordinal    	6
+					    Operation  	"attach(T*, int)"
 					    quidu      	"3BFA4DF4027D"
 					    creation   	FALSE))))
 			    class      	"Logical View::DOMIN0::SmartBlock"
@@ -15513,6 +15650,7 @@
 					    dir        	"FromClientToSupplier"
 					    sequence   	"12"
 					    ordinal    	11
+					    Operation  	"attach(T*, int)"
 					    quidu      	"3BFA4DF4027D"
 					    creation   	FALSE))))
 			    class      	"Logical View::DOMIN0::SmartBlock"
@@ -15844,7 +15982,7 @@
 			    quidu      	"3BEFECFF0287"
 			    compartment 	(object Compartment
 				Parent_View 	@16
-				location   	(6721, 4960)
+				location   	(6721, 6077)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -15857,13 +15995,13 @@
 				icon_style 	"Icon"
 				fill_color 	13434879
 				anchor     	2
-				nlines     	10
+				nlines     	39
 				max_width  	1465
 				compartmentItems 	(list Compartment
-				    "+ attach(targ : T&, flags : int = 0) : CountedRef<T> &"
 				    "+ attach(targ : T*, flags : int = 0) : CountedRef<T> &"
-				    "+ attach(targ : const T&, flags : int = 0) : CountedRef<T> &"
+				    "+ attach(targ : T&, flags : int = 0) : CountedRef<T> &"
 				    "+ attach(targ : const T*, flags : int = 0) : CountedRef<T> &"
+				    "+ attach(targ : const T&, flags : int = 0) : CountedRef<T> &"
 				    "<<const>> + deref() : const T&"
 				    "<<const>> + operator T&()"
 				    "<<const>> + operator T*()"
@@ -15902,6 +16040,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3C0CDF41029F"
+			    compartment 	(object Compartment
+				Parent_View 	@17
+				location   	(3742, 4397)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	TRUE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	17
+				max_width  	0)
 			    width      	2344
 			    height     	1030
 			    annotation 	8
@@ -15933,6 +16088,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3C0CDEE200FE"
+			    compartment 	(object Compartment
+				Parent_View 	@18
+				location   	(4145, 6167)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	49
+				max_width  	0)
 			    width      	2318
 			    height     	2764
 			    annotation 	8
@@ -16243,6 +16415,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BE96FE601C5"
+			    compartment 	(object Compartment
+				Parent_View 	@33
+				location   	(7390, 2417)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	33
+				max_width  	0)
 			    width      	1018
 			    height     	1258
 			    annotation 	8
@@ -16434,6 +16623,23 @@
 			    line_color 	3342489
 			    fill_color 	13434879
 			    quidu      	"3BE970170297"
+			    compartment 	(object Compartment
+				Parent_View 	@41
+				location   	(7251, 782)
+				font       	(object Font
+				    size       	10
+				    face       	"arial"
+				    bold       	FALSE
+				    italics    	FALSE
+				    underline  	FALSE
+				    strike     	FALSE
+				    color      	0
+				    default_color 	TRUE)
+				icon_style 	"Icon"
+				fill_color 	16777215
+				anchor     	2
+				nlines     	30
+				max_width  	0)
 			    width      	1026
 			    height     	904
 			    annotation 	8
@@ -17985,7 +18191,7 @@
 		    origin_y   	0
 		    items      	(list diagram_item_list
 			(object InterObjView "Data Transport" @118
-			    location   	(75, 225)
+			    location   	(80, 224)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -17997,7 +18203,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@118
-				location   	(75, 250)
+				location   	(80, 249)
 				anchor_loc 	1
 				nlines     	2
 				max_width  	453
@@ -18009,34 +18215,34 @@
 			    fill_color 	13434879
 			    quidu      	"3BF0F8880073"
 			    width      	446
-			    height     	2220
+			    height     	2221
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @119
-				location   	(75, 1950)
+				location   	(80, 1952)
 				line_color 	3342489
 				InterObjView 	@118
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @120
-				location   	(75, 2085)
+				location   	(80, 2080)
 				line_color 	3342489
 				InterObjView 	@118
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @121
-				location   	(75, 2190)
+				location   	(80, 2192)
 				line_color 	3342489
 				InterObjView 	@118
 				height     	60
 				y_coord    	0
 				Nested     	FALSE))
 			(object InterObjView "P/S/M Layer" @122
-			    location   	(405, 225)
+			    location   	(400, 224)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -18048,7 +18254,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@122
-				location   	(405, 250)
+				location   	(400, 249)
 				anchor_loc 	1
 				nlines     	2
 				max_width  	453
@@ -18060,7 +18266,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BF0F87A014F"
 			    width      	446
-			    height     	2220
+			    height     	2221
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -18073,7 +18279,7 @@
 				y_coord    	1890
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @124
-				location   	(405, 1695)
+				location   	(400, 1696)
 				line_color 	3342489
 				InterObjView 	@122
 				height     	60
@@ -18110,35 +18316,35 @@
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @126
-				location   	(1080, 405)
+				location   	(1088, 400)
 				line_color 	3342489
 				InterObjView 	@125
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @127
-				location   	(1080, 840)
+				location   	(1088, 848)
 				line_color 	3342489
 				InterObjView 	@125
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @128
-				location   	(1080, 1320)
+				location   	(1088, 1328)
 				line_color 	3342489
 				InterObjView 	@125
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @129
-				location   	(1080, 1815)
+				location   	(1088, 1808)
 				line_color 	3342489
 				InterObjView 	@125
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @130
-				location   	(1080, 2235)
+				location   	(1088, 2240)
 				line_color 	3342489
 				InterObjView 	@125
 				height     	60
@@ -18175,21 +18381,21 @@
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @132
-				location   	(735, 525)
+				location   	(736, 528)
 				line_color 	3342489
 				InterObjView 	@131
 				height     	1410
 				y_coord    	1350
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @133
-				location   	(735, 945)
+				location   	(736, 944)
 				line_color 	3342489
 				InterObjView 	@131
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @134
-				location   	(735, 1650)
+				location   	(736, 1648)
 				line_color 	3342489
 				InterObjView 	@131
 				height     	165
@@ -18226,7 +18432,7 @@
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @136
-				location   	(1410, 735)
+				location   	(1408, 736)
 				line_color 	3342489
 				InterObjView 	@135
 				height     	330
@@ -18263,7 +18469,7 @@
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @138
-				location   	(1755, 765)
+				location   	(1760, 768)
 				line_color 	3342489
 				InterObjView 	@137
 				height     	60
@@ -18300,7 +18506,7 @@
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @140
-				location   	(2100, 1155)
+				location   	(2096, 1152)
 				line_color 	3342489
 				InterObjView 	@139
 				height     	720
@@ -18337,7 +18543,7 @@
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @142
-				location   	(2460, 1200)
+				location   	(2464, 1200)
 				line_color 	3342489
 				InterObjView 	@141
 				height     	480
@@ -18374,7 +18580,7 @@
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @144
-				location   	(2790, 1245)
+				location   	(2784, 1248)
 				line_color 	3342489
 				InterObjView 	@143
 				height     	60
@@ -18411,7 +18617,7 @@
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @146
-				location   	(3120, 1560)
+				location   	(3120, 1568)
 				line_color 	3342489
 				InterObjView 	@145
 				height     	60
@@ -18430,7 +18636,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @148
 				Parent_View 	@147
-				location   	(742, 361)
+				location   	(739, 361)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -18454,7 +18660,7 @@
 			    supplier   	@125
 			    Focus_Src  	@123
 			    Focus_Entry 	@126
-			    origin     	(420, 405)
+			    origin     	(415, 405)
 			    terminus   	(1064, 405)
 			    ordinal    	0)
 			(object InterMessView "" @149
@@ -18470,7 +18676,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @150
 				Parent_View 	@149
-				location   	(583, 481)
+				location   	(580, 481)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -18494,7 +18700,7 @@
 			    supplier   	@131
 			    Focus_Src  	@123
 			    Focus_Entry 	@132
-			    origin     	(420, 525)
+			    origin     	(415, 525)
 			    terminus   	(719, 525)
 			    ordinal    	1)
 			(object InterMessView "" @151
@@ -19094,7 +19300,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @186
 				Parent_View 	@185
-				location   	(570, 1651)
+				location   	(568, 1651)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -19119,7 +19325,7 @@
 			    Focus_Src  	@134
 			    Focus_Entry 	@124
 			    origin     	(719, 1695)
-			    terminus   	(421, 1695)
+			    terminus   	(416, 1695)
 			    ordinal    	12)
 			(object InterMessView "" @187
 			    location   	(240, 1950)
@@ -19158,8 +19364,8 @@
 			    supplier   	@118
 			    Focus_Src  	@123
 			    Focus_Entry 	@119
-			    origin     	(389, 1950)
-			    terminus   	(91, 1950)
+			    origin     	(384, 1950)
+			    terminus   	(96, 1950)
 			    ordinal    	14)
 			(object InterMessView "" @189
 			    location   	(15, 2085)
@@ -19198,8 +19404,8 @@
 			    supplier   	@118
 			    Focus_Src  	@123
 			    Focus_Entry 	@120
-			    origin     	(389, 2085)
-			    terminus   	(91, 2085)
+			    origin     	(384, 2085)
+			    terminus   	(96, 2085)
 			    ordinal    	15)
 			(object InterMessView "" @191
 			    location   	(240, 2190)
@@ -19238,8 +19444,8 @@
 			    supplier   	@118
 			    Focus_Src  	@123
 			    Focus_Entry 	@121
-			    origin     	(389, 2190)
-			    terminus   	(91, 2190)
+			    origin     	(384, 2190)
+			    terminus   	(96, 2190)
 			    ordinal    	16)
 			(object InterMessView "" @193
 			    location   	(15, 2235)
@@ -19254,7 +19460,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @194
 				Parent_View 	@193
-				location   	(742, 2207)
+				location   	(739, 2207)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -19278,7 +19484,7 @@
 			    supplier   	@125
 			    Focus_Src  	@123
 			    Focus_Entry 	@130
-			    origin     	(420, 2235)
+			    origin     	(415, 2235)
 			    terminus   	(1064, 2235)
 			    ordinal    	17)
 			(object NoteView @195
@@ -19368,7 +19574,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @201
 				Parent_View 	@200
-				location   	(742, 1788)
+				location   	(739, 1788)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -19392,7 +19598,7 @@
 			    supplier   	@125
 			    Focus_Src  	@123
 			    Focus_Entry 	@129
-			    origin     	(420, 1815)
+			    origin     	(415, 1815)
 			    terminus   	(1064, 1815)
 			    ordinal    	13)))
 		(object InteractionDiagram "Scenario: Sending a DataBlock"
@@ -19406,7 +19612,7 @@
 		    origin_y   	862
 		    items      	(list diagram_item_list
 			(object InterObjView "Transport" @202
-			    location   	(75, 225)
+			    location   	(80, 224)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -19418,7 +19624,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@202
-				location   	(75, 250)
+				location   	(80, 249)
 				anchor_loc 	1
 				nlines     	2
 				max_width  	453
@@ -19430,20 +19636,20 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB842A01C5"
 			    width      	446
-			    height     	5370
+			    height     	5401
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @203
-				location   	(75, 2865)
+				location   	(80, 2864)
 				line_color 	3342489
 				InterObjView 	@202
 				height     	60
 				y_coord    	0
 				Nested     	FALSE))
 			(object InterObjView "P/S/M Layer" @204
-			    location   	(330, 225)
+			    location   	(336, 224)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -19455,7 +19661,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@204
-				location   	(330, 250)
+				location   	(336, 249)
 				anchor_loc 	1
 				nlines     	2
 				max_width  	453
@@ -19467,7 +19673,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB843101CF"
 			    width      	446
-			    height     	5370
+			    height     	5401
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -19480,14 +19686,14 @@
 				y_coord    	2235
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @206
-				location   	(330, 1725)
+				location   	(336, 1728)
 				line_color 	3342489
 				InterObjView 	@204
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @207
-				location   	(330, 2445)
+				location   	(336, 2448)
 				line_color 	3342489
 				InterObjView 	@204
 				height     	60
@@ -19525,20 +19731,20 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB844F039F"
 			    width      	456
-			    height     	5370
+			    height     	5400
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @210
-				location   	(720, 465)
+				location   	(720, 464)
 				line_color 	3342489
 				InterObjView 	@209
 				height     	1380
 				y_coord    	1320
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @211
-				location   	(720, 1665)
+				location   	(720, 1664)
 				line_color 	3342489
 				InterObjView 	@209
 				height     	60
@@ -19569,13 +19775,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8A9F00CD"
 			    width      	525
-			    height     	3500
+			    height     	3530
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @213
-				location   	(1050, 1950)
+				location   	(1056, 1952)
 				line_color 	3342489
 				InterObjView 	@212
 				height     	60
@@ -19588,7 +19794,7 @@
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @215
-				location   	(1050, 3015)
+				location   	(1056, 3008)
 				line_color 	3342489
 				InterObjView 	@212
 				height     	165
@@ -19619,13 +19825,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8456031D"
 			    width      	300
-			    height     	5235
+			    height     	5265
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @217
-				location   	(1635, 360)
+				location   	(1632, 368)
 				line_color 	3342489
 				InterObjView 	@216
 				height     	60
@@ -19638,56 +19844,56 @@
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @219
-				location   	(1635, 780)
+				location   	(1632, 784)
 				line_color 	3342489
 				InterObjView 	@216
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @220
-				location   	(1635, 1050)
+				location   	(1632, 1056)
 				line_color 	3342489
 				InterObjView 	@216
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @221
-				location   	(1635, 1440)
+				location   	(1632, 1440)
 				line_color 	3342489
 				InterObjView 	@216
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @222
-				location   	(1635, 1815)
+				location   	(1632, 1808)
 				line_color 	3342489
 				InterObjView 	@216
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @223
-				location   	(1635, 2325)
+				location   	(1632, 2320)
 				line_color 	3342489
 				InterObjView 	@216
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @224
-				location   	(1635, 2535)
+				location   	(1632, 2528)
 				line_color 	3342489
 				InterObjView 	@216
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @225
-				location   	(1635, 2775)
+				location   	(1632, 2768)
 				line_color 	3342489
 				InterObjView 	@216
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @226
-				location   	(1635, 2925)
+				location   	(1632, 2928)
 				line_color 	3342489
 				InterObjView 	@216
 				height     	360
@@ -19718,20 +19924,20 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB849102B3"
 			    width      	364
-			    height     	5370
+			    height     	5400
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @228
-				location   	(1980, 570)
+				location   	(1984, 576)
 				line_color 	3342489
 				InterObjView 	@227
 				height     	1215
 				y_coord    	1155
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @229
-				location   	(1980, 1605)
+				location   	(1984, 1600)
 				line_color 	3342489
 				InterObjView 	@227
 				height     	60
@@ -19762,13 +19968,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84A50013"
 			    width      	406
-			    height     	5370
+			    height     	5400
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @231
-				location   	(2385, 615)
+				location   	(2384, 608)
 				line_color 	3342489
 				InterObjView 	@230
 				height     	285
@@ -19799,13 +20005,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8674014F"
 			    width      	300
-			    height     	5370
+			    height     	5400
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @233
-				location   	(2760, 705)
+				location   	(2768, 704)
 				line_color 	3342489
 				InterObjView 	@232
 				height     	60
@@ -19836,20 +20042,20 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84C802F8"
 			    width      	508
-			    height     	5370
+			    height     	5400
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @235
-				location   	(3195, 930)
+				location   	(3200, 928)
 				line_color 	3342489
 				InterObjView 	@234
 				height     	795
 				y_coord    	735
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @236
-				location   	(3195, 1545)
+				location   	(3200, 1552)
 				line_color 	3342489
 				InterObjView 	@234
 				height     	60
@@ -19880,13 +20086,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84E50123"
 			    width      	536
-			    height     	5370
+			    height     	5400
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @238
-				location   	(3675, 960)
+				location   	(3680, 960)
 				line_color 	3342489
 				InterObjView 	@237
 				height     	60
@@ -19917,13 +20123,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB84EE0112"
 			    width      	396
-			    height     	5370
+			    height     	5400
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @240
-				location   	(4020, 1125)
+				location   	(4016, 1120)
 				line_color 	3342489
 				InterObjView 	@239
 				height     	540
@@ -19954,13 +20160,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87E7030B"
 			    width      	480
-			    height     	4325
+			    height     	4355
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @242
-				location   	(4440, 1170)
+				location   	(4448, 1168)
 				line_color 	3342489
 				InterObjView 	@241
 				height     	60
@@ -19973,7 +20179,7 @@
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @244
-				location   	(4440, 3075)
+				location   	(4448, 3072)
 				line_color 	3342489
 				InterObjView 	@241
 				height     	150
@@ -20004,13 +20210,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB87DE0222"
 			    width      	330
-			    height     	4055
+			    height     	4085
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @246
-				location   	(4725, 1380)
+				location   	(4720, 1376)
 				line_color 	3342489
 				InterObjView 	@245
 				height     	60
@@ -20023,7 +20229,7 @@
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @248
-				location   	(4725, 3105)
+				location   	(4720, 3104)
 				line_color 	3342489
 				InterObjView 	@245
 				height     	60
@@ -20054,13 +20260,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFB8ADA02A9"
 			    width      	330
-			    height     	3260
+			    height     	3290
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @250
-				location   	(1320, 2130)
+				location   	(1328, 2128)
 				line_color 	3342489
 				InterObjView 	@249
 				height     	60
@@ -20073,7 +20279,7 @@
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @252
-				location   	(1320, 3060)
+				location   	(1328, 3056)
 				line_color 	3342489
 				InterObjView 	@249
 				height     	60
@@ -20092,7 +20298,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @254
 				Parent_View 	@253
-				location   	(874, 331)
+				location   	(877, 331)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -20116,7 +20322,7 @@
 			    supplier   	@216
 			    Focus_Src  	@205
 			    Focus_Entry 	@217
-			    origin     	(345, 360)
+			    origin     	(351, 360)
 			    terminus   	(1485, 360)
 			    ordinal    	0)
 			(object InterMessView "" @255
@@ -20132,7 +20338,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @256
 				Parent_View 	@255
-				location   	(538, 439)
+				location   	(541, 439)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -20156,7 +20362,7 @@
 			    supplier   	@209
 			    Focus_Src  	@205
 			    Focus_Entry 	@210
-			    origin     	(345, 465)
+			    origin     	(351, 465)
 			    terminus   	(704, 465)
 			    ordinal    	1)
 			(object InterMessView "" @257
@@ -20732,7 +20938,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @286
 				Parent_View 	@285
-				location   	(525, 1681)
+				location   	(528, 1681)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -20757,7 +20963,7 @@
 			    Focus_Src  	@210
 			    Focus_Entry 	@206
 			    origin     	(704, 1725)
-			    terminus   	(346, 1725)
+			    terminus   	(352, 1725)
 			    ordinal    	16)
 			(object InterMessView "" @287
 			    location   	(660, 1815)
@@ -20772,7 +20978,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @288
 				Parent_View 	@287
-				location   	(979, 1786)
+				location   	(982, 1786)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -20796,7 +21002,7 @@
 			    supplier   	@216
 			    Focus_Src  	@205
 			    Focus_Entry 	@222
-			    origin     	(345, 1815)
+			    origin     	(351, 1815)
 			    terminus   	(1619, 1815)
 			    ordinal    	17)
 			(object InterMessView "" @289
@@ -20812,7 +21018,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @290
 				Parent_View 	@289
-				location   	(566, 1906)
+				location   	(569, 1906)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -20836,7 +21042,7 @@
 			    supplier   	@212
 			    Focus_Src  	@205
 			    Focus_Entry 	@213
-			    origin     	(345, 1950)
+			    origin     	(351, 1950)
 			    terminus   	(788, 1950)
 			    ordinal    	18)
 			(object InterMessView "" @291
@@ -20852,7 +21058,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @292
 				Parent_View 	@291
-				location   	(750, 2086)
+				location   	(753, 2086)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -20876,7 +21082,7 @@
 			    supplier   	@249
 			    Focus_Src  	@205
 			    Focus_Entry 	@250
-			    origin     	(345, 2130)
+			    origin     	(351, 2130)
 			    terminus   	(1155, 2130)
 			    ordinal    	19)
 			(object InterMessView "" @293
@@ -20892,7 +21098,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @294
 				Parent_View 	@293
-				location   	(982, 2281)
+				location   	(985, 2281)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -20916,7 +21122,7 @@
 			    supplier   	@216
 			    Focus_Src  	@205
 			    Focus_Entry 	@223
-			    origin     	(345, 2325)
+			    origin     	(351, 2325)
 			    terminus   	(1619, 2325)
 			    ordinal    	20)
 			(object SelfMessView "" @295
@@ -20932,7 +21138,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @296
 				Parent_View 	@295
-				location   	(421, 2418)
+				location   	(427, 2418)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -20956,8 +21162,8 @@
 			    supplier   	@204
 			    Focus_Src  	@205
 			    Focus_Entry 	@207
-			    origin     	(346, 2445)
-			    terminus   	(496, 2445)
+			    origin     	(352, 2445)
+			    terminus   	(502, 2445)
 			    ordinal    	21)
 			(object InterMessView "" @297
 			    location   	(990, 2535)
@@ -20972,7 +21178,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @298
 				Parent_View 	@297
-				location   	(982, 2491)
+				location   	(985, 2491)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -20996,7 +21202,7 @@
 			    supplier   	@216
 			    Focus_Src  	@205
 			    Focus_Entry 	@224
-			    origin     	(345, 2535)
+			    origin     	(351, 2535)
 			    terminus   	(1619, 2535)
 			    ordinal    	22)
 			(object InterMessView "" @299
@@ -21012,7 +21218,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @300
 				Parent_View 	@299
-				location   	(982, 2731)
+				location   	(985, 2731)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -21036,7 +21242,7 @@
 			    supplier   	@216
 			    Focus_Src  	@208
 			    Focus_Entry 	@225
-			    origin     	(345, 2775)
+			    origin     	(351, 2775)
 			    terminus   	(1619, 2775)
 			    ordinal    	23)
 			(object InterMessView "" @301
@@ -21052,7 +21258,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @302
 				Parent_View 	@301
-				location   	(203, 2821)
+				location   	(208, 2821)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -21076,8 +21282,8 @@
 			    supplier   	@202
 			    Focus_Src  	@208
 			    Focus_Entry 	@203
-			    origin     	(314, 2865)
-			    terminus   	(91, 2865)
+			    origin     	(320, 2865)
+			    terminus   	(96, 2865)
 			    ordinal    	24)
 			(object InterMessView "" @303
 			    location   	(15, 2925)
@@ -21092,7 +21298,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @304
 				Parent_View 	@303
-				location   	(982, 2881)
+				location   	(985, 2881)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -21116,7 +21322,7 @@
 			    supplier   	@216
 			    Focus_Src  	@208
 			    Focus_Entry 	@226
-			    origin     	(345, 2925)
+			    origin     	(351, 2925)
 			    terminus   	(1619, 2925)
 			    ordinal    	25)
 			(object InterMessView "" @305
@@ -21201,12 +21407,12 @@
 			    ordinal    	27)
 			(object Destruction_Marker @309
 			    Parent_View 	@249
-			    location   	(1320, 5490)
+			    location   	(1320, 5520)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @310
 			    Parent_View 	@212
-			    location   	(990, 5550)
+			    location   	(990, 5580)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @311
@@ -21251,12 +21457,12 @@
 			    ordinal    	28)
 			(object Destruction_Marker @313
 			    Parent_View 	@241
-			    location   	(4440, 5595)
+			    location   	(4440, 5625)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object Destruction_Marker @314
 			    Parent_View 	@245
-			    location   	(4725, 5535)
+			    location   	(4725, 5565)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object InterMessView "" @315
@@ -21310,7 +21516,7 @@
 		    origin_y   	0
 		    items      	(list diagram_item_list
 			(object InterObjView "Data Transport" @317
-			    location   	(105, 225)
+			    location   	(112, 224)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -21322,7 +21528,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@317
-				location   	(105, 250)
+				location   	(112, 249)
 				anchor_loc 	1
 				nlines     	2
 				max_width  	453
@@ -21334,48 +21540,48 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B150030"
 			    width      	446
-			    height     	6180
+			    height     	6211
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @318
-				location   	(105, 360)
+				location   	(112, 368)
 				line_color 	3342489
 				InterObjView 	@317
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @319
-				location   	(105, 825)
+				location   	(112, 832)
 				line_color 	3342489
 				InterObjView 	@317
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @320
-				location   	(105, 1260)
+				location   	(112, 1264)
 				line_color 	3342489
 				InterObjView 	@317
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @321
-				location   	(105, 1440)
+				location   	(112, 1440)
 				line_color 	3342489
 				InterObjView 	@317
 				height     	60
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @322
-				location   	(105, 1860)
+				location   	(112, 1856)
 				line_color 	3342489
 				InterObjView 	@317
 				height     	60
 				y_coord    	0
 				Nested     	FALSE))
 			(object InterObjView "P/S/M Layer" @323
-			    location   	(435, 225)
+			    location   	(432, 224)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -21387,7 +21593,7 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@323
-				location   	(435, 250)
+				location   	(432, 249)
 				anchor_loc 	1
 				nlines     	2
 				max_width  	453
@@ -21399,7 +21605,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B210330"
 			    width      	446
-			    height     	6180
+			    height     	6211
 			    icon_height 	158
 			    icon_width 	151
 			    icon_y_offset 	0
@@ -21412,7 +21618,7 @@
 				y_coord    	3645
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @325
-				location   	(435, 3855)
+				location   	(432, 3856)
 				line_color 	3342489
 				InterObjView 	@323
 				height     	60
@@ -21443,13 +21649,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4D3A0258"
 			    width      	300
-			    height     	5505
+			    height     	5535
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @327
-				location   	(795, 900)
+				location   	(800, 896)
 				line_color 	3342489
 				InterObjView 	@326
 				height     	60
@@ -21469,7 +21675,7 @@
 				y_coord    	60
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @330
-				location   	(795, 1185)
+				location   	(800, 1184)
 				line_color 	3342489
 				InterObjView 	@326
 				height     	60
@@ -21500,13 +21706,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4F6A02C1"
 			    width      	300
-			    height     	4935
+			    height     	4965
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @332
-				location   	(1185, 1470)
+				location   	(1184, 1472)
 				line_color 	3342489
 				InterObjView 	@331
 				height     	60
@@ -21526,7 +21732,7 @@
 				y_coord    	60
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @335
-				location   	(1185, 1800)
+				location   	(1184, 1808)
 				line_color 	3342489
 				InterObjView 	@331
 				height     	60
@@ -21557,7 +21763,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CB80070"
 			    width      	300
-			    height     	5880
+			    height     	5910
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21607,7 +21813,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4CF102DF"
 			    width      	300
-			    height     	5790
+			    height     	5820
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21657,13 +21863,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA4B51032F"
 			    width      	398
-			    height     	5930
+			    height     	5960
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @345
-				location   	(1890, 375)
+				location   	(1888, 368)
 				line_color 	3342489
 				InterObjView 	@344
 				height     	60
@@ -21690,7 +21896,7 @@
 				y_coord    	60
 				Nested     	TRUE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @349
-				location   	(1890, 2220)
+				location   	(1888, 2224)
 				line_color 	3342489
 				InterObjView 	@344
 				height     	60
@@ -21704,7 +21910,7 @@
 				y_coord    	120
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @351
-				location   	(1890, 3945)
+				location   	(1888, 3952)
 				line_color 	3342489
 				InterObjView 	@344
 				height     	60
@@ -21735,7 +21941,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5403038C"
 			    width      	300
-			    height     	3915
+			    height     	3945
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21792,7 +21998,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA5582004D"
 			    width      	350
-			    height     	3900
+			    height     	3930
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -21842,13 +22048,13 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA52C9029A"
 			    width      	582
-			    height     	4350
+			    height     	4380
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @362
-				location   	(3660, 2055)
+				location   	(3664, 2048)
 				line_color 	3342489
 				InterObjView 	@361
 				height     	60
@@ -21861,7 +22067,7 @@
 				y_coord    	0
 				Nested     	FALSE)
 			    Focus_Of_Control 	(object Focus_Of_Control "" @364
-				location   	(3660, 2175)
+				location   	(3664, 2176)
 				line_color 	3342489
 				InterObjView 	@361
 				height     	165
@@ -21913,13 +22119,13 @@
 			    fill_color 	8454016
 			    quidu      	"3BFA527601FA"
 			    width      	528
-			    height     	6180
+			    height     	6210
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
 			    annotation 	1
 			    Focus_Of_Control 	(object Focus_Of_Control "" @369
-				location   	(4200, 1965)
+				location   	(4208, 1968)
 				line_color 	3342489
 				InterObjView 	@368
 				height     	435
@@ -21964,7 +22170,7 @@
 			    fill_color 	13434879
 			    quidu      	"3BFA55CB01C5"
 			    width      	300
-			    height     	3480
+			    height     	3510
 			    icon_height 	0
 			    icon_width 	0
 			    icon_y_offset 	0
@@ -22002,7 +22208,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @377
 				Parent_View 	@376
-				location   	(270, 316)
+				location   	(272, 316)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -22026,8 +22232,8 @@
 			    supplier   	@317
 			    Focus_Src  	@324
 			    Focus_Entry 	@318
-			    origin     	(419, 360)
-			    terminus   	(121, 360)
+			    origin     	(416, 360)
+			    terminus   	(128, 360)
 			    ordinal    	0)
 			(object InterMessView "" @378
 			    location   	(15, 375)
@@ -22042,7 +22248,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @379
 				Parent_View 	@378
-				location   	(1060, 345)
+				location   	(1059, 345)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -22066,7 +22272,7 @@
 			    supplier   	@344
 			    Focus_Src  	@324
 			    Focus_Entry 	@345
-			    origin     	(450, 375)
+			    origin     	(447, 375)
 			    terminus   	(1691, 375)
 			    ordinal    	1)
 			(object InterMessView "" @380
@@ -22082,7 +22288,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @381
 				Parent_View 	@380
-				location   	(270, 781)
+				location   	(272, 781)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -22106,8 +22312,8 @@
 			    supplier   	@317
 			    Focus_Src  	@324
 			    Focus_Entry 	@319
-			    origin     	(419, 825)
-			    terminus   	(121, 825)
+			    origin     	(416, 825)
+			    terminus   	(128, 825)
 			    ordinal    	4)
 			(object InterMessView "" @382
 			    location   	(15, 525)
@@ -22202,7 +22408,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @387
 				Parent_View 	@386
-				location   	(337, 868)
+				location   	(332, 868)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -22226,7 +22432,7 @@
 			    supplier   	@326
 			    Focus_Src  	@324
 			    Focus_Entry 	@327
-			    origin     	(450, 900)
+			    origin     	(447, 900)
 			    terminus   	(645, 900)
 			    ordinal    	5)
 			(object InterMessView "" @388
@@ -22282,7 +22488,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @391
 				Parent_View 	@390
-				location   	(614, 1141)
+				location   	(613, 1141)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -22306,7 +22512,7 @@
 			    supplier   	@326
 			    Focus_Src  	@324
 			    Focus_Entry 	@330
-			    origin     	(450, 1185)
+			    origin     	(447, 1185)
 			    terminus   	(779, 1185)
 			    ordinal    	7)
 			(object InterMessView "" @392
@@ -22322,7 +22528,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @393
 				Parent_View 	@392
-				location   	(270, 1216)
+				location   	(272, 1216)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -22346,8 +22552,8 @@
 			    supplier   	@317
 			    Focus_Src  	@324
 			    Focus_Entry 	@320
-			    origin     	(419, 1260)
-			    terminus   	(121, 1260)
+			    origin     	(416, 1260)
+			    terminus   	(128, 1260)
 			    ordinal    	8)
 			(object InterMessView "" @394
 			    location   	(270, 1440)
@@ -22362,7 +22568,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @395
 				Parent_View 	@394
-				location   	(270, 1396)
+				location   	(272, 1396)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -22386,8 +22592,8 @@
 			    supplier   	@317
 			    Focus_Src  	@324
 			    Focus_Entry 	@321
-			    origin     	(419, 1440)
-			    terminus   	(121, 1440)
+			    origin     	(416, 1440)
+			    terminus   	(128, 1440)
 			    ordinal    	9)
 			(object InterMessView "" @396
 			    location   	(15, 1470)
@@ -22402,7 +22608,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @397
 				Parent_View 	@396
-				location   	(681, 1437)
+				location   	(680, 1437)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -22426,7 +22632,7 @@
 			    supplier   	@331
 			    Focus_Src  	@324
 			    Focus_Entry 	@332
-			    origin     	(450, 1470)
+			    origin     	(447, 1470)
 			    terminus   	(1035, 1470)
 			    ordinal    	10)
 			(object InterMessView "" @398
@@ -22482,7 +22688,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @401
 				Parent_View 	@400
-				location   	(809, 1756)
+				location   	(808, 1756)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -22506,7 +22712,7 @@
 			    supplier   	@331
 			    Focus_Src  	@324
 			    Focus_Entry 	@335
-			    origin     	(450, 1800)
+			    origin     	(447, 1800)
 			    terminus   	(1169, 1800)
 			    ordinal    	12)
 			(object InterMessView "" @402
@@ -22522,7 +22728,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @403
 				Parent_View 	@402
-				location   	(270, 1816)
+				location   	(272, 1816)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -22546,8 +22752,8 @@
 			    supplier   	@317
 			    Focus_Src  	@324
 			    Focus_Entry 	@322
-			    origin     	(419, 1860)
-			    terminus   	(121, 1860)
+			    origin     	(416, 1860)
+			    terminus   	(128, 1860)
 			    ordinal    	13)
 			(object InterMessView "" @404
 			    location   	(15, 1965)
@@ -22562,7 +22768,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @405
 				Parent_View 	@404
-				location   	(2316, 1937)
+				location   	(2314, 1937)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -22586,7 +22792,7 @@
 			    supplier   	@368
 			    Focus_Src  	@324
 			    Focus_Entry 	@369
-			    origin     	(450, 1965)
+			    origin     	(447, 1965)
 			    terminus   	(4184, 1965)
 			    ordinal    	14)
 			(object InterMessView "" @406
@@ -23082,7 +23288,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @431
 				Parent_View 	@430
-				location   	(2318, 3811)
+				location   	(2316, 3811)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -23107,7 +23313,7 @@
 			    Focus_Src  	@371
 			    Focus_Entry 	@325
 			    origin     	(4184, 3855)
-			    terminus   	(451, 3855)
+			    terminus   	(448, 3855)
 			    ordinal    	27)
 			(object InterMessView "" @432
 			    location   	(15, 3945)
@@ -23122,7 +23328,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @433
 				Parent_View 	@432
-				location   	(1162, 3901)
+				location   	(1160, 3901)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -23146,12 +23352,12 @@
 			    supplier   	@344
 			    Focus_Src  	@324
 			    Focus_Entry 	@351
-			    origin     	(450, 3945)
+			    origin     	(447, 3945)
 			    terminus   	(1874, 3945)
 			    ordinal    	28)
 			(object Destruction_Marker @434
 			    Parent_View 	@344
-			    location   	(1890, 6405)
+			    location   	(1890, 6435)
 			    line_color 	3342489
 			    fill_color 	13434879)
 			(object NoteView @435
@@ -23382,7 +23588,7 @@
 				location   	(314, 278)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	874
+				max_width  	879
 				justify    	0
 				label      	"Data Transport")
 			    icon       	"control"
@@ -23412,7 +23618,7 @@
 				location   	(374, 1328)
 				anchor_loc 	1
 				nlines     	2
-				max_width  	876
+				max_width  	883
 				justify    	0
 				label      	"P/S/M Layer")
 			    icon       	"control"
@@ -24840,14 +25046,14 @@
 	    zoom       	100
 	    max_height 	28350
 	    max_width  	21600
-	    origin_x   	0
-	    origin_y   	488
+	    origin_x   	1937
+	    origin_y   	1675
 	    items      	(list diagram_item_list
 		(object ClassView "ParameterizedClass" "Logical View::DOMIN0::CountedRef" @528
 		    ShowCompartmentStereotypes 	TRUE
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
-		    location   	(3240, 1305)
+		    location   	(3248, 1408)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -24859,7 +25065,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@528
-			location   	(2718, 45)
+			location   	(2726, 98)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	1044
@@ -24869,8 +25075,25 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3BEFECFF0287"
+		    compartment 	(object Compartment
+			Parent_View 	@528
+			location   	(2726, 159)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	52
+			max_width  	897)
 		    width      	1062
-		    height     	2620
+		    height     	2720
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object ClassView "Class" "Logical View::DOMIN0::CountedRefBase" @529
@@ -24878,7 +25101,7 @@
 		    IncludeAttribute 	TRUE
 		    IncludeOperation 	TRUE
 		    ShowOperationSignature 	TRUE
-		    location   	(1155, 1215)
+		    location   	(1152, 1264)
 		    font       	(object Font
 			size       	10
 			face       	"arial"
@@ -24890,29 +25113,46 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@529
-			location   	(69, 9)
+			location   	(67, 8)
 			fill_color 	13434879
 			nlines     	1
-			max_width  	2172
+			max_width  	2170
 			justify    	0
 			label      	"CountedRefBase")
 		    icon_style 	"Icon"
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3C0CDEE200FE"
-		    width      	2190
-		    height     	2436
+		    compartment 	(object Compartment
+			Parent_View 	@529
+			location   	(67, 69)
+			font       	(object Font
+			    size       	10
+			    face       	"arial"
+			    bold       	FALSE
+			    italics    	FALSE
+			    underline  	FALSE
+			    strike     	FALSE
+			    color      	0
+			    default_color 	TRUE)
+			icon_style 	"Icon"
+			fill_color 	16777215
+			anchor     	2
+			nlines     	49
+			max_width  	1859)
+		    width      	2188
+		    height     	2536
 		    annotation 	8
 		    autoResize 	TRUE)
 		(object AssociationViewNew "$UNNAMED$10" @530
-		    location   	(2280, 2403)
+		    location   	(2277, 2477)
 		    stereotype 	TRUE
 		    line_color 	3342489
 		    quidu      	"3C0CE0F60398"
 		    roleview_list 	(list RoleViews
 			(object RoleView "next" @531
 			    Parent_View 	@530
-			    location   	(1620, 1188)
+			    location   	(1617, 1262)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -24924,7 +25164,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @532
 				Parent_View 	@531
-				location   	(1367, 2424)
+				location   	(2319, 1482)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -24948,10 +25188,14 @@
 			    quidu      	"3C0CE0FB0010"
 			    client     	@530
 			    supplier   	@529
+			    vertices   	(list Points
+				(2277, 2477)
+				(2277, 1264)
+				(2246, 1264))
 			    line_style 	0
 			    label      	(object SegLabel @533
 				Parent_View 	@531
-				location   	(1245, 2519)
+				location   	(2224, 1357)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -24972,7 +25216,7 @@
 				orientation 	0))
 			(object RoleView "prev" @534
 			    Parent_View 	@530
-			    location   	(1620, 1188)
+			    location   	(1617, 1262)
 			    font       	(object Font
 				size       	10
 				face       	"arial"
@@ -24984,7 +25228,7 @@
 				default_color 	TRUE)
 			    label      	(object SegLabel @535
 				Parent_View 	@534
-				location   	(2336, 1305)
+				location   	(1242, 2509)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -25008,10 +25252,15 @@
 			    quidu      	"3C0CE0FA0394"
 			    client     	@530
 			    supplier   	@529
+			    vertices   	(list Points
+				(2277, 2477)
+				(2277, 2564)
+				(1152, 2564)
+				(1152, 2532))
 			    line_style 	0
 			    label      	(object SegLabel @536
 				Parent_View 	@534
-				location   	(2332, 1246)
+				location   	(1182, 2513)
 				font       	(object Font
 				    size       	10
 				    face       	"arial"
@@ -25042,7 +25291,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@537
-			location   	(2479, 1215)
+			location   	(2482, 1215)
 			anchor_loc 	1
 			nlines     	1
 			max_width  	115
@@ -25054,5 +25303,5 @@
 		    client     	@528
 		    supplier   	@529
 		    line_style 	3
-		    origin_attachment 	(2709, 1215)
-		    terminal_attachment 	(2250, 1215))))))
+		    origin_attachment 	(2717, 1215)
+		    terminal_attachment 	(2246, 1215))))))

@@ -1,68 +1,52 @@
-//##ModelId=3BFE5FE103C5
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
+//  BlockableObject.cc: abstract prototype for blockable objects
+//
+//  Copyright (C) 2002
+//  ASTRON (Netherlands Foundation for Research in Astronomy)
+//  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//  $Id$
 
-//## begin module%3C10CC81019D.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C10CC81019D.cm
-
-//## begin module%3C10CC81019D.cp preserve=no
-//## end module%3C10CC81019D.cp
-
-//## Module: BlockableObject%3C10CC81019D; Package body
-//## Subsystem: DMI%3C10CC810155
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\BlockableObject.cc
-
-//## begin module%3C10CC81019D.additionalIncludes preserve=no
-//## end module%3C10CC81019D.additionalIncludes
-
-//## begin module%3C10CC81019D.includes preserve=yes
-//## end module%3C10CC81019D.includes
-
-// DynamicTypeManager
-#include "DMI/DynamicTypeManager.h"
-// BlockableObject
-#include "DMI/BlockableObject.h"
-//## begin module%3C10CC81019D.declarations preserve=no
-//## end module%3C10CC81019D.declarations
-
-//## begin module%3C10CC81019D.additionalDeclarations preserve=yes
-//## end module%3C10CC81019D.additionalDeclarations
+#include "DynamicTypeManager.h"
+#include "BlockableObject.h"
 
 
-// Class BlockableObject 
-
-
-//## Other Operations (implementation)
 CountedRefTarget * BlockableObject::clone (int flags, int depth) const
 {
-  //## begin BlockableObject::clone%3BFE5FE103C5.body preserve=yes
   BlockSet bset;
   toBlock(bset);
   if( flags&DMI::DEEP || depth>0 )
     bset.privatizeAll(flags);
   return DynamicTypeManager::construct(objectType(),bset);
-  //## end BlockableObject::clone%3BFE5FE103C5.body
 }
 
 //##ModelId=3CAB088100C3
 void BlockableObject::privatize (int flags, int depth)
 {
-  //## begin BlockableObject::privatize%3CAB088100C3.body preserve=yes
   BlockSet bset;
   toBlock(bset);
   if( flags&DMI::DEEP || depth>0 )
     bset.privatizeAll(flags);
   fromBlock(bset);
-  //## end BlockableObject::privatize%3CAB088100C3.body
 }
 
-// Additional Declarations
-  //## begin BlockableObject%3BB1F71F03C9.declarations preserve=yes
-  //## end BlockableObject%3BB1F71F03C9.declarations
+void BlockableObject::print (std::ostream &str) const
+{
+  str << objectType(); 
+}
 
-//## begin module%3C10CC81019D.epilog preserve=yes
-//## end module%3C10CC81019D.epilog
+
+

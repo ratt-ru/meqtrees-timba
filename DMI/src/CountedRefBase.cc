@@ -1,32 +1,29 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
+//  CountedRefBase.h: generic linked/counted ref implementation
+//
+//  Copyright (C) 2002
+//  ASTRON (Netherlands Foundation for Research in Astronomy)
+//  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//  $Id$
 
-//## begin module%3C10CC81037E.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C10CC81037E.cm
+#include "CountedRefBase.h"
 
-//## begin module%3C10CC81037E.cp preserve=no
-//## end module%3C10CC81037E.cp
+#include <iomanip>
 
-//## Module: CountedRefBase%3C10CC81037E; Package body
-//## Subsystem: DMI%3C10CC810155
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\CountedRefBase.cc
-
-//## begin module%3C10CC81037E.additionalIncludes preserve=no
-//## end module%3C10CC81037E.additionalIncludes
-
-//## begin module%3C10CC81037E.includes preserve=yes
-//## end module%3C10CC81037E.includes
-
-// CountedRefBase
-#include "DMI/CountedRefBase.h"
-//## begin module%3C10CC81037E.declarations preserve=no
-//## end module%3C10CC81037E.declarations
-
-//## begin module%3C10CC81037E.additionalDeclarations preserve=yes
 #undef VERIFY
 #if COUNTEDREF_VERIFY
   #define VERIFY verify()
@@ -117,16 +114,13 @@ void CountedRefBase::verify (const CountedRefBase *start)
 }
 
 //##ModelId=3C0CDEE2018A
-//## end module%3C10CC81037E.additionalDeclarations
 
 
 // Class CountedRefBase 
 
 
-//## Other Operations (implementation)
 void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
 {
-  //## begin CountedRefBase::copy%3C0CDEE2018A.body preserve=yes
   dprintf(2)("copying from %s(%x,%d)\n",other.debug(),flags,depth);
   detach();
   if( !other.valid() ) // copying invalid ref?
@@ -192,13 +186,11 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
     }
   }
   dprintf1(2)("  made %s\n",debug(Debug(3)?3:2,"  "));
-  //## end CountedRefBase::copy%3C0CDEE2018A.body
 }
 
 //##ModelId=3C0CDEE20180
 void CountedRefBase::xfer (const CountedRefBase& other)
 {
-  //## begin CountedRefBase::xfer%3C0CDEE20180.body preserve=yes
   dprintf(3)("xferring from %s\n",other.debug());
   detach();
   if( !other.valid() )
@@ -232,13 +224,11 @@ void CountedRefBase::xfer (const CountedRefBase& other)
     const_cast<CountedRefBase&>(other).empty();
   }
   dprintf(3)("  is now %s\n",debug(-1));
-  //## end CountedRefBase::xfer%3C0CDEE20180.body
 }
 
 //##ModelId=3C0CDEE20164
 CountedRefBase& CountedRefBase::privatize (int flags, int depth)
 {
-  //## begin CountedRefBase::privatize%3C0CDEE20164.body preserve=yes
   // This is a mask of all flags used by privatize. These flags are interpreted
   // here and _NOT_ passed on to target->privatize.
   // All other flags (WRITE, READONLY, etc.) are passed on. 
@@ -324,13 +314,11 @@ CountedRefBase& CountedRefBase::privatize (int flags, int depth)
   
   dprintf(2)("has been privatized\n");
   return *this;
-  //## end CountedRefBase::privatize%3C0CDEE20164.body
 }
 
 //##ModelId=3C18873600E9
 CountedRefBase& CountedRefBase::change (int flags)
 {
-  //## begin CountedRefBase::change%3C18873600E9.body preserve=yes
   // readonly downgrade
   dprintf(3)("changing to ");
   FailWhen( !valid(),"changing an invalid ref");
@@ -359,13 +347,11 @@ CountedRefBase& CountedRefBase::change (int flags)
   
   dprintf1(3)("%s\n",debug(-1));
   return *this;
-  //## end CountedRefBase::change%3C18873600E9.body
 }
 
 //##ModelId=3C1888B001A1
 CountedRefBase& CountedRefBase::setExclusiveWrite ()
 {
-  //## begin CountedRefBase::setExclusiveWrite%3C1888B001A1.body preserve=yes
   dprintf(3)("setExclusiveWrite\n");
   if( !isExclusiveWrite() )
   {
@@ -376,13 +362,11 @@ CountedRefBase& CountedRefBase::setExclusiveWrite ()
     writable = exclusiveWrite = True;
   }
   return *this;
-  //## end CountedRefBase::setExclusiveWrite%3C1888B001A1.body
 }
 
 //##ModelId=3C0CDEE20171
 CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
 {
-  //## begin CountedRefBase::attach%3C0CDEE20171.body preserve=yes
   // detach from old target, if any
   dprintf(3)("attaching to %s\n",targ->debug());
   if( valid() )
@@ -429,13 +413,11 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
 
   dprintf(3)("  ref target now %s\n",target->debug(2,"  "));
   return *this;
-  //## end CountedRefBase::attach%3C0CDEE20171.body
 }
 
 //##ModelId=3C1612A60137
 void CountedRefBase::detach ()
 {
-  //## begin CountedRefBase::detach%3C1612A60137.body preserve=yes
   if( !valid() )
     return;
   dprintf1(3)("%s: detaching\n",debug());
@@ -475,13 +457,11 @@ void CountedRefBase::detach ()
     dprintf(3)("  old target is now: %s\n",target->debug(2,"  "));
   }
   empty();
-  //## end CountedRefBase::detach%3C1612A60137.body
 }
 
 //##ModelId=3C583B9F03B8
 bool CountedRefBase::hasOtherWriters ()
 {
-  //## begin CountedRefBase::hasOtherWriters%3C583B9F03B8.body preserve=yes
   if( !valid() )
     return False;
   threadLock(target);
@@ -489,22 +469,20 @@ bool CountedRefBase::hasOtherWriters ()
     if( ref != this && ref->isWritable() )
       return True;
   return False;
-  //## end CountedRefBase::hasOtherWriters%3C583B9F03B8.body
 }
 
 //##ModelId=3C1611C702DB
 void CountedRefBase::privatizeOther (const CountedRefBase& other, int flags, int depth)
 {
-  //## begin CountedRefBase::privatizeOther%3C1611C702DB.body preserve=yes
   // to make a clone, first do a read-only copy, then clone that
   copy(other,DMI::READONLY);
   privatize(flags,depth);
-  //## end CountedRefBase::privatizeOther%3C1611C702DB.body
 }
+
+
 
 // Additional Declarations
 //##ModelId=3DB934620030
-  //## begin CountedRefBase%3C0CDEE200FE.declarations preserve=yes
 string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   static int nesting=0;
@@ -566,6 +544,20 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
   return out;
 }
 
-  //## end CountedRefBase%3C0CDEE200FE.declarations
-//## begin module%3C10CC81037E.epilog preserve=yes
-//## end module%3C10CC81037E.epilog
+void CountedRefBase::print (std::ostream &str) const
+{
+  if( valid() )
+  {
+    str<<"CRef->@"<<std::hex<<int(target)<<std::dec<<":";
+    target->print(str);
+  }
+  else
+    str<<"CRef->0";
+}
+
+void CountedRefBase::print () const
+{ 
+  print(std::cout); 
+  std::cout<<endl;
+}
+

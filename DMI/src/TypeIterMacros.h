@@ -14,8 +14,7 @@
 #define DoForSomeTypes(Which,Do,arg); \
           DoForSomeTypes_DMI(Which,Do,arg); \
           DoForSomeTypes_OCTOPUSSY(Which,Do,arg) ;\
-          DoForSomeTypes_UVD(Which,Do,arg); \
-          DoForSomeTypes_VisDM(Which,Do,arg); 
+          DoForSomeTypes_VisCube(Which,Do,arg); 
         
 // DMI types are always pulled in
 #include "DMI/TypeIter-DMI.h"
@@ -34,23 +33,14 @@
   #define DoForSomeTypes_OCTOPUSSY(Which,Do,arg) 
 #endif
     
-#ifdef HAVE_LOFAR_UVD
-  #include "UVD/TypeIter-UVD.h"
-  #define DoForSomeTypes_UVD(Which,Do,arg) \
-            DoForAll##Which##Types_UVD(Do,arg,;);
+#ifdef HAVE_LOFAR_VISCUBE
+  #include "VisCube/TypeIter-VisCube.h"
+  #define DoForSomeTypes_VisCube(Which,Do,arg) \
+            DoForAll##Which##Types_VisCube(Do,arg,;);
 #else
-  #define DoForSomeTypes_UVD(Which,Do,arg) 
+  #define DoForSomeTypes_VisCube(Which,Do,arg) 
 #endif
     
-#ifdef HAVE_LOFAR_VISDM
-  #include "VisDM/TypeIter-VisDM.h"
-  #define DoForSomeTypes_VisDM(Which,Do,arg) \
-            DoForAll##Which##Types_VisDM(Do,arg,;);
-#else
-  #define DoForSomeTypes_VisDM(Which,Do,arg) 
-#endif
-
-
 // Now define the macros themselves
 
 #ifndef DoForAllNumericTypes

@@ -28,15 +28,11 @@
 
 // pull in type definitions from configured packages    
 #ifdef HAVE_LOFAR_OCTOPUSSY
-  #include "OCTOPUSSY/TID-OCTOPUSSY.h"
+  #include <OCTOPUSSY/TID-OCTOPUSSY.h>
 #endif
 
-#ifdef HAVE_LOFAR_VISDM
-  #include "VisDM/TID-VisDM.h"
-#endif
-
-#ifdef HAVE_LOFAR_UVD
-  #include "UVD/TID-UVD.h"
+#ifdef HAVE_LOFAR_VISCUBE
+  #include <VisCube/TID-VisCube.h>
 #endif
 
 // pull in AIPS++ types if AIPS++ hooks are configured
@@ -427,12 +423,10 @@ class NestableContainer : public BlockableObject
           void operator <<= (const ObjRef &ref) const;
           
           template<class T>
-          void operator = (const CountedRef<T> &ref) const
-          { operator = ( ref.ref_cast((BlockableObject*)0) ); }
+          void operator = (const CountedRef<T> &ref) const;
           
           template<class T>
-          void operator <<= (const CountedRef<T> &ref) const
-          { operator <<= ( ref.ref_cast((BlockableObject*)0) ); }
+          void operator <<= (const CountedRef<T> &ref) const;
 
           //##ModelId=3C87864D031A
           void operator <<= (BlockableObject *obj) const;
@@ -1335,6 +1329,42 @@ inline void NestableContainer::Hook::assign_object( const BlockableObject *obj,T
   // cast away const but that's OK since we force r/o ref  
   return assign_object(const_cast<BlockableObject*>(obj),tid,(flags&~DMI::WRITE)|DMI::READONLY);
 }
+
+template<class T>
+void NestableContainer::Hook::operator = (const CountedRef<T> &ref) const
+{ 
+  // method for assigning a copy of a generic CountedRef.
+  // This will create an intermediate ObjRef (instantiation will fail if
+  // T is not derived from BlockableObject), attach it to the ref target
+  // with the default flags (thus retaining the anon/externm property),
+  // then transfer that ref to the container.
+  ObjRef objref; 
+  if( ref.isWritable() )
+    objref.attach(ref.dewr());
+  else
+    objref.attach(ref.deref());
+  operator <<= (objref); 
+}
+
+template<class T>
+void NestableContainer::Hook::operator <<= (const CountedRef<T> &ref) const
+{ 
+  // method for transferring generic CountedRef.
+  // This will create an intermediate ObjRef (instantiation will fail if
+  // T is not derived from BlockableObject), attach it to the ref target
+  // with the default flags (thus retaining the anon/externm property),
+  // then transfer that ref to the container. Then the original ref is detached.
+  ObjRef objref; 
+  if( ref.isWritable() )
+    objref.attach(ref.dewr());
+  else
+    objref.attach(ref.deref());
+  operator <<= (objref); 
+  // const violation since we "emulate" ref xfer in here
+  const_cast<CountedRef<T>& >(ref).detach();
+}
+
+
 
 #ifndef NC_SKIP_HOOKS
 template<class T,int N> 

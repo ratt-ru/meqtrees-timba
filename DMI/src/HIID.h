@@ -1,21 +1,41 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+//  HIID.h: hierarchical ID class
+//
+//  Copyright (C) 2002
+//  ASTRON (Netherlands Foundation for Research in Astronomy)
+//  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//  $Id$
 
-#ifndef HIID_h
-#define HIID_h 1
+#ifndef DMI_HIID_h
+#define DMI_HIID_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
+#include <DMI/Common.h>
+#include <DMI/DMI.h>
+#include <DMI/AtomicID.h>
 
 #include <deque>
-
-// AtomicID
-#include "DMI/AtomicID.h"
+#include <ostream>
+    
 #pragma type =HIID
 
 
 //##ModelId=3C55652D01B8
+typedef std::deque<AtomicID> Vector_AtomicID;
 
-typedef deque<AtomicID> Vector_AtomicID;
 //##ModelId=3BE96FE601C5
 class HIID : public Vector_AtomicID
 {
@@ -143,6 +163,15 @@ class HIID : public Vector_AtomicID
       
     //##ModelId=3DB9348B03E0
       static size_t HIIDSize (int n)  { return n*sizeof(int); }
+      
+    // prints to stream
+      void print (std::ostream &str) const
+      { str << toString(); }
+      
+      // prints to cout, with endline. Not inlined, so that it can
+      // be called from a debugger
+      void print () const;
+      
   private:
     // Additional Implementation Declarations
     //##ModelId=3DB9343C01F1
@@ -159,6 +188,13 @@ class HIID : public Vector_AtomicID
     //##ModelId=3DB9348C0305
       void addString ( const string & );
 };
+
+// stream operator
+inline std::ostream & operator << (std::ostream &str,const HIID &id)
+{ 
+  id.print(str);
+  return str;
+}
 
 // comparison operators for single AtomicIDs
 inline bool operator == (const HIID &id1,AtomicID id2)
@@ -245,17 +281,6 @@ inline HIID::HIID (const char *str)
     addString(str);
 }
 
-
-//##ModelId=3DB9348803AA
-inline bool HIID::operator==(const HIID &right) const
-{
-  if( size() != right.size() )
-    return False;
-  for( CVI iter = begin(),oiter = right.begin(); iter != end(); iter++,oiter++ )
-    if( *iter != *oiter )
-      return False;
-  return True;
-}
 
 //##ModelId=3DB9348901D5
 inline bool HIID::operator!=(const HIID &right) const

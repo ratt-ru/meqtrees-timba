@@ -1,15 +1,34 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+//  CountedRefBase.h: generic linked/counted ref implementation
+//
+//  Copyright (C) 2002
+//  ASTRON (Netherlands Foundation for Research in Astronomy)
+//  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//  $Id$
 
-#ifndef CountedRefBase_h
-#define CountedRefBase_h 1
+#ifndef DMI_CountedRefBase_h
+#define DMI_CountedRefBase_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-
-// Debug
-#include "Common/Debug.h"
-// CountedRefTarget
-#include "DMI/CountedRefTarget.h"
+#include <Common/Debug.h>
+#include <DMI/Common.h>
+#include <DMI/DMI.h>
+#include <DMI/CountedRefTarget.h>
+    
+#include <ostream>
 // Uncomment this to enable verification calls during countedref operations
 // #define COUNTEDREF_VERIFY 1
 
@@ -197,6 +216,13 @@ class CountedRefBase
     //##ModelId=3DB934610364
       CountedRefBase * getPrev ();
 
+      // prints to stream
+      void print (std::ostream &str) const;
+      
+      // prints to cout, with endline. Not inlined, so that it can
+      // be called from a debugger
+      void print () const;
+      
       // This is a typical debug() method setup. The sdebug()
       // method creates a debug info string at the given level of detail.
       // If detail<0, then partial info is returned: e.g., for detail==-2,
@@ -215,6 +241,8 @@ class CountedRefBase
       const char * debug ( int detail = 1,const string &prefix = "",
                            const char *name = 0 ) const
       { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
+      
+      
   protected:
 
       //##ModelId=3C1611C702DB
@@ -290,7 +318,11 @@ class CountedRefBase
     friend class CountedRefTarget;
 };
 
-// Class CountedRefBase 
+inline std::ostream & operator << (std::ostream &str,const CountedRefBase &ref)
+{
+  ref.print(str);
+  return str;
+}
 
 //##ModelId=3C0CE1C10277
 inline CountedRefBase::CountedRefBase()

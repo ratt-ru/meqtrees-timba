@@ -1,13 +1,31 @@
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
+//  CountedRef.h: type-specific counted reference class
+//
+//  Copyright (C) 2002
+//  ASTRON (Netherlands Foundation for Research in Astronomy)
+//  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//  $Id$
 
-#ifndef CountedRef_h
-#define CountedRef_h 1
+#ifndef DMI_CountedRef_h
+#define DMI_CountedRef_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-
-// CountedRefBase
-#include "DMI/CountedRefBase.h"
+#include <DMI/Common.h>
+#include <DMI/DMI.h>
+#include <DMI/CountedRefBase.h>
 
 //##ModelId=3BEFECFF0287
 //##Documentation
@@ -140,24 +158,45 @@ class CountedRef : private CountedRefBase
 
       //##ModelId=3BFA4DF4027D
       //##Documentation
-      //## Various methods to attach to target object. See CountedRef
-      //## Base::attach(). Const target forces READONLY ref.
-      CountedRef<T> & attach (T& targ, int flags = 0);
+      //## Various methods to attach to target object. See CountedRefBase::
+      //## attach(). Const target forces readonly ref.
+      CountedRef<T> & attach (T* targ, int flags = 0)
+      { CountedRefBase::attach(targ,flags); return *this; }
 
       //##ModelId=3BFA4E070216
-      CountedRef<T> & attach (const T& targ, int flags = 0);
-
+      CountedRef<T> & attach (const T* targ, int flags = 0)
+      { CountedRefBase::attach(targ,flags); return *this; }
+      
       //##ModelId=3C179D9E027E
-      CountedRef<T> & attach (T* targ, int flags = 0);
+      CountedRef<T> & attach (T& targ, int flags = 0)
+      { return attach(&targ,flags); } 
 
       //##ModelId=3C179DA9016B
-      CountedRef<T> & attach (const T* targ, int flags = 0);
+      CountedRef<T> & attach (const T& targ, int flags = 0)
+      { return attach(&targ,flags); } 
 
       //##ModelId=3CBEE39B0011
-      CountedRef<T> & operator <<= (const T* targ);
-
+      //##Documentation
+      //## <<= on const target ptr is alias for attach as readonly, anonymous
+      CountedRef<T> & operator <<= (const T* targ)
+      {
+        return attach(targ,DMI::ANON|DMI::READONLY);
+      }
       //##ModelId=3CBEE3AC0105
-      CountedRef<T> & operator <<= (T* targ);
+      //##Documentation
+      //## <<= on target ptr is alias for attach as r/w, anonymous
+      CountedRef<T> & operator <<= (T* targ)
+      {
+        return attach(targ,DMI::ANON|DMI::WRITE);
+      }
+      
+      //##ModelId=3E01B1AB0345
+      //##Documentation
+      //## <<= on other ref is alias for xfer
+      CountedRef<T> & operator <<= (const CountedRef<T> &other)
+      {
+        return xfer(other);
+      }
 
     // Additional Public Declarations
       // Constructor for implicitly allocating a new anonymous target.
@@ -185,6 +224,8 @@ class CountedRef : private CountedRefBase
       CountedRefBase::hasOtherWriters;
     //##ModelId=3DB934520390
       CountedRefBase::verify; 
+    //##ModelId=3E01B0F70100
+      CountedRefBase::print;
     //##ModelId=3DB934530111
       CountedRefBase::debug;
     //##ModelId=3DB93453025B
@@ -442,38 +483,6 @@ inline CountedRef<T>& CountedRef<T>::setExclusiveWrite ()
   return *this;
 }
 
-//##ModelId=3BFA4DF4027D
-template <class T>
-inline CountedRef<T> & CountedRef<T>::attach (T& targ, int flags)
-{
-  return attach(&targ,flags);
-}
-
-//##ModelId=3BFA4E070216
-template <class T>
-inline CountedRef<T> & CountedRef<T>::attach (const T& targ, int flags)
-{
-  return attach(&targ,flags);
-}
-
-//##ModelId=3C179D9E027E
-template <class T>
-inline CountedRef<T> & CountedRef<T>::attach (T* targ, int flags)
-{
-  CountedRefBase::attach(targ,flags);
-  return *this;
-}
-
-//##ModelId=3C179DA9016B
-template <class T>
-inline CountedRef<T> & CountedRef<T>::attach (const T* targ, int flags)
-{
-  CountedRefBase::attach(targ,flags);
-  return *this;
-}
-
-// Parameterized Class CountedRef 
-
 //##ModelId=3DB934590080
 template <class T>
 bool CountedRef<T>::operator==(const CountedRef<T> &right) const
@@ -486,22 +495,6 @@ template <class T>
 bool CountedRef<T>::operator!=(const CountedRef<T> &right) const
 {
   return !(*this == right);
-}
-
-
-
-//##ModelId=3CBEE39B0011
-template <class T>
-inline CountedRef<T> & CountedRef<T>::operator <<= (const T* targ)
-{
-  return attach(targ,DMI::ANON|DMI::READONLY);
-}
-
-//##ModelId=3CBEE3AC0105
-template <class T>
-inline CountedRef<T> & CountedRef<T>::operator <<= (T* targ)
-{
-  return attach(targ,DMI::ANON|DMI::WRITE);
 }
 
 //##ModelId=3DB9345A02BD
@@ -532,14 +525,5 @@ void copyRefContainer (DestCont &dest,const SrcCont &src,int flags=DMI::PRESERVE
 //    BlockRef (as CountedRef<SmartBlock>), 
 #define DefineRefTypes(type,reftype) typedef CountedRef<type> reftype; 
 
-
-#endif
-
-
-// Detached code regions:
-#if 0
-    : CountedRef<T>(ref,DMI::COPYREF|DMI::LOCKED)
-
-    : CountedRef<T>(ref,flags)
 
 #endif

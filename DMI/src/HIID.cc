@@ -1,58 +1,41 @@
-//##ModelId=3DB934880197
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
+//  HIID.cc: hierarchical ID class
+//
+//  Copyright (C) 2002
+//  ASTRON (Netherlands Foundation for Research in Astronomy)
+//  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//  $Id$
 
-//## begin module%3C10CC820357.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C10CC820357.cm
-
-//## begin module%3C10CC820357.cp preserve=no
-//## end module%3C10CC820357.cp
-
-//## Module: HIID%3C10CC820357; Package body
-//## Subsystem: DMI%3C10CC810155
-//	f:\lofar\dvl\lofar\cep\cpa\pscf\src
-//## Source file: F:\lofar8\oms\LOFAR\src-links\DMI\HIID.cc
-
-//## begin module%3C10CC820357.additionalIncludes preserve=no
-//## end module%3C10CC820357.additionalIncludes
-
-//## begin module%3C10CC820357.includes preserve=yes
-//## end module%3C10CC820357.includes
-
-// HIID
-#include "DMI/HIID.h"
-//## begin module%3C10CC820357.declarations preserve=no
-//## end module%3C10CC820357.declarations
-
-//## begin module%3C10CC820357.additionalDeclarations preserve=yes
-//## end module%3C10CC820357.additionalDeclarations
-
+#include "HIID.h"
 
 // Class HIID 
 
 HIID::HIID (const void* block, int sz)
-  //## begin HIID::HIID%3C556A470346.hasinit preserve=no
-  //## end HIID::HIID%3C556A470346.hasinit
-  //## begin HIID::HIID%3C556A470346.initialization preserve=yes
   : Vector_AtomicID(sz/sizeof(int))
-  //## end HIID::HIID%3C556A470346.initialization
 {
-  //## begin HIID::HIID%3C556A470346.body preserve=yes
   reserve();
   unpack(block,sz);
-  //## end HIID::HIID%3C556A470346.body
 }
 
 
 
 //##ModelId=3BE977510397
-//## Other Operations (implementation)
 HIID & HIID::add (const HIID &other)
 {
-  //## begin HIID::add%3BE977510397.body preserve=yes
   if( other.empty() )
     return *this;
   int n = size();
@@ -60,23 +43,22 @@ HIID & HIID::add (const HIID &other)
   for( const_iterator iter = other.begin(); iter != other.end(); iter++ )
     (*this)[n++] = *iter;
   return *this;
-  //## end HIID::add%3BE977510397.body
 }
 
 //##ModelId=3C55695F00CC
 HIID HIID::subId (int first, int last) const
 {
-  //## begin HIID::subId%3C55695F00CC.body preserve=yes
   const_iterator iter1 = first >= 0 ? begin()+first : end()-first;
   const_iterator iter2 = last >= 0 ? begin()+(last+1) : end()-(last+1);
   return HIID(iter1,iter2);
-  //## end HIID::subId%3C55695F00CC.body
 }
 
 //##ModelId=3BE9792B0135
 bool HIID::matches (const HIID &other) const
 {
-  //## begin HIID::matches%3BE9792B0135.body preserve=yes
+  if( this == &other )
+    return True;
+  
   CVI iter = begin(),
       oiter = other.begin();
   for( ; iter != end() && oiter != other.end(); iter++,oiter++ )
@@ -87,15 +69,18 @@ bool HIID::matches (const HIID &other) const
     if( !(*iter).matches(*oiter) )  // mismatch at this position - drop out
       return False;
   }
-  // got to end of one? Match only if this is simultaneous
-  return iter == end() && oiter == other.end();
-  //## end HIID::matches%3BE9792B0135.body
+  // got to end of one? Match only if this is simultaneous, or either one
+  // ends with wildcard
+  return ( iter == end() || iter->isWildcard() ) && 
+         ( oiter == other.end() || oiter->isWildcard() );
 }
 
 //##ModelId=3C99A0400186
 bool HIID::subsetOf (const HIID &other) const
 {
-  //## begin HIID::subsetOf%3C99A0400186.body preserve=yes
+  if( this == &other )
+    return True;
+  
   CVI iter = begin(),
       oiter = other.begin();
   for( ; iter != end() && oiter != other.end(); iter++,oiter++ )
@@ -109,14 +94,12 @@ bool HIID::subsetOf (const HIID &other) const
   }
   // both had to have ended simultaneously (or the other HIID might have
   // an extra wildcard)
-  return iter == end() && ( oiter == other.end() || oiter->isWildcard());
-  //## end HIID::subsetOf%3C99A0400186.body
+  return iter == end() && ( oiter == other.end() || oiter->isWildcard() );
 }
 
 //##ModelId=3C59522600D6
 int HIID::popLeadIndex ()
 {
-  //## begin HIID::popLeadIndex%3C59522600D6.body preserve=yes
   if( !size() )
     return 0;
   int ret = front().index();
@@ -124,13 +107,11 @@ int HIID::popLeadIndex ()
     return 0;
   pop_front();
   return ret;
-  //## end HIID::popLeadIndex%3C59522600D6.body
 }
 
 //##ModelId=3C6B86D5003A
 int HIID::popTrailIndex ()
 {
-  //## begin HIID::popTrailIndex%3C6B86D5003A.body preserve=yes
   if( !size() )
     return 0;
   int ret = front().index();
@@ -138,25 +119,21 @@ int HIID::popTrailIndex ()
     return 0;
   pop_back();
   return ret;
-  //## end HIID::popTrailIndex%3C6B86D5003A.body
 }
 
 //##ModelId=3C7A1B6500C9
 int HIID::findFirstSlash () const
 {
-  //## begin HIID::findFirstSlash%3C7A1B6500C9.body preserve=yes
   int pos = 0;
   for( const_iterator iter = begin(); iter != end(); iter++,pos++ )
     if( *iter == AidSlash )
       return pos;
   return -1;
-  //## end HIID::findFirstSlash%3C7A1B6500C9.body
 }
 
 //##ModelId=3CAD7B2901CA
 HIID HIID::splitAtSlash ()
 {
-  //## begin HIID::splitAtSlash%3CAD7B2901CA.body preserve=yes
   HIID subid;
   while( size() )
   {
@@ -169,13 +146,11 @@ HIID HIID::splitAtSlash ()
     pop_front();
   }
   return subid;
-  //## end HIID::splitAtSlash%3CAD7B2901CA.body
 }
 
 //##ModelId=3C0F8BD5004F
 string HIID::toString () const
 {
-  //## begin HIID::toString%3C0F8BD5004F.body preserve=yes
   string s("(null)");
   if( size()>0 )
   {
@@ -192,13 +167,17 @@ string HIID::toString () const
     }
   }
   return s;
-  //## end HIID::toString%3C0F8BD5004F.body
+}
+
+void HIID::print () const
+{ 
+  print(std::cout); 
+  std::cout<<endl;
 }
 
 //##ModelId=3C5912FE0134
 size_t HIID::pack (void *block, size_t &nleft) const
 {
-  //## begin HIID::pack%3C5912FE0134.body preserve=yes
   size_t sz = size()*sizeof(int);
   FailWhen(nleft<sz,"block too small");
   int *data = static_cast<int*>(block);
@@ -206,26 +185,38 @@ size_t HIID::pack (void *block, size_t &nleft) const
     *(data++) = *(iter);
   nleft -= sz;
   return sz;
-  //## end HIID::pack%3C5912FE0134.body
 }
 
 //##ModelId=3C970F91006F
 void HIID::unpack (const void* block, size_t sz)
 {
-  //## begin HIID::unpack%3C970F91006F.body preserve=yes
   FailWhen(sz%sizeof(int),"bad block size");
   resize(sz/sizeof(int));
   const int *data = reinterpret_cast<const int*>(block);
   for( VI iter = begin(); iter != end(); iter++ )
     *iter = *(data++);
-  //## end HIID::unpack%3C970F91006F.body
 }
 
 // Additional Declarations
+//##ModelId=3DB9348803AA
+bool HIID::operator== (const HIID &right) const
+{
+  if( this == &right )
+    return True;
+  if( size() != right.size() )
+    return False;
+  for( CVI iter = begin(),oiter = right.begin(); iter != end(); iter++,oiter++ )
+    if( *iter != *oiter )
+      return False;
+  return True;
+}
+
 //##ModelId=3DB9348B01E2
-  //## begin HIID%3BE96FE601C5.declarations preserve=yes
 bool HIID::operator < (const HIID &right) const
 {
+  if( this == &right )
+    return False;
+  
   CVI iter = begin(),
       oiter = right.begin();
   // go up to end of this or other, and return result if a strict != was found
@@ -279,14 +270,10 @@ void HIID::addString (const string &str)
     }
   }
 }
-  //## end HIID%3BE96FE601C5.declarations
-//## begin module%3C10CC820357.epilog preserve=yes
-//## end module%3C10CC820357.epilog
 
 
 // Detached code regions:
 #if 0
-//## begin HIID::popLeadSubId%3C6BC6DD0068.body preserve=yes
 // 
 //   // advance an iter past first sequence of leading slashes (if any)
 //   CVI iter0 = begin();
@@ -307,9 +294,7 @@ void HIID::addString (const string &str)
 // //  HIID ret(iter0,iter);
 // //  erase(begin(),++iter);
 //   return ret;
-//## end HIID::popLeadSubId%3C6BC6DD0068.body
 
-//## begin HIID::popLeadDelim%3C5952AD0261.body preserve=yes
   if( !size() )
     return 0;
   AtomicID ret = front();
@@ -317,6 +302,5 @@ void HIID::addString (const string &str)
     return 0;
   pop_front();
   return ret;
-//## end HIID::popLeadDelim%3C5952AD0261.body
 
 #endif

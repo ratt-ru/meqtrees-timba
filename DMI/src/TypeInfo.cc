@@ -41,7 +41,9 @@ void _convertComplex( const void * from,void * to )
 #define From(type,arg) _convertScalar<arg,type>
 #undef FromComplex
 #define FromComplex(type,arg) _convertComplex<arg,type>
-TypeConverter _typeconverters[16][16] = {
+TypeConverter _typeconverters[16][16] = 
+{
+  { DoForAllNumericTypes1(From,bool) },
   { DoForAllNumericTypes1(From,char) },
   { DoForAllNumericTypes1(From,uchar) },
   { DoForAllNumericTypes1(From,short) },
@@ -56,6 +58,6 @@ TypeConverter _typeconverters[16][16] = {
   { DoForAllNumericTypes1(From,double) },
   { DoForAllNumericTypes1(From,ldouble) },
   { DoForAllNumericTypes1(FromComplex,fcomplex) },
-  { DoForAllNumericTypes1(FromComplex,dcomplex) },
-  { DoForAllNumericTypes1(From,bool) } };
+  { DoForAllNumericTypes1(FromComplex,dcomplex) } 
+};
 
