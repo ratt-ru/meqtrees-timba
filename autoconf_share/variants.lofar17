@@ -4,7 +4,7 @@ gnu3.compiler.aipspp.var: --with-aipspp=/data/aips++/weekly/linux_gnu
 gnu34.compiler.conf: CXX=/home/loose/linux/usr/local/gcc-3.4.1/bin/g++
 gnu34.compiler.aipspp.var: --with-aipspp=/data/aips++/weekly/linux_gnu
 
-icc.compiler.conf: CXX=/usr/local/compiler80/bin/icc --with-cppflags="-cxxlib-gcc" --with-ldflags="-cxxlib-gcc -Xlinker -rpath -Xlinker /usr/local/compiler80/lib" --with-blitz="/usr/local/blitz/gnu3"
+icc.compiler.conf: CXX=/usr/local/compiler80/bin/icc --with-cppflags="-cxxlib-gcc" --with-ldflags="-cxxlib-gcc -Xlinker -rpath -Xlinker /usr/local/compiler80/lib"
 icc.compiler.aipspp.var: --with-aipspp=/data/aips++/weekly/linux_gnu
 
 insure.variant.conf:     --with-insuretools=/usr/local/insure/bin.linux2 $(aipspp)
