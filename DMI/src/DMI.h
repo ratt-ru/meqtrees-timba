@@ -49,14 +49,16 @@ namespace DMI
       LOCK            =     LOCKED,
       UNLOCKED        = 0x020,
       PERSIST         = 0x040,
+      
+      
  
-  // by default, refs are privatize-on-write (that is, a read-only ref 
-  // will auto-privatize the object if write access is requested). If attached
-  // as SHARED, the object becomes shared between the owner ref and the new
-  // ref, and access is completely controlled via the READ/WRITE flags
-      POW             = 0,
-      NOPOW           = 0x080,
-        SHARED        =   NOPOW,    
+//   // by default, refs are privatize-on-write (that is, a read-only ref 
+//   // will auto-privatize the object if write access is requested). If attached
+//   // as SHARED, the object becomes shared between the owner ref and the new
+//   // ref, and access is completely controlled via the READ/WRITE flags
+//       POW             = 0,
+//       NOPOW           = 0x080,
+//         SHARED        =   NOPOW,    
       
   // when attaching a ref as ANON or EXTERN, and the target is already 
   // referenced, use the established ref type even if it conflicts with the flags

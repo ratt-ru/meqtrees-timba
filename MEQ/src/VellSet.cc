@@ -59,20 +59,37 @@ const HIID & OptionalColumns::optColFieldId (uint icol)
 
 
 //##ModelId=400E5355031E
-VellSet::VellSet (int nspid,int nset)
+VellSet::VellSet (const LoShape2 &shp,int nspid,int nset)
 : default_pert_ (0.),
   pset_         (nset),
   spids_        (0),
   numspids_     (nspid),
   is_fail_      (false)
 {
+  init();
+  setShape(shp);
+}
+
+VellSet::VellSet (int nspid,int nset)
+: default_pert_ (0.),
+  pset_         (nset),
+  shape_        (0,0),
+  spids_        (0),
+  numspids_     (nspid),
+  is_fail_      (false)
+{
+  init();
+}
+
+void VellSet::init ()
+{
   // clear optional columns
   for( uint i=0; i<NUM_OPTIONAL_COL; i++ )
     optcol_[i].ptr = 0;
   // create appropriate fields in the record: spids vector and perturbations vector
-  if( nspid )
+  if( numspids_ )
   {
-    DataField *pdf = new DataField(Tpint,nspid);
+    DataField *pdf = new DataField(Tpint,numspids_);
     DataRecord::add(FSpids,pdf,DMI::ANONWR);
     spids_ = (*pdf)[HIID()].as_wp<int>();
     // setups perturbations structures
@@ -111,6 +128,18 @@ void VellSet::setupPertData (int iset)
   pset_[iset].pertval_field <<= pdf = new DataField(TpDataArray,numspids_);
   DataRecord::add(FiPerturbedValues(iset),pdf,DMI::ANONWR);
 }
+
+void VellSet::setShape (const LoShape2 &shp)
+{
+  if( hasShape() )
+  {
+    FailWhen(shape_ != shp,"different VellSet shape already set");
+    return;
+  }
+  shape_ = shp;
+  int vec[2] = { shape_[0] , shape_[1] };
+  DataRecord::replace(FShape,new DataField(Tpint,2,DMI::WRITE,vec),DMI::ANONWR);
+}
     
 //##ModelId=400E53550333
 void VellSet::privatize (int flags, int depth)
@@ -138,10 +167,24 @@ void VellSet::validateContent ()
     else
     {
       is_fail_ = false;
+      // get shape from data record
+      Hook hshp(*this,FShape);
+      if( hshp.exists() )
+      {
+        vector<int> shp = (*this)[FShape].as_vector<int>();
+        FailWhen(shp.size()!=2,"illegal "+FShape.toString()+" field");
+        shape_[0] = shp[0];
+        shape_[1] = shp[1];
+      }
       // get value, if it exists in the data record
       Hook hval(*this,FValue);
-      if( hval.exists() )
+      bool has_value = hval.exists();
+      if( has_value )
+      {
         value_ <<= new Vells(hval.ref(DMI::PRESERVE_RW));
+        FailWhen(value_->isArray() && value_->shape() != shape_,
+                 "main value: bad shape");
+      }
       else
         value_ <<= new Vells;
       // get optional columns, if they exist in the data record
@@ -149,13 +192,21 @@ void VellSet::validateContent ()
       {
         Hook hcol(*this,optColFieldId(i));
         if( hcol.exists() )
-          optcol_[i].ptr = (optcol_[i].ref = hcol.ref(DMI::WRITE)).dewr_p();
+        {
+          FailWhen(!has_value,"missing main value");
+          const DataArray &darr = *(optcol_[i].ref = hcol.ref());
+          FailWhen(darr.size() != 1 && darr.shape() != shape_,
+                   "column "+optColFieldId(i).toString()+": bad shape");
+          // cast away const here: writability is checked separately
+          optcol_[i].ptr = const_cast<void*>(darr.getConstArrayPtr(optColArrayType(i)));
+        }
         else
           optcol_[i].ptr = 0;
       }
       // get pointer to spids vector and its size
       if( DataRecord::hasField(FSpids) )
       {
+        FailWhen(!has_value,"missing main value");
         spids_ = (*this)[FSpids].as_p<int>(numspids_);
         int size;
         // figure out number of perturbation sets in the record
@@ -184,7 +235,12 @@ void VellSet::validateContent ()
               for( int i=0; i<numspids_; i++ )
               {
                 if( pset_[iset].pertval_field[i].exists() )
-                  pset_[iset].pertval[i] <<= new Vells(pset_[iset].pertval_field[i].ref(DMI::PRESERVE_RW));
+                {
+                  Vells *pvells = new Vells(pset_[iset].pertval_field[i].ref(DMI::PRESERVE_RW));
+                  pset_[iset].pertval[i] <<= pvells;
+                  FailWhen(pvells->isArray() && pvells->shape() != shape_,
+                      Debug::ssprintf("perturbed value %d/%d: bad shape",i,iset));
+                }
                 else
                   pset_[iset].pertval[i] <<= new Vells;
               }
@@ -211,6 +267,7 @@ void VellSet::validateContent ()
 //##ModelId=400E535503B5
 void VellSet::clear()
 {
+  shape_ = LoShape2(0,0);
   numspids_ = 0;
   spids_ = 0;
   pset_.resize(0);
@@ -224,22 +281,57 @@ void VellSet::clear()
   }
 }
 
+// void VellSet::makeReadOnly (int flags)
+// {
+//   Thread::Mutex::Lock lock(mutex());
+//   // call DataRecord method to make fields read-only
+//   // (this will take care of DMI::DEEP flag if passed, making contents r/o)
+//   DataRecord::makeReadOnly(flags);
+//   // make all cached refs r/o
+//   value_.change(DMI::READONLY);
+//   for( uint i=0; i<pset_.size(); i++ )
+//   {
+//     for( uint j=0; j<pset_[i].pertval.size(); j++ )
+//       pset_[i].pertval[j].change(DMI::READONLY);
+//     pset_[i].pertval_field.change(DMI::READONLY);
+//   }
+//   for( int i=0; i<NUM_OPTIONAL_COL; i++ )
+//     optcol_[i].ref.change(DMI::READONLY);
+// }
+// 
+
+Vells& VellSet::getValueRW ()
+{
+  Thread::Mutex::Lock lock(mutex());
+  FailWhen( !value_.valid(),"no main value" );
+  // if not writable, privatize for writing
+  if( !value_.isWritable() )
+  {
+    value_.privatize(DMI::WRITE|DMI::DEEP);
+    DataRecord::replace(FValue,&(value_().getDataArray()),DMI::WRITE);
+  }
+  return value_.dewr();
+}
+
 void * VellSet::writeOptCol (uint icol)
 {
+  Thread::Mutex::Lock lock(mutex());
   Assert(hasOptCol(icol));
   if( !optcol_[icol].ref.isWritable() )
   {
     // if not writable, privatize for writing. The hook will do it for us
-    optcol_[icol].ref <<= (*this)[optColFieldId(icol)].ref(DMI::WRITE);
-    optcol_[icol].ptr = optcol_[icol].ref().getArrayPtr(optColArrayType(icol));
+    DataArray *parr = optcol_[icol].ref.privatize(DMI::WRITE).dewr_p();
+    DataRecord::replace(optColFieldId(icol),parr,DMI::WRITE);
+    optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
   }
   return optcol_[icol].ptr;
 }
 
-void * VellSet::initOptCol (uint icol,int nfreq,int ntime)
+void * VellSet::initOptCol (uint icol,bool array)
 {
   // attach & return
-  DataArray *parr = new DataArray(optColArrayType(icol),LoShape(nfreq,ntime),DMI::ZERO);
+  DataArray *parr = array ? new DataArray(optColArrayType(icol),shape(),DMI::ZERO)
+                          : new DataArray(optColArrayType(icol),LoShape(1),DMI::ZERO);
   optcol_[icol].ref <<= parr;
   (*this)[optColFieldId(icol)].replace() <<= parr;
   return optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
@@ -247,6 +339,9 @@ void * VellSet::initOptCol (uint icol,int nfreq,int ntime)
 
 void VellSet::doSetOptCol (uint icol,DataArray *parr,int dmiflags)
 {
+  FailWhen(!hasShape(),"VellSet shape not set");
+  FailWhen(parr->size() != 1 && parr->shape() != shape(),
+           "column "+optColFieldId(icol).toString()+": bad shape");
   // get pointer to blitz array (this also verifies type)
   optcol_[icol].ptr = parr->getArrayPtr(optColArrayType(icol));
   // attach & return
@@ -256,6 +351,9 @@ void VellSet::doSetOptCol (uint icol,DataArray *parr,int dmiflags)
 
 void VellSet::setOptCol (uint icol,const DataArray::Ref::Xfer &ref)
 {
+  FailWhen(!hasShape(),"VellSet shape not set");
+  FailWhen(ref->size() != 1 && ref->shape() != shape(),
+           "column "+optColFieldId(icol).toString()+": bad shape");
   // get pointer to blitz array (this also verifies type)
   optcol_[icol].ptr = const_cast<void*>(ref->getConstArrayPtr(optColArrayType(icol)));
   // attach & return
@@ -328,6 +426,9 @@ void VellSet::setPerturbations (const vector<double>& perts,int iset)
 //##ModelId=400E53550360
 Vells & VellSet::setValue (Vells *pvells)
 {
+  FailWhen(!hasShape(),"VellSet shape not set");
+  FailWhen(pvells->isArray() && pvells->shape() != shape(),
+            "main value: bad shape");
   value_ <<= pvells;
   DataRecord::replace(FValue,&(pvells->getDataArray()),DMI::ANONWR);
   return *pvells;
@@ -337,6 +438,9 @@ Vells & VellSet::setValue (Vells *pvells)
 Vells & VellSet::setPerturbedValue (int i,Vells *pvells,int iset)
 {
   DbgAssert(i>=0 && i<numspids_ && iset>=0 && iset<int(pset_.size())); 
+  FailWhen(!hasShape(),"VellSet shape not set");
+  FailWhen(pvells->isArray() && pvells->shape() != shape(),
+        Debug::ssprintf("perturbed value %d/%d: bad shape",i,iset));
   PerturbationSet &ps = pset_[iset];
   // allocate container for perturbed values
   if( !ps.pertval_field.valid() )

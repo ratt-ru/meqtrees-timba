@@ -198,6 +198,7 @@ void Polc::evaluate (VellSet &result,
     makeDiff = 0;
   else if( makeDiff ) 
     result.setSpids(itsSpids);
+  result.setShape(xgrid.size(),ygrid.size());
   // If there is only one coefficient, the polynomial is independent
   // of x and y.
   // So set the value to the coefficient and possibly set the perturbed value.

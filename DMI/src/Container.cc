@@ -338,7 +338,27 @@ const ObjRef * NestableContainer::Hook::asRef (bool write) const
   // check for element
   resolveTarget(write?DMI::WRITE:0);
   FailWhen(!target.ptr,"element does not exist");
+  FailWhen(target.tid!=TpObjRef,"hook does not refer to a ref");
   return static_cast<const ObjRef*>(target.ptr);
+}
+
+// This is called to treat the hook target as an ObjRef (exception otherwise).
+// If write is true, assures writability of ref itself
+//##ModelId=3C8770A70215
+inline ObjRef NestableContainer::Hook::ref (bool write) const
+{
+  DbgFailWhen(addressed,"unexpected '&' operator");
+  // resolve to ref first, to check types
+  resolveTarget();
+  FailWhen(!target.ptr,"element does not exist");
+  FailWhen(target.tid!=TpObjRef,"hook does not refer to a ref");
+  // resolve to writable object -- this will privatize as necessary
+  const BlockableObject *pobj = static_cast<const BlockableObject*>
+      ( resolveTarget(DMI::NC_DEREFERENCE|(write?DMI::WRITE:0)) );
+  FailWhen(!pobj,"element does not exist");
+  // attach ref and return. cast away const when attaching, since 
+  // writability (if needed) is ensured above
+  return ObjRef(const_cast<BlockableObject*>(pobj),write?DMI::WRITE:0);
 }
 
 // This is called to access by pointer, for all types
@@ -380,17 +400,18 @@ const NestableContainer::Hook & NestableContainer::Hook::attachObjRef (ObjRef &o
 {
   DbgFailWhen(addressed,"unexpected '&' operator");
   // resolve to ref
-  const ObjRef *ref = asRef(False);
-  DbgAssert(ref);
-  // if we want a writable ref but this one is r/o, re-resolve to 
-  // a non-const ref
-  if( flags&DMI::WRITE && !ref->isWritable() )
-  {
-    ref = asRef(True);
-    const_cast<ObjRef*>(ref)->privatize(flags);
-  }
-  // copy ref to output ref
-  out.copy(*ref,flags);
+  out = ref((flags&DMI::WRITE)!=0);
+//  const ObjRef *ref = asRef(False);
+//   DbgAssert(ref);
+//   // if we want a writable ref but this one is r/o, re-resolve to 
+//   // a non-const ref
+//   if( flags&DMI::WRITE && !ref->isWritable() )
+//   {
+//     ref = asRef(True);
+//     const_cast<ObjRef*>(ref)->privatize(flags);
+//   }
+//   // copy ref to output ref
+//   out.copy(*ref,flags);
   return *this;
 }
 

@@ -23,6 +23,11 @@ const int AidAll_int = -1381;
 const AtomicID AidAuto(-1273);                    // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:17
 const int AidAuto_int = -1273;
 #endif
+#ifndef _defined_id_AidBit
+#define _defined_id_AidBit 1
+const AtomicID AidBit(-1428);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/FlagCompare.h:30
+const int AidBit_int = -1428;
+#endif
 #ifndef _defined_id_AidBy
 #define _defined_id_AidBy 1
 const AtomicID AidBy(-1382);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
@@ -128,6 +133,11 @@ const int AidDeriv_int = -1230;
 const AtomicID AidDomain(-1213);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cells.h:35
 const int AidDomain_int = -1213;
 #endif
+#ifndef _defined_id_AidEQ
+#define _defined_id_AidEQ 1
+const AtomicID AidEQ(-1434);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
+const int AidEQ_int = -1434;
+#endif
 #ifndef _defined_id_AidEnd
 #define _defined_id_AidEnd 1
 const AtomicID AidEnd(-1283);                     // from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:35
@@ -167,6 +177,16 @@ const int AidFlags_int = -1298;
 #define _defined_id_AidFreq 1
 const AtomicID AidFreq(-1128);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
 const int AidFreq_int = -1128;
+#endif
+#ifndef _defined_id_AidGE
+#define _defined_id_AidGE 1
+const AtomicID AidGE(-1431);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
+const int AidGE_int = -1431;
+#endif
+#ifndef _defined_id_AidGT
+#define _defined_id_AidGT 1
+const AtomicID AidGT(-1432);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
+const int AidGT_int = -1432;
 #endif
 #ifndef _defined_id_AidGrid
 #define _defined_id_AidGrid 1
@@ -212,6 +232,16 @@ const int AidInvert_int = -1110;
 #define _defined_id_AidIter 1
 const AtomicID AidIter(-1421);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:39
 const int AidIter_int = -1421;
+#endif
+#ifndef _defined_id_AidLE
+#define _defined_id_AidLE 1
+const AtomicID AidLE(-1430);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
+const int AidLE_int = -1430;
+#endif
+#ifndef _defined_id_AidLT
+#define _defined_id_AidLT 1
+const AtomicID AidLT(-1436);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
+const int AidLT_int = -1436;
 #endif
 #ifndef _defined_id_AidLine
 #define _defined_id_AidLine 1
@@ -292,6 +322,11 @@ const int AidMeqFreq_int = -1219;
 #define _defined_id_AidMeqFunction 1
 const AtomicID AidMeqFunction(-1216);             // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Function.h:29
 const int AidMeqFunction_int = -1216;
+#endif
+#ifndef _defined_id_AidMeqMergeFlags
+#define _defined_id_AidMeqMergeFlags 1
+const AtomicID AidMeqMergeFlags(-1437);           // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MergeFlags.h:30
+const int AidMeqMergeFlags_int = -1437;
 #endif
 #ifndef _defined_id_AidMeqMultiply
 #define _defined_id_AidMeqMultiply 1
@@ -378,6 +413,11 @@ const int AidMeqUVW_int = -1239;
 const AtomicID AidMeqVellSet(-1369);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/VellSet.h:34
 const int AidMeqVellSet_int = -1369;
 #endif
+#ifndef _defined_id_AidMeqZeroFlagger
+#define _defined_id_AidMeqZeroFlagger 1
+const AtomicID AidMeqZeroFlagger(-1433);          // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:29
+const int AidMeqZeroFlagger_int = -1433;
+#endif
 #ifndef _defined_id_AidMessage
 #define _defined_id_AidMessage 1
 const AtomicID AidMessage(-1045);                 // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:25
@@ -392,6 +432,11 @@ const int AidMetrics_int = -1404;
 #define _defined_id_AidMu 1
 const AtomicID AidMu(-1400);                      // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 const int AidMu_int = -1400;
+#endif
+#ifndef _defined_id_AidNE
+#define _defined_id_AidNE 1
+const AtomicID AidNE(-1429);                      // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
+const int AidNE_int = -1429;
 #endif
 #ifndef _defined_id_AidName
 #define _defined_id_AidName 1
@@ -422,6 +467,11 @@ const int AidNormalized_int = -1395;
 #define _defined_id_AidNum 1
 const AtomicID AidNum(-1177);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
 const int AidNum_int = -1177;
+#endif
+#ifndef _defined_id_AidOper
+#define _defined_id_AidOper 1
+const AtomicID AidOper(-1435);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:30
+const int AidOper_int = -1435;
 #endif
 #ifndef _defined_id_AidOrigin
 #define _defined_id_AidOrigin 1
@@ -512,6 +562,11 @@ const int AidSegments_int = -1419;
 #define _defined_id_AidSet 1
 const AtomicID AidSet(-1316);                     // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppUtils/src/VisRepeater.h:10
 const int AidSet_int = -1316;
+#endif
+#ifndef _defined_id_AidShape
+#define _defined_id_AidShape 1
+const AtomicID AidShape(-1285);                   // from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:37
+const int AidShape_int = -1285;
 #endif
 #ifndef _defined_id_AidSize
 #define _defined_id_AidSize 1

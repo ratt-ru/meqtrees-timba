@@ -95,7 +95,10 @@ public:
   const LoVec_double & cellSize (int iaxis) const
     { DbgAssert(iaxis>=0 && iaxis<DOMAIN_NAXES);
       return cell_size_[iaxis]; }
-      
+
+  const LoShape & shape () const
+    { return shape_; }    
+        
   // returns number of cells along axis
   int ncells (int iaxis) const
     { return center(iaxis).size(); }
@@ -182,6 +185,7 @@ private:
     //##ModelId=3F86BFF80150
   const Domain* domain_;
     //##ModelId=3F86886E02AC
+  LoShape       shape_;    
   LoVec_double  grid_     [DOMAIN_NAXES];
   LoVec_double  cell_size_[DOMAIN_NAXES];
   LoVec_int     seg_start_[DOMAIN_NAXES];

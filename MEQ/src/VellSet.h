@@ -68,7 +68,7 @@ class OptionalColumns
 template<> class OptionalColumns::Traits<OptionalColumns::FLAGS> 
 {
   public:
-      typedef ulong ElementType;
+      typedef int ElementType;
       typedef blitz::Array<ElementType,2> ArrayType;
 };
 
@@ -107,8 +107,13 @@ public:
   typedef Traits<FLAGS>::ElementType FlagType; 
   typedef Traits<FLAGS>::ArrayType FlagArrayType; 
 
-  // Create a time,frequency result for the given number of spids.
+  // Create a time,frequency result for the given shape, number of spids,
+  // number of pert sets
     //##ModelId=400E5355031E
+  VellSet (const LoShape2 &shp,int nspid=0,int nset=1);
+  
+  // Create a time,frequency result for the given number of spids, number 
+  // of pert sets. Shape has to be supplied later.
   explicit VellSet (int nspid=0,int nset=1);
 
   // Construct from DataRecord.
@@ -129,7 +134,7 @@ public:
   virtual CountedRefTarget* clone (int flags, int depth) const
   { return new VellSet(*this,flags,depth); }
 
-  // override privatize so that shortcut refs are detached/reattacghed 
+  // override privatize so that shortcut refs are detached/reattached 
   // automatically
     //##ModelId=400E53550333
   virtual void privatize (int flags = 0, int depth = 0);
@@ -139,6 +144,22 @@ public:
   // (or when the underlying DataRecord is privatized, etc.)
     //##ModelId=400E5355033A
   virtual void validateContent ();
+  
+  // changes all ref in VellSet to read-only (so that the next write
+  // forces a privatize)
+  void makeReadOnly ();
+  
+  // ------------------------ SHAPE
+  const bool hasShape () const
+  { return shape_[0] || shape_[1]; }
+
+  const LoShape2 & shape () const
+  { return shape_; }
+  
+  void setShape (const LoShape2 &shp);
+  
+  void setShape (int nx,int ny)
+  { setShape(LoShape2(nx,ny)); }
     
   // ------------------------ SPIDS AND ASSOCIATED ATTRIBUTES
   // Get the spids.
@@ -191,8 +212,8 @@ public:
   const Vells& getValue() const
     { return value_.deref(); }
     //##ModelId=400E5355035E
-  Vells& getValueRW()
-    { return value_.dewr(); }
+  
+  Vells& getValueRW();
 
   // Attaches the given Vells to value (as an anon object)
     //##ModelId=400E53550360
@@ -233,7 +254,7 @@ protected:
   // returns pointer to blitz array
   void * writeOptCol (uint icol);
       
-  void * initOptCol (uint icol,int nfreq,int ntime);
+  void * initOptCol (uint icol,bool array);
 
   void   doSetOptCol (uint icol,DataArray *parr,int dmiflags);
   
@@ -254,16 +275,17 @@ public:
     { Assert(hasOptCol(N)); return *static_cast<const typename Traits<N>::ArrayType *>(optcol_[N].ptr); }
   
   template<int N>
-  typename Traits<N>::ArrayType & getOptColRW ()
-    { return *static_cast<typename Traits<N>::ArrayType *>(writeOptCol(N)); }
+  typename Traits<N>::ArrayType & getOptColRW (bool init=true,bool array=true)
+    { return *static_cast<typename Traits<N>::ArrayType *>
+          ( (!init || hasOptCol(N)) ? writeOptCol(N) : initOptCol(N,array) ); }
   
   DataArray::Ref getOptColRef (int icol,int dmiflags=DMI::PRESERVE_RW) const
     { Assert(hasOptCol(icol)); return optcol_[icol].ref.copy(dmiflags); }
 
   template<int N>
-  typename Traits<N>::ArrayType & initOptCol (int nfreq,int ntime)
-    { return *static_cast<typename Traits<N>::ArrayType *>(
-        initOptCol(N,nfreq,ntime)); }
+  typename Traits<N>::ArrayType & initOptCol (bool array=true)
+    { return *static_cast<typename Traits<N>::ArrayType *>
+        ( initOptCol(N,array) ); }
 
   void setOptCol (uint icol,const DataArray *parr,int dmiflags=DMI::ANON|DMI::READONLY)
     { doSetOptCol(icol,const_cast<DataArray*>(parr),(dmiflags&~DMI::WRITE)|DMI::READONLY); }
@@ -353,6 +375,7 @@ protected:
   DataRecord::removeField;
   
 private:
+  void init ();
   // Remove all shortcuts, pertubed values, etc. (Does not do anything
   // to the underlying DataRecord though)
     //##ModelId=400E535503B5
@@ -363,10 +386,12 @@ private:
   // Allocate the main value with given type and shape.
     //##ModelId=400E535503B7
   Vells & allocateReal (int nfreq, int  ntime)
-    { return setValue(new Vells(double(0),nfreq,ntime,false)); }
+    { setShape(nfreq,ntime);
+      return setValue(new Vells(double(0),nfreq,ntime,false)); }
     //##ModelId=400E535503BD
   Vells & allocateComplex (int nfreq, int ntime)
-    { return setValue(new Vells(dcomplex(0),nfreq,ntime,false)); }
+    { setShape(nfreq,ntime); 
+      return setValue(new Vells(dcomplex(0),nfreq,ntime,false)); }
 
     //##ModelId=400E535502FC
   Vells::Ref value_;
@@ -389,6 +414,8 @@ private:
   } OptionalColumnData;
   
   OptionalColumnData optcol_[NUM_OPTIONAL_COL];
+  
+  LoShape2       shape_;
   
     //##ModelId=400E53550314
   const int *    spids_;

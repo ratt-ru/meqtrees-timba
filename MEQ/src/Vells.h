@@ -195,17 +195,20 @@ public:
   Vells & makeNonTemp () 
   { itsIsTemp = false; return *this; }
   
+  const LoShape2 & shape () const
+    { return itsShape; }
+  
     //##ModelId=3F8688700279
   int nx() const
-    { return itsNx; }
+    { return itsShape[0]; }
 
     //##ModelId=3F868870027C
   int ny() const
-    { return itsNy; }
+    { return itsShape[1]; }
 
     //##ModelId=3F868870027E
   int nelements() const
-    { return itsNx*itsNy; }
+    { return nx()*ny(); }
 
     //##ModelId=400E535600AC
   bool isScalar() const
@@ -229,12 +232,15 @@ public:
   // returns true if type/shape matches other
     //##ModelId=400E535600CE
   bool isCongruent (const Vells &other) const
-    { return isReal() == other.isReal() && nx() == other.nx() && ny() == other.ny(); }
+    { return isReal() == other.isReal() && shape() == other.shape(); }
   
   // returns true if type/shape matches the one specified
     //##ModelId=400E535600E7
-  bool isCongruent (bool is_Real,int nx1,int ny1) const
-    { return isReal() == is_Real && nx() == nx1 && ny() == ny1; }
+  bool isCongruent (bool is_Real,const LoShape2 &shp) const
+    { return isReal() == is_Real && shape() == shp; }
+  
+  bool isCongruent (bool is_Real,int nx,int ny) const
+    { return isCongruent(is_Real,LoShape2(nx,ny)); }
   
     //##ModelId=400E53560109
   const DataArray & getDataArray () const
@@ -328,9 +334,7 @@ private:
     //##ModelId=3F86887001AB
   const LoMat_dcomplex* itsComplexArray;
     //##ModelId=3F86887001B3
-  int             itsNx;
-    //##ModelId=3F86887001BB
-  int             itsNy;
+  LoShape2              itsShape;
     //##ModelId=400E5356002F
   bool            itsIsTemp;
     //##ModelId=400E53560039

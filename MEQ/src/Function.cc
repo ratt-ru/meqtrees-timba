@@ -185,6 +185,7 @@ int Function::getResult (Result::Ref &resref,
         vellset.setSpids(spids);
         // Evaluate the main value.
         LoShape shape = resultShape(values);
+        vellset.setShape(shape);
         vellset.setValue(evaluate(request,shape,values).makeNonTemp());
         // Evaluate flags
         for( int i=0; i<nrch; i++ )

@@ -212,6 +212,23 @@ namespace Meq { class Function; };
               typedef const Meq::Function & ContainerParamType;
             };
 #endif
+#ifndef _defined_id_TpMeqMergeFlags
+#define _defined_id_TpMeqMergeFlags 1
+const TypeId TpMeqMergeFlags(-1437);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MergeFlags.h:30
+const int TpMeqMergeFlags_int = -1437;
+namespace Meq { class MergeFlags; };
+            template<>
+            class DMIBaseTypeTraits<Meq::MergeFlags> : public TypeTraits<Meq::MergeFlags>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqMergeFlags_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::MergeFlags & ContainerReturnType;
+              typedef const Meq::MergeFlags & ContainerParamType;
+            };
+#endif
 #ifndef _defined_id_TpMeqMultiply
 #define _defined_id_TpMeqMultiply 1
 const TypeId TpMeqMultiply(-1227);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Multiply.h:29
@@ -499,6 +516,23 @@ namespace Meq { class VellSet; };
               enum { ParamByRef = true, ReturnByRef = true };
               typedef const Meq::VellSet & ContainerReturnType;
               typedef const Meq::VellSet & ContainerParamType;
+            };
+#endif
+#ifndef _defined_id_TpMeqZeroFlagger
+#define _defined_id_TpMeqZeroFlagger 1
+const TypeId TpMeqZeroFlagger(-1433);             // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:29
+const int TpMeqZeroFlagger_int = -1433;
+namespace Meq { class ZeroFlagger; };
+            template<>
+            class DMIBaseTypeTraits<Meq::ZeroFlagger> : public TypeTraits<Meq::ZeroFlagger>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqZeroFlagger_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::ZeroFlagger & ContainerReturnType;
+              typedef const Meq::ZeroFlagger & ContainerParamType;
             };
 #endif
 

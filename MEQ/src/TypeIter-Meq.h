@@ -46,7 +46,9 @@
         Do(Meq::UVW,arg) separator \
         Do(Meq::Request,arg) separator \
         Do(Meq::Condeq,arg) separator \
-        Do(Meq::Solver,arg)
+        Do(Meq::Solver,arg) separator \
+        Do(Meq::ZeroFlagger,arg) separator \
+        Do(Meq::MergeFlags,arg)
 
 #define DoForAllNumericTypes_Meq(Do,arg,separator) \
         

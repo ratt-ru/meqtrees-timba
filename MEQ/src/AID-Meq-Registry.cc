@@ -63,6 +63,10 @@ BlockableObject * __construct_MeqRequest (int n) { return n>0 ? new Meq::Request
 BlockableObject * __construct_MeqCondeq (int n) { return n>0 ? new Meq::Condeq [n] : new Meq::Condeq; }
 #include "Solver.h"
 BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [n] : new Meq::Solver; }
+#include "ZeroFlagger.h"
+BlockableObject * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagger [n] : new Meq::ZeroFlagger; }
+#include "MergeFlags.h"
+BlockableObject * __construct_MeqMergeFlags (int n) { return n>0 ? new Meq::MergeFlags [n] : new Meq::MergeFlags; }
   
     int aidRegistry_Meq ()
     {
@@ -97,6 +101,7 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1371,"vellsets")+
         AtomicID::registerId(-1298,"flags")+
         AtomicID::registerId(-1423,"weights")+
+        AtomicID::registerId(-1285,"shape")+
         AtomicID::registerId(-1417,"grid")+
         AtomicID::registerId(-1418,"cell")+
         AtomicID::registerId(-1292,"size")+
@@ -252,6 +257,20 @@ BlockableObject * __construct_MeqSolver (int n) { return n>0 ? new Meq::Solver [
         AtomicID::registerId(-1367,"meqsolver")+
         TypeInfoReg::addToRegistry(-1367,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1367,__construct_MeqSolver)+
+        AtomicID::registerId(-1433,"meqzeroflagger")+
+        TypeInfoReg::addToRegistry(-1433,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1433,__construct_MeqZeroFlagger)+
+        AtomicID::registerId(-1435,"oper")+
+        AtomicID::registerId(-1428,"bit")+
+        AtomicID::registerId(-1434,"eq")+
+        AtomicID::registerId(-1429,"ne")+
+        AtomicID::registerId(-1436,"lt")+
+        AtomicID::registerId(-1432,"gt")+
+        AtomicID::registerId(-1430,"le")+
+        AtomicID::registerId(-1431,"ge")+
+        AtomicID::registerId(-1437,"meqmergeflags")+
+        TypeInfoReg::addToRegistry(-1437,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1437,__construct_MeqMergeFlags)+
     0;
     return res;
   }

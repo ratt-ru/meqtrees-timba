@@ -30,7 +30,7 @@
 #pragma aid Node Class Name State Child Children Request Result VellSet 
 #pragma aid Rider Command Id Group Add Update Value Values Solve Solver
 #pragma aid Cells Domain Freq Time Calc Deriv Vells VellSets Flags Weights
-#pragma aid Grid Cell Size Segments Start End Steps
+#pragma aid Shape Grid Cell Size Segments Start End Steps
 #pragma aid NodeIndex Table Name Default Index Num Cache Code 
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cell Results Fail Origin Line Message Contagious  Normalized
@@ -56,9 +56,6 @@ namespace Meq
     FResult          = AidResult,
     FRequest         = AidRequest,
     FState           = AidState,
-    FValue           = AidValue,
-    FFlags           = AidFlags,
-    FWeights         = AidWeights,
     
     // Node staterec
     FChildren        = AidChildren,
@@ -118,7 +115,11 @@ namespace Meq
     FInfDomain       = AidInf|AidDomain,
     FDbId            = AidDbId|AidIndex,
     
-    // Vells fields
+    // VellSet fields
+    FShape           = AidShape,
+    FValue           = AidValue,
+    FFlags           = AidFlags,
+    FWeights         = AidWeights,
     FSpids           = AidSpid|AidIndex,
     FPerturbedValues = AidPerturbed|AidValue,
     FPerturbations   = AidPerturbations,

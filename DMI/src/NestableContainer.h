@@ -243,9 +243,9 @@ class NestableContainer : public BlockableObject
 
           //##ModelId=3C8770A70215
           //##Documentation
-          //## If the element is held in a ref, returns a read-only copy of
-          //## the ref. Throws exception otherwise.
-          ObjRef ref (int flags=0) const;
+          //## If the element is held in a ref, returns a copy of
+          //## the ref (writable if write=true). Throws exception otherwise.
+          ObjRef ref (bool write=false) const;
           
         //##ModelId=4017F624023A
           //## If the element is held in a ref, attaches it to input ref.
@@ -417,14 +417,10 @@ class NestableContainer : public BlockableObject
         //##ModelId=3F5C8EBD016A
           mutable bool replacing;     // flag: replace allowed
           
-          
-          
-          
-          
           // if target is an ObjRef, returns it, checking for writability
           // else throws an exception
         //##ModelId=4017F62500F7
-          const ObjRef * asRef (bool write=False) const;
+          const ObjRef * asRef (bool nonconst=False) const;
 
           // This applies the current subscript to the hook, caching the result
           // in target. Returns pointer to target object. Sets target_nestable.
@@ -886,12 +882,6 @@ inline const NestableContainer::Hook & NestableContainer::Hook::size (int &sz, T
 {
   sz = size(tid);
   return *this;
-}
-
-//##ModelId=3C8770A70215
-inline ObjRef NestableContainer::Hook::ref (int flags) const
-{
-  return ObjRef(*asRef(flags&DMI::WRITE),flags|DMI::COPYREF);
 }
 
 //##ModelId=3F5C8EBD01C4

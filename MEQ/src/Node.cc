@@ -34,10 +34,13 @@ namespace Meq {
 InitDebugContext(Node,"MeqNode");
 
 //##ModelId=3F5F43E000A0
-Node::Node (int nchildren,const HIID *labels)
+Node::Node (int nchildren,const HIID *labels,int nmandatory)
     : child_labels_(labels),
-      check_nchildren_(nchildren)
+      check_nchildren_(nchildren),
+      check_nmandatory_(nmandatory)
 {
+  Assert(nchildren>=0 || !labels);
+  Assert(nchildren<0 || nchildren>=nmandatory);
 }
 
 //##ModelId=3F5F44A401BC
@@ -57,17 +60,14 @@ void Node::checkInitState (DataRecord &rec)
 void Node::initChildren (int nch)
 {
   // check against expected number
-  if( check_nchildren_ >= 0 )
+  if( check_nchildren_ >= 0 && !check_nmandatory_ )
   {
     FailWhen( nch != check_nchildren_,
               ssprintf("%d children specified, %d expected",nch,check_nchildren_) );
   }
-  else
-  {
-    FailWhen( nch < -check_nchildren_-1,
-              ssprintf("%d children specified, at least %d expected",
-              nch,-check_nchildren_-1) );
-  }
+  FailWhen( nch < check_nmandatory_,
+            ssprintf("%d children specified, at least %d expected",
+            nch,check_nmandatory_) );
   children_.resize(nch);
   // form the children name/index fields
   if( nch )
@@ -111,11 +111,6 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // changichildrec.size()ng it under us
   DataRecord &rec = staterec_.xfer(initrec).privatize(DMI::WRITE|DMI::DEEP);
   
-  // call setStateImpl to set up reconfigurable node state
-  cdebug(2)<<"reinitializing node (setStateImpl)"<<endl;
-  cdebug(3)<<"state is "<<staterec_().sdebug(10,"    ")<<endl;
-  setStateImpl(staterec_(),true);
-  
   // set num children based on the FChildren field
   cdebug(2)<<"reinitializing node children"<<endl;
   // set node index, if specified
@@ -141,6 +136,10 @@ void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
   {
     cdebug(2)<<"no children to reintialize"<<endl;
   }
+  // call setStateImpl to set up reconfigurable node state
+  cdebug(2)<<"reinitializing node (setStateImpl)"<<endl;
+  cdebug(3)<<"state is "<<staterec_().sdebug(10,"    ")<<endl;
+  setStateImpl(staterec_(),true);
 }  
 
 //##ModelId=3F5F45D202D5
@@ -166,12 +165,7 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // do other checks
   checkInitState(rec);
   
-  // call setStateImpl to set up reconfigurable node state
-  cdebug(2)<<"initializing node (setStateImpl)"<<endl;
-  cdebug(3)<<"initial state is "<<staterec_().sdebug(10,"    ")<<endl;
-  setStateImpl(staterec_(),true);
-  
-  // setup the non-reconfigurable stuff
+  // setup children
   cdebug(2)<<"initializing node (others)"<<endl;
   // set node index, if specified
   if( rec[FNodeIndex].exists() )
@@ -213,8 +207,24 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
       for( int i=0; i<nch; i++ )
         processChildSpec(childarr,AtomicID(i),AtomicID(i));
     }
+    // if a mandatory number of children (NM) is requested, make sure
+    // that the first NM children are set
+    if( check_nmandatory_ )
+    {
+      FailWhen(children_.size()<uint(check_nmandatory_),"too few children specified");
+      for( int i=0; i<check_nmandatory_; i++ )
+        if( !children_[i].valid() )
+        {
+          HIID id = child_labels_ ? child_labels_[i] : AtomicID(i);
+          Throw("mandatory child "+id.toString()+" not specified" );
+        }
+    }
     cdebug(2)<<numChildren()<<" children"<<endl;
   }
+  // call setStateImpl to set up reconfigurable node state
+  cdebug(2)<<"initializing node (setStateImpl)"<<endl;
+  cdebug(3)<<"initial state is "<<staterec_().sdebug(10,"    ")<<endl;
+  setStateImpl(staterec_(),true);
 }
 
 //##ModelId=400E531402D1
@@ -533,8 +543,8 @@ int Node::cacheResult (const Result::Ref &ref,int retcode)
 {
   // for now, always cache, since we don't implement any other policy
   // NB: perhaps fails should be marked separately?
-  cache_result_.copy(ref,DMI::WRITE);
-  wstate()[FCacheResult].replace() <<= cache_result_.dewr_p();
+  cache_result_.copy(ref);
+  wstate()[FCacheResult].replace() <<= cache_result_.deref_p();
   wstate()[FCacheResultCode].replace() = cache_retcode_ = retcode;
   cdebug(3)<<"  caching result with code "<<retcode<<endl;
   // publish current state to all result subscribers
@@ -717,6 +727,9 @@ int Node::execute (Result::Ref &ref, const Request &req)
       // Make sure the Cells are in the Result object
       if( !(code&RES_FAIL) && !ref->hasCells() )
         ref().setCells(req.cells());
+      // privatize the result for readonly -- this ensures that copy-on-write
+      // is performed down the line
+//      ref.privatize(DMI::DEEP|DMI::READONLY);
     }
     else // no cells, ensure an empty result
     {

@@ -35,7 +35,7 @@ const HIID Cells::axis_id_[] = { FFreq , FTime };
 
 //##ModelId=3F86886E02C1
 Cells::Cells ()
-: domain_(0)
+: domain_(0),shape_(0,0)
 {
 }
 
@@ -47,13 +47,14 @@ Cells::~Cells()
 
 //##ModelId=3F86886E02C8
 Cells::Cells (const DataRecord &other,int flags,int depth)
-: DataRecord(other,flags,depth)
+: DataRecord(other,flags,depth),shape_(0,0)
 {
   validateContent();
 }
 
 //##ModelId=3F95060B01D3
-Cells::Cells (const Domain& domain,int nfreq,int ntimes)
+Cells::Cells (const Domain& domain,int nfreq,int ntime)
+  : shape_(nfreq,ntime)
 {
   // setup datarecord
   // domain
@@ -61,11 +62,11 @@ Cells::Cells (const Domain& domain,int nfreq,int ntimes)
   // grid subrecord
   DataRecord &grid = (*this)[FGrid] <<= new DataRecord;
   setRecVector(grid_[0],grid[axisId(FREQ)],nfreq);
-  setRecVector(grid_[1],grid[axisId(TIME)],ntimes);
+  setRecVector(grid_[1],grid[axisId(TIME)],ntime);
   // cell size subrecord
   DataRecord &cellsize = (*this)[FCellSize] <<= new DataRecord;
   setRecVector(cell_size_[0],cellsize[axisId(FREQ)],nfreq);
-  setRecVector(cell_size_[1],cellsize[axisId(TIME)],ntimes);
+  setRecVector(cell_size_[1],cellsize[axisId(TIME)],ntime);
   // segments subrecord
   DataRecord &segments = (*this)[FSegments] <<= new DataRecord;
   DataRecord &segfreq = segments[axisId(FREQ)] <<= new DataRecord;
@@ -94,6 +95,7 @@ Cells::Cells (const Domain& domain,int nfreq,int ntimes)
 void Cells::setNumCells (int iaxis,int num)
 {
   Assert(iaxis>=0 && iaxis<DOMAIN_NAXES);
+  shape_[iaxis] = num;
   DataRecord &grid = getSubrecord((*this)[FGrid]);
   setRecVector(grid_[iaxis],grid[axisId(iaxis)],num);
   DataRecord &cellsize = getSubrecord((*this)[FCellSize]);
@@ -103,6 +105,7 @@ void Cells::setNumCells (int iaxis,int num)
 void Cells::setCells (int iaxis,const LoVec_double &cen,const LoVec_double &size)
 {
   int num = cen.size();
+  shape_[iaxis] = num;
   Assert(size.size() == num);
   setNumCells(iaxis,num);
   grid_[iaxis] = cen;
@@ -114,6 +117,7 @@ void Cells::setCells (int iaxis,const LoVec_double &cen,const LoVec_double &size
 void Cells::setCells (int iaxis,const LoVec_double &cen,double size)
 {
   int num = cen.size();
+  shape_[iaxis] = num;
   setNumCells(iaxis,num);
   grid_[iaxis] = cen;
   cell_size_[iaxis] = size;
@@ -226,6 +230,8 @@ void Cells::validateContent ()
       seg_start_[1].reference(rsegt[FStartIndex].as<LoVec_int>());
       seg_end_[1].reference(rsegt[FEndIndex].as<LoVec_int>());
       Assert(seg_start_[1].size()==seg_end_[1].size());
+      shape_[0] = grid_[0].size();
+      shape_[1] = grid_[1].size();
     }
     else
     {
@@ -272,13 +278,14 @@ bool Cells::operator== (const Cells& that) const
     return that.domain_ == 0; // equal if that is empty too, else not
   else // not empty
   {
-    // check for equality of domains
-    if( that.domain_ == 0 || domain() != that.domain() )
+    // check for equality of domains & shapes
+    if( that.domain_ == 0 || 
+        domain() != that.domain() || 
+        shape() != that.shape() )
       return false;
     // check axes one by one
     for( int i=0; i<DOMAIN_NAXES; i++ )
-      if( ncells(i) != that.ncells(i) ||
-          any( center(i) != that.center(i) ) ||
+      if( any( center(i) != that.center(i) ) ||
           any( cellSize(i) != that.cellSize(i) ) )
         return false;
     // everything compared successfully

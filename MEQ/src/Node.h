@@ -56,10 +56,13 @@ class Node : public BlockableObject
   
     //##ModelId=3F5F43E000A0
     // Child labels may be specified in constructror as a C array of HIIDs.
+    // If labels==0, no labels are defined.
     // If nchildren>=0, specifies that an exact number of children is expected.
-    // If nchildren<0, spefifies that at least -(nchildren+1) are expected
-    // (hence -1 implies no checking)
-    Node (int nchildren=-1,const HIID *labels = 0);
+    // If nmandatory>0, spefifies that at least nmandatory children are 
+    //    expected; note that if labels are supplied, then the first 
+    //    nmand labels are considered the mandatory ones, and the rest are
+    //    optional
+    Node (int nchildren=-1,const HIID *labels = 0,int nmandatory=0);
         
     //##ModelId=3F5F44A401BC
     virtual ~Node();
@@ -310,6 +313,7 @@ class Node : public BlockableObject
     const HIID * child_labels_;      
     //##ModelId=400E530A016A
     int check_nchildren_;
+    int check_nmandatory_;
     
     //##ModelId=3F5F4363030D
     DataRecord::Ref staterec_;

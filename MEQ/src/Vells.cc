@@ -32,8 +32,7 @@ namespace Meq {
 Vells::Vells()
 : itsRealArray   (0),
   itsComplexArray(0),
-  itsNx          (0),
-  itsNy          (0),
+  itsShape       (0,0),
   itsIsTemp      (false),
   itsIsScalar    (true)
 {}
@@ -42,8 +41,7 @@ Vells::Vells()
 Vells::Vells (double value,bool temp)
 : itsRealArray   (0),
   itsComplexArray(0),
-  itsNx          (1),
-  itsNy          (1),
+  itsShape       (1,1),
   itsIsTemp      (temp),
   itsIsScalar    (true)
 {
@@ -57,8 +55,7 @@ Vells::Vells (double value,bool temp)
 Vells::Vells (const dcomplex& value,bool temp)
 : itsRealArray   (0),
   itsComplexArray(0),
-  itsNx          (1),
-  itsNy          (1),
+  itsShape       (1,1),
   itsIsTemp      (temp),
   itsIsScalar    (true)
 {
@@ -72,8 +69,7 @@ Vells::Vells (const dcomplex& value,bool temp)
 Vells::Vells (double value, int nx, int ny, bool init)
 : itsRealArray   (0),
   itsComplexArray(0),
-  itsNx          (nx),
-  itsNy          (ny),
+  itsShape       (nx,ny),
   itsIsTemp      (false),
   itsIsScalar    (nx==1 && ny==1)
 {
@@ -88,8 +84,7 @@ Vells::Vells (double value, int nx, int ny, bool init)
 Vells::Vells (const dcomplex& value, int nx, int ny, bool init)
 : itsRealArray   (0),
   itsComplexArray(0),
-  itsNx          (nx),
-  itsNy          (ny),
+  itsShape       (nx,ny),
   itsIsTemp      (false),
   itsIsScalar    (nx==1 && ny==1)
 {
@@ -104,10 +99,9 @@ Vells::Vells (const dcomplex& value, int nx, int ny, bool init)
 Vells::Vells (LoMat_double& array)
 : itsRealArray   (0),
   itsComplexArray(0),
-  itsNx          (array.extent(blitz::firstDim)),
-  itsNy          (array.extent(blitz::secondDim)),
+  itsShape       (array.shape()),
   itsIsTemp      (false),
-  itsIsScalar    (itsNx==1 && itsNy==1)
+  itsIsScalar    (array.size()==1)
 {
   DataArray *parr;
   itsArray <<= parr = new DataArray(array);
@@ -118,10 +112,9 @@ Vells::Vells (LoMat_double& array)
 Vells::Vells (LoMat_dcomplex& array)
 : itsRealArray   (0),
   itsComplexArray(0),
-  itsNx          (array.extent(blitz::firstDim)),
-  itsNy          (array.extent(blitz::secondDim)),
+  itsShape       (array.shape()),
   itsIsTemp      (false),
-  itsIsScalar    (itsNx==1 && itsNy==1)
+  itsIsScalar    (array.size()==1)
 {
   DataArray *parr;
   itsArray <<= parr = new DataArray(array);
@@ -154,14 +147,13 @@ void Vells::initFromDataArray (const DataArray *parr,int flags)
   {
     initArrayPointers(parr,flags);
     // set attributes from data array
-    itsNx       = parr->shape()[0];
-    itsNy       = parr->shape()[1];
+    itsShape = parr->shape();
     itsIsTemp   = false;
-    itsIsScalar = (itsNx==1 && itsNy==1);
+    itsIsScalar = (nx()==1 && ny()==1);
   }
   else if( parr->rank() == 0 )
   {
-    itsNx = itsNy = 0;
+    itsShape = LoShape2(1,1);
     itsIsTemp = false;
     itsIsScalar = true;
     itsArray.detach();
@@ -205,8 +197,7 @@ Vells::Vells (const Vells& that,int flags)
   itsArray        (that.itsArray,flags|DMI::COPYREF|DMI::PRESERVE_RW),
   itsRealArray    (0),
   itsComplexArray (0),
-  itsNx           (that.itsNx),
-  itsNy           (that.itsNy),
+  itsShape        (that.itsShape),
   itsIsTemp       (false),
   itsIsScalar     (that.itsIsScalar)
 {
@@ -233,8 +224,7 @@ Vells& Vells::operator= (const Vells& that)
     itsArray.copy(that.itsArray,DMI::PRESERVE_RW);
     itsRealArray    = that.itsRealArray;
     itsComplexArray = that.itsComplexArray;
-    itsNx           = that.itsNx;
-    itsNy           = that.itsNy;
+    itsShape        = that.itsShape;
     itsIsTemp       = that.itsIsTemp;
     itsIsScalar     = that.itsIsScalar;
   }
@@ -302,7 +292,7 @@ void Vells::zeroData ()
 //##ModelId=400E5356019D
 inline bool Vells::tryReference (bool real,const Vells &other)
 {
-  if( other.isTemp() && other.isCongruent(real,itsNx,itsNy) )
+  if( other.isTemp() && other.isCongruent(real,itsShape) )
   {
     itsArray.copy(other.itsArray,DMI::PRESERVE_RW);
     itsRealArray = other.itsRealArray;
@@ -325,12 +315,12 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
   // determine shape
   if( flags&VF_SCALAR ) // force a scalar Vells
   {
-    itsNx = itsNy =1;
+    itsShape = LoShape2(1,1);
     itsIsScalar = True;
   }
   else // else inherit shape from other
   {
-    itsNx = other.nx(); itsNy = other.ny();
+    itsShape = other.shape();
     itsIsScalar = other.itsIsScalar;
   }
   // determine type
@@ -341,7 +331,7 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
   if( !tryReference(real,other) )
   {
     DataArray *parr;
-    itsArray <<= parr = new DataArray(real?Tpdouble:Tpdcomplex,makeLoShape(itsNx,itsNy));
+    itsArray <<= parr = new DataArray(real?Tpdouble:Tpdcomplex,itsShape);
     if( real )
       { parr->getConstArrayPtr(itsRealArray); itsComplexArray = 0; }
     else
@@ -362,14 +352,14 @@ Vells::Vells (const Vells &a,const Vells &b,int flags,const std::string &opname)
   // determine shape
   if( flags&VF_SCALAR ) // scalar Vells?
   {
-    itsNx = itsNy =1;
+    itsShape = LoShape2(1,1);
     itsIsScalar = True;
   }
   else // else inherit shape of bigger 
   {
-    itsNx = a.nx() > b.nx() ? a.nx() : b.nx(); 
-    itsNy = a.ny() > b.ny() ? a.ny() : b.ny(); 
-    itsIsScalar = ( itsNx == 1 && itsNy == 1);
+    itsShape = LoShape2( a.nx() > b.nx() ? a.nx() : b.nx(),
+                         a.ny() > b.ny() ? a.ny() : b.ny() ); 
+    itsIsScalar = ( nx()==1 && ny()==1 );
   }
   // determine type. If not specified via flags, then promote to
   // complex if either arg is complex
@@ -380,7 +370,7 @@ Vells::Vells (const Vells &a,const Vells &b,int flags,const std::string &opname)
   if( !( tryReference(real,a) || tryReference(real,b) ) )
   {
     DataArray *parr;
-    itsArray <<= parr = new DataArray(real?Tpdouble:Tpdcomplex,makeLoShape(itsNx,itsNy));
+    itsArray <<= parr = new DataArray(real?Tpdouble:Tpdcomplex,shape());
     if( real )
       { parr->getConstArrayPtr(itsRealArray); itsComplexArray = 0; }
     else
