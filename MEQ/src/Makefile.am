@@ -11,7 +11,7 @@ UVW.h \
 Vells.h VellsTmp.h VellsRep.h \
 VellsRealSca.h VellsRealArr.h \
 VellsComplexSca.h VellsComplexArr.h \
-Result.h Request.h \
+Request.h Result.h \
 Forest.h \
 ParmTable.h
 
@@ -32,6 +32,13 @@ Request.cc Result.cc \
 Forest.cc \
 ParmTable.cc \
 AID-Meq-Registry.cc
+
+
+bin_PROGRAMS = uvwparm
+
+uvwparm_SOURCES	 	= uvwparm.cc 
+uvwparm_LDADD		= ../src/libmeq.la 
+uvwparm_DEPENDENCIES	= ../src/libmeq.la $(LOFAR_DEPEND)
 
 #EXTRA_DIST		=			\
 #Beam.m						\
