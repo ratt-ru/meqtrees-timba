@@ -9,6 +9,7 @@ import new
 import sets
 import re
 import time
+from qt import *
 
 _dbg = verbosity(3,name='meqds');
 _dprint = _dbg.dprint;
@@ -34,18 +35,36 @@ def NodeClass (nodeclass=None):
     cls = _NodeClassDict[nodeclass] = new.classobj(nodeclass,(_meqnode_nodeclass,),{});
   return cls;
 
+# this is copied verbatim from the ControlStates definition in MEQ/Node.h
+CS_ACTIVE         = 0x01;
+CS_PUBLISHING     = 0x10;
+CS_BREAK_REQUEST  = 0x10000;
+CS_BREAK_RESULT   = 0x20000;
+CS_MASK_BREAKPOINTS = 0xF0000;
+  
 # this class defines and manages a node list
 class NodeList (object):
-  NodeAttrs = ('name','class','children');
+  NodeAttrs = ('name','class','children','control_state');
   RequestRecord = srecord(dict.fromkeys(NodeAttrs,True),nodeindex=True);
   
-  class Node (object):
+  class Node (QObject):
     def __init__ (self,ni):
       self.nodeindex = ni;
       self.name = None;
       self.classname = None;
       self.children = [];
       self.parents  = [];
+      self.control_state = 0;
+    def is_active (self):
+      return bool(self.control_state&CS_ACTIVE);
+    def is_publishing (self):
+      return bool(self.control_state&CS_PUBLISHING);
+    def has_breakpoints (self):
+      return bool(self.control_state&CS_MASK_BREAKPOINTS);
+    def update_state (self,state,event=None):
+      self.control_state = state.control_state;
+      print state,event;
+      self.emit(PYSIGNAL("state()"),(state,event));
 
   # init node list
   def __init__ (self,meqnl=None):
@@ -62,6 +81,7 @@ class NodeList (object):
     iter_name     = iter(meqnl.name);
     iter_class    = iter(meqnl['class']);
     iter_children = iter(meqnl.children);
+    iter_cstate   = iter(meqnl.control_state);
     self._nimap = {};
     self._namemap = {};
     self._classmap = {};
@@ -73,6 +93,7 @@ class NodeList (object):
         node = self._nimap.setdefault(ni,self.Node(ni));
         node.name      = iter_name.next();
         node.classname = iter_class.next();
+        node.control_state = iter_cstate.next();
         children  = iter_children.next();
         if isinstance(children,dict):
           node.children = tuple(children.iteritems());
@@ -102,11 +123,12 @@ class NodeList (object):
     return self._nimap.itervalues();
   # mapping methods
   def __len__ (self):
-    return len(self._nimap);
+    try: return len(self._nimap);
+    except AttributeError: return 0;
   # helper method: selects name or nodeindex map depending on key type
   def _map_ (self,key):
-    if isinstance(key,str):     return self._namemap;
-    elif isinstance(key,int):   return self._nimap;
+    if isinstance(key,str):      return self._namemap;
+    elif isinstance(key,int):    return self._nimap;
     else:                       raise TypeError,"invalid node key "+str(key);
   def __getitem__ (self,key):
     return self._map_(key).__getitem__(key);
@@ -163,23 +185,11 @@ def nodeindex (node):
   elif isinstance(node,str):
     return nodelist[node].nodeindex;
   else:
-    return node.nodeindex
+    return node.nodeindex;
 
 # Adds a subscriber to node state changes
-#   If weak=True, callback will be held via weakref, otherwise
-#   via WeakInstanceMethod (if object method), otherwise via direct ref
-#
-def subscribe_node_state (node,callback,weak=False):
-  ni = nodeindex(node);
-  if type(callback) == types.MethodType:
-    _dprint(2,"registering weak method callback");
-    callback = WeakInstanceMethod(callback);
-  elif not callable(callback):
-    raise TypeError,"callback argument is not a callable";
-  elif weak:
-    callback = weakref.ref(callback);
-  # add to subscriber list
-  node_subscribers.setdefault(ni,sets.Set()).add(callback);
+def subscribe_node_state (node,callback):
+  QObject.connect(nodelist[nodeindex(node)],PYSIGNAL("state()"),callback);
 
 def request_node_state (node):
   ni = nodeindex(node);
@@ -187,39 +197,30 @@ def request_node_state (node):
   if mqs1 is None:
     raise RuntimeError,"meqserver not initialized or not running";
   mqs.meq('Node.Get.State',srecord(nodeindex=ni),wait=False);
-  
-def update_node_state (node,event):
-  ni = nodeindex(node);
-  callbacks = node_subscribers.get(ni,());
-  deleted = [];
-  for cb in callbacks:
-    if type(cb) == weakref.ReferenceType:
-      cb1 = cb();
-      if cb1 is None:
-        "removing dead callback";
-        deleted.append(cb);
-      else:
-        cb1(node,event);
-    elif isinstance(cb,WeakInstanceMethod):
-      if cb(node,event) is WeakInstanceMethod.DeadRef:
-        "removing dead callback";
-        deleted.append(cb);
-    else:
-      cb(node,event);
-  # delete any dead subscribers
-  for d in deleted:
-    callbacks.remove(d);
 
-def add_node_snapshot (node,event):
+def set_node_state (node,**kwargs):
   ni = nodeindex(node);
+  mqs1 = mqs or mqs();
+  if mqs1 is None:
+    raise RuntimeError,"meqserver not initialized or not running";
+  newstate = srecord(kwargs);
+  mqs.meq('Node.Set.State',srecord(nodeindex=ni,get_state=True,state=newstate),wait=False);
+  
+def update_node_state (state,event):
+  ni = state.nodeindex;
+  if nodelist:
+    nodelist[ni].update_state(state,event);
+
+def add_node_snapshot (state,event):
+  ni = state.nodeindex;
   # get list of snapshots and filter it to eliminate dead refs
   sslist = filter(lambda s:s[0]() is not None,snapshots.get(ni,[]));
-  if len(sslist) and sslist[-1][0]() == node:
-    node.__nochange = True;
+  if len(sslist) and sslist[-1][0]() == state:
+    state.__nochange = True;
     return;
-  sslist.append((weakref.ref(node),event,time.time()));
+  sslist.append((weakref.ref(state),event,time.time()));
   snapshots[ni] = sslist;
-  update_node_state(node,event);
+  update_node_state(state,event);
   
 def get_node_snapshots (node):
   ni = nodeindex(node);
@@ -234,5 +235,4 @@ def get_node_snapshots (node):
 snapshots = {};
 nodelist = NodeList();
 
-node_subscribers = {};
 mqs = None;

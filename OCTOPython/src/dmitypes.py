@@ -112,7 +112,7 @@ def dmize_object (obj):
     seqtype = type(obj);
     if not len(obj):    # empty sequences always allowed
       return obj;   
-    outlist = []; # dmize seqeuence elements one by one and collect them in this list
+    outlist = []; # dmize sequence elements one by one and collect them in this list
     eltype = type(obj[0]);  # element type must be homogenous
     for item in obj:
       if type(item) != eltype:
@@ -165,19 +165,24 @@ class record (dict):
             if _verbose_>0: print "skipping %s=%s (%s)" % (key,value,info);
             continue;
           try:
-            value = dmize_object(value);
+            value = self.make_value(value);
           except Exception,info:
             if _verbose_>0: print "skipping %s=%s (%s)" % (key,value,info);
             continue;
           dict.__setitem__(self,key,value);
           if _verbose_>1: print "adding %s=%s" % (key,value);
         if _verbose_>0: print "initialized",dict.__len__(self),"fields";
-  # make_key: coerces value to legal key, throws ValueError if illegal
+  # make_key: coerces value to legal key, throws TypeError if illegal
   # this version coerces to string keys, subclasses may redefine this to
   # use different kinds of keys
   def make_key (self,key): 
     "checks key for validity, returns key, raises TypeError if key is illegal";
     return str(key);
+  # make_value: coerces value to legal value, throws TypeError if illegal
+  # this version does nothing, subclasses may redefine this to do value checking
+  def make_value (self,value): 
+    "checks value for validity, returns value, raises TypeError if illegal";
+    return value;
   # __getattr__: dict contents are exposed as extra attributes
   def __getattr__(self,name):
     # try to access attribute directly first
@@ -192,9 +197,9 @@ class record (dict):
   def __setattr__(self,name,value):
     if name.startswith('__'):
       return dict.__setattr__(self,name,value);
-    value = dmize_object(value);
+    value = self.make_value(value);
     try:   key = self.make_key(name);
-    except ValueError,info: raise AttributeError,info;
+    except TypeError,info: raise AttributeError,info;
     return dict.__setitem__(self,key,value);
   # __delattr__: deletes key
   def __delattr__(self,name):
@@ -213,9 +218,9 @@ class record (dict):
     return dict.__getitem__(self,name);
   # __setitem__: check types, string names implicitly converted to HIIDs
   def __setitem__ (self,name,value):
-    value = dmize_object(value);
+    value = self.make_value(value);
     try: name = self.make_key(name);
-    except ValueError,info: raise TypeError,info;
+    except TypeError,info: raise TypeError,info;
     return dict.__setitem__(self,name,value);
   # __contains__: string names implicitly converted to HIIDs
   def __contains__(self,name):
@@ -309,6 +314,11 @@ class srecord (record):
     try: make_hiid(key,sep='._');
     except Exception,info: raise TypeError,info;
     return str(key);
+  def make_value (self,value): 
+    "checks value for validity (must be dmizable), returns value, raises "
+    "TypeError if value is illegal";
+    try: return dmize_object(value);
+    except Exception,info: raise TypeError,info;
     
 make_record = type_maker(record);
 make_srecord = type_maker(srecord);

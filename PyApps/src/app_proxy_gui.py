@@ -269,11 +269,12 @@ class MessageLogger (Logger):
     Logger.add(self,msg,category=category,*args,**kwargs);
     # keep track of new errors
     if category is Logger.Error:
+      items = self.get_items();
       if self._num_err == 0:
-        self._first_err = self.items[-1];
+        self._first_err = items[-1];
       self._num_err += 1;
       self.wtop().emit(PYSIGNAL('hasErrors()'),(self.wtop(),self._num_err));
-      self._last_err = self.items[-1];
+      self._last_err = items[-1];
   def _clear_error_count (self):
     self._num_err = 0;
     self._first_err = self._last_err = None;

@@ -371,12 +371,15 @@ class HierBrowser (object):
       try: delattr(self._lv,attr);
       except: pass;
 
+  def get_items (self):
+    try: return self._lv._content_list;
+    except AttributeError: 
+      return None;
+      
   # limits browser to last 'limit' items
   def apply_limit (self,limit):
-    try: items = self._lv._content_list;
-    except AttributeError: 
-      return
-    if limit>0 and len(items) > limit:
+    items = self.get_items();
+    if items and limit>0 and len(items) > limit:
       for i in items[:len(items)-limit]:
         self._lv.takeItem(i);
       del items[:len(items)-limit];
