@@ -679,31 +679,31 @@ PyObject * pyFromArray (const DMI::NumArray &da)
   Thread::Mutex::Lock lock(da.mutex());
   // get rank & shape into terms that Numarray understands
   int rank = da.rank();
-// 24/01/05 OMS: removed this option, as we cannot apparently set attributes
-// on a Python scalar (thus single-element Vells can't be represented, as we
-// can't set a type-tag). Have everything show up as arrays now.
-//  // a [1] array is converted to a scalar
-//   if( rank==1 && da.size() == 1 )
-//   {
-//     TypeId type = da.elementType();
-//     DMI::NumArray::Hook hook(da,0);
-//     if( type == Tpbool )
-//       return PyBool_FromLong(hook.as<bool>());
-//     else if( type < Tpbool && type >= Tplong )
-//       return PyInt_FromLong(hook.as<long>());
-//     else if( type <= Tpulong && type >= Tplonglong )
-//       return PyLong_FromLongLong(hook.as<longlong>());
-//     else if( type == Tpulonglong )
-//       return PyLong_FromLongLong(hook.as<ulonglong>());
-//     else if( type <= Tpfloat && type >= Tpldouble )
-//       return PyFloat_FromDouble(hook.as<double>());
-//     else if( type <= Tpfcomplex && type >= Tpdcomplex )
-//       return PyComplex_FromDComplex(hook.as<dcomplex>());
-//     else
-//       throwError(Runtime,"unsupported array type "+type.toString());
-//   }
-//   else // else regular array
-//   {
+  TypeId objtype = da.objectType();
+  // a [1] array is converted to a scalar, unless it's a subclass of NumArray
+  // (in which case we'll need to add tags to it, so we need to make it into
+  // an array anyway)
+  if( rank==1 && da.size() == 1 && da.objectType() == TpDMINumArray )
+  {
+    TypeId type = da.elementType();
+    DMI::NumArray::Hook hook(da,0);
+    if( type == Tpbool )
+      return PyBool_FromLong(hook.as<bool>());
+    else if( type < Tpbool && type >= Tplong )
+      return PyInt_FromLong(hook.as<long>());
+    else if( type <= Tpulong && type >= Tplonglong )
+      return PyLong_FromLongLong(hook.as<longlong>());
+    else if( type == Tpulonglong )
+      return PyLong_FromLongLong(hook.as<ulonglong>());
+    else if( type <= Tpfloat && type >= Tpldouble )
+      return PyFloat_FromDouble(hook.as<double>());
+    else if( type <= Tpfcomplex && type >= Tpdcomplex )
+      return PyComplex_FromDComplex(hook.as<dcomplex>());
+    else
+      throwError(Runtime,"unsupported array type "+type.toString());
+  }
+  else // else regular array
+  {
     NumarrayType typecode = typeIdToNumarray(da.elementType());
 // 20/01/05: get rid of transpose here since NumArrays are in C order now
 // this is the old version: column-major ordering
@@ -726,10 +726,8 @@ PyObject * pyFromArray (const DMI::NumArray &da)
       dims[i] = da.shape()[i];
     PyObjectRef pyarr = (PyObject*)
       NA_vNewArray(const_cast<void*>(da.getConstDataPtr()),typecode,rank,dims);
-    // insert __dmi_type tag, if object is actually a subclass of DMI::NumArray
-    TypeId objtype = da.objectType();
     return ~pyarr;
-//  }
+  }
 }
 
 // -----------------------------------------------------------------------
