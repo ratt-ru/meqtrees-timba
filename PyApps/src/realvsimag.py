@@ -157,6 +157,8 @@ class realvsimag_plotter(object):
         self._circle_dict = {}
         self._line_dict = {}
         self._xy_plot_dict = {}
+        self._x_errors_plot_dict = {}
+        self._y_errors_plot_dict = {}
         self._xy_plot_color = {}
         self._plotter_dict = {}
         self._flags_dict = {}
@@ -345,85 +347,144 @@ class realvsimag_plotter(object):
     # __initToolBar()
 
   def slotMousePressed(self, e):
-        "Mouse press processing instructions go here"
-        _dprint(2,' in slotMousePressed');
-        _dprint(3,' slotMousePressed event:',e);
-        if e.button() == QMouseEvent.MidButton:
-            _dprint(2,'button is mid button');
-            xPos = e.pos().x()
-            yPos = e.pos().y()
-            _dprint(2,'xPos yPos ', xPos, ' ', yPos);
-# get curve number associated with this data point
-            key, distance, xVal, yVal, index = self.plot.closestCurve(xPos, yPos)
-            _dprint(2,' key, distance, xVal, yVal, index ', key, ' ', distance,' ', xVal, ' ', yVal, ' ', index);
-# determine the data source for the given curve or point
-            message = ''
-            message1 = ''
-            plot_keys = self._xy_plot_dict.keys()
-            _dprint(2, 'plot_keys ', plot_keys)
-            for i in range(0, len(plot_keys)):
-              current_item_tag = plot_keys[i]
-              plot_key = self._xy_plot_dict[current_item_tag]
-              if plot_key == key:
-                data_key_r = current_item_tag + '_r'
-                label = self._plotterlabels_dict[data_key_r]
-                start_pos =  self._plotterlabels_start[data_key_r]
-                label_index = None
-                for j in range(0, len(start_pos)):
-                  if index == start_pos[j]:
-                    label_index = j
-                    break
-                  if index > start_pos[j]:
-                    continue
-                  else:
-                    label_index = j - 1
-                    break 
-                if label_index is None:
-                  label_index = len(start_pos) - 1
-                _dprint(2, 'label ', label)
-                message = 'this data point comes from ' + label[label_index] 
-                message1 = 'this data point comes from \n ' + label[label_index] 
-                _dprint(2,message)
-                break
+    "Mouse press processing instructions go here"
+
+    _dprint(2,' in slotMousePressed');
+    _dprint(3,' slotMousePressed event:',e);
+# we use a middle mouse button pressed event to retrieve and display
+# information in the lower left corner of the plot about
+# the point closest to the location where the mouse was pressed
+    if e.button() == QMouseEvent.MidButton:
+        _dprint(2,'button is mid button');
+        xPos = e.pos().x()
+        yPos = e.pos().y()
+        _dprint(2,'xPos yPos ', xPos, ' ', yPos);
+# We get information about the qwt plot curve that is
+# closest to the location of this mouse pressed event.
+# We are interesed in the nearest curve_number and the index, or
+# sequence number of the nearest point in that curve.
+        curve_number, distance, xVal, yVal, index = self.plot.closestCurve(xPos, yPos)
+        _dprint(2,' curve_number, distance, xVal, yVal, index ', curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', index);
+# To determine the data source for the given curve or point
+# qwt curves each curve has a number which can be associated
+# with an individual 'string' key. We stored these keys and 
+# associated curve numbers in the xy_plot_dict, the
+# x_errors_plot_dict, and the y_errors_plot_dict objects
+# in the x_vs_y_plot method
+        message = ''
+        wanted_item_tag = None
+# first search _xy_plot_dict
+        plot_keys = self._xy_plot_dict.keys()
+        _dprint(2, 'plot_keys ', plot_keys)
+        for i in range(0, len(plot_keys)):
+          current_item_tag = plot_keys[i]
+          plot_key = self._xy_plot_dict[current_item_tag]
+          _dprint(2, 'plot_key ', plot_key, ' current item tag ', current_item_tag)
+          if plot_key == curve_number:
+            wanted_item_tag = current_item_tag
+            break
+# if nothing found then search _x_errors_plot_dict
+        if self.errors_plot and wanted_item_tag is None:
+          plot_keys = self._x_errors_plot_dict.keys()
+          _dprint(2, 'plot_keys ', plot_keys)
+          for i in range(0, len(plot_keys)):
+            current_item_tag = plot_keys[i]
+            plot_key = self._x_errors_plot_dict[current_item_tag]
+            _dprint(2, 'plot_key ', plot_key, ' current item tag ', current_item_tag)
+            if plot_key == curve_number:
+# Note:if wanted_item_tag came from an error curve, need to get
+# the associated x,y data curve.
+# So convert to corresponding value for actual data points
+              location_value =  current_item_tag.find(self.error_tag)
+              wanted_item_tag = current_item_tag[:location_value] + self.value_tag + '_plot'
+              break
+
+# if nothing found then search _y_errors_plot_dict
+        if self.errors_plot and wanted_item_tag is None:
+          plot_keys = self._y_errors_plot_dict.keys()
+          _dprint(2, 'plot_keys ', plot_keys)
+          for i in range(0, len(plot_keys)):
+            current_item_tag = plot_keys[i]
+            plot_key = self._y_errors_plot_dict[current_item_tag]
+            _dprint(2, 'plot_key ', plot_key, ' current item tag ', current_item_tag)
+            if plot_key == curve_number:
+# convert to corresponding value for actual data points
+              location_value =  current_item_tag.find(self.error_tag)
+              wanted_item_tag = current_item_tag[:location_value] + self.value_tag + '_plot'
+              break
+
+# if we have a valid result, find and display the label
+        if not wanted_item_tag is None:
+          data_key_index = wanted_item_tag + '_r'
+# the plotterlabels_dict contains a list of labels that can
+# be associated with each of the data curves
+          label = self._plotterlabels_dict[data_key_index]
+          _dprint(2, 'label ', label)
+# The start_pos list contains the starting positions in the
+# curve for each of the data labels
+          start_pos =  self._plotterlabels_start[data_key_index]
+# Now find out which group of points actually contains the
+# specific point that was nearest our mouse-clicked position.
+          label_index = None
+          for j in range(0, len(start_pos)):
+            if index == start_pos[j]:
+              label_index = j
+              break
+            if index > start_pos[j]:
+              continue
+            else:
+              label_index = j - 1
+              break 
+          if label_index is None:
+            label_index = len(start_pos) - 1
+# We should have now found the right group of points
+# and can get the appropriate label.
+          message = 'this data point comes from \n ' + label[label_index] 
 
 # alias
-            fn = self.plot.fontInfo().family()
+          fn = self.plot.fontInfo().family()
 
-# text marker giving source of point that was clicked
-            self.marker = self.plot.insertMarker()
-            ylb = self.plot.axisScale(QwtPlot.yLeft).lBound()
-            xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
-            self.plot.setMarkerPos(self.marker, xlb, ylb)
-            self.plot.setMarkerLabelAlign(self.marker, Qt.AlignRight | Qt.AlignTop)
-            self.plot.setMarkerLabel( self.marker, message1,
-              QFont(fn, 9, QFont.Bold, False),
-              Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
-            self.plot.replot()
-            timer = QTimer(self.plot)
-            timer.connect(timer, SIGNAL('timeout()'), self.timerEvent_marker)
-            timer.start(3000, True)
+# Bow create text marker giving source of point that was clicked
+          self.marker = self.plot.insertMarker()
+          ylb = self.plot.axisScale(QwtPlot.yLeft).lBound()
+          xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+          self.plot.setMarkerPos(self.marker, xlb, ylb)
+          self.plot.setMarkerLabelAlign(self.marker, Qt.AlignRight | Qt.AlignTop)
+          self.plot.setMarkerLabel( self.marker, message,
+            QFont(fn, 9, QFont.Bold, False),
+            Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+# We have inserted the marker, so replot.
+          self.plot.replot()
 
-        elif e.button() == QMouseEvent.RightButton:
-          e.accept();  # accept even so that parent widget won't get it
-          # popup the menu
-          self._menu.popup(e.globalPos());
+# Then start a timer so that after 3 sec the marker should vaporize
+# in the timerEvent_marker method defined below.
+          timer = QTimer(self.plot)
+          timer.connect(timer, SIGNAL('timeout()'), self.timerEvent_marker)
+          timer.start(3000, True)
+
+    elif e.button() == QMouseEvent.RightButton:
+      e.accept();  # accept even so that parent widget won't get it
+      # popup the menu
+      self._menu.popup(e.globalPos());
             
-    # slotMousePressed
+  # slotMousePressed
 
   def timerEvent_marker(self):
-      self.plot.removeMarkers()
-      if not self._legend_plot is None:
-        self.legend_marker = self.plot.insertMarker()
-        ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
-        xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
-        self.plot.setMarkerPos(self.legend_marker, xlb, ylb)
-        self.plot.setMarkerLabelAlign(self.legend_marker, Qt.AlignRight | Qt.AlignBottom)
-        fn = self.plot.fontInfo().family()
-        self.plot.setMarkerLabel( self.legend_marker, self._legend_plot,
-          QFont(fn, 9, QFont.Bold, False),
-          Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
-      self.plot.replot()
-    # timerEvent_marker()
+    """ remove all markers, but reinsert the legend_plot
+        marker if it exists """
+    self.plot.removeMarkers()
+    if not self._legend_plot is None:
+      self.legend_marker = self.plot.insertMarker()
+      ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
+      xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+      self.plot.setMarkerPos(self.legend_marker, xlb, ylb)
+      self.plot.setMarkerLabelAlign(self.legend_marker, Qt.AlignRight | Qt.AlignBottom)
+      fn = self.plot.fontInfo().family()
+      self.plot.setMarkerLabel( self.legend_marker, self._legend_plot,
+        QFont(fn, 9, QFont.Bold, False),
+        Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
+    self.plot.replot()
+  # timerEvent_marker()
 
 # compute points for two circles
   def compute_circles (self, item_tag, radius, x_cen=0.0, y_cen=0.0, line_style='lines'):
@@ -927,7 +988,7 @@ class realvsimag_plotter(object):
 # add new data label giving path to this data to the plotterlabels dict
 # (hum - is this the right thing to do?)
         self._plotterlabels_dict[self._label_r] = self._plotterlabels_dict[self._label_r] + self._data_labels
-# the starting positions of each of the numarrays in the new combined data
+# the starting positions of each of the new numarrays in the new combined data
 # list are calculated in the following loop
         for i in range(0,len(start_pos)):
           start_pos[i] = start_pos[i] + prev_data_length
@@ -1027,8 +1088,11 @@ class realvsimag_plotter(object):
           self.x_errors = QwtErrorPlotCurve(self.plot,self._plot_color,2);
           _dprint(3, 'self.x_errors set to ', self.x_errors)
           self.x_errors.setXErrors(True)
-# insert this x error QwtErrorPlotCurve into the qwt plot
-          self.plot.insertCurve(self.x_errors);
+# Insert this x error QwtErrorPlotCurve into the qwt plot
+# Insert a reference to its curve number in the 
+# x_errors_plot_dict. This dict is used when retrieving
+# label information from middle mouse button clicks
+          self._x_errors_plot_dict[item_tag] = self.plot.insertCurve(self.x_errors);
           _dprint(3, 'self.x_errors stored in self._x_errors_dict with key ', item_tag)
 # store a reference to this x error curve object in
 # a x_errors_dict using item_tag as key
@@ -1037,7 +1101,10 @@ class realvsimag_plotter(object):
           self.y_errors = QwtErrorPlotCurve(self.plot,self._plot_color,2);
           _dprint(3, 'self.y_errors set to ', self.y_errors)
 # insert this y error QwtErrorPlotCurve into the qwt plot
-          self.plot.insertCurve(self.y_errors);
+# Insert a reference to its curve number in the 
+# y_errors_plot_dict. This dict is used when retrieving
+# label information from middle mouse button clicks
+          self._y_errors_plot_dict[item_tag] = self.plot.insertCurve(self.y_errors);
 # store a reference to this y error curve object in
 # a y_errors_dict using item_tag as key
           self._y_errors_dict[item_tag] = self.y_errors
