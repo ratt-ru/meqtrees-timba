@@ -126,7 +126,7 @@ AC_DEFINE(LOFAR_DEBUG,dnl
 
   # Intel CC does not include /usr/local/include, while GCC does.
   if test "$lofar_compiler" = "icc"; then
-    lfr_cppflags="$lfr_cppflags -I/usr/local/include"
+    lfr_cppflags="$lfr_cppflags -I/usr/local/include -DAIPS_INTELCC"
   fi
 
   if test "$with_optimize" != "no"; then
