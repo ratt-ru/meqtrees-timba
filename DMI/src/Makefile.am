@@ -74,6 +74,9 @@ REGISTRY_PACKAGES = \
   CEP/CPA/AppAgent/MSVisAgent   \
   CEP/CPA/AppAgent/Solver   \
   CEP/CPA/AppAgent/AppUtils   \
+  CEP/CPA/AppAgent/MeqServer   \
+  CEP/CPA/PSS4/MEQ \
+  CEP/CPA/PSS4/MeqGen \
   CEP/CPA/uvplot   
 
 REGISTRY_FILES = $(foreach pkg,$(REGISTRY_PACKAGES),$(wildcard $(lofar_sharedir)/../$(pkg)/src/AID-*-Registry.cc))
