@@ -32,112 +32,116 @@ $COMMENT_BLOCK     = 1;
 $arguments = @ARGV;
 if ($arguments == 1)
 {
-    # The argument represents the name of the file to process.
-    $filename = $ARGV[0];
+  # The argument represents the name of the file to process.
+  $filename = $ARGV[0];
 
-    # Open the file.
-    $status = open(FILEHANDLE, $filename);
+  # Open the file.
+  $status = open(FILEHANDLE, $filename);
 
-    # If the file could be opened then read the contents.
-    if ($status)
-    {
-        # Read the contents of the file.
-        @text = <FILEHANDLE>;
+  # If the file could be opened then read the contents.
+  if ($status)
+  {
+    # Read the contents of the file.
+    @text = <FILEHANDLE>;
 
-        # Close the file.
-        close(FILEHANDLE);
+    # Close the file.
+    close(FILEHANDLE);
 
-        # Process the contents of the file.
-        change_comment_style(@text);
-    }
+    # Process the contents of the file.
+    change_comment_style(@text);
+  }
 
-    # Otherwise report an error condition.
-    else
-    {
-        print "ERROR: file \"$filename\" could not be opened.\n";
-    }
+  # Otherwise report an error condition.
+  else
+  {
+    print "ERROR: file \"$filename\" could not be opened.\n";
+  }
 }
 
 # Otherwise, display the proper invocation for this script.
 else
 {
-    print "usage: $0 filename\n";
+  print "usage: $0 filename\n";
 }
 
 sub change_comment_style
 {
-    $state = $NON_COMMENT_BLOCK;
-    @spanning_comment = ();
-	$indent = "";
-    $comment = "";
+  $state = $NON_COMMENT_BLOCK;
+  $newstate = $NON_COMMENT_BLOCK;
+  @spanning_comment = ();
+  $indent = "";
+  $comment = "";
 
-    foreach $line (@_)
+  foreach $line (@_)
+  {
+    $newstate = $NON_COMMENT_BLOCK;
+    # slash-slash-hash is blanked.
+    if ($line =~ /^\s*\/\/\#/)
     {
-        if ($state == $NON_COMMENT_BLOCK)
-        {
-            # If this line contains only a slash-slash comment, then
-            # we're at the beginning of a comment block.
-            if ($line =~ /(^\s*)(\/\/)(.*)/)
-            {
-                $state  = $COMMENT_BLOCK;
-
-                # Keep track of how far the comment block is indented.
-                $indent = $1;
-                $comment = $3;
-
-                # Begin the spanning comment block.
-                push @spanning_comment, "$1\/**";
-
-                # Add the comment that follows, but ONLY if the comment
-                # does NOT start with a hash character.
-                if ($comment !~ /^\#/)
-                {
-                    push @spanning_comment, "$comment";
-                }
-            }
-
-            # Otherwise, we're not within a comment block.
-            else
-            {
-                print $line;
-            }
-        }
-        elsif ($state == $COMMENT_BLOCK)
-        {
-            # If this line contains only a slash-slash comment, then
-            # we're still within a comment block.
-            if ($line =~ /(^\s*)(\/\/)(.*)/)
-            {
-                $indent = $1;
-                $comment = $3;
-
-                # Add the comment that follows, but ONLY if the comment
-                # does NOT start with a hash character.
-                if ($comment !~ /^\#/)
-                {
-                    push @spanning_comment, "\n$indent   $comment";
-                }
-		else
-		{
-		    push @spanning_comment, "\n";
-		}
-            }
-
-            # Otherwise, the comment block has ended and the spanning
-            # comment needs to be emitted.
-            else
-            {
-                $state = $NON_COMMENT_BLOCK;
-                push @spanning_comment, " */\n";
-                print @spanning_comment;
-                @spanning_comment = ();
-                print $line;
-            }
-        }
-        else
-        {
-            $state = $NON_COMMENT_BLOCK;
-        }
+      $line = "\n";
     }
+    $comment = $line;
+    # If this line contains only a slash-slash comment, then
+    # the comment block might need to be converted.
+    if ($line =~ /(^\s*)(\/\/)(.*)/)
+    {
+      # Keep track of how far the comment block is indented.
+      $indent = $1;
+      $comment = $3;
+      # slash-slash-slash is kept as such (is doxygen already).
+      if ($comment !~ /^\//)
+      {
+	$newstate = $COMMENT_BLOCK;
+	# Replace <srcblock> by \code
+	$comment =~ s/<srcblock>/\\code/g;
+	$comment =~ s/<\/srcblock>/\\endcode/g;
+	# Replace <summary> by \brief
+	$comment =~ s/<summary>/\\brief/g;
+	$comment =~ s/<\/summary>//g;
+	# Handle group comments and keep // in doxygen groups.
+	$comment =~ s/<group>/@\{/g;
+	$comment =~ s/<\/group>/@\}/g;
+	if ($comment =~ /^\s*@[\{\}]\s*$/)
+	{
+	  $comment =~ s/\s*//g;
+	  $line = "$indent//$comment\n";
+	  $newstate = $NON_COMMENT_BLOCK;
+	}
+      }
+      # A blank line does not change anything.
+      elsif ($line =~ /^\s*$/)
+      {
+	$newstate = $state;
+      }
+    }
+
+    # Act depending on new and old state.
+    if ($newstate == $COMMENT_BLOCK) {
+      if ($state == $COMMENT_BLOCK) {
+	# Add comment to block.
+	push @spanning_comment, "\n$indent   $comment";
+      } else {
+	# Begin the spanning comment block with given indentation.
+	push @spanning_comment, "$indent\/**$comment";
+      }
+    } else {
+      if ($state == $COMMENT_BLOCK) {
+	# End comment block and write the block.
+	push @spanning_comment, " */\n";
+	print @spanning_comment;
+	@spanning_comment = ();
+      }
+      # Write the line.
+      print $line;
+    }
+    $state = $newstate;
+  }
+
+  # Output remaining comments if there.
+  if ($state == $COMMENT_BLOCK)
+  {
+    push @spanning_comment, " */\n";
+    print @spanning_comment;
+  }
 }
 
