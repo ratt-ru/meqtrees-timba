@@ -27,17 +27,50 @@ if test $# != 1; then
   echo usage: bootstrap autoconf_share_dir
   exit 1
 fi
-set -x
+
+echo "Bootstrapping in `pwd`"
 
 # Make symlinks for ease of use.
 \rm -f autoconf_share lofarconf
 ln -s $1 autoconf_share
 ln -s $1/lofarconf lofarconf
 
-# Initialize auto tools
-aclocal -I $1 \
-&& libtoolize --force --copy \
-&& autoheader \
-&& automake --foreign --add-missing --copy \
-&& autoconf
+# Bootstrap recursively if a file lofarconf.in exists.
+# Get subdirectories from that file.
+lfr_lofarconf=0
+if [ -r lofarconf.in ]; then
+  lfr_lofarconf=1
+  # Get all subdirectories from lofarconf.in while removing comments.
+  subdirs=`sed lofarconf.in -e s/#.*$//g`
+  for subdir in $subdirs
+  do
+    if [ ! -d $subdir ]; then
+      echo " Error: subdirectory $subdir not found"
+      exit 2
+    fi
+    cd $subdir > /dev/null   # suppress possible cd output
+    if [ ! -r bootstrap ]; then
+      # Add an extra ../ to the autoconf_share paths.
+      sed ../bootstrap -e s%\.\./auto%\.\./\.\./auto%g > bootstrap
+      chmod +x bootstrap
+    fi
+    ./bootstrap || exit 2
+    cd .. > /dev/null
+  done
+fi
+
+# Initialize auto tools if configure.in exists.
+if [ -r configure.in ]; then
+  if test "$lfr_lofarconf" != 0; then
+    echo " Error: configure.in or lofarconf.in may exist, not both"
+  fi
+  set -x
+  aclocal -I $1 \
+  && libtoolize --force --copy \
+  && autoheader \
+  && automake --foreign --add-missing --copy \
+  && autoconf
+elif test "$lfr_lofarconf" = 0; then
+  echo " Warning: configure.in nor lofarconf.in found"
+fi
 

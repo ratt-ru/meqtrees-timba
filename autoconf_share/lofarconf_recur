@@ -1,0 +1,259 @@
+#!/bin/sh
+
+#  lofarconf_recur
+
+#  Copyright (C) 2003
+#  ASTRON (Netherlands Foundation for Research in Astronomy)
+#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#  $Id$
+
+
+# Run configure recursively on directories mentioned in lofarconf.in
+# The current directory is used as the variant name.
+#
+# Use as
+#    lofarconf_recur [configure-options]
+
+# Get the current directory.
+lfr_curdir=`pwd`
+# Get the LOFAR base from the full path of this script.
+lfr_sdir=`dirname $0`
+lfr_root=`(cd $lfr_sdir && pwd) | sed -e "s%/LOFAR/.*%/LOFAR%"`
+lfr_base=$lfr_root/autoconf_share
+
+# Find package, lofar root, compiler, variant.
+# Exit if not found.
+lfr_result=`$lfr_base/findpkg -l`
+if [ $? != 0 ]; then
+  echo "Could not derive package from current build directory";
+  echo "The build directory should be in the source tree like"
+  echo "      LOFAR/'package'/build/'variant'"
+  echo "or in another tree like"
+  echo "      something/build/'variant'/'package'"
+  echo "or    something/'package'/build/'variant'"
+  echo "where variant is, for example, gnu_opt."
+  exit 2
+fi
+lfr_pkg=`echo $lfr_result | awk '{print $1}'`
+lfr_cmp=`echo $lfr_result | awk '{print $2}'`
+lfr_var=`echo $lfr_result | awk '{print $3}'`
+lfr_cvdir=`echo $lfr_result | awk '{print $4}'`
+lfr_dirform=`echo $lfr_result | awk '{print $5}'`
+
+# Get the directory of the configure files for the package.
+lfr_confdir=$lfr_root/$lfr_pkg;
+
+# Get ../.. pattern to go from package to build directory.
+if test "lfr_dirform" = 0; then
+  lfr_back=`echo $lfr_pkg | sed -e 's%[^/]\+%\.\.%g'`
+fi
+
+# Get all subdirectories from lofarconf.in while removing comments.
+subdirs=`sed $lfr_confdir/lofarconf.in -e s/#.*$//g`
+sdir=
+for subdir in $subdirs
+do
+  sdir="$sdir $subdir"
+  if [ ! -d $lfr_confdir/$subdir ]; then
+    echo " Error: source subdirectory $subdir not found"
+    exit 2
+  fi
+  curwd=`pwd`
+  if test "$lfr_dirform" = 0; then
+    # Build is part of the package directory.
+    # Make build and variant directory if needed.
+    cd ../../$subdir > /dev/null   # suppress possible cd output
+    if [ ! -d build ]; then
+      mkdir build
+    fi
+    cd build > /dev/null
+    if [ ! -d $lfr_cvdir ]; then
+      mkdir $lfr_cvdir
+    fi
+    cd $lfr_cvdir > /dev/null
+  else
+    # Package is part of the build directory.
+    # Make package directory if needed.
+    if [ ! -d $subdir ]; then
+      mkdir $subdir
+    fi
+    cd $subdir > /dev/null
+  fi
+  echo && echo ":::::: CONFIGURE $lfr_pkg/$subdir"
+  $lfr_base/lofarconf "$@" || exit 2
+  cd $curwd > /dev/null
+done
+
+# Remove Makefile and create a new one.
+# Note that the quotes around EOF are needed to avoid substitution.
+# The structure of the Makefile is similar to the top LOFAR Makefile
+rm -rf Makefile
+touch Makefile
+echo "PACKAGE = $sdir" >> Makefile
+echo "VARIANT = $lfr_cvdir" >> Makefile
+cat <<'EOFXXXXX' >> Makefile
+PACKAGES = $(PACKAGE)
+VARIANTS = $(VARIANT)
+VARIANTNAMES = $(addsuffix .variant, $(VARIANTS))
+#
+# Keep the make directory (which is LOFAR).
+#
+LOFARDIR = $(shell pwd)
+
+#
+# build: Target to compile in a bootstrapped and configured tree
+#
+all: build
+build: start_build $(VARIANTNAMES:.variant=.variant_build) stop_build
+start_build:
+	@echo && echo ":::::: BUILD START" && echo
+stop_build:
+	@echo && echo ":::::: BUILD COMPLETE" && echo
+#
+# check target: check all variants that have been specified in the
+#               VARIANTNAMES variable
+#
+check: $(VARIANTNAMES:.variant=.variant_check)
+EOFXXXXX
+
+if test $lfr_dirform = 0; then
+  cat <<'EOFXXXXX' >> Makefile
+#
+# Rule to build variant 
+#
+%.variant_build:
+	@date; \
+	variant=`basename $@ .variant_build`; \
+	for pkg in $(PACKAGES); do \
+            cd ../..; \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& (( cd $$pkg/build/$$variant \
+		&& make -k $(MAKE_OPTIONS) `cat makeoptions` ) \
+			|| echo ":::::: ERROR" ) \
+		&& echo \
+		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; ) \
+	    fi\
+	done; \
+	date
+#
+# Rule to check variant
+#	- Run make check for each variant
+#
+%.variant_check:
+	@date; \
+	variant=`basename $@ .variant_check`; \
+	for pkg in $(PACKAGES); do \
+            cd ../..; \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg/build/$$variant \
+		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` check \
+			|| echo ":::::: ERROR" )) \
+		&& echo \
+		&& echo ":::::: FINISHED CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
+	    fi\
+	done; \
+	date
+EOFXXXXX
+
+else
+  cat <<'EOFXXXXX' >> Makefile
+#
+# Rule to build variant 
+#
+%.variant_build:
+	@date; \
+	variant=`basename $@ .variant_build`; \
+	for pkg in $(PACKAGES); do \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& (( cd $$pkg \
+		&& make -k $(MAKE_OPTIONS) `cat makeoptions` ) \
+			|| echo ":::::: ERROR" ) \
+		&& echo \
+		&& echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; ) \
+	    fi\
+	done; \
+	date
+#
+# Rule to check variant
+#	- Run make check for each variant
+#
+%.variant_check:
+	@date; \
+	variant=`basename $@ .variant_check`; \
+	for pkg in $(PACKAGES); do \
+	    if test -d $$pkg; then \
+		( echo \
+		&& echo ":::::: CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& cd $$pkg \
+		&& (make -k $(MAKE_OPTIONS) `cat makeoptions` check \
+			|| echo ":::::: ERROR" )) \
+		&& echo \
+		&& echo ":::::: FINISHED CHECKING VARIANT $$variant FOR PACKAGE $$pkg" \
+		&& echo ; \
+	    fi\
+	done; \
+	date
+EOFXXXXX
+
+fi
+
+cat <<'EOFXXXXX' >> Makefile
+#
+# Show the variables
+#
+show:
+	@echo ""
+	@echo "PACKAGES = $(PACKAGES)"
+	@echo "VARIANTS = $(VARIANTS)"
+	@echo "LOFARDIR = $(LOFARDIR)"
+	@echo ""
+#
+# Show the possible targets
+#
+help:
+	@echo "Targets in $(LOFARDIR) Makefile"
+	@echo "-------------------------------"
+	@echo ""
+	@echo "all:       default target; same as build"
+	@echo "build:     build all packages for all variants"
+	@echo "check:     build and run all test programs for all variants"
+	@echo ""
+	@echo "%.variant_build:     build all packages for given variant"
+	@echo "%.variant:           same as %.variant_build"
+	@echo "%.variant_check:     build and run all test programs for given variant"
+	@echo ""
+	@echo "show:      show the important variables"
+	@echo ""
+EOFXXXXX

@@ -40,7 +40,7 @@ lfr_base=$lfr_root/autoconf_share
 # Exit if not found.
 lfr_result=`$lfr_base/findpkg -l`
 if [ $? != 0 ]; then
-  echo "Could not derive package from current build directory";
+  echo "Could not derive package from build directory $lfr_curdir";
   echo "The build directory should be in the source tree like"
   echo "      LOFAR/'package'/build/'variant'"
   echo "or in another tree like"
@@ -53,9 +53,14 @@ lfr_pkg=`echo $lfr_result | awk '{print $1}'`
 lfr_cmp=`echo $lfr_result | awk '{print $2}'`
 lfr_var=`echo $lfr_result | awk '{print $3}'`
 
-# The configure script for the package is in the same tree as
-# this script is in.
+# Get the directory of the configure files for the package.
 lfr_confdir=$lfr_root/$lfr_pkg;
+
+# If there is a file lofarconf.in, we have to configure recursively.
+if [ -r $lfr_confdir/lofarconf.in ]; then
+  $lfr_base/lofarconf_recur "$@" || exit 2
+  exit 0
+fi
 
 # Get the configure and make options from the variants file.
 # Look first for a host specific one; if not found, for a general one.
