@@ -28,9 +28,9 @@ int main (int argc,const char *argv[])
     dsp.pollLoop();
     dsp.stop();
   }
-  catch( Debug::Error err ) 
+  catch( std::exception &exc ) 
   {
-    cerr<<"\nCaught exception:\n"<<err.what()<<endl;
+    cerr<<"\nCaught exception:\n"<<exc.what()<<endl;
     return 1;
   }
   cerr<<"Exiting normally\n";

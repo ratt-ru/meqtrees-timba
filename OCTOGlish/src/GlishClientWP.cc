@@ -135,10 +135,12 @@ void GlishClientWP::handleEvent (GlishSysEvent &event)
       {
         GlishRecord rec = val;
         FailWhen( rec.nelements() != 2,"illegal event value" );
-        String context; int level;
-        tmp = rec.get(0); tmp.get(context);
+        Array<String> contexts; int level;
+        tmp = rec.get(0); tmp.get(contexts);
         tmp = rec.get(1); tmp.get(level);
-        Debug::setLevel(context,level);
+        for( Array<String>::const_iterator iter = contexts.begin();
+            iter != contexts.end(); iter++ )
+          Debug::setLevel(*iter,level);
       }
       else
         Throw("unknown event");
