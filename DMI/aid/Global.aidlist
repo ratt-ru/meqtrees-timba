@@ -81,6 +81,7 @@ e                                1010       ; from /home/oms/LOFAR/DMI/src/Atomi
 echowp                           1113       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:12
 effective                        1194       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:32
 end                              1283       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgentVocabulary.h:35
+epsilon                          1385       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
 error                            1084       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 event                            1070       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:19
 execute                          1372       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:13
@@ -368,6 +369,7 @@ unmapped                         1313       ; from /home/oms/LOFAR/CEP/CPA/AppAg
 unsorted                         1137       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
 up                               1034       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 update                           1265       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:18
+usesvd                           1384       ; from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
 ushort                           36         ; from /home/oms/LOFAR/DMI/src/TypeId.h:100
 uvdata                           1200       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
 uvset                            1143       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
