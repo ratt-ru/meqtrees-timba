@@ -39,7 +39,7 @@
 
 # Get package name.
 pkgname="$1"
-# Does an actual checkout/update needs to be done.
+# Does an actual checkout/update need to be done.
 checkout="$2"
 # Get cvs command (defaults to cvs).
 cvscomm="$3"
@@ -47,7 +47,7 @@ if [ "$cvscomm" = "" ]; then
   cvscomm="cvs"
 fi
 # See if this package was already updated.
-fgrep "$pkgname" allpkg.tmp  2>&1 > /dev/null 2>&1
+fgrep "$pkgname" allpkg.tmp > /dev/null 2>&1
 status=$?
 # Add it to the file to get correct build order.
 echo "$pkgname" >> allpkg.tmp

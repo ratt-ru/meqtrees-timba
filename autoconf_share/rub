@@ -115,7 +115,8 @@ fi
 \rm -f allpkg.tmp rub.log
 touch allpkg.tmp rub.log
 
-# First update autoconf_share.
+# First update bootstrap and autoconf_share.
+$cvscomm update bootstrap
 ${pgmpath}rub1 autoconf_share 1 "$cvscomm"
 \rm -f allpkg.tmp
 touch allpkg.tmp
