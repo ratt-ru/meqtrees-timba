@@ -168,21 +168,25 @@ class meqserver_gui (app_proxy_gui):
     self.treebrowser = TreeBrowser(self);
     self.maintab.insertTab(self.treebrowser.wtop(),"Trees",1);
     self.connect(self.treebrowser.wtop(),PYSIGNAL("view_node()"),self._view_node);
+    self.connect(self.treebrowser.wtop(),PYSIGNAL("view_forest_state()"),self._view_forest_state);
     
     # add Result Log panel
     self.resultlog = Logger(self,"node snapshot log",limit=1000,
           udi_root='snapshot');
-    self.maintab.insertTab(self.resultlog.wtop(),"Results",2);
+    self.maintab.insertTab(self.resultlog.wtop(),"Snapshots",2);
     self.resultlog.wtop()._default_iconset = QIconSet();
     self.resultlog.wtop()._default_label   = "Snapshots";
     self.resultlog.wtop()._newres_iconset  = pixmaps.check.iconset();
     self.resultlog.wtop()._newres_label    = "Snapshots";
     self.resultlog.wtop()._newresults      = False;
-    QWidget.connect(self.resultlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
-    QWidget.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
+    QObject.connect(self.resultlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    QObject.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
     
     # excluse ubiquotous events from the event logger
     self.eventlog.add_exclusion('node.status');
+    
+    # subscribe to updates of forest state
+    meqds.subscribe_forest_state(self._update_forest_state);
 
   def _checkStateUpdate (self,ev,value):
     try: 
@@ -209,10 +213,19 @@ class meqserver_gui (app_proxy_gui):
       # check if message includes update of node state
       self._checkStateUpdate(ev,value);
       # check if message includes update of forest status
-      try: fst = value.forest_status;
-      except AttributeError: pass;
-      else:
-        self.treebrowser.update_forest_status(fst);
+      fstatus = getattr(value,'forest_status',None);
+      fstate  = getattr(value,'forest_state',None);
+      if fstatus is not None:
+        self.treebrowser.update_forest_status(fstatus);
+      # update forest state, if supplied. Merge in the forest status if
+      # we also have it
+      if fstate is not None:
+        if fstatus is not None:
+          fstate.update(fstatus);
+        meqds.update_forest_state(fstate);
+      # no forest state supplied but a status is: merge it in
+      elif fstatus is not None:
+        meqds.update_forest_state(fstatus,True);
     # call top-level handler
     app_proxy_gui.handleAppEvent(self,ev,value);
     
@@ -222,6 +235,7 @@ class meqserver_gui (app_proxy_gui):
     self.resultlog.clear();
     wtop = self.resultlog.wtop();
     self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
+    meqds.request_forest_state();
     
   def ce_mqs_Bye (self,ev,value):
     self.treebrowser.connected(False);  
@@ -284,6 +298,17 @@ class meqserver_gui (app_proxy_gui):
     node = meqds.nodeobject(node);
     Grid.addDataItem(makeNodeDataItem(node,viewer),**kws);
     self.show_gridded_workspace();
+    
+  def _view_forest_state (self,viewer=None,**kws):
+    _dprint(2,"adding viewer for forest state");
+    item = Grid.DataItem('/forest',name='Forest state',caption='Forest state',
+                          desc='State of forest',data=meqds.get_forest_state(),
+                          refresh=meqds.request_forest_state,viewer=viewer);
+    Grid.addDataItem(item,**kws);
+    self.show_gridded_workspace();
+    
+  def _update_forest_state (self,fst):
+    Grid.updateDataItem('/forest',fst);
     
   def _reset_resultlog_label (self,tabwin):
     if tabwin is self.resultlog.wtop() and tabwin._newresults:

@@ -147,9 +147,9 @@ public:
   const VellSet & setVellSet (int i,const VellSet::Ref &vellset,int flags=0)
     { wrVellSets().put(i,vellset,flags); return *vellset; }
   
-  // creates new vellset at plane i with the given # of spids
+  // creates new vellset at plane i with the given # of spids and perturbation sets
     //##ModelId=400E535501BF
-  VellSet & setNewVellSet (int i,int nspids=0,int nset=1);
+  VellSet & setNewVellSet (int i,int nspids=0,int npertsets=1);
 
   // ------------------------ FAIL RESULTS
   // checks if this Result has any fails in it

@@ -118,7 +118,7 @@ int Sink::procPendingTile (VisCube::VTile::Ref &tileref)
   // this will invalidate the pending refs
   tileref = pending.tile;
   Request::Ref reqref  = pending.request;
-  if( forest().verbosity()>1 )
+  if( forest().debugLevel()>1 )
     wstate()[FNewRequest].replace() = reqref.copy();
   setExecState(CS_ES_REQUEST);
   cdebug(3)<<"procPendingTile: processing tile "<<tileref->tileId()<<" of "

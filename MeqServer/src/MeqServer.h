@@ -14,9 +14,7 @@
 #pragma aid Execute Clear Cache Save Load Forest Recursive 
 #pragma aid Publish Results Enable Disable Event Id Silent Idle Stream 
 #pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Level
-#pragma aid Get Forest Status Stack Running
-// extra fields -- not really used outside of glish, but simplifies debugging
-#pragma addstate desc description aux
+#pragma aid Get Forest Status Stack Running Changed All Disabled Publishing
     
 namespace Meq
 {
@@ -50,6 +48,13 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     //##ModelId=3F608106021C
     virtual void run();
 
+    // sets state
+    void setForestState (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    // gets status + state record
+    void getForestState (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    // gets status only
+    void getForestStatus (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    
     //##ModelId=3F61920F01A8
     void createNode   (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F61920F01FA
@@ -62,7 +67,6 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     void resolve      (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F98D91B0064
     void getNodeList  (DMI::Record::Ref &out,DMI::Record::Ref &in);
-    void getForestStatus (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
     void getNodeIndex (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
@@ -107,7 +111,9 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
 
     void processBreakpoint (Node &node,int bpmask,bool global);
     
-    void fillForestStatus  (DMI::Record &rec);
+    // fills a record with forest_status (level>0) and 
+    // and forest_state (level>1). If level==0, does nothing.
+    void fillForestStatus  (DMI::Record &rec,int level=1);
       
     //##ModelId=3F5F218F02BD
     Forest forest;

@@ -49,7 +49,7 @@ public:
   // Create a time,frequency result for the given shape, number of spids,
   // number of pert sets
     //##ModelId=400E5355031E
-  VellSet (const LoShape &shp,int nspid=0,int nset=1);
+  VellSet (const LoShape &shp,int nspid=0,int npertsets=1);
   
   // Create a time,frequency result for the given number of spids, number 
   // of pert sets. Shape has to be supplied later.

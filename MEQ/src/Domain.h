@@ -29,8 +29,7 @@
 
 #pragma types #Meq::Domain
 
-// dummy aids used for glish functions
-#pragma aid ndim axes
+#pragma aid ndim axes Axis Map
 
 namespace Meq 
 { 
@@ -133,6 +132,8 @@ private:
     //##ModelId=3F86886E02F8
   double range_[Axis::MaxAxis][2];
   bool   defined_[Axis::MaxAxis];
+  
+  bool map_attached_;
 };
 
 } // namespace Meq

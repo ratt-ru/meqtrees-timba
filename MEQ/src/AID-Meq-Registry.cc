@@ -140,12 +140,18 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         AtomicID::registerId(-1024,"X")+
         AtomicID::registerId(-1005,"Y")+
         AtomicID::registerId(-1021,"Z")+
+        AtomicID::registerId(-1006,"U")+
+        AtomicID::registerId(-1014,"V")+
+        AtomicID::registerId(-1022,"W")+
+        AtomicID::registerId(-1435,"RA")+
+        AtomicID::registerId(-1446,"Dec")+
         AtomicID::registerId(-1303,"Lag")+
         AtomicID::registerId(-1294,"MeqDomain")+
         TypeInfoReg::addToRegistry(-1294,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1294,__construct_MeqDomain)+
         AtomicID::registerId(-1309,"ndim")+
         AtomicID::registerId(-1346,"axes")+
+        AtomicID::registerId(-1216,"Map")+
         AtomicID::registerId(-1339,"MeqCells")+
         TypeInfoReg::addToRegistry(-1339,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1339,__construct_MeqCells)+
@@ -197,6 +203,8 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         TypeInfoReg::addToRegistry(-1283,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1283,__construct_MeqFunction)+
         AtomicID::registerId(-1336,"Delete")+
+        AtomicID::registerId(-1482,"Debug")+
+        AtomicID::registerId(-1047,"Level")+
     0;
     return res;
   }

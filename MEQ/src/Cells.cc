@@ -239,9 +239,9 @@ void Cells::setNumCells (int iaxis,int num)
   if( num )
   {
     DMI::Record &grid = getSubrecord(FGrid);
-    setRecVector(grid_[iaxis],grid[Axis::name(iaxis)],num);
+    setRecVector(grid_[iaxis],grid[Axis::axisId(iaxis)],num);
     DMI::Record &cellsize = getSubrecord(FCellSize);
-    setRecVector(cell_size_[iaxis],cellsize[Axis::name(iaxis)],num);
+    setRecVector(cell_size_[iaxis],cellsize[Axis::axisId(iaxis)],num);
   }
   else
   {
@@ -305,7 +305,7 @@ void Cells::setNumSegments (int iaxis,int nseg)
 {
   Thread::Mutex::Lock lock(mutex());
   Record &segments = getSubrecord(FSegments);
-  Record::Hook seghook(segments,Axis::name(iaxis));
+  Record::Hook seghook(segments,Axis::axisId(iaxis));
   Record *pseg;
   if( seghook.exists() )
     pseg = seghook.as_wp<Record>();
@@ -415,11 +415,8 @@ void Cells::validateContent (bool)
         const HIID &id = iter.id();
         FailWhen(id.size()!=1,"illegal axis ID "+id.toString());
         int iaxis = id[0].index();
-        if( iaxis<0 )
-        {
-          iaxis = Axis::number(id[0]);
-          FailWhen(iaxis<0,"unknown axis ID "+id.toString());
-        }
+        if( iaxis<0 || id.size()>1 )
+          iaxis = Axis::axis(id);
         // check that this axis is defined in the domain
         FailWhen(!domain_->isDefined(iaxis),"axis "+id.toString()+" not defined in domain");
         // set grid centers and axis shape

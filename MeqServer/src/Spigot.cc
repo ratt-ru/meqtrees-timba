@@ -188,7 +188,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
     res_queue_.back().res = next_res;
     cdebug(3)<<res_queue_.size()<<" results in queue"<<endl;
     
-    if( forest().verbosity() > 1 )
+    if( forest().debugLevel() > 1 )
       fillDebugState();
     
 // 02/04/04: commented out, since it screws up (somewhat) the RES_UPDATED flag
@@ -255,7 +255,7 @@ int Spigot::getResult (Result::Ref &resref,
     // return result and dequeue
     resref.copy(pnext->res);
     // update state record
-    if( forest().verbosity() > 1 )
+    if( forest().debugLevel() > 1 )
       fillDebugState();
     return 0;
   }

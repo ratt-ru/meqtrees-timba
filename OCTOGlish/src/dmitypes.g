@@ -156,12 +156,17 @@ const dmi.merge_list := function (ref list,list2)
 
 # creates a DMI::Vec from its arguments
 # arguments should be DMI types, or numerics
-const dmi.vec := function (...)
+const dmi.vec := function (content_type=F,...)
 {
   narg := num_args(...);
   # empty field is empty record
   if( !narg )
+  {
+    if( is_boolean(content_type) )
+      fail 'dmi.vec(): must specify content type if no contents';
     field := [=];
+    field::dmi_vec_content_type := content_type;
+  }
   # creating numeric field? Use array instead
   else if( is_numeric(nth_arg(1,...)) )
   {

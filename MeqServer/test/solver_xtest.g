@@ -58,9 +58,11 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
   
   if( stage == 0 )
   {
+    mqs.set_axes("freq time x y z");
     # use default record for parms
     mqs.meq('Create.Node',meq.parm('x',meq.polc(0),groups='Parm'));
     mqs.meq('Create.Node',meq.parm('y',meq.polc(0),groups='Parm'));
+    mqs.meq('Create.Node',meq.parm('z',meq.polc(array([1,.5,.5,0],2,2),axis="x z"),groups='Parm'));
   }
   else if( stage == 1 )
   {
@@ -197,15 +199,25 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
 
     # resolve children
     mqs.resolve('solver',wait_reply=T);
+    mqs.resolve('z',wait_reply=T);
 
 #    for( n in "eq1 lhs1 c1 a1x x" )
-    for( n in "x y eq1 eq2" )
+    for( n in "x y z eq1 eq2" )
       mqs.meq('Node.Publish.Results',[name=n]);
+    
+    # execute request on z to try out new-style cells
+    global dom1,cells1,request1,res1;
+    dom1 := meq.domain(axis="x y z",start=[0,0,0],end=[1,1,1])
+    cells1 := meq.cells(dom1,ncells=[2,3,4]);
+    request1 := meq.request(cells1,rqid=meq.rqid(),calc_deriv=0);
+    print 'executing',request1;
+    res1 := mqs.meq('Node.Execute',[name='z',request=request1],T);
 
     # execute request on x and y parms to load polcs and get original values
     global cells,request,res;
     cells := meq.cells(meq.domain(0,1,0,1),num_freq=4,num_time=3);
     request := meq.request(cells,rqid=meq.rqid(),calc_deriv=0);
+    print 'executing',request;
     res := mqs.meq('Node.Execute',[name='x',request=request],T);
     res := mqs.meq('Node.Execute',[name='y',request=request],T);
    

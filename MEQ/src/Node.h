@@ -709,14 +709,6 @@ class Node : public DMI::BObj
       { return  "Node " + className() + "('" + name() + "'): " + msg; }
     
     //##Documentation
-    //## These exception are meant to be thrown from methods like init(),
-    //## getResult(), processCommands() and setStateImpl() when something goes 
-    //## wrong. The type of the exception indicates whether any cleanup is 
-    //## required.
-    EXCEPTION_CLASS(FailWithCleanup,LOFAR::Exception)
-    EXCEPTION_CLASS(FailWithoutCleanup,LOFAR::Exception)
-  
-    //##Documentation
     //## NodeThrow can be used to throw an exception, with the message
     //## passed through makeMessage()
     #define NodeThrow(exc,msg) \

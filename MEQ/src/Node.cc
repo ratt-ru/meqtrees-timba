@@ -880,7 +880,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
   string stage;
   try
   {
-    if( forest().verbosity()>1 )
+    if( forest().debugLevel()>1 )
       wstate()[FNewRequest].replace() <<= req0;
     setExecState(CS_ES_REQUEST);
     int retcode = 0;

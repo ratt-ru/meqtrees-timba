@@ -23,52 +23,103 @@
 #ifndef MEQ_AXIS_H
 #define MEQ_AXIS_H
 
-
 #include <Common/Lorrays.h>
 #include <DMI/HIID.h>
+#include <DMI/Vec.h>
+#include <MEQ/Meq.h>
+
 #include <map>
 
 // aids used as some standard Axis identifiers
-#pragma aid Freq Time L M N X Y Z Lag
+#pragma aid Freq Time L M N X Y Z U V W RA Dec Lag
 
 namespace Meq 
 {
 using DMI::HIID;
-using DMI::AtomicID;
-  
 
 namespace Axis 
 {
-  // max number of supported axes
+  using namespace DebugMeq;
+  
+// max number of supported axes
   const int MaxAxis = 8; 
   
-  // shape type used to represent a hypercube
+// internal mappings between names and numbers
+  extern HIID _name_map[MaxAxis];
+  extern std::map<HIID,int> _num_map;
+  extern bool _default_mapping;
+  
+// shape type used to represent a hypercube
   typedef LoShape Shape;
   
-// variables for standard axis definitions
+  
+//=========== standard functions to access the axis mappings
+
+  // returns id of axis #n
+  inline const HIID & axisId (int n)
+  { return _name_map[n]; }
+
+  // returns ordinal number of named axis. If no such axis, either throws an
+  // exception, or returns -1 (nothrow=true)
+  inline int axis (const HIID &id,bool nothrow=false)
+  { 
+    std::map<HIID,int>::const_iterator f = _num_map.find(id);
+    if( f == _num_map.end() )
+    {
+      if( nothrow )
+        return -1;
+      else
+        Throw("unknown axis: "+id.toString());
+    }
+    else
+      return f->second; 
+  }
+  
+  // ordinal numbers of standard axes. All others must be accessed
+  // as Axis::axis("X"), etc.
   extern int FREQ;
   extern int TIME;
   
-// mappings between names and numbers
-  extern AtomicID _name_map[MaxAxis];
-  extern std::map<AtomicID,int> _num_map;
+  // returns a Vec containing MaxAxis axis ids (HIIDs). For undefined
+  // axes, this is simply their ordinal number, e.g. "3", "4", etc.
+  const DMI::Vec & getAxisIds ();
   
-// standard functions to access the mappings
+  // returns a Vec containing MaxAxis axis Records. For each defined axis the
+  // record contains, as a minimum, the field "Id" giving the axis id.  
+  // Undefined axes are represented by empty records.
+  const DMI::Vec & getAxisRecords ();
   
-  // get name of axis #n
-  inline AtomicID name (int n)
-  { return _name_map[n]; }
-
-  // get ordinal number of named axis (-1 if no such axis)
-  inline int number (AtomicID name)
-  { std::map<AtomicID,int>::const_iterator f = _num_map.find(name);
-    return f == _num_map.end() ? -1 : f->second; }
     
-// functions to set up the mappings    
-  void setAxisMap (const HIID &map);
-  void setAxisMap (const AtomicID names[],int num);
+//=========== functions to set up the axis mappings
+  // Note that since the axis map is global state that affects different
+  // data objects (domains, cells, vells, results, etc.), it may only be 
+  // specified once. Subsequent attempts to change the map will result in
+  // an exception. It's ok to re-specify the same mapping though, and it's
+  // also ok to change the axis records, provided the axis ids remain
+  // the same.
   
-// helper function: creates a degenrate shape of rank N
+  // are we using a default mapping?
+  inline bool isDefaultMap ()
+  { return _default_mapping; }
+  
+  // specifies non-default axis mapping as a vector of HIIDs 
+  void setAxisMap (const std::vector<HIID> &map);
+  
+  // specifies non-default axis mapping as an array of HIIDs 
+  void setAxisMap (const HIID names[],int num);
+  
+  // specifies non-default axis mapping as a DMI::Vec of HIIDs
+  void setAxisMap (const DMI::Vec &map);
+  
+  // specifies non-default axis mapping as a Vec of axis records
+  // Each record only needs to contain the field "Id".
+  // Further info may be added in the future though.
+  void setAxisRecords (const DMI::Vec &recvec);
+  
+  
+//=========== helper functions to manipulate shapes
+
+  // creates a degenerate shape of rank N
   inline void degenerateShape (Shape &shape,int rank)
   {
     shape.resize(rank);
@@ -80,6 +131,8 @@ namespace Axis
     degenerateShape(out,rank);
     return out;
   }
+  
+  // creates a "vector" shape of np points along axis iaxis
   inline Shape vectorShape (int iaxis,int np)
   {
     Shape out;
@@ -87,6 +140,8 @@ namespace Axis
     out[iaxis] = np;
     return out;
   }
+  
+  // creates a "matrix" shape of nx x ny points along axes ix,iy
   inline Shape matrixShape (int ix,int iy,int nx,int ny)
   {
     Shape out;
@@ -95,12 +150,16 @@ namespace Axis
     out[iy] = ny;
     return out;
   }
+  
+  // creates a "vector" shape along the frequency axis
   inline Shape freqVector (int np)
   { return vectorShape(Axis::FREQ,np); }
   
+  // creates a "vector" shape along the time axis
   inline Shape timeVector (int np)
   { return vectorShape(Axis::TIME,np); }
   
+  // creates a "matrix" shape along the time/freq axes
   inline Shape freqTimeMatrix (int nf,int nt)
   { return matrixShape(Axis::FREQ,Axis::TIME,nf,nt); }
 };

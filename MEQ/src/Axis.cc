@@ -1,3 +1,4 @@
+#include <DMI/Record.h>
 #include <MEQ/AID-Meq.h>
 #include <MEQ/Axis.h>
 #include <MEQ/Meq.h>
@@ -12,53 +13,121 @@ int FREQ = 0;
 int TIME = 1;
 
 // mappings between names and numbers
-AtomicID _name_map[MaxAxis];
-std::map<AtomicID,int> _num_map;
+HIID _name_map[MaxAxis];
+std::map<HIID,int> _num_map;
+bool _default_mapping = true;
 
-static int initDefaultMaps ()
+// vector containing description records
+static DMI::Vec::Ref axis_recs,axis_ids;
+
+static void defineAxis (int i,const HIID &name)
 {
-  _num_map[ _name_map[0] = AidTime ] = TIME = 0;
-  _num_map[ _name_map[1] = AidFreq ] = FREQ = 1;
-  for( int i=2; i<MaxAxis; i++ )
-    _num_map[ _name_map[i] = AtomicID(i) ] = i;
-  return 0;
+  FailWhen(!_default_mapping && _name_map[i] != name,
+      "different axis mapping already defined");
+  _name_map[i] = axis_ids[i] = name;
+  _num_map[name] = i;
+  if( name == HIID(AidFreq) )
+    FREQ = i;
+  else if( name == HIID(AidTime) )
+    TIME = i;
 }
 
-static int dum = initDefaultMaps();
-
 template<class Iter>
-void setAxisMap (Iter begin,Iter end)
+static void setAxisMap (Iter begin,Iter end)
 {
   int i=0;
   for( ; begin<end; i++,begin++ )
   {
-    FailWhen(i >= MaxAxis,"too many axes in problem space definition");
-    AtomicID name = *begin;
-    _name_map[i] = name;
-    _num_map[name] = i;
-    if( name == AidFreq )
-      FREQ = i;
-    else if( name == AidTime )
-      TIME = i;
+    FailWhen(i >= MaxAxis,"too many axes in mapping");
+    defineAxis(i,*begin);
+    // init record for axis
+    DMI::Record & axrec = axis_recs[i] <<= new DMI::Record;
+    axrec[AidId] = *begin;
   }
   // fill the rest with numbers
   for( ; i<MaxAxis; i++ )
   {
-    AtomicID name(i);
-    _name_map[i] = name;
-    _num_map[name] = i;
-  } 
+    defineAxis(i,AtomicID(i));
+    axis_recs().put(i,new DMI::Record);
+  }
+  // mapping no longer default
+  _default_mapping = false;
 }
 
-void setAxisMap (const HIID &map)
+void setAxisMap (const DMI::Vec &map)
+{
+  FailWhen(map.type() != TpDMIHIID,"axis map: expected HIIDs, got "+map.type().toString());
+  FailWhen(map.size() > MaxAxis,"too many axes in mapping");
+  for( int i=0; i<map.size(); i++ )
+    defineAxis(i,map[i].as<HIID>());
+  _default_mapping = false;
+}
+
+void setAxisMap (const std::vector<HIID> &map)
 {
   setAxisMap(map.begin(),map.end());
 }
 
-void setAxisMap (const AtomicID names[],int num)
+void setAxisMap (const HIID names[],int num)
 {
   setAxisMap(names,names+num);
 }
+
+const DMI::Vec & getAxisRecords ()
+{
+  return *axis_recs;
+}
+
+const DMI::Vec & getAxisIds ()
+{
+  return *axis_ids;
+}
+
+void setAxisRecords (const DMI::Vec & vec)
+{
+  FailWhen(vec.type() != TpDMIRecord,"expected vector of axis records");
+  FailWhen(vec.size() > MaxAxis,"too many axis records specified");
+  int i=0;
+  for( ; i<vec.size(); i++ )
+  {
+    const DMI::Record &rec = vec[i].as<DMI::Record>();
+    HIID name;
+    // if no id specified, use axis number
+    if( !rec[AidId].get(name) )
+      name = AtomicID(i);
+    // add to map
+    defineAxis(i,name);
+    // add rec to definition
+    axis_recs().put(i,rec);
+  }
+  // fill remainder with default definitions
+  for( ; i<MaxAxis; i++ )
+  {
+    defineAxis(i,AtomicID(i));
+    axis_recs().put(i,new DMI::Record);
+  }
+  _default_mapping = false;
+}
+
+
+// init default map of TIME/FREQ
+static int initDefaultMaps ()
+{
+  axis_recs <<= new DMI::Vec(TpDMIRecord,MaxAxis);
+  axis_ids  <<= new DMI::Vec(TpDMIHIID,MaxAxis);
   
+  const HIID defmap[] = { AidTime,AidFreq };
+  setAxisMap(defmap,sizeof(defmap)/sizeof(defmap[0]));
+  
+  // reset default_mapping flag that was cleared by setAxisMap()
+  _default_mapping = true;
+  
+  return 0;
+}
+
+// initialize the default map
+static int dum = initDefaultMaps();
+
+
 }}; // close both namespaces
   

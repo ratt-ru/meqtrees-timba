@@ -230,31 +230,49 @@ void * MTGatewayWP::readerThread ()
               // convert & process the incoming message
               Message *msg = new Message;
               Message::Ref ref(msg,DMI::ANONWR);
-              msg->fromBlock(bset);
+              bool success = false;
+              try
+              {
+                msg->fromBlock(bset);
+                success = true;
+              }
+              catch( std::exception &exc )
+              {
+                lprintf(0,AidLogError,"Exception while unpacking message: %s",exc.what());
+                lprintf(0,AidLogError,"Message will be dropped");
+              }
+              catch( ... )
+              {
+                lprintf(0,AidLogError,"Unknown exception while unpacking message");
+                lprintf(0,AidLogError,"Message will be dropped");
+              }
+              if( success )
+              {
 #ifdef ENABLE_LATENCY_STATS
-              msg->latency.add(start_read,"<RCV");
-              msg->latency.measure("RCV>");
+                msg->latency.add(start_read,"<RCV");
+                msg->latency.measure("RCV>");
 #endif
-              if( !bset.empty() )
-                lprintf(2,"warning: %d unclaimed incoming blocks will be discarded\n",bset.size());
-// OMS 04/01/2005: commented this out...
-//               // release the reader mutex so that other threads may go into their
-//               // own read state while we fuck around with the received message.
-//               // If still initializing the connection, then also acquire the gwmutex,
-//               // to ensure that no incoming messages are processed until
-//               // parsing of the init-message is complete.
-//               if( peerState() == INITIALIZING )
-//                 reader_lock.relock(gwmutex);
-//               else
-//                 reader_lock.release();
-// OMS 04/01/2005: ...because not holding a lock while the incoming message
-// is being processed can possibly lead to the incoming message sequence being 
-// violated (if another reader thread preempts this one inside processIncoming()).
-// Thus, we'll always acquire gwmutex here and then release the reader mutex.
-              Thread::Mutex::Lock lock1(gwmutex);
-              reader_lock.release();
-              // process the message
-              processIncoming(ref);
+                if( !bset.empty() )
+                  lprintf(2,"warning: %d unclaimed incoming blocks will be discarded\n",bset.size());
+  // OMS 04/01/2005: commented this out...
+  //               // release the reader mutex so that other threads may go into their
+  //               // own read state while we fuck around with the received message.
+  //               // If still initializing the connection, then also acquire the gwmutex,
+  //               // to ensure that no incoming messages are processed until
+  //               // parsing of the init-message is complete.
+  //               if( peerState() == INITIALIZING )
+  //                 reader_lock.relock(gwmutex);
+  //               else
+  //                 reader_lock.release();
+  // OMS 04/01/2005: ...because not holding a lock while the incoming message
+  // is being processed can possibly lead to the incoming message sequence being 
+  // violated (if another reader thread preempts this one inside processIncoming()).
+  // Thus, we'll always acquire gwmutex here and then release the reader mutex.
+                Thread::Mutex::Lock lock1(gwmutex);
+                reader_lock.release();
+                // process the message
+                processIncoming(ref);
+              }
             }
             reader_lock.release();
             // reacquire mutex to go into read state again

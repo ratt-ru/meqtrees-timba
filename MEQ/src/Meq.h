@@ -13,6 +13,14 @@ namespace DebugMeq
 namespace Meq
 {
   using namespace DMI;
+  
+  //## These exception are meant to be thrown from methods like Node::init(),
+  //## getResult(), processCommands() and setStateImpl() when something goes 
+  //## wrong. The type of the exception indicates whether any cleanup is 
+  //## required.
+  EXCEPTION_CLASS(FailWithCleanup,LOFAR::Exception)
+  EXCEPTION_CLASS(FailWithoutCleanup,LOFAR::Exception)
+      
 }
 
 #endif

@@ -378,6 +378,8 @@ class TreeBrowser (QObject):
     self.clear();
     self.is_loaded = True;
     self._update_all_controls();
+    # add forest state
+    self._fst_item = QListViewItem(self._nlv,"Forest state");
     # reset the nodelist view
     nodelist = meqds.nodelist;
     self._recent_item = None;
@@ -681,6 +683,8 @@ Please press OK to confirm.""",QMessageBox.Ok,\
     if isinstance(item,self.NodeItem):
       if button == 1:
         self.wtop().emit(PYSIGNAL("view_node()"),(item.node,None));
+    elif item is self._fst_item:
+      self.wtop().emit(PYSIGNAL("view_forest_state()"),());
         
   def _set_recent_item (self,item):
     self._recent_item = item;

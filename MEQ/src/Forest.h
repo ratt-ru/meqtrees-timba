@@ -29,6 +29,7 @@
 #include <map>
 
 #pragma aid Create Delete
+#pragma aid Axes Symdeps Debug Level
 
 namespace Meq 
 { 
@@ -100,6 +101,13 @@ class Forest
     // specified by content
     int getNodeList (DMI::Record &list,int content = NL_DEFAULT);
     
+    const DMI::Record & state () const
+    { return *staterec_; }
+    
+    // sets forest state from rec. If complete = true,
+    // sets complete state, else only overwrites the fields specified in rec
+    void setState (DMI::Record::Ref &rec,bool complete = false);
+    
     //##ModelId=3F9937F601A5
     //##Documentation
     //## Assigns ID to request object. WIll assign new ID if the cells
@@ -124,7 +132,7 @@ class Forest
     // trip breakpoints, etc.
     void newControlStatus (Node &node,int oldst,int newst)
     {
-      if( node_status_callback && verbosity_>0 )
+      if( node_status_callback && debug_level_>0 )
         (*node_status_callback)(node,oldst,newst);
     }
 
@@ -165,11 +173,11 @@ class Forest
         breakpoints &= ~bpmask;
     }
     
-    void setVerbosity (int verb)
-    { verbosity_ = verb; }
+    void setDebugLevel (int level)
+    { debug_level_ = level; }
     
-    int verbosity () const
-    { return verbosity_; }
+    int debugLevel () const
+    { return debug_level_; }
     
     // set debugging callbacks
     void setDebuggingCallbacks (void (*stat)(Node&,int,int),void (*bp)(Node&,int,bool))
@@ -185,10 +193,18 @@ class Forest
     string sdebug (int=0) const { return getDebugContext().name(); }
 
   private:
+    DMI::Record & wstate ()
+    { return staterec_(); }  
+  
+    void initDefaultState ();
+    void setStateImpl (DMI::Record::Ref &rec);
+      
+    DMI::Record::Ref staterec_;  
+      
     int breakpoints;
     int breakpoints_ss;
     
-    int verbosity_;
+    int debug_level_;
     
     void (*node_status_callback)(Node&,int,int);
     void (*node_breakpoint_callback)(Node&,int,bool);

@@ -65,6 +65,10 @@ DMI::BObj * __construct_MeqSpigot (int n) { return n>0 ? new Meq::Spigot [n] : n
         AtomicID::registerId(-1209,"Status")+
         AtomicID::registerId(-1466,"Stack")+
         AtomicID::registerId(-1472,"Running")+
+        AtomicID::registerId(-1510,"Changed")+
+        AtomicID::registerId(-1286,"All")+
+        AtomicID::registerId(-1511,"Disabled")+
+        AtomicID::registerId(-1509,"Publishing")+
         AtomicID::registerId(-1131,"Station")+
         AtomicID::registerId(-1061,"Index")+
         AtomicID::registerId(-1232,"Tile")+

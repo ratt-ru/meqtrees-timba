@@ -203,9 +203,9 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
     {
       int iaxis = getAxis(i);
       FailWhen(!cells.isDefined(iaxis),
-            "Meq::Polc: axis " + Axis::name(iaxis).toString() + 
+            "Meq::Polc: axis " + Axis::axisId(iaxis).toString() + 
             " is not defined in Cells");
-      grid[i].resize(cells.ncells(i));
+      grid[i].resize(cells.ncells(iaxis));
       grid[i] = ( cells.center(iaxis) - getOffset(i) ) * getScale(i);
       res_shape[iaxis] = grid[i].size();
     }

@@ -321,6 +321,34 @@ def mqs ():
     raise RuntimeError,"meqserver not initialized or not running";
   return mqs1;
 
+_forest_state = {};
+_forest_state_obj = QObject();
+
+def get_forest_state ():
+  """Returns current forest state.""";
+  global _forest_state;
+  return _forest_state;
+  
+def request_forest_state ():
+  """Sends a request to the kernel to return the forest state.""";
+  mqs().meq('Get.Forest.State',record(),wait=False);
+
+def subscribe_forest_state (callback):
+  """Adds a subscriber to node state changes. Callback must take one 
+  argument: the new forest state""";
+  global _forest_state_obj;
+  QObject.connect(_forest_state_obj,PYSIGNAL("state()"),callback);
+  
+def update_forest_state (fst,merge=False):
+  """Updates forest state record and notifies subscribers.""";
+  global _forest_state;
+  global _forest_state_obj;
+  if merge:
+    _forest_state.update(fst);
+  else:
+    _forest_state = fst;
+  _forest_state_obj.emit(PYSIGNAL("state()"),(_forest_state,));
+
 # Adds a subscriber to node state changes
 def subscribe_node_state (node,callback):
   nodelist[nodeindex(node)].subscribe_state(callback);

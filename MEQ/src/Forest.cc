@@ -33,10 +33,16 @@ namespace Meq
 
 InitDebugContext(Forest,"MeqForest");
 
+// forest state fields
+const HIID FAxisMap = AidAxis|AidMap;
+const HIID FDebugLevel = AidDebug|AidLevel;
+const HIID FSymdeps = AidSymdeps;
   
 //##ModelId=3F60697A00ED
 Forest::Forest ()
 {
+  staterec_ <<= new DMI::Record;
+  initDefaultState();
   // resize repository to 1 initially, so that index #0 is never used
   nodes.reserve(RepositoryChunkSize);
   nodes.resize(1);
@@ -44,7 +50,7 @@ Forest::Forest ()
   breakpoints = breakpoints_ss = 0;
   node_status_callback = 0;
   node_breakpoint_callback = 0;
-  verbosity_ = 0;
+  debug_level_ = 0;
 }
 
 //##ModelId=400E53050193
@@ -268,7 +274,6 @@ int Forest::getNodeList (DMI::Record &list,int content)
   return num;
 }
 
-
 EventGenerator & Forest::getEventGenerator (const HIID &evtype)
 {
   if( evtype == AidCreate )
@@ -280,5 +285,59 @@ EventGenerator & Forest::getEventGenerator (const HIID &evtype)
     Throw("unknown event type: "+evtype.toString());
   }
 }
+
+void Forest::initDefaultState ()
+{
+  DMI::Record &st = wstate();
+  st[FAxisMap] = Axis::getAxisRecords();
+  st[FDebugLevel] = debug_level_;
+}
+
+void Forest::setStateImpl (DMI::Record::Ref &rec)
+{
+  if( rec->hasField(FAxisMap) )
+    Axis::setAxisRecords(rec[FAxisMap].as<DMI::Vec>());
+  rec[FDebugLevel].get(debug_level_);
+}
+
+void Forest::setState (DMI::Record::Ref &rec,bool complete)
+{
+  Thread::Mutex::Lock lock(rec->mutex()),lock2(state().mutex());
+  cdebug(2)<<"setState(complete="<<complete<<"): "<<rec.sdebug(10)<<endl;
+  string fail;
+  try
+  {
+    setStateImpl(rec);
+  }
+  catch( FailWithoutCleanup &exc )
+  {
+    throw; // No cleanup required, just re-throw
+  }
+  catch( std::exception &exc )
+  {
+    fail = string("setState() failed: ") + exc.what();
+  }
+  catch( ... )
+  {
+    fail = "setState() failed with unknown exception";
+  }
+  // has setStateImpl() failed?
+  if( fail.length() )
+  {
+    // reset the state by reinitializing with the current record.
+    // that an exception from this call indicates that the forest is well 
+    // & truly fscked, sowe might as well re-throw it, 
+    // letting the caller deal with it.
+    setStateImpl(staterec_);
+    Throw(fail); // rethrow the fail
+  }
+  // success, merge or overwrite current state
+  if( complete )
+    staterec_ = rec;
+  else  
+    wstate().merge(rec,true);
+}
+
+
 
 } // namespace Meq

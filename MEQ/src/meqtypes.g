@@ -44,18 +44,19 @@ if( !is_record(meq_private) )
 const meq.list  := dmi.list;
 const meq.add_list := dmi.add_list;
 const meq.merge_list := dmi.merge_list;
-const meq.field := dmi.field;
+const meq.vec := dmi.vec;
   
 #-- meq.domain_ndim(), domain_axes()---------------------------------------------
 # Basic constants specifying layout of domain and cells
 
-const meq._axis_ids  := [ hiid('freq'),hiid('time') ];
-const meq._axis_nums := [ freq=0,time=1 ];
+meq._axis_ids  := [ hiid('time'),hiid('freq') ];
+meq._axis_nums := [ time=0,freq=1 ];
 
 #-- meq.set_axes() -------------------------------------------------------------
 # Sets list of active axes
 const meq.set_axes := function (axes="freq time")
 {
+  global meq;
   meq._axis_ids   := "";
   meq._axis_nums  := [=];
   for( a in axes ) 
@@ -70,13 +71,14 @@ const meq.set_axes := function (axes="freq time")
 # Resolves its arguments (axis id or numbers) to axis numbers
 const meq.axis_num := function (ids)
 {
+  global meq;
   out := [];
   for( id in ids )
   {
     if( is_string(id) )
-      out[len(out)] := meq._axis_nums[id];
+      out[len(out)+1] := meq._axis_nums[id];
     else if( is_integer(id) )
-      out[len(out)] := id;
+      out[len(out)+1] := id;
     else
       fail 'unknown type for axis id';
   }
@@ -87,13 +89,14 @@ const meq.axis_num := function (ids)
 # Resolves its arguments (axis id or numbers) to axis id
 const meq.axis_id := function (ids)
 {
-  out := [];
+  global meq;
+  out := "";
   for( id in ids )
   {
     if( is_string(id) )
-      out[len(out)] := id;
+      out[len(out)+1] := hiid(id);
     else if( is_integer(id) )
-      out[len(out)] := meq._axis_ids[id];
+      out[len(out)+1] := meq._axis_ids[id];
     else
       fail 'unknown type for axis id';
   }
@@ -343,13 +346,13 @@ const meq.cells := function (domain=F,
                              freq_grid=[],time_grid=[],
                              freq_cell_size=[],time_cell_size=[],
                                 # arguments for new-style calls
-                             axis=[],num=[],grid=[=],cell_size=[])
+                             axis=[],ncells=[],grid=[=],cell_size=[])
 {
-  if( !len(axis) && !len(num) )
+  if( !len(axis) && !len(ncells) )
     return meq.cells_ft(domain,num_freq,num_time,freq_grid,time_grid,
                         freq_cell_size,time_cell_size);
   else  
-    return meq.cellsx(domain,axis,ncells,grid,cellsize);
+    return meq.cellsx(domain,axis,ncells,grid,cell_size);
 }
 
 const meq.cells_ft := function (domain=F,
@@ -391,7 +394,7 @@ const meq.cellsx := function (domain=F,axis=[],num=[],grid=[=],cell_size=[])
 {  
   # build up list of ranges, and vector of axes
   rng := [=];
-  axis_id := [];
+  axis_id := "";
   # either from domain...
   if( is_dmi_type(domain,'MeqDomain') )
   {
@@ -400,8 +403,8 @@ const meq.cellsx := function (domain=F,axis=[],num=[],grid=[=],cell_size=[])
     # build up list of ranges, and vector of axes
     for( a in field_names(domain) )
     {
-      rng[len(rng)] := domain[a];
-      axis_id[len(axis_id)] := meq.axis_id(a);
+      rng[len(rng)+1] := domain[a];
+      axis_id[len(axis_id)+1] := meq.axis_id(a);
     }
   } # or from axis argument...
   else
@@ -436,6 +439,7 @@ const meq.cellsx := function (domain=F,axis=[],num=[],grid=[=],cell_size=[])
     else
       csz := [];
     # resolve grids
+    print a,rng[i],np,gr,csz,segs;
     np := meq_private.resolve_grid(a,rng[i],np,gr,csz,segs);
     if( is_fail(np) )
       fail;

@@ -8,6 +8,11 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_MeqServer ();
 
+#ifndef _defined_id_AidAll
+#define _defined_id_AidAll 1
+const DMI::AtomicID AidAll(-1286);                // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
+const int AidAll_int = -1286;
+#endif
 #ifndef _defined_id_AidAntenna
 #define _defined_id_AidAntenna 1
 const DMI::AtomicID AidAntenna(-1202);            // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
@@ -32,6 +37,11 @@ const int AidBreakpoint_int = -1359;
 #define _defined_id_AidCache 1
 const DMI::AtomicID AidCache(-1316);              // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:35
 const int AidCache_int = -1316;
+#endif
+#ifndef _defined_id_AidChanged
+#define _defined_id_AidChanged 1
+const DMI::AtomicID AidChanged(-1510);            // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:17
+const int AidChanged_int = -1510;
 #endif
 #ifndef _defined_id_AidChild
 #define _defined_id_AidChild 1
@@ -97,6 +107,11 @@ const int AidDelete_int = -1336;
 #define _defined_id_AidDisable 1
 const DMI::AtomicID AidDisable(-1471);            // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:15
 const int AidDisable_int = -1471;
+#endif
+#ifndef _defined_id_AidDisabled
+#define _defined_id_AidDisabled 1
+const DMI::AtomicID AidDisabled(-1511);           // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:17
+const int AidDisabled_int = -1511;
 #endif
 #ifndef _defined_id_AidEnable
 #define _defined_id_AidEnable 1
@@ -257,6 +272,11 @@ const int AidProcessing_int = -1484;
 #define _defined_id_AidPublish 1
 const DMI::AtomicID AidPublish(-1060);            // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MsgAddress.h:9
 const int AidPublish_int = -1060;
+#endif
+#ifndef _defined_id_AidPublishing
+#define _defined_id_AidPublishing 1
+const DMI::AtomicID AidPublishing(-1509);         // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:17
+const int AidPublishing_int = -1509;
 #endif
 #ifndef _defined_id_AidQueue
 #define _defined_id_AidQueue 1

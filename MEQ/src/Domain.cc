@@ -31,8 +31,11 @@ namespace Meq {
 static int _dum = aidRegistry_Meq();
 static DMI::Container::Register reg(TpMeqDomain,true);
 
+const HIID FAxisMap = AidAxis|AidMap;
+
 //##ModelId=3F86886E030D
 Domain::Domain()
+: map_attached_(false)
 {
   memset(range_,0,sizeof(range_));
   memset(defined_,0,sizeof(defined_));
@@ -40,13 +43,15 @@ Domain::Domain()
 
 //##ModelId=3F86886E030E
 Domain::Domain (const DMI::Record & rec,int flags,int depth)
-: Record(rec,flags,depth)
+: Record(rec,flags,depth),
+  map_attached_(false)
 {
   validateContent(false); // not recursive
 }
 
 //##ModelId=3F95060C00A7
 Domain::Domain (double x1,double x2,double y1,double y2)
+: map_attached_(false)
 {
   memset(range_,0,sizeof(range_));
   memset(defined_,0,sizeof(defined_));
@@ -63,7 +68,13 @@ void Domain::defineAxis (int iaxis,double a1,double a2)
   range_[iaxis][1] = a2;
   defined_[iaxis]  = true;
   // add to record
-  Record::addField(Axis::name(iaxis),new DMI::Vec(Tpdouble,2,range_[iaxis]),DMI::REPLACE|Record::PROTECT);
+  Record::addField(Axis::axisId(iaxis),new DMI::Vec(Tpdouble,2,range_[iaxis]),DMI::REPLACE|Record::PROTECT);
+  // add axis map if not default
+  if( !Axis::isDefaultMap() && !map_attached_ )
+  {
+    map_attached_ = true;
+    Record::addField(FAxisMap,&( Axis::getAxisIds() ),Record::PROTECT);
+  }
 }
 
 //##ModelId=400E5305010B
@@ -74,19 +85,27 @@ void Domain::validateContent (bool)
   memset(defined_,0,sizeof(defined_));
   try
   {
+    Record::Field * paxismap = findField(FAxisMap);
+    map_attached_ = (paxismap != 0);
+    // if axis map is still default, we can change it from the domain record
+    if( Axis::isDefaultMap() && map_attached_ )
+    {
+      Axis::setAxisMap(paxismap->ref.as<DMI::Vec>());
+      paxismap->protect = true;
+    }
+    // now iterate over all domain elements
     for( Iterator iter = Record::begin(); iter != Record::end(); iter++ )
     { 
       const HIID &id = iter.id();
+      if( id == FAxisMap ) // skip this one
+        continue;
       FailWhen(id.size()!=1,"illegal axis ID "+id.toString());
       const BObj *pobj = iter.ref().deref_p();
       const Container *pcont = dynamic_cast<const Container*>(pobj);
       FailWhen(!pcont,"illegal content of type "+pobj->objectType().toString()+" for axis "+id.toString());
       int iaxis = id[0].index();
-      if( iaxis<0 )
-      {
-        iaxis = Axis::number(id[0]);
-        FailWhen(iaxis<0,"unknown axis ID "+id.toString());
-      }
+      if( iaxis<0 || id.size()>1 )
+        iaxis = Axis::axis(id);
       int size;
       const double *a = (*pcont)[HIID()].as_p<double>(size);
       FailWhen(size!=2,"bad axis specification for "+id.toString());
@@ -95,6 +114,12 @@ void Domain::validateContent (bool)
       range_[iaxis][1] = a[1];
       defined_[iaxis]  = true;
       iter.protect(); 
+    }
+    // add axis map if not default
+    if( !Axis::isDefaultMap() && !map_attached_ )
+    {
+      map_attached_ = true;
+      Record::addField(FAxisMap,&( Axis::getAxisIds() ),Record::PROTECT);
     }
   }
   catch( std::exception &err )
@@ -150,7 +175,7 @@ void Domain::show (std::ostream& os) const
   os << "Meq::Domain [";
   for( int i=0; i<Axis::MaxAxis; i++ )
     if( defined_[i] )
-       os << Axis::name(i) << " " << start(i) << ":" << end(i) << ',';
+       os << Axis::axisId(i) << " " << start(i) << ":" << end(i) << ',';
   os << "]\n";
 }
 

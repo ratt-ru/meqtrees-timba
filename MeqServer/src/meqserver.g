@@ -178,6 +178,20 @@ const meq.server := function (appid='MeqServer',
     rec := self.makenodespec(node);
     return public.meq('Resolve',rec,wait_reply=wait_reply,silent=silent);
   }
+  
+  # ------ resolve()
+  const public.set_axes := function (axislist)
+  {
+    axes := "";
+    axesvec := dmi.vec(content_type='DMIRecord');
+    for( a in axislist )
+    {
+      axes[len(axes)+1] := hiid(a);
+      axesvec[len(axesvec)+1] := [ id=hiid(a) ];
+    }
+    meq.set_axes(axes);
+    public.meq('Set.Forest.State',[state=[axis_map=axesvec],get_forest_status=2],wait_reply=F);
+  }
 
   # ------ getnodestate()
   const public.getnodestate := function (node)

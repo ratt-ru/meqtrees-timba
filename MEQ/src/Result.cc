@@ -146,10 +146,10 @@ void Result::setIsIntegrated (bool integrated)
   (*this)[FIntegrated] = integrated;
 }
 
-VellSet & Result::setNewVellSet (int i,int nspids,int nset)
+VellSet & Result::setNewVellSet (int i,int nspids,int npertsets)
 { 
   Thread::Mutex::Lock lock(mutex());
-  VellSet & vs = setVellSet(i,new VellSet(nspids,nset));
+  VellSet & vs = setVellSet(i,new VellSet(nspids,npertsets));
   if( hasCells() )
     vs.setShape(cells().shape());
   return vs;

@@ -54,7 +54,7 @@ template<class T>
 T & as_wr (Type2Type<T> =Type2Type<T>()) const
 { 
   int dum;
-  return *as_wp_impl(dum,false,false,Type2Type<T>(),Int2Type<SUPERSUBCLASS(BObj,T)>());
+  return *as_wp_impl(dum,false,true,Type2Type<T>(),Int2Type<SUPERSUBCLASS(BObj,T)>());
 }
 
 template<class T>
