@@ -1,4 +1,4 @@
-//# ReductionFunction.h: abstract base for reduction funcs (min/max/mean/etc.)
+//# WMean.h: Weighted sum of 2 or more nodes, weights normalized
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -18,31 +18,43 @@
 //# along with this program; if not, write to the Free Software
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
+//# $Id$
 
-#ifndef MEQNODES_REDUCTIONFUNCTION_H
-#define MEQNODES_REDUCTIONFUNCTION_H
+#ifndef MEQNODES_WAVG_H
+#define MEQNODES_WAVG_H
     
-#include <MEQ/Function.h>
+#include <MeqNodes/WSum.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
+#pragma aidgroup MeqNodes
+#pragma types #Meq::WMean
 
 namespace Meq {    
 
 
-class ReductionFunction : public Function
+//##ModelId=3F86886E0162
+class WMean : public WSum
 {
 public:
-  ReductionFunction (int nchildren=-1,int nmandatory=1);
+    //##ModelId=3F86886E028F ??
+  WMean();
 
-  // child flags normally swallowed up
-  virtual void evaluateFlags (Vells::Ref &,const Request &,const LoShape &,const vector<const Vells*>&)
-  {}
-  
-protected:
-  // get flagmask from state
-  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+    //##ModelId=3F86886E0293??
+  virtual ~WMean();
 
-  VellsFlagType flagmask_;
+    //##ModelId=400E5304032A??
+  virtual TypeId objectType() const
+    { return TpMeqWMean; }
+
+ protected:
+
+
+  virtual Vells evaluate (const Request&, const LoShape&,
+                          const vector<const Vells*>& values);
+ private:
+  //normalize weightsvector
+  void NormWeights();
+
 };
 
 

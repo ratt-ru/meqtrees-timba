@@ -60,6 +60,8 @@ inline double Condeq::calcDerivative (Vells &deriv,const VellSet &vs,int index,b
     deriv = ( minus 
               ? vs.getValue() - vs.getPerturbedValue(index) 
               : vs.getPerturbedValue(index) - vs.getValue() );
+
+
   }
   else if( npertsets == 2 )
   {
@@ -160,7 +162,10 @@ int Condeq::getResult (Result::Ref &resref,
         }
       }
       else if (inx0 >= 0) 
-        pert = calcDerivative(deriv,*child_res[0],inx0);
+	{
+	  pert = calcDerivative(deriv,*child_res[0],inx0);
+
+	}
       else 
         deriv = Vells(0.);
       vellset.setPerturbedValue(j,deriv_ref);
