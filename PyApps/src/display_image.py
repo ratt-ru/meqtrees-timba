@@ -6,6 +6,7 @@ from qwt import *
 from numarray import *
 from UVPAxis import *
 from ComplexColorMap import *
+from ComplexScaleDraw import *
 import random
 
 from dmitypes import verbosity
@@ -329,8 +330,7 @@ class QwtImagePlot(QwtPlot):
 #        self.setLegendPos(Qwt.Right)
         # set default axis titles
         self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
-        self.setAxisTitle(QwtPlot.yLeft, 'time (s)')
-        self.x_axis_title_set_in_plot_data = False
+        self.setAxisTitle(QwtPlot.yLeft, 'value')
         # insert a few curves
         self.xCrossSection = self.insertCurve('xCrossSection')
         self.yCrossSection = self.insertCurve('yCrossSection')
@@ -527,6 +527,7 @@ class QwtImagePlot(QwtPlot):
           if complex_type:
             data_label = plot_label +  "_" +str(i) +  "_complex" 
             if self.display_type != "brentjens":
+# create array of reals followed bu imaginaries
               real_array =  self._data_values[i].getreal()
               imag_array =  self._data_values[i].getimag()
               shape = real_array.shape
@@ -536,7 +537,6 @@ class QwtImagePlot(QwtPlot):
                   temp_array[k,j] = real_array[k,j]
                   temp_array[k+shape[0],j] = imag_array[k,j]
               self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
-              self.x_axis_title_set_in_plot_data = True
               self.array_plot(data_label, temp_array)
             else:
               _dprint(2, "calling array_plot with complex array");
@@ -570,15 +570,18 @@ class QwtImagePlot(QwtPlot):
         complex_type = True;
       if plot_array.type() == Complex64:
         complex_type = True;
+      if data_label.find('complex') >= 0:
+        complex_type = True;
 
 # test if we have a 2-D array
       if self.is_vector == False:
-        self.setAxisTitle(QwtPlot.yLeft, 'time (s)')
-        if not self.x_axis_title_set_in_plot_data:
-          if complex_type and self.display_type != "brentjens":
-            self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
-          else:
-            self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
+        self.setAxisTitle(QwtPlot.yLeft, 'sequence')
+        if complex_type and self.display_type != "brentjens":
+          myXScale = ComplexScaleDraw(plot_array.shape[0] / 2)
+          self.setAxisScaleDraw(QwtPlot.xBottom, myXScale)
+          self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
+        else:
+          self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
         if self.x_dim != plot_array.shape[0]: 
           self.x_dim = plot_array.shape[0]
           self.set_data_called = False
@@ -589,8 +592,7 @@ class QwtImagePlot(QwtPlot):
 
       if self.is_vector == True:
         flattened_array = None
-        if not self.x_axis_title_set_in_plot_data:
-          self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
+        self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
 # set this flag in case an image follows
         self.set_data_called = False
 # make sure we are autoscaling in case an image was previous
@@ -601,7 +603,10 @@ class QwtImagePlot(QwtPlot):
         flattened_array = reshape(plot_array,(num_elements,))
 # we have a complex vector
         if complex_type:
-          self.setAxisTitle(QwtPlot.yLeft, 'Signal: real(black) imaginary(red)')
+          self.setAxisTitle(QwtPlot.yLeft, 'Signal: real (black)')
+          self.setAxisTitle(QwtPlot.yRight, 'Signal: imaginary (red)')
+          self.setCurveYAxis(self.xCrossSection, QwtPlot.yLeft)
+          self.setCurveYAxis(self.yCrossSection, QwtPlot.yRight)
           if self.display_type == "brentjens":
             self.x_array =  flattened_array.getreal()
             self.y_array =  flattened_array.getimag()
