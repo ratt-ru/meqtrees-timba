@@ -738,8 +738,8 @@ const void * DataField::get (const HIID &id, ContentInfo &info, TypeId check_tid
     return getn(id.front().index(),info,check_tid,flags);
   nc_readlock;
   FailWhen( !valid() || !mysize(),"field not initialized" );
-  FailWhen( !isNestable(type()),"contents not a container" );
   FailWhen( !scalar,"non-scalar field, explicit numeric subscript expected" );
+  FailWhen( !isNestable(type()),"contents not a container" );
   // Resolve to pointer to container
   // Unless privatize is required, we resolve the container without the
   // DMI::WRITE flag, since it's only the writability of its contents that
