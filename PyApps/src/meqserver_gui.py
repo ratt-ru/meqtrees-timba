@@ -43,7 +43,10 @@ class GriddedPage (object):
       self._wtop.connect(self._close,SIGNAL("clicked()"),self.close);
       self._control_lo.addWidget(self._pin);
       self._control_lo.addWidget(self._refresh);
+      self._control_lo.addSpacing(10);
       self._control_lo.addWidget(self._label);
+      self._control_lo.addSpacing(10);
+      self._control_lo.addWidget(self._label1);
       self._control_lo.addStretch();
       self._control_lo.addWidget(self._close);
       
@@ -166,9 +169,9 @@ class GriddedPage (object):
     self._topgrid.setSizes([100]*self.max_ny);
   
   def align_layout (self):
-    xsizes = [1]*self.max_nx;
+    xsizes = [100]*self.max_nx;
     map(lambda row:row.setSizes(xsizes),self._rows);
-    self._topgrid.setSizes([1]*self.max_ny);
+    self._topgrid.setSizes([100]*self.max_ny);
     
   # returns top-level widget
   def wtop   (self):
@@ -190,6 +193,10 @@ class GriddedPage (object):
         if cell.is_empty():
           self._cellmap[cell_id] = cell;
           return cell;
+    # no free space, try to find an unpinned cell (starting from the back)
+    for icol in range(ncol-1,0,-1):
+      for irow in range(nrow-1,0,-1):
+        cell = self._rows[irow].cells()[icol];
         if not cell.is_pinned():
           del self._cellmap[cell.get_id()];
           cell.wipe();
@@ -408,7 +415,8 @@ class TreeBrowser (object):
       if cell.is_empty():
         rb = RecordBrowser(cell.wtop());
         rb.wtop()._rb = rb;
-        cell.set_content(rb.wtop(),item._node.name,cell_id,refresh=True,disable=True);
+        cell.set_content(rb.wtop(),item._node.name,cell_id,
+            subname='node state',refresh=True,disable=True);
         cell.wtop().connect(rb.wtop(),PYSIGNAL("refresh()"),self._refresh_state_cell);
       cell._node = item._node;
       self._refresh_state_cell(cell);
