@@ -35,15 +35,14 @@ AC_DEFUN(lofar_BLITZ,dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], [lfr_option=0], [lfr_option=$1])
-ifelse($2, [], define(DEFAULT_BLITZ_PREFIX,[/usr/local]), define(DEFAULT_BLITZ_PREFIX,$2))
 AC_ARG_WITH(blitz,
 	[  --with-blitz[=PFX]     prefix where Blitz is installed (default=]DEFAULT_BLITZ_PREFIX[)],
 	[with_blitz=$withval],
 	[with_blitz=""])
 AC_ARG_WITH(blitz-libdir,
 	[  --with-blitz-libdir=PFX   prefix where Blitz library is installed],
-	[with_blitzdir=$withval],
-	[with_blitzdir=""])
+	[with_blitz_libdir=$withval],
+	[with_blitz_libdir=""])
 [
 enable_blitz=no
 if test "$lfr_option" = "1"; then
@@ -51,46 +50,50 @@ if test "$lfr_option" = "1"; then
 fi
 if test "$with_blitz" != "no"; then
   if test "$with_blitz" = ""; then
-    blitz_prefix=]DEFAULT_BLITZ_PREFIX[
-    if test "$with_blitzdir" != ""; then
+    blitz_prefix=
+    if test "$with_blitz_libdir" != ""; then
       enable_blitz=yes
     fi
   else
     if test "$with_blitz" = "yes"; then
-      blitz_prefix=]DEFAULT_BLITZ_PREFIX[
+      blitz_prefix=
     else
-      blitz_prefix=$withval
+      blitz_prefix=$with_blitz
     fi
     enable_blitz=yes
   fi
 ]
 ##
-## Look for header file in suggested location or in its include subdir
+## Look for header file in suggested locations or in its include subdir
 ##
-  AC_CHECK_FILE([$blitz_prefix/blitz/array.h],
-			[lfr_header_blitz=$blitz_prefix/blitz],
+  blitz_inclist=$blitz_prefix;
+  if test "$blitz_prefix" = ""; then
+    blitz_inclist="/usr/local/blitz/$lofar_compiler";
+    case "lofar_compiler" in
+    gnu?*)
+      blitz_inclist="$blitz_inclist /usr/local/blitz/gnu";
+      ;;
+    esac
+    blitz_inclist="$blitz_inclist /usr/local";
+  fi
+  for bdir in $blitz_inclist
+  do
+    AC_CHECK_FILE([$bdir/include/blitz/array.h],
+			[lfr_header_blitz=$bdir/include],
 			[lfr_header_blitz=no])dnl
 [
-  if test "$lfr_header_blitz" != "no" ; then
-    if test "$with_blitzdir" = ""; then
-      with_blitzdir=$blitz_prefix/blitz/lib
-    fi
-  else
-]
-    AC_CHECK_FILE([$blitz_prefix/include/blitz/array.h],
-			[lfr_header_blitz=$blitz_prefix/include],
-			[lfr_lib_blitz=no])dnl
-[
-    if test "$lfr_header_blitz" != "no"; then
-      if test "$with_blitzdir" = ""; then
-        with_blitzdir=$blitz_prefix/lib
+    if test "$lfr_header_blitz" != "no" ; then
+      if test "$with_blitz_libdir" = ""; then
+        with_blitz_libdir=$bdir/lib;
+        break;
       fi
     fi
-  fi
-  if test "$with_blitzdir" != ""; then
+  done
+
+  if test "$with_blitz_libdir" != ""; then
 ]
-    AC_CHECK_FILE([$with_blitzdir/libblitz.a],
-			[lfr_lib_blitz=$with_blitzdir],
+    AC_CHECK_FILE([$with_blitz_libdir/libblitz.a],
+			[lfr_lib_blitz=$with_blitz_libdir],
 			[lfr_lib_blitz=no])dnl
 [
   fi
