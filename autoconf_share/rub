@@ -266,7 +266,7 @@ premake=
 postmake=
 # Make sure bootstrap is executable; Eclipse does not set x bit.
 if [ $conf = 1 ]; then
-  bootcmd="chmod +x bootstrap; ./bootstrap"
+  bootcmd="chmod +x bootstrap; ./bootstrap; "
   confcmd="../../lofarconf; "
   echo "Packages will be bootstrapped and configured"
 fi
@@ -299,7 +299,7 @@ do
     echo "  building package $pkg ..."
     echo "" >> build.log
     echo " *** Building package $pkg ***" >> build.log
-    echo "(cd $pkg; mkdir -p build/$variant; $bootcmd; cd build/$variant; $confcmd $premake make; $postmake)" >> build.log
-    eval "(cd $pkg; mkdir -p build/$variant; $bootcmd; cd build/$variant; $confcmd $premake make; $postmake)" >> build.log 2>&1
+    echo "(cd $pkg; mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake)" >> build.log
+    eval "(cd $pkg; mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake)" >> build.log 2>&1
   done
 done
