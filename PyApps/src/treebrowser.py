@@ -212,6 +212,7 @@ class TreeBrowser (QObject):
         menu = self._context_menu = QPopupMenu();
         # insert title
         menu.insertItem("%s: %s"%(node.name,node.classname));
+        menu.insertItem("Show icon chart...",self.tb.show_icon_reference);
         # insert viewer list submenus
         viewer_list = gridded_workspace.getViewerList(meqds.NodeClass(node.classname));
         if viewer_list: 
@@ -254,7 +255,10 @@ class TreeBrowser (QObject):
           item.clear_children(item);
         item = item.nextSibling();
     clear_children = staticmethod(clear_children);
-      
+    
+  ######################################################################################################
+  # start of TreeBrowser implementation    
+  ######################################################################################################
   def __init__ (self,parent):
     QObject.__init__(self);
     self._parent = weakref.proxy(parent);
@@ -742,6 +746,69 @@ Please press OK to confirm.""",QMessageBox.Ok,\
       rec = srecord(file_name=fname,get_forest_status=True);
       mqs().meq('Load.Forest',rec,wait=False);
       
+  def show_icon_reference (self):
+    try: iconref = self._icon_reference;
+    except AttributeError:
+      iconref = self._icon_reference = NodeIconReference(self.wtop().topLevelWidget());
+    iconref.show();
+      
+class NodeIconReference (QMainWindow):
+  RefList = None;
+  def __init__ (self,parent):
+    fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
+    fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
+    QMainWindow.__init__(self,parent,"iconref",fl);
+    # define list
+    if not self.RefList:
+      self.RefList = [ \
+        (None,"      Exec state icons:") ];
+      # add state icons
+      self.RefList += [ (pixmap,desc) for (val,name,char,desc,pixmap) in meqds.CS_ES_statelist ];
+      # add result icons
+      self.RefList += [ \
+        (None,None),\
+        (None,"      Result icons:"),
+        (None,"no node result (no icon)"),
+        (pixmaps.blue_round_reload,"new result, cached"),
+        (pixmaps.blue_round_empty,"new empty result, cached"),
+        (pixmaps.green_return,"new result, not cached"),
+        (pixmaps.blue_round_reload_return,"reused result from cache"),
+        (pixmaps.blue_round_empty_return,"reused empty result from cache"),
+        (pixmaps.blue_round_clock,"'wait' result"),
+        (pixmaps.grey_round_cross,"'missing' result"),
+        (pixmaps.red_round_cross,"'fail' result"),
+        (None,None),\
+        (None,"      Misc icons:"),
+        (pixmaps.breakpoint,"node has breakpoints"),
+        (pixmaps.forward_to,"node has a temp ('until') breakpoint"),
+        (pixmaps.publish,"node is publishing snapshots"),
+        (pixmaps.publish_active,"updated node state (brief flash)"),
+        (pixmaps.cancel,"node is disabled") ];
+    #
+    canvas = QGrid(2,self);
+    canvas.setMargin(3);
+    canvas.setSpacing(3);
+    self.setCaption("Node Icon Reference");
+    self.setCentralWidget(canvas);
+    for (pixmap,text) in self.RefList:
+      if text is None:  # draw separator 
+        icon = QWidget(canvas); 
+        label = QFrame(canvas);
+        label.setFrameShape(QFrame.HLine+QFrame.Sunken);
+      else: # draw entry
+        if pixmap is None:
+          icon = QWidget(canvas);
+        else:
+          icon = QLabel(canvas);
+          icon.setPixmap(pixmap.pm());
+        label = QLabel(text,canvas);  
+      # make icon non-resizable
+      icon.setSizePolicy(QSizePolicy(0,0));
+    canvas.setSizePolicy(QSizePolicy(0,0));
+    self.setSizePolicy(QSizePolicy(0,0));
+  def mouseReleaseEvent (self,ev):
+    self.hide();
+    
 def define_treebrowser_actions (tb):
   _dprint(1,'defining standard treebrowser actions');
   parent = tb.wtop();
