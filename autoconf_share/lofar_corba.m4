@@ -8,7 +8,23 @@
 #
 AC_DEFUN(lofar_CORBA,dnl
 lofar_HEADER_VISIBROKER([])
-[AM_CONDITIONAL(HAVE_CORBA, [test "$enable_vbroker" = "yes"])]
+lofar_HEADER_TAO([])
+[ if test "$enable_vbroker" = "yes"; then
+    if test "$enable_tao" = "yes"; then
+AC_MSG_ERROR([Can not have both Visibroker and TAO used at the same time])
+    fi
+  fi
+  if test "$enable_vbroker" = "yes"; then
+AC_DEFINE(HAVE_CORBA, 1, [Defined if Corba is used])
+AC_DEFINE(HAVE_CORBA, 1, [Defined if Visibroker is used])
+AM_CONDITIONAL(HAVE_CORBA, true)
+  fi
+  if test "$enable_tao" = "yes"; then
+AC_DEFINE(HAVE_CORBA, 1, [Defined if Corba is used])
+AC_DEFINE(HAVE_TAO, 1, [Defined if TAO is used])
+AM_CONDITIONAL(HAVE_CORBA, true)
+  fi
+]
 )dnl
 dnl
 #
@@ -80,12 +96,88 @@ AC_SUBST(LIBS)dnl
 AC_SUBST(IDLCXX)dnl
 AC_SUBST(IDLFLAGS)dnl
 dnl
-AC_DEFINE(HAVE_CORBA, 1, [Define if Inprise Visibroker Corba installed])dnl
 [
   else]
 AC_MSG_ERROR([Could not find Inprise Visibroker in $vbroker_prefix])
 [
     enable_vbroker=no
+  fi
+fi]
+])
+#
+# lofar_HEADER_TAO([DEFAULT-PREFIX])
+#
+# e.g. lofar_HEADER_TAO("/usr/local/ACE")
+# -------------------------
+#
+# Macro to check corba.h header file
+#
+AC_DEFUN(lofar_HEADER_TAO,dnl
+[dnl
+AC_PREREQ(2.13)dnl
+ifelse($1, [], define(DEFAULT_TAO_PREFIX,[/usr/local/ACE]), define(DEFAULT_TAO_PREFIX,$1))
+AC_ARG_WITH(tao,
+	[  --with-tao[=PFX]        prefix where TAO is installed (default=]DEFAULT_TAO_PREFIX[)],
+	[with_tao=$withval],
+	[with_tao="no"])
+[
+if test "$with_tao" = "no"; then
+  enable_tao=no
+else
+  if test "$with_tao" = "yes"; then
+    tao_prefix=]DEFAULT_TAO_PREFIX
+[
+  else
+    tao_prefix=$withval
+  fi
+  enable_tao=yes
+]
+##
+## Check in normal location and suggested location
+##
+AC_CHECK_FILE([$tao_prefix/TAO/tao/corba.h],
+			[lofar_cv_header_tao=yes],
+			[lofar_cv_header_tao=no])
+dnl
+[
+  if test $lofar_cv_header_tao = no; then
+     tao_prefix="/usr/local/ACE"]
+##
+## Check in alternative location
+##
+AC_CHECK_FILE([$tao_prefix/TAO/tao/corba.h],
+			[lofar_cv_header_tao=yes],
+			[lofar_cv_header_tao=no])
+[
+  fi
+  if test $lofar_cv_header_tao = yes ; then
+
+    TAO_PATH="$tao_prefix"
+
+    TAO_CFLAGS="-I$TAO_PATH -I$TAO_PATH/TAO -I$TAO_PATH/TAO/tao"
+    TAO_LDFLAGS="-L$TAO_PATH/lib"
+    TAO_LIBS=""
+
+    CFLAGS="$CFLAGS $TAO_CFLAGS"
+    CXXFLAGS="$CXXFLAGS $TAO_CFLAGS"
+    LDFLAGS="$LDFLAGS $TAO_LDFLAGS"
+    LIBS="$LIBS $TAO_LIBS"
+    IDLCXX="$tao_prefix/TAO/TAO_IDL/tao_idl"
+    IDLFLAGS=""
+]
+dnl
+AC_SUBST(CFLAGS)dnl
+AC_SUBST(CXXFLAGS)dnl
+AC_SUBST(LDFLAGS)dnl
+AC_SUBST(LIBS)dnl
+AC_SUBST(IDLCXX)dnl
+AC_SUBST(IDLFLAGS)dnl
+dnl
+[
+  else]
+AC_MSG_ERROR([Could not find ACE TAO in $tao_prefix])
+[
+    enable_tao=no
   fi
 fi]
 ])
