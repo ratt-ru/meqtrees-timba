@@ -160,12 +160,15 @@ namespace VisVocabulary
     const int FlagMissing = 0xFFFFFFFF;
 
 
-// small function for converting antennas to IFR indices    
+// small function for converting antennas to flat IFR indices    
+//    when ant1 < ant2, we always get odd numbers
+//    when ant1 >= ant2, we always get even numbers 
+// and, ifr(a1,a2)/2 = ifr(a2,a1)/2
     inline int ifrNumber ( int ant1,int ant2 ) 
     {
       return ant1 < ant2
-              ? ifrNumber(ant2,ant1)
-              : ant1*(ant1+1)/2 + ant2;
+              ? ifrNumber(ant2,ant1) + 1
+              : 2*( ant1*(ant1+1)/2 + ant2 );
     }
 
 };
