@@ -22,8 +22,18 @@ class editRequest(QDialog):
 
         self.v = QVBoxLayout(self, 10, 5)
 
+        self.t = QHBoxLayout(self.v, 5)
+        lbl = QLabel(' ', self)
+	self.t.addWidget(lbl);
+        lbl = QLabel('start', self)
+	self.t.addWidget(lbl);
+        lbl = QLabel('N', self)
+	self.t.addWidget(lbl);
+        lbl = QLabel('stop', self)
+	self.t.addWidget(lbl);
+
         self.Xh = QHBoxLayout(self.v, 5)
-        lbl = QLabel('X', self)
+        lbl = QLabel('Freq', self)
         self.Xh.addWidget(lbl)
         self.X0 = QLineEdit(self)
         self.X0.setText(str(self.parent.f0))
@@ -36,7 +46,7 @@ class editRequest(QDialog):
         self.Xh.addWidget(self.X1)
 
         self.Yh = QHBoxLayout(self.v, 5)
-        lbl = QLabel('Y', self)
+        lbl = QLabel('Time', self)
         self.Yh.addWidget(lbl)
         self.Y0 = QLineEdit(self)
         self.Y0.setText(str(self.parent.t0))
@@ -51,8 +61,14 @@ class editRequest(QDialog):
         self.cmdOK = QPushButton('OK', self)
         QObject.connect(self.cmdOK, SIGNAL('clicked()'), self.slotcmdOK)
         self.v.addWidget(self.cmdOK)
+        self.cmdCancel = QPushButton('Cancel', self)
+        QObject.connect(self.cmdCancel, SIGNAL('clicked()'), self.slotcmdCancel)
+        self.v.addWidget(self.cmdCancel)
 
         self.show()
+
+    def slotcmdCancel(self):
+        self.close();
 
     def slotcmdOK(self):
         self.parent.f0 = float(str(self.X0.text()))
