@@ -3,7 +3,7 @@
 from dmitypes import *
 from qt import *
 from app_proxy_gui import *
-import app_pixmaps as pixmaps
+from app_pixmaps import pixmaps
 import weakref
 import sets
 import re
@@ -212,7 +212,7 @@ class TreeBrowser (QObject):
         menu = self._context_menu = QPopupMenu();
         # insert title
         menu.insertItem("%s: %s"%(node.name,node.classname));
-        menu.insertItem("Show icon chart...",self.tb.show_icon_reference);
+        # menu.insertItem(pixmaps.info_blue_round.iconset(),"Show icon reference...",self.tb.show_icon_reference);
         # insert viewer list submenus
         viewer_list = gridded_workspace.getViewerList(meqds.NodeClass(node.classname));
         if viewer_list: 
@@ -758,16 +758,20 @@ class NodeIconReference (QMainWindow):
     fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
     fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
     QMainWindow.__init__(self,parent,"iconref",fl);
+    self.setCaption("Node Icon Reference");
+    self.setIcon(pixmaps.info_blue_round.pm());
     # define list
     if not self.RefList:
       self.RefList = [ \
-        (None,"      Exec state icons:") ];
+        (None,"      Node exec state icons:"),
+        (None,None) ];
       # add state icons
       self.RefList += [ (pixmap,desc) for (val,name,char,desc,pixmap) in meqds.CS_ES_statelist ];
       # add result icons
       self.RefList += [ \
         (None,None),\
-        (None,"      Result icons:"),
+        (None,"      Node result icons:"),
+        (None,None),\
         (None,"no node result (no icon)"),
         (pixmaps.blue_round_reload,"new result, cached"),
         (pixmaps.blue_round_empty,"new empty result, cached"),
@@ -778,17 +782,17 @@ class NodeIconReference (QMainWindow):
         (pixmaps.grey_round_cross,"'missing' result"),
         (pixmaps.red_round_cross,"'fail' result"),
         (None,None),\
-        (None,"      Misc icons:"),
+        (None,"      Miscellaneous icons:"),
+        (None,None),\
         (pixmaps.breakpoint,"node has breakpoints"),
         (pixmaps.forward_to,"node has a temp ('until') breakpoint"),
         (pixmaps.publish,"node is publishing snapshots"),
-        (pixmaps.publish_active,"updated node state (brief flash)"),
+        (pixmaps.publish_active,"node state is updated (brief flash)"),
         (pixmaps.cancel,"node is disabled") ];
     #
     canvas = QGrid(2,self);
     canvas.setMargin(3);
     canvas.setSpacing(3);
-    self.setCaption("Node Icon Reference");
     self.setCentralWidget(canvas);
     for (pixmap,text) in self.RefList:
       if text is None:  # draw separator 
@@ -851,6 +855,14 @@ def define_treebrowser_actions (tb):
   ag_debug.add(dbgstep);
   ag_debug.add(dbgnext);
   tb.add_action(ag_debug,90);
+  
+  # show node icon reference
+  tb.add_separator(100);
+  show_help = QAction("Show icon reference",pixmaps.info_blue_round.iconset(),"Show icon &reference...",Qt.Key_F1,parent);
+  QObject.connect(show_help,SIGNAL("activated()"),tb.show_icon_reference);
+  show_help._is_enabled = lambda:True;
+  tb.add_action(show_help,100);
+  tb.add_action(show_help,5,where="node");
   
   # populate node context menu
   tb.add_action(NA_NodeDisable,10,where="node");

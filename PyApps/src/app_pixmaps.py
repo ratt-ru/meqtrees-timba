@@ -8,7 +8,6 @@ _dbg = dmitypes.verbosity(0,name='pixmaps');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-
 # A QPixMap wrapper defers initialization of a pixmap until the pixmap
 # is actually retrieved with the pm() method for the first time.
 class QPixmapWrapper(object):
@@ -27,6 +26,41 @@ class QPixmapWrapper(object):
     if self._iconset is None:
       self._iconset = QIconSet(self.pm());
     return self._iconset;
+
+# define a catch-all case for all missing icons
+missing_icon = QPixmapWrapper(["16 16 14 1",
+                               "# c None",
+                               "k c None",
+                               "d c None",
+                               "c c None",
+                               "b c None",
+                               "f c None",
+                               "l c None",
+                               "i c None",
+                               "j c None",
+                               "h c None",
+                               ". c None",
+                               "a c #000000",
+                               "g c #808080",
+                               "e c #ff0000",
+                               "....##aaabb#c#.#",
+                               "##db#aeeea##c###",
+                               "f#gg#aeeeahgg#d#",
+                               ".#gggaeeeaggg#c#",
+                               "c##ggaeeeaggc#.#",
+                               "##hhgaeeeag#c###",
+                               "##h##aeeeahh##f#",
+                               "##hhhaeeeaihhh#.",
+                               ".c#hhaeeeahih#dc",
+                               "#jf#gaaaaagh#dfh",
+                               "##kggg#hbggglchh",
+                               "##gggbaaahggg#d#",
+                               "c.gg#aeeeahgg###",
+                               "###hhaeeea#h####",
+                               "#####aeeea######",
+                               "f#.#.jaaad.cccdj"]);
+                               
+                              
 
 exclaim = QPixmapWrapper([ "14 14 3 1",
           "       c None",
@@ -68,7 +102,8 @@ cancel = QPixmapWrapper(["16 16 5 1",
                          "    X.      o   ",
                          "    X           ",
                          "                ",
-                         "                " ])
+                         "                " ]);
+                         
 
 check = QPixmapWrapper(["16 14 8 1",
                         "  c #000000",
@@ -2929,6 +2964,8 @@ grey_cross = QPixmapWrapper(["16 16 97 2",
 import os
 import os.path
 
+__icons_loaded = False;
+
 def load_icons (appname):
   """load all icons found in path, subdirs 'icons/appname'""";
   # loop over system path
@@ -2952,3 +2989,13 @@ def load_icons (appname):
         globals()[name] = QPixmapWrapper(pm);
         nicons += 1;
     _dprint(1,nicons,'icons loaded from ',trydir);
+    __icons_loaded = True;
+
+# define a pixmap access hook
+class __PixmapHook(object):
+  def __getattr__ (self,name):
+    try: return globals()[name] 
+    except KeyError:
+      return missing_icon;
+
+pixmaps = __PixmapHook();
