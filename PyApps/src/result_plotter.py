@@ -205,7 +205,7 @@ class ResultPlotter(BrowserPlugin):
             self._x_label = "time"
             time_range = self._rec.cells.domain.time[1] - self._rec.cells.domain.time[0]
             x_step = time_range / n_cols
-            start_time = self._rec.cells.domain.time[0] 
+            start_time = self._rec.cells.domain.time[0] + 0.5 * x_step 
             for i in range(0, n_cols ) :
               current_time = start_time + i * x_step
               image.append(current_time)
@@ -215,16 +215,16 @@ class ResultPlotter(BrowserPlugin):
             self._x_label = "freq"
             freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
             x_step = freq_range / n_rows
-            start_freq = self._rec.cells.domain.freq[0] 
+            start_freq = self._rec.cells.domain.freq[0] + 0.5 * x_step 
             for i in range(0, n_rows ) :
               current_freq = start_freq + i * x_step
               image.append(current_freq)
             self._simple_ntuple.addColumn (self._x_label, image)
           self._add_time_freq = False
-      plot = self._display_controller.createDisplay ( 'XY Plot', self._simple_ntuple, [self._x_label,self._label] )
-      if self._canvas == None:
-        self._canvas = self._window_controller.currentCanvas()
-      self._canvas.addDisplay ( plot )
+        plot = self._display_controller.createDisplay ( 'XY Plot', self._simple_ntuple, [self._x_label,self._label] )
+        if self._canvas == None:
+          self._canvas = self._window_controller.currentCanvas()
+        self._canvas.addDisplay ( plot )
 
   def set_data (self,dataitem,default_open=None,**opts):
     self._rec = dataitem.data;
