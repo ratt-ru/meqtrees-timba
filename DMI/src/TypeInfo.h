@@ -89,7 +89,7 @@ class TypeInfo : public TypeCategories {
       
       static bool isNumericArrayOfRank( TypeId arr,int rank)
       { 
-        return isArray(arr) && rankOfArray(arr) == 1 && 
+        return isArray(arr) && rankOfArray(arr) == uint(rank) && 
                isNumeric(typeOfArrayElem(arr));
       }
       

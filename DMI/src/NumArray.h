@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.33  2005/01/19 17:46:41  smirnov
+//  %[ER: ]%
+//  A number of small changes to accomodate gcc-3.4.3.
+//  (Can't link with it at the moment due to some aips++ probs)
+//
 //  Revision 1.32  2005/01/17 13:53:04  smirnov
 //  %[ER: 16]%
 //  DMI completely revised to DMI2
@@ -627,12 +632,11 @@ casa::Array<T> NumArray::copyAipsArray (const T* dum) const
 }
 
 template<class T>
-casa::Array<T> NumArray::refAipsArray (const T*)
+casa::Array<T> NumArray::refAipsArray (const T* dum)
 {
   FailWhen( !valid(),"invalid NumArray" );
-  FailWhen( !isWritable(),"r/w access violation" );
   FailWhen( !verifyAipsType(dum),"array type mismatch" );
-  return casa::Array<T>(itsShape,itsArrayData,SHARE);
+  return casa::Array<T>(itsShape,itsArrayData,casa::SHARE);
 }
 
 #endif

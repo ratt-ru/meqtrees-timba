@@ -340,7 +340,7 @@ class AppControlAgent : public AppEventAgentBase
         )
     {
       (subrec.empty() ? (*pstatus_)[field] : (*pstatus_)[subrec][field])
-          .replace() = value.copy(DMI::PRESERVE_RW);
+          .replace() = value.copy();
       DMI::Record::Ref ref;
       makeUpdateRecord(ref,subrec)[field] = value.copy(DMI::READONLY);
       postStatusUpdate(subrec,field,ref);

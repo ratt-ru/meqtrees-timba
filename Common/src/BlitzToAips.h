@@ -73,7 +73,7 @@ namespace LOFAR
   blitz::TinyVector<int,N> aipsToBlitz (const casa::IPosition &ipos)
   {
     blitz::TinyVector<int,N> ret;
-    convertShape(ret,tv);
+    convertShape(ret,ipos);
     return ret;
   }
 

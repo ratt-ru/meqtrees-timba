@@ -90,7 +90,7 @@ class DebugRegistry
 //## can have the registry populated on strartup via simple static object
 //## declarations. See AtomicID for an example.
 template <class Key, class Val, class HostClass>
-class UniRegistry : public DebugRegistry
+class UniRegistry 
 {
   public:
       //##ModelId=3C5E983901C3
@@ -117,6 +117,9 @@ class UniRegistry : public DebugRegistry
       typedef Val Value;
     //##ModelId=3DB9343E0399
       typedef std::map<Key,Val> Map;
+      
+      ImportDebugContext(DebugRegistry);
+      
   private:
     //##ModelId=3DB934FD0362
       UniRegistry(const UniRegistry< Key,Val,HostClass > &right);
@@ -158,6 +161,9 @@ class BiRegistry : public UniRegistry<Key, Val, HostClass>
     // Additional Public Declarations
     //##ModelId=3DB934390373
       typedef std::map<Val,Key> RevMap;
+      
+      ImportDebugContext(DebugRegistry);
+      
   private:
     //##ModelId=3DB9344601A8
       BiRegistry(const BiRegistry< Key,Val,HostClass > &right);
@@ -179,11 +185,13 @@ class BiRegistry : public UniRegistry<Key, Val, HostClass>
 //##ModelId=3C5E8E9D011D
 
 template <class Key, class Val, class HostClass>
-class Registrar : public DebugRegistry
+class Registrar 
 {
   public:
       //##ModelId=3C5E8EC40246
       Registrar (const Key &key, const Val &val);
+  
+      ImportDebugContext(DebugRegistry);
 
   private:
     //##ModelId=3DB934E303C2
@@ -238,7 +246,7 @@ void UniRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val)
   
   if( iter != MapPtr->end() && iter->second != val )
   {
-    cerr<<"Error: conflicting registry definition for key "<<key<<endl;
+    std::cerr<<"Error: conflicting registry definition for key "<<key<<std::endl;
     Throw("Error: duplicate registry definition");
   }
   MapPtr->insert(std::make_pair(key,val));

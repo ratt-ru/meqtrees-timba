@@ -8,21 +8,23 @@ namespace DMI
     
 //##ModelId=3DB951DC0395
 //##Documentation
-//## This is a dummy parent class. It is only there to facilitate the
-//## friend declarations in Container::Hook
+//## This parent class only provides the get_pointer() function
+//## and a lock. It is there to facilitate the friend declarations in 
+//## Container::Hook
 class BaseContainerIter 
 {
+  public:
+      void release ();
+      
   protected:
     //##ModelId=3DB951DD037D
-      static const void *get_pointer(
-          int &sz,
-          const Container::Hook &hook,
-          TypeId tid,
-          bool write,
-          Thread::Mutex::Lock *lock )
+      const void * get_pointer(int &sz,const Container::Hook &hook,
+          TypeId tid,bool write,bool set_lock)
        {
-         return hook.get_pointer(sz,tid,write,false,0,lock);
+         return hook.get_pointer(sz,tid,write,false,0,set_lock?&lock_:0);
        }
+       
+    Thread::Mutex::Lock lock_;
 };
 
 //##ModelId=3DB951DC03A6
@@ -31,11 +33,8 @@ template <class T>
 class ConstContainerIter : public BaseContainerIter
 {
   public:
-      //##ModelId=3DB951DD03D7
-      ConstContainerIter (const Container::Hook &hook);
-
       //##ModelId=3DB951DE0007
-      ConstContainerIter (const Container::Hook &hook, bool );
+      ConstContainerIter (const Container::Hook &hook, bool set_lock=true);
 
     //##ModelId=3DB951DE0031
       bool operator==(const ConstContainerIter< T > &right) const;
@@ -78,7 +77,6 @@ class ConstContainerIter : public BaseContainerIter
       bool end () const;
 
       //##ModelId=3DB951DE00F7
-      void release ();
 
       //##ModelId=3DB951DE00F8
       T next ();
@@ -113,9 +111,6 @@ class ConstContainerIter : public BaseContainerIter
       //##ModelId=3DB951DD03B1
       T* end_ptr_;
 
-      //##ModelId=3DB951DD03C3
-      Thread::Mutex::Lock lock;
-
 };
 
 //##ModelId=3DB951DC03BA
@@ -124,11 +119,8 @@ template <class T>
 class ContainerIter : public ConstContainerIter<T>
 {
   public:
-      //##ModelId=3DB951DE0126
-      ContainerIter (const Container::Hook &hook);
-
       //##ModelId=3DB951DE0128
-      ContainerIter (const Container::Hook &hook, bool );
+      ContainerIter (const Container::Hook &hook, bool set_lock=true);
 
 
       //##ModelId=3DB951DE012B
@@ -155,24 +147,13 @@ inline ConstContainerIter<T>::ConstContainerIter()
 
 //##ModelId=3DB951DD03D7
 template <class T>
-inline ConstContainerIter<T>::ConstContainerIter (const Container::Hook &hook)
+inline ConstContainerIter<T>::ConstContainerIter (const Container::Hook &hook,bool set_lock)
 {
   int sz;
   ptr_ = start_ptr_ = 
-      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),false,&lock)));
+      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),false,set_lock)));
   end_ptr_ = start_ptr_ + sz;
 }
-
-//##ModelId=3DB951DE0007
-template <class T>
-inline ConstContainerIter<T>::ConstContainerIter (const Container::Hook &hook, bool )
-{
-  int sz;
-  ptr_ = start_ptr_ = 
-      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),false,0)));
-  end_ptr_ = start_ptr_ + sz;
-}
-
 
 //##ModelId=3DB951DE0031
 template <class T>
@@ -275,10 +256,9 @@ inline bool ConstContainerIter<T>::end () const
 }
 
 //##ModelId=3DB951DE00F7
-template <class T>
-inline void ConstContainerIter<T>::release ()
+inline void BaseContainerIter::release ()
 {
-  lock.release();
+  lock_.release();
 }
 
 //##ModelId=3DB951DE00F8
@@ -311,24 +291,14 @@ inline T* ConstContainerIter<T>::end_ptr () const
 
 // Parameterized Class ContainerIter 
 
-//##ModelId=3DB951DE0126
-template <class T>
-inline ContainerIter<T>::ContainerIter (const Container::Hook &hook)
-{
-  int sz;
-  ptr_ = start_ptr_ = 
-      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),true,&lock)));
-  end_ptr_ = start_ptr_ + sz;
-}
-
 //##ModelId=3DB951DE0128
 template <class T>
-inline ContainerIter<T>::ContainerIter (const Container::Hook &hook, bool )
+inline ContainerIter<T>::ContainerIter (const Container::Hook &hook, bool set_lock)
 {
   int sz;
-  ptr_ = start_ptr_ = 
-      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),true,0)));
-  end_ptr_ = start_ptr_ + sz;
+  ConstContainerIter<T>::ptr_ = ConstContainerIter<T>::start_ptr_ = 
+      static_cast<T*>(const_cast<void*>(get_pointer(sz,hook,typeIdOf(T),true,set_lock)));
+  ConstContainerIter<T>::end_ptr_ = ConstContainerIter<T>::start_ptr_ + sz;
 }
 
 
@@ -337,28 +307,28 @@ inline ContainerIter<T>::ContainerIter (const Container::Hook &hook, bool )
 template <class T>
 inline T ContainerIter<T>::operator = (T value)
 {
-  return *ptr_ = value;
+  return *ConstContainerIter<T>::ptr_ = value;
 }
 
 //##ModelId=3DB951DE012D
 template <class T>
 inline T ContainerIter<T>::next (T value)
 {
-  return *ptr_++ = value;
+  return *ConstContainerIter<T>::ptr_++ = value;
 }
 
 //##ModelId=3DB951DE00F9
 template <class T>
 int ConstContainerIter<T>::size () const
 {
-  return end_ptr_ - start_ptr_;
+  return ConstContainerIter<T>::end_ptr_ - ConstContainerIter<T>::start_ptr_;
 }
 
 //##ModelId=3DB951DE00FB
 template <class T>
 int ConstContainerIter<T>::nleft () const
 {
-  return ptr_ - start_ptr_;
+  return ConstContainerIter<T>::ptr_ - ConstContainerIter<T>::start_ptr_;
 }
 
 
