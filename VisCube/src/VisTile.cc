@@ -213,10 +213,13 @@ VisTile & VisTile::operator=(const VisTile &right)
   {
     Thread::Mutex::Lock lock(mutex());  
     ColumnarTableTile::operator=(right);
-    nfreq_ = right.nfreq_;
-    ncorr_ = right.ncorr_;
     if( hasFormat() )
       initArrays();
+    else
+    {
+      nfreq_ = right.nfreq_;
+      ncorr_ = right.ncorr_;
+    }
   }
   return *this;
 }
@@ -251,13 +254,9 @@ void VisTile::init (int nc, int nf, int nt)
 void VisTile::init (const FormatRef &form, int nt)
 {
   Thread::Mutex::Lock lock(mutex());  
-  LoShape shape = form->shape(DATA);
-  FailWhen( shape.size() != 2 ,"Missing or misshapen DATA column in tile format");
   ColumnarTableTile::init(form,nt);
-  ncorr_ = shape[0];
-  nfreq_ = shape[1];
-  dprintf(2)("initialized tile: %s\n",sdebug(5).c_str());
   initArrays();
+  dprintf(2)("initialized tile: %s\n",sdebug(5).c_str());
 }
 
 //##ModelId=3DB964F9013E
@@ -295,11 +294,6 @@ void VisTile::copy (int it0, const VisTile &other, int other_it0, int nt)
   if( !had_format )
   {
     // since the copy succeeded, we're now guaranteed to have a format
-    LoShape shape = format().shape(DATA);
-    // this shouldn't happen, but just in case
-    FailWhen( shape.size() != 2 ,"Missing or misshapen DATA column in tile format");
-    ncorr_ = shape[0];
-    nfreq_ = shape[1];
     initArrays();
   }
 }
@@ -319,7 +313,10 @@ int VisTile::fromBlock (BlockSet& set)
   Thread::Mutex::Lock lock(mutex());  
   int ret = ColumnarTableTile::fromBlock(set);
   if( hasFormat() )
+  {
+    // init all arrays
     initArrays();
+  }
   return ret;
 }
 
@@ -336,6 +333,19 @@ void VisTile::initArrays ()
   FailWhen(!hasFormat(),"tile format not defined");
   const Format &form = format();
 
+// infer the nfreq/ncorr data members from one of the data columns
+  ncorr_ = nfreq_ = 0;
+  const int shaped_columns[] = { DATA,PREDICT,RESIDUALS };
+  for( uint i=0; i<sizeof(shaped_columns)/sizeof(int); i++ )
+  {
+    LoShape shape = form.shape(shaped_columns[i]);
+    if( shape.size() == 2 )
+    {
+      ncorr_ = shape[0];
+      nfreq_ = shape[1];
+      break;
+    }
+  }
 // use a macro to initialize all arrays in a consistent manner
 // Note that we cast away const, because the tile may be read-only.
   #define initRefArray(type,ndim,name,columnId) \
