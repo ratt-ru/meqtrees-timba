@@ -1,5 +1,5 @@
 #
-# crontab for daily and weekly builds
+# crontab for daily and weekly builds of LOFAR source code
 #
 SHELL=/bin/sh
 MAILTO=schaaf@astron.nl
@@ -14,8 +14,8 @@ MAILTO=schaaf@astron.nl
 #              day of week    0-7 (0 or 7 is Sun, or use names)
 
 # Run daily compile at 5 minutes past midnight
-5 0 * * *	( mkdir -p $HOME/daily && cd $HOME/daily && cvs co LOFAR && cd $HOME/daily/LOFAR && make 2>&1 | tee build_daily.log  | grep ^%%%%%% )
+5 0 * * *	( mkdir -p $HOME/daily && cd $HOME/daily && (cvs co LOFAR > cvs_co_LOFAR.log 2>&1) && (cvs status -v > cvs_status_v.log 2>&1 ) && cd $HOME/daily/LOFAR && make 2>&1 | tee build_daily.log  | grep ^:::::: )
 
 # Run weekly compile at 30 minutes past midnight on Saturday
-30 0 * * Sat	( mkdir -p $HOME/weekly && cd $HOME/weekly && cvs co LOFAR && cd $HOME/weekly/LOFAR && make 2>&1 | tee build_weekly.log | grep ^%%%%%% )
+30 0 * * *	( rm -rf $HOME/weekly && mkdir -p $HOME/weekly && cd $HOME/weekly && (cvs co LOFAR > cvs_co_LOFAR.log 2>&1) && (cvs status -v > cvs_status_v.log 2>&1 ) && cd $HOME/weekly/LOFAR && make 2>&1 | tee build_daily.log  | grep ^:::::: )
 
