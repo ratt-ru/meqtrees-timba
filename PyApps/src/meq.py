@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from dmitypes import *
+from numarray import *
 
 domain_ndim = 2;
 domain_axes = ( "freq","time" );
@@ -127,7 +128,8 @@ def _resolve_grid (axisname,dom,num,grid,cellsize):
   elif len(cellsize) != num:
     raise ValueError,'length of %s_cell_size does not conform to grid shape'%axisname;
   return (grid,cellsize,segs);
-  
+
+_make_domain = domain;  
   
 # #-- meq.cells() -------------------------------------------------------------
 # # Creates a Meq::Cells
@@ -166,7 +168,7 @@ def cells(domain=None,num_freq=None,num_time=None,
   (time_grid,time_cell_size,ts) = _resolve_grid(
         'time',dt,num_time,time_grid,time_cell_size);
   # create record
-  rec = srecord( domain    = domain(df[1],df[2],dt[1],dt[2]),
+  rec = srecord( domain    = _make_domain(df[0],df[1],dt[0],dt[1]),
                  grid      = srecord(freq=freq_grid,time=time_grid),
                  cell_size = srecord(freq=freq_cell_size,time=time_cell_size),
                  segments  = srecord(freq=fs,time=ts) )
@@ -275,7 +277,8 @@ def request (cells=None,rqid=None,calc_deriv=0):
     _meqdomain_id += 1;
   else:
     _meqdomain_id = rqid[0];
-  rec = srecord(request_id=make_hiid(request_id),calc_deriv=calc_deriv);
+#  rec = srecord(request_id=make_hiid(request_id),calc_deriv=calc_deriv);
+  rec = srecord(request_id=make_hiid(rqid),calc_deriv=calc_deriv);
   if cells is not None:
     rec.cells = cells;
   rec.__dmi_type = 'MeqRequest';
