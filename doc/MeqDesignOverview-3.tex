@@ -49,7 +49,7 @@
 
 \newcounter{execstep}
 \setcounter{execstep}{0}
-\newcommand{\ExecStepBox}[2]{\highlightbox{\mbox{#1. } #2}}
+\newcommand{\ExecStepBox}[2]{\highlightbox{\mbox{\bf #1. } #2}}
 \newcommand{\ExecStep}[1]
 {\addtocounter{execstep}{1}\ExecStepBox{Step \arabic{execstep}}{#1}}
   
@@ -187,8 +187,8 @@
 
   \ExecStepBox{Error handling}{If an exception is thrown at any stage of the
   process, \qq{execute()} will catch it, create an output \Result\ with a
-  fail-result describing the exception, and add \RES{FAIL} to the current
-  return code.}
+  fail-result describing the exception, and add return the current return code,
+  with a \RES{FAIL} flag added in.}
 
   Thus, throwing an exception is the normal way for \qq{processCommands()},
   \qq{getResult()}, or any other handler to indicate a failure. Note that a
@@ -620,115 +620,180 @@
   Note each node's treatment of the requested resolution (i.e.
   honor/ignore/modify) is part of the node class contract, and should be
   clearly documented in the Node Reference. Thus, while parent nodes have no
-  control over (or knowledge of) what resoltion their children are going to use
-  for their results, the tree designer can always see the global picture, and
-  determine which resolution is used where in the tree. By enabling
+  control over (or knowledge of) what resolution their children are going to
+  use for their results, the tree designer can always see the global picture,
+  and determine which resolution is used where in the tree. By enabling
   auto-resampling at key points in the tree, and possibly adding some
   \qq{ModRes} nodes, the designer can always ensure predictable results.
+  
+  The brute-force approach (as opposed to careful tree design) is to enable
+  auto-resampling at all nodes. This, however, is a waste of CPU, and is never
+  actually necessary.
 
 \subsection{Auto-resampling modes}
 
-  Auto-resampling is enabled via the node state record. The actual resampling
-  is done by \qq{Node::execute()}, and it can follow one of several 
-  strategies:
-  
+  Auto-resampling is enabled via the node state record, on a node-by-node
+  basis. The actual resampling is performed in \qq{Node::execute()}, and it can
+  follow one of several strategies:
+
   \begin{description}
   
-  \item[Upsample:] Find the highest resolution among child results, upsample all other
-    results to it.
+  \item[Upsample:] Find the highest resolution among child results, upsample
+    all other results to it.
 
-  \item[Downsample:] Find the lowest resolution among child results,  integrate all other
-    results to it.
+  \item[Integrate:] Find the lowest resolution among child results,  integrate
+    all other results to it.
+
+  \item[Use Resolution Driver:] Resample everything to the resolution of a
+    specific child (this child is called the {\em resolution driver}\/).
+
+  \item[Use Request:] Resample everything to the resolution of the \Request. If
+    this strategy is selected, the node is guaranteed to honor the requested
+    resolution. If all child have the same resolution, but it is different from
+    the requested one, resampling is performed.
     
-  \item[Use Child:] Resample everything to the resolution of a specific child
-    (this child is called the {\em resolution driver}\/).
-
-  \item[Use Request:] Resample everything to the resolution of the \Request.
-
-  \item[Fail:] Fail outright (return a fail-result, that is) if resolutions differ.
-    This option is mainly useful for debugging.
+  \item[Fail:] Fail outright (return a fail-result, that is) if resolutions
+    differ. This option is mainly useful for debugging; in a properly designed
+    tree, and node that can encounter this situation should have one of the 
+    other strategies enabled.
 
   \end{description}
   
   The auto-resampling strategy is determined by two fields in the node state
-  record (this is dynamic state).
+  record (note that this is dynamic state). The \qq{resample\_child\_index}
+  field enables the ``Use Resolution Driver'' strategy, if set to an ordinal
+  child number ($\ge 1$ in Glish, $\ge 0$ in C++ -- note the \qq{index} suffix
+  and remember automatic 0-1-base conversion discussed in section
+  \ref{sec:01base}) or a child label (see \ref{sec:children}). The specified
+  child becomes the resolution driver. If the field is set to boolean
+  \qq{false}, or an invalid number ($<1$ in Glish, $<0$ in C++), then this
+  resampling strategy is not enabled.
+
+  If the resolution driver returns a resolution-free result (see
+  \ref{sec:result-empty-cells}), then a fail is reported. This situtation
+  indicates an error in tree design, since resolution-free results are returned
+  by only a few nodes, under well-defined circumstances.
   
-  The \qq{resample\_child\_index} enables the ``Use Child'' strategy, if set
-  to an ordinal child number ($\ge 1$ in Glish, $\ge 0$ in C++ -- note the \qq{index} suffix and remember automatic
-  0-1-base conversion discussed in section \ref{sec:01base}) or a child label
-  (see \ref{sec:children}). The specified child becomes the resolution
-  driver. If the child returns a resolution-free result (see
-  \ref{sec:result-empty-cells}), then a fail is reported.
-  
+  If a resolution driver is not enabled, then the \qq{auto\_resample} field can
+  define another resampling strategy. It can be set to one of the following
+  values:
 
   \begin{description}
 
   \item[NONE $(=0)$:] do nothing, do not even check the child resolutions. This
   is the default setting initialized by the \qq{Node} class constructor.
 
-  \item[FAIL $(=-2)$:] check resolutions and return a \qq{RES\_FAIL} if they do
+  \item[FAIL $(=-2)$:] check resolutions and return a fail-result if they do
   not match. This is the default setting initialized by the \qq{Function} class
   constructor. Since this is somewhat slower that the \qq{NONE} setting, the
   default for optimized builds may possibly be changed to \qq{NONE} in the
   future.
 
-  \item[INTEGRATE $(=-1)$:] find the lowest resolution among child results,
-  integrate all other results to this resolution.
+  \item[INTEGRATE $(=-1)$:] select the ``Integrate'' strategy.
 
-  \item[UPSAMPLE $(=1)$:] find the highest resolution among child result,
-  upsample all other results to this resolution.
+  \item[UPSAMPLE $(=1)$:] select the ``Upsample'' strategy.
 
-  \item[REQUEST $(=2)$:] resample all child results to the resolution of the
-  \Request.
+  \item[REQUEST $(=2)$:] select the ``Use Request'' strategy.
 
   \end{description}
-    
-  Auto-resampling is handled at the base \qq{Node} level (in
-  \qq{Node::processChildren()}, and thus may be enabled for any individual node
-  (although node classes that do their own polling of children -- e.g.,
-  \qq{Solver} -- may ignore the flag.) In the rippled solvers tree (Fig. ??),
-  nodes which enable auto-resampling are indicated by an "UPS" or "INT" label
-  in the node box. 
-
-  A few utility nodes may be used to change resolution mid-tree.
-  Initially, two such nodes will be provided:
-
-    \begin{description}
-    
-    \item[\qq{Resampler}:] this node guarantees a \Result\ at the requested
-    resolution. A \qq{Resampler} has a single child. It passes the parent's
-    \Request\ on to the child, and if the returned \Cells\ are different from
-    the requested ones, then it resamples the result to the requested \Cells\
-    before returning it to the parent.
-
-    \item[\qq{ModRes}:] this node modifies a \Request's resolution up or down
-    by a fixed factor (or to a fixed number of cells along either axis), as as
-    determined by its state record (dynamic configuration). This node has a
-    single child. The modified \Request\ is passed on to its child, and the
-    child's \Result\ is returned.
-
-    \end{description}
-    
-  In the future, we envision more nodes, such as an adaptive resolution
-  reducer, which adaptively selects a minimum required resolution based on the
-  results of the child. At the moment, the \qq{ModRes} node is a suitable
-  proxy. 
-
-   Data access nodes (\qq{Sink} and \qq{Spigot}) are coupled. For each
-  snippet of data, the \qq{Sink} will issue a \Request\ with \Cells\
-  corresponding to the data layout. The corresponding \qq{Spigot} will then be
-  able to return a \Result\ with the same cells.
   
-   For the time being, we'll only support integral resolutions -- i.e.,
-  the full resolution cells must be tilings of the reduced resolution cells.
-  This keeps things simple, and avoids interpolation errors. In the future, we
-  may support arbitrary regridding.
+  When selecting a high or low resolution for integration or upsampling,
+  resolution-free results are ignored. Note that such results do not require
+  resampling.
+  
+\subsubsection{Implementation issues}
 
-  It is, of course, up to the tree designer to ensure that resolution is
-  changed up and down appropriately within the tree, by strategically
-  positioning \qq{Resampler} and \qq{ModRes} nodes, and enabling
-  auto-resampling at a few specific nodes. The tree in Fig. ?? provides a good
-  example of this.
+  For the time being, \qq{Node} only supports integral resamplings. In other
+  words, the higher-resolution cells must be perfect tilings of the
+  lower-resolution cells. A fail-result is generated otherwise. This keeps
+  things simple, and avoids interpolation errors.\footnote{In the future, we
+  may add support support arbitrary regridding if needed.} 
+
+  This limitation is less serious than may appear. Resolutions are never chosen
+  randomly -- from a tree designer's point of view, they are completely
+  deterministic. Current facilities for resolution control (the \qq{ModRes}
+  node mentioned below) only allow for integral resolutions. As for the
+  original data resolution, it always comes in from the data access nodes
+  (\qq{Sink} and \qq{Spigot}), which are tightly coupled: for each snippet of
+  data, the \qq{Sink} issues a \Request\ with a \Cells\ corresponding to the
+  data layout, while the corresponding \qq{Spigot} is then ready to return a
+  \Result\ with the same cells. Thus, the tree designer can always define
+  working resolutions for subtrees in terms of integral factors of the original
+  data resolution.
+
+\subsection{Controlling the resolution}
+
+  The \qq{ModRes} utility node may be used to change resolution mid-tree. A
+  \qq{ModRes} always has a signle child; upon receiving a \Request\ from its
+  parent, ot modifies its resolution up or down by a fixed factor (independent
+  for each axis), as determined by its node state. The modified \Request\ is
+  passed on to its child, and the child's \Result\ is returned directly to the
+  parent.
+
+  In the future, we envision an adaptive resolution reducer (ARR) node, which
+  adaptively selects a minimum required resolution based on some
+  application-specific considerations. These may include:
+
+  \begin{itemize}
+  
+  \item For solving, the predict tree need only supply enough cells to
+  constrain the solution. The minimum resolution can be determined by the
+  \qq{Solver} node, and passed along in the \Request\ as a hint to any ARR nodes
+  up the tree.
+  
+  \item For subtracting predicted sources, the cells need only be big enough
+  to ensure linearity over a cell. 
+  
+  \end{itemize}
+  
+  Note also that the \qq{Identity} node, when configured with a ``Use Request''
+  resampling strategy, becomes a {\em resolution coupler}, ensuring results at
+  the requested resolution.
+  
+\subsection{How this applies to getResult()}
+
+  Note that the \qq{getResult()} handler discussed above receives two crucial
+  pieces of information: a vector of child results, and a \Cells\ (passed by
+  ref). The \Cells\ parameter defines the expected result cells, and it is
+  should be treated as follows:
+
+  \begin{itemize}
+  
+  \item If auto-resampling is not enabled, or the node has no children, then
+  this is simply the cells from the \Request. The resolutions of child results,
+  if any, are not constrained.
+  
+  Note that most nodes are not fully obliged to deal with this situation. A
+  node's contract may specify that ``this node only deals with child results at
+  the same resolution'' (all \qq{Function} nodes specify this), and leave it up
+  to the tree designer to ensure it (i.e. by enabling auto-resampling where
+  necessary). The node's behaviour when a contract is violated does not need to
+  be defined (although one can reasonably expect an exception to be thrown,
+  leading to a fail-result).
+
+  \item If auto-resampling is enabled, then the resolutions of child results
+  are constrained: they will all have the indicated \Cells\ (with the exception
+  of resolution-free results, which have no cells). Most nodes are expected to
+  return a result at the same resolution.
+
+  \item If auto-resampling is enabled and all child results are
+  resolution-free, then the \Cells\ ref is empty. In this case, most nodes'
+  result will should be resolution-free as well. In the rare case where the
+  node introduces its own time-frequency dependence (e.g. the \qq{UVW} node),
+  it should get a \Cells\ from the request.
+
+  \end{itemize}
+
+\subsection{A working example}
+
+  Figure~\ref{fig:resample} shows a tree with auto-resampling enabled at key
+  points in the tree. These nodes are indicated by a red label in the node box:
+  "UPS" for upsample, "INT" for integrate, "RES/DR" for using a resolution
+  driver. The predict branch is evaluated at a (presumably reduced) resolution
+  determined by its root \qq{ModRes} node, this is visually indicated by a
+  coarser grid background. The \qq{CondEq} node integrates its child results to
+  the lower of the two resolutions: this is apporpriate for solving. The
+  \qq{Subtract} node uses original data resolution as the driver.
 
 \chapter{The MeqServer Interface}
 \label{chap:meqserver}
