@@ -30,6 +30,13 @@ class ResultPlotter(BrowserPlugin):
     return len(data) > 0;
   is_viewable = staticmethod(is_viewable);
 
+# the following global tables replicate similar tables found in the
+# realvsimag plotter. The idea is that the system first checks the
+# contents of 'visu' plot records against these tables here 
+# during tree traversal. Otherwise every leaf node would issue
+# warnings about the same unacceptable parameters - which would
+# really irritate the user. The 'check_attributes' function defined
+# below does the work.
   color_table = {
         'none': None,
         'black': Qt.black,
@@ -84,7 +91,8 @@ class ResultPlotter(BrowserPlugin):
 
   def __init__(self,parent=None,dataitem=None,default_open=None,**opts):
     """ Instantiate HippoDraw objects that are used to control
-        various aspects of plotting
+        various aspects of plotting, if the hippo plotter
+        is instantiated.
     """
     self._rec = None;
     self._hippo = None
@@ -102,11 +110,13 @@ class ResultPlotter(BrowserPlugin):
     if self._window_controller:
       self._window_controller.closeAllWindows()
                                                                                            
+# function needed by Oleg for reasons known only to him!
   def wtop (self):
     return self._wtop;
     
 
   def check_attributes(self, attributes):
+     """ check parameters of plot attributes against allowable values """
      plot_parms = None
      if attributes.has_key('plot'):
        plot_parms = attributes.get('plot')
@@ -238,10 +248,12 @@ class ResultPlotter(BrowserPlugin):
               break
       _dprint(3, 'pre_work gives plot_type ', self._plot_type)
       if self._plot_type == 'spectra':
+        _dprint(3, 'pre_work setting visu_plotter to QwtImagePlot for spectra!')
         self._visu_plotter = QwtImagePlot(self._plot_type,parent=self._parent)
         self._wtop = self._visu_plotter;       # QwtImagePlot inherits from QwtPlot
 
       if self._plot_type == 'realvsimag':
+        _dprint(3, 'pre_work setting visu_plotter to realvsimag_plotter!')
         self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self._parent)
         self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
 
@@ -262,6 +274,8 @@ class ResultPlotter(BrowserPlugin):
       return False
 
   def do_leafwork(self, leaf, attrib_list):
+    """ method which does actual plotting at a leaf node """
+
     _dprint(3,'at leaf attribute list is ', attrib_list)
 # If we arrive here without having gotten a plot type
 # it is because the user specified an invalid type somehow.
@@ -287,6 +301,7 @@ class ResultPlotter(BrowserPlugin):
     self._visu_plotter.plot_data(leaf, attrib_list)
 
   def tree_traversal (self, node, label=None, attribute_list=None):
+    """ routine to do a recursive tree traversal of a Visu plot tree """
     _dprint(3,' ');
     _dprint(3,' ******* ');
     _dprint(3,'in tree traversal with node having length ', len(node));
@@ -305,7 +320,10 @@ class ResultPlotter(BrowserPlugin):
     if isinstance(node, dict):
       _dprint(3, 'node is a dict')
       if self._visu_plotter is None and not is_root:
+# call the do_prework method to do any actions needed before
+# an actual leaf node performs plotting operations
         self.do_prework(node, attribute_list)
+# test if this node is a leaf
       if not self.is_leaf(node):
         if node.has_key('label'):
           _dprint(3, 'tree: dict node has label(s) ', node['label'])
@@ -336,6 +354,8 @@ class ResultPlotter(BrowserPlugin):
             plot_spec['stddev_circle'] = False
             attrib['plot'] = plot_spec
             attribute_list.append(attrib)
+# if not a leaf, and we find a 'value' field, then call
+# recursive method 'tree_traversal'
         if node.has_key('value'):
           self.tree_traversal(node['value'], node['label'], attribute_list)
       else:
@@ -345,9 +365,20 @@ class ResultPlotter(BrowserPlugin):
           if not self._attributes_checked:
             self.check_attributes(node['attrib'])
           attribute_list.append(node['attrib'])
+
+# call the do_prework method to do any actions needed before
+# actual leaf node performs plotting operations
           self.do_prework(node, attribute_list)
+
+# if all tests are passed and this is a leaf, than do actual plotting work
         self.do_leafwork(node,attribute_list)
+
+# no post work at the present time
 #      self.do_postwork(node)
+
+# if we are at a level where we encounter a bunch of nodes in a list
+# then we must preform a recursive tree traversal starting with
+# each element in the list
     if isinstance(node, list):
       _dprint(3, 'node is a list')
       for i in range(len(node)):
