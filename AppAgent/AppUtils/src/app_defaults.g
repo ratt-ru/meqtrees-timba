@@ -17,6 +17,7 @@ if( !is_record(default_debuglevels) )
 
 # scan argv for options
 # this includes debug levels of form -dContext=level
+override_debuglevels := [=];
 for( x in argv )
 {
   if( x == '-nostart' ) 
@@ -35,10 +36,14 @@ for( x in argv )
     max_debug := as_integer(x);
   else if( x =~ s/^-d(.*)=(.*)$/$1$$$2/ )
   {
-    default_debuglevels[x[1]] := lev := as_integer(x[2]);
-    print '=======  Overriding debug level: ',x[1],'=',lev;
+    override_debuglevels[x[1]] := lev := as_integer(x[2]);
+    print '=======  Overriding debug level:',x[1],'=',lev;
   }
 }
+
+# apply max_debug level
+for( f in 1:len(default_debuglevels) )
+  default_debuglevels[f] := min(max_debug,default_debuglevels[f]);
 
 # find debug levels of form -dContext=level in the environment strings
 for( f0 in field_names(environ) )
@@ -46,14 +51,15 @@ for( f0 in field_names(environ) )
   f := f0;
   if( f =~ s/^-d(.*)$/$1/ )
   {
-    lev := default_debuglevels[f] := as_integer(environ[f0]);
-    print '=======  Overriding debug level: ',f,'=',lev;
+    lev := override_debuglevels[f] := as_integer(environ[f0]);
+    print '=======  Overriding debug level:',f,'=',lev;
   }
 }
+# apply overrides from above
+for( f in field_names(override_debuglevels) )
+  default_debuglevels[f] := override_debuglevels[f];
 
-# apply max_debug level
-for( f in 1:len(default_debuglevels) )
-  default_debuglevels[f] := min(max_debug,default_debuglevels[f]);
+print 'Levels:',default_debuglevels;
 
 options := [];
 if( use_nostart )
