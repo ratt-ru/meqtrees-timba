@@ -46,18 +46,28 @@
 # A warning is given if the compiler type mismatches the compiler part
 # of the variant.
 #
-# The configure option --with-lofar can be used to specify a particular
-# version and/or variant.
+# The configure option --with-lofar=version:variant can be used to specify
+# that a particular version and variant should be used when building
+# a package. So all include files and libraries are taken from there.
+# In this way a system-wide LOFAR tree can be used, so a user does not need
+# to build the packages the package to built is dependent on.
 # The version can be given as a path, where /home/lofar is added if only
-# a version name like stable is given.
+# a version name like weekly is given.
 # Default version is stable.
 # Default variant is the name of the variant being configured.
 # E.g. if configuring BaseSim/build/gnu_debug
-#   --with-lofar=weekly:opt   -> /lofar_weekly  gnu_opt
-#   --with-lofar=:opt         -> /lofar/stable  gnu_opt
+#   --with-lofar=weekly:opt   -> /home/lofar/weekly  gnu_opt
+#   --with-lofar=:opt         -> /home/lofar/stable  gnu_opt
 #   --with-lofar=~            -> $HOME          gnu_debug
 #
 # It is checked whether the version and variant exist.
+#
+# Instead of --with-lofar, it is possible to use --with-lofar-default.
+# The difference is that a package is only taken from the given lofar tree
+# if not found in the user's tree. A package is not found in the user's
+# tree if there is no configure file for the package in the user's tree,
+# thus if the package has not been bootstrapped.
+# 
 #
 #
 AC_DEFUN([lofar_INIT],dnl
@@ -292,7 +302,6 @@ AC_ARG_WITH(lofar-libdir,
     mv lofar_config.old-h lofar_config.h
     touch lofar_config.old-h
   fi
-  
 
   CPPFLAGS="$CPPFLAGS -I$lfr_curwd/pkginc -I$lfr_curwd/pkgbldinc -I$lfr_curwd"
   LOFAR_DEPEND=
