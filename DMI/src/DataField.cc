@@ -708,29 +708,40 @@ const void * DataField::getn (int n, TypeId& tid, bool& can_write, TypeId check_
     // types must match, or TpNumeric can match any numeric type
     FailWhen( check_tid && check_tid != type() &&
               (check_tid != TpNumeric || !TypeInfo::isNumeric(type())),
-        "type mismatch: expecting "+check_tid.toString()+", got "+type().toString());
+        "type mismatch: requested "+check_tid.toString()+", have "+type().toString());
     tid = type();
     return n*typeinfo.size + (char*)headerData();
   }
   else if( dynamic_type )
   {
-    if( !check_tid || check_tid == TpObjRef ) // default is to return a reference
+    // default (if no checking) is to return the ObjRef
+    if( !check_tid || check_tid == TpObjRef ) 
     {
       tid = TpObjRef;
       return &resolveObject(n,must_write,autoprivatize);
     }
-    else // else types must match, or TpObject can be specified as 
-    {    //    a special case that forces dereferencing
-      FailWhen( check_tid != type() && check_tid != TpObject,
-          "type mismatch: expecting "+check_tid.toString()+", got "+type().toString());
-      tid = type();
-      return &resolveObject(n,must_write,autoprivatize).deref();
+    else 
+    {    
+      // if types match (or TpObject was specified to force dereferencing),
+      // deref and return object
+      if( check_tid == type() || check_tid == TpObject )
+      {
+        tid = type();
+        return &resolveObject(n,must_write,autoprivatize).deref();
+      }
+      // else mismatch. If it's a container, try accessing it in scalar mode.
+      FailWhen( !isNestable(type()),
+        "type mismatch: requested "+check_tid.toString()+", have "+type().toString());
+      const NestableContainer *nc = 
+        dynamic_cast<const NestableContainer *>(resolveObject(n,must_write,autoprivatize).deref_p());
+      FailWhen(!nc,"dynamic cast to expected type failed");
+      return nc->get(HIID(),tid,can_write,must_write,autoprivatize);
     }
   }
   else   // special type -- types must match
   {
     FailWhen( check_tid && check_tid != type(),
-        "type mismatch: expecting "+type().toString()+" got "+check_tid.toString());
+        "type mismatch: expecting "+type().toString()+" got "+check_tid.toString() );
     tid = type();
     if( must_write )
       spvec_modified = True;
