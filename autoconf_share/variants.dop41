@@ -1,5 +1,5 @@
 gnu3.compiler.conf: CXX=//dop41_0/brentjens/usr/bin/g++ --with-cppflags="-Wno-deprecated"
-gnu3.compiler.aipspp.var: --with-blitz=/dop41_0/brentjens/usr/blitz/gnu3 --with-threads --with-qt=/dop41_0/brentjens/usr/
+gnu3.compiler.aipspp.var: --with-blitz=/usr/local --with-threads --with-qt=/usr/lib/qt3
 if
 debugnt.variant.conf:	  $(aipspp)	
 

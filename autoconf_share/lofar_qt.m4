@@ -72,7 +72,7 @@ AC_CHECK_FILE([$qt_prefix/include/qt.h],
 
 	QT_CPPFLAGS="-I$QT_PATH/include"
 	QT_LDFLAGS="-L$QT_PATH/lib"
-	QT_LIBS="-lqt"
+	QT_LIBS="-lqt-mt"
 
 	CPPFLAGS="$CPPFLAGS $QT_CPPFLAGS"
 	LDFLAGS="$LDFLAGS $QT_LDFLAGS"
