@@ -739,10 +739,15 @@ class QwtImagePlot(QwtPlot):
             if self.active_image:
               xpos = e.pos().x()
               ypos = e.pos().y()
+              shape = self.raw_image.shape
 #              print 'raw mouse positions ', xpos, ' ', ypos
               xpos = self.invTransform(QwtPlot.xBottom, xpos)
               ypos = self.invTransform(QwtPlot.yLeft, ypos)
 #              print 'inverted mouse positions ', xpos, ' ', ypos
+              temp_array = numarray.asarray(ypos)
+              self.x_arrayloc = numarray.resize(temp_array,shape[0])
+              temp_array = numarray.asarray(xpos)
+              self.y_arrayloc = numarray.resize(temp_array,shape[1])
               if self._vells_plot:
                 xpos = self.plotImage.xMap.limTransform(xpos)
                 ypos = self.plotImage.yMap.limTransform(ypos)
@@ -750,13 +755,18 @@ class QwtImagePlot(QwtPlot):
                 xpos = int(xpos)
                 ypos = int(ypos)
 #              print 'image mouse positions ', xpos, ' ', ypos
-              shape = self.raw_image.shape
               self.x_array = zeros(shape[0], Float32)
               self.x_index = arange(shape[0])
               self.x_index = self.x_index + 0.5
               for i in range(shape[0]):
                 self.x_array[i] = self.raw_image[i,ypos]
               self.setAxisAutoScale(QwtPlot.yRight)
+              self.y_array = zeros(shape[1], Float32)
+              self.y_index = arange(shape[1])
+              self.y_index = self.y_index + 0.5
+              for i in range(shape[1]):
+                self.y_array[i] = self.raw_image[xpos,i]
+              self.setAxisAutoScale(QwtPlot.xTop)
               if self.xCrossSection is None:
                 self.xCrossSection = self.insertCurve('xCrossSection')
                 self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
@@ -764,18 +774,45 @@ class QwtImagePlot(QwtPlot):
                 plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, 
                    QBrush(Qt.black), QPen(Qt.black), QSize(10,10)))
               self.enableAxis(QwtPlot.yRight)
-              self.setAxisTitle(QwtPlot.yRight, 'cross-section value')
+              self.setAxisTitle(QwtPlot.yRight, 'x cross-section value')
               self.setCurveYAxis(self.xCrossSection, QwtPlot.yRight)
+              if self.yCrossSection is None:
+                self.yCrossSection = self.insertCurve('yCrossSection')
+                self.setCurvePen(self.yCrossSection, QPen(Qt.white, 2))
+                plot_curve=self.curve(self.yCrossSection)
+                plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, 
+                   QBrush(Qt.white), QPen(Qt.white), QSize(10,10)))
+              self.enableAxis(QwtPlot.xTop)
+              self.setAxisTitle(QwtPlot.xTop, 'y cross-section value')
+              self.setCurveYAxis(self.yCrossSection, QwtPlot.yLeft)
+              self.setCurveXAxis(self.yCrossSection, QwtPlot.xTop)
+              self.setAxisOptions(QwtPlot.xTop,QwtAutoScale.Inverted)
               if self._vells_plot:
                 delta_vells = self.vells_end_freq - self.vells_start_freq
                 x_step = delta_vells / shape[0] 
                 start_freq = self.vells_start_freq + 0.5 * x_step
                 for i in range(shape[0]):
                   self.x_index[i] = start_freq + i * x_step
-#                self.setCurveXAxis(self.xCrossSection, QwtPlot.xTop)
-#                self.setAxisAutoScale(QwtPlot.xTop)
-              self.setAxisAutoScale(QwtPlot.yRight)
+                delta_vells = self.vells_end_time - self.vells_start_time
+                y_step = delta_vells / shape[1] 
+                start_time = self.vells_start_time + 0.5 * y_step
+                for i in range(shape[1]):
+                  self.y_index[i] = start_time + i * y_step
               self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
+              self.setCurveData(self.yCrossSection, self.y_array, self.y_index)
+
+# put in a line where cross sections are selected
+              if self.xCrossSectionLoc is None:
+                self.xCrossSectionLoc = self.insertCurve('xCrossSectionLoc')
+                self.setCurvePen(self.xCrossSectionLoc, QPen(Qt.black, 2))
+                self.setCurveYAxis(self.xCrossSectionLoc, QwtPlot.yLeft)
+              self.setCurveData(self.xCrossSectionLoc, self.x_index, self.x_arrayloc)
+              if self.yCrossSectionLoc is None:
+                self.yCrossSectionLoc = self.insertCurve('yCrossSectionLoc')
+                self.setCurvePen(self.yCrossSectionLoc, QPen(Qt.white, 2))
+                self.setCurveYAxis(self.yCrossSectionLoc, QwtPlot.yLeft)
+                self.setCurveXAxis(self.yCrossSectionLoc, QwtPlot.xBottom)
+              self.setCurveData(self.yCrossSectionLoc, self.y_arrayloc, self.y_index)
               self.replot()
               _dprint(2, 'called replot in onMousePressed');
            
@@ -1074,6 +1111,8 @@ class QwtImagePlot(QwtPlot):
       self.removeCurves()
       self.xCrossSection = None
       self.yCrossSection = None
+      self.xCrossSectionLoc = None
+      self.yCrossSectionLoc = None
       self.dummy_xCrossSection = None
       self.myXScale = None
 
