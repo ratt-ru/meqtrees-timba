@@ -183,6 +183,11 @@
         STATUS=77
      else
         echo "FAIL (execution failure): $*"
+        # We may want to know what went wrong, so we'll secure the log file
+        if [ -f ${1}_tmp.log ]
+        then
+           mv ${1}_tmp.log ${1}.err
+        fi
      fi
      exit
   fi
