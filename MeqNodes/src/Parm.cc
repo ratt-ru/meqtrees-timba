@@ -220,7 +220,8 @@ int Parm::getResult (Result::Ref &resref,
     pfunklet->clearSolvable();
   }
   // init depend mask
-  int depend = solve ? solve_depend_mask_ : 0;
+  // if we are solvable, then we always depend on solution progress
+  int depend = isSolvable() ? solve_depend_mask_ : 0;
   
   // Create result object and attach to the ref that was passed in
   Result &result = resref <<= new Result(1,request); // result has one vellset
