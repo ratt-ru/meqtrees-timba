@@ -27,6 +27,14 @@ static int dum =  aidRegistry_MeqServer() +
 const HIID DataProcessingError = AidData|AidProcessing|AidError;
   
 InitDebugContext(MeqServer,"MeqServer");
+
+// this flag can be set in the input record of all commands dealing with
+// individual nodes to have the new node state included in the command result.
+// (The exception is Node.Get.State, which returns the node state anyway)
+const HIID FGetState = AidGet|AidState;
+
+// ...as field node_state
+const HIID FNodeState = AidNode|AidState;
   
 //##ModelId=3F5F195E0140
 MeqServer::MeqServer()
@@ -37,26 +45,28 @@ MeqServer::MeqServer()
   command_map["Resolve"] = &MeqServer::resolve;
   command_map["Get.Node.List"] = &MeqServer::getNodeList;
   command_map["Get.NodeIndex"] = &MeqServer::getNodeIndex;
-  
+
+  command_map["Disable.Publish.Results"] = &MeqServer::disablePublishResults;
+  command_map["Save.Forest"] = &MeqServer::saveForest;
+  command_map["Load.Forest"] = &MeqServer::loadForest;
+  command_map["Clear.Forest"] = &MeqServer::clearForest;
+
+  // per-node commands  
   command_map["Node.Get.State"] = &MeqServer::nodeGetState;
   command_map["Node.Set.State"] = &MeqServer::nodeSetState;
   command_map["Node.Execute"] = &MeqServer::nodeExecute;
   command_map["Node.Clear.Cache"] = &MeqServer::nodeClearCache;
   command_map["Node.Publish.Results"] = &MeqServer::publishResults;
   
-  command_map["Disable.Publish.Results"] = &MeqServer::disablePublishResults;
-
-  command_map["Save.Forest"] = &MeqServer::saveForest;
-  command_map["Load.Forest"] = &MeqServer::loadForest;
-  command_map["Clear.Forest"] = &MeqServer::clearForest;
   
 }
 
 //##ModelId=3F6196800325
-Node & MeqServer::resolveNode (const DataRecord &rec)
+Node & MeqServer::resolveNode (bool &getstate,const DataRecord &rec)
 {
   int nodeindex = rec[AidNodeIndex].as<int>(-1);
   string name = rec[AidName].as<string>("");
+  getstate = rec[FGetState].as<bool>(false);
   if( nodeindex>0 )
   {
     Node &node = forest.get(nodeindex);
@@ -109,7 +119,8 @@ void MeqServer::deleteNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 
 void MeqServer::nodeGetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
-  Node & node = resolveNode(*in);
+  bool getstate;
+  Node & node = resolveNode(getstate,*in);
   cdebug(3)<<"getState for node "<<node.name()<<" ";
   cdebug(4)<<in->sdebug(3);
   cdebug(3)<<endl;
@@ -126,18 +137,21 @@ void MeqServer::getNodeIndex (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 void MeqServer::nodeSetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
   DataRecord::Ref rec = in;
-  Node & node = resolveNode(*rec);
+  bool getstate;
+  Node & node = resolveNode(getstate,*rec);
   cdebug(3)<<"setState for node "<<node.name()<<endl;
   rec.privatize(DMI::WRITE|DMI::DEEP);
   node.setState(rec[AidState].as_wr<DataRecord>());
-  out.attach(node.state(),DMI::READONLY|DMI::ANON);
+  if( getstate )
+    out[FNodeState] <<= node.state();
 }
 
 //##ModelId=3F98D91A03B9
 void MeqServer::resolve (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
   DataRecord::Ref rec = in;
-  Node & node = resolveNode(*rec);
+  bool getstate;
+  Node & node = resolveNode(getstate,*rec);
   cdebug(2)<<"resolve for node "<<node.name()<<endl;
   // create request for the commands. Note that request ID will be null,
   // meaning it will ignore cache and go up the entire tree
@@ -145,6 +159,8 @@ void MeqServer::resolve (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   cdebug(3)<<"resolve complete"<<endl;
   out[AidMessage] = ssprintf("node %d (%s): resolve complete",
       node.nodeIndex(),node.name().c_str());
+  if( getstate )
+    out[FNodeState] <<= node.state();
 }
 
 void MeqServer::getNodeList (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
@@ -155,7 +171,8 @@ void MeqServer::getNodeList (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     ( in[AidNodeIndex].as<bool>(true) ? Forest::NL_NODEINDEX : 0 ) | 
     ( in[AidName].as<bool>(true) ? Forest::NL_NAME : 0 ) | 
     ( in[AidClass].as<bool>(true) ? Forest::NL_CLASS : 0 ) | 
-    ( in[AidChildren].as<bool>(false) ? Forest::NL_CHILDREN : 0 );
+    ( in[AidChildren].as<bool>(false) ? Forest::NL_CHILDREN : 0 ) |
+    ( in[FControlState].as<bool>(false) ? Forest::NL_CONTROL_STATE : 0 );
   int count = forest.getNodeList(list,content);
   cdebug(2)<<"getNodeList: got list of "<<count<<" nodes"<<endl;
 }
@@ -164,7 +181,8 @@ void MeqServer::getNodeList (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 void MeqServer::nodeExecute (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
   DataRecord::Ref rec = in;
-  Node & node = resolveNode(*rec);
+  bool getstate;
+  Node & node = resolveNode(getstate,*rec);
   cdebug(2)<<"nodeExecute for node "<<node.name()<<endl;
   // take request object out of record
   Request &req = rec[AidRequest].as_wr<Request>();
@@ -197,6 +215,8 @@ void MeqServer::nodeExecute (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     out[AidResult] <<= resref;
   out[AidMessage] = ssprintf("node %d (%s): execute() returns %x",
       node.nodeIndex(),node.name().c_str(),flags);
+  if( getstate )
+    out[FNodeState] <<= node.state();
 }
 
 
@@ -204,12 +224,15 @@ void MeqServer::nodeExecute (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 void MeqServer::nodeClearCache (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
   DataRecord::Ref rec = in;
-  Node & node = resolveNode(*rec);
+  bool getstate;
+  Node & node = resolveNode(getstate,*rec);
   bool recursive = (*rec)[FRecursive].as<bool>(false);
   cdebug(2)<<"nodeClearCache for node "<<node.name()<<", recursive: "<<recursive<<endl;
   node.clearCache(recursive);
   out[AidMessage] = ssprintf("node %d (%s): cache cleared%s",
       node.nodeIndex(),node.name().c_str(),recursive?" recursively":"");
+  if( getstate )
+    out[FNodeState] <<= node.state();
 }
 
 //##ModelId=400E5B6C0247
@@ -276,7 +299,8 @@ void MeqServer::clearForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &)
 void MeqServer::publishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
   DataRecord::Ref rec = in;
-  Node & node = resolveNode(*rec);
+  bool getstate;
+  Node & node = resolveNode(getstate,*rec);
   bool enable = rec[FEnable].as<bool>(true);
   const HIID &evid = rec[FEventId].as<HIID>(EvNodeResult);
   if( enable )
@@ -293,6 +317,8 @@ void MeqServer::publishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     out[AidMessage] = ssprintf("node %d (%s): no longer publishing results",
         node.nodeIndex(),node.name().c_str());
   }
+  if( getstate )
+    out[FNodeState] <<= node.state();
 }
 
 void MeqServer::disablePublishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &)

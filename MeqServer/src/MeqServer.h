@@ -82,7 +82,7 @@ class MeqServer : public VisRepeater, public EventRecepient
 
   private:
     //##ModelId=3F6196800325
-    Node & resolveNode (const DataRecord &rec);
+    Node & resolveNode (bool &getstate,const DataRecord &rec);
       
     //##ModelId=3F5F218F02BD
     Forest forest;
