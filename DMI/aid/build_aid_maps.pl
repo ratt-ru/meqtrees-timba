@@ -1,44 +1,42 @@
 #!/usr/bin/perl
 
-# Name of auto-generated registry map file 
+# Mame of auto-generated AID and Type ID headers
 # (%s is substituded for aidgroup name)
+my $aidheadername = "AID-%s.h";
+my $tidheadername = "TID-%s.h";
+# Name of auto-generated registry map file 
 my $mapfilename = "AID-%s-Registry.cc";
 # Name of auto-generated type categories macro file. 
-# (%s is substituted for aidgroup name)
 my $typeitername = "TypeIter-%s.h";
 # Name of global cache file
 # (The full path to this file should be given in the command-line
 # arguments)
 my $global_listfile = "Global.aidlist";
 
-# ID maps. here, IDs are stored without the "Aid" or "Tp" prefix
-my %globmap;        # global map of IDs->numbers
-my %reversemap;     # reverse map of numbers to IDs
-my %defined_at;     # map of IDs -> where they are defined
-my %reserved;       # map of reserved numbers (from list files) into IDs
-my %typequalifier;  # map: is a type, and of what category
-my %typeheader;     # ID -> corresponding header file (for types only)
-my %typegroup;      # Type ID -> dir
-
-# Note that the same AID can be defined by many groups and in
-# several packages, but a type has to be located uniquely
+# ID maps. here, IDs keys are defined in uppercase, and
+# without the "Aid" or "Tp" prefix
+my %id_idmap;          # map: ID -> number
+my %id_nummap;         # map: number -> ID
+my %id_defined_at;     # map: ID -> where it's defined (path:line)
+my %id_typequalifier;  # map: ID -> type category
+my %id_typeheader;     # map: ID -> corresponding header file (for types only)
+my %id_qualified_typename;
+                       # map: ID -> fully quailfied type name (with namespaces, etc.)
 
 my @newids;         # list of newly generated IDs
 
 # Group maps
 # An ID group corresponds to a package or directory. There can only be one
-# group per directory. In each directory, three files are generated:
-#   AID-groupname.h, containing Aid___ constants,
-#   TID-groupname.h, containing Tp___ constants,
-#   AID-groupname-Registry.h, containing registry map declarations
-#       (this last file has to be included in exactly one source file in the package)
+# group per directory. 
 # The name of the group is defined by a #pragma aidgroup declaration
 # appearing somewhere in that directory.
-my %grouplist;     # dir -> list of IDs belonging to group
-my %groupname;     # dir -> group name
+my %grouplist;        # dir -> list of IDs belonging to group
+                      # IDs here can be a mix of upper and lowercase; this is
+                      # what is actually used C++ identifiers
+my %groupname;        # dir -> group name
 my %group_defined_at; # dir -> where its group name was defined
-my %group_regen;   # dir -> flag, should this dir be regenerated
-my %group_newids;  # dir -> count of new IDs in it
+my %group_regen;      # dir -> flag, should this dir be regenerated
+my %group_newids;     # dir -> count of new IDs in it
 
 # Lists of type by category (i.e. qualifier). A type ID in a #pragma types
 # declaration should be prefixed by one of four qualifiers:
@@ -54,8 +52,10 @@ my %group_newids;  # dir -> count of new IDs in it
 # Finally, the "/" prefix is used - with AIDs only - to indicate that a 
 # prefix-less constant should be generated. This prefix is not used with types.
 my %qualnames = ( "+" => "Numeric", "=" => "Special", 
-                  "-" => "Other", ":" => "Binary", 
-                  "#" => "Dynamic" , "%" => "Intermediate" );
+                  "-" => "Other",   ":" => "Binary", 
+                  "#" => "Dynamic", "%" => "Intermediate" );
+
+# list of types (uppercase) for each qualifier
 my %typesbyqual;
 for( keys %qualnames ) {
   $typesbyqual{$_} = [];
@@ -126,21 +126,22 @@ sub FileName {
 # This sub assigns a type qualifier
 sub QualifyType {
   my ($id,$qual,$dir) = @_;
+  $id = lc $id;
   # check that qualifier does not conflict with previous declaration
-  if( $typequalifier{$id} ) 
+  if( $id_typequalifier{$id} ) 
   {
-    $typequalifier{$id} ne $qual and die
-      "$path:$line: type '$id' already declared as $qualnames{$qualifier} at $defined_at{$id}"; 
-  } 
+    $id_typequalifier{$id} ne $qual and die
+      "$path:$line: type $id already declared as $id_typequalifier{$id} at $id_defined_at{$id}"; 
+  }
   else 
   {
-    $typequalifier{$id} = $qual;
+    $id_typequalifier{$id} = $qual;
   }
   # check that group does not conflict with previous declaration
   if( $typegroup{$id} )
   {
     $typegroup{$id} ne $dir and die
-      "$path:$line: type '$id' already declared at $defined_at{$id}"; 
+      "$path:$line: type $id already declared in $typegroup{$id} at $id_defined_at{$id}"; 
   }
   else
   {
@@ -150,28 +151,27 @@ sub QualifyType {
   push @{$typesbyqual{$qual}},$id;
 }
 
-# This sub inserts a reserved AID
+# This sub reserves an ID. Arguments: ("[qualifier_char]name",number,directory)
 sub ReserveId {
   my ($id,$num,$dir) = @_;
+  my $id = lc $id; # to uppercase
   # strip off type qualifier, if any
   my $qualifier;
   $id =~ s/^([+%#:=-])// and $qualifier = $1; 
-  # check for number conflicts
-  if( $reserve{$num} ) {  # already reserved? Check for name match
-    $reserve{$num} eq $id or
-      die "$path:$line: $num already assigned to $reversemap{$num} from $defined_at{$id}";
-  } else {  # reserve this ID
-    $reversemap{$num} = $reserve{$num} = $id;
-  }
-  # check for consistency with previous declarations
-  if( defined $globmap{$id} ) {
-    $globmap{$id} == $num or
-      die "$path:$line: $id already defined as $globmap{$id} at $defined_at{$id}";
-  } else {
-    $globmap{$id} = $num;
-    $defined_at{$id} = "$path:$line";
-  }
+  # check for consistency with existing declarations
+  my $id1 = $id_nummap{$num};
+  my $num1 = $id_idmap{$id};
+  !$id1 or $id1 eq $id or
+      die "$path:$line: $num already assigned to $id1 from $id_defined_at{$id1}";
+  !$num1 or $num1 == $num or
+      die "$path:$line: $id already defined as $num1 at $id_defined_at{$id}";
+  # place into maps
+  $id_idmap{$id} = $num;
+  $id_nummap{$num} = $id;
+  $id_defined_at{$id} = "$path:$line";
+  # qualify type if is a type
   QualifyType($id,$qualifier,$dir) if $qualifier;
+  # update max ID number
   $maxid > $num or $maxid = $num;
 }
 
@@ -194,10 +194,9 @@ sub ReadListFile
     $line++;
     next if /^\s*$/ or /^\s*;/;
     if( /\s*(\w+)\s+(\d+)\s*(; from (.*))?$/ ) {
-      my ($id,$num,$dum,$from) = ($1,$2,$3,$4);
-      # print $id,$num,$from,"\n";
+      my ($id,$num,$dum,$from) = (lc $1,$2,$3,$4);
       ReserveId($id,$num,$dir);
-      $defined_at{$id} = "$from";
+      $id_defined_at{$id} = "$from"; # override the from line with stuff from file
       $count++;
     } else {
       print STDERR "$path:$line: warning: unable to parse this line, skipping\n";
@@ -246,7 +245,7 @@ sub ReadSourceFile {
       $path =~ /\.h$/ or die "$path:$line: type declarations can only be inserted in .h files"; 
       $istype = 1;
     }
-    elsif( $keyword ne "aid" ) {
+    elsif( $keyword !~ "aids?" ) {
       # skip any other pragmas
       next;
     }
@@ -275,16 +274,21 @@ sub ReadSourceFile {
       $explicit_number = ($id =~ s/=(\d+)$//) ? $1 : 0;
       # print $id,$explicit_number,"\n";
       # strip off namespace, if specified
-      if( $istype && $id =~ /(.*)::([^:]+)$/ ) {
-        $full_id = $id;
-        $id =~ s/:://g; 
-        $qualified_typename{$id} = $full_id;
-      } else {
-        $qualified_typename{$id} = $id;
+      if( $istype )
+      {
+        if( $id =~ /(.*)::([^:]+)$/ ) {
+          $full_id = $id;
+          $id =~ s/:://g; 
+          $id_qualified_typename{lc $id} = $full_id;
+        } else {
+          $id_qualified_typename{lc $id} = $id;
+        }
       }
+      # ID is lowercase id (duh!)
+      my $ID = lc $id;
       # remember where it was defined
-      $defined_at{$id} = "$path:$line" unless $defined_at{$id};
-      $group_newids{$dir}++ unless $globmap{$id};  # count as new?
+      $id_defined_at{$ID} = "$path:$line" unless $id_defined_at{$ID};
+      $group_newids{$dir}++ unless $id_idmap{$ID};  # count as new?
       # assign ID to group      
       if( $explicit_number )  # number assigned?
       { 
@@ -292,9 +296,9 @@ sub ReadSourceFile {
       }
       else              # number will be allocated, if not already defined
       {
-        unless( $globmap{$id} ) 
+        unless( $id_idmap{$ID} )
         {
-          $globmap{$id} = -1;           # will allocate later
+          $id_idmap{$ID} = -1;           # will allocate later
           push @newids,$id;
         }
       }
@@ -308,8 +312,8 @@ sub ReadSourceFile {
         # if dynamic type or special or structure, then add to type header map
         # (unless disabled by the noinclude keyword)
         if( $qualifier =~ /^[:#=]$/ and $include ) {
-          $typeheader{$id} and die "$path:$line: type '$id' already declared in $typeheader{$id}"; 
-          $typeheader{$id} = $file;
+          $id_typeheader{$ID} and die "$path:$line: type $id already declared in $id_typeheader{$ID}"; 
+          $id_typeheader{$ID} = $file;
         }
       }
     } # end foreach $id (@tokens)
@@ -344,9 +348,9 @@ if( @newids ) {
 } else {
   print STDERR "=== Assigning new IDs: none\n";
 }
-for( keys %globmap ) {
-  if( $globmap{$_} < 0 ) {
-    $globmap{$_} = ++$maxid;
+for( keys %id_idmap ) {
+  if( $id_idmap{$_} < 0 ) {
+    $id_idmap{$_} = ++$maxid;
   }
 }
 
@@ -372,10 +376,10 @@ if( @newids )
 {
   print STDERR "=== Regenerating the global list file:\n";
   $path = "$global_listdir/$global_listfile";
-  printf STDERR "    $path: [re]generating with %d IDs\n",scalar keys %globmap;
+  printf STDERR "    $path: [re]generating with %d IDs\n",scalar keys %id_idmap;
   open(OUTFILE,">$path.new") or die "open($path.new): $!";
-  for( sort keys %globmap ) {
-    printf OUTFILE "%-32s %-10d ; from %s\n",$typequalifier{$_}.$_,$globmap{$_},$defined_at{$_};
+  for( sort keys %id_idmap ) {
+    printf OUTFILE "%-32s %-10d ; from %s\n",$id_typequalifier{$_}.$_,$id_idmap{$_},$id_defined_at{$_};
   }
   close OUTFILE;
   if( ReplaceIfDiff($path,"$path.new") )
@@ -403,7 +407,7 @@ foreach $dir ( keys %group_regen )
   #
   foreach $is_tid (0,1) 
   {
-    my $headername = $is_tid ? "TID-$group.h" : "AID-$group.h";
+    my $headername = sprintf($is_tid ? $tidheadername : $aidheadername,$group);
     my $idtypename = $is_tid ? "TypeId" : "AtomicID";
     
     $path = "$dir/$headername";
@@ -429,24 +433,24 @@ ______END_OF_QUOTE
     foreach $id ( sort @{$grouplist{$dir}} ) 
     {
       my $name = $id =~ /^\/(.*)$/ ? $1 : ( $is_tid ? "Tp$id" : "Aid$id" );
-      my $qual = $typequalifier{$id};
       my $codename = $name;
-      # $codename =~ s/:/_/g;  # codename replaces : with _
+      $ID = lc $id;
+      my $qual = $id_typequalifier{$ID};
       next if $is_tid and not $qual;  # TID -- only generate types
       $idcount++;
       # protect from re-declaring
       print OUTFILE "#ifndef _defined_id_$codename\n#define _defined_id_$codename 1\n";
       # generate constant definition
       printf OUTFILE "%-50s// from %s\n",
-             sprintf("const %s %s(%d);",$idtypename,$codename,-$globmap{$id}),
-             $defined_at{$id};
-      printf OUTFILE "const int %s_int = %d;\n",$codename,-$globmap{$id};
+             sprintf("const %s %s(%d);",$idtypename,$codename,-$id_idmap{$ID}),
+             $id_defined_at{$ID};
+      printf OUTFILE "const int %s_int = %d;\n",$codename,-$id_idmap{$ID};
       if( $is_tid )
       {
         # for classes & structs, add a forward declaration
         # (but not for 'noinclude' types, such as std::string)
-        my $fqid = $qualified_typename{$id};
-        if( $qual =~ /^[:#=]$/ and $typeheader{$id} ) 
+        my $fqid = $id_qualified_typename{$ID};
+        if( $qual =~ /^[:#=]$/ and $id_typeheader{$ID} ) 
         {
           # does the type include a namespace? generate surrounding declarations
           if( $fqid ne $id )  
@@ -520,15 +524,16 @@ ______END_OF_QUOTE
   {
     my $name = $id =~ /^\/(.*)$/ ? $1 : $id;
     my $codename = $name;
+    $ID = lc $id;
     # if it's a type, register its type info and perhaps generate a constructor
-    for( $typequalifier{$id} )
+    for( $id_typequalifier{$ID} )
     {
-      my $fqid = $qualified_typename{$id};
+      my $fqid = $id_qualified_typename{$ID};
       last unless $_;
-      if( $typeheader{$id} ) {
-        unless( $included{$typeheader{$id}} ) {
-          print OUTFILE "#include \"$typeheader{$id}\"\n";
-          $included{$typeheader{$type}} = 1;
+      if( $id_typeheader{$ID} ) {
+        unless( $included{$id_typeheader{$ID}} ) {
+          print OUTFILE "#include \"$id_typeheader{$ID}\"\n";
+          $included{$id_typeheader{$type}} = 1;
         }
       }
       # generate methods for special types
@@ -561,15 +566,16 @@ ______END_OF_QUOTE
 ______END_OF_QUOTE
   
   my %included = ();
-  foreach $id (@{$grouplist{$dir}}) 
+  foreach $id (@{$grouplist{$dir}})
   {
     my $name = $id =~ /^\/(.*)$/ ? $1 : $id;
     my $codename = $name;
-    $codename =~ s/:/_/g;  # codename replaces : with _
-    my $num = -$globmap{$id};
+    $ID = lc $id;
+    my $fqid = $id_qualified_typename{$ID};
+    my $num = -$id_idmap{$ID};
     print OUTFILE "        AtomicID::registerId($num,\"$name\")+\n";
     # if it's a type, register its type info 
-    for( $typequalifier{$id} )
+    for( $id_typequalifier{$ID} )
     {
       last unless $_;
       print OUTFILE "        TypeInfoReg::addToRegistry($num,TypeInfo(";
@@ -617,7 +623,7 @@ ______END_OF_QUOTE
   {
     # get all types for this qualifier defined in this dir
     @types = map { $typegroup{$_} eq $dir ? $_ : () } @{$typesbyqual{$qual}};
-    @types = sort {$a <=> $b} @types;
+    @types = sort {$a <=> $b} map { $id_qualified_typename{$_} } @types;
     # produces macro deinfitions
     printf STDERR "      %-14s%s","${qualnames{$qual}}: ",
                   join(" ",@types) . "\n";
