@@ -61,6 +61,7 @@ continue                         1414       ; from /home/oms/LOFAR/TIMBA/MeqServ
 control                          1050       ; from /home/oms/LOFAR/TIMBA/MEQ/src/Node.h:40
 conv                             1321       ; from /home/oms/LOFAR/TIMBA/VisCube/src/VisVocabulary.h:33
 corr                             1267       ; from /home/oms/LOFAR/TIMBA/VisCube/src/VisVocabulary.h:28
+count                            1477       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/test/EchoWP.h:11
 covar                            1127       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:40
 create                           1087       ; from /home/oms/LOFAR/TIMBA/MEQ/src/Node.h:40
 d                                1010       ; from /home/oms/LOFAR/TIMBA/DMI/src/AtomicID.h:33
@@ -99,6 +100,7 @@ double                           44         ; from /home/oms/LOFAR/TIMBA/DMI/src
 down                             1470       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Gateways.h:24
 duplicate                        1455       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Gateways.h:25
 e                                1011       ; from /home/oms/LOFAR/TIMBA/DMI/src/AtomicID.h:33
+echowp                           1476       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/test/EchoWP.h:10
 effective                        1320       ; from /home/oms/LOFAR/TIMBA/VisCube/src/VisVocabulary.h:32
 enable                           1403       ; from /home/oms/LOFAR/TIMBA/MeqServer/src/MeqServer.h:15
 end                              1048       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:34
@@ -305,7 +307,7 @@ normalized                       1156       ; from /home/oms/LOFAR/TIMBA/MEQ/src
 notify                           1360       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppAgent/src/AppControlAgent.h:20
 num                              1110       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:35
 o                                1022       ; from /home/oms/LOFAR/TIMBA/DMI/src/AtomicID.h:33
-#octopussymessage                1437       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Message.h:29
+octopussymessage                 1437       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Message.h:29
 offset                           1135       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:34
 only                             1187       ; from /home/oms/LOFAR/TIMBA/MeqNodes/src/ReqSeq.h:32
 open                             1431       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Gateways.h:25
@@ -328,6 +330,7 @@ pert                             1096       ; from /home/oms/LOFAR/TIMBA/MEQ/src
 perturbations                    1091       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:36
 perturbed                        1145       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:36
 phase                            1292       ; from /home/oms/LOFAR/TIMBA/VisCube/src/VisVocabulary.h:34
+ping                             1479       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/test/EchoWP.h:10
 plot                             1208       ; from /home/oms/LOFAR/TIMBA/MeqNodes/src/DataCollect.h:30
 point                            1286       ; from /home/oms/LOFAR/TIMBA/VisCube/src/VisVocabulary.h:28
 pointing                         1309       ; from /home/oms/LOFAR/TIMBA/VisCube/src/VisVocabulary.h:34
@@ -335,6 +338,7 @@ polarization                     1306       ; from /home/oms/LOFAR/TIMBA/VisCube
 polc                             1098       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:38
 polcs                            1118       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:38
 poly                             1315       ; from /home/oms/LOFAR/TIMBA/VisCube/src/VisVocabulary.h:33
+pong                             1480       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/test/EchoWP.h:10
 port                             1435       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Gateways.h:25
 ports                            1453       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/GWClientWP.h:11
 pos                              1278       ; from /home/oms/LOFAR/TIMBA/VisCube/src/VisVocabulary.h:30
@@ -342,6 +346,7 @@ post                             1345       ; from /home/oms/LOFAR/TIMBA/AppAgen
 predict                          1378       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:36
 prefix                           1348       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppAgent/src/OctoEventSink.h:13
 priority                         1372       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppAgent/src/OctoEventSink.h:14
+process                          1478       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/test/EchoWP.h:11
 processing                       1415       ; from /home/oms/LOFAR/TIMBA/MeqServer/src/MeqServer.h:13
 product                          1326       ; from /home/oms/LOFAR/TIMBA/VisCube/src/VisVocabulary.h:35
 profile                          1250       ; from /home/oms/LOFAR/TIMBA/MeqNodes/src/DataCollect.h:30
@@ -368,6 +373,7 @@ relative                         1062       ; from /home/oms/LOFAR/TIMBA/MEQ/src
 remote                           1448       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/Gateways.h:24
 reopen                           1447       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/src/GWClientWP.h:11
 repeater                         1376       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppUtils/src/VisRepeater.h:9
+reply                            1475       ; from /home/oms/LOFAR/TIMBA/OCTOPUSSY/test/EchoWP.h:11
 request                          1039       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:30
 resample                         1107       ; from /home/oms/LOFAR/TIMBA/MEQ/src/MeqVocabulary.h:32
 residuals                        1384       ; from /home/oms/LOFAR/TIMBA/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:36
