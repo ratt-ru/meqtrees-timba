@@ -12,10 +12,12 @@ Bound                            1047       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 Bye                              1038       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:21
 C                                1003       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Client                           1097       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
+#ColumnarTableTile               1131       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/ColumnarTableTile.h:9
 Connected                        1065       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 Connection                       1069       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 ConnectionMgrWP                  1039       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:18
 Content                          1123       ; from /home/oms/LOFAR/CEP/CPA/OCTOGlish/src/GlishClientWP.h:18
+Corr                             1132       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisCube.h:34
 Count                            1119       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
 D                                1004       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Data                             1118       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
@@ -33,6 +35,7 @@ F                                1006       ; from /home/oms/LOFAR/DMI/src/Atomi
 Fail                             1036       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:9
 FailConnect                      1084       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWClientWP.h:17
 Fatal                            1092       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
+Freq                             1130       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisCube.h:34
 G                                1008       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 GW                               1076       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 GWClientWP                       1094       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:18
@@ -106,6 +109,7 @@ Stop                             1053       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 Subscribe                        1099       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:19
 Subscriptions                    1034       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MTGatewayWP.h:22
 T                                1021       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
+#TableFormat                     1133       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/TableFormat.h:9
 Text                             1079       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:26
 Timeout                          1089       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:19
 Timestamp                        1032       ; from /home/oms/LOFAR/DMI/src/Timestamp.h:11
@@ -113,6 +117,9 @@ Type                             1102       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 U                                1023       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Up                               1070       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 V                                1024       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
+#VisCube                         1129       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisCube.h:33
+#VisCubeSet                      1127       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisCubeSet.h:12
+#VisTile                         1128       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisTile.h:47
 W                                1026       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 WP                               1096       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:19
 X                                1027       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
