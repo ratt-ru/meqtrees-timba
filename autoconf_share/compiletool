@@ -31,21 +31,24 @@ case $toolname in
     CXX)
     ;;
     LIBTOOL)
-	# find -o part of command and store next argument as target name
+      # find -o part of command and store next argument as target name
+      linkmode=`echo $* | sed -e 's/.*\(--mode=link\).*/\1/'`;
+      if [ "$linkmode" = "--mode=link" ]; then
         outputname=`echo $* | sed -e 's/.* \+-o \+\([^ ]\+\).*/\1/'`;
 	outputext=`echo $outputname | cut -d. -f2`;
 
 	# exclude .lo objects because we're only interested in libraries and binaries
 	if test "$outputext" != "lo"; then
-	    # log compiler command
-	    echo $* > $outputname.compile.log
+	  # log compiler command
+	  echo "$@" > $outputname.compile.log
 	fi
+      fi
     ;;
     *)
-	echo "compiletool: error: first argument should be one of CC, CXX or LIBTOOL"
-	exit 1;
+      echo "compiletool: error: first argument should be one of CC, CXX or LIBTOOL"
+      exit 1;
     ;;
 esac
 
 # execute actual compiler command
-$*
+"$@"
