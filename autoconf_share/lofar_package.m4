@@ -195,7 +195,10 @@ if test $lfr_cv_hdr_package = yes  &&  test $lfr_cv_lib_package = yes; then
   rm -f libnames_depend
   touch libnames_depend
   $lofar_sharedir/makepkglinks $1 $lfr_package_include $lfr_package_libdir pkginc pkgbldinc libnames_depend $lfr_option 0
+  # Get the libraries this package is dependent on.
+  # Use echo to remove the possible newlines.
   lfr_depend=`cat libnames_depend`
+  lfr_depend=`echo $lfr_depend`
   rm libnames_depend
   LOFAR_DEPEND="$LOFAR_DEPEND $lfr_depend"
 ]

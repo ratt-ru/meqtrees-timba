@@ -47,7 +47,7 @@ ln -s $incdir/src $inclin/$pkgnm
 ln -s $libdir/src $liblin/$pkgnm
 
 if [ "$option" != 2 ]; then
-  echo -n "$libdir/src/lib$libnm.la " >> $libdep;
+  echo "$libdir/src/lib$libnm.la" >> $libdep;
 fi
 
 # Make symlinks to packages used by this package.
