@@ -338,6 +338,7 @@ void TestDataRecord ()
   cout<<"======================= testing BOIO\n";
   cout<<"======================= writing\n";
   BOIO boio("test.boio",BOIO::WRITE);
+  cout<<"Record is now: "<<rec.sdebug(10)<<endl;
   boio << rec << rec["X"].as<DataArray>();
   boio.close();
   

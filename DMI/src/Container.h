@@ -271,7 +271,7 @@ class NestableContainer : public BlockableObject
           // if target is an ObjRef, returns it, checking for writability
           // else throws an exception
         //##ModelId=3DB9349E0198
-          inline const ObjRef * asRef (bool write=False) const;
+          const ObjRef * asRef (bool write=False) const;
 
           // if target is an NC, returns pointer to it, else 0.
           // if target is not specified, uses the current index
