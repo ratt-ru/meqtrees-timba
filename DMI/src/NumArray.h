@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.37  2005/03/24 15:03:35  smirnov
+//  %[ER: ]%
+//  Fixed bug in conversion of arrays to Glish
+//  Fixed ordering in Solver output
+//
 //  Revision 1.36  2005/02/03 12:54:53  smirnov
 //  %[ER: 16]%
 //  1. Added support for flag Vells and flagging. Not yet fully tested,
@@ -258,9 +263,13 @@ public:
   explicit NumArray (const blitz::Array <T,N> & array,TypeId realtype=0);
 
 #ifdef HAVE_AIPSPP
-  // templated method to create a copy of the given AIPS++ array
+  // templated constructor makes a copy of the given AIPS++ array
   template<class T>
   explicit NumArray (const casa::Array<T> & array,TypeId realtype=0);
+  
+  // templated method to init with a copy of the given AIPS++ array
+  template<class T>
+  void init (const casa::Array<T> & array,TypeId realtype=0);
 #endif
 
   // Copy (ref/cow semantics unless DMI::DEEP is specified).
@@ -648,8 +657,14 @@ NumArray::NumArray (const casa::Array<T> &array,TypeId realtype)
 : Container(),
   itsArray    (0)
 {
-  FailWhen( array.ndim() > 10,"NumArray(casa::Array<T>): illegal array rank" );
   initSubArray();
+  init(array,realtype);
+}
+
+template<class T>
+void NumArray::init (const casa::Array<T> &array,TypeId realtype)
+{
+  FailWhen( array.ndim() > 10,"NumArray(casa::Array<T>): illegal array rank" );
   itsScaType  = isStringArray(array) ? Tpstring : typeIdOf(T);
   itsElemSize = isStringArray(array) ? sizeof(string) : sizeof(T);
   itsType     = TpArray(itsScaType,array.ndim());

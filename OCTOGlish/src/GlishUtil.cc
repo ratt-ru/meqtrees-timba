@@ -322,16 +322,10 @@ void GlishUtil::newDMINumArray (ObjRef &ref,const GlishArray &arr)
   arr.get(array);
   DMI::NumArray & numarr = *GlishUtil::createSubclass<DMI::NumArray>(ref,arr);
   // init numarray with AIPS++ type and shape
-  numarr.init(typeIdOf(T),array.shape(),DMI::NOZERO);
-  // get array atorage and copy over to NumArray
-  Bool delstor;
-  const T * storage = array.getStorage(delstor);
-  memcpy(numarr.getDataPtr(),storage,numarr.size()*numarr.elementSize());
-  array.freeStorage(storage,delstor);
+  numarr.init(array);
   // validate content
   numarr.validateContent(true);
 }
-
 
 // helper function creates a DMI::NumArray from a GlishArray
 ObjRef GlishUtil::makeDMINumArray (const GlishArray &arr,bool isIndex)

@@ -174,12 +174,11 @@ int Solver::getResult (Result::Ref &resref,
   // The result has 1 plane.
   Result& result = resref <<= new Result(1);
   VellSet& vellset = result.setNewVellSet(0);
-  DMI::Record& metricsRec = result[FMetrics] <<= new DMI::Record;
+  DMI::Vec& metricsList = result[FMetrics] <<= new DMI::Vec(TpDMIRecord,1);
   // Allocate variables needed for the solution.
   uint nspid = 0;
   vector<int> spids;
   Vector<double> solution;
-  Vector<double> allSolutions;
   std::vector<Result::Ref> child_results(numChildren());
   std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
   // get the request ID -- we're going to be incrementing the part of it 
@@ -207,6 +206,8 @@ int Solver::getResult (Result::Ref &resref,
   if (itsCurClearMatrix) 
       itsSpids.clear();
   // Iterate as many times as needed.
+  // matrix of solutions kept here
+  LoMat_double allSolutions;
   int step;
   for (step=0; step<itsCurNumIter; step++) 
   {
@@ -382,18 +383,14 @@ int Solver::getResult (Result::Ref &resref,
     // Fill it with zeroes and stop if no invert will be done.
     if (step == itsCurNumIter-1  &&  !itsCurInvertMatrix) {
       if (step == 0) {
-        allSolutions.resize (nspid);
+        allSolutions.resize(1,nspid);
         allSolutions = 0.;
       }
       break;
     }
-    // Keep all solutions in a single vector.
-    allSolutions.resize ((step+1)*nspid, true);
-    // The last part is the current solution.
-    Vector<double> vec(allSolutions(Slice(step*nspid, nspid)));
-    solution.reference (vec);
+    solution.resize(nspid);
     // Solve the equation.
-    DMI::Record& solRec = metricsRec[step] <<= new DMI::Record;
+    DMI::Record& solRec = metricsList[step] <<= new DMI::Record;
     // request for last iteration is processed reparately
     bool lastIter = itsCurLastUpdate && step==itsCurNumIter-1;
     solve(solution, reqref, solRec, resref, child_results,
@@ -415,14 +412,14 @@ int Solver::getResult (Result::Ref &resref,
     }
     // Unlock all parm tables used.
     ParmTable::unlockTables();
+    // copy solutions vector to allSolutions row
+    allSolutions.resizeAndPreserve(step+1,nspid);
+    allSolutions(step,LoRange::all()) = B2A::refAipsToBlitz<double,1>(solution);
   }
   // Put the spids in the result.
   vellset.setSpids(spids);
   // Distribute the last solution (if there is one).
-  // result depends on domain, and has -- most likely -- been updated
-  LoShape shape(nspid,step);
-  double* sol = vellset.setReal(shape).realStorage();
-  memcpy (sol, allSolutions.data(), nspid*step*sizeof(double));
+  vellset.setValue(new Vells(allSolutions));
   return 0;
 }
 

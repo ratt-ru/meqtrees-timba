@@ -262,7 +262,7 @@ public:
   
   // Construct from array
   template<class T,int N>
-  Vells (const typename Traits<T,N>::Array &arr)
+  Vells (const blitz::Array<T,N> &arr)
   : DMI::NumArray(arr,TpMeqVells)
   { validateContent(false); }
 
