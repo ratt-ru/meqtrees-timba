@@ -3,8 +3,19 @@
 using namespace AppControlAgentVocabulary;
 using namespace VisRepeaterVocabulary;
 using namespace AppState;
+using namespace VisAgent;
 
 InitDebugSubContext(VisRepeater,ApplicationBase,"VisRepeater");
+
+void VisRepeater::postDataEvent (const HIID &event,const string &msg)
+{
+  DataRecord::Ref rec(DMI::ANONWR);
+  if( !vdsid_.empty() )
+    rec()[FVDSID] = vdsid_;
+  if( msg.length() )
+    rec()[AidText] = msg;
+  control().postEvent(event|vdsid_,rec);
+}
 
 //##ModelId=3E392C570286
 void VisRepeater::run ()
@@ -29,6 +40,8 @@ void VisRepeater::run ()
       continue;
     }
     bool output_open = True;
+    state_ = FOOTER;
+    vdsid_.clear();
     // run main loop
     while( control().state() > 0 )  // while in a running state
     {
@@ -41,8 +54,67 @@ void VisRepeater::run ()
       {
         if( output_open )
         {
-          cdebug(3)<<"received "<<AtomicID(-intype)<<", id "<<id<<", copying to output\n";
-          outstat = output().put(intype,ref);
+          bool write = True;
+          HIID event;
+          string message;
+          // check that type is consistent with state
+          switch( intype )
+          {
+            case HEADER:
+              cdebug(2)<<"received HEADER "<<id<<endl;
+              // if not expecting a header, post warning event
+              if( state_ != FOOTER )
+              {
+                cdebug(2)<<"header interrupts previous data set "<<vdsid_<<endl;
+                postDataEvent(DataSetInterrupt,"unexpected header, interrupting data set");
+              }
+              state_ = HEADER;
+              vdsid_ = id;
+              event = DataSetHeader;
+              message = "received header for dataset "+id.toString();
+              break;
+            
+            case DATA:
+              if( state_ != HEADER && state_ != DATA )
+              {
+                write = False;
+                cdebug(3)<<"DATA "<<id<<" out of sequence, state is "<<AtomicID(-state_)<<", dropping\n";
+              }
+              else
+                state_ = DATA;
+              break;
+              
+            case FOOTER:
+              if( state_ == HEADER || state_ == DATA )
+              {
+                if( id == vdsid_ )
+                {
+                  cdebug(2)<<"received FOOTER "<<id<<endl;
+                  state_ = FOOTER;
+                  event = DataSetFooter;
+                  message = "received footer for dataset "+id.toString();
+                }
+                else
+                {
+                  write = False;
+                  cdebug(3)<<"FOOTER "<<id<<" does not match dataset "<<vdsid_<<", dropping\n";
+                  postDataEvent(FooterMismatch,"footer id "+id.toString()+" does not match");
+                }
+              }
+              else
+              {
+                write = False;
+                cdebug(3)<<"FOOTER "<<id<<" out of sequence, state is "<<AtomicID(-state_)<<", dropping\n";
+              }
+              break;
+          }
+          if( write )
+          {
+            cdebug(3)<<"writing to output: "<<AtomicID(-intype)<<", id "<<id<<endl;
+            outstat = output().put(intype,ref);
+            if( !event.empty() )
+              postDataEvent(event,message);
+          }
         }
         else
         {
@@ -56,7 +128,7 @@ void VisRepeater::run ()
         if( outstat == AppEvent::ERROR )
         {
           cdebug(2)<<"error on output: "<<output().stateString()<<endl;
-          control().postEvent(OutputErrorEvent,output().stateString());
+          postDataEvent(OutputErrorEvent,output().stateString());
           control().setState(OUTPUT_ERROR);
           output_open = False;
         }
@@ -66,16 +138,14 @@ void VisRepeater::run ()
           // the output wants a header
           cdebug(2)<<"warning: output stream returned "<<outstat<<endl;
           if( outstat == AppEvent::OUTOFSEQ )
-          {
-            control().postEvent(OutputSequenceEvent,"output is out of sequence");
-          }
+            postDataEvent(OutputSequenceEvent,"output is out of sequence");
         }
       }
       // error on the input stream? terminate the transaction
       if( intype == AppEvent::ERROR )
       {
         cdebug(2)<<"error on input: "<<input().stateString()<<endl;
-        control().postEvent(InputErrorEvent,input().stateString());
+        postDataEvent(InputErrorEvent,input().stateString());
         control().setState(INPUT_ERROR);
         continue;
       }
@@ -83,7 +153,7 @@ void VisRepeater::run ()
       else if( intype == AppEvent::CLOSED )
       {
         cdebug(2)<<"input closed: "<<input().stateString()<<endl;
-        control().postEvent(InputClosedEvent,input().stateString());
+        postDataEvent(InputClosedEvent,input().stateString());
         control().setState(INPUT_CLOSED);
         continue;
       }

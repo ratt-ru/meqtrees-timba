@@ -78,8 +78,7 @@ int main (int argc,const char *argv[])
 
       DataRecord &outargs = params1[AidOutput] <<= new DataRecord;
         outargs[FEventMapOut] <<= new DataRecord;
-          outargs[FEventMapOut][VisAgent::HeaderEvent] = VisAgent::HeaderEvent;
-          outargs[FEventMapOut][VisAgent::TileEvent]   = VisAgent::TileEvent;
+          outargs[FEventMapOut][FDefaultPrefix] = HIID("A");
 
       DataRecord &ctrlargs = params1[AidControl] <<= new DataRecord;
         ctrlargs[FAutoExit] = True;
@@ -113,8 +112,7 @@ int main (int argc,const char *argv[])
 
       DataRecord &args = params2[AidInput] <<= new DataRecord;
         args[FEventMapIn] <<= new DataRecord;
-          args[FEventMapIn][VisAgent::HeaderEvent] = VisAgent::HeaderEvent;
-          args[FEventMapIn][VisAgent::TileEvent]   = VisAgent::TileEvent;
+          args[FEventMapIn][FDefaultPrefix] = HIID("A");
 
       DataRecord &outargs = params2[AidOutput] <<= new DataRecord;
           outargs[AppEvent::FBOIOFile] = "test.boio";

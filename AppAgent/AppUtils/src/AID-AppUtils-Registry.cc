@@ -19,4 +19,10 @@ static AtomicID::Register aid_reg_Init(-1092,"Init");
 static AtomicID::Register aid_reg_Fail(-1266,"Fail");
 static AtomicID::Register aid_reg_VisRepeater(-1310,"VisRepeater");
 static AtomicID::Register aid_reg_Repeater(-1306,"Repeater");
+static AtomicID::Register aid_reg_Data(-1107,"Data");
+static AtomicID::Register aid_reg_Set(-1381,"Set");
+static AtomicID::Register aid_reg_Header(-1133,"Header");
+static AtomicID::Register aid_reg_Footer(-1202,"Footer");
+static AtomicID::Register aid_reg_Interrupt(-1382,"Interrupt");
+static AtomicID::Register aid_reg_Mismatch(-1383,"Mismatch");
 

@@ -7,6 +7,7 @@
 
 #pragma aidgroup AppUtils
 #pragma aid VisRepeater Repeater
+#pragma aid Data Set Header Footer Interrupt Mismatch
     
 namespace VisRepeaterVocabulary
 {
@@ -21,7 +22,12 @@ namespace VisRepeaterVocabulary
       INPUT_ERROR   = -1025     // error on input stream
           
   } AppStates;
-    
+      
+  const HIID 
+      DataSetHeader     = AidData|AidSet|AidHeader,
+      DataSetFooter     = AidData|AidSet|AidFooter,
+      DataSetInterrupt  = AidData|AidSet|AidInterrupt,
+      FooterMismatch    = AidFooter|AidID|AidMismatch;
 };
         
 //##ModelId=3E39285A0273
@@ -38,12 +44,12 @@ class VisRepeater : public VisPipe
     //##ModelId=3E392EE403C8
     virtual string stateString() const;
     
+    void postDataEvent (const HIID &event,const string &msg = "");
+    
     //##ModelId=3E3FEB5002A5
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
-    
     //##ModelId=3E3FEDB80357
     LocalDebugSubContext;
-    
     //##ModelId=3EC9F6EC039C
     DefineRefTypes(VisRepeater,Ref);
     
@@ -52,6 +58,9 @@ class VisRepeater : public VisPipe
     VisRepeater(const VisRepeater& right);
     //##ModelId=3E392B78038F
     VisRepeater& operator=(const VisRepeater& right);
+    
+    int state_;
+    HIID vdsid_;
 };
 
 #endif /* DATAREPEATER_H_HEADER_INCLUDED_BB5EBE76 */
