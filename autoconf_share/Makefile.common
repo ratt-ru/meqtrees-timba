@@ -24,6 +24,12 @@ clean-generic:
 %.i: %.c
 	$(CC) -E $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< > $@
 
+# Only compile (but not assemble) the file.
+%.s: %.cc
+	$(CC) -S $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $<
+%.s: %.c
+	$(CC) -S $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $<
+
 
 # Rules for preprocessing idl files.
 # There should be a corresponding .cc file in the source directory
