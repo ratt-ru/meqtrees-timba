@@ -102,7 +102,7 @@ else
     echo "MAX_INITIALIZER_LINES	= 0" >> .doxygenrc
     echo "WARNINGS		= YES" >> .doxygenrc
     echo "WARN_IF_UNDOCUMENTED	= NO" >> .doxygenrc
-    echo "FILE_PATTERNS		= *.h *.idl" >> .doxygenrc
+    echo "FILE_PATTERNS		= *.h *.idl *.doc" >> .doxygenrc
     echo "FILTER_SOURCE_FILES   = YES" >> .doxygenrc
     echo "INPUT_FILTER          = $lofar_sharedir/slash2spanning.pl" >> .doxygenrc
     echo "SOURCE_BROWSER	= YES" >> .doxygenrc
