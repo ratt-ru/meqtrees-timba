@@ -35,45 +35,56 @@
 #
 # The command has to be run from the LOFAR directory in the user's tree.
 #
-# Run as:
-#   rub [-cvs cvs-command] [-updq string] [-r<cvstag>] 
-#       [-build variants [-[dist]clean] [-check] [-install]]
-#       package1 [...]
-#
-#     -cvs cvs-command  is an optional cvs command making it possible to
-#                       specify (for example) the root.
-#                       It defaults to cvs.
-#     -updq string      is a string containing qualifiers for the cvs update
-#                       command (default is empty)
-#     -r<cvstag>        cvs tag of the package(s) to be updated/checked out
-#     -build variants   gives the variants to build (e.g. gnu3_debug)
-#                       Separate multiple variants by whitespace, thus they
-#                       have to be enclosed in quotes then.
-#     -conf             do bootstrap and configure before build
-#                       It only takes effect if -build is also given.
-#     -clean            indicates that all build/<variant> directories
-#                       will be cleaned in order to start a clean build.
-#                       It only takes effect if -build is also given.
-#     -distclean        indicates that all build/<variant> directories
-#                       will be fully cleaned in order to start a clean build.
-#                       The difference with -clean is that the appropriate
-#                       makefiles and .la files will also be removed.
-#                       It only takes effect if -build is also given.
-#                       It forces -conf.
-#     -check            indicates that a make check should be done.
-#                       It only takes effect if -build is also given.
-#     -install          indicates that a make install should be done.
-#                       It only takes effect if -build is also given.
-#     package           is the name of the package to update/checkout and
-#                       optionally build.
-#                       Multiple packages can be given separated by whitespace.
-#
-# All options can be undone by preceeding them with no (e.g. -nobuild).
-# If an option is given multiple times, only the last value takes effect.
 
-# For example:
-#   rub -cvs "cvs -d :pserver:user@cvs.astron.nl:/cvs/cvsroot" CEP/CPA/PSS3/BBS
-
+if test "$1" = ""  -o  "$1" = "-h"  -o  "$1" = "--help"; then
+#if [ "$1" = "-h" ]; then
+  echo ''
+  echo 'Checkout/update LOFAR packages and the packages they depend on.'
+  echo 'It uses the configure.in files to find the package versions used.'
+  echo 'An error is given if multiple versions of the same package are used.'
+  echo 'Optionally the packages are configured, built, checked and/or installed.'
+  echo ''
+  echo 'Run as:'
+  echo ' rub [-cvs cvs-command] [-updq string] [-r<cvstag>]'
+  echo '     [-build variants [-[dist]clean] [-check] [-install]]'
+  echo '     package1 [...]'
+  echo ''
+  echo '  -cvs cvs-command  is an optional cvs command making it possible to'
+  echo '                    specify (for example) the root.'
+  echo '                    It defaults to cvs.'
+  echo '  -updq string      is a string containing qualifiers for the cvs update'
+  echo '                    command (default is empty)'
+  echo '  -r<cvstag>        cvs tag of the package(s) to be updated/checked out'
+  echo '  -build variants   gives the variants to build (e.g. gnu3_debug)'
+  echo '                    Separate multiple variants by whitespace, thus they'
+  echo '                    have to be enclosed in quotes then.'
+  echo '  -conf             do bootstrap and configure before build'
+  echo '                    It only takes effect if -build is also given.'
+  echo '  -clean            indicates that all build/<variant> directories'
+  echo '                    will be cleaned in order to start a clean build.'
+  echo '                    It only takes effect if -build is also given.'
+  echo '  -distclean        indicates that all build/<variant> directories'
+  echo '                    will be fully cleaned in order to start a clean build.'
+  echo '                    The difference with -clean is that the appropriate'
+  echo '                    makefiles and .la files will also be removed.'
+  echo '                    It only takes effect if -build is also given.'
+  echo '                    It forces -conf.'
+  echo '  -check            indicates that a make check should be done.'
+  echo '                    It only takes effect if -build is also given.'
+  echo '  -install          indicates that a make install should be done.'
+  echo '                    It only takes effect if -build is also given.'
+  echo '  package1          is the name of the package to update/checkout and'
+  echo '                    optionally build.'
+  echo '                    Multiple packages can be given separated by whitespace.'
+  echo ''
+  echo 'All options can be undone by preceeding them with no (e.g. -nobuild).'
+  echo 'If an option is given multiple times, only the last value takes effect.'
+  echo ''
+  echo 'For example:'
+  echo ' rub -cvs "cvs -d :pserver:user@cvs.astron.nl:/cvs/cvsroot" CEP/CPA/PSS3/BBS'
+  echo ''
+  exit 0
+fi
 
 # Find the path used to start the script.
 pgmpath=
