@@ -14,6 +14,7 @@ CountedRefTarget.h		\
 DMI.h				\
 DataArray.h			\
 DataField.h			\
+DataList.h			\
 DataRecord.h			\
 DynamicTypeManager.h		\
 HIID.h				\
@@ -42,6 +43,7 @@ CountedRefTarget.cc		\
 DMI.cc				\
 DataArray.cc			\
 DataField.cc			\
+DataList.cc			\
 DataRecord.cc			\
 DynamicTypeManager.cc		\
 HIID.cc				\

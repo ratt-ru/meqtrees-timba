@@ -43,6 +43,11 @@ const int AidDataArray_int = -1003;
 const AtomicID AidDataField(-1009);               // from /home/oms/LOFAR/DMI/src/DataField.h:28
 const int AidDataField_int = -1009;
 #endif
+#ifndef _defined_id_AidDataList
+#define _defined_id_AidDataList 1
+const AtomicID AidDataList(-1479);                // from /home/oms/LOFAR/DMI/src/DataList.h:29
+const int AidDataList_int = -1479;
+#endif
 #ifndef _defined_id_AidDataRecord
 #define _defined_id_AidDataRecord 1
 const AtomicID AidDataRecord(-1033);              // from /home/oms/LOFAR/DMI/src/DataRecord.h:29

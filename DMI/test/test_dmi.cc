@@ -3,6 +3,7 @@
 #include "DMI/DataRecord.h"
 #include "DMI/DataArray.h"
 #include "DMI/DataField.h"
+#include "DMI/DataList.h"
 #include "DMI/BOIO.h"
 #include "DMI/NCIter.h"
     
@@ -102,6 +103,44 @@ void TestDataField ()
   cout<<"======================= exiting and destroying:\n";
 }
     
+void TestDataList ()
+{
+  cout<<"=============================================\n";
+  cout<<"======================= Testing DataList    =\n";
+  cout<<"=============================================\n\n";
+
+  cout<<"======================= allocating empty list\n";
+  DataList f1;
+  cout<<f1.sdebug(2)<<endl;
+  f1[0] <<= new DataRecord;
+  cout<<f1.sdebug(2)<<endl;
+
+  cout<<"======================= allocating list of 3 items\n";
+  DataList f2;
+  f2[0] = 1;
+  f2[1] = "a string";
+  f2[2] <<= new DataRecord;
+  f2[2]["a"] = 1;
+  f2[2]["b"] = "another string";
+  cout<<f2.sdebug(4)<<endl;
+  cout<<"f2[2][a]: "<<f2[2]["a"].as<int>()<<endl;
+  cout<<"f2[2][b]: "<<f2[2]["b"].as<string>()<<endl;
+
+  cout<<"======================= converting to block: \n";
+  BlockSet set;
+  cout<<"toBlock returns "<<f2.toBlock(set)<<endl;
+  cout<<"and set: "<<set.sdebug(1)<<endl;
+
+  cout<<"======================= building from block: \n";
+  DataList f2a;
+  cout<<"Empty list allocated\n";
+  cout<<"fromBlock returns "<<f2a.fromBlock(set)<<endl;
+  cout<<"remaining set: "<<set.sdebug(1)<<endl;
+  cout<<"resulting list is: "<<f2a.sdebug(4)<<endl;
+  cout<<"f2a[2][a]: "<<f2a[2]["a"].as<int>()<<endl;
+  cout<<"f2a[2][b]: "<<f2a[2]["b"].as<string>()<<endl;
+  cout<<"======================= exiting and destroying:\n";
+}
 
 void TestDataRecord ()
 {
@@ -466,6 +505,7 @@ int main ( int argc,const char *argv[] )
     cout<<HIID("_._.:6").toString()<<endl;
     TestCountedRefs();
     TestDataField();
+    TestDataList();
     TestDataRecord();
   }
   catch( std::exception &err )

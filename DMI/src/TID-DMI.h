@@ -59,6 +59,23 @@ class DataField;
               typedef const DataField & ContainerParamType;
             };
 #endif
+#ifndef _defined_id_TpDataList
+#define _defined_id_TpDataList 1
+const TypeId TpDataList(-1479);                   // from /home/oms/LOFAR/DMI/src/DataList.h:29
+const int TpDataList_int = -1479;
+class DataList;
+            template<>
+            class DMIBaseTypeTraits<DataList> : public TypeTraits<DataList>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpDataList_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const DataList & ContainerReturnType;
+              typedef const DataList & ContainerParamType;
+            };
+#endif
 #ifndef _defined_id_TpDataRecord
 #define _defined_id_TpDataRecord 1
 const TypeId TpDataRecord(-1033);                 // from /home/oms/LOFAR/DMI/src/DataRecord.h:29

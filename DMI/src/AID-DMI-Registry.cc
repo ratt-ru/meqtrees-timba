@@ -9,6 +9,8 @@
 BlockableObject * __construct_DataArray (int n) { return n>0 ? new DataArray [n] : new DataArray; }
 #include "DataField.h"
 BlockableObject * __construct_DataField (int n) { return n>0 ? new DataField [n] : new DataField; }
+#include "DataList.h"
+BlockableObject * __construct_DataList (int n) { return n>0 ? new DataList [n] : new DataList; }
 #include "DataRecord.h"
 BlockableObject * __construct_DataRecord (int n) { return n>0 ? new DataRecord [n] : new DataRecord; }
 #include "HIID.h"
@@ -77,6 +79,9 @@ BlockableObject * __construct_DataRecord (int n) { return n>0 ? new DataRecord [
         AtomicID::registerId(-1009,"datafield")+
         TypeInfoReg::addToRegistry(-1009,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1009,__construct_DataField)+
+        AtomicID::registerId(-1479,"datalist")+
+        TypeInfoReg::addToRegistry(-1479,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1479,__construct_DataList)+
         AtomicID::registerId(-1033,"datarecord")+
         TypeInfoReg::addToRegistry(-1033,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1033,__construct_DataRecord)+

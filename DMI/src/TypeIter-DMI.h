@@ -5,13 +5,24 @@
 
 
 
+#define DoForAllOtherTypes_DMI(Do,arg,separator) \
+        Do(ObjRef,arg)
+
 #define DoForAllBinaryTypes_DMI(Do,arg,separator) \
         Do(Timestamp,arg) separator \
         Do(AtomicID,arg)
 
+#define DoForAllSpecialTypes_DMI(Do,arg,separator) \
+        Do(HIID,arg) separator \
+        Do(string,arg)
+
+#define DoForAllIntermediateTypes_DMI(Do,arg,separator) \
+        
+
 #define DoForAllDynamicTypes_DMI(Do,arg,separator) \
         Do(DataArray,arg) separator \
         Do(DataField,arg) separator \
+        Do(DataList,arg) separator \
         Do(DataRecord,arg)
 
 #define DoForAllNumericTypes_DMI(Do,arg,separator) \
@@ -31,14 +42,4 @@
         Do(ldouble,arg) separator \
         Do(fcomplex,arg) separator \
         Do(dcomplex,arg)
-
-#define DoForAllIntermediateTypes_DMI(Do,arg,separator) \
-        
-
-#define DoForAllOtherTypes_DMI(Do,arg,separator) \
-        Do(ObjRef,arg)
-
-#define DoForAllSpecialTypes_DMI(Do,arg,separator) \
-        Do(HIID,arg) separator \
-        Do(string,arg)
 #endif
