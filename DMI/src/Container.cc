@@ -53,8 +53,16 @@ TypeId NestableContainer::ConstHook::type () const
   const void *targ = collapseIndex(info,0,0);
   if( !targ )
     return 0;
+  // try to resolve to a subcontainer
   const NestableContainer *nc1 = asNestable(targ,info.tid);
-  return nc1 ? nc1->type() : info.tid;
+  if( nc1 )
+  {
+    // if container is of a fixed content type, return that, else 
+    // return object type
+    TypeId type = nc1->type();
+    return type ? type : nc1->objectType();
+  }
+  return info.tid;
 }
 
 //##ModelId=3C8737F702D8

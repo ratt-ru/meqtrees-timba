@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.28  2003/10/20 14:40:56  smirnov
+//  %[ER: 37]%
+//  Minor fixes to improve parsing of nested data structures
+//
 //  Revision 1.27  2003/10/09 17:43:04  smirnov
 //  %[ER: 16]%
 //  Re-enabled single element access to DataArray, as removing it broke
@@ -930,7 +934,7 @@ string DataArray::sdebug ( int detail,const string &prefix,const char *name ) co
     else
     {
       out += itsType.toString() + " ";
-      for( int i=0; i<itsShape.size(); i++ )
+      for( uint i=0; i<itsShape.size(); i++ )
         out += Debug::ssprintf("%c%d",(i?'x':' '),itsShape[i]);
     }
   }
