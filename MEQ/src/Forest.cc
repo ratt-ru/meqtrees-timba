@@ -1,5 +1,27 @@
-#include "MEQ/Forest.h"
-#include "MEQ/AID-MEQ.h"
+//#  Forest.cc: MeqForest class
+//#
+//#  Copyright (C) 2002-2003
+//#  ASTRON (Netherlands Foundation for Research in Astronomy)
+//#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//#
+//#  This program is free software; you can redistribute it and/or modify
+//#  it under the terms of the GNU General Public License as published by
+//#  the Free Software Foundation; either version 2 of the License, or
+//#  (at your option) any later version.
+//#
+//#  This program is distributed in the hope that it will be useful,
+//#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//#  GNU General Public License for more details.
+//#
+//#  You should have received a copy of the GNU General Public License
+//#  along with this program; if not, write to the Free Software
+//#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//#
+//#  $Id$
+
+#include "Forest.h"
+#include "AID-MEQ.h"
 #include <DMI/DynamicTypeManager.h>
     
 // pull in registry
@@ -8,7 +30,7 @@ static int dum = aidRegistry_MEQ();
 namespace MEQ
 {
 
-InitDebugContext(Forest,"Forest");
+InitDebugContext(Forest,"MeqForest");
 
   
 //##ModelId=3F60697A00ED
@@ -27,24 +49,26 @@ const Node::Ref & Forest::create (int &node_index,DataRecord::Ref::Xfer &initrec
   // get class from initrec and try to construct a node of that class
   try
   {
-    classname = (*initrec)[AidClass].as<string>();
+    classname = (*initrec)[AidClass].as<string>("");
+    FailWhen( !classname.length(),"missing or invalid Class field in init record"); 
     BlockableObject * pbp = DynamicTypeManager::construct(TypeId(classname));
     FailWhen(!pbp,"construct failed");
     MEQ::Node * pnode = dynamic_cast<MEQ::Node*>(pbp);
     if( !pnode )
     {
       delete pbp;
-      Throw(classname+"is not a MEQ::Node descendant");
+      Throw(classname+" is not a MEQ::Node descendant");
     }
     noderef <<= pnode;
-    pnode->init(initrec, this);
+    pnode->init(initrec,this);
+  }
+  catch( std::exception &exc )
+  {
+    Throw("failed to init a "+classname+": "+exc.what()); 
   }
   catch(...)
   {
-    if( classname.length() )
-      { Throw("failed to construct node of class "+classname); }
-    else
-      { Throw("missing or invalid Class field in init record"); }
+    Throw("failed to init a "+classname); 
   }
   // check the node name for duplicates
   string name = noderef->name();
@@ -118,11 +142,12 @@ Node & Forest::findNode (const string &name)
   return ref();
 }
 
-
-
 //##ModelId=3F7048570004
-const Node::Ref &Forest::getRef(int node_index)
+const Node::Ref & Forest::getRef (int node_index)
 {
+  FailWhen(node_index<=0 || node_index>int(nodes.size()),
+          "invalid node index");
+  return nodes[node_index];
 }
 
 } // namespace MEQ
