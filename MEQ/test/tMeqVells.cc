@@ -27,12 +27,12 @@
 
 
 #include <MEQ/Vells.h>
-#include <aips/Arrays/Matrix.h>
-#include <aips/Arrays/ArrayMath.h>
-#include <aips/Mathematics/Complex.h>
-#include <aips/OS/Timer.h>
-#include <aips/Exceptions/Error.h>
-#include <aips/iostream.h>
+#include <casa/Arrays/Matrix.h>
+#include <casa/Arrays/ArrayMath.h>
+#include <casa/BasicSL/Complex.h>
+#include <casa/OS/Timer.h>
+#include <casa/Exceptions/Error.h>
+#include <casa/iostream.h>
 #include <sstream>
 
 using namespace Meq;
