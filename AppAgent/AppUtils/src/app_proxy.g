@@ -9,12 +9,12 @@ default_octopussy := F;
 # Starts a global octopussy proxy with the given arguments, 
 # unless already started.
 # Returns a ref to the proxy object.
-const start_octopussy := function(server,options="",suspend=F)
+const start_octopussy := function(server,options="")
 {
   global default_octopussy;
   if( is_boolean(default_octopussy) )
   {
-    default_octopussy := octopussy(server=server,options=options,suspend=suspend);
+    default_octopussy := octopussy(server,options);
     if( is_fail(default_octopussy) )
     {
       print 'fatal error: octopussy startup failed';
@@ -26,7 +26,7 @@ const start_octopussy := function(server,options="",suspend=F)
 }
 
 const app_proxy := function (appid,
-        server=F,options=F,suspend=F,verbose=1,
+        server=F,options=F,verbose=1,
         gui=F,ref parent_frame=F,ref widgetset=dws,
         ref self = [=],ref public = [=])
 {
@@ -37,7 +37,7 @@ const app_proxy := function (appid,
   # define standard debug methods
   define_debug_methods(self,public,verbose);
   # init octopussy
-  self.octo := start_octopussy(server,options,suspend);
+  self.octo := start_octopussy(server,options);
   if( is_fail(self.octo) )
     fail;
   # init everything else
