@@ -24,6 +24,7 @@
     
 #include <DMI/DataRecord.h>
 #include <MEQ/Result.h>
+#include <MEQ/RequestId.h>
 #include <MEQ/AID-Meq.h>
 #include <MEQ/TID-Meq.h>
 #include <map>
@@ -49,28 +50,8 @@ class Node : public BlockableObject
     typedef enum {
       RES_WAIT          = 0x01,    // result not yet available, must wait
       RES_UPDATED       = 0x02,    // result updated since last request
-          
-      RES_FAIL          = 0x80,    // result is complete fail
-          
-      // bitmask of result dependencies
-      RES_DEPEND_MASK  = 0xFFFF00, // full dependency mask
-      RES_DEPEND_NBITS = 16,       // number of bits in dependency mask
-      RES_DEPEND_LSB   = 0x100,    // LSB of dependency mask
-          
-      // predefine some constants for application-specific dependencies
-      RES_DEP_VOLATILE = 0x100,    // result is volatile (depends on external events)
-      RES_DEP_DOMAIN   = 0x200,    // depends on domain
-      RES_DEP_CONFIG   = 0x400,    // depends on config
-      RES_DEP_VALUE    = 0x800,    // depends on parm values
-          
+      RES_FAIL          = 0x80     // result is complete fail
     } ResultAttributes;
-    
-    // for generic dependency treatment:
-    // returns bit indicating dependency on request ID index #n
-    //##ModelId=400E530D013F
-    static int RES_DEP (int n)
-    { return RES_DEPEND_LSB<<n; }
-    
   
     //##ModelId=3F5F43E000A0
     // Child labels may be specified in constructror as a C array of HIIDs.

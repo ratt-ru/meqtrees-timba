@@ -1,6 +1,6 @@
 SUBDIRS	= .
 
-DOCHDRS		 	= MeqVocabulary.h \
+DOCHDRS		 	= MeqVocabulary.h RequestId.h \
 Domain.h Cells.h Vells.h VellSet.h Result.h Polc.h \
 Node.h Function.h Function1.h Function2.h \
 Constant.h Parm.h Freq.h Time.h Selector.h Composer.h \
@@ -14,7 +14,7 @@ lib_LTLIBRARIES 	= libmeq.la
 
 libmeq_la_SOURCES 	= $(DOCHDRS)		\
 Domain.cc	Cells.cc Vells.cc VellSet.cc Result.cc Polc.cc \
-Node.cc Function.cc Function1.cc Function2.cc \
+RequestId.cc Node.cc Function.cc Function1.cc Function2.cc \
 Constant.cc Parm.cc Freq.cc Time.cc Selector.cc Composer.cc \
 Add.cc Subtract.cc Multiply.cc Divide.cc \
 Sin.cc Cos.cc Exp.cc Pow.cc Sqr.cc Sqrt.cc Conj.cc ToComplex.cc \

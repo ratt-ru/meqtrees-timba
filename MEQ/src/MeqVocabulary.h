@@ -74,6 +74,7 @@ namespace Meq
     FValue           = AidValue,
     FTableName       = AidTable|AidName,
     FParmName        = AidParm|AidName,
+    FDomainId        = AidDomain|AidId,
     
     FPertRelative    = AidPert|AidRelative,
     FFreq0           = AidFreq|0,
