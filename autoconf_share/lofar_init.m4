@@ -107,7 +107,7 @@ AC_ARG_WITH(lofar-libdir,
   case "$lfr_curvar1" in
   */*)
     # root = something/build/variant
-    lfr_curroot=`pwd | sed -e "s%/build/.*%build/$lfr_curvar%"`;
+    lfr_curroot=`pwd | sed -e "s%/build/.*%/build/$lfr_curvar%"`;
     ;;
   *)
     # root = something
