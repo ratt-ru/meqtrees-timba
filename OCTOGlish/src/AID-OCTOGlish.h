@@ -35,7 +35,7 @@ const int AidIndex_int = -1045;
 #endif
 #ifndef _defined_id_Aidstart
 #define _defined_id_Aidstart 1
-const AtomicID Aidstart(-1043);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOGlish/src/OCTOGlish.aidlist:5
+const AtomicID Aidstart(-1043);                   // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOGlish/src/OCTOGlish.aidlist:6
 const int Aidstart_int = -1043;
 #endif
 

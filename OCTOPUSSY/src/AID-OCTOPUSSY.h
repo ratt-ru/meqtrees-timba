@@ -10,33 +10,33 @@
 
 #ifndef _defined_id_LogDebug
 #define _defined_id_LogDebug 1
-const AtomicID LogDebug(-1346);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-const int LogDebug_int = -1346;
+const AtomicID LogDebug(-1415);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+const int LogDebug_int = -1415;
 #endif
 #ifndef _defined_id_LogError
 #define _defined_id_LogError 1
-const AtomicID LogError(-1347);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-const int LogError_int = -1347;
+const AtomicID LogError(-1416);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+const int LogError_int = -1416;
 #endif
 #ifndef _defined_id_LogFatal
 #define _defined_id_LogFatal 1
-const AtomicID LogFatal(-1345);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-const int LogFatal_int = -1345;
+const AtomicID LogFatal(-1414);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+const int LogFatal_int = -1414;
 #endif
 #ifndef _defined_id_LogNormal
 #define _defined_id_LogNormal 1
-const AtomicID LogNormal(-1348);                  // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-const int LogNormal_int = -1348;
+const AtomicID LogNormal(-1417);                  // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+const int LogNormal_int = -1417;
 #endif
 #ifndef _defined_id_LogWarning
 #define _defined_id_LogWarning 1
-const AtomicID LogWarning(-1344);                 // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-const int LogWarning_int = -1344;
+const AtomicID LogWarning(-1413);                 // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+const int LogWarning_int = -1413;
 #endif
 #ifndef _defined_id_MsgLog
 #define _defined_id_MsgLog 1
-const AtomicID MsgLog(-1343);                     // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
-const int MsgLog_int = -1343;
+const AtomicID MsgLog(-1412);                     // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
+const int MsgLog_int = -1412;
 #endif
 #ifndef _defined_id_AidAdd
 #define _defined_id_AidAdd 1
