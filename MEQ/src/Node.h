@@ -334,8 +334,7 @@ class Node : public DMI::BObj
     //##ModelId=3F98D9D20201
     int getChildNumber (const HIID &id);
     
-    const std::string & childName (int i) const
-    { return getChild(i).name(); }
+    const std::string & childName (int i) const;
     
     const std::vector<HIID> & getNodeGroups () const
     { return node_groups_; }

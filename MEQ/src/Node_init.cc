@@ -67,6 +67,16 @@ void Node::initStepChildren (int nch)
   }
 }
 
+const std::string & Node::childName (int i) const
+{
+  FailWhen(i<0 || i>=numChildren(),"illegal child index");
+  if( children_[i].valid() )
+    return children_[i]->name();
+  else
+    return state()[FChildrenNames][i];
+}
+
+
 //##ModelId=3F8433C20193
 void Node::addChild (const HIID &id,Node::Ref &childnode)
 {
@@ -337,7 +347,7 @@ void Node::init (DMI::Record::Ref &initrec, Forest* frst)
     FailWhen(numChildren()<check_nmandatory_,"too few children specified");
     for( int i=0; i<check_nmandatory_; i++ )
       if( !children_[i].valid() && 
-          initrec[FChildrenNames][child_map_[getChildLabel(i)]].as<string>().empty() )
+          state()[FChildrenNames][child_map_[getChildLabel(i)]].as<string>().empty() )
       {
         Throw("mandatory child "+getChildLabel(i).toString()+" not specified" );
       }
