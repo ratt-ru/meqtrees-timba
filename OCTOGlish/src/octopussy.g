@@ -301,7 +301,7 @@ const octopussy := function (server='octoglish',options="",
     if( self.opClient->publish(rec) )
       return T;
     else
-      fail 'send() failed';
+      fail 'publish() failed';
   }
 
   const public.receive := function (ref value)
