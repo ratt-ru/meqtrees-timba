@@ -185,7 +185,7 @@ if test "$lfr_libdir" = ""; then
     lfr_lib=$lfr_curwd;
     if test "$lfr_variant" != ""; then
       lfr_curvar=`pwd | sed -e "s%.*/build/%%" | sed -e "s%/.*%%g"`;
-      lfr_lib=`echo $lfr_lib | sed -e "s%/$lfr_curvar%/lfr_variant%"`
+      lfr_lib=`echo $lfr_lib | sed -e "s%/$lfr_curvar%/$lfr_variant%"`
     fi
     lfr_pkg=`echo $lfr_srcdir | sed -e "s%.*/LOFAR/%%"`
     lfr_libdir=`echo $lfr_lib | sed -e "s%/$lfr_pkg%/$1%"`
