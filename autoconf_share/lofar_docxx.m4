@@ -95,6 +95,7 @@ else
     echo "EXTRACT_STATIC	= YES" >> .doxygenrc
     echo "ALWAYS_DETAILED_SEC	= YES" >> .doxygenrc
     echo "CASE_SENSE_NAMES	= YES" >> .doxygenrc
+    echo "JAVADOC_AUTOBRIEF     = YES" >> .doxygenrc
     echo "DETAILS_AT_TOP        = YES" >> .doxygenrc
     echo "DISTRIBUTE_GROUP_DOC	= YES" >> .doxygenrc
     echo "ALIASES		= \"template=\par Template requirements:\n\"" >> .doxygenrc
