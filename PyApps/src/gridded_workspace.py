@@ -411,7 +411,8 @@ class GridCell (object):
   # pass in a QColor, or True for default color, or False value to disable highlights
   def highlight (self,color=True):
 #      wlist = [self._control_box] + self._control_box.children();
-    wlist = (self._toolbar,self._label,self._label1);
+#    wlist = (self._toolbar,self._label,self._label1);
+    wlist = (self._label,self._label1);
     if color:
       color = self._highlight_colors;
       for w in wlist:

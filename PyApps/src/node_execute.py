@@ -120,7 +120,8 @@ class NodeExecuteDialog (QDialog):
       QListViewItem(self.reqView.wlistview(),'','','(no request found in node)');
     else:  # got request in state
       self.reqView.wlistview().setRootIsDecorated(True);
-      self._request = copy.deepcopy(request);
+#      self._request = copy.deepcopy(request);
+      self._request = state.request;
       self._request.request_id = hiid();
       self.buttonOk.setEnabled(True);
       self.reqView.set_content(self._request);
@@ -134,6 +135,7 @@ class NodeExecuteDialog (QDialog):
   def accept (self):
     if not self._request:
       return;
+    _dprint(1,'accepted: ',self._request);
     cmd = srecord(nodeindex=self._node.nodeindex,request=self._request,get_state=True);
     mqs().meq('Node.Execute',cmd,wait=False);
     self.hide();
