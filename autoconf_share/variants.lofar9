@@ -8,3 +8,5 @@ opt.variant.conf:	 --with-optimize='-O4'
 dopt.variant.conf:	 --with-optimize='-ggdb -O4'
 
 prof.variant.conf:	 --with-optimize='-ggdb -pg'
+
+profopt.variant.conf:	 --with-optimize='-O4 -pg'
