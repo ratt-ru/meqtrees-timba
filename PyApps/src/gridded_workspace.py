@@ -295,6 +295,13 @@ class GridCell (object):
     pin.setIconSet(pin_is);
     QObject.connect(pin,SIGNAL("clicked()"),self._update_pin_menu);
     QToolTip.add(pin,"pin (i.e. protect) or unpin this panel");
+    # float button
+    self._float_btn = flt = QToolButton(control_box);
+    flt.setAutoRaise(True);
+    flt.setToggleButton(True);
+    flt.setIconSet(pixmaps.float_window.iconset());
+    QObject.connect(flt,SIGNAL("toggled(bool)"),self.float_cell);
+    QToolTip.add(flt,"float this cell in a separate window");
     # refresh button
     self._refresh = refresh = QToolButton(control_box);
     refresh.setIconSet(pixmaps.refresh.iconset());
@@ -321,6 +328,7 @@ class GridCell (object):
     # add buttons and labels to the control bar layout
     control_lo.addWidget(iconbutton);
     control_lo.addWidget(pin);
+    control_lo.addWidget(flt);
     control_lo.addWidget(refresh);
     control_lo.addSpacing(10);
     control_lo.addWidget(self._label);
@@ -363,7 +371,7 @@ class GridCell (object):
     self._update_pin_menu(state);
   def viewer (self):
     return self._viewer;
-
+    
   def rebuild_menu (self):
     self._menu.clear();
     # self._m_viewer = menu.insertItem("Viewer");
@@ -498,6 +506,77 @@ class GridCell (object):
     # disable cell if no data yet
     self.disable(dataitem.data is None);
     
+  class FloatingCell (QMainWindow):
+    def __init__ (self,parent):
+      fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
+      fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
+      QMainWindow.__init__(self,parent,"float",fl);
+      self.setIcon(pixmaps.float_window.pm());
+    def hideEvent (self,ev):
+      _dprint(1,'hideEvent',ev);
+      self.emit(PYSIGNAL("hidden()"),());
+    
+  def float_cell (self,enable=True):
+    if enable:
+      QToolTip.add(self._float_btn,"return view contents to cell");
+      try: float_window = self._float_window;
+      except AttributeError:
+        self._float_window = float_window = self.FloatingCell(self.wtop());
+        QObject.connect(float_window,PYSIGNAL("hidden()"),self.__unfloat_cell);
+        self._float_label = QLabel("This viewer is now floating in a separate window.",self.wtop());
+        self._float_label.setAlignment(Qt.AlignTop|Qt.AlignLeft|Qt.WordBreak);
+        self._float_ret_btn = QPushButton(pixmaps.float_window.iconset(),"Return it here",self.wtop());
+        QObject.connect(self._float_ret_btn,SIGNAL("clicked()"),self.unfloat_cell);
+        self._top_lo.addWidget(self._float_label);
+        self._top_lo.addWidget(self._float_ret_btn);
+        self._top_lo.addStretch(1);
+      caption = str(self._label.text()) + " * " + str(self._label1.text());
+      float_window.setCaption(str(self._label.text()) + " * " + str(self._label1.text()));
+      self._viewer_widget.reparent(float_window,0,QPoint(0,0));
+      self._viewer_widget.emit(PYSIGNAL("reparent()"),(float_window,));
+      float_window.setCentralWidget(self._viewer_widget);
+      float_window.resize(self.wtop().size());
+      float_window.show();
+      self._float_label.show();
+      self._float_ret_btn.show();
+    else:
+      try: 
+        if not self._float_window.isHidden():
+          self._float_window.hide();     # this causes unfloat_cell to be called
+      except AttributeError: pass;
+      
+  def __unfloat_cell (self):
+    _dprint(1,'unfloating cells');
+    QToolTip.add(self._float_btn,"float this view in a separate window");
+    dum = QWidget();
+    self._float_label.hide();
+    self._float_ret_btn.hide();
+    # self._float_label.reparent(dum,0,QPoint(0,0));
+    # self._float_ret_btn.reparent(dum,0,QPoint(0,0));
+    # self._float_label = self._float_ret_btn = None;
+    self._float_btn.setOn(False);
+    self._remove_viewer();
+    self.change_viewer(self._viewer_class);
+    
+  def unfloat_cell (self):  
+    try: float_window = self._float_window;
+    except AttributeError: return;
+    if not float_window.isHidden(): 
+      float_window.hide();              # this causes __unfloat_cell to be called
+        
+  def unfloat_cell (self):
+    _dprint(1,'unfloating cells');
+    QToolTip.add(self._float_btn,"return view contents to cell");
+    self._remove_viewer();
+    # self._viewer_widget.emit(PYSIGNAL("reparent()"),(self._wtop,));
+    # self._top_lo.addWidget(self._viewer_widget,1000);
+    # self._float_btn.setOn(False);
+    try: float_window = self._float_window;
+    except AttributeError: pass;
+    else:
+      if not float_window.isHidden():
+        float_window.hide();
+    
   def change_viewer (self,viewer_class,dum=None,viewopts={}):
              # note: dum argument is needed to make this function callable
              # from popupMenu(), since that passes an extra arg 
@@ -524,7 +603,11 @@ class GridCell (object):
         txt = "(Error creating %s)"%str(viewer_class);
         self._viewer_widget = self._viewer = QLabel(txt,self.wtop());
         self._top_lo.addWidget(self._viewer_widget,1000);
+        self._float_btn.setEnabled(False);
     else:
+      self._float_btn.setEnabled(True);
+      try: self._float_window.isHidden() or self._float_window.hide();
+      except AttributeError: pass;
       self._remove_viewer();
       # insert new
       self._viewer_class = viewer_class;
@@ -754,7 +837,7 @@ class GriddedWorkspace (object):
     # set of parents for corners of the maintab (added on demand when GUI is built)
     self._tb_corners = {};
     #------ add page
-    newpage = self.add_tool_button(Qt.TopLeft,pixmaps.tab_new.pm(),
+    newpage = self.add_tool_button(Qt.TopLeft,pixmaps.tab_new_raised.pm(),
         tooltip="open new page. You can also drop data items here.",
         class_=self.DataDropButton,
         click=self.add_page);
@@ -787,13 +870,9 @@ class GriddedWorkspace (object):
     layout = self._tb_corners.get(corner,None);
     if not layout:
       parent = QWidget(self._maintab);
-      self._maintab.setCornerWidget(parent,corner);
-      if corner == Qt.TopLeft: # add extra space
-        lo1 = QHBoxLayout(parent);
-        parent = QWidget(parent);
-        lo1.addWidget(parent);
-        lo1.addSpacing(5);
       self._tb_corners[corner] = layout = QHBoxLayout(parent);
+      layout.setMargin(2);
+      self._maintab.setCornerWidget(parent,corner);
     # add button
     button = class_(layout.mainWidget());
     button._gw = weakref.proxy(self);
