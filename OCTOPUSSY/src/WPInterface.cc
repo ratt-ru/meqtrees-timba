@@ -1097,9 +1097,9 @@ void WPInterface::log (string str, int level, AtomicID type)
       tps = stypes[0];
     else if( type == AidLogError )
       tps = stypes[1];
-    Debug::dbg_stream<<sdebug(1)<<":"<<tps<<" "<<str;
+    Debug::getDebugStream()<<sdebug(1)<<":"<<tps<<" "<<str;
     if( str[str.length()-1] != '\n' )
-      Debug::dbg_stream<<endl;
+      Debug::getDebugStream()<<endl;
   }
   // publish as MsgLog
   MessageRef mref;
