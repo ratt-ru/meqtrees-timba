@@ -659,13 +659,15 @@ int DMI::Vec::get (const HIID &id,ContentInfo &info,bool nonconst,int flags) con
     info.size = mysize();
   }
   // numeric (single-index) HIID implies item #n
-  else if( id.size() == 1 )
+  else 
   {
+    FailWhen(id.size()>1,"illegal DMI::Vec index: "+id.toString());
     n = id.front().index();
     FailWhen(n<0,"illegal DMI::Vec index: "+id.toString());
     FailWhen(n>mysize(),"index "+id.toString()+"is out of range" );
     info.size = 1;
   }
+    
   if( n == mysize() ) // can insert at end, return 0 to indicate
     return 0;
   // handle case of dynamic types 
