@@ -14,6 +14,10 @@ import os
 import string
 import time
 
+_dbg = verbosity(0,name='app_proxy');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
 # class app_proxy
 class app_proxy (verbosity):
   "app_proxy is an interface to a C++ ApplicationBase (see AppAgents)"
@@ -28,7 +32,7 @@ class app_proxy (verbosity):
     self.appid = hiid(appid);
     self._rcv_prefix = self.appid + "Out";   # messages from app
     self._snd_prefix = self.appid + "In";       # messages to app
-    self.dprint(1,"initializing");
+    _dprint(1,"initializing");
 
     # start a proxy wp. Select threaded or polled version, depending on
     # arguments
@@ -36,10 +40,10 @@ class app_proxy (verbosity):
       wp_verbose = verbose;
     
     if no_threads:
-      self.dprint(1,"running in non-threaded mode");
+      _dprint(1,"running in non-threaded mode");
       self._pwp = octopussy.proxy_wp(str(appid),verbose=wp_verbose);
     else:
-      self.dprint(1,"running in threaded mode");
+      _dprint(1,"running in threaded mode");
       # select threading API
       if gui: api = qt_threading;
       else:   api = threading;
@@ -51,6 +55,8 @@ class app_proxy (verbosity):
     self._pwp.whenever('wp.hello'+self.appid+'*',self._hello_handler,subscribe=True);
     # subscribe to app bye message 
     self._pwp.whenever('wp.bye'+self.appid+'*',self._bye_handler,subscribe=True);
+    # subscribe to down message
+    self._pwp.whenever('gw.remote.down.*',self._remote_down_handler,subscribe=True);
     
     # setup state
     self._verbose_events = True;
@@ -80,14 +86,14 @@ class app_proxy (verbosity):
       if isinstance(spawn,str):
         spawn = spawn.split(" ");
       # subscribe to hello message from remot -- we wait for it
-      self.dprint(1,"spawning",spawn);
+      _dprint(1,"spawning",spawn);
       self.serv_pid = os.spawnv(os.P_NOWAIT,spawn[0],spawn);
-      self.dprint(1,"spawned external server, pid",self.serv_pid);
-      self.dprint(2,"waiting for Hello message from app");
+      _dprint(1,"spawned external server, pid",self.serv_pid);
+      _dprint(2,"waiting for Hello message from app");
       self._req_state = False;
     elif launch: # use py_app_launcher to run a local app thread
       raise RuntimeError,"launch option temporarily disabled";
-##       self.dprint(1,"launching",launch);
+##       _dprint(1,"launching",launch);
 ##       (appname,inagent,outagent) = launch;
 ##       if not appname in py_app_launcher.application_names:
 ##         raise NameError,appname+' is not a recognized app name';
@@ -123,14 +129,14 @@ class app_proxy (verbosity):
       self._pwp.start();
     
   def __del__ (self):
-    self.dprint(1,"destructor");
+    _dprint(1,"destructor");
     self.disconnect();
     
   def disconnect (self):
     if hasattr(self._pwp,'stop'):
-      self.dprint(1,"stopping proxy_wp thread");
+      _dprint(1,"stopping proxy_wp thread");
       self._pwp.stop();
-      self.dprint(1,"stopped");
+      _dprint(1,"stopped");
     
   # poll: dispatches all pending events. Only useful in the no_thread
   # mode (when an event thread is not running)
@@ -139,9 +145,9 @@ class app_proxy (verbosity):
     
   # message handler to actually construct an application's GUI
   def _construct_gui (self,poll_app=None):
-    self.dprint(2,"_construct_gui: creating GUI");
+    _dprint(2,"_construct_gui: creating GUI");
     self._gui = self._gui(self,poll_app=poll_app,verbose=self.get_verbose());
-    self.dprint(2,"_construct_gui: showing GUI");
+    _dprint(2,"_construct_gui: showing GUI");
     self._gui.show();
     if poll_app:
       self._gui_event_handler = self._gui.handleAppEvent;
@@ -155,7 +161,7 @@ class app_proxy (verbosity):
   hello_event = hiid("Hello");
   bye_event = hiid("Bye");
   def _hello_handler (self,msg):
-    self.dprint(2,"got hello message:",msg);
+    _dprint(2,"got hello message:",msg);
     self.app_addr = getattr(msg,'from');
     if self.state is None:
       self.state = -1;
@@ -167,26 +173,37 @@ class app_proxy (verbosity):
     self._gui_event_handler(self.hello_event,getattr(msg,'from'));
       
   def _bye_handler (self,msg):
-    self.dprint(2,"got bye message:",msg);
+    _dprint(2,"got bye message:",msg);
     self.app_addr = None;
     if self.state is None:
       self.state = -1;
       self.statestr = 'no connection';
     self._gui_event_handler(self.bye_event,getattr(msg,'from'));
+    
+  def _remote_down_handler (self,msg):
+    _dprint(2,"got gw.remote.down message:",msg);
+    if self.app_addr:
+      if msg.msgid[3:] == self.app_addr[2:]:
+        _dprint(2,"matches ourselves, generating synthetic bye");
+        self._bye_handler(msg);
+      else:
+        _dprint(2,"does not match ourselves, ignoring");
+    else:
+      _dprint(2,"no app address set, ignoring");
 
   def _event_handler (self,msg):
     "event handler for app";
-    self.dprint(5,"got message: ",msg.msgid);
+    _dprint(5,"got message: ",msg.msgid);
     if self.state is None:
       self.state = -1;
       self.statestr = 'connected';
     # extract event name: message ID is <appid>.Out.<event>, so get a slice
     event = msg.msgid[len(self.appid)+1:];
     value = msg.payload;
-    self.dprint(5,"which maps to event: ",event);
+    _dprint(5,"which maps to event: ",event);
     # process some special events
     if event == 'app.notify.state':
-      self.dprint(1,value.state_string,' (',value.state,')');
+      _dprint(1,value.state_string,' (',value.state,')');
       self.state = value.state;
       self.paused = value.paused;
       self.statestr = value.state_string;
@@ -194,18 +211,18 @@ class app_proxy (verbosity):
     elif event.startswith('app.update.status'):
       for f in value.field_names():
         self.status[f] = value[f];
-      self.dprint(5,'new status record',self.status);
+      _dprint(5,'new status record',self.status);
     # process messages and error reports
     if isinstance(value,record):
       if value.has_field('error'):
         self.log_error(event,value.error);
       for f in ("text","message","error"):
         if value.has_field(f):
-          self.dprint(1,'[',f,']',value[f]); 
+          _dprint(1,'[',f,']',value[f]); 
     # print events if so requested
     if self._verbose_events:
-      self.dprint(2,'   event:',event);
-      self.dprint(3,'   value:',value);
+      _dprint(2,'   event:',event);
+      _dprint(3,'   value:',value);
     # forward to gui
     self._gui_event_handler(event,value);
     
@@ -214,9 +231,9 @@ class app_proxy (verbosity):
     try:
       self._pwp.pause_events();
       while self.state is None:
-        self.dprint(2,'no connection to app, awaiting');
+        _dprint(2,'no connection to app, awaiting');
         res = self._pwp.await('*',resume=True);  # await anything, but keep looping until status changes
-        self.dprint(3,'await returns',res);
+        _dprint(3,'await returns',res);
     finally:
       self._pwp.resume_events();
     
@@ -231,44 +248,44 @@ class app_proxy (verbosity):
     "Initializes the app. All four of the records may be supplied,"
     "or any may be omitted to reuse the old record"
     "If wait=T, waits for the app to complete init";
-    self.dprint(1,'initializing');
+    _dprint(1,'initializing');
     if wait:
       self.ensure_connection();
-    self.dprint(2,'initrec:',initrec);
-    self.dprint(2,'input init:',inputinit);
-    self.dprint(2,'output init:',outputinit);
-    self.dprint(2,'control_init:',controlinit);
+    _dprint(2,'initrec:',initrec);
+    _dprint(2,'input init:',inputinit);
+    _dprint(2,'output init:',outputinit);
+    _dprint(2,'control_init:',controlinit);
     # get init record from previous value or from arguments
     if initrec is not None:
       initrec = make_record(initrec);
     else:
       initrec = self.initrec_prev;
-      self.dprint(2,'init: reusing previous initrec:',initrec);
+      _dprint(2,'init: reusing previous initrec:',initrec);
     # get subrecord from previous values or from arguments
     for (f,subrec) in ( ('input',inputinit),('output',outputinit),('control',controlinit) ):
       if subrec is not None:
         initrec[f] = make_record(subrec);
-        self.dprintf(2,'init: using %s subrec from parameters\n',f);
+        _dprintf(2,'init: using %s subrec from parameters\n',f);
       else:
         if initrec.has_field(f):
-          self.dprintf(2,'init: initrec contains a %s subrec\n',f);
+          _dprintf(2,'init: initrec contains a %s subrec\n',f);
         else:
           if self.initrec_prev.has_field(f):
             initrec[f] = self.initrec_prev[f];
-            self.dprintf(2,'init: using previous %s subrec\n',f);
+            _dprintf(2,'init: using previous %s subrec\n',f);
           else:
-            self.dprintf(2,'init: no %s subrec at all\n',f);
+            _dprintf(2,'init: no %s subrec at all\n',f);
     # initialize
     self.initrec_prev = initrec;
-    self.dprint(3,'init: initrec is ',initrec);
+    _dprint(3,'init: initrec is ',initrec);
     # send init command
     if wait: 
       self.pause_events();
     self.send_command("Init",initrec);
     if wait:
-      self.dprint(2,'init: awaiting app.notify.init event');
+      _dprint(2,'init: awaiting app.notify.init event');
       res = self.await('app.notify.init',resume=True);
-      self.dprint(2,'init: got event ',res);
+      _dprint(2,'init: got event ',res);
 
   def set_verbose_events (self,verb=True):
     "enables/disables printing of all incoming events";

@@ -277,12 +277,13 @@ class TreeBrowser (object):
     self._qa_refresh = QAction("Refresh",pixmaps.refresh.iconset(),"Refresh node list",Qt.Key_F2,parent);
     QObject.connect(self._qa_refresh,SIGNAL("activated()"),self._request_nodelist);
     self._qa_refresh.addTo(self._toolbar);
+    self._qa_refresh.setEnabled(False);
     self._toolbar.addSeparator();
     # the "Enable debugger" action
     self._qa_dbg_enable = QAction("Enable debugger",pixmaps.eject.iconset(),"Enable &Debugger",Qt.Key_F5,parent,"",True);
     self._qa_dbg_enable.addTo(self._toolbar);
     self._qa_dbg_enable.setEnabled(False);
-    QObject.connect(self._qa_dbg_enable,SIGNAL("toggled(bool)"),self.debug_enable);
+    QObject.connect(self._qa_dbg_enable,SIGNAL("toggled(bool)"),self._debug_enable_slot);
     self._toolbar.addSeparator();
     # the "pause" button
     self._qa_dbgpause = QAction("Pause",pixmaps.pause.iconset(),"&Pause",Qt.Key_F6,parent);      
@@ -291,7 +292,7 @@ class TreeBrowser (object):
     self._qa_dbgpause.setEnabled(False);
     # the "Debug" action group
     self._ag_debug = QActionGroup(self.wtop());
-    self._qa_dbgcont  = QAction("Continue",pixmaps.right_2triangles.iconset(),"&Continue",Qt.Key_F5,parent);      
+    self._qa_dbgcont  = QAction("Continue",pixmaps.right_2triangles.iconset(),"&Continue",Qt.Key_F6+Qt.SHIFT,parent);      
     QObject.connect(self._qa_dbgcont,SIGNAL("activated()"),self.debug_continue);
     self._qa_dbgstep  = QAction("Step",pixmaps.down_triangle.iconset(),"&Step",Qt.Key_F7,parent);      
     QObject.connect(self._qa_dbgstep,SIGNAL("activated()"),self.debug_single_step);
@@ -309,25 +310,35 @@ class TreeBrowser (object):
     self._recent_item = None;
     self._current_debug_stack = None;
     self._debug_level = 0;
+
+  def _set_debug_control (self,enable):
+    """This uopdates the state of the debug control without sending
+    out a message.""";
+    self._setting_debug_control = True;
+    self._qa_dbg_enable.setOn(enable);
+    self._setting_debug_control = False;
     
-  def debug_enable (self,enable):
+  def _debug_enable_slot (self,enable):
     """Sends a debug enable/disable message.""";
     if enable:
-      self._qa_dbg_enable.setAccel(Qt.SHIFT+Qt.Key_F5);
+      self._qa_dbg_enable.setAccel(Qt.CTRL+Qt.Key_F5);
       self._qa_dbg_enable.setText("Disable debugger and continue");
       self._qa_dbg_enable.setMenuText("&Disable debugger");
-      mqs().meq('Debug.Set.Level',srecord(debug_level=2,get_forest_status=True),wait=False);
+      if not getattr(self,'_setting_debug_control',False):
+        mqs().meq('Debug.Set.Level',srecord(debug_level=2,get_forest_status=True),wait=False);
     else:
-      # confirm disable if in debugger
-      if self._current_debug_stack:
-        if QMessageBox.warning(None,"Disabling Tree Debugger",\
-             """This will disable the debugger and release the tree to ignore
-             all breakpoints and run until it is finished or out of data. 
-             Are you sure this is what you want?""",QMessageBox.Ok,\
-             QMessageBox.Cancel|QMessageBox.Default|QMessageBox.Escape) \
-           != QMessageBox.Ok:
-          self._qa_dbg_enable.setOn(True);
-          return;
+      if not getattr(self,'_setting_debug_control',False):
+        # confirm disable if in debugger
+        if self._current_debug_stack:
+          if QMessageBox.warning(None,"Disabling Tree Debugger",\
+               """This will disable the debugger and release the tree to ignore
+               all breakpoints and run until it is finished or out of data. 
+               Are you sure this is what you want?""",QMessageBox.Ok,\
+               QMessageBox.Cancel|QMessageBox.Default|QMessageBox.Escape) \
+             != QMessageBox.Ok:
+            self._set_debug_control(True);
+            return;
+          mqs().meq('Debug.Set.Level',srecord(debug_level=0,get_forest_status=True),wait=False);
       # really disable
       self.clear_debug_stack();
       self._qa_dbg_enable.setAccel(Qt.Key_F5);
@@ -335,7 +346,6 @@ class TreeBrowser (object):
       self._qa_dbg_enable.setMenuText("Enable &Debugger");
       self._ag_debug.setEnabled(False);
       self._qa_dbgpause.setEnabled(False);
-      mqs().meq('Debug.Set.Level',srecord(debug_level=0,get_forest_status=True),wait=False);
 
   def get_color_group (self,which,is_stopped=-1):
     return self._cg[(which,is_stopped)][0];
@@ -385,15 +395,24 @@ class TreeBrowser (object):
     
   def connected (self,conn,auto_request=True):
     self._qa_refresh.setEnabled(conn);
+    self._qa_dbg_enable.setEnabled(conn);
     if conn is True:
       if auto_request:
         self._request_nodelist();
     else:
+      self._set_debug_control(False);
+      self._qa_dbgpause.setEnabled(False);
+      self._ag_debug.setEnabled(False);
       self.clear();
 
   def _request_nodelist (self):
     _dprint(1,"requesting node list");
     mqs().meq('Get.Node.List',meqds.NodeList.RequestRecord,wait=False);
+    
+  def at_breakpoint (self,bp):
+    if self._debug_level:
+      self._qa_dbgpause.setEnabled(not bp);
+      self._ag_debug.setEnabled(bp);
     
   def update_forest_status (self,fst):
     """Updates forest status: enables/disables debug QActions as appropriate,
@@ -411,7 +430,7 @@ class TreeBrowser (object):
         self._nlv.setColumnWidthMode(self._icol_execstate,QListView.Maximum);
         self._nlv.setColumnWidthMode(self._icol_status,QListView.Maximum);
       except AttributeError: pass;
-      self._qa_dbg_enable.setOn(True);
+      self._set_debug_control(True);
       self._qa_dbgpause.setEnabled(fst.running);
       if meqds.nodelist and fst.debug_stack:
         self._ag_debug.setEnabled(True);
@@ -433,7 +452,7 @@ class TreeBrowser (object):
         self._ag_debug.setEnabled(False);
     else:
       _dprint(2,"debugging disabled");
-      self._qa_dbg_enable.setOn(False);
+      self._set_debug_control(False);
       self._qa_dbgpause.setEnabled(False);
       self._ag_debug.setEnabled(False);
       try:
@@ -459,9 +478,10 @@ class TreeBrowser (object):
     if clearset is None:
       clearset = self._current_debug_stack;
       self._current_debug_stack = None;
-    for node in clearset:
-      delattr(node,'_stopped');
-      node.emit(PYSIGNAL("update_debug()"),(node,));
+    if clearset:
+      for node in clearset:
+        delattr(node,'_stopped');
+        node.emit(PYSIGNAL("update_debug()"),(node,));
   
   def update_nodelist (self):
     # init columns if calling for the first time
@@ -519,16 +539,21 @@ class TreeBrowser (object):
   def debug_single_step (self):
     self._ag_debug.setEnabled(False);
     self._qa_dbgpause.setEnabled(self._debug_level>0);
+    self.clear_debug_stack();
     mqs().meq('Debug.Single.Step',srecord(),wait=False);
   
   def debug_next_node (self):
     self._ag_debug.setEnabled(False);
     self._qa_dbgpause.setEnabled(self._debug_level>0);
+    # clear highlighting, as we can expect to do it anyway for next node
+    self.clear_debug_stack();
     mqs().meq('Debug.Next.Node',srecord(),wait=False);
     
   def debug_until_node (self,node):
     self._ag_debug.setEnabled(False);
     self._qa_dbgpause.setEnabled(self._debug_level>0);
+    # clear highlighting, as we can expect to run for a while
+    self.clear_debug_stack();
     mqs().meq('Debug.Until.Node',srecord(nodeindex=node.nodeindex),wait=False);
   
   def debug_continue (self):

@@ -503,37 +503,25 @@ class app_proxy_gui(verbosity,QMainWindow):
 ##### custom event handlers for various messages
   def ce_Hello (self,ev,value):
     self.emit(PYSIGNAL("connected()"),(value,));
-    self.log_message("connected to "+str(value),category=Logger.Normal);
+    self.log_message("found kernel ("+str(value)+")",category=Logger.Normal);
     self.gw.clear();
     
   def ce_Bye (self,ev,value):
     self.emit(PYSIGNAL("disconnected()"),(value,));
-    self.log_message("lost connection to "+str(value),category=Logger.Error);
+    self.log_message("kernel disconnected",category=Logger.Normal);
+    self._update_app_state();
     
   def ce_UpdateState (self,ev,value):
     self._update_app_state();
     
 ##### updates status bar based on app state 
-  StatePixmaps = { None: pixmaps.cancel };
+  StatePixmaps = { None: pixmaps.stop };
   StatePixmap_Default = pixmaps.check;
   def _update_app_state (self):
     state = self.app.statestr.lower();
     self.status_label.setText(' '+state+' '); 
     pm = self.StatePixmaps.get(self.app.state,self.StatePixmap_Default);
     self.status_icon.setPixmap(pm.pm());
-    ## self.pause_button.setDisabled(not self.app.state>0);
-    ##    if self.app.state>0:
-    ##      if self.app.paused:   
-    ##        self.pause_button.setIconSet(pixmaps.pause_green.iconset());
-    ##        QToolTip.add(self.pause_button,"resume the application");
-    ##      else:                 
-    ##        self.pause_button.setIconSet(pixmaps.pause_normal.iconset());
-    ##        QToolTip.add(self.pause_button,"pause the application");
-    ##      # if requested pause/resume state is reached, get button up and clear
-    ##      if self.pause_requested == self.app.paused:
-    ##        self.dprint(3,'Pause state reached!');
-    ##        self.pause_button.setDown(False);
-    ##        self.pause_requested = None;
     # update window title        
     if self.app.app_addr is None:
       self.setCaption(self.app.name()+" - "+state);

@@ -167,7 +167,20 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
     self.set_open_items(openitems);
     self._state = dataitem.data;
 
+
+
+
 class meqserver_gui (app_proxy_gui):
+
+  AppState_Idle       = -hiid('idle').get(0);
+  AppState_Stream     = -hiid('stream').get(0);
+  AppState_Breakpoint = -hiid('breakpoint').get(0);
+
+  StatePixmaps = { None: pixmaps.stop, \
+    AppState_Idle: pixmaps.grey_cross,
+    AppState_Stream: pixmaps.spigot,
+    AppState_Breakpoint: pixmaps.breakpoint };
+
   def __init__(self,app,*args,**kwargs):
     meqds.set_meqserver(app);
     global mqs;
@@ -181,6 +194,7 @@ class meqserver_gui (app_proxy_gui):
     self._add_ce_handler("app.result.get.node.list",self.ce_LoadNodeList);
     self._add_ce_handler("hello",self.ce_mqs_Hello);
     self._add_ce_handler("bye",self.ce_mqs_Bye);
+    self._add_ce_handler("app.update.status.num.tiles",self.ce_UpdateAppStatus);
     
   def populate (self,main_parent=None,*args,**kwargs):
     app_proxy_gui.populate(self,main_parent=main_parent,*args,**kwargs);
@@ -246,7 +260,6 @@ class meqserver_gui (app_proxy_gui):
     self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
     
   def ce_mqs_Bye (self,ev,value):
-    app_proxy_gui.ce_Hello(self,ev,value);
     self.treebrowser.connected(False);  
     
   def ce_NodeState (self,ev,value):
@@ -284,7 +297,15 @@ class meqserver_gui (app_proxy_gui):
     try: fst = meqnl.forest_status;
     except AttributeError: pass;
     else: self.treebrowser.update_forest_status(fst);
-      
+    
+  def ce_UpdateAppStatus (self,ev,status):
+    try: nt = status.num_tiles;
+    except AttributeError: pass;
+    else:
+      if self.app.state == self.AppState_Stream:
+        state = self.app.statestr.lower();
+        self.status_label.setText(' %s (%d) ' % (state,nt) ); 
+        
   def update_node_state (self,node,event=None):
     meqds.reclassify_nodestate(node);
     meqds.add_node_snapshot(node,event);
@@ -300,6 +321,15 @@ class meqserver_gui (app_proxy_gui):
     if tabwin is self.resultlog.wtop() and tabwin._newresults:
       self._reset_maintab_label(tabwin);
     tabwin._newresults = False;
+
+  def _update_app_state (self):
+    app_proxy_gui._update_app_state(self);
+    if self.app.state == self.AppState_Stream:
+      self.ce_UpdateAppStatus(None,self.app.status);
+    if self.app.state == self.AppState_Breakpoint:
+      self.treebrowser.at_breakpoint(True);
+    else:
+      self.treebrowser.at_breakpoint(False);
 
 def makeNodeDataItem (node,viewer=None,viewopts={}):
   """creates a GridDataItem for a node""";
