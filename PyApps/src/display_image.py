@@ -497,10 +497,10 @@ class QwtImagePlot(QwtPlot):
           self._plot_label = {}
 
         plot_label = 'spectra:' + self._string_tag
-        self.num_plot_arrays = len(self._data_values)
-        _dprint(2,' number of arrays to plot ', self.num_plot_arrays)
+        num_plot_arrays = len(self._data_values)
+        _dprint(2,' number of arrays to plot ', num_plot_arrays)
         data_label = ''
-        for i in range(self.num_plot_arrays):
+        for i in range(num_plot_arrays):
           data_label = ''
 	  plot_label = ''
           if isinstance(self._data_labels, tuple):
