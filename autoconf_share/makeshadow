@@ -1,7 +1,7 @@
 #!/bin/sh
 
-if test $# != 1  -a  $# != 2; then
-  echo usage: makeshadow ~gvd/sim/LOFAR/BaseSim [suffix]
+if test $# != 1; then
+  echo usage: makeshadow ~gvd/sim/LOFAR/BaseSim
   exit 1
 fi
 
@@ -16,11 +16,7 @@ then
   exit 1
 fi
 
-# Add a suffix to the directory being created.
-# The default suffix is the machine name.
-suffix=$2
-[ "x$suffix" = x ]  &&  suffix=`uname -n`
-dirname="$bldir"_"$suffix"
+dirname="$bldir"
 
 # Check if the user is in a LOFAR directory.
 cdir=`pwd`
@@ -28,6 +24,14 @@ bcdir=`basename $cdir`
 if [ "$bcdir" != "LOFAR" ]
 then
   echo "Working directory should be the LOFAR subdirectory"
+  exit 1
+fi
+
+# Check if (expanded) target and source directory are not the same.
+edldir=`cd $dldir && pwd`
+if [ "$cdir" = "$edldir" ]
+then
+  echo "Working and shadowed directory are the same"
   exit 1
 fi
 
