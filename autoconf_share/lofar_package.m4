@@ -226,6 +226,7 @@ if test $lfr_cv_hdr_package = yes  &&  test $lfr_cv_lib_package = yes; then
 
   # Create symlink to the source and build directory
   # Do the same (if needed recursively) for all packages used by this package.
+  # Also assemble all new external packages and flags this package depends on.
   rm -f libnames_depend
   touch libnames_depend
   $lofar_sharedir/makepkglinks $1 $lfr_include $lfr_libdir pkginc pkgbldinc libnames_depend lofar_config.h $lfr_option 0
@@ -235,12 +236,44 @@ if test $lfr_cv_hdr_package = yes  &&  test $lfr_cv_lib_package = yes; then
   lfr_depend=`echo $lfr_depend`
   rm libnames_depend
   LOFAR_DEPEND="$LOFAR_DEPEND $lfr_depend"
+  # Get all new external packages used by this package and their flags.
+  $lofar_sharedir/makeext pkgext $lfr_libdir;
+  $lofar_sharedir/makeext pkgextcppflags $lfr_libdir;
+  $lofar_sharedir/makeext pkgextcxxflags $lfr_libdir;
+  # Define which external packages are used by this package.
+  lfr_pkgext=`cat pkgext_diff`
+  lfr_pkgext=`echo $lfr_pkgext`
+  for pkgnm in $lfr_pkgext
+  do
+    echo "#if !defined(HAVE_$pkgnm)" >> lofar_config.h
+    echo "# define HAVE_$pkgnm 1" >> lofar_config.h;
+    echo "#endif" >> lofar_config.h;
+  done
+  # Keep the original lofar_config.h if not different (to keep date for make).
+  diff lofar_config.h lofar_config.h.orig >& /dev/null
+  if [ $? = 0 ]; then
+    mv lofar_config.h.orig lofar_config.h  # keep original date
+    touch lofar_config.h.orig              # create new one in case used again
+  fi    
+  # Add possible CPPFLAGS and CXXFLAGS.
+  lfr_pkgext=`cat pkgextcppflags_diff`
+  lfr_pkgext=`echo $lfr_pkgext`
+  if [ "$lfr_pkgext" != "" ]; then
+    CPPFLAGS="$CPPFLAGS $lfr_pkgext"
+  fi
+  lfr_pkgext=`cat pkgextcxxflags_diff`
+  lfr_pkgext=`echo $lfr_pkgext`
+  if [ "$lfr_pkgext" != "" ]; then
+    CXXFLAGS="$CXXFLAGS $lfr_pkgext"
+  fi
 ]
 dnl
 AC_SUBST(LIBS)dnl
 AC_SUBST([LOFAR_PKG_LIB][[_top_srcdir]])dnl
 AC_SUBST([LOFAR_PKG_LIB][[_top_builddir]])dnl
 AC_SUBST(LOFAR_DEPEND)dnl
+AC_SUBST(CPPFLAGS)dnl
+AC_SUBST(CXXFLAGS)dnl
 dnl
 [
 else

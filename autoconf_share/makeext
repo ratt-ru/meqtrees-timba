@@ -59,9 +59,9 @@ if [ -f $libdir/$filnm ]; then
   ##  diff $filnm lfr_tmp2 | egrep -v '^[0-9]+a[0-9]+$' | sed "s/^> //" > ${filnm}_diff
   for newl in `cat lfr_tmp2`
   do
+    fnd=0;
     for oldl in `cat $filnm`
     do
-      fnd=0;
       if [ "$newl" = "$oldl" ]; then
         fnd=1;
         break;

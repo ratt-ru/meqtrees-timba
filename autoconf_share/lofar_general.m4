@@ -189,6 +189,7 @@ AC_DEFUN(lofar_CHECK_PRETTY_FUNCTION,[
   AC_MSG_RESULT($lofar_cv_have_pretty_function)
   if test "$lofar_cv_have_pretty_function" = yes; then
     AC_DEFINE(HAVE_PRETTY_FUNCTION,1,[Define if __PRETTY_FUNCTION__ is defined])
+    echo "PRETTY_FUNCTION" >> pkgext;
   else
     AC_MSG_CHECKING(whether ${CXX} supports __FUNCTION__)
     AC_CACHE_VAL(lofar_cv_have_function,[
@@ -203,6 +204,7 @@ AC_DEFUN(lofar_CHECK_PRETTY_FUNCTION,[
     AC_MSG_RESULT($lofar_cv_have_function)
     if test "$lofar_cv_have_function" = yes; then
       AC_DEFINE(HAVE_FUNCTION,1,[Define if __FUNCTION__ is defined])
+      echo "FUNCTION" >> pkgext;
     fi
   fi
 ])
@@ -229,4 +231,5 @@ AC_DEFUN(lofar_CHECK_LONG_LONG,[
   if test "$lofar_cv_have_long_long" = yes; then
     AC_DEFINE(HAVE_LONG_LONG,1,[Define if `long long' is supported])
   fi
+  echo "LONG_LONG" >> pkgext;
 ])
