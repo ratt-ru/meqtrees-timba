@@ -30,21 +30,23 @@ static NestableContainer::Register reg(TpMeqRequest,True);
 
 //##ModelId=3F8688700056
 Request::Request()
-: itsCalcDeriv(0),itsClearSolver(false),itsCells(0),hasRider_(false)
+: itsCalcDeriv(0),itsClearSolver(false),itsNumSteps(-1),
+  itsCells(0),hasRider_(false)
 {
 }
 
 //##ModelId=3F8688700061
 Request::Request (const DataRecord &other,int flags,int depth)
 : DataRecord  (other,flags,depth),
-  itsCalcDeriv(0),itsClearSolver(false),itsCells(0),hasRider_(false)
+  itsCalcDeriv(0),itsClearSolver(false),itsNumSteps(-1),
+  itsCells(0),hasRider_(false)
 {
   validateContent();
 }
 
 //##ModelId=400E535403DD
 Request::Request (const Cells& cells,int calcDeriv,const HIID &id,int cellflags)
-: itsClearSolver(false),itsCells(0),hasRider_(false)
+: itsClearSolver(false),itsNumSteps(-1),itsCells(0),hasRider_(false)
 {
   setCells(cells,cellflags);
   setId(id);
@@ -53,7 +55,7 @@ Request::Request (const Cells& cells,int calcDeriv,const HIID &id,int cellflags)
 
 //##ModelId=400E53550016
 Request::Request (const Cells * cells, int calcDeriv, const HIID &id,int cellflags)
-: itsClearSolver(false),itsCells(0),hasRider_(false)
+: itsClearSolver(false),itsNumSteps(-1),itsCells(0),hasRider_(false)
 {
   setCells(cells,cellflags);
   setId(id);
@@ -75,6 +77,11 @@ void Request::setCalcDeriv (int calc)
 void Request::setClearSolver (bool clearSolver)
 { 
   (*this)[FClearSolver] = itsClearSolver = clearSolver; 
+}
+
+void Request::setNumSteps (int numSteps)
+{ 
+  (*this)[FNumSteps] = itsNumSteps = numSteps; 
 }
 
 //##ModelId=3F868870006E
@@ -104,6 +111,8 @@ void Request::validateContent ()
     itsCalcDeriv = (*this)[FCalcDeriv].as<int>(0);
     // clearsolver flag
     itsClearSolver = (*this)[FClearSolver].as<bool>(false);
+    // nr of solvesteps 
+    itsNumSteps = (*this)[FNumSteps].as<int>(-1);
    // rider
     validateRider();
   }
@@ -125,7 +134,8 @@ void Request::validateRider ()
 
 int Request::remove (const HIID &id)
 { 
-  if( id == FCells || id == FRequestId || id==FCalcDeriv || id==FClearSolver )
+  if( id == FCells || id == FRequestId || id==FCalcDeriv
+      || id==FClearSolver || id==FNumSteps)
     Throw("remove(" + id.toString() +" from a Meq::Request not allowed"); 
   return DataRecord::remove(id);
 }

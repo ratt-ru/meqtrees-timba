@@ -91,6 +91,13 @@ public:
 
   void setClearSolver (bool clearSolver);
 
+  // How many solve steps?
+  // The value can be negative (meaning that a default should be used).
+  int numSteps() const
+  { return itsNumSteps; }
+
+  void setNumSteps (int numSteps);
+
   // Attaches cells object (default as anon). Can also specify DMI::CLONE
   // to copy
     //##ModelId=3F868870006E
@@ -146,6 +153,7 @@ private:
     //##ModelId=3F868870003C
   int    itsCalcDeriv;
   bool   itsClearSolver;
+  int    itsNumSteps;
     //##ModelId=3F86BFF80269
   const  Cells* itsCells;
   
