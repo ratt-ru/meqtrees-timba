@@ -38,9 +38,9 @@ _dprintf = _dbg.dprintf;
 #the way of mine).
 
 
-# compute standard deviation of a complex or real array
+# compute standard deviation of a complex array
 # the std_dev given here was computed according to the
-# formula given by Oleg (It should work for real or complex array)
+# formula given by Oleg 
 def standard_deviation(incoming_array):
   incoming_mean = incoming_array.mean()
   temp_array = incoming_array - incoming_mean
@@ -50,6 +50,9 @@ def standard_deviation(incoming_array):
   temp_array = temp_array * temp_array_conj
   mean = temp_array.mean()
   std_dev = sqrt(mean)
+# eliminate any imaginary component caused by round-off error
+  std_dev = abs(std_dev)
+
   return std_dev
 
 class PrintFilter(QwtPlotPrintFilter):
