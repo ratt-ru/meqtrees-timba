@@ -9,9 +9,6 @@ import gridded_workspace
 from app_browsers import *
 from qt import *
 from dmitypes import *
-import sihippo
-print "HippoDraw version " + sihippo.__version__
-from sihippo import *
 from numarray import *
 from display_image import *
 from realvsimag import *
@@ -33,18 +30,16 @@ class ResultPlotter(BrowserPlugin):
     return len(data) > 0;
   is_viewable = staticmethod(is_viewable);
 
-  def __init__(self,parent,dataitem=None,default_open=None,**opts):
+  def __init__(self,parent=None,dataitem=None,default_open=None,**opts):
     """ Instantiate HippoDraw objects that are used to control
         various aspects of plotting
     """
     self._rec = None;
     self._hippo = None
-# this QLabel is needed so that Oleg's browser is
-# happy that a child is present
-#    self._wtop = QLabel("",parent);
     self._visu_plotter = None
     self._parent = parent;
     self._window_controller = None
+    self._plot_type = None
     self._wtop = None;
 
     if dataitem and dataitem.data is not None:
@@ -69,21 +64,40 @@ class ResultPlotter(BrowserPlugin):
 # http://www.pasteur.fr/formation/infobio/python/ch13s03.html
 #
 
-  def do_prework(self, node):
+  def do_prework(self, node, attribute_list):
+    _dprint(3, 'doing prework with attribute list ',attribute_list)
 # we check if a plotter has been constructed - 
     if isinstance(node, dict) and self._visu_plotter is None:
-      if node.has_key('attrib'):
+      if len(attribute_list) == 0 and node.has_key('attrib'):
         _dprint(2,'length of attrib', len(node['attrib']));
         if len(node['attrib']) > 0:
           attrib_parms = node['attrib']
-          plot_type = attrib_parms.get('plot_type')
-          if plot_type == 'spectra':
-            self._visu_plotter = QwtImagePlot(plot_type,parent=self._parent)
-            self._wtop = self._visu_plotter;       # QwtImagePlot inherits from QwtPlot
+          plot_parms = attrib_parms.get('plot')
+          self._plot_type = plot_parms.get('plot_type')
+      else:
+# first get plot_type at first possible point in list - nearest root
+        list_length = len(attribute_list)
+        for i in range(list_length):
+          attrib_parms = attribute_list[i]
+          _dprint(3, 'attrib_parms ',  attrib_parms, ' has length ', len( attrib_parms))
+          _dprint(3, 'processing attribute list ',i, ' ', attrib_parms)
+          if attrib_parms.has_key('plot'):
+            plot_parms = attrib_parms.get('plot')
+            _dprint(3, '*** plot_parms ',  plot_parms, ' has length ', len( plot_parms))
+            if plot_parms.has_key('attrib'):
+              temp_parms = plot_parms.get('attrib')
+              plot_parms = temp_parms
+            if plot_parms.has_key('plot_type'):
+              self._plot_type = plot_parms.get('plot_type')
+              break
+      _dprint(3, 'pre_work gives plot_type ', self._plot_type)
+      if self._plot_type == 'spectra':
+        self._visu_plotter = QwtImagePlot(self._plot_type,parent=self._parent)
+        self._wtop = self._visu_plotter;       # QwtImagePlot inherits from QwtPlot
 
-          if plot_type == 'realvsimag':
-            self._visu_plotter = realvsimag_plotter(plot_type,parent=self._parent)
-            self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
+      if self._plot_type == 'realvsimag':
+        self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self._parent)
+        self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
 
   def do_postwork(self, node):
     _dprint(3,"in postwork: do nothing at present");
@@ -101,32 +115,111 @@ class ResultPlotter(BrowserPlugin):
     else:
       return False
 
-  def do_leafwork(self, leaf):
-    self._visu_plotter.plot_data('item_label',leaf)
+  def do_leafwork(self, leaf, attrib_list):
+    _dprint(3,'at leaf attribute list is ', attrib_list)
+    self._visu_plotter.plot_data(leaf, attrib_list)
 
-  def tree_traversal (self, node):
+  def tree_traversal (self, node, label=None, attribute_list=None):
+    _dprint(3,' ');
     _dprint(3,' ******* ');
     _dprint(3,'in tree traversal with node having length ', len(node));
     _dprint(3,' ******* ');
+    _dprint(3,'length of node ', len(node))
+    is_root = False
+    if label is None:
+      label = 'root'
+      is_root = True
+    _dprint(3, 'node has incoming label ', label)
+    if attribute_list is None:
+      attribute_list = []
+    else:
+      _dprint(3, 'tree: has incoming attribute list ', attribute_list)
+    
     if isinstance(node, dict):
-      self.do_prework(node)
+      _dprint(3, 'node is a dict')
+      if self._visu_plotter is None and not is_root:
+        self.do_prework(node, attribute_list)
       if not self.is_leaf(node):
+        if node.has_key('label'):
+          _dprint(3, 'tree: dict node has label(s) ', node['label'])
+          if not node['label'] == label:
+            if isinstance(node['label'], tuple):
+              _dprint(3, 'tree: dict node label(s) is tuple')
+              temp = list(node['label'])
+              for j in range(0, len(temp)):
+                tmp = label + ' > ' + temp[j] 
+                temp[j] = tmp
+              node['label'] = tuple(temp)
+            else:
+              temp = label + ' > ' + node['label']
+              node['label'] = temp
+        if node.has_key('attrib') and len(node['attrib']) > 0:
+          _dprint(3, 'tree: dict node has attrib ', node['attrib'])
+          attribute_list.append(node['attrib'])
+        else:
+          _dprint(3, 'tree: dict node has no valid attrib ')
+          if is_root:
+            attrib = {}
+            plot_spec = {}
+            plot_spec['plot_type'] = 'realvsimag'
+            plot_spec['mean_circle'] = False
+            plot_spec['mean_arrow'] = False
+            plot_spec['stddev_circle'] = False
+            attrib['plot'] = plot_spec
+            attribute_list.append(attrib)
         if node.has_key('value'):
-          self.tree_traversal(node['value'])
+          self.tree_traversal(node['value'], node['label'], attribute_list)
       else:
-        self.do_leafwork(node)
+        _dprint(3, 'tree: leaf node has label(s) ', node['label'])
+        _dprint(3, 'tree: leaf node has incoming label ', label)
+        if is_root and node.has_key('attrib') and len(node['attrib']) > 0:
+          attribute_list.append(node['attrib'])
+          self.do_prework(node, attribute_list)
+        self.do_leafwork(node,attribute_list)
 #      self.do_postwork(node)
     if isinstance(node, list):
+      _dprint(3, 'node is a list')
       for i in range(len(node)):
+        temp_label = None
+        temp_list = attribute_list[:] 
+        _dprint(3, 'list iter starting with attribute list ', i, ' ', temp_list)
+        if isinstance(label, tuple):
+          temp_label = label[i]
+        else:
+          temp_label = label
+          
         if isinstance(node[i], dict):
-          self.tree_traversal(node[i])
+          if node[i].has_key('label'):
+            _dprint(3, 'tree: list node number has label(s) ', i, ' ',node[i]['label'])
+            if isinstance(node[i]['label'], tuple):
+              _dprint(3, 'tree: list node label(s) is tuple')
+              temp = list(node[i]['label'])
+              for j in range(0, len(temp)):
+                tmp = temp_label + ' > ' + temp[j]
+                temp[j] = tmp
+              node[i]['label'] = tuple(temp)
+            else:
+              temp = label + ' > ' + node[i]['label']
+              node[i]['label'] = temp
+          if node[i].has_key('attrib'):
+            _dprint(3, 'list: dict node has attrib ', i, ' ', node[i]['attrib'])
+            if len(node[i]['attrib']) > 0:
+              temp_list.append(node[i]['attrib'])
+          self.tree_traversal(node[i], node[i]['label'], temp_list)
 
   def display_visu_data (self):
     """ extract group_label key from incoming visu data record and
       create a visu_plotter object to plot the data 
     """
-# traverse the plot record tree and plot data
+# traverse the plot record tree and retrieve data
+    _dprint(3, ' ')
+    _dprint(3, 'calling tree_traversal from display_visu_data')
     self.tree_traversal( self._rec.visu)
+# now update the plot for 'realvsimag', 'errors' or 'standalone' plot
+    _dprint(3, 'testing for update with self._plot_type ', self._plot_type)
+    if not self._visu_plotter is None and not self._plot_type == 'spectra':
+      self._visu_plotter.update_plot()
+      self._visu_plotter.reset_data_collectors()
 
   def display_vells_data (self, plot_array):
     """ extract parameters and data from an array that is
@@ -134,23 +227,26 @@ class ResultPlotter(BrowserPlugin):
 
 # construct hippo window if it doesn't exist
     if self._hippo is None:
+      import sihippo
+      _dprint(3,"HippoDraw version " + sihippo.__version__);
+      from sihippo import *
       self._ntuple_controller = NTupleController.instance()
       self._window_controller = WindowController.instance()
       self._window_controller.createInspector ()
-      self._window = CanvasWindow(None, "MeqDisplay",0)
+      self._window = CanvasWindow(self._parent, "MeqDisplay",0)
+      self._wtop = self._window
+
       self._window.setAllowClose()
       self._window.show()
       self._display_controller = DisplayController.instance()
       self._canvas = None
       self._image_ntuple = None
       self._simple_ntuple = None
-      self._realvsimag_ntuple = None
       self._hippo = True
 
 # figure out type and rank of incoming array
     array_dim = len(plot_array.shape)
     array_rank = plot_array.rank
-#    print "array rank is ", array_rank
     is_vector = False;
     is_one_point_image = False;
     n_rows = plot_array.shape[0]
@@ -177,17 +273,15 @@ class ResultPlotter(BrowserPlugin):
       image = []
       for j in range(0, n_rows ) :
         for i in range(0, n_cols) :
-#          print self._label, 'image appending ', plot_array[j][i]
           image.append(plot_array[j][i])
       if self._image_ntuple.isValidLabel(self._label):
         if len(image) != self._image_ntuple.rows():
-          print "Number of rows has changed! Clearing tuple!"
+          _dprint(3, "Number of rows has changed! Clearing tuple!")
           self._image_ntuple.clear()
         self._image_ntuple.replaceColumn (self._label,image)
       else:
 # add columns for new image data
         self._image_ntuple.addColumn (self._label,image)
-#        print "result_plotter added image column"
 # add time and frequency columns for xyz plots
 # first add frequency column
         if self._add_time_freq:
@@ -196,7 +290,6 @@ class ResultPlotter(BrowserPlugin):
           freq_range = self._rec.cells.domain.freq[1] - self._rec.cells.domain.freq[0]
           x_step = freq_range / n_rows
           start_freq = self._rec.cells.domain.freq[0] + 0.5 * x_step 
-#          print self._label, 'image appending ', plot_array[j][i]
           for j in range(0, n_rows ) :
             for i in range(0, n_cols) :
               if n_rows == 1:
@@ -269,7 +362,7 @@ class ResultPlotter(BrowserPlugin):
         image.append(flattened_array[j])
       if self._simple_ntuple.isValidLabel(self._label):
         if len(image) != self._simple_ntuple.rows():
-          print "Number of rows has changed! Clearing tuple!"
+          _dprint(3, "Number of rows has changed! Clearing tuple!")
           self._simple_ntuple.clear()
         self._simple_ntuple.replaceColumn (self._label,image)
       else:
@@ -364,7 +457,6 @@ class ResultPlotter(BrowserPlugin):
           number_of_perturbations = len(self._rec.vellsets[i].perturbations)
           for j in range(number_of_perturbations):
             perturb = self._rec.vellsets[i].perturbations[j]
-#            print "self._perturbations[j] ",  perturb
 
 # handle "perturbed_value"
         if self._rec.vellsets[i].has_key("perturbed_value"):
