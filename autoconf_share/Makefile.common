@@ -7,10 +7,11 @@ clean-generic:
 	-rm -f .inslog*
 	-rm -f *.log
 	-rm -f *.i
-	-rm -f docxx_hdrs.names
+	-rm -f doxygen.cfg
 	-rm -rf $(top_builddir)/pure_cache
 	-rm -rf docxxhtml
 #CLEANFILES += tca.* .inslog* *.cc *.h $(top_builddir)/pure_cache docxxhtml/* *.log docxx_hdrs.names
+
 
 
 # Only preprocess the file.
@@ -19,11 +20,8 @@ clean-generic:
 
 
 
-# Rules for compiling Corba IDL files (if CORBA is available).
-# Note that SUFFIXES cannot be inside if command.
+# Rules for compiling Corba IDL files.
 SUFFIXES = .idl
-
-if HAVE_CORBA
 
 %_c.hh %_s.hh: %.idl
 	$(IDLCXX) $(IDLFLAGS) $(AM_IDLFLAGS) $<
@@ -44,42 +42,30 @@ if HAVE_CORBA
 	mv $*_cs.o  $*.o
 	mv $*_cs.lo $*.lo
 
-endif
 
 
-
-# Rules for building documentation (only if available).
-if HAVE_DOCXX
-
-docall: docfile
-	$(DOCXX) $(DOCXXFLAGS) `cat docxx_hdrs.names`
-
-docfile:
-	rm -f docxx_hdrs.names
-	touch docxx_hdrs.names
-	$(MAKE) doc_builddir=`pwd` docfileappend
-
-docfileappend:
-	@absdir=`cd $(srcdir) && pwd`; \
-	list='$(DOCHDRS)'; for namedoc in $$list; do \
-	  echo $$absdir/$$namedoc >> $(doc_builddir)/docxx_hdrs.names ; \
-	done
-	@list='$(DOC_SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    if test -d $$subdir; then \
-	      (cd $$subdir && \
-                       $(MAKE) doc_builddir=$(doc_builddir) docfileappend) ; \
-	    fi; \
-	  fi; \
-	done
+# Rules for building documentation via doxygen.
+docall:
+	@cp $(top_builddir)/.doxygenrc doxygen.cfg
+	@projnm=`basename $(srcdir)`
+	@echo "PROJECT_NAME = $$projnm" >> doxygen.cfg
+	@echo "INPUT = $(srcdir)" >> doxygen.cfg
+	@echo 'RECURSIVE = YES' >> doxygen.cfg
+	$(DOXYGEN) doxygen.cfg
 
 doc:
-	@fullnames=""; \
-	list='$(DOCHDRS)'; for namedoc in $$list; do \
-	  fullnames="$$fullnames $(srcdir)/$$namedoc" ; \
-	done; \
-	echo "$(DOCXX) $(DOCXXFLAGS) $$fullnames"; \
-	$(DOCXX) $(DOCXXFLAGS) $$fullnames
+	cp $(top_builddir)/.doxygenrc doxygen.cfg
+	@projnm=`basename $(srcdir)`
+	@echo "PROJECT_NAME = $$projnm" >> doxygen.cfg
+	@echo "INPUT = $(srcdir)" >> doxygen.cfg
+	echo 'RECURSIVE = NO' >> doxygen.cfg
+	$(DOXYGEN) doxygen.cfg
 
-endif
 
+
+# Rules for building documentation via doc++.
+docppall:
+	$(DOCPP) $(DOCPPFLAGS) `find $(srcdir) -name "*.h" -print`
+
+docpp:
+	$(DOCPP) $(DOCPPFLAGS) $(srcdir)/*.h

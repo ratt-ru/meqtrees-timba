@@ -54,29 +54,21 @@ AC_MSG_ERROR([Cannot configure without BaseSim])
 # be in something/LOFAR/BaseSim/src.
 #
 lofar_curwd=`pwd`
+lofar_srcdir=`cd $srcdir && pwd`
 if test "$lofar_basesim_include" = ""; then
-  lofar_srcdir=`cd $srcdir && pwd`
   lofar_base=`echo $lofar_srcdir | sed -e "s%/LOFAR/.*%/LOFAR%"`
   lofar_basesim_include=$lofar_base/BaseSim/src
 fi
 
 # Try to guess where the BaseSim library directory is located.
 # pwd gives the current build directory, which can be something
-# like   something/LOFAR/package/build*  (if built in source tree)
-# or     something/build*/package        (if built in separate tree)
+# like   something/package/something
+# It simply replaces package by BaseSim.
+# Note that package is the last part of the source directory.
 #
 if test "$lofar_basesim_libdir" = ""; then
-  lofar_lastdir=`basename $lofar_curwd`
-  lofar_buildname=`echo $lofar_lastdir | sed -e "s%build.*%build%"`
-  if test "$lofar_buildname" = "build"; then
-    lofar_base=`echo $lofar_curwd | sed -e "s%/LOFAR/.*%/LOFAR%"`
-    lofar_basesim_libdir=$lofar_base/BaseSim/$lofar_lastdir
-  else
-    lofar_base=`echo $lofar_curwd | sed -e "s%/build.*%%"`
-    lofar_last=`echo $lofar_curwd | sed -e "s%$lofar_base/%%"`
-    lofar_builddir=`echo $lofar_last | sed -e "s%/.*%%"`
-    lofar_basesim_libdir=$lofar_base/$lofar_builddir/BaseSim
-  fi
+  lofar_pkg=`echo $lofar_srcdir | sed -e "s%.*/LOFAR/%%"`
+  lofar_basesim_libdir=`echo $lofar_curwd | sed -e "s%/$lofar_pkg%/BaseSim%"`
 fi
 
 ## Check if the build directory is valid.
