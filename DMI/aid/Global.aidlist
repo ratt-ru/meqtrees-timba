@@ -9,8 +9,8 @@ D                                1003       ; from /home/oms/LOFAR/Timba/DMI/src
 =DMIHIID                         1020       ; from /home/oms/LOFAR/Timba/DMI/src/HIID.h:32
 #DMIList                         1016       ; from /home/oms/LOFAR/Timba/DMI/src/List.h:30
 #DMINumArray                     1010       ; from /home/oms/LOFAR/Timba/DMI/src/NumArray.h:185
--DMIObjRef                       1028       ; from /home/oms/LOFAR/Timba/DMI/src/BObj.h:32
-#DMIRecord                       1030       ; from /home/oms/LOFAR/Timba/DMI/src/Record.h:30
+-DMIObjRef                       1029       ; from /home/oms/LOFAR/Timba/DMI/src/BObj.h:32
+#DMIRecord                       1031       ; from /home/oms/LOFAR/Timba/DMI/src/Record.h:30
 :DMITimestamp                    1013       ; from /home/oms/LOFAR/Timba/DMI/src/Timestamp.h:7
 #DMIVec                          1008       ; from /home/oms/LOFAR/Timba/DMI/src/Vec.h:28
 +double                          44         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:107
@@ -28,8 +28,8 @@ L                                1032       ; from /home/oms/LOFAR/Timba/DMI/src
 +ldouble                         45         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:107
 +long                            39         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:106
 +longlong                        41         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:106
-M                                1031       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
-N                                1029       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+M                                1030       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+N                                1028       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 O                                1034       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 P                                1033       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Q                                1018       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
