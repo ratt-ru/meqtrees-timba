@@ -7,7 +7,7 @@ Parm.h Freq.h Time.h Selector.h Composer.h \
 Add.h Subtract.h Multiply.h Divide.h \
 Sin.h Cos.h Exp.h Pow.h Sqr.h Sqrt.h Conj.h ToComplex.h \
 UVW.h Request.h \
-Condeq.h \
+Condeq.h Solver.h \
 Forest.h ParmTable.h
 
 lib_LTLIBRARIES 	= libmeq.la
@@ -19,6 +19,7 @@ Parm.cc Freq.cc Time.cc Selector.cc Composer.cc \
 Add.cc Subtract.cc Multiply.cc Divide.cc \
 Sin.cc Cos.cc Exp.cc Pow.cc Sqr.cc Sqrt.cc Conj.cc ToComplex.cc \
 UVW.cc Request.cc \
+Condeq.cc \
 Forest.cc ParmTable.cc \
 AID-Meq-Registry.cc
 

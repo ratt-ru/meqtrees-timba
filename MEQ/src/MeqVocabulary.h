@@ -32,6 +32,7 @@
 #pragma aid Table Name Default Value Index Num
 #pragma aid Parm Spid Index Perturbed Perturbations
 #pragma aid Cells Results Fail Origin Line Message Contagious 
+#pragma aid Solvable
 
 namespace Meq
 {
@@ -42,6 +43,7 @@ namespace Meq
     FCalcDeriv       = AidCalc|AidDeriv,
     FRider           = AidRider,
     FNodeName        = AidNode|AidName,
+    FNodeState       = AidNode|AidState,
     FClass           = AidClass,
     FClassName       = AidClass|AidName,
     FResults         = AidResults,
@@ -67,10 +69,15 @@ namespace Meq
     FOriginLine      = AidOrigin|AidLine,
     FMessage         = AidMessage,
     
+    FSolvable        = AidSolvable,
+    FSolvableParm    = AidSolvable|AidParm,
+    FNumSteps        = AidNum|AidSteps,
+    FEpsilon         = FNumSteps,
+    FUseSVD          = FNumSteps,
+
     FContagiousFail  = AidContagious|AidFail,
     
     FIndex           = AidIndex;
-    
     
 
 };

@@ -124,7 +124,7 @@ int Function::getResultImpl (ResultSet::Ref &resref, const Request& request, boo
   vector<ResultSet::Ref> child_results;
   // collect child_results from children
   int flag = getChildResults(child_results,request);
-  // return flag is at least one child wants to wait. If all children have 
+  // return flag if at least one child wants to wait. If all children have 
   // failed, continue anyway: fails will be collected below.
   if( flag != Node::RES_FAIL && flag&Node::RES_WAIT) 
     return flag;
@@ -260,14 +260,14 @@ vector<int> Function::findSpids (const vector<Result*> &results)
       int lastspid = -1;
       // Loop through all spids of the child.
       for (int i=0; i<nrchsp; i++) {
-	      // Copy spids until exceeding current child's spid.
+	// Copy spids until exceeding current child's spid.
         int spid = resch.getSpid(i);
         while (inx < lastinx  &&  spids[inx] <= spid) {
           lastspid = spids[inx++];
           spids[inxout++] = lastspid;
-	      }
+	}
         // Only store child's spid if different.
-	      if (spid != lastspid) {
+	if (spid != lastspid) {
           spids[inxout++] = spid;
         }
       }
