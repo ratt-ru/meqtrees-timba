@@ -57,12 +57,13 @@ shift
 #
 # Test whether QA env variable is set
 #
-if test "${QA+set}" != "set"; then
+if test "$QA" == "no"; then
 
   #
   # INSURE not defined so simply strip the path to the insure binary
   # and call the compiler directly
   #
+  echo "$*"
   $*
 
 else
@@ -72,11 +73,12 @@ else
   # with INSURE_OPTIONS as arguments
   #
   error=0
-  case $QA in
-    insure);;
-    inuse);;
-    tca);;
-    *)
+  if test "$QA" != ""; then
+    case $QA in
+      insure);;
+      inuse);;
+      tca);;
+      *)
 	echo QA should be set to one of:
 	if test $have_insure -eq 1; then
 	    echo "    insure"
@@ -88,23 +90,12 @@ else
 	    echo "    tca"
         fi
 	error=1
-  esac
+    esac
+  fi
 
   #
   # Define options for insure, inuse, and tca
   #
-  if test "${INSURE_OPTIONS+set}" != "set"; then
-
-    #
-    # Set different options for each insure tool
-    #
-    case $QA in
-	insure) INSURE_OPTIONS="-Zi" ;;
-	inuse)  INSURE_OPTIONS="-Zuse" ;;
-	tca)    INSURE_OPTIONS="-Zcov" ;;
-    esac
-  fi
-
   if test $error -eq 0; then
 
     # Insure cannot deal with compiler (compiler is mentioned in .psrc file).
@@ -117,7 +108,8 @@ else
     case $QA in
 	inuse)  echo "insure++.inuse on" >> .psrc
     esac
-    $insuretools_prefix/insure $INSURE_OPTIONS $*
+    echo "$insuretools_prefix/insure $*"
+    $insuretools_prefix/insure $*
   else
     false
   fi
