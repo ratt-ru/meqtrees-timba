@@ -49,6 +49,8 @@
 class Timestamp 
 {
   //## begin Timestamp%3C7F3B1D025E.initialDeclarations preserve=yes
+  public:
+      typedef enum { SEC=0,MSEC,USEC,NSEC } TimeUnits;
   //## end Timestamp%3C7F3B1D025E.initialDeclarations
 
   public:
@@ -125,18 +127,30 @@ class Timestamp
     // Additional Public Declarations
       //## begin Timestamp%3C7F3B1D025E.public preserve=yes
       // constructs from a struct timeval
-      Timestamp (const struct timeval &tv)
-      { 
-        sec_ = tv.tv_sec; 
-        usec_ = tv.tv_usec; 
-      }
+      Timestamp (const struct timeval &tv);
       
       // converts to a struct timeval
-      operator struct timeval ()
-      { 
-        struct timeval tv = { sec_,usec_ }; 
-        return tv;
-      }
+      void to_timeval ( struct timeval &tv ) const;
+      operator struct timeval () const;
+      
+      // resets to 0
+      void reset ();
+      
+      //  multiplies/divides by scalar
+      Timestamp & operator *= (double x);
+      
+      Timestamp & operator /= (double x)
+      { return *this *= (1/x); }
+      
+      Timestamp operator * (double x) const
+      { Timestamp res = *this; return res *= x; }
+      
+      Timestamp operator / (double x) const
+      { Timestamp res = *this; return res /= x; }
+      
+      
+      string toString (TimeUnits units,int prec = -1) const;
+      
       //## end Timestamp%3C7F3B1D025E.public
 
   protected:
@@ -331,6 +345,29 @@ inline long Timestamp::usec () const
 }
 
 //## begin module%3C7F3B770339.epilog preserve=yes
+inline Timestamp::Timestamp (const struct timeval &tv)
+{ 
+  sec_ = tv.tv_sec; 
+  usec_ = tv.tv_usec; 
+}
+
+inline void Timestamp::to_timeval ( struct timeval &tv ) const
+{
+  tv.tv_sec = sec_; 
+  tv.tv_usec = usec_;
+}
+
+// converts to a struct timeval
+inline Timestamp::operator struct timeval () const
+{ 
+  struct timeval tv = { sec_,usec_ }; 
+  return tv;
+}
+
+// resets to 0
+inline void Timestamp::reset ()
+{ sec_ = usec_ = 0; }
+
 //## end module%3C7F3B770339.epilog
 
 

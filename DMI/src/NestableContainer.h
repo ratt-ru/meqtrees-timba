@@ -104,6 +104,8 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
         bool writable;      // writability of contents
         int  size;          // # of elements
     };
+// to save compilation time, omit Hook declarations if NC_SKIP_HOOKS is defined
+
     //## end NestableContainer::ConstHook%3C614FDE0039.preface
 
     //## Class: ConstHook%3C614FDE0039
@@ -221,10 +223,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           const NestableContainer::ConstHook & operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
           { return (*this)[id1|id2|id3|id4]; }
           
+#ifndef NC_SKIP_HOOKS
           // pull in const accessor methods
-          #ifndef NC_SKIP_HOOKS
           #include "DMI/DataAcc-Const.h"
-          #endif
+#endif          
           
           // Define an as_vector<> template. This should work for all
           // contiguous containers.
@@ -235,7 +237,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           { return as_vector<T>(); }
           
           // define AIPS++ accessors
-          #ifdef AIPSPP_HOOKS
+#ifdef AIPSPP_HOOKS
           template<class T> 
           Vector<T> as_Vector () const;
           
@@ -251,7 +253,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           { return as_String(); }
           // template<class MVal> MVal as_MV ();
           // template<class Meas> Meas as_M (const Meas::Types &type = Meas::DEFAULT);
-          #endif
+#endif
 
           // standard debug info
           string sdebug ( int detail = 1,const string &prefix = "",const char *name = "cHook" ) const;
@@ -474,10 +476,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           { return (*this)[id1|id2|id3|id4]; }
           
           // pull non-in const accessdor methods
-          #ifndef NC_SKIP_HOOKS
+#ifndef NC_SKIP_HOOKS
           #define ForceConstDefinitions 1
           #include "DMI/DataAcc-NonConst.h"
-          #endif
+#endif
           
           // Assigning an Array either assigns to the underlying container,
           // or inits a new DataArray object (or a DataField, for 1 dimension)
@@ -490,13 +492,12 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           template<class T> const vector<T> & operator = (const vector<T> &other) const;
           
           // define accessors for AIPS++ types
-          #ifdef AIPSPP_HOOKS
+#ifdef AIPSPP_HOOKS
           // assigning a vector of strings will init a DataField object
           const Vector<String> & operator = (const Vector<String> &other) const;
           // assigning an AIPS++ String assigns an STL string.
           const String & operator = (const String &other) const;
-          #else
-          #endif
+#endif
 
           string sdebug ( int detail = 1,const string &prefix = "",const char *name = "Hook" ) const
           { return ConstHook::sdebug(detail,prefix,name); }
@@ -671,7 +672,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
       //## Operation: setBranch%3CB2B438020F
       NestableContainer::Hook setBranch (const HIID &id, int flags = DMI::WRITE);
-
+      
       //## Operation: select%3BE982760231
       //	Selects a subset of a container. Meant to be abstract, but we make
       //	it just virtual for now since this part is not implemented anywhere.
@@ -712,7 +713,8 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       NestableContainer::ConstHook operator [] (const char *id1) const
       { return (*this)[HIID(id1)]; }
       NestableContainer::Hook operator [] (AtomicID id1) 
-      { return (*this)[HIID(id1)]; }
+
+                { return (*this)[HIID(id1)]; }
       NestableContainer::Hook operator [] (const string &id1) 
       { return (*this)[HIID(id1)]; }
       NestableContainer::Hook operator [] (const char *id1) 
@@ -1212,7 +1214,6 @@ inline const Thread::Mutex & NestableContainer::mutex() const
 }
 #endif
 
-
 // This is called to treat the hook target as an ObjRef (exception otherwise)
 inline const ObjRef * NestableContainer::ConstHook::asRef( bool write ) const
 {
@@ -1281,7 +1282,6 @@ inline NestableContainer * NestableContainer::ConstHook::nextNC (const NestableC
   return nc;
 }
 
-
 // Define an as_vector<> template. This should work for all
 // contiguous containers.
 // This copies data so is not very efficient, but is quite
@@ -1300,7 +1300,6 @@ inline void NestableContainer::Hook::assign_object( const BlockableObject *obj,T
   // cast away const but that's OK since we force r/o ref  
   return assign_object(const_cast<BlockableObject*>(obj),tid,(flags&~DMI::WRITE)|DMI::READONLY);
 }
-
 
 //## end module%3C10CC830067.epilog
 

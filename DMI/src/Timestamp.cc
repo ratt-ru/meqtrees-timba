@@ -67,9 +67,20 @@ const Timestamp & Timestamp::now (Timestamp *pts)
 string Timestamp::toString (const char *format) const
 {
   //## begin Timestamp::toString%3CA06AE50335.body preserve=yes
-  time_t tm = sec_;
   char tmp[256];
-  strftime(tmp,sizeof(tmp),format,localtime(&tm));
+  if( !strcmp(format,"ms") )
+    return Debug::ssprintf("%.3f",sec_*1e+3+usec_*1e-3);
+  else if( !strcmp(format,"s") )
+    return Debug::ssprintf("%.6f",sec_*1e+3+usec_*1e-3);
+  else if( !strcmp(format,"us") )
+    return Debug::ssprintf("%ld",sec_*1000000+usec_);
+  else if( !strcmp(format,"ns") )
+    return Debug::ssprintf("%ld",sec_*1000000000+usec_*1000);
+  else
+  {
+    time_t tm = sec_;
+    strftime(tmp,sizeof(tmp),format,localtime(&tm));
+  }
   return tmp;
   //## end Timestamp::toString%3CA06AE50335.body
 }
@@ -112,6 +123,37 @@ void Timestamp::normalize ()
 
 // Additional Declarations
   //## begin Timestamp%3C7F3B1D025E.declarations preserve=yes
+Timestamp & Timestamp::operator *= (double x)
+{
+  double s1 = sec_ * x;
+  sec_ = (long)floor(s1);
+  usec_ = (long)round(usec_ * x + (s1 - sec_)*1000000);
+  normalize();
+  return *this;
+}
+
+string Timestamp::toString (Timestamp::TimeUnits units,int prec) const
+{
+  //## begin Timestamp::toString%3CA06AE50335.body preserve=yes
+  int pr;
+  switch( units )
+  {
+    case SEC:
+      pr = prec<0 ? 6 : prec;
+      return Debug::ssprintf("%.*f",pr,sec_+usec_*1e-6);
+        
+    case MSEC:
+      pr = prec<0 ? 3 : prec;
+      return Debug::ssprintf("%.*f",pr,sec_*1e+3+usec_*1e-3);
+        
+    case USEC:
+      return Debug::ssprintf("%ld",sec_*1000000+usec_);
+        
+    case NSEC:
+      return Debug::ssprintf("%ld",sec_*1000000000+usec_*1000);
+  }
+  return "";
+}
   //## end Timestamp%3C7F3B1D025E.declarations
 
 //## begin module%3C7F3B77034D.epilog preserve=yes
