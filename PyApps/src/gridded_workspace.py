@@ -89,14 +89,12 @@ def getViewerList (arg,dmitype=None):
   global _reg_viewers;
   if arg is None:
     return [];
-  print 'getViewerList for arg',arg;
   # arg may specify a type or a data object
   if type(arg) is type:
     datatype = arg;
   else:
     datatype = type(arg);
     dmitype  = dmi_type(arg);
-    print 'dmitype is ',dmitype;
   viewer_list = [];
   # resolve data type (argument may be object or type)
   for (tptuple,vlist) in _reg_viewers.iteritems():
