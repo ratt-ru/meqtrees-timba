@@ -101,11 +101,9 @@ void Request::privatize (int flags,int depth)
 
 void Request::revalidateContent ()
 {
-  Thread::Mutex::Lock lock(mutex());
   protectAllFields();
-  Hook hcells(*this,FCells);
-  if( hcells.exists() )
-    cells_ <<= hcells.as_p<Cells>();
+  if( DataRecord::hasField(FCells) )
+    cells_ = DataRecord::field(FCells);
   else
     cells_.detach();
 }

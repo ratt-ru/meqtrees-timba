@@ -237,6 +237,18 @@ void Polc::privatize (int flags,int depth)
 void Polc::revalidateContent ()    
 {
   protectAllFields();
+  if( DataRecord::hasField(FCoeff) )
+  {
+    coeff_ = DataRecord::field(FCoeff);
+    rank_  = coeff_->rank();
+    if( rank_ == 1 && coeff_->size() == 1 )
+      rank_ = 0;
+  }
+  else
+  {
+    coeff_.detach();
+    rank_ = -1;
+  }
 }
   
 void Polc::validateContent ()    
@@ -253,18 +265,7 @@ void Polc::validateContent ()
     else
       domain_ <<= new Domain;
     // get coefficients
-    if( DataRecord::hasField(FCoeff) )
-    {
-      coeff_ = DataRecord::field(FCoeff);
-      rank_  = coeff_->rank();
-      if( rank_ == 1 && coeff_->size() == 1 )
-        rank_ = 0;
-    }
-    else
-    {
-      coeff_.detach();
-      rank_ = -1;
-    }
+    revalidateContent();
     // get various others
     axes_       = (*this)[FAxisIndex].as_vector(default_axes);
     offsets_    = (*this)[FOffset].as_vector(default_offset);
