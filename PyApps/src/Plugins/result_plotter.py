@@ -9,6 +9,8 @@ from math import sqrt
 # modules that are imported
 from Timba.dmi import *
 from Timba import utils
+from Timba.Meq import meqds
+from Timba.Meq.meqds import mqs
 from Timba.GUI.pixmaps import pixmaps
 from Timba.GUI import widgets
 from Timba.GUI.browsers import *
@@ -108,6 +110,7 @@ class ResultPlotter(GriddedPlugin):
     self._wtop = None;
     self.dataitem = dataitem
     self._attributes_checked = False
+    self.first_spectrum_plot = True
 
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
@@ -309,6 +312,15 @@ class ResultPlotter(GriddedPlugin):
 # now do the plotting
     self._visu_plotter.plot_data(leaf, attrib_list)
 
+# if we have spectra, we need to repeat display first time in
+# order to get combined image - a bit of a hack ... This is necessitated
+# by the fact that logic in the display_imge code is based on the
+# assumption that the first batch of data would be sent twice
+# (as is the case if one just does an 'array_plot') 
+    if self.first_spectrum_plot and self._plot_type == 'spectra':
+      self._visu_plotter.plot_data(leaf, attrib_list)
+      self.first_spectrum_plot = False
+
   def tree_traversal (self, node, label=None, attribute_list=None):
     """ routine to do a recursive tree traversal of a Visu plot tree """
     _dprint(3,' ');
@@ -449,9 +461,12 @@ class ResultPlotter(GriddedPlugin):
       return
 
 # there's a problem here somewhere ...
-#    if dmi.dmi_type(self._rec) != 'MeqResult': # data is not already a result?
-#      try: self._rec = self._rec.cache_result; # look for cached_result field
-#      except AttributeError:
+    if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
+      try: self._rec = self._rec.cache_result; # look for cached_result field
+      except:
+# AttributeError:
+# to do: a popup message here ...
+       print 'we ended at this exception'
       # cached_result not found, display an empty viewer with a "no result
       # in this node record" message (the user can then use the Display with
       # menu to switch to a different viewer)
