@@ -18,7 +18,7 @@ lam-corba.variant.conf:   $(standard) $(lam) $(vbroker)
 scampi.variant.conf:	  $(standard) $(scampi)
 scampi-opt.variant.conf:  $(standard) $(scampi) $(optimize)
 mpich-prof.variant.conf:  $(standard) $(mpich) --enable-mpi-profiler --with-cppflags="-DHAVE_MPE"
-bgl.variant.conf:         $(lofar_root) $(debugopt) $(nothreads) $(noshmem) $(bgl_cpp) $(bgl_ldd) --without-log4cplus --with-bglmpich --with-cppflags="-DHAVE_BGL -DYY_NEVER_INTERACTIVE"
+bgl.variant.conf:         $(lofar_root) $(debugopt) $(nothreads) $(noshmem) $(bgl_cpp) $(bgl_ldd) --without-log4cplus --with-bglmpich
 fakebgl.variant.conf:     $(lofar_root) $(debug) $(nothreads) $(noshmem) --without-log4cplus --with-cppflags="-DHAVE_BGL"
 nolog4cplus.variant.conf: $(standard) $(debug) --without-log4cplus 
 insure.variant.conf:	  $(standard) --with-insuretools
@@ -43,5 +43,5 @@ threads.var:              --with-threads
 nothreads.var:            --with-threads=no  
 shmem.var:                --with-shmem
 noshmem.var:              --with-shmem=no
-bgl_cpp.var:              --with-cppflags='-qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/bgl/BlueLight/ppcfloor/bglsys/include/'
+bgl_cpp.var:              --with-cppflags='-qarch=440d -qinfo=pro:gen -qcpluscmt -I. -qlist -qsource -qmaxmem=64000 -I/bgl/BlueLight/ppcfloor/bglsys/include/ -DHAVE_BGL -DYY_NEVER_INTERACTIVE'
 bgl_ldd.var:              --with-ldflags='-L/bgl/BlueLight/ppcfloor/bglsys/lib -lmpich.rts -lmsglayer.rts -lrts.rts -ldevices.rts -lstandalone.440 -lcrypt -lnss_files -lnss_dns -lresolv -lc -lnss_files -lnss_dns -lresolv -lm'
