@@ -21,19 +21,37 @@
 #  $Id$
 
 
-# lofar_FFTW
+# lofar_FFTW2
 #
-# Macro to check for FFTW and RFFTW installation
+# Macro to check for FFTW version 2.x installation.
 #
-# lofar_FFTW(option)
-#     option 0 means that FFTW is optional, otherwise mandatory.
+# lofar_FFTW2(option)
+#     option 0 means that FFTW2 is optional, otherwise mandatory.
 #
-# e.g. lofar_FFTW(1)
+# e.g. lofar_FFTW2(1)
 # -------------------------
 #
-AC_DEFUN([lofar_FFTW],dnl
+AC_DEFUN([lofar_FFTW2],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], [lfr_option=0], [lfr_option=$1])
-lofar_EXTERNAL(FFTW,[$lfr_option],fftw3.h,"fftw3",,,,,-lm)
+lofar_EXTERNAL(FFTW2,[$lfr_option],fftw.h,"fftw rfftw")
 ])
+
+# lofar_FFTW3
+#
+# Macro to check for FFTW version 3.x installation.
+#
+# lofar_FFTW3(option)
+#     option 0 means that FFTW3 is optional, otherwise mandatory.
+#
+# e.g. lofar_FFTW3(1)
+# -------------------------
+#
+AC_DEFUN([lofar_FFTW3],dnl
+[dnl
+AC_PREREQ(2.13)dnl
+ifelse($1, [], [lfr_option=0], [lfr_option=$1])
+lofar_EXTERNAL(FFTW3,[$lfr_option],fftw3.h)
+])
+
