@@ -160,6 +160,7 @@ int Function::getResultImpl (Result::Ref &resref, const Request& request, bool)
       result.setPerturbedValue (j, evaluate(request,values));
     }
   }
+  result.setSpids (spids);
   return flag;
 }
 
