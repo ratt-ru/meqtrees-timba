@@ -13,3 +13,8 @@ icc.compiler.aipspp.var: --with-aipspp=/aips++/weekly/linux_icc
 debugnt.variant.conf:	  $(aipspp)	
 
 aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu
+
+profile.var:		   --with-optimize='-pg -O2' --with-compiletools --with-ldflags='-lc_p'
+debugopt.var:		   --with-optimize='-g -O2'
+profopt.var:		   --with-optimize='-pg -O2' --with-ldflags='-lc_p'
+optimize.var:		   --with-optimize='-O2'
