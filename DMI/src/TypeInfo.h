@@ -102,7 +102,7 @@ class TypeInfo : public TypeCategories {
       
       // do the conversion, return True on success, False if not convertible
     //##ModelId=4017F63303BF
-      static bool convert (const void *from,TypeId from,void *to,TypeId to);
+      static bool convert (const void *from,TypeId frid,void *to,TypeId toid);
 };
  
 // This is a helper class hosting a registry for TypeInfos
