@@ -114,6 +114,12 @@ class NodeList (object):
       return bool(self.control_status&CS_PUBLISHING);
     def has_breakpoints (self):
       return bool(self.control_status&CS_BREAKPOINT);
+    def exec_state (self):
+      return self.control_status&CS_MASK_EXECSTATE;
+    def exec_state_str (self):
+      return CS_ES_state(self.control_status)[1];
+    def is_idle (self):
+      return self.exec_state() == CS_ES_IDLE;
     def update_status (self,status,rqid=False):
       old_status = self.control_status;
       self.control_status = status;
@@ -314,6 +320,9 @@ def update_node_state (state,event):
 def add_node_snapshot (state,event):
   ni = state.nodeindex;
   _dprint(5,"adding snapshot for node ",state.name);
+  # update state
+  if nodelist:
+    nodelist[ni].update_state(state,event);
   # get list of snapshots and filter it to eliminate dead refs
   sslist = filter(lambda s:s[0]() is not None,snapshots.get(ni,[]));
   if len(sslist) and sslist[-1][0]() == state:
@@ -321,8 +330,6 @@ def add_node_snapshot (state,event):
     return;
   sslist.append((weakref.ref(state),event,time.time()));
   snapshots[ni] = sslist;
-  if nodelist:
-    nodelist[ni].update_state(state,event);
   
 def get_node_snapshots (node):
   ni = nodeindex(node);

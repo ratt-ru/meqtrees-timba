@@ -510,6 +510,14 @@ class WeakInstanceMethod (object):
       return self.DeadRef;
     return self.im_func(obj,*args,**kwargs);
 
+def weakref_proxy (obj):
+  """returns either a weakref.proxy for the object, or if object is already a proxy,
+  returns itself.""";
+  if type(obj) in weakref.ProxyTypes:
+    return obj;
+  else:
+    return weakref.proxy(obj);
+
 
 # import C module
 import octopython

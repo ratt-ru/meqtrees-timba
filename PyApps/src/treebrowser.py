@@ -22,12 +22,6 @@ class AppState (object):
   Debug      = -hiid('debug').get(0);
   Execute    = -hiid('execute').get(0);
   
-def weakref_proxy (obj):
-  if type(obj) in weakref.ProxyTypes:
-    return obj;
-  else:
-    return weakref.proxy(obj);
-
 class TreeBrowser (QObject):
 
   class NodeItem (QListViewItem):
@@ -702,66 +696,6 @@ class TreeBrowser (QObject):
       rec = srecord(file_name=fname,get_forest_status=True);
       mqs().meq('Load.Forest',rec,wait=False);
       
-  def node_execute_dialog (self,node):
-    try: dialog = self._node_reexecute_dialog;
-    except AttributeError:
-      self._node_reexecute_dialog = dialog = NodeExecuteDialog(self.wtop())
-    dialog.show(node);
-
-class NodeExecuteDialog (QDialog):
-  def __init__(self,parent):
-    QDialog.__init__(self,parent,"reexecute",False);
-    # create GUI
-    top_box = QWidget(self);
-    top_lo = QVBoxLayout(top_box);
-    self._reqbr = HierBrowser(top_box,"value","field");
-    control_box = QWidget(top_box);
-    control_lo = QHBoxLayout(control_box);
-    top_lo.addWidget(self._reqbr.wtop());
-    top_lo.addWidget(control_box);
-    # buttons
-    self._exec_btn = QPushButton(pixmaps.reexecute.iconset(),"Execute",control_box);
-    self._exec_btn.setEnabled(False);
-    self._exec_btn.setDefault(True);
-    QObject.connect(self._exec_btn,SIGNAL("clicked()"),self.execute);
-    cancel = QPushButton(pixmaps.cancel.iconset(),"Cancel",control_box);
-    QObject.connect(cancel,SIGNAL("clicked()"),self.hide);
-    control_lo.addWidget(self._exec_btn);
-    control_lo.addWidget(cancel);
-    
-  def show (self,node):
-    self.setCaption("Execute node "+node.name);
-    self._request = None;
-    self._callback = curry(self._update_state);
-    # request node state, and subscribe to it via the curried callback
-    # the curry() is handy because it will automatically disconnect the
-    # subscription when deleted
-    node.subscribe_state(self._callback);
-    meqds.request_node_state(node);
-    QDialog.show(self);
-    
-  def hide (self):
-    self._request = None;
-    self._callback = None; # this will disconnect the Qt signal
-    QDialog.hide(self);
-  
-  def _update_state(self,node,state,event=None):
-    if hasattr(self,'_request'):
-      return;
-    try: request = state.request;
-    except AttributeError: return;
-    self._request = copy.deepcopy(request);
-    self._request.request_id = hiid();
-    self._exec_btn.setEnable(True);
-    self._reqbr.set_content(self._request);
-    
-  def execute (self,ni):
-    try: request = self._request;
-    except AttributeError: return;
-    cmd = srecord(nodeindex=ni,request=request,get_state=True);
-    mqs().meq('Node.Execute',cmd,wait_reply=False);
-    self.hide();
-
 def define_treebrowser_actions (tb):
   _dprint(1,'defining standard treebrowser actions');
   parent = tb.wtop();
@@ -808,7 +742,6 @@ def define_treebrowser_actions (tb):
   # populate node context menu
   tb.add_action(NA_NodeDisable,10,where="node");
   tb.add_action(NA_NodePublish,20,where="node");
-  tb.add_action(NA_NodeExecute,30,where="node");
 
   # populate debug context sub-menu
   tb.add_action(NA_ContinueUntil,10,where="debug");
@@ -831,6 +764,8 @@ class NodeAction (object):
     """instantiates action and adds it to the given menu.
     item is a TreeBrowser.NodeItem with which the menu is associated."""
     self.item = weakref_proxy(item);
+    self.node = weakref_proxy(item.node);
+    self.tb   = weakref_proxy(item.tb);
     if separator:
       menu.insertSeparator();
     if self.iconset:
@@ -858,21 +793,20 @@ class NA_NodeDisable (NodeAction):
   text = "Disable";
   iconset = pixmaps.cancel.iconset;
   def activate (self):
-    cs = self.item.node.control_status ^ meqds.CS_ACTIVE;
+    cs = self.node.control_status ^ meqds.CS_ACTIVE;
     meqds.set_node_state(node,control_status=cs);
   # define is_checked as a property that is computed on-the-fly
   def is_checked (self):
-    return not self.item.node.is_active();
+    return not self.node.is_active();
 
 class NA_NodePublish (NodeAction):
   text = "Publish";
   iconset = pixmaps.publish.iconset;
   def activate (self):
-    node = self.item.node;
-    cmd = srecord(nodeindex=node.nodeindex,get_state=True,enable=not node.is_publishing());
+    cmd = srecord(nodeindex=self.node.nodeindex,get_state=True,enable=not self.node.is_publishing());
     mqs().meq('Node.Publish.Results',cmd,wait=False);
   def is_checked (self):
-    return self.item.node.is_publishing();
+    return self.node.is_publishing();
 
 class NA_ContinueUntil (NodeAction):
   text = "Continue until";
@@ -880,15 +814,11 @@ class NA_ContinueUntil (NodeAction):
   def __init__ (self,item,menu,**kw):
     NodeAction.__init__(self,item,menu,**kw);
     menu.changeItem(self.item_id,"Continue &until "+item.node.name);
-    self.tb = self.item.tb;
   def activate (self):
-    self.tb._debug_until_node(self.item.node);
+    self.tb._debug_until_node(self.node);
   def is_enabled (self):
     return self.tb.debug_level>0 and self.tb.is_running and self.tb.is_stopped;
 
-class NA_NodeExecute (NodeAction):
-  text = "Reexecute";
-  iconset = pixmaps.reexecute.iconset;
-  def activate (self):
-    self.item.tb.node_execute_dialog(self.item.node);
-  
+### import plug-ins
+import node_execute
+

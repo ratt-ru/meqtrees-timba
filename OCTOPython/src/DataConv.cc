@@ -608,21 +608,44 @@ PyObject * pyFromArray (const DataArray &da)
 {
   // get rank & shape into terms that Numarray understands
   int rank = da.rank();
-  maybelong dims[rank];
-  maybelong strides[rank];
-  maybelong stride = da.elementSize();
-  for( int i=0; i<rank; i++ )
+  // a [1] array is converted to a scalar
+  if( rank==1 && da.size() == 1 )
   {
-    strides[i] = stride;
-    stride *= dims[i] = da.shape()[i];
+    TypeId type = da.elementType();
+    DataArray::Hook hook(da,0);
+    if( type == Tpbool )
+      return PyBool_FromLong(hook.as<bool>());
+    else if( type < Tpbool && type >= Tplong )
+      return PyInt_FromLong(hook.as<long>());
+    else if( type <= Tpulong && type >= Tplonglong )
+      return PyLong_FromLongLong(hook.as<longlong>());
+    else if( type == Tpulonglong )
+      return PyLong_FromLongLong(hook.as<ulonglong>());
+    else if( type <= Tpfloat && type >= Tpldouble )
+      return PyFloat_FromDouble(hook.as<double>());
+    else if( type <= Tpfcomplex && type >= Tpdcomplex )
+      return PyComplex_FromDComplex(hook.as<dcomplex>());
+    else
+      throwError(Runtime,"unsupported array type "+type.toString());
   }
-  NumarrayType typecode = typeIdToNumarray(da.elementType());
-  PyObjectRef pyarr = (PyObject*)
-      NA_NewAllStrides(rank,dims,strides,typecode,
-                       const_cast<void*>(da.getConstDataPtr()),
-                       0,NUM_LITTLE_ENDIAN,0,1);
-//      NA_vNewArray(const_cast<void*>(da.getConstDataPtr()),typecode,rank,dims);
-  return ~pyarr;
+  else // else regular array
+  {
+    maybelong dims[rank];
+    maybelong strides[rank];
+    maybelong stride = da.elementSize();
+    for( int i=0; i<rank; i++ )
+    {
+      strides[i] = stride;
+      stride *= dims[i] = da.shape()[i];
+    }
+    NumarrayType typecode = typeIdToNumarray(da.elementType());
+    PyObjectRef pyarr = (PyObject*)
+        NA_NewAllStrides(rank,dims,strides,typecode,
+                         const_cast<void*>(da.getConstDataPtr()),
+                         0,NUM_LITTLE_ENDIAN,0,1);
+  //      NA_vNewArray(const_cast<void*>(da.getConstDataPtr()),typecode,rank,dims);
+    return ~pyarr;
+  }
 }
 
 // -----------------------------------------------------------------------

@@ -443,6 +443,7 @@ class HierBrowser (object):
     
   def set_content (self,content):
     # expand first level of record
+    self.clear();
     HierBrowser.Item.expand_content(self._lv,content);
     
   def change_item_content (self,item,content,keepopen=True,**kwargs):

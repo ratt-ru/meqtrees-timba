@@ -23,7 +23,7 @@ dist_python_SCRIPTS = \
   app_defaults.py  app_proxy_gui.py  meqbrowser.py  meqserver_gui.py  \
   pretty_print.py  app_pixmaps.py    app_proxy.py   gridded_workspace.py \
   app_browsers.py  meq.py         meqserver.py meqds.py array_plotter.py \
-  treebrowser.py result_plotter.py 
+  treebrowser.py result_plotter.py  node_execute.py
 
 
 include $(lofar_sharedir)/Makefile.aids
