@@ -44,13 +44,15 @@ class ResultPlotter(BrowserPlugin):
 #    self._wtop = QLabel("",parent);
     self._visu_plotter = None
     self._parent = parent;
+    self._window_controller = None
     self._wtop = None;
 
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
 
   def __del__(self):
-    self._window_controller.closeAllWindows()
+    if self._window_controller:
+      self._window_controller.closeAllWindows()
                                                                                            
   def wtop (self):
     return self._wtop;
