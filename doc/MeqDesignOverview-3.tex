@@ -960,6 +960,7 @@
   mind in case you see \qq{Function} nodes failing unexpectedly.
 
 \subsection{Implementing evaluate(): Vells arithmetic}
+  \label{sec:vells}
 
   The \qq{evaluate()} method is defined as follows:
   
@@ -974,8 +975,8 @@
   \ref{sec:getResult}). The last parameter is a vector of pointers to argument
   \Vells, which \qq{Function} sets up for each call so that the correct
   combination of main values and perturbed values is used. Note that the
-  resulting \Vells\ is returned by value, this is a cheap operation since
-  \Vells\ copy is done by-reference.
+  resulting \Vells\ is returned by value; this is a very fast operation, since
+  \Vells\ utilizes copy-on-write for its contents.
 
   \begin{table}[th]
   \begin{center}\begin{tabular}{|p{.25\textwidth}p{.7\textwidth}|}
@@ -1063,317 +1064,48 @@
   primitive operations into complicated expressions, while the compiler takes
   care of creating and destroying intermediate \Vells\ objects as appropriate.
 
-  \subsubsection{Copy-by-reference details}
+  \subsubsection{Copy-on-write specifics}
 
-  Since \Vells\ are copied by-reference, using \Vells\ math for complicated
+  Since \Vells\ employ copy-on-write, using \Vells\ math for complicated
   expressions incurs very little overhead in comparison to an ``optimized''
   implementation with explicit looping over array elements. The amount of
   messy coding saved, on the other hand, is huge. 
   
-  Copy-by-reference means that when one \Vells\ is assigned to or initialized
-  from another \Vells, the two end up sharing the same data. This is very fast,
-  but has of course its own pitfalls. If you don't want data to be shared, use
-  the \qq{Vells::clone()} method to create a private copy. An even more useful
-  technique is to use read-only referencing. A read-only \Vells\ 
-  
-  Consider, for example, an
-  implementation of \qq{Add:evaluate()}. The \qq{Add} node adds the results of
-  any number of children:
+  Copy-on-write means that when one \Vells\ is assigned to or initialized from
+  another \Vells, the two start off sharing the same data. This makes 
+  copy/assignment operations very economical, since the underlying data array 
+  is not copied. Any subsequent attempts to modify either \Vells\ will cause a
+  true private copy of the data to be made. Thus, copying of data arrays is
+  deferred until it is actually needed (which may be never). 
+
+  Consider, for example, an implementation of \qq{Add:evaluate()}. The \qq{Add}
+  node adds the results of any number of children:
 
   \begin{verbatim}  
   Vells Add::evaluate (const Request&, const LoShape&,
-                       const vector<const Vells*>& values)
+                       const vector<const Vells*>& args)
   {
-    if( values.empty() )
+    if( args.empty() )
       return Vells(0.);
-    Vells result(*values[0],DMI::READONLY);
-    for( uint i=1; i<values.size(); i++ )
-      result += *(values[i]);
+    Vells result(*args[0],DMI::READONLY);
+    for( uint i=1; i<args.size(); i++ )
+      result += *(args[i]);
     return result;
   }
   \end{verbatim}  
   
-  
-
+  The \qq{result} \Vells\ is initialized from the first argument \Vells, and
+  shares data with it. As soon as the second argument is added in, a private 
+  copy of \qq{result}'s data is implicitly created. If, however, only one
+  argument is passed in to begin with, the \qq{result} will still share data
+  with it when returned.
 
 \chapter{The MeqServer Interface}
 \label{chap:meqserver}
 \label{sec:meqserver}
 \label{sec:meqforest}
 
-  Coming soon.
 
-\chapter{Description of specialized nodes}
-
-\section{ReqSeq}
-
-  \qq{ReqSeq} is the {\em request sequencer} node. It is used to sequence the
-  execution of requests between subtrees.
+%  The \MeqServer\ object provides an interface to the MeqTree kernel. It 
   
-  Normally, if a node has multiple children, they may recieve \& execute their
-  requests in parallel, with no predefined order (note that in a
-  single-threaded system, they will effectively execute in sequence, however,
-  you cannot design a tree to rely on this behaviour). Some applications
-  require that branches of the tree are evaluated in a specific order. For
-  example, in the rippled solvers tree (Fig. ??), the Predict--Solver branch
-  must be executed first, to determine values for the solvable parameters,
-  followed by Predict--Subtract.
   
-  The sequencer (\qq{ReqSeq}) node provides an easy way to sequence these
-  requests. A sequencer may have any number of children. Upon receiving a
-  request from its parent, the sequencer will pass it on to the first child,
-  and wait for the first child to return a result. Then it will go on to the
-  second child, etc. For its own result, the sequencer returns the result of
-  one of the children, as determined by its state record (run-time
-  configurable).
-
-\section{Resampler}
-
-\section{ModRes}
-
-\section{MeqParm}
-
-  The \Parm\ node implements a possibly solvable Measurement Equation
-  parameter. The parameter is represented by one or more \Polc\ objects.
-
-\subsection{MeqPolc}
-
-  The \Polc\ class implements a 2D polynomial in time and frequency. The Glish
-  equivalent is a \qq{meq.polc} record. This record will contain the following
-  fields:
-  
-  \noindent\begin{center}\begin{tabular}{lp{.8\textwidth}}
-  \qq{.coeff}  &  a 2D array of polynomial coefficients.\\
-  \qq{.freq\_0}  &  \\
-  \qq{.freq\_scale}  &  \\
-  \qq{.time\_0}  &  \\
-  \qq{.time\_scale}  & the scale of the polc (see below)\\
-  \qq{.domain}  & (optional) the polc \Domain.\\
-  \qq{.weight}  & weight\\
-  \qq{.pert}  & perturbation to use for computing derivatives\\
-  \qq{.dbid\_index}  & database ID (see below)\\
-  \qq{.inf\_domain} &  optional flag: infinite domain (see below)\\
-  \qq{.grow\_domain} &  optional flag: growing domain (see below)\\
-  \end{tabular}\end{center}
-  
-  The value of a polc for frequency $f$ and time $t$ is computed as follows:
-
-  \begin{equation}
-  p(f,t) = \sum_{i=0}^{N-1}\sum_{j=0}^{M-1} c_{ij}(\frac{f-f_0}{s_f})^i(\frac{t-t_0}{s_t})^j
-  \end{equation}
-  
-  Here, $c_{ij}$ is an $N\times M$ array of coefficients (\qq{coeff}), and
-  $f_0,s_f,t_0,s_t$ is the scale of the polc. The scale is only necessary to
-  keep numbers small so as to avoid round-off errors.
-
-\subsection{MeqParm state}
-
-  Here's the layout for a \Parm\ state record. All of these attributes are
-  dynamic state, that is, they may be changed at any time via \qq{setState()}:
-  
-  \begin{description}
-
-  \item[\qq{solvable}] (bool, optional) is this \Parm\ solvable or not?
-    Default is non-solvable.
-
-  \item[\qq{polcs}] (list of \Polc{}s, optional) the parm's polc list (see below).
-
-  \item[\qq{table\_name}] (string, optional) the name of a MEP table. Default is none.
-    If no table is provided, then polcs must be specified via either the
-    \qq{polcs} or the \qq{default} field.
-
-  \item[\qq{parm\_name}] (string, optional) the name to use when working with a MEP
-    table. Default is to use the node name itself.
-
-  \item[\qq{default}] (\Polc, optional) a default \Polc, to be used as a last
-    resort (i.e. if no polcs found in the MEP table).
-
-  \item[\qq{auto\_save}] (bool, optional) If true, any updates to the parm's 
-    polcs are immediately saved to the MEP table. If false, updates need to be
-    explicitly saved (more on this below). Default is false.
-
-  \end{description}
-  
-\subsection{Selecting polcs}
-
-  The \qq{Parm::getResult()} method is responsible for evaluating a parm over a
-  \Cells\ (specifically, over the domain of the \Cells). To do this, the parm
-  needs to find an appropriate polc or polcs for the given domain. Most of the
-  tricky logic of the \Parm\ class is dedicated to choosing the right set of
-  polcs.  Currently, it will select polc(s) as follows:
-
-  \begin{enumerate}
-  
-  \item If no MEP table and no default polc has been set in the state record,
-    then the parm will blindly re-use the current polc list (i.e. the
-    \qq{polcs} field of the state record), or fail if the list is empty.  No
-    further error checking is done, and it is up to the user to ensure that the
-    parm has been initialized with polcs that are meaningful w.r.t. the domain
-    of the request.
-
-  \item Otherwise, the parm will first see if it can re-use the current polc 
-    anyway. The current list must contain a single polc, which is tested for
-    re-usability as follows:
-
-    \begin{enumerate}
-    
-    \item If the \qq{inf\_domain} flag is set, the polc has an infinite domain, 
-      and can be re-used.
-      
-    \item If the \qq{grow\_domain} flag is set, and the requested domain is a
-      superset of the polc's current domain, then the domain of the polc is
-      expanded to match the requested domain, and the polc can be re-used. 
-
-    \item If the requested domain is a subset of the polc's current domain, the
-      polc is re-used.
-
-    \end{enumerate}
-
-  \item If no re-use is possible, the current polc list is cleared. The parm
-    will then query its MEP table for polcs whose domain overlaps the requested
-    domain. These polcs are loaded into the polc list.
-
-  \item If no polcs are found in the MEP table, the table is checked for a
-    default polc. Note that default polcs have no domain (generally, they will
-    only have a $c_{00}$ coefficient). If a default polc is found, it is placed
-    in the list, and its domain is set to the requested domain.
-
-  \item If no default polc is found in the table, or if no table is available,
-    then default polc from the state record is copied into the list, and its
-    domain is set to the requested domain. Note that the case of no table and
-    no default polc is covered by (1), above.
-
-  \end{enumerate}
-  
-  Once the selection is complete, the parm will have at its disposal a list of
-  one or more polcs. 
-
-\subsection{Selecting a single solvable polc}
-  
-  If the parm is set to solvable, the polc list is then culled to a single polc
-  (NB: future versions may support solving for multiple polcs). This polc is
-  selected according to the following criteria (in descending order of
-  importance):
-
-  \begin{itemize}
-  
-  \item an exact match of the requested domain to the polc domain;
-  
-  \item weight (higher is better);
-  
-  \item database ID (higher, i.e. more recent, is better).
-  
-  \end{itemize}
-  
-  Once a single solvable polc is selected, its domain is set equal to the
-  requested domain.
-  
-\subsection{Evaluating the polc list}
-
-  A single polc is evaluated directly over the \Cells\ of the incoming
-  \Request. The resulting \VellSet\ object (polc value, plus optional
-  derivatives) is then returned to the caller. 
-  
-  If the parm contains multiple polcs, different evaluation schemes are
-  possible:
-
-  \begin{description}
-
-  \item[Tiled polcs.] This is the only scheme implemented by \Parm\ at time of
-  writing. For every polc in the list, \Parm\ computes the overlap between
-  the polc's domain and the domain of the request. The polc is then evaluated
-  over that part of the \Cells\ grid which falls within the overlapping area.
-  This step is repeated for every polc. Sections of the grid with no polc
-  domain coverage are assigned a zero value.
-
-  Obviously, this scheme is most suitable when the polcs neatly tile
-  the request domain. Note that the result is generally discontinuous across
-  tile boundaries, which can be quite useful for representing things such as
-  phase jumps. On the other  hand, if the request domain is not completely
-  covered, or if the polc domains overlap, the results of this scheme are not
-  very well defined. 
-
-  \item[Weighted mean.] Each polc is associated with a set of weights, defined
-  on the \Cells\ grid. Different weighting schemes may be employed. Presumably,
-  grid points within the polc's domain are assigned a higher weight, while
-  points outside the domain get a lower weight, further decreasing as we get
-  further away from the domain. The value of the parm at each grid point is
-  then simply a weighted mean of all the polcs' values.
-
-  The advantage of this scheme is that it gracefully incorporates polcs with
-  overlapping domains, while allowing for extrapolation to non-covered areas of
-  the request domain. The result is always smooth and continous -- which, on the
-  other hand, may not always be what you want. The downside is computational
-  expense, as each polc needs to be evaluated at each grid point.
-
-  \item[Reduction to single polc.] This scheme involves fitting a single polc
-  (usually of a higher order) to multiple polcs. It can already be implemented
-  externally (see \qq{fitpolcs\_wlc.g} for an example), as a ``preprocessing''
-  stage of sorts. The scheme works by evaluating the polcs over some set of
-  points within the request domain (not necessarily the \Cells\ grid at all),
-  combining the results using some sort of weighted mean, then doing a
-  least-squares fit of a new polc to the resulting values.
-
-  \end{description}
-
-\subsection{Updating and saving polcs}    
-
-  In the course of a solution, the Solver node updates the values of solvable
-  polcs by sending up new values in the request rider. This is done by
-  including the \qq{Update.Values} command in the rider. The value of the
-  command is expected to be a vector of new coefficients, in the same order in
-  which spids were assigned. More specifically:
-
-  \begin{itemize}
-  
-  \item When a \Parm\ that has been set solvable initializes a new polc for a
-  domain, it associates a number of spids with its coefficients. Spids are
-  assigned as $256*${\em nodeindex}$+i$, where $i$ is the number of the
-  coefficient.
-  
-  \item These spids are included in the resulting \Vells; as results percolate
-  down the tree, spid vectors and corresponding perturbed values from different
-  solvable \Parm{}s are merged. The \Vells\ received by the solver contain the
-  full set of spids from all the solvable \Parm{}s in its trees.
-
-  \item The Solver computes a set of incremental updates. Note that the Solver
-  knows nothing of \Polc{}s or \Parm{}s; instead, it only deals with abstract
-  ``atomic parameters'' identified by spid.
-
-  \item The solver inserts the updates into the rider of the next request, as
-  a set of \qq{Update.Values} commands. This request is then used to recalculate
-  the trees for the next iteration. If this is the last iteration, then a
-  request without a \Cells\ is sent up -- this updates the values without
-  recalculating anything.
-  
-  \end{itemize}
-  
-  Presumably, at some point the new polc values need to be stored into a MEP
-  table. There are two ways to accomplish this:
-
-  \begin{description}
-  
-  \item[Automatically:] if the \qq{auto\_save} flag is set in the \Parm\ state
-  record, then each update via \qq{set\_value} is immediately committed to the
-  MEP table.
-
-  \item[With explicit command:] whenever the \Parm\ receives a request with a
-  \qq{Save.Polcs} command in the rider, it commits all its polcs to the MEP
-  table.
-
-  \end{description}
-  
-  The \qq{dbid\_index} attribute of the \Polc\ is used to keep track of its
-  location in the MEP table. When a polc is loaded from the table (whether on
-  the C++ side, or via the Glish \qq{meptable()} object), \qq{dbid\_index} is
-  set to its DB identifier.\footnote{As long as we use AIPS++ tables, this is
-  simply the row number. If and when we employ other storage schemes, dbid  may
-  become something different, but is in any case a key into the database.} 
-  When a polc is subsequently saved, its dbid is used to locate the correct
-  entry in the table. New polcs are created with a dbid of -1; when they are
-  subsequently saved, a new entry is allocated in the MEP table, and the polc
-  object is updated with the dbid. During normal operation, the user need not
-  worry about this since everything happens automatically; some advanced
-  scripting may require knowledge of the dbid.
-
-

@@ -839,14 +839,15 @@
 
   On the Glish side, a \Vells\ object is simply a \qq{double} or \qq{complex}
   scalar or a 2D array. On the C++ side, \Vells\ is a wrapper class around the
-  scalar/array, providing some run-time type and size information, and built-in
-  mathematical operations (see \qq{Function} nodes,
-  section~\ref{sec:Function}).
+  scalar/array, providing run-time type and size information, and built-in
+  mathematical operations, and copy-on-write semantics. This is discussed in
+  detail in the context of \qq{Function} nodes (section~\ref{sec:vells}).
 
   Scalar \Vells\ represent values with no time-frequency variation. Array
   \Vells\ represent dependence {\em over a specific Cells.} This implies that
-  all array \Vells\ within a valid \Result\ must be consistent (in shape) with
-  the \Result's \Cells.
+  all {\em array\/} \Vells\ within a \Result\ must be consistent in shape with
+  the \Result's \Cells; scalar \Vells, on the other hand, are by definition
+  consistent with any and all \Cells.
 
 \subsection{Empty Cells in Results}
   \label{sec:result-empty-cells} 
