@@ -176,12 +176,16 @@ Funklet * Parm::initFunklet (const Request &request,bool solve)
     if( !pfunklet->hasDomain() )
     { 
       cdebug(3)<<"current funklet has infinite domain, re-using"<<endl;
+      wstate()[FDomainId] = domain_id_ = rq_dom_id;
+      wstate()[FDomain].replace() <<= &domain;
       return pfunklet;
     }
     // (c) funklet domain is a superset of the requested domain
     if( pfunklet->domain().supersetOfProj(domain) )
     {
       cdebug(3)<<"current funklet defined for superset of requested domain, re-using"<<endl;
+      wstate()[FDomainId] = domain_id_ = rq_dom_id;
+      wstate()[FDomain].replace() <<= &domain;
       return pfunklet;
     }
   }
