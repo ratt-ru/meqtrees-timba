@@ -1,6 +1,6 @@
-#include "AID-DMI.h"
-#include "TID-DMI.h"
-#include "DataRecord.h"
+#include "DMI/AID-DMI.h"
+#include "DMI/TID-DMI.h"
+#include "DMI/DataRecord.h"
     
 #define paddr(x) printf("=== " #x ": %08x\n",(int)&x)
     
@@ -260,8 +260,8 @@ void TestDataRecord ()
 
 int main ( int argc,const char *argv[] )
 {
-  Debug::DebugContext.setLevel(10);
-  CountedRefBase::DebugContext.setLevel(10);
+  Debug::getDebugContext().setLevel(10);
+  CountedRefBase::getDebugContext().setLevel(10);
   
   Debug::initLevels(argc,argv);
   
