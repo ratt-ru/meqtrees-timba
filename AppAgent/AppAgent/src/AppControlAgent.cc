@@ -389,10 +389,14 @@ void AppControlAgent::postStatus (const HIID &field,const HIID &rqid,const HIID 
   postEvent(StatusNotifyEvent|rqid,ref,destination);
 }
 
-void AppControlAgent::postStatusUpdate (const HIID &field,DataRecord::Ref::Xfer &rec)
+void AppControlAgent::postStatusUpdate (
+    const HIID &subrec,const HIID &field,DataRecord::Ref::Xfer &rec)
 {
-  cdebug(3)<<"posting update for status field ["<<field<<"]\n";
-  postEvent(StatusUpdateEvent|field,rec);
+  cdebug(3)<<"posting update for status field ["<<subrec<<"/"<<field<<"]\n";
+  HIID evname = StatusUpdateEvent;
+  if( !subrec.empty() )
+    evname |= subrec|AidSlash;
+  postEvent(evname|field,rec);
 }
 
 //##ModelId=3E5368C003DC

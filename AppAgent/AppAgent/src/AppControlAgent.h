@@ -68,8 +68,8 @@ namespace AppControlAgentVocabulary
 
       // notifications posted by the control agent
       StateNotifyEvent  = AidApp|AidNotify|AidState,          // new state
-      StatusNotifyEvent = AidApp|AidNotify|AidStatus,         // full status record
-      StatusUpdateEvent = AidApp|AidNotify|AidUpdate|AidStatus, // update in status
+      StatusNotifyEvent = AidApp|AidStatus,                   // full status record
+      StatusUpdateEvent = AidApp|AidUpdate|AidStatus,         // update in status
       InitNotifyEvent   = AidApp|AidNotify|AidInit,           // initialized
       StopNotifyEvent   = AidApp|AidNotify|AidStop,           // stopped
       
@@ -241,7 +241,7 @@ class AppControlAgent : public AppEventAgentBase
     // posts (sub-field) of the status record as an event
     void postStatus (const HIID &field = HIID(),const HIID &rqid = HIID(),const HIID &dest = HIID());
     
-    void postStatusUpdate (const HIID &field,DataRecord::Ref::Xfer &rec);
+    void postStatusUpdate (const HIID &subrec,const HIID &field,DataRecord::Ref::Xfer &rec);
     
 //    //##ModelId=3E5650FE024A
 //    DataRecord & statusRec();
@@ -282,9 +282,18 @@ class AppControlAgent : public AppEventAgentBase
     
     
   private: // implements different setStatus versions
+    DataRecord & makeUpdateRecord (DataRecord::Ref &ref,const HIID &subrec)
+    {
+      ref <<= new DataRecord;
+      if( subrec.empty() )
+        return ref();
+      else
+        return ref()[subrec] <<= new DataRecord;
+    }
+      
         
     template<class T,class is1,class is2,class is3,class is4>
-    void setStatus (const HIID &,T,is1,is2,is3,is4)
+    void setStatus (const HIID &,const HIID &,T,is1,is2,is3,is4)
     {
       // this template should never ever be invoked: everything HAS to go to 
       // one of the specializations below
@@ -292,39 +301,37 @@ class AppControlAgent : public AppEventAgentBase
     }
 
     template<class T,class is3,class is4>
-    void setStatus (const HIID &field,
+    void setStatus (const HIID &subrec,const HIID &field,
           const T &value,
           Int2Type<false>,   // is counted ref
           Int2Type<false>,   // is ref/pointer to BO
           is3,is4            // ignored
         )
     {
-      (*pstatus_)[field] = value;
+      (subrec.empty() ? (*pstatus_)[field] : (*pstatus_)[subrec][field]) 
+          .replace() = value;
       DataRecord::Ref ref;
-      DataRecord &rec = ref <<= new DataRecord;
-      rec[AppControlAgentVocabulary::FField] = field;
-      rec[AppControlAgentVocabulary::FValue] = value;
-      postStatusUpdate(field,ref);
+      makeUpdateRecord(ref,subrec)[field] = value;
+      postStatusUpdate(subrec,field,ref);
     }
 
     template<class T,class is3,class is4>
-    void setStatus ( const HIID &field,
+    void setStatus (const HIID &subrec,const HIID &field,
           const CountedRef<T> &value,
           Int2Type<true>,    // is counted ref
           Int2Type<false>,   // is ref/pointer to BO
           is3,is4            // ignored
         )
     {
-      (*pstatus_)[field].replace() = value.copy(DMI::PRESERVE_RW);
+      (subrec.empty() ? (*pstatus_)[field] : (*pstatus_)[subrec][field])
+          .replace() = value.copy(DMI::PRESERVE_RW);
       DataRecord::Ref ref;
-      DataRecord &rec = ref <<= new DataRecord;
-      rec[AppControlAgentVocabulary::FField] = field;
-      rec[AppControlAgentVocabulary::FValue] = value.copy(DMI::READONLY);
-      postStatusUpdate(field,ref);
+      makeUpdateRecord(ref,subrec)[field] = value.copy(DMI::READONLY);
+      postStatusUpdate(subrec,field,ref);
     }
 
     template<class T,int isPointer,int isConst>
-    void setStatus ( const HIID &field,
+    void setStatus (const HIID &subrec,const HIID &field,
           T value,
           Int2Type<false>,      // is counted ref
           Int2Type<true>,       // is ref/pointer to BO
@@ -333,20 +340,19 @@ class AppControlAgent : public AppEventAgentBase
         )
     {
       int flags = (isPointer?DMI::ANON:0) | (isConst?DMI::READONLY:DMI::WRITE);
-      (*pstatus_)[field].replace() <<= ObjRef(value,flags);
+      (subrec.empty() ? (*pstatus_)[field] : (*pstatus_)[subrec][field])
+          .replace() <<= ObjRef(value,flags);
       DataRecord::Ref ref;
-      DataRecord &rec = ref <<= new DataRecord;
-      rec[AppControlAgentVocabulary::FField] = field;
-      rec[AppControlAgentVocabulary::FValue] <<= ObjRef(value,flags);
-      postStatusUpdate(field,ref);
+      makeUpdateRecord(ref,subrec)[field] <<= ObjRef(value,flags);
+      postStatusUpdate(subrec,field,ref);
     }
 
   public:
         
     template<class T>
-    inline void setStatus (const HIID &field,const T &value)
+    inline void setStatus (const HIID &subrec,const HIID &field,const T &value)
     {
-      setStatus(field,value,
+      setStatus(subrec,field,value,
           Int2Type< CountedRefTraits<T>::isCountedRef >(),
           Int2Type< SUPERSUBCLASS(BlockableObject,T) >(),
           Int2Type< false >(),
@@ -354,9 +360,9 @@ class AppControlAgent : public AppEventAgentBase
           );
     }
     
-    inline void setStatus (const HIID &field,const BlockableObject * value)
+    inline void setStatus (const HIID &subrec,const HIID &field,const BlockableObject * value)
     {
-      setStatus(field,value,
+      setStatus(subrec,field,value,
           Int2Type<false>(),
           Int2Type<true>(),
           Int2Type<true>(),
@@ -364,14 +370,20 @@ class AppControlAgent : public AppEventAgentBase
           );
     }
     
-    inline void setStatus (const HIID &field,BlockableObject * value)
+    inline void setStatus (const HIID &subrec,const HIID &field,BlockableObject * value)
     {
-      setStatus(field,value,
+      setStatus(subrec,field,value,
           Int2Type<false>(),
           Int2Type<true>(),
           Int2Type<true>(),
           Int2Type<false>()
           );
+    }
+    
+    template<class T>
+    inline void setStatus (const HIID &field,T value )
+    {
+      setStatus(HIID(),field,value);
     }
 };
 
