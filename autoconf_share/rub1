@@ -107,4 +107,19 @@ if [ -f $pkgname/configure.in ]; then
     # Check out the package.
     $0 $nm "$tag" $checkout "$cvscomm" "$updq"  ||  exit 1
   done
+else
+  # Do it recursively for all packages in a possible lofarconf.in.
+  pkgs=
+  if [ -f lofarconf.in.private ]; then
+    pkgs=`sed -e s/#.*$//g lofarconf.in.private`
+  else if [ -f lofarconf.in ]; then
+    pkgs=`sed -e s/#.*$//g lofarconf.in`
+  fi
+  if [ "$pkgs" != "" ]; then
+    for pkg in $pkgs
+    do
+      # Check out the package.
+      $0 $pkg "" $checkout "$cvscomm" "$updq"  ||  exit 1
+    done
+  fi
 fi
