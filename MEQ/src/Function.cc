@@ -178,15 +178,18 @@ int Function::getResult (Result::Ref &resref,
         vector<int> indices(nrch, 0);
         for (unsigned int j=0; j<spids.size(); j++) 
         {
+          double perturbation;
           perts = values;
           for (int i=0; i<nrch; i++) 
           {
             int inx = child_vs[i]->isDefined(spids[j], indices[i]);
             if (inx >= 0) {
 	            perts[i] = &(child_vs[i]->getPerturbedValueRW(inx));
+              perturbation = child_vs[i]->getPerturbation(inx);
             }
           }
           vellset.setPerturbedValue(j,evaluate(request,shape,values));
+          vellset.setPerturbation(j,perturbation);
         }
       }
       catch( std::exception &x )
