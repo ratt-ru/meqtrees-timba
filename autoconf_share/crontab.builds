@@ -28,8 +28,8 @@ CVSROOT=:pserver:lofar@dop01:/dop01_0/cvs/cvsroot
 #    * build and check all packages as specified in toplevel Makefile
 # Every Saturday a full check-out (a la weekly) is done.
 #
-5 0 * * 0-5	( mkdir -p $HOME/daily && cd $HOME/daily && (cvs co LOFAR 2>&1 | gzip > cvs_co_LOFAR_log.gz) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz ) && cd $HOME/daily/LOFAR && make 2>&1 | tee build.log  | grep ^:::::: )
-5 0 * * 6	( rm -rf $HOME/daily/* && rm -f $HOME/daily/*.gz && mkdir -p $HOME/daily && cd $HOME/daily && (cvs co LOFAR 2>&1 | gzip > cvs_co_LOFAR_log.gz ) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz ) && cd $HOME/daily/LOFAR && make 2>&1 | tee build.log  | grep ^:::::: )
+5 0 * * 0-5	( mkdir -p $HOME/daily && cd $HOME/daily && (cvs co LOFAR 2>&1 | gzip > cvs_co_LOFAR_log.gz) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz ) && cd $HOME/daily/LOFAR && make daily 2>&1 | tee build.log  | grep ^:::::: )
+5 0 * * 6	( rm -rf $HOME/daily/* && rm -f $HOME/daily/*.gz && mkdir -p $HOME/daily && cd $HOME/daily && (cvs co LOFAR 2>&1 | gzip > cvs_co_LOFAR_log.gz ) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz ) && cd $HOME/daily/LOFAR && make daily 2>&1 | tee build.log  | grep ^:::::: )
 
 #
 # Run weekly compile at 2 hours past midnight on Saturday
@@ -40,5 +40,5 @@ CVSROOT=:pserver:lofar@dop01:/dop01_0/cvs/cvsroot
 #    * save status of checkout files into zipped logfile: cvs_status_v_log.gz
 #    * build and check all packages as specified in toplevel Makefile
 #
-00 2 * * 6	( rm -rf $HOME/weekly/* && rm -f $HOME/weekly/*.gz && mkdir -p $HOME/weekly && cd $HOME/weekly && (cvs co LOFAR 2>&1 | gzip > cvs_co_LOFAR_log.gz ) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz ) && cd $HOME/weekly/LOFAR && make 2>&1 | tee build.log  | grep ^:::::: )
+00 2 * * 6	( rm -rf $HOME/weekly/* && rm -f $HOME/weekly/*.gz && mkdir -p $HOME/weekly && cd $HOME/weekly && (cvs co LOFAR 2>&1 | gzip > cvs_co_LOFAR_log.gz ) && (cvs status -v 2>&1 | gzip > cvs_status_v_log.gz ) && cd $HOME/weekly/LOFAR && make weekly 2>&1 | tee build.log  | grep ^:::::: )
 
