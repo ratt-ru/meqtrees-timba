@@ -113,6 +113,10 @@
 # $Id$
 #
 # $Log$
+# Revision 1.5  2004/03/17 10:00:57  diepen
+# %[ER: 70]%
+# Do inline sed of >>><<< first
+#
 # Revision 1.4  2004/03/10 09:06:51  coolen
 # %[ER:70 ]%
 # added possibility to skip parts in the output rather then only total lines
@@ -186,13 +190,13 @@
   fi
 
 # Strip out demarked text.
-# lines enclosed by >>> && <<<
-  sed -e '/^>>>/,/^<<</d' ${1}_tmp.out > ${1}_tmp.out2
 # inline parts enclosed by >>> && <<<
-  sed -e 's/>>>.*<<<//' ${1}_tmp.out2 > ${1}_tmp.out
+  sed -e 's/>>>.*<<<//' ${1}_tmp.out > ${1}_tmp.out2
+# lines enclosed by >>> && <<<
+  sed -e '/^>>>/,/^<<</d' ${1}_tmp.out2 > ${1}_tmp.out
 
 # Compare with the expected output.
-  if $CAT $1.out | sed -e '/^>>>/,/^<<</d' |  sed -e 's/>>>.*<<<//' | diff ${1}_tmp.out -
+  if $CAT $1.out | sed -e 's/>>>.*<<<//' | sed -e '/^>>>/,/^<<</d' | diff ${1}_tmp.out -
   then
      echo "PASS (output verified): $*"
      STATUS=0
