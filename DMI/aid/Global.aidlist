@@ -299,7 +299,8 @@ MeqSpigot                        1468       ; from /home/oms/LOFAR/Timba/MeqServ
 #MeqUVW                          1421       ; from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:31
 MeqVells                         1341       ; from /home/oms/LOFAR/Timba/MEQ/src/Vells.h:30
 MeqVellSet                       1307       ; from /home/oms/LOFAR/Timba/MEQ/src/VellSet.h:35
-#MeqWAvg                         1503       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WAvg.h:30
+MeqWAvg                          1503       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WAvg.h:30
+#MeqWMean                        1504       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WMean.h:30
 #MeqWSum                         1502       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WSum.h:30
 #MeqZeroFlagger                  1434       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:32
 Message                          1269       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:36
