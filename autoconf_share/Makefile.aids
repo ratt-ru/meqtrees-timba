@@ -1,0 +1,14 @@
+# Rules for generating AID maps
+# Default rule will generate AIDs from all headers listed in $(DOCHDRS)
+
+# directory for global aid maps
+AID_MAP_DIR = $(lofar_sharedir)/../DMI/aid
+# script used to generate aids and types
+AID_MAP_BUILDER = $(AID_MAP_DIR)/build_aid_maps.pl 
+# location of global aid map
+AID_MAP_GLOBAL = $(AID_MAP_DIR)/Global.aidlist
+
+aids: 
+	$(AID_MAP_BUILDER) $(AID_MAP_GLOBAL) $(addprefix $(top_srcdir)/src/,$(DOCHDRS))
+  
+.PHONY: aids
