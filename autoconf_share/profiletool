@@ -111,7 +111,7 @@ declare -i loopcount=0;
 while test \( $progpid -eq 0 \) -a \( $loopcount -lt 5 \); do
     sleep 1
 #    pstree -np $timepid 2> /dev/null
-    declare -i progpid=`pstree -np $timepid 2> /dev/null | sed -e "s/^.*$binname(\([[:digit:]]\+\)).*$/\1/"`;
+    declare -i progpid=`pstree -np $timepid 2> /dev/null | sed -e "s/^.*$binname.*(\([[:digit:]]\+\)).*$/\1/"`;
     loopcount=$loopcount+1;
 done
 
