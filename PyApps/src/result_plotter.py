@@ -9,9 +9,6 @@ import gridded_workspace
 from app_browsers import *
 from qt import *
 from dmitypes import *
-import sihippo
-print "HippoDraw version " + sihippo.__version__
-from sihippo import *
 from numarray import *
 from display_image import *
 from realvsimag import *
@@ -77,11 +74,12 @@ class ResultPlotter(BrowserPlugin):
         if len(node['attrib']) > 0:
           attrib_parms = node['attrib']
           plot_type = attrib_parms.get('plot_type')
+          self._plot_type = plot_type
           if plot_type == 'spectra':
             self._visu_plotter = QwtImagePlot(plot_type,parent=self._parent)
             self._wtop = self._visu_plotter;       # QwtImagePlot inherits from QwtPlot
 
-          if plot_type == 'realvsimag':
+          if plot_type == 'realvsimag' or plot_type == 'errors':
             self._visu_plotter = realvsimag_plotter(plot_type,parent=self._parent)
             self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
 
@@ -125,8 +123,11 @@ class ResultPlotter(BrowserPlugin):
     """ extract group_label key from incoming visu data record and
       create a visu_plotter object to plot the data 
     """
-# traverse the plot record tree and plot data
+# traverse the plot record tree and retrieve data
     self.tree_traversal( self._rec.visu)
+# now update the plot for 'realvsimag' or 'errors' plot
+    if not self._visu_plotter is None and not self._plot_type == 'spectra':
+      self._wtop.replot()
 
   def display_vells_data (self, plot_array):
     """ extract parameters and data from an array that is
@@ -134,6 +135,9 @@ class ResultPlotter(BrowserPlugin):
 
 # construct hippo window if it doesn't exist
     if self._hippo is None:
+      import sihippo
+      print "HippoDraw version " + sihippo.__version__
+      from sihippo import *
       self._ntuple_controller = NTupleController.instance()
       self._window_controller = WindowController.instance()
       self._window_controller.createInspector ()
@@ -144,7 +148,6 @@ class ResultPlotter(BrowserPlugin):
       self._canvas = None
       self._image_ntuple = None
       self._simple_ntuple = None
-      self._realvsimag_ntuple = None
       self._hippo = True
 
 # figure out type and rank of incoming array
