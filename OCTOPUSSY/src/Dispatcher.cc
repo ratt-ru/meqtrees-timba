@@ -715,15 +715,6 @@ void Dispatcher::addLocalData (const HIID &id, ObjRef ref)
   localData_[id] <<= ref;
 }
 
-//##ModelId=3CBEE41702F4
-DataField & Dispatcher::addLocalData (const HIID &id)
-{
-  FailWhen( localData_[id].exists(),id.toString()+" is already defined in local data");
-  DataField *field = new DataField;
-  localData_[id] <<= field;
-  return *field;
-}
-
 //##ModelId=3CC405480057
 NestableContainer::Hook Dispatcher::localData (const HIID &id)
 {

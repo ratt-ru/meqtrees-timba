@@ -1,30 +1,21 @@
 #ifndef Dispatcher_h
 #define Dispatcher_h 1
 
-#include "DMI/Common.h"
-#include "DMI/DMI.h"
-
 #include <signal.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <stack>
 #include <map>
-#include "DMI/Timestamp.h"
-#include "OCTOPUSSY/OctopussyConfig.h"
-#include "Common/Thread.h"
-#include "Common/Thread/Condition.h"
-
-// DataRecord
-#include "DMI/DataRecord.h"
-// WPInterface
-#include "OCTOPUSSY/WPInterface.h"
-// OctopussyDebugContext
-#include "OCTOPUSSY/OctopussyDebugContext.h"
-// Message
-#include "OCTOPUSSY/Message.h"
-#include "MsgAddress.h"
-#include "WPInterface.h"
+#include <Common/Thread.h>
+#include <Common/Thread/Condition.h>
+#include <DMI/DMI.h>
+#include <DMI/Timestamp.h>
+#include <DMI/DataRecord.h>
+#include <OCTOPUSSY/MsgAddress.h>
+#include <OCTOPUSSY/WPInterface.h>
+#include <OCTOPUSSY/Message.h>
+#include <OCTOPUSSY/OctopussyDebugContext.h>
 
 
 #pragma aid Argv
@@ -175,9 +166,6 @@ class Dispatcher : public OctopussyDebugContext
 
       //##ModelId=3CBEDDD8001A
       void addLocalData (const HIID &id, ObjRef ref);
-
-      //##ModelId=3CBEE41702F4
-      DataField & addLocalData (const HIID &id);
 
       //##ModelId=3CC405480057
       NestableContainer::Hook localData (const HIID &id);

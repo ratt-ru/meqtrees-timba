@@ -104,7 +104,7 @@ bool MTGatewayWP::start ()
   WorkProcess::start();
   dprintf(5)("start: getting peer list\n");
   // this must exist by now (client GWs are always started!)
-  ObjRef plref = dsp()->localData(GWPeerList)[0].ref(DMI::WRITE);
+  ObjRef plref = dsp()->localData(GWPeerList).ref(DMI::WRITE);
   peerlist = dynamic_cast<DataRecord*>(plref.dewr_p());
   FailWhen(!peerlist,"Local peer-list does not seem to be a DataRecord");
   

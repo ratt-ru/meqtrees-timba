@@ -41,6 +41,8 @@ class MsgAddress : public WPID
     //##ModelId=3C7B6FAE00FD
       MsgAddress();
 
+      MsgAddress (const HIID &id);
+      
       //##ModelId=3C8F9B8E0087
       MsgAddress (AtomicID wpc, AtomicID wpinst = 0, AtomicID proc = AidLocal, AtomicID host = AidLocal);
 
@@ -106,6 +108,12 @@ inline AtomicID WPID::inst () const
 inline MsgAddress::MsgAddress()
 {
   resize(4);
+}
+
+inline MsgAddress::MsgAddress (const HIID &id)
+{
+  FailWhen(id.size()!=4,"invalid address length");
+  HIID::operator = (id);
 }
 
 //##ModelId=3C8F9B8E0087

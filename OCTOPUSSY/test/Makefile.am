@@ -2,9 +2,9 @@ CXXFLAGS += -D_GNU_SOURCE
 
 dmi_dir = $(lofar_sharedir)/../DMI
 
-check_PROGRAMS		= test_octopussy
+check_PROGRAMS		= test_octopussy test_gw test_gw0 test_ping
 
-bin_PROGRAMS   		= test_gw test_gw0 test_ping
+bin_PROGRAMS   		= 
 
 test_octopussy_SOURCES 	= test_octopussy.cc EchoWP.cc AID-Testing-Registry.cc
 
