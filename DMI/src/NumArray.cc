@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.10  2002/05/22 13:53:43  gvd
+//  %[BugId: 6]%
+//  Fixed an invalid cast (found by KAI C++)
+//
 //  Revision 1.9  2002/05/14 09:48:10  gvd
 //  Fix a few problems in cloneOther and reinit
 //
@@ -168,7 +172,7 @@ void DataArray::reinit()
 
 void DataArray::makeArray()
 {
-  char* ptr = const_cast<char*>(static_cast<char*>(itsData->data()));
+  char* ptr = const_cast<char*>(static_cast<const char*>(itsData->data()));
   Assert (ptr);
   itsArrayData = ptr + itsDataOffset;
   void* dataPtr = itsArrayData;
