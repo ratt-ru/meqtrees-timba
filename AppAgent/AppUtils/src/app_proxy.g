@@ -87,7 +87,7 @@ const app_proxy := function (appid,
   # define default init record (specifically, its control part)
   self.initrec_prev := [ 
     control = [ event_map_in  = [ default_prefix = hiid(self.appid,"In") ],
-                event_map_out = [ default_prefix = hiid(self.appid,"Out") ],
+                event_map_out = [ default_prefix = hiid(self.appid,"Out"),debug_prefix = hiid(self.appid,"Debug") ],
                 stop_when_end = F ] ]; 
   # setup fail/exit handlers
   whenever self.octoagent->["fail done exit"] do 

@@ -18,6 +18,12 @@ meqserver_LDADD		      = libmeqserver.la
 # -lglish -lsos -lnpd
 meqserver_DEPENDENCIES	= libmeqserver.la $(LOFAR_DEPEND)
 
+check_PROGRAMS = octolistener
+
+octolistener_SOURCES 	= octolistener.cc
+octolistener_LDADD		= libmeqserver.la
+octolistener_DEPENDENCIES	= libmeqserver.la $(LOFAR_DEPEND)
+
 
 # --- begin generate defrec maps (copy this into local Makefiles)
 #     (shouldn't require any changes)

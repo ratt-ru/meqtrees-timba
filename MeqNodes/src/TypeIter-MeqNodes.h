@@ -5,7 +5,16 @@
 
 
 
+#define DoForAllOtherTypes_MeqNodes(Do,arg,separator) \
+        
+
 #define DoForAllBinaryTypes_MeqNodes(Do,arg,separator) \
+        
+
+#define DoForAllSpecialTypes_MeqNodes(Do,arg,separator) \
+        
+
+#define DoForAllIntermediateTypes_MeqNodes(Do,arg,separator) \
         
 
 #define DoForAllDynamicTypes_MeqNodes(Do,arg,separator) \
@@ -71,14 +80,5 @@
         Do(Meq::StdDev,arg)
 
 #define DoForAllNumericTypes_MeqNodes(Do,arg,separator) \
-        
-
-#define DoForAllIntermediateTypes_MeqNodes(Do,arg,separator) \
-        
-
-#define DoForAllOtherTypes_MeqNodes(Do,arg,separator) \
-        
-
-#define DoForAllSpecialTypes_MeqNodes(Do,arg,separator) \
         
 #endif

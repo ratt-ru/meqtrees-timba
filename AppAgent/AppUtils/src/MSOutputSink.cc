@@ -76,7 +76,7 @@ void MSOutputSink::close ()
 }
 
 //##ModelId=3EC25BF002D4
-void MSOutputSink::postEvent (const HIID &id, const ObjRef &data, const HIID &)
+void MSOutputSink::postEvent (const HIID &id, const ObjRef &data,AtomicID,const HIID &)
 {
   try
   {
@@ -126,7 +126,7 @@ void MSOutputSink::postEvent (const HIID &id, const ObjRef &data, const HIID &)
 }
 
 //##ModelId=3EC25BF002E4
-bool MSOutputSink::isEventBound (const HIID &id)
+bool MSOutputSink::isEventBound (const HIID &id,AtomicID)
 {
   return id.matches(VisEventMask());
 }

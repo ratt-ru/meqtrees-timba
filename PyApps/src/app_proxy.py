@@ -27,11 +27,12 @@ class app_proxy (verbosity):
   
   def __init__(self,appid,launch=None,spawn=None,
                verbose=0,wp_verbose=0,
-               gui=False,no_threads=False):
+               gui=False,no_threads=False,debug=True):
     verbosity.__init__(self,verbose,name=str(appid));
     self.appid = hiid(appid);
-    self._rcv_prefix = self.appid + "Out";   # messages from app
-    self._snd_prefix = self.appid + "In";       # messages to app
+    self._rcv_prefix = self.appid + "Out";          # messages from app
+    self._rcv_prefix_debug = self.appid + "Debug";  # debug messages from app
+    self._snd_prefix = self.appid + "In";           # messages to app
     _dprint(1,"initializing");
 
     # start a proxy wp. Select threaded or polled version, depending on
@@ -51,6 +52,8 @@ class app_proxy (verbosity):
       
     # subscribe and register handler for app events
     self._pwp.whenever(self._rcv_prefix+"*",self._event_handler,subscribe=True);
+    if debug:
+      self._pwp.whenever(self._rcv_prefix_debug+"*",self._event_handler,subscribe=True);
     # subscribe to app hello message 
     self._pwp.whenever('wp.hello'+self.appid+'*',self._hello_handler,subscribe=True);
     # subscribe to app bye message 
@@ -76,7 +79,8 @@ class app_proxy (verbosity):
       throw_error=True,
       control=srecord(
         event_map_in  = srecord(default_prefix=self._snd_prefix),
-        event_map_out = srecord(default_prefix=self._rcv_prefix),
+        event_map_out = srecord(default_prefix=self._rcv_prefix,
+                                debug_prefix=self._rcv_prefix_debug),
         stop_when_end = False ));
       
     # ------------------------------ run/connect to app process
@@ -333,6 +337,8 @@ class app_proxy (verbosity):
   def trim_msgid (self,msgid):
     if msgid[:len(self._rcv_prefix)] == self._rcv_prefix:
       return msgid[len(self._rcv_prefix):];
+    elif msgid[:len(self._rcv_prefix_debug)] == self._rcv_prefix_debug:
+      return msgid[len(self._rcv_prefix_debug):];
     return msgid;
 
   def event_loop (self,timeout=None):

@@ -48,6 +48,13 @@
         AtomicID::registerId(-1242,"Result")+
         AtomicID::registerId(-1228,"AppAgent")+
         AtomicID::registerId(-1055,"Text")+
+        AtomicID::registerId(-1496,"Category")+
+        AtomicID::registerId(-1495,"Destination")+
+        AtomicID::registerId(-1223,"Normal")+
+        AtomicID::registerId(-1493,"Warning")+
+        AtomicID::registerId(-1497,"Critical")+
+        AtomicID::registerId(-1494,"Info")+
+        AtomicID::registerId(-1482,"Debug")+
         AtomicID::registerId(-1243,"Agent")+
         AtomicID::registerId(-1216,"Map")+
         AtomicID::registerId(-1236,"Receive")+
@@ -65,7 +72,6 @@
         AtomicID::registerId(-1237,"Lowest")+
         AtomicID::registerId(-1218,"Lower")+
         AtomicID::registerId(-1238,"Low")+
-        AtomicID::registerId(-1223,"Normal")+
         AtomicID::registerId(-1246,"High")+
         AtomicID::registerId(-1222,"Higher")+
         AtomicID::registerId(-1240,"Vis")+

@@ -260,7 +260,7 @@ void AppControlAgent::postCommandError (const string &msg,const HIID &id,
   ref()[AidCommand] = id;
   if( data.valid() )
     ref()[AidData] <<= data;
-  postEvent(CommandErrorNotifyEvent,ref,source);
+  postEvent(CommandErrorNotifyEvent,ref,AidError,source);
 }
 
 
@@ -321,31 +321,34 @@ int AppControlAgent::hasCommand() const
 }
 
 //##ModelId=3E8C209A01E7
-bool AppControlAgent::isEventBound (const HIID &id)
+bool AppControlAgent::isEventBound (const HIID &id,AtomicID cat)
 {
-  return sink().isEventBound(id);
+  return sink().isEventBound(id,cat);
 }
 
 
 //##ModelId=3E4274C60015
 void AppControlAgent::postEvent (const HIID &id,const ObjRef &data,
+                                 AtomicID category,
                                  const HIID &destination)
 {
-  sink().postEvent(id,data,destination);
+  sink().postEvent(id,data,category,destination);
 }
 
 //##ModelId=3E4274C601C8
 void AppControlAgent::postEvent (const HIID &id, const DMI::Record::Ref &data,
+                                 AtomicID category,
                                  const HIID &destination)
 {
-  sink().postEvent(id,data,destination);
+  sink().postEvent(id,data,category,destination);
 }
 
 //##ModelId=3E4274C60230
 void AppControlAgent::postEvent (const HIID &id, const string &text,
+                                 AtomicID category,
                                  const HIID &destination)
 {
-  sink().postEvent(id,text,destination);
+  sink().postEvent(id,text,category,destination);
 }
 
 //##ModelId=3E394E080055
@@ -380,7 +383,7 @@ void AppControlAgent::postState (const HIID &rqid,const HIID &destination)
   rec[FPaused] = isPaused();
   rec[FStateString] = stateString();
   rec[FRequestId] = rqid;
-  postEvent(StateNotifyEvent|rqid,ref,destination);
+  postEvent(StateNotifyEvent|rqid,ref,AidNotify,destination);
 }
 
 //##ModelId=3EB24254039F
@@ -409,7 +412,7 @@ void AppControlAgent::postStatus (const HIID &field,const HIID &rqid,const HIID 
     }
   }
   rec[FRequestId] = rqid;
-  postEvent(StatusNotifyEvent|rqid,ref,destination);
+  postEvent(StatusNotifyEvent|rqid,ref,AidNotify,destination);
 }
 
 //##ModelId=3EB2425501DA

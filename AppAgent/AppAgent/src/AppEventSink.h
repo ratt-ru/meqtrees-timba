@@ -27,7 +27,8 @@
 #include <AppAgent/AppEventFlag.h>
   
 #pragma aidgroup AppAgent
-#pragma aid AppAgent Event Text
+#pragma aid AppAgent Event Text Category Destination
+#pragma aid Normal Notify Warning Error Critical Info Debug
 
 namespace AppAgent
 {    
@@ -52,6 +53,10 @@ namespace AppEvent
 
   } EventCodes;
 };
+
+// list of all known event categories
+const AtomicID EventCategories[] = 
+      { AidNormal,AidNotify,AidWarning,AidError,AidCritical,AidInfo,AidDebug };
 
 namespace AppEventSinkVocabulary
 {
@@ -157,6 +162,7 @@ class AppEventSink : public AppAgent
     //## equal to the original event source).
       virtual void postEvent (const HIID &id,
                               const ObjRef &data = ObjRef(),
+                              AtomicID category = AidNormal,
                               const HIID &destination = HIID() );
     //##ModelId=3E8C1F8703DC
     //##Documentation
@@ -164,7 +170,7 @@ class AppEventSink : public AppAgent
     //## event would be simply discarded when posted, returns false; otherwise,
     //## returns true. Apps can check this before posting "expensive" events.
     //## Default implementation always returns false.
-      virtual bool isEventBound (const HIID &id);
+      virtual bool isEventBound (const HIID &id,AtomicID category=AidNormal);
 
     //##ModelId=3E394D4C02D7
     //##Documentation
@@ -193,12 +199,12 @@ class AppEventSink : public AppAgent
     //##ModelId=3E3E747A0120
     //##Documentation
     //## alias for postEvent to post a DMI::Record 
-      void postEvent (const HIID &id, const DMI::Record::Ref & data,const HIID &destination = HIID());
+      void postEvent (const HIID &id, const DMI::Record::Ref & data,AtomicID category=AidNormal,const HIID &destination = HIID());
       
     //##ModelId=3E3FD6180308
     //##Documentation
     //## alias for postEvent to post a string message
-      void postEvent (const HIID &id, const string &text,const HIID &destination = HIID());
+      void postEvent (const HIID &id, const string &text,AtomicID category=AidNormal,const HIID &destination = HIID());
     
     //##ModelId=3E394D4C02D9
     //##Documentation

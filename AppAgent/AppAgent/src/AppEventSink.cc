@@ -26,7 +26,10 @@
 namespace AppAgent
 {    
 
+// const AtomicID AppEvent::EventCategories[] = { AidNormal,AidNotify,AidWarning,AidError,AidCritical,AidInfo,AidDebug };
+
 using namespace AppEvent;
+
 
 //##ModelId=3F5F43630252
 HIID AppEventSink::_dummy_hiid;
@@ -81,10 +84,8 @@ int AppEventSink::hasEvent (const HIID &,HIID &) const
 }
 
 //##ModelId=3E394D4C02C9
-void AppEventSink::postEvent (const HIID &, const ObjRef &ref,const HIID &)
+void AppEventSink::postEvent (const HIID &, const ObjRef &ref,AtomicID cat,const HIID &)
 {
-  // this is OK since we're meant to xfer the ref anyway
-  const_cast<ObjRef&>(ref).detach();
 }
 
 void AppEventSink::flush ()
@@ -104,22 +105,22 @@ int AppEventSink::getEvent (HIID &id, DMI::Record::Ref &data,
 
 //##ModelId=3E3E747A0120
 void AppEventSink::postEvent (const HIID &id, const DMI::Record::Ref &data,
-                              const HIID &destination)
+                              AtomicID cat,const HIID &destination)
 {
   if( data.valid() )
-    postEvent(id,data.ref_cast<DMI::BObj>(),destination);
+    postEvent(id,data.ref_cast<DMI::BObj>(),cat,destination);
   else
-    postEvent(id,ObjRef(),destination);
+    postEvent(id,ObjRef(),cat,destination);
 }
 
 //##ModelId=3E3FD6180308
 void AppEventSink::postEvent (const HIID &id, const string &text,
-                              const HIID &destination)
+                              AtomicID cat,const HIID &destination)
 {
   DMI::Record::Ref ref;
   ref <<= new DMI::Record;
   ref()[AidText] = text;
-  postEvent(id,ref,destination);
+  postEvent(id,ref,cat,destination);
 }
 
 //##ModelId=3E47843B0350
@@ -158,7 +159,7 @@ int AppEventSink::waitOtherEvents (int wait) const
     return WAIT;
 }
 //##ModelId=3E8C1F8703DC
-bool AppEventSink::isEventBound (const HIID &)
+bool AppEventSink::isEventBound (const HIID &,AtomicID)
 {
   return false;
 }

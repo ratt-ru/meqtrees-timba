@@ -81,7 +81,7 @@ class EventSink : public AppEventSink
     //##ModelId=3E26CBBC03E4
     bool mapReceiveEvent  (HIID &out, const HIID &in) const;
     //##ModelId=3E2FEAD10188
-    bool mapPostEvent     (HIID &out, const HIID &in) const;
+    bool mapPostEvent     (HIID &out, const HIID &in,AtomicID category=AidNormal) const;
     
     //##ModelId=3E8C47930062
     //##Documentation
@@ -107,15 +107,16 @@ class EventSink : public AppEventSink
     //##ModelId=3E2FD67D0246
     //##Documentation
     //## Publishes an event as a message on behalf of the proxy. 
-    virtual void postEvent (const HIID &id, 
+    virtual void postEvent (const HIID &id,
                             const ObjRef &data = ObjRef(),
-                            const HIID &destination = HIID());
+                            AtomicID category = AidNormal,
+                            const HIID &destination = HIID() );
     
     //##ModelId=3E8C47930088
     //##Documentation
     //## Checks whether a specific event is bound to any output. I.e., checks
     //## for subscribers to the event.
-    virtual bool isEventBound (const HIID &id);
+    virtual bool isEventBound (const HIID &id,AtomicID category=AidNormal);
     
     //##ModelId=3E3FC3E00194
     void setMultiplexId (int id);
@@ -174,6 +175,9 @@ class EventSink : public AppEventSink
     HIID default_receive_prefix;
     //##ModelId=3F5F4364028A
     HIID default_post_prefix;
+    // map of specific per-category event prefixes
+    typedef std::map<AtomicID,HIID> CategoryPrefixes;
+    CategoryPrefixes category_post_prefix;
     //##ModelId=3E0A3A980187
     int default_receive_scope;
     //##ModelId=3E9BD63F035D

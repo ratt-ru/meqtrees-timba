@@ -77,6 +77,7 @@ DMI::BObj * __construct_OctopussyMessage (int n) { return n>0 ? new Octopussy::M
         AtomicID::registerId(-1065,"Hosts")+
         AtomicID::registerId(-1083,"Ports")+
         AtomicID::registerId(-1089,"Gateway")+
+        AtomicID::registerId(-1492,"ListenerWP")+
     0;
     return res;
   }

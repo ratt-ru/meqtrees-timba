@@ -93,17 +93,29 @@ bool EventSink::mapReceiveEvent (HIID &out, const HIID &in) const
 }
 
 //##ModelId=3E2FEAD10188
-bool EventSink::mapPostEvent (HIID &out, const HIID &in) const
+bool EventSink::mapPostEvent (HIID &out,const HIID &in,AtomicID category) const
 {
   // is the event explicitly in the post map?
-  EMCI iter = post_map.find(in);
+  EMCI iter = post_map.find(category|in);
   if( iter != post_map.end() )
   {
     out = iter->second.id;
     return true;
   }
+  // have we got a category-specific prefix?
+  CategoryPrefixes::const_iterator icat = category_post_prefix.find(category);
+  if( icat != category_post_prefix.end() )
+  {
+    if( !icat->second.empty() )
+    {
+      out = icat->second | in;
+      return true;
+    }
+    else
+      return false;
+  }
   // have we got a default prefix?
-  if( default_post_prefix.size() )
+  if( !default_post_prefix.empty() )
   {
     out = default_post_prefix | in;
     return true;
@@ -134,22 +146,37 @@ int EventSink::hasEvent (const HIID &mask)
 
 //##ModelId=3E2FD67D0246
 void EventSink::postEvent (const HIID &id,const ObjRef &data,
-                           const HIID &dest)
+                           AtomicID category,const HIID &dest)
 {
   cdebug(3)<<"postEvent("<<id<<")\n";
   // find event in output map
-  EMCI iter = post_map.find(id);
+  EMCI iter = post_map.find(category|id);
   Message::Ref mref;
   int scope;
   if( iter == post_map.end() )
   {
-    // not found - do we publish with a default prefix then?
-    if( !default_post_prefix.size() )
+    HIID msgid;
+    // not found in explicit map - do we have a category-specific prefix?
+    CategoryPrefixes::const_iterator iter = category_post_prefix.find(category);
+    if( iter != category_post_prefix.end() )
     {
-      cdebug(3)<<"unmapped event posted, dropping\n";
-      return;
+      if( iter->second.empty() ) // null prefix means do not post
+      {
+        cdebug(3)<<"unmapped event posted, dropping\n";
+        return;
+      }
+      msgid = iter->second | id;
     }
-    mref <<= new Message(default_post_prefix|id,default_post_priority);
+    else // else check for default prefix
+    {
+      if( default_post_prefix.empty() )
+      {
+        cdebug(3)<<"unmapped event posted, dropping\n";
+        return;
+      }
+      msgid = default_post_prefix | id;
+    }
+    mref <<= new Message(msgid,default_post_priority);
     scope = default_post_scope;
   }
   else // get ID and scope from map
@@ -178,11 +205,11 @@ void EventSink::postEvent (const HIID &id,const ObjRef &data,
 }
 
 //##ModelId=3E8C47930088
-bool EventSink::isEventBound (const HIID &id)
+bool EventSink::isEventBound (const HIID &id,AtomicID cat)
 {
   HIID out;
   // event not mapped at all? Return false
-  if( !mapPostEvent(out,id) )
+  if( !mapPostEvent(out,id,cat) )
     return false;
   // else true
   // BUG! actually we need a haveSubscribers() call here
@@ -334,8 +361,17 @@ void EventSink::setPostMap (const DMI::Record &map)
   int defscope = getDefaultScope(map);
   // interpret Default.Priority argument
   int defpri = getDefaultPriority(map);
-  // check for a default posting prefix
+  // get default posting prefix
   default_post_prefix   = map[FDefaultPrefix].as<HIID>(HIID());
+  // get per-category prefixes
+  category_post_prefix.clear();
+  for( uint i=0; i<sizeof(EventCategories)/sizeof(EventCategories[0]); i++ )
+  {
+    HIID prefix;
+    if( map[EventCategories[i]|AidPrefix].get(prefix) )
+      category_post_prefix[EventCategories[i]] = prefix;
+  }
+  // get other defaults
   default_post_scope    = resolveScope(default_post_prefix,defscope); 
   default_post_priority = resolvePriority(default_post_prefix,defpri); 
   if( default_post_prefix.size() )
@@ -349,11 +385,12 @@ void EventSink::setPostMap (const DMI::Record &map)
   for( DMI::Record::const_iterator iter = map.begin(); iter != map.end(); iter++ )
   {
     const HIID & id = iter.id();
-    const ObjRef & ncref = iter.ref();
-    // ignore Default.Scope argument
-    if( id == FDefaultScope || id == FDefaultPriority || id == FDefaultPrefix )
+    const ObjRef & ref = iter.ref();
+    // ignore arguments interpreted above
+    if( id == FDefaultScope || id == FDefaultPriority || 
+        ( id.size() == 2 && id[1] == AidPrefix ) ) 
       continue;
-    const DMI::Container &nc = *ncref.ref_cast<DMI::Container>();
+    const DMI::Container &nc = ref.as<DMI::Container>();
     FailWhen(nc.type() != TpDMIHIID || nc.size() != 1,"illegal output map entry "+id.toString());
     HIID msgid = nc[HIID()].as<HIID>();
     int scope = resolveScope(msgid,defscope);

@@ -158,6 +158,11 @@ const int AidLevel_int = -1047;
 const DMI::AtomicID AidList(-1040);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/GWClientWP.h:11
 const int AidList_int = -1040;
 #endif
+#ifndef _defined_id_AidListenerWP
+#define _defined_id_AidListenerWP 1
+const DMI::AtomicID AidListenerWP(-1492);         // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/ListenerWP.h:9
+const int AidListenerWP_int = -1492;
+#endif
 #ifndef _defined_id_AidLocal
 #define _defined_id_AidLocal 1
 const DMI::AtomicID AidLocal(-1053);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MsgAddress.h:9

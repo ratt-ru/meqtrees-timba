@@ -88,19 +88,21 @@ int BOIOSink::refillStream()
 }
 
 //##ModelId=3E8C252801E8
-bool BOIOSink::isEventBound (const HIID &)
+bool BOIOSink::isEventBound (const HIID &,AtomicID)
 {
   return true;
 }
 
 //##ModelId=3E53C5C2003E
-void BOIOSink::postEvent (const HIID &id, const ObjRef &data)
+void BOIOSink::postEvent (const HIID &id, const ObjRef &data,AtomicID category,const HIID &destination)
 {
   if( boio.fileMode() == BOIO::WRITE || boio.fileMode() == BOIO::APPEND )
   {
     cdebug(3)<<"storing event "<<id<<endl;
     DMI::Record rec;
     rec[AidEvent] = id;
+    rec[AidCategory] = category;
+    rec[AidDestination] = destination;
     if( data.valid() )
       rec[AidData] <<= data;
     boio << ObjRef(rec,DMI::EXTERNAL);

@@ -18,7 +18,7 @@ class AppEventSink;
 
 #pragma aid App Control Parameters Event Init Start Stop Pause Resume Halt
 #pragma aid Always Wait Start Throw Error Notify Auto Exit Delay State String
-#pragma aid Status Request Field Value ID Paused Command Update Result
+#pragma aid Status Request Field Value ID Paused Command Update Result 
  
 namespace AppEvent 
 {
@@ -89,23 +89,6 @@ namespace AppControlAgentVocabulary
 class AppControlAgent : public AppEventAgentBase
 {
   public:
-//     class NotifiedHook : public DMI::Container::Hook
-//     {
-//       friend AppControlAgent;
-//       
-//       protected:
-//           NotifiedHook (DMI::Container &parent,const HIID &id,AppControlAgent *invoker);
-//           ~NotifiedHook ();
-//       
-//       private:
-//           NotifiedHook ();
-//           NotifiedHook (const NotifiedHook &);
-//           void operator = (const NotifiedHook &);
-//           
-//           HIID id;
-//           AppControlAgent *agent;
-//     };
-//       
       
     //##ModelId=3E40EDC3036F
     explicit AppControlAgent (const HIID &initf = AidControl);
@@ -144,18 +127,18 @@ class AppControlAgent : public AppEventAgentBase
     //##ModelId=3E4274C60015
     //##Documentation
     //## Posts an event on behalf of the application.
-    virtual void postEvent (const HIID &id,const ObjRef &data = ObjRef(),const HIID &dest = HIID());
+    virtual void postEvent (const HIID &id,const ObjRef &data = ObjRef(),AtomicID ev_category=AidNormal,const HIID &dest = HIID());
     //##ModelId=3E4274C601C8
-    void postEvent (const HIID &id,const DMI::Record::Ref &data,const HIID &dest = HIID());
+    void postEvent (const HIID &id,const DMI::Record::Ref &data,AtomicID ev_category=AidNormal,const HIID &dest = HIID());
     //##ModelId=3E4274C60230
-    void postEvent (const HIID &id,const string &text,const HIID &dest = HIID());
+    void postEvent (const HIID &id,const string &text,AtomicID ev_category=AidNormal,const HIID &dest = HIID());
     
     //##ModelId=3E8C209A01E7
     //##Documentation
     //## Checks whether a specific event is bound to any output. I.e., if the
     //## event would be simply discarded when posted, returns false; otherwise,
     //## returns true.
-    virtual bool isEventBound (const HIID &id);
+    virtual bool isEventBound (const HIID &id,AtomicID category=AidNormal);
 
     //##ModelId=3E394E080055
     //##Documentation

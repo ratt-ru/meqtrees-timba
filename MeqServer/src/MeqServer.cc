@@ -528,7 +528,7 @@ void MeqServer::reportNodeStatus (Node &node,int oldstat,int newstat)
     HIID ev = EvNodeStatus | node.nodeIndex() | newstat;
     if( forest.verbosity()>1 )
       ev |= node.currentRequestId();
-    control().postEvent(ev);
+    control().postEvent(ev,ObjRef(),AidDebug);
   }
 }
 

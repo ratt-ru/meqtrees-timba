@@ -70,7 +70,7 @@ class MSOutputSink : public FileSink
     //## a specific destination, if the event sink implementation supports
     //## this (e.g., if responding to a request event, destination could be
     //## equal to the original event source).
-    virtual void postEvent(const HIID &id, const ObjRef &data = ObjRef(), const HIID &destination = HIID());
+    virtual void postEvent(const HIID &id, const ObjRef &data = ObjRef(),AtomicID cat=AidNormal,const HIID &destination = HIID());
 
     //##ModelId=3EC25BF002E4
     //##Documentation
@@ -78,7 +78,7 @@ class MSOutputSink : public FileSink
     //## event would be simply discarded when posted, returns false; otherwise,
     //## returns true. Apps can check this before posting "expensive" events.
     //## Default implementation always returns false.
-    virtual bool isEventBound(const HIID &id);
+    virtual bool isEventBound(const HIID &id,AtomicID cat=AidNormal);
     
     //##ModelId=3E283172001B
     string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
