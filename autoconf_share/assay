@@ -100,15 +100,13 @@
 #    0:  success
 #    1:  test execution failed
 #    2:  test output disagreement
-#   77:  untested (as returned from a .run)
+#   77:  untested (conforming make check) (3 is returned from a .run)
 #  130:  interrupt
 #
 # Notes:
 #    1) It is assumed that the test executable exists in the working directory.
 #
 # Original: 1995/11/01 by Mark Calabretta, ATNF
-#
-# $Id$
 #
 #=============================================================================
 
