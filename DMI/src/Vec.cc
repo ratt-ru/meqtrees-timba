@@ -764,9 +764,9 @@ int DataField::get (const HIID &id,ContentInfo &info,bool nonconst,int flags) co
     // for writing
     if( objstate[n] == UNINITIALIZED )
     {
-      if( !(flags&DMI::WRITE) )   // only reading requested? return 0
-        return 0;
-      if( !nonconst )               // can't init object if not writable
+//      if( !(flags&DMI::WRITE) )   // only reading requested? return 0
+//        return 0;
+      if( nowrite )               // can't init object if not writable
         return -1;
       // if we're not going to assign to the object, then we need to
       // init an empty one -- resolveObject() will do that for us
