@@ -183,7 +183,7 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
     
     # excluse ubiquotous events from the event logger
-    self.eventlog.add_exclusion('node.status');
+    self.eventlog.set_mask('!node.status.*;'+self.eventlog.get_mask());
     
     # subscribe to updates of forest state
     meqds.subscribe_forest_state(self._update_forest_state);

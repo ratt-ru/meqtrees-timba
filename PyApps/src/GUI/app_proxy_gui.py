@@ -266,31 +266,53 @@ class Logger(HierBrowser):
 class EventLogger (Logger):
   def __init__(self,parent,name,evmask="*",*args,**kwargs):
     Logger.__init__(self,parent,name,*args,**kwargs);
-    self.mask = make_hiid(evmask);
     label = QLabel('Event mask:',self._controlgrid);
     self._controlgrid_lo.addWidget(label,0,0);
     self._evmask_field  = QLineEdit(str(evmask),self._controlgrid);
     self._controlgrid_lo.addMultiCellWidget(self._evmask_field,1,1,0,2);
     self.wtop().connect(self._evmask_field,SIGNAL('returnPressed()'),
-                    self._enter_mask);
-    self._exclusions = [];
+                        self._enter_mask);
+    self.set_mask('*');
+    
   def _enter_mask(self):
     self.set_mask(str(self._evmask_field.text()));
+    
   def set_mask (self,mask):
-    try:
-      self.mask = make_hiid(mask);
-    except: pass;
-    self._evmask_field.setText(str(self.mask));
-    self.wtop().emit(PYSIGNAL('maskChanged()'),(self.wtop(),self.mask));
-  # adds an exclusion
-  def add_exclusion (self,excl_str):
-    self._exclusions.append(re.compile(excl_str));
+    self._filters = [];
+    maskstrings = [];
+    for m in mask.split(';'):
+      m.strip(); # strips whitespace
+      invert = ( m[0] == '!' );
+      if invert:
+        m = m[1:];
+      # try to convert mask to hiid, skip if fails
+      try: hm = make_hiid(m);
+      except: continue;
+      # add a filter
+      self._filters.append((invert,hm));
+      if invert:
+        maskstrings.append('!'+str(hm));
+      else:
+        maskstrings.append(str(hm));
+    self._mask = ';'.join(maskstrings);
+    self._evmask_field.setText(self._mask);
+    self.wtop().emit(PYSIGNAL('maskChanged()'),(self.wtop(),self._mask));
+    
+  def get_mask (self):
+    return self._mask;
+    
   # for event viewers, use the event name as name, and 'event' as description
   def add (self,msg,*args,**kwargs):
-    # omit messages listed in exclusions
-    for ex in self._exclusions:
-      if ex.match(msg):
-        return None;
+    # apply filters
+    for (invert,mask) in self._filters:
+      if mask.matches(msg):
+        if invert:
+          return None;
+        else:
+          break;
+    else: # matched nothing
+      return None;
+    # add entry
     label = time.strftime("%H:%M:%S");
     kw = kwargs.copy();
     kw['label'] = label;
