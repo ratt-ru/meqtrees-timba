@@ -366,7 +366,7 @@ def main(argv):
       #
       # Find Failed test
       #
-      if str.find(aLine,'FAIL:')>-1:
+      if str.find(aLine[0:4],'FAIL:')>-1:
         failedProg=re.sub('FAIL:','',re.sub('\n','',aLine))
         testResultsArray.append([failedProg,keepLastFoundBuildArray[3],
                                  keepLastFoundBuildArray[6],nfile])

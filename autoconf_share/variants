@@ -1,4 +1,4 @@
-gnu.compiler.conf:
+gnu.compiler.conf: CXX=/usr/bin/g++
 kcc.compiler.conf:
 icc.compiler.conf:
 xlc.compiler.conf: CC=blrts_xlc CXX=blrts_xlC
@@ -20,6 +20,7 @@ scampi-opt.variant.conf:  $(scampi-opt_root) $(scampi) $(optimize)
 mpich-prof.variant.conf:  $(mpich-prof_root) $(mpich) --enable-mpi-profiler $(aipspp)
 bgl.variant.conf:         $(bgl_root) $(bgl_mpi) $(debugopt) $(nomtsupport) $(bgl_cpp) $(bgl_ldd) 
 fakebgl.variant.conf:     $(fakebgl_root) $(debug) $(nomtsupport) --without-log4cplus 
+nolog4cplus.variant.conf: $(debug_root) $(debug) --without-log4cplus 
 insure.variant.conf:	  $(insure_root) --with-insuretools $(aipspp)
 insure.variant.make:	  QA=insure
 
