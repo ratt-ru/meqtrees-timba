@@ -656,6 +656,7 @@ const app_proxy := function (appid,
         public.dprint(3,'   value: ', $value);
       }
       # forward event to local relay agent
+      $value::event_name := shortname;
       self.relay->[shortname]($value);
     }
   }
