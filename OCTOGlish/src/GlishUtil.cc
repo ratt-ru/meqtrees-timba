@@ -97,10 +97,15 @@ GlishRecord GlishUtil::recToGlish (const DataRecord &rec)
   // iterate over all fields in record
   while( rec.getFieldIter(iter,id,ncref) )
   {
-    // map HIID to record field name
+    // convert HIID to record field name
     string name = strlowercase( id.toString('_') );
-    // is it an index field (i.e. base needs to be adjusted?)
-    bool adjustIndex = ( id.back() == AidIndex );
+    bool adjustIndex = False;
+    // if a single numeric index, convert to anon field form "*xxx"
+    if( id.size() == 1 && id.front().index() >= 0 )
+      name = '*'+name;
+    else
+      // is it an ".Index" field (i.e. base needs to be adjusted?)
+      adjustIndex = id.back() == AidIndex;
     try
     {
       glrec.add(name,objectToGlishValue(*ncref,adjustIndex));
@@ -411,9 +416,32 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
         string field_name = glrec.name(i);
         try // handle failed fields gracefully
         {
-          HIID id(field_name,"_");
+          HIID id;
+          // check for anon field names, in the form '*number'
+          bool isanon;
+          if( field_name[0] == '*' && field_name.length()>1 )
+          {
+            isanon = True;
+            for( uint j=1; j<field_name.length(); j++ )
+              if( !isdigit(field_name[j]) )
+              {
+                isanon = False;
+                break;
+              }
+          }
+          else
+            isanon = False;
+          // convert to HIID
+          bool isIndex = False;
+          int n;
+          if( isanon && sscanf(field_name.c_str(),"*%d",&n) == 1 )
+            id = HIID(AtomicID(n));
+          else
+          {
+            id = HIID(field_name,"_");
+            isIndex = ( id[id.size()-1] == AidIndex );
+          }
           GlishValue subval = glrec.get(i);
-          bool isIndex = ( id[id.size()-1] == AidIndex );
           (*rec)[id] <<= glishValueToObject(subval,isIndex);
         }
         catch( std::exception &exc )

@@ -2,6 +2,12 @@ pragma include once
 include 'note.g'
 include 'debug_methods.g'
 
+#------------------------------------------------------------------------
+# name: description
+#
+# parameters:
+# returns:
+#------------------------------------------------------------------------
 octopussy := function (wpclass="",server="./octoglish",
           options="",autoexit=T,suspend=F,verbose=1) 
 {
@@ -211,7 +217,7 @@ octopussy := function (wpclass="",server="./octoglish",
     return $name;
   }
   
-  const public.setdebug := function(context,level)
+  const public.setdebug := function (context,level)
   {
     wider self;
     # check that we're started
@@ -308,9 +314,9 @@ test_octopussy := function (server="./test_glish",options="")
 }
 
 # makes a HIID object from a string
-hiid := function(...)
+hiid := function (...)
 {
-  ret := paste(...,sep=".");
+  ret := paste(...,sep='.');
   ret::is_hiid := T;
   return ret;
 }

@@ -1,4 +1,4 @@
-include "../../src/octopussy.g"
+include "octopussy.g"
 
 # oct := octopussy(server="./test/glish_reflector -dGlishClientWP=4 -dReflectorWP=4",options=options,suspend=F);
 oct := octopussy(server="./test/glish_reflector -d0",options=options,suspend=F);
