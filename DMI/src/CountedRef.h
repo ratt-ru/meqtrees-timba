@@ -48,7 +48,6 @@
 //## Cardinality/Multiplicity: n
 
 
-
 template <class T>
 class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
 {
@@ -59,7 +58,7 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
     //## Constructors (generated)
       CountedRef();
 
-      CountedRef(const CountedRef< T > &right);
+      CountedRef(const CountedRef<T> &right);
 
     //## Constructors (specified)
       //## Operation: CountedRef%3BF9396D01A7; C++
@@ -79,12 +78,12 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       explicit CountedRef (const T* targ, int flags = 0);
 
     //## Assignment Operation (generated)
-      CountedRef< T > & operator=(const CountedRef< T > &right);
+      CountedRef<T> & operator=(const CountedRef<T> &right);
 
     //## Equality Operations (generated)
-      bool operator==(const CountedRef< T > &right) const;
+      bool operator==(const CountedRef<T> &right) const;
 
-      bool operator!=(const CountedRef< T > &right) const;
+      bool operator!=(const CountedRef<T> &right) const;
 
 
     //## Other Operations (specified)
@@ -198,6 +197,23 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
       CountedRefBase::verify; 
       CountedRefBase::debug;
       CountedRefBase::sdebug;
+      
+      // add upcast/downcast methods for conversion between ref types
+      // upcast() 
+      template<class U>
+      CountedRef<U> & ref_cast ()
+      { 
+        FailWhen( target && !dynamic_cast<U*>(target),"illegal ref conversion"); 
+        return *reinterpret_cast<CountedRef<U> *>(this); 
+      }
+      
+      template<class U>
+      const CountedRef<U> & ref_cast () const
+      {
+        FailWhen( target && !dynamic_cast<const U*>(target),"illegal ref conversion"); 
+        return *reinterpret_cast<const CountedRef<U> *>(this); 
+      }
+      
       //## end CountedRef%3BEFECFF0287.public
   protected:
     // Additional Protected Declarations
@@ -446,7 +462,7 @@ template <class T>
 inline CountedRef<T>& CountedRef<T>::privatize (int flags, int depth)
 {
   //## begin CountedRef::privatize%3C17A06901DC.body preserve=yes
-// This simply defers to the base class clone(). It is provided here
+// This simply defers to the base class Tclone(). It is provided here
 // so that specifc types may implement specific kind of cloning.
   CountedRefBase::privatize(flags,depth);
   return *this;

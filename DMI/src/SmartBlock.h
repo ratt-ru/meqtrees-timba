@@ -198,8 +198,6 @@ class SmartBlock;
 //## Uses: <unnamed>%3C356CD402B2;CountedRef { -> }
 //## Uses: <unnamed>%3C356CF10174;SmartBlock { -> }
 
-typedef CountedRef<SmartBlock> BlockRef;
-
 //## begin BlockRef%3BEA7FF50154.postscript preserve=yes
 //## end BlockRef%3BEA7FF50154.postscript
 

@@ -408,7 +408,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
           //## Operation: operator =%3C873A8F035F
           void operator = (const ObjRef &ref) const;
-
+          
           //## Operation: operator <<=%3C873AB8008D
           void operator <<= (const ObjRef &ref) const;
 
@@ -474,6 +474,9 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
           { return (*this)[id1|id2|id3]; }
           const NestableContainer::Hook & operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) const 
           { return (*this)[id1|id2|id3|id4]; }
+          
+          // allow assignment of all objrefs
+//          void operator = ( const ObjRef &ref );
           
           // pull non-in const accessdor methods
 #ifndef NC_SKIP_HOOKS
@@ -713,8 +716,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       NestableContainer::ConstHook operator [] (const char *id1) const
       { return (*this)[HIID(id1)]; }
       NestableContainer::Hook operator [] (AtomicID id1) 
-
-                { return (*this)[HIID(id1)]; }
+      { return (*this)[HIID(id1)]; }
       NestableContainer::Hook operator [] (const string &id1) 
       { return (*this)[HIID(id1)]; }
       NestableContainer::Hook operator [] (const char *id1) 
@@ -1034,12 +1036,17 @@ inline const NestableContainer::Hook & NestableContainer::Hook::size (int &sz, T
   //## end NestableContainer::Hook::size%3CAAE9BB0332.body
 }
 
+//template<class T>
 inline void NestableContainer::Hook::operator = (const ObjRef &ref) const
 {
   //## begin NestableContainer::Hook::operator =%3C873A8F035F.body preserve=yes
   assign_objref(ref,DMI::PRESERVE_RW|DMI::COPYREF);
   //## end NestableContainer::Hook::operator =%3C873A8F035F.body
 }
+          
+//template<class T>
+//void NestableContainer::Hook::operator = ( const CountedRef<T*> &ref)
+//{ (*this) = ref.asRef<BlockableObject*>(); }
 
 inline void NestableContainer::Hook::operator <<= (const ObjRef &ref) const
 {
