@@ -106,7 +106,7 @@ else
       AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_INTELCC"
     fi
     AIPSPP_LDFLAGS="-L$AIPSPP_PATH/$AIPSPP_ARCH/lib"
-    AIPSPP_LIBS="-ltrial -laips -ltrial_f -laips_f"
+    AIPSPP_LIBS="$AIPSPP_PATH/$AIPSPP_ARCH/lib/version.o -lglish -lsos -lnpd -ltrial -laips -ltrial_f -laips_f"
 
     if test "$with_lapack" != "no"; then
       ]AC_CHECK_FILE([$with_lapack],
