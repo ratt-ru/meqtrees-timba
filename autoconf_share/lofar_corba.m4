@@ -7,7 +7,9 @@
 # Macro to check for suitable Corba implmentation
 #
 AC_DEFUN(lofar_CORBA,dnl
-lofar_HEADER_VISIBROKER([]))dnl
+lofar_HEADER_VISIBROKER([])
+AM_CONDITIONAL(HAVE_CORBA, test "$enable_vbroker" = "yes")
+)dnl
 dnl
 #
 # lofar_HEADER_VISIBROKER([DEFAULT-PREFIX])
@@ -78,7 +80,6 @@ AC_SUBST(LIBS)dnl
 AC_SUBST(IDLCXX)dnl
 AC_SUBST(IDLFLAGS)dnl
 dnl
-AM_CONDITIONAL(HAVE_CORBA, true)
 AC_DEFINE(HAVE_CORBA, 1, [Define if Inprise Visibroker Corba installed])dnl
 [
   else]

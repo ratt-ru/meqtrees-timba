@@ -57,7 +57,6 @@ AC_SUBST(CXXFLAGS)dnl
 AC_SUBST(LDFLAGS)dnl
 AC_SUBST(LIBS)dnl
 dnl
-AM_CONDITIONAL(HAVE_MATLAB, true)
 AC_DEFINE(HAVE_MATLAB, 1, [Define if Matlab is installed])dnl
 [
   else]
@@ -66,4 +65,5 @@ AC_MSG_ERROR([Could not find Matlab in $matlab_prefix])
     enable_matlab=no
   fi
 fi]
+AM_CONDITIONAL(HAVE_MATLAB, test "$enable_matlab" = "yes")
 ])

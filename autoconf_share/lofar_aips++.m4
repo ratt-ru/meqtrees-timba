@@ -53,9 +53,11 @@ AC_SUBST(CXXFLAGS)dnl
 AC_SUBST(LDFLAGS)dnl
 AC_SUBST(LIBS)dnl
 dnl
-AM_CONDITIONAL(HAVE_AIPSPP, true)
 AC_DEFINE(HAVE_AIPSPP, 1, [Define if AIPS++ is installed])dnl
 [
 	fi
 fi
-]])
+]
+AM_CONDITIONAL(HAVE_AIPSPP, test "$with_aipspp" = "yes")
+]
+)
