@@ -42,7 +42,11 @@
 #                      derived library path gets PFX/build
 #  --with-package-libdir=PFX   overrides package derived library path.
 #
-# lofar_PACKAGE(package_path)
+# lofar_PACKAGE(package_path, option)
+#     where option=0 means that makepkglinks descends recursively into
+#                    all packages used by this package.
+#           option=1 means not recursively
+#           option=2 means not recursively and no library in LIBS
 #
 # e.g. lofar_PACKAGE(CEP/CPA/PSCF)
 # -------------------------
@@ -52,16 +56,19 @@ AC_DEFUN(lofar_PACKAGE,dnl
 AC_PREREQ(2.13)dnl
 define(LOFAR_PKG_SYM,m4_patsubst([$1], [.*/]))
 define(LOFAR_PKG_LIB,m4_tolower(m4_patsubst([$1], [.*/])))
+ifelse($2, [], [lfr_option=0], [lfr_option=$2])
 AC_ARG_WITH([LOFAR_PKG_LIB],
 	[  --with-LOFAR_PKG_LIB[[=PFX]]        path to $1 directory],
 	[with_package=$withval
          if test "${with_package}" = yes; then
             with_package=
-         fi])
+         fi],
+	[with_package=])
 
 AC_ARG_WITH([LOFAR_PKG_LIB][[-libdir]],
   [  --with-LOFAR_PKG_LIB[-libdir]=PFX   specific library dir for $1 library],
-  [lfr_package_libdir="$withval"])
+  [lfr_package_libdir="$withval"],
+  [lfr_package_libdir=])
 
 
 [
@@ -110,7 +117,7 @@ else
   */*)
     ;;
   *)
-    lfr_root=/lofar/$lfr_root;
+    lfr_root=/home/lofar/$lfr_root;
     ;;
   esac
 fi
@@ -157,11 +164,14 @@ fi
 ##
 ## Check for Makefile.am header file in src dir.
 ##
-]
-AC_CHECK_FILE([$lfr_package_libdir/libtool],
+  if test $lfr_option != 2; then
+    ]AC_CHECK_FILE([$lfr_package_libdir/libtool],
 			[lfr_cv_lib_package=yes],
 			[lfr_cv_lib_package=no])
-AC_CHECK_FILE([$lfr_package_include/src/Makefile.am],
+  [else
+    lfr_cv_lib_package=yes;
+  fi
+]AC_CHECK_FILE([$lfr_package_include/src/Makefile.am],
 			[lfr_cv_hdr_package=yes],
 			[lfr_cv_hdr_package=no])dnl
 [
@@ -169,21 +179,20 @@ if test $lfr_cv_hdr_package = yes  &&  test $lfr_cv_lib_package = yes; then
   # Turn possible relative paths into absolute paths, because
   # relative paths can miss some .. parts.
   lfr_package_include=`cd $lfr_package_include && pwd`
-  lfr_package_libdir=`cd $lfr_package_libdir && pwd`
 
   # Two new variables for use in Makefile.am's
   ]LOFAR_PKG_LIB[_top_srcdir="$lfr_package_include"
-  ]LOFAR_PKG_LIB[_top_builddir="$lfr_package_libdir"
 
-  LDFLAGS="$LDFLAGS -L$lfr_package_libdir/src"
-  LIBS="$LIBS -l"]LOFAR_PKG_LIB[
+  if test $lfr_option != 2; then
+    lfr_package_libdir=`cd $lfr_package_libdir && pwd`
+    ]LOFAR_PKG_LIB[_top_builddir="$lfr_package_libdir"
+    LDFLAGS="$LDFLAGS -L$lfr_package_libdir/src"
+    LIBS="$LIBS -l"]LOFAR_PKG_LIB[
+  fi
 
   # Create symlink to the source and build directory
-  # Do the same (recursively) for all packages used by this package.
-#  \rm -f pkglib/tmp_alllibnames
-  $lofar_sharedir/makepkglinks $1 $lfr_package_include $lfr_package_libdir pkginc pkgbldinc pkglib/tmp_alllibnames 0
-#  LIBS="$LIBS `cat pkglib/tmp_alllibnames`"
-#  \rm -f pkglib/tmp_alllibnames
+  # Do the same (if needed recursively) for all packages used by this package.
+  $lofar_sharedir/makepkglinks $1 $lfr_package_include $lfr_package_libdir pkginc pkgbldinc $lfr_option 0
 ]
 dnl
 AC_SUBST(LIBS)dnl
@@ -198,7 +207,8 @@ AC_MSG_ERROR([Could not find Makefile.am in $lfr_package_include])
 [
     enable_package=no
   else]
-AC_MSG_ERROR([Could not find libtool in $lfr_package_libdir])
+AC_MSG_WARN([Could not find libtool in $lfr_package_libdir])
+AC_MSG_ERROR([Probably package $1 has not been configured yet])
 [
   fi
 fi

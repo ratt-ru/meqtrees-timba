@@ -5,7 +5,7 @@
 # It is done in a recursive way.
 #
 # usage:
-#  makepkglinks pkgname incdir libdir pkginc pkglib filename count
+#  makepkglinks pkgname incdir libdir pkginc pkglib option count
 
 # The package name is the last part of the full package name.
 # The library name is the lowercase version of the package name.
@@ -13,11 +13,17 @@
 fullnm=$1
 pkgnm=`echo $fullnm | sed -e "s%.*/%%g"`
 libnm=`echo $pkgnm | tr [A-Z] [a-z]`
-incdir=`cd $2  &&  pwd`
-libdir=`cd $3  &&  pwd`
+incdir=$2
+if [ -d $incdir ]; then
+  incdir=`cd $incdir  &&  pwd`
+fi
+libdir=$3
+if [ -d $libdir ]; then
+  libdir=`cd $libdir  &&  pwd`
+fi
 inclin=$4
 liblin=$5
-filnm=$6
+option=$6
 count=$7
 
 # The count is used to detect mutual dependencies
@@ -39,17 +45,24 @@ ln -s $incdir/src $inclin/$pkgnm
 \rm -f $liblin/$pkgnm
 ln -s $libdir/src $liblin/$pkgnm
 
-##echo '-l'$libnm >> $filnm
-
 # Make symlinks to packages used by this package.
-confs=`find $incdir1/$fullnm -name configure.in -print`
-for conf in $confs
-do
-  pkgs=`grep "lofar_PACKAGE" $conf`
-  for pkg in $pkgs
+if [ "$option" = "0" ]; then
+  confs=`find $incdir1/$fullnm -name configure.in -print`
+  for conf in $confs
   do
-    nm=`echo $pkg | sed -e "s/.*lofar_PACKAGE//" -e "s/.*(//" -e "s/).*//"`
-    cnt=`expr $count + 1`
-    $0 $nm $incdir1/$nm/$incdir2 $libdir1/$nm/$libdir2 $inclin $liblin $filnm $cnt  ||  exit 1
+    pkgs=`grep "lofar_PACKAGE" $conf`
+    for pkg in $pkgs
+    do
+      # Only keep package name possibly followed by ,option.
+      nm=`echo $pkg | sed -e "s/.*lofar_PACKAGE//" -e "s/ //g" -e "s/.*(//" -e "s/).*//"`
+      # Check if the package has to be examined recursively.
+      opt=`echo $nm | sed -e "/.*,//"`
+      if [ "$opt" = ""  -o  "$opt" = "$nm" ]; then
+        opt=$option;
+      fi
+      nm=`echo $nm | sed -e "/,.*//"`
+      cnt=`expr $count + 1`
+      $0 $nm $incdir1/$nm/$incdir2 $libdir1/$nm/$libdir2 $inclin $liblin $opt $cnt  ||  exit 1
+    done
   done
-done
+fi
