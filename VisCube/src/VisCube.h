@@ -221,7 +221,7 @@ class VisCube : public BlockableObject
         //##ModelId=3DF9FDCD0124
         //##Documentation
         //## This hides the base class' attach() methods
-          VisTile::ConstIterator::attach;
+          void attach (const VisTile &tile);
     };
 
     //##ModelId=3DB964F200C4
@@ -278,12 +278,8 @@ class VisCube : public BlockableObject
 
       private:
         // Additional Private Declarations
-        //##ModelId=3DF9FDCE036C
-        //##Documentation
-        //## This hides the base class' attach() methods
-//          ConstIterator::attach;
-          VisTile::Iterator::attach;
-
+          void attach (const VisTile &tile);
+          void attach (const VisCube &cube);
     };
     
     //##ModelId=3DF9FDC900FF
