@@ -1,5 +1,5 @@
 #check_PROGRAMS 		= tPoly tMeqVells tMeqPolc tuvw
-check_PROGRAMS 		= tMeqVells tMeqPolc tForest tMeq tBlob uvwparm
+check_PROGRAMS 		= tMeqVells tMeqPolc tForest tMeq tBlob
 
 #TESTS			= tPoly tMeqVells tMeqPolc tuvw
 TESTS			= tMeqVells tMeqPolc tForest tMeq tBlob
@@ -27,10 +27,6 @@ tMeq_DEPENDENCIES	= ../src/libmeq.la $(LOFAR_DEPEND)
 tBlob_SOURCES	 	= tBlob.cc 
 tBlob_LDADD		= ../src/libmeq.la 
 tBlob_DEPENDENCIES	= ../src/libmeq.la $(LOFAR_DEPEND)
-
-uvwparm_SOURCES	 	= uvwparm.cc 
-uvwparm_LDADD		= ../src/libmeq.la 
-uvwparm_DEPENDENCIES	= ../src/libmeq.la $(LOFAR_DEPEND)
 
 #tuvw_SOURCES 		= tuvw.cc 
 #tuvw_LDADD		= ../src/libmeq.la 
