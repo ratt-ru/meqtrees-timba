@@ -17,15 +17,25 @@ namespace AIPSPP_Hooks
 {
   // templated helper method to create a 1D array using a copy of data
   template<class T>
-  inline Array<T> copyVector (int n,const void *data)
+  inline Array<T> copyVector (TypeId tid,int n,const void *data)
   { 
+    if( tid != typeIdOf(T) )
+    {
+      ThrowExc(NestableContainer::ConvError,"can't convert "+tid.toString()+
+                  " to AIPS++ Array<"+typeIdOf(T).toString()+">");
+    }
     return Array<T>(IPosition(1,n),static_cast<const T*>(data));
   };
 
   // specialization for String, with conversion from std::string
   template<>
-  inline Array<String> copyVector (int n,const void *data)
+  inline Array<String> copyVector (TypeId tid,int n,const void *data)
   { 
+    if( tid != Tpstring )
+    {
+      ThrowExc(NestableContainer::ConvError,"can't convert "+tid.toString()+
+                  " to AIPS++ Array<String>");
+    }
     String *dest0 = new String[n], *dest = dest0;
     const string *src = static_cast<const string *>(data);
     for( int i=0; i<n; i++,dest++,src++ )
@@ -68,13 +78,8 @@ Array<T> NestableContainer::Hook::as_AipsArray (Type2Type<T>) const
     }
     return out;
   }
-  // have we resolved to scalar?
-  else if( target.obj_tid == typeIdOf(T) )
-  {
-    return AIPSPP_Hooks::copyVector<T>(target.size,target.ptr);
-  }
-  ThrowExc(ConvError,"can't convert "+target.obj_tid.toString()+
-              " to AIPS++ Array<"+typeIdOf(T).toString()+">");
+  // have we resolved to scalar? Try the copyVector method
+  return AIPSPP_Hooks::copyVector<T>(target.obj_tid,target.size,target.ptr);
 }
 
 template<class T>
