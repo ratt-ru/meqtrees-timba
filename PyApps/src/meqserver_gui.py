@@ -292,9 +292,10 @@ class TreeBrowser (object):
         item._iter_nodes = iter(nodes);
 
   def update_node_state (self,nodestate):
-    items = self._node_items.get(nodestate.nodeindex,[]);
-    for item in items:
-      self.update_node_item(item);
+    if hasattr(self,'_node_items'): 
+      items = self._node_items.get(nodestate.nodeindex,[]);
+      for item in items:
+        self.update_node_item(item);
       
   def update_node_item (self,item):
     node = item._node;
