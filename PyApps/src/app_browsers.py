@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from qt import *
+from qttable import *
 from dmitypes import *
 import sys
 import time
@@ -115,7 +116,7 @@ class HierBrowser (object):
       viewable = getattr(item,'_viewable');
     except AttributeError: return None;
     # return item only if viewable, has udi and contents
-    if content and udi and viewable: 
+    if content is not None and udi and viewable: 
       viewopts = getattr(item,'_viewopts',{});
       name = getattr(item,'_name','');
       desc = getattr(item,'_desc','');
@@ -326,7 +327,71 @@ class RecordBrowser(HierBrowser):
     self.expand_content(self._lv,self._rec);
     # apply saved open tree
     self.set_open_items(openitems);
+    
+class ArrayBrowser(object):
+  def is_viewable (data):
+    try: return 1 <= data.rank <=2;
+    except: return False;
+  is_viewable = staticmethod(is_viewable);
   
+  class ArrayTable(QTable):
+    def __init__(self,parent,**args):
+      QTable.__init__(self,parent,*args);
+      self._arr = None;
+    def set_array (self,arr):
+      if not 1<=arr.rank<=2:
+        raise TypeError,"illegal array dimensionality";
+      self._arr = arr;
+      self._rank = arr.rank;
+      self.setNumRows(arr.shape[0]);
+      if self._rank == 1:   
+        self.setNumCols(1);
+      else:
+        self.setNumCols(arr.shape[1]);
+      self.repaint();
+    # redefine paintCell method to paint on-the-fly
+    def paintCell(self,painter,row,col,cr,selected):
+      txt = str(self._arr[(row,col)[:self._rank]]);
+      cg = QApplication.palette().active();
+#      if selected:
+#        qp.setPen(cg.highlightedText());
+#        qp.setBackgroundColor(cg.highlight());
+#      else:
+#        qp.setPen(cg.text());
+#        qp.setBackgroundColor(cg.background());
+      rect = QRect(0,0,cr.width(),cr.height());
+      if selected:
+        painter.fillRect(rect,QBrush(cg.highlight()));
+        painter.setPen(cg.highlightedText());
+      else:
+        painter.fillRect(rect,QBrush(cg.base()));
+        painter.setPen(cg.text());
+      painter.drawText(0,0,cr.width(),cr.height(),Qt.AlignRight,txt);
+    
+  def __init__(self,parent,dataitem=None,**opts):
+#    HierBrowser.__init__(self,parent,"value","field",
+#        udi_root=(dataitem and dataitem.udi));
+    self._arr = None;
+    self._tbl = self.ArrayTable(parent);
+    if dataitem and dataitem.data is not None:
+      self.set_data(dataitem);
+      
+  def wtop (self):
+    return self._tbl;
+  
+  def set_data (self,dataitem,**opts):
+    # save currenty open tree
+#    if self._arr:
+#      openitems = self.get_open_items();
+#    else: # no data, use default open tree if specified
+#      openitems = default_open or self._default_open;
+    # clear everything and reset data as new
+    self._tbl.set_array(dataitem.data);
+    # apply saved open tree
+#    self.set_open_items(openitems);
+    
+  
+gridded_workspace.registerViewer(array_class,ArrayBrowser);
 # register the RecordBrowser as a viewer for the appropriate types
 for tp in (dict,list,tuple,array_class):
   gridded_workspace.registerViewer(tp,RecordBrowser);

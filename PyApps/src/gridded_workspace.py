@@ -747,19 +747,16 @@ class GriddedWorkspace (object):
       match = udipatt.match(u);
       if match:
         subudi = match.group(1);
-        print 'subudi:',subudi;
         if subudi:   # a sub-udi, so we must process it by indexing into the data
           # split into keys and process one by one (first one is empty string)
           data1 = data;
           for key in subudi.split("/")[1:]:
-            print key,data1;
             try: data1 = data1[key];
             except TypeError: # try to convert data to integer instead
               try: data1 = data1[int(key)];
               except TypeError,KeyError: 
                 break;
           else: # loop successful
-            print subudi,data1;
             item.update(data1);
         else:               # not a sub-udi, directly update the value
           item.update(data);
