@@ -661,8 +661,10 @@ class Node : public DMI::BObj
     //##Documentation
     //## resamples children to common resolution according to auto_resample_
     //## setting. Returns output resolution in rescells.
-    //## If auto-resampling is disabled, does nothing.    
-    void resampleChildren (Cells::Ref rescells,std::vector<Result::Ref> &childres);
+    //## If auto-resampling is disabled, does nothing.  
+    //## NB: current implementation does no resampling at all, but will
+    //## check for cells conformance if AUTORESAMPLE_FAIL is enabled.
+    void resampleChildren (Cells::Ref &rescells,std::vector<Result::Ref> &childres);
     
     //##ModelId=3F83F9A5022C
     //##Documentation

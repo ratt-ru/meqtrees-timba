@@ -40,7 +40,9 @@ const HIID FWait = AidWait;
 ReqMux::ReqMux()
 : Node(-1,0,1), // at least one child required
   res_depend_mask_(RQIDM_RESOLUTION)
-{}
+{
+  Throw("The ReqMux node is out of date, please do not use");
+}
 
 //##ModelId=400E5355029D
 ReqMux::~ReqMux()

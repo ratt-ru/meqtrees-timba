@@ -49,7 +49,7 @@ public:
 protected:
   virtual void evalResult (std::vector<Vells> &res,
           const std::vector<const Vells*> &values,
-          const Cells &);
+          const Cells *);
 };
 
 } // namespace Meq

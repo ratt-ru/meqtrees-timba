@@ -47,19 +47,11 @@ public:
 
   // ------------------------ CONSTRUCTORS
   // Create a Result with the given number of vellsets.
-  // If <0, then the set is marked as a fail
+  // If <0, then the set is marked as a fail.
   // The integrated flag specifies whether the result is an integration
   // over the specified cells, or a sampling at the cell center.  
     //##ModelId=3F86887000CE
-  explicit Result (int nresults=0,bool integrated=false);
-  
-    //##ModelId=3F8688700151
-  explicit Result (const Request &req,bool integrated=false);
-  
-    //##ModelId=400E535500F5
-  Result (int nresults,const Request &req,bool integrated=false);
-    //##ModelId=400E53550105
-  Result (const Request &req,int nresults,bool integrated=false);
+  explicit Result (int nvs=0,bool integrated=false);
   
   // Construct from DMI::Record. 
     //##ModelId=400E53550116
@@ -82,17 +74,32 @@ public:
   // (or when the underlying DMI::Record is privatized, etc.)
     //##ModelId=400E53550156
   virtual void validateContent (bool recursive);
-  
 
   // ------------------------ CELLS
   // Set or get the cells.
-  // Attaches cells object 
+  // This attaches a cells object to the result. If force=false, then cells
+  // are only attached if any vellsets in the result have a shape.
+  // In any case the vellset shapes are checked against the Cells shape.
+  // Note that if all vellsets are shapeless (i.e. do not depend on any axis),
+  // it is normal for the result object to have no cells, since this
+  // allows it to be cached and reused without regard to request cells.
     //##ModelId=3F86887000D4
-  void setCells (const Cells *,int flags = 0);
+  void setCells (const Cells *,int flags = 0,bool force=false);
   // Attaches cells object (default is external). 
     //##ModelId=400E53550163
-  void setCells (const Cells &cells,int flags = DMI::AUTOCLONE)
-  { setCells(&cells,flags); }
+  void setCells (const Cells &cells,int flags = DMI::AUTOCLONE,bool force=false)
+  { setCells(&cells,flags,force); }
+  
+  // This attaches a cells object to the result with force=true
+  void forceCells (const Cells *cells,int flags = 0)
+  { setCells(cells,flags,true); }
+  // Attaches cells object (default is external). 
+    //##ModelId=400E53550163
+  void forceCells (const Cells &cells,int flags = DMI::AUTOCLONE)
+  { setCells(&cells,flags,true); }
+  
+  // removes cells from result -- exception thrown if any vellsets have shapes
+  void clearCells ();
 
     //##ModelId=400E53550174
   bool hasCells () const
@@ -103,17 +110,24 @@ public:
   { DbgFailWhen(!pcells_,"no cells in Meq::Result");
     return pcells_->deref(); }
     
+  // Rechecks the shapes of vells objects against the result cells.
+  // If vells have shapes, then a result cells must have been set (throws
+  // error otherwise), and the shapes must be compatible (the
+  // cells is allowed to have extra axes of variability). If none of
+  // the vells have shapes, result cells will be deleted if reset=true.
+  void verifyShape (bool reset=true);
+  
   // ------------------------ INTEGRATED property
   // this is set at construction time
   bool isIntegrated () const
   { return is_integrated_; }
   
   // integrates all VellSets (multiplies values by cell size)
-  // if integrate=true, does nothing
+  // if isIntegrated()=true, does nothing
   void integrate (bool reverse=false);
   
   // differentiates all VellSets (divides values by cell size)
-  // if integrate=false, does nothing
+  // if isIntegrated()=false, does nothing
   void differentiate ()
   { integrate(true); }
 
@@ -174,6 +188,10 @@ protected:
 private:
   // sets the integrated property, including underlying record
   void setIsIntegrated (bool integrated);
+
+  // verifies vellsets against a cell shape, throws exception on mismatch.
+  //  Returns true if any vellsets are variable.
+  bool verifyShape (const LoShape &cellshape);
     
   // helper function: write-access to vellsets (enforces COW)
   DMI::Vec &       wrVellSets ()

@@ -1,5 +1,4 @@
-
-    //# Vells.h: Values for Meq expressions
+//# Vells.h: Values for Meq expressions
 //#
 //# Copyright (C) 2002
 //# ASTRON (Netherlands Foundation for Research in Astronomy)

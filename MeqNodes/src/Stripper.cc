@@ -48,8 +48,6 @@ int Stripper::getResult (Result::Ref &resref,
   const Result & child_res = *child_results[0];
   int nvs = child_res.numVellSets();
   Result & result = resref <<= new Result(nvs,child_res.isIntegrated());
-  // carry Cells along
-  result.setCells(child_res.cells());
   for( int i=0; i<nvs; i++ )
   {
     const VellSet &child_vs = child_res.vellSet(i);
@@ -64,6 +62,9 @@ int Stripper::getResult (Result::Ref &resref,
       result.setNewVellSet(0).setValue(child_vs.getValue());
     }
   }
+  // carry Cells along if needed
+  if( child_res.hasCells() )
+    result.setCells(child_res.cells());
   return 0;
 }
 

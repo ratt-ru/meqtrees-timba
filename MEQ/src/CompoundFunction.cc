@@ -91,7 +91,7 @@ int CompoundFunction::checkChildResults (Result::Ref &resref,
 }
     
 void CompoundFunction::evalFlags (std::vector<Vells::Ref> &flagrefs,
-          const std::vector<const Vells*> &values,const Cells &) 
+          const std::vector<const Vells*> &values,const Cells *) 
 {
   Vells::Ref flags;
   for( uint i=0; i<values.size(); i++ )
@@ -109,7 +109,7 @@ void CompoundFunction::evalFlags (std::vector<Vells::Ref> &flagrefs,
 }
 
 
-void CompoundFunction::computeValues ( Result &result,const std::vector<const VellSet *> &chvs )
+void CompoundFunction::computeValues ( Result &result,const std::vector<const VellSet *> &chvs,const Cells *pcells)
 {
   // collect vector of pointers to main values
   int num_children = chvs.size();
@@ -142,14 +142,11 @@ void CompoundFunction::computeValues ( Result &result,const std::vector<const Ve
     out_vs[i] = &( result.setNewVellSet(i,nspids,npertsets) );
     out_vs[i]->setSpids(spids);
   }
-  const Cells &res_cells = result.cells();
-  const LoShape &res_shape = res_cells.shape();
-  
   // evaluate main value
   vector<Vells::Ref> out_flags(nout);
-  evalFlags(out_flags,mainvals,res_cells);
+  evalFlags(out_flags,mainvals,pcells);
   vector<Vells> out_values(nout);
-  evalResult(out_values,mainvals,res_cells);
+  evalResult(out_values,mainvals,pcells);
   for( int i=0; i<nout; i++ )
   {
     out_vs[i]->setValue(out_values[i]);
@@ -183,7 +180,6 @@ void CompoundFunction::computeValues ( Result &result,const std::vector<const Ve
         {
           const Vells &pvv = vs.getPerturbedValue(inx,ipert);
 //          childpvv_lock[ipert][ich].relock(pvv.mutex());
-          FailWhen(!pvv.isCompatible(res_shape),"mismatch in child result shapes");
           pert_values[ipert][ich] = &pvv;
           if( found[ipert] >=0 )
           {
@@ -206,7 +202,7 @@ void CompoundFunction::computeValues ( Result &result,const std::vector<const Ve
       FailWhen(found[ipert]<0,
                ssprintf("missing perturbation set %d for spid %d",
                         ipert,spids[ispid]));
-      evalResult(out_values,pert_values[ipert],res_cells);
+      evalResult(out_values,pert_values[ipert],pcells);
       for( int i=0; i<nout; i++ )
       {
         out_vs[i]->setPerturbation(ispid,pert[ipert],ipert);
@@ -214,6 +210,10 @@ void CompoundFunction::computeValues ( Result &result,const std::vector<const Ve
       }
     }
   } // end for(ispid) over spids
+  
+  // set cells in result as needed
+  if( pcells )
+    result.setCells(pcells);
   
 }
     

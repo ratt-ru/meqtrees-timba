@@ -34,14 +34,16 @@ const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 PointSourceDFT::PointSourceDFT()
 : CompoundFunction(num_children,child_labels)
-{}
+{
+  setAutoResample(RESAMPLE_FAIL); // children must return the same cells
+}
 
 PointSourceDFT::~PointSourceDFT()
 {}
 
 void PointSourceDFT::evalResult (std::vector<Vells> &res,
 				 const std::vector<const Vells*> &values,
-				 const Cells &cells)
+				 const Cells *pcells)
 {
   Assert(Axis::TIME==0);
   Assert(Axis::FREQ==1);
@@ -140,11 +142,11 @@ int PointSourceDFT::getResult (Result::Ref &resref,
         expect_integrated) == RES_FAIL )
     return RES_FAIL;
   
-  // allocate proper output result (integrated=false??)
-  const Cells &cells = childres[0]->cells();
+  const Cells &cells = request.cells();
   Assert(cells.isDefined(Axis::FREQ) && cells.isDefined(Axis::TIME));
+  
+  // allocate proper output result (integrated=false??)
   Result &result = resref <<= new Result(1);
-  result.setCells(cells);
 
   // result is variable in time and frequency
   nfreq = cells.ncells(Axis::FREQ);
@@ -152,7 +154,9 @@ int PointSourceDFT::getResult (Result::Ref &resref,
   res_shape = Axis::freqTimeMatrix(nfreq,ntime);
   
   // fill it
-  computeValues(resref(),child_vs);
+  computeValues(resref(),child_vs,&cells);
+  
+  result.setCells(cells);
   
   return 0;
 }

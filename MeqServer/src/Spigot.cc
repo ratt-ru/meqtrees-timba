@@ -240,7 +240,7 @@ int Spigot::getResult (Result::Ref &resref,
           !maskedCompare(req.id(),pnext->rqid,getDependMask()) ) // still no match? fail
       {
         ResQueueItem &next = res_queue_.front();
-        resref <<= new Result(1,req);
+        resref <<= new Result(1);
         VellSet &vs = resref().setNewVellSet(0);
         MakeFailVellSet(vs,
             Debug::ssprintf("spigot: request out of sequence: got rqid %s, expecting %s (depmask is %X)",
@@ -254,6 +254,7 @@ int Spigot::getResult (Result::Ref &resref,
     }
     // return result and dequeue
     resref.copy(pnext->res);
+    resref().setCells(req.cells());
     // update state record
     if( forest().debugLevel() > 1 )
       fillDebugState();

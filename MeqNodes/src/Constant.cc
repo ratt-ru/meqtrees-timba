@@ -70,15 +70,19 @@ int Constant::getResult (Result::Ref& resref,
 			 const Request& request, bool)
 {
   // Create result object and attach to the ref that was passed in
-  Result& result = resref <<= new Result(1,request); // result has one vellset
+  Result& result = resref <<= new Result(1); // result has one vellset
   VellSet& vs = result.setNewVellSet(0);
   // if value is a Vells, check that shapes match
   Vells &val = itsValue();
-  FailWhen(hasShape && !val.isCompatible(request.cells().shape()),
-      "shape of Vells in Constant node not compatible with request");
   vs.setValue(val);
   if( itsIntegrated )
     result.integrate();
+  if( hasShape )
+  {
+    FailWhen(!val.isCompatible(request.cells().shape()),
+      "shape of Vells in Constant node not compatible with request");
+    result.setCells(request.cells());
+  }
   return 0;
 }
 

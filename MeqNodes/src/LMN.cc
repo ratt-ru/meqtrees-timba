@@ -42,13 +42,14 @@ using Debug::ssprintf;
 LMN::LMN()
 : CompoundFunction(num_children,child_labels)
 {
+  setAutoResample(RESAMPLE_FAIL); // children must return the same cells
 }
 
 //##ModelId=400E535502D2
 LMN::~LMN()
 {}
 
-void LMN::evalResult (std::vector<Vells> &res,const std::vector<const Vells*> &values,const Cells &)
+void LMN::evalResult (std::vector<Vells> &res,const std::vector<const Vells*> &values,const Cells *)
 {
   // phase center pos
   #define vra0   (*(values[0]))
@@ -87,9 +88,8 @@ int LMN::getResult (Result::Ref &resref,
   
   // allocate proper output result (integrated=false)
   Result &result = resref <<= new Result(3,false);
-  result.setCells(childres[0]->cells());
   // fill it
-  computeValues(result,child_vs);
+  computeValues(result,child_vs,0);
   return 0;
 }
 

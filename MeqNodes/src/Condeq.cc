@@ -30,7 +30,7 @@ namespace Meq {
 //##ModelId=400E5305005F
 Condeq::Condeq()
 {
-  setAutoResample(RESAMPLE_FAIL);
+  setAutoResample(RESAMPLE_FAIL); // children must return the same cells
 }
 
 //##ModelId=400E53050060
@@ -99,11 +99,6 @@ int Condeq::getResult (Result::Ref &resref,
            "mismatch in sizes of child results");
   // Create result object and attach to the ref that was passed in
   Result & result = resref <<= new Result(nplanes);
-  // Use cells of first child (they all must be the same anyway, we'll verify
-  // at least shapes later on)
-  const Cells &res_cells = child_result[0]->cells();
-  const LoShape &res_shape = res_cells.shape();
-  result.setCells(res_cells);
   
   vector<const VellSet*> child_res(nrch);
   for( int iplane=0; iplane<nplanes; iplane++ )
@@ -127,7 +122,6 @@ int Condeq::getResult (Result::Ref &resref,
       childvs_lock[i].relock(child_res[i]->mutex());
       const Vells &val = child_res[i]->getValue();
       childval_lock[i].relock(val.mutex());
-      FailWhen(!val.isCompatible(res_shape),"mismatch in child result shapes");
       values[i] = &val;
     }
     // Find all spids from the children.
@@ -162,10 +156,9 @@ int Condeq::getResult (Result::Ref &resref,
         }
       }
       else if (inx0 >= 0) 
-	{
-	  pert = calcDerivative(deriv,*child_res[0],inx0);
-
-	}
+      {
+        pert = calcDerivative(deriv,*child_res[0],inx0);
+      }      
       else 
         deriv = Vells(0.);
       vellset.setPerturbedValue(j,deriv_ref);

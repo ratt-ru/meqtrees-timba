@@ -800,6 +800,12 @@ phase_solution_with_given_fluxes := function()
     msname := '3C343.MS';
     mep_table_name := '3C343.mep';
     
+    # Clear MEP table
+    meptable := table(mep_table_name, readonly=F);
+    nrows := meptable.nrows();
+    meptable.removerows(1:nrows);
+    meptable.done();
+    
     mepuvw := F;
     filluvw := any(argv=='-filluvw');
     solve_fluxes:= any(argv == '-fluxes');
@@ -825,7 +831,7 @@ phase_solution_with_given_fluxes := function()
         mepuvw := F;
     
     outcol := 'PREDICTED_DATA';
-    solver_defaults := [ num_iter=2,save_funklets=T,last_update=T ];
+    solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
                  tile_size=2,# clear_flags=T,

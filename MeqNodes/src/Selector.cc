@@ -52,7 +52,7 @@ int Selector::getResult (Result::Ref &resref,
   std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
   lockMutexes(child_reslock,childref);
   // otherwise, select sub-results
-  Result &result = resref <<= new Result(selection.size(),request);
+  Result &result = resref <<= new Result(selection.size());
   const Result &childres = *childref[0];
   int nvs = childres.numVellSets();
   // select results from child set

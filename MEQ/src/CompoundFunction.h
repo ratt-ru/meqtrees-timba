@@ -41,11 +41,11 @@ protected:
     
   virtual void evalFlags (std::vector<Vells::Ref> &flagrefs,
           const std::vector<const Vells*> &values,
-          const Cells &cells);
+          const Cells *pcells);
     
   virtual void evalResult (std::vector<Vells> &res,
           const std::vector<const Vells*> &values,
-          const Cells &cells) 
+          const Cells *pcells) 
     = 0;
 
   int checkChildResults (Result::Ref &resref, 
@@ -54,7 +54,8 @@ protected:
                          const int expect_nvs[],
                          const int expect_integrated[]);
 
-  void computeValues ( Result &result,const std::vector<const VellSet *> &chvs );
+  void computeValues (Result &result,const std::vector<const VellSet *> &chvs,
+                      const Cells *pcells);
     
 };
 

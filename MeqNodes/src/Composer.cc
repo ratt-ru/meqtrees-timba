@@ -32,7 +32,10 @@ namespace Meq {
 Composer::Composer()
   : Node(-1,0,1), // at least 1 child must be present
     contagious_fail(false)
-{}
+{
+  // we can only compose results with the same cells
+  setAutoResample(RESAMPLE_FAIL);
+}
 
 //##ModelId=400E53050043
 Composer::~Composer()
@@ -67,7 +70,7 @@ int Composer::getResult (Result::Ref &resref,
   // if fail is contagious, generate a fully failed result
   if( nfails && contagious_fail )
   {
-    Result &result = resref <<= new Result(nfails,request);
+    Result &result = resref <<= new Result(nfails);
     int ires = 0;
     for( uint i=0; i<childres.size(); i++ )
     {
@@ -92,8 +95,7 @@ int Composer::getResult (Result::Ref &resref,
           "'integrated' property of child results is not uniform");
     }
     // compose the result
-    Result &result = resref <<= new Result(nres,request);
-    result.setCells(request.cells()); 
+    Result &result = resref <<= new Result(nres,integrated);
     int ires=0;
     for( int i=0; i<numChildren(); i++ )
     {

@@ -224,16 +224,19 @@ int Parm::getResult (Result::Ref &resref,
   int depend = isSolvable() ? solve_depend_mask_ : 0;
   
   // Create result object and attach to the ref that was passed in
-  Result &result = resref <<= new Result(1,request); // result has one vellset
+  Result &result = resref <<= new Result(1); // result has one vellset
   VellSet & vs = result.setNewVellSet(0,0,request.calcDeriv());
+  
+  cdebug(3)<<"evaluating funklet"<<endl;
+  pfunklet->evaluate(vs,request);
   
   // If we have a single constant funklet, and are not integrated, then there's no 
   // dependency on domain. Otherwise, add domain mask
   if( !pfunklet->isConstant() || integrated_ )
     depend |= domain_depend_mask_;
   
-  cdebug(3)<<"evaluating funklet"<<endl;
-  pfunklet->evaluate(vs,request);
+  // set cells in result as needed
+  result.setCells(request.cells());
   
   // integrate over cell if so specified
   if( integrated_ )

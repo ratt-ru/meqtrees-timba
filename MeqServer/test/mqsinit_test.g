@@ -5,7 +5,7 @@ default_debuglevels := [  MeqNode       =1,
                           MeqVisHandler =1,
                           MeqServer     =1,
                           meqserver     =1,
-                          Glish         =5      ];
+                          Glish         =1      ];
 
 include 'meq/meqserver.g'
   

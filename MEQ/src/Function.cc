@@ -125,28 +125,24 @@ int Function::getResult (Result::Ref &resref,
     integr = integrated_;
   // Create result and attach to the ref that was passed in
   Result & result = resref <<= new Result(nplanes,integr);
-  // Use cells of first child (they all must be the same anyway, we'll verify
-  // at least shapes later on). If no children, use request cells.
-  const Cells *pcells = 0;
+  // Find a shape from any child (they all must be the same anyway, 
+  // thanks to auto-resampling). If no children, use request cells shape.
   LoShape res_shape;
-  // fill cells from children, else from request
+  // look for cells in child results
   for( int i=0; i<nrch; i++ )
-    if( childres[0]->hasCells() )
+    if( childres[i]->hasCells() )
     {
-      pcells = &( childres[0]->cells() );
+      res_shape = childres[i]->cells().shape();
       break;
     }
-  if( !pcells && request.hasCells() )
-    pcells = &( request.cells() );
-  // fill cells and shape accordingly
-  if( pcells )
-  {
-    result.setCells(pcells);
-    res_shape = pcells->shape();
-  }
+  // if not found, use request cells
+  if( res_shape.empty() && request.hasCells() )
+    res_shape = request.cells().shape();
+  // use cell shape for result shape, most subclasses will ignore it anyway
+  // and let vells math determine the shape instead
   vector<const VellSet*> child_vs(nrch);
-  vector<const Vells*>  values(nrch);
-  vector<const Vells*>  flags(nrch);
+  vector<const Vells*>   values(nrch);
+  vector<const Vells*>   flags(nrch);
   int nfails = 0;
   for( int iplane = 0; iplane < nplanes; iplane++ )
   {
@@ -273,7 +269,7 @@ int Function::getResult (Result::Ref &resref,
   // return RES_FAIL is all planes have failed
   if( nfails == nplanes )
     return RES_FAIL;
-  // return 0 flag, since we don't add any dependencies of our own
+   // return 0 flag, since we don't add any dependencies of our own
   return 0;
 }
 

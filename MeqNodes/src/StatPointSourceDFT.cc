@@ -47,7 +47,7 @@ StatPointSourceDFT::~StatPointSourceDFT()
 
 void StatPointSourceDFT::evalResult (std::vector<Vells> &res,
                             const std::vector<const Vells*> &values,
-                            const Cells &cells)
+                            const Cells *pcells)
 {
   // Get L,M,N and U,V,W.
   #define vl (*(values[0]))
@@ -56,6 +56,7 @@ void StatPointSourceDFT::evalResult (std::vector<Vells> &res,
   #define vu (*(values[3]))
   #define vv (*(values[4]))
   #define vw (*(values[5]))
+  Assert(pcells);
   
   // Some important assumptions
   // For the time being we only support scalars for LMN, 
@@ -66,13 +67,13 @@ void StatPointSourceDFT::evalResult (std::vector<Vells> &res,
   Assert(vw.extent(Axis::TIME) == vw.nelements());
   // Loop over all frequency segments, and generate an F0/DF pair for each
   int iout = 0;
-  for( int iseg = 0; iseg < cells.numSegments(Axis::FREQ); iseg++ )
+  for( int iseg = 0; iseg < pcells->numSegments(Axis::FREQ); iseg++ )
   {
-    int seg0 = cells.segmentStart(Axis::FREQ)(iseg);
+    int seg0 = pcells->segmentStart(Axis::FREQ)(iseg);
     // Calculate 2pi/wavelength, where wavelength=c/freq.
     // Calculate it for the frequency step if needed.
-    double f0 = cells.center(Axis::FREQ)(seg0);
-    double df = cells.cellSize(Axis::FREQ)(seg0);
+    double f0 = pcells->center(Axis::FREQ)(seg0);
+    double df = pcells->cellSize(Axis::FREQ)(seg0);
     double wavel0 = casa::C::_2pi * f0 / casa::C::c;
     double dwavel = df / f0;
     // the "-1" accounts for fringe stopping in the telescope
@@ -98,15 +99,14 @@ int StatPointSourceDFT::getResult (Result::Ref &resref,
   if( checkChildResults(resref,child_vs,childres,expect_nvs,
         expect_integrated) == RES_FAIL )
     return RES_FAIL;
-  
+
   // allocate proper output result (integrated=false??)
-  FailWhen(!childres[0]->hasCells(),"child result 0 does not have a Cells object");
-  const Cells &cells = childres[0]->cells();
+  const Cells &cells = request.cells();
   FailWhen(!cells.isDefined(Axis::FREQ),"Cells must define a frequency axis");
   Result &result = resref <<= new Result(cells.numSegments(Axis::FREQ)*2,false);
-  result.setCells(cells);
   // fill it
-  computeValues(result,child_vs);
+  computeValues(result,child_vs,&cells);
+  result.setCells(cells);
   
   return 0;
 }

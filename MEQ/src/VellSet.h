@@ -80,16 +80,34 @@ public:
   virtual void validateContent (bool recursive);
   
   // ------------------------ SHAPE
+  // The "shape" attribute indicates the variability of the vellset
+  // along specific axes. If shape[iaxis]>1, the vellset is variable along
+  // that axis. All Vells in the vellset must conform to the shape
+  // (i.e. be of size ==1 or ==shape[iaxis] along each axis of variability).
+  // Normally the shape attribute is initialized/checked automatically
+  // as Vells are assigned. E.g., if all vells are non-variable, shape
+  // remains nil (hasShape()==false). However, should you subsequently change 
+  // the shape of a Vells directly inside the vellset (avoid doing this if 
+  // you can), you must call verifyShape() to reset the shape attribute. 
   const bool hasShape () const
-  { return shape_.size()>0; }
+  { return !shape_.empty(); }
 
   const LoShape & shape () const
   { return shape_; }
   
+  // Sets an explicit shape. Will throw exception if a non-conformant
+  // shape is already set, although the new shape may have _more_ axes of
+  // variability.
   void setShape (const Vells::Shape &shp);
   
   void setShape (int nx,int ny)
   { setShape(Vells::Shape(nx,ny)); }
+  
+  // Recomputes shape (if reset=True or shape is not set) based on all
+  // Vells in the set.
+  // If reset=False and shape is already set, verifies that all Vells 
+  // conform, and throws an exception if not.
+  void verifyShape (bool reset=true);
   
   // ------------------------ SPIDS AND ASSOCIATED ATTRIBUTES
   // Get the spids.
@@ -252,62 +270,14 @@ protected:
   // called after flags have been attached, to verify flag shapes
   // and to propagate the flags to all child Vells
   void setupFlags (const Vells::Ref flagref);  
+
+  // called to adjust/verify shape after a new Vells has been added
+  void adjustShape (const Vells &vells);
   
+  // helper function for above
+  bool adjustShape (LoShape &shp,const Vells &vells);
 
 
-// OMS 28/01/05: phasing this out, replace with explicit data flags
-//     // ------------------------ OPTIONAL COLUMNS
-// protected:
-//   // ensures writability of optional column by privatizing for writing as needed;
-//   // returns pointer to blitz array
-//   void * writeOptCol (uint icol);
-//       
-//   void * initOptCol (uint icol,bool array);
-// 
-//   void   doSetOptCol (uint icol,DMI::NumArray *parr,int dmiflags);
-//   
-// public:
-//           
-//   bool hasOptCol (uint icol) const
-//   { 
-//     DbgAssert1(icol<NUM_OPTIONAL_COL); 
-//     return optcol_[icol].ptr != 0;
-//   }
-//   
-//   template<int N>
-//   bool hasOptCol () const
-//     { return hasOptCol(N); }
-//   
-//   template<int N>
-//   const typename Traits<N>::ArrayType & getOptCol () const
-//     { Assert(hasOptCol(N)); return *static_cast<const typename Traits<N>::ArrayType *>(optcol_[N].ptr); }
-//   
-//   template<int N>
-//   typename Traits<N>::ArrayType & getOptColWr (bool init=true,bool array=true)
-//     { return *static_cast<typename Traits<N>::ArrayType *>
-//           ( (!init || hasOptCol(N)) ? writeOptCol(N) : initOptCol(N,array) ); }
-//   
-//   const DMI::NumArray::Ref & getOptColRef (int icol) const
-//     { Assert(hasOptCol(icol)); return optcol_[icol].ref; }
-// 
-//   template<int N>
-//   typename Traits<N>::ArrayType & initOptCol (bool array=true)
-//     { return *static_cast<typename Traits<N>::ArrayType *>
-//         ( initOptCol(N,array) ); }
-// 
-//   void setOptCol (uint icol,const DMI::NumArray *parr,int dmiflags=0)
-//     { doSetOptCol(icol,const_cast<DMI::NumArray*>(parr),dmiflags|DMI::READONLY); }
-//     
-//   void setOptCol (uint icol,DMI::NumArray *parr,int dmiflags=0)
-//     { doSetOptCol(icol,parr,dmiflags); }
-//   
-//   void setOptCol (uint icol,const DMI::NumArray::Ref::Xfer & ref);
-//   
-//   void clearOptCol (int icol);
-//   
-//   template<int N>
-//   void clearOptCol () { clearOptCol(N); }
-  
   // ------------------------ FAIL RECORDS
   // A VellSet may be a Fail. A Fail will not contain any values or 
   // perturbations, but rather a field of 1+ fail records.

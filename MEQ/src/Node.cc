@@ -452,18 +452,21 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
 //         name().c_str(),
 //         (ref->hasCells() ? int(&(ref->cells())) : 0),
 //         (req.hasCells() ? int(&(req.cells())) : 0));
-    // UGLY KLUDGE ALERT:
-    // make sure cells of request match result, and adjust cache accordingly
-    if( req.hasCells() )
-    {
-      if( !cache_result_->hasCells() || &(cache_result_->cells()) != &(req.cells()) )
-      {
-//         fprintf(flog,"%s: inserting req cells %x\n",
-//             name().c_str(),int(&(req.cells())));
-        cache_result_().setCells(req.cells());
-        cache_reqid_ = req.id();
-      }
-    }
+    
+// The ugly kludge below is no longer needed. If result has no dependency on
+// cells, then it won't have a cells in it in the first place.
+//     // UGLY KLUDGE ALERT:
+//     // make sure cells of request match result, and adjust cache accordingly
+//     if( req.hasCells() )
+//     {
+//       if( !cache_result_->hasCells() || &(cache_result_->cells()) != &(req.cells()) )
+//       {
+// //         fprintf(flog,"%s: inserting req cells %x\n",
+// //             name().c_str(),int(&(req.cells())));
+//         cache_result_().setCells(req.cells());
+//         cache_reqid_ = req.id();
+//       }
+//     }
     ref = cache_result_;
     retcode = cache_retcode_;
     return true;
@@ -559,12 +562,12 @@ void Node::removeResultSubscriber (const EventSlot &slot)
   cdebug(2)<<"removing result subscriber "<<slot.evId().id()<<":"<<slot.recepient()<<endl;
 }
 
-void Node::resampleChildren (Cells::Ref rescells,std::vector<Result::Ref> &childres)
+void Node::resampleChildren (Cells::Ref &rescells,std::vector<Result::Ref> &childres)
 {
+  rescells.detach();
   if( auto_resample_ == RESAMPLE_NONE )
     return;
   const Cells *pcells = 0;
-  rescells.detach();
   std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
   lockMutexes(child_reslock,childres);
 //  rescells <<= pcells = &( childres[0]->cells() );
@@ -605,8 +608,6 @@ void Node::resampleChildren (Cells::Ref rescells,std::vector<Result::Ref> &child
         }
       }
     }
-    else if( chres.numVellSets() ) // result not empty
-      NodeThrow1(Debug::ssprintf("result of child %d does not have a Cells attached",ich));
   }
   // resample child results if required
   if( need_resampling )
@@ -714,7 +715,7 @@ int Node::pollChildren (std::vector<Result::Ref> &child_results,
     if( propagate_child_fails_ )
     {
       cdebug(3)<<"  got RES_FAIL from children ("<<nfails<<"), returning fail-result"<<endl;
-      Result &result = resref <<= new Result(nfails,req);
+      Result &result = resref <<= new Result(nfails);
       int ires = 0;
       for( uint i=0; i<child_fails.size(); i++ )
       {
@@ -983,8 +984,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
         return ret;
       }
       // if request has cells, then resample children (will do nothing if disabled)
-      if( req.hasCells() )
-        resampleChildren(rescells,child_results);
+      resampleChildren(rescells,child_results);
     }
     // does request have a Cells object? Compute our Result then
     if( req.hasCells() )
@@ -1009,9 +1009,6 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       {
         NodeThrow1("must return a valid Result or else RES_WAIT");
       }
-      // Make sure the Cells are in the Result object
-      if( !(code&RES_FAIL) && ref->numVellSets() && !ref->hasCells() )
-        ref().setCells(req.cells());
     }
     else // no cells, ensure an empty result
     {
@@ -1021,6 +1018,10 @@ int Node::execute (Result::Ref &ref,const Request &req0)
       setExecState(CS_ES_IDLE,control_status_|CS_RES_EMPTY);
       return ret;
     }
+    // Set Cells in the Result object as needed
+    // (will do nothing when no variability)
+    if( rescells.valid() )
+      ref().setCells(*rescells);
     // OK, at this point we have a valid Result to return
     if( DebugLevel>=3 ) // print it out
     {

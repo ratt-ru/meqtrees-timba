@@ -40,37 +40,6 @@ Result::Result (int nvellsets,bool integrated)
     allocateVellSets(nvellsets);
 }
 
-//##ModelId=400E535500F5
-Result::Result (int nvellsets,const Request &req,bool integrated)
-  : pvellsets_(0),pcells_(0)
-{
-  setIsIntegrated(integrated);
-  if( nvellsets>0 )
-    allocateVellSets(nvellsets);
-  if( req.hasCells() )
-    setCells(&req.cells());
-}
-
-//##ModelId=400E53550105
-Result::Result (const Request &req,int nvellsets,bool integrated)
-  : pvellsets_(0),pcells_(0)
-{
-  setIsIntegrated(integrated);
-  if( nvellsets>0 )
-    allocateVellSets(nvellsets);
-  if( req.hasCells() )
-    setCells(&req.cells());
-}
-  
-//##ModelId=3F8688700151
-Result::Result (const Request &req,bool integrated)
-  : pvellsets_(0),pcells_(0)
-{
-  setIsIntegrated(integrated);
-  if( req.hasCells() )
-    setCells(&req.cells());
-}
-
 //##ModelId=400E53550116
 Result::Result (const DMI::Record &other,int flags,int depth)
 : Record(),
@@ -82,6 +51,77 @@ Result::Result (const DMI::Record &other,int flags,int depth)
 //##ModelId=3F86887000D3
 Result::~Result()
 {
+}
+
+bool Result::verifyShape (const LoShape &cellshape)
+{
+  bool hasshapes = false;
+  for( int i=0; i<numVellSets(); i++ )
+  {
+    const VellSet &vs = vellSet(i);
+    if( vs.hasShape() )
+    {
+      FailWhen(!Vells::isCompatible(vs.shape(),cellshape),
+              "shape of vellset does not conform to cells");
+      hasshapes = true;
+    }
+  }
+  return hasshapes;
+}
+  
+void Result::verifyShape (bool reset)
+{
+  Thread::Mutex::Lock lock(mutex());
+  // with cells, verify shapes and remove cells if nothing variable
+  if( hasCells() )
+  {
+    bool hasshape = verifyShape(cells().shape());
+    if( reset && !hasshape )
+    {
+      // remove cells when no variability
+      Record::removeField(FCells,true,0);
+      pcells_ = 0;
+    }
+  }
+  // w/o cells, verify that vellsets have noshapes
+  else
+  {
+    for( int i=0; i<numVellSets(); i++ )
+    {
+      FailWhen(vellSet(i).hasShape(),
+              "vellset has a shape but result cells are not set");
+    }
+  }
+}
+
+//##ModelId=3F86887000D4
+void Result::setCells (const Cells *cells,int flags,bool force)
+{
+  Thread::Mutex::Lock lock(mutex());
+  ObjRef ref(cells,flags);
+  // check that shape is correct, and set cells if needed 
+  if( verifyShape(cells->shape()) || force )
+  {
+    Field & field = Record::addField(FCells,ref,DMI::REPLACE|Record::PROTECT);
+    pcells_ = &(field.ref.ref_cast<Cells>());
+  }
+  else
+  {
+    Record::removeField(FCells,true,0);
+    pcells_ = 0;
+  }
+}
+
+void Result::clearCells ()
+{
+  Thread::Mutex::Lock lock(mutex());
+  for( int i=0; i<numVellSets(); i++ )
+  {
+    FailWhen(vellSet(i).hasShape(),
+            "vellset has a shape, can't clear result cells");
+  }
+  Record::removeField(FCells,true,0);
+  pcells_ = 0;
 }
 
 //##ModelId=400E53550156
@@ -109,6 +149,7 @@ void Result::validateContent (bool)
     }
     else
       pcells_ = 0;
+    verifyShape();
   }
   catch( std::exception &err )
   {
@@ -130,14 +171,6 @@ void Result::allocateVellSets (int nvellsets)
 }
 
 
-//##ModelId=3F86887000D4
-void Result::setCells (const Cells *cells,int flags)
-{
-  Thread::Mutex::Lock lock(mutex());
-  ObjRef ref(cells,flags);
-  Field & field = Record::addField(FCells,ref,DMI::REPLACE|Record::PROTECT);
-  pcells_ = &(field.ref.ref_cast<Cells>());
-}
 
 void Result::setIsIntegrated (bool integrated)
 {
@@ -153,8 +186,6 @@ VellSet & Result::setNewVellSet (int i,int nspids,int npertsets)
 { 
   Thread::Mutex::Lock lock(mutex());
   VellSet & vs = setVellSet(i,new VellSet(nspids,npertsets));
-  if( hasCells() )
-    vs.setShape(cells().shape());
   return vs;
 }
 
