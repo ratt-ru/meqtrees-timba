@@ -71,6 +71,7 @@ void Request::setCells (const Cells * cells,int flags)
 
 void Request::validateContent ()
 {
+  Thread::Mutex::Lock lock(mutex());
   // ensure that our record contains all the right fields, and that they're
   // indeed writable. Setup shortcuts to their contents
   try
@@ -87,11 +88,12 @@ void Request::validateContent ()
   }
   catch( std::exception &err )
   {
-    Throw(string("validate of Result record failed: ") + err.what());
+    cerr<<"Failed request: "<<sdebug(10);
+    Throw(string("validate of Request record failed: ") + err.what());
   }
   catch( ... )
   {
-    Throw("validate of Result record failed with unknown exception");
+    Throw("validate of Request record failed with unknown exception");
   }  
 }
 

@@ -308,8 +308,10 @@ void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
 const void * DataRecord::get (const HIID &id, ContentInfo &info, TypeId check_tid, int flags) const
 {
   nc_lock(flags&DMI::WRITE);
-  FailWhen(flags&DMI::NC_SCALAR,"can't access DataRecord in scalar mode");
-  FailWhen( !id.size(),"null field id" );
+  FailWhen(flags&DMI::NC_SCALAR,
+    "can't access "+objectType().toString()+" in scalar mode (id: "+id.toString()+
+    ", type "+check_tid.toString()+")" );
+  FailWhen(!id.size(),"null field id");
   CFMI iter;
   info.size = 1;
   // "AidHash" followed by a single numeric index is field #

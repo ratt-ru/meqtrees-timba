@@ -62,6 +62,7 @@ Domain::Domain (double startFreq, double endFreq,
 
 void Domain::validateContent ()
 {
+  Thread::Mutex::Lock lock(mutex());
   try
   {
     if( DataField::valid() )

@@ -8,8 +8,9 @@
 //##ModelId=3C7FA3020068
 class OctopussyDebugContext 
 {
+  public:
     //##ModelId=3DB936CC02B0
-  LocalDebugContext;
+    LocalDebugContext;
 
 };
 

@@ -82,6 +82,7 @@ Cells::Cells (const Domain& domain, int nfreq,
 
 void Cells::validateContent ()
 {
+  Thread::Mutex::Lock lock(mutex());
   try
   {
     if( (*this)[FTimes].exists() )

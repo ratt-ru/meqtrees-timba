@@ -12,9 +12,6 @@
 //##ModelId=3CCFFDC300DA
 class ConfigMgr 
 {
-    //##ModelId=3DB9344D030C
-  LocalDebugSubContext;
-
   public:
       //##ModelId=EA0590B8FEED
       ConfigMgr (const string& fname = "", bool nothrow = False);
@@ -73,6 +70,10 @@ class ConfigMgr
       string sdebug (int=0) const       { return "ConfigMgr"; }
     //##ModelId=3DB9344F0224
       const char *debug (int=0) const   { return sdebug().c_str(); }
+      
+    //##ModelId=3DB9344D030C
+      LocalDebugSubContext;
+      
   protected:
     // Additional Protected Declarations
     //##ModelId=3DB9343A027B

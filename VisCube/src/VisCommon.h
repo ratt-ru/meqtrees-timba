@@ -15,7 +15,7 @@
     
 class VisCubeDebugContext 
 {
-  LocalDebugContext;
+  public: LocalDebugContext;
 };
     
 #endif

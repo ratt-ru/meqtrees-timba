@@ -10,7 +10,13 @@
 
 namespace GlishUtil
 {
-    
+  class GlishUtilDebugContext
+  {
+    public: LocalDebugContext;
+  };
+  
+  ImportDebugContext(GlishUtilDebugContext);
+  
   GlishArray makeFailField ( const String &msg );
 
   bool makeGlishArray (GlishArray &arr,const NestableContainer &nc,TypeId tid,bool adjustIndex);

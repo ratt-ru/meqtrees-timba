@@ -110,9 +110,7 @@ void VellSet::privatize (int flags, int depth)
 
 void VellSet::validateContent ()
 {
-#ifdef USE_THREADS
   Thread::Mutex::Lock lock(mutex());
-#endif
   // ensure that our record contains all the right fields, and that they're
   // indeed writable. Setup shortcuts to their contents
   try

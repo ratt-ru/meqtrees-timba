@@ -93,6 +93,7 @@ void Result::privatize (int flags, int depth)
 
 void Result::validateContent ()
 {
+  Thread::Mutex::Lock lock(mutex());
   // ensure that our record contains all the right fields, and that they're
   // indeed writable. Setup shortcuts to their contents
   try

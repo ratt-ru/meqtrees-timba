@@ -20,6 +20,12 @@
 #include "BlitzToAips.h"
 #include "GlishUtil.h"
 
+InitDebugContext(GlishUtil::GlishUtilDebugContext,"Glish");
+
+namespace GlishUtil {
+  inline string sdebug (int=0,const string & = "",const char * = 0) { return "Glish"; }
+};
+
 // creates a "Failed" GlishValue, used to indicate failed conversions
 GlishArray GlishUtil::makeFailField ( const String &msg )
 {
@@ -166,13 +172,12 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
     }
     else if( NestableContainer::isNestable(fieldtype) ) // case (2.2)
     {
-      // map to record of records, with fields "0", "1", etc.
+      // map to record of records, with fields "#1", "#2", etc.
       GlishRecord subrec;
       for( int i=0; i<datafield.mysize(); i++ )
       {
         ObjRef ref = datafield.objref(i);
-        string name = ssprintf("%d",i);
-        subrec.add(ssprintf("%d",i),objectToGlishValue(*ref,adjustIndex));
+        subrec.add(ssprintf("#%d",i+1),objectToGlishValue(*ref,adjustIndex));
       }
       subrec.addAttribute("dmi_actual_type",GlishArray(type.toString()));
       subrec.addAttribute("dmi_datafield_content_type",GlishArray(datafield.type().toString()));
@@ -333,7 +338,7 @@ void GlishUtil::makeDataField (DataField &field,const GlishArray &arr,bool isInd
     }
     
     default:
-        dprintf(2)("warning: unknown Glish array type %d, ignoring\n",arr.elementType());
+        dprintf(2)("warning: unsupported Glish array type %d, ignoring\n",arr.elementType());
   }
 }
 
@@ -379,6 +384,7 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
             val.attributeExists("dmi_is_hiid") ) )
         || arr.elementType() == GlishArray::STRING )
     {
+      dprintf(4)("converting GlishArray to DataField\n");
       DataField *field = GlishUtil::createSubclass<DataField>(ref,val);
       makeDataField(*field,arr,adjustIndex);
       // validate the field (no-op for DataField itself, but may be meaningful for subclasses)
@@ -387,6 +393,7 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
     }
     else // all other arrays map to DataArrays
     {
+      dprintf(4)("converting GlishArray to DataArray\n");
       return makeDataArray(arr,adjustIndex);
     }
   }
@@ -396,6 +403,7 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
     // is it a non-Glish object passed as a block record?
     if( glrec.attributeExists("dmi_blocktype")  )
     {
+      dprintf(4)("interpreting glish record as a blockset\n");
       return ObjRef( blockRecToObject(glrec),DMI::ANONWR );
     }
     // is it a DataField (that was passed in as a record of values)
@@ -404,6 +412,7 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
       // the attribute should be a string indicating the object type
       String typestr;
       GlishArray tmp = glrec.getAttribute("dmi_datafield_content_type"); tmp.get(typestr);
+      dprintf(4)("converting glish record to DataField(%s)\n",typestr.c_str());
       TypeId fieldtype(typestr);
       // create a field and populate it with the objects recursively
       DataField *field = GlishUtil::createSubclass<DataField>(ref,val);
@@ -430,37 +439,31 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
     // else it's a plain old DataRecord
     else
     {
+      dprintf(4)("converting glish record to DataRecord\n");
       DataRecord *rec = GlishUtil::createSubclass<DataRecord>(ref,val);
       for( uint i=0; i < glrec.nelements(); i++ )
       {
         string field_name = glrec.name(i);
         try // handle failed fields gracefully
         {
+          dprintf(4)("record field [%s]\n",field_name.c_str());
           HIID id;
-          // check for anon field names, in the form '*number'
-          bool isanon;
-          if( field_name[0] == '*' && field_name.length()>1 )
-          {
-            isanon = True;
-            for( uint j=1; j<field_name.length(); j++ )
-              if( !isdigit(field_name[j]) )
-              {
-                isanon = False;
-                break;
-              }
-          }
-          else
-            isanon = False;
+          // check for numbered fields, of the form /[*#][0-9]+/
+          bool isnumber = ( field_name[0] == '*' || field_name[0] == '#' )
+              && field_name.length()>1 
+              && field_name.find_first_not_of("0123456789",1) == string::npos;
           // convert to HIID
           bool isIndex = False;
-          int n;
-          if( isanon && sscanf(field_name.c_str(),"*%d",&n) == 1 )
-            id = HIID(AtomicID(n));
+          if( isnumber )
+          {
+            id = HIID(AtomicID(atoi(field_name.c_str()+1)));
+          }
           else
           {
             id = HIID(field_name,"_");
             isIndex = ( id[id.size()-1] == AidIndex );
           }
+          dprintf(4)("maps to HIID '%s'\n",id.toString().c_str());
           GlishValue subval = glrec.get(i);
           (*rec)[id] <<= glishValueToObject(subval,isIndex);
         }
@@ -528,6 +531,7 @@ BlockableObject * GlishUtil::blockRecToObject (const GlishRecord &rec)
       arr.freeStorage(data,del);
     }
   }
+  dprintf(4)("constructing %s from %d blocks\n",tid.toString().c_str(),set.size());
   // create object & return
   return DynamicTypeManager::construct(tid,set);
 }

@@ -481,37 +481,26 @@ int Node::execute (Result::Ref &ref, const Request &req)
               bool matched = false;
               for( int i=0; i<list.size() && !matched; i++ )
               {
+                DataRecord &entry = list[i];
                 std::vector<string> names;
                 std::vector<int> indices;
-                DataRecord &entry = list[i];
+                DataRecord &newst = entry[FState];
                 if( entry[FName].exists() ) // get list of names, if any
                   names = entry[FName];
                 if( entry[FNodeIndex].exists() ) // get list of node indices, if any
-                  names = entry[FNodeIndex];
-                DataRecord &newst = list[i][FState];
+                  indices = entry[FNodeIndex];
                 cdebug(4)<<"        "<<indices.size()<<" indices, "<<
                            names.size()<<" names"<<endl;
-                for( uint j=0; j<indices.size(); j++ )
-                {
-                  if( matched = ( indices[j] == nodeIndex() ) )
-                  {
-                    cdebug(4)<<"        matched "<<indices[j]<<", setting state"<<endl;
-                    matched = true;
-                    setState(newst);
-                    break;
-                  }
-                }
+                matched = ( std::find(indices.begin(),indices.end(),nodeIndex())
+                              != indices.end() ||
+                            std::find(names.begin(),names.end(),name())
+                              != names.end() ||
+                            std::find(names.begin(),names.end(),"*") 
+                              != names.end() );
                 if( matched )
-                  break;
-                for( uint j=0; j<names.size(); j++ )
                 {
-                  if( matched = ( names[j] == "*" || names[j] == name() ) )
-                  {
-                    cdebug(4)<<"        matched "<<names[j]<<", setting state"<<endl;
-                    matched = true;
-                    setState(newst);
-                    break;
-                  }
+                  cdebug(4)<<"        node matched, setting state"<<endl;
+                  setState(newst);
                 }
               }
               if( !matched ) {
