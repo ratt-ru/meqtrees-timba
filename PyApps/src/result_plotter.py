@@ -26,7 +26,7 @@ class ResultPlotter(BrowserPlugin):
 # needed for destructor
     self._window = CanvasWindow(parent, "MeqDisplay",0)
 # uncommenting the following line causes all sorts of problems
-#    self._window.closeNoPrompt():
+#    self._window.closeNoPrompt()
     self._window.show()
     self._display_controller = DisplayController.instance()
     self._canvas = None
