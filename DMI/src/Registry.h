@@ -416,6 +416,7 @@ Registrar<Key,Val,HostClass>::Registrar (const Key &key, const Val &val)
   //## end Registrar::Registrar%3C5E8EC40246.body
 }
 
+
 // Additional Declarations
   //## begin Registrar%3C5E8E9D011D.declarations preserve=yes
   //## end Registrar%3C5E8E9D011D.declarations

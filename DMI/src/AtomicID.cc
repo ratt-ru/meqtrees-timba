@@ -84,22 +84,12 @@ int AtomicID::findName (const string &str)
 #ifdef ATOMICID_VERBOSE_REGISTER
 template <>
 Registrar<int,string,AtomicID>::Registrar (const int &key, const string &val)
-  //## begin Registrar::Registrar%3C5E8EC40246.hasinit preserve=no
-  //## end Registrar::Registrar%3C5E8EC40246.hasinit
-  //## begin Registrar::Registrar%3C5E8EC40246.initialization preserve=yes
-  //## end Registrar::Registrar%3C5E8EC40246.initialization
 {
-  //## begin Registrar::Registrar%3C5E8EC40246.body preserve=yes
   cerr<<"Registering key "<<key<<"="<<val<<endl;
   AtomicID::registry.add(key,val);
-  //## end Registrar::Registrar%3C5E8EC40246.body
 }
 #endif
 
-
-
-
-//template class StaticRegistry<AtomicID,int,string>;
 static AtomicID::Register
      null(AidNull.id(),"0"),
      any(AidAny.id(),"?"),
@@ -107,6 +97,7 @@ static AtomicID::Register
      slash(AidSlash.id(),"/"),
      range(AidRange.id(),":"),
      empty(AidEmpty.id(),"_");
+
   //## end AtomicID%3BE970170297.declarations
 // Class AidIndex 
 
@@ -116,3 +107,13 @@ static AtomicID::Register
 
 //## begin module%3C10CC81015F.epilog preserve=yes
 //## end module%3C10CC81015F.epilog
+
+
+// Detached code regions:
+#if 0
+//## begin Registrar::Registrar%3C5E8EC40246.body preserve=yes
+  cerr<<"Registering key "<<key<<"="<<val<<endl;
+  AtomicID::registry.add(key,val);
+//## end Registrar::Registrar%3C5E8EC40246.body
+
+#endif

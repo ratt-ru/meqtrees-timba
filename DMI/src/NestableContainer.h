@@ -25,9 +25,9 @@
 
 //## begin module%3C10CC830067.includes preserve=yes
 #include "DMI/TypeInfo.h"
-// pull in PSCF types
-#include "PSCF/TID-PSCF.h"
-#include "PSCF/Timestamp.h"
+// pull in OCTOPUSSY types
+#include "OCTOPUSSY/TID-OCTOPUSSY.h"
+#include "OCTOPUSSY/Timestamp.h"
 // for now:
 #include <aips/Arrays/Array.h>
 //## end module%3C10CC830067.includes

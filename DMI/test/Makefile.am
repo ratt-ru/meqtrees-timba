@@ -1,7 +1,5 @@
 CXXFLAGS += -Wno-unknown-pragmas
 
-# INCLUDES			= -I$(lofar_sharedir)/../CEP/CPA/PSCF/src
-
 check_PROGRAMS			= test_dmi tDataArray
 
 test_dmi_SOURCES 		= test_dmi.cc
