@@ -363,7 +363,9 @@ uvw                              1158       ; from /home/oms/LOFAR/CEP/CPA/VisCu
 v                                1028       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 value                            1256       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:35
 vdsid                            1139       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:36
+vells                            1370       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:31
 vellset                          1368       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:30
+vellsets                         1371       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:31
 vis                              1278       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/VisAgent/src/VisAgentVocabulary.h:10
 viscube                          1197       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisCube.h:33
 viscubeset                       1180       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisCubeSet.h:12
