@@ -8,7 +8,6 @@ from UVPAxis import *
 from printfilter import *
 from ComplexColorMap import *
 from ComplexScaleDraw import *
-from dialog import *
 from app_browsers import *
 import random
 
@@ -254,22 +253,29 @@ class QwtPlotImage(QwtPlotMappedItem):
         Calculate (x1, y1, x2, y2) so that it contains at least 1 pixel,
         and copy the visible region to scale it to the canvas.
         """
+#        print 'in drawImage'
         # calculate y1, y2
         y1 = y2 = self.image.height()
         y1 *= (self.yMap.d2() - yMap.d2())
         y1 /= (self.yMap.d2() - self.yMap.d1())
         y1 = max(0, int(y1-0.5))
+#        y1 = max(0, (y1-0.5))
         y2 *= (self.yMap.d2() - yMap.d1())
         y2 /= (self.yMap.d2() - self.yMap.d1())
         y2 = min(self.image.height(), int(y2+0.5))
+#        y2 = min(self.image.height(), (y2+0.5))
+#        print 'y1, y2 ', y1, ' ', y2
         # calculate x1, x1
         x1 = x2 = self.image.width()
         x1 *= (xMap.d1() - self.xMap.d1())
         x1 /= (self.xMap.d2() - self.xMap.d1())
         x1 = max(0, int(x1-0.5))
+#        x1 = max(0, (x1-0.5))
         x2 *= (xMap.d2() - self.xMap.d1())
         x2 /= (self.xMap.d2() - self.xMap.d1())
         x2 = min(self.image.width(), int(x2+0.5))
+#        x2 = min(self.image.width(), (x2+0.5))
+#        print 'x1, x2 ', x1, ' ', x2
         # copy
         image = self.image.copy(x1, y1, x2-x1, y2-y1)
         # zoom
@@ -310,43 +316,17 @@ class QwtImagePlot(QwtPlot):
         self.plotLayout().setCanvasMargin(0)
         self.plotLayout().setAlignCanvasToScales(1)
         self.setTitle('QwtImagePlot: demo')
-#        self.setAutoLegend(1)
-#        self.setLegendPos(Qwt.Right)
-        # set default axis titles
         self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
         self.setAxisTitle(QwtPlot.yLeft, 'value')
         # insert a few curves
-        self.xCrossSection = self.insertCurve('xCrossSection')
-        self.yCrossSection = self.insertCurve('yCrossSection')
-        self.enableAxis(QwtPlot.yRight)
-        self.setAxisTitle(QwtPlot.yRight, 'cross-section value')
-        # set curve styles
-        self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
-        self.setCurvePen(self.yCrossSection, QPen(Qt.red, 2))
-        self.setCurveYAxis(self.xCrossSection, QwtPlot.yRight)
-        self.setAxisAutoScale(QwtPlot.yRight)
-
-        # insert a horizontal marker at y = 0
-#        mY = self.insertLineMarker('y = 0', QwtPlot.yLeft)
-#        self.setMarkerYPos(mY, 0.0)
-        # insert a vertical marker at x = pi
-#        mX = self.insertLineMarker('x = pi', QwtPlot.xBottom)
-#        self.setMarkerXPos(mX, pi)
-
-#        self.connect(
-#            self.__colorBar, PYSIGNAL("colorSelected"), self.setCanvasColor)
+        
+        self.dummy_xCrossSection = None
+        self.xCrossSection = None
+        self.yCrossSection = None
+        self.myXScale = None
+        self.active_image = False
 
         self.plotImage = QwtPlotImage(self)
-
-#        scale = self.axis(QwtPlot.yLeft)
-#        scale.setBaselineDist(10)
-#        self.__colorBar = ColorBar(Qt.Vertical, scale)
-#        self.__colorBar.setRange(Qt.red, Qt.darkBlue)
-#        self.__colorBar.setFocusPolicy(QWidget.TabFocus)
-#        QWhatsThis.add(
-#            self.__colorBar,
-#            'Selecting a color will change the background of the plot.')
-        #self.plotImage.setData(bytescale(linearX(512, 512)+linearY(512, 512)))
 
         self.zoomStack = []
         self.connect(self,
@@ -361,8 +341,6 @@ class QwtImagePlot(QwtPlot):
         self.connect(self, SIGNAL("legendClicked(long)"), self.toggleCurve)
         self.index = 1
         self.is_vector = False
-        self.x_dim = 0
-        self.y_dim = 0
 
 #        self.__initContextMenu()
 
@@ -372,32 +350,59 @@ class QwtImagePlot(QwtPlot):
         # skip if no main window
         if not self._mainwin:
           return;
-          
-        self._menu = QPopupMenu(self._mainwin);
-        
-        self._next_plot = QAction(self);
-        self._next_plot.setIconSet(pixmaps.blue_round_reload.iconset());
-        self._next_plot.setText("Go to next plot");
-        QObject.connect(self._next_plot,SIGNAL("activated()"),self.update_plot);
-        self._next_plot.addTo(self._menu);
 
+        self._menu = QPopupMenu(self._mainwin);
+        QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_spectrum_display);
+        id = -1
+        self._next_plot = {}
+        plot_label = 'spectra:' + self._string_tag
+        self.num_plot_arrays = len(self._data_values)
+        _dprint(2,' number of arrays to plot ', self.num_plot_arrays)
+        data_label = ''
+        for i in range(self.num_plot_arrays):
+          id = id + 1
+          data_label = ''
+          if isinstance(self._data_labels, tuple):
+            data_label = 'go to ' + self._string_tag  +  " " +self._data_labels[i] + ' ?'
+          else:
+            data_label = 'go to ' + self._string_tag  +  " " +self._data_labels +' ?'
+          self._menu.insertItem(data_label,id)
+          self._next_plot[id] = data_label + ' ' + str(id)
         zoom = QAction(self);
         zoom.setIconSet(pixmaps.viewmag.iconset());
         zoom.setText("Disable zoomer");
-        QObject.connect(zoom,SIGNAL("activated()"),self.unzoom);
         zoom.addTo(self._menu);
-    # __initContextmenu()
+        printer = QAction(self);
+        printer.setIconSet(pixmaps.fileprint.iconset());
+        printer.setText("Print plot");
+        QObject.connect(printer,SIGNAL("activated()"),self.printplot);
+        printer.addTo(self._menu);
+
+
+    def update_spectrum_display(self, menuid):
+      if menuid < 0:
+        self.unzoom()
+        return
+      id_string = self._next_plot[menuid]
+      plane = 0
+      plane_loc = len(id_string) -2
+      if plane_loc >= 0:
+        plane = int( id_string[plane_loc:len(id_string)])
+      if isinstance(self._data_labels, tuple):
+        self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels[plane]
+      else:
+        self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels
+      self.array_plot(self.data_label, self._data_values[plane])
+
 
     def initVellsContextMenu (self):
         # skip if no main window
         if not self._mainwin:
           return;
-          
         self._menu = QPopupMenu(self._mainwin);
         QObject.connect(self._menu,SIGNAL("activated(int)"),self.update_vells_display);
         id = -1
         perturb_index = -1
-
 # are we dealing with Vellsets?
         number_of_planes = len(self._vells_rec["vellsets"])
         _dprint(3, 'number of planes ', number_of_planes)
@@ -423,8 +428,12 @@ class QwtImagePlot(QwtPlot):
         zoom = QAction(self);
         zoom.setIconSet(pixmaps.viewmag.iconset());
         zoom.setText("Disable zoomer");
-#        QObject.connect(zoom,SIGNAL("activated()"),self.unzoom);
         zoom.addTo(self._menu);
+        printer = QAction(self);
+        printer.setIconSet(pixmaps.fileprint.iconset());
+        printer.setText("Print plot");
+        QObject.connect(printer,SIGNAL("activated()"),self.printplot);
+        printer.addTo(self._menu);
     # end plot_vells_data()
 
     def unzoom(self):
@@ -519,35 +528,7 @@ class QwtImagePlot(QwtPlot):
           self._label =  "plane " + str(plane) + key + str(perturb)
           self.array_plot(self._label, perturbed_array_diff)
         
-    def update_plot(self):
-# do update of spectrum plots
-      if self.num_plot_arrays <= 1:
-        return
-      self.plot_counter = self.plot_counter + 1
-      data_label = ''
-      if (self.plot_counter < self.num_plot_arrays) and (not self._first_plot):
-        if isinstance(self._data_labels, tuple):
-          self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels[self.plot_counter]
-        else:
-          self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels
-      else:
-        self.plot_counter = 0
-        if isinstance(self._data_labels, tuple):
-          self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels[self.plot_counter]
-        else:
-          self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels
-      self.array_plot(self.data_label, self._data_values[self.plot_counter])
-      counter = self.plot_counter + 1
-      if counter >= self.num_plot_arrays:
-        counter = 0
-      if isinstance(self._data_labels, tuple):
-        self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels[counter]
-      else:
-        self.data_label = 'spectra:' + self._string_tag  +  " " +self._data_labels
-      Message = 'Continue to plot of ' + self.data_label + '?'
-      self._next_plot.setText(Message)
-
-    def printPlot(self):
+    def printplot(self):
         try:
             printer = QPrinter(QPrinter.HighResolution)
         except AttributeError:
@@ -562,7 +543,7 @@ class QwtImagePlot(QwtPlot):
                 filter.setOptions(QwtPlotPrintFilter.PrintAll
                                   & ~QwtPlotPrintFilter.PrintCanvasBackground)
             self.printPlot(printer, filter)
-    # printPlot()
+    # printplot()
 
     def drawCanvasItems(self, painter, rectangle, maps, filter):
         if self.is_vector == False:
@@ -598,23 +579,36 @@ class QwtImagePlot(QwtPlot):
             self._menu.popup(e.globalPos());
 
         elif Qt.MidButton == e.button():
-            xpos = e.pos().x()
-            ypos = e.pos().y()
-            xpos = self.invTransform(QwtPlot.xBottom, xpos)
-            ypos = self.invTransform(QwtPlot.yLeft, ypos)
-            xpos = int(xpos)
-            ypos = int(ypos)
-            shape = self.raw_image.shape
-            if self.x_array is None:
+            if self._vells_plot:
+              print 'cross sections for vells are a work in progress!'
+              return
+            if self.active_image:
+              xpos = e.pos().x()
+              ypos = e.pos().y()
+              xpos = self.invTransform(QwtPlot.xBottom, xpos)
+              ypos = self.invTransform(QwtPlot.yLeft, ypos)
+              xpos = int(xpos)
+              ypos = int(ypos)
+              shape = self.raw_image.shape
               self.x_array = zeros(shape[0], Float32)
               self.x_index = arange(shape[0])
               self.x_index = self.x_index + 0.5
-
-            for i in range(shape[0]):
-              self.x_array[i] = self.raw_image[i,ypos]
-            self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
-            self.replot()
-            _dprint(2, 'called replot in onMousePressed');
+              for i in range(shape[0]):
+                self.x_array[i] = self.raw_image[i,ypos]
+              self.setAxisAutoScale(QwtPlot.yRight)
+              if self.xCrossSection is None:
+                self.xCrossSection = self.insertCurve('xCrossSection')
+                self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
+                plot_curve=self.curve(self.xCrossSection)
+                plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, 
+                   QBrush(Qt.red), QPen(Qt.red), QSize(5,5)))
+              self.enableAxis(QwtPlot.yRight)
+              self.setAxisTitle(QwtPlot.yRight, 'cross-section value')
+              self.setCurveYAxis(self.xCrossSection, QwtPlot.yRight)
+              self.setAxisAutoScale(QwtPlot.yRight)
+              self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
+              self.replot()
+              _dprint(2, 'called replot in onMousePressed');
            
         # fake a mouse move to show the cursor position
         self.onMouseMoved(e)
@@ -666,9 +660,12 @@ class QwtImagePlot(QwtPlot):
     # setDisplayType
 
     def display_image(self, image):
-      if self.set_data_called == False:
+      if self._vells_plot:
+#        print ' vells ranges ', self.vells_freq, ' ', self.vells_time
+        self.plotImage.setData(image, self.vells_freq, self.vells_time)
+      else:
         self.plotImage.setData(image)
-        self.set_data_called = True
+
       self.raw_image = image
       if self._display_type == "brentjens":
         self.plotImage.setBrentjensImage(image)
@@ -792,14 +789,23 @@ class QwtImagePlot(QwtPlot):
         else:
           self.data_label = 'spectra:' + self._string_tag +  " " +self._data_labels
         Message = 'Continue to plot of ' + self.data_label + '?'
-        self._next_plot.setText(Message)
         self.plot_counter = 0
-
 
       self._first_plot = False
 
     # end plot_data()
 
+    def calc_vells_ranges(self):
+                                                                                
+      vells_start_freq = self._vells_rec.cells.domain.freq[0] 
+      vells_end_freq  =  self._vells_rec.cells.domain.freq[1]
+      vells_start_time = self._vells_rec.cells.domain.time[0] 
+      vells_end_time  =  self._vells_rec.cells.domain.time[1]
+
+      self.vells_freq = (vells_start_freq,vells_end_freq)
+      self.vells_time = (vells_start_time,vells_end_time)
+
+                                                                                
     def plot_vells_data (self, vells_record):
       """ process incoming data and attributes into the
           appropriate type of plot """
@@ -813,6 +819,7 @@ class QwtImagePlot(QwtPlot):
 # are we dealing with Vellsets?
       if self._vells_rec.has_key("vellsets"):
         self._vells_plot = True
+        self.calc_vells_ranges()
         self. initVellsContextMenu()
         _dprint(3, 'handling vellsets')
 # how many VellSet planes (e.g. I, Q, U, V would each be a plane) are there?
@@ -867,9 +874,19 @@ class QwtImagePlot(QwtPlot):
 
     def array_plot (self, data_label, plot_array):
       """ figure out shape, rank etc of a spectrum array and
-          plot it with an appropriate hippoDraw plot type """
-# figure out type and rank of incoming array
+          plot it  """
+
+# delete any previous curves
+      self.removeCurves()
+      self.xCrossSection = None
+      self.yCrossSection = None
+      self.dummy_xCrossSection = None
+      self.myXScale = None
+
+# set title
       self.setTitle(data_label)
+
+# figure out type and rank of incoming array
       self.is_vector = False;
       array_dim = len(plot_array.shape)
       array_rank = plot_array.rank
@@ -893,19 +910,20 @@ class QwtImagePlot(QwtPlot):
 
 # test if we have a 2-D array
       if self.is_vector == False:
-        self.enableAxis(QwtPlot.yRight)
-        self.setAxisTitle(QwtPlot.yRight, 'cross-section value')
-        self.setAxisAutoScale(QwtPlot.yRight)
+        self.active_image = True
+#        self.setAxisAutoScale(QwtPlot.xBottom)
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if complex_type and self._display_type != "brentjens":
           if self._vells_plot:
             self.setAxisTitle(QwtPlot.xBottom, 'Frequency (real followed by imaginary)')
             self.setAxisTitle(QwtPlot.yLeft, 'Time')
+
           else:
             self.setAxisTitle(QwtPlot.xBottom, 'Channel Number (real followed by imaginary)')
           myXScale = ComplexScaleDraw(plot_array.shape[0])
           self.setAxisScaleDraw(QwtPlot.xBottom, myXScale)
-# create array of reals followed bu imaginaries
+
+# create array of reals followed by imaginaries
           real_array =  plot_array.getreal()
           imag_array =  plot_array.getimag()
           shape = real_array.shape
@@ -914,12 +932,7 @@ class QwtImagePlot(QwtPlot):
             for j in range(shape[1]):
               temp_array[k,j] = real_array[k,j]
               temp_array[k+shape[0],j] = imag_array[k,j]
-          if self.x_dim != plot_array.shape[0]: 
-            self.x_dim = 2 * plot_array.shape[0]
-            self.set_data_called = False
-          if self.y_dim != plot_array.shape[1]: 
-            self.y_dim = plot_array.shape[1]
-            self.set_data_called = False
+
           self.display_image(temp_array)
         else:
           if self._vells_plot:
@@ -927,22 +940,16 @@ class QwtImagePlot(QwtPlot):
             self.setAxisTitle(QwtPlot.yLeft, 'Time')
           else:
             self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
-          if self.x_dim != plot_array.shape[0]: 
-            self.x_dim = plot_array.shape[0]
-            self.set_data_called = False
-          if self.y_dim != plot_array.shape[1]: 
-            self.y_dim = plot_array.shape[1]
-            self.set_data_called = False
+
           self.display_image(plot_array)
 
       if self.is_vector == True:
+        self.active_image = False
         flattened_array = None
         if self._vells_plot:
           self.setAxisTitle(QwtPlot.xBottom, 'Frequency')
         else:
           self.setAxisTitle(QwtPlot.xBottom, 'Channel Number')
-# set this flag in case an image follows
-        self.set_data_called = False
 # make sure we are autoscaling in case an image was previous
         self.setAxisAutoScale(QwtPlot.xBottom)
         self.setAxisAutoScale(QwtPlot.yLeft)
@@ -952,32 +959,48 @@ class QwtImagePlot(QwtPlot):
 # we have a complex vector
         if complex_type:
           self.enableAxis(QwtPlot.yRight)
-          self.setAxisTitle(QwtPlot.yLeft, 'Value: real (black)')
-          self.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (red)')
+          self.setAxisTitle(QwtPlot.yLeft, 'Value: real (black line / red dots)')
+          self.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (blue line / green dots)')
+          self.xCrossSection = self.insertCurve('xCrossSection')
+          self.yCrossSection = self.insertCurve('yCrossSection')
+          self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
+          self.setCurvePen(self.yCrossSection, QPen(Qt.blue, 2))
           self.setCurveYAxis(self.xCrossSection, QwtPlot.yLeft)
           self.setCurveYAxis(self.yCrossSection, QwtPlot.yRight)
+          plot_curve=self.curve(self.xCrossSection)
+          plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
+                     QPen(Qt.red), QSize(5,5)))
+          plot_curve=self.curve(self.yCrossSection)
+          plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.green),
+                     QPen(Qt.green), QSize(5,5)))
           self.x_array =  flattened_array.getreal()
           self.y_array =  flattened_array.getimag()
-          if self.x_index is None:
-            self.x_index = arange(num_elements)
-            self.x_index = self.x_index + 0.5
+          self.x_index = arange(num_elements)
+          self.x_index = self.x_index + 0.5
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
           self.setCurveData(self.yCrossSection, self.x_index, self.y_array)
+          if not self.dummy_xCrossSection is None:
+            self.removeCurve(self.dummy_xCrossSection)
+            self.dummy_xCrossSection = None
         else:
           self.setAxisTitle(QwtPlot.yLeft, 'Value')
           self.enableAxis(QwtPlot.yRight, False)
-          self.setCurveYAxis(self.xCrossSection, QwtPlot.yLeft)
-          if self.x_array is None:
-            self.x_array = zeros(num_elements, Float32)
-            self.y_array = zeros(num_elements, Float32)
-            self.x_index = arange(num_elements)
-            self.x_index = self.x_index + 0.5
+          self.x_array = zeros(num_elements, Float32)
+          self.y_array = zeros(num_elements, Float32)
+          self.x_index = arange(num_elements)
+          self.x_index = self.x_index + 0.5
           self.x_array =  flattened_array
+          self.xCrossSection = self.insertCurve('xCrossSection')
+          self.setCurvePen(self.xCrossSection, QPen(Qt.black, 2))
           self.setCurveStyle(self.xCrossSection,Qt.SolidLine)
+          self.setCurveYAxis(self.xCrossSection, QwtPlot.yLeft)
           plot_curve=self.curve(self.xCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
                      QPen(Qt.red), QSize(5,5)))
           self.setCurveData(self.xCrossSection, self.x_index, self.x_array)
+          if not self.dummy_xCrossSection is None:
+            self.removeCurve(self.dummy_xCrossSection)
+            self.dummy_xCrossSection = None
         self.replot()
         _dprint(2, 'called replot in array_plot');
     # array_plot()
@@ -1004,11 +1027,12 @@ class QwtImagePlot(QwtPlot):
         for i in range(shape[0]):
           vector_array[i,0] = a[i,0]
         if self.index % 2 == 0:
-          _dprint(2, 'plotting vector');
-          self.array_plot('test_vector_complex', vector_array)
-        else:
           _dprint(2, 'plotting array');
           self.array_plot('test_image_complex',a)
+          self.test_complex = False
+        else:
+          _dprint(2, 'plotting vector');
+          self.array_plot('test_vector_complex', vector_array)
       else:
         vector_array = zeros((30,1), Float32)
         m = fromfunction(dist, (30,20))
@@ -1021,6 +1045,7 @@ class QwtImagePlot(QwtPlot):
         if self.index % 2 == 0:
           _dprint(2, 'plotting vector');
           self.array_plot('test_vector', vector_array)
+          self.test_complex = True
         else:
           _dprint(2, 'plotting array');
           self.array_plot('test_image',m)
@@ -1034,7 +1059,7 @@ def make():
     demo.resize(500, 300)
     demo.show()
 # uncomment the following
-    demo.start_timer(1000, False, "grayscale")
+    demo.start_timer(5000, False, "grayscale")
 
 # or
 # uncomment the following three lines
