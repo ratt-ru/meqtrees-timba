@@ -44,7 +44,6 @@ class GriddedPage (object):
       self._control_lo.addWidget(self._close);
       
       self._top_lo.addLayout(self._control_lo);
-      self._top_lo.addStretch();
 
       self._id     = None;
       self._pinned = False;
@@ -58,7 +57,7 @@ class GriddedPage (object):
       self._wtop.show();
       
     def _dorefresh (self):
-      self.wtop().emit(PYSIGNAL("refresh()"),(self,));
+      self._widget.emit(PYSIGNAL("refresh()"),(self,));
       
     def _set_pinned (self,state):
       self._pinned = state;
@@ -72,7 +71,6 @@ class GriddedPage (object):
       self._label.setText("(empty)");
       self._pinned = False;
       self._widget = self._id = None;
-      self.wtop().disconnect(PYSIGNAL("refresh()"));
       self.wtop().emit(PYSIGNAL("clear()"),(self,_id));
       
     def is_empty (self):
@@ -92,7 +90,8 @@ class GriddedPage (object):
       self._label.setText(name);
       self._pin.show();
       self._close.show();
-      (refresh and self._refresh.show()) or self._refresh.hide();
+      if refresh: self._refresh.show();
+      else:       self._refresh.hide();
       self._id = _id;
       pin is not None and self._pin.setOn(pin);
       # set widget
@@ -100,6 +99,7 @@ class GriddedPage (object):
       if reparent:
         widget.reparent(self._wtop);
       self._top_lo.addWidget(widget);
+      widget.show();
       self.disable(disable);
   
   class GridRow (QSplitter):
@@ -156,28 +156,30 @@ class GriddedPage (object):
   # finds a free cell if one is available
   # returns Cell object, or None if everything is full
   # adds cell_id to cell map
-  def reserve_cell (self):
+  def reserve_cell (self,cell_id):
     (nrow,ncol) = self._cur_layout;
     # find free space in layout
     for icol in range(ncol):
       for row in self._rows[:nrow]:
         cell = row.cells()[icol];
         if cell.is_empty():
+          self._cellmap[cell_id] = cell;
           return cell;
         if not cell.is_pinned():
           cell.clear();
+          self._cellmap[cell_id] = cell;
           return cell;
     # current layout is full: proceed to next layout 
     nlo = self._cur_layout_num+1;
     if nlo >= len(self._layouts):
       return None;
     self.set_layout(nlo);
-    return self.reserve_cell();
+    return self.reserve_cell(cell_id);
 
   def reserve_or_find_cell(self,cell_id):
     cell = self.find_cell(cell_id);
     if cell is None:
-      cell = self.reserve_cell();
+      cell = self.reserve_cell(cell_id);
     return cell;
 
   def _clear_cell (self,cell,cell_id):
@@ -190,7 +192,7 @@ class GriddedPage (object):
     ncol = 0;
     # find max dimensions of non-empty cells
     for (irow,row) in enumerate(self._rows):
-      for (icell,cell) in enumerate(row.cells()):
+      for (icol,cell) in enumerate(row.cells()):
         if not cell.is_empty():
           nrow = max(nrow,irow);
           ncol = max(ncol,icol);
@@ -381,7 +383,7 @@ class TreeBrowser (object):
         rb = RecordBrowser(cell.wtop());
         rb.wtop()._rb = rb;
         cell.set_content(rb.wtop(),item._node.name,cell_id,refresh=True,disable=True);
-        cell.wtop().connect(cell.wtop(),PYSIGNAL("refresh()"),self._refresh_state_cell);
+        cell.wtop().connect(rb.wtop(),PYSIGNAL("refresh()"),self._refresh_state_cell);
       cell._node = item._node;
       self._refresh_state_cell(cell);
   
