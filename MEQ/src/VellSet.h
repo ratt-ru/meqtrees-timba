@@ -51,7 +51,7 @@ public:
 
   // Create a time,frequency result for the given number of spids.
     //##ModelId=400E5355031E
-  explicit VellSet (int nspid=0);
+  explicit VellSet (int nspid=0,int nset=1);
 
   // Construct from DataRecord.
     //##ModelId=400E53550322
@@ -86,15 +86,15 @@ public:
   // Get the spids.
     //##ModelId=400E5355033C
   int getNumSpids() const
-  { return itsNumSpids; }
+  { return numspids_; }
     //##ModelId=400E5355033E
   int getSpid (int i) const
-  { return itsSpids[i]; }
+  { return spids_[i]; }
   
-  // nperturbed() is the same as getNumSpids
+  // nperturbed() is an alias for getNumSpids
     //##ModelId=400E53550342
   int nperturbed() const
-  { return itsNumSpids; }
+  { return getNumSpids(); }
 
   // Set the spids. If VellSet was created with a >0 nspids,
   // then the size of the vector must match. If VellSet was created
@@ -106,28 +106,29 @@ public:
   // It returns the index (-1 if not found).
     //##ModelId=400E53550348
   int isDefined (int spid, int& index) const
-  { return (index>=itsNumSpids  ?  -1 :
-	    spid==itsSpids[index]  ?  index++ : -1); }
+  { return (index>=numspids_  ?  -1 :
+	    spid==spids_[index]  ?  index++ : -1); }
 
   // Get the i-th perturbed parameter.
     //##ModelId=400E5355034E
-  double getPerturbation (int i) const
-  { return itsPerturbations[i]; }
-  // Set the i-th perturbed parameter.
+  double getPerturbation (int i,int iset=0) const
+  { return pset_[iset].pert[i]; }
+  
+  // Set the i-th perturbed parameter of set iset
     //##ModelId=400E53550353
-  void setPerturbation (int i, double value);
-  // set all perturbations at once
+  void setPerturbation (int i, double value, int iset=0);
+  // set all perturbations of set iset 
     //##ModelId=400E53550359
-  void setPerturbations (const vector<double>& spids);
+  void setPerturbations (const vector<double>& spids,int iset=0);
 
   // ------------------------ MAIN RESULT VALUE
   // Get the value.
     //##ModelId=400E5355035C
   const Vells& getValue() const
-    { return itsValue.deref(); }
+    { return value_.deref(); }
     //##ModelId=400E5355035E
   Vells& getValueRW()
-    { return itsValue.dewr(); }
+    { return value_.dewr(); }
 
   // Attaches the given Vells to value (as an anon object)
     //##ModelId=400E53550360
@@ -140,22 +141,22 @@ public:
   // It won't change if the current value type and shape match.
     //##ModelId=400E53550367
   LoMat_double& setReal (int nfreq, int ntime)
-    { if( itsValue.valid() && itsValue->isCongruent(true,nfreq,ntime) )
-        return itsValue().getRealArray();
+    { if( value_.valid() && value_->isCongruent(true,nfreq,ntime) )
+        return value_().getRealArray();
       else
         return allocateReal(nfreq, ntime).getRealArray();
     } 
     //##ModelId=400E5355036D
   LoMat_dcomplex& setComplex (int nfreq, int ntime)
-    { if( itsValue.valid() && itsValue->isCongruent(false,nfreq,ntime) )
-        return itsValue().getComplexArray();
+    { if( value_.valid() && value_->isCongruent(false,nfreq,ntime) )
+        return value_().getComplexArray();
       else
         return allocateComplex(nfreq, ntime).getComplexArray();
     } 
     //##ModelId=400E53550375
   Vells& setValue (bool isReal, int nfreq, int ntime)
-    { if( itsValue.valid() && itsValue->isCongruent(isReal,nfreq,ntime) )
-        return itsValue();
+    { if( value_.valid() && value_->isCongruent(isReal,nfreq,ntime) )
+        return value_();
       else if( isReal )
         return allocateReal(nfreq, ntime);
       else 
@@ -163,21 +164,21 @@ public:
     }
 
   // ------------------------ PERTURBED VALUES
-  // Get the i-th perturbed value.
+  // Get the i-th perturbed value from set iset
     //##ModelId=400E5355037E
-  const Vells& getPerturbedValue (int i) const
-  { DbgAssert(i>=0 && i<itsNumSpids); return itsPerturbedValues[i].deref(); }
+  const Vells& getPerturbedValue (int i,int iset=0) const
+  { DbgAssert(i>=0 && i<numspids_); return pset_[iset].pertval[i].deref(); }
     //##ModelId=400E53550383
-  Vells& getPerturbedValueRW (int i)
-  {  DbgAssert(i>=0 && i<itsNumSpids); return itsPerturbedValues[i].dewr(); }
+  Vells& getPerturbedValueRW (int i,int iset=0)
+  {  DbgAssert(i>=0 && i<numspids_); return pset_[iset].pertval[i].dewr(); }
 
-  // Attaches the given Vells to i-th perturbed value (as an anon object)
+  // Attaches the given Vells to i-th perturbed value of set nset (as an anon object)
     //##ModelId=400E53550387
-  Vells & setPerturbedValue (int i,Vells *);
+  Vells & setPerturbedValue (int i,Vells *,int iset=0);
   // Set the i-th perturbed value (Vells copy uses ref semantics!)
     //##ModelId=400E5355038C
-  Vells & setPerturbedValue (int i, const Vells & value)
-    { return setPerturbedValue(i,new Vells(value)); }
+  Vells & setPerturbedValue (int i,const Vells & value,int iset=0)
+    { return setPerturbedValue(i,new Vells(value),iset); }
 
   // ------------------------ FAIL RECORDS
   // A VellSet may be a Fail. A Fail will not contain any values or 
@@ -207,7 +208,7 @@ public:
   // checks if this VellSet is a fail
     //##ModelId=400E535503A5
   bool isFail () const
-  { return itsIsFail; }
+  { return is_fail_; }
   // returns the number of fail records 
     //##ModelId=400E535503A7
   int numFails () const;
@@ -224,12 +225,6 @@ public:
   virtual int remove (const HIID &)
   { Throw("remove() from a Meq::VellSet not allowed"); }
   
-    //##ModelId=400E535502F6
-  static int nctor;
-    //##ModelId=400E535502F8
-  static int ndtor;
-  
-
 protected: 
   // disable public access to some DataRecord methods that would violate the
   // structure of the container
@@ -246,6 +241,8 @@ private:
     //##ModelId=400E535503B5
   void clear();
 
+  void setupPertData ();
+
   // Allocate the main value with given type and shape.
     //##ModelId=400E535503B7
   Vells & allocateReal (int nfreq, int  ntime)
@@ -253,35 +250,35 @@ private:
     //##ModelId=400E535503BD
   Vells & allocateComplex (int nfreq, int ntime)
     { return setValue(new Vells(dcomplex(0),nfreq,ntime,false)); }
-  // Allocate the i-th perturbed value with given type and shape.
-    //##ModelId=400E535503C3
-  Vells & allocatePertReal (int i, int nfreq, int ntime)
-    { return setPerturbedValue(i,new Vells(double(0),nfreq,ntime,false)); }
-    //##ModelId=400E535503CC
-  Vells & allocatePertComplex (int i, int nfreq, int ntime)
-    { return setPerturbedValue(i,new Vells(dcomplex(0),nfreq,ntime,false)); }
+//   // Allocate the i-th perturbed value with given type and shape.
+//     //##ModelId=400E535503C3
+//   Vells & allocatePertReal (int i, int nfreq, int ntime)
+//     { return setPerturbedValue(i,new Vells(double(0),nfreq,ntime,false)); }
+//     //##ModelId=400E535503CC
+//   Vells & allocatePertComplex (int i, int nfreq, int ntime)
+//     { return setPerturbedValue(i,new Vells(dcomplex(0),nfreq,ntime,false)); }
 
-    //##ModelId=400E535502F9
-  int    itsCount;
     //##ModelId=400E535502FC
-  Vells::Ref itsValue;
+  Vells::Ref value_;
     //##ModelId=400E53550302
-  double itsDefPert;
+  double default_pert_;
   
-    //##ModelId=400E53550305
-  vector<Vells::Ref> itsPerturbedValues;
-    //##ModelId=400E53550309
-  DataField::Ref perturbed_ref;
+  typedef struct 
+  {
+    const double *     pert;
+    vector<Vells::Ref> pertval;
+    DataField::Ref     pertval_field;
+  } PerturbationSet;
   
-    //##ModelId=400E53550311
-  const double * itsPerturbations;
+  vector<PerturbationSet> pset_;
+  
     //##ModelId=400E53550314
-  const int *    itsSpids;
+  const int *    spids_;
     //##ModelId=400E53550317
-  int            itsNumSpids;
+  int            numspids_;
   
     //##ModelId=400E5355031B
-  bool itsIsFail;
+  bool           is_fail_;
 };
 
 

@@ -1,6 +1,6 @@
 check_PROGRAMS 		= tMeqVells tMeqPolc tForest tMeq tSolver
 
-TESTS			= tMeqVells tMeqPolc_test.sh tForest tMeq tSolver
+TESTS			= tMeqVells tMeqPolc tForest tMeq tSolver
 
 tMeqVells_SOURCES 	= tMeqVells.cc 
 tMeqVells_LDADD		= ../src/libmeq.la 

@@ -31,47 +31,47 @@ namespace Meq {
 
 static NestableContainer::Register reg(TpMeqVellSet,True);
 
-//##ModelId=400E535502F6
-int VellSet::nctor = 0;
-//##ModelId=400E535502F8
-int VellSet::ndtor = 0;
+// inline helper functions to generate field names: 
+// default (first) set has no suffix, then _1, _2, etc.
+static inline HIID FieldWithSuffix (const HIID &fname,int iset)
+{
+  return iset ? fname|AtomicID(iset) : fname;
+}
 
+static inline HIID FiPerturbations (int iset)
+{
+  return FieldWithSuffix(FPerturbations,iset);
+}
+
+static inline HIID FiPerturbedValues (int iset)
+{
+  return FieldWithSuffix(FPerturbedValues,iset);
+}
 
 //##ModelId=400E5355031E
-VellSet::VellSet (int nspid)
-: itsCount           (0),
-  itsDefPert         (0.),
-  itsPerturbedValues (nspid),
-  itsPerturbations   (0),
-  itsSpids           (0),
-  itsNumSpids        (nspid),
-  itsIsFail          (false)
+VellSet::VellSet (int nspid,int nset)
+: default_pert_ (0.),
+  pset_         (nset),
+  spids_        (0),
+  numspids_     (nspid),
+  is_fail_      (false)
 {
-  nctor++;
   // create appropriate fields in the record: spids vector and perturbations vector
-  if( itsNumSpids )
+  if( nspid )
   {
     DataField *pdf = new DataField(Tpint,nspid);
     DataRecord::add(FSpids,pdf,DMI::ANONWR);
-    itsSpids = (*pdf)[HIID()].as_wp<int>();
-    //    perturbations vector
-    pdf = new DataField(Tpdouble,nspid);
-    DataRecord::add(FPerturbations,pdf,DMI::ANONWR);
-    itsPerturbations = (*pdf)[HIID()].as_wp<double>();
+    spids_ = (*pdf)[HIID()].as_wp<int>();
+    // setups perturbations structures
+    setupPertData();
   }
 }
 
 //##ModelId=400E53550322
 VellSet::VellSet (const DataRecord &other,int flags,int depth)
 : DataRecord(other,flags,depth),
-  itsCount           (0),
-  itsDefPert         (0.),
-  itsPerturbedValues (0),
-  itsPerturbations   (0),
-  itsSpids           (0),
-  itsIsFail          (false)
+  default_pert_ (0.)
 {
-  nctor++;
   validateContent();
 }
 
@@ -80,29 +80,24 @@ VellSet::VellSet (const DataRecord &other,int flags,int depth)
 VellSet::~VellSet()
 {
   clear();
-  ndtor--;
 }
 
-// helper function makes a Vells from a container field; 
-// or empty Vells if field does not exist
-static Vells * makeVells (NestableContainer &nc,const HIID &field)
+// helper function to initialize perturbations structures
+void VellSet::setupPertData ()
 {
-  // writability of Vells dertermined by writability of array in container
-  if( nc[field].exists() )
-    return new Vells(nc[field].ref(DMI::PRESERVE_RW));
-  else
-    return new Vells();
+  for( uint iset=0; iset<pset_.size(); iset++ )
+  {
+    // add perturbations field
+    DataField *pdf = new DataField(Tpdouble,numspids_);
+    DataRecord::add(FiPerturbations(iset),pdf,DMI::ANONWR);
+    pset_[iset].pert = (*pdf)[HIID()].as_p<double>();
+    // add perturbed values field
+    pset_[iset].pertval.resize(numspids_); 
+    pset_[iset].pertval_field <<= pdf = new DataField(TpDataArray,numspids_);
+    DataRecord::add(FiPerturbedValues(iset),pdf,DMI::ANONWR);
+  }
 }
-
-static Vells * makeVells (const NestableContainer &nc,const HIID &field)
-{
-  // writability of Vells dertermined by writability of array in container
-  if( nc[field].exists() )
-    return new Vells(nc[field].ref());
-  else
-    return new Vells();
-}
-
+    
 //##ModelId=400E53550333
 void VellSet::privatize (int flags, int depth)
 {
@@ -124,32 +119,48 @@ void VellSet::validateContent ()
   {
     if( DataRecord::hasField(FFail) ) // a fail result
     {
-      itsIsFail = true;
+      is_fail_ = true;
     }
     else
     {
-      itsIsFail = false;
+      is_fail_ = false;
       // get value, if it exists in the data record
-      itsValue <<= makeVells(*this,FValue);
+      if( DataRecord::hasField(FValue) )
+        value_ <<= new Vells((*this)[FValue].ref(DMI::PRESERVE_RW));
+      else
+        value_ <<= new Vells;
       // get pointer to spids vector and its size
       if( DataRecord::hasField(FSpids) )
       {
-        itsSpids = (*this)[FSpids].as_p<int>(itsNumSpids);
+        spids_ = (*this)[FSpids].as_p<int>(numspids_);
         int size;
-        // get pointer to perturbations vector, verify size
-        itsPerturbations = (*this)[FPerturbations].as_p<double>(size);
-        FailWhen(size!=itsNumSpids,"size mismatch between spids and perturbations");
-        // get perturbations, if they exist
-        itsPerturbedValues.resize(itsNumSpids);
-        if( DataRecord::hasField(FPerturbedValues) )
+        // figure out number of perturbation sets in the record
+        int nsets = 0;
+        while( (*this)[FiPerturbations(nsets)].exists() )
+          nsets++;
+        // if non-zero, setup shortcuts
+        if( nsets )
         {
-          perturbed_ref = (*this)[FPerturbedValues].ref(DMI::PRESERVE_RW);
-          FailWhen(perturbed_ref->size(TpDataArray) != itsNumSpids,
-                "size mismatch between spids and perturbed values");
-          // setup shortcuts to perturbation vells
-          // use different versions for writable/non-writable
-          for( int i=0; i<itsNumSpids; i++ )
-            itsPerturbedValues[i] <<= new Vells(perturbed_ref[i].ref(DMI::PRESERVE_RW));
+          pset_.resize(nsets);
+          for( int iset=0; iset<nsets; iset++ )
+          {
+            // get pointer to perturbations vector, verify size
+            pset_[iset].pert = (*this)[FiPerturbations(iset)].as_p<double>(size);
+            FailWhen(size!=numspids_,"size mismatch between spids and "+FiPerturbations(iset).toString());
+            // get perturbations, if they exist
+            pset_[iset].pertval.resize(numspids_);
+            HIID fid = FiPerturbedValues(iset);
+            if( DataRecord::hasField(fid) )
+            {
+              pset_[iset].pertval_field = (*this)[fid].ref(DMI::PRESERVE_RW);
+              FailWhen(pset_[iset].pertval_field->size(TpDataArray) != numspids_,
+                       "size mismatch between spids and "+fid.toString());
+              // setup shortcuts to perturbation vells
+              // use different versions for writable/non-writable
+              for( int i=0; i<numspids_; i++ )
+                pset_[iset].pertval[i] <<= new Vells(pset_[iset].pertval_field[i].ref(DMI::PRESERVE_RW));
+            }
+          }
         }
       }
     }
@@ -169,75 +180,73 @@ void VellSet::validateContent ()
 //##ModelId=400E535503B5
 void VellSet::clear()
 {
-  itsNumSpids = 0;
-  itsSpids = 0;
-  itsPerturbations = 0;
-  itsPerturbedValues.resize(0);
-  perturbed_ref.detach();
-  itsValue.detach();
-  itsIsFail = false;
+  numspids_ = 0;
+  spids_ = 0;
+  pset_.resize(0);
+  value_.detach();
+  is_fail_ = false;
 }
 
 //##ModelId=400E53550344
 void VellSet::setSpids (const vector<int>& spids)
 {
-  FailWhen(itsNumSpids && spids.size() != uint(itsNumSpids),"setSpids: vector size mismatch" );
-  if( itsNumSpids ) // assigning to existing vector
+  if( numspids_ ) // assigning to existing vector
+  {
+    FailWhen(spids.size() != uint(numspids_),"setSpids: vector size mismatch" );
     (*this)[FSpids] = spids;
+  }
   else // setting new vector
   {
+    numspids_ = spids.size();
     DataField *pdf = new DataField(Tpint,spids.size(),DMI::WRITE,&spids[0]);
     DataRecord::add(FSpids,pdf,DMI::ANONWR);
-    itsSpids = (*pdf)[HIID()].as_wp<int>();
-    //    perturbations vector
-    pdf = new DataField(Tpdouble,spids.size());
-    DataRecord::add(FPerturbations,pdf,DMI::ANONWR);
-    itsPerturbations = (*pdf)[HIID()].as_wp<double>();
-    itsNumSpids = spids.size();
-    itsPerturbedValues.resize(itsNumSpids);
+    spids_ = (*pdf)[HIID()].as_wp<int>();
+    setupPertData();
   }
 }
 
 //##ModelId=400E53550353
-void VellSet::setPerturbation (int i, double value)
+void VellSet::setPerturbation (int i, double value,int iset)
 { 
-  DbgAssert(i>=0 && i<itsNumSpids);
-  (*this)[FPerturbations][i] = value;
+  DbgAssert(i>=0 && i<numspids_);
+  (*this)[FiPerturbations(iset)][i] = value;
+//  pset_[iset].pert[i] = value;
 }
 
 // set all perturbations at once
 //##ModelId=400E53550359
-void VellSet::setPerturbations (const vector<double>& perts)
+void VellSet::setPerturbations (const vector<double>& perts,int iset)
 {
-  FailWhen(perts.size() != uint(itsNumSpids),"setPerturbations: vector size mismatch" );
-  if( itsNumSpids )
+  FailWhen(perts.size() != uint(numspids_),"setPerturbations: vector size mismatch" );
+  if( numspids_ )
   {
-    (*this)[FPerturbations] = perts;
-    itsPerturbations = (*this)[FPerturbations].as_p<double>();
+    (*this)[FiPerturbations(iset)] = perts;
+    pset_[iset].pert = (*this)[FPerturbations].as_p<double>();
   }
 }
 
 //##ModelId=400E53550360
 Vells & VellSet::setValue (Vells *pvells)
 {
-  itsValue <<= pvells;
+  value_ <<= pvells;
   DataRecord::replace(FValue,&(pvells->getDataArray()),DMI::ANONWR);
   return *pvells;
 }
 
 //##ModelId=400E53550387
-Vells & VellSet::setPerturbedValue (int i,Vells *pvells)
+Vells & VellSet::setPerturbedValue (int i,Vells *pvells,int iset)
 {
-  DbgAssert(i>=0 && i<itsNumSpids);
+  DbgAssert(i>=0 && i<numspids_);
+  PerturbationSet &ps = pset_[iset];
   // allocate container for perturbed values
-  if( !perturbed_ref.valid() )
+  if( !ps.pertval_field.valid() )
   {
-    DataField *df = new DataField(TpDataArray,itsNumSpids);
-    perturbed_ref <<= df;
-    DataRecord::add(FPerturbedValues,df,DMI::ANONWR);
+    DataField *df = new DataField(TpDataArray,numspids_);
+    ps.pertval_field <<= df;
+    DataRecord::add(FiPerturbedValues(iset),df,DMI::ANONWR);
   }
-  perturbed_ref().put(i,&(pvells->getDataArray()),DMI::ANONWR);
-  itsPerturbedValues[i] <<= pvells;
+  ps.pertval_field().put(i,&(pvells->getDataArray()),DMI::ANONWR);
+  ps.pertval[i] <<= pvells;
   return *pvells;
 }
 
@@ -245,7 +254,7 @@ Vells & VellSet::setPerturbedValue (int i,Vells *pvells)
 void VellSet::addFail (const DataRecord *rec,int flags)
 {
   clear();
-  itsIsFail = true;
+  is_fail_ = true;
   // clear out the DR
   DataRecord::removeField(FValue,true);
   DataRecord::removeField(FSpids,true);
@@ -303,20 +312,24 @@ void VellSet::show (std::ostream& os) const
     os << "FAIL" << endl;
   else
   {
-    os << "Value: " << *itsValue << endl;
-    for( uint i=0; i<itsPerturbedValues.size(); i++) 
+    os << "Value: " << *value_ << endl;
+    os << "  " << numspids_ << " spids; " << pset_.size() << "diff set(s)\n";
+    for( int i=0; i<numspids_; i++) 
     {
-      os << "deriv parm " << itsSpids[i]
-         << " with " << itsPerturbations[i] << endl;
-      if( itsPerturbedValues[i].valid() )
+      os << "Spid " << spids_[i] << " ";
+      for( uint iset=0; iset<pset_.size(); iset++ )
       {
-        os << "   " << (*(itsPerturbedValues[i]) - *itsValue) << endl;
-//        os << "   " << (*(itsPerturbedValues[i]) - *itsValue) /
-//          Vells(itsPerturbations[i]) << endl;
-      }
-      else
-      {
-        os << "oops, perturbed vells "<<i<<" missing???"<<endl;
+        if( iset )
+          os << "          ";
+        os << " pert=" << pset_[iset].pert[i] << ":" << endl;
+        if( pset_[iset].pertval[i].valid() )
+        {
+          os << "            " << (*(pset_[iset].pertval[i]) - *value_) << endl;
+        }
+        else
+        {
+          os << "            perturbed vells "<<i<<" is missing"<<endl;
+        }
       }
     }
   }
