@@ -32,8 +32,10 @@ if( has_field(lofar_software,'print_versions') &&
 }
 
 # create global namespaces meq and meq_test
-meq := [=];
-meq_test := [=];
+if( !is_record(meq) )
+  meq := [=];
+if( !is_record(meq_test) )
+  meq_test := [=];
 
 # Creates a request ID
 const meq.requestid := function(domain_id,config_id=0,iter_id=0)
@@ -211,6 +213,7 @@ const meq.request := function (cells=F,request_id=F,calc_deriv=0)
       fail 'meq.request.addstate(): node must be specified by index or name(s)';
     return T;
   }
+  rec.addstate::dmi_ignore := T;
   
   return ref rec;
 }
