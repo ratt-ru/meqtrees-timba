@@ -472,7 +472,8 @@ class GridCell (object):
       self._viewer = None;
     # create a viewer, add data if specified
     self._viewer_class = viewer_class;
-    self._viewer = viewer = viewer_class(self.wtop(),dataitem=self._dataitem,**self._viewopts);
+    self._viewer = viewer = viewer_class(self.wtop(),dataitem=self._dataitem,
+          context_menu=self._menu,**self._viewopts);
     widget = viewer.wtop();
     # connect displayDataItem() signal from viewer to be resent from top widget
     QWidget.connect(widget,PYSIGNAL("displayDataItem()"),

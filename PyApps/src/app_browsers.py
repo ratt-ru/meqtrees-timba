@@ -13,6 +13,34 @@ import weakref
 
 dmirepr = dmi_repr.dmi_repr();
 
+# helper class implementing a 'Precision' menu
+class PrecisionPopupMenu (QPopupMenu):
+  def_range = range(0,16);
+  def_prec  = 99;
+
+  def __init__ (self,parent=None,precrange=None,prec=None):
+    QPopupMenu.__init__(self,parent);
+    self._precrange = precrange or self.def_range;
+    self.insertItem('Default',self.def_prec);
+    for p in self._precrange:
+      self.insertItem(str(p),p);
+    self._prec = prec;
+    self.setItemChecked((prec is None and self.def_prec) or prec,True);
+    QWidget.connect(self,SIGNAL("activated(int)"),self.set);
+    
+  def set (self,prec):
+    if prec == self.def_prec:
+      prec = None;
+    self._prec = prec;
+    self.setItemChecked(self.def_prec,prec is None);
+    for p in self._precrange:
+      self.setItemChecked(p,p==prec);
+    self.emit(PYSIGNAL("setPrecision()"),(prec,));
+
+  def get (self):
+    return self._prec;    
+  
+
 class HierBrowser (object):
   # seqs/dicts with <= items than this are treated as "short"
   ShortSeq       = 5;
@@ -164,26 +192,19 @@ class HierBrowser (object):
     prec_default = 99;
       
     # changes display precision of item
-    # dum argument is to facilitate the use of callbacks from popup menus
-    def set_precision (self,prec):
+    def set_precision (self,prec,set_menu=True):
+      print 'set_precision',prec;
       self._prec = prec;
       if callable(self._strfunc):
         (txt,inlined) = self._strfunc(prec=prec);
         self.setText(2,txt);
       # set menu checkmark, if any
-      if self._prec_menu:
-        self._set_precision_menu(self._prec_menu,prec);
+      if set_menu and self._prec_menu:
+        self._prec_menu.set(prec);
+    
+    def _set_prec_frommenu (self,prec):
+      self.set_precision(prec,set_menu=False);
  
-    # set checkmark in precision menu, if any
-    def _set_precision_menu (self,menu,prec):
-      if prec is None:
-        prec = self.prec_default;
-        menu.setItemChecked(self.prec_default,True);
-      else:
-        menu.setItemChecked(self.prec_default,False);
-      for p in self.prec_range:
-        menu.setItemChecked(p,p==prec);
-
     # curries and adds to local list
     # This is useful for creating on-the-fly callbacks
     # (since most Qt callbacks are held via weakref, they're deleted immediately
@@ -215,14 +236,10 @@ class HierBrowser (object):
         menu.insertSeparator();
         # create "Precision" submenu
         if self._strfunc:
-          self._prec_menu = QPopupMenu();
-          self._prec_menu.insertItem('Default',\
-            self.xcurry(self.set_precision,_argslice=slice(0),prec=None),0,self.prec_default);
-          for prec in self.prec_range:
-            self._prec_menu.insertItem(str(prec),\
-              self.xcurry(self.set_precision,_argslice=slice(0),prec=prec),0,prec);
+          self._prec_menu = PrecisionPopupMenu(prec=self._prec);
           menu.insertItem('Precision',self._prec_menu);
-          self._set_precision_menu(self._prec_menu,self._prec);
+          QWidget.connect(self._prec_menu,PYSIGNAL("setPrecision()"),
+                          self._set_prec_frommenu);
         # create "display with" entries
         if viewer_list: 
           # create display submenus
@@ -443,6 +460,8 @@ class ArrayBrowser(BrowserPlugin):
       QTable.__init__(self,parent,*args);
       self.setSelectionMode(QTable.NoSelection);
       self._arr = None;
+      self._prec = None;
+    # changes content
     def set_array (self,arr):
       if not 1<=arr.rank<=2:
         raise TypeError,"illegal array dimensionality";
@@ -453,10 +472,23 @@ class ArrayBrowser(BrowserPlugin):
         self.setNumCols(1);
       else:
         self.setNumCols(arr.shape[1]);
-      self.repaint();
+      self.repaint_cells();
+    # changes precision
+    def set_precision (self,prec):
+      print 'table set prec',prec;
+      self._prec = prec;
+      self.repaint_cells();
+      
+    def repaint_cells (self):
+      for col in range(self.columnAt(0),self.columnAt(self.width())+1):
+        for row in range(self.rowAt(0),self.rowAt(self.height())+1):
+          self.updateCell(row,col);
+      
     # redefine paintCell method to paint on-the-fly
     def paintCell(self,painter,row,col,cr,selected):
-      txt = str(self._arr[(row,col)[:self._rank]]);
+      (txt,inline) = dmirepr.inline_str(self._arr[(row,col)[:self._rank]],prec=self._prec);
+      if txt is None:
+        txt = '';
       cg = QApplication.palette().active();
 #      if selected:
 #        qp.setPen(cg.highlightedText());
@@ -472,17 +504,23 @@ class ArrayBrowser(BrowserPlugin):
         painter.fillRect(rect,QBrush(cg.base()));
         painter.setPen(cg.text());
       painter.drawText(0,0,cr.width(),cr.height(),Qt.AlignLeft,txt);
+      
     def resizeData(self,len):
       pass;
     
-    
-  def __init__(self,parent,dataitem=None,**opts):
+  def __init__(self,parent,dataitem=None,context_menu=None,**opts):
 #    HierBrowser.__init__(self,parent,"value","field",
 #        udi_root=(dataitem and dataitem.udi));
     self._arr = None;
     self._tbl = self.ArrayTable(parent);
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
+    if context_menu is not None:
+      context_menu.insertSeparator();
+      self._prec_menu = PrecisionPopupMenu(parent);
+      context_menu.insertItem('Precision',self._prec_menu);
+      QWidget.connect(self._prec_menu,PYSIGNAL("setPrecision()"),\
+                      self._tbl.set_precision);
       
   def wtop (self):
     return self._tbl;
@@ -497,6 +535,7 @@ class ArrayBrowser(BrowserPlugin):
     self._tbl.set_array(dataitem.data);
     # apply saved open tree
 #    self.set_open_items(openitems);
+    
 
 
 class ArrayPlotter(ArrayBrowser,BrowserPlugin):
