@@ -10,6 +10,7 @@ import sets
 import re
 import time
 from qt import *
+import app_pixmaps as pixmap
 
 _dbg = verbosity(3,name='meqds');
 _dprint = _dbg.dprint;
@@ -53,11 +54,11 @@ CS_STOP_BREAKPOINT     = 0x2000;
 CS_LSB_EXECSTATE       = 16;  # first bit of exec-state segment
 CS_MASK_EXECSTATE      = 0xF<<CS_LSB_EXECSTATE;
 
-CS_ES_statelist = [ (0<<CS_LSB_EXECSTATE,'IDLE' ,'-','idle'),
-                    (1<<CS_LSB_EXECSTATE,'REQ'  ,'R','received request'),
-                    (2<<CS_LSB_EXECSTATE,'CMD'  ,'C','processing command rider'),
-                    (3<<CS_LSB_EXECSTATE,'POLL' ,'P','polling children'),
-                    (4<<CS_LSB_EXECSTATE,'EVAL' ,'E','evaluating result') ];
+CS_ES_statelist = [ (0<<CS_LSB_EXECSTATE,'IDLE' ,'-','idle',pixmap.node_idle),
+                    (1<<CS_LSB_EXECSTATE,'REQ'  ,'R','received request',pixmap.node_request),
+                    (2<<CS_LSB_EXECSTATE,'CMD'  ,'C','processing command rider',pixmap.node_command),
+                    (3<<CS_LSB_EXECSTATE,'POLL' ,'P','polling children',pixmap.node_poll),
+                    (4<<CS_LSB_EXECSTATE,'EVAL' ,'E','evaluating result',pixmap.node_eval) ];
                     
 # define CS_ES_XXX constants for the listed states, and
 # BP_XXX constants to represent breakpoint masks

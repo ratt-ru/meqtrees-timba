@@ -189,16 +189,27 @@ class TreeBrowser (object):
       actually ignored (we have them for compatibility with the 
       subscribe_status callback).""";
       self._stat_anim_cbs = {};
+      node = self._node;
       # update status column
-      self.setText(self._tb()._icol_status,self._node.control_status_string);
-      # update status pixmaps
+      self.setText(self._tb()._icol_status,node.control_status_string);
+      # update breakpoint status pixmaps
+      if node.control_status&meqds.CS_BREAKPOINT:
+        self.setPixmap(self._tb()._icol_breakpoint,pixmaps.breakpoint.pm());
+      elif node.control_status&meqds.CS_BREAKPOINT_SS:
+        self.setPixmap(self._tb()._icol_breakpoint,pixmaps.breakpoint_ss.pm());
+      else:
+        self.setPixmap(self._tb()._icol_breakpoint,QPixmap());
+      # update exec state pixmaps
+      es = meqds.CS_ES_state(node.control_status);
+      self.setPixmap(self._tb()._icol_execstate,es[4].pm());
+      # update custom action pixmaps
       for act in self._tb().get_node_actions():
         # if action has a column assigned to it, and a state callback...
         try: (icol,state) = (act._icol,act.state);
         except AttributeError: pass;
         else:
           # call it to set the pixmap in the column
-          if state(self._node):
+          if state(node):
             if hasattr(act,'iconset_anim'):
               # else set animation sequence: curry a set of callbacks,
               # one per each iconset in sequence, and set timer event for each
@@ -218,14 +229,14 @@ class TreeBrowser (object):
       else:
         for (act_id,act) in menu._actions.iteritems():
           if hasattr(act,'state'):
-            menu.setItemChecked(act_id,act.state(self._node));
+            menu.setItemChecked(act_id,act.state(node));
       # update breakpoints menu
       try: menu = self._debug_bp_menu;
       except AttributeError: pass;
       else:
         _dprint(3,'node',self._node.name,'breakpoint mask is',self._node.breakpoint);
         for (item,bp) in self._debug_bp_items:
-          menu.setItemChecked(item,(self._node.breakpoint&bp)!=0);
+          menu.setItemChecked(item,(node.breakpoint&bp)!=0);
    
     def expand (self):
       if self._expanded:
@@ -254,12 +265,12 @@ class TreeBrowser (object):
           title = ''.join(('at ',node.name,':',st[1]));
           bpmask = meqds.breakpoint_mask(st[0]);
           cb = self.xcurry(meqds.set_node_breakpoint,(node,bpmask),_argslice=slice(0));
-          item = menu1.insertItem(title,cb);
+          item = menu1.insertItem(st[4].iconset(),title,cb);
           menu1.setItemChecked(item,(node.breakpoint&bpmask)!=0);
           self._debug_bp_items.append((item,bpmask));
-        menu1.insertItem(''.join(("at ",node.name,':*')),self.xcurry(\
+        menu1.insertItem(pixmaps.node_any.iconset(),''.join(("at ",node.name,':any')),self.xcurry(\
               meqds.set_node_breakpoint,(node,meqds.BP_ALL),_argslice=slice(0)));
-        menu1.insertItem("Clear all",self.xcurry(\
+        menu1.insertItem(pixmaps.breakpoint_delete.iconset(),"Clear all",self.xcurry(\
               meqds.clear_node_breakpoint,(node,meqds.BP_ALL),_argslice=slice(0)));
         menu.insertItem("Breakpoints",menu1);
         menu.insertSeparator();
@@ -398,16 +409,20 @@ class TreeBrowser (object):
         if act.display:
           act._icol = num;
           if num:
-            self._nlv.addColumn('');
+            self._nlv.addColumn('',16);
       # add status, class and index columns
-      self._icol_status = self._nlv.columns();
-      self._nlv.addColumn('status');
+      self._icol_breakpoint = self._nlv.columns();
+      self._nlv.addColumn('',16);
+      self._icol_execstate   = self._nlv.columns();
+      self._nlv.addColumn('',16);
       self._icol_class = self._nlv.columns();
       self._nlv.addColumn('class');
+      self._icol_status = self._nlv.columns();
+      self._nlv.addColumn('status');
       self._icol_index = self._nlv.columns();
       self._nlv.addColumn('index');
-      for icol in range(self._nlv.columns()):
-        self._nlv.setColumnWidthMode(icol,QListView.Maximum);
+    #      for icol in range(self._nlv.columns()):
+    #        self._nlv.setColumnWidthMode(icol,QListView.Maximum);
     # reset the nodelist view
     nodelist = meqds.nodelist;
     self._nlv.clear();
@@ -469,7 +484,7 @@ class TreeBrowser (object):
   # slot: called to show a context menu for a browser item
   def _show_context_menu (self,item,point,col):
     if isinstance(item,self.NodeItem):
-      if col == self._icol_status:
+      if col in (self._icol_status,self._icol_execstate,self._icol_breakpoint):
         menu = item.debug_menu();
       else:
         menu = item.context_menu();
