@@ -453,9 +453,9 @@ void MTGatewayWP::processIncoming (MessageRef &ref)
       {
         lprintf(1,LogError,"already connected to %s (%s:%d %s), closing gateway",
               peerid.toString().c_str(),
-             (*peerlist)[peerid][AidHost].as_string().c_str(),
-             (*peerlist)[peerid][AidPort].as_int(),
-             (*peerlist)[peerid][AidTimestamp].as_Timestamp().toString("%T").c_str());
+             (*peerlist)[peerid][AidHost].as<string>().c_str(),
+             (*peerlist)[peerid][AidPort].as<int>(),
+             (*peerlist)[peerid][AidTimestamp].as<Timestamp>().toString("%T").c_str());
         Message *msg1 = new Message(MsgGWRemoteDuplicate|peerid);
         MessageRef mref1; mref1 <<= msg1;
         (*msg1)[AidHost] = sock->host();

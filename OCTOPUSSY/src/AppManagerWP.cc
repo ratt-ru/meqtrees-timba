@@ -9,7 +9,6 @@ AppManagerWP::AppManagerWP ()
 {
 }
 
-
 //##ModelId=3E316F2A01FE
 void AppManagerWP::init ()
 {

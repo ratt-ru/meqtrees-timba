@@ -208,9 +208,9 @@ int GWClientWP::receive (MessageRef& mref)
     {
       lprintf(3,"peer-adv %s: already connected (%s:%d %s), ignoring",
           peerid.toString().c_str(),
-          peerlist[peerid][AidHost].as_string().c_str(),
-          peerlist[peerid][AidPort].as_int(),
-          peerlist[peerid][AidTimestamp].as_Timestamp().toString("%T").c_str());
+          peerlist[peerid][AidHost].as<string>().c_str(),
+          peerlist[peerid][AidPort].as<int>(),
+          peerlist[peerid][AidTimestamp].as<Timestamp>().toString("%T").c_str());
     }
     else
     {
@@ -224,7 +224,7 @@ int GWClientWP::receive (MessageRef& mref)
       // advertisement for a local connection?
       if( type == Socket::UNIX )
       {
-        if( !dsp()->localData(GWLocalServer).as_string().length() )
+        if( !dsp()->localData(GWLocalServer).as<string>().length() )
           lprintf(2,"peer-adv %s@%s:%d: no unix server here, initiating connection",peerid.toString().c_str(),host.c_str(),port); 
         else if( address().peerid() < peerid )
           lprintf(2,"peer-adv %s@%s:%d: higher rank, initiating connection",peerid.toString().c_str(),host.c_str(),port);
@@ -236,7 +236,7 @@ int GWClientWP::receive (MessageRef& mref)
       }
       else // network connection
       {
-        if( !dsp()->localData(GWNetworkServer).as_int() < 0 )
+        if( !dsp()->localData(GWNetworkServer).as<int>() < 0 )
           lprintf(2,"peer-adv %s@%s:%d: no network server here, initiating connection",peerid.toString().c_str(),host.c_str(),port); 
         else if( address().peerid() < peerid )
           lprintf(2,"peer-adv %s@%s:%d: higher rank, initiating connection",peerid.toString().c_str(),host.c_str(),port);

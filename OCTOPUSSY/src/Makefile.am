@@ -8,9 +8,11 @@ liboctopussy_la_SOURCES = Dispatcher.cc Octopussy.cc Message.cc  MsgAddress.cc \
 	WPInterface.cc WorkProcess.cc OctopussyDebugContext.cc \
   GWClientWP.cc GWServerWP.cc GatewayWP.cc MTGatewayWP.cc MTGatewayWP2.cc \
   LoggerWP.cc LatencyVector.cc OctopussyConfig.cc \
-  Subscriptions.cc ReflectorWP.cc AppRegistry.cc AppManagerWP.cc \
+  Subscriptions.cc ReflectorWP.cc AppRegistry.cc \
   Octoproxy.cc OctoproxyWP.cc \
   AID-OCTOPUSSY-Registry.cc
+  
+#  AppManagerWP.cc 
   
 
 # script used to generate AID maps

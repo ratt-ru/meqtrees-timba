@@ -23,11 +23,11 @@ WPRef LoggerWP::constructor (DataRecord::Ref &initrecord)
   if( initrecord.valid() )
   {
     const DataRecord &rec = *initrecord;
-    maxlev = rec[AidMax|AidLevel].as_int(maxlev);
+    maxlev = rec[AidMax|AidLevel].as<int>(maxlev);
     if( rec[AidScope].exists() )
       if( rec[AidScope].type() == Tpstring )
       {
-        const string &str = rec[AidScope].as_string();
+        const string &str = rec[AidScope].as<string>();
         if( str == "GLOBAL" )
           scope = Message::GLOBAL;
         else if( str == "HOST" )
@@ -36,10 +36,12 @@ WPRef LoggerWP::constructor (DataRecord::Ref &initrecord)
           scope = Message::LOCAL;
       }
       else
-        scope = rec[AidScope].as_int();
+        scope = rec[AidScope].as<int>();
   }
   return WPRef(new LoggerWP(maxlev,scope),DMI::ANONWR);
 }
+
+
 
 LoggerWP::LoggerWP (int maxlev, int scope)
         : WorkProcess(AidLoggerWP),
@@ -152,12 +154,12 @@ int LoggerWP::receive (MessageRef &mref)
   if( msg.id()[0] == MsgLog && msg.from() != address() && 
       msg.payloadType() == TpDataRecord )
   {
-    AtomicID type = msg[AidType].as_AtomicID(LogNormal);
-    int lev = msg[AidLevel].as_int(0);
+    AtomicID type = msg[AidType].as<AtomicID>(LogNormal);
+    int lev = msg[AidLevel].as<int>(0);
     // compare to our log level
     if( lev <= level() )
     {
-      const string &str = msg[AidText].as_string();
+      const string &str = msg[AidText].as<string>();
       logMessage(msg.from().toString(),str,lev,type);
     }
   }

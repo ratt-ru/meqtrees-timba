@@ -10,9 +10,18 @@
 
 #ifndef _defined_id_TpMessage
 #define _defined_id_TpMessage 1
-const TypeId TpMessage(-1067);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:49
+const TypeId TpMessage(-1067);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/MSVisAgent/src/MSVisAgent.aidlist:14
 const int TpMessage_int = -1067;
 class Message;
+            template<>
+            class DMIBaseTypeTraits<Message> : public TypeTraits<Message>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMessage_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              typedef const Message & ContainerReturnType;
+            };
 #endif
 
 

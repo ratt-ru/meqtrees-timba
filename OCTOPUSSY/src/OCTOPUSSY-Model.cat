@@ -10338,14 +10338,14 @@
 				default_color 	TRUE)
 			    label      	(object ItemLabel
 				Parent_View 	@6
-				location   	(1665, 1109)
+				location   	(1665, 1130)
 				nlines     	1
 				max_width  	446
 				justify    	0
 				label      	"WPRef")
 			    stereotype 	(object ItemLabel
 				Parent_View 	@6
-				location   	(1665, 1059)
+				location   	(1665, 1063)
 				anchor     	10
 				nlines     	1
 				max_width  	446
@@ -11171,7 +11171,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@46
-			location   	(71, 403)
+			location   	(71, 424)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	308
@@ -11179,7 +11179,7 @@
 			label      	"MessageRef")
 		    stereotype 	(object ItemLabel
 			Parent_View 	@46
-			location   	(71, 353)
+			location   	(71, 357)
 			fill_color 	13434879
 			anchor     	10
 			nlines     	1
@@ -12228,7 +12228,7 @@
 			default_color 	TRUE)
 		    label      	(object ItemLabel
 			Parent_View 	@99
-			location   	(250, 1829)
+			location   	(250, 1850)
 			fill_color 	13434879
 			nlines     	1
 			max_width  	396
@@ -12236,7 +12236,7 @@
 			label      	"AppMap")
 		    stereotype 	(object ItemLabel
 			Parent_View 	@99
-			location   	(250, 1779)
+			location   	(250, 1783)
 			fill_color 	13434879
 			anchor     	10
 			nlines     	1
@@ -12521,23 +12521,6 @@
 		    line_color 	3342489
 		    fill_color 	13434879
 		    quidu      	"3C7B6A3702E5"
-		    compartment 	(object Compartment
-			Parent_View 	@113
-			location   	(2667, 223)
-			font       	(object Font
-			    size       	10
-			    face       	"arial"
-			    bold       	FALSE
-			    italics    	FALSE
-			    underline  	FALSE
-			    strike     	FALSE
-			    color      	0
-			    default_color 	TRUE)
-			icon_style 	"Icon"
-			fill_color 	13434879
-			anchor     	2
-			nlines     	110
-			max_width  	2200)
 		    width      	1308
 		    height     	5492
 		    annotation 	8)

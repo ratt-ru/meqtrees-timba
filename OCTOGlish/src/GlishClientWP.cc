@@ -11,19 +11,15 @@
 #include <DMI/DataField.h>
 #include <DMI/DataArray.h>
 #include <DMI/DynamicTypeManager.h>
-
 #include <DMI/AIPSPP-Hooks.h>
+#include <DMI/Global-Registry.h>
+#include <DMI/NCIter.h>
 
-// GlishClientWP
-#include "OCTOGlish/GlishClientWP.h"
-
-// array conversion utilities
-#include "OCTOGlish/BlitzToAips.h"
+#include "GlishClientWP.h"
+#include "BlitzToAips.h"
 
 static int dum = aidRegistry_OCTOGlish();
-//##ModelId=3CB562BB0226
-//##ModelId=3DB9369503DE
-//##ModelId=3DB9369600AA
+static int dum2 = aidRegistry_Global();
 
 
 // Class GlishClientWP 
@@ -177,8 +173,8 @@ bool GlishClientWP::start ()
 //##ModelId=3CBABEA10165
 void GlishClientWP::stop ()
 {
-  if( evsrc && connected )
-    evsrc->postEvent("exit",GlishValue());
+//  if( evsrc && connected )
+//    evsrc->postEvent("//exit",GlishValue());
 }
 
 //##ModelId=3CBACB920259
@@ -230,7 +226,8 @@ int GlishClientWP::receive (MessageRef &mref)
   GlishRecord rec;
   if( messageToGlishRec(mref.deref(),rec) )
   {
-    evsrc->postEvent("receive",rec);
+    string ev = mref->id().toString('_');
+    evsrc->postEvent(ev.c_str(),rec);
   }
   else
   {
@@ -371,6 +368,16 @@ static bool makeGlishArray (GlishArray &arr,const NestableContainer &nc,TypeId t
     case Tpstring_int:
         arr = GlishArray(nc[HIID()].as_AipsArray<String>());
         break;
+    case TpHIID_int:
+    {
+        NCConstIter<HIID> nci(nc[HIID()]);
+        Vector<String> vec(nci.size());
+        for( int i=0; i<nci.size(); i++,nci++ )
+          vec[i] = (*nci).toString();
+        arr = GlishArray(vec);
+        arr.addAttribute("is_hiid",GlishArray(True));
+        break;
+    }
     default:
         return False; // non-supported type
   }
@@ -388,12 +395,12 @@ void GlishClientWP::recToGlish (const DataRecord &rec, GlishRecord& glrec)
   int size;
   while( rec.getFieldIter(iter,id,type,size) )
   {
-    const DataField &field = rec[id].as_DataField();
+    const DataField &field = rec[id].as<DataField>();
     #ifdef USE_THREADS
     // obtain mutex on the datafield
     Thread::Mutex::Lock lock(field.mutex());
     #endif
-    string name = id.toString();
+    string name = id.toString('_');
     GlishRecord subrec;
     bool isIndex = ( id[id.size()-1] == AidIndex );
     
@@ -411,7 +418,7 @@ void GlishClientWP::recToGlish (const DataRecord &rec, GlishRecord& glrec)
     {
       if( size == 1 )  // one record mapped directly
       {
-        recToGlish(field[HIID()].as_DataRecord(),subrec);
+        recToGlish(field[HIID()].as<DataRecord>(),subrec);
       }
       else // array of records mapped as record of records
       {
@@ -419,7 +426,7 @@ void GlishClientWP::recToGlish (const DataRecord &rec, GlishRecord& glrec)
         for( int i=0; i<size; i++ )
         {
           GlishRecord subsubrec;
-          recToGlish(field[i].as_DataRecord(),subsubrec);
+          recToGlish(field[i],subsubrec);
           char num[32];
           sprintf(num,"%d",i);
           subrec.add(num,subsubrec);
@@ -440,7 +447,7 @@ void GlishClientWP::recToGlish (const DataRecord &rec, GlishRecord& glrec)
         GlishArray arr;
         string subname = size == 1 ? name : Debug::ssprintf("%d",i);
         // try to map array to glish array
-        const DataArray &dataarray = field[i].as_DataArray();
+        const DataArray &dataarray = field[i];
         if( makeGlishArray(arr,dataarray,dataarray.elementType(),isIndex) )
         {
           arr.addAttribute("is_dataarray",GlishArray(True));
@@ -460,7 +467,7 @@ void GlishClientWP::recToGlish (const DataRecord &rec, GlishRecord& glrec)
       }
     }
     // case (a): map to array (or (g) if not a Glish type)
-    else if( TypeInfo::isNumeric(type) || type == Tpstring )
+    else if( TypeInfo::isNumeric(type) || type == Tpstring || type == TpHIID )
     {
       GlishArray arr;
       // try to map to a Glish array
@@ -611,10 +618,19 @@ static DataField::Ref makeDataField (const GlishArray &arr,bool isIndex)
     {
         Vector<String> array;
         arr.get(array);
-        ref <<= new DataField(Tpstring,array.nelements(),DMI::WRITE);
+        bool is_hiid = arr.attributeExists("is_hiid");
+        ref <<= new DataField(is_hiid ? TpHIID : Tpstring,array.nelements(),DMI::WRITE);
         DataField &field = ref.dewr();
-        for( uint i=0; i < array.nelements(); i++ )
-          field[i] = array(i);
+        if( is_hiid )
+        {
+          for( uint i=0; i < array.nelements(); i++ )
+            field[i] = HIID(array(i));
+        }
+        else
+        {
+          for( uint i=0; i < array.nelements(); i++ )
+            field[i] = array(i);
+        }
         return ref;
     }
     
@@ -634,7 +650,7 @@ void GlishClientWP::glishToRec (const GlishRecord &glrec, DataRecord& rec)
     string field_name = glrec.name(i);
     try // handle failed fields gracefully
     {
-      HIID id = field_name;
+      HIID id(field_name,"_");
       GlishValue val = glrec.get(i);
       bool isIndex = ( id[id.size()-1] == AidIndex );
 
@@ -646,8 +662,9 @@ void GlishClientWP::glishToRec (const GlishRecord &glrec, DataRecord& rec)
       {
         GlishArray arr = val;
         IPosition shape = arr.shape();
-        // 1D array marked with "is_datafiled" attribute maps to DataField
-        if( shape.nelements() == 1 && val.attributeExists("is_datafield") )
+        // 1D array marked with "is_datafield" attribute maps to DataField
+        if( shape.nelements() == 1 && 
+            ( val.attributeExists("is_datafield") || val.attributeExists("is_hiid") ) )
           rec[id] <<= makeDataField(arr,isIndex);
         else // other arrays map to DataArrays
           rec[id] <<= makeDataArray(arr,isIndex);

@@ -60,7 +60,7 @@ int IMTestWP::receive (MessageRef& mref)
     // privatize message & payload
     Message & msg = mref.privatize(DMI::WRITE | DMI::DEEP);
     
-    string content = msg["Content"].as_string();
+    string content = msg["Content"].as<string>();
     cout << "Received msg: " << content << endl;
     
     if (itsIsWriter) msg["Content"] = "from master";

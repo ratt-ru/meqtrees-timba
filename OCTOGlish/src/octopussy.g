@@ -1,4 +1,3 @@
-
 pragma include once
 
 include "note.g";
@@ -30,7 +29,12 @@ octopussy := function (wpclass="",server="./octoglish",options="",autoexit=T)
       fail paste('server',server,'could not be started');
     print "connected";
     self.opClient::Died := F;
-    whenever self.opClient->fail do self.opClient::Died := T;
+    # set up fail/exit handler
+    whenever self.opClient->["fail done"] do 
+    {
+      self.opClient::Died := T;
+      print 'octoglish: remote client has terminated with event ',$name,$value;
+    }
     return T;
   }
   
@@ -195,29 +199,17 @@ octopussy := function (wpclass="",server="./octoglish",options="",autoexit=T)
       fail 'send() failed';
   }
 
-  const public.receive := function (autoexit=T)
+  const public.receive := function (ref value)
   {
     wider self;
     # check that we're started
     if( !self.started )
       fail 'octopussy not started';
     # wait for message
-    await self.opClient->receive,self.opClient->exit;
-    if( $name == "receive " )
-    {
-      return $value;
-    }
-    else if( $name == "exit" )
-    {
-      self.opClient::Died := T;
-      if( autoexit )
-      {
-        print "Got 'exit' event, exiting";
-        exit 1;
-      }
-      fail 'remote client has terminated';
-    }
-    fail paste('unexpected event',$name);
+    await self.opClient->*;
+    val value := $value;
+    print "got event: ",$name;
+    return $name;
   }
   
   const public.state := function ()
@@ -236,6 +228,12 @@ octopussy := function (wpclass="",server="./octoglish",options="",autoexit=T)
       return public.publish("WorkProcess.State");
     }
     return T;
+  }
+  
+  const public.agentref := function ()
+  {
+    wider self;
+    return ref self.opClient;
   }
   
   const public.connected := function ()
@@ -295,6 +293,16 @@ test_octopussy := function (server="./test_glish",options="")
     }
   }
 }
+
+# makes a HIID object from a string
+hiid := function(str)
+{
+  value := str;
+  value::is_hiid = T;
+  return value;
+}
+
+
 
 #test_octopussy();
 #exit 0;

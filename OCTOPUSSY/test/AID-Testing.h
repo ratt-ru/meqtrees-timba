@@ -15,7 +15,7 @@ const int AidCount_int = -1108;
 #endif
 #ifndef _defined_id_AidData
 #define _defined_id_AidData 1
-const AtomicID AidData(-1107);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/test/Testing.aidlist:2
+const AtomicID AidData(-1107);                    // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/AppAgent/AppAgent/src/AppAgent.aidlist:7
 const int AidData_int = -1107;
 #endif
 #ifndef _defined_id_AidEchoWP
@@ -50,7 +50,7 @@ const int AidReply_int = -1102;
 #endif
 #ifndef _defined_id_AidTimestamp
 #define _defined_id_AidTimestamp 1
-const AtomicID AidTimestamp(-1032);               // from /home/oms/LOFAR/autoconf_share/../CEP/CPA/OCTOPUSSY/src/OCTOPUSSY.aidlist:73
+const AtomicID AidTimestamp(-1032);               // from /home/oms/LOFAR/autoconf_share/../DMI/src/DMI.aidlist:27
 const int AidTimestamp_int = -1032;
 #endif
 

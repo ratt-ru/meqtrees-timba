@@ -134,13 +134,13 @@ int EchoWP::receive (MessageRef& mref)
 #endif
     // privatize message & payload
     Message & msg = mref.privatize(DMI::WRITE,2);
-    lprintf(3,"ping(%d) from %s\n",msg["Count"].as_int(),mref->from().toString().c_str());
+    lprintf(3,"ping(%d) from %s\n",msg["Count"].as<int>(),mref->from().toString().c_str());
     // timestamp the reply
-    Timestamp ts = msg["Timestamp"].as_Timestamp();
-    msg["Timestamp"] = msg["Reply.Timestamp"].as_Timestamp();
+    Timestamp ts = msg["Timestamp"].as<Timestamp>();
+    msg["Timestamp"] = msg["Reply.Timestamp"].as<Timestamp>();
     msg["Reply.Timestamp"] = now;
     // process the data block if it's there
-    if( msg["Process"].as_bool() )
+    if( msg["Process"].as<bool>() )
     {
       NCIter_double data(msg["Data"]);
       lprintf(4,"sqrting data block of %d doubles\n",data.size());
@@ -252,7 +252,7 @@ void EchoWP::sendPing (int pc)
       data.next(fill);
   }
   lprintf(4,"ping %d, publishing %s\n",pcount,msg.debug(1));
-  lprintf(3,"sending ping(%d)\n",msg["Count"].as_int());
+  lprintf(3,"sending ping(%d)\n",msg["Count"].as<int>());
   MessageRef ref(msg,DMI::ANON|DMI::WRITE);
   publish(ref);
 }
