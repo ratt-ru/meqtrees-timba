@@ -7,6 +7,7 @@ from dmitypes import *
 import qt_threading
 import app_pixmaps as pixmaps
 import dmi_repr
+import traceback
 from gridded_workspace import *
 
 MainApp = None;
@@ -148,6 +149,7 @@ class HierBrowser (object):
     return self._lv;
   def clear (self):
     self._lv.clear();
+    self.items = [];
     for attr in ('_content','_content_list'):
       if hasattr(self._lv,attr):
         delattr(self._lv,attr);
@@ -527,15 +529,19 @@ class app_proxy_gui(verbosity,QMainWindow):
       ev0 = ev;
       if int(ev0[-1]) >= 0:
         ev0 = ev0[:-1];
+#      print "ev0:",ev0;
+#      print "ev0 handlers: ",self._ce_handler_map.get(ev0,());
       # execute procedures from the custom map
       for handler in self._ce_handler_map.get(ev0,()):
         handler(ev,value);
       # print 'customEvent returning';
     except:
-      (exctype,excvalue,traceback) = sys.exc_info();
+      (exctype,excvalue,tb) = sys.exc_info();
       self.dprint(0,'exception',str(exctype),'while handling event ',ev);
-      self.dprint(0,'exception value is',excvalue);
-      self.dprint(2,'event value was',value);
+      traceback.print_exc();
+      #self.dprint(0,'exception value is',excvalue);
+      #self.dprint(2,'event value was',value);
+      #print_tb();
       
 ##### custom event handlers for various messages
   def ce_Hello (self,ev,value):

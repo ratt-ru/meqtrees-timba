@@ -160,6 +160,7 @@ class TreeBrowser (object):
 class meqserver_gui (app_proxy_gui):
   def __init__(self,app,*args,**kwargs):
     self.mqs = app;
+    self.mqs.track_results(False);
     # init standard proxy GUI
     app_proxy_gui.__init__(self,app,*args,**kwargs);
     # add handlers for result log
@@ -196,6 +197,8 @@ class meqserver_gui (app_proxy_gui):
     self.treebrowser.clear();
     self.treebrowser.connected(True);  
     self.resultlog.clear();
+    wtop = self.resultlog.wtop();
+    self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
     
   def ce_mqs_Bye (self,ev,value):
     app_proxy_gui.ce_Hello(self,ev,value);

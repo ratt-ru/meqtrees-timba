@@ -58,16 +58,18 @@ class meqserver (app_proxy):
     # set gui arg
     if 'gui' in kwargs and kwargs['gui'] and not callable(kwargs['gui']):
       kwargs['gui'] = meqserver_gui;
+    self._we_track_results = None;
     # init base class  
     app_proxy.__init__(self,appid,launch=launch,spawn=spawn,**kwargs);
-    
     # setup own state
-    self._we_track_results = None;
     self._pprint = PrettyPrinter(width=78,stream=sys.stderr);
-    if self.get_verbose() > 0:
+    # if base/gui init() has explicitly disabled result tracking, _we_track_results
+    # will be False rather than None
+    if self.get_verbose() > 0 and self._we_track_results is None:
       self.dprint(1,'verbose>0: auto-enabling node_result output');
       self.track_results(True);
       self.dprint(1,'you can disable this by calling .track_results(False)');
+    
   
   # define meqserver-specific methods
   def meq (self,command,args=None,wait=False,silent=False):
@@ -146,6 +148,7 @@ class meqserver (app_proxy):
       self.dprint(2,'disabling auto-printing of node_result events');
       if self._we_track_results:
         self._we_track_results.deactivate();
+      self._we_track_results = False;
 
 mqs = None;
 
