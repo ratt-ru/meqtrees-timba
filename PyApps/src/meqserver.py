@@ -4,7 +4,7 @@ import octopussy
 import sys
 import string
 import time
-from pprint import PrettyPrinter
+from pretty_print import PrettyPrinter
 from app_proxy import app_proxy
 from dmitypes import *
 
