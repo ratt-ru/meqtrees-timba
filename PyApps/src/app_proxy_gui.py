@@ -303,7 +303,7 @@ class MessageLogger (Logger):
 #--- app_proxy_gui() class
 #--------------------------------------------------------------
 class app_proxy_gui(verbosity,QMainWindow):
-  def __init__(self,app,verbose=0,size=(500,500),*args,**kwargs):
+  def __init__(self,app,verbose=0,size=(500,500),poll_app=None,*args,**kwargs):
     """create and populate the main application window""";
     #------ starts the main app object and event thread, if not already started
     self._qapp = mainapp();
@@ -327,6 +327,10 @@ class app_proxy_gui(verbosity,QMainWindow):
       hiid("hello"):            [self.ce_Hello,self.ce_UpdateState],
       hiid("bye"):              [self.ce_Bye,self.ce_UpdateState],
       hiid("app.notify.state"): [self.ce_UpdateState]                };
+      
+    #------ start timer when in polling mode
+    if poll_app:
+      self.startTimer(poll_app);
       
     self.dprint(2,"init complete");
 
@@ -407,11 +411,20 @@ class app_proxy_gui(verbosity,QMainWindow):
     QApplication.postEvent(self,QCustomEvent(self.MessageEventType,(event,value)));
     self.dprint(5,'_relay_event: event posted');
     # print 'eventRelay returning';
+    
+##### event handler for timer messages
+  def timerEvent (self,event):
+    # check WP for messages
+    self.app.poll();
 
-##### event handlers for octopussy messages
+##### Qt customEvent handler maps to handleAppEvent(). This is used to relay
+#     events
   def customEvent (self,event):
-    (ev,value) = event.data();
-    self.dprint(5,'customEvent:',ev,value);
+    self.handleAppEvent(*event.data());
+
+##### event handler for app events from octopussy
+  def handleAppEvent (self,ev,value):
+    self.dprint(5,'appEvent:',ev,value);
     try:
       report = False;
   #    print value;

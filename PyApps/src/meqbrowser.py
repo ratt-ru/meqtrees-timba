@@ -26,7 +26,7 @@ app_defaults.debuglevels.update({
 app_defaults.args.update({'launch':None,'spawn':None,
                          'verbose':2,'wp_verbose':0 });
 
-def meqbrowse (debug={},**kwargs):
+def meqbrowse (debug={},no_threads=False,**kwargs):
   app_defaults.parse_argv(sys.argv[1:]);
   args = app_defaults.args;
   
@@ -44,16 +44,18 @@ def meqbrowse (debug={},**kwargs):
   # start meqserver
   print args;
   args['gui'] = True;
-  mqs = meqserver.meqserver(**args);
+  mqs = meqserver.meqserver(no_threads=no_threads,**args);
 
   mqs.run_gui();  
   mqs.disconnect();
   octopussy.stop();
   
 if __name__ == '__main__':
-  thread = qt_threading.QThreadWrapper(meqbrowse);
-  print 'starting main thread:';
-  thread.start();
-  thread.join();
-  print 'main thread rejoined, exiting';
+  meqbrowse(no_threads=True);
+  
+#  thread = qt_threading.QThreadWrapper(meqbrowse);
+#  print 'starting main thread:';
+#  thread.start();
+#  thread.join();
+#  print 'main thread rejoined, exiting';
 

@@ -239,6 +239,39 @@ static PyObject * PyProxyWP_receive (PyProxyWP* self,PyObject *args)
 }
 
 // -----------------------------------------------------------------------
+// receive_all
+// returns entire queue as a list, or none if queue is empty
+// -----------------------------------------------------------------------
+static PyObject * PyProxyWP_receive_all (PyProxyWP* self,PyObject *args)
+{
+  if( !PyArg_ParseTuple(args,"") )
+    return NULL;
+  try
+  {
+    Message::Ref mref;
+    WPInterface &wp = self->wpref();
+    if( !wp.isRunning() )
+      returnError(NULL,OctoPython,"proxy wp no longer running");
+    if( wp.queue().empty() )
+      returnNone; 
+    Thread::Mutex::Lock lock(wp.queueCondition());
+    int n = wp.queue().size();
+    if( !n )
+      returnNone; 
+    PyObjectRef pylist = PyList_New(n);
+    for( int i=0; i<n; i++ )
+    {
+      mref = wp.queue().front().mref;
+      wp.queue().pop_front();
+      PyList_SET_ITEM(*pylist,i,pyFromMessage(*mref));
+    }
+    return ~pylist;
+  }
+  catchStandardErrors(NULL);
+}
+
+
+// -----------------------------------------------------------------------
 // receive_threaded
 // returns first message from WP's queue (threaded version)
 // -----------------------------------------------------------------------
@@ -298,6 +331,8 @@ static PyMethodDef PyProxyWP_methods[] = {
                   "number of pending messages in queue" },
     {"receive",     (PyCFunction)PyProxyWP_receive, METH_VARARGS,
                   "receives message from queue" },
+    {"receive_all", (PyCFunction)PyProxyWP_receive_all, METH_VARARGS,
+                  "receives all messages from queue" },
     {"receive_threaded",(PyCFunction)PyProxyWP_receive_threaded, METH_VARARGS,
                   "receives message from queue (threaded version)" },
     {NULL}  /* Sentinel */

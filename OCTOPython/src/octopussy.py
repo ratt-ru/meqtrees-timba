@@ -209,6 +209,21 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     self.dprintf(3,"firing %d matched whenevers\n",len(pending_list));
     for we in pending_list:
       we.fire(msg);
+      
+  # poll_pending_events()
+  # Calls receive() in a continuous loop, processes events by invoking
+  # their whenever handlers.
+  def poll_pending_events (self):
+      try:  
+        self.dprint(3,"going into receive_all()");
+        msgs = self.receive_all();
+      except octopython.OctoPythonError,value:
+        self.dprint(1,"exiting on receive error:",value);
+        return None;
+      # dispatch all messages
+      if msgs:
+        for msg in msgs:
+          self._dispatch_whenevers(msg);
     
   # event_loop()
   # Calls receive() in a continuous loop, processes events by invoking

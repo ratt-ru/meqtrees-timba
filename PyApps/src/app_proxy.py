@@ -23,20 +23,27 @@ class app_proxy (verbosity):
   
   def __init__(self,appid,launch=None,spawn=None,
                verbose=0,wp_verbose=0,
-               gui=False):
+               gui=False,no_threads=False):
     verbosity.__init__(self,verbose,name=str(appid));
     self.appid = hiid(appid);
     self._rcv_prefix = self.appid + "Out";   # messages from app
     self._snd_prefix = self.appid + "In";       # messages to app
     self.dprint(1,"initializing");
 
-    # start a proxy wp
+    # start a proxy wp. Select threaded or polled version, depending on
+    # arguments
     if wp_verbose is None:
       wp_verbose = verbose;
-    # select threading API
-    if gui: api = qt_threading;
-    else:   api = threading;
-    self._pwp = octopussy.proxy_wp_thread(str(appid),verbose=wp_verbose,thread_api=api);
+    
+    if no_threads:
+      self.dprint(1,"running in non-threaded mode");
+      self._pwp = octopussy.proxy_wp(str(appid),verbose=wp_verbose);
+    else:
+      self.dprint(1,"running in threaded mode");
+      # select threading API
+      if gui: api = qt_threading;
+      else:   api = threading;
+      self._pwp = octopussy.proxy_wp_thread(str(appid),verbose=wp_verbose,thread_api=api);
       
     # subscribe and register handler for app events
     self._pwp.whenever(self._rcv_prefix+"*",self._event_handler,subscribe=True);
@@ -89,6 +96,7 @@ class app_proxy (verbosity):
     else: # no launch spec, simply wait for a connection, and request state when it's there
       self._req_state = True;
       pass;
+    self._gui_event_handler = lambda ev,value:None;
     
     # start the gui, if so specified
     if gui:
@@ -100,11 +108,14 @@ class app_proxy (verbosity):
         self._gui = gui;
       else:
         self._gui = app_proxy_gui.app_proxy_gui;
-      # get the main app and schedule a GUI construction event
-      mainapp = app_proxy_gui.mainapp();
-      mainapp.postCallable(self._construct_gui);
-      # after GUI has been constructed, start WP event thread
-      mainapp.postCallable(self._pwp.start);
+      if no_threads: # non-threaded: construct GUI here & now
+        self._construct_gui(poll_app=50);
+      else:
+        # threaded model: post a GUI construction event to the main app
+        mainapp = app_proxy_gui.mainapp();
+        mainapp.postCallable(self._construct_gui);
+        # after GUI has been constructed, start WP event thread
+        mainapp.postCallable(self._pwp.start);
     else:     
       self._gui = None;
       # start the wp event thread now
@@ -115,16 +126,27 @@ class app_proxy (verbosity):
     self.disconnect();
     
   def disconnect (self):
-    self.dprint(1,"stopping proxy_wp thread");
-    self._pwp.stop();
-    self.dprint(1,"stopped");
+    if hasattr(self._pwp,'stop'):
+      self.dprint(1,"stopping proxy_wp thread");
+      self._pwp.stop();
+      self.dprint(1,"stopped");
+    
+  # poll: dispatches all pending events. Only useful in the no_thread
+  # mode (when an event thread is not running)
+  def poll (self):
+    return self._pwp.poll_pending_events();
     
   # message handler to actually construct an application's GUI
-  def _construct_gui (self):
+  def _construct_gui (self,poll_app=None):
     self.dprint(2,"_construct_gui: creating GUI");
-    self._gui = self._gui(self,verbose=self.get_verbose());
+    self._gui = self._gui(self,poll_app=poll_app,verbose=self.get_verbose());
     self.dprint(2,"_construct_gui: showing GUI");
     self._gui.show();
+    if poll_app:
+      self._gui_event_handler = self._gui.handleAppEvent;
+    else:
+      self._gui_event_handler = self._gui._relay_event;
+    
     
   def name(self):
     return str(self.appid);
@@ -141,8 +163,7 @@ class app_proxy (verbosity):
     if self._req_state:
       self.send_command("Request.State");
       self.send_command("Request.Status");
-    if self._gui:
-      self._gui._relay_event(self.hello_event,getattr(msg,'from'));
+    self._gui_event_handler(self.hello_event,getattr(msg,'from'));
       
   def _bye_handler (self,msg):
     self.dprint(2,"got bye message:",msg);
@@ -150,8 +171,7 @@ class app_proxy (verbosity):
     if self.state is None:
       self.state = -1;
       self.statestr = 'no connection';
-    if self._gui:
-      self._gui._relay_event(self.bye_event,getattr(msg,'from'));
+    self._gui_event_handler(self.bye_event,getattr(msg,'from'));
 
   def _event_handler (self,msg):
     "event handler for app";
@@ -186,8 +206,7 @@ class app_proxy (verbosity):
       self.dprint(2,'   event:',event);
       self.dprint(3,'   value:',value);
     # forward to gui
-    if self._gui:
-      self._gui._relay_event(event,value);
+    self._gui_event_handler(event,value);
     
   def ensure_connection (self):
     "If app is not connected, blocks until it is";
