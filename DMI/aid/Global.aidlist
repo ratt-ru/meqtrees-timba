@@ -334,7 +334,7 @@ meqspigot                        1330       ; from /home/oms/LOFAR/CEP/CPA/AppAg
 #meqsqr                          1249       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Sqr.h:29
 #meqsqrt                         1251       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Sqrt.h:29
 #meqstatpointsourcedft           1468       ; from /home/diepen/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/StatPointSourceDFT.h:30
-#meqstripper                     1547       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Stripper.h:29
+meqstripper                      1547       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Stripper.h:29
 #meqsubtract                     1232       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Subtract.h:29
 meqsubtractsource                1347       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqSubtractSource.h:14
 meqsum                           1531       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/Sum.h:29
@@ -344,7 +344,7 @@ meqsum                           1531       ; from /home/assendorp/LOFAR/CEP/CPA
 #meqtocomplex                    1217       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ToComplex.h:29
 #mequvw                          1239       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/UVW.h:29
 meqvellset                       1369       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/VellSet.h:34
-#meqvistest                      1536       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/VisTest.h:29
+meqvistest                       1536       ; from /home/twillis/LOFAR/CEP/CPA/PSS4/MeqNodes/src/VisTest.h:29
 meqwvl                           1353       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqWVL.h:14
 meqwvl2                          1348       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqWVL2.h:14
 meqzeroflagger                   1433       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/ZeroFlagger.h:29
@@ -418,6 +418,7 @@ priority                         1314       ; from /home/oms/LOFAR/CEP/CPA/AppAg
 process                          1111       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
 processing                       1333       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:12
 product                          1203       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
+profile                          1561       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqNodes/src/DataCollect.h:30
 proper                           1184       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:34
 publish                          1055       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MsgAddress.h:12
 python                           1464       ; from /home/oms/LOFAR/CEP/CPA/OCTOPython/src/OctoPython.h:6
