@@ -25,7 +25,7 @@
 #
 # Macro to check for FFTW and RFFTW installation
 #
-# lofar_FFTW(option, [DEFAULT-PREFIX])
+# lofar_FFTW(option)
 #     option 0 means that FFTW is optional, otherwise mandatory.
 #
 # e.g. lofar_FFTW(1)
@@ -35,107 +35,5 @@ AC_DEFUN(lofar_FFTW,dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], [lfr_option=0], [lfr_option=$1])
-AC_ARG_WITH(fftw,
-	[  --with-fftw[=PFX]     prefix where FFTW is installed (default=]DEFAULT_FFTW_PREFIX[)],
-	[with_fftw=$withval],
-	[with_fftw=""])
-AC_ARG_WITH(fftw-libdir,
-	[  --with-fftw-libdir=PFX   prefix where FFTW library is installed],
-	[with_fftw_libdir=$withval],
-	[with_fftw_libdir=""])
-[
-enable_fftw=no
-if test "$lfr_option" = "1"; then
-  enable_fftw=yes
-fi
-if test "$with_fftw" != "no"; then
-  if test "$with_fftw" = ""; then
-    fftw_prefix=
-    if test "$with_fftw_libdir" != ""; then
-      enable_fftw=yes
-    fi
-  else
-    if test "$with_fftw" = "yes"; then
-      fftw_prefix=
-    else
-      fftw_prefix=$with_fftw
-    fi
-    enable_fftw=yes
-  fi
-##
-## Look for header file in suggested locations or in its include subdir
-##
-  fftw_inclist=$fftw_prefix;
-  if test "$fftw_prefix" = ""; then
-    fftw_inclist=
-    lfr_buildcomp=`echo $lofar_variant | sed -e "s/_.*//"`
-    if test "$lfr_buildcomp" != ""; then
-      fftw_inclist="/usr/local/fftw/$lfr_buildcomp";
-    fi
-    if test "$lfr_buildcomp" != "$lofar_compiler"; then
-      fftw_inclist="$fftw_inclist /usr/local/fftw/$lofar_compiler";
-    fi
-    fftw_inclist="$fftw_inclist /usr/local";
-  fi
-  for bdir in $fftw_inclist
-  do
-    ]AC_CHECK_FILE([$bdir/include/fftw.h],
-			[lfr_header_fftw=$bdir/include],
-			[lfr_header_fftw=no])[
-    if test "$lfr_header_fftw" != "no" ; then
-      ]AC_CHECK_FILE([$bdir/include/rfftw.h],
-			[lfr_header_fftw=$bdir/include],
-			[lfr_header_fftw=no])[
-      if test "$lfr_header_fftw" != "no" ; then
-        if test "$with_fftw_libdir" = ""; then
-          with_fftw_libdir=$bdir/lib;
-          break;
-        fi
-      fi
-    fi
-  done
-
-  if test "$with_fftw_libdir" != ""; then
-    ]AC_CHECK_FILE([$with_fftw_libdir/libfftw.a],
-			[lfr_lib_fftw=$with_fftw_libdir],
-			[lfr_lib_fftw=no])[
-    if test "$lfr_lib_fftw" != "no" ; then
-      ]AC_CHECK_FILE([$with_fftw_libdir/librfftw.a],
-			[lfr_lib_fftw=$with_fftw_libdir],
-			[lfr_lib_fftw=no])[
-    fi
-  fi
-
-  if test "$lfr_header_fftw" != "no"  -a  "$lfr_lib_fftw" != "no" ; then
-    FFTW_CPPFLAGS="-I$lfr_header_fftw"
-    FFTW_CXXFLAGS=
-    if test "$lofar_compiler" = "gnu"; then
-      FFTW_CXXFLAGS="-Wno-unused -ftemplate-depth-30"
-    fi
-    FFTW_LDFLAGS="-L$lfr_lib_fftw"
-    FFTW_LIBS="-lrfftw -lfftw -lm"
-
-    CPPFLAGS="$CPPFLAGS $FFTW_CPPFLAGS"
-    CXXFLAGS="$CXXFLAGS $FFTW_CXXFLAGS"
-    LDFLAGS="$LDFLAGS $FFTW_LDFLAGS"
-    LIBS="$LIBS $FFTW_LIBS"
-]
-dnl
-    AC_SUBST(CPPFLAGS)dnl
-    AC_SUBST(CXXFLAGS)dnl
-    AC_SUBST(LDFLAGS)dnl
-    AC_SUBST(LIBS)dnl
-dnl
-    AC_DEFINE(HAVE_FFTW, 1, [Define if FFTW is installed])dnl
-[
-  else
-    if test "$enable_fftw" = "yes" ; then
-]
-      AC_MSG_ERROR([Could not find FFTW headers or library in $fftw_prefix])
-[
-    fi
-    enable_fftw=no
-  fi
-fi]
-AM_CONDITIONAL(HAVE_FFTW, [test "$enable_fftw" = "yes"])
+lofar_EXTERNAL(FFTW,[$lfr_option],fftw.h,"fftw rfftw",,,,,-lm)
 ])
