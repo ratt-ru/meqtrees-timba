@@ -191,7 +191,7 @@ int pyToRecord (DMI::Record::Ref &rec,PyObject *pyobj)
     // convert string to HIID
     HIID id; 
     bool failed = false;
-    try { id = HIID(keystr,0,"._"); }
+    try { id = HIID(keystr,true,"._"); } // allow literals
     catch (...) { failed=true; }
     if( failed )
     {
@@ -604,7 +604,7 @@ PyObject * pyFromRecord (const DMI::Record &dr)
   {
     const ObjRef & content = iter.ref(); 
     cdebug(4)<<"pyFromRecord: "<<iter.id()<<" contains "<<content->objectType()<<endl;
-    string idstr = iter.id().toString('_');
+    string idstr = strlowercase(iter.id().toString('_',false)); // false = do not mark literals with $
     PyObjectRef value = pyFromDMI(*content,EP_CONV_ERROR);
     if( value )
     {

@@ -191,6 +191,8 @@ void TestRecord ()
   Assert( rec["A.B.C.D"].isContainer() );
   Assert( rec["A.B.C.D"].actualType() == TpDMIObjRef );
   Assert( rec["A.B.C.D"].containerType() == TpDMIVec );
+  const Container &cont = rec["A.B.C.D"].as<Container>();
+  Assert( cont[20].type() == Tpint );
   cout<<"Values: {{{"<<(int)(rec["A.B.C.D"][20])<<" "<<(int*)&(rec["A.B.C.D"][20])
       <<"  "<<rec["A.B.C.D"].as_p<int>()<<" }}}\n";
   Assert( rec["A.B.C.D/20"].as<int>() == 5 );
@@ -515,6 +517,13 @@ int main ( int argc,const char *argv[] )
     test = test|5;
     cout<<test.toString()<<endl;
     cout<<HIID("_._.:6").toString()<<endl;
+    
+    const string lit = "uhfu.efhf.ihusjka.sjkjk";
+    const string slit = "$" + lit;
+    HIID hlit1(slit),hlit2(lit,true,"_");
+    Assert(hlit1 == hlit2);
+    cout<<hlit1<<endl;
+    cout<<hlit1.toString('.',false)<<endl;
     TestCountedRefs();
     TestVec();
     TestList();

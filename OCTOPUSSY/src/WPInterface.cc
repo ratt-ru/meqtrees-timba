@@ -174,7 +174,7 @@ int WPInterface::deliver (Thread::Mutex::Lock &lock)
 
       if( id[1] == AidTimeout ) // deliver timeout message
       {
-        FailWhen( id.size() < 2,"malformed "+id.toString()+" message" );
+        FailWhen( id.size() < 2,"malformed "+id.toString('.')+" message" );
         HIID to_id = id.subId(2);
         res = timeout(to_id);
         if( res == Message::CANCEL )
@@ -183,7 +183,7 @@ int WPInterface::deliver (Thread::Mutex::Lock &lock)
       }
       else if( id[1] == AidInput ) // deliver input message
       {
-        FailWhen( id.size() != 3,"malformed "+id.toString()+" message" );
+        FailWhen( id.size() != 3,"malformed "+id.toString('.')+" message" );
         int fd=id[2],flags=msg.state();
         if( flags )  // no flags? Means the input has been already removed. Ignore
         {
@@ -195,7 +195,7 @@ int WPInterface::deliver (Thread::Mutex::Lock &lock)
       }
       else if( id[1] == AidSignal ) // deliver input message
       {
-        FailWhen( id.size() != 3,"malformed "+id.toString()+" message" );
+        FailWhen( id.size() != 3,"malformed "+id.toString('.')+" message" );
         int signum = id[2];
         res = signal(signum);
         if( res == Message::CANCEL )
@@ -203,7 +203,7 @@ int WPInterface::deliver (Thread::Mutex::Lock &lock)
         res = Message::ACCEPT;
       }
       else
-        Throw("unexpected event" + id.toString());
+        Throw("unexpected event" + id.toString('.'));
     }
     else // deliver regular message
     {
@@ -655,7 +655,7 @@ bool WPInterface::do_poll (ulong tick)
       return false;
     if( id[1] == AidTimeout ) // deliver timeout message
     {
-      FailWhen( id.size() < 2,"malformed "+id.toString()+" message" );
+      FailWhen( id.size() < 2,"malformed "+id.toString('.')+" message" );
       HIID to_id = id.subId(2);
       res = Message::ACCEPT;
       if( autoCatch() )
@@ -675,7 +675,7 @@ bool WPInterface::do_poll (ulong tick)
     }
     else if( id[1] == AidInput ) // deliver input message
     {
-      FailWhen( id.size() != 3,"malformed "+id.toString()+" message" );
+      FailWhen( id.size() != 3,"malformed "+id.toString('.')+" message" );
       int fd=id[2],flags=msg.state();
       if( flags )  // no flags? Means the input has been already removed. Ignore
       {
@@ -698,7 +698,7 @@ bool WPInterface::do_poll (ulong tick)
     }
     else if( id[1] == AidSignal ) // deliver input message
     {
-      FailWhen( id.size() != 3,"malformed "+id.toString()+" message" );
+      FailWhen( id.size() != 3,"malformed "+id.toString('.')+" message" );
       int signum = id[2];
       res = Message::ACCEPT;
       if( autoCatch() )
@@ -717,7 +717,7 @@ bool WPInterface::do_poll (ulong tick)
       res = Message::ACCEPT;
     }
     else
-      Throw("unexpected event" + id.toString());
+      Throw("unexpected event" + id.toString('.'));
     // Once the message has been delivered, reset its state to 0.
     // This helps the dispatcher keep track of when a new event message is
     // required (as opposed to updating a previous message that's still
@@ -967,7 +967,7 @@ bool WPInterface::subscribe (const HIID &id, const MsgAddress &scope)
   // then re-publish the whole thing.
   // (If not yet started, then everything will be eventually published 
   // by do_start(), above)
-  dprintf(2)("subscribing to %s scope %s\n",id.toString().c_str(),scope.toString().c_str());
+  dprintf(2)("subscribing to %s scope %s\n",id.toString('.').c_str(),scope.toString().c_str());
   bool change = subscriptions.add(id,scope);
   if( change  && started )
     publishSubscriptions();
@@ -981,7 +981,7 @@ bool WPInterface::unsubscribe (const HIID &id)
   // then re-publish the whole thing.
   // (If not yet started, then everything will be eventually published 
   // by do_start(), above)
-  dprintf(2)("unsubscribing from %s\n",id.toString().c_str());
+  dprintf(2)("unsubscribing from %s\n",id.toString('.').c_str());
   bool change = subscriptions.remove(id);
   if( change && started )
     publishSubscriptions();
@@ -998,7 +998,7 @@ int WPInterface::receive (Message::Ref &mref)
 //##ModelId=3C7CC2AB02AD
 int WPInterface::timeout (const HIID &id)
 {
-  dprintf(1)("unhandled timeout(%s)\n",id.toString().c_str());
+  dprintf(1)("unhandled timeout(%s)\n",id.toString('.').c_str());
   return Message::ACCEPT;
 }
 

@@ -168,16 +168,16 @@ class DMIBaseTypeTraits : public TypeTraits<T>
   // TypeId
     //##ModelId=3E9BD91702C2
   enum { typeId = 0 };
+  // what is this type's DMI category? Default is other
+    //##ModelId=3E9BD91702CF
+  enum { TypeCategory = TypeCategories::OTHER };
   // how is this type passed to/returned from a DMI::Container? 
-  // Default is to use TypeTraits::ParameterType
     //##ModelId=3E9BD91402C3
   typedef typename TypeTraits<T>::ParameterType ContainerReturnType;
     //##ModelId=3E9BD91402CD
   typedef typename TypeTraits<T>::ParameterType ContainerParamType;
-  // what is this type's DMI category? Default is other
-    //##ModelId=3E9BD91702CF
-  enum { TypeCategory = TypeCategories::OTHER };
 };
+  
 
 // this uses the base DMI traits to compute some derived ones
 //##ModelId=3E9BD91402E7

@@ -30,6 +30,15 @@ namespace GlishUtil {
   inline string sdebug (int=0,const string & = "",const char * = 0) { return "Glish"; }
 };
 
+static bool isIndexString (const string &str)
+{
+  const string index = strlowercase(AidIndex.toString());
+  const uint index_len = index.length();
+  int pos = str.length() - index_len;
+  return pos >= 0 && strlowercase(str.substr(pos)) == index;
+}
+
+
 // creates a "Failed" casa::GlishValue, used to indicate failed conversions
 GlishArray GlishUtil::makeFailField ( const String &msg )
 {
@@ -105,14 +114,13 @@ GlishRecord GlishUtil::recToGlish (const DMI::Record &rec)
     const HIID &id = iter.id();
     const ObjRef & content = iter.ref(); 
     // convert HIID to record field name
-    string name = strlowercase( id.toString('_') );
-    bool adjustIndex = false;
+    string name;
     // if a single numeric index, convert to anon field form "#xxx"
     if( id.size() == 1 && id.front().index() >= 0 )
       name = Debug::ssprintf("#%d",id.front().index()+1);
     else
-      // is it an ".Index" field (i.e. base needs to be adjusted?)
-      adjustIndex = id.back() == AidIndex;
+      name = strlowercase( id.toString('_',false) ); // do not mark literals with "$"
+    bool adjustIndex = isIndexString(name);
     try
     {
       glrec.add(name,objectToGlishValue(*content,adjustIndex));
@@ -586,10 +594,10 @@ ObjRef GlishUtil::glishValueToObject (const casa::GlishValue &val,bool adjustInd
           }
           else
           {
-            id = HIID(field_name,0,"_");
-            isIndex = ( id[id.size()-1] == AidIndex );
+            id = HIID(field_name,true,"_"); // allow litreal HIIDs
+            isIndex = isIndexString(field_name);
           }
-          dprintf(4)("maps to HIID '%s'\n",id.toString().c_str());
+          dprintf(4)("maps to HIID '%s'\n",id.toString('.').c_str());
           (*rec)[id] <<= glishValueToObject(subval,isIndex);
         }
         catch( std::exception &exc )

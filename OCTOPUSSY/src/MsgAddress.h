@@ -28,6 +28,9 @@ class WPID : public HIID
 
       //##ModelId=3C8F9AAB0103
       AtomicID inst () const;
+      
+      string toString (char separator = '.') const
+      { return HIID::toString(separator); }
 
     // Additional Public Declarations
     //##ModelId=3DB936DB02FA

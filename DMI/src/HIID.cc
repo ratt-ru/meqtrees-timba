@@ -26,6 +26,9 @@
 
 namespace DMI
 {
+  
+// for literal HIIDs, this is used in [0] as a marker
+const int LITERAL_MARKER = 0x7FFFFFFF;
 
 //##ModelId=3DB934880197
 HIID::HIID (const void* block, int sz)
@@ -162,13 +165,25 @@ HIID HIID::splitAtSlash ()
 }
 
 //##ModelId=3C0F8BD5004F
-string HIID::toString (char separator) const
+string HIID::toString (char separator,bool mark_lit) const
 {
-  string s("(null)");
-  if( size()>0 )
+  if( empty() )
+    return "(null)";
+  if( front() == LITERAL_MARKER )
+  {
+    string s(mark_lit?"$":"");
+    const char *buf = reinterpret_cast<const char*>(&(*this)[1]);
+    // max buffer size -- actula string may be shorter
+    uint bufsize = (size()-1)*(sizeof(AtomicID)/sizeof(char));
+    if( bufsize && !buf[bufsize-1] )  // buffer is null-terminated
+      return s + string(buf);
+    else // buffer is full
+      return s + string(buf,buf+bufsize);
+  }
+  else
   {
     const_iterator iter = begin();
-    s = (*iter).toString();
+    string s = (*iter).toString();
     bool sep = ( *iter == AidSlash || *iter == AidRange );
     for( iter++; iter != end(); iter++ )
     {
@@ -178,8 +193,8 @@ string HIID::toString (char separator) const
       s += (*iter).toString();
       sep = newsep;
     }
+    return s;
   }
-  return s;
 }
 
 //##ModelId=3E01BA7A02AF
@@ -252,10 +267,32 @@ bool HIID::operator < (const HIID &right) const
   return oiter != right.end();
 }
 
-
-//##ModelId=3DB9348C0305
-void HIID::addString (const string &str,const string &sepset)
+void HIID::makeLiteral (const string &str)
 {
+  const int ratio = sizeof(AtomicID)/sizeof(char);
+  // work out size to hold literal string
+  uint len = str.length();
+  uint size = len/ratio + ((len%ratio)!=0);
+  uint bufsize = size*ratio;
+  resize(size+1);
+  // mark [0] as literal, and copy string starting from [1]
+  (*this)[0] = LITERAL_MARKER;
+  char *buf = reinterpret_cast<char*>(&(*this)[1]);
+  str.copy(buf,string::npos);
+  // pad with nulls, since buf may be bigger
+  if( bufsize-len )
+    memset(buf+len,0,bufsize-len);
+}
+    
+//##ModelId=3DB9348C0305
+void HIID::addString (const string &str,const string &sepset,bool allow_literal)
+{
+// is string a literal?
+  if( str[0] == '$' )
+  {
+    FailWhen(!empty(),"can't add literal HIID to existing one");
+    return makeLiteral(str.substr(1));
+  }
   size_t totlen = str.length();
   if( !str.length() )
     return;
@@ -276,7 +313,19 @@ void HIID::addString (const string &str,const string &sepset)
       p1 = str.find_first_of(sep_set,p0);
       if( p1 != string::npos )
       {
-        push_back( p1 != p0 ? AtomicID(str.substr(p0,p1-p0)) : AidEmpty);
+        if( p1 != p0 )
+        {
+          string name(str.substr(p0,p1-p0));
+          int aid;
+          if( AtomicID::findName(aid,name) )
+            push_back(AtomicID(aid));
+          else if( allow_literal ) // convert whole HIID to literal form
+            return makeLiteral(str);
+          else
+            Throw("Unknown AtomicID `"+name+"'");
+        }
+        else
+          push_back(AidEmpty);
         if( str[p1] == '/' )
           push_back( AidSlash );
         else if( str[p1] == ':' )
@@ -285,7 +334,14 @@ void HIID::addString (const string &str,const string &sepset)
       }
       else
       {
-        push_back(AtomicID(str.substr(p0)));
+        string name(str.substr(p0));
+        int aid;
+        if( AtomicID::findName(aid,name) )
+          push_back(AtomicID(aid));
+        else if( allow_literal ) // convert whole HIID to literal form
+          return makeLiteral(str);
+        else
+          Throw("Unknown AtomicID `"+name+"'");
         break;
       }
     }

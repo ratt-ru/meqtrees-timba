@@ -103,7 +103,7 @@ class UniRegistry
       //##ModelId=3C5A72C7006A
       //##Documentation
       //## Adds entry to the registry.
-      virtual void add (const Key& key, const Val &val);
+      virtual void add (const Key& key, const Val &val,bool overwrite=false);
 
       //##ModelId=3C5A7307013F
       //##Documentation
@@ -148,9 +148,9 @@ class BiRegistry : public UniRegistry<Key, Val, HostClass>
 
 
       //##ModelId=3C5E8D9402F3
-      void add (const Key& key, const Val &val);
+      void add (const Key& key, const Val &val,bool overwrite=false);
     //##ModelId=3E9D78D20196
-      void add (const Key& key, const Val &val,const Val &revval);
+      void add (const Key& key, const Val &val,const Val &revval,bool overwrite=false);
 
       //##ModelId=3C5E8E2D01C6
       const Key & rfind (const Val& val);
@@ -235,22 +235,28 @@ UniRegistry<Key,Val,HostClass>::~UniRegistry()
 
 //##ModelId=3C5A72C7006A
 template <class Key, class Val, class HostClass>
-void UniRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val)
+void UniRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val,bool overwrite)
 {
   lockMutex;
   if( !MapPtr )
     MapPtr = new Map;
 
-  typename Map::const_iterator iter = MapPtr->find(key);
+  typename Map::iterator iter = MapPtr->find(key);
   cdebug(1)<<"registering "<<key<<"="<<val<<std::endl;
   
-  if( iter != MapPtr->end() && iter->second != val )
+  if( iter == MapPtr->end() )
+    MapPtr->insert(std::make_pair(key,val));
+  else if( iter->second != val )
   {
-    std::cerr<<"Error: conflicting registry definition for key "<<key<<std::endl;
-    Throw("Error: duplicate registry definition");
+    if( overwrite )
+      iter->second = val;
+    else
+    {
+      std::cerr<<"Error: conflicting registry definitions for key "<<key<<": "<<
+        iter->second<<" and "<<val<<std::endl;
+      Throw("Conflicting registry definition");
+    }
   }
-  MapPtr->insert(std::make_pair(key,val));
-  
 }
 
 //##ModelId=3C5A7307013F
@@ -291,10 +297,10 @@ BiRegistry<Key,Val,HostClass>::~BiRegistry()
 
 //##ModelId=3C5E8D9402F3
 template <class Key, class Val, class HostClass>
-void BiRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val)
+void BiRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val,bool overwrite)
 {
   lockMutex;
-  UniRegistry<Key,Val,HostClass>::add(key,val);
+  UniRegistry<Key,Val,HostClass>::add(key,val,overwrite);
   cdebug(1)<<"registering "<<key<<"="<<val<<std::endl;
   if( !RevMapPtr )
     RevMapPtr = new RevMap;
@@ -303,10 +309,10 @@ void BiRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val)
 
 //##ModelId=3E9D78D20196
 template <class Key, class Val, class HostClass>
-void BiRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val,const Val &revval)
+void BiRegistry<Key,Val,HostClass>::add (const Key& key, const Val &val,const Val &revval,bool overwrite)
 {
   lockMutex;
-  UniRegistry<Key,Val,HostClass>::add(key,val);
+  UniRegistry<Key,Val,HostClass>::add(key,val,overwrite);
   cdebug(1)<<"registering "<<key<<"="<<val<<std::endl;
   if( !RevMapPtr )
     RevMapPtr = new RevMap;

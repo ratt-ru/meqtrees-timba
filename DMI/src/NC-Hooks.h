@@ -1,8 +1,8 @@
 protected:
 // as_wp_impl() returns pointer and size, throws Uninitialized if must_exist=true
-// default version checked for exact type match
-template<class T,class Category>
-T * as_wp_impl (int &sz,bool pointer,bool must_exist,Type2Type<T>,Category) const
+// default version (non-dynamic) checkes for exact type match
+template<class T,class isDynamic>
+T * as_wp_impl (int &sz,bool pointer,bool must_exist,Type2Type<T>,isDynamic) const
 {
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   ContentInfo info;
@@ -12,7 +12,7 @@ T * as_wp_impl (int &sz,bool pointer,bool must_exist,Type2Type<T>,Category) cons
 }
 // version for dynamic types checks for castability
 template<class T>
-T * as_wp_impl (int &sz,bool pointer,bool must_exist,Type2Type<T>,Int2Type<TypeCategories::DYNAMIC>) const
+T * as_wp_impl (int &sz,bool pointer,bool must_exist,Type2Type<T>,Int2Type<true>) const
 {
   ContentInfo info;
   const T * ptr = reinterpret_cast<const T*>(
@@ -31,13 +31,13 @@ public:
 template<class T>
 T * as_wp (int &sz=_dum_int,Type2Type<T> =Type2Type<T>()) const
 { 
-  return as_wp_impl(sz,true,true,Type2Type<T>(),Int2Type<DMITypeTraits<T>::TypeCategory>());
+  return as_wp_impl(sz,true,true,Type2Type<T>(),Int2Type<SUPERSUBCLASS(BObj,T)>());
 }
 
 template<class T>
 T * as_wpo (int &sz=_dum_int,Type2Type<T> =Type2Type<T>()) const
 { 
-  return as_wp_impl(sz,true,false,Type2Type<T>(),Int2Type<DMITypeTraits<T>::TypeCategory>());
+  return as_wp_impl(sz,true,false,Type2Type<T>(),Int2Type<SUPERSUBCLASS(BObj,T)>());
 }
 
 template<class T>
@@ -53,9 +53,8 @@ T * implicit_ptr (Type2Type<T> =Type2Type<T>()) const
 template<class T>
 T & as_wr (Type2Type<T> =Type2Type<T>()) const
 { 
-  STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   int dum;
-  return *as_wp_impl(dum,false,false,Type2Type<T>(),Int2Type<DMITypeTraits<T>::TypeCategory>());
+  return *as_wp_impl(dum,false,false,Type2Type<T>(),Int2Type<SUPERSUBCLASS(BObj,T)>());
 }
 
 template<class T>

@@ -810,6 +810,21 @@ class Container : public BObj
 //      Thread::Mutex mutex_;
 };
 
+// provide a specialization of type traits for Container itself.
+// This allows objects to be inserted into and read from containers
+// as abstract Container pointers and refs
+template<>
+class DMIBaseTypeTraits<Container> : public TypeTraits<Container>
+{
+  public:
+    //##ModelId=3E9BD91702B5
+  enum { isContainable = true };
+  enum { typeId = 0 };
+  enum { TypeCategory = TypeCategories::DYNAMIC };
+  typedef const Container & ContainerReturnType;
+  typedef const Container & ContainerParamType;
+};
+
 // construct from container [HIID]
 // The ncwrite argument is true if the container is non-const
 //##ModelId=3C8739B50153

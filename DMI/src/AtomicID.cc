@@ -77,7 +77,7 @@ void AtomicID::print () const
 }
 
 //##ModelId=3C68D5ED01F8
-int AtomicID::findName (const string &str)
+bool AtomicID::findName (int &aid,const string &str)
 {
   for( size_t i=0; i<str.length(); i++ )
 #ifdef __GLIBCPP__
@@ -86,13 +86,14 @@ int AtomicID::findName (const string &str)
     if( !isdigit( str[i] ) )
 #endif
     {
-      int ret = registry.rfind(strlowercase(str));
+      aid = registry.rfind(strlowercase(str));
 #ifdef ATOMICID_VERBOSE_REGISTER
       cerr<<"AtomicID::findName("<<str<<")="<<ret<<endl;
 #endif
-      return ret;
+      return aid != 0;
     }
-  return atoi(str.c_str());
+  aid = atoi(str.c_str());
+  return true;
 }
 
 // Additional Declarations
@@ -126,7 +127,7 @@ int AtomicID::registerId (int key,const char * value)
 {
   string val = value;
 //  cerr<<"Registering key "<<key<<"="<<val<<endl;
-  registry.add(key,val,strlowercase(val));
+  registry.add(key,val,strlowercase(val),true);
   return key;
 }
       

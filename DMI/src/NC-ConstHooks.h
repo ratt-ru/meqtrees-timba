@@ -4,27 +4,36 @@ protected:
 // as_impl()
 // helper methods for as<T>()
 // -----------------------------------------------------------------------
+
+// takes dynamic cast and returns true if ptr can be converted to given type
 template<class T>
 static bool can_convert (const DMI::BObj *ptr)
 { return dynamic_cast<const T *>(ptr) != 0; }
 
+// returns the type name as a string
 template<class T>
 static string DMITypeName (Type2Type<T> = Type2Type<T>())
 { return TypeId(DMITypeTraits<T>::typeId).toString(); }
 
+
 // as_impl() with default value
 // catch-all template for impossible type traits
-    // first int2type: ParamByRef; second: category
-template<class T,class C1,class C2> // 
-const T & as_impl (const T &def,C1,C2) const
+//    first int2type: ParamByRef; second: isDynamic; third: type category
+//    Note that abstract base classes of dynamic types will have a type
+//    category of OTHER; the dynamic version of as_impl (see below)
+//    can handle them anyway, thus the type category is actually ignored
+//    for isDynamic=true
+template<class T,class ParamByRef,class isDynamic,class Category> // 
+const T & as_impl (const T &def,ParamByRef,isDynamic,Category) const
 {
   STATIC_CHECK(false,Oops_illegal_combination_of_type_traits_in_container_access);
   return def;
 }
 // This is a default version for passing in by ref and returning ref/value
+// Works for non-dynamic and non-scalar types
 template<class T,class Category> 
 typename DMITypeTraits<T>::ContainerReturnType 
-    as_impl (const T& deflt,Int2Type<true>,Category) const
+    as_impl (const T& deflt,Int2Type<true>,Int2Type<false>,Category) const
 {
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   ContentInfo info;
@@ -33,16 +42,16 @@ typename DMITypeTraits<T>::ContainerReturnType
 }
 // specialization for scalars: pass in and return by value, with implicit conversion
 template<class T> 
-T as_impl (T deflt,Int2Type<false>,Int2Type<TypeCategories::NUMERIC>) const
+T as_impl (T deflt,Int2Type<false>,Int2Type<false>,Int2Type<TypeCategories::NUMERIC>) const
 {
   T x; 
   return get_scalar(&x,DMITypeTraits<T>::typeId,false) ? x : deflt; 
 } 
-// version for dynamic types: access as base type (DMI::BObj), then use
+// specialization for dynamic types: access as base type (DMI::BObj), then use
 // dynamic cast to see if type is compatible. This allows subclasses to be visible as
 // parent classes
-template<class T> // 
-const T & as_impl (const T &deflt,Int2Type<true>,Int2Type<TypeCategories::DYNAMIC>) const
+template<class T,class ParamByRef,class Category> // 
+const T & as_impl (const T &deflt,ParamByRef,Int2Type<true>,Category) const
 {
   ContentInfo info;
   const T * ptr = reinterpret_cast<const T*>(
@@ -50,11 +59,12 @@ const T & as_impl (const T &deflt,Int2Type<true>,Int2Type<TypeCategories::DYNAMI
   return ptr ? *ptr : deflt;
 }
 
+
 // as_impl() with no default value
 // default version: no conversion, types expected to match exactly
-template<class T,class Category> 
+template<class T,class isDynamic,class Category> 
 typename DMITypeTraits<T>::ContainerReturnType 
-    as_impl (Type2Type<T> =Type2Type<T>(),Category = Category()) const
+    as_impl (Type2Type<T>,isDynamic,Category) const
 {
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   ContentInfo info;
@@ -62,18 +72,17 @@ typename DMITypeTraits<T>::ContainerReturnType
                                         false,true) ); 
 }
 // specialization for scalar version: do numeric conversion
-template<class T> // first int2type: isScalar; second int2type: isDynamic
-T as_impl (Type2Type<T>,Int2Type<TypeCategories::NUMERIC>) const
+template<class T>  
+T as_impl (Type2Type<T>,Int2Type<false>,Int2Type<TypeCategories::NUMERIC>) const
 {
  T x; get_scalar(&x,DMITypeTraits<T>::typeId); 
  return x; 
 }
-
 // specialization for dynamic types: access as base type (DMI::BObj), then use
 // dynamic cast to see if type is compatible. This allows subclasses to be visible as
 // parent classes
-template<class T> // first int2type: isScalar; second int2type: isDynamic
-const T & as_impl (Type2Type<T>,Int2Type<TypeCategories::DYNAMIC>) const
+template<class T,class Category> // first int2type: isScalar; second int2type: isDynamic
+const T & as_impl (Type2Type<T>,Int2Type<true>,Category) const
 {
   ContentInfo info;
   return *reinterpret_cast<const T*>( get_address_bo(info,can_convert<T>,false,false,true) );
@@ -144,20 +153,27 @@ public:
 // as<T>() 
 template<class T>
 typename DMITypeTraits<T>::ContainerReturnType as (Type2Type<T> = Type2Type<T>()) const
-{ return as_impl(Type2Type<T>(),Int2Type<DMITypeTraits<T>::TypeCategory>()); }
+{ 
+  return as_impl(Type2Type<T>(),
+                  Int2Type<SUPERSUBCLASS(BObj,T)>(),
+                  Int2Type<DMITypeTraits<T>::TypeCategory>()); 
+}
 
 // as<T>(default_value)  
 template<class T>
 typename DMITypeTraits<T>::ContainerReturnType as (typename DMITypeTraits<T>::ContainerParamType deflt) const
-{ return as_impl(deflt,Int2Type<DMITypeTraits<T>::ParamByRef>(),
-                       Int2Type<DMITypeTraits<T>::TypeCategory>()); }
-
+{ 
+  return as_impl(deflt,Int2Type<DMITypeTraits<T>::ParamByRef>(),
+                  Int2Type<SUPERSUBCLASS(BObj,T)>(),
+                  Int2Type<DMITypeTraits<T>::TypeCategory>());
+}
+  
 
 protected:
 // as_p_impl() returns pointer and size, throws Uninitialized if must_exist=true
-// default version checked for exact type match
-template<class T,class Category>
-const T * as_p_impl (int &sz,bool must_exist,Type2Type<T>,Category) const
+// default (non-dynamic) version checked for exact type match
+template<class T,class isDynamic>
+const T * as_p_impl (int &sz,bool must_exist,Type2Type<T>,isDynamic) const
 {
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
   ContentInfo info;
@@ -167,7 +183,7 @@ const T * as_p_impl (int &sz,bool must_exist,Type2Type<T>,Category) const
 }
 // version for dynamic types checks for castability
 template<class T>
-const T * as_p_impl (int &sz,bool must_exist,Type2Type<T>,Int2Type<TypeCategories::DYNAMIC>) const
+const T * as_p_impl (int &sz,bool must_exist,Type2Type<T>,Int2Type<true>) const
 {
   ContentInfo info;
   const T * ptr = reinterpret_cast<const T*>(get_address_bo(info,can_convert<T>,false,true,must_exist)); 
@@ -180,14 +196,14 @@ public:
 template<class T>
 const T * as_p (int &sz=_dum_int,Type2Type<T> = Type2Type<T>()) const
 {
-  return as_p_impl(sz,true,Type2Type<T>(),Int2Type<DMITypeTraits<T>::TypeCategory>());
+  return as_p_impl(sz,true,Type2Type<T>(),Int2Type<SUPERSUBCLASS(BObj,T)>());
 }
 
 // as_po<T>() (for "pointer, optional") returns pointer, or 0 if no such element
 template<class T>
 const T * as_po (int &sz=_dum_int,Type2Type<T> = Type2Type<T>()) const
 {
-  return as_p_impl(sz,false,Type2Type<T>(),Int2Type<DMITypeTraits<T>::TypeCategory>());
+  return as_p_impl(sz,false,Type2Type<T>(),Int2Type<SUPERSUBCLASS(BObj,T)>());
 }
 
 // -----------------------------------------------------------------------

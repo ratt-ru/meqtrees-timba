@@ -108,7 +108,9 @@ class AtomicID
       string toString () const;
 
       //##ModelId=3C68D5ED01F8
-      static int findName (const string &str);
+      //## looks up string (or converts from number) and puts corresponding
+      //## aid into &aid. Returns false if no such name, true if found
+      static bool findName (int &aid,const string &str);
 
     //##ModelId=3DB9344201DE
       int id () const;
@@ -193,15 +195,16 @@ inline AtomicID::AtomicID (int n)
 
 //##ModelId=3C5E74CB0112
 inline AtomicID::AtomicID (const string &str)
-  : aid( findName(str) )
 {
-  FailWhen(!aid && (!str.length() || str[0] != '0') ,"Unknown AtomicID `"+str+"'");
+  bool found = findName(aid,str);
+  FailWhen(!found,"Unknown AtomicID `"+str+"'");
 }
 
 //##ModelId=3C68D5220318
 inline AtomicID::AtomicID (const char *str)
-  : aid( findName(str) )
 {
+  bool found = findName(aid,str);
+  FailWhen(!found,"Unknown AtomicID `"+string(str)+"'");
 }
 
 

@@ -140,7 +140,7 @@ class HIID : public Vector_AtomicID
       void push_front (AtomicID aid,uint n=1);
 
       //##ModelId=3C0F8BD5004F
-      string toString (char separator = '_') const;
+      string toString (char separator = '_',bool mark_lit=true) const;
 
       //##ModelId=3C5912FE0134
       //##Documentation
@@ -201,7 +201,9 @@ class HIID : public Vector_AtomicID
 
       // creates from string
     //##ModelId=3DB9348C0305
-      void addString (const string &,const string &sep_set = "._");
+      void addString (const string &,const string &sep_set = "._",bool allow_literals=false);
+      // creates literal id from string
+      void makeLiteral (const string &str);
 };
 
 // stream operator
@@ -298,10 +300,10 @@ inline HIID::HIID (const char *str)
 }
 
 //##ModelId=3C556A470346
-inline HIID::HIID (const string &str,bool,const string &sepset)
+inline HIID::HIID (const string &str,bool allow_literals,const string &sepset)
 {
   reserve();
-  addString(str,sepset);
+  addString(str,sepset,allow_literals);
 }
 
 

@@ -264,7 +264,7 @@ string Message::sdebug ( int detail,const string &prefix,const char *name ) cons
   if( detail>=0 ) // basic detail
   {
     out = name?name:"Message";
-    out += "/" + id_.toString();
+    out += "/" + id_.toString('.');
     if( detail>3 )
       out += Debug::ssprintf("/%08x",this);
   }

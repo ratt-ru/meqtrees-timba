@@ -97,6 +97,22 @@ class BObj : public CountedRefTarget
       virtual void print (std::ostream &str) const;
 };
 
+// provide a specialization of type traits for BObj itself.
+// This allows objects to be inserted into and read from containers
+// as abstract BObj pointers and refs
+template<>
+class DMIBaseTypeTraits<BObj> : public TypeTraits<BObj>
+{
+  public:
+    //##ModelId=3E9BD91702B5
+  enum { isContainable = true };
+  enum { typeId = 0 };
+  enum { TypeCategory = TypeCategories::DYNAMIC };
+  typedef const BObj & ContainerReturnType;
+  typedef const BObj & ContainerParamType;
+};
+
+
 //##ModelId=3DB963E102B7
 typedef BObj::Ref ObjRef;
 
