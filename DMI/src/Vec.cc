@@ -434,6 +434,8 @@ int DMI::Vec::toBlock (BlockSet &set) const
   // since any access for writing (see makeWritable()) invalidates
   // the header block, this is a sufficient check to see if it needs
   // rebuilding. 
+  if( dynamic_type ) // kludge for now, because there's still a bug somewhere with the cached block
+    headref_.detach();
   if( !headref_.valid() )
   {
     // binary types always have a valid & consistent block
