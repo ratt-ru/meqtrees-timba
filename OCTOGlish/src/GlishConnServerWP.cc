@@ -106,11 +106,14 @@ bool GlishConnServerWP::start ()
   // if file not opened, shut down immediately
   if( connfd_ < 0 )
   {
-    cdebug(1)<<"pipe not open, detaching outselves\n";
+    lprintf(1,AidLogError,"pipe %s failed to open, detaching ourselves",connpath_.c_str());
     detachMyself();
   }
   else
+  {
+    lprintf(1,AidLogNormal,"opened pipe %s",connpath_.c_str());
     addInput(connfd_,EV_FDREAD);
+  }
   bufpos_ = 0;
   return false;
 }
@@ -143,15 +146,32 @@ int GlishConnServerWP::input (int , int )
     {
       if( errno == EAGAIN || errno == EINTR )
         return Message::ACCEPT;
-      cdebug(1)<<"read("<<connpath_<<"): "<<errno2string(errno)<<", closing\n";
+      string err = errno2string(errno);
+      cdebug(1)<<"read("<<connpath_<<"): "<<err<<", closing\n";
+      lprintf(1,AidLogError,"error reading from pipe: %s",err.c_str());
+      lprintf(1,AidLogError,"closing and detaching");
       detachMyself();
       return Message::CANCEL;
     }
     else if( nb==0 )
     {
-      cdebug(1)<<"read("<<connpath_<<"): 0 (EOF), closing\n";
-      detachMyself();
-      return Message::CANCEL;
+// EOF is reported whenever other end closes the pipe. Reopen the pipe
+// ourselves, and wait for another connection
+      cdebug(1)<<"read("<<connpath_<<"): 0 (EOF)\n";
+      removeInput(connfd_);
+      close(connfd_);
+      connfd_ = open(connpath_.c_str(),O_RDONLY|O_NONBLOCK);
+      if( connfd_ < 0 )
+      {
+        string err = errno2string(errno);
+        cdebug(1)<<"reopen("<<connpath_<<"): "<<err<<endl;
+        lprintf(1,AidLogError,"error reopening pipe: %s",err.c_str());
+        lprintf(1,AidLogError,"detaching");
+        detachMyself();
+        return Message::CANCEL;
+      }
+      addInput(connfd_,EV_FDREAD);
+      return Message::ACCEPT;
     }
     // at this point, we've got bufpos_+nb bytes in the buffer
     bufpos_ += nb;
@@ -165,25 +185,26 @@ int GlishConnServerWP::input (int , int )
       uint i1 = input.rfind("[");
       if( i1 == string::npos )
       {
-        cdebug(1)<<": no start tag found in input, flushing all\n";
+        cdebug(1)<<"no start tag found in input, flushing all\n";
         bufpos_ = 0;
       }
       else
       {
-        cdebug(1)<<": no start tag found in input, flushing "<<i1<<" chars\n";
+        cdebug(1)<<"no start tag found in input, flushing "<<i1<<" chars\n";
         input.copy(readbuf_,string::npos,i1);
         bufpos_ -= i1;
       }
+      lprintf(3,AidLogWarning,"no start tag found in input, flushing");
       return Message::ACCEPT;
     }
     // find the end tag
     uint i1 = input.find(end_tag,i0);
     if( i1 == string::npos )
     {
-      cdebug(2)<<": no end tag found, waiting for more input\n";
+      cdebug(2)<<"no end tag found, waiting for more input\n";
       if( i0>0 )
       {
-        cdebug(2)<<": flushing "<<i0<<" chars prior to start tag\n";
+        cdebug(2)<<"flushing "<<i0<<" chars prior to start tag\n";
         input.copy(readbuf_,string::npos,i0);
         bufpos_ -= i0;
       }
@@ -195,12 +216,15 @@ int GlishConnServerWP::input (int , int )
     vector<string> sections = StringUtil::split(input,'\n');
     if( sections.size() != 2 )
     {
-      cdebug(2)<<": malformed input (!=2 sections), ignoring\n";
+      cdebug(2)<<"malformed input (!=2 sections), ignoring\n";
+      lprintf(3,AidLogWarning,"error in input, ignoring");
       return Message::ACCEPT;
     }
-    cdebug(3)<<": creating agents\n";
-    cdebug(3)<<": "<<sections[0]<<endl;
-    cdebug(3)<<": "<<sections[1]<<endl;
+    cdebug(3)<<"creating agents\n";
+    cdebug(3)<<"  agent 1:"<<sections[0]<<endl;
+    cdebug(3)<<"  agent 2:"<<sections[1]<<endl;
+    lprintf(3,AidLogNormal,"creating agent 1: %s",sections[0].c_str());
+    lprintf(3,AidLogNormal,"creating agent 2: %s",sections[1].c_str());
     // create the two agents
     vector<string> args1 = StringUtil::split(sections[0],'\t');
     vector<string> args2 = StringUtil::split(sections[1],'\t');

@@ -32,40 +32,38 @@ include 'note.g'
 include 'debug_methods.g'
 include 'dmitypes.g'
 
-const _default_valgrind_options := [
-  "-v --show-reachable=yes --workaround-gcc296-bugs=yes",
-  "--leak-check=yes --num-callers=40",
-  spaste("--suppressions=",environ.HOME,"/.valgrind-suppress") ];
-
-const define_octoserver := function (server,options="",
-  suspend=F,valgrind=F,nostart=F,valgrind_opts="")
+const define_octoserver := function (connpath,binary='',
+  options="",autostart=T,nostart=F,valgrind=F,valgrind_opts="")
 {
-  if( len(options) )
-    server::options := options;
-  server::suspend := suspend;
-  server::nostart := nostart;
+  server := [ connpath=connpath,binary=binary,options=options,
+              autostart=autostart,nostart=nostart ];
   if( !is_boolean(valgrind) || valgrind )
   {
-    server::valgrind := T;
+    server.valgrind := T;
     if( is_string(valgrind) )
-      server::valgrind_options := valgrind;
+      server.valgrind_options := valgrind;
     else
-      server::valgrind_options := [ _default_valgrind_options,valgrind_opts ];
+      server.valgrind_options := [ _default_valgrind_options,valgrind_opts ];
   }
   return server;
 }
 
+const default_octoserver_fifo := spaste('/tmp/octoglish-',environ.USER);
+
+const default_octoserver := define_octoserver(default_octoserver_fifo,
+  'octoglishserver');
+
 #------------------------------------------------------------------------
 #
 #------------------------------------------------------------------------
-const octopussy := function (server='octoglish',options="",
+const octopussy := function (server=default_octoserver,options="",
                              autoexit=T,verbose=1)
 {
   self := [=];
   public := [=];
 
-  self.opClient := F;
-  self.opClient::Died := T;
+  self.send_client := self.rcv_client := F
+  self.rcv_client::Connected := self.send_client::Connected := F;
   self.state := 0;
   self.started := F;
   # this should be consistent with PRI_NORMAL in OCTOPUSSY/Message.h, and
@@ -76,73 +74,160 @@ const octopussy := function (server='octoglish',options="",
   
   define_debug_methods(self,public,verbose);
 
-  const self.makeclient := function (server,options)
+  const self.makeclient := function (server,options="")
   {
     wider self;
-    # make use of options attribute, if defined
-    if( is_string(server::options) )
-      options := [ server::options,options ];
-    if( has_field(server::,'valgrind') && server::valgrind ) # start under valgrind -- some trickery required
+    self.connected := F;
+    # check for pipe file
+    fifo := server.connpath;
+    server_autostart := F;
+    pipe_existed := ( len(fifo) > 0 && len(stat(fifo)) > 0 );
+    if( pipe_existed )
     {
-      self.dprint(2,'starting server under valgrind');
-      self.opClient := client(server,async=T);
-      if( is_string(server::valgrind_options) )
-        valopt := server::valgrind_options;
-      else
-        valopt := '';
-      cmd := paste('valgrind',server::valgrind_options,self.opClient.activate,options);
-      cmd =~ s/([<>*])/\\$1/g;
-      if( server::nostart )
+      self.dprint(2,'fifo ',fifo,' is present');
+      # check for running server, if we know the name
+      if( len(server.binary) && server.autostart )
       {
-        print "===============================================";
-        print "=== Waiting for server to be manually started"
-        print "=== Please start it with the following command:";
+        regex := s/.*\///g;
+        binfile := server.binary ~ regex;
+        self.dprint(2,'checking for running ',binfile);
+        out := shell(paste('ps axww | grep',binfile,'| grep -v grep')); 
+        if( len(out)>0 )
+          self.dprint(2,out[1]);
+        else
+        {
+          server_autostart := T;
+          self.dprint(2,'server ',binfile,' does not appear to be running');
+        }
+      }
+    }
+    else
+      self.dprint(1,'fifo ',fifo,' is not available');
+    # run server if no pipe file, or server is missing
+    if( !pipe_existed || server_autostart )
+    {
+      if( !len(server.binary) && !server.nostart )
+      {
+        self.dprint(1,'fail: no server binary specified');
+        fail 'server path not available, and no server binary specified';
+      }
+      # try to start a server
+      # make use of options attribute, if defined
+      cmd := paste(server.binary,server.options,options);
+      
+      if( has_field(server,'valgrind') && server.valgrind ) # start under valgrind -- some trickery required
+      {
+        if( has_field(server,'valgrind_options') && is_string(server.valgrind_options) )
+          valopt := server.valgrind_options;
+        else
+          valopt := '';
+        cmd := paste('valgrind',valopt,cmd);
+      }
+      cmd =~ s/([<>*])/\\$1/g;
+      # start the server, or ask user to start the server
+      if( server.nostart )
+      {
+        print '===============================================';
+        print '=== Waiting for server to be manually started'
+        print '=== Please start it with the following command:';
         print cmd;
-        print "===============================================";
+        print '===============================================';
+        # wait for pipe to appear
+        while( !len(stat(fifo)) )
+          shell("sleep 1");
       }
       else # start the server as an async shell command
       {
-        self.dprint(1,'running:',cmd);
-        self.shellAgent := shell(cmd,async=T);
-        whenever self.shellAgent->* do
-          print $name,": ",$value;
-        self.dprint(2,"awaiting activation event");
-      }
-      await self.opClient->established;
-      self.dprint(1,"connection established");
-    }
-    else  # start normally
-    {
-      if( has_field(server::,'nostart') && server::nostart )
-      {
-        self.opClient := client(server,options,async=T);
-        print "===============================================";
-        print "=== Waiting for server to be manually started"
-        print "=== Please start it with the following command:";
-        print self.opClient.activate;
-        print "===============================================";
-        self.dprint(2,"awaiting activation event");
-        await self.opClient->established;
-      }
-      else 
-      {
-        self.dprint(1,"starting client(",server,",",options,")");
-        self.opClient := client(server,options,suspend=server::suspend);
-        if( !is_agent(self.opClient) )
-        { 
-          self.dprint(1,'failed to start client');
-          fail paste('server',server,'could not be started');
+        self.dprint(1,'starting server and waiting for [PIPE] spec');
+        self.dprint(2,'command is: ',cmd);
+        self.shell_client := shell(cmd,async=T);
+        if( is_fail(self.shell_client) )
+        {
+          self.dprint(1,'server startup failed');
+          fail;
         }
-        self.dprint(1,"connected");
+        # set a whenever to analyze server output
+        whenever self.shell_client->* do
+        {
+          self.dprint(2,'shell_client event ',$name,': ',$value);
+          if( $name == 'fail' || $name == 'done' )
+            self.shell_client::Died := T;
+          if( $name == 'stdout' && $value =~ s/\[PIPE\](.*)\[\/PIPE\]/$1/g )
+          {
+            self.shell_client::Pipe := $value;
+            self.shell_client::HasPipe := T;
+          }
+        }
+        # wait for server to succeed or fail
+        while( !self.shell_client::HasPipe && !self.shell_client::Died )
+          await self.shell_client->*;
+        # have we got a pipe?
+        if( self.shell_client::HasPipe )
+        {
+          fifo := self.shell_client::Pipe;
+          self.dprint(1,'server ready with fifo name ',fifo);
+        }
+        else
+        {
+          self.dprint(1,'server startup failed');
+          fail 'server startup has failed';
+        }
       }
     }
-    self.opClient::Died := F;
-    # set up fail/exit handler
-    whenever self.opClient->["fail done"] do 
+    # check that pipe is of the right type
+    if( stat(fifo).type != 'fifo' )
     {
-      self.opClient::Died := T;
-      self.dprint(1,'octoglish: remote client has terminated with event ',$name,$value);
+      self.dprint(1,'fail: ',fifo,' is not a fifo');
+      fail 'server path not fifo';
     }
+    self.dprint(2,'opening fifo ',fifo,'...');
+    # open file and write a connection request
+    fifo_file := open(spaste('>',fifo));
+    if( is_fail(fifo_file) )
+    {
+      self.dprint(1,'fail: can\'t open fifo ',fifo);
+      fail;
+    }
+    self.dprint(2,'fifo open');
+    # start the two clients in async mode  
+    self.rcv_client  := client('dum',async=T);
+    self.send_client := client('dum',async=T);
+    # use attributes of agents for extra info
+    self.rcv_client::Name := 'rcv_client';
+    self.send_client::Name := 'send_client';
+    self.rcv_client::Connected := F;
+    self.send_client::Connected := F;
+    # write agent startup arguments to pipe, hopefully this will
+    # cause the server to create end-points for the agents
+    write(fifo_file, 
+      spaste('[CONNECTION]',
+        paste(self.rcv_client.activate,sep='\t'),
+        '\n',
+        paste(self.send_client.activate,sep='\t'),
+        '[/CONNECTION]'));
+    fifo_file := F;
+    # setup handler for connection events
+    whenever self.rcv_client->established,self.send_client->established do 
+    {
+      $agent::Connected := T;
+      self.dprint(2,$agent::Name,' is connected');
+    }
+    # set up fail/exit handler
+    whenever self.rcv_client->["fail done"],self.send_client->["fail done"] do 
+    {
+      self.connected := $agent::Connected := F;
+      self.dprint(1,$agent::Name,' has terminated with event ',$name,$value);
+    }
+    # await startup
+    self.dprint(2,'waiting for both agents to connect');
+    while( !(self.rcv_client::Connected) || !(self.send_client::Connected) )
+      await self.rcv_client->*,self.send_client->*;
+    self.connected := T;
+    # create relay
+    self.relay_client := create_agent();
+    relay_all(self.relay_client,self.send_client);
+    relay_all(self.rcv_client,self.relay_client);
+    self.dprint(1,'octopussy proxy is ready');
     return T;
   }
   
@@ -191,14 +276,16 @@ const octopussy := function (server='octoglish',options="",
   const public.init := function (server="",options="") 
   {
     wider self;
-    if( is_boolean(self.opClient) || self.opClient::Died ) 
+    if( !is_agent(self.rcv_client) || !is_agent(self.send_client) )
       return self.makeclient(server,options);
     return T;
   }
 
   const public.done := function () 
   {
-    self.opClient->terminate();
+    self.rcv_client->terminate();
+    self.send_client->terminate();
+    return T;
   }
   
   const public.subscribe := function (ids,scope="global")
@@ -210,9 +297,9 @@ const octopussy := function (server='octoglish',options="",
       fail sc;
     for( id in ids )
     {
-     self.dprint(2,"subscribing: ",id,sc);
+      self.dprint(2,"subscribing: ",id,sc);
       # send event
-      if( !self.opClient->subscribe([id=id,scope=sc]) )
+      if( !self.send_client->subscribe([id=id,scope=sc]) )
         fail 'subscribe() failed';
     }
     return T;
@@ -221,7 +308,7 @@ const octopussy := function (server='octoglish',options="",
   const public.unsubscribe := function (id)
   {
     wider self;
-    if( self.opClient->unsubscribe([id=id]) )
+    if( self.send_client->unsubscribe([id=id]) )
       return T;
     else
       fail 'unsubscribe() failed';
@@ -232,7 +319,7 @@ const octopussy := function (server='octoglish',options="",
     wider self;
     if( self.started  )
       fail 'octopussy already started';
-    if( self.opClient->start([=]) )
+    if( self.send_client->start([=]) )
     {
       self.started := T;
       return T;
@@ -262,7 +349,7 @@ const octopussy := function (server='octoglish',options="",
     else
       fail paste('unknown log message type: ',type);
     # send the event
-    if( self.opClient->log([msg=msg,level=level,type=tp]) )
+    if( self.send_client->log([msg=msg,level=level,type=tp]) )
       return T;
     else
       fail 'log() failed';
@@ -277,7 +364,7 @@ const octopussy := function (server='octoglish',options="",
     rec := self.makemsg(id,rec,priority,datablock,blockset);
     rec::to := dest;
     # send the event
-    if( self.opClient->send(rec) )
+    if( self.send_client->send(rec) )
       return T;
     else
       fail 'send() failed';
@@ -299,7 +386,7 @@ const octopussy := function (server='octoglish',options="",
     rec::scope := sc;
     self.dprint(3,"publishing: ",rec::);
     # send the event
-    if( self.opClient->publish(rec) )
+    if( self.send_client->publish(rec) )
       return T;
     else
       fail 'publish() failed';
@@ -312,7 +399,7 @@ const octopussy := function (server='octoglish',options="",
     if( !self.started )
       fail 'octopussy not started';
     # wait for message
-    await self.opClient->*;
+    await self.rcv_client->*;
     val value := $value;
     self.dprint(3,"got event: ",$name);
     return $name;
@@ -324,7 +411,7 @@ const octopussy := function (server='octoglish',options="",
     # check that we're started
     if( !self.started )
       fail 'octopussy not started';
-    if( self.opClient->debug([context=context,level=level]) )
+    if( self.send_client->debug([context=context,level=level]) )
       return T;
     else
       fail 'setdebug failed'; 
@@ -351,13 +438,13 @@ const octopussy := function (server='octoglish',options="",
   const public.agentref := function ()
   {
     wider self;
-    return ref self.opClient;
+    return ref self.relay_client;
   }
   
   const public.connected := function ()
   {
     wider self;
-    return !self.opClient::Died;
+    return self.connected;
   }
   
   const public.started := function ()
@@ -369,15 +456,18 @@ const octopussy := function (server='octoglish',options="",
   res := public.init(server,options);
   if( is_fail(res) )
   {
-    self.dprint(0,'init failed: ',res);
+    self.dprint(0,'init failed');
     return res;
   }
+  
   if( autoexit )
-    whenever self.opClient->exit do 
+  {
+    whenever self.rcv_client->["fail exit"] do 
     {
       self.dprint(0,"Got 'exit' event, auto-exit enabled, exiting");
       exit 1;
     }
+  }
   
   return ref public;
 }

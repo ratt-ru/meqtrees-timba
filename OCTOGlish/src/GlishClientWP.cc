@@ -52,7 +52,7 @@ void GlishClientWP::init ()
 }
 
 //##ModelId=3E9BD6E900DD
-void GlishClientWP::handleEvent (GlishSysEvent &event)
+GlishValue GlishClientWP::handleEvent (GlishSysEvent &event)
 {
   dprintf(2)("got event '%s'\n", event.type().c_str());
   Bool result = True;       // AIPS++ Bool for event result
@@ -161,9 +161,7 @@ void GlishClientWP::handleEvent (GlishSysEvent &event)
       result = False;
     }
   }
-  // if we fell through to here, return the reply
-  if( evsrc->replyPending() )
-    evsrc->reply(GlishArray(result));
+  return GlishArray(result);
 }
 
 //##ModelId=3CBA97E70232
@@ -220,7 +218,9 @@ int GlishClientWP::input (int , int )
       }
       else   // else process the event
       {
-        handleEvent(event);
+        GlishValue result = handleEvent(event);
+        if( evsrc->replyPending() )
+          evsrc->reply(result);
       } // end of event loop
   }
   return Message::ACCEPT;

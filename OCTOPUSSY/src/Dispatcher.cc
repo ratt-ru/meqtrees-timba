@@ -174,7 +174,10 @@ void Dispatcher::detach (const WPID &id, bool delay)
   if( delay )   
     detached_wps.push(iter->second);
   else
+  {
     pwp->do_stop();
+    pwp->detach();
+  }
   wps.erase(iter);
   GWI iter2 = gateways.find(id);
   if( iter2 != gateways.end() )
@@ -306,7 +309,10 @@ void Dispatcher::stop ()
   // may re-enter the dispatcher
   map<WPID,WPRef> wps1 = wps;
   for( WPI iter = wps1.begin(); iter != wps1.end(); iter++ )
+  {
     iter->second().do_stop();
+    iter->second().detach();
+  }
   Thread::Mutex::Lock lock(wpmutex);
   // clear all event lists
   timeouts.clear();
@@ -419,6 +425,7 @@ void Dispatcher::poll (int maxloops)
       detached_wps.pop();
       lock.release();
       ref().do_stop();
+      ref().detach();
       ref.detach(); // this destroys the WP, if last ref
       lock.relock(wpmutex);
     }

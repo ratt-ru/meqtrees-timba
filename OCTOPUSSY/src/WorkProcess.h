@@ -67,8 +67,14 @@ class WorkProcess : public WPInterface
 
       //##ModelId=3C95BA1A02D5
       const MsgAddress & attachWP (WPInterface* wp, int flags);
+      
+      bool isDetaching () const
+      { return detaching_; }
 
   private:
+      bool detaching_;
+      
+      
     //##ModelId=3DB937290303
       WorkProcess();
 

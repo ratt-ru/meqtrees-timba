@@ -76,13 +76,17 @@ void * GlishThreadedClientWP::receiveThread ()
     if( eventSpigot().nextGlishEvent(event,500) )
     {
       dprintf(4)("got Glish event, handling it\n");
-      handleEvent(event);
+      GlishValue result = handleEvent(event);
+      if( eventSpigot().replyPending() )
+        eventSpigot().reply(result);
     }
     Thread::testCancel();
   }
   // drop here if we get disconnected from Glish
+  setConnected(false);
   dprintf(1)("disconnected from Glish process\n");
-  shutdown();
+  if( isAttached() )
+    shutdown();
   // exit the thread
   Thread::exit();
   return 0;

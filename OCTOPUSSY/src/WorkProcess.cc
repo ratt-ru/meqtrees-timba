@@ -25,7 +25,7 @@
 #include <OCTOPUSSY/WorkProcess.h>
 
 WorkProcess::WorkProcess (AtomicID wpc)
-  : WPInterface(wpc)
+  : WPInterface(wpc),detaching_(false)
 {
 }
 
@@ -74,7 +74,9 @@ bool WorkProcess::removeSignal (int signum)
 //##ModelId=3C95A89D015E
 void WorkProcess::detachMyself ()
 {
-  dsp()->detach(this,True);
+  if( !detaching_ )
+    dsp()->detach(this,True);
+  detaching_ = true;
 }
 
 //##ModelId=3C95BA1602D9

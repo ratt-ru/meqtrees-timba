@@ -86,6 +86,8 @@ class WPInterface : public OctopussyDebugContext,
     //##ModelId=3DB9365300A1
       typedef enum { FLUSH = 1, YIELD = 2 } SendFlags;
       
+      friend class Dispatcher;
+      
   public:
       //##ModelId=3C7CBB10027A
       WPInterface (AtomicID wpc);
@@ -280,6 +282,9 @@ class WPInterface : public OctopussyDebugContext,
       WPInterface::MessageQueue & queue ();
       
   protected:
+      void detach ()
+      { dsp_ = 0; }
+      
       //##ModelId=3C7F882B00E6
       virtual void init ();
 

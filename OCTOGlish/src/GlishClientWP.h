@@ -72,7 +72,7 @@ class GlishClientWP : public WorkProcess
       void shutdown ();
       
     //##ModelId=3E9BD6E900DD
-      void handleEvent (GlishSysEvent &event);
+      GlishValue handleEvent (GlishSysEvent &event);
       
       GlishSysEventSource & eventSource ()
       { return *evsrc; }

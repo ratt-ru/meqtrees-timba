@@ -8,13 +8,13 @@ liboctoglish_la_SOURCES = \
   GlishClientWP.cc GlishThreadWP.cc GlishConnServerWP.cc \
   GlishUtil.cc AID-OCTOGlish-Registry.cc
 
-check_PROGRAMS   		= octoglish octoglishserver
+check_PROGRAMS   		= octoglishserver
 
-octoglish_SOURCES 	= octoglish.cc 
+#octoglish_SOURCES 	= octoglish.cc 
 
-octoglish_LDADD		= liboctoglish.la 
+#octoglish_LDADD		= liboctoglish.la 
   
-octoglish_DEPENDENCIES	= liboctoglish.la $(LOFAR_DEPEND)
+#octoglish_DEPENDENCIES	= liboctoglish.la $(LOFAR_DEPEND)
 
 octoglishserver_SOURCES 	= octoglishserver.cc 
 
