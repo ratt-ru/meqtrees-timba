@@ -1,6 +1,7 @@
 #ifndef OCTOGlish_GlishUtil_h
 #define OCTOGlish_GlishUtil_h 1
 
+#include <Common/Debug.h>
 #include <DMI/DMI.h>
 #include <DMI/DataRecord.h>
 #include <DMI/DataField.h>

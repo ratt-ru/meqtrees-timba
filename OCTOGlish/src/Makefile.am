@@ -6,7 +6,7 @@ DOCHDRS = GlishClientWP.h GlishUtil.h
 
 liboctoglish_la_SOURCES = GlishClientWP.cc GlishUtil.cc AID-OCTOGlish-Registry.cc
 
-bin_PROGRAMS   		= octoglish
+check_PROGRAMS   		= octoglish
 
 octoglish_SOURCES 	= octoglish.cc 
 
