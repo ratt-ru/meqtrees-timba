@@ -551,8 +551,8 @@ class QwtImagePlot(QwtPlot):
       shape = self._plot_dict[0].shape
       self.y_marker_step = shape[1]
       self.num_y_markers = self._plot_dict_size 
-      self.marker_labels = []
       temp_array = zeros((shape[0],self._plot_dict_size* shape[1]), self._plot_dict[0].type())
+      self.marker_labels = []
       for l in range(self._plot_dict_size ):
 #        dummy_array =  self._plot_dict[l].copy()
         dummy_array =  self._plot_dict[l]
@@ -573,14 +573,17 @@ class QwtImagePlot(QwtPlot):
       data_dict_size = self._plot_dict_size - 1
 # create combined array from contents of plot_dict
       shape = self._plot_dict[0].shape
+      self.y_marker_step = shape[1]
       temp_array = zeros((shape[0], data_dict_size* shape[1]), self._plot_dict[0].type())
       self.marker_labels = []
       for l in range(data_dict_size ):
         dummy_array =  self._plot_dict[l]
-        for k in range(shape[0]):
-          for j in range(shape[1]):
+        shape_array = dummy_array.shape
+        for k in range(shape_array[0]):
+          for j in range(shape_array[1]):
             j_index = l * shape[1] + j
-            temp_array[k,j_index] = dummy_array[k,j]
+            if j_index <data_dict_size* shape[1]:
+              temp_array[k,j_index] = dummy_array[k,j]
         self.marker_labels.append(self._combined_label_dict[l])
       self._plot_dict[self._combined_image_id] = temp_array
 
@@ -1069,6 +1072,7 @@ class QwtImagePlot(QwtPlot):
         self.plotImage.setImage(image)
       if self.is_combined_image:
          _dprint(2, 'display_image inserting markers')
+         self.removeMarkers()
 	 self.insert_marker_lines()
       self.replot()
       _dprint(2, 'called replot in display_image');
@@ -1185,9 +1189,11 @@ class QwtImagePlot(QwtPlot):
         if not self.active_image_index is None:
           self.array_plot(self._plot_label[self.active_image_index], self._plot_dict[self.active_image_index])
           if self.active_image_index == self._combined_image_id:
+            self.removeMarkers()
 	    self.insert_marker_lines()
         elif not self._combined_image_id is None:
           self.array_plot(self._plot_label[ self._combined_image_id], self._plot_dict[ self._combined_image_id])
+          self.removeMarkers()
           self.insert_marker_lines()
 	else:
           if not self._plot_dict_size is None:
