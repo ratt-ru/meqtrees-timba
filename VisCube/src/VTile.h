@@ -603,6 +603,10 @@ class VisTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
         //##ModelId=3DF9FDD203B0
           LoVec_fcomplex f_predict (int icorr = 0) const
           { return ptile->predict()(icorr,ALL,itime); }
+
+          LoVec_fcomplex f_residuals (int icorr = 0) const
+          { return ptile->residuals()(icorr,ALL,itime); }
+
         //##ModelId=3DF9FDD300DC
           LoVec_int f_flags        (int icorr = 0) const
           { return ptile->flags()(icorr,ALL,itime); }
