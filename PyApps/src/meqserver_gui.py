@@ -19,10 +19,12 @@ import re
 #   + Enable drop on "show viewer" button
 #
 # Enhancements:
-#   Enable views/drags/drops of sub-items (i.e. "nodestate:name/cache_result")
+#   Drop of a dataitem can create a cell with multiple items (think,
+#       e.g., several 1D plots), if the viewer object supports it.
 #   Enhanced 'verbosity' interface (look for option parsing modules?)
 #   User-defined node groups in tree viewer
 #   Right-button actions
+#   + Enable views/drags/drops of sub-items (i.e. "nodestate:name/cache_result")
 #   + Viewer plugin interface
 #   + Update contents of HierBrowser on-the-fly, without closing expanded
 #     sub-items (good for, e.g., node state updates)

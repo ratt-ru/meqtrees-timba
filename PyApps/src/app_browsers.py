@@ -166,10 +166,11 @@ class HierBrowser (object):
       i0 = HierBrowser.subitem(item,str(key),itemstr);
       item._content_list.append(i0);
       # cache value for expansion, if not inlined
-      if isinstance(value,(list,tuple,dict,array_class)):
+      if isinstance(value,(list,tuple,array_class)):
         if not inlined:
           i0.cache_content(value);
-      elif isinstance(value,message):
+      # dicts and messages always cached for expansion
+      elif isinstance(value,(dict,message)):
         i0.cache_content(value);
       item._content_list.append(i0);
   expand_content = staticmethod(expand_content);
