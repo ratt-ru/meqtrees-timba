@@ -12,7 +12,7 @@ import time
 from qt import *
 import app_pixmaps as pixmap
 
-_dbg = verbosity(3,name='meqds');
+_dbg = verbosity(0,name='meqds');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 

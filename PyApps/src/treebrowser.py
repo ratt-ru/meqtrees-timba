@@ -12,7 +12,7 @@ import meqserver_gui
 import copy
 from meqds import mqs
 
-_dbg = verbosity(3,name='tb');
+_dbg = verbosity(0,name='tb');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
@@ -304,7 +304,7 @@ class TreeBrowser (QObject):
     for f in funcs:
       f(self);
     # --- now, build up toolbar from defined actions
-    self._toolbar = QToolBar("Trees",parent);
+    self._toolbar = QToolBar("Trees",parent,parent);
     self._toolbar_actions = [];
     tba = self.get_action_list("toolbar");
     tba.sort();

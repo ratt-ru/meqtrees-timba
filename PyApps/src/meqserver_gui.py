@@ -13,7 +13,7 @@ import app_browsers
 from app_browsers import *
 from treebrowser import *
 
-_dbg = verbosity(3,name='meqgui');
+_dbg = verbosity(0,name='meqgui');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 

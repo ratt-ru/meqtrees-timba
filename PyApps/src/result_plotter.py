@@ -16,6 +16,12 @@ from numarray import *
 from display_image import *
 from realvsimag import *
 
+
+_dbg = verbosity(0,name='result_plotter');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
+
+
 class ResultPlotter(BrowserPlugin):
   """ a class to visualize data, VellSets or visu data, that is 
       contained within a node's cache_result record. Objects of 
@@ -35,8 +41,10 @@ class ResultPlotter(BrowserPlugin):
     self._hippo = None
 # this QLabel is needed so that Oleg's browser is
 # happy that a child is present
-    self._Qlabel = QLabel("",parent);
+#    self._wtop = QLabel("",parent);
     self._visu_plotter = None
+    self._parent = parent;
+    self._wtop = None;
 
     if dataitem and dataitem.data is not None:
       self.set_data(dataitem);
@@ -45,11 +53,13 @@ class ResultPlotter(BrowserPlugin):
     self._window_controller.closeAllWindows()
                                                                                            
   def wtop (self):
+    return self._wtop;
+    
 # used for 'embedded display'
 #    return self._window
 
 # used for 'standalone display'
-    return self._Qlabel
+#    return self._Qlabel
 
 #
 # tree traversal code adapted from the pasteur institute python 
@@ -61,18 +71,20 @@ class ResultPlotter(BrowserPlugin):
 # we check if a plotter has been constructed - 
     if isinstance(node, dict) and self._visu_plotter is None:
       if node.has_key('attrib'):
-        print 'length of attrib', len(node['attrib'])
+        _dprint(2,'length of attrib', len(node['attrib']));
         if len(node['attrib']) > 0:
           attrib_parms = node['attrib']
           plot_type = attrib_parms.get('plot_type')
           if plot_type == 'spectra':
             self._visu_plotter = QwtImagePlot(plot_type)
+            self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
           if plot_type == 'realvsimag':
-            self._visu_plotter = realvsimag_plotter(plot_type)
-          self._visu_plotter.show()
+            self._visu_plotter = realvsimag_plotter(plot_type,parent=self._parent)
+            self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
+          # self._visu_plotter.show()
 
   def do_postwork(self, node):
-    print "in postwork: do nothing at present"
+    _dprint(3,"in postwork: do nothing at present");
 
 
   def is_leaf(self, node):
@@ -91,9 +103,9 @@ class ResultPlotter(BrowserPlugin):
     self._visu_plotter.plot_data('item_label',leaf)
 
   def tree_traversal (self, node):
-    print ' ******* '
-    print 'in tree traversal with node having length ', len(node)
-    print ' ******* '
+    _dprint(3,' ******* ');
+    _dprint(3,'in tree traversal with node having length ', len(node));
+    _dprint(3,' ******* ');
     if isinstance(node, dict):
       self.do_prework(node)
       if not self.is_leaf(node):

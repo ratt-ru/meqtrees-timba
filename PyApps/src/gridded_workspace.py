@@ -10,7 +10,7 @@ import re
 import gc
 import types
 
-_dbg = verbosity(3,name='gw');
+_dbg = verbosity(0,name='gw');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
@@ -276,7 +276,7 @@ class GridCell (object):
     self._highlight = False;
     
     # init widgets
-    wtop = self._wtop = self.TopLevelWidget(parent);
+    wtop = self._wtop = self.TopLevelWidget(parent,'cell '+str(id(self))+' top');
     wtop.hide();
     top_lo = self._top_lo = QVBoxLayout(self._wtop);
     control_box = self._control_box = QWidget(self._wtop);
@@ -511,6 +511,7 @@ class GridCell (object):
         vopts.update(vo);
     # create a viewer
     try:
+      print self.wtop().name();
       viewer = viewer_class(self.wtop(),dataitem=self._dataitem,
                             context_menu=self._menu,**vopts);
     # catch failures
@@ -530,7 +531,7 @@ class GridCell (object):
       self._viewer = viewer;
       self._viewer_widget = widget = viewer.wtop();
       self._top_lo.addWidget(widget,1000);
-      _dprint(5,'GridCell: widget added');
+      _dprint(5,'GridCell: widget',widget,'added');
       # connect displayDataItem() signal from viewer to be resent from top widget
       QWidget.connect(widget,PYSIGNAL("displayDataItem()"),
                       self.wtop(),PYSIGNAL("displayDataItem()"));

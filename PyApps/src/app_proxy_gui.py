@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+MainApp = None;
+MainAppThread = None;
+
 import sys
 import time
 from qt import *
@@ -15,8 +18,6 @@ import re
 import imp
 import sets
 
-MainApp = None;
-MainAppThread = None;
 
 dmirepr = dmi_repr.dmi_repr();
 

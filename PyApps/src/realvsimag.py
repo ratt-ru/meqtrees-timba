@@ -13,101 +13,17 @@ import sys
 from qt import *
 from qwt import *
 from numarray import *
+import app_pixmaps as pixmaps
 
 from math import sin
 from math import cos
 from math import pow
 from math import sqrt
 
-print_xpm = ['32 32 12 1',
-             'a c #ffffff',
-             'h c #ffff00',
-             'c c #ffffff',
-             'f c #dcdcdc',
-             'b c #c0c0c0',
-             'j c #a0a0a4',
-             'e c #808080',
-             'g c #808000',
-             'd c #585858',
-             'i c #00ff00',
-             '# c #000000',
-             '. c None',
-             '................................',
-             '................................',
-             '...........###..................',
-             '..........#abb###...............',
-             '.........#aabbbbb###............',
-             '.........#ddaaabbbbb###.........',
-             '........#ddddddaaabbbbb###......',
-             '.......#deffddddddaaabbbbb###...',
-             '......#deaaabbbddddddaaabbbbb###',
-             '.....#deaaaaaaabbbddddddaaabbbb#',
-             '....#deaaabbbaaaa#ddedddfggaaad#',
-             '...#deaaaaaaaaaa#ddeeeeafgggfdd#',
-             '..#deaaabbbaaaa#ddeeeeabbbbgfdd#',
-             '.#deeefaaaaaaa#ddeeeeabbhhbbadd#',
-             '#aabbbeeefaaa#ddeeeeabbbbbbaddd#',
-             '#bbaaabbbeee#ddeeeeabbiibbadddd#',
-             '#bbbbbaaabbbeeeeeeabbbbbbaddddd#',
-             '#bjbbbbbbaaabbbbeabbbbbbadddddd#',
-             '#bjjjjbbbbbbaaaeabbbbbbaddddddd#',
-             '#bjaaajjjbbbbbbaaabbbbadddddddd#',
-             '#bbbbbaaajjjbbbbbbaaaaddddddddd#',
-             '#bjbbbbbbaaajjjbbbbbbddddddddd#.',
-             '#bjjjjbbbbbbaaajjjbbbdddddddd#..',
-             '#bjaaajjjbbbbbbjaajjbddddddd#...',
-             '#bbbbbaaajjjbbbjbbaabdddddd#....',
-             '###bbbbbbaaajjjjbbbbbddddd#.....',
-             '...###bbbbbbaaajbbbbbdddd#......',
-             '......###bbbbbbjbbbbbddd#.......',
-             '.........###bbbbbbbbbdd#........',
-             '............###bbbbbbd#.........',
-             '...............###bbb#..........',
-             '..................###...........']
-
-zoom_xpm = ['32 32 8 1',
-            '# c #000000',
-            'b c #c0c0c0',
-            'a c #ffffff',
-            'e c #585858',
-            'd c #a0a0a4',
-            'c c #0000ff',
-            'f c #00ffff',
-            '. c None',
-            '..######################........',
-            '.#a#baaaaaaaaaaaaaaaaaa#........',
-            '#aa#baaaaaaaaaaaaaccaca#........',
-            '####baaaaaaaaaaaaaaaaca####.....',
-            '#bbbbaaaaaaaaaaaacccaaa#da#.....',
-            '#aaaaaaaaaaaaaaaacccaca#da#.....',
-            '#aaaaaaaaaaaaaaaaaccaca#da#.....',
-            '#aaaaaaaaaabe###ebaaaaa#da#.....',
-            '#aaaaaaaaa#########aaaa#da#.....',
-            '#aaaaaaaa###dbbbb###aaa#da#.....',
-            '#aaaaaaa###aaaaffb###aa#da#.....',
-            '#aaaaaab##aaccaaafb##ba#da#.....',
-            '#aaaaaae#daaccaccaad#ea#da#.....',
-            '#aaaaaa##aaaaaaccaab##a#da#.....',
-            '#aaaaaa##aacccaaaaab##a#da#.....',
-            '#aaaaaa##aaccccaccab##a#da#.....',
-            '#aaaaaae#daccccaccad#ea#da#.....',
-            '#aaaaaab##aacccaaaa##da#da#.....',
-            '#aaccacd###aaaaaaa###da#da#.....',
-            '#aaaaacad###daaad#####a#da#.....',
-            '#acccaaaad##########da##da#.....',
-            '#acccacaaadde###edd#eda#da#.....',
-            '#aaccacaaaabdddddbdd#eda#a#.....',
-            '#aaaaaaaaaaaaaaaaaadd#eda##.....',
-            '#aaaaaaaaaaaaaaaaaaadd#eda#.....',
-            '#aaaaaaaccacaaaaaaaaadd#eda#....',
-            '#aaaaaaaaaacaaaaaaaaaad##eda#...',
-            '#aaaaaacccaaaaaaaaaaaaa#d#eda#..',
-            '########################dd#eda#.',
-            '...#dddddddddddddddddddddd##eda#',
-            '...#aaaaaaaaaaaaaaaaaaaaaa#.####',
-            '...########################..##.']
-
-
+from dmitypes import verbosity
+_dbg = verbosity(0,name='realvsimag');
+_dprint = _dbg.dprint;
+_dprintf = _dbg.dprintf;
 
 class PrintFilter(QwtPlotPrintFilter):
     def __init__(self):
@@ -140,7 +56,7 @@ class PrintFilter(QwtPlotPrintFilter):
 
 # class PrintFilter
 
-class realvsimag_plotter(QMainWindow):
+class realvsimag_plotter(object):
 
     color_table = {
         'none': None,
@@ -166,12 +82,8 @@ class realvsimag_plotter(QMainWindow):
 	'diamond': QwtSymbol.Diamond,
         }
     
-    def __init__(self, plot_key, parent=None):
-        QMainWindow.__init__(self, parent)
-        if parent is None:
-          print 'realvsimag has no parent'
-        else:
-          print 'realvsimag has parent'
+    def __init__(self, plot_key, parent):
+        # QWidget.__init__(self, parent)
 
         self.plot_key = plot_key
 
@@ -179,15 +91,20 @@ class realvsimag_plotter(QMainWindow):
         self.plot = QwtPlot('Real vs Imaginary Plot'
                             ' -- '
                             'use the ?-pointer for help',
-                            self)
+                            parent)
         self.plot.plotLayout().setCanvasMargin(0)
         self.plot.plotLayout().setAlignCanvasToScales(True)
-        self.setCentralWidget(self.plot)
+        
+        self._mainwin = parent and parent.topLevelWidget();
+        # get status bar
+        self._statusbar = self._mainwin and self._mainwin.statusBar();
 
         self.__initTracking()
         self.__initZooming()
-        self.__initToolBar()
-        
+        # forget the toolbar for now -- too much trouble when we're dealing with 
+        # multiple windows. Do a context menu instead
+        # self.__initToolBar()
+        self.__initContextMenu()
 
         # initialize internal variables for plot
         self._circle_dict = {}
@@ -210,23 +127,23 @@ class realvsimag_plotter(QMainWindow):
     def __initTracking(self):
         """Initialize tracking
         """        
-        self.connect(self.plot,
+        QObject.connect(self.plot,
                      SIGNAL('plotMouseMoved(const QMouseEvent&)'),
                      self.onMouseMoved)
-        self.connect(self.plot, SIGNAL("plotMousePressed(const QMouseEvent&)"),
+        QObject.connect(self.plot, SIGNAL("plotMousePressed(const QMouseEvent&)"),
                         self.slotMousePressed)
 
         self.plot.canvas().setMouseTracking(True)
-        self.statusBar().message(
-            'Plot cursor movements are tracked in the status bar')
+        self._statusbar.message(
+            'Plot cursor movements are tracked in the status bar',2000)
 
     # __initTracking()
 
     def onMouseMoved(self, e):
-        self.statusBar().message(
+        self._statusbar.message(
             'x = %+.6g, y = %.6g'
             % (self.plot.invTransform(QwtPlot.xBottom, e.pos().x()),
-               self.plot.invTransform(QwtPlot.yLeft, e.pos().y())))
+               self.plot.invTransform(QwtPlot.yLeft, e.pos().y())),2000)
 
     # onMouseMoved()
     
@@ -248,7 +165,7 @@ class realvsimag_plotter(QMainWindow):
             QwtPicker.AlwaysOn,
             self.plot.canvas())
         self.picker.setRubberBandPen(QPen(Qt.green))
-        self.connect(self.picker, SIGNAL('selected(const QPointArray &)'),
+        QObject.connect(self.picker, SIGNAL('selected(const QPointArray &)'),
                      self.selected)
 
 
@@ -274,60 +191,93 @@ class realvsimag_plotter(QMainWindow):
             raise ValueError, 'index must be in (0, 1, 2, 3)'
 
     # setZoomerMousePattern()
-
-    def __initToolBar(self):
+    def __initContextMenu(self):
         """Initialize the toolbar
         """
-        self.toolBar = QToolBar(self)
-
-        btnZoom = QToolButton(self.toolBar)
-        btnZoom.setTextLabel("Zoom")
-        btnZoom.setPixmap(QPixmap(zoom_xpm))
-        btnZoom.setToggleButton(True)
-        btnZoom.setUsesTextLabel(True)
-
-        btnPrint = QToolButton(self.toolBar)
-        btnPrint.setTextLabel("Print")
-        btnPrint.setPixmap(QPixmap(print_xpm))
-        btnPrint.setUsesTextLabel(True)
-
-        QWhatsThis.whatsThisButton(self.toolBar)
+        # skip if no main window
+        if not self._mainwin:
+          return;
+          
+        self._menu = QPopupMenu(self._mainwin);
         
-        QWhatsThis.add(
-            self.plot.canvas(),
-            'A QwtPlotZoomer lets you zoom infinitely deep\n'
-            'by saving the zoom states on a stack.\n\n'
-            'You can:\n'
-            '- select a zoom region\n'
-            '- unzoom all\n'
-            '- walk down the stack\n'
-            '- walk up the stack.\n\n'
-            )
+        zoom = QAction(self.plot);
+        zoom.setIconSet(pixmaps.viewmag.iconset());
+        zoom.setText("Enable zoomer");
+        zoom.setToggleAction(True);
+        # zoom.setAccel() can set keyboard accelerator
+        QObject.connect(zoom,SIGNAL("toggled(bool)"),self.zoom);
+        zoom.addTo(self._menu);
         
-        self.zoom(False)
+        printer = QAction(self.plot);
+        printer.setIconSet(pixmaps.fileprint.iconset());
+        printer.setText("Print plot");
+        QObject.connect(printer,SIGNAL("activated()"),self.printPlot);
+        printer.addTo(self._menu);
+        
+        self.zoom(False);
+        self.setZoomerMousePattern(0);
 
-        self.setZoomerMousePattern(0)
-
-        self.connect(btnPrint, SIGNAL('clicked()'),
-                     self.printPlot)
-        self.connect(btnZoom, SIGNAL('toggled(bool)'),
-                     self.zoom)
+##    def __initToolBar(self):
+##        """Initialize the toolbar
+##        """
+##        # skip if no main window
+##        if not self._mainwin:
+##          return;
+##        if not self.toolBar:
+##          self.toolBar = QToolBar(self._mainwin);
+##
+##          self.__class__.btnZoom = btnZoom = QToolButton(self.toolBar)
+##          btnZoom.setTextLabel("Zoom")
+##          btnZoom.setPixmap(QPixmap(zoom_xpm))
+##          btnZoom.setToggleButton(True)
+##          btnZoom.setUsesTextLabel(True)
+##
+##          self.__class__.btnPrint = btnPrint = QToolButton(self.toolBar)
+##          btnPrint.setTextLabel("Print")
+##          btnPrint.setPixmap(QPixmap(print_xpm))
+##          btnPrint.setUsesTextLabel(True)
+##
+##          QWhatsThis.whatsThisButton(self.toolBar)
+##
+##          QWhatsThis.add(
+##              self.plot.canvas(),
+##              'A QwtPlotZoomer lets you zoom infinitely deep\n'
+##              'by saving the zoom states on a stack.\n\n'
+##              'You can:\n'
+##              '- select a zoom region\n'
+##              '- unzoom all\n'
+##              '- walk down the stack\n'
+##              '- walk up the stack.\n\n'
+##              )
+##        
+##        self.zoom(False)
+##
+##        self.setZoomerMousePattern(0)
+##
+##        QObject.connect(self.btnPrint, SIGNAL('clicked()'),
+##                     self.printPlot)
+##        QObject.connect(self.btnZoom, SIGNAL('toggled(bool)'),
+##                     self.zoom)
 
     # __initToolBar()
 
     def slotMousePressed(self, e):
-        print ' '
-        print ' in slotMousePressed'
         "Mouse press processing instructions go here"
+        _dprint(2,' in slotMousePressed');
+        _dprint(3,' slotMousePressed event:',e);
         if e.button() == QMouseEvent.MidButton:
-            print 'button is mid button'
+            _dprint(2,'button is mid button');
             xPos = e.pos().x()
             yPos = e.pos().y()
-            print 'xPos yPos ', xPos, ' ', yPos
+            _dprint(2,'xPos yPos ', xPos, ' ', yPos);
             key, distance, xVal, yVal, index = self.plot.closestCurve(xPos, yPos)
-            print ' key, distance, xVal, yVal, index ', key, ' ', distance,' ', xVal, ' ', yVal, ' ', index
+            _dprint(2,' key, distance, xVal, yVal, index ', key, ' ', distance,' ', xVal, ' ', yVal, ' ', index);
             message = 'point belongs to curve ' + str(key) + ' at sequence ' + str(index) 
-            self.statusBar().message(message)
+            self._statusbar.message(message,2000)
+        elif e.button() == QMouseEvent.RightButton:
+          e.accept();  # accept even so that parent widget won't get it
+          # popup the menu
+          self._menu.popup(e.globalPos());
             
     # slotMousePressed
 
@@ -389,13 +339,13 @@ class realvsimag_plotter(QMainWindow):
     def plot_data(self, item_label, visu_record):
       """ process incoming data and attributes into the
           appropriate type of plot """
-      print '****** in plot_data'
+      _dprint(2,'****** in plot_data');
 
 # first find out what kind of plot we are making
       plot_types = None
       if visu_record.has_key('attrib'):
         self._attrib_parms = visu_record['attrib']
-        print 'self._attrib_parms ', self._attrib_parms
+        _dprint(2,'self._attrib_parms ', self._attrib_parms);
         plot_types = self._attrib_parms.get('plot_type')
 
 # convert to a tuple if necessary
@@ -404,7 +354,7 @@ class realvsimag_plotter(QMainWindow):
 
       if visu_record.has_key('value'):
         self._data_values = visu_record['value']
-        print 'self._data_values ', self._data_values
+        _dprint(2,'self._data_values ', self._data_values);
 
 # extract and define labels for this data item
       self._label_r = item_label + "_r"
@@ -421,7 +371,7 @@ class realvsimag_plotter(QMainWindow):
  
 # get and combine all plot array data together into one array
       num_plot_arrays = len(self._data_values)
-      print ' num_plot_arrays ', num_plot_arrays
+      _dprint(2,' num_plot_arrays ', num_plot_arrays);
       image_r = []
       image_i = []
       sum_r = 0.0
@@ -562,14 +512,14 @@ class realvsimag_plotter(QMainWindow):
       self.go(self.index)
     # timerEvent()
 
-    def zoom(self, on):
+    def zoom(self,on):
         self.zoomer.setEnabled(on)
         self.zoomer.zoom(0)
         if on:
           self.picker.setRubberBand(QwtPicker.NoRubberBand)
 # set fixed scales - zooming doesn't work well with autoscaling!!
-          print 'setting x fixed scale: ', self._x_min, ' ', self._x_max
-          print 'setting y fixed scale: ', self._y_min, ' ', self._y_max
+          _dprint(2,'setting x fixed scale: ', self._x_min, ' ', self._x_max);
+          _dprint(2,'setting y fixed scale: ', self._y_min, ' ', self._y_max);
           x_diff = (self._x_max - self._x_min) / 10.0
           x_max = self._x_max + x_diff
           x_min = self._x_min - x_diff
@@ -610,7 +560,7 @@ class realvsimag_plotter(QMainWindow):
 # this gives the position in pixels!!
         xPos = point[0]
         yPos = point[1]
-        print 'selected: xPos yPos ', xPos, ' ', yPos
+        _dprint(2,'selected: xPos yPos ', xPos, ' ', yPos);
     # selected()
 
 
