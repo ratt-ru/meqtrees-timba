@@ -92,7 +92,9 @@ CS_RES_map = {  CS_RES_NONE:     ('-','valid result'),
 # this class defines and manages a node list
 class NodeList (object):
   NodeAttrs = ('name','class','children','control_status');
-  RequestRecord = srecord(dict.fromkeys(NodeAttrs,True),nodeindex=True,get_forest_status=True);
+  RequestRecord = srecord(**dict.fromkeys(NodeAttrs,True));
+  RequestRecord.nodeindex=True;
+  RequestRecord.get_forest_status=True;
   
   class Node (QObject):
     def __init__ (self,ni):

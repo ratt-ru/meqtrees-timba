@@ -265,7 +265,16 @@ class TreeBrowser (QObject):
     self._qa_refresh.addTo(self._toolbar);
     self._qa_refresh.setEnabled(False);
     self._toolbar.addSeparator();
-    # 
+    # Save and load
+    self._qa_load = QAction("Load",pixmaps.file_open.iconset(),"Load forest",Qt.Key_L+Qt.ALT,parent);
+    QObject.connect(self._qa_load,SIGNAL("activated()"),self._load_forest);
+    self._qa_load.addTo(self._toolbar);
+    self._qa_load.setEnabled(False);
+    self._qa_save = QAction("Save",pixmaps.file_save.iconset(),"Save forest",Qt.Key_S+Qt.ALT,parent);
+    QObject.connect(self._qa_save,SIGNAL("activated()"),self._save_forest);
+    self._qa_save.addTo(self._toolbar);
+    self._qa_save.setEnabled(False);
+    self._toolbar.addSeparator();
     # the "Enable debugger" action
     self._qa_dbg_enable = QAction("Enable debugger",pixmaps.eject.iconset(),"Enable &Debugger",Qt.Key_F5,parent,"",True);
     self._qa_dbg_enable.addTo(self._toolbar);
@@ -381,6 +390,8 @@ class TreeBrowser (QObject):
     self._nlv.clear();
     
   def connected (self,conn,auto_request=True):
+    self._qa_save.setEnabled(conn);
+    self._qa_load.setEnabled(conn);
     self._qa_refresh.setEnabled(conn);
     self._qa_dbg_enable.setEnabled(conn);
     if conn is True:
@@ -656,6 +667,33 @@ class TreeBrowser (QObject):
           i1 = self.NodeItem(self,node,node.name,item,i1);
         delattr(item,'_iter_nodes');
   # _expand_node = busyCursorMethod(_expand_node);
+  
+  def _save_forest (self):
+    try: dialog = self._save_dialog;
+    except AttributeError:
+      dialog = self._save_dialog = QFileDialog(self._nlv,"save dialog",True);
+      dialog.setMode(QFileDialog.AnyFile);
+      dialog.setFilters("Forests (*.forest);;All files (*.*)");
+      dialog.setViewMode(QFileDialog.Detail);
+      dialog.setCaption("Save forest");
+    if dialog.exec_loop() == QDialog.Accepted:
+      fname = str(dialog.selectedFile());
+      rec = srecord(file_name=fname,get_forest_status=True);
+      mqs().meq('Save.Forest',rec,wait=False);
+  
+  def _load_forest (self):
+    try: dialog = self._load_dialog;
+    except AttributeError:
+      dialog = self._load_dialog = QFileDialog(self._nlv,"load dialog",True);
+      dialog.setMode(QFileDialog.ExistingFile);
+      dialog.setFilters("Forests (*.forest);;All files (*.*)");
+      dialog.setViewMode(QFileDialog.Detail);
+      dialog.setCaption("Load forest");
+    if dialog.exec_loop() == QDialog.Accepted:
+      fname = str(dialog.selectedFile());
+      rec = srecord(file_name=fname,get_forest_status=True);
+      mqs().meq('Load.Forest',rec,wait=False);
+  
   
 class NodeAction (object):
   """NodeAction is a class describing a node-associated action.""";
