@@ -3,6 +3,7 @@ add                              1064       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 address                          1067       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:10
 agent                            1279       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/VisAgent/src/VisAgentVocabulary.h:10
 aipspp                           1125       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:36
+all                              1381       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
 always                           1268       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:17
 angle                            1209       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
 antenna                          1147       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:27
@@ -21,6 +22,7 @@ bind                             1059       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 boio                             1266       ; from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/BOIOSink.h:9
 bool                             32         ; from /home/oms/LOFAR/DMI/src/TypeId.h:99
 bound                            1063       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
+by                               1382       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
 bye                              1096       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:21
 c                                1007       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 cache                            1375       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:32
