@@ -10,8 +10,7 @@
 \markboth{\dotfill MeqTree Browser Interface}{\small\tt
 LOFAR/Timba/doc/MEQ/PythonInterface.tex\em~~$\circ$~$ $Revision$ $~$\circ$~$ $Date$ $\dotfill}
 
-\title{{\sf The MeqTree Browser Inteface\\\small or how does a Python eat a
-Timba?}}
+\title{{\sf The MeqTree Browser Inteface\\\small or Do Pythons Eat Timbas?}}
 
 \author{{\sf O.M. Smirnov}}
 
@@ -48,7 +47,7 @@ $ $Revision$ $\\$ $Date$ $}
   
   A plug-in is generally just a Python class/module which is imported into the
   browser. All plug-ins are free to create and display any kind of PyQt widget,
-  and can interact with the kernel via the {\tt meqds} (Meq Data Services)
+  and can interact with the kernel via the \qq{meqds} (Meq Data Services)
   module. Getting a plug-in to fully integrate into the browser (i.e., 
   play nice with the gridded workspace, etc.) takes a few extra incantations,
   however.
@@ -58,36 +57,48 @@ $ $Revision$ $\\$ $Date$ $}
   Viewers are associated with data object. The lifecycle of a viewer plug-in is
   typically as follows:
   
-  \begin{enumerate} \item The user asks to display a data object with a specific
-  or default viewer.
-
-  \item The browser creates a \tt{Timba.Grid.DataItem} object. A \tt{DataItem} 
-  represents the data object being viewed. The \tt{Timba.Grid.addDataItem()} 
+  \begin{enumerate} 
+  
+  \item The user clicks on a data object (i.e. default viewer wanted), or
+  selects a viewer from the ``Display with...'' context menu.
+  
+  \item The browser creates a \qq{Timba.Grid.DataItem} object. A \qq{DataItem} 
+  represents the data object being viewed. The \qq{Timba.Grid.addDataItem()} 
   function is called to register the data item with the grid.
   
-  \item Within {\tt addDataItem()}, a viewer object is constructed, and assigned
-  to {\tt dataitem.viewer_obj}. The viewer can then allocate one or more cells
+  \item Certain data items are considered {\em mutable}; this goes for, e.g.,
+  node state, or any part thereof. For such items, the browser will send out a
+  refresh request to the kernel. Meanwhile, the dataitem is constructed {\em
+  with no data.} Thus some viewers must be prepared to receive an ``empty''
+  dataitem on startup, and to be updated with data dynamically.
+
+  Other data objects are immutable, and are available to begin with (e.g.,
+  anything from the result log or the message log). For such objects, the
+  dataitem is initialized with contents immediately.
+
+  \item Within \qq{addDataItem()}, a viewer object is constructed, and assigned
+  to \qq{dataitem.viewer\_obj}. The viewer can then allocate one or more cells
   in the grid, etc. (But note that it doesn't have to -- it's perfectly possible
   to have viewers outside the grid.)
 
-  \item The browser maintains a list of currently active dataitems. Whenever one
-  is updated (e.g., node publishes state, etc.), the corresponding viewer
-  object's {\tt set\_data()} method is called to update the viewer.
-  
+  \item The browser maintains a list of currently viewed dataitems. Whenever a
+  one is refreshed (e.g., node publishes state, etc.), the corresponding viewer
+  object's \qq{set\_data()} method is called to update the viewer.
+
   \item When the user closes a viewer (e.g. with the cell close button),
-  \tt{Timba.Grid.removeDataItem()} is called. This deletes the dataitem and the
+  \qq{Timba.Grid.removeDataItem()} is called. This deletes the dataitem and the
   viewer object.
 
   \end{enumerate}
   
 \subsection{Anatomy of a typical viewer}
 
-  Let's examine a viewer plug-in, the {\tt ArrayBrowser}. This class can be
-  found in {\tt Plugins/array\_browser.py}. This is a very simple viewer, in that
-  it allocates itself a single grid cell, and does not directly interact with
-  the kernel at all, relying on the grid to keep it updated. Viewers like this
-  can be conveniently derived from the {\tt GriddedPlugin} class (see {\tt
-  GUI/browsers.py}). 
+  Let's examine a viewer plug-in, the \qq{ArrayBrowser}. This class can be found
+  in \qq{Plugins/array\_browser.py}. This is a very simple viewer, in that it
+  allocates itself a single grid cell, and does not directly interact with the
+  kernel at all, relying on the grid to keep it updated. Viewers like this can
+  be conveniently derived from the \qq{GriddedPlugin} class
+  (\qq{GUI/browsers.py}). 
 
 \begin{verbatim}  
 from Timba.dmi import *           # basic DMI support
@@ -101,9 +112,13 @@ from qt import *                  # Qt widgets
 from qttable import *             # QTable and company
 \end{verbatim}
 
-  This imports various modules. 
+  These statement cause various useful modules to be imported. We won't discuss
+  them in any detail, since these modules are (or should be...) documented
+  elsewhere... and when writing your own viewer, you can always cut-and-paste.
   
-\paragraph{Debug printing.} Further down, we see:
+\subsubsection{Debug printing} 
+
+  Further down, we see:
   
 \begin{verbatim}  
 _dmirepr = dmi_repr.dmi_repr();
@@ -113,31 +128,31 @@ _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 \end{verbatim}
   
-  The {\tt dmi\_repr} object is not important, it's simly a helper object that
-  the Array Browser uses to convert numbers to strings. The {\tt \_dbg} object
-  is more intersting: this is a {\em verbosity context}. Each verbosity context
-  has a name and a debug level (in this case initialized to 0 by default).
-  All over the browser code, you will see statements such as:
+  The \qq{\_dmirepr} is simly a helper object that the Array Browser uses to
+  convert numbers to strings. The \qq{\_dbg} object is more intersting: this is
+  a debug-print object, also known as a {\em verbosity context}. Each verbosity
+  context has a name and a debug level (in this case initialized to 0 by
+  default). All over the browser code, you will see statements such as:
 
 \begin{verbatim} 
     _dprint(3,"rank is",self._rank);
 \end{verbatim}
 
   This statement will conditionally print a diagnostics line on stdout, but only
-  if the debug level of the corresponding verbosity context is greater than or
-  equal to the first argument to {\tt \_dprint}. The debug level can be set from
-  the command line via the {\tt "-d"} option, e.g.: {\tt "-darray_browser=3"}.
-  This is a handy facility for adding debug printing with various levels of
-  detail to your code, and you should try to use it as much as possible (in
-  fact, loose {\tt print} statements are very much frowned upon...) The {\tt
-  \_dprintf} function is similar, but it takes a format string as the second
-  argument, e.g.:
+  if the current debug level of the corresponding verbosity context is no lower 
+  than the first argument to \qq{\_dprint}. The debug level can be set from the
+  command line via the \qq{"-d"} option, e.g.: \qq{"-darray\_browser=3"}. This
+  is a handy facility for adding debug printing with various levels of detail to
+  your code, and you should try to use it as much as possible (in fact, loose
+  \qq{print} statements are very much frowned upon...) The \qq{\_dprintf}
+  function is similar, but it takes a format string as the second argument,
+  e.g.:
 
 \begin{verbatim}  
     _dprintf(3,"rank is %d",self._rank);
 \end{verbatim}
 
-  What makes this facility even more convenient is that {\tt \_dprint}
+  What makes this facility even more convenient is that \qq{\_dprint}
   automatically prefixes each line by the context name, filename, line number
   and function name. The statement above actually prints something like:
 
@@ -145,11 +160,18 @@ _dprintf = _dbg.dprintf;
     array_browser(array_browser.py:43:set_array): rank is 2
 \end{verbatim}
 
-\paragraph{The viewer itself.} Next, we see:
+  Note finally that global symbols prefixed with \qq{"\_"} are normally not
+  imported into other Python modules even when the \qq{from} ... \qq{import *}
+  statement is used. This is useful to hide ``internal'' module-level
+  variables.
+
+\subsubsection{Definining the viewer class} 
+
+  Next, we see:
 
 \begin{verbatim}  
 class ArrayTable(QTable):
-# blah blah blah
+# lots of clever but irrelevant code
 \end{verbatim}
 
   This is a specialization of the QTable widget for efficiently displaying
@@ -157,7 +179,7 @@ class ArrayTable(QTable):
   not terribly relevant to this discussion, so we won't describe it (although
   you're free to use it in your plugins too). The viewer class itself is defined
   further down:
-  
+
 \begin{verbatim}  
 class ArrayBrowser(GriddedPlugin):
   _icon = pixmaps.matrix;
@@ -169,22 +191,36 @@ class ArrayBrowser(GriddedPlugin):
 \end{verbatim}
 
   This derives the viewer from \qq{GriddedPlugin}, and defines an icon for the
-  class, and an official viewer name (which will appear in menus and such).  The
-  \qq{is\_viewable()} method is used to limit the viewer to specific kinds of
-  data objects. Note that viewers are associated with specific data types (more
-  on this below), so the browser already knows that \qq{ArrayBrowser} only
-  applies to \qq{numarray}s. However, not all numarrays are viewable with this
-  class: only one- and two-dimensional ones. The \qq{is\_viewable()} method
-  checks for this\footnote{the exception handler is there as a fallback, in case
-  data doesn't have a rank attribute at all, which is not supposed to happen but
-  that's no reason to fall over...}; the browser will call this method and omit
-  the viewer from the "Display with" menus of data objects that are not
-  supported. If a viewer class can display any object of its type, then it
-  doesn't need to define \qq{is\_viewable()} at all.
+  class, and an official viewer name (which will appear in menus and such). Note
+  that \qq{GriddedPlugin} is a very ``thin'' wrapper around its parent, the
+  \qq{Grid.CellBlock} class (\qq{Grid/CellBlock.py}). In fact, all of the
+  methods discussed below are actually defined by \qq{CellBlock}. Keep this in
+  mind, as we'll be seeing \qq{CellBlock} again elsewhere in this document.
   
+\subsubsection{Can we view this?} 
+
+  The \qq{is\_viewable()} method is called by the browser to determine if the
+  viewer can display a specific data object or not. Viewers are associated with
+  particular data types to begin with (more on this below), so if your viewer is
+  so wonderfully cooperative that it can handle any object whatsoever (of the
+  associated type, of course), it doesn't need to define \qq{is\_viewable()} at
+  all. (Note also that \qq{is\_viewable()} needs to be a static method, since it
+  is called before any viewer object is actually instantiated.)
+
+  In our case, \qq{ArrayBrowser} is registered as a viewer for arrays. However,
+  not all arrays are viewable with this class (as of now, at least): only one-
+  and two-dimensional ones. The \qq{is\_viewable()} method checks for
+  this\footnote{the exception handler is there as a fallback, in case \qq{data}
+  doesn't have a rank attribute at all, which is not supposed to happen but
+  that's no reason to fall over disgracefully...}; the browser will
+  automatically omit the viewer from consideration if the data object is
+  reported as not viewable. 
+
+\subsubsection{Initialization} 
+
   All viewers must define a certain form of constructor. This is documented in
   \qq{Grid/Services.py}.
-  
+
 \begin{verbatim}  
   def __init__(self,gw,dataitem,cellspec={},**opts):
     GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
@@ -193,36 +229,133 @@ class ArrayBrowser(GriddedPlugin):
 \end{verbatim}
 
   in this case we don't really need to worry about most of the arguments, since
-  they're passed up to the parent class as is. Note the \qq{self.wparent()} call
-  though -- the \qq{GriddedPlugin} constructor allocates a grid cell for us
-  (in fact, this is done even further up, in the \qq{CellBlock} class from
-  which \qq{GriddedPlugin} inherits). 
+  they're passed up to \qq{GriddedPlugin} (and ultimately \qq{CellBlock}) as is.
+  Do note the \qq{self.wparent()} call though -- the \qq{CellBlock} constructor
+  allocates a grid cell for us, and the \qq{self.wparent()} method returns the
+  widget corresponding to that cell. This widget should be used as the parent 
+  of all the browser's widgets.
 
+\begin{verbatim}  
     self.set_widgets(self.wtop(),dataitem.caption,icon=self.icon());
-    if dataitem and dataitem.data is not None:
+    QObject.connect(self.wtop(),PYSIGNAL("fontChanged()"),self._tbl.reset_colsizes);
+\end{verbatim}
+
+  This first initializes the grid cell, by suppling it our widget, a caption
+  (one will have already been created for us in \qq{dataitem}) and an
+  icon.\footnote{\qq{icon()} is defined in \qq{GriddedBrowser}, and simply
+  returns our static \qq{\_icon} attribute initialized above.} Note that our
+  \qq{wtop()} method (defined below) returns the top-level widget of the
+  viewer -- \qq{self.\_tbl} in this case. Defining \qq{wtop()} to return the
+  top-level widget of a class is a convention that is followed throughout the
+  browser, I suggest you stick to it in your own plug-ins.
+
+  The \qq{"fontChanged()"} signal is emitted on behalf of our top-level widget
+  when the user changes the font size from the cell menu. The browser will
+  change the Qt \qq{font} property for us automatically before this signal is
+  emitted. If additional operations are required to adapt to the new font (e.g.,
+  resizing the table columns), this signal provides the necessary hook.
+
+\begin{verbatim}  
+    if dataitem.data is not None:
       self.set_data(dataitem);
+\end{verbatim}
+
+  The \qq{dataitem} may or may not be already initialized with actual data
+  content (the \qq{data} attribute). If it is, we call our \qq{set\_data()}
+  method to fill the table widget. If it isn't (\qq{data} is \qq{None}), then
+  the browser will call our \qq{set\_data()} for us when data content becomes
+  available.
+        
+\begin{verbatim}  
     context_menu = self.cell_menu();
-    QObject.connect(self._tbl,PYSIGNAL("fontChanged()"),self._tbl.reset_colsizes);
     if context_menu is not None:
       context_menu.insertSeparator();
       menu = PrecisionPopupMenu(context_menu,prec=self._tbl.get_prec());
       context_menu.insertItem(pixmaps.precplus.iconset(),'Number format',menu);
       QWidget.connect(menu,PYSIGNAL("setPrecision()"),\
                       self._tbl.set_precision);
-      
 \end{verbatim}
+
+  The \qq{cell\_menu()} method returns the menu object associated with our grid
+  cell. The cell menu has a few entries standard to all cells, but viewers are
+  free to extend it with custom functions. Here, we add an item to change the
+  number representation and precision; this is conveniently provided by the
+  \qq{PrecisionPopupMenu} class from \qq{GUI/browsers.py}.
+  
+  And that's pretty much it for the constructor. There's very little code left
+  in fact...
+
+\subsubsection{Reporting errors} 
+
+  Any errors during viewer initialization should be thrown as exceptions. The
+  browser will catch these, report them to the user,  and go on without
+  allocating any cells (and if it doesn't, then this is a bug that should be
+  reported!) Thus, Array Browser does not bother itself with any error checks,
+  trusting Python to raise exceptions if anything goes wrong.  If your viewer
+  runs into any trouble, you should simply raise an exception.
+
+\subsubsection{Updating the data} 
+
+  All viewers must define a \qq{set\_data()} method. This is called by the
+  browser whenever the data object associated with the viewer is updated.
+
 \begin{verbatim}  
-  def wtop (self):
-    return self._tbl;
+  def set_data (self,dataitem,**opts):
+    self._tbl.set_array(dataitem.data);
+    self.enable();
+    self.flash_refresh();
+\end{verbatim}
+  
+  The \qq{dataitem} argument is a complete dataitem, but you can always  assume
+  that it's the same dataitem that you were initialized with, except that the
+  \qq{dataitem.data} field is different. (The \qq{**opts} argument is provided
+  for future expansion). Here, we pass the data itself to our table widget. The
+  \qq{enable()} method ensures our cell is enabled (it's normally disabled until
+  data becomes available; there's no harm in calling this method every time),
+  and the \qq{flash\_refresh()} call causes the ``Refresh'' toolbutton of the
+  cell to flash briefly, as a visual cue to the user that viewer contents have
+  been updated.
+
+\subsubsection{Registering the viewer} 
+
+  This concludes the Array Browser class definition. The only remaining step is
+  to register the class with the grid services:
+
+\begin{verbatim}  
+# Give ArrayBrowser slightly higher priority for arrays
+Grid.Services.registerViewer(array_class,ArrayBrowser,priority=15);
 \end{verbatim}
 
+  This associates our viewer with a specific data type (\qq{array\_class} in
+  this case, which is defined in \qq{Timba.dmi} as equivalent to
+  \qq{numarray.array}). The \qq{priority} argument determines the order in which
+  viewers are sorted in the menus, lower numbers meaning higher priority. The
+  default viewer, i.e. the one that is activated with left-click, is the one
+  with the lowest number (for arrays, this is probably the \qq{ArrayPlotter}).
+  Note that there's nothing wrong with registering the same viewer for several
+  data types, as long as it can handle them all. 
 
+  One final wrinkle on this is exemplified by \qq{Plugins/result\_plotter.py}:
   
+\begin{verbatim}  
+Grid.Services.registerViewer(dmi_type('MeqResult',record),ResultPlotter,priority=10)
+\end{verbatim}
 
+  Here, the \qq{Timba.dmi.dmi\_type()} function is used  to form a {\em derived
+  DMI type}. A lot of important kernel objects are represented in Python by
+  classes which are derived from base types such as arrays (from \qq{numarray})
+  and \qq{record}s (from \qq{Timba.dmi}) but are otherwise identical to the base
+  types as far as Python is concerned. These include MeqDomain, MeqCells,
+  MeqRequest, MeqResult, MeqVellSet, MeqVells, etc. The conversion layer
+  formally assigns distinct types to these objects, so that they may be
+  identified as such where necessary. 
+
+  The \qq{dmi\_type()} function returns a type object corresponding to a derived
+  type. The call above then registers \qq{ResultPlotter} as a viewer for records
+  of the \qq{MeqResult} variety.
+
+  \paragraph{Node classes.} 
   
-    
-  
-\section{Viewr  
 
 
 \end{document}
