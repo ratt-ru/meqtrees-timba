@@ -15,7 +15,9 @@ Client                           1097       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 Connected                        1065       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 Connection                       1069       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 ConnectionMgrWP                  1039       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:18
+Count                            1119       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
 D                                1004       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
+Data                             1118       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
 DataArray                        1022       ; from /home/oms/LOFAR/DMI/src/DataArray.h:141
 DataField                        1031       ; from /home/oms/LOFAR/DMI/src/DataField.h:28
 DataRecord                       1033       ; from /home/oms/LOFAR/DMI/src/DataRecord.h:29
@@ -23,6 +25,7 @@ Dispatcher                       1100       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 Down                             1073       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 Duplicate                        1057       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 E                                1005       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
+EchoWP                           1114       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:12
 Error                            1067       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 Event                            1052       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:19
 F                                1006       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
@@ -48,6 +51,7 @@ ID                               1105       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 Index                            1035       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:26
 Init                             1095       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MTGatewayWP.h:22
 Input                            1072       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:19
+Invert                           1117       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
 J                                1011       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 K                                1012       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 L                                1013       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
@@ -64,7 +68,7 @@ LogWarning                       1110       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 LoggerWP                         1103       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
 M                                1014       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Max                              1059       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
-#Message                         1064       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:25
+Message                          1064       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Message.h:25
 MsgLog                           1077       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WorkProcess.h:11
 N                                1015       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Network                          1046       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
@@ -74,8 +78,11 @@ Open                             1062       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 P                                1017       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Parameters                       1050       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/AppManagerWP.h:10
 Peers                            1048       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
+Ping                             1121       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:12
+Pong                             1116       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:12
 Port                             1081       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:20
 Ports                            1042       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWClientWP.h:17
+Process                          1115       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
 Publish                          1074       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/MsgAddress.h:12
 Q                                1018       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 R                                1019       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
@@ -84,6 +91,7 @@ Reflect                          1058       ; from /home/oms/LOFAR/CEP/CPA/OCTOP
 ReflectorWP                      1104       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/ReflectorWP.h:7
 Remote                           1056       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
 Reopen                           1049       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/GWClientWP.h:17
+Reply                            1120       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/test/EchoWP.h:13
 S                                1020       ; from /home/oms/LOFAR/DMI/src/AtomicID.h:34
 Scope                            1101       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
 Server                           1054       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/Gateways.h:19
