@@ -5,11 +5,12 @@
 #include "Debug.h"
 #include <stdio.h>
 
-using Debug::DebugContext;
-    
 namespace DMI
 {
 //## begin DMI%3C14BA2803C4.initialDeclarations preserve=yes
+  extern ::Debug::Context DebugContext; 
+  inline ::Debug::Context & getDebugContext() { return DebugContext; };
+  
   
   typedef enum { 
   // flags for CountedRefs & other objects
@@ -69,5 +70,7 @@ namespace DMI
   DMIFlags;
 
 };
+
+using DMI::DebugContext;
 
 #endif

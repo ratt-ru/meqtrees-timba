@@ -4,6 +4,7 @@ AtomicID.h			\
 BlockSet.h			\
 BlockableObject.h		\
 Common.h			\
+ConfigMgr.h \
 CountedRef.h			\
 CountedRefBase.h		\
 CountedRefTarget.h		\
@@ -31,6 +32,7 @@ AID-DMI-Registry.cc		\
 AtomicID.cc			\
 BlockSet.cc			\
 BlockableObject.cc		\
+ConfigMgr.cc \
 CountedRefBase.cc		\
 CountedRefTarget.cc		\
 Debug.cc			\
