@@ -32,11 +32,15 @@ fi
 lfr_share_dir=`dirname $0`
 lfr_share_dir=`cd $lfr_share_dir && pwd`
 
+findvars=`cd .. && $lfr_share_dir/findpkg -l`
+export LOFAR_BUILDCOMP=`echo $findvars | awk '{print $1}'`
+export LOFAR_BUILDVAR=`echo $findvars | awk '{print $2}'`
+
 # Set source directory if not defined.
 if [ "$srcdir" = "" ]; then
   curwd=`pwd`
   basenm=`basename $curwd`
-  srcdir=$lfr_share_dir/../`cd .. && $lfr_share_dir/findpkg`/$basenm
+  srcdir=$lfr_share_dir/../`echo $findvars | awk '{print $5}'`/$basenm
 fi
 
 #
