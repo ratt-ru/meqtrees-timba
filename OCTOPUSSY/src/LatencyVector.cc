@@ -5,6 +5,7 @@
 #include <math.h>
    
 // returns sum of all values
+//##ModelId=3DB958F300F8
 Timestamp LatencyVector::total () const
 { 
   Timestamp tot(0,0);
@@ -14,6 +15,7 @@ Timestamp LatencyVector::total () const
 }
 
 // adds two latency vectors together
+//##ModelId=3DB958F300FA
 LatencyVector & LatencyVector::operator += ( const LatencyVector & other )
 {
   if( tms.size() )
@@ -39,6 +41,7 @@ LatencyVector & LatencyVector::operator += ( const LatencyVector & other )
 }
     
 // divides latency vector by some value
+//##ModelId=3DB958F3010D
 LatencyVector & LatencyVector::operator /= ( double x )
 {
   for( VEI iter = tms.begin(); iter != tms.end(); iter++ )
@@ -47,6 +50,7 @@ LatencyVector & LatencyVector::operator /= ( double x )
 }
 
 // converts latency vector to strings
+//##ModelId=3DB958F30120
 string LatencyVector::toString() const
 {
   string out;
@@ -77,19 +81,12 @@ inline void Packer<LatencyVector::Entry>::unpack (LatencyVector::Entry& obj, con
 }
 
 template <>
-inline LatencyVector::Entry Packer<LatencyVector::Entry>::construct (const void* block, size_t sz)
-{
-  LatencyVector::Entry obj;
-  unpack(obj,block,sz);
-  return obj;
-}
-
-template <>
 inline size_t Packer<LatencyVector::Entry>::packSize (const LatencyVector::Entry& obj)
 {
   return sizeof(obj.first) + obj.second.length();
 }
 
+//##ModelId=3DB958F30122
 size_t LatencyVector::pack (void *block,size_t &nleft) const
 {
   Timestamp *bl = static_cast<Timestamp*>(block);
@@ -98,6 +95,7 @@ size_t LatencyVector::pack (void *block,size_t &nleft) const
   return SeqPacker<vector<Entry> >::pack(tms,bl,nleft);
 }
 
+//##ModelId=3DB958F30148
 void LatencyVector::unpack (const void *block,size_t sz)
 {
   FailWhen(sz < sizeof(tms0),"block too small");
@@ -106,6 +104,7 @@ void LatencyVector::unpack (const void *block,size_t sz)
   SeqPacker<vector<Entry> >::unpack(tms,bl,sz-sizeof(tms0));
 }
 
+//##ModelId=3DB958F3016C
 size_t LatencyVector::packSize () const
 {
   return sizeof(tms0) + SeqPacker<vector<Entry> >::packSize(tms);

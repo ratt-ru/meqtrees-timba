@@ -1,3 +1,4 @@
+//##ModelId=3DB936DB02BE
 //## begin module%1.4%.codegen_version preserve=yes
 //   Read the documentation to learn more about C++ code generator
 //   versioning.
@@ -44,6 +45,7 @@ Subscriptions::Subscriptions()
 
 
 
+//##ModelId=3C999D010361
 //## Other Operations (implementation)
 bool Subscriptions::add (const HIID& id, const MsgAddress &scope)
 {
@@ -73,6 +75,7 @@ bool Subscriptions::add (const HIID& id, const MsgAddress &scope)
   //## end Subscriptions::add%3C999D010361.body
 }
 
+//##ModelId=3C999D40033A
 bool Subscriptions::remove (const HIID &id)
 {
   //## begin Subscriptions::remove%3C999D40033A.body preserve=yes
@@ -93,6 +96,7 @@ bool Subscriptions::remove (const HIID &id)
   //## end Subscriptions::remove%3C999D40033A.body
 }
 
+//##ModelId=3C999E0B0223
 void Subscriptions::clear ()
 {
   //## begin Subscriptions::clear%3C999E0B0223.body preserve=yes
@@ -101,6 +105,7 @@ void Subscriptions::clear ()
   //## end Subscriptions::clear%3C999E0B0223.body
 }
 
+//##ModelId=3C999D64004D
 bool Subscriptions::merge (const Subscriptions &other)
 {
   //## begin Subscriptions::merge%3C999D64004D.body preserve=yes
@@ -111,6 +116,7 @@ bool Subscriptions::merge (const Subscriptions &other)
   //## end Subscriptions::merge%3C999D64004D.body
 }
 
+//##ModelId=3C999D780005
 bool Subscriptions::matches (const Message &msg) const
 {
   //## begin Subscriptions::matches%3C999D780005.body preserve=yes
@@ -121,6 +127,7 @@ bool Subscriptions::matches (const Message &msg) const
   //## end Subscriptions::matches%3C999D780005.body
 }
 
+//##ModelId=3C99AC2F01DF
 size_t Subscriptions::pack (void* block, size_t &nleft) const
 {
   //## begin Subscriptions::pack%3C99AC2F01DF.body preserve=yes
@@ -146,6 +153,7 @@ size_t Subscriptions::pack (void* block, size_t &nleft) const
   //## end Subscriptions::pack%3C99AC2F01DF.body
 }
 
+//##ModelId=3C99AC2F022F
 void Subscriptions::unpack (const void* block, size_t sz)
 {
   //## begin Subscriptions::unpack%3C99AC2F022F.body preserve=yes

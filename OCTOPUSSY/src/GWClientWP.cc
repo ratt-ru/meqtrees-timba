@@ -35,6 +35,8 @@ const Timeval ReconnectTimeout(.2),
 // how long to try connects() before giving up on a transient connection
               GiveUpTimeout(30.0);
               
+//##ModelId=3CD0167B021B
+//##ModelId=3DB9367D00C2
 //## end module%3C95AADB0170.additionalDeclarations
 
 
@@ -94,6 +96,7 @@ GWClientWP::GWClientWP (const string &host, int port, int type)
 }
 
 
+//##ModelId=3DB9367B00EA
 GWClientWP::~GWClientWP()
 {
   //## begin GWClientWP::~GWClientWP%3C95A941002E_dest.body preserve=yes
@@ -105,6 +108,7 @@ GWClientWP::~GWClientWP()
 
 
 
+//##ModelId=3CA1C0C300FA
 //## Other Operations (implementation)
 void GWClientWP::init ()
 {
@@ -130,6 +134,7 @@ void GWClientWP::init ()
   //## end GWClientWP::init%3CA1C0C300FA.body
 }
 
+//##ModelId=3C95A941008B
 bool GWClientWP::start ()
 {
   //## begin GWClientWP::start%3C95A941008B.body preserve=yes
@@ -138,6 +143,7 @@ bool GWClientWP::start ()
   //## end GWClientWP::start%3C95A941008B.body
 }
 
+//##ModelId=3C95A9410092
 void GWClientWP::stop ()
 {
   //## begin GWClientWP::stop%3C95A9410092.body preserve=yes
@@ -152,6 +158,7 @@ void GWClientWP::stop ()
   //## end GWClientWP::stop%3C95A9410092.body
 }
 
+//##ModelId=3C95A9410093
 int GWClientWP::timeout (const HIID &id)
 {
   //## begin GWClientWP::timeout%3C95A9410093.body preserve=yes
@@ -205,6 +212,7 @@ int GWClientWP::timeout (const HIID &id)
   //## end GWClientWP::timeout%3C95A9410093.body
 }
 
+//##ModelId=3C95A9410095
 int GWClientWP::receive (MessageRef& mref)
 {
   //## begin GWClientWP::receive%3C95A9410095.body preserve=yes
@@ -325,6 +333,7 @@ int GWClientWP::receive (MessageRef& mref)
 }
 
 // Additional Declarations
+//##ModelId=3DB9367B0126
   //## begin GWClientWP%3C95A941002E.declarations preserve=yes
 GWClientWP::Connection & GWClientWP::addConnection (const string &host,int port,int type)
 {
@@ -343,6 +352,7 @@ GWClientWP::Connection & GWClientWP::addConnection (const string &host,int port,
   return conns.back();
 }
     
+//##ModelId=3DB9367B02B6
 bool GWClientWP::removeConnection (const string &host,int port)
 {
   bool localhost = (host == "localhost");
@@ -359,6 +369,7 @@ bool GWClientWP::removeConnection (const string &host,int port)
   return res;
 }
 
+//##ModelId=3DB9367C000F
 GWClientWP::Connection * GWClientWP::find (const string &host, const string &port)
 {
   for( CLI iter = conns.begin(); iter != conns.end(); iter++ )
@@ -367,6 +378,7 @@ GWClientWP::Connection * GWClientWP::find (const string &host, const string &por
   return 0;
 }
 
+//##ModelId=3DB9367C01F7
 GWClientWP::Connection * GWClientWP::find (const MsgAddress &gw)
 {
   for( CLI iter = conns.begin(); iter != conns.end(); iter++ )
@@ -377,6 +389,7 @@ GWClientWP::Connection * GWClientWP::find (const MsgAddress &gw)
 
 
     
+//##ModelId=3DB9367C0305
 void GWClientWP::activate ()
 {
   Timestamp::now(&now);
@@ -388,6 +401,7 @@ void GWClientWP::activate ()
   addTimeout(ReopenTimeout,AidReopen);
 }
 
+//##ModelId=3DB9367C037D
 void GWClientWP::tryConnect (Connection &cx)
 {
   if( cx.state == CONNECTED ) // ignore if connected

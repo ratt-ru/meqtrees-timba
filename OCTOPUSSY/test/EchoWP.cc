@@ -30,6 +30,8 @@
 
 //## begin module%3C7E49E90399.additionalDeclarations preserve=yes
 const HIID MsgPing("Ping"),MsgPong("Pong"),MsgHelloEchoWP(MsgHello|"EchoWP.*");
+//##ModelId=3C7E49B60327
+//##ModelId=3DB9367A00E8
 //## end module%3C7E49E90399.additionalDeclarations
 
 
@@ -59,6 +61,7 @@ EchoWP::EchoWP (int pingcount)
 }
 
 
+//##ModelId=3DB936790173
 EchoWP::~EchoWP()
 {
   //## begin EchoWP::~EchoWP%3C7E498E00D1_dest.body preserve=yes
@@ -67,6 +70,7 @@ EchoWP::~EchoWP()
 
 
 
+//##ModelId=3C7F884A007D
 //## Other Operations (implementation)
 void EchoWP::init ()
 {
@@ -99,6 +103,7 @@ void EchoWP::init ()
   //## end EchoWP::init%3C7F884A007D.body
 }
 
+//##ModelId=3C7E4AC70261
 bool EchoWP::start ()
 {
   //## begin EchoWP::start%3C7E4AC70261.body preserve=yes
@@ -113,6 +118,7 @@ bool EchoWP::start ()
   //## end EchoWP::start%3C7E4AC70261.body
 }
 
+//##ModelId=3C7E49AC014C
 int EchoWP::receive (MessageRef& mref)
 {
   //## begin EchoWP::receive%3C7E49AC014C.body preserve=yes
@@ -196,6 +202,7 @@ int EchoWP::receive (MessageRef& mref)
   //## end EchoWP::receive%3C7E49AC014C.body
 }
 
+//##ModelId=3C98CB600343
 int EchoWP::timeout (const HIID &)
 {
   //## begin EchoWP::timeout%3C98CB600343.body preserve=yes
@@ -204,6 +211,7 @@ int EchoWP::timeout (const HIID &)
 }
 
 // Additional Declarations
+//##ModelId=3DB93679023B
   //## begin EchoWP%3C7E498E00D1.declarations preserve=yes
 void EchoWP::stepCounters ( size_t sz,const Timestamp &stamp )
 {
@@ -227,6 +235,7 @@ void EchoWP::stepCounters ( size_t sz,const Timestamp &stamp )
 }
     
     
+//##ModelId=3DB9367903B8
 void EchoWP::sendPing (int pc)
 {
   Message &msg = *new Message(MsgPing|pc,new DataRecord,DMI::ANON|DMI::WRITE);

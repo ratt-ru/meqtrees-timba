@@ -34,6 +34,7 @@ const Timeval Timeout_Retry(10.0),
 // max retries
 const int MaxOpenRetries = 10;
 
+//##ModelId=3C8F95710177
 //## end module%3C95AADB010A.additionalDeclarations
 
 
@@ -57,6 +58,7 @@ GWServerWP::GWServerWP (int port1)
   //## end GWServerWP::GWServerWP%3C8F95710177.body
 }
 
+//##ModelId=3CC95151026E
 GWServerWP::GWServerWP (const string &path, int port1)
   //## begin GWServerWP::GWServerWP%3CC95151026E.hasinit preserve=no
   //## end GWServerWP::GWServerWP%3CC95151026E.hasinit
@@ -94,6 +96,7 @@ GWServerWP::GWServerWP (const string &path, int port1)
 }
 
 
+//##ModelId=3DB9367E019C
 GWServerWP::~GWServerWP()
 {
   //## begin GWServerWP::~GWServerWP%3C8F942502BA_dest.body preserve=yes
@@ -104,6 +107,7 @@ GWServerWP::~GWServerWP()
 
 
 
+//##ModelId=3CC951680113
 //## Other Operations (implementation)
 void GWServerWP::init ()
 {
@@ -123,6 +127,7 @@ void GWServerWP::init ()
   //## end GWServerWP::init%3CC951680113.body
 }
 
+//##ModelId=3C90BE4A029B
 bool GWServerWP::start ()
 {
   //## begin GWServerWP::start%3C90BE4A029B.body preserve=yes
@@ -133,6 +138,7 @@ bool GWServerWP::start ()
   //## end GWServerWP::start%3C90BE4A029B.body
 }
 
+//##ModelId=3C90BE880037
 void GWServerWP::stop ()
 {
   //## begin GWServerWP::stop%3C90BE880037.body preserve=yes
@@ -143,6 +149,7 @@ void GWServerWP::stop ()
   //## end GWServerWP::stop%3C90BE880037.body
 }
 
+//##ModelId=3C90BE8E000E
 int GWServerWP::timeout (const HIID &)
 {
   //## begin GWServerWP::timeout%3C90BE8E000E.body preserve=yes
@@ -156,6 +163,7 @@ int GWServerWP::timeout (const HIID &)
   //## end GWServerWP::timeout%3C90BE8E000E.body
 }
 
+//##ModelId=3C95B4DC031C
 int GWServerWP::input (int , int )
 {
   //## begin GWServerWP::input%3C95B4DC031C.body preserve=yes
@@ -190,6 +198,7 @@ int GWServerWP::input (int , int )
   //## end GWServerWP::input%3C95B4DC031C.body
 }
 
+//##ModelId=3CC951890246
 int GWServerWP::receive (MessageRef &mref)
 {
   //## begin GWServerWP::receive%3CC951890246.body preserve=yes
@@ -200,6 +209,7 @@ int GWServerWP::receive (MessageRef &mref)
 }
 
 // Additional Declarations
+//##ModelId=3DB9367E033E
   //## begin GWServerWP%3C8F942502BA.declarations preserve=yes
 
 void GWServerWP::advertiseServer ()
@@ -219,6 +229,7 @@ void GWServerWP::advertiseServer ()
       type == Socket::UNIX ? Message::HOST : Message::GLOBAL );
 }
 
+//##ModelId=3DB9367E037A
 void GWServerWP::tryOpen ()
 {
   // Try to start a server socket

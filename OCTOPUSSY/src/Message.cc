@@ -34,6 +34,7 @@
   CHECK_CONFIG_CC(LatencyStats,no);
   DummyLatencyVector Message::latency;
 #endif
+//##ModelId=3C8CB2CE00DC
 //## end module%3C7B7F2F024A.additionalDeclarations
 
 
@@ -50,6 +51,7 @@ Message::Message()
   //## end Message::Message%3C7B6A2D01F0_const.body
 }
 
+//##ModelId=3C7B9C490384
 Message::Message(const Message &right)
   //## begin Message::Message%3C7B6A2D01F0_copy.hasinit preserve=no
   //## end Message::Message%3C7B6A2D01F0_copy.hasinit
@@ -65,6 +67,7 @@ Message::Message(const Message &right)
   //## end Message::Message%3C7B6A2D01F0_copy.body
 }
 
+//##ModelId=3C7B9D3B02C3
 Message::Message (const HIID &id1, BlockableObject *pload, int flags, int pri)
   //## begin Message::Message%3C7B9C490384.hasinit preserve=no
   //## end Message::Message%3C7B9C490384.hasinit
@@ -79,6 +82,7 @@ Message::Message (const HIID &id1, BlockableObject *pload, int flags, int pri)
 
 
 
+//##ModelId=3C7B9D59014A
 Message::Message (const HIID &id1, const ObjRef &pload, int flags, int pri)
   //## begin Message::Message%3C7B9D0A01FB.hasinit preserve=no
   //## end Message::Message%3C7B9D0A01FB.hasinit
@@ -94,6 +98,7 @@ Message::Message (const HIID &id1, const ObjRef &pload, int flags, int pri)
   //## end Message::Message%3C7B9D0A01FB.body
 }
 
+//##ModelId=3C7BB3BD0266
 Message::Message (const HIID &id1, SmartBlock *bl, int flags, int pri)
   //## begin Message::Message%3C7B9D3B02C3.hasinit preserve=no
   //## end Message::Message%3C7B9D3B02C3.hasinit
@@ -106,6 +111,7 @@ Message::Message (const HIID &id1, SmartBlock *bl, int flags, int pri)
   //## end Message::Message%3C7B9D3B02C3.body
 }
 
+//##ModelId=3DB936A5029F
 Message::Message (const HIID &id1, const BlockRef &bl, int flags, int pri)
   //## begin Message::Message%3C7B9D59014A.hasinit preserve=no
   //## end Message::Message%3C7B9D59014A.hasinit
@@ -121,6 +127,7 @@ Message::Message (const HIID &id1, const BlockRef &bl, int flags, int pri)
   //## end Message::Message%3C7B9D59014A.body
 }
 
+//##ModelId=3DB936A7019E
 Message::Message (const HIID &id1, const char *data, size_t sz, int pri)
   //## begin Message::Message%3C7BB3BD0266.hasinit preserve=no
   //## end Message::Message%3C7BB3BD0266.hasinit
@@ -136,6 +143,7 @@ Message::Message (const HIID &id1, const char *data, size_t sz, int pri)
 }
 
 
+//##ModelId=3DB936A90143
 Message::~Message()
 {
   //## begin Message::~Message%3C7B6A2D01F0_dest.body preserve=yes
@@ -143,6 +151,7 @@ Message::~Message()
 }
 
 
+//##ModelId=3DB936A901E3
 Message & Message::operator=(const Message &right)
 {
   //## begin Message::operator=%3C7B6A2D01F0_assign.body preserve=yes
@@ -164,6 +173,7 @@ Message & Message::operator=(const Message &right)
 
 
 
+//##ModelId=3C7B9DDE0137
 //## Other Operations (implementation)
 Message & Message::operator <<= (BlockableObject *pload)
 {
@@ -173,6 +183,7 @@ Message & Message::operator <<= (BlockableObject *pload)
   //## end Message::operator <<=%3C7B9DDE0137.body
 }
 
+//##ModelId=3C7B9DF20014
 Message & Message::operator <<= (ObjRef &pload)
 {
   //## begin Message::operator <<=%3C7B9DF20014.body preserve=yes
@@ -181,6 +192,7 @@ Message & Message::operator <<= (ObjRef &pload)
   //## end Message::operator <<=%3C7B9DF20014.body
 }
 
+//##ModelId=3C7B9E0A02AD
 Message & Message::operator <<= (SmartBlock *bl)
 {
   //## begin Message::operator <<=%3C7B9E0A02AD.body preserve=yes
@@ -189,6 +201,7 @@ Message & Message::operator <<= (SmartBlock *bl)
   //## end Message::operator <<=%3C7B9E0A02AD.body
 }
 
+//##ModelId=3C7B9E1601CE
 Message & Message::operator <<= (BlockRef &bl)
 {
   //## begin Message::operator <<=%3C7B9E1601CE.body preserve=yes
@@ -197,6 +210,7 @@ Message & Message::operator <<= (BlockRef &bl)
   //## end Message::operator <<=%3C7B9E1601CE.body
 }
 
+//##ModelId=3C7E32BE01E0
 CountedRefTarget* Message::clone (int flags, int depth) const
 {
   //## begin Message::clone%3C7E32BE01E0.body preserve=yes
@@ -206,6 +220,7 @@ CountedRefTarget* Message::clone (int flags, int depth) const
   //## end Message::clone%3C7E32BE01E0.body
 }
 
+//##ModelId=3C7E32C1022B
 void Message::privatize (int flags, int depth)
 {
   //## begin Message::privatize%3C7E32C1022B.body preserve=yes
@@ -219,6 +234,7 @@ void Message::privatize (int flags, int depth)
   //## end Message::privatize%3C7E32C1022B.body
 }
 
+//##ModelId=3CB42D0201B4
 NestableContainer::Hook Message::setBranch (const HIID &id, int flags)
 {
   //## begin Message::setBranch%3CB42D0201B4.body preserve=yes
@@ -234,6 +250,7 @@ NestableContainer::Hook Message::setBranch (const HIID &id, int flags)
   //## end Message::setBranch%3CB42D0201B4.body
 }
 
+//##ModelId=3C960F1B0373
 int Message::fromBlock (BlockSet& set)
 {
   //## begin Message::fromBlock%3C960F1B0373.body preserve=yes
@@ -284,6 +301,7 @@ int Message::fromBlock (BlockSet& set)
   //## end Message::fromBlock%3C960F1B0373.body
 }
 
+//##ModelId=3C960F20037A
 int Message::toBlock (BlockSet &set) const
 {
   //## begin Message::toBlock%3C960F20037A.body preserve=yes
@@ -334,6 +352,7 @@ int Message::toBlock (BlockSet &set) const
 }
 
 // Additional Declarations
+//##ModelId=3DB936B40140
   //## begin Message%3C7B6A2D01F0.declarations preserve=yes
 
 Message::Message (const HIID &id1, const BlockableObject *pload, int flags, int pri)
@@ -342,12 +361,14 @@ Message::Message (const HIID &id1, const BlockableObject *pload, int flags, int 
   payload_.attach(pload,flags|DMI::PERSIST|DMI::READONLY);
 }
 
+//##ModelId=3DB936B80024
 Message::Message (const HIID &id1, const SmartBlock *bl, int flags, int pri)
    : priority_(pri),state_(0),hops_(0),id_(id1)
 {
   block_.attach(bl,flags|DMI::PERSIST|DMI::READONLY);
 }
 
+//##ModelId=3DB936C40273
 string Message::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   string out;

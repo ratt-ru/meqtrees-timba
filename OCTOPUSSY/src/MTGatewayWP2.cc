@@ -7,6 +7,7 @@
 // all packet headers must start with this signature
 static const char PacketSignature[] = "oMs";
         
+//##ModelId=3DB958F502B8
 int MTGatewayWP::requestResync ()
 {
   // Should eventually send an OOB message for a resync.
@@ -14,6 +15,7 @@ int MTGatewayWP::requestResync ()
   return readyForHeader();
 }
 
+//##ModelId=3DB958F502BA
 int MTGatewayWP::requestRetry ()
 {
   // Should eventually send an OOB message for a retransmit.
@@ -21,6 +23,7 @@ int MTGatewayWP::requestRetry ()
   return readyForHeader();
 }
 
+//##ModelId=3DB958F502BC
 int MTGatewayWP::readyForHeader ()
 {
   read_buf_size = sizeof(header);
@@ -31,6 +34,7 @@ int MTGatewayWP::readyForHeader ()
   return 0;
 }
 
+//##ModelId=3DB958F502BD
 int MTGatewayWP::readyForTrailer ()
 {
   read_buf_size = sizeof(trailer);
@@ -41,6 +45,7 @@ int MTGatewayWP::readyForTrailer ()
   return 0;
 }
 
+//##ModelId=3DB958F502BF
 int MTGatewayWP::readyForData ( const PacketHeader &hdr,BlockSet &bset )
 {
   read_buf_size = hdr.content;
@@ -63,6 +68,7 @@ int MTGatewayWP::readyForData ( const PacketHeader &hdr,BlockSet &bset )
   return 0;
 }
 
+//##ModelId=3DB958F602AB
 void * MTGatewayWP::readerThread ()
 {
   dprintf(3)("readerThread entry\n");
@@ -270,6 +276,7 @@ void * MTGatewayWP::readerThread ()
   return 0;
 }
 
+//##ModelId=3DB958F60001
 void MTGatewayWP::reportWriteError ()
 {
   // on write error, just commit harakiri. GWClient/ServerWP will
@@ -279,6 +286,7 @@ void MTGatewayWP::reportWriteError ()
 }
 
     
+//##ModelId=3DB958F600CB
 void MTGatewayWP::transmitMessage (MessageRef &mref)
 {
   dprintf(4)("transmitMessage [%s]\n",mref->sdebug(1).c_str());

@@ -36,6 +36,9 @@ const Timeval to_init(30.0),
               to_write(30.0),
               to_heartbeat(5.0);
     
+//##ModelId=3C95C53D00AE
+//##ModelId=3DB9368D03D6
+//##ModelId=3DB9368E00DE
 //## end module%3C90BFDD0240.additionalDeclarations
 
 
@@ -58,6 +61,7 @@ GatewayWP::GatewayWP (Socket* sk)
 }
 
 
+//##ModelId=3DB93683017B
 GatewayWP::~GatewayWP()
 {
   //## begin GatewayWP::~GatewayWP%3C90BEF001E5_dest.body preserve=yes
@@ -68,6 +72,7 @@ GatewayWP::~GatewayWP()
 
 
 
+//##ModelId=3CC9500602CC
 //## Other Operations (implementation)
 void GatewayWP::init ()
 {
@@ -79,6 +84,7 @@ void GatewayWP::init ()
   //## end GatewayWP::init%3CC9500602CC.body
 }
 
+//##ModelId=3C90BF460080
 bool GatewayWP::start ()
 {
   //## begin GatewayWP::start%3C90BF460080.body preserve=yes
@@ -150,6 +156,7 @@ bool GatewayWP::start ()
   //## end GatewayWP::start%3C90BF460080.body
 }
 
+//##ModelId=3C90BF4A039D
 void GatewayWP::stop ()
 {
   //## begin GatewayWP::stop%3C90BF4A039D.body preserve=yes
@@ -161,6 +168,7 @@ void GatewayWP::stop ()
   //## end GatewayWP::stop%3C90BF4A039D.body
 }
 
+//##ModelId=3C90BF5C001E
 bool GatewayWP::willForward (const Message &msg) const
 {
   //## begin GatewayWP::willForward%3C90BF5C001E.body preserve=yes
@@ -229,6 +237,7 @@ bool GatewayWP::willForward (const Message &msg) const
   //## end GatewayWP::willForward%3C90BF5C001E.body
 }
 
+//##ModelId=3C90BF63005A
 int GatewayWP::receive (MessageRef& mref)
 {
   //## begin GatewayWP::receive%3C90BF63005A.body preserve=yes
@@ -271,6 +280,7 @@ int GatewayWP::receive (MessageRef& mref)
   //## end GatewayWP::receive%3C90BF63005A.body
 }
 
+//##ModelId=3C90BF6702C3
 int GatewayWP::timeout (const HIID &id)
 {
   //## begin GatewayWP::timeout%3C90BF6702C3.body preserve=yes
@@ -308,6 +318,7 @@ int GatewayWP::timeout (const HIID &id)
   //## end GatewayWP::timeout%3C90BF6702C3.body
 }
 
+//##ModelId=3C90BF6F00ED
 int GatewayWP::input (int fd, int flags)
 {
   //## begin GatewayWP::input%3C90BF6F00ED.body preserve=yes
@@ -567,6 +578,7 @@ int GatewayWP::input (int fd, int flags)
 }
 
 // Additional Declarations
+//##ModelId=3DB9368702B9
   //## begin GatewayWP%3C90BEF001E5.declarations preserve=yes
 int GatewayWP::requestResync ()
 {
@@ -575,6 +587,7 @@ int GatewayWP::requestResync ()
   return readyForHeader();
 }
 
+//##ModelId=3DB936870382
 int GatewayWP::requestRetry ()
 {
   // Should eventually send an OOB message for a retransmit.
@@ -583,6 +596,7 @@ int GatewayWP::requestRetry ()
   return readyForHeader();
 }
 
+//##ModelId=3DB936880062
 int GatewayWP::readyForHeader ()
 {
   read_buf_size = sizeof(header);
@@ -593,6 +607,7 @@ int GatewayWP::readyForHeader ()
   return 0;
 }
 
+//##ModelId=3DB9368801BC
 int GatewayWP::readyForTrailer ()
 {
   read_buf_size = sizeof(trailer);
@@ -603,6 +618,7 @@ int GatewayWP::readyForTrailer ()
   return 0;
 }
 
+//##ModelId=3DB93688028E
 int GatewayWP::readyForData ( const PacketHeader &hdr )
 {
   read_buf_size = hdr.content;
@@ -621,6 +637,7 @@ int GatewayWP::readyForData ( const PacketHeader &hdr )
   return 0;
 }
 
+//##ModelId=3DB9368B0224
 void GatewayWP::prepareMessage (MessageRef &mref)
 {
   FailWhen(write_queue.size(),"write queue is not empty??");
@@ -636,6 +653,7 @@ void GatewayWP::prepareMessage (MessageRef &mref)
 }
 
 
+//##ModelId=3DB9368D008D
 void GatewayWP::prepareHeader ()
 {
   if( !write_queue.size() )
@@ -656,6 +674,7 @@ void GatewayWP::prepareHeader ()
   dprintf(5)("write state is now HEADER\n");
 }
 
+//##ModelId=3DB9368D01A5
 void GatewayWP::prepareData ()
 {
   const BlockRef & ref = write_queue.front();
@@ -668,6 +687,7 @@ void GatewayWP::prepareData ()
   dprintf(5)("write state is now BLOCK\n");
 }
 
+//##ModelId=3DB9368D02C7
 void GatewayWP::prepareTrailer ()
 {
   write_queue.pop();
@@ -685,6 +705,7 @@ void GatewayWP::prepareTrailer ()
   dprintf(5)("write state is now TRAILER\n");
 }
 
+//##ModelId=3DB9368900C3
 void GatewayWP::processIncoming()
 {
   MessageRef ref = MessageRef(new Message,DMI::ANON|DMI::WRITE);
@@ -849,6 +870,7 @@ void GatewayWP::processIncoming()
 
 // processes subscriptions contained in peer's init-message
 // (the message block is formed in start(), above)
+//##ModelId=3DB9368901C7
 void GatewayWP::processInitMessage( const void *block,size_t blocksize )
 {
   FailWhen( !block,"no block" );
@@ -878,6 +900,7 @@ void GatewayWP::processInitMessage( const void *block,size_t blocksize )
   FailWhen(data != enddata,"corrupt block");
 }
 
+//##ModelId=3DB93684000A
 void GatewayWP::shutdown () 
 {
   if( peerState() == CONNECTED )     // publish a Remote.Down message

@@ -1,35 +1,15 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3C8F268F00DE.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C8F268F00DE.cm
-
-//## begin module%3C8F268F00DE.cp preserve=no
-//## end module%3C8F268F00DE.cp
-
-//## Module: WPInterface%3C8F268F00DE; Package specification
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Source file: F:\lofar8\oms\LOFAR\src-links\OCTOPUSSY\WPInterface.h
-
 #ifndef WPInterface_h
 #define WPInterface_h 1
 
-//## begin module%3C8F268F00DE.additionalIncludes preserve=no
 #include "DMI/Common.h"
 #include "DMI/DMI.h"
-//## end module%3C8F268F00DE.additionalIncludes
 
-//## begin module%3C8F268F00DE.includes preserve=yes
 #include <list>
 #include <set>
 #include <queue>
 #include "OctopussyConfig.h"
 #include "Common/Thread.h"
 #include "Common/Thread/Condition.h"
-//## end module%3C8F268F00DE.includes
 
 // CountedRefTarget
 #include "DMI/CountedRefTarget.h"
@@ -42,10 +22,6 @@
 
 class Dispatcher;
 
-//## begin module%3C8F268F00DE.declarations preserve=no
-//## end module%3C8F268F00DE.declarations
-
-//## begin module%3C8F268F00DE.additionalDeclarations preserve=yes
 // standard event messages
 #pragma aid WP Event Timeout Input Signal Subscribe
 // hello/bye/state messages for WPs
@@ -58,52 +34,50 @@ const HIID
   MsgWPState(AidWP|AidState),
   MsgSubscribe(AidWP|AidSubscribe);
 
-//## end module%3C8F268F00DE.additionalDeclarations
 
 
-//## begin WPInterface%3C7B6A3702E5.preface preserve=yes
-//## end WPInterface%3C7B6A3702E5.preface
+//##ModelId=3C7B6A3702E5
 
-//## Class: WPInterface%3C7B6A3702E5; Abstract
-//## Category: OCTOPUSSY%3BCEC935032A
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Persistence: Transient
-//## Cardinality/Multiplicity: n
-
-
-
-//## Uses: <unnamed>%3C7E133B016D;Message { -> }
-
-class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA31F00CE
-                    	public SingularRefTarget  //## Inherits: <unnamed>%3C8CDD980366
+class WPInterface : public OctopussyDebugContext,
+                    	public SingularRefTarget
 {
-  //## begin WPInterface%3C7B6A3702E5.initialDeclarations preserve=yes
   public:
       // each WP has its own local debug context (subcontext of Octopussy)
       
+    //##ModelId=3DB958F70137
       Debug::Context DebugContext; 
+    //##ModelId=3DB936E60219
       ::Debug::Context & getDebugContext() { return DebugContext; };
+    //##ModelId=3DB936E6030A
       const ::Debug::Context & getDebugContext() const { return DebugContext; };
       
+    //##ModelId=3DB93652029F
       class QueueEntry 
       {
         public:
+        //##ModelId=3DB936DC005D
           MessageRef mref; 
+        //##ModelId=3DB936DC0067
           int priority; 
+        //##ModelId=3DB936DC0072
           ulong tick; 
 #ifdef ENABLE_LATENCY_STATS
+        //##ModelId=3DB936DC00A4
           Timestamp ts;  // timestamp of when message was enqueued (auto-initialized to ::now)
 #ifdef USE_THREADS
+        //##ModelId=3DB936DC00B8
           Thread::ThrID thrid; // enqueuing thread
 #endif
 #endif
           
+        //##ModelId=3DB936DC00CB
           QueueEntry()
               : priority(0),tick(0)
 #if defined(ENABLE_LATENCY_STATS) && defined(USE_THREADS)
               ,thrid(Thread::self())
 #endif
               {}
+        //##ModelId=3DB936DC00CC
           QueueEntry(const MessageRef &mref_,int pri,ulong tick_)
               : mref(mref_),priority(pri),tick(tick_)
 #if defined(ENABLE_LATENCY_STATS) && defined(USE_THREADS)
@@ -112,247 +86,260 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
               {}
       };
                      
+    //##ModelId=3DB936520303
       typedef list<QueueEntry> MessageQueue;
       
+    //##ModelId=3DB9365203CB
       typedef enum { ENQ_NOREPOLL = 1, ENQ_NOSIGNAL = 2 } EnqueueFlags;
       
+    //##ModelId=3DB9365300A1
       typedef enum { FLUSH = 1, YIELD = 2 } SendFlags;
-  //## end WPInterface%3C7B6A3702E5.initialDeclarations
 
   public:
-    //## Constructors (specified)
-      //## Operation: WPInterface%3C7CBB10027A
+      //##ModelId=3C7CBB10027A
       WPInterface (AtomicID wpc);
 
-    //## Destructor (generated)
+    //##ModelId=3DB936E700B2
       virtual ~WPInterface();
 
 
-    //## Other Operations (specified)
-      //## Operation: wpname%3C83541601B4
+      //##ModelId=3C83541601B4
       string wpname () const;
 
-      //## Operation: wpid%3C9062180079
+      //##ModelId=3C9062180079
       const WPID & wpid () const;
 
-      //## Operation: setAddress%3C98C3600396
+      //##ModelId=3C98C3600396
       void setAddress (const MsgAddress &addr);
 
-      //## Operation: attach%3C7CBAED007B
+      //##ModelId=3C7CBAED007B
       void attach (Dispatcher* pdsp);
 
-      //## Operation: isAttached%3C7CBBD101E1
+      //##ModelId=3C7CBBD101E1
       bool isAttached () const;
 
-      //## Operation: do_init%3C99B0070017
+      //##ModelId=3C99B0070017
       void do_init ();
 
-      //## Operation: do_start%3C99B00B00D1
+      //##ModelId=3C99B00B00D1
       bool do_start ();
 
-      //## Operation: do_stop%3C99B00F0254
+      //##ModelId=3C99B00F0254
       void do_stop ();
 
-      //## Operation: getPollPriority%3CB55EEA032F
-      //	Rreturns a polling priority for this WP. Normally, this is just the
-      //	priority of the top message in the queue (plus the queue age), or <0
-      //	for no poll required. However, subclasses may choose to redefine
-      //	this if they employ a some custom polling scheme.
-      //	This method is called once per WP per polling loop.
+      //##ModelId=3CB55EEA032F
+      //##Documentation
+      //## Rreturns a polling priority for this WP. Normally, this is just the
+      //## priority of the top message in the queue (plus the queue age), or <0
+      //## for no poll required. However, subclasses may choose to redefine
+      //## this if they employ a some custom polling scheme.
+      //## This method is called once per WP per polling loop.
       virtual int getPollPriority (ulong tick);
 
-      //## Operation: do_poll%3C8F13B903E4
+      //##ModelId=3C8F13B903E4
       bool do_poll (ulong tick);
 
-      //## Operation: enqueue%3C8F204A01EF
-      //	Places ref into the receive queue. Note that the ref is transferred.
-      //  If placing at head and ENQ_NOREPOLL flag is not set, sets the repoll flag.
-      //  With USE_THREADS, also signals on the queue condition variable, unless
-      //  the ENQ_NOSIGNAL flag is set.
-      //  Returns <0 if no repoll is required, else the queue priority if it is.
+      //##ModelId=3C8F204A01EF
+      //##Documentation
+      //## Places ref into the receive queue. Note that the ref is transferred.
+      //## If placing at head and ENQ_NOREPOLL flag is not set, sets the repoll flag.
+      //## With USE_THREADS, also signals on the queue condition variable, unless
+      //## the ENQ_NOSIGNAL flag is set.
+      //## Returns <0 if no repoll is required, else the queue priority if it is.
       int  enqueue (const MessageRef &msg,ulong tick,int flags = 0);
 
-      //## Operation: dequeue%3C8F204D0370
-      //	Removes from queue messages matching the id. Returns True if WP
-      //	needs to be repolled.
-      //	If ref is non-0, then removes the first matching message, and
-      //	attaches ref to it. If ref is 0, removes all matching messages.
+      //##ModelId=3C8F204D0370
+      //##Documentation
+      //## Removes from queue messages matching the id. Returns True if WP
+      //## needs to be repolled.
+      //## If ref is non-0, then removes the first matching message, and
+      //## attaches ref to it. If ref is 0, removes all matching messages.
       bool dequeue (const HIID &id, MessageRef *ref = 0);
 
-      //## Operation: dequeue%3C8F205103D0
-      //	Dequeues the message at the given position.  If ref is non-0, then
-      //	attaches ref to the message. Returns True if WP needs to be repolled.
+      //##ModelId=3C8F205103D0
+      //##Documentation
+      //## Dequeues the message at the given position.  If ref is non-0, then
+      //## attaches ref to the message. Returns True if WP needs to be repolled.
       bool dequeue (int pos, MessageRef *ref = 0);
 
-      //## Operation: searchQueue%3C8F205601EC
-      //	Finds first message in queue, starting at pos (0=top),  with
-      //	matching id. Returns position of message, or -1 if not found. If ref
-      //	is specified, then attaches it to the message.
+      //##ModelId=3C8F205601EC
+      //##Documentation
+      //## Finds first message in queue, starting at pos (0=top),  with
+      //## matching id. Returns position of message, or -1 if not found. If ref
+      //## is specified, then attaches it to the message.
       int searchQueue (const HIID &id, int pos = 0, MessageRef *ref = 0);
 
-      //## Operation: topOfQueue%3C8F206C0071
-//      const WPInterface::QueueEntry * topOfQueue () const;
+      //##ModelId=3C8F206C0071
+      //##Documentation
+      //## const WPInterface::QueueEntry * topOfQueue () const;
 
       //## Operation: queueLocked%3C8F207902AB
       bool queueLocked () const;
 
-      //## Operation: willForward%3C9079A00325
-      //	Returns True if this WP will forward this non-local message.
+      //##ModelId=3C9079A00325
+      //##Documentation
+      //## Returns True if this WP will forward this non-local message.
       virtual bool willForward (const Message &) const;
 
-      //## Operation: subscribe%3C7CB9B70120
+      //##ModelId=3C7CB9B70120
       bool subscribe (const HIID &id, int scope = Message::GLOBAL);
 
-      //## Operation: subscribe%3C99AB6E0187
+      //##ModelId=3C99AB6E0187
       bool subscribe (const HIID &id, const MsgAddress &scope);
 
-      //## Operation: unsubscribe%3C7CB9C50365
+      //##ModelId=3C7CB9C50365
       bool unsubscribe (const HIID &id);
 
-      //## Operation: send%3C7CB9E802CF
-      //	Sends message to specified address. Note that the ref is taken over
-      //	by this call, then privatized for writing. See Dispatcher::send()
-      //	for more details.
+      //##ModelId=3C7CB9E802CF
+      //##Documentation
+      //## Sends message to specified address. Note that the ref is taken over
+      //## by this call, then privatized for writing. See Dispatcher::send()
+      //## for more details.
       int send (MessageRef msg, MsgAddress to, int flags = 0 );
 
-      //## Operation: send%3CBDAD020297
+      //##ModelId=3CBDAD020297
       int send (const HIID &id, MsgAddress to, int flags = 0, int priority = Message::PRI_NORMAL);
 
-      //## Operation: publish%3C7CB9EB01CF
-      //	Publishes message with the specified scope. Note that the ref is
-      //	taken over by this call, then privatized for writing. This method is
-      //	just a shorthand for send(), with "Publish" in some parts of the
-      //	address, as determined by scope).
+      //##ModelId=3C7CB9EB01CF
+      //##Documentation
+      //## Publishes message with the specified scope. Note that the ref is
+      //## taken over by this call, then privatized for writing. This method is
+      //## just a shorthand for send(), with "Publish" in some parts of the
+      //## address, as determined by scope).
       int publish (MessageRef msg, int flags = 0, int scope = Message::GLOBAL);
 
-      //## Operation: publish%3CBDACCC028F
+      //##ModelId=3CBDACCC028F
       int publish (const HIID &id, int flags = 0, int scope = Message::GLOBAL, int priority = Message::PRI_NORMAL);
 
-      //## Operation: setState%3CBED9EF0197
+      //##ModelId=3CBED9EF0197
       void setState (int newstate, bool delay_publish = False);
 
-      //## Operation: log%3CA0457F01BD
+      //##ModelId=3CA0457F01BD
       void log (string str, int level = 0, AtomicID type = LogNormal);
 
-      //## Operation: lprintf%3CA0738D007F
+      //##ModelId=3CA0738D007F
       void lprintf (int level, int type, const char *format, ... );
 
-      //## Operation: lprintf%3CA0739F0247
+      //##ModelId=3CA0739F0247
       void lprintf (int level, const char *format, ... );
 
-    //## Get and Set Operations for Class Attributes (generated)
-
-      //## Attribute: address%3C7CBA880058
+    //##ModelId=3DB936EC0016
       const MsgAddress& address () const;
 
-      //## Attribute: needRepoll%3C8F18B40315
+    //##ModelId=3DB936EC01C5
       bool needRepoll () const;
+    //##ModelId=3DB936EC0391
       bool setNeedRepoll (bool value);
 
-      //## Attribute: state%3C8F256E024B
+    //##ModelId=3DB936ED0311
       int state () const;
 
-      //## Attribute: running%3CE0C01601F8
+    //##ModelId=3DB936EE00EB
       bool isRunning () const;
 
-      //## Attribute: logLevel%3CA07E5F00D8
+    //##ModelId=3DB936EE02C2
       static int logLevel ();
+    //##ModelId=3DB936EF00B1
       static void setLogLevel (int value);
 
-    //## Get and Set Operations for Associations (generated)
-
-      //## Association: OCTOPUSSY::<unnamed>%3C7E14150352
-      //## Role: WPInterface::dsp%3C7E1416017C
+    //##ModelId=3DB936F00120
       Dispatcher * dsp () const;
 
-      //## Association: OCTOPUSSY::<unnamed>%3C999CBF01D6
-      //## Role: WPInterface::subscriptions%3C999CC00015
+    //##ModelId=3DB936F00301
       const Subscriptions& getSubscriptions () const;
 
     // Additional Public Declarations
-      //## begin WPInterface%3C7B6A3702E5.public preserve=yes
+    //##ModelId=3DB936F10104
       bool isLocal (const MsgAddress &addr)
       { return addr.peerid() == address().peerid(); };
+    //##ModelId=3DB936F200D3
       bool isLocal (const Message &msg)
       { return isLocal(msg.from()); }
+    //##ModelId=3DB936F30167
       bool isLocal (const MessageRef &mref)
       { return isLocal(mref->from()); }
       
       // returns True if head of queue is the same as pmsg
+    //##ModelId=3DB936F40172
       bool compareHeadOfQueue( const Message *pmsg );
       
 #ifdef USE_THREADS
+    //##ModelId=3DB936F50188
       bool isThreaded () const;
+    //##ModelId=3DB936F5039B
       Thread::Condition & queueCondition ();
       
+    //##ModelId=3DB936F60107
       int numWorkers() const;
+    //##ModelId=3DB936F6032E
       Thread::ThrID workerID (int n) const;
 #endif
       
+    //##ModelId=3DB936F80042
       Declare_sdebug(virtual);
+    //##ModelId=3DB936F803A9
       Declare_debug( );
-      //## end WPInterface%3C7B6A3702E5.public
   protected:
-      //## Operation: init%3C7F882B00E6
+      //##ModelId=3C7F882B00E6
       virtual void init ();
 
-      //## Operation: start%3C7E4A99016B
+      //##ModelId=3C7E4A99016B
       virtual bool start ();
 
-      //## Operation: stop%3C7E4A9C0133
+      //##ModelId=3C7E4A9C0133
       virtual void stop ();
 
-      //## Operation: poll%3CB55D0E01C2
+      //##ModelId=3CB55D0E01C2
       virtual bool poll (ulong );
       
-      //## Operation: receive%3C7CC0950089
+      //##ModelId=3C7CC0950089
       virtual int receive (MessageRef &mref);
 
-      //## Operation: timeout%3C7CC2AB02AD
+      //##ModelId=3C7CC2AB02AD
       virtual int timeout (const HIID &id);
 
-      //## Operation: input%3C7CC2C40386
+      //##ModelId=3C7CC2C40386
       virtual int input (int fd, int flags);
 
-      //## Operation: signal%3C7DFD240203
+      //##ModelId=3C7DFD240203
       virtual int signal (int signum);
       
-    //## Get and Set Operations for Class Attributes (generated)
-
-      //## Attribute: autoCatch%3CBED3720012
-      //	If set, then all exceptions inside the WP's callbacks will be caught
-      //	and ignored.
+    //##ModelId=3DB936FD007B
       bool autoCatch () const;
+    //##ModelId=3DB936FE0004
       void setAutoCatch (bool value);
 
-    //## Get and Set Operations for Associations (generated)
-
-      //## Association: OCTOPUSSY::<unnamed>%3CA1A1AB0346
-      //## Role: WPInterface::queue%3CA1A1AC01AD
+    //##ModelId=3DB936FF01DC
       const WPInterface::MessageQueue& queue () const;
 
     // Additional Protected Declarations
-      //## begin WPInterface%3C7B6A3702E5.protected preserve=yes
+    //##ModelId=3DB937000170
       Subscriptions& getSubscriptions ();
       
+    //##ModelId=3DB937010095
       WPInterface::MessageQueue & queue ();
       
       // condition variable & mutex for message queue
+    //##ModelId=3DB936DC02CB
       Thread::Condition queue_cond;
       
 #ifdef USE_THREADS
       // This creates a new worker thread for the WP
+    //##ModelId=3DB9370200EC
       Thread::ThrID createWorker ();
       // this wakes up one or all worker threads by signalling or broadcasting
       // on the condition variable
+    //##ModelId=3DB9370203A9
       int wakeWorker (bool everyone=False);
       // this forces a repoll (sets the repoll flag), and wakes up a worker
       // (or alll workers)
+    //##ModelId=3DB937050309
       int repollWorker (bool everyone=False);
       
       // this is for the multithreaded version of poll. This takes one message
       // from the queue and delivers it to timeout/input/signal/receive.
       // The lock argument must be a valid lock on the queue_cond mutex.
+    //##ModelId=3DB937070121
       int deliver (Thread::Mutex::Lock &lock);
       
       // this is called my the default implementation of worker
@@ -362,75 +349,94 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
       // it may be released inside wakeup, but must be reacquired
       // before returning control.
       // Return True if OK, or False to terminate the thread
+    //##ModelId=3DB9370803D5
       virtual bool mtWakeup (Thread::Mutex::Lock &lock);
       // This is called to initialize a worker thread. Return False to 
       // terminate thread. Worker threads are initialized sequentially, and
       // startup will not complete until all workers have completed the 
       // initialization.
+    //##ModelId=3DB9370B0099
       virtual bool mtInit (Thread::ThrID) { return True; };
       // This is called for every worker thread once all threads have been
       // started. Return False to terminate thread.
+    //##ModelId=3DB9370E00C4
       virtual bool mtStart (Thread::ThrID) { return True; };
       // This is called by the default runWorker() before exiting a worker thread.
+    //##ModelId=3DB937100008
       virtual void mtStop (Thread::ThrID) {};
       // this is called in a multithreaded WP's stop sequence, before
       // re-joining all the worker threads and calling stop()
+    //##ModelId=3DB9371200F5
       virtual void stopWorkers () {};
       
       
 #endif
       
       // publishes a message containing all current subscriptions
+    //##ModelId=3DB937130361
       void publishSubscriptions ();
       
+    //##ModelId=3DB936DC039C
       bool full_lock,receive_lock;
       
       
+    //##ModelId=3DB936DE006B
       const OctopussyConfig & config;
       
-      //## end WPInterface%3C7B6A3702E5.protected
   private:
-    //## Constructors (generated)
+    //##ModelId=3DB93715004D
       WPInterface();
 
+    //##ModelId=3DB9371502EC
       WPInterface(const WPInterface &right);
 
-    //## Assignment Operation (generated)
+    //##ModelId=3DB937180016
       WPInterface & operator=(const WPInterface &right);
 
     // Additional Private Declarations
-      //## begin WPInterface%3C7B6A3702E5.private preserve=yes
       // enqueues message _in front_ of all messages with lesser or equal priority
       // This is used for the HOLD result code (i.e. to leave message at head of
       // queue, unless something with higher priority has arrived while we were
       // processing it)
+    //##ModelId=3DB937190389
       bool enqueueFront (const MessageRef &msg,ulong tick,bool setrepoll=True);
       
 #ifdef USE_THREADS      
       // This is the entrypoint for every worker thread.
       // Runs a simple loop, waiting on the queue condition variable, and 
       // exiting when stop_workerThreads is raised.
+    //##ModelId=3DB9371F00D6
       void runWorker ();
       
       // this is an mt-workprocess's worker thread
+    //##ModelId=3DB937200087
       void * workerThread ();
+    //##ModelId=3DB937210093
       static void * start_workerThread (void *pwp);
       
       // a number of worker threads may be run
+    //##ModelId=3DB936DE013C
       static const int MaxWorkerThreads=16;
+    //##ModelId=3DB936DE038C
       Thread::ThrID worker_threads[MaxWorkerThreads];
+    //##ModelId=3DB936DF006B
       int num_worker_threads,num_initialized_workers;
       // condition variables used to manage worker init & WP startup
+    //##ModelId=3DB936E00168
       Thread::Condition worker_cond,startup_cond;
 #ifdef ENABLE_LATENCY_STATS
       // these two functions are called when a worker thread enters or exits
       // a queue-wait state
+    //##ModelId=3DB937230313
       void addWaiter    ();
+    //##ModelId=3DB937250068
       void removeWaiter ();
+    //##ModelId=3DB937260023
       void reportWaiters ();
       // this keeps track of how many workers are waiting on the queue
+    //##ModelId=3DB936E0038D
       int num_waiting_workers;
-      struct { 
+    struct { 
         struct { Timestamp start,total; } none,some,multi,all;
         Timestamp last_report;
       } tsw;
@@ -445,121 +451,112 @@ class WPInterface : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA
 #ifdef ENABLE_LATENCY_STATS    
       // timings for latency stats (i.e., time interval between enqueue
       // and deliver), for single-threaded and multithreaded cases
+    //##ModelId=3DB936E200F2
       Timestamp tot_qlat,tot_qlat_mt;
+    //##ModelId=3DB936E202D2
       int nlat,nlat_mt;
+    //##ModelId=3DB936E4002C
       double last_lat_report;
 #endif
       
-      //## end WPInterface%3C7B6A3702E5.private
 
-  private: //## implementation
+  private:
     // Data Members for Class Attributes
 
-      //## begin WPInterface::address%3C7CBA880058.attr preserve=no  public: MsgAddress {U} 
+      //##ModelId=3DB958F70188
       MsgAddress address_;
-      //## end WPInterface::address%3C7CBA880058.attr
 
-      //## begin WPInterface::needRepoll%3C8F18B40315.attr preserve=no  public: bool {U} 
+      //##ModelId=3C8F18B40315
       bool needRepoll_;
-      //## end WPInterface::needRepoll%3C8F18B40315.attr
 
-      //## begin WPInterface::state%3C8F256E024B.attr preserve=no  public: int {U} 
+      //##ModelId=3C8F256E024B
       int state_;
-      //## end WPInterface::state%3C8F256E024B.attr
 
-      //## begin WPInterface::running%3CE0C01601F8.attr preserve=no  public: bool {U} 
+      //##ModelId=3CE0C01601F8
       bool running;
-      //## end WPInterface::running%3CE0C01601F8.attr
 
-      //## begin WPInterface::autoCatch%3CBED3720012.attr preserve=no  protected: bool {U} 
+      //##ModelId=3CBED3720012
+      //##Documentation
+      //## If set, then all exceptions inside the WP's callbacks will be caught
+      //## and ignored.
       bool autoCatch_;
-      //## end WPInterface::autoCatch%3CBED3720012.attr
 
-      //## begin WPInterface::logLevel%3CA07E5F00D8.attr preserve=no  public: static int {U} 2
+      //##ModelId=3CA07E5F00D8
       static int logLevel_;
-      //## end WPInterface::logLevel%3CA07E5F00D8.attr
 
     // Data Members for Associations
 
-      //## Association: OCTOPUSSY::<unnamed>%3C7E14150352
-      //## begin WPInterface::dsp%3C7E1416017C.role preserve=no  public: Dispatcher {0..* -> 1RFHN}
+      //##ModelId=3C7E1416017C
       Dispatcher *dsp_;
-      //## end WPInterface::dsp%3C7E1416017C.role
 
-      //## Association: OCTOPUSSY::<unnamed>%3C999CBF01D6
-      //## begin WPInterface::subscriptions%3C999CC00015.role preserve=no  public: Subscriptions { -> 1VHgN}
+      //##ModelId=3C999CC00015
       Subscriptions subscriptions;
-      //## end WPInterface::subscriptions%3C999CC00015.role
 
-      //## Association: OCTOPUSSY::<unnamed>%3CA1A1AB0346
-      //## begin WPInterface::queue%3CA1A1AC01AD.role preserve=no  protected: MessageRef { -> 0..*VHgN}
+      //##ModelId=3CA1A1AC01AD
       WPInterface::MessageQueue queue_;
-      //## end WPInterface::queue%3CA1A1AC01AD.role
 
     // Additional Implementation Declarations
-      //## begin WPInterface%3C7B6A3702E5.implementation preserve=yes
+    //##ModelId=3DB937270171
       bool raiseNeedRepoll (bool value)
       { return needRepoll_ |= value; }
       
+    //##ModelId=3DB936E5027C
       bool started;
       
+    //##ModelId=3DB936E6012A
       WPID wpid_;
       
+    //##ModelId=3DB936530174
       typedef MessageQueue::iterator MQI;
+    //##ModelId=3DB93653023C
       typedef MessageQueue::const_iterator CMQI;
+    //##ModelId=3DB936530336
       typedef MessageQueue::reverse_iterator MQRI;
+    //##ModelId=3DB936540017
       typedef MessageQueue::const_reverse_iterator CMQRI;
       
-      //## end WPInterface%3C7B6A3702E5.implementation
 };
 
-//## begin WPInterface%3C7B6A3702E5.postscript preserve=yes
+//##ModelId=3DB9365401C1
 typedef CountedRef<WPInterface> WPRef;
-//## end WPInterface%3C7B6A3702E5.postscript
 
 // Class WPInterface 
 
 
-//## Other Operations (inline)
+//##ModelId=3C83541601B4
 inline string WPInterface::wpname () const
 {
-  //## begin WPInterface::wpname%3C83541601B4.body preserve=yes
   return address_.wpclass().toString();
-  //## end WPInterface::wpname%3C83541601B4.body
 }
 
+//##ModelId=3C9062180079
 inline const WPID & WPInterface::wpid () const
 {
-  //## begin WPInterface::wpid%3C9062180079.body preserve=yes
   return wpid_;
-  //## end WPInterface::wpid%3C9062180079.body
 }
 
+//##ModelId=3C98C3600396
 inline void WPInterface::setAddress (const MsgAddress &addr)
 {
-  //## begin WPInterface::setAddress%3C98C3600396.body preserve=yes
   address_ = addr;
   wpid_ = WPID(addr.wpclass(),addr.inst());
-  //## end WPInterface::setAddress%3C98C3600396.body
 }
 
+//##ModelId=3C7CBBD101E1
 inline bool WPInterface::isAttached () const
 {
-  //## begin WPInterface::isAttached%3C7CBBD101E1.body preserve=yes
   return dsp() != 0;
-  //## end WPInterface::isAttached%3C7CBBD101E1.body
 }
 
+//##ModelId=3C9079A00325
 inline bool WPInterface::willForward (const Message &) const
 {
-  //## begin WPInterface::willForward%3C9079A00325.body preserve=yes
   return False;
-  //## end WPInterface::willForward%3C9079A00325.body
 }
 
+//##ModelId=3C7CB9B70120
 inline bool WPInterface::subscribe (const HIID &id, int scope)
 {
-  //## begin WPInterface::subscribe%3C7CB9B70120.body preserve=yes
   return subscribe(
            id,MsgAddress(
                 AidAny,AidAny,
@@ -567,121 +564,109 @@ inline bool WPInterface::subscribe (const HIID &id, int scope)
                 scope <= Message::HOST    ? address().host() : AidAny 
               ) 
          );
-  //## end WPInterface::subscribe%3C7CB9B70120.body
 }
 
-//## Get and Set Operations for Class Attributes (inline)
-
+//##ModelId=3DB936EC0016
 inline const MsgAddress& WPInterface::address () const
 {
-  //## begin WPInterface::address%3C7CBA880058.get preserve=no
   return address_;
-  //## end WPInterface::address%3C7CBA880058.get
 }
 
+//##ModelId=3DB936EC01C5
 inline bool WPInterface::needRepoll () const
 {
-  //## begin WPInterface::needRepoll%3C8F18B40315.get preserve=no
   return needRepoll_;
-  //## end WPInterface::needRepoll%3C8F18B40315.get
 }
 
+//##ModelId=3DB936EC0391
 inline bool WPInterface::setNeedRepoll (bool value)
 {
-  //## begin WPInterface::setNeedRepoll%3C8F18B40315.set preserve=no
   needRepoll_ = value;
   return value;
-  //## end WPInterface::setNeedRepoll%3C8F18B40315.set
 }
 
+//##ModelId=3DB936ED0311
 inline int WPInterface::state () const
 {
-  //## begin WPInterface::state%3C8F256E024B.get preserve=no
   return state_;
-  //## end WPInterface::state%3C8F256E024B.get
 }
 
+//##ModelId=3DB936EE00EB
 inline bool WPInterface::isRunning () const
 {
-  //## begin WPInterface::isRunning%3CE0C01601F8.get preserve=no
   return running;
-  //## end WPInterface::isRunning%3CE0C01601F8.get
 }
 
+//##ModelId=3DB936FD007B
 inline bool WPInterface::autoCatch () const
 {
-  //## begin WPInterface::autoCatch%3CBED3720012.get preserve=no
   return autoCatch_;
-  //## end WPInterface::autoCatch%3CBED3720012.get
 }
 
+//##ModelId=3DB936FE0004
 inline void WPInterface::setAutoCatch (bool value)
 {
-  //## begin WPInterface::setAutoCatch%3CBED3720012.set preserve=no
   autoCatch_ = value;
-  //## end WPInterface::setAutoCatch%3CBED3720012.set
 }
 
+//##ModelId=3DB936EE02C2
 inline int WPInterface::logLevel ()
 {
-  //## begin WPInterface::logLevel%3CA07E5F00D8.get preserve=no
   return logLevel_;
-  //## end WPInterface::logLevel%3CA07E5F00D8.get
 }
 
+//##ModelId=3DB936EF00B1
 inline void WPInterface::setLogLevel (int value)
 {
-  //## begin WPInterface::setLogLevel%3CA07E5F00D8.set preserve=no
   logLevel_ = value;
-  //## end WPInterface::setLogLevel%3CA07E5F00D8.set
 }
 
-//## Get and Set Operations for Associations (inline)
-
+//##ModelId=3DB936F00120
 inline Dispatcher * WPInterface::dsp () const
 {
-  //## begin WPInterface::dsp%3C7E1416017C.get preserve=no
   return dsp_;
-  //## end WPInterface::dsp%3C7E1416017C.get
 }
 
+//##ModelId=3DB936F00301
 inline const Subscriptions& WPInterface::getSubscriptions () const
 {
-  //## begin WPInterface::getSubscriptions%3C999CC00015.get preserve=no
   return subscriptions;
-  //## end WPInterface::getSubscriptions%3C999CC00015.get
 }
 
+//##ModelId=3DB936FF01DC
 inline const WPInterface::MessageQueue& WPInterface::queue () const
 {
-  //## begin WPInterface::queue%3CA1A1AC01AD.get preserve=no
   return queue_;
-  //## end WPInterface::queue%3CA1A1AC01AD.get
 }
 
-//## begin module%3C8F268F00DE.epilog preserve=yes
+//##ModelId=3DB937000170
 inline Subscriptions& WPInterface::getSubscriptions () 
 { return subscriptions; };
 
+//##ModelId=3DB937010095
 inline WPInterface::MessageQueue & WPInterface::queue () 
 { return queue_; }
 
 #ifdef USE_THREADS
+//##ModelId=3DB936F5039B
 inline Thread::Condition & WPInterface::queueCondition ()
 {
   return queue_cond;
 }
 
+//##ModelId=3DB936F50188
 inline bool WPInterface::isThreaded () const
 { 
   return num_worker_threads > 0; 
 }
 
+//##ModelId=3DB936F60107
 inline int WPInterface::numWorkers () const
 {
   return num_worker_threads; 
 }
 
+//##ModelId=3DB936F6032E
 inline Thread::ThrID WPInterface::workerID (int i) const
 {
   return worker_threads[i];
@@ -689,7 +674,6 @@ inline Thread::ThrID WPInterface::workerID (int i) const
 
 
 #endif
-//## end module%3C8F268F00DE.epilog
 
 
 #endif

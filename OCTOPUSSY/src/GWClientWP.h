@@ -1,31 +1,11 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3C95AADB016E.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C95AADB016E.cm
-
-//## begin module%3C95AADB016E.cp preserve=no
-//## end module%3C95AADB016E.cp
-
-//## Module: GWClientWP%3C95AADB016E; Package specification
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Source file: F:\lofar8\oms\LOFAR\src-links\OCTOPUSSY\GWClientWP.h
-
 #ifndef GWClientWP_h
 #define GWClientWP_h 1
 
-//## begin module%3C95AADB016E.additionalIncludes preserve=no
 #include "DMI/Common.h"
 #include "DMI/DMI.h"
-//## end module%3C95AADB016E.additionalIncludes
 
-//## begin module%3C95AADB016E.includes preserve=yes
 #include <list>
 #include "OCTOPUSSY/MTGatewayWP.h"
-//## end module%3C95AADB016E.includes
 
 // Socket
 #include "OCTOPUSSY/Net/Socket.h"
@@ -33,31 +13,16 @@
 #include "OCTOPUSSY/GatewayWP.h"
 // WorkProcess
 #include "OCTOPUSSY/WorkProcess.h"
-//## begin module%3C95AADB016E.declarations preserve=no
-//## end module%3C95AADB016E.declarations
-
-//## begin module%3C95AADB016E.additionalDeclarations preserve=yes
+class Socket;
 #pragma aid Reconnect FailConnect Reopen Server List Hosts Ports
-//## end module%3C95AADB016E.additionalDeclarations
 
 
-//## begin GWClientWP%3C95A941002E.preface preserve=yes
-//## end GWClientWP%3C95A941002E.preface
+//##ModelId=3C95A941002E
 
-//## Class: GWClientWP%3C95A941002E
-//## Category: OCTOPUSSY%3BCEC935032A
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Persistence: Transient
-//## Cardinality/Multiplicity: n
-
-
-
-//## Uses: <unnamed>%3C95AA83029E;GatewayWP { -> }
-
-class GWClientWP : public WorkProcess  //## Inherits: <unnamed>%3C95A941009C
+class GWClientWP : public WorkProcess
 {
-  //## begin GWClientWP%3C95A941002E.initialDeclarations preserve=yes
   public:
+    //##ModelId=3DB936500103
       typedef struct { string    host;
                        int       port;
                        int       type;
@@ -69,98 +34,87 @@ class GWClientWP : public WorkProcess  //## Inherits: <unnamed>%3C95A941009C
       // to know when to start connecting again. This holds its address.
                        MsgAddress gw;
               } Connection;
-  //## end GWClientWP%3C95A941002E.initialDeclarations
 
   public:
-    //## Constructors (specified)
-      //## Operation: GWClientWP%3CD0167B021B
+      //##ModelId=3CD0167B021B
       GWClientWP (const string &host = "", int port = 0, int type = Socket::TCP);
 
-    //## Destructor (generated)
+    //##ModelId=3DB9367B00EA
       ~GWClientWP();
 
 
-    //## Other Operations (specified)
-      //## Operation: init%3CA1C0C300FA
+      //##ModelId=3CA1C0C300FA
       virtual void init ();
 
-      //## Operation: start%3C95A941008B
+      //##ModelId=3C95A941008B
       bool start ();
 
-      //## Operation: stop%3C95A9410092
+      //##ModelId=3C95A9410092
       void stop ();
 
-      //## Operation: timeout%3C95A9410093
+      //##ModelId=3C95A9410093
       int timeout (const HIID &id);
 
-      //## Operation: receive%3C95A9410095
+      //##ModelId=3C95A9410095
       int receive (MessageRef& mref);
 
     // Additional Public Declarations
-      //## begin GWClientWP%3C95A941002E.public preserve=yes
+    //##ModelId=3DB93650012B
       typedef enum { STOPPED=0,WAITING=1,CONNECTING=2,CONNECTED=3 } States;
-      //## end GWClientWP%3C95A941002E.public
   protected:
     // Additional Protected Declarations
-      //## begin GWClientWP%3C95A941002E.protected preserve=yes
       // maintain connection list
+    //##ModelId=3DB9367B0126
       Connection &  addConnection    (const string &host,int port,int type);
+    //##ModelId=3DB9367B02B6
       bool          removeConnection (const string &host,int port);
+    //##ModelId=3DB9367C000F
       GWClientWP::Connection * find (const string &host, const string &port);
+    //##ModelId=3DB9367C01F7
       GWClientWP::Connection * find (const MsgAddress &gw);
       
       // begins connecting
+    //##ModelId=3DB9367C0305
       void activate ();
       // tries to open and connect the socket
+    //##ModelId=3DB9367C037D
       void tryConnect ( Connection &cx );
       
+    //##ModelId=3DB9367A0374
       Timestamp now;
+    //##ModelId=3DB9367A03A5
       bool reconnect_timeout_set;
       
+    //##ModelId=3DB9367B0021
       ObjRef peerref;
+    //##ModelId=3DB9367B009A
       DataRecord & peerlist;
-      //## end GWClientWP%3C95A941002E.protected
   private:
-    //## Constructors (generated)
+    //##ModelId=3DB9367D00C2
       GWClientWP(const GWClientWP &right);
 
-    //## Assignment Operation (generated)
+    //##ModelId=3DB9367D029F
       GWClientWP & operator=(const GWClientWP &right);
 
-    // Additional Private Declarations
-      //## begin GWClientWP%3C95A941002E.private preserve=yes
-      //## end GWClientWP%3C95A941002E.private
-
-  private: //## implementation
+  private:
     // Data Members for Class Attributes
 
-      //## Attribute: hostname%3CC951FA0127
-      //## begin GWClientWP::hostname%3CC951FA0127.attr preserve=no  private: string {U} 
+      //##ModelId=3CC951FA0127
       string hostname;
-      //## end GWClientWP::hostname%3CC951FA0127.attr
 
     // Data Members for Associations
 
-      //## Association: OCTOPUSSY::<unnamed>%3C95A941009D
-      //## Role: GWClientWP::conns%3C95A941009E
-      //## begin GWClientWP::conns%3C95A941009E.role preserve=no  private: Socket { -> 0..*RHgN}
+      //##ModelId=3DB958F20327
       list<Connection> conns;
-      //## end GWClientWP::conns%3C95A941009E.role
 
     // Additional Implementation Declarations
-      //## begin GWClientWP%3C95A941002E.implementation preserve=yes
+    //##ModelId=3DB936500167
       typedef list<Connection>::iterator CLI;
+    //##ModelId=3DB936500199
       typedef list<Connection>::const_iterator CCLI;
-      //## end GWClientWP%3C95A941002E.implementation
 };
 
-//## begin GWClientWP%3C95A941002E.postscript preserve=yes
-//## end GWClientWP%3C95A941002E.postscript
-
 // Class GWClientWP 
-
-//## begin module%3C95AADB016E.epilog preserve=yes
-//## end module%3C95AADB016E.epilog
 
 
 #endif

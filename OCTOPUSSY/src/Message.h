@@ -1,33 +1,13 @@
-//## begin module%1.4%.codegen_version preserve=yes
-//   Read the documentation to learn more about C++ code generator
-//   versioning.
-//## end module%1.4%.codegen_version
-
-//## begin module%3C7B7F2F0248.cm preserve=no
-//	  %X% %Q% %Z% %W%
-//## end module%3C7B7F2F0248.cm
-
-//## begin module%3C7B7F2F0248.cp preserve=no
-//## end module%3C7B7F2F0248.cp
-
-//## Module: Message%3C7B7F2F0248; Package specification
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Source file: F:\lofar8\oms\LOFAR\src-links\OCTOPUSSY\Message.h
-
 #ifndef Message_h
 #define Message_h 1
 
-//## begin module%3C7B7F2F0248.additionalIncludes preserve=no
 #include "DMI/Common.h"
 #include "DMI/DMI.h"
-//## end module%3C7B7F2F0248.additionalIncludes
 
-//## begin module%3C7B7F2F0248.includes preserve=yes
 #include "Common/CheckConfig.h"
 #include "DMI/DataRecord.h"
 #include "OCTOPUSSY/TID-OCTOPUSSY.h"
 #include "OCTOPUSSY/LatencyVector.h"
-//## end module%3C7B7F2F0248.includes
 
 // CountedRef
 #include "DMI/CountedRef.h"
@@ -43,10 +23,6 @@
 #include "OCTOPUSSY/OctopussyDebugContext.h"
 // MsgAddress
 #include "OCTOPUSSY/MsgAddress.h"
-//## begin module%3C7B7F2F0248.declarations preserve=no
-//## end module%3C7B7F2F0248.declarations
-
-//## begin module%3C7B7F2F0248.additionalDeclarations preserve=yes
 // in debug mode, enable latency stats, unless explicitly disabled
 #if defined(LOFAR_DEBUG) && !defined(DISABLE_LATENCY_STATS)
 #define ENABLE_LATENCY_STATS 1
@@ -62,32 +38,19 @@
 #pragma aid Index
 
 #include "OCTOPUSSY/AID-OCTOPUSSY.h"
-//## end module%3C7B7F2F0248.additionalDeclarations
 
 
-//## begin Message%3C7B6A2D01F0.preface preserve=yes
 class WPQueue;
-//## end Message%3C7B6A2D01F0.preface
 
-//## Class: Message%3C7B6A2D01F0
-//## Category: OCTOPUSSY%3BCEC935032A
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Persistence: Transient
-//## Cardinality/Multiplicity: n
+//##ModelId=3C7B6A2D01F0
 
-
-
-//## Uses: <unnamed>%3C7B70830385;MsgAddress { -> }
-//## Uses: <unnamed>%3C7B708B00DD;HIID { -> }
-//## Uses: <unnamed>%3C7E4D87012D;NestableContainer { -> }
-
-class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA31802FF
-                	public BlockableObject  //## Inherits: <unnamed>%3C960F080308
+class Message : public OctopussyDebugContext,
+                	public BlockableObject
 {
-  //## begin Message%3C7B6A2D01F0.initialDeclarations preserve=yes
   public:
       // some predefined priority levels
       // a priority<0 is considered "none"
+    //##ModelId=3DB9369D01B2
       static const int PRI_LOWEST  = 0,
                        PRI_LOWER   = 0x10,
                        PRI_LOW     = 0x20,
@@ -97,6 +60,7 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
                        PRI_EVENT   = 0x800;
                        
       // message delivery/subscription scope
+    //##ModelId=3DB936510032
       typedef enum {
            GLOBAL        = 2,
            HOST          = 1,
@@ -105,6 +69,7 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
       } MessageScope;
            
       // message processing results (returned by WPInterface::receive(), etc.)
+    //##ModelId=3DB936510104
       typedef enum {  
         ACCEPT   = 0, // message processed, OK to remove from queue
         HOLD     = 1, // hold the message (and block queue) until something else happens
@@ -112,184 +77,199 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
         CANCEL   = 3  // for input()/timeout()/signal(), cancel the input or timeout
       } MessageResults;
            
-  //## end Message%3C7B6A2D01F0.initialDeclarations
 
   public:
-    //## Constructors (generated)
+    //##ModelId=3C8CB2CE00DC
       Message();
 
+    //##ModelId=3C7B9C490384
       Message(const Message &right);
 
-    //## Constructors (specified)
-      //## Operation: Message%3C8CB2CE00DC
+      //##ModelId=3C7B9D0A01FB
       explicit Message (const HIID &id1, int pri = PRI_NORMAL);
 
-      //## Operation: Message%3C7B9C490384
+      //##ModelId=3C7B9D3B02C3
       Message (const HIID &id1, BlockableObject *pload, int flags = 0, int pri = PRI_NORMAL);
       
-      //## Operation: Message%3C7B9D0A01FB
+      //##ModelId=3C7B9D59014A
       Message (const HIID &id1, const ObjRef &pload, int flags = 0, int pri = PRI_NORMAL);
 //      Message (const HIID &id1, const ObjRef &pload, int flags = 0, int pri = PRI_NORMAL);
 
-      //## Operation: Message%3C7B9D3B02C3
+      //##ModelId=3C7BB3BD0266
       Message (const HIID &id1, SmartBlock *bl, int flags = 0, int pri = PRI_NORMAL);
 
-      //## Operation: Message%3C7B9D59014A
+      //##ModelId=3DB936A5029F
       Message (const HIID &id1, const BlockRef &bl, int flags = 0, int pri = PRI_NORMAL);
 
-      //## Operation: Message%3C7BB3BD0266
+      //##ModelId=3DB936A7019E
       Message (const HIID &id1, const char *data, size_t sz, int pri = PRI_NORMAL);
 
-    //## Destructor (generated)
+    //##ModelId=3DB936A90143
       ~Message();
 
-    //## Assignment Operation (generated)
+    //##ModelId=3DB936A901E3
       Message & operator=(const Message &right);
 
 
-    //## Other Operations (specified)
-      //## Operation: operator <<=%3C7B9DDE0137
+      //##ModelId=3C7B9DDE0137
       Message & operator <<= (BlockableObject *pload);
 
-      //## Operation: operator <<=%3C7B9DF20014
+      //##ModelId=3C7B9DF20014
       Message & operator <<= (ObjRef &pload);
 
-      //## Operation: operator <<=%3C7B9E0A02AD
+      //##ModelId=3C7B9E0A02AD
       Message & operator <<= (SmartBlock *bl);
 
-      //## Operation: operator <<=%3C7B9E1601CE
+      //##ModelId=3C7B9E1601CE
       Message & operator <<= (BlockRef &bl);
 
-      //## Operation: clone%3C7E32BE01E0; C++
-      //	Abstract method for cloning an object. Should return pointer to new
-      //	object. Flags: DMI::WRITE if writable clone is required, DMI::DEEP
-      //	for deep cloning (i.e. contents of object will be cloned as well).
+      //##ModelId=3C7E32BE01E0
+      //##Documentation
+      //## Abstract method for cloning an object. Should return pointer to new
+      //## object. Flags: DMI::WRITE if writable clone is required, DMI::DEEP
+      //## for deep cloning (i.e. contents of object will be cloned as well).
       virtual CountedRefTarget* clone (int flags = 0, int depth = 0) const;
 
-      //## Operation: privatize%3C7E32C1022B
-      //	Virtual method for privatization of an object. If the object
-      //	contains other refs, they should be privatized by this method. The
-      //	DMI::DEEP flag should be passed on to child refs, for deep
-      //	privatization.
+      //##ModelId=3C7E32C1022B
+      //##Documentation
+      //## Virtual method for privatization of an object. If the object
+      //## contains other refs, they should be privatized by this method. The
+      //## DMI::DEEP flag should be passed on to child refs, for deep
+      //## privatization.
       virtual void privatize (int flags = 0, int depth = 0);
 
-      //## Operation: operator []%3C7F56ED007D
+      //##ModelId=3C7F56ED007D
       NestableContainer::Hook operator [] (const HIID &id);
 
-      //## Operation: operator []%3C7E4C310348
+      //##ModelId=3C7E4C310348
       NestableContainer::Hook operator [] (int n);
 
-      //## Operation: operator []%3C7E4C3E003A
+      //##ModelId=3C7E4C3E003A
       NestableContainer::ConstHook operator [] (const HIID &id) const;
 
-      //## Operation: operator []%3C7F56D90197
+      //##ModelId=3C7F56D90197
       NestableContainer::ConstHook operator [] (int n) const;
 
-      //## Operation: setBranch%3CB42D0201B4
+      //##ModelId=3CB42D0201B4
       NestableContainer::Hook setBranch (const HIID &id, int flags = DMI::WRITE);
 
-      //## Operation: data%3C7E443A016A
+      //##ModelId=3C7E443A016A
       void * data ();
 
-      //## Operation: data%3C7E446B02B5
+      //##ModelId=3C7E446B02B5
       const void * data () const;
 
-      //## Operation: datasize%3C7E443E01B6
+      //##ModelId=3C7E443E01B6
       size_t datasize () const;
 
-      //## Operation: objectType%3C960F16009B
-      //	Returns the class TypeId
+      //##ModelId=3C960F16009B
+      //##Documentation
+      //## Returns the class TypeId
       virtual TypeId objectType () const;
 
-      //## Operation: fromBlock%3C960F1B0373
-      //	Creates object from a set of block references. Appropriate number of
-      //	references are removed from the head of the BlockSet. Returns # of
-      //	refs removed.
+      //##ModelId=3C960F1B0373
+      //##Documentation
+      //## Creates object from a set of block references. Appropriate number of
+      //## references are removed from the head of the BlockSet. Returns # of
+      //## refs removed.
       virtual int fromBlock (BlockSet& set);
 
-      //## Operation: toBlock%3C960F20037A
-      //	Stores an object into a set of blocks. Appropriate number of refs
-      //	added to tail of BlockSet. Returns # of block refs added.
+      //##ModelId=3C960F20037A
+      //##Documentation
+      //## Stores an object into a set of blocks. Appropriate number of refs
+      //## added to tail of BlockSet. Returns # of block refs added.
       virtual int toBlock (BlockSet &set) const;
 
-    //## Get and Set Operations for Class Attributes (generated)
-
-      //## Attribute: priority%3C7B94970023
+    //##ModelId=3DB936AA02FD
       int priority () const;
+    //##ModelId=3DB936AB0056
       void setPriority (int value);
 
-      //## Attribute: state%3C7E33F40330
+    //##ModelId=3DB936AB02F5
       int state () const;
+    //##ModelId=3DB936AC006B
       void setState (int value);
 
-      //## Attribute: hops%3CC952D7039B
+    //##ModelId=3DB936AC0332
       short hops () const;
+    //##ModelId=3DB936AD00DB
       void setHops (short value);
 
-    //## Get and Set Operations for Associations (generated)
-
-      //## Association: OCTOPUSSY::<unnamed>%3C7B70FF033D
-      //## Role: Message::to%3C7B7100015E
+    //##ModelId=3DB936AD03CA
       const MsgAddress& to () const;
+    //##ModelId=3DB936AE015E
       void setTo (const MsgAddress& value);
 
-      //## Association: OCTOPUSSY::<unnamed>%3C7B71050151
-      //## Role: Message::from%3C7B7106029D
+    //##ModelId=3DB936AF0070
       const MsgAddress& from () const;
+    //##ModelId=3DB936AF0214
       void setFrom (const MsgAddress& value);
 
-      //## Association: OCTOPUSSY::<unnamed>%3C7B71820219
-      //## Role: Message::id%3C7B718500FB
+    //##ModelId=3DB936B00161
       const HIID& id () const;
+    //##ModelId=3DB936B00306
       void setId (const HIID& value);
 
-      //## Association: OCTOPUSSY::<unnamed>%3C7B9796024D
-      //## Role: Message::payload%3C7B97970096
+    //##ModelId=3DB936B10360
       const ObjRef& payload () const;
 
-      //## Association: OCTOPUSSY::<unnamed>%3C7B9799014D
-      //## Role: Message::block%3C7B97990388
+    //##ModelId=3DB936B20112
       const BlockRef& block () const;
 
-      //## Association: OCTOPUSSY::<unnamed>%3CC9530802FB
-      //## Role: Message::forwarder%3CC9530903D9
+    //##ModelId=3DB936B202E9
       const MsgAddress& forwarder () const;
+    //##ModelId=3DB936B300D8
       void setForwarder (const MsgAddress& value);
 
     // Additional Public Declarations
-      //## begin Message%3C7B6A2D01F0.public preserve=yes
+    //##ModelId=3DB936A10054
       int flags_; // user-defined flag field
       
+    //##ModelId=3DB936B40140
       Message (const HIID &id1, const BlockableObject *pload, int flags = 0, int pri = PRI_NORMAL);
+    //##ModelId=3DB936B80024
       Message (const HIID &id1, const SmartBlock *bl, int flags = 0, int pri = PRI_NORMAL);
       
+    //##ModelId=3DB936BC0051
       ObjRef &     payload ();
+    //##ModelId=3DB936BC0192
       BlockRef &   block   ();
       
       // This accesses the payload as a DataRecord, or throws an exception if it isn't one
+    //##ModelId=3DB936BC02B4
       const DataRecord & record () const;
+    //##ModelId=3DB936BD00A3
       DataRecord & wrecord ();
 
       // increments the hop count       
+    //##ModelId=3DB936BD01D9
       short addHop ();
       
       // explicit versions of [] for string IDs
+    //##ModelId=3DB936BD0306
       NestableContainer::ConstHook operator [] (AtomicID id1) const
       { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB936BF005B
       NestableContainer::ConstHook operator [] (const string &id1) const
       { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB936C00125
       NestableContainer::ConstHook operator [] (const char *id1) const
       { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB936C101D1
       NestableContainer::Hook operator [] (AtomicID id1) 
       { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB936C201D2
       NestableContainer::Hook operator [] (const string &id1) 
       { return (*this)[HIID(id1)]; }
+    //##ModelId=3DB936C301E7
       NestableContainer::Hook operator [] (const char *id1) 
       { return (*this)[HIID(id1)]; }
       
+    //##ModelId=3DB9365101AF
       typedef CountedRef<Message> Ref;
       
 #ifdef ENABLE_LATENCY_STATS
+    //##ModelId=3DB958F6030D
       LatencyVector latency;
 #else
       static DummyLatencyVector latency;    
@@ -297,72 +277,52 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
       
       // This is a typical debug() method setup. The sdebug()
       // method creates a debug info string at the given level of detail.
+    //##ModelId=3DB936C40273
       string sdebug ( int detail = 1,const string &prefix = "",
                 const char *name = 0 ) const;
+    //##ModelId=3DB936C7012C
       const char * debug ( int detail = 1,const string &prefix = "",
                            const char *name = 0 ) const
       { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
 
-      //## end Message%3C7B6A2D01F0.public
   protected:
     // Additional Protected Declarations
-      //## begin Message%3C7B6A2D01F0.protected preserve=yes
+    //##ModelId=3DB936A1038B
       BlockSet payload_set;
-      //## end Message%3C7B6A2D01F0.protected
   private:
-    // Additional Private Declarations
-      //## begin Message%3C7B6A2D01F0.private preserve=yes
-      //## end Message%3C7B6A2D01F0.private
-
-  private: //## implementation
     // Data Members for Class Attributes
 
-      //## begin Message::priority%3C7B94970023.attr preserve=no  public: int {U} 
+      //##ModelId=3C7B94970023
       int priority_;
-      //## end Message::priority%3C7B94970023.attr
 
-      //## begin Message::state%3C7E33F40330.attr preserve=no  public: int {U} 
+      //##ModelId=3C7E33F40330
       int state_;
-      //## end Message::state%3C7E33F40330.attr
 
-      //## begin Message::hops%3CC952D7039B.attr preserve=no  public: short {U} 
+      //##ModelId=3CC952D7039B
       short hops_;
-      //## end Message::hops%3CC952D7039B.attr
 
     // Data Members for Associations
 
-      //## Association: OCTOPUSSY::<unnamed>%3C7B70FF033D
-      //## begin Message::to%3C7B7100015E.role preserve=no  public: MsgAddress { -> 1VHgN}
+      //##ModelId=3C7B7100015E
       MsgAddress to_;
-      //## end Message::to%3C7B7100015E.role
 
-      //## Association: OCTOPUSSY::<unnamed>%3C7B71050151
-      //## begin Message::from%3C7B7106029D.role preserve=no  public: MsgAddress { -> 1VHgN}
+      //##ModelId=3C7B7106029D
       MsgAddress from_;
-      //## end Message::from%3C7B7106029D.role
 
-      //## Association: OCTOPUSSY::<unnamed>%3C7B71820219
-      //## begin Message::id%3C7B718500FB.role preserve=no  public: HIID { -> 1VHgN}
+      //##ModelId=3C7B718500FB
       HIID id_;
-      //## end Message::id%3C7B718500FB.role
 
-      //## Association: OCTOPUSSY::<unnamed>%3C7B9796024D
-      //## begin Message::payload%3C7B97970096.role preserve=no  public: BlockableObject { -> 0..1RHgN}
+      //##ModelId=3DB958F60344
       ObjRef payload_;
-      //## end Message::payload%3C7B97970096.role
 
-      //## Association: OCTOPUSSY::<unnamed>%3C7B9799014D
-      //## begin Message::block%3C7B97990388.role preserve=no  public: SmartBlock { -> 0..1RHgN}
+      //##ModelId=3DB963AB022B
       BlockRef block_;
-      //## end Message::block%3C7B97990388.role
 
-      //## Association: OCTOPUSSY::<unnamed>%3CC9530802FB
-      //## begin Message::forwarder%3CC9530903D9.role preserve=no  public: MsgAddress { -> 1VHgN}
+      //##ModelId=3CC9530903D9
       MsgAddress forwarder_;
-      //## end Message::forwarder%3CC9530903D9.role
 
     // Additional Implementation Declarations
-      //## begin Message%3C7B6A2D01F0.implementation preserve=yes
+    //##ModelId=3DB93651024F
       typedef struct 
       {  
         int priority,state,flags,idsize,fromsize,tosize,latsize;
@@ -372,61 +332,35 @@ class Message : public OctopussyDebugContext, //## Inherits: <unnamed>%3C7FA3180
       }  
       HeaderBlock;
                      
-      //## end Message%3C7B6A2D01F0.implementation
 };
 
-//## begin Message%3C7B6A2D01F0.postscript preserve=yes
-//## end Message%3C7B6A2D01F0.postscript
-
-//## begin MessageRef%3C7B722600DE.preface preserve=yes
-//## end MessageRef%3C7B722600DE.preface
-
-//## Class: MessageRef%3C7B722600DE
-//## Category: OCTOPUSSY%3BCEC935032A
-//## Subsystem: OCTOPUSSY%3C5A73670223
-//## Persistence: Transient
-//## Cardinality/Multiplicity: n
-
-
-
-//## Uses: <unnamed>%3C7B7262018F;CountedRef { -> }
-//## Uses: <unnamed>%3C7B726503E2;Message { -> }
+//##ModelId=3C7B722600DE
 
 typedef Message::Ref MessageRef;
-//## begin MessageRef%3C7B722600DE.postscript preserve=yes
-//## end MessageRef%3C7B722600DE.postscript
-
 // Class Message 
 
+//##ModelId=3C7B9D0A01FB
 inline Message::Message (const HIID &id1, int pri)
-  //## begin Message::Message%3C8CB2CE00DC.hasinit preserve=no
-  //## end Message::Message%3C8CB2CE00DC.hasinit
-  //## begin Message::Message%3C8CB2CE00DC.initialization preserve=yes
    : priority_(pri),state_(0),hops_(0),id_(id1)
-  //## end Message::Message%3C8CB2CE00DC.initialization
 {
-  //## begin Message::Message%3C8CB2CE00DC.body preserve=yes
-  //## end Message::Message%3C8CB2CE00DC.body
 }
 
 
 
-//## Other Operations (inline)
+//##ModelId=3C7F56ED007D
 inline NestableContainer::Hook Message::operator [] (const HIID &id)
 {
-  //## begin Message::operator []%3C7F56ED007D.body preserve=yes
   if( payload_.valid() )
   { FailWhen( !payload_->isNestable(),"payload is not a container" ); }
   else
     payload_.attach(new DataRecord,DMI::ANON|DMI::WRITE|DMI::PERSIST);
   return (*static_cast<NestableContainer*>(
       const_cast<BlockableObject*>(&payload_.deref())))[id];
-  //## end Message::operator []%3C7F56ED007D.body
 }
 
+//##ModelId=3C7E4C310348
 inline NestableContainer::Hook Message::operator [] (int n)
 {
-  //## begin Message::operator []%3C7E4C310348.body preserve=yes
   if( payload_.valid() )
   { FailWhen( !payload_->isNestable(),"payload is not a container" ); }
   else
@@ -434,185 +368,161 @@ inline NestableContainer::Hook Message::operator [] (int n)
   
   return (*static_cast<NestableContainer*>(
       const_cast<BlockableObject*>(&payload_.deref())))[n];
-  //## end Message::operator []%3C7E4C310348.body
 }
 
+//##ModelId=3C7E4C3E003A
 inline NestableContainer::ConstHook Message::operator [] (const HIID &id) const
 {
-  //## begin Message::operator []%3C7E4C3E003A.body preserve=yes
   FailWhen( !payload_.valid() || !payload_->isNestable(),"payload is not a container" ); 
   return (*static_cast<const NestableContainer*>(&payload_.deref()))[id];
-  //## end Message::operator []%3C7E4C3E003A.body
 }
 
+//##ModelId=3C7F56D90197
 inline NestableContainer::ConstHook Message::operator [] (int n) const
 {
-  //## begin Message::operator []%3C7F56D90197.body preserve=yes
   FailWhen( !payload_.valid() || !payload_->isNestable(),"payload is not a container" ); 
   return (*static_cast<const NestableContainer*>(&payload_.deref()))[n];
-  //## end Message::operator []%3C7F56D90197.body
 }
 
+//##ModelId=3C7E443A016A
 inline void * Message::data ()
 {
-  //## begin Message::data%3C7E443A016A.body preserve=yes
   return block_.valid() ? block_().data() : 0;
-  //## end Message::data%3C7E443A016A.body
 }
 
+//##ModelId=3C7E446B02B5
 inline const void * Message::data () const
 {
-  //## begin Message::data%3C7E446B02B5.body preserve=yes
   return block_.valid() ? block_->data() : 0;
-  //## end Message::data%3C7E446B02B5.body
 }
 
+//##ModelId=3C7E443E01B6
 inline size_t Message::datasize () const
 {
-  //## begin Message::datasize%3C7E443E01B6.body preserve=yes
   return block_.valid() ? block_->size() : 0;
-  //## end Message::datasize%3C7E443E01B6.body
 }
 
+//##ModelId=3C960F16009B
 inline TypeId Message::objectType () const
 {
-  //## begin Message::objectType%3C960F16009B.body preserve=yes
   return TpMessage;
-  //## end Message::objectType%3C960F16009B.body
 }
 
-//## Get and Set Operations for Class Attributes (inline)
-
+//##ModelId=3DB936AA02FD
 inline int Message::priority () const
 {
-  //## begin Message::priority%3C7B94970023.get preserve=no
   return priority_;
-  //## end Message::priority%3C7B94970023.get
 }
 
+//##ModelId=3DB936AB0056
 inline void Message::setPriority (int value)
 {
-  //## begin Message::setPriority%3C7B94970023.set preserve=no
   priority_ = value;
-  //## end Message::setPriority%3C7B94970023.set
 }
 
+//##ModelId=3DB936AB02F5
 inline int Message::state () const
 {
-  //## begin Message::state%3C7E33F40330.get preserve=no
   return state_;
-  //## end Message::state%3C7E33F40330.get
 }
 
+//##ModelId=3DB936AC006B
 inline void Message::setState (int value)
 {
-  //## begin Message::setState%3C7E33F40330.set preserve=no
   state_ = value;
-  //## end Message::setState%3C7E33F40330.set
 }
 
+//##ModelId=3DB936AC0332
 inline short Message::hops () const
 {
-  //## begin Message::hops%3CC952D7039B.get preserve=no
   return hops_;
-  //## end Message::hops%3CC952D7039B.get
 }
 
+//##ModelId=3DB936AD00DB
 inline void Message::setHops (short value)
 {
-  //## begin Message::setHops%3CC952D7039B.set preserve=no
   hops_ = value;
-  //## end Message::setHops%3CC952D7039B.set
 }
 
-//## Get and Set Operations for Associations (inline)
-
+//##ModelId=3DB936AD03CA
 inline const MsgAddress& Message::to () const
 {
-  //## begin Message::to%3C7B7100015E.get preserve=no
   return to_;
-  //## end Message::to%3C7B7100015E.get
 }
 
+//##ModelId=3DB936AE015E
 inline void Message::setTo (const MsgAddress& value)
 {
-  //## begin Message::setTo%3C7B7100015E.set preserve=no
   to_ = value;
-  //## end Message::setTo%3C7B7100015E.set
 }
 
+//##ModelId=3DB936AF0070
 inline const MsgAddress& Message::from () const
 {
-  //## begin Message::from%3C7B7106029D.get preserve=no
   return from_;
-  //## end Message::from%3C7B7106029D.get
 }
 
+//##ModelId=3DB936AF0214
 inline void Message::setFrom (const MsgAddress& value)
 {
-  //## begin Message::setFrom%3C7B7106029D.set preserve=no
   from_ = value;
-  //## end Message::setFrom%3C7B7106029D.set
 }
 
+//##ModelId=3DB936B00161
 inline const HIID& Message::id () const
 {
-  //## begin Message::id%3C7B718500FB.get preserve=no
   return id_;
-  //## end Message::id%3C7B718500FB.get
 }
 
+//##ModelId=3DB936B00306
 inline void Message::setId (const HIID& value)
 {
-  //## begin Message::setId%3C7B718500FB.set preserve=no
   id_ = value;
-  //## end Message::setId%3C7B718500FB.set
 }
 
+//##ModelId=3DB936B10360
 inline const ObjRef& Message::payload () const
 {
-  //## begin Message::payload%3C7B97970096.get preserve=no
   return payload_;
-  //## end Message::payload%3C7B97970096.get
 }
 
+//##ModelId=3DB936B20112
 inline const BlockRef& Message::block () const
 {
-  //## begin Message::block%3C7B97990388.get preserve=no
   return block_;
-  //## end Message::block%3C7B97990388.get
 }
 
+//##ModelId=3DB936B202E9
 inline const MsgAddress& Message::forwarder () const
 {
-  //## begin Message::forwarder%3CC9530903D9.get preserve=no
   return forwarder_;
-  //## end Message::forwarder%3CC9530903D9.get
 }
 
+//##ModelId=3DB936B300D8
 inline void Message::setForwarder (const MsgAddress& value)
 {
-  //## begin Message::setForwarder%3CC9530903D9.set preserve=no
   forwarder_ = value;
-  //## end Message::setForwarder%3CC9530903D9.set
 }
 
-//## begin module%3C7B7F2F0248.epilog preserve=yes
+//##ModelId=3DB936BC0051
 inline ObjRef& Message::payload () 
 {
   return payload_;
 }
 
+//##ModelId=3DB936BC0192
 inline BlockRef& Message::block () 
 {
   return block_;
 }
 
+//##ModelId=3DB936BD01D9
 inline short Message::addHop ()                               
 { 
   return ++hops_; 
 }
 
+//##ModelId=3DB936BC02B4
 inline const DataRecord & Message::record () const
 {
   const DataRecord *rec = dynamic_cast<const DataRecord *>(payload_.deref_p());
@@ -620,6 +530,7 @@ inline const DataRecord & Message::record () const
   return *rec;
 }
 
+//##ModelId=3DB936BD00A3
 inline DataRecord & Message::wrecord ()
 {
   DataRecord *rec = dynamic_cast<DataRecord *>(payload_.dewr_p());
@@ -627,7 +538,6 @@ inline DataRecord & Message::wrecord ()
   return *rec;
 }
 
-//## end module%3C7B7F2F0248.epilog
 
 
 #endif

@@ -35,16 +35,22 @@
 // pulls in registry definitions
 static int dum = aidRegistry_OCTOPUSSY();
 
+//##ModelId=3DB936550230
 Dispatcher * Dispatcher::dispatcher = 0;
+//##ModelId=3DB9365901A0
 sigset_t Dispatcher::raisedSignals,Dispatcher::allSignals;
+//##ModelId=3DB9365A0179
 struct sigaction * Dispatcher::orig_sigaction[_NSIG];
+//##ModelId=3DB9365603B8
 bool Dispatcher::stop_polling = False;
 
+//##ModelId=3DB936610326
 int Dispatcher::signal_counter[Dispatcher::max_signals];
 
       
 // static signal handler
 
+//##ModelId=3DB9366D02BD
 void Dispatcher::signalHandler (int signum,siginfo_t *,void *)
 {
 #ifdef USE_THREADS
@@ -56,6 +62,7 @@ void Dispatcher::signalHandler (int signum,siginfo_t *,void *)
   if( signum == SIGINT )
     stop_polling = True;
 }
+//##ModelId=3C7CD444039C
 //## end module%3C7B7F30004B.additionalDeclarations
 
 
@@ -78,6 +85,7 @@ Dispatcher::Dispatcher (AtomicID process, AtomicID host, int hz)
   //## end Dispatcher::Dispatcher%3C7CD444039C.body
 }
 
+//##ModelId=3CD012B70209
 Dispatcher::Dispatcher (int hz)
   //## begin Dispatcher::Dispatcher%3CD012B70209.hasinit preserve=no
   //## end Dispatcher::Dispatcher%3CD012B70209.hasinit
@@ -99,6 +107,7 @@ Dispatcher::Dispatcher (int hz)
 }
 
 
+//##ModelId=3DB9366301DE
 Dispatcher::~Dispatcher()
 {
   //## begin Dispatcher::~Dispatcher%3C7B6A3E00A0_dest.body preserve=yes
@@ -111,6 +120,7 @@ Dispatcher::~Dispatcher()
 
 
 
+//##ModelId=3CD014D00180
 //## Other Operations (implementation)
 void Dispatcher::init ()
 {
@@ -136,6 +146,7 @@ void Dispatcher::init ()
   //## end Dispatcher::init%3CD014D00180.body
 }
 
+//##ModelId=3C8CDDFD0361
 const MsgAddress & Dispatcher::attach (WPRef &wpref)
 {
   //## begin Dispatcher::attach%3C8CDDFD0361.body preserve=yes
@@ -170,6 +181,7 @@ const MsgAddress & Dispatcher::attach (WPRef &wpref)
   //## end Dispatcher::attach%3C8CDDFD0361.body
 }
 
+//##ModelId=3C7B885A027F
 const MsgAddress & Dispatcher::attach (WPInterface* wp, int flags)
 {
   //## begin Dispatcher::attach%3C7B885A027F.body preserve=yes
@@ -178,6 +190,7 @@ const MsgAddress & Dispatcher::attach (WPInterface* wp, int flags)
   //## end Dispatcher::attach%3C7B885A027F.body
 }
 
+//##ModelId=3C8CA2BD01B0
 void Dispatcher::detach (WPInterface* wp, bool delay)
 {
   //## begin Dispatcher::detach%3C8CA2BD01B0.body preserve=yes
@@ -187,6 +200,7 @@ void Dispatcher::detach (WPInterface* wp, bool delay)
   //## end Dispatcher::detach%3C8CA2BD01B0.body
 }
 
+//##ModelId=3C8CDE320231
 void Dispatcher::detach (const WPID &id, bool delay)
 {
   //## begin Dispatcher::detach%3C8CDE320231.body preserve=yes
@@ -217,6 +231,7 @@ void Dispatcher::detach (const WPID &id, bool delay)
   //## end Dispatcher::detach%3C8CDE320231.body
 }
 
+//##ModelId=3C95C73F022A
 void Dispatcher::declareForwarder (WPInterface *wp)
 {
 //## begin Dispatcher::declareForwarder%3C95C73F022A.body preserve=yes
@@ -229,6 +244,7 @@ void Dispatcher::declareForwarder (WPInterface *wp)
   //## end Dispatcher::declareForwarder%3C95C73F022A.body
 }
 
+//##ModelId=3C7DFF770140
 void Dispatcher::start ()
 {
   //## begin Dispatcher::start%3C7DFF770140.body preserve=yes
@@ -307,6 +323,7 @@ void Dispatcher::start ()
   //## end Dispatcher::start%3C7DFF770140.body
 }
 
+//##ModelId=3C7E0270027B
 void Dispatcher::stop ()
 {
   //## begin Dispatcher::stop%3C7E0270027B.body preserve=yes
@@ -348,6 +365,7 @@ void Dispatcher::stop ()
   //## end Dispatcher::stop%3C7E0270027B.body
 }
 
+//##ModelId=3C7B8867015B
 int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
 {
   //## begin Dispatcher::send%3C7B8867015B.body preserve=yes
@@ -427,6 +445,7 @@ int Dispatcher::send (MessageRef &mref, const MsgAddress &to)
   //## end Dispatcher::send%3C7B8867015B.body
 }
 
+//##ModelId=3C7B888E01CF
 void Dispatcher::poll (int maxloops)
 {
   //## begin Dispatcher::poll%3C7B888E01CF.body preserve=yes
@@ -511,6 +530,7 @@ void Dispatcher::poll (int maxloops)
   //## end Dispatcher::poll%3C7B888E01CF.body
 }
 
+//##ModelId=3C8C87AF031F
 void Dispatcher::pollLoop ()
 {
   //## begin Dispatcher::pollLoop%3C8C87AF031F.body preserve=yes
@@ -554,6 +574,7 @@ void Dispatcher::pollLoop ()
   //## end Dispatcher::pollLoop%3C8C87AF031F.body
 }
 
+//##ModelId=3CE0BD3F0026
 bool Dispatcher::yield ()
 {
   //## begin Dispatcher::yield%3CE0BD3F0026.body preserve=yes
@@ -562,6 +583,7 @@ bool Dispatcher::yield ()
   //## end Dispatcher::yield%3CE0BD3F0026.body
 }
 
+//##ModelId=3CA09EB503C1
 void Dispatcher::stopPolling ()
 {
   //## begin Dispatcher::stopPolling%3CA09EB503C1.body preserve=yes
@@ -573,6 +595,7 @@ void Dispatcher::stopPolling ()
   //## end Dispatcher::stopPolling%3CA09EB503C1.body
 }
 
+//##ModelId=3C7D28C30061
 void Dispatcher::addTimeout (WPInterface* pwp, const Timestamp &period, const HIID &id, int flags, int priority)
 {
   //## begin Dispatcher::addTimeout%3C7D28C30061.body preserve=yes
@@ -599,6 +622,7 @@ void Dispatcher::addTimeout (WPInterface* pwp, const Timestamp &period, const HI
   //## end Dispatcher::addTimeout%3C7D28C30061.body
 }
 
+//##ModelId=3C7D28E3032E
 void Dispatcher::addInput (WPInterface* pwp, int fd, int flags, int priority)
 {
   //## begin Dispatcher::addInput%3C7D28E3032E.body preserve=yes
@@ -628,6 +652,7 @@ void Dispatcher::addInput (WPInterface* pwp, int fd, int flags, int priority)
   //## end Dispatcher::addInput%3C7D28E3032E.body
 }
 
+//##ModelId=3C7DFF4A0344
 void Dispatcher::addSignal (WPInterface* pwp, int signum, int flags, int priority)
 {
   //## begin Dispatcher::addSignal%3C7DFF4A0344.body preserve=yes
@@ -653,6 +678,7 @@ void Dispatcher::addSignal (WPInterface* pwp, int signum, int flags, int priorit
   //## end Dispatcher::addSignal%3C7DFF4A0344.body
 }
 
+//##ModelId=3C7D28F202F3
 bool Dispatcher::removeTimeout (WPInterface* pwp, const HIID &id)
 {
   //## begin Dispatcher::removeTimeout%3C7D28F202F3.body preserve=yes
@@ -674,6 +700,7 @@ bool Dispatcher::removeTimeout (WPInterface* pwp, const HIID &id)
   //## end Dispatcher::removeTimeout%3C7D28F202F3.body
 }
 
+//##ModelId=3C7D2947002F
 bool Dispatcher::removeInput (WPInterface* pwp, int fd, int flags)
 {
   //## begin Dispatcher::removeInput%3C7D2947002F.body preserve=yes
@@ -702,6 +729,7 @@ bool Dispatcher::removeInput (WPInterface* pwp, int fd, int flags)
   //## end Dispatcher::removeInput%3C7D2947002F.body
 }
 
+//##ModelId=3C7DFF57025C
 bool Dispatcher::removeSignal (WPInterface* pwp, int signum)
 {
   //## begin Dispatcher::removeSignal%3C7DFF57025C.body preserve=yes
@@ -738,6 +766,7 @@ bool Dispatcher::removeSignal (WPInterface* pwp, int signum)
   //## end Dispatcher::removeSignal%3C7DFF57025C.body
 }
 
+//##ModelId=3C98D4530076
 Dispatcher::WPIter Dispatcher::initWPIter ()
 {
   //## begin Dispatcher::initWPIter%3C98D4530076.body preserve=yes
@@ -745,6 +774,7 @@ Dispatcher::WPIter Dispatcher::initWPIter ()
   //## end Dispatcher::initWPIter%3C98D4530076.body
 }
 
+//##ModelId=3C98D47B02B9
 bool Dispatcher::getWPIter (Dispatcher::WPIter &iter, WPID &wpid, const WPInterface *&pwp)
 {
   //## begin Dispatcher::getWPIter%3C98D47B02B9.body preserve=yes
@@ -760,6 +790,7 @@ bool Dispatcher::getWPIter (Dispatcher::WPIter &iter, WPID &wpid, const WPInterf
   //## end Dispatcher::getWPIter%3C98D47B02B9.body
 }
 
+//##ModelId=3CBEDDD8001A
 void Dispatcher::addLocalData (const HIID &id, ObjRef ref)
 {
   //## begin Dispatcher::addLocalData%3CBEDDD8001A.body preserve=yes
@@ -768,6 +799,7 @@ void Dispatcher::addLocalData (const HIID &id, ObjRef ref)
   //## end Dispatcher::addLocalData%3CBEDDD8001A.body
 }
 
+//##ModelId=3CBEE41702F4
 DataField & Dispatcher::addLocalData (const HIID &id)
 {
   //## begin Dispatcher::addLocalData%3CBEE41702F4.body preserve=yes
@@ -778,6 +810,7 @@ DataField & Dispatcher::addLocalData (const HIID &id)
   //## end Dispatcher::addLocalData%3CBEE41702F4.body
 }
 
+//##ModelId=3CC405480057
 NestableContainer::Hook Dispatcher::localData (const HIID &id)
 {
   //## begin Dispatcher::localData%3CC405480057.body preserve=yes
@@ -785,6 +818,7 @@ NestableContainer::Hook Dispatcher::localData (const HIID &id)
   //## end Dispatcher::localData%3CC405480057.body
 }
 
+//##ModelId=3CC00549020D
 bool Dispatcher::hasLocalData (const HIID &id)
 {
   //## begin Dispatcher::hasLocalData%3CC00549020D.body preserve=yes
@@ -793,6 +827,7 @@ bool Dispatcher::hasLocalData (const HIID &id)
 }
 
 // Additional Declarations
+//##ModelId=3DB9367001CA
   //## begin Dispatcher%3C7B6A3E00A0.declarations preserve=yes
 void Dispatcher::rebuildInputs (WPInterface *remove)
 {
@@ -828,6 +863,7 @@ void Dispatcher::rebuildInputs (WPInterface *remove)
 #endif
 }
 
+//##ModelId=3DB936710244
 void Dispatcher::rebuildSignals (WPInterface *remove)
 {
   // rebuild mask of handled signal_map
@@ -886,6 +922,7 @@ void Dispatcher::rebuildSignals (WPInterface *remove)
   allSignals = newmask;
 }
 
+//##ModelId=3DB9367202F9
 bool Dispatcher::checkEvents()
 {
   // ------ check timeouts
@@ -1030,6 +1067,7 @@ bool Dispatcher::checkEvents()
   return repoll;
 }
 
+//##ModelId=3DB936730142
 void Dispatcher::enqueue (WPInterface *pwp,const Message::Ref &ref)
 {
 // place the message into the WP's queue
@@ -1056,11 +1094,13 @@ void Dispatcher::enqueue (WPInterface *pwp,const Message::Ref &ref)
 }
 
 #ifdef USE_THREADS
+//##ModelId=3DB9366A004E
 void * Dispatcher::start_eventThread (void *pdsp)
 {
   return static_cast<Dispatcher*>(pdsp)->eventThread();
 }
     
+//##ModelId=3DB9366B015E
 void * Dispatcher::eventThread ()
 {
   // no signals are blocked
@@ -1131,11 +1171,13 @@ void * Dispatcher::eventThread ()
   return 0;
 }
 
+//##ModelId=3DB9366B033E
 void * Dispatcher::start_pollThread (void *pdsp)
 {
   return static_cast<Dispatcher*>(pdsp)->pollThread();
 }
     
+//##ModelId=3DB9366D00DC
 void * Dispatcher::pollThread ()
 {
   try
@@ -1164,6 +1206,7 @@ void * Dispatcher::pollThread ()
   return 0;
 }
 
+//##ModelId=3DB93665008D
 Thread::ThrID Dispatcher::startThread ()
 {
   // block all dispatcher-handled signals
@@ -1175,6 +1218,7 @@ Thread::ThrID Dispatcher::startThread ()
 
 
 
+//##ModelId=3DB936660106
 const sigset_t * Dispatcher::validSignals ()
 {
   static bool init = False;

@@ -1,3 +1,5 @@
+//##ModelId=3CA0451401B9
+//##ModelId=3DB9369B0043
 //## begin module%1.4%.codegen_version preserve=yes
 //   Read the documentation to learn more about C++ code generator
 //   versioning.
@@ -50,6 +52,7 @@ LoggerWP::LoggerWP (int maxlev, int scope)
 }
 
 
+//##ModelId=3DB9369A0073
 LoggerWP::~LoggerWP()
 {
   //## begin LoggerWP::~LoggerWP%3CA044DE02AB_dest.body preserve=yes
@@ -60,6 +63,7 @@ LoggerWP::~LoggerWP()
 
 
 
+//##ModelId=3CA045020054
 //## Other Operations (implementation)
 void LoggerWP::init ()
 {
@@ -127,6 +131,7 @@ void LoggerWP::init ()
   //## end LoggerWP::init%3CA045020054.body
 }
 
+//##ModelId=3CA05A7E01CE
 void LoggerWP::stop ()
 {
   //## begin LoggerWP::stop%3CA05A7E01CE.body preserve=yes
@@ -150,6 +155,7 @@ void LoggerWP::stop ()
   //## end LoggerWP::stop%3CA05A7E01CE.body
 }
 
+//##ModelId=3CA0450C0103
 int LoggerWP::receive (MessageRef &mref)
 {
   //## begin LoggerWP::receive%3CA0450C0103.body preserve=yes
@@ -171,6 +177,7 @@ int LoggerWP::receive (MessageRef &mref)
   //## end LoggerWP::receive%3CA0450C0103.body
 }
 
+//##ModelId=3CA04AF50212
 void LoggerWP::setScope (int scope)
 {
   //## begin LoggerWP::setScope%3CA04AF50212.body preserve=yes
@@ -179,6 +186,7 @@ void LoggerWP::setScope (int scope)
   //## end LoggerWP::setScope%3CA04AF50212.body
 }
 
+//##ModelId=3CA04A1F03D7
 void LoggerWP::logMessage (const string &source, const string &msg, int level, AtomicID type)
 {
   //## begin LoggerWP::logMessage%3CA04A1F03D7.body preserve=yes

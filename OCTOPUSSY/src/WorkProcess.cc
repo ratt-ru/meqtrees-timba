@@ -1,3 +1,6 @@
+//##ModelId=3C8F25DB014E
+//##ModelId=3DB937290303
+//##ModelId=3DB9372903AD
 //## begin module%1.4%.codegen_version preserve=yes
 //   Read the documentation to learn more about C++ code generator
 //   versioning.
@@ -46,6 +49,7 @@ WorkProcess::WorkProcess (AtomicID wpc)
 
 
 
+//##ModelId=3C7D285803B0
 //## Other Operations (implementation)
 void WorkProcess::addTimeout (const Timestamp &period, const HIID &id, int flags, int priority)
 {
@@ -55,6 +59,7 @@ void WorkProcess::addTimeout (const Timestamp &period, const HIID &id, int flags
   //## end WorkProcess::addTimeout%3C7D285803B0.body
 }
 
+//##ModelId=3C7D2874023E
 void WorkProcess::addInput (int fd, int flags, int priority)
 {
   //## begin WorkProcess::addInput%3C7D2874023E.body preserve=yes
@@ -63,6 +68,7 @@ void WorkProcess::addInput (int fd, int flags, int priority)
   //## end WorkProcess::addInput%3C7D2874023E.body
 }
 
+//##ModelId=3C7DFE520239
 void WorkProcess::addSignal (int signum, int flags, int priority)
 {
   //## begin WorkProcess::addSignal%3C7DFE520239.body preserve=yes
@@ -71,6 +77,7 @@ void WorkProcess::addSignal (int signum, int flags, int priority)
   //## end WorkProcess::addSignal%3C7DFE520239.body
 }
 
+//##ModelId=3C7D287F02C6
 bool WorkProcess::removeTimeout (const HIID &id)
 {
   //## begin WorkProcess::removeTimeout%3C7D287F02C6.body preserve=yes
@@ -79,6 +86,7 @@ bool WorkProcess::removeTimeout (const HIID &id)
   //## end WorkProcess::removeTimeout%3C7D287F02C6.body
 }
 
+//##ModelId=3C7D28A30141
 bool WorkProcess::removeInput (int fd, int flags)
 {
   //## begin WorkProcess::removeInput%3C7D28A30141.body preserve=yes
@@ -87,6 +95,7 @@ bool WorkProcess::removeInput (int fd, int flags)
   //## end WorkProcess::removeInput%3C7D28A30141.body
 }
 
+//##ModelId=3C7DFE480253
 bool WorkProcess::removeSignal (int signum)
 {
   //## begin WorkProcess::removeSignal%3C7DFE480253.body preserve=yes
@@ -95,6 +104,7 @@ bool WorkProcess::removeSignal (int signum)
   //## end WorkProcess::removeSignal%3C7DFE480253.body
 }
 
+//##ModelId=3C95A89D015E
 void WorkProcess::detachMyself ()
 {
   //## begin WorkProcess::detachMyself%3C95A89D015E.body preserve=yes
@@ -102,6 +112,7 @@ void WorkProcess::detachMyself ()
   //## end WorkProcess::detachMyself%3C95A89D015E.body
 }
 
+//##ModelId=3C95BA1602D9
 const MsgAddress & WorkProcess::attachWP (WPRef &wpref)
 {
   //## begin WorkProcess::attachWP%3C95BA1602D9.body preserve=yes
@@ -109,6 +120,7 @@ const MsgAddress & WorkProcess::attachWP (WPRef &wpref)
   //## end WorkProcess::attachWP%3C95BA1602D9.body
 }
 
+//##ModelId=3C95BA1A02D5
 const MsgAddress & WorkProcess::attachWP (WPInterface* wp, int flags)
 {
   //## begin WorkProcess::attachWP%3C95BA1A02D5.body preserve=yes

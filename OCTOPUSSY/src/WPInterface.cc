@@ -1,3 +1,4 @@
+//##ModelId=3DB937230313
 //## begin module%1.4%.codegen_version preserve=yes
 //   Read the documentation to learn more about C++ code generator
 //   versioning.
@@ -59,6 +60,7 @@ void WPInterface::addWaiter ()
     tsw.all.start = now;
 }
 
+//##ModelId=3DB937250068
 void WPInterface::removeWaiter ()
 {
   Timestamp now;
@@ -74,6 +76,7 @@ void WPInterface::removeWaiter ()
   num_waiting_workers--;
 }
 
+//##ModelId=3DB937260023
 void WPInterface::reportWaiters ()
 {
   Timestamp now;
@@ -124,6 +127,7 @@ void WPInterface::reportWaiters ()
 // This is the multithreaded poll version: it checks the message queue,
 // and distributes all messages into receive/input/timeout/signal methods.
 // Default version of wakeup() simply calls this method
+//##ModelId=3DB937070121
 int WPInterface::deliver (Thread::Mutex::Lock &lock)
 {
   // check if something is in the queue
@@ -276,6 +280,7 @@ int WPInterface::deliver (Thread::Mutex::Lock &lock)
   return 0;
 }
 
+//##ModelId=3DB9370803D5
 bool WPInterface::mtWakeup (Thread::Mutex::Lock &lock)
 {
   while( needRepoll() && running ) 
@@ -283,6 +288,7 @@ bool WPInterface::mtWakeup (Thread::Mutex::Lock &lock)
   return True;
 }
 
+//##ModelId=3DB9371F00D6
 void WPInterface::runWorker ()
 {
   Thread::Mutex::Lock lock(queue_cond);
@@ -313,6 +319,7 @@ void WPInterface::runWorker ()
   }
 }
 
+//##ModelId=3DB937200087
 void * WPInterface::workerThread ()
 {
   Thread::signalMask(SIG_BLOCK,Dispatcher::validSignals());
@@ -367,17 +374,20 @@ void * WPInterface::workerThread ()
   return 0;
 }
 
+//##ModelId=3DB937210093
 void * WPInterface::start_workerThread (void *pwp)
 {
   return static_cast<WPInterface*>(pwp)->workerThread();
 }
 
+//##ModelId=3DB9370203A9
 int WPInterface::wakeWorker (bool everybody)
 {
   Thread::Mutex::Lock lock(queue_cond);
   return everybody ? queue_cond.broadcast() : queue_cond.signal();
 }
 
+//##ModelId=3DB937050309
 int WPInterface::repollWorker (bool everybody)
 {
   Thread::Mutex::Lock lock(queue_cond);
@@ -385,6 +395,7 @@ int WPInterface::repollWorker (bool everybody)
   return everybody ? queue_cond.broadcast() : queue_cond.signal();
 }
 
+//##ModelId=3DB9370200EC
 Thread::ThrID WPInterface::createWorker ()
 {
   dprintf(2)("launching worker thread\n");
@@ -407,6 +418,7 @@ Thread::ThrID WPInterface::createWorker ()
 }
 #endif
 
+//##ModelId=3CA07E5F00D8
 //## end module%3C8F26A30123.additionalDeclarations
 
 
@@ -414,6 +426,9 @@ Thread::ThrID WPInterface::createWorker ()
 
 //## begin WPInterface::logLevel%3CA07E5F00D8.attr preserve=no  public: static int {U} 2
 int WPInterface::logLevel_ = 2;
+//##ModelId=3C7CBB10027A
+//##ModelId=3DB93715004D
+//##ModelId=3DB9371502EC
 //## end WPInterface::logLevel%3CA07E5F00D8.attr
 
 WPInterface::WPInterface (AtomicID wpc)
@@ -422,7 +437,7 @@ WPInterface::WPInterface (AtomicID wpc)
   //## begin WPInterface::WPInterface%3C7CBB10027A.initialization preserve=yes
   : DebugContext(wpc.toString(),&OctopussyDebugContext::getDebugContext()),
     config(OctopussyConfig::global()),
-    address_(wpc),running(False),autoCatch_(False),
+    address_(wpc),state_(0),running(False),autoCatch_(False),
     dsp_(0),queue_(0),wpid_(wpc)
   //## end WPInterface::WPInterface%3C7CBB10027A.initialization
 {
@@ -435,6 +450,7 @@ WPInterface::WPInterface (AtomicID wpc)
 }
 
 
+//##ModelId=3DB936E700B2
 WPInterface::~WPInterface()
 {
   //## begin WPInterface::~WPInterface%3C7B6A3702E5_dest.body preserve=yes
@@ -443,6 +459,7 @@ WPInterface::~WPInterface()
 
 
 
+//##ModelId=3C7CBAED007B
 //## Other Operations (implementation)
 void WPInterface::attach (Dispatcher* pdsp)
 {
@@ -451,6 +468,7 @@ void WPInterface::attach (Dispatcher* pdsp)
   //## end WPInterface::attach%3C7CBAED007B.body
 }
 
+//##ModelId=3C99B0070017
 void WPInterface::do_init ()
 {
   //## begin WPInterface::do_init%3C99B0070017.body preserve=yes
@@ -472,6 +490,7 @@ void WPInterface::do_init ()
   //## end WPInterface::do_init%3C99B0070017.body
 }
 
+//##ModelId=3C99B00B00D1
 bool WPInterface::do_start ()
 {
   //## begin WPInterface::do_start%3C99B00B00D1.body preserve=yes
@@ -527,6 +546,7 @@ bool WPInterface::do_start ()
   //## end WPInterface::do_start%3C99B00B00D1.body
 }
 
+//##ModelId=3C99B00F0254
 void WPInterface::do_stop ()
 {
   //## begin WPInterface::do_stop%3C99B00F0254.body preserve=yes
@@ -563,12 +583,14 @@ void WPInterface::do_stop ()
   //## end WPInterface::do_stop%3C99B00F0254.body
 }
 
+//##ModelId=3C7F882B00E6
 void WPInterface::init ()
 {
   //## begin WPInterface::init%3C7F882B00E6.body preserve=yes
   //## end WPInterface::init%3C7F882B00E6.body
 }
 
+//##ModelId=3C7E4A99016B
 bool WPInterface::start ()
 {
   //## begin WPInterface::start%3C7E4A99016B.body preserve=yes
@@ -576,12 +598,14 @@ bool WPInterface::start ()
   //## end WPInterface::start%3C7E4A99016B.body
 }
 
+//##ModelId=3C7E4A9C0133
 void WPInterface::stop ()
 {
   //## begin WPInterface::stop%3C7E4A9C0133.body preserve=yes
   //## end WPInterface::stop%3C7E4A9C0133.body
 }
 
+//##ModelId=3CB55EEA032F
 int WPInterface::getPollPriority (ulong tick)
 {
   //## begin WPInterface::getPollPriority%3CB55EEA032F.body preserve=yes
@@ -612,6 +636,7 @@ int WPInterface::getPollPriority (ulong tick)
   //## end WPInterface::getPollPriority%3CB55EEA032F.body
 }
 
+//##ModelId=3C8F13B903E4
 bool WPInterface::do_poll (ulong tick)
 {
   //## begin WPInterface::do_poll%3C8F13B903E4.body preserve=yes
@@ -798,6 +823,7 @@ bool WPInterface::do_poll (ulong tick)
   //## end WPInterface::do_poll%3C8F13B903E4.body
 }
 
+//##ModelId=3CB55D0E01C2
 bool WPInterface::poll (ulong )
 {
   //## begin WPInterface::poll%3CB55D0E01C2.body preserve=yes
@@ -805,6 +831,7 @@ bool WPInterface::poll (ulong )
   //## end WPInterface::poll%3CB55D0E01C2.body
 }
 
+//##ModelId=3C8F204A01EF
 int WPInterface::enqueue (const MessageRef &msg, ulong tick, int flags)
 {
   //## begin WPInterface::enqueue%3C8F204A01EF.body preserve=yes
@@ -875,6 +902,7 @@ int WPInterface::enqueue (const MessageRef &msg, ulong tick, int flags)
   //## end WPInterface::enqueue%3C8F204A01EF.body
 }
 
+//##ModelId=3C8F204D0370
 bool WPInterface::dequeue (const HIID &id, MessageRef *ref)
 {
   //## begin WPInterface::dequeue%3C8F204D0370.body preserve=yes
@@ -905,6 +933,7 @@ bool WPInterface::dequeue (const HIID &id, MessageRef *ref)
   //## end WPInterface::dequeue%3C8F204D0370.body
 }
 
+//##ModelId=3C8F205103D0
 bool WPInterface::dequeue (int pos, MessageRef *ref)
 {
   //## begin WPInterface::dequeue%3C8F205103D0.body preserve=yes
@@ -927,6 +956,7 @@ bool WPInterface::dequeue (int pos, MessageRef *ref)
   //## end WPInterface::dequeue%3C8F205103D0.body
 }
 
+//##ModelId=3C8F205601EC
 int WPInterface::searchQueue (const HIID &id, int pos, MessageRef *ref)
 {
   //## begin WPInterface::searchQueue%3C8F205601EC.body preserve=yes
@@ -949,6 +979,7 @@ int WPInterface::searchQueue (const HIID &id, int pos, MessageRef *ref)
   //## end WPInterface::searchQueue%3C8F205601EC.body
 }
 
+//##ModelId=3C8F206C0071
 bool WPInterface::queueLocked () const
 {
   //## begin WPInterface::queueLocked%3C8F207902AB.body preserve=yes
@@ -963,6 +994,7 @@ bool WPInterface::queueLocked () const
   //## end WPInterface::queueLocked%3C8F207902AB.body
 }
 
+//##ModelId=3C99AB6E0187
 bool WPInterface::subscribe (const HIID &id, const MsgAddress &scope)
 {
   //## begin WPInterface::subscribe%3C99AB6E0187.body preserve=yes
@@ -978,6 +1010,7 @@ bool WPInterface::subscribe (const HIID &id, const MsgAddress &scope)
   //## end WPInterface::subscribe%3C99AB6E0187.body
 }
 
+//##ModelId=3C7CB9C50365
 bool WPInterface::unsubscribe (const HIID &id)
 {
   //## begin WPInterface::unsubscribe%3C7CB9C50365.body preserve=yes
@@ -993,6 +1026,7 @@ bool WPInterface::unsubscribe (const HIID &id)
   //## end WPInterface::unsubscribe%3C7CB9C50365.body
 }
 
+//##ModelId=3C7CC0950089
 int WPInterface::receive (MessageRef &mref)
 {
   //## begin WPInterface::receive%3C7CC0950089.body preserve=yes
@@ -1001,6 +1035,7 @@ int WPInterface::receive (MessageRef &mref)
   //## end WPInterface::receive%3C7CC0950089.body
 }
 
+//##ModelId=3C7CC2AB02AD
 int WPInterface::timeout (const HIID &id)
 {
   //## begin WPInterface::timeout%3C7CC2AB02AD.body preserve=yes
@@ -1009,6 +1044,7 @@ int WPInterface::timeout (const HIID &id)
   //## end WPInterface::timeout%3C7CC2AB02AD.body
 }
 
+//##ModelId=3C7CC2C40386
 int WPInterface::input (int fd, int flags)
 {
   //## begin WPInterface::input%3C7CC2C40386.body preserve=yes
@@ -1017,6 +1053,7 @@ int WPInterface::input (int fd, int flags)
   //## end WPInterface::input%3C7CC2C40386.body
 }
 
+//##ModelId=3C7DFD240203
 int WPInterface::signal (int signum)
 {
   //## begin WPInterface::signal%3C7DFD240203.body preserve=yes
@@ -1025,6 +1062,7 @@ int WPInterface::signal (int signum)
   //## end WPInterface::signal%3C7DFD240203.body
 }
 
+//##ModelId=3C7CB9E802CF
 int WPInterface::send (MessageRef msg, MsgAddress to, int)
 {
   //## begin WPInterface::send%3C7CB9E802CF.body preserve=yes
@@ -1045,6 +1083,7 @@ int WPInterface::send (MessageRef msg, MsgAddress to, int)
   //## end WPInterface::send%3C7CB9E802CF.body
 }
 
+//##ModelId=3CBDAD020297
 int WPInterface::send (const HIID &id, MsgAddress to, int , int priority)
 {
   //## begin WPInterface::send%3CBDAD020297.body preserve=yes
@@ -1053,6 +1092,7 @@ int WPInterface::send (const HIID &id, MsgAddress to, int , int priority)
   //## end WPInterface::send%3CBDAD020297.body
 }
 
+//##ModelId=3C7CB9EB01CF
 int WPInterface::publish (MessageRef msg,int , int scope)
 {
   //## begin WPInterface::publish%3C7CB9EB01CF.body preserve=yes
@@ -1070,6 +1110,7 @@ int WPInterface::publish (MessageRef msg,int , int scope)
   //## end WPInterface::publish%3C7CB9EB01CF.body
 }
 
+//##ModelId=3CBDACCC028F
 int WPInterface::publish (const HIID &id,int,int scope, int priority)
 {
   //## begin WPInterface::publish%3CBDACCC028F.body preserve=yes
@@ -1078,6 +1119,7 @@ int WPInterface::publish (const HIID &id,int,int scope, int priority)
   //## end WPInterface::publish%3CBDACCC028F.body
 }
 
+//##ModelId=3CBED9EF0197
 void WPInterface::setState (int newstate, bool delay_publish)
 {
   //## begin WPInterface::setState%3CBED9EF0197.body preserve=yes
@@ -1090,6 +1132,7 @@ void WPInterface::setState (int newstate, bool delay_publish)
   //## end WPInterface::setState%3CBED9EF0197.body
 }
 
+//##ModelId=3CA0457F01BD
 void WPInterface::log (string str, int level, AtomicID type)
 {
   //## begin WPInterface::log%3CA0457F01BD.body preserve=yes
@@ -1133,6 +1176,7 @@ void WPInterface::log (string str, int level, AtomicID type)
   //## end WPInterface::log%3CA0457F01BD.body
 }
 
+//##ModelId=3CA0738D007F
 void WPInterface::lprintf (int level, int type, const char *format, ... )
 {
   //## begin WPInterface::lprintf%3CA0738D007F.body preserve=yes
@@ -1148,6 +1192,7 @@ void WPInterface::lprintf (int level, int type, const char *format, ... )
   //## end WPInterface::lprintf%3CA0738D007F.body
 }
 
+//##ModelId=3CA0739F0247
 void WPInterface::lprintf (int level, const char *format, ... )
 {
   //## begin WPInterface::lprintf%3CA0739F0247.body preserve=yes
@@ -1163,6 +1208,7 @@ void WPInterface::lprintf (int level, const char *format, ... )
 }
 
 // Additional Declarations
+//##ModelId=3DB936F40172
   //## begin WPInterface%3C7B6A3702E5.declarations preserve=yes
 bool WPInterface::compareHeadOfQueue( const Message *pmsg )
 {
@@ -1177,6 +1223,7 @@ bool WPInterface::compareHeadOfQueue( const Message *pmsg )
 // This is used for the HOLD result code (i.e. to leave message at head of
 // queue, unless something with higher priority has arrived while we were
 // processing it)
+//##ModelId=3DB937190389
 bool WPInterface::enqueueFront (const MessageRef &msg, ulong tick,bool setrepoll)
 {
   //## begin WPInterface::enqueue%3C8F204A01EF.body preserve=yes
@@ -1207,6 +1254,7 @@ bool WPInterface::enqueueFront (const MessageRef &msg, ulong tick,bool setrepoll
 
 
 
+//##ModelId=3DB937130361
 void WPInterface::publishSubscriptions ()
 {
   // pack subscriptions into a block

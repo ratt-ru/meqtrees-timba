@@ -1,3 +1,4 @@
+//##ModelId=3DB936CB00A9
 //## begin module%1.4%.codegen_version preserve=yes
 //   Read the documentation to learn more about C++ code generator
 //   versioning.
@@ -31,6 +32,7 @@
 //## begin module%3CD0078A01F1.additionalDeclarations preserve=yes
 OctopussyConfig 
     OctopussyConfig::global_( getenv("HOME") + string("/.octopussy") );
+//##ModelId=3CD005FD01DC
 //## end module%3CD0078A01F1.additionalDeclarations
 
 
@@ -49,6 +51,7 @@ OctopussyConfig::OctopussyConfig (const string &confdir)
 
 
 
+//##ModelId=3CD0060C00A7
 //## Other Operations (implementation)
 void OctopussyConfig::init (int argc, const char **argv)
 {
@@ -118,6 +121,7 @@ void OctopussyConfig::init (int argc, const char **argv)
   //## end OctopussyConfig::init%3CD0060C00A7.body
 }
 
+//##ModelId=3CD0061B0258
 bool OctopussyConfig::getOption (const string &name) const
 {
   //## begin OctopussyConfig::getOption%3CD0061B0258.body preserve=yes
@@ -126,6 +130,7 @@ bool OctopussyConfig::getOption (const string &name) const
   //## end OctopussyConfig::getOption%3CD0061B0258.body
 }
 
+//##ModelId=3CD0063503BD
 bool OctopussyConfig::getOption (const string &name, int &value) const
 {
   //## begin OctopussyConfig::getOption%3CD0063503BD.body preserve=yes
@@ -137,6 +142,7 @@ bool OctopussyConfig::getOption (const string &name, int &value) const
   //## end OctopussyConfig::getOption%3CD0063503BD.body
 }
 
+//##ModelId=3CD006460137
 bool OctopussyConfig::getOption (string name, string &value) const
 {
   //## begin OctopussyConfig::getOption%3CD006460137.body preserve=yes

@@ -37,8 +37,12 @@ const Timeval to_init(30.0),
               to_heartbeat(5.0);
               
 // all packet headers must start with this signature
+//##ModelId=3DB958F402A7
 const char * MTGatewayWP::PacketSignature = "oMs";
     
+//##ModelId=3DB958F403D0
+//##ModelId=3DB958F6017C
+//##ModelId=3DB958F6017E
 //## end module%3C90BFDD0240.additionalDeclarations
 
 
@@ -67,6 +71,7 @@ MTGatewayWP::MTGatewayWP (Socket* sk)
 }
 
 
+//##ModelId=3DB958F5004C
 MTGatewayWP::~MTGatewayWP()
 {
   //## begin MTGatewayWP::~MTGatewayWP%3C90BEF001E5_dest.body preserve=yes
@@ -78,6 +83,7 @@ MTGatewayWP::~MTGatewayWP()
 
 
 
+//##ModelId=3DB958F5004D
 //## Other Operations (implementation)
 void MTGatewayWP::init ()
 {
@@ -90,6 +96,7 @@ void MTGatewayWP::init ()
   //## end MTGatewayWP::init%3CC9500602CC.body
 }
 
+//##ModelId=3DB958F5004F
 bool MTGatewayWP::start ()
 {
   //## begin MTGatewayWP::start%3C90BF460080.body preserve=yes
@@ -193,6 +200,7 @@ bool MTGatewayWP::start ()
   //## end MTGatewayWP::start%3C90BF460080.body
 }
 
+//##ModelId=3DB958F50051
 void MTGatewayWP::stop ()
 {
   //## begin MTGatewayWP::stop%3C90BF4A039D.body preserve=yes
@@ -204,6 +212,7 @@ void MTGatewayWP::stop ()
   //## end MTGatewayWP::stop%3C90BF4A039D.body
 }
 
+//##ModelId=3DB958F50053
 bool MTGatewayWP::willForward (const Message &msg) const
 {
   //## begin MTGatewayWP::willForward%3C90BF5C001E.body preserve=yes
@@ -273,6 +282,7 @@ bool MTGatewayWP::willForward (const Message &msg) const
   //## end MTGatewayWP::willForward%3C90BF5C001E.body
 }
 
+//##ModelId=3DB958F500B8
 int MTGatewayWP::receive (MessageRef& mref)
 {
   //## begin MTGatewayWP::receive%3C90BF63005A.body preserve=yes
@@ -305,6 +315,7 @@ int MTGatewayWP::receive (MessageRef& mref)
   //## end MTGatewayWP::receive%3C90BF63005A.body
 }
 
+//##ModelId=3DB958F5011C
 int MTGatewayWP::timeout (const HIID &id)
 {
   //## begin MTGatewayWP::timeout%3C90BF6702C3.body preserve=yes
@@ -350,6 +361,7 @@ int MTGatewayWP::timeout (const HIID &id)
 }
 
 // Additional Declarations
+//##ModelId=3DB958F50385
   //## begin MTGatewayWP%3C90BEF001E5.declarations preserve=yes
 void MTGatewayWP::processIncoming (MessageRef &ref)
 {
@@ -518,6 +530,7 @@ void MTGatewayWP::processIncoming (MessageRef &ref)
 
 // processes subscriptions contained in peer's init-message
 // (the message block is formed in start(), above)
+//##ModelId=3DB958F60003
 int MTGatewayWP::processInitMessage (const void *block,size_t blocksize)
 {
   FailWhen( !block,"no block" );
@@ -551,6 +564,7 @@ int MTGatewayWP::processInitMessage (const void *block,size_t blocksize)
   return remote_subs.size();
 }
 
+//##ModelId=3DB958F50181
 void MTGatewayWP::shutdown () 
 {
   // shutdown called only once, and by any thread
@@ -576,6 +590,7 @@ void MTGatewayWP::shutdown ()
   dprintf(4)("shutdown completed\n");
 }
 
+//##ModelId=3DB958F6012F
 bool MTGatewayWP::mtStart (Thread::ThrID)
 {
   // unblock SIGPIPE so that our system calls can be interrupted
@@ -598,6 +613,7 @@ bool MTGatewayWP::mtStart (Thread::ThrID)
   return True;
 }
 
+//##ModelId=3DB958F6017B
 void MTGatewayWP::stopWorkers ()
 {
   sock->interrupt();
@@ -614,6 +630,7 @@ void MTGatewayWP::stopWorkers ()
     Thread::kill( workerID(i),SIGPIPE );
 }
 
+//##ModelId=3DB958F60246
 void * MTGatewayWP::start_readerThread (void *pwp)
 {
   return static_cast<MTGatewayWP*>(pwp)->readerThread();
