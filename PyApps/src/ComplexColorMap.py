@@ -18,6 +18,8 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ##
 
+# This is a python translation of Michiel Brentjens UVPDisplayArea.cc code
+
 from UVPAxis import *
 from numarray import *
 from qt import *
@@ -35,10 +37,12 @@ class ComplexColorMap:
       self._itsImagIndex[i] = numColors*i;
     for j in range(numColors*numColors):
       
-      c = QColor(qRgb(j%numColors, j/numColors, 0),j+numColors)
+#      c = QColor(qRgb(j%numColors, j/numColors, 0),j+numColors)
 #      print "c ",c
+      c = QColor(qRgb(j%numColors, j/numColors, 0),j+numColors)
+#      d = (long(c.rgb()))
+#      print j , d
       self._itsComplexColormap.append(c)
-#      self._itsComplexColormap[j] = self.set_Rgb(j%numColors, j/numColors, 0)
 
 # create UVPAxis objects for scaling values
     self._itsXAxis = UVPAxis(1, 0, "X", "arbitrary")
@@ -76,20 +80,8 @@ class ComplexColorMap:
         if  r < numColors>>1:
           Bluere = Red>>1;
           location = self._itsRealIndex[r]+self._itsImagIndex[i];
-#          modify_color = QColor()
-#          self._itsComplexColormap[location] = self.set_Rgb(Red, Green, Blueim+Bluere)
-#          modify_color.setRgb(Red, Green, Blueim+Bluere)
-
           self._itsComplexColormap[location].setRgb(Red, Green, Blueim+Bluere)
-
-#copied from Qt's qcolor.h header
-# set RGB value
-  def set_Rgb(self, r, g, b ):
-    if ( int(r) > 255 or int(g) > 255 or int(b) > 255 ):
-      print "RGB parameter(s) out of range"
-      return 0
-    value = (0xff << 24) | ((int(r) & 0xff) << 16) | ((int(g) & 0xff) << 8) | (int(b) & 0xff)
-    return value
+          temp = self._itsComplexColormap[location].rgb()
 
   def getNumberOfColors(self):
     return len(self._itsRealIndex)
@@ -104,9 +96,10 @@ class ComplexColorMap:
   def setYAxis(self, axis):
     self._itsYAxis = axis;
 
+# return a color value as an unsigned int
   def get_color_value(self,r,i):
     location = self._itsRealIndex[r]+self._itsImagIndex[i];
-    return self._itsComplexColormap[location] 
+    return self._itsComplexColormap[location].rgb() 
 
 #
 # self-test block
