@@ -83,8 +83,13 @@ class Node : public BlockableObject
 
     //##ModelId=3F5F45D202D5
     virtual void init (DataRecord::Ref::Xfer &initrec, Forest* frst);
+    
+    virtual void reinit (DataRecord::Ref::Xfer &initrec, Forest* frst);
+    
     //##ModelId=3F83FAC80375
     void resolveChildren();
+    
+    void relinkChildren ();
         
     //##ModelId=3F5F44820166
     const string & name() const;
@@ -107,6 +112,9 @@ class Node : public BlockableObject
     int execute (Result::Ref &resref, const Request &);
 
     const HIID & currentRequestId ();
+    
+    // Clears cache (optionally recursively)
+    void clearCache (bool recursive=false);
     
     //##ModelId=3F85710E002E
     int numChildren () const;
@@ -217,6 +225,9 @@ class Node : public BlockableObject
     // write-access to the state record
     DataRecord & wstate();
     
+    // sets the current request
+    void setCurrentRequest (const Request &req);
+
     // Checks for cached result; if hit, attaches it to ref and returns true.
     // On a miss, clears the cache (NB: for now!)
     bool getCachedResult (int &retcode,Result::Ref &ref,const Request &req);
@@ -225,9 +236,7 @@ class Node : public BlockableObject
     // Returns the retcode.
     int cacheResult (const Result::Ref &ref,int retcode);
     
-    // Clears cache (not recursively)
-    void clearLocalCache ();
-      
+    
     // creates a message of the form "Node CLASS ('NAME'): MESSAGE"
     string makeMessage (const string &msg) const
       { return  "Node " + className() + "('" + name() + "'): " + msg; }
@@ -278,13 +287,17 @@ class Node : public BlockableObject
     }
       
   private:
+    void initChildren (int nch);
     //##ModelId=3F9505E50010
-    void processChildSpec (NestableContainer &children,const HIID &id);
+    // processes a child specification. 'chid' specifies the child 
+    // (this can be a true HIID only if child_labels_ are specified;
+    // otherwise it's an single-element index) . 'id' is the actual field
+    // in 'children' that contains the child specification.
+    void processChildSpec (NestableContainer &children,const HIID &chid,const HIID &id);
+    
     //##ModelId=3F8433C20193
     void addChild (const HIID &id,Node *childnode);
     
-    void setCurrentRequest (const Request &req);
-
     const HIID * child_labels_;      
     int check_nchildren_;
     
@@ -297,25 +310,32 @@ class Node : public BlockableObject
     //##ModelId=3F5F43930004
     Forest *forest_;
     
+    // current (last) request
     HIID current_reqid_;
-    
     // cached result of current request
     Result::Ref cache_result_;
     int cache_retcode_;
     
-    //##ModelId=3F8433C10295
-    typedef std::map<HIID,int> ChildrenMap;
-    //##ModelId=3F8433C10322
-    typedef std::list<string> UnresolvedChildren;
+    //##ModelId=3F8433C2014B
+    // config group(s) that a node belongs to
+    std::vector<HIID> config_groups_;
     
     //##ModelId=3F8433ED0337
+    // vector of refs to children
     std::vector<Node::Ref> children_;
-    //##ModelId=3F8433C2014B
-    ChildrenMap child_map_;
-    //##ModelId=3F8433C2016F
-    UnresolvedChildren unresolved_children_;
     
-    std::vector<HIID> config_groups_;
+    //##ModelId=3F8433C10295
+    typedef std::map<HIID,int> ChildrenMap;
+    // map from child labels to numbers (i.e. indices into the children_ vector)
+    // if child labels are not defined, this a trivial i->i mapping
+    ChildrenMap child_map_;
+    
+    // container of child names. This is a DataRecord indexed by label 
+    // if the node defines child labels, else a DataField (indexed by
+    // child number) otherwise
+    NestableContainer::Ref child_names_;
+    // container of child node indices
+    NestableContainer::Ref child_indices_;
 };
 
 inline const HIID & Node::currentRequestId ()

@@ -35,13 +35,17 @@ class Forest
   public:
     //##ModelId=3F60697A00ED
     Forest();
-      
+    
+    // deletes all nodes
+    void clear();
+    
     //##ModelId=3F5F572601B2
     //##Documentation
     //## Creates a node using the given init record. The class of the node is
     //## determined by initrec["Class"].
     //## Returns node index.
-    const Node::Ref & create (int &node_index, DataRecord::Ref::Xfer &initrec);
+    const Node::Ref & create (int &node_index, DataRecord::Ref::Xfer &initrec,
+                              bool reinitializing=false);
   
     //##ModelId=3F5F5CA300E0
     //##Documentation
@@ -82,6 +86,8 @@ class Forest
 
     //##ModelId=3F60697A0078
     LocalDebugContext;
+    
+    string sdebug (int=0) const { return getDebugContext().name(); }
 
   private:
     //##ModelId=3F60697903A7

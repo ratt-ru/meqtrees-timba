@@ -27,6 +27,7 @@
 #include <DMI/DataRecord.h>
 #include <DMI/DataField.h>
 #include <DMI/DataArray.h>
+#include <algorithm>
 
 namespace Meq {
 
@@ -50,13 +51,99 @@ void Node::checkInitState (DataRecord &rec)
       // defaultInitField(rec,FNodeIndex,0);
 }
 
+
+// this initializes the children-related fields
+void Node::initChildren (int nch)
+{
+  // check against expected number
+  if( check_nchildren_ >= 0 )
+  {
+    FailWhen( nch != check_nchildren_,
+              ssprintf("%d children specified, %d expected",nch,check_nchildren_) );
+  }
+  else
+  {
+    FailWhen( nch < -check_nchildren_-1,
+              ssprintf("%d children specified, at least %d expected",
+              nch,-check_nchildren_-1) );
+  }
+  children_.resize(nch);
+  // form the children name/index fields
+  if( nch )
+  {
+    NestableContainer *p1,*p2;
+    // children are labelled: use records
+    if( child_labels_ )
+    {
+      child_indices_ <<= p1 = new DataRecord;
+      child_names_ <<= p2 = new DataRecord;
+      // set up map from label to child number 
+      for( int i=0; i<nch; i++ )
+        child_map_[child_labels_[i]] = i;
+    }
+    // children are unlabelled: use fields
+    else
+    {
+      child_indices_ <<= p1 = new DataField(Tpint,nch);
+      child_names_ <<= p2 = new DataField(Tpstring,nch);
+      // set up trivial map ("i"->i)
+      for( int i=0; i<nch; i++ )
+        child_map_[AtomicID(i)] = i;
+    }
+    wstate()[FChildren].replace() <<= p1;
+    wstate()[FChildrenNames].replace() <<= p2;
+  }
+  else
+  {
+    wstate()[FChildren].remove();
+    wstate()[FChildrenNames].remove();
+  }
+}
+
+void Node::reinit (DataRecord::Ref::Xfer &initrec, Forest* frst)
+{
+  cdebug(1)<<"reinitializing node"<<endl;
+  forest_ = frst;
+  // xfer & privatize the state record -- we don't want anyone
+  // changichildrec.size()ng it under us
+  DataRecord &rec = staterec_.xfer(initrec).privatize(DMI::WRITE|DMI::DEEP);
+  
+  // call setStateImpl to set up reconfigurable node state
+  cdebug(2)<<"reinitializing node (setStateImpl)"<<endl;
+  cdebug(3)<<"state is "<<staterec_().sdebug(10,"    ")<<endl;
+  setStateImpl(staterec_(),true);
+  
+  // set num children based on the FChildren field
+  cdebug(2)<<"reinitializing node children"<<endl;
+  // set node index, if specified
+  if( rec[FChildren].exists() )
+  {
+    child_indices_ = rec[FChildren].ref(DMI::WRITE);
+    child_names_ = rec[FChildrenNames].ref(DMI::WRITE);
+    int nch = child_indices_->size();
+    children_.resize(nch);
+    for( int i=0; i<nch; i++ )
+    {
+      if( child_labels_ )
+        child_map_[child_labels_[i]] = i;
+      else
+        child_map_[AtomicID(i)] = i;
+    }
+    cdebug(2)<<"reinitialized with "<<children_.size()<<" children"<<endl;
+  }
+  else
+  {
+    cdebug(2)<<"no children to reintialize"<<endl;
+  }
+}  
+
 //##ModelId=3F5F45D202D5
 void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
 {
   cdebug(1)<<"initializing node"<<endl;
   forest_ = frst;
   // xfer & privatize the state record -- we don't want anyone
-  // changing it under us
+  // changichildrec.size()ng it under us
   DataRecord &rec = staterec_.xfer(initrec).privatize(DMI::WRITE|DMI::DEEP);
   
   // set defaults and check for missing fields
@@ -85,32 +172,41 @@ void Node::init (DataRecord::Ref::Xfer &initrec, Forest* frst)
   // setup child nodes, if specified
   if( rec[FChildren].exists() )
   {
+    ObjRef ref = rec[FChildren].remove();
     // children specified via a record
-    if( rec[FChildren].containerType() == TpDataRecord )
+    if( ref->objectType() == TpDataRecord )
     {
-      DataRecord &childrec = rec[FChildren].as_wr<DataRecord>();
+      DataRecord &childrec = ref.ref_cast<DataRecord>();
+      initChildren(childrec.size());
       // iterate through children record and create the child nodes
       DataRecord::Iterator iter = childrec.initFieldIter();
       HIID id;
+      int ifield = 0;
       NestableContainer::Ref child_ref;
       while( childrec.getFieldIter(iter,id,child_ref) )
-        processChildSpec(childrec,id);
+      {
+        // if child labels are not specified, use the field number instead
+        processChildSpec(childrec,child_labels_ ? id : AtomicID(ifield),id );
+        ifield++;
+      }
     }
-    else if( rec[FChildren].containerType() == TpDataField )
+    else if( ref->objectType() == TpDataField )
     {
-      DataField &childrec = rec[FChildren].as_wr<DataField>();
+      DataField &childrec = ref.ref_cast<DataField>();
+      initChildren(childrec.size());
       for( int i=0; i<childrec.size(); i++ )
-        processChildSpec(childrec,AtomicID(i));
+        processChildSpec(childrec,AtomicID(i),AtomicID(i));
     }
-    else if( rec[FChildren].containerType() == TpDataArray )
+    else if( ref->objectType() == TpDataArray )
     {
-      DataArray &childarr = rec[FChildren].as_wr<DataArray>();
+      DataArray &childarr = ref.ref_cast<DataArray>();
       FailWhen(childarr.rank()!=1,"illegal child array");
-      for( int i=0; i<childarr.shape()[0]; i++ )
-        processChildSpec(childarr,AtomicID(i));
+      int nch = childarr.shape()[0];
+      initChildren(nch);
+      for( int i=0; i<nch; i++ )
+        processChildSpec(childarr,AtomicID(i),AtomicID(i));
     }
-    cdebug(2)<<numChildren()<<" children, "
-             <<unresolved_children_.size()<<" unresolved"<<endl;
+    cdebug(2)<<numChildren()<<" children"<<endl;
   }
 }
 
@@ -206,7 +302,7 @@ void Node::setState (DataRecord &rec)
 }
 
 //##ModelId=3F9505E50010
-void Node::processChildSpec (NestableContainer &children,const HIID &id)
+void Node::processChildSpec (NestableContainer &children,const HIID &chid,const HIID &id)
 {
   // child specified by init-record: create recursively
   TypeId spec_type = children[id].type();
@@ -219,7 +315,7 @@ void Node::processChildSpec (NestableContainer &children,const HIID &id)
     {
       cdebug(2)<<"  creating child "<<id<<endl;
       Node &child = forest_->create(index,child_initrec.ref_cast<DataRecord>());
-      addChild(id,&child);
+      addChild(chid,&child);
     }
     catch( std::exception &exc )
     {
@@ -242,13 +338,14 @@ void Node::processChildSpec (NestableContainer &children,const HIID &id)
         {
           Node &child = forest_->get(index);
           cdebug(2)<<"  child "<<id<<"="<<name<<" resolves to node "<<index<<endl;
-          addChild(id,&child);
+          addChild(chid,&child);
         }
         else
         { // defer until later if not found
           cdebug(2)<<"  child "<<id<<"="<<name<<" currently unresolved"<<endl;
-          addChild(id,0);
-          unresolved_children_.push_back(name);
+          addChild(chid,0);
+          // add to child names so that we remember the name at least 
+          child_names_()[chid] = name;
         }
       }
     }
@@ -258,7 +355,7 @@ void Node::processChildSpec (NestableContainer &children,const HIID &id)
       int index = children[id];
       Node &child = forest_->get(index);
       cdebug(2)<<"  child "<<id<<"="<<index<<endl;
-      addChild(id,&child);
+      addChild(chid,&child);
     }
     else
       Throw("illegal specification for child "+id.toString()+" (type "+
@@ -274,46 +371,79 @@ void Node::setNodeIndex (int nodeindex)
 //##ModelId=3F8433C20193
 void Node::addChild (const HIID &id,Node *childnode)
 {
-  int n = children_.size();
-  children_.resize(n+1);
-  child_map_[id] = n;
+  int ich;
+  // numeric id is simply child number
+  if( id.length() == 1 && id[0].id() >= 0 )
+  {
+    ich = id[0].id();
+    FailWhen(ich<0 || ich>numChildren(),"child number "+id.toString()+" is out of range");
+  }
+  else // non-numeric: look in in child labels
+  {
+    FailWhen(!child_labels_,"node does not define child labels, "
+      "can't specify child as "+id.toString());
+    // look for id within child labels
+    const HIID *lbl = std::find(child_labels_,child_labels_+numChildren(),id);
+    FailWhen(lbl == child_labels_+numChildren(),
+        id.toString() + ": unknown child label");
+    ich = lbl - child_labels_;
+  }
   // attach ref to child if specified (will stay unresolved otherwise)
   if( childnode )
-    children_[n].attach(childnode,DMI::WRITE);
-  cdebug(3)<<"added child "<<n<<": "<<id<<endl;
+  {
+    children_[ich].attach(childnode,DMI::WRITE);
+    child_names_()[id] = childnode->name();
+    child_indices_()[id] = childnode->nodeIndex();
+  }
+  cdebug(3)<<"added child "<<ich<<": "<<id<<endl;
+}
+
+// relink children -- resets pointers to all children. This is called
+// after restoring a node from a file. 
+void Node::relinkChildren ()
+{
+  for( int i=0; i<numChildren(); i++ )
+  {
+    if( child_labels_ )
+      children_[i].attach(forest().get((*child_indices_)[child_labels_[i]]),DMI::WRITE);
+    else
+      children_[i].attach(forest().get((*child_indices_)[i]),DMI::WRITE);
+  }
 }
 
 //##ModelId=3F83FAC80375
 void Node::resolveChildren ()
 {
-  if( !unresolved_children_.empty() )
+  cdebug(2)<<"resolving children\n";
+  for( int i=0; i<numChildren(); i++ )
   {
-    cdebug(2)<<"trying to resolve "<<unresolved_children_.size()<<" children"<<endl;
-    for( int i=0; i<numChildren(); i++ )
+    if( !children_[i].valid() )
     {
-      if( !children_[i].valid() )
+      string name;
+      if( child_labels_ )
+        name = (*child_names_)[child_labels_[i]].as<string>();
+      else
+        name = (*child_names_)[i].as<string>();
+      cdebug(3)<<"resolving child "<<i<<":"<<name<<endl;
+      // findNode() will throw an exception if the node is not found,
+      // which is exactly what we want
+      try
       {
-        string name = unresolved_children_.front();
-        cdebug(3)<<"resolving child "<<i<<":"<<name<<endl;
-        // findNode() will throw an exception if the node is not found,
-        // which is exactly what we want
-        try
-        {
-          Node &childnode = forest_->findNode(name);
-          children_[i].attach(childnode,DMI::WRITE);
-        }
-        catch( ... )
-        {
-          Throw(Debug::ssprintf("failed to resolve child %d:%s",i,name.c_str()));
-        }
-        unresolved_children_.pop_front();
+        Node &childnode = forest_->findNode(name);
+        children_[i].attach(childnode,DMI::WRITE);
+        if( child_labels_ )
+          child_indices_()[child_labels_[i]] = childnode.nodeIndex();
+        else
+          child_indices_()[i] = childnode.nodeIndex();
+      }
+      catch( ... )
+      {
+        Throw(Debug::ssprintf("failed to resolve child %d:%s",i,name.c_str()));
       }
     }
-    FailWhen(!unresolved_children_.empty(),"error, unexpected unresolved names remain");
+    // recursively call resolve on the children
+    children_[i]().resolveChildren();
   }
-  // recursively call resolve on the children
-  for( int i=0; i<numChildren(); i++ )
-    getChild(i).resolveChildren();
   // check children for consistency
   checkChildren();
 }
@@ -345,11 +475,16 @@ void Node::setCurrentRequest (const Request &req)
   wstate()[FRequestId].replace() = current_reqid_ = req.id();
 }
 
-void Node::clearLocalCache ()
+void Node::clearCache (bool recursive)
 {
   cache_result_.detach();
   wstate()[FCacheResult].replace() = false;
   wstate()[FCacheResultCode].replace() = cache_retcode_ = 0;
+  if( recursive )
+  {
+    for( int i=0; i<numChildren(); i++ )
+      getChild(i).clearCache(true);
+  }
 }
 
 // 
@@ -369,7 +504,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
     return true;
   }
   // no match -- clear cache and return 
-  clearLocalCache();
+  clearCache(false);
   return false; 
 }
 
@@ -633,8 +768,6 @@ string Node::sdebug (int detail, const string &prefix, const char *nm) const
   if( detail >= 1 || detail == -1 )
   {
     appendf(out,"children:%d",numChildren());
-    if( unresolved_children_.size() )
-      appendf(out,"unresolved:%d",unresolved_children_.size());
   }
   if( abs(detail) >= 2 )
   {

@@ -30,7 +30,7 @@
 #pragma aid Node Class Name State Child Children Request Result VellSet Rider Id
 #pragma aid Cells Domain Freq Time Times Step Steps Calc Deriv Vells VellSets
 #pragma aid NodeIndex Table Name Default Value Index Num Cache Code
-#pragma aid Parm Spid Perturbed Perturbations
+#pragma aid Parm Spid Perturbed Perturbations Names
 #pragma aid Cells Results Fail Origin Line Message Contagious 
 #pragma aid Solvable Config Groups All By List Polcs
 #pragma aid Epsilon UseSVD
@@ -50,6 +50,7 @@ namespace Meq
     FVellSets        = AidVellSets,
     FResult          = AidResult,
     FChildren        = AidChildren,
+    FChildrenNames   = AidChildren|AidName,
     FName            = AidName,
     FNodeIndex       = AidNodeIndex,
     
@@ -61,7 +62,7 @@ namespace Meq
     
     FCacheResult     = AidCache|AidResult,
     FCacheResultCode = AidCache|AidResult|AidCode,
-
+    
     FDomain          = AidDomain,
     FTimes           = AidTimes,
     FTimeSteps       = AidTime|AidSteps,

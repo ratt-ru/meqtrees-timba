@@ -188,7 +188,7 @@ int Function::getResult (Result::Ref &resref,
               perturbation = child_vs[i]->getPerturbation(inx);
             }
           }
-          vellset.setPerturbedValue(j,evaluate(request,shape,values).makeNonTemp());
+          vellset.setPerturbedValue(j,evaluate(request,shape,perts).makeNonTemp());
           vellset.setPerturbation(j,perturbation);
         }
       }

@@ -41,8 +41,15 @@ Forest::Forest ()
   nodes.resize(1);
 }
 
+void Forest::clear ()
+{
+  nodes.resize(1);
+  name_map.clear();
+}
+
 //##ModelId=3F5F572601B2
-const Node::Ref & Forest::create (int &node_index,DataRecord::Ref::Xfer &initrec)
+const Node::Ref & Forest::create (int &node_index,
+    DataRecord::Ref::Xfer &initrec,bool reinitializing)
 {
   string classname;
   Node::Ref noderef;
@@ -61,7 +68,10 @@ const Node::Ref & Forest::create (int &node_index,DataRecord::Ref::Xfer &initrec
       Throw(classname+" is not a Meq::Node descendant");
     }
     noderef <<= pnode;
-    pnode->init(initrec,this);
+    if( reinitializing )
+      pnode->reinit(initrec,this);
+    else
+      pnode->init(initrec,this);
   }
   catch( std::exception &exc )
   {
@@ -138,7 +148,7 @@ Node & Forest::findNode (const string &name)
   FailWhen(iter == name_map.end(),"node '"+name+"' not found");
   int node_index = iter->second;
   // debug-fails here since name map should be consistent with repository
-  DbgFailWhen(node_index<=0 || node_index>nodes.size(),"invalid node index");
+  DbgFailWhen(node_index<=0 || node_index>int(nodes.size()),"invalid node index");
   Node::Ref &ref = nodes[node_index];
   DbgFailWhen(!ref.valid(),"invalid node index");
   return ref();
