@@ -76,12 +76,12 @@ class ResultPlotter(BrowserPlugin):
           attrib_parms = node['attrib']
           plot_type = attrib_parms.get('plot_type')
           if plot_type == 'spectra':
-            self._visu_plotter = QwtImagePlot(plot_type)
-            self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
+            self._visu_plotter = QwtImagePlot(plot_type,parent=self._parent)
+            self._wtop = self._visu_plotter;       # QwtImagePlot inherits from QwtPlot
+
           if plot_type == 'realvsimag':
             self._visu_plotter = realvsimag_plotter(plot_type,parent=self._parent)
             self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
-          # self._visu_plotter.show()
 
   def do_postwork(self, node):
     _dprint(3,"in postwork: do nothing at present");
