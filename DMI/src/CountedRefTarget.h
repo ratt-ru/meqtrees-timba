@@ -97,16 +97,9 @@ class CountedRefTarget
       //## Returns a count of writable refs.
       virtual int refCountWrite () const;
 
-      //##ModelId=3C18C6A603DA
-      //##Documentation
-      //## Returns True is exclusive-write refs to the object exist.
-      virtual bool refWriteExclusions () const;
-
-      //##ModelId=3C63B97601B9
-      bool hasExternalRefs () const;
-
       //##ModelId=3C63BA8800B9
-      bool hasAnonRefs () const;
+      bool isAnon () const
+      { return anon; }
 
     //##ModelId=3DB934660201
       const CountedRefBase * getOwner () const;
@@ -149,6 +142,9 @@ class CountedRefTarget
       
     //##ModelId=400E4D68027F
       ImportDebugContext(DMI);
+      
+      typedef void OpSubscriptReturnType;
+      typedef CountedRefTarget OpSubscriptRefType;
       
   private:
     // Data Members for Associations

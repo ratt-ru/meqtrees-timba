@@ -83,6 +83,14 @@ class TypeInfo : public TypeCategories {
       static TypeId typeOfArrayElem (TypeId arr);
     //##ModelId=3E9BD91A0261
       static uint   rankOfArray     (TypeId arr);
+      
+      // can one type be converted to another?
+      // only defined for numerics, for now
+      static bool isConvertible (TypeId from,TypeId to)
+      { return from == to || ( isNumeric(from) && isNumeric(to) ); }
+      
+      // do the conversion, return True on success, False if not convertible
+      static bool convert (const void *from,TypeId from,void *to,TypeId to);
 };
  
 // This is a helper class hosting a registry for TypeInfos
@@ -167,9 +175,9 @@ typedef void (*TypeConverter)(const void *from,void *to);
 extern TypeConverter _typeconverters[16][16];
 
 // Inline function to convert scalars  
-inline bool convertScalar ( const void *from,TypeId frid,void *to,TypeId toid )
+inline bool TypeInfo::convert ( const void *from,TypeId frid,void *to,TypeId toid )
 {
-  if( !TypeInfo::isNumeric(frid) || !TypeInfo::isNumeric(toid))
+  if( !TypeInfo::isNumeric(frid) || !TypeInfo::isNumeric(toid) )
     return False;
   (*_typeconverters[Tpbool.id()-frid][Tpbool.id()-toid])(from,to);
   return True;

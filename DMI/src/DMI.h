@@ -1,7 +1,30 @@
-#ifndef DMI_h
-#define DMI_h 1
+//#  DMI.h: constants and bitflags for the DMI package
+//#
+//#  Copyright (C) 2002-2003
+//#  ASTRON (Netherlands Foundation for Research in Astronomy)
+//#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+//#
+//#  This program is free software; you can redistribute it and/or modify
+//#  it under the terms of the GNU General Public License as published by
+//#  the Free Software Foundation; either version 2 of the License, or
+//#  (at your option) any later version.
+//#
+//#  This program is distributed in the hope that it will be useful,
+//#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//#  GNU General Public License for more details.
+//#
+//#  You should have received a copy of the GNU General Public License
+//#  along with this program; if not, write to the Free Software
+//#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//#
+//#  $Id$
 
-#include <config.h>
+#ifndef DMI_DMI_H
+#define DMI_DMI_H 1
+
+#include "config.h"
+#include "lofar_config.h"
 #include <DMI/Common.h>
 #include <Common/Debug.h>
 #include <stdio.h>
@@ -15,23 +38,30 @@ namespace DMI
 //##ModelId=3DB949AE00AC
   typedef enum { 
   // flags for CountedRefs & other objects
-      WRITE           =0x001,
-      READONLY        =0x002,
-      EXCL_WRITE      =0x004,
-      NONEXCL_WRITE   =0x008,
-      ANON            =0x010,
-      NON_ANON        =0x020,
-      EXTERNAL        =NON_ANON,
-      NO_DELETE       =0x040,
-      DELETE          =0x080,          
-      LOCKED          =0x100,
-      LOCK            =LOCKED,
-      UNLOCKED        =0x200,
-      PERSIST         =0x400,
+      WRITE           = 0x001,
+      READONLY        = 0x002,
+      ANON            = 0x004,
+      DELETE          =     ANON,
+      NON_ANON        = 0x008,
+      EXTERNAL        =     NON_ANON,
+      NO_DELETE       =     NON_ANON,
+      LOCKED          = 0x010,
+      LOCK            =     LOCKED,
+      UNLOCKED        = 0x020,
+      PERSIST         = 0x040,
+ 
+  // by default, refs are privatize-on-write (that is, a read-only ref 
+  // will auto-privatize the object if write access is requested). If attached
+  // as SHARED, the object becomes shared between the owner ref and the new
+  // ref, and access is completely controlled via the READ/WRITE flags
+      POW             = 0,
+      NOPOW           = 0x080,
+        SHARED        =   NOPOW,    
       
   // when attaching a ref as ANON or EXTERN, and the target is already 
   // referenced, use the established ref type even if it conflicts with the flags
-      NONSTRICT       =  0x80000,
+      NONSTRICT       =  0,        // default is non-strict
+      STRICT          =  0x80000,
       
   // some common combinations
       ANONWRITE       = WRITE|ANON,
@@ -40,27 +70,25 @@ namespace DMI
   
   // These are used in privatize() and clone()
       // makes deep clone or privatizes deeply
-      DEEP           = 0x01000,  
-      // for write-privatization or cloning, will delay actual cloning
-      // until the next access
-      DLY_CLONE      = 0x02000,  
-      DEEP_DLY_CLONE = 0x06000,
-      // for ref.privatize(), forces cloning immediately even when not needed
-      // (overrides DELAY_CLONE, hence the conflict with it)
-      FORCE_CLONE     =  0x04000,
+      DEEP           = 0x01000,
+  // forces private copy even if not normnally necessary
+      FORCE_CLONE    = 0x02000,
       
   // these are used in ref copy constructor calls to force copy() or privatize() 
       PRIVATIZE       =  0x10000,
       COPYREF         =  0x20000,
       XFER            =  0,        // XFER is the default, so 0
-  // preserve r/w privilege for ref copy
+      
+  // preserve r/w privilege for ref copy. Only matters if NOPOW (=SHARED) is
+  // also specified. A ref copied with POW is always writable, with 
+  // privatization occurring on first access
       PRESERVE_RW     =  0x40000,  
       
   // container-specific flags for privatize (privatize-and-reset)
       RESET           =  0x80000,
 
   // _SmartBlock_-specific flags
-      SHARED          =0x1000000,  // constructor hint: block will be sent
+      HINT_SHMEM      =0x1000000,  // constructor hint: block will be sent
                                    //     to other processes, so consider shmem
       SHMEM           =0x2000000,  // constructor: forces use of shmem
       CLONE           =COPYREF,    // copy constructor: clones block
@@ -69,9 +97,9 @@ namespace DMI
   // _BlockSet_-specific flags
       MAKE_READONLY   =0x4000000,   // for copyAll(): makes source set read-only
 
-  // NestableContainer flags
-      NC_SCALAR       =0x1000000,  // container accessed as a scalar (get())
-      NC_POINTER      =0x2000000,  // container accessed as a pointer  (get())
+  // NestableContainer::get() flags
+      NC_ASSIGN          =0x1000000,  // container accessed for assignment
+      NC_DEREFERENCE     =0x2000000,  // refs will be dereferenced 
       
       DMI_ZERO_FLAG   =0
   }

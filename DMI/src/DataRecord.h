@@ -144,20 +144,11 @@ class DataRecord : public NestableContainer
       //##ModelId=3C58239503D1
       void cloneOther (const DataRecord &other, int flags, int depth);
 
-      //##ModelId=3C56B00E0182
-      //##Documentation
-      //## Implemetation of standard function for deep-dereferencing of
-      //## contents.
-      //## See NestableContainer for semantics.
-      virtual const void * get (const HIID &id, ContentInfo &info, TypeId check_tid = 0, int flags = 0) const;
-
       //##ModelId=3C7A16BB01D7
-      virtual void * insert (const HIID &id, TypeId tid, TypeId &real_tid);
+      virtual int insert (const HIID &id,ContentInfo &info);
 
       //##ModelId=3C877D140036
-      //##Documentation
-      //## Implementation of remove() for Hooks (see NestableContainer).
-      virtual bool remove (const HIID &id);
+      virtual int remove (const HIID &id);
 
       //##ModelId=3C7A16C4023F
       virtual int size (TypeId tid = 0) const;
@@ -178,6 +169,10 @@ class DataRecord : public NestableContainer
                       const char *name = 0 ) const;
       
   protected:
+      //##ModelId=3C56B00E0182
+      //##Documentation
+      virtual int get (const HIID &id,ContentInfo &info,bool nonconst,int flags) const;
+
 
       //##ModelId=3C552E2D009D
       //##Documentation

@@ -7,7 +7,7 @@
 // This copies data so is not very efficient, but is quite
 // convenient where sizes are small.
 template<class T>
-std::vector<T> NestableContainer::ConstHook::as_vector (Type2Type<T>) const
+std::vector<T> NestableContainer::Hook::as_vector (Type2Type<T>) const
 {
   int n;
   const T *data = as_p(n,Type2Type<T>());
@@ -16,7 +16,7 @@ std::vector<T> NestableContainer::ConstHook::as_vector (Type2Type<T>) const
 
 // second version provides a default value
 template<class T>
-std::vector<T> NestableContainer::ConstHook::as_vector (const std::vector<T> &deflt) const
+std::vector<T> NestableContainer::Hook::as_vector (const std::vector<T> &deflt) const
 {
   ContentInfo info;
   const T * ptr = as_impl_p(&deflt[0],info,True);
@@ -42,7 +42,8 @@ void NestableContainer::Hook::operator = (const blitz::Array<T,N> &other) const
   else if( haveArray )       // got array object - use assignment
   {
     blitz::Array<T,N> *pdest = static_cast<blitz::Array<T,N>*>(target);
-    FailWhen(pdest->shape() != other.shape(),"can't assign array: shape mismatch");
+    if( pdest->shape() != other.shape() )
+      ThrowExc(ConvError,"can't assign array: shape mismatch");
     (*pdest) = other;
   }
   else                      // got pointer to data - use flat copy
@@ -60,7 +61,7 @@ template<class T,class Iter>
 void NestableContainer::Hook::assign_sequence(uint size,Iter begin,Iter end,Type2Type<T>) const
 { 
   const int tid = DMITypeTraits<T>::typeId;
-  T * ptr = static_cast<T*>( prepare_vector(tid,size) ); 
+  T * ptr = static_cast<T*>( assign_vector(tid,size) ); 
   for( ; begin != end; begin++ )
     *ptr++ = *begin; 
 }

@@ -21,6 +21,15 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.31  2004/01/28 16:23:34  smirnov
+//  %[ER: 16]%
+//  Revised the hook infrastructure, got rid of NC::writable flag.
+//  Simplified CountedRefs
+//
+//  Revision 1.30.2.1  2004/01/26 14:57:40  smirnov
+//  %[ER: 16]%
+//  Commiting overhaul of Hook classes
+//
 //  Revision 1.30  2004/01/21 11:08:58  smirnov
 //  %[ER: 16]%
 //  brought the Rose model up-to-date; this got a bunch of IDs inserted into the
@@ -278,19 +287,16 @@ static void destroyStringArray (void *start,int num)
 }
 
 //##ModelId=3DB949AE039F
-DataArray::DataArray (int flags)
-  // WRITE is always set unless READONLY is specified
-: NestableContainer(flags |= (flags&DMI::READONLY ? 0 : DMI::WRITE) ),
+DataArray::DataArray ()
+: NestableContainer(),
   itsArray    (0)
 {
   initSubArray();
 }
 
 //##ModelId=3DB949AE03A4
-DataArray::DataArray (TypeId type, const LoShape & shape,
-		      int flags, int ) // shm_flags not yet used
-  // WRITE is always set unless READONLY is specified
-: NestableContainer(flags |= (flags&DMI::READONLY ? 0 : DMI::WRITE)),
+DataArray::DataArray (TypeId type, const LoShape & shape,int flags,int) // shm_flags not used
+: NestableContainer(),
   itsArray    (0)
 {
   initSubArray();
@@ -316,9 +322,8 @@ DataArray::DataArray (TypeId type, const LoShape & shape,
 }
 
 //##ModelId=3DB949AE03AF
-DataArray::DataArray (TypeId tid,const void *other,int flags,int shm_flags)
-  // WRITE is always set unless READONLY is specified
-: NestableContainer(flags |= (flags&DMI::READONLY ? 0 : DMI::WRITE)),
+DataArray::DataArray (TypeId tid,const void *other,int flags,int) // shm_flags not used
+: NestableContainer(),
   itsArray    (0)
 {
   initSubArray();
@@ -351,11 +356,9 @@ DataArray::DataArray (TypeId tid,const void *other,int flags,int shm_flags)
 
 //##ModelId=3F5487DA034E
 DataArray::DataArray (const DataArray& other, int flags, int depth)
-: NestableContainer(flags |= (flags&DMI::READONLY ? 0 : DMI::WRITE)),
+: NestableContainer(),
   itsArray    (0)
 {
-  if( flags&DMI::READONLY == 0 )
-    flags |= DMI::WRITE;
   initSubArray();
   cloneOther(other,flags,depth);
 }
@@ -369,7 +372,7 @@ DataArray::~DataArray()
 //##ModelId=3DB949AE03B9
 DataArray& DataArray::operator= (const DataArray& other)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   if( this != &other ) 
   {
     clear();
@@ -381,9 +384,9 @@ DataArray& DataArray::operator= (const DataArray& other)
 //##ModelId=3DB949AF002E
 void DataArray::cloneOther (const DataArray& other, int flags, int)
 {
-  nc_readlock1(other);
+  Thread::Mutex::Lock _nclock(mutex());
+  Thread::Mutex::Lock _nclock1(other.mutex());
   Assert (!valid());
-  setWritable ((flags&DMI::WRITE) != 0);
   if( other.itsArray ) 
   {
     itsScaType  = other.itsScaType;
@@ -392,7 +395,7 @@ void DataArray::cloneOther (const DataArray& other, int flags, int)
     itsSize     = other.itsSize;
     itsElemSize = other.itsElemSize;
     itsDataOffset = other.itsDataOffset;
-    itsData.copy(other.itsData).privatize(flags|DMI::LOCK);
+    itsData.copy(other.itsData).privatize(DMI::WRITE|DMI::LOCK);
     itsArrayData = const_cast<char*>(itsData->cdata()) + itsDataOffset;
     // strings need to be initialized & copied over explicitly
     if( itsScaType == Tpstring )
@@ -500,7 +503,7 @@ void DataArray::init (const LoShape & shape,int flags)
 //##ModelId=3DB949AF002C
 void DataArray::clear()
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   if( itsArray )
   {
     destroyArray(elementType(),rank(),itsArray);
@@ -558,7 +561,7 @@ int DataArray::size (TypeId tid) const
 //##ModelId=3DB949AE03C0
 int DataArray::fromBlock (BlockSet& set)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf1(2)("%s: fromBlock\n",debug());
   clear();
   
@@ -625,7 +628,7 @@ int DataArray::fromBlock (BlockSet& set)
   {
     FailWhen( blocksize != hsize,"malformed data block");
     itsData = href;
-    itsData.privatize((isWritable() ? DMI::WRITE : 0) | DMI::LOCK);
+    itsData.privatize(DMI::WRITE|DMI::LOCK);
     itsArrayData = const_cast<char *>(itsData->cdata()) + itsDataOffset;
   }
   // Create the Array object.
@@ -636,7 +639,7 @@ int DataArray::fromBlock (BlockSet& set)
 //##ModelId=3DB949AE03C5
 int DataArray::toBlock (BlockSet& set) const
 {
-  nc_readlock;
+  Thread::Mutex::Lock _nclock(mutex());
   if( !valid() ) 
   {
     dprintf1(2)("%s: toBlock=0 (field empty)\n",debug());
@@ -686,12 +689,11 @@ CountedRefTarget* DataArray::clone (int flags, int depth) const
 //##ModelId=3DB949AE03D2
 void DataArray::privatize (int flags, int)
 {
-  nc_writelock;
-  setWritable((flags&DMI::WRITE) != 0);
+  Thread::Mutex::Lock _nclock(mutex());
   if( !valid() ) 
     return;
   // Privatize the data.
-  itsData.privatize(flags|DMI::LOCK);
+  itsData.privatize(DMI::WRITE|DMI::LOCK);
 }
 
 //##ModelId=400E4D68035F
@@ -701,29 +703,27 @@ const void * DataArray::getArrayPtr (TypeId tid,uint nrank,bool write) const
       Debug::ssprintf("can't access <%s,%d> arrray as <%s,%d>",
             itsScaType.toString().c_str(),itsShape.size(),
             tid.toString().c_str(),nrank));
-  FailWhen( write && !isWritable(),"r/w access violation" );
   return itsArray;
 }
 
-// full HIID -> type can be Tpfloat
+// full HIID -> type can only be Tpfloat
 // no HIID   -> type can be TpArray_float (or Tpfloat if array has 1 element)
 // partial HIID -> type must be TpArray_float and create such array on heap
 //                 which gets deleted by clear()
 //##ModelId=3DB949AE03DA
-const void* DataArray::get (const HIID& id, ContentInfo &info,
-			    TypeId check_tid, int flags) const
+int DataArray::get (const HIID& id, ContentInfo &info,bool nonconst,int flags) const
 {
-  nc_lock(flags&DMI::WRITE);
-  info.writable = isWritable();
-  info.tid = itsType;
-  info.size = 1;
-  FailWhen( flags&DMI::WRITE && !info.writable, "r/w access violation" ); 
+  // non-writability directly determined by constness
+  if( flags&DMI::WRITE && !nonconst )
+    return -1;
+  Thread::Mutex::Lock _nclock(mutex());
+  TypeId hint = info.tid;
+  info.writable = nonconst;
   int nid = id.length();
   int ndim = itsShape.size();
   // If a full HIID is given, we might need to return a single element
   // which is a scalar. 
 //  // If the array itself is scalar (itsSize==1), then it's considered 0-dimensional
-//  if( nid == ndim || (!nid && itsSize == 1) )     // full HIID?
   if( nid == ndim )     // full HIID?
   {
     bool single = true;
@@ -748,17 +748,13 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
     // have we resolved to a single element?
     if( single )
     {
-      info.tid = itsScaType;
-      FailWhen(check_tid && check_tid != itsScaType &&
-		    (check_tid != TpNumeric || !TypeInfo::isNumeric(itsScaType)),
-		    "type mismatch: expecting "+check_tid.toString() + ", got " +
-		    itsScaType.toString());
+      // Return a single element in the array.
+      info.size = 1;
+      info.tid = info.obj_tid = itsScaType;
       for (int i=0; i<nid; i++) 
       {
         FailWhen(which[i] >= itsShape[i],"array position out of range");
       }
-      // Return a single element in the array.
-      info.size = 1;
       // compute the element offset
       int offset = 0, stride = 1;
       LoShape::const_iterator iwhich = which.begin(), 
@@ -768,48 +764,34 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
         offset += *iwhich*stride;
         stride *= *ishape;
       }
-      return itsArrayData + itsElemSize*offset;
+      info.ptr = itsArrayData + itsElemSize*offset;
+      return 1;
     }
-  } 
-  if( nid == 0 )  // else not full HIID; null HIID?
+  }
+  if( nid == 0 )  // else a null HIID 
   {
-    // array is a single scalar? Return pointer
-    if( itsSize == 1 && ndim == 1 && 
-        ( check_tid == itsScaType ||
-          check_tid == TpNumeric && TypeInfo::isNumeric(itsScaType) ) )
+    if( hint == itsScaType )   // return scalars only if specifically requested
     {
-      info.tid = itsScaType;
-      info.size = 1;
-      return itsArrayData;
-    }
-    // Scalar pointer requested? Return full array data
-    if( check_tid == itsScaType )
-    {
-      info.tid = itsScaType;
-      FailWhen(!(flags&DMI::NC_POINTER),
-		      "array cannot be accessed as non-pointer scalar");
+      info.tid = info.obj_tid = itsScaType;
       info.size = itsShape.product();
-      return itsArrayData;
+      info.ptr = itsArrayData;
     }
     else
     {
-      FailWhen( check_tid && check_tid != info.tid, "array type mismatch (" +
-	                check_tid.toString() + "/" +
-	                info.tid.toString() +")"  );
-      return itsArray;
+      info.tid = info.obj_tid = itsType;
+      info.size = 1;
+      info.ptr = itsArray;
     }
+    return 1;
   }
-  // Else not a full HIID: return a subset of the array as an array.
+  // If we drop through here, then we have a partial HIID referring to
+  // a subset of the array. Figure out which subset.
   LoPos st,end,incr;
   vector<bool> keepAxes;
   // naxes is the number of axes in the subarray.
   // axes in the source array with keepAxes = false are removed (sliced out).
   int naxes = parseHIID(id,st,end,incr,keepAxes);
   // now check the type
-  info.tid = TpArray(itsScaType,naxes);
-  FailWhen( check_tid && check_tid != info.tid, "array type mismatch (" +
-	            check_tid.toString() + "/" +
-	            info.tid.toString() +")"  );
   LoShape subshape(LoShape::SETRANK|naxes),
           substride(LoShape::SETRANK|naxes);
   int iax=0, offset=0, stride=1;
@@ -827,8 +809,19 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
     }
     stride *= itsShape[i];
   }
-  
-  return makeSubArray(itsArrayData + itsElemSize*offset,subshape,substride);
+  // if callers wants scalars and subarray has only one element, return scalars
+  if( hint == itsScaType && subshape.product() == 1 )
+  {
+    info.tid = info.obj_tid = itsScaType;
+    info.ptr = itsArrayData + itsElemSize*offset;
+  }
+  else
+  {
+    info.tid = info.obj_tid = TpArray(itsScaType,naxes);
+    info.ptr = makeSubArray(itsArrayData + itsElemSize*offset,subshape,substride);
+  }
+  info.size = 1;
+  return 1;
 }
 
 //##ModelId=3DB949AF000E
@@ -932,7 +925,7 @@ int DataArray::parseHIID (const HIID& id, LoPos & st, LoPos & end,LoPos & incr,
 }
 
 //##ModelId=3DB949AE03E5
-void* DataArray::insert (const HIID&, TypeId, TypeId&)
+int DataArray::insert (const HIID&,ContentInfo &info)
 {
   Throw("insert() not supported for DataArray");
 }
@@ -940,7 +933,7 @@ void* DataArray::insert (const HIID&, TypeId, TypeId&)
 //##ModelId=3F5487DB0110
 string DataArray::sdebug ( int detail,const string &prefix,const char *name ) const
 {
-  nc_readlock;
+  Thread::Mutex::Lock _nclock(mutex());
   string out;
   if( detail>=0 ) // basic detail
   {
@@ -948,7 +941,6 @@ string DataArray::sdebug ( int detail,const string &prefix,const char *name ) co
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
-    Debug::append(out,isWritable()?"RW ":"RO ");
     if( !itsArray )
       out += "empty";
     else

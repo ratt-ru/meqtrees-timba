@@ -33,8 +33,7 @@ static NestableContainer::Register reg(TpDataField,True);
 
 //##ModelId=3C3D64DC016E
 DataField::DataField (int flags)
-  : NestableContainer(flags&DMI::WRITE!=0),
-    spvec(0),mytype(0),mysize_(0),selected(False)
+  : spvec(0),mytype(0),mysize_(0),selected(False)
 {
   dprintf(2)("default constructor\n");
   spvec = 0;
@@ -42,8 +41,7 @@ DataField::DataField (int flags)
 
 //##ModelId=3C3EE3EA022A
 DataField::DataField (const DataField &right, int flags, int depth)
-    : NestableContainer(flags&DMI::WRITE!=0),
-    spvec(0),mytype(0)
+    : NestableContainer(),spvec(0),mytype(0)
 {
   dprintf(2)("copy constructor (%s,%x)\n",right.debug(),flags);
   cloneOther(right,flags,depth);
@@ -51,13 +49,11 @@ DataField::DataField (const DataField &right, int flags, int depth)
 
 //##ModelId=3BFA54540099
 DataField::DataField (TypeId tid, int num, int flags, const void *data)
-    : NestableContainer(flags&DMI::WRITE!=0),
-      spvec(0),mytype(0),mysize_(0),selected(False)
+    : spvec(0),mytype(0),mysize_(0),selected(False)
 {
   dprintf(2)("constructor(%s,%d,%x)\n",tid.toString().c_str(),num,flags);
   init(tid,num,data);
 }
-
 
 //##ModelId=3DB9346F0095
 DataField::~DataField()
@@ -66,13 +62,12 @@ DataField::~DataField()
   clear();
 }
 
-
 //##ModelId=3DB9346F017B
 DataField & DataField::operator=(const DataField &right)
 {
   if( &right != this )
   {
-    nc_writelock;
+    Thread::Mutex::Lock _nclock(mutex());
     dprintf(2)("assignment of %s\n",right.debug());
 // removed for now since it seems like a useless limitation
 // OMS 01/10/03
@@ -92,14 +87,13 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
   //
   // NB: shared memory flags ought to be passed into the SmartBlock
   //
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("init(%s,%d,%x)\n",tid.toString().c_str(),num,(int)data);
   // if null type, then reset the field to uninit state
   if( !tid )
   {
     clear();
     scalar = True;
-    setWritable(True);
     return *this;
   }
   bool wantscalar = False;
@@ -185,19 +179,15 @@ DataField & DataField::init (TypeId tid, int num, const void *data)
 
   headerType() = mytype;
   headerSize() = mysize_;
-  // make header block non-writable
-  if( !isWritable() )
-    headref.change(DMI::READONLY);
   return *this;
 }
 
 //##ModelId=3C62961D021B
 void DataField::resize (int newsize)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   FailWhen( newsize<=0,"can't resize to <=0" );
   FailWhen( !valid(),"uninitialized DataField" );
-  FailWhen( !isWritable(),"field is read-only" );
   int minsize = min(mysize_,newsize);
   if( newsize > 1 )
     scalar = False;
@@ -239,9 +229,9 @@ void DataField::resize (int newsize)
 }
 
 //##ModelId=3C3EAB99018D
-void DataField::clear (int flags)
+void DataField::clear ()
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   if( spvec )
   {
     Assert(spdelete);
@@ -258,14 +248,13 @@ void DataField::clear (int flags)
     objstate.resize(0);
     mytype = 0;
     selected = False;
-    setWritable( (flags&DMI::WRITE)!=0 );
   }
 }
 
 //##ModelId=3C3EB9B902DF
 bool DataField::isValid (int n)
 {
-  nc_readlock;
+  Thread::Mutex::Lock _nclock(mutex());
   if( !valid() )
     return False;
   checkIndex(n);
@@ -280,9 +269,8 @@ ObjRef DataField::objwr (int n, int flags)
 {
   // set a write-lock regardless because we're going to be manipulating
   // counte
-  nc_readlock;
+  Thread::Mutex::Lock _nclock(mutex());
   FailWhen( !valid(),"uninitialized DataField");
-  FailWhen( !isWritable(),"field is read-only" );
   checkIndex(n);
   if( !dynamic_type )
     return NullRef;
@@ -292,7 +280,7 @@ ObjRef DataField::objwr (int n, int flags)
 //##ModelId=3C7A305F0071
 DataField & DataField::put (int n, ObjRef &ref, int flags)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("putting @%d: %s\n",n,ref.debug(2));
   ObjRef &ref2 = prepareForPut( ref->objectType(),n );
   // grab the ref, and mark object as modified
@@ -306,7 +294,7 @@ DataField & DataField::put (int n, ObjRef &ref, int flags)
 //##ModelId=400E4D6803D9
 DataField & DataField::put (int n, BlockableObject* obj, int flags)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("putting @%d: %s\n",n,obj->debug(2));
   prepareForPut( obj->objectType(),n ).unlock().attach(obj,flags).lock();
   return *this;
@@ -316,7 +304,7 @@ DataField & DataField::put (int n, BlockableObject* obj, int flags)
 //##ModelId=3C3C8D7F03D8
 ObjRef DataField::objref (int n) const
 {
-  nc_readlock;
+  Thread::Mutex::Lock _nclock(mutex());
   FailWhen( !valid(),"uninitialized DataField");
   checkIndex(n);
   if( !dynamic_type )
@@ -328,16 +316,16 @@ ObjRef DataField::objref (int n) const
 //##ModelId=3C3D5F2001DC
 int DataField::fromBlock (BlockSet& set)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf1(2)("%s: fromBlock\n",debug());
-  clear(isWritable() ? DMI::WRITE : DMI::READONLY);
+  clear();
   int npopped = 1;
   // get header block, privatize & cache it as headref
   set.pop(headref.unlock());  
   size_t hsize = headref->size();
   // first two ints in header block are type and size
   FailWhen( hsize < sizeof(int)*2,"malformed header block" );
-  headref.privatize((isWritable()?DMI::WRITE:0)|DMI::LOCK);
+  headref.privatize(DMI::WRITE|DMI::LOCK);
   // get type and size from header
   mytype = headerType();
   mysize_ = headerSize();
@@ -399,8 +387,6 @@ int DataField::fromBlock (BlockSet& set)
         {
           dprintf(3)("fromBlock: [%d] taking over %d blocks\n",i,headerBlockSize(i));
           set.popMove(blocks[i],headerBlockSize(i));
-          // dprintf(3)("fromBlock: [%d] will privatize %d blocks\n",i,blocks[i].size());
-          //          blocks[i].privatizeAll(isWritable()?DMI::WRITE:0,True);
         }
         else // no blocks assigned to this object => is uninitialized
           objstate[i] = UNINITIALIZED;
@@ -419,7 +405,7 @@ int DataField::fromBlock (BlockSet& set)
 int DataField::toBlock (BlockSet &set) const
 {
   // write-lock, since we modify internal fields
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   if( !valid() )
   {
     dprintf1(2)("%s: toBlock=1 (field empty)\n",debug());
@@ -447,9 +433,6 @@ int DataField::toBlock (BlockSet &set) const
     (*typeinfo.fpack)(spvec,mysize_,
         static_cast<char*>(headref().data()) + sizeof(int)*2,hsize);
     spvec_modified = False;
-    // if read-only, downgrade block reference
-    if( !isWritable() )
-      headref.change(DMI::READONLY);
   }
   // for dynamic types, check that the header block is still consistent
   if( dynamic_type )
@@ -505,36 +488,28 @@ int DataField::toBlock (BlockSet &set) const
 //##ModelId=3C3D8C07027F
 ObjRef & DataField::resolveObject (int n, int flags) const
 {
-  FailWhen(flags&DMI::PRIVATIZE && !isWritable(),"can't autoprivatize in readonly field");
+  Thread::Mutex::Lock _nclock(mutex());
   switch( objstate[n] )
   {
     // uninitialized object - create default
     case UNINITIALIZED:
     {
-        // upgrade to write-lock since we modify internal fields
-        nc_writelock_up;
         dprintf(3)("resolveObject(%d): creating new %s\n",n,mytype.toString().c_str());
-        FailWhen(!isWritable() && flags&DMI::WRITE,"write access violation");
         objects[n].attach( DynamicTypeManager::construct(mytype),
-                          (isWritable()?DMI::WRITE:DMI::READONLY)|
-                          DMI::ANON|DMI::LOCK);
+                           (flags&DMI::WRITE)|DMI::ANON|DMI::LOCK);
         objstate[n] = MODIFIED;
         // ignore autoprivatize since this is a new object
         return objects[n];
-    }    
+    }
     // object hasn't been unblocked
     case INBLOCK:
     {
-        // upgrade to write-lock since we modify internal fields
-        nc_writelock_up;
-        FailWhen(!isWritable() && flags&DMI::WRITE,"write access violation");
         // if write access requested, simply unblock it
         if( flags&DMI::WRITE )
         {
           dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
           objects[n].attach( DynamicTypeManager::construct(mytype,blocks[n]),
-                            (isWritable()?DMI::WRITE:DMI::READONLY)|
-                            DMI::ANON|DMI::LOCK );
+                            DMI::ANONWR|DMI::LOCK );
           // verify that no blocks were left over
           FailWhen( blocks[n].size()>0,"block count mismatch" );
           objstate[n] = MODIFIED;
@@ -549,9 +524,8 @@ ObjRef & DataField::resolveObject (int n, int flags) const
           BlockSet set( blocks[n],DMI::PRESERVE_RW|DMI::MAKE_READONLY ); 
           // create object and attach a reference
           dprintf(3)("resolveObject(%d): unblocking %s\n",n,mytype.toString().c_str());
-          objects[n].attach( DynamicTypeManager::construct(mytype,set),
-                            (isWritable()?DMI::WRITE:DMI::READONLY)|
-                            DMI::ANON|DMI::LOCK );
+          objects[n].attach(DynamicTypeManager::construct(mytype,set),
+                            DMI::READONLY|DMI::ANON|DMI::LOCK);
           // verify that no blocks were left over
           FailWhen( set.size()>0,"block count mismatch" );
           // mark object as unblocked but not modified 
@@ -567,23 +541,25 @@ ObjRef & DataField::resolveObject (int n, int flags) const
     case MODIFIED:
     {
         ObjRef &ref = objects[n];
-        // upgrade to write-lock if we need to modify internal fields
-        nc_lock_up(flags&(DMI::PRIVATIZE|DMI::WRITE)); 
+        // not valid? Mark as uninitialized and try again
+        if( !ref.valid() )
+        {
+          objstate[n] = UNINITIALIZED;
+          return resolveObject(n,flags);
+        }
         // privatize if requested
         if( flags&DMI::PRIVATIZE )
-          objects[n].privatize(flags&(DMI::READONLY|DMI::WRITE|DMI::DEEP)); 
+          ref.privatize(flags&(DMI::READONLY|DMI::WRITE|DMI::DEEP)); 
         // do we need to write to it?
         else if( flags&DMI::WRITE )
         {
-          // removed: FailWhen(!ref.isWritable(),"write access violation");
-          // removed: because writability will be checked in ref anyway
-          // flush cached blocks if any
+          if( !ref.isWritable() )
+            ref.privatize(DMI::WRITE);
           blocks[n].clear();
           objstate[n] = MODIFIED;
         }
         return ref;
     }
-    
     default:
         Throw("unexpected object state");
   }
@@ -598,8 +574,8 @@ CountedRefTarget* DataField::clone (int flags, int depth) const
 //##ModelId=3C3EE42D0136
 void DataField::cloneOther (const DataField &other, int flags, int depth)
 {
-  nc_writelock;
-  nc_readlock1(other);
+  Thread::Mutex::Lock _nclock(mutex());
+  Thread::Mutex::Lock _nclock1(other.mutex());
   // setup misc fields
   FailWhen( valid(),"field is already initialized" );
   if( !other.valid() )
@@ -611,10 +587,9 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
   dynamic_type = other.dynamic_type;
   container_type = other.container_type;
   typeinfo = other.typeinfo;
-  setWritable( (flags&DMI::WRITE)!=0 );
   selected = False;
   // copy & privatize the header ref
-  headref.copy(other.headref).privatize(flags|DMI::LOCK);
+  headref.copy(other.headref).privatize(DMI::WRITE|DMI::LOCK);
   if( dynamic_type )   // handle dynamic types
   {
     objstate = other.objstate;
@@ -673,11 +648,10 @@ void DataField::cloneOther (const DataField &other, int flags, int depth)
 //##ModelId=3C3EDEBC0255
 void DataField::privatize (int flags, int depth)
 {
-  nc_writelock;
-  setWritable( (flags&DMI::WRITE)!=0 );
+  Thread::Mutex::Lock _nclock(mutex());
   if( !valid() )
     return;
-  // privatize the header reference
+  // privatize the header reference (always writable)
   headref.privatize(DMI::WRITE|DMI::LOCK);
   // if deep privatization is required, then for dynamic objects, 
   // privatize the field contents as well
@@ -710,7 +684,7 @@ void DataField::privatize (int flags, int depth)
 //##ModelId=3D05E2F301D2
 int DataField::size (TypeId tid) const
 {
-  nc_readlock;
+  Thread::Mutex::Lock _nclock(mutex());
   // if types do not match (or tid=0), and we're scalar, and have
   // a subcontainer, then defer to its size()
   if( tid != mytype && scalar && mysize() == 1 && container_type )
@@ -728,229 +702,227 @@ int DataField::size (TypeId tid) const
   return -1;
 }
 
-//##ModelId=3C7A19790361
-const void * DataField::get (const HIID &id, ContentInfo &info, TypeId check_tid, int flags) const
-{
-  // null HIID implies scalar-mode access -- map to getn(0)
-  if( !id.size() )
-    return getn(0,info,check_tid,flags);
-  // single-index HIID implies get[n]
-  if( id.size() == 1 && id.front().index() >= 0 )
-    return getn(id.front().index(),info,check_tid,flags);
-  nc_readlock;
-  FailWhen( !valid() || !mysize(),"field not initialized" );
-  FailWhen( !scalar,"non-scalar field, explicit numeric subscript expected" );
-  FailWhen( !isNestable(type()),"contents not a container" );
-  // Resolve to pointer to container
-  // Unless privatize is required, we resolve the container without the
-  // DMI::WRITE flag, since it's only the writability of its contents that
-  // matters -- nc->get() below will check that.
-  int contflags = flags&DMI::PRIVATIZE ? flags : flags &= ~DMI::WRITE;
-  const NestableContainer *nc = dynamic_cast<const NestableContainer *>
-      (&resolveObject(0,contflags).deref());
-  Assert(nc);
-  // defer to get[id] on container 
-  return nc->get(id,info,check_tid,flags);
-}
+    // from old get():
+//   // other types of HIID are supported only when we contain a single, scalar
+//   // container. 
+//   Thread::Mutex::Lock _nclock(mutex());
+//   FailWhen( !valid() || !mysize(),"field not initialized" );
+//   FailWhen( !scalar,"non-scalar field, explicit numeric subscript expected" );
+//   FailWhen( !isNestable(type()),"contents not a container" );
+//   // Resolve to pointer to container
+//   // Unless privatize is required, we resolve the container without the
+//   // DMI::WRITE flag, since it's only the writability of its contents that
+//   // matters -- nc->get() below will check that.
+//   int contflags = flags&DMI::PRIVATIZE ? flags : flags &= ~DMI::WRITE;
+//   const NestableContainer *nc = dynamic_cast<const NestableContainer *>
+//       (&resolveObject(0,contflags).deref());
+//   Assert(nc);
+//   // defer to get[id] on container 
+//   return nc->get(id,info,check_tid,flags);
 
 //##ModelId=3C7A1983024D
-const void * DataField::getn (int n, ContentInfo &info, TypeId check_tid, int flags) const
+int DataField::get (const HIID &id,ContentInfo &info,bool nonconst,int flags) const
 {
-  nc_lock(flags&DMI::WRITE);
-  
+  Thread::Mutex::Lock _nclock(mutex());
   FailWhen( !valid(),"field not initialized" );
-  info.size = mysize();
-  FailWhen( n<0 || n>info.size,"n out of range" );
-  if( n == info.size )
+  int n;  // number of item being accessed
+  // null HIID implies scalar-mode access -- map to getn(0)
+  if( id.empty() )
+  {
+    n = 0;
+    info.size = mysize();
+  }
+  // numeric (single-index) HIID implies item #n
+  else if( id.size() == 1 && id.front().index() >= 0 )
+  {
+    n = id.front().index();
+    info.size = 1;
+  }
+  else
+  { // transparent lookup into field contents, maybe time to phase it out?
+  // disable this for now -- use [0][id] rathern than [id] to explicitly 
+  // index into contents. I can re-enable it later if it becomes a problem.
+  // see commented section above
+    Throw("transparent indexing into scalar DataFields is no longer supported. "
+          "See DataField::get()" );
+  }
+  FailWhen( n<0 || n>mysize(),"index "+id.toString()+"is out of range" );
+  if( n == mysize() ) // can insert at end
     return 0;
-  info.writable = isWritable();
-  FailWhen(flags&DMI::PRIVATIZE && !info.writable,"write access violation"); 
-  if( binary_type ) // binary type
+  info.writable = nonconst;
+  bool nowrite = flags&DMI::WRITE && !nonconst; // write requested but not avail?
+  // handle case of dynamic types 
+  if( dynamic_type )
   {
-    FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
-    FailWhen(flags&DMI::NC_SCALAR && !flags&DMI::NC_POINTER && mysize()>1,"non-scalar container");
-    // If check_tid is specified, then either types must match,
-    // or, failing that, allow for conversion between numerics, but
-    // not in pointer mode
-    FailWhen( check_tid && check_tid != type() &&
-              (flags&DMI::NC_POINTER 
-              || ( check_tid != TpNumeric && !TypeInfo::isNumeric(check_tid) )
-              || !TypeInfo::isNumeric(type())),
-        "type mismatch: requested "+check_tid.toString()+", have "+type().toString());
-    info.tid = type();
-    return n*typeinfo.size + (char*)headerData();
-  }
-  else if( dynamic_type )
-  {
-    FailWhen( check_tid == TpObjRef && info.tid && info.tid != type(),
-        "type mismatch: requested "+info.tid.toString()+", have "+type().toString());
-    // default (if no checking) is to return the ObjRef
-    if( !check_tid || check_tid == TpObjRef )
+    // since dynamic objects are non-contiguous, prohibit vector access
+    FailWhen(info.size>1,"DataField of "+type().toString()+"s can't be accessed in vector mode");
+    // if not asking for object itself, then writability is equivalent to
+    // non-constness
+    if( !(flags&DMI::NC_DEREFERENCE) && nowrite )
+      return -1;
+    // object hasn't been initialized? return 0 unless assigning
+    if( objstate[n] == UNINITIALIZED )
     {
-      info.tid = TpObjRef;
-      // bit of thread trouble here, if we return by ref
-      // if dealing with an uninitialized ref, just return it
-      if( objstate[n] == UNINITIALIZED )
-      {
-// NB: temporary kludge here to work around bug mentioned in NC::Hook::prepare_put.
-//        if( flags&DMI::WRITE )
-//        {
-//          FailWhen(!isWritable(),"write access violation");
-          objstate[n] = MODIFIED;
-//        }
-        return &objects[n];
-      }
-      // else resolve to object
-      return &resolveObject(n,flags);
+      if( nowrite )               // can't init object if not writable
+        return -1;
+      // if we're not going to assign to the object, then we need to
+      // init an empty one -- resolveObject() will do that for us
+      if( !(flags&DMI::NC_ASSIGN) )  
+        resolveObject(n,flags&DMI::WRITE);
     }
-    else 
-    {    
-      // if types match (or TpObject was specified to force dereferencing),
-      // deref and return object
-      if( check_tid == type() || check_tid == TpObject )
-      {
-        FailWhen(flags&(DMI::NC_SCALAR|DMI::NC_POINTER) && mysize()>1,"non-scalar/non-contiguous container");
-        info.tid = type();
-        return &resolveObject(n,flags).deref(); // checks DMI::WRITE
-      }
-      // else mismatch -- If it's a container, try accessing it as a whole, 
-      // forcing scalar mode
-      flags |= DMI::NC_SCALAR;
-      FailWhen( !isNestable(type()),
-        "type mismatch: requested "+check_tid.toString()+", have "+type().toString());
-      // container resolved w/o DMI::WRITE -- see comments in get(), above
-      int contflags = flags&DMI::PRIVATIZE ? flags : flags &= ~DMI::WRITE;
-      const NestableContainer *nc = 
-        dynamic_cast<const NestableContainer *>(resolveObject(n,contflags).deref_p());
-      FailWhen(!nc,"dynamic cast to expected container type failed");
-      return nc->get(HIID(),info,check_tid,flags);
+    // object hasn't been unblocked yet? Then we need to unblock it first
+    // DMI::WRITE will ensure that object is attached for writing as needed.
+    else if( objstate[n] == INBLOCK )
+      resolveObject(n,flags&DMI::WRITE);
+    // else check ref writability, if caller needs access to the object itself
+    else if( flags&DMI::NC_DEREFERENCE && nowrite && 
+             objects[n].valid() && !objects[n].isWritable() )
+    {
+      return -1;
     }
-  }
-  else   // special type -- types must match
-  {
-    FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
-    FailWhen(flags&DMI::NC_SCALAR && !flags&DMI::NC_POINTER && mysize()>1,"non-scalar container");
-    FailWhen(check_tid && check_tid != type(),
-        "type mismatch: expecting "+check_tid.toString()+" got "+type().toString() );
-    info.tid = type();
+    // return ref to object; mark it as modified if expected to write
     if( flags&DMI::WRITE )
-      spvec_modified = True;
-    return static_cast<char*const>(spvec) + n*typeinfo.size;
+    {
+      blocks[n].clear();
+      objstate[n] = MODIFIED;
+    }
+    info.tid = TpObjRef;
+    info.obj_tid = type();
+    info.ptr = &objects[n];
   }
+  else // binary or special type
+  {
+    // writability determined by non-constness
+    if( flags&DMI::WRITE && !nonconst ) 
+      return -1;
+    info.tid = info.obj_tid = type();
+    if( binary_type ) // binary type: data in header block
+    {
+      info.ptr = static_cast<const char*>(headerData()) + n*typeinfo.size;
+    }
+    else        // special type: data in separate spvec
+    {
+      if( flags&DMI::WRITE )
+        spvec_modified = True;
+      info.ptr = static_cast<const char*>(spvec) + n*typeinfo.size;
+    }
+  }
+  // got here? success
+  return 1; 
 }
+    // from old insert():
+    //     FailWhen( !valid() || !mysize(),"field not initialized or empty" );
+    //     FailWhen( !scalar,"non-scalar field, explicit index expected" );
+    //     FailWhen( !isNestable(type()),"contents not a container" );
+    //     // resolve to pointer to container
+    //     dprintf(2)("insert: deferring to child %s\n",type().toString().c_str());
+    //     NestableContainer *nc = dynamic_cast<NestableContainer *>
+    //         (&resolveObject(0,True).dewr());
+    //     Assert(nc);
+    //     // defer to insert[id] on container
+    //     return nc->insert(id,tid,real_tid);
 
 //##ModelId=3C7A198A0347
-void * DataField::insert (const HIID &id, TypeId tid, TypeId &real_tid)
+int DataField::insert (const HIID &id,ContentInfo &info)
 {
-  nc_writelock;
-  dprintf(2)("insert(%s,%s)\n",id.toString().c_str(),tid.toString().c_str());
-  if( !id.size() )
+  Thread::Mutex::Lock _nclock(mutex());
+  dprintf(2)("insert(%s,%s)\n",id.toString().c_str(),info.tid.toString().c_str());
+  int n;
+  // determine index
+  if( id.empty() )
   {
-    FailWhen( valid(),"null HIID" );
-    return insertn(0,tid,real_tid);
+    FailWhen(valid(),"null HIID" );
+    n = 0;
   }
-  if( id.size()==1 && id.front().index()>=0 )
-    return insertn(id.front().index(),tid,real_tid);
-  FailWhen( !valid() || !mysize(),"field not initialized or empty" );
-  FailWhen( !scalar,"non-scalar field, explicit index expected" );
-  FailWhen( !isNestable(type()),"contents not a container" );
-  // resolve to pointer to container
-  dprintf(2)("insert: deferring to child %s\n",type().toString().c_str());
-  NestableContainer *nc = dynamic_cast<NestableContainer *>
-      (&resolveObject(0,True).dewr());
-  Assert(nc);
-  // defer to insert[id] on container
-  return nc->insert(id,tid,real_tid);
-}
-
-//##ModelId=3C7A19930250
-void * DataField::insertn (int n, TypeId tid, TypeId &real_tid)
-{
-  nc_writelock;
-  // empty field? init with one element
-  dprintf(2)("insertn(%d,%s)\n",n,
-      tid == TpObjRef 
-      ? ("ref:"+real_tid.toString()).c_str()
-      : tid.toString().c_str() );
-  if( !valid() )
+  else if( id.size()==1 && id.front().index()>=0 )
+    n = id.front().index();
+  else
   {
-    FailWhen( n,Debug::ssprintf("can't insert at [%d]",n) );
-    FailWhen( !tid || tid==TpObject || tid==TpNumeric,
-             "can't initialize without type" );
-    if( tid != TpObjRef )
-      real_tid = tid;
+  // disable this for now -- use [0][id] rathern than [id] to explicitly 
+  // index into contents. I can re-enable it later if it becomes a problem.
+  // see commented section above
+    Throw("transparent indexing into scalar DataFields is no longer supported. "
+          "See DataField::get()" );
+  }
+  // check types
+  // insert item
+  TypeId real_tid = info.tid = info.obj_tid;
+  info.size = 1;
+  info.writable = True;
+  if( !valid() ) // empty field? must insert at #0
+  {
+    FailWhen(n,Debug::ssprintf("can't insert at [%d]",n));
+    FailWhen(!real_tid,"can't initialize DataField without type");
     init(real_tid,-1); // init as scalar field
   }
-  else // else extend field if inserting at end
+  else // else extend field, but only if inserting at end
   {
-    FailWhen( n != mysize(),Debug::ssprintf("can't insert at [%d]",n) );
+    FailWhen(n != mysize(),Debug::ssprintf("can't insert at [%d]",n) );
+    if( real_tid )
+    {
+      FailWhen(type()!=real_tid && !TypeInfo::isConvertible(real_tid,type()),
+            "inserting "+real_tid.toString()+" into a DataField of "+type().toString());
+    }
+    info.tid = info.obj_tid = type();
     resize( mysize()+1 );
-    real_tid = type();
   }
   if( binary_type )
   {
-    FailWhen( tid && tid!=type() && 
-              (!TypeInfo::isNumeric(tid) || !TypeInfo::isNumeric(type())),
-        "can't insert "+tid.toString());
-    return n*typeinfo.size + (char*)headerData();
+    info.ptr = static_cast<char*>(headerData()) + n*typeinfo.size;
   }
   else if( dynamic_type )
   {
-    FailWhen(real_tid!=type(),"can't insert "+real_tid.toString());
-    ObjRef &ref = resolveObject(n,True);
-    // asked to return pointer to ObjRef: return it
-    if( tid == TpObjRef )
-    {
-      objstate[n] = MODIFIED;
-      return &objects[n];
-    }
-    // else return pointer to object
-    return resolveObject(n,True).dewr_p();
+    info.tid = TpObjRef;
+    objstate[n] = MODIFIED;
+    info.ptr = &objects[n];
   }
   else // special type
   {
-    FailWhen( tid && tid != type(),"can't insert "+tid.toString()+" into field of type "+type().toString());
     spvec_modified = True;
-    return static_cast<char*>(spvec) + n*typeinfo.size;
+    info.ptr = static_cast<char*>(spvec) + n*typeinfo.size;
   }
+  return 1;
 }
 
 //##ModelId=3C877E1E03BE
-bool DataField::remove (const HIID &id)
+int DataField::remove (const HIID &id)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("remove(%s)\n",id.toString().c_str());
-  FailWhen( !id.size(),"null HIID" );
+  FailWhen(id.empty(),"null HIID");
   if( id.size()==1 && id.front().index()>=0 )
-    return removen(id.front().index());
-  FailWhen( !valid() || !mysize(),"field not initialized or empty" );
-  FailWhen( !scalar,"non-scalar field, explicit index expected" );
-  FailWhen( !isNestable(type()),"contents not a container" );
-  // resolve to pointer to container
-  dprintf(2)("remove: deferring to child %s\n",type().toString().c_str());
-  NestableContainer *nc = dynamic_cast<NestableContainer *>
-      (&resolveObject(0,True).dewr());
-  Assert(nc);
-  // defer to remove(id) on container
-  return nc->remove(id);
-}
-
-//##ModelId=3C877E260301
-bool DataField::removen (int n)
-{
-  nc_writelock;
-  dprintf(2)("removen(%d)\n",n);
-  FailWhen( !valid() || !mysize(),"field not initialized or empty" );
-  FailWhen( n != mysize()-1,"can only remove from end of field" );
-  dprintf(2)("removen: resizing to %d elements\n",n);
-  resize(n);
-  return True;
+  {
+    int n = id.front().index();
+    Thread::Mutex::Lock _nclock(mutex());
+    dprintf(2)("removen(%d)\n",n);
+    FailWhen( !valid() || !mysize(),"field not initialized or empty" );
+    FailWhen( n != mysize()-1,"can only remove from end of field" );
+    dprintf(2)("removen: resizing to %d elements\n",n);
+    resize(n);
+    return 1;
+  }
+  else
+  {
+  // disable this for now -- use [0][id] rathern than [id] to explicitly 
+  // index into contents. I can re-enable it later if it becomes a problem.
+    Throw("transparent indexing into scalar DataFields is no longer supported. "
+          "See DataField::get()" );
+//     FailWhen( !valid() || !mysize(),"field not initialized or empty" );
+//     FailWhen( !scalar,"non-scalar field, explicit index expected" );
+//     FailWhen( !isNestable(type()),"contents not a container" );
+//     // resolve to pointer to container
+//     dprintf(2)("remove: deferring to child %s\n",type().toString().c_str());
+//     NestableContainer *nc = dynamic_cast<NestableContainer *>
+//         (&resolveObject(0,True).dewr());
+//     Assert(nc);
+//     // defer to remove(id) on container
+//     return nc->remove(id);
+  }
 }
 
 //##ModelId=3DB9347800CF
 ObjRef & DataField::prepareForPut (TypeId tid,int n ) 
 {
-  FailWhen( !isWritable(),"field is read-only" );
   if( !valid() ) // invalid field?
   {
     if( !n )
@@ -975,26 +947,29 @@ ObjRef & DataField::prepareForPut (TypeId tid,int n )
 //##ModelId=3DB934730394
 string DataField::sdebug ( int detail,const string &prefix,const char *name ) const
 {
+  using Debug::append;
+  using Debug::appendf;
+  using Debug::ssprintf;
+  
   static int nesting=0;
-  nc_readlock;
   if( nesting++>1000 )
   {
     cerr<<"Too many nested DataField::sdebug() calls";
     abort();
   }
+  Thread::Mutex::Lock _nclock(mutex());
   string out;
   if( detail>=0 ) // basic detail
   {
-    Debug::appendf(out,"%s/%08x",name?name:objectType().toString().c_str(),(int)this);
+    appendf(out,"%s/%08x",name?name:objectType().toString().c_str(),(int)this);
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
-    Debug::append(out,isWritable()?"RW ":"RO ");
     if( !type() )
-      out += "empty";
+      append(out,"empty");
     else
-      out += type().toString()+Debug::ssprintf(":%d",mysize());
-    out += " / refs "+CountedRefTarget::sdebug(-1);
+      appendf(out,"%s:%d",type().toString().c_str(),mysize());
+    append(out,"/ refs",CountedRefTarget::sdebug(-1));
   }
   if( detail >= 2 || detail <= -2 )   // high detail
   {

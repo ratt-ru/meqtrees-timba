@@ -71,7 +71,7 @@ CountedRefTarget::~CountedRefTarget()
 
 
 //##ModelId=3C3EDD7D0301
-void CountedRefTarget::privatize (int flags, int depth)
+void CountedRefTarget::privatize (int,int)
 {
 }
 
@@ -96,28 +96,6 @@ int CountedRefTarget::refCountWrite () const
   return count;
 }
 
-//##ModelId=3C18C6A603DA
-bool CountedRefTarget::refWriteExclusions () const
-{
-  threadLock;
-  for( const CountedRefBase *ref = getOwner(); ref != 0; ref = ref->getNext() )
-    if( ref->isExclusiveWrite() )
-      return True;
-  return False;
-}
-
-//##ModelId=3C63B97601B9
-bool CountedRefTarget::hasExternalRefs () const
-{
-  return owner_ref && !anon;
-}
-
-//##ModelId=3C63BA8800B9
-bool CountedRefTarget::hasAnonRefs () const
-{
-  return owner_ref && anon;
-}
-
 //##ModelId=3E01BE070204
 void CountedRefTarget::print () const
 { 
@@ -135,8 +113,8 @@ string CountedRefTarget::sdebug ( int detail,const string &prefix,const char *na
   // normal detail 
   if( detail >= 1 || detail == -1 )
   {
-    Debug::appendf(out,"R:%d WR:%d%s",
-        refCount(),refCountWrite(),refWriteExclusions()?"/X":""); 
+    Debug::appendf(out,"R:%d WR:%d",
+        refCount(),refCountWrite()); 
   }
   // high detail - append ref list
   if( detail >= 2 || detail <= -2 )   

@@ -13,14 +13,14 @@ const NCRef NullNCRef;
 
 //##ModelId=3C5820AD00C6
 DataRecord::DataRecord (int flags)
-  : NestableContainer(flags&DMI::WRITE!=0)
+  : NestableContainer()
 {
   dprintf(2)("default constructor\n");
 }
 
 //##ModelId=3C5820C7031D
 DataRecord::DataRecord (const DataRecord &other, int flags, int depth)
-  : NestableContainer(flags&DMI::WRITE!=0 || (flags&DMI::PRESERVE_RW!=0 && other.isWritable()))
+  : NestableContainer()
 {
   dprintf(2)("copy constructor, cloning from %s\n",other.debug(1));
   cloneOther(other,flags,depth);
@@ -48,12 +48,11 @@ void DataRecord::merge (const DataRecord &other,bool overwrite,int flags)
 {
   if( &other != this )
   {
-    nc_writelock;
+    Thread::Mutex::Lock _nclock(mutex());
 #ifdef USE_THREADS
     Thread::Mutex::Lock lock2(other.mutex());
 #endif
     dprintf(2)("merge(%s,%d,%d)\n",other.debug(1),int(overwrite),flags);
-    FailWhen( !isWritable(),"r/w access violation" );
     for( CFMI oiter = other.fields.begin(); oiter != other.fields.end(); oiter++ )
     {
       // try to insert entry with other's key into map 
@@ -74,10 +73,9 @@ void DataRecord::merge (const DataRecord &other,bool overwrite,int flags)
 //##ModelId=3BFBF5B600EB
 void DataRecord::add (const HIID &id, const NCRef &ref, int flags)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("add(%s,[%s],%x)\n",id.toString().c_str(),ref->debug(1),flags);
   FailWhen( !id.size(),"null HIID" );
-  FailWhen( !isWritable(),"r/w access violation" );
   FailWhen( fields.find(id) != fields.end(), "field already exists" );
   // insert into map
   if( flags&DMI::COPYREF )
@@ -89,10 +87,9 @@ void DataRecord::add (const HIID &id, const NCRef &ref, int flags)
 //##ModelId=3C5FF0D60106
 void DataRecord::add (const HIID &id,NestableContainer *pnc, int flags)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("add(%s,[%s],%x)\n",id.toString().c_str(),pnc->debug(1),flags);
   FailWhen( !id.size(),"null HIID" );
-  FailWhen( !isWritable(),"r/w access violation" );
   FailWhen( fields.find(id) != fields.end(), "field already exists" );
   fields[id].attach(pnc,flags);
 }
@@ -100,12 +97,11 @@ void DataRecord::add (const HIID &id,NestableContainer *pnc, int flags)
 //##ModelId=3BFCD4BB036F
 void DataRecord::replace (const HIID &id, const NCRef &ref, int flags)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("replace(%s,[%s],%x)\n",id.toString().c_str(),ref->debug(1),flags);
 //  FailWhen( ref->objectType() != TpDataField && ref->objectType() != TpDataArray,
 //            "illegal field object" );
   FailWhen( !id.size(),"null HIID" );
-  FailWhen( !isWritable(),"r/w access violation" );
   if( flags&DMI::COPYREF )
     fields[id].copy(ref,flags);
   else
@@ -115,12 +111,11 @@ void DataRecord::replace (const HIID &id, const NCRef &ref, int flags)
 //##ModelId=3C5FF10102CA
 void DataRecord::replace (const HIID &id, NestableContainer *pnc, int flags)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("replace(%s,[%s],%x)\n",id.toString().c_str(),pnc->debug(1),flags);
 //  FailWhen( ref->objectType() != TpDataField && ref->objectType() != TpDataArray,
 //            "illegal field object" );
   FailWhen( !id.size(),"null HIID" );
-  FailWhen( !isWritable(),"r/w access violation" );
   fields[id].attach(pnc,flags);
 }
 
@@ -128,10 +123,9 @@ void DataRecord::replace (const HIID &id, NestableContainer *pnc, int flags)
 //##ModelId=3BB311C903BE
 NCRef DataRecord::removeField (const HIID &id,bool ignore_fail)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("remove(%s)\n",id.toString().c_str());
   FailWhen( !id.size(),"null HIID" );
-  FailWhen( !isWritable(),"r/w access violation" );
   CFMI iter = fields.find(id);
   if( iter != fields.end() )
   {
@@ -147,7 +141,7 @@ NCRef DataRecord::removeField (const HIID &id,bool ignore_fail)
 //##ModelId=3C57CFFF005E
 NCRef DataRecord::field (const HIID &id) const
 {
-  nc_readlock;
+  Thread::Mutex::Lock _nclock(mutex());
   HIID rest; bool dum;
   const NCRef &ref( resolveField(id,rest,dum,False) );
   FailWhen( !ref.valid(),"field "+id.toString()+" not found" );
@@ -158,8 +152,7 @@ NCRef DataRecord::field (const HIID &id) const
 //##ModelId=3BFBF49D00A1
 NCRef DataRecord::fieldWr (const HIID &id, int flags)
 {
-  nc_readlock;
-  FailWhen( !isWritable(),"r/w access violation" );
+  Thread::Mutex::Lock _nclock(mutex());
   HIID rest; bool dum;
   const NCRef &ref( resolveField(id,rest,dum,True) );
   FailWhen( !ref.valid(),"field "+id.toString()+" not found" );
@@ -177,7 +170,7 @@ const NCRef & DataRecord::resolveField (const HIID &id, HIID& rest, bool &can_wr
     rest = id;
     return NullNCRef;
   }
-  can_write = iter->second->isWritable();
+  can_write = iter->second.isWritable();
   FailWhen( must_write && !can_write,"r/w access violation" );
   rest.clear();
   return iter->second;
@@ -186,7 +179,7 @@ const NCRef & DataRecord::resolveField (const HIID &id, HIID& rest, bool &can_wr
 //##ModelId=3C58216302F9
 int DataRecord::fromBlock (BlockSet& set)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("fromBlock(%s)\n",set.debug(2));
   int nref = 1;
   fields.clear();
@@ -231,7 +224,7 @@ int DataRecord::fromBlock (BlockSet& set)
 //##ModelId=3C5821630371
 int DataRecord::toBlock (BlockSet &set) const
 {
-  nc_readlock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("toBlock\n");
   int nref = 1;
   // compute header size
@@ -273,9 +266,8 @@ CountedRefTarget* DataRecord::clone (int flags, int depth) const
 //##ModelId=3C582189019F
 void DataRecord::privatize (int flags, int depth)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("privatizing DataRecord\n");
-  setWritable( (flags&DMI::WRITE)!=0 );
   if( flags&DMI::DEEP || depth>0 )
   {
     for( FMI iter = fields.begin(); iter != fields.end(); iter++ )
@@ -288,10 +280,9 @@ void DataRecord::privatize (int flags, int depth)
 //##ModelId=3C58239503D1
 void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
 {
-  nc_writelock;
-  nc_readlock1(other);
+  Thread::Mutex::Lock _nclock(mutex());
+  Thread::Mutex::Lock _nclock1(other.mutex());
   fields.clear();
-  setWritable( (flags&DMI::WRITE)!=0 || (flags&DMI::PRESERVE_RW && other.isWritable()) );
   // copy all field refs, then privatize them if depth>0.
   // For ref.copy(), clear the DMI::WRITE flag and use DMI::PRESERVE_RW instead.
   // (When depth>0, DMI::WRITE will take effect anyways via privatize().
@@ -308,125 +299,83 @@ void DataRecord::cloneOther (const DataRecord &other, int flags, int depth)
 }
 
 //##ModelId=3C56B00E0182
-const void * DataRecord::get (const HIID &id, ContentInfo &info, TypeId check_tid, int flags) const
+int DataRecord::get (const HIID &id,ContentInfo &info, 
+                     bool nonconst,int flags) const
 {
-  nc_lock(flags&DMI::WRITE);
-  FailWhen(flags&DMI::NC_SCALAR,
-    "can't access "+objectType().toString()+" in scalar mode (id: "+id.toString()+
-    ", type "+check_tid.toString()+")" );
+  Thread::Mutex::Lock _nclock(mutex());
   FailWhen(!id.size(),"null field id");
   CFMI iter;
-  info.size = 1;
   // "AidHash" followed by a single numeric index is field #
   if( id.size() == 2 && id[0] == AidHash && id[1].index() >= 0 )
   {
-    iter = fields.begin();
-    for( int i=0; i<id[1]; i++,iter++ )
-      if( iter == fields.end() )
-        break;
-    FailWhen( iter == fields.end(),"record field number out of range");
+    uint nf = id[1].index();
+    if( nf == fields.size() )
+      return 0;
+    FailWhen( nf > fields.size(),"record field number out of range");
+    // advance to specified field
+    for( uint i=0; i<nf && iter != fields.end(); i++,iter++ );
   }
   else // else HIID is field name
     iter = fields.find(id);
+  // Field not found? return 0
   if( iter == fields.end() )
     return 0;
-  NCRef &fref = const_cast<NCRef&>(iter->second);
-  // This condition checks that we're not auto-privatizing a readonly container
-  // (so that we can cast away const, below)
-  // do unconditional privatize if required
-  if( flags&DMI::PRIVATIZE )
-  {
-    FailWhen(!isWritable(),"can't autoprivatize in readonly record");
-    fref.privatize(flags&(DMI::READONLY|DMI::WRITE|DMI::DEEP)); 
-  }
-  /*
-  Commented out since this is plain wrong. Writability is checked for 
-  separately in the if-else below.
-  Removed code:
-      // writability is first determined by the field ref itself, plus the field
-      // An invalid ref is considered writable (we'll check for our own writability
-      // below)
-      info.writable = !iter->second.valid() || 
-          ( iter->second.isWritable() && iter->second->isWritable() );
-  */
-  // default is to return an objref to the field
-  if( !check_tid || check_tid == TpObjRef )
-  {
-    // since we're returning an objref, writability to the ref is only limited
-    // by our own writability
-    info.writable = isWritable();
-    FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
-    info.tid = TpObjRef;
-    return &iter->second;
-  }
-  else // else an object type itself (or TpObject) must have been explicitly 
-       // requested. 
-  {
-    // since we're returning a pointer to the object, writability is 
-    // determined by the writability of the ref
-    info.writable = !fref.valid() || fref.isWritable();
-    const NestableContainer *pnc = fref.deref_p();
-    info.tid = pnc->objectType();
-    FailWhen(flags&DMI::WRITE && !info.writable,"write access violation"); 
-    FailWhen(check_tid != info.tid && check_tid != TpObject,
-        "type mismatch: expecting "+check_tid.toString()+", have " +  
-        info.tid.toString() );
-    return pnc;
-  }
+  
+  NestableContainer::Ref &ref = const_cast<NestableContainer::Ref&>(iter->second);
+  bool no_write = flags&DMI::WRITE && !nonconst;
+  // return const violation if not writable; the exception is when access to
+  // object is requested and ref is writable
+  if( no_write && !(flags&DMI::NC_DEREFERENCE && ref.isWritable()) )
+    return -1;
+  info.ptr = &ref;
+  info.writable = nonconst;
+  info.tid = TpObjRef;
+  info.obj_tid = ref.valid() ? ref->objectType() : NullType;
+  info.size = 1;
+  return 1;
 }
 
 //##ModelId=3C7A16BB01D7
-void * DataRecord::insert (const HIID &id, TypeId tid, TypeId &real_tid)
+int DataRecord::insert (const HIID &id,ContentInfo &info)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   FailWhen( !id.size(),"null HIID" );
   FailWhen( fields.find(id) != fields.end(),"field "+id.toString()+" already exists" );
-  if( tid != TpObjRef )
-    real_tid = tid;
-  // inserting a container field? Insert as a field proper
-  if( isNestable(real_tid) ) 
+  TypeId tid = info.obj_tid;
+  // Containers are inserted directly
+  if( isNestable(tid) )
   {
-    if( tid == TpObjRef )
-    {
-      real_tid = TpObjRef;
-      return &fields[id];
-    }
-    else
-    {
-      NestableContainer *pnc = dynamic_cast<NestableContainer *>
-          ( DynamicTypeManager::construct(real_tid) );
-      FailWhen(!pnc,"dynamic_cast failed");
-      fields[id].attach(pnc,DMI::ANONWR|DMI::LOCK);
-      return pnc;
-    }
+    info.ptr = &fields[id];
+    info.tid = TpObjRef;
+    info.writable = True;
+    info.size = 1;
+    return 1;
   }
   // everything else is inserted as a scalar DataField
   else     
   {
-    DataField *pf = new DataField(real_tid,-1); // -1 means scalar
+    NestableContainer *pf = new DataField(tid,-1); // -1 means scalar
     fields[id].attach(pf,DMI::ANONWR|DMI::LOCK);
-    ContentInfo info;
-    info.tid = real_tid;
-    return const_cast<void*>( pf->getn(0,info,tid,True) );
+    // do a get() on the field to obtain info
+    return pf->get(0,info,DMI::NC_ASSIGN|DMI::WRITE);
   }
 }
 
 //##ModelId=3C877D140036
-bool DataRecord::remove (const HIID &id)
+int DataRecord::remove (const HIID &id)
 {
-  nc_writelock;
+  Thread::Mutex::Lock _nclock(mutex());
   dprintf(2)("remove(%s)\n",id.toString().c_str());
   FailWhen( !id.size(),"null HIID" );
-  FailWhen( !isWritable(),"r/w access violation" );
-  // is it our field -- just remove it
+  // find and remove
   CFMI iter = fields.find(id);
   if( iter != fields.end() )
   {
     dprintf(2)("  removing %s\n",iter->second.debug(1));
     fields.erase(iter->first);
-    return True;
+    return 1;
   }
-  return False;
+  return 0;
 }
 
 //##ModelId=3C7A16C4023F
@@ -457,7 +406,7 @@ bool DataRecord::getFieldIter (DataRecord::Iterator& iter, HIID& id, NCRef &ref)
 string DataRecord::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   static int nesting=0;
-  nc_readlock;
+  Thread::Mutex::Lock _nclock(mutex());
   if( nesting++>1000 )
   {
     cerr<<"Too many nested DataRecord::sdebug() calls";
@@ -470,16 +419,15 @@ string DataRecord::sdebug ( int detail,const string &prefix,const char *name ) c
   }
   if( detail >= 1 || detail == -1 )   // normal detail
   {
-    Debug::append(out,isWritable()?"RW ":"RO ");
     out += Debug::ssprintf("%d fields",fields.size());
     out += " / refs "+CountedRefTarget::sdebug(-1);
   }
   if( detail >= 2 || detail <= -2 )   // high detail
   {
     // append debug info from CountedRefTarget
-    string str = CountedRefTarget::sdebug(-2,prefix+"      ");
+    string str = CountedRefTarget::sdebug(-2,prefix+"          ");
     if( str.length() )
-      out += "\n"+prefix+"  refs: "+str;
+      out += "\n"+prefix+"       refs "+str;
     for( CFMI iter = fields.begin(); iter != fields.end(); iter++ )
     {
       if( out.length() )

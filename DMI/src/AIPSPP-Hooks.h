@@ -8,7 +8,8 @@
 #include <aips/Arrays/Matrix.h>
 #include <aips/Utilities/String.h>
     
-#include "DMI/DataArray.h"
+#include <DMI/DataArray.h>
+#include <Common/BlitzToAips.h>
 
 class String;
 
@@ -35,52 +36,49 @@ namespace AIPSPP_Hooks
 };
 
 
-inline String NestableContainer::ConstHook::as_String () const
+inline String NestableContainer::Hook::as_String () const
 {
   return String(as<string>());
 }
 
 template<class T>
-Array<T> NestableContainer::ConstHook::as_AipsArray (Type2Type<T>) const
+Array<T> NestableContainer::Hook::as_AipsArray (Type2Type<T>) const
 {
-  ContentInfo info;
-  const void *target;
-  // resolve any existing index
-  if( index>=0 || id.size() )
-  {
-    target = collapseIndex(info,0,0);
-    FailWhen(!target,"uninitialized element");
-  }
-  else
-  {
-    target = nc;
-    info.tid = nc->objectType();
-    info.size = 1;
-  }
-  // If pointing at an ObjRef, dereference to object
-  if( info.tid == TpObjRef )
-  {
-    FailWhen( !static_cast<const ObjRef*>(target)->valid(),"invalid ObjRef" );
-    target = static_cast<const ObjRef*>(target)->deref_p();
-    info.tid = static_cast<const BlockableObject *>(target)->objectType();
-    info.size = 1;
-  }
+  const void *targ = resolveTarget(DMI::NC_DEREFERENCE);
   // Have we resolved to a DataArray? 
-  if( info.tid == TpDataArray )
-    return static_cast<const DataArray *>(target)->copyAipsArray((T*)0);
-  // no, then try to treat target as a container in scalar mode
-  TypeId tid = typeIdOf(T);
-  FailWhen( !nextNC(asNestable(target,info.tid)),
-            "can't convert "+info.tid.toString()+" to vector of "+tid.toString());
-  int flags = autoprivatize|DMI::NC_SCALAR|DMI::NC_POINTER;
-  target = nc->get(HIID(),info,tid,flags);
-  FailWhen( !target,"can't convert "+info.tid.toString()+" to vector of "+tid.toString());
-  // make 1D array by copying container data
-  return AIPSPP_Hooks::copyVector<T>(info.size,target);
+  if( target.obj_tid == TpDataArray )
+    return static_cast<const DataArray *>(targ)->copyAipsArray((T*)0);
+  // have we resolved to a blitz array?
+  else if( TypeInfo::isArray(target.obj_tid) )
+  {
+    Array<T> out;
+    switch( TypeInfo::rankOfArray(target.obj_tid) )
+    {
+      case 1: copyArray(out,*static_cast<const blitz::Array<T,1>*>(target.ptr)); break;
+      case 2: copyArray(out,*static_cast<const blitz::Array<T,2>*>(target.ptr)); break;
+      case 3: copyArray(out,*static_cast<const blitz::Array<T,3>*>(target.ptr)); break;
+      case 4: copyArray(out,*static_cast<const blitz::Array<T,4>*>(target.ptr)); break;
+      case 5: copyArray(out,*static_cast<const blitz::Array<T,5>*>(target.ptr)); break;
+      case 6: copyArray(out,*static_cast<const blitz::Array<T,6>*>(target.ptr)); break;
+      case 7: copyArray(out,*static_cast<const blitz::Array<T,7>*>(target.ptr)); break;
+      case 8: copyArray(out,*static_cast<const blitz::Array<T,8>*>(target.ptr)); break;
+      default: 
+        ThrowExc(ConvError,"can't convert "+target.obj_tid.toString()+
+                    " to AIPS++ Array<"+typeIdOf(T).toString()+">");
+    }
+    return out;
+  }
+  // have we resolved to scalar?
+  else if( target.obj_tid == typeIdOf(T) )
+  {
+    return AIPSPP_Hooks::copyVector<T>(target.size,target.ptr);
+  }
+  ThrowExc(ConvError,"can't convert "+target.obj_tid.toString()+
+              " to AIPS++ Array<"+typeIdOf(T).toString()+">");
 }
 
 template<class T>
-Vector<T> NestableContainer::ConstHook::as_AipsVector (Type2Type<T>) const
+Vector<T> NestableContainer::Hook::as_AipsVector (Type2Type<T>) const
 {
   Array<T> arr = as_AipsArray();
   FailWhen( arr.ndim() != 1,"can't access array as Vector" );
@@ -88,7 +86,7 @@ Vector<T> NestableContainer::ConstHook::as_AipsVector (Type2Type<T>) const
 }
 
 template<class T>
-Matrix<T> NestableContainer::ConstHook::as_AipsMatrix (Type2Type<T>) const
+Matrix<T> NestableContainer::Hook::as_AipsMatrix (Type2Type<T>) const
 {
   Array<T> arr = as_AipsArray();
   FailWhen( arr.ndim() != 2,"can't access array as Matrix" );

@@ -27,9 +27,13 @@
 #include <DMI/DMI.h>
 #include <DMI/CountedRefBase.h>
 #include <DMI/Loki/TypeManip.h>
+#include <DMI/HIID.h>
 
 using Loki::Type2Type;
 using Loki::Int2Type;
+
+// forward declaration of NestableContainer
+class NestableContainer;
 
 //##ModelId=3BEFECFF0287
 //##Documentation
@@ -307,8 +311,6 @@ class CountedRef : private CountedRefBase
       CountedRefBase::isLocked;
     //##ModelId=3DB934510276
       CountedRefBase::isWritable;
-    //##ModelId=3DB9345103B6
-      CountedRefBase::isExclusiveWrite;
     //##ModelId=3DB934520105
       CountedRefBase::isAnonObject;
     //##ModelId=3DB934520250
@@ -346,6 +348,37 @@ class CountedRef : private CountedRefBase
       template<class U>
       const CountedRef<U> & ref_cast (U* =0) const
       { return ref_cast(Type2Type<U>()); }
+      
+      // Add operator [] for implicit indexing into contents.
+      // So far, this is only implemented in NestableContainer
+      typename T::OpSubscriptReturnType operator [] (const HIID &id) const
+      { return T::apply_subscript(ref_cast<typename T::OpSubscriptRefType>(),id); }
+      
+      typename T::OpSubscriptReturnType operator [] (const HIID &id)
+      { return T::apply_subscript(ref_cast<typename T::OpSubscriptRefType>(),id); }
+      
+#define declareSubscriptAliases(RetType,constness) \
+          RetType operator [] (int id1) constness  \
+           { return (*this)[HIID(id1)]; }  \
+          RetType operator [] (AtomicID id1) constness  \
+           { return (*this)[HIID(id1)]; }  \
+          RetType operator [] (const string &id1) constness  \
+           { return (*this)[HIID(id1)]; }  \
+          RetType operator [] (const char *id1) constness \
+           { return (*this)[HIID(id1)]; }  
+
+#define declareParenthesesAliases(RetType,constness) \
+      RetType operator () (AtomicID id1) constness \
+      { return (*this)[id1]; }  \
+      RetType operator () (AtomicID id1,AtomicID id2) constness \
+      { return (*this)[id1|id2]; }  \
+      RetType operator () (AtomicID id1,AtomicID id2,AtomicID id3) constness \
+      { return (*this)[id1|id2|id3]; }  \
+      RetType operator () (AtomicID id1,AtomicID id2,AtomicID id3,AtomicID id4) constness \
+      { return (*this)[id1|id2|id3|id4]; }  
+          
+      declareSubscriptAliases(typename T::OpSubscriptReturnType,const);
+      declareSubscriptAliases(typename T::OpSubscriptReturnType,);
       
   protected:
     // Additional Protected Declarations

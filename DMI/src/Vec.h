@@ -22,8 +22,7 @@
 #ifndef DMI_DataField_h
 #define DMI_DataField_h 1
 
-#include "DMI/DMI.h"
-#include "DMI/NestableContainer.h"
+#include <DMI/NestableContainer.h>
 
 #pragma type #DataField
 
@@ -65,7 +64,7 @@ class DataField : public NestableContainer
       virtual TypeId objectType () const;
 
       //##ModelId=3C3EAB99018D
-      void clear (int flags = DMI::WRITE);
+      void clear ();
 
       //##ModelId=3C3EB9B902DF
       bool isValid (int n = 0);
@@ -118,39 +117,14 @@ class DataField : public NestableContainer
       //## container.
       virtual int size (TypeId tid = 0) const;
 
-      //##ModelId=3C7A19790361
-      //##Documentation
-      //## Abstract virtual function for dereferencing a container field. Must
-      //## be implemented by all child classes. fieldType() and operator [],
-      //## below, are (by default) implemented in terms of this function
-      //## (although they may be re-implemented in subclasses for efficiency) .
-      //## Returns a pointer to the field data (0 for no such field).  Returns
-      //## the type and writable property in 'tid' and 'can_write'. If must_
-      //## write is True, throws exception if data is read-only. Can throw
-      //## exceptions if id is malformed (i.e. contains indices that are out of
-      //## range).
-      virtual const void * get (const HIID &id, ContentInfo &info, TypeId check_tid = 0, int flags = 0) const;
-
-      //##ModelId=3C7A1983024D
-      virtual const void * getn (int n, ContentInfo &info, TypeId check_tid = 0, int flags = 0) const;
-
       //##ModelId=3C7A198A0347
-      virtual void * insert (const HIID &id, TypeId tid, TypeId &real_tid);
-
-      //##ModelId=3C7A19930250
-      virtual void * insertn (int n, TypeId tid, TypeId &real_tid);
+      virtual int insert (const HIID &id,ContentInfo &info);
 
       //##ModelId=3C877E1E03BE
       //##Documentation
-      //## If given a single-index HIID, maps to removen(n). Otherwise, if
+      //## If given a single-index HIID, removes field by #. Otherwise, if
       //## field contains a single container, calls remove(id) on that.
-      virtual bool remove (const HIID &id);
-
-      //##ModelId=3C877E260301
-      //##Documentation
-      //## Removes object at specified index. Can only remove from the end of
-      //## the array.
-      virtual bool removen (int n);
+      virtual int remove (const HIID &id);
 
     //##ModelId=3DB934720017
       TypeId type () const;
@@ -180,6 +154,9 @@ class DataField : public NestableContainer
       
       
   protected:
+      //##ModelId=3C7A19790361
+      //##Documentation
+      virtual int get (const HIID &id, ContentInfo &info,bool nonconst,int flags) const;
 
       //##ModelId=3C3D8C07027F
       ObjRef & resolveObject (int n, int flags = 0) const;

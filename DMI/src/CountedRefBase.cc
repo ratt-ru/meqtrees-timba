@@ -56,7 +56,7 @@ InitDebugContext(CountedRefBase,"CRef");
 //   Helper function called to actually clone a ref's target
 //   (either from privatize directly, or via delayed-cloning)
 //##ModelId=3DB9346500B5
-void CountedRefBase::cloneTarget () const
+void CountedRefBase::cloneTarget (int flags,int depth) const
 {
   threadLock(target);
   if( !valid() )
@@ -64,7 +64,7 @@ void CountedRefBase::cloneTarget () const
   VERIFY;
   dprintf1(2)("  %s: cloning target\n",debug(0));
   // clone the target
-  CountedRefTarget *newtarget = target->clone(delayed_clone_flags,delayed_clone_depth);
+  CountedRefTarget *newtarget = target->clone(flags,depth);
   // detach from old list
   if( prev ) 
     prev->next = next;
@@ -80,8 +80,6 @@ void CountedRefBase::cloneTarget () const
   target = newtarget;
   target->owner_ref = const_cast<CountedRefBase*>(this);
   target->anon = True;
-  // clear delayed-clone flag
-  delayed_clone = False;
   VERIFY;
 }
 
@@ -150,17 +148,17 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
 #if COUNTEDREF_VERIFY
     other.verify();
 #endif
-    // if the other ref is delayed-clone, then resolve it now
-    if( other.delayed_clone )
-    {
-      dprintf(2)("  performing delayed cloning\n");
-      ((CountedRefBase*)&other)->cloneTarget();
-    }
+    // default is to preserve writability of original ref, unless DMI::READONLY
+    // is specified. If DMI::WRITE is specified, throws exception if
+    // non-writable
     if( flags&DMI::READONLY )
       flags &= ~DMI::WRITE;
+    else if( other.isWritable() )
+      flags |= DMI::WRITE;
     else
-      FailWhen( flags&DMI::WRITE && (!other.isWritable() || other.isExclusiveWrite()),
-             "r/w access violation: copy(WRITABLE)");
+    {
+      FailWhen(flags&DMI::WRITE,"r/w access violation: copy(DMI::WRITE) of read-only ref");
+    }
     // insert copy into list after other
     target = other.target;
     prev = const_cast<CountedRefBase*>(&other);
@@ -173,7 +171,7 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
     if( depth >=0 )
     {
       // clear all properties (privatize() will set them up according to flags)
-      locked = exclusiveWrite = persistent = False;
+      locked = persistent = False;
       privatize(privatize_flags,depth);
     }
     // else use remaining flags to set up ref properties
@@ -181,12 +179,9 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
     {
       // setup properties
       locked = (flags&DMI::LOCKED) != 0;
-      // writable property is inherited unless exclusive, or READONLY is specified
-      // (guard condition above already checks for access violations)
-      writable = (flags&DMI::WRITE) != 0 ||
-                 ( (flags&DMI::PRESERVE_RW) && other.isWritable() );
       persistent = (flags&DMI::PERSIST) != 0;
-      exclusiveWrite = delayed_clone = False;
+      // writability is checked via flags above
+      writable = (flags&DMI::WRITE) != 0;
     }
   }
   dprintf1(2)("  made %s\n",debug(Debug(3)?3:2,"  "));
@@ -223,8 +218,6 @@ void CountedRefBase::xfer (const CountedRefBase& other)
     target = other.target;
     locked = False;
     writable = other.isWritable();
-    exclusiveWrite = other.isExclusiveWrite();
-    delayed_clone = False;
     // invalidate other ref (const violation here, but that's a consequence
     // of our destructive semantics)
     const_cast<CountedRefBase&>(other).empty();
@@ -239,9 +232,8 @@ CountedRefBase& CountedRefBase::privatize (int flags, int depth)
   // here and _NOT_ passed on to target->privatize.
   // All other flags (WRITE, READONLY, etc.) are passed on. 
   const int local_flags =
-      DMI::FORCE_CLONE|DMI::DEEP_DLY_CLONE|
+      DMI::FORCE_CLONE|
       DMI::LOCKED|DMI::UNLOCKED|
-      DMI::EXCL_WRITE|DMI::NONEXCL_WRITE|
       DMI::PERSIST;
   
   dprintf1(2)("%s: privatizing to depth %d, target:\n",debug(),flags&DMI::DEEP?-1:depth);
@@ -250,10 +242,7 @@ CountedRefBase& CountedRefBase::privatize (int flags, int depth)
   dprintf1(2)("  %s\n",target->debug(2,"  "));
   // readonly overrides writable and disables delayed cloning
   if( flags&DMI::READONLY )
-    flags &= ~(DMI::DLY_CLONE|DMI::WRITE);
-  // forcing a clone disables delayed cloning
-  if( flags&DMI::FORCE_CLONE )
-    flags &= ~DMI::DLY_CLONE;
+    flags &= ~DMI::WRITE;
   // no cloning is done if the object is anon, and either
   //   (1) we are the only ref, or
   //   (2) cloning is read-only, and all other refs are read-only.
@@ -280,26 +269,14 @@ CountedRefBase& CountedRefBase::privatize (int flags, int depth)
   
   if( do_clone )
   {
-    delayed_clone_flags = flags & ~local_flags;
-    delayed_clone_depth = depth;
-    if( flags&DMI::DLY_CLONE ) // mark for delayed cloning, if requested
-    {
-      delayed_clone = True;
-      // if deep-delay is not specified, turn off delay for target flags
-      if( flags&DMI::DEEP_DLY_CLONE != DMI::DEEP_DLY_CLONE )
-        delayed_clone_flags &= ~DMI::DLY_CLONE;
-      dprintf(2)("  marked for delayed cloning\n");
-    }
-    else // else clone now
-      cloneTarget();
+    cloneTarget(flags & ~local_flags,depth);
   }
   else
   {
     // we are sole reference to target, so privatize it
     target->privatize(flags & ~local_flags,depth);
-    delayed_clone = False;
   }
-  // now setup ref properties
+  // now change ref properties if asked to
   if( flags&DMI::LOCKED )
     locked = True;
   else if( flags&DMI::UNLOCKED )
@@ -307,17 +284,11 @@ CountedRefBase& CountedRefBase::privatize (int flags, int depth)
   // writable remains as-is unless overridden by flags
   if( flags&DMI::WRITE )
     writable = True;
-  else 
+  else if( flags&DMI::READONLY )
     writable = False;
-  // exclusiveWrite remains as-is unless overridden
-  if( flags&DMI::EXCL_WRITE )
-    exclusiveWrite = True;
-  else if( flags&DMI::NONEXCL_WRITE )
-    exclusiveWrite = False;
   // persistent flag may be raised explicitly
   if( flags&DMI::PERSIST )
     persistent = True;
-  
   dprintf(2)("has been privatized\n");
   return *this;
 }
@@ -342,31 +313,8 @@ CountedRefBase& CountedRefBase::change (int flags)
   // persist
   if( flags&DMI::PERSIST )
     persistent = True;
-  // exclusive/non-exclusive write
-  if( flags&DMI::NONEXCL_WRITE )
-  {
-    FailWhen(!isWritable(),"ref is read-only, can't make it nonexclusive-write");
-    exclusiveWrite = False;
-  }
-  else if( flags&DMI::EXCL_WRITE )
-    setExclusiveWrite();
   
   dprintf1(3)("%s\n",debug(-1));
-  return *this;
-}
-
-//##ModelId=3C1888B001A1
-CountedRefBase& CountedRefBase::setExclusiveWrite ()
-{
-  dprintf(3)("setExclusiveWrite\n");
-  if( !isExclusiveWrite() )
-  {
-    FailWhen( !valid(),"ref is invalid");
-    FailWhen( !isWritable(),"ref is read-only, can't make it exclusive-write");
-    threadLock(target);
-    FailWhen( hasOtherWriters(),"can't make exclusive because other writable refs exist");
-    writable = exclusiveWrite = True;
-  }
   return *this;
 }
 
@@ -401,15 +349,13 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   // setup properties
   if( flags&DMI::WRITE && !(flags&DMI::READONLY) ) // writable attach?
   {
-    FailWhen( targ->refWriteExclusions(),"can't attach writeable ref: exclusivity violation");
     writable = True;
   }
   else
     writable = False;
   locked = (flags&DMI::LOCKED)!=0;
   targ->anon = anon;
-  if( flags&DMI::EXCL_WRITE )
-    setExclusiveWrite();
+  
   // persistent flag may be raised explicitly
   persistent = (flags&DMI::PERSIST) != 0;
 
@@ -471,7 +417,7 @@ void CountedRefBase::detach ()
 }
 
 //##ModelId=3C583B9F03B8
-bool CountedRefBase::hasOtherWriters ()
+bool CountedRefBase::hasOtherWriters () const
 {
   if( !valid() )
     return False;
@@ -510,12 +456,6 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
     if( valid() )
     {
       out += Debug::ssprintf(">%08x",(int)target); 
-      if( delayed_clone )
-      {
-        out += "*";
-        if( delayed_clone_flags&DMI::DLY_CLONE )
-          out += "/";
-      }
     }
     else
     {
@@ -526,10 +466,9 @@ string CountedRefBase::sdebug ( int detail,const string &prefix,const char *name
   {
     if( valid() )
     {
-      Debug::appendf(out,"%c%c%c%c%c",
+      Debug::appendf(out,"%c%c%c%c",
                          isAnonObject() ? 'A' : '-', 
                          isWritable() ? 'W' : '-', 
-                         isExclusiveWrite() ? 'E' : '-', 
                          isPersistent() ? 'P' : '-',
                          isLocked() ? 'L' : '-');
       if( prev )

@@ -16,13 +16,12 @@
 class NCBaseIter 
 {
   protected:
-    // Additional Protected Declarations
 // The base iter class is only there to enable the friend declaration in
-// NestableContainer::ConstHook
+// NestableContainer::Hook
     //##ModelId=3DB951DD037D
       static const void *get_pointer(
           int &sz,
-          const NestableContainer::ConstHook &hook,
+          const NestableContainer::Hook &hook,
           TypeId tid,
           bool write,
           Thread::Mutex::Lock *lock )
@@ -38,10 +37,10 @@ class NCConstIter : public NCBaseIter
 {
   public:
       //##ModelId=3DB951DD03D7
-      NCConstIter (const NestableContainer::ConstHook &hook);
+      NCConstIter (const NestableContainer::Hook &hook);
 
       //##ModelId=3DB951DE0007
-      NCConstIter (const NestableContainer::ConstHook &hook, bool );
+      NCConstIter (const NestableContainer::Hook &hook, bool );
 
     //##ModelId=3DB951DE0031
       bool operator==(const NCConstIter< T > &right) const;
@@ -161,7 +160,7 @@ inline NCConstIter<T>::NCConstIter()
 
 //##ModelId=3DB951DD03D7
 template <class T>
-inline NCConstIter<T>::NCConstIter (const NestableContainer::ConstHook &hook)
+inline NCConstIter<T>::NCConstIter (const NestableContainer::Hook &hook)
 {
   int sz;
   ptr_ = start_ptr_ = 
@@ -171,7 +170,7 @@ inline NCConstIter<T>::NCConstIter (const NestableContainer::ConstHook &hook)
 
 //##ModelId=3DB951DE0007
 template <class T>
-inline NCConstIter<T>::NCConstIter (const NestableContainer::ConstHook &hook, bool )
+inline NCConstIter<T>::NCConstIter (const NestableContainer::Hook &hook, bool )
 {
   int sz;
   ptr_ = start_ptr_ = 

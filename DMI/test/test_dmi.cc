@@ -63,14 +63,6 @@ void TestCountedRefs()
   BlockRef ref2a = ref2.copy(DMI::PRESERVE_RW);
   Assert( block2->refCount() == 2 );
   Assert( ref2a.isWritable() );
-  cout<<"======================= ref2a.privatize(DMI::WRITE|DMI::DLY_CLONE): no snapshot expected\n";
-  ref2a.privatize(DMI::WRITE|DMI::DLY_CLONE);
-  Assert( block2->refCount() == 2 );
-  cout<<"======================= dereferencing ref2a\n";
-  const SmartBlock *bl = &ref2a.deref();
-  Assert( bl != block2 );
-  Assert( block2->refCount() == 1 );
-  Assert( bl->refCount() == 1 );
   cout<<"======================= exiting CountedRef Block\n";
 }
 
@@ -142,8 +134,6 @@ void TestDataRecord ()
   Assert( rec["A.B.C.D"].isContainer() );
   Assert( rec["A.B.C.D"].actualType() == TpObjRef );
   Assert( rec["A.B.C.D"].containerType() == TpDataField );
-  Assert( rec["A.B.C.D"].isWritable() );
-  Assert( rec["A.B.C.D/20"].isWritable() );
   cout<<"Values: {{{"<<(int)(rec["A.B.C.D"][20])<<" "<<(int*)&(rec["A.B.C.D"][20])
       <<"  "<<rec["A.B.C.D"].as_p<int>()<<" }}}\n";
   Assert( rec["A.B.C.D/20"].as<int>() == 5 );
@@ -158,8 +148,6 @@ void TestDataRecord ()
   Assert( rec["A.B.C.E"].isContainer() );
   Assert( rec["A.B.C.E"].actualType() == TpObjRef );
   Assert( rec["A.B.C.E"].containerType() == TpDataField );
-  Assert( rec["A.B.C.E"].isWritable() );
-  Assert( rec["A.B.C.E/0"].isWritable() );
   Assert( rec["A.B.C.E/0"].as<HIID>() == HIID("A.B.C.D") );
 
   rec["A.B.C.F"] = "test string";
@@ -170,8 +158,6 @@ void TestDataRecord ()
   Assert( rec["A.B.C.F"].isContainer() );
   Assert( rec["A.B.C.F"].actualType() == TpObjRef );
   Assert( rec["A.B.C.F"].containerType() == TpDataField );
-  Assert( rec["A.B.C.F"].isWritable() );
-  Assert( rec["A.B.C.F/1"].isWritable() );
   Assert( rec["A.B.C.F/1"].as<string>() == "another test string" );
   
   cout<<"======================= record debug info:\n";
@@ -185,7 +171,7 @@ void TestDataRecord ()
   rec["A.B.C.D/31"] = 5;
   Assert( rec["A.B.C.D"].size() == 32 );
   cout<<"======================= making compound record\n";
-  rec["B"] <<= new DataField(TpDataRecord,-1);
+  rec["B"] <<= new DataRecord;
   rec["C"] = f2.copy();
   rec["D"] = f2.copy();
 //  Assert( rec["B"].as_DataRecord_wp() != 0 );
@@ -195,6 +181,7 @@ void TestDataRecord ()
   rec["B"]["C"]["A"] <<= new DataField(Tpint,32);
   rec["B/C/A/10"] = 5;
   rec["B/C/B"] = "a string";
+  rec["B/C/C"] = "yeat another string";
   Assert( rec["B/C/A"][10].as<int>() == 5 );
   cout<<"Record is "<<rec.sdebug(10)<<endl;
 
@@ -232,15 +219,58 @@ void TestDataRecord ()
   cout<<"======================= deep-cloning record\n";
   DataRecord rec3 = rec2;
   cout<<"Record 3 after cloning: "<<rec3.sdebug(10)<<endl;
-  rec3.setBranch("B",DMI::PRIVATIZE|DMI::WRITE|DMI::DEEP);
-  cout<<"Record 3 after privatize of branch B: "<<rec3.sdebug(10)<<endl;
+//  rec3.setBranch("B",DMI::PRIVATIZE|DMI::WRITE|DMI::DEEP);
+//  cout<<"Record 3 after privatize of branch B: "<<rec3.sdebug(10)<<endl;
   rec3.privatize(DMI::WRITE|DMI::DEEP);
   cout<<"Record 3 after full deep-privatize: "<<rec3.sdebug(10)<<endl;
   rec3["B"].privatize(DMI::READONLY|DMI::DEEP);
   cout<<"Record 3 after branch B privatize as read-only: "<<rec3.sdebug(10)<<endl;
-  cout<<"======================= autoprivatizing rec3[B/C/A] for write\n";
-  rec3.setBranch("B/C/A",DMI::WRITE)[10] = 2;
-  cout<<"Record 3 is now: "<<rec3.sdebug(10)<<endl;
+  
+  cout<<"======================= checking privatize-on-write features\n";
+  {
+    DataRecord::Ref rref1(new DataRecord(rec,DMI::READONLY|DMI::DEEP),DMI::READONLY|DMI::ANON);
+    DataRecord::Ref rref2(rref1,DMI::COPYREF|DMI::READONLY);
+    cout<<"rref1 is ref to deep r/o clone of rec: "<<rref1.sdebug(10)<<endl;
+    cout<<"rref2 is r/o copy of rref1: "<<rref2.sdebug(1)<<endl;
+    rref1.privatize(DMI::WRITE);
+    DataRecord &rr = rref1;
+    const DataRecord &rr2 = *rref2;
+    cout<<"rr after privatize(DMI::WRITE): "<<rr.sdebug(10)<<endl;
+    
+//    rec["B/C/A/10"] = 5;
+//    rec["B/C/B"] = "a string";
+//    Assert( rec["B/C/A"][10].as<int>() == 5 );
+    
+    int a1 = (*rref1)["B/C/A/10"];
+    string a2 = (*rref1)["B/C/B"].as<string>();
+    rr["B/C/A/10"] = 55;
+    cout<<"rr after assignment to B/C/A/10: "<<rr.sdebug(10)<<endl;
+    rr["B/C/B"] = "another string";
+    cout<<"rr after assignment to B/C/B: "<<rr.sdebug(10)<<endl;
+    cout<<"Original record: "<<rref2->sdebug(10)<<endl;
+    Assert( rr2["B/C/A"][10].as<int>() == a1 );
+    Assert( rr2["B/C/B"].as<string>() == a2 );
+    Assert( rr["B/C/A"][10].as<int>() == 55 );
+    Assert( rr["B/C/B"].as<string>() == "another string" );
+    Assert( rr["C"].as_p<DataField>() == rr2["C"].as_p<DataField>() );
+    Assert( rr["B"].as_p<DataRecord>() != rr2["B"].as_p<DataRecord>() );
+    Assert( rr["B/C"].as_p<DataRecord>() != rr2["B/C"].as_p<DataRecord>() );
+    Assert( rr["B/C/A"].as_p<DataField>() != rr2["B/C/A"].as_p<DataField>() );
+    Assert( rr["B/C/B"].as_p<DataField>() != rr2["B/C/B"].as_p<DataField>() );
+    Assert( rr["B/C/C"].as_p<DataField>() == rr2["B/C/C"].as_p<DataField>() );
+    
+    cout<<"======================= accessing via read-only ref\n";
+    cout<<"ref before write access: "<<rref2.sdebug(10)<<endl;
+    Assert(rref2["B/C/A"][10].as<int>() == a1 );
+    rref2["B/C/A"][10] = 66;
+    cout<<"ref after write access: "<<rref2.sdebug(10)<<endl;
+    Assert(rref2["B/C/A"][10].as<int>() == 66 );
+    
+  }
+  
+//  cout<<"======================= autoprivatizing rec3[B/C/A] for write\n";
+//  rec3.setBranch("B/C/A",DMI::WRITE)[10] = 2;
+//  cout<<"Record 3 is now: "<<rec3.sdebug(10)<<endl;
 
   cout<<"======================= removing field B/C/A from record\n";
   cout<<"Original record: "<<rec.sdebug(10)<<endl;
@@ -326,7 +356,7 @@ void TestDataRecord ()
   strarr.toBlock(arrset);
   
   cout<<"converting from block\n";
-  DataArray strarr2(DMI::WRITE);
+  DataArray strarr2;
   strarr2.fromBlock(arrset);
 //  cout<<"Array contents: "<<strarr2[HIID()].as_LoMat_string()<<endl;
   for(int i=0; i<10; i++)
@@ -399,7 +429,7 @@ int main ( int argc,const char *argv[] )
     cout<<test.toString()<<endl;
     cout<<HIID("_._.:6").toString()<<endl;
   }
-  catch( std::exception err ) 
+  catch( std::exception &err )
   {
     cout<<"\nCaught exception:\n"<<err.what()<<endl;
     return 1;

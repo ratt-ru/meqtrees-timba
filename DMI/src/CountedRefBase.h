@@ -143,12 +143,6 @@ class CountedRefBase
       //## DMI::WRITE/READONLY, LOCKED/UNLOCKED, EXCL_WRITE/NONEXCL_WRITE.
       CountedRefBase& change (int flags);
 
-      //##ModelId=3C1888B001A1
-      //##Documentation
-      //## Makes the ref an exclusive writer, if no other writers exist
-      //## (exception otherwise)
-      CountedRefBase& setExclusiveWrite ();
-
       //##ModelId=3C0CDEE20171
       //##Documentation
       //## Attaches to target object. Flags:
@@ -175,23 +169,21 @@ class CountedRefBase
       //##ModelId=3C583B9F03B8
       //##Documentation
       //## Returns True if there exist other refs to target that are writable
-      bool hasOtherWriters ();
+      bool hasOtherWriters () const;
 
-    //##ModelId=3DB9345F0072
+      //##ModelId=3DB9345F0072
       bool isLocked () const;
 
-    //##ModelId=3DB9345F0180
+      //##ModelId=3DB9345F0180
       bool isWritable () const;
 
-    //##ModelId=3DB9345F025C
-      bool isExclusiveWrite () const;
-
+      //##ModelId=3DB9345F0343
+      //##Documentation
       //	True if target is an anonymous object (i.e. will be deleted when last
       //	reference to it is deleted.)
-    //##ModelId=3DB9345F0343
       bool isAnonObject () const;
 
-    //##ModelId=3DB93460004B
+      //##ModelId=3DB93460004B
       bool isPersistent () const;
 
     //##ModelId=3DB93460013B
@@ -246,7 +238,6 @@ class CountedRefBase
       
       
   protected:
-
       //##ModelId=3C1611C702DB
       //##Documentation
       //## Privatizes a reference.
@@ -265,8 +256,6 @@ class CountedRefBase
       mutable CountedRefTarget *target;
 
   private:
-    // Data Members for Associations
-
       //##ModelId=3C0CE0FA0394
       //##Documentation
       //## prev ref in list (0 if first ref)
@@ -276,21 +265,10 @@ class CountedRefBase
       //##Documentation
       //## next ref in list (0 if last ref)
       mutable CountedRefBase *next;
-
-    // Additional Private Declarations
-      // flag: target should be cloned at next writable dereference
-    //##ModelId=3DB9345B0368
-      mutable bool delayed_clone; 
-    //##ModelId=3DB9345C0139
-      int delayed_clone_flags; 
-    //##ModelId=3DB9345C028E
-      int delayed_clone_depth;
       
       // helper function to do the delayed cloning
     //##ModelId=3DB9346500B5
-      void cloneTarget () const;
-  private:
-    // Data Members for Class Attributes
+      void cloneTarget (int flags,int depth) const;
 
       //##ModelId=3C15DF4D036D
       //##Documentation
@@ -302,14 +280,7 @@ class CountedRefBase
       //##Documentation
       //## True if reference target is writable.
       bool writable;
-
-      //##ModelId=3C0CDEE20127
-      //##Documentation
-      //## True if this is an exclusive-write reference, i.e., other writable
-      //## refs can't be created.
-      bool exclusiveWrite;
-
-
+      
       //##ModelId=3C5018D1011A
       //##Documentation
       //## True if the ref is persistent, i.e., copy constructors and "=" do a
@@ -386,13 +357,6 @@ inline bool CountedRefBase::valid () const
 inline const CountedRefTarget* CountedRefBase::getTarget () const
 {
   FailWhen( !valid(),"dereferencing invalid ref");
-  // should we do this for read-only?  
-  if( delayed_clone )
-  {
-    dprintf1(2)("%s: performing delayed cloning\n",debug());
-    // deliberate const violation, but we need to clone the target
-    cloneTarget();
-  }
   return target;
 }
 
@@ -401,11 +365,12 @@ inline CountedRefTarget* CountedRefBase::getTargetWr () const
 {
   FailWhen( !valid(),"dereferencing invalid ref");
   FailWhen( !isWritable(),"r/w access violation: non-const dereference");
-  if( delayed_clone )
-  {
-    dprintf1(2)("%s: performing delayed cloning\n",debug());
-    cloneTarget();
-  }
+//   if( needs_pow )
+//   {
+//     dprintf(2)("performing privatize-on-write\n");
+//     cloneTarget(DMI::WRITE,0);
+//     needs_pow = False;
+//   }
   return target;
 }
 
@@ -418,7 +383,7 @@ inline CountedRefBase CountedRefBase::copy (int flags, int depth) const
 //##ModelId=3C187D92023F
 inline CountedRefBase& CountedRefBase::lock ()
 {
-  dprintf1(3)("%s: locking\n",debug());
+  dprintf(3)("locking\n");
   locked = True;
   return *this;
 }
@@ -426,7 +391,7 @@ inline CountedRefBase& CountedRefBase::lock ()
 //##ModelId=3C187D9A022C
 inline CountedRefBase& CountedRefBase::unlock ()
 {
-  dprintf1(3)("%s: unlocking\n",debug());
+  dprintf(3)("unlocking\n");
   locked = False;
   return *this;
 }
@@ -434,7 +399,7 @@ inline CountedRefBase& CountedRefBase::unlock ()
 //##ModelId=3C5019FB0000
 inline CountedRefBase & CountedRefBase::persist ()
 {
-  dprintf1(3)("%s: persisting\n",debug());
+  dprintf(3)("persisting\n");
   persistent = True;
   return *this;
 }
@@ -442,7 +407,7 @@ inline CountedRefBase & CountedRefBase::persist ()
 //##ModelId=3C501A0201A5
 inline CountedRefBase& CountedRefBase::unpersist ()
 {
-  dprintf1(3)("%s: unpersisting\n",debug());
+  dprintf(3)("unpersisting\n");
   persistent = False;
   return *this;
 }
@@ -468,7 +433,7 @@ inline bool CountedRefBase::isWrite () const
 inline void CountedRefBase::empty ()
 {
   target=0; next=prev=0;
-  locked=writable=exclusiveWrite=persistent=delayed_clone=False;
+  locked=writable=persistent=False;
 }
 
 //##ModelId=3DB9345F0072
@@ -481,12 +446,6 @@ inline bool CountedRefBase::isLocked () const
 inline bool CountedRefBase::isWritable () const
 {
   return writable;
-}
-
-//##ModelId=3DB9345F025C
-inline bool CountedRefBase::isExclusiveWrite () const
-{
-  return exclusiveWrite;
 }
 
 //##ModelId=3DB9345F0343

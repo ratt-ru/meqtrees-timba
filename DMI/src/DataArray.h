@@ -21,6 +21,15 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.25  2004/01/28 16:23:34  smirnov
+//  %[ER: 16]%
+//  Revised the hook infrastructure, got rid of NC::writable flag.
+//  Simplified CountedRefs
+//
+//  Revision 1.24.2.1  2004/01/26 14:57:40  smirnov
+//  %[ER: 16]%
+//  Commiting overhaul of Hook classes
+//
 //  Revision 1.24  2004/01/21 11:08:58  smirnov
 //  %[ER: 16]%
 //  brought the Rose model up-to-date; this got a bunch of IDs inserted into the
@@ -166,18 +175,16 @@ class DataArray : public NestableContainer
 public:
   // Create the object without an array in it.
     //##ModelId=3DB949AE039F
-  explicit DataArray (int flags = DMI::WRITE);
+  DataArray ();
 
   // Create the object with an array of the given shape.
     //##ModelId=3DB949AE03A4
-  DataArray (TypeId type, const LoShape & shape, int flags = DMI::WRITE,
-	     int shm_flags = 0);
+  DataArray (TypeId type,const LoShape & shape,int flags=0,int shm_flags=0);
   
   // Create the object, and initialize data from array. "other" should point 
   // to a Lorray<T,N> object (where T,N correspond to array_tid)
     //##ModelId=3DB949AE03AF
-  DataArray (TypeId array_tid, const void *other, int flags = DMI::WRITE,
-	     int shm_flags = 0);
+  DataArray (TypeId array_tid,const void *other,int flags=0,int shm_flags=0);
 
   // Create the object with an array of the given shape.
 //   explicit DataArray (const Array<bool>& array, int flags = DMI::WRITE,
@@ -200,19 +207,17 @@ public:
   // For non-templated compilers, this can be redefined using the DoFor...()
   // type iterator macros
   template<class T,int N>
-  explicit DataArray (const blitz::Array<T,N> & array, int flags = DMI::WRITE,
-		      int shm_flags = 0);
+  explicit DataArray (const blitz::Array<T,N> & array,int flags=0,int shm_flags=0);
 
 #ifdef HAVE_AIPSPP
   // templated method to create a copy of the given AIPS++ array
   template<class T>
-  explicit DataArray (const Array<T> & array, int flags = DMI::WRITE,
-		      int shm_flags = 0);
+  explicit DataArray (const Array<T> & array,int flags=0,int shm_flags=0);
 #endif
 
   // Copy (copy semantics).
     //##ModelId=3F5487DA034E
-  DataArray (const DataArray& other, int flags = 0, int depth = 0);
+  DataArray (const DataArray& other, int flags=0, int depth=0);
 
     //##ModelId=3DB949AE03B8
   ~DataArray();
@@ -282,7 +287,7 @@ public:
   
     //##ModelId=400E4D68038A
   void * getDataPtr () 
-  { FailWhen(!isWritable(),"r/w access violation"); return itsArrayData; }
+  { return itsArrayData; }
 
   // Return the object type (TpDataArray).
     //##ModelId=3DB949AE03BE
@@ -304,13 +309,9 @@ public:
     //##ModelId=3DB949AE03D2
   virtual void privatize (int flags = 0, int depth = 0);
 
-    //##ModelId=3DB949AE03DA
-  virtual const void* get (const HIID& id, ContentInfo &info,
-			   TypeId check_tid = 0, int flags = 0) const;
-
   // Insertion is not possible (throws exception).
     //##ModelId=3DB949AE03E5
-  virtual void* insert (const HIID& id, TypeId tid, TypeId& real_tid);
+  virtual int insert (const HIID& id,ContentInfo &info);
 
   // The size is the number of array elements.
     //##ModelId=3DB949AF0007
@@ -338,6 +339,10 @@ public:
 
     //##ModelId=3E9BD91703A8
   static const int NumTypes = Tpbool_int - Tpstring_int + 1;
+
+protected:
+    //##ModelId=3DB949AE03DA
+  virtual int get (const HIID& id,ContentInfo &info,bool nonconst,int flags) const;
   
 private:
   // Initialize internal shape and create array using the given shape.
@@ -525,7 +530,7 @@ inline TypeId DataArray::elementType () const
 template<class T,int N>
 DataArray::DataArray (const blitz::Array<T,N>& array,
 		      int flags, int )  // shm_flags not yet used
-: NestableContainer(flags&DMI::WRITE != 0),
+: NestableContainer(),
   itsArray    (0)
 {
   initSubArray();
@@ -571,7 +576,7 @@ inline void DataArray::copyStringArray (const void *source)
 // templated constructor from an AIPS++ array
 template<class T>
 DataArray::DataArray (const Array<T> &array,int flags, int )  // shm_flags not yet used
-: NestableContainer(flags&DMI::WRITE != 0),
+: NestableContainer(),
   itsArray    (0)
 {
   initSubArray();

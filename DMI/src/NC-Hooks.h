@@ -43,21 +43,22 @@ T & as_wr (Type2Type<T> =Type2Type<T>()) const
 } 
 
 #define __convert1(T,arg) operator T* () const { return implicit_ptr(Type2Type<T>()); }
-#define __convert2(T,arg) operator T& () const { return as_wr(Type2Type<T>()); }
-#define __convert(T,arg) __convert1(T,) __convert2(T,) 
-
-DoForAllNumericTypes(__convert1,);
-DoForAllBinaryTypes(__convert1,);
-DoForAllDynamicTypes(__convert1,);
-DoForAllSpecialTypes(__convert1,);
-DoForAllBinaryTypes(__convert2,);
-DoForAllDynamicTypes(__convert2,);
-DoForAllSpecialTypes(__convert2,);
-
-#undef __convert
-#undef __convert1
-#undef __convert2
-
+// #define __convert2(T,arg) operator T& () const { return as_wr(Type2Type<T>()); }
+// #define __convert(T,arg) __convert1(T,) __convert2(T,) 
+// 
+ DoForAllNumericTypes(__convert1,);
+ DoForAllBinaryTypes(__convert1,);
+ DoForAllDynamicTypes(__convert1,);
+ DoForAllSpecialTypes(__convert1,);
+// DoForAllBinaryTypes(__convert2,);
+// DoForAllDynamicTypes(__convert2,);
+// DoForAllSpecialTypes(__convert2,);
+// 
+// #undef __convert
+// #undef __convert1
+// #undef __convert2
+// 
+ 
 // -----------------------------------------------------------------------
 // operator =
 // -----------------------------------------------------------------------
@@ -85,7 +86,7 @@ T& assign_impl (const T& value,Any1,Int2Type<true>,Any2) const
 { 
   const int tid = DMITypeTraits<T>::typeId; 
   ContentInfo info; void *data = prepare_put(info,tid);
-  Assert(info.tid==tid); 
+  DbgAssert(info.tid==tid); 
   return *static_cast<T*>(data) = value; 
 };
 
