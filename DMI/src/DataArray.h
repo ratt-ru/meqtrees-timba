@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.9  2002/05/30 12:15:13  diepen
+//  %[BugId: 25]%
+//  Added the required constructors
+//
 //  Revision 1.8  2002/05/14 09:48:00  gvd
 //  Removed public which was left in
 //
@@ -82,6 +86,20 @@ public:
   // Create the object with an array of the given shape.
   DataArray (TypeId type, const IPosition& shape, int flags = DMI::WRITE,
 	     int shm_flags = 0);
+
+  // Create the object with an array of the given shape.
+  explicit DataArray (const Array<bool>& array, int flags = DMI::WRITE,
+		      int shm_flags = 0);
+  explicit DataArray (const Array<int>& array, int flags = DMI::WRITE,
+		      int shm_flags = 0);
+  explicit DataArray (const Array<float>& array, int flags = DMI::WRITE,
+		      int shm_flags = 0);
+  explicit DataArray (const Array<double>& array, int flags = DMI::WRITE,
+		      int shm_flags = 0);
+  explicit DataArray (const Array<fcomplex>& array, int flags = DMI::WRITE,
+		      int shm_flags = 0);
+  explicit DataArray (const Array<dcomplex>& array, int flags = DMI::WRITE,
+		      int shm_flags = 0);
 
   // Copy (copy semantics).
   DataArray (const DataArray& other, int flags = 0, int depth = 0);
