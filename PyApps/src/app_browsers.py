@@ -11,6 +11,8 @@ import dmi_repr
 import gridded_workspace 
 import weakref
 
+from pretty_print import PrettyPrinter
+
 dmirepr = dmi_repr.dmi_repr();
 
 # helper class implementing a 'Precision' menu
@@ -476,18 +478,22 @@ class RecordBrowser(HierBrowser,BrowserPlugin):
       self.set_data(dataitem);
   
   def set_data (self,dataitem,default_open=None,**opts):
-    # save currenty open tree, if nothing is open, try to use default
-    openitems = self.get_open_items() or default_open or self._default_open;
+    # save currently open tree
+    if self._rec is not None:
+      openitems = self.get_open_items();
+    else: # no data, use default open tree if specified
+      openitems = default_open or self._default_open;
     # clear everything and reset data as new
     self.clear();
     self.set_udi_root(dataitem.udi);
     self._rec = dataitem.data;
+    self._pprint = PrettyPrinter(width=78,stream=sys.stderr);
     self.set_refresh_func(dataitem.refresh_func);
     # expand first level of record
     HierBrowser.Item.expand_content(self._lv,self._rec);
     # apply saved open tree
     self.set_open_items(openitems);
-    
+
 class ArrayBrowser(BrowserPlugin):
   _icon = pixmaps.matrix;
   viewer_name = "Array Browser";
@@ -508,6 +514,7 @@ class ArrayBrowser(BrowserPlugin):
         raise TypeError,"illegal array dimensionality";
       self._arr = arr;
       self._rank = arr.rank;
+      print "ArrayBrowser: rank is ", self._rank
       self.setNumRows(arr.shape[0]);
       if self._rank == 1:   
         self.setNumCols(1);
@@ -586,11 +593,18 @@ for tp in (dict,list,tuple,array_class):
   gridded_workspace.registerViewer(tp,RecordBrowser);
 gridded_workspace.registerViewer(dict,ResultBrowser,dmitype='meqresult',priority=-10);
 gridded_workspace.registerViewer(array_class,ArrayBrowser,priority=-5);
+#gridded_workspace.registerViewer(dict,ResultPlotter,dmitype='meqresult',priority=-10);
 
 # import the array plotter plug-in
 try:
   __import__('array_plotter',globals(),locals(),[]);
 except ImportError,what:
   print 'error importing array_plotter module:',what;
+  print 'Array Plotter will not be available.';
+
+try:
+  __import__('result_plotter',globals(),locals(),[]);
+except ImportError,what:
+  print 'error importing result_plotter  module:',what;
   print 'Array Plotter will not be available.';
 

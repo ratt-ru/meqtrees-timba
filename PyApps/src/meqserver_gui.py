@@ -122,8 +122,11 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
       
   # this callback is registered for all child node state updates
   def set_child_state (self,node,event):
-    #  print 'Got state for child',node.name,node.field_names();
-    #  print 'Event is',event;
+    print 'Got state for child',node.name,node.field_names();
+    for f in node.field_names():
+       if f == "cache_result":
+         print node.cache_result
+    print 'Event is',event;
     if not self._child_items:
       raise RuntimeError,'no children expected for this node';
     item = self._child_items.get(node.nodeindex,None);
@@ -145,7 +148,6 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
       # if something is already open, use that
       openitems = self.get_open_items() or openitems;
     # at this point, dataitem.data is a valid node state record
-    #    print 'Got state for node',self._node.name,dataitem.data.field_names();
     self.change_item_content(self._item_state,dataitem.data,viewable=False);
     # apply saved open tree
     self.set_open_items(openitems);
