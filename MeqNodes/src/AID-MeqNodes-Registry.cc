@@ -136,6 +136,8 @@ DMI::BObj * __construct_MeqWSum (int n) { return n>0 ? new Meq::WSum [n] : new M
 DMI::BObj * __construct_MeqWMean (int n) { return n>0 ? new Meq::WMean [n] : new Meq::WMean; }
 #include "Negate.h"
 DMI::BObj * __construct_MeqNegate (int n) { return n>0 ? new Meq::Negate [n] : new Meq::Negate; }
+#include "Invert.h"
+DMI::BObj * __construct_MeqInvert (int n) { return n>0 ? new Meq::Invert [n] : new Meq::Invert; }
     using namespace DMI;
   
     int aidRegistry_MeqNodes ()
@@ -381,6 +383,9 @@ DMI::BObj * __construct_MeqNegate (int n) { return n>0 ? new Meq::Negate [n] : n
         AtomicID::registerId(-1506,"MeqNegate")+
         TypeInfoReg::addToRegistry(-1506,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1506,__construct_MeqNegate)+
+        AtomicID::registerId(-1507,"MeqInvert")+
+        TypeInfoReg::addToRegistry(-1507,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1507,__construct_MeqInvert)+
     0;
     return res;
   }

@@ -203,6 +203,11 @@ const int AidMeqGaussNoise_int = -1449;
 const DMI::AtomicID AidMeqImag(-1427);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Imag.h:29
 const int AidMeqImag_int = -1427;
 #endif
+#ifndef _defined_id_AidMeqInvert
+#define _defined_id_AidMeqInvert 1
+const DMI::AtomicID AidMeqInvert(-1507);          // from /home/assendorp/LOFAR/Timba/MeqNodes/src/Invert.h:29
+const int AidMeqInvert_int = -1507;
+#endif
 #ifndef _defined_id_AidMeqLMN
 #define _defined_id_AidMeqLMN 1
 const DMI::AtomicID AidMeqLMN(-1410);             // from /home/oms/LOFAR/Timba/MeqNodes/src/LMN.h:30

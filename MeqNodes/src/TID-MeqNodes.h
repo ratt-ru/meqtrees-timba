@@ -426,6 +426,25 @@ namespace Meq { class Imag; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqInvert
+#define _defined_id_TpMeqInvert 1
+const DMI::TypeId TpMeqInvert(-1507);             // from /home/assendorp/LOFAR/Timba/MeqNodes/src/Invert.h:29
+const int TpMeqInvert_int = -1507;
+namespace Meq { class Invert; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::Invert> : public TypeTraits<Meq::Invert>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqInvert_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::Invert & ContainerReturnType;
+                typedef const Meq::Invert & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqLMN
 #define _defined_id_TpMeqLMN 1
 const DMI::TypeId TpMeqLMN(-1410);                // from /home/oms/LOFAR/Timba/MeqNodes/src/LMN.h:30
