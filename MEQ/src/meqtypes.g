@@ -167,22 +167,23 @@ const meq.reclist := function (...)
   list := [=];
   list::dmi_datafield_content_type := 'DataRecord';
   list::dmi_is_reclist := T;
-  for( i in 1:num_args(...) )
-  {
-    arg := nth_arg(i,...);
-    if( !is_record(arg) )
-      fail 'meq.reclist(): arguments must be records';
-    # if argument is a reclist, merge wtih list
-    if( arg::dmi_is_reclist )
+  if( num_args(...) )
+    for( i in 1:num_args(...) )
     {
-      for( j in 1:len(arg) )
-        list[spaste('#',len(list)+1)] := arg[j];
+      arg := nth_arg(i,...);
+      if( !is_record(arg) )
+        fail 'meq.reclist(): arguments must be records';
+      # if argument is a reclist, merge wtih list
+      if( arg::dmi_is_reclist )
+      {
+        for( j in 1:len(arg) )
+          list[spaste('#',len(list)+1)] := arg[j];
+      }
+      else # else add to list
+      {
+        list[spaste('#',len(list)+1)] := arg;
+      }
     }
-    else # else add to list
-    {
-      list[spaste('#',len(list)+1)] := arg;
-    }
-  }
   return list;
 }
 
