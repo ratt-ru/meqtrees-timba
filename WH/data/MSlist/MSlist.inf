@@ -46,31 +46,26 @@ To obtain a MS, one of three methods can be used.
  3 - Ask the WH manger to obtain the script. In that case it is placed
      in the Repository and will be kept there for a limited time.
 
-Commands
---------
+Selections
+----------
 
-At present there are no tools to select information from the
-tables. The files are plain ASCII, so a text editor like vi or emacs
-can be used to view the contents. Below are some UNIX commands that
-can be used to obtain specific information.
+There is a tool that enables the user to make some basics selections
+from the list: MSlist.
+This is used as:
+  MSlist <command> [parameter] [<command> [parameter] [ ... ] ]
+    Commands are:
+      - allObj: list all objects in the list
+      - selObj <objName>: list entries for the names object. The
+          parameter <objName> must be one of the names that are listed
+          using allObj.
+      - selRA <RA>: list entries that have the hour part of RA equal
+          to <RA>. The parameter MUST be 2 characters long, so for 5
+          hr, 'selRA 05' must be given.
+      - selDEC <DEC>: list entries that have the degree part of DEC
+          equal to <DEC>. The parameter MUST be 4 characters long, so
+          for 5 d, 'selDEC +005' must be given.
+      - out= <filename>: output will be written to <filename>
 
-1 - To find an MS for a specific object:
-  grep <object name> MSlist-<n>.txt
-
-2 - To list all objects in a file:
-  awk '{print $4}' MSlist-<n>.txt | sort -u
-
-3 - To sort on RA:
-  sort +11 MSlist-<n>.txt
-
-4 - To list all MSs for a certain RA hour:
-  awk '{split($12, ra, ":");if (ra[1] == "<nn>") print }' MSlist-<n>.txt 
-    Note that the RA must be given as two digits, so 01 for 1 hr.
-
-5 - To list all MSs in a RA range [nn:mm]:
-  awk '{split($12, ra, ":");if (ra[1] >= "<nn>") print }' MSlist-<n>.txt | awk '{split($12, ra, ":");if (ra[1] == "<mm>") print }'
-
-6 - To list all MSs with less than 30 minutes observing time, sorted on duration:
-  awk '{split($19, tm, ":");if (tm[1] == "00" && tm[2] < "30") print }' MSlist-<n>.txt | sort +18
-
-
+Multiple commands may be specified like:
+  MSlist selRA 05 selDEC +007 out= result
+The result of the first selection will be used as input to the second.
