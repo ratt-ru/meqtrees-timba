@@ -228,7 +228,7 @@ if test $lfr_cv_hdr_package = yes  &&  test $lfr_cv_lib_package = yes; then
   # Do the same (if needed recursively) for all packages used by this package.
   rm -f libnames_depend
   touch libnames_depend
-  $lofar_sharedir/makepkglinks $1 $lfr_include $lfr_libdir pkginc pkgbldinc libnames_depend $lfr_option 0
+  $lofar_sharedir/makepkglinks $1 $lfr_include $lfr_libdir pkginc pkgbldinc libnames_depend lofar_config.h $lfr_option 0
   # Get the libraries this package is dependent on.
   # Use echo to remove the possible newlines.
   lfr_depend=`cat libnames_depend`
@@ -242,7 +242,6 @@ AC_SUBST([LOFAR_PKG_LIB][[_top_srcdir]])dnl
 AC_SUBST([LOFAR_PKG_LIB][[_top_builddir]])dnl
 AC_SUBST(LOFAR_DEPEND)dnl
 dnl
-dnl NOT NEEDED: AC_DEFINE(HAVE_LOFAR_PKG, 1, [Define if Package is installed])dnl
 [
 else
   if test $lfr_cv_hdr_package = no; then]

@@ -25,16 +25,27 @@
 
 # This script is used by lofar_package.m4 to create symlinks for
 # packages used by the given package.
-# It is done in a recursive way.
+# It also writes the used libraries in a depfile which can be used to
+# generate the library dependencies.
+# It writes lines into lofar_config.h containing HAVE_LOFAR_PACKAGE
+# definitions which can be used in source code.
+# It is all done in a recursive way.
 #
 # usage:
-#  makepkglinks pkgname incdir libdir pkginc pkglib option count
+#  makepkglinks pkgname incdir libdir pkginc pkglib depfile conffile
+#               option count
 
 # The package name is the last part of the full package name.
 # The library name is the lowercase version of the package name.
+# option=0 means that makepkglinks descends recursively into
+#          all packages used by this package.
+# option=1 means not recursively
+# option=2 means not recursively, no library in depfile, and no
+#          HAVE lines in config file
 
 fullnm=$1
 pkgnm=`echo $fullnm | sed -e "s%.*/%%g"`
+upkgnm=`echo $pkgnm | tr a-z A-Z`
 libnm=`echo $pkgnm | tr A-Z a-z`
 incdir=$2
 if [ -d $incdir ]; then
@@ -47,8 +58,9 @@ fi
 inclin=$4
 liblin=$5
 libdep=$6
-option=$7
-count=$8
+conffile=$7
+option=$8
+count=$9
 
 # The count is used to detect mutual dependencies
 if [ "$count" -gt 25 ]; then
@@ -69,8 +81,12 @@ ln -s $incdir/src $inclin/$pkgnm
 \rm -f $liblin/$pkgnm
 ln -s $libdir/src $liblin/$pkgnm
 
+echo $conffile
 if [ "$option" != 2 ]; then
   echo "$libdir/src/lib$libnm.la" >> $libdep;
+  echo "#if !defined(HAVE_LOFAR_$upkgnm)" >> $conffile;
+  echo "# define HAVE_LOFAR_$upkgnm 1" >> $conffile;
+  echo "#endif" >> $conffile;
 fi
 
 # Make symlinks to packages used by this package.
@@ -90,7 +106,7 @@ if [ "$option" = "0" ]; then
       fi
       nm=`echo $nm | sed -e "s/,.*//"`
       cnt=`expr $count + 1`
-      $0 $nm $incdir1/$nm$incdir2 $libdir1/$nm$libdir2 $inclin $liblin $libdep $opt $cnt  ||  exit 1
+      $0 $nm $incdir1/$nm$incdir2 $libdir1/$nm$libdir2 $inclin $liblin $libdep $conffile $opt $cnt  ||  exit 1
     done
   done
 fi
