@@ -231,12 +231,17 @@ class GridDataItem (object):
 class GridCell (object):
   # define top-level widget class. This accepts data drops, and 
   # display context menus
-  class TopLevelWidget (DataDroppableWidget(QWidget)):
+  DataDroppableQWidget = DataDroppableWidget(QWidget);
+  class TopLevelWidget (DataDroppableQWidget):
+    def __init__ (self,*args):
+      GridCell.DataDroppableQWidget.__init__(self,*args);
+      self._menu = None;
     def set_context_menu (self,menu):
       self._menu = menu;
     def contextMenuEvent (self,ev):
       ev.accept();
-      self._menu.exec_loop(ev.globalPos());
+      if self._menu:
+        self._menu.exec_loop(ev.globalPos());
       
   def __init__ (self,parent):
     # init state
@@ -292,15 +297,6 @@ class GridCell (object):
     self._viewers_menu = QPopupMenu(wtop);
     self._menu = menu = QPopupMenu(wtop);
     
-    # self._m_viewer = menu.insertItem("Viewer");
-    self._m_udi    = menu.insertItem("UDI");
-    menu.insertSeparator();
-    self._m_viewers = menu.insertItem("View using",self._viewers_menu);
-    self._m_pin     = menu.insertItem(pin.iconSet(),"Pin",self._toggle_pinned_state);
-    self._m_refresh = menu.insertItem(refresh.iconSet(),"Refresh",self._dorefresh);
-    menu.insertItem(close.iconSet(),"Close panel",self.close);
-    wtop.set_context_menu(menu);
-    
     # add buttons and labels to the control bar layout
     control_lo.addWidget(iconbutton);
     control_lo.addWidget(pin);
@@ -347,6 +343,21 @@ class GridCell (object):
     self._update_pin_menu(state);
   def viewer (self):
     return self._viewer;
+
+  def rebuild_menu (self):
+    self._menu.clear();
+    # self._m_viewer = menu.insertItem("Viewer");
+    udi = self._dataitem and self._dataitem.udi;
+    if udi:
+      self._m_udi     = self._menu.insertItem(udi);
+      self._menu.insertSeparator();
+    self._m_viewers = self._menu.insertItem("View using",self._viewers_menu);
+    self._m_pin     = self._menu.insertItem(self._pin.iconSet(),(self.is_pinned() and "Unpin") or "Pin",self._toggle_pinned_state);
+    self._menu.setItemChecked(self._m_pin,self.is_pinned());
+    if self._dataitem.is_mutable():
+      self._menu.insertItem(self._refresh.iconSet(),"Refresh",self._dorefresh);
+    self._menu.insertItem(self._close.iconSet(),"Close panel",self.close);
+    self.wtop().set_context_menu(self._menu);
     
   def udi (self):
     return self._dataitem and self._dataitem.udi;
@@ -361,10 +372,12 @@ class GridCell (object):
     self.set_pinned(not self.is_pinned());
     
   def _update_pin_menu (self,state=None):
+    try: pinid = self._m_pin;
+    except: return;
     if state is None:
       state = self.is_pinned();
-    self._menu.setItemChecked(self._m_pin,state);
-    self._menu.changeItem(self._m_pin,(state and "Unpin") or "Pin");
+    self._menu.setItemChecked(pinid,state);
+    self._menu.changeItem(pindid,(state and "Unpin") or "Pin");
     
   # highlights a cell
   # pass in a QColor, or True for default color, or False value to disable highlights
@@ -399,6 +412,7 @@ class GridCell (object):
     self._refresh_func = lambda:None;
     self._wstack.hide();
     self.wtop().emit(PYSIGNAL("wiped()"),(self,));
+    self.wtop().set_context_menu(None);
 
   # close(): wipe, hide everything, and emit a closed signal
   def close (self):
@@ -413,8 +427,10 @@ class GridCell (object):
   def disable (self,disable=True):
     for w in (self._label,self._label1,self._refresh):
       w.setDisabled(disable);
+    self.wtop().set_context_menu(None);
   def enable (self,enable=True):
     self.disable(not enable);
+    self.wtop().set_context_menu(self._menu);
     
   MaxDescLen = 40;
 
@@ -439,13 +455,11 @@ class GridCell (object):
       else:          # fallback: terminate string
         desc = desc[:57]+'...';
     self._label1.setText(desc);
-    self._menu.changeItem(self._m_udi,dataitem.udi);
     # show the control box
     self._control_box.show();
     # set up the viewer
     self.change_viewer(viewer or dataitem.default_viewer);
     # setup refresh function and button
-    self._menu.setItemEnabled(self._m_refresh,dataitem.is_mutable());
     if dataitem.is_mutable():
       self._refresh.show();
       self._refresh_func = dataitem.refresh_func;    
@@ -470,6 +484,24 @@ class GridCell (object):
     if self._viewer:
       self._wstack.removeWidget(self._viewer.wtop());
       self._viewer = None;
+    # rebuild the menu
+    self.rebuild_menu();
+    self._viewers_menu.clear();
+    self._viewers_proc = [];
+    if len(self._dataitem.viewer_list) > 1:
+      for v in self._dataitem.viewer_list:
+        # create entry for viewer
+        name = getattr(v,'viewer_name',v.__name__);
+        try: icon = v.icon();
+        except AttributeError: icon = QIconSet();
+        func = curry(self.change_viewer,v);
+        self._viewers_proc.append(func);
+        mid = self._viewers_menu.insertItem(icon,name,func);
+        self._viewers_menu.setItemChecked(mid,v is viewer_class);
+      self._menu.setItemEnabled(self._m_viewers,True);
+    else:
+      self._menu.setItemEnabled(self._m_viewers,False);
+
     # create a viewer, add data if specified
     self._viewer_class = viewer_class;
     self._viewer = viewer = viewer_class(self.wtop(),dataitem=self._dataitem,
@@ -486,24 +518,6 @@ class GridCell (object):
     try: icon = viewer_class.icon();
     except AttributeError: icon = pixmaps.magnify.iconset();
     self._iconbutton.setIconSet(icon);
-    
-    # rebuild the "view using" menu
-    self._viewers_menu.clear();
-    self._viewers_proc = [];
-    if len(self._dataitem.viewer_list) > 1:
-      for v in self._dataitem.viewer_list:
-        # create entry for viewer
-        name = getattr(v,'viewer_name',v.__name__);
-        try: icon = v.icon();
-        except AttributeError: icon = QIconSet();
-        func = curry(self.change_viewer,v);
-        self._viewers_proc.append(func);
-        mid = self._viewers_menu.insertItem(icon,name,func);
-        self._viewers_menu.setItemChecked(mid,v is viewer_class);
-      self._menu.setItemEnabled(self._m_viewers,True);
-    else:
-      self._menu.setItemEnabled(self._m_viewers,False);
-  
     
   def update_data (self,dataitem,viewopts={},flash=True):
     if self._viewer:

@@ -237,7 +237,7 @@ class HierBrowser (object):
         # create "Precision" submenu
         if self._strfunc:
           self._prec_menu = PrecisionPopupMenu(prec=self._prec);
-          menu.insertItem('Precision',self._prec_menu);
+          menu.insertItem(pixmaps.precplus.iconset(),'Precision',self._prec_menu);
           QWidget.connect(self._prec_menu,PYSIGNAL("setPrecision()"),
                           self._set_prec_frommenu);
         # create "display with" entries
@@ -517,9 +517,9 @@ class ArrayBrowser(BrowserPlugin):
       self.set_data(dataitem);
     if context_menu is not None:
       context_menu.insertSeparator();
-      self._prec_menu = PrecisionPopupMenu(parent);
-      context_menu.insertItem('Precision',self._prec_menu);
-      QWidget.connect(self._prec_menu,PYSIGNAL("setPrecision()"),\
+      menu = PrecisionPopupMenu(parent);
+      context_menu.insertItem(pixmaps.precplus.iconset(),'Precision',menu);
+      QWidget.connect(menu,PYSIGNAL("setPrecision()"),\
                       self._tbl.set_precision);
       
   def wtop (self):
