@@ -96,7 +96,11 @@ void ApplicationBase::do_run ()
   }
   catch( std::exception &exc )
   {
-    cdebug(1)<<"thread terminated with exception: "<<exc.what(); 
+    cdebug(0)<<"thread terminated with exception: "<<exc.what()<<endl; 
+  }
+  catch( ... )
+  {
+    cdebug(0)<<"thread terminated with unknown exception\n"; 
   }
 }
 
