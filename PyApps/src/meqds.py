@@ -66,7 +66,7 @@ CS_ES_statelist = [ (0<<CS_LSB_EXECSTATE,'IDLE' ,'-','idle',pixmap.node_idle),
 # BP_XXX constants to represent breakpoint masks
 for st in CS_ES_statelist:
   globals()['CS_ES_'+st[1]] = st[0];
-  globals()['BP_'+st[1]] = 1<<st[0];
+  globals()['BP_'+st[1]] = int(1<<st[0]);
 
 # mask of all breakpoints
 BP_ALL = 0xFF;
@@ -92,7 +92,7 @@ CS_RES_map = {  CS_RES_NONE:     ('-','valid result'),
 # this class defines and manages a node list
 class NodeList (object):
   NodeAttrs = ('name','class','children','control_status');
-  RequestRecord = srecord(dict.fromkeys(NodeAttrs,True),nodeindex=True);
+  RequestRecord = srecord(dict.fromkeys(NodeAttrs,True),nodeindex=True,get_forest_status=True);
   
   class Node (QObject):
     def __init__ (self,ni):
@@ -207,9 +207,11 @@ class NodeList (object):
     except AttributeError: return 0;
   # helper method: selects name or nodeindex map depending on key type
   def _map_ (self,key):
+    if not hasattr(self,'_namemap'):
+      raise KeyError,"nodelist is empty";
     if isinstance(key,str):      return self._namemap;
     elif isinstance(key,int):    return self._nimap;
-    else:                       raise TypeError,"invalid node key "+str(key);
+    else:                        raise TypeError,"invalid node key "+str(key);
   def __getitem__ (self,key):
     return self._map_(key).__getitem__(key);
   def __contains__ (self,key):

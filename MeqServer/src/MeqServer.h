@@ -14,7 +14,9 @@
 #pragma aid Execute Clear Cache Save Load Forest Recursive 
 #pragma aid Publish Results Enable Disable Event Id Silent Idle Stream 
 #pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Level
-#pragma aid addstate
+#pragma aid Get Forest Status Stack Running
+// extra fields -- not really used outside of glish, but simplifies debugging
+#pragma addstate desc description aux
     
 namespace Meq
 {
@@ -60,6 +62,7 @@ class MeqServer : public VisRepeater, public EventRecepient
     void resolve      (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
     //##ModelId=3F98D91B0064
     void getNodeList  (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
+    void getForestStatus (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
     
     void getNodeIndex (DataRecord::Ref &out,DataRecord::Ref::Xfer &in);
     
@@ -100,9 +103,11 @@ class MeqServer : public VisRepeater, public EventRecepient
 
     void processCommands();
     
-    void reportNodeStatus (Node &node,int oldstat,int newstat);
+    void reportNodeStatus  (Node &node,int oldstat,int newstat);
 
     void processBreakpoint (Node &node,int bpmask,bool global);
+    
+    void fillForestStatus  (DataRecord &rec);
       
     //##ModelId=3F5F218F02BD
     Forest forest;
@@ -116,9 +121,17 @@ class MeqServer : public VisRepeater, public EventRecepient
     //##ModelId=3F9CE0D3027D
     VisDataMux data_mux;
     
-    Node * in_debugger;
-    const Node * debug_nextnode;
-    bool debug_continue;
+    typedef struct {
+      Node *       node;
+    } DebugFrame;
+    
+    typedef std::list<DebugFrame> DebugStack;
+    
+    DebugStack debug_stack;
+    
+    const Node * debug_next_node;
+    bool  debug_continue;
+    
     
     static MeqServer *mqs_;
     

@@ -303,6 +303,11 @@ const int AidResults_int = -1245;
 const AtomicID AidRow(-1150);                     // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:26
 const int AidRow_int = -1150;
 #endif
+#ifndef _defined_id_AidRunning
+#define _defined_id_AidRunning 1
+const AtomicID AidRunning(-1567);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/MeqServer.h:17
+const int AidRunning_int = -1567;
+#endif
 #ifndef _defined_id_AidSave
 #define _defined_id_AidSave 1
 const AtomicID AidSave(-1391);                    // from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:13
@@ -338,6 +343,11 @@ const int AidSink_int = -1337;
 const AtomicID AidSpigot(-1325);                  // from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/Spigot.h:7
 const int AidSpigot_int = -1325;
 #endif
+#ifndef _defined_id_AidStack
+#define _defined_id_AidStack 1
+const AtomicID AidStack(-1566);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqServer/src/MeqServer.h:17
+const int AidStack_int = -1566;
+#endif
 #ifndef _defined_id_AidState
 #define _defined_id_AidState 1
 const AtomicID AidState(-1060);                   // from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/WPInterface.h:21
@@ -347,6 +357,11 @@ const int AidState_int = -1060;
 #define _defined_id_AidStation 1
 const AtomicID AidStation(-1126);                 // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:30
 const int AidStation_int = -1126;
+#endif
+#ifndef _defined_id_AidStatus
+#define _defined_id_AidStatus 1
+const AtomicID AidStatus(-1269);                  // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:18
+const int AidStatus_int = -1269;
 #endif
 #ifndef _defined_id_AidStep
 #define _defined_id_AidStep 1
@@ -382,11 +397,6 @@ const int AidUntil_int = -1556;
 #define _defined_id_AidVisHandlerNode 1
 const AtomicID AidVisHandlerNode(-1329);          // from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/VisHandlerNode.h:7
 const int AidVisHandlerNode_int = -1329;
-#endif
-#ifndef _defined_id_Aidaddstate
-#define _defined_id_Aidaddstate 1
-const AtomicID Aidaddstate(-1386);                // from /home/oms/LOFAR/CEP/CPA/AppAgent/MeqServer/src/MeqServer.h:14
-const int Aidaddstate_int = -1386;
 #endif
 
 

@@ -8,6 +8,7 @@
 #include <MEQ/Result.h>
 #include <MeqNodes/ParmTable.h>
 #include <DMI/BOIO.h>
+#include <DMI/DataList.h>
 
     
 using Debug::ssprintf;
@@ -32,6 +33,11 @@ InitDebugContext(MeqServer,"MeqServer");
 // individual nodes to have the new node state included in the command result.
 // (The exception is Node.Get.State, which returns the node state anyway)
 const HIID FGetState = AidGet|AidState;
+// this flag can be set in the input record of most commands to request
+// a forest status update in the reply (as forest_status)
+// (The exception is Node.Get.State, which returns the node state as the 
+// top-level record)
+const HIID FGetForestStatus = AidGet|AidForest|AidStatus;
 
 // ...as field node_state
 const HIID FNodeState = AidNode|AidState;
@@ -59,6 +65,7 @@ MeqServer::MeqServer()
   command_map["Delete.Node"] = &MeqServer::deleteNode;
   command_map["Resolve"] = &MeqServer::resolve;
   command_map["Get.Node.List"] = &MeqServer::getNodeList;
+  command_map["Get.Forest.Status"] = &MeqServer::getForestStatus;
   command_map["Get.NodeIndex"] = &MeqServer::getNodeIndex;
 
   command_map["Disable.Publish.Results"] = &MeqServer::disablePublishResults;
@@ -81,8 +88,7 @@ MeqServer::MeqServer()
   command_map["Debug.Until.Node"] = &MeqServer::debugUntilNode;
   command_map["Debug.Continue"] = &MeqServer::debugContinue;
   
-  in_debugger = 0;
-  debug_nextnode = 0;
+  debug_next_node = 0;
 }
 
 //##ModelId=3F6196800325
@@ -139,6 +145,8 @@ void MeqServer::deleteNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   // remove from forest
   forest.remove(nodeindex);
   out[AidMessage] = ssprintf("node %d (%s): deleted",nodeindex,name.c_str());
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
 }
 
 void MeqServer::nodeGetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
@@ -156,6 +164,8 @@ void MeqServer::getNodeIndex (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
   string name = in[AidName].as<string>();
   out[AidNodeIndex] = forest.findIndex(name);
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
 }
 
 void MeqServer::nodeSetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
@@ -168,6 +178,8 @@ void MeqServer::nodeSetState (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   node.setState(rec[AidState].as_wr<DataRecord>());
   if( getstate )
     out[FNodeState] <<= node.syncState();
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
 }
 
 //##ModelId=3F98D91A03B9
@@ -185,6 +197,8 @@ void MeqServer::resolve (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
       node.nodeIndex(),node.name().c_str());
   if( getstate )
     out[FNodeState] <<= node.syncState();
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
 }
 
 void MeqServer::getNodeList (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
@@ -199,6 +213,13 @@ void MeqServer::getNodeList (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     ( in[FControlStatus].as<bool>(false) ? Forest::NL_CONTROL_STATUS : 0 );
   int count = forest.getNodeList(list,content);
   cdebug(2)<<"getNodeList: got list of "<<count<<" nodes"<<endl;
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
+}
+
+void MeqServer::getForestStatus (DataRecord::Ref &out,DataRecord::Ref::Xfer &)
+{
+  fillForestStatus(out());
 }
 
 //##ModelId=400E5B6C015E
@@ -245,6 +266,8 @@ void MeqServer::nodeExecute (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
         node.nodeIndex(),node.name().c_str(),flags);
     if( getstate )
       out[FNodeState] <<= node.syncState();
+    if( in[FGetForestStatus].as<bool>(false) )
+      fillForestStatus(out());
   }
   catch( std::exception &exc )
   {
@@ -270,11 +293,15 @@ void MeqServer::nodeClearCache (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
       node.nodeIndex(),node.name().c_str(),recursive?" recursively":"");
   if( getstate )
     out[FNodeState] <<= node.syncState();
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
 }
 
 //##ModelId=400E5B6C0247
 void MeqServer::saveForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
+  if( !debug_stack.empty() )
+    Throw1("can't execute Save.Forest while debugging");
   string filename = (*in)[FFileName].as<string>();
   cdebug(1)<<"saving forest to file "<<filename<<endl;
   BOIO boio(filename,BOIO::WRITE);
@@ -290,11 +317,15 @@ void MeqServer::saveForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   cdebug(1)<<"saved "<<nsaved<<" nodes to file "<<filename<<endl;
   out[AidMessage] = ssprintf("saved %d nodes to file %s",
       nsaved,filename.c_str());
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
 }
 
 //##ModelId=400E5B6C02B3
 void MeqServer::loadForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
+  if( !debug_stack.empty() )
+    Throw1("can't execute Load.Forest while debugging");
   string filename = (*in)[FFileName].as<string>();
   cdebug(1)<<"loading forest from file "<<filename<<endl;
   BOIO boio(filename,BOIO::READ);
@@ -319,11 +350,15 @@ void MeqServer::loadForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
     }
   out[AidMessage] = ssprintf("loaded %d nodes from file %s",
       nloaded,filename.c_str());
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
 }
 
 //##ModelId=400E5B6C0324
-void MeqServer::clearForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &)
+void MeqServer::clearForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
+  if( !debug_stack.empty() )
+    Throw1("can't execute Clear.Forest while debugging");
   cdebug(1)<<"clearing forest: deleting all nodes"<<endl;
   forest.clear();
 // ****
@@ -331,6 +366,8 @@ void MeqServer::clearForest (DataRecord::Ref &out,DataRecord::Ref::Xfer &)
   ParmTable::closeTables();
 // ****
   out[AidMessage] = "all nodes deleted";
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
 }
 
 void MeqServer::publishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
@@ -356,15 +393,19 @@ void MeqServer::publishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   }
   if( getstate )
     out[FNodeState] <<= node.syncState();
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
 }
 
-void MeqServer::disablePublishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &)
+void MeqServer::disablePublishResults (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
   cdebug(2)<<"disablePublishResults: disabling for all nodes"<<endl;
   for( int i=0; i<=forest.maxNodeIndex(); i++ )
     if( forest.valid(i) )
       forest.get(i).removeResultSubscriber(this);
   out[AidMessage] = "nodes no longer publishing results";
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
 }
 
 void MeqServer::nodeSetBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
@@ -382,6 +423,8 @@ void MeqServer::nodeSetBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &i
         "new bp mask is %X",
         node.name().c_str(),oneshot?"one-shot":"",
         bpmask,node.getBreakpoints(oneshot));
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
 }
 
 void MeqServer::nodeClearBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
@@ -397,6 +440,8 @@ void MeqServer::nodeClearBreakpoint (DataRecord::Ref &out,DataRecord::Ref::Xfer 
     out[FNodeState] <<= node.syncState();
   out[AidMessage] = Debug::ssprintf("node %s: clearing breakpoint %X; "
         "new bp mask is %X",node.name().c_str(),bpmask,node.getBreakpoints(oneshot));
+  if( in[FGetForestStatus].as<bool>(false) )
+    fillForestStatus(out());
 }
 
 void MeqServer::debugSetLevel (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
@@ -409,27 +454,7 @@ void MeqServer::debugSetLevel (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   std::string msg = Debug::ssprintf("debug level %d set",verb);
   if( !verb )
     msg += " (disabled)";
-  if( in_debugger ) // already in debugger at this point
-  {
-    if( verb > 0 ) // re-enabling (or change of level): report back status
-    {
-      // create debug_status record if we're stopped in the debugger
-      DataRecord &rec = out[AidDebug|AidStatus] <<= new DataRecord;
-      rec[AidName] = in_debugger->name();
-      rec[AidNodeIndex] = in_debugger->nodeIndex();
-      rec[AidControl|AidStatus] = in_debugger->getControlStatus();
-      // and also add the node state at top level
-      out[FNodeState] <<= in_debugger->syncState();
-    }
-    else // setting level 0 (disabled) while in debugger implies continuation
-    {
-      debug_continue = true;
-      out[AidDebug|AidStatus] = false;
-      msg += "; continuing";
-    }
-  }
-  else
-    out[AidDebug|AidStatus] = false;
+  fillForestStatus(out());
   out[AidMessage] = msg;
 }
 
@@ -447,28 +472,28 @@ void MeqServer::debugContinue (DataRecord::Ref &,DataRecord::Ref::Xfer &)
 
 void MeqServer::debugSingleStep (DataRecord::Ref &,DataRecord::Ref::Xfer &in)
 {
-  if( !in_debugger )
+  if( debug_stack.empty() )
     Throw1("can't execute Debug.Single.Step command when not debugging");
   // set a global one-shot breakpoint on everything
   forest.setBreakpoint(Node::CS_ALL,true);
-  debug_nextnode = 0;
+  debug_next_node = 0;
   debug_continue = true;
 }
 
 void MeqServer::debugNextNode (DataRecord::Ref &,DataRecord::Ref::Xfer &in)
 {
-  if( !in_debugger )
+  if( debug_stack.empty() )
     Throw1("can't execute Debug.Next.Node command when not debugging");
   // set a global breakpoint on everything, will keep firing until a different
   // node is reached (or until a local node breakpoint occurs)
   forest.setBreakpoint(Node::CS_ALL);
-  debug_nextnode = in_debugger;
+  debug_next_node = debug_stack.front().node;
   debug_continue = true;
 }
 
 void MeqServer::debugUntilNode (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
 {
-  if( !in_debugger )
+  if( debug_stack.empty() )
     Throw1("can't execute Debug.Until.Node command when not debugging");
   bool getstate;
   Node & node = resolveNode(getstate,*in);
@@ -498,14 +523,37 @@ void MeqServer::reportNodeStatus (Node &node,int oldstat,int newstat)
   if( changemask&Node::CS_RES_MASK ||
       ( forest.verbosity()>1 && changemask )  )
   {
-    DataRecord::Ref ref;
-    DataRecord &rec = ref <<= new DataRecord;
-    rec[AidName] = node.name();
-    rec[AidNodeIndex] = node.nodeIndex();
-    rec[FControlStatus] = newstat;
+    // node status reported within the message ID itself. Message payload is empty
+    HIID ev = EvNodeStatus | node.nodeIndex() | newstat;
     if( forest.verbosity()>1 )
-      rec[FRequestId] = node.currentRequestId();
-    control().postEvent(EvNodeStatus,ref);
+      ev |= node.currentRequestId();
+    control().postEvent(ev);
+  }
+}
+
+void MeqServer::fillForestStatus  (DataRecord &rec)
+{
+  DataRecord &fst = rec[AidForest|AidStatus] <<= new DataRecord;
+  fst[AidState] = control().state();
+  fst[AidState|AidString] = control().stateString();
+  fst[AidRunning] = control().state() == AppState_Stream || 
+                    control().state() == AppState_Execute;
+  fst[AidDebug|AidLevel] = forest.verbosity();
+  if( forest.verbosity() )
+  {
+    DataList &stack = fst[AidDebug|AidStack] <<= new DataList;
+    int i=0;
+    for( DebugStack::const_iterator iter = debug_stack.begin(); 
+         iter != debug_stack.end(); iter++,i++ )
+    {
+      DataRecord &entry = stack[i] <<= new DataRecord;
+      entry[AidName] = iter->node->name();
+      entry[AidNodeIndex] = iter->node->nodeIndex();
+      entry[AidControl|AidStatus] = iter->node->getControlStatus();
+      // currently stopped node gets its state too
+      if( !i )
+        entry[AidState] <<= iter->node->syncState();
+    }
   }
 }
 
@@ -516,29 +564,35 @@ void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
     return;
   // return immediately if we hit a global breakpoint after a next-node
   // command, and node hasn't changed yet
-  if( global && debug_nextnode == &node )
+  if( global && debug_next_node == &node )
     return;
-  in_debugger = &node;
+  // suspend input stream on first breakpoint
+  if( debug_stack.empty() )
+    input().suspend();
+  // allocate a new debug frame
+  debug_stack.push_front(DebugFrame());
+  DebugFrame & frame = debug_stack.front();
+  frame.node = &node;
   debug_continue = false;
   // post event indicating we're stopped in the debugger
   DataRecord::Ref ref;
   DataRecord &rec = ref <<= new DataRecord;
-  rec[AidName] = node.name();
-  rec[AidNodeIndex] = node.nodeIndex();
-  rec[FNodeState] <<= node.syncState();
-  rec[AidMessage] = "stopped at breakpoint " + node.name() + ":" + node.getStrExecState();
+  fillForestStatus(rec);
+  rec[AidMessage] = "stopped at " + node.name() + ":" + node.getStrExecState();
   control().postEvent(EvDebugStop,ref);
   int old_state = control().state();
   control().setState(AppState_Breakpoint);
   input().suspend();
   // keep on processing commands until asked to continue
-  while( control().state() > 0 && !debug_continue )  // while in a running state
+  while( forest.verbosity() > 0 && control().state() > 0 && !debug_continue )  // while in a running state
   {
     processCommands();
   }
-  input().resume();
+  // clear debug frame 
+  debug_stack.pop_front();
+  if( debug_stack.empty() )
+    input().resume();
   control().setState(old_state);
-  in_debugger = 0;
 }
 
 // static callbacks mapping to methods of the global MeqServer object

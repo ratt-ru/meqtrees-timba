@@ -167,7 +167,6 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
     self.set_open_items(openitems);
     self._state = dataitem.data;
 
-
 class meqserver_gui (app_proxy_gui):
   def __init__(self,app,*args,**kwargs):
     meqds.set_meqserver(app);
@@ -178,7 +177,6 @@ class meqserver_gui (app_proxy_gui):
     app_proxy_gui.__init__(self,app,*args,**kwargs);
     # add handlers for result log
     self._add_ce_handler("node.result",self.ce_NodeResult);
-    self._add_ce_handler("debug.stop",self.ce_DebugStop);
     self._add_ce_handler("app.result.node.get.state",self.ce_NodeState);
     self._add_ce_handler("app.result.get.node.list",self.ce_LoadNodeList);
     self._add_ce_handler("hello",self.ce_mqs_Hello);
@@ -208,7 +206,6 @@ class meqserver_gui (app_proxy_gui):
     # excluse ubiquotous events from the event logger
     self.eventlog.add_exclusion('node.status');
 
-
   def _checkStateUpdate (self,ev,value):
     try: 
       state = value.node_state;
@@ -219,29 +216,25 @@ class meqserver_gui (app_proxy_gui):
     self.update_node_state(state,ev);
     return True;
     
-  def _checkStatusUpdate (self,ev,value):
-    if not meqds.nodelist:   # ignore if no nodelist yet
-      return False;
-    try: 
-      status = value.control_status;
-      ni     = value.nodeindex;
-    except AttributeError: return None;
-    if not isinstance(status,int) or not isinstance(ni,int):
-      return False;
-    _dprint(5,'got control status for node ',ni);
-    meqds.nodelist[ni].update_status(status,getattr(value,'request_id',None));
-    return True;
-    
+  _prefix_NodeStatus = hiid('node.status');
   # override handleAppEvent to catch node state updates, whichever event they
   # may be in
   def handleAppEvent (self,ev,value):
-    # update node state or status
-    # note that a state update implies a status update, hence the or
+    # check for node status
+    if ev.startswith(self._prefix_NodeStatus):
+      (ni,status,rqid) = (ev.get(2),ev.get(3),ev[4:]);
+      _dprint(5,'got status for node',ni,':',status,rqid);
+      try: node = meqds.nodelist[ni];
+      except KeyError: pass;
+      else: node.update_status(status,rqid);
     if isinstance(value,record):
-      self._checkStateUpdate(ev,value) or self._checkStatusUpdate(ev,value);
-      try: 
-        self.treebrowser.debug_set_active_node(value.debug_status.nodeindex,value.node_state);
+      # check if message includes update of node state
+      self._checkStateUpdate(ev,value);
+      # check if message includes update of forest status
+      try: fst = value.forest_status;
       except AttributeError: pass;
+      else:
+        self.treebrowser.update_forest_status(fst);
     # call top-level handler
     app_proxy_gui.handleAppEvent(self,ev,value);
     
@@ -261,9 +254,6 @@ class meqserver_gui (app_proxy_gui):
       _dprint(5,'got state for node ',value.name);
       self.update_node_state(value,ev);
       
-  def ce_DebugStop (self,ev,value):
-    self.treebrowser.debug_set_active_node(value.nodeindex,value.node_state);
-  
   def ce_NodeResult (self,ev,value):
     self.update_node_state(value,ev);
     if self.resultlog.enabled:
@@ -290,6 +280,10 @@ class meqserver_gui (app_proxy_gui):
     meqds.nodelist.load(meqnl);
     _dprintf(2,"loaded %d nodes into nodelist\n",len(meqds.nodelist));
     self.treebrowser.update_nodelist();
+    # re-update forest status, if available
+    try: fst = meqnl.forest_status;
+    except AttributeError: pass;
+    else: self.treebrowser.update_forest_status(fst);
       
   def update_node_state (self,node,event=None):
     meqds.reclassify_nodestate(node);
