@@ -38,6 +38,15 @@ if( !is_record(meq_test) )
   meq_test := [=];
 if( !is_record(meq_private) )
   meq_private := [=];
+  
+#-- meq.domain_ndim(), domain_axes()---------------------------------------------
+# Basic constants specifying layout of domain and cells
+
+const meq.domain_ndim := function ()
+{ return 2; }
+
+const meq.domain_axes := function ()
+{ return "freq time"; }
 
 #-- meq.requestid() -------------------------------------------------------------
 # Creates a request ID
@@ -70,25 +79,25 @@ const meq.polc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
 {
   if( is_boolean(scale) )
     scale := [freq0,freqsc,time0,timesc];
-  req := [ freq_0=scale[1],freq_scale=scale[2],
+  rec := [ freq_0=scale[1],freq_scale=scale[2],
            time_0=scale[3],time_scale=scale[4],
            pert=pert,weight=weight,dbid_index=dbid ];
   # set coeff  
   if( len(coeff) == 1 )
-    req.coeff := array(as_double(coeff),1,1);
+    rec.coeff := array(as_double(coeff),1,1);
   else if( !has_field(coeff::,'shape') || len(coeff::shape) != 2 )
     fail 'meq.polc: coeff must be either scalar or a 2D array';
   else
-    req.coeff := as_double(coeff);
+    rec.coeff := as_double(coeff);
   # set domain if specified
   if( !is_boolean(domain) )
   {
     if( !is_dmi_type(domain,'MeqDomain') )
       fail 'meq.polc: domain argument must be a meq.domain';
-    req.domain := domain;
+    rec.domain := domain;
   }
-  const req::dmi_actual_type := 'MeqPolc';
-  return req;
+  const rec::dmi_actual_type := 'MeqPolc';
+  return rec;
 }
 
 
@@ -97,21 +106,21 @@ const meq.polc := function (coeff,freq0=0,freqsc=1,time0=0,timesc=1,pert=1e-6,
 
 const meq.parm := function (name,default=F,polc=F,groups="")
 {
-  req := meq.node('MeqParm',name,groups=groups);
+  rec := meq.node('MeqParm',name,groups=groups);
   # set default if specified
   if( !is_boolean(default) )
   {
     if( !is_dmi_type(default,'MeqPolc') )
       default := meq.polc(default);
-    req.default := default;
+    rec.default := default;
   }
   # set polcs if specified
   if( is_record(polc) )
   {
     if( is_dmi_type(polc,'MeqPolc') ) # single polc
     {
-      req.polcs := [=];
-      req.polcs['#1'] := polc;
+      rec.polcs := [=];
+      rec.polcs['#1'] := polc;
     }
     else
     {
@@ -120,11 +129,11 @@ const meq.parm := function (name,default=F,polc=F,groups="")
         if( !is_dmi_type(polc[i],'MeqPolc') )
           fail 'meq.parm: polc argument must be a meq.polc or a vector of meqpolcs';
       }
-      req.polcs := polc;
+      rec.polcs := polc;
     }
-    const req.polcs::dmi_datafield_content_type := 'MeqPolc';
+    const rec.polcs::dmi_datafield_content_type := 'MeqPolc';
   }
-  return req;
+  return rec;
 }
 
 
@@ -133,16 +142,12 @@ const meq.parm := function (name,default=F,polc=F,groups="")
 
 const meq.domain := function (startfreq,endfreq,starttime,endtime)
 {
-  req := [ freq=as_double([startfreq,endfreq]),
+  rec := [ freq=as_double([startfreq,endfreq]),
            time=as_double([starttime,endtime]) ];
   # setup various attributes
-  const req::dmi_actual_type := 'MeqDomain';
-  const req::meq_axes := "freq time";
-  const req.ndim := function () 
-  { return 2; }
-  const req.axes := function () 
-  { return "freq time"; }
-  return req;
+  const rec::dmi_actual_type := 'MeqDomain';
+  const rec::meq_axes := "freq time";
+  return rec;
 }
 
 
@@ -258,18 +263,14 @@ const meq.cells := function (domain=F,num_freq=F,num_time=F,
   if( is_fail(nt) )
     fail;
   # create record
-  req := [ domain     = meq.domain(df[1],df[2],dt[1],dt[2]),
+  rec := [ domain     = meq.domain(df[1],df[2],dt[1],dt[2]),
            grid       = [ freq=freq_grid,     time=time_grid],
            cell_size  = [ freq=freq_cell_size,time=time_cell_size],
            segments   = [ freq=fs,            time=ts] ];
   # setup various attributes
-  const req::dmi_actual_type := 'MeqCells';
-  const req::meq_axes := "freq time";
-  const req.ndim := function () 
-  { return 2; }
-  const req.axes := function () 
-  { return "freq time"; }
-  return req;
+  const rec::dmi_actual_type := 'MeqCells';
+  const rec::meq_axes := "freq time";
+  return rec;
 }
 
 #-- meq.reclist() -------------------------------------------------------------
@@ -308,13 +309,13 @@ const meq.reclist := function (...)
 #-- meq_private.merge_records()  ------------------------------------------------
 # private helper function to merge command records
 
-const meq_private.merge_records := function (ref req,command,value)
+const meq_private.merge_records := function (ref rec,command,value)
 {
   if( is_string(command) )
-    req[command] := value;
+    rec[command] := value;
   else if( is_record(command) )
     for( f in field_names(command) )
-      req[f] := command[f];
+      rec[f] := command[f];
   else
     fail 'command argument must be string or record';
 }
@@ -376,7 +377,6 @@ const meq.request := function (cells=F,request_id=F,calc_deriv=0)
   if( !is_boolean(cells) )
     req.cells := cells;
   req::dmi_actual_type := 'MeqRequest';
-
   
   return ref req;
 }
