@@ -39,6 +39,9 @@
 #ifdef HAVE_LOFAR_VISCUBE
   #include <VisCube/TID-VisCube.h>
 #endif
+#ifdef HAVE_LOFAR_MEQ
+  #include <MEQ/TID-Meq.h>
+#endif
 
 // pull in AIPS++ types if AIPS++ hooks are configured
 #ifdef AIPSPP_HOOKS

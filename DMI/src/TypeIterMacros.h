@@ -14,7 +14,8 @@
 #define DoForSomeTypes(Which,Do,arg); \
           DoForSomeTypes_DMI(Which,Do,arg); \
           DoForSomeTypes_OCTOPUSSY(Which,Do,arg) ;\
-          DoForSomeTypes_VisCube(Which,Do,arg); 
+          DoForSomeTypes_VisCube(Which,Do,arg); \
+          DoForSomeTypes_Meq(Which,Do,arg); 
         
 // DMI types are always pulled in
 #include "DMI/TypeIter-DMI.h"
@@ -40,6 +41,15 @@
 #else
   #define DoForSomeTypes_VisCube(Which,Do,arg) 
 #endif
+
+#ifdef HAVE_LOFAR_MEQ
+  #include "MEQ/TypeIter-Meq.h"
+  #define DoForSomeTypes_Meq(Which,Do,arg) \
+            DoForAll##Which##Types_Meq(Do,arg,;);
+#else
+  #define DoForSomeTypes_Meq(Which,Do,arg) 
+#endif
+
     
 // Now define the macros themselves
 
