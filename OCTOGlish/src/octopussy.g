@@ -2,14 +2,34 @@ pragma include once
 include 'note.g'
 include 'debug_methods.g'
 
+const _default_valgrind_options := [
+  "-v --show-reachable=yes --workaround-gcc296-bugs=yes",
+  "--leak-check=yes --num-callers=40",
+  spaste("--suppressions=",environ.HOME,"/.valgrind-suppress") ];
+
+const define_octoserver := function (server,options="",
+  suspend=F,valgrind=F,nostart=F,valgrind_opts="")
+{
+  if( len(options) )
+    server::options := options;
+  server::suspend := suspend;
+  server::nostart := nostart;
+  if( !is_boolean(valgrind) || valgrind )
+  {
+    server::valgrind := T;
+    if( is_string(valgrind) )
+      server::valgrind_options := valgrind;
+    else
+      server::valgrind_options := [ _default_valgrind_options,valgrind_opts ];
+  }
+  return server;
+}
+
 #------------------------------------------------------------------------
-# name: description
 #
-# parameters:
-# returns:
 #------------------------------------------------------------------------
-octopussy := function (wpclass="",server="./octoglish",
-          options="",autoexit=T,suspend=F,verbose=1) 
+const octopussy := function (server='octoglish',options="",
+                             autoexit=T,verbose=1)
 {
   self := [=];
   public := [=];
@@ -25,14 +45,59 @@ octopussy := function (wpclass="",server="./octoglish",
   
   define_debug_methods(self,public,verbose);
 
-  const self.makeclient := function (server,wpclass="",options="",suspend=F) 
+  const self.makeclient := function (server,options)
   {
     wider self;
-    self.dprint(1,"starting client(",server,",",options,")");
-    self.opClient := client(server,options,suspend=suspend);
-    if( !is_agent(self.opClient) ) 
-      fail paste('server',server,'could not be started');
-    self.dprint(1,"connected");
+    # make use of options attribute, if defined
+    if( is_string(server::options) )
+      options := [ server::options,options ];
+    if( server::valgrind ) # start under valgrind -- some trickery required
+    {
+      self.dprint(2,'starting server under valgrind');
+      self.opClient := client(server,async=T);
+      cmd := paste('valgrind',server::valgrind_options,self.opClient.activate,options);
+      cmd =~ s/([<>*])/\\$1/g;
+      if( server::nostart )
+      {
+        print "===============================================";
+        print "=== Waiting for server to be manually started"
+        print "=== Please start it with the following command:";
+        print cmd;
+        print "===============================================";
+      }
+      else # start the server as an async shell command
+      {
+        self.dprint(1,'running:',cmd);
+        self.shellAgent := shell(cmd,async=T);
+        whenever self.shellAgent->* do
+          print $name,": ",$value;
+        self.dprint(2,"awaiting activation event");
+      }
+      await self.opClient->established;
+      self.dprint(1,"connection established");
+    }
+    else  # start normally
+    {
+      if( server::nostart )
+      {
+        self.opClient := client(server,options,async=T);
+        print "===============================================";
+        print "=== Waiting for server to be manually started"
+        print "=== Please start it with the following command:";
+        print self.opClient.activate;
+        print "===============================================";
+        self.dprint(2,"awaiting activation event");
+        await self.opClient->established;
+      }
+      else 
+      {
+        self.dprint(1,"starting client(",server,",",options,")");
+        self.opClient := client(server,options,suspend=server::suspend);
+        if( !is_agent(self.opClient) ) 
+          fail paste('server',server,'could not be started');
+        self.dprint(1,"connected");
+      }
+    }
     self.opClient::Died := F;
     # set up fail/exit handler
     whenever self.opClient->["fail done"] do 
@@ -85,12 +150,12 @@ octopussy := function (wpclass="",server="./octoglish",
   
 # Public functions
 #------------------------------------------------------------------------------
-  const public.init := function (wpclass="",server="",options="",suspend=F) 
+  const public.init := function (server="",options="") 
   {
     wider self;
     if( is_boolean(self.opClient) || self.opClient::Died ) 
     {
-      self.makeclient(server,wpclass=wpclass,options=options,suspend=suspend);
+      self.makeclient(server,options);
     }
     return T;
   }
@@ -265,7 +330,7 @@ octopussy := function (wpclass="",server="./octoglish",
     return self.started;
   }
   
-  res := public.init(wpclass,server=server,options=options,suspend=suspend);
+  res := public.init(server,options);
   if( is_fail(res) )
     return res;
   
