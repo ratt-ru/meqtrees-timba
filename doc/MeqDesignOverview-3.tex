@@ -802,40 +802,40 @@
   \qq{Function} is an important subclass of \qq{Node}, representing some
   function of its children's results. The main feature of \qq{Function} is an
   abstract \qq{evaluate()} method, which takes a vector of \Vells\ objects,
-  computes some function of them, and returns a \Vells\ result.
+  computes some function over them, and returns a \Vells\ result.
 
   Remember that a \Vells\ is a an $N\times M$ matrix ($\bar{f}=\{f_{ij}\}$) of
   $\RR$ or $\CC$ values, representing a set of sampling or integrations of the
   function $f:\RR^2\rightarrow\RR$ or $f:\RR^2\rightarrow\CC$ over some cells.
-  \Vells\ are organized into \VellSet{}s, containing the main value $\{f_{ij}\}$,
-  plus an optional set of $K\times S (S=1,2)$ perturbed values $\bar{f}_sk =
-  \{f^{(sk)}_{ij}\}$, which correspond to $S$ sets of the perturbed values of $f$
-  w.r.t. $K$ solvable parameters. A \VellSet\ will also contain $S$ vectors of
-  perturbations ${\delta^{(s)}_k}$.
+  \Vells\ are organized into \VellSet{}s, containing the main value
+  $\{f_{ij}\}$, plus an optional set of $K\times S$ $(S=1,2)$ perturbed values
+  $\bar{f}_{sk} = \{f^{(sk)}_{ij}\}$, which correspond to $S$ sets of
+  perturbations in $K$ solvable parameters. A \VellSet\ will also contain $S$
+  vectors of the perturbations themselves, $\{\delta^{(s)}_k\}$.
 
   The \Result\ of child $l$ will contain $Q_l$ \VellSet{}s. Most of the time,
   $Q_l=1$; when $Q_l>1$, the result represents a multidimensional function
-  $f:\RR^2\rightarrow\{\RR \mbox{or} \CC\}^{Q_l}$. Note that each plane of such
+  $f:\RR^2\rightarrow\{\RR\mbox{ or }\CC\}^{Q_l}$. Note that each plane of such
   a function may have its own set of solvable parameters and perturbed values.
   We will use the notation $\bar{f}_{lq}$ to designate the main value for child
   $l$, plane $q$, and $\bar{f}^{(sk)}_{lq}$ to designate the perturbed value of
   parameter $k$ from set $s$.
   
   The \qq{evaluate()} method of a \qq{Function}-derived node represents some
-  compound function of $L$ child vells {\bf defined over the same \Cells:}
-  $F(\bar{f}_1,...,\bar{f}_L)$. The value of this function is a \Vells\ itself,
+  compound function of $L$ child \Vells\ defined over the same \Cells. We will
+  designate this function as $F=F(\bar{f}_1,...,\bar{f}_L)$. The value of this function is a \Vells\ itself,
   $\bar{F} = \{F_{ij}\}$, also defined over the same \Cells. 
   
-  The \qq{Function} class implements a \qq{getResult()} that iterates over the
-  \Vells\ in its child results, calls \qq{evaluate()} to compute $F$, and
+  The \qq{Function} class provides a \qq{getResult()} method that iterates over
+  all \Vells\ in its child results, calls \qq{evaluate()} to compute $F$, and
   collect the resulting \Vells\ into an output \Result. The same operation is
   done for all perturbed values. Thus, the \qq{Function} class implements a
-  basis for all nodes that perform some mathematical operation over its
-  children. PSS4 includes an automatic code generator (documented elsewhere)
-  that will generate a full C++ implementation of a \qq{Function}-derived node
-  class, given a symbolic expression for the $F$ function. The kernel also
-  provides a toolkit of \qq{Function}s that implement most primitive
-  mathematical functions.
+  basis for all nodes that represent a compound function of their children.
+  PSS4 includes an automatic code generator (documented elsewhere) that will
+  generate a full C++ implementation of a \qq{Function}-derived node class,
+  given a symbolic expression for the $F$ function. The kernel also provides a
+  toolkit of \qq{Function}s that implement most primitive mathematical
+  operations.
 
 \subsection{Dealing with multiple planes}
 
@@ -846,8 +846,8 @@
   \begin{itemize}
   
   \item If all child results contain the same number of planes $Q$
-  $(Q=Q_1=...=Q_L)$, the function $F$ is applied separately to each plane from
-  1 to $Q$.
+  $(Q=Q_1=...=Q_L)$, the function $F$ is applied separately to each plane 
+  $q=1...Q$.
 
   \item Child results with a different number of planes are supported in only
   one scenario: some results may have 1 plane, and some may have $Q>1$ planes,
@@ -868,32 +868,31 @@
   
   To simplify the description here, let's remember that \qq{Function} deals
   with multiple result planes independently, on a plane-by-plane basis (see
-  above), and talk about one plane only (and $l$ child results for that plane).
-  We'll also forget about multiple perturbation sets, since those are all dealt
-  with in the same way. 
+  above). Hence, we'll assume we're dealing with only one plane, and $l$ child
+  results for that plane. We'll also forget about multiple perturbation sets,
+  since those are all dealt with in the same way. 
 
   \qq{Function} starts by figuring out all the spids present in the \VellSet{}s
   of the children. Thus, it ends up with a list of spids,
   $(\kappa_1,...,\kappa_n)$, which is simply the union of the spid sets from
   each child's \VellSet. For each spid $\kappa_i$, it then needs to compute the
   perturbed value of $F$ with respect to parameter $\kappa_i$
-  $(\bar{F}^{(kappa_i)})$, based on the perturbed \Vells\
+  $(\bar{F}^{(\kappa_i)})$, based on the perturbed \Vells\
   $(\bar{f}^{(k)})$ found in the child \VellSet{}s.
 
   This is done by calling \qq{evaluate()} $n$ times to compute
-  $\bar{F}^{(\kappa_i)}$, while selecting the input \Vells\ from each child's
-  result as follows. If spid $\kappa_i$ is present in the list of spids for 
-  the \VellSet\ of child $l$, the perturbed value $\bar{f}^{(lk)}$ is used
-  (where $k$ corresponds to spid $\kappa_i$). Otherwise, the main value
-  $\bar{f}_l$ is used.
-  
-  While this all may seem horribly complicated at first glance, remember that
-  the end result is quite simple. A \qq{Function} node computes some function
-  over its children's results. If the subtrees above the node contain solvable
-  parameters, then perturbed values of that same function {\bf w.r.t. all} the
-  solvable parameters must be computed as well, based on perturbed values
-  returned by the children. Everything else follows from this simple
-  requirement.
+  $\bar{F}^{(\kappa_i)}$ for each $\kappa_i$, while selecting the input \Vells\
+  from each child's result as follows. If spid $\kappa_i$ is present in the
+  list of spids for  the \VellSet\ of child $l$, the perturbed value
+  $\bar{f}^{(lk)}$ is used (where $k$ corresponds to spid $\kappa_i$).
+  Otherwise, the main value $\bar{f}_l$ is used.
+
+  If this seems complicated at first glance, remember that the end result is
+  quite simple. A \qq{Function} node computes some function over its children's
+  results. If the subtrees above the node contain solvable parameters, then
+  perturbed values of that same function {\bf w.r.t. all the solvable
+  parameters} must be computed as well, based on perturbed values returned by
+  the children. Everything else follows from this simple requirement.
 
 \subsection{Restrictions on child results}
    
@@ -912,11 +911,15 @@
   the same \Cells. Auto-resampling may need to be enabled to ensure this. This
   implies that all \Vells\ in the results will have either the same $M\times N$
   shape, or will be scalars (i.e. no time-frequency dependence).
+  
+  \item The child results must be either all samplings or all integrations. The
+  two types cannot be mixed in the same expression.
 
-  \item The third restriction involves the values of the perturbations
-  themselves. When $F$ is evaluated over perturbed values for parameter
-  $\kappa$, the result is sensible only when the perturbation $\delta_\kappa$
-  is the same for all perturbed values. 
+  \item The next restriction involves the values of the perturbations
+  $(\delta_\kappa)$ themselves. When $F$ is evaluated over perturbed values for
+  parameter $\kappa$, and these perturbed values appear in more than one
+  \VellSet, the result is sensible only when the perturbation
+  $\delta_\kappa$ is the same thoroughout. 
 
   \item Finally, if more than one perturbed value set is used (think
   double-differencing), \qq{Function} requires that all child results have the
@@ -946,7 +949,7 @@
   The \qq{req} argument is simply the original \Request. \qq{shape} defines the
   shape of the resulting \Vells, which may be needed to initialize a return
   value. It is taken from the shape of the result \Cells (see
-  \ref{sec:getResult)}. The last parameter is a vector of pointers to argument
+  \ref{sec:getResult}). The last parameter is a vector of pointers to argument
   \Vells, \qq{Function} sets it up for each call so that the correct combination
   of main values and perturbed values is used. Note that the resulting \Vells\
   is returned by value, this is a cheap operation since \Vells\ copy is normally
