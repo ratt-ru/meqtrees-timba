@@ -145,31 +145,30 @@ dist: $(VARIANTNAMES:.variant=.variant_dist)
 WITH_INSTALL=0
 
 build_system:
-     @case $$var in gnu3*)  inst_var=gcc3;; \
-                     gnu*)  inst_var=gcc2;; \
-	             icc*)  inst_var=icc;; \
-     esac; \
-     && (cd ../.. \
-     && echo \
-     && echo ":::::: CONFIGURING VARIANT $$variant FOR PACKAGE $$pkg" \
-     && echo \
-     && date \
-     && ((cd $$pkg/build/$$variant \
-     && $(LOFARDIR)/autoconf_share/lofarconf -norecursive --prefix=$(PREFIX)/$$inst_var ) \
-	|| echo ":::::: ERROR" ) \
-     && echo \
-     && echo ":::::: FINISHED CONFIGURING VARIANT $$variant FOR PACKAGE $$pkg" \
-     && echo ; ); \
-     (echo \
-     && echo ":::::: BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
-     && echo \
-     && date \
-     && (( cd $$pkg/build/$$variant \
-     && $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` build_system WITH_INSTALL=$(WITH_INSTALL) PREFIX=$(PREFIX)) \
-     	|| echo ":::::: ERROR" ) \
-     && echo \
-     && echo ":::::: FINISHED BUILDING VARIANT $$variant FOR PACKAGE $$pkg" \
-     && echo ;)
+	cd ../../; \
+	for pkg in $(RECUR_PACKAGES); do \
+	  if test -d $$pkg ; then \
+	      for var in $(RECUR_VARIANTS); do \
+	        echo ":::::: VARIANT $$var"; \
+		case $$var in gnu3*) inst_var=gcc3;; \
+	                      gnu*)  inst_var=gcc2;; \
+	                      icc*)  inst_var=icc;; \
+	        esac; \
+		(echo \
+		&& echo ":::::: BUILDING VARIANT $$var FOR PACKAGE $$pkg" \
+		&& echo \
+		&& date \
+		&& (( cd $$pkg/build/$$var \
+		&& $(MAKE) -k $(MAKE_OPTIONS) `cat makeoptions` build_system WITH_INSTALL=$(WITH_INSTALL) PREFIX=$(PREFIX) ) \
+			|| echo ":::::: ERROR" ) \
+		&& echo \
+		&& echo ":::::: FINISHED BUILDING VARIANT $$var FOR PACKAGE $$pkg" \
+		&& echo ;); \
+	      done; \
+	  else \
+	    echo ":::::: ERROR $$pkg does not exist"; \
+	  fi \
+	done; \
 
 EOFXXXXX
 
