@@ -72,7 +72,7 @@ class DataField : public NestableContainer  //## Inherits: <unnamed>%3C7A188A02E
 
       //## Operation: DataField%3BFA54540099
       //	Constructs an empty data field
-      explicit DataField (TypeId tid, int num = -1, int flags = DMI::WRITE);
+      explicit DataField (TypeId tid, int num = -1, int flags = DMI::WRITE, const void *data = 0);
 
     //## Destructor (generated)
       ~DataField();

@@ -68,7 +68,7 @@ DataField::DataField (const DataField &right, int flags, int depth)
   //## end DataField::DataField%3C3EE3EA022A.body
 }
 
-DataField::DataField (TypeId tid, int num, int flags)
+DataField::DataField (TypeId tid, int num, int flags, const void *data)
   //## begin DataField::DataField%3BFA54540099.hasinit preserve=no
   //## end DataField::DataField%3BFA54540099.hasinit
   //## begin DataField::DataField%3BFA54540099.initialization preserve=yes

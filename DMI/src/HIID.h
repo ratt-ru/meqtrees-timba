@@ -298,7 +298,7 @@ inline bool HIID::operator==(const HIID &right) const
   if( size() != right.size() )
     return False;
   for( CVI iter = begin(),oiter = right.begin(); iter != end(); iter++,oiter++ )
-    if( *iter != *iter )
+    if( *iter != *oiter )
       return False;
   return True;
   //## end HIID::operator==%3BE96FE601C5_eq.body
