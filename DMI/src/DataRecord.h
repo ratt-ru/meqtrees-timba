@@ -78,21 +78,21 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
       DataFieldRef & operator [] (const HIID &id);
 
       //## Operation: add%3BFBF5B600EB
-      Bool add (const HIID &id, DataFieldRef &ref);
+      bool add (const HIID &id, DataFieldRef &ref);
 
       //## Operation: remove%3BB311C903BE
-      Bool remove (const HIID &id);
+      bool remove (const HIID &id);
 
       //## Operation: replace%3BFCD4BB036F
-      Bool replace (const HIID &id, DataFieldRef &ref);
+      bool replace (const HIID &id, DataFieldRef &ref);
 
       //## Operation: enableWrite%3BFCF8C00234
-      Bool enableWrite (const HIID &id);
+      bool enableWrite (const HIID &id);
 
     //## Get and Set Operations for Class Attributes (generated)
 
       //## Attribute: writable%3BFCD97F01DA
-      const Bool isWritable () const;
+      const bool isWritable () const;
 
     // Additional Public Declarations
       //## begin DataRecord%3BB3112B0027.public preserve=yes
@@ -111,8 +111,8 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
   private: //## implementation
     // Data Members for Class Attributes
 
-      //## begin DataRecord::writable%3BFCD97F01DA.attr preserve=no  public: Bool {U} 
-      Bool writable;
+      //## begin DataRecord::writable%3BFCD97F01DA.attr preserve=no  public: bool {U} 
+      bool writable;
       //## end DataRecord::writable%3BFCD97F01DA.attr
 
     // Data Members for Associations
@@ -136,7 +136,7 @@ class DataRecord : public NestableContainer  //## Inherits: <unnamed>%3BFCD87E03
 
 //## Get and Set Operations for Class Attributes (inline)
 
-inline const Bool DataRecord::isWritable () const
+inline const bool DataRecord::isWritable () const
 {
   //## begin DataRecord::isWritable%3BFCD97F01DA.get preserve=no
   return writable;

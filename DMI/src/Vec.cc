@@ -50,11 +50,10 @@ DataField::DataField(const DataField &right)
   //## end DataField::DataField%3BB317D8010B_copy.initialization
 {
   //## begin DataField::DataField%3BB317D8010B_copy.body preserve=yes
-  
   //## end DataField::DataField%3BB317D8010B_copy.body
 }
 
-DataField::DataField (TypeId tid, int num, Bool writable)
+DataField::DataField (TypeId tid, int num, bool writable)
   //## begin DataField::DataField%3BFA54540099.hasinit preserve=no
   //## end DataField::DataField%3BFA54540099.hasinit
   //## begin DataField::DataField%3BFA54540099.initialization preserve=yes

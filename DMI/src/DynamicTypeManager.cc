@@ -62,7 +62,7 @@ BlockableObject * DynamicTypeManager::construct (TypeId tid, int n)
   //## end DynamicTypeManager::construct%3BE96C7402D5.body
 }
 
-void DynamicTypeManager::registerType (TypeId tid, DynamicTypeManager::PtrConstructor constructor)
+void DynamicTypeManager::registerType (TypeId tid, PtrConstructor constructor)
 {
   //## begin DynamicTypeManager::registerType%3BE96C6D0090.body preserve=yes
   cdebug(2)<<"DynTypeMgr: registering type "<<tid.toString()<<endl;
@@ -72,7 +72,7 @@ void DynamicTypeManager::registerType (TypeId tid, DynamicTypeManager::PtrConstr
   //## end DynamicTypeManager::registerType%3BE96C6D0090.body
 }
 
-Bool DynamicTypeManager::isRegistered (TypeId tid)
+bool DynamicTypeManager::isRegistered (TypeId tid)
 {
   //## begin DynamicTypeManager::isRegistered%3BF905EE020E.body preserve=yes
   return constructor_map.find(tid) != constructor_map.end();

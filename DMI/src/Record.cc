@@ -81,25 +81,25 @@ DataFieldRef & DataRecord::operator [] (const HIID &id)
   //## end DataRecord::operator []%3BFBF55C02A4.body
 }
 
-Bool DataRecord::add (const HIID &id, DataFieldRef &ref)
+bool DataRecord::add (const HIID &id, DataFieldRef &ref)
 {
   //## begin DataRecord::add%3BFBF5B600EB.body preserve=yes
   //## end DataRecord::add%3BFBF5B600EB.body
 }
 
-Bool DataRecord::remove (const HIID &id)
+bool DataRecord::remove (const HIID &id)
 {
   //## begin DataRecord::remove%3BB311C903BE.body preserve=yes
   //## end DataRecord::remove%3BB311C903BE.body
 }
 
-Bool DataRecord::replace (const HIID &id, DataFieldRef &ref)
+bool DataRecord::replace (const HIID &id, DataFieldRef &ref)
 {
   //## begin DataRecord::replace%3BFCD4BB036F.body preserve=yes
   //## end DataRecord::replace%3BFCD4BB036F.body
 }
 
-Bool DataRecord::enableWrite (const HIID &id)
+bool DataRecord::enableWrite (const HIID &id)
 {
   //## begin DataRecord::enableWrite%3BFCF8C00234.body preserve=yes
   //## end DataRecord::enableWrite%3BFCF8C00234.body

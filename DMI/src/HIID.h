@@ -93,7 +93,7 @@ class HIID
       int length () const;
 
       //## Operation: matches%3BE9792B0135
-      Bool matches (const HIID &other) const;
+      bool matches (const HIID &other) const;
 
       //## Operation: toString%3C0F8BD5004F
       string toString () const;

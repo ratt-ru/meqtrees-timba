@@ -28,12 +28,12 @@
 
 // CountedRef
 #include "CountedRef.h"
+// CountedRefTarget
+#include "CountedRefTarget.h"
 // TypeId
 #include "TypeId.h"
 // BlockSet
 #include "BlockSet.h"
-// CountedRefTarget
-#include "CountedRefTarget.h"
 //## begin module%3C10CC81019B.declarations preserve=no
 //## end module%3C10CC81019B.declarations
 
@@ -99,12 +99,12 @@ class BlockableObject : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB
       //## Operation: isNestable%3BFA7DBF00D7
       //	Returns True if the class realizes the NestableContainerInterface.
       //	Default implementation: False
-      virtual Bool isNestable ();
+      virtual bool isNestable ();
 
       //## Operation: isPersistent%3BFA7DC8017B
       //	Returns True if the class realizes the Persistency Interface.
       //	Default implementation: False.
-      virtual Bool isPersistent ();
+      virtual bool isPersistent ();
 
       //## Operation: clone%3BFE5FE103C5
       //	Clones (makes a deep copy) of the object. Default implementation
@@ -142,7 +142,7 @@ DefineRefTypes(BlockableObject,ObjRef);
 
 
 //## Other Operations (inline)
-inline Bool BlockableObject::isNestable ()
+inline bool BlockableObject::isNestable ()
 {
   //## begin BlockableObject::isNestable%3BFA7DBF00D7.body preserve=yes
   //## end BlockableObject::isNestable%3BFA7DBF00D7.body
@@ -150,7 +150,7 @@ inline Bool BlockableObject::isNestable ()
   return False;
 }
 
-inline Bool BlockableObject::isPersistent ()
+inline bool BlockableObject::isPersistent ()
 {
   //## begin BlockableObject::isPersistent%3BFA7DC8017B.body preserve=yes
   //## end BlockableObject::isPersistent%3BFA7DC8017B.body

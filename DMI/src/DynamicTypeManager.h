@@ -94,11 +94,11 @@ class DynamicTypeManager
 
       //## Operation: registerType%3BE96C6D0090
       //	Adds a type and its constructor function to the type map
-      static void registerType (TypeId tid, DynamicTypeManager::PtrConstructor constructor);
+      static void registerType (TypeId tid, PtrConstructor constructor);
 
       //## Operation: isRegistered%3BF905EE020E
       //	Checks if a type is registered
-      static Bool isRegistered (TypeId tid);
+      static bool isRegistered (TypeId tid);
 
   public:
     // Additional Public Declarations

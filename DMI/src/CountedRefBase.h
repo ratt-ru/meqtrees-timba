@@ -26,10 +26,10 @@
 //## begin module%3C10CC81037C.includes preserve=yes
 //## end module%3C10CC81037C.includes
 
-// Debug
-#include "Debug.h"
 // CountedRefTarget
 #include "CountedRefTarget.h"
+// Debug
+#include "Debug.h"
 //## begin module%3C10CC81037C.declarations preserve=no
 //## end module%3C10CC81037C.declarations
 
@@ -50,7 +50,6 @@
 
 
 
-//## Uses: <unnamed>%3C19B72701C3;Bool { -> }
 //## Uses: <unnamed>%3C19B9380140;Debug::Error { -> }
 
 class CountedRefBase 
@@ -89,7 +88,7 @@ class CountedRefBase
     //## Other Operations (specified)
       //## Operation: isValid%3C0CDEE2015A; C++
       //	Returns True if reference is valid (i.e. has a target).
-      Bool isValid () const;
+      bool isValid () const;
 
       //## Operation: getTarget%3C0CDEE2015B; C++
       //	Dereferences, returns const reference to target.
@@ -159,28 +158,28 @@ class CountedRefBase
 
       //## Operation: isWrite%3C19F62B0137
       //	Alias for isWritable().
-      Bool isWrite () const;
+      bool isWrite () const;
 
     //## Get and Set Operations for Class Attributes (generated)
 
       //## Attribute: locked%3C15DF4D036D
       //	Flag: locked ref. Locked references can't be transferred, only
       //	copy()d. Also, they may not be detached.
-      const Bool isLocked () const;
+      const bool isLocked () const;
 
       //## Attribute: writable%3C0CDEE20112
       //	True if reference target is writable.
-      const Bool isWritable () const;
+      const bool isWritable () const;
 
       //## Attribute: exclusiveWrite%3C0CDEE20127
       //	True if this is an exclusive-write reference, i.e., other writable
       //	refs can't be created.
-      const Bool isExclusiveWrite () const;
+      const bool isExclusiveWrite () const;
 
       //## Attribute: anonObject%3C0CDEE20130
       //	True if target is an anonymous object (i.e. will be deleted when last
       //	reference to it is deleted.)
-      const Bool isAnonObject () const;
+      const bool isAnonObject () const;
 
     //## Get and Set Operations for Associations (generated)
 
@@ -261,20 +260,20 @@ class CountedRefBase
   private: //## implementation
     // Data Members for Class Attributes
 
-      //## begin CountedRefBase::locked%3C15DF4D036D.attr preserve=no  public: Bool {U} 
-      Bool locked;
+      //## begin CountedRefBase::locked%3C15DF4D036D.attr preserve=no  public: bool {U} 
+      bool locked;
       //## end CountedRefBase::locked%3C15DF4D036D.attr
 
-      //## begin CountedRefBase::writable%3C0CDEE20112.attr preserve=no  public: Bool {U} 
-      Bool writable;
+      //## begin CountedRefBase::writable%3C0CDEE20112.attr preserve=no  public: bool {U} 
+      bool writable;
       //## end CountedRefBase::writable%3C0CDEE20112.attr
 
-      //## begin CountedRefBase::exclusiveWrite%3C0CDEE20127.attr preserve=no  public: Bool {U} 
-      Bool exclusiveWrite;
+      //## begin CountedRefBase::exclusiveWrite%3C0CDEE20127.attr preserve=no  public: bool {U} 
+      bool exclusiveWrite;
       //## end CountedRefBase::exclusiveWrite%3C0CDEE20127.attr
 
-      //## begin CountedRefBase::anonObject%3C0CDEE20130.attr preserve=no  public: Bool {U} 
-      Bool anonObject;
+      //## begin CountedRefBase::anonObject%3C0CDEE20130.attr preserve=no  public: bool {U} 
+      bool anonObject;
       //## end CountedRefBase::anonObject%3C0CDEE20130.attr
 
     // Additional Implementation Declarations
@@ -362,7 +361,7 @@ inline Bool CountedRefBase::operator!=(const CountedRefBase &right) const
 
 
 //## Other Operations (inline)
-inline Bool CountedRefBase::isValid () const
+inline bool CountedRefBase::isValid () const
 {
   //## begin CountedRefBase::isValid%3C0CDEE2015A.body preserve=yes
   return target != 0;
@@ -423,7 +422,7 @@ inline CountedRefBase& CountedRefBase::attach (const CountedRefTarget* targ, int
   //## end CountedRefBase::attach%3C0CDEE20178.body
 }
 
-inline Bool CountedRefBase::isWrite () const
+inline bool CountedRefBase::isWrite () const
 {
   //## begin CountedRefBase::isWrite%3C19F62B0137.body preserve=yes
   return isWritable();
@@ -440,28 +439,28 @@ inline void CountedRefBase::empty ()
 
 //## Get and Set Operations for Class Attributes (inline)
 
-inline const Bool CountedRefBase::isLocked () const
+inline const bool CountedRefBase::isLocked () const
 {
   //## begin CountedRefBase::isLocked%3C15DF4D036D.get preserve=no
   return locked;
   //## end CountedRefBase::isLocked%3C15DF4D036D.get
 }
 
-inline const Bool CountedRefBase::isWritable () const
+inline const bool CountedRefBase::isWritable () const
 {
   //## begin CountedRefBase::isWritable%3C0CDEE20112.get preserve=no
   return writable;
   //## end CountedRefBase::isWritable%3C0CDEE20112.get
 }
 
-inline const Bool CountedRefBase::isExclusiveWrite () const
+inline const bool CountedRefBase::isExclusiveWrite () const
 {
   //## begin CountedRefBase::isExclusiveWrite%3C0CDEE20127.get preserve=no
   return exclusiveWrite;
   //## end CountedRefBase::isExclusiveWrite%3C0CDEE20127.get
 }
 
-inline const Bool CountedRefBase::isAnonObject () const
+inline const bool CountedRefBase::isAnonObject () const
 {
   //## begin CountedRefBase::isAnonObject%3C0CDEE20130.get preserve=no
   return anonObject;

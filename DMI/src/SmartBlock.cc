@@ -118,7 +118,7 @@ void SmartBlock::init (void* data, size_t size, int flags, int shm_flags)
   block = data;
   datasize = size;
   delete_block = (flags&DMI::DELETE)!=0;
-  shmid = shm_flags = 0;
+  shmid = 0;
   dprintf(2)("%s allocated\n",debug());
   //## end SmartBlock::init%3BFE37C3022B.body
 }

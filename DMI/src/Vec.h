@@ -21,7 +21,6 @@
 //## begin module%3C10CC820124.additionalIncludes preserve=no
 #include "Common.h"
 #include "DMI.h"
-#include "TID.h"
 //## end module%3C10CC820124.additionalIncludes
 
 //## begin module%3C10CC820124.includes preserve=yes
@@ -35,15 +34,21 @@
 //## end module%3C10CC820124.declarations
 
 //## begin module%3C10CC820124.additionalDeclarations preserve=yes
-// declare the standard types
+// declare the standard types (: means do not generate constructors)
 #pragma typegroup Global
-#pragma types char=10 uchar=11 short=12 ushort=13 int=14 uint=15 
-#pragma types long=16 ulong=17 float=18 double=19 ldouble=20 string=21
+#pragma types :char=10 :uchar=11 :short=12 :ushort=13 :int=14 :uint=15 
+#pragma types :long=16 :ulong=17 :float=18 :double=19 :ldouble=20 :string=21
+#pragma types :bool=22 
+// these constants are used to tell them apart from other types
+const int StdTypeFirst=10,StdTypeLast=22;
 
-#pragma types mytype
+typedef unsigned char uchar;
+typedef unsigned short ushort;
+typedef unsigned int uint;
+typedef unsigned long ulong;
+typedef long double ldouble;
 
-// these constants are used to tell them apart 
-const int StdTypeFirst=10,StdTypeLast=21;
+
 //## end module%3C10CC820124.additionalDeclarations
 
 
@@ -74,7 +79,7 @@ class DataField : public BlockableObject  //## Inherits: <unnamed>%3C1F711B0122
     //## Constructors (specified)
       //## Operation: DataField%3BFA54540099
       //	Constructs an empty data field
-      DataField (TypeId tid, int num = 0, Bool writable = False);
+      DataField (TypeId tid, int num = 0, bool writable = False);
 
     //## Destructor (generated)
       ~DataField();
@@ -105,16 +110,15 @@ class DataField : public BlockableObject  //## Inherits: <unnamed>%3C1F711B0122
       const TypeId type () const;
 
       //## Attribute: selected%3BEBE89602BC
-      const Bool isSelected () const;
+      const bool isSelected () const;
 
       //## Attribute: writable%3BFCD90E0110
-      const Bool isWritable () const;
+      const bool isWritable () const;
 
     // Additional Public Declarations
       //## begin DataField%3BB317D8010B.public preserve=yes
       typedef CountedRef<DataField> Ref;
       //## end DataField%3BB317D8010B.public
-
   protected:
     // Additional Protected Declarations
       //## begin DataField%3BB317D8010B.protected preserve=yes
@@ -132,12 +136,12 @@ class DataField : public BlockableObject  //## Inherits: <unnamed>%3C1F711B0122
       TypeId mytype;
       //## end DataField::mytype%3BB317E3002B.attr
 
-      //## begin DataField::selected%3BEBE89602BC.attr preserve=no  public: Bool {U} 
-      Bool selected;
+      //## begin DataField::selected%3BEBE89602BC.attr preserve=no  public: bool {U} 
+      bool selected;
       //## end DataField::selected%3BEBE89602BC.attr
 
-      //## begin DataField::writable%3BFCD90E0110.attr preserve=no  public: Bool {U} 
-      Bool writable;
+      //## begin DataField::writable%3BFCD90E0110.attr preserve=no  public: bool {U} 
+      bool writable;
       //## end DataField::writable%3BFCD90E0110.attr
 
     // Data Members for Associations
@@ -175,14 +179,14 @@ inline const TypeId DataField::type () const
   //## end DataField::type%3BB317E3002B.get
 }
 
-inline const Bool DataField::isSelected () const
+inline const bool DataField::isSelected () const
 {
   //## begin DataField::isSelected%3BEBE89602BC.get preserve=no
   return selected;
   //## end DataField::isSelected%3BEBE89602BC.get
 }
 
-inline const Bool DataField::isWritable () const
+inline const bool DataField::isWritable () const
 {
   //## begin DataField::isWritable%3BFCD90E0110.get preserve=no
   return writable;

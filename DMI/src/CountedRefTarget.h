@@ -49,8 +49,6 @@ class CountedRefBase;
 
 
 
-//## Uses: <unnamed>%3C19B7930164;Bool { -> }
-
 class CountedRefTarget 
 {
   //## begin CountedRefTarget%3C0CDF41029F.initialDeclarations preserve=yes
@@ -85,7 +83,7 @@ class CountedRefTarget
 
       //## Operation: refWriteExclusions%3C18C6A603DA; C++
       //	Returns True is exclusive-write refs to the object exist.
-      virtual Bool refWriteExclusions () const;
+      virtual bool refWriteExclusions () const;
 
     //## Get and Set Operations for Associations (generated)
 
@@ -169,5 +167,3 @@ inline CountedRefBase * CountedRefTarget::getOwner ()
 
 
 #endif
-
-

@@ -146,13 +146,13 @@ class AtomicID
       AtomicID & operator = (int n);
 
       //## Operation: isAny%3C1A28850258
-      Bool isAny () const;
+      bool isAny () const;
 
       //## Operation: isWildcard%3C1A288F0342
-      Bool isWildcard () const;
+      bool isWildcard () const;
 
       //## Operation: matches%3C1DFD1A0235
-      Bool matches (const AtomicID &other) const;
+      bool matches (const AtomicID &other) const;
 
       //## Operation: toString%3BE9709700A7
       string toString () const;
@@ -316,21 +316,21 @@ inline AtomicID & AtomicID::operator = (int n)
   //## end AtomicID::operator =%3C1A1A9000DD.body
 }
 
-inline Bool AtomicID::isAny () const
+inline bool AtomicID::isAny () const
 {
   //## begin AtomicID::isAny%3C1A28850258.body preserve=yes
   return id == (int) AidAny; 
   //## end AtomicID::isAny%3C1A28850258.body
 }
 
-inline Bool AtomicID::isWildcard () const
+inline bool AtomicID::isWildcard () const
 {
   //## begin AtomicID::isWildcard%3C1A288F0342.body preserve=yes
   return id == (int) AidWildcard; 
   //## end AtomicID::isWildcard%3C1A288F0342.body
 }
 
-inline Bool AtomicID::matches (const AtomicID &other) const
+inline bool AtomicID::matches (const AtomicID &other) const
 {
   //## begin AtomicID::matches%3C1DFD1A0235.body preserve=yes
   return id<0 || other.id<0 || id == other.id;
@@ -342,5 +342,3 @@ inline Bool AtomicID::matches (const AtomicID &other) const
 
 
 #endif
-
-

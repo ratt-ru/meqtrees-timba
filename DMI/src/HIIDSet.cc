@@ -117,7 +117,7 @@ HIIDSet & HIIDSet::remove (const HIID &id)
   //## end HIIDSet::remove%3C1DFB650236.body
 }
 
-Bool HIIDSet::contains (const HIID& id) const
+bool HIIDSet::contains (const HIID& id) const
 {
   //## begin HIIDSet::contains%3BFBAE650315.body preserve=yes
   for( CSI iter = contents.begin(); iter != contents.end(); iter++ )

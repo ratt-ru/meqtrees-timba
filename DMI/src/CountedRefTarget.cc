@@ -106,7 +106,7 @@ int CountedRefTarget::refCountWrite () const
   //## end CountedRefTarget::refCountWrite%3C18C69A0120.body
 }
 
-Bool CountedRefTarget::refWriteExclusions () const
+bool CountedRefTarget::refWriteExclusions () const
 {
   //## begin CountedRefTarget::refWriteExclusions%3C18C6A603DA.body preserve=yes
   for( const CountedRefBase *ref = getOwner(); ref != 0; ref = ref->getNext() )

@@ -97,7 +97,7 @@ class HIIDSet
       HIIDSet & operator -= (const HIIDSet &other);
 
       //## Operation: contains%3BFBAE650315
-      Bool contains (const HIID& id) const;
+      bool contains (const HIID& id) const;
 
     // Additional Public Declarations
       //## begin HIIDSet%3BFBAC350085.public preserve=yes

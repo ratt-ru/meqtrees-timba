@@ -196,9 +196,11 @@ class CountedRef : private CountedRefBase  //## Inherits: private%3C0CE1250396
 
 //## Class: LockedCountedRef%3C15DFD30149; Parameterized Class
 //	Helper class: when created from a CountedRef, makes a locked copy of
-//	the ref. Identical to CountedRef in all other respoects. Should be
+//	the ref. Identical to CountedRef in all other respects. Should be
 //	used for, e.g., function arguments as a sort of "const reference",
 //	i.e., where the function pledges not to touch the ref.
+//	The copy constructor is deliberatly left unimplemented, since locked
+//	refs
 //## Category: PSCF::DMI%3BEAB1F2006B; Global
 //## Subsystem: DMI%3C10CC810155
 //## Persistence: Transient
@@ -213,9 +215,15 @@ class LockedCountedRef : public CountedRef< T >  //## Inherits: <unnamed>%3C15FE
   //## end LockedCountedRef%3C15DFD30149.initialDeclarations
 
   public:
+    //## Constructors (generated)
+      LockedCountedRef(const LockedCountedRef< T > &right);
+
     //## Constructors (specified)
       //## Operation: LockedCountedRef%3C15FE870221; C++
       LockedCountedRef (const CountedRef<T>& ref);
+
+      //## Operation: LockedCountedRef%3C3C41170106
+      LockedCountedRef (const LockedCountedRef<T>& ref, int flags);
 
     //## Destructor (generated)
       ~LockedCountedRef();
@@ -232,8 +240,6 @@ class LockedCountedRef : public CountedRef< T >  //## Inherits: <unnamed>%3C15FE
   private:
     //## Constructors (generated)
       LockedCountedRef();
-
-      LockedCountedRef(const LockedCountedRef< T > &right);
 
     //## Assignment Operation (generated)
       LockedCountedRef< T > & operator=(const LockedCountedRef< T > &right);
@@ -538,12 +544,38 @@ inline LockedCountedRef<T>::LockedCountedRef (const CountedRef<T>& ref)
   //## end LockedCountedRef::LockedCountedRef%3C15FE870221.body
 }
 
+template <class T>
+inline LockedCountedRef<T>::LockedCountedRef (const LockedCountedRef<T>& ref, int flags)
+  //## begin LockedCountedRef::LockedCountedRef%3C3C41170106.hasinit preserve=no
+  //## end LockedCountedRef::LockedCountedRef%3C3C41170106.hasinit
+  //## begin LockedCountedRef::LockedCountedRef%3C3C41170106.initialization preserve=yes
+    : CountedRef<T>(ref,flags)
+  //## end LockedCountedRef::LockedCountedRef%3C3C41170106.initialization
+{
+  //## begin LockedCountedRef::LockedCountedRef%3C3C41170106.body preserve=yes
+  //## end LockedCountedRef::LockedCountedRef%3C3C41170106.body
+}
+
+
+template <class T>
+inline LockedCountedRef<T>::~LockedCountedRef()
+{
+  //## begin LockedCountedRef::~LockedCountedRef%3C15DFD30149_dest.body preserve=yes
+  //## end LockedCountedRef::~LockedCountedRef%3C15DFD30149_dest.body
+}
+
 
 // Parameterized Class CountedRef 
 
 // Additional Declarations
   //## begin CountedRef%3BEFECFF0287.declarations preserve=yes
   //## end CountedRef%3BEFECFF0287.declarations
+
+// Parameterized Class LockedCountedRef 
+
+// Additional Declarations
+  //## begin LockedCountedRef%3C15DFD30149.declarations preserve=yes
+  //## end LockedCountedRef%3C15DFD30149.declarations
 
 //## begin module%3C10CC810321.epilog preserve=yes
 // The DefineRefTypes macro generates typedefs for refs to specific types.
@@ -554,13 +586,5 @@ inline LockedCountedRef<T>::LockedCountedRef (const CountedRef<T>& ref)
 
 //## end module%3C10CC810321.epilog
 
-
-#endif
-
-
-// Detached code regions:
-#if 0
-//## begin CountedRef::operator =%3BF937590007.body preserve=yes
-//## end CountedRef::operator =%3BF937590007.body
 
 #endif

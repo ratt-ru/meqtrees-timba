@@ -47,7 +47,7 @@ HIID & HIID::add (HIID &other)
   //## end HIID::add%3BE977510397.body
 }
 
-Bool HIID::matches (const HIID &other) const
+bool HIID::matches (const HIID &other) const
 {
   //## begin HIID::matches%3BE9792B0135.body preserve=yes
   if( other.length() > length() )  // other is longer - no match then

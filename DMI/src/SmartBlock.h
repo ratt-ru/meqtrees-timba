@@ -73,7 +73,7 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
 
       //## Operation: SmartBlock%3BFE299902D7
       //	Allocates a SmartBlock from the heap.
-      SmartBlock (size_t size);
+      explicit SmartBlock (size_t size);
 
       //## Operation: SmartBlock%3BFA4FCA0387
       //	Creates a SmartBlock in shared memory.
@@ -102,7 +102,7 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
       void destroy ();
 
       //## Operation: isShMem%3BEBBB480178
-      Bool isShMem () const;
+      bool isShMem () const;
 
       //## Operation: operator *%3BFE1E3703DD
       void * operator * ();
@@ -165,8 +165,8 @@ class SmartBlock : public CountedRefTarget  //## Inherits: <unnamed>%3C0CEB7900A
       //## end SmartBlock::shmid%3BEAACC40281.attr
 
       //## Attribute: delete_block%3BFE1E930399
-      //## begin SmartBlock::delete_block%3BFE1E930399.attr preserve=no  private: Bool {U} 
-      Bool delete_block;
+      //## begin SmartBlock::delete_block%3BFE1E930399.attr preserve=no  private: bool {U} 
+      bool delete_block;
       //## end SmartBlock::delete_block%3BFE1E930399.attr
 
     // Additional Implementation Declarations
@@ -204,7 +204,7 @@ typedef CountedRef<SmartBlock> BlockRef;
 
 
 //## Other Operations (inline)
-inline Bool SmartBlock::isShMem () const
+inline bool SmartBlock::isShMem () const
 {
   //## begin SmartBlock::isShMem%3BEBBB480178.body preserve=yes
   return shmid != 0;

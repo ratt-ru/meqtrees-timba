@@ -59,10 +59,10 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
     //## Other Operations (specified)
       //## Operation: hasFragment%3BE9828D0266
-      virtual Bool hasFragment (HIID frag) = 0;
+      virtual bool hasFragment (HIID frag) = 0;
 
       //## Operation: selectFragment%3BE982760231
-      virtual Bool selectFragment (const HIIDSet &frag) = 0;
+      virtual bool selectFragment (const HIIDSet &frag) = 0;
 
       //## Operation: clearSelection%3BFBDC0D025A
       virtual void clearSelection () = 0;
@@ -71,7 +71,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
       virtual int selectionToBlock (BlockSet& set) = 0;
 
       //## Operation: isNestable%3BFCD8180044
-      Bool isNestable ();
+      bool isNestable ();
 
     // Additional Public Declarations
       //## begin NestableContainer%3BE97CE100AF.public preserve=yes
@@ -101,7 +101,7 @@ class NestableContainer : public BlockableObject  //## Inherits: <unnamed>%3BFCD
 
 
 //## Other Operations (inline)
-inline Bool NestableContainer::isNestable ()
+inline bool NestableContainer::isNestable ()
 {
   //## begin NestableContainer::isNestable%3BFCD8180044.body preserve=yes
   //## end NestableContainer::isNestable%3BFCD8180044.body

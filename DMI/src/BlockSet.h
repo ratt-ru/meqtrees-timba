@@ -58,7 +58,7 @@ class BlockSet
 
     //## Constructors (specified)
       //## Operation: BlockSet%3BFA4B6501A7
-      BlockSet (int num = 0);
+      explicit BlockSet (int num = 0);
 
     //## Destructor (generated)
       ~BlockSet();
