@@ -59,7 +59,7 @@ TypeIterMacros.h
 CXXFLAGS += -D_GNU_SOURCE 
 # CXXFLAGS += -D_GNU_SOURCE -DUSE_THREADS -pthread
 
-EXTRA_DIST = build_aid_maps.pl build_type_iter.pl atomicid.list
+# EXTRA_DIST = build_aid_maps.pl build_type_iter.pl atomicid.list
 
 # rules for generating the global AID registry
 # this is a list of all the packages that contain any registries
@@ -83,35 +83,14 @@ $(top_srcdir)/src/Global-Registry.cc: $(top_srcdir)/src/Global-Registry.header $
 	(for f in $(REGISTRY_FILES); do grep "AtomicID::registerId" $$f; done)|sort|uniq >>$@
 	cat $(top_srcdir)/src/Global-Registry.footer >>$@
 
-# script used to generate AID maps
-MAPBUILDER = $(top_srcdir)/src/build_aid_maps.pl 
-
-# this is for the DMI directory only 
-ITERBUILDER = $(top_srcdir)/src/build_type_iter.pl 
-
-# All .aidlist files below this dir will be scanned
-BASELISTDIR = $(lofar_sharedir)/..
-
-# Your package's subdirectory
-AID_DIR = $(top_srcdir)/src
-
-aidlists := $(shell find $(BASELISTDIR) -name \*.aidlist)
-
-aids: 
-	$(MAPBUILDER) $(aidlists) $(AID_DIR)/*.h 
-#	$(ITERBUILDER) `find $(BASELISTDIR) -name \*.aidlist` $(top_srcdir)/src/TypeIterMacros.h
-
-all_aids: 
-	$(MAPBUILDER) $(aidlists)  `find $(BASELISTDIR) -name \*.h` 
-#	$(ITERBUILDER) `find $(BASELISTDIR) -name \*.aidlist` $(top_srcdir)/src/TypeIterMacros.h 
-
-clean_aids: 
-	rm -f $(aidlists)
-	@echo "Removed all aidlist files"
+# clean_aids: 
+#	rm -f $(aidlists)
+#	@echo "Removed all aidlist files"
 
 globreg: Global-Registry.cc
 
-.PHONY: globreg aids all_aids clean_aids
+.PHONY: globreg 
 
+include $(lofar_sharedir)/Makefile.aids
 include $(lofar_sharedir)/Makefile.common
 

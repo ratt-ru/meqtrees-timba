@@ -193,8 +193,8 @@ sub ReadListFile
   {
     $line++;
     next if /^\s*$/ or /^\s*;/;
-    if( /\s*(\w+)\s+(\d+)\s*(; from .*)?$/ ) {
-      my ($id,$num,$from) = ($1,$2,$3);
+    if( /\s*(\w+)\s+(\d+)\s*(; from (.*))?$/ ) {
+      my ($id,$num,$dum,$from) = ($1,$2,$3,$4);
       # print $id,$num,$from,"\n";
       ReserveId($id,$num,$dir);
       $defined_at{$id} = "$from";
@@ -340,9 +340,9 @@ for( keys %grouplist )
 
 # Assign new numbers to any remaining unassigned IDs
 if( @newids ) {
-  print STDERR "    Assigning new IDs: ",join(",",@newids),"\n";
+  print STDERR "=== Assigning new IDs: ",join(",",@newids),"\n";
 } else {
-  print STDERR "    Assigning new IDs: none\n";
+  print STDERR "=== Assigning new IDs: none\n";
 }
 for( keys %globmap ) {
   if( $globmap{$_} < 0 ) {
