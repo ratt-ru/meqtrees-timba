@@ -36,7 +36,7 @@ case $toolname in
 	outputext=`echo $outputname | cut -d. -f2`;
 
 	# exclude .lo objects because we're only interested in libraries and binaries
-	if test $outputext != "lo"; then
+	if test "$outputext" != "lo"; then
 	    # log compiler command
 	    echo $* > $outputname.compile.log
 	fi
