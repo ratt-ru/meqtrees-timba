@@ -146,6 +146,44 @@ void Request::processRider (Node &node) const
           node.processCommands(hlist.as<DataRecord>(),*this);
         }
       }
+      // process command_by_list (pattern matching list)
+      {
+        Hook hlist(group,FCommandByList);
+        if( hlist.exists() )
+        {
+          DataField &list = hlist.as_wr<DataField>();
+          cdebug(3)<<"      checking "<<list.size()<<" list entries"<<endl;
+          bool matched = false;
+          for( int i=0; i<list.size() && !matched; i++ )
+          {
+            DataRecord &entry = list[i].as_wr<DataRecord>();
+            std::vector<string> names;
+            std::vector<int> indices;
+            Hook hnames(entry,FName),
+                 hindices(entry,FNodeIndex);
+            if( hnames.exists() ) // get list of names, if any
+              names = hnames;
+            if( hindices.exists() ) // get list of node indices, if any
+              indices = hindices;
+            cdebug(4)<<"        "<<indices.size()<<" indices, "
+                     <<names.size()<<" names"<<endl;
+            matched = ( std::find(indices.begin(),indices.end(),node.nodeIndex())
+                          != indices.end() ||
+                        std::find(names.begin(),names.end(),node.name())
+                          != names.end() ||
+                        ( names.empty() && indices.empty() ) );
+            // call appropriate handlers if node was matched
+            if( matched )
+            {
+              cdebug(4)<<"        node matched, calling processCommands()"<<endl;
+              node.processCommands(entry,*this);
+            }
+          }
+          if( !matched ) {
+            cdebug(3)<<"      no matches in list"<<endl;
+          }
+        }
+      }
       // process command_by_nodeindex list
       {
         Hook hlist(group,FCommandByNodeIndex);
@@ -153,42 +191,6 @@ void Request::processRider (Node &node) const
         {
           cdebug(4)<<"    found "<<FCommandByNodeIndex<<"["<<node.nodeIndex()<<"], calling processCommands()"<<endl;
           node.processCommands(hlist.as<DataRecord>(),*this);
-        }
-      }
-      // process command_by_list (pattern matching list)
-      Hook hlist(group,FCommandByList);
-      if( hlist.exists() )
-      {
-        DataField &list = hlist.as_wr<DataField>();
-        cdebug(3)<<"      checking "<<list.size()<<" list entries"<<endl;
-        bool matched = false;
-        for( int i=0; i<list.size() && !matched; i++ )
-        {
-          DataRecord &entry = list[i].as_wr<DataRecord>();
-          std::vector<string> names;
-          std::vector<int> indices;
-          Hook hnames(entry,FName),
-               hindices(entry,FNodeIndex);
-          if( hnames.exists() ) // get list of names, if any
-            names = hnames;
-          if( hindices.exists() ) // get list of node indices, if any
-            indices = hindices;
-          cdebug(4)<<"        "<<indices.size()<<" indices, "
-                   <<names.size()<<" names"<<endl;
-          matched = ( std::find(indices.begin(),indices.end(),node.nodeIndex())
-                        != indices.end() ||
-                      std::find(names.begin(),names.end(),node.name())
-                        != names.end() ||
-                      ( names.empty() && indices.empty() ) );
-          // call appropriate handlers if node was matched
-          if( matched )
-          {
-            cdebug(4)<<"        node matched, calling processCommands()"<<endl;
-            node.processCommands(entry,*this);
-          }
-        }
-        if( !matched ) {
-          cdebug(3)<<"      no matches in list"<<endl;
         }
       }
     }

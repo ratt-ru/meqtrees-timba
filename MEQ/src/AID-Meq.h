@@ -528,6 +528,11 @@ const int AidTime_int = -1152;
 const AtomicID AidTimes(-1252);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Cells.h:35
 const int AidTimes_int = -1252;
 #endif
+#ifndef _defined_id_AidUpdate
+#define _defined_id_AidUpdate 1
+const AtomicID AidUpdate(-1265);                  // from /home/oms/LOFAR/CEP/CPA/AppAgent/AppAgent/src/AppControlAgent.h:18
+const int AidUpdate_int = -1265;
+#endif
 #ifndef _defined_id_AidUseSVD
 #define _defined_id_AidUseSVD 1
 const AtomicID AidUseSVD(-1384);                  // from /home/gvd/sim/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:36
@@ -537,6 +542,11 @@ const int AidUseSVD_int = -1384;
 #define _defined_id_AidValue 1
 const AtomicID AidValue(-1256);                   // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Result.h:35
 const int AidValue_int = -1256;
+#endif
+#ifndef _defined_id_AidValues
+#define _defined_id_AidValues 1
+const AtomicID AidValues(-1413);                  // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:31
+const int AidValues_int = -1413;
 #endif
 #ifndef _defined_id_AidVellSet
 #define _defined_id_AidVellSet 1

@@ -28,9 +28,9 @@
 
 #pragma aidgroup Meq
 #pragma aid Node Class Name State Child Children Request Result VellSet 
-#pragma aid Rider Command Id Group Add
+#pragma aid Rider Command Id Group Add Update Value Values
 #pragma aid Cells Domain Freq Time Times Step Steps Calc Deriv Vells VellSets
-#pragma aid NodeIndex Table Name Default Value Index Num Cache Code
+#pragma aid NodeIndex Table Name Default Index Num Cache Code
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cells Results Fail Origin Line Message Contagious  Normalized
 #pragma aid Solvable Config Groups All By List Polc Polcs Scale
@@ -53,36 +53,42 @@ namespace Meq
     FVellSets        = AidVellSets,
     FResult          = AidResult,
     FRequest         = AidRequest,
+    FState           = AidState,
+    FValue           = AidValue,
+    
+    // Node staterec
     FChildren        = AidChildren,
     FChildrenNames   = AidChildren|AidName,
     FName            = AidName,
     FNodeIndex       = AidNodeIndex,
-    
     FNodeGroups         = AidNode|AidGroups,
+    
+    // Request rider fields (for commands)
     FAll                = AidAll,
     FCommandAll         = AidCommand|AidAll,
     FCommandByNodeIndex = AidCommand|AidBy|AidNodeIndex,
     FCommandByList      = AidCommand|AidBy|AidList,
-    FState              = AidState,
     
     FCacheResult     = AidCache|AidResult,
     FCacheResultCode = AidCache|AidResult|AidCode,
     
+    // Cells fields
     FDomain          = AidDomain,
     FTimes           = AidTimes,
     FTimeSteps       = AidTime|AidSteps,
     FNumFreq         = AidNum|AidFreq,
-    FValue           = AidValue,
     
+    // Parm staterec fields
     FDefault         = AidDefault,
-    FSetValue        = AidSet|AidValue,
     FTableName       = AidTable|AidName,
     FParmName        = AidParm|AidName,
     FDomainId        = AidDomain|AidId,
     FAutoSave        = AidAuto|AidSave,
+    // Parm rider commands
+    FUpdateValues    = AidUpdate|AidValues,
     FSavePolc        = AidSave|AidPolc,
     
-    // Polc-specific fields
+    // Polc fields
     FCoeff           = AidCoeff,
     FPerturbation    = AidPert,
     FWeight          = AidWeight,
@@ -95,11 +101,13 @@ namespace Meq
     FInfDomain       = AidInf|AidDomain,
     FDbId            = AidDbId|AidIndex,
     
+    // Vells fields
     FSpids           = AidSpid|AidIndex,
     FPerturbedValues = AidPerturbed|AidValue,
     FPerturbations   = AidPerturbations,
     FPolcs           = AidPolcs,
 
+    // Fail fields
     FFail            = AidFail,
     FOrigin          = AidOrigin,
     FOriginLine      = AidOrigin|AidLine,
@@ -112,7 +120,7 @@ namespace Meq
     FEpsilon         = AidEpsilon,
     FUseSVD          = AidUseSVD,
 
-    // solver result rider
+    // Solver result rider
     FMetrics         = AidMetrics,
     FRank            = AidRank,
     FFit             = AidFit,
