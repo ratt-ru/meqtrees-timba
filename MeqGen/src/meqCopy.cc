@@ -14,7 +14,10 @@
 #define   meqFlagger        *(values[0])
 
 
+
 using namespace Meq::VellsMath;
+
+
 namespace meq {
 
   Copy::Copy()
@@ -23,7 +26,7 @@ namespace meq {
   Copy::~Copy()
   {}
 
-  void Copy::evaluateVells (Vells& result, const Request&, const vector<Vells*>& values)
+  void Copy::evaluateVells (Vells& result, const Request&, const vector<const Vells*>& values)
   {
     result = ( meqFlagger );
   }

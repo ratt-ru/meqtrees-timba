@@ -8,30 +8,10 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_MeqGen ();
 
-#ifndef _defined_id_AidmeqCompare
-#define _defined_id_AidmeqCompare 1
-const AtomicID AidmeqCompare(-1258);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqCompare.h:14
-const int AidmeqCompare_int = -1258;
-#endif
 #ifndef _defined_id_AidmeqCopy
 #define _defined_id_AidmeqCopy 1
 const AtomicID AidmeqCopy(-1257);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqCopy.h:14
 const int AidmeqCopy_int = -1257;
-#endif
-#ifndef _defined_id_AidmeqDFT_GVD
-#define _defined_id_AidmeqDFT_GVD 1
-const AtomicID AidmeqDFT_GVD(-1259);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqDFT_GVD.h:14
-const int AidmeqDFT_GVD_int = -1259;
-#endif
-#ifndef _defined_id_AidmeqFlagger
-#define _defined_id_AidmeqFlagger 1
-const AtomicID AidmeqFlagger(-1261);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqFlagger.h:14
-const int AidmeqFlagger_int = -1261;
-#endif
-#ifndef _defined_id_AidmeqShiftPhaseCentre
-#define _defined_id_AidmeqShiftPhaseCentre 1
-const AtomicID AidmeqShiftPhaseCentre(-1260);     // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqShiftPhaseCentre.h:14
-const int AidmeqShiftPhaseCentre_int = -1260;
 #endif
 
 

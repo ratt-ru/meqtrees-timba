@@ -9,7 +9,10 @@
 
 #ifndef MEQ_meqCopy_H
 #define MEQ_meqCopy_H
+    
 #include <MEQ/Function.h>
+#include <MeqGen/TID-MeqGen.h>
+
 #pragma aidgroup MeqGen
 #pragma types #meq::Copy
 
@@ -26,8 +29,10 @@ namespace meq {
       Copy();
 
       virtual ~Copy();
+      
+      virtual TypeId objectType () const { return TpmeqCopy; }
 
-      virtual void evaluateVells (Vells& result, const Request&, const vector<Vells*>& values);
+      virtual void evaluateVells (Vells& result, const Request&, const vector<const Vells*>& values);
 
 
     private:

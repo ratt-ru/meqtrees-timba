@@ -8,23 +8,6 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_MeqGen ();
 
-#ifndef _defined_id_TpmeqCompare
-#define _defined_id_TpmeqCompare 1
-const TypeId TpmeqCompare(-1258);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqCompare.h:14
-const int TpmeqCompare_int = -1258;
-namespace meq { class Compare; };
-            template<>
-            class DMIBaseTypeTraits<meq::Compare> : public TypeTraits<meq::Compare>
-            {
-              public:
-              enum { isContainable = true };
-              enum { typeId = TpmeqCompare_int };
-              enum { TypeCategory = TypeCategories::DYNAMIC };
-              enum { ParamByRef = true, ReturnByRef = true };
-              typedef const meq::Compare & ContainerReturnType;
-              typedef const meq::Compare & ContainerParamType;
-            };
-#endif
 #ifndef _defined_id_TpmeqCopy
 #define _defined_id_TpmeqCopy 1
 const TypeId TpmeqCopy(-1257);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqCopy.h:14
@@ -40,57 +23,6 @@ namespace meq { class Copy; };
               enum { ParamByRef = true, ReturnByRef = true };
               typedef const meq::Copy & ContainerReturnType;
               typedef const meq::Copy & ContainerParamType;
-            };
-#endif
-#ifndef _defined_id_TpmeqDFT_GVD
-#define _defined_id_TpmeqDFT_GVD 1
-const TypeId TpmeqDFT_GVD(-1259);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqDFT_GVD.h:14
-const int TpmeqDFT_GVD_int = -1259;
-namespace meq { class DFT_GVD; };
-            template<>
-            class DMIBaseTypeTraits<meq::DFT_GVD> : public TypeTraits<meq::DFT_GVD>
-            {
-              public:
-              enum { isContainable = true };
-              enum { typeId = TpmeqDFT_GVD_int };
-              enum { TypeCategory = TypeCategories::DYNAMIC };
-              enum { ParamByRef = true, ReturnByRef = true };
-              typedef const meq::DFT_GVD & ContainerReturnType;
-              typedef const meq::DFT_GVD & ContainerParamType;
-            };
-#endif
-#ifndef _defined_id_TpmeqFlagger
-#define _defined_id_TpmeqFlagger 1
-const TypeId TpmeqFlagger(-1261);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqFlagger.h:14
-const int TpmeqFlagger_int = -1261;
-namespace meq { class Flagger; };
-            template<>
-            class DMIBaseTypeTraits<meq::Flagger> : public TypeTraits<meq::Flagger>
-            {
-              public:
-              enum { isContainable = true };
-              enum { typeId = TpmeqFlagger_int };
-              enum { TypeCategory = TypeCategories::DYNAMIC };
-              enum { ParamByRef = true, ReturnByRef = true };
-              typedef const meq::Flagger & ContainerReturnType;
-              typedef const meq::Flagger & ContainerParamType;
-            };
-#endif
-#ifndef _defined_id_TpmeqShiftPhaseCentre
-#define _defined_id_TpmeqShiftPhaseCentre 1
-const TypeId TpmeqShiftPhaseCentre(-1260);        // from /home/oms/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqShiftPhaseCentre.h:14
-const int TpmeqShiftPhaseCentre_int = -1260;
-namespace meq { class ShiftPhaseCentre; };
-            template<>
-            class DMIBaseTypeTraits<meq::ShiftPhaseCentre> : public TypeTraits<meq::ShiftPhaseCentre>
-            {
-              public:
-              enum { isContainable = true };
-              enum { typeId = TpmeqShiftPhaseCentre_int };
-              enum { TypeCategory = TypeCategories::DYNAMIC };
-              enum { ParamByRef = true, ReturnByRef = true };
-              typedef const meq::ShiftPhaseCentre & ContainerReturnType;
-              typedef const meq::ShiftPhaseCentre & ContainerParamType;
             };
 #endif
 

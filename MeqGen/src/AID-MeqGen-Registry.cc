@@ -5,36 +5,16 @@
     #include <DMI/DynamicTypeManager.h>
     #include <DMI/Packer.h>
     
-#include "meqFlagger.h"
-BlockableObject * __construct_meqFlagger (int n) { return n>0 ? new meq::Flagger [n] : new meq::Flagger; }
 #include "meqCopy.h"
 BlockableObject * __construct_meqCopy (int n) { return n>0 ? new meq::Copy [n] : new meq::Copy; }
-#include "meqCompare.h"
-BlockableObject * __construct_meqCompare (int n) { return n>0 ? new meq::Compare [n] : new meq::Compare; }
-#include "meqDFT_GVD.h"
-BlockableObject * __construct_meqDFT_GVD (int n) { return n>0 ? new meq::DFT_GVD [n] : new meq::DFT_GVD; }
-#include "meqShiftPhaseCentre.h"
-BlockableObject * __construct_meqShiftPhaseCentre (int n) { return n>0 ? new meq::ShiftPhaseCentre [n] : new meq::ShiftPhaseCentre; }
   
     int aidRegistry_MeqGen ()
     {
       static int res = 
 
-        AtomicID::registerId(-1261,"meqflagger")+
-        TypeInfoReg::addToRegistry(-1261,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1261,__construct_meqFlagger)+
         AtomicID::registerId(-1257,"meqcopy")+
         TypeInfoReg::addToRegistry(-1257,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1257,__construct_meqCopy)+
-        AtomicID::registerId(-1258,"meqcompare")+
-        TypeInfoReg::addToRegistry(-1258,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1258,__construct_meqCompare)+
-        AtomicID::registerId(-1259,"meqdft_gvd")+
-        TypeInfoReg::addToRegistry(-1259,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1259,__construct_meqDFT_GVD)+
-        AtomicID::registerId(-1260,"meqshiftphasecentre")+
-        TypeInfoReg::addToRegistry(-1260,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1260,__construct_meqShiftPhaseCentre)+
     0;
     return res;
   }

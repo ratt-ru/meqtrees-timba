@@ -9,11 +9,7 @@
         
 
 #define DoForAllDynamicTypes_MeqGen(Do,arg,separator) \
-        Do(meq::Flagger,arg) separator \
-        Do(meq::Copy,arg) separator \
-        Do(meq::Compare,arg) separator \
-        Do(meq::DFT_GVD,arg) separator \
-        Do(meq::ShiftPhaseCentre,arg)
+        Do(meq::Copy,arg)
 
 #define DoForAllNumericTypes_MeqGen(Do,arg,separator) \
         
