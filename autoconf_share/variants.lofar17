@@ -1,4 +1,4 @@
-gnu3.compiler.conf: CXX=/usr/bin/g++ --with-cppflags="-Wno-deprecated"
+gnu3.compiler.conf: CXX=/usr/bin/g++
 gnu3.compiler.aipspp.var: --with-aipspp=/usr/local/aips++/linux_gnu3
 
 icc.compiler.conf: CXX=/usr/local/compiler80/bin/icc --with-cppflags="-cxxlib-gcc" --with-ldflags="-cxxlib-gcc -Xlinker -rpath -Xlinker /usr/local/compiler80/lib" --with-blitz="/usr/local/blitz/gnu3"
