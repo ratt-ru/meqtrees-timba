@@ -155,7 +155,8 @@ class AtomicID
 const AtomicID AidNull(0),
                AidAny(-1),
                AidWildcard(-2),
-               AidSlash(-3);
+               AidSlash(-3),
+               AidRange(-4);
 //## end AtomicID%3BE970170297.postscript
 
 //## begin AidIndex%3C553F440092.preface preserve=yes

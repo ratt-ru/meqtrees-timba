@@ -79,7 +79,8 @@ static AtomicID::Register
      null (AidNull.id(),"0"),
      any (AidAny.id(),"?"),
      wild(AidWildcard.id(),"*"),
-     dot(AidSlash.id(),"/");
+     slash(AidSlash.id(),"/"),
+     range(AidRange.id(),":");
   //## end AtomicID%3BE970170297.declarations
 // Class AidIndex 
 
