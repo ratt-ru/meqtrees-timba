@@ -223,10 +223,6 @@ const octopussy := function (server=default_octoserver,options="",
     while( !(self.rcv_client::Connected) || !(self.send_client::Connected) )
       await self.rcv_client->*,self.send_client->*;
     self.connected := T;
-    # create relay
-    self.relay_client := create_agent();
-    relay_all(self.relay_client,self.send_client);
-    relay_all(self.rcv_client,self.relay_client);
     self.dprint(1,'octopussy proxy is ready');
     return T;
   }
@@ -438,7 +434,7 @@ const octopussy := function (server=default_octoserver,options="",
   const public.agentref := function ()
   {
     wider self;
-    return ref self.relay_client;
+    return ref self.rcv_client;
   }
   
   const public.connected := function ()

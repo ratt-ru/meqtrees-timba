@@ -105,9 +105,9 @@ GlishRecord GlishUtil::recToGlish (const DataRecord &rec)
     // convert HIID to record field name
     string name = strlowercase( id.toString('_') );
     bool adjustIndex = False;
-    // if a single numeric index, convert to anon field form "*xxx"
+    // if a single numeric index, convert to anon field form "#xxx"
     if( id.size() == 1 && id.front().index() >= 0 )
-      name = '*'+name;
+      name = '#'+name;
     else
       // is it an ".Index" field (i.e. base needs to be adjusted?)
       adjustIndex = id.back() == AidIndex;
@@ -141,6 +141,7 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
   //    2.1. Glish type: maps field to 1D array or scalar
   //    2.2. Container type: recursively map to record of records 
   //    2.3. Other type: map to blockset (see 4)
+  //    2.4. Invalid (empty) field: maps to [] array
   // 3. DataArray
   //    3.1. Glish type: map field to array
   //    3.2. non-Glish type: map to blockset (see 4)
@@ -162,8 +163,13 @@ GlishValue GlishUtil::objectToGlishValue (const BlockableObject &obj,bool adjust
     Thread::Mutex::Lock lock(datafield.mutex());
 #endif
     TypeId fieldtype = datafield.type();
+    // an invalid field? (case 2.4)
+    if( !datafield.valid() )
+    {
+      return GlishArray(Array<Int>());
+    }
     // a numeric/string/HIID type? (case 2.1)
-    if( TypeInfo::isNumeric(fieldtype) || fieldtype == Tpstring || fieldtype == TpHIID )
+    else if( TypeInfo::isNumeric(fieldtype) || fieldtype == Tpstring || fieldtype == TpHIID )
     {
       GlishArray arr;
       // try to map to a Glish array
@@ -387,14 +393,20 @@ ObjRef GlishUtil::glishValueToObject (const GlishValue &val,bool adjustIndex)
   {
     GlishArray arr = val;
     IPosition shape = arr.shape();
+    // empty arrays map to null DataFields
+    if( shape.nelements() == 1 && shape[0] == 0 )
+    {
+      dprintf(4)("converting empty GlishArray to empty DataField\n");
+      return ObjRef(new DataField,DMI::ANONWR);
+    }
     // string arrays, or 1D arrays marked as a datafield (or as with the
     // "dmi_is_hiid" attribute) always map to a DataField
-    if( ( shape.nelements() == 1 && 
-          ( val.attributeExists("dmi_datafield_content_type") || 
-            val.attributeExists("dmi_is_hiid") ) )
-        || arr.elementType() == GlishArray::STRING )
+    else if( ( shape.nelements() == 1 && 
+            ( val.attributeExists("dmi_datafield_content_type") || 
+              val.attributeExists("dmi_is_hiid") ) )
+          || arr.elementType() == GlishArray::STRING )
     {
-      dprintf(4)("converting GlishArray of %d elements to to DataField\n",
+      dprintf(4)("converting GlishArray of %d elements to DataField\n",
                   shape.product());
       DataField *field = GlishUtil::createSubclass<DataField>(ref,val);
       makeDataField(*field,arr,adjustIndex);
