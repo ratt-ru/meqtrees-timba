@@ -59,6 +59,23 @@ namespace Meq { class Function; };
               typedef const Meq::Function & ContainerParamType;
             };
 #endif
+#ifndef _defined_id_TpMeqFunklet
+#define _defined_id_TpMeqFunklet 1
+const TypeId TpMeqFunklet(-1568);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Funklet.h:33
+const int TpMeqFunklet_int = -1568;
+namespace Meq { class Funklet; };
+            template<>
+            class DMIBaseTypeTraits<Meq::Funklet> : public TypeTraits<Meq::Funklet>
+            {
+              public:
+              enum { isContainable = true };
+              enum { typeId = TpMeqFunklet_int };
+              enum { TypeCategory = TypeCategories::DYNAMIC };
+              enum { ParamByRef = true, ReturnByRef = true };
+              typedef const Meq::Funklet & ContainerReturnType;
+              typedef const Meq::Funklet & ContainerParamType;
+            };
+#endif
 #ifndef _defined_id_TpMeqNode
 #define _defined_id_TpMeqNode 1
 const TypeId TpMeqNode(-1242);                    // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:34

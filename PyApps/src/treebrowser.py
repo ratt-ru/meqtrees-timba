@@ -8,13 +8,21 @@ import weakref
 import sets
 import re
 import meqds
+import meqserver_gui
 from meqds import mqs
 
 _dbg = verbosity(3,name='tb');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+class AppState (object):
+  Idle       = -hiid('idle').get(0);
+  Stream     = -hiid('stream').get(0);
+  Debug      = -hiid('debug').get(0);
+  Execute    = -hiid('execute').get(0);
+
 class TreeBrowser (QObject):
+
   class NodeItem (QListViewItem):
     def __init__(self,tb,node,name,parent,after):
       QListViewItem.__init__(self,parent,after,name);
@@ -148,21 +156,21 @@ class TreeBrowser (QObject):
         self._debug_bp_items = [];
         _dprint(3,'node',node.name,'breakpoint mask is',node.breakpoint);
         for st in meqds.CS_ES_statelist:
-          title = ''.join(('at [',node.name,':',st[1],']'));
+          title = ''.join(('at ',node.name,':',st[1]));
           bpmask = meqds.breakpoint_mask(st[0]);
           cb = self.xcurry(meqds.set_node_breakpoint,(node,bpmask),_argslice=slice(0));
           item = menu1.insertItem(st[4].iconset(),title,cb);
           menu1.setItemChecked(item,(node.breakpoint&bpmask)!=0);
           self._debug_bp_items.append((item,bpmask));
-        menu1.insertItem(pixmaps.node_any.iconset(),''.join(("at [",node.name,':*]')),self.xcurry(\
+        menu1.insertItem(pixmaps.node_any.iconset(),''.join(("at ",node.name,':all')),self.xcurry(\
               meqds.set_node_breakpoint,(node,meqds.BP_ALL),_argslice=slice(0)));
-        menu1.insertItem(pixmaps.roadsign_nolimit.iconset(),"clear all",self.xcurry(\
+        menu.insertItem(pixmaps.breakpoint.iconset(),"Set &breakpoint at",menu1);
+        menu.insertItem(pixmaps.roadsign_nolimit.iconset(),"Clear &all breakpoints at "+node.name,self.xcurry(\
               meqds.clear_node_breakpoint,(node,meqds.BP_ALL),_argslice=slice(0)));
-        menu.insertItem("Breakpoints",menu1);
         menu.insertSeparator();
-        menu.insertItem(pixmaps.forward_to.iconset(),"Continue until [%s:*]"%(node.name,),self.xcurry(self.tb().debug_until_node,(node,),_argslice=slice(0)));
-        menu.insertSeparator();
-        self.tb()._ag_debug.addTo(menu);
+        menu.insertItem(pixmaps.forward_to.iconset(),"Continue &until "+node.name,self.xcurry(self.tb()._debug_until_node,(node,),_argslice=slice(0)));
+#        menu.insertSeparator();
+#        self.tb()._ag_debug.addTo(menu);
       return menu;
       
     def context_menu (self):
@@ -202,7 +210,7 @@ class TreeBrowser (QObject):
               # add to action map
               menu._actions[act_id] = act;
         # add debugging
-        menu.insertItem("Debug",self.debug_menu());
+        menu.insertItem(pixmaps.breakpoint.iconset(),"Debug",self.debug_menu());
       # display menu if defined
       return menu;
       
@@ -257,58 +265,51 @@ class TreeBrowser (QObject):
       self._cg[("fail",stopped)] = \
         self._new_colorgroup(stopcolor[stopped],QColor("red"));
     # ---------------------- setup toolbars, QActions and menus
+    # scan all modules for defined toolbar actions
+    self._toolbar_actions = [];
+    funcs = sets.Set();
+    for (name,mod) in sys.modules.iteritems():
+      _dprint(4,'looking for treebrowser actions in',name);
+      try: 
+        if callable(mod.define_treebrowser_toolbar_actions):
+          _dprint(3,'tb action found in',name,'adding to set');
+          funcs.add(mod.define_treebrowser_toolbar_actions);
+      except AttributeError: pass;
+    _dprint(1,len(funcs),'unique treebrowser action-definition methods found');
+    for f in funcs:
+      f(self);
+    # build up toolbar
     self._toolbar = QToolBar("Tree operations",parent);
-    
-    # the "Refresh" action
-    self._qa_refresh = QAction("Refresh",pixmaps.refresh.iconset(),"Refresh node list",Qt.Key_F2,parent);
-    QObject.connect(self._qa_refresh,SIGNAL("activated()"),self._request_nodelist);
-    self._qa_refresh.addTo(self._toolbar);
-    self._qa_refresh.setEnabled(False);
-    self._toolbar.addSeparator();
-    # Save and load
-    self._qa_load = QAction("Load",pixmaps.file_open.iconset(),"Load forest",Qt.Key_L+Qt.ALT,parent);
-    QObject.connect(self._qa_load,SIGNAL("activated()"),self._load_forest);
-    self._qa_load.addTo(self._toolbar);
-    self._qa_load.setEnabled(False);
-    self._qa_save = QAction("Save",pixmaps.file_save.iconset(),"Save forest",Qt.Key_S+Qt.ALT,parent);
-    QObject.connect(self._qa_save,SIGNAL("activated()"),self._save_forest);
-    self._qa_save.addTo(self._toolbar);
-    self._qa_save.setEnabled(False);
-    self._toolbar.addSeparator();
-    # the "Enable debugger" action
-    self._qa_dbg_enable = QAction("Enable debugger",pixmaps.eject.iconset(),"Enable &Debugger",Qt.Key_F5,parent,"",True);
-    self._qa_dbg_enable.addTo(self._toolbar);
-    self._qa_dbg_enable.setEnabled(False);
-    QObject.connect(self._qa_dbg_enable,SIGNAL("toggled(bool)"),self._debug_enable_slot);
-    self._toolbar.addSeparator();
-    # the "pause" button
-    self._qa_dbgpause = QAction("Pause",pixmaps.pause.iconset(),"&Pause",Qt.Key_F6,parent);      
-    self._qa_dbgpause.addTo(self._toolbar);
-    QObject.connect(self._qa_dbgpause,SIGNAL("activated()"),self.debug_pause);
-    self._qa_dbgpause.setEnabled(False);
-    # the "Debug" action group
-    self._ag_debug = QActionGroup(self.wtop());
-    self._qa_dbgcont  = QAction("Continue",pixmaps.right_2triangles.iconset(),"&Continue",Qt.Key_F6+Qt.SHIFT,parent);      
-    QObject.connect(self._qa_dbgcont,SIGNAL("activated()"),self.debug_continue);
-    self._qa_dbgstep  = QAction("Step",pixmaps.down_triangle.iconset(),"&Step",Qt.Key_F7,parent);      
-    QObject.connect(self._qa_dbgstep,SIGNAL("activated()"),self.debug_single_step);
-    self._qa_dbgnext  = QAction("Step to next node",pixmaps.down_2triangles.iconset(),"Step to &next node",Qt.Key_F8,parent);      
-    QObject.connect(self._qa_dbgnext,SIGNAL("activated()"),self.debug_next_node);
-    self._ag_debug.add(self._qa_dbgcont);
-    self._ag_debug.add(self._qa_dbgstep);
-    self._ag_debug.add(self._qa_dbgnext);
-    self._ag_debug.addTo(self._toolbar);
-    self._ag_debug.setEnabled(False);
+    tba = self._toolbar_actions;
+    self._toolbar_actions = [];
+    tba.sort();
+    for (pri,action) in tba:
+      if action is None:
+        self._toolbar.addSeparator();
+      else:
+        self._toolbar_actions.append(action);
+        action.addTo(self._toolbar);
+        action.setEnabled(False);
     QObject.connect(self.wtop(),PYSIGNAL("entering()"),self._toolbar,SLOT("show()"));
     QObject.connect(self.wtop(),PYSIGNAL("leaving()"),self._toolbar,SLOT("hide()"));
     self._toolbar.hide();
     # ---------------------- other internal state
     self._recent_item = None;
     self._current_debug_stack = None;
-    self._debug_level = 0;
+    #----------------------- public state
+    self.app_state = None;
+    self.debug_level = 0;
+    self.is_connected = self.is_loaded = self.is_running = self.is_stopped = False;
+    
+  def _reset_toolbar (self):
+    self._set_debug_control(self.debug_level>0);
+    _dprint(3,'reset_toolbars:',self.debug_level,self.is_connected,self.is_running,self.is_stopped);
+    for act in self._toolbar_actions:
+      try: act.setEnabled(act._is_enabled());
+      except AttributeError: pass;
 
   def _set_debug_control (self,enable):
-    """This uopdates the state of the debug control without sending
+    """This updates the state of the debug control without sending
     out a message.""";
     self._setting_debug_control = True;
     self._qa_dbg_enable.setOn(enable);
@@ -340,8 +341,6 @@ class TreeBrowser (QObject):
       self._qa_dbg_enable.setAccel(Qt.Key_F5);
       self._qa_dbg_enable.setText("Enable debugger");
       self._qa_dbg_enable.setMenuText("Enable &Debugger");
-      self._ag_debug.setEnabled(False);
-      self._qa_dbgpause.setEnabled(False);
 
   def get_color_group (self,which,is_stopped=-1):
     return self._cg[(which,is_stopped)][0];
@@ -379,38 +378,34 @@ class TreeBrowser (QObject):
       except ValueError: # can't convert nodeindex to int: malformed udi
         raise ValueError,'bad udi (nodeindex must be numeric): '+udi;
     # create and return dataitem object
-    return makeNodeDataItem(node);
+    return meqserver_gui.makeNodeDataItem(node);
  
   def wtop (self):
     return self._wtop;
     
   def clear (self):
+    self.is_loaded = False;
     self._debug_node = self._current_debug_stack = None;
     self.NodeItem.clear_children(self._nlv);
     self._nlv.clear();
+    self._reset_toolbar();
     
   def connected (self,conn,auto_request=True):
-    self._qa_save.setEnabled(conn);
-    self._qa_load.setEnabled(conn);
-    self._qa_refresh.setEnabled(conn);
-    self._qa_dbg_enable.setEnabled(conn);
+    self.emit(PYSIGNAL("connected()"),(conn,));
+    self.is_connected = conn;
     if conn is True:
+      self._reset_toolbar();
       if auto_request:
         self._request_nodelist();
     else:
-      self._set_debug_control(False);
-      self._qa_dbgpause.setEnabled(False);
-      self._ag_debug.setEnabled(False);
       self.clear();
 
-  def _request_nodelist (self):
-    _dprint(1,"requesting node list");
-    mqs().meq('Get.Node.List',meqds.NodeList.RequestRecord,wait=False);
-    
-  def at_breakpoint (self,bp):
-    if self._debug_level:
-      self._qa_dbgpause.setEnabled(not bp);
-      self._ag_debug.setEnabled(bp);
+  def update_app_state (self,state):
+    self.app_state = state;
+    # enable pause control in running state 
+    self.is_running = state in (AppState.Debug,AppState.Stream,AppState.Execute);
+    self.is_stopped = state == AppState.Debug;
+    self._reset_toolbar();
     
   def update_forest_status (self,fst):
     """Updates forest status: enables/disables debug QActions as appropriate,
@@ -421,20 +416,16 @@ class TreeBrowser (QObject):
     self._debug_node = None;
     # make sure debug buttons are enabled/disabled as appropriate
     # also compiles a set of nodes in the debug-stack
-    self._debug_level = fst.debug_level;
+    self.debug_level = fst.debug_level;
+    # do other stuff if debug is enabled
     if fst.debug_level:
-      self.emit(PYSIGNAL("debug_enabled()"),(True,));
       _dprint(2,"debugging enabled");
       try: 
         self._nlv.setColumnWidthMode(self._icol_execstate,QListView.Maximum);
         self._nlv.setColumnWidthMode(self._icol_status,QListView.Maximum);
       except AttributeError: pass;
       self._set_debug_control(True);
-      # self._qa_dbgpause.setEnabled(fst.running);
       if meqds.nodelist and fst.debug_stack:
-        self.emit(PYSIGNAL("stopped_in_debugger()"),(True,));
-        self._ag_debug.setEnabled(True);
-        self._qa_dbgpause.setEnabled(False);
         for (n,frame) in enumerate(fst.debug_stack):
           try: node = meqds.nodelist[frame.nodeindex];
           except KeyError: continue;
@@ -447,16 +438,9 @@ class TreeBrowser (QObject):
             node.update_state(frame.state);
           else:
             node.update_status(frame.control_status);
-      else:
-        self.emit(PYSIGNAL("stopped_in_debugger()"),(False,));
-        self._qa_dbgpause.setEnabled(True);
-        self._ag_debug.setEnabled(False);
     else:
       _dprint(2,"debugging disabled");
-      self.emit(PYSIGNAL("debug_enabled()"),(False,));
       self._set_debug_control(False);
-      self._qa_dbgpause.setEnabled(False);
-      self._ag_debug.setEnabled(False);
       try:
         self._nlv.setColumnWidthMode(self._icol_execstate,QListView.Manual);
         self._nlv.setColumnWidth(self._icol_execstate,0);
@@ -473,6 +457,8 @@ class TreeBrowser (QObject):
     # make sure most recent node is open
     if self._debug_node:
       self.make_node_visible(self._debug_node);
+    # reset toolbar as appropriate
+    self._reset_toolbar();
         
   def clear_debug_stack (self,clearset=None):
     """Clears highlighting of stopped nodes. If a set is supplied, that 
@@ -499,7 +485,7 @@ class TreeBrowser (QObject):
       self._icol_breakpoint = self._nlv.columns();
       self._nlv.addColumn('',20);
       self._icol_execstate = self._nlv.columns();
-      self._nlv.addColumn('xs');
+      self._nlv.addColumn('xs/rqid');
       self._icol_class = self._icol_disable = self._nlv.columns();
       self._nlv.addColumn('Class');
       self._icol_status = self._nlv.columns();
@@ -510,6 +496,8 @@ class TreeBrowser (QObject):
     #        self._nlv.setColumnWidthMode(icol,QListView.Maximum);
     # clear view
     self.clear();
+    self.is_loaded = True;
+    self._reset_toolbar();
     # reset the nodelist view
     nodelist = meqds.nodelist;
     self._recent_item = None;
@@ -533,41 +521,7 @@ class TreeBrowser (QObject):
         item.setExpandable(True);
         item._iter_nodes = iter(nodes);
       item._no_auto_open = True;
-    # reset debug controls 
-    self._qa_dbg_enable.setEnabled(True);
-    self._qa_dbgpause.setEnabled(False);
-    self._ag_debug.setEnabled(False);
     
-  def debug_single_step (self):
-    self._ag_debug.setEnabled(False);
-    self._qa_dbgpause.setEnabled(self._debug_level>0);
-    self.clear_debug_stack();
-    mqs().meq('Debug.Single.Step',srecord(),wait=False);
-  
-  def debug_next_node (self):
-    self._ag_debug.setEnabled(False);
-    self._qa_dbgpause.setEnabled(self._debug_level>0);
-    # clear highlighting, as we can expect to do it anyway for next node
-    self.clear_debug_stack();
-    mqs().meq('Debug.Next.Node',srecord(),wait=False);
-    
-  def debug_until_node (self,node):
-    self._ag_debug.setEnabled(False);
-    self._qa_dbgpause.setEnabled(self._debug_level>0);
-    # clear highlighting, as we can expect to run for a while
-    self.clear_debug_stack();
-    mqs().meq('Debug.Until.Node',srecord(nodeindex=node.nodeindex),wait=False);
-  
-  def debug_continue (self):
-    self._ag_debug.setEnabled(False);
-    self._qa_dbgpause.setEnabled(self._debug_level>0);
-    # clear highlighting, as we can expect to run for a while
-    self.clear_debug_stack();
-    mqs().meq('Debug.Continue',srecord(),wait=False);
-    
-  def debug_pause (self):
-    mqs().meq('Debug.Pause',srecord(),wait=False);
-
   def is_node_visible (self,node):
     for itemref in getattr(node,'_tb_items',[]):
       if itemref() and itemref().isVisible():
@@ -668,32 +622,113 @@ class TreeBrowser (QObject):
         delattr(item,'_iter_nodes');
   # _expand_node = busyCursorMethod(_expand_node);
   
+  def _request_nodelist (self):
+    _dprint(1,"requesting node list");
+    mqs().meq('Get.Node.List',meqds.NodeList.RequestRecord,wait=False);
+    
   def _save_forest (self):
-    try: dialog = self._save_dialog;
+    try: dialog = _save_dialog;
     except AttributeError:
       dialog = self._save_dialog = QFileDialog(self._nlv,"save dialog",True);
       dialog.setMode(QFileDialog.AnyFile);
-      dialog.setFilters("Forests (*.forest);;All files (*.*)");
+      dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
       dialog.setCaption("Save forest");
     if dialog.exec_loop() == QDialog.Accepted:
       fname = str(dialog.selectedFile());
       rec = srecord(file_name=fname,get_forest_status=True);
       mqs().meq('Save.Forest',rec,wait=False);
-  
+
   def _load_forest (self):
     try: dialog = self._load_dialog;
     except AttributeError:
       dialog = self._load_dialog = QFileDialog(self._nlv,"load dialog",True);
       dialog.setMode(QFileDialog.ExistingFile);
-      dialog.setFilters("Forests (*.forest);;All files (*.*)");
+      dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
       dialog.setCaption("Load forest");
     if dialog.exec_loop() == QDialog.Accepted:
       fname = str(dialog.selectedFile());
       rec = srecord(file_name=fname,get_forest_status=True);
       mqs().meq('Load.Forest',rec,wait=False);
+      
+  def _debug_single_step (self):
+    self.clear_debug_stack();
+    self.is_stopped = False;
+    self._reset_toolbar();
+    mqs().meq('Debug.Single.Step',srecord(),wait=False);
   
+  def _debug_next_node (self):
+    self.clear_debug_stack();
+    self.is_stopped = False;
+    self._reset_toolbar();
+    mqs().meq('Debug.Next.Node',srecord(),wait=False);
+    
+  def _debug_until_node (self,node):
+    self.clear_debug_stack();
+    self.is_stopped = False;
+    self._reset_toolbar();
+    mqs().meq('Debug.Until.Node',srecord(nodeindex=node.nodeindex),wait=False);
+  
+  def _debug_continue (self):
+    self.clear_debug_stack();
+    self.is_stopped = False;
+    self._reset_toolbar();
+    mqs().meq('Debug.Continue',srecord(),wait=False);
+    
+  def _debug_pause (self):
+    mqs().meq('Debug.Pause',srecord(),wait=False);
+
+  def add_toolbar_action (self,action,callback=None,order=1000,menus=None):
+    if callback:
+      QObject.connect(action,SIGNAL("activated()"),callback);
+    action._tb_menus = menus;
+    self._toolbar_actions.append((order,action));
+    
+  def add_toolbar_separator (self,order=1000):
+    self._toolbar_actions.append((order,None));
+
+def define_treebrowser_toolbar_actions (tb):
+  _dprint(1,'defining standard treebrowser actions');
+  parent = tb.wtop();
+  # Refresh
+  refresh = QAction("Refresh",pixmaps.refresh.iconset(),"Refresh node list",Qt.Key_F2,parent);
+  refresh._is_enabled = lambda tb=tb: tb.is_connected;
+  tb.add_toolbar_action(refresh,tb._request_nodelist,10);
+  tb.add_toolbar_separator(20);
+  # Save and load
+  load = QAction("Load",pixmaps.file_open.iconset(),"Load forest",Qt.Key_L+Qt.ALT,parent);
+  save = QAction("Save",pixmaps.file_save.iconset(),"Save forest",Qt.Key_S+Qt.ALT,parent);
+  load._is_enabled = save._is_enabled = lambda tb=tb: tb.is_connected and tb.app_state == AppState.Idle;
+  tb.add_toolbar_action(load,tb._load_forest,30);
+  tb.add_toolbar_action(save,tb._save_forest,40);
+  tb.add_toolbar_separator(50);
+  # Enable debugger
+  dbg_enable = tb._qa_dbg_enable = QAction("Enable debugger",pixmaps.eject.iconset(),"Enable &Debugger",Qt.Key_F5,parent,"",True);
+  QObject.connect(dbg_enable,SIGNAL("toggled(bool)"),tb._debug_enable_slot);
+  QObject.connect(tb,PYSIGNAL("debug_enabled()"),dbg_enable.setOn);
+  dbg_enable._is_enabled = lambda tb=tb: tb.is_connected;
+  tb.add_toolbar_action(dbg_enable,None,60);
+  # Pause
+  pause = QAction("Pause",pixmaps.pause.iconset(),"&Pause",Qt.Key_F6,parent);
+  dbg_enable.is_enabled = lambda tb=tb: tb.is_connected and tb.debug_level>0 and \
+                                        tb.is_running and not tb.is_stopped;
+  tb.add_toolbar_action(pause,tb._debug_pause,70);
+  tb.add_toolbar_separator(80);
+  # Debug action group
+  ag_debug = QActionGroup(parent);
+  dbgcont  = QAction("Continue",pixmaps.right_2triangles.iconset(),"&Continue",Qt.Key_F6+Qt.SHIFT,parent);      
+  QObject.connect(dbgcont,SIGNAL("activated()"),tb._debug_continue);
+  dbgstep  = QAction("Step",pixmaps.down_triangle.iconset(),"&Step",Qt.Key_F7,parent);      
+  QObject.connect(dbgstep,SIGNAL("activated()"),tb._debug_single_step);
+  dbgnext  = QAction("Step to next node",pixmaps.down_2triangles.iconset(),"Step to &next node",Qt.Key_F8,parent);      
+  QObject.connect(dbgnext,SIGNAL("activated()"),tb._debug_next_node);
+  ag_debug._is_enabled = lambda tb=tb: tb.is_connected and tb.debug_level>0 and \
+                                       tb.is_loaded and tb.is_stopped;
+  ag_debug.add(dbgcont);
+  ag_debug.add(dbgstep);
+  ag_debug.add(dbgnext);
+  tb.add_toolbar_action(ag_debug,None,90);
   
 class NodeAction (object):
   """NodeAction is a class describing a node-associated action.""";
@@ -749,3 +784,6 @@ class NTA_NodePublish (NodeAction):
 
 TreeBrowser.add_node_action(NTA_NodeDisable());
 TreeBrowser.add_node_action(NTA_NodePublish());
+
+
+

@@ -9,6 +9,7 @@
 #include <DMI/Registry.h>
 #include <DMI/AtomicID.h>
 #include <DMI/Loki/TypeTraits.h>
+#include <DMI/Loki/TypeManip.h>
 #include <complex>
     
 #ifndef LORRAYS_USE_BLITZ

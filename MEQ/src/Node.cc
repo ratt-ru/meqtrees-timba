@@ -379,7 +379,7 @@ void Node::setStateImpl (DataRecord &rec,bool initializing)
     if( hdepmasks.type() == TpDataRecord )
     {
       cdebug(2)<<"new symdep_masks set via state\n";
-      const DataRecord &maskrec = hdepmasks;
+      const DataRecord &maskrec = hdepmasks.as<DataRecord>();
       for( uint i=0; i<known_symdeps_.size(); i++ )
       {
         const HIID &id = known_symdeps_[i];
@@ -481,7 +481,7 @@ void Node::setState (DataRecord &rec)
   }
   catch( FailWithoutCleanup &exc )
   {
-    throw exc; // No cleanup required, just re-throw
+    throw; // No cleanup required, just re-throw
   }
   catch( std::exception &exc )
   {
@@ -1102,7 +1102,7 @@ int Node::processCommands (const DataRecord &rec,Request::Ref &reqref)
     if( !known_symdeps_.empty() && hdep.type() == TpDataRecord )
     {
       cdebug(2)<<"processCommands("<<FAddDepMask<<"): checking for masks\n";
-      const DataRecord &deprec = hdep;
+      const DataRecord &deprec = hdep.as<DataRecord>();
       // reinit the sysdep_masks field in the state record as we go along
       DataRecord &known = wstate()[FSymDepMasks].replace() <<= new DataRecord;
       for( uint i=0; i<known_symdeps_.size(); i++ )

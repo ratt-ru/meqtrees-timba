@@ -173,7 +173,7 @@ const meq.parm := function (name,default=F,polc=F,groups="")
   {
     if( !is_dmi_type(default,'MeqPolc') )
       default := meq.polc(default);
-    rec.default := default;
+    rec.default_funklet := default;
   }
   # set polcs if specified
   if( is_record(polc) )

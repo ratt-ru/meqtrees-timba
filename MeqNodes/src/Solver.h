@@ -115,7 +115,7 @@ private:
   void solve (Vector<double>& solution, Request::Ref &reqref,
 	      DataRecord& solRec, Result::Ref& resref,
 	      std::vector<Result::Ref>& child_results,
-	      bool savePolcs, bool lastIter);
+	      bool saveFunklets, bool lastIter);
 
   //##Documentation
   //## Result current values to default values.
@@ -145,14 +145,14 @@ private:
   bool            itsDefUseSVD;
   bool            itsDefClearMatrix;
   bool            itsDefInvertMatrix;
-  bool            itsDefSavePolcs;
+  bool            itsDefSaveFunklets;
   bool            itsDefLastUpdate;
   int             itsCurNumIter;
   double          itsCurEpsilon;
   bool            itsCurUseSVD;
   bool            itsCurClearMatrix;
   bool            itsCurInvertMatrix;
-  bool            itsCurSavePolcs;
+  bool            itsCurSaveFunklets;
   bool            itsCurLastUpdate;
   bool            itsResetCur;
   vector<int>     itsSpids;

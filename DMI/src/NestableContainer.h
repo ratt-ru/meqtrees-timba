@@ -464,6 +464,11 @@ class NestableContainer : public BlockableObject
         //##ModelId=4017F6260346
           const void * get_address(ContentInfo &info,TypeId tid,bool must_write,
               bool pointer=False,bool must_exist=True,Thread::Mutex::Lock *keeplock=0) const;
+          // Same method, but accesses the element as a BlockableObject, and calls the
+          // can_convert function to determine if conversion can be done
+          const BlockableObject * get_address_bo(ContentInfo &info,
+              bool (*can_convert)(const BlockableObject *),
+              bool must_write,bool pointer=False,bool must_exist=True,Thread::Mutex::Lock *keeplock=0) const;
 
           // This is called to access by pointer, for all types.
           // If must_exist=True but no such element exists, throws 

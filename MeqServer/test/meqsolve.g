@@ -515,7 +515,7 @@ if( mepuvw )
 else
   mepuvw := F;
 
-solver_defaults := [ num_iter=10,save_polcs=F,last_update=F ];
+solver_defaults := [ num_iter=10,save_funklets=F,last_update=F ];
 
 inputrec := [ ms_name = msname,data_column_name = 'DATA',tile_size=5,
               selection = [ channel_start_index=1,channel_end_index=1 ] ];

@@ -51,7 +51,7 @@ MeqServer * MeqServer::mqs_ = 0;
 const int AppState_Idle    = -( AidIdle.id() );
 const int AppState_Stream  = -( AidStream.id() );
 const int AppState_Execute = -( AidExecute.id() );
-const int AppState_Breakpoint = -( AidBreakpoint.id() );
+const int AppState_Debug   = -( AidDebug.id() );
   
 //##ModelId=3F5F195E0140
 MeqServer::MeqServer()
@@ -273,7 +273,7 @@ void MeqServer::nodeExecute (DataRecord::Ref &out,DataRecord::Ref::Xfer &in)
   {
     control().setState(old_control_state);
 //    old_paused ? control().pause() : control().resume();
-    throw exc;
+    throw;
   }
   control().setState(old_control_state);
 //  old_paused ? control().pause() : control().resume();
@@ -537,7 +537,8 @@ void MeqServer::fillForestStatus  (DataRecord &rec)
   fst[AidState] = control().state();
   fst[AidState|AidString] = control().stateString();
   fst[AidRunning] = control().state() == AppState_Stream || 
-                    control().state() == AppState_Execute;
+                    control().state() == AppState_Execute ||
+                    control().state() == AppState_Debug;
   fst[AidDebug|AidLevel] = forest.verbosity();
   if( forest.verbosity() )
   {
@@ -581,7 +582,7 @@ void MeqServer::processBreakpoint (Node &node,int bpmask,bool global)
   rec[AidMessage] = "stopped at " + node.name() + ":" + node.getStrExecState();
   control().postEvent(EvDebugStop,ref);
   int old_state = control().state();
-  control().setState(AppState_Breakpoint);
+  control().setState(AppState_Debug);
   input().suspend();
   // keep on processing commands until asked to continue
   while( forest.verbosity() > 0 && control().state() > 0 && !debug_continue )  // while in a running state

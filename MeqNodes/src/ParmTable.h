@@ -27,7 +27,7 @@
 #include <tables/Tables/Table.h>
 #include <tables/Tables/ColumnsIndex.h>
 #include <casa/Containers/RecordField.h>
-#include <MEQ/Polc.h>
+#include <MEQ/Funklet.h>
 #include <Common/lofar_vector.h>
 #include <Common/Thread/Mutex.h>
 #include <map>
@@ -49,29 +49,29 @@ public:
     //##ModelId=3F86886F02BC
   ~ParmTable();
 
-  // Get the parameter values for the given parameter and domain.
+  // Get the parameter values for the given funklet and domain.
   // The matchDomain argument is set telling if the found parameter
   // matches the domain exactly.
-  // Note that the requested domain may contain multiple polcs.
-  // Returns # of polcs in vector
+  // Note that the requested domain may contain multiple funklets.
+  // Returns # of funklets in vector
     //##ModelId=3F86886F02BD
-  int getPolcs (vector<Polc::Ref> &polcs,const string& parmName, const Domain& domain);
+  int getFunklets (vector<Funklet::Ref> &funklets,const string& parmName, const Domain& domain);
 
-  // Get the initial polynomial coefficients for the given parameter.
+  // Get the initial coefficients for the given funklet.
   // Returns the # of coefficients (0 for none)
     //##ModelId=3F86886F02C3
-  int getInitCoeff (Polc::Ref &polc,const string& parmName);
+  int getInitCoeff (Funklet::Ref &funklet,const string& parmName);
 
-  // Put the polynomial coefficient for the given parameter and domain.
-  // Returns the DbId of the polc.
+  // Put the coefficients for the given funklet and domain.
+  // Returns the DbId of the funklet.
   // If domain_is_key, checks that domain is unique
     //##ModelId=3F86886F02C8
-  Polc::DbId putCoeff (const string& parmName, const Polc& polc,bool domain_is_key=true);
+  Funklet::DbId putCoeff (const string& parmName, const Funklet& funklet,bool domain_is_key=true);
   
-  // Put the polynomial coefficient for the given parameter and domain.
-  // If a new DbId is allocated, stores it in the polc
-  // If domain_is_key, checks that domain is unique
-  void putCoeff1 (const string& parmName,Polc& polc,bool domain_is_key=true);
+  // Put the coefficients for the given funklet and domain.
+  // If a new DbId is allocated, stores it in the funklet.
+  // If domain_is_key, checks that domain is unique.
+  void putCoeff1 (const string& parmName,Funklet& funklet,bool domain_is_key=true);
 
   // Return point sources for the given source numbers.
   // An empty sourceNr vector means all sources.

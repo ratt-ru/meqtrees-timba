@@ -11,7 +11,7 @@ import re
 import meqds
 import app_browsers 
 from app_browsers import *
-from treebrowser import TreeBrowser
+from treebrowser import *
 
 _dbg = verbosity(3,name='meqgui');
 _dprint = _dbg.dprint;
@@ -167,19 +167,12 @@ class NodeBrowser(HierBrowser,BrowserPlugin):
     self.set_open_items(openitems);
     self._state = dataitem.data;
 
-
-
-
 class meqserver_gui (app_proxy_gui):
 
-  AppState_Idle       = -hiid('idle').get(0);
-  AppState_Stream     = -hiid('stream').get(0);
-  AppState_Breakpoint = -hiid('breakpoint').get(0);
-
   StatePixmaps = { None: pixmaps.stop, \
-    AppState_Idle: pixmaps.grey_cross,
-    AppState_Stream: pixmaps.spigot,
-    AppState_Breakpoint: pixmaps.breakpoint };
+    AppState.Idle: pixmaps.grey_cross,
+    AppState.Stream: pixmaps.spigot,
+    AppState.Debug: pixmaps.breakpoint };
 
   def __init__(self,app,*args,**kwargs):
     meqds.set_meqserver(app);
@@ -302,7 +295,7 @@ class meqserver_gui (app_proxy_gui):
     try: nt = status.num_tiles;
     except AttributeError: pass;
     else:
-      if self.app.state == self.AppState_Stream:
+      if self.app.state == AppState.Stream:
         state = self.app.statestr.lower();
         self.status_label.setText(' %s (%d) ' % (state,nt) ); 
         
@@ -324,12 +317,23 @@ class meqserver_gui (app_proxy_gui):
 
   def _update_app_state (self):
     app_proxy_gui._update_app_state(self);
-    if self.app.state == self.AppState_Stream:
+    if self.app.state == AppState.Stream:
       self.ce_UpdateAppStatus(None,self.app.status);
-    if self.app.state == self.AppState_Breakpoint:
-      self.treebrowser.at_breakpoint(True);
-    else:
-      self.treebrowser.at_breakpoint(False);
+    self.treebrowser.update_app_state(self.app.state);
+
+gridded_workspace.registerViewer(meqds.NodeClass(),NodeBrowser,priority=10);
+
+_default_state_open =  ({'cache_result':({'vellsets':None},None), \
+                        'request':None },None);
+
+_defaultResultViewopts = { \
+  RecordBrowser: { 'default_open': _default_state_open }, \
+  };
+
+_defaultNodeViewopts = { \
+  RecordBrowser: { 'default_open': _default_state_open },
+  NodeBrowser:   { 'default_open': ({'state':_default_state_open},None) } 
+};
 
 def makeNodeDataItem (node,viewer=None,viewopts={}):
   """creates a GridDataItem for a node""";
@@ -342,22 +346,7 @@ def makeNodeDataItem (node,viewer=None,viewopts={}):
             desc=nodeclass.__name__,data=None,datatype=nodeclass,
             refresh=curry(meqds.request_node_state,node),
             viewer=viewer,viewopts=vo);
-
-
-
-_default_state_open =  ({'cache_result':({'vellsets':None},None), \
-                        'request':None },None);
-
-_defaultNodeViewopts = { \
-  RecordBrowser: { 'default_open': _default_state_open },
-  NodeBrowser:   { 'default_open': ({'state':_default_state_open},None) } };
-
-_defaultResultViewopts = { \
-  RecordBrowser: { 'default_open': _default_state_open }, \
-  };
-
-
-gridded_workspace.registerViewer(meqds.NodeClass(),NodeBrowser,priority=10);
+            
 
 # register reloadables
 reloadableModule(__name__);

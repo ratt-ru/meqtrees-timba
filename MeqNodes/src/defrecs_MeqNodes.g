@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
 # Original file name: /home/oms/LOFAR/CEP/CPA/PSS4/MeqNodes/src/defrecs_MeqNodes.g
-# Generated on Mon Nov 22 16:07:56 CET 2004
+# Generated on Wed Dec  8 19:12:52 CET 2004
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 
@@ -99,17 +99,14 @@ r := _meqdefrec_map.MeqNode;
 r::description := 'Represents a parameter, either created on-the-fly (a default \
                    value must then be supplied), or read from a MEP database. \
                    A MeqParm cannot have any children.';
-r.polcs := [=];
-r.polcs::description := 'active polcs. One or more meqpolc() objects may be provided. These \
-                         will be reused for subsequent requests if the domains match, or \
-                         if the inf_domain or grow_domain attributes are specified.';
-r.solve_polcs := [=];
-r.solve_polcs::description := 'active solvable polcs. A single meqpolc() object may be provided. This \
-                               will be reused for subsequent solvable requests if the domains match, or \
-                               if the grow_domain attribute is specified.';
+r.funklet := [=];
+r.funklet::description := 'active funklet. A funklet object (e.g. meq.polc()) may be provided.  \
+                           This will be reused for subsequent requests if the domains match, or \
+                           if no domain is specified.';
 r.default := [=];
-r.default::description := 'default polc. A meqpolc() object. This is used when an applicable \
-                           polc is not found in the table, or a table is not provided.';
+r.default::description := 'default funklet. A funklet object (e.g. meq.polc()) may be provided.  \
+                           This is used when an applicable funklet is not found in the table, or  \
+                           a table is not provided.';
 r.integrated := F  ;
 r.integrated::description := 'if true, the parm represents an integration -- result value will be  \
                               multiplied by cell size';
@@ -119,7 +116,7 @@ r.parm_name := '' ;
 r.parm_name::description := 'MEP parm name used to look inside the table. If empty, then the node  \
                              name is used instead.';
 r.auto_save := F ;
-r.auto_save::description := 'if T, then any updates to a polc are saved into the MEP table  \
+r.auto_save::description := 'if T, then any updates to a funklet are saved into the MEP table  \
                              automatically (for example, after each solve iteration). Default  \
                              behaviour is to only save when specified via a request rider (e.g., \
                              at the end of a solve).';

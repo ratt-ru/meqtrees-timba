@@ -26,7 +26,7 @@
 //# Includes
 #include <MEQ/Node.h>
 #include <MEQ/Vells.h>
-#include <MEQ/Polc.h>
+#include <MEQ/Funklet.h>
 #include <MeqNodes/ParmTable.h>
 #include <Common/lofar_vector.h>
 
@@ -41,17 +41,14 @@
 //  Represents a parameter, either created on-the-fly (a default
 //  value must then be supplied), or read from a MEP database.
 //  A MeqParm cannot have any children.
-//field: polcs [=]
-//  active polcs. One or more meqpolc() objects may be provided. These
-//  will be reused for subsequent requests if the domains match, or
-//  if the inf_domain or grow_domain attributes are specified.
-//field: solve_polcs [=]
-//  active solvable polcs. A single meqpolc() object may be provided. This
-//  will be reused for subsequent solvable requests if the domains match, or
-//  if the grow_domain attribute is specified.
+//field: funklet [=]
+//  active funklet. A funklet object (e.g. meq.polc()) may be provided. 
+//  This will be reused for subsequent requests if the domains match, or
+//  if no domain is specified.
 //field: default [=]
-//  default polc. A meqpolc() object. This is used when an applicable
-//  polc is not found in the table, or a table is not provided.
+//  default funklet. A funklet object (e.g. meq.polc()) may be provided. 
+//  This is used when an applicable funklet is not found in the table, or 
+//  a table is not provided.
 //field: integrated F  
 //  if true, the parm represents an integration -- result value will be 
 //  multiplied by cell size
@@ -61,7 +58,7 @@
 //  MEP parm name used to look inside the table. If empty, then the node 
 //  name is used instead.
 //field: auto_save F 
-//  if T, then any updates to a polc are saved into the MEP table 
+//  if T, then any updates to a funklet are saved into the MEP table 
 //  automatically (for example, after each solve iteration). Default 
 //  behaviour is to only save when specified via a request rider (e.g.,
 //  at the end of a solve).
@@ -90,18 +87,18 @@ public:
   // The ParmTable can be null meaning that the parameter is temporary.
     //##ModelId=3F86886F0242
   Parm (const string& name, ParmTable* table,
-	      const Polc::Ref::Xfer & defaultValue = Polc::Ref() );
+	      const Funklet::Ref::Xfer & defaultValue = Funklet::Ref() );
 
     //##ModelId=3F86886F021E
   virtual ~Parm();
 
-    //##ModelId=400E53510330
-    virtual TypeId objectType() const
-    { return TpMeqParm; }
+  //##ModelId=400E53510330
+  virtual TypeId objectType() const
+  { return TpMeqParm; }
 
     //##ModelId=3F86886F022C
   bool isSolvable() const
-    { return solvable_; }
+  { return solvable_; }
 
   // Get the requested result of the parameter.
     //##ModelId=3F86886F022E
@@ -112,17 +109,9 @@ public:
   // process parm-specific rider commands
   virtual int processCommands (const DataRecord &rec,Request::Ref &reqref);
 
-  // Initialize the parameter for the given predict domain. This loads
-  // the polcs_ vector with polcs relevant to the specified domain. 
-    //##ModelId=3F86886F0226
-  virtual int initDomain (const Domain&);
-
   // Make the new value persistent (for the given domain).
     //##ModelId=3F86886F023C
   virtual void save();
-
-    //##ModelId=400E5352023D
-  virtual void init (DataRecord::Ref::Xfer& initrec, Forest* frst);
 
     //##ModelId=400E53520391
   //## Standard debug info method
@@ -133,38 +122,16 @@ public:
 
 protected:
   virtual void resetDependMasks ();
+
+  // checks if current funklet can be reused
+  Funklet * initFunklet (const Request &request,bool solve);
     //##ModelId=400E5353019E
-  // finds polcs in table or uses the default
-  void findRelevantPolcs (vector<Polc::Ref> &polcs,const Domain &domain);
+  // finds new funklets in table or uses the default
+  Funklet * findRelevantFunklet (Funklet::Ref &funkletref,const Domain &domain);
   
-  // Initialize the parameter for the given solve domain. First
-  // it will call initDomain() to load up the polcs_ vector. 
-  // Then, it sets up the solve_polcs_ vector with a set of solvable 
-  // polcs  based on the contents of polcs_.
-  // (NB: the current implementation only does a single polc, see 
-  // code for details),.
-  int  initSolvable  (const Domain &domain);
+  // Initialize the funklet for the given solve domain. First
+  int Parm::initSolvable (Funklet &funklet,const Request &request);
 
-  // assigns spids to solvable polcs. Used by initSolvable()
-  int  initSpids     ();
-
-  // Set the polynomials.
-  //##ModelId=400E535301F7
-  void setPolc (Polc *polc,int flags=DMI::ANONWR)
-  { 
-    polcs_.resize(1);
-    polcs_[0].attach(polc,flags); 
-  }
-  
-  void setPolc (Polc &polc)
-  { setPolc(&polc,DMI::EXTERNAL|DMI::WRITE); }
-
-   // Get the polynomials.
-    //##ModelId=400E535302DB
-  const Polc & getPolc(int i=0) const
-  { return *(polcs_[i]); }
-  
-//  virtual void checkInitState (DataRecord &rec);
     //##ModelId=400E5353033A
   virtual void setStateImpl (DataRecord &rec,bool initializing);
   
@@ -182,14 +149,12 @@ private:
   
   //##ModelId=400E535000B2
   //##Documentation
-  //## default polc (used if no table or no matching polcs in the table)
-  Polc::Ref   default_polc_;
+  //## default funklet (used if no table or no matching funklets in the table)
+  Funklet::Ref   default_funklet_;
   
   //##Documentation
   //## ID of current domain
   HIID        domain_id_;
-  
-  HIID        solve_domain_id_;
   
   int         domain_depend_mask_;
   int         solve_depend_mask_;
@@ -197,20 +162,6 @@ private:
   std::vector<HIID> solve_symdeps_;
   
   bool        integrated_;
-  
-  //##Documentation
-  //## active polcs for current domain 
-  vector<Polc::Ref> polcs_;
-  
-  //## active polcs for current solvable domain (at the moment, this is 
-  //## always a single polc.)
-  vector<Polc::Ref> solve_polcs_;
-  
-//   //##ModelId=400E535000C1
-//   //##Documentation
-//   //## vector of all polcs relevant to current domain. This may be a superset
-//   //## of polcs_.
-//   vector<Polc::Ref> all_polcs_;
   
 };
 

@@ -56,7 +56,7 @@ bool AppControlAgent::init (const DataRecord &data)
     // no init sub-record? Do nothing then
     if( !data[initfield()].exists() )
       return True;
-    const DataRecord &rec = data[initfield()];
+    const DataRecord &rec = data[initfield()].as<DataRecord>();
     cdebug(3)<<"subrecord: "<<rec.sdebug(DebugLevel-1,"  ")<<endl;
     initrec_used_ = True;
     // solicit application control commands

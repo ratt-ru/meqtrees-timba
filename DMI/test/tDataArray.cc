@@ -19,9 +19,9 @@ int main()
   try {
     DataRecord rec;
     rec["A"] <<= new DataArray(Tpfloat,makeLoShape(10,12));
-    DataArray* dtarr = &rec["A"];
-    DataArray* dtarr1 = rec["A"].as_wp<DataArray>();
-    Assert (dtarr == dtarr1);
+    DataArray* dtarr = rec["A"].as_wp<DataArray>();
+//    DataArray* dtarr1 = rec["A"].as_wp<DataArray>();
+//    Assert (dtarr == dtarr1);
     Assert (dtarr->objectType() == TpDataArray);
     Assert (dtarr->type() == TpArray(Tpfloat,2));
     LoMat_float farr = rec["A"];

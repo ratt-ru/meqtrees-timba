@@ -1,17 +1,27 @@
 protected:
-// -----------------------------------------------------------------------
-// as_impl_wp<T>()
-// Internal helper template that maps to get_address
-// If used with an incompatible type, a compile-time error is generated
-// -----------------------------------------------------------------------
-template<class T>
-T * as_impl_wp (T *,ContentInfo &info=_dum_info,bool pointer=False) const
-{ 
+// as_wp_impl() returns pointer and size, throws Uninitialized if must_exist=true
+// default version checked for exact type match
+template<class T,class Category>
+T * as_wp_impl (int &sz,bool pointer,bool must_exist,Type2Type<T>,Category) const
+{
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
-  return static_cast<T*>(const_cast<void*>(
-      get_address(info,DMITypeTraits<T>::typeId,True,pointer))); 
+  ContentInfo info;
+  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,True,pointer,must_exist);
+  sz = info.size;
+  return static_cast<T*>(const_cast<void*>(ptr));
+}
+// version for dynamic types checks for castability
+template<class T>
+T * as_wp_impl (int &sz,bool pointer,bool must_exist,Type2Type<T>,Int2Type<TypeCategories::DYNAMIC>) const
+{
+  ContentInfo info;
+  const T * ptr = reinterpret_cast<const T*>(
+                    get_address_bo(info,can_convert<T>,True,pointer,must_exist));
+  sz = info.size;
+  return const_cast<T*>(ptr);
 }
 
+    
 public:
 // -----------------------------------------------------------------------
 // as_wp<T>(); as_wpo<T>(); as_wr<T>(); 
@@ -21,28 +31,21 @@ public:
 template<class T>
 T * as_wp (int &sz=_dum_int,Type2Type<T> =Type2Type<T>()) const
 { 
-  STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
-  ContentInfo info;
-  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,True,True,True); 
-  sz = info.size;
-  return static_cast<T*>(const_cast<void*>(ptr));
+  return as_wp_impl(sz,true,true,Type2Type<T>(),Int2Type<DMITypeTraits<T>::TypeCategory>());
 }
 
 template<class T>
 T * as_wpo (int &sz=_dum_int,Type2Type<T> =Type2Type<T>()) const
 { 
-  STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
-  ContentInfo info;
-  const void *ptr = get_address(info,DMITypeTraits<T>::typeId,True,True,False); 
-  sz = info.size;
-  return static_cast<T*>(const_cast<void*>(ptr));
+  return as_wp_impl(sz,true,false,Type2Type<T>(),Int2Type<DMITypeTraits<T>::TypeCategory>());
 }
 
 template<class T>
 T * implicit_ptr (Type2Type<T> =Type2Type<T>()) const 
 { 
    FailWhen(!addressed,"missing '&' operator");
-   return as_impl_wp((T*)0,_dum_info,True);
+   int dum;
+   return as_wp(dum,Type2Type<T>());
 }
  
 
@@ -51,9 +54,8 @@ template<class T>
 T & as_wr (Type2Type<T> =Type2Type<T>()) const
 { 
   STATIC_CHECK(DMITypeTraits<T>::isContainable,Type_not_supported_by_containers);
-  ContentInfo info;
-  return *static_cast<T*>(const_cast<void*>(
-        get_address(info,DMITypeTraits<T>::typeId,True,True,True))); 
+  int dum;
+  return *as_wp_impl(dum,false,false,Type2Type<T>(),Int2Type<DMITypeTraits<T>::TypeCategory>());
 }
 
 #define __convert1(T,arg) operator T* () const { return implicit_ptr(Type2Type<T>()); }
@@ -62,7 +64,7 @@ T & as_wr (Type2Type<T> =Type2Type<T>()) const
 // 
  DoForAllNumericTypes(__convert1,);
  DoForAllBinaryTypes(__convert1,);
- DoForAllDynamicTypes(__convert1,);
+// DoForAllDynamicTypes(__convert1,);
  DoForAllSpecialTypes(__convert1,);
 // DoForAllBinaryTypes(__convert2,);
 // DoForAllDynamicTypes(__convert2,);

@@ -32,7 +32,7 @@
 #pragma aid Dependency Resolution Depend Mask Resample Integrated
 #pragma aid Cells Domain Freq Time Calc Deriv Vells VellSets Flags Weights
 #pragma aid Shape Grid Cell Size Segments Start End Steps Axis Axes Offset
-#pragma aid NodeIndex Table Name Default Index Num Cache Code 
+#pragma aid NodeIndex Table Name Default Index Num Cache Code Funklet Funklets
 #pragma aid Parm Spid Coeff Perturbed Perturbations Names Pert Relative Mask
 #pragma aid Cell Results Fail Origin Line Message Contagious  Normalized
 #pragma aid Solvable Config Groups All By List Polc Polcs Scale Matrix
@@ -90,24 +90,10 @@ namespace Meq
     FStartIndex      = AidStart|AidIndex,
     FEndIndex        = AidEnd|AidIndex,
     
-    // Parm staterec fields
-    FDefault         = AidDefault,
-    FTableName       = AidTable|AidName,
-    FParmName        = AidParm|AidName,
-    FAutoSave        = AidAuto|AidSave,
-    FDomainId        = AidDomain|AidId,
-    FSolveDomainId   = AidSolve|AidDomain|AidId,
-    
-    
-    // FDomain      defined previously
-    FSolveDomain     = AidSolve|AidDomain,
-    FPolcs           = AidPolcs,
-    FSolvePolcs      = AidSolve|AidPolcs,
-    
     // Parm rider commands
     FUpdateValues    = AidUpdate|AidValues,
-    FSavePolcs       = AidSave|AidPolcs,
-    FClearPolcs      = AidClear|AidPolcs,
+    FSaveFunklets    = AidSave|AidFunklets,
+    FClearFunklets   = AidClear|AidFunklets,
     
     // Parm/Polc fields
     FCoeff           = AidCoeff,
@@ -117,8 +103,8 @@ namespace Meq
     FPerturbation    = AidPert,
     FWeight          = AidWeight,
     FPertRelative    = AidPert|AidRelative,
-    FGrowDomain      = AidGrow|AidDomain,
-    FInfDomain       = AidInf|AidDomain,
+//    FGrowDomain      = AidGrow|AidDomain,
+//    FInfDomain       = AidInf|AidDomain,
     FDbId            = AidDbId|AidIndex,
     
     // VellSet fields
@@ -138,6 +124,7 @@ namespace Meq
     FMessage         = AidMessage,
 
     // Solver staterec fields
+    FDefault         = AidDefault,
     FSolvable        = AidSolvable,
     FParmGroup       = AidParm|AidGroup,
     // Solver staterec fields and commands

@@ -45,7 +45,7 @@ Solver::Solver()
   itsDefUseSVD       (true),
   itsDefClearMatrix  (true),
   itsDefInvertMatrix (true),
-  itsDefSavePolcs    (true),
+  itsDefSaveFunklets    (true),
   itsDefLastUpdate   (false),
   itsParmGroup       (AidParm)
 {
@@ -104,7 +104,7 @@ int Solver::processCommands (const DataRecord &rec,Request::Ref &reqref)
   if (itsCurNumIter < 1) itsCurNumIter = 1;
   itsCurEpsilon   = rec[FEpsilon].as<double>(itsDefEpsilon);
   itsCurUseSVD    = rec[FUseSVD].as<bool>(itsDefUseSVD);
-  itsCurSavePolcs = rec[FSavePolcs].as<bool>(itsDefSavePolcs);
+  itsCurSaveFunklets = rec[FSaveFunklets].as<bool>(itsDefSaveFunklets);
   itsCurLastUpdate = rec[FLastUpdate].as<bool>(itsDefLastUpdate);
   bool clearGiven  = rec[FClearMatrix].get(itsCurClearMatrix);
   bool invertGiven = rec[FInvertMatrix].get(itsCurInvertMatrix);
@@ -116,7 +116,7 @@ int Solver::processCommands (const DataRecord &rec,Request::Ref &reqref)
            <<itsCurUseSVD<<','
            <<clearGiven<<':'<<itsCurClearMatrix<<','
            <<invertGiven<<':'<<itsCurInvertMatrix<<','
-           <<itsCurSavePolcs<<','
+           <<itsCurSaveFunklets<<','
            <<itsCurLastUpdate<<endl;
   // Update wstate.
   setCurState();
@@ -340,7 +340,7 @@ int Solver::getResult (Result::Ref &resref,
     // request for last iteration is processed reparately
     bool lastIter = itsCurLastUpdate && step==itsCurNumIter-1;
     solve(solution, reqref, solRec, resref, child_results,
-          itsCurSavePolcs,lastIter);
+          itsCurSaveFunklets,lastIter);
     // increment the solve-dependent parts of the request ID
     incrSubId(rqid,getGenSymDepMask());
     reqref().setId(rqid);
@@ -372,7 +372,7 @@ int Solver::getResult (Result::Ref &resref,
 void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
                     DataRecord& solRec, Result::Ref& resref,
                     std::vector<Result::Ref>& child_results,
-                    bool savePolcs, bool lastIter)
+                    bool saveFunklets, bool lastIter)
 {
   // Do some checks and initialize.
   int nspid = itsSpids.size();
@@ -425,7 +425,7 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
   // will contain a DataRecord for each parm 
   DataRecord& dr1 = Rider::getCmdRec_ByNodeIndex(reqref,itsParmGroup,
                                                  Rider::NEW_GROUPREC);
-  fillSolution (dr1,itsSpids, solution, savePolcs);
+  fillSolution (dr1,itsSpids, solution, saveFunklets);
   // make sure the request rider is validated
   req.validateRider();
   ParmTable::unlockTables();
@@ -448,14 +448,14 @@ void Solver::fillSolution (DataRecord& rec, const vector<int>& spids,
       lastParmid = spids[i] / 256;
       parmSol.resize(0);
       if( save_polc )
-        drp[FSavePolcs] = true;
+        drp[FSaveFunklets] = true;
     }
     parmSol.push_back (solution[i]);
   }
   DataRecord& drp = rec[lastParmid] <<= new DataRecord;
   drp[FUpdateValues] = parmSol;
   if( save_polc )
-    drp[FSavePolcs] = true;
+    drp[FSaveFunklets] = true;
 }
 
 //##ModelId=400E53550267
@@ -487,7 +487,7 @@ void Solver::setStateImpl (DataRecord& newst,bool initializing)
       def[FNumIter] = itsDefNumIter = 1;
     def[FClearMatrix].get(itsDefClearMatrix,initializing);
     def[FInvertMatrix].get(itsDefInvertMatrix,initializing);
-    def[FSavePolcs].get(itsDefSavePolcs,initializing);
+    def[FSaveFunklets].get(itsDefSaveFunklets,initializing);
     def[FLastUpdate].get(itsDefLastUpdate,initializing);
     def[FEpsilon].get(itsDefEpsilon,initializing);
     def[FUseSVD].get(itsDefUseSVD,initializing);
@@ -499,7 +499,7 @@ void Solver::resetCur()
   itsCurNumIter      = itsDefNumIter;
   itsCurInvertMatrix = itsDefInvertMatrix;
   itsCurClearMatrix  = itsDefClearMatrix;
-  itsCurSavePolcs    = itsDefSavePolcs;
+  itsCurSaveFunklets    = itsDefSaveFunklets;
   itsCurLastUpdate   = itsDefLastUpdate;
   itsCurEpsilon      = itsDefEpsilon;
   itsCurUseSVD       = itsDefUseSVD;
@@ -511,7 +511,7 @@ void Solver::setCurState()
   wstate()[FNumIter]      = itsCurNumIter;
   wstate()[FClearMatrix]  = itsCurClearMatrix;
   wstate()[FInvertMatrix] = itsCurInvertMatrix;
-  wstate()[FSavePolcs]    = itsCurSavePolcs;
+  wstate()[FSaveFunklets]    = itsCurSaveFunklets;
   wstate()[FLastUpdate]   = itsCurLastUpdate;
   wstate()[FEpsilon]      = itsCurEpsilon;
   wstate()[FUseSVD]       = itsCurUseSVD;

@@ -22,6 +22,7 @@
 
 #include <MeqNodes/ParmTable.h>
 #include <MEQ/Domain.h>
+#include <MEQ/Polc.h>
 #include <Common/Debug.h>
 #include <tables/Tables/TableLocker.h>
 #include <tables/Tables/TableDesc.h>
@@ -107,13 +108,13 @@ ParmTable::~ParmTable()
 }
 
 //##ModelId=3F86886F02BD
-int ParmTable::getPolcs (vector<Polc::Ref> &polcs,
+int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
                          const string& parmName,const Domain& domain)
 {
   Thread::Mutex::Lock lock(theirMutex);
   TableLocker locker(itsTable, FileLocker::Read);
   Table sel = find (parmName, domain);
-  polcs.resize(sel.nrow());
+  funklets.resize(sel.nrow());
   if( sel.nrow() > 0 ) 
   {
     ROScalarColumn<double> sfCol (sel, ColStartFreq);
@@ -133,16 +134,17 @@ int ParmTable::getPolcs (vector<Polc::Ref> &polcs,
       int axis[] = { Axis::FREQ,Axis::TIME };
       double offset[] = { f0Col(i),t0Col(i) };
       double scale[]  = { fsCol(i),tsCol(i) };
-      Polc &polc = polcs[i] <<= new Polc(fromParmMatrix(valCol(i)),
+      // for now, only Polcs are supported
+      Funklet &funklet = funklets[i] <<= new Polc(fromParmMatrix(valCol(i)),
           axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
-      polc.setDomain(Domain(sfCol(i), efCol(i), stCol(i), etCol(i)));
+      funklet.setDomain(Domain(sfCol(i), efCol(i), stCol(i), etCol(i)));
     }
   }
-  return polcs.size();
+  return funklets.size();
 }
 
 //##ModelId=3F86886F02C3
-int ParmTable::getInitCoeff (Polc::Ref &polcref,const string& parmName)
+int ParmTable::getInitCoeff (Funklet::Ref &funkletref,const string& parmName)
 {
   Thread::Mutex::Lock lock(theirMutex);
   // Try to find the default initial values in the InitialValues subtable.
@@ -161,7 +163,7 @@ int ParmTable::getInitCoeff (Polc::Ref &polcref,const string& parmName)
       if (rownrs.nelements() > 0) 
       {
         Assert( rownrs.nelements() == 1 );
-        Polc &result = polcref <<= new Polc;
+        Funklet &result = funkletref <<= new Funklet;
         int row = rownrs(0);
         TableLocker locker(itsInitTable, FileLocker::Read);
         ROArrayColumn<Double> valCol (itsInitTable, ColValues);
@@ -173,9 +175,11 @@ int ParmTable::getInitCoeff (Polc::Ref &polcref,const string& parmName)
         int axis[] = { Axis::FREQ,Axis::TIME };
         double offset[] = { f0Col(row),t0Col(row) };
         double scale[]  = { fsCol(row),tsCol(row) };
-        polcref <<= new Polc(fromParmMatrix(valCol(row)),
-                axis,offset,scale,diffCol(row));
-        return polcref->ncoeff();
+        // for now, only Polcs are supported
+        Polc *polc = new Polc(fromParmMatrix(valCol(row)),
+                              axis,offset,scale,diffCol(row));
+        funkletref <<= polc;
+        return polc->ncoeff();
       }
       string::size_type idx = name.rfind ('.');
       // Exit loop if no more name parts.
@@ -188,18 +192,20 @@ int ParmTable::getInitCoeff (Polc::Ref &polcref,const string& parmName)
   return 0;
 }
                                     
-void ParmTable::putCoeff1 (const string & parmName,Polc &polc,
+void ParmTable::putCoeff1 (const string & parmName,Funklet &funklet,
                            bool domain_is_key)
 {
-  polc.setDbId(putCoeff(parmName,polc,domain_is_key));
+  funklet.setDbId(putCoeff(parmName,funklet,domain_is_key));
 }
     
     
 //##ModelId=3F86886F02C8
-Polc::DbId ParmTable::putCoeff (const string & parmName,const Polc & polc,
+Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funklet,
                                 bool domain_is_key)
 {
   Thread::Mutex::Lock lock(theirMutex);
+  // for now, only Polcs are supported
+  FailWhen(funklet.objectType() != TpMeqPolc,"ParmTable currently only supports Meq::Polc funklets");  
   itsTable.reopenRW();
   TableLocker locker(itsTable, FileLocker::Write);
   ScalarColumn<String> namCol (itsTable, ColName);
@@ -214,7 +220,8 @@ Polc::DbId ParmTable::putCoeff (const string & parmName,const Polc & polc,
   ScalarColumn<double> tsCol (itsTable, ColTimeScale);
   ScalarColumn<double> diffCol (itsTable, ColPerturbation);
   ScalarColumn<double> weightCol (itsTable, ColWeight);
-  const Domain& domain = polc.domain();
+  const Domain& domain = funklet.domain();
+  const Polc & polc = dynamic_cast<const Polc&>(funklet);
   Assert(polc.rank()==2);
   Assert(polc.getAxis(0)==Axis::FREQ);
   Assert(polc.getAxis(1)==Axis::TIME);
@@ -225,7 +232,7 @@ Polc::DbId ParmTable::putCoeff (const string & parmName,const Polc & polc,
   {
     String name;
     namCol.get(rownr,name);
-    AssertMsg(string(name)==parmName,"Polc for parameter "<<
+    AssertMsg(string(name)==parmName,"Funklet for parameter "<<
               parmName<<" already has a DbId "<<" and belongs to parameter "<<name);
   }
   else // no assigned row number? Look for one

@@ -228,6 +228,16 @@ const int AidFlags_int = -1298;
 const AtomicID AidFreq(-1128);                    // from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:31
 const int AidFreq_int = -1128;
 #endif
+#ifndef _defined_id_AidFunklet
+#define _defined_id_AidFunklet 1
+const AtomicID AidFunklet(-1570);                 // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
+const int AidFunklet_int = -1570;
+#endif
+#ifndef _defined_id_AidFunklets
+#define _defined_id_AidFunklets 1
+const AtomicID AidFunklets(-1569);                // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:35
+const int AidFunklets_int = -1569;
+#endif
 #ifndef _defined_id_AidGen
 #define _defined_id_AidGen 1
 const AtomicID AidGen(-1458);                     // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Node.h:38
@@ -357,6 +367,11 @@ const int AidMeqDomain_int = -1235;
 #define _defined_id_AidMeqFunction 1
 const AtomicID AidMeqFunction(-1216);             // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Function.h:29
 const int AidMeqFunction_int = -1216;
+#endif
+#ifndef _defined_id_AidMeqFunklet
+#define _defined_id_AidMeqFunklet 1
+const AtomicID AidMeqFunklet(-1568);              // from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Funklet.h:33
+const int AidMeqFunklet_int = -1568;
 #endif
 #ifndef _defined_id_AidMeqNode
 #define _defined_id_AidMeqNode 1

@@ -708,7 +708,7 @@ PyObject * pyFromDMI (const BlockableObject &obj,int err_policy)
     else // re-throw
     {
       cdebug(2)<<"pyFromDMI: exception "<<exc.what()<<", re-throwing\n";
-      throw exc;
+      throw;
     }
   }
 }

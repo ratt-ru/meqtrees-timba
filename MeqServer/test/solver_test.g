@@ -175,7 +175,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
   
   stx0 := mqs.getnodestate('x');
   sty0 := mqs.getnodestate('y');
-  if( stx0.polcs[1].coeff != 0 || sty0.polcs[1].coeff != 0 )
+  if( stx0.funklet.coeff != 0 || sty0.funklet.coeff != 0 )
   {
     print '======================= stage ',stage,': init failed';
     return F;
@@ -192,11 +192,11 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
   stx1 := mqs.getnodestate('x');
   sty1 := mqs.getnodestate('y');
 
-  xs := stx1.solve_polcs[1].coeff;
-  ys := sty1.solve_polcs[1].coeff;
+  xs := stx1.funklet.coeff;
+  ys := sty1.funklet.coeff;
 
   print sprintf("Expected values: %10.10f %10.10f",x0,y0);
-  print sprintf("Original values: %10.10f %10.10f",stx0.polcs[1].coeff,sty0.polcs[1].coeff);
+  print sprintf("Original values: %10.10f %10.10f",stx0.funklet.coeff,sty0.funklet.coeff);
   print sprintf("Solution:        %10.10f %10.10f",xs,ys);
 
   if( abs(x0-xs) < 1e-2*abs(x0) && abs(y0-ys) < 1e-2*abs(y0) )

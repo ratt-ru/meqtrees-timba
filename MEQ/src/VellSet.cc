@@ -25,7 +25,7 @@
 #include "MeqVocabulary.h"
 #include <DMI/HIID.h>
 #include <DMI/DataArray.h>
-#include <DMI/DataField.h>
+#include <DMI/DataList.h>
 
 namespace Meq {
 
@@ -588,19 +588,13 @@ void VellSet::addFail (const DataRecord *rec,int flags)
   DataRecord::removeField(FPerturbations,true);
   DataRecord::removeField(FPerturbedValues,true);
   // get address of fail field (create it as necessary)
-  DataField *fails;
-  if( DataRecord::hasField(FFail) )
+  DataList *fails = (*this)[FFail].as_wpo<DataList>();
+  if( !fails  )
   {
-    fails = &(*this)[FFail];
-    // add record to fail field
-    fails->put(fails->size(),rec,(flags&~DMI::WRITE)|DMI::READONLY);
+    DataRecord::add(FFail,fails = new DataList,DMI::ANONWR);
   }
-  else
-  {
-    DataRecord::add(FFail,fails = new DataField(TpDataRecord,1),DMI::ANONWR);
-    // add record to fail field
-    fails->put(0,rec,(flags&~DMI::WRITE)|DMI::READONLY);
-  }
+  // add record to fail field
+  fails->addBack(rec,(flags&~DMI::WRITE)|DMI::READONLY);
 }
 
 //##ModelId=400E53550399
@@ -639,7 +633,7 @@ void VellSet::show (std::ostream& os) const
   Thread::Mutex::Lock lock(mutex());
   if( isFail() )
   {
-    const DataField & fails = (*this)[FFail];
+    const DataList & fails = (*this)[FFail].as<DataList>();
     for( int i=0; i<fails.size(); i++ )
       os << "FAIL: " << fails[i][FMessage].as<string>() <<endl;
   }

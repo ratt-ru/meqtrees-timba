@@ -19,6 +19,8 @@ BlockableObject * __construct_MeqResult (int n) { return n>0 ? new Meq::Result [
 BlockableObject * __construct_MeqNode (int n) { return n>0 ? new Meq::Node [n] : new Meq::Node; }
 #include "Function.h"
 BlockableObject * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n] : new Meq::Function; }
+#include "Funklet.h"
+BlockableObject * __construct_MeqFunklet (int n) { return n>0 ? new Meq::Funklet [n] : new Meq::Funklet; }
 #include "Polc.h"
 BlockableObject * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] : new Meq::Polc; }
   
@@ -79,6 +81,8 @@ BlockableObject * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] :
         AtomicID::registerId(-1177,"num")+
         AtomicID::registerId(-1375,"cache")+
         AtomicID::registerId(-1164,"code")+
+        AtomicID::registerId(-1570,"funklet")+
+        AtomicID::registerId(-1569,"funklets")+
         AtomicID::registerId(-1234,"parm")+
         AtomicID::registerId(-1254,"spid")+
         AtomicID::registerId(-1408,"coeff")+
@@ -180,6 +184,9 @@ BlockableObject * __construct_MeqPolc (int n) { return n>0 ? new Meq::Polc [n] :
         AtomicID::registerId(-1216,"meqfunction")+
         TypeInfoReg::addToRegistry(-1216,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1216,__construct_MeqFunction)+
+        AtomicID::registerId(-1568,"meqfunklet")+
+        TypeInfoReg::addToRegistry(-1568,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1568,__construct_MeqFunklet)+
         AtomicID::registerId(-1407,"meqpolc")+
         TypeInfoReg::addToRegistry(-1407,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1407,__construct_MeqPolc)+

@@ -534,8 +534,9 @@ const void * NestableContainer::Hook::get_address (ContentInfo &info,
         ThrowUninitialized;
       return 0;
     }
-    // success: types match
-    if( tid == TpObjRef || tid == target.obj_tid )
+    // success if types match
+    bool match = tid == TpObjRef || tid == target.obj_tid;
+    if( match )
     {
       if( target.size > 1 && !pointer )
         ThrowExc(ConvError,"accessing array of "+target.obj_tid.toString()+" as a scalar");
@@ -560,6 +561,59 @@ const void * NestableContainer::Hook::get_address (ContentInfo &info,
   // if we got to here, we have a conversion error
   ThrowConvError1(target.obj_tid,tid,(pointer?"*":""));
 }
+
+const BlockableObject * NestableContainer::Hook::get_address_bo (ContentInfo &info,
+    bool (*can_convert)(const BlockableObject *),
+    bool must_write,bool pointer,bool must_exist,Thread::Mutex::Lock *keeplock) const
+{
+  // We do two attempts a-la get_scalar() above
+  for( int attempt=0; attempt<2; attempt++ )
+  {
+    const void *targ;
+    try { targ = resolveTarget(must_write?DMI::WRITE:0); }
+    catch ( std::exception &exc ) {
+      if( attempt ) break; 
+      else          throw(exc);
+    } 
+    // fail if no such element, unless a default is provided
+    if( !targ )
+    {
+      if( must_exist ) 
+        ThrowUninitialized;
+      return 0;
+    }
+    // for all BO-derived types, an Objref is expected
+    if( target.tid != TpObjRef )
+    {
+      ThrowExc(ConvError,"can't access "+target.obj_tid.toString()+" as a dynamic object of the requested type");
+    }
+    const BlockableObject *ptr = static_cast<const ObjRef *>(targ)->deref_p();
+    if( (*can_convert)(ptr) )
+    {
+      if( target.size > 1 && !pointer )
+        ThrowExc(ConvError,"accessing array of "+target.obj_tid.toString()+" as a scalar");
+      info = target;
+      // set lock if asked to
+      if( keeplock )
+      {
+        if( chain.empty() )
+          *keeplock = link0.lock;
+        else
+          *keeplock = chain.back().lock;
+      }
+      return ptr;
+    }
+    // can't convert to this type: try to treat as container, and go into it
+    if( !attempt )
+    {
+      if( !nextContainer(HIID()) ) // not a container? throw conversion error
+        break;
+    }
+  }
+  // fail here
+  ThrowExc(ConvError,"can't access "+target.obj_tid.toString()+" as a dynamic object of the requested type");
+}
+
 
 // This prepares the hook for assignment, by resolving to the target element,
 // and failing that, trying to insert() a new element.
