@@ -46,7 +46,9 @@ const start_octopussy := function(server,options="",verbose=1)
     default_octopussy := octopussy(server,options,verbose=verbose);
     if( is_fail(default_octopussy) )
       fail default_octopussy;
+    print 'starting';
     default_octopussy.start();
+    print 'started';
   }
   return ref default_octopussy;
 }

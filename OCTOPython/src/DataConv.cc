@@ -113,14 +113,22 @@ int pyToMessage (Message::Ref &msg,PyObject *pyobj)
   return 1;
 }
 
+inline string ObjStr (const PyObject *obj) 
+{
+  return Debug::ssprintf("%s @%x",obj->ob_type->tp_name,(int)obj);
+}
+
+
 // -----------------------------------------------------------------------
 // pyToRecord
 // -----------------------------------------------------------------------
 int pyToRecord (DataRecord::Ref &rec,PyObject *pyobj)
 {
+  string objstr = 
+      Debug(3) ? "PyToRecord("+ObjStr(pyobj)+"): " : string();
   int num_original = PyMapping_Length(pyobj);
   int num_assigned = 0;
-  cdebug(3)<<"pyToRecord: converting mapping of "<<num_original<<" items\n";
+  cdebug(3)<<objstr<<"converting mapping of "<<num_original<<" items\n";
   PyObjectRef py_keylist = PyMapping_Keys(pyobj);
   if( !py_keylist )
     throwErrorOpt(Type,"no key list returned");
@@ -137,7 +145,7 @@ int pyToRecord (DataRecord::Ref &rec,PyObject *pyobj)
     char *key = PyString_AsString(*py_key);
     if( !key )
     {
-      cdebug(4)<<"pyToRecord: skipping key "<<ikey<<": not a string"<<endl;
+      cdebug(4)<<objstr<<"skipping key "<<ikey<<": not a string"<<endl;
       continue;
     }
     string keystr(key);
@@ -148,33 +156,34 @@ int pyToRecord (DataRecord::Ref &rec,PyObject *pyobj)
     catch (...) { failed=true; }
     if( failed )
     {
-      cdebug(4)<<"pyToRecord: skipping key " <<keystr<<" ("<<ikey<<"): not a HIID"<<endl;
+      cdebug(4)<<objstr<<"skipping key " <<keystr<<" ("<<ikey<<"): not a HIID"<<endl;
       continue;
     }
     // attempt to convert value to DMI object
     PyObjectRef pyval = PyMapping_GetItemString(pyobj,const_cast<char*>(keystr.c_str()));
     if( !pyval )
     {
-      cdebug(4)<<"pyToRecord: skipping key " <<keystr<<" ("<<ikey<<"): failed to get value"<<endl;
+      cdebug(4)<<objstr<<"skipping key " <<keystr<<" ("<<ikey<<"): failed to get value"<<endl;
       continue;
     }
     // try to convert the value and assign it to record field
+    cdebug(4)<<objstr<<"converting key " <<keystr<<" ("<<ikey<<")\n";
     ObjRef ref;
     try 
     { 
       pyToDMI(ref,*pyval); 
       rec()[id] <<= ref;
-      cdebug(4)<<"pyToRecord: assigned value for key " <<keystr<<" ("<<ikey<<")\n";
+      cdebug(4)<<objstr<<"assigned value for key " <<keystr<<" ("<<ikey<<")\n";
       num_assigned++;
     }
     // catch various failures and ignore them
     catch( std::exception &exc )
-    { cdebug(4)<<"pyToRecord: skipping key " <<keystr<<" ("<<ikey<<"): failed to convert value: "<<exc.what()<<endl; }
+    { cdebug(4)<<objstr<<"skipping key " <<keystr<<" ("<<ikey<<"): failed to convert value: "<<exc.what()<<endl; }
     catch( ... )
-    { cdebug(4)<<"pyToRecord: skipping key " <<keystr<<" ("<<ikey<<"): failed to convert value: unknown exception\n"; }
+    { cdebug(4)<<objstr<<"skipping key " <<keystr<<" ("<<ikey<<"): failed to convert value: unknown exception\n"; }
   }
   PyErr_Clear();
-  cdebug(3)<<"pyToRecord: assigned "<<num_assigned<<" of "<<num_original<<" fields\n";
+  cdebug(3)<<objstr<<"assigned "<<num_assigned<<" of "<<num_original<<" fields\n";
   return 1;
 }
 
@@ -234,7 +243,7 @@ int pyToArray (DataArray::Ref &arr,PyObject *pyobj)
   TypeId tid = numarrayToTypeId(pyarr->descr->type_num);
   ulong nb = ulong(pyarr->itemsize)*shape.product();
   // create DataArray
-  cdebug(3)<<"pyToArray: type "<<tid<<", shape "<<shape<<", "<<nb<<" bytes\n";
+  cdebug(3)<<"pyToArray("<<ObjStr(pyobj)<<": type "<<tid<<", shape "<<shape<<", "<<nb<<" bytes\n";
   arr <<= new DataArray(tid,shape);
   memcpy(arr().getDataPtr(),NA_OFFSETDATA(pyarr),nb);
 
@@ -254,6 +263,8 @@ int pyToArray (DataArray::Ref &arr,PyObject *pyobj)
 // -----------------------------------------------------------------------
 static DataField & makeField (ObjRef &objref,int seqpos,int seqlen,TypeId type)
 {
+  string objstr = 
+      Debug(4) ? ssprintf("PyToDMI-mf(%s,%d,%d): ",type.toString().c_str(),seqpos,seqlen) : string();
   DataField *pdf; 
   if( seqlen )
   {
@@ -261,18 +272,18 @@ static DataField & makeField (ObjRef &objref,int seqpos,int seqlen,TypeId type)
     FailWhen(!pdf,"seqlen>0 but objref is not a DataField");
     if( !seqpos )
     {
-      cdebug(4)<<"pyToDMI: initializing new df("<<type<<","<<seqlen<<")\n";
+      cdebug(4)<<objstr<<"initializing new df("<<type<<","<<seqlen<<")\n";
       pdf->init(type,seqlen);
     }
     else if( pdf->type() != type )
     {
-      cdebug(4)<<"pyToDMI: error assigning "<<type<<" to df("<<pdf->type()<<")\n";
+      cdebug(4)<<objstr<<"error assigning "<<type<<" to df("<<pdf->type()<<")\n";
       throwError(Type,"pyToDMI: mixed-type sequences not supported");
     }
   }
   else
   {
-    cdebug(4)<<"pyToDMI: creating scalar df("<<type<<")\n";
+    cdebug(4)<<objstr<<"creating scalar df("<<type<<")\n";
     objref <<= pdf = new DataField(type);
   }
   return *pdf;
@@ -292,8 +303,9 @@ static DataField & makeField (ObjRef &objref,int seqpos,int seqlen,TypeId type)
 // -----------------------------------------------------------------------
 int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
 {
-  cdebug(3)<<"pyToDMI: called for "<<ssprintf("%s @%x",obj->ob_type->tp_name,(int)obj)
-           <<"seq "<<seqpos<<"/"<<seqlen<<endl;
+  string objstr = 
+      Debug(3) ? "PyToDMI("+ObjStr(obj)+"): " : string();
+  cdebug(3)<<objstr<<"called for seq "<<seqpos<<"/"<<seqlen<<endl;
   // dmi_supported_types =
   // (int,long,float,complex,str,hiid,array_class,record,message);
   Assert(!seqpos || seqpos<seqlen);
@@ -331,7 +343,7 @@ int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
     DataRecord::Ref rec;
     pyToRecord(rec,obj);
     if( seqlen )
-      makeField(objref,seqpos,seqlen,TpDataArray)[seqpos] <<= rec;
+      makeField(objref,seqpos,seqlen,TpDataRecord)[seqpos] <<= rec;
     else
       objref <<= rec;
   }
@@ -376,12 +388,12 @@ int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
     }
     // pdf now points to a new DataField for our sequence.
     int len = PySequence_Size(obj);
-    cdebug(3)<<"pyToDMI: converting seq of "<<len<<" objects\n";
+    cdebug(3)<<objstr<<"converting seq of "<<len<<" objects\n";
     // if len=0, we'll be left with an uninitialized DF, which is exactly
     // what we use to represent an empty sequence
     for( int i=0; i<len; i++ )
     {
-      cdebug(4)<<"pyToDMI: converting seq element "<<i<<endl;
+      cdebug(4)<<objstr<<"converting seq element "<<i<<endl;
       PyObjectRef item = PySequence_GetItem(obj,i);
       pyToDMI(dfref,*item,i,len);
       // We do not trap any exceptions here:
@@ -391,12 +403,12 @@ int pyToDMI (ObjRef &objref,PyObject *obj,int seqpos,int seqlen)
     // success, sequence converted: insert into parent sequence, if required
     if( pdf0 )
       (*pdf0)[seqpos] <<= pdf;
-    cdebug(3)<<"pyToDMI: successfully converted seq of "<<len<<" objects\n";
+    cdebug(3)<<objstr<<"successfully converted seq of "<<len<<" objects\n";
   }
   else // non-supported type
   {
     string type = obj->ob_type->tp_name;
-    cdebug(3)<<"pyToDMI: type "<<type<<" not supported"<<endl;
+    cdebug(3)<<objstr<<"type "<<type<<" not supported"<<endl;
     throwError(Type,"dmi: type "+type+" not supported");
   }
   // success, objref should be filled

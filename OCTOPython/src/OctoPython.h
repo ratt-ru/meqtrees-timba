@@ -30,6 +30,8 @@ namespace OctoPython
   extern PyClassObjects py_class;
   // ProxyWP type structure
   extern PyTypeObject PyProxyWPType;
+  // ThreadCond
+  extern PyTypeObject PyThreadCondType;
   
   
   // -----------------------------------------------------------------------
@@ -75,7 +77,7 @@ namespace OctoPython
   // error (if a Python exception is also raised, this will be a 
   // PythonException, otherwise another std::exception)
   int pyToDMI     (ObjRef &objref,PyObject *obj,int sepos=0,int seqlen=0);
-  int pyToRecord  (DataRecord::Ref &msg,PyObject *pyobj);
+  int pyToRecord  (DataRecord::Ref &rec,PyObject *pyobj);
   int pyToArray   (DataArray::Ref &arr,PyObject *pyobj);
   int pyToMessage (MessageRef &msg,PyObject *pyobj);
   inline int pyToHIID   (HIID &id,PyObject *pyobj)

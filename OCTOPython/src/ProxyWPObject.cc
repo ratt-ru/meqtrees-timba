@@ -206,23 +206,29 @@ static PyObject * PyProxyWP_num_pending (PyProxyWP* self,PyObject *args)
 // -----------------------------------------------------------------------
 static PyObject * PyProxyWP_receive (PyProxyWP* self,PyObject *args)
 {
-  int wait=1;
-  if( !PyArg_ParseTuple(args,"|i",&wait) )
+  double timeout=-1;
+  if( !PyArg_ParseTuple(args,"|d",&timeout) )
     return NULL;
   try
   {
     WPInterface &wp = self->wpref();
     Thread::Mutex::Lock lock(wp.queueCondition());
     // wait for something to arrive in queue (if asked to)
-    while( wait && wp.queue().empty() )
+    while( wp.queue().empty() )
     {
       if( !wp.isRunning() )
         returnError(NULL,OctoPython,"proxy wp no longer running");
-      wp.queueCondition().wait();
+      // timeout>=0: return None if queue is empty
+      if( timeout>=0 )
+      {
+        if( timeout>0 )
+          wp.queueCondition().wait(timeout);
+        if( wp.queue().empty() )
+          returnNone;
+      }
+      else // timeout<0: wait indefinitely
+        wp.queueCondition().wait();
     }
-    // still empty? Return none (only possible when wait=0)
-    if( wp.queue().empty() )
-      returnNone;
     // pop first message and return it
     PyObject * py_msg = pyFromMessage(wp.queue().front().mref.deref());
     wp.queue().pop_front();
@@ -257,7 +263,7 @@ static PyMethodDef PyProxyWP_methods[] = {
 PyTypeObject PyProxyWPType = {
     PyObject_HEAD_INIT(NULL)
     0,                          /*ob_size*/
-    "octopython_c.proxy_wp",    /*tp_name*/
+    "octopython.proxy_wp",      /*tp_name*/
     sizeof(PyProxyWP),          /*tp_basicsize*/
     0,                          /*tp_itemsize*/
     (destructor)PyProxyWP_dealloc, /*tp_dealloc*/

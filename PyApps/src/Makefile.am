@@ -1,17 +1,18 @@
 CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE -I/usr/include/python2.3
 
-lib_LTLIBRARIES = octopython.la
+lib_LTLIBRARIES = py_app_launcher.la
 
 DOCHDRS = OctoPython.h
 
-octopython_la_SOURCES = \
-  octopython.cc ProxyWPObject.cc ThreadCond.cc DataConv.cc
+py_app_launcher_la_SOURCES = \
+  py_app_launcher.cc
   
-octopython_la_LDFLAGS = -module
+py_app_launcher_la_LDFLAGS = -module
 
-octopython_la_LIBADD = -llog4cplus
+py_app_launcher_la_LIBADD = $(lofar_sharedir)/../CEP/CPA/AppAgent/AppAgent/build/gnu3_debug/src/libappagent.la \
+  -llog4cplus 
 
-octopython_la_DEPENDENCIES = \
+py_app_launcher_la_DEPENDENCIES = \
   ../pkgbldinc/OCTOPUSSY/liboctopussy.la \
   ../pkgbldinc/DMI/libdmi.la \
   ../pkgbldinc/Common/libcommon.la

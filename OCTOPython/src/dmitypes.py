@@ -2,6 +2,7 @@
 
 import string
 import numarray
+import sys
 
 # 
 # === class hiid ===
@@ -14,7 +15,7 @@ class hiid (tuple):
     for x in args:
       if isinstance(x,str):            # a string? Use HIID mapping functions
         try:
-          mylist = mylist + octopython_c.str_to_hiid(x,sep);
+          mylist = mylist + octopython.str_to_hiid(x,sep);
         except:
           raise ValueError, "'%s' is not a valid hiid"%x;
       elif isinstance(x,(tuple,list)): # other sequence? use as list
@@ -32,17 +33,36 @@ class hiid (tuple):
     # print 'getslice: ',i,j;
     return hiid(tuple.__getslice__(self,i,j));
   def __str__ (self):
-    return octopython_c.hiid_to_str(self);
+    return octopython.hiid_to_str(self);
   def __repr__ (self):
     return "hiid('%s')" % str(self);
+  # matches() function matches hiids
+  def matches (self,other):
+    if isinstance(other,str): other=hiid(other);
+    return octopython.hiid_matches(self,other);
   # concatenation with '+' must return a hiid
   def __add__ (self,other):
     return hiid(self,other);
   def __radd__ (self,other):
     return hiid(other,self);
+  # comparison with strings -- convert to hiid
+  def __cmp__ (self,other):
+    return cmp(str(self).lower(),str(other).lower());
+  # as_str converts to string
   def as_str (self,sep='.'):
-    return octopython_c.hiid_to_str(self,sep);
-    
+    return octopython.hiid_to_str(self,sep);
+
+def type_maker(objtype,**kwargs):
+  def maker(x):
+    if isinstance(x,objtype):
+      return x;
+    return objtype(x);
+  return maker;
+  
+#
+# make_hiid()
+#   ensures argument is a hiid
+#    
 def make_hiid (x,sep='.'):
   "converts argument to hiid, if it is not a hiid already";
   if isinstance(x,hiid):
@@ -109,24 +129,24 @@ class conv_error(TypeError):
 #
 class record (dict):
   "represents a record class with string keys";
-  def __init__ (self,init=None,verbose=0):
-    # initialize from init dictionary, checking for valid keys
-    if isinstance(init,dict) and len(init):
-      dictiter = init.iteritems();
-      for (key,value) in dictiter:
-        try:
-          key = self.make_key(key);
-        except Exception,info:
-          if verbose>0: print "skipping %s=%s (%s)" % (key,value,info);
-          continue;
-        try:
-          value = dmize_object(value);
-        except Exception,info:
-          if verbose>0: print "skipping %s=%s (%s)" % (key,value,info);
-          continue;
-        dict.__setitem__(self,key,value);
-        if verbose>1: print "adding %s=%s" % (key,value);
-      if verbose>0: print "initialized",dict.__len__(self),"fields";
+  def __init__ (self,_initdict_=None,_verbose_=0,**kwargs):
+    # initialize from init dictionary and from kwargs, checking for valid keys
+    for source in _initdict_,kwargs:
+      if isinstance(source,dict):
+        for key,value in source.iteritems():
+          try:
+            key = self.make_key(key);
+          except Exception,info:
+            if _verbose_>0: print "skipping %s=%s (%s)" % (key,value,info);
+            continue;
+          try:
+            value = dmize_object(value);
+          except Exception,info:
+            if _verbose_>0: print "skipping %s=%s (%s)" % (key,value,info);
+            continue;
+          dict.__setitem__(self,key,value);
+          if _verbose_>1: print "adding %s=%s" % (key,value);
+        if _verbose_>0: print "initialized",dict.__len__(self),"fields";
   # make_key: coerces value to legal key, throws ValueError if illegal
   # this version coerces to string keys, subclasses may redefine this to
   # use different kinds of keys
@@ -151,7 +171,7 @@ class record (dict):
     return dict.__setitem__(self,key,value);
   # __delattr__: deletes key
   def __delattr__(self,name):
-    try:    key = self.make_key(name);
+    try:   key = self.make_key(name);
     except ValueError,info: raise AttributeError,info;
     return dict.__delitem__(self,key);
   # __getitem__: string names implicitly converted to HIIDs
@@ -193,6 +213,11 @@ class record (dict):
   def field_names (self):
     "returns a list of field names, in underscore-separator format";
     return self.keys();
+  def has_field (self,name):
+    "returns a list of field names, in underscore-separator format";
+    try: name = self.make_key(name);
+    except ValueError,info: raise TypeError,info;
+    return self.has_key(name);
 
 # 
 # === class srecord ===
@@ -210,6 +235,9 @@ class srecord (record):
     except Exception,info: raise TypeError,info;
     return str(key);
     
+make_record = type_maker(record);
+make_srecord = type_maker(srecord);
+
 # 
 # === class message ===
 # A message represents an OCTOPUSSY message
@@ -232,7 +260,9 @@ class message (object):
     
 def make_message(msg,payload=None,priority=0):
   "creates/resolves a message object";
-  if isinstance(msg,hiid):
+  if isinstance(msg,str):
+    msg = message(hiid(msg),payload=payload,priority=priority);
+  elif isinstance(msg,hiid):
     msg = message(msg,payload=payload,priority=priority);
   elif isinstance(msg,message):
     if payload != None or priority != 0:
@@ -247,6 +277,38 @@ def make_scope (scope):
   if not scope in "ghl":
     raise ValueError,"scope argument must be one of: (g)lobal, (h)ost, (local)";
   return scope;
+  
+# 
+# === class verbosity ===
+# Verbosity includes methods for verbosity levels and conditional printing
+#
+class verbosity(object):
+  def __init__(self,verbose=0,stream=sys.stderr,name=None):
+    self.verbose = verbose;
+    self.stream = stream;
+    self.vobj_name = name or self.__class__.__name__;
+  def dprint(self,level,*args):
+    if level <= self.verbose:
+      self.stream.write(self.vobj_name+': ');
+      self.stream.write(string.join(map(str,args),' ')+'\n'); 
+  def dprintf(self,level,format,*args):
+#    print format,args;
+    if level <= self.verbose:
+      try: s = format % args;
+      except: 
+        self.stream.write('dprintf format exception: ' + str(format) + '\n');
+      else:
+        self.stream.write(self.vobj_name+': ');
+        self.stream.write(s);
+  def verbose(self):
+    return self.verbose;
+  def set_verbose(self,verbose):
+    self.verbose = verbose;
+  def set_stream(self,stream):
+    self.stream = stream;
+  def set_vobj_name(self,name):
+    self.vobj_name = name;
+  
 # Other classes  
 
 # array_class
@@ -257,7 +319,7 @@ array_class = type(numarray.array(0));
 dmi_supported_types = (int,long,float,complex,str,hiid,array_class,record,message);
 
 # import C module
-import octopython_c
+import octopython
     
 
 
@@ -285,6 +347,18 @@ def __test_hiids():
   try:
     print hiid('x_y_z');
   except: pass
+  print "Checking matches() method"
+  if not ( abc.matches('a.b.?') and abc.matches('a.*') and not abc.matches('b.*') ):
+    raise RuntimeError,'hiid.matches() failed';
+  print "Checking comparison"
+  if hiid('a') == hiid('b'):
+    raise RuntimeError,'comparison error';
+  if hiid('a') == 'b':
+    raise RuntimeError,'comparison error';
+  if hiid('a') != 'a':
+    raise RuntimeError,'comparison error';
+  if hiid('a') != hiid('a'):
+    raise RuntimeError,'comparison error';
 
 def __test_records():
   global rec1,rec2;
@@ -346,7 +420,7 @@ def __test_messages():
 
 if __name__ == "__main__":
   # print some aids
-  print "Number of known AIDs: ",len(octopython_c.aid_map),len(octopython_c.aid_rmap);
+  print "Number of known AIDs: ",len(octopython.aid_map),len(octopython.aid_rmap);
   __test_hiids();
   __test_records();
   __test_messages();

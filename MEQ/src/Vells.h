@@ -45,9 +45,10 @@
                                 
 // Unary group 1: defined for all Vells. Preserves real/complex
 #define DoForAllUnaryFuncs1(Do,x) \
-  Do(cos,x) Do(cosh,x) Do(exp,x) Do(log,x) Do(log10,x) Do(sin,x) Do(sinh,x) \
+  Do(cos,x) Do(cosh,x) Do(exp,x) Do(log,x) Do(sin,x) Do(sinh,x) \
   Do(sqr,x) Do(sqrt,x) Do(tan,x) Do(tanh,x) \
   Do(pow2,x) Do(pow3,x) Do(pow4,x) Do(pow5,x) Do(pow6,x) Do(pow7,x) Do(pow8,x)
+// Do(log10,x) commented out for now -- doesn't seem to have a complex version
 
 // Unary group 2: defined for real Vells only
 #define DoForAllUnaryFuncs2(Do,x) \

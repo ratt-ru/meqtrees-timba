@@ -1,6 +1,8 @@
-+ add command to launch ReflectorWP and test send/receive with it
+    + add command to launch ReflectorWP and test send/receive with it
+    
+* add support for PrettyPrinter
 
-+ process SmartBlock message payloads as Py_Buffers
+* process SmartBlock message payloads as Py_Buffers
 
-+ same for unsupported DMI objects -- convert to BlockSet and pass as
+* same for unsupported DMI objects -- convert to BlockSet and pass as
   a buffer. Is this really needed though?

@@ -472,7 +472,7 @@ void Node::processChildSpec (NestableContainer &children,const HIID &chid,const 
   if( spec_type == TpDataRecord )
   {
     cdebug(4)<<"  child "<<id<<" specified by init record"<<endl;
-    DataRecord::Ref child_initrec = children[id].remove();
+    DataRecord::Ref child_initrec = children[id].ref();
     // check if named child already exists
     string name = child_initrec[FName].as<string>("");
     int index = -1;

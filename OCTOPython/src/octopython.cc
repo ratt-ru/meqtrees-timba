@@ -69,6 +69,27 @@ static PyObject * hiid_to_string (PyObject *, PyObject *args)
   
   return PyString_FromString(id.toString(sep).c_str());
 }
+
+// -----------------------------------------------------------------------
+// hiid_matches
+// -----------------------------------------------------------------------
+static PyObject * hiid_matches (PyObject *, PyObject *args)
+{
+  PyObject *l1,*l2;
+  if( !PyArg_ParseTuple(args, "OO", &l1,&l2) )
+    return NULL;
+  bool match;
+  try
+  {
+    HIID id1,id2;
+    convertSeqToHIID(id1,l1);
+    convertSeqToHIID(id2,l2);
+    match = id1.matches(id2);
+  }
+  catchStandardErrors(NULL);
+  
+  return PyInt_FromLong(match);
+}
   
 // -----------------------------------------------------------------------
 // start_octopussy ()
@@ -89,6 +110,9 @@ static PyObject * start_octopussy (PyObject *, PyObject *args)
     Octopussy::init(start_gateways);
     cout<<"=================== starting OCTOPUSSY thread =================\n";
     thread_id = Octopussy::initThread(wait_start);
+    // unblock the SIGALRM signal in Python's thread
+    // (Dispatcher::start() normally blocks it)
+    Thread::signalMask(SIG_UNBLOCK,SIGALRM);
   }
   catchStandardErrors(NULL);
   
@@ -152,22 +176,25 @@ static PyMethodDef OctoMethods[] = {
                     "converts string to hiid-compatible tuple" },
     { "hiid_to_str", hiid_to_string, METH_VARARGS, 
                     "converts hiid-type sequence to string" },
+    { "hiid_matches", hiid_matches, METH_VARARGS, 
+                    "tests if two hiids match" },
     { "start_reflector",start_reflector,METH_VARARGS,
                     "starts a RelectorWP (usually for testing)" },
         
     { NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-PyMODINIT_FUNC initoctopython_c ()
+PyMODINIT_FUNC initoctopython ()
 {
   Debug::Context::initialize();
   
   // init proxywp type
-  if( PyType_Ready(&PyProxyWPType) < 0)
+  if( PyType_Ready(&PyProxyWPType) < 0 ||
+      PyType_Ready(&PyThreadCondType) < 0 )
     return;
   
   // init the module
-  PyObject *module = Py_InitModule3("octopython_c", OctoMethods,
+  PyObject *module = Py_InitModule3("octopython", OctoMethods,
         "C++ support module for octopussy.py");
   if( !module )
     return;
@@ -175,29 +202,32 @@ PyMODINIT_FUNC initoctopython_c ()
   // init the DataConversion layer
   initDataConv();
   
-  // add type
+  // add types
   PyObject * proxy_type = (PyObject *)&PyProxyWPType;
   Py_INCREF(proxy_type);
   PyModule_AddObject(module, "proxy_wp", proxy_type);
-//  PyObject_SetAttrString(proxy_type,"testattr",PyInt_FromLong(123));
+  
+  PyObject * tc_type = (PyObject *)&PyThreadCondType;
+  Py_INCREF(tc_type);
+  PyModule_AddObject(module, "thread_condition", tc_type);
   
   // get references to class objects from dmitypes
   PyObject * dmimod = PyImport_ImportModule("dmitypes");
   if( !dmimod )
   {
-    Py_FatalError("octopython_c init error: import dmitypes failed");
+    Py_FatalError("octopython init error: import dmitypes failed");
     return;
   }
   PyObject * dmidict = PyModule_GetDict(dmimod);
   if( !dmidict )
   {
-    Py_FatalError("octopython_c init error: can't access dmitypes dict");
+    Py_FatalError("octopython init error: can't access dmitypes dict");
     return;
   }
   
   #define GetConstructor(cls) \
     if( ! ( py_class.cls = PyDict_GetItemString(dmidict,#cls) ) ) \
-      { Py_FatalError("octopython_c: name dmitypes." #cls " not found"); return; } \
+      { Py_FatalError("octopython: name dmitypes." #cls " not found"); return; } \
     Py_INCREF(py_class.cls);
   
   GetConstructor(hiid);
@@ -208,8 +238,8 @@ PyMODINIT_FUNC initoctopython_c ()
   GetConstructor(conv_error);
   
   // register an exception object
-  PyExc_OctoPythonError = PyErr_NewException("octopython_c.OctoPythonError", NULL, NULL);
-  PyExc_DataConvError = PyErr_NewException("octopython_c.DataConvError", NULL, NULL);
+  PyExc_OctoPythonError = PyErr_NewException("octopython.OctoPythonError", NULL, NULL);
+  PyExc_DataConvError = PyErr_NewException("octopython.DataConvError", NULL, NULL);
   Py_INCREF(PyExc_OctoPythonError);
   Py_INCREF(PyExc_DataConvError);
   PyModule_AddObject(module, "OctoPythonError", PyExc_OctoPythonError);
@@ -235,7 +265,7 @@ PyMODINIT_FUNC initoctopython_c ()
   
   // drop out on error
   if( PyErr_Occurred() )
-    Py_FatalError("can't initialize module octopython_c");
+    Py_FatalError("can't initialize module octopython");
 }
 
 
@@ -243,115 +273,3 @@ PyMODINIT_FUNC initoctopython_c ()
 
 } // namesapce OctoPython
 
-/*
-
-#include <AppUtils/VisRepeater.h>
-#include <MeqServer/MeqServer.h>
-#include <MeqServer/AID-MeqServer.h>
-
-typedef std::vector<string> StrVec;
-typedef StrVec::iterator SVI;
-typedef StrVec::const_iterator SVCI;
-
-using namespace MSVisAgent;
-using namespace OctoAgent;
-using namespace AppControlAgentVocabulary;
-
-bool setupApp (ApplicationBase::Ref &app,const string &str)
-{
-  if( str.length() < 6 )
-    return False;
-  string name = str.substr(0,5);
-  string spec = str.substr(5);
-  // select application based on spec string
-  AtomicID wpclass;
-  if( name == "-meq:" )
-  {
-    cout<<"=================== creating MeqServer =-==================\n";
-    app <<= new Meq::MeqServer;
-    wpclass = AidMeqServer;
-  }
-  else if( name == "-rpt:" )
-  {
-    cout<<"=================== creating repeater =====================\n";
-    app <<= new VisRepeater;
-    wpclass = AidRepeater;
-  }
-  else 
-    return False;
-  
-  // split spec string at ":" character
-  StrVec specs;
-  uint ipos = 0, len = spec.length();
-  while( ipos < len )
-  {
-    uint ipos1 = spec.find(':',ipos);
-    if( ipos1 == string::npos )
-      ipos1 = len;
-    specs.push_back(spec.substr(ipos,ipos1-ipos));
-    ipos = ipos1 + 1;
-  }
-  // print it out
-  cout<<"=== app spec: ";
-  for( uint i=0; i<specs.size(); i++ )
-      cout<<"\""<<specs[i]<<"\" ";
-  cout<<endl;
-  FailWhen(specs.size() != 3,"invalid app spec: "+spec);
-  
-  // initialize parameter record
-  DataRecord::Ref recref;
-  DataRecord &rec = recref <<= new DataRecord;
-  // init errors will be thrown as exceptions
-  rec[FThrowError] = True;
-  // setup control agent for delayed initialization
-  rec[AidControl] <<= new DataRecord;
-  rec[AidControl][FDelayInit] = True;
-  rec[AidControl][FEventMapIn] <<= new DataRecord;
-  rec[AidControl][FEventMapIn][FDefaultPrefix] = HIID(specs[2])|AidIn;
-  rec[AidControl][FEventMapOut] <<= new DataRecord;
-  rec[AidControl][FEventMapOut][FDefaultPrefix] = HIID(specs[2])|AidOut;
-
-  // create agents
-  OctoAgent::EventMultiplexer::Ref mux;
-    mux <<= new OctoAgent::EventMultiplexer(wpclass);
-  // input agent
-  VisAgent::InputAgent::Ref in;
-  if( specs[0] == "M" )
-    in <<= new VisAgent::InputAgent(new MSVisAgent::MSInputSink,DMI::ANONWR);
-  else if( specs[0] == "B" )
-    in <<= new VisAgent::InputAgent(new BOIOSink,DMI::ANONWR);
-  else if( specs[0] == "O" )
-    in <<= new VisAgent::InputAgent(mux().newSink());
-  else
-    Throw("invalid input type: "+spec[0]);
-  // output agent
-  VisAgent::OutputAgent::Ref out;
-  if( specs[1] == "M" )
-    out <<= new VisAgent::OutputAgent(new MSVisAgent::MSOutputSink,DMI::ANONWR);
-  else if( specs[1] == "B" )
-    out <<= new VisAgent::OutputAgent(new BOIOSink,DMI::ANONWR);
-  else if( specs[1] == "O" )
-    out <<= new VisAgent::OutputAgent(mux().newSink());
-  else
-    Throw("invalid output type: "+spec[1]);
-  // control agent
-  AppControlAgent::Ref control;
-  control <<= new AppControlAgent(mux().newSink());
-  // attach flags to non-octopussy agents
-  if( specs[0] != "O" )
-    in().attach(mux().eventFlag());
-  if( specs[1] != "O" )
-    out().attach(mux().eventFlag());
-  // attach agents to app and mux to OCTOPUSSY
-  app()<<in<<out<<control;
-  Octopussy::dispatcher().attach(mux,DMI::WRITE);
-  // preinitialize control
-  control().preinit(recref);
-  
-  return True;
-}
-
-
-
-
-*/

@@ -1,0 +1,73 @@
+dnl
+dnl Process this file with autoconf to produce a configure script.
+dnl
+AC_INIT(src/py_app_launcher.cc)
+dnl AC_CONFIG_AUX_DIR(config)
+dnl AM_CONFIG_HEADER(config/config.h)
+AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE(PyApps, 0.1)
+
+dnl Initialize for LOFAR (may set compilers)
+lofar_INIT
+
+dnl Checks for programs.
+AC_PROG_AWK
+AC_PROG_YACC
+AC_PROG_CC
+AC_PROG_CXX
+AM_PROG_LEX
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_LIBTOOL
+
+dnl Checks for libraries.
+
+dnl dnl Replace `main' with a function in -lfl:
+dnl AC_CHECK_LIB(fl, main)
+dnl dnl Replace `main' with a function in -lcosev_r:
+dnl AC_CHECK_LIB(cosev_r, main)
+dnl dnl Replace `main' with a function in -lcosnm_r:
+dnl AC_CHECK_LIB(cosnm_r, main)
+dnl dnl Replace `main' with a function in -lorb_r:
+dnl AC_CHECK_LIB(orb_r, main)
+dnl dnl Replace `main' with a function in -lpthread:
+dnl AC_CHECK_LIB(pthread, main)
+dnl dnl Replace `main' with a function in -lvport_r:
+dnl AC_CHECK_LIB(vport_r, main)
+
+dnl Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS(unistd.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_SIZE_T
+
+dnl Checks for library functions.
+AC_FUNC_VPRINTF
+
+dnl
+dnl Check for LOFAR specific things
+dnl
+lofar_DEBUG_OPTIMIZE
+lofar_BLITZ(1)
+lofar_AIPSPP(1)
+lofar_QATOOLS
+lofar_DOCXX
+lofar_PACKAGE(CEP/CPA/OCTOPython)
+lofar_PACKAGE(CEP/CPA/VisCube)
+lofar_PACKAGE(CEP/CPA/PSS4/MEQ)
+lofar_PACKAGE(CEP/CPA/PSS4/MeqGen)
+dnl lofar_PACKAGE(CEP/CPA/AppAgent/AppAgent)
+lofar_PACKAGE(CEP/CPA/AppAgent/VisAgent)
+lofar_PACKAGE(CEP/CPA/AppAgent/OctoAgent)
+lofar_PACKAGE(CEP/CPA/AppAgent/MSVisAgent)
+lofar_PACKAGE(CEP/CPA/AppAgent/AppUtils)
+lofar_PACKAGE(CEP/CPA/AppAgent/MeqServer)
+dnl
+dnl Output Makefiles
+dnl
+AC_OUTPUT(
+src/Makefile
+Makefile
+)
