@@ -1,4 +1,4 @@
-dmi_dir = $(lofar_sharedir)/../DMI
+DOCHDRS = VisPipe.h ApplicationBase.h VisRepeater.h
 
 lib_LTLIBRARIES = libapputils.la
 
@@ -8,17 +8,6 @@ libapputils_la_SOURCES = \
 glishdir = $(libexecdir)/glish/appagent
 dist_glish_SCRIPTS = app_proxy.g
 
-# script used to generate AID maps
-MAPBUILDER = $(dmi_dir)/src/build_aid_maps.pl 
-
-# All .aidlist files below this dir will be scanned
-BASELISTDIR = $(lofar_sharedir)/..
-
-# Your package's subdirectory
-AID_DIR = $(top_srcdir)/src
-
-aids:
-	$(MAPBUILDER) `find $(BASELISTDIR) -name \*.aidlist` $(AID_DIR)/*.h 
-
 include $(lofar_sharedir)/Makefile.common
+include $(lofar_sharedir)/Makefile.aids
 

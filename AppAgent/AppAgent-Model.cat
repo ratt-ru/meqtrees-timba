@@ -17420,7 +17420,7 @@
 	    quid       	"3F5F0B3602F2"
 	    exportControl 	"Public"
 	    logical_models 	(list unit_reference_list
-		(object Class_Category "MEQ"
+		(object Class_Category "Meq"
 		    attributes 	(list Attribute_Set
 			(object Attribute
 			    tool       	"Cplusplus"
@@ -17622,7 +17622,7 @@
 			    superclasses 	(list inheritance_relationship_list
 				(object Inheritance_Relationship
 				    quid       	"3F98DAE60210"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::VisHandlerNode"
+				    supplier   	"Logical View::AppAgents::MeqServer::Meq::VisHandlerNode"
 				    quidu      	"3F98DAE60009"))
 			    operations 	(list Operations
 				(object Operation "init"
@@ -17732,7 +17732,7 @@
 			    superclasses 	(list inheritance_relationship_list
 				(object Inheritance_Relationship
 				    quid       	"3F98DB4602D9"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::VisHandlerNode"
+				    supplier   	"Logical View::AppAgents::MeqServer::Meq::VisHandlerNode"
 				    quidu      	"3F98DAE60009"))
 			    operations 	(list Operations
 				(object Operation "init"
@@ -17843,11 +17843,20 @@
 				    value      	"MeqServer/src/VisDataMux.cc"))
 			    quid       	"3F98DAE503DA"
 			    operations 	(list Operations
-				(object Operation "init"
-				    quid       	"3F98DAE6024A"
+				(object Operation "VisDataMux"
+				    quid       	"3F9FF71B006A"
 				    parameters 	(list Parameters
-					(object Parameter "header"
-					    quid       	"3F98DAE6024B"
+					(object Parameter "frst"
+					    quid       	"3F9FF71B0077"
+					    type       	"MEQ::Forest &"))
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
+				    uid        	0)
+				(object Operation "init"
+				    quid       	"3FA1016000B0"
+				    parameters 	(list Parameters
+					(object Parameter "rec"
+					    quid       	"3FA101680029"
 					    type       	"const DataRecord &"))
 				    result     	"void"
 				    concurrency 	"Sequential"
@@ -17875,7 +17884,17 @@
 				    concurrency 	"Sequential"
 				    opExportControl 	"Public"
 				    uid        	0)
-				(object Operation "deliver"
+				(object Operation "deliverHeader"
+				    quid       	"3F98DAE6024A"
+				    parameters 	(list Parameters
+					(object Parameter "header"
+					    quid       	"3F98DAE6024B"
+					    type       	"const DataRecord &"))
+				    result     	"void"
+				    concurrency 	"Sequential"
+				    opExportControl 	"Public"
+				    uid        	0)
+				(object Operation "deliverTile"
 				    quid       	"3F98DAE60251"
 				    parameters 	(list Parameters
 					(object Parameter "tileref"
@@ -17898,15 +17917,6 @@
 				    result     	"int"
 				    concurrency 	"Sequential"
 				    opExportControl 	"Private"
-				    uid        	0)
-				(object Operation "VisDataMux"
-				    quid       	"3F9FF71B006A"
-				    parameters 	(list Parameters
-					(object Parameter "frst"
-					    quid       	"3F9FF71B0077"
-					    type       	"MEQ::Forest &"))
-				    concurrency 	"Sequential"
-				    opExportControl 	"Public"
 				    uid        	0)
 				(object Operation "VisDataMux"
 				    quid       	"3F9FF71B00AE"
@@ -17963,7 +17973,7 @@
 			    superclasses 	(list inheritance_relationship_list
 				(object Inheritance_Relationship
 				    quid       	"3F98DAE6025A"
-				    supplier   	"Logical View::MEQ::Node"
+				    supplier   	"Logical View::Meq::Node"
 				    quidu      	"3F5F436202FE"))
 			    operations 	(list Operations
 				(object Operation "VisHandlerNode"
@@ -18050,14 +18060,14 @@
 				(object Role "data_mux"
 				    quid       	"3F9CE0D3027D"
 				    label      	"data_mux"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::VisDataMux"
+				    supplier   	"Logical View::AppAgents::MeqServer::Meq::VisDataMux"
 				    quidu      	"3F98DAE503DA"
 				    Containment 	"By Value"
 				    exportControl 	"Private"
 				    is_navigable 	TRUE)
 				(object Role "$UNNAMED$89"
 				    quid       	"3F9CE0D30289"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::MeqServer"
+				    supplier   	"Logical View::AppAgents::MeqServer::Meq::MeqServer"
 				    quidu      	"3F5F195E013B"
 				    is_aggregate 	TRUE)))
 			(object Association "$UNNAMED$90"
@@ -18066,14 +18076,14 @@
 				(object Role "next_res"
 				    quid       	"3F9FF6AA0221"
 				    label      	"next_res"
-				    supplier   	"Logical View::MEQ::Result::Ref"
+				    supplier   	"Logical View::Meq::Result::Ref"
 				    quidu      	"3F86886E0210"
 				    Containment 	"By Value"
 				    exportControl 	"Private"
 				    is_navigable 	TRUE)
 				(object Role "$UNNAMED$91"
 				    quid       	"3F9FF6AA0225"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::Spigot"
+				    supplier   	"Logical View::AppAgents::MeqServer::Meq::Spigot"
 				    quidu      	"3F98DAE503C9"
 				    is_aggregate 	TRUE)))
 			(object Association "$UNNAMED$92"
@@ -18089,7 +18099,7 @@
 				    is_navigable 	TRUE)
 				(object Role "$UNNAMED$93"
 				    quid       	"3F9FF6AA023B"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::Spigot"
+				    supplier   	"Logical View::AppAgents::MeqServer::Meq::Spigot"
 				    quidu      	"3F98DAE503C9"
 				    is_aggregate 	TRUE)))
 			(object Association "$UNNAMED$94"
@@ -18098,14 +18108,14 @@
 				(object Role "forest_: MEQ::Forest &"
 				    quid       	"3F9FF71B004E"
 				    label      	"forest_: MEQ::Forest &"
-				    supplier   	"Logical View::MEQ::Forest"
+				    supplier   	"Logical View::Meq::Forest"
 				    quidu      	"3F5F21740281"
 				    Containment 	"By Value"
 				    exportControl 	"Private"
 				    is_navigable 	TRUE)
 				(object Role "$UNNAMED$95"
 				    quid       	"3F9FF71B0050"
-				    supplier   	"Logical View::AppAgents::MeqServer::MEQ::VisDataMux"
+				    supplier   	"Logical View::AppAgents::MeqServer::Meq::VisDataMux"
 				    quidu      	"3F98DAE503DA"
 				    is_aggregate 	TRUE))))
 		    logical_presentations 	(list unit_reference_list
@@ -18115,8 +18125,8 @@
 			    zoom       	100
 			    max_height 	28350
 			    max_width  	21600
-			    origin_x   	2006
-			    origin_y   	206
+			    origin_x   	0
+			    origin_y   	0
 			    items      	(list diagram_item_list
 				(object ClassView "Class" "Logical View::DOMIN0::BlockableObject" @475
 				    ShowCompartmentStereotypes 	TRUE
@@ -18148,7 +18158,7 @@
 				    height     	124
 				    annotation 	8
 				    autoResize 	TRUE)
-				(object ClassView "Class" "Logical View::MEQ::Node" @476
+				(object ClassView "Class" "Logical View::Meq::Node" @476
 				    ShowCompartmentStereotypes 	TRUE
 				    SuppressAttribute 	TRUE
 				    SuppressOperation 	TRUE
@@ -18167,21 +18177,21 @@
 					default_color 	TRUE)
 				    label      	(object ItemLabel
 					Parent_View 	@476
-					location   	(1754, 382)
+					location   	(1760, 382)
 					fill_color 	13434879
 					nlines     	1
-					max_width  	204
+					max_width  	192
 					justify    	0
 					label      	"Node")
 				    icon_style 	"Icon"
 				    line_color 	3342489
 				    fill_color 	13434879
 				    quidu      	"3F5F436202FE"
-				    width      	222
+				    width      	210
 				    height     	124
 				    annotation 	8
 				    autoResize 	TRUE)
-				(object ClassView "Class" "Logical View::MEQ::Forest" @477
+				(object ClassView "Class" "Logical View::Meq::Forest" @477
 				    ShowCompartmentStereotypes 	TRUE
 				    SuppressAttribute 	TRUE
 				    SuppressOperation 	TRUE
@@ -18200,17 +18210,17 @@
 					default_color 	TRUE)
 				    label      	(object ItemLabel
 					Parent_View 	@477
-					location   	(1018, 382)
+					location   	(1024, 382)
 					fill_color 	13434879
 					nlines     	1
-					max_width  	204
+					max_width  	192
 					justify    	0
 					label      	"Forest")
 				    icon_style 	"Icon"
 				    line_color 	3342489
 				    fill_color 	13434879
 				    quidu      	"3F5F21740281"
-				    width      	222
+				    width      	210
 				    height     	124
 				    annotation 	8
 				    autoResize 	TRUE)
@@ -18243,7 +18253,7 @@
 						default_color 	TRUE)
 					    label      	(object SegLabel @480
 						Parent_View 	@479
-						location   	(1654, 396)
+						location   	(1659, 396)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18269,10 +18279,10 @@
 					    supplier   	@476
 					    line_style 	3
 					    origin_attachment 	(1488, 441)
-					    terminal_attachment 	(1745, 441)
+					    terminal_attachment 	(1751, 441)
 					    label      	(object SegLabel @481
 						Parent_View 	@479
-						location   	(1704, 469)
+						location   	(1709, 469)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18305,7 +18315,7 @@
 						default_color 	TRUE)
 					    label      	(object SegLabel @483
 						Parent_View 	@482
-						location   	(1318, 396)
+						location   	(1313, 396)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18331,10 +18341,10 @@
 					    supplier   	@477
 					    line_style 	3
 					    origin_attachment 	(1488, 441)
-					    terminal_attachment 	(1231, 441)
+					    terminal_attachment 	(1225, 441)
 					    label      	(object SegLabel @484
 						Parent_View 	@482
-						location   	(1282, 470)
+						location   	(1276, 470)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18353,7 +18363,7 @@
 						pctDist    	0.807229
 						height     	29
 						orientation 	0))))
-				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::MeqServer::CommandMap" @485
+				(object ClassView "Class" "Logical View::AppAgents::MeqServer::Meq::MeqServer::CommandMap" @485
 				    ShowCompartmentStereotypes 	TRUE
 				    SuppressAttribute 	TRUE
 				    SuppressOperation 	TRUE
@@ -18402,7 +18412,7 @@
 				    line_style 	3
 				    origin_attachment 	(1862, 370)
 				    terminal_attachment 	(1862, 174))
-				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::VisHandlerNode" @487
+				(object ClassView "Class" "Logical View::AppAgents::MeqServer::Meq::VisHandlerNode" @487
 				    ShowCompartmentStereotypes 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
@@ -18458,7 +18468,7 @@
 				    line_style 	3
 				    origin_attachment 	(1853, 713)
 				    terminal_attachment 	(1853, 494))
-				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::Sink" @489
+				(object ClassView "Class" "Logical View::AppAgents::MeqServer::Meq::Sink" @489
 				    ShowCompartmentStereotypes 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
@@ -18505,7 +18515,7 @@
 				    width      	950
 				    height     	668
 				    annotation 	8)
-				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::Spigot" @490
+				(object ClassView "Class" "Logical View::AppAgents::MeqServer::Meq::Spigot" @490
 				    ShowCompartmentStereotypes 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
@@ -18580,7 +18590,7 @@
 				    origin_attachment 	(2940, 1532)
 				    terminal_attachment 	(2940, 1372)
 				    drawSupplier 	@491)
-				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::MeqServer" @494
+				(object ClassView "Class" "Logical View::AppAgents::MeqServer::Meq::MeqServer" @494
 				    ShowCompartmentStereotypes 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
@@ -18716,14 +18726,14 @@
 					    origin_attachment 	(1120, 596)
 					    terminal_attachment 	(1120, 698))))
 				(object AssociationViewNew "" @500
-				    location   	(232, 1722)
+				    location   	(231, 1722)
 				    stereotype 	TRUE
 				    line_color 	3342489
 				    quidu      	"3F61920F0192"
 				    roleview_list 	(list RoleViews
 					(object RoleView "" @501
 					    Parent_View 	@500
-					    location   	(-408, -742)
+					    location   	(-409, -742)
 					    font       	(object Font
 						size       	10
 						face       	"arial"
@@ -18735,7 +18745,7 @@
 						default_color 	TRUE)
 					    label      	(object SegLabel @502
 						Parent_View 	@501
-						location   	(191, 1604)
+						location   	(190, 1604)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18761,11 +18771,11 @@
 					    client     	@500
 					    supplier   	@494
 					    line_style 	3
-					    origin_attachment 	(232, 1722)
-					    terminal_attachment 	(232, 1574))
+					    origin_attachment 	(231, 1722)
+					    terminal_attachment 	(231, 1574))
 					(object RoleView "command_map" @503
 					    Parent_View 	@500
-					    location   	(-408, -742)
+					    location   	(-409, -742)
 					    font       	(object Font
 						size       	10
 						face       	"arial"
@@ -18777,7 +18787,7 @@
 						default_color 	TRUE)
 					    label      	(object SegLabel @504
 						Parent_View 	@503
-						location   	(181, 1800)
+						location   	(195, 1813)
 						font       	(object Font
 						    size       	10
 						    face       	"arial"
@@ -18793,8 +18803,8 @@
 						max_width  	301
 						justify    	0
 						label      	"-command_map"
-						pctDist    	0.527027
-						height     	51
+						pctDist    	0.614865
+						height     	36
 						orientation 	1)
 					    stereotype 	TRUE
 					    line_color 	3342489
@@ -18802,9 +18812,9 @@
 					    client     	@500
 					    supplier   	@485
 					    line_style 	3
-					    origin_attachment 	(232, 1722)
-					    terminal_attachment 	(232, 1870))))
-				(object ClassView "Class" "Logical View::AppAgents::MeqServer::MEQ::VisDataMux" @505
+					    origin_attachment 	(231, 1722)
+					    terminal_attachment 	(231, 1870))))
+				(object ClassView "Class" "Logical View::AppAgents::MeqServer::Meq::VisDataMux" @505
 				    ShowCompartmentStereotypes 	TRUE
 				    IncludeAttribute 	TRUE
 				    IncludeOperation 	TRUE
@@ -18846,8 +18856,8 @@
 					icon_style 	"Icon"
 					fill_color 	13434879
 					anchor     	2
-					nlines     	11
-					max_width  	916)
+					nlines     	12
+					max_width  	957)
 				    width      	1018
 				    height     	931
 				    annotation 	8)
