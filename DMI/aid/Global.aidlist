@@ -501,6 +501,7 @@ VDSID                            1151       ; from /home/oms/LOFAR/Timba/VisCube
 Vells                            1352       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
 VellSet                          1365       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:30
 VellSets                         1280       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:33
+Version                          1512       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:14
 Vis                              1240       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/VisAgentVocabulary.h:10
 VisCubeColumnarTableTile         1157       ; from /home/oms/LOFAR/Timba/VisCube/src/ColumnarTableTile.h:13
 VisCubeTableFormat               1121       ; from /home/oms/LOFAR/Timba/VisCube/src/TableFormat.h:9
