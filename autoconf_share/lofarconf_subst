@@ -1,0 +1,50 @@
+#!/bin/sh
+
+# Substitute variables in lofarconf options.
+#
+# Use as
+#    lofarconf_subst basedir host options
+
+lfr_base="$1"
+lfr_host="$2"
+opts="$3"
+
+# Substitute possible variables by their value defined in a variants file.
+# Variables are defined as $(name).
+# It is done recursively. Use the count to check for endless recursion.
+cnt=0;
+while true
+do
+  cnt=`expr $cnt + 1`
+  if [ $cnt -gt 50 ]; then
+    echo "Endless recursion in variable substition of '$3'"
+    exit 2
+  fi
+  # First test if a variable is defined.
+  # Exit the loop if no more variables.
+  a1=`echo "$opts" | sed -e 's/\$([^) ]\+)//'`
+  if [ "$opts" = "$a1" ]; then
+    break;
+  fi
+  # Get the part before, the name and the part after.
+  r1=`echo "$opts" | sed -e 's/\(.*\)\$([^) ]\+).*/\1/'`
+  var=`echo "$opts" | sed -e 's/.*\$(\([^) ]\+\)).*/\1/'`
+  r2=`echo "$opts" | sed -e 's/.*\$([^) ]\+)\(.*\)/\1/'`
+  # Try to find the variable in one of the variant files.
+  varval=
+  if [ -f $lfr_base/variants.$lfr_host ]; then
+    varval=`egrep "^$var.var:" $lfr_base/variants.$lfr_host`
+  fi
+  if [ "x$varval" = "x" ]; then
+    varval=`egrep "^$var.var:" $lfr_base/variants`
+  fi
+  if [ "x$varval" = "x" ]; then
+    echo "Warning: variants variable '$var' not found in variant files"
+  else
+    varval=`echo $varval | sed -e "s%.*.var: *%%"`
+  fi
+  opts="$r1$varval$r2"
+done
+
+echo $opts
+exit 0

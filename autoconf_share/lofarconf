@@ -66,14 +66,20 @@ if [ "x$cmpopts" = "x" ]; then
   exit 1;
 fi
 # Get the options only from the configure lines.
+# Substitute possible variables by their value defined in a variants file.
 cmpopts=`echo $cmpopts | sed -e "s%.*\.compiler\.conf: *%%"`
 varopts=`echo $varopts | sed -e "s%.*\.variant\.conf: *%%"`
+opts=`$lfr_base/autoconf_share/lofarconf_subst "$lfr_base" "$lfr_host" "$cmpopts $varopts"`
+if [ $? != 0 ]; then
+  echo "$opts"
+  exit 2
+fi
 
 # Now do the configure.
-# Note that "$@" preserves quotes aroun each argument.
+# Note that "$@" preserves quotes around each argument.
 echo "${lfr_cmp}_$lfr_var configure will be done on host $lfr_host for package $lfr_pkg"
-echo $lfr_confdir/configure $cmpopts $varopts "$@"
-$lfr_confdir/configure $cmpopts $varopts "$@"
+echo $lfr_confdir/configure $opts "$@"
+$lfr_confdir/configure $opts "$@"
 
 
 # Get the compiler make options.
@@ -83,8 +89,16 @@ varmakes=`echo $varmakes | sed -e "s%.*\.variant\.make: *%%"`
 # Write the options into the makeoptions file.
 \rm -f makeoptions
 touch makeoptions
+
+# Substitute possible variables by their value defined in a variants file.
 if [ "$cmpmakes$varmakes" != "" ]; then
+  opts=`$lfr_base/autoconf_share/lofarconf_subst "$lfr_base" "$lfr_host" "$cmpmakes $varmakes"`
+  if [ $? != 0 ]; then
+    echo "$opts"
+    exit 2
+  fi
+
   echo ""
-  echo "$cmpmakes $varmakes" > makeoptions
-  echo "make options\n  $cmpmakes $varmakes\nwritten into makeoptions file";
+  echo "$opts" > makeoptions
+  echo "make options\n  $opts\nwritten into makeoptions file";
 fi
