@@ -21,6 +21,9 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.8  2002/05/14 09:31:28  oms
+//  Fixed bug with itsElemSize not initialized in clone
+//
 //  Revision 1.7  2002/05/14 08:08:03  oms
 //  Added operator () to hooks.
 //  Fixed flags in DataArray.
@@ -128,6 +131,7 @@ void DataArray::cloneOther (const DataArray& other, int flags, int)
     flags &= ~DMI::READONLY;
     itsData.copy (other.itsData).privatize(flags|DMI::WRITE|DMI::LOCK);
     itsDataOffset = other.itsDataOffset;
+    itsElemSize = other.itsElemSize;
     init (other.itsShape);
   }
 }
