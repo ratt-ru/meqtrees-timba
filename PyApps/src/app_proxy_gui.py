@@ -80,7 +80,7 @@ class HierBrowser (object):
         continue;
       # else get string representation, insert item with it
       (itemstr,inlined) = dmirepr.expanded_repr_str(value);
-      i0 = HierBrowser.subitem(item,key,itemstr);
+      i0 = HierBrowser.subitem(item,str(key),itemstr);
       item._content_list.append(i0);
       # cache value for expansion, if not inlined
       if isinstance(value,(list,tuple,dict,array_class)):
@@ -93,6 +93,7 @@ class HierBrowser (object):
   
   class BrowserItem (QListViewItem):
     def __init__(self,*args):
+#      print args;
       QListViewItem.__init__(self,*args);
 
     def _subitem (self,*args):
@@ -134,6 +135,11 @@ class HierBrowser (object):
     return self._lv;
   def wtop (self):
     return self._lv;
+  def clear (self):
+    self._lv.clear();
+    for attr in ('_content','_content_list'):
+      if hasattr(self._lv,attr):
+        delattr(self._lv,attr);
   # inserts a new item into the browser
   def new_item (self,*args):
     if self.items:
@@ -159,8 +165,8 @@ class RecordBrowser(HierBrowser):
     if rec is not None:
       self.set_record(rec);
   def set_record (self,rec):
+    self.clear();
     self._rec = rec;
-    self._lv.clear();
     # expand first level of record
     self.expand_content(self._lv,self._rec);
     
@@ -348,7 +354,8 @@ class app_proxy_gui(verbosity,QMainWindow):
                  
     #------ pause button
     self.pause_button = QToolButton(self.maintab);
-    self.pause_button.setPixmap(pixmaps.pause_normal.pm());
+    self.pause_button.setIconSet(QIconSet(pixmaps.pause_normal.pm()));
+    QToolTip.add(self.pause_button,"pause the application");
     self.pause_button.setAutoRaise(True);
 #    self.pause_button.setMinimumWidth(35);
 #    self.pause_button.setMaximumWidth(35);
@@ -397,25 +404,32 @@ class app_proxy_gui(verbosity,QMainWindow):
 ##### event handlers for octopussy messages
   def customEvent (self,event):
     (ev,value) = event.data();
-    self.dprint(5,'customEvent:',event,value);
-    report = False;
-    print value;
-    msgtext = None; 
-    if isinstance(value,record):
-      for (field,cat) in self._MessageFields:
-        if field in value:
-          self.msglog.add(value[field],value,cat);
-          break;
-    # add to event log (if enabled)
-    self.eventlog.add(str(ev),value,Logger.Event);
-    # strip off index from end of event
-    ev0 = ev;
-    if int(ev0[-1]) >= 0:
-      ev0 = ev0[:-1];
-    # execute procedures from the custom map
-    for handler in self._ce_handler_map.get(ev0,()):
-      handler(ev,value);
-    # print 'customEvent returning';
+    self.dprint(5,'customEvent:',ev,value);
+    try:
+      report = False;
+  #    print value;
+      msgtext = None; 
+      if isinstance(value,record):
+        for (field,cat) in self._MessageFields:
+          if field in value:
+            self.msglog.add(value[field],value,cat);
+            break;
+      # add to event log (if enabled)
+      self.eventlog.add(str(ev),value,Logger.Event);
+      # strip off index from end of event
+      ev0 = ev;
+      if int(ev0[-1]) >= 0:
+        ev0 = ev0[:-1];
+      # execute procedures from the custom map
+      for handler in self._ce_handler_map.get(ev0,()):
+        handler(ev,value);
+      # print 'customEvent returning';
+    except:
+      (exctype,excvalue,traceback) = sys.exc_info();
+      self.dprint(0,'exception',str(exctype),'while handling event ',ev);
+      self.dprint(0,'exception value is',excvalue);
+      self.dprint(2,'event value was',value);
+      
     
   def ce_Hello (self,ev,value):
     self.msglog.add("connected to "+str(value),None,Logger.Normal);
@@ -434,8 +448,12 @@ class app_proxy_gui(verbosity,QMainWindow):
     self.status_icon.setPixmap(pm.pm());
     self.pause_button.setDisabled(not self.app.state>0);
     if self.app.state>0:
-      if self.app.paused:   self.pause_button.setPixmap(pixmaps.pause_green.pm());
-      else:                 self.pause_button.setPixmap(pixmaps.pause_normal.pm());
+      if self.app.paused:   
+        self.pause_button.setIconSet(QIconSet(pixmaps.pause_green.pm()));
+        QToolTip.add(self.pause_button,"resume the application");
+      else:                 
+        self.pause_button.setIconSet(QIconSet(pixmaps.pause_normal.pm()));
+        QToolTip.add(self.pause_button,"pause the application");
       print self.app.paused,self.pause_requested;
       # if requested pause/resume state is reached, get button up and clear
       if self.pause_requested == self.app.paused:

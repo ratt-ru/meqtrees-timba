@@ -14,7 +14,7 @@ def class_name (value):
     return value.__class__.__name__;
 
 # Map of inline conversion methods. Only available for those types for which
-# a complete & brif string form is available.
+# a complete & brief string form is available.
 # No methods are defined for containers
 TypeToInline = dict.fromkeys((bool,int,long,float,complex),str);
 TypeToInline[hiid] = lambda x:'`'+str(x)+'`';
@@ -123,7 +123,7 @@ class dmi_repr (object):
     elif isinstance(value,dict):
       braces = '{}';
       iterator = value.iteritems();
-      conv = lambda x: (str(x[0])+':',x[1]);
+      conv = lambda x: (str(x[0])+': ',x[1]);
     elif isinstance(value,conv_error):
       return (value.details(),True);
     else:  # else some other type: simply return its repr
@@ -144,7 +144,7 @@ class dmi_repr (object):
         str1 = s1;
       else:    # else check, are we still under max length? append and go on
         if len(str1) + len(s1) < self.maxlen:
-          str1 = ','.join((str1,s1));
+          str1 = ', '.join((str1,s1));
         else:  # else terminate string with '...' and break out 
           inlined = False;
           str1 = ''.join((braces[0],str1,',...'));

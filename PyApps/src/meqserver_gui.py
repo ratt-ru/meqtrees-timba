@@ -7,123 +7,130 @@ import weakref
 import math
 import sets
 
+class GridCell (object):
+  def __init__ (self,parent):
+    self._wtop = QWidget(parent);
+    self._wtop.hide();
+    self._top_lo = QVBoxLayout(self._wtop);
+    self._control_lo = QHBoxLayout();
+    self._control_lo.setResizeMode(QLayout.Fixed);
+    # pin button
+    pin_is = QIconSet(pixmaps.pin_up.pm());
+    pin_is.setPixmap(pixmaps.pin_down.pm(),QIconSet.Automatic,QIconSet.Normal,QIconSet.On);
+    self._pin = QToolButton(self._wtop);
+    self._pin.setAutoRaise(True);
+    self._pin.setToggleButton(True);
+    self._pin.setIconSet(pin_is);
+    self._pin.hide();
+    self._wtop.connect(self._pin,SIGNAL("toggled(bool)"),self._set_pinned);
+    QToolTip.add(self._pin,"pin (i.e. protect) or unpin this panel");
+    # refresh button
+    self._refresh = QToolButton(self._wtop);
+    self._refresh.setIconSet(QIconSet(pixmaps.refresh.pm()));
+    self._refresh.setAutoRaise(True);
+    self._refresh.hide();
+    self._wtop.connect(self._refresh,SIGNAL("clicked()"),self._dorefresh);
+    QToolTip.add(self._refresh,"refresh contents of this panel");
+    # label
+    self._label = QLabel("(empty)",self._wtop);
+    self._label.setFont(defaultBoldFont());
+    QApplication.font
+    self._label1 = QLabel("",self._wtop);
+    # close button
+    self._close = QToolButton(self._wtop);
+    self._close.setIconSet(QIconSet(pixmaps.cancel.pm()));
+    self._close.setAutoRaise(True);
+    self._close.setDisabled(True);
+    QToolTip.add(self._close,"close this panel");
+    self._wtop.connect(self._close,SIGNAL("clicked()"),self.close);
+    self._control_lo.addWidget(self._pin);
+    self._control_lo.addWidget(self._refresh);
+    self._control_lo.addSpacing(10);
+    self._control_lo.addWidget(self._label);
+    self._control_lo.addSpacing(10);
+    self._control_lo.addWidget(self._label1);
+    self._control_lo.addStretch();
+    self._control_lo.addWidget(self._close);
+
+    self._top_lo.addLayout(self._control_lo,0);
+
+    self._wstack = QWidgetStack(self._wtop);
+    self._top_lo.addWidget(self._wstack,1);
+
+    self._id     = None;
+    self._pinned = False;
+    self._widget = None;
+
+  def wtop (self):
+    return self._wtop;
+  def hide (self):
+    self._wtop.hide();
+  def show (self):
+    self._wtop.show();
+
+  def _dorefresh (self):
+    self._widget.emit(PYSIGNAL("refresh()"),(self,));
+
+  def _set_pinned (self,state):
+    self._pinned = state;
+    print 'pin',self._pinned;
+    self.wtop().emit(PYSIGNAL("pin()"),(self,self._pinned));
+
+  # wipe: deletes contents in preperation for inserting other content
+  def wipe (self):
+    self._pinned = False;
+    if self._widget:
+      self._wstack.removeWidget(self._widget);
+    self._widget = self._id = None;
+    self._wstack.hide();
+
+  # close(): wipe, hide everything, and emit a closed signal
+  def close (self):
+    old_id = self._id;
+    self.wipe();
+    self._pin.hide();
+    self._close.setDisabled(True);
+    self._refresh.hide();
+    self._label.setText("(empty)");
+    self._label1.setText("");
+    self.wtop().emit(PYSIGNAL("closed()"),(self,old_id));
+
+  def is_empty (self):
+    return self._id is None;
+  def is_pinned (self):
+    return self._pinned;
+  def get_id (self):
+    return self._id;
+
+  def disable (self,disable=True):
+    for w in (self._pin,self._label,self._close,self._refresh):
+      w.setDisabled(disable);
+  def enable (self,enable=True):
+    self.disable(not enable);
+
+  def set_content (self,widget,name,_id,subname='',refresh=False,reparent=False,pin=None,disable=False):
+    print self,'set_content',widget;
+    self._label.setText(name);
+    self._label1.setText(subname);
+    self._pin.show();
+    self._close.show();
+    if refresh: self._refresh.show();
+    else:       self._refresh.hide();
+    self._id = _id;
+    pin is not None and self._pin.setOn(pin);
+    # set widget
+    self._wstack.addWidget(widget);
+    self._wstack.raiseWidget(widget);
+    if self._widget:
+      self._wstack.removeWidget(self._widget);
+    self._widget = widget;
+    self._wstack.show();
+    self.disable(disable);
+    
+  def wcontent (self):
+    return self._widget;
+
 class GriddedPage (object):
-  class Cell (object):
-    def __init__ (self,parent):
-      self._wtop = QWidget(parent);
-      self._wtop.hide();
-      self._top_lo = QVBoxLayout(self._wtop);
-      self._control_lo = QHBoxLayout();
-      self._control_lo.setResizeMode(QLayout.Fixed);
-      # pin button
-      pin_is = QIconSet(pixmaps.pin_up.pm());
-      pin_is.setPixmap(pixmaps.pin_down.pm(),QIconSet.Automatic,QIconSet.Normal,QIconSet.On);
-      self._pin = QToolButton(self._wtop);
-      self._pin.setAutoRaise(True);
-      self._pin.setToggleButton(True);
-      self._pin.setIconSet(pin_is);
-      self._pin.hide();
-      self._wtop.connect(self._pin,SIGNAL("toggled(bool)"),self._set_pinned);
-      # refresh button
-      self._refresh = QToolButton(self._wtop);
-      self._refresh.setIconSet(QIconSet(pixmaps.refresh.pm()));
-      self._refresh.setAutoRaise(True);
-      self._refresh.hide();
-      self._wtop.connect(self._refresh,SIGNAL("clicked()"),self._dorefresh);
-      # label
-      self._label = QLabel("(empty)",self._wtop);
-      self._label.setFont(defaultBoldFont());
-      QApplication.font
-      self._label1 = QLabel("",self._wtop);
-      # close button
-      self._close = QToolButton(self._wtop);
-      self._close.setIconSet(QIconSet(pixmaps.cancel.pm()));
-      self._close.setAutoRaise(True);
-      self._close.setDisabled(True);
-      self._wtop.connect(self._close,SIGNAL("clicked()"),self.close);
-      self._control_lo.addWidget(self._pin);
-      self._control_lo.addWidget(self._refresh);
-      self._control_lo.addSpacing(10);
-      self._control_lo.addWidget(self._label);
-      self._control_lo.addSpacing(10);
-      self._control_lo.addWidget(self._label1);
-      self._control_lo.addStretch();
-      self._control_lo.addWidget(self._close);
-      
-      self._top_lo.addLayout(self._control_lo,0);
-      
-      self._wstack = QWidgetStack(self._wtop);
-      self._top_lo.addWidget(self._wstack,1);
-
-      self._id     = None;
-      self._pinned = False;
-      self._widget = None;
-      
-    def wtop (self):
-      return self._wtop;
-    def hide (self):
-      self._wtop.hide();
-    def show (self):
-      self._wtop.show();
-      
-    def _dorefresh (self):
-      self._widget.emit(PYSIGNAL("refresh()"),(self,));
-      
-    def _set_pinned (self,state):
-      self._pinned = state;
-      self.wtop().emit(PYSIGNAL("pin()"),(self,self._pinned));
-    
-    # wipe: deletes contents in preperation for inserting other content
-    def wipe (self):
-      self._pinned = False;
-      if self._widget:
-        self._wstack.removeWidget(self._widget);
-      self._widget = self._id = None;
-      self._wstack.hide();
-      
-    # close(): wipe, hide everything, and emit a closed signal
-    def close (self):
-      old_id = self._id;
-      self.wipe();
-      self._pin.hide();
-      self._close.setDisabled(True);
-      self._refresh.hide();
-      self._label.setText("(empty)");
-      self._label1.setText("");
-      self.wtop().emit(PYSIGNAL("closed()"),(self,old_id));
-      
-    def is_empty (self):
-      return self._id is None;
-    def is_pinned (self):
-      return self._pinned;
-    def get_id (self):
-      return self._id;
-
-    def disable (self,disable=True):
-      for w in (self._pin,self._label,self._close,self._refresh):
-        w.setDisabled(disable);
-    def enable (self,enable=True):
-      self.disable(not enable);
-    
-    def set_content (self,widget,name,_id,subname='',refresh=False,reparent=False,pin=None,disable=False):
-      print self,'set_content',widget;
-      self._label.setText(name);
-      self._label1.setText(subname);
-      self._pin.show();
-      self._close.show();
-      if refresh: self._refresh.show();
-      else:       self._refresh.hide();
-      self._id = _id;
-      pin is not None and self._pin.setOn(pin);
-      # set widget
-      self._wstack.addWidget(widget);
-      self._wstack.raiseWidget(widget);
-      if self._widget:
-        self._wstack.removeWidget(self._widget);
-      self._widget = widget;
-      self._wstack.show();
-      self.disable(disable);
-  
   class GridRow (QSplitter):
     def __init__(self,parent):
       QSplitter.__init__(self,QSplitter.Horizontal,parent);
@@ -148,7 +155,7 @@ class GriddedPage (object):
       row.hide();
       self._rows.append(row);
       for i in range(self.max_nx):
-        cell = self.Cell(row);
+        cell = GridCell(row);
         row._cells.append(cell);
         self.wtop().connect(cell.wtop(),PYSIGNAL("closed()"),self._clear_cell);
     # prepare layout
@@ -158,15 +165,13 @@ class GriddedPage (object):
   def set_layout (self,nlo):
     self._cur_layout_num = nlo;
     (nrow,ncol) = self._cur_layout = self._layouts[nlo];
-    xsizes = [100]*self.max_nx;
     for row in self._rows[:nrow]:
       for cell in row.cells()[:ncol]: cell.show();
       for cell in row.cells()[ncol:]: cell.hide();
-      row.setSizes(xsizes);
       row.show();
     for row in self._rows[nrow:]:
       row.hide();
-    self._topgrid.setSizes([100]*self.max_ny);
+    self.align_layout();
   
   def align_layout (self):
     xsizes = [100]*self.max_nx;
@@ -194,8 +199,8 @@ class GriddedPage (object):
           self._cellmap[cell_id] = cell;
           return cell;
     # no free space, try to find an unpinned cell (starting from the back)
-    for icol in range(ncol-1,0,-1):
-      for irow in range(nrow-1,0,-1):
+    for icol in range(ncol-1,-1,-1):
+      for irow in range(nrow-1,-1,-1):
         cell = self._rows[irow].cells()[icol];
         if not cell.is_pinned():
           del self._cellmap[cell.get_id()];
@@ -227,8 +232,8 @@ class GriddedPage (object):
     for (irow,row) in enumerate(self._rows):
       for (icol,cell) in enumerate(row.cells()):
         if not cell.is_empty():
-          nrow = max(nrow,irow);
-          ncol = max(ncol,icol);
+          nrow = min(nrow,irow);
+          ncol = min(ncol,icol);
     # find suitable layout
     for (i,(nr,nc)) in enumerate(self._layouts):
       if nr >= nrow and nc >= ncol:
@@ -244,6 +249,16 @@ class GriddedWorkspace (object):
     self.max_ny = max_ny;
     self._pages = [];
     self.add_page();
+    
+    #------ align button
+    self._align_button = QToolButton(self._maintab);
+    self._align_button.setPixmap(pixmaps.matrix.pm());
+    self._align_button.setAutoRaise(True);
+    self._maintab.setCornerWidget(self._align_button,Qt.TopRight);
+    QWidget.connect(self._align_button,SIGNAL("clicked()"),self._align_grid);
+    QToolTip.add(self._align_button,"align child panels");
+    
+    
   def wtop(self):
     return self._maintab;
   def add_page(self):
@@ -255,6 +270,9 @@ class GriddedWorkspace (object):
     
   def current_page (self):
     return self._maintab.currentPage()._page;
+    
+  def _align_grid (self):
+    self.current_page().align_layout();
     
   def reserve_or_find_cell(self,cell_id):
     cell = self.current_page().reserve_or_find_cell(cell_id);
@@ -330,6 +348,7 @@ class TreeBrowser (object):
     self._nl_update = QToolButton(self._nl_control);
     self._nl_update.setIconSet(QIconSet(pixmaps.refresh.pm()));
     self._nl_update.setAutoRaise(True);
+    QToolTip.add(self._nl_update,"refresh the node list");
     #    self._nl_update.setMinimumWidth(30);
     #    self._nl_update.setMaximumWidth(30);
     self._nl_control_lo.addWidget(self._nl_update);
@@ -354,7 +373,7 @@ class TreeBrowser (object):
     self._nlv.connect(self._nlv,SIGNAL('clicked(QListViewItem*)'),
                       self._node_clicked);
     # workspace
-    self._gw = GriddedWorkspace(self._splitter);
+    self._gw = GriddedWorkspace(self._splitter,max_nx=2,max_ny=2);
     
     self._splitter.setSizes([100,200]);
     
@@ -404,8 +423,11 @@ class TreeBrowser (object):
     cell = self._wait_nodestate.get(value.nodeindex,None);
     if cell is not None:
       del self._wait_nodestate[value.nodeindex];
-      cell._widget._rb.set_record(value);
+      print 'setting cell record:',value;
+      cell.wcontent()._rb.set_record(value);
       cell.enable();
+    else:
+      print 'ignoring node state for ',ni,': not expecting it';
 
   def _node_clicked (self,item):
     if hasattr(item,'_node'):
@@ -472,6 +494,7 @@ class meqserver_gui (app_proxy_gui):
   def ce_Bye (self,ev,value):
     self.treebrowser.connected(False);  
   def ce_NodeState (self,ev,value):
+    self.dprint(5,'got state for node ',value.name);
     self.treebrowser.update_node_state(value);
   
   def ce_NodeResult (self,ev,value):

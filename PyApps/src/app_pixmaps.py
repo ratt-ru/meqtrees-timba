@@ -198,4 +198,26 @@ pin_down = QPixmapWrapper([ "16 16 5 1",
                             "                ",
                             "                "]);
 
+matrix = QPixmapWrapper(["16 16 4 1",
+                         "  c None",
+                         ". c None",
+                         "X c #800080",
+                         "o c None",
+                         "... ... ....... ",
+                         ".XXXX XXXX.XXXX ",
+                         ".X. X.X .X.X..X ",
+                         " X  X X  X X  X ",
+                         ".XXXX.XXXX.XXXX ",
+                         ". . . . . . . . ",
+                         ".XXXX.XXXX.XXXX ",
+                         " X  X X  X.X  X ",
+                         ".X..X.X..X.X..X ",
+                         ".XXXX XXXX.XXXX.",
+                         "... ... ... ... ",
+                         " XXXX XXXX XXXX ",
+                         ".X. X.X .X.X..X ",
+                         ".X. X.X .X.X. X ",
+                         ".XXXX.XXXX.XXXX ",
+                         "                "
+                         ]);
 
