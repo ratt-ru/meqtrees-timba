@@ -51,12 +51,12 @@ dnl Check for LOFAR specific things
 dnl
 lofar_DEBUG_OPTIMIZE
 lofar_BLITZ(1)
-lofar_AIPSPP(1)
+dnl lofar_AIPSPP(1)
 lofar_QATOOLS
 lofar_DOCXX
 lofar_PACKAGE(CEP/CPA/OCTOPython)
-dnl lofar_PACKAGE(CEP/CPA/VisCube)
-dnl lofar_PACKAGE(CEP/CPA/PSS4/MEQ)
+lofar_PACKAGE(CEP/CPA/VisCube)
+lofar_PACKAGE(CEP/CPA/PSS4/MEQ)
 dnl lofar_PACKAGE(CEP/CPA/PSS4/MeqGen)
 dnl lofar_PACKAGE(CEP/CPA/AppAgent/AppAgent)
 dnl lofar_PACKAGE(CEP/CPA/AppAgent/VisAgent)

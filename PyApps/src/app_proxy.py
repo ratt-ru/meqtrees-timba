@@ -8,7 +8,7 @@ if app_defaults.include_gui:
 import threading
 from dmitypes import *
 import octopussy
-## import py_app_launcher
+import py_app_launcher
 import sys
 import os
 import string
@@ -86,7 +86,7 @@ class app_proxy (verbosity):
       self.dprint(2,"waiting for Hello message from app");
       self._req_state = False;
     elif launch: # use py_app_launcher to run a local app thread
-      raise RuntimeError,"py_app_launcher option temporarily disabled";
+      raise RuntimeError,"launch option temporarily disabled";
 ##       self.dprint(1,"launching",launch);
 ##       (appname,inagent,outagent) = launch;
 ##       if not appname in py_app_launcher.application_names:
