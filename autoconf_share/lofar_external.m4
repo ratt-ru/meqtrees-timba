@@ -65,8 +65,8 @@
 AC_DEFUN(lofar_EXTERNAL,dnl
 [dnl
 AC_PREREQ(2.13)dnl
-define(LOFAR_EXT_SYM,m4_toupper(m4_patsubst([$1], [.*/])))
-define(LOFAR_EXT_LIB,m4_tolower(m4_patsubst([$1], [.*/])))
+define(LOFAR_EXT_SYM,m4_toupper(patsubst([$1], [.*/])))
+define(LOFAR_EXT_LIB,m4_tolower(patsubst([$1], [.*/])))
 ifelse($2, [], [lfr_option=0], [lfr_option=$2])
 ifelse($3, [], [lfr_hdr=""], [lfr_hdr=$3])
 ifelse($4, [], [lfr_libs=LOFAR_EXT_LIB], [lfr_libs=$4])

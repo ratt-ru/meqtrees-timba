@@ -75,8 +75,8 @@
 AC_DEFUN(lofar_PACKAGE,dnl
 [dnl
 AC_PREREQ(2.13)dnl
-define(LOFAR_PKG_SYM,m4_patsubst([$1], [.*/]))
-define(LOFAR_PKG_LIB,m4_tolower(m4_patsubst([$1], [.*/])))
+define(LOFAR_PKG_SYM,patsubst([$1], [.*/]))
+define(LOFAR_PKG_LIB,m4_tolower(patsubst([$1], [.*/])))
 ifelse($2, [], [lfr_recoption=0], [lfr_recoption=$2])
 ifelse($3, [], [lfr_option=1], [lfr_option=$3])
 AC_ARG_WITH([[lofar-]][LOFAR_PKG_LIB],
