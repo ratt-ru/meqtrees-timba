@@ -235,6 +235,7 @@ masks                            1454       ; from /home/oms/LOFAR/CEP/CPA/PSS4/
 matrix                           1422       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/MeqVocabulary.h:37
 max                              1039       ; from /home/oms/LOFAR/CEP/CPA/OCTOPUSSY/src/LoggerWP.h:6
 meas                             1201       ; from /home/oms/LOFAR/CEP/CPA/VisCube/src/VisVocabulary.h:35
+#meqacos                         1506       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/ACos.h:29
 #meqadd                          1236       ; from /home/oms/LOFAR/CEP/CPA/PSS4/MEQ/src/Add.h:29
 meqaddsource                     1354       ; from /home/noordam/LOFAR/CEP/CPA/PSS4/MeqGen/src/meqAddSource.h:14
 #meqasin                         1505       ; from /home/assendorp/LOFAR/CEP/CPA/PSS4/MeqNodes/src/ASin.h:29
