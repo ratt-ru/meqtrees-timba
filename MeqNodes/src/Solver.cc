@@ -238,14 +238,14 @@ int Solver::getResult (Result::Ref &resref,
     // Otherwise check if spids are still the same and initialize
     // solver for the 2nd step and so.
     if (itsSpids.empty()) {
-      AssertStr (nspid > 0,
-                 "No solvable parameters found in solver " << name());
+      AssertStr( nspid > 0,
+                 "No solvable parameters found in solver " << name() );
       itsSolver.set (nspid, 1u, 0u);
       itsNrEquations = 0;
       itsSpids = spids;
     } else {
-      AssertStr (itsSpids == spids,
-                 "Different spids while solver is not restarted");
+      AssertStr( itsSpids == spids,
+                 "Different spids while solver is not restarted" );
       if (step > 0) {
 	//        itsSolver.set (nspid, 1u, 0u);
         itsNrEquations = 0;
@@ -269,7 +269,7 @@ int Solver::getResult (Result::Ref &resref,
         for (uint j=0; j<nspid; j++) {
           int inx = chresult.isDefined (spids[j], index);
           if (inx >= 0) {
-            Assert (chresult.getPerturbedValue(inx).nelements() == nrval);
+            Assert(chresult.getPerturbedValue(inx).nelements() == nrval);
             perts[j] = chresult.getPerturbedValue(inx).realStorage();
           }
         }
@@ -292,7 +292,7 @@ int Solver::getResult (Result::Ref &resref,
         for (uint j=0; j<nspid; j++) {
           int inx = chresult.isDefined (spids[j], index);
           if (inx >= 0) {
-            Assert (chresult.getPerturbedValue(inx).nelements() == nrval);
+            Assert(chresult.getPerturbedValue(inx).nelements() == nrval );
             perts[j] = chresult.getPerturbedValue(inx).complexStorage();
           }
         }
@@ -359,8 +359,8 @@ void Solver::solve (Vector<double>& solution,Request::Ref &reqref,
 {
   // Do some checks and initialize.
   int nspid = itsSpids.size();
-  Assert (int(solution.nelements()) == nspid);
-  AssertStr (itsNrEquations >= nspid, "Only " << itsNrEquations
+  Assert(int(solution.nelements()) == nspid);
+  AssertStr(itsNrEquations >= nspid, "Only " << itsNrEquations
              << " equations for "
              << nspid << " solvable parameters in solver " << name());
   solution = 0;

@@ -7,6 +7,8 @@ class Dispatcher;
 
 namespace Octopussy
 {
+  using namespace LOFAR;
+  
   Dispatcher &  init     (bool start_gateways=true);
   void          start    ();
   void          pollLoop ();

@@ -118,5 +118,7 @@ namespace DMI
 // typedef DMI::CompileTimeChecker<(expr)!=0> Checker; 
 //  (void)sizeof( Checker( ERROR_##msg() ) ); }
 
+// OMS: 21/10/04: reverting to using namespace LOFAR in DMI etc. for now
+using namespace LOFAR;
 
 #endif

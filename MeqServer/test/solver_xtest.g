@@ -180,8 +180,8 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
   
   # execute request on solver
   global cells,request,res;
-  cells := meq.cells(meq.domain(0,1,0,1),num_freq=4,num_time=4);
-  request := meq.request(cells,calc_deriv=2);
+  cells := meq.cells(meq.domain(0,1,0,1),num_freq=40,num_time=40);
+  request := meq.request(cells,calc_deriv=1);
   res := mqs.meq('Node.Execute',[name='solver',request=request],T);
   print res;
   
