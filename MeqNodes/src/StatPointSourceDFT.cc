@@ -75,7 +75,8 @@ void StatPointSourceDFT::evalResult (std::vector<Vells> &res,
     double df = cells.cellSize(Axis::FREQ)(seg0);
     double wavel0 = casa::C::_2pi * f0 / casa::C::c;
     double dwavel = df / f0;
-    Vells r1 = (vu*vl + vv*vm + vw*vn) * wavel0;
+    // the "-1" accounts for fringe stopping in the telescope
+    Vells r1 = (vu*vl + vv*vm +vw*(vn - 1)) * wavel0;
     res[iout++] = polar(1,r1);
     res[iout++] = polar(1,r1*dwavel);
   }
