@@ -1,33 +1,6 @@
 pragma include once
 include 'note.g'
-
-# defines a set of standard debug methods inside an object
-const define_debug_methods := function (ref self,ref public,initverbose=1)
-{
-  self.verbose := initverbose;
-  # prints debug message if level is <= current verbosity level
-  const public.dprint := function (level,...)
-  {
-    wider self;
-    if( level <= self.verbose )
-     print spaste('[== ',self.appid,' ==] ',...);
-  }
-  # private version for convenience
-  const self.dprint := function (level,...)
-  {
-    wider public;
-    public.dprint(level,...);
-  }
-  # sets the verbosity level for the dprint methods
-  const public.setverbose := function (level)
-  {
-    wider self;
-    self.verbose := level;
-    return level;
-  }
-  return T;
-}
-
+include 'debug_methods.g'
 
 octopussy := function (wpclass="",server="./octoglish",
           options="",autoexit=T,suspend=F,verbose=1) 
@@ -39,6 +12,10 @@ octopussy := function (wpclass="",server="./octoglish",
   self.opClient::Died := T;
   self.state := 0;
   self.started := F;
+  # this should be consistent with PRI_NORMAL in OCTOPUSSY/Message.h, and
+  # is used as the baseline priority value. The priority parameters
+  # used below are added to this value
+  self.priority_normal := 256;
   
   define_debug_methods(self,public,verbose);
 
@@ -60,7 +37,7 @@ octopussy := function (wpclass="",server="./octoglish",
     return T;
   }
   
-  const self.makemsg := function (id,rec=F,priority="normal",datablock=F,blockset=F)
+  const self.makemsg := function (id,rec=F,priority=0,datablock=F,blockset=F)
   {
     wider self;
     data := [=];
@@ -82,7 +59,7 @@ octopussy := function (wpclass="",server="./octoglish",
       data::datablock := datablock;
     }
     data::id := id;
-    data::priority := priority;
+    data::priority := self.priority_normal+priority;
     data::state := self.state;
     return data;
   }
@@ -184,7 +161,7 @@ octopussy := function (wpclass="",server="./octoglish",
       fail 'log() failed';
   }
   
-  const public.send := function (id,dest,rec=F,priority="normal",datablock=F,blockset=F)
+  const public.send := function (id,dest,rec=F,priority=0,datablock=F,blockset=F)
   {
     wider self;
     # check that we're started
@@ -199,7 +176,7 @@ octopussy := function (wpclass="",server="./octoglish",
       fail 'send() failed';
   }
 
-  const public.publish := function (id,rec=F,scope="global",priority="normal",datablock=F,blockset=F)
+  const public.publish := function (id,rec=F,scope="global",priority=0,datablock=F,blockset=F)
   {
     wider self;
     # check that we're started
