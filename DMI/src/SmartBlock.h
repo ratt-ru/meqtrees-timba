@@ -12,6 +12,7 @@
 #include "DMI/CountedRef.h"
 // CountedRefTarget
 #include "DMI/CountedRefTarget.h"
+#include "CountedRef.h"
 
 //##ModelId=3BEAACAB0041
 //##Documentation
@@ -183,5 +184,10 @@ inline void * SmartBlock::data ()
   return block;
 }
 
+
+//##ModelId=3BEA7FF50154
+//##Documentation
+//## This is a reference to a SmartBlock.
+typedef CountedRef<SmartBlock> BlockRef;
 
 #endif

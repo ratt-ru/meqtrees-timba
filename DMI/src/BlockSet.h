@@ -8,7 +8,6 @@
 
 // SmartBlock
 #include "DMI/SmartBlock.h"
-#include "BlockRef1.h"
 
 //##ModelId=3BEA80A703A9
 //##Documentation

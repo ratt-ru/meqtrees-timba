@@ -21,6 +21,11 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.14  2002/10/29 16:28:17  smirnov
+//  %[BugId: 26]%
+//  Added missing TypeIter-DMI.h file.
+//  Removed spurious #include of BlockSet1.h (thanks a lot, Rose...)
+//
 //  Revision 1.13  2002/10/29 13:10:38  smirnov
 //  %[BugId: 26]%
 //  Re-worked build_aid_maps.pl and TypeIterMacros.h to enable on-demand
@@ -100,9 +105,6 @@
 #include "DMI/SmartBlock.h"
 
 #include <aips/Arrays/Array.h>
-#include "BlockRef1.h"
-
-
 
 //##ModelId=3DB949AE00C5
 class DataArray : public NestableContainer
