@@ -1,6 +1,9 @@
 \documentclass[10pt,twoside]{book}
 
 \usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{color}
+\usepackage{colortbl}
 
 \oddsidemargin=-5mm
 \evensidemargin=-5mm
@@ -20,13 +23,10 @@ LOFAR/doc/MEQ/MeqDesignOverview.tex\em~~$\circ$~$ $Revision$ $~$\circ$~$ $Date$ 
 \date{\vspace{2cm}\small CVS path: \tt LOFAR/doc/MEQ/MeqDesignOverview.tex\\\rm
 $ $Revision$ $\\$ $Date$ $}
 
-
-
 \begin{document}
 
 \sloppy
 
-\newcommand{\url}[1]{{\tt #1}}
 
 \maketitle
 \tableofcontents
@@ -34,6 +34,10 @@ $ $Revision$ $\\$ $Date$ $}
 % \qq{text} used to quote code (in fixed font)
 \newcommand{\qq}[1]{{\tt #1}}
 
+% \url{text} inserts a URL
+\newcommand{\url}[1]{{\tt #1}}
+
+% commands for some common Meq-terms
 \newcommand{\Request}{{\tt Request}}
 \newcommand{\RequestId}{{\tt RequestId}}
 \newcommand{\Result}{{\tt Result}}
@@ -45,6 +49,50 @@ $ $Revision$ $\\$ $Date$ $}
 \newcommand{\Parm}{{\tt Parm}}
 \newcommand{\Polc}{{\tt Polc}}
 \newcommand{\RES}[1]{{\tt RES\_#1}}
+
+% math symbols: real numbers, complex numbers, P for parameter space
+\newcommand{\RR}{\mathcal{R}}
+\newcommand{\CC}{\mathcal{C}}
+\newcommand{\PP}{\mathcal{P}}
+
+% define some standard colors
+\definecolor{tableheading}{rgb}{0.8,0.85,1}
+\definecolor{tabletext}{gray}{0}
+\definecolor{tablesubheading}{gray}{.9}
+
+% \tablesubheading{n}{text} inserts a sub-heading into a table.
+% n argument is the number of columns that the sub-heading will span
+
+\newcommand{\tablesubheading}[2]
+{\multicolumn{#1}{>{\columncolor{tablesubheading}}c}{\color{tabletext}\strut\em #2}\\}
+
+% \standardtableheading produces a standard heading for tables
+% field name | type | description
+\newcommand{\standardtableheading}[1]
+{\rowcolor{tableheading}\color{tabletext} #1\\}
+
+% \recordtableheading produces a standard heading for record tables:
+% field name | type | description
+\newcommand{\recordtableheading}
+{\standardtableheading{\sl field name & type & description}}
+
+% \statetableheading produces a standard heading for state tables:
+% field name | type | default | description
+\newcommand{\statetableheading}
+{\standardtableheading{\sl field name & type & default & description}}
+
+
+\arrayrulecolor{tableheading}
+
+% \recordtableentry{name}{type}{desc} produces one line
+% of a record layout table
+\newcommand{\recordtableentry}[3]
+{\color{tabletext}\qq{#1} & \qq{#2} & #3\\}
+
+% \statetableentry{name}{type}{default}{desc} produces one line
+% of a state record layout table
+\newcommand{\statetableentry}[4]
+{\color{tabletext}\qq{#1} & \qq{#2} & \qq{#3} & #4\\}
 
 \include{MeqDesignOverview-1}
 

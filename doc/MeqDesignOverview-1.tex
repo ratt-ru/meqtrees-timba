@@ -1,7 +1,8 @@
 \chapter{The Fundamentals}
 
-  The purpose of this document is to provide an overview of the MeqTree kernel
-  and related interfaces. The following subjects will be covered:
+  The purpose of this document is to provide an in-depth description of the
+  MeqTree kernel and related interfaces. The following subjects will be
+  covered:
 
   \begin{itemize}
 
@@ -47,18 +48,14 @@
   parent to child, and {\bf down} is from child to parent.
 
   In broad terms, the life of a node generally consists of receiving {\bf
-  requests} from its parent(s), passing them on to its children, receiving {\bf
+  requests} from its parent(s), passing them up to its children, receiving {\bf
   results} in response, performing some calculation on the child results, and
-  returning the result of that its parent. Thus, requests generally originate
+  returning the result down to its parent(s). Thus, requests generally originate
   somewhere down the tree and propagate up, while results germinate at the top
   and percolate down. 
 
 \section{The math}
   \label{sec:math}
-
-  \newcommand{\RR}{\mathcal{R}}
-  \newcommand{\CC}{\mathcal{C}}
-  \newcommand{\PP}{\mathcal{P}}
 
   Trees are mostly concerned with evaluating functions (e.g., predicted
   visibilities), optionally comparing these functions to other functions (e.g.,
@@ -72,8 +69,8 @@
   frequency--time space in our application context, but in fact there's very
   few places in the kernel where this has any specific meaning. The codomain,
   $\RR^N$ or $\CC^N$, could represent any number of things, e.g., a single
-  visbility $XX\subset\CC$, the Stokes parameters $(IQUV)\subset\RR^4$, four
-  complex visibilities in $\CC^4$, etc.
+  correlation $XX\in\CC$, the Stokes parameters $(IQUV)\in\RR^4$, four complex
+  correlations in $\CC^4$, etc.
 
   The actual function {\bf domain} $[x_1,x_2]\times[y_1,y_2]$  is a rectangular
   subset of $\RR^2$. Within the domain, we work with sets of $N\times M$ {\bf
@@ -94,24 +91,25 @@
   {\em model fitting problem} is essentially a minimization problem: finding
   the value $\vec{p}_0$  that minimizes the function $\chi^2(x,y;\vec{p})$ over
   a fixed set of cells in $(x,y)$ space. The $\chi^2$ function  ties together
-  {\em predicted data} $f(x,y;\vec{p})$, measured data $\{\hat{f}_{ij}\}$, and
+  {\em predict function} $f(x,y;\vec{p})$, measured data $\{\hat{f}_{ij}\}$, and
   an optional set of weights $\{w_{ij}\}$:
 
   $$ \chi^2(\vec{p}) = \sum_{ij} (f(x_i,y_j;\vec{p}) - \hat{f}_{ij})^2w_{ij},$$
   
   Solving the minimization problem hinges on estimating the gradients of $f$ in
-  $\PP$ space.\footnote{The expressions are slightly different when dealing
-  with integrations (as we do in the case of visibilities), but the operational
-  principle remains the same.} Given a tree that computes $f_{ij}=f(x_i,y_j;\vec{p})$, we can
-  numerically estimate each partial derivative ${\partial f}/{\partial
-  p_k}(x,y;\vec{p})$ by taking a small {\bf perturbation} $\delta_k$, and using
-  the same tree to compute the {\bf perturbed values} $f^{(k)}_{ij} =
-  f(x_i,y_j;p_1,...,p_{k-1},p_k+\delta_k,p_{k+1},...,p_{K})$. In fact, trees are
-  designed to automatically compute perturbed values along with the function
-  value. These are returned as a {\bf vellset}, which is composed of the {\em
-  value vells} $\{f_{ij}\}$, and $K$ {\em perturbed value vells}
+  $\PP$ space.\footnote{The exact expressions are slightly different when
+  dealing with integrations (as we do in the case of visibilities), but most
+  operations remain essentially the same.} Given a tree that computes
+  $f_{ij}=f(x_i,y_j;\vec{p})$, we can numerically estimate each partial
+  derivative ${\partial f}/{\partial p_k}(x,y;\vec{p})$ by taking a small {\bf
+  perturbation} $\delta_k$, and using the same tree to compute $K$ {\bf
+  perturbed values} $f^{(k)}_{ij} =
+  f(x_i,y_j;p_1,...,p_{k-1},p_k+\delta_k,p_{k+1},...,p_{K})$. In fact, trees
+  are designed to automatically compute perturbed values along with the
+  function value. These are returned as a {\bf vellset}, which is composed of
+  the {\em value vells} $\{f_{ij}\}$, and $K$ {\em perturbed value vells}
   $\{f^{(k)}_{ij}\}$.
-  
+
 
 \section{Nodes}
 
@@ -346,13 +344,14 @@
   layer, and have it auto-magically converted to an C++ object of the
   appropriate class. The only requirement is that the record contain the
   correct set of fields, which are mapped to class attributes (data members) in
-  C++. The file \qq{meq/meqtypes.g} defines  some Glish ``constructor''
-  functions which create properly formed records\footnote{Note that some Meq
-  classes may have Glish counterparts but no Glish constructors. At time of
-  writing, these include \Vells, \VellSet{}s, and \Result{}s. The reason for
-  this is simply lack of necessity, since objects of these classes always
-  originate on the C++ side rather than Glish. In the future, constructors for
-  these classes may be added to Glish as required.}:
+  C++. In practice, it's a lot more convenient to use the ``constructor''
+  functions defined in \qq{meq/meqtypes.g}, which create properly formed and
+  tagged records\footnote{Note that some Meq classes may have Glish
+  counterparts but no Glish constructors. At time of writing, these include
+  \Vells, \VellSet{}s, and \Result{}s. The reason for this is simply lack of
+  necessity, since objects of these classes always originate on the C++ side
+  rather than Glish. In the future, constructors for these classes may be added
+  to Glish as required.}:
 
   \begin{description}
   
@@ -378,7 +377,7 @@
 
 \subsection{Glish lists}
 
-  Glish does not have a native ``list'' (a.k.a. ``sequence'') construct.
+  Glish does not have a native ``list'' (a.k.a. ``sequence'') type.
   Instead, lists are emulated in one of two ways:
 
   \begin{itemize}
@@ -408,10 +407,10 @@
   \label{sec:indexconv}
 
   Glish array indices are 1-based, while C++ indices are 0-based. This,
-  unfortunately, has always lead to all sorts of confusion, since indices pop
-  up on both sides of the Glish/C++ barrier, and sometimes even need to be
-  passed back and forth. As our experience with AIPS++ has shown, keeping track
-  of index conversion on an individual basis is completely impractical.
+  unfortunately, has always led to all sorts of confusion, since indices pop up
+  on both sides of the Glish/C++ barrier, and sometimes even need to be passed
+  back and forth. As our experience with AIPS++ has shown, keeping track of
+  index conversion on an individual basis is completely impractical.
 
   {\bf The Glish/C++ conversion layer attempts to address this issue by
   providing {\em automatic conversion} of indices. If a record field's name
@@ -448,31 +447,33 @@
   individual nodes, or groups of nodes (this is described in further detail in
   section~\ref{CSR}).
 
-  Each \Request\ is assigned unique request ID ({\bf rqid}, pronounced
+  Each \Request\ is assigned a unique request ID ({\bf rqid}, pronounced
   ``arr-cue-d''). This is a \qq{HIID} describing various properties of the
   request. Request generators are expected to follow a certain {\em contract},
   and assign rqids in a consistent way. This is covered in detail in
   section~\ref{sec:rqid}.
 
   On the C++ side, a \Request\ is derived from \qq{DataRecord}. It can contain
-  the following fields (of which only request\_id is obligatory).
+  the following fields (of which only \qq{request\_id} is obligatory).
   \vspace{1em}
 
-  \noindent\begin{tabular}{l|l|p{.7\textwidth}}
-  \hline
-  {\scriptsize\sf field name } & {\scriptsize\sf type} & {\scriptsize\sf description}\\
-  \hline
-  \qq{request\_id} & \qq{HIID} & the request ID\\
-  \qq{cells}       & \qq{Cells} & {\em [optional]}~~a \Cells\ object (see below)\\
-  \qq{calc\_deriv} & \qq{int} & {\em [optional]}~~compute perturbed values (0, 1 or 2).
-                      Default is 0.\\
-  \qq{next\_request} & n/a & {\em [optional]}~~a hint of what the next request is going to be.
-                      This influences caching decisions and speculative
-                      execution (section~\ref{sec:nextreq}). {\em This is not
-                      currently implemented.}\\
-  \qq{rider}       & \qq{record} & {\em [optional]}~~rider subrecord containing additional commands.
-  \\\hline
-  \end{tabular}\vspace{1em}
+  \noindent
+  \begin{center}\begin{tabular}{@{}llp{.7\textwidth}}
+  \recordtableheading\addlinespace
+  \recordtableentry{request\_id}{HIID}{the request ID}
+  \recordtableentry{cells}{Cells}{{\em [optional]}~~a \Cells\ object (see
+    below)}
+  \recordtableentry{calc\_deriv}{int}{{\em [optional]}~~compute perturbed values (0, 1 or 2).
+    Default is 0.}
+  \recordtableentry{next\_request}{\rm ---}{{\em [optional]}~~a hint of what the
+    next request is going to be. This influences caching decisions and
+    speculative execution (section~\ref{sec:nextreq}). {\em Placeholder only,
+    not currently implemented.}}
+  \recordtableentry{rider}{record}{{\em [optional]}~~rider subrecord containing
+    additional commands.}
+  \bottomrule
+  \end{tabular}\end{center}
+  \vspace{1em}
   
 \subsection{Constructing Requests}
   
@@ -493,10 +494,10 @@
   illustrated by Figure~\ref{fig:cells}.
   
   \begin{figure}
-  \begin{centering}
+  \begin{center}
   \includegraphics[width=.5\textwidth,bb=38 554 327 811]{Figures/Cells.eps}\\
   %% bb=38 554 327 811
-  \end{centering}
+  \end{center}
   \caption{\label{fig:cells}Layout of a Cells object and the envelope Domain}
   \end{figure}
   
@@ -510,19 +511,17 @@
 
   Note that the specific concepts of {\em frequency} and {\em time} are
   meaningful to only a handful of nodes. The majority of nodes simply deal in
-  functions defined over abstract 2D space (to be precise, with 
-  $\mathcal{R}^2\rightarrow\mathcal{R}$ or
-  $\mathcal{R}^2\rightarrow\mathcal{C}$ functions), without associating any
-  semantics with the dimensions. For this reason, the bulk of kernel code is
-  careful to abstract itself from the \qq{freq} and \qq{time} names whereever
-  possible, treating domain components only as ``first axis'' and ``second
-  axis''. The Glish syntax of selecting record fields by number is handy here:
-  if \qq{dom} is a domain record, then \qq{dom[1]} and \qq{dom[2]} refer to the
-  axis subrecords in a name-independent way.
+  functions defined over abstract two-dimensional domains (in $\RR^2$), without
+  associating any semantics with the dimensions. For this reason, the bulk of
+  kernel code is careful to abstract itself from the \qq{freq} and \qq{time}
+  names whereever possible, treating domain components only as ``first axis''
+  and ``second axis''. The Glish syntax of selecting record fields by number is
+  handy here: if \qq{dom} is a domain record, then \qq{dom[1]} and \qq{dom[2]}
+  refer to the axis subrecords in a name-independent way.
 
   The \Cells\ record is structured in the same spirit:
   
-  {\tt\begin{tabular}{lrl@{}l}
+  {\tt\begin{center}\begin{tabular}{lrl@{}l}
   [ &domain~&     = [ {\em envelope domain record} ],\\
     &grid~&       = [ freq = [$f_1,...,f_N$],~&~time = [$t_1,...,t_M$] ],\\
     &cell\_size~& = [ freq = [$\Delta f_1,...,\Delta f_N$],~&~time = 
@@ -532,7 +531,7 @@
               &&\multicolumn{2}{l}{~~~~time =
               [start\_index=[$j'_1,...,j'_m$],end\_index=[$j''_1,...,j''_m$]] ] ]}\\
   \\ 
-  \end{tabular}}
+  \end{tabular}\end{center}}
   
   This represents an $N\times M$ gridding of the given domain. The $\{f_i\}$ and
   $\{t_j\}$ vectors give the cell centers, while $\{\Delta f_i\}$ and $\{\Delta
@@ -552,27 +551,27 @@
   In the simplest case, the entire $N\times M$ grid is regular, in which case the
   \qq{segments} subrecord looks like this:
  
-  {\tt\begin{tabular}{ll}
+  {\tt\begin{center}\begin{tabular}{ll}
   [&freq=[start\_index=[1],end\_index=[$N$]],\\
   &time=[start\_index=[1],end\_index=[$M$]]~~~~]\\
-  \end{tabular}}
+  \end{tabular}\end{center}}
   
   The other extreme, of course, is the completely irregular grid. This is
   represented by \qq{segments} of the form:
 
-  {\tt\begin{tabular}{ll}
+  {\tt\begin{center}\begin{tabular}{ll}
   [&freq=[start\_index=[1,2,$...N$],end\_index=[1,2,$...N$]],\\
   &time=[start\_index=[1,2,$...M$],end\_index=[1,2,$...M$]]~~~~]
-  \end{tabular}}
+  \end{tabular}\end{center}}
   
   Figure~\ref{fig:cells} shows an $8\times7$ grid with three regular segments
   along each axis. This would correspond to the following \qq{segments}
   sub-record:
 
-  {\tt\begin{tabular}{ll}
+  {\tt\begin{center}\begin{tabular}{ll}
   [&freq=[start\_index=[1,5,6],end\_index=[4,6,8]],\\
    &time=[start\_index=[1,4,5],end\_index=[3,5,7]] ]
-  \end{tabular}}
+  \end{tabular}\end{center}}
   
   Note that \qq{segments} information is merely an optimization facility, and
   can be safely ignored most of the time. The user need not know anything about
@@ -655,29 +654,27 @@
   structures (see below), they deserve to be documented separately. A
   fail-record has the following layout: \vspace{1em}
 
-  \noindent\begin{tabular}{l|l|p{.7\textwidth}}
-  \hline
-  {\scriptsize\sf field name } & {\scriptsize\sf type} & {\scriptsize\sf description}\\
-  \hline
-  \qq{message} & \qq{string} & a description of the error.\\
-  \qq{node\_name} & \qq{string} & {\em [optional]}~~name of originating node, if any.\\
-  \qq{node\_class} & \qq{string} & {\em [optional]}~~classname of originating node, if any.\\
-  \qq{origin} & \qq{string} & origin: usually just the source file name.\\
-  \qq{origin\_line} & \qq{int} & origin location: usually just the source line number.\\
-  \hline
-  \end{tabular}\vspace{1em}
+  \begin{center}\begin{tabular}{@{}llp{.7\textwidth}}
+  \recordtableheading\addlinespace
+  \recordtableentry{message}{string}{a description of the error.}
+  \recordtableentry{node\_name}{string}{{\em [optional]}~~name of originating node, if any.}
+  \recordtableentry{node\_class}{string}{{\em [optional]}~~classname of originating node, if any.}
+  \recordtableentry{origin}{string}{origin: usually just the source file name.}
+  \recordtableentry{origin\_line}{int}{origin location: usually just the source line number.}
+  \bottomrule
+  \end{tabular}\end{center}\vspace{1em}
   
   Because most errors tend to cascade from lower-level subsystems up to the
   application level, accumulating more specific descriptions along the way,
-  fail-records usually come in a list. Lower-level errors then appear up at the
+  fail-records usually come in a list. Lower-level errors then appear at the
   head of the list, and higher-level errors appear at the tail.
   
   Certain data classes described below (e.g., \qq{Result} and \qq{VellSet})
   support a fail-state -- i.e., a form of the data object describing a failure.
   A fail-state is represented by a record with a single field named \qq{fail},
-  containing a list of fail-records. The kernel uses this field exclusively for
-  indicating fail state, so all Glish code can follow a simple policy and
-  process fails in the same consistent way everywhere: 
+  containing a list of fail-records. The kernel uses this layout consistently
+  for indicating fail state, so all Glish code can follow a simple policy and
+  process fails in the same way everywhere: 
 
   \begin{itemize} 
   
@@ -704,17 +701,15 @@
   successfully, then the returned \Result\ has a well-defined structure:
   \vspace{1em}
 
-  \noindent\begin{tabular}{l|l|p{.7\textwidth}}
-  \hline
-  {\scriptsize\sf field name } & {\scriptsize\sf type} & {\scriptsize\sf description}\\
-  \hline
-  \qq{cells}  & \Cells & the \Cells\ of the result (not necessarily matching the request cells
-  -- see discussion below)\\
-  \qq{values} & \qq{VellSet[]} & list of result values\\
-  \qq{integrated} & \qq{bool} & flag indicating if the values are integrations or
-                    samplings (default is false, implying samplings)\\
-  \hline
-  \end{tabular}\vspace{1em}
+  \begin{center}\begin{tabular}{@{}llp{.7\textwidth}}
+  \recordtableheading\addlinespace
+  \recordtableentry{cells}{Cells}{the \Cells\ of the result (not necessarily
+    matching the request cells -- see \ref{sec:resampling})}
+  \recordtableentry{values}{VellSet[]}{list of result values}
+  \recordtableentry{integrated}{bool}{flag indicating if the values are integrations or
+    samplings (default is false, implying samplings)}
+  \bottomrule
+  \end{tabular}\end{center}\vspace{1em}
   
   Two other common types of \Result\ are the empty result (empty record),
   returned when a \Request\ does not contain any commands with return values,
@@ -784,39 +779,41 @@
   The regular form of a VellSet contains the following fields:
 
   \vspace{1em}
+  \begin{center}\begin{tabular}{@{}llp{.65\textwidth}}
   
-  \noindent\begin{tabular}{l|l|p{.7\textwidth}}
-  \hline
-  \qq{value}  & \qq{Vells} & the \Vells\ containing the function value $\{f_{ij}\}$\\\hline
-  \multicolumn{3}{l}{~~~~\em optional, only appear if \qq{calc\_deriv>0} was specified in
-  the original \Request:}\\
+  \recordtableheading\addlinespace
   
-  \qq{spids}  & \qq{int[]} & a list of $K$ integer spids identifying the parameters\\
+  \recordtableentry{value}{Vells}{the \Vells\ containing the function value
+    $\{f_{ij}\}$}
+  
+  \tablesubheading{3}{optional, only appear if \qq{calc\_deriv>0} was specified in
+    the original \Request:}
+  
+  \recordtableentry{spids}{int[]}{a list of $K$ integer spids identifying the parameters}
                 
-  \qq{perturbations} & \qq{double[]} & a list of $K$ perturbations $\{\delta_k\}$ (must be same length as \qq{spids})\\
+  \recordtableentry{perturbations}{double[]}{a list of $K$ perturbations $\{\delta_k\}$ (must be same length as \qq{spids})}
   
-  \qq{perturbed\_value} & \qq{Vells[]} & a list of $K$ \Vells\ containing the perturbed values
-                      $\{f^{(k)}_{ij}\}$\\\hline
+  \recordtableentry{perturbed\_value}{Vells[]}{a list of $K$ \Vells\ containing the perturbed values
+                      $\{f^{(k)}_{ij}\}$}
 
-  \multicolumn{3}{l}{~~~~\em optional, only appear if \qq{calc\_deriv>1} was specified 
-  in the original \Request:}\\
+  \tablesubheading{3}{optional, only appear if \qq{calc\_deriv>1} was specified in
+  the original \Request:}
   
-  \qq{perturbations\_1}  & \qq{double[]} & second set of $K$ perturbations
-  $\{\delta^\prime_{k}\}$\\
+  \recordtableentry{perturbations\_1}{double[]}{second set of $K$ perturbations
+    $\{\delta^\prime_{k}\}$}
 
-  \qq{perturbed\_value\_1} & \qq{Vells[]} & second set of $K$ perturbed values
-  $\{f^{(k)\prime}_{ij}\}$\\
-  \hline
-  
-  \end{tabular}\vspace{1em}
+  \recordtableentry{perturbed\_value\_1}{Vells[]}{second set of $K$ perturbed values
+    $\{f^{(k)\prime}_{ij}\}$}
+  \bottomrule
+  \end{tabular}\end{center}\vspace{1em}
 
   Spids, perturbations and perturbed values will only appear if
   \qq{calc\_deriv} is specified in the original \Request, and the tree above
   the node contains solvable parameters. A setting of \qq{calc\_deriv=2} causes
-  two sets of perturbations and perturbed values to be computed (usually
-  $\delta^\prime_k=-\delta_k$), used to estimate the second-order
-  derivatives of $f$, which (usually) facilitates a better fit, while doubling
-  computing time.
+  two sets of perturbations and perturbed values to be computed (usually with
+  $\delta^\prime_k=-\delta_k$), used to estimate the second-order derivatives
+  of $f$, which can potentially achieve a better fit, at the expense of almost
+  doubling the computing time.
 
   \subsubsection{Empty VellSets}
 
@@ -849,9 +846,9 @@
   
   A \Result\ record containing an empty \Cells\ field is used to represent {\em
   constant values} -- or values with no time-frequency dependence. In other
-  words, a \Result\ with an empty \Cells\ will remain the same for any possible
-  set of real cells. Such a \Result\ may only contain scalar \Vells. This
-  property of a \Result\ is important during resampling
+  words, a \Result\ with an empty \Cells\ record will be the same for any
+  possible set of real cells. Such a \Result\ may only contain scalar \Vells.
+  This property of a \Result\ is important during resampling
   (see~{\ref{sec:resampling}), since constant values do not need to be
   resampled.
 

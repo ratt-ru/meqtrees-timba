@@ -1,6 +1,11 @@
 \chapter{Node Initialization \& State}
 
-  The abstract base class \qq{Meq::Node} implements the basic node behaviour:
+  The fundamental behaviour of \& interface to a node is provided by the C++
+  class \qq{Meq::Node}. This is an abstract class; at least one pure virtual
+  methods is declared (\qq{Node::getResult()}) that must be defined by
+  subclasses to implement specific functionality.
+
+  All nodes share the following basic traits:
 
   \begin{itemize}
 
@@ -9,34 +14,304 @@
     labels (akin to argument names) to specify semantics, or may leave their
     children unlabeled. Child labels are assigned via the constructor of the
     subclass.
-
-  \item To nail down directional terms: root nodes and parents are at the {\em
-    bottom}, children and leaves are at the top. 
-
-  \item Each node is assigned a unique index (integer$>$0) and an optional name. A
-    MeqForest object acts as a repository of nodes, and maintains a map between
-    names, indices and node objects.
-
-  \item \Node\ has an \qq{execute()} method, taking a \Request\ parameter,
-    and returning a \Result. Normally, a node is expected to call execute()
-    with the same \Request\ on its children, and form its result based on the
-    results of its children. Thus, requests propagate up the tree, and results
-    percolate down the tree.
     
-A node also has no direct knowledge of its parents, and is only allowed to
-infer things from the requests that it receives.
+    A node also has no direct knowledge of its parents, and is only allowed to
+    infer things from the requests that it receives.
 
+  \item Each node has a unique {\bf node index} (integer$>$0) and an optional
+    unique {\bf node name}. A MeqForest object acts as a repository of nodes,
+    and maintains a map between names, indices and node objects (see
+    section~\ref{sec:meqserver}).
 
-  \begin{verbatim}
-  virtual int execute (Result::Ref &result,const Request &request);
-  \end{verbatim}
-
-  \Result{}s are returned by attaching them to the CountedRef. The return
-    code of \qq{execute()} is significant; see details below.
+  \item A \Node\ maintains a {\bf node state record}, which should completely
+    determine the behaviour of the node. 
+    
+  \item A \Node\ has an \qq{execute()} method, taking a \Request\ parameter,
+    and returning a \Result. Normally, a node is expected to call
+    \qq{execute()} with the same \Request\ on its children, and form its result
+    based on the results of its children. Thus, requests propagate up the tree,
+    and results percolate down the tree. This is discussed in
+    Chapter~\ref{sec:execute}. 
 
   \end{itemize}
+  
+  The subject of handling requests will be dealt with later. This chapter deals
+  with everything related to node initialization and state.
+  
+\section{Node state in C++ and Glish}
+  
+  Each node's state is mapped to a state record (\qq{DataRecord} in C++,
+  standard record in Glish). The base \qq{Node} class defines this record and
+  provides a number of tools for maintaining it. Note that the internal state
+  of a C++ object, as determined by its data members, is physically different 
+  form the state record, and it is up to the object itself to maintain {\bf
+  coherency} between the two. Coherency is critically important, since the
+  Glish layer only has access to the state record, and not to an object's
+  internal data members. As will be seen below, the \qq{Node} class implements
+  a number of facilities that simplify the task of maintaining coherency.
+  
+  Node state is almost always inherited from superclass to subclass. Subclasses
+  define state in terms of {\em additions\/} to state defined by their
+  superclass. State defined by the base \qq{Node} class is common to all nodes.
+
+\subsection{Access to state}
+
+  On the C++ side, state may be read via the \qq{Node::state()} method, and
+  changed via the \qq{Node::setState()} method. On the Glish side, these are
+  mapped to the \qq{getnodestate()} and \qq{setnodestate()} methods of the
+  \qq{meqserver} proxy (see Chapter~\ref{sec:meqserver}). The argument to
+  \qq{setState()} (or \qq{setnodestate()}) does not have to be a complete new
+  state record; instead, it should only contain those fields that actually need
+  to be changed. 
+  
+  Another mechanism of state changes is the {\em request rider}. A \qq{Request}
+  can contain a command that changes the state of a node or a group of nodes
+  (section~\ref{sec:request-set-state}).
+
+  When a node is constructed, it is passed\footnote{ via the \qq{init()} method
+  in C++, or via the \qq{createnode()} call in  Glish.} an {\bf init-record}
+  (also called the {\bf defrec}, for {\em definition record\/}), which is
+  nothing more and nothing less than the complete initial state record of the
+  node. This is the mechanism via which all run-time arguments to a node are
+  specified. Later in a node's lifetime, it may be reconfigured (via
+  \qq{setState()} or request riders). A node is not obliged to be
+  reconfigurable in every single aspect, although it's good design to make it
+  so as much as possible. If some of the node state may only be set once via
+  \qq{init()} and not changed later on via \qq{setState()} -- we'll call this
+  {\bf static state} -- it should be clearly documented as such. The assumed
+  default is {\bf  dynamic state}, i.e., state that may be reconfigured at any
+  time via \qq{setState()}.
+  
+  The individual fields of the state record are known as {\bf state fields}.
+
+\subsection{Categories of state fields}
+
+  All state fields belong to one of the following categories:
+  
+  \begin{description}
+  
+  \item[Static state] can only be set up at construction time, via the
+  init-record. Static state is protected: any attempts to modify it should
+  return an error. By design, static state is kept to a minimum.
+
+  \item[Dynamic state] can be specified at construction time, and freely
+  changed later on via \qq{setState()} or request riders. Node classes are
+  designed so that most of state is dynamic. This is the assumed default,
+  unless clearly documented otherwise.
+
+  \item[Informational state] does not affect the behaviour of a node. It is a
+  one-way street: nodes maintain these fields to provide additional info to
+  outsiders (thus improving transparency, i.e., monitoring and debugging), but
+  any changes to these fields from the outside are simply ignored.
+  
+  Script code can monitor informational state, but should have any operational 
+  dependencies on it. Due to performance concerns, the setting of informational
+  state may be compiled out of optimized builds of the kernel. 
+
+  \item[Other state] fields that a node class does not recognize are simply
+  ignored. Outsiders may read and change these fields at will; this can be
+  useful for tagging a node with additional informational attributes.
+  
+  \end{description}
+  
+\subsection{Clients}
+  
+  It is useful to introduce the term {\bf client}, referring a software
+  component (or even the user himself) that initiates the creation of nodes,
+  specifies state changes, issues initial requests, etc.
+
+  From a node's point of view, the client is any external entity that accesses
+  the node interface. From the \qq{meqserver}'s point of view, the client is the
+  scripting layer, or perhaps another C++ component that interfaces with the
+  \qq{meqserver}. From the scripting layer's point of view, the client is the
+  user himself, or perhaps a batch script run by the user that uses standard
+  functions in the scripting layer.
+
+\subsection{The Node Contract}
+
+  Even the base \qq{Node} class exhibits some non-trivial behaviour with
+  regards to maintaining state and processing requests. This behaviour is not
+  defined or constrained by the node interface as such. The node interface
+  simply defines a collection of methods (\qq{init()}, \qq{setState()},
+  \qq{execute()}) and data formats. Meanwhile, it's the implementations of
+  these methods that provide additional semantics, such as tying node behaviour
+  to node state.
+
+  These additional semantics are known as the {\bf node contract}. For example,
+  maintaining a state record that is coherent with internal C++ object state is
+  part of the basic node contract. Responding to changes in dynamic state is
+  another part of the contract. Other examples will be discussed below. In
+  general, the contract is a set of obligations that a node can be trusted to
+  follow.
+  
+  A conventional contract brings together at least two parties. In the case of
+  the MeqTree kernel, the other party to the contract is the client  (scripting
+  layer, tree builder, tree user, etc.). The obligations of the client are also
+  specified in the contract. In particular, the \qq{setState()} interface to a
+  node is an extremely powerful tool; node classes provide only minimal sanity
+  checking, so it's always possible to configure a node into some sort of
+  senseless state. Correct interaction of nodes within a tree requires nodes to
+  be consistently configured. Thus, the contractual obligations of a node to
+  behave correctly are only valid as long as the client meets its obligations
+  of configuring the node(s) consistently. We will see specific examples of
+  this later on.
+  
+  It is helpful to view the kernel in the context of a multi-layered software
+  system. The lowest level is the MeqTree kernel itself; on top of that is the
+  \qq{meqserver}, which provides an interface to a thin scripting layer. On top
+  of that -- now completely in the scripting domain -- we have
+  application-specific scripts to build trees, and still higher up, user-level
+  tools to operate, manage and visualize trees. The interfaces grow more
+  application-specific towards the upper layers, while contracts grow less
+  specific. The overall design philosophy here relies on the fact that it is
+  far easier to implement complex semantics in a scripting language; thus the
+  higher layers in the scripting domain can ensure more and more elaborate
+  aspects of the node contracts, until the user is completely protected from
+  these complexities.
+
+  When developing new node classes, it is very important to define and document
+  their contracts in detail.
+  
+\section{Standard Node state fields}
+
+  Table~\ref{table:nodestate} lists all the state fields defined and maintained
+  by the \qq{Node} class. This section will discuss some of the basic fields;
+  the more advanced ones will be elaborated on further down.
+
+  \begin{table}[th]
+  \begin{center}\begin{tabular}{lllp{.55\textwidth}}
+  \statetableheading
+  \tablesubheading{4}{static state:}
+  
+  \statetableentry{class}{string}{}{the node class }
+  \statetableentry{nodeindex}{int}{0}{the node index }
+  \statetableentry{children}{\rm ---}{\rm null}{children specification
+    (see~\ref{node.children})}
+  
+  \tablesubheading{4}{dynamic state:}
+  
+  \statetableentry{name}{string}{""}{node name}
+  \statetableentry{node\_groups}{HIID[]}{[]}{list of groups that this node
+    belongs to}
+  \statetableentry{auto\_resample}{int}{0}{auto-resampling mode (see~\ref{sec:resampling})}
+  
+  \tablesubheading{4}{cache-related dynamic state (see~\ref{sec:cache}):}
+
+  \statetableentry{cache\_policy}{\rm ---}{\rm ---}{caching policy {\em (placeholder; not currently
+                                  implemented)}}
+  \statetableentry{request\_id}{HIID}{\rm null}{rqid corresponding to cached result }
+  \statetableentry{cache\_result}{Result}{\rm null}{cached result}
+  \statetableentry{cache\_result\_code}{int}{0}{cached result code}
+                                  
+  \tablesubheading{4}{depmask-related dynamic state (see
+      Chapter~\ref{sec:depmasks}):} 
+
+  \statetableentry{depend\_mask}{int}{0}{current depmask }
+  \statetableentry{known\_symdeps}{HIID[]}{[]}{list of known symdeps }
+  \statetableentry{active\_symdeps}{HIID[]}{[]}{list of active symdeps }
+  \statetableentry{symdep\_masks}{record}{[]}{current symdep masks}
+  \statetableentry{gen\_symdeps}{HIID[]}{[]}{list of generated symdeps}
+  \statetableentry{gen\_symdeps\_group}{HIID[]}{[]}{list of groups for generated symdeps}
+  
+  \tablesubheading{4}{informational state:} 
+      
+  \statetableentry{request}{Request}{null}{last handled request}
+  
+  \bottomrule
+  \end{tabular}\end{center}
+  \caption{\label{table:nodestate}Base state defined by the \qq{Node} class}
+  \end{table}
+  
+\subsection{Constructing nodes}
+
+  To construct a node, a client must provide a complete initial state record.
+  
+
+\subsection{Class, name and nodeindex}
+
+  The class of a node is obviously an external, static property -- once a node
+  object is instantiated, its class is defined ``for life''. The \qq{class}
+  field is usually set by the cleiset in the scripting layer, and used by the \qq{meqserver} component
+  as a key into a {\em node constructor registry}, when deciding which node
+  class to actually construct.
+
+  A node index is automatically assigned to the object at construction time,
+  and placed into the \qq{nodeindex} field. This field should not be supplied by
+  the scripting layer.
+  
+  The node name (field \qq{name}) is also supplied by the
+
+\subsection{Specifying children} 
+  
+  These fields represent static properties of the node. \qq{setStateImpl()}
+  will throw an exception if an attempt is made to change them. \qq{class} is a
+  string classname, \qq{nodeindex} is an integer node index, and \qq{children}
+  is a list of child node indices (if any).
+
+\subsection{\qq{node\_groups}}
+  
+  A node may be assigned to one or more node groups. The purpose of this is
+  described in detail below (see the subsection on command processing). The
+  \qq{node\_groups} field is a list of \qq{HIID} group names. Note that all
+  nodes are implicitly members of the \qq{All} group; thus \qq{"All"} is not
+  explicitly present in the list.
+
+\subsection{\qq{auto\_resample}}
+  
+  This flag specifies if auto-resampling of child results is enabled. See
+  detailed discussion later on.
+
+\subsection{\qq{request\_id}, \qq{cache\_result}, \qq{cache\_result\_code}}
+  
+  These three fields compose the node result cache. The first field -- a
+  \qq{HIID} -- is the ID of the most recent request. The second field is the
+  cached \qq{Result} of that request, if any (stored by reference). The third
+  field -- an integer -- is the cumulative result code (mainly its the depmask,
+  with a few additional flags, described in \qq{execute()} later on) of the
+  cached result.
+
+  The node cache may be cleared by assigning a boolean \qq{false} to the
+  \qq{cache\_result} field. It is also possible to modify the cache on the fly
+  (for example, substituting in another result). This may be a useful feature
+  for debugging and experimentation, though if used improperly, it can probably
+  confuse the caching and dependency tracking mechanism.  
+  
+\subsection{\qq{request}}
+
+  This is a (read-only) reference to the most recently processed \qq{Request}
+  object. This field is maintained for information purposes only, \qq{Node}
+  fills it whenever it executes a request, but does not use it for anything
+  else (so modifying this field will have no effect).
+
+\subsection{\qq{cache\_policy}}
+
+  This is a placeholder for the caching policy (see discussion below). This is
+  not yet implemented -- all current nodes always cache results.
+
+\subsection{\qq{depend\_mask}, \qq{known\_symdeps}, \qq{active\_symdeps}, 
+            \qq{symdep\_masks}, \qq{gen\_symdeps}, \qq{gen\_symdeps\_group}}
+              
+  These fields are responsible for maintenance of dependency masks. This is a
+  somewhat complicated subject covered in a separate subsection below. Note that
+  the default settings for these fields are practically always good enough, but
+  they are exposed for purposes of experimentation and debugging.
+
+  
 
 \section{How it works}
+
+  The base \qq{Node} class maintains a number of state fields via its
+  \qq{setStateImpl()} method. This section describes the state in detail.
+  Unless explicitly specified, each state field can be changed dynamically at
+  any time. Note that an end user will hardly ever need to change (or even see)
+  node state directly; a tree developer, however, will be working with this
+  stuff constantly. As will become apparent in this section, a node's internals
+  are completely exposed to tweaking and experimentation. The C++ side imposes
+  no policy and does very few sanity checks, so it is perfectly possible  to
+  thoroughly confuse a node (or an entire tree) through misguided  manipulation
+  of its state record from the outside. We assume that it is up to the
+  scripting-side tools to shield the end users from ``dangerous'' capabilities.
+
   
   A node's full {\em state} should be mapped to a {\em state record}. State may
   be requested via \qq{getState()} and changed via \qq{setState()}. Note that
@@ -474,13 +749,13 @@ virtual void setStateImpl (DataRecord &rec,bool initializing);
   index corresponds to one bit in the depmask. For example, if the depmask is
   structured as follows:
   
-  \begin{tabular}{l|l}
+  \begin{center}\begin{tabular}{l|l}
   \hline
   bit 0 & \qq{Parm} values from solver \\
   bit 1 & \qq{WSum} configuration \\
   bit 2 & resolution of \Cells \\ 
   bit 3 & envelope domain of \Cells \\
-  \hline\end{tabular}
+  \hline\end{tabular}\end{center}
   
   then the rqid is composed of four indices:
   
