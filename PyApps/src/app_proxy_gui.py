@@ -180,21 +180,19 @@ class Logger(HierBrowser):
     if udi_key is None:
       udi_key = id;
     # create listview item
-    item = self.new_item(label,msg,udi_key=udi_key);
+    item = self.BrowserItem(self.wlistview(),label,msg,udi_key=udi_key, \
+      name=name or self._LogCatNames.get(category,self._udi_root),\
+      desc=desc or label);
     item._category = category;
+    # if content is specified, cache it inside the item
     if content is not None:
-      # if content is just va single message, override viewable property
+      # if content is just a single message, override viewable property to False,
+      # else let browser decide (=None)
       viewable = None;
       if isinstance(content,dict) and \
          (len(content)==1 and content.keys()[0] in MessageCategories):
         viewable = False;
-      item.cache_content(content,viewable=viewable);
-      if item._viewable:
-        item._viewopts = viewopts;
-        if name is None: name = self._LogCatNames.get(category,self._udi_root);
-        if desc is None: desc = label;
-        item._name = name;
-        item._desc = desc;
+      item.cache_content(content,viewable=viewable,viewopts=viewopts);
     # add pixmap according to category
     pm = self._LogPixmaps.get(category,None);
     if pm is not None:

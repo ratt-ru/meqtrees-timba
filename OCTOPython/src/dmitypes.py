@@ -374,13 +374,26 @@ def dmi_type (x):
   else:
     return dmi_type_map.get(type(x),None);
   
-# curry() function to compose callbacks and such
+# curry() composes callbacks and such
 # See The Python Cookbook recipe 15.7
-def curry (*args,**kwds):
+def curry (func,*args,**kwds):
   def callit(*args1,**kwds1):
     kw = kwds.copy();
     kw.update(kwds1);
-    return args[0](*(args[1:]+args1),**kw);
+    return func(*(args+args1),**kw);
+  return callit;
+  
+# Extended curry() version
+# The _argslice argument is applied to the *args of the
+# curry when it is subsequently called; this allows only a subset of the
+# *args to be passed to the curried function.
+def xcurry (func,_args=(),_argslice=slice(None),_kwds={},**kwds):
+  kwds0 = _kwds.copy();
+  kwds0.update(kwds);
+  def callit(*args1,**kwds1):
+    kw = kwds0.copy();
+    kw.update(kwds1);
+    return func(*(_args+args1[_argslice]),**kw);
   return callit;
 
 # import C module

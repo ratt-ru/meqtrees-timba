@@ -22,17 +22,44 @@ class HierBrowser (object):
   MaxExpDict     = 100;
   
   class BrowserItem (QListViewItem):
-    def __init__(self,*args):
+    def __init__(self,parent,key,value,udi_key=None,strfunc=None,prec=None,
+                 name=None,desc=''):
 #      print args;
-      QListViewItem.__init__(self,*args);
-
-    def _subitem (self,*args):
-      return HierBrowser.subitem(self,*args);
+      # insert item at end of parent's content list (if any)
+      parent_content = getattr(parent,'_content_list',None);
+      if parent_content:
+        QListViewItem.__init__(self,parent,parent_content[-1],str(key),'',str(value));
+        parent_content.append(self);
+      else:
+        QListViewItem.__init__(self,parent,str(key),'',str(value));
+        parent._content_list = [];
+      # set viewable and content attributes
+      self._viewable  = False;
+      self._content   = None;
+      # set the refresh function and precision, if specified
+      self._strfunc   = strfunc;
+      self._prec      = prec;
+      self._prec_menu = None;
+      # generate udi key if none is specified
+      self._udi_key = udi_key = str(udi_key or key);
+      # setup udi of self, if parent self has a udi of its own
+      # add ourselves to content map and propagate the map
+      if parent._udi:
+        self._udi = parent._udi + '/' + udi_key;
+        parent._content_map[self._udi] = self;
+        self._content_map = parent._content_map;
+      else:
+        self._udi = None;
+      # name and/or description
+      self._name     = name or self._udi or str(key);
+      self._desc     = desc;
+      # other state
+      self._curries  = [];
       
     # caches content in an item: marks as expandable, ensures content is a dict
     # if viewable is None, decides if content is viewable based on its type
-    # else, must be True or False to specify viewability
-    def cache_content(self,content,viewable=None):
+    # else, must be True or False to specify viewability explicitly
+    def cache_content(self,content,viewable=None,viewopts={}):
       self.setExpandable(True);
       # convert all content to dict
       if isinstance(content,(dict,list,tuple,array_class)):
@@ -52,12 +79,176 @@ class HierBrowser (object):
         viewable = gridded_workspace.isViewable(content);
       self._viewable = viewable;
       if viewable:
+        self._viewopts = viewopts;
         self.setPixmap(1,pixmaps.magnify.pm());
         self.setDragEnabled(True);
         
-    # expands item content into subitems
+    # helper static method to expand content into BrowserItems record 
+    # note that we make this a static method because 'item' may in fact be
+    # a parent QListView
+    def expand_content(item,content):
+      # content_list attribute is initialized upon expansion
+      if hasattr(item,'_content_list'):
+        return;
+      item._content_list = [];
+      # Setup content_iter as an iterator that returns (label,value)
+      # pairs, depending on content type.
+      # Apply limits here
+      if isinstance(content,dict):
+        n = len(content) - HierBrowser.MaxExpDict;
+        if n > 0:
+          keys = content.keys()[:HierBrowser.MaxExpDict];
+          content_iter = map(lambda k:(k,content[k]),keys);
+          content_iter.append(('...','...(%d items skipped)...'%n));
+        else:
+          content_iter = content.iteritems();
+      elif isinstance(content,(list,tuple,array_class)):
+        n = len(content) - HierBrowser.MaxExpSeq;
+        if n > 0:
+          content_iter = list(enumerate(content[:HierBrowser.MaxExpSeq-2]));
+          content_iter.append(('...','...(%d items skipped)...'%(n+1)));
+          content_iter.append((len(content)-1,content[-1]));
+        else:
+          content_iter = enumerate(content);
+      else:
+        content_iter = (("",content),);
+      for (key,value) in content_iter:
+        # simplest case: do we have an inlined to-string converter?
+        # then the value is represented by a single item
+        # use curry() to create a refresh-function
+        (itemstr,inlined) = dmirepr.inline_str(value);
+        if itemstr is not None:
+          i0 = HierBrowser.BrowserItem(item,key,itemstr,strfunc=\
+                  curry(dmirepr.inline_str,value));
+          item._content_list.append(i0);
+          continue;
+        # else get string representation, insert item with it
+        (itemstr,inlined) = dmirepr.expanded_repr_str(value,False);
+        i0 = HierBrowser.BrowserItem(item,str(key),itemstr,strfunc=\
+                  curry(dmirepr.expanded_repr_str,value,False));
+        item._content_list.append(i0);
+        # cache value for expansion, if not inlined
+        if isinstance(value,(list,tuple,array_class)):
+          if not inlined:
+            i0.cache_content(value);
+        # dicts and messages always cached for expansion
+        elif isinstance(value,(dict,message)):
+          i0.cache_content(value);
+    expand_content = staticmethod(expand_content);
+
+    # expands item content into subitems (wrapper around expand_content)
     def expand_self (self):
-      HierBrowser.expand_content(self,self._content);
+      self.expand_content(self,self._content);
+
+    def make_data_item (self,viewer=None,viewopts={}):
+      # return item only if viewable, has udi and contents
+      if self._content is not None and self._udi and self._viewable: 
+        vo = getattr(self,'_viewopts',{});
+        vo.update(viewopts);
+        name = self._name;
+        desc = self._desc;
+        if not (name or desc):
+          desc = self._udi;
+        # a refresh function may be defined in the list view
+        refresh = getattr(self.listView(),'_refresh_func',None);
+        # make item and return
+        return gridded_workspace.GridDataItem(self._udi,name,desc,
+                  data=self._content,viewer=viewer,viewopts=vo,
+                  refresh=refresh);
+      return None;
+
+    def get_precision (self):
+      return self._prec;
+      
+    prec_range = range(0,16);
+    prec_default = 99;
+      
+    # changes display precision of item
+    # dum argument is to facilitate the use of callbacks from popup menus
+    def set_precision (self,prec):
+      self._prec = prec;
+      if callable(self._strfunc):
+        (txt,inlined) = self._strfunc(prec=prec);
+        self.setText(2,txt);
+      # set menu checkmark, if any
+      if self._prec_menu:
+        self._set_precision_menu(self._prec_menu,prec);
+ 
+    # set checkmark in precision menu, if any
+    def _set_precision_menu (self,menu,prec):
+      if prec is None:
+        prec = self.prec_default;
+        menu.setItemChecked(self.prec_default,True);
+      else:
+        menu.setItemChecked(self.prec_default,False);
+      for p in self.prec_range:
+        menu.setItemChecked(p,p==prec);
+
+    # curries and adds to local list
+    # This is useful for creating on-the-fly callbacks
+    # (since most Qt callbacks are held via weakref, they're deleted immediately
+    # unless strongly referenced elsewhere)
+    def curry (self,*args,**kw):
+      c = curry(*args,**kw);
+      self._curries.append(c);
+      return c;  
+      
+    def xcurry (self,*args,**kw):
+      c = xcurry(*args,**kw);
+      self._curries.append(c);
+      return c;  
+
+    def get_context_menu (self):
+      try: menu = self._context_menu;
+      except AttributeError:
+        # create menu on the fly when first called for this item
+        viewer_list = self._content is not None and self._viewable and \
+                   gridded_workspace.getViewerList(self._content);
+        # no menu for this item if not viewable or refreshable
+        if not ( self._strfunc or viewer_list ):
+          self._context_menu = None;
+          return None;
+        # create menu
+        menu = self._context_menu = QPopupMenu();
+        menu._callbacks = [];
+        menu.insertItem(' '.join((self._name,self._desc)));
+        menu.insertSeparator();
+        # create "Precision" submenu
+        if self._strfunc:
+          self._prec_menu = QPopupMenu();
+          self._prec_menu.insertItem('Default',\
+            self.xcurry(self.set_precision,_argslice=slice(0),prec=None),0,self.prec_default);
+          for prec in self.prec_range:
+            self._prec_menu.insertItem(str(prec),\
+              self.xcurry(self.set_precision,_argslice=slice(0),prec=prec),0,prec);
+          menu.insertItem('Precision',self._prec_menu);
+          self._set_precision_menu(self._prec_menu,self._prec);
+        # create "display with" entries
+        if viewer_list: 
+          # create display submenus
+          menu1 = self._display_menu1 = QPopupMenu();
+          menu2 = self._display_menu2 = QPopupMenu();
+          menu.insertItem(pixmaps.view_split.iconset(),"Display with",menu1);
+          menu.insertItem(pixmaps.view_right.iconset(),"New display with",menu2);
+          for v in viewer_list:
+            # create entry for viewer
+            name = getattr(v,'viewer_name',v.__name__);
+            try: icon = v.icon();
+            except AttributeError: icon = QIconSet();
+            # add entry to both menus ("Display with" and "New display with")
+            menu1.insertItem(icon,name, \
+              self.xcurry(self.emit_display_signal,viewer=v,_argslice=slice(0)));
+            menu2.insertItem(icon,name, \
+              self.xcurry(self.emit_display_signal,viewer=v,newcell=True,_argslice=slice(0)));
+      # set the precision submenu to the right setting
+      return menu;
+      
+    # if item is displayable, creates a dataitem from it and
+    # emits a displayDataItem(dataitem,(),kwargs) signal
+    def emit_display_signal (self,viewer=None,**kwargs):
+      dataitem = self.make_data_item(viewer=viewer);
+      if dataitem:
+        self.listView().emit(PYSIGNAL("displayDataItem()"),(dataitem,(),kwargs));
 
   # init for HierBrowser
   def __init__(self,parent,name,name1='',udi_root=None):
@@ -81,11 +272,16 @@ class HierBrowser (object):
 #                     self.display_item);
     # connect the get_data_item method for drag-and-drop
     self._lv.get_data_item = self.get_data_item;
-    self.items = [];
+    # this serves as a list of active items.
+    # Populated in BrowserItem constructor, and also used by apply_limit, etc.
+    self._lv._content_list = [];
     # enable UDIs, if udi root is not none
     self.set_udi_root(udi_root);
     # for debugging purposes
     QWidget.connect(self._lv,SIGNAL("clicked(QListViewItem*)"),self._print_item);
+    
+  def set_refresh_func (self,refresh):
+    self._lv._refresh_func = refresh;
     
   def set_udi_root (self,udi_root):
     self._udi_root = udi_root;
@@ -110,201 +306,41 @@ class HierBrowser (object):
       except AttributeError: pass;
     
   def get_data_item (self,udi):
-    return self.make_data_item(self._content_map.get(udi,None));
+    item = self._content_map.get(udi,None);
+    return item and item.make_data_item();
     
-  def make_data_item (self,item,viewer=None):
-    # extract relevant item attributes, return if not present
-    try:
-      content  = getattr(item,'_content');
-      udi      = getattr(item,'_udi');
-      viewable = getattr(item,'_viewable');
-    except AttributeError: return None;
-    # return item only if viewable, has udi and contents
-    if content is not None and udi and viewable: 
-      viewopts = getattr(item,'_viewopts',{});
-      name = getattr(item,'_name','');
-      desc = getattr(item,'_desc','');
-      if not name and not desc:
-        desc = udi;
-      # make item and return
-      return gridded_workspace.GridDataItem(udi,name,desc,
-                data=content,viewer=viewer,viewopts=viewopts,
-                refresh=getattr(self,'_refresh_func',None));
-    return None;
-
-  # helper static method to expand content into BrowserItems record 
-  def expand_content(item,content):
-    if hasattr(item,'_content_list'):
-      return;
-    item._content_list = [];
-    # Setup content_iter as an iterator that returns (label,value)
-    # pairs, depending on content type.
-    # Apply limits here
-    if isinstance(content,dict):
-      n = len(content) - HierBrowser.MaxExpDict;
-      if n > 0:
-        keys = content.keys()[:HierBrowser.MaxExpDict];
-        content_iter = map(lambda k:(k,content[k]),keys);
-        content_iter.append(('...','...(%d items skipped)...'%n));
-      else:
-        content_iter = content.iteritems();
-    elif isinstance(content,(list,tuple,array_class)):
-      n = len(content) - HierBrowser.MaxExpSeq;
-      if n > 0:
-        content_iter = list(enumerate(content[:HierBrowser.MaxExpSeq-2]));
-        content_iter.append(('...','...(%d items skipped)...'%(n+1)));
-        content_iter.append((len(content)-1,content[-1]));
-      else:
-        content_iter = enumerate(content);
-    else:
-      content_iter = (("",content),);
-    for (key,value) in content_iter:
-      # simplest case: do we have an inlined to-string converter?
-      # then the value is represented by a single item
-      (itemstr,inlined) = dmirepr.inline_str(value);
-      if itemstr is not None:
-        item._content_list.append( HierBrowser.subitem(item,key,itemstr) );
-        continue;
-      # else get string representation, insert item with it
-      (itemstr,inlined) = dmirepr.expanded_repr_str(value,False);
-      i0 = HierBrowser.subitem(item,str(key),itemstr);
-      item._content_list.append(i0);
-      # cache value for expansion, if not inlined
-      if isinstance(value,(list,tuple,array_class)):
-        if not inlined:
-          i0.cache_content(value);
-      # dicts and messages always cached for expansion
-      elif isinstance(value,(dict,message)):
-        i0.cache_content(value);
-      item._content_list.append(i0);
-  expand_content = staticmethod(expand_content);
-  
   def wlistview (self):
     return self._lv;
   def wtop (self):
     return self._lv;
   def clear (self):
     self._lv.clear();
-    self.items = [];
     for attr in ('_content','_content_list'):
-      if hasattr(self._lv,attr):
-        delattr(self._lv,attr);
-  # inserts a new item into the browser
-  def new_item (self,key,value,udi_key=None):
-    if self.items:
-      item = self.BrowserItem(self._lv,self.items[-1],str(key),'',str(value));
-    else:
-      item = self.BrowserItem(self._lv,str(key),'',str(value));
-    self.items.append(item);
-    self._lv.ensureItemVisible(item);
-    # generate udi key if none is specified
-    if udi_key is None:
-      item._udi_key = udi_key = str(key);
-    elif udi_key is id:
-      item._udi_key = udi_key = str(id(item));
-    else:
-      item._udi_key = udi_key = str(udi_key);
-    # setup udi of item, if listview has a udi
-    if self._lv._udi:
-      item._udi = self._lv._udi + '/' + udi_key;
-      self._content_map[item._udi] = item;
-      item._content_map = self._content_map;
-    else:
-      item._udi = None;
-    return item;
-    
-  def subitem (parent,key,value,udi_key=None):
-    if hasattr(parent,'_content_list') and parent._content_list:
-      item = HierBrowser.BrowserItem(parent,parent._content_list[-1],str(key),'',str(value));
-    else:
-      item = HierBrowser.BrowserItem(parent,str(key),'',str(value));
-    # generate udi key if none is specified
-    if udi_key is None:
-      item._udi_key = udi_key = str(key);
-    else:
-      item._udi_key = udi_key = str(udi_key);
-    # setup udi of item, if parent has a udi
-    if parent._udi:
-      item._udi = parent._udi + '/' + udi_key;
-      parent._content_map[item._udi] = item;
-      item._content_map = parent._content_map;
-    else:
-      item._udi = None;
-    return item;
-      
-  subitem = staticmethod(subitem);
-    
+      try: delattr(self._lv,attr);
+      except: pass;
+
   # limits browser to last 'limit' items
   def apply_limit (self,limit):
-    if limit>0 and len(self.items) > limit:
-      for i in self.items[:len(self.items)-limit]:
+    try: items = self._lv._content_list;
+    except AttributeError: 
+      return
+    if limit>0 and len(items) > limit:
+      for i in items[:len(items)-limit]:
         self._lv.takeItem(i);
-      del self.items[:len(self.items)-limit];
+      del items[:len(items)-limit];
 
-  # if current item is displayable, creates a dataitem from it and
-  # emits a displayDataItem(dataitem) signal
-  # dum is used to allow this func to be used as a callback for context menus
-  def display_item (self,item,dum=None,viewer=None,**kwargs):
-    dataitem = self.make_data_item(item,viewer=viewer);
-    if dataitem:
-      self.wtop().emit(PYSIGNAL("displayDataItem()"),(dataitem,(),kwargs));
-      
   # called when an item is expanded                    
   def _expand_item_content (self,item):
-    try: cont = item._content;
-    except AttributeError: return;
-    if cont is not None:
-      self.expand_content(item,cont);
+    item.expand_self();
 
   # slot: called when one of the items is clicked
   def _process_item_click (self,button,item,point,col):
     if button == 1 and col == 1:
-      self.display_item(item);
-  
+      item.emit_display_signal();
+      
   # slot: called to show a context menu for an item
   def _show_context_menu (self,item,point,col):
-    try:
-      menu = item._context_menu;
-    except AttributeError:
-      # get item content and description
-      content  = getattr(item,'_content',None);
-      label    = getattr(item,'_udi',None);
-      viewable = getattr(item,'_viewable',False);
-      if content is not None and label and viewable: 
-        # get viewer list
-        vlist = gridded_workspace.getViewerList(content);
-        if not vlist:
-          item._context_menu = None;
-          return;
-        # create item descrition
-        name = getattr(item,'_name','');
-        desc = getattr(item,'_desc','');
-        if name or desc:
-          label = ' '.join((name,desc));
-        # create menu
-        menu = item._context_menu = QPopupMenu(self._lv);
-        menu.insertItem(label);
-        menu.insertSeparator();
-        menu1 = QPopupMenu(self._lv);
-        menu2 = QPopupMenu(self._lv);
-        menu.insertItem(pixmaps.view_split.iconset(),"Display with",menu1);
-        menu.insertItem(pixmaps.view_right.iconset(),"New display with",menu2);
-        menu._callbacks = [];
-        for v in vlist:
-          # create entry for viewer
-          name = getattr(v,'viewer_name',v.__name__);
-          try: icon = v.icon();
-          except AttributeError: icon = QIconSet();
-          # add entry to both menus ("Display with" and "New display with")
-          func = curry(self.display_item,item,viewer=v);
-          menu._callbacks.append(func);
-          menu1.insertItem(icon,name,func);
-          func = curry(self.display_item,item,viewer=v,newcell=True);
-          menu._callbacks.append(func);
-          menu2.insertItem(icon,name,func);
-      else:
-        menu = item._context_menu = None;
-    # a None menu object indicates no context for this item 
+    menu = item.get_context_menu();
     if menu is not None:
       menu.exec_loop(point);
 
@@ -388,9 +424,9 @@ class RecordBrowser(HierBrowser,BrowserPlugin):
     self.clear();
     self.set_udi_root(dataitem.udi);
     self._rec = dataitem.data;
-    self._refresh_func = dataitem.refresh_func;
+    self.set_refresh_func(dataitem.refresh_func);
     # expand first level of record
-    self.expand_content(self._lv,self._rec);
+    self.BrowserItem.expand_content(self._lv,self._rec);
     # apply saved open tree
     self.set_open_items(openitems);
     
