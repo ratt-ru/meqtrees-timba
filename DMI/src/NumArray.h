@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.22  2003/11/12 16:57:18  smirnov
+//  %[ER: 16]%
+//  Added arrays accessors to DataArray
+//
 //  Revision 1.21  2003/09/10 15:11:05  smirnov
 //  %[BugId: ]%
 //  Various small fixes & cleanups.
@@ -240,6 +244,27 @@ public:
   template<class T>
   Array<T> copyAipsArray (const T*) const;
 #endif
+  
+  const void * getArrayPtr (TypeId tid,uint nrank,bool write) const;
+  
+  template<class T,int N>
+  const blitz::Array<T,N> & getConstArray () const
+  { return *static_cast<const blitz::Array<T,N>*>(getArrayPtr(typeIdOf(T),N,False)); }
+  
+  template<class T,int N>
+  blitz::Array<T,N> & getArray () 
+  { return *static_cast<blitz::Array<T,N>*>(
+            const_cast<void*>(getArrayPtr(typeIdOf(T),N,True))); }
+  
+  template<class T,int N>
+  void getConstArrayPtr (const blitz::Array<T,N> * &ptr) const
+  { ptr = static_cast<const blitz::Array<T,N>*>(getArrayPtr(typeIdOf(T),N,False)); }
+
+  template<class T,int N>
+  void getArrayPtr (blitz::Array<T,N> * &ptr) 
+  { ptr = static_cast<blitz::Array<T,N>*>(
+          const_cast<void*>(getArrayPtr(typeIdOf(T),N,True))); }
+  
 
   // Return the object type (TpDataArray).
     //##ModelId=3DB949AE03BE

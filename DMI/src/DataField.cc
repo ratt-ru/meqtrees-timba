@@ -297,6 +297,15 @@ DataField & DataField::put (int n, ObjRef &ref, int flags)
   return *this;
 }
 
+DataField & DataField::put (int n, BlockableObject* obj, int flags)
+{
+  nc_writelock;
+  dprintf(2)("putting @%d: %s\n",n,obj->debug(2));
+  prepareForPut( obj->objectType(),n ).unlock().attach(obj,flags).lock();
+  return *this;
+}
+
+
 //##ModelId=3C3C8D7F03D8
 ObjRef DataField::objref (int n) const
 {

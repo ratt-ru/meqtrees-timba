@@ -524,6 +524,8 @@ void * NestableContainer::Hook::prepare_put( ContentInfo &info,TypeId tid ) cons
   {
     // no DMI::WRITE is passed to collapseIndex(), since we check for writability
     // ourselves, below
+    // BUG! When assigning to uninitialized object in DataField, this will
+    // cause it to remain uninitialized!
     target = const_cast<void*>( collapseIndex(info,0,0) );
   }
   // non-existing object (or we're replacing it): try to a insert new one

@@ -21,6 +21,10 @@
 //  $Id$
 //
 //  $Log$
+//  Revision 1.29  2003/11/12 16:57:18  smirnov
+//  %[ER: 16]%
+//  Added arrays accessors to DataArray
+//
 //  Revision 1.28  2003/10/20 14:40:56  smirnov
 //  %[ER: 37]%
 //  Minor fixes to improve parsing of nested data structures
@@ -685,6 +689,16 @@ void DataArray::privatize (int flags, int)
   itsData.privatize(flags|DMI::LOCK);
 }
 
+const void * DataArray::getArrayPtr (TypeId tid,uint nrank,bool write) const
+{
+  FailWhen( itsScaType!=tid || nrank != itsShape.size(),
+      Debug::ssprintf("can't access <%s,%d> arrray as <%s,%d>",
+            itsScaType.toString().c_str(),itsShape.size(),
+            tid.toString().c_str(),nrank));
+  FailWhen( write && !isWritable(),"r/w access violation" );
+  return itsArray;
+}
+
 // full HIID -> type can be Tpfloat
 // no HIID   -> type can be TpArray_float (or Tpfloat if array has 1 element)
 // partial HIID -> type must be TpArray_float and create such array on heap
@@ -697,7 +711,7 @@ const void* DataArray::get (const HIID& id, ContentInfo &info,
   info.writable = isWritable();
   info.tid = itsType;
   info.size = 1;
-  FailWhen( flags&DMI::WRITE && !info.writable, "write access violation" ); 
+  FailWhen( flags&DMI::WRITE && !info.writable, "r/w access violation" ); 
   int nid = id.length();
   int ndim = itsShape.size();
   // If a full HIID is given, we might need to return a single element
