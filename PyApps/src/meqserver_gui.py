@@ -7,58 +7,61 @@ import weakref
 import math
 import sets
 
+dbg = verbosity(0,name='mqs');
+
 class GridCell (object):
   def __init__ (self,parent):
     self._wtop = QWidget(parent);
     self._wtop.hide();
-    self._top_lo = QVBoxLayout(self._wtop);
-    self._control_lo = QHBoxLayout();
-    self._control_lo.setResizeMode(QLayout.Fixed);
+    top_lo = QVBoxLayout(self._wtop);
+    control_box = QWidget(self._wtop);
+    control_lo = QHBoxLayout(control_box);
+    # control_lo.setResizeMode(QLayout.Fixed);
     # pin button
     pin_is = QIconSet(pixmaps.pin_up.pm());
     pin_is.setPixmap(pixmaps.pin_down.pm(),QIconSet.Automatic,QIconSet.Normal,QIconSet.On);
-    self._pin = QToolButton(self._wtop);
-    self._pin.setAutoRaise(True);
-    self._pin.setToggleButton(True);
-    self._pin.setIconSet(pin_is);
-    self._pin.hide();
-    self._wtop.connect(self._pin,SIGNAL("toggled(bool)"),self._set_pinned);
-    QToolTip.add(self._pin,"pin (i.e. protect) or unpin this panel");
+    self._pin = pin = QToolButton(self._wtop);
+    pin.setAutoRaise(True);
+    pin.setToggleButton(True);
+    pin.setIconSet(pin_is);
+#    pin.hide();
+    QToolTip.add(pin,"pin (i.e. protect) or unpin this panel");
     # refresh button
-    self._refresh = QToolButton(self._wtop);
-    self._refresh.setIconSet(QIconSet(pixmaps.refresh.pm()));
-    self._refresh.setAutoRaise(True);
-    self._refresh.hide();
-    self._wtop.connect(self._refresh,SIGNAL("clicked()"),self._dorefresh);
+    self._refresh = refresh = QToolButton(self._wtop);
+    refresh.setIconSet(QIconSet(pixmaps.refresh.pm()));
+    refresh.setAutoRaise(True);
+#    refresh.hide();
+    QObject.connect(refresh,SIGNAL("clicked()"),self._dorefresh);
     QToolTip.add(self._refresh,"refresh contents of this panel");
     # label
     self._label = QLabel("(empty)",self._wtop);
     self._label.setFont(defaultBoldFont());
-    QApplication.font
     self._label1 = QLabel("",self._wtop);
     # close button
-    self._close = QToolButton(self._wtop);
-    self._close.setIconSet(QIconSet(pixmaps.cancel.pm()));
-    self._close.setAutoRaise(True);
-    self._close.setDisabled(True);
-    QToolTip.add(self._close,"close this panel");
-    self._wtop.connect(self._close,SIGNAL("clicked()"),self.close);
-    self._control_lo.addWidget(self._pin);
-    self._control_lo.addWidget(self._refresh);
-    self._control_lo.addSpacing(10);
-    self._control_lo.addWidget(self._label);
-    self._control_lo.addSpacing(10);
-    self._control_lo.addWidget(self._label1);
-    self._control_lo.addStretch();
-    self._control_lo.addWidget(self._close);
-
-    self._top_lo.addLayout(self._control_lo,0);
+    self._close = close = QToolButton(self._wtop);
+    close.setIconSet(QIconSet(pixmaps.cancel.pm()));
+    close.setAutoRaise(True);
+#    close.setDisabled(True);
+    QToolTip.add(close,"close this panel");
+    QObject.connect(close,SIGNAL("clicked()"),self.close);
+    
+    control_lo.addWidget(pin);
+    control_lo.addWidget(refresh);
+    control_lo.addSpacing(10);
+    control_lo.addWidget(self._label);
+    control_lo.addSpacing(10);
+    control_lo.addWidget(self._label1);
+    control_lo.addStretch();
+    control_lo.addWidget(close);
 
     self._wstack = QWidgetStack(self._wtop);
-    self._top_lo.addWidget(self._wstack,1);
+    top_lo.addWidget(control_box);
+    top_lo.addWidget(self._wstack,1);
+    
+    control_box.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Fixed));
+    self._wstack.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding));
 
     self._id     = None;
-    self._pinned = False;
     self._widget = None;
 
   def wtop (self):
@@ -67,40 +70,41 @@ class GridCell (object):
     self._wtop.hide();
   def show (self):
     self._wtop.show();
+  def is_empty (self):
+    return self._id is None;
+  def get_id (self):
+    return self._id;
+  def is_pinned (self):
+    return self._pin.isOn();
+  def set_pinned (self,state=True):
+    self._pin.setOn(state);
 
   def _dorefresh (self):
     self._widget.emit(PYSIGNAL("refresh()"),(self,));
 
-  def _set_pinned (self,state):
-    self._pinned = state;
-    print 'pin',self._pinned;
-    self.wtop().emit(PYSIGNAL("pin()"),(self,self._pinned));
-
   # wipe: deletes contents in preperation for inserting other content
   def wipe (self):
-    self._pinned = False;
+    dbg.dprint(5,'GridCell: wiping cell ',self._id);
+    self.set_pinned(False);
     if self._widget:
       self._wstack.removeWidget(self._widget);
     self._widget = self._id = None;
     self._wstack.hide();
 
   # close(): wipe, hide everything, and emit a closed signal
-  def close (self):
+  def close (self,signal=True):
+    dbg.dprint(5,'GridCell: clearing cell ',self._id);
     old_id = self._id;
     self.wipe();
-    self._pin.hide();
-    self._close.setDisabled(True);
-    self._refresh.hide();
+    self._wtop.hide();
+#    self._pin.hide();
+#    self._close.setDisabled(True);
+#    self._refresh.hide();
     self._label.setText("(empty)");
     self._label1.setText("");
-    self.wtop().emit(PYSIGNAL("closed()"),(self,old_id));
-
-  def is_empty (self):
-    return self._id is None;
-  def is_pinned (self):
-    return self._pinned;
-  def get_id (self):
-    return self._id;
+    if signal:
+      self.wtop().emit(PYSIGNAL("closed()"),(self,old_id));
+    self._widget = self._id = None;
 
   def disable (self,disable=True):
     for w in (self._pin,self._label,self._close,self._refresh):
@@ -112,8 +116,8 @@ class GridCell (object):
     print self,'set_content',widget;
     self._label.setText(name);
     self._label1.setText(subname);
-    self._pin.show();
-    self._close.show();
+#    self._pin.show();
+#    self._close.show();
     if refresh: self._refresh.show();
     else:       self._refresh.hide();
     self._id = _id;
@@ -126,6 +130,7 @@ class GridCell (object):
     self._widget = widget;
     self._wstack.show();
     self.disable(disable);
+    self._wtop.show();
     
   def wcontent (self):
     return self._widget;
@@ -166,7 +171,9 @@ class GriddedPage (object):
     self._cur_layout_num = nlo;
     (nrow,ncol) = self._cur_layout = self._layouts[nlo];
     for row in self._rows[:nrow]:
-      for cell in row.cells()[:ncol]: cell.show();
+      for cell in row.cells()[:ncol]: 
+        if not cell.is_empty(): 
+          cell.show();
       for cell in row.cells()[ncol:]: cell.hide();
       row.show();
     for row in self._rows[nrow:]:
@@ -181,6 +188,14 @@ class GriddedPage (object):
   # returns top-level widget
   def wtop   (self):
     return self._topgrid;
+    
+  def clear (self):
+    dbg.dprint(2,'GriddedPage: clearing');
+    self.set_layout(0);
+    for row in self._rows:
+      dbg.dprint(2,'GriddedPage: clearing row',row);
+      map(lambda c:c.close(signal=False),row.cells());
+    self._cellmap = {};
     
   # finds cell matching id, or None for none
   def find_cell (self,cell_id):
@@ -232,8 +247,13 @@ class GriddedPage (object):
     for (irow,row) in enumerate(self._rows):
       for (icol,cell) in enumerate(row.cells()):
         if not cell.is_empty():
-          nrow = min(nrow,irow);
-          ncol = min(ncol,icol);
+          nrow = max(nrow,irow);
+          ncol = max(ncol,icol);
+    nrow += 1;
+    ncol += 1;
+    # are they good for the current layout?
+    if nrow == self._cur_layout[0] and ncol == self._cur_layout[1]:
+      return;
     # find suitable layout
     for (i,(nr,nc)) in enumerate(self._layouts):
       if nr >= nrow and nc >= ncol:
@@ -247,25 +267,23 @@ class GriddedWorkspace (object):
     self._maintab = QTabWidget(parent);
     self.max_nx = max_nx;
     self.max_ny = max_ny;
-    self._pages = [];
     self.add_page();
-    
     #------ align button
-    self._align_button = QToolButton(self._maintab);
-    self._align_button.setPixmap(pixmaps.matrix.pm());
-    self._align_button.setAutoRaise(True);
-    self._maintab.setCornerWidget(self._align_button,Qt.TopRight);
-    QWidget.connect(self._align_button,SIGNAL("clicked()"),self._align_grid);
-    QToolTip.add(self._align_button,"align child panels");
-    
+    align_button = QToolButton(self._maintab);
+    align_button.setPixmap(pixmaps.matrix.pm());
+    align_button.setAutoRaise(True);
+    self._maintab.setCornerWidget(align_button,Qt.TopRight);
+    QWidget.connect(align_button,SIGNAL("clicked()"),self._align_grid);
+    QToolTip.add(align_button,"align child panels");
     
   def wtop(self):
     return self._maintab;
-  def add_page(self):
+  def add_page(self,name=None):
     page = GriddedPage(self._maintab,max_nx=self.max_nx,max_ny=self.max_ny);
     page.wtop()._page = page;
-    self._pages.append(page);
-    self._maintab.addTab(page.wtop(),str(len(self._pages)));
+    if name is None:
+      name = 'Page '+str(self._maintab.count()+1);
+    self._maintab.addTab(page.wtop(),name);
     return page;
     
   def current_page (self):
@@ -274,12 +292,16 @@ class GriddedWorkspace (object):
   def _align_grid (self):
     self.current_page().align_layout();
     
+  def clear (self):
+    self._maintab.page(0)._page.clear();
+    for p in range(1,self._maintab.count()):
+      self._maintab.removePage(self._maintab.page(p));
+    
   def reserve_or_find_cell(self,cell_id):
     cell = self.current_page().reserve_or_find_cell(cell_id);
     if cell is None:
       return self.add_page().reserve_or_find_cell(cell_id);
     return cell;
-    
 
 class NodeList (dict):
   NodeAttrs = ('name','class','children');
@@ -340,42 +362,42 @@ def is_valid_nodelist (nodelist):
 class TreeBrowser (object):
   def __init__ (self,parent,mqs):
     self._mqs = mqs;
-    self._splitter = QSplitter(QSplitter.Horizontal,parent);
-    self._nl_vbox = QVBox(self._splitter);
-    self._nl_control = QWidget(self._nl_vbox);
-    self._nl_control_lo = QHBoxLayout(self._nl_control);
+    # construct GUI
+    splitter = self._splitter = QSplitter(QSplitter.Horizontal,parent);
+    nl_vbox = QVBox(splitter);
+    nl_control = QWidget(nl_vbox);
+    nl_control_lo = QHBoxLayout(nl_control);
     # add refresh button
-    self._nl_update = QToolButton(self._nl_control);
-    self._nl_update.setIconSet(QIconSet(pixmaps.refresh.pm()));
-    self._nl_update.setAutoRaise(True);
-    QToolTip.add(self._nl_update,"refresh the node list");
-    #    self._nl_update.setMinimumWidth(30);
-    #    self._nl_update.setMaximumWidth(30);
-    self._nl_control_lo.addWidget(self._nl_update);
-    self._nl_label = QLabel("Tree Browser",self._nl_control);
-    self._nl_control_lo.addWidget(self._nl_label);
-    self._nl_control_lo.addStretch();
-    QObject.connect(self._nl_update,SIGNAL("clicked()"),self._request_nodelist);
+    self._nl_update = nl_update = QToolButton(nl_control);
+    nl_update.setIconSet(QIconSet(pixmaps.refresh.pm()));
+    nl_update.setAutoRaise(True);
+    nl_update.setDisabled(True);
+    QToolTip.add(nl_update,"refresh the node list");
+    #    nl_update.setMinimumWidth(30);
+    #    nl_update.setMaximumWidth(30);
+    nl_control_lo.addWidget(nl_update);
+    nl_label = QLabel("Tree Browser",nl_control);
+    nl_control_lo.addWidget(nl_label);
+    nl_control_lo.addStretch();
+    QObject.connect(nl_update,SIGNAL("clicked()"),self._request_nodelist);
     # node list
-    self._nlv = QListView(self._nl_vbox);
-    self._nlv.addColumn('node');
-    self._nlv.addColumn('class');
-    self._nlv.addColumn('index');
-    self._nlv.setRootIsDecorated(True);
-    self._nlv.setTreeStepSize(12);
-    # self._nlv.setSorting(-1);
-    self._nlv.setResizeMode(QListView.NoColumn);
+    self._nlv = nlv = QListView(nl_vbox);
+    nlv.addColumn('node');
+    nlv.addColumn('class');
+    nlv.addColumn('index');
+    nlv.setRootIsDecorated(True);
+    nlv.setTreeStepSize(12);
+    # nlv.setSorting(-1);
+    nlv.setResizeMode(QListView.NoColumn);
     for icol in range(4):
-      self._nlv.setColumnWidthMode(icol,QListView.Maximum);
-    self._nlv.setFocus();
-    self._nlv.connect(self._nlv,SIGNAL('expanded(QListViewItem*)'),
-                      self._expand_node);
-    self._nlv.connect(self._nlv,SIGNAL('clicked(QListViewItem*)'),
-                      self._node_clicked);
+      nlv.setColumnWidthMode(icol,QListView.Maximum);
+    nlv.setFocus();
+    nlv.connect(nlv,SIGNAL('expanded(QListViewItem*)'),self._expand_node);
+    nlv.connect(nlv,SIGNAL('clicked(QListViewItem*)'),self._node_clicked);
     # workspace
-    self._gw = GriddedWorkspace(self._splitter,max_nx=4,max_ny=4);
+    self._gw = GriddedWorkspace(splitter,max_nx=4,max_ny=4);
     
-    self._splitter.setSizes([100,200]);
+    splitter.setSizes([100,200]);
     
     self.nodelist = None;
     self._wait_nodestate = {};
@@ -385,6 +407,8 @@ class TreeBrowser (object):
     
   def clear (self):
     self._nlv.clear();
+    self._gw.clear();
+    
   def connected (self,conn):
     self._nl_update.setDisabled(not conn);
 
@@ -467,6 +491,7 @@ class meqserver_gui (app_proxy_gui):
   def __init__(self,app,*args,**kwargs):
     # init standard proxy GUI
     app_proxy_gui.__init__(self,app,*args,**kwargs);
+    dbg.set_verbose(self.get_verbose());
     self.dprint(2,"meqserver-specifc init"); 
     
     # add Tree browser panel

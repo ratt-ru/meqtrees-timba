@@ -91,13 +91,13 @@ const octopussy := function (server=default_octoserver,options="",
         regex := s/.*\///g;
         binfile := server.binary ~ regex;
         self.dprint(2,'checking for running ',binfile);
-        out := shell(paste('ps xww | grep',binfile,'| grep -v grep')); 
+        out := shell(paste('pgrep -u',environ.USER,binfile)); 
         if( len(out)>0 )
-          self.dprint(2,out[1]);
+          self.dprint(0,'server running: ',out[1]);
         else
         {
           server_autostart := T;
-          self.dprint(2,'server ',binfile,' does not appear to be running');
+          self.dprint(0,'server ',binfile,' does not appear to be running');
         }
       }
     }
