@@ -100,7 +100,7 @@
 #    0:  success
 #    1:  test execution failed
 #    2:  test output disagreement
-#    3:  untested (as returned from a .run)
+#   77:  untested (as returned from a .run)
 #  130:  interrupt
 #
 # Notes:
@@ -136,7 +136,7 @@
 
 
 # Define exit and interrupt handler.
-  trap 'rm -rf $CLEANUP core ${1}_tmp* ; \
+  trap 'rm -rf core ${1}_tmp* ; \
         trap 0 ; \
         exit $STATUS' 0 1 2 3 15
 
@@ -151,17 +151,17 @@
 
 # Determine if this program also needs another checktool check.
 # (like valgrind for example)
-# Check for the Variable name CHECKTOOLPROGS in Makefile
-# that Variable should contain the programs that need to be run through 
+# Check for the variable name CHECKTOOLPROGS in Makefile.
+# that variable should contain the programs that need to be run through 
 # an extra checktool that has been supplied via the CHECKTOOL line in Make
   match=`cat Makefile |awk '/CHECKTOOLPROGS/,/ENDCHECKTOOLPROGS/ {print $0}'|grep -v '#'| grep -w $1`
 
   if [ "x$CHECKTOOL" != "x" ]
   then
-  if [ "x$match" != "x" ] 
-  then
-    eval "$CHECKTOOLCOMMAND" > /dev/null
-  fi
+    if [ "x$match" != "x" ] 
+    then
+      eval "$CHECKTOOLCOMMAND" > /dev/null
+    fi
   fi
 
 # Execute the command.
