@@ -65,6 +65,9 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
     mqs.meq('Create.Node',meq.parm('y',meq.polc(0),groups='Parm'));
     mqs.meq('Create.Node',meq.parm('z',meq.polc(array([1,.5,.5,0],2,2),axis="x z"),groups='Parm'));
     mqs.meq('Create.Node',meq.node('MeqConstant','z1',[value=complex(0,0)]));
+    #
+    mqs.meq('Create.Node',meq.parm('z',meq.polc(array([1,.5,.5,0],2,2),axis="x z"),groups='Parm'));
+    mqs.meq('Create.Node',meq.node('MeqConstant','z1',[value=complex(0,0)]));
   }
   else if( stage == 1 )
   {
@@ -147,7 +150,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
     mqs.meq('Create.Node',meq.node('MeqCondeq','eq1',children="lhs1 c1n"));
     mqs.meq('Create.Node',meq.node('MeqCondeq','eq2',children="lhs2 c2n",
       step_children=meq.list(
-        'math_test',
+        'math_test','tensor_test',
         meq.node('MeqMergeFlags','mergeflags',children=meq.list(
           meq.node('MeqAdd','sc_add',children=meq.list(
             meq.node('MeqAdd','sc_add1',children=meq.list(
@@ -190,6 +193,26 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
       ))
     );
     
+    mqs.meq('Create.Node',
+      meq.node('MeqAdd','matrix_test',children=meq.list(
+        meq.node('MeqConstant','matc1',value=array([1,2,3,1],shape=[2,2])),
+        meq.node('MeqConstant','matc2',value=array([2,1,1,3],shape=[2,2])),
+        meq.node('MeqConstant','matc3',value=array([.5,-.5,.5,.5],shape=[2,2]),
+        meq.node('MeqMatrixMultiply','matm1',children='matc1 matc2'),
+        meq.node('MeqMatrixMultiply','matm1',children=meq.list(
+          'matc1',  
+          meq.node('MeqConstant','matv1',value=array([4,2],shape=[2,1]))
+        )),
+        meq.node('MeqMatrixMultiply','matm2',children=meq.list(
+          'matc2',
+          meq.node('MeqMatrixMultiply','matm4',children=meq.list(
+            'matv1',
+            meq.node('MeqConstant','matv2',value=array([1,2],shape=[1,2]))
+          ))
+          meq.node('MeqMatrixMultiply','matm5',children="matv2 matv1"),
+        ))
+      ))
+    );
     
     # create solver
     global rec;
