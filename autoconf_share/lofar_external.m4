@@ -280,12 +280,17 @@ else
   fi
 
   if test "$lfr_ext_inc" != "no"  -a  "$lfr_ext_lib" != "no" ; then
+    EXTERNAL_CPPFLAGS=
+    EXTERNAL_CXXFLAGS=
+    EXTERNAL_LDFLAGS=
+    EXTERNAL_LIBS=
     if test "$lfr_ext_inc" != "/usr/include" -a \
             "$lfr_ext_inc" != "/usr/local/include" ; then
       EXTERNAL_CPPFLAGS="-I$lfr_ext_inc"
     fi
-    EXTERNAL_LDFLAGS="-L$lfr_ext_lib"
-    EXTERNAL_LIBS=
+    if test "$lfr_ext_lib" != "" ; then
+      EXTERNAL_LDFLAGS="-L$lfr_ext_lib"
+    fi
     for lib in $lfr_libs
     do
       EXTERNAL_LIBS="$EXTERNAL_LIBS -l$lib"
