@@ -41,6 +41,11 @@ AppEventSink::AppEventSink(const HIID &initf, AppEventFlag &evflag)
 //##ModelId=3E4787070046
 void AppEventSink::attachFlag (AppEventFlag& evflag,int dmiflags)
 {
+  if( eventFlag.valid() ) // can't attach more than one
+  {
+    FailWhen( eventFlag.deref_p() != &evflag,"sink already has an AppEventFlag attached");
+    return;
+  }
   eventFlag.attach(evflag,dmiflags|DMI::WRITE);
   sink_num = evflag.addSource(isAsynchronous());
 }
