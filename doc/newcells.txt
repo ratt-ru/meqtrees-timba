@@ -1,0 +1,105 @@
+    A proposal for a reorganized Domain/Cells class
+    
+      Motivation:
+
+  1. Regularize the Cells class to give both dimensions equal treatment.
+
+  2. Support irregular grids (e.g., several spectral windows in one domain), 
+  but collapse gracefully to the case of a regular grid.
+
+  3. Support cell size != grid spacing.
+
+  4. Dispence with the terms "freq" and "time" where possible. Define stuff in
+  terms of "dimension 1", "dimension 2" instead. This should open up the way to
+  n-dimensional cells in the future.
+
+      Proposal:
+    
+1. Dimensions
+
+  Current code assumes 2D domains, in frequency and time. Leave it this way, 
+  but reformulate the class interface to use a dimension index instead.
+  
+  The dimension labels (freq, time) and units (Hz, sec) are ultimately 
+  determined from a global (i.e., systemwide) "context". Note that most of the
+  kernel code is context-agnostic (i.e. doesn't care what the axes represent).
+
+2. Domains
+  
+  A domain is defined by a record of ranges:
+  
+    [freq=[f1,f2],time=[t1,t2]]
+    
+  Normally, it will be constructed from four numbers, e.g.:
+    
+    dom := meq.domain(f1,f2,t1,t2)
+    
+  The field names are determined from the systemwide context (or hardcoded in
+  the Glish constructor for now); dimension-agnostic code should access the
+  ranges as dom[1], dom[2]. Application-specific code (i.e. code where time &
+  frequency has meaning) should use dom.freq, dom.time for the sake of clarity.
+
+  dom.ndim() is a function always returning 2 (in the current incarnation).
+  
+  C++ interface:
+  
+    Domain::start (int idim);  // e.g. dom.start(0), dom.start(1)
+    Domain::end   (int idim);   
+      
+    Gnostic code can use:
+    
+      enum { FREQ=0,TIME=1 } Dimensions;
+      
+    ...and dom.start(FREQ), for better readability.
+  
+3. Cells
+
+  An N-dimensional cells is defined by:
+
+    N vectors of grid points {x_{i,k}} i=1...n_k; k=1...N
+    N vectors of cell sizes  {d_{i,k}} i=1...n_k;  
+      
+  Since we only use 2D freq/time for now, let's use the notation:
+   
+    f_i for x_{i,1}, n_f for n_1
+    t_j for x_{j,2}, n_t for n_2
+      
+  A cells record in Glish would be structured as follows:
+   
+     [ domain         = [ freq=[f1,f2],time=[t1,t2] ],    # the envelope domain
+       grid           = [ freq=[...],time=[...] ],
+       cell_size      = [ freq=[...],time=[...] ],
+       segment_index  = [ freq=[...],time=[...] ]         # see below   
+     ]
+  
+  Note that the "freq" and "time" field names have the same meaning as for 
+  domain -- determined from systemwide context. You can (and should) use 
+  things like cells.grid[1], to be dimension-agnostic.
+  
+  Some nodes (e.g. DFT?) can be significantly optimized for the case of 
+  regular grids. The cells.segment_index field provides information on grid
+  regularity. For example, if the freq axis of a cells consists of M
+  regularly-gridded segments, then cells.segment_index.freq (aka 
+  cells.segment_index[1]) is a [2,M] array giving the starting and ending 
+  index of each segment (note that the _index suffix causes the Glish/C++ layer
+  to automatically adjust for 0/1-base, so the field retains its meaning in
+  C++). In the simplest case, segment_index is just [1,N], i.e., the entire
+  axis is regularly gridded.
+
+  On the C++ side, we could provide some shortcut methods to easily iterate
+  over segments. We'd also have simplified constructors such as:
+
+    meq.cells(domain,nfreq,ntime)
+    
+  for the most common case of a regularly-gridded, perfectly tiled cells.
+  
+  Note that cell_size, segment_index and such do represent some housekeeping
+  overhead, but this only matters when a Cells object is constructed. On the
+  C++ side, a Request's Cells is held via counted reference -- usually, one
+  Cells object is constructed with an initial request (or received from Glish),
+  and from then on it is passed by [read-only] reference all the way up and
+  down the tree. Thus any extra Cells housekeeping is negligible and does not
+  depend on tree size.
+
+
+  
