@@ -85,6 +85,11 @@ AC_ARG_ENABLE(dbgassert,
     lofar_warnflags="--display_error_number --restrict --diag_suppress 815,381";
   fi
 
+# Suppress ICC warnings about "the format string ends before this argument" end unknown pragmas;
+  if test "$lofar_compiler" = "icc"; then
+    lofar_warnflags="-wd161,268";
+  fi
+
   enable_debug="no";
   if test "$with_debug" != "no"; then
     enable_debug="yes";
