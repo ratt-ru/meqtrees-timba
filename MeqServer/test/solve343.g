@@ -12,7 +12,7 @@ include 'quanta.g'
 # helper func
 # creates fully-qualified node name, by pasting a bunch of suffixes after
 # the name, separated by dots.
-const fq_name := function (name,...) 
+const fq_name := function (name,...)
 {
   res := name;
   for( i in 1:num_args(...) )
@@ -134,16 +134,23 @@ const sta_dft_tree := function (st,src='')
                          ra = 'ra0',dec = 'dec0',
                          x_0='x0',y_0='y0',z_0='z0' ]));
                         
-  uvw := meq.node('MeqReqSeq',fq_name('uvw.seq',st),[result_index=1,link_or_create=T],children=uvwlist);
+  uvw := meq.node('MeqReqSeq',fq_name('uvw.seq',st),[result_index=1,
+                  link_or_create=T],children=uvwlist);
     
   # builds an init-rec for a node called 'dft.N' with two children: 
   # lmn and uvw.N
-  dft := meq.node('MeqStatPointSourceDFT',fq_name('dft0',src,st),[link_or_create=T],children=[
-              lmn = fq_name('lmn',src),uvw=uvw ]);
+  dft := meq.node('MeqStatPointSourceDFT',fq_name('dft0',src,st),
+                  [link_or_create=T],
+                  children=[lmn = fq_name('lmn',src),uvw=uvw ]);
   # add antenna gains/phases
-  gain := meq.node('MeqPolar',fq_name('G',st),[link_or_create=T],children=meq.list(
-              meq.parm(fq_name('GA',st),1.0,[table_name='3C343.mep'],groups="a"),
-              meq.parm(fq_name('GP',st),0.0,[table_name='3C343.mep'],groups="a") ) );
+  amp_node := meq.parm(fq_name('GA',st),1.0,groups="a");
+  amp_node.table_name := '3C343.mep';
+
+  phase_node :=meq.parm(fq_name('GP',st),0.0,groups="a");
+  phase_node.table_name := '3C343.mep';
+  
+  gain := meq.node('MeqPolar',fq_name('G',st),[link_or_create=T],
+                   children=meq.list(amp_node, phase_node) );
               
   return meq.node('MeqMultiply',fq_name('dft',src,st),[link_or_create=T],
                     children=meq.list(dft,gain));
@@ -363,7 +370,7 @@ const make_solve_tree := function (st1,st2,src=[''],subtract=F,flag=F)
     }
     else
       datanodename := subname;
-  }               
+  }
   else
     subname := fq_name('spigot',st1,st2);
   
@@ -472,7 +479,7 @@ const get_ms_info := function (msname='test.ms',uvw=T)
   uvw2b := dm.touvw(ba2,dot,uvw2a);
   uvw2c := dm.addxvalue(uvw2b);
   
-  ms.done();  
+  ms.done();
   
   print 'Antenna position 1: ',ms_antpos[1];
   print 'Antenna position 2: ',ms_antpos[2];
@@ -584,7 +591,7 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
   if( load )
       mqs.meq('Load.Forest',[file_name=load]);
   else # else build trees
-  {  
+  {
       # create common nodes (source parms and such)
       
       make_shared_nodes(src_sti,src_ra,src_dec,src_names,mep_table_name);
@@ -680,8 +687,8 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
   # enable publishing of solver results
   if( solve && publish>0 ) {
     mqs.meq('Node.Publish.Results',[name='solver']);
-#    mqs.meq('Node.Publish.Results',[name='solver']);
-#    mqs.meq('Node.Publish.Messages',[name='uvw.1']);
+    mqs.meq('Node.Publish.Results',[name='GP.12']);
+    mqs.meq('Node.Publish.Results',[name='G.12']);
 #    mqs.meq('Node.Publish.Messages',[name='x.1']);
 #    mqs.meq('Node.Publish.Messages',[name='dft0.3D343_1.1']);
 #    mqs.meq('Node.Publish.Results',[name=fq_name('dft.b',4,8)]);
@@ -831,13 +838,13 @@ phase_solution_with_given_fluxes := function()
         mepuvw := F;
     
     outcol := 'PREDICTED_DATA';
-    solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
+    solver_defaults := [ num_iter=10,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
                  tile_size=2,# clear_flags=T,
                  selection = [ channel_start_index=5,
-                              channel_end_index=60 ] ];
-#                              selection_string='TIME < 4472025945 '] ];
+                              channel_end_index=60, 
+                              selection_string='TIME < 4472026500'] ];
     
     outputrec := [ write_flags=T,predict_column=outcol ]; 
     
@@ -858,5 +865,37 @@ phase_solution_with_given_fluxes := function()
 
 
 
+polar_test := function()
+{
+    mqs := meq.server();
+    if(is_fail(mqs)){
+        print mqs;
+    }
+    mqs.init();
+# add antenna gains/phases
+    print 'amp_node';
+    amp_node := meq.parm(fq_name('GA'),1.0,groups="a");
+    mqs.createnode(amp_node);
+    print 'phase_node';
+    phase_node :=meq.parm(fq_name('GP'),3.14159265358/2.0,groups="a");
+    mqs.createnode(phase_node);
+    print 'gain';
+    gain := meq.node('MeqPolar',fq_name('G'),[link_or_create=T],
+                     children=meq.list(amp_node, phase_node) );
+
+    print 'mqs.createnode';
+    mqs.createnode(gain);
+    print 'mqs.resolve';
+    mqs.resolve(gain);
+    print 'cells';
+    cells := meq.cells(meq.domain(0,1,0,1),1,1);
+    print 'request';
+    request := meq.request(cells,rqid=meq.rqid(),calc_deriv=F);
+    print 'res';
+    res := mqs.meq('Node.Execute', [name=fq_name('G'),request=request], F);
+    print res;
+}
+
 #source_flux_fit_no_calibration();
 phase_solution_with_given_fluxes();
+#polar_test();
