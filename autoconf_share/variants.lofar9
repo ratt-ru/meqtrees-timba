@@ -3,10 +3,8 @@ gnu3.compiler.aipspp.var: --with-aipspp=/aips++/stable/linux_gnu34
 
 aipspp.var: --with-aipspp=/aips++/weekly/linux_gnu3 --with-threads
 
-opt.variant.conf:	 --with-optimize='-O4'
+optimize.var:	 --with-optimize='-O4'
 
-dopt.variant.conf:	 --with-optimize='-ggdb -O4'
+debugopt.var:	 --with-optimize='-ggdb -O4'
 
-prof.variant.conf:	 --with-optimize='-ggdb -pg'
-
-profopt.variant.conf:	 --with-optimize='-O4 -pg'
+profopt.var:	 --with-optimize='-O4 -pg'
