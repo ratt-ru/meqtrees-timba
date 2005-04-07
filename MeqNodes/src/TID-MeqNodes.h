@@ -483,6 +483,25 @@ namespace Meq { class Log; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqMatrixMultiply
+#define _defined_id_TpMeqMatrixMultiply 1
+const DMI::TypeId TpMeqMatrixMultiply(-1516);     // from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixMultiply.h:30
+const int TpMeqMatrixMultiply_int = -1516;
+namespace Meq { class MatrixMultiply; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::MatrixMultiply> : public TypeTraits<Meq::MatrixMultiply>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqMatrixMultiply_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::MatrixMultiply & ContainerReturnType;
+                typedef const Meq::MatrixMultiply & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqMax
 #define _defined_id_TpMeqMax 1
 const DMI::TypeId TpMeqMax(-1452);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Max.h:29

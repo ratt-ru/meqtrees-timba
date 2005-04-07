@@ -956,12 +956,15 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     const Request &req = *reqref;
     // clear the retcode if the request has cells, children code + getResult() 
     // will be considered the real result
+    Cells::Ref rescells;
     if( req.hasCells() )
+    {
+      rescells.attach(req.cells());
       retcode = 0;
+    }
     // Pass request on to children and accumulate their results
     std::vector<Result::Ref> child_results(numChildren());
 //    std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-    Cells::Ref rescells;
     if( numChildren() )
     {
       stage = "polling children";

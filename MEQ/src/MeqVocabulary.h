@@ -107,7 +107,7 @@ namespace Meq
     FSpids           = AidSpid|AidIndex,
     FPerturbedValues = AidPerturbed|AidValue,
     FPerturbations   = AidPerturbations,
-
+    
     // Fail fields
     FFail            = AidFail,
     FOrigin          = AidOrigin,

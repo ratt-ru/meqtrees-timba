@@ -23,6 +23,7 @@
 // #define MEQVELLS_SKIP_FUNCTIONS 1
 #include <MEQ/Vells.h>
 #include <Common/Debug.h>
+#include <DMI/Global-Registry.h>
 #include <cmath>
 #include <complex>
 
@@ -39,10 +40,22 @@ static DMI::Container::Register reg(TpMeqVells,true);
 VellsFlagType Vells::null_flag_(0);
 Vells::Shape Vells::null_flag_shape_(1);
 
+const Vells * Vells::pNull_ = 0;
+const Vells * Vells::pUnity_ = 0;
+
+void Vells::_init_static_impl ()
+{
+  Vells::pNull_  = new Vells(double(0),false);
+  Vells::pUnity_ = new Vells(double(1),false);
+}
+
 //##ModelId=3F86887001D4
+// default constructor initializes a by-ref copy of nullVells
 Vells::Vells()
-: is_temp_      (false)
-{}
+: NumArray(Null(),0,0,TpMeqVells),
+  is_temp_(false)
+{
+}
 
 // //##ModelId=3F86887001D5
 // Vells::Vells (double value,bool temp)

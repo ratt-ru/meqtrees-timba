@@ -138,6 +138,8 @@ DMI::BObj * __construct_MeqWMean (int n) { return n>0 ? new Meq::WMean [n] : new
 DMI::BObj * __construct_MeqNegate (int n) { return n>0 ? new Meq::Negate [n] : new Meq::Negate; }
 #include "Invert.h"
 DMI::BObj * __construct_MeqInvert (int n) { return n>0 ? new Meq::Invert [n] : new Meq::Invert; }
+#include "MatrixMultiply.h"
+DMI::BObj * __construct_MeqMatrixMultiply (int n) { return n>0 ? new Meq::MatrixMultiply [n] : new Meq::MatrixMultiply; }
     using namespace DMI;
   
     int aidRegistry_MeqNodes ()
@@ -390,6 +392,9 @@ DMI::BObj * __construct_MeqInvert (int n) { return n>0 ? new Meq::Invert [n] : n
         AtomicID::registerId(-1507,"MeqInvert")+
         TypeInfoReg::addToRegistry(-1507,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1507,__construct_MeqInvert)+
+        AtomicID::registerId(-1516,"MeqMatrixMultiply")+
+        TypeInfoReg::addToRegistry(-1516,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1516,__construct_MeqMatrixMultiply)+
     0;
     return res;
   }

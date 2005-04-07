@@ -40,6 +40,13 @@ Result::Result (int nvellsets,bool integrated)
     allocateVellSets(nvellsets);
 }
 
+Result::Result (const Dims &dims,bool integrated)
+  : pvellsets_(0),pcells_(0)
+{
+  setIsIntegrated(integrated);
+  allocateVellSets(dims);
+}
+
 //##ModelId=400E53550116
 Result::Result (const DMI::Record &other,int flags,int depth)
 : Record(),
@@ -53,7 +60,7 @@ Result::~Result()
 {
 }
 
-bool Result::verifyShape (const LoShape &cellshape)
+bool Result::verifyShape (const LoShape &cellshape) const
 {
   bool hasshapes = false;
   for( int i=0; i<numVellSets(); i++ )
@@ -66,9 +73,9 @@ bool Result::verifyShape (const LoShape &cellshape)
       hasshapes = true;
     }
   }
-  return hasshapes;
+  return is_integrated_ || hasshapes;
 }
-  
+
 void Result::verifyShape (bool reset)
 {
   Thread::Mutex::Lock lock(mutex());
@@ -112,6 +119,11 @@ void Result::setCells (const Cells *cells,int flags,bool force)
   }
 }
 
+bool Result::needsCells (const Cells &cells) const
+{
+  return !hasCells() && verifyShape(cells.shape());
+}
+
 void Result::clearCells ()
 {
   Thread::Mutex::Lock lock(mutex());
@@ -132,7 +144,9 @@ void Result::validateContent (bool)
   // indeed writable. Setup shortcuts to their contents
   try
   {
+    // get integrated flag
     is_integrated_ = (*this)[FIntegrated].as<bool>(false);
+    // get vellsets
     Field * fld = Record::findField(FVellSets);
     if( fld )
     {
@@ -141,6 +155,26 @@ void Result::validateContent (bool)
     }
     else
       pvellsets_ = 0;
+    // get dimensions
+    fld = Record::findField(FDims);
+    if( fld )
+    {
+      Container & cont = fld->ref.as<Container>(); 
+      dims_ = cont[HIID()].as_vector<int>();
+      // # of vellsets in tensor
+      FailWhen(dims_.product()!=numVellSets(),"dimensions do not match number of vellsets");
+    }
+    else
+    {
+      if( numVellSets() )
+      {
+        dims_.resize(1);
+        dims_[0] = numVellSets();
+      }
+      else
+        dims_.clear();
+    }
+    // get cells
     fld = Record::findField(FCells);
     if( fld )
     {
@@ -162,14 +196,68 @@ void Result::validateContent (bool)
 }
 
 //##ModelId=400E5355017B
-void Result::allocateVellSets (int nvellsets)
+int Result::allocateVellSets (int nvellsets)
 {
   Thread::Mutex::Lock lock(mutex());
+  FailWhen(numVellSets(),"allocateVellSets() can only be called on an empty result");
   ObjRef ref(new DMI::Vec(TpMeqVellSet,nvellsets));
   Field & field = Record::addField(FVellSets,ref,DMI::REPLACE|Record::PROTECT);
   pvellsets_ = &(field.ref.ref_cast<DMI::Vec>());
+  // setup trivial dims
+  if( nvellsets>1 )
+  {
+    dims_.resize(1);
+    return dims_[0] = nvellsets;
+  }
+  return nvellsets;
 }
 
+int Result::allocateVellSets (const Dims &dims)
+{
+  Thread::Mutex::Lock lock(mutex());
+  FailWhen(numVellSets(),"allocateVellSets() can only be called on an empty result");
+  // compute total number of vellsets based on dims
+  int nvs = dims.product();
+  ObjRef ref(new DMI::Vec(TpMeqVellSet,nvs));
+  Field & field = Record::addField(FVellSets,ref,DMI::REPLACE|Record::PROTECT);
+  pvellsets_ = &(field.ref.ref_cast<DMI::Vec>());
+  // 1 element? this corresponds to zero dimensions
+  if( nvs == 1 )
+    dims_.clear();
+  // if dims are non-trivial, store them in record
+  if( dims.size() > 1 )
+  {
+    dims_ = dims;
+    ref <<= new DMI::Vec(Tpint,dims.size(),&(dims[0]));
+    Record::addField(FDims,ref,DMI::REPLACE|Record::PROTECT);
+  }
+  return nvs;
+}
+
+int Result::setDims (const Dims &dims)
+{
+  Thread::Mutex::Lock lock(mutex());
+  if( !numVellSets() )
+    return allocateVellSets(dims);
+  // else verify that number of vellsets does not change
+  int nvs = dims.product();
+  FailWhen(nvs!=numVellSets(),"new result dimensions do not match number of vellsets");
+  if( nvs>1 )
+    dims_ = dims;
+  else
+    dims_.clear();
+  // dimensions only stored in record if non-vector
+  if( dims_.size()>1 )
+  {
+    ObjRef ref(new DMI::Vec(Tpint,dims_.size(),&(dims[0])));
+    Record::addField(FDims,ref,DMI::REPLACE|Record::PROTECT);
+  }
+  else
+  {
+    Record::removeField(FDims,true,0);
+  }
+  return nvs;
+}
 
 
 void Result::setIsIntegrated (bool integrated)
@@ -210,29 +298,34 @@ int Result::numFails () const
   return count;
 }
 
-void Result::integrate (bool reverse)
+void Result::integrate (const Cells *pcells,bool reverse)
 {
   Thread::Mutex::Lock lock(mutex());
-  const Cells &cc = cells();
   if( reverse && isIntegrated() )
     return;
   if( !reverse && !isIntegrated() )
     return;
+  if( !hasCells() )
+  {
+    FailWhen(!pcells,"can't integrate Result without cells");
+  }
+  else
+    pcells = &( cells() );
   // compute cellsize, as scalar or matrix, depending on properties of cells
   Vells cellsize;
   // is the cell size regular?
   bool is_regular = true;
   double csz = 1;
   for( int i=0; i<Axis::MaxAxis; i++ )
-    if( cc.isDefined(i) )
+    if( pcells->isDefined(i) )
     {
-      if( cc.numSegments(i)>1 )
+      if( pcells->numSegments(i)>1 )
       {
         is_regular = false;
         break;
       }
       else
-        csz *= double(cc.cellSize(i)(0));
+        csz *= double(pcells->cellSize(i)(0));
     }
   // regular cell sizes -- have been accumulated in csz
   if( is_regular )
@@ -244,19 +337,19 @@ void Result::integrate (bool reverse)
   else // irregular sizes -- compute a Vells of cell sizes
   {
     cellsize = Vells(1.);
-    Vells::Shape shape0(cc.rank());
-    for( int i=0; i<cc.rank(); i++ )
+    Vells::Shape shape0(pcells->rank());
+    for( int i=0; i<pcells->rank(); i++ )
       shape0[i] = 1;
     // multiply repeatedly by each cell size
-    for( int iaxis=0; iaxis<cc.rank(); iaxis++ )
-      if( cc.isDefined(iaxis) )
+    for( int iaxis=0; iaxis<pcells->rank(); iaxis++ )
+      if( pcells->isDefined(iaxis) )
       {
         // create Vells variable only along this axis, containing cell sizes
         Vells::Shape shape(shape0);
-        int nc = cc.ncells(iaxis);
+        int nc = pcells->ncells(iaxis);
         shape[iaxis] = nc;
         Vells sz(double(0),shape,false);
-        memcpy(sz.realStorage(),cc.cellSize(iaxis).data(),sizeof(double)*nc);
+        memcpy(sz.realStorage(),pcells->cellSize(iaxis).data(),sizeof(double)*nc);
         // multiply accumulated size
         cellsize *= sz;
       }
@@ -280,6 +373,9 @@ void Result::integrate (bool reverse)
   }
   // if all succeeds, set flag
   setIsIntegrated(!reverse);
+  // attach cells as needed
+  if( !hasCells() && !reverse )
+    setCells(pcells);
 }
 
 //##ModelId=3F868870014C

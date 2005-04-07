@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
 # Original file name: /home/oms/LOFAR/Timba/MeqServer/src/defrecs_MeqServer.g
-# Generated on Mon Mar 21 16:12:24 CET 2005
+# Generated on Thu Apr  7 11:54:44 CEST 2005
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 
@@ -21,13 +21,16 @@ r.station_1_index := 0;
 r.station_1_index::description := 'Index (1-based) of first station comprising the interferometer';
 r.station_2_index := 0;
 r.station_2_index::description := 'Index (1-based) of second station comprising the interferometer';
-r.output_col := '';
-r.output_col::description := 'tile column to write results to: DATA, PREDICT or RESIDUALS. \
-                              If empty, then no output is generated.';
+r.output_column := '';
+r.output_column::description := 'tile column to write results to: DATA, PREDICT or RESIDUALS for  \
+                                 correlation data, but other columns may be used too, \
+                                 If empty, then no output is generated.';
 r.corr_index := [];
-r.corr_index::description := 'Defines mappings from result planes to correlations. If empty, then \
-                              a default one-to-one mapping is used. Otherwise, should contain one \
-                              correlation index (1-based) per each result plane.';
+r.corr_index::description := 'Defines mappings from result vellsets to correlations. If empty, then \
+                              a default one-to-one mapping is used, and an error will be thrown if \
+                              sizes mismatch. Otherwise, should contain one correlation index (1-based)  \
+                              per each vellset (0 to ignore that vellset). Note that tensor  \
+                              results are decomposed in row-major order, [[1,2],[3,4]].';
 r.flag_mask := 0;
 r.flag_mask::description := 'If non-0, then any data flags in the result are ANDed with this mask \
                              and written to the FLAGS column of the output tile. If 0, then no \
@@ -49,24 +52,52 @@ r::description := 'A MeqSpigot is attached to a VisAgent data source, and repres
                    correlation.) A MeqSpigot usually works in concert with a MeqSink, \
                    in that a sink is placed at the base of the tree, and generates  \
                    results matching the input data.  \
-                   A MeqSpigot can have no children.';
+                   A MeqSpigot can have no children. \
+                   field input_column \"DATA\" \
+                   Gives the tile column from which data is to be read. Note that any double \
+                   or fcomplex tile column can be used (i.e. WEIGHT and SIGMA and such, not \
+                   just DATA, PREDICT and RESIDUALS, which contain correlations).  \
+                   1D columns produce a time-variable vells in the result, matrix columns  \
+                   produce a time-freq variable vells in the result, and cubic columns can  \
+                   produce a tensor result with multiple vells.  \
+                   In the latter case, the dims and corr_index fields come into play, \
+                   telling the spigot how to decompose the \"correlation\" axis into a tensor, \
+                   as well as the flag_mask and row_flag_mask fields, to set flags. In the \
+                   case of 1D or 2D columns, flags are ignored (NB: in the future, we may \
+                   support row flags for these columns).';
+r.dims := [2,2];
+r.dims::description := 'For 3D tile columns only. \
+                        Tensor dimensions of result. Set to [1] for a scalar result,  \
+                        [n] for a vector result, etc. Default is [2,2] (a canonical coherency \
+                        matrix).';
+r.corr_index := [1,2,3,4];
+r.corr_index::description := 'For 3D tile columns only. \
+                              A vector of four indices telling how to map output vellsets to \
+                              the correlation axis in the tile column. A tensor result is \
+                              composed in row-major order, e.g. a 2x2 matrix is composed as  \
+                              [[C1,C2],[C3,C4]], where Ci is the correlation column given by corr_index[i]. \
+                              For example, the canonical form of a coherency matrix is [[xx,xy],[yx,yy]].  \
+                              Therefore, if the correlation axis of the tile is ordered as XX XY YX YY,  \
+                              then corr_index should be set to [1,2,3,4]. If the correlation axis \
+                              contains XX YY only, corr_index should be set to [1,0,0,2].';
 r.station_1_index := 0;
 r.station_1_index::description := 'Index (1-based) of first station comprising the interferometer';
 r.station_2_index := 0;
 r.station_2_index::description := 'Index (1-based) of second station comprising the interferometer';
-r.input_col := 'DATA';
-r.input_col::description := 'tile column to get result from: DATA, PREDICT or RESIDUALS. ';
-r.flag_mask := -1;
-r.flag_mask::description := 'Flags bitmask. This is AND-ed with the FLAGS column of the tile to  \
-                             generate output VellSet flags. Use -1 for a full mask. If both  \
-                             flag_mask and row_flag_mask are 0, no output flags will be generated.';
-r.row_flag_mask := -1;
-r.row_flag_mask::description := 'Row flags bitmask. This is AND-ed with the ROWFLAG column of the tile  \
-                                 and added to the output VellSet flags. Use -1 for a full mask. If both \
-                                 flag_mask and row_flag_mask are 0, no output flags will be generated.';
-r.flag_bit := 1;
-r.flag_bit::description := 'Vells flag bit. If non-0, overrides flag behaviour as follows: \
-                            the FLAGS and ROWFLAG columns tile of the tile are AND-ed with flag_mask \
-                            and row_flag_mask, respecitively, and the output is flagged with \
-                            flag_bit wherever the result of this operation is not 0.';
+r.flag_mask_ := -1;
+r.flag_mask_::description := 'For 3D tile columns only. \
+                              Flags bitmask. This is AND-ed with the FLAGS column of the tile to  \
+                              generate output VellSet flags. Use -1 for a full mask. If both  \
+                              flag_mask_ and row_flag_mask_ are 0, no output flags will be generated.';
+r.row_flag_mask_ := -1;
+r.row_flag_mask_::description := 'For 3D tile columns only. \
+                                  Row flags bitmask. This is AND-ed with the ROWFLAG column of the tile  \
+                                  and added to the output VellSet flags. Use -1 for a full mask. If both \
+                                  flag_mask_ and row_flag_mask_ are 0, no output flags will be generated.';
+r.flag_bit_ := 1;
+r.flag_bit_::description := 'For 3D tile columns only. \
+                             Vells flag bit. If non-0, overrides flag behaviour as follows: \
+                             the FLAGS and ROWFLAG columns tile of the tile are AND-ed with flag_mask_ \
+                             and row_flag_mask_, respecitively, and the output is flagged with \
+                             flag_bit_ wherever the result of this operation is not 0.';
 _meqdefrec_map.MeqSpigot := r;

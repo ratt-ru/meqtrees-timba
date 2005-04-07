@@ -103,7 +103,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
     mqs.resolve('solver');
 
 #    for( n in "eq1 lhs1 c1 a1x x" )
-    for( n in "x y eq1 eq2" )
+    for( n in "x y a1 a2 b1 b2 eq1 eq2 a1x b1y a2x b2y" )
       mqs.meq('Node.Publish.Results',[name=n]);
 
     # execute request on x and y parms to load funklet and get original values

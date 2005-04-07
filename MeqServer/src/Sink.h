@@ -22,13 +22,16 @@
 //  Index (1-based) of first station comprising the interferometer
 //field: station_2_index 0
 //  Index (1-based) of second station comprising the interferometer
-//field: output_col ''
-//  tile column to write results to: DATA, PREDICT or RESIDUALS.
+//field: output_column ''
+//  tile column to write results to: DATA, PREDICT or RESIDUALS for 
+//  correlation data, but other columns may be used too,
 //  If empty, then no output is generated.
 //field: corr_index []
-//  Defines mappings from result planes to correlations. If empty, then
-//  a default one-to-one mapping is used. Otherwise, should contain one
-//  correlation index (1-based) per each result plane.
+//  Defines mappings from result vellsets to correlations. If empty, then
+//  a default one-to-one mapping is used, and an error will be thrown if
+//  sizes mismatch. Otherwise, should contain one correlation index (1-based) 
+//  per each vellset (0 to ignore that vellset). Note that tensor 
+//  results are decomposed in row-major order, [[1,2],[3,4]].
 //field: flag_mask 0
 //  If non-0, then any data flags in the result are ANDed with this mask
 //  and written to the FLAGS column of the output tile. If 0, then no

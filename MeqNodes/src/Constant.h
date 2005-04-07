@@ -39,9 +39,11 @@
 //defrec begin MeqConstant
 //  Represents a constant node. A MeqConstant cannot have any children.
 //field: value 0.0  
-//  value of constant - expected double or complex double scalar
+//  value of constant - double or complex double scalar or array (if array
+//  is used, a tensor will be returned)
 //field: vells F  
-//  variable value of constant - expected double or complex double array
+//  variable constant (ugly hack) - expected double or complex double array.
+//  Subsequent request cells must have the same shape.
 //field: integrated F  
 //  if true, constant represents an integration -- result value will be 
 //  multiplied by cell size
@@ -53,9 +55,11 @@ namespace Meq {
 class Constant: public Node
 {
 public:
+  // Create a "null" constant returning empty vellset
+  Constant ();
   // Create a constant with the given value.
     //##ModelId=400E5305008F
-  explicit Constant (double value=0.,bool integrated=false);
+  explicit Constant (double value,bool integrated=false);
     //##ModelId=400E53050094
   explicit Constant (const dcomplex& value,bool integrated=false);
 
@@ -84,11 +88,11 @@ protected:
 
 private:
     //##ModelId=400E53050085
-  Vells::Ref itsValue;
+  Result::Ref result_;
 
-  bool itsIntegrated;
+  bool integrated_;
   
-  bool hasShape;
+  bool has_shape_;
 };
 
 

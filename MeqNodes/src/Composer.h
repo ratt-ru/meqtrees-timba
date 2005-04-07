@@ -35,6 +35,9 @@
 //defrec begin MeqComposer
 //  A MeqComposer concatenates the results of all its children 
 //  into a single result.
+//field: dims F
+//  If specified, a vector of tensor dimensions to compose a tensor
+//  result.
 //field: contagious_fail F
 //  If true, then a fail in any child result causes the composer to generate
 //  a complete fail -- i.e., a result composed entirely of fails.
@@ -73,6 +76,8 @@ class Composer : public Node
   private:
     //##ModelId=400E53050040
     bool contagious_fail;
+  
+    Result::Dims dims_; // tensor dimensions
 };
 
 

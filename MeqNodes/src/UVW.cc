@@ -143,6 +143,7 @@ int UVW::getResult (Result::Ref &resref,
     pV[i] = xyz(1);
     pW[i] = xyz(2);
   }
+  resref().setCells(cells);
   return 0;
 }
 

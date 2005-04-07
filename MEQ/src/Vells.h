@@ -209,9 +209,13 @@ public:
   typedef CountedRef<Vells> Ref;
   typedef Axis::Shape       Shape;
     
+  // deine some constant Vells
+  static const Vells & Null  ()   { _init_static(); return *pNull_; }
+  static const Vells & Unity ()   { _init_static(); return *pUnity_; }
+  
   //##ModelId=3F86887001D4
   //##Documentation
-  // A null Vells with no data
+  // Default constructor creates a null Vells (double 0.0)
   Vells();
     
   // Creates a (temp by default) scalar Vells
@@ -286,10 +290,13 @@ public:
     //##ModelId=400E530403DB
   virtual void validateContent (bool recursive);
 
-  // is it a null vells?
     //##ModelId=3F8688700280
-  bool isNull() const
-  { return ! NumArray::valid(); }
+  // is it a null vells (representing 0)?
+  bool isNull () const
+  { return !NumArray::valid() || ( isScalar() && isReal() && as<double>() == double(0) ); }
+  
+  bool isUnity () const
+  { return isScalar() && isReal() && as<double>() == double(1); }
   
   // does this Vells have flags attached?
   bool hasDataFlags () const
@@ -540,6 +547,22 @@ public:
                        const string &opname);
 
 private:
+// internal initialization functions (called only once)
+  static void _init_static ()
+  {
+    static bool done = false;
+    static Thread::Mutex mutex;
+    Thread::Mutex::Lock lock(mutex);
+    if( !done )
+    {
+      done = true;
+      _init_static_impl();
+    }
+  }
+  static void _init_static_impl ();
+  static const Vells *pNull_;
+  static const Vells *pUnity_;
+  
     
   Vells::Ref  dataflags_;
 
@@ -658,8 +681,42 @@ public:
             Vells result(*this,right,0,strides,"operator "#OPER); \
             (*binary_##OPERNAME##_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,strides);  \
             return result; }
+//  DoForAllBinaryOperators(declareBinaryOperator,);
+// declare binary operators explicitly for efficiency
+// addition and multiplication by zero/unity shows up so often that it
+// makes sense to check for it explicitly
 
-            
+// binary addition
+  private: static BinaryOperPtr binary_ADD_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  
+  public: Vells operator + (const Vells &right) const 
+          { 
+            if( isNull() )
+              return right;
+            if( right.isNull() )
+              return *this;
+            int strides[2][Axis::MaxAxis]; 
+            Vells result(*this,right,0,strides,"operator +"); 
+            (*binary_ADD_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,strides);  
+            return result; 
+          }
+  private: static BinaryOperPtr binary_MUL_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  
+  public: Vells operator * (const Vells &right) const 
+          { 
+            if( isNull() || right.isNull() )
+              return Vells();
+            if( isUnity() )
+              return right;
+            if( right.isUnity() )
+              return *this;
+            int strides[2][Axis::MaxAxis]; 
+            Vells result(*this,right,0,strides,"operator *"); 
+            (*binary_MUL_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,strides);  
+            return result; 
+          }
+  // subtraction/multiplication infrequent, no point optimizing
+  declareBinaryOperator(-,SUB,);
+  declareBinaryOperator(/,DIV,);
+
 // Declares in-place (i.e. += and such) operator OPER (internally named OPERNAME)
 // plus lookup table for implementations
 // This just calls the method in the OPERNAME_lut lookup table, using the
@@ -675,6 +732,42 @@ public:
               (*this) = (*this) OPER right; \
             return *this; \
           }
+//  DoForAllInPlaceOperators(declareInPlaceOperator,);
+// declare binary operators explicitly for efficiency
+// addition and multiplication by zero/unity shows up so often that it
+// makes sense to check for it explicitly
+  private: static InPlaceOperPtr inplace_ADD1_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE]; 
+  public: Vells & operator += (const Vells &right)
+          { 
+            if( right.isNull() )
+              return *this;
+            if( isNull() )
+              return (*this) = right;
+            int strides[Axis::MaxAxis]; 
+            if( canApplyInPlace(right,strides,"ADD1") ) 
+              (*inplace_ADD1_lut[getLutIndex()][right.getLutIndex()])(*this,right,strides); 
+            else 
+              (*this) = (*this) + right;
+            return *this; 
+          }
+  private: static InPlaceOperPtr inplace_MUL1_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE]; 
+  public: Vells & operator *= (const Vells &right)
+          { 
+            if( isNull() || right.isNull() )
+              return (*this) = Vells();
+            if( isUnity() )
+              return (*this) = right;
+            if( right.isUnity() )
+              return *this;
+            int strides[Axis::MaxAxis]; 
+            if( canApplyInPlace(right,strides,"ADD1") ) 
+              (*inplace_MUL1_lut[getLutIndex()][right.getLutIndex()])(*this,right,strides); 
+            else 
+              (*this) = (*this) * right;
+            return *this; 
+          }
+  declareInPlaceOperator(-,SUB1,);
+  declareInPlaceOperator(/,DIV1,);
 
 // in-place flag operators implemented explicitly (no LUT needed)
 #define declareInPlaceFlagOperator(OPER,OPERNAME,x) \
@@ -708,10 +801,8 @@ public:
   DoForAllUnaryOperators(declareUnaryOperator,);
   DoForAllUnaryFlagOperators(declareUnaryFlagOperator,);
     //##ModelId=400E535601D9
-  DoForAllInPlaceOperators(declareInPlaceOperator,);
   DoForAllInPlaceFlagOperators(declareInPlaceFlagOperator,);
     //##ModelId=400E535601E3
-  DoForAllBinaryOperators(declareBinaryOperator,);
   DoForAllBinaryFlagOperators(declareBinaryFlagOperator,);
     //##ModelId=400E535601EC
   DoForAllUnaryFuncs(declareUnaryFuncLut,);

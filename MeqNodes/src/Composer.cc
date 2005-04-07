@@ -53,6 +53,11 @@ void Composer::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   rec[FContagiousFail].get(contagious_fail,initializing);
+  DMI::Record::Hook hdims(rec,FDims);
+  if( hdims.type() == Tpbool && !hdims.as<bool>() )
+    dims_.clear();
+  else
+    hdims.get_vector(dims_);
 }
 
 //##ModelId=400E5305004F
@@ -95,17 +100,31 @@ int Composer::getResult (Result::Ref &resref,
           "'integrated' property of child results is not uniform");
     }
     // compose the result
-    Result &result = resref <<= new Result(nres,integrated);
+    Result *presult;
+    if( dims_.empty() )
+      resref <<= presult = new Result(nres,integrated);
+    else
+    {
+      resref <<= presult = new Result(dims_,integrated);
+      FailWhen(presult->numVellSets()!=nres,
+               "number of child results does not match tensor dimensions");
+    }
     int ires=0;
+    const Cells *pcells = 0;
     for( int i=0; i<numChildren(); i++ )
     {
       const Result &chres = *childres[i];
       for( int j=0; j<chres.numVellSets(); j++ )
       {
         VellSet::Ref ref = chres.vellSetRef(j);
-        result.setVellSet(ires++,ref);
+        presult->setVellSet(ires++,ref);
       }
+      if( !pcells && chres.hasCells() )
+        pcells = &( chres.cells() );
     }
+    // apply cells as needed
+    if( pcells )
+      presult->setCells(pcells);
   }
   // we do not introduce any dependencies
   return 0;

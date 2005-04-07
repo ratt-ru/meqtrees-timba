@@ -84,7 +84,8 @@
         Do(Meq::WSum,arg) separator \
         Do(Meq::WMean,arg) separator \
         Do(Meq::Negate,arg) separator \
-        Do(Meq::Invert,arg)
+        Do(Meq::Invert,arg) separator \
+        Do(Meq::MatrixMultiply,arg)
 
 #define DoForAllNumericTypes_MeqNodes(Do,arg,separator) \
         

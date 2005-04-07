@@ -42,6 +42,10 @@ namespace Meq { using namespace DMI;
 class Result : public DMI::Record
 {
 public:
+  // tensor dimensions, for tensor results
+  typedef LoShape Dims;
+  typedef LoShape TIndex;
+  
     //##ModelId=3F86886E0210
   typedef CountedRef<Result> Ref;
 
@@ -51,7 +55,11 @@ public:
   // The integrated flag specifies whether the result is an integration
   // over the specified cells, or a sampling at the cell center.  
     //##ModelId=3F86887000CE
-  explicit Result (int nvs=0,bool integrated=false);
+  explicit Result (int nvs=0, bool integrated=false);
+  
+  // Create a tensor Result with the number of vellsets specified by dims
+  // if dims is empty (rank 0), creates one vellset
+  explicit Result (const Dims &dims, bool integrated=false);
   
   // Construct from DMI::Record. 
     //##ModelId=400E53550116
@@ -74,6 +82,60 @@ public:
   // (or when the underlying DMI::Record is privatized, etc.)
     //##ModelId=400E53550156
   virtual void validateContent (bool recursive);
+  
+  // ------------------------ DIMENSIONS
+  // A Result with a single VellSet will always have empty dimensions and 
+  // a tensor rank of 0. 
+  const Dims & dims () const
+  { return dims_; }
+  
+  int tensorRank () const 
+  { return dims_.size(); }
+  
+  // Sets dimensions, returns their product (i.e. # of vellsets)
+  // If result is non-empty, then dims may only change if the # of vellsets
+  // doesn't (this is the equivalent of a reshape operation).
+  // If result is empty, this implictly allocates vellsets.
+  int setDims (const Dims &dims);
+  
+  // returns scalar offset corresponding to given tensor index
+  // versions ending with Chk check indices for range
+  int getOffsetChk (const TIndex &ind) const
+  {
+    FailWhen(ind.size() != dims_.size(),"tensor rank mismatch");  
+    int offset=0, stride=1;
+    for( int i = ind.size()-1; i>=0; i-- )
+    {
+      FailWhen(ind[i]<0 || ind[i]>=dims_[i],ssprintf("tensor index #%d out of range",i));
+      offset += ind[i]*stride;
+      stride *= dims_[i];
+    }
+    return offset;
+  }
+  int getOffset (const TIndex &ind) const
+  {
+    int offset=0, stride=1;
+    for( int i = ind.size()-1; i>=0; i-- )
+    {
+      offset += ind[i]*stride;
+      stride *= dims_[i];
+    }
+    return offset;
+  }
+  
+  // shortcut for matrices
+  int getOffsetChk (int i,int j) const
+  {
+    FailWhen(dims_.size()!=2,"tensor rank mismatch");  
+    FailWhen(i<0 || i>=dims_[0],"tensor index 0 out of range");
+    FailWhen(j<0 || j>=dims_[1],"tensor index 1 out of range");
+    return i*dims_[1] + j;
+  }
+  
+  int getOffset (int i,int j) const
+  {
+    return i*dims_[1] + j;
+  }
 
   // ------------------------ CELLS
   // Set or get the cells.
@@ -104,6 +166,9 @@ public:
     //##ModelId=400E53550174
   bool hasCells () const
   { return pcells_ != 0; }
+  
+  // returns true if result has a shape and needs to have cells attached
+  bool needsCells (const Cells &cells) const;
     
     //##ModelId=400E53550178
   const Cells& cells() const
@@ -123,17 +188,23 @@ public:
   { return is_integrated_; }
   
   // integrates all VellSets (multiplies values by cell size)
+  // attaches supplied cells if none already attached
   // if isIntegrated()=true, does nothing
-  void integrate (bool reverse=false);
+  void integrate (const Cells *pcells=0,bool reverse=false);
   
   // differentiates all VellSets (divides values by cell size)
+  // uses supplied cells if none attached
   // if isIntegrated()=false, does nothing
-  void differentiate ()
-  { integrate(true); }
+  void differentiate (const Cells *pcells=0)
+  { integrate(pcells,true); }
 
   // ------------------------ VELLSETS
     //##ModelId=400E5355017B
-  void allocateVellSets (int nvellsets);
+  // allocates vellsets and sets dimensions (result must be empty). Returns nvs.
+  int allocateVellSets (int nvs);
+  // allocates vellsets and sets dimensions (result must be empty)
+  // Returns product of dims.
+  int allocateVellSets (const Dims &dims);
     
     //##ModelId=400E53550185
   int numVellSets () const
@@ -156,6 +227,12 @@ public:
   
   VellSet & setVellSet (int i,VellSet *pvs,int flags=0)
     { wrVellSets().put(i,pvs,flags); return *pvs; }
+  
+  const VellSet & setVellSet (int i,const VellSet &vs,int flags=0)
+    { wrVellSets().put(i,&vs,flags); return vs; }
+  
+  VellSet & setVellSet (int i,VellSet &vs,int flags=0)
+    { wrVellSets().put(i,&vs,flags); return vs; }
   
     //##ModelId=400E535501AD
   const VellSet & setVellSet (int i,const VellSet::Ref &vellset,int flags=0)
@@ -191,7 +268,7 @@ private:
 
   // verifies vellsets against a cell shape, throws exception on mismatch.
   //  Returns true if any vellsets are variable.
-  bool verifyShape (const LoShape &cellshape);
+  bool verifyShape (const LoShape &cellshape) const;
     
   // helper function: write-access to vellsets (enforces COW)
   DMI::Vec &       wrVellSets ()
@@ -205,6 +282,8 @@ private:
   Cells::Ref     * pcells_;
   
   bool            is_integrated_;
+  
+  Dims            dims_;
 };
 
 

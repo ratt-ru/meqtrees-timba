@@ -105,28 +105,37 @@ int Function::getResult (Result::Ref &resref,
 //  childpvv_lock[0].resize(nrch);
 //  childpvv_lock[1].resize(nrch);
 
-  // check that resolution match. Also, figure out the max number of 
-  // child planes, and figure out if result should be marked as integrated.
-  // If no children, assume one plane.
-  int nplanes = 1;
+  // Figure out the dimensions of the output result, and see if all children
+  // match these dimensions. Also, figure out if result should be marked as 
+  // integrated.  Ino children, assume one plane.
+  Result::Dims out_dims;
   bool integr = false;
   if( nrch )
   {
-    nplanes = childres[0]->numVellSets();   // max # of planes in children
-    bool integr = childres[0]->isIntegrated();  // flag: is any child integrated
+    out_dims = childres[0]->dims();
+    integr   = childres[0]->isIntegrated();  // flag: is any child integrated
     for( int i=1; i<nrch; i++ )
     {
-      nplanes = std::max(nplanes,childres[i]->numVellSets());
+      const Result &res = *childres[i];
+      if( res.tensorRank() > 0 )
+      {
+        if( out_dims.empty() )
+          out_dims = res.dims();
+        else
+        {
+          FailWhen(res.dims()!=out_dims,"dimensions of tensor child results do not match");
+        }
+      }
       integr |= childres[i]->isIntegrated();
     }
-    // override the integrated flag if the state record provides one
   }
+  // override the integrated flag if the state record provides one
   if( force_integrated_ )
     integr = integrated_;
   // Create result and attach to the ref that was passed in
-  Result & result = resref <<= new Result(nplanes,integr);
+  Result & result = resref <<= new Result(out_dims,integr);
   // Find a shape from any child (they all must be the same anyway, 
-  // thanks to auto-resampling). If no children, use request cells shape.
+  // thanks to auto-resampling). If no children, use the request cells shape.
   LoShape res_shape;
   // look for cells in child results
   for( int i=0; i<nrch; i++ )
@@ -144,43 +153,45 @@ int Function::getResult (Result::Ref &resref,
   vector<const Vells*>   values(nrch);
   vector<const Vells*>   flags(nrch);
   int nfails = 0;
+  int nplanes = result.numVellSets();
   for( int iplane = 0; iplane < nplanes; iplane++ )
   {
     // create a vellset for this plane
     VellSet &vellset = result.setNewVellSet(iplane,0,0);
     // collect vector of pointers to child vellsets #iplane, and a vector of 
-    // pointers to their main values. If a child has fewer vellsets, generate 
-    // a fail -- unless the child returned exactly 1 vellset, in which
-    // case it is reused repeatedly. If any child vellsets are fails, collect 
+    // pointers to their main values. If a child is of tensor rank 0, always
+    // reuse its single vellset. If any child vellsets are fails, collect 
     // them for propagation
+    bool missing = false;
     for( int i=0; i<nrch; i++ )
     {
-      int nvs = childres[i]->numVellSets();
-      if( nvs != 1 && iplane >= nvs )
-      {
-        MakeFailVellSet(vellset,ssprintf("child %d: only %d vellsets",i,nvs));
-      }
-      else 
-      {
-        child_vs[i] = &( childres[i]->vellSet(nvs==1?0:iplane) );
+      const Result &chres = *childres[i];
+      child_vs[i] = &( chres.vellSet( chres.tensorRank()>0 ? iplane : 0 ) );
 //        childvs_lock[i].relock(child_vs[i]->mutex());
-        if( child_vs[i]->isFail() ) 
-        { // collect fails from child vellset
-          for( int j=0; j<child_vs[i]->numFails(); j++ )
-            vellset.addFail(&child_vs[i]->getFail(j));
+      if( child_vs[i]->isFail() )
+      { // collect fails from child vellset
+        for( int j=0; j<child_vs[i]->numFails(); j++ )
+          vellset.addFail(&child_vs[i]->getFail(j));
+      }
+      else
+      {
+        flags[i] = child_vs[i]->hasDataFlags() ? &(child_vs[i]->dataFlags()) : 0;
+        if( child_vs[i]->hasValue() )
+        {
+          const Vells &val = child_vs[i]->getValue();
+  //          childval_lock[i].relock(val.mutex());
+          FailWhen(!val.isCompatible(res_shape),"mismatch in child result shapes");
+          values[i] = &val;
         }
         else
         {
-          flags[i] = child_vs[i]->hasDataFlags() ? &(child_vs[i]->dataFlags()) : 0;
-          const Vells &val = child_vs[i]->getValue();
-//          childval_lock[i].relock(val.mutex());
-          FailWhen(!val.isCompatible(res_shape),"mismatch in child result shapes");
-          values[i] = &val;
+          missing = true;
+          break;
         }
       }
     }
     // continue evaluation only if no fails popped up
-    if( !vellset.isFail() )
+    if( !missing && !vellset.isFail() )
     {
       // catch exceptions during evaluation and stuff them into fails
       try
@@ -209,7 +220,9 @@ int Function::getResult (Result::Ref &resref,
         for( uint j=0; j<spids.size(); j++) 
         {
           found.assign(npertsets,-1);
-          // pert_values start with pointers to each child's main value
+          // pert_values start with pointers to each child's main value, the
+          // loop below then replaces them with values from children that 
+          // have a corresponding perturbed value
           pert_values.assign(npertsets,values);
           // loop over children. For every child that contains a perturbed
           // value for spid[j], put a pointer to the perturbed value into 

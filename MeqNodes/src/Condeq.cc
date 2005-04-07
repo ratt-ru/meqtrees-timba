@@ -84,23 +84,35 @@ int Condeq::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &child_result,
                        const Request &request,bool)
 {
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,child_result);
+// 30/01/05 OMS: remove these locks for now: usage of COW refs everywhere 
+// makes them unnecessary. If our thread holds a ref to the object, it's 
+// guranteed to not change under us thanks to COW.
+//  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
+//  lockMutexes(child_reslock,child_result);
   int nrch = child_result.size();
-  std::vector<Thread::Mutex::Lock> childvs_lock(nrch);
-  std::vector<Thread::Mutex::Lock> childval_lock(nrch);
-  std::vector<Thread::Mutex::Lock> childpvv_lock[2];
-  childpvv_lock[0].resize(nrch);
-  childpvv_lock[1].resize(nrch);
+//  std::vector<Thread::Mutex::Lock> childvs_lock(nrch);
+//  std::vector<Thread::Mutex::Lock> childval_lock(nrch);
+//  std::vector<Thread::Mutex::Lock> childpvv_lock[2];
+//  childpvv_lock[0].resize(nrch);
+//  childpvv_lock[1].resize(nrch);
   Assert(nrch==2);
-  // Check that number of child planes is the same
-  int nplanes = child_result[0]->numVellSets();
-  FailWhen(child_result[1]->numVellSets()!=nplanes,
-           "mismatch in sizes of child results");
+  // Figure out the dimensions of the output result, and see that children
+  // match these dimensions. 
+  Result::Dims out_dims = child_result[0]->dims();
+  if( !child_result[1]->dims().empty() ) // child 1 is a tensor
+  {
+    if( out_dims.empty() )               // child 0 is a scalar
+      out_dims = child_result[1]->dims();
+    else         // both tensors, verify match
+    {
+      FailWhen(out_dims != child_result[1]->dims(),"dimensions of tensor child results do not match");
+    }
+  }
   // Create result object and attach to the ref that was passed in
-  Result & result = resref <<= new Result(nplanes);
+  Result & result = resref <<= new Result(out_dims);
+  int nplanes = result.numVellSets(); // total number of output elements
   
-  vector<const VellSet*> child_res(nrch);
+  vector<const VellSet*> child_vs(nrch);
   for( int iplane=0; iplane<nplanes; iplane++ )
   {
     Vells::Ref flagref;
@@ -110,22 +122,19 @@ int Condeq::getResult (Result::Ref &resref,
     int npertsets;
     for( int i=0; i<nrch; i++ )
     {
-      const VellSet &vs = child_result[i]->vellSet(iplane);
-      child_res[i] = &vs;
+      const Result &chres = *child_result[i];
+      const VellSet &vs = chres.vellSet(chres.tensorRank()>0 ? iplane : 0);
+      child_vs[i] = &vs;
       // merge in flags, if any
       if( vs.hasDataFlags() )
         if( flagref.valid() )
           flagref() |= vs.dataFlags();
         else
           flagref.attach(vs.dataFlags());
-      const VellSet &chres = child_result[i]->vellSet(iplane);
-      childvs_lock[i].relock(child_res[i]->mutex());
-      const Vells &val = child_res[i]->getValue();
-      childval_lock[i].relock(val.mutex());
-      values[i] = &val;
+      values[i] = &( vs.getValue() );
     }
     // Find all spids from the children.
-    vector<int> spids = Function::findSpids(npertsets,child_res);
+    vector<int> spids = Function::findSpids(npertsets,child_vs);
     // allocate new result object with given number of spids, add to set
     // note that result always has 1 perturbation set (i.e., double-perts
     // are collapsed into a single pert)
@@ -142,22 +151,22 @@ int Condeq::getResult (Result::Ref &resref,
     for( uint j=0; j<spids.size(); j++ )
     {
       Vells & deriv = deriv_ref <<= new Vells;
-      int inx0 = child_res[0]->isDefined(spids[j],indices[0]);
-      int inx1 = child_res[1]->isDefined(spids[j],indices[1]);
+      int inx0 = child_vs[0]->isDefined(spids[j],indices[0]);
+      int inx1 = child_vs[1]->isDefined(spids[j],indices[1]);
       double pert = 0;
       if (inx1 >= 0) 
       {
-        pert = calcDerivative(deriv,*child_res[1],inx1,true);
+        pert = calcDerivative(deriv,*child_vs[1],inx1,true);
         if (inx0 >= 0) 
         {
           Vells d1;
-          calcDerivative(d1,*child_res[0],inx0,true);
+          calcDerivative(d1,*child_vs[0],inx0,true);
           deriv -= d1;
         }
       }
       else if (inx0 >= 0) 
       {
-        pert = calcDerivative(deriv,*child_res[0],inx0);
+        pert = calcDerivative(deriv,*child_vs[0],inx0);
       }      
       else 
         deriv = Vells(0.);

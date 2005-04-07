@@ -163,6 +163,11 @@ public:
   void copyPerturbations (const VellSet &other);
 
   // ------------------------ MAIN RESULT VALUE
+
+  // returns true if vellset has a value
+  bool hasValue () const
+  { return pvalue_ != 0; }
+    
   // Get the value.
     //##ModelId=400E5355035C
   const Vells & getValue() const

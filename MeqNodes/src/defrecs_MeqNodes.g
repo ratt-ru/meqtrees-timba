@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
 # Original file name: /home/oms/LOFAR/Timba/MeqNodes/src/defrecs_MeqNodes.g
-# Generated on Mon Mar 28 23:08:32 CEST 2005
+# Generated on Thu Apr  7 13:40:18 CEST 2005
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 
@@ -91,6 +91,9 @@ _meqdefrec_map.MeqSolver := r;
 r := _meqdefrec_map.MeqNode;
 r::description := 'A MeqComposer concatenates the results of all its children  \
                    into a single result.';
+r.dims := F;
+r.dims::description := 'If specified, a vector of tensor dimensions to compose a tensor \
+                        result.';
 r.contagious_fail := F;
 r.contagious_fail::description := 'If true, then a fail in any child result causes the composer to generate \
                                    a complete fail -- i.e., a result composed entirely of fails. \
@@ -104,9 +107,11 @@ _meqdefrec_map.MeqComposer := r;
 r := _meqdefrec_map.MeqNode;
 r::description := 'Represents a constant node. A MeqConstant cannot have any children.';
 r.value := 0.0  ;
-r.value::description := 'value of constant - expected double or complex double scalar';
+r.value::description := 'value of constant - double or complex double scalar or array (if array \
+                         is used, a tensor will be returned)';
 r.vells := F  ;
-r.vells::description := 'variable value of constant - expected double or complex double array';
+r.vells::description := 'variable constant (ugly hack) - expected double or complex double array. \
+                         Subsequent request cells must have the same shape.';
 r.integrated := F  ;
 r.integrated::description := 'if true, constant represents an integration -- result value will be  \
                               multiplied by cell size';

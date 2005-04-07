@@ -173,7 +173,7 @@ void VellSet::verifyShape (bool reset)
 bool VellSet::adjustShape (LoShape &shp,const Vells &vells)
 {
   // ignore null or scalar vells
-  if( vells.isNull() || vells.isScalar() )
+  if( !vells.valid() || vells.isScalar() )
     return false;
   const Vells::Shape &vs = vells.shape();
   // no shape? simply set from vells
@@ -206,7 +206,7 @@ bool VellSet::adjustShape (LoShape &shp,const Vells &vells)
 void VellSet::adjustShape (const Vells &vells)
 {
   // ignore null or scalar vells
-  if( vells.isNull() || vells.isScalar() )
+  if( !vells.valid() || vells.isScalar() )
     return;
   LoShape shp = shape_;
   if( adjustShape(shp,vells) )
@@ -620,7 +620,7 @@ void VellSet::show (std::ostream& os) const
         if( ref.valid() )
         {
           const Vells &pval = ref.as<Vells>();
-          if( !pval.isNull() )
+          if( pval.valid() )
             os << pval - pvalue_->deref();
           else
             os << ": perturbed vells "<<i<<" is null"<<endl;

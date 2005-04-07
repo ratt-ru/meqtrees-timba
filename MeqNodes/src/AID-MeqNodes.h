@@ -223,6 +223,11 @@ const int AidMeqLMN_int = -1410;
 const DMI::AtomicID AidMeqLog(-1397);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Log.h:29
 const int AidMeqLog_int = -1397;
 #endif
+#ifndef _defined_id_AidMeqMatrixMultiply
+#define _defined_id_AidMeqMatrixMultiply 1
+const DMI::AtomicID AidMeqMatrixMultiply(-1516);  // from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixMultiply.h:30
+const int AidMeqMatrixMultiply_int = -1516;
+#endif
 #ifndef _defined_id_AidMeqMax
 #define _defined_id_AidMeqMax 1
 const DMI::AtomicID AidMeqMax(-1452);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Max.h:29

@@ -36,12 +36,20 @@ const HIID symdeps[] = { FDomain,FResolution };
 //const HIID FDomain = AidDomain;
 const HIID FVells = AidVells;
 
+Constant::Constant ()
+: Node (0), // must have 0 children
+  integrated_(false)
+{
+  (result_ <<= new Result(1)).setNewVellSet(0);
+  setKnownSymDeps(symdeps,2);
+}
+
 //##ModelId=400E5305008F
 Constant::Constant (double value,bool integrated)
 : Node (0), // must have 0 children
-  itsValue (new Vells(value, false),DMI::ANONWR),
-  itsIntegrated(integrated)
+  integrated_(integrated)
 {
+  (result_ <<= new Result(1)).setNewVellSet(0).setValue(new Vells(value,false));
   setKnownSymDeps(symdeps,2);
   // intregrated results depend on cells
   if( integrated )
@@ -51,9 +59,9 @@ Constant::Constant (double value,bool integrated)
 //##ModelId=400E53050094
 Constant::Constant (const dcomplex& value,bool integrated)
 : Node (0),
-  itsValue(new Vells(value, false),DMI::ANONWR),
-  itsIntegrated(integrated)
+  integrated_(integrated)
 {
+  (result_ <<= new Result(1)).setNewVellSet(0).setValue(new Vells(value,false));
   setKnownSymDeps(symdeps,2);
   // intregrated results depend on cells
   if( integrated )
@@ -69,20 +77,14 @@ int Constant::getResult (Result::Ref& resref,
 			 const std::vector<Result::Ref>&,
 			 const Request& request, bool)
 {
-  // Create result object and attach to the ref that was passed in
-  Result& result = resref <<= new Result(1); // result has one vellset
-  VellSet& vs = result.setNewVellSet(0);
-  // if value is a Vells, check that shapes match
-  Vells &val = itsValue();
-  vs.setValue(val);
-  if( itsIntegrated )
-    result.integrate();
-  if( hasShape )
-  {
-    FailWhen(!val.isCompatible(request.cells().shape()),
-      "shape of Vells in Constant node not compatible with request");
-    result.setCells(request.cells());
-  }
+  // Copy result to output
+  resref <<= result_;
+  // integrate or simply attach cells as needed
+  const Cells &cells = request.cells();
+  if( integrated_ )
+    resref().integrate(&cells);
+  else if( resref->needsCells(cells) )
+    resref().setCells(cells);
   return 0;
 }
 
@@ -91,9 +93,9 @@ void Constant::setStateImpl (DMI::Record::Ref& rec, bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   // get integrated flag
-  if( rec[FIntegrated].get(itsIntegrated,initializing) )
+  if( rec[FIntegrated].get(integrated_,initializing) )
   {
-    if( itsIntegrated )
+    if( integrated_ )
       setActiveSymDeps(symdeps,2);
     else // not integrated -- no dependency (value same regardless of domain/cells)
       setActiveSymDeps();
@@ -104,25 +106,66 @@ void Constant::setStateImpl (DMI::Record::Ref& rec, bool initializing)
   if( hook.exists() ) 
   {
     TypeId type = hook.type();
+    // can we access this as a NumArray?
+    const DMI::NumArray *parr = hook.as_po<DMI::NumArray>();
     // a scalar may have been passed in as a 1-element array
-    if( TypeInfo::isArray(type) )
-      type = TypeInfo::typeOfArrayElem(type);
-    // complex values forced to dcomplex; all other to double
-    if( type == Tpdcomplex || type == Tpfcomplex ) 
-      itsValue <<= new Vells(hook.as<dcomplex>());
-    else 
-      itsValue <<= new Vells(hook.as<double>());
-    hasShape = false;
+    if( parr )
+    {
+      const LoShape &shp = parr->shape();
+      if( parr->size() < 1 )
+        Throw("illegal array size in field "+FValue.toString());
+      type = parr->elementType();
+      // [1] array treated as scalar
+      if( shp.size() == 1 && parr->size() == 1 )
+      {
+        // create scalar vells for result, using the hook conversion functions
+        Vells::Ref vells;
+        if( type == Tpdcomplex || type == Tpfcomplex ) 
+          vells <<= new Vells((*parr)[HIID()].as<dcomplex>(),false);
+        else 
+          vells <<= new Vells((*parr)[HIID()].as<double>(),false);
+        (result_ <<= new Result(1)).setNewVellSet(0).setValue(vells);
+      }
+      else // tensor result
+      {
+        FailWhen(type!=Tpdcomplex && type!=Tpdouble,
+            "field "+FValue.toString()+" is of illegal type "+type.toString());
+        if( type == Tpdcomplex )
+        {
+          Result &res = result_ <<= new Result(shp);
+          const dcomplex *data = static_cast<const dcomplex*>(parr->getConstDataPtr());
+          for( int i=0; i<parr->size(); i++ )
+            res.setNewVellSet(i).setValue(new Vells(data[i],false));
+        }
+        else if( type == Tpdouble )
+        {
+          Result &res = result_ <<= new Result(shp);
+          const double *data = static_cast<const double*>(parr->getConstDataPtr());
+          for( int i=0; i<parr->size(); i++ )
+            res.setNewVellSet(i).setValue(new Vells(data[i],false));
+        }
+      }
+    }
+    else // scalar value: create scalar result
+    {
+      Vells::Ref vells;
+      // complex values forced to dcomplex; all other to double
+      if( type == Tpdcomplex || type == Tpfcomplex ) 
+        vells <<= new Vells(hook.as<dcomplex>(),false);
+      else 
+        vells <<= new Vells(hook.as<double>(),false);
+      (result_ <<= new Result(1)).setNewVellSet(0).setValue(vells);
+    }
   }
-  else if( hook2.exists() )
+  else if( hook2.exists() ) // kludge to insert explicit vells
   {
-    itsValue <<= new Vells(hook2.as<DMI::NumArray>());
-    hasShape = true;
+    Vells::Ref vells(new Vells(hook2.as<DMI::NumArray>()));
+    (result_ <<= new Result(1)).setNewVellSet(0).setValue(vells);
   }
   else if( initializing ) // init state record with default value
   {
-    rec[FValue] <<= itsValue.copy();
-    hasShape = false;
+    if( result_->vellSet(0).hasValue() )
+      rec[FValue] <<= result_->vellSet(0).getValue();
   }
 }
 
