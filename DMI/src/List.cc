@@ -176,8 +176,21 @@ int DMI::List::fromBlock (BlockSet& set)
       int nb0 = set.size();
       FailWhen(!nb0,"unexpectedly ran out of blocks");
       // create object
-      items.back() = DynamicTypeManager::construct(0,set);
-      FailWhen(!items.back().valid(),"item construct failed" );
+      try
+      {
+        items.back() = DynamicTypeManager::construct(0,set);
+        FailWhen(!items.back().valid(),"item construct failed" );
+      }
+      catch( std::exception &exc )
+      {
+        string msg = string("error unpacking: ") + exc.what();
+        items.back() <<= new DMI::Vec(Tpstring,-1,&msg);
+      }
+      catch( ... )
+      {
+        static string msg = "error unpacking: unkown exception";
+        items.back() <<= new DMI::Vec(Tpstring,-1,&msg);
+      }
       int nb = nb0 - set.size();
       FailWhen(nb!=bc,"block count mismatch in header");
       nref += nb;

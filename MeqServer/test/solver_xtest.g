@@ -8,12 +8,12 @@ if( any(argv == '-runtest' ) ) {
   app_path  := 'appagent/'
 }
   
-default_debuglevels := [  MeqNode       =2,
-                          MeqForest     =2,
-                          MeqSink       =2,
-                          MeqSpigot     =2,
-                          MeqVisHandler =2,
-                          MeqServer     =2,
+default_debuglevels := [  MeqNode       =1,
+                          MeqForest     =1,
+                          MeqSink       =1,
+                          MeqSpigot     =1,
+                          MeqVisHandler =1,
+                          MeqServer     =1,
                           meqserver     =1 ];
                           
 include spaste(app_path,'/app_defaults.g')
@@ -65,9 +65,11 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
     mqs.meq('Create.Node',meq.parm('y',meq.polc(0),groups='Parm'));
     mqs.meq('Create.Node',meq.parm('z',meq.polc(array([1,.5,.5,0],2,2),axis="x z"),groups='Parm'));
     mqs.meq('Create.Node',meq.node('MeqConstant','z1',[value=complex(0,0)]));
+    mqs.meq('Create.Node',meq.node('MeqConstant','zero',[value=0.0]));
+    mqs.meq('Create.Node',meq.node('MeqConstant','null'));
     #
-    mqs.meq('Create.Node',meq.parm('z',meq.polc(array([1,.5,.5,0],2,2),axis="x z"),groups='Parm'));
-    mqs.meq('Create.Node',meq.node('MeqConstant','z1',[value=complex(0,0)]));
+    #mqs.meq('Create.Node',meq.parm('z',meq.polc(array([1,.5,.5,0],2,2),axis="x z"),groups='Parm'));
+    #mqs.meq('Create.Node',meq.node('MeqConstant','z1',[value=complex(0,0)]));
   }
   else if( stage == 1 )
   {
@@ -194,22 +196,41 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
     );
     
     mqs.meq('Create.Node',
-      meq.node('MeqAdd','matrix_test',children=meq.list(
-        meq.node('MeqConstant','matc1',value=array([1,2,3,1],shape=[2,2])),
-        meq.node('MeqConstant','matc2',value=array([2,1,1,3],shape=[2,2])),
-        meq.node('MeqConstant','matc3',value=array([.5,-.5,.5,.5],shape=[2,2]),
-        meq.node('MeqMatrixMultiply','matm1',children='matc1 matc2'),
-        meq.node('MeqMatrixMultiply','matm1',children=meq.list(
-          'matc1',  
-          meq.node('MeqConstant','matv1',value=array([4,2],shape=[2,1]))
-        )),
+      meq.node('MeqAdd','tensor_test',children=meq.list(
+        meq.node('MeqConstant','matc1',[value=array([1.,2,3,1],2,2)]),
+        meq.node('MeqConstant','matc2',[value=array([2.,1,1,3],2,2)]),
+        meq.node('MeqConstant','matc3',[value=array([.5,-.5,.5,.5],2,2)]),
+        meq.node('MeqMatrixMultiply','matm1',children="matc1 matc2"),
         meq.node('MeqMatrixMultiply','matm2',children=meq.list(
+          meq.node('MeqMatrixMultiply','matm6',children=meq.list(
+            'matc1',  
+            meq.node('MeqConstant','matv1',[value=array([4.,2],2,1)])
+          )),
+          'matv2'
+        )),
+        meq.node('MeqMatrixMultiply','matm3',children=meq.list(
           'matc2',
           meq.node('MeqMatrixMultiply','matm4',children=meq.list(
             'matv1',
-            meq.node('MeqConstant','matv2',value=array([1,2],shape=[1,2]))
+            meq.node('MeqConstant','matv2',[value=array([1.,2],1,2)])
+          )),
+          meq.node('MeqMatrixMultiply','matm5',children="matv2 matv1")
+        )),
+        meq.node('MeqMatrixMultiply','matm7',children=meq.list(
+          'matc1',
+          meq.node('MeqComposer','matcomp1',[dims=[2,2]],children="x zero zero y")
+        )),
+        meq.node('MeqMatrixMultiply','matm8',children=meq.list(
+          'matc1',
+          meq.node('MeqComposer','matcomp2',[dims=[2,2]],children="x null null y")
+        )),
+        meq.node('MeqMatrixMultiply','matm9',children=meq.list(
+          'matc1',
+          meq.node('MeqAdd','matadd2',children=meq.list(
+            meq.node('MeqComposer','matcomp3',[dims=[2,2]],children="x null zero zero"),
+            meq.node('MeqComposer','matcomp4',[dims=[2,2]],children="zero null null y"),
+            meq.node('MeqComposer','matcomp5',[dims=[2,2]],children="zero zero null zero")
           ))
-          meq.node('MeqMatrixMultiply','matm5',children="matv2 matv1"),
         ))
       ))
     );
