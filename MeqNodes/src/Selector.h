@@ -27,7 +27,10 @@
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
+
 #pragma types #Meq::Selector
+
+#pragma aid Multi
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -36,7 +39,15 @@
 //  A MeqSelector selects one or more results from the result set of its child.
 //  Must have exactly one child.
 //field: index []
-//  Indices (1-based) of results to be selected.
+//  Index (1-based) of results to be selected. If more than one index is
+//  supplied, it is interpreted according to the tensor field below.
+//field: multi F
+//  If this is false (default), then a multiple-element index is treated
+//  as an index into a tensor selecting a single element or slice, and a 
+//  tensor Result of the same dimensionality is expected. Note that any
+//  element of index may be -1 to indicate a slice along that axis.
+//  If this is true, then a multiple-element index is treated as a set of
+//  scalar indices, and the corresponding number of output vellsets is produced.
 //defrec end
 
 namespace Meq {    
@@ -65,7 +76,9 @@ class Selector : public Node
   
   private:
     //##ModelId=400E5355022A
-    vector<int> selection;
+    vector<int> selection_;
+  
+    bool multi_;
 };
 
 

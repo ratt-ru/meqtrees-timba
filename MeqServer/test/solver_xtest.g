@@ -232,6 +232,20 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
             meq.node('MeqComposer','matcomp5',[dims=[2,2]],children="zero zero null zero")
           ))
         ))
+      ),step_children=meq.list(
+        meq.node('MeqSelector','matsel1',[index=[2,3]],children=(
+          meq.node('MeqMatrixMultiply','matm10',children=meq.list(
+            meq.node('MeqConstant','matv4',[value=[0.,1,2,3]]),
+            meq.node('MeqConstant','matv5',[value=array([0.,1,2,3],1,4)]),
+          ))
+        )),
+        meq.node('MeqSelector','matsel2',[index=[12]],children="matm10"),
+        meq.node('MeqComposer','matcomp4',[dims=[3,4]],children=meq.list(
+          meq.node('MeqSelector','matsel3',[index=[0,2]],children="matm10"),
+          meq.node('MeqSelector','matsel4',[index=[2,0]],children="matm10"),
+          meq.node('MeqConstant','matv5',[value=[0.,1,2,3]]),
+        )),
+        meq.node('MeqSelector','matsel5',children="matm10")
       ))
     );
     

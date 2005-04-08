@@ -438,6 +438,11 @@ const int AidMeqWSum_int = -1502;
 const DMI::AtomicID AidMeqZeroFlagger(-1434);     // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:32
 const int AidMeqZeroFlagger_int = -1434;
 #endif
+#ifndef _defined_id_AidMulti
+#define _defined_id_AidMulti 1
+const DMI::AtomicID AidMulti(-1518);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:33
+const int AidMulti_int = -1518;
+#endif
 #ifndef _defined_id_AidN
 #define _defined_id_AidN 1
 const DMI::AtomicID AidN(-1028);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33

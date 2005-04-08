@@ -161,6 +161,7 @@ DMI::BObj * __construct_MeqMatrixMultiply (int n) { return n>0 ? new Meq::Matrix
         AtomicID::registerId(-1447,"MeqSelector")+
         TypeInfoReg::addToRegistry(-1447,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1447,__construct_MeqSelector)+
+        AtomicID::registerId(-1518,"Multi")+
         AtomicID::registerId(-1442,"MeqComposer")+
         TypeInfoReg::addToRegistry(-1442,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1442,__construct_MeqComposer)+

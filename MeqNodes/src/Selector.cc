@@ -21,6 +21,7 @@
 //# $Id$
 
 #include <MeqNodes/Selector.h>
+#include <MeqNodes/AID-MeqNodes.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
@@ -28,9 +29,11 @@
 
 namespace Meq {    
 
+const HIID FMulti = AidMulti;
+
 //##ModelId=400E5355022C
 Selector::Selector()
-    : Node(1) // exactly 1 child expected
+    : Node(1),multi_(false) // exactly 1 child expected
 {}
 
 //##ModelId=400E5355022D
@@ -41,7 +44,9 @@ Selector::~Selector()
 void Selector::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
-  rec[FIndex].get_vector(selection,initializing);
+  rec[FIndex].get_vector(selection_,initializing);
+  rec[FMulti].get(multi_,initializing);
+  
 }
 
 //##ModelId=400E53550237
@@ -49,31 +54,106 @@ int Selector::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &childref,
                          const Request &request,bool)
 {
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,childref);
-  // otherwise, select sub-results
-  Result &result = resref <<= new Result(selection.size());
+  // empty selection: return child result
+  if( selection_.empty() )
+  {
+    resref = childref[0];
+    return 0;
+  }
+  bool valid = false;
   const Result &childres = *childref[0];
   int nvs = childres.numVellSets();
-  // select results from child set
-  bool valid = false;
-  for( uint i=0; i<selection.size(); i++ )
+  // multiple-selection mode
+  if( multi_ || selection_.size() == 1 )
   {
-    int isel = selection[i];
-    if( isel<0 || isel>=nvs )
+    Result &result = resref <<= new Result(selection_.size(),childres.isIntegrated());
+    // select results from child set
+    for( uint i=0; i<selection_.size(); i++ )
     {
-      VellSet &vs = result.setNewVellSet(i);
-      MakeFailVellSet(vs,
-          Debug::ssprintf("invalid selector index for Result of %d VellSet(s)",
-                        isel,nvs));
+      int isel = selection_[i];
+      if( isel<0 || isel>=nvs )
+      {
+        MakeFailVellSet(result.setNewVellSet(i),
+            ssprintf("invalid selection index %d for Result of %d VellSet(s)",
+                          isel,nvs));
+      }
+      else
+      {
+        result.setVellSet(i,childres.vellSet(isel));
+        valid = true;
+      }
     }
+  }
+  else // tensor selection or slicing mode
+  {
+    FailWhen(childres.tensorRank()!=int(selection_.size()),"tensor rank of child result not compatible with Selector index");
+    // check selection, and figure out shape
+    const LoShape & dims = childres.dims();
+    LoShape shp=dims,shp0=dims,strides=dims;
+    int rank = dims.size();
+    bool slice = false;
+    int strd = 1;
+    int offset = 0;
+    // work out shape of slice, strides, and offset of slice start
+    for( int i=shp.size()-1; i>=0; i-- )
+    {
+      FailWhen(selection_[i] >= shp[i],ssprintf("selection element #%d out of range",i));
+      // see if we're slicing along this axis
+      if( selection_[i] < 0 )
+        slice = true;
+      else
+      {
+        shp[i] = 1;
+        shp0[i] = 0;
+        if( !slice )
+          rank = i;
+        offset += selection_[i]*strd;
+      }
+      // set stride for this axis
+      strides[i] = strd;
+      strd *= dims[i];
+    }
+    // shp now contains the output shape of the selection (including any
+    // slices), and rank is the maximal non-trivial dimension
+    
+    // single element selected
+    if( rank == 0 ) 
+    {
+      (resref <<= new Result(1,childres.isIntegrated())).
+            setVellSet(0,childres.vellSet(offset));
+      valid = true;
+    }
+    // else extract full slice
     else
     {
-      VellSet::Ref ref = childres.vellSetRef(isel);
-      result.setVellSet(i,ref);
+      // shp contains 1's for axes where an element is selected,
+      // and the full size where a slice is needed.
+      // shp0 is the same, but contains 0s for selected axis.
+      // rank is the highest slicing axis+1.
+      shp.resize(rank);
+      Result &result = resref <<= new Result(shp,childres.isIntegrated());
+      int nout = shp.product();
+      // calculate offset to start of slice
+      for( int i=0; i<nout; i++ )
+      {
+        result.setVellSet(i,childres.vellSet(offset));
+        // update offset
+        for( int idim = rank-1; idim>=0; idim-- )
+          if( shp0[idim] )
+          {
+            offset += strides[idim]; // advance along this axis
+            if( --shp0[idim] )       // still something to go? break
+              break;
+            else                     // reached end of axis, reset and go to next
+              shp0[idim] = shp[idim]; 
+          }
+      }
       valid = true;
     }
   }
+  if( valid && childres.hasCells() )
+    resref().setCells(childres.cells());
+  
   return valid ? 0 : RES_FAIL;
 }
 

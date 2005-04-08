@@ -126,8 +126,8 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
     // pointers
     void *coldata = const_cast<void*>(tile.column(icolumn_));
     int nplanes = cubic_column ? colshape[0] : 1;
-    FailWhen(cubic_column && nplanes!=int(corr_index_.size()),
-            "tile dimensions do not match spigot settings");
+    //FailWhen(cubic_column && nplanes!=int(corr_index_.size()),
+    //            "tile dimensions do not match spigot settings");
     Result::Ref next_res;
     Result & result = next_res <<= new Result(dims_,integrated_);
     // get array 
@@ -144,7 +144,10 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
           VellSet &vs = result.setNewVellSet(i);
           int icorr = corr_index_[i];
           if( icorr >=0 )
+          {
+            FailWhen(icorr >= nplanes,ssprintf("corr index %d out of range for this tile",icorr));
             vs.setReal(shape).getArray<double,2>() = cube(rowrange,LoRange::all(),icorr);
+          }
           // else leave vellset empty to indicate missing data
         }
       }
@@ -180,8 +183,11 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
           VellSet &vs = result.setNewVellSet(i);
           int icorr = corr_index_[i];
           if( icorr >=0 )
+          {
+            FailWhen(icorr >= nplanes,ssprintf("corr index %d out of range for this tile",icorr));
             vs.setComplex(shape).getArray<dcomplex,2>() = 
               blitz::cast<dcomplex>(cube(rowrange,LoRange::all(),icorr));
+          }
           // else leave vellset empty to indicate missing data
         }
       }
