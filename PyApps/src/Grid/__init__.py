@@ -72,7 +72,11 @@ class DataItem (object):
         self.viewer_list.insert(0,viewer);
     self.viewer = viewer;
     self.viewer_obj = None;
+  def __del__ (self):
+    self.kill_viewer();
   def kill_viewer (self):
+    try: self.viewer_obj.cleanup();
+    except: pass;
     self.viewer_obj = None;
   def refresh (self):
     self.refresh_func and self.refresh_func();

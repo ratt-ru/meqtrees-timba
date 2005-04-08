@@ -67,6 +67,8 @@ def registerViewer (tp,viewer,priority=0):
       # multiple-object viewing is not supported, the viewer class should not
       # define this method. The method must return True if the object is
       # successfully added, or False if this cannot be done.
+    vo.cleanup():
+      # called when the viewer object is removed from the workspace
   The viewer object may also issue one Qt signal: PYSIGNAL("refresh()",(udi,)), 
   which requests a refresh of the data item given by the udi.
   Note that the GridCell interface already provides a refresh button which does 
