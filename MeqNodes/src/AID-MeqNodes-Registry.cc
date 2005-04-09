@@ -16,6 +16,8 @@ DMI::BObj * __construct_MeqTime (int n) { return n>0 ? new Meq::Time [n] : new M
 DMI::BObj * __construct_MeqSelector (int n) { return n>0 ? new Meq::Selector [n] : new Meq::Selector; }
 #include "Composer.h"
 DMI::BObj * __construct_MeqComposer (int n) { return n>0 ? new Meq::Composer [n] : new Meq::Composer; }
+#include "Paster.h"
+DMI::BObj * __construct_MeqPaster (int n) { return n>0 ? new Meq::Paster [n] : new Meq::Paster; }
 #include "Add.h"
 DMI::BObj * __construct_MeqAdd (int n) { return n>0 ? new Meq::Add [n] : new Meq::Add; }
 #include "Subtract.h"
@@ -165,6 +167,9 @@ DMI::BObj * __construct_MeqMatrixMultiply (int n) { return n>0 ? new Meq::Matrix
         AtomicID::registerId(-1442,"MeqComposer")+
         TypeInfoReg::addToRegistry(-1442,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1442,__construct_MeqComposer)+
+        AtomicID::registerId(-1519,"MeqPaster")+
+        TypeInfoReg::addToRegistry(-1519,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1519,__construct_MeqPaster)+
         AtomicID::registerId(-1418,"MeqAdd")+
         TypeInfoReg::addToRegistry(-1418,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1418,__construct_MeqAdd)+

@@ -273,6 +273,11 @@ const int AidMeqNorm_int = -1459;
 const DMI::AtomicID AidMeqParm(-1454);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Parm.h:35
 const int AidMeqParm_int = -1454;
 #endif
+#ifndef _defined_id_AidMeqPaster
+#define _defined_id_AidMeqPaster 1
+const DMI::AtomicID AidMeqPaster(-1519);          // from /home/oms/LOFAR/Timba/MeqNodes/src/Paster.h:31
+const int AidMeqPaster_int = -1519;
+#endif
 #ifndef _defined_id_AidMeqPointSourceDFT
 #define _defined_id_AidMeqPointSourceDFT 1
 const DMI::AtomicID AidMeqPointSourceDFT(-1405);  // from /home/oms/LOFAR/Timba/MeqNodes/src/PointSourceDFT.h:31

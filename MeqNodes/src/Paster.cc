@@ -1,4 +1,4 @@
-//# Selector.cc: Selects result planes from a result set
+//# Paster.cc: Selects result planes from a result set
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -20,7 +20,7 @@
 //#
 //# $Id$
 
-#include <MeqNodes/Selector.h>
+#include <MeqNodes/Paster.h>
 #include <MeqNodes/AID-MeqNodes.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
@@ -32,16 +32,16 @@ namespace Meq {
 const HIID FMulti = AidMulti;
 
 //##ModelId=400E5355022C
-Selector::Selector()
-    : Node(1),multi_(false) // exactly 1 child expected
+Paster::Paster()
+    : Node(2),multi_(false) // exactly 1 child expected
 {}
 
 //##ModelId=400E5355022D
-Selector::~Selector()
+Paster::~Paster()
 {}
 
 //##ModelId=400E53550233
-void Selector::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+void Paster::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   rec[FIndex].get_vector(selection_,initializing);
@@ -50,45 +50,46 @@ void Selector::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 }
 
 //##ModelId=400E53550237
-int Selector::getResult (Result::Ref &resref, 
+int Paster::getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childref,
                          const Request &request,bool)
 {
-  // empty selection: return child result
+  resref = childref[0];
+  // empty selection: simply return child result 1
   if( selection_.empty() )
-  {
-    resref = childref[0];
     return 0;
-  }
-  bool valid = false;
-  const Result &childres = *childref[0];
-  int nvs = childres.numVellSets();
+  const Result &childres = *childref[1];
+  int nvs = resref->numVellSets();
+  int nvs1 = childres.numVellSets();
+  int nsel = selection_.size();
   // multiple-selection mode
-  if( multi_ || selection_.size() == 1 )
+  if( multi_ || nsel == 1 )
   {
-    Result &result = resref <<= new Result(selection_.size(),childres.isIntegrated());
-    // select results from child set
-    for( uint i=0; i<selection_.size(); i++ )
+    if( nvs1 != nsel )
     {
-      int isel = selection_[i];
-      if( isel<0 || isel>=nvs )
+      Throw(ssprintf("size of selection (%d) does not match size of Result to be pasted",nsel,nvs1));
+    }
+    else
+    {
+      Result &result = resref();
+      // select results from child set
+      for( int i=0; i<nsel; i++ )
       {
-        MakeFailVellSet(result.setNewVellSet(i),
-            ssprintf("invalid selection index %d for Result of %d VellSet(s)",
-                          isel,nvs));
-      }
-      else
-      {
-        result.setVellSet(i,childres.vellSet(isel));
-        valid = true;
+        int isel = selection_[i];
+        if( isel<0 || isel>=nvs )
+        {
+          Throw(ssprintf("invalid selection index %d for Result of %d VellSet(s)",isel,nvs));
+        }
+        else
+          resref().setVellSet(isel,childres.vellSet(i));
       }
     }
   }
   else // tensor selection or slicing mode
   {
-    FailWhen(childres.tensorRank()!=int(selection_.size()),ssprintf("child Result rank %d, index size is %d",childres.tensorRank(),selection_.size()));
-    // check selection, and figure out shape
-    const LoShape & dims = childres.dims();
+    FailWhen(resref->tensorRank()!=nsel,ssprintf("pasted Result rank %d, index size is %d",resref->tensorRank(),nsel));
+    // check selection, and figure out shaped
+    const LoShape & dims = resref->dims();
     LoShape shp=dims,shp0=dims,strides=dims;
     int rank = dims.size();
     bool slice = false;
@@ -113,15 +114,14 @@ int Selector::getResult (Result::Ref &resref,
       strides[i] = strd;
       strd *= dims[i];
     }
-    // shp now contains the output shape of the selection (including any
+    // shp now contains the shape of the selection (including any
     // slices), and rank is the maximal non-trivial dimension
     
     // single element selected
     if( rank == 0 ) 
     {
-      (resref <<= new Result(1,childres.isIntegrated())).
-            setVellSet(0,childres.vellSet(offset));
-      valid = true;
+      FailWhen(childres.numVellSets()!=1,"shape of pasted Result does not match shape of selection");
+      resref().setVellSet(offset,childres.vellSet(0));
     }
     // else extract full slice
     else
@@ -131,12 +131,14 @@ int Selector::getResult (Result::Ref &resref,
       // shp0 is the same, but contains 0s for selected axis.
       // rank is the highest slicing axis+1.
       shp.resize(rank);
-      Result &result = resref <<= new Result(shp,childres.isIntegrated());
+      // child result better have the same shape
+      FailWhen(childres.dims()!=shp,"shape of pasted Result does not match shape of selection");
+      Result &result = resref();
       int nout = shp.product();
       // calculate offset to start of slice
       for( int i=0; i<nout; i++ )
       {
-        result.setVellSet(i,childres.vellSet(offset));
+        result.setVellSet(offset,childres.vellSet(i));
         // update offset
         for( int idim = rank-1; idim>=0; idim-- )
           if( shp0[idim] )
@@ -148,13 +150,13 @@ int Selector::getResult (Result::Ref &resref,
               shp0[idim] = shp[idim]; 
           }
       }
-      valid = true;
     }
   }
-  if( valid && childres.hasCells() )
-    resref().setCells(childres.cells());
+  // check that shapes are still valid (since we may have pasted in
+  // a child result of a conflicting shape)
+  resref().verifyShape();
   
-  return valid ? 0 : RES_FAIL;
+  return 0;
 }
 
 } // namespace Meq

@@ -3,9 +3,9 @@ SUBDIRS	= .
 LOCALHDRS = 
 
 LOCALSRCS = \
-    Constant.cc Parm.cc Freq.cc Time.cc Selector.cc Composer.cc Add.cc \
-    Subtract.cc Multiply.cc Divide.cc  Sin.cc Cos.cc Exp.cc Pow.cc Sqr.cc \
-    Asin.cc Acos.cc Sqrt.cc Conj.cc ToComplex.cc Polar.cc UVW.cc LMN.cc \
+    Constant.cc Parm.cc Freq.cc Time.cc Selector.cc Composer.cc Paster.cc \
+    Add.cc Subtract.cc Multiply.cc Divide.cc  Sin.cc Cos.cc Exp.cc Pow.cc \
+    Sqr.cc Asin.cc Acos.cc Sqrt.cc Conj.cc ToComplex.cc Polar.cc UVW.cc LMN.cc \
     Log.cc Cosh.cc Sinh.cc Tan.cc Tanh.cc StatPointSourceDFT.cc \
     PointSourceDFT.cc Condeq.cc Solver.cc Ceil.cc Floor.cc Atan.cc \
     Pow2.cc Pow3.cc Pow4.cc Pow5.cc Pow6.cc Pow7.cc Pow8.cc \

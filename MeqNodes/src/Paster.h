@@ -1,4 +1,4 @@
-//# Selector.h: Selects result planes from a result set
+//# Paster.h: Selects result planes from a result set
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -20,51 +20,54 @@
 //#
 //# $Id$
 
-#ifndef MEQNODES_SELECTOR_H
-#define MEQNODES_SELECTOR_H
+#ifndef MEQNODES_PASTER_H
+#define MEQNODES_PASTER_H
     
 #include <MEQ/Node.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 
-#pragma types #Meq::Selector
+#pragma types #Meq::Paster
 
 #pragma aid Multi
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
 
-//defrec begin MeqSelector
-//  A MeqSelector selects one or more results from the result set of its child.
-//  Must have exactly one child.
+//defrec begin MeqPaster
+//  A MeqPaster "pastes" the result of its second child (Result2) at the 
+//  selected position in the result of the first child (Result1).
 //field: index []
-//  Index (1-based) of results to be selected. If more than one index is
-//  supplied, it is interpreted according to the 'multi' field below.
+//  Index (1-based) of position(s) to paste at. If more than one index is
+//  supplied, it is interpreted according to the 'multi' field below. Note
+//  that the semantics of the selection match those of the MeqSelector node.
 //field: multi F
 //  If false (default): a multiple-element index is treated as a tensor index 
-//    that selects a single element or a slice. Child result must be a tensor 
+//    that selects a single element or a slice. Result1 must  be a tensor 
 //    of the same rank as there are elements in 'index'. A '-1' at
 //    any position in 'index' indicates a slice along the corresponding axis.
-//  If true: a multiple-element index is treated as a set of scalar indices, 
-//    and the corresponding number of output vellsets is produced.
+//    Result2 must have the same dimensions/rank as the selected slice.
+//  If true: a multiple-element index is treated as a set of  scalar indices.
+//    Result2 must have the same number of vellsets as there are elements in
+//    'index', and they are pasted at the indicated positions.
 //defrec end
 
 namespace Meq {    
 
 
 //##ModelId=400E53040077
-class Selector : public Node
+class Paster : public Node
 {
   public:
     //##ModelId=400E5355022C
-    Selector ();
+    Paster ();
     //##ModelId=400E5355022D
-    virtual ~Selector ();
+    virtual ~Paster ();
     
     //##ModelId=400E5355022F
     virtual TypeId objectType() const
-    { return TpMeqSelector; }
+    { return TpMeqPaster; }
     
   protected:
     //##ModelId=400E53550233

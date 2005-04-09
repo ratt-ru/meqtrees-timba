@@ -673,6 +673,25 @@ namespace Meq { class Parm; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqPaster
+#define _defined_id_TpMeqPaster 1
+const DMI::TypeId TpMeqPaster(-1519);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Paster.h:31
+const int TpMeqPaster_int = -1519;
+namespace Meq { class Paster; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::Paster> : public TypeTraits<Meq::Paster>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqPaster_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::Paster & ContainerReturnType;
+                typedef const Meq::Paster & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqPointSourceDFT
 #define _defined_id_TpMeqPointSourceDFT 1
 const DMI::TypeId TpMeqPointSourceDFT(-1405);     // from /home/oms/LOFAR/Timba/MeqNodes/src/PointSourceDFT.h:31

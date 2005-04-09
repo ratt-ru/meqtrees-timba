@@ -24,6 +24,7 @@
         Do(Meq::Time,arg) separator \
         Do(Meq::Selector,arg) separator \
         Do(Meq::Composer,arg) separator \
+        Do(Meq::Paster,arg) separator \
         Do(Meq::Add,arg) separator \
         Do(Meq::Subtract,arg) separator \
         Do(Meq::Multiply,arg) separator \

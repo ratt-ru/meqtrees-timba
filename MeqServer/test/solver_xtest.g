@@ -233,19 +233,30 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
           ))
         ))
       ),step_children=meq.list(
-        meq.node('MeqSelector','matsel1',[index=[2,3]],children=(
+        meq.node('MeqSelector','matsel1',[index=[2,3]],children=meq.list(
           meq.node('MeqMatrixMultiply','matm10',children=meq.list(
             meq.node('MeqConstant','matv4',[value=[0.,1,2,3]]),
-            meq.node('MeqConstant','matv5',[value=array([0.,1,2,3],1,4)]),
+            meq.node('MeqConstant','matv5',[value=array([2.,0,1,3],1,4)])
           ))
         )),
         meq.node('MeqSelector','matsel2',[index=[12]],children="matm10"),
-        meq.node('MeqComposer','matcomp4',[dims=[3,4]],children=meq.list(
-          meq.node('MeqSelector','matsel3',[index=[0,2]],children="matm10"),
-          meq.node('MeqSelector','matsel4',[index=[2,0]],children="matm10"),
-          meq.node('MeqConstant','matv5',[value=[0.,1,2,3]]),
+        meq.node('MeqComposer','matcomp6',[dims=[3,4]],children=meq.list(
+          meq.node('MeqSelector','matsel3',[index=[0,3]],children="matm10"),
+          meq.node('MeqSelector','matsel4',[index=[4,0]],children="matm10"),
+          meq.node('MeqConstant','matv6',[value=[3.,1,2,3]])
         )),
-        meq.node('MeqSelector','matsel5',children="matm10")
+        meq.node('MeqSelector','matsel5',children="matm10"),
+        meq.node('MeqSelector','matsel6',[index=[1,2,6],multi=T],children="matm10"),
+        meq.node('MeqSelector','matsel7',[index=[1,2,20],multi=T],children="matm10"),
+        meq.node('MeqSelector','matsel8',[index=[0,20,2]],children="matm10"),
+        meq.node('MeqSelector','matsel9',[index=[0,20]],children="matm10"),
+        meq.node('MeqPaster','matpaste1',[index=[0,2]],children="matm10 matv6"),
+        meq.node('MeqPaster','matpaste2',[index=[2,0]],children="matm10 matv5"),
+        meq.node('MeqPaster','matpaste3',[index=[2,0]],children="matm10 matv6"),
+        meq.node('MeqPaster','matpaste4',[index=[2,2]],children="matm10 matv6"),
+        meq.node('MeqPaster','matpaste5',[index=[2,3,7,9],multi=T],children="matm10 matv6"),
+        meq.node('MeqPaster','matpaste6',[index=[2,3,7],multi=T],children="matm10 matv6"),
+        meq.node('MeqPaster','matpaste7',[index=[2]],children="matm10 matm5")
       ))
     );
     
