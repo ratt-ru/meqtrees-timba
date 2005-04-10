@@ -54,6 +54,7 @@ Color                            1426       ; from /home/oms/LOFAR/Timba/MeqNode
 Column                           1258       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
 Command                          1204       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
 Config                           1329       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
+Conj                             1520       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:33
 Connected                        1094       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
 Connection                       1087       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
 ConnectionMgrWP                  1068       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:23
@@ -304,6 +305,7 @@ MeqSpigot                        1468       ; from /home/oms/LOFAR/Timba/MeqServ
 #MeqTanh                         1450       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Tanh.h:29
 #MeqTime                         1451       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Time.h:30
 #MeqToComplex                    1413       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ToComplex.h:30
+#MeqTranspose                    1521       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:31
 MeqUVBrick                       1505       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/UVBrick.h:31
 MeqUVInterpol                    1508       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:33
 #MeqUVW                          1421       ; from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:31
