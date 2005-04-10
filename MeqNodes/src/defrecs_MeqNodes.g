@@ -1,11 +1,22 @@
 # This file is generated automatically -- do not edit
 # Original file name: /home/oms/LOFAR/Timba/MeqNodes/src/defrecs_MeqNodes.g
-# Generated on Sat Apr  9 23:30:27 CEST 2005
+# Generated on Sun Apr 10 13:27:32 CEST 2005
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 
 # fills out the defrecs.
 # 
+#
+# ---------- class MeqTranspose
+# generated from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h
+#
+r := _meqdefrec_map.MeqNode;
+r::description := 'A MeqTranspose tranposes a matrix. Only one child is expected. The child \
+                   must return a tensor rank <=2 result. Matrices are transposed, vectors \
+                   are turned into a 1xN tensor, and scalars pass through unchanged.';
+r.conj := F;
+r.conj::description := 'If true, does a complex transpose-and-conjugate operation.';
+_meqdefrec_map.MeqTranspose := r;
 #
 # ---------- class MeqSelector
 # generated from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h

@@ -1,4 +1,4 @@
-//# Paster.h: Selects result planes from a result set
+//# Paster.h: pastes child 2 into specified position of child 1 result
 //#
 //# Copyright (C) 2003
 //# ASTRON (Netherlands Foundation for Research in Astronomy)

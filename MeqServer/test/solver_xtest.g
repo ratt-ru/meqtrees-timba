@@ -256,7 +256,16 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
         meq.node('MeqPaster','matpaste4',[index=[2,2]],children="matm10 matv6"),
         meq.node('MeqPaster','matpaste5',[index=[2,3,7,9],multi=T],children="matm10 matv6"),
         meq.node('MeqPaster','matpaste6',[index=[2,3,7],multi=T],children="matm10 matv6"),
-        meq.node('MeqPaster','matpaste7',[index=[2]],children="matm10 matm5")
+        meq.node('MeqPaster','matpaste7',[index=[2]],children="matm10 matm5"),
+        meq.node('MeqTranspose','mattrans1',children="matv4"),
+        meq.node('MeqTranspose','mattrans2',children="matv5"),
+        meq.node('MeqTranspose','mattrans3',children="matm10"),
+        meq.node('MeqTranspose','mattrans4',[conj=T],children=meq.list(
+          meq.node('MeqToComplex','matcmpl1',children=meq.list(
+            meq.node('MeqTranspose','mattrans5',children="matv5"),
+            "matv4"
+          ))
+        ))
       ))
     );
     

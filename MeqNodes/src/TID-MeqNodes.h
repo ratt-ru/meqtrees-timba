@@ -1243,6 +1243,25 @@ namespace Meq { class ToComplex; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqTranspose
+#define _defined_id_TpMeqTranspose 1
+const DMI::TypeId TpMeqTranspose(-1521);          // from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:31
+const int TpMeqTranspose_int = -1521;
+namespace Meq { class Transpose; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::Transpose> : public TypeTraits<Meq::Transpose>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqTranspose_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::Transpose & ContainerReturnType;
+                typedef const Meq::Transpose & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqUVW
 #define _defined_id_TpMeqUVW 1
 const DMI::TypeId TpMeqUVW(-1421);                // from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:31

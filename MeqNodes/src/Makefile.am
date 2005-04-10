@@ -11,7 +11,7 @@ LOCALSRCS = \
     Pow2.cc Pow3.cc Pow4.cc Pow5.cc Pow6.cc Pow7.cc Pow8.cc \
     Abs.cc Fabs.cc Norm.cc Arg.cc Real.cc Imag.cc MergeFlags.cc ReqSeq.cc  \
     ReductionFunction.cc Min.cc Max.cc Mean.cc \
-    Sum.cc Product.cc NElements.cc\
+    Sum.cc Product.cc NElements.cc Transpose.cc \
     Stripper.cc DataCollect.cc DataConcat.cc \
     BlitzRandom.cc NoiseNode.cc RandomNoise.cc GaussNoise.cc ZeroFlagger.cc StdDev.cc \
     ParmTable.cc WSum.cc WMean.cc Negate.cc Invert.cc \

@@ -28,6 +28,11 @@ const int AidCells_int = -1291;
 const DMI::AtomicID AidColor(-1426);              // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
 const int AidColor_int = -1426;
 #endif
+#ifndef _defined_id_AidConj
+#define _defined_id_AidConj 1
+const DMI::AtomicID AidConj(-1520);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:33
+const int AidConj_int = -1520;
+#endif
 #ifndef _defined_id_AidDFT
 #define _defined_id_AidDFT 1
 const DMI::AtomicID AidDFT(-1423);                // from /home/oms/LOFAR/Timba/MeqNodes/src/PointSourceDFT.h:32
@@ -422,6 +427,11 @@ const int AidMeqTime_int = -1451;
 #define _defined_id_AidMeqToComplex 1
 const DMI::AtomicID AidMeqToComplex(-1413);       // from /home/oms/LOFAR/Timba/MeqNodes/src/ToComplex.h:30
 const int AidMeqToComplex_int = -1413;
+#endif
+#ifndef _defined_id_AidMeqTranspose
+#define _defined_id_AidMeqTranspose 1
+const DMI::AtomicID AidMeqTranspose(-1521);       // from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:31
+const int AidMeqTranspose_int = -1521;
 #endif
 #ifndef _defined_id_AidMeqUVW
 #define _defined_id_AidMeqUVW 1

@@ -118,6 +118,8 @@ DMI::BObj * __construct_MeqSum (int n) { return n>0 ? new Meq::Sum [n] : new Meq
 DMI::BObj * __construct_MeqProduct (int n) { return n>0 ? new Meq::Product [n] : new Meq::Product; }
 #include "NElements.h"
 DMI::BObj * __construct_MeqNElements (int n) { return n>0 ? new Meq::NElements [n] : new Meq::NElements; }
+#include "Transpose.h"
+DMI::BObj * __construct_MeqTranspose (int n) { return n>0 ? new Meq::Transpose [n] : new Meq::Transpose; }
 #include "Stripper.h"
 DMI::BObj * __construct_MeqStripper (int n) { return n>0 ? new Meq::Stripper [n] : new Meq::Stripper; }
 #include "DataCollect.h"
@@ -338,6 +340,10 @@ DMI::BObj * __construct_MeqMatrixMultiply (int n) { return n>0 ? new Meq::Matrix
         AtomicID::registerId(-1500,"MeqNElements")+
         TypeInfoReg::addToRegistry(-1500,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1500,__construct_MeqNElements)+
+        AtomicID::registerId(-1521,"MeqTranspose")+
+        TypeInfoReg::addToRegistry(-1521,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1521,__construct_MeqTranspose)+
+        AtomicID::registerId(-1520,"Conj")+
         AtomicID::registerId(-1409,"MeqStripper")+
         TypeInfoReg::addToRegistry(-1409,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1409,__construct_MeqStripper)+

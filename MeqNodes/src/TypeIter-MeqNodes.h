@@ -75,6 +75,7 @@
         Do(Meq::Sum,arg) separator \
         Do(Meq::Product,arg) separator \
         Do(Meq::NElements,arg) separator \
+        Do(Meq::Transpose,arg) separator \
         Do(Meq::Stripper,arg) separator \
         Do(Meq::DataCollect,arg) separator \
         Do(Meq::DataConcat,arg) separator \
