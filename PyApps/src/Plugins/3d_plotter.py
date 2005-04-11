@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-
 # modules that are imported
 import sys
 import random
 import qt
 import vtk
 from vtk.qt.QVTKRenderWindowInteractor import *
+#from QVTKRenderWindowInteractor import *
 from vtk.util.vtkImageImportFromArray import *
 from Timba.dmi import *
 from Timba import utils
@@ -55,11 +55,11 @@ class vtk_qt_display(qt.QWidget):
 # lcd
     self.lcd = qt.QLCDNumber(2, self.v_box_controls, "lcd")
     self.lcd.setSegmentStyle(qt.QLCDNumber.Filled)
-    self.lcd.display(45)
+    self.lcd.display(0)
 # slider
     self.slider = qt.QSlider(qt.Qt.Horizontal,self.v_box_controls)
-    self.slider.setRange(0, 99)
-    self.slider.setValue(45)
+#    self.slider.setRange(0, 99)
+#    self.slider.setValue(45)
     self.slider.setTickmarks(qt.QSlider.Below)
     self.slider.setTickInterval(10)
 
@@ -84,9 +84,13 @@ class vtk_qt_display(qt.QWidget):
 # VTK code to create test array
 #=============================
     self.image_array = None
+    self.iteration = 0
 #    self.define_image()
-    self.define_random_image()
 
+#    self.define_random_image()
+#    self.set_initial_display()
+
+  def set_initial_display(self):
     self.extents =  self.image_array.GetDataExtent()
     self.spacing = self.image_array.GetDataSpacing()
     self.origin = self.image_array.GetDataOrigin()
@@ -316,7 +320,6 @@ class vtk_qt_display(qt.QWidget):
 # VTK code for test array
 #=============================
   def define_image(self, iteration=1):
-    print 'in define_image iteration ', iteration
     num_arrays = 93
     array_dim = 64
     image_numarray = ones((num_arrays,array_dim,array_dim),type=Float32)
@@ -333,6 +336,7 @@ class vtk_qt_display(qt.QWidget):
       self.image_array.SetArray(image_numarray)
       spacing = (3.2, 3.2, 1.5)
       self.image_array.SetDataSpacing(spacing)
+      self.set_initial_display()
     else:
       self.image_array.SetArray(image_numarray)
 # refresh display if data contents updated after
@@ -357,6 +361,7 @@ class vtk_qt_display(qt.QWidget):
       self.image_array.SetArray(image_numarray)
       spacing = (3.2, 3.2, 1.5)
       self.image_array.SetDataSpacing(spacing)
+      self.set_initial_display()
     else:
       self.image_array.SetArray(image_numarray)
 # refresh display if data contents updated after
@@ -370,9 +375,9 @@ class vtk_qt_display(qt.QWidget):
     print 'started timer with time ', time
 
   def testEvent(self):
-    self.iteration = self.iteration + 4
-#    self.define_image(self.iteration)
-    self.define_random_image()
+    self.iteration = self.iteration + 1
+    self.define_image(self.iteration)
+#    self.define_random_image()
 
 class ThreeDPlotter(GriddedPlugin):
   """ a class to plot very simple histograms of array data distributions """
