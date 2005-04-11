@@ -151,9 +151,7 @@ build_system:
 	for pkg in $(RECUR_PACKAGES); do \
 	  if test -d $$pkg ; then \
 	      for var in $(RECUR_VARIANTS); do \
-		case $$var in gnu3*) inst_var=gcc3;; \
-	                      gnu*)  inst_var=gcc2;; \
-	                      icc*)  inst_var=icc;; \
+		case $$var in *) inst_var=$$var;; \
 	        esac; \
 	        (echo \
 		&& echo ":::::: CONFIGURING VARIANT $$var FOR PACKAGE $(LOFARPACKAGE)/$$pkg" \
