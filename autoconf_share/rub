@@ -277,23 +277,23 @@ premake=
 postmake=
 # Make sure bootstrap is executable; Eclipse does not set x bit.
 if [ $conf = 1 ]; then
-  bootcmd="chmod +x bootstrap; ./bootstrap; "
-  confcmd="../../lofarconf; "
+  bootcmd="chmod +x bootstrap && ./bootstrap && "
+  confcmd="../../lofarconf && "
   echo "Packages will be bootstrapped and configured"
 fi
 if [ $clean = 1 ]; then
-  premake="make clean; "
+  premake="make clean && "
   echo "Packages will be cleaned"
 elif [ $clean = 2 ]; then
-  premake="make distclean; ../../lofarconf; "
+  premake="make distclean && ../../lofarconf && "
   echo "Packages will be distcleaned"
 fi
 if [ $check = 1 ]; then
-  postmake="make check; "
+  postmake="&& make check "
   echo "Packages will be checked"
 fi
 if [ $install = 1 ]; then
-  postmake="$postmake make install; "
+  postmake="$postmake && make install "
   echo "Packages will be installed"
 fi
 
@@ -310,8 +310,8 @@ do
     echo "  building package $pkg ..."
     echo "" >> build.log
     echo " *** Building package $pkg ***" >> build.log
-    echo "(cd $pkg; mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake)" >> build.log
-    eval "(cd $pkg; mkdir -p build/$variant; $bootcmd cd build/$variant; $confcmd $premake make; $postmake)" >> build.log 2>&1
+    echo "(cd $pkg && mkdir -p build/$variant && $bootcmd cd build/$variant && $confcmd $premake make $postmake;)" >> build.log
+    eval "(cd $pkg && mkdir -p build/$variant && $bootcmd cd build/$variant && $confcmd $premake make $postmake;)" >> build.log 2>&1
     status=$?
     if [ "$status" != 0 ]; then
       echo " Error during build (see build.log for details)"
