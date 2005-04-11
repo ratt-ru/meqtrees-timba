@@ -9,7 +9,7 @@
 #include <MeqNodes/ParmTable.h>
 #include <DMI/BOIO.h>
 #include <DMI/List.h>
-
+#include <MeqServer/MeqPython.h>
     
 using Debug::ssprintf;
 using namespace AppAgent;
@@ -679,6 +679,22 @@ void MeqServer::mqs_processBreakpoint (Node &node,int bpmask,bool global)
   mqs_->processBreakpoint(node,bpmask,global);
 }
 
+DMI::Record::Ref MeqServer::executeCommand (const HIID &cmd,const ObjRef &argref)
+{
+  DMI::Record::Ref retval(DMI::ANONWR);
+  DMI::Record::Ref args;
+  if( argref.valid() )
+  {
+    FailWhen(!argref->objectType()==TpDMIRecord,"invalid args field");
+    args = argref.ref_cast<DMI::Record>();
+  }
+  CommandMap::const_iterator iter = command_map.find(cmd);
+  FailWhen(iter == command_map.end(),"unknown command "+cmd.toString('.'));
+  // execute the command, catching any errors
+  (this->*(iter->second))(retval,args);
+  return retval;
+}
+
 void MeqServer::processCommands ()
 {
   // check for any commands from the control agent
@@ -694,50 +710,30 @@ void MeqServer::processCommands ()
     cdebug(3)<<"received app command "<<cmdid.toString('.')<<endl;
     int request_id = 0;
     bool silent = false;
-    DMI::Record::Ref retval(DMI::ANONWR);
+    DMI::Record::Ref retval;
     bool have_error = true;
-    string error_str;
     int oldstate = control().state();
+    request_id = cmddata[FRequestId].as<int>(0);
+    ObjRef ref = cmddata[FArgs].remove();
+    silent     = cmddata[FSilent].as<bool>(false);
     try
     {
-      request_id = cmddata[FRequestId].as<int>(0);
-      ObjRef ref = cmddata[FArgs].remove();
-      silent     = cmddata[FSilent].as<bool>(false);
-      DMI::Record::Ref args;
-      if( ref.valid() )
-      {
-        FailWhen(!ref->objectType()==TpDMIRecord,"invalid args field");
-        args = ref.ref_cast<DMI::Record>();
-      }
-      CommandMap::const_iterator iter = command_map.find(cmdid);
-      if( iter != command_map.end() )
-      {
-        // execute the command, catching any errors
-        (this->*(iter->second))(retval,args);
-        // got here? success!
-        have_error = false;
-      }
-      else // command not found
-        error_str = "unknown command "+cmdid.toString('.');
+      retval = executeCommand(cmdid,ref);
+      have_error = false;
     }
     catch( std::exception &exc )
     {
-      have_error = true;
-      error_str = exc.what();
+      (retval <<= new DMI::Record)[AidError] = exc.what();
     }
     catch( ... )
     {
-      have_error = true;
-      error_str = "unknown exception while processing command";
+      (retval <<= new DMI::Record)[AidError] = "unknown exception while processing command";
     }
     control().setState(oldstate);
     // send back reply if quiet flag has not been raised;
     // errors are always sent back
     if( !silent || have_error )
     {
-      // in case of error, insert error message into return value
-      if( have_error )
-        retval[AidError] = error_str;
       HIID reply_id = CommandResultPrefix|cmdid;
       if( request_id )
         reply_id |= request_id;
@@ -760,6 +756,7 @@ void MeqServer::run ()
   HIID output_event;
   string doing_what,error_str;
   bool have_error;
+  bool python_init = true;
   // keep running as long as start() on the control agent succeeds
   while( control().start(initrec) == AppState::RUNNING )
   {
@@ -774,6 +771,13 @@ void MeqServer::run ()
         cdebug(1)<<doing_what<<endl;
         if( !input().init(*initrec) )
           Throw("init failed");
+        // see if python needs to be initialized
+        string pyscr = initrec[input().initfield()][AidPython|AidInit].as<string>("");
+        if( !pyscr.empty() )
+        {
+          MeqPython::runFile(this,pyscr);
+          python_init = true;
+        }
       }
       if( initrec[output().initfield()].exists() )
       {
@@ -874,6 +878,8 @@ void MeqServer::run ()
             cdebug(2)<<"received header"<<endl;
             reading_data = false;
             header = ref;
+            if( python_init )
+              MeqPython::processVisHeader(this,*header);
             eventrec <<= new DMI::Record;
             eventrec[AidHeader] <<= header.copy();
             retcode = data_mux.deliverHeader(*header);

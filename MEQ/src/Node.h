@@ -525,7 +525,7 @@ class Node : public DMI::BObj
     //## and to fill in any missing defaults. Throws exception on failure 
     //## (i.e. if a required field is missing)
     //## Record will be COWed as needed
-    virtual void checkInitState (DMI::Record::Ref &rec)
+    virtual void checkInitState (DMI::Record::Ref &)
     {}
     
     //##ModelId=400E531402D1

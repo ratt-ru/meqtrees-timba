@@ -15,6 +15,7 @@
 #pragma aid Publish Results Enable Disable Event Id Silent Idle Stream 
 #pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Level
 #pragma aid Get Forest Status Stack Running Changed All Disabled Publishing
+#pragma aid Python Init
     
 namespace Meq
 {
@@ -92,6 +93,10 @@ class MeqServer : public AppAgent::VisRepeater, public AppAgent::EventRecepient
     void debugNextNode      (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void debugContinue      (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void debugUntilNode     (DMI::Record::Ref &out,DMI::Record::Ref &in);
+
+    
+    // executes one of the above commands, as specified by cmd
+    DMI::Record::Ref executeCommand (const HIID &cmd,const ObjRef &argref);
     
     virtual int receiveEvent (const EventIdentifier &evid,const ObjRef &,void *);
 

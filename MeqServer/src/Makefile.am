@@ -1,12 +1,14 @@
+CXXFLAGS += -Wno-unknown-pragmas -Wno-deprecated -D_GNU_SOURCE -I/usr/include/python2.3
+
 dmi_dir = $(lofar_sharedir)/../DMI
 
 lib_LTLIBRARIES = libmeqserver.la
 
-DOCHDRS = MeqServer.h VisDataMux.h VisHandlerNode.h Sink.h Spigot.h
+DOCHDRS = MeqServer.h MeqPython.h VisDataMux.h VisHandlerNode.h Sink.h Spigot.h
 
 libmeqserver_la_SOURCES = \
   AID-MeqServer-Registry.cc \
-  MeqServer.cc \
+  MeqServer.cc MeqPython.cc \
   VisDataMux.cc \
   VisHandlerNode.cc \
   Sink.cc Spigot.cc
@@ -14,7 +16,7 @@ libmeqserver_la_SOURCES = \
 bin_PROGRAMS   		= meqserver
   
 meqserver_SOURCES		    = meqserver.cc
-meqserver_LDADD		      = libmeqserver.la 
+meqserver_LDADD		      = libmeqserver.la -lpython2.3
 # -lglish -lsos -lnpd
 meqserver_DEPENDENCIES	= libmeqserver.la $(LOFAR_DEPEND)
 

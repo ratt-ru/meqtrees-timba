@@ -223,8 +223,8 @@ class AppEventSink : public AppAgent
       { return getEvent(id,data,HIID(),wait,source); }
       
     //##ModelId=3E394D4C02DE
-      virtual string sdebug ( int detail = 1,const string &prefix = "",
-                              const char *name = 0 ) const
+      virtual string sdebug ( int = 1,const string & = "",
+                              const char * = 0 ) const
       { return "NullEventSink"; }
 
 

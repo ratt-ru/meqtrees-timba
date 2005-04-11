@@ -1,3 +1,6 @@
+#ifndef OCTOPYTHON_OCTOPYTHON_H
+#define OCTOPYTHON_OCTOPYTHON_H 1
+    
 #include <Python.h>
 #include <OCTOPUSSY/Message.h>
 #include <DMI/Record.h>
@@ -282,3 +285,5 @@ namespace OctoPython
 
 
 };
+
+#endif

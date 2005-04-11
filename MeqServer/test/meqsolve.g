@@ -22,8 +22,8 @@ const fq_name := function (name,...)
 #   'ra0' 'dec0':       phase center
 const create_common_parms := function (ra0,dec0)
 {
-  mqs.createnode(meq.parm('ra0',ra0));
-  mqs.createnode(meq.parm('dec0',dec0));
+  mqs.createnode(meq.node('MeqConstant','ra0',[value=0.0]));
+  mqs.createnode(meq.node('MeqConstant','dec0',[value=0.0]));
 }
 
 # creates all source-related nodes and subtrees:
@@ -79,9 +79,9 @@ const sta_dft_tree := function (st,src='')
   # finally, this node computes UVWs directly
   dmi.add_list(uvwlist,
             meq.node('MeqUVW',fq_name('uvw',st),children=[
-                         x = meq.parm(fq_name('x',st),pos.x),
-                         y = meq.parm(fq_name('y',st),pos.y),
-                         z = meq.parm(fq_name('z',st),pos.z),
+                         x = meq.node('MeqConstant',fq_name('x',st),[value=0.0]),
+                         y = meq.node('MeqConstant',fq_name('y',st),[value=0.0]),
+                         z = meq.node('MeqConstant',fq_name('z',st),[value=0.0]),
                          ra = 'ra0',dec = 'dec0',
                          x_0='x0',y_0='y0',z_0='z0' ]));
                         
@@ -138,7 +138,7 @@ const make_shared_nodes := function (stokesi=1,dra=0,ddec=0,src=[''])
   global ms_antpos;
   names := "x0 y0 z0";
   for( i in 1:3 )
-    mqs.createnode(meq.node('MeqConstant',names[i],[value=ms_antpos[1][i]]));
+    mqs.createnode(meq.node('MeqConstant',names[i],[value=0.0]));
 }
 
 # builds a predict tree for stations st1, st2
@@ -159,7 +159,7 @@ const make_predict_tree := function (st1,st2,src=[''])
                          [ output_col      = 'PREDICT',   # init-rec for sink
                            station_1_index = st1,
                            station_2_index = st2,
-                           corr_index      = [1],
+                           corr_index      = [1,0,0,0],
                            flag_mask       = -1 ],
                            children=dmi.list(
                             ifr_predict_tree(st1,st2,src)
@@ -180,7 +180,7 @@ const make_subtract_tree := function (st1,st2,src=[''])
                          [ output_col      = 'PREDICT',
                            station_1_index = st1,
                            station_2_index = st2,
-                           corr_index      = [1],
+                           corr_index      = [1,0,0,0],
                            flag_mask        = -1 ],
                          children=meq.list(
       meq.node('MeqSubtract',fq_name('sub',st1,st2),children=meq.list(
@@ -189,6 +189,7 @@ const make_subtract_tree := function (st1,st2,src=[''])
             station_1_index=st1,
             station_2_index=st2,
             flag_bit=4,
+            corr_index=[1,0,0,0],
             input_column='DATA'])
         )),
         ifr_predict_tree(st1,st2,src)
@@ -215,6 +216,7 @@ const make_solve_tree := function (st1,st2,src=[''],subtract=F,flag=F)
         meq.node('MeqSpigot',fq_name('spigot',st1,st2),[ 
               station_1_index=st1,
               station_2_index=st2,
+              corr_index=[1,0,0,0],
               flag_bit=4,
               input_column='DATA'])
       ))
@@ -257,7 +259,7 @@ const make_solve_tree := function (st1,st2,src=[''],subtract=F,flag=F)
     meq.node('MeqSink',sinkname,[ output_col      = 'PREDICT',
                                   station_1_index = st1,
                                   station_2_index = st2,
-                                  corr_index      = [1], 
+                                  corr_index      = [1,0,0,0], 
                                   flag_mask       = -1 ],children=meq.list(
       meq.node('MeqReqSeq',fq_name('seq',st1,st2),[result_index=2],
         children=['solver',datanodename])
@@ -555,13 +557,14 @@ solver_defaults := [ num_iter=3,save_funklets=T,last_update=T ];
 
 inputrec := [ ms_name = msname,data_column_name = 'DATA',
               tile_size=5,# clear_flags=T,
-              selection = [ channel_start_index=1,channel_end_index=1 ] ];
+              selection = [ channel_start_index=1,channel_end_index=1 ],
+              python_init = 'read_msvis_header.py' ];
 outputrec := [ write_flags=T,predict_column=outcol ]; 
 
 res := do_test(msname=msname,solve=T,subtract=T,run=run,flag=0.17,
 #  st1set=[1:5]*4,st2set=[1:5]*4,
 #  st1set=[1:21]*4,st2set=[1:21]*4,
-  stset=1+[0:6], #load='meqsolve50.forest',
+  stset=1+[0:2], #load='meqsolve50.forest',
 #  st1set=1+[0:20]*4,st2set=1+[0:20]*4,
 #  st1set=1:100,st2set=1:100,
   set_breakpoint=set_breakpoint,

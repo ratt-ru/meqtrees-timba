@@ -188,6 +188,11 @@ const int AidIdle_int = -1477;
 const DMI::AtomicID AidIndex(-1061);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:30
 const int AidIndex_int = -1061;
 #endif
+#ifndef _defined_id_AidInit
+#define _defined_id_AidInit 1
+const DMI::AtomicID AidInit(-1038);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/MTGatewayWP.h:16
+const int AidInit_int = -1038;
+#endif
 #ifndef _defined_id_AidInput
 #define _defined_id_AidInput 1
 const DMI::AtomicID AidInput(-1036);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
@@ -282,6 +287,11 @@ const int AidPublish_int = -1060;
 #define _defined_id_AidPublishing 1
 const DMI::AtomicID AidPublishing(-1509);         // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:17
 const int AidPublishing_int = -1509;
+#endif
+#ifndef _defined_id_AidPython
+#define _defined_id_AidPython 1
+const DMI::AtomicID AidPython(-1113);             // from /home/oms/LOFAR/Timba/OCTOPython/src/OctoPython.h:9
+const int AidPython_int = -1113;
 #endif
 #ifndef _defined_id_AidQueue
 #define _defined_id_AidQueue 1
