@@ -40,7 +40,10 @@ const create_common_parms := function (ra0,dec0)
 
 
 
-
+const create_constants := function()
+{
+    mqs.createnode(meq.node('MeqConstant','one',[value=1.0]));
+}
 
 
 
@@ -61,7 +64,7 @@ const create_source_subtrees := function (sti,ra,dec,src='', mep_table_name='')
     polc_array[1,1] := sti;
     
     #fmin := ms_freqranges[1][1];
-    #fmax := ms_freqranges[1][2];
+    #fmax := ms_freqranges[2][1];
     #tmin := ms_timerange[1];
     #tmax := ms_timerange[2];
     polc := meq.polc(polc_array,scale=[10000.0, 1e6], offset=[4.47204e9,1.175e9]);#,domain=meq.domain(fmin,fmax,tmin,tmax)); # domain: entire dataset
@@ -85,6 +88,10 @@ const create_source_subtrees := function (sti,ra,dec,src='', mep_table_name='')
                                                       groups="a"),
                                       dec   =meq.parm(fq_name('dec',src),dec,
                                                       groups="a")]));
+    mqs.createnode(meq.node('MeqSelector',fq_name('l',src),[index=1],
+                            children=fq_name("lmn",src)));
+    mqs.createnode(meq.node('MeqSelector',fq_name('m',src),[index=2],
+                            children=fq_name("lmn",src)));
     mqs.createnode(meq.node('MeqSelector',fq_name('n',src),[index=3],
                             children=fq_name("lmn",src)));
 }
@@ -139,9 +146,19 @@ const sta_dft_tree := function (st,src='')
     
   # builds an init-rec for a node called 'dft.N' with two children: 
   # lmn and uvw.N
-  dft := meq.node('MeqStatPointSourceDFT',fq_name('dft0',src,st),
+  n_minus_one := meq.node('MeqSubtract', fq_name('nminusone', src),
+                          [link_or_create=T],
+                          children=meq.list(fq_name('n', src),
+                                            'one'));
+  
+  lmn_minus_one := meq.node('MeqComposer', fq_name('lmnminusone', src),
+                            [link_or_create=T],
+                            children=meq.list(fq_name('l', src),
+                                              fq_name('m', src),
+                                              n_minus_one));
+  dft := meq.node('MeqVisPhaseShift',fq_name('dft0',src,st),
                   [link_or_create=T],
-                  children=[lmn = fq_name('lmn',src),uvw=uvw ]);
+                  children=[lmn = lmn_minus_one, uvw=uvw ]);
   # add antenna gains/phases
   amp_node := meq.parm(fq_name('GA',st),1.0,groups="a");
   amp_node.table_name := '3C343.mep';
@@ -165,12 +182,26 @@ const sta_dft_tree := function (st,src='')
 # builds an init-record for a "dft" tree for source 'src' and two stations (st1,st2)
 const ifr_source_predict_tree := function (st1,st2,src='')
 {
-  return meq.node('MeqMultiply',fq_name('predict',src,st1,st2),children=meq.list(
-      fq_name('stokes_i',src),
-      meq.node('MeqPointSourceDFT',fq_name('dft',src,st1,st2),children=[
-               st_dft_1 = sta_dft_tree(st1,src),
-               st_dft_2 = sta_dft_tree(st2,src),
-               n = fq_name('n',src) ] ) ));
+    dft1 := sta_dft_tree(st1, src);
+    dft2 := sta_dft_tree(st2, src);
+    
+    conj_st2 := meq.node('MeqConj', fq_name('pointsource_conj', src, st2),
+                         [link_or_create=T],
+                         children=meq.list(dft2));
+    
+    phasedft := meq.node('MeqMultiply', fq_name('phasedft', src, st1,st2),
+                         [link_or_create=T],
+                         children=meq.list(dft1, conj_st2));
+    
+    modflux  := meq.node('MeqDivide', fq_name('modified_i',src),
+                         [link_or_create=T],
+                         children=meq.list(fq_name('stokes_i',src),
+                                           fq_name('n', src)));
+    
+    predict  := meq.node('MeqMultiply', fq_name('predict',src,st1,st2),
+                         [link_or_create=T],
+                         children=meq.list(phasedft, modflux));
+    return predict;
 }
 
 
@@ -213,6 +244,9 @@ const make_shared_nodes := function (stokesi=1,ra=0,dec=0,src=[''],
   dec0 := ms_phasedir[2];
   # setup source parameters and subtrees
   create_common_parms(ra0,dec0);
+  
+  create_constants();
+  
   for( i in 1:len(src) ) {
     print src[i];
     print create_source_subtrees(stokesi[i],ra[i],dec[i],src[i], mep_table_name);
@@ -421,8 +455,12 @@ const get_ms_info := function (msname='test.ms',uvw=T)
   num_chan := freqtab.getcol('NUM_CHAN');
   chan_freqs := freqtab.getcol('CHAN_FREQ');
   num_spw := freqtab.nrows();
+  print num_spw;
+  print 'CHAN_FREQ SHAPE: ', shape(chan_freqs);
+  ms_freqranges := array(0.0,2,num_spw);
   for( i in 1:num_spw){
-      ms_freqranges[i] := [min(chan_freqs[i]), max(chan_freqs[i])];
+      print i;
+      ms_freqranges[,i] := [min(chan_freqs[,i]), max(chan_freqs[,i])];
   }
   freqtab.close();
 
@@ -687,8 +725,9 @@ const do_test := function (predict=F,subtract=F,solve=F,run=T,
   # enable publishing of solver results
   if( solve && publish>0 ) {
     mqs.meq('Node.Publish.Results',[name='solver']);
-    mqs.meq('Node.Publish.Results',[name='GP.12']);
-    mqs.meq('Node.Publish.Results',[name='G.12']);
+#    mqs.meq('Node.Publish.Results',[name='GP.12']);
+#    mqs.meq('Node.Publish.Results',[name='G.12']);
+#    mqs.meq('Node.Publish.Results',[name='modified_i.3C343']);
 #    mqs.meq('Node.Publish.Messages',[name='x.1']);
 #    mqs.meq('Node.Publish.Messages',[name='dft0.3D343_1.1']);
 #    mqs.meq('Node.Publish.Results',[name=fq_name('dft.b',4,8)]);
@@ -762,7 +801,7 @@ source_flux_fit_no_calibration := function()
         mepuvw := F;
     
     outcol := 'PREDICTED_DATA';
-    solver_defaults := [ num_iter=4,save_funklets=T,last_update=T ];
+    solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
                  tile_size=1500,# clear_flags=T,
@@ -770,10 +809,10 @@ source_flux_fit_no_calibration := function()
                               channel_end_index=60 ,
                               selection_string=''] ];
     
-    outputrec := [ write_flags=T,predict_column=outcol ]; 
+    outputrec := [ write_flags=F,predict_column=outcol ];
     
     res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
-                   stset=1:14,
+                   stset=[1:14],
                    solve_fluxes=solve_fluxes,
                    solve_gains=solve_gains,
                    solve_phases=solve_phases,
@@ -841,12 +880,12 @@ phase_solution_with_given_fluxes := function()
     solver_defaults := [ num_iter=10,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
-                 tile_size=2,# clear_flags=T,
+                 tile_size=1,# clear_flags=T,
                  selection = [ channel_start_index=5,
                               channel_end_index=60, 
-                              selection_string='TIME < 4472026500'] ];
+                              selection_string=''] ];
     
-    outputrec := [ write_flags=T,predict_column=outcol ]; 
+    outputrec := [ write_flags=F,predict_column=outcol ]; 
     
     res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
                    stset=1:14,
@@ -867,35 +906,72 @@ phase_solution_with_given_fluxes := function()
 
 polar_test := function()
 {
-    mqs := meq.server();
-    if(is_fail(mqs)){
-        print mqs;
-    }
-    mqs.init();
+    mqsinit();
 # add antenna gains/phases
-    print 'amp_node';
-    amp_node := meq.parm(fq_name('GA'),1.0,groups="a");
-    mqs.createnode(amp_node);
-    print 'phase_node';
-    phase_node :=meq.parm(fq_name('GP'),3.14159265358/2.0,groups="a");
-    mqs.createnode(phase_node);
-    print 'gain';
-    gain := meq.node('MeqPolar',fq_name('G'),[link_or_create=T],
+    amp_node := meq.parm('GA',1.0,groups="a");
+    amp_node.link_or_create:=T;
+    
+    phase_node :=meq.parm('GP',3.14159265358/2.0,groups="a");
+    phase_node.link_or_create:=T;
+    
+    gain := meq.node('MeqPolar','G',[link_or_create=T],
                      children=meq.list(amp_node, phase_node) );
 
-    print 'mqs.createnode';
     mqs.createnode(gain);
-    print 'mqs.resolve';
-    mqs.resolve(gain);
-    print 'cells';
+    mqs.resolve('G');
+
     cells := meq.cells(meq.domain(0,1,0,1),1,1);
-    print 'request';
     request := meq.request(cells,rqid=meq.rqid(),calc_deriv=F);
-    print 'res';
-    res := mqs.meq('Node.Execute', [name=fq_name('G'),request=request], F);
-    print res;
+    res := mqs.meq('Node.Execute', [name='G',request=request], F);
+}
+
+
+visphaseshift_test := function()
+{
+    mqsinit();
+    u1 := meq.node('MeqConstant', 'u1', [value=300, link_or_create=T]);
+    v1 := meq.node('MeqConstant', 'v1', [value=-1000.0, link_or_create=T]);
+    w1 := meq.node('MeqConstant', 'w1', [value=200.0, link_or_create=T]);
+
+    uvw1 := meq.node('MeqComposer', 'uvw1', [link_or_create=T],
+                     children=meq.list(u1,v1,w1));
+
+    
+    u2 := meq.node('MeqConstant', 'u2', [value=300+100.0, link_or_create=T]);
+    v2 := meq.node('MeqConstant', 'v2', [value=-1000+500.0, link_or_create=T]);
+    w2 := meq.node('MeqConstant', 'w2', [value=200+30.0, link_or_create=T]);
+
+    uvw2 := meq.node('MeqComposer', 'uvw2', [link_or_create=T],
+                     children=meq.list(u2,v2,w2));
+    lval := -0.05;
+    mval := +0.01;
+    l := meq.node('MeqConstant', 'l', [value=lval, link_or_create=T]);
+    m := meq.node('MeqConstant', 'm', [value=mval, link_or_create=T]);
+    n :=  meq.node('MeqConstant', 'n', [value=sqrt(1.0-lval^2 -mval^2), link_or_create=T]);
+    
+    nminusone := meq.node('MeqConstant', 'nminusone', [value=(sqrt(1.0-lval^2 -mval^2)-1.0), link_or_create=T]);
+         
+    lmnminusone := meq.node('MeqComposer', 'lmnminusone', [link_or_create=T],
+                        children=meq.list(l,m,nminusone));
+
+    visphase1 := meq.node('MeqVisPhaseShift', 'visphase1', [link_or_create=T],
+                 children=[lmn=lmnminusone, uvw=uvw1]);
+    visphase2 := meq.node('MeqVisPhaseShift', 'visphase2', [link_or_create=T],
+                 children=[lmn=lmnminusone, uvw=uvw2]);
+
+    conj2 := meq.node('MeqConj', 'conj2', [link_or_create=T],
+             children=meq.list(visphase2));
+
+    vis := meq.node('MeqMultiply', 'vis', [link_or_create=T],
+           children=meq.list(visphase1, conj2));
+    mqs.createnode(vis);
+    mqs.resolve('vis');
+    cells := meq.cells(meq.domain(1e+9,1.2e+9,0,1),20,10);
+    request := meq.request(cells,rqid=meq.rqid(),calc_deriv=F);
+    res := mqs.meq('Node.Execute', [name='vis',request=request], F);
 }
 
 #source_flux_fit_no_calibration();
 phase_solution_with_given_fluxes();
 #polar_test();
+#visphaseshift_test();
