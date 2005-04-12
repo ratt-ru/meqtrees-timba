@@ -73,8 +73,9 @@ class DataItem (object):
     self.viewer = viewer;
     self.viewer_obj = None;
   def __del__ (self):
-    self.kill_viewer();
-  def kill_viewer (self):
+    self.cleanup();
+  def cleanup (self):
+    _dprint(2,self.udi);
     try: self.viewer_obj.cleanup();
     except: pass;
     self.viewer_obj = None;

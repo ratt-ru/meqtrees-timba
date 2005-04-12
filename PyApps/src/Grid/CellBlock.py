@@ -57,6 +57,10 @@ class CellBlock (object):
       self._allocate_float();
     else:
       self._allocate_grid(**cellspec);
+      
+  def cleanup (self):
+    """Cleanup method, currently empty."""; 
+    _dprint(2,id(self));
     
   def wparent (self,offset=0):
     """Returns parent widget (i.e. cell workspaces) for viewers to attach 

@@ -240,6 +240,7 @@ def removeDataItem (item):
     if itemlist[i] is item:
       _dprint(2,'removing instance',i);
       del itemlist[i];
+      item.cleanup();
       return;
   _dprint(2,'no matching items found');
   
