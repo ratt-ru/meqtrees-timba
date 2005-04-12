@@ -1,4 +1,4 @@
-//# StatPointSourceDFT.h: The point source DFT component for a station
+//# VisPhaseShift.h: The point source DFT component for a station
 //#
 //# Copyright (C) 2004
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -20,31 +20,34 @@
 //#
 //# $Id$
 
-#ifndef MEQNODES_STATPOINTSOURCEDFT_H
-#define MEQNODES_STATPOINTSOURCEDFT_H
+#ifndef MEQNODES_VISPHASESHIFT_H
+#define MEQNODES_VISPHASESHIFT_H
 
 //# Includes
 #include <MEQ/CompoundFunction.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
-#pragma types #Meq::StatPointSourceDFT
+#pragma types #Meq::VisPhaseShift
 #pragma aid LMN UVW
 
 namespace Meq {    
 
-class StatPointSourceDFT: public CompoundFunction
+
+//! This node implements exp(-2*pi*i*(ul +vm +wn)*freq/c)
+    
+class VisPhaseShift: public CompoundFunction
 {
 public:
-  // The default constructor.
-  StatPointSourceDFT();
+  //! The default constructor.
+  VisPhaseShift();
 
-  virtual ~StatPointSourceDFT();
+  virtual ~VisPhaseShift();
 
   virtual TypeId objectType() const
-    { return TpMeqStatPointSourceDFT; }
+    { return TpMeqVisPhaseShift; }
 
-  // Get the result for the given request.
+  //! Get the result for the given request.
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
@@ -53,6 +56,10 @@ protected:
   virtual void evalResult (std::vector<Vells> &res,
           const std::vector<const Vells*> &values,
           const Cells *);
+
+  int           itsNtime;
+  int           itsNfreq;
+  Vells::Shape  itsResult_shape;
 };
 
 } // namespace Meq

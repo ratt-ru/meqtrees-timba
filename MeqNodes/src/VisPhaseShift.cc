@@ -1,4 +1,4 @@
-//# StatPointSourceDFT.cc: The point source DFT component for a station
+//# VisPhaseShift.cc: The point source DFT component for a station
 //#
 //# Copyright (C) 2004
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -20,7 +20,7 @@
 //#
 //# $Id$
 
-#include <MeqNodes/StatPointSourceDFT.h>
+#include <MeqNodes/VisPhaseShift.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 #include <casa/BasicSL/Constants.h>
@@ -34,7 +34,7 @@ const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 const HIID FDomain = AidDomain;
 
-StatPointSourceDFT::StatPointSourceDFT()
+VisPhaseShift::VisPhaseShift()
 : CompoundFunction(num_children,child_labels)
 {
   // dependence on frequency 
@@ -42,10 +42,10 @@ StatPointSourceDFT::StatPointSourceDFT()
   setActiveSymDeps(symdeps,2);
 }
 
-StatPointSourceDFT::~StatPointSourceDFT()
+VisPhaseShift::~VisPhaseShift()
 {}
 
-void StatPointSourceDFT::evalResult (std::vector<Vells> &res,
+void VisPhaseShift::evalResult (std::vector<Vells> &res,
                             const std::vector<const Vells*> &values,
                             const Cells *pcells)
 {
@@ -65,47 +65,76 @@ void StatPointSourceDFT::evalResult (std::vector<Vells> &res,
   Assert(vu.extent(Axis::TIME) == vu.nelements());
   Assert(vv.extent(Axis::TIME) == vv.nelements());
   Assert(vw.extent(Axis::TIME) == vw.nelements());
+  Assert(pcells->numSegments(Axis::FREQ) == 1);
   // Loop over all frequency segments, and generate an F0/DF pair for each
-  int iout = 0;
-  for( int iseg = 0; iseg < pcells->numSegments(Axis::FREQ); iseg++ )
-  {
-    int seg0 = pcells->segmentStart(Axis::FREQ)(iseg);
-    // Calculate 2pi/wavelength, where wavelength=c/freq.
-    // Calculate it for the frequency step if needed.
-    double f0 = pcells->center(Axis::FREQ)(seg0);
-    double df = pcells->cellSize(Axis::FREQ)(seg0);
-    double wavel0 = casa::C::_2pi * f0 / casa::C::c;
-    double dwavel = df / f0;
-    // the "-1" accounts for fringe stopping in the telescope
-    Vells r1 = (vu*vl + vv*vm +vw*(vn - 1)) * wavel0;
-    res[iout++] = polar(1,r1);
-    res[iout++] = polar(1,r1*dwavel);
-  }
+  //  for( int iseg = 0; iseg < pcells->numSegments(Axis::FREQ); iseg++ )
+  //  {
+  int seg0 = pcells->segmentStart(Axis::FREQ)(0);
+  // Calculate 2pi/wavelength, where wavelength=c/freq.
+  // Calculate it for the frequency step if needed.
+  double f0 = pcells->center(Axis::FREQ)(seg0);
+  double df = pcells->cellSize(Axis::FREQ)(seg0);
+  double wavel0 = casa::C::_2pi * f0 / casa::C::c;
+  double dwavel = df / f0;
+  
+  Vells r1 = -(vu*vl + vv*vm +vw*vn ) * wavel0;
+
+  Vells vf0 = polar(1,r1);
+  Vells vdf = polar(1,r1*dwavel);
+
+  res[0]              = Vells(dcomplex(0), itsResult_shape, false);
+  dcomplex* resdata   = res[0].complexStorage();
+  const dcomplex* pf0 = vf0.complexStorage();
+  const dcomplex* pdf = vdf.complexStorage();
+
+  int step = (vf0.extent(Axis::TIME) > 1 ? 1 : 0);
+  for(int i = 0; i < itsNtime; i++){
+      dcomplex val0 = *pf0;
+      *resdata++    = val0;
+      dcomplex dval = *pdf;
+      for(int j=1; j < itsNfreq; j++){
+          val0      *= dval;
+          *resdata++ = val0;
+      }// for j (freq)
+      pf0 += step;
+      pdf += step;
+  }// for i (time)
+
+//    res[iout++] = polar(1,r1);
+//    res[iout++] = polar(1,r1*dwavel);
+//  }
 }
 
 
-int StatPointSourceDFT::getResult (Result::Ref &resref, 
+int VisPhaseShift::getResult (Result::Ref &resref, 
 				   const std::vector<Result::Ref> &childres,
 				   const Request &request, bool newreq)
 {
   std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
   lockMutexes(child_reslock,childres);
-  const int expect_nvs[]        = {3,3};
+  const int expect_nvs[]        = {3,3}; // number of Vells in children
   const int expect_integrated[] = {-1,-1};
   Assert(int(childres.size()) == num_children);
 
   // Check that child results are all OK (no fails, expected # of vellsets per child)
   vector<const VellSet *> child_vs(6);
   if( checkChildResults(resref,child_vs,childres,expect_nvs,
-        expect_integrated) == RES_FAIL )
-    return RES_FAIL;
+        expect_integrated) == RES_FAIL ){
+      return RES_FAIL;
+  }
 
   // allocate proper output result (integrated=false??)
   const Cells &cells = request.cells();
   FailWhen(!cells.isDefined(Axis::FREQ),"Cells must define a frequency axis");
-  Result &result = resref <<= new Result(cells.numSegments(Axis::FREQ)*2,false);
+  FailWhen(!cells.isDefined(Axis::TIME),"Cells must define a time axis");
+  
+  Result& result = resref <<= new Result(1);
+  itsNfreq        = cells.ncells(Axis::FREQ);
+  itsNtime        = cells.ncells(Axis::TIME);
+  itsResult_shape = Axis::freqTimeMatrix(itsNfreq, itsNtime);
+  
   // fill it
-  computeValues(result,child_vs,&cells);
+  computeValues(resref(),child_vs,&cells);
   result.setCells(cells);
   
   return 0;
