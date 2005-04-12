@@ -15,7 +15,7 @@ LOCALSRCS = \
     Stripper.cc DataCollect.cc DataConcat.cc \
     BlitzRandom.cc NoiseNode.cc RandomNoise.cc GaussNoise.cc ZeroFlagger.cc StdDev.cc \
     ParmTable.cc WSum.cc WMean.cc Negate.cc Invert.cc \
-    MatrixMultiply.cc 
+    MatrixMultiply.cc UVBrick.cc UVInterpol.cc 
 
 ## commented out for now:    
 ## ModRes.cc Resampler.cc ZeroFlagger.cc 
