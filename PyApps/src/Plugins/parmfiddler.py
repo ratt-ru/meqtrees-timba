@@ -5,9 +5,12 @@ from Timba.dmi import *
 from Timba.Meq import meqds
 from Timba.Meq.meqds import mqs
 from Timba.Meq import meq
-import Timba.GUI.browsers
+from Timba.GUI import browsers
 from Timba.GUI.pixmaps import pixmaps
 from Timba.GUI.treebrowser import NodeAction
+import Timba.GUI.app_proxy_gui
+from Timba.GUI.meqserver_gui import makeNodeDataItem
+from Timba import Grid
 
 
 from qt import *
@@ -28,7 +31,11 @@ class editParm(QDialog):
       self.grandparent = grandparent;
       self.parentname=parent._nodename;
       funklet=self.parent._funklet;
-      self._coeff=funklet.coeff;
+      if funklet:
+          self._coeff=funklet.coeff;
+      else:
+          self._coeff=0;
+
       if is_scalar(self._coeff):
           self._coeff=[[self._coeff]]
       if is_scalar(self._coeff[0]):
@@ -142,8 +149,8 @@ class editParm(QDialog):
 
     def slotcmdCancel(self):
 #        self.parent._dorefresh();
-        self.reject();
-
+#        self.reject();
+        self.parent.rejectedit();
     def slotcmdOK(self):
 #        print self.parent._funklet.coeff;
         array1=numarray.resize(self.parent._funklet.coeff,(self._nx,self._ny));
@@ -155,7 +162,7 @@ class editParm(QDialog):
 #        print self.parent._funklet.coeff;
 #       self.updategrid();
         self.parent.updatechange();
-        self.reject();
+#        self.reject();
                 
                 
     def updategrid(self):
@@ -179,7 +186,10 @@ class editParm(QDialog):
 
     def updateCoeff_fromparent(self):
         funklet=self.parent._funklet;
-        self._coeff=funklet.coeff;
+        if funklet:
+            self._coeff=funklet.coeff;
+        else:
+            self._coeff=0;
         if is_scalar(self._coeff):
             self._coeff=[[self._coeff]]
         if is_scalar(self._coeff[0]):
@@ -192,12 +202,10 @@ class editParm(QDialog):
 class NA_ParmFiddler(NodeAction):
   text = "ParmFiddler";
   nodeclass = meqds.NodeClass('MeqNode');
-  iconset= pixmaps.fiddler.iconset;
+  iconset= pixmaps.fiddle.iconset;
   def activate (self,node):
-    try: dialog = self.item.tb._node_parmfiddler_dialog;
-    except AttributeError:
-      self.item.tb._node_parmfiddler_dialog = dialog = ParmFiddlerDialog(self.item.tb.wtop());
-    dialog.show(node);
+      Grid.Services.addDataItem(makeNodeDataItem(node,viewer=ParmFiddler));
+
   def is_enabled (self,node):
     # available in idle mode, or when stopped at a debugger. 
     # If debug_level is set, node must be idle (otherwise, we can't trust the
@@ -206,67 +214,77 @@ class NA_ParmFiddler(NodeAction):
            ( not self.tb.debug_level or node.is_idle() );
 
 
-class ParmFiddlerDialog (QDialog):
+_request_type = dmi_type('MeqRequest',record);
 
-  def __init__(self,parent = None,name = None,modal = 0,fl = 0):
-    QDialog.__init__(self,parent,name,modal,fl)
-    if not name:
-        self.setName("ParmFiddlerDialog")
-    ParmFiddlerDialogLayout = QVBoxLayout(self,11,6,"ParmFiddlerDialogLayout")
-    self.edit=None;
-    self._node=None;
+
+
+class ParmFiddler (browsers.GriddedPlugin):
+  viewer_name = "ParmFiddler";
+  _icon = pixmaps.fiddle;
+
+  def is_viewable (data):
+    return isinstance(data,_request_type) or \
+      isinstance(getattr(data,'request',None),_request_type);
+  is_viewable = staticmethod(is_viewable);
+
+
+  def __init__(self,gw,dataitem,cellspec={},**opts):
+    browsers.GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
+    _dprint(1,"started with",dataitem.udi,dataitem.data);
+    self._has_data = False;
+
     self.rid=0;
-    reqFrame = QVBox(self);
-    reqFrame.setFrameShape(QFrame.Panel+QFrame.Sunken);
-    reqFrame.setMargin(10);
-    reqCtrlFrame = QHBox(reqFrame);
+    self._wtop = QVBox(self.wparent());
+#    self._wtop.setFrameShape(QFrame.Panel+QFrame.Sunken);
+#    self._wtop.setMargin(10);
+
+    udi_root = dataitem.udi;
+    reqCtrlFrame = QHBox(self.wtop());
     # Create a list box
     self.lb = QListBox(reqCtrlFrame , "listBox" );
+    
 
     #on double click:
-    self.connect( self.lb, SIGNAL("selected(int)"), self.parmSelected )
-    self.connect( self.lb, SIGNAL("clicked(QListBoxItem *)"), self.parmSetIndex )
+    QObject.connect( self.lb, SIGNAL("selected(int)"), self.parmSelected )
+    #    QObject.connect( self.lb, SIGNAL("selected(int)"), self.parmSetIndex )
+    QObject.connect( self.lb, SIGNAL("clicked(QListBoxItem *)"), self.parmSetIndex )
     
     reqVFrame = QVBox(reqCtrlFrame);
-#    self.dialParm = QDial(0, 255, 1, 0,reqVFrame );
-#    self.labelParm = QLabel("c00: 0", reqVFrame );
-#    QObject.connect(self.dialParm, SIGNAL("valueChanged(int)"),
-#                    self.changeC00);
-    
+    self.labelParm = QLabel("c00: 0", reqVFrame ,"labelParm");
+        
     self.buttonOk = QPushButton(reqVFrame,"buttonOk")
     self.buttonOk.setIconSet(pixmaps.check.iconset());
     self.buttonOk.setText('Funklet');
 
-    ParmFiddlerDialogLayout.addWidget(reqFrame);
-
-    Layout1 = QHBoxLayout(None,0,6,"Layout1")
-    Horizontal_Spacing2 = QSpacerItem(20,20,QSizePolicy.Expanding,QSizePolicy.Minimum)
-    Layout1.addItem(Horizontal_Spacing2)
-
-    self.buttonCancel = QPushButton(self,"buttonCancel")
-    Layout1.addWidget(self.buttonCancel)
-    ParmFiddlerDialogLayout.addLayout(Layout1)
-
-    self.resize(QSize(511,482).expandedTo(self.minimumSizeHint()))
-
-    self.clearWState(Qt.WState_Polished)
-
-    self.connect(self.buttonCancel,SIGNAL("clicked()"),self.reject)
-    self.buttonCancel.setIconSet(pixmaps.cancel.iconset());
-    self.buttonCancel.setText('Cancel');
+    
 
 
-    self.connect(self.buttonOk,SIGNAL("clicked()"),self.getparms);
+ 
+    QObject.connect(self.buttonOk,SIGNAL("clicked()"),self.getparms);
 
     self._request = [];
     self._parmlist= [];
     self._currentparm=None;
     self._parmindex=-1;
-    self.c00=0;
+    self.c00=0.0;
     # find parms
     #self.getparms();
+    # set data
+    # form a caption and set contents
+    (name,ni) = meqds.parse_node_udi(dataitem.udi);
+    caption = "Fiddle from <b>%s</b>" % (name or '#'+str(ni),);
+    self._node = ni;
+    # setup widgets
+    self.set_widgets(self.wtop(),caption,icon=self.icon());
 
-  def changeC00(self, value):
+    if dataitem.data is not None:
+        self.set_data(dataitem);
+
+
+  def wtop(self):
+    return self._wtop;
+
+  def changeC00(self, value=0.0):
       self.labelParm.setText("c00: " + str(value))
       self.c00 = value
 
@@ -275,11 +293,23 @@ class ParmFiddlerDialog (QDialog):
       if item:
           self._parmindex = self.lb.currentItem();
       self.buttonOk.setEnabled(True);
+      changenode=self._parmlist[self._parmindex];
+      if self._currentparm:
+          self._currentparm.reject();
+#          del self._currentparm;
+      self._currentparm = ParmChange(self,changenode);
 
 
   def parmSelected(self,index):
       self._parmindex = index;
       self.buttonOk.setEnabled(True);
+      changenode=self._parmlist[self._parmindex];
+      if self._currentparm:
+          self._currentparm.reject();
+#          del self._currentparm;
+      self._currentparm = ParmChange(self,changenode);
+
+
       self.getparms();
 
       
@@ -287,83 +317,75 @@ class ParmFiddlerDialog (QDialog):
 
   def getparms(self):
     if not self._parmlist:
-        QMessageBox.warning(self,
+        QMessageBox.warning(self.wtop(),
                             "Warning",
                             "No parameters found");
         return;
     
     if self._parmindex >= len(self._parmlist) or self._parmindex< 0 :
-        QMessageBox.warning(self,
+        QMessageBox.warning(self.wtop(),
                             "Warning",
                             "No parameter selected");
         return;
 
 
 
-    if self._currentparm :
-        self._currentparm.reject();
 
     changenode=self._parmlist[self._parmindex];
-    self._currentparm = ParmChange(self,changenode);
+    if not self._currentparm:
+        self._currentparm = ParmChange(self,changenode);
+    if self._currentparm.edit_parm :
+        self._currentparm.rejectedit();
+    # create new editor
+    self._currentparm._edit();
+    self.changeC00(self._currentparm.getc00());
+    
 
-
-  def show (self,node):
-    self.setCaption("Fiddle from node: "+node.name);
-    self._node = weakref_proxy(node);
-    self._nodename=node.name;
-    self._dorefresh();
-    self._parmlist= [];
-    self.getnodelist(self._node);
-    #fill listbox with MeqParm names
-    self.lb.clear();
-    self._parmindex=-1;
-    for parm in self._parmlist:
-        self.lb.insertItem( parm.name )
-    QDialog.show(self);
-    if self._parmindex >= 0:
-        self.buttonOk.setEnabled(True);
-    else:
-        self.buttonOk.setEnabled(False);
+  def set_data (self,dataitem,**opts):
+    if not self._has_data:
+      self._has_data = True;
+      state = dataitem.data;
+      request = getattr(state,'request',None);
+      if not request:
+          QMessageBox.warning(self.wtop(),
+                              "Warning",
+                            "No request found in Node, Please specify request first via Reexecute");
+          self.buttonOk.setEnabled(False);          
+      else:
+          #
+          #      print self._node;
+          self._request = request;
+          self._parmlist= [];
+          self.getnodelist(meqds.nodelist[self._node]);
+          # fill listbox with MeqParm names
+          self.lb.clear();
+          if self._currentparm:
+              self._currentparm.reject();
+              self._currentparm=None;
+          self._parmindex=-1;
+          for parm in self._parmlist:
+              self.lb.insertItem( parm.name )
+          self.buttonOk.setEnabled(False);
         
-    if not self._parmlist:
-        QMessageBox.warning(self,
-                            "Warning",
-                            "No parameters found");
-        self.buttonOk.setEnabled(False);
+          if not self._parmlist:
+              QMessageBox.warning(self.wtop(),
+                                  "Warning",
+                                  "No parameters found");
+              self.buttonOk.setEnabled(False);
         
+      self.enable();
+      self.flash_refresh();
 
     
-  def _dorefresh (self):
-    # request node state, and subscribe to it via the curried callback
-    # the curry() is handy because it will automatically disconnect the
-    # subscription when deleted
-    self._callback = curry(self._update_state);
-    self._node.subscribe_state(self._callback);
-    meqds.request_node_state(self._node);
-
-
-  def _update_state(self,node,state,event=None):
-    try: request = state.request;
-    except AttributeError: #pass
-        #      QListViewItem(self.reqView.wlistview(),'','','(no funklet found in node)');
-
-        #pop up
-        QMessageBox.warning(self,
-                            "Warning",
-                            "No request found in Node",
-                            "Please specify request first via Reexecute");
-#        print "no request found in node";
-#        self.buttonOk.setEnabled(False);
-    else:
-        #
-        #      print self._node;
-        self._request = state.request;
+  def _refresh (self):
+    # clear the has_data flag, so that set_data above will accept new data
+    _dprint(2,'refresh expected now');
+    self._has_data = False;
         
 
   def getnodelist(self,node):
       if node.classname == 'MeqParm':
-          self.checkparm=0;
-          self._parmlist.append(node);
+          self.checkparm(node);
           
       else:
           # loop over chilren          
@@ -374,12 +396,19 @@ class ParmFiddlerDialog (QDialog):
                   self.getnodelist(child);
           
 
+  def checkparm(self,node):
+      for i in range(len(self._parmlist)):
+          checknode=self._parmlist[i];
+          if checknode.name==node.name:
+              return False;
+          if(checknode.name>node.name):
+              # store in alphabetic order
+              self._parmlist.insert(i,node);
+              return True;
 
-  def reject (self):
-    self._node = self._request = self._callback = None; # this will disconnect the Qt signal
-    self.killTimers();
-    QDialog.reject(self);
-
+      self._parmlist.append(node);
+          
+      return True;
 
 
   def reexecute(self):
@@ -389,9 +418,13 @@ class ParmFiddlerDialog (QDialog):
       self.rid+=1;
       reqid=hiid(self.rid,self.rid,0,0);
       self._request.request_id = reqid;
-      cmd = record(name=self._node.name,request=self._request,get_state=True);
+      cmd = record(nodeindex=self._node,request=self._request,get_state=True);
       mqs().meq('Node.Execute',cmd,wait=False);
 
+  def cleanup (self):
+      if self._currentparm:
+          self._currentparm.reject();
+          del self._currentparm;
       
 
 
@@ -400,11 +433,21 @@ class ParmChange:
       self._parent=parent;
       self._node=node;
       self._nodename=node.name;      
-      self._callback = curry(self._update_state);
-      self._node.subscribe_state(self._callback);
-      meqds.request_node_state(self._node);
+#      self._callback = curry(self._update_state);
+#      self._node.subscribe_state(self._callback);
+#      meqds.request_node_state(self._node);
       self.edit_parm=None;
+      self._funklet=None;
+      self._dorefresh();
 
+  def _dorefresh (self):
+    # request node state, and subscribe to it via the curried callback
+    # the curry() is handy because it will automatically disconnect the
+    # subscription when deleted
+    self._callback = curry(self._update_state);
+    self._node.subscribe_state(self._callback);
+    meqds.request_node_state(self._node);
+      
   def _update_state(self,node,state,event=None):
       try: funklet = state.funklet;
       except AttributeError: #pass
@@ -412,29 +455,59 @@ class ParmChange:
           
           #pop up
           #        self.buttonOk.setEnabled(False);
-          print "no funklet found in node";
+          #          print "no funklet found in node";
+          QMessageBox.warning(None,
+                              "Warning",
+                              "No funklet found in Node");
+
       else:
           #print funklet;
           #      print self._node;
           #      self.buttonOk.setEnabled(True);
           self._funklet = state.funklet;
-          if not self.edit_parm:
-              self.edit_parm=editParm(self,self._parent);
+          self._parent.changeC00(self.getc00());
+          if self.edit_parm:
+              self.edit_parm.updateCoeff_fromparent();
 
+  def _edit(self):
+      if self.edit_parm:
+          self.reject();
+      self.edit_parm=editParm(self,self._parent.wtop());
 
+  def getc00(self):
+      if not self._funklet:
+          return 0.;
+      coeff = self._funklet.coeff;
+      if is_scalar(coeff):
+          return self._funklet.coeff;
+      else:
+          if is_scalar(coeff[0]):
+              return self._funklet.coeff[0];
+      return self._funklet.coeff[0][0];
 
   def updatechange (self):
       if not self._funklet:
           return;
+      if not self._parent:
+          self.reject();
       meqds.set_node_state(self._node,funklet=self._funklet);
       meqds.set_node_state(self._node,cacheresult=False);
+      self._parent.changeC00(self.getc00());
       
       self._parent.reexecute();
 
-  def reject(self):
-      if self.edit_parm:
+  def rejectedit(self):
+       if self.edit_parm:
           self.edit_parm.reject();
+          self.edit_parm=None;
+     
+
+  def reject(self):
+      self._node = self._callback = None; # this will disconnect the Qt signal
+      self.rejectedit();
 
 def define_treebrowser_actions (tb):
   _dprint(1,'defining parm fiddling treebrowser actions');
   tb.add_action(NA_ParmFiddler,30,where="node");
+
+Grid.Services.registerViewer(meqds.NodeClass(),ParmFiddler,priority=25);
