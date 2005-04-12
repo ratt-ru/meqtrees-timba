@@ -6,7 +6,6 @@ import random
 import qt
 import vtk
 from vtk.qt.QVTKRenderWindowInteractor import *
-#from QVTKRenderWindowInteractor import *
 from vtk.util.vtkImageImportFromArray import *
 from Timba.dmi import *
 from Timba import utils
@@ -15,6 +14,21 @@ from Timba.GUI import widgets
 from Timba.GUI.browsers import *
 from Timba import Grid
 from numarray import *
+
+rendering_control_instructions = \
+'''vtkInteractorStyle implements the "joystick" style of interaction. That is, holding down the mouse keys generates a stream of events that cause continuous actions (e.g., rotate, translate, pan, zoom). (The class vtkInteractorStyleTrackball implements a grab and move style.) The event bindings for this class include the following:<br><br>
+Keypress j / Keypress t: toggle between joystick (position sensitive) and trackball (motion sensitive) styles. In joystick style, motion occurs continuously as long as a mouse button is pressed. In trackball style, motion occurs when the mouse button is pressed and the mouse pointer moves.<br><br>
+Keypress c / Keypress a: toggle between camera and actor modes. In camera mode, mouse events affect the camera position and focal point. In actor mode, mouse events affect the actor that is under the mouse pointer.<br><br>
+Button 1: rotate the camera around its focal point (if camera mode) or rotate the actor around its origin (if actor mode). The rotation is in the direction defined from the center of the renderer's viewport towards the mouse position. In joystick mode, the magnitude of the rotation is determined by the distance the mouse is from the center of the render window.<br><br>
+Button 2: pan the camera (if camera mode) or translate the actor (if actor mode). In joystick mode, the direction of pan or translation is from the center of the viewport towards the mouse position. In trackball mode, the direction of motion is the direction the mouse moves. (Note: with 2-button mice, pan is defined as <Shift>-Button 1.)<br><br>
+Button 3: zoom the camera (if camera mode) or scale the actor (if actor mode). Zoom in/increase scale if the mouse position is in the top half of the viewport; zoom out/decrease scale if the mouse position is in the bottom half. In joystick mode, the amount of zoom is controlled by the distance of the mouse pointer from the horizontal centerline of the window.<br><br>
+Keypress 3: toggle the render window into and out of stereo mode. By default, red-blue stereo pairs are created. Some systems support Crystal Eyes LCD stereo glasses; you have to invoke SetStereoTypeToCrystalEyes() on the rendering window.<br><br>
+Keypress f: fly to the picked point.<br><br>
+Keypress p: perform a pick operation. The render window interactor has an internal instance of vtkCellPicker that it uses to pick.<br><br>
+Keypress r: reset the camera view along the current view direction. Centers the actors and moves the camera so that all actors are visible.<br><br>
+Keypress s: modify the representation of all actors so that they are surfaces. <br><br> 
+Keypress u: invoke the user-defined function. Typically, this keypress will bring up an interactor that you can type commands in.<br><br>
+Keypress w: modify the representation of all actors so that they are wireframe.'''
 #-----------------------------
 # Building Qt GUI
 #-----------------------------
@@ -34,6 +48,7 @@ class vtk_qt_display(qt.QWidget):
     winsplitter.setHandleWidth(10)
 #-----------------------------
     self.renwininter = QVTKRenderWindowInteractor(winsplitter)
+    qt.QWhatsThis.add(self.renwininter, rendering_control_instructions)
 #    self.renwininter.setGeometry(qt.QRect(20,20,600,400))
 
 # next line causes confusion when run inside the browser
