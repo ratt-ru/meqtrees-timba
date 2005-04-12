@@ -78,7 +78,7 @@ int Constant::getResult (Result::Ref& resref,
 			 const Request& request, bool)
 {
   // Copy result to output
-  resref <<= result_;
+  resref = result_;
   // integrate or simply attach cells as needed
   const Cells &cells = request.cells();
   if( integrated_ )
