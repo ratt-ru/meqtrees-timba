@@ -23,7 +23,7 @@ static DMI::Vec::Ref axis_recs,axis_ids;
 static void defineAxis (int i,const HIID &name)
 {
   _init();
-  FailWhen(!_default_mapping && _name_map[i] != name,
+  FailWhen(!_default_mapping && _name_map[i] != name && _name_map[i] != AtomicID(i),
       "different axis mapping already defined");
   _name_map[i] = axis_ids[i] = name;
   _num_map[name] = i;
@@ -127,6 +127,8 @@ int addAxis (const HIID &name)
     if( _name_map[i] == AtomicID(i) )
     {
       defineAxis(i,name);
+      // mapping no longer default
+      _default_mapping = false;
       return i;
     }
   // out of axes
