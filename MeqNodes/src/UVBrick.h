@@ -49,12 +49,6 @@ public:
   virtual TypeId objectType() const
   { return TpMeqUVBrick; }
 
-  /*
-// Evaluate the value for the given request.
-  virtual Vells evaluate (const Request&,const LoShape &,
-			  const vector<const Vells*>& values);
-  */
-
   // Get the requested result of the Node.
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
@@ -68,6 +62,7 @@ public:
  private:
   
   // It seems these images can only be global as pointers, since no default (or convenient) contructor is available for use in the UVBrick constructor.
+  // Maybe use TempImage object instead of PagedImage object.
   casa::PagedImage<float>* _uvreal;
   casa::PagedImage<float>* _uvimag;
   casa::PagedImage<float>* _uvabs;
@@ -79,13 +74,11 @@ public:
 
   bool _image_exists;
 
-  bool UVBrick::checkValidity();
+  bool UVBrick::checkValidity(const Cells &fcells);
 
   void UVBrick::makeUVImage(const Cells &fcells);
 
-  void UVBrick::fillVells(Vells &fvells1, Vells &fvells2, Vells &fvells3, Vells &fvells4, const Cells &fcells, const int fi);
-
-  void UVBrick::fillVells2(Vells &fvells1, Vells &fvells2, Vells &fvells3, Vells &fvells4, const Cells &fcells);
+  void UVBrick::fillVells(Vells &fvells1, Vells &fvells2, Vells &fvells3, Vells &fvells4, const Cells &fcells);
    
 };
 

@@ -55,7 +55,10 @@ namespace Meq {
       _wmax(0.0),
       // boolean for checking
       _image_exists(false)
-  {};
+  {
+    Axis::addAxis("U");
+    Axis::addAxis("V");
+  };
   
   UVBrick::~UVBrick()
   {
@@ -68,18 +71,13 @@ namespace Meq {
     delete _patch;
   };
   
-  //void UVBrick::init (DMI::Record::Ref::Xfer &initrec, Forest* frst)
-  //{
-  //  Node::init(initrec,frst);
-  // FailWhen(numChildren(),"RandomNoise node cannot have children");
-  //}
   
   int UVBrick::getResult (Result::Ref &resref,
 			  const std::vector<Result::Ref> &childres,
 			  const Request &request,bool newreq)
   {
 
-    const double c0 = casa::C::c;
+    const double c0 = casa::C::c; // Speed of light
 
     // Get the Request cells.
     const Cells& rcells = request.cells();
@@ -88,13 +86,13 @@ namespace Meq {
       {
 	//
 	// Make sure we have a valid UV Image
-	//	
-	if (_image_exists) 
+	//
+	if (!_image_exists) 
 	  {
 	    // UV image does not exist, so make one.
 	    makeUVImage(rcells);
 	  } else {
-	  if (!checkValidity()) {	    
+	  if (!checkValidity(rcells)) {	    
 	    // UV image does not satisfy the requirements, so make a new one.
 	    makeUVImage(rcells);	    
 	  };
@@ -167,12 +165,12 @@ namespace Meq {
 	cells().setCells(3,vmin,vmax,image_shape(1));
 
 	// Create Result object and attach to the Ref that was passed in.
-	
-	// Make result 
-	
+		
 	resref <<= new Result(4);
 
-	// Make a shape from the Cells
+	// Make the Vells
+	// For now, 4 Images are put in separate planes. In the future, 
+	//  just 1 plane may combine the real and imaginary images.
 
 	Vells::Shape shape;
 	Axis::degenerateShape(shape,cells->rank());
@@ -189,9 +187,10 @@ namespace Meq {
 	VellSet& vs4  = resref().setNewVellSet(3);  
 	Vells& vells4 = vs4.setValue(new Vells(double(0),shape,false));
 
-	fillVells2(vells1, vells2, vells3, vells4, cells);
+	fillVells(vells1, vells2, vells3, vells4, cells);
 
-	resref().setCells(*cells);          // Attach Cells to the Result
+	// Attach Cells to the Result (after the Vells are created!)
+	resref().setCells(*cells);          
 
       };  // end: if axis time and freq. 
     
@@ -205,11 +204,71 @@ namespace Meq {
   }
 
 
-  bool UVBrick::checkValidity()
+  bool UVBrick::checkValidity(const Cells &fcells)
   {
+    // For now assume a equidistant grid in frequency for the Request Cells.
+    // In the future, this may be generalized, where we will have two options:
+    // 1) Fill the Vells frequency plane by frequency plane.
+    // 2) Interpolate in frequency.
+    // Right now we assume that the Request cells is equidistant and that the 
+    //  frequency planes of the image coincide with the Request Cells.
 
-    // For now the validity is always FALSE, so that always a new image must be created.
-    return false;
+    bool valid = false;
+
+    // Get the minimal and maximal freq. values from the Image
+
+    casa::IPosition image_shape = _uvreal->shape();
+    const int nf = fcells.ncells(Axis::FREQ);
+
+    if (nf==image_shape(3)){
+      // The number of frequency planes of the request equals that of the image
+      
+      casa::CoordinateSystem cs = _uvreal->coordinates();
+      casa::Vector<casa::String> units(4,"lambda");
+      units(2) = "";
+      units(3) = "Hz";
+      cs.setWorldAxisUnits(units);
+    
+      casa::Vector<double> ref_pixel = cs.referencePixel();
+      casa::Vector<double> ref_value = cs.referenceValue();
+      casa::Vector<double> increment = cs.increment();
+    
+      double fmin;
+      double fmax;
+      
+      if (increment(3)>0) {
+	fmin = ref_value(3) - (ref_pixel(3)+1-0.5)*increment(3);
+	fmax = ref_value(3) + (image_shape(3)-ref_pixel(3)-1+0.5)*increment(3);
+      } else {
+	fmax = ref_value(3) - (ref_pixel(3)+1-0.5)*increment(3);
+	fmin = ref_value(3) + (image_shape(3)-ref_pixel(3)-1+0.5)*increment(3);
+      };
+    
+      // Get the freq range from the Request Cells
+      const LoVec_double freq = fcells.center(Axis::FREQ); 
+      const LoVec_double freqsize = fcells.cellSize(Axis::FREQ);
+
+      // assumes increasing freq. range in cells. Change!
+      const double freq_max = max(freq)+0.5*freqsize(nf);
+      const double freq_min = min(freq)-0.5*freqsize(0);
+      
+      if ( (abs(freq_min-fmin)<1e-6) && (abs(freq_max-fmax)<1e-6) ){
+	// Request Cells and image have the same domain	
+	valid = true;
+      } else {
+	// Request Cells and image do not have the same domain
+	valid = false;
+      };;
+
+    } else {
+
+      // Not the same number of frequency planes in Request and Image
+      valid = false;
+
+    };
+    
+    return valid;
+
   };
 
 
@@ -217,21 +276,19 @@ namespace Meq {
   {
     // Make Patch Image, and its FFT (real & imag UVImages) for the correct 
     // frequency planes (determined by fcells i.e. the Request Cells) 
-    //
+
     // Clear the allocated memory of the MeqUVbrick image objects
-    //     
     delete _uvreal;
     delete _uvimag;
     delete _uvabs;
     delete _patch;
 
-    const double c0 = casa::C::c;
+    _image_exists = false;
 
-    // nt = number of time cells, 
-    //      i.e. number of uv points / cells per frequency channel
+    const double c0 = casa::C::c;  // Speed of light
+
     // nf = number of frequency channels, 
     //      i.e. number of frequency planes of the image
-    //    int nt = fcells.ncells(Axis::TIME);
     const int nf = fcells.ncells(Axis::FREQ);
 
     const LoVec_double freq = fcells.center(Axis::FREQ); 
@@ -245,25 +302,23 @@ namespace Meq {
     //
     // Based on the 3C343.1 / 3C343 field we define the following Patch 
     //  Distance from edge to phase center: 0.00175 rad
-    //  Times 2 for square image
-    //  Using 10 points per wavelength 
-    //  Considering a factor sqrt(2) (approx. 1.5) for diagonal propagation 
-    //     (is it best to have square cells?)
-    // Note: since umax = 1 / delta_RA en du = 1 / RA_size, 
-    //       the Patch Image is 15 times larger than the source it contains 
+    //  Times 2 for square image (pos. & neg. axis)
+    //  Note: Resolving at 10 points per wavelength and considering a 
+    //   factor sqrt(2) (approx. 1.5) for diagonal propagation 
+    //   (is it best to have square cells?)
+    //   the Patch Image is 15 times larger than the source it contains. 
+    //   (since umax = 1 / delta_RA en du = 1 / RA_size) 
     //
-    // One sided
-    const double RA_size = 0.000175; // rad
-    const double Dec_size = 0.000175; //rad
+    const double RA_size = 0.00175; // rad
+    const double Dec_size = 0.00175; //rad
 
     const double delta_RA = 1.0 / (freq_max * 2 * _umax / c0);
     const double delta_Dec = 1.0 / (freq_max * 2 * _vmax / c0); 
     
-    // Two sided
     const int nRA = int( 2*RA_size / delta_RA + 0.5);
     const int nDec = int( 2*Dec_size / delta_Dec + 0.5);
 
-    // RA: nRa pixels, Dec: nDec pixels, Stokes: 1 pixels, Freq: 1 pixels
+    // RA: nRa pixels, Dec: nDec pixels, Stokes: 1 pixels, Freq: nf pixels
     casa::CoordinateSystem cs = casa::CoordinateUtil::defaultCoords4D();
     casa::Vector<double> ref(4,0.0f);
     casa::Vector<casa::String> units(4,"rad");
@@ -286,6 +341,7 @@ namespace Meq {
     ref(2) = 1;
     ref(3) = freqsize(0);
     cs.setIncrement(ref);
+    // Note that AIPS++ Images have equidistant grid points.
 
     _patch = new casa::PagedImage<float>(casa::IPosition(4,nRA,nDec,1,nf), cs, "temp.image");
     
@@ -341,8 +397,8 @@ namespace Meq {
       cs.convert(pixel, world, absio, unitin, doppler, absio, unitout, doppler, offset, offset);
 	
       // Beware: in this rounding off a pixel may lie just outside the image
-      position(0)=int(nRA / 2.0  + 0.5)-1+1*i; // int(pixel(0)+0.5);
-      position(1)=int(nDec / 2.0 + 0.5)-1+1*(i-1); // int(pixel(1)+0.5);
+      position(0)=int(nRA / 2.0  + 0.5)-1+1; // int(pixel(0)+0.5);
+      position(1)=int(nDec / 2.0 + 0.5)-1+1; // int(pixel(1)+0.5);
       position(2)=int(pixel(2)+0.5);
       position(3)=int(pixel(3)+0.5);
     
@@ -370,58 +426,8 @@ namespace Meq {
 
   };
 
-
-
-  void UVBrick::fillVells(Vells &fvells1, Vells &fvells2, Vells &fvells3, Vells &fvells4, const Cells &fcells, const int fi)
-  {
-
-    // nt = shape of TIME axis
-    // nf = shape of FREQ axis
-    int nt = fcells.ncells(Axis::TIME);
-    int nf = fcells.ncells(Axis::FREQ);
-
-    // Make an array, connected to the Vells, with which we fill the Vells.
-    LoMat_double arr1 = fvells1.as<double,2>();
-    LoMat_double arr2 = fvells2.as<double,2>();
-    LoMat_double arr3 = fvells3.as<double,2>();
-    LoMat_double arr4 = fvells4.as<double,2>();
-    // arr(i,j)
-    arr1 = 0.0;
-    arr2 = 0.0;
-    arr3 = 0.0;
-    arr4 = 0.0;
-
-    // For now fill Vells with image values.    
-    casa::IPosition image_shape = _uvreal->shape();
-    casa::IPosition position(image_shape.nelements());
-
-    // if Image smaller than Vells, put into 'inside' of Vells
-    // if Image larger than Vells, put 'inside' of Image in Vells
-    int n1 = casa::min(nt,image_shape(0));
-    int n2 = casa::min(nf,image_shape(1));
-    int d1 = casa::max(0,int((nt-image_shape(0))/2));
-    int d2 = casa::max(0,int((nf-image_shape(1))/2));
-
-    position(0)=(image_shape(0)-n1)/2;
-    position(1)=(image_shape(1)-n2)/2;
-    position(2)=0;
-    position(3)=fi;
-    for (int i = d1+0; i < d1+n1; i++){
-      for (int j = d2+0; j < d2+n2; j++){
-	arr4(i,j) = _patch->getAt(position);
-    	arr1(i,j) = _uvreal->getAt(position);
-    	arr2(i,j) = _uvimag->getAt(position);
-	arr3(i,j) = _uvabs->getAt(position);
-    	position(1)+=1;
-     };
-      position(0)+=1;
-      position(1)=image_shape(1)/2-n2/2;
-    };
-
-  };
-
   
-  void UVBrick::fillVells2(Vells &fvells1, Vells &fvells2, Vells &fvells3, Vells &fvells4, const Cells &fcells)
+  void UVBrick::fillVells(Vells &fvells1, Vells &fvells2, Vells &fvells3, Vells &fvells4, const Cells &fcells)
   {
     // nu = shape of U axis
     // nv = shape of V axis
@@ -435,7 +441,8 @@ namespace Meq {
     blitz::Array<double,3> arr2 = fvells2.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
     blitz::Array<double,3> arr3 = fvells3.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
     blitz::Array<double,3> arr4 = fvells4.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
-
+    // Note that the Vells are 4D (including time), whereas the corresponding 
+    //  Cells are 3D (without time).
     // arr(k,i,j)
     arr1 = 0.0;
     arr2 = 0.0;
