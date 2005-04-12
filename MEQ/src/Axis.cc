@@ -124,7 +124,7 @@ int addAxis (const HIID &name)
     return n;
   // allocate new
   for( int i=0; i<MaxAxis; i++ )
-    if( _name_map[i].empty() )
+    if( _name_map[i] == AtomicID(i) )
     {
       defineAxis(i,name);
       return i;
