@@ -1023,7 +1023,7 @@ int Node::execute (Result::Ref &ref,const Request &req0)
     }
     // Set Cells in the Result object as needed
     // (will do nothing when no variability)
-    if( rescells.valid() )
+    if( !ref->hasCells() && rescells.valid() )
       ref().setCells(*rescells);
     // OK, at this point we have a valid Result to return
     if( DebugLevel>=3 ) // print it out
