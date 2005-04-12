@@ -454,7 +454,7 @@ namespace Meq {
     casa::IPosition position(image_shape.nelements());
 
     position(2)=0;
-    for (int k = 0; k < image_shape(3); k++){
+    for (int k = 0; k < nf; k++){
       position(0)=0;
       position(3)=k;
       for (int i = 0; i < nu; i++){
