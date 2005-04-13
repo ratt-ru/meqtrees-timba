@@ -265,15 +265,16 @@ class vtk_qt_display(qt.QWidget):
  
 # Capture the display and place in a tiff
   def CaptureImage(self):
-    w2i = vtk.vtkWindowToImageFilter()
-    writer = vtk.vtkTIFFWriter()
+    if not self.image_array is None:
+      w2i = vtk.vtkWindowToImageFilter()
+      writer = vtk.vtkTIFFWriter()
 #    writer = vtk.vtkPNGWriter()
-    w2i.SetInput(self.renwin)
-    w2i.Update()
-    writer.SetInput(w2i.GetOutput())
-    writer.SetFileName("image.tif")
-    self.renwin.Render()
-    writer.Write()
+      w2i.SetInput(self.renwin)
+      w2i.Update()
+      writer.SetInput(w2i.GetOutput())
+      writer.SetFileName("image.tif")
+      self.renwin.Render()
+      writer.Write()
 
 # Align the widget back into orthonormal position,
 # set the slider to reflect the widget's position,
