@@ -113,7 +113,7 @@ def _resolve_grid (axisname,dom,num,grid,cellsize):
     if dom is None:
       raise ValueError,'domain must be specified to use num_%s'%axisname;
     step = (dom[1]-dom[0])/num;
-    grid = dom[1] + (numarray.arange(num)+0.5)*step;
+    grid = dom[0] + (numarray.arange(num)+0.5)*step;
     # set cell size if not specified
     if cellsize is None or not len(cellsize):
       cellsize = numarray.zeros([num],arr_double) + step;
