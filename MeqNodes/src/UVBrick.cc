@@ -252,7 +252,7 @@ namespace Meq {
       const double freq_max = max(freq)+0.5*freqsize(nf);
       const double freq_min = min(freq)-0.5*freqsize(0);
       
-      if ( (abs(freq_min-fmin)<1e-6) && (abs(freq_max-fmax)<1e-6) ){
+      if ( (fabs(freq_min-fmin)<1e-6) && (fabs(freq_max-fmax)<1e-6) ){
 	// Request Cells and image have the same domain	
 	valid = true;
       } else {
@@ -309,8 +309,8 @@ namespace Meq {
     //   the Patch Image is 15 times larger than the source it contains. 
     //   (since umax = 1 / delta_RA en du = 1 / RA_size) 
     //
-    const double RA_size = 0.00175; // rad
-    const double Dec_size = 0.00175; //rad
+    const double RA_size = 0.0175; // rad
+    const double Dec_size = 0.0175; //rad
 
     const double delta_RA = 1.0 / (freq_max * 2 * _umax / c0);
     const double delta_Dec = 1.0 / (freq_max * 2 * _vmax / c0); 
