@@ -13,7 +13,8 @@ from Timba.GUI.pixmaps import pixmaps
 from Timba.GUI import widgets
 from Timba.GUI.browsers import *
 from Timba import Grid
-from numarray import *
+import Numeric
+import numarray 
 
 rendering_control_instructions = \
 '''vtkInteractorStyle implements the "joystick" style of interaction. That is, holding down the mouse keys generates a stream of events that cause continuous actions (e.g., rotate, translate, pan, zoom). (The class vtkInteractorStyleTrackball implements a grab and move style.) The event bindings for this class include the following:<br><br>
@@ -336,25 +337,40 @@ class vtk_qt_display(qt.QWidget):
 # VTK code for test array
 #=============================
   def define_image(self, iteration=1):
-    num_arrays = 93
-    array_dim = 64
-    image_numarray = ones((num_arrays,array_dim,array_dim),type=Float32)
-    for k in range(num_arrays):
-      for i in range(array_dim):
-        for j in range(array_dim):
-          image_numarray[k,i,j] = iteration * k * 0.01
-
+    print 'updating the test image'
     if self.image_array is None:
+      num_arrays = 93
+      array_dim = 64
+      self.image_numarray_num = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Float32)
+      self.image_numarray = Numeric.ones((num_arrays,array_dim,array_dim),typecode=Numeric.Float32)
+      for k in range(num_arrays):
+        for i in range(array_dim):
+          for j in range(array_dim):
+            self.image_numarray_num[k,i,j] = iteration * k * 0.01
+      for k in range(num_arrays):
+        for i in range(array_dim):
+          for j in range(array_dim):
+            self.image_numarray[k,i,j] = self.image_numarray_num[k,i,j]
+
 #note: for vtkImageImportFromArray to work, incoming array
 #      must have rank 3
       self.image_array = vtkImageImportFromArray()
-      self.iteration = 0
-      self.image_array.SetArray(image_numarray)
+      self.image_array.SetArray(self.image_numarray)
       spacing = (3.2, 3.2, 1.5)
       self.image_array.SetDataSpacing(spacing)
       self.set_initial_display()
     else:
-      self.image_array.SetArray(image_numarray)
+      num_arrays = 93
+      array_dim = 64
+      for k in range(num_arrays):
+        for i in range(array_dim):
+          for j in range(array_dim):
+            self.image_numarray_num[k,i,j] = iteration * k * 0.01
+      for k in range(num_arrays):
+        for i in range(array_dim):
+          for j in range(array_dim):
+            self.image_numarray[k,i,j] = self.image_numarray_num[k,i,j]
+      self.image_array.SetArray(self.image_numarray)
 # refresh display if data contents updated after
 # first display
       self.renwin.Render()
@@ -365,7 +381,7 @@ class vtk_qt_display(qt.QWidget):
   def define_random_image(self):
     num_arrays = 93
     array_dim = 64
-    image_numarray = ones((num_arrays,array_dim,array_dim),type=Float32)
+    image_numarray = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Float32)
     for k in range(num_arrays):
       for i in range(array_dim):
         for j in range(array_dim):
