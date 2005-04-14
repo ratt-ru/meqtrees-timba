@@ -33,7 +33,10 @@
 namespace Meq {
   
   UVInterpol::UVInterpol()
-  {};
+  {
+    Axis::addAxis("U");
+    Axis::addAxis("V");
+  };
   
   UVInterpol::~UVInterpol()
   {
@@ -59,23 +62,26 @@ namespace Meq {
 	//		
 
 	// Make the Vells (Interpolation)
-	//Vells::Shape shape;
-	//Axis::degenerateShape(shape,rcells.rank());
-	//shape[Axis::TIME] = rcells.ncells(Axis::TIME);
-	//shape[Axis::FREQ] = rcells.ncells(Axis::FREQ);
+	Vells::Shape shape;
+	Axis::degenerateShape(shape,rcells.rank());
+	shape[Axis::TIME] = rcells.ncells(Axis::TIME);
+	shape[Axis::FREQ] = rcells.ncells(Axis::FREQ);
 
 	// Make a new Vells
-	//Vells & vells = vs.setValue(new Vells(dcomplex(0),shape,false));
+	Vells & vells = vs.setValue(new Vells(dcomplex(0),shape,false));
 	
 	// Fill the Vells (this is were the interpolation takes place)
-	// fillVells(childres,vells,rcells);	
+	 fillVells(childres,vells,rcells);	
 	
 	// Attach the request Cells to the result
-	// resref().setCells(rcells);
+	 resref().setCells(rcells);
 
 	
 
 	// Make the Vells (Show Cell mapping)
+
+	 Result& res2 = resref["UVInterpol.Map"] <<= new Result(1);                 // 1 plane
+	 VellSet& vs2 = res2.setNewVellSet(0);  // create new object for plane 0
 
 	// Get the Child Results: brickresult, brickcells for UVBrick-Node
 	//                        uvpoints for UVW-Node
@@ -94,26 +100,32 @@ namespace Meq {
 	    brickcells = brickresult->cells();
 	  };
 
+	// uv grid from UVBrick
+	int nu = brickcells.ncells(Axis::axis("U"));
+	int nv = brickcells.ncells(Axis::axis("V"));
+	const LoVec_double uu = brickcells.center(Axis::axis("U"));
+	const LoVec_double vv = brickcells.center(Axis::axis("V"));
+
 	Domain::Ref newdomain(new Domain());
-	newdomain().defineAxis(0,0.,1.);
-	newdomain().defineAxis(1,0.,1.);
+	newdomain().defineAxis(2,uu(0),uu(nu-1));
+	newdomain().defineAxis(3,vv(0),vv(nv-1));
 	Cells::Ref newcells(new Cells(*newdomain));
-	newcells().setCells(0,0.,1.,brickcells.ncells(Axis::axis("U")));
-	newcells().setCells(1,0.,1.,brickcells.ncells(Axis::axis("V")));
+	newcells().setCells(2,uu(0),uu(nu-1),nu);
+	newcells().setCells(3,vv(0),vv(nv-1),nv);
 
 	Vells::Shape shape2;
 	Axis::degenerateShape(shape2,newcells->rank());
-	shape2[Axis::TIME] = brickcells.ncells(Axis::axis("U"));
-	shape2[Axis::FREQ] = brickcells.ncells(Axis::axis("V"));
+	shape2[Axis::axis("U")] = brickcells.ncells(Axis::axis("U"));
+	shape2[Axis::axis("V")] = brickcells.ncells(Axis::axis("V"));
 
 	// Make a new Vells
-	Vells & vells2 = vs.setValue(new Vells(double(0),shape2,false));
+	Vells & vells2 = vs2.setValue(new Vells(double(0),shape2,false));
 	
 	// Fill the Vells (this is were the interpolation takes place)
 	fillVells2(childres,vells2,rcells);	
 	
 	// Attach the request Cells to the result
-	resref().setCells(*newcells);
+	res2.setCells(*newcells);
 	
       }; 
     
@@ -426,7 +438,7 @@ namespace Meq {
     };
 
     // Make an array, connected to the Vells, with which we fill the Vells.
-    LoMat_double arr = fvells.as<double,2>();
+    LoMat_double arr = fvells.as<double,4>()(0,0,LoRange::all(),LoRange::all());;
     arr = 0.0;
 
     double uc,vc,u1,u2,u3,u4,v1,v2,v3,v4;
@@ -480,7 +492,7 @@ namespace Meq {
 	    t4 = arc(u4,v4,u1,v1,uc,vc,uu(i1),vv(j1));
 
 	    if (t1 && t2 && t3 && t4){
-	      arr(i1,j1) = double(j + nf*i);
+	      arr(i1,j1) = double(j + nf*i+1);
 	      np++;
 	    };
 	    

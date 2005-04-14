@@ -31,6 +31,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::UVInterpol
+#pragma aids UVInterpol Map 
 
 namespace Meq {
 
