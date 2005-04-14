@@ -58,20 +58,62 @@ namespace Meq {
 	// Make the Result
 	//		
 
-	// Make the Vells
-	Vells::Shape shape;
-	Axis::degenerateShape(shape,rcells.rank());
-	shape[Axis::TIME] = rcells.ncells(Axis::TIME);
-	shape[Axis::FREQ] = rcells.ncells(Axis::FREQ);
+	// Make the Vells (Interpolation)
+	//Vells::Shape shape;
+	//Axis::degenerateShape(shape,rcells.rank());
+	//shape[Axis::TIME] = rcells.ncells(Axis::TIME);
+	//shape[Axis::FREQ] = rcells.ncells(Axis::FREQ);
 
 	// Make a new Vells
-	Vells & vells = vs.setValue(new Vells(dcomplex(0),shape,false));
+	//Vells & vells = vs.setValue(new Vells(dcomplex(0),shape,false));
 	
 	// Fill the Vells (this is were the interpolation takes place)
-	fillVells(childres,vells,rcells);	
+	// fillVells(childres,vells,rcells);	
 	
 	// Attach the request Cells to the result
-	resref().setCells(rcells);
+	// resref().setCells(rcells);
+
+	
+
+	// Make the Vells (Show Cell mapping)
+
+	// Get the Child Results: brickresult, brickcells for UVBrick-Node
+	//                        uvpoints for UVW-Node
+	Result::Ref brickresult;
+	Cells brickcells; 
+
+	if ( childres.at(0)->cells().isDefined(Axis::axis("U")) &&
+	     childres.at(0)->cells().isDefined(Axis::axis("V")) )
+	  {
+	    brickresult = childres.at(0);
+	    brickcells = brickresult->cells();
+	  } 
+	else 
+	  {
+	    brickresult = childres.at(1);
+	    brickcells = brickresult->cells();
+	  };
+
+	Domain::Ref newdomain(new Domain());
+	newdomain().defineAxis(0,0.,1.);
+	newdomain().defineAxis(1,0.,1.);
+	Cells::Ref newcells(new Cells(*newdomain));
+	newcells().setCells(0,0.,1.,brickcells.ncells(Axis::axis("U")));
+	newcells().setCells(1,0.,1.,brickcells.ncells(Axis::axis("V")));
+
+	Vells::Shape shape2;
+	Axis::degenerateShape(shape2,newcells->rank());
+	shape2[Axis::TIME] = brickcells.ncells(Axis::axis("U"));
+	shape2[Axis::FREQ] = brickcells.ncells(Axis::axis("V"));
+
+	// Make a new Vells
+	Vells & vells2 = vs.setValue(new Vells(double(0),shape2,false));
+	
+	// Fill the Vells (this is were the interpolation takes place)
+	fillVells2(childres,vells2,rcells);	
+	
+	// Attach the request Cells to the result
+	resref().setCells(*newcells);
 	
       }; 
     
@@ -298,6 +340,157 @@ namespace Meq {
 
     return t;
 
+  };
+
+ void UVInterpol::fillVells2(const std::vector<Result::Ref> &fchildres, 
+			     Vells &fvells, const Cells &fcells)
+  {
+    // Definition of constants
+    const double c0 = casa::C::c;  // Speed of light
+    const double pi = casa::C::pi; // Pi = 3.1415....
+
+    // Time-Freq boundaries of Request
+    int nt = fcells.ncells(Axis::TIME);
+    int nf = fcells.ncells(Axis::FREQ);
+    const LoVec_double freq = fcells.center(Axis::FREQ); 
+    const LoVec_double lofr = fcells.cellStart(Axis::FREQ); 
+    const LoVec_double hifr = fcells.cellEnd(Axis::FREQ);
+ 
+    const LoVec_double time = fcells.center(Axis::TIME); 
+    const LoVec_double loti = fcells.cellStart(Axis::TIME); 
+    const LoVec_double hiti = fcells.cellEnd(Axis::TIME); 
+
+    // Get the Child Results: brickresult, brickcells for UVBrick-Node
+    //                        uvpoints for UVW-Node
+    Result::Ref brickresult;
+    Cells brickcells; 
+    Result::Ref uvpoints;
+
+    if ( fchildres.at(0)->cells().isDefined(Axis::axis("U")) &&
+	 fchildres.at(0)->cells().isDefined(Axis::axis("V")) )
+      {
+	brickresult = fchildres.at(0);
+	brickcells = brickresult->cells();
+	uvpoints = fchildres.at(1);
+      } 
+    else 
+      {
+	brickresult = fchildres.at(1);
+	brickcells = brickresult->cells();
+	uvpoints = fchildres.at(0);
+      };
+
+    // u, v values from UVW-Node
+    VellSet uvs = uvpoints->vellSet(0);
+    VellSet vvs = uvpoints->vellSet(1);
+    Vells uvells = uvs.getValue();
+    Vells vvells = vvs.getValue();
+
+    blitz::Array<double,2> uarr = uvells.as<double,2>()(LoRange::all(),LoRange::all());
+    blitz::Array<double,2> varr = vvells.as<double,2>()(LoRange::all(),LoRange::all());
+
+    // uv-data from UVBrick
+    //VellSet bvsr = brickresult->vellSet(0);
+    //Vells bvellsr = bvsr.getValue();         // Real part
+    //VellSet bvsi = brickresult->vellSet(1);
+    //Vells bvellsi = bvsi.getValue();         // Imaginary part
+    //Vells bvells = VellsMath::tocomplex(bvellsr,bvellsi);
+    //blitz::Array<dcomplex,3> barr = bvells.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+
+    // uv grid from UVBrick
+    int nu = brickcells.ncells(Axis::axis("U"));
+    int nv = brickcells.ncells(Axis::axis("V"));
+    const LoVec_double uu = brickcells.center(Axis::axis("U"));
+    const LoVec_double vv = brickcells.center(Axis::axis("V"));
+
+    // Map Time-Freq Cell boundaries on UV-data boundaries
+    // Lower and higher bound for u and v based on circular (not elliptical) 
+    //   trajectory
+    // Assume u, v of UVW-Node are not frequency dependent.
+    blitz::Array<double,1> lu(nt);
+    blitz::Array<double,1> hu(nt);
+    blitz::Array<double,1> lv(nt);
+    blitz::Array<double,1> hv(nt);
+    
+    double dt1,dt2;
+    for (int i = 0; i < nt; i++){
+
+      dt1 = loti(i)-time(i);
+      lu(i) = uarr(i,0)*casa::cos(2*pi*dt1/24/3600)+varr(i,0)*casa::sin(2*pi*dt1/24/3600);
+      lv(i) = -uarr(i,0)*casa::sin(2*pi*dt1/24/3600)+varr(i,0)*casa::cos(2*pi*dt1/24/3600);
+      
+      dt2 = hiti(i)-time(i);
+      hu(i) = uarr(i,0)*casa::cos(2*pi*dt2/24/3600)+varr(i,0)*casa::sin(2*pi*dt2/24/3600);
+      hv(i) = -uarr(i,0)*casa::sin(2*pi*dt2/24/3600)+varr(i,0)*casa::cos(2*pi*dt2/24/3600);
+
+    };
+
+    // Make an array, connected to the Vells, with which we fill the Vells.
+    LoMat_double arr = fvells.as<double,2>();
+    arr = 0.0;
+
+    double uc,vc,u1,u2,u3,u4,v1,v2,v3,v4;
+    double umax,umin,vmax,vmin;
+    int    imin,imax,jmin,jmax;
+    bool   t1,t2,t3,t4;
+    int    np;
+    int    ia,ib,ja,jb;
+    double t,s;
+
+    for (int i = 0; i < nt; i++){
+      for (int j = 0; j < nf; j++){
+	
+	// Determine center value & boundary values of a Cell
+	uc = freq(j)*uarr(i,0)/c0;
+	vc = freq(j)*varr(i,0)/c0;
+
+	u1 = lofr(j)*lu(i)/c0;
+	u2 = hifr(j)*lu(i)/c0;
+	u3 = hifr(j)*hu(i)/c0;
+	u4 = lofr(j)*hu(i)/c0;
+
+	v1 = lofr(j)*lv(i)/c0;
+	v2 = hifr(j)*lv(i)/c0;
+	v3 = hifr(j)*hv(i)/c0;
+	v4 = lofr(j)*hv(i)/c0;
+
+	// Determine range of UVBrick gridpoints where the Cell maps onto
+	umin = casa::min(casa::min(u1,u2),casa::min(u3,u4));
+	umax = casa::max(casa::max(u1,u2),casa::max(u3,u4));
+	vmin = casa::min(casa::min(v1,v2),casa::min(v3,v4));
+	vmax = casa::max(casa::max(v1,v2),casa::max(v3,v4));
+
+	for (int i1 = 0; i1 < nu-1; i1++){
+	  if ((uu(i1)<=umin) && (uu(i1+1)>umin)) {imin = i1;};
+	  if ((uu(i1)<=umax) && (uu(i1+1)>umax)) {imax = i1;};
+	};
+	for (int j1 = 0; j1 < nv-1; j1++){
+	  if ((vv(j1)<=vmin) && (vv(j1+1)>vmin)) {jmin = j1;};
+	  if ((vv(j1)<=vmax) && (vv(j1+1)>vmax)) {jmax = j1;};
+	};
+
+	// Add uv-data for UVBrick gridpoints within the Cell
+	np=0;
+	for (int i1 = imin; i1 < imax+1; i1++){
+	  for (int j1 = jmin; j1 < jmax+1; j1++){
+
+	    t1 = line(u1,v1,u2,v2,uc,vc,uu(i1),vv(j1));
+	    t2 = line(u3,v3,u4,v4,uc,vc,uu(i1),vv(j1));
+	    t3 = arc(u2,v2,u3,v3,uc,vc,uu(i1),vv(j1));
+	    t4 = arc(u4,v4,u1,v1,uc,vc,uu(i1),vv(j1));
+
+	    if (t1 && t2 && t3 && t4){
+	      arr(i1,j1) = double(j + nf*i);
+	      np++;
+	    };
+	    
+	  };
+	};
+
+      };
+    };
+    
+    
   };
   
 } // namespace Meq

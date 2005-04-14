@@ -69,9 +69,12 @@ public:
   void UVInterpol::fillVells(const std::vector<Result::Ref> &fchildres, 
 			     Vells &fvells, const Cells &fcells);
 
-  double UVInterpol::line(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4);
+  bool UVInterpol::line(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4);
 
-  double UVInterpol::arc(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4);
+  bool UVInterpol::arc(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4);
+
+  void UVInterpol::fillVells2(const std::vector<Result::Ref> &fchildres, 
+			     Vells &fvells, const Cells &fcells);
    
 };
 
