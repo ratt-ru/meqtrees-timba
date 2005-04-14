@@ -56,20 +56,20 @@ namespace Meq {
 
 	//
 	// Make the Result
-	//	
+	//		
 
 	// Make the Vells
 	Vells::Shape shape;
 	Axis::degenerateShape(shape,rcells.rank());
-	shape[Axis::TIME] =rcells.ncells(Axis::TIME);
-	shape[Axis::FREQ] =rcells.ncells(Axis::FREQ);
+	shape[Axis::TIME] = rcells.ncells(Axis::TIME);
+	shape[Axis::FREQ] = rcells.ncells(Axis::FREQ);
 
 	// Make a new Vells
-	Vells & vells = vs.setValue(new Vells(double(0),shape,false));
+	Vells & vells = vs.setValue(new Vells(dcomplex(0),shape,false));
 	
 	// Fill the Vells (this is were the interpolation takes place)
-	fillVells(childres,vells,rcells);		
-
+	fillVells(childres,vells,rcells);	
+	
 	// Attach the request Cells to the result
 	resref().setCells(rcells);
 	
@@ -87,9 +87,23 @@ namespace Meq {
   void UVInterpol::fillVells(const std::vector<Result::Ref> &fchildres, 
 			     Vells &fvells, const Cells &fcells)
   {
+    // Definition of constants
     const double c0 = casa::C::c;  // Speed of light
     const double pi = casa::C::pi; // Pi = 3.1415....
 
+    // Time-Freq boundaries of Request
+    int nt = fcells.ncells(Axis::TIME);
+    int nf = fcells.ncells(Axis::FREQ);
+    const LoVec_double freq = fcells.center(Axis::FREQ); 
+    const LoVec_double lofr = fcells.cellStart(Axis::FREQ); 
+    const LoVec_double hifr = fcells.cellEnd(Axis::FREQ);
+ 
+    const LoVec_double time = fcells.center(Axis::TIME); 
+    const LoVec_double loti = fcells.cellStart(Axis::TIME); 
+    const LoVec_double hiti = fcells.cellEnd(Axis::TIME); 
+
+    // Get the Child Results: brickresult, brickcells for UVBrick-Node
+    //                        uvpoints for UVW-Node
     Result::Ref brickresult;
     Cells brickcells; 
     Result::Ref uvpoints;
@@ -107,17 +121,8 @@ namespace Meq {
 	brickcells = brickresult->cells();
 	uvpoints = fchildres.at(0);
       };
-    
-    int nt = fcells.ncells(Axis::TIME);
-    int nf = fcells.ncells(Axis::FREQ);
-    const LoVec_double freq = fcells.center(Axis::FREQ); 
-    const LoVec_double lofr = fcells.cellStart(Axis::FREQ); 
-    const LoVec_double hifr = fcells.cellEnd(Axis::FREQ);
- 
-    const LoVec_double time = fcells.center(Axis::TIME); 
-    const LoVec_double loti = fcells.cellStart(Axis::TIME); 
-    const LoVec_double hiti = fcells.cellEnd(Axis::TIME); 
 
+    // u, v values from UVW-Node
     VellSet uvs = uvpoints->vellSet(0);
     VellSet vvs = uvpoints->vellSet(1);
     Vells uvells = uvs.getValue();
@@ -126,28 +131,29 @@ namespace Meq {
     blitz::Array<double,2> uarr = uvells.as<double,2>()(LoRange::all(),LoRange::all());
     blitz::Array<double,2> varr = vvells.as<double,2>()(LoRange::all(),LoRange::all());
 
-    VellSet bvs = brickresult->vellSet(0);
-    Vells bvells = bvs.getValue();
-    blitz::Array<double,3> barr = bvells.as<double,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+    // uv-data from UVBrick
+    VellSet bvsr = brickresult->vellSet(0);
+    Vells bvellsr = bvsr.getValue();         // Real part
+    VellSet bvsi = brickresult->vellSet(1);
+    Vells bvellsi = bvsi.getValue();         // Imaginary part
+    Vells bvells = VellsMath::tocomplex(bvellsr,bvellsi);
+    blitz::Array<dcomplex,3> barr = bvells.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
-    // Make an array, connected to the Vells, with which we fill the Vells.
-    LoMat_double arr = fvells.as<double,2>();
-    arr = 0.0;
-    
-    double umax,umin,vmax,vmin,uc,vc;
-
+    // uv grid from UVBrick
     int nu = brickcells.ncells(Axis::axis("U"));
     int nv = brickcells.ncells(Axis::axis("V"));
     const LoVec_double uu = brickcells.center(Axis::axis("U"));
     const LoVec_double vv = brickcells.center(Axis::axis("V"));
 
+    // Map Time-Freq Cell boundaries on UV-data boundaries
+    // Lower and higher bound for u and v based on circular (not elliptical) 
+    //   trajectory
+    // Assume u, v of UVW-Node are not frequency dependent.
     blitz::Array<double,1> lu(nt);
     blitz::Array<double,1> hu(nt);
     blitz::Array<double,1> lv(nt);
     blitz::Array<double,1> hv(nt);
-
-    // Lower and higher bound for u and v based on circular (not elliptical) 
-    //   trajectory
+    
     double dt1,dt2;
     for (int i = 0; i < nt; i++){
 
@@ -161,13 +167,22 @@ namespace Meq {
 
     };
 
-    double u1,u2,u3,u4,v1,v2,v3,v4;
-    double t1,t2,t3,t4;
-    int np;
+    // Make an array, connected to the Vells, with which we fill the Vells.
+    LoMat_dcomplex arr = fvells.as<dcomplex,2>();
+    arr = 0.0;
+
+    double uc,vc,u1,u2,u3,u4,v1,v2,v3,v4;
+    double umax,umin,vmax,vmin;
+    int    imin,imax,jmin,jmax;
+    bool   t1,t2,t3,t4;
+    int    np;
+    int    ia,ib,ja,jb;
+    double t,s;
 
     for (int i = 0; i < nt; i++){
       for (int j = 0; j < nf; j++){
 	
+	// Determine center value & boundary values of a Cell
 	uc = freq(j)*uarr(i,0)/c0;
 	vc = freq(j)*varr(i,0)/c0;
 
@@ -181,45 +196,76 @@ namespace Meq {
 	v3 = hifr(j)*hv(i)/c0;
 	v4 = lofr(j)*hv(i)/c0;
 
+	// Determine range of UVBrick gridpoints where the Cell maps onto
 	umin = casa::min(casa::min(u1,u2),casa::min(u3,u4));
 	umax = casa::max(casa::max(u1,u2),casa::max(u3,u4));
 	vmin = casa::min(casa::min(v1,v2),casa::min(v3,v4));
 	vmax = casa::max(casa::max(v1,v2),casa::max(v3,v4));
 
+	for (int i1 = 0; i1 < nu-1; i1++){
+	  if ((uu(i1)<=umin) && (uu(i1+1)>umin)) {imin = i1;};
+	  if ((uu(i1)<=umax) && (uu(i1+1)>umax)) {imax = i1;};
+	};
+	for (int j1 = 0; j1 < nv-1; j1++){
+	  if ((vv(j1)<=vmin) && (vv(j1+1)>vmin)) {jmin = j1;};
+	  if ((vv(j1)<=vmax) && (vv(j1+1)>vmax)) {jmax = j1;};
+	};
+
+	// Add uv-data for UVBrick gridpoints within the Cell
 	np=0;
-	for (int i1 = 0; i1 < nu; i1++){
-	  for (int j1 = 0; j1 < nv; j1++){
+	for (int i1 = imin; i1 < imax+1; i1++){
+	  for (int j1 = jmin; j1 < jmax+1; j1++){
 
-	    t1 = line(u1,v1,u2,v2,uc,vc,uu(i1,j1),vv(i1,j1));
-	    t2 = line(u3,v3,u4,v4,uc,vc,uu(i1,j1),vv(i1,j1));
-	    t3 = arc(u2,v2,u3,v3,uc,vc,uu(i1,j1),vv(i1,j1));
-	    t4 = arc(u4,v4,u1,v1,uc,vc,uu(i1,j1),vv(i1,j1));
+	    t1 = line(u1,v1,u2,v2,uc,vc,uu(i1),vv(j1));
+	    t2 = line(u3,v3,u4,v4,uc,vc,uu(i1),vv(j1));
+	    t3 = arc(u2,v2,u3,v3,uc,vc,uu(i1),vv(j1));
+	    t4 = arc(u4,v4,u1,v1,uc,vc,uu(i1),vv(j1));
 
-	    //	    if( t1 && t2 && t3 && t4){
-	      //	      arr(i,j) = arr(i,j) + barr(j,i1,j1);
-	    //	      arr(i,j)++;
-	    //	      np++;
-	    //	    };
-	    if ((t1*t2<0) && (t3*t4<0)){
-	      arr(i,j) = arr(i,j)+1;;
+	    if (t1 && t2 && t3 && t4){
+	      arr(i,j) = arr(i,j) + barr(j,i1,j1);
+	      np++;
 	    };
+	    
 	  };
 	};
 	
-	//	if (np==0){
+	if (np==0){
+	  // No points found in the Cell, so find a value by bilinear interpolation
 
-	//	} else {
-	  //	  arr(i,j) = arr(i,j)/np;
-	  //	  arr(i,j) = arr(i,j)*2*pi*(hiti(i)-loti(i))/24/3600 * ( u2*u2 + v2*v2 - u1*u1 - v1*v1 ) / 2;
-	//	};
+	  for (int i1 = imin; i1 < imax+1; i1++){
+	    if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
+	  };
+	  for (int j1 = jmin; j1 < jmax+1; j1++){
+	    if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
+	  };
+
+	  t = (uc-uu(ia))/(uu(ib)-uu(ia));
+	  s = (vc-vv(ja))/(vv(jb)-vv(ja));
+	  
+	  arr(i,j) = (1-t)*(1-s)*barr(j,ia,jb) + t*(1-s)*barr(j,ib,ja) +
+	    t*s*barr(j,ib,jb) + (1-t)*s*barr(j,ia,jb);
+
+	} else {
+	  // Np points found in the Cell, take average value
+
+	  arr(i,j) = arr(i,j)/double(np);	  
+
+	};
+
+	// Mutiply with the area of the Cell to get integrated value
+	arr(i,j) = arr(i,j)*double(2)*pi*(hiti(i)-loti(i))/double(24)/double(3600) * ( u2*u2 + v2*v2 - u1*u1 - v1*v1 ) / double(2);
 
       };
     };
     
     
   };
-  
-  double UVInterpol::line(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4){
+
+
+  bool UVInterpol::line(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4)
+  {
+    // True: (u3,v3) and (u4,v4) lie on the same side of the line through (u1,v1) and (u2,v2).
+    // False: not.
 
     double r1,r2;
     bool t(false);
@@ -231,11 +277,15 @@ namespace Meq {
       t = true;
     }
 
-    return r2;
+    return t;
   };
     
-  double UVInterpol::arc(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4){
-    
+  bool UVInterpol::arc(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4)
+  {
+  
+    // True: (u3,v3) and (u4,v4) lie on the same side of the (circular) arc through (u1,v1) and (u2,v2).
+    // False: not.
+  
     double r1,r2;
     bool t(false);
 
@@ -246,7 +296,7 @@ namespace Meq {
       t = true;
     }
 
-    return r2;
+    return t;
 
   };
   
