@@ -112,11 +112,13 @@ int Function::getResult (Result::Ref &resref,
   bool integr = false;
   if( nrch )
   {
+    FailWhen(!childres[0]->numVellSets(),"no vellsets in result of child 0");
     out_dims = childres[0]->dims();
     integr   = childres[0]->isIntegrated();  // flag: is any child integrated
     for( int i=1; i<nrch; i++ )
     {
       const Result &res = *childres[i];
+      FailWhen(!res.numVellSets(),ssprintf("no vellsets in result of child %d",i));
       if( res.tensorRank() > 0 )
       {
         if( out_dims.empty() )

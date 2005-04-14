@@ -166,7 +166,7 @@ void Result::validateContent (bool)
     }
     else
     {
-      if( numVellSets() )
+      if( numVellSets() > 1 )
       {
         dims_.resize(1);
         dims_[0] = numVellSets();
