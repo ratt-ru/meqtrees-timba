@@ -63,8 +63,8 @@ class vtk_qt_display(qt.QWidget):
     self.h_box = qt.QHBox(self.v_box_controls)
 # buttons
 #    self.button_quit = qt.QPushButton("Quit",self.h_box)
-    self.button_test = qt.QPushButton("Test",self.h_box)
-    self.button_capture = qt.QPushButton("Tif",self.h_box)
+    self.button_test = qt.QPushButton("Update",self.h_box)
+    self.button_capture = qt.QPushButton("Postscript",self.h_box)
     self.button_x = qt.QPushButton("X Freq",self.h_box)
     self.button_y = qt.QPushButton("Y Time",self.h_box)
     self.button_z = qt.QPushButton("Z Plane",self.h_box)
@@ -268,12 +268,11 @@ class vtk_qt_display(qt.QWidget):
   def CaptureImage(self):
     if not self.image_array is None:
       w2i = vtk.vtkWindowToImageFilter()
-      writer = vtk.vtkTIFFWriter()
-#    writer = vtk.vtkPNGWriter()
+      writer = vtk.vtkPostScriptWriter()
       w2i.SetInput(self.renwin)
       w2i.Update()
       writer.SetInput(w2i.GetOutput())
-      writer.SetFileName("image.tif")
+      writer.SetFileName("image.ps")
       self.renwin.Render()
       writer.Write()
 
