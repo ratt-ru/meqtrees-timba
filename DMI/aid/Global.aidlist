@@ -258,7 +258,7 @@ MeqFunklet                       1321       ; from /home/oms/LOFAR/Timba/MEQ/src
 #MeqInvert                       1507       ; from /home/assendorp/LOFAR/Timba/MeqNodes/src/Invert.h:29
 #MeqLMN                          1410       ; from /home/oms/LOFAR/Timba/MeqNodes/src/LMN.h:30
 #MeqLog                          1397       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Log.h:29
-#MeqMatrixInvert22               1522       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixInvert22.h:30
+MeqMatrixInvert22                1522       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixInvert22.h:30
 #MeqMatrixMultiply               1516       ; from /home/oms/LOFAR/Timba/MeqNodes/src/MatrixMultiply.h:30
 #MeqMax                          1452       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Max.h:29
 #MeqMean                         1416       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Mean.h:29
@@ -502,6 +502,7 @@ Update                           1229       ; from /home/oms/LOFAR/Timba/AppAgen
 UseSVD                           1335       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
 ushort                           36         ; from /home/oms/LOFAR/Timba/DMI/src/TypeId.h:105
 UVData                           1160       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
+UVInterpol                       1523       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
 UVSet                            1156       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
 UVW                              1123       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
 V                                1014       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
