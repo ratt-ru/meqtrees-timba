@@ -41,30 +41,24 @@ int Stripper::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &child_results, 
 		                     const Request &request,bool newreq)
 {
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,child_results);
-  // Create result object and attach to the ref that was passed in.
-  // use same # of vellsets and integration flag as input result
-  const Result & child_res = *child_results[0];
-  int nvs = child_res.numVellSets();
-  Result & result = resref <<= new Result(nvs,child_res.isIntegrated());
+  Assert(child_results.size() == 1);
+  // Create result object as copy of input
+  resref = child_results.front();
+  // loop over all vellsets and strip off perturbed values as needed
+  // We take advantage of copy-on-write here, so if there's nothing
+  // to strip, the child result gets returned unchanged
+  int nvs = resref->numVellSets();
   for( int i=0; i<nvs; i++ )
   {
-    const VellSet &child_vs = child_res.vellSet(i);
-    if( child_vs.isFail() )
-    {
-      // a fail-vellset is passed along as-is
-      result.setVellSet(0,&child_vs);
-    }
-    else
-    {
-      // a normal vellset: strip off and return just the main Vells from VellSet
-      result.setNewVellSet(0).setValue(child_vs.getValue());
-    }
+    const VellSet &vs = resref->vellSet(i);
+    if( vs.hasValue() && vs.numSpids()>0 )
+      resref().setNewVellSet(i).setValue(vs.getValue());
   }
-  // carry Cells along if needed
-  if( child_res.hasCells() )
-    result.setCells(child_res.cells());
+  // if something has changed in the result, call verify shape, since
+  // that'll strip off cells too if they are no longer needed
+  if( child_results.front() != resref )
+    resref().verifyShape();
+  
   return 0;
 }
 

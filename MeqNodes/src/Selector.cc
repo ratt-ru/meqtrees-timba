@@ -46,7 +46,6 @@ void Selector::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   Node::setStateImpl(rec,initializing);
   rec[FIndex].get_vector(selection_,initializing);
   rec[FMulti].get(multi_,initializing);
-  
 }
 
 //##ModelId=400E53550237
