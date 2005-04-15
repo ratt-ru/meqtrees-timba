@@ -31,7 +31,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::UVInterpol
-#pragma aids UVInterpol Map 
+#pragma aids UVInterpol Map Count Additional Info
 
 namespace Meq {
 
@@ -67,6 +67,8 @@ public:
 
  private:
 
+  bool _additional_info;  
+
   void UVInterpol::fillVells(const std::vector<Result::Ref> &fchildres, 
 			     Vells &fvells, const Cells &fcells);
 
@@ -75,7 +77,7 @@ public:
   bool UVInterpol::arc(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4);
 
   void UVInterpol::fillVells2(const std::vector<Result::Ref> &fchildres, 
-			     Vells &fvells, const Cells &fcells);
+			      Vells &fvells1, Vells &fvells2, const Cells &fcells);
    
 };
 
