@@ -191,6 +191,8 @@ class vtk_qt_display(qt.QWidget):
 
     self.current_widget = self.planeWidgetZ
     self.mode_widget = self.planeWidgetZ
+    self.slider.setRange(zMin,zMax)
+    self.slider.setValue(z_index)
 
 # Create a text property for cube axes
     tprop = vtk.vtkTextProperty()
@@ -264,7 +266,7 @@ class vtk_qt_display(qt.QWidget):
     self.ren.ResetCameraClippingRange()
     self.renwin.Render()
  
-# Capture the display and place in a tiff
+# Capture the display to a Postscript file
   def CaptureImage(self):
     if not self.image_array is None:
       w2i = vtk.vtkWindowToImageFilter()
@@ -336,7 +338,6 @@ class vtk_qt_display(qt.QWidget):
 # VTK code for test array
 #=============================
   def define_image(self, iteration=1):
-    print 'updating the test image'
     if self.image_array is None:
       num_arrays = 93
       array_dim = 64
@@ -401,6 +402,10 @@ class vtk_qt_display(qt.QWidget):
     self.define_image(self.iteration)
 #    self.define_random_image()
 
+  def AddVTKExitEvent(self):
+# next line causes confusion when run inside the browser
+    self.renwininter.AddObserver("ExitEvent", lambda o, e, a=app: a.quit())
+
 class ThreeDPlotter(GriddedPlugin):
   """ a class to plot very simple histograms of array data distributions """
 
@@ -443,6 +448,7 @@ if __name__ == "__main__":
   qt.QObject.connect(app,qt.SIGNAL("lastWindowClosed()"),
 		app,qt.SLOT("quit()"))
   display = vtk_qt_display()
+  display.AddVTKExitEvent()
   display.show()
   app.exec_loop()
 
