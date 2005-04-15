@@ -712,6 +712,7 @@ class QwtImagePlot(QwtPlot):
           xmin, xmax, ymin, ymax = self.zoomStack.pop()
           self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
           self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+          self.refresh_marker_display()
           self.replot()
           _dprint(3, 'called replot in unzoom')
         else:
@@ -935,8 +936,8 @@ class QwtImagePlot(QwtPlot):
 	else:
           message = result + temp_str
     
-        if not self.array_parms is None:
-          message = message + "\n" + self.array_parms
+#        if not self.array_parms is None:
+#          message = message + "\n" + self.array_parms
 
 # alias
         fn = self.fontInfo().family()
@@ -952,25 +953,26 @@ class QwtImagePlot(QwtPlot):
           Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
 
 # insert array info if available
-#        self.insert_array_info()
+        self.insert_array_info()
         self.replot()
         _dprint(3, 'called replot in formatCoordinates ')
 #        timer = QTimer(self)
-#        timer.connect(timer, SIGNAL('timeout()'), self.timerEvent_marker)
+#        timer.connect(timer, SIGNAL('timeout()'), self.refresh_marker_display)
 #        timer.start(2000, True)
             
     # formatCoordinates()
 
-    def timerEvent_marker(self):
+    def refresh_marker_display(self):
       self.removeMarkers()
       if self.is_combined_image:
         self.insert_marker_lines()
+      self.insert_array_info()
       self.replot()
-      _dprint(3, 'called replot in timerEvent_marker ')
-    # timerEvent_marker()
+      _dprint(3, 'called replot in refresh_marker_display ')
+    # refresh_marker_display()
 
     def insert_marker_lines(self):
-      _dprint(2, 'timerEvent_marker inserting markers')
+      _dprint(2, 'refresh_marker_display inserting markers')
 # alias
       fn = self.fontInfo().family()
       y = 0
@@ -1133,7 +1135,7 @@ class QwtImagePlot(QwtPlot):
         if self.is_vector:
             return
         if Qt.LeftButton == e.button():
-            self.timerEvent_marker()
+            self.refresh_marker_display()
             xmin = min(self.xpos, e.pos().x())
             xmax = max(self.xpos, e.pos().x())
             ymin = min(self.ypos, e.pos().y())
@@ -1191,7 +1193,7 @@ class QwtImagePlot(QwtPlot):
          _dprint(2, 'display_image inserting markers')
          self.removeMarkers()
 	 self.insert_marker_lines()
-#      self.insert_array_info()
+      self.insert_array_info()
       self.replot()
       _dprint(2, 'called replot in display_image');
     # display_image()
@@ -1199,7 +1201,6 @@ class QwtImagePlot(QwtPlot):
     def insert_array_info(self):
 # insert mean and standard deviation
       if not self.array_parms is None:
-        print 'displaying ', self.array_parms
 # alias
         fn = self.fontInfo().family()
 
@@ -1211,7 +1212,7 @@ class QwtImagePlot(QwtPlot):
         self.setMarkerLabelAlign(self.info_marker, Qt.AlignLeft | Qt.AlignBottom)
         self.setMarkerLabel( self.info_marker, self.array_parms,
           QFont(fn, 9, QFont.Bold, False),
-          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+          Qt.blue, QPen(Qt.red, 2), QBrush(Qt.white))
     # insert_array_info()
 
     def plot_data(self, visu_record, attribute_list=None):
