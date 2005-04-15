@@ -26,18 +26,28 @@ namespace Meq {
 
 //##ModelId=400E5355029C
 MergeFlags::MergeFlags()
+  : Function(-1,0,1)
 {}
 
 //##ModelId=400E5355029D
 MergeFlags::~MergeFlags()
 {}
 
+void MergeFlags::mergeChildFlags (Result::Ref &resref,int ivs,const VellSet &vs,VellsFlagType fm)
+{
+  Vells::Ref flags;
+  const VellSet &vs0 = resref->vellSet(ivs);
+  if( vs0.hasDataFlags() )
+    flags.attach(vs0.dataFlags());
+  Vells::mergeFlags(flags,vs.dataFlags(),fm);
+  if( flags.valid() )
+    resref().vellSetWr(ivs).setDataFlags(flags);
+}
+
 int MergeFlags::getResult (Result::Ref &resref, 
                             const std::vector<Result::Ref> &childres,
                             const Request &request,bool)
 {
-  std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
-  lockMutexes(child_reslock,childres);
   int nch = childres.size();
   // if not enough flags in mask, extend with default value
   int i = flagmask_.size();
@@ -49,36 +59,84 @@ int MergeFlags::getResult (Result::Ref &resref,
   }
   // copy first child result to output
   resref = childres[0];
-  const Result & result = resref();
-  // check # of input vellsets
-  int nvs = result.numVellSets();
-  for( int ich=1; ich<nch; ich++ )
-  {
-    int n = childres[ich]->numVellSets();
-    // all children must have either 1 VellSet, or more than child 0
-    if( n>1 && n<nvs )
-      NodeThrow1(Debug::ssprintf("error: child 1 returns %d VellSets, child %d returns %d",nvs,ich+1,n));
-  }
-  // loop over vellsets
-  for( int iplane = 0; iplane < nvs; iplane++ )
+  int nvs0 = resref->numVellSets();
+  // only one result? Merge flags of all child elements
+  if( nch == 1 )
   {
     Vells::Ref flags;
-    for( int ich=0; ich<nch; ich++ )
+    // less than two vellsets? Nothing to merge then, return as-is
+    if( nvs0 <= 1 )
+      return 0;
+    // else merge
+    for( int i=0; i<nvs0; i++ )
     {
-      const Result &chres = *(childres[ich]);
-      const VellSet &vs = chres.vellSet(std::max(chres.numVellSets()-1,iplane));
-      // if child vellset has flags and mask !=0, merge with result
-      if( flagmask_[ich] && vs.hasDataFlags() )
-        if( flags.valid() )
-          flags() |= vs.dataFlags() & flagmask_[ich];
-        else
-          flags.attach(vs.dataFlags());
+      const VellSet &vs = resref->vellSet(i);
+      if( vs.hasDataFlags() )
+        Vells::mergeFlags(flags,vs.dataFlags(),flagmask_[1]);
     }
+    // got any flags at all? reattach them
     if( flags.valid() )
-      resref().vellSetWr(iplane).setDataFlags(flags);
-    else if( resref->vellSet(iplane).hasDataFlags() )
-      resref().vellSetWr(iplane).clearDataFlags();
+    {
+      Result &result = resref();
+      for( int i=0; i<nvs0; i++ )
+        result.vellSetWr(i).setDataFlags(flags);
+    }
+    return 0;
   }
+  // multiple results, merge all child flags into child 1
+  // nothing to merge if no vellsets
+  if( nvs0<1 )
+    return 0;
+  const LoShape & resdims = resref->dims();
+  // loop over all children
+  for( int ich=1; ich<nch; ich++ )
+  {
+    VellsFlagType fm = flagmask_[ich];
+    // ignore children with empty mask
+    if( !fm )
+      continue;
+    const Result &chres = *childres[ich];
+    // ignore children w/o a vellset
+    int nvs1 = chres.numVellSets();
+    if( !nvs1 )
+      continue;
+    if( resdims == chres.dims() )    // same tensor shape: merge element-by-element 
+    {
+      for( int i=0; i<nvs0; i++ )
+      {
+        const VellSet &vs1 = chres.vellSet(i);
+        if( vs1.hasDataFlags() )
+          mergeChildFlags(resref,i,vs1,fm);
+      }
+    }
+    else if( chres.dims().empty() )  // scalar flag source: merge with all elements
+    {
+      const VellSet &vs1 = chres.vellSet(0);
+      if( vs1.hasDataFlags() )
+        for( int i=0; i<nvs0; i++ )
+          mergeChildFlags(resref,i,vs1,fm);
+    }
+    else if( resdims.empty() )       // scalar destination: merge all tensor flags with scalar
+    {
+      Vells::Ref flags;
+      const VellSet &vs0 = resref->vellSet(0);
+      if( vs0.hasDataFlags() )
+        flags.attach(vs0.dataFlags());
+      for( int i=0; i<nvs1; i++ )
+      {
+        const VellSet &vs1 = chres.vellSet(i);
+        if( vs1.hasDataFlags() )
+          Vells::mergeFlags(flags,vs1.dataFlags(),fm);
+      }
+      if( flags.valid() )
+        resref().vellSetWr(0).setDataFlags(flags);
+    }
+    else
+    {
+      Throw("dimensions of tensor child results do not match");
+    }
+  }
+  
   // return 0 flag, since we don't add any dependencies of our own
   return 0;
 }

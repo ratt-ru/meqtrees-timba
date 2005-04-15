@@ -49,6 +49,25 @@ void Vells::_init_static_impl ()
   Vells::pUnity_ = new Vells(double(1),false);
 }
 
+void Vells::mergeFlags (Vells::Ref &flags0,const Vells &flags1,VellsFlagType fm)
+{
+  if( !fm )
+    return;
+  if( flags0.valid() )
+  {
+    if( fm == VellsFullFlagMask )
+      flags0() |= flags1;
+    else
+      flags0() |= (flags1 & fm);
+  }
+  else 
+  {
+    flags0.attach(flags1);
+    if( fm != VellsFullFlagMask )
+      flags0() &= fm;
+  }
+}
+
 //##ModelId=3F86887001D4
 // default constructor initializes a by-ref copy of nullVells
 Vells::Vells()

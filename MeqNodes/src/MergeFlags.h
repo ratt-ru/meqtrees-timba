@@ -65,6 +65,9 @@ protected:
                          const std::vector<Result::Ref> &childres,
                          const Request &req,bool newreq);
   
+
+  // helper function merges in flags on one child
+  void mergeChildFlags (Result::Ref &resref,int ivs,const VellSet &vs,VellsFlagType fm);
 };
 
 

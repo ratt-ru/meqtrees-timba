@@ -545,7 +545,12 @@ public:
                        int strides[4][Axis::MaxAxis],
                        const Vells &a,const Vells &b,
                        const string &opname);
-
+  
+  // Helper function to merge vells flags using copy-on-write
+  // Executes flags0 |= flags1 & fm
+  // If flags0 is invalid, attaches new flags.
+  static void mergeFlags (Vells::Ref &flags0,const Vells &flags1,VellsFlagType fm);
+  
 private:
 // internal initialization functions (called only once)
   static void _init_static ()

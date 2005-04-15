@@ -265,6 +265,22 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],
             meq.node('MeqTranspose','mattrans5',children="matv5"),
             "matv4"
           ))
+        )),
+        meq.node('MeqMatrixMultiply','matinv1',children=meq.list(
+          meq.node('MeqComposer','matvar1',[dims=[2,2]],children=meq.list(
+            'x',
+            meq.node('MeqConstant','matinv2b',[value=1]),
+            meq.node('MeqConstant','matinv2c',[value=-.5]),
+            'y'
+          )),
+          meq.node('MeqMatrixInvert22','matinv3',children="matvar1")
+        )),
+        meq.node('MeqMatrixMultiply','matinv4',children=meq.list(
+          meq.node('MeqConstant','matinv5',[value=array([1.,2,4,5],2,2)]),
+          meq.node('MeqMatrixInvert22','matinv6',children="matinv5")
+        )),
+        meq.node('MeqDataCollect','matdc1',children=meq.list(
+          meq.node('MeqStripper','matstr1',children="matvar1")
         ))
       ))
     );

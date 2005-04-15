@@ -81,10 +81,7 @@ void Function::evaluateFlags (Vells::Ref &out,const Request &,const LoShape &,co
 {
   for( uint i=0; i<pchf.size(); i++ )
     if( pchf[i] )
-      if( out.valid() )
-        out() |= *(pchf[i]);
-      else
-        out <<= pchf[i];
+      Vells::mergeFlags(out,*pchf[i],flagmask_[i]);
 }
 
 //##ModelId=3F86886E03DD
