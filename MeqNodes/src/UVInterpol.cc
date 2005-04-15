@@ -53,87 +53,112 @@ namespace Meq {
     
     if( rcells.isDefined(Axis::TIME) && rcells.isDefined(Axis::FREQ))
       {
-    
-	// Create Result object and attach to the Ref that was passed in.
-	resref <<= new Result(1);                 // 1 plane
-	VellSet& vs = resref().setNewVellSet(0);  // create new object for plane 0
+	if (!_additional_info)
+	  {
+	    // Create only the Integrated / Interpolated UVdata
+	    
+	    // Create Result object and attach to the Ref that was passed in.
+	    resref <<= new Result(1);                 // 1 plane
+	    VellSet& vs = resref().setNewVellSet(0);  // create new object for plane 0
 
-	//
-	// Make the Result
-	//		
-
-	// Make the Vells (Interpolation)
-	Vells::Shape shape;
-	Axis::degenerateShape(shape,rcells.rank());
-	shape[Axis::TIME] = rcells.ncells(Axis::TIME);
-	shape[Axis::FREQ] = rcells.ncells(Axis::FREQ);
-
-	// Make a new Vells
-	Vells & vells = vs.setValue(new Vells(dcomplex(0),shape,false));
-	
-	// Fill the Vells (this is were the interpolation takes place)
-	 fillVells(childres,vells,rcells);	
-	
-	// Attach the request Cells to the result
-	 resref().setCells(rcells);
-
-	 if (_additional_info)
-	   {
-
-	     // Make the Vells (Show Cell mapping)
-
-	     Result& res2 = resref["UVInterpol.Map"] <<= new Result(1);                 // 1 plane
-	     VellSet& vs2 = res2.setNewVellSet(0);  // create new object for plane 0
-
-	     Result& res3 = resref["UVInterpol.Count"] <<= new Result(1);                 // 1 plane
-	     VellSet& vs3 = res3.setNewVellSet(0);  // create new object for plane 0
-
-	     // Get the Child Results: brickresult, brickcells for UVBrick-Node
-	     //                        uvpoints for UVW-Node
-	     Result::Ref brickresult;
-	     Cells brickcells; 
-	     
-	     if ( childres.at(0)->cells().isDefined(Axis::axis("U")) &&
-		  childres.at(0)->cells().isDefined(Axis::axis("V")) )
-	       {
-		 brickresult = childres.at(0);
-		 brickcells = brickresult->cells();
-	       } 
-	     else 
-	       {
-		 brickresult = childres.at(1);
-		 brickcells = brickresult->cells();
-	       };
-	     
-	     // uv grid from UVBrick
-	     int nu = brickcells.ncells(Axis::axis("U"));
-	     int nv = brickcells.ncells(Axis::axis("V"));
-	     const LoVec_double uu = brickcells.center(Axis::axis("U"));
-	     const LoVec_double vv = brickcells.center(Axis::axis("V"));
-	     
-	     Domain::Ref newdomain(new Domain());
-	     newdomain().defineAxis(1,uu(0),uu(nu-1));
-	     newdomain().defineAxis(0,vv(0),vv(nv-1));
-	     Cells::Ref newcells(new Cells(*newdomain));
-	     newcells().setCells(1,uu(0),uu(nu-1),nu);
-	     newcells().setCells(0,vv(0),vv(nv-1),nv);
-	     
-	     Vells::Shape shape2;
-	     Axis::degenerateShape(shape2,newcells->rank());
-	     shape2[Axis::axis("freq")] = brickcells.ncells(Axis::axis("U"));
-	     shape2[Axis::axis("time")] = brickcells.ncells(Axis::axis("V"));
-	     
-	     // Make a new Vells
-	     Vells & vells2 = vs2.setValue(new Vells(double(0),shape2,false));
-	     Vells & vells3 = vs3.setValue(new Vells(double(0),shape,false));
-	     
-	     // Fill the Vells (this is were the interpolation takes place)
-	     fillVells2(childres,vells2,vells3,rcells);	
-	     
-	     // Attach the request Cells to the result
-	     res2.setCells(*newcells);
-	     res3.setCells(rcells);
-	   };
+	    //
+	    // Make the Result
+	    //		
+	    
+	    // Make the Vells (Interpolation)
+	    Vells::Shape shape;
+	    Axis::degenerateShape(shape,rcells.rank());
+	    shape[Axis::TIME] = rcells.ncells(Axis::TIME);
+	    shape[Axis::FREQ] = rcells.ncells(Axis::FREQ);
+	    
+	    // Make a new Vells
+	    Vells & vells = vs.setValue(new Vells(dcomplex(0),shape,false));
+	    
+	    // Fill the Vells (this is were the interpolation takes place)
+	    fillVells(childres,vells,rcells);	
+	    
+	    // Attach the request Cells to the result
+	    resref().setCells(rcells);
+	  }
+	else
+	  {
+	    // Make both the Integrated / Interpolated UVdata
+	    // and Additional Info on Number of gridpoints per Cell 
+	    //                    and UV-plane coverage
+	    
+	    // Create Result object and attach to the Ref that was passed in.
+	    resref <<= new Result(1);                  // 1 plane
+	    VellSet& vs1 = resref().setNewVellSet(0);  // create new object for plane 0
+	    // Make the Additional Vells
+	    
+	    Result& res2 = resref["UVInterpol.Map"] <<= new Result(1); 
+	    VellSet& vs2 = res2.setNewVellSet(0);
+	    
+	    Result& res3 = resref["UVInterpol.Count"] <<= new Result(1);
+	    VellSet& vs3 = res3.setNewVellSet(0);  
+	    
+	    //
+	    // Make the Result
+	    //		
+	    
+	    // Make a shape (Interpolation and Grid Point Count)
+	    Vells::Shape shape1;
+	    Axis::degenerateShape(shape1,rcells.rank());
+	    shape1[Axis::TIME] = rcells.ncells(Axis::TIME);
+	    shape1[Axis::FREQ] = rcells.ncells(Axis::FREQ);
+	    
+	    // Make a second shape for the UV Coverage
+	    Result::Ref brickresult;
+	    Cells brickcells; 
+	    
+	    if ( childres.at(0)->cells().isDefined(Axis::axis("U")) &&
+		 childres.at(0)->cells().isDefined(Axis::axis("V")) )
+	      {
+		brickresult = childres.at(0);
+		brickcells = brickresult->cells();
+	      } 
+	    else 
+	      {
+		brickresult = childres.at(1);
+		brickcells = brickresult->cells();
+	      };
+	    
+	    // uv grid from UVBrick
+	    int nu = brickcells.ncells(Axis::axis("U"));
+	    int nv = brickcells.ncells(Axis::axis("V"));
+	    const LoVec_double uu = brickcells.center(Axis::axis("U"));
+	    const LoVec_double vv = brickcells.center(Axis::axis("V"));
+	    
+	    Domain::Ref newdomain(new Domain());
+	    newdomain().defineAxis(1,uu(0),uu(nu-1));
+	    newdomain().defineAxis(0,vv(0),vv(nv-1));
+	    Cells::Ref newcells(new Cells(*newdomain));
+	    newcells().setCells(1,uu(0),uu(nu-1),nu);
+	    newcells().setCells(0,vv(0),vv(nv-1),nv);
+	    
+	    Vells::Shape shape2;
+	    Axis::degenerateShape(shape2,newcells->rank());
+	    shape2[Axis::axis("freq")] = brickcells.ncells(Axis::axis("U"));
+	    shape2[Axis::axis("time")] = brickcells.ncells(Axis::axis("V"));
+	    
+	    
+	    // Make a new Vells
+	    Vells & vells1 = vs1.setValue(new Vells(dcomplex(0),shape1,false));
+	    Vells & vells2 = vs2.setValue(new Vells(double(0),shape2,false));
+	    Vells & vells3 = vs3.setValue(new Vells(double(0),shape1,false));
+	    
+	    
+	    // Fill the Vells (this is were the interpolation takes place)
+	    //fillVells(childres,vells1,rcells);	
+	   	     
+	    // Fill the Vells (this is were the interpolation takes place)
+	    fillVells2(childres,vells1,vells2,vells3,rcells);	
+	    
+	    // Attach the request Cells to the result
+	    resref().setCells(rcells);
+	    res2.setCells(*newcells);
+	    res3.setCells(rcells);
+	  };
 
       }; 
     
@@ -364,7 +389,8 @@ namespace Meq {
   };
 
  void UVInterpol::fillVells2(const std::vector<Result::Ref> &fchildres, 
-			     Vells &fvells1, Vells &fvells2, const Cells &fcells)
+			     Vells &fvells1, Vells &fvells2, Vells &fvells3, 
+			     const Cells &fcells)
   {
     // Definition of constants
     const double c0 = casa::C::c;  // Speed of light
@@ -411,12 +437,12 @@ namespace Meq {
     blitz::Array<double,2> varr = vvells.as<double,2>()(LoRange::all(),LoRange::all());
 
     // uv-data from UVBrick
-    //VellSet bvsr = brickresult->vellSet(0);
-    //Vells bvellsr = bvsr.getValue();         // Real part
-    //VellSet bvsi = brickresult->vellSet(1);
-    //Vells bvellsi = bvsi.getValue();         // Imaginary part
-    //Vells bvells = VellsMath::tocomplex(bvellsr,bvellsi);
-    //blitz::Array<dcomplex,3> barr = bvells.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
+    VellSet bvsr = brickresult->vellSet(0);
+    Vells bvellsr = bvsr.getValue();         // Real part
+    VellSet bvsi = brickresult->vellSet(1);
+    Vells bvellsi = bvsi.getValue();         // Imaginary part
+    Vells bvells = VellsMath::tocomplex(bvellsr,bvellsi);
+    blitz::Array<dcomplex,3> barr = bvells.as<dcomplex,4>()(0,LoRange::all(),LoRange::all(),LoRange::all());
 
     // uv grid from UVBrick
     int nu = brickcells.ncells(Axis::axis("U"));
@@ -447,11 +473,12 @@ namespace Meq {
     };
 
     // Make an array, connected to the Vells, with which we fill the Vells.
-    //    LoMat_double arr = fvells.as<double,4>()(0,0,LoRange::all(),LoRange::all());
-    LoMat_double arr1 = fvells1.as<double,2>();
+    LoMat_dcomplex arr1 = fvells1.as<dcomplex,2>();
     arr1 = 0.0;
     LoMat_double arr2 = fvells2.as<double,2>();
     arr2 = 0.0;
+    LoMat_double arr3 = fvells3.as<double,2>();
+    arr3 = 0.0;
 
     double uc,vc,u1,u2,u3,u4,v1,v2,v3,v4;
     double umax,umin,vmax,vmin;
@@ -504,14 +531,40 @@ namespace Meq {
 	    t4 = arc(u4,v4,u1,v1,uc,vc,uu(i1),vv(j1));
 
 	    if (t1 && t2 && t3 && t4){
-	      //	      arr(i1,j1) = double(j + nf*i+1);
-	      arr1(j1,i1) = double(j + nf*i+1);
+	      arr1(i,j) = arr1(i,j) + barr(j,i1,j1);
+	      arr2(j1,i1) = double(j + nf*i+1);
 	      np++;
 	    };
 	    
 	  };
 	};
-	arr2(i,j) = np;
+	arr3(i,j) = np;
+
+	if (np==0){
+	  // No points found in the Cell, so find a value by bilinear interpolation
+	  
+	  for (int i1 = imin; i1 < imax+1; i1++){
+	    if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
+	  };
+	  for (int j1 = jmin; j1 < jmax+1; j1++){
+	    if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
+	  };
+	  
+	  t = (uc-uu(ia))/(uu(ib)-uu(ia));
+	  s = (vc-vv(ja))/(vv(jb)-vv(ja));
+	  
+	  arr1(i,j) = (1-t)*(1-s)*barr(j,ia,jb) + t*(1-s)*barr(j,ib,ja) +
+	    t*s*barr(j,ib,jb) + (1-t)*s*barr(j,ia,jb);
+
+	} else {
+	  // Np points found in the Cell, take average value
+
+	  arr1(i,j) = arr1(i,j)/double(np);	  
+
+	};
+
+	// Mutiply with the area of the Cell to get integrated value
+	arr1(i,j) = arr1(i,j)*double(2)*pi*(hiti(i)-loti(i))/double(24)/double(3600) * ( u2*u2 + v2*v2 - u1*u1 - v1*v1 ) / double(2);
 
       };
     };

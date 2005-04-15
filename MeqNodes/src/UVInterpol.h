@@ -77,7 +77,7 @@ public:
   bool UVInterpol::arc(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4);
 
   void UVInterpol::fillVells2(const std::vector<Result::Ref> &fchildres, 
-			      Vells &fvells1, Vells &fvells2, const Cells &fcells);
+			      Vells &fvells1, Vells &fvells2, Vells &fvells3, const Cells &fcells);
    
 };
 
