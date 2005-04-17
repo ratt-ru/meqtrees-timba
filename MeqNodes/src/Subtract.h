@@ -33,7 +33,7 @@ namespace Meq {
 
 
 //##ModelId=400E530400A3
-class Subtract : public Function2
+class Subtract : public Function
 {
 public:
     //##ModelId=400E5355029C

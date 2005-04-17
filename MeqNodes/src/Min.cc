@@ -42,13 +42,13 @@ Vells Min::evaluate (const Request&,const LoShape &,
   }
 }
 
-void Min::evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const Vells*> &pchf)
+void Min::evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const VellSet*> &pvs)
 {
   // unary form returns no flags
-  if( pchf.size() == 1 )
+  if( pvs.size() == 1 )
     return;
   // else defer to Function (merge flags of children)
-  Function::evaluateFlags(out,req,shape,pchf);
+  Function::evaluateFlags(out,req,shape,pvs);
 }
 
 } // namespace Meq

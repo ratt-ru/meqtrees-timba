@@ -89,13 +89,10 @@ int MatrixInvert22::getResult (Result::Ref &resref,
     if( fail_vs->isFail() )
       continue;
     pvset[ivs] = &(vs);
-    pvv    [ivs] = vs.hasValue() ? &( vs.getValue() ) : pNull;
+    pvv  [ivs] = vs.hasValue() ? &( vs.getValue() ) : pNull;
     // flags
     if( vs.hasDataFlags() )
-      if( flagref.valid() )
-        flagref() |= vs.dataFlags();
-      else
-        flagref.attach(vs.dataFlags());
+      Vells::mergeFlags(flagref,vs.dataFlags(),flagmask_[0]);
   }
   // any fails? return them
   if( fail_vs->isFail() )

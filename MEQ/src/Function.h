@@ -54,14 +54,13 @@ public:
   // Evaluate the flags for the given request, and return them in 'out'.
   // If out is not a valid ref, a new Vells should be created. (If it is,
   // assume some initial flags are passed in, and do not reinitialize).
-  // The output shape is passed in as the shape argument. Note that some 
-  // children may be missing flags; in this case the corresponding Vells* 
-  // will be 0.
-  // If no flags were generated (e.g. due to all children pointers being 0),
+  // The output shape is passed in as the shape argument. 
+  // If no flags were generated (e.g. due to all children being flagless),
   // 'out' may be left uninitialized.
-  // Default version returns a bitwise-OR of all valid child flags.
+  // Default version returns a bitwise-OR of all valid child flags, with
+  // flagmasks applied.
     //##ModelId=3F86886F00B0
-  virtual void evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const Vells*>&);
+  virtual void evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shape,const vector<const VellSet *> &pvs);
 
   // Returns the class TypeId
     //##ModelId=400E53070274

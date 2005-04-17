@@ -33,12 +33,22 @@ Multiply::Multiply()
 Multiply::~Multiply()
 {}
 
+void Multiply::evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shp,const vector<const VellSet *> &pvs)
+{
+  // if any argument is a null, then output is unflagged
+  for( uint i=0; i<pvs.size(); i++ )
+    if( pvs[i] && pvs[i]->isNull() )
+      return;
+  // else defer to normal routine
+  Function::evaluateFlags(out,req,shp,pvs);
+}
+
 //##ModelId=400E530A010A
 Vells Multiply::evaluate (const Request&, const LoShape&,
 			  const vector<const Vells*>& values)
 {
   if( values.empty() )
-    return Vells(1.);  // or should this be 0?
+    return Vells::Unity();  // or should this be 0?
   Vells result(*values[0]);
   for( uint i=1; i<values.size(); i++ )
     result *= *(values[i]);

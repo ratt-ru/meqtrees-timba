@@ -163,6 +163,10 @@ public:
   void copyPerturbations (const VellSet &other);
 
   // ------------------------ MAIN RESULT VALUE
+  // a vellset is a "null" when it has no main value, or main value
+  // is a null and there are no perturbed values
+  bool isNull () const
+  { return !hasValue() || !( numSpids() && pvalue_->deref().isNull() ); }
 
   // returns true if vellset has a value
   bool hasValue () const
@@ -252,6 +256,10 @@ public:
   // returns flags of this Vells
   const Vells & dataFlags () const
   { return pflags_->deref(); }
+  
+  // returns true if dataflags are the same object as given
+  bool sameDataFlags (const Vells &flags) const
+  { return hasDataFlags() && pflags_->deref_p() == &flags; }
   
   // sets the dataflags of a Vells
   void setDataFlags (const Vells::Ref &flags);

@@ -77,11 +77,11 @@ void Function::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   }
 }
 
-void Function::evaluateFlags (Vells::Ref &out,const Request &,const LoShape &,const vector<const Vells*> &pchf)
+void Function::evaluateFlags (Vells::Ref &out,const Request &,const LoShape &,const vector<const VellSet *> &pvs)
 {
-  for( uint i=0; i<pchf.size(); i++ )
-    if( pchf[i] )
-      Vells::mergeFlags(out,*pchf[i],flagmask_[i]);
+  for( uint i=0; i<pvs.size(); i++ )
+    if( pvs[i] && !pvs[i]->isNull() && pvs[i]->hasDataFlags() )
+      Vells::mergeFlags(out,pvs[i]->dataFlags(),flagmask_[i]);
 }
 
 //##ModelId=3F86886E03DD
@@ -203,7 +203,7 @@ int Function::getResult (Result::Ref &resref,
         vellset.setSpids(spids);
         // Evaluate flags
         Vells::Ref flagref;
-        evaluateFlags(flagref,request,res_shape,flags);
+        evaluateFlags(flagref,request,res_shape,child_vs);
         if( flagref.valid() )
         {
           flagref().makeNonTemp();

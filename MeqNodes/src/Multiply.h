@@ -46,6 +46,8 @@ public:
   virtual TypeId objectType() const
     { return TpMeqMultiply; }
 
+  virtual void evaluateFlags (Vells::Ref &out,const Request &req,const LoShape &shp,const vector<const VellSet *> &pvs);
+
   // Evaluate the value for the given request.
     //##ModelId=400E530A010A
   virtual Vells evaluate (const Request&, const LoShape&,

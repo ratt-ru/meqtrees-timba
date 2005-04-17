@@ -53,7 +53,10 @@ Vells::Ref MatrixMultiply::computeSum (const std::vector<const Vells*> &pv)
 }
 
 // multiplies a scalar result by a tensor result
-void MatrixMultiply::scalarMultiply (Result::Ref &res,const Result &scalar,const Result &tensor,bool integrated,int tensor_ich)
+void MatrixMultiply::scalarMultiply (Result::Ref &res,
+    const Result &scalar,const Result &tensor,
+    VellsFlagType fms,VellsFlagType fmt,
+    bool integrated,int tensor_ich)
 {
   // for consistency, refuse to have anything to do with >2 rank tensors
   FailWhen(tensor.tensorRank()>2,ssprintf(
@@ -75,24 +78,30 @@ void MatrixMultiply::scalarMultiply (Result::Ref &res,const Result &scalar,const
   const Vells & sca_val = sca_vs.getValue();
   if( !sca_vs.numSpids() )
   {
-    // null scalar and no perturbations: return null Vells
+    // null scalar and no perturbations: return null Vells without flags
+    // (flags swallowed by null values...)
     if( sca_val.isNull() )
-      (res <<= new Result(1,integrated)).setNewVellSet(0).setValue(new Vells);
-    // unity and no perturbations: return tensor itself
-    else if( sca_val.isUnity() )
-      res <<= &tensor;
-    // merge in dataflags if scalar defines them
-    if( res.valid() )
     {
-      if( sca_vs.hasDataFlags() ) 
+      (res <<= new Result(1,integrated)).setNewVellSet(0).setValue(new Vells);
+      return;
+    }
+    // unity and no perturbations: return tensor itself, applying flags
+    if( sca_val.isUnity() )
+    {
+      res.attach(tensor);
+      if( sca_vs.hasDataFlags() && fms || fmt != VellsFullFlagMask )
       {
         for( int i=0; i<res->numVellSets(); i++ )
-          if( res->vellSet(i).hasDataFlags() )
-          {
-            Vells::Ref dataflags(sca_vs.dataFlags());
-            dataflags() |= res->vellSet(i).dataFlags();
-            res().vellSetWr(i).setDataFlags(dataflags);
-          }
+        {
+          Vells::Ref flags;
+          const VellSet &vs0 = res->vellSet(i);
+          if( vs0.hasDataFlags() && !vs0.isNull() )
+            Vells::mergeFlags(flags,vs0.dataFlags(),fmt);
+          if( sca_vs.hasDataFlags() ) // not a null in this case
+            Vells::mergeFlags(flags,sca_vs.dataFlags(),fms);
+          if( flags.valid() && !vs0.sameDataFlags(flags) )
+            res().vellSetWr(i).setDataFlags(flags);
+        }
       }
       return;
     }
@@ -119,22 +128,22 @@ void MatrixMultiply::scalarMultiply (Result::Ref &res,const Result &scalar,const
     child_vs[0] = &tvs;
     // create a vellset for this plane
     VellSet &vellset = result.setNewVellSet(ivs,0,0);
-    // accumulate fails if present
-    // combine flags if present
-    if( sca_vs.hasDataFlags() )
-    {
-      Vells::Ref dataflags(sca_vs.dataFlags());
-      if( tvs.hasDataFlags() )
-        dataflags() |= tvs.dataFlags();
-      vellset.setDataFlags(dataflags);
-    }
-    else if( tvs.hasDataFlags() )
-      vellset.setDataFlags(tvs.dataFlags());
     // compute main value
     pvv[0] = &(tvs.getValue());
     Vells::Ref valref(pvv[0]);
     valref() *= sca_val;
     vellset.setValue(valref);
+    // combine flags if present and values are not null
+    if( !sca_vs.isNull() && !tvs.isNull() )
+    {
+      Vells::Ref flags;
+      if( sca_vs.hasDataFlags() )
+        Vells::mergeFlags(flags,sca_vs.dataFlags(),fms);
+      if( tvs.hasDataFlags() )
+        Vells::mergeFlags(flags,tvs.dataFlags(),fmt);
+      if( flags.valid() )
+        vellset.setDataFlags(flags);
+    }
     // now figure out perturbed values
     int npertsets;
     vector<int> spids = findSpids(npertsets,child_vs);
@@ -211,6 +220,17 @@ int MatrixMultiply::getResult (Result::Ref &resref,
   resref = childres[0];
   // result is intergrated if any child is integrated
   bool integrated = resref->isIntegrated();
+  VellsFlagType fm0 = flagmask_[0]; 
+  // apply flagmask to first child
+  if( fm0 != VellsFullFlagMask )
+  {
+    for( int i=0; i<resref->numVellSets(); i++ )
+      if( resref().vellSet(i).hasDataFlags() )
+      {
+        VellSet &vs = resref().vellSetWr(i);
+        vs.setDataFlags(new Vells(vs.dataFlags()&fm0));
+      }
+  }
   // process one child at a time, multiplying sequentially. Current
   // result is attached to resref.
   for( int ich=1; ich<nrch; ich++ )
@@ -218,12 +238,13 @@ int MatrixMultiply::getResult (Result::Ref &resref,
     Result::Ref resref1;
     const Result &arga = *resref;
     const Result &argb = *childres[ich];
+    VellsFlagType fm = flagmask_[ich]; 
     integrated |= argb.isIntegrated(); // accumulate integrated property
     // fall back to scalar multiplication if either argument is scalar
     if( !arga.tensorRank() )
-      scalarMultiply(resref1,arga,argb,integrated,ich);
+      scalarMultiply(resref1,arga,argb,VellsFullFlagMask,fm,integrated,ich);
     else if( !argb.tensorRank() )
-      scalarMultiply(resref1,argb,arga,integrated,ich-1);
+      scalarMultiply(resref1,argb,arga,fm,VellsFullFlagMask,integrated,ich-1);
     else
     {
       // figure out tensor dimensions
@@ -293,16 +314,13 @@ int MatrixMultiply::getResult (Result::Ref &resref,
             pvset[nvs]   = &(vsb);
             pvv  [nvs++] = vsb.hasValue() ? &( vsb.getValue() ) : 0;
             // flags
-            if( vsa.hasDataFlags() )
-              if( flagref.valid() )
-                flagref() |= vsa.dataFlags();
-              else
-                flagref.attach(vsa.dataFlags());
-            if( vsb.hasDataFlags() )
-              if( flagref.valid() )
-                flagref() |= vsb.dataFlags();
-              else
-                flagref.attach(vsb.dataFlags());
+            if( !vsa.isNull() && !vsb.isNull() )
+            {
+              if( vsa.hasDataFlags() )
+                Vells::mergeFlags(flagref,vsa.dataFlags(),VellsFullFlagMask);
+              if( vsb.hasDataFlags() )
+                Vells::mergeFlags(flagref,vsb.dataFlags(),fm);
+            }
           }
           // if output is a fail, go to next element
           if( vellset.isFail() )

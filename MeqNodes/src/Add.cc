@@ -37,10 +37,8 @@ Add::~Add()
 Vells Add::evaluate (const Request&, const LoShape&,
 		     const vector<const Vells*>& values)
 {
-  if( values.empty() )
-    return Vells(0.);
-  Vells result(*values[0]);
-  for( uint i=1; i<values.size(); i++ )
+  Vells result;
+  for( uint i=0; i<values.size(); i++ )
     result += *(values[i]);
   return result;
 }

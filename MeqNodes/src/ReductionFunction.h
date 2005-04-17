@@ -35,7 +35,7 @@ public:
   ReductionFunction (int nchildren=-1,int nmandatory=1);
 
   // child flags normally swallowed up
-  virtual void evaluateFlags (Vells::Ref &,const Request &,const LoShape &,const vector<const Vells*>&)
+  virtual void evaluateFlags (Vells::Ref &,const Request &,const LoShape &,const vector<const VellSet*>&)
   {}
   
 protected:

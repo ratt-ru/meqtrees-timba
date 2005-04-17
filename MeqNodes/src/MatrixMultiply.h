@@ -57,7 +57,9 @@ protected:
   Vells::Ref computeSum (const std::vector<const Vells*> &pv);
   
   // multiplies a scalar child by a tensor child
-  void scalarMultiply (Result::Ref &res,const Result &scalar,const Result &tensor,bool integrated,int tensor_ich);
+  void scalarMultiply (Result::Ref &res,const Result &scalar,const Result &tensor,
+                       VellsFlagType fms,VellsFlagType fmt,
+                       bool integrated,int tensor_ich);
 
   
 };

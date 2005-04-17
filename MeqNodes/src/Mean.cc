@@ -44,7 +44,7 @@ Vells Mean::evaluate (const Request&,const LoShape &shape,
       res += mean(*(values[i]),flagmask_) * nel;
       sum_nel += nel; 
     }
-    return sum_nel ? res/sum_nel : Vells(0.);
+    return sum_nel ? res/sum_nel : Vells();
   }
 }
 

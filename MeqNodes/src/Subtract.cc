@@ -27,6 +27,7 @@ namespace Meq {
 
 //##ModelId=400E5355029C
 Subtract::Subtract()
+ : Function(-1,0,1)
 {}
 
 //##ModelId=400E5355029D
@@ -37,7 +38,11 @@ Subtract::~Subtract()
 Vells Subtract::evaluate (const Request&,const LoShape &,
 			  const vector<const Vells*>& values)
 {
-  return *(values[0]) - *(values[1]);
+  Assert(!values.empty());
+  Vells result(*values[0]);
+  for( uint i=1; i<values.size(); i++ )
+    result -= *(values[i]);
+  return result;
 }
 
 
