@@ -27,10 +27,14 @@
 #include <MEQ/Node.h>
 #include <MEQ/Vells.h>
 #include <MEQ/Funklet.h>
+#include <MEQ/Polc.h>
 #include <MeqNodes/ParmTable.h>
 #include <Common/lofar_vector.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
+
+#include <scimath/Fitting/LSQaips.h>
+
 #pragma aidgroup MeqNodes
 #pragma types #Meq::Parm
 
@@ -162,7 +166,30 @@ private:
   std::vector<HIID> solve_symdeps_;
   
   bool        integrated_;
+
+
+  //stuff for snippet_solver
+
+  Domain LPDomain;  //domain for which the longpolc is valid.same domain for each spid
+  vector<double> LPAxis; //Vector with values (=mean) of the axis along which longPolc is solved
+  int LPnr_equations; // nr of equations ,same for each spid
+  bool auto_solve_;//flag, if true snippet-solver is on
+  int solve_axis_; // the axis for which we do the snippet solution, if not given, determined from the change in domain.
+  int solve_rank_; // the order which we do the snippet solution, default = 3
+  double solve_offset_; //offset for 'time' axis..to keep numbers a bit low..
+
+
+  vector<casa::LSQaips>   itsSolver;//the solver per spid  
   
+  //some functions
+  
+  Funklet * PredictFromLongPolc(Funklet::Ref &funkletref,const Domain & rdom);
+  int UpdateLPDomain(const Domain &rdom);
+  int UpdateLongPolc(int old_domain,Funklet *rpolc);
+  void SaveLongPolc();
+  void InitLongPolc(const Polc &rpolc);
+  Funklet::DbId LPDbId;//rownr in meptable for longpolc
+
 };
 
 

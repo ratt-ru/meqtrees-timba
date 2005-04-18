@@ -1,4 +1,4 @@
-//# ParmTable.cc: Object to hold parameters in a table.
+///# ParmTable.cc: Object to hold parameters in a table.
 //#
 //# Copyright (C) 2002
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -62,6 +62,7 @@ const String ColFreqScale     = "FREQSCALE";
 const String ColTimeScale     = "TIMESCALE";
 const String ColPerturbation  = "PERT";
 const String ColWeight        = "WEIGHT";
+const String ColLongPolcId    = "LONGPOLCID";
 
 const String KeywordDefValues = "DEFAULTVALUES";
 
@@ -121,7 +122,7 @@ ParmTable::~ParmTable()
 
 //##ModelId=3F86886F02BD
 int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
-                         const string& parmName,const Domain& domain)
+			    const string& parmName,const Domain& domain, const bool auto_solve_ )
 {
   Thread::Mutex::Lock lock(theirMutex);
   TableLocker locker(itsTable, FileLocker::Read);
@@ -140,16 +141,20 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
     ROScalarColumn<double> tsCol (sel, ColTimeScale);
     ROScalarColumn<double> diffCol (sel, ColPerturbation);
     ROScalarColumn<double> weightCol (sel, ColWeight);
+    ROScalarColumn<int> longpolcidCol (sel, ColLongPolcId);
     Vector<uInt> rowNums = sel.rowNumbers(itsTable);
     for( uint i=0; i<sel.nrow(); i++ )
     {
       int axis[] = { Axis::TIME,Axis::FREQ };
-      double offset[] = { f0Col(i),t0Col(i) };
-      double scale[]  = { fsCol(i),tsCol(i) };
+      double offset[] = { t0Col(i),f0Col(i) };
+      double scale[]  = { tsCol(i),fsCol(i) };
       // for now, only Polcs are supported
       Funklet &funklet = funklets[i] <<= new Polc(fromParmMatrix(valCol(i)),
           axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
       funklet.setDomain(Domain(sfCol(i), efCol(i), stCol(i), etCol(i)));
+      if(auto_solve_)
+	//reset Dbid, to keep all information
+	funklet.setDbId(-1);
     }
   }
   return funklets.size();
@@ -185,8 +190,8 @@ int ParmTable::getInitCoeff (Funklet::Ref &funkletref,const string& parmName)
         ROScalarColumn<double> tsCol (itsInitTable, ColTimeScale);
         ROScalarColumn<double> diffCol (itsInitTable, ColPerturbation);
         int axis[] = { Axis::TIME,Axis::FREQ };
-        double offset[] = { f0Col(row),t0Col(row) };
-        double scale[]  = { fsCol(row),tsCol(row) };
+        double offset[] = { t0Col(row),f0Col(row) };
+        double scale[]  = { tsCol(row),fsCol(row) };
         // for now, only Polcs are supported
         Polc *polc = new Polc(fromParmMatrix(valCol(row)),
                               axis,offset,scale,diffCol(row));
@@ -204,17 +209,19 @@ int ParmTable::getInitCoeff (Funklet::Ref &funkletref,const string& parmName)
   return 0;
 }
                                     
-void ParmTable::putCoeff1 (const string & parmName,Funklet &funklet,
+void ParmTable::putCoeff1 (const string & parmName,Funklet &funklet, int LPId,
                            bool domain_is_key)
 {
-  funklet.setDbId(putCoeff(parmName,funklet,domain_is_key));
+  funklet.setDbId(putCoeff(parmName,funklet,LPId,domain_is_key));
 }
     
     
 //##ModelId=3F86886F02C8
-Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funklet,
+Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funklet, int LPId,
                                 bool domain_is_key)
 {
+
+  cdebug(0)<<"putting coeef , lpid = "<<LPId<<endl;
   Thread::Mutex::Lock lock(theirMutex);
   // for now, only Polcs are supported
   FailWhen(funklet.objectType() != TpMeqPolc,"ParmTable currently only supports Meq::Polc funklets");  
@@ -232,6 +239,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   ScalarColumn<double> tsCol (itsTable, ColTimeScale);
   ScalarColumn<double> diffCol (itsTable, ColPerturbation);
   ScalarColumn<double> weightCol (itsTable, ColWeight);
+  ScalarColumn<int> longpolcidCol (itsTable, ColLongPolcId);
   const Domain& domain = funklet.domain();
   const Polc & polc = dynamic_cast<const Polc&>(funklet);
   // for the moment, only Time-Freq variable polcs are supported
@@ -260,6 +268,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
     values = polc.getCoeff0();
   }
   int rownr = polc.getDbId();
+  cdebug(0)<<"putting polc dbid = "<<rownr<<endl;
   // have a row number? check name, etc.
   if( rownr >= 0 )
   {
@@ -315,6 +324,7 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   tsCol.put   (rownr, polc.getScale(Axis::TIME));
   diffCol.put (rownr, polc.getPerturbation());
   weightCol.put(rownr, polc.getWeight());
+  longpolcidCol.put(rownr,LPId);
   return rownr;
 }
 
@@ -380,6 +390,7 @@ void ParmTable::createTable (const String& tableName)
   tdesc.addColumn (ScalarColumnDesc<Double>(ColTimeScale));
   tdesc.addColumn (ScalarColumnDesc<Double>(ColPerturbation));
   tdesc.addColumn (ScalarColumnDesc<Double>(ColWeight));
+  tdesc.addColumn (ScalarColumnDesc<Int>(ColLongPolcId));
   SetupNewTable newtab(tableName, tdesc, Table::New);
   Table tab(newtab);
 }

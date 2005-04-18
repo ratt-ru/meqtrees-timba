@@ -89,6 +89,16 @@ public:
   int getAxis (int i) const {
     return axes_[i]; 
   }
+  // sets offset along axis of variability
+  int setOffset (int i, double offset) {
+    if( offsets_.size()<=i){
+      cdebug(2)<<" cannot set offset, no default defined ..."<<endl;
+      return 0;
+    }
+
+    offsets_[i]= offset; 
+    return 1;
+  }
   // returns offset along axis of variability
   double getOffset (int i) const {
     return offsets_[i]; 
