@@ -213,13 +213,14 @@ AC_CHECK_FILE([$scampi_prefix/include/mpi.h],
 		SCAMPI_LIBS="-lmpi"
 		SCAMPI_PLIBS="-llmpe -lmpe"
 
+		if test "$mpi_profiler" = "yes"; then
+		  SCAMPI_CPPFLAGS="-I$scampi_prefix/include/mpe $SCAMPI_CPPFLAGS "
+	  	  SCAMPI_LDFLAGS="-L$scampi_prefix/lib/mpe $SCAMPI_LDFLAGS"
+		  LIBS="$LIBS $SCAMPI_PLIBS"
+		fi
 		CPPFLAGS="$CPPFLAGS $SCAMPI_CPPFLAGS"
 		LDFLAGS="$LDFLAGS $SCAMPI_LDFLAGS"
 		LIBS="$LIBS $SCAMPI_LIBS"
-
-		if test "$mpi_profiler" = "yes"; then
-		  LIBS="$LIBS $SCAMPI_PLIBS"
-		fi
 ]
 AC_SUBST(MPIBIN)
 AC_SUBST(CPPFLAGS)

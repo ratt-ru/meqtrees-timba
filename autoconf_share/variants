@@ -17,6 +17,7 @@ mpich-corba.variant.conf: $(standard) $(mpich) $(vbroker)
 lam-corba.variant.conf:   $(standard) $(lam) $(vbroker)
 scampi.variant.conf:	  $(standard) $(scampi)
 scampi-opt.variant.conf:  $(standard) $(scampi) $(optimize)
+scampi-prof.variant.conf:  $(standard) $(scampi) $(optimize) --enable-mpi-profiler --with-cppflags="-DHAVE_MPE"
 mpich-prof.variant.conf:  $(standard) $(mpich) --enable-mpi-profiler --with-cppflags="-DHAVE_MPE"
 bgl.variant.conf:         $(lofar_root) $(debugopt) $(nothreads) $(noshmem) $(bgl_cpp) $(bgl_ldd) --without-log4cplus --with-bglmpich
 fakebgl.variant.conf:     $(lofar_root) $(debug) $(nothreads) $(noshmem) --without-log4cplus --with-cppflags="-DHAVE_BGL"
