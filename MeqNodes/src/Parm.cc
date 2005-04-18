@@ -270,7 +270,9 @@ namespace Meq {
   
     // If we have a single constant funklet, and are not integrated, then there's no 
     // dependency on domain. Otherwise, add domain mask
-    if( !pfunklet->isConstant() || integrated_ )
+    //MM: Changed since even a constant MeqParm can depend on domain (eg. if its coeff in the meptable depend onthe domain)  
+    
+    //   if( !pfunklet->isConstant() || integrated_ )
       depend |= domain_depend_mask_;
 
     // set cells in result as needed
