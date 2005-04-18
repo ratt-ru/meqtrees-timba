@@ -1,0 +1,8 @@
+gnu3.compiler.conf: CXX="$CCACHE /usr/bin/g++"
+gnu3.compiler.aipspp.var: --with-aipspp=/home/astron01/lofar/ext_libs/casa/linux_gnu
+
+gnu.compiler.conf: CXX="$CCACHE /usr/bin/g++"
+gnu.compiler.aipspp.var: --with-aipspp=/home/astron01/lofar/ext_libs/casa/linux_gnu
+
+lofar_root.var:		 --with-lofar-default=weekly --with-dtl=/opt/dtl-3.6.6
+--with-log4cplus=/opt/log4cplus --with bdb=/usr
