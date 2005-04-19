@@ -140,8 +140,8 @@ int ParmTable::getFunklets (vector<Funklet::Ref> &funklets,
     ROScalarColumn<double> fsCol (sel, ColFreqScale);
     ROScalarColumn<double> tsCol (sel, ColTimeScale);
     ROScalarColumn<double> diffCol (sel, ColPerturbation);
-    ROScalarColumn<double> weightCol (sel, ColWeight);
-    ROScalarColumn<int> longpolcidCol (sel, ColLongPolcId);
+    ROScalarColumn<double> weightCol (sel, ColWeight);    
+    //    ROScalarColumn<int> longpolcidCol (sel, ColLongPolcId);
     Vector<uInt> rowNums = sel.rowNumbers(itsTable);
     for( uint i=0; i<sel.nrow(); i++ )
     {
@@ -239,7 +239,14 @@ Funklet::DbId ParmTable::putCoeff (const string & parmName,const Funklet & funkl
   ScalarColumn<double> tsCol (itsTable, ColTimeScale);
   ScalarColumn<double> diffCol (itsTable, ColPerturbation);
   ScalarColumn<double> weightCol (itsTable, ColWeight);
-  ScalarColumn<int> longpolcidCol (itsTable, ColLongPolcId);
+  if(!itsTable.actualTableDesc().isColumn(ColLongPolcId)){
+    cdebug(2)<<"longpolcid column not existing, creating"<<endl;
+    ScalarColumnDesc<int> newlongpolcidCol(ColLongPolcId); 
+    newlongpolcidCol.setDefault (-1);
+    itsTable.addColumn(newlongpolcidCol);
+    
+  }
+  ScalarColumn<int> longpolcidCol(itsTable, ColLongPolcId);
   const Domain& domain = funklet.domain();
   const Polc & polc = dynamic_cast<const Polc&>(funklet);
   // for the moment, only Time-Freq variable polcs are supported
