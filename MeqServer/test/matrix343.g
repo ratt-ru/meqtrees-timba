@@ -121,9 +121,9 @@ const create_source_subtrees := function (src, mep_table_name='')
                               [link_or_create=T,dims=[2,2]],
                               children=meq.list(xx_node, xy_node, yx_node, yy_node));
     
-    coherency_node := meq.node('MeqMultiply', fq_name('coherency', src.name),
+    coherency_node := meq.node('MeqMatrixMultiply', fq_name('coherency', src.name),
                               [link_or_create=T],
-                              children=meq.list(twice_coherency_node, 'half');
+                              children=meq.list(twice_coherency_node, 'half'));
     mqs.createnode(coherency_node);
 
     # note the nested-record syntax here, to create child nodes implicitly
@@ -230,7 +230,7 @@ const sta_source_dft_tree := function (st,src=[=])
   
           dmi.add_list(source_jones_list, source_jones_elem);
           
-          stat_amp_node := meq.parm(fq_name('GA',st,elem),1.0,groups="a");
+          stat_amp_node := meq.parm(fq_name('GA',st,elem),value,groups="a");
           stat_amp_node.table_name := '3C343.mep';
           stat_amp_node.link_or_create:=T;
 
@@ -895,7 +895,7 @@ source_flux_fit_no_calibration := function()
     solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
-                 tile_size=1500,# clear_flags=T,
+                 tile_size=60,# clear_flags=T,
                  selection = [ channel_start_index=5,
                               channel_end_index=60 ,
                               selection_string=''] ];
