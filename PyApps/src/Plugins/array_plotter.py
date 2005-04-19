@@ -13,6 +13,8 @@ from Timba.Plugins.display_image import *
 from qt import *
 from numarray import *
 
+from vtk_qt_3d_display import *
+
 
 class ArrayPlotter(GriddedPlugin):
   """ a class to plot raw arrays contained within a Meq tree """
@@ -27,7 +29,10 @@ class ArrayPlotter(GriddedPlugin):
     GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
 
 # create the plotter
-    self._plotter = QwtImagePlot('spectra', self.wparent())
+    if dataitem.data.rank < 3:
+      self._plotter = QwtImagePlot('spectra', self.wparent())
+    else:
+      self._plotter = vtk_qt_3d_display(self.wparent())
     self._plotter.show()
     self.set_widgets(self._plotter,dataitem.caption,icon=self.icon());
 
