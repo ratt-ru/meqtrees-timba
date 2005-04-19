@@ -52,7 +52,7 @@ const HIID FForestChanged = AidForest|AidChanged;
 const HIID FDisabledAllPublishing = AidDisabled|AidAll|AidPublishing;
 
 // ...as field node_state
-const HIID FNodeState = AidNode|AidState;
+// const HIID FNodeState = AidNode|AidState;
 
 //const HIID FBreakpoint = AidBreakpoint;
 const HIID FSingleShot = AidSingle|AidShot;
@@ -756,7 +756,7 @@ void MeqServer::run ()
   HIID output_event;
   string doing_what,error_str;
   bool have_error;
-  bool python_init = true;
+  bool python_init = false;
   // keep running as long as start() on the control agent succeeds
   while( control().start(initrec) == AppState::RUNNING )
   {

@@ -29,12 +29,10 @@
 
 namespace Meq {    
 
-const HIID FDomain = AidDomain;
-
 //##ModelId=400E535502AC
 RandomNoise::RandomNoise()
 { 
-  const HIID symdeps[] = { FDomain,FResolution };
+  const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
 }
 

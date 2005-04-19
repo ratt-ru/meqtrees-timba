@@ -1,6 +1,6 @@
 # This file is generated automatically -- do not edit
 # Original file name: /home/oms/LOFAR/Timba/MeqNodes/src/defrecs_MeqNodes.g
-# Generated on Fri Apr 15 18:16:52 CEST 2005
+# Generated on Mon Apr 18 23:26:03 CEST 2005
 
 # Defines the default init records ("defrecs") for all the nodes in a 
 # given package. This file is meant to be included inside a function that 

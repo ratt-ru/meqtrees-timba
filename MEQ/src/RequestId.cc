@@ -3,20 +3,20 @@
 
 using namespace DMI;
     
-const std::map<HIID,int> & Meq::defaultSymdepMasks ()
-{
-  static std::map<HIID,int> masks;
-  static Thread::Mutex mutex;
-  Thread::Mutex::Lock lock(mutex);
-  if( masks.empty() )
-  {
-    masks[FParmValue]  = RQIDM_VALUE;
-    masks[FResolution] = RQIDM_RESOLUTION;
-    masks[FDomain]     = RQIDM_DOMAIN;
-    masks[FDataset]    = RQIDM_DATASET;
-  }
-  return masks;
-}
+// const std::map<HIID,int> & Meq::defaultSymdepMasks ()
+// {
+//   static std::map<HIID,int> masks;
+//   static Thread::Mutex mutex;
+//   Thread::Mutex::Lock lock(mutex);
+//   if( masks.empty() )
+//   {
+//     masks[FParmValue]  = RQIDM_VALUE;
+//     masks[FResolution] = RQIDM_RESOLUTION;
+//     masks[FDomain]     = RQIDM_DOMAIN;
+//     masks[FDataset]    = RQIDM_DATASET;
+//   }
+//   return masks;
+// }
     
 void Meq::maskSubId (RequestId &id,int mask)
 {
@@ -52,7 +52,7 @@ void Meq::incrSubId (RequestId &id,int mask)
     id.push_front(0,msb-id.size());
   // start from end 
   HIID::reverse_iterator iter = id.rbegin();
-  // ... until we run out of bits, or get to the start of BOTH ids
+  // ... until we run out of bits, or get to the start of the id
   for( int m1=1; 
        m1 < (1<<RQIDM_NBITS) && iter != id.rend(); 
        m1<<=1,iter++ )
@@ -61,6 +61,31 @@ void Meq::incrSubId (RequestId &id,int mask)
       *iter = (*iter).id()+1;
   }
 }
+
+void Meq::setSubId (RequestId &id,int mask,int value)
+{
+  // null mask: do nothing
+  if( !mask )
+    return;
+  // find MSB of mask
+  uint msb=0;
+  for( int m1=mask; m1 != 0; m1 >>= 1 )
+    msb++;
+  // if request ID is shorter, resize
+  if( id.size() < msb )
+    id.push_front(0,msb-id.size());
+  // start from end 
+  HIID::reverse_iterator iter = id.rbegin();
+  // ... until we run out of bits, or get to the start of the id
+  for( int m1=1; 
+       m1 < (1<<RQIDM_NBITS) && iter != id.rend(); 
+       m1<<=1,iter++ )
+  {
+    if( mask&m1 )
+      *iter = value;
+  }
+}
+
     
 bool Meq::maskedCompare (const RequestId &id1,const RequestId &id2,int mask)
 {

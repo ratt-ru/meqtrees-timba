@@ -135,6 +135,9 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         AtomicID::registerId(-1370,"Iter")+
         AtomicID::registerId(-1342,"Last")+
         AtomicID::registerId(-1337,"Override")+
+        AtomicID::registerId(-1266,"Iteration")+
+        AtomicID::registerId(-1525,"Solution")+
+        AtomicID::registerId(-1376,"Dataset")+
         AtomicID::registerId(-1032,"L")+
         AtomicID::registerId(-1030,"M")+
         AtomicID::registerId(-1028,"N")+
@@ -186,7 +189,6 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         AtomicID::registerId(-1311,"Symdep")+
         AtomicID::registerId(-1322,"Symdeps")+
         AtomicID::registerId(-1344,"Masks")+
-        AtomicID::registerId(-1376,"Dataset")+
         AtomicID::registerId(-1317,"Resolve")+
         AtomicID::registerId(-1295,"Parent")+
         AtomicID::registerId(-1038,"Init")+

@@ -46,7 +46,7 @@ const HIID FDomain = AidDomain;
 UVW::UVW()
 : Function(num_children,child_labels)
 {
-  const HIID symdeps[] = { FDomain,FResolution };
+  const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
   // ***BUG***
   // Use the Dwingeloo position for the frame.

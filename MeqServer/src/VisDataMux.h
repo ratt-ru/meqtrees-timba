@@ -112,6 +112,9 @@ class VisDataMux : public EventRecepient
     //##ModelId=400E5B6D0177
 //    double maxfreq;
     
+    RequestId rqid_;
+    Cells::Ref prev_cells_;
+    
     AppAgent::AppControlAgent       * control_;
     AppAgent::VisAgent::InputAgent  * input_;
     AppAgent::VisAgent::OutputAgent * output_;

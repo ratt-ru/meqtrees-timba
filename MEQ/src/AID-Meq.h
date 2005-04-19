@@ -313,6 +313,11 @@ const int AidInvert_int = -1102;
 const DMI::AtomicID AidIter(-1370);               // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 const int AidIter_int = -1370;
 #endif
+#ifndef _defined_id_AidIteration
+#define _defined_id_AidIteration 1
+const DMI::AtomicID AidIteration(-1266);          // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
+const int AidIteration_int = -1266;
+#endif
 #ifndef _defined_id_AidKnown
 #define _defined_id_AidKnown 1
 const DMI::AtomicID AidKnown(-1347);              // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:38
@@ -632,6 +637,11 @@ const int AidSingle_int = -1315;
 #define _defined_id_AidSize 1
 const DMI::AtomicID AidSize(-1255);               // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
 const int AidSize_int = -1255;
+#endif
+#ifndef _defined_id_AidSolution
+#define _defined_id_AidSolution 1
+const DMI::AtomicID AidSolution(-1525);           // from /home/oms/LOFAR/Timba/MEQ/src/Forest.h:33
+const int AidSolution_int = -1525;
 #endif
 #ifndef _defined_id_AidSolvable
 #define _defined_id_AidSolvable 1

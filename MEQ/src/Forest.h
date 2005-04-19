@@ -25,6 +25,8 @@
 #include <MEQ/Node.h>
 #include <MEQ/Request.h>
 #include <MEQ/EventGenerator.h>
+#include <MEQ/MeqVocabulary.h>
+#include <DMI/HashMap.h>
 #include <vector>
 #include <map>
 
@@ -39,6 +41,8 @@ using namespace DMI;
 class Forest
 {
   public:
+    typedef std::map<HIID,int> SymdepMap;
+  
     typedef enum {
       NL_NODEINDEX      = 1,
       NL_NAME           = 2,
@@ -108,14 +112,34 @@ class Forest
     // sets complete state, else only overwrites the fields specified in rec
     void setState (DMI::Record::Ref &rec,bool complete = false);
     
-    //##ModelId=3F9937F601A5
-    //##Documentation
-    //## Assigns ID to request object. WIll assign new ID if the cells
-    //## differ from the previous request, otherwise will re-use IDs
-    const HIID & assignRequestId (Request &req);
+//    //##ModelId=3F9937F601A5
+//    //##Documentation
+//    //## Assigns ID to request object. WIll assign new domain ID if the cells
+//    //## differ from the previous request, otherwise will re-use IDs
+//    const HIID & assignRequestId (Request &req);
     
-    //## resets request IDs at start of new dataset
-    void resetForNewDataSet ();
+//    //## resets request IDs at start of new dataset
+//    void resetForNewDataSet ();
+    
+    // Increments specified component of request ID, specified by symdep
+    // A running count is maintained for all symdeps
+    void incrRequestId (RequestId &rqid,const HIID &symdep);
+    
+    void incrRequestId (RequestId &rqid,const std::vector<HIID> &symdeps)
+    { 
+      for( uint i=0; i<symdeps.size(); i++)
+        incrRequestId(rqid,symdeps[i]);
+    }
+    
+    const SymdepMap & getSymdepMasks () const
+    { return symdep_map; }
+    
+    int getDependMask (const HIID &symdep) const
+    { 
+      SymdepMap::const_iterator iter = symdep_map.find(symdep);
+      FailWhen(iter==symdep_map.end(),"unknown symdep "+symdep.toString());
+      return iter->second;
+    }
     
     // manage subscriptions to various events
     // "Create" and "Delete" are the only ones known for now
@@ -193,6 +217,7 @@ class Forest
     string sdebug (int=0) const { return getDebugContext().name(); }
 
   private:
+    // forest state management
     DMI::Record & wstate ()
     { return staterec_(); }  
   
@@ -221,9 +246,24 @@ class Forest
     static const int RepositoryChunkSize = 8192;
   
     //##ModelId=3F60697903C1
-    typedef std::map<string,int> NameMap;
+    typedef hash_map<string,int> NameMap;
     //##ModelId=3F60697A00D5
     NameMap name_map;
+    
+    typedef std::map<HIID,int> SymdepMap;
+    SymdepMap symdep_map;
+    
+    SymdepMap symdep_counts;
+    
+    SymdepMap known_symdeps;
+    
+    // depmasks used by forest itself
+    int depmask_domain_;
+    int depmask_dataset_;
+
+    // helper function to convert SymdepMap to Record
+    void fillSymDeps (DMI::Record &rec,const SymdepMap &map);
+    
     
     //##ModelId=400E5305015A
     HIID last_req_id;

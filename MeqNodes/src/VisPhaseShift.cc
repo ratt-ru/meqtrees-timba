@@ -38,7 +38,7 @@ VisPhaseShift::VisPhaseShift()
 : CompoundFunction(num_children,child_labels)
 {
   // dependence on frequency 
-  const HIID symdeps[] = { FDomain,FResolution };
+  const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
 }
 

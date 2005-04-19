@@ -42,6 +42,8 @@ Meq::VisDataMux::VisDataMux (Meq::Forest &frst)
 {
   // use reasonable default
   handlers_.resize(VisVocabulary::ifrNumber(30,30)+1);
+  // init request id for dataset=1
+  frst.incrRequestId(rqid_,FDataset);
 }
 
 //##ModelId=3FA1016000B0
@@ -209,7 +211,10 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
     nstations = 30;
     cdebug(2)<<"no NumStations parameter in header, assuming 30\n";
   }
-  forest_.resetForNewDataSet();
+  // reset request ID
+  forest_.incrRequestId(rqid_,FDataset);
+  setSubId(rqid_,forest_.getDependMask(FDomain),0);
+  // forest_.resetForNewDataSet();
   handlers_.resize(VisVocabulary::ifrNumber(nstations,nstations)+1);
   // get frequencies 
   if( !header[VisVocabulary::FChannelFreq].get(channel_freqs) ||
@@ -270,13 +275,21 @@ int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
   {
     cdebug(3)<<"have handlers for did "<<did<<", got tile "<<tileref->sdebug(DebugLevel-1)<<endl;
     // For now, generate the request right here.
-    Cells::Ref cellref(DMI::ANONWR);
+    Cells::Ref cellref;
+    Cells &cells = cellref <<= new Cells;
     LoRange range;
-    fillCells(cellref(),range,*tileref);
+    fillCells(cells,range,*tileref);
+    // update request id as appropriate
+    if( !prev_cells_.valid() || cells != *prev_cells_ )
+    {
+      incrSubId(rqid_,forest_.getDependMask(FDomain));
+      prev_cells_.attach(cells);
+    }
     Request::Ref reqref;
-    Request &req = reqref <<= new Request(cellref.deref_p(),0);
-    forest_.assignRequestId(req);
-    cdebug(3)<<"have handler, generated request id="<<req.id()<<endl;
+    Request &req = reqref <<= new Request(cellref.deref_p(),0,rqid_);
+    cdebug(3)<<"have handler, generated request id="<<rqid_<<endl;
+
+    //    forest_.assignRequestId(req);
     // deliver to all known handlers
     VisHandlerList::iterator iter = hlist.begin();
     for( ; iter != hlist.end(); iter++ )

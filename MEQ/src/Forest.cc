@@ -36,13 +36,24 @@ InitDebugContext(Forest,"MeqForest");
 // forest state fields
 const HIID FAxisMap = AidAxis|AidMap;
 const HIID FDebugLevel = AidDebug|AidLevel;
+const HIID FKnownSymdeps = AidKnown|AidSymdeps;
 const HIID FSymdeps = AidSymdeps;
   
 //##ModelId=3F60697A00ED
 Forest::Forest ()
 {
   staterec_ <<= new DMI::Record;
+  // init default symdep set
+  known_symdeps[AidIteration]  = 0x01;
+  known_symdeps[AidSolution]   = 0x02;
+  known_symdeps[AidDomain]     = 0x04;
+  known_symdeps[AidResolution] = 0x04; // same as domain for now
+  known_symdeps[AidDataset]    = 0x08;
+  symdep_map = known_symdeps;
   initDefaultState();
+  // init required depmasks
+  depmask_dataset_ = symdep_map[AidDataset];
+  depmask_domain_  = symdep_map[AidDomain];
   // resize repository to 1 initially, so that index #0 is never used
   nodes.reserve(RepositoryChunkSize);
   nodes.resize(1);
@@ -199,31 +210,38 @@ const Node::Ref & Forest::getRef (int node_index)
   return nodes[node_index];
 }
 
-//##ModelId=3F9937F601A5
-const HIID & Forest::assignRequestId (Request &req)
-{
-  if( !last_req_cells.valid() ) // first request ever?
-  {
-    maskSubId(last_req_id,RQIDM_DATASET);
-    incrSubId(last_req_id,RQIDM_DATASET);
-    last_req_cells.attach(req.cells());
-  }
-  else
-  {
-    // cells do not match last request? Update the ID
-    if( req.cells() != *last_req_cells )
-    {
-      last_req_cells.attach(req.cells());
-      incrSubId(last_req_id,RQIDM_DOMAIN);
-    }
-  }
-  req.setId(last_req_id);
-  return last_req_id;
-}
+// //##ModelId=3F9937F601A5
+// const HIID & Forest::assignRequestId (Request &req)
+// {
+//   if( !last_req_cells.valid() ) // first request ever?
+//   {
+//     incrSubId(last_req_id,depmask_dataset_);
+//     last_req_cells.attach(req.cells());
+//   }
+//   else
+//   {
+//     // cells do not match last request? Update the ID
+//     if( req.cells() != *last_req_cells )
+//     {
+//       last_req_cells.attach(req.cells());
+//       incrSubId(last_req_id,depmask_domain_);
+//     }
+//   }
+//   req.setId(last_req_id);
+//   return last_req_id;
+// }
+// 
+// 
+// void Forest::resetForNewDataSet ()
+// {
+//   last_req_cells.detach();
+// }
 
-void Forest::resetForNewDataSet ()
+void Forest::incrRequestId (RequestId &rqid,const HIID &symdep)
 {
-  last_req_cells.detach();
+  int depmask = getDependMask(symdep);
+  int count = symdep_counts[symdep]++;
+  setSubId(rqid,depmask,count);
 }
 
 int Forest::getNodeList (DMI::Record &list,int content)
@@ -286,18 +304,51 @@ EventGenerator & Forest::getEventGenerator (const HIID &evtype)
   }
 }
 
+void Forest::fillSymDeps (DMI::Record &rec,const SymdepMap &map)
+{
+  for( SymdepMap::const_iterator iter = map.begin(); iter != map.end(); iter++ )
+    rec[iter->first] = iter->second;
+}
+
 void Forest::initDefaultState ()
 {
   DMI::Record &st = wstate();
   st[FAxisMap] = Axis::getAxisRecords();
   st[FDebugLevel] = debug_level_;
+  DMI::Record &known = st[FKnownSymDeps] <<= new DMI::Record;
+  fillSymDeps(st[FKnownSymdeps] <<= new DMI::Record,known_symdeps);
+  fillSymDeps(st[FSymdeps] <<= new DMI::Record,symdep_map);
 }
 
 void Forest::setStateImpl (DMI::Record::Ref &rec)
 {
   if( rec->hasField(FAxisMap) )
     Axis::setAxisRecords(rec[FAxisMap].as<DMI::Vec>());
-  rec[FDebugLevel].get(debug_level_);
+  FailWhen(rec->hasField(FKnownSymdeps),"immutable field: "+FKnownSymdeps.toString());
+  FailWhen(rec->hasField(FSymdeps),"immutable field: "+FSymdeps.toString());
+//   if( rec->hasField(FSymDeps) )
+//   {
+//     const DMI::Record &rec = rec[FSymDeps];
+//     // retrieve map
+//     DMI::Record::const_iterator iter = rec.begin();
+//     SymdepMap map;
+//     for( ; iter != rec.end(); iter++ )
+//       map[iter.id()] = iter.ref().as<DMI::Container>()[HIID()].as<int>();
+//     // check that all known symdeps are present
+//     for( SymdepMap::const_iterator iter = known_symdeps.begin(); 
+//          iter != known_symdeps.end(); iter++ )
+//     {
+//       FailWhen(map.find(iter->first) == map.end(),FSymDeps.toString()+" does not "
+//           " contain required symdep "+iter->first.toString());
+//     }
+//     // copy
+//     symdep_map = map;
+//     for( SymdepMap::iterator iter = known_symdeps.begin(); 
+//          iter != known_symdeps.end(); iter++ )
+//       iter->second = map[iter->first];
+//     // reset state fields
+//     fillSymDeps(wstate()[FKnownSymDeps].replace() <<= new DMI::Record,known_symdeps);
+//   }
 }
 
 void Forest::setState (DMI::Record::Ref &rec,bool complete)

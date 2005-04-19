@@ -29,13 +29,11 @@
 
 namespace Meq {    
 
-const HIID FDomain = AidDomain;
-
 //##ModelId=400E535502AC
 GaussNoise::GaussNoise()
     : stddev_(1.0),generator_(0,stddev_)
 { 
-  const HIID symdeps[] = { FDomain,FResolution };
+  const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
   Thread::Mutex::Lock lock(RndGen::mutex);
   generator_ = RndGen::Normal<double>(0,stddev_);

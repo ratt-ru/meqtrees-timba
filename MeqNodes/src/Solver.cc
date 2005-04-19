@@ -24,6 +24,7 @@
 #include <MEQ/Vells.h>
 #include <MEQ/Function.h>
 #include <MEQ/MeqVocabulary.h>
+#include <MEQ/Forest.h>
 #include <MeqNodes/Solver.h>
 #include <MeqNodes/Condeq.h>
 #include <MeqNodes/ParmTable.h>
@@ -40,6 +41,10 @@ InitDebugContext(Solver,"MeqSolver");
 const HIID FSolverResult = AidSolver|AidResult;
 const HIID FIncrementalSolutions = AidIncremental|AidSolutions;
 
+const HIID FIterationSymdeps = AidIteration|AidSymdeps;
+const HIID FSolutionSymdeps = AidSolution|AidSymdeps;
+const HIID FIterationDependMask = AidIteration|AidDepend|AidMask;
+
 //##ModelId=400E53550260
 Solver::Solver()
 : itsSolver          (1),
@@ -49,17 +54,20 @@ Solver::Solver()
   itsDefUseSVD       (true),
   itsDefClearMatrix  (true),
   itsDefInvertMatrix (true),
-  itsDefSaveFunklets    (true),
+  itsDefSaveFunklets (true),
   itsDefLastUpdate   (false),
   itsParmGroup       (AidParm)
 {
   resetCur();
   // Set this flag, so setCurState will be called in first getResult.
   itsResetCur = true;
-  setGenSymDeps(FParmValue,RQIDM_VALUE,itsParmGroup);
   // set Solver dependencies
-  const HIID symdeps[] = { FDomain,FResolution,FDataset };
-  setActiveSymDeps(symdeps,3);
+  iter_symdeps_.assign(1,FIteration);
+  solution_symdeps_.assign(1,FSolution);
+  const HIID symdeps[] = { FDomain,FResolution,FDataset,FSolution,FIteration };
+  setKnownSymDeps(symdeps,5);
+  const HIID symdeps1[] = { FDomain,FResolution,FDataset };
+  setActiveSymDeps(symdeps1,3);
 }
 
 //##ModelId=400E53550261
@@ -186,8 +194,10 @@ int Solver::getResult (Result::Ref &resref,
   std::vector<Result::Ref> child_results(numChildren());
   std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
   // get the request ID -- we're going to be incrementing the part of it 
-  // corresponding to our generated symdep
+  // corresponding to our symdeps
   HIID rqid = request.id();
+  setSubId(rqid,iter_depmask_,0);
+  forest().incrRequestId(rqid,solution_symdeps_);
   // Create a new request and attach the solvable parm specification if needed.
   // We'll keep the request object via reference; note that
   // solve()/fillSolution() may subsequently create new request objects
@@ -216,7 +226,7 @@ int Solver::getResult (Result::Ref &resref,
   for (step=0; step<itsCurNumIter; step++) 
   {
     // increment the solve-dependent parts of the request ID
-    incrSubId(rqid,getGenSymDepMask());
+    incrSubId(rqid,iter_depmask_);
     reqref().setId(rqid);
     // clear/unlock child results
     for( int i=0; i<numChildren(); i++ )
@@ -266,11 +276,7 @@ int Solver::getResult (Result::Ref &resref,
         itsNrEquations = 0;
       }
     }
-
-
-
-
-
+    
     // Now feed the solver with equations from the results.
     // Define the vector with derivatives (for real and imaginary part).
     vector<double> derivReal(nspid);
@@ -403,7 +409,7 @@ int Solver::getResult (Result::Ref &resref,
     if( lastIter )
     {
       // increment the solve-dependent parts of the request ID one last time
-      incrSubId(rqid,getGenSymDepMask());
+      incrSubId(rqid,iter_depmask_);
       reqref().setId(rqid);
       ParmTable::lockTables();
       // unlock all child results
@@ -516,19 +522,21 @@ void Solver::fillSolution (DMI::Record& rec, const vector<int>& spids,
 //##ModelId=400E53550267
 void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
 {
-  // special case: if parm_group is set but gen_symdep_group isn't,
-  // set it into the record
-  if( newst[FParmGroup].get(itsParmGroup,initializing) )
-  {
-    HIID gen;
-    if( !newst[FGenSymDepGroup].get(gen) )
-      newst[FGenSymDepGroup] = itsParmGroup;
-  }
-  
   Node::setStateImpl(newst,initializing);
+  // get the parm group
+  newst[FParmGroup].get(itsParmGroup,initializing);
+  // get symdeps for iteration and solution
+  // recompute depmasks if active sysdeps change
+  if( newst[FIterationSymdeps].get_vector(iter_symdeps_,initializing) || initializing )
+    wstate()[FIterationDependMask] = iter_depmask_ = computeDependMask(iter_symdeps_);
+  // now reset the dependency mask if specified; this will override
+  // possible modifications made above
+  newst[FIterationDependMask].get(iter_depmask_,initializing);
+  // for solution symdeps, no depmask since we get it straight from the forest
+  newst[FSolutionSymdeps].get_vector(solution_symdeps_,initializing);
   
+  // get default solve job description
   DMI::Record *pdef = newst[FDefault].as_wpo<DMI::Record>();
-  
   // if no default record at init time, create a new one
   if( !pdef && initializing )
     newst[FDefault] <<= pdef = new DMI::Record; 

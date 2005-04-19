@@ -43,7 +43,7 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
       check_nchildren_(nchildren),
       check_nmandatory_(nmandatory),
       depend_mask_(0),
-      symdep_masks_(defaultSymdepMasks()),
+//      symdep_masks_(defaultSymdepMasks()),
       node_groups_(1,FAll),
       auto_resample_(RESAMPLE_NONE),
       disable_auto_resample_(false),
@@ -97,23 +97,24 @@ void Node::setActiveSymDeps (const HIID deps[],int ndeps)
   resetDependMasks();
 }
 
-void Node::setGenSymDeps (const HIID symdeps[],const int depmasks[],int ndeps,const HIID &group)
-{
-  cdebug(2)<<"setting "<<ndeps<<" generated symdeps\n";
-  gen_symdep_fullmask_ = 0;
-  for( int i=0; i<ndeps; i++ )
-  {
-    gen_symdep_fullmask_ |= 
-        gen_symdep_masks_[symdeps[i]] = depmasks[i];
-  }
-  gen_symdep_group_ = group;
-}
-
-int Node::getGenSymDepMask (const HIID &symdep) const
-{
-  std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.find(symdep);
-  return iter == gen_symdep_masks_.end() ? 0 : iter->second;
-}
+// 18/04/05 OMS: phasing this out, ModRes will need to be rewritten a-la Solver
+// void Node::setGenSymDeps (const HIID symdeps[],const int depmasks[],int ndeps,const HIID &group)
+// {
+//   cdebug(2)<<"setting "<<ndeps<<" generated symdeps\n";
+//   gen_symdep_fullmask_ = 0;
+//   for( int i=0; i<ndeps; i++ )
+//   {
+//     gen_symdep_fullmask_ |= 
+//         gen_symdep_masks_[symdeps[i]] = depmasks[i];
+//   }
+//   gen_symdep_group_ = group;
+// }
+// 
+// int Node::getGenSymDepMask (const HIID &symdep) const
+// {
+//   std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.find(symdep);
+//   return iter == gen_symdep_masks_.end() ? 0 : iter->second;
+// }
 
 
 int Node::computeDependMask (const std::vector<HIID> &symdeps) 
@@ -217,34 +218,35 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     cdebug(2)<<"active_symdeps set via state\n";
     resetDependMasks();
   }
-  // get generated symdeps, if any are specified
-  DMI::Record::Hook genhook(rec,FGenSymDep);
-  if( genhook.exists() )
-  {
-    try 
-    {
-      const DMI::Record &deps = genhook.as<DMI::Record>();
-      std::map<HIID,int>::iterator iter = gen_symdep_masks_.begin();
-      gen_symdep_fullmask_ = 0;
-      for( ; iter != gen_symdep_masks_.end(); iter++ )
-        gen_symdep_fullmask_ |= iter->second = deps[iter->first].as<int>();
-    } 
-    catch( std::exception & )
-    {
-      NodeThrow(FailWithCleanup,
-          "incorrect or incomplete "+FGenSymDep.toString()+" state field");
-    }
-  }
-  // else place them into data record
-  else if( initializing && !gen_symdep_masks_.empty() )
-  {
-    DMI::Record &deps = genhook <<= new DMI::Record;
-    std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
-    for( ; iter != gen_symdep_masks_.end(); iter++ )
-      deps[iter->first] = iter->second;
-  }
-  // get generated symdep group, if specified
-  rec[FGenSymDepGroup].get(gen_symdep_group_,initializing && !gen_symdep_masks_.empty());
+// 18/04/05 OMS: phasing this out, ModRes will need to be rewritten a-la Solver
+//   // get generated symdeps, if any are specified
+//   DMI::Record::Hook genhook(rec,FGenSymDep);
+//   if( genhook.exists() )
+//   {
+//     try 
+//     {
+//       const DMI::Record &deps = genhook.as<DMI::Record>();
+//       std::map<HIID,int>::iterator iter = gen_symdep_masks_.begin();
+//       gen_symdep_fullmask_ = 0;
+//       for( ; iter != gen_symdep_masks_.end(); iter++ )
+//         gen_symdep_fullmask_ |= iter->second = deps[iter->first].as<int>();
+//     } 
+//     catch( std::exception & )
+//     {
+//       NodeThrow(FailWithCleanup,
+//           "incorrect or incomplete "+FGenSymDep.toString()+" state field");
+//     }
+//   }
+//   // else place them into data record
+//   else if( initializing && !gen_symdep_masks_.empty() )
+//   {
+//     DMI::Record &deps = genhook <<= new DMI::Record;
+//     std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
+//     for( ; iter != gen_symdep_masks_.end(); iter++ )
+//       deps[iter->first] = iter->second;
+//   }
+//   // get generated symdep group, if specified
+//   rec[FGenSymDepGroup].get(gen_symdep_group_,initializing && !gen_symdep_masks_.empty());
   
   // now set the dependency mask if specified; this will override
   // possible modifications made above
@@ -789,23 +791,24 @@ int Node::resolve (DMI::Record::Ref &depmasks,int rpid)
         known[known_symdeps_[i]] = symdep_masks_[known_symdeps_[i]];
     }
   }
-  // add our own generated symdeps, if any. This COWs the record
-  if( !gen_symdep_masks_.empty() )
-  {
-    rpid = nodeIndex(); // change the rpid
-    const HIID &group = gen_symdep_group_.empty() ? FAll : gen_symdep_group_;
-    cdebug(3)<<"inserting generated symdeps for group "<<group<<endl;
-    DMI::Record &grouprec = Rider::getOrInit(depmasks(),group);
-    std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
-    for( ; iter != gen_symdep_masks_.end(); iter++ )
-    {
-      DMI::Record::Hook hook(grouprec,iter->first);
-      if( hook.exists() )
-        hook.as_wr<int>() |=  iter->second;
-      else
-        hook = iter->second;
-    }
-  }
+// 18/04/05 OMS: phasing this out, ModRes will need to be rewritten a-la Solver
+//   // add our own generated symdeps, if any. This COWs the record
+//   if( !gen_symdep_masks_.empty() )
+//   {
+//     rpid = nodeIndex(); // change the rpid
+//     const HIID &group = gen_symdep_group_.empty() ? FAll : gen_symdep_group_;
+//     cdebug(3)<<"inserting generated symdeps for group "<<group<<endl;
+//     DMI::Record &grouprec = Rider::getOrInit(depmasks(),group);
+//     std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
+//     for( ; iter != gen_symdep_masks_.end(); iter++ )
+//     {
+//       DMI::Record::Hook hook(grouprec,iter->first);
+//       if( hook.exists() )
+//         hook.as_wr<int>() |=  iter->second;
+//       else
+//         hook = iter->second;
+//     }
+//   }
   // pass recursively onto children
   for( int i=0; i<numChildren(); i++ )
     children_[i]().resolve(depmasks,rpid);
@@ -863,23 +866,24 @@ int Node::processCommands (const DMI::Record &rec,Request::Ref &reqref)
       resetDependMasks();
     }
   }
-  // Init.Dep.Mask command: add our own symdeps to the request rider
-  // (by inserting Add.Dep.Mask commands)
-  if( rec[FInitDepMask].as<bool>(false) && !gen_symdep_masks_.empty() )
-  {
-    const HIID &group = gen_symdep_group_.empty() ? FAll : gen_symdep_group_;
-    DMI::Record &cmdrec = Rider::getCmdRec_All(reqref,group);
-    DMI::Record &deprec = Rider::getOrInit(cmdrec,FAddDepMask);
-    std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
-    for( ; iter != gen_symdep_masks_.end(); iter++ )
-    {
-      DMI::Record::Hook hook(deprec,iter->first);
-      if( hook.exists() )
-        hook.as_wr<int>() |=  iter->second;
-      else
-        hook = iter->second;
-    }
-  }
+// 18/04/05 OMS: phasing this out, ModRes will need to be rewritten a-la Solver
+//   // Init.Dep.Mask command: add our own symdeps to the request rider
+//   // (by inserting Add.Dep.Mask commands)
+//   if( rec[FInitDepMask].as<bool>(false) && !gen_symdep_masks_.empty() )
+//   {
+//     const HIID &group = gen_symdep_group_.empty() ? FAll : gen_symdep_group_;
+//     DMI::Record &cmdrec = Rider::getCmdRec_All(reqref,group);
+//     DMI::Record &deprec = Rider::getOrInit(cmdrec,FAddDepMask);
+//     std::map<HIID,int>::const_iterator iter = gen_symdep_masks_.begin();
+//     for( ; iter != gen_symdep_masks_.end(); iter++ )
+//     {
+//       DMI::Record::Hook hook(deprec,iter->first);
+//       if( hook.exists() )
+//         hook.as_wr<int>() |=  iter->second;
+//       else
+//         hook = iter->second;
+//     }
+//   }
 //  // should never cache a processCommand() result
 // or should we? I think we should (if only to ignore the same command
 // coming from multiple parents)

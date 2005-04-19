@@ -314,6 +314,10 @@ void Node::init (DMI::Record::Ref &initrec, Forest* frst)
   cdebug(1)<<"initializing node"<<endl;
   forest_ = frst;
   
+  // init symdeps and depmask
+  symdep_masks_ = frst->getSymdepMasks();
+  resetDependMasks();
+  
   // xfer & COW the state record
   DMI::Record &rec = staterec_.xfer(initrec).dewr();
   

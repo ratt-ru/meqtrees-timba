@@ -38,13 +38,14 @@ namespace Meq {
 
   InitDebugContext(Parm,"MeqParm");
 
-  const HIID symdeps_all[]    = { FDomain,FResolution,FParmValue };
-  const HIID symdeps_domain[] = { FDomain,FResolution };
-  const HIID symdeps_solve[]  = { FParmValue };
+const HIID symdeps_all[]     = { FDomain,FResolution,FIteration,FSolution };
+const HIID symdeps_domain[]  = { FDomain,FResolution };
+const HIID symdeps_solve[]   = { FIteration };
+const HIID symdeps_default[] = { FSolution };
 
-  const HIID
-  // Parm staterec fields
-  FTableName       = AidTable|AidName,
+const HIID
+    // Parm staterec fields
+    FTableName       = AidTable|AidName,
     FParmName        = AidParm|AidName,
     FAutoSave        = AidAuto|AidSave,
     FDomainId        = AidDomain|AidId,
@@ -80,12 +81,13 @@ namespace Meq {
       solve_offset_(0),
       LPDbId(-1)
   {
-    // note that we leave the default dependency mask at 0: instead, we
-    // maintain two of our own masks. domain_depend_mask is returned
-    // if the funklet has >1 coefficient; solve_depend_mask is added if
-    // the parm is solvable
     LPDomain=Domain();
+// The default depmask only includes Solution. Solution is meant to be updated
+// whenever the parm solvable state is changed, or when fiddling.
+// Domain mask will be added if the funklet has >1 coefficient; solve_depend_mask 
+// is added if the parm is solvable
     setKnownSymDeps(symdeps_all,3);
+    setActiveSymDeps(symdeps_default,1);
   }
 
   //##ModelId=3F86886F0242
@@ -110,7 +112,12 @@ namespace Meq {
       LPDbId(-1)
   {
     LPDomain=Domain();
+// The default depmask only includes Solution. Solution is meant to be updated
+// whenever the parm solvable state is changed, or when fiddling.
+// Domain mask will be added if the funklet has >1 coefficient; solve_depend_mask 
+// is added if the parm is solvable
     setKnownSymDeps(symdeps_all,3);
+    setActiveSymDeps(symdeps_default,1);
   }
 
   //##ModelId=3F86886F021E

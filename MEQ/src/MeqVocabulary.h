@@ -39,6 +39,7 @@
 #pragma aid DbId Grow Inf Weight Epsilon UseSVD Set Auto Save Clear Invert
 #pragma aid Metrics Rank Fit Errors CoVar Flag Bit Mu StdDev Chi Iter Last Update
 #pragma aid Override
+#pragma aid Iteration Solution Dataset
 
 
 namespace Meq
@@ -114,6 +115,13 @@ namespace Meq
     FOriginLine      = AidOrigin|AidLine,
     FMessage         = AidMessage,
 
+// Some standard symdeps
+    // FDomain = AidDomain;  // defined above
+    FResolution     = AidResolution,
+    FIteration      = AidIteration,
+    FSolution       = AidSolution,
+    FDataset        = AidDataset,
+
     // Solver staterec fields
     FDefault         = AidDefault,
     FSolvable        = AidSolvable,
@@ -127,8 +135,8 @@ namespace Meq
     // FSavePolcs already defined above
     FLastUpdate      = AidLast|AidUpdate,
 
-    FSolveDependMask   = AidSolve|AidDepend|AidMask,
-    FDomainDependMask  = AidDomain|AidDepend|AidMask,
+    FSolveDependMask   = AidSolve|AidDep|AidMask,
+    FDomainDependMask  = AidDomain|AidDep|AidMask,
     FSolveSymDeps      = AidSolve|AidSymdeps,
     FDomainSymDeps     = AidDomain|AidSymdeps,
 
