@@ -49,13 +49,11 @@ int MergeFlags::getResult (Result::Ref &resref,
                             const Request &request,bool)
 {
   int nch = childres.size();
-  // if not enough flags in mask, extend with default value
-  int i = flagmask_.size();
-  if( i < nch )
+  if( flagmask_.empty() )
+    flagmask_.assign(childres.size(),VellsFullFlagMask);
+  else
   {
-    flagmask_.resize(nch);
-    for( ; i<nch; i++ )
-      flagmask_[i] = -1;
+    Assert(flagmask_.size() == childres.size());
   }
   // copy first child result to output
   resref = childres[0];

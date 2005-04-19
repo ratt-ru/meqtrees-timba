@@ -59,6 +59,12 @@ int MatrixInvert22::getResult (Result::Ref &resref,
                                const Request &request,bool)
 {
   Assert(childres.size() == 1);
+  if( flagmask_.empty() )
+    flagmask_.assign(childres.size(),VellsFullFlagMask);
+  else
+  {
+    Assert(flagmask_.size() == childres.size());
+  }
   const Result &chres = *childres[0];
   const LoShape &dims = chres.dims();
   FailWhen(dims.size()!=2 || dims[0]!=2 || dims[1]!=2,"2x2 child result expected");

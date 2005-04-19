@@ -90,7 +90,12 @@ int Function::getResult (Result::Ref &resref,
                          const Request &request,bool)
 {
   int nrch = numChildren();
-  Assert(flagmask_.empty() || flagmask_.size() == childres.size());
+  if( flagmask_.empty() )
+    flagmask_.assign(childres.size(),VellsFullFlagMask);
+  else
+  {
+    Assert(flagmask_.size() == childres.size());
+  }
 // 30/01/05 OMS: remove these locks for now: usage of COW refs everywhere 
 // makes them unnecessary. If our thread holds a ref to the object, it's 
 // guranteed to not change under us thanks to COW.

@@ -215,7 +215,12 @@ int MatrixMultiply::getResult (Result::Ref &resref,
                                const Request &request,bool)
 {
   int nrch = childres.size();
-  Assert(flagmask_.empty() || flagmask_.size() == childres.size());
+  if( flagmask_.empty() )
+    flagmask_.assign(childres.size(),VellsFullFlagMask);
+  else
+  {
+    Assert(flagmask_.size() == childres.size());
+  }
   Assert( nrch>1 );
   resref = childres[0];
   // result is intergrated if any child is integrated
