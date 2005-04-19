@@ -416,7 +416,7 @@ class ParmFiddler (browsers.GriddedPlugin):
           return;
       _dprint(1,'accepted: ',self._request);
       self.rid+=1;
-      reqid=hiid(self.rid,self.rid,0,0);
+      reqid=hiid(self.rid,self.rid,self.rid,self.rid);
       self._request.request_id = reqid;
       cmd = record(nodeindex=self._node,request=self._request,get_state=True);
       mqs().meq('Node.Execute',cmd,wait=False);
@@ -491,7 +491,8 @@ class ParmChange:
       if not self._parent:
           self.reject();
       meqds.set_node_state(self._node,funklet=self._funklet);
-      meqds.set_node_state(self._node,cacheresult=False);
+
+
       self._parent.changeC00(self.getc00());
       
       self._parent.reexecute();

@@ -25,6 +25,7 @@ importPlugin('array_browser');
 importPlugin('array_plotter');
 importPlugin('histogram_plotter');
 importPlugin('result_plotter');
+importPlugin('parm_plotter');
 importPlugin('parmfiddler');
 importPlugin('3d_plotter');
 
