@@ -43,6 +43,7 @@ const create_common_parms := function (ra0,dec0)
 const create_constants := function()
 {
     mqs.createnode(meq.node('MeqConstant','one',[value=1.0]));
+    mqs.createnode(meq.node('MeqConstant','half',[value=0.5]));
 }
 
 
@@ -116,9 +117,13 @@ const create_source_subtrees := function (src, mep_table_name='')
     xy_node  := meq.node('MeqConj', fq_name('xy',src.name),
                          [link_or_create=T],
                          children=meq.list(yx_node.name));
-    coherency_node := meq.node('MeqComposer', fq_name('coherency', src.name),
+    twice_coherency_node := meq.node('MeqComposer', fq_name('twice_coherency', src.name),
                               [link_or_create=T,dims=[2,2]],
                               children=meq.list(xx_node, xy_node, yx_node, yy_node));
+    
+    coherency_node := meq.node('MeqMultiply', fq_name('coherency', src.name),
+                              [link_or_create=T],
+                              children=meq.list(twice_coherency_node, 'half');
     mqs.createnode(coherency_node);
 
     # note the nested-record syntax here, to create child nodes implicitly
