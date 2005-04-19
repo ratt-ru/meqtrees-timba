@@ -428,7 +428,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.renwininter.AddObserver("ExitEvent", lambda o, e, a=app: a.quit())
 
 class ThreeDPlotter(GriddedPlugin):
-  """ a class to plot very simple histograms of array data distributions """
+  """ a class to plot 3 dimensional displays of array data distributions """
 
   _icon = pixmaps.bars3d
   viewer_name = "3D Plotter";
@@ -455,7 +455,7 @@ class ThreeDPlotter(GriddedPlugin):
 
   def set_data (self,dataitem,default_open=None,**opts):
     """ this function is the callback interface to the meqbrowser and
-        handles new incoming data for the histogram """
+        handles new incoming data for the 3-d plot """
 
 # enable & highlight the cell
     self.enable();
