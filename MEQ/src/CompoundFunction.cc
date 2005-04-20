@@ -90,26 +90,28 @@ int CompoundFunction::checkChildResults (Result::Ref &resref,
   return 0;
 }
     
-void CompoundFunction::evalFlags (std::vector<Vells::Ref> &flagrefs,
-          const std::vector<const Vells*> &values,const Cells *) 
+void CompoundFunction::evalFlags (vector<Vells::Ref> &flagrefs,const vector<const VellSet *> &pvs,const Cells *)
 {
-  Vells::Ref flags;
-  for( uint i=0; i<values.size(); i++ )
-    if( values[i]->hasDataFlags() )
-      if( flags.valid() )
-        flags() |= values[i]->dataFlags();
-      else
-        flags.attach(values[i]->dataFlags());
-  if( flags.valid() )
+  Vells::Ref out;
+  if( flagmask_.empty() )
+    flagmask_.resize(pvs.size());
+  else
+  {
+    Assert(flagmask_.size() == pvs.size());
+  }
+  for( uint i=0; i<pvs.size(); i++ )
+    if( pvs[i] && !pvs[i]->isNull() && pvs[i]->hasDataFlags() )
+      Vells::mergeFlags(out,pvs[i]->dataFlags(),flagmask_[i]);
+  // merge flags into all outputs
+  if( out.valid() )
     for( uint i=0; i<flagrefs.size(); i++ )
       if( flagrefs[i].valid() )
-        flagrefs[i]() |= *flags;
+        flagrefs[i]() |= *out;
       else
-        flagrefs[i] = flags;
+        flagrefs[i] = out;
 }
 
-
-void CompoundFunction::computeValues ( Result &result,const std::vector<const VellSet *> &chvs,const Cells *pcells)
+void CompoundFunction::computeValues (Result &result,const std::vector<const VellSet *> &chvs,const Cells *pcells)
 {
   // collect vector of pointers to main values
   int num_children = chvs.size();
@@ -144,7 +146,7 @@ void CompoundFunction::computeValues ( Result &result,const std::vector<const Ve
   }
   // evaluate main value
   vector<Vells::Ref> out_flags(nout);
-  evalFlags(out_flags,mainvals,pcells);
+  evalFlags(out_flags,chvs,pcells);
   vector<Vells> out_values(nout);
   evalResult(out_values,mainvals,pcells);
   for( int i=0; i<nout; i++ )

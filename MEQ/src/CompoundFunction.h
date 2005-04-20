@@ -39,9 +39,9 @@ public:
 
 protected:
     
-  virtual void evalFlags (std::vector<Vells::Ref> &flagrefs,
-          const std::vector<const Vells*> &values,
-          const Cells *pcells);
+  virtual void evalFlags (vector<Vells::Ref> &out_flags,
+                          const vector<const VellSet *> &pvs,
+                          const Cells *pcells);
     
   virtual void evalResult (std::vector<Vells> &res,
           const std::vector<const Vells*> &values,
