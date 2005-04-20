@@ -159,23 +159,37 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   // set/clear cached result
   //   the cache_result field must be either a Result object,
   //   or a boolean false to clear the cache. Else throw exception.
-  DMI::Record::Hook hcache(rec,FCacheResult);
-  TypeId type = hcache.type();
-  if( type == TpMeqResult ) // a result
   {
-    cache_result_ <<= hcache.as_wp<Result>();
-    control_status_ |= CS_CACHED;
+    DMI::Record::Hook hcache(rec,FCacheResult);
+    TypeId type = hcache.type();
+    if( type == TpMeqResult ) // a result
+    {
+      cache_result_ <<= hcache.as_p<Result>();
+      control_status_ |= CS_CACHED;
+    }
+    else if( type == Tpbool && !hcache.as<bool>() ) // a bool false
+    {
+      cache_result_.detach();
+      control_status_ &= ~CS_CACHED;
+    }
+    else if( type != 0 ) // anything else (if type=0, then field is missing)
+    {
+      NodeThrow(FailWithCleanup,"illegal state."+FCacheResult.toString()+" field");
+    }
   }
-  else if( type == Tpbool && !hcache.as<bool>() ) // a bool false
   {
-    cache_result_.detach();
-    control_status_ &= ~CS_CACHED;
+    // set/celar cached request
+    DMI::Record::Hook hcache(rec,FRequest);
+    TypeId type = hcache.type();
+    if( type == TpMeqRequest ) // a result
+      current_request_ <<= hcache.as_p<Request>();
+    else if( type == Tpbool && !hcache.as<bool>() ) // a bool false
+      current_request_.detach();
+    else if( type != 0 ) // anything else (if type=0, then field is missing)
+    {
+      NodeThrow(FailWithCleanup,"illegal state."+FRequest.toString()+" field");
+    }
   }
-  else if( type != 0 ) // anything else (if type=0, then field is missing)
-  {
-    NodeThrow(FailWithCleanup,"illegal state."+FCacheResult.toString()+" field");
-  }
-  
   // apply any changes to control status
   if( cs0 != control_status_ )
   {
