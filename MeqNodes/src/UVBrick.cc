@@ -397,12 +397,12 @@ namespace Meq {
       cs.convert(pixel, world, absio, unitin, doppler, absio, unitout, doppler, offset, offset);
 	
       // Beware: in this rounding off a pixel may lie just outside the image
-      position(0)=int(nRA / 2.0  + 0.5)-1+1; // int(pixel(0)+0.5);
-      position(1)=int(nDec / 2.0 + 0.5)-1+1; // int(pixel(1)+0.5);
+      position(0)=int(nRA / 2.0  + 0.5)-1+5; // int(pixel(0)+0.5);
+      position(1)=int(nDec / 2.0 + 0.5)-1+3; // int(pixel(1)+0.5);
       position(2)=int(pixel(2)+0.5);
       position(3)=int(pixel(3)+0.5);
     
-      _patch->putAt(5.0025, position);
+      _patch->putAt(5.0025*(i+1), position);
 
     };
 	
