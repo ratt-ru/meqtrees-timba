@@ -251,11 +251,31 @@ class ParmFiddler (browsers.GriddedPlugin):
     
     reqVFrame = QVBox(reqCtrlFrame);
     self.labelParm = QLabel("c00: 0", reqVFrame ,"labelParm");
+    reqSlideFrame = QHBox(reqVFrame);
         
     self.buttonOk = QPushButton(reqVFrame,"buttonOk")
     self.buttonOk.setIconSet(pixmaps.check.iconset());
     self.buttonOk.setText('Funklet');
 
+
+    self.slider1 = QSlider (reqSlideFrame,"slider1");
+    self.slider1.setMinValue ( -20 );
+    self.slider1.setMaxValue ( 20 );
+    self.slider2 = QSlider (reqSlideFrame,"slider2");
+    self.slider2.setMinValue ( 0 );
+    self.slider2.setMaxValue ( 99 );
+
+    self.slider1.setTickInterval(5);
+    self.slider1.setTickmarks(QSlider.Both);
+    self.slider2.setTickmarks(QSlider.Both);
+    
+    self.slider1.setTracking(True);
+    self.slider2.setTracking(True);
+
+    QObject.connect(self.slider1,SIGNAL("valueChanged(int)"),self.changeGrof);
+    QObject.connect(self.slider2,SIGNAL("valueChanged(int)"),self.changeFine);
+    QObject.connect(self.slider1,SIGNAL("sliderReleased()"),self.updateC00);
+    QObject.connect(self.slider2,SIGNAL("sliderReleased()"),self.updateC00);
     
 
 
@@ -282,11 +302,55 @@ class ParmFiddler (browsers.GriddedPlugin):
 
 
   def wtop(self):
-    return self._wtop;
+      return self._wtop;
 
-  def changeC00(self, value=0.0):
+
+  def changeGrof(self,value):
+      fine=self.slider2.value()/100.;
+      sign = 1;
+      if not value == 0:
+          sign = abs(value)/value;
+
+      self.c00=sign*(abs(value)+fine);
+      self.changeCaption(self.c00);
+
+  def changeFine(self,value):
+      grof=self.slider1.value();
+      self.c00=value/100.+grof;
+      self.changeCaption(self.c00);
+      
+
+  def changeCaption(self,value):
       self.labelParm.setText("c00: " + str(value))
-      self.c00 = value
+
+
+
+
+  def updateC00(self):
+      if not self._currentparm:
+          return;
+      self._currentparm.setc00(self.c00);
+      
+  def changeC00(self, value=0.00):
+
+      value=(value*100)//1;
+      value=value/100.;
+      min=self.slider1.minValue();
+      max=self.slider1.maxValue();
+
+      if abs(value-min)<5 or abs(max-value)<5:
+          self.slider1.setRange(value-20,value+20);
+      self.changeCaption(value);
+      
+      self.c00 = value;
+      grof=abs(value)//1;
+      sign=1;
+      if not value == 0:
+          sign = abs(value)/value;
+      fine=(abs(value)-grof)*100;
+      grof =sign*grof;
+      self.slider1.setValue(grof)
+      self.slider2.setValue(fine)
 
 
   def parmSetIndex(self,item=None):
@@ -484,6 +548,20 @@ class ParmChange:
           if is_scalar(coeff[0]):
               return self._funklet.coeff[0];
       return self._funklet.coeff[0][0];
+
+  def setc00(self,value):
+      if not self._funklet:
+          return 0.;
+      if is_scalar(self._funklet.coeff):
+          self._funklet.coeff=value;
+      else:
+          if is_scalar(self._funklet.coeff[0]):
+              self._funklet.coeff[0]=value;
+          else:
+              self._funklet.coeff[0][0]=value;
+      self.updatechange();
+      if self.edit_parm:
+          self.edit_parm.updateCoeff_fromparent();
 
   def updatechange (self):
       if not self._funklet:
