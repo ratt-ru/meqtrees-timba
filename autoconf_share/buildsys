@@ -1,0 +1,146 @@
+#!/bin/sh
+
+# buildsys: do full system build for given variants and packages
+#
+#  Copyright (C) 2005
+#  ASTRON (Netherlands Foundation for Research in Astronomy)
+#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#  $Id$
+
+
+# This script builds the system for the given variants and packages.
+# It does bootstrap, configure, make, check and install.
+# 
+# It is used by rub (in system mode), but can also be used stand alone.
+
+if test "$1" = ""  -o  "$1" = "-h"  -o  "$1" = "--help"; then
+  echo ''
+  echo 'Build the system for given variants and packages.'
+  echo 'It does bootstrap, configure, make, check and install.'
+  echo ''
+  echo 'Run as:'
+  echo ' rub [-prefix] variants package1 [package2 ...]'
+  echo '  -prefix prefix  gives the prefix for the install directories.'
+  echo '  variants        gives the variants to do (e.g. gnu3_debug)'
+  echo '                  Separate multiple variants by whitespace and'
+  echo '                  enclose in quotes.'
+  echo '                  This info is shown if no variant is given.'
+  echo '  package1        is the name of the package to be built'.
+  echo '                  Multiple packages can be given separated by whitespace.'
+  echo ' If no packages are given, the contents of lofarconf.in.private'
+  echo ' or lofarconf.in are used.'
+  echo ''
+  exit 0
+fi
+
+# Find the path used to start the script.
+pgmpath=`dirname $0`
+pgmpath=`cd $pgmpath > /dev/null 2>&1  &&  pwd`
+
+# Handle possible options.
+prefixopt=
+while [ 1 = 1 ]
+do
+  # Get possible prefix option.
+  # It can be given as -prefix or --prefix, optionally using =.
+  opt="$1"
+  case "$opt" in
+  --prefix*)
+    opt=`echo "$opt" | sed -e 's/-//'`
+    ;;
+  *)
+    ;;
+  esac
+  case "$opt" in
+  -prefix*)
+    shift
+    val=`echo $opt | sed -e 's/.*=//'`
+    if test "$val" = "$opt"; then
+      opt="$1"
+      shift
+    else
+      opt="$val"
+    fi
+    prefixopt="--prefix=$opt"
+    ;;
+  *)
+    break
+    ;;
+  esac
+done
+
+# Get the variants and packages.
+variants="$1"
+shift
+if test "$variants" = ""; then
+  echo "buildsys: no variants given"
+  exit 2
+fi
+pkgs="$*"
+if test "$pkgs" = ""; then
+  if [ -f lofarconf.in.private ]; then
+    pkgs=`sed -e s/#.*$//g lofarconf.in.private`
+  elif [ -f lofarconf.in ]; then
+    pkgs=`sed -e s/#.*$//g lofarconf.in`
+  fi
+fi
+if test "$pkgs" = ""; then
+  echo "buildsys: no packages given nor found in lofarconf.in[.private]"
+  exit 2
+fi
+
+# Build the system.
+date
+echo && echo ":::::: SYSTEM BUILD START" && echo
+for pkg in $pkgs
+do
+  if test -d $pkg; then
+    echo \
+     && echo ":::::: BOOTSTRAPPING $pkg" \
+     && echo \
+     && ((cd $pkg && ./bootstrap) || echo ":::::: ERROR") \
+     && echo \
+     && echo ":::::: DONE BOOTSTRAPPING $pkg" \
+     && echo
+    for var in $variants
+    do
+      echo \
+       && echo ":::::: CONFIGURING VARIANT $var FOR PACKAGE $pkg" \
+       && echo \
+       && date \
+       && ((mkdir -p $pkg/build/$var && cd $pkg/build/$var && \
+            lofarconf -norecursive "$prefixopt") || echo ":::::: ERROR") \
+       && echo \
+       && echo ":::::: FINISHED CONFIGURING VARIANT $var FOR PACKAGE $pkg" \
+       && echo
+      echo \
+       && echo ":::::: BUILDING VARIANT $var FOR PACKAGE $pkg" \
+       && echo \
+       && date \
+       && ((cd $pkg/build/$var \
+            && make -k WITH_INSTALL=1 build_system) || echo ":::::: ERROR" ) \
+       && echo \
+       && echo ":::::: FINISHED BUILDING VARIANT $var FOR PACKAGE $pkg" \
+       && echo
+    done
+  else
+    echo ":::::: ERROR $pkg does not exist"
+  fi
+done
+echo && echo ":::::: SYSTEM BUILD COMPLETE" && echo
+date

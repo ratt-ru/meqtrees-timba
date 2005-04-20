@@ -91,7 +91,7 @@ docthis:
 #
 # Target to be able to do a system build.
 # By default it does a check, but no install.
-WITH_CLEAN=1
+WITH_CLEAN=0
 WITH_CHECK=1
 WITH_INSTALL=0
 build_system:
