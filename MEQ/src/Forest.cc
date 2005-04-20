@@ -324,8 +324,8 @@ void Forest::setStateImpl (DMI::Record::Ref &rec)
 {
   if( rec->hasField(FAxisMap) )
     Axis::setAxisRecords(rec[FAxisMap].as<DMI::Vec>());
-  FailWhen(rec->hasField(FKnownSymdeps),"immutable field: "+FKnownSymdeps.toString());
-  FailWhen(rec->hasField(FSymdeps),"immutable field: "+FSymdeps.toString());
+//  FailWhen(rec->hasField(FKnownSymdeps),"immutable field: "+FKnownSymdeps.toString());
+//  FailWhen(rec->hasField(FSymdeps),"immutable field: "+FSymdeps.toString());
 //   if( rec->hasField(FSymDeps) )
 //   {
 //     const DMI::Record &rec = rec[FSymDeps];
