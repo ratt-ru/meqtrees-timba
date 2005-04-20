@@ -126,9 +126,9 @@ class vtk_qt_3d_display(qt.QWidget):
     picker.SetTolerance(0.005)
 
 # create blue to red color table
-    lut = vtk.vtkLookupTable()
-    lut.SetHueRange(0.6667, 0.0)
-    lut.Build()
+    self.lut = vtk.vtkLookupTable()
+    self.lut.SetHueRange(0.6667, 0.0)
+    self.lut.Build()
 
 # get locations for initial slices
     xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
@@ -146,7 +146,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.planeWidgetX.SetKeyPressActivationValue("x")
     prop1 = self.planeWidgetX.GetPlaneProperty()
 #    prop1.SetColor(1, 0, 0)
-    self.planeWidgetX.SetLookupTable(lut)
+    self.planeWidgetX.SetLookupTable(self.lut)
     self.planeWidgetX.TextureInterpolateOff()
     self.planeWidgetX.SetResliceInterpolate(0)
 
@@ -179,6 +179,17 @@ class vtk_qt_3d_display(qt.QWidget):
     self.planeWidgetZ.TextureInterpolateOff()
     self.planeWidgetZ.SetResliceInterpolate(0)
 
+# create scalar bar
+    self.scalar_bar = vtk.vtkScalarBarActor()
+    self.scalar_bar.SetLookupTable(self.lut)
+    self.scalar_bar.SetOrientationToVertical()
+    self.scalar_bar.SetWidth(0.1)
+    self.scalar_bar.SetHeight(0.8)
+    self.scalar_bar.SetTitle("Intensity")
+    self.scalar_bar.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
+#   self.scalar_bar.GetPositionCoordinate().SetCoordinateSystemToViewport()
+    self.scalar_bar.GetPositionCoordinate().SetValue(0.01, 0.1)
+
 # Create the RenderWindow and Renderer
     self.ren = vtk.vtkRenderer()
     self.renwin.AddRenderer(self.ren)
@@ -187,6 +198,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.ren.AddActor(outlineActor)
     self.ren.SetBackground(0.1, 0.1, 0.2)
 #    self.renwin.SetSize(600, 600)
+    self.ren.AddActor2D(self.scalar_bar)
 
     self.current_widget = self.planeWidgetZ
     self.mode_widget = self.planeWidgetZ
@@ -359,11 +371,13 @@ class vtk_qt_3d_display(qt.QWidget):
       spacing = (3.2, 3.2, 1.5)
       self.image_array.SetDataSpacing(spacing)
       self.set_initial_display()
+      self.lut.SetRange(self.image_numarray.min(), self.image_numarray.max())
     else:
       for k in range(num_arrays):
         for i in range(array_dim):
           for j in range(array_dim):
             self.image_numarray[k,i,j] = iteration * k * gain
+      self.lut.SetRange(self.image_numarray.min(), self.image_numarray.max())
       self.image_array.SetArray(self.image_numarray)
 # refresh display if data contents updated after
 # first display
@@ -395,6 +409,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.renwin.Render()
 
   def array_plot(self, caption, plot_array):
+
     if self.image_array is None:
       self.image_array = vtkImageImportFromNumarray()
       if plot_array.rank > 3:
@@ -404,11 +419,13 @@ class vtk_qt_3d_display(qt.QWidget):
       spacing = (3.2, 3.2, 1.5)
       self.image_array.SetDataSpacing(spacing)
       self.set_initial_display()
+      self.lut.SetRange(plot_array.min(), plot_array.max())
     else:
       if plot_array.rank > 3:
         self.image_array.SetArray(plot_array[0])
       else:
         self.image_array.SetArray(plot_array)
+      self.lut.SetRange(plot_array.min(), plot_array.max())
 # refresh display if data contents updated after
 # first display
       self.renwin.Render()
