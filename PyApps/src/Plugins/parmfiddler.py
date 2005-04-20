@@ -262,10 +262,11 @@ class ParmFiddler (browsers.GriddedPlugin):
     self.slider1.setMinValue ( -20 );
     self.slider1.setMaxValue ( 20 );
     self.slider2 = QSlider (reqSlideFrame,"slider2");
-    self.slider2.setMinValue ( 0 );
+    self.slider2.setMinValue ( -99 );
     self.slider2.setMaxValue ( 99 );
 
     self.slider1.setTickInterval(5);
+    self.slider2.setTickInterval(2);
     self.slider1.setTickmarks(QSlider.Both);
     self.slider2.setTickmarks(QSlider.Both);
     
@@ -307,11 +308,11 @@ class ParmFiddler (browsers.GriddedPlugin):
 
   def changeGrof(self,value):
       fine=self.slider2.value()/100.;
-      sign = 1;
-      if not value == 0:
-          sign = abs(value)/value;
+#      sign = 1;
+#      if not value == 0:
+#          sign = abs(value)/value;
 
-      self.c00=sign*(abs(value)+fine);
+      self.c00=value+fine;
       self.changeCaption(self.c00);
 
   def changeFine(self,value):
@@ -338,7 +339,7 @@ class ParmFiddler (browsers.GriddedPlugin):
       min=self.slider1.minValue();
       max=self.slider1.maxValue();
 
-      if abs(value-min)<5 or abs(max-value)<5:
+      if (value-min)<5 or (max-value)<5:
           self.slider1.setRange(value-20,value+20);
       self.changeCaption(value);
       
@@ -347,7 +348,7 @@ class ParmFiddler (browsers.GriddedPlugin):
       sign=1;
       if not value == 0:
           sign = abs(value)/value;
-      fine=(abs(value)-grof)*100;
+      fine=sign*(abs(value)-grof)*100;
       grof =sign*grof;
       self.slider1.setValue(grof)
       self.slider2.setValue(fine)
@@ -569,7 +570,6 @@ class ParmChange:
       if not self._parent:
           self.reject();
       meqds.set_node_state(self._node,funklet=self._funklet);
-
 
       self._parent.changeC00(self.getc00());
       
