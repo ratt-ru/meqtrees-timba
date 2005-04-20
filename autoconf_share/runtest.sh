@@ -45,6 +45,17 @@ if [ "$srcdir" = "" ]; then
   srcdir=$lfr_share_dir/../`echo $findvars | awk '{print $5}'`/$basenm
 fi
 
+# Initialize AIPS++ if used.
+if test "$AIPSPP" != ""; then
+    aipsroot=`dirname $AIPSPP`
+    . $aipsroot/aipsinit.sh
+    # Set correct AIPS++ variant.
+    aipsd=`basename $AIPSPP`
+    aipsv=`echo $AIPSPATH | awk '{print $2}'`
+    AIPSPATH=`echo $AIPSPATH | sed -e "s% $aipsv % $aipsd %"`
+    export AIPSPATH
+fi
+
 #
 # Copy expected files to current directory
 #
