@@ -306,6 +306,7 @@ const HIID
 
   void Parm::resetDependMasks ()
   {
+    Node::resetDependMasks();
     domain_depend_mask_ = computeDependMask(domain_symdeps_);
     solve_depend_mask_ = computeDependMask(solve_symdeps_);
     if( hasState() )
