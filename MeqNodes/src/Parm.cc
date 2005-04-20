@@ -280,6 +280,7 @@ const HIID
     //MM: Changed since even a constant MeqParm can depend on domain (eg. if its coeff in the meptable depend onthe domain)  
     
     //   if( !pfunklet->isConstant() || integrated_ )
+    if( !pfunklet->isConstant() || integrated_ || parmtable_)
       depend |= domain_depend_mask_;
 
     // set cells in result as needed
@@ -360,8 +361,8 @@ const HIID
 	// not in case the funklet is constant, therefore also remove cache 
 	if( !initializing )
 	  {
-	    cdebug(2)<<"new funklet, clearing cache"<<endl;
-	    clearCache();	    
+	    //	    cdebug(2)<<"new funklet, clearing cache"<<endl;
+	    //	    clearCache();	    
 	    wstate()[FDomain].remove(); 
 	    wstate()[FDomainId] = domain_id_ = HIID();
 	  }
