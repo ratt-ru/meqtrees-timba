@@ -60,8 +60,8 @@ const create_source_subtrees := function (src, mep_table_name='')
 {
     global ms_timerange, ms_freqranges;
 
-    # 3rd order frequency-dependence, 0th order time dependence
-    polc_i_array := array(as_double(0),1,1);
+    # 2nd order frequency-dependence, 0th order time dependence
+    polc_i_array := array(as_double(0),1,src.Iorder+1);
     polc_i_array[1,1] := src.I;
     
     polc_q_array := array(as_double(0),1,1);
@@ -850,7 +850,7 @@ const do_run := function ()
 source_flux_fit_no_calibration := function()
 {
     global inputrec, outputrec,solver_defaults,msname,mepuvw;
-    global sources, outcol;
+    global outcol;
     global use_initcol;
 
     use_initcol := F;       # initialize output column with zeroes
@@ -872,8 +872,10 @@ source_flux_fit_no_calibration := function()
     set_breakpoint := any(argv=='-bp');
     
     src_3C343_1 := [name="3C343_1",I=1.0, Q=0.0, U=0.0, V=0.0,
+                    Iorder=1,
                     ra=4.356645791155902,dec=1.092208429052697];
     src_3C343   := [name="3C343",  I=1.0, Q=0.0, U=0.0, V=0.0,
+                    Iorder=3,
                     ra=4.3396003966265599,dec=1.0953677174056471];
     
     sources := [a=src_3C343_1,
@@ -930,7 +932,7 @@ source_flux_fit_no_calibration := function()
 phase_solution_with_given_fluxes := function()
 {
     global inputrec, outputrec,solver_defaults,msname,mepuvw;
-    global src_ra, src_dec, src_sti, src_names, outcol;
+    global outcol;
     global use_initcol
 
     use_initcol := F;       # initialize output column with zeroes
@@ -951,10 +953,16 @@ phase_solution_with_given_fluxes := function()
     solve_phases := T;#any(argv=='-phases');
     set_breakpoint := any(argv=='-bp');
     
-    src_ra  := ([4.356645791155902,4.3396003966265599]);
-    src_dec := ([1.092208429052697,1.0953677174056471]);
-    src_sti  := [5.35112656665,1.60887755917];
-    src_names := "3C343_1 3C343";
+    src_3C343_1 := [name="3C343_1",I=5.35113, Q=0.0, U=0.0, V=0.0,
+                    Iorder=1,
+                    ra=4.356645791155902,dec=1.092208429052697];
+    src_3C343   := [name="3C343",  I=1.60887, Q=0.0, U=0.0, V=0.0,
+                    Iorder=3,
+                    ra=4.3396003966265599,dec=1.0953677174056471];
+    
+    sources := [a=src_3C343_1,
+                b=src_3C343];
+    print sources;
     
     
 # fill UVW parms from MS if requested
@@ -969,10 +977,10 @@ phase_solution_with_given_fluxes := function()
         mepuvw := F;
     
     outcol := 'PREDICTED_DATA';
-    solver_defaults := [ num_iter=10,save_funklets=T,last_update=T ];
+    solver_defaults := [ num_iter=6,save_funklets=T,last_update=T ];
     
     inputrec := [ ms_name = msname,data_column_name = 'DATA',
-                 tile_size=1,# clear_flags=T,
+                 tile_size=2,# clear_flags=T,
                  selection = [ channel_start_index=5,
                               channel_end_index=60, 
                               selection_string=''] ];
@@ -981,6 +989,7 @@ phase_solution_with_given_fluxes := function()
     
     res := do_test(msname=msname,solve=T,subtract=T,run=T,flag=F,
                    stset=1:14,
+                   sources=sources,
                    solve_fluxes=solve_fluxes,
                    solve_gains=solve_gains,
                    solve_phases=solve_phases,
@@ -996,74 +1005,5 @@ phase_solution_with_given_fluxes := function()
 
 
 
-polar_test := function()
-{
-    mqsinit();
-# add antenna gains/phases
-    amp_node := meq.parm('GA',1.0,groups="a");
-    amp_node.link_or_create:=T;
-    
-    phase_node :=meq.parm('GP',3.14159265358/2.0,groups="a");
-    phase_node.link_or_create:=T;
-    
-    gain := meq.node('MeqPolar','G',[link_or_create=T],
-                     children=meq.list(amp_node, phase_node) );
-
-    mqs.createnode(gain);
-    mqs.resolve('G');
-
-    cells := meq.cells(meq.domain(0,1,0,1),1,1);
-    request := meq.request(cells,rqid=meq.rqid(),calc_deriv=F);
-    res := mqs.meq('Node.Execute', [name='G',request=request], F);
-}
-
-
-visphaseshift_test := function()
-{
-    mqsinit();
-    u1 := meq.node('MeqConstant', 'u1', [value=300, link_or_create=T]);
-    v1 := meq.node('MeqConstant', 'v1', [value=-1000.0, link_or_create=T]);
-    w1 := meq.node('MeqConstant', 'w1', [value=200.0, link_or_create=T]);
-
-    uvw1 := meq.node('MeqComposer', 'uvw1', [link_or_create=T],
-                     children=meq.list(u1,v1,w1));
-
-    
-    u2 := meq.node('MeqConstant', 'u2', [value=300+100.0, link_or_create=T]);
-    v2 := meq.node('MeqConstant', 'v2', [value=-1000+500.0, link_or_create=T]);
-    w2 := meq.node('MeqConstant', 'w2', [value=200+30.0, link_or_create=T]);
-
-    uvw2 := meq.node('MeqComposer', 'uvw2', [link_or_create=T],
-                     children=meq.list(u2,v2,w2));
-    lval := -0.05;
-    mval := +0.01;
-    l := meq.node('MeqConstant', 'l', [value=lval, link_or_create=T]);
-    m := meq.node('MeqConstant', 'm', [value=mval, link_or_create=T]);
-    n :=  meq.node('MeqConstant', 'n', [value=sqrt(1.0-lval^2 -mval^2), link_or_create=T]);
-    
-    nminusone := meq.node('MeqConstant', 'nminusone', [value=(sqrt(1.0-lval^2 -mval^2)-1.0), link_or_create=T]);
-         
-    lmnminusone := meq.node('MeqComposer', 'lmnminusone', [link_or_create=T],
-                        children=meq.list(l,m,nminusone));
-
-    visphase1 := meq.node('MeqVisPhaseShift', 'visphase1', [link_or_create=T],
-                 children=[lmn=lmnminusone, uvw=uvw1]);
-    visphase2 := meq.node('MeqVisPhaseShift', 'visphase2', [link_or_create=T],
-                 children=[lmn=lmnminusone, uvw=uvw2]);
-
-    conj2 := meq.node('MeqConj', 'conj2', [link_or_create=T],
-             children=meq.list(visphase2));
-
-    vis := meq.node('MeqMultiply', 'vis', [link_or_create=T],
-           children=meq.list(visphase1, conj2));
-    mqs.createnode(vis);
-    mqs.resolve('vis');
-    cells := meq.cells(meq.domain(1e+9,1.2e+9,0,1),20,10);
-    request := meq.request(cells,rqid=meq.rqid(),calc_deriv=F);
-    res := mqs.meq('Node.Execute', [name='vis',request=request], F);
-}
-
-source_flux_fit_no_calibration();
-#phase_solution_with_given_fluxes();
-#polar_test();
-#visphaseshift_test();
+#source_flux_fit_no_calibration();
+phase_solution_with_given_fluxes();
