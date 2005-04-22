@@ -27,6 +27,12 @@ _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
 
+qtcolor = [Qt.red, Qt.green, Qt.blue, Qt.cyan, Qt.magenta, Qt.yellow, Qt.darkRed, Qt.darkGreen, Qt.darkBlue, Qt.darkCyan, Qt.darkMagenta, Qt.darkYellow,Qt.black];
+
+
+
+
+
 class ParmPlotter(ResultPlotter):
   """ a class to visualize data of a Parameter, especially snippet solution , that is 
       contained within a node's record. Objects of 
@@ -49,7 +55,8 @@ class ParmPlotter(ResultPlotter):
   def display_snippet_solution(self):
     """ fill plot with par_values per time_slot and line of solution polc """
     #clear plot
-    self._snippet_plotter.removeCurves()
+    #    self._snippet_plotter.removeCurves()
+    self._snippet_plotter.clear();
 
 
     offset=self._rec.solve_offset;
@@ -64,7 +71,6 @@ class ParmPlotter(ResultPlotter):
       ncy=1;
       ncx=1;
     else :
-      # again coeffi is a stupid numarray, so we have to to much more work to finally get the f. data...
       ncy=len(coeffi[0]);
       if is_scalar(coeffi[0]):
         ncx=1;
@@ -72,17 +78,29 @@ class ParmPlotter(ResultPlotter):
       else:
         ncx=len(coeffi);
     nr_spids=ncx*ncy;
+
+    #define range of y-axis (A.U.)
+
+    offsety = (range(1,nr_spids+1));
+    scaley=zeros(nr_spids,Float64);
+    
     long_polc = self._rec.solve_polc;
     rank = len(long_polc[0].coeff);
     lpcf = []; #long_polc coefficients
     for iplc in range(nr_spids):
       lpi=long_polc[iplc];
-      lpcf.append(lpi.coeff);
+      lpcf.append(lpi.coeff);      
     x=[];
     y=[];
+    miny=[];
+    maxy=[];
     for icx in range(ncx):
       for icy in range(ncy):
         y.append([coeffi[icx][icy]]);
+        miny.append(coeffi[icx][icy]);
+        maxy.append(coeffi[icx][icy]);
+
+
         
 #    x.append(1./60.*(0.5*(domaini[1]+domaini[0])-offset)); 
     x.append((0.5*(domaini[1]+domaini[0])-offset)); 
@@ -95,16 +113,59 @@ class ParmPlotter(ResultPlotter):
         coeffi=[[coeffi]];
       if is_scalar(coeffi[0]):
         coeffi=[coeffi];
+
+      
             
       domaini=parmi.domain.time;  #change to general case....for now jsut use time
       ic=0;
       for icx in range(ncx):
         for icy in range(ncy):
           y[ic].append(coeffi[icx][icy]);
+          if coeffi[icx][icy] > maxy[ic]:
+            maxy[ic]= coeffi[icx][icy];
+          if coeffi[icx][icy] < miny[ic]:
+            miny[ic]= coeffi[icx][icy];
+          
           ic+=1;
-#      x.append(1./60.*(0.5*(domaini[1]+domaini[0])-offset));
+          
+      #      x.append(1./60.*(0.5*(domaini[1]+domaini[0])-offset));
       x.append((0.5*(domaini[1]+domaini[0])-offset));
-#      x.append((0.5*(domaini[1]+domaini[0])));
+      #      x.append((0.5*(domaini[1]+domaini[0])));
+
+
+    #Now rescale y values;
+
+    for ic in range(nr_spids):
+        print " before";
+        scaley[ic]=(maxy[ic]-miny[ic]);
+
+        print y[ic];
+         
+        
+        #        if scaley[ic]==0:
+        if not miny[ic] == 0:
+          if scaley[ic]/abs(miny[ic]) < 0.0001: #dont show ridiculous small variations
+            scaley[ic]=1.;
+        if scaley[ic]==0:
+          scaley[ic]=1.;
+        offsety[ic]*=2*scaley[ic];
+        offsety[ic]-=miny[ic];
+        for np in range(len(y[ic])):
+          y[ic][np]+=offsety[ic];
+          y[ic][np]/=scaley[ic];
+        print y[ic];
+
+
+    print "scaled with";
+    print scaley;
+    print offsety;
+    print "minimax"
+    print miny, maxy;
+
+
+
+
+
 
     fx=[];
 
@@ -115,26 +176,37 @@ class ParmPlotter(ResultPlotter):
         fx[spid]+=lpcf[spid][rvrs]; #fit curve
         if rvrs>0 :
           fx[spid]=multiply(fx[spid],x);
-
+      fx[spid]+=offsety[spid];
+      fx[spid]/=scaley[spid];
+      
     #      print y;
     #      print x;
     # now fill the plot with data
     self._snippet_plotter.setTitle('Snippet solution');
     for nrs in range(nr_spids):
-      name = 'curve' + '%(nrs)' 
+      name = 'spid'+str(nrs);
       curve = self._snippet_plotter.insertCurve(name);
       self._snippet_plotter.setCurveSymbol(curve, QwtSymbol(
-        QwtSymbol.Ellipse, QBrush(Qt.red), QPen(Qt.red), QSize(7, 7)));
+        QwtSymbol.Ellipse, QBrush(qtcolor[nrs%12]), QPen(qtcolor[((nrs/12)+12)%13]), QSize(7, 7)));
       self._snippet_plotter.setCurveData(curve, array(x), array(y[nrs]));
       self._snippet_plotter.setCurveStyle(curve,QwtCurve.NoCurve);
       name = 'fit' + '%(nrs)'
       # now add the curves of the fit
       fitcurve = self._snippet_plotter.insertCurve(name);
+      self._snippet_plotter.setCurveStyle(fitcurve,QwtCurve.Spline);
       self._snippet_plotter.setCurveData(fitcurve, x, fx[nrs]);
-       
+      self._snippet_plotter.enableLegend(True,curve);	
+      # add scales for miny, maxy
 
-    self._snippet_plotter.setAxisTitle(QwtPlot.xBottom, "Time ")
-    self._snippet_plotter.setAxisTitle(QwtPlot.yLeft, "Parm Values")
+      #scaledraw=QwtScaleDraw(miny[nrs],maxy[nrs]);
+      #scaledraw.draw();
+    self._snippet_plotter.setAxisTitle(QwtPlot.xBottom, "Time (rescaled)")
+    self._snippet_plotter.setAxisTitle(QwtPlot.yLeft, "Parm Values (A.U.)")
+
+
+
+    self._snippet_plotter.enableYLeftAxis(False);
+    
     self._snippet_plotter.replot();
     
         
@@ -171,8 +243,8 @@ class ParmPlotter(ResultPlotter):
           self.set_widgets(self._snippet_plotter,self.dataitem.caption,icon=self.icon())
           self._wtop = self._snippet_plotter;
           self._snippet_plotter.setAxisAutoScale(QwtPlot.xBottom)
-          self._snippet_plotter.setAxisAutoScale(QwtPlot.yLeft)
-          self._snippet_plotter.setAxisAutoScale(QwtPlot.yRight)
+          #self._snippet_plotter.setAxisAutoScale(QwtPlot.yLeft)
+          #self._snippet_plotter.setAxisAutoScale(QwtPlot.yRight)
 
         self.display_snippet_solution();
       else:  #show cache result instead
