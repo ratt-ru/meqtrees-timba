@@ -111,6 +111,7 @@ E                                1012       ; from /home/oms/LOFAR/Timba/DMI/src
 EchoWP                           1101       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:10
 Effective                        1200       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:32
 Enable                           1465       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:15
+Enabled                          1537       ; from /home/oms/LOFAR/Timba/MEQ/src/Forest.h:34
 End                              1276       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
 Epsilon                          1377       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
 EQ                               1444       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
