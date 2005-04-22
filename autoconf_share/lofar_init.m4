@@ -88,10 +88,14 @@ AC_ARG_WITH(lofar-libdir,
   [lofar_root_libdir="$withval"])
 
 [
-  if test "$with_lofar" = no; then
-    with_lofar=
-    lofar_use_root=0
+  LOFARROOT=$prefix  
+  if test "$with_lofar" != ""  -a  "$with_lofar" != "no"  -a \
+          "$with_lofar" != "yes"; then
+    LOFARROOT=$with_lofar
   fi
+  # The old with_lofar is obsolete now, thus always clear.
+  with_lofar=
+  lofar_use_root=0
   if test "$with_lofar_def" = no; then
     with_lofar=
     lfr_use_root_def=0
@@ -364,6 +368,7 @@ AC_CHECK_FILE([$lfr_find], [lfr_var=yes], [lfr_var=no])
   AC_SUBST(LOFAR_DEPEND)
   AC_SUBST(CPPFLAGS)
   AC_SUBST(LDFLAGS)
+  AC_SUBST(LOFARROOT)
 
 # Check for endianness. 
 # If the system is big-endian WORDS_BIGENDIAN will be defined. 
