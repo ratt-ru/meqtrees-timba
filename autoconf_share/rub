@@ -305,17 +305,19 @@ done
 echo "Created lofarconf.in.private containing all these packages"
 pkgs=`cat lofarconf.in.private`
 
-echo "See rub.log for the cvs update/checkout details"
-egrep "^C " rub.log > greplog.tmp 2>&1
-if [ $? = 0 ]; then
-  echo "Error: there seem to be UPDATE CONFLICTS"
-  cat greplog.tmp
+if [ $update != 0 ]; then
+  echo "See rub.log for the cvs update/checkout details"
+  egrep "^C " rub.log > greplog.tmp 2>&1
+  if [ $? = 0 ]; then
+    echo "Error: there seem to be UPDATE CONFLICTS"
+    cat greplog.tmp
+    \rm -f greplog.tmp
+    exit 1
+  else
+    echo "There are no update conflicts"
+  fi
   \rm -f greplog.tmp
-  exit 1
-else
-  echo "There are no update conflicts"
 fi
-\rm -f greplog.tmp
 
 if [ "$variants" = "" ]; then
   echo "No build to be done"

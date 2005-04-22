@@ -104,6 +104,11 @@ if test "$pkgs" = ""; then
   exit 2
 fi
 
+echo ""
+echo 'Building PACKAGES="'"$pkgs"'"'
+echo '         VARIANTS="'"$variants"'"'
+echo ""
+
 # Build the system.
 date
 echo && echo ":::::: SYSTEM BUILD START" && echo
@@ -124,7 +129,7 @@ do
        && echo \
        && date \
        && ((mkdir -p $pkg/build/$var && cd $pkg/build/$var && \
-            lofarconf -norecursive "$prefixopt") || echo ":::::: ERROR") \
+            ../../lofarconf -norecursive "$prefixopt") || echo ":::::: ERROR") \
        && echo \
        && echo ":::::: FINISHED CONFIGURING VARIANT $var FOR PACKAGE $pkg" \
        && echo
