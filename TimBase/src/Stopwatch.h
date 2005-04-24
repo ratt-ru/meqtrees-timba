@@ -26,6 +26,7 @@
 //# Includes
 #include <sys/times.h>
 #include <Common/lofar_string.h>
+#include <Common/Timer.h>
 
 namespace LOFAR
 {
@@ -37,6 +38,7 @@ namespace LOFAR
   class Stopwatch 
   {
   private:
+    LOFAR::NSTimer hires_timer;
     //##ModelId=3DB9546402F8
     struct tms tms;
     //##ModelId=3DB9546402FA
@@ -50,7 +52,9 @@ namespace LOFAR
     int namewidth;
   
     //##ModelId=3DB9546402FF
-    static double scale; // seconds per tick
+    static clock_t ticks_per_sec;
+    static double scale;  // seconds per tick
+    static double ns_scale; // nanoseconds per tick
     //##ModelId=3DB954640301
     static struct tms dummy_tms;
       
@@ -58,24 +62,60 @@ namespace LOFAR
   public:
     //##ModelId=3DB954640213
     typedef enum { USER=1,SYSTEM=2,REAL=4,ALL=7 } Components;
+  
+    static clock_t ticksPerSecond ()
+    { return ticks_per_sec; }
+    
+    static double cpuSpeedInMHz ()
+    { return LOFAR::NSTimer::cpuSpeedInMHz(); }
+        
       
-    // resets the stopwatch
+    // resets and restarts the stopwatch
     //##ModelId=3DB954640302
     void reset ()
     { 
       tick = times(&tms); 
       last_tick = static_cast<clock_t>(tick + fire_secs/scale); 
+      hires_timer.stop();
+      hires_timer.reset();
+      hires_timer.start();
     }
 
     //##ModelId=3DB954640304
     Stopwatch (double secs=0)
       : fire_secs(secs),namewidth(8)
-    { reset(); }
+    { reset(); hires_timer.start(); }
       
     // returns elapsed time, and optionally resets stopwatch
     //##ModelId=3DB954640306
     Stopwatch delta (bool do_reset=true);
-      
+    
+    // stores elapsed clockticks in st[] array (fastest way to do it)
+    void delta (long long st[4],bool do_reset=false)
+    {
+      struct tms tms1;
+      clock_t tick1 = times(&tms1); 
+      st[0] = tms1.tms_utime - tms.tms_utime;
+      st[1] = tms1.tms_stime - tms.tms_stime;
+      st[2] = tick1 - tick;
+      st[3] = hires_timer.elapsed();
+      if( do_reset )
+        reset();
+    }
+
+    // adds elapsed clockticks to st[] array (fastest way to do it)
+    void Stopwatch::add_delta (long long st[4],bool do_reset=false)
+    {
+      struct tms tms1;
+      clock_t tick1 = times(&tms1); 
+      st[0] += tms1.tms_utime - tms.tms_utime;
+      st[1] += tms1.tms_stime - tms.tms_stime;
+      st[2] += tick1 - tick;
+      st[3] += hires_timer.elapsed();
+      if( do_reset )
+        reset();
+    }
+    
     // converts to formatted string (user/system/real time)
     // If nop is specified, also includes rate in ops/second
     //##ModelId=3DB954640308
@@ -113,8 +153,22 @@ namespace LOFAR
     double sys  () const    { return tms.tms_stime*scale; }
     //##ModelId=3DB954640325
     double real () const    { return tick*scale; }
+    
+    // returns time components in nanoseconds
+    double user_ns () const    { return tms.tms_utime*ns_scale; }
+    //##ModelId=3DB954640323
+    double sys_ns  () const    { return tms.tms_stime*ns_scale; }
+    //##ModelId=3DB954640325
+    double real_ns () const    { return tick*ns_scale; }
+    
+    // returns time components in clock ticks (fastest, since no fp ops are performed) 
+    double user_clk () const    { return tms.tms_utime; }
+    //##ModelId=3DB954640323
+    double sys_clk  () const    { return tms.tms_stime; }
+    //##ModelId=3DB954640325
+    double real_clk () const    { return tick; }
       
-    // returns elapsed time in seconds
+    // returns true if stopwatch has fired
     //##ModelId=3DB954640327
     bool fired () const { return times(&dummy_tms) >= last_tick; };
   };

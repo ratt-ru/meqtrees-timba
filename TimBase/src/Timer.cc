@@ -48,10 +48,10 @@ double NSTimer::get_CPU_speed_in_MHz()
     char     buffer[256], *colon;
 
     while (infile.good()) {
-	infile.getline(buffer, 256);
+        infile.getline(buffer, 256);
 
-	if (strncmp("cpu MHz", buffer, 7) == 0 && (colon = strchr(buffer, ':')) != 0)
-	    return atof(colon + 2);
+        if (strncmp("cpu MHz", buffer, 7) == 0 && (colon = strchr(buffer, ':')) != 0)
+            return atof(colon + 2);
     }
 #endif
 
@@ -62,13 +62,13 @@ double NSTimer::get_CPU_speed_in_MHz()
 void NSTimer::print_time(ostream &str, const char *which, double time) const
 {
     static const char *units[] = { " ns", " us", " ms", "  s", " ks", 0 };
-    const char	      **unit   = units;
+    const char              **unit   = units;
 
     time = 1000.0 * time / CPU_speed_in_MHz;
 
     while (time >= 999.5 && unit[1] != 0) {
-	time /= 1000.0;
-	++ unit;
+        time /= 1000.0;
+        ++ unit;
     }
 
     str << which << " = " << setprecision(3) << setw(4) << time << *unit;
@@ -77,23 +77,23 @@ void NSTimer::print_time(ostream &str, const char *which, double time) const
 
 ostream &NSTimer::print(ostream &str)
 {
-    if (name == 0) {
+    if (name.empty()) {
       str << "timer: ";
     } else {
       str << left << setw(25) << name << ": " << right;
     }
 
     if (CPU_speed_in_MHz == 0)
-	str << "could not determine CPU speed\n";
+        str << "could not determine CPU speed\n";
     else if (count > 0) {
-	double total = static_cast<double>(total_time);
+        double total = static_cast<double>(total_time);
 
-	print_time(str, "avg", total / static_cast<double>(count));
-	print_time(str, ", total", total);
-	str << ", count = " << setw(9) << count << '\n';
+        print_time(str, "avg", total / static_cast<double>(count));
+        print_time(str, ", total", total);
+        str << ", count = " << setw(9) << count << '\n';
     }
     else
-	str << "not used\n";
+        str << "not used\n";
 
     return str;
 }

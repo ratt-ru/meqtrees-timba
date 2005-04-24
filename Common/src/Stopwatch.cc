@@ -30,7 +30,9 @@ namespace LOFAR
 {
 
   //##ModelId=3DB9546402FF
-  double Stopwatch::scale = 1.0/sysconf(_SC_CLK_TCK);
+  long Stopwatch::ticks_per_sec = sysconf(_SC_CLK_TCK);
+  double Stopwatch::scale = double(1)/Stopwatch::ticks_per_sec;
+  double Stopwatch::ns_scale = double(1e+6)/Stopwatch::ticks_per_sec;
   //##ModelId=3DB954640301
   struct tms Stopwatch::dummy_tms;
   
@@ -49,7 +51,7 @@ namespace LOFAR
       *this = now;
     return prev;
   }
-
+  
   //##ModelId=3DB954640308
   string Stopwatch::toString (long long nops,int opts,const char * format) const
   {

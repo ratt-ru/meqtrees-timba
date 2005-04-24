@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <string>
 
 
 namespace LOFAR {
@@ -41,22 +42,29 @@ namespace LOFAR {
 
   class NSTimer {
     public:
-			   NSTimer(const char *name = 0);
-			   ~NSTimer();
+        NSTimer  (const char *name = 0);
+        ~NSTimer ();
 
-	void		   start();
-	void		   stop();
-	void		   reset();
-	std::ostream   	   &print(std::ostream &);
+        void                   start();
+        void                   stop();
+        void                   reset();
+        
+        std::ostream           &print(std::ostream &);
+        
+        long long              elapsed ()
+        { return total_time; }
+        
+        static double          cpuSpeedInMHz ()
+        { return CPU_speed_in_MHz; }
 
     private:
-	void		   print_time(std::ostream &, const char *which, double time) const;
+        void                   print_time(std::ostream &, const char *which, double time) const;
 
-	long long	   total_time;
-	unsigned long long count;
-	char		   *const name;
+        long long              total_time;
+        unsigned long long     count;
+        std::string           name;
 
-	static double	   CPU_speed_in_MHz, get_CPU_speed_in_MHz();
+        static double          CPU_speed_in_MHz, get_CPU_speed_in_MHz();
   };
 
 
@@ -70,9 +78,9 @@ namespace LOFAR {
   }
 
 
-  inline NSTimer::NSTimer(const char *name)
+  inline NSTimer::NSTimer(const char *nm)
     :
-    name(name != 0 ? strdup(name) : 0)
+    name(nm != 0 ? nm : "" )
   {
     reset();
   }
@@ -80,8 +88,6 @@ namespace LOFAR {
 
   inline NSTimer::~NSTimer()
   {
-    if (name != 0)
-      free(name);
   }
 
 
@@ -90,15 +96,15 @@ namespace LOFAR {
 #if (defined __GNUC__ || defined __INTEL_COMPILER) && (defined __i386 || defined __x86_64)
     asm volatile
     (
-	"rdtsc\n\t"
-	"subl %%eax, %0\n\t"
-	"sbbl %%edx, %1"
+        "rdtsc\n\t"
+        "subl %%eax, %0\n\t"
+        "sbbl %%edx, %1"
     :
-	"=m" ((reinterpret_cast<int *>(&total_time))[0]),
-	"=m" ((reinterpret_cast<int *>(&total_time))[1])
+        "=m" ((reinterpret_cast<int *>(&total_time))[0]),
+        "=m" ((reinterpret_cast<int *>(&total_time))[1])
     :
     :
-	"eax", "edx"
+        "eax", "edx"
     );
 #endif
   }
@@ -109,15 +115,15 @@ namespace LOFAR {
 #if (defined __GNUC__ || defined __INTEL_COMPILER) && (defined __i386 || defined __x86_64)
     asm volatile
     (
-	"rdtsc\n\t"
-	"addl %%eax, %0\n\t"
-	"adcl %%edx, %1"
+        "rdtsc\n\t"
+        "addl %%eax, %0\n\t"
+        "adcl %%edx, %1"
     :
-	"=m" ((reinterpret_cast<int *>(&total_time))[0]),
-	"=m" ((reinterpret_cast<int *>(&total_time))[1])
+        "=m" ((reinterpret_cast<int *>(&total_time))[0]),
+        "=m" ((reinterpret_cast<int *>(&total_time))[1])
     :
     :
-	"eax", "edx"
+        "eax", "edx"
     );
 #endif
 
