@@ -67,6 +67,7 @@ Conv                             1133       ; from /home/oms/LOFAR/Timba/VisCube
 Corr                             1188       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
 Count                            1099       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
 CoVar                            1299       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
+CPU                              1539       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:43
 Create                           1312       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:40
 Critical                         1497       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppEventSink.h:31
 D                                1003       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
@@ -321,6 +322,7 @@ MeqWSum                          1502       ; from /home/mevius/LOFAR/Timba/MeqN
 MeqZeroFlagger                   1434       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:32
 Message                          1269       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:36
 Metrics                          1363       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
+MHz                              1538       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:43
 Mismatch                         1257       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
 Mode                             1215       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
 Motion                           1167       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
