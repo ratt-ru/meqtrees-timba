@@ -112,7 +112,10 @@ class TreeBrowser (QObject):
         self.setPixmap(icol,QPixmap());
       elif result_status == meqds.CS_RES_OK:
         if control_status&meqds.CS_RETCACHE:
-          self.setPixmap(icol,pixmaps.blue_round_reload_return.pm());
+          if control_status&meqds.CS_CACHED:
+            self.setPixmap(icol,pixmaps.blue_round_reload_return.pm());
+          else:
+            self.setPixmap(icol,pixmaps.green_return.pm());
         else:
           if control_status&meqds.CS_CACHED:
             self.setPixmap(icol,pixmaps.blue_round_reload.pm());
