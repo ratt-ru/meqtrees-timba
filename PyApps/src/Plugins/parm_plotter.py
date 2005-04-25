@@ -20,7 +20,6 @@ from Timba.Plugins.realvsimag import *
 from Timba.Plugins.result_plotter import *
 
 
-
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='parm_plotter');
 _dprint = _dbg.dprint;
@@ -29,6 +28,19 @@ _dprintf = _dbg.dprintf;
 
 qtcolor = [Qt.red, Qt.green, Qt.blue, Qt.cyan, Qt.magenta, Qt.yellow, Qt.darkRed, Qt.darkGreen, Qt.darkBlue, Qt.darkCyan, Qt.darkMagenta, Qt.darkYellow,Qt.black];
 
+
+
+class MultipleScaleDraw(QwtScaleDraw):
+  def __init__(self,scales):
+    self.labels=scales;
+    QwtScaleDraw.__init__(self);
+
+  def label(self,v):
+    max  = len(self.labels);
+    if v-1 >= 0 and v-1 < max:
+      v=self.labels[int(v-1)];
+
+    return QwtScaleDraw.label(self,v)
 
 
 
@@ -133,34 +145,36 @@ class ParmPlotter(ResultPlotter):
       #      x.append((0.5*(domaini[1]+domaini[0])));
 
 
-    #Now rescale y values;
+
+    #Now rescale y values and set labels for y-axis;
+    labels=[0];
+
 
     for ic in range(nr_spids):
-        print " before";
-        scaley[ic]=(maxy[ic]-miny[ic]);
+      scaley[ic]=(maxy[ic]-miny[ic]);
 
-        print y[ic];
-         
-        
-        #        if scaley[ic]==0:
-        if not miny[ic] == 0:
-          if scaley[ic]/abs(miny[ic]) < 0.0001: #dont show ridiculous small variations
-            scaley[ic]=1.;
-        if scaley[ic]==0:
+      if not miny[ic] == 0:
+        if scaley[ic]/abs(miny[ic]) < 0.0001: #dont show ridiculous small variations
           scaley[ic]=1.;
-        offsety[ic]*=2*scaley[ic];
-        offsety[ic]-=miny[ic];
-        for np in range(len(y[ic])):
-          y[ic][np]+=offsety[ic];
-          y[ic][np]/=scaley[ic];
-        print y[ic];
+      if scaley[ic]==0:
+        scaley[ic]=1.;
+      offsety[ic]*=2*scaley[ic];
+      offsety[ic]-=miny[ic];
+      for np in range(len(y[ic])):
+        y[ic][np]+=offsety[ic];
+        y[ic][np]/=scaley[ic];
 
+      labels.append(miny[ic]);
+  #    labels.append((miny[ic]+maxy[ic])*0.5);
 
-    print "scaled with";
-    print scaley;
-    print offsety;
-    print "minimax"
-    print miny, maxy;
+      labels.append(maxy[ic]);
+       
+
+##    print "scaled with";
+##    print scaley;
+##    print offsety;
+##    print "minimax"
+##    print miny, maxy;
 
 
 
@@ -182,6 +196,8 @@ class ParmPlotter(ResultPlotter):
     #      print y;
     #      print x;
     # now fill the plot with data
+
+  
     self._snippet_plotter.setTitle('Snippet solution');
     for nrs in range(nr_spids):
       name = 'spid'+str(nrs);
@@ -198,14 +214,22 @@ class ParmPlotter(ResultPlotter):
       self._snippet_plotter.enableLegend(True,curve);	
       # add scales for miny, maxy
 
-      #scaledraw=QwtScaleDraw(miny[nrs],maxy[nrs]);
+
       #scaledraw.draw();
     self._snippet_plotter.setAxisTitle(QwtPlot.xBottom, "Time (rescaled)")
-    self._snippet_plotter.setAxisTitle(QwtPlot.yLeft, "Parm Values (A.U.)")
+    self._snippet_plotter.setAxisTitle(QwtPlot.yLeft, "Parm Values ")
 
+    #trick to define my own scalelabels (min max for every spid)
+    #only works since my scale per definition runs from 2 to nr_spid*2+1
 
+    self.scaledraw=MultipleScaleDraw(labels);
+    self.scaledraw
+    self.scaledraw.setScale(1,2*nr_spids+1,2*nr_spids+1,3);
+    self._snippet_plotter.setAxisScaleDraw(QwtPlot.yLeft, self.scaledraw);
 
-    self._snippet_plotter.enableYLeftAxis(False);
+    self._snippet_plotter.setAxisScale(QwtPlot.yLeft,2,2*nr_spids+1,1);
+
+   # self._snippet_plotter.enableYLeftAxis(False);
     
     self._snippet_plotter.replot();
     
@@ -243,9 +267,7 @@ class ParmPlotter(ResultPlotter):
           self.set_widgets(self._snippet_plotter,self.dataitem.caption,icon=self.icon())
           self._wtop = self._snippet_plotter;
           self._snippet_plotter.setAxisAutoScale(QwtPlot.xBottom)
-          #self._snippet_plotter.setAxisAutoScale(QwtPlot.yLeft)
-          #self._snippet_plotter.setAxisAutoScale(QwtPlot.yRight)
-
+                    
         self.display_snippet_solution();
       else:  #show cache result instead
         try: self._rec = self._rec.cache_result; # look for cached_result field
