@@ -58,8 +58,8 @@ updq="$6"
 # See if this package was already updated.
 grep "^$pkgname " allpkg.tmp > /dev/null 2>&1
 notfound=$?
-# If found, check if tag matches.
-if [ $notfound = 0  -a  "$pkgtag" != "" ]; then
+# If found, check if tag matches (only if checkout/update needs to be done).
+if [ $notfound = 0  -a  $checkout = 1  -a  "$pkgtag" != "" ]; then
   tmptag=`grep "^$pkgname [^ ]" allpkg.tmp | head -1 | sed -e 's/.* //'`
   if [ "$tmptag" != "$pkgtag" ]; then
     echo "Error: package $pkgname is used with different tags ($pkgtag and $tmptag)"
