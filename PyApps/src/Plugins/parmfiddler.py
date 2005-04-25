@@ -314,11 +314,12 @@ class ParmFiddler (browsers.GriddedPlugin):
 
   def changeGrof(self,value):
       fine=self.slider2.value()/100.;
-#      sign = 1;
-#      if not value == 0:
-#          sign = abs(value)/value;
+      sign = 1;
+      if not value == 0:
+          sign = abs(value)/value;
 
-      self.c00=value+fine;
+          
+      self.c00=sign*(abs(value)+fine);
       self.changeCaption(self.c00);
 
   def changeFine(self,value):
@@ -345,8 +346,12 @@ class ParmFiddler (browsers.GriddedPlugin):
       
   def changeC00(self, value=0.00):
 
-      value=(value*100)//1;
-      value=value/100.;
+      sign=1;
+      if not value == 0:
+          sign = abs(value)/value;
+
+      value=int(abs(value)*100+0.5);
+      value=sign*value/100.;
       min=self.slider1.minValue();
       max=self.slider1.maxValue();
 
@@ -355,11 +360,8 @@ class ParmFiddler (browsers.GriddedPlugin):
       self.changeCaption(value);
       
       self.c00 = value;
-      grof=abs(value)//1;
-      sign=1;
-      if not value == 0:
-          sign = abs(value)/value;
-      fine=sign*(abs(value)-grof)*100;
+      grof=int(abs(value)+0.5);
+      fine=(abs(value)-grof)*100;
       grof =sign*grof;
       self.slider1.setValue(grof)
       self.slider2.setValue(fine)
