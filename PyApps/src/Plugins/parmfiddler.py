@@ -252,10 +252,15 @@ class ParmFiddler (browsers.GriddedPlugin):
     reqVFrame = QVBox(reqCtrlFrame);
     self.labelParm = QLabel("c00: 0", reqVFrame ,"labelParm");
     reqSlideFrame = QHBox(reqVFrame);
+
+    reqButtonFrame = QHBox(reqVFrame);
         
-    self.buttonOk = QPushButton(reqVFrame,"buttonOk")
-    self.buttonOk.setIconSet(pixmaps.check.iconset());
+    self.buttonOk = QPushButton(reqButtonFrame,"buttonOk")
+#    self.buttonOk.setIconSet(pixmaps.check.iconset());
     self.buttonOk.setText('Funklet');
+
+    self.buttonReset = QPushButton(reqButtonFrame,"buttonReset")
+    self.buttonReset.setText('Zero');
 
 
     self.slider1 = QSlider (reqSlideFrame,"slider1");
@@ -282,6 +287,7 @@ class ParmFiddler (browsers.GriddedPlugin):
 
  
     QObject.connect(self.buttonOk,SIGNAL("clicked()"),self.getparms);
+    QObject.connect(self.buttonReset,SIGNAL("clicked()"),self.resetfunklet);
 
     self._request = [];
     self._parmlist= [];
@@ -326,6 +332,11 @@ class ParmFiddler (browsers.GriddedPlugin):
 
 
 
+  def resetfunklet(self):
+      if not self._currentparm:
+          return;
+      self._currentparm.resettozero();
+
 
   def updateC00(self):
       if not self._currentparm:
@@ -358,6 +369,7 @@ class ParmFiddler (browsers.GriddedPlugin):
       if item:
           self._parmindex = self.lb.currentItem();
       self.buttonOk.setEnabled(True);
+      self.buttonReset.setEnabled(True);
       changenode=self._parmlist[self._parmindex];
       if self._currentparm:
           self._currentparm.reject();
@@ -368,6 +380,7 @@ class ParmFiddler (browsers.GriddedPlugin):
   def parmSelected(self,index):
       self._parmindex = index;
       self.buttonOk.setEnabled(True);
+      self.buttonReset.setEnabled(True);
       changenode=self._parmlist[self._parmindex];
       if self._currentparm:
           self._currentparm.reject();
@@ -416,6 +429,7 @@ class ParmFiddler (browsers.GriddedPlugin):
                               "Warning",
                             "No request found in Node, Please specify request first via Reexecute");
           self.buttonOk.setEnabled(False);          
+          self.buttonReset.setEnabled(False);
       else:
           #
           #      print self._node;
@@ -431,12 +445,14 @@ class ParmFiddler (browsers.GriddedPlugin):
           for parm in self._parmlist:
               self.lb.insertItem( parm.name )
           self.buttonOk.setEnabled(False);
+          self.buttonReset.setEnabled(False);
         
           if not self._parmlist:
               QMessageBox.warning(self.wtop(),
                                   "Warning",
                                   "No parameters found");
               self.buttonOk.setEnabled(False);
+              self.buttonReset.setEnabled(False);
         
       self.enable();
       self.flash_refresh();
@@ -563,6 +579,30 @@ class ParmChange:
       self.updatechange();
       if self.edit_parm:
           self.edit_parm.updateCoeff_fromparent();
+
+
+
+  def resettozero(self):
+      if not self._funklet:
+          return 0;
+      if is_scalar(self._funklet.coeff):
+          self._funklet.coeff=0;
+      else:
+          if is_scalar(self._funklet.coeff[0]):
+              for i in range(len(self._funklet.coeff)):
+                  self._funklet.coeff[i]=0;
+          else:
+              for i in range(len(self._funklet.coeff)):
+                  for j in range(len(self._funklet.coeff[i])):
+                                 self._funklet.coeff[i][j]=0;
+      self.updatechange();
+      if self.edit_parm:
+          self.edit_parm.updateCoeff_fromparent();
+
+
+
+
+
 
   def updatechange (self):
       if not self._funklet:
