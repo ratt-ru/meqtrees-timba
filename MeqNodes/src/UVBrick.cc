@@ -90,11 +90,11 @@ namespace Meq {
 	if (!_image_exists) 
 	  {
 	    // UV image does not exist, so make one.
-	    makeUVImage(rcells);
+	    makeUVImage(rcells,childres);
 	  } else {
 	  if (!checkValidity(rcells)) {	    
 	    // UV image does not satisfy the requirements, so make a new one.
-	    makeUVImage(rcells);	    
+	    makeUVImage(rcells,childres);	    
 	  };
 	};  //end: if / then / else
 
@@ -272,7 +272,7 @@ namespace Meq {
   };
 
 
-  void UVBrick::makeUVImage(const Cells &fcells)
+  void UVBrick::makeUVImage(const Cells &fcells,const std::vector<Result::Ref> &fchildres )
   {
     // Make Patch Image, and its FFT (real & imag UVImages) for the correct 
     // frequency planes (determined by fcells i.e. the Request Cells) 
@@ -293,7 +293,11 @@ namespace Meq {
 
     const LoVec_double freq = fcells.center(Axis::FREQ); 
     const LoVec_double freqsize = fcells.cellSize(Axis::FREQ);
-    const double freq_max = max(freq);
+    const LoVec_double lofr = fcells.cellStart(Axis::FREQ); 
+    const LoVec_double hifr = fcells.cellEnd(Axis::FREQ);
+    const double f1 = max(lofr);
+    const double f2 = max(hifr);
+    const double freq_max = casa::max(f1,f2);
 
     // At the moment there is no LSM and, hence, no Patch Image.
     // Therefore, a Patch Image is constructed. This image does match 
@@ -312,11 +316,12 @@ namespace Meq {
     const double RA_size = 0.0175; // rad
     const double Dec_size = 0.0175; //rad
 
-    const double delta_RA = 1.0 / (freq_max * 2 * _umax / c0);
-    const double delta_Dec = 1.0 / (freq_max * 2 * _vmax / c0); 
+    const double delta_RA = 1.0 / (freq_max * 2 * _umax / c0 + 1/RA_size);
+    const double delta_Dec = 1.0 / (freq_max * 2 * _vmax / c0 + 1/Dec_size); 
     
-    const int nRA = int( 2*RA_size / delta_RA + 0.5);
-    const int nDec = int( 2*Dec_size / delta_Dec + 0.5);
+    const int nRA = int( 2*RA_size / delta_RA )+1;
+    const int nDec = int( 2*Dec_size / delta_Dec)+1;
+    // Rounding off to upper value and number of gridpoints is number of intervals + 1, hence +2
 
     // RA: nRa pixels, Dec: nDec pixels, Stokes: 1 pixels, Freq: nf pixels
     casa::CoordinateSystem cs = casa::CoordinateUtil::defaultCoords4D();
@@ -396,9 +401,18 @@ namespace Meq {
       // coordOut=pixel,coordIn=world, absIn=[T, T, T, T], unitsIn="rad rad pix pix", absOut=[T,T,T,T], unitsOut="pix pix pix pix"
       cs.convert(pixel, world, absio, unitin, doppler, absio, unitout, doppler, offset, offset);
 	
+      Result::Ref resultRA = fchildres.at(0);
+      Result::Ref resultDec = fchildres.at(1);
+      VellSet vellsRA = resultRA->vellSet(0);
+      VellSet vellsDec = resultDec->vellSet(0);
+      Vells RAvells = vellsRA.getValue();
+      Vells Decvells = vellsDec.getValue();
+      blitz::Array<double,1> arrRA = RAvells.as<double,1>();
+      blitz::Array<double,1> arrDec = Decvells.as<double,1>();
+
       // Beware: in this rounding off a pixel may lie just outside the image
-      position(0)=int(nRA / 2.0  + 0.5)-1+5; // int(pixel(0)+0.5);
-      position(1)=int(nDec / 2.0 + 0.5)-1+3; // int(pixel(1)+0.5);
+      position(0)=int(nRA / 2.0  + 0.5)+int(arrRA(0)+0.5); // int(pixel(0)+0.5);
+      position(1)=int(nDec / 2.0 + 0.5)+int(arrDec(0)+0.5); // int(pixel(1)+0.5);
       position(2)=int(pixel(2)+0.5);
       position(3)=int(pixel(3)+0.5);
     
