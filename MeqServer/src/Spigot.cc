@@ -320,12 +320,12 @@ int Spigot::getResult (Result::Ref &resref,
   {
     ResQueue::iterator pnext = res_queue_.begin();
     // doesn't match? see if next one does
-    if( !maskedCompare(req.id(),pnext->rqid,getDependMask()) )
+    if( !RqId::maskedCompare(req.id(),pnext->rqid,getDependMask()) )
     {
       // try second item in queue
       pnext++;
       if( pnext == res_queue_.end() || 
-          !maskedCompare(req.id(),pnext->rqid,getDependMask()) ) // still no match? fail
+          !RqId::maskedCompare(req.id(),pnext->rqid,getDependMask()) ) // still no match? fail
       {
         ResQueueItem &next = res_queue_.front();
         resref <<= new Result(1);

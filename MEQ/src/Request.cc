@@ -67,6 +67,11 @@ void Request::setId (const HIID &id)
   (*this)[FRequestId] = id_ = id;
 }
 
+void Request::setNextId (const HIID &id)
+{
+  (*this)[FNextRequestId] = next_id_ = id;
+}
+
 void Request::setCalcDeriv (int calc)
 { 
   (*this)[FCalcDeriv] = calc_deriv_ = calc; 
@@ -104,6 +109,7 @@ void Request::validateContent (bool)
       pcells_ = 0;
     // request ID
     id_ = (*this)[FRequestId].as<HIID>(HIID());
+    next_id_ = (*this)[FNextRequestId].as<HIID>(HIID());
     // flags
     calc_deriv_ = (*this)[FCalcDeriv].as<int>(0);
     cache_override_ = (*this)[FCacheOverride].as<bool>(false);

@@ -23,6 +23,7 @@
 #include <MeqNodes/ReqSeq.h>
 #include <MEQ/Request.h>
 #include <MEQ/Result.h>
+#include <MEQ/Forest.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
@@ -68,10 +69,19 @@ int ReqSeq::pollChildren (std::vector<Result::Ref> &chres,
     return Node::pollChildren(chres,resref,req);
   int retcode = 0;
   cdebug(3)<<"calling execute() on "<<numChildren()<<" children in turn"<<endl;
+  Request::Ref reqref(req);
+  RequestId rqid = req.id();
   for( int i=0; i<numChildren(); i++ )
   {
+    // *** ugly kludge for now, until we allow children to tell parents
+    // *** to clear cache!
+    if( i )
+    {
+      forest().incrRequestId(rqid,AidSolution);
+      reqref().setId(rqid);
+    }
     Result::Ref res;
-    int code = getChild(i).execute(res,req);
+    int code = getChild(i).execute(res,*reqref);
     cdebug(4)<<"    child "<<i<<" returns code "<<ssprintf("0x%x",code)<<endl;
     // a wait is returne immediately
     if( code&RES_WAIT )
@@ -85,7 +95,14 @@ int ReqSeq::pollChildren (std::vector<Result::Ref> &chres,
       result_code_ = code;
     }
   }
-  pollStepChildren(req);
+  // *** ugly kludge for now, until we allow children to tell parents
+  // *** to clear cache!
+  if( numStepChildren() )
+  {
+    forest().incrRequestId(rqid,AidSolution);
+    reqref().setId(rqid);
+  }
+  pollStepChildren(*reqref);
   return 0;
 }
 

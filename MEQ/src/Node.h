@@ -19,9 +19,10 @@
 //#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 //#  $Id$
-#ifndef MeqSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413
-#define MeqSERVER_SRC_NODE_H_HEADER_INCLUDED_E5514413
+#ifndef MEQ_NODE_H_HEADER_INCLUDED_E5514413
+#define MEQ_NODE_H_HEADER_INCLUDED_E5514413
     
+#include <Common/Stopwatch.h>
 #include <DMI/Record.h>
 #include <MEQ/EventGenerator.h>
 #include <MEQ/Result.h>
@@ -38,7 +39,8 @@
 #pragma aid Add Clear Known Active Gen Dep Deps Symdep Symdeps Mask Masks
 #pragma aid Parm Value Resolution Domain Dataset Resolve Parent Init Id
 #pragma aid Link Or Create Control Status New Breakpoint Single Shot Step
-    
+#pragma aid Cache Policy Stats All New Requests Parents Num Active
+#pragma aid Profiling Stats Total Children Get Result Ticks Per Second CPU MHz
 
 namespace Meq 
 { 
@@ -61,11 +63,30 @@ const HIID FNewRequest    = AidNew|AidRequest;
 const HIID FBreakpoint    = AidBreakpoint;
 const HIID FBreakpointSingleShot = AidBreakpoint|AidSingle|AidShot;
 
-// cache stored here
-const HIID FCacheResult     = AidCache|AidResult;
-const HIID FCacheResultCode = AidCache|AidResult|AidCode;
-const HIID FCacheRequestId  = AidCache|AidRequest|AidId;
-    
+// cache stored here 
+const HIID FCache     = AidCache; // top level subrecord
+  // subfields
+  const HIID FResultCode = AidResult|AidCode;
+  // const HIID FRequestId  = AidRequest|AidId; // already defined in MeqVocabulary
+
+const HIID FCachePolicy     = AidCache|AidPolicy;
+// if non-0, overrides the default parent count when making caching decisions
+const HIID FCacheNumActiveParents = AidCache|AidNum|AidActive|AidParents;
+// cache stats record
+const HIID FCacheStats      = AidCache|AidStats;
+  // and its fields
+  const HIID FAllRequests     = AidAll|AidRequests;
+  const HIID FNewRequests     = AidNew|AidRequests;
+  const HIID FParents         = AidParents;
+
+// profiling stats record
+const HIID FProfilingStats      = AidProfiling|AidStats;
+  const HIID FCPUMhz            = AidCPU|AidMHz;
+  const HIID FTicksPerSecond    = AidTicks|AidPer|AidSecond;
+  // and its fields
+  const HIID FTotal         = AidTotal;
+  // const HIID FChildren      = AidChildren; / already defined
+  const HIID FGetResult     = AidGet|AidResult;
 
 // flag for child init-records, specifying that child node may be directly
 // linked to if it already exists
@@ -198,6 +219,20 @@ class Node : public DMI::BObj
       // mask of bits that may be set from outside (via setState)
       CS_WRITABLE_MASK    = CS_MASK_CONTROL,
     } ControlStatus;
+
+    // cache management policies
+    typedef enum
+    {
+      CACHE_NEVER      = -10,    // nothing is cached at all
+      CACHE_MINIMAL    = -1,     // cache held until all parents get result
+      CACHE_DEFAULT    =  0,     // use global (forest default) policy
+      CACHE_SMART      =  1,     // smart caching based on next-request hints, 
+                                 // conservative (when in doubt, don't cache)
+      CACHE_SMART_AGR  =  10,    // smart caching based on next-request hints
+                                 // aggressive (when in doubt, cache)
+                                 // (NB: no difference right now)
+      CACHE_ALWAYS     =  20     // always cache
+    } CachePolicy;
     
     // helper function: returns a breakpoint mask corresponding to the given exec-state
     static inline int breakpointMask (int execstate)
@@ -689,7 +724,7 @@ class Node : public DMI::BObj
     //##Documentation
     //## Conditionally stores result in cache according to current policy.
     //## Returns the retcode.
-    int  cacheResult   (const Result::Ref &ref,int retcode);
+    int  cacheResult   (const Result::Ref &ref,const Request &req,int retcode);
     
     //##Documentation
     //## checks the Resampled Child Result (RCR) cache for a cached result 
@@ -761,9 +796,25 @@ class Node : public DMI::BObj
     HIID getChildLabel (int ich) const
     { return ich<int(child_labels_.size()) ? child_labels_[ich] : AtomicID(ich); }
     
+    // tells children (including stepchildren) to hold or release cache.
+    // if hold=false, holdCache(false) is called on all children
+    // if hold=true, holdChild(true) is called on those childeren whose
+    //   child_retcode or stepchild_retcode_ is not dependant on depmask;
+    //   the rest get holdCache(false)
+    void holdChildCaches (bool hold,int depmask=0);
+        
+    // called by parent node (from function above) to hint to a child whether 
+    // it needs to hold cache or not
+    void holdCache (bool hold);
+    
     //## control_status word
     int control_status_;
     
+    //## vector of child return codes, filled in by pollChildren()
+    std::vector<int> child_retcodes_;
+    //## vector of stepchild return codes, filled in by pollStepChildren()
+    std::vector<int> stepchild_retcodes_;
+     
   private:
     //##Documentation
     //## processes the request rider, and calls processCommand() as appropriate.
@@ -838,16 +889,9 @@ class Node : public DMI::BObj
     //## current (or last executed) request, set in execute()
     HIID current_reqid_;
     Request::Ref current_request_;
-    //##ModelId=400E530B01AF
-    //##Documentation
-    //## cached result of current request
-    Result::Ref cache_result_;
-    //##ModelId=400E530B01D2
-    //##Documentation
-    //## cached return code (including dependencies)
-    int cache_retcode_;
-    //## request id corresponding to cached result
-    HIID cache_reqid_;
+    
+    // flag set in execute() indicating a new request
+    bool new_request_;
     
     //##Documentation
     //## Dependency mask indicating which parts of a RequestId the node's own
@@ -888,7 +932,6 @@ class Node : public DMI::BObj
     //## Group(s) that a node belongs to. Node groups determine 
     std::vector<HIID> node_groups_;
     
-    
     //##Documentation
     //## auto-resample mode for child results
     int auto_resample_;
@@ -899,6 +942,7 @@ class Node : public DMI::BObj
     //## flag: child fails automatically propagated
     bool propagate_child_fails_;
     
+   
     //##Documentation
     //## cache of resampled child results
     std::vector<Result::Ref> rcr_cache_;
@@ -911,6 +955,104 @@ class Node : public DMI::BObj
     int breakpoints_;
     //## mask of current single-shot breakpoints
     int breakpoints_ss_;
+    
+    // cache policy setting
+    int cache_policy_;
+    
+    // real cache policy (equal to forest policy is ours is 0)
+    int actual_cache_policy_;
+    
+    // cache management info
+    // The Cache class encapsulates a cached result
+    class Cache
+    {
+      public:
+        // sets the cache
+        void set (const Result::Ref &resref,const RequestId &rq,int code)
+        {
+          result  = resref;
+          rqid    = rq;
+          rescode = code;
+          recref_.detach();
+        }
+        // clears the cache
+        void clear ()
+        {
+          result.detach();
+          recref_.detach();
+        }
+        // is cache valid?
+        bool valid () const
+        {
+          return result.valid();
+        }
+          
+        // rebuilds (if needed) and returns a representative cache record
+        const Record & record ();
+        // resets cache from record, returns validity flag
+        bool fromRecord (const Record &rec);
+          
+        Result::Ref result;
+        RequestId   rqid;
+        int         rescode;
+        
+      private:
+        DMI::Record::Ref recref_;
+    };
+    
+    Cache cache_;
+    // flag: release cache when all parents allow it
+    bool parents_release_cache_;
+    
+    // cache statistics
+    DMI::Record::Ref cache_stats_;
+    typedef struct
+    {
+      int req;        // total number of requests
+      int hits;       // total number of cache hits
+      int miss;       // total number of cache misses (wrong cache)
+      int none;       // total number of requests with no cache available
+      int cached;     // total number of all cached results
+      int longcached; // total number of results cached persistently
+    } CacheStats;
+    // total cache stats (including same requests)
+    CacheStats * pcs_total_;
+    // cache stats for new requests only
+    CacheStats * pcs_new_;
+    typedef struct
+    {
+      int npar;     // number of parents
+      int nact;     // number of active parents
+      int nhint;    // number of parents that issued hold/release hints
+      int nhold;    // of which, how many were hold hints
+    } CacheParentInfo;
+    CacheParentInfo * pcparents_;
+    // another copy of the result code goes here
+    int * pcrescode_;
+    
+    // profiling stats
+    DMI::Record::Ref profile_stats_;
+    typedef struct
+    {
+      double total;
+      double count;
+      double average;
+    } 
+    ProfilingStats;
+    
+    void fillProfilingStats (ProfilingStats *st,const LOFAR::NSTimer &timer);
+    
+    ProfilingStats * pprof_total_;
+    ProfilingStats * pprof_children_;
+    ProfilingStats * pprof_getresult_;
+    
+    // timers
+    struct
+    {
+      LOFAR::NSTimer total;
+      LOFAR::NSTimer children;
+      LOFAR::NSTimer getresult;
+    } timers_;
     
     static int checking_level_;
 };

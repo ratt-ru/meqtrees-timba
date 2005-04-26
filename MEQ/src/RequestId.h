@@ -44,6 +44,10 @@ typedef HIID RequestId;
 // // -----------------------------------------------------------------------
 // const std::map<HIID,int> & defaultSymdepMasks ();
 
+// utility functions reside in this namespace
+namespace RqId
+{
+
 // -----------------------------------------------------------------------
 // maskSubId()
 // Sets to 0 all indices whose maskbit is 0. 
@@ -78,6 +82,15 @@ inline RequestId setSubId (const RequestId &rqid,int mask,int value)
 // are compared. Returns true if the IDs match
 // -----------------------------------------------------------------------
 bool maskedCompare (const RequestId &a,const RequestId &b,int mask);
+
+// -----------------------------------------------------------------------
+// diffMask()
+// Compares two IDs and returns a bitmask with each bit set if IDs
+// are different
+// -----------------------------------------------------------------------
+int diffMask (const RequestId &a,const RequestId &b);
+
+}
 
 };
 #endif

@@ -31,7 +31,7 @@
 #include <map>
 
 #pragma aid Create Delete
-#pragma aid Axes Symdeps Debug Level
+#pragma aid Axes Symdeps Debug Level Profiling Enabled
 
 namespace Meq 
 { 
@@ -112,34 +112,42 @@ class Forest
     // sets complete state, else only overwrites the fields specified in rec
     void setState (DMI::Record::Ref &rec,bool complete = false);
     
-//    //##ModelId=3F9937F601A5
-//    //##Documentation
-//    //## Assigns ID to request object. WIll assign new domain ID if the cells
-//    //## differ from the previous request, otherwise will re-use IDs
-//    const HIID & assignRequestId (Request &req);
-    
-//    //## resets request IDs at start of new dataset
-//    void resetForNewDataSet ();
-    
     // Increments specified component of request ID, specified by symdep
     // A running count is maintained for all symdeps
     void incrRequestId (RequestId &rqid,const HIID &symdep);
     
+    // Same for a set of symdeps
     void incrRequestId (RequestId &rqid,const std::vector<HIID> &symdeps)
     { 
       for( uint i=0; i<symdeps.size(); i++)
         incrRequestId(rqid,symdeps[i]);
     }
     
+    // Returns the current symdep map
     const SymdepMap & getSymdepMasks () const
     { return symdep_map; }
     
+    // Looks up the depmask for a symdep
     int getDependMask (const HIID &symdep) const
     { 
       SymdepMap::const_iterator iter = symdep_map.find(symdep);
       FailWhen(iter==symdep_map.end(),"unknown symdep "+symdep.toString());
       return iter->second;
     }
+    
+    // returns or sets the default cache policy
+    int cachePolicy () const
+    { return cache_policy_; }
+    
+    void setCachePolicy (int pol) 
+    { cache_policy_ = pol; }
+    
+    // enables/disables node execution profiling
+    bool profilingEnabled () const
+    { return profiling_enabled_; }
+    
+    void enableProfiling (bool enable) 
+    { profiling_enabled_ = enable; }
     
     // manage subscriptions to various events
     // "Create" and "Delete" are the only ones known for now
@@ -196,7 +204,8 @@ class Forest
       else
         breakpoints &= ~bpmask;
     }
-    
+
+    // changes or gets the debug level
     void setDebugLevel (int level)
     { debug_level_ = level; }
     
@@ -264,11 +273,11 @@ class Forest
     // helper function to convert SymdepMap to Record
     void fillSymDeps (DMI::Record &rec,const SymdepMap &map);
     
+    // default cache policy for nodes
+    int cache_policy_;
     
-    //##ModelId=400E5305015A
-    HIID last_req_id;
-    //##ModelId=400E53050170
-    Meq::Cells::Ref last_req_cells;
+    // is profiling enabled?
+    bool profiling_enabled_;
     
     EventGenerator evgen_create;
     EventGenerator evgen_delete;

@@ -18,7 +18,7 @@ using namespace DMI;
 //   return masks;
 // }
     
-void Meq::maskSubId (RequestId &id,int mask)
+void Meq::RqId::maskSubId (RequestId &id,int mask)
 {
   // null mask: clear everything
   if( !mask )
@@ -38,7 +38,7 @@ void Meq::maskSubId (RequestId &id,int mask)
   }
 }
 
-void Meq::incrSubId (RequestId &id,int mask)
+void Meq::RqId::incrSubId (RequestId &id,int mask)
 {
   // null mask: do nothing
   if( !mask )
@@ -62,7 +62,7 @@ void Meq::incrSubId (RequestId &id,int mask)
   }
 }
 
-void Meq::setSubId (RequestId &id,int mask,int value)
+void Meq::RqId::setSubId (RequestId &id,int mask,int value)
 {
   // null mask: do nothing
   if( !mask )
@@ -87,7 +87,7 @@ void Meq::setSubId (RequestId &id,int mask,int value)
 }
 
     
-bool Meq::maskedCompare (const RequestId &id1,const RequestId &id2,int mask)
+bool Meq::RqId::maskedCompare (const RequestId &id1,const RequestId &id2,int mask)
 {
   // null mask: comparison always succeeds
   if( !mask )
@@ -110,4 +110,24 @@ bool Meq::maskedCompare (const RequestId &id1,const RequestId &id2,int mask)
       return false;
   }
   return true;
+}
+
+int Meq::RqId::diffMask (const RequestId &id1,const RequestId &id2)
+{
+  int mask = 0;
+  // start comparing from end of each ID
+  HIID::const_reverse_iterator iter1 = id1.rbegin();
+  HIID::const_reverse_iterator iter2 = id2.rbegin();
+  // ... until we run out of bits, or get to the start of BOTH ids
+  for(  int m1=1; 
+        m1 < (1<<RQIDM_NBITS) && (iter1 != id1.rend() || iter2 != id2.rend()); 
+        m1<<=1 )
+  {
+    // once we run out of indices in either ID, assume 0
+    AtomicID x1 = iter1 != id1.rend() ? *(iter1++) : AtomicID(0);
+    AtomicID x2 = iter2 != id2.rend() ? *(iter2++) : AtomicID(0);
+    if( x1 != x2 )
+      mask |= m1;
+  }
+  return mask;
 }

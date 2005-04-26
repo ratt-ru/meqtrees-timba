@@ -126,6 +126,15 @@ public:
   const HIID & id() const
   { return id_; }
   
+  //## Set the next-request hint
+  void setNextId (const HIID &id);
+
+  //##ModelId=400E5355007E
+  //##Documentation
+  //## Get the request id.
+  const HIID & nextId() const
+  { return next_id_; }
+  
   //##Documentation
   //## does this request have a rider field?
   bool hasRider () const
@@ -152,6 +161,7 @@ private:
   
     //##ModelId=400E535403B3
   HIID   id_;
+  HIID   next_id_;
     //##ModelId=3F86BFF80269
   Cells::Ref * pcells_;
     //##ModelId=3F868870003C

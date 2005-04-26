@@ -94,7 +94,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
     # create solver
     global rec;
     rec := meq.node('MeqSolver','solver',children="eq1 eq2");
-    rec.default := [ num_iter = 3 ];
+    rec.default := [ num_iter = 4,last_update=F ];
     rec.parm_group := hiid('Parm');
     rec.solvable := meq.solvable_list("x y");
     mqs.meq('Create.Node',rec);
@@ -105,6 +105,13 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
 #    for( n in "eq1 lhs1 c1 a1x x" )
     for( n in "x y a1 a2 b1 b2 eq1 eq2 a1x b1y a2x b2y" )
       mqs.meq('Node.Publish.Results',[name=n]);
+      
+    # set breakpoint if requested
+    if( any(argv == '-bp') )
+    {
+      mqs.meq('Node.Set.Breakpoint',[name='solver']);
+      mqs.meq('Debug.Set.Level',[debug_level=100]);
+    }
 
     # execute request on x and y parms to load funklet and get original values
     global cells,request,res;
@@ -136,6 +143,7 @@ const solver_test := function (stage=0,gui=use_gui,debug=[=],verbose=default_ver
   global cells,request,res;
   cells := meq.cells(meq.domain(0,1,0,1),num_freq=4,num_time=4);
   request := meq.request(cells,calc_deriv=1);
+  mqs.meq('Node.Clear.Cache',[name='solver',recursive=T],F);
   res := mqs.meq('Node.Execute',[name='solver',request=request],T);
   print res;
   

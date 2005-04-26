@@ -213,7 +213,7 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
   }
   // reset request ID
   forest_.incrRequestId(rqid_,FDataset);
-  setSubId(rqid_,forest_.getDependMask(FDomain),0);
+  RqId::setSubId(rqid_,forest_.getDependMask(FDomain),0);
   // forest_.resetForNewDataSet();
   handlers_.resize(VisVocabulary::ifrNumber(nstations,nstations)+1);
   // get frequencies 
@@ -282,7 +282,7 @@ int Meq::VisDataMux::deliverTile (VisCube::VTile::Ref &tileref)
     // update request id as appropriate
     if( !prev_cells_.valid() || cells != *prev_cells_ )
     {
-      incrSubId(rqid_,forest_.getDependMask(FDomain));
+      RqId::incrSubId(rqid_,forest_.getDependMask(FDomain));
       prev_cells_.attach(cells);
     }
     Request::Ref reqref;

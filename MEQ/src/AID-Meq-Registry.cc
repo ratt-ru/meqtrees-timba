@@ -135,9 +135,11 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         AtomicID::registerId(-1370,"Iter")+
         AtomicID::registerId(-1342,"Last")+
         AtomicID::registerId(-1337,"Override")+
+        AtomicID::registerId(-1529,"Policy")+
         AtomicID::registerId(-1266,"Iteration")+
         AtomicID::registerId(-1525,"Solution")+
         AtomicID::registerId(-1376,"Dataset")+
+        AtomicID::registerId(-1480,"Next")+
         AtomicID::registerId(-1032,"L")+
         AtomicID::registerId(-1030,"M")+
         AtomicID::registerId(-1028,"N")+
@@ -202,12 +204,24 @@ DMI::BObj * __construct_MeqFunction (int n) { return n>0 ? new Meq::Function [n]
         AtomicID::registerId(-1315,"Single")+
         AtomicID::registerId(-1348,"Shot")+
         AtomicID::registerId(-1473,"Step")+
+        AtomicID::registerId(-1531,"Stats")+
+        AtomicID::registerId(-1532,"Requests")+
+        AtomicID::registerId(-1530,"Parents")+
+        AtomicID::registerId(-1536,"Profiling")+
+        AtomicID::registerId(-1139,"Total")+
+        AtomicID::registerId(-1467,"Get")+
+        AtomicID::registerId(-1533,"Ticks")+
+        AtomicID::registerId(-1534,"Per")+
+        AtomicID::registerId(-1535,"Second")+
+        AtomicID::registerId(-1539,"CPU")+
+        AtomicID::registerId(-1538,"MHz")+
         AtomicID::registerId(-1283,"MeqFunction")+
         TypeInfoReg::addToRegistry(-1283,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1283,__construct_MeqFunction)+
         AtomicID::registerId(-1336,"Delete")+
         AtomicID::registerId(-1482,"Debug")+
         AtomicID::registerId(-1047,"Level")+
+        AtomicID::registerId(-1537,"Enabled")+
     0;
     return res;
   }

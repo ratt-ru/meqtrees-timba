@@ -38,6 +38,7 @@ const HIID FAxisMap = AidAxis|AidMap;
 const HIID FDebugLevel = AidDebug|AidLevel;
 const HIID FKnownSymdeps = AidKnown|AidSymdeps;
 const HIID FSymdeps = AidSymdeps;
+const HIID FProfilingEnabled = AidProfiling|AidEnabled;
   
 //##ModelId=3F60697A00ED
 Forest::Forest ()
@@ -50,7 +51,6 @@ Forest::Forest ()
   known_symdeps[AidResolution] = 0x04; // same as domain for now
   known_symdeps[AidDataset]    = 0x08;
   symdep_map = known_symdeps;
-  initDefaultState();
   // init required depmasks
   depmask_dataset_ = symdep_map[AidDataset];
   depmask_domain_  = symdep_map[AidDomain];
@@ -62,6 +62,12 @@ Forest::Forest ()
   node_status_callback = 0;
   node_breakpoint_callback = 0;
   debug_level_ = 0;
+  // default cache policy
+  cache_policy_ = Node::CACHE_SMART_AGR;
+  profiling_enabled_ = true;
+  
+  // init the state record
+  initDefaultState();
 }
 
 //##ModelId=400E53050193
@@ -240,8 +246,38 @@ const Node::Ref & Forest::getRef (int node_index)
 void Forest::incrRequestId (RequestId &rqid,const HIID &symdep)
 {
   int depmask = getDependMask(symdep);
-  int count = symdep_counts[symdep]++;
-  setSubId(rqid,depmask,count);
+  if( !depmask )
+    return;
+  // the assigned value will be the max of index and whatever is already
+  // at the specified position in rqid
+  int & index = ++symdep_counts[symdep];
+  // find MSB of mask
+  uint msb=0;
+  for( int m1=depmask; m1 != 0; m1 >>= 1 )
+    msb++;
+  // if request ID is shorter, resize
+  if( rqid.size() < msb )
+    rqid.push_front(0,msb-rqid.size());
+  // start from end 
+  HIID::reverse_iterator iter = rqid.rbegin();
+  // ... until we run out of bits, or get to the start of the id
+  for( int m1=1; 
+       m1 < (1<<RQIDM_NBITS) && iter != rqid.rend(); 
+       m1<<=1,iter++ )
+  {
+    if( depmask&m1 && *iter >= index )
+      index = *iter+1;
+  }
+  // now assign the index
+  iter = rqid.rbegin();
+  // ... until we run out of bits, or get to the start of the id
+  for( int m1=1; 
+       m1 < (1<<RQIDM_NBITS) && iter != rqid.rend(); 
+       m1<<=1,iter++ )
+  {
+    if( depmask&m1 )
+      *iter = index;
+  }
 }
 
 int Forest::getNodeList (DMI::Record &list,int content)
@@ -318,12 +354,16 @@ void Forest::initDefaultState ()
   DMI::Record &known = st[FKnownSymDeps] <<= new DMI::Record;
   fillSymDeps(st[FKnownSymdeps] <<= new DMI::Record,known_symdeps);
   fillSymDeps(st[FSymdeps] <<= new DMI::Record,symdep_map);
+  st[FCachePolicy] = cache_policy_;
+  st[FProfilingEnabled] = profiling_enabled_;
 }
 
 void Forest::setStateImpl (DMI::Record::Ref &rec)
 {
   if( rec->hasField(FAxisMap) )
     Axis::setAxisRecords(rec[FAxisMap].as<DMI::Vec>());
+  rec[FCachePolicy].get(cache_policy_);
+  rec[FProfilingEnabled].get(profiling_enabled_);
 //  FailWhen(rec->hasField(FKnownSymdeps),"immutable field: "+FKnownSymdeps.toString());
 //  FailWhen(rec->hasField(FSymdeps),"immutable field: "+FSymdeps.toString());
 //   if( rec->hasField(FSymDeps) )

@@ -194,7 +194,7 @@ const HIID
   Funklet * Parm::initFunklet (const Request &request,bool solve)
   {
     const Domain &domain = request.cells().domain();
-    HIID rq_dom_id = maskSubId(request.id(),domain_depend_mask_); 
+    HIID rq_dom_id = RqId::maskSubId(request.id(),domain_depend_mask_); 
     // do we have a current funklet set up?
     Funklet * pfunklet = wstate()[FFunklet].as_wpo<Funklet>();
     // see if this can be reused
@@ -427,7 +427,7 @@ const HIID
       {
 	if( isSolvable() )
 	  {
-	    HIID req_domain_id = maskSubId(reqref->id(),domain_depend_mask_);
+	    HIID req_domain_id = RqId::maskSubId(reqref->id(),domain_depend_mask_);
 	    if( req_domain_id == domain_id_ )
 	      {
 		cdebug(4)<<"got "<<FUpdateValues<<" command"<<endl;

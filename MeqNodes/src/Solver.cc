@@ -195,9 +195,11 @@ int Solver::getResult (Result::Ref &resref,
   std::vector<Thread::Mutex::Lock> child_reslock(numChildren());
   // get the request ID -- we're going to be incrementing the part of it 
   // corresponding to our symdeps
-  HIID rqid = request.id();
-  setSubId(rqid,iter_depmask_,0);
+  RequestId rqid = request.id();
+  RqId::setSubId(rqid,iter_depmask_,0);
   forest().incrRequestId(rqid,solution_symdeps_);
+  RequestId next_rqid = rqid;
+  RqId::incrSubId(next_rqid,iter_depmask_);
   // Create a new request and attach the solvable parm specification if needed.
   // We'll keep the request object via reference; note that
   // solve()/fillSolution() may subsequently create new request objects
@@ -226,15 +228,20 @@ int Solver::getResult (Result::Ref &resref,
   for (step=0; step<itsCurNumIter; step++) 
   {
     // increment the solve-dependent parts of the request ID
-    incrSubId(rqid,iter_depmask_);
+    rqid = next_rqid;
+    RqId::incrSubId(next_rqid,iter_depmask_);
     reqref().setId(rqid);
+    reqref().setNextId(next_rqid);
     // clear/unlock child results
     for( int i=0; i<numChildren(); i++ )
     {
 	    child_reslock[i].release();
       child_results[i].detach();
     }
-    int retcode = Node::pollChildren (child_results, resref, *reqref);
+    int retcode = Node::pollChildren(child_results, resref, *reqref);
+    // tell children to only hold cache if it doesn't depend on iteration
+    holdChildCaches(true,iter_depmask_);
+    
     setExecState(CS_ES_EVALUATING);
     for( int i=0; i<numChildren(); i++ )
       if( child_results[i].valid() )
@@ -409,8 +416,9 @@ int Solver::getResult (Result::Ref &resref,
     if( lastIter )
     {
       // increment the solve-dependent parts of the request ID one last time
-      incrSubId(rqid,iter_depmask_);
+      RqId::incrSubId(rqid,iter_depmask_);
       reqref().setId(rqid);
+      reqref().setNextId(request.nextId());
       ParmTable::lockTables();
       // unlock all child results
       for( int i=0; i<numChildren(); i++ )
