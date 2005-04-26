@@ -33,7 +33,9 @@
 namespace Meq {
   
   UVInterpol::UVInterpol():
-    _additional_info(false)
+    _additional_info(false),
+    _uvZ(0.0),
+    _uvDelta(casa::C::pi/2.)
   {
     Axis::addAxis("U");
     Axis::addAxis("V");
@@ -96,6 +98,9 @@ namespace Meq {
 	    
 	    Result& res3 = resref["UVInterpol.Count"] <<= new Result(1);
 	    VellSet& vs3 = res3.setNewVellSet(0);  
+
+	    Result& res4 = resref["UVInterpol.UVImage"] <<= new Result(1);
+	    VellSet& vs4 = res4.setNewVellSet(0);  
 	    
 	    //
 	    // Make the Result
@@ -146,18 +151,21 @@ namespace Meq {
 	    Vells & vells1 = vs1.setValue(new Vells(dcomplex(0),shape1,false));
 	    Vells & vells2 = vs2.setValue(new Vells(double(0),shape2,false));
 	    Vells & vells3 = vs3.setValue(new Vells(double(0),shape1,false));
+	    Vells & vells4 = vs4.setValue(new Vells(dcomplex(0),shape2,false));
 	    
 	    
 	    // Fill the Vells (this is were the interpolation takes place)
 	    //fillVells(childres,vells1,rcells);	
 	   	     
 	    // Fill the Vells (this is were the interpolation takes place)
-	    fillVells2(childres,vells1,vells2,vells3,rcells);	
+	    fillVells2(childres,vells1,vells2,vells3,vells4,rcells);	
 	    
 	    // Attach the request Cells to the result
 	    resref().setCells(rcells);
 	    res2.setCells(*newcells);
 	    res3.setCells(rcells);
+	    res4.setCells(*newcells);
+
 	  };
 
       }; 
@@ -170,6 +178,8 @@ namespace Meq {
   {
     Node::setStateImpl(rec,initializing);
     rec["Additional.Info"].get(_additional_info,initializing);
+    rec["UVZ"].get(_uvZ,initializing);
+    rec["UVDelta"].get(_uvDelta,initializing);
   }
 
   void UVInterpol::fillVells(const std::vector<Result::Ref> &fchildres, 
@@ -246,12 +256,22 @@ namespace Meq {
     for (int i = 0; i < nt; i++){
 
       dt1 = loti(i)-time(i);
-      lu(i) = uarr(i,0)*casa::cos(2*pi*dt1/24/3600)+varr(i,0)*casa::sin(2*pi*dt1/24/3600);
-      lv(i) = -uarr(i,0)*casa::sin(2*pi*dt1/24/3600)+varr(i,0)*casa::cos(2*pi*dt1/24/3600);
+      lu(i) = uarr(i,0)*casa::cos(2*pi*dt1/24/3600)
+	     -(varr(i,0)-casa::cos(_uvDelta)*_uvZ)/casa::sin(_uvDelta)
+	     *casa::sin(2*pi*dt1/24/3600);
+      lv(i) = casa::sin(_uvDelta)*uarr(i,0)*casa::sin(2*pi*dt1/24/3600)
+	     +(varr(i,0)-casa::cos(_uvDelta)*_uvZ)
+	     *casa::cos(2*pi*dt1/24/3600)
+	     +casa::cos(_uvDelta)*_uvZ;
       
       dt2 = hiti(i)-time(i);
-      hu(i) = uarr(i,0)*casa::cos(2*pi*dt2/24/3600)+varr(i,0)*casa::sin(2*pi*dt2/24/3600);
-      hv(i) = -uarr(i,0)*casa::sin(2*pi*dt2/24/3600)+varr(i,0)*casa::cos(2*pi*dt2/24/3600);
+      hu(i) = uarr(i,0)*casa::cos(2*pi*dt2/24/3600)
+	     -(varr(i,0)-casa::cos(_uvDelta)*_uvZ)/casa::sin(_uvDelta)
+	     *casa::sin(2*pi*dt2/24/3600);
+      hv(i) = casa::sin(_uvDelta)*uarr(i,0)*casa::sin(2*pi*dt2/24/3600)
+	     +(varr(i,0)-casa::cos(_uvDelta)*_uvZ)
+	     *casa::cos(2*pi*dt2/24/3600)
+	     +casa::cos(_uvDelta)*_uvZ;
 
     };
 
@@ -290,13 +310,18 @@ namespace Meq {
 	vmin = casa::min(casa::min(v1,v2),casa::min(v3,v4));
 	vmax = casa::max(casa::max(v1,v2),casa::max(v3,v4));
 
+	imin = 0;
+	imax = nu-1;
+	jmin = 0;
+	jmax = nv-1;
+
 	for (int i1 = 0; i1 < nu-1; i1++){
 	  if ((uu(i1)<=umin) && (uu(i1+1)>umin)) {imin = i1;};
-	  if ((uu(i1)<=umax) && (uu(i1+1)>umax)) {imax = i1;};
+	  if ((uu(i1)<=umax) && (uu(i1+1)>umax)) {imax = i1+1;};
 	};
 	for (int j1 = 0; j1 < nv-1; j1++){
 	  if ((vv(j1)<=vmin) && (vv(j1+1)>vmin)) {jmin = j1;};
-	  if ((vv(j1)<=vmax) && (vv(j1+1)>vmax)) {jmax = j1;};
+	  if ((vv(j1)<=vmax) && (vv(j1+1)>vmax)) {jmax = j1+1;};
 	};
 
 	// Add uv-data for UVBrick gridpoints within the Cell
@@ -306,8 +331,8 @@ namespace Meq {
 
 	    t1 = line(u1,v1,u2,v2,uc,vc,uu(i1),vv(j1));
 	    t2 = line(u3,v3,u4,v4,uc,vc,uu(i1),vv(j1));
-	    t3 = arc(u2,v2,u3,v3,uc,vc,uu(i1),vv(j1));
-	    t4 = arc(u4,v4,u1,v1,uc,vc,uu(i1),vv(j1));
+	    t3 = arc(u2,v2,u3,v3,uc,vc,uu(i1),vv(j1),hifr(j));
+	    t4 = arc(u4,v4,u1,v1,uc,vc,uu(i1),vv(j1),lofr(j));
 
 	    if (t1 && t2 && t3 && t4){
 	      arr(i,j) = arr(i,j) + barr(j,i1,j1);
@@ -317,31 +342,44 @@ namespace Meq {
 	  };
 	};
 	
-	if (np==0){
+	//	if (np==0){
 	  // No points found in the Cell, so find a value by bilinear interpolation
 
-	  for (int i1 = imin; i1 < imax+1; i1++){
-	    if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
-	  };
-	  for (int j1 = jmin; j1 < jmax+1; j1++){
-	    if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
-	  };
+	//	  for (int i1 = imin; i1 < imax+1; i1++){
+	//	    if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
+	//	  };
+	//	  for (int j1 = jmin; j1 < jmax+1; j1++){
+	//	    if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
+	//	  };
 
-	  t = (uc-uu(ia))/(uu(ib)-uu(ia));
-	  s = (vc-vv(ja))/(vv(jb)-vv(ja));
+	//	  t = (uc-uu(ia))/(uu(ib)-uu(ia));
+	//	  s = (vc-vv(ja))/(vv(jb)-vv(ja));
 	  
-	  arr(i,j) = (1-t)*(1-s)*barr(j,ia,jb) + t*(1-s)*barr(j,ib,ja) +
-	    t*s*barr(j,ib,jb) + (1-t)*s*barr(j,ia,jb);
+	//	  arr(i,j) = (1-t)*(1-s)*barr(j,ia,jb) + t*(1-s)*barr(j,ib,ja) +
+	//	    t*s*barr(j,ib,jb) + (1-t)*s*barr(j,ia,jb);
 
-	} else {
+	//	} else {
 	  // Np points found in the Cell, take average value
 
-	  arr(i,j) = arr(i,j)/double(np);	  
+	//	  arr(i,j) = arr(i,j)/double(np);	  
 
+	//	};
+
+	for (int i1 = imin; i1 < imax+1; i1++){
+	  if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
 	};
-
-	// Mutiply with the area of the Cell to get integrated value
-	arr(i,j) = arr(i,j)*double(2)*pi*(hiti(i)-loti(i))/double(24)/double(3600) * ( u2*u2 + v2*v2 - u1*u1 - v1*v1 ) / double(2);
+	for (int j1 = jmin; j1 < jmax+1; j1++){
+	  if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
+	};
+	
+	t = (uc-uu(ia))/(uu(ib)-uu(ia));
+	s = (vc-vv(ja))/(vv(jb)-vv(ja));
+	
+	arr(i,j) = arr(i,j) + (1-t)*(1-s)*barr(j,ia,jb) 
+	  + t*(1-s)*barr(j,ib,ja) +
+	  t*s*barr(j,ib,jb) + (1-t)*s*barr(j,ia,jb);
+	
+	arr(i,j) = arr(i,j)/double(np+1);	  
 
       };
     };
@@ -368,17 +406,28 @@ namespace Meq {
     return t;
   };
     
-  bool UVInterpol::arc(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4)
+  bool UVInterpol::arc(double u1, double v1, double u2, double v2, double u3, double v3, double u4, double v4, double freq)
   {
   
     // True: (u3,v3) and (u4,v4) lie on the same side of the (circular) arc through (u1,v1) and (u2,v2).
     // False: not.
-  
+    const double c0 = casa::C::c;  // Speed of light
+
     double r1,r2;
     bool t(false);
 
-    r1 = u1*u1 + v1*v1 - u3*u3 - v3*v3;
-    r2 = u1*u1 + v1*v1 - u4*u4 - v4*v4;
+    r1 = u1*u1 + (v1-freq*_uvZ*casa::cos(_uvDelta)/c0)
+                *(v1-freq*_uvZ*casa::cos(_uvDelta)/c0)
+                /casa::sin(_uvDelta)/casa::sin(_uvDelta) 
+       - u3*u3 - (v3-freq*_uvZ*casa::cos(_uvDelta)/c0)
+                *(v3-freq*_uvZ*casa::cos(_uvDelta)/c0)
+                /casa::sin(_uvDelta)/casa::sin(_uvDelta);
+    r2 = u1*u1 + (v1-freq*_uvZ*casa::cos(_uvDelta)/c0)
+                *(v1-freq*_uvZ*casa::cos(_uvDelta)/c0)
+                /casa::sin(_uvDelta)/casa::sin(_uvDelta) 
+       - u4*u4 - (v4-freq*_uvZ*casa::cos(_uvDelta)/c0)
+                *(v4-freq*_uvZ*casa::cos(_uvDelta)/c0)
+                /casa::sin(_uvDelta)/casa::sin(_uvDelta);
 
     if (r1*r2 > 0) {
       t = true;
@@ -390,7 +439,7 @@ namespace Meq {
 
  void UVInterpol::fillVells2(const std::vector<Result::Ref> &fchildres, 
 			     Vells &fvells1, Vells &fvells2, Vells &fvells3, 
-			     const Cells &fcells)
+			     Vells &fvells4, const Cells &fcells)
   {
     // Definition of constants
     const double c0 = casa::C::c;  // Speed of light
@@ -463,13 +512,22 @@ namespace Meq {
     for (int i = 0; i < nt; i++){
 
       dt1 = loti(i)-time(i);
-      lu(i) = uarr(i,0)*casa::cos(2*pi*dt1/24/3600)+varr(i,0)*casa::sin(2*pi*dt1/24/3600);
-      lv(i) = -uarr(i,0)*casa::sin(2*pi*dt1/24/3600)+varr(i,0)*casa::cos(2*pi*dt1/24/3600);
+      lu(i) = uarr(i,0)*casa::cos(2*pi*dt1/24/3600)
+	     -(varr(i,0)-casa::cos(_uvDelta)*_uvZ)/casa::sin(_uvDelta)
+	     *casa::sin(2*pi*dt1/24/3600);
+      lv(i) = casa::sin(_uvDelta)*uarr(i,0)*casa::sin(2*pi*dt1/24/3600)
+	     +(varr(i,0)-casa::cos(_uvDelta)*_uvZ)
+	     *casa::cos(2*pi*dt1/24/3600)
+	     +casa::cos(_uvDelta)*_uvZ;
       
       dt2 = hiti(i)-time(i);
-      hu(i) = uarr(i,0)*casa::cos(2*pi*dt2/24/3600)+varr(i,0)*casa::sin(2*pi*dt2/24/3600);
-      hv(i) = -uarr(i,0)*casa::sin(2*pi*dt2/24/3600)+varr(i,0)*casa::cos(2*pi*dt2/24/3600);
-
+      hu(i) = uarr(i,0)*casa::cos(2*pi*dt2/24/3600)
+	     -(varr(i,0)-casa::cos(_uvDelta)*_uvZ)/casa::sin(_uvDelta)
+	     *casa::sin(2*pi*dt2/24/3600);
+      hv(i) = casa::sin(_uvDelta)*uarr(i,0)*casa::sin(2*pi*dt2/24/3600)
+	     +(varr(i,0)-casa::cos(_uvDelta)*_uvZ)
+	     *casa::cos(2*pi*dt2/24/3600)
+	     +casa::cos(_uvDelta)*_uvZ;
     };
 
     // Make an array, connected to the Vells, with which we fill the Vells.
@@ -478,6 +536,8 @@ namespace Meq {
     LoMat_double arr2 = fvells2.as<double,2>();
     arr2 = 0.0;
     LoMat_double arr3 = fvells3.as<double,2>();
+    arr3 = 0.0;
+    LoMat_dcomplex arr4 = fvells4.as<dcomplex,2>();
     arr3 = 0.0;
 
     double uc,vc,u1,u2,u3,u4,v1,v2,v3,v4;
@@ -527,8 +587,8 @@ namespace Meq {
 
 	    t1 = line(u1,v1,u2,v2,uc,vc,uu(i1),vv(j1));
 	    t2 = line(u3,v3,u4,v4,uc,vc,uu(i1),vv(j1));
-	    t3 = arc(u2,v2,u3,v3,uc,vc,uu(i1),vv(j1));
-	    t4 = arc(u4,v4,u1,v1,uc,vc,uu(i1),vv(j1));
+	    t3 = arc(u2,v2,u3,v3,uc,vc,uu(i1),vv(j1),hifr(j));
+	    t4 = arc(u4,v4,u1,v1,uc,vc,uu(i1),vv(j1),lofr(j));
 
 	    if (t1 && t2 && t3 && t4){
 	      arr1(i,j) = arr1(i,j) + barr(j,i1,j1);
@@ -540,35 +600,54 @@ namespace Meq {
 	};
 	arr3(i,j) = np;
 
-	if (np==0){
+	//	if (np==0){
 	  // No points found in the Cell, so find a value by bilinear interpolation
 	  
-	  for (int i1 = imin; i1 < imax+1; i1++){
-	    if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
-	  };
-	  for (int j1 = jmin; j1 < jmax+1; j1++){
-	    if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
-	  };
+	//	  for (int i1 = imin; i1 < imax+1; i1++){
+	//	    if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
+	//	  };
+	//	  for (int j1 = jmin; j1 < jmax+1; j1++){
+	//	    if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
+	//	  };
 	  
-	  t = (uc-uu(ia))/(uu(ib)-uu(ia));
-	  s = (vc-vv(ja))/(vv(jb)-vv(ja));
+	//	  t = (uc-uu(ia))/(uu(ib)-uu(ia));
+	//	  s = (vc-vv(ja))/(vv(jb)-vv(ja));
 	  
-	  arr1(i,j) = (1-t)*(1-s)*barr(j,ia,jb) + t*(1-s)*barr(j,ib,ja) +
-	    t*s*barr(j,ib,jb) + (1-t)*s*barr(j,ia,jb);
+	//	  arr1(i,j) = (1-t)*(1-s)*barr(j,ia,jb) + t*(1-s)*barr(j,ib,ja) +
+	//	    t*s*barr(j,ib,jb) + (1-t)*s*barr(j,ia,jb);
 
-	} else {
+	//	} else {
 	  // Np points found in the Cell, take average value
 
-	  arr1(i,j) = arr1(i,j)/double(np);	  
+	//	  arr1(i,j) = arr1(i,j)/double(np);	  
 
+	//	};
+	  
+	for (int i1 = imin; i1 < imax+1; i1++){
+	  if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
 	};
-
-	// Mutiply with the area of the Cell to get integrated value
-	arr1(i,j) = arr1(i,j)*double(2)*pi*(hiti(i)-loti(i))/double(24)/double(3600) * ( u2*u2 + v2*v2 - u1*u1 - v1*v1 ) / double(2);
-
+	for (int j1 = jmin; j1 < jmax+1; j1++){
+	  if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
+	};
+	
+	t = (uc-uu(ia))/(uu(ib)-uu(ia));
+	s = (vc-vv(ja))/(vv(jb)-vv(ja));
+	
+	arr1(i,j) = arr1(i,j) + (1-t)*(1-s)*barr(j,ia,jb) 
+	  + t*(1-s)*barr(j,ib,ja) +
+	  t*s*barr(j,ib,jb) + (1-t)*s*barr(j,ia,jb);
+	
+	arr1(i,j) = arr1(i,j)/double(np+1);	  
+	
       };
     };
     
+    for (int i = 0; i < nu; i++){
+      for (int j = 0; j < nv; j++){
+	arr4(i,j) = barr(0,i,j);
+      };
+    };
+
     
   };
   
